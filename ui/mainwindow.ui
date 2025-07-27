@@ -1,0 +1,751 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>892</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>将棋盤Q</string>
+  </property>
+  <widget class="QWidget" name="centralwidget"/>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>892</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="File">
+    <property name="title">
+     <string>ファイル(F)</string>
+    </property>
+    <addaction name="actionNewGame"/>
+    <addaction name="actionOpenKifuFile"/>
+    <addaction name="actionSave"/>
+    <addaction name="actionSaveAs"/>
+    <addaction name="separator"/>
+    <addaction name="importRecordWeb"/>
+    <addaction name="separator"/>
+    <addaction name="actionSaveBoardImage"/>
+    <addaction name="saveImageEvaluatedValue"/>
+    <addaction name="separator"/>
+    <addaction name="actionQuit"/>
+   </widget>
+   <widget class="QMenu" name="Edit">
+    <property name="title">
+     <string>編集(E)</string>
+    </property>
+    <widget class="QMenu" name="copyGameRecord">
+     <property name="title">
+      <string>棋譜コピー</string>
+     </property>
+     <addaction name="kifFormat"/>
+     <addaction name="ki2Format"/>
+     <addaction name="usiFormat"/>
+     <addaction name="universal"/>
+    </widget>
+    <widget class="QMenu" name="shogiPositionCopy">
+     <property name="title">
+      <string>局面コピー</string>
+     </property>
+     <addaction name="Sfen"/>
+     <addaction name="BOD"/>
+    </widget>
+    <widget class="QMenu" name="copyURLWebPhaseDiagramClipboard">
+     <property name="title">
+      <string>&amp;Web局面図のURLをクリップボードにコピー</string>
+     </property>
+     <addaction name="withoutImgTag"/>
+     <addaction name="withImgTag"/>
+    </widget>
+    <addaction name="undo"/>
+    <addaction name="redo"/>
+    <addaction name="separator"/>
+    <addaction name="unprompted"/>
+    <addaction name="pass"/>
+    <addaction name="separator"/>
+    <addaction name="copyGameRecord"/>
+    <addaction name="pasteGameRecord"/>
+    <addaction name="shogiPositionCopy"/>
+    <addaction name="separator"/>
+    <addaction name="actionCopyBoardToClipboard"/>
+    <addaction name="copyImageEvaluatedValueClipboard"/>
+    <addaction name="separator"/>
+    <addaction name="copyURLWebPhaseDiagramClipboard"/>
+    <addaction name="viewPlayBrowser"/>
+    <addaction name="kyokumenPedia"/>
+    <addaction name="separator"/>
+    <addaction name="bookmark"/>
+    <addaction name="bookmarkRegistration"/>
+   </widget>
+   <widget class="QMenu" name="Display">
+    <property name="title">
+     <string>表示(I)</string>
+    </property>
+    <addaction name="actionFlipBoard"/>
+    <addaction name="actionEnlargeBoard"/>
+    <addaction name="actionShrinkBoard"/>
+    <addaction name="separator"/>
+    <addaction name="actionToggleEngineAnalysis"/>
+    <addaction name="usiProtocolCommunicationLog"/>
+    <addaction name="separator"/>
+   </widget>
+   <widget class="QMenu" name="Game">
+    <property name="title">
+     <string>対局(G)</string>
+    </property>
+    <addaction name="actionStartGame"/>
+    <addaction name="actionConsideration"/>
+    <addaction name="separator"/>
+    <addaction name="actionResign"/>
+    <addaction name="actionUndoMove"/>
+    <addaction name="actionMakeImmediateMove"/>
+    <addaction name="breakOffGame"/>
+    <addaction name="separator"/>
+    <addaction name="actionAnalyzeKifu"/>
+    <addaction name="separator"/>
+    <addaction name="actionTsumeShogiSearch"/>
+    <addaction name="separator"/>
+   </widget>
+   <widget class="QMenu" name="standardMove">
+    <property name="title">
+     <string>定跡(M)</string>
+    </property>
+    <addaction name="openDefaultTrail"/>
+    <addaction name="openStandardMove"/>
+    <addaction name="separator"/>
+    <addaction name="createNew"/>
+    <addaction name="openFile"/>
+    <addaction name="saveFile"/>
+    <addaction name="saveFileAsNamedStandardMove"/>
+    <addaction name="closeFile"/>
+    <addaction name="exportFile"/>
+    <addaction name="separator"/>
+    <addaction name="addMoveStandard"/>
+    <addaction name="addFromFile"/>
+    <addaction name="addFromClipboard"/>
+    <addaction name="separator"/>
+    <addaction name="evaluationValueDisplay"/>
+    <addaction name="commentaryStandard"/>
+    <addaction name="treeStandardMove"/>
+    <addaction name="evaluationValueStandard"/>
+    <addaction name="separator"/>
+    <addaction name="standardMoveManagement"/>
+    <addaction name="evaluationValueInformation"/>
+   </widget>
+   <widget class="QMenu" name="positionEdit">
+    <property name="title">
+     <string>局面編集(P)</string>
+    </property>
+    <addaction name="actionStartEditPosition"/>
+    <addaction name="actionEndEditPosition"/>
+    <addaction name="separator"/>
+    <addaction name="flatHandInitialPosition"/>
+    <addaction name="shogiProblemInitialPosition"/>
+    <addaction name="returnAllPiecesOnStand"/>
+    <addaction name="separator"/>
+    <addaction name="reversal"/>
+    <addaction name="turnaround"/>
+   </widget>
+   <widget class="QMenu" name="Tool">
+    <property name="title">
+     <string>ツール(T)</string>
+    </property>
+    <addaction name="actionEngineSettings"/>
+    <addaction name="separator"/>
+    <addaction name="gameSetup"/>
+    <addaction name="configurationSetting"/>
+    <addaction name="hintSetting"/>
+    <addaction name="shogiProblemSearchSetting"/>
+    <addaction name="separator"/>
+    <addaction name="option"/>
+    <addaction name="separator"/>
+    <addaction name="openFolderAutoSaveRecord"/>
+    <addaction name="shogiWarsGameRecordList"/>
+   </widget>
+   <widget class="QMenu" name="Help">
+    <property name="title">
+     <string>ヘルプ(H)</string>
+    </property>
+    <addaction name="actionOpenWebsite"/>
+    <addaction name="usageMethod"/>
+    <addaction name="separator"/>
+    <addaction name="actionVersionInfo"/>
+   </widget>
+   <addaction name="File"/>
+   <addaction name="Edit"/>
+   <addaction name="Display"/>
+   <addaction name="Game"/>
+   <addaction name="standardMove"/>
+   <addaction name="positionEdit"/>
+   <addaction name="Tool"/>
+   <addaction name="Help"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QToolBar" name="toolBar">
+   <property name="windowTitle">
+    <string>toolBar</string>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionOpenKifuFile"/>
+   <addaction name="actionSave"/>
+   <addaction name="actionStartGame"/>
+   <addaction name="actionResign"/>
+   <addaction name="actionUndoMove"/>
+   <addaction name="actionMakeImmediateMove"/>
+   <addaction name="breakOffGame"/>
+   <addaction name="actionConsideration"/>
+   <addaction name="actionAnalyzeKifu"/>
+   <addaction name="actionTsumeShogiSearch"/>
+   <addaction name="actionFlipBoard"/>
+   <addaction name="actionEnlargeBoard"/>
+   <addaction name="actionShrinkBoard"/>
+  </widget>
+  <action name="actionSave">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/save.png</normaloff>:/images/icons/save.png</iconset>
+   </property>
+   <property name="text">
+    <string>上書き保存</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+S</string>
+   </property>
+  </action>
+  <action name="actionSaveAs">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/save_as.png</normaloff>:/images/icons/save_as.png</iconset>
+   </property>
+   <property name="text">
+    <string>名前を付けて保存</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+A</string>
+   </property>
+  </action>
+  <action name="importRecordWeb">
+   <property name="text">
+    <string>&amp;Webから棋譜を取り込み</string>
+   </property>
+  </action>
+  <action name="actionSaveBoardImage">
+   <property name="text">
+    <string>将棋盤の画像をファイルに保存</string>
+   </property>
+  </action>
+  <action name="saveImageEvaluatedValue">
+   <property name="text">
+    <string>評価値の画像をファイルに保存</string>
+   </property>
+  </action>
+  <action name="undo">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/edit_undo.png</normaloff>:/images/icons/edit_undo.png</iconset>
+   </property>
+   <property name="text">
+    <string>元に戻す</string>
+   </property>
+  </action>
+  <action name="redo">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/edit_redo.png</normaloff>:/images/icons/edit_redo.png</iconset>
+   </property>
+   <property name="text">
+    <string>やり直し</string>
+   </property>
+  </action>
+  <action name="unprompted">
+   <property name="text">
+    <string>入力取り消し</string>
+   </property>
+  </action>
+  <action name="pass">
+   <property name="text">
+    <string>パス</string>
+   </property>
+  </action>
+  <action name="pasteGameRecord">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/paste.png</normaloff>:/images/icons/paste.png</iconset>
+   </property>
+   <property name="text">
+    <string>棋譜貼り付け</string>
+   </property>
+  </action>
+  <action name="actionCopyBoardToClipboard">
+   <property name="text">
+    <string>将棋盤の画像をクリップボードにコピー</string>
+   </property>
+  </action>
+  <action name="copyImageEvaluatedValueClipboard">
+   <property name="text">
+    <string>評価値の画像をクリップボードにコピー</string>
+   </property>
+  </action>
+  <action name="viewPlayBrowser">
+   <property name="text">
+    <string>局面をブラウザで表示</string>
+   </property>
+  </action>
+  <action name="kyokumenPedia">
+   <property name="text">
+    <string>局面ペディア</string>
+   </property>
+  </action>
+  <action name="bookmark">
+   <property name="text">
+    <string>しおり</string>
+   </property>
+  </action>
+  <action name="actionFlipBoard">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/kaiten.png</normaloff>:/images/icons/kaiten.png</iconset>
+   </property>
+   <property name="text">
+    <string>盤面の回転</string>
+   </property>
+  </action>
+  <action name="actionToggleEngineAnalysis">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>思考</string>
+   </property>
+  </action>
+  <action name="usiProtocolCommunicationLog">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;USIプロトコル通信ログ</string>
+   </property>
+  </action>
+  <action name="action_33">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>ツリーダイアグラム</string>
+   </property>
+  </action>
+  <action name="action_34">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>コメント（思考）</string>
+   </property>
+  </action>
+  <action name="action_35">
+   <property name="text">
+    <string>アシスタント</string>
+   </property>
+  </action>
+  <action name="action_36">
+   <property name="text">
+    <string>解析一覧</string>
+   </property>
+  </action>
+  <action name="action_37">
+   <property name="text">
+    <string>継ぎ盤</string>
+   </property>
+  </action>
+  <action name="actionStartGame">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/taikyoku.png</normaloff>:/images/icons/taikyoku.png</iconset>
+   </property>
+   <property name="text">
+    <string>対局</string>
+   </property>
+  </action>
+  <action name="actionConsideration">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/kentou.png</normaloff>:/images/icons/kentou.png</iconset>
+   </property>
+   <property name="text">
+    <string>検討</string>
+   </property>
+  </action>
+  <action name="actionResign">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/touryou.png</normaloff>:/images/icons/touryou.png</iconset>
+   </property>
+   <property name="text">
+    <string>投了</string>
+   </property>
+  </action>
+  <action name="breakOffGame">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/chuudan.png</normaloff>:/images/icons/chuudan.png</iconset>
+   </property>
+   <property name="text">
+    <string>中断</string>
+   </property>
+   <property name="whatsThis">
+    <string/>
+   </property>
+   <property name="visible">
+    <bool>true</bool>
+   </property>
+  </action>
+  <action name="openDefaultTrail">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>既定定跡を開く</string>
+   </property>
+  </action>
+  <action name="openStandardMove">
+   <property name="text">
+    <string>定跡を開く</string>
+   </property>
+  </action>
+  <action name="createNew">
+   <property name="text">
+    <string>新規作成</string>
+   </property>
+  </action>
+  <action name="openFile">
+   <property name="text">
+    <string>開く</string>
+   </property>
+  </action>
+  <action name="saveFile">
+   <property name="text">
+    <string>保存</string>
+   </property>
+  </action>
+  <action name="actionQuit">
+   <property name="icon">
+    <iconset theme="exit.png" resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/exit.png</normaloff>:/images/icons/exit.png</iconset>
+   </property>
+   <property name="text">
+    <string>終了</string>
+   </property>
+  </action>
+  <action name="bookmarkRegistration">
+   <property name="text">
+    <string>しおり登録</string>
+   </property>
+  </action>
+  <action name="actionAnalyzeKifu">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/kaiseki.png</normaloff>:/images/icons/kaiseki.png</iconset>
+   </property>
+   <property name="text">
+    <string>棋譜解析</string>
+   </property>
+  </action>
+  <action name="saveFileAsNamedStandardMove">
+   <property name="text">
+    <string>名前を付けて保存</string>
+   </property>
+  </action>
+  <action name="closeFile">
+   <property name="text">
+    <string>閉じる</string>
+   </property>
+  </action>
+  <action name="exportFile">
+   <property name="text">
+    <string>エクスポート</string>
+   </property>
+  </action>
+  <action name="addMoveStandard">
+   <property name="text">
+    <string>指し手を定跡に追加</string>
+   </property>
+  </action>
+  <action name="addFromFile">
+   <property name="text">
+    <string>ファイルから追加</string>
+   </property>
+  </action>
+  <action name="addFromClipboard">
+   <property name="text">
+    <string>クリップボードから追加</string>
+   </property>
+  </action>
+  <action name="evaluationValueDisplay">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>評価値表示</string>
+   </property>
+  </action>
+  <action name="commentaryStandard">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>定跡コメント</string>
+   </property>
+  </action>
+  <action name="treeStandardMove">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>定跡ツリー</string>
+   </property>
+  </action>
+  <action name="evaluationValueStandard">
+   <property name="text">
+    <string>定跡評価値</string>
+   </property>
+  </action>
+  <action name="standardMoveManagement">
+   <property name="text">
+    <string>定跡管理</string>
+   </property>
+  </action>
+  <action name="evaluationValueInformation">
+   <property name="text">
+    <string>定跡情報</string>
+   </property>
+  </action>
+  <action name="actionStartEditPosition">
+   <property name="text">
+    <string>局面編集開始</string>
+   </property>
+  </action>
+  <action name="flatHandInitialPosition">
+   <property name="text">
+    <string>平手初期配置</string>
+   </property>
+  </action>
+  <action name="shogiProblemInitialPosition">
+   <property name="text">
+    <string>詰将棋初期配置</string>
+   </property>
+  </action>
+  <action name="returnAllPiecesOnStand">
+   <property name="text">
+    <string>全ての駒を駒台へ</string>
+   </property>
+  </action>
+  <action name="reversal">
+   <property name="text">
+    <string>先後反転</string>
+   </property>
+  </action>
+  <action name="turnaround">
+   <property name="text">
+    <string>手番変更</string>
+   </property>
+  </action>
+  <action name="actionEngineSettings">
+   <property name="text">
+    <string>エンジン設定</string>
+   </property>
+  </action>
+  <action name="gameSetup">
+   <property name="text">
+    <string>対局設定</string>
+   </property>
+  </action>
+  <action name="configurationSetting">
+   <property name="text">
+    <string>検討設定</string>
+   </property>
+  </action>
+  <action name="hintSetting">
+   <property name="text">
+    <string>ヒント設定</string>
+   </property>
+  </action>
+  <action name="shogiProblemSearchSetting">
+   <property name="text">
+    <string>詰み探索設定</string>
+   </property>
+  </action>
+  <action name="option">
+   <property name="text">
+    <string>オプション</string>
+   </property>
+  </action>
+  <action name="openFolderAutoSaveRecord">
+   <property name="text">
+    <string>棋譜自動保存フォルダを開く</string>
+   </property>
+  </action>
+  <action name="shogiWarsGameRecordList">
+   <property name="text">
+    <string>将棋ウォーズ棋譜一覧</string>
+   </property>
+  </action>
+  <action name="actionOpenWebsite">
+   <property name="text">
+    <string>ホームページ</string>
+   </property>
+  </action>
+  <action name="usageMethod">
+   <property name="text">
+    <string>使い方</string>
+   </property>
+  </action>
+  <action name="actionVersionInfo">
+   <property name="text">
+    <string>バージョン情報</string>
+   </property>
+  </action>
+  <action name="kifFormat">
+   <property name="text">
+    <string>&amp;KIF形式</string>
+   </property>
+  </action>
+  <action name="ki2Format">
+   <property name="text">
+    <string>K&amp;I2形式</string>
+   </property>
+  </action>
+  <action name="usiFormat">
+   <property name="text">
+    <string>&amp;USI</string>
+   </property>
+  </action>
+  <action name="universal">
+   <property name="text">
+    <string>ユニバーサル</string>
+   </property>
+  </action>
+  <action name="Sfen">
+   <property name="text">
+    <string>&amp;Sfen</string>
+   </property>
+  </action>
+  <action name="BOD">
+   <property name="text">
+    <string>&amp;BOD</string>
+   </property>
+  </action>
+  <action name="withoutImgTag">
+   <property name="text">
+    <string>&amp;imgタグなし</string>
+   </property>
+  </action>
+  <action name="withImgTag">
+   <property name="text">
+    <string>i&amp;mgタグあり</string>
+   </property>
+  </action>
+  <action name="actionNewGame">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/new.png</normaloff>:/images/icons/new.png</iconset>
+   </property>
+   <property name="text">
+    <string>新規</string>
+   </property>
+  </action>
+  <action name="actionOpenKifuFile">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/open.png</normaloff>:/images/icons/open.png</iconset>
+   </property>
+   <property name="text">
+    <string>開く</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+O</string>
+   </property>
+  </action>
+  <action name="actionUndoMove">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/matta.png</normaloff>:/images/icons/matta.png</iconset>
+   </property>
+   <property name="text">
+    <string>待った</string>
+   </property>
+  </action>
+  <action name="actionMakeImmediateMove">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/kyuu.png</normaloff>:/images/icons/kyuu.png</iconset>
+   </property>
+   <property name="text">
+    <string>すぐ指させる</string>
+   </property>
+  </action>
+  <action name="actionEnlargeBoard">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/dai.png</normaloff>:/images/icons/dai.png</iconset>
+   </property>
+   <property name="text">
+    <string>将棋盤の拡大</string>
+   </property>
+  </action>
+  <action name="actionShrinkBoard">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/shou.png</normaloff>:/images/icons/shou.png</iconset>
+   </property>
+   <property name="text">
+    <string>将棋盤の縮小</string>
+   </property>
+  </action>
+  <action name="actionEndEditPosition">
+   <property name="text">
+    <string>局面編集終了</string>
+   </property>
+  </action>
+  <action name="action">
+   <property name="text">
+    <string>実行関数</string>
+   </property>
+  </action>
+  <action name="actionTsumeShogiSearch">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/tsumi.png</normaloff>:/images/icons/tsumi.png</iconset>
+   </property>
+   <property name="text">
+    <string>詰み探索</string>
+   </property>
+  </action>
+ </widget>
+ <resources>
+  <include location="../resources/shogiboardq.qrc"/>
+ </resources>
+ <connections/>
+</ui>

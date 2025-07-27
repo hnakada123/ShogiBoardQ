@@ -1,0 +1,75 @@
+<RCC>
+    <qresource prefix="/">
+        <file>images/icons/bold.png</file>
+        <file>images/icons/copy.png</file>
+        <file>images/icons/create.png</file>
+        <file>images/icons/cut.png</file>
+        <file>images/icons/edit_redo.png</file>
+        <file>images/icons/edit_undo.png</file>
+        <file>images/icons/exit.png</file>
+        <file>images/icons/font.png</file>
+        <file>images/icons/info.png</file>
+        <file>images/icons/italic.png</file>
+        <file>images/icons/new.png</file>
+        <file>images/icons/open.png</file>
+        <file>images/icons/paste.png</file>
+        <file>images/icons/pencil.png</file>
+        <file>images/icons/print.png</file>
+        <file>images/icons/save.png</file>
+        <file>images/icons/save_as.png</file>
+        <file>images/icons/underline.png</file>
+        <file alias="pieces/Gote_fu45.svg">images/pieces/Gote_fu45.svg</file>
+        <file alias="pieces/Gote_gin45.svg">images/pieces/Gote_gin45.svg</file>
+        <file alias="pieces/Gote_gyoku45.svg">images/pieces/Gote_gyoku45.svg</file>
+        <file alias="pieces/Gote_hi45.svg">images/pieces/Gote_hi45.svg</file>
+        <file alias="pieces/Gote_kaku45.svg">images/pieces/Gote_kaku45.svg</file>
+        <file alias="pieces/Gote_kei45.svg">images/pieces/Gote_kei45.svg</file>
+        <file alias="pieces/Gote_kin45.svg">images/pieces/Gote_kin45.svg</file>
+        <file alias="pieces/Gote_kyou45.svg">images/pieces/Gote_kyou45.svg</file>
+        <file alias="pieces/Gote_narigin45.svg">images/pieces/Gote_narigin45.svg</file>
+        <file alias="pieces/Gote_narikei45.svg">images/pieces/Gote_narikei45.svg</file>
+        <file alias="pieces/Gote_narikyou45.svg">images/pieces/Gote_narikyou45.svg</file>
+        <file alias="pieces/Gote_ou45.svg">images/pieces/Gote_ou45.svg</file>
+        <file alias="pieces/Gote_ryuu45.svg">images/pieces/Gote_ryuu45.svg</file>
+        <file alias="pieces/Gote_to45.svg">images/pieces/Gote_to45.svg</file>
+        <file alias="pieces/Gote_uma45.svg">images/pieces/Gote_uma45.svg</file>
+        <file alias="pieces/Sente_fu45.svg">images/pieces/Sente_fu45.svg</file>
+        <file alias="pieces/Sente_gin45.svg">images/pieces/Sente_gin45.svg</file>
+        <file alias="pieces/Sente_gyoku45.svg">images/pieces/Sente_gyoku45.svg</file>
+        <file alias="pieces/Sente_hi45.svg">images/pieces/Sente_hi45.svg</file>
+        <file alias="pieces/Sente_kaku45.svg">images/pieces/Sente_kaku45.svg</file>
+        <file alias="pieces/Sente_kei45.svg">images/pieces/Sente_kei45.svg</file>
+        <file alias="pieces/Sente_kin45.svg">images/pieces/Sente_kin45.svg</file>
+        <file alias="pieces/Sente_kyou45.svg">images/pieces/Sente_kyou45.svg</file>
+        <file alias="pieces/Sente_narigin45.svg">images/pieces/Sente_narigin45.svg</file>
+        <file alias="pieces/Sente_narikei45.svg">images/pieces/Sente_narikei45.svg</file>
+        <file alias="pieces/Sente_narikyou45.svg">images/pieces/Sente_narikyou45.svg</file>
+        <file alias="pieces/Sente_ou45.svg">images/pieces/Sente_ou45.svg</file>
+        <file alias="pieces/Sente_ryuu45.svg">images/pieces/Sente_ryuu45.svg</file>
+        <file alias="pieces/Sente_to45.svg">images/pieces/Sente_to45.svg</file>
+        <file alias="pieces/Sente_uma45.svg">images/pieces/Sente_uma45.svg</file>
+        <file>images/icons/chuudan.png</file>
+        <file>images/icons/kaiseki.png</file>
+        <file>images/icons/kaiten.png</file>
+        <file>images/icons/kentou.png</file>
+        <file>images/icons/kyuu.png</file>
+        <file>images/icons/matta.png</file>
+        <file>images/icons/taikyoku.png</file>
+        <file>images/icons/touryou.png</file>
+        <file>images/icons/tsumi.png</file>
+        <file alias="icons/gtk-media-play-ltr.png">images/icons/gtk-media-play-ltr.png</file>
+        <file alias="icons/gtk-media-next-ltr.png">images/icons/gtk-media-next-ltr.png</file>
+        <file alias="icons/gtk-media-forward-ltr.png">images/icons/gtk-media-forward-ltr.png</file>
+        <file alias="icons/gtk-media-forward-rtl.png">images/icons/gtk-media-forward-rtl.png</file>
+        <file alias="icons/gtk-media-next-rtl.png">images/icons/gtk-media-next-rtl.png</file>
+        <file alias="icons/gtk-media-pause.png">images/icons/gtk-media-pause.png</file>
+        <file alias="icons/gtk-media-previous-ltr.png">images/icons/gtk-media-previous-ltr.png</file>
+        <file alias="icons/gtk-media-previous-rtl.png">images/icons/gtk-media-previous-rtl.png</file>
+        <file alias="icons/gtk-media-stop.png">images/icons/gtk-media-stop.png</file>
+        <file alias="icons/gtk-media-play-rtr.png">images/icons/gtk-media-play-rtr.png</file>
+        <file alias="icons/circle-128.png">images/icons/circle-128.png</file>
+        <file>images/icons/shou.png</file>
+        <file>images/icons/dai.png</file>
+        <file>translations/ShogiBoardQ_ja_JP.ts</file>
+    </qresource>
+</RCC>
