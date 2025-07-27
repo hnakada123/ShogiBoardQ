@@ -310,7 +310,7 @@ QString ShogiGameController::getPieceKanji(const QChar& piece)
     // 対応する漢字が見つからなかった場合
     else {
         // エラーメッセージを表示する。
-        const QString errorMessage = tr("An error occurred in ShoGiAlgorithm::getPieceKanji: The piece %1 is not found.").arg(piece);
+        const QString errorMessage = tr("An error occurred in ShogiGameController::getPieceKanji: The piece %1 is not found.").arg(piece);
 
         ShogiUtils::logAndThrowError(errorMessage);
     }
@@ -341,7 +341,7 @@ QString ShogiGameController::getNextPlayerSfen()
     // それ以外の場合は、エラーにする。
     default:
         // エラーメッセージを表示する。
-        const QString errorMessage = tr("An error occurred in ShoGiAlgorithm::setNextPlayerSFEN: Invalid player state.");
+        const QString errorMessage = tr("An error occurred in ShogiGameController::getNextPlayerSfen: Invalid player state.");
 
         qDebug() << "currentPlayer() = " << currentPlayer();
 
@@ -376,7 +376,7 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
     int rankTo = outTo.y();
 
     //begin
-    qDebug() << "in ShogiAlgorithm::validateAndMove";
+    qDebug() << "in ShogiGameController::validateAndMove";
     qDebug() << "playMode = " << playMode;
     qDebug() << "promote = " << m_promote;
     qDebug() << "fileFrom = " << fileFrom;
