@@ -578,7 +578,7 @@ void ShogiView::drawField(QPainter* painter, const int file, const int rank) con
     QColor fillColor(222, 196, 99, 255);
 
     // マスの境界線の色
-    painter->setPen(palette().color(QPalette::Dark));
+    painter->setPen(QColor(30,30,30));
 
     // マスの塗りつぶし色を適用
     painter->setBrush(fillColor);
