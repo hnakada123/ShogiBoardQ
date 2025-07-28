@@ -1,62 +1,18 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<svg
-   xmlns:dc="http://purl.org/dc/elements/1.1/"
-   xmlns:cc="http://creativecommons.org/ns#"
-   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-   xmlns:svg="http://www.w3.org/2000/svg"
-   xmlns="http://www.w3.org/2000/svg"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   version="1.1"
-   width="45"
-   height="45"
-   id="svg14"
-   sodipodi:docname="Gote_narikei45.svg"
-   inkscape:version="0.92.5 (2060ec1f9f, 2020-04-08)">
-  <metadata
-     id="metadata20">
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:ns1="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd" xmlns:ns2="http://www.inkscape.org/namespaces/inkscape" xmlns:ns4="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" version="1.1" width="45" height="45" id="svg14" ns1:docname="Sente_ou45.svg" ns2:version="0.92.4 (5da689c313, 2019-01-14)">
+  <metadata id="metadata20">
     <rdf:RDF>
-      <cc:Work
-         rdf:about="">
+      <ns4:Work rdf:about="">
         <dc:format>image/svg+xml</dc:format>
-        <dc:type
-           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
         <dc:title />
-      </cc:Work>
+      </ns4:Work>
     </rdf:RDF>
   </metadata>
-  <defs
-     id="defs18" />
-  <sodipodi:namedview
-     pagecolor="#ffffff"
-     bordercolor="#666666"
-     borderopacity="1"
-     objecttolerance="10"
-     gridtolerance="10"
-     guidetolerance="10"
-     inkscape:pageopacity="0"
-     inkscape:pageshadow="2"
-     inkscape:window-width="3840"
-     inkscape:window-height="2066"
-     id="namedview16"
-     showgrid="false"
-     inkscape:zoom="5.2444444"
-     inkscape:cx="-108.8983"
-     inkscape:cy="22.5"
-     inkscape:window-x="-11"
-     inkscape:window-y="-11"
-     inkscape:window-maximized="1"
-     inkscape:current-layer="svg14" />
-  <text
-     xml:space="preserve"
-     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:40px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:center;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none"
-     x="-22.5"
-     y="-8.125"
-     id="text3727"
-     transform="scale(-1)"><tspan
-       sodipodi:role="line"
-       id="tspan3725"
-       x="-22.5"
-       y="-8.125"
-       style="fill:#ff0000">圭</tspan></text>
+  <defs id="defs18" />
+  <ns1:namedview pagecolor="#ffffff" bordercolor="#666666" borderopacity="1" objecttolerance="10" gridtolerance="10" guidetolerance="10" ns2:pageopacity="0" ns2:pageshadow="2" ns2:window-width="1276" ns2:window-height="961" id="namedview16" showgrid="false" ns2:zoom="5.2444444" ns2:cx="-10.773305" ns2:cy="22.5" ns2:window-x="1377" ns2:window-y="722" ns2:window-maximized="0" ns2:current-layer="svg14" />
+  <g transform="rotate(180,22.5,22.5)">
+    <polygon points="10.47,6.65 4.48,42.79 40.52,43.00 34.84,6.75 22.76,2.00" fill="#FCE7B1" stroke="#AD885A" stroke-width="1.2" />
+    <text x="22.61" y="34.53" text-anchor="middle" dominant-baseline="middle" font-size="26.19" fill="red" font-family="serif">圭</text>
+  </g>
 </svg>
