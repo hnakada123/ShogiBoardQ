@@ -246,6 +246,12 @@ private slots:
     // 対局者2の残り時間の文字色を赤色に指定する。
     void setPlayer2TimeTextToRed();
 
+    // 将棋盤上での左クリックイベントをハンドリングする。
+    void onShogiViewClicked(const QPoint &pt);
+
+    // 将棋盤上での右クリックイベントをハンドリングする。
+    void onShogiViewRightClicked(const QPoint &);
+
 private:
     // 平手初期局面のSFEN文字列
     QString m_startSfenStr;
@@ -595,6 +601,12 @@ private:
 
     // 将棋クロック
     ShogiClock* m_shogiClock;
+
+    // 2回目のクリックを待っているかどうかを示すフラグ
+    bool m_waitingSecondClick;
+
+    // 1回目のクリック位置
+    QPoint m_firstClick;
 
     // 将棋盤、駒台を初期化（何も駒がない）し、入力のSFEN文字列の配置に将棋盤、駒台の駒を
     // 配置し、対局結果を結果なし、現在の手番がどちらでもない状態に設定する。

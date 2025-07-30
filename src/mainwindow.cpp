@@ -63,6 +63,7 @@ MainWindow::MainWindow(QWidget *parent) :
     m_selectedField(nullptr),
     m_selectedField2(nullptr),
     m_movedField(nullptr),
+    m_waitingSecondClick(false),
     m_analysisModel(nullptr)
 {
     ui->setupUi(this);
@@ -261,6 +262,52 @@ MainWindow::MainWindow(QWidget *parent) :
 
     // 将棋盤表示でエラーが発生した場合、エラーメッセージを表示する。
     connect(m_shogiView, &ShogiView::errorOccurred, this, &MainWindow::displayErrorMessage);
+
+    // 将棋盤上での左クリックイベントをハンドリングする。
+    connect(m_shogiView, &ShogiView::clicked, this, &MainWindow::onShogiViewClicked);
+
+    // 将棋盤上での右クリックイベントをハンドリングする。
+    connect(m_shogiView, &ShogiView::rightClicked, this, &MainWindow::onShogiViewRightClicked);
+}
+
+// 将棋盤上での左クリックイベントをハンドリングする。
+void MainWindow::onShogiViewClicked(const QPoint &pt)
+{
+    // 1回めのクリックの場合
+    if (!m_waitingSecondClick) {
+        // １回目にクリックしたマスの座標を保存する。
+        m_firstClick = pt;
+
+        // 駒のドラッグを開始する。
+        m_shogiView->startDrag(pt);
+
+        // 2回目のクリックを待っているかどうかを示すフラグを設定する。
+        m_waitingSecondClick = true;
+    }
+    // 2回目のクリックの場合
+    else {
+        // ドラッグを終了する。駒を移動してカーソルを戻す。
+        m_shogiView->endDrag();
+
+        // 2回目のクリックを待っているかどうかを示すフラグをリセットする。
+        m_waitingSecondClick = false;
+    }
+}
+
+// 将棋盤上での右クリックイベントをハンドリングする。
+void MainWindow::onShogiViewRightClicked(const QPoint &)
+{
+    // 2回目のクリックの場合
+    if (m_waitingSecondClick) {
+        // ドラッグを終了する。駒を移動してカーソルを戻す。
+        m_shogiView->endDrag();
+
+        // 2回目のクリックを待っているかどうかを示すフラグをリセットする。
+        m_waitingSecondClick = false;
+
+        // 駒の移動元と移動先のマスのハイライトを消去する。
+        resetSelectionAndHighlight();
+    }
 }
 
 // GUIを構成するWidgetなどを生成する。
