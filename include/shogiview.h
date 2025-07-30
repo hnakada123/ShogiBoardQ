@@ -85,7 +85,7 @@ public:
     QSize fieldSize() const;
 
     // 将棋盤ウィジェットの推奨サイズを計算して返す。
-    QSize sizeHint() const;
+    QSize sizeHint() const override;
 
     // 盤面の状態（通常状態または反転状態）に応じて、指定された筋と段でのマスの矩形位置とサイズを計算する。
     // この関数は、マス自体の描画や、マス上に駒を配置する際に使用される基本的な位置情報を提供する。
@@ -169,6 +169,9 @@ public:
 
     void setErrorOccurred(bool newErrorOccurred);
 
+    void startDrag(const QPoint &from);
+    void endDrag();
+
 public slots:
     // マスのサイズを設定する。
     void setFieldSize(QSize fieldSize);
@@ -190,6 +193,9 @@ signals:
     void rightClicked(const QPoint&);
 
     void errorOccurred(const QString& errorMessage);
+
+protected:
+    void mouseMoveEvent(QMouseEvent* event) override;
 
 private:
     // エラーが発生したかどうかを示すフラグ
@@ -228,13 +234,25 @@ private:
     bool m_mouseClickMode;
 
     // 局面編集モードかどうかを示すフラグ。
-    bool m_positionEditMode = false;
+    bool m_positionEditMode;
+
+    // ドラッグ中の状態を示すフラグ
+    bool m_dragging;
+
+    // 移動元のマス座標
+    QPoint m_dragFrom;
+
+    // ドラッグ中の駒文字
+    QChar m_dragPiece;
+
+    // 現在のマウス位置
+    QPoint  m_dragPos;
 
     // 将棋盤、駒台を描画する。
-    void paintEvent(QPaintEvent* event);
+    void paintEvent(QPaintEvent* event) override;
 
     // マウスボタンがクリックされた時のイベント処理を行う。
-    void mouseReleaseEvent(QMouseEvent* event);
+    void mouseReleaseEvent(QMouseEvent* event) override;
 
     // 盤面の指定された筋（file）に対応する筋番号を描画する。
     void drawFile(QPainter* painter, const int file) const;

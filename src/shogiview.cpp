@@ -26,6 +26,8 @@ ShogiView::ShogiView(QWidget *parent)
     // 局面編集モードを無効（false）で初期化する。
     m_positionEditMode(false),
 
+    m_dragging(false),
+
     // 将棋盤を表すShogiBoardオブジェクトのポインタをnullptrで初期化する。
     m_board(nullptr)
 {
@@ -46,6 +48,8 @@ ShogiView::ShogiView(QWidget *parent)
 
     // 盤を下にずらすオフセット
     m_offsetY = 30;
+
+    setMouseTracking(true);
 }
 
 // m_boardにShogiBoardオブジェクトのポインタをセットする。
@@ -490,6 +494,22 @@ void ShogiView::paintEvent(QPaintEvent *)
 
     // 駒台に置かれた駒とその数を描画する。
     drawPiecesEditModeStandFeatures(&painter);
+
+    // ドラッグ中の駒を描画する。
+    if (m_dragging && m_dragPiece != ' ') {
+        QPainter p(this);
+        // ベクター描画なので補間はいらないが、念のため
+        p.setRenderHint(QPainter::SmoothPixmapTransform, true);
+
+        // 描画領域（マスと同サイズ）
+        QRect r(m_dragPos.x() - squareSize()/2,
+                m_dragPos.y() - squareSize()/2,
+                squareSize(), squareSize());
+
+        // QIcon から直接描画
+        QIcon icon = piece(m_dragPiece);
+        icon.paint(&p, r, Qt::AlignCenter);
+    }
 }
 
 // 将棋盤に星（目印となる4つの点）を描画する。
@@ -650,6 +670,13 @@ void ShogiView::drawWhiteStandField(QPainter* painter, const int file, const int
 // 盤面の指定されたマス（筋file、段rank）に駒を描画する。
 void ShogiView::drawPiece(QPainter* painter, const int file, const int rank)
 {
+    if (m_dragging
+        && file == m_dragFrom.x()
+        && rank == m_dragFrom.y()) {
+        // ドラッグ中はこのマスを描かない
+        return;
+    }
+
     // 盤面の指定されたマスの矩形を計算
     const QRect fieldRect = calculateSquareRectangleBasedOnBoardState(file, rank);
 
@@ -1006,6 +1033,14 @@ QPoint ShogiView::getClickedSquareInFlippedState(const QPoint& clickPosition) co
 // 右クリックされた場合は、同様にマスを特定し、rightClickedシグナルを発行する。
 void ShogiView::mouseReleaseEvent(QMouseEvent *event)
 {
+    // 駒を選択中に右クリックすると選択がキャンセルする。
+    if (m_dragging && event->button() == Qt::RightButton) {
+        endDrag();    // m_dragging = false; update() される。
+        QPoint pt = getClickedSquare(event->pos());
+        emit rightClicked(pt);
+        return;       // これ以降のクリック処理は行わない
+    }
+
     // 左クリックの場合
     if (event->button() == Qt::LeftButton) {
         // イベントの位置にあるマスを特定する。
@@ -1404,4 +1439,47 @@ QChar ShogiView::rankToWhiteShogiPiece(const int rank) const
 
     // 指定された段に対応する駒の文字を返す。
     return rankToPiece.value(rank, ' ');
+}
+
+// 対局時に指す駒を左クリックするとドラッグが開始される。
+void ShogiView::startDrag(const QPoint &from)
+{
+    // ドラッグ状態のフラグをtrueに設定する。
+    m_dragging  = true;
+
+    // ドラッグ開始位置を設定する。
+    m_dragFrom  = from;
+
+    // 指す駒の駒文字を取得する。
+    m_dragPiece = m_board->getPieceCharacter(from.x(), from.y());
+
+    // ドラッグ位置を現在のマウスカーソル位置に設定する。
+    m_dragPos   = mapFromGlobal(QCursor::pos());
+
+    // 盤面を更新する。
+    update();
+}
+
+// ドラッグを終了する。
+void ShogiView::endDrag()
+{
+    // ドラッグ状態のフラグをfalseに設定する。
+    m_dragging = false;
+
+    // 盤面を終了する。
+    update();
+}
+
+// マウスボタンがクリックされた時のイベント処理を行う。
+void ShogiView::mouseMoveEvent(QMouseEvent* event)
+{
+    // ドラッグ中の場合
+    if (m_dragging) {
+        // マウスの移動に合わせて駒位置を更新し、再描画する。
+        m_dragPos = event->pos();
+        update();
+    }
+
+    // ベースクラスのマウス移動イベント処理を呼び出し、ツールチップやスタイル更新などの標準動作を維持する。
+    QWidget::mouseMoveEvent(event);
 }
