@@ -167,9 +167,13 @@ public:
     // 将棋盤を反転させるフラグのsetter
     void setFlipMode(bool newFlipMode);
 
+    // エラーが発生したかどうかを示すフラグを設定する。
     void setErrorOccurred(bool newErrorOccurred);
 
+    // 対局時に指す駒を左クリックするとドラッグが開始される。
     void startDrag(const QPoint &from);
+
+    // ドラッグを終了する。
     void endDrag();
 
 public slots:
@@ -192,9 +196,11 @@ signals:
     // マスが右クリックされたことを通知するシグナル
     void rightClicked(const QPoint&);
 
+    // エラーが発生したことを通知するシグナル
     void errorOccurred(const QString& errorMessage);
 
 protected:
+    // マウスボタンがクリックされた時のイベント処理を行う。
     void mouseMoveEvent(QMouseEvent* event) override;
 
 private:
@@ -301,6 +307,9 @@ private:
 
     // 局面編集モードで後手駒台に置かれた駒の枚数を描画する。
     void drawEditModeWhiteStandPieceCount(QPainter* painter, const int file, const int rank) const;
+
+    // ドラッグ中の駒を描画する。
+    void drawDraggingPiece(QPainter* painter);
 
     // 指定された段に対応する先手の駒の種類を返す。
     QChar rankToBlackShogiPiece(const int rank) const;

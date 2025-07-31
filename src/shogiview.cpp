@@ -496,17 +496,20 @@ void ShogiView::paintEvent(QPaintEvent *)
     drawPiecesEditModeStandFeatures(&painter);
 
     // ドラッグ中の駒を描画する。
-    if (m_dragging && m_dragPiece != ' ') {
-        QPainter p(this);
-        // ベクター描画なので補間はいらないが、念のため
-        p.setRenderHint(QPainter::SmoothPixmapTransform, true);
+    drawDraggingPiece(&painter);
+}
 
+// ドラッグ中の駒を描画する。
+void ShogiView::drawDraggingPiece(QPainter* painter)
+{
+    // ドラッグ中の駒が存在しない場合
+    if (m_dragging && m_dragPiece != ' ') {
         // 描画領域（マスと同サイズ）
-        QRect r(m_dragPos.x() - squareSize()/2,
-                m_dragPos.y() - squareSize()/2,
+        QRect r(m_dragPos.x() - squareSize()/2, m_dragPos.y() - squareSize()/2,
                 squareSize(), squareSize());
 
-        // QIcon から直接描画
+        // ドラッグ中の駒を描画する。
+        QPainter p(this);
         QIcon icon = piece(m_dragPiece);
         icon.paint(&p, r, Qt::AlignCenter);
     }
@@ -695,6 +698,7 @@ void ShogiView::drawPiece(QPainter* painter, const int file, const int rank)
         // エラーメッセージを通知する。
         QString errorMessage = QString(e.what());
 
+        // エラーが発生したことをシグナルで通知する。
         emit errorOccurred(errorMessage);
 
         // エラーが発生した場合は描画処理を中断する。
