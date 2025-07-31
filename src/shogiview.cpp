@@ -29,7 +29,10 @@ ShogiView::ShogiView(QWidget *parent)
     m_dragging(false),
 
     // 将棋盤を表すShogiBoardオブジェクトのポインタをnullptrで初期化する。
-    m_board(nullptr)
+    m_board(nullptr),
+
+    // 駒台からつまんでない状態（false）で初期化する。
+    m_dragFromStand(false)
 {
     // カレントディレクトリをアプリケーションのディレクトリに設定する。
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -480,7 +483,7 @@ void ShogiView::paintEvent(QPaintEvent *)
     // 局面編集モードと通常モードに応じて駒台の描画処理を行う。
     drawEditModeFeatures(&painter);
 
-    // 将棋盤に４つの星を描画する。
+    // 将棋盤に4つの星を描画する。
     drawFourStars(&painter);
 
     // マスをハイライトする。
@@ -496,11 +499,11 @@ void ShogiView::paintEvent(QPaintEvent *)
     drawPiecesEditModeStandFeatures(&painter);
 
     // ドラッグ中の駒を描画する。
-    drawDraggingPiece(&painter);
+    drawDraggingPiece();
 }
 
 // ドラッグ中の駒を描画する。
-void ShogiView::drawDraggingPiece(QPainter* painter)
+void ShogiView::drawDraggingPiece()
 {
     // ドラッグ中の駒が存在しない場合
     if (m_dragging && m_dragPiece != ' ') {
@@ -735,6 +738,19 @@ void ShogiView::drawBlackStandPiece(QPainter* painter, const int file, const int
     // 駒台にある駒の種類を取得
     QChar value = rankToBlackShogiPiece(rank);
 
+    // ドラッグ中かつ一時マップにあるならそちらを優先
+    int count = (m_dragging && m_tempPieceStandCounts.contains(value))
+                    ? m_tempPieceStandCounts[value]
+                    : m_board->m_pieceStand.value(value);
+
+    if (count > 0 && value != ' ') {
+        QIcon icon = piece(value);
+        if (!icon.isNull()) {
+            icon.paint(painter, adjustedRect, Qt::AlignCenter);
+        }
+    }
+
+    /*
     if (m_board->m_pieceStand[value] > 0) {
         if (value != ' ') {
             // 駒のアイコンを取得し、描画する。
@@ -745,6 +761,7 @@ void ShogiView::drawBlackStandPiece(QPainter* painter, const int file, const int
             }
         }
     }
+    */
 }
 
 // 先手駒台に置かれた駒の枚数を描画する。
@@ -764,10 +781,20 @@ void ShogiView::drawBlackStandPieceCount(QPainter* painter, const int file, cons
     }
 
     // 駒台にある駒の種類に応じて枚数を取得し、描画するテキストを設定
-    QString pieceCountText;
+    //QString pieceCountText;
 
     QChar value = rankToBlackShogiPiece(rank);
 
+    int count = (m_dragging && m_tempPieceStandCounts.contains(value))
+                    ? m_tempPieceStandCounts[value]
+                    : m_board->m_pieceStand.value(value);
+
+    QString pieceCountText = (count > 0)
+                                 ? QString::number(count)
+                                 : QStringLiteral(" ");
+    painter->drawText(adjustedRect, Qt::AlignVCenter | Qt::AlignCenter, pieceCountText);
+
+    /*
     if (m_board->m_pieceStand[value] > 0) {
         // 駒が存在する場合、その枚数をテキストとして設定
         pieceCountText = QString::number(m_board->m_pieceStand[value]);
@@ -778,6 +805,7 @@ void ShogiView::drawBlackStandPieceCount(QPainter* painter, const int file, cons
 
     // 枚数のテキストを描画
     painter->drawText(adjustedRect, Qt::AlignVCenter | Qt::AlignCenter, pieceCountText);
+    */
 }
 
 // 後手駒台に置かれた駒を描画する。
@@ -1448,6 +1476,17 @@ QChar ShogiView::rankToWhiteShogiPiece(const int rank) const
 // 対局時に指す駒を左クリックするとドラッグが開始される。
 void ShogiView::startDrag(const QPoint &from)
 {
+    // 駒台から指す場合
+    // MainWindow::onShogiViewClickedにもガードを入れている。
+    // 持ち駒が1枚も無いマスを左クリックすると駒画像がドラッグされないようにする。
+    // このチェックが無いと、持ち駒が1枚も無いマスを左クリックするとドラッグされてしまう。
+    if ((from.x() == 10 || from.x() == 11)) {
+        QChar piece = board()->getPieceCharacter(from.x(), from.y());
+
+        // 持ち駒の枚数が0以下の場合はドラッグを開始しない。
+        if (board()->m_pieceStand.value(piece) <= 0) return;
+    }
+
     // ドラッグ状態のフラグをtrueに設定する。
     m_dragging  = true;
 
@@ -1460,6 +1499,17 @@ void ShogiView::startDrag(const QPoint &from)
     // ドラッグ位置を現在のマウスカーソル位置に設定する。
     m_dragPos   = mapFromGlobal(QCursor::pos());
 
+    // ── ここから一時枚数マップの準備 ──
+    m_tempPieceStandCounts = m_board->m_pieceStand;
+
+    // 駒台(ファイル=10 or 11)なら枚数を１減らす
+    if (from.x() == 10 || from.x() == 11) {
+        m_dragFromStand = true;
+        m_tempPieceStandCounts[m_dragPiece]--;
+    } else {
+        m_dragFromStand = false;
+    }
+
     // 盤面を更新する。
     update();
 }
@@ -1469,6 +1519,9 @@ void ShogiView::endDrag()
 {
     // ドラッグ状態のフラグをfalseに設定する。
     m_dragging = false;
+
+    // 一時マップをクリア → 元の描画に戻る
+    m_tempPieceStandCounts.clear();
 
     // 盤面を終了する。
     update();

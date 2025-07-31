@@ -273,6 +273,17 @@ MainWindow::MainWindow(QWidget *parent) :
 // 将棋盤上での左クリックイベントをハンドリングする。
 void MainWindow::onShogiViewClicked(const QPoint &pt)
 {
+    // １回目クリック（つまみ始め）で、かつ持ち駒マスなら枚数をチェックする。
+    // 念のため、ShogiView::startDragにもガードを入れている。
+    // 持ち駒が1枚も無いマスを左クリックすると駒画像がドラッグされないようにする。
+    // このチェックが無いと、持ち駒が1枚も無いマスを左クリックするとドラッグされてしまう。
+    if (!m_waitingSecondClick && (pt.x() == 10 || pt.x() == 11)) {
+        QChar piece = m_shogiView->board()->getPieceCharacter(pt.x(), pt.y());
+
+        // 持ち駒の枚数が0なら何もしない。
+        if (m_shogiView->board()->m_pieceStand.value(piece) <= 0) return;
+    }
+
     // 1回めのクリックの場合
     if (!m_waitingSecondClick) {
         // １回目にクリックしたマスの座標を保存する。

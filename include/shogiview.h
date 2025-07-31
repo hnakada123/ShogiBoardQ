@@ -254,6 +254,12 @@ private:
     // 現在のマウス位置
     QPoint  m_dragPos;
 
+    // 駒台からつまんだかどうかのフラグ
+    bool m_dragFromStand;
+
+    // ドラッグ中だけ使う一時的な枚数マップ
+    QMap<QChar,int> m_tempPieceStandCounts;
+
     // 将棋盤、駒台を描画する。
     void paintEvent(QPaintEvent* event) override;
 
@@ -309,7 +315,7 @@ private:
     void drawEditModeWhiteStandPieceCount(QPainter* painter, const int file, const int rank) const;
 
     // ドラッグ中の駒を描画する。
-    void drawDraggingPiece(QPainter* painter);
+    void drawDraggingPiece();
 
     // 指定された段に対応する先手の駒の種類を返す。
     QChar rankToBlackShogiPiece(const int rank) const;
