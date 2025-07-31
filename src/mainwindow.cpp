@@ -2544,21 +2544,43 @@ void MainWindow::resetSelectionAndHighlight()
 // 指す駒を左クリックで選択した場合、そのマスをオレンジ色にする。
 void MainWindow::selectPieceAndHighlight(const QPoint& field)
 {
-    // マスに駒がある場合
-    if (m_shogiView->board()->getPieceCharacter(field.x(), field.y()) != ' ') {
-        // 選択したマスをクリックポイントに設定する。
-        m_clickPoint = field;
+    // クリックされたマスの将棋盤を取得する。
+    auto* board = m_shogiView->board();
 
-        // 前に選択したマスのハイライトを削除する。
-        m_shogiView->removeHighlight(m_selectedField);
+    // クリックされたマスの筋番号と段番号を取得する。
+    const int file = field.x();
+    const int rank = field.y();
 
-        // 選択したマスをオレンジ色にする。
-        m_selectedField = new ShogiView::FieldHighlight(field.x(), field.y(), QColor(255, 0, 0, 50));
+    // クリックされたマスの駒の文字を取得する。
+    QChar value = board->getPieceCharacter(file, rank);
 
-        // 選択したマスを表示する。
-        m_shogiView->addHighlight(m_selectedField);
-    }
+    // 駒台の筋番号
+    constexpr int BlackStandFile = 10;
+    constexpr int WhiteStandFile = 11;
+
+    // 駒台から駒を選択したかを判定する。
+    bool isStand = (file == BlackStandFile || file == WhiteStandFile);
+
+    // 駒台の駒の枚数が0以下の場合、何もしない。
+    if (isStand && board->getPieceStand().value(value) <= 0) return;
+
+    // 盤上をクリックした場合：駒がない空マスなら何もしない
+    if (value == QChar(' ')) return;
+
+    // ハイライト処理
+    // 選択したマスをクリックポイントに設定する。
+    m_clickPoint = field;
+
+    // 前に選択したマスのハイライトを削除する。
+    m_shogiView->removeHighlight(m_selectedField);
+
+    // 選択したマスをオレンジ色にする。
+    m_selectedField = new ShogiView::FieldHighlight(file, rank, QColor(255, 0, 0, 50));
+
+    // 選択したマスを表示する。
+    m_shogiView->addHighlight(m_selectedField);
 }
+
 
 // 既存のハイライトをクリアし、新しいハイライトを作成して表示する。
 void MainWindow::updateHighlight(ShogiView::FieldHighlight*& highlightField, const QPoint& field, const QColor& color)
