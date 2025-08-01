@@ -365,7 +365,6 @@ MoveValidator::Turn ShogiGameController::getCurrentTurnForValidator(MoveValidato
     }
 }
 
-// 将棋の指し手を検証し、合法手であれば盤面を更新する。
 bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QString& record, PlayMode& playMode, int& moveNumber,
                                      QStringList* m_sfenRecord, QVector<ShogiMove>& gameMoves)
 {
@@ -410,8 +409,15 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
     // 成るか成らないかを選択させて、その結果をcurrentMove.isPromotionに保存する。
     // 指し手が合法であればtrue、不合法であればfalseを返す。
     if (!decidePromotion(playMode, validator, turn, fileFrom, rankFrom, fileTo, rankTo, movingPiece, currentMove)) {
+        // decidePromotion関数実施後に必要な処理
+        // 駒のドラッグを終了する。
+        emit endDragSignal();
+
         // 指そうとした手が合法手でない場合は、指せないことを示すfalseを返す。
         return false;
+    } else {
+        // 駒のドラッグを終了する。
+        emit endDragSignal();
     }
 
     // 現在の指し手を追加保存する。
