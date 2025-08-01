@@ -2558,6 +2558,21 @@ void MainWindow::selectPieceAndHighlight(const QPoint& field)
     constexpr int BlackStandFile = 10;
     constexpr int WhiteStandFile = 11;
 
+    // 自分の駒台を選択したかどうかを判定する。
+    bool isMyStand = ((m_gameController->currentPlayer() == m_gameController->Player1 && file == BlackStandFile) ||
+                      (m_gameController->currentPlayer() == m_gameController->Player2 && file == WhiteStandFile));
+
+    // 相手の駒台を選択した場合
+    if ((file >= BlackStandFile) && !isMyStand) {
+        // ドラッグを終了する。駒を移動してカーソルを戻す。
+        endDrag();
+
+        // 2回目のクリックを待っているかどうかを示すフラグをリセットする。
+        m_waitingSecondClick = false;
+
+        return;
+    }
+
     // 駒台から駒を選択したかを判定する。
     bool isStand = (file == BlackStandFile || file == WhiteStandFile);
 
@@ -2580,7 +2595,6 @@ void MainWindow::selectPieceAndHighlight(const QPoint& field)
     // 選択したマスを表示する。
     m_shogiView->addHighlight(m_selectedField);
 }
-
 
 // 既存のハイライトをクリアし、新しいハイライトを作成して表示する。
 void MainWindow::updateHighlight(ShogiView::FieldHighlight*& highlightField, const QPoint& field, const QColor& color)
