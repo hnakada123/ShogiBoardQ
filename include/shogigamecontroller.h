@@ -42,6 +42,7 @@ public:
     void setCurrentPlayer(const Player);
 
     // 将棋の指し手を検証し、合法手であれば盤面を更新する。
+    // 将棋の指し手を検証し、合法手であれば盤面を更新する。
     bool validateAndMove(QPoint& outFrom, QPoint& outTo, QString& record, PlayMode& playMode, int& moveNumber,
                          QStringList* m_sfenRecord, QVector<ShogiMove>& gameMoves);
 
@@ -110,6 +111,9 @@ signals:
 
     // 現在の手番が変更されたことを通知する。
     void currentPlayerChanged(ShogiGameController::Player);
+
+    // 駒のドラッグを終了したことを通知する。
+    void endDragSignal();
 
 private:
     // 将棋盤のポインタ

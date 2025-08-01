@@ -252,6 +252,9 @@ private slots:
     // 将棋盤上での右クリックイベントをハンドリングする。
     void onShogiViewRightClicked(const QPoint &);
 
+    // ドラッグを終了する。駒を移動してカーソルを戻す。
+    void endDrag();
+
 private:
     // 平手初期局面のSFEN文字列
     QString m_startSfenStr;

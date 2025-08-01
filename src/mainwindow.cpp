@@ -268,6 +268,9 @@ MainWindow::MainWindow(QWidget *parent) :
 
     // 将棋盤上での右クリックイベントをハンドリングする。
     connect(m_shogiView, &ShogiView::rightClicked, this, &MainWindow::onShogiViewRightClicked);
+
+    // 駒のドラッグを終了する。
+    connect(m_gameController, &ShogiGameController::endDragSignal, this, &MainWindow::endDrag);
 }
 
 // 将棋盤上での左クリックイベントをハンドリングする。
@@ -297,9 +300,6 @@ void MainWindow::onShogiViewClicked(const QPoint &pt)
     }
     // 2回目のクリックの場合
     else {
-        // ドラッグを終了する。駒を移動してカーソルを戻す。
-        m_shogiView->endDrag();
-
         // 2回目のクリックを待っているかどうかを示すフラグをリセットする。
         m_waitingSecondClick = false;
     }
@@ -311,7 +311,7 @@ void MainWindow::onShogiViewRightClicked(const QPoint &)
     // 2回目のクリックの場合
     if (m_waitingSecondClick) {
         // ドラッグを終了する。駒を移動してカーソルを戻す。
-        m_shogiView->endDrag();
+        endDrag();
 
         // 2回目のクリックを待っているかどうかを示すフラグをリセットする。
         m_waitingSecondClick = false;
@@ -3161,6 +3161,13 @@ void MainWindow::displayPromotionDialog()
         // 不成のフラグをセットする。
         m_gameController->setPromote(false);
     }
+}
+
+// ドラッグを終了する。駒を移動してカーソルを戻す。
+void MainWindow::endDrag()
+{
+    // ドラッグを終了する。
+    m_shogiView->endDrag();
 }
 
 // Webサイトをブラウザで表示する。
