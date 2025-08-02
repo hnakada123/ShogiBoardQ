@@ -310,14 +310,8 @@ void MainWindow::onShogiViewRightClicked(const QPoint &)
 {
     // 2回目のクリックの場合
     if (m_waitingSecondClick) {
-        // ドラッグを終了する。駒を移動してカーソルを戻す。
-        endDrag();
-
-        // 2回目のクリックを待っているかどうかを示すフラグをリセットする。
-        m_waitingSecondClick = false;
-
-        // 駒の移動元と移動先のマスのハイライトを消去する。
-        resetSelectionAndHighlight();
+        // ドラッグ操作のリセットを行う。
+        finalizeDrag();
     }
 }
 
@@ -2564,12 +2558,10 @@ void MainWindow::selectPieceAndHighlight(const QPoint& field)
 
     // 相手の駒台を選択した場合
     if ((file >= BlackStandFile) && !isMyStand) {
-        // ドラッグを終了する。駒を移動してカーソルを戻す。
-        endDrag();
+        // ドラッグ操作のリセットを行う。
+        finalizeDrag();
 
-        // 2回目のクリックを待っているかどうかを示すフラグをリセットする。
-        m_waitingSecondClick = false;
-
+        // 何もしない。
         return;
     }
 
@@ -2660,15 +2652,29 @@ void MainWindow::updateGameRecordAndGUI()
     updateGameRecord(0);
 }
 
+// ドラッグ操作のリセットを行う。
+void MainWindow::finalizeDrag()
+{
+    // ドラッグを終了する。駒を移動してカーソルを戻す。
+    endDrag();
+
+    // 2回目のクリックを待っているかどうかを示すフラグをリセットする。
+    m_waitingSecondClick = false;
+
+    // 駒の移動元と移動先のマスのハイライトを消去する。
+    resetSelectionAndHighlight();
+}
+
 // 将棋のGUIでクリックされたポイントに基づいて駒の移動を処理する。
 // 対局者が将棋盤上で駒をクリックして移動させる際の一連の処理を担当する。
 void MainWindow::handleClickForPlayerVsEngine(const QPoint& field)
 {
     // 移動先のマスが移動元のマスと同じになってしまった場合
     if (field == m_clickPoint) {
-        // 移動元のマスの選択を解除する。
-        resetSelectionAndHighlight();
+        // ドラッグ操作のリセットを行う。
+        finalizeDrag();
 
+        // 何もしない。
         return;
     }
 
@@ -2801,9 +2807,10 @@ void MainWindow::handleClickForHumanVsHuman(const QPoint& field)
 {
     // 移動先のマスが移動元のマスと同じになってしまった場合
     if (field == m_clickPoint) {
-        // 移動元のマスの選択を解除する。
-        resetSelectionAndHighlight();
+        // ドラッグ操作のリセットを行う。
+        finalizeDrag();
 
+        // 何もしない。
         return;
     }
 
@@ -2972,9 +2979,10 @@ void MainWindow::handleClickForEditMode(const QPoint& field)
 {
     // 移動先のマスが移動元のマスと同じになってしまった場合
     if (field == m_clickPoint) {
-        // 移動元のマスの選択を解除する。
-        resetSelectionAndHighlight();
+        // ドラッグ操作のリセットを行う。
+        finalizeDrag();
 
+        // 何もしない。
         return;
     }
 
