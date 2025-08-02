@@ -708,10 +708,27 @@ void ShogiView::drawPiece(QPainter* painter, const int file, const int rank)
         return;
     }
 
-    // 駒が存在する場合、その駒のアイコンを描画
+    // 駒が存在する場合、その駒のアイコンを描画する。
     if (value != ' ') {
         QIcon icon = piece(value);
 
+        if (!icon.isNull()) {
+            icon.paint(painter, adjustedRect, Qt::AlignCenter);
+        }
+    }
+}
+
+
+// 駒台の駒画像を描画する。
+void ShogiView::drawStandPieceIcon(QPainter* painter, const QRect& adjustedRect, QChar value) const
+{
+    // ドラッグ中かつ一時マップにあるならそちらを優先する。
+    int count = (m_dragging && m_tempPieceStandCounts.contains(value))
+                    ? m_tempPieceStandCounts[value]
+                    : m_board->m_pieceStand.value(value);
+
+    if (count > 0 && value != ' ') {
+        QIcon icon = piece(value);
         if (!icon.isNull()) {
             icon.paint(painter, adjustedRect, Qt::AlignCenter);
         }
@@ -738,30 +755,21 @@ void ShogiView::drawBlackStandPiece(QPainter* painter, const int file, const int
     // 駒台にある駒の種類を取得
     QChar value = rankToBlackShogiPiece(rank);
 
-    // ドラッグ中かつ一時マップにあるならそちらを優先
+    // 駒台の駒画像を描画する。
+    drawStandPieceIcon(painter, adjustedRect, value);
+}
+
+// 駒台の持ち駒の枚数を描画する。
+void ShogiView::drawStandPieceCount(QPainter* painter, const QRect& adjustedRect, QChar value) const
+{
     int count = (m_dragging && m_tempPieceStandCounts.contains(value))
-                    ? m_tempPieceStandCounts[value]
-                    : m_board->m_pieceStand.value(value);
+    ? m_tempPieceStandCounts[value]
+    : m_board->m_pieceStand.value(value);
 
-    if (count > 0 && value != ' ') {
-        QIcon icon = piece(value);
-        if (!icon.isNull()) {
-            icon.paint(painter, adjustedRect, Qt::AlignCenter);
-        }
-    }
-
-    /*
-    if (m_board->m_pieceStand[value] > 0) {
-        if (value != ' ') {
-            // 駒のアイコンを取得し、描画する。
-            QIcon icon = piece(value);
-
-            if (!icon.isNull()) {
-                icon.paint(painter, adjustedRect, Qt::AlignCenter);
-            }
-        }
-    }
-    */
+    QString pieceCountText = (count > 0)
+                                 ? QString::number(count)
+                                 : QStringLiteral(" ");
+    painter->drawText(adjustedRect, Qt::AlignVCenter | Qt::AlignCenter, pieceCountText);
 }
 
 // 先手駒台に置かれた駒の枚数を描画する。
@@ -772,6 +780,7 @@ void ShogiView::drawBlackStandPieceCount(QPainter* painter, const int file, cons
 
     // 描画位置を調整
     QRect adjustedRect;
+
     if (m_flipMode) {
         // 盤面が反転している場合、位置を左側に調整
         adjustedRect.setRect(fieldRect.left() - m_param1 + m_offsetX, fieldRect.top() + m_offsetY, fieldRect.width(), fieldRect.height());
@@ -780,32 +789,11 @@ void ShogiView::drawBlackStandPieceCount(QPainter* painter, const int file, cons
         adjustedRect.setRect(fieldRect.left() + m_param1 + m_offsetX, fieldRect.top() + m_offsetY, fieldRect.width(), fieldRect.height());
     }
 
-    // 駒台にある駒の種類に応じて枚数を取得し、描画するテキストを設定
-    //QString pieceCountText;
-
+    // 駒台にある駒の種類に応じて枚数を取得し、描画するテキストを設定する。
     QChar value = rankToBlackShogiPiece(rank);
 
-    int count = (m_dragging && m_tempPieceStandCounts.contains(value))
-                    ? m_tempPieceStandCounts[value]
-                    : m_board->m_pieceStand.value(value);
-
-    QString pieceCountText = (count > 0)
-                                 ? QString::number(count)
-                                 : QStringLiteral(" ");
-    painter->drawText(adjustedRect, Qt::AlignVCenter | Qt::AlignCenter, pieceCountText);
-
-    /*
-    if (m_board->m_pieceStand[value] > 0) {
-        // 駒が存在する場合、その枚数をテキストとして設定
-        pieceCountText = QString::number(m_board->m_pieceStand[value]);
-    } else {
-        // 駒が存在しない場合は何も描画しない
-        pieceCountText = " ";
-    }
-
-    // 枚数のテキストを描画
-    painter->drawText(adjustedRect, Qt::AlignVCenter | Qt::AlignCenter, pieceCountText);
-    */
+    // 駒台の持ち駒の枚数を描画する。
+    drawStandPieceCount(painter, adjustedRect, value);
 }
 
 // 後手駒台に置かれた駒を描画する。
@@ -828,12 +816,8 @@ void ShogiView::drawWhiteStandPiece(QPainter* painter, const int file, const int
     // 駒台にある駒の種類を取得し、駒が存在する場合そのアイコンを描画
     QChar value = rankToWhiteShogiPiece(rank);
 
-    if (m_board->m_pieceStand[value] > 0) {
-        QIcon icon = piece(value);
-        if (!icon.isNull()) {
-            icon.paint(painter, adjustedRect, Qt::AlignCenter);
-        }
-    }
+    // 駒台の駒画像を描画する。
+    drawStandPieceIcon(painter, adjustedRect, value);
 }
 
 // 後手駒台に置かれた駒の枚数を描画する。
@@ -854,20 +838,12 @@ void ShogiView::drawWhiteStandPieceCount(QPainter* painter, const int file, cons
     }
 
     // 駒台にある駒の種類に応じて枚数を取得し、描画するテキストを設定
-    QString pieceCountText;
+    //QString pieceCountText;
 
     QChar value = rankToWhiteShogiPiece(rank);
 
-    if (m_board->m_pieceStand[value] > 0) {
-        // 駒が存在する場合、その枚数をテキストとして設定
-        pieceCountText = QString::number(m_board->m_pieceStand[value]);
-    } else {
-        // 駒が存在しない場合は何も描画しない
-        pieceCountText = " ";
-    }
-
-    // 枚数のテキストを描画
-    painter->drawText(adjustedRect, Qt::AlignVCenter | Qt::AlignCenter, pieceCountText);
+    // 駒台の持ち駒の枚数を描画する。
+    drawStandPieceCount(painter, adjustedRect, value);
 }
 
 // マスをハイライトする。
@@ -916,7 +892,7 @@ void ShogiView::drawHighlights(QPainter *painter)
     }
 }
 
-// ユーザーがクリックした位置を基に、マスを特定する。
+// クリックした位置を基に、マスを特定する。
 QPoint ShogiView::getClickedSquare(const QPoint &clickPosition) const
 {
     if (m_flipMode) {
@@ -926,7 +902,7 @@ QPoint ShogiView::getClickedSquare(const QPoint &clickPosition) const
     }
 }
 
-// ユーザーがクリックした位置を基に、通常モードでのマスを特定する。
+// クリックした位置を基に、通常モードでのマスを特定する。
 QPoint ShogiView::getClickedSquareInDefaultState(const QPoint& clickPosition) const
 {
     // 将棋盤がセットされていない場合、無効な位置(QPoint())を返す。
@@ -1065,12 +1041,18 @@ QPoint ShogiView::getClickedSquareInFlippedState(const QPoint& clickPosition) co
 // 右クリックされた場合は、同様にマスを特定し、rightClickedシグナルを発行する。
 void ShogiView::mouseReleaseEvent(QMouseEvent *event)
 {
-    // 駒を選択中に右クリックすると選択がキャンセルする。
+    // 駒を選択中に右クリックすると選択をキャンセルする。
     if (m_dragging && event->button() == Qt::RightButton) {
-        endDrag();    // m_dragging = false; update() される。
+        // ドラッグ中の状態を終了する。
+        endDrag();
+
+        // イベントの位置にあるマスを特定する。
         QPoint pt = getClickedSquare(event->pos());
+
+        // マスが右クリックされたことを通知するシグナルを発行する。
         emit rightClicked(pt);
-        return;       // これ以降のクリック処理は行わない
+
+        return;
     }
 
     // 左クリックの場合
@@ -1502,7 +1484,7 @@ void ShogiView::startDrag(const QPoint &from)
     // ── ここから一時枚数マップの準備 ──
     m_tempPieceStandCounts = m_board->m_pieceStand;
 
-    // 駒台(ファイル=10 or 11)なら枚数を１減らす
+    // 駒台なら枚数を1減らす。
     if (from.x() == 10 || from.x() == 11) {
         m_dragFromStand = true;
         m_tempPieceStandCounts[m_dragPiece]--;

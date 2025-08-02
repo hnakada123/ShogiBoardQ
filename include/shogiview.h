@@ -373,6 +373,12 @@ private:
 
     // 盤面サイズを更新する共通のロジックを抽出した関数
     void updateBoardSize();
+
+    // 駒台の駒画像を描画する。
+    void drawStandPieceIcon(QPainter* painter, const QRect& adjustedRect, QChar value) const;
+
+    // 駒台の持ち駒の枚数を描画する。
+    void drawStandPieceCount(QPainter* painter, const QRect& adjustedRect, QChar value) const;
 };
 
 #endif // SHOGIVIEW_H
