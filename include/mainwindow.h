@@ -870,6 +870,9 @@ private:
 
     // 詰み探索を開始する。
     void startTsumiSearch();
+
+    // ドラッグ操作のリセットを行う。
+    void finalizeDrag();
 };
 
 #endif // MAINWINDOW_H
