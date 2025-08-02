@@ -2300,6 +2300,7 @@ void MainWindow::handleEngineTwoResignation()
 // 将棋エンジン1が"bestmove resign"コマンドで投了した場合の処理を行う。
 void MainWindow::handleEngineOneResignation()
 {
+    // タイマーを停止する。
     m_shogiClock->stopClock();
 
     // エンジン1にgameover winコマンドとquitコマンドを送信する。
@@ -3675,6 +3676,9 @@ void MainWindow::startGameBasedOnMode()
         qDebug() << "EvenEngineVsHuman = " << EvenEngineVsHuman;
         //end
 
+        // 盤面を反転して対局者の情報を更新し、人間側が手前に来るようにする。
+        flipBoardAndUpdatePlayerInfo();
+
         startEngineVsHumanGame();
 
         break;
@@ -3694,6 +3698,9 @@ void MainWindow::startGameBasedOnMode()
         //begin
         qDebug() << "HandicapEngineVsHuman = " << HandicapEngineVsHuman;
         //end
+
+        // 盤面を反転して対局者の情報を更新し、人間側が手前に来るようにする。
+        flipBoardAndUpdatePlayerInfo();
 
         startHumanVsEngineGame();
 
