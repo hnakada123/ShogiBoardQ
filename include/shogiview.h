@@ -176,6 +176,9 @@ public:
     // ドラッグを終了する。
     void endDrag();
 
+    // 局面編集モードかどうかのフラグを返す。
+    bool positionEditMode() const;
+
 public slots:
     // マスのサイズを設定する。
     void setFieldSize(QSize fieldSize);

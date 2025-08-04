@@ -276,6 +276,11 @@ MainWindow::MainWindow(QWidget *parent) :
 // 将棋盤上での左クリックイベントをハンドリングする。
 void MainWindow::onShogiViewClicked(const QPoint &pt)
 {
+    //begin
+    qDebug() << "in MainWindow::onShogiViewClicked() with point: " << pt;
+    qDebug() << "m_waitingSecondClick: " << m_waitingSecondClick;
+    //end
+
     // １回目クリック（つまみ始め）で、かつ持ち駒マスなら枚数をチェックする。
     // 念のため、ShogiView::startDragにもガードを入れている。
     // 持ち駒が1枚も無いマスを左クリックすると駒画像がドラッグされないようにする。
@@ -2553,17 +2558,19 @@ void MainWindow::selectPieceAndHighlight(const QPoint& field)
     constexpr int BlackStandFile = 10;
     constexpr int WhiteStandFile = 11;
 
-    // 自分の駒台を選択したかどうかを判定する。
-    bool isMyStand = ((m_gameController->currentPlayer() == m_gameController->Player1 && file == BlackStandFile) ||
-                      (m_gameController->currentPlayer() == m_gameController->Player2 && file == WhiteStandFile));
+    if (!m_shogiView->positionEditMode()) {
+        // 自分の駒台を選択したかどうかを判定する。
+        bool isMyStand = ((m_gameController->currentPlayer() == m_gameController->Player1 && file == BlackStandFile) ||
+                          (m_gameController->currentPlayer() == m_gameController->Player2 && file == WhiteStandFile));
 
-    // 相手の駒台を選択した場合
-    if ((file >= BlackStandFile) && !isMyStand) {
-        // ドラッグ操作のリセットを行う。
-        finalizeDrag();
+        // 相手の駒台を選択した場合
+        if ((file >= BlackStandFile) && !isMyStand) {
+            // ドラッグ操作のリセットを行う。
+            finalizeDrag();
 
-        // 何もしない。
-        return;
+            // 何もしない。
+            return;
+        }
     }
 
     // 駒台から駒を選択したかを判定する。
@@ -2978,6 +2985,11 @@ void MainWindow::handleHumanVsHumanClick(const QPoint& field)
 // 対局者が将棋盤上で駒をクリックして移動させる際の一連の処理を担当する。
 void MainWindow::handleClickForEditMode(const QPoint& field)
 {
+    //begin
+    qDebug() << "in MainWindow::handleClickForEditMode";
+    qDebug() << "field: " << field;
+    qDebug() << "m_clickPoint: " << m_clickPoint;
+    //end
     // 移動先のマスが移動元のマスと同じになってしまった場合
     if (field == m_clickPoint) {
         // ドラッグ操作のリセットを行う。
@@ -3006,6 +3018,11 @@ void MainWindow::handleClickForEditMode(const QPoint& field)
 // 局面編集モードで、クリックされたマスに基づいて駒の移動を処理する。
 void MainWindow::handleEditModeClick(const QPoint& field)
 {
+    //begin
+    qDebug() << "in MainWindow::handleEditModeClick";
+    qDebug() << "m_clickPoint: " << m_clickPoint;
+    //end
+
     // 移動させる駒をクリックした場合
     if (m_clickPoint.isNull()) {
         // 指す駒を左クリックで選択した時にそのマスをオレンジ色にする。
@@ -3020,6 +3037,9 @@ void MainWindow::handleEditModeClick(const QPoint& field)
         // 局面編集モードで、クリックされたポイントに基づいて駒の移動を処理する。
         // 対局者が将棋盤上で駒をクリックして移動させる際の一連の処理を担当する。
         handleClickForEditMode(field);
+
+        // ドラッグ操作のリセットを行う。
+        endDrag();
     }
 }
 
@@ -4395,7 +4415,7 @@ void MainWindow::saveSettingsAndClose()
 void MainWindow::resetToInitialState()
 {
     // 将棋盤の駒の選択、ハイライト、シグナル・スロットを解除する。
-    m_shogiView->disconnect();
+    //m_shogiView->disconnect();
 
     // 選択されたマスの座標を初期化する。
     m_clickPoint = QPoint();
@@ -5110,6 +5130,15 @@ void MainWindow::beginPositionEditing()
 
     // 先手の配置を後手の配置に変更し、後手の配置を先手の配置に変更する。
     connect(ui->reversal, &QAction::triggered, this, &MainWindow::swapBoardSides);
+
+    // 将棋盤上での左クリックイベントをハンドリングする。
+    //connect(m_shogiView, &ShogiView::clicked, this, &MainWindow::onShogiViewClicked);
+
+    // 将棋盤上での右クリックイベントをハンドリングする。
+    //connect(m_shogiView, &ShogiView::rightClicked, this, &MainWindow::onShogiViewRightClicked);
+
+    // 駒のドラッグを終了する。
+    connect(m_gameController, &ShogiGameController::endDragSignal, this, &MainWindow::endDrag);
 }
 
 // 局面編集を終了した場合の処理を行う。

@@ -766,9 +766,17 @@ void ShogiView::drawStandPieceCount(QPainter* painter, const QRect& adjustedRect
     ? m_tempPieceStandCounts[value]
     : m_board->m_pieceStand.value(value);
 
-    QString pieceCountText = (count > 0)
-                                 ? QString::number(count)
-                                 : QStringLiteral(" ");
+    QString pieceCountText;
+
+    // 局面編集モードの場合
+    if (m_positionEditMode) {
+        pieceCountText = QString::number(count);
+    }
+    // 通常モードの場合
+    else {
+        pieceCountText = (count > 0) ? QString::number(count) : QStringLiteral(" ");
+    }
+
     painter->drawText(adjustedRect, Qt::AlignVCenter | Qt::AlignCenter, pieceCountText);
 }
 
@@ -1247,9 +1255,10 @@ void ShogiView::drawEditModeBlackStandPiece(QPainter* painter, const int file, c
         adjustedRect.setRect(fieldRect.left() + m_param1 + m_offsetX, fieldRect.top() + m_offsetY, fieldRect.width(), fieldRect.height());
     }
 
-    // 駒台にある駒の種類を取得し、駒が存在する場合そのアイコンを描画
+    // 選択した駒台の駒文字を取得する。
     QChar value = rankToBlackShogiPiece(rank);
 
+    // 駒台の駒画像を描画する。
     if (value != ' ') {
         QIcon icon = piece(value);
         if (!icon.isNull()) {
@@ -1275,13 +1284,11 @@ void ShogiView::drawEditModeBlackStandPieceCount(QPainter* painter, const int fi
         adjustedRect.setRect(fieldRect.left() + m_param1 + m_offsetX, fieldRect.top() + m_offsetY, fieldRect.width(), fieldRect.height());
     }
 
-    // 駒台にある駒の種類に応じて枚数を取得し、描画するテキストを設定
+    // 選択した駒台の駒文字を取得する。
     QChar value = rankToBlackShogiPiece(rank);
 
-    QString pieceCountText = QString::number(m_board->m_pieceStand[value]);
-
-    // 枚数のテキストを描画
-    painter->drawText(adjustedRect, Qt::AlignVCenter | Qt::AlignCenter, pieceCountText);
+    // 駒台の持ち駒の枚数を描画する。
+    drawStandPieceCount(painter, adjustedRect, value);
 }
 
 // 局面編集モードで後手駒台に置かれた駒を描画する。
@@ -1301,9 +1308,10 @@ void ShogiView::drawEditModeWhiteStandPiece(QPainter* painter, const int file, c
         adjustedRect.setRect(fieldRect.left() - m_param2 + m_offsetX, fieldRect.top() + m_offsetY, fieldRect.width(), fieldRect.height());
     }
 
-    // 駒台にある駒の種類を取得し、駒が存在する場合そのアイコンを描画
+    // 選択した駒台の駒文字を取得する。
     QChar value = rankToWhiteShogiPiece(rank);
 
+    // 駒台の駒画像を描画する。
     if (value != ' ') {
         QIcon icon = piece(value);
         if (!icon.isNull()) {
@@ -1329,13 +1337,11 @@ void ShogiView::drawEditModeWhiteStandPieceCount(QPainter* painter, const int fi
         adjustedRect.setRect(fieldRect.left() - m_param2 + m_offsetX, fieldRect.top() + m_offsetY, fieldRect.width(), fieldRect.height());
     }
 
-    // 駒台にある駒の種類に応じて枚数を取得し、描画するテキストを設定
+    // 選択した駒台の駒文字を取得する。
     QChar value = rankToWhiteShogiPiece(rank);
 
-    QString pieceCountText = QString::number(m_board->m_pieceStand[value]);
-
-    // 枚数のテキストを描画
-    painter->drawText(adjustedRect, Qt::AlignVCenter | Qt::AlignCenter, pieceCountText);
+    // 駒台の持ち駒の枚数を描画する。
+    drawStandPieceCount(painter, adjustedRect, value);
 }
 
 // 将棋盤を反転させるフラグのsetter
@@ -1521,4 +1527,10 @@ void ShogiView::mouseMoveEvent(QMouseEvent* event)
 
     // ベースクラスのマウス移動イベント処理を呼び出し、ツールチップやスタイル更新などの標準動作を維持する。
     QWidget::mouseMoveEvent(event);
+}
+
+// 局面編集モードかどうかのフラグを返す。
+bool ShogiView::positionEditMode() const
+{
+    return m_positionEditMode;
 }
