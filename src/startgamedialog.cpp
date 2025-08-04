@@ -127,6 +127,8 @@ void StartGameDialog::saveGameSettings()
     settings.setValue("addEachMoveSec1", ui->addEachMoveSec1->value());
 
     // 後手／上手の設定を保存する。
+    settings.setValue("isGroupBoxSecondPlayerTimeSettingsChecked", ui->groupBoxSecondPlayerTimeSettings->isChecked());
+
     settings.setValue("isHuman2", ui->radioButtonHuman2->isChecked());
     settings.setValue("isEngine2", ui->radioButtonEngine2->isChecked());
     settings.setValue("engineName2", ui->comboBoxEngine2->currentText());
@@ -184,6 +186,9 @@ void StartGameDialog::loadGameSettings()
     ui->addEachMoveSec1->setValue(settings.value("addEachMoveSec1", 0).toInt());
 
     // 後手／上手の設定を読み込む。
+    bool isChecked = settings.value("isGroupBoxSecondPlayerTimeSettingsChecked", false).toBool();
+    ui->groupBoxSecondPlayerTimeSettings->setChecked(isChecked);
+
     ui->radioButtonHuman2->setChecked(settings.value("isHuman2", false).toBool());
     ui->radioButtonEngine2->setChecked(settings.value("isEngine2", true).toBool());
     ui->comboBoxEngine2->setCurrentText(settings.value("engineName2", "").toString());
