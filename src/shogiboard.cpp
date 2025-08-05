@@ -142,8 +142,8 @@ void ShogiBoard::initStand()
     m_pieceStand.clear();
 
     // 駒のキーのリスト
-    static const QList<QChar> pieces = {'p', 'l', 'n', 's', 'g', 'b', 'r',
-                                        'P', 'L', 'N', 'S', 'G', 'B', 'R'};
+    static const QList<QChar> pieces = {'p', 'l', 'n', 's', 'g', 'b', 'r', 'k',
+                                        'P', 'L', 'N', 'S', 'G', 'B', 'R', 'K'};
 
     // 各駒をQMapに挿入
     // 全ての持ち駒の枚数を0にする。
