@@ -2232,6 +2232,10 @@ void MainWindow::stopClockAndSendCommands()
 // 対局結果の表示とGUIの更新処理を行う。
 void MainWindow::displayResultsAndUpdateGui()
 {
+    //begin
+    qDebug() << "in MainWindow::displayResultsAndUpdateGui";
+    //end
+
     m_gameController->changeCurrentPlayer();
 
     // 手番に応じて将棋クロックの手番変更およびGUIの手番表示を更新する。
@@ -2677,6 +2681,15 @@ void MainWindow::finalizeDrag()
 // 対局者が将棋盤上で駒をクリックして移動させる際の一連の処理を担当する。
 void MainWindow::handleClickForPlayerVsEngine(const QPoint& field)
 {
+    //begin
+    qDebug() << "in MainWindow::handleClickForPlayerVsEngine";
+    qDebug() << "m_useByoyomi:" << m_useByoyomi;
+    qDebug() << "m_bTime:" << m_bTime;
+    qDebug() << "m_wTime:" << m_wTime;
+    qDebug() << "m_byoyomiMilliSec1:" << m_byoyomiMilliSec1;
+    qDebug() << "m_byoyomiMilliSec2:" << m_byoyomiMilliSec2;
+    //end
+
     // 移動先のマスが移動元のマスと同じになってしまった場合
     if (field == m_clickPoint) {
         // ドラッグ操作のリセットを行う。
@@ -2725,7 +2738,7 @@ void MainWindow::handleClickForPlayerVsEngine(const QPoint& field)
 
         try {
             // 将棋エンジンにpositionコマンドを送信し、指し手を受信する。
-            m_usi1->handleHumanVsEngineCommunication(m_positionStr1, m_positionPonder1, outFrom, outTo, m_countDownMilliSec1,
+            m_usi1->handleHumanVsEngineCommunication(m_positionStr1, m_positionPonder1, outFrom, outTo, m_byoyomiMilliSec2,
                                                      m_bTime, m_wTime, m_positionStrList, m_addEachMoveMiliSec1, m_addEachMoveMiliSec2,
                                                      m_useByoyomi);
         } catch (const std::exception& e) {
@@ -2737,7 +2750,7 @@ void MainWindow::handleClickForPlayerVsEngine(const QPoint& field)
         }
 
         // 将棋エンジンが投了した場合
-        if (m_usi1->isResignMove()) {
+        if (m_usi1->isResignMove()) {          
             // 将棋エンジンが"bestmove resign"コマンドで投了した場合の処理を行う。
             handleEngineTwoResignation();
 
@@ -2887,6 +2900,8 @@ void MainWindow::updateTurnAndTimekeepingDisplay()
     qDebug() << "@@@ before MainWindow::updateTurnAndTimekeepingDisplay()";
     qDebug() << "m_bTime: " << m_bTime;
     qDebug() << "m_wTime: " << m_wTime;
+    qDebug() << "m_useByoyomi: " << m_useByoyomi;
+    qDebug() << "m_isLoseOnTimeout: " << m_isLoseOnTimeout;
     //end
 
     if (m_useByoyomi) {
@@ -2894,29 +2909,61 @@ void MainWindow::updateTurnAndTimekeepingDisplay()
         if (m_isLoseOnTimeout) {
             // 対局者1が秒読みに入った場合
             if (m_shogiClock->byoyomi1Applied()) {
+                //begin
+                qDebug() << "Player 1 is in byoyomi.";
+                //end
+
                 // 対局者1の持ち時間を0にする。
                 m_bTime = "0";
             }
             // 対局者1が秒読みに入っていない場合
             else {
+                //begin
+                qDebug() << "Player 1 is not in byoyomi.";
+                //end
+
                 // 対局者1の持ち時間をミリ秒単位に変換する。
                 m_bTime = QString::number(m_shogiClock->getPlayer1TimeInt() * 1000);
             }
 
             // 対局者2が秒読みに入った場合
             if (m_shogiClock->byoyomi2Applied()) {
+                //begin
+                qDebug() << "Player 2 is in byoyomi.";
+                //end
+
                 // 対局者2の持ち時間を0にする。
                 m_wTime = "0";
             }
             // 対局者2が秒読みに入っていない場合
             else {
+                //begin
+                qDebug() << "Player 2 is not in byoyomi.";
+                //end
+
                 // 対局者2の持ち時間をミリ秒単位に変換する。
                 m_wTime = QString::number(m_shogiClock->getPlayer2TimeInt() * 1000);
             }
         }
+        // 「時間切れを負けにしない」が有効な場合
+        else {
+            //begin
+            qDebug() << "時間切れを負けにしない」が有効な場合";
+            //end
+
+            // 対局者1の持ち時間をミリ秒単位に変換する。
+            m_bTime = QString::number(m_shogiClock->getPlayer1TimeInt() * 1000);
+
+            // 対局者2の持ち時間をミリ秒単位に変換する。
+            m_wTime = QString::number(m_shogiClock->getPlayer2TimeInt() * 1000);
+        }
     }
     //
     else {
+        //begin
+        qDebug() << "Byoyomi is not used.";
+        //end
+
         // 対局者1の持ち時間をミリ秒単位に変換する。
         m_bTime = QString::number(m_shogiClock->getPlayer1TimeInt() * 1000 - m_addEachMoveMiliSec1);
     }
@@ -3411,7 +3458,7 @@ void MainWindow::startEngineVsHumanGame()
     QPoint outTo;
 
     // 将棋エンジンにpositionコマンドを送信し、指し手を受信する。
-    m_usi1->handleEngineVsHumanOrEngineMatchCommunication(m_positionStr1, m_positionPonder1, outFrom, outTo, m_countDownMilliSec1,
+    m_usi1->handleEngineVsHumanOrEngineMatchCommunication(m_positionStr1, m_positionPonder1, outFrom, outTo, m_byoyomiMilliSec1,
                                                           m_bTime, m_wTime, m_addEachMoveMiliSec1, m_addEachMoveMiliSec2, m_useByoyomi);
 
     // 将棋エンジンが投了した場合
@@ -3501,7 +3548,7 @@ void MainWindow::startEngineVsEngineGame()
         m_gameController->setPromote(false);
 
         // 将棋エンジンにpositionコマンドを送信し、指し手を受信する。
-        m_usi1->handleEngineVsHumanOrEngineMatchCommunication(m_positionStr1, m_positionPonder1, outFrom, outTo, m_countDownMilliSec1,
+        m_usi1->handleEngineVsHumanOrEngineMatchCommunication(m_positionStr1, m_positionPonder1, outFrom, outTo, m_byoyomiMilliSec1,
                                                               m_bTime, m_wTime, m_addEachMoveMiliSec1, m_addEachMoveMiliSec2, m_useByoyomi);
 
         // 将棋エンジンが投了した場合
@@ -3547,7 +3594,7 @@ void MainWindow::startEngineVsEngineGame()
         m_gameController->setPromote(false);
 
         // 将棋エンジンにpositionコマンドを送信し、指し手を受信する。
-        m_usi2->handleEngineVsHumanOrEngineMatchCommunication(m_positionStr1, m_positionPonder1, outFrom, outTo, m_countDownMilliSec1,
+        m_usi2->handleEngineVsHumanOrEngineMatchCommunication(m_positionStr1, m_positionPonder1, outFrom, outTo, m_byoyomiMilliSec1,
                                                               m_bTime, m_wTime, m_addEachMoveMiliSec1, m_addEachMoveMiliSec2, m_useByoyomi);
 
         // 将棋エンジンが投了した場合
@@ -3898,6 +3945,21 @@ void MainWindow::displayKifuAnalysisDialog()
 // 対局者1と対局者2の持ち時間を設定する。
 void MainWindow::setPlayerTimeLimits()
 {
+    // 対局者1の持ち時間（単位はミリ秒）を計算する。
+    m_bTime = QString::number((m_startGameDialog->basicTimeHour1() * 60
+                               + m_startGameDialog->basicTimeMinutes1())
+                              * 60000);
+
+    // 対局者2の持ち時間（単位はミリ秒）を計算する。
+    m_wTime = QString::number((m_startGameDialog->basicTimeHour2() * 60
+                               + m_startGameDialog->basicTimeMinutes2())
+                              * 60000);
+}
+
+/*
+// 対局者1と対局者2の持ち時間を設定する。
+void MainWindow::setPlayerTimeLimits()
+{
     // 時間切れが有効の場合
     if (m_isLoseOnTimeout) {
         // 対局者1の持ち時間（単位はミリ秒）を計算する。
@@ -3919,6 +3981,7 @@ void MainWindow::setPlayerTimeLimits()
         m_wTime = "0";
     }
 }
+*/
 
 // 対局者の残り時間と秒読み時間を設定する。
 void MainWindow::setRemainingTimeAndCountDown()
@@ -3939,10 +4002,10 @@ void MainWindow::setRemainingTimeAndCountDown()
         m_useByoyomi = true;
 
         // 対局者1の秒読み時間を設定（単位はミリ秒）
-        m_countDownMilliSec1 = m_startGameDialog->byoyomiSec1() * 1000;
+        m_byoyomiMilliSec1 = m_startGameDialog->byoyomiSec1() * 1000;
 
         // 対局者2の秒読み時間を設定（単位はミリ秒）
-        m_countDownMilliSec2 = m_startGameDialog->byoyomiSec2() * 1000;
+        m_byoyomiMilliSec2 = m_startGameDialog->byoyomiSec2() * 1000;
 
         // 対局者1の1手ごとの時間加算（単位はミリ秒）
         m_addEachMoveMiliSec1 = 0;
@@ -3958,10 +4021,10 @@ void MainWindow::setRemainingTimeAndCountDown()
             m_useByoyomi = false;
 
             // 対局者1の秒読み時間を設定（単位はミリ秒）
-            m_countDownMilliSec1 = 0;
+            m_byoyomiMilliSec1 = 0;
 
             // 対局者2の秒読み時間を設定（単位はミリ秒）
-            m_countDownMilliSec2 = 0;
+            m_byoyomiMilliSec2 = 0;
 
             // 対局者1の1手ごとの時間加算（単位はミリ秒）
             m_addEachMoveMiliSec1 = m_startGameDialog->addEachMoveSec1() * 1000;
@@ -3975,10 +4038,10 @@ void MainWindow::setRemainingTimeAndCountDown()
             m_useByoyomi = true;
 
             // 対局者1の秒読み時間を設定（単位はミリ秒）
-            m_countDownMilliSec1 = 0;
+            m_byoyomiMilliSec1 = 0;
 
             // 対局者2の秒読み時間を設定（単位はミリ秒）
-            m_countDownMilliSec2 = 0;
+            m_byoyomiMilliSec2 = 0;
 
             // 対局者1の1手ごとの時間加算（単位はミリ秒）
             m_addEachMoveMiliSec1 = 0;
@@ -3997,8 +4060,8 @@ void MainWindow::setRemainingTimeAndCountDown()
     qDebug() << "m_bTime = " << m_bTime;
     qDebug() << "m_wTime = " << m_wTime;
     qDebug() << "m_useByoyomi = " << m_useByoyomi;
-    qDebug() << "m_countDownMilliSec1 = " << m_countDownMilliSec1;
-    qDebug() << "m_countDownMilliSec2 = " << m_countDownMilliSec2;
+    qDebug() << "m_countDownMilliSec1 = " << m_byoyomiMilliSec1;
+    qDebug() << "m_countDownMilliSec2 = " << m_byoyomiMilliSec2;
     qDebug() << "m_addEachMoveMiliSec1 = " << m_addEachMoveMiliSec1;
     qDebug() << "m_addEachMoveMiliSec2 = " << m_addEachMoveMiliSec2;
     //end
@@ -4192,9 +4255,27 @@ void MainWindow::setTimerAndStart()
     // 対局者2の残り時間を秒に変換する。
     int remainingTime2 = basicTimeHour2 * 3600 + basicTimeMinutes2 * 60 + winc;
 
+    // 時間切れを負けにするかどうかのフラグを取得する。
+    bool isLoseOnTimeout = m_startGameDialog->isLoseOnTimeout();
+
+    //begin
+    qDebug() << "in MainWindow::setTimerAndStart";
+    qDebug() << "basicTimeHour1 = " << basicTimeHour1;
+    qDebug() << "basicTimeMinutes1 = " << basicTimeMinutes1;
+    qDebug() << "basicTimeHour2 = " << basicTimeHour2;
+    qDebug() << "basicTimeMinutes2 = " << basicTimeMinutes2;
+    qDebug() << "byoyomi1 = " << byoyomi1;
+    qDebug() << "byoyomi2 = " << byoyomi2;
+    qDebug() << "binc = " << binc;
+    qDebug() << "winc = " << winc;
+    qDebug() << "remainingTime1 = " << remainingTime1;
+    qDebug() << "remainingTime2 = " << remainingTime2;
+    qDebug() << "m_isLoseOnTimeout = " << m_isLoseOnTimeout;
+    //end
+
     // 各対局者の残り時間を設定する。
-    m_shogiClock->setPlayerTimes(remainingTime1, remainingTime2, byoyomi1, byoyomi2, binc, winc);
-    //m_shogiClock->setPlayerTimes(10, 10, byoyomi1, byoyomi2, binc, winc);
+    m_shogiClock->setPlayerTimes(remainingTime1, remainingTime2, byoyomi1, byoyomi2, binc, winc,
+                                 isLoseOnTimeout);
 
     // 手番に応じて将棋クロックの手番変更およびGUIの手番表示を更新する。
     updateTurnDisplay();
@@ -4328,6 +4409,12 @@ void MainWindow::initializeGame()
 
         // 残り時間をセットしてタイマーを開始する。
         setTimerAndStart();
+
+        //begin
+        qDebug() << "---- initializeGame() ---";
+        qDebug() << "m_bTime = " << m_bTime;
+        qDebug() << "m_wTime = " << m_wTime;
+        //end
 
         try {
             // 対局モード（人間対エンジンなど）に応じて対局処理を開始する。
@@ -4716,16 +4803,16 @@ void MainWindow::startConsidaration()
 
     // 時間無制限の場合
     if (m_considarationDialog->unlimitedTimeFlag()) {
-        m_countDownMilliSec1 = 0;
+        m_byoyomiMilliSec1 = 0;
     }
     // 時間制限の場合
     else {
         // 秒読み時間を設定（単位はミリ秒）
-        m_countDownMilliSec1 = m_considarationDialog->getByoyomiSec() * 1000;
+        m_byoyomiMilliSec1 = m_considarationDialog->getByoyomiSec() * 1000;
     }
 
     // 将棋エンジンにpositionコマンドを送信し、指し手を受信する。
-    m_usi1->executeAnalysisCommunication(m_positionStr1, m_countDownMilliSec1);
+    m_usi1->executeAnalysisCommunication(m_positionStr1, m_byoyomiMilliSec1);
 }
 
 // 詰み探索を開始する。
@@ -4849,7 +4936,7 @@ void MainWindow::analyzeGameRecord()
     m_playMode = AnalysisMode;
 
     // 秒読み時間を設定（単位はミリ秒）
-    m_countDownMilliSec1 = m_analyzeGameRecordDialog->byoyomiSec() * 1000;
+    m_byoyomiMilliSec1 = m_analyzeGameRecordDialog->byoyomiSec() * 1000;
 
     int startIndex;
 
@@ -4892,7 +4979,7 @@ void MainWindow::analyzeGameRecord()
             m_gameController->setCurrentPlayer(ShogiGameController::Player2);
         }
 
-        m_usi1->executeAnalysisCommunication(m_positionStr1, m_countDownMilliSec1);
+        m_usi1->executeAnalysisCommunication(m_positionStr1, m_byoyomiMilliSec1);
 
         // 指し手を取得する。
         QString currentMoveRecord = m_moveRecords->at(moveIndex)->currentMove();

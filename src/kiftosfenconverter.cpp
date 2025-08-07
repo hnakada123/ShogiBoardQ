@@ -435,8 +435,10 @@ void KifToSfenConverter::setMoveSourceAndDestination(int& standX, int& standY, i
 void KifToSfenConverter::processMoveFromStand(int& standX, int& standY, int& destinationX, int& destinationY, const QList<QString> &kifuMovesAsNumbers, int i, QChar board[9][9], int piecesCountByPlayerAndType[2][7], const QString& handicapType)
 {
      // 駒を打った場合の移動先の筋と段を取得する。
-    destinationX = kifuMovesAsNumbers.at(i).left(1).toInt();
-    destinationY = kifuMovesAsNumbers.at(i).mid(1, 1).toInt();
+    QStringView strView = kifuMovesAsNumbers.at(i);
+
+    destinationX = QStringView(strView).left(1).toInt();
+    destinationY = QStringView(strView).mid(1, 1).toInt();
 
     // 先手あるいは下手かどうかを示すフラグ
     bool isPlayingAsBlack = (i % 2 == 0);
@@ -476,10 +478,13 @@ void KifToSfenConverter::processMoveFromBoard(int& sourceX, int& sourceY, int& d
 // 移動先と移動元のマスの筋と段の番号を抽出する。
 void KifToSfenConverter::extractMoveCoordinates(const QRegularExpressionMatch& match, int& sourceX, int& sourceY, int& destinationX, int& destinationY) const
 {
-    destinationX = match.captured(1).left(1).toInt();
-    destinationY = match.captured(1).mid(1, 1).toInt();
-    sourceX = match.captured(3).left(1).toInt();
-    sourceY = match.captured(3).mid(1, 1).toInt();
+    QStringView dstView(match.captured(1));
+    QStringView srcView(match.captured(3));
+
+    destinationX = QString(dstView.left(1)).toInt();
+    destinationY = QString(dstView.mid(1, 1)).toInt();
+    sourceX      = QString(srcView.left(1)).toInt();
+    sourceY      = QString(srcView.mid(1, 1)).toInt();
 }
 
 // 駒を移動させ、対応する文字に変換する。

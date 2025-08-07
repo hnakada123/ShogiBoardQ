@@ -308,10 +308,10 @@ private:
     QString m_engineFile2;
 
     // 対局者1の秒読み時間（単位はミリ秒）
-    int m_countDownMilliSec1;
+    int m_byoyomiMilliSec1;
 
     // 対局者2の秒読み時間（単位はミリ秒）
-    int m_countDownMilliSec2;
+    int m_byoyomiMilliSec2;
 
     // 対局者1の1手ごとの時間加算（単位はミリ秒）
     int m_addEachMoveMiliSec1;

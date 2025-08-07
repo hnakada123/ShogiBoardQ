@@ -73,6 +73,10 @@ void ShogiGameController::setBoard(ShogiBoard* board)
 // 対局結果を設定する。
 void ShogiGameController::setResult(Result value)
 {
+    //begin
+    qDebug() << "in ShogiGameController::setResult";
+    //end
+
     // すでに設定されている場合は何もしない。
     if (result() == value) return;
 
