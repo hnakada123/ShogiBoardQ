@@ -693,6 +693,13 @@ void Usi::handleHumanVsEngineCommunication(QString& positionStr, QString& positi
                                           int byoyomiMilliSec, const QString& btime, const QString& wtime, QStringList& positionStrList,
                                           int addEachMoveMilliSec1, int addEachMoveMilliSec2, bool useByoyomi)
 {
+    //begin
+    qDebug() << "in Usi::handleHumanVsEngineCommunication";
+    qDebug() << "byoyomiMilliSec: " << byoyomiMilliSec;
+    qDebug() << "btime: " << btime;
+    qDebug() << "wtime: " << wtime;
+    //end
+
     // bestmove文字列の作成
     m_bestMove = convertHumanMoveToUsiFormat(outFrom, outTo, m_gameController->promote());
 

@@ -15,31 +15,40 @@ ShogiClock::ShogiClock(QObject *parent) : QObject(parent), m_clockRunning(false)
     connect(m_timer, &QTimer::timeout, this, &ShogiClock::updateClock);
 }
 
-// 両対局者の最初の持ち時間を設定する。
-void ShogiClock::setInitialTime(int seconds)
-{
-    m_player1Time = m_player2Time = seconds;
-
-    // 持ち時間が指定されたかを判断する。
-    m_timeLimitSet = (seconds > 0);
-}
-
 // 両対局者の持ち時間を設定する。
-void ShogiClock::setPlayerTimes(const int player1Seconds, const int player2Seconds, const int byoyomi1Seconds, const int byoyomi2Seconds, const int binc, const int winc)
+void ShogiClock::setPlayerTimes(const int player1Seconds, const int player2Seconds, const int byoyomi1Seconds, const int byoyomi2Seconds,
+                                const int binc, const int winc, const bool isLoseOnTime)
 {
-    // 秒読み時間が0より大きい場合は加算時間を0に設定する。
+    //begin
+    qDebug() << "----in ShogiClock::setPlayerTimes ----";
+    qDebug() << "player1Seconds: " << player1Seconds;
+    qDebug() << "player2Seconds: " << player2Seconds;
+    qDebug() << "byoyomi1Seconds: " << byoyomi1Seconds;
+    qDebug() << "byoyomi2Seconds: " << byoyomi2Seconds;
+    qDebug() << "binc: " << binc;
+    qDebug() << "winc: " << winc;
+    //end
+
+    // 秒読み時間が0より大きい場合は、加算時間を0に設定する。
     if (byoyomi1Seconds > 0 || byoyomi2Seconds > 0) {
         m_byoyomi1Time = byoyomi1Seconds;
         m_byoyomi2Time = byoyomi2Seconds;
         m_binc = 0;
         m_winc = 0;
     }
-    // 加算時間が0より大きい場合は秒読み時間を0に設定する。
+    // 加算時間が0より大きい場合は、秒読み時間を0に設定する。
     else if (binc > 0 || winc > 0) {
-        m_binc = binc;
-        m_winc = winc;
         m_byoyomi1Time = 0;
         m_byoyomi2Time = 0;
+        m_binc = binc;
+        m_winc = winc;
+    }
+    // 秒読み時間と加算時間が両方とも0の場合は、秒読み時間と加算時間を0に設定する。
+    else {
+        m_byoyomi1Time = 0;
+        m_byoyomi2Time = 0;
+        m_binc = 0;
+        m_winc = 0;
     }
 
     // 両対局者の持ち時間を設定する。
@@ -47,7 +56,7 @@ void ShogiClock::setPlayerTimes(const int player1Seconds, const int player2Secon
     m_player2Time = player2Seconds;
 
     // 持ち時間が指定されたかを判断する。
-    m_timeLimitSet = (player1Seconds > 0 || player2Seconds > 0);
+    m_timeLimitSet = isLoseOnTime;
 
     // 秒読み時間が適用されているかどうかのフラグを無効に設定する。
     m_byoyomi1Applied = false;
@@ -205,6 +214,14 @@ void ShogiClock::updateClock()
                     // タイマーを停止する。
                     stopClock();
 
+                    //begin
+                    qDebug() << "ShogiClock::updateClock() - Player 1 time out";
+                    qDebug() << "m_clockRunning: " << m_clockRunning;
+                    qDebug() << "m_timeLimitSet: " << m_timeLimitSet;
+                    qDebug() << "m_currentPlayer: " << m_currentPlayer;
+                    qDebug() << "m_player1Time: " << m_player1Time;
+                    //end
+
                     // 投了の処理を行う。
                     emit resignationTriggered();
                 }
@@ -278,10 +295,26 @@ void ShogiClock::updateClock()
             // 持ち時間が指定されていない場合、考慮時間を更新する。
             if (m_currentPlayer == 1) {
                 m_player1ConsiderationTime++;
-                m_player1Time++;
+
+                // 対局者1の残り時間を1秒減らす。
+                m_player1Time--;
+
+                // 対局者1の残り時間が0になった場合
+                if (m_player1Time < 0) {
+                    // 残り時間を0に設定する。
+                    m_player1Time = 0;
+                }
             } else {
                 m_player2ConsiderationTime++;
-                m_player2Time++;
+
+                // 対局者2の残り時間を1秒減らす。
+                m_player2Time--;
+
+                // 対局者2の残り時間が0になった場合
+                if (m_player2Time < 0) {
+                    // 残り時間を0に設定する。
+                    m_player2Time = 0;
+                }
             }
         }
     }

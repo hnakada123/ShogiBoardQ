@@ -14,11 +14,9 @@ public:
     // コンストラクタ
     ShogiClock(QObject *parent = nullptr);
 
-    // 両対局者の最初の持ち時間を設定する。
-    void setInitialTime(int seconds);
-
     // 両対局者の持ち時間を設定する。
-    void setPlayerTimes(const int player1Seconds, const int player2Seconds, const int byoyomi1Seconds, const int byoyomi2Seconds, const int binc, const int winc);
+    void setPlayerTimes(const int player1Seconds, const int player2Seconds, const int byoyomi1Seconds, const int byoyomi2Seconds,
+                        const int binc, const int winc, const bool isLimitedTime);
 
     // 手番を設定する。
     void setCurrentPlayer(int player);
