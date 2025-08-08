@@ -2923,7 +2923,7 @@ void MainWindow::updateTurnAndTimekeepingDisplay()
                 //end
 
                 // 対局者1の持ち時間をミリ秒単位に変換する。
-                m_bTime = QString::number(m_shogiClock->getPlayer1TimeInt() * 1000);
+                m_bTime = QString::number(m_shogiClock->getPlayer1TimeIntMs());
             }
 
             // 対局者2が秒読みに入った場合
@@ -2942,7 +2942,7 @@ void MainWindow::updateTurnAndTimekeepingDisplay()
                 //end
 
                 // 対局者2の持ち時間をミリ秒単位に変換する。
-                m_wTime = QString::number(m_shogiClock->getPlayer2TimeInt() * 1000);
+                m_wTime = QString::number(m_shogiClock->getPlayer2TimeIntMs());
             }
         }
         // 「時間切れを負けにしない」が有効な場合
@@ -2952,10 +2952,10 @@ void MainWindow::updateTurnAndTimekeepingDisplay()
             //end
 
             // 対局者1の持ち時間をミリ秒単位に変換する。
-            m_bTime = QString::number(m_shogiClock->getPlayer1TimeInt() * 1000);
+            m_bTime = QString::number(m_shogiClock->getPlayer1TimeIntMs());
 
             // 対局者2の持ち時間をミリ秒単位に変換する。
-            m_wTime = QString::number(m_shogiClock->getPlayer2TimeInt() * 1000);
+            m_wTime = QString::number(m_shogiClock->getPlayer2TimeIntMs());
         }
     }
     //
@@ -2965,7 +2965,7 @@ void MainWindow::updateTurnAndTimekeepingDisplay()
         //end
 
         // 対局者1の持ち時間をミリ秒単位に変換する。
-        m_bTime = QString::number(m_shogiClock->getPlayer1TimeInt() * 1000 - m_addEachMoveMiliSec1);
+        m_bTime = QString::number(m_shogiClock->getPlayer1TimeIntMs() - m_addEachMoveMiliSec1);
     }
 
     //begin
@@ -4258,6 +4258,16 @@ void MainWindow::setTimerAndStart()
     // 時間切れを負けにするかどうかのフラグを取得する。
     bool isLoseOnTimeout = m_startGameDialog->isLoseOnTimeout();
 
+    // 「持ち時間制か？」（どちらかの基本時間/秒読み/加算が設定されているか）
+    bool hasTimeLimit =
+        (basicTimeHour1*3600 + basicTimeMinutes1*60) > 0 ||
+        (basicTimeHour2*3600 + basicTimeMinutes2*60) > 0 ||
+        byoyomi1 > 0 || byoyomi2 > 0 ||
+        binc > 0 || winc > 0;
+
+    // 0になったら負け扱いにするか（表示とロジックを分離）
+    m_shogiClock->setLoseOnTimeout(isLoseOnTimeout);
+
     //begin
     qDebug() << "in MainWindow::setTimerAndStart";
     qDebug() << "basicTimeHour1 = " << basicTimeHour1;
@@ -4275,7 +4285,7 @@ void MainWindow::setTimerAndStart()
 
     // 各対局者の残り時間を設定する。
     m_shogiClock->setPlayerTimes(remainingTime1, remainingTime2, byoyomi1, byoyomi2, binc, winc,
-                                 isLoseOnTimeout);
+                                 hasTimeLimit);
 
     // 手番に応じて将棋クロックの手番変更およびGUIの手番表示を更新する。
     updateTurnDisplay();
@@ -4436,8 +4446,8 @@ void MainWindow::updateRemainingTimeDisplay()
         // 将棋盤が反転モードになっている場合
         if (m_shogiView->getFlipMode()) {
             // 対局者の残り時間を入れ替えて表示する。
-            m_remainTimeText1->setText(m_shogiClock->getPlayer2Time());
-            m_remainTimeText2->setText(m_shogiClock->getPlayer1Time());
+            m_remainTimeText1->setText(m_shogiClock->getPlayer2TimeString());
+            m_remainTimeText2->setText(m_shogiClock->getPlayer1TimeString());
 
             // 手番を示す赤丸を反対側に表示する。
             if ((m_turnLabel1->isVisible()) && (!m_turnLabel2->isVisible())) {
@@ -4448,8 +4458,8 @@ void MainWindow::updateRemainingTimeDisplay()
         // 将棋盤が通常モードになっている場合
         else {
             // 対局者の残り時間をそのまま表示する。
-            m_remainTimeText1->setText(m_shogiClock->getPlayer1Time());
-            m_remainTimeText2->setText(m_shogiClock->getPlayer2Time());
+            m_remainTimeText1->setText(m_shogiClock->getPlayer1TimeString());
+            m_remainTimeText2->setText(m_shogiClock->getPlayer2TimeString());
 
             // 手番を示す赤丸をそのまま表示する。
             if ((!m_turnLabel1->isVisible()) && (m_turnLabel2->isVisible())) {
@@ -4462,8 +4472,8 @@ void MainWindow::updateRemainingTimeDisplay()
         // 将棋盤が反転モードになっている場合
         if (m_shogiView->getFlipMode()) {
             // 対局者の残り時間を入れ替えて表示する。
-            m_remainTimeText1->setText(m_shogiClock->getPlayer2Time());
-            m_remainTimeText2->setText(m_shogiClock->getPlayer1Time());
+            m_remainTimeText1->setText(m_shogiClock->getPlayer2TimeString());
+            m_remainTimeText2->setText(m_shogiClock->getPlayer1TimeString());
 
             // 手番を示す赤丸を反対側に表示する。
             if ((!m_turnLabel1->isVisible()) && (m_turnLabel2->isVisible())) {
@@ -4474,8 +4484,8 @@ void MainWindow::updateRemainingTimeDisplay()
         // 将棋盤が通常モードになっている場合
         else {
             // 対局者の残り時間をそのまま表示する。
-            m_remainTimeText1->setText(m_shogiClock->getPlayer1Time());
-            m_remainTimeText2->setText(m_shogiClock->getPlayer2Time());
+            m_remainTimeText1->setText(m_shogiClock->getPlayer1TimeString());
+            m_remainTimeText2->setText(m_shogiClock->getPlayer2TimeString());
 
             // 手番を示す赤丸をそのまま表示する。
             if ((m_turnLabel1->isVisible()) && (!m_turnLabel2->isVisible())) {
