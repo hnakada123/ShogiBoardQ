@@ -5,19 +5,27 @@
 // 将棋クロックにより対局者の持ち時間を管理するクラス
 // コンストラクタ
 ShogiClock::ShogiClock(QObject *parent) : QObject(parent), m_clockRunning(false),
-    m_player1ConsiderationTime(0), m_player2ConsiderationTime(0),
-    m_player1TotalConsiderationTime(0), m_player2TotalConsiderationTime(0)
+    m_player1ConsiderationTimeMs(0), m_player2ConsiderationTimeMs(0),
+    m_player1TotalConsiderationTimeMs(0), m_player2TotalConsiderationTimeMs(0)
 {
     // タイマーを生成する。
     m_timer = new QTimer(this);
+    m_timer->setTimerType(Qt::PreciseTimer);
+    m_timer->setInterval(50); // 50ms刻み（GUIは後述の秒変化時のみemit）
 
     // 1秒ごとにGUIの残り時間を更新する。
     connect(m_timer, &QTimer::timeout, this, &ShogiClock::updateClock);
 }
 
+// タイムアウト時に負けにするかどうかのフラグを設定する。
+void ShogiClock::setLoseOnTimeout(bool v)
+{
+    m_loseOnTimeout = v;
+}
+
 // 両対局者の持ち時間を設定する。
 void ShogiClock::setPlayerTimes(const int player1Seconds, const int player2Seconds, const int byoyomi1Seconds, const int byoyomi2Seconds,
-                                const int binc, const int winc, const bool isLoseOnTime)
+                                const int binc, const int winc, const bool isLimitedTime)
 {
     //begin
     qDebug() << "----in ShogiClock::setPlayerTimes ----";
@@ -31,32 +39,32 @@ void ShogiClock::setPlayerTimes(const int player1Seconds, const int player2Secon
 
     // 秒読み時間が0より大きい場合は、加算時間を0に設定する。
     if (byoyomi1Seconds > 0 || byoyomi2Seconds > 0) {
-        m_byoyomi1Time = byoyomi1Seconds;
-        m_byoyomi2Time = byoyomi2Seconds;
-        m_binc = 0;
-        m_winc = 0;
+        m_byoyomi1TimeMs = byoyomi1Seconds * 1000;
+        m_byoyomi2TimeMs = byoyomi2Seconds * 1000;
+        m_bincMs = 0;
+        m_wincMs = 0;
     }
     // 加算時間が0より大きい場合は、秒読み時間を0に設定する。
     else if (binc > 0 || winc > 0) {
-        m_byoyomi1Time = 0;
-        m_byoyomi2Time = 0;
-        m_binc = binc;
-        m_winc = winc;
+        m_byoyomi1TimeMs = 0;
+        m_byoyomi2TimeMs = 0;
+        m_bincMs = binc * 1000;
+        m_wincMs = winc * 1000;
     }
     // 秒読み時間と加算時間が両方とも0の場合は、秒読み時間と加算時間を0に設定する。
     else {
-        m_byoyomi1Time = 0;
-        m_byoyomi2Time = 0;
-        m_binc = 0;
-        m_winc = 0;
+        m_byoyomi1TimeMs = 0;
+        m_byoyomi2TimeMs = 0;
+        m_bincMs = 0;
+        m_wincMs = 0;
     }
 
     // 両対局者の持ち時間を設定する。
-    m_player1Time = player1Seconds;
-    m_player2Time = player2Seconds;
+    m_player1TimeMs = player1Seconds * 1000;
+    m_player2TimeMs = player2Seconds * 1000;
 
     // 持ち時間が指定されたかを判断する。
-    m_timeLimitSet = isLoseOnTime;
+    m_timeLimitSet = isLimitedTime;
 
     // 秒読み時間が適用されているかどうかのフラグを無効に設定する。
     m_byoyomi1Applied = false;
@@ -64,13 +72,13 @@ void ShogiClock::setPlayerTimes(const int player1Seconds, const int player2Secon
 
     //begin
     qDebug() << "ShogiClock::setPlayerTimes()";
-    qDebug() << "m_player1Time: " << m_player1Time;
-    qDebug() << "m_player2Time: " << m_player2Time;
+    qDebug() << "m_player1Time: " << m_player1TimeMs;
+    qDebug() << "m_player2Time: " << m_player2TimeMs;
     qDebug() << "m_timeLimitSet: " << m_timeLimitSet;
-    qDebug() << "m_byoyomi1Time: " << m_byoyomi1Time;
-    qDebug() << "m_byoyomi2Time: " << m_byoyomi2Time;
-    qDebug() << "m_binc: " << m_binc;
-    qDebug() << "m_winc: " << m_winc;
+    qDebug() << "m_byoyomi1Time: " << m_byoyomi1TimeMs;
+    qDebug() << "m_byoyomi2Time: " << m_byoyomi2TimeMs;
+    qDebug() << "m_binc: " << m_bincMs;
+    qDebug() << "m_winc: " << m_wincMs;
     qDebug() << "m_byoyomi1Applied: " << m_byoyomi1Applied;
     qDebug() << "m_byoyomi2Applied: " << m_byoyomi2Applied;
     //end
@@ -88,22 +96,22 @@ void ShogiClock::addConsiderationTimeToTotal(int player)
     saveState();
 
     if (player == 1) {
-        m_player1TotalConsiderationTime += m_player1ConsiderationTime;
+        m_player1TotalConsiderationTimeMs += m_player1ConsiderationTimeMs;
     } else {
-        m_player2TotalConsiderationTime += m_player2ConsiderationTime;
+        m_player2TotalConsiderationTimeMs += m_player2ConsiderationTimeMs;
     }
 }
 
 // 対局者1の考慮時間を設定する。
 void ShogiClock::setPlayer1ConsiderationTime(int newPlayer1ConsiderationTime)
 {
-    m_player1ConsiderationTime = newPlayer1ConsiderationTime;
+    m_player1ConsiderationTimeMs = newPlayer1ConsiderationTime;
 }
 
 // 対局者2の考慮時間を設定する。
 void ShogiClock::setPlayer2ConsiderationTime(int newPlayer2ConsiderationTime)
 {
-    m_player2ConsiderationTime = newPlayer2ConsiderationTime;
+    m_player2ConsiderationTimeMs = newPlayer2ConsiderationTime;
 }
 
 // 対局者1に秒読みが適用されているかを示すフラグを取得する。
@@ -121,27 +129,65 @@ bool ShogiClock::byoyomi2Applied() const
 // タイマーを開始する。
 void ShogiClock::startClock()
 {
-    // ゲーム開始時の残り時間を初期状態として保存する。
+    // タイマーがすでに動作中の場合は何もしない。
+    if (m_clockRunning) return;
+
+    // タイマーが動作していない場合、対局者の持ち時間と考慮時間を初期状態として保存する。
     saveState();
+
+    // 経過時間を計測するためのタイマーを開始する。
+    m_elapsedTimer.restart();
+
+    // 最後にタイマーが更新された時間を設定する。
+    m_lastTickMs = m_elapsedTimer.elapsed();
+
+    // 現在の表示秒（切り上げ）で初期化して即表示する。
+    m_prevShownSecP1 = qMax<qint64>(0, (m_player1TimeMs + 999) / 1000);
+    m_prevShownSecP2 = qMax<qint64>(0, (m_player2TimeMs + 999) / 1000);
+
+    // 残り時間の更新を通知する。
+    emit timeUpdated();
+
+    // タイマーを開始する。
+    // m_timerは50ms刻みで設定されていると想定
+    m_timer->start();
 
     // タイマーが開始されているかどうかのフラグを開始に設定する。
     m_clockRunning = true;
-
-    // タイマーをスタートする。
-    m_timer->start(1000);
 }
 
 // タイマーを停止する。
 void ShogiClock::stopClock()
 {
-    // タイマーが動作中の場合
-    if (m_timer->isActive()) {
-        // タイマーを停止する。
-        m_timer->stop();
+    if (!m_clockRunning) return;
 
-        // タイマーが開始されているかどうかのフラグを停止に設定する。
-        m_clockRunning = false;
+    // 最後の差分を反映してから止める
+    qint64 now = m_elapsedTimer.elapsed();
+    int elapsed = static_cast<int>(now - m_lastTickMs);
+    if (elapsed > 0) {
+        m_lastTickMs = now;
+        // 手番側に経過時間を反映（下のupdateClock本体と同じ処理）
+        if (m_timeLimitSet) {
+            if (m_currentPlayer == 1) {
+                m_player1TimeMs -= elapsed;
+                m_player1ConsiderationTimeMs += elapsed;
+                if (m_player1TimeMs <= 0) m_player1TimeMs = 0;
+            } else {
+                m_player2TimeMs -= elapsed;
+                m_player2ConsiderationTimeMs += elapsed;
+                if (m_player2TimeMs <= 0) m_player2TimeMs = 0;
+            }
+        } else {
+            if (m_currentPlayer == 1) m_player1ConsiderationTimeMs += elapsed;
+            else                     m_player2ConsiderationTimeMs += elapsed;
+        }
     }
+
+    m_timer->stop();
+    m_clockRunning = false;
+
+    // 最後に一回だけGUI更新（秒が変わっていれば発火）
+    emit timeUpdated();
 }
 
 // 対局者1に対して秒読み時間が適用された場合、その秒読み時間を持ち時間としてリセットし、
@@ -150,26 +196,21 @@ void ShogiClock::applyByoyomiAndResetConsideration1(const bool useByoyomi)
 {
     // 秒読みが適用されている場合
     if (useByoyomi) {
-        // すでに秒読みに入っている場合
-        if (m_byoyomi2Applied) {
-            // 秒読みが1度適用されているので持ち時間を秒読み時間に設定する。
-            m_player2Time = m_byoyomi2Time;
+        //
+        if (m_byoyomi1TimeMs > 0) m_player1TimeMs = m_byoyomi1TimeMs;
 
-            // 残り時間の更新を通知する。
-            emit timeUpdated();
-        }
-    }
-    // 秒読みが適用されていない場合
-    else {
-        // 持ち時間に時間加算を追加する。
-        m_player2Time += m_winc;
-
-        // 残り時間の更新を通知する。
-        emit timeUpdated();
+        // すでに秒読みに入っている。
+        m_byoyomi1Applied = true;
+    } else {
+        // 秒読みが適用されていない場合、持ち時間に加算時間を追加する。
+        m_player1TimeMs += m_bincMs;
     }
 
     // 考慮時間を総考慮時間に追加する。
     addConsiderationTimeToTotal(1);
+
+    // 残り時間の更新を通知する。
+    emit timeUpdated();
 }
 
 // 対局者2に対して秒読み時間が適用された場合、その秒読み時間を持ち時間としてリセットし、
@@ -178,216 +219,151 @@ void ShogiClock::applyByoyomiAndResetConsideration2(const bool useByoyomi)
 {
     // 秒読みが適用されている場合
     if (useByoyomi) {
-        // すでに秒読みに入っている場合
-        if (m_byoyomi1Applied) {
-            // 秒読みが1度適用されているので持ち時間を秒読み時間に設定する。
-            m_player1Time = m_byoyomi1Time;
+        //
+        if (m_byoyomi2TimeMs > 0) m_player2TimeMs = m_byoyomi2TimeMs;
 
-            // 残り時間の更新を通知する。
-            emit timeUpdated();
-        }
-    }
-    // 秒読みが適用されていない場合
-    else {
-        // 持ち時間に時間加算を追加する。
-        m_player1Time += m_binc;
-
-        // 残り時間の更新を通知する。
-        emit timeUpdated();
+        // すでに秒読みに入っている。
+        m_byoyomi2Applied = true;
+    } else {
+        // 秒読みが適用されていない場合、持ち時間に加算時間を追加する。
+        m_player2TimeMs += m_wincMs;
     }
 
     // 考慮時間を総考慮時間に追加する。
     addConsiderationTimeToTotal(2);
-}
-
-// 残り時間を更新する。
-void ShogiClock::updateClock()
-{
-    // タイマーが動作している場合
-    if (m_clockRunning) {
-        // 持ち時間が指定されている場合
-        if (m_timeLimitSet) {
-            // 手番が対局者1の場合
-            if (m_currentPlayer == 1) {
-                // 残り時間が0の場合
-                if (m_player1Time == 0) {
-                    // タイマーを停止する。
-                    stopClock();
-
-                    //begin
-                    qDebug() << "ShogiClock::updateClock() - Player 1 time out";
-                    qDebug() << "m_clockRunning: " << m_clockRunning;
-                    qDebug() << "m_timeLimitSet: " << m_timeLimitSet;
-                    qDebug() << "m_currentPlayer: " << m_currentPlayer;
-                    qDebug() << "m_player1Time: " << m_player1Time;
-                    //end
-
-                    // 投了の処理を行う。
-                    emit resignationTriggered();
-                }
-                // 残り時間が1秒の場合
-                else if (m_player1Time == 1) {
-                    // 秒読み時間が適用されている場合
-                    if (m_byoyomi1Applied) {
-                        // 対局者1の残り時間を1秒減らす。
-                        m_player1Time--;
-                    }
-                    // 秒読み時間が適用されていない場合
-                    else {
-                        // 秒読み時間を残り時間に設定する。
-                        m_player1Time = m_byoyomi1Time;
-
-                        // 秒読み時間が適用されたことを示すフラグを有効にする。
-                        m_byoyomi1Applied = true;
-
-                        // 対局者1の残り時間が0になった場合、対局者1の残り時間の文字色を赤色に指定する。
-                        emit player1TimeOut();
-                    }
-                }
-                // 残り時間が0より大きい場合
-                else if (m_player1Time > 0) {
-                    // 対局者1の残り時間を1秒減らす。
-                    m_player1Time--;
-                }
-
-                // 対局者1の考慮時間を更新する。
-                m_player1ConsiderationTime++;
-            }
-            // 手番が対局者2の場合
-            else {
-                // 残り時間が0の場合
-                if (m_player2Time == 0) {
-                    // タイマーを停止する。
-                    stopClock();
-
-                    // 投了の処理を行う。
-                    emit resignationTriggered();
-                }
-                // 残り時間が1秒の場合
-                else if (m_player2Time == 1) {
-                     // 秒読み時間が適用されている場合
-                    if (m_byoyomi2Applied) {
-                        // 対局者2の残り時間を1秒減らす。
-                        m_player2Time--;
-                    }
-                    // 秒読み時間が適用されていない場合
-                    else {
-                        // 秒読み時間を残り時間に設定する。
-                        m_player2Time = m_byoyomi2Time;
-
-                        // 秒読み時間が適用されたことを示すフラグを有効にする。
-                        m_byoyomi2Applied = true;
-
-                        // 対局者2の残り時間が0になった場合、対局者2の残り時間の文字色を赤色に指定する。
-                        emit player2TimeOut();
-                    }
-                }
-                // 残り時間が0より大きい場合
-                else if (m_player2Time > 0) {
-                    // 対局者2の残り時間を1秒減らす。
-                    m_player2Time--;
-                }
-
-                // 対局者2の考慮時間を更新する。
-                m_player2ConsiderationTime++;
-            }
-        } else {
-            // 持ち時間が指定されていない場合、考慮時間を更新する。
-            if (m_currentPlayer == 1) {
-                m_player1ConsiderationTime++;
-
-                // 対局者1の残り時間を1秒減らす。
-                m_player1Time--;
-
-                // 対局者1の残り時間が0になった場合
-                if (m_player1Time < 0) {
-                    // 残り時間を0に設定する。
-                    m_player1Time = 0;
-                }
-            } else {
-                m_player2ConsiderationTime++;
-
-                // 対局者2の残り時間を1秒減らす。
-                m_player2Time--;
-
-                // 対局者2の残り時間が0になった場合
-                if (m_player2Time < 0) {
-                    // 残り時間を0に設定する。
-                    m_player2Time = 0;
-                }
-            }
-        }
-    }
 
     // 残り時間の更新を通知する。
     emit timeUpdated();
 }
 
-// 対局者1の残り時間を取得する。
-QString ShogiClock::getPlayer1Time() const
+// 残り時間を更新する。
+void ShogiClock::updateClock()
 {
-    int hours = m_player1Time / 3600;
-    int minutes = (m_player1Time % 3600) / 60;
-    int seconds = m_player1Time % 60;
+    // 動作していなければ何もしない
+    if (!m_clockRunning) return;
+
+    const qint64 now = m_elapsedTimer.elapsed();
+    const int elapsed = static_cast<int>(now - m_lastTickMs);
+    if (elapsed <= 0) return;
+    m_lastTickMs = now;
+
+    if (m_timeLimitSet) {
+        if (m_currentPlayer == 1) {
+            m_player1TimeMs -= elapsed;
+            m_player1ConsiderationTimeMs += elapsed;
+
+            if (m_player1TimeMs <= 0) {
+                m_player1TimeMs = 0;
+                if (m_loseOnTimeout) {
+                    // ここで即座に終了・通知
+                    stopClock();
+                    emit player1TimeOut();
+                    emit resignationTriggered();
+                    emit timeUpdated(); // UIを確実に0表示へ
+                    return;
+                }
+            }
+        } else { // 後手
+            m_player2TimeMs -= elapsed;
+            m_player2ConsiderationTimeMs += elapsed;
+
+            if (m_player2TimeMs <= 0) {
+                m_player2TimeMs = 0;
+                if (m_loseOnTimeout) {
+                    stopClock();
+                    emit player2TimeOut();
+                    emit resignationTriggered();
+                    emit timeUpdated();
+                    return;
+                }
+            }
+        }
+    } else {
+        // 持ち時間制でない場合は考慮時間のみ積算
+        if (m_currentPlayer == 1) {
+            m_player1ConsiderationTimeMs += elapsed;
+        } else {
+            m_player2ConsiderationTimeMs += elapsed;
+        }
+    }
+
+    // ★ 秒が変わったときだけGUI更新（切り上げで合わせる）
+    const qint64 sec1 = qMax<qint64>(0, (m_player1TimeMs + 999) / 1000);
+    const qint64 sec2 = qMax<qint64>(0, (m_player2TimeMs + 999) / 1000);
+    if (sec1 != m_prevShownSecP1 || sec2 != m_prevShownSecP2) {
+        m_prevShownSecP1 = sec1;
+        m_prevShownSecP2 = sec2;
+        emit timeUpdated();
+    }
+}
+
+// 対局者1の残り時間を文字列形式で取得する。
+QString ShogiClock::getPlayer1TimeString() const
+{
+    int totalSeconds = qMax(0, (m_player1TimeMs + 999) / 1000); // ★切り上げ
+    int hours = totalSeconds / 3600;
+    int minutes = (totalSeconds % 3600) / 60;
+    int seconds = totalSeconds % 60;
     return QString::asprintf("%02d:%02d:%02d", hours, minutes, seconds);
 }
 
-// 対局者2の残り時間を取得する。
-QString ShogiClock::getPlayer2Time() const
+// 対局者2の残り時間を文字列形式で取得する。
+QString ShogiClock::getPlayer2TimeString() const
 {
-    int hours = m_player2Time / 3600;
-    int minutes = (m_player2Time % 3600) / 60;
-    int seconds = m_player2Time % 60;
+    int totalSeconds = qMax(0, (m_player2TimeMs + 999) / 1000); // ★切り上げ
+    int hours = totalSeconds / 3600;
+    int minutes = (totalSeconds % 3600) / 60;
+    int seconds = totalSeconds % 60;
     return QString::asprintf("%02d:%02d:%02d", hours, minutes, seconds);
 }
 
 // 対局者1の残り時間を取得する。
-int ShogiClock::getPlayer1TimeInt() const
+int ShogiClock::getPlayer1TimeIntMs() const
 {
-    return m_player1Time;
+    return m_player1TimeMs;
 }
 
 // 対局者2の残り時間を取得する。
-int ShogiClock::getPlayer2TimeInt() const
+int ShogiClock::getPlayer2TimeIntMs() const
 {
-    return m_player2Time;
+    return m_player2TimeMs;
 }
 
-// 対局者1の考慮時間を取得する。
+// 対局者1の考慮時間を文字列形式で取得する。
 QString ShogiClock::getPlayer1ConsiderationTime() const
 {
-    int minutes = m_player1ConsiderationTime / 60;
-    int seconds = m_player1ConsiderationTime % 60;
-
+    int totalSeconds = qMax(0, m_player1ConsiderationTimeMs) / 1000;
+    int minutes = totalSeconds / 60;
+    int seconds = totalSeconds % 60;
     return QString::asprintf("%02d:%02d", minutes, seconds);
 }
 
-// 対局者2の考慮時間を取得する。
+// 対局者2の考慮時間を文字列形式で取得する。
 QString ShogiClock::getPlayer2ConsiderationTime() const
 {
-    int minutes = m_player2ConsiderationTime / 60;
-    int seconds = m_player2ConsiderationTime % 60;
-
+    int totalSeconds = qMax(0, m_player2ConsiderationTimeMs) / 1000;
+    int minutes = totalSeconds / 60;
+    int seconds = totalSeconds % 60;
     return QString::asprintf("%02d:%02d", minutes, seconds);
 }
 
-// 対局者1の総考慮時間を取得する。
+// 対局者1の総考慮時間を文字列形式で取得する。
 QString ShogiClock::getPlayer1TotalConsiderationTime() const
 {
-    int hours = m_player1TotalConsiderationTime / 3600;
-    int minutes = (m_player1TotalConsiderationTime % 3600) / 60;
-    int seconds = m_player1TotalConsiderationTime % 60;
-
+    int totalSeconds = qMax(0, m_player1TotalConsiderationTimeMs) / 1000;
+    int hours = totalSeconds / 3600;
+    int minutes = (totalSeconds % 3600) / 60;
+    int seconds = totalSeconds % 60;
     return QString::asprintf("%02d:%02d:%02d", hours, minutes, seconds);
 }
 
-// 対局者2の総考慮時間を取得する。
+// 対局者2の総考慮時間を文字列形式で取得する。
 QString ShogiClock::getPlayer2TotalConsiderationTime() const
 {
-    int hours = m_player2TotalConsiderationTime / 3600;
-    int minutes = (m_player2TotalConsiderationTime % 3600) / 60;
-    int seconds = m_player2TotalConsiderationTime % 60;
-
+    int totalSeconds = qMax(0, m_player2TotalConsiderationTimeMs) / 1000;
+    int hours = totalSeconds / 3600;
+    int minutes = (totalSeconds % 3600) / 60;
+    int seconds = totalSeconds % 60;
     return QString::asprintf("%02d:%02d:%02d", hours, minutes, seconds);
 }
 
@@ -396,8 +372,8 @@ QString ShogiClock::getPlayer1ConsiderationAndTotalTime() const
 {
     //begin
     qDebug() << "ShogiClock::getPlayer1ConsiderationAndTotalTime()";
-    qDebug() << "m_player1ConsiderationTime: " << m_player1ConsiderationTime;
-    qDebug() << "m_player1TotalConsiderationTime: " << m_player1TotalConsiderationTime;
+    qDebug() << "m_player1ConsiderationTime: " << m_player1ConsiderationTimeMs;
+    qDebug() << "m_player1TotalConsiderationTime: " << m_player1TotalConsiderationTimeMs;
     //end
 
     return getPlayer1ConsiderationTime() + "/" + getPlayer1TotalConsiderationTime();
@@ -408,8 +384,8 @@ QString ShogiClock::getPlayer2ConsiderationAndTotalTime() const
 {
     //begin
     qDebug() << "ShogiClock::getPlayer2ConsiderationAndTotalTime()";
-    qDebug() << "m_player2ConsiderationTime: " << m_player2ConsiderationTime;
-    qDebug() << "m_player2TotalConsiderationTime: " << m_player2TotalConsiderationTime;
+    qDebug() << "m_player2ConsiderationTime: " << m_player2ConsiderationTimeMs;
+    qDebug() << "m_player2TotalConsiderationTime: " << m_player2TotalConsiderationTimeMs;
     //end
 
     return getPlayer2ConsiderationTime() + "/" + getPlayer2TotalConsiderationTime();
@@ -420,32 +396,32 @@ void ShogiClock::saveState()
 {
     //begin
     qDebug() << "--------------ShogiClock::saveState()---------------";
-    qDebug() << "m_player1Time: " << m_player1Time;
-    qDebug() << "m_player2Time: " << m_player2Time;
-    qDebug() << "m_player1ConsiderationTime: " << m_player1ConsiderationTime;
-    qDebug() << "m_player2ConsiderationTime: " << m_player2ConsiderationTime;
-    qDebug() << "m_player1TotalConsiderationTime: " << m_player1TotalConsiderationTime;
-    qDebug() << "m_player2TotalConsiderationTime: " << m_player2TotalConsiderationTime;
+    qDebug() << "m_player1Time: " << m_player1TimeMs;
+    qDebug() << "m_player2Time: " << m_player2TimeMs;
+    qDebug() << "m_player1ConsiderationTime: " << m_player1ConsiderationTimeMs;
+    qDebug() << "m_player2ConsiderationTime: " << m_player2ConsiderationTimeMs;
+    qDebug() << "m_player1TotalConsiderationTime: " << m_player1TotalConsiderationTimeMs;
+    qDebug() << "m_player2TotalConsiderationTime: " << m_player2TotalConsiderationTimeMs;
     qDebug() << "----------------------------------------------------";
     //end
 
     // 対局者1の残り時間を保存する。
-    m_player1TimeHistory.push(m_player1Time);
+    m_player1TimeHistory.push(m_player1TimeMs);
 
     // 対局者2の残り時間を保存する。
-    m_player2TimeHistory.push(m_player2Time);
+    m_player2TimeHistory.push(m_player2TimeMs);
 
     // 対局者1の考慮時間を保存する。
-    m_player1ConsiderationHistory.push(m_player1ConsiderationTime);
+    m_player1ConsiderationHistory.push(m_player1ConsiderationTimeMs);
 
     // 対局者2の考慮時間を保存する。
-    m_player2ConsiderationHistory.push(m_player2ConsiderationTime);
+    m_player2ConsiderationHistory.push(m_player2ConsiderationTimeMs);
 
     // 対局者1の総考慮時間を保存する。
-    m_player1TotalConsiderationHistory.push(m_player1TotalConsiderationTime);
+    m_player1TotalConsiderationHistory.push(m_player1TotalConsiderationTimeMs);
 
     // 対局者2の総考慮時間を保存する。
-    m_player2TotalConsiderationHistory.push(m_player2TotalConsiderationTime);
+    m_player2TotalConsiderationHistory.push(m_player2TotalConsiderationTimeMs);
 }
 
 // 「待った」をした場合、状態を2手前の残り時間、考慮時間、総考慮時間に戻す。
@@ -463,32 +439,32 @@ void ShogiClock::undo()
         // 対局者1の残り時間を2手分戻す。
         m_player1TimeHistory.pop();
         m_player1TimeHistory.pop();
-        m_player1Time = m_player1TimeHistory.top();
+        m_player1TimeMs = m_player1TimeHistory.top();
 
         // 対局者1の残り時間を2手分戻す。
         m_player2TimeHistory.pop();
         m_player2TimeHistory.pop();
-        m_player2Time = m_player2TimeHistory.top();
+        m_player2TimeMs = m_player2TimeHistory.top();
 
         // 対局者1の考慮時間を2手分戻す。
         m_player1ConsiderationHistory.pop();
         m_player1ConsiderationHistory.pop();
-        m_player1ConsiderationTime = m_player1ConsiderationHistory.top();
+        m_player1ConsiderationTimeMs = m_player1ConsiderationHistory.top();
 
         // 対局者2の考慮時間を2手分戻す。
         m_player2ConsiderationHistory.pop();
         m_player2ConsiderationHistory.pop();
-        m_player2ConsiderationTime = m_player2ConsiderationHistory.top();
+        m_player2ConsiderationTimeMs = m_player2ConsiderationHistory.top();
 
         // 対局者1の総考慮時間を2手分戻す。
         m_player1TotalConsiderationHistory.pop();
         m_player1TotalConsiderationHistory.pop();
-        m_player1TotalConsiderationTime = m_player1TotalConsiderationHistory.top();
+        m_player1TotalConsiderationTimeMs = m_player1TotalConsiderationHistory.top();
 
         // 対局者2の総考慮時間を2手分戻す。
         m_player2TotalConsiderationHistory.pop();
         m_player2TotalConsiderationHistory.pop();
-        m_player2TotalConsiderationTime = m_player2TotalConsiderationHistory.top();
+        m_player2TotalConsiderationTimeMs = m_player2TotalConsiderationHistory.top();
 
         // 残り時間の更新を通知する。
         emit timeUpdated();
