@@ -143,6 +143,7 @@ private:
     // 持ち時間が指定されているかを示すフラグ
     bool m_timeLimitSet;
 
+    // タイムアウト時に投了するかどうかを示すフラグ
     bool m_loseOnTimeout;
 
     // 対局者1の考慮時間
