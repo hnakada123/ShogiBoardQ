@@ -47,10 +47,11 @@ ShogiView::ShogiView(QWidget *parent)
     // ★ここを直接代入ではなく再計算関数に
     recalcLayoutParams();
 
-    setStandGapCols(1);
+    setStandGapCols(0.5);
 
     // 盤を下にずらすオフセット
-    m_offsetY = 30;
+    //m_offsetY = 30;
+    m_offsetY = 20;
 
     setMouseTracking(true);
 
@@ -575,6 +576,74 @@ void ShogiView::drawFourStars(QPainter *painter)
 // 盤面の指定された段（rank）に対応する段番号を描画する。
 void ShogiView::drawRank(QPainter* painter, const int rank) const
 {
+    if (!m_board) return;
+
+    // その段のセル矩形（左端の1筋をベースに）
+    const QRect cell = calculateSquareRectangleBasedOnBoardState(1, rank);
+
+    // ラベル帯の矩形を計算
+    const int w = m_labelBandPx;
+    const int h = cell.height();
+    const int y = cell.top() + m_offsetY;
+    const int x = m_flipMode
+                      ? (m_offsetX - m_labelGapPx - w)                           // 反転時は盤の左側
+                      : (m_offsetX + m_squareSize * m_board->files() + m_labelGapPx); // 通常時は盤の右側
+
+    const QRect rankRect(x, y, w, h);
+
+    // フォントをマス連動で設定
+    QFont f = painter->font();
+    f.setPointSizeF(m_labelFontPt);
+    painter->setFont(f);
+
+    static const QStringList rankTexts = { "一","二","三","四","五","六","七","八","九" };
+    if (rank >= 1 && rank <= rankTexts.size()) {
+        const Qt::Alignment hAlign = m_flipMode ? Qt::AlignRight : Qt::AlignLeft;
+        painter->drawText(rankRect, Qt::AlignVCenter | hAlign, rankTexts.at(rank - 1));
+    }
+}
+
+void ShogiView::drawFile(QPainter* painter, const int file) const
+{
+    if (!m_board) return;
+
+    // その筋のセル矩形（1段目をベースに）
+    const QRect cell = calculateSquareRectangleBasedOnBoardState(file, 1);
+
+    int x = cell.left() + m_offsetX;
+    int w = cell.width();
+    int h = m_labelBandPx;
+    int y;
+
+    if (m_flipMode) {
+        // 反転：盤の下側
+        y = m_offsetY + m_squareSize * m_board->ranks() + m_labelGapPx; // 下余白(m_offsetY)を加えて下端からの位置;
+    } else {
+        // 通常：盤の上側。上余白(m_offsetY)が足りない場合に収まるよう調整
+        const int avail = m_offsetY - 2;  // ウィジェット上端から盤上端まで
+
+        if (h + m_labelGapPx > avail) {
+            h = qMax(12, avail - m_labelGapPx);
+        }
+        y = m_offsetY - m_labelGapPx - h + 2; // 上余白(m_offsetY)を引いて上端からの位置;
+    }
+
+    const QRect fileRect(x, y, w, h);
+
+    // フォントをマス連動で設定
+    QFont f = painter->font();
+    f.setPointSizeF(m_labelFontPt);
+    painter->setFont(f);
+
+    static const QStringList fileTexts = { "１","２","３","４","５","６","７","８","９" };
+    if (file >= 1 && file <= fileTexts.size()) {
+        painter->drawText(fileRect, Qt::AlignHCenter | Qt::AlignVCenter, fileTexts.at(file - 1));
+    }
+}
+
+/*
+void ShogiView::drawRank(QPainter* painter, const int rank) const
+{
     // 盤面の指定された段の矩形を計算する。
     const QRect fieldRect = calculateRectangleForRankOrFileLabel(1, rank);
 
@@ -623,6 +692,7 @@ void ShogiView::drawFile(QPainter* painter, const int file) const
         painter->drawText(fileRect, Qt::AlignHCenter | Qt::AlignTop, fileTexts.at(file - 1));
     }
 }
+*/
 
 // 盤面の指定されたマス（筋file、段rank）を描画する。
 void ShogiView::drawField(QPainter* painter, const int file, const int rank) const
@@ -1296,7 +1366,7 @@ void ShogiView::recalcLayoutParams()
     constexpr int tweak = 10;
 
     // 旧式：m_param1 = 3*s - 10;       // 2マス(駒台幅) + 1マス(すき間)
-    //       m_param2 = 10*s - 10;      // 9マス(盤幅)  + 1マス(すき間)
+    //      m_param2 = 10*s - 10;      // 9マス(盤幅)  + 1マス(すき間)
     //
     // 新式：すき間を m_standGapCols マスぶんに
     m_param1 = qRound((2.0 + m_standGapCols) * m_squareSize) - tweak;
@@ -1304,6 +1374,21 @@ void ShogiView::recalcLayoutParams()
 
     // 盤の描画オフセットは左駒台ぶん＋少しの余白
     m_offsetX = m_param1 + tweak;
+
+    // 盤ラベル用のパラメータ（マスサイズ連動）
+    m_labelGapPx  = qMax(0,  int(m_squareSize * 0.05));  // 盤からの余白 ≈ 0.15マス
+    m_labelBandPx = qMax(12, int(m_squareSize * 0.9));  // 帯の厚み ≈ 0.9マス
+    m_labelFontPt = qMax(8.0, m_squareSize * 0.1);      // フォント ≈ 0.55マス（お好みで）
+
+    //begin
+    qDebug() << "Recalculated layout parameters:";
+    qDebug() << "m_param1:" << m_param1;
+    qDebug() << "m_param2:" << m_param2;
+    qDebug() << "m_offsetX:" << m_offsetX;
+    qDebug() << "m_labelGapPx:" << m_labelGapPx;
+    qDebug() << "m_labelBandPx:" << m_labelBandPx;
+    qDebug() << "m_labelFontPt:" << m_labelFontPt;
+    //end
 }
 
 // 局面編集モードで先手駒台に置かれた駒を描画する。
