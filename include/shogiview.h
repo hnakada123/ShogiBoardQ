@@ -188,6 +188,9 @@ public:
 
     ElideLabel *blackNameLabel() const;
 
+    // すき間（マス単位）を動的に変更したい場合用（0.0=密着, 1.0=1マス）
+    void setStandGapCols(double cols);
+
 public slots:
     // マスのサイズを設定する。
     void setFieldSize(QSize fieldSize);
@@ -402,6 +405,12 @@ private:
     // 追加：文字列が矩形に収まる最大フォントサイズに調整
     void fitLabelFontToRect(QLabel* label, const QString& text,
                             const QRect& rect, int paddingPx = 2);
+
+    // 盤・駒台レイアウトの再計算（m_squareSizeやギャップが変わったら呼ぶ）
+    void recalcLayoutParams();
+
+    // 駒台と盤の「すき間」を“マス何個ぶんか”で指定（既定 0.6 マス）
+    double m_standGapCols{0.6};
 };
 
 #endif // SHOGIVIEW_H
