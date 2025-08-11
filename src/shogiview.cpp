@@ -44,11 +44,10 @@ ShogiView::ShogiView(QWidget *parent)
     // マスのサイズを設定ファイルから読み込む。デフォルトは50。
     m_squareSize = settings.value("SizeRelated/squareSize", 50).toInt();
 
-    m_param1 = m_squareSize * 3 - 10;
-    m_param2 = m_squareSize * 10 - 10;
+    // ★ここを直接代入ではなく再計算関数に
+    recalcLayoutParams();
 
-    // 盤を右にずらすオフセット
-    m_offsetX = m_param1 + 10;
+    setStandGapCols(1);
 
     // 盤を下にずらすオフセット
     m_offsetY = 30;
@@ -1245,33 +1244,24 @@ int ShogiView::squareSize() const
     return m_squareSize;
 }
 
-// 盤面のサイズを拡大する。
+
+// 盤面のサイズを拡大
 void ShogiView::enlargeBoard()
 {
     m_squareSize++;
-    m_param1 = m_squareSize * 3 - 10;
-    m_param2 = m_squareSize * 10 - 10;
-    m_offsetX = m_param1 + 10;
+    recalcLayoutParams();                     // ← 追加
     setFieldSize(QSize(m_squareSize, m_squareSize));
-
     updateBlackClockLabelGeometry();
-
-    // 表示を更新する。
     update();
 }
 
-// 盤面のサイズを縮小する。
+// 盤面のサイズを縮小
 void ShogiView::reduceBoard()
 {
     m_squareSize--;
-    m_param1 = m_squareSize * 3 - 10;
-    m_param2 = m_squareSize * 10 - 10;
-    m_offsetX = m_param1 + 10;
+    recalcLayoutParams();                     // ← 追加
     setFieldSize(QSize(m_squareSize, m_squareSize));
-
     updateBlackClockLabelGeometry();
-
-    // 表示を更新する。
     update();
 }
 
@@ -1287,6 +1277,33 @@ void ShogiView::setPositionEditMode(bool positionEditMode)
     m_positionEditMode = positionEditMode;
 
     updateBlackClockLabelGeometry();
+}
+
+// すき間（マス単位）を変えるAPI（例：setStandGapCols(0.5) で0.5マス）
+void ShogiView::setStandGapCols(double cols)
+{
+    m_standGapCols = qBound(0.0, cols, 2.0);  // 0〜2マスの範囲にクランプ
+    recalcLayoutParams();
+    updateGeometry();
+    updateBlackClockLabelGeometry();
+    update();
+}
+
+// レイアウト再計算（m_param1, m_param2, m_offsetX を一元管理）
+void ShogiView::recalcLayoutParams()
+{
+    // 以前の -10 / +10 の“味付け”は維持（見た目が変わりすぎないように）
+    constexpr int tweak = 10;
+
+    // 旧式：m_param1 = 3*s - 10;       // 2マス(駒台幅) + 1マス(すき間)
+    //       m_param2 = 10*s - 10;      // 9マス(盤幅)  + 1マス(すき間)
+    //
+    // 新式：すき間を m_standGapCols マスぶんに
+    m_param1 = qRound((2.0 + m_standGapCols) * m_squareSize) - tweak;
+    m_param2 = qRound((9.0 + m_standGapCols) * m_squareSize) - tweak;
+
+    // 盤の描画オフセットは左駒台ぶん＋少しの余白
+    m_offsetX = m_param1 + tweak;
 }
 
 // 局面編集モードで先手駒台に置かれた駒を描画する。
