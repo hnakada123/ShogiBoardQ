@@ -1,6 +1,7 @@
 #include "shogiview.h"
 #include "shogiboard.h"
 #include "enginesettingsconstants.h"
+#include "elidelabel.h"
 #include <QColor>
 #include <QMouseEvent>
 #include <QPainter>
@@ -53,6 +54,38 @@ ShogiView::ShogiView(QWidget *parent)
     m_offsetY = 30;
 
     setMouseTracking(true);
+
+    m_blackClockLabel = new QLabel(QStringLiteral("00:00:00"), this);
+    m_blackClockLabel->setObjectName(QStringLiteral("blackClockLabel"));
+    m_blackClockLabel->setAlignment(Qt::AlignCenter);
+    m_blackClockLabel->setAttribute(Qt::WA_TransparentForMouseEvents, true); // マウスイベント透過
+    m_blackClockLabel->setStyleSheet(QStringLiteral("background: transparent; color: black;"));
+
+
+    {
+        QFont f = font();
+        f.setBold(true);
+        f.setPointSizeF(qMax(8.0, m_squareSize * 0.45)); // マスサイズに連動
+        m_blackClockLabel->setFont(f);
+    }
+
+
+    // ★ 対局者名（先手）：ElideLabel
+    m_blackNameLabel = new ElideLabel(this);
+    m_blackNameLabel->setElideMode(Qt::ElideRight);
+    m_blackNameLabel->setFullText(QStringLiteral("▲"));
+    // ツールチップの付箋風スタイルは main.cpp の app.setStyleSheet でOK
+    m_blackNameLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter); // 見やすいので左寄せ推奨
+    m_blackNameLabel->setSlideOnHover(true);      // ホバーで自動スクロール
+    m_blackNameLabel->setManualPanEnabled(true);  // 左ドラッグで手動パン
+    m_blackNameLabel->setUnderline(true);         // 下線を表示
+    m_blackNameLabel->setSlideSpeed(2);           // お好みで 1〜3
+    m_blackNameLabel->setSlideInterval(16);       // 16ms=約60fps
+
+    m_blackNameLabel->setContentsMargins(0, 10, 0, 0);
+    m_blackClockLabel->setContentsMargins(0, 10, 0, 0);
+
+    updateBlackClockLabelGeometry();
 }
 
 // m_boardにShogiBoardオブジェクトのポインタをセットする。
@@ -107,6 +140,8 @@ void ShogiView::setFieldSize(QSize fieldSize)
 
     // ウィジェットのジオメトリ（サイズや配置）を更新する。
     updateGeometry();
+
+    updateBlackClockLabelGeometry();
 }
 
 // 将棋盤ウィジェットの推奨サイズを計算して返す。
@@ -780,6 +815,16 @@ void ShogiView::drawStandPieceCount(QPainter* painter, const QRect& adjustedRect
     painter->drawText(adjustedRect, Qt::AlignVCenter | Qt::AlignCenter, pieceCountText);
 }
 
+ElideLabel *ShogiView::blackNameLabel() const
+{
+    return m_blackNameLabel;
+}
+
+QLabel *ShogiView::blackClockLabel() const
+{
+    return m_blackClockLabel;
+}
+
 // 先手駒台に置かれた駒の枚数を描画する。
 void ShogiView::drawBlackStandPieceCount(QPainter* painter, const int file, const int rank) const
 {
@@ -1209,6 +1254,8 @@ void ShogiView::enlargeBoard()
     m_offsetX = m_param1 + 10;
     setFieldSize(QSize(m_squareSize, m_squareSize));
 
+    updateBlackClockLabelGeometry();
+
     // 表示を更新する。
     update();
 }
@@ -1221,6 +1268,8 @@ void ShogiView::reduceBoard()
     m_param2 = m_squareSize * 10 - 10;
     m_offsetX = m_param1 + 10;
     setFieldSize(QSize(m_squareSize, m_squareSize));
+
+    updateBlackClockLabelGeometry();
 
     // 表示を更新する。
     update();
@@ -1236,6 +1285,8 @@ void ShogiView::setErrorOccurred(bool newErrorOccurred)
 void ShogiView::setPositionEditMode(bool positionEditMode)
 {
     m_positionEditMode = positionEditMode;
+
+    updateBlackClockLabelGeometry();
 }
 
 // 局面編集モードで先手駒台に置かれた駒を描画する。
@@ -1348,6 +1399,7 @@ void ShogiView::drawEditModeWhiteStandPieceCount(QPainter* painter, const int fi
 void ShogiView::setFlipMode(bool newFlipMode)
 {
     m_flipMode = newFlipMode;
+    updateBlackClockLabelGeometry();
 }
 
 // 将棋盤を反転させるフラグを返す。
@@ -1533,4 +1585,127 @@ void ShogiView::mouseMoveEvent(QMouseEvent* event)
 bool ShogiView::positionEditMode() const
 {
     return m_positionEditMode;
+}
+
+void ShogiView::resizeEvent(QResizeEvent* e) {
+    updateBlackClockLabelGeometry();
+    QWidget::resizeEvent(e);
+}
+
+QRect ShogiView::blackStandBoundingRect() const
+{
+    if (!m_board) return {};
+
+    const QSize fs = fieldSize().isValid() ? fieldSize()
+                                           : QSize(m_squareSize, m_squareSize);
+
+    const int rows     = m_positionEditMode ? 8 : 7;
+    const int topRank  = m_flipMode ? 9 : (m_positionEditMode ? 2 : 3);
+    const int leftCol  = m_flipMode ? 1 : 2;
+
+    const QRect cell = calculateSquareRectangleBasedOnBoardState(leftCol, topRank);
+
+    const int x = (m_flipMode ? (cell.left() - m_param1 + m_offsetX)
+                              : (cell.left() + m_param1 + m_offsetX));
+    const int y = cell.top() + m_offsetY;
+    const int w = fs.width() * 2;          // ← 横幅ちょうど2マス分
+    const int h = fs.height() * rows;
+
+    return QRect(x, y, w, h);
+}
+void ShogiView::updateBlackClockLabelGeometry()
+{
+    if (!m_blackClockLabel || !m_blackNameLabel) return;
+
+    const QRect stand = blackStandBoundingRect();
+    if (!stand.isValid()) {
+        m_blackClockLabel->hide();
+        m_blackNameLabel->hide();
+        return;
+    }
+
+    const QSize fs = fieldSize().isValid() ? fieldSize()
+                                           : QSize(m_squareSize, m_squareSize);
+
+    const int marginOuter = 4;
+    const int marginInner = 2;
+    const int nameH  = qMax(int(fs.height()*0.8), fs.height());
+    const int clockH = qMax(int(fs.height()*0.9), fs.height());
+
+    int x = stand.left();
+    int yTopWanted = stand.top() - (nameH + marginInner + clockH) - marginOuter;
+
+    QRect nameRect, clockRect;
+    if (yTopWanted >= 0) {
+        nameRect  = QRect(x, yTopWanted, stand.width(), nameH);
+        clockRect = QRect(x, nameRect.bottom() + 1 + marginInner, stand.width(), clockH);
+    } else {
+        nameRect  = QRect(x, stand.top() + marginOuter, stand.width(), nameH);
+        clockRect = QRect(x, nameRect.bottom() + 1 + marginInner, stand.width(), clockH);
+        int bottomOverflow = (clockRect.bottom() + 1 + marginOuter) - stand.bottom();
+        if (bottomOverflow > 0) {
+            int shiftUp = qMin(bottomOverflow, nameRect.top() - (stand.top() + marginOuter));
+            nameRect.translate(0, -shiftUp);
+            clockRect.translate(0, -shiftUp);
+        }
+    }
+
+    // ← ここを NameEdit から NameLabel に
+    m_blackNameLabel->setGeometry(nameRect);
+    m_blackClockLabel->setGeometry(clockRect);
+
+    fitLabelFontToRect(m_blackClockLabel, m_blackClockLabel->text(), clockRect, 2);
+
+    // 名前フォント（倍率はお好みで）
+    QFont f = m_blackNameLabel->font();
+    f.setPointSizeF(qMax(8.0, fs.height() * 0.30));
+    m_blackNameLabel->setFont(f);
+
+    m_blackNameLabel->raise();
+    m_blackClockLabel->raise();
+    m_blackNameLabel->show();
+    m_blackClockLabel->show();
+}
+
+void ShogiView::setBlackPlayerName(const QString& name)
+{
+    if (!m_blackNameLabel) return;
+    m_blackNameLabel->setFullText(name);   // ← ここを setText ではなく setFullText に
+}
+
+void ShogiView::fitLabelFontToRect(QLabel* label, const QString& text,
+                                   const QRect& rect, int paddingPx)
+{
+    if (!label) return;
+
+    const QRect inner = rect.adjusted(paddingPx, paddingPx, -paddingPx, -paddingPx);
+
+    // 二分探索で最大ポイントサイズを求める
+    double lo = 6.0;           // 最小pt
+    double hi = 200.0;         // 最大ptの上限（十分大きい値）
+    QFont f = label->font();
+
+    for (int i = 0; i < 18; ++i) { // 18回で十分収束
+        const double mid = (lo + hi) * 0.5;
+        f.setPointSizeF(mid);
+        QFontMetrics fm(f);
+        const int w = fm.horizontalAdvance(text);
+        const int h = fm.height();
+
+        if (w <= inner.width() && h <= inner.height()) {
+            lo = mid; // まだ余裕→大きく
+        } else {
+            hi = mid; // はみ出し→小さく
+        }
+    }
+
+    f.setPointSizeF(lo);
+    label->setFont(f);
+}
+
+void ShogiView::setBlackClockText(const QString& text)
+{
+    if (!m_blackClockLabel) return;
+    m_blackClockLabel->setText(text);
+    fitLabelFontToRect(m_blackClockLabel, text, m_blackClockLabel->geometry(), 2);
 }

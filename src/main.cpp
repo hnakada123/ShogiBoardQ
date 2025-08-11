@@ -21,6 +21,12 @@ int main(int argc, char *argv[])
         }
     }
 
+    // ここでアプリ全体のツールチップ見た目を設定
+    a.setStyleSheet(
+        "QToolTip { background: #FFF9C4; color: #333; "
+        "border: 1px solid #C49B00; padding: 6px; font-size: 12pt; }"
+        );
+
     MainWindow w;
 
     w.show();

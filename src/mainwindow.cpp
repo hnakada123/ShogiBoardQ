@@ -890,6 +890,7 @@ void MainWindow::setPlayersNamesForMode()
     case EvenHumanVsEngine:
         m_playersName1->setText("▲" + m_humanName1);
         m_playersName2->setText("△" + m_engineName2);
+        m_shogiView->blackNameLabel()->setFullText("▲" + m_humanName1);
         break;
 
     // Player1: USI Engine, Player2: Human
@@ -4460,6 +4461,8 @@ void MainWindow::updateRemainingTimeDisplay()
             // 対局者の残り時間をそのまま表示する。
             m_remainTimeText1->setText(m_shogiClock->getPlayer1TimeString());
             m_remainTimeText2->setText(m_shogiClock->getPlayer2TimeString());
+
+            m_shogiView->blackClockLabel()->setText(m_shogiClock->getPlayer1TimeString());
 
             // 手番を示す赤丸をそのまま表示する。
             if ((!m_turnLabel1->isVisible()) && (m_turnLabel2->isVisible())) {

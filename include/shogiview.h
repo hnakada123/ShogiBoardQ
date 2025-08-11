@@ -1,6 +1,7 @@
 #ifndef SHOGIVIEW_H
 #define SHOGIVIEW_H
 
+#include "elidelabel.h"
 #include <QIcon>
 #include <QMap>
 #include <QPointer>
@@ -179,6 +180,14 @@ public:
     // 局面編集モードかどうかのフラグを返す。
     bool positionEditMode() const;
 
+    void setBlackClockText(const QString& text);
+
+    QLabel *blackClockLabel() const;
+
+    void setBlackPlayerName(const QString& name);
+
+    ElideLabel *blackNameLabel() const;
+
 public slots:
     // マスのサイズを設定する。
     void setFieldSize(QSize fieldSize);
@@ -205,6 +214,8 @@ signals:
 protected:
     // マウスボタンがクリックされた時のイベント処理を行う。
     void mouseMoveEvent(QMouseEvent* event) override;
+
+    void resizeEvent(QResizeEvent* e) override;
 
 private:
     // エラーが発生したかどうかを示すフラグ
@@ -382,6 +393,15 @@ private:
 
     // 駒台の持ち駒の枚数を描画する。
     void drawStandPieceCount(QPainter* painter, const QRect& adjustedRect, QChar value) const;
+
+    QLabel* m_blackClockLabel{nullptr};            // 先手時計ラベル
+    ElideLabel* m_blackNameLabel{nullptr};            // ← 追加
+    void updateBlackClockLabelGeometry();          // 位置/サイズ更新
+    QRect blackStandBoundingRect() const;          // 先手駒台の外接矩形
+
+    // 追加：文字列が矩形に収まる最大フォントサイズに調整
+    void fitLabelFontToRect(QLabel* label, const QString& text,
+                            const QRect& rect, int paddingPx = 2);
 };
 
 #endif // SHOGIVIEW_H
