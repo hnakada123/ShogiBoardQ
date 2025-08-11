@@ -4444,6 +4444,8 @@ void MainWindow::initializeGame()
 void MainWindow::updateRemainingTimeDisplay()
 {
     if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
+        m_shogiView->blackClockLabel()->setText(m_shogiClock->getPlayer1TimeString());
+
         // 将棋盤が反転モードになっている場合
         if (m_shogiView->getFlipMode()) {
             // 対局者の残り時間を入れ替えて表示する。
@@ -4462,7 +4464,7 @@ void MainWindow::updateRemainingTimeDisplay()
             m_remainTimeText1->setText(m_shogiClock->getPlayer1TimeString());
             m_remainTimeText2->setText(m_shogiClock->getPlayer2TimeString());
 
-            m_shogiView->blackClockLabel()->setText(m_shogiClock->getPlayer1TimeString());
+            //m_shogiView->blackClockLabel()->setText(m_shogiClock->getPlayer1TimeString());
 
             // 手番を示す赤丸をそのまま表示する。
             if ((!m_turnLabel1->isVisible()) && (m_turnLabel2->isVisible())) {

@@ -1314,7 +1314,6 @@ int ShogiView::squareSize() const
     return m_squareSize;
 }
 
-
 // 盤面のサイズを拡大
 void ShogiView::enlargeBoard()
 {
@@ -1343,8 +1342,14 @@ void ShogiView::setErrorOccurred(bool newErrorOccurred)
 
 // 局面編集モードを設定する。
 void ShogiView::setPositionEditMode(bool positionEditMode)
-{
+{   
+    if (m_positionEditMode == positionEditMode) return;
+
     m_positionEditMode = positionEditMode;
+
+    // 念のためここでも切り替え
+    if (m_blackClockLabel) m_blackClockLabel->setVisible(!m_positionEditMode);
+    if (m_blackNameLabel)  m_blackNameLabel->setVisible(!m_positionEditMode);
 
     updateBlackClockLabelGeometry();
 }
@@ -1715,8 +1720,86 @@ QRect ShogiView::blackStandBoundingRect() const
 
     return QRect(x, y, w, h);
 }
+
 void ShogiView::updateBlackClockLabelGeometry()
 {
+    // 編集モードは非表示のまま
+    if (m_positionEditMode) {
+        if (m_blackClockLabel) m_blackClockLabel->hide();
+        if (m_blackNameLabel)  m_blackNameLabel->hide();
+        return;
+    }
+
+    if (!m_blackClockLabel || !m_blackNameLabel) return;
+
+    const QRect stand = blackStandBoundingRect();
+    if (!stand.isValid()) {
+        m_blackClockLabel->hide();
+        m_blackNameLabel->hide();
+        return;
+    }
+
+    const QSize fs = fieldSize().isValid() ? fieldSize()
+                                           : QSize(m_squareSize, m_squareSize);
+    const int marginOuter = 4;   // 駒台とのスキマ
+    const int marginInner = 2;   // 名前と時計のスキマ
+
+    const int nameH  = qMax(int(fs.height()*0.8), fs.height());
+    const int clockH = qMax(int(fs.height()*0.9), fs.height());
+
+    const int x = stand.left();
+    const int yAbove = stand.top() - (nameH + marginInner + clockH) - marginOuter;
+    const int yBelow = stand.bottom() + 1 + marginOuter;
+
+    QRect nameRect, clockRect;
+
+    if (yAbove >= 0) {
+        // 上側に置ける
+        nameRect  = QRect(x, yAbove, stand.width(), nameH);
+        clockRect = QRect(x, nameRect.bottom() + 1 + marginInner,
+                          stand.width(), clockH);
+    } else if (yBelow + nameH + marginInner + clockH <= height()) {
+        // 上が無理なら下側に置く（★反転時はだいたいこちら）
+        nameRect  = QRect(x, yBelow, stand.width(), nameH);
+        clockRect = QRect(x, nameRect.bottom() + 1 + marginInner,
+                          stand.width(), clockH);
+    } else {
+        // 上下どちらにも置けない → 最終手段として駒台内に収める
+        nameRect  = QRect(x, stand.top() + marginOuter, stand.width(), nameH);
+        clockRect = QRect(x, nameRect.bottom() + 1 + marginInner,
+                          stand.width(), clockH);
+        int overflow = (clockRect.bottom() + marginOuter) - stand.bottom();
+        if (overflow > 0) {
+            nameRect.translate(0, -overflow);
+            clockRect.translate(0, -overflow);
+        }
+    }
+
+    m_blackNameLabel->setGeometry(nameRect);
+    m_blackClockLabel->setGeometry(clockRect);
+
+    // フォント合わせ
+    fitLabelFontToRect(m_blackClockLabel, m_blackClockLabel->text(), clockRect, 2);
+    QFont f = m_blackNameLabel->font();
+    f.setPointSizeF(qMax(8.0, fs.height() * 0.40));
+    m_blackNameLabel->setFont(f);
+
+    m_blackNameLabel->raise();
+    m_blackClockLabel->raise();
+    m_blackNameLabel->show();
+    m_blackClockLabel->show();
+}
+
+/*
+void ShogiView::updateBlackClockLabelGeometry()
+{
+    // 局面編集モードなら非表示にして終了
+    if (m_positionEditMode) {
+        if (m_blackClockLabel) m_blackClockLabel->hide();
+        if (m_blackNameLabel)  m_blackNameLabel->hide();
+        return;
+    }
+
     if (!m_blackClockLabel || !m_blackNameLabel) return;
 
     const QRect stand = blackStandBoundingRect();
@@ -1768,6 +1851,7 @@ void ShogiView::updateBlackClockLabelGeometry()
     m_blackNameLabel->show();
     m_blackClockLabel->show();
 }
+*/
 
 void ShogiView::setBlackPlayerName(const QString& name)
 {
