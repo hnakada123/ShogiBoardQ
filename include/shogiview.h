@@ -180,15 +180,31 @@ public:
     // 局面編集モードかどうかのフラグを返す。
     bool positionEditMode() const;
 
+    // 先手の持ち時間をGUI上に表示するラベルを設定する。
     void setBlackClockText(const QString& text);
 
+    // 後手の持ち時間をGUI上に表示するラベルを設定する。
+    void setWhiteClockText(const QString& text);
+
+    // 先手の持ち時間をGUI上に表示するラベルを返す。
     QLabel *blackClockLabel() const;
 
+    // 後手の持ち時間をGUI上に表示するラベルを返す。
+    QLabel *whiteClockLabel() const;
+
+    // 先手の対局者名をGUI上に表示するラベルを設定する。
     void setBlackPlayerName(const QString& name);
 
+    // 後手の対局者名をGUI上に表示するラベルを設定する。
+    void setWhitePlayerName(const QString& name);
+
+    // 先手の対局者名をGUI上に表示するラベルを返す。
     ElideLabel *blackNameLabel() const;
 
-    // すき間（マス単位）を動的に変更したい場合用（0.0=密着, 1.0=1マス）
+    // 後手の対局者名をGUI上に表示するラベルを返す。
+    ElideLabel *whiteNameLabel() const;
+
+    // すき間（マス単位）を動的に変更する。（0.0=密着, 1.0=1マス）
     void setStandGapCols(double cols);
 
 public slots:
@@ -397,10 +413,29 @@ private:
     // 駒台の持ち駒の枚数を描画する。
     void drawStandPieceCount(QPainter* painter, const QRect& adjustedRect, QChar value) const;
 
-    QLabel* m_blackClockLabel{nullptr};            // 先手時計ラベル
-    ElideLabel* m_blackNameLabel{nullptr};            // ← 追加
-    void updateBlackClockLabelGeometry();          // 位置/サイズ更新
-    QRect blackStandBoundingRect() const;          // 先手駒台の外接矩形
+    // 先手の持ち時間を表示するラベル
+    QLabel* m_blackClockLabel{nullptr};
+
+    // 後手の持ち時間を表示するラベル
+    QLabel* m_whiteClockLabel{nullptr};
+
+    // 先手の対局者名を表示するラベル
+    ElideLabel* m_blackNameLabel{nullptr};
+
+    // 後手の対局者名を表示するラベル
+    ElideLabel* m_whiteNameLabel{nullptr};
+
+    // 先手の対局者名と持ち時間を更新する。
+    void updateBlackClockLabelGeometry();
+
+    // 後手の対局者名と持ち時間を更新する。
+    void updateWhiteClockLabelGeometry();
+
+    // 先手駒台の外接矩形を計算する。
+    QRect blackStandBoundingRect() const;
+
+    // 後手駒台の外接矩形を計算する。
+    QRect whiteStandBoundingRect() const;
 
     // 追加：文字列が矩形に収まる最大フォントサイズに調整
     void fitLabelFontToRect(QLabel* label, const QString& text,
