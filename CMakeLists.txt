@@ -31,6 +31,7 @@ set(SOURCE_FILES
         src/changeenginesettingsdialog.cpp
         src/considarationdailog.cpp
         src/tsumeshogisearchdialog.cpp
+        src/elidelabel.cpp
         src/engineregistrationdialog.cpp
         src/kiftosfenconverter.cpp
         src/kifuanalysisdialog.cpp
@@ -61,6 +62,7 @@ set(HEADER_FILES
         include/changeenginesettingsdialog.h
         include/considarationdialog.h
         include/tsumeshogisearchdialog.h
+        include/elidelabel.h
         include/engineoptions.h
         include/engineregistrationdialog.h
         include/enginesettingsconstants.h
