@@ -207,6 +207,8 @@ public:
     // すき間（マス単位）を動的に変更する。（0.0=密着, 1.0=1マス）
     void setStandGapCols(double cols);
 
+    void setNameFontScale(double scale); // 0.2〜1.0 くらい
+
 public slots:
     // マスのサイズを設定する。
     void setFieldSize(QSize fieldSize);
@@ -292,6 +294,8 @@ private:
 
     // ドラッグ中だけ使う一時的な枚数マップ
     QMap<QChar,int> m_tempPieceStandCounts;
+
+    double m_nameFontScale { 0.36 }; // デフォルト倍率
 
     // 将棋盤、駒台を描画する。
     void paintEvent(QPaintEvent* event) override;

@@ -71,12 +71,6 @@ MainWindow::MainWindow(QWidget *parent) :
     // GUIを構成するWidgetなどのnew生成
     initializeComponents();
 
-    // 両対局者の名前の表示
-    createPlayerNameAndMoveDisplay();
-
-    // 残り時間、手数、手番の表示
-    setupTimeAndTurnIndicators();
-
     // 棋譜欄の表示設定
     setupGameRecordView();
 
@@ -91,12 +85,6 @@ MainWindow::MainWindow(QWidget *parent) :
 
     // エンジン1の現在の読み筋とUSIプロトコル通信ログの表示
     initializeEngine1ThoughtTab();
-
-    // 対局者名と残り時間を縦ボックス化
-    setupPlayerTimeLayout();
-
-    // 対局者名と残り時間、将棋盤を縦に並べて表示
-    setupPlayerAndBoardLayout();
 
     // 棋譜、矢印ボタン、評価値グラフを縦ボックス化
     setupRecordAndEvaluationLayout();
@@ -329,6 +317,9 @@ void MainWindow::initializeComponents()
     // 将棋盤と駒台を生成する。
     m_shogiView = new ShogiView;
 
+    // 好みの倍率に設定（表示前にやるのがスムーズ）
+    m_shogiView->setNameFontScale(0.30);
+
     // SFEN文字列のリスト
     m_sfenRecord = new QStringList;
 
@@ -496,9 +487,6 @@ void MainWindow::updateBoardFromMoveHistory()
     // 現在の手数をセットする。
     m_currentMoveIndex = index.row();
 
-    // 手数表示を更新
-    m_totalMovesDisplay->setText(QString::number(m_currentMoveIndex));
-
     // 最終行のインデックスを取得
     int lastRowIndex = m_gameRecordModel->rowCount() - 1;
 
@@ -544,9 +532,6 @@ void MainWindow::navigateToNextMove()
 
     // 現在の手数を更新する。
     m_currentMoveIndex = nextRow;
-
-    // 手数表示を更新する。
-    m_totalMovesDisplay->setText(QString::number(m_currentMoveIndex));
 
     // 最終行のインデックスを取得する。
     int lastRowIndex = m_gameRecordModel->rowCount() - 1;
@@ -594,9 +579,6 @@ void MainWindow::navigateForwardTenMoves()
     // 現在の手数を更新する。
     m_currentMoveIndex = nextRow;
 
-    // 手数表示を更新
-    m_totalMovesDisplay->setText(QString::number(m_currentMoveIndex));
-
     // 最終行のインデックスを取得
     int lastRowIndex = m_gameRecordModel->rowCount() - 1;
 
@@ -632,9 +614,6 @@ void MainWindow::navigateToLastMove()
 
         // 現在の手数を更新
         m_currentMoveIndex = lastRowIndex;
-
-        // 手数表示を更新
-        m_totalMovesDisplay->setText(QString::number(m_currentMoveIndex));
     }
 }
 
@@ -664,9 +643,6 @@ void MainWindow::navigateToPreviousMove()
 
         // 現在の手数をセットする。
         m_currentMoveIndex = indexAfter.row();
-
-        // 手数表示を更新
-        m_totalMovesDisplay->setText(QString::number(m_currentMoveIndex));
     }
 
     // マスのハイライトを更新する。
@@ -706,9 +682,6 @@ void MainWindow::navigateBackwardTenMoves()
     // 現在の手数をセットする。
     m_currentMoveIndex = indexAfter.row();
 
-    // 手数表示を更新
-    m_totalMovesDisplay->setText(QString::number(m_currentMoveIndex));
-
     // マスのハイライトを更新する。
     clearMoveHighlights();
 
@@ -733,10 +706,6 @@ void MainWindow::navigateToFirstMove()
 
     // 盤面を更新する。
     m_gameController->board()->setSfen(sfenStr);
-
-    // 手数表示を更新
-    m_totalMovesDisplay->setText("0");
-    m_totalMovesDisplay->update();
 }
 
 // 待ったをした場合、position文字列のセットと評価値グラフの値を削除する。
@@ -841,9 +810,6 @@ void MainWindow::undoLastTwoMoves()
         // 将棋盤の表示を2手前の手数の局面に描画する。
         m_gameController->board()->setSfen(str);
 
-        // 将棋盤上部の手数表示を2手前の手数に設定する。
-        m_totalMovesDisplay->setText(QString::number(m_currentMoveIndex));
-
         // 2手分のSFEN文字列を削除
         m_sfenRecord->removeLast();
         m_sfenRecord->removeLast();
@@ -882,46 +848,44 @@ void MainWindow::setPlayersNamesForMode()
     switch (m_playMode) {
     // Player1: Human, Player2: Human
     case HumanVsHuman:
-        m_playersName1->setText("▲" + m_humanName1);
-        m_playersName2->setText("△" + m_humanName2);
+        m_shogiView->blackNameLabel()->setFullText("▲" + m_humanName1);
+        m_shogiView->whiteNameLabel()->setFullText("▽" + m_humanName2);
         break;
 
     // Player1: Human, Player2: USI Engine
     case EvenHumanVsEngine:
-        m_playersName1->setText("▲" + m_humanName1);
-        m_playersName2->setText("△" + m_engineName2);
         m_shogiView->blackNameLabel()->setFullText("▲" + m_humanName1);
         m_shogiView->whiteNameLabel()->setFullText("▽" + m_engineName2);
         break;
 
     // Player1: USI Engine, Player2: Human
     case EvenEngineVsHuman:
-        m_playersName1->setText("▲" + m_engineName1);
-        m_playersName2->setText("△" + m_humanName2);
+        m_shogiView->blackNameLabel()->setFullText("▲" + m_engineName1);
+        m_shogiView->whiteNameLabel()->setFullText("▽" + m_humanName2);
         break;
 
     // Player1: USI Engine, Player2: USI Engine
     case EvenEngineVsEngine:
-        m_playersName1->setText("▲" + m_engineName1);
-        m_playersName2->setText("△" + m_engineName2);
+        m_shogiView->blackNameLabel()->setFullText("▲" + m_engineName1);
+        m_shogiView->whiteNameLabel()->setFullText("▽" + m_engineName2);
         break;
 
     // 駒落ち Player1: Human（下手）, Player2: USI Engine（上手）
     case HandicapHumanVsEngine:
-        m_playersName1->setText("▲" + m_humanName1);
-        m_playersName2->setText("△" + m_engineName2);
+        m_shogiView->blackNameLabel()->setFullText("▲" + m_humanName1);
+        m_shogiView->whiteNameLabel()->setFullText("▽" + m_engineName2);
         break;
 
     // 駒落ち Player1: USI Engine（下手）, Player2: Human（上手）
     case HandicapEngineVsHuman:
-        m_playersName1->setText("▲" + m_engineName1);
-        m_playersName2->setText("△" + m_humanName2);
+        m_shogiView->blackNameLabel()->setFullText("▲" + m_engineName1);
+        m_shogiView->whiteNameLabel()->setFullText("▽" + m_humanName2);
         break;
 
     // 駒落ち Player1: USI Engine（下手）, Player2: USI Engine（上手）
     case HandicapEngineVsEngine:
-        m_playersName1->setText("▲" + m_engineName1);
-        m_playersName2->setText("△" + m_engineName2);
+        m_shogiView->blackNameLabel()->setFullText("▲" + m_engineName1);
+        m_shogiView->whiteNameLabel()->setFullText("▽" + m_engineName2);
         break;
 
     // まだ対局を開始していない状態
@@ -942,166 +906,6 @@ void MainWindow::setPlayersNamesForMode()
     }
 }
 
-// 将棋盤上部の対局者名欄、手数欄を作成し、パックしてウィジェットにまとめる。
-void MainWindow::createPlayerNameAndMoveDisplay()
-{
-    // フォントの指定
-    QFont font("Noto Sans CJK JP", 10);
-
-    // 対局者名1（先手）欄を作成する。
-    m_playersName1 = new QLineEdit;
-
-    // 対局者名1（先手）にフォントをセットする。
-    m_playersName1->setFont(font);
-
-    // 対局者名1（先手）を手動修正できないようにする。
-    m_playersName1->setReadOnly(true);
-
-    // 対局者名1の欄の幅を可能な限り、広げる。
-    m_playersName1->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
-
-    // 対局者名2（後手）欄を作成する。
-    m_playersName2 = new QLineEdit;
-
-    // 対局者名2（後手）にフォントをセットする。
-    m_playersName2->setFont(font);
-
-    // 対局者名2（後手）を手動修正できないようにする。
-    m_playersName2->setReadOnly(true);
-
-    // 対局者名2の欄の幅を可能な限り、広げる。
-    m_playersName2->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
-
-    // 手数欄の作成
-    m_totalMovesDisplay = new QLineEdit;
-
-    // 手数欄にフォントをセットする。
-    m_totalMovesDisplay->setFont(font);
-
-    // 手数欄を右寄せにする。
-    m_totalMovesDisplay->setAlignment(Qt::AlignRight);
-
-    // 手数欄を手動修正できないようにする。
-    m_totalMovesDisplay->setReadOnly(true);
-
-    // 手数欄の幅を60に固定する。
-    m_totalMovesDisplay->setFixedWidth(60);
-
-    // 「手目」の欄を作成
-    m_moveNumberLabel = new QLabel;
-
-    // 「手目」のフォントをセットする。
-    m_moveNumberLabel->setFont(font);
-
-    // 「手目」を記載
-    m_moveNumberLabel->setText("手目");
-
-    // スペーサーの作成
-    m_spacer1 = new QWidget;
-
-    // スペーサーのポリシーを設定
-    // QSizePolicy::Expanding 可能な限りウィジェットを大きく表示する。
-    // QSizePolicy::Preferred sizeHint()以内でウィジェットを拡大可能
-    m_spacer1->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
-
-    // hboxLayoutに対局者名2、スペーサー、手数欄、「手数」ラベル、スペーサー、対局者名1の
-    // 6つのウィジェットを追加
-    QHBoxLayout* hboxLayout = new QHBoxLayout;
-    hboxLayout->addWidget(m_playersName2);
-    //hboxLayout->addWidget(m_spacer1);
-    hboxLayout->addWidget(m_totalMovesDisplay);
-    hboxLayout->addWidget(m_moveNumberLabel);
-    //hboxLayout->addWidget(m_spacer1);
-    hboxLayout->addWidget(m_playersName1);
-
-    // 6つのウィジェットをパックしてm_firstLineとする。
-    m_firstLine = new QWidget;
-    m_firstLine->setLayout(hboxLayout);
-}
-
-// 将棋盤上部の残り時間と手番を示す赤丸を設定する。
-void MainWindow::setupTimeAndTurnIndicators()
-{
-    // 手番を示す赤丸画像の設定
-    QPixmap pix(":/icons/circle-128.png");
-
-    // 先手の手番画像を表示するラベル作成
-    m_turnLabel1 = new QLabel;
-
-    // 先手の手番画像のサイズを設定
-    m_turnLabel1->setPixmap(pix.scaled(12, 12, Qt::KeepAspectRatio));
-
-    // 先手の手番画像を対局前なので非表示にする。
-    m_turnLabel1->setVisible(false);
-
-    // 後手の手番画像を表示するラベル作成
-    m_turnLabel2 = new QLabel;
-
-    // 後手の手番画像のサイズを設定
-    m_turnLabel2->setPixmap(pix.scaled(12, 12, Qt::KeepAspectRatio));
-
-    // 後手の手番画像を対局前なので非表示にする。
-    m_turnLabel2->setVisible(false);
-
-    // フォントの指定
-    QFont font("Noto Sans CJK JP", 20, QFont::Bold);
-
-    // 先手の残り時間を表示するラベル作成
-    m_remainTimeText1 = new QLabel;
-
-    // パレットを青色に指定する。
-    QPalette palette1 = m_remainTimeText1->palette();
-    palette1.setColor(QPalette::WindowText, Qt::blue);
-
-    // 先手の残り時間の文字色を青色に指定
-    m_remainTimeText1->setPalette(palette1);
-
-    // 指定したフォントに設定
-    m_remainTimeText1->setFont(font);
-
-    // 残り時間の初期値として「00:00:00」を設定
-    m_remainTimeText1->setText("00:00:00");
-
-    // 後手の残り時間を表示するラベル作成
-    m_remainTimeText2 = new QLabel;
-
-    // パレットを青色に指定する。
-    QPalette palette2 = m_remainTimeText2->palette();
-    palette2.setColor(QPalette::WindowText, Qt::blue);
-
-    // 後手の残り時間の文字色を青色に指定
-    m_remainTimeText2->setPalette(palette2);
-
-    // 指定したフォントに設定
-    m_remainTimeText2->setFont(font);
-
-    // 残り時間の初期値として「00:00:00」を設定
-    m_remainTimeText2->setText("00:00:00");
-
-    // スペーサーの作成
-    m_spacer2 = new QWidget;
-
-    // スペーサーのポリシーを設定
-    // QSizePolicy::Expanding 可能な限りウィジェットを大きく表示する。
-    // QSizePolicy::Preferred sizeHint()以内でウィジェットを拡大可能
-    m_spacer2->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
-
-    // スペーサー、後手の残り時間、後手の手番を示す赤丸、スペーサー、先手の手番を示す赤丸、
-    // 先手の残り時間、スペーサーをhboxLayoutに追加
-    QHBoxLayout* hboxLayout = new QHBoxLayout;
-    hboxLayout->addWidget(m_spacer2);
-    hboxLayout->addWidget(m_remainTimeText2);
-    hboxLayout->addWidget(m_turnLabel2);
-    hboxLayout->addWidget(m_spacer2);
-    hboxLayout->addWidget(m_turnLabel1);
-    hboxLayout->addWidget(m_remainTimeText1);
-    hboxLayout->addWidget(m_spacer2);
-
-    // 7つのウィジェットをパックしてm_secondLineとする。
-    m_secondLine = new QWidget;
-    m_secondLine->setLayout(hboxLayout);
-}
-
 // 駒台を含む将棋盤全体の画像をクリップボードにコピーする。
 void MainWindow::copyBoardToClipboard()
 {
@@ -1116,11 +920,6 @@ void MainWindow::copyBoardToClipboard()
 // 先手が将棋盤の手前か後手が手前になるかが決まる。
 void MainWindow::flipBoardAndUpdatePlayerInfo()
 {
-    // 先手・後手の対局者名を入れ替える。
-    QString tmpName = m_playersName1->text();
-    m_playersName1->setText(m_playersName2->text());
-    m_playersName2->setText(tmpName);
-
     // 将棋盤が反転している場合（後手が手前）
     if (m_shogiView->getFlipMode()) {
         // 将棋盤を正常に戻すフラグflipModeを設定する。
@@ -1989,45 +1788,6 @@ QString MainWindow::parseStartPositionToSfen(QString startPositionStr)
     }
 }
 
-// 対局者名と残り時間を縦ボックス化する。
-void MainWindow::setupPlayerTimeLayout()
-{
-    // 縦ボックスレイアウトを作成する。
-    QVBoxLayout* vboxLayout = new QVBoxLayout;
-
-    // 対局者名と残り時間を縦ボックス化する。
-    vboxLayout->addWidget(m_firstLine);
-    vboxLayout->setSpacing(0);
-    vboxLayout->addWidget(m_secondLine);
-
-    // 縦ボックスウィジェットを作成する。
-    m_playerInfoLayoutWidget = new QWidget;
-
-    // 縦ボックスウィジェットに縦ボックスレイアウトを設定する。
-    m_playerInfoLayoutWidget->setLayout(vboxLayout);
-}
-
-// 対局者名と残り時間、将棋盤を縦に並べて表示する。
-void MainWindow::setupPlayerAndBoardLayout()
-{
-    // 縦ボックスレイアウトを作成する。
-    QVBoxLayout* vboxLayout = new QVBoxLayout;
-
-    // 対局者名と残り時間、将棋盤を縦に並べて表示する。
-    vboxLayout->addWidget(m_playerInfoLayoutWidget);
-    vboxLayout->setSpacing(0);
-    vboxLayout->addWidget(m_shogiView);
-
-    // 縦ボックスウィジェットのサイズを固定にする。
-    vboxLayout->setSizeConstraint(QLayout::SetFixedSize);
-
-    // 縦ボックスウィジェットを作成する。
-    m_playerAndBoardLayoutWidget = new QWidget;
-
-    // 縦ボックスウィジェットに縦ボックスレイアウトを設定する。
-    m_playerAndBoardLayoutWidget->setLayout(vboxLayout);
-}
-
 // 棋譜、矢印ボタン、評価値グラフを縦ボックス化する。
 void MainWindow::setupRecordAndEvaluationLayout()
 {
@@ -2051,7 +1811,7 @@ void MainWindow::setupHorizontalGameLayout()
 {
     m_hsplit = new QSplitter(Qt::Horizontal);
 
-    m_hsplit->addWidget(m_playerAndBoardLayoutWidget);
+    m_hsplit->addWidget(m_shogiView);
     m_hsplit->addWidget(m_gameRecordLayoutWidget);
 }
 
@@ -2869,29 +2629,26 @@ void MainWindow::handleClickForHumanVsHuman(const QPoint& field)
     resetSelectionAndHighlight();
 }
 
-// 将棋クロックの手番を設定し、GUIの手番表示を更新する。
-void MainWindow::updateTurnStatus(int currentPlayer, bool visibleLabel1)
+// 将棋クロックの手番を設定する。
+void MainWindow::updateTurnStatus(int currentPlayer)
 {
     // 将棋クロックの手番を設定する。
     m_shogiClock->setCurrentPlayer(currentPlayer);
 
-    // GUIの手番を示す赤丸を表示する。
-    m_turnLabel1->setVisible(visibleLabel1);
-    m_turnLabel2->setVisible(!visibleLabel1);
 }
 
-// 手番に応じて将棋クロックの手番変更およびGUIの手番表示を更新する。
+// 手番に応じて将棋クロックの手番変更する。
 void MainWindow::updateTurnDisplay()
 {
     // 手番が対局者1の場合
     if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
         // 将棋クロックの手番を対局者1に設定し、GUIの手番表示を更新する。
-        updateTurnStatus(1, true);
+        updateTurnStatus(1);
     }
     // 手番が対局者2の場合
     else if (m_gameController->currentPlayer() == ShogiGameController::Player2) {
         // 将棋クロックの手番を対局者2に設定し、GUIの手番表示を更新する。
-        updateTurnStatus(2, false);
+        updateTurnStatus(2);
     }
 }
 
@@ -2988,8 +2745,8 @@ void MainWindow::updateTurnAndTimekeepingDisplay()
         // 対局者2の考慮時間を0に設定する。
         m_shogiClock->setPlayer2ConsiderationTime(0);
 
-        // 将棋クロックの手番を対局者1に設定し、GUIの手番表示を更新する。
-        updateTurnStatus(1, true);
+        // 将棋クロックの手番を対局者1に設定する。
+        updateTurnStatus(1);
     }
     // 手番が対局者2の場合
     else if (m_gameController->currentPlayer() == ShogiGameController::Player2) {
@@ -3003,8 +2760,8 @@ void MainWindow::updateTurnAndTimekeepingDisplay()
         // 対局者1の考慮時間を0に設定する。
         m_shogiClock->setPlayer1ConsiderationTime(0);
 
-        // 将棋クロックの手番を対局者2に設定し、GUIの手番表示を更新する。
-        updateTurnStatus(2, false);
+        // 将棋クロックの手番を対局者2に設定する。
+        updateTurnStatus(2);
     }
 
     //begin
@@ -3910,9 +3667,6 @@ void MainWindow::displayKifuAnalysisDialog()
         // 棋譜解析結果を表示するためのテーブルビューを設定および表示する。
         displayAnalysisResults();
 
-        // GUIの手番を示す赤丸を対局者1側に表示する。
-        m_turnLabel1->setVisible(true);
-
         try {
             // 棋譜解析を開始する。
             analyzeGameRecord();
@@ -4446,59 +4200,9 @@ void MainWindow::updateRemainingTimeDisplay()
 {
     if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
         m_shogiView->blackClockLabel()->setText(m_shogiClock->getPlayer1TimeString());
-
-        // 将棋盤が反転モードになっている場合
-        if (m_shogiView->getFlipMode()) {
-            // 対局者の残り時間を入れ替えて表示する。
-            m_remainTimeText1->setText(m_shogiClock->getPlayer2TimeString());
-            m_remainTimeText2->setText(m_shogiClock->getPlayer1TimeString());
-
-            // 手番を示す赤丸を反対側に表示する。
-            if ((m_turnLabel1->isVisible()) && (!m_turnLabel2->isVisible())) {
-                m_turnLabel1->setVisible(false);
-                m_turnLabel2->setVisible(true);
-            }
-        }
-        // 将棋盤が通常モードになっている場合
-        else {
-            // 対局者の残り時間をそのまま表示する。
-            m_remainTimeText1->setText(m_shogiClock->getPlayer1TimeString());
-            m_remainTimeText2->setText(m_shogiClock->getPlayer2TimeString());
-
-            //m_shogiView->blackClockLabel()->setText(m_shogiClock->getPlayer1TimeString());
-
-            // 手番を示す赤丸をそのまま表示する。
-            if ((!m_turnLabel1->isVisible()) && (m_turnLabel2->isVisible())) {
-                m_turnLabel1->setVisible(true);
-                m_turnLabel2->setVisible(false);
-            }
-        }
     }
     else {
-        // 将棋盤が反転モードになっている場合
-        if (m_shogiView->getFlipMode()) {
-            // 対局者の残り時間を入れ替えて表示する。
-            m_remainTimeText1->setText(m_shogiClock->getPlayer2TimeString());
-            m_remainTimeText2->setText(m_shogiClock->getPlayer1TimeString());
-
-            // 手番を示す赤丸を反対側に表示する。
-            if ((!m_turnLabel1->isVisible()) && (m_turnLabel2->isVisible())) {
-                m_turnLabel1->setVisible(true);
-                m_turnLabel2->setVisible(false);
-            }
-        }
-        // 将棋盤が通常モードになっている場合
-        else {
-            // 対局者の残り時間をそのまま表示する。
-            m_remainTimeText1->setText(m_shogiClock->getPlayer1TimeString());
-            m_remainTimeText2->setText(m_shogiClock->getPlayer2TimeString());
-
-            // 手番を示す赤丸をそのまま表示する。
-            if ((m_turnLabel1->isVisible()) && (!m_turnLabel2->isVisible())) {
-                m_turnLabel1->setVisible(false);
-                m_turnLabel2->setVisible(true);
-            }
-        }
+        m_shogiView->whiteClockLabel()->setText(m_shogiClock->getPlayer2TimeString());
     }
 }
 
@@ -4526,16 +4230,9 @@ void MainWindow::resetToInitialState()
     // 全てのマスのハイライトを削除する。
     m_shogiView->removeHighlightAllData();
 
-    // 両対局者の名前欄を初期化する。
-    m_playersName1->setText("▲");
-    m_playersName2->setText("△");
-
-    // 残り時間、手数、手番を初期化する。
+    // 残り時間を初期化する。
     m_remainTimeText1->setText("00:00:00");
     m_remainTimeText2->setText("00:00:00");
-    m_totalMovesDisplay->setText("");
-    m_turnLabel1->setVisible(false);
-    m_turnLabel2->setVisible(false);
 
     // 棋譜欄を初期化する。
     m_gameRecordModel->clearAllItems();
@@ -4685,23 +4382,6 @@ void MainWindow::loadKifuFromFile(const QString &filePath)
     converter.convertKifToSfen(kifuTextLines, kifuMoves, kifuMovesConsumptionTime, m_sfenRecord, m_gameMoves, sentePlayerName, gotePlayerName,
                                uwatePlayerName, shitatePlayerName, handicapType);
 
-    // GUIの対局者名欄に表示するデータを設定する。
-    // 手合割が平手の場合
-    if (handicapType == "平手") {
-        m_playersName1->setText("▲" + sentePlayerName);
-        m_playersName2->setText("△" + gotePlayerName);
-    }
-    // 手合割が駒落ちの場合
-    else {
-        if (uwatePlayerName.isEmpty() && shitatePlayerName.isEmpty()) {
-            m_playersName1->setText("▲" + sentePlayerName);
-            m_playersName2->setText("△" + gotePlayerName);
-        } else {
-            m_playersName1->setText("△" + uwatePlayerName);
-            m_playersName2->setText("▲" + shitatePlayerName);
-        }
-    }
-
     // 棋譜欄に「指し手」と「消費時間」のデータを表示させる。
     displayGameRecord(kifuMoves, kifuMovesConsumptionTime, handicapType);
 
@@ -4744,10 +4424,6 @@ void MainWindow::updateGameRecord(const QString& elapsedTime)
 
     // 最後の指し手のレコードを表示用モデルに追加する。
     m_gameRecordModel->appendItem(m_moveRecords->last());
-
-    // 手数表示を更新する。
-    m_totalMovesDisplay->setText(moveNumberStr);
-    m_totalMovesDisplay->update();
 
     // 棋譜表示を最下部へスクロールする。
     m_gameRecordView->scrollToBottom();
@@ -5188,29 +4864,15 @@ void MainWindow::beginPositionEditing()
     // 棋譜欄の行をクリックしても選択できないようにする。
     m_gameRecordView->setSelectionMode(QAbstractItemView::NoSelection);
 
-    // 見直し必要
-    // 手番表示の赤丸を先手側に表示させる。（仮の手番設定）
-    // この手番表示は、「手番変更」で変更可能。
-    m_turnLabel1->setVisible(true);
-    m_turnLabel2->setVisible(false);
-
     // 手番が先手あるいは下手の場合
     if (m_shogiView->board()->currentPlayer() == "b") {
       // 手番を先手あるいは下手に設定する。
       m_gameController->setCurrentPlayer(ShogiGameController::Player1);
-
-      // 手番表示の赤丸を先手あるいは下手側に表示させる。
-      m_turnLabel1->setVisible(true);
-      m_turnLabel2->setVisible(false);
     }
     // 手番が後手あるいは上手の場合
     else if (m_shogiView->board()->currentPlayer() == "w") {
       // 手番を後手あるいは上手に設定する。
       m_gameController->setCurrentPlayer(ShogiGameController::Player2);
-
-      // 手番表示の赤丸を後手あるいは上手側に表示させる。
-      m_turnLabel1->setVisible(false);
-      m_turnLabel2->setVisible(true);
     }
 
     // 局面編集モードで、クリックされたマスに基づいて駒の移動を処理する。
@@ -5307,15 +4969,11 @@ void MainWindow::switchTurns()
     // 手番が先手あるいは下手の場合
     if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
         // 手番を後手あるいは上手に設定する。
-        m_turnLabel1->setVisible(false);
-        m_turnLabel2->setVisible(true);
         m_gameController->setCurrentPlayer(ShogiGameController::Player2);
     }
     // 手番が後手あるいは上手の場合
     else {
         // 手番を先手あるいは下手に設定する。
-        m_turnLabel1->setVisible(true);
-        m_turnLabel2->setVisible(false);
         m_gameController->setCurrentPlayer(ShogiGameController::Player1);
     }
 }

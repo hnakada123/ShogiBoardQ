@@ -1115,6 +1115,7 @@ QPoint ShogiView::getClickedSquare(const QPoint &clickPosition) const
     }
 }
 
+/*
 // クリックした位置を基に、通常モードでのマスを特定する。
 QPoint ShogiView::getClickedSquareInDefaultState(const QPoint& clickPosition) const
 {
@@ -1247,6 +1248,113 @@ QPoint ShogiView::getClickedSquareInFlippedState(const QPoint& clickPosition) co
 
     // 有効な将棋盤上のマスの位置(QPoint)を返す。この場合、筋の計算は反転させる。
     return QPoint(file + 1, m_board->ranks() - rank);
+}
+*/
+
+// クリックした位置を基に、通常モードでのマスを特定する。
+QPoint ShogiView::getClickedSquareInDefaultState(const QPoint& pos) const
+{
+    // 将棋盤がセットされていない場合、無効な位置(QPoint())を返す。
+    if (!m_board) return QPoint();
+
+    const QSize fs = fieldSize().isValid() ? fieldSize()
+                                           : QSize(m_squareSize, m_squareSize);
+    const int w = fs.width();
+    const int h = fs.height();
+
+    // 1) まず盤面のヒットテスト（整数演算）
+    const QRect boardRect(m_offsetX, m_offsetY,
+                          w * m_board->files(), h * m_board->ranks());
+
+    if (boardRect.contains(pos)) {
+        const int xIn = pos.x() - boardRect.left();
+        const int yIn = pos.y() - boardRect.top();
+        const int colFromLeft = xIn / w;      // 0..8
+        const int rowFromTop  = yIn / h;      // 0..8
+
+        const int file = m_board->files() - colFromLeft; // 9..1 → 1..9
+        const int rank = rowFromTop + 1;                 // 1..9
+        return QPoint(file, rank);
+    }
+
+    // 2) 盤面外なら既存の「駒台」判定（そのまま流用でOK）
+    // --- ここに今までの駒台当たり判定ブロックを置く ---
+    // 例：先手駒台（右）の判定など
+    float tempFile = (pos.x() - m_param2 - m_offsetX) / float(w);
+    float tempRank = (pos.y() - m_offsetY) / float(h);
+    int   rank     = static_cast<int>(tempRank);
+    if (m_positionEditMode) {
+        if ((tempFile >= 0) && (tempFile < 1) && (rank >= 1) && (rank <= 8))
+            return QPoint(10, m_board->ranks() - rank);
+    } else {
+        if ((tempFile >= 0) && (tempFile < 1) && (rank >= 2) && (rank <= 8))
+            return QPoint(10, m_board->ranks() - rank);
+    }
+
+    tempFile = (pos.x() + m_param1 - m_offsetX) / float(w);
+    tempRank = (pos.y() - m_offsetY) / float(h);
+    int file = static_cast<int>(tempFile);
+    rank     = static_cast<int>(tempRank);
+    if (m_positionEditMode) {
+        if ((file == 1) && (rank >= 0) && (rank <= 7))
+            return QPoint(11, m_board->ranks() - rank);
+    } else {
+        if ((file == 1) && (rank >= 0) && (rank <= 6))
+            return QPoint(11, m_board->ranks() - rank);
+    }
+
+    return QPoint(); // 何もヒットしない
+}
+
+QPoint ShogiView::getClickedSquareInFlippedState(const QPoint& pos) const
+{
+    if (!m_board) return QPoint();
+
+    const QSize fs = fieldSize().isValid() ? fieldSize()
+                                           : QSize(m_squareSize, m_squareSize);
+    const int w = fs.width();
+    const int h = fs.height();
+
+    // 1) まず盤面ヒット（整数演算）
+    const QRect boardRect(m_offsetX, m_offsetY,
+                          w * m_board->files(), h * m_board->ranks());
+
+    if (boardRect.contains(pos)) {
+        const int xIn = pos.x() - boardRect.left();
+        const int yIn = pos.y() - boardRect.top();
+        const int colFromLeft = xIn / w;      // 0..8
+        const int rowFromTop  = yIn / h;      // 0..8
+
+        const int file = colFromLeft + 1;                     // 1..9
+        const int rank = m_board->ranks() - rowFromTop;       // 9..1
+        return QPoint(file, rank);
+    }
+
+    // 2) 盤面外なら既存の駒台判定（そのまま流用）
+    float tempFile = (pos.x() - m_param2 - m_offsetX) / float(w);
+    float tempRank = (pos.y() - m_offsetY) / float(h);
+    int   rank     = static_cast<int>(tempRank);
+    if (m_positionEditMode) {
+        if ((tempFile >= 0) && (tempFile < 1) && (rank >= 1) && (rank <= 8))
+            return QPoint(11, rank + 1);
+    } else {
+        if ((tempFile >= 0) && (tempFile < 1) && (rank >= 2) && (rank <= 8))
+            return QPoint(11, rank + 1);
+    }
+
+    tempFile = (pos.x() + m_param1 - m_offsetX) / float(w);
+    tempRank = (pos.y() - m_offsetY) / float(h);
+    int file = static_cast<int>(tempFile);
+    rank     = static_cast<int>(tempRank);
+    if (m_positionEditMode) {
+        if ((tempFile >= 1) && (tempFile < 2) && (rank >= 0) && (rank <= 7))
+            return QPoint(10, rank + 1);
+    } else {
+        if ((tempFile >= 1) && (tempFile < 2) && (rank >= 0) && (rank <= 6))
+            return QPoint(10, rank + 1);
+    }
+
+    return QPoint();
 }
 
 // マウスボタンがクリックされた時のイベント処理を行う。
@@ -1901,9 +2009,9 @@ void ShogiView::updateBlackClockLabelGeometry()
     m_blackClockLabel->setGeometry(clockRect);
 
     // フォント合わせ
-    fitLabelFontToRect(m_blackClockLabel, m_blackClockLabel->text(), clockRect, 2);
+    fitLabelFontToRect(m_blackClockLabel, m_blackClockLabel->text(), clockRect, 2);  
     QFont f = m_blackNameLabel->font();
-    f.setPointSizeF(qMax(8.0, fs.height() * 0.40));
+    f.setPointSizeF(qMax(8.0, fs.height() * m_nameFontScale));
     m_blackNameLabel->setFont(f);
 
     m_blackNameLabel->raise();
@@ -1971,8 +2079,8 @@ void ShogiView::updateWhiteClockLabelGeometry()
 
     // フォント合わせ
     fitLabelFontToRect(m_whiteClockLabel, m_whiteClockLabel->text(), clockRect, 2);
-    QFont f = m_whiteNameLabel->font();
-    f.setPointSizeF(qMax(8.0, fs.height() * 0.40));
+    QFont f = m_blackNameLabel->font();
+    f.setPointSizeF(qMax(8.0, fs.height() * m_nameFontScale));
     m_whiteNameLabel->setFont(f);
 
     m_whiteNameLabel->raise();
@@ -2041,4 +2149,10 @@ void ShogiView::setWhitePlayerName(const QString& name)
     if (!m_whiteNameLabel) return;
     m_whiteNameLabel->setFullText(name);
     m_whiteNameLabel->setToolTip(name);
+}
+
+void ShogiView::setNameFontScale(double scale)
+{
+    m_nameFontScale = std::clamp(scale, 0.2, 1.0);
+    updateBlackClockLabelGeometry(); // 反映
 }
