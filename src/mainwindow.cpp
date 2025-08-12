@@ -891,6 +891,7 @@ void MainWindow::setPlayersNamesForMode()
         m_playersName1->setText("▲" + m_humanName1);
         m_playersName2->setText("△" + m_engineName2);
         m_shogiView->blackNameLabel()->setFullText("▲" + m_humanName1);
+        m_shogiView->whiteNameLabel()->setFullText("▽" + m_engineName2);
         break;
 
     // Player1: USI Engine, Player2: Human

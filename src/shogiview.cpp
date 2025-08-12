@@ -59,7 +59,7 @@ ShogiView::ShogiView(QWidget *parent)
     m_blackClockLabel->setObjectName(QStringLiteral("blackClockLabel"));
     m_blackClockLabel->setAlignment(Qt::AlignCenter);
     m_blackClockLabel->setAttribute(Qt::WA_TransparentForMouseEvents, true); // マウスイベント透過
-    m_blackClockLabel->setStyleSheet(QStringLiteral("background: transparent; color: black;"));
+    m_blackClockLabel->setStyleSheet(QStringLiteral("background: transparent; color: blue;"));
 
     {
         QFont f = font();
@@ -99,7 +99,7 @@ ShogiView::ShogiView(QWidget *parent)
     m_whiteClockLabel->setObjectName(QStringLiteral("whiteClockLabel"));
     m_whiteClockLabel->setAlignment(Qt::AlignCenter);
     m_whiteClockLabel->setAttribute(Qt::WA_TransparentForMouseEvents, true);
-    m_whiteClockLabel->setStyleSheet(QStringLiteral("background: transparent; color: black;"));
+    m_whiteClockLabel->setStyleSheet(QStringLiteral("background: transparent; color: blue;"));
 
     {
         QFont f = font();
@@ -640,6 +640,61 @@ void ShogiView::drawFile(QPainter* painter, const int file) const
     // その筋のセル矩形（1段目をベースに）
     const QRect cell = calculateSquareRectangleBasedOnBoardState(file, 1);
 
+    const int x = cell.left() + m_offsetX;
+    const int w = cell.width();
+
+    int h = m_labelBandPx;   // 帯の高さ
+    int y = 0;
+
+    if (m_flipMode) {
+        // 反転：盤の下側に表示。下側にどれだけ余白があるかを計算
+        const int boardBottom = m_offsetY + m_squareSize * m_board->ranks();
+        int avail = height() - boardBottom - 2;                 // 盤下端からウィジェット下端まで
+
+        if (avail <= 0) return;                                 // 余白ゼロなら描かない
+        if (h + m_labelGapPx > avail) {
+            h = qMax(8, avail - m_labelGapPx);                  // 入るように帯高さを縮める
+            if (h <= 0) return;
+        }
+        y = boardBottom + m_labelGapPx;
+
+        // 念のためウィジェット内にクランプ
+        if (y + h > height() - 1) y = height() - 1 - h;
+
+    } else {
+        // 通常：盤の上側に表示。上側余白を超えないように調整
+        int avail = m_offsetY - 2;                              // ウィジェット上端から盤上端まで
+
+        if (avail <= 0) return;
+        if (h + m_labelGapPx > avail) {
+            h = qMax(8, avail - m_labelGapPx);
+            if (h <= 0) return;
+        }
+        y = m_offsetY - m_labelGapPx - h;
+    }
+
+    const QRect fileRect(x, y, w, h);
+
+    // 帯が縮んだ場合に文字がはみ出さないようフォントも抑える
+    QFont f = painter->font();
+    f.setPointSizeF(qMin(m_labelFontPt, h * 0.8));  // だいたい帯高の8割
+    painter->setFont(f);
+
+    static const QStringList fileTexts = { "１","２","３","４","５","６","７","８","９" };
+    if (file >= 1 && file <= fileTexts.size()) {
+        painter->drawText(fileRect, Qt::AlignHCenter | Qt::AlignVCenter,
+                          fileTexts.at(file - 1));
+    }
+}
+
+/*
+void ShogiView::drawFile(QPainter* painter, const int file) const
+{
+    if (!m_board) return;
+
+    // その筋のセル矩形（1段目をベースに）
+    const QRect cell = calculateSquareRectangleBasedOnBoardState(file, 1);
+
     int x = cell.left() + m_offsetX;
     int w = cell.width();
     int h = m_labelBandPx;
@@ -670,6 +725,7 @@ void ShogiView::drawFile(QPainter* painter, const int file) const
         painter->drawText(fileRect, Qt::AlignHCenter | Qt::AlignVCenter, fileTexts.at(file - 1));
     }
 }
+*/
 
 /*
 void ShogiView::drawRank(QPainter* painter, const int rank) const
@@ -922,6 +978,11 @@ ElideLabel *ShogiView::blackNameLabel() const
 QLabel *ShogiView::blackClockLabel() const
 {
     return m_blackClockLabel;
+}
+
+ElideLabel *ShogiView::whiteNameLabel() const
+{
+    return m_whiteNameLabel;
 }
 
 // 先手駒台に置かれた駒の枚数を描画する。
