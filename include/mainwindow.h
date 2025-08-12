@@ -468,40 +468,6 @@ private:
     // エンジン名2の表示欄
     QLineEdit* m_engineNameText2;
 
-    // 対局者名1の表示欄
-    QLineEdit* m_playersName1;
-
-    // 対局者名2の表示欄
-    QLineEdit* m_playersName2;
-
-    // 対局者名2、スペーサー、手数欄、「手数」ラベル、スペーサー、対局者名1の6つのウィジェットを横ボックス化したウィジェット
-    QWidget* m_firstLine;
-
-    // スペーサー1
-    QWidget* m_spacer1;
-
-    // スペーサー2
-    QWidget* m_spacer2;
-
-    // 対局者1の手番画像を表示するラベル
-    QLabel* m_turnLabel1;
-
-    // 対局者2の手番画像を表示するラベル
-    QLabel* m_turnLabel2;
-
-    // 手数表示欄
-    QLineEdit* m_totalMovesDisplay;
-
-    //「手目」の表示ラベル
-    QLabel* m_moveNumberLabel;
-
-    // スペーサー、対局者2の残り時間、対局者2の手番を示す赤丸、スペーサー、対局者1の手番を示す赤丸、対局者1の残り時間、スペーサーの
-    // 7つのウィジェットを横ボックス化したウィジェット
-    QWidget* m_secondLine;
-
-    // 対局者名と残り時間を縦ボックス化したウィジェット
-    QWidget* m_playerInfoLayoutWidget;
-
     // 棋譜、矢印ボタン、評価値グラフを縦ボックス化したウィジェット
     QWidget* m_gameRecordLayoutWidget;
 
@@ -713,12 +679,6 @@ private:
     // GUIを構成するWidgetなどを生成する。
     void initializeComponents();
 
-    // 対局者名と残り時間を縦ボックス化する。
-    void setupPlayerTimeLayout();
-
-    // 対局者名と残り時間、将棋盤を縦に並べて表示する。
-    void setupPlayerAndBoardLayout();
-
     // 棋譜、矢印ボタン、評価値グラフを縦ボックス化する。
     void setupRecordAndEvaluationLayout();
 
@@ -851,16 +811,16 @@ private:
     void initializeAndStartPlayer1WithEngine2();
 
     // 手番に応じて将棋クロックの手番変更およびGUIの手番表示を更新する。
-    void updateTurnDisplay();
-
-    // 手番に応じて将棋クロックの手番変更およびGUIの手番表示を更新する。
     void updateTurnAndTimekeepingDisplay();
 
     // GUIの残り時間を更新する。
     void updateRemainingTimeDisplayHumanVsHuman();
 
-    // 将棋クロックの手番を設定し、GUIの手番表示を更新する。
-    void updateTurnStatus(int currentPlayer, bool visibleLabel);
+    // 手番に応じて将棋クロックの手番変更する。
+    void updateTurnDisplay();
+
+    // 将棋クロックの手番を設定する。
+    void updateTurnStatus(int currentPlayer);
 
     // 対局者1と対局者2の持ち時間を設定する。
     void setPlayerTimeLimits();
