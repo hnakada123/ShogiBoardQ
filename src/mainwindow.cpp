@@ -1994,10 +1994,6 @@ void MainWindow::stopClockAndSendCommands()
 // 対局結果の表示とGUIの更新処理を行う。
 void MainWindow::displayResultsAndUpdateGui()
 {
-    //begin
-    qDebug() << "in MainWindow::displayResultsAndUpdateGui";
-    //end
-
     m_gameController->changeCurrentPlayer();
 
     // 手番に応じて将棋クロックの手番変更およびGUIの手番表示を更新する。
@@ -2013,7 +2009,6 @@ void MainWindow::displayResultsAndUpdateGui()
         // 対局結果を表示する。
         displayGameOutcome(ShogiGameController::Player2Wins);
     }
-
 
     // 棋譜欄の下の矢印ボタンを有効にする。
     enableArrowButtons();
@@ -2637,22 +2632,38 @@ void MainWindow::updateTurnStatus(int currentPlayer)
 
     // 手番に応じて将棋クロックの手番表示を更新する。
     if (currentPlayer == 1) {
+        m_shogiView->blackNameLabel()->setStyleSheet(QStringLiteral(
+            "background-color: yellow;"
+            "color: blue;"
+            "border-radius: 8px;"
+            ));
+
+        m_shogiView->whiteNameLabel()->setStyleSheet(QStringLiteral("background: transparent; color: black;"));
+
         m_shogiView->blackClockLabel()->setStyleSheet(QStringLiteral(
             "background-color: yellow;"
             "color: blue;"
             "border-radius: 8px;"
             ));
 
-        m_shogiView->whiteClockLabel()->setStyleSheet(QStringLiteral("background: transparent; color: blue;"));
+        m_shogiView->whiteClockLabel()->setStyleSheet(QStringLiteral("background: transparent; color: black;"));
     }
     else if (currentPlayer == 2) {
+        m_shogiView->whiteNameLabel()->setStyleSheet(QStringLiteral(
+            "background-color: yellow;"
+            "color: blue;"
+            "border-radius: 8px;"
+            ));
+
+        m_shogiView->blackNameLabel()->setStyleSheet(QStringLiteral("background: transparent; color: black;"));
+
         m_shogiView->whiteClockLabel()->setStyleSheet(QStringLiteral(
             "background-color: yellow;"
             "color: blue;"
             "border-radius: 8px;"
             ));
 
-        m_shogiView->blackClockLabel()->setStyleSheet(QStringLiteral("background: transparent; color: blue;"));
+        m_shogiView->blackClockLabel()->setStyleSheet(QStringLiteral("background: transparent; color: black;"));
     }
 }
 
@@ -2663,27 +2674,11 @@ void MainWindow::updateTurnDisplay()
     if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
         // 将棋クロックの手番を対局者1に設定し、GUIの手番表示を更新する。
         updateTurnStatus(1);
-
-        m_shogiView->blackClockLabel()->setStyleSheet(QStringLiteral(
-            "background-color: yellow;"
-            "color: blue;"
-            "border-radius: 8px;"
-            ));
-
-        m_shogiView->whiteClockLabel()->setStyleSheet(QStringLiteral("background: transparent; color: blue;"));
     }
     // 手番が対局者2の場合
     else if (m_gameController->currentPlayer() == ShogiGameController::Player2) {
         // 将棋クロックの手番を対局者2に設定し、GUIの手番表示を更新する。
         updateTurnStatus(2);
-
-        m_shogiView->whiteClockLabel()->setStyleSheet(QStringLiteral(
-            "background-color: yellow;"
-            "color: blue;"
-            "border-radius: 8px;"
-            ));
-
-        m_shogiView->blackClockLabel()->setStyleSheet(QStringLiteral("background: transparent; color: blue;"));
     }
 }
 
