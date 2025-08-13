@@ -51,7 +51,6 @@ ShogiView::ShogiView(QWidget *parent)
     setStandGapCols(0.5);
 
     // 盤を下にずらすオフセット
-    //m_offsetY = 30;
     m_offsetY = 20;
 
     setMouseTracking(true);
@@ -60,7 +59,7 @@ ShogiView::ShogiView(QWidget *parent)
     m_blackClockLabel->setObjectName(QStringLiteral("blackClockLabel"));
     m_blackClockLabel->setAlignment(Qt::AlignCenter);
     m_blackClockLabel->setAttribute(Qt::WA_TransparentForMouseEvents, true); // マウスイベント透過
-    m_blackClockLabel->setStyleSheet(QStringLiteral("background: transparent; color: blue;"));
+    m_blackClockLabel->setStyleSheet(QStringLiteral("background: transparent; color: black;"));
 
     {
         QFont f = font();
@@ -100,7 +99,7 @@ ShogiView::ShogiView(QWidget *parent)
     m_whiteClockLabel->setObjectName(QStringLiteral("whiteClockLabel"));
     m_whiteClockLabel->setAlignment(Qt::AlignCenter);
     m_whiteClockLabel->setAttribute(Qt::WA_TransparentForMouseEvents, true);
-    m_whiteClockLabel->setStyleSheet(QStringLiteral("background: transparent; color: blue;"));
+    m_whiteClockLabel->setStyleSheet(QStringLiteral("background: transparent; color: black;"));
 
     {
         QFont f = font();
@@ -1129,142 +1128,6 @@ QPoint ShogiView::getClickedSquare(const QPoint &clickPosition) const
     }
 }
 
-/*
-// クリックした位置を基に、通常モードでのマスを特定する。
-QPoint ShogiView::getClickedSquareInDefaultState(const QPoint& clickPosition) const
-{
-    // 将棋盤がセットされていない場合、無効な位置(QPoint())を返す。
-    if (!m_board) return QPoint();
-
-    // 1マスのサイズを取得する。
-    const QSize squareSize = fieldSize();
-
-    // 浮動小数点で筋と段の仮の位置を計算するための変数
-    float tempFile, tempRank;
-
-    // 最終的に求める筋と段の整数値
-    int file, rank;
-
-    // 先手駒台の範囲を計算し、該当する場合は特殊な値を返す。
-    // 例えば、QPoint(10, x)やQPoint(11, x)
-    tempFile = (clickPosition.x() - m_param2 - m_offsetX) / squareSize.width();
-    tempRank = (clickPosition.y() - m_offsetY) / squareSize.height();
-    rank = static_cast<int>(tempRank);
-
-    // 局面編集モードの場合
-    if (m_positionEditMode) {
-        if ((tempFile >= 0) && (tempFile < 1) && (rank >= 1) && (rank <= 8))
-            // 先手駒台の特定の位置を返す。
-            return QPoint(10, m_board->ranks() - rank);
-    }
-    // 通常モードの場合
-    else {
-        if ((tempFile >= 0) && (tempFile < 1) && (rank >= 2) && (rank <= 8))
-            // 通常モードでも先手駒台の判定を行う。
-            return QPoint(10, m_board->ranks() - rank);
-    }
-
-    // 後手駒台の範囲を計算し、該当する場合は特殊な値を返す。
-    tempFile = (clickPosition.x() + m_param1 - m_offsetX) / squareSize.width();
-    tempRank = (clickPosition.y() - m_offsetY) / squareSize.height();
-    file = static_cast<int>(tempFile);
-    rank = static_cast<int>(tempRank);
-
-    // 局面編集モードの場合
-    if (m_positionEditMode) {
-        if ((file == 1) && (rank >= 0) && (rank <= 7))
-            // 後手駒台の特定の位置を返す。
-            return QPoint(11, m_board->ranks() - rank);
-    }
-    // 通常モードの場合
-    else {
-        if ((file == 1) && (rank >= 0) && (rank <= 6))
-            // 通常モードでも後手駒台の判定を行う。
-            return QPoint(11, m_board->ranks() - rank);
-    }
-
-    // 将棋盤内のマスの位置を計算する。
-    tempFile = (clickPosition.x() - m_offsetX) / squareSize.width();
-    tempRank = (clickPosition.y() - m_offsetY) / squareSize.height();
-    file = static_cast<int>(tempFile);
-    rank = static_cast<int>(tempRank);
-
-    // クリックが将棋盤外であれば無効な位置(QPoint())を返す。
-    if (tempFile < 0 || file >= m_board->files() || tempRank < 0 || rank >= m_board->ranks()) {
-        return QPoint();
-    }
-
-    // 有効な将棋盤上のマスの位置(QPoint)を返す。将棋の筋は左から右へ、段は上から下へ数える。
-    return QPoint(m_board->files() - file, rank + 1);
-}
-
-// ユーザーがクリックした位置を基に、盤面が反転している状態での将棋盤上のマスを特定する。
-QPoint ShogiView::getClickedSquareInFlippedState(const QPoint& clickPosition) const
-{
-    // 将棋盤がセットされていない場合、無効な位置(QPoint())を返す。
-    if (!m_board) return QPoint();
-
-    // 1マスのサイズを取得する。
-    const QSize squareSize = fieldSize();
-
-    // 最終的に求める筋と段の整数値
-    int file, rank;
-
-    // 後手右の駒台の範囲を計算し、該当する場合は特殊な値を返す。
-    // 例えば、QPoint(10, x)やQPoint(11, x)
-    float tempFile = (clickPosition.x() - m_param2 - m_offsetX) / squareSize.width();
-    float tempRank = (clickPosition.y() - m_offsetY) / squareSize.height();
-    rank = static_cast<int>(tempRank);
-
-    // 局面編集モードの場合
-    if (m_positionEditMode) {
-        if ((tempFile >= 0) && (tempFile < 1) && (rank >= 1) && (rank <= 8)) {
-            // 後手駒台の特定の位置を返す。
-            return QPoint(11, rank + 1);
-        }
-    } else {
-        if ((tempFile >= 0) && (tempFile < 1) && (rank >= 2) && (rank <= 8)) {
-            // 通常モードでも後手駒台の判定を行う。
-            return QPoint(11, rank + 1);
-        }
-    }
-
-    // 先手左の駒台の範囲を計算し、該当する場合は特殊な値を返す。
-    tempFile = (clickPosition.x() + m_param1 - m_offsetX) / squareSize.width();
-    tempRank = (clickPosition.y() - m_offsetY) / squareSize.height();
-    rank = static_cast<int>(tempRank);
-
-     // 局面編集モードの場合
-    if (m_positionEditMode) {
-        if ((tempFile >= 1) && (tempFile < 2) && (rank >= 0) && (rank <= 7)) {
-            // 先手駒台の特定の位置を返す。
-            return QPoint(10, rank + 1);
-        }
-    }
-    // 通常モードの場合
-    else {
-        if ((tempFile >= 1) && (tempFile < 2) && (rank >= 0) && (rank <= 6)) {
-            // 通常モードでも先手駒台の判定を行う。
-            return QPoint(10, rank + 1);
-        }
-    }
-
-    // 将棋盤内のマスの位置を計算する。
-    tempFile = (clickPosition.x() - m_offsetX) / squareSize.width();
-    tempRank = (clickPosition.y() - m_offsetY) / squareSize.height();
-    file = static_cast<int>(tempFile);
-    rank = static_cast<int>(tempRank);
-
-    // クリックが将棋盤外であれば無効な位置(QPoint())を返す。
-    if (tempFile < 0 || file >= m_board->files() || tempRank < 0 || rank >= m_board->ranks()) {
-        return QPoint();
-    }
-
-    // 有効な将棋盤上のマスの位置(QPoint)を返す。この場合、筋の計算は反転させる。
-    return QPoint(file + 1, m_board->ranks() - rank);
-}
-*/
-
 // クリックした位置を基に、通常モードでのマスを特定する。
 QPoint ShogiView::getClickedSquareInDefaultState(const QPoint& pos) const
 {
@@ -1358,7 +1221,6 @@ QPoint ShogiView::getClickedSquareInFlippedState(const QPoint& pos) const
 
     tempFile = (pos.x() + m_param1 - m_offsetX) / float(w);
     tempRank = (pos.y() - m_offsetY) / float(h);
-    int file = static_cast<int>(tempFile);
     rank     = static_cast<int>(tempRank);
     if (m_positionEditMode) {
         if ((tempFile >= 1) && (tempFile < 2) && (rank >= 0) && (rank <= 7))
@@ -1749,7 +1611,6 @@ void ShogiView::resetAndEqualizePiecesOnStands()
     // 表示を更新する。
     update();
 }
-
 
 // 平手初期局面に盤面を初期化する。
 void ShogiView::initializeToFlatStartingPosition()
