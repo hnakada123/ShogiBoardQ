@@ -70,11 +70,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
 
     QToolBar* tb = ui->toolBar;                  // Designerで作った場合の例
-    tb->setIconSize(QSize(16, 16));                  // ← 16px（お好みで 16/18/20/24 など）
+    tb->setIconSize(QSize(18, 18));                  // ← 16px（お好みで 16/18/20/24 など）
     tb->setToolButtonStyle(Qt::ToolButtonIconOnly);  // ← テキストを消して高さを詰める
-    // テキストを残すなら:
-    // tb->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
-    // QFont f = tb->font(); f.setPointSizeF(9.0); tb->setFont(f);
 
     // さらに詰めたい場合のパディング調整（任意）
     tb->setStyleSheet(
@@ -954,9 +951,6 @@ void MainWindow::flipBoardAndUpdatePlayerInfo()
         // m_piecesの型はQMap<char, QIcon>
         m_shogiView->setPiecesFlip();
     }
-
-    // GUIの残り時間を更新する。
-    updateRemainingTimeDisplay();
 }
 
 // 棋譜欄の表示を設定する。

@@ -6,7 +6,8 @@
 // コンストラクタ
 ShogiClock::ShogiClock(QObject *parent) : QObject(parent), m_clockRunning(false),
     m_player1ConsiderationTimeMs(0), m_player2ConsiderationTimeMs(0),
-    m_player1TotalConsiderationTimeMs(0), m_player2TotalConsiderationTimeMs(0)
+    m_player1TotalConsiderationTimeMs(0), m_player2TotalConsiderationTimeMs(0),
+    m_player1TimeMs(0), m_player2TimeMs(0)
 {
     // タイマーを生成する。
     m_timer = new QTimer(this);
