@@ -68,6 +68,20 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
+
+    QToolBar* tb = ui->toolBar;                  // Designerで作った場合の例
+    tb->setIconSize(QSize(16, 16));                  // ← 16px（お好みで 16/18/20/24 など）
+    tb->setToolButtonStyle(Qt::ToolButtonIconOnly);  // ← テキストを消して高さを詰める
+    // テキストを残すなら:
+    // tb->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+    // QFont f = tb->font(); f.setPointSizeF(9.0); tb->setFont(f);
+
+    // さらに詰めたい場合のパディング調整（任意）
+    tb->setStyleSheet(
+        "QToolBar{margin:0px; padding:0px; spacing:2px;}"
+        "QToolButton{margin:0px; padding:2px;}"
+    );
+
     // GUIを構成するWidgetなどのnew生成
     initializeComponents();
 
