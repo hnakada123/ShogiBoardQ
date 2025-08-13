@@ -2635,6 +2635,25 @@ void MainWindow::updateTurnStatus(int currentPlayer)
     // 将棋クロックの手番を設定する。
     m_shogiClock->setCurrentPlayer(currentPlayer);
 
+    // 手番に応じて将棋クロックの手番表示を更新する。
+    if (currentPlayer == 1) {
+        m_shogiView->blackClockLabel()->setStyleSheet(QStringLiteral(
+            "background-color: yellow;"
+            "color: blue;"
+            "border-radius: 8px;"
+            ));
+
+        m_shogiView->whiteClockLabel()->setStyleSheet(QStringLiteral("background: transparent; color: blue;"));
+    }
+    else if (currentPlayer == 2) {
+        m_shogiView->whiteClockLabel()->setStyleSheet(QStringLiteral(
+            "background-color: yellow;"
+            "color: blue;"
+            "border-radius: 8px;"
+            ));
+
+        m_shogiView->blackClockLabel()->setStyleSheet(QStringLiteral("background: transparent; color: blue;"));
+    }
 }
 
 // 手番に応じて将棋クロックの手番変更する。
@@ -2644,11 +2663,27 @@ void MainWindow::updateTurnDisplay()
     if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
         // 将棋クロックの手番を対局者1に設定し、GUIの手番表示を更新する。
         updateTurnStatus(1);
+
+        m_shogiView->blackClockLabel()->setStyleSheet(QStringLiteral(
+            "background-color: yellow;"
+            "color: blue;"
+            "border-radius: 8px;"
+            ));
+
+        m_shogiView->whiteClockLabel()->setStyleSheet(QStringLiteral("background: transparent; color: blue;"));
     }
     // 手番が対局者2の場合
     else if (m_gameController->currentPlayer() == ShogiGameController::Player2) {
         // 将棋クロックの手番を対局者2に設定し、GUIの手番表示を更新する。
         updateTurnStatus(2);
+
+        m_shogiView->whiteClockLabel()->setStyleSheet(QStringLiteral(
+            "background-color: yellow;"
+            "color: blue;"
+            "border-radius: 8px;"
+            ));
+
+        m_shogiView->blackClockLabel()->setStyleSheet(QStringLiteral("background: transparent; color: blue;"));
     }
 }
 
@@ -3937,11 +3972,11 @@ void MainWindow::prepareInitialPosition()
 void MainWindow::setPlayer1TimeTextToRed()
 {
     // パレットを赤色に指定する。
-    QPalette palette = m_remainTimeText1->palette();
+    QPalette palette = m_shogiView->blackClockLabel()->palette();
     palette.setColor(QPalette::WindowText, Qt::red);
 
     // 対局者1の残り時間の文字色を赤色に指定する。
-    m_remainTimeText1->setPalette(palette);
+    m_shogiView->blackClockLabel()->setPalette(palette);
 
     // 対局者1の残り時間を0にする。
     m_bTime = "0";
@@ -3949,13 +3984,13 @@ void MainWindow::setPlayer1TimeTextToRed()
 
 // 対局者2の残り時間の文字色を赤色に指定する。
 void MainWindow::setPlayer2TimeTextToRed()
-{
+{  
     // パレットを赤色に指定する。
-    QPalette palette = m_remainTimeText2->palette();
+    QPalette palette = m_shogiView->whiteClockLabel()->palette();
     palette.setColor(QPalette::WindowText, Qt::red);
 
-    // 対局者2の残り時間の文字色を赤色に指定する。
-    m_remainTimeText2->setPalette(palette);
+    // 対局者1の残り時間の文字色を赤色に指定する。
+    m_shogiView->whiteClockLabel()->setPalette(palette);
 
     // 対局者2の残り時間を0にする。
     m_wTime = "0";
@@ -4231,8 +4266,8 @@ void MainWindow::resetToInitialState()
     m_shogiView->removeHighlightAllData();
 
     // 残り時間を初期化する。
-    m_remainTimeText1->setText("00:00:00");
-    m_remainTimeText2->setText("00:00:00");
+    m_shogiView->blackClockLabel()->setText("00:00:00");
+    m_shogiView->whiteClockLabel()->setText("00:00:00");
 
     // 棋譜欄を初期化する。
     m_gameRecordModel->clearAllItems();
