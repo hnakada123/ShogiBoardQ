@@ -517,12 +517,6 @@ private:
     // ハッシュ使用率2の表示欄
     QLineEdit* m_hashfullText2;
 
-    // 対局者1の残り時間を表示するラベル
-    QLabel* m_remainTimeText1;
-
-    // 対局者2の残り時間を表示するラベル
-    QLabel* m_remainTimeText2;
-
     // 評価値チャートのスクロールエリア
     QScrollArea* m_scrollArea;
 

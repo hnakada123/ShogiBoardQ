@@ -450,11 +450,17 @@ private:
 
     // 駒台と盤の「すき間」を“マス何個ぶんか”で指定（既定 0.6 マス）
     double m_standGapCols{0.6};
+    int    m_standGapPx   {0};    // m_squareSize から算出した実ピクセル
 
     // ラベル帯の厚み・余白・フォントサイズ（px/pt）
     int    m_labelGapPx   {8};     // 盤からの余白
     int    m_labelBandPx  {36};    // ラベル帯の厚み（縦 or 横）
     double m_labelFontPt  {12.0};  // 描画フォント（pt）
+
+    // shogiview.h の private: に追加
+    int boardLeftPx() const;
+    int boardRightPx() const;
+    int standInnerEdgePx(bool rightSide) const; // rightSide=true: 右側(先手)の内側端, false: 左側(後手)
 };
 
 #endif // SHOGIVIEW_H
