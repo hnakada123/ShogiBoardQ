@@ -95,7 +95,6 @@ set(HEADER_FILES
 set(UI_FILES
         ui/changeenginesettingsdialog.ui
         ui/considarationdialog.ui
-
         ui/engineregistrationdialog.ui
         ui/kifuanalysisdialog.ui
         ui/promotedialog.ui
@@ -113,7 +112,6 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         resources/shogiboardq.qrc
         resources/images/icons/bold.png
         resources/images/icons/chuudan.png
-        resources/images/icons/circle-128.png
         resources/images/icons/copy.png
         resources/images/icons/create.png
         resources/images/icons/cut.png

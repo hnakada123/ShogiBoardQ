@@ -67,7 +67,6 @@
         <file alias="icons/gtk-media-previous-rtl.png">images/icons/gtk-media-previous-rtl.png</file>
         <file alias="icons/gtk-media-stop.png">images/icons/gtk-media-stop.png</file>
         <file alias="icons/gtk-media-play-rtr.png">images/icons/gtk-media-play-rtr.png</file>
-        <file alias="icons/circle-128.png">images/icons/circle-128.png</file>
         <file>images/icons/shou.png</file>
         <file>images/icons/dai.png</file>
         <file>translations/ShogiBoardQ_ja_JP.ts</file>
