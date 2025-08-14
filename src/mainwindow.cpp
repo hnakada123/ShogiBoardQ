@@ -856,51 +856,63 @@ void MainWindow::initializeNewGame(QString& startSfenStr)
 // 対局モードに応じて将棋盤上部に表示される対局者名をセットする。
 void MainWindow::setPlayersNamesForMode()
 {
+    //begin
+    qDebug() << "in MainWindow::setPlayersNamesForMode";
+    qDebug() << "m_playMode: " << m_playMode;
+    //end
+
+    // ▲▽の記号はここでは名前に含めない。
+    QString blackName;
+    QString whiteName;
+
     switch (m_playMode) {
     // Player1: Human, Player2: Human
     case HumanVsHuman:
-        m_shogiView->blackNameLabel()->setFullText("▲" + m_humanName1);
-        m_shogiView->whiteNameLabel()->setFullText("▽" + m_humanName2);
+        blackName = m_humanName1;
+        whiteName = m_humanName2;
         break;
 
     // Player1: Human, Player2: USI Engine
     case EvenHumanVsEngine:
-        m_shogiView->blackNameLabel()->setFullText("▲" + m_humanName1);
-        m_shogiView->whiteNameLabel()->setFullText("▽" + m_engineName2);
+        blackName = m_humanName1;
+        whiteName = m_engineName2;
         break;
 
     // Player1: USI Engine, Player2: Human
     case EvenEngineVsHuman:
-        m_shogiView->blackNameLabel()->setFullText("▲" + m_engineName1);
-        m_shogiView->whiteNameLabel()->setFullText("▽" + m_humanName2);
+        blackName = m_engineName1;
+        whiteName = m_humanName2;
         break;
 
     // Player1: USI Engine, Player2: USI Engine
     case EvenEngineVsEngine:
-        m_shogiView->blackNameLabel()->setFullText("▲" + m_engineName1);
-        m_shogiView->whiteNameLabel()->setFullText("▽" + m_engineName2);
+        blackName = m_engineName1;
+        whiteName = m_engineName2;
         break;
 
     // 駒落ち Player1: Human（下手）, Player2: USI Engine（上手）
     case HandicapHumanVsEngine:
-        m_shogiView->blackNameLabel()->setFullText("▲" + m_humanName1);
-        m_shogiView->whiteNameLabel()->setFullText("▽" + m_engineName2);
+        blackName = m_humanName1;
+        whiteName = m_engineName2;
         break;
 
     // 駒落ち Player1: USI Engine（下手）, Player2: Human（上手）
     case HandicapEngineVsHuman:
-        m_shogiView->blackNameLabel()->setFullText("▲" + m_engineName1);
-        m_shogiView->whiteNameLabel()->setFullText("▽" + m_humanName2);
+        blackName = m_engineName1;
+        whiteName = m_humanName2;
         break;
 
     // 駒落ち Player1: USI Engine（下手）, Player2: USI Engine（上手）
     case HandicapEngineVsEngine:
-        m_shogiView->blackNameLabel()->setFullText("▲" + m_engineName1);
-        m_shogiView->whiteNameLabel()->setFullText("▽" + m_engineName2);
+        blackName = m_engineName1;
+        whiteName = m_engineName2;
         break;
 
     // まだ対局を開始していない状態
     case NotStarted:
+        blackName = tr("先手");
+        whiteName = tr("後手");
+        break;
 
     // 棋譜解析モード
     case AnalysisMode:
@@ -915,6 +927,10 @@ void MainWindow::setPlayersNamesForMode()
     case PlayModeError:
         break;
     }
+
+    // 対局者名をセットする。
+    m_shogiView->setBlackPlayerName(blackName);
+    m_shogiView->setWhitePlayerName(whiteName);
 }
 
 // 駒台を含む将棋盤全体の画像をクリップボードにコピーする。

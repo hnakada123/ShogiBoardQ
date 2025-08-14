@@ -71,12 +71,10 @@ ShogiView::ShogiView(QWidget *parent)
     // ★ 対局者名（先手）：ElideLabel
     m_blackNameLabel = new ElideLabel(this);
     m_blackNameLabel->setElideMode(Qt::ElideRight);
-    m_blackNameLabel->setFullText(QStringLiteral("▲"));
     // ツールチップの付箋風スタイルは main.cpp の app.setStyleSheet でOK
     m_blackNameLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter); // 見やすいので左寄せ推奨
     m_blackNameLabel->setSlideOnHover(true);      // ホバーで自動スクロール
     m_blackNameLabel->setManualPanEnabled(true);  // 左ドラッグで手動パン
-    m_blackNameLabel->setUnderline(true);         // 下線を表示
     m_blackNameLabel->setSlideSpeed(2);           // お好みで 1〜3
     m_blackNameLabel->setSlideInterval(16);       // 16ms=約60fps
 
@@ -86,11 +84,9 @@ ShogiView::ShogiView(QWidget *parent)
     // ★ 対局者名（後手）：ElideLabel
     m_whiteNameLabel = new ElideLabel(this);
     m_whiteNameLabel->setElideMode(Qt::ElideRight);
-    m_whiteNameLabel->setFullText(QStringLiteral("▽"));
     m_whiteNameLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     m_whiteNameLabel->setSlideOnHover(true);
     m_whiteNameLabel->setManualPanEnabled(true);
-    m_whiteNameLabel->setUnderline(true);
     m_whiteNameLabel->setSlideSpeed(2);
     m_whiteNameLabel->setSlideInterval(16);
 
@@ -557,14 +553,14 @@ void ShogiView::paintEvent(QPaintEvent *)
     // 駒台に置かれた駒とその数を描画する。
     drawPiecesEditModeStandFeatures(&painter);
 
-    // ドラッグ中の駒を描画する。
-    drawDraggingPiece();
-
     // 将棋盤に段番号を描画する。
     drawRanks(&painter);
 
     // 将棋盤に筋番号を描画する。
     drawFiles(&painter);
+
+    // ドラッグ中の駒を描画する。
+    drawDraggingPiece();
 }
 
 // ドラッグ中の駒を描画する。
@@ -610,99 +606,6 @@ int ShogiView::boardLeftPx() const {
 int ShogiView::boardRightPx() const {
     const int files = m_board ? m_board->files() : 9;
     return m_offsetX + m_squareSize * files;
-}
-// 盤端から駒台までの隙間 m_standGapPx を使って駒台内側端を決める
-int ShogiView::standInnerEdgePx(bool rightSide) const {
-    return rightSide ? (boardRightPx() + m_standGapPx * 0.65)
-                     : (boardLeftPx()  - m_standGapPx * 0.65);
-}
-
-void ShogiView::drawRank(QPainter* painter, const int rank) const
-{
-    if (!m_board) return;
-
-    // その段のセル矩形（高さだけ使用）
-    const QRect cell = calculateSquareRectangleBasedOnBoardState(1, rank);
-    const int h = cell.height();
-    const int y = cell.top() + m_offsetY;
-
-    // 非反転→右側（先手側）に表示、反転→左側（後手側）に表示
-    const bool rightSide = !m_flipMode;
-
-    const int boardEdge = rightSide ? boardRightPx() : boardLeftPx();
-    const int innerEdge = standInnerEdgePx(rightSide);      // 駒台“内側端”
-    const int gapPx     = qAbs(innerEdge - boardEdge);
-
-    // 帯の太さ（はみ出し防止で隙間内にクランプ）
-    int w = m_labelBandPx;
-    if (w > gapPx - 2) w = qMax(12, gapPx - 2);
-
-    const int xCenter = (boardEdge + innerEdge) / 2;
-    const QRect rankRect(xCenter - w/2, y, w, h);
-
-    QFont f = painter->font();
-    f.setPointSizeF(m_labelFontPt);
-    painter->setFont(f);
-
-    static const QStringList rankTexts = { "一","二","三","四","五","六","七","八","九" };
-    if (rank >= 1 && rank <= rankTexts.size()) {
-        painter->drawText(rankRect, Qt::AlignCenter, rankTexts.at(rank - 1));
-    }
-}
-
-void ShogiView::drawFile(QPainter* painter, const int file) const
-{
-    if (!m_board) return;
-
-    // その筋のセル矩形（1段目をベースに）
-    const QRect cell = calculateSquareRectangleBasedOnBoardState(file, 1);
-
-    const int x = cell.left() + m_offsetX;
-    const int w = cell.width();
-
-    int h = m_labelBandPx;   // 帯の高さ
-    int y = 0;
-
-    if (m_flipMode) {
-        // 反転：盤の下側に表示。下側にどれだけ余白があるかを計算
-        const int boardBottom = m_offsetY + m_squareSize * m_board->ranks();
-        int avail = height() - boardBottom - 2;                 // 盤下端からウィジェット下端まで
-
-        if (avail <= 0) return;                                 // 余白ゼロなら描かない
-        if (h + m_labelGapPx > avail) {
-            h = qMax(8, avail - m_labelGapPx);                  // 入るように帯高さを縮める
-            if (h <= 0) return;
-        }
-        y = boardBottom + m_labelGapPx;
-
-        // 念のためウィジェット内にクランプ
-        if (y + h > height() - 1) y = height() - 1 - h;
-
-    } else {
-        // 通常：盤の上側に表示。上側余白を超えないように調整
-        int avail = m_offsetY - 2;                              // ウィジェット上端から盤上端まで
-
-        if (avail <= 0) return;
-        if (h + m_labelGapPx > avail) {
-            h = qMax(8, avail - m_labelGapPx);
-            if (h <= 0) return;
-        }
-        y = m_offsetY - m_labelGapPx - h;
-    }
-
-    const QRect fileRect(x, y, w, h);
-
-    // 帯が縮んだ場合に文字がはみ出さないようフォントも抑える
-    QFont f = painter->font();
-    //f.setPointSizeF(qMin(m_labelFontPt, h * 0.8));  // だいたい帯高の8割
-    f.setPointSizeF(qMin(m_labelFontPt, h * 1.0));  // だいたい帯高の8割
-    painter->setFont(f);
-
-    static const QStringList fileTexts = { "１","２","３","４","５","６","７","８","９" };
-    if (file >= 1 && file <= fileTexts.size()) {
-        painter->drawText(fileRect, Qt::AlignHCenter | Qt::AlignVCenter,
-                          fileTexts.at(file - 1));
-    }
 }
 
 // 盤面の指定されたマス（筋file、段rank）を描画する。
@@ -832,7 +735,6 @@ void ShogiView::drawPiece(QPainter* painter, const int file, const int rank)
         }
     }
 }
-
 
 // 駒台の駒画像を描画する。
 void ShogiView::drawStandPieceIcon(QPainter* painter, const QRect& adjustedRect, QChar value) const
@@ -1355,41 +1257,6 @@ void ShogiView::setStandGapCols(double cols)
     update();
 }
 
-// レイアウト再計算（m_param1, m_param2, m_offsetX を一元管理）
-void ShogiView::recalcLayoutParams()
-{
-    // 以前の -10 / +10 の“味付け”は維持（見た目が変わりすぎないように）
-    constexpr int tweak = 0;
-
-    // 旧式：m_param1 = 3*s - 10;       // 2マス(駒台幅) + 1マス(すき間)
-    //      m_param2 = 10*s - 10;      // 9マス(盤幅)  + 1マス(すき間)
-    //
-    // 新式：すき間を m_standGapCols マスぶんに
-    m_param1 = qRound((2.0 + m_standGapCols) * m_squareSize) - tweak;
-    m_param2 = qRound((9.0 + m_standGapCols) * m_squareSize) - tweak;
-
-    // 盤の描画オフセットは左駒台ぶん＋少しの余白
-    m_offsetX = m_param1 + tweak;
-
-    // 駒台と盤の“隙間”の実ピクセル
-    m_standGapPx = qRound(m_squareSize * m_standGapCols);
-
-    // 盤ラベル用のパラメータ（マスサイズ連動）
-    m_labelGapPx  = qMax(0,  int(m_squareSize * 0.05));  // 盤からの余白 ≈ 0.15マス
-    m_labelBandPx = qMax(12, int(m_squareSize * 0.9));  // 帯の厚み ≈ 0.9マス
-    m_labelFontPt = qMax(8.0, m_squareSize * 0.1);      // フォント ≈ 0.55マス（お好みで）
-
-    //begin
-    qDebug() << "Recalculated layout parameters:";
-    qDebug() << "m_param1:" << m_param1;
-    qDebug() << "m_param2:" << m_param2;
-    qDebug() << "m_offsetX:" << m_offsetX;
-    qDebug() << "m_labelGapPx:" << m_labelGapPx;
-    qDebug() << "m_labelBandPx:" << m_labelBandPx;
-    qDebug() << "m_labelFontPt:" << m_labelFontPt;
-    //end
-}
-
 // 局面編集モードで先手駒台に置かれた駒を描画する。
 void ShogiView::drawEditModeBlackStandPiece(QPainter* painter, const int file, const int rank) const
 {
@@ -1500,6 +1367,10 @@ void ShogiView::drawEditModeWhiteStandPieceCount(QPainter* painter, const int fi
 void ShogiView::setFlipMode(bool newFlipMode)
 {
     m_flipMode = newFlipMode;
+
+    // ▲▽△▼記号を付け替える。
+    refreshNameLabels();
+
     updateBlackClockLabelGeometry();
     updateWhiteClockLabelGeometry();
 }
@@ -1879,12 +1750,6 @@ void ShogiView::updateWhiteClockLabelGeometry()
     m_whiteClockLabel->show();
 }
 
-void ShogiView::setBlackPlayerName(const QString& name)
-{
-    if (!m_blackNameLabel) return;
-    m_blackNameLabel->setFullText(name);   // ← ここを setText ではなく setFullText に
-}
-
 void ShogiView::fitLabelFontToRect(QLabel* label, const QString& text,
                                    const QRect& rect, int paddingPx)
 {
@@ -1934,15 +1799,193 @@ void ShogiView::setWhiteClockText(const QString& text)
     fitLabelFontToRect(m_whiteClockLabel, text, m_whiteClockLabel->geometry(), 2);
 }
 
-void ShogiView::setWhitePlayerName(const QString& name)
-{
-    if (!m_whiteNameLabel) return;
-    m_whiteNameLabel->setFullText(name);
-    m_whiteNameLabel->setToolTip(name);
-}
-
 void ShogiView::setNameFontScale(double scale)
 {
     m_nameFontScale = std::clamp(scale, 0.2, 1.0);
     updateBlackClockLabelGeometry(); // 反映
+}
+
+// 記号除去（▲=U+25B2, ▼=U+25BC, ▽=U+25BD, △=U+25B3）
+QString ShogiView::stripMarks(const QString& s)
+{
+    QString t = s;
+    static const QChar marks[] = { QChar(0x25B2), QChar(0x25BC),
+                                  QChar(0x25BD), QChar(0x25B3) };
+    for (QChar m : marks) t.remove(m);
+    return t.trimmed();
+}
+
+// 名前セットは「素の名前」を保存してから表示を更新
+void ShogiView::setBlackPlayerName(const QString& name)
+{
+    //begin
+    qDebug() << "in ShogiView::setBlackPlayerName";
+    //end
+
+    m_blackNameBase = stripMarks(name);
+    refreshNameLabels();
+}
+
+void ShogiView::setWhitePlayerName(const QString& name)
+{
+    //begin
+    qDebug() << "in ShogiView::setWhitePlayerName";
+    //end
+
+    m_whiteNameBase = stripMarks(name);
+    refreshNameLabels();
+}
+
+// 矢印を m_flipMode に応じて付けて ElideLabel に反映
+void ShogiView::refreshNameLabels()
+{
+    if (m_blackNameLabel) {
+        const QString markBlack = m_flipMode ? QStringLiteral("▼")
+                                             : QStringLiteral("▲");
+        m_blackNameLabel->setFullText(markBlack + m_blackNameBase);
+        m_blackNameLabel->setToolTip(m_blackNameBase);
+    }
+    if (m_whiteNameLabel) {
+        const QString markWhite = m_flipMode ? QStringLiteral("△")
+                                             : QStringLiteral("▽");
+        m_whiteNameLabel->setFullText(markWhite + m_whiteNameBase);
+        m_whiteNameLabel->setToolTip(m_whiteNameBase);
+    }
+
+    //begin
+    // デバッグ用：名前ラベルの更新を確認
+    qDebug() << "Black player name set to:" << m_blackNameBase;
+    qDebug() << "White player name set to:" << m_whiteNameBase;
+    //end
+}
+
+void ShogiView::recalcLayoutParams()
+{
+    constexpr int tweak = 0;
+
+    // ラベル帯とフォントはやや控えめの係数に
+    m_labelBandPx = std::max(10, int(m_squareSize * 0.68));   // 以前: 0.75〜0.9
+    m_labelFontPt = std::clamp(m_squareSize * 0.26, 5.0, 18.0); // 以前: 0.38/20pt
+    m_labelGapPx  = std::max(2,  int(m_squareSize * 0.12));   // 盤/駒台からの内側余白
+
+    // 指定ギャップ（マス→px）
+    const int userGapPx = qRound(m_squareSize * m_standGapCols);
+
+    // 段番号が確実に入る最小ギャップ
+    const int needGapPx = minGapForRankLabelsPx();
+
+    // 実効ギャップ
+    const int effGapPx   = std::max(userGapPx, needGapPx);
+    const double effCols = double(effGapPx) / double(m_squareSize);
+
+    // 盤位置・駒台位置
+    m_param1     = qRound((2.0 + effCols) * m_squareSize) - tweak;
+    m_param2     = qRound((9.0 + effCols) * m_squareSize) - tweak;
+    m_offsetX    = m_param1 + tweak;
+    m_standGapPx = qRound(effCols * m_squareSize);
+}
+
+void ShogiView::drawRank(QPainter* painter, const int rank) const
+{
+    if (!m_board) return;
+
+    const QRect cell = calculateSquareRectangleBasedOnBoardState(1, rank);
+    const int h = cell.height();
+    const int y = cell.top() + m_offsetY;
+
+    const bool rightSide = !m_flipMode;
+    const int boardEdge  = rightSide ? boardRightPx() : boardLeftPx();
+    const int innerEdge  = standInnerEdgePx(rightSide);
+    const int xCenter    = (boardEdge + innerEdge) / 2;
+
+    // 表示帯
+    int w = m_labelBandPx;
+    const int gapPx = std::abs(innerEdge - boardEdge);
+    if (w > gapPx - 2) w = std::max(12, gapPx - 2);
+
+    const QRect rankRect(xCenter - w/2, y, w, h);
+
+    // ★ 段番号だけ少し小さめに
+    QFont f = painter->font();
+    double pt = m_labelFontPt * m_rankFontScale;  // 係数を掛ける
+    // 帯の高さに対する上限も掛けてはみ出し防止
+    pt = std::min(pt, h * 0.9);
+    f.setPointSizeF(pt);
+    painter->setFont(f);
+
+    static const QStringList rankTexts = { "一","二","三","四","五","六","七","八","九" };
+    if (rank >= 1 && rank <= rankTexts.size()) {
+        painter->drawText(rankRect, Qt::AlignCenter, rankTexts.at(rank - 1));
+    }
+}
+
+void ShogiView::drawFile(QPainter* painter, const int file) const
+{
+    if (!m_board) return;
+
+    const QRect cell = calculateSquareRectangleBasedOnBoardState(file, 1);
+    const int x = cell.left() + m_offsetX;
+    const int w = cell.width();
+
+    int h = m_labelBandPx;
+    int y = 0;
+
+    if (m_flipMode) {
+        const int boardBottom = m_offsetY + m_squareSize * m_board->ranks();
+        int avail = height() - boardBottom - 2;
+        if (avail <= 0) return;
+        h = std::min(h, std::max(8, avail - m_labelGapPx));
+        y = boardBottom + m_labelGapPx;          // 盤からの内側余白
+        if (y + h > height() - 1) y = height() - 1 - h;
+    } else {
+        int avail = m_offsetY - 2;
+        if (avail <= 0) return;
+        h = std::min(h, std::max(8, avail - m_labelGapPx));
+        y = m_offsetY - m_labelGapPx - h;        // 盤からの内側余白
+    }
+
+    const QRect fileRect(x, y, w, h);
+
+    QFont f = painter->font();
+    f.setPointSizeF(std::min(m_labelFontPt, h * 0.75)); // 抑えめ
+    painter->setFont(f);
+
+    static const QStringList fileTexts = { "１","２","３","４","５","６","７","８","９" };
+    if (file >= 1 && file <= fileTexts.size())
+        painter->drawText(fileRect, Qt::AlignHCenter | Qt::AlignVCenter,
+                          fileTexts.at(file - 1));
+}
+
+int ShogiView::minGapForRankLabelsPx() const
+{
+    const int bandH = std::max(10, int(m_squareSize * 0.68));
+
+    QFont f = this->font();
+    // 使いたいフォントサイズをそのまま採寸に使う
+    f.setPointSizeF(std::clamp(m_labelFontPt, 5.0, double(bandH)));
+    QFontMetrics fm(f);
+
+    static const QStringList ranks = { "一","二","三","四","五","六","七","八","九" };
+
+    int wMax = 0;
+    for (const QString& s : ranks)
+        wMax = std::max(wMax, fm.horizontalAdvance(s));
+
+    const int padding = std::max(2, m_labelGapPx);      // 盤/駒台からの内側余白ぶん
+    return wMax + padding * 2;                          // 文字幅 + 左右余白
+}
+
+// 盤端から駒台までの“内側端”を返す（片側の隙間 = m_standGapPx をそのまま使う）
+int ShogiView::standInnerEdgePx(bool rightSide) const
+{
+    const int gap = m_standGapPx;  // recalcLayoutParams() で最小値が保証されている
+    return rightSide ? (boardRightPx() + gap)
+                     : (boardLeftPx()  - gap);
+}
+
+void ShogiView::setRankFontScale(double scale)
+{
+    // 50%〜120% の範囲でクランプ（お好みで調整可）
+    m_rankFontScale = std::clamp(scale, 0.5, 1.2);
+    update();   // 再描画
 }

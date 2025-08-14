@@ -209,6 +209,8 @@ public:
 
     void setNameFontScale(double scale); // 0.2〜1.0 くらい
 
+    void setRankFontScale(double scale);
+
 public slots:
     // マスのサイズを設定する。
     void setFieldSize(QSize fieldSize);
@@ -461,6 +463,17 @@ private:
     int boardLeftPx() const;
     int boardRightPx() const;
     int standInnerEdgePx(bool rightSide) const; // rightSide=true: 右側(先手)の内側端, false: 左側(後手)
+
+    // ShogiView.h （private: の中）
+    QString m_blackNameBase;   // 記号なしの元名
+    QString m_whiteNameBase;   // 記号なしの元名
+    void    refreshNameLabels();     // 矢印を付けて表示を更新
+    static QString stripMarks(const QString&); // 既存の▲▽△▼を除去
+
+    int minGapForRankLabelsPx() const;   // 段番号が収まる最小隙間(px)
+
+    // 既存メンバの近くに
+    double m_rankFontScale = 0.8;   // 段番号だけ縮小する係数（既定=85%）
 };
 
 #endif // SHOGIVIEW_H
