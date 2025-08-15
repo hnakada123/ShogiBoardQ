@@ -28,11 +28,13 @@ set(PROJECT_SOURCES
 )
 
 set(SOURCE_FILES
+        src/apptooltipfilter.cpp
         src/changeenginesettingsdialog.cpp
         src/considarationdailog.cpp
         src/tsumeshogisearchdialog.cpp
         src/elidelabel.cpp
         src/engineregistrationdialog.cpp
+        src/globaltooltip.cpp
         src/kiftosfenconverter.cpp
         src/kifuanalysisdialog.cpp
         src/kifuanalysislistmodel.cpp
@@ -51,6 +53,7 @@ set(SOURCE_FILES
         src/shogimove.cpp
         src/shogiutils.cpp
         src/shogiview.cpp
+        src/solidtooltip.cpp
         src/startgamedialog.cpp
         src/usi.cpp
         src/usicommlogmodel.cpp
@@ -59,6 +62,7 @@ set(SOURCE_FILES
 
 set(HEADER_FILES
         include/abstractlistmodel.h
+        include/apptooltipfilter.h
         include/changeenginesettingsdialog.h
         include/considarationdialog.h
         include/tsumeshogisearchdialog.h
@@ -66,6 +70,7 @@ set(HEADER_FILES
         include/engineoptions.h
         include/engineregistrationdialog.h
         include/enginesettingsconstants.h
+        include/globaltooltip.h
         include/kiftosfenconverter.h
         include/kifuanalysisdialog.h
         include/kifuanalysislistmodel.h
@@ -86,6 +91,7 @@ set(HEADER_FILES
         include/shogimove.h
         include/shogiutils.h
         include/shogiview.h
+        include/solidtooltip.h
         include/startgamedialog.h
         include/usi.h
         include/usicommlogmodel.h

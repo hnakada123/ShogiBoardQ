@@ -5,6 +5,7 @@
 #include <QTranslator>
 #include <QStyleFactory>
 #include <QGuiApplication>
+#include <QToolTip>
 
 int main(int argc, char *argv[])
 {
@@ -27,18 +28,19 @@ int main(int argc, char *argv[])
     a.setStyle(QStyleFactory::create("Fusion"));
 
     // 2) フォントを小さめに（例: 10pt）
-    QFont f = a.font();
-    f.setPointSizeF(10.0);           // お好みで 9.0〜10.5 くらい
-    a.setFont(f);
+    //QFont f = a.font();
+    //f.setPointSizeF(10.0);           // お好みで 9.0〜10.5 くらい
+    //a.setFont(f);
 
     // ここでアプリ全体のツールチップ見た目を設定
-    a.setStyleSheet(R"(
-        QToolTip { background: #FFF9C4; color: #333; border: 1px solid #C49B00; padding: 6px; font-size: 12pt; }
-        QMenuBar { font-size: 10pt; padding:1px 4px; }
-        QMenuBar::item { padding:2px 6px; }
-        QMenu { font-size: 10pt; padding:2px; }
-        QMenu::item { padding:2px 10px; } /* 行間を詰める */
-        )");
+    //a.setStyleSheet(R"(
+    //    //QToolTip { background: #FFF9C4; color: #333; border: 1px solid #C49B00; padding: 6px; font-size: 12pt; }
+    //    QToolTip { background-color:#FFF9C4; color:#333; border:1px solid #C49B00; padding:6px; font-size:14pt; }
+    //    QMenuBar { font-size: 10pt; padding:1px 4px; }
+    //    QMenuBar::item { padding:2px 6px; }
+    //    QMenu { font-size: 10pt; padding:2px; }
+    //    QMenu::item { padding:2px 10px; } /* 行間を詰める */
+    //    )");
 
     MainWindow w;
 
