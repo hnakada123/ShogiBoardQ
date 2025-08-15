@@ -2,15 +2,17 @@
 #include "shogiboard.h"
 #include "enginesettingsconstants.h"
 #include "elidelabel.h"
+#include "solidtooltip.h"
 #include <QColor>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QSettings>
 #include <QDir>
 #include <QApplication>
-#include <qstyle.h>
 
 using namespace EngineSettingsConstants;
+
+static SolidToolTip* g_tip = nullptr;
 
 // コンストラクタ
 ShogiView::ShogiView(QWidget *parent)
@@ -111,6 +113,9 @@ ShogiView::ShogiView(QWidget *parent)
     // 位置決め
     updateBlackClockLabelGeometry();
     updateWhiteClockLabelGeometry();
+
+    m_blackNameLabel->installEventFilter(this);
+    m_whiteNameLabel->installEventFilter(this);
 }
 
 // m_boardにShogiBoardオブジェクトのポインタをセットする。
@@ -138,6 +143,29 @@ void ShogiView::setBoard(ShogiBoard* board)
 
     // ウィジェットのジオメトリ（サイズや形状）を更新する。
     updateGeometry();
+}
+
+// ...
+bool ShogiView::eventFilter(QObject* obj, QEvent* ev)
+{
+    if (!g_tip) {
+        g_tip = new SolidToolTip(this);
+        g_tip->setCompact(true);      // お好みで
+        g_tip->setPointSizeF(12.0);   // お好みで
+    }
+
+    if (obj == m_blackNameLabel || obj == m_whiteNameLabel) {
+        if (ev->type() == QEvent::ToolTip) {
+            auto* he = static_cast<QHelpEvent*>(ev);
+            const QString text = (obj == m_blackNameLabel)
+                                     ? m_blackNameBase : m_whiteNameBase;
+            g_tip->showText(he->globalPos(), text);
+            return true;              // 既定の QToolTip を抑止
+        } else if (ev->type() == QEvent::Leave) {
+            g_tip->hideTip();
+        }
+    }
+    return QWidget::eventFilter(obj, ev);
 }
 
 // 現在セットされている将棋盤オブジェクトへのポインタを返す。
@@ -1843,6 +1871,42 @@ void ShogiView::refreshNameLabels()
         const QString markBlack = m_flipMode ? QStringLiteral("▼")
                                              : QStringLiteral("▲");
         m_blackNameLabel->setFullText(markBlack + m_blackNameBase);
+
+        // ★ 背景・文字色・枠線を明示して透過を防ぐ
+        auto mkTip = [](const QString& plain) {
+            return QStringLiteral(
+                       "<div style='background-color:#FFF9C4; color:#333;"
+                       "border:1px solid #C49B00; padding:6px; white-space:nowrap;'>%1</div>")
+                .arg(plain.toHtmlEscaped());
+        };
+        m_blackNameLabel->setToolTip(mkTip(m_blackNameBase));
+    }
+    if (m_whiteNameLabel) {
+        const QString markWhite = m_flipMode ? QStringLiteral("△")
+                                             : QStringLiteral("▽");
+        m_whiteNameLabel->setFullText(markWhite + m_whiteNameBase);
+
+        // ★ 後手も同じく“背景つき”HTMLで固定
+        auto mkTip = [](const QString& plain) {
+            return QStringLiteral(
+                       "<div style='background-color:#FFF9C4; color:#333;"
+                       "border:1px solid #C49B00; padding:6px; white-space:nowrap;'>%1</div>")
+                .arg(plain.toHtmlEscaped());
+        };
+        m_whiteNameLabel->setToolTip(mkTip(m_whiteNameBase));
+    }
+
+    qDebug() << "Black player name set to:" << m_blackNameBase;
+    qDebug() << "White player name set to:" << m_whiteNameBase;
+}
+
+/*
+void ShogiView::refreshNameLabels()
+{
+    if (m_blackNameLabel) {
+        const QString markBlack = m_flipMode ? QStringLiteral("▼")
+                                             : QStringLiteral("▲");
+        m_blackNameLabel->setFullText(markBlack + m_blackNameBase);
         m_blackNameLabel->setToolTip(m_blackNameBase);
     }
     if (m_whiteNameLabel) {
@@ -1858,6 +1922,7 @@ void ShogiView::refreshNameLabels()
     qDebug() << "White player name set to:" << m_whiteNameBase;
     //end
 }
+*/
 
 void ShogiView::recalcLayoutParams()
 {
@@ -1988,4 +2053,44 @@ void ShogiView::setRankFontScale(double scale)
     // 50%〜120% の範囲でクランプ（お好みで調整可）
     m_rankFontScale = std::clamp(scale, 0.5, 1.2);
     update();   // 再描画
+}
+
+// 手番側の見た目を反映（ツールチップは触らない）
+void ShogiView::applyTurnHighlight(bool blackActive)
+{
+    auto setOne = [&](QLabel* name, QLabel* clock, bool active) {
+        // 背景は styleSheet（※ color は絶対に書かない）
+        const QString on  = QString("background-color:%1;").arg(m_highlightBg.name());
+        const QString off = QString("background:transparent;");
+
+        if (name)  name ->setStyleSheet(active ? on : off);
+        if (clock) clock->setStyleSheet(active ? on : off);
+
+        // 文字色はパレット（QToolTip には波及しない）
+        auto setFg = [&](QLabel* lbl){
+            if (!lbl) return;
+            QPalette p = lbl->palette();
+            p.setColor(QPalette::WindowText, active ? m_highlightFgOn : m_highlightFgOff);
+            lbl->setPalette(p);
+        };
+        setFg(name);
+        setFg(clock);
+    };
+
+    setOne(m_blackNameLabel, m_blackClockLabel,  blackActive);
+    setOne(m_whiteNameLabel, m_whiteClockLabel, !blackActive);
+}
+
+void ShogiView::setActiveSide(bool blackTurn)
+{
+    m_blackActive = blackTurn;
+    applyTurnHighlight(m_blackActive);
+}
+
+void ShogiView::setHighlightStyle(const QColor& bgOn, const QColor& fgOn, const QColor& fgOff)
+{
+    m_highlightBg    = bgOn;
+    m_highlightFgOn  = fgOn;
+    m_highlightFgOff = fgOff;
+    applyTurnHighlight(m_blackActive); // 現在の手番に再適用
 }

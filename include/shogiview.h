@@ -9,6 +9,8 @@
 
 class ShogiBoard;
 
+class SolidToolTip;               // ★ 前方宣言を追加
+
 class ShogiView : public QWidget
 {
     // Q_OBJECTマクロ: このクラスがQtのオブジェクトシステムに組み込まれることを示す。
@@ -211,6 +213,12 @@ public:
 
     void setRankFontScale(double scale);
 
+    // 手番（true=先手手番, false=後手手番）
+    void setActiveSide(bool blackTurn);
+
+    // 強調配色を変更したいとき用（任意）
+    void setHighlightStyle(const QColor& bgOn, const QColor& fgOn, const QColor& fgOff);
+
 public slots:
     // マスのサイズを設定する。
     void setFieldSize(QSize fieldSize);
@@ -239,6 +247,8 @@ protected:
     void mouseMoveEvent(QMouseEvent* event) override;
 
     void resizeEvent(QResizeEvent* e) override;
+
+    bool eventFilter(QObject* obj, QEvent* ev) override;
 
 private:
     // エラーが発生したかどうかを示すフラグ
@@ -474,6 +484,16 @@ private:
 
     // 既存メンバの近くに
     double m_rankFontScale = 0.8;   // 段番号だけ縮小する係数（既定=85%）
+
+    void applyTurnHighlight(bool blackActive);
+
+    // 強調用の色（デフォルト）
+    QColor m_highlightBg   = QColor(255, 255, 0); // #FFFF00
+    QColor m_highlightFgOn = QColor(0, 0, 255); // #0000FF
+    QColor m_highlightFgOff= QColor( 51,  51,  51); // #333333
+    bool   m_blackActive   = true;               // 直近の手番
+
+    SolidToolTip* m_tooltip = nullptr;   // ★ 自前ツールチップのポインタを追加
 };
 
 #endif // SHOGIVIEW_H

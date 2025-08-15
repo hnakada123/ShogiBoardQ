@@ -27,6 +27,10 @@
 #include <QSettings>
 #include <QDebug>
 #include <QDateTime>
+#include <QToolBar>
+#include <QToolButton>
+#include <QMenuBar>
+#include <QMenu>
 
 #include "mainwindow.h"
 #include "promotedialog.h"
@@ -43,6 +47,7 @@
 #include "enginesettingsconstants.h"
 #include "shogiclock.h"
 #include "shogiutils.h"
+#include "apptooltipfilter.h"
 
 using namespace EngineSettingsConstants;
 
@@ -140,6 +145,19 @@ MainWindow::MainWindow(QWidget *parent) :
     // GUI全体のウィンドウサイズの読み込み。
     // 前回起動したウィンドウサイズに設定する。
     loadWindowSettings();
+
+    // MainWindow ctor で、UIを作り終わった直後に
+    auto* tipFilter = new AppToolTipFilter(this);
+    tipFilter->setPointSizeF(12.0);
+    tipFilter->setCompact(true);
+
+    auto toolbars = findChildren<QToolBar*>();
+    for (int i = 0, n = toolbars.size(); i < n; ++i) {
+        QToolBar* tb = toolbars.at(i);
+        auto buttons = tb->findChildren<QToolButton*>();
+        for (int j = 0, m = buttons.size(); j < m; ++j)
+            buttons.at(j)->installEventFilter(tipFilter);
+    }
 
     // メニューのシグナルとスロット（メニューやボタンをクリックした際に実行される関数の指定）
     // メニューの項目をクリックすると、スロットの関数が実行される。
@@ -2651,8 +2669,25 @@ void MainWindow::handleClickForHumanVsHuman(const QPoint& field)
 // 将棋クロックの手番を設定する。
 void MainWindow::updateTurnStatus(int currentPlayer)
 {
+    if (!m_shogiView) return;
+
+    m_shogiClock->setCurrentPlayer(currentPlayer);
+
+    // 1=先手, 2=後手 以外が来たら何もしない（既存の表示を維持）
+    if (currentPlayer == 1) {
+        m_shogiView->setActiveSide(true);   // 先手手番
+    } else if (currentPlayer == 2) {
+        m_shogiView->setActiveSide(false);  // 後手手番
+    }
+}
+
+/*
+void MainWindow::updateTurnStatus(int currentPlayer)
+{
     // 将棋クロックの手番を設定する。
     m_shogiClock->setCurrentPlayer(currentPlayer);
+    // 1=先手, 2=後手 という前提
+    m_shogiView->setActiveSide(currentPlayer == 1);
 
     // 手番に応じて将棋クロックの手番表示を更新する。
     if (currentPlayer == 1) {
@@ -2690,6 +2725,7 @@ void MainWindow::updateTurnStatus(int currentPlayer)
         m_shogiView->blackClockLabel()->setStyleSheet(QStringLiteral("background: transparent; color: black;"));
     }
 }
+*/
 
 // 手番に応じて将棋クロックの手番変更する。
 void MainWindow::updateTurnDisplay()
