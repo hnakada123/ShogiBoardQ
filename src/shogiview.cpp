@@ -468,7 +468,6 @@ void ShogiView::drawWhiteEditModeStand(QPainter* painter)
     }
 }
 
-
 // 局面編集モードにおける「駒台」描画の統括エントリポイント。
 // 役割：先手（黒）側 → 後手（白）側の順に、駒台マスの描画を委譲して実行する。
 // 方針：共通状態（ペン/ブラシ等）は各サブ関数側で一括設定済みとし、ここでは状態を変更しない。
@@ -1941,7 +1940,8 @@ bool ShogiView::positionEditMode() const
 //  - その後、基底クラスへ委譲して標準のリサイズ処理（子ウィジェットの再レイアウト等）を実行
 // 注意：ここでは盤面そのものの再レイアウト（sizeHint 等）までは行わず、
 //       マージンやフォントスケールに依存しやすい時計ラベルのみを即時調整する。
-void ShogiView::resizeEvent(QResizeEvent* e) {
+void ShogiView::resizeEvent(QResizeEvent* e)
+{
     // 【ジオメトリ更新】ウィンドウサイズ変更に追従して時計ラベルの位置・サイズを更新
     updateBlackClockLabelGeometry();
     updateWhiteClockLabelGeometry();
