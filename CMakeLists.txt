@@ -53,7 +53,6 @@ set(SOURCE_FILES
         src/shogimove.cpp
         src/shogiutils.cpp
         src/shogiview.cpp
-        src/solidtooltip.cpp
         src/startgamedialog.cpp
         src/usi.cpp
         src/usicommlogmodel.cpp
@@ -91,7 +90,6 @@ set(HEADER_FILES
         include/shogimove.h
         include/shogiutils.h
         include/shogiview.h
-        include/solidtooltip.h
         include/startgamedialog.h
         include/usi.h
         include/usicommlogmodel.h

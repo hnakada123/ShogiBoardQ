@@ -20,7 +20,7 @@
 
 // 前方宣言（ヘッダ依存を軽減）
 class ShogiBoard;
-class SolidToolTip;
+class GlobalToolTip;
 class QLabel;
 class QPainter;
 class QEvent;
@@ -303,7 +303,7 @@ private:
     bool   m_errorOccurred { false };
 
     // 自前ツールチップ
-    SolidToolTip* m_tooltip = nullptr;
+    GlobalToolTip* m_tooltip = nullptr;
 };
 
 #endif // SHOGIVIEW_H
