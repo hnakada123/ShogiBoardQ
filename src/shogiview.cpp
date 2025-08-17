@@ -2,7 +2,7 @@
 #include "shogiboard.h"
 #include "enginesettingsconstants.h"
 #include "elidelabel.h"
-#include "solidtooltip.h"
+#include "globaltooltip.h"
 #include <QColor>
 #include <QMouseEvent>
 #include <QPainter>
@@ -190,7 +190,7 @@ void ShogiView::setBoard(ShogiBoard* board)
 
 // イベントフィルタ
 // 役割：
-//  - 名前ラベル（先手/後手）に対して、標準QToolTipではなくカスタムの SolidToolTip を用いた
+//  - 名前ラベル（先手/後手）に対して、標準QToolTipではなくカスタムの GlobalToolTip を用いた
 //    遅延生成＆表示制御を行う
 //  - ツールチップ要求（QEvent::ToolTip）でフルのベース名を表示、ウィジェット離脱（QEvent::Leave）で非表示
 //  - 該当しないオブジェクト/イベントは既定の処理にフォールバック
@@ -199,7 +199,7 @@ bool ShogiView::eventFilter(QObject* obj, QEvent* ev)
     // 【遅延初期化：ツールチップのシングルトン的利用】
     // パフォーマンスとリソース節約のため、最初の要求時にのみインスタンス化する。
     if (!m_tooltip) {
-        m_tooltip = new SolidToolTip(this);   // 親を this にして破棄を自動化
+        m_tooltip = new GlobalToolTip(this);   // 親を this にして破棄を自動化
         m_tooltip->setCompact(true);          // 余白を詰めたコンパクト表示
         m_tooltip->setPointSizeF(12.0);       // ベースとなるフォントサイズ
     }
