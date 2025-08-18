@@ -2038,9 +2038,7 @@ void MainWindow::displayResultsAndUpdateGui()
 {
     // 手番が対局者1の場合
     if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
-        // 対局者1に対して秒読み時間が適用された場合、その秒読み時間を持ち時間としてリセットし、
-        // 考慮時間を総考慮時間に追加する。
-        m_shogiClock->applyByoyomiAndResetConsideration1(m_useByoyomi);
+        m_shogiClock->applyByoyomiAndResetConsideration1();
 
         // 棋譜を更新し、UIの表示も同時に更新する。
         updateGameRecord(m_shogiClock->getPlayer1ConsiderationAndTotalTime());
@@ -2050,9 +2048,7 @@ void MainWindow::displayResultsAndUpdateGui()
     }
     // 手番が対局者2の場合
     else {
-        // 対局者2に対して秒読み時間が適用された場合、その秒読み時間を持ち時間としてリセットし、
-        // 考慮時間を総考慮時間に追加する。
-        m_shogiClock->applyByoyomiAndResetConsideration2(m_useByoyomi);
+        m_shogiClock->applyByoyomiAndResetConsideration2();
 
         // 棋譜を更新し、UIの表示も同時に更新する。
         updateGameRecord(m_shogiClock->getPlayer2ConsiderationAndTotalTime());
@@ -2716,9 +2712,7 @@ void MainWindow::updateTurnAndTimekeepingDisplay()
 
     // 手番が対局者1の場合
     if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
-        // 対局者2に対して秒読み時間が適用された場合、その秒読み時間を持ち時間としてリセットし、
-        // 考慮時間を総考慮時間に追加する。
-        m_shogiClock->applyByoyomiAndResetConsideration2(m_useByoyomi);
+        m_shogiClock->applyByoyomiAndResetConsideration2();
 
         // 棋譜を更新し、UIの表示も同時に更新する。
         updateGameRecord(m_shogiClock->getPlayer2ConsiderationAndTotalTime());
@@ -2731,9 +2725,7 @@ void MainWindow::updateTurnAndTimekeepingDisplay()
     }
     // 手番が対局者2の場合
     else if (m_gameController->currentPlayer() == ShogiGameController::Player2) {
-        // 対局者1に対して秒読み時間が適用された場合、その秒読み時間を持ち時間としてリセットし、
-        // 考慮時間を総考慮時間に追加する。
-        m_shogiClock->applyByoyomiAndResetConsideration1(m_useByoyomi);
+        m_shogiClock->applyByoyomiAndResetConsideration1();
 
         // 棋譜を更新し、UIの表示も同時に更新する。
         updateGameRecord(m_shogiClock->getPlayer1ConsiderationAndTotalTime());

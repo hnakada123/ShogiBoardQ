@@ -58,13 +58,9 @@ public:
     // 「待った」をした場合、状態を2手前の残り時間、考慮時間、総考慮時間に戻す。
     void undo();
 
-    // 対局者1に対して秒読み時間が適用された場合、その秒読み時間を持ち時間としてリセットし、
-    // 考慮時間を総考慮時間に追加してリセットする。
-    void applyByoyomiAndResetConsideration1(const bool useByoyomi);
+    void applyByoyomiAndResetConsideration1();
 
-    // 対局者2に対して秒読み時間が適用された場合、その秒読み時間を持ち時間としてリセットし、
-    // 考慮時間を総考慮時間に追加してリセットする。
-    void applyByoyomiAndResetConsideration2(const bool useByoyomi);
+    void applyByoyomiAndResetConsideration2();
 
     // 考慮時間を総考慮時間に追加する。
     void addConsiderationTimeToTotal(int player);
