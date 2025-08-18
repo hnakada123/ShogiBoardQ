@@ -71,6 +71,8 @@ void ShogiClock::setPlayerTimes(const int player1Seconds, const int player2Secon
     m_byoyomi1Applied = false;
     m_byoyomi2Applied = false;
 
+    emit timeUpdated();
+
     //begin
     qDebug() << "ShogiClock::setPlayerTimes()";
     qDebug() << "m_player1Time: " << m_player1TimeMs;
@@ -374,9 +376,6 @@ void ShogiClock::updateClock()
             m_player2ConsiderationTimeMs += elapsed;
         }
     }
-
-    // 秒が変わったときだけGUI更新する。（切り上げで合わせる。）
-
 
     // 現在の秒表示を計算する。
     const qint64 sec1 = qMax<qint64>(0, (m_player1TimeMs + 999) / 1000);
