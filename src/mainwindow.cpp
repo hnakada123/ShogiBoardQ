@@ -2036,18 +2036,27 @@ void MainWindow::stopClockAndSendCommands()
 // 対局結果の表示とGUIの更新処理を行う。
 void MainWindow::displayResultsAndUpdateGui()
 {
-    m_gameController->changeCurrentPlayer();
-
-    // 手番に応じて将棋クロックの手番変更およびGUIの手番表示を更新する。
-    updateTurnAndTimekeepingDisplay();
-
     // 手番が対局者1の場合
     if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
+        // 対局者1に対して秒読み時間が適用された場合、その秒読み時間を持ち時間としてリセットし、
+        // 考慮時間を総考慮時間に追加する。
+        m_shogiClock->applyByoyomiAndResetConsideration1(m_useByoyomi);
+
+        // 棋譜を更新し、UIの表示も同時に更新する。
+        updateGameRecord(m_shogiClock->getPlayer1ConsiderationAndTotalTime());
+
         // 対局結果を表示する。
         displayGameOutcome(ShogiGameController::Player1Wins);
     }
     // 手番が対局者2の場合
     else {
+        // 対局者2に対して秒読み時間が適用された場合、その秒読み時間を持ち時間としてリセットし、
+        // 考慮時間を総考慮時間に追加する。
+        m_shogiClock->applyByoyomiAndResetConsideration2(m_useByoyomi);
+
+        // 棋譜を更新し、UIの表示も同時に更新する。
+        updateGameRecord(m_shogiClock->getPlayer2ConsiderationAndTotalTime());
+
         // 対局結果を表示する。
         displayGameOutcome(ShogiGameController::Player2Wins);
     }
@@ -2699,6 +2708,48 @@ void MainWindow::updateTurnDisplay()
 // 手番に応じて将棋クロックの手番変更およびGUIの手番表示を更新する。
 void MainWindow::updateTurnAndTimekeepingDisplay()
 {
+    // 対局者1の持ち時間をミリ秒単位に変換する。
+    m_bTime = QString::number(m_shogiClock->getPlayer1TimeIntMs());
+
+    // 対局者2の持ち時間をミリ秒単位に変換する。
+    m_wTime = QString::number(m_shogiClock->getPlayer2TimeIntMs());
+
+    // 手番が対局者1の場合
+    if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
+        // 対局者2に対して秒読み時間が適用された場合、その秒読み時間を持ち時間としてリセットし、
+        // 考慮時間を総考慮時間に追加する。
+        m_shogiClock->applyByoyomiAndResetConsideration2(m_useByoyomi);
+
+        // 棋譜を更新し、UIの表示も同時に更新する。
+        updateGameRecord(m_shogiClock->getPlayer2ConsiderationAndTotalTime());
+
+        // 対局者2の考慮時間を0に設定する。
+        m_shogiClock->setPlayer2ConsiderationTime(0);
+
+        // 将棋クロックの手番を対局者1に設定する。
+        updateTurnStatus(1);
+    }
+    // 手番が対局者2の場合
+    else if (m_gameController->currentPlayer() == ShogiGameController::Player2) {
+        // 対局者1に対して秒読み時間が適用された場合、その秒読み時間を持ち時間としてリセットし、
+        // 考慮時間を総考慮時間に追加する。
+        m_shogiClock->applyByoyomiAndResetConsideration1(m_useByoyomi);
+
+        // 棋譜を更新し、UIの表示も同時に更新する。
+        updateGameRecord(m_shogiClock->getPlayer1ConsiderationAndTotalTime());
+
+        // 対局者1の考慮時間を0に設定する。
+        m_shogiClock->setPlayer1ConsiderationTime(0);
+
+        // 将棋クロックの手番を対局者2に設定する。
+        updateTurnStatus(2);
+    }
+}
+
+/*
+// 手番に応じて将棋クロックの手番変更およびGUIの手番表示を更新する。
+void MainWindow::updateTurnAndTimekeepingDisplay()
+{
     //begin
     qDebug() << "@@@ before MainWindow::updateTurnAndTimekeepingDisplay()";
     qDebug() << "m_bTime: " << m_bTime;
@@ -2814,6 +2865,7 @@ void MainWindow::updateTurnAndTimekeepingDisplay()
     qDebug() << "m_wTime: " << m_wTime;
     //end
 }
+*/
 
 // 人間対人間の対局で、クリックされたマスに基づいて駒の移動を処理する。
 void MainWindow::handleHumanVsHumanClick(const QPoint& field)
