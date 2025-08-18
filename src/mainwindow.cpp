@@ -2681,52 +2681,6 @@ void MainWindow::updateTurnStatus(int currentPlayer)
     }
 }
 
-/*
-void MainWindow::updateTurnStatus(int currentPlayer)
-{
-    // 将棋クロックの手番を設定する。
-    m_shogiClock->setCurrentPlayer(currentPlayer);
-    // 1=先手, 2=後手 という前提
-    m_shogiView->setActiveSide(currentPlayer == 1);
-
-    // 手番に応じて将棋クロックの手番表示を更新する。
-    if (currentPlayer == 1) {
-        m_shogiView->blackNameLabel()->setStyleSheet(QStringLiteral(
-            "background-color: yellow;"
-            "color: blue;"
-            "border-radius: 8px;"
-            ));
-
-        m_shogiView->whiteNameLabel()->setStyleSheet(QStringLiteral("background: transparent; color: black;"));
-
-        m_shogiView->blackClockLabel()->setStyleSheet(QStringLiteral(
-            "background-color: yellow;"
-            "color: blue;"
-            "border-radius: 8px;"
-            ));
-
-        m_shogiView->whiteClockLabel()->setStyleSheet(QStringLiteral("background: transparent; color: black;"));
-    }
-    else if (currentPlayer == 2) {
-        m_shogiView->whiteNameLabel()->setStyleSheet(QStringLiteral(
-            "background-color: yellow;"
-            "color: blue;"
-            "border-radius: 8px;"
-            ));
-
-        m_shogiView->blackNameLabel()->setStyleSheet(QStringLiteral("background: transparent; color: black;"));
-
-        m_shogiView->whiteClockLabel()->setStyleSheet(QStringLiteral(
-            "background-color: yellow;"
-            "color: blue;"
-            "border-radius: 8px;"
-            ));
-
-        m_shogiView->blackClockLabel()->setStyleSheet(QStringLiteral("background: transparent; color: black;"));
-    }
-}
-*/
-
 // 手番に応じて将棋クロックの手番変更する。
 void MainWindow::updateTurnDisplay()
 {
@@ -3563,6 +3517,9 @@ PlayMode MainWindow::setPlayMode()
 // 対局モード（人間対エンジンなど）に応じて対局処理を開始する。
 void MainWindow::startGameBasedOnMode()
 {
+    // 将棋エンジン対人間の場合、人間側を手前にするかどうかを取得する。
+    bool isShowHumanInFront = m_startGameDialog->isShowHumanInFront();
+
     // 対局モード
     switch (m_playMode) {
 
@@ -3592,8 +3549,10 @@ void MainWindow::startGameBasedOnMode()
         qDebug() << "EvenEngineVsHuman = " << EvenEngineVsHuman;
         //end
 
-        // 盤面を反転して対局者の情報を更新し、人間側が手前に来るようにする。
-        flipBoardAndUpdatePlayerInfo();
+        if (isShowHumanInFront) {
+            // 盤面を反転して対局者の情報を更新し、人間側が手前に来るようにする。
+            flipBoardAndUpdatePlayerInfo();
+        }
 
         startEngineVsHumanGame();
 
@@ -3615,8 +3574,10 @@ void MainWindow::startGameBasedOnMode()
         qDebug() << "HandicapEngineVsHuman = " << HandicapEngineVsHuman;
         //end
 
-        // 盤面を反転して対局者の情報を更新し、人間側が手前に来るようにする。
-        flipBoardAndUpdatePlayerInfo();
+        if (isShowHumanInFront) {
+            // 盤面を反転して対局者の情報を更新し、人間側が手前に来るようにする。
+            flipBoardAndUpdatePlayerInfo();
+        }
 
         startHumanVsEngineGame();
 
@@ -3801,33 +3762,6 @@ void MainWindow::setPlayerTimeLimits()
                                + m_startGameDialog->basicTimeMinutes2())
                               * 60000);
 }
-
-/*
-// 対局者1と対局者2の持ち時間を設定する。
-void MainWindow::setPlayerTimeLimits()
-{
-    // 時間切れが有効の場合
-    if (m_isLoseOnTimeout) {
-        // 対局者1の持ち時間（単位はミリ秒）を計算する。
-        m_bTime = QString::number((m_startGameDialog->basicTimeHour1() * 60
-                                   + m_startGameDialog->basicTimeMinutes1())
-                                  * 60000);
-
-        // 対局者2の持ち時間（単位はミリ秒）を計算する。
-        m_wTime = QString::number((m_startGameDialog->basicTimeHour2() * 60
-                                   + m_startGameDialog->basicTimeMinutes2())
-                                  * 60000);
-    }
-    // 時間切れが無効の場合
-    else {
-        // 対局者1の持ち時間に0を設定する。
-        m_bTime = "0";
-
-        // 対局者2の持ち時間に0を設定する。
-        m_wTime = "0";
-    }
-}
-*/
 
 // 対局者の残り時間と秒読み時間を設定する。
 void MainWindow::setRemainingTimeAndCountDown()
@@ -4627,31 +4561,6 @@ void MainWindow::startTsumiSearch()
         // エラーを再スローし、エラーメッセージを表示する。
         throw;
     }
-
-    /*
-    // 手番を設定する。
-    if (m_gameMoves.at(m_currentMoveIndex).movingPiece.isUpper()) {
-        m_gameController->setCurrentPlayer(ShogiGameController::Player1);
-    } else {
-        m_gameController->setCurrentPlayer(ShogiGameController::Player2);
-    }
-
-    // positionコマンド文字列の生成
-    m_positionStr1 = m_positionStrList.at(m_currentMoveIndex);
-
-    // 時間無制限の場合
-    if (m_considarationDialog->unlimitedTimeFlag()) {
-        m_countDownMilliSec1 = 0;
-    }
-    // 時間制限の場合
-    else {
-        // 秒読み時間を設定（単位はミリ秒）
-        m_countDownMilliSec1 = m_considarationDialog->getByoyomiSec() * 1000;
-    }
-
-    // 将棋エンジンにpositionコマンドを送信し、指し手を受信する。
-    m_usi1->executeAnalysisCommunication(m_positionStr1, m_countDownMilliSec1);
-    */
 }
 
 // positionコマンド文字列を生成し、リストに格納する。
