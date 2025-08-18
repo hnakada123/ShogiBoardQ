@@ -4236,6 +4236,18 @@ void MainWindow::updateRemainingTimeDisplay()
     }
 }
 
+void ShogiView::applyClockUrgency(qint64 activeRemainMs)
+{
+    Urgency next = Urgency::Normal;
+    if      (activeRemainMs <= kWarn5Ms)  next = Urgency::Warn5;
+    else if (activeRemainMs <= kWarn10Ms) next = Urgency::Warn10;
+
+    if (next != m_urgency) {
+        m_urgency = next;
+        setUrgencyVisuals(m_urgency);
+    }
+}
+
 // 設定ファイルにGUI全体のウィンドウサイズを書き込む。
 // また、将棋盤のマスサイズも書き込む。その後、GUIを終了する。
 void MainWindow::saveSettingsAndClose()

@@ -13,6 +13,7 @@
 #include <QFont>
 #include <QFontMetrics>
 #include <QDebug>
+#include <QSizePolicy>
 
 using namespace EngineSettingsConstants;
 
@@ -1934,20 +1935,14 @@ bool ShogiView::positionEditMode() const
     return m_positionEditMode;
 }
 
-// ウィジェットのリサイズ時に呼ばれるイベントハンドラ。
-// 役割：
-//  - 新しいウィジェットサイズに合わせて時計ラベル（先手/後手）のジオメトリを再計算・再配置
-//  - その後、基底クラスへ委譲して標準のリサイズ処理（子ウィジェットの再レイアウト等）を実行
-// 注意：ここでは盤面そのものの再レイアウト（sizeHint 等）までは行わず、
-//       マージンやフォントスケールに依存しやすい時計ラベルのみを即時調整する。
 void ShogiView::resizeEvent(QResizeEvent* e)
 {
-    // 【ジオメトリ更新】ウィンドウサイズ変更に追従して時計ラベルの位置・サイズを更新
+    // 既定のレイアウト更新など
+    QWidget::resizeEvent(e);
+
+    // あなたの既存のジオメトリ更新（必要なら順序はこの後でもOK）
     updateBlackClockLabelGeometry();
     updateWhiteClockLabelGeometry();
-
-    // 【フォールバック】Qt の既定動作（子ウィジェットの再レイアウト等）へ委譲
-    QWidget::resizeEvent(e);
 }
 
 // 先手（黒）側の駒台全体を覆う境界矩形（バウンディングボックス）を算出して返す。
@@ -2572,40 +2567,17 @@ void ShogiView::setRankFontScale(double scale)
     update(); // スケール変更を即時反映
 }
 
-// 手番ハイライトを名前/時計ラベルに適用する。
-// 役割：
-//  - 引数 blackActive が true のとき先手（黒）をアクティブ表示、false のとき後手（白）をアクティブ表示にする。
-//  - アクティブ側には背景色（m_highlightBg）を適用し、非アクティブ側は背景を透過に戻す。
-//  - 文字色はアクティブ/非アクティブで別々の色（m_highlightFgOn / m_highlightFgOff）を適用。
-// 実装メモ：
-//  - setOne ラムダで「背景の stylesheet 設定」と「前景色の palette 設定」をまとめて行う。
-//  - QLabel ポインタが null の場合は安全に何もしない。
-//  - stylesheet と palette を併用しているため、テーマによっては優先度の影響を受ける点に留意。
-void ShogiView::applyTurnHighlight(bool blackActive)
+void ShogiView::applyTurnHighlight(bool blackIsActive)
 {
-    // 片側（名前/時計のペア）にハイライト適用
-    auto setOne = [&](QLabel* name, QLabel* clock, bool active) {
-        // 背景色は stylesheet で制御（ON=指定色、OFF=透過）
-        const QString on  = QString("background-color:%1;").arg(m_highlightBg.name());
-        const QString off = QString("background:transparent;");
+    // 手番を更新
+    m_blackActive = blackIsActive;
 
-        if (name)  name ->setStyleSheet(active ? on : off);
-        if (clock) clock->setStyleSheet(active ? on : off);
+    // 手番切替直後はいったん「通常配色（Normal）」を適用
+    // → 次の timeUpdated で applyClockUrgency() が Warn10/Warn5 に上書きします
+    m_urgency = Urgency::Normal;
 
-        // 前景（文字色）は palette を用いて設定
-        auto setFg = [&](QLabel* lbl){
-            if (!lbl) return;
-            QPalette p = lbl->palette();
-            p.setColor(QPalette::WindowText, active ? m_highlightFgOn : m_highlightFgOff);
-            lbl->setPalette(p);
-        };
-        setFg(name);
-        setFg(clock);
-    };
-
-    // 先手側に blackActive を、その反対を後手側に適用
-    setOne(m_blackNameLabel, m_blackClockLabel,  blackActive);
-    setOne(m_whiteNameLabel, m_whiteClockLabel, !blackActive);
+    // setUrgencyVisuals() 内で手番側を通常配色に、非手番側を font-weight=400 に統一
+    setUrgencyVisuals(Urgency::Normal);
 }
 
 // 手番（アクティブサイド）を設定するセッター。
@@ -2637,32 +2609,69 @@ void ShogiView::updateBoardSize()
     updateGeometry();                                // 冗長だが安全側の再通知
 }
 
-void ShogiView::applyClockUrgency(qint64 activeRemainMs)
+QString ShogiView::toRgb(const QColor& c)
 {
-    // 手番側のラベルを特定
-    QLabel* name  = m_blackActive ? m_blackNameLabel  : m_whiteNameLabel;
-    QLabel* clock = m_blackActive ? m_blackClockLabel : m_whiteClockLabel;
+    return QStringLiteral("rgb(%1,%2,%3)")
+    .arg(QString::number(c.red()),
+         QString::number(c.green()),
+         QString::number(c.blue()));
+}
 
-    auto setPair = [&](const QColor& bg, const QColor& fg){
-        const QString ss = QStringLiteral("background-color:%1;").arg(bg.name());
-        if (name)  name ->setStyleSheet(ss);
-        if (clock) clock->setStyleSheet(ss);
-        auto setFg = [&](QLabel* lbl){
-            if (!lbl) return;
-            QPalette p = lbl->palette();
-            p.setColor(QPalette::WindowText, fg);
-            lbl->setPalette(p);
-        };
-        setFg(name);
-        setFg(clock);
+void ShogiView::setLabelStyle(QLabel* lbl,
+                              const QColor& fg, const QColor& bg,
+                              int borderPx, const QColor& borderColor,
+                              bool bold)
+{
+    if (!lbl) return;
+
+    const QString css = QStringLiteral(
+                            "color:%1; background:%2; border:%3px solid %4; font-weight:%5; "
+                            "padding:2px; border-radius:6px;")
+                            .arg(
+                                toRgb(fg),                         // %1
+                                toRgb(bg),                         // %2
+                                QString::number(borderPx),         // %3
+                                toRgb(borderColor),                // %4
+                                (bold ? QStringLiteral("700")
+                                      : QStringLiteral("400"))     // %5
+                                );
+
+    lbl->setStyleSheet(css);
+}
+
+void ShogiView::setUrgencyVisuals(Urgency u)
+{
+    QLabel* actName    = m_blackActive ? m_blackNameLabel  : m_whiteNameLabel;
+    QLabel* actClock   = m_blackActive ? m_blackClockLabel : m_whiteClockLabel;
+    QLabel* inactName  = m_blackActive ? m_whiteNameLabel  : m_blackNameLabel;
+    QLabel* inactClock = m_blackActive ? m_whiteClockLabel : m_blackClockLabel;
+
+    // 非手番は font-weight=400 固定
+    auto setInactive = [&](QLabel* name, QLabel* clock){
+        const QColor inactiveFg(51, 51, 51);
+        const QColor inactiveBg(245, 245, 245);
+        setLabelStyle(name,  inactiveFg, inactiveBg, 0, QColor(0,0,0,0), /*bold=*/false);
+        setLabelStyle(clock, inactiveFg, inactiveBg, 0, QColor(0,0,0,0), /*bold=*/false);
     };
 
-    if (activeRemainMs <= kWarn5Ms) {
-        setPair(m_urgencyBgWarn5,  m_urgencyFgWarn5);   // 5秒以下：赤/白
-    } else if (activeRemainMs <= kWarn10Ms) {
-        setPair(m_urgencyBgWarn10, m_urgencyFgWarn10);  // 10秒以下：橙/黒
-    } else {
-        // しきい値を超えたら通常の手番ハイライト（青文字＋黄背景）に戻す
-        applyTurnHighlight(m_blackActive);
+    switch (u) {
+    case Urgency::Normal:
+        setLabelStyle(actName,  kTurnFg,   kTurnBg,   1, QColor(240,220,120), /*bold=*/false);
+        setLabelStyle(actClock, kTurnFg,   kTurnBg,   1, QColor(240,220,120), /*bold=*/false);
+        setInactive(inactName, inactClock);
+        break;
+
+    case Urgency::Warn10:
+        setLabelStyle(actName,  kWarn10Fg, kWarn10Bg, 1, kWarn10Border,       /*bold=*/false);
+        setLabelStyle(actClock, kWarn10Fg, kWarn10Bg, 1, kWarn10Border,       /*bold=*/false);
+        setInactive(inactName, inactClock);
+        break;
+
+    case Urgency::Warn5:
+        // ★ 枠は常に赤3px（固定表示、点滅なし）
+        setLabelStyle(actName,  kWarn5Fg,  kWarn5Bg,  1, kWarn5Border,        /*bold=*/false);
+        setLabelStyle(actClock, kWarn5Fg,  kWarn5Bg,  1, kWarn5Border,        /*bold=*/false);
+        setInactive(inactName, inactClock);
+        break;
     }
 }

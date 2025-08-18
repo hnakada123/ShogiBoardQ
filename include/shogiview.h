@@ -313,6 +313,32 @@ private:
     QColor m_urgencyBgWarn5  = QColor(229, 57, 53); // 赤
     QColor m_urgencyFgWarn5  = QColor(255, 255, 255); // 白
 
+    // ── 色（数値指定で clazy 回避）
+    const QColor kTurnBg   = QColor(255, 249, 196); // 通常背景（黄系）
+    const QColor kTurnFg   = QColor(0,   64, 255);  // 通常文字（青）
+
+    const QColor kWarn10Bg = QColor(255, 183,  77); // 10秒 背景（アンバー）
+    const QColor kWarn10Fg = QColor(20,   20,  20); // 10秒 文字（黒）
+
+    const QColor kWarn5Bg  = QColor(198,  40,  40); // 5秒 背景（赤）
+    const QColor kWarn5Fg  = QColor(255, 255, 255); // 5秒 文字（白）
+
+    const QColor kWarn10Border = QColor(255, 160, 0); // 10秒 枠色（アンバー濃）
+    const QColor kWarn5Border  = QColor(211,  47, 47); // 5秒 枠色（赤）
+
+    // ── 状態管理
+    // 既存 enum に 0秒用の状態を追加
+    enum class Urgency { Normal, Warn10, Warn5 };
+    Urgency m_urgency = Urgency::Normal;
+
+    // ── ヘルパ
+    void setUrgencyVisuals(Urgency u);
+    void setLabelStyle(QLabel* lbl,
+                       const QColor& fg, const QColor& bg,
+                       int borderPx, const QColor& borderColor,
+                       bool bold);
+    static QString toRgb(const QColor& c);              // "rgb(r,g,b)" 生成
+
     // エラー状態
     bool   m_errorOccurred { false };
 
