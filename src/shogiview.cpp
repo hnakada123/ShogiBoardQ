@@ -14,6 +14,7 @@
 #include <QFontMetrics>
 #include <QDebug>
 #include <QSizePolicy>
+#include <QLayout>
 
 using namespace EngineSettingsConstants;
 
@@ -142,6 +143,9 @@ ShogiView::ShogiView(QWidget *parent)
     // ここで呼んでおくことで、初回描画前に正しいジオメトリにしておく。
     updateBlackClockLabelGeometry();
     updateWhiteClockLabelGeometry();
+
+    // ★ 起動直後の見た目を整える（両側とも font-weight:400）
+    applyStartupTypography();
 
     // 【イベントフック】
     // 名前ラベルにイベントフィルタを装着。
@@ -2649,7 +2653,7 @@ void ShogiView::setUrgencyVisuals(Urgency u)
     // 非手番は font-weight=400 固定
     auto setInactive = [&](QLabel* name, QLabel* clock){
         const QColor inactiveFg(51, 51, 51);
-        const QColor inactiveBg(245, 245, 245);
+        const QColor inactiveBg(239, 240, 241);
         setLabelStyle(name,  inactiveFg, inactiveBg, 0, QColor(0,0,0,0), /*bold=*/false);
         setLabelStyle(clock, inactiveFg, inactiveBg, 0, QColor(0,0,0,0), /*bold=*/false);
     };
@@ -2674,4 +2678,20 @@ void ShogiView::setUrgencyVisuals(Urgency u)
         setInactive(inactName, inactClock);
         break;
     }
+}
+
+void ShogiView::applyStartupTypography()
+{
+    m_urgency = Urgency::Normal;
+
+    // 両側を「非手番スタイル（font-weight:400）」で統一
+    const QColor inactiveFg(51, 51, 51);
+    const QColor inactiveBg(239, 240, 241);
+    auto setInactive = [&](QLabel* name, QLabel* clock){
+        setLabelStyle(name,  inactiveFg, inactiveBg, /*borderPx=*/0, QColor(0,0,0,0), /*bold=*/false); // 400
+        setLabelStyle(clock, inactiveFg, inactiveBg, /*borderPx=*/0, QColor(0,0,0,0), /*bold=*/false); // 400
+    };
+
+    setInactive(m_blackNameLabel,  m_blackClockLabel);
+    setInactive(m_whiteNameLabel,  m_whiteClockLabel);
 }
