@@ -148,6 +148,9 @@ public slots:
     void enlargeBoard();
     void reduceBoard();
 
+    // 手番側の残り時間に応じて“名前/時計”の配色を切り替える
+    void applyClockUrgency(qint64 activeRemainMs);
+
 signals:
     void fieldSizeChanged(QSize fieldSize);  // setFieldSize 内で発火
     void clicked(const QPoint&);             // 左クリック
@@ -298,6 +301,17 @@ private:
     QColor m_highlightFgOn  = QColor(0, 0, 255);
     QColor m_highlightFgOff = QColor(51, 51, 51);
     bool   m_blackActive    = true;
+
+    // しきい値（ミリ秒）
+    static constexpr qint64 kWarn10Ms = 10'000;
+    static constexpr qint64 kWarn5Ms  = 5'000;
+
+    // 既存の「手番ハイライト色」を Normal として利用
+    // 追加：10秒/5秒で使う配色
+    QColor m_urgencyBgWarn10 = QColor(255, 193, 7);// 濃いめの黄橙
+    QColor m_urgencyFgWarn10 = QColor(32, 32, 32); // 黒系
+    QColor m_urgencyBgWarn5  = QColor(229, 57, 53); // 赤
+    QColor m_urgencyFgWarn5  = QColor(255, 255, 255); // 白
 
     // エラー状態
     bool   m_errorOccurred { false };
