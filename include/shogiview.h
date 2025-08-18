@@ -315,16 +315,16 @@ private:
 
     // ── 色（数値指定で clazy 回避）
     const QColor kTurnBg   = QColor(255, 249, 196); // 通常背景（黄系）
-    const QColor kTurnFg   = QColor(0,   64, 255);  // 通常文字（青）
+    const QColor kTurnFg   = QColor(  0,  64, 255);  // 通常文字（青）
 
-    const QColor kWarn10Bg = QColor(255, 183,  77); // 10秒 背景（アンバー）
-    const QColor kWarn10Fg = QColor(20,   20,  20); // 10秒 文字（黒）
+    const QColor kWarn10Bg = QColor(255, 255,   0); // 10秒 背景（黄）
+    const QColor kWarn10Fg = QColor(  0,   0, 255); // 10秒 文字（青）
 
-    const QColor kWarn5Bg  = QColor(198,  40,  40); // 5秒 背景（赤）
-    const QColor kWarn5Fg  = QColor(255, 255, 255); // 5秒 文字（白）
+    const QColor kWarn5Bg  = QColor(255, 255,   0); // 5秒 背景（黄）
+    const QColor kWarn5Fg  = QColor(255,   0,   0); // 5秒 文字（赤）
 
-    const QColor kWarn10Border = QColor(255, 160, 0); // 10秒 枠色（アンバー濃）
-    const QColor kWarn5Border  = QColor(211,  47, 47); // 5秒 枠色（赤）
+    const QColor kWarn10Border = QColor(  0,  0, 255); // 10秒 枠色（青）
+    const QColor kWarn5Border  = QColor(255,   0,   0); // 5秒 枠色（赤）
 
     // ── 状態管理
     // 既存 enum に 0秒用の状態を追加
