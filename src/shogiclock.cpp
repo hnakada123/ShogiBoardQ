@@ -231,51 +231,39 @@ void ShogiClock::stopClock()
     emit timeUpdated();
 }
 
-// 対局者1に対して秒読み時間が適用された場合、その秒読み時間を持ち時間としてリセットし、
-// 考慮時間を総考慮時間に追加する。
-void ShogiClock::applyByoyomiAndResetConsideration1(const bool useByoyomi)
+void ShogiClock::applyByoyomiAndResetConsideration1()
 {
-    // 秒読みが適用されている場合
-    if (useByoyomi) {
-        // 秒読み時間が0より大きい場合は、持ち時間をその秒読み時間に設定する。
-        if (m_byoyomi1TimeMs > 0) m_player1TimeMs = m_byoyomi1TimeMs;
+    // 1) byoyomi を使うべきかを内部で判定
+    const bool shouldUseByoyomi =
+        (m_byoyomi1TimeMs > 0) && (m_player1TimeMs <= 0 || m_byoyomi1Applied);
 
-        // すでに秒読みに入っている。
+    if (shouldUseByoyomi) {
+        // main が尽きた or 既に秒読み中 → 毎手ごとに秒読み秒数でリセット
+        m_player1TimeMs = m_byoyomi1TimeMs;
         m_byoyomi1Applied = true;
-    }
-    // 秒読みが適用されていない場合
-    else {
-        // 持ち時間に加算時間を追加する。
+    } else if (m_byoyomi1TimeMs == 0 && m_bincMs > 0) {
+        // 2) increment 方式ならここで加算（byoyomi 方式のときは 0 にしているはず）
         m_player1TimeMs += m_bincMs;
     }
-
-    // 考慮時間を総考慮時間に追加する。
+    // 3) 考慮時間をトータルへ
     addConsiderationTimeToTotal(1);
 
-    // 残り時間の更新を通知する。
     emit timeUpdated();
 }
 
-// 対局者2に対して秒読み時間が適用された場合、その秒読み時間を持ち時間としてリセットし、
-// 考慮時間を総考慮時間に追加する。
-void ShogiClock::applyByoyomiAndResetConsideration2(const bool useByoyomi)
+void ShogiClock::applyByoyomiAndResetConsideration2()
 {
-    // 秒読みが適用されている場合
-    if (useByoyomi) {
-        // 秒読み時間が0より大きい場合は、持ち時間をその秒読み時間に設定する。
-        if (m_byoyomi2TimeMs > 0) m_player2TimeMs = m_byoyomi2TimeMs;
+    const bool shouldUseByoyomi =
+        (m_byoyomi2TimeMs > 0) && (m_player2TimeMs <= 0 || m_byoyomi2Applied);
 
-        // すでに秒読みに入っている。
+    if (shouldUseByoyomi) {
+        m_player2TimeMs = m_byoyomi2TimeMs;
         m_byoyomi2Applied = true;
-    } else {
-        // 秒読みが適用されていない場合、持ち時間に加算時間を追加する。
+    } else if (m_byoyomi2TimeMs == 0 && m_wincMs > 0) {
         m_player2TimeMs += m_wincMs;
     }
-
-    // 考慮時間を総考慮時間に追加する。
     addConsiderationTimeToTotal(2);
 
-    // 残り時間の更新を通知する。
     emit timeUpdated();
 }
 
