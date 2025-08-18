@@ -4222,11 +4222,17 @@ void MainWindow::initializeGame()
 // GUIの残り時間表示を更新する。
 void MainWindow::updateRemainingTimeDisplay()
 {
-    if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
+    const bool p1turn =
+        (m_gameController->currentPlayer() == ShogiGameController::Player1);
+
+    if (p1turn) {
         m_shogiView->blackClockLabel()->setText(m_shogiClock->getPlayer1TimeString());
-    }
-    else {
+        // ★ 手番側（先手）の残りmsで配色更新
+        m_shogiView->applyClockUrgency(m_shogiClock->getPlayer1TimeIntMs());
+    } else {
         m_shogiView->whiteClockLabel()->setText(m_shogiClock->getPlayer2TimeString());
+        // ★ 手番側（後手）の残りmsで配色更新
+        m_shogiView->applyClockUrgency(m_shogiClock->getPlayer2TimeIntMs());
     }
 }
 

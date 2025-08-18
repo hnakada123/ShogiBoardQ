@@ -83,6 +83,10 @@ public:
 
     void setLoseOnTimeout(bool v);
 
+    qint64 player1RemainingMs() const { return m_player1TimeMs; }
+    qint64 player2RemainingMs() const { return m_player2TimeMs; }
+    int    currentPlayer() const      { return m_currentPlayer; }
+
 signals:
     // 残り時間が更新された場合に発生するシグナル
     void timeUpdated();

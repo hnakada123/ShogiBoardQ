@@ -2636,3 +2636,33 @@ void ShogiView::updateBoardSize()
     setFieldSize(QSize(m_squareSize, m_squareSize)); // 1 マスのサイズを更新（内部で再レイアウトも行う）
     updateGeometry();                                // 冗長だが安全側の再通知
 }
+
+void ShogiView::applyClockUrgency(qint64 activeRemainMs)
+{
+    // 手番側のラベルを特定
+    QLabel* name  = m_blackActive ? m_blackNameLabel  : m_whiteNameLabel;
+    QLabel* clock = m_blackActive ? m_blackClockLabel : m_whiteClockLabel;
+
+    auto setPair = [&](const QColor& bg, const QColor& fg){
+        const QString ss = QStringLiteral("background-color:%1;").arg(bg.name());
+        if (name)  name ->setStyleSheet(ss);
+        if (clock) clock->setStyleSheet(ss);
+        auto setFg = [&](QLabel* lbl){
+            if (!lbl) return;
+            QPalette p = lbl->palette();
+            p.setColor(QPalette::WindowText, fg);
+            lbl->setPalette(p);
+        };
+        setFg(name);
+        setFg(clock);
+    };
+
+    if (activeRemainMs <= kWarn5Ms) {
+        setPair(m_urgencyBgWarn5,  m_urgencyFgWarn5);   // 5秒以下：赤/白
+    } else if (activeRemainMs <= kWarn10Ms) {
+        setPair(m_urgencyBgWarn10, m_urgencyFgWarn10);  // 10秒以下：橙/黒
+    } else {
+        // しきい値を超えたら通常の手番ハイライト（青文字＋黄背景）に戻す
+        applyTurnHighlight(m_blackActive);
+    }
+}
