@@ -344,6 +344,9 @@ private:
 
     // 自前ツールチップ
     GlobalToolTip* m_tooltip = nullptr;
+
+    // 起動直後や対局前に、両側を同じ基準タイポグラフィに整える
+    void applyStartupTypography();
 };
 
 #endif // SHOGIVIEW_H
