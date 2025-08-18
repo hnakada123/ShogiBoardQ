@@ -3886,6 +3886,10 @@ void MainWindow::setRemainingTimeAndCountDown()
     // 対局者1と対局者2の持ち時間を設定する。
     setPlayerTimeLimits();
 
+    // m_shogiView->blackClockLabel()->setText(m_shogiClock->getPlayer1TimeString());
+    // m_shogiView->whiteClockLabel()->setText(m_shogiClock->getPlayer2TimeString());
+    // m_shogiView->update();
+
     //begin
     qDebug() << "---- setRemainingTimeAndCountDown() ---";
     qDebug() << "m_isLoseOnTimeout = " << m_isLoseOnTimeout;
@@ -4274,6 +4278,24 @@ void MainWindow::initializeGame()
 // GUIの残り時間表示を更新する。
 void MainWindow::updateRemainingTimeDisplay()
 {
+    // まず両者の文字列を作る
+    const QString p1 = m_shogiClock->getPlayer1TimeString();
+    const QString p2 = m_shogiClock->getPlayer2TimeString();
+
+    // 両方のラベルを常に更新
+    m_shogiView->blackClockLabel()->setText(p1);
+    m_shogiView->whiteClockLabel()->setText(p2);
+
+    // 手番側の残りmsで緊急表示（枠・⚠・点滅など）を適用
+    const bool p1turn = (m_gameController->currentPlayer() == ShogiGameController::Player1);
+    const qint64 activeMs = p1turn ? m_shogiClock->getPlayer1TimeIntMs()
+                                   : m_shogiClock->getPlayer2TimeIntMs();
+    m_shogiView->applyClockUrgency(activeMs);
+}
+
+/*
+void MainWindow::updateRemainingTimeDisplay()
+{
     const bool p1turn =
         (m_gameController->currentPlayer() == ShogiGameController::Player1);
 
@@ -4287,6 +4309,7 @@ void MainWindow::updateRemainingTimeDisplay()
         m_shogiView->applyClockUrgency(m_shogiClock->getPlayer2TimeIntMs());
     }
 }
+*/
 
 void ShogiView::applyClockUrgency(qint64 activeRemainMs)
 {
