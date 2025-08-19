@@ -31,6 +31,7 @@
 #include <QToolButton>
 #include <QMenuBar>
 #include <QMenu>
+#include <QTimer>
 
 #include "mainwindow.h"
 #include "promotedialog.h"
@@ -2036,31 +2037,33 @@ void MainWindow::stopClockAndSendCommands()
 // 対局結果の表示とGUIの更新処理を行う。
 void MainWindow::displayResultsAndUpdateGui()
 {
-    // 手番が対局者1の場合
+    // ダイアログを“次のイベントループ”で開くヘルパ
+    auto showOutcomeDeferred = [this](ShogiGameController::Result res) {
+        // ラベルは直ちに最新化（00:00:00 表示のため）
+        updateRemainingTimeDisplay();
+        // 0ms遅延で呼ぶ → 先に描画が走る
+        QTimer::singleShot(0, this, [this, res]() {
+            displayGameOutcome(res);
+        });
+    };
+
     if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
+        // タイムアウト時は ShogiClock 側で m_gameOver=true なので no-op（安全）
         m_shogiClock->applyByoyomiAndResetConsideration1();
 
-        // 棋譜を更新し、UIの表示も同時に更新する。
         updateGameRecord(m_shogiClock->getPlayer1ConsiderationAndTotalTime());
 
-        // 対局結果を表示する。
-        displayGameOutcome(ShogiGameController::Player2Wins);
-    }
-    // 手番が対局者2の場合
-    else {
+        // ここでは直接呼ばず、遅延表示
+        showOutcomeDeferred(ShogiGameController::Player2Wins);
+    } else {
         m_shogiClock->applyByoyomiAndResetConsideration2();
 
-        // 棋譜を更新し、UIの表示も同時に更新する。
         updateGameRecord(m_shogiClock->getPlayer2ConsiderationAndTotalTime());
 
-        // 対局結果を表示する。
-        displayGameOutcome(ShogiGameController::Player1Wins);
+        showOutcomeDeferred(ShogiGameController::Player1Wins);
     }
 
-    // 棋譜欄の下の矢印ボタンを有効にする。
     enableArrowButtons();
-
-    // 棋譜欄をシングルクリックで選択できるようにする。
     m_gameRecordView->setSelectionMode(QAbstractItemView::SingleSelection);
 }
 
@@ -2938,7 +2941,14 @@ void MainWindow::displayGameOutcome(ShogiGameController::Result result)
     }
 
     // 対局結果を表示する。
-    QMessageBox::information(this, tr("Game Over"), tr("The game has ended. %1").arg(text));
+    // 非同期に開く（モーダル表示はされるが、open() なのでイベントループは回る）
+    auto *box = new QMessageBox(QMessageBox::Information,
+                                tr("Game Over"),
+                                tr("The game has ended. %1").arg(text),
+                                QMessageBox::Ok,
+                                this);
+    box->setAttribute(Qt::WA_DeleteOnClose);
+    box->open();
 }
 
 // GUIのバージョン情報を表示する。
@@ -4147,6 +4157,8 @@ void MainWindow::initializeGame()
 }
 
 // GUIの残り時間表示を更新する。
+
+
 void MainWindow::updateRemainingTimeDisplay()
 {
     // まず両者の文字列を作る
@@ -4157,30 +4169,24 @@ void MainWindow::updateRemainingTimeDisplay()
     m_shogiView->blackClockLabel()->setText(p1);
     m_shogiView->whiteClockLabel()->setText(p2);
 
-    // 手番側の残りmsで緊急表示（枠・⚠・点滅など）を適用
+    // 手番側の残りms
     const bool p1turn = (m_gameController->currentPlayer() == ShogiGameController::Player1);
     const qint64 activeMs = p1turn ? m_shogiClock->getPlayer1TimeIntMs()
                                    : m_shogiClock->getPlayer2TimeIntMs();
-    m_shogiView->applyClockUrgency(activeMs);
-}
 
-/*
-void MainWindow::updateRemainingTimeDisplay()
-{
-    const bool p1turn =
-        (m_gameController->currentPlayer() == ShogiGameController::Player1);
+    // ★ 秒読みが「設定されていて」かつ「まだ秒読み前」なら配色警告は抑制
+    const bool hasByoyomi = p1turn ? m_shogiClock->hasByoyomi1()
+                                   : m_shogiClock->hasByoyomi2();
+    const bool inByoyomi  = p1turn ? m_shogiClock->byoyomi1Applied()
+                                   : m_shogiClock->byoyomi2Applied();
 
-    if (p1turn) {
-        m_shogiView->blackClockLabel()->setText(m_shogiClock->getPlayer1TimeString());
-        // ★ 手番側（先手）の残りmsで配色更新
-        m_shogiView->applyClockUrgency(m_shogiClock->getPlayer1TimeIntMs());
-    } else {
-        m_shogiView->whiteClockLabel()->setText(m_shogiClock->getPlayer2TimeString());
-        // ★ 手番側（後手）の残りmsで配色更新
-        m_shogiView->applyClockUrgency(m_shogiClock->getPlayer2TimeIntMs());
-    }
+    const bool enableUrgency = (!hasByoyomi) || inByoyomi;
+    const qint64 msForUrgency = enableUrgency
+                                    ? activeMs
+                                    : std::numeric_limits<qint64>::max();  // 閾値を超える値を渡して常に通常表示
+
+    m_shogiView->applyClockUrgency(msForUrgency);
 }
-*/
 
 void ShogiView::applyClockUrgency(qint64 activeRemainMs)
 {
