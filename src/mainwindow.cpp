@@ -2738,127 +2738,6 @@ void MainWindow::updateTurnAndTimekeepingDisplay()
     }
 }
 
-/*
-// 手番に応じて将棋クロックの手番変更およびGUIの手番表示を更新する。
-void MainWindow::updateTurnAndTimekeepingDisplay()
-{
-    //begin
-    qDebug() << "@@@ before MainWindow::updateTurnAndTimekeepingDisplay()";
-    qDebug() << "m_bTime: " << m_bTime;
-    qDebug() << "m_wTime: " << m_wTime;
-    qDebug() << "m_useByoyomi: " << m_useByoyomi;
-    qDebug() << "m_isLoseOnTimeout: " << m_isLoseOnTimeout;
-    //end
-
-    if (m_useByoyomi) {
-        // 「時間切れを負けにする」が有効な場合
-        if (m_isLoseOnTimeout) {
-            // 対局者1が秒読みに入った場合
-            if (m_shogiClock->byoyomi1Applied()) {
-                //begin
-                qDebug() << "Player 1 is in byoyomi.";
-                //end
-
-                // 対局者1の持ち時間を0にする。
-                m_bTime = "0";
-            }
-            // 対局者1が秒読みに入っていない場合
-            else {
-                //begin
-                qDebug() << "Player 1 is not in byoyomi.";
-                //end
-
-                // 対局者1の持ち時間をミリ秒単位に変換する。
-                m_bTime = QString::number(m_shogiClock->getPlayer1TimeIntMs());
-            }
-
-            // 対局者2が秒読みに入った場合
-            if (m_shogiClock->byoyomi2Applied()) {
-                //begin
-                qDebug() << "Player 2 is in byoyomi.";
-                //end
-
-                // 対局者2の持ち時間を0にする。
-                m_wTime = "0";
-            }
-            // 対局者2が秒読みに入っていない場合
-            else {
-                //begin
-                qDebug() << "Player 2 is not in byoyomi.";
-                //end
-
-                // 対局者2の持ち時間をミリ秒単位に変換する。
-                m_wTime = QString::number(m_shogiClock->getPlayer2TimeIntMs());
-            }
-        }
-        // 「時間切れを負けにしない」が有効な場合
-        else {
-            //begin
-            qDebug() << "時間切れを負けにしない」が有効な場合";
-            //end
-
-            // 対局者1の持ち時間をミリ秒単位に変換する。
-            m_bTime = QString::number(m_shogiClock->getPlayer1TimeIntMs());
-
-            // 対局者2の持ち時間をミリ秒単位に変換する。
-            m_wTime = QString::number(m_shogiClock->getPlayer2TimeIntMs());
-        }
-    }
-    //
-    else {
-        //begin
-        qDebug() << "Byoyomi is not used.";
-        //end
-
-        // 対局者1の持ち時間をミリ秒単位に変換する。
-        m_bTime = QString::number(m_shogiClock->getPlayer1TimeIntMs() - m_addEachMoveMiliSec1);
-    }
-
-    //begin
-    qDebug() << "@@@ middle MainWindow::updateTurnAndTimekeepingDisplay()";
-    qDebug() << "m_bTime: " << m_bTime;
-    qDebug() << "m_wTime: " << m_wTime;
-    //end
-
-    // 手番が対局者1の場合
-    if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
-        // 対局者2に対して秒読み時間が適用された場合、その秒読み時間を持ち時間としてリセットし、
-        // 考慮時間を総考慮時間に追加する。
-        m_shogiClock->applyByoyomiAndResetConsideration2(m_useByoyomi);
-
-        // 棋譜を更新し、UIの表示も同時に更新する。
-        updateGameRecord(m_shogiClock->getPlayer2ConsiderationAndTotalTime());
-
-        // 対局者2の考慮時間を0に設定する。
-        m_shogiClock->setPlayer2ConsiderationTime(0);
-
-        // 将棋クロックの手番を対局者1に設定する。
-        updateTurnStatus(1);
-    }
-    // 手番が対局者2の場合
-    else if (m_gameController->currentPlayer() == ShogiGameController::Player2) {
-        // 対局者1に対して秒読み時間が適用された場合、その秒読み時間を持ち時間としてリセットし、
-        // 考慮時間を総考慮時間に追加する。
-        m_shogiClock->applyByoyomiAndResetConsideration1(m_useByoyomi);
-
-        // 棋譜を更新し、UIの表示も同時に更新する。
-        updateGameRecord(m_shogiClock->getPlayer1ConsiderationAndTotalTime());
-
-        // 対局者1の考慮時間を0に設定する。
-        m_shogiClock->setPlayer1ConsiderationTime(0);
-
-        // 将棋クロックの手番を対局者2に設定する。
-        updateTurnStatus(2);
-    }
-
-    //begin
-    qDebug() << "@@@ after MainWindow::updateTurnAndTimekeepingDisplay()";
-    qDebug() << "m_bTime: " << m_bTime;
-    qDebug() << "m_wTime: " << m_wTime;
-    //end
-}
-*/
-
 // 人間対人間の対局で、クリックされたマスに基づいて駒の移動を処理する。
 void MainWindow::handleHumanVsHumanClick(const QPoint& field)
 {
@@ -4078,10 +3957,10 @@ void MainWindow::setTimerAndStart()
     int winc = m_startGameDialog->addEachMoveSec2();
 
     // 対局者1の残り時間を秒に変換する。
-    int remainingTime1 = basicTimeHour1 * 3600 + basicTimeMinutes1 * 60 + binc;
+    int remainingTime1 = basicTimeHour1 * 3600 + basicTimeMinutes1 * 60;
 
     // 対局者2の残り時間を秒に変換する。
-    int remainingTime2 = basicTimeHour2 * 3600 + basicTimeMinutes2 * 60 + winc;
+    int remainingTime2 = basicTimeHour2 * 3600 + basicTimeMinutes2 * 60;
 
     // 時間切れを負けにするかどうかのフラグを取得する。
     bool isLoseOnTimeout = m_startGameDialog->isLoseOnTimeout();
