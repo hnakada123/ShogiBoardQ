@@ -52,6 +52,8 @@ void ShogiClock::setPlayerTimes(int player1Seconds, int player2Seconds,
     m_byoyomi1Applied = false;
     m_byoyomi2Applied = false;
 
+    m_gameOver = false;  // ★ 対局開始時/再設定時は終局フラグを下ろす
+
     // 表示キャッシュを初期化して即反映
     m_prevShownSecP1 = qMax<qint64>(0, (m_player1TimeMs + 999) / 1000);
     m_prevShownSecP2 = qMax<qint64>(0, (m_player2TimeMs + 999) / 1000);
@@ -111,6 +113,9 @@ void ShogiClock::stopClock()
 
 void ShogiClock::applyByoyomiAndResetConsideration1()
 {
+    // ★ 終局後は何もしない
+    if (m_gameOver) return;
+
     const bool shouldUseByoyomi =
         (m_byoyomi1TimeMs > 0) && (m_player1TimeMs <= 0 || m_byoyomi1Applied);
 
@@ -135,6 +140,9 @@ void ShogiClock::applyByoyomiAndResetConsideration1()
 
 void ShogiClock::applyByoyomiAndResetConsideration2()
 {
+    // ★ 終局後は何もしない
+    if (m_gameOver) return;
+
     const bool shouldUseByoyomi =
         (m_byoyomi2TimeMs > 0) && (m_player2TimeMs <= 0 || m_byoyomi2Applied);
 
@@ -153,6 +161,93 @@ void ShogiClock::applyByoyomiAndResetConsideration2()
     emit timeUpdated();
 }
 
+void ShogiClock::updateClock()
+{
+    if (!m_clockRunning) return;
+    if (m_gameOver) return;                 // ★ 終局後は何もしない
+
+    const qint64 now = m_elapsedTimer.elapsed();
+    const qint64 elapsed = now - m_lastTickMs;
+    if (elapsed <= 0) return;
+    m_lastTickMs = now;
+
+    if (m_timeLimitSet) {
+        auto step = [&](int player)->bool {
+            qint64& remMs      = (player == 1) ? m_player1TimeMs : m_player2TimeMs;
+            qint64& considerMs = (player == 1) ? m_player1ConsiderationTimeMs : m_player2ConsiderationTimeMs;
+            const qint64 byoMs = (player == 1) ? m_byoyomi1TimeMs : m_byoyomi2TimeMs;
+            bool& byoApplied   = (player == 1) ? m_byoyomi1Applied : m_byoyomi2Applied;
+
+            remMs      -= elapsed;
+            considerMs += elapsed;
+
+            if (remMs <= 0) {
+                if (byoMs > 0) {
+                    const qint64 overshoot = -remMs;
+                    if (!byoApplied) {
+                        remMs = byoMs - overshoot;  // メイン→秒読みへ
+                        byoApplied = true;
+                    } else {
+                        // 既に秒読み中で 0 を割った→秒読みも尽きた
+                        remMs = 0;
+                    }
+                    if (remMs <= 0) {
+                        // 秒読みにも達した → 投了 OR 0で止める
+                        if (m_loseOnTimeout) {
+                            m_gameOver = true;       // ★ 終局フラグON
+                            m_timer->stop();
+                            m_clockRunning = false;
+                            if (player == 1) emit player1TimeOut();
+                            else             emit player2TimeOut();
+                            emit resignationTriggered();
+                        } else {
+                            remMs = 0; // 表示は 0 のまま継続
+                        }
+                        emit timeUpdated();
+                        return true;
+                    }
+                } else {
+                    // 秒読みなし
+                    remMs = 0;
+                    if (m_loseOnTimeout) {
+                        m_gameOver = true;           // ★ 終局フラグON
+                        m_timer->stop();
+                        m_clockRunning = false;
+                        if (player == 1) emit player1TimeOut();
+                        else             emit player2TimeOut();
+                        emit resignationTriggered();
+                        emit timeUpdated();
+                        return true;
+                    }
+                }
+            }
+            return false; // 継続
+        };
+
+        if (m_currentPlayer == 1) {
+            if (step(1)) return;
+        } else {
+            if (step(2)) return;
+        }
+    } else {
+        if (m_currentPlayer == 1) m_player1ConsiderationTimeMs += elapsed;
+        else                      m_player2ConsiderationTimeMs += elapsed;
+    }
+
+    // Debug 不変条件
+    debugCheckInvariants();
+
+    // 秒が変わったときだけ通知
+    const qint64 sec1 = qMax<qint64>(0, (m_player1TimeMs + 999) / 1000);
+    const qint64 sec2 = qMax<qint64>(0, (m_player2TimeMs + 999) / 1000);
+    if (sec1 != m_prevShownSecP1 || sec2 != m_prevShownSecP2) {
+        m_prevShownSecP1 = sec1;
+        m_prevShownSecP2 = sec2;
+        emit timeUpdated();
+    }
+}
+
+/*
 void ShogiClock::updateClock()
 {
     if (!m_clockRunning) return;
@@ -235,6 +330,7 @@ void ShogiClock::updateClock()
         emit timeUpdated();
     }
 }
+*/
 
 QString ShogiClock::getPlayer1TimeString() const
 {

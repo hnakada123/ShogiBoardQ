@@ -323,8 +323,11 @@ private:
     const QColor kWarn5Bg  = QColor(255, 255,   0); // 5秒 背景（黄）
     const QColor kWarn5Fg  = QColor(255,   0,   0); // 5秒 文字（赤）
 
-    const QColor kWarn10Border = QColor(  0,  0, 255); // 10秒 枠色（青）
-    const QColor kWarn5Border  = QColor(255,   0,   0); // 5秒 枠色（赤）
+    //const QColor kWarn10Border = QColor(  0,  0, 255); // 10秒 枠色（青）
+    //const QColor kWarn5Border  = QColor(255,   0,   0); // 5秒 枠色（赤）
+
+    const QColor kWarn10Border = QColor(255, 255,   0); // 10秒 枠色（青）
+    const QColor kWarn5Border  = QColor(255, 255,   0); // 5秒 枠色（赤）
 
     // ── 状態管理
     // 既存 enum に 0秒用の状態を追加

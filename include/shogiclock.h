@@ -64,6 +64,17 @@ public:
     void setPlayer1ConsiderationTime(int newPlayer1ConsiderationTimeMs);
     void setPlayer2ConsiderationTime(int newPlayer2ConsiderationTimeMs);
 
+    // 秒読みが設定されているか（方式判定）
+    bool hasByoyomi1() const { return m_byoyomi1TimeMs > 0; }
+    bool hasByoyomi2() const { return m_byoyomi2TimeMs > 0; }
+
+    // 秒読みが“適用中”か（いま秒読み中か）
+    bool byoyomi1Applied() const { return m_byoyomi1Applied; }
+    bool byoyomi2Applied() const { return m_byoyomi2Applied; }
+
+    // （必要ならUI側で使えるように）終局かどうか
+    bool isGameOver() const { return m_gameOver; }
+
 signals:
     void timeUpdated();
     void player1TimeOut();
@@ -121,6 +132,8 @@ private:
     QStack<qint64> m_player2TotalConsiderationHistory;
     QStack<bool>   m_byoyomi1AppliedHistory;
     QStack<bool>   m_byoyomi2AppliedHistory;
+
+    bool m_gameOver = false;  // ★ 追加：時間切れ等で終局したら true
 };
 
 #endif // SHOGICLOCK_H
