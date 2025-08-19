@@ -111,28 +111,45 @@ void ShogiClock::stopClock()
 
 void ShogiClock::applyByoyomiAndResetConsideration1()
 {
-    const bool shouldUseByoyomi = (m_byoyomi1TimeMs > 0) && (m_player1TimeMs <= 0 || m_byoyomi1Applied);
+    const bool shouldUseByoyomi =
+        (m_byoyomi1TimeMs > 0) && (m_player1TimeMs <= 0 || m_byoyomi1Applied);
+
     if (shouldUseByoyomi) {
-        m_player1TimeMs = m_byoyomi1TimeMs;
+        // メインが尽きた or 既に秒読み中 → 秒読み秒数でリセット
+        m_player1TimeMs   = m_byoyomi1TimeMs;
         m_byoyomi1Applied = true;
-    } else if (m_byoyomi1TimeMs == 0 && m_bincMs > 0) {
-        m_player1TimeMs += m_bincMs;
     }
-    // 考慮時間をトータルへ
+    else if (m_byoyomi1TimeMs == 0 && m_bincMs > 0) {
+        // インクリメント方式：残り時間が「0より大きい」ときだけ加算
+        if (m_player1TimeMs > 0) {
+            m_player1TimeMs += m_bincMs;
+        }
+        // ※ 0 のときは加算しない（ご要望の動作）
+    }
+
+    // 考慮時間を総計へ
     m_player1TotalConsiderationTimeMs += m_player1ConsiderationTimeMs;
+
     emit timeUpdated();
 }
 
 void ShogiClock::applyByoyomiAndResetConsideration2()
 {
-    const bool shouldUseByoyomi = (m_byoyomi2TimeMs > 0) && (m_player2TimeMs <= 0 || m_byoyomi2Applied);
+    const bool shouldUseByoyomi =
+        (m_byoyomi2TimeMs > 0) && (m_player2TimeMs <= 0 || m_byoyomi2Applied);
+
     if (shouldUseByoyomi) {
-        m_player2TimeMs = m_byoyomi2TimeMs;
+        m_player2TimeMs   = m_byoyomi2TimeMs;
         m_byoyomi2Applied = true;
-    } else if (m_byoyomi2TimeMs == 0 && m_wincMs > 0) {
-        m_player2TimeMs += m_wincMs;
     }
+    else if (m_byoyomi2TimeMs == 0 && m_wincMs > 0) {
+        if (m_player2TimeMs > 0) {
+            m_player2TimeMs += m_wincMs;
+        }
+    }
+
     m_player2TotalConsiderationTimeMs += m_player2ConsiderationTimeMs;
+
     emit timeUpdated();
 }
 

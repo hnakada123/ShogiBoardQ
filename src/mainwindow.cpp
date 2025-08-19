@@ -2044,7 +2044,7 @@ void MainWindow::displayResultsAndUpdateGui()
         updateGameRecord(m_shogiClock->getPlayer1ConsiderationAndTotalTime());
 
         // 対局結果を表示する。
-        displayGameOutcome(ShogiGameController::Player1Wins);
+        displayGameOutcome(ShogiGameController::Player2Wins);
     }
     // 手番が対局者2の場合
     else {
@@ -2054,7 +2054,7 @@ void MainWindow::displayResultsAndUpdateGui()
         updateGameRecord(m_shogiClock->getPlayer2ConsiderationAndTotalTime());
 
         // 対局結果を表示する。
-        displayGameOutcome(ShogiGameController::Player2Wins);
+        displayGameOutcome(ShogiGameController::Player1Wins);
     }
 
     // 棋譜欄の下の矢印ボタンを有効にする。
