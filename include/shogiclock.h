@@ -5,6 +5,9 @@
 #include <QTimer>
 #include <QStack>
 #include <QElapsedTimer>
+#include <QLoggingCategory>
+
+Q_DECLARE_LOGGING_CATEGORY(lcShogiClock)
 
 // 将棋クロックにより対局者の持ち時間を管理するクラス
 class ShogiClock : public QObject
@@ -12,178 +15,112 @@ class ShogiClock : public QObject
     Q_OBJECT
 
 public:
-    // コンストラクタ
-    ShogiClock(QObject *parent = nullptr);
+    // タイマーの刻み（ms）を一元管理
+    static constexpr int kTickMs = 50;
 
-    // 両対局者の持ち時間を設定する。
-    void setPlayerTimes(const int player1Seconds, const int player2Seconds, const int byoyomi1Seconds, const int byoyomi2Seconds,
-                        const int binc, const int winc, const bool isLimitedTime);
+    explicit ShogiClock(QObject *parent = nullptr);
 
-    // 手番を設定する。
+    // 設定
+    void setLoseOnTimeout(bool v);
+    void setPlayerTimes(int player1Seconds, int player2Seconds,
+                        int byoyomi1Seconds, int byoyomi2Seconds,
+                        int bincSeconds, int wincSeconds,
+                        bool isLimitedTime);
     void setCurrentPlayer(int player);
 
-    // タイマーを開始する。
+    // クロック制御
     void startClock();
-
-    // タイマーを停止する。
     void stopClock();
+    void updateClock();  // QTimer から 50ms 毎に呼ばれる
 
-    // 残り時間を更新する。
-    void updateClock();
-
-    // 対局者1の残り時間を取得する。
-    QString getPlayer1TimeString() const;
-
-    // 対局者2の残り時間を取得する。
-    QString getPlayer2TimeString() const;
-
-    // 対局者1の残り時間を取得する。
-    int getPlayer1TimeIntMs() const;
-
-    // 対局者2の残り時間を取得する。
-    int getPlayer2TimeIntMs() const;
-
-    // 対局者1の総考慮時間を取得する。
-    QString getPlayer1TotalConsiderationTime() const;
-
-    // 対局者2の総考慮時間を取得する。
-    QString getPlayer2TotalConsiderationTime() const;
-
-    // 対局者1の考慮時間と総考慮時間を "MM:SS/HH:MM:SS" 形式で取得する。
-    QString getPlayer1ConsiderationAndTotalTime() const;
-
-    // 対局者2の考慮時間と総考慮時間を "MM:SS/HH:MM:SS" 形式で取得する。
-    QString getPlayer2ConsiderationAndTotalTime() const;
-
-    // 「待った」をした場合、状態を2手前の残り時間、考慮時間、総考慮時間に戻す。
-    void undo();
-
+    // 手が確定した瞬間に呼ぶ（その手を指した側だけ呼ぶ）
     void applyByoyomiAndResetConsideration1();
-
     void applyByoyomiAndResetConsideration2();
 
-    // 考慮時間を総考慮時間に追加する。
-    void addConsiderationTimeToTotal(int player);
+    // 「待った」
+    void undo();
 
-    // 対局者1の残り時間を設定する。
-    void setPlayer1ConsiderationTime(int newPlayer1ConsiderationTime);
+    // 文字列取得（HH:MM:SS / MM:SS）
+    QString getPlayer1TimeString() const;
+    QString getPlayer2TimeString() const;
 
-    // 対局者2の残り時間を設定する。
-    void setPlayer2ConsiderationTime(int newPlayer2ConsiderationTime);
+    QString getPlayer1ConsiderationTime() const;
+    QString getPlayer2ConsiderationTime() const;
 
-    // 対局者1に秒読みが適用されているかを示すフラグを取得する。
-    bool byoyomi1Applied() const;
+    QString getPlayer1TotalConsiderationTime() const;
+    QString getPlayer2TotalConsiderationTime() const;
 
-    // 対局者2に秒読みが適用されているかを示すフラグを取得する。
-    bool byoyomi2Applied() const;
+    QString getPlayer1ConsiderationAndTotalTime() const;
+    QString getPlayer2ConsiderationAndTotalTime() const;
 
-    void setLoseOnTimeout(bool v);
+    // 残り時間（ms）
+    qint64 getPlayer1TimeIntMs() const;
+    qint64 getPlayer2TimeIntMs() const;
 
-    qint64 player1RemainingMs() const { return m_player1TimeMs; }
-    qint64 player2RemainingMs() const { return m_player2TimeMs; }
-    int    currentPlayer() const      { return m_currentPlayer; }
+    // 現在の手番（1=先手, 2=後手）
+    int    currentPlayer() const { return m_currentPlayer; }
+
+    // 考慮時間（ms）を直接セット（互換API）
+    void setPlayer1ConsiderationTime(int newPlayer1ConsiderationTimeMs);
+    void setPlayer2ConsiderationTime(int newPlayer2ConsiderationTimeMs);
 
 signals:
-    // 残り時間が更新された場合に発生するシグナル
     void timeUpdated();
-
-    // 対局者1の残り時間が0になった場合に発生するシグナル
     void player1TimeOut();
-
-    // 対局者2の残り時間が0になった場合に発生するシグナル
     void player2TimeOut();
-
-    // 残り時間が0になった場合に投了処理を行うシグナル
     void resignationTriggered();
 
 private:
-    // タイマー
-    QTimer* m_timer;
+    // 記録（履歴に積む）
+    void saveState();
 
-    // tick精度向上用
+    // デバッグ用：不変条件を確認（Debug ビルドのみ有効）
+    void debugCheckInvariants() const;
+
+    // タイマ
+    QTimer*       m_timer = nullptr;
     QElapsedTimer m_elapsedTimer;
+    bool          m_clockRunning = false;
+    qint64        m_lastTickMs   = 0;
 
-    // 最後にタイマーが更新された時刻（ミリ秒単位）
-    qint64 m_lastTickMs;
+    // 設定・状態
+    bool   m_timeLimitSet  = false;
+    bool   m_loseOnTimeout = true;
+    int    m_currentPlayer = 1; // 1=先手,2=後手
 
-    // 追加: 「秒が変わったか」検出用
+    // 時間（すべて ms, qint64）
+    qint64 m_player1TimeMs = 0;
+    qint64 m_player2TimeMs = 0;
+
+    qint64 m_byoyomi1TimeMs = 0;
+    qint64 m_byoyomi2TimeMs = 0;
+
+    qint64 m_bincMs = 0; // increment for player1
+    qint64 m_wincMs = 0; // increment for player2
+
+    // 考慮時間・総考慮時間
+    qint64 m_player1ConsiderationTimeMs = 0;
+    qint64 m_player2ConsiderationTimeMs = 0;
+    qint64 m_player1TotalConsiderationTimeMs = 0;
+    qint64 m_player2TotalConsiderationTimeMs = 0;
+
+    // 秒表示キャッシュ（変化時のみ timeUpdated を出すため）
     qint64 m_prevShownSecP1 = -1;
     qint64 m_prevShownSecP2 = -1;
 
-    // 対局者1の残り時間
-    int m_player1TimeMs;
+    // 秒読み適用中フラグ
+    bool   m_byoyomi1Applied = false;
+    bool   m_byoyomi2Applied = false;
 
-    // 対局者2の残り時間
-    int m_player2TimeMs;
-
-    // 対局者1の秒読み時間
-    int m_byoyomi1TimeMs;
-
-    // 対局者2の秒読み時間
-    int m_byoyomi2TimeMs;
-
-    // 対局者1の1手ごとの加算時間
-    int m_bincMs;
-
-    // 対局者2の1手ごとの加算時間
-    int m_wincMs;
-
-    // 秒読みが適用されているかを示すフラグ
-    bool m_byoyomi1Applied;
-
-    // 秒読みが適用されているかを示すフラグ
-    bool m_byoyomi2Applied;
-
-    // 現在の手番
-    int m_currentPlayer;
-
-    // タイマーが開始されているかどうかを示すフラグ
-    bool m_clockRunning;
-
-    // 持ち時間が指定されているかを示すフラグ
-    bool m_timeLimitSet;
-
-    // タイムアウト時に投了するかどうかを示すフラグ
-    bool m_loseOnTimeout;
-
-    // 対局者1の考慮時間
-    int m_player1ConsiderationTimeMs;
-
-    // 対局者2の考慮時間
-    int m_player2ConsiderationTimeMs;
-
-    // 対局者1の総考慮時間
-    int m_player1TotalConsiderationTimeMs;
-
-    // 対局者2の総考慮時間
-    int m_player2TotalConsiderationTimeMs;
-
-    // 対局者1の残り時間の履歴
-    QStack<int> m_player1TimeHistory;
-
-    // 対局者2の残り時間の履歴
-    QStack<int> m_player2TimeHistory;
-
-    // 対局者1の考慮時間の履歴
-    QStack<int> m_player1ConsiderationHistory;
-
-    // 対局者2の考慮時間の履歴
-    QStack<int> m_player2ConsiderationHistory;
-
-    // 対局者1の総考慮時間の履歴
-    QStack<int> m_player1TotalConsiderationHistory;
-
-    // 対局者2の総考慮時間の履歴
-    QStack<int> m_player2TotalConsiderationHistory;
-
-    // 現在の状態を時間履歴に保存する。
-    void saveState();
-
-    // 対局者1の考慮時間を取得する。
-    QString getPlayer1ConsiderationTime() const;
-
-    // 対局者2の考慮時間を取得する。
-    QString getPlayer2ConsiderationTime() const;
+    // 履歴（undo 用）
+    QStack<qint64> m_player1TimeHistory;
+    QStack<qint64> m_player2TimeHistory;
+    QStack<qint64> m_player1ConsiderationHistory;
+    QStack<qint64> m_player2ConsiderationHistory;
+    QStack<qint64> m_player1TotalConsiderationHistory;
+    QStack<qint64> m_player2TotalConsiderationHistory;
+    QStack<bool>   m_byoyomi1AppliedHistory;
+    QStack<bool>   m_byoyomi2AppliedHistory;
 };
 
 #endif // SHOGICLOCK_H
