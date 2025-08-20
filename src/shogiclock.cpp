@@ -113,35 +113,34 @@ void ShogiClock::stopClock()
 
 void ShogiClock::applyByoyomiAndResetConsideration1()
 {
-    // ★ 終局後は何もしない
-    if (m_gameOver) return;
+    // ★ 終局後は“秒読み/加算はしない”が、考慮時間は総計に反映
+    if (m_gameOver) {
+        m_player1TotalConsiderationTimeMs += m_player1ConsiderationTimeMs;
+        emit timeUpdated();
+        return;
+    }
 
     const bool shouldUseByoyomi =
         (m_byoyomi1TimeMs > 0) && (m_player1TimeMs <= 0 || m_byoyomi1Applied);
 
     if (shouldUseByoyomi) {
-        // メインが尽きた or 既に秒読み中 → 秒読み秒数でリセット
         m_player1TimeMs   = m_byoyomi1TimeMs;
         m_byoyomi1Applied = true;
-    }
-    else if (m_byoyomi1TimeMs == 0 && m_bincMs > 0) {
-        // インクリメント方式：残り時間が「0より大きい」ときだけ加算
-        if (m_player1TimeMs > 0) {
-            m_player1TimeMs += m_bincMs;
-        }
-        // ※ 0 のときは加算しない（ご要望の動作）
+    } else if (m_byoyomi1TimeMs == 0 && m_bincMs > 0) {
+        if (m_player1TimeMs > 0) m_player1TimeMs += m_bincMs;  // 0なら加算しない
     }
 
-    // 考慮時間を総計へ
     m_player1TotalConsiderationTimeMs += m_player1ConsiderationTimeMs;
-
     emit timeUpdated();
 }
 
 void ShogiClock::applyByoyomiAndResetConsideration2()
 {
-    // ★ 終局後は何もしない
-    if (m_gameOver) return;
+    if (m_gameOver) {
+        m_player2TotalConsiderationTimeMs += m_player2ConsiderationTimeMs;
+        emit timeUpdated();
+        return;
+    }
 
     const bool shouldUseByoyomi =
         (m_byoyomi2TimeMs > 0) && (m_player2TimeMs <= 0 || m_byoyomi2Applied);
@@ -149,22 +148,18 @@ void ShogiClock::applyByoyomiAndResetConsideration2()
     if (shouldUseByoyomi) {
         m_player2TimeMs   = m_byoyomi2TimeMs;
         m_byoyomi2Applied = true;
-    }
-    else if (m_byoyomi2TimeMs == 0 && m_wincMs > 0) {
-        if (m_player2TimeMs > 0) {
-            m_player2TimeMs += m_wincMs;
-        }
+    } else if (m_byoyomi2TimeMs == 0 && m_wincMs > 0) {
+        if (m_player2TimeMs > 0) m_player2TimeMs += m_wincMs;
     }
 
     m_player2TotalConsiderationTimeMs += m_player2ConsiderationTimeMs;
-
     emit timeUpdated();
 }
 
 void ShogiClock::updateClock()
 {
     if (!m_clockRunning) return;
-    if (m_gameOver) return;                 // ★ 終局後は何もしない
+    if (m_gameOver) return;
 
     const qint64 now = m_elapsedTimer.elapsed();
     const qint64 elapsed = now - m_lastTickMs;
