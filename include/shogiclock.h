@@ -74,6 +74,7 @@ public:
 
     // （必要ならUI側で使えるように）終局かどうか
     bool isGameOver() const { return m_gameOver; }
+    void markGameOver() { m_gameOver = true; }
 
 signals:
     void timeUpdated();

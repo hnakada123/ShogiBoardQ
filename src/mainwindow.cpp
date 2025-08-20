@@ -2087,6 +2087,8 @@ void MainWindow::handleResignation()
     // 将棋クロックの停止と将棋エンジンへの対局終了コマンド送信処理を行う。
     stopClockAndSendCommands();
 
+    m_shogiClock->markGameOver();    // ★ 終局フラグON（以降は秒読み/加算しない）
+
     // 棋譜欄の最後に表示する投了の文字列を設定する。
     // 対局モードが平手のエンジン対エンジンの場合
     setResignationMove(false);
