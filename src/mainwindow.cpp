@@ -3225,93 +3225,89 @@ void MainWindow::startHumanVsEngineGame()
 // 駒落ち Player1: Human（下手）, Player2: USI Engine（上手）
 void MainWindow::startEngineVsHumanGame()
 {
-    // 将棋エンジンとUSIプロトコルに関するクラスのインスタンスを削除する。
     if (m_usi1 != nullptr) delete m_usi1;
+    m_usi1 = new Usi(m_lineEditModel1, m_modelThinking1, m_gameController, m_playMode, this);
 
-    // 将棋エンジンとUSIプロトコルに関するクラスのインスタンスを生成する。
-    m_usi1 = new Usi(m_lineEditModel1, m_modelThinking1, m_gameController, m_playMode,this);
-
-    // 平手で「将棋エンジン 対 人間」の場合
     if (m_playMode == EvenEngineVsHuman) {
-        // 対局者1をエンジン1で初期化して対局を開始する。
         initializeAndStartPlayer1WithEngine1();
-    }
-    // 駒落ちで「人間 対 将棋エンジン」の場合
-    else if (m_playMode == HandicapHumanVsEngine) {
-        // 対局者2をエンジン1で初期化して対局を開始する。
+    } else if (m_playMode == HandicapHumanVsEngine) {
         initializeAndStartPlayer2WithEngine1();
     }
 
-    // positionコマンド文字列の生成
     m_positionStr1 = "position " + m_startPosStr + " moves";
-
-    // 対局開始の初期状態のpositionコマンド文字列をリストに追加する。
     m_positionStrList.append(m_positionStr1);
-
-    // ponder使用時に使う文字列の生成
     m_positionPonder1 = m_positionStr1;
 
-    // 駒を成る・不成のフラグを不成に設定
     m_gameController->setPromote(false);
 
-    // 駒を指した場合の移動元と移動先のマスの宣言
     QPoint outFrom;
     QPoint outTo;
 
-    // 将棋エンジンにpositionコマンドを送信し、指し手を受信する。
-    m_usi1->handleEngineVsHumanOrEngineMatchCommunication(m_positionStr1, m_positionPonder1, outFrom, outTo, m_byoyomiMilliSec1,
-                                                          m_bTime, m_wTime, m_addEachMoveMiliSec1, m_addEachMoveMiliSec2, m_useByoyomi);
+    // --- エンジンの初手を取得（EvenEngineVsHuman など） ---
+    m_usi1->handleEngineVsHumanOrEngineMatchCommunication(
+        m_positionStr1, m_positionPonder1, outFrom, outTo, m_byoyomiMilliSec1,
+        m_bTime, m_wTime, m_addEachMoveMiliSec1, m_addEachMoveMiliSec2, m_useByoyomi
+    );
 
-    // 将棋エンジンが投了した場合
     if (m_usi1->isResignMove()) {
-        // 将棋エンジンが"bestmove resign"コマンドで投了した場合の処理を行う。
         handleEngineTwoResignation();
-
         return;
     }
 
-    // 移動元のマスをオレンジ色に着色する。
     addNewHighlight(m_selectedField2, outFrom, QColor(255, 0, 0, 50));
 
-    // 指そうとした手が合法手だった場合、盤面を更新する。
     bool isMoveValid;
-
     try {
-        isMoveValid = m_gameController->validateAndMove(outFrom, outTo, m_lastMove, m_playMode, m_currentMoveIndex, m_sfenRecord, m_gameMoves);
+        isMoveValid = m_gameController->validateAndMove(
+            outFrom, outTo, m_lastMove, m_playMode, m_currentMoveIndex, m_sfenRecord, m_gameMoves
+        );
     } catch (const std::exception& e) {
-        // エラーメッセージを表示する。
         displayErrorMessage(e.what());
-
-        // エラーが発生した場合、処理を終了する。
         return;
     }
 
     if (isMoveValid) {
-        // ★ USIの厳密計測（go/ponderhit→bestmove）を「その手の考慮時間」に反映
+        // ★ エンジンの「go/ponderhit→bestmove」経過msを直前に指した側へ反映
         const qint64 thinkMs = m_usi1->lastBestmoveElapsedMs();
-
-        // validateAndMove の直後は手番が“人間側”に切り替わっている
-        // → 直前に指したのは「非手番」側 = エンジン側
         if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
-            // 今の手番は先手 → 直前に指したのは後手（エンジン）
+            // 今の手番=先手 → 直前は後手(エンジン)
             m_shogiClock->setPlayer2ConsiderationTime(static_cast<int>(thinkMs));
         } else {
-            // 今の手番は後手 → 直前に指したのは先手（エンジン）
+            // 今の手番=後手 → 直前は先手(エンジン)
             m_shogiClock->setPlayer1ConsiderationTime(static_cast<int>(thinkMs));
         }
 
-        // 手番に応じて将棋クロックの手番変更およびGUIの手番表示を更新する。
+        // 手番・秒読み/インクリメント・表示更新
         updateTurnAndTimekeepingDisplay();
 
-        // 移動先のマスを黄色に着色する。
         updateHighlight(m_movedField, outTo, Qt::yellow);
-
-        // 評価値グラフを更新する。
         redrawEngine1EvaluationGraph();
+
+        // ★ ここで人間が指せるようにする → 描画完了後に計測をアーム
+        m_shogiView->setMouseClickMode(true);
+        QTimer::singleShot(0, this, [this]{
+            armHumanTimerIfNeeded();  // HvE 用の人間手番ストップウォッチ
+        });
     }
 
-    // マウスでクリックして駒を選択して指す処理を行う。
+    // クリック受付
     connect(m_shogiView, &ShogiView::clicked, this, &MainWindow::handlePlayerVsEngineClick);
+
+    // ★ 初手が人間（駒落ち：HandicapHumanVsEngine 等）だった場合の保険
+    //    現在手番が人間なら、ここでアームしておく
+    auto humanSide = [this](){
+        // この関数の文脈では Human は通常 Player2（EvenEngineVsHuman）、
+        // 駒落ち HumanVsEngine では Player1
+        return (m_playMode == HandicapHumanVsEngine)
+                ? ShogiGameController::Player1
+                : ShogiGameController::Player2;
+    };
+    if (m_gameController->currentPlayer() == humanSide()) {
+        // UIが整ってから計測開始
+        QTimer::singleShot(0, this, [this]{
+            armHumanTimerIfNeeded();
+        });
+    }
 }
 
 // 平手、駒落ち Player1: USI Engine, Player2: USI Engine
