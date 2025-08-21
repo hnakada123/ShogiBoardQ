@@ -7,6 +7,7 @@
 #include <QtCharts/QChartView>
 #include <QtCharts/QLineSeries>
 #include <QThread>
+#include <QElapsedTimer>
 
 #include "shogienginethinkingmodel.h"
 #include "shogiengineinfoparser.h"
@@ -90,6 +91,8 @@ public:
 
     // 1手前に指した移動先の段を設定する。
     void setPreviousRankTo(int newPreviousRankTo);
+
+    qint64 lastBestmoveElapsedMs() const { return m_lastGoToBestmoveMs; }
 
 signals:
     // stopあるいはponderhitコマンドが送信されたことを通知するシグナル
@@ -392,6 +395,9 @@ private:
     // 残り時間になるまでbestmoveを待機する。
     void waitAndCheckForBestMoveRemainingTime(int byoyomiMilliSec, const QString& btime, const QString& wtime,
                                               int addEachMoveMilliSec1, int addEachMoveMilliSec2, bool useByoyomi);
+
+    QElapsedTimer m_goTimer;               // go or ponderhit を送った時刻
+    qint64        m_lastGoToBestmoveMs=0;  // 直近の go/ponderhit → bestmove 経過ms
 };
 
 // GUIのメインスレッドとは別のスレッドでgo ponderコマンド受信後の将棋エンジンの処理を行う。
