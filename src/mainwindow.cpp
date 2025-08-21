@@ -814,49 +814,79 @@ void MainWindow::handleUndoMove(int index)
 // 待ったボタンを押すと、2手戻る。
 void MainWindow::undoLastTwoMoves()
 {
-    // 2手前の手数
+    // --- 追加(1): いま計測中なら止める（巻き戻し時間を混入させない） ---
+    if (m_turnTimerArmed) {        // H2H 用（両者人間）
+        m_turnTimerArmed = false;
+        m_turnTimer.invalidate();
+    }
+    if (m_humanTimerArmed) {       // HvE 用（人間側の手番タイマー）
+        m_humanTimerArmed = false;
+        m_humanTurnTimer.invalidate();
+    }
+
+    // ---- ここから下は既存処理（2手巻き戻し） ----
+
     int moveNumber = m_currentMoveIndex - 2;
 
-    // 2手前が0手（初期状態）以上の場合
     if (moveNumber >= 0) {
-        // 2手分の指し手マスデータを削除する。
         m_gameMoves.removeLast();
         m_gameMoves.removeLast();
 
-        // 待ったをした時のposition文字列のセットと評価値グラフの値を削除する。
-        // 待ったをする。〔将棋などで〕withdraw one's moves
         handleUndoMove(moveNumber);
 
-        // 待ったをした場合、不要になったposition文字列を削除する。
         m_positionStrList.removeLast();
         m_positionStrList.removeLast();
 
-        // 2手前の手数を現在の手数にセットする。
         m_currentMoveIndex = moveNumber;
 
-        // 2手前の手数のSFEN文字列を取り出す。
         QString str = m_sfenRecord->at(m_currentMoveIndex);
-
-        // 将棋盤の表示を2手前の手数の局面に描画する。
         m_gameController->board()->setSfen(str);
 
-        // 2手分のSFEN文字列を削除
         m_sfenRecord->removeLast();
         m_sfenRecord->removeLast();
 
-        // マスのハイライトを消去する。
         clearMoveHighlights();
 
-        // 2手分の棋譜欄のデータ削除
         m_gameRecordModel->removeLastItem();
         m_gameRecordModel->removeLastItem();
 
-        // 2手前の残り時間に戻す。
+        // 持ち時間・考慮時間も2手前へ
         m_shogiClock->undo();
     }
 
-    // 1手以上の場合、指し手のマスをハイライトする。
     if (m_currentMoveIndex) addMoveHighlights();
+
+    // --- 追加(2): 盤と時計を戻し終えたので、表示の整合を先に更新 ---
+    updateTurnAndTimekeepingDisplay();
+
+    // --- 追加(3): 今の手番が「人間」なら計測を再アーム ---
+    // Human/Engine の判定ヘルパ（既にお持ちならそれを使ってください）
+    auto isHuman = [this](ShogiGameController::Player p) {
+        switch (m_playMode) {
+            case HumanVsHuman:                return true;                        // 両方人間
+            case EvenHumanVsEngine:
+            case HandicapHumanVsEngine:       return p == ShogiGameController::Player1; // 先手=人間
+            case HandicapEngineVsHuman:       return p == ShogiGameController::Player2; // 後手=人間
+            default:                           return false;                       // エンジンvsエンジンなど
+        }
+    };
+
+    const auto sideToMove = m_gameController->currentPlayer();
+
+    // 操作可否（人間の手番ならクリック可）
+    m_shogiView->setMouseClickMode(isHuman(sideToMove));
+
+    if (isHuman(sideToMove)) {
+        // 描画負荷を思考時間に入れたくなければ次フレームでアーム
+        QTimer::singleShot(0, this, [this]{
+            // H2H なら armTurnTimerIfNeeded()、HvE なら armHumanTimerIfNeeded() を使う設計にしている場合は適宜切替
+            if constexpr (true) {
+                armTurnTimerIfNeeded();      // H2H 共通タイマー
+            } else {
+                armHumanTimerIfNeeded();     // HvE 用を使っている場合はこちら
+            }
+        });
+    }
 }
 
 // 新規対局の準備をする。
@@ -2037,29 +2067,36 @@ void MainWindow::stopClockAndSendCommands()
 // 対局結果の表示とGUIの更新処理を行う。
 void MainWindow::displayResultsAndUpdateGui()
 {
-    // ダイアログを“次のイベントループ”で開くヘルパ
+    // --- 追加: 人間用の手番ストップウォッチを無効化（終局ではカウントしない） ---
+    if (m_turnTimerArmed) {            // Human vs Human 用
+        m_turnTimerArmed = false;
+        m_turnTimer.invalidate();
+    }
+    if (m_humanTimerArmed) {           // Human vs Engine 用（使っている場合のみ）
+        m_humanTimerArmed = false;
+        m_humanTurnTimer.invalidate();
+    }
+
+    // （任意）これ以上の盤面操作を無効化して誤クリックを防ぐ
+    m_shogiView->setMouseClickMode(false);
+
+    // 以降は従来どおり
     auto showOutcomeDeferred = [this](ShogiGameController::Result res) {
-        // ラベルは直ちに最新化（00:00:00 表示のため）
+        // 先にラベルを 00:00:00 等へ更新 → 次フレームでダイアログ
         updateRemainingTimeDisplay();
-        // 0ms遅延で呼ぶ → 先に描画が走る
         QTimer::singleShot(0, this, [this, res]() {
             displayGameOutcome(res);
         });
     };
 
     if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
-        // タイムアウト時は ShogiClock 側で m_gameOver=true なので no-op（安全）
+        // ShogiClock 側で gameOver ガード済み。タイムアウト経路でも安全。
         m_shogiClock->applyByoyomiAndResetConsideration1();
-
         updateGameRecord(m_shogiClock->getPlayer1ConsiderationAndTotalTime());
-
-        // ここでは直接呼ばず、遅延表示
         showOutcomeDeferred(ShogiGameController::Player2Wins);
     } else {
         m_shogiClock->applyByoyomiAndResetConsideration2();
-
         updateGameRecord(m_shogiClock->getPlayer2ConsiderationAndTotalTime());
-
         showOutcomeDeferred(ShogiGameController::Player1Wins);
     }
 
@@ -2490,15 +2527,6 @@ void MainWindow::finalizeDrag()
 // 対局者が将棋盤上で駒をクリックして移動させる際の一連の処理を担当する。
 void MainWindow::handleClickForPlayerVsEngine(const QPoint& field)
 {
-    //begin
-    qDebug() << "in MainWindow::handleClickForPlayerVsEngine";
-    qDebug() << "m_useByoyomi:" << m_useByoyomi;
-    qDebug() << "m_bTime:" << m_bTime;
-    qDebug() << "m_wTime:" << m_wTime;
-    qDebug() << "m_byoyomiMilliSec1:" << m_byoyomiMilliSec1;
-    qDebug() << "m_byoyomiMilliSec2:" << m_byoyomiMilliSec2;
-    //end
-
     // 移動先のマスが移動元のマスと同じになってしまった場合
     if (field == m_clickPoint) {
         // ドラッグ操作のリセットを行う。
@@ -2529,6 +2557,9 @@ void MainWindow::handleClickForPlayerVsEngine(const QPoint& field)
     }
 
     if (isMoveValid) {
+        // ★ この手の「考慮時間」を ShogiClock に反映（合法手が確定した瞬間）
+        finishHumanTimerAndSetConsideration();
+
         // 現在の駒の移動先の筋と段番号を直前の移動先として保存しておく。
         m_usi1->setPreviousFileTo(outTo.x());
         m_usi1->setPreviousRankTo(outTo.y());
@@ -2610,6 +2641,9 @@ void MainWindow::handleClickForPlayerVsEngine(const QPoint& field)
 
             // 評価値グラフを更新する。
             redrawEngine1EvaluationGraph();
+
+            // ★ ここで“人間手番開始”のストップウォッチを起動
+            armHumanTimerIfNeeded();
         }
         // 将棋エンジンが指そうとした手が合法手でない場合、エラー処理を行う。
         else {
@@ -2647,44 +2681,45 @@ void MainWindow::handlePlayerVsEngineClick(const QPoint& field)
 // 対局者が将棋盤上で駒をクリックして移動させる際の一連の処理を担当する。
 void MainWindow::handleClickForHumanVsHuman(const QPoint& field)
 {
-    // 移動先のマスが移動元のマスと同じになってしまった場合
+    // 同一マス → 何もしない
     if (field == m_clickPoint) {
-        // ドラッグ操作のリセットを行う。
         finalizeDrag();
-
-        // 何もしない。
         return;
     }
 
-    // 人間の指した手の移動元のマスをoutFromに設定する。
+    // ★ この着手をするのは “今の手番”
+    const auto mover = m_gameController->currentPlayer();
+
     QPoint outFrom = m_clickPoint;
+    QPoint outTo   = field;
 
-    // 人間の指した手の移動先のマスをoutToに設定する。
-    QPoint outTo = field;
-
-    // 将棋エンジンにpositionコマンドを送信し、指し手を受信する。
-    // 将棋エンジンが指した手の移動元のマスがoutFromに、移動先のマスがoutToに上書きされる。
-    bool isMoveValid;
-
+    bool isMoveValid = false;
     try {
-        isMoveValid = m_gameController->validateAndMove(outFrom, outTo, m_lastMove, m_playMode, m_currentMoveIndex, m_sfenRecord, m_gameMoves);
+        isMoveValid = m_gameController->validateAndMove(
+            outFrom, outTo, m_lastMove, m_playMode, m_currentMoveIndex, m_sfenRecord, m_gameMoves
+        );
     } catch (const std::exception& e) {
-        // エラーメッセージを表示する。
         displayErrorMessage(e.what());
-
-        // エラーが発生した場合、処理を終了する。
         return;
     }
 
     if (isMoveValid) {
-        // 既存の移動先のハイライトをクリアし、新しいハイライトを作成してビューに追加する。
+        // ★ 合法手が“確定した瞬間”にこの手の考慮時間を確定（UI処理より先）
+        finishTurnTimerAndSetConsiderationFor(mover);
+
+        // UI：ハイライトなど（これは考慮時間に含めない）
         updateHighlight(m_movedField, outTo, Qt::yellow);
 
-        // 手番に応じて将棋クロックの手番変更およびGUIの手番表示を更新する。
+        // ★ ShogiClock 側の集計・秒読み/インクリメント適用・手番表示など
         updateTurnAndTimekeepingDisplay();
+
+        // 次の人の操作準備
+        // （描画負荷を含めたくなければ singleShot(0) で次フレームに回す）
+        // QTimer::singleShot(0, this, [this](){ armTurnTimerIfNeeded(); });
+        armTurnTimerIfNeeded();
     }
 
-    // 移動元のマスの選択を解除する。
+    // クリック状態のリセット
     resetSelectionAndHighlight();
 }
 
@@ -3053,7 +3088,17 @@ void MainWindow::startHumanVsHumanGame()
 {
     // マウスでクリックして駒を選択して指す処理を行う。
     connect(m_shogiView, &ShogiView::clicked, this, &MainWindow::handleHumanVsHumanClick);
+
+    // （必要なら）手番表示やクリック許可の初期化
+    // updateTurnAndTimekeepingDisplay();
+    // m_shogiView->setMouseClickMode(true);
+
+    // 次フレームでアーム → 初期描画を思考時間に含めない
+    QTimer::singleShot(0, this, [this] {
+        armTurnTimerIfNeeded();
+    });
 }
+
 
 // 対局者2をエンジン1で初期化して対局を開始する。
 void MainWindow::initializeAndStartPlayer2WithEngine1()
@@ -3168,6 +3213,12 @@ void MainWindow::startHumanVsEngineGame()
 
     // マウスでクリックして駒を選択して指す処理を行う。
     connect(m_shogiView, &ShogiView::clicked, this, &MainWindow::handlePlayerVsEngineClick);
+
+    if (isHumanTurn()) {
+        // ここで mouse を許可しているならそのまま、そうでなければ既存ロジックに従う
+        // m_shogiView->setMouseClickMode(true); // 必要なら
+        armHumanTimerIfNeeded();
+    }
 }
 
 // 平手 Player1: USI Engine（先手）, Player2: Human（後手）
@@ -3236,6 +3287,19 @@ void MainWindow::startEngineVsHumanGame()
     }
 
     if (isMoveValid) {
+        // ★ USIの厳密計測（go/ponderhit→bestmove）を「その手の考慮時間」に反映
+        const qint64 thinkMs = m_usi1->lastBestmoveElapsedMs();
+
+        // validateAndMove の直後は手番が“人間側”に切り替わっている
+        // → 直前に指したのは「非手番」側 = エンジン側
+        if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
+            // 今の手番は先手 → 直前に指したのは後手（エンジン）
+            m_shogiClock->setPlayer2ConsiderationTime(static_cast<int>(thinkMs));
+        } else {
+            // 今の手番は後手 → 直前に指したのは先手（エンジン）
+            m_shogiClock->setPlayer1ConsiderationTime(static_cast<int>(thinkMs));
+        }
+
         // 手番に応じて将棋クロックの手番変更およびGUIの手番表示を更新する。
         updateTurnAndTimekeepingDisplay();
 
@@ -3326,6 +3390,16 @@ void MainWindow::startEngineVsEngineGame()
         }
 
         if (isMoveValid1) {
+            // ★ USI1(先に指した側)の「go/ponderhit→bestmove」経過msを“直前に指した側”へ反映
+            const qint64 thinkMs1 = m_usi1->lastBestmoveElapsedMs();
+            if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
+                // validateAndMove 後の現在手番 = 先手 → 直前に指したのは後手（= Engine1）
+                m_shogiClock->setPlayer2ConsiderationTime(static_cast<int>(thinkMs1));
+            } else {
+                // 現在手番 = 後手 → 直前に指したのは先手（= Engine1）
+                m_shogiClock->setPlayer1ConsiderationTime(static_cast<int>(thinkMs1));
+            }
+
             // 手番に応じて将棋クロックの手番変更およびGUIの手番表示を更新する。
             updateTurnAndTimekeepingDisplay();
 
@@ -3372,6 +3446,16 @@ void MainWindow::startEngineVsEngineGame()
         }
 
         if (isMoveValid2) {
+            // ★ USI2(先に指した側)の「go/ponderhit→bestmove」経過msを“直前に指した側”へ反映
+            const qint64 thinkMs2 = m_usi2->lastBestmoveElapsedMs();
+            if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
+                // 現在手番 = 先手 → 直前に指したのは後手（= Engine2）
+                m_shogiClock->setPlayer2ConsiderationTime(static_cast<int>(thinkMs2));
+            } else {
+                // 現在手番 = 後手 → 直前に指したのは先手（= Engine2）
+                m_shogiClock->setPlayer1ConsiderationTime(static_cast<int>(thinkMs2));
+            }
+
             // 手番に応じて将棋クロックの手番変更およびGUIの手番表示を更新する。
             updateTurnAndTimekeepingDisplay();
 
@@ -4031,11 +4115,6 @@ void MainWindow::setTimerAndStart()
 // 現在の手番を設定する。
 void MainWindow::setCurrentTurn()
 {
-    //begin
-    qDebug() << "---- setCurrentTurn() ---";
-    qDebug() << "m_shogiView->board()->currentPlayer() = " << m_shogiView->board()->currentPlayer();
-    //end
-
     // 現在の手番が先手あるいは下手の場合
     if (m_shogiView->board()->currentPlayer() == "b") {
         // 現在の手番を対局者1に設定する。
@@ -5273,4 +5352,67 @@ void MainWindow::movePieceImmediately()
         // エンジン1に対してstopコマンドを送る。
         m_usi1->sendStopCommand();
     }
+}
+
+ShogiGameController::Player MainWindow::humanPlayerSide() const
+{
+    // 本関数（Human vs Engine）では：
+    // EvenHumanVsEngine / HandicapHumanVsEngine → Player1 が人間
+    // HandicapEngineVsHuman → Player2 が人間
+    if (m_playMode == HandicapEngineVsHuman) return ShogiGameController::Player2;
+    return ShogiGameController::Player1;
+}
+
+bool MainWindow::isHumanTurn() const
+{
+    return m_gameController->currentPlayer() == humanPlayerSide();
+}
+
+void MainWindow::armHumanTimerIfNeeded()
+{
+    if (!m_humanTimerArmed && isHumanTurn()) {
+        m_humanTurnTimer.start();
+        m_humanTimerArmed = true;
+        // qDebug() << "[HUMAN] turn start, timer armed";
+    }
+}
+
+void MainWindow::finishHumanTimerAndSetConsideration()
+{
+    if (!m_humanTimerArmed) return; // 既に無効 or 連続ガード
+    const qint64 ms = m_humanTurnTimer.isValid() ? m_humanTurnTimer.elapsed() : 0;
+    const auto hp = humanPlayerSide();
+    if (hp == ShogiGameController::Player1) {
+        m_shogiClock->setPlayer1ConsiderationTime(static_cast<int>(ms));
+    } else {
+        m_shogiClock->setPlayer2ConsiderationTime(static_cast<int>(ms));
+    }
+    // 次の手番に備えてリセット
+    m_humanTimerArmed = false;
+    m_humanTurnTimer.invalidate();
+    // qDebug() << "[HUMAN] move committed, elapsed:" << ms << "ms";
+}
+
+// mainwindow.cpp
+void MainWindow::armTurnTimerIfNeeded() {
+    if (!m_turnTimerArmed) {
+        m_turnTimer.start();
+        m_turnTimerArmed = true;
+        // qDebug() << "[H2H] turn timer armed";
+    }
+}
+
+void MainWindow::finishTurnTimerAndSetConsiderationFor(ShogiGameController::Player mover) {
+    if (!m_turnTimerArmed) return;
+    const qint64 ms = m_turnTimer.isValid() ? m_turnTimer.elapsed() : 0;
+
+    if (mover == ShogiGameController::Player1) {
+        m_shogiClock->setPlayer1ConsiderationTime(static_cast<int>(ms));
+    } else {
+        m_shogiClock->setPlayer2ConsiderationTime(static_cast<int>(ms));
+    }
+
+    m_turnTimerArmed = false;
+    m_turnTimer.invalidate();
+    // qDebug() << "[H2H] move committed by" << mover << "elapsed" << ms << "ms";
 }

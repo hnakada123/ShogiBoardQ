@@ -827,6 +827,21 @@ private:
 
     // ドラッグ操作のリセットを行う。
     void finalizeDrag();
+
+    QElapsedTimer m_humanTurnTimer;
+    bool m_humanTimerArmed = false;
+
+    ShogiGameController::Player humanPlayerSide() const;
+    bool isHumanTurn() const;
+    void armHumanTimerIfNeeded();         // 人間手番になったら一度だけ start
+    void finishHumanTimerAndSetConsideration(); // 合法手確定時に ShogiClock へ反映
+
+    QElapsedTimer m_turnTimer;     // 人間用：手番スタート→合法手確定まで
+    bool          m_turnTimerArmed = false;
+
+    void armTurnTimerIfNeeded(); // 現在手番に対して未アームなら start
+    void finishTurnTimerAndSetConsiderationFor(ShogiGameController::Player mover); // mover に加算
+
 };
 
 #endif // MAINWINDOW_H
