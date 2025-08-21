@@ -2584,6 +2584,18 @@ void MainWindow::handleClickForPlayerVsEngine(const QPoint& field)
         }
 
         if (isMoveValid) {
+            const qint64 thinkMs = m_usi1->lastBestmoveElapsedMs();
+
+            // validateAndMove 後は手番が“人間側”に切り替わっているので
+            // 「非手番 = 直前に指した側（エンジン）」の考慮時間にセット
+            if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
+                // 今の手番は先手 → さっき指したのは後手（エンジン）
+                m_shogiClock->setPlayer2ConsiderationTime(static_cast<int>(thinkMs));
+            } else {
+                // 今の手番は後手 → さっき指したのは先手（エンジン）
+                m_shogiClock->setPlayer1ConsiderationTime(static_cast<int>(thinkMs));
+            }
+
             // 手番に応じて将棋クロックの手番変更およびGUIの手番表示を更新する。
             updateTurnAndTimekeepingDisplay();
 

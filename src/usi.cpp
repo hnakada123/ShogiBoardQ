@@ -1,6 +1,4 @@
-﻿#include "qdebug.h"
-#include "qtimer.h"
-#include <QProcess>
+﻿#include <QProcess>
 #include <iostream>
 #include <QString>
 #include <QTime>
@@ -18,6 +16,9 @@
 #include <QMap>
 #include <QElapsedTimer>
 #include <QThread>
+#include <QDateTime>
+#include <QDebug>
+#include <QTimer>
 
 #include "usi.h"
 #include "shogiengineinfoparser.h"
@@ -29,6 +30,19 @@
 #include "shogiutils.h"
 
 using namespace EngineSettingsConstants;
+
+static inline QString nowIso()
+{
+    return QDateTime::currentDateTime().toString(Qt::ISODateWithMs);
+}
+
+static inline QString fmtMs(qint64 ms)
+{
+    if (ms < 0) return QStringLiteral("n/a");
+    const qint64 s   = ms / 1000;
+    const qint64 rem = ms % 1000;
+    return QString("%1.%2s").arg(s).arg(rem, 3, 10, QChar('0')); // 例: "1.234s"
+}
 
 // USIプロトコル通信により、将棋エンジンと通信を行うクラス
 // コンストラクタ
@@ -551,53 +565,41 @@ void Usi::printShogiBoard(const QVector<QChar>& boardData) const
 }
 
 // 残り時間になるまでbestmoveを待機する。
-void Usi::waitAndCheckForBestMoveRemainingTime(int byoyomiMilliSec, const QString& btime, const QString& wtime,
-                                               int addEachMoveMilliSec1, int addEachMoveMilliSec2, bool useByoyomi)
+void Usi::waitAndCheckForBestMoveRemainingTime(int byoyomiMilliSec,
+                                               const QString& btime, const QString& wtime,
+                                               int /*addEachMoveMilliSec1*/, int /*addEachMoveMilliSec2*/,
+                                               bool useByoyomi)
 {
-    // 残り時間（ミリ秒）
+    // 現手番
+    const bool p1turn = (m_gameController->currentPlayer() == ShogiGameController::Player1);
+
+    // go に渡した「メイン残り」（ms）
+    const int mainMs = p1turn ? btime.toInt() : wtime.toInt();
+
+    // ★ インクリメントは「着手後」に付くので待機時間に足さない
+    // ★ 1秒マージン(+1000) も不要。むしろ待ち過ぎの原因になる
+
     int remainingTime;
-
-    // 秒読みを使用する場合
     if (useByoyomi) {
-        // 現在の手番が対局者1の場合
-        if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
-            // マージン1秒を追加して対局者1の残り時間を計算する。
-            remainingTime = btime.toInt() + byoyomiMilliSec + 1000;
-        }
-        // 現在の手番が対局者2の場合
-        else {
-            // マージン1秒を追加して対局者2の残り時間を計算する。
-            remainingTime = wtime.toInt() + byoyomiMilliSec + 1000;
-        }
-    }
-    // 秒読みを使用しない場合
-    else {
-        // 現在の手番が対局者1の場合
-        if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
-            remainingTime = btime.toInt() + addEachMoveMilliSec1 + 1000;
-        }
-        // 現在の手番が対局者2の場合
-        else {
-            remainingTime = wtime.toInt() + addEachMoveMilliSec2 + 1000;
-        }
+        // 秒読み方式：上限は「メイン + 秒読み」
+        remainingTime = mainMs + byoyomiMilliSec;
+    } else {
+        // インクリメント方式：上限は「メインのみ」
+        remainingTime = mainMs;
     }
 
-    //begin
-    qDebug() << "Usi::waitAndCheckForBestMoveRemainingTime";
-    qDebug() << "m_gameController->currentPlayer(): " << m_gameController->currentPlayer();
-    qDebug() << "ShogiGameController::Player1: " << ShogiGameController::Player1;
-    qDebug() << "ShogiGameController::Player2: " << ShogiGameController::Player2;
-    qDebug() << "byoyomiMilliSec: " << byoyomiMilliSec;
-    qDebug() << "btime: " << btime;
-    qDebug() << "wtime: " << wtime;
-    qDebug() << "addEachMoveMilliSec1: " << addEachMoveMilliSec1;
-    qDebug() << "addEachMoveMilliSec2: " << addEachMoveMilliSec2;
-    qDebug() << "remainingTime: " << remainingTime;
-    //end
+    // （任意）通信・スレッド遅延のガードとして、ほんの少しだけ短めに待つ方が安全
+    // 例：100ms だけ控えめにする（負値にならないように）
+    remainingTime = qMax(0, remainingTime - 100);
 
-    // bestmoveを指定した時間内に受信するまで待機する。
+    // デバッグ
+    qDebug().nospace() << "[USI] waitBestmove cap="
+                       << remainingTime << "ms (main=" << mainMs
+                       << ", byoyomi=" << byoyomiMilliSec
+                       << ", mode=" << (useByoyomi ? "byoyomi" : "increment") << ")";
+
+    // 上限時間内に bestmove を待つ
     waitAndCheckForBestMove(remainingTime);
-
 }
 
 // 将棋エンジンからのレスポンスに基づいて、適切なコマンドを送信し、必要に応じて処理を行う。
@@ -1291,6 +1293,12 @@ void Usi::sendStopCommand()
 // ponderhitコマンドを将棋エンジンに送信する。
 void Usi::sendPonderHitCommand()
 {
+    // ★ 計測リセット＆開始（ここからが“自分の手番の思考時間”）
+    m_lastGoToBestmoveMs = 0;
+    m_goTimer.start();
+    qDebug().nospace() << "[USI] " << nowIso()
+                       << " start at ponderhit";
+
     // 将棋エンジンにコマンドを送信する。
     sendCommand("ponderhit");
 }
@@ -1441,6 +1449,14 @@ void Usi::sendGoCommand(int byoyomiMilliSec, const QString& btime, const QString
         command = "go btime " + btime + " wtime " + wtime + " binc " + QString::number(addEachMoveMilliSec1) + " winc " + QString::number(addEachMoveMilliSec2);
     }
 
+    // ★ 計測リセット＆開始（ponder は含めない）
+    m_lastGoToBestmoveMs = 0;
+    m_goTimer.start();
+    qDebug().nospace() << "[USI] " << nowIso()
+                       << " start at go  "
+                       << "btime=" << btime << " wtime=" << wtime
+                       << " byoyomi=" << byoyomiMilliSec << "ms";
+
     // 将棋エンジンにコマンドを送信する。
     sendCommand(command);
 }
@@ -1553,6 +1569,22 @@ void Usi::bestMoveReceived(const QString& line)
     if (bestMoveIndex != -1 && bestMoveIndex + 1 < tokens.size()) {
         // bestmoveの次の文字列を取得する。
         m_bestMove = tokens[bestMoveIndex + 1];
+
+        // m_bestMove = tokens[bestMoveIndex + 1]; の直後に挿入
+        qint64 elapsed = m_goTimer.isValid() ? m_goTimer.elapsed() : -1;
+        m_lastGoToBestmoveMs = (elapsed >= 0) ? elapsed : 0;
+        m_bestMoveSignalReceived = true; // 待機ループ側への通知
+
+        // ログ出力
+        int ponderIdx = tokens.indexOf("ponder");
+        QString ponderStr = (ponderIdx != -1 && ponderIdx + 1 < tokens.size())
+                                ? tokens[ponderIdx + 1] : QString();
+        qDebug().nospace() << "[USI] " << nowIso()
+                           << " bestmove=" << m_bestMove
+                           << " elapsed=" << fmtMs(elapsed)
+                           << (ponderStr.isEmpty() ? "" : QString("  ponder=%1").arg(ponderStr));
+
+        // （任意）使い切りにするなら： m_goTimer.invalidate();
 
         // bestmoveの次の文字列がresignの場合
         if (m_bestMove == "resign") {
