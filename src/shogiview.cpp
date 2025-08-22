@@ -16,6 +16,8 @@
 #include <QSizePolicy>
 #include <QLayout>
 
+Q_LOGGING_CATEGORY(ClockLog, "clock")
+
 using namespace EngineSettingsConstants;
 
 // コンストラクタ
@@ -2695,3 +2697,6 @@ void ShogiView::applyStartupTypography()
     setInactive(m_blackNameLabel,  m_blackClockLabel);
     setInactive(m_whiteNameLabel,  m_whiteClockLabel);
 }
+
+void ShogiView::setBlackTimeMs(qint64 ms) { m_blackTimeMs = ms; }
+void ShogiView::setWhiteTimeMs(qint64 ms) { m_whiteTimeMs = ms; }

@@ -17,6 +17,9 @@
 #include <QMap>
 #include <QPointer>
 #include <QWidget>
+#include <QLoggingCategory>
+
+Q_DECLARE_LOGGING_CATEGORY(ClockLog)
 
 // 前方宣言（ヘッダ依存を軽減）
 class ShogiBoard;
@@ -140,6 +143,10 @@ public:
 
     // 手番ハイライト配色（任意）
     void setHighlightStyle(const QColor& bgOn, const QColor& fgOn, const QColor& fgOff);
+
+    // 追加: 残時間(ミリ秒)を受け取るセッター
+    void setBlackTimeMs(qint64 ms);
+    void setWhiteTimeMs(qint64 ms);
 
 public slots:
     // Q_PROPERTY 用 setter（レイアウト更新・ラベル再配置を含む）
@@ -350,6 +357,14 @@ private:
 
     // 起動直後や対局前に、両側を同じ基準タイポグラフィに整える
     void applyStartupTypography();
+
+    // 追加: ログ用に保持
+    qint64 m_blackTimeMs = -1;
+    qint64 m_whiteTimeMs = -1;
+
+    // ログスパム防止（前回値と同じなら出力しない）
+    qint64 m_lastLoggedBlackMs = -2;
+    qint64 m_lastLoggedWhiteMs = -2;
 };
 
 #endif // SHOGIVIEW_H
