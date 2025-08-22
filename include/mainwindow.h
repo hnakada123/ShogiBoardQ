@@ -842,6 +842,11 @@ private:
     void armTurnTimerIfNeeded(); // 現在手番に対して未アームなら start
     void finishTurnTimerAndSetConsiderationFor(ShogiGameController::Player mover); // mover に加算
 
+    void disarmHumanTimerIfNeeded();
+
+    QTimer* m_uiClockTimer = nullptr;
+    void refreshClockLabels();
+    static QString formatMs(int ms);
 };
 
 #endif // MAINWINDOW_H

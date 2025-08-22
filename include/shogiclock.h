@@ -76,6 +76,12 @@ public:
     bool isGameOver() const { return m_gameOver; }
     void markGameOver() { m_gameOver = true; }
 
+    qint64 player1ConsiderationMs() const { return m_player1ConsiderationTimeMs; }
+    qint64 player2ConsiderationMs() const { return m_player2ConsiderationTimeMs; }
+
+    int getPlayer1ConsiderationTimeMs() const;
+    int getPlayer2ConsiderationTimeMs() const;
+
 signals:
     void timeUpdated();
     void player1TimeOut();
@@ -88,6 +94,14 @@ private:
 
     // デバッグ用：不変条件を確認（Debug ビルドのみ有効）
     void debugCheckInvariants() const;
+
+    // ---- 表示用の総考慮（四捨五入秒の合計）を持つ ------------------------
+    // ms → 秒（四捨五入）ユーティリティ
+    static inline int roundSecFromMs(qint64 ms) {
+        return static_cast<int>((qMax<qint64>(0, ms) + 500) / 1000);
+    }
+    // 直前手の「表示秒」を表示用カウンタに登録（player: 1=先手, 2=後手）
+    void registerShownConsideration(int player);
 
     // タイマ
     QTimer*       m_timer = nullptr;
@@ -110,11 +124,17 @@ private:
     qint64 m_bincMs = 0; // increment for player1
     qint64 m_wincMs = 0; // increment for player2
 
-    // 考慮時間・総考慮時間
+    // 考慮時間・総考慮時間（ms）
     qint64 m_player1ConsiderationTimeMs = 0;
     qint64 m_player2ConsiderationTimeMs = 0;
     qint64 m_player1TotalConsiderationTimeMs = 0;
     qint64 m_player2TotalConsiderationTimeMs = 0;
+
+    // --- 表示用トータル（各手の「表示秒」合計）と履歴（undo用） ---
+    int m_p1TotalShownSec = 0;
+    int m_p2TotalShownSec = 0;
+    QStack<int> m_p1ShownSecHist;
+    QStack<int> m_p2ShownSecHist;
 
     // 秒表示キャッシュ（変化時のみ timeUpdated を出すため）
     qint64 m_prevShownSecP1 = -1;
