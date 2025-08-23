@@ -847,6 +847,10 @@ private:
     QTimer* m_uiClockTimer = nullptr;
     void refreshClockLabels();
     static QString formatMs(int ms);
+
+    // MainWindow のメンバに追加
+    bool m_p1HasMoved = false;
+    bool m_p2HasMoved = false;
 };
 
 #endif // MAINWINDOW_H
