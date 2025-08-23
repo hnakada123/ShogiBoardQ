@@ -2065,7 +2065,41 @@ void MainWindow::stopClockAndSendCommands()
 }
 
 // 対局結果の表示とGUIの更新処理を行う。
-// 対局結果の表示とGUIの更新処理を行う。
+void MainWindow::displayResultsAndUpdateGui()
+{
+    // --- 終局では人間用ストップウォッチを無効化 ---
+    if (m_turnTimerArmed) { m_turnTimerArmed = false; m_turnTimer.invalidate(); }
+    if (m_humanTimerArmed){ m_humanTimerArmed = false; m_humanTurnTimer.invalidate(); }
+
+    // 残時間と考慮msを確定
+    m_shogiClock->stopClock();
+
+    // 盤操作を無効化
+    m_shogiView->setMouseClickMode(false);
+
+    auto showOutcomeDeferred = [this](ShogiGameController::Result res) {
+        updateRemainingTimeDisplay();
+        QTimer::singleShot(0, this, [this, res]() { displayGameOutcome(res); });
+    };
+
+    // ★ 投了/時間切れ：現在手番の側の考慮時間を記録する
+    if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
+        // 先手が投了/時間切れ
+        m_shogiClock->applyByoyomiAndResetConsideration1(); // ※ gameOver時は加算せず考慮だけ確定
+        updateGameRecord(m_shogiClock->getPlayer1ConsiderationAndTotalTime());
+        showOutcomeDeferred(ShogiGameController::Player2Wins);
+    } else {
+        // 後手が投了/時間切れ
+        m_shogiClock->applyByoyomiAndResetConsideration2();
+        updateGameRecord(m_shogiClock->getPlayer2ConsiderationAndTotalTime());
+        showOutcomeDeferred(ShogiGameController::Player1Wins);
+    }
+
+    enableArrowButtons();
+    m_gameRecordView->setSelectionMode(QAbstractItemView::SingleSelection);
+}
+
+/*
 void MainWindow::displayResultsAndUpdateGui()
 {
     // --- 終局では人間用ストップウォッチを無効化 ---
@@ -2105,6 +2139,7 @@ void MainWindow::displayResultsAndUpdateGui()
     enableArrowButtons();
     m_gameRecordView->setSelectionMode(QAbstractItemView::SingleSelection);
 }
+*/
 
 // 棋譜欄の最後に表示する投了の文字列を設定する。
 // 対局モードが平手のエンジン対エンジンの場合
@@ -4323,46 +4358,34 @@ void MainWindow::initializeGame()
 // GUIの残り時間表示を更新する。
 void MainWindow::updateRemainingTimeDisplay()
 {
-    // まず両者の文字列を作る
-    const QString p1 = m_shogiClock->getPlayer1TimeString();
+    const QString p1 = m_shogiClock->getPlayer1TimeString(); // 実残りms→切り上げ
     const QString p2 = m_shogiClock->getPlayer2TimeString();
 
-    // 両方のラベルを常に更新
     m_shogiView->blackClockLabel()->setText(p1);
     m_shogiView->whiteClockLabel()->setText(p2);
 
-    // 手番側の残りms
     const bool p1turn = (m_gameController->currentPlayer() == ShogiGameController::Player1);
     const qint64 activeMs = p1turn ? m_shogiClock->getPlayer1TimeIntMs()
                                    : m_shogiClock->getPlayer2TimeIntMs();
 
-    // ★ 秒読みが「設定されていて」かつ「まだ秒読み前」なら配色警告は抑制
     const bool hasByoyomi = p1turn ? m_shogiClock->hasByoyomi1()
                                    : m_shogiClock->hasByoyomi2();
     const bool inByoyomi  = p1turn ? m_shogiClock->byoyomi1Applied()
                                    : m_shogiClock->byoyomi2Applied();
-
     const bool enableUrgency = (!hasByoyomi) || inByoyomi;
-    const qint64 msForUrgency = enableUrgency
-                                    ? activeMs
-                                    : std::numeric_limits<qint64>::max();  // 閾値を超える値を渡して常に通常表示
+    const qint64 msForUrgency = enableUrgency ? activeMs
+                                              : std::numeric_limits<qint64>::max();
 
     m_shogiView->applyClockUrgency(msForUrgency);
 
-    // 例：既存の時間文字列をラベルや ShogiView にセットした直後
-    const qint64 p1_ms = m_shogiClock->getPlayer1TimeIntMs();
-    const qint64 p2_ms = m_shogiClock->getPlayer2TimeIntMs();
+    // （任意）盤面描画用に ms を渡す。描画側がここから時間文字列を再計算しない設計が安全。
+    m_shogiView->setBlackTimeMs(m_shogiClock->getPlayer1TimeIntMs());
+    m_shogiView->setWhiteTimeMs(m_shogiClock->getPlayer2TimeIntMs());
 
-    // ShogiView 側へも ms を渡す（描画直前ログ用）
-    m_shogiView->setBlackTimeMs(p1_ms);
-    m_shogiView->setWhiteTimeMs(p2_ms);
-
-    qCDebug(ClockLog) << "in MainWindow::updateRemainingTimeDisplay()";
-    // ソース(ms)と表示文字列の両方をここでも出しておくと照合が楽
-    qCDebug(ClockLog) << "[UI] P1(ms)=" << p1_ms
-                      << "P2(ms)=" << p2_ms
-                      << "P1(label)=" << m_shogiClock->getPlayer1TimeString()
-                      << "P2(label)=" << m_shogiClock->getPlayer2TimeString();
+    qCDebug(ClockLog) << "[UI] P1(ms)=" << m_shogiClock->getPlayer1TimeIntMs()
+                      << "P2(ms)=" << m_shogiClock->getPlayer2TimeIntMs()
+                      << "P1(label)=" << p1
+                      << "P2(label)=" << p2;
 }
 
 void ShogiView::applyClockUrgency(qint64 activeRemainMs)

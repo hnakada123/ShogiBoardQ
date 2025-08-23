@@ -9,13 +9,11 @@
 
 Q_DECLARE_LOGGING_CATEGORY(lcShogiClock)
 
-// 将棋クロックにより対局者の持ち時間を管理するクラス
+// 将棋クロック：持ち時間/秒読み/インクリメント/考慮時間の管理
 class ShogiClock : public QObject
 {
     Q_OBJECT
-
 public:
-    // タイマーの刻み（ms）を一元管理
     static constexpr int kTickMs = 50;
 
     explicit ShogiClock(QObject *parent = nullptr);
@@ -30,55 +28,57 @@ public:
 
     // クロック制御
     void startClock();
-    void stopClock();
-    void updateClock();  // QTimer から 50ms 毎に呼ばれる
+    void stopClock();          // 進行中の手番側の残時間/考慮msに経過分を反映し停止
+    void updateClock();        // QTimer から kTickMs ごとに呼ばれる
 
-    // 手が確定した瞬間に呼ぶ（その手を指した側だけ呼ぶ）
-    void applyByoyomiAndResetConsideration1();
-    void applyByoyomiAndResetConsideration2();
+    // 着手確定時（その手を指した側だけ呼ぶ）
+    void applyByoyomiAndResetConsideration1();  // 先手が指した直後
+    void applyByoyomiAndResetConsideration2();  // 後手が指した直後
 
     // 「待った」
     void undo();
 
-    // 文字列取得（HH:MM:SS / MM:SS）
+    // ---- GUI表示API（仕様固定） ----
+    // 残り時間（実残りms→秒は切り上げ）
     QString getPlayer1TimeString() const;
     QString getPlayer2TimeString() const;
 
+    // 直近考慮（MM:SS）＝ 総考慮(秒)の差分
     QString getPlayer1ConsiderationTime() const;
     QString getPlayer2ConsiderationTime() const;
 
+    // 総考慮（HH:MM:SS）＝ 実測総考慮ms → 秒は切り捨て
     QString getPlayer1TotalConsiderationTime() const;
     QString getPlayer2TotalConsiderationTime() const;
 
+    // 棋譜欄用 "MM:SS/HH:MM:SS"
     QString getPlayer1ConsiderationAndTotalTime() const;
     QString getPlayer2ConsiderationAndTotalTime() const;
 
     // 残り時間（ms）
-    qint64 getPlayer1TimeIntMs() const;
-    qint64 getPlayer2TimeIntMs() const;
+    qint64 getPlayer1TimeIntMs() const { return m_player1TimeMs; }
+    qint64 getPlayer2TimeIntMs() const { return m_player2TimeMs; }
 
     // 現在の手番（1=先手, 2=後手）
-    int    currentPlayer() const { return m_currentPlayer; }
+    int currentPlayer() const { return m_currentPlayer; }
 
-    // 考慮時間（ms）を直接セット（互換API）
-    void setPlayer1ConsiderationTime(int newPlayer1ConsiderationTimeMs);
-    void setPlayer2ConsiderationTime(int newPlayer2ConsiderationTimeMs);
+    // 考慮時間（ms）を外部から直接セット（HvE でエンジン手のelapsedを反映など）
+    void setPlayer1ConsiderationTime(int ms);
+    void setPlayer2ConsiderationTime(int ms);
 
-    // 秒読みが設定されているか（方式判定）
+    // byoyomi が設定されているか／適用中か
     bool hasByoyomi1() const { return m_byoyomi1TimeMs > 0; }
     bool hasByoyomi2() const { return m_byoyomi2TimeMs > 0; }
-
-    // 秒読みが“適用中”か（いま秒読み中か）
     bool byoyomi1Applied() const { return m_byoyomi1Applied; }
     bool byoyomi2Applied() const { return m_byoyomi2Applied; }
 
-    // （必要ならUI側で使えるように）終局かどうか
+    // 終局管理
     bool isGameOver() const { return m_gameOver; }
     void markGameOver() { m_gameOver = true; }
 
+    // デバッグ/ログ用
     qint64 player1ConsiderationMs() const { return m_player1ConsiderationTimeMs; }
     qint64 player2ConsiderationMs() const { return m_player2ConsiderationTimeMs; }
-
     int getPlayer1ConsiderationTimeMs() const;
     int getPlayer2ConsiderationTimeMs() const;
 
@@ -89,19 +89,16 @@ signals:
     void resignationTriggered();
 
 private:
-    // 記録（履歴に積む）
-    void saveState();
-
-    // デバッグ用：不変条件を確認（Debug ビルドのみ有効）
+    // ---- 内部ヘルパ ----
+    void saveState();                // undo 用に状態を積む（startClockで呼ぶ）
     void debugCheckInvariants() const;
 
-    // ---- 表示用の総考慮（四捨五入秒の合計）を持つ ------------------------
-    // ms → 秒（四捨五入）ユーティリティ
-    static inline int roundSecFromMs(qint64 ms) {
-        return static_cast<int>((qMax<qint64>(0, ms) + 500) / 1000);
-    }
-    // 直前手の「表示秒」を表示用カウンタに登録（player: 1=先手, 2=後手）
-    void registerShownConsideration(int player);
+    // 残り秒（切り上げ）計算
+    int remainingDisplaySecP1() const;
+    int remainingDisplaySecP2() const;
+
+    // 直近考慮(秒)を更新（着手確定時）※総考慮ms→秒切り捨ての差分
+    void updateShownConsiderationForPlayer(int player);
 
     // タイマ
     QTimer*       m_timer = nullptr;
@@ -112,39 +109,39 @@ private:
     // 設定・状態
     bool   m_timeLimitSet  = false;
     bool   m_loseOnTimeout = true;
-    int    m_currentPlayer = 1; // 1=先手,2=後手
+    int    m_currentPlayer = 1;   // 1=先手, 2=後手
 
-    // 時間（すべて ms, qint64）
+    // 残り時間（ms）
     qint64 m_player1TimeMs = 0;
     qint64 m_player2TimeMs = 0;
 
+    // 秒読み/インクリメント（ms）
     qint64 m_byoyomi1TimeMs = 0;
     qint64 m_byoyomi2TimeMs = 0;
+    qint64 m_bincMs = 0;  // 先手の increment
+    qint64 m_wincMs = 0;  // 後手の increment
 
-    qint64 m_bincMs = 0; // increment for player1
-    qint64 m_wincMs = 0; // increment for player2
-
-    // 考慮時間・総考慮時間（ms）
+    // 考慮時間（直近手の実測ms）と総計（実測msの合計）
     qint64 m_player1ConsiderationTimeMs = 0;
     qint64 m_player2ConsiderationTimeMs = 0;
     qint64 m_player1TotalConsiderationTimeMs = 0;
     qint64 m_player2TotalConsiderationTimeMs = 0;
 
-    // --- 表示用トータル（各手の「表示秒」合計）と履歴（undo用） ---
-    int m_p1TotalShownSec = 0;
-    int m_p2TotalShownSec = 0;
-    QStack<int> m_p1ShownSecHist;
-    QStack<int> m_p2ShownSecHist;
+    // GUI表示用：直近考慮(秒) と「前回指した時点の総考慮(秒)」
+    int m_p1LastMoveShownSec = 0;
+    int m_p2LastMoveShownSec = 0;
+    int m_p1PrevShownTotalSec = 0;
+    int m_p2PrevShownTotalSec = 0;
 
-    // 秒表示キャッシュ（変化時のみ timeUpdated を出すため）
-    qint64 m_prevShownSecP1 = -1;
-    qint64 m_prevShownSecP2 = -1;
+    // 秒表示キャッシュ（残り時間の秒が変わったときだけ通知）
+    int m_prevShownSecP1 = -1;
+    int m_prevShownSecP2 = -1;
 
-    // 秒読み適用中フラグ
-    bool   m_byoyomi1Applied = false;
-    bool   m_byoyomi2Applied = false;
+    // 秒読みの適用状態
+    bool m_byoyomi1Applied = false;
+    bool m_byoyomi2Applied = false;
 
-    // 履歴（undo 用）
+    // undo 用の履歴
     QStack<qint64> m_player1TimeHistory;
     QStack<qint64> m_player2TimeHistory;
     QStack<qint64> m_player1ConsiderationHistory;
@@ -153,8 +150,12 @@ private:
     QStack<qint64> m_player2TotalConsiderationHistory;
     QStack<bool>   m_byoyomi1AppliedHistory;
     QStack<bool>   m_byoyomi2AppliedHistory;
+    QStack<int>    m_p1LastMoveShownSecHistory;
+    QStack<int>    m_p2LastMoveShownSecHistory;
+    QStack<int>    m_p1PrevShownTotalSecHistory;
+    QStack<int>    m_p2PrevShownTotalSecHistory;
 
-    bool m_gameOver = false;  // ★ 追加：時間切れ等で終局したら true
+    bool m_gameOver = false;  // 終局フラグ（時間切れ/投了後など）
 };
 
 #endif // SHOGICLOCK_H
