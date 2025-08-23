@@ -851,6 +851,8 @@ private:
     // MainWindow のメンバに追加
     bool m_p1HasMoved = false;
     bool m_p2HasMoved = false;
+
+    void computeGoTimesForUSI(qint64& outB, qint64& outW);
 };
 
 #endif // MAINWINDOW_H
