@@ -887,6 +887,19 @@ void MainWindow::undoLastTwoMoves()
             }
         });
     }
+
+    // ★ 簡易復元：現在手数で決め打ち
+    if (m_currentMoveIndex <= 0) {
+        m_p1HasMoved = false; m_p2HasMoved = false;
+    } else if (m_currentMoveIndex == 1) {
+        // 直近に指したのは“今の手番の反対側”
+        const bool nextIsP1 = (m_gameController->currentPlayer() == ShogiGameController::Player1);
+        m_p1HasMoved = !nextIsP1;
+        m_p2HasMoved =  nextIsP1;
+    } else {
+        // 2手以上進んでいれば両者一度は指している
+        m_p1HasMoved = true; m_p2HasMoved = true;
+    }
 }
 
 // 新規対局の準備をする。
@@ -2010,6 +2023,10 @@ void MainWindow::startNewShogiGame(QString& startSfenStr)
     // エンジン名の設定
     // 対局モードに応じて将棋盤下部に表示されるエンジン名をセットする。
     setEngineNamesBasedOnMode();
+
+    // ★ 追加：開局時は両者とも未着手
+    m_p1HasMoved = false;
+    m_p2HasMoved = false;
 }
 
 // 棋譜欄の下の矢印ボタンを無効にする。
@@ -2793,35 +2810,78 @@ void MainWindow::updateTurnDisplay()
 // 手番に応じて将棋クロックの手番変更およびGUIの手番表示を更新する。
 void MainWindow::updateTurnAndTimekeepingDisplay()
 {
-    // 1) 今走っている側を止めて残時間を確定
+    // 1) 今走っている側を止める
     m_shogiClock->stopClock();
 
     // 2) 直前に指した側へ Byoyomi/Increment を適用 + 考慮時間の記録
     const bool nextIsP1 = (m_gameController->currentPlayer() == ShogiGameController::Player1);
     if (nextIsP1) {
-        // これから先手が考える → 直前は後手が指した
+        // これから先手が指す → 直前に指したのは後手
         m_shogiClock->applyByoyomiAndResetConsideration2();
         updateGameRecord(m_shogiClock->getPlayer2ConsiderationAndTotalTime());
         m_shogiClock->setPlayer2ConsiderationTime(0);
+        m_p2HasMoved = true;    // ★ 後手は着手済み
     } else {
-        // これから後手が考える → 直前は先手が指した
+        // これから後手が指す → 直前に指したのは先手
         m_shogiClock->applyByoyomiAndResetConsideration1();
         updateGameRecord(m_shogiClock->getPlayer1ConsiderationAndTotalTime());
         m_shogiClock->setPlayer1ConsiderationTime(0);
+        m_p1HasMoved = true;    // ★ 先手は着手済み
     }
 
-    // 3) 加算後の値で UI を更新
+    // 3) 表示更新
     updateRemainingTimeDisplay();
 
-    // 4) USI に渡す残時間（ms）も加算後の値で確定
-    m_bTime = QString::number(m_shogiClock->getPlayer1TimeIntMs());
-    m_wTime = QString::number(m_shogiClock->getPlayer2TimeIntMs());
+    // 4) USI に渡す残時間（ms）を算出（デフォルトは“適用後そのまま”）
+    qint64 p1ms = m_shogiClock->getPlayer1TimeIntMs();
+    qint64 p2ms = m_shogiClock->getPlayer2TimeIntMs();
+
+    // ★ どちらが人間か/エンジンかの判定ヘルパ
+    auto isHuman = [this](ShogiGameController::Player p) {
+        switch (m_playMode) {
+        case HumanVsHuman:                 return true;                         // 両方人間
+        case EvenHumanVsEngine:
+        case HandicapHumanVsEngine:        return (p == ShogiGameController::Player1); // 先手=人間
+        case EvenEngineVsHuman:
+        case HandicapEngineVsHuman:        return (p == ShogiGameController::Player2); // 後手=人間
+        case EvenEngineVsEngine:
+        case HandicapEngineVsEngine:       return false;                        // 両方エンジン
+        default:                           return false;                        // 検討/解析などはエンジン扱い
+        }
+    };
+
+    const bool nextIsEngine =
+        nextIsP1 ? !isHuman(ShogiGameController::Player1)
+                 : !isHuman(ShogiGameController::Player2);
+
+    // ★ インクリメント方式の「最初のエンジン手」を特例補正
+    if (!m_useByoyomi &&
+        (m_addEachMoveMiliSec1 > 0 || m_addEachMoveMiliSec2 > 0) &&
+        nextIsEngine)
+    {
+        if (nextIsP1 && !m_p1HasMoved) {
+            // 先手エンジンの“初手” → 先手の time は「初期-先手inc」に見せたい
+            p1ms = qMax<qint64>(0, p1ms - m_addEachMoveMiliSec1);
+            // 直前に指した側は存在しない場合が多い（初手）ので何もしない
+            // ただし、もし後手がすでに指している局面から再開などなら、足された inc を打消し
+            if (m_p2HasMoved) p2ms = qMax<qint64>(0, p2ms - m_addEachMoveMiliSec2);
+        } else if (!nextIsP1 && !m_p2HasMoved) {
+            // 後手エンジンの“初手”（= 2手目が典型）
+            // これから指す後手は「初期-後手inc」に見せる
+            p2ms = qMax<qint64>(0, p2ms - m_addEachMoveMiliSec2);
+            // 直前に指した先手には inc が足されているので“見かけ上”打消す
+            if (m_p1HasMoved) p1ms = qMax<qint64>(0, p1ms - m_addEachMoveMiliSec1);
+        }
+    }
+
+    // USI に渡す文字列
+    m_bTime = QString::number(p1ms);
+    m_wTime = QString::number(p2ms);
 
     // 5) 手番表示・時計再開
     updateTurnStatus(nextIsP1 ? 1 : 2);
     m_shogiClock->startClock();
 
-    // 人間手番のストップウォッチのアーム/解除
     if (isHumanTurn()) armHumanTimerIfNeeded();
     else               disarmHumanTimerIfNeeded();
 }
