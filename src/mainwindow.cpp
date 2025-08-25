@@ -3318,45 +3318,6 @@ void MainWindow::startHumanVsEngineGame()
     }
 }
 
-/*
-// 平手 Player1: Human, Player2: USI Engine
-// 駒落ち Player1: USI Engine（下手）, Player2: Human（上手）
-void MainWindow::startHumanVsEngineGame()
-{
-    // 将棋エンジンとUSIプロトコルに関するクラスのインスタンスを削除する。
-    if (m_usi1 != nullptr) delete m_usi1;
-
-    // 将棋エンジンとUSIプロトコルに関するクラスのインスタンスを生成する。
-    m_usi1 = new Usi(m_lineEditModel1, m_modelThinking1, m_gameController, m_playMode, this);
-
-    // 平手で「人間 対 将棋エンジン」の場合
-    if ((m_playMode == EvenHumanVsEngine) || (m_playMode == HandicapHumanVsEngine)) {
-        // 対局者2をエンジン1で初期化して対局を開始する。
-        initializeAndStartPlayer2WithEngine1();
-    }
-    // 駒落ちで「将棋エンジン 対 人間」の場合
-    else if (m_playMode == HandicapEngineVsHuman) {
-        // 対局者1をエンジン1で初期化して対局を開始する。
-        initializeAndStartPlayer1WithEngine1();
-    }
-
-    // positionコマンド文字列の生成
-    m_positionStr1 = "position " + m_startPosStr + " moves";
-
-    // 対局開始の初期状態のpositionコマンド文字列をリストに追加する。
-    m_positionStrList.append(m_positionStr1);
-
-    // マウスでクリックして駒を選択して指す処理を行う。
-    connect(m_shogiView, &ShogiView::clicked, this, &MainWindow::handlePlayerVsEngineClick);
-
-    if (isHumanTurn()) {
-        // ここで mouse を許可しているならそのまま、そうでなければ既存ロジックに従う
-        // m_shogiView->setMouseClickMode(true); // 必要なら
-        armHumanTimerIfNeeded();
-    }
-}
-*/
-
 // 平手 Player1: USI Engine（先手）, Player2: Human（後手）
 // 駒落ち Player1: Human（下手）, Player2: USI Engine（上手）
 void MainWindow::startEngineVsHumanGame()
@@ -3451,162 +3412,146 @@ void MainWindow::startEngineVsHumanGame()
 // 平手、駒落ち Player1: USI Engine, Player2: USI Engine
 void MainWindow::startEngineVsEngineGame()
 {
-    // 将棋エンジンとUSIプロトコルに関するクラスのインスタンスを削除する。
+    // 既存インスタンスの後片付け
     if (m_usi1 != nullptr) delete m_usi1;
-
-    // 将棋エンジンとUSIプロトコルに関するクラスのインスタンスを生成する。
-    m_usi1 = new Usi(m_lineEditModel1, m_modelThinking1, m_gameController, m_playMode, this);
-
-    // 将棋エンジンとUSIプロトコルに関するクラスのインスタンスを削除する。
     if (m_usi2 != nullptr) delete m_usi2;
 
-    // 将棋エンジンとUSIプロトコルに関するクラスのインスタンスを生成する。
+    // USI インスタンス生成
+    m_usi1 = new Usi(m_lineEditModel1, m_modelThinking1, m_gameController, m_playMode, this);
     m_usi2 = new Usi(m_lineEditModel2, m_modelThinking2, m_gameController, m_playMode, this);
 
+    // エンジン割り当て
     if (m_playMode == EvenEngineVsEngine) {
-        // 対局者1をエンジン1で初期化して対局を開始する。
         initializeAndStartPlayer1WithEngine1();
-
-        // 対局者2をエンジン2で初期化して対局を開始する。
         initializeAndStartPlayer2WithEngine2();
-    }
-    else if (m_playMode == HandicapEngineVsEngine) {
-        // 対局者1をエンジン2で初期化して対局を開始する。
+    } else if (m_playMode == HandicapEngineVsEngine) {
         initializeAndStartPlayer2WithEngine1();
-
-        // 対局者2をエンジン2で初期化して対局を開始する。
         initializeAndStartPlayer1WithEngine2();
     }
 
-    // positionコマンド文字列を生成する。
+    // 初期 position
     m_positionStr1 = "position " + m_startPosStr + " moves";
-
-    // 対局開始の初期状態のpositionコマンド文字列をリストに追加する。
     m_positionStrList.append(m_positionStr1);
 
-    // ponder使用時に使う文字列を生成する。
-    m_positionPonder1 = m_positionStr1;
+    // --- [2] それぞれのエンジン用に ponder 用 position を分離 ---
+    // ※ メンバに QString m_positionPonder1, m_positionPonder2 を用意しておくこと
+    m_positionPonder1 = m_positionStr1;  // Engine1 用
+    m_positionPonder2 = m_positionStr1;  // Engine2 用（★追加）
 
-    // 駒を指した場合の移動元と移動先のマスの宣言
-    QPoint outFrom;
-    QPoint outTo;
+    // --- [1] 将棋クロックとUI手番表示の同期（開始時の見た目・内部状態を揃える） ---
+    m_shogiClock->stopClock();
+    {
+        const int cur = (m_gameController->currentPlayer() == ShogiGameController::Player2) ? 2 : 1;
+        updateTurnStatus(cur);   // 1=先手,2=後手
+    }
+    m_shogiClock->startClock();
 
+    // ここからエンジン同士の指し合いループ
+    QPoint outFrom, outTo;
     while (1) {
-        // 駒を成る・不成のフラグを不成に設定する。
+        // -------- 先手側（例：Engine1） --------
         m_gameController->setPromote(false);
+        refreshGoTimes(); // go の btime/wtime を最新化
 
-        refreshGoTimes();
+        m_usi1->handleEngineVsHumanOrEngineMatchCommunication(
+            m_positionStr1, m_positionPonder1,
+            outFrom, outTo,
+            m_byoyomiMilliSec1, m_bTime, m_wTime,
+            m_addEachMoveMiliSec1, m_addEachMoveMiliSec2, m_useByoyomi
+        );
 
-        // 将棋エンジンにpositionコマンドを送信し、指し手を受信する。
-        m_usi1->handleEngineVsHumanOrEngineMatchCommunication(m_positionStr1, m_positionPonder1, outFrom, outTo, m_byoyomiMilliSec1,
-                                                              m_bTime, m_wTime, m_addEachMoveMiliSec1, m_addEachMoveMiliSec2, m_useByoyomi);
-
-        // 将棋エンジンが投了した場合
         if (m_usi1->isResignMove()) {
-            // 将棋エンジンが"bestmove resign"コマンドで投了した場合の処理を行う。
             handleEngineTwoResignation();
-
             return;
         }
 
-        // 移動元のマスをオレンジ色に着色する。
         updateHighlight(m_selectedField, outFrom, QColor(255, 0, 0, 50));
 
-        // 指そうとした手が合法手だった場合、盤面を更新する。
-        bool isMoveValid1;
-
+        bool isMoveValid1 = false;
         try {
-            isMoveValid1 = m_gameController->validateAndMove(outFrom, outTo, m_lastMove, m_playMode, m_currentMoveIndex, m_sfenRecord, m_gameMoves);
+            isMoveValid1 = m_gameController->validateAndMove(
+                outFrom, outTo, m_lastMove, m_playMode,
+                m_currentMoveIndex, m_sfenRecord, m_gameMoves
+            );
         } catch (const std::exception& e) {
-            // エラーメッセージを表示する。
             displayErrorMessage(e.what());
-
-            // エラーが発生した場合、処理を終了する。
             return;
         }
 
         if (isMoveValid1) {
-            // ★ USI1(先に指した側)の「go/ponderhit→bestmove」経過msを“直前に指した側”へ反映
+            // --- [3] 「直前に指した側」へ Engine1 の思考時間を反映（分岐はこのままで正しい） ---
             const qint64 thinkMs1 = m_usi1->lastBestmoveElapsedMs();
             if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
-                // validateAndMove 後の現在手番 = 先手 → 直前に指したのは後手（= Engine1）
+                // validateAndMove 後の現在手番=先手 → 直前は後手（= Engine1）
                 m_shogiClock->setPlayer2ConsiderationTime(static_cast<int>(thinkMs1));
             } else {
-                // 現在手番 = 後手 → 直前に指したのは先手（= Engine1）
+                // 現在手番=後手 → 直前は先手（= Engine1）
                 m_shogiClock->setPlayer1ConsiderationTime(static_cast<int>(thinkMs1));
             }
 
-            // 手番に応じて将棋クロックの手番変更およびGUIの手番表示を更新する。
+            // 手番・時間制御の更新（インクリ/秒読みの適用や残時間表示更新を内包）
             updateTurnAndTimekeepingDisplay();
 
-            // 現在の駒の移動先の筋と段番号を直前の移動先として保存しておく。
+            // 次エンジンのために前手情報を伝搬
             m_usi2->setPreviousFileTo(outTo.x());
             m_usi2->setPreviousRankTo(outTo.y());
 
-            // 移動先のマスを黄色に着色する。
             updateHighlight(m_movedField, outTo, Qt::yellow);
-
-            // 評価値グラフを更新する。
             redrawEngine1EvaluationGraph();
         }
 
-        // 駒を成る・不成のフラグを不成に設定する。
+        // -------- 後手側（例：Engine2） --------
         m_gameController->setPromote(false);
+        refreshGoTimes(); // go の btime/wtime を最新化
 
-        refreshGoTimes();
+        m_usi2->handleEngineVsHumanOrEngineMatchCommunication(
+            m_positionStr1, m_positionPonder2,   // ★ [2] Engine2 は m_positionPonder2 を使用
+            outFrom, outTo,
+            m_byoyomiMilliSec1, m_bTime, m_wTime,
+            m_addEachMoveMiliSec1, m_addEachMoveMiliSec2, m_useByoyomi
+        );
 
-        // 将棋エンジンにpositionコマンドを送信し、指し手を受信する。
-        m_usi2->handleEngineVsHumanOrEngineMatchCommunication(m_positionStr1, m_positionPonder1, outFrom, outTo, m_byoyomiMilliSec1,
-                                                              m_bTime, m_wTime, m_addEachMoveMiliSec1, m_addEachMoveMiliSec2, m_useByoyomi);
-
-        // 将棋エンジンが投了した場合
         if (m_usi2->isResignMove()) {
-            // 将棋エンジンが"bestmove resign"コマンドで投了した場合の処理を行う。
             handleEngineOneResignation();
-
             return;
         }
 
-        // 移動元のマスをオレンジ色に着色する。
         updateHighlight(m_selectedField, outFrom, QColor(255, 0, 0, 50));
 
-        // 指そうとした手が合法手だった場合、盤面を更新する。
-        bool isMoveValid2;
-
+        bool isMoveValid2 = false;
         try {
-            isMoveValid2 = m_gameController->validateAndMove(outFrom, outTo, m_lastMove, m_playMode, m_currentMoveIndex, m_sfenRecord, m_gameMoves);
+            isMoveValid2 = m_gameController->validateAndMove(
+                outFrom, outTo, m_lastMove, m_playMode,
+                m_currentMoveIndex, m_sfenRecord, m_gameMoves
+            );
         } catch (const std::exception& e) {
-            // エラーメッセージを表示する。
             displayErrorMessage(e.what());
-
-            // エラーが発生した場合、処理を終了する。
             return;
         }
 
         if (isMoveValid2) {
-            // ★ USI2(先に指した側)の「go/ponderhit→bestmove」経過msを“直前に指した側”へ反映
+            // --- [3] 「直前に指した側」へ Engine2 の思考時間を反映（分岐はこのままで正しい） ---
             const qint64 thinkMs2 = m_usi2->lastBestmoveElapsedMs();
             if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
-                // 現在手番 = 先手 → 直前に指したのは後手（= Engine2）
+                // 現在手番=先手 → 直前は後手（= Engine2）
                 m_shogiClock->setPlayer2ConsiderationTime(static_cast<int>(thinkMs2));
             } else {
-                // 現在手番 = 後手 → 直前に指したのは先手（= Engine2）
+                // 現在手番=後手 → 直前は先手（= Engine2）
                 m_shogiClock->setPlayer1ConsiderationTime(static_cast<int>(thinkMs2));
             }
 
-            // 手番に応じて将棋クロックの手番変更およびGUIの手番表示を更新する。
             updateTurnAndTimekeepingDisplay();
 
-            // 現在の駒の移動先の筋と段番号を直前の移動先として保存しておく。
+            // 次エンジンのために前手情報を伝搬
             m_usi1->setPreviousFileTo(outTo.x());
             m_usi1->setPreviousRankTo(outTo.y());
 
-            // 移動先のマスを黄色に着色する。
             updateHighlight(m_movedField, outTo, Qt::yellow);
-
-            // 評価値グラフを更新する。
             redrawEngine2EvaluationGraph();
         }
+
+        // --- [4] UI 応答性の保険（長手順・大思考時でも固まりにくくする） ---
+        qApp->processEvents();
     }
 }
 
