@@ -298,6 +298,9 @@ private:
     // ponderを受信した後のエンジン1のpositionコマンド文字列
     QString m_positionPonder1;
 
+    // ponderを受信した後のエンジン1のpositionコマンド文字列
+    QString m_positionPonder2;
+
     // 対局モード
     PlayMode m_playMode;
 
