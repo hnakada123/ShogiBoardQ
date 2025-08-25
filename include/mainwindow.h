@@ -853,6 +853,7 @@ private:
     bool m_p2HasMoved = false;
 
     void computeGoTimesForUSI(qint64& outB, qint64& outW);
+    void refreshGoTimes();
 };
 
 #endif // MAINWINDOW_H
