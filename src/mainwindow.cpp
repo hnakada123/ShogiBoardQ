@@ -2631,6 +2631,9 @@ void MainWindow::handleClickForPlayerVsEngine(const QPoint& field)
         updateTurnAndTimekeepingDisplay();
 
         try {
+            // 人間が指してエンジンに返すとき（Human vs Engine）
+            refreshGoTimes();
+
             // 将棋エンジンにpositionコマンドを送信し、指し手を受信する。
             m_usi1->handleHumanVsEngineCommunication(m_positionStr1, m_positionPonder1, outFrom, outTo, m_byoyomiMilliSec2,
                                                      m_bTime, m_wTime, m_positionStrList, m_addEachMoveMiliSec1, m_addEachMoveMiliSec2,
@@ -2810,6 +2813,9 @@ void MainWindow::updateTurnDisplay()
 // 手番に応じて将棋クロックの手番変更およびGUIの手番表示を更新する。
 void MainWindow::updateTurnAndTimekeepingDisplay()
 {
+    //begin
+    qDebug() << "@@@@@@@@@@@@@@@@@@@@ in MainWindow::updateTurnAndTimekeepingDisplay";
+    //end
     // 1) 今走っている側を止めて残時間確定
     m_shogiClock->stopClock();
 
@@ -3373,6 +3379,8 @@ void MainWindow::startEngineVsHumanGame()
     QPoint outFrom;
     QPoint outTo;
 
+    refreshGoTimes();
+
     // --- エンジンの初手を取得（EvenEngineVsHuman など） ---
     m_usi1->handleEngineVsHumanOrEngineMatchCommunication(
         m_positionStr1, m_positionPonder1, outFrom, outTo, m_byoyomiMilliSec1,
@@ -3487,6 +3495,8 @@ void MainWindow::startEngineVsEngineGame()
         // 駒を成る・不成のフラグを不成に設定する。
         m_gameController->setPromote(false);
 
+        refreshGoTimes();
+
         // 将棋エンジンにpositionコマンドを送信し、指し手を受信する。
         m_usi1->handleEngineVsHumanOrEngineMatchCommunication(m_positionStr1, m_positionPonder1, outFrom, outTo, m_byoyomiMilliSec1,
                                                               m_bTime, m_wTime, m_addEachMoveMiliSec1, m_addEachMoveMiliSec2, m_useByoyomi);
@@ -3542,6 +3552,8 @@ void MainWindow::startEngineVsEngineGame()
 
         // 駒を成る・不成のフラグを不成に設定する。
         m_gameController->setPromote(false);
+
+        refreshGoTimes();
 
         // 将棋エンジンにpositionコマンドを送信し、指し手を受信する。
         m_usi2->handleEngineVsHumanOrEngineMatchCommunication(m_positionStr1, m_positionPonder1, outFrom, outTo, m_byoyomiMilliSec1,
@@ -5572,33 +5584,32 @@ void MainWindow::finishTurnTimerAndSetConsiderationFor(ShogiGameController::Play
 
 void MainWindow::computeGoTimesForUSI(qint64& outB, qint64& outW)
 {
-    // 1) 現在の内部時計（post-add）を取得（stop/apply 後に呼ぶこと）
-    outB = m_shogiClock->getPlayer1TimeIntMs();
-    outW = m_shogiClock->getPlayer2TimeIntMs();
+    // ShogiClock の「内部残時間」（ms）を取得
+    const qint64 rawB = qMax<qint64>(0, m_shogiClock->getPlayer1TimeIntMs());
+    const qint64 rawW = qMax<qint64>(0, m_shogiClock->getPlayer2TimeIntMs());
 
-    // 秒読みモードなら加工不要
-    if (m_useByoyomi) return;
-
-    const qint64 inc1 = static_cast<qint64>(m_addEachMoveMiliSec1);
-    const qint64 inc2 = static_cast<qint64>(m_addEachMoveMiliSec2);
-    if (inc1 <= 0 && inc2 <= 0) return;
-
-    const bool nextIsP1 = (m_gameController->currentPlayer() == ShogiGameController::Player1);
-
-    // 2) すでに一度でも指したサイドは post-add を剥がす（＝常に pre-add 表示に寄せる）
-    if (m_p1HasMoved && inc1 > 0) outB = qMax<qint64>(0, outB - inc1);
-    if (m_p2HasMoved && inc2 > 0) outW = qMax<qint64>(0, outW - inc2);
-
-    // 3) これから指す側が「初手（未着手）」なら、さらに −inc して初期値−inc に見せる
-    if (nextIsP1) {
-        if (!m_p1HasMoved && inc1 > 0) outB = qMax<qint64>(0, outB - inc1);
-    } else {
-        if (!m_p2HasMoved && inc2 > 0) outW = qMax<qint64>(0, outW - inc2);
+    if (m_useByoyomi) {
+        // ★ 秒読み方式：btime/wtime は「メイン持ち時間のみ」
+        // いま秒読み“適用中”なら 0 を送る
+        outB = m_shogiClock->byoyomi1Applied() ? 0 : rawB;
+        outW = m_shogiClock->byoyomi2Applied() ? 0 : rawW;
+        return;
     }
 
-    // （任意のデバッグ）
-    // qDebug() << "[GO-prep] nextIsP1=" << nextIsP1
-    //          << "p1Moved=" << m_p1HasMoved << "p2Moved=" << m_p2HasMoved
-    //          << "b(out)=" << outB << "w(out)=" << outW
-    //          << "inc1=" << inc1 << "inc2=" << inc2;
+    // ★ フィッシャー方式：常に pre-add に正規化（内部は post-add なので1回だけ引く）
+    outB = rawB;
+    outW = rawW;
+
+    const qint64 incB = static_cast<qint64>(m_addEachMoveMiliSec1);
+    const qint64 incW = static_cast<qint64>(m_addEachMoveMiliSec2);
+    if (incB > 0) outB = qMax<qint64>(0, outB - incB);
+    if (incW > 0) outW = qMax<qint64>(0, outW - incW);
+}
+
+void MainWindow::refreshGoTimes()
+{
+    qint64 b, w;
+    computeGoTimesForUSI(b, w);
+    m_bTime = QString::number(b);
+    m_wTime = QString::number(w);
 }
