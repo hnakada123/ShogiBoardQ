@@ -503,6 +503,26 @@ void Usi::appendBestMoveAndStartPondering(QString& positionStr, QString& positio
 // @param btime 黒の残り時間
 // @param wtime 白の残り時間
 // @param positionPonderStr position文字列に予想手を追加したもの
+void Usi::sendCommandsAndProcess(
+    int byoyomiMilliSec, QString& positionStr, const QString& btime, const QString& wtime,
+    QString& positionPonderStr, int addEachMoveMilliSec1, int addEachMoveMilliSec2, bool useByoyomi)
+{
+    // position → go
+    sendPositionCommand(positionStr);
+    cloneCurrentBoardData();
+    sendGoCommand(byoyomiMilliSec, btime, wtime, addEachMoveMilliSec1, addEachMoveMilliSec2, useByoyomi);
+
+    // ★ 修正(2)(3): byoyomi の有無に関わらず、手番側の上限時間で待機する
+    waitAndCheckForBestMoveRemainingTime(byoyomiMilliSec, btime, wtime,
+                                         addEachMoveMilliSec1, addEachMoveMilliSec2, useByoyomi);
+
+    if (m_isResignMove) return;
+
+    // bestmove 受信後の処理
+    appendBestMoveAndStartPondering(positionStr, positionPonderStr);
+}
+
+/*
 void Usi::sendCommandsAndProcess(int byoyomiMilliSec, QString& positionStr, const QString& btime, const QString& wtime,
                                  QString& positionPonderStr, int addEachMoveMilliSec1, int addEachMoveMilliSec2, bool useByoyomi)
 {
@@ -530,6 +550,7 @@ void Usi::sendCommandsAndProcess(int byoyomiMilliSec, QString& positionStr, cons
     // 指定された時間内にbestmoveを受信し、その後の手順に従い処理を行う。
     appendBestMoveAndStartPondering(positionStr, positionPonderStr);
 }
+*/
 
 // positionコマンドとgoコマンドを送信し、bestmoveを受信するまで待機する。
 void Usi::sendPositionAndGoCommands(int byoyomiMilliSec, QString& positionStr)
@@ -565,41 +586,56 @@ void Usi::printShogiBoard(const QVector<QChar>& boardData) const
 }
 
 // 残り時間になるまでbestmoveを待機する。
-void Usi::waitAndCheckForBestMoveRemainingTime(int byoyomiMilliSec,
-                                               const QString& btime, const QString& wtime,
-                                               int /*addEachMoveMilliSec1*/, int /*addEachMoveMilliSec2*/,
-                                               bool useByoyomi)
+void Usi::waitAndCheckForBestMoveRemainingTime(
+    int byoyomiMilliSec, const QString& btime, const QString& wtime,
+    int /*addEachMoveMilliSec1*/, int /*addEachMoveMilliSec2*/, bool useByoyomi)
 {
-    // 現手番
     const bool p1turn = (m_gameController->currentPlayer() == ShogiGameController::Player1);
+    const int  mainMs = p1turn ? btime.toInt() : wtime.toInt();
 
-    // go に渡した「メイン残り」（ms）
-    const int mainMs = p1turn ? btime.toInt() : wtime.toInt();
+    // ★ 修正(2): 上限は「メイン (+ 秒読み)」。インクリメントは“着手後”に付くため待機時間に加えない
+    int capMs = useByoyomi ? (mainMs + byoyomiMilliSec) : mainMs;
 
-    // ★ インクリメントは「着手後」に付くので待機時間に足さない
-    // ★ 1秒マージン(+1000) も不要。むしろ待ち過ぎの原因になる
+    // ★ 修正(3): “常に -100ms” はやめる。大きく残っている時のみ少し控えめに。
+    // （例）200ms以上ある時にだけ100ms控えめ。小残量時はそのまま。
+    if (capMs >= 200) capMs -= 100;
 
-    int remainingTime;
-    if (useByoyomi) {
-        // 秒読み方式：上限は「メイン + 秒読み」
-        remainingTime = mainMs + byoyomiMilliSec;
-    } else {
-        // インクリメント方式：上限は「メインのみ」
-        remainingTime = mainMs;
+    // ★ 修正(4): デバッグ強化
+    qDebug().nospace()
+        << "[USI] waitBestmove  turn=" << (p1turn ? "P1" : "P2")
+        << " cap=" << capMs << "ms"
+        << " (main=" << mainMs
+        << ", byoyomi=" << byoyomiMilliSec
+        << ", mode=" << (useByoyomi ? "byoyomi" : "increment") << ")";
+
+    // ★ 修正(2): まず“予算内”で待つ。ダメなら“小さな猶予”内で再度待つ
+    if (!waitForBestMoveWithGrace(capMs, kBestmoveGraceMs)) {
+        // ここまで来たら“本当に”遅延と見なす
+        // → 呼び出し元ではゲーム側の旗落ち判定（手番側のみ）に委ねることを想定
+        QString errorMessage = tr("An error occurred in Usi::waitAndCheckForBestMoveRemainingTime. Timeout waiting for bestmove.");
+        ShogiUtils::logAndThrowError(errorMessage);
     }
+}
 
-    // （任意）通信・スレッド遅延のガードとして、ほんの少しだけ短めに待つ方が安全
-    // 例：100ms だけ控えめにする（負値にならないように）
-    remainingTime = qMax(0, remainingTime - 100);
+// ★ 追加(2): 予算(cap)で待ち、ダメなら“猶予”でリトライ
+bool Usi::waitForBestMoveWithGrace(int budgetMs, int graceMs)
+{
+    // まずは正規の予算内
+    if (budgetMs <= 0) {
+        // 予算0でも、最小の猶予だけ認める
+        budgetMs = 1;
+    }
+    if (waitForBestMove(budgetMs)) return true;
 
-    // デバッグ
-    qDebug().nospace() << "[USI] waitBestmove cap="
-                       << remainingTime << "ms (main=" << mainMs
-                       << ", byoyomi=" << byoyomiMilliSec
-                       << ", mode=" << (useByoyomi ? "byoyomi" : "increment") << ")";
-
-    // 上限時間内に bestmove を待つ
-    waitAndCheckForBestMove(remainingTime);
+    // 猶予で再トライ
+    if (graceMs > 0 && waitForBestMove(graceMs)) {
+        qint64 over = m_goTimer.isValid() ? (m_goTimer.elapsed() - budgetMs) : -1;
+        qDebug().nospace()
+            << "[USI] bestmove within grace  over=" << (over < 0 ? 0 : over) << "ms"
+            << " grace=" << graceMs << "ms";
+        return true;
+    }
+    return false;
 }
 
 // 将棋エンジンからのレスポンスに基づいて、適切なコマンドを送信し、必要に応じて処理を行う。
@@ -1291,13 +1327,23 @@ void Usi::sendStopCommand()
 }
 
 // ponderhitコマンドを将棋エンジンに送信する。
+// ponderhitコマンドを将棋エンジンに送信する。
 void Usi::sendPonderHitCommand()
 {
     // ★ 計測リセット＆開始（ここからが“自分の手番の思考時間”）
     m_lastGoToBestmoveMs = 0;
     m_goTimer.start();
-    qDebug().nospace() << "[USI] " << nowIso()
-                       << " start at ponderhit";
+
+    // ★ 追加：デバッグ出力を強化（手番/予想手/直前手の終点）
+    const bool p1turn = (m_gameController->currentPlayer() == ShogiGameController::Player1);
+    const QString pred = m_predictedOpponentMove.isEmpty() ? QStringLiteral("-") : m_predictedOpponentMove;
+
+    qDebug().nospace()
+        << "[USI] " << nowIso()
+        << " start at ponderhit"
+        << "  turn=" << (p1turn ? "P1" : "P2")
+        << "  predicted=" << pred
+        << "  prevTo=(" << m_previousFileTo << "," << m_previousRankTo << ")";
 
     // 将棋エンジンにコマンドを送信する。
     sendCommand("ponderhit");
@@ -1452,9 +1498,11 @@ void Usi::sendGoCommand(int byoyomiMilliSec, const QString& btime, const QString
     // ★ 計測リセット＆開始（ponder は含めない）
     m_lastGoToBestmoveMs = 0;
     m_goTimer.start();
+    // sendGoCommand(...) のログ直前に追記（turn表示）
+    const bool p1turn = (m_gameController->currentPlayer() == ShogiGameController::Player1);
     qDebug().nospace() << "[USI] " << nowIso()
-                       << " start at go  "
-                       << "btime=" << btime << " wtime=" << wtime
+                       << " start at go  turn=" << (p1turn ? "P1" : "P2")
+                       << " btime=" << btime << " wtime=" << wtime
                        << " byoyomi=" << byoyomiMilliSec << "ms";
 
     // 将棋エンジンにコマンドを送信する。

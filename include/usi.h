@@ -94,6 +94,9 @@ public:
 
     qint64 lastBestmoveElapsedMs() const { return m_lastGoToBestmoveMs; }
 
+    // エンジンにgameover loseコマンドとquitコマンドを送信し、手番を変更する。
+    void sendGameOverLoseAndQuitCommands();
+
 signals:
     // stopあるいはponderhitコマンドが送信されたことを通知するシグナル
     void stopOrPonderhitCommandSent();
@@ -389,15 +392,19 @@ private:
     // 盤面データを9x9のマスに表示する。
     void printShogiBoard(const QVector<QChar>& boardData) const;
 
-    // エンジンにgameover loseコマンドとquitコマンドを送信し、手番を変更する。
-    void sendGameOverLoseAndQuitCommands();
-
     // 残り時間になるまでbestmoveを待機する。
     void waitAndCheckForBestMoveRemainingTime(int byoyomiMilliSec, const QString& btime, const QString& wtime,
                                               int addEachMoveMilliSec1, int addEachMoveMilliSec2, bool useByoyomi);
 
     QElapsedTimer m_goTimer;               // go or ponderhit を送った時刻
     qint64        m_lastGoToBestmoveMs=0;  // 直近の go/ponderhit → bestmove 経過ms
+
+    // === 追記: ヘッダ（privateセクション）======================================
+    // ★ 追加(2)(3): 予算内待機 + 小さな猶予で再度待つヘルパ
+    bool waitForBestMoveWithGrace(int budgetMs, int graceMs);
+
+    // ★ 追加(2): “小さな猶予”の既定値（OSスケジューリング/パイプ遅延用）
+    static constexpr int kBestmoveGraceMs = 250; // 200〜300ms がおすすめ
 };
 
 // GUIのメインスレッドとは別のスレッドでgo ponderコマンド受信後の将棋エンジンの処理を行う。
