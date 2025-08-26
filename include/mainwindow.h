@@ -857,6 +857,15 @@ private:
 
     void computeGoTimesForUSI(qint64& outB, qint64& outW);
     void refreshGoTimes();
+
+    // ★ 追加: GUI側の旗落ち判定に使う最小猶予（ms）
+    static constexpr int kFlagFallGraceMs = 200; // 推奨: 150〜300 の範囲で好みに調整
+
+    // ★ 追加: その「手番の側」の想定予算(ms)を算出
+    int computeMoveBudgetMsForCurrentTurn() const;
+
+    // ★ 追加: 旗落ち（時間切れ）を処理。moverP1がtrueなら先手(P1)が時間切れ
+    void handleFlagFallForMover(bool moverP1);
 };
 
 #endif // MAINWINDOW_H
