@@ -517,8 +517,7 @@ void Usi::sendCommandsAndProcess(
     sendGoCommand(byoyomiMilliSec, btime, wtime, addEachMoveMilliSec1, addEachMoveMilliSec2, useByoyomi);
 
     // ★ 修正(2)(3): byoyomi の有無に関わらず、手番側の上限時間で待機する
-    waitAndCheckForBestMoveRemainingTime(byoyomiMilliSec, btime, wtime,
-                                         addEachMoveMilliSec1, addEachMoveMilliSec2, useByoyomi);
+    waitAndCheckForBestMoveRemainingTime(byoyomiMilliSec, btime, wtime, useByoyomi);
 
     if (m_isResignMove) return;
 
@@ -560,9 +559,7 @@ void Usi::printShogiBoard(const QVector<QChar>& boardData) const
 }
 
 // 残り時間になるまでbestmoveを待機する。
-void Usi::waitAndCheckForBestMoveRemainingTime(
-    int byoyomiMilliSec, const QString& btime, const QString& wtime,
-    int /*addEachMoveMilliSec1*/, int /*addEachMoveMilliSec2*/, bool useByoyomi)
+void Usi::waitAndCheckForBestMoveRemainingTime(int byoyomiMilliSec, const QString& btime, const QString& wtime, bool useByoyomi)
 {
     const bool p1turn = (m_gameController->currentPlayer() == ShogiGameController::Player1);
     const int  mainMs = p1turn ? btime.toInt() : wtime.toInt();
@@ -629,8 +626,7 @@ void Usi::processEngineResponse(QString& positionStr, QString& positionPonderStr
             if (byoyomiMilliSec == 0) {
                 keepWaitingForBestMove();
             } else {
-                waitAndCheckForBestMoveRemainingTime(byoyomiMilliSec, btime, wtime,
-                                                     addEachMoveMilliSec1, addEachMoveMilliSec2, useByoyomi);
+                waitAndCheckForBestMoveRemainingTime(byoyomiMilliSec, btime, wtime, useByoyomi);
             }
             if (m_isResignMove) return;
 
@@ -647,8 +643,7 @@ void Usi::processEngineResponse(QString& positionStr, QString& positionPonderStr
             if (byoyomiMilliSec == 0) {
                 keepWaitingForBestMove();
             } else {
-                waitAndCheckForBestMoveRemainingTime(byoyomiMilliSec, btime, wtime,
-                                                     addEachMoveMilliSec1, addEachMoveMilliSec2, useByoyomi);
+                waitAndCheckForBestMoveRemainingTime(byoyomiMilliSec, btime, wtime, useByoyomi);
             }
             if (m_isResignMove) return;
 
@@ -1060,53 +1055,25 @@ void Usi::readFromEngine()
         const QByteArray data = m_process->readLine();
         QString line = QString::fromUtf8(data).trimmed();
 
-        // --- NEW: 終了状態での扱い（ログも含めてここで制御） ---
-        if (m_shutdownState == ShutdownState::IgnoreAll) {
-            // 完全無視：ログも処理も行わない
-            continue;
-        }
-        if (m_shutdownState == ShutdownState::IgnoreAllExceptInfoString) {
-            if (m_postQuitInfoStringLinesLeft > 0 && shouldLogAfterQuit(line)) {
-                const QString pfx = logPrefix();
-                m_model->appendUsiCommLog(pfx + " < " + line);
-                qDebug().nospace() << pfx << " usidebug< " << line;
-
-                if (--m_postQuitInfoStringLinesLeft <= 0) {
-                    m_shutdownState = ShutdownState::IgnoreAll; // 規定行数を超えたら以後は完全遮断
-                }
-            }
-            // 許可しなかった行は捨てる。解析にも進まない。
-            continue;
-        }
-        // --- ここから通常処理（Running のみ） ---
-
-        // id name の取得（必要なら）
+        // ---- (既存) id name の取り出し ここは残すなら残す ----
         if (line.startsWith("id name ")) {
             const QString n = line.mid(8).trimmed();
             if (!n.isEmpty() && m_logEngineName.isEmpty())
                 m_logEngineName = n;
         }
 
+        // ---- ★ NEW: タイムアウト後の "bestmove resign" はログも処理も黙殺 ----
+        if (m_squelchResignLogs && line.startsWith(QStringLiteral("bestmove resign"))) {
+            continue; // ログも出さない・ハンドラも呼ばない
+        }
+
+        // （既存）ここからログ出力
         const QString pfx = logPrefix();
         m_lines.append(line);
-
-        // 双方向ログ（通常時のみ）
         m_model->appendUsiCommLog(pfx + " < " + line);
         qDebug().nospace() << pfx << " usidebug< " << line;
 
-        // もしエンジンが「quit」を出してくる異常系も、以降を遮断する
-        if (line == QStringLiteral("quit") || line.startsWith(QStringLiteral("quit "))) {
-            // ここは「返信を許可」ではなく、即遮断で良い（エンジン起点のquitのため）
-            m_shutdownState = ShutdownState::IgnoreAll;
-            continue;
-        }
-        // 同様に「gameover ...」もこの時点で遮断して良ければ以下をONに
-        if (line.startsWith(QStringLiteral("gameover "))) {
-            // 必要なら：m_shutdownState = ShutdownState::IgnoreAll;
-            // continue;
-        }
-
-        // 以降は従来通り
+        // （既存）イベント分岐
         if (line.startsWith("bestmove")) {
             m_bestMoveSignalReceived = true;
             bestMoveReceived(line);
@@ -1644,6 +1611,10 @@ bool Usi::keepWaitingForBestMove()
 // 将棋エンジンからbestmoveを受信した時に最善手を取得する。
 void Usi::bestMoveReceived(const QString& line)
 {
+    // タイムアウト後の投了は完全黙殺
+    if (m_squelchResignLogs && line.startsWith(QStringLiteral("bestmove resign")))
+        return;
+
     if (m_shutdownState != ShutdownState::Running) return; // NEW
 
     // 最善手の文字列をクリアする。
@@ -1809,4 +1780,9 @@ bool Usi::shouldLogAfterQuit(const QString& line) const
 {
     // 「info string」から始まる行だけを許可（完全一致の先頭判定）
     return line.startsWith(QStringLiteral("info string"));
+}
+
+void Usi::setSquelchResignLogging(bool on)
+{
+    m_squelchResignLogs = on;
 }

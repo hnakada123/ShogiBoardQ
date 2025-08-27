@@ -100,6 +100,9 @@ public:
     // ログ識別子の設定（GUI 生成側で E1/E2, P1/P2, Engine名 を渡す）
     void setLogIdentity(const QString& engineTag, const QString& sideTag, const QString& engineName = QString());
 
+    // タイムアウト確定後に、当該エンジンが出す "bestmove resign" を黙殺する
+    void setSquelchResignLogging(bool on);
+
 signals:
     // stopあるいはponderhitコマンドが送信されたことを通知するシグナル
     void stopOrPonderhitCommandSent();
@@ -396,8 +399,7 @@ private:
     void printShogiBoard(const QVector<QChar>& boardData) const;
 
     // 残り時間になるまでbestmoveを待機する。
-    void waitAndCheckForBestMoveRemainingTime(int byoyomiMilliSec, const QString& btime, const QString& wtime,
-                                              int addEachMoveMilliSec1, int addEachMoveMilliSec2, bool useByoyomi);
+    void waitAndCheckForBestMoveRemainingTime(int byoyomiMilliSec, const QString& btime, const QString& wtime, bool useByoyomi);
 
     QElapsedTimer m_goTimer;               // go or ponderhit を送った時刻
     qint64        m_lastGoToBestmoveMs=0;  // 直近の go/ponderhit → bestmove 経過ms
@@ -443,6 +445,8 @@ private:
 
     bool m_gameoverSent = false; // このインスタンスに gameover を送ったか
     bool m_quitSent     = false; // このインスタンスに quit を送ったか
+
+    bool m_squelchResignLogs = false; // NEW: true なら "bestmove resign" をログ/処理ともに捨てる
 };
 
 // GUIのメインスレッドとは別のスレッドでgo ponderコマンド受信後の将棋エンジンの処理を行う。

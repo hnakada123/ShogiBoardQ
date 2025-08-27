@@ -3217,6 +3217,8 @@ void MainWindow::startHumanVsEngineGame()
 
     m_usi1->setLogIdentity("[E1]", "P1", m_startGameDialog->engineName1());
 
+    if (m_usi1) m_usi1->setSquelchResignLogging(false);
+
     if ((m_playMode == EvenHumanVsEngine) || (m_playMode == HandicapHumanVsEngine)) {
         // 人間先手 / 人間上手
         initializeAndStartPlayer2WithEngine1();
@@ -3335,6 +3337,8 @@ void MainWindow::startEngineVsHumanGame()
 
     m_usi1->setLogIdentity("[E1]", "P1", m_startGameDialog->engineName1());
 
+    if (m_usi1) m_usi1->setSquelchResignLogging(false);
+
     if (m_playMode == EvenEngineVsHuman) {
         initializeAndStartPlayer1WithEngine1();
     } else if (m_playMode == HandicapHumanVsEngine) {
@@ -3448,6 +3452,10 @@ void MainWindow::startEngineVsEngineGame()
 
     m_usi1->setLogIdentity("[E1]", "P1", m_startGameDialog->engineName1());
     m_usi2->setLogIdentity("[E2]", "P2", m_startGameDialog->engineName2());
+
+    // 例：新規対局の初期化時
+    if (m_usi1) m_usi1->setSquelchResignLogging(false);
+    if (m_usi2) m_usi2->setSquelchResignLogging(false);
 
     // エンジン割り当て
     if (m_playMode == EvenEngineVsEngine) {
@@ -4723,6 +4731,8 @@ void MainWindow::startConsidaration()
 
     m_usi1->setLogIdentity("[E1]", "P1", engineName1);
 
+    if (m_usi1) m_usi1->setSquelchResignLogging(false);
+
     try {
         // 将棋エンジンを起動し、対局開始までのコマンドを実行する。
         m_usi1->initializeAndStartEngineCommunication(m_engineFile1, engineName1);
@@ -4779,6 +4789,8 @@ void MainWindow::startTsumiSearch()
     QString engineName1 = m_tsumeShogiSearchDialog->getEngineName();
 
     m_usi1->setLogIdentity("[E1]", "P1", engineName1);
+
+    if (m_usi1) m_usi1->setSquelchResignLogging(false);
 
     try {
         // 将棋エンジンを起動し、対局開始までのコマンドを実行する。
@@ -4877,6 +4889,8 @@ void MainWindow::analyzeGameRecord()
     QString engineName1 = m_analyzeGameRecordDialog->engineName();
 
     m_usi1->setLogIdentity("[E1]", "P1", engineName1);
+
+    if (m_usi1) m_usi1->setSquelchResignLogging(false);
 
     m_usi1->initializeAndStartEngineCommunication(m_engineFile1, engineName1);
 
@@ -5696,12 +5710,15 @@ void MainWindow::stopClockAndSendGameOver(Winner w)
 // 先手が時間切れ → 先手敗北（loserIsPlayerOne = true）
 void MainWindow::onPlayer1TimeOut()
 {
+    // ★追加：先手エンジンの "bestmove resign" を以後は黙殺（ログも出さない）
+    if (m_usi1) m_usi1->setSquelchResignLogging(true);
+
     m_shogiClock->markGameOver();
 
     // 終局表記を「▲時間切れ」にする
     setGameOverMove(GameOverCause::Timeout, /*loserIsPlayerOne=*/true);
 
-    // 勝者・敗者に正しい gameover を送る（前回の stopClockAndSendGameOver を使用）
+    // 勝者・敗者に正しい gameover を送る
     stopClockAndSendGameOver(Winner::P2);
 
     displayResultsAndUpdateGui();
@@ -5710,6 +5727,9 @@ void MainWindow::onPlayer1TimeOut()
 // 後手が時間切れ → 後手敗北（loserIsPlayerOne = false）
 void MainWindow::onPlayer2TimeOut()
 {
+    // ★追加：後手エンジンの "bestmove resign" を以後は黙殺（ログも出さない）
+    if (m_usi2) m_usi2->setSquelchResignLogging(true);
+
     m_shogiClock->markGameOver();
 
     // 終局表記を「△時間切れ」にする
