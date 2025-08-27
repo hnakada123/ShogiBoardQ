@@ -15,7 +15,6 @@
 #include "kifuanalysislistmodel.h"
 #include "shogigamecontroller.h"
 #include "shogiview.h"
-//#include "ui_mainwindow.h"
 #include "usi.h"
 #include "startgamedialog.h"
 #include "kifuanalysisdialog.h"
@@ -254,6 +253,9 @@ private slots:
 
     // ドラッグを終了する。駒を移動してカーソルを戻す。
     void endDrag();
+
+    void onPlayer1TimeOut();
+    void onPlayer2TimeOut();
 
 private:
     // 平手初期局面のSFEN文字列
@@ -866,6 +868,9 @@ private:
 
     // ★ 追加: 旗落ち（時間切れ）を処理。moverP1がtrueなら先手(P1)が時間切れ
     void handleFlagFallForMover(bool moverP1);
+
+    enum class Winner { P1, P2 };
+    void stopClockAndSendGameOver(Winner w);
 };
 
 #endif // MAINWINDOW_H
