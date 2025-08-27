@@ -440,6 +440,9 @@ private:
 
     // "info string ..." を許可するか判定する（quit後専用）
     bool shouldLogAfterQuit(const QString& line) const; // NEW
+
+    bool m_gameoverSent = false; // このインスタンスに gameover を送ったか
+    bool m_quitSent     = false; // このインスタンスに quit を送ったか
 };
 
 // GUIのメインスレッドとは別のスレッドでgo ponderコマンド受信後の将棋エンジンの処理を行う。

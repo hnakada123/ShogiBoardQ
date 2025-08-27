@@ -61,6 +61,8 @@ Usi::Usi(UsiCommLogModel* model, ShogiEngineThinkingModel* modelThinking, ShogiG
 {
     m_shutdownState = ShutdownState::Running;      // NEW
     m_postQuitInfoStringLinesLeft = 0;             // NEW
+    m_gameoverSent = false;
+    m_quitSent     = false;
 }
 
 // デストラクタ
@@ -1010,40 +1012,39 @@ void Usi::infoReceived(QString& line)
 
 void Usi::sendGameOverLoseAndQuitCommands()
 {
-    if (m_process && m_process->state() == QProcess::Running) {
+    if (!m_process || m_process->state() != QProcess::Running) return;
+
+    if (!m_gameoverSent) {                               // ★ 2重送信ガード
         sendGameOverCommand(QStringLiteral("lose"));
-        sendQuitCommand();
-
-        // --- quit 後の挙動を設定：info string だけを N 行許可（例：1行） --- // NEW
-        m_shutdownState = ShutdownState::IgnoreAllExceptInfoString;
-        m_postQuitInfoStringLinesLeft = 1; // 「お礼」等を1行だけログに残す。不要なら 0 に。
-
-        // --- 既にパイプに載っている残骸を読み捨て（ログに載せない） --- // NEW
-        if (m_process) {
-            (void)m_process->readAllStandardOutput();
-            (void)m_process->readAllStandardError();
-            m_process->closeWriteChannel(); // EOF通知でエンジン終了を促す
-        }
+        m_gameoverSent = true;
     }
+
+    sendQuitCommand();                                   // ★ 中で m_quitSent を確認
+
+    // 以降は以前のとおり（info string だけ許可／バッファ廃棄／EOF）
+    m_shutdownState = ShutdownState::IgnoreAllExceptInfoString;
+    m_postQuitInfoStringLinesLeft = 1;
+    (void)m_process->readAllStandardOutput();
+    (void)m_process->readAllStandardError();
+    m_process->closeWriteChannel();
 }
 
 void Usi::sendGameOverWinAndQuitCommands()
 {
-    if (m_process && m_process->state() == QProcess::Running) {
+    if (!m_process || m_process->state() != QProcess::Running) return;
+
+    if (!m_gameoverSent) {
         sendGameOverCommand(QStringLiteral("win"));
-        sendQuitCommand();
-
-        // --- quit 後の挙動を設定：info string だけを N 行許可（例：1行） --- // NEW
-        m_shutdownState = ShutdownState::IgnoreAllExceptInfoString;
-        m_postQuitInfoStringLinesLeft = 1; // 不要なら 0
-
-        // --- 残骸を読み捨て、書き込みチャネルを閉じる --- // NEW
-        if (m_process) {
-            (void)m_process->readAllStandardOutput();
-            (void)m_process->readAllStandardError();
-            m_process->closeWriteChannel();
-        }
+        m_gameoverSent = true;
     }
+
+    sendQuitCommand();
+
+    m_shutdownState = ShutdownState::IgnoreAllExceptInfoString;
+    m_postQuitInfoStringLinesLeft = 1;
+    (void)m_process->readAllStandardOutput();
+    (void)m_process->readAllStandardError();
+    m_process->closeWriteChannel();
 }
 
 // 将棋エンジンから受信したデータを1行ごとにm_linesに貯え、GUIに受信データをログ出力する。
@@ -1256,26 +1257,18 @@ void Usi::clearResponseData()
 // エンジンに quit コマンドを送る（送信ログは残す／状態遷移はしない）
 void Usi::sendQuitCommand()
 {
-    if (!m_process || m_process->state() != QProcess::Running)
-        return;
+    if (!m_process || m_process->state() != QProcess::Running) return;
+    if (m_quitSent) return;               // ★ 2重送信ガード
+    m_quitSent = true;                    // 先に立てる（競合回避）
 
     const QString pfx = logPrefix();
-
-    // 送信ログ
     m_model->appendUsiCommLog(pfx + QStringLiteral(" > quit"));
     qDebug().nospace() << pfx << " usidebug> quit";
 
-    // 送信
-    const QByteArray cmd = QByteArrayLiteral("quit\n");
-    const qint64 written = m_process->write(cmd);
-
-    // 書き込み失敗時は任意でログ（throw ではなく記録だけにとどめると終了処理が崩れない）
+    const qint64 written = m_process->write(QByteArrayLiteral("quit\n"));
     if (written == -1) {
         qWarning().nospace() << pfx << " usidebug> quit (write failed)";
     }
-
-    // UIブロックを避けたいなら waitForBytesWritten は省略可
-    // m_process->waitForBytesWritten(50);
 }
 
 // usinewgameコマンドを将棋エンジンに送信する。
