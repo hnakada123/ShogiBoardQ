@@ -3246,6 +3246,8 @@ void MainWindow::startHumanVsEngineGame()
     if (m_usi1 != nullptr) delete m_usi1;
     m_usi1 = new Usi(m_lineEditModel1, m_modelThinking1, m_gameController, m_playMode, this);
 
+    m_usi1->setLogIdentity("[E1]", "P1", m_startGameDialog->engineName1());
+
     if ((m_playMode == EvenHumanVsEngine) || (m_playMode == HandicapHumanVsEngine)) {
         // 人間先手 / 人間上手
         initializeAndStartPlayer2WithEngine1();
@@ -3362,6 +3364,8 @@ void MainWindow::startEngineVsHumanGame()
     if (m_usi1 != nullptr) delete m_usi1;
     m_usi1 = new Usi(m_lineEditModel1, m_modelThinking1, m_gameController, m_playMode, this);
 
+    m_usi1->setLogIdentity("[E1]", "P1", m_startGameDialog->engineName1());
+
     if (m_playMode == EvenEngineVsHuman) {
         initializeAndStartPlayer1WithEngine1();
     } else if (m_playMode == HandicapHumanVsEngine) {
@@ -3472,6 +3476,9 @@ void MainWindow::startEngineVsEngineGame()
     // USI インスタンス生成
     m_usi1 = new Usi(m_lineEditModel1, m_modelThinking1, m_gameController, m_playMode, this);
     m_usi2 = new Usi(m_lineEditModel2, m_modelThinking2, m_gameController, m_playMode, this);
+
+    m_usi1->setLogIdentity("[E1]", "P1", m_startGameDialog->engineName1());
+    m_usi2->setLogIdentity("[E2]", "P2", m_startGameDialog->engineName2());
 
     // エンジン割り当て
     if (m_playMode == EvenEngineVsEngine) {
@@ -4743,6 +4750,8 @@ void MainWindow::startConsidaration()
     // 将棋エンジン名を取得する。
     QString engineName1 = m_considarationDialog->getEngineName();
 
+    m_usi1->setLogIdentity("[E1]", "P1", engineName1);
+
     try {
         // 将棋エンジンを起動し、対局開始までのコマンドを実行する。
         m_usi1->initializeAndStartEngineCommunication(m_engineFile1, engineName1);
@@ -4797,6 +4806,8 @@ void MainWindow::startTsumiSearch()
 
     // 将棋エンジン名を取得する。
     QString engineName1 = m_tsumeShogiSearchDialog->getEngineName();
+
+    m_usi1->setLogIdentity("[E1]", "P1", engineName1);
 
     try {
         // 将棋エンジンを起動し、対局開始までのコマンドを実行する。
@@ -4893,6 +4904,8 @@ void MainWindow::analyzeGameRecord()
 
     // 将棋エンジン名を取得する。
     QString engineName1 = m_analyzeGameRecordDialog->engineName();
+
+    m_usi1->setLogIdentity("[E1]", "P1", engineName1);
 
     m_usi1->initializeAndStartEngineCommunication(m_engineFile1, engineName1);
 

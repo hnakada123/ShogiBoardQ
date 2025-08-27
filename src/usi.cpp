@@ -522,36 +522,6 @@ void Usi::sendCommandsAndProcess(
     appendBestMoveAndStartPondering(positionStr, positionPonderStr);
 }
 
-/*
-void Usi::sendCommandsAndProcess(int byoyomiMilliSec, QString& positionStr, const QString& btime, const QString& wtime,
-                                 QString& positionPonderStr, int addEachMoveMilliSec1, int addEachMoveMilliSec2, bool useByoyomi)
-{
-    // positionコマンドを将棋エンジンに送信する。
-    sendPositionCommand(positionStr);
-
-    // 現在の局面（盤内のみ）をコピーする。
-    cloneCurrentBoardData();
-
-    // goコマンドを将棋エンジンに送信する。
-    sendGoCommand(byoyomiMilliSec, btime, wtime, addEachMoveMilliSec1, addEachMoveMilliSec2, useByoyomi);
-
-    // 秒読み時間が0の場合
-    if (byoyomiMilliSec == 0) {
-        // 将棋エンジンからbestmoveを受信するまで待ち続ける。
-        keepWaitingForBestMove();
-    } else {
-        // 残り時間になるまでbestmoveを待機する。
-        waitAndCheckForBestMoveRemainingTime(byoyomiMilliSec, btime, wtime, addEachMoveMilliSec1, addEachMoveMilliSec2, useByoyomi);
-    }
-
-    // bestmove resignを受信した場合
-    if (m_isResignMove) return;
-
-    // 指定された時間内にbestmoveを受信し、その後の手順に従い処理を行う。
-    appendBestMoveAndStartPondering(positionStr, positionPonderStr);
-}
-*/
-
 // positionコマンドとgoコマンドを送信し、bestmoveを受信するまで待機する。
 void Usi::sendPositionAndGoCommands(int byoyomiMilliSec, QString& positionStr)
 {
@@ -639,66 +609,47 @@ bool Usi::waitForBestMoveWithGrace(int budgetMs, int graceMs)
 }
 
 // 将棋エンジンからのレスポンスに基づいて、適切なコマンドを送信し、必要に応じて処理を行う。
-void Usi::processEngineResponse(QString& positionStr, QString& positionPonderStr, int byoyomiMilliSec, const QString& btime, const QString& wtime,
+void Usi::processEngineResponse(QString& positionStr, QString& positionPonderStr, int byoyomiMilliSec,
+                                const QString& btime, const QString& wtime,
                                 int addEachMoveMilliSec1, int addEachMoveMilliSec2, bool useByoyomi)
 {
-    // 将棋エンジンが予想した対局相手の手の文字列が空の場合
     if (m_predictedOpponentMove.isEmpty() || !m_isPonderEnabled) {
-        // positionコマンドを送信し、ponderモードをオフにして、goコマンドを送信し、
-        // bestmoveを受信して予想手を考慮した処理を開始する。
-        sendCommandsAndProcess(byoyomiMilliSec, positionStr, btime, wtime, positionPonderStr, addEachMoveMilliSec1, addEachMoveMilliSec2, useByoyomi);
-
-        // bestmove resignを受信した場合
+        sendCommandsAndProcess(byoyomiMilliSec, positionStr, btime, wtime,
+                               positionPonderStr, addEachMoveMilliSec1, addEachMoveMilliSec2, useByoyomi);
         if (m_isResignMove) return;
-    }
-    // bestmove行にponder以降の文字列があった場合
-    else {
-        // bestmoveで返された最善手と自分の予想した相手の指し手が同じ場合
+    } else {
         if (m_bestMove == m_predictedOpponentMove) {
-            // 現在の局面（盤内のみ）をコピーする。
             cloneCurrentBoardData();
-
-            // ponderhitコマンドを将棋エンジンに送信する。
             sendPonderHitCommand();
 
-            // 秒読み時間が0の場合
             if (byoyomiMilliSec == 0) {
-                // 将棋エンジンからbestmoveを受信するまで待ち続ける。
                 keepWaitingForBestMove();
             } else {
-                // 残り時間になるまでbestmoveを待機する。
-                waitAndCheckForBestMoveRemainingTime(byoyomiMilliSec, btime, wtime, addEachMoveMilliSec1, addEachMoveMilliSec2, useByoyomi);
+                waitAndCheckForBestMoveRemainingTime(byoyomiMilliSec, btime, wtime,
+                                                     addEachMoveMilliSec1, addEachMoveMilliSec2, useByoyomi);
             }
-
-            // bestmove resignを受信した場合
             if (m_isResignMove) return;
 
-            // 将棋エンジンからの最善手をposition文字列に追加し、予想手を考慮した処理を開始する。
             appendBestMoveAndStartPondering(positionStr, positionPonderStr);
-        }
-        // bestmoveで返された最善手と自分の予想した相手の指し手が異なる場合
-        else {
-            // stopコマンドを将棋エンジンに送信する。
+        } else {
+            // ★ ミスマッチを明示
+            qDebug().nospace() << logPrefix()
+                               << " PONDER MISMATCH → send stop"
+                               << " predicted=" << m_predictedOpponentMove
+                               << " actual="    << m_bestMove;
+
             sendStopCommand();
 
-            // 秒読み時間が0の場合
             if (byoyomiMilliSec == 0) {
-                // 将棋エンジンからbestmoveを受信するまで待ち続ける。
                 keepWaitingForBestMove();
             } else {
-                // 残り時間になるまでbestmoveを待機する。
-                waitAndCheckForBestMoveRemainingTime(byoyomiMilliSec, btime, wtime, addEachMoveMilliSec1, addEachMoveMilliSec2, useByoyomi);
+                waitAndCheckForBestMoveRemainingTime(byoyomiMilliSec, btime, wtime,
+                                                     addEachMoveMilliSec1, addEachMoveMilliSec2, useByoyomi);
             }
-
-            // bestmove resignを受信した場合
             if (m_isResignMove) return;
 
-            // positionコマンドを送信し、ponderモードをオフにして、goコマンドを送信し、
-            // bestmoveを受信して予想手を考慮した処理を開始する。
-            sendCommandsAndProcess(byoyomiMilliSec, positionStr, btime, wtime, positionPonderStr,
-                                   addEachMoveMilliSec1, addEachMoveMilliSec2, useByoyomi);
-
-            // bestmove resignを受信した場合
+            sendCommandsAndProcess(byoyomiMilliSec, positionStr, btime, wtime,
+                                   positionPonderStr, addEachMoveMilliSec1, addEachMoveMilliSec2, useByoyomi);
             if (m_isResignMove) return;
         }
     }
@@ -1081,52 +1032,60 @@ void Usi::sendGameOverWinAndQuitCommands()
 }
 
 // 将棋エンジンから受信したデータを1行ごとにm_linesに貯え、GUIに受信データをログ出力する。
+// 標準出力からの受信
 void Usi::readFromEngine()
 {
     if (!m_process) {
         const QString errorMessage = tr("An error occurred in Usi::readFromEngine. m_process is null. Cannot read data from the engine.");
-
         ShogiUtils::logAndThrowError(errorMessage);
     }
 
-    // 将棋エンジンの出力から読み取ることができる完全な行がある間
     while (m_process && m_process->canReadLine()) {
-        // 文字列の先頭と末尾から空白文字（スペース、タブ、改行など）を取り除く。
-        QByteArray data = m_process->readLine();
-
+        const QByteArray data = m_process->readLine();
         QString line = QString::fromUtf8(data).trimmed();
 
-        // 行リストに追加する。
+        // id name を拾って名称セット（未設定時）
+        if (line.startsWith("id name ")) {
+            const QString n = line.mid(8).trimmed();
+            if (!n.isEmpty() && m_logEngineName.isEmpty())
+                m_logEngineName = n;
+        }
+
+        const QString pfx = logPrefix();
         m_lines.append(line);
 
-        // 各行をログに出力する。
-        m_model->appendUsiCommLog("< " + line);
+        // 双方向ログ
+        m_model->appendUsiCommLog(pfx + " < " + line);
+        qDebug().nospace() << pfx << " usidebug< " << line;
 
-        // bestmoveで始まる行の場合
         if (line.startsWith("bestmove")) {
-            // bestmoveを受信したかどうかのフラグをtrueにする。
             m_bestMoveSignalReceived = true;
-
-            // 将棋エンジンからbestmoveを受信した時に最善手を取得する。
             bestMoveReceived(line);
-        }
-        // infoで始まる行の場合
-        else if (line.startsWith("info")) {
-            // info行を受信したかどうかのフラグをtrueにする。
+        } else if (line.startsWith("info")) {
             m_infoSignalReceived = true;
-
-            // 将棋エンジンからinfoを受信した時にinfo行を解析し、GUIの「思考」タブに表示する。
             infoReceived(line);
-        }
-        // readyokを含む行の場合
-        else if (line.contains("readyok")) {
-            // readyokを受信したかどうかのフラグをtrueにする。
+        } else if (line.contains("readyok")) {
             m_readyOkSignalReceived = true;
-        }
-        // usiokを含む行の場合
-        else if (line.contains("usiok")) {
-            // usiokを受信したかどうかのフラグをtrueにする。
+        } else if (line.contains("usiok")) {
             m_usiOkSignalReceived = true;
+        }
+    }
+}
+
+// 標準エラーからの受信（新規）
+void Usi::readFromEngineStderr()
+{
+    if (!m_process) return;
+    while (m_process->bytesAvailable() || m_process->canReadLine()) {
+        const QByteArray data = m_process->readAllStandardError();
+        if (data.isEmpty()) break;
+        const QStringList lines = QString::fromUtf8(data).split('\n', Qt::SkipEmptyParts);
+        for (const QString& l : lines) {
+            const QString line = l.trimmed();
+            if (line.isEmpty()) continue;
+            const QString pfx = logPrefix();
+            m_model->appendUsiCommLog(pfx + " <stderr> " + line);
+            qDebug().nospace() << pfx << " usidebug<stderr> " << line;
         }
     }
 }
@@ -1171,6 +1130,8 @@ void Usi::startEngine(const QString& engineFile)
     // m_processからの標準出力が読み取り可能になったとき、readFromEngine関数を呼び出す。
     connect(m_process, &QProcess::readyReadStandardOutput, this, &Usi::readFromEngine);
 
+    connect(m_process, &QProcess::readyReadStandardError, this, &Usi::readFromEngineStderr);
+
     // QProcessのエラー発生時にonProcessError関数を呼び出す。
     connect(m_process, &QProcess::errorOccurred, this, &Usi::onProcessError);
 
@@ -1194,10 +1155,11 @@ void Usi::sendCommand(const QString& command) const
 {
     m_process->write((command + "\n").toUtf8());
 
-    // 送信したコマンドをGUIのUSIプロトコル通信ログに表示する。
-    m_model->appendUsiCommLog("> " + command);
-
-    qDebug() << "usidebug> " << command;
+    const QString pfx = logPrefix();
+    // GUI 側ログモデル
+    m_model->appendUsiCommLog(pfx + " > " + command);
+    // デバッガ
+    qDebug().nospace() << pfx << " usidebug> " << command;
 }
 
 // 将棋エンジンからデータを受信して保管した行リストをクリアする。
@@ -1309,13 +1271,16 @@ void Usi::infoRecordClear()
 // go ponderコマンドを将棋エンジンに送信する。
 void Usi::sendGoPonderCommand()
 {
-    // GUIの「思考」タブの内容をクリアする。
     infoRecordClear();
 
-    // 将棋エンジンにコマンドを送信する。
-    sendCommand("go ponder");
+    m_phase = SearchPhase::Ponder;
+    ++m_ponderSession;
 
-    // 将棋エンジンからデータを受信して保管した行リストをクリアする。
+    qDebug().nospace() << logPrefix()
+                       << " start at go ponder  predicted="
+                       << (m_predictedOpponentMove.isEmpty() ? "-" : m_predictedOpponentMove);
+
+    sendCommand("go ponder");
     clearResponseData();
 }
 
@@ -1327,26 +1292,21 @@ void Usi::sendStopCommand()
 }
 
 // ponderhitコマンドを将棋エンジンに送信する。
-// ponderhitコマンドを将棋エンジンに送信する。
 void Usi::sendPonderHitCommand()
 {
-    // ★ 計測リセット＆開始（ここからが“自分の手番の思考時間”）
+    // ここから“自分の手番の思考時間”
     m_lastGoToBestmoveMs = 0;
     m_goTimer.start();
 
-    // ★ 追加：デバッグ出力を強化（手番/予想手/直前手の終点）
-    const bool p1turn = (m_gameController->currentPlayer() == ShogiGameController::Player1);
-    const QString pred = m_predictedOpponentMove.isEmpty() ? QStringLiteral("-") : m_predictedOpponentMove;
+    qDebug().nospace() << logPrefix()
+                       << " PONDERHIT session=" << m_ponderSession
+                       << " predicted=" << (m_predictedOpponentMove.isEmpty() ? "-" : m_predictedOpponentMove)
+                       << " prevTo=(" << m_previousFileTo << "," << m_previousRankTo << ")";
 
-    qDebug().nospace()
-        << "[USI] " << nowIso()
-        << " start at ponderhit"
-        << "  turn=" << (p1turn ? "P1" : "P2")
-        << "  predicted=" << pred
-        << "  prevTo=(" << m_previousFileTo << "," << m_previousRankTo << ")";
-
-    // 将棋エンジンにコマンドを送信する。
     sendCommand("ponderhit");
+
+    // 以後は通常思考フェーズ
+    m_phase = SearchPhase::Main;
 }
 
 // gameoverコマンドを将棋エンジンに送信する。
@@ -1478,34 +1438,30 @@ bool Usi::waitForReadyOk(const int timeoutMilliseconds)
 }
 
 // goコマンドを将棋エンジンに送信する。
-void Usi::sendGoCommand(int byoyomiMilliSec, const QString& btime, const QString& wtime,  int addEachMoveMilliSec1, int addEachMoveMilliSec2, bool useByoyomi)
+void Usi::sendGoCommand(int byoyomiMilliSec, const QString& btime, const QString& wtime,
+                        int addEachMoveMilliSec1, int addEachMoveMilliSec2, bool useByoyomi)
 {
-    // GUIの「思考」タブの内容をクリアする。
     infoRecordClear();
 
-    // goコマンドの文字列を生成する。
     QString command;
-
-    // 秒読みを使う場合
     if (useByoyomi) {
         command = "go btime " + btime + " wtime " + wtime + " byoyomi " + QString::number(byoyomiMilliSec);
-    }
-    // 秒読みを使わない場合
-    else {
-        command = "go btime " + btime + " wtime " + wtime + " binc " + QString::number(addEachMoveMilliSec1) + " winc " + QString::number(addEachMoveMilliSec2);
+    } else {
+        command = "go btime " + btime + " wtime " + wtime
+                  + " binc " + QString::number(addEachMoveMilliSec1)
+                  + " winc " + QString::number(addEachMoveMilliSec2);
     }
 
-    // ★ 計測リセット＆開始（ponder は含めない）
+    // 計測＆フェーズ
     m_lastGoToBestmoveMs = 0;
     m_goTimer.start();
-    // sendGoCommand(...) のログ直前に追記（turn表示）
-    const bool p1turn = (m_gameController->currentPlayer() == ShogiGameController::Player1);
-    qDebug().nospace() << "[USI] " << nowIso()
-                       << " start at go  turn=" << (p1turn ? "P1" : "P2")
-                       << " btime=" << btime << " wtime=" << wtime
+    m_phase = SearchPhase::Main;
+
+    qDebug().nospace() << logPrefix()
+                       << " start at go  btime=" << btime
+                       << " wtime=" << wtime
                        << " byoyomi=" << byoyomiMilliSec << "ms";
 
-    // 将棋エンジンにコマンドを送信する。
     sendCommand(command);
 }
 
@@ -1731,4 +1687,34 @@ void Usi::applyMovesToBoardFromBestMoveAndPonder()
     info.parseAndApplyMoveToClonedBoard(m_bestMove, m_clonedBoardData);
 
     info.parseAndApplyMoveToClonedBoard(m_predictedOpponentMove, m_clonedBoardData);
+}
+
+void Usi::setLogIdentity(const QString& engineTag, const QString& sideTag, const QString& engineName)
+{
+    m_logEngineTag = engineTag;
+    m_logSideTag   = sideTag;
+    m_logEngineName = engineName;
+}
+
+QString Usi::phaseTag() const
+{
+    switch (m_phase) {
+    case SearchPhase::Ponder: return QString("[PONDER#%1]").arg(m_ponderSession);
+    case SearchPhase::Main:   return QString("[MAIN]");
+    default:                  return QString();
+    }
+}
+
+QString Usi::logPrefix() const
+{
+    // "[E1]" → "[E1/P1]" に整形
+    QString within = m_logEngineTag.isEmpty() ? "[E?]" : m_logEngineTag;
+    if (!m_logSideTag.isEmpty())
+        within.insert(within.size()-1, "/" + m_logSideTag);
+
+    // エンジン名を括弧外に付ける
+    QString head = within + (m_logEngineName.isEmpty() ? "" : " " + m_logEngineName);
+
+    const QString ph = phaseTag();
+    return ph.isEmpty() ? head : (head + " " + ph);
 }
