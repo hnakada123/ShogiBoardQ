@@ -425,6 +425,16 @@ private:
 
     // ★ 標準エラーの受信ログ（なければ新規で宣言）
     void readFromEngineStderr();
+
+    // 追加: 終了処理の状態
+    enum class ShutdownState {
+        Running,                // 通常
+        SentQuit_AllowOneLine,  // quit送信後、エンジンからの1行だけ許可（ログ可・解析不可）
+        IgnoreAll               // 以降は標準出力/標準エラーともに完全無視（ログも残さない）
+    };
+
+    ShutdownState m_shutdownState = ShutdownState::Running; // NEW
+    int m_postQuitLinesLeft = 0;                            // NEW: 残り許可行数（合計で1行）
 };
 
 // GUIのメインスレッドとは別のスレッドでgo ponderコマンド受信後の将棋エンジンの処理を行う。

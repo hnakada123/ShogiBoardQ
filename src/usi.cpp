@@ -59,6 +59,9 @@ Usi::Usi(UsiCommLogModel* model, ShogiEngineThinkingModel* modelThinking, ShogiG
     m_isWinMove(false),
     m_analysisMode(false)
 {
+    m_shutdownState = ShutdownState::Running; // NEW
+    m_postQuitLinesLeft = 0;                  // NEW
+
 }
 
 // デストラクタ
@@ -958,6 +961,8 @@ bool Usi::isResignMove() const
 // 「局面探索数」「ハッシュ使用率」「思考タブ」欄を更新する。
 void Usi::infoReceived(QString& line)
 {
+    if (m_shutdownState != ShutdownState::Running) return; // NEW
+
     // エンジンによる現在の評価値
     // 初期化する。
     int scoreInt = 0;
@@ -1041,7 +1046,30 @@ void Usi::readFromEngine()
         const QByteArray data = m_process->readLine();
         QString line = QString::fromUtf8(data).trimmed();
 
-        // id name を拾って名称セット（未設定時）
+        // --- NEW: シャットダウン状態での扱い（ログも含めてここで制御） ---
+        if (m_shutdownState == ShutdownState::IgnoreAll) {
+            // 完全遮断：ログも残さない
+            continue;
+        }
+        if (m_shutdownState == ShutdownState::SentQuit_AllowOneLine) {
+            // 「返信」1行だけはログ可・解析不可
+            if (m_postQuitLinesLeft > 0) {
+                const QString pfx = logPrefix();
+                // 双方向ログ（この1行だけ許可）
+                m_model->appendUsiCommLog(pfx + " < " + line);
+                qDebug().nospace() << pfx << " usidebug< " << line;
+
+                m_postQuitLinesLeft--;
+                if (m_postQuitLinesLeft <= 0) {
+                    m_shutdownState = ShutdownState::IgnoreAll; // 以後は完全に無視
+                }
+            }
+            // 解析はしない
+            continue;
+        }
+        // --- ここから通常処理（Running のみ） ---
+
+        // id name の取得（必要なら）
         if (line.startsWith("id name ")) {
             const QString n = line.mid(8).trimmed();
             if (!n.isEmpty() && m_logEngineName.isEmpty())
@@ -1051,10 +1079,23 @@ void Usi::readFromEngine()
         const QString pfx = logPrefix();
         m_lines.append(line);
 
-        // 双方向ログ
+        // 双方向ログ（通常時のみ）
         m_model->appendUsiCommLog(pfx + " < " + line);
         qDebug().nospace() << pfx << " usidebug< " << line;
 
+        // もしエンジンが「quit」を出してくる異常系も、以降を遮断する
+        if (line == QStringLiteral("quit") || line.startsWith(QStringLiteral("quit "))) {
+            // ここは「返信を許可」ではなく、即遮断で良い（エンジン起点のquitのため）
+            m_shutdownState = ShutdownState::IgnoreAll;
+            continue;
+        }
+        // 同様に「gameover ...」もこの時点で遮断して良ければ以下をONに
+        if (line.startsWith(QStringLiteral("gameover "))) {
+            // 必要なら：m_shutdownState = ShutdownState::IgnoreAll;
+            // continue;
+        }
+
+        // 以降は従来通り
         if (line.startsWith("bestmove")) {
             m_bestMoveSignalReceived = true;
             bestMoveReceived(line);
@@ -1073,19 +1114,47 @@ void Usi::readFromEngine()
 void Usi::readFromEngineStderr()
 {
     if (!m_process) return;
+
+    // 完全遮断なら何もせず捨てる
+    if (m_shutdownState == ShutdownState::IgnoreAll) {
+        // まとめて読み捨て
+        (void)m_process->readAllStandardError();
+        return;
+    }
+
     while (m_process->bytesAvailable() || m_process->canReadLine()) {
         const QByteArray data = m_process->readAllStandardError();
         if (data.isEmpty()) break;
+
         const QStringList lines = QString::fromUtf8(data).split('\n', Qt::SkipEmptyParts);
         for (const QString& l : lines) {
             const QString line = l.trimmed();
             if (line.isEmpty()) continue;
+
+            // 許可1行モードの場合
+            if (m_shutdownState == ShutdownState::SentQuit_AllowOneLine) {
+                if (m_postQuitLinesLeft > 0) {
+                    const QString pfx = logPrefix();
+                    m_model->appendUsiCommLog(pfx + " <stderr> " + line);
+                    qDebug().nospace() << pfx << " usidebug<stderr> " << line;
+
+                    m_postQuitLinesLeft--;
+                    if (m_postQuitLinesLeft <= 0) {
+                        m_shutdownState = ShutdownState::IgnoreAll; // 以後は完全遮断
+                    }
+                }
+                // 解析対象ではないので継続
+                continue;
+            }
+
+            // 通常時のみ stderr ログ
             const QString pfx = logPrefix();
             m_model->appendUsiCommLog(pfx + " <stderr> " + line);
             qDebug().nospace() << pfx << " usidebug<stderr> " << line;
         }
     }
 }
+
 
 // 将棋エンジンを起動する。
 void Usi::startEngine(const QString& engineFile)
@@ -1182,6 +1251,12 @@ void Usi::sendQuitCommand()
 {
     // 将棋エンジンにコマンドを送信する。
     sendCommand("quit");
+
+    // NEW: quit送信後は、エンジンからの「返信」1行だけ許可し、その後は完全遮断
+    if (m_shutdownState == ShutdownState::Running) {
+        m_shutdownState = ShutdownState::SentQuit_AllowOneLine;
+        m_postQuitLinesLeft = 1; // 合計1行だけログ許可（解析はしない）
+    }
 }
 
 // usinewgameコマンドを将棋エンジンに送信する。
@@ -1557,6 +1632,8 @@ bool Usi::keepWaitingForBestMove()
 // 将棋エンジンからbestmoveを受信した時に最善手を取得する。
 void Usi::bestMoveReceived(const QString& line)
 {
+    if (m_shutdownState != ShutdownState::Running) return; // NEW
+
     // 最善手の文字列をクリアする。
     m_bestMove.clear();
 
