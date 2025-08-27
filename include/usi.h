@@ -97,6 +97,9 @@ public:
     // エンジンにgameover loseコマンドとquitコマンドを送信し、手番を変更する。
     void sendGameOverLoseAndQuitCommands();
 
+    // ログ識別子の設定（GUI 生成側で E1/E2, P1/P2, Engine名 を渡す）
+    void setLogIdentity(const QString& engineTag, const QString& sideTag, const QString& engineName = QString());
+
 signals:
     // stopあるいはponderhitコマンドが送信されたことを通知するシグナル
     void stopOrPonderhitCommandSent();
@@ -405,6 +408,23 @@ private:
 
     // ★ 追加(2): “小さな猶予”の既定値（OSスケジューリング/パイプ遅延用）
     static constexpr int kBestmoveGraceMs = 250; // 200〜300ms がおすすめ
+
+    // 思考フェーズ
+    enum class SearchPhase { Idle, Main, Ponder };
+
+    // ログ識別用
+    QString m_logEngineTag;   // 例: "[E1]" / "[E2]"
+    QString m_logSideTag;     // 例: "P1" / "P2"
+    QString m_logEngineName;  // 例: "YaneuraOu"
+    SearchPhase m_phase = SearchPhase::Idle;
+    int m_ponderSession = 0;  // ぽんだーセッション番号
+
+    // ログ用プレフィックス生成
+    QString phaseTag() const;            // 例: "" / "[MAIN]" / "[PONDER#3]"
+    QString logPrefix() const;           // 例: "[E1/P1 YaneuraOu] [PONDER#3]"
+
+    // ★ 標準エラーの受信ログ（なければ新規で宣言）
+    void readFromEngineStderr();
 };
 
 // GUIのメインスレッドとは別のスレッドでgo ponderコマンド受信後の将棋エンジンの処理を行う。
