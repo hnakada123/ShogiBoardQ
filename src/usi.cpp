@@ -1055,20 +1055,46 @@ void Usi::readFromEngine()
         const QByteArray data = m_process->readLine();
         QString line = QString::fromUtf8(data).trimmed();
 
-        // ---- (既存) id name の取り出し ここは残すなら残す ----
+        // NEW: 対局開始からの経過ms（単調増加時計）で時刻を採取
+        const qint64 tms = ShogiUtils::nowMs();
+        const QString pfx = logPrefix();
+
+        // (既存) id name の取り出し
         if (line.startsWith("id name ")) {
             const QString n = line.mid(8).trimmed();
             if (!n.isEmpty() && m_logEngineName.isEmpty())
                 m_logEngineName = n;
         }
 
-        // ---- ★ NEW: タイムアウト後の "bestmove resign" はログも処理も黙殺 ----
-        if (m_squelchResignLogs && line.startsWith(QStringLiteral("bestmove resign"))) {
-            continue; // ログも出さない・ハンドラも呼ばない
+        // NEW: quit後の遮断（ログも処理も完全に無視）
+        if (m_shutdownState == ShutdownState::IgnoreAll) {
+            continue;
+        }
+        // NEW: quit後、「info string ...」だけ N 行までログ許可（解析なし）
+        if (m_shutdownState == ShutdownState::IgnoreAllExceptInfoString) {
+            if (m_postQuitInfoStringLinesLeft > 0 && line.startsWith(QStringLiteral("info string"))) {
+                m_model->appendUsiCommLog(pfx + " < " + line);
+                qDebug().nospace() << pfx << " usidebug< " << line;
+                if (--m_postQuitInfoStringLinesLeft <= 0) {
+                    m_shutdownState = ShutdownState::IgnoreAll;
+                }
+            }
+            continue; // 許可対象でなければ捨てる
         }
 
-        // （既存）ここからログ出力
-        const QString pfx = logPrefix();
+        // NEW: タイムアウト確定後は "bestmove resign" を完全黙殺（GUIログにも出さない）
+        if (m_squelchResignLogs && line.startsWith(QStringLiteral("bestmove resign"))) {
+            // デバッグ用にだけ到着時刻を残す（GUI通信ログには出さない）
+            qDebug().nospace() << pfx << " [TRACE] resign-suppressed t+" << tms << "ms";
+            continue;
+        }
+
+        // NEW: 通常時の "bestmove resign" 到着時刻をトレース（GUIログとは別に）
+        if (line.startsWith(QStringLiteral("bestmove resign"))) {
+            qDebug().nospace() << pfx << " [TRACE] resign-detected t+" << tms << "ms";
+        }
+
+        // （既存）ここからGUIログ出力
         m_lines.append(line);
         m_model->appendUsiCommLog(pfx + " < " + line);
         qDebug().nospace() << pfx << " usidebug< " << line;
@@ -1087,6 +1113,7 @@ void Usi::readFromEngine()
         }
     }
 }
+
 
 // 標準エラーからの受信（新規）
 void Usi::readFromEngineStderr()

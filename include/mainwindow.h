@@ -884,6 +884,11 @@ private:
 
     // 表示用の▲/△を返す（既存の setResignationMove と同じ規則を踏襲）
     QChar glyphForPlayer(bool isPlayerOne) const;
+
+    // 終局の直近結果（ログ用）
+    GameOverCause m_lastGameOverCause = GameOverCause::Timeout; // 初期値はダミー（必ず上書きされる前提）
+    bool          m_lastLoserIsP1     = false;                  // 直近の敗者が先手か
+
 };
 
 #endif // MAINWINDOW_H

@@ -2114,6 +2114,19 @@ void MainWindow::displayResultsAndUpdateGui()
 
     enableArrowButtons();
     m_gameRecordView->setSelectionMode(QAbstractItemView::SingleSelection);
+
+
+    const qint64 tms = ShogiUtils::nowMs();
+
+    const char* causeStr =
+        (m_lastGameOverCause == GameOverCause::Timeout)     ? "TIMEOUT" :
+        (m_lastGameOverCause == GameOverCause::Resignation) ? "RESIGNATION" :
+                                                              "OTHER";
+
+    qDebug().nospace()
+        << "[ARBITER] decision " << causeStr
+        << " loser=" << (m_lastLoserIsP1 ? "P1" : "P2")
+        << " at t+" << tms << "ms";
 }
 
 // メニューで「投了」をクリックした場合の処理を行う。
@@ -5707,36 +5720,30 @@ void MainWindow::stopClockAndSendGameOver(Winner w)
     }
 }
 
-// 先手が時間切れ → 先手敗北（loserIsPlayerOne = true）
-void MainWindow::onPlayer1TimeOut()
-{
-    // ★追加：先手エンジンの "bestmove resign" を以後は黙殺（ログも出さない）
-    if (m_usi1) m_usi1->setSquelchResignLogging(true);
-
-    m_shogiClock->markGameOver();
-
-    // 終局表記を「▲時間切れ」にする
-    setGameOverMove(GameOverCause::Timeout, /*loserIsPlayerOne=*/true);
-
-    // 勝者・敗者に正しい gameover を送る
-    stopClockAndSendGameOver(Winner::P2);
-
-    displayResultsAndUpdateGui();
-}
-
-// 後手が時間切れ → 後手敗北（loserIsPlayerOne = false）
 void MainWindow::onPlayer2TimeOut()
 {
-    // ★追加：後手エンジンの "bestmove resign" を以後は黙殺（ログも出さない）
+    const qint64 tms = ShogiUtils::nowMs();
+    qDebug().nospace() << "[ARBITER] timeout P2 at t+" << tms << "ms";
+
+    // （黙殺フラグを立てる場合はここで）
     if (m_usi2) m_usi2->setSquelchResignLogging(true);
 
     m_shogiClock->markGameOver();
-
-    // 終局表記を「△時間切れ」にする
     setGameOverMove(GameOverCause::Timeout, /*loserIsPlayerOne=*/false);
-
     stopClockAndSendGameOver(Winner::P1);
+    displayResultsAndUpdateGui();
+}
 
+void MainWindow::onPlayer1TimeOut()
+{
+    const qint64 tms = ShogiUtils::nowMs();
+    qDebug().nospace() << "[ARBITER] timeout P1 at t+" << tms << "ms";
+
+    if (m_usi1) m_usi1->setSquelchResignLogging(true);
+
+    m_shogiClock->markGameOver();
+    setGameOverMove(GameOverCause::Timeout, /*loserIsPlayerOne=*/true);
+    stopClockAndSendGameOver(Winner::P2);
     displayResultsAndUpdateGui();
 }
 
@@ -5755,6 +5762,10 @@ QChar MainWindow::glyphForPlayer(bool isPlayerOne) const
 // 終局理由つきの終局表記をセット（棋譜欄の最後に出す "▲投了" / "△時間切れ" 等）
 void MainWindow::setGameOverMove(GameOverCause cause, bool loserIsPlayerOne)
 {
+    // ★追加：ログ用の直近結果を保持
+    m_lastGameOverCause = cause;
+    m_lastLoserIsP1     = loserIsPlayerOne;
+
     const QChar mark = glyphForPlayer(loserIsPlayerOne);
 
     switch (cause) {
