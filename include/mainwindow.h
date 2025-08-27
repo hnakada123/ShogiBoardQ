@@ -871,6 +871,19 @@ private:
 
     enum class Winner { P1, P2 };
     void stopClockAndSendGameOver(Winner w);
+
+    // 終局理由
+    enum class GameOverCause {
+        Resignation,   // 投了
+        Timeout        // 時間切れ
+        // （必要なら Checkmate, Illegal, Draw などを今後追加）
+    };
+
+    // 棋譜欄の終局表記（"▲投了" / "△時間切れ" 等）をセット
+    void setGameOverMove(GameOverCause cause, bool loserIsPlayerOne);
+
+    // 表示用の▲/△を返す（既存の setResignationMove と同じ規則を踏襲）
+    QChar glyphForPlayer(bool isPlayerOne) const;
 };
 
 #endif // MAINWINDOW_H
