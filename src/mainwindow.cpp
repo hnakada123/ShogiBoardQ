@@ -2116,29 +2116,15 @@ void MainWindow::displayResultsAndUpdateGui()
     m_gameRecordView->setSelectionMode(QAbstractItemView::SingleSelection);
 }
 
-// 棋譜欄の最後に表示する投了の文字列を設定する。
-// 対局モードが平手のエンジン対エンジンの場合
-void MainWindow::setResignationMove(bool isPlayerOneResigning)
-{
-    // 対局モードが平手のエンジン対エンジンまたは駒落ちのエンジン対エンジンの場合
-    if ((m_playMode == EvenHumanVsEngine) || (m_playMode == HandicapHumanVsEngine) || (m_playMode == HandicapEngineVsEngine)) {
-        m_lastMove = isPlayerOneResigning ? "△投了" : "▲投了";
-    }
-    // それ以外の対局モードの場合
-    else {
-        m_lastMove = isPlayerOneResigning ? "▲投了" : "△投了";
-    }
-}
-
 // メニューで「投了」をクリックした場合の処理を行う。
 void MainWindow::handleResignation()
 {
+    stopClockAndSendCommands();
     m_shogiClock->markGameOver();
 
     const bool p1Resigns = (m_gameController->currentPlayer() == ShogiGameController::Player1);
-    stopClockAndSendGameOver(p1Resigns ? Winner::P2 : Winner::P1);
+    setGameOverMove(GameOverCause::Resignation, /*loserIsPlayerOne=*/p1Resigns);
 
-    setResignationMove(p1Resigns);
     displayResultsAndUpdateGui();
 }
 
@@ -2147,10 +2133,9 @@ void MainWindow::handleEngineTwoResignation()
     m_shogiClock->stopClock();
     m_shogiClock->markGameOver();
 
-    // エンジン2が投了 → 先手勝ち
+    setGameOverMove(GameOverCause::Resignation, /*loserIsPlayerOne=*/false);
     stopClockAndSendGameOver(Winner::P1);
 
-    setResignationMove(true); // 「△投了/▲投了」の既存ロジックに合わせる
     displayResultsAndUpdateGui();
 }
 
@@ -2159,10 +2144,9 @@ void MainWindow::handleEngineOneResignation()
     m_shogiClock->stopClock();
     m_shogiClock->markGameOver();
 
-    // エンジン1が投了 → 後手勝ち
+    setGameOverMove(GameOverCause::Resignation, /*loserIsPlayerOne=*/true);
     stopClockAndSendGameOver(Winner::P2);
 
-    setResignationMove(false);
     displayResultsAndUpdateGui();
 }
 
@@ -5709,20 +5693,62 @@ void MainWindow::stopClockAndSendGameOver(Winner w)
     }
 }
 
+// 先手が時間切れ → 先手敗北（loserIsPlayerOne = true）
 void MainWindow::onPlayer1TimeOut()
 {
-    // 先手が時間切れ → 後手勝ち
     m_shogiClock->markGameOver();
+
+    // 終局表記を「▲時間切れ」にする
+    setGameOverMove(GameOverCause::Timeout, /*loserIsPlayerOne=*/true);
+
+    // 勝者・敗者に正しい gameover を送る（前回の stopClockAndSendGameOver を使用）
     stopClockAndSendGameOver(Winner::P2);
-    setResignationMove(true);     // 「▲投了/△投了」表記の既存都合に合わせる（時間切れ表示を別途入れるならここで）
+
     displayResultsAndUpdateGui();
 }
 
+// 後手が時間切れ → 後手敗北（loserIsPlayerOne = false）
 void MainWindow::onPlayer2TimeOut()
 {
-    // 後手が時間切れ → 先手勝ち
     m_shogiClock->markGameOver();
+
+    // 終局表記を「△時間切れ」にする
+    setGameOverMove(GameOverCause::Timeout, /*loserIsPlayerOne=*/false);
+
     stopClockAndSendGameOver(Winner::P1);
-    setResignationMove(false);
+
     displayResultsAndUpdateGui();
+}
+
+// 表示用の▲/△を返す（既存 setResignationMove の分岐をそのまま一般化）
+QChar MainWindow::glyphForPlayer(bool isPlayerOne) const
+{
+    const bool flip =
+        (m_playMode == EvenHumanVsEngine) ||
+        (m_playMode == HandicapHumanVsEngine) ||
+        (m_playMode == HandicapEngineVsEngine);
+
+    // flip が true のときは P1/P2 を反転して表示
+    return ((isPlayerOne ^ flip) ? QChar(u'▲') : QChar(u'△'));
+}
+
+// 終局理由つきの終局表記をセット（棋譜欄の最後に出す "▲投了" / "△時間切れ" 等）
+void MainWindow::setGameOverMove(GameOverCause cause, bool loserIsPlayerOne)
+{
+    const QChar mark = glyphForPlayer(loserIsPlayerOne);
+
+    switch (cause) {
+    case GameOverCause::Resignation:
+        m_lastMove = QString("%1投了").arg(mark);
+        break;
+    case GameOverCause::Timeout:
+        m_lastMove = QString("%1時間切れ").arg(mark);
+        break;
+    }
+}
+
+// 互換ラッパ：既存の呼び出しを生かしたまま内部で新 API に委譲
+void MainWindow::setResignationMove(bool isPlayerOneResigning)
+{
+    setGameOverMove(GameOverCause::Resignation, isPlayerOneResigning);
 }
