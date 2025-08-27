@@ -3269,6 +3269,11 @@ void MainWindow::startHumanVsEngineGame()
 
         m_gameController->setPromote(false);
 
+
+        // ★ 対局用エポック開始（最初の go を送る前に必ず1回）
+        ShogiUtils::startGameEpoch();
+        qDebug() << "[ARBITER] epoch started (Human vs Engine)";
+
         m_usi1->handleEngineVsHumanOrEngineMatchCommunication(
             m_positionStr1, m_positionPonder1,
             outFrom, outTo,
@@ -3363,6 +3368,10 @@ void MainWindow::startEngineVsHumanGame()
     m_positionPonder1 = m_positionStr1;
 
     m_gameController->setPromote(false);
+
+    // ★ 対局用エポック開始（最初の go を送る前に必ず1回）
+    ShogiUtils::startGameEpoch();
+    qDebug() << "[ARBITER] epoch started (Engine vs Human)";
 
     QPoint outFrom;
     QPoint outTo;
@@ -3495,6 +3504,10 @@ void MainWindow::startEngineVsEngineGame()
         updateTurnStatus(cur);
     }
     m_shogiClock->startClock();
+
+    // ★ 対局用エポック開始（最初の go を送る前に必ず1回）
+    ShogiUtils::startGameEpoch();
+    qDebug() << "[ARBITER] epoch started (Engine vs Engine)";
 
     // ここからエンジン同士の指し合いループ
     QPoint outFrom, outTo;
