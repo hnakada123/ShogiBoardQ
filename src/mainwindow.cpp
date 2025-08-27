@@ -2133,51 +2133,36 @@ void MainWindow::setResignationMove(bool isPlayerOneResigning)
 // メニューで「投了」をクリックした場合の処理を行う。
 void MainWindow::handleResignation()
 {
-    // 将棋クロックの停止と将棋エンジンへの対局終了コマンド送信処理を行う。
-    stopClockAndSendCommands();
+    m_shogiClock->markGameOver();
 
-    m_shogiClock->markGameOver();    // ★ 終局フラグON（以降は秒読み/加算しない）
+    const bool p1Resigns = (m_gameController->currentPlayer() == ShogiGameController::Player1);
+    stopClockAndSendGameOver(p1Resigns ? Winner::P2 : Winner::P1);
 
-    // 棋譜欄の最後に表示する投了の文字列を設定する。
-    // 対局モードが平手のエンジン対エンジンの場合
-    setResignationMove(false);
-
-    // 対局結果の表示とGUIの更新処理を行う。
+    setResignationMove(p1Resigns);
     displayResultsAndUpdateGui();
 }
 
-// 将棋エンジンが2"bestmove resign"コマンドで投了した場合の処理を行う。
 void MainWindow::handleEngineTwoResignation()
 {
-    // 将棋クロックを停止する。
     m_shogiClock->stopClock();
+    m_shogiClock->markGameOver();
 
-    // 対局モードが平手のエンジン対エンジンまたは、駒落ちのエンジン対エンジンの場合
-    // 将棋エンジン2に対して、gameover winコマンドとquitコマンドを送信する。
-    sendCommandsToEngineTwo();
+    // エンジン2が投了 → 先手勝ち
+    stopClockAndSendGameOver(Winner::P1);
 
-    // 棋譜欄の最後に表示する投了の文字列を設定する。
-    // 対局モードが平手のエンジン対エンジンの場合
-    setResignationMove(true);
-
-    // 対局結果の表示とGUIの更新処理を行う。
+    setResignationMove(true); // 「△投了/▲投了」の既存ロジックに合わせる
     displayResultsAndUpdateGui();
 }
 
-// 将棋エンジン1が"bestmove resign"コマンドで投了した場合の処理を行う。
 void MainWindow::handleEngineOneResignation()
 {
-    // タイマーを停止する。
     m_shogiClock->stopClock();
+    m_shogiClock->markGameOver();
 
-    // エンジン1にgameover winコマンドとquitコマンドを送信する。
-    m_usi1->sendGameOverWinAndQuitCommands();
+    // エンジン1が投了 → 後手勝ち
+    stopClockAndSendGameOver(Winner::P2);
 
-    // 棋譜欄の最後に表示する投了の文字列を設定する。
-    // 対局モードが平手のエンジン対エンジンの場合
     setResignationMove(false);
-
-    // 対局結果の表示とGUIの更新処理を行う。
     displayResultsAndUpdateGui();
 }
 
@@ -4204,8 +4189,10 @@ void MainWindow::setTimerAndStart()
     // 対局者2の残り時間が0になった場合、対局者2の残り時間の文字色を赤色に指定する。
     connect(m_shogiClock, &ShogiClock::player2TimeOut, this, &MainWindow::setPlayer2TimeTextToRed);
 
-    // 対局者の持ち時間が0になった場合、投了の処理を行う。
-    connect(m_shogiClock, &ShogiClock::resignationTriggered, this, &MainWindow::handleResignation);
+    // 対局者の持ち時間が0になった場合、時間切れの処理を行う。
+    connect(m_shogiClock, &ShogiClock::player1TimeOut, this, &MainWindow::onPlayer1TimeOut);
+    connect(m_shogiClock, &ShogiClock::player2TimeOut, this, &MainWindow::onPlayer2TimeOut);
+
 
     // 対局者1の持ち時間の時間を取得する。
     int basicTimeHour1 = m_startGameDialog->basicTimeHour1();
@@ -5691,4 +5678,51 @@ void MainWindow::handleFlagFallForMover(bool moverP1)
 
     // ゲーム終了へ
     // （必要に応じてUI閉じ処理やログ表示などを追加）
+}
+
+void MainWindow::stopClockAndSendGameOver(Winner w)
+{
+    m_shogiClock->stopClock();
+
+    // Engine vs Engine のときは両方に通知
+    if (m_playMode == EvenEngineVsEngine || m_playMode == HandicapEngineVsEngine) {
+        if (w == Winner::P1) {
+            m_usi1->sendGameOverWinAndQuitCommands();
+            m_usi2->sendGameOverLoseAndQuitCommands();
+        } else {
+            m_usi1->sendGameOverLoseAndQuitCommands();
+            m_usi2->sendGameOverWinAndQuitCommands();
+        }
+    } else {
+        // Human が混ざるモードの保険（片側だけエンジンに送る）
+        if (w == Winner::P1) {
+            if (m_playMode == EvenEngineVsHuman || m_playMode == HandicapEngineVsHuman)
+                m_usi1->sendGameOverWinAndQuitCommands();
+            else if (m_playMode == EvenHumanVsEngine || m_playMode == HandicapHumanVsEngine)
+                m_usi2->sendGameOverLoseAndQuitCommands();
+        } else {
+            if (m_playMode == EvenEngineVsHuman || m_playMode == HandicapEngineVsHuman)
+                m_usi1->sendGameOverLoseAndQuitCommands();
+            else if (m_playMode == EvenHumanVsEngine || m_playMode == HandicapHumanVsEngine)
+                m_usi2->sendGameOverWinAndQuitCommands();
+        }
+    }
+}
+
+void MainWindow::onPlayer1TimeOut()
+{
+    // 先手が時間切れ → 後手勝ち
+    m_shogiClock->markGameOver();
+    stopClockAndSendGameOver(Winner::P2);
+    setResignationMove(true);     // 「▲投了/△投了」表記の既存都合に合わせる（時間切れ表示を別途入れるならここで）
+    displayResultsAndUpdateGui();
+}
+
+void MainWindow::onPlayer2TimeOut()
+{
+    // 後手が時間切れ → 先手勝ち
+    m_shogiClock->markGameOver();
+    stopClockAndSendGameOver(Winner::P1);
+    setResignationMove(false);
+    displayResultsAndUpdateGui();
 }

@@ -1007,9 +1007,6 @@ void Usi::infoReceived(QString& line)
 // エンジンにgameover loseコマンドとquitコマンドを送信し、手番を変更する。
 void Usi::sendGameOverLoseAndQuitCommands()
 {
-    // GUIがbestmove resignを受信したかどうかのフラグをtrueにする。
-    m_isResignMove = true;
-
     if(m_process->state() == QProcess::Running) {
         // 投了をクリックした場合、エンジンにgameover loseコマンドを送る。
         sendGameOverCommand("lose");
