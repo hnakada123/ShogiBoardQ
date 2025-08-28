@@ -892,6 +892,9 @@ private:
     // 投了裁定の明示関数（エンジン1が投了／エンジン2が投了）
     void onEngine1Resigns(); // 先手（エンジン1）が投了 → 先手lose／後手win
     void onEngine2Resigns(); // 後手（エンジン2）が投了 → 後手lose／先手win
+
+    // 対局中か（終局が決まったら true にして以後の思考呼び出し・適用を停止）
+    bool m_gameIsOver = false; // NEW
 };
 
 #endif // MAINWINDOW_H
