@@ -32,6 +32,13 @@
 
 using namespace EngineSettingsConstants;
 
+// どこからでも使えるヘルパ（ファイル内 static 関数）
+static const QRegularExpression& whitespaceRe()
+{
+    static const QRegularExpression re(QStringLiteral("\\s+"));
+    return re;
+}
+
 static inline QString nowIso()
 {
     return QDateTime::currentDateTime().toString(Qt::ISODateWithMs);
@@ -1632,7 +1639,7 @@ void Usi::bestMoveReceived(const QString& line)
     m_bestMove.clear();
 
     // bestmove行を空白類で分割（連続空白・タブもOK）
-    QStringList tokens = line.split(QRegularExpression("\\s+"), Qt::SkipEmptyParts);
+    QStringList tokens = line.split(whitespaceRe(), Qt::SkipEmptyParts);
 
     // bestmoveの次の文字列を取得する
     int bestMoveIndex = tokens.indexOf("bestmove");
@@ -1661,8 +1668,7 @@ void Usi::bestMoveReceived(const QString& line)
         // ★ 投了のときは通常パース・適用へ進ませない
         if (m_bestMove.compare(QStringLiteral("resign"), Qt::CaseInsensitive) == 0) {
             m_isResignMove = true; // ← これが無いと後段がパースしてしまう
-            // 投了の処理を行う。
-            sendGameOverLoseAndQuitCommands();
+            // ここで gameover/quit は送らない！ ←★重要（MainWindow に一本化）
             emit bestMoveResignReceived();
             return;
         }

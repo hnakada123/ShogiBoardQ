@@ -2586,11 +2586,6 @@ void MainWindow::handleClickForPlayerVsEngine(const QPoint& field)
             return;
         }
 
-          if (m_usi1->isResignMove()) {
-            onEngine1Resigns();   // ★ エンジン1が投了したので「エンジン1 lose／エンジン2 win」
-            return;
-        }
-
         // 移動元のマスをオレンジ色に着色する。
         addNewHighlight(m_selectedField2, outFrom, QColor(255, 0, 0, 50));
 
@@ -3224,6 +3219,18 @@ void MainWindow::startHumanVsEngineGame()
     if (m_usi1 != nullptr) delete m_usi1;
     m_usi1 = new Usi(m_lineEditModel1, m_modelThinking1, m_gameController, m_playMode, this);
 
+    // ユーティリティ（任意）
+    auto chooseConn = [this](QObject* obj) {
+        return (obj->thread() == this->thread()) ? Qt::DirectConnection : Qt::AutoConnection;
+    };
+
+    // P1エンジン用
+    QObject::disconnect(m_usi1, &Usi::bestMoveResignReceived,
+                        this,   &MainWindow::onEngine1Resigns);
+    QObject::connect(m_usi1, &Usi::bestMoveResignReceived,
+                     this,   &MainWindow::onEngine1Resigns,
+                     chooseConn(m_usi1));
+
     m_usi1->setLogIdentity("[E1]", "P1", m_startGameDialog->engineName1());
 
     if (m_usi1) m_usi1->setSquelchResignLogging(false);
@@ -3276,11 +3283,6 @@ void MainWindow::startHumanVsEngineGame()
             m_byoyomiMilliSec1, m_bTime, m_wTime,
             m_addEachMoveMiliSec1, m_addEachMoveMiliSec2, m_useByoyomi
         );
-
-        if (m_usi1->isResignMove()) {
-            onEngine1Resigns();   // ★ エンジン1が投了したので「エンジン1 lose／エンジン2 win」
-            return;
-        }
 
         addNewHighlight(m_selectedField2, outFrom, QColor(255, 0, 0, 50));
 
@@ -3349,6 +3351,18 @@ void MainWindow::startEngineVsHumanGame()
     if (m_usi1 != nullptr) delete m_usi1;
     m_usi1 = new Usi(m_lineEditModel1, m_modelThinking1, m_gameController, m_playMode, this);
 
+    // ユーティリティ（任意）
+    auto chooseConn = [this](QObject* obj) {
+        return (obj->thread() == this->thread()) ? Qt::DirectConnection : Qt::AutoConnection;
+    };
+
+    // P1エンジン用
+    QObject::disconnect(m_usi1, &Usi::bestMoveResignReceived,
+                        this,   &MainWindow::onEngine1Resigns);
+    QObject::connect(m_usi1, &Usi::bestMoveResignReceived,
+                     this,   &MainWindow::onEngine1Resigns,
+                     chooseConn(m_usi1));
+
     m_usi1->setLogIdentity("[E1]", "P1", m_startGameDialog->engineName1());
 
     if (m_usi1) m_usi1->setSquelchResignLogging(false);
@@ -3384,11 +3398,6 @@ void MainWindow::startEngineVsHumanGame()
         m_byoyomiMilliSec1, m_bTime, m_wTime,
         m_addEachMoveMiliSec1, m_addEachMoveMiliSec2, m_useByoyomi
     );
-
-    if (m_usi1->isResignMove()) {
-        onEngine1Resigns();   // ★ エンジン1が投了したので「エンジン1 lose／エンジン2 win」
-        return;
-    }
 
     addNewHighlight(m_selectedField2, outFrom, QColor(255, 0, 0, 50));
 
@@ -3468,6 +3477,25 @@ void MainWindow::startEngineVsEngineGame()
     m_usi1 = new Usi(m_lineEditModel1, m_modelThinking1, m_gameController, m_playMode, this);
     m_usi2 = new Usi(m_lineEditModel2, m_modelThinking2, m_gameController, m_playMode, this);
 
+    // ユーティリティ（任意）
+    auto chooseConn = [this](QObject* obj) {
+        return (obj->thread() == this->thread()) ? Qt::DirectConnection : Qt::AutoConnection;
+    };
+
+    // P1エンジン用
+    QObject::disconnect(m_usi1, &Usi::bestMoveResignReceived,
+                        this,   &MainWindow::onEngine1Resigns);
+    QObject::connect(m_usi1, &Usi::bestMoveResignReceived,
+                     this,   &MainWindow::onEngine1Resigns,
+                     chooseConn(m_usi1));
+
+    // P2エンジン用（必要な箇所で）
+    QObject::disconnect(m_usi2, &Usi::bestMoveResignReceived,
+                        this,   &MainWindow::onEngine2Resigns);
+    QObject::connect(m_usi2, &Usi::bestMoveResignReceived,
+                     this,   &MainWindow::onEngine2Resigns,
+                     chooseConn(m_usi2));
+
     m_usi1->setLogIdentity("[E1]", "P1", m_startGameDialog->engineName1());
     m_usi2->setLogIdentity("[E2]", "P2", m_startGameDialog->engineName2());
 
@@ -3522,12 +3550,6 @@ void MainWindow::startEngineVsEngineGame()
             m_byoyomiMilliSec1, m_bTime, m_wTime,
             m_addEachMoveMiliSec1, m_addEachMoveMiliSec2, m_useByoyomi
         );
-
-        // 先手側（Engine1）の思考直後
-        if (m_usi1->isResignMove()) {
-            onEngine1Resigns();   // ★ エンジン1が投了したので「エンジン1 lose／エンジン2 win」
-            return;
-        }
 
         updateHighlight(m_selectedField, outFrom, QColor(255, 0, 0, 50));
 
@@ -3587,12 +3609,6 @@ void MainWindow::startEngineVsEngineGame()
             m_byoyomiMilliSec1, m_bTime, m_wTime,
             m_addEachMoveMiliSec1, m_addEachMoveMiliSec2, m_useByoyomi
         );
-
-        // 後手側（Engine2）の思考直後
-        if (m_usi2->isResignMove()) {
-            onEngine2Resigns();   // ★ エンジン2が投了したので「エンジン2 lose／エンジン1 win」
-            return;
-        }
 
         updateHighlight(m_selectedField, outFrom, QColor(255, 0, 0, 50));
 
