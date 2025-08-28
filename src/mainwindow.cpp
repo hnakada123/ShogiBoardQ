@@ -3222,6 +3222,12 @@ void MainWindow::startHumanVsEngineGame()
     // USI インスタンス生成（このモードではエンジンは m_usi1 を使用）
     m_usi1 = new Usi(m_lineEditModel1, m_modelThinking1, m_gameController, m_playMode, this);
 
+    // ★ resign通知フラグのリセット（最初にやっておく）
+    m_usi1->resetResignNotified();
+    m_usi1->clearHardTimeout();
+    if (m_usi2) { m_usi2->resetResignNotified(); m_usi2->clearHardTimeout(); }
+
+
     // --- resign → 裁定のシグナル直結（同一スレッドなら同期・別スレッドなら自動でQueued） ---
     auto chooseConn = [this](QObject* obj) {
         return (obj->thread() == this->thread()) ? Qt::DirectConnection : Qt::AutoConnection;
@@ -3396,6 +3402,9 @@ void MainWindow::startEngineVsHumanGame()
     // USI インスタンス生成（このモードではエンジンは m_usi1 のみを使用）
     m_usi1 = new Usi(m_lineEditModel1, m_modelThinking1, m_gameController, m_playMode, this);
 
+    m_usi1->resetResignNotified();
+    m_usi1->clearHardTimeout();
+
     // --- resign → 裁定のシグナル直結（同一スレッドなら同期・別スレッドなら自動でQueued） ---
     auto chooseConn = [this](QObject* obj) {
         return (obj->thread() == this->thread()) ? Qt::DirectConnection : Qt::AutoConnection;
@@ -3424,6 +3433,8 @@ void MainWindow::startEngineVsHumanGame()
 
     // 対局開始の初期化
     m_gameIsOver = false;                 // ★ 終局フラグは毎対局リセット
+    m_gameoverMoveAppended = false;   // ★ 追加
+
     m_usi1->setSquelchResignLogging(false);
 
     // エンジン割り当て（既存ロジック）
@@ -3555,6 +3566,10 @@ void MainWindow::startEngineVsEngineGame()
     m_usi1 = new Usi(m_lineEditModel1, m_modelThinking1, m_gameController, m_playMode, this);
     m_usi2 = new Usi(m_lineEditModel2, m_modelThinking2, m_gameController, m_playMode, this);
 
+    m_usi1->resetResignNotified();
+    m_usi1->clearHardTimeout();
+    if (m_usi2) { m_usi2->resetResignNotified(); m_usi2->clearHardTimeout(); }
+
     // resign → 裁定のシグナル直結（同一スレッドなら同期・別スレッドなら自動でQueued）
     auto chooseConn = [this](QObject* obj) {
         return (obj->thread() == this->thread()) ? Qt::DirectConnection : Qt::AutoConnection;
@@ -3570,6 +3585,7 @@ void MainWindow::startEngineVsEngineGame()
 
     // 終局フラグ初期化（重要：毎対局false）
     m_gameIsOver = false;
+    m_gameoverMoveAppended = false;   // ★ 追加
 
     // 投了ログ黙殺フラグは開始時に解除
     m_usi1->setSquelchResignLogging(false);
@@ -3739,7 +3755,7 @@ void MainWindow::startEngineVsEngineGame()
 
         // UI応答性の保険
         qApp->processEvents();
-    } // while (!m_gameIsOver)
+    }
 
     // ループ脱出後（任意で最終UI整合）
     updateTurnAndTimekeepingDisplay();
@@ -5834,30 +5850,59 @@ void MainWindow::stopClockAndSendGameOver(Winner w)
     }
 }
 
-void MainWindow::onPlayer2TimeOut()
+// 先手が時間切れ → 先手敗北
+void MainWindow::onPlayer1TimeOut()
 {
-    const qint64 tms = ShogiUtils::nowMs();
-    qDebug().nospace() << "[ARBITER] timeout P2 at t+" << tms << "ms";
+    // 冪等ガード（多重記録防止）
+    if (m_gameIsOver || m_gameoverMoveAppended) return;
 
-    // （黙殺フラグを立てる場合はここで）
+    // ★ まず完全停止（以後の go/position を出さない）
+    m_gameIsOver = true;
+
+    // ★ この局の bestmove は一切採用しないよう USI へ宣言
+    if (m_usi1) m_usi1->markHardTimeout();
+    if (m_usi2) m_usi2->markHardTimeout();
+
+    // 時計停止＆棋譜「▲時間切れ」を一度だけ記録
+    m_shogiClock->markGameOver();
+    setGameOverMove(GameOverCause::Timeout, /*loserIsPlayerOne=*/true);
+    m_gameoverMoveAppended = true;
+
+    // 正しい向きで gameover / quit
+    if (m_usi1) m_usi1->sendGameOverLoseAndQuitCommands();
+    if (m_usi2) m_usi2->sendGameOverWinAndQuitCommands();
+
+    // 終了時のノイズ抑止
+    if (m_usi1) m_usi1->setSquelchResignLogging(true);
     if (m_usi2) m_usi2->setSquelchResignLogging(true);
 
-    m_shogiClock->markGameOver();
-    setGameOverMove(GameOverCause::Timeout, /*loserIsPlayerOne=*/false);
-    stopClockAndSendGameOver(Winner::P1);
+    qDebug().nospace() << "[ARBITER] timeout P1 at t+" << ShogiUtils::nowMs() << "ms";
+
     displayResultsAndUpdateGui();
 }
 
-void MainWindow::onPlayer1TimeOut()
+// 後手が時間切れ → 後手敗北
+void MainWindow::onPlayer2TimeOut()
 {
-    const qint64 tms = ShogiUtils::nowMs();
-    qDebug().nospace() << "[ARBITER] timeout P1 at t+" << tms << "ms";
+    if (m_gameIsOver || m_gameoverMoveAppended) return;
 
-    if (m_usi1) m_usi1->setSquelchResignLogging(true);
+    m_gameIsOver = true;
+
+    if (m_usi1) m_usi1->markHardTimeout();
+    if (m_usi2) m_usi2->markHardTimeout();
 
     m_shogiClock->markGameOver();
-    setGameOverMove(GameOverCause::Timeout, /*loserIsPlayerOne=*/true);
-    stopClockAndSendGameOver(Winner::P2);
+    setGameOverMove(GameOverCause::Timeout, /*loserIsPlayerOne=*/false);
+    m_gameoverMoveAppended = true;
+
+    if (m_usi2) m_usi2->sendGameOverLoseAndQuitCommands();
+    if (m_usi1) m_usi1->sendGameOverWinAndQuitCommands();
+
+    if (m_usi1) m_usi1->setSquelchResignLogging(true);
+    if (m_usi2) m_usi2->setSquelchResignLogging(true);
+
+    qDebug().nospace() << "[ARBITER] timeout P2 at t+" << ShogiUtils::nowMs() << "ms";
+
     displayResultsAndUpdateGui();
 }
 
@@ -5876,6 +5921,16 @@ QChar MainWindow::glyphForPlayer(bool isPlayerOne) const
 // 終局理由つきの終局表記をセット（棋譜欄の最後に出す "▲投了" / "△時間切れ" 等）
 void MainWindow::setGameOverMove(GameOverCause cause, bool loserIsPlayerOne)
 {
+    if (m_hasLastGameOver &&
+        m_lastGameOverCause == cause &&
+        m_lastLoserIsP1 == loserIsPlayerOne) {
+        return; // ★ 同じ内容なら追記しない
+    }
+    // ここで棋譜に追記...
+    m_hasLastGameOver = true;
+    m_lastGameOverCause = cause;
+    m_lastLoserIsP1 = loserIsPlayerOne;
+
     // ★追加：ログ用の直近結果を保持
     m_lastGameOverCause = cause;
     m_lastLoserIsP1     = loserIsPlayerOne;
@@ -5900,30 +5955,44 @@ void MainWindow::setResignationMove(bool isPlayerOneResigning)
 
 void MainWindow::onEngine1Resigns()
 {
-    if (m_gameIsOver) return;                 // 冪等
-    m_gameIsOver = true;                      // ★ まず止める（次ターンの go を出さない）
+    // 二重実行の防止：終局処理や棋譜追記は一度きり
+    if (m_gameIsOver) return;
+    if (m_gameoverMoveAppended) return;
+
+    // まず終局フラグを立てて以降の go/position を止める
+    m_gameIsOver = true;
 
     qDebug().nospace() << "[ARBITER] RESIGN P1 at t+" << ShogiUtils::nowMs() << "ms";
+
+    // 時計停止＆棋譜に「▲投了」を一度だけ記録
     m_shogiClock->markGameOver();
     setGameOverMove(GameOverCause::Resignation, /*loserIsPlayerOne=*/true);
+    m_gameoverMoveAppended = true;
 
+    // USIに通知：負け側（Engine1）へ lose、相手（Engine2）へ win を送る
     if (m_usi1) m_usi1->sendGameOverLoseAndQuitCommands();
     if (m_usi2) m_usi2->sendGameOverWinAndQuitCommands();
 
+    // 以後の余計な投了・info を黙殺（ログ方針に合わせて）
     if (m_usi1) m_usi1->setSquelchResignLogging(true);
     if (m_usi2) m_usi2->setSquelchResignLogging(true);
 
+    // 最終UI更新
     displayResultsAndUpdateGui();
 }
 
 void MainWindow::onEngine2Resigns()
 {
-    if (m_gameIsOver) return;                 // 冪等
-    m_gameIsOver = true;                      // ★ まず止める
+    if (m_gameIsOver) { /* 既に終局 */ }
+    if (m_gameoverMoveAppended) return;           // ★ 二重防止（棋譜）
 
+    m_gameIsOver = true;                           // まずループ停止
     qDebug().nospace() << "[ARBITER] RESIGN P2 at t+" << ShogiUtils::nowMs() << "ms";
+
     m_shogiClock->markGameOver();
     setGameOverMove(GameOverCause::Resignation, /*loserIsPlayerOne=*/false);
+
+    m_gameoverMoveAppended = true;                 // ★ ここで“書いた”とマーク
 
     if (m_usi2) m_usi2->sendGameOverLoseAndQuitCommands();
     if (m_usi1) m_usi1->sendGameOverWinAndQuitCommands();
@@ -5933,3 +6002,4 @@ void MainWindow::onEngine2Resigns()
 
     displayResultsAndUpdateGui();
 }
+
