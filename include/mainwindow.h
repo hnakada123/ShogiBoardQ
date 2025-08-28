@@ -895,6 +895,11 @@ private:
 
     // 対局中か（終局が決まったら true にして以後の思考呼び出し・適用を停止）
     bool m_gameIsOver = false; // NEW
+
+    // 終局行は一度だけ記録する
+    bool m_gameoverMoveAppended = false;   // NEW: 棋譜に終局行を書いたか？
+
+    bool m_hasLastGameOver = false;
 };
 
 #endif // MAINWINDOW_H

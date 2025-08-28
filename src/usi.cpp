@@ -32,7 +32,7 @@
 
 using namespace EngineSettingsConstants;
 
-// どこからでも使えるヘルパ（ファイル内 static 関数）
+// QRegularExpression の関数ローカル static 版（clazy 警告回避）
 static const QRegularExpression& whitespaceRe()
 {
     static const QRegularExpression re(QStringLiteral("\\s+"));
@@ -577,6 +577,12 @@ void Usi::printShogiBoard(const QVector<QChar>& boardData) const
 // 残り時間になるまでbestmoveを待機する。
 void Usi::waitAndCheckForBestMoveRemainingTime(int byoyomiMilliSec, const QString& btime, const QString& wtime, bool useByoyomi)
 {
+    // 関数の先頭付近に追加（戻り値が bool の場合）
+    if (m_timeoutDeclared || m_shutdownState != ShutdownState::Running) {
+        qDebug().nospace() << logPrefix() << " [wait-abort] timeout/ignore declared";
+        return; // 以後の bestmove は採用しない
+    }
+
     const bool p1turn = (m_gameController->currentPlayer() == ShogiGameController::Player1);
     const int  mainMs = p1turn ? btime.toInt() : wtime.toInt();
 
@@ -1070,43 +1076,58 @@ void Usi::readFromEngine()
     while (m_process && m_process->canReadLine()) {
         const QByteArray data = m_process->readLine();
         QString line = QString::fromUtf8(data).trimmed();
+        if (line.isEmpty()) continue;
 
-        // NEW: resign 到着のモノトニック時刻（デバッグ用）
-        const qint64 tms = ShogiUtils::nowMs();
-
-        // id name を拾って名称セット（未設定時）
-        if (line.startsWith("id name ")) {
+        // "id name" は起動直後のみ有意。終局後に拾う必要はないので先に扱っても問題なし。
+        if (line.startsWith(QStringLiteral("id name "))) {
             const QString n = line.mid(8).trimmed();
             if (!n.isEmpty() && m_logEngineName.isEmpty())
                 m_logEngineName = n;
         }
 
-        const QString pfx = logPrefix();
-
-        // NEW: タイムアウト確定後などは "bestmove resign" を GUI ログに出さず黙殺
-        if (m_squelchResignLogs && line.startsWith(QStringLiteral("bestmove resign"))) {
-            qDebug().nospace() << pfx << " [TRACE] resign-suppressed t+" << tms << "ms";
+        // ---- ★ 終局後の遮断ロジック -----------------------------------------
+        // タイムアウト宣言が立っている：完全黙殺（ログも出さない）
+        if (m_timeoutDeclared) {
+            qDebug().nospace() << logPrefix() << " [drop-after-timeout] " << line;
             continue;
         }
-        // resign が届いた時刻はデバッグ用にトレース（GUIログとは別）
-        if (line.startsWith(QStringLiteral("bestmove resign"))) {
-            qDebug().nospace() << pfx << " [TRACE] resign-detected t+" << tms << "ms";
+
+        // quit 後：基本黙殺。ただし "info string ..." を N 行までだけログ許可。
+        if (m_shutdownState == ShutdownState::IgnoreAllExceptInfoString) {
+            if (line.startsWith(QStringLiteral("info string")) &&
+                m_postQuitInfoStringLinesLeft > 0) {
+                const QString pfx = logPrefix();
+                m_model->appendUsiCommLog(pfx + " < " + line);
+                qDebug().nospace() << pfx << " usidebug< " << line;
+                --m_postQuitInfoStringLinesLeft;
+            } else {
+                qDebug().nospace() << logPrefix() << " [drop-after-quit] " << line;
+            }
+            continue;
         }
 
-        // 双方向ログ
+        // 旧来の「完全遮断」モード
+        if (m_shutdownState == ShutdownState::IgnoreAll) {
+            qDebug().nospace() << logPrefix() << " [drop-ignore-all] " << line;
+            continue;
+        }
+        // ---------------------------------------------------------------------
+
+        // === 通常処理（Running のときのみ到達） ===
+        const QString pfx = logPrefix();
         m_lines.append(line);
         m_model->appendUsiCommLog(pfx + " < " + line);
         qDebug().nospace() << pfx << " usidebug< " << line;
 
-        if (line.startsWith("bestmove")) {
+        if (line.startsWith(QStringLiteral("bestmove"))) {
             m_bestMoveSignalReceived = true;
             bestMoveReceived(line);
-        } else if (line.startsWith("info")) {
+        } else if (line.startsWith(QStringLiteral("info"))) {
             m_infoSignalReceived = true;
             infoReceived(line);
-        } else if (line.contains("readyok")) {
+        } else if (line.contains(QStringLiteral("readyok"))) {
             m_readyOkSignalReceived = true;
-        } else if (line.contains("usiok")) {
+        } else if (line.contains(QStringLiteral("usiok"))) {
             m_usiOkSignalReceived = true;
         }
     }
@@ -1244,22 +1265,20 @@ void Usi::clearResponseData()
     }
 }
 
-// quitコマンドを将棋エンジンに送信する。
-// エンジンに quit コマンドを送る（送信ログは残す／状態遷移はしない）
 void Usi::sendQuitCommand()
 {
-    if (!m_process || m_process->state() != QProcess::Running) return;
-    if (m_quitSent) return;               // ★ 2重送信ガード
-    m_quitSent = true;                    // 先に立てる（競合回避）
+    if (!m_process) return;
 
-    const QString pfx = logPrefix();
-    m_model->appendUsiCommLog(pfx + QStringLiteral(" > quit"));
-    qDebug().nospace() << pfx << " usidebug> quit";
+    // ★ 以後はエンジン出力を無視（"info string ..." だけ任意で通す）
+    m_shutdownState = ShutdownState::IgnoreAll;
 
-    const qint64 written = m_process->write(QByteArrayLiteral("quit\n"));
-    if (written == -1) {
-        qWarning().nospace() << pfx << " usidebug> quit (write failed)";
-    }
+    // quit を送る
+    sendCommand(QStringLiteral("quit"));
+
+    // （任意）ドレイン
+    (void)m_process->readAllStandardOutput();
+    (void)m_process->readAllStandardError();
+    m_process->closeWriteChannel();
 }
 
 // usinewgameコマンドを将棋エンジンに送信する。
@@ -1635,74 +1654,59 @@ bool Usi::keepWaitingForBestMove()
 // 将棋エンジンからbestmoveを受信した時に最善手を取得する。
 void Usi::bestMoveReceived(const QString& line)
 {
-    // 最善手の文字列をクリアする。
+    // ★ 裁定後は一切採用しない（ここが今回のキモ）
+    if (m_timeoutDeclared) {
+        qDebug().nospace() << logPrefix() << " [drop-bestmove] (timeout-declared) " << line;
+        return;
+    }
+    if (m_shutdownState != ShutdownState::Running) {
+        qDebug().nospace() << logPrefix() << " [drop-bestmove] (ignore-all) " << line;
+        return;
+    }
+
+    // 最善手の文字列をクリア
     m_bestMove.clear();
 
-    // bestmove行を空白類で分割（連続空白・タブもOK）
-    QStringList tokens = line.split(whitespaceRe(), Qt::SkipEmptyParts);
+    // "bestmove xxx [ponder yyy]" をトークン化
+    const QStringList tokens = line.split(whitespaceRe(), Qt::SkipEmptyParts);
+    const int bestMoveIndex = tokens.indexOf(QStringLiteral("bestmove"));
 
-    // bestmoveの次の文字列を取得する
-    int bestMoveIndex = tokens.indexOf("bestmove");
+    if (bestMoveIndex == -1 || bestMoveIndex + 1 >= tokens.size()) {
+        cleanupEngineProcessAndThread();
+        QString errorMessage = tr("An error occurred in Usi::bestMoveReceived. bestmove or its succeeding string not found.");
+        ShogiUtils::logAndThrowError(errorMessage);
+        return;
+    }
 
-    // bestmoveが含まれている時
-    if (bestMoveIndex != -1 && bestMoveIndex + 1 < tokens.size()) {
-        // bestmoveの次の文字列を取得する。
-        m_bestMove = tokens[bestMoveIndex + 1];
+    m_bestMove = tokens.at(bestMoveIndex + 1);
 
-        // m_bestMove = tokens[bestMoveIndex + 1]; の直後に挿入
-        qint64 elapsed = m_goTimer.isValid() ? m_goTimer.elapsed() : -1;
-        m_lastGoToBestmoveMs = (elapsed >= 0) ? elapsed : 0;
-        m_bestMoveSignalReceived = true; // 待機ループ側への通知
+    // 経過時間（go→bestmove）を記録（既存のタイマがあれば）
+    qint64 elapsed = m_goTimer.isValid() ? m_goTimer.elapsed() : -1;
+    m_lastGoToBestmoveMs = (elapsed >= 0) ? elapsed : 0;
+    m_bestMoveSignalReceived = true;
 
-        // ログ出力
-        int ponderIdx = tokens.indexOf("ponder");
-        QString ponderStr = (ponderIdx != -1 && ponderIdx + 1 < tokens.size())
-                                ? tokens[ponderIdx + 1] : QString();
-        qDebug().nospace() << "[USI] " << nowIso()
-                           << " bestmove=" << m_bestMove
-                           << " elapsed=" << fmtMs(elapsed)
-                           << (ponderStr.isEmpty() ? "" : QString("  ponder=%1").arg(ponderStr));
-
-        // （任意）使い切りにするなら： m_goTimer.invalidate();
-
-        // ★ 投了のときは通常パース・適用へ進ませない
-        if (m_bestMove.compare(QStringLiteral("resign"), Qt::CaseInsensitive) == 0) {
-            m_isResignMove = true; // ← これが無いと後段がパースしてしまう
-            // ここで gameover/quit は送らない！ ←★重要（MainWindow に一本化）
-            emit bestMoveResignReceived();
+    // resign は GUI 側にシグナルで通知（多重emit防止）
+    if (m_bestMove.compare(QStringLiteral("resign"), Qt::CaseInsensitive) == 0) {
+        if (m_resignNotified) {
+            qDebug().nospace() << logPrefix() << " [dup-resign-ignored]";
             return;
         }
-    }
-    // bestmoveが含まれていないか、その後の文字列が存在しない場合
-    else {
-        // 将棋エンジンプロセスを終了し、プロセスとスレッドを削除する。
-        cleanupEngineProcessAndThread();
+        m_resignNotified = true;
 
-        // bestmoveまたはその後の文字列が存在しない場合のエラーを表示する。
-        QString errorMessage = tr("An error occurred in Usi::bestMoveReceived. bestmove or its succeeding string not found.");
-
-        ShogiUtils::logAndThrowError(errorMessage);
+        qDebug().nospace() << logPrefix() << " [TRACE] resign-detected t+" << ShogiUtils::nowMs() << "ms";
+        emit bestMoveResignReceived();
+        return;
     }
 
-    // ponderが含まれている時
-    int ponderIndex = tokens.indexOf("ponder");
-
-    // ponderが含まれている時
-    if (ponderIndex != -1 && ponderIndex + 1 < tokens.size()) {
-        // ここは既存の処理をそのまま（略）
-        // ...
-    }
-    // ponderが含まれていないか、その後の文字列が存在しない場合
-    else {
-        // 対局相手の予想手の文字列をクリアする。
-        m_predictedOpponentMove.clear();
-
-        // GUIの「予想手」欄をクリアする。
-        m_model->setPredictiveMove("");
+    // ここ以降は通常手の処理（既存どおり）
+    // 例：ponder の取り出しなど
+    int ponderIdx = tokens.indexOf(QStringLiteral("ponder"));
+    if (ponderIdx != -1 && ponderIdx + 1 < tokens.size()) {
+        const QString ponderStr = tokens.at(ponderIdx + 1);
+        qDebug().nospace() << logPrefix() << " [ponder] " << ponderStr;
     }
 
-    // 行リストをクリアする
-    clearResponseData();
+    // （この後の適用可否は MainWindow 側で m_gameIsOver を再チェック）
 }
 
 // 新しいスレッドを生成し、GUIが将棋エンジンにstopまたはponderhitコマンドを送信するまで待つ。

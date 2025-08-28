@@ -103,6 +103,11 @@ public:
     // タイムアウト確定後に、当該エンジンが出す "bestmove resign" を黙殺する
     void setSquelchResignLogging(bool on);
 
+    void resetResignNotified() { m_resignNotified = false; }
+    void markHardTimeout()     { m_timeoutDeclared = true; }
+    void clearHardTimeout()    { m_timeoutDeclared = false; }
+    bool isIgnoring() const    { return m_shutdownState != ShutdownState::Running; }
+
 signals:
     // stopあるいはponderhitコマンドが送信されたことを通知するシグナル
     void stopOrPonderhitCommandSent();
@@ -428,15 +433,6 @@ private:
     // ★ 標準エラーの受信ログ（なければ新規で宣言）
     void readFromEngineStderr();
 
-    // --- 終了（shutdown）状態 ---  // NEW
-    enum class ShutdownState {
-        Running,                    // 通常動作
-        IgnoreAll,                  // すべて無視（ログも処理も行わない）
-        IgnoreAllExceptInfoString   // "info string ..." 行だけログ許可、処理はしない
-    };
-
-    ShutdownState m_shutdownState = ShutdownState::Running; // NEW
-
     // quit後に "info string ..." を何行までログに残すか（0で許可なし）
     int m_postQuitInfoStringLinesLeft = 0; // NEW
 
@@ -446,7 +442,13 @@ private:
     bool m_gameoverSent = false; // このインスタンスに gameover を送ったか
     bool m_quitSent     = false; // このインスタンスに quit を送ったか
 
-    bool m_squelchResignLogs = false; // NEW: true なら "bestmove resign" をログ/処理ともに捨てる
+    bool m_squelchResignLogs = false; // NEW: true なら "bestmove resign" をログ/処理ともに捨てる  
+
+    enum class ShutdownState { Running, IgnoreAll, IgnoreAllExceptInfoString };
+
+    ShutdownState m_shutdownState = ShutdownState::Running;
+    bool m_resignNotified  = false;  // resign の多重 emit 防止
+    bool m_timeoutDeclared = false;  // ★ GUIにより旗落ち確定（この局の bestmove は受け付けない）
 };
 
 // GUIのメインスレッドとは別のスレッドでgo ponderコマンド受信後の将棋エンジンの処理を行う。
