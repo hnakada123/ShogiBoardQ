@@ -2744,9 +2744,15 @@ void MainWindow::updateTurnDisplay()
 // 手番に応じて将棋クロックの手番変更およびGUIの手番表示を更新する。
 void MainWindow::updateTurnAndTimekeepingDisplay()
 {
-    //begin
-    qDebug() << "@@@@@@@@@@@@@@@@@@@@ in MainWindow::updateTurnAndTimekeepingDisplay";
-    //end
+    // ★ 終局後は何もしない（時計は止める）
+    if (m_gameIsOver) {
+        qDebug() << "[ARBITER] suppress updateTurnAndTimekeepingDisplay (game over)";
+        m_shogiClock->stopClock();
+        updateRemainingTimeDisplay();   // 表示だけ整えるなら任意
+        disarmHumanTimerIfNeeded();     // 人間用ストップウォッチがあれば停止
+        return;
+    }
+
     // 1) 今走っている側を止めて残時間確定
     m_shogiClock->stopClock();
 
@@ -4785,11 +4791,22 @@ void MainWindow::loadKifuFromFile(const QString &filePath)
 // 棋譜を更新し、GUIの表示も同時に更新する。
 // elapsedTimeは指し手にかかった時間を表す文字列
 void MainWindow::updateGameRecord(const QString& elapsedTime)
-{
-    //begin
+{   
     qCDebug(ClockLog) << "in MainWindow::updateGameRecord";
     qCDebug(ClockLog) << "elapsedTime=" << elapsedTime;
-    //end
+
+    // ★ 終局後に終局行を既に追記済みなら、これ以上は書かない
+    if (m_gameIsOver && m_gameoverMoveAppended) {
+        qCDebug(ClockLog) << "[KIFU] suppress updateGameRecord after game over";
+        return;
+    }
+
+    // ★ 手文字列が空のときは棋譜行を作らない（空行防止）
+    if (m_lastMove.trimmed().isEmpty()) {
+        qCDebug(ClockLog) << "[KIFU] skip empty move line";
+        return;
+    }
+
     // 手数をインクリメントし、文字列に変換する。
     QString moveNumberStr = QString::number(++m_currentMoveIndex);
 
@@ -4829,7 +4846,6 @@ void MainWindow::updateGameRecord(const QString& elapsedTime)
                           << m_shogiClock->getPlayer1ConsiderationTimeMs()
                           << " rem_ms(P1)=" << m_shogiClock->getPlayer1TimeIntMs();
     }
-
 }
 
 // bestmove resignコマンドを受信した場合の終了処理を行う。
@@ -5926,47 +5942,35 @@ QChar MainWindow::glyphForPlayer(bool isPlayerOne) const
 // 終局理由つきの終局表記をセット（棋譜欄の最後に出す "▲投了" / "△時間切れ" 等）
 void MainWindow::setGameOverMove(GameOverCause cause, bool loserIsPlayerOne)
 {
-    // 既に終局行を書いていれば何もしない
-    if (m_gameoverMoveAppended) {
-        qDebug().nospace() << "[KIF] setGameOverMove suppressed (already appended)"
-                           << " cause=" << (cause == GameOverCause::Resignation ? "RESIGN" : "TIMEOUT")
-                           << " loser=" << (loserIsPlayerOne ? "P1" : "P2");
-        return;
-    }
-
-    // 同一内容の重複（保険）
+    if (m_gameoverMoveAppended) return;
     if (m_hasLastGameOver &&
         m_lastGameOverCause == cause &&
-        m_lastLoserIsP1    == loserIsPlayerOne) {
-        qDebug() << "[KIF] setGameOverMove suppressed (duplicate content)";
-        return;
-    }
+        m_lastLoserIsP1    == loserIsPlayerOne) return;
 
-    // 直近メタ更新
     m_hasLastGameOver   = true;
     m_lastGameOverCause = cause;
     m_lastLoserIsP1     = loserIsPlayerOne;
 
-    // 表示テキスト（▲/△ 投了 or 時間切れ）
     const QChar mark = glyphForPlayer(loserIsPlayerOne);
-    const QString line =
-        (cause == GameOverCause::Resignation)
-            ? QString("%1投了").arg(mark)
-            : QString("%1時間切れ").arg(mark);
+    const QString line = (cause == GameOverCause::Resignation)
+                           ? QString("%1投了").arg(mark)
+                           : QString("%1時間切れ").arg(mark);
 
-    // 終局行の消費時間文字列を取得（負け側＝投了/時間切れした側の考慮時間＋残時間）
     const QString elapsed =
         loserIsPlayerOne
             ? m_shogiClock->getPlayer1ConsiderationAndTotalTime()
             : m_shogiClock->getPlayer2ConsiderationAndTotalTime();
 
-    // ★ 即時に 1 回だけ棋譜へ追記
+    // ★ 1回だけ即時追記
     appendKifuLine(line, elapsed);
 
-    // “書いた”ことを確定（以後の重複を抑止）
+    // ★ ここで“終局”を確定 → 以後は 1) と 2) のガードで空行が出なくなる
     m_gameoverMoveAppended = true;
+    m_gameIsOver           = true;          // ← 重要
+    m_shogiClock->stopClock();
+    disarmHumanTimerIfNeeded();
 
-    qDebug().nospace() << "[KIF] setGameOverMove appended"
+    qDebug().nospace() << "[KIFU] setGameOverMove appended"
                        << " cause=" << (cause == GameOverCause::Resignation ? "RESIGN" : "TIMEOUT")
                        << " loser=" << (loserIsPlayerOne ? "P1" : "P2");
 }
