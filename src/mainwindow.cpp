@@ -3216,191 +3216,122 @@ void MainWindow::startHumanVsHumanGame()
 // 駒落ち Player1: USI Engine（下手）, Player2: Human（上手）
 void MainWindow::startHumanVsEngineGame()
 {
-    if (m_usi1 != nullptr) delete m_usi1;
+    // 既存インスタンスの後片付け
+    if (m_usi1 != nullptr) { delete m_usi1; m_usi1 = nullptr; }
+
+    // USI インスタンス生成（このモードではエンジンは m_usi1 を使用）
     m_usi1 = new Usi(m_lineEditModel1, m_modelThinking1, m_gameController, m_playMode, this);
 
-    // ユーティリティ（任意）
+    // --- resign → 裁定のシグナル直結（同一スレッドなら同期・別スレッドなら自動でQueued） ---
     auto chooseConn = [this](QObject* obj) {
         return (obj->thread() == this->thread()) ? Qt::DirectConnection : Qt::AutoConnection;
     };
 
-    // P1エンジン用
-    QObject::disconnect(m_usi1, &Usi::bestMoveResignReceived,
-                        this,   &MainWindow::onEngine1Resigns);
-    QObject::connect(m_usi1, &Usi::bestMoveResignReceived,
-                     this,   &MainWindow::onEngine1Resigns,
-                     chooseConn(m_usi1));
+    // この対局モードでエンジンが担当する手番を判定
+    // 平手(EvenHumanVsEngine):   エンジン=P2
+    // 駒落ち(HandicapEngineVsHuman): エンジン=P1
+    const bool engineIsP1 =
+        (m_playMode == HandicapEngineVsHuman);
 
-    m_usi1->setLogIdentity("[E1]", "P1", m_startGameDialog->engineName1());
-
-    if (m_usi1) m_usi1->setSquelchResignLogging(false);
-
-    if ((m_playMode == EvenHumanVsEngine) || (m_playMode == HandicapHumanVsEngine)) {
-        // 人間先手 / 人間上手
-        initializeAndStartPlayer2WithEngine1();
-    } else if (m_playMode == HandicapEngineVsHuman) {
-        // エンジン先手（下手）
-        initializeAndStartPlayer1WithEngine1();
+    // 重複接続防止：事前に切ってから張る
+    QObject::disconnect(m_usi1, &Usi::bestMoveResignReceived, this, &MainWindow::onEngine1Resigns);
+    QObject::disconnect(m_usi1, &Usi::bestMoveResignReceived, this, &MainWindow::onEngine2Resigns);
+    if (engineIsP1) {
+        QObject::connect(m_usi1, &Usi::bestMoveResignReceived,
+                         this,   &MainWindow::onEngine1Resigns,
+                         chooseConn(m_usi1));
+    } else {
+        QObject::connect(m_usi1, &Usi::bestMoveResignReceived,
+                         this,   &MainWindow::onEngine2Resigns,
+                         chooseConn(m_usi1));
     }
 
-    // 初期 position
+    // ログ識別（P1/P2 を対局モードに合わせる）
+    m_usi1->setLogIdentity(engineIsP1 ? "[E1]" : "[E2]",
+                           engineIsP1 ? "P1"   : "P2",
+                           m_startGameDialog->engineName1());
+
+    // 対局開始の初期化
+    m_gameIsOver = false;                 // ★ 終局フラグは毎対局リセット
+    m_usi1->setSquelchResignLogging(false);
+
+    // エンジン割り当て
+    if (m_playMode == EvenHumanVsEngine) {
+        // 人間先手（P1）・エンジン後手（P2）
+        initializeAndStartPlayer2WithEngine1();
+    } else if (m_playMode == HandicapEngineVsHuman) {
+        // エンジン先手（P1）・人間後手（P2）
+        initializeAndStartPlayer1WithEngine1();
+    } else if (m_playMode == HandicapHumanVsEngine) {
+        // 念のため（この関数では通常使わないが、元コードに合わせて残すならP2エンジン）
+        initializeAndStartPlayer2WithEngine1();
+    }
+
+    // 初期 position（ponder 用も確保）
     m_positionStr1 = "position " + m_startPosStr + " moves";
     m_positionStrList.append(m_positionStr1);
-
-    // ★ 追加: ponder 用 position を用意（エンジン初手でも安全）
     m_positionPonder1 = m_positionStr1;
 
-    // 盤クリックの受付
-    connect(m_shogiView, &ShogiView::clicked,
-            this, &MainWindow::handlePlayerVsEngineClick);
+    // 盤クリックの受付（重複しないよう貼り直し）
+    QObject::disconnect(m_shogiView, &ShogiView::clicked,
+                        this, &MainWindow::handlePlayerVsEngineClick);
+    QObject::connect(m_shogiView, &ShogiView::clicked,
+                     this, &MainWindow::handlePlayerVsEngineClick);
 
     // --- 初手開始の同期（人間・エンジンどちらの手番でも）---
     m_shogiClock->stopClock();
+    {
+        const int cur = (m_gameController->currentPlayer() == ShogiGameController::Player2) ? 2 : 1;
+        updateTurnStatus(cur);     // 手番フラグとUI側のハイライトを揃える
+    }
+    m_shogiClock->startClock();    // この瞬間から残時間カウント開始
 
-    const int cur = (m_gameController->currentPlayer() == ShogiGameController::Player2) ? 2 : 1;
-    updateTurnStatus(cur);     // 手番フラグとUI側のハイライトを揃える
-    m_shogiClock->startClock(); // この瞬間から残時間カウント開始
+    // ★ 対局用エポック開始（最初の go を送るより“前”に必ず1回）
+    ShogiUtils::startGameEpoch();
+    qDebug() << "[ARBITER] epoch started (Human vs Engine)";
 
     refreshGoTimes();
 
-    // ★ 追加: ここで「初手がエンジン」なら即座に思考→着手させる
-    if (!isHumanTurn()) {
-        // この手を指す側（=エンジン）の開始時点情報を保持
-        const bool moverIsP1   = (m_gameController->currentPlayer() == ShogiGameController::Player1);
-        const int  budgetMs    = computeMoveBudgetMsForCurrentTurn(); // main(+byoyomi) or main のいずれか
-        QPoint outFrom, outTo;
+    // 現在手番が人間かどうか
+    const bool humanTurnNow =
+        (m_gameController->currentPlayer() ==
+            (engineIsP1 ? ShogiGameController::Player2 : ShogiGameController::Player1));
 
-        m_gameController->setPromote(false);
-
-
-        // ★ 対局用エポック開始（最初の go を送る前に必ず1回）
-        ShogiUtils::startGameEpoch();
-        qDebug() << "[ARBITER] epoch started (Human vs Engine)";
-
-        m_usi1->handleEngineVsHumanOrEngineMatchCommunication(
-            m_positionStr1, m_positionPonder1,
-            outFrom, outTo,
-            m_byoyomiMilliSec1, m_bTime, m_wTime,
-            m_addEachMoveMiliSec1, m_addEachMoveMiliSec2, m_useByoyomi
-        );
-
-        addNewHighlight(m_selectedField2, outFrom, QColor(255, 0, 0, 50));
-
-        bool isMoveValid = false;
-        try {
-            isMoveValid = m_gameController->validateAndMove(
-                outFrom, outTo, m_lastMove, m_playMode,
-                m_currentMoveIndex, m_sfenRecord, m_gameMoves
-            );
-        } catch (const std::exception& e) {
-            displayErrorMessage(e.what());
-            return;
-        }
-
-        if (isMoveValid) {
-            // ★ 追加: 旗落ち判定（対象は“この手を指した側＝エンジン”のみ）
-            const qint64 thinkMs = m_usi1->lastBestmoveElapsedMs();
-            if (thinkMs > budgetMs + kFlagFallGraceMs) {
-                qDebug().nospace()
-                    << "[GUI] Flag-fall (HvE initial engine move) "
-                    << "think=" << thinkMs << "ms "
-                    << "budget=" << budgetMs << "ms "
-                    << "grace=" << kFlagFallGraceMs << "ms";
-                handleFlagFallForMover(moverIsP1);
-                return;
-            }
-
-            // ★（従来処理そのまま）直前に指した側へ思考時間を反映
-            if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
-                // validateAndMove 後の現在手番=先手 → 直前は後手（= Engine）
-                m_shogiClock->setPlayer2ConsiderationTime(static_cast<int>(thinkMs));
-            } else {
-                // 現在手番=後手 → 直前は先手（= Engine）
-                m_shogiClock->setPlayer1ConsiderationTime(static_cast<int>(thinkMs));
-            }
-
-            // 秒読み/インクリメントの適用と表示更新
-            updateTurnAndTimekeepingDisplay();
-
-            updateHighlight(m_movedField, outTo, Qt::yellow);
-            redrawEngine1EvaluationGraph();
-
-            // ★ 追加: ここで人間が手番になるので、人間用ストップウォッチを“描画後”にアーム
-            m_shogiView->setMouseClickMode(true);
-            QTimer::singleShot(0, this, [this]{
-                armHumanTimerIfNeeded();
-            });
-        }
-
-        // 応答性の保険
-        qApp->processEvents();
-        return; // 初手がエンジンの場合はここまででセットアップ完了
+    // ★ 初手が人間のときは go を出さず UI を整えて戻る
+    if (humanTurnNow) {
+        // 人間手番のストップウォッチを UI 安定後にアーム
+        QTimer::singleShot(0, this, [this]{ armHumanTimerIfNeeded(); });
+        updateTurnAndTimekeepingDisplay();
+        return;
     }
 
-    // ★（従来処理）初手が人間なら、人間手番のストップウォッチを起動
-    if (isHumanTurn()) {
-        armHumanTimerIfNeeded();
-        // m_shogiView->setMouseClickMode(true); // 必要なら
-    }
-}
+    // --- ここから初手がエンジンのとき ---
+    QPoint outFrom(-1, -1), outTo(-1, -1);
 
-// 平手 Player1: USI Engine（先手）, Player2: Human（後手）
-// 駒落ち Player1: Human（下手）,  Player2: USI Engine（上手）
-void MainWindow::startEngineVsHumanGame()
-{
-    if (m_usi1 != nullptr) delete m_usi1;
-    m_usi1 = new Usi(m_lineEditModel1, m_modelThinking1, m_gameController, m_playMode, this);
-
-    // ユーティリティ（任意）
-    auto chooseConn = [this](QObject* obj) {
-        return (obj->thread() == this->thread()) ? Qt::DirectConnection : Qt::AutoConnection;
-    };
-
-    // P1エンジン用
-    QObject::disconnect(m_usi1, &Usi::bestMoveResignReceived,
-                        this,   &MainWindow::onEngine1Resigns);
-    QObject::connect(m_usi1, &Usi::bestMoveResignReceived,
-                     this,   &MainWindow::onEngine1Resigns,
-                     chooseConn(m_usi1));
-
-    m_usi1->setLogIdentity("[E1]", "P1", m_startGameDialog->engineName1());
-
-    if (m_usi1) m_usi1->setSquelchResignLogging(false);
-
-    if (m_playMode == EvenEngineVsHuman) {
-        initializeAndStartPlayer1WithEngine1();
-    } else if (m_playMode == HandicapHumanVsEngine) {
-        initializeAndStartPlayer2WithEngine1();
-    }
-
-    m_positionStr1 = "position " + m_startPosStr + " moves";
-    m_positionStrList.append(m_positionStr1);
-    m_positionPonder1 = m_positionStr1;
+    // この手の思考上限（ms）をメモ（旗落ち判定用）
+    const bool moverIsP1 = (m_gameController->currentPlayer() == ShogiGameController::Player1);
+    const int  budgetMs  = computeMoveBudgetMsForCurrentTurn();
 
     m_gameController->setPromote(false);
 
-    // ★ 対局用エポック開始（最初の go を送る前に必ず1回）
-    ShogiUtils::startGameEpoch();
-    qDebug() << "[ARBITER] epoch started (Engine vs Human)";
-
-    QPoint outFrom;
-    QPoint outTo;
-
-    refreshGoTimes();
-
-    // --- エンジンの初手を取得（EvenEngineVsHuman など） ---
-    // ★ 追加: いまの手番（この手を指す側＝エンジン側）の開始時点の情報を保持
-    const bool p1turn_before = (m_gameController->currentPlayer() == ShogiGameController::Player1); // この手を指す側
-    const int  budgetMsMove  = computeMoveBudgetMsForCurrentTurn();  // この手で使える“上限”
-
+    // 思考要求
     m_usi1->handleEngineVsHumanOrEngineMatchCommunication(
-        m_positionStr1, m_positionPonder1, outFrom, outTo,
+        m_positionStr1, m_positionPonder1,
+        outFrom, outTo,
         m_byoyomiMilliSec1, m_bTime, m_wTime,
         m_addEachMoveMiliSec1, m_addEachMoveMiliSec2, m_useByoyomi
     );
 
+    // 投了シグナルで終局していたら以後の処理を行わない
+    if (m_gameIsOver) {
+        updateTurnAndTimekeepingDisplay();
+        return;
+    }
+
+    // ハイライト
     addNewHighlight(m_selectedField2, outFrom, QColor(255, 0, 0, 50));
 
+    // 適用
     bool isMoveValid = false;
     try {
         isMoveValid = m_gameController->validateAndMove(
@@ -3412,8 +3343,172 @@ void MainWindow::startEngineVsHumanGame()
         return;
     }
 
+    if (m_gameIsOver) {
+        updateTurnAndTimekeepingDisplay();
+        return;
+    }
+
     if (isMoveValid) {
-        // ★ 追加: この手の思考時間と“旗落ち”判定（対象はこの手を指した側のみ）
+        // 旗落ち判定（対象はこの手を指した側＝エンジンのみ）
+        const qint64 thinkMs = m_usi1->lastBestmoveElapsedMs();
+        if (thinkMs > budgetMs + kFlagFallGraceMs) {
+            qDebug().nospace()
+                << "[GUI] Flag-fall (HvE initial engine move) "
+                << "think=" << thinkMs << "ms "
+                << "budget=" << budgetMs << "ms "
+                << "grace=" << kFlagFallGraceMs << "ms";
+            handleFlagFallForMover(moverIsP1);
+            return;
+        }
+
+        // 直前に指した側（= エンジン）の思考時間を UI に反映
+        if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
+            // validateAndMove 後の現在手番=先手 → 直前は後手（= エンジンが後手のとき）
+            m_shogiClock->setPlayer2ConsiderationTime(static_cast<int>(thinkMs));
+        } else {
+            // 現在手番=後手 → 直前は先手（= エンジンが先手のとき）
+            m_shogiClock->setPlayer1ConsiderationTime(static_cast<int>(thinkMs));
+        }
+
+        // 秒読み/インクリメントの適用と表示更新
+        updateTurnAndTimekeepingDisplay();
+
+        // 移動ハイライト
+        updateHighlight(m_movedField, outTo, Qt::yellow);
+        redrawEngine1EvaluationGraph();
+
+        // 次は人間手番 → ストップウォッチを描画後にアーム
+        m_shogiView->setMouseClickMode(true);
+        QTimer::singleShot(0, this, [this]{ armHumanTimerIfNeeded(); });
+    }
+
+    // 応答性の保険
+    qApp->processEvents();
+}
+
+// 平手 Player1: USI Engine（先手）, Player2: Human（後手）
+// 駒落ち Player1: Human（下手）,  Player2: USI Engine（上手）
+void MainWindow::startEngineVsHumanGame()
+{
+    // 既存インスタンスの後片付け
+    if (m_usi1 != nullptr) { delete m_usi1; m_usi1 = nullptr; }
+
+    // USI インスタンス生成（このモードではエンジンは m_usi1 のみを使用）
+    m_usi1 = new Usi(m_lineEditModel1, m_modelThinking1, m_gameController, m_playMode, this);
+
+    // --- resign → 裁定のシグナル直結（同一スレッドなら同期・別スレッドなら自動でQueued） ---
+    auto chooseConn = [this](QObject* obj) {
+        return (obj->thread() == this->thread()) ? Qt::DirectConnection : Qt::AutoConnection;
+    };
+
+    // この対局で m_usi1 が担当する手番を判定
+    const bool engineIsP1 = (m_playMode == EvenEngineVsHuman); // 平手: 先手=エンジン / 駒落ち: 後手=エンジン
+
+    // 既存接続を外してから接続（重複防止）
+    QObject::disconnect(m_usi1, &Usi::bestMoveResignReceived, this, &MainWindow::onEngine1Resigns);
+    QObject::disconnect(m_usi1, &Usi::bestMoveResignReceived, this, &MainWindow::onEngine2Resigns);
+    if (engineIsP1) {
+        QObject::connect(m_usi1, &Usi::bestMoveResignReceived,
+                         this,   &MainWindow::onEngine1Resigns,
+                         chooseConn(m_usi1));
+    } else {
+        QObject::connect(m_usi1, &Usi::bestMoveResignReceived,
+                         this,   &MainWindow::onEngine2Resigns,
+                         chooseConn(m_usi1));
+    }
+
+    // ログ識別（P1/P2 を対局モードに合わせる）
+    m_usi1->setLogIdentity(engineIsP1 ? "[E1]" : "[E2]",
+                           engineIsP1 ? "P1"   : "P2",
+                           m_startGameDialog->engineName1());
+
+    // 対局開始の初期化
+    m_gameIsOver = false;                 // ★ 終局フラグは毎対局リセット
+    m_usi1->setSquelchResignLogging(false);
+
+    // エンジン割り当て（既存ロジック）
+    if (m_playMode == EvenEngineVsHuman) {
+        initializeAndStartPlayer1WithEngine1(); // 先手=エンジン
+    } else if (m_playMode == HandicapHumanVsEngine) {
+        initializeAndStartPlayer2WithEngine1(); // 後手=エンジン
+    }
+
+    // 初期 position（ponder 用は必要ならこの後も更新）
+    m_positionStr1 = "position " + m_startPosStr + " moves";
+    m_positionStrList.append(m_positionStr1);
+    m_positionPonder1 = m_positionStr1;
+
+    // 思考前に昇格フラグをクリア
+    m_gameController->setPromote(false);
+
+    // 対局用エポック開始（最初の go の前に必ず一回）
+    ShogiUtils::startGameEpoch();
+    qDebug() << "[ARBITER] epoch started (Engine vs Human)";
+
+    // UI 側クリックハンドラは重複しないように貼り直し
+    QObject::disconnect(m_shogiView, &ShogiView::clicked, this, &MainWindow::handlePlayerVsEngineClick);
+    QObject::connect(m_shogiView, &ShogiView::clicked, this, &MainWindow::handlePlayerVsEngineClick);
+
+    // 手番の同期とタイマー準備
+    refreshGoTimes();
+
+    // --- ここから初手処理 ---
+    // 現在手番がエンジン側か？
+    const bool engineTurnNow =
+        (m_gameController->currentPlayer() == (engineIsP1 ? ShogiGameController::Player1
+                                                          : ShogiGameController::Player2));
+
+    // 人間が先に指す局面（駒落ちなど）の場合は、ここでは go を出さず UI を整えて戻る
+    if (!engineTurnNow) {
+        // 人間手番用のストップウォッチを UI 安定後にアーム
+        QTimer::singleShot(0, this, [this]{ armHumanTimerIfNeeded(); });
+        updateTurnAndTimekeepingDisplay();
+        return;
+    }
+
+    // --- エンジンの初手を取得 ---
+    QPoint outFrom(-1, -1), outTo(-1, -1);
+
+    // この手の思考上限（ms）をメモ（旗落ち判定用）
+    const bool p1turn_before = (m_gameController->currentPlayer() == ShogiGameController::Player1);
+    const int  budgetMsMove  = computeMoveBudgetMsForCurrentTurn();
+
+    // 思考要求
+    m_usi1->handleEngineVsHumanOrEngineMatchCommunication(
+        m_positionStr1, m_positionPonder1,
+        outFrom, outTo,
+        m_byoyomiMilliSec1, m_bTime, m_wTime,
+        m_addEachMoveMiliSec1, m_addEachMoveMiliSec2, m_useByoyomi
+    );
+
+    // 投了シグナルで終局していたら即終了（go 送信を続けない）
+    if (m_gameIsOver) {
+        updateTurnAndTimekeepingDisplay();
+        return;
+    }
+
+    // ハイライト表示
+    addNewHighlight(m_selectedField2, outFrom, QColor(255, 0, 0, 50));
+
+    // 適用
+    bool isMoveValid = false;
+    try {
+        isMoveValid = m_gameController->validateAndMove(
+            outFrom, outTo, m_lastMove, m_playMode,
+            m_currentMoveIndex, m_sfenRecord, m_gameMoves
+        );
+    } catch (const std::exception& e) {
+        displayErrorMessage(e.what());
+        return;
+    }
+
+    if (m_gameIsOver) {
+        updateTurnAndTimekeepingDisplay();
+        return;
+    }
+
+    if (isMoveValid) {
+        // この手の思考時間と“旗落ち”判定（対象はこの手を指した側のみ）
         const qint64 thinkMs = m_usi1->lastBestmoveElapsedMs();
         if (thinkMs > budgetMsMove + kFlagFallGraceMs) {
             qDebug().nospace()
@@ -3425,85 +3520,62 @@ void MainWindow::startEngineVsHumanGame()
             return;
         }
 
-        // ★（従来処理そのまま）直前に指した側へ思考時間を反映
+        // 直前に指した側（= エンジン）の思考時間を UI に反映
         if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
-            // validateAndMove 後の現在手番=先手 → 直前は後手（= Engine）
+            // validateAndMove 後の現在手番=先手 → 直前は後手（= エンジンが後手のとき）
             m_shogiClock->setPlayer2ConsiderationTime(static_cast<int>(thinkMs));
         } else {
-            // 現在手番=後手 → 直前は先手（= Engine）
+            // 現在手番=後手 → 直前は先手（= エンジンが先手のとき）
             m_shogiClock->setPlayer1ConsiderationTime(static_cast<int>(thinkMs));
         }
 
-        // 手番・秒読み/インクリメント・表示更新
+        // 手番・時間表示の更新
         updateTurnAndTimekeepingDisplay();
 
+        // 移動ハイライト
         updateHighlight(m_movedField, outTo, Qt::yellow);
         redrawEngine1EvaluationGraph();
 
-        // ★（従来処理）人間手番のストップウォッチは描画完了後にアーム
+        // 人間手番のストップウォッチは描画完了後にアーム
         m_shogiView->setMouseClickMode(true);
-        QTimer::singleShot(0, this, [this]{
-            armHumanTimerIfNeeded();  // HvE 用の人間手番ストップウォッチ
-        });
+        QTimer::singleShot(0, this, [this]{ armHumanTimerIfNeeded(); });
     }
 
-    // クリック受付
-    connect(m_shogiView, &ShogiView::clicked, this, &MainWindow::handlePlayerVsEngineClick);
-
-    // ★（従来処理）駒落ちなど「初手が人間」の場合の保険：UIが整ってからアーム
-    auto humanSide = [this](){
-        // この関数の文脈では Human は通常 Player2（EvenEngineVsHuman）、
-        // 駒落ち HumanVsEngine では Player1
-        return (m_playMode == HandicapHumanVsEngine)
-                ? ShogiGameController::Player1
-                : ShogiGameController::Player2;
-    };
-    if (m_gameController->currentPlayer() == humanSide()) {
-        QTimer::singleShot(0, this, [this]{
-            armHumanTimerIfNeeded();
-        });
-    }
+    // 以降は人間のクリックで手が進む
 }
 
 // 平手、駒落ち Player1: USI Engine, Player2: USI Engine
 void MainWindow::startEngineVsEngineGame()
 {
-    // ...（前略：生成・初期化はそのまま）...
     // 既存インスタンスの後片付け
-    if (m_usi1 != nullptr) delete m_usi1;
-    if (m_usi2 != nullptr) delete m_usi2;
+    if (m_usi1 != nullptr) { delete m_usi1; m_usi1 = nullptr; }
+    if (m_usi2 != nullptr) { delete m_usi2; m_usi2 = nullptr; }
 
     // USI インスタンス生成
     m_usi1 = new Usi(m_lineEditModel1, m_modelThinking1, m_gameController, m_playMode, this);
     m_usi2 = new Usi(m_lineEditModel2, m_modelThinking2, m_gameController, m_playMode, this);
 
-    // ユーティリティ（任意）
+    // resign → 裁定のシグナル直結（同一スレッドなら同期・別スレッドなら自動でQueued）
     auto chooseConn = [this](QObject* obj) {
         return (obj->thread() == this->thread()) ? Qt::DirectConnection : Qt::AutoConnection;
     };
+    QObject::disconnect(m_usi1, &Usi::bestMoveResignReceived, this, &MainWindow::onEngine1Resigns);
+    QObject::disconnect(m_usi2, &Usi::bestMoveResignReceived, this, &MainWindow::onEngine2Resigns);
+    QObject::connect(m_usi1, &Usi::bestMoveResignReceived, this, &MainWindow::onEngine1Resigns, chooseConn(m_usi1));
+    QObject::connect(m_usi2, &Usi::bestMoveResignReceived, this, &MainWindow::onEngine2Resigns, chooseConn(m_usi2));
 
-    // P1エンジン用
-    QObject::disconnect(m_usi1, &Usi::bestMoveResignReceived,
-                        this,   &MainWindow::onEngine1Resigns);
-    QObject::connect(m_usi1, &Usi::bestMoveResignReceived,
-                     this,   &MainWindow::onEngine1Resigns,
-                     chooseConn(m_usi1));
-
-    // P2エンジン用（必要な箇所で）
-    QObject::disconnect(m_usi2, &Usi::bestMoveResignReceived,
-                        this,   &MainWindow::onEngine2Resigns);
-    QObject::connect(m_usi2, &Usi::bestMoveResignReceived,
-                     this,   &MainWindow::onEngine2Resigns,
-                     chooseConn(m_usi2));
-
+    // ログヘッダ
     m_usi1->setLogIdentity("[E1]", "P1", m_startGameDialog->engineName1());
     m_usi2->setLogIdentity("[E2]", "P2", m_startGameDialog->engineName2());
 
-    // 例：新規対局の初期化時
-    if (m_usi1) m_usi1->setSquelchResignLogging(false);
-    if (m_usi2) m_usi2->setSquelchResignLogging(false);
+    // 終局フラグ初期化（重要：毎対局false）
+    m_gameIsOver = false;
 
-    // エンジン割り当て
+    // 投了ログ黙殺フラグは開始時に解除
+    m_usi1->setSquelchResignLogging(false);
+    m_usi2->setSquelchResignLogging(false);
+
+    // エンジン割り当て（既存ロジックそのまま）
     if (m_playMode == EvenEngineVsEngine) {
         initializeAndStartPlayer1WithEngine1();
         initializeAndStartPlayer2WithEngine2();
@@ -3512,16 +3584,13 @@ void MainWindow::startEngineVsEngineGame()
         initializeAndStartPlayer1WithEngine2();
     }
 
-    // 初期 position
+    // 初期 position（両エンジンの ponder 用も分離して持つ）
     m_positionStr1 = "position " + m_startPosStr + " moves";
     m_positionStrList.append(m_positionStr1);
+    m_positionPonder1 = m_positionStr1;
+    m_positionPonder2 = m_positionStr1;
 
-    // --- [2] それぞれのエンジン用に ponder 用 position を分離 ---
-    // ※ メンバに QString m_positionPonder1, m_positionPonder2 を用意しておくこと
-    m_positionPonder1 = m_positionStr1;  // Engine1 用
-    m_positionPonder2 = m_positionStr1;  // Engine2 用（★追加）
-
-    // --- [1] 将棋クロックとUI手番表示の同期（開始時の見た目・内部状態を揃える） ---
+    // 将棋クロックとUI手番表示の同期
     m_shogiClock->stopClock();
     {
         const int cur = (m_gameController->currentPlayer() == ShogiGameController::Player2) ? 2 : 1;
@@ -3529,20 +3598,25 @@ void MainWindow::startEngineVsEngineGame()
     }
     m_shogiClock->startClock();
 
-    // ★ 対局用エポック開始（最初の go を送る前に必ず1回）
+    // 対局用エポック開始（最初の go の前に必ず一回）
     ShogiUtils::startGameEpoch();
     qDebug() << "[ARBITER] epoch started (Engine vs Engine)";
 
     // ここからエンジン同士の指し合いループ
     QPoint outFrom, outTo;
-    while (1) {
+    while (!m_gameIsOver) {  // ★ 終局フラグ監視
         // ================= 先手側（Engine1） =================
+        if (m_gameIsOver) break; // 念のため
+
         m_gameController->setPromote(false);
         refreshGoTimes(); // go の btime/wtime を最新化
 
-        // ★ 追加: 「この1手」の想定上限（ms）を開始時に固定でメモ
+        // この手の思考上限（ms）を固定でメモ（旗落ち判定用）
         const bool p1turn_before_1 = (m_gameController->currentPlayer() == ShogiGameController::Player1);
         const int  budgetMsMove1   = computeMoveBudgetMsForCurrentTurn();
+
+        outFrom = QPoint(-1, -1);
+        outTo   = QPoint(-1, -1);
 
         m_usi1->handleEngineVsHumanOrEngineMatchCommunication(
             m_positionStr1, m_positionPonder1,
@@ -3550,6 +3624,9 @@ void MainWindow::startEngineVsEngineGame()
             m_byoyomiMilliSec1, m_bTime, m_wTime,
             m_addEachMoveMiliSec1, m_addEachMoveMiliSec2, m_useByoyomi
         );
+
+        // ここで resign シグナルが入っていれば終局済み
+        if (m_gameIsOver) break;
 
         updateHighlight(m_selectedField, outFrom, QColor(255, 0, 0, 50));
 
@@ -3564,11 +3641,12 @@ void MainWindow::startEngineVsEngineGame()
             return;
         }
 
+        if (m_gameIsOver) break; // 適用中に終局になった場合の保険
+
         if (isMoveValid1) {
             const qint64 thinkMs1 = m_usi1->lastBestmoveElapsedMs();
 
-            // ★ 追加: 旗落ち判定 ― 「いまの手番だった側（= p1turn_before_1）」だけを見る
-            //         予算 + 最小猶予 を明確に超えたら時間切れ負け
+            // 旗落ち判定（この手の手番だった側のみ見る）
             if (thinkMs1 > budgetMsMove1 + kFlagFallGraceMs) {
                 qDebug().nospace()
                     << "[GUI] Flag-fall check (Engine1)"
@@ -3576,18 +3654,18 @@ void MainWindow::startEngineVsEngineGame()
                     << " budget=" << budgetMsMove1 << "ms"
                     << " grace=" << kFlagFallGraceMs << "ms";
                 handleFlagFallForMover(p1turn_before_1);
-                return;
+                return; // ここで終局処理へ
             }
 
-            // --- ここから従来の表示・時間処理 ---
+            // 時間・UI更新
             if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
                 m_shogiClock->setPlayer2ConsiderationTime(static_cast<int>(thinkMs1));
             } else {
                 m_shogiClock->setPlayer1ConsiderationTime(static_cast<int>(thinkMs1));
             }
-
             updateTurnAndTimekeepingDisplay();
 
+            // 次手のためのヒント更新
             m_usi2->setPreviousFileTo(outTo.x());
             m_usi2->setPreviousRankTo(outTo.y());
 
@@ -3596,19 +3674,25 @@ void MainWindow::startEngineVsEngineGame()
         }
 
         // ================= 後手側（Engine2） =================
+        if (m_gameIsOver) break; // ★ 投了直後に次の go を出さないのが重要
+
         m_gameController->setPromote(false);
         refreshGoTimes();
 
-        // ★ 追加: この手の想定上限を固定でメモ
         const bool p1turn_before_2 = (m_gameController->currentPlayer() == ShogiGameController::Player1);
         const int  budgetMsMove2   = computeMoveBudgetMsForCurrentTurn();
 
+        outFrom = QPoint(-1, -1);
+        outTo   = QPoint(-1, -1);
+
         m_usi2->handleEngineVsHumanOrEngineMatchCommunication(
-            m_positionStr1, m_positionPonder2,   // Engine2 は p2用のponder文字列
+            m_positionStr1, m_positionPonder2,   // Engine2 は p2 用の ponder 文字列
             outFrom, outTo,
             m_byoyomiMilliSec1, m_bTime, m_wTime,
             m_addEachMoveMiliSec1, m_addEachMoveMiliSec2, m_useByoyomi
         );
+
+        if (m_gameIsOver) break;
 
         updateHighlight(m_selectedField, outFrom, QColor(255, 0, 0, 50));
 
@@ -3623,10 +3707,12 @@ void MainWindow::startEngineVsEngineGame()
             return;
         }
 
+        if (m_gameIsOver) break;
+
         if (isMoveValid2) {
             const qint64 thinkMs2 = m_usi2->lastBestmoveElapsedMs();
 
-            // ★ 追加: 旗落ち判定（この手の手番だった側のみを見る）
+            // 旗落ち判定
             if (thinkMs2 > budgetMsMove2 + kFlagFallGraceMs) {
                 qDebug().nospace()
                     << "[GUI] Flag-fall check (Engine2)"
@@ -3637,13 +3723,11 @@ void MainWindow::startEngineVsEngineGame()
                 return;
             }
 
-            // --- 従来の表示・時間処理 ---
             if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
                 m_shogiClock->setPlayer2ConsiderationTime(static_cast<int>(thinkMs2));
             } else {
                 m_shogiClock->setPlayer1ConsiderationTime(static_cast<int>(thinkMs2));
             }
-
             updateTurnAndTimekeepingDisplay();
 
             m_usi1->setPreviousFileTo(outTo.x());
@@ -3655,7 +3739,10 @@ void MainWindow::startEngineVsEngineGame()
 
         // UI応答性の保険
         qApp->processEvents();
-    }
+    } // while (!m_gameIsOver)
+
+    // ループ脱出後（任意で最終UI整合）
+    updateTurnAndTimekeepingDisplay();
 }
 
 // 対局モードを決定する。
@@ -5813,18 +5900,16 @@ void MainWindow::setResignationMove(bool isPlayerOneResigning)
 
 void MainWindow::onEngine1Resigns()
 {
-    // 先手（エンジン1）の投了
-    qDebug().nospace() << "[ARBITER] RESIGN P1 at t+" << ShogiUtils::nowMs() << "ms";
+    if (m_gameIsOver) return;                 // 冪等
+    m_gameIsOver = true;                      // ★ まず止める（次ターンの go を出さない）
 
-    // 時計停止＆終局表記
+    qDebug().nospace() << "[ARBITER] RESIGN P1 at t+" << ShogiUtils::nowMs() << "ms";
     m_shogiClock->markGameOver();
     setGameOverMove(GameOverCause::Resignation, /*loserIsPlayerOne=*/true);
 
-    // 負け側（エンジン1）には lose、相手（エンジン2）には win
     if (m_usi1) m_usi1->sendGameOverLoseAndQuitCommands();
     if (m_usi2) m_usi2->sendGameOverWinAndQuitCommands();
 
-    // 以後の余計な投了行を黙殺（任意だが安全）
     if (m_usi1) m_usi1->setSquelchResignLogging(true);
     if (m_usi2) m_usi2->setSquelchResignLogging(true);
 
@@ -5833,18 +5918,16 @@ void MainWindow::onEngine1Resigns()
 
 void MainWindow::onEngine2Resigns()
 {
-    // 後手（エンジン2）の投了
-    qDebug().nospace() << "[ARBITER] RESIGN P2 at t+" << ShogiUtils::nowMs() << "ms";
+    if (m_gameIsOver) return;                 // 冪等
+    m_gameIsOver = true;                      // ★ まず止める
 
-    // 時計停止＆終局表記
+    qDebug().nospace() << "[ARBITER] RESIGN P2 at t+" << ShogiUtils::nowMs() << "ms";
     m_shogiClock->markGameOver();
     setGameOverMove(GameOverCause::Resignation, /*loserIsPlayerOne=*/false);
 
-    // 負け側（エンジン2）には lose、相手（エンジン1）には win
     if (m_usi2) m_usi2->sendGameOverLoseAndQuitCommands();
     if (m_usi1) m_usi1->sendGameOverWinAndQuitCommands();
 
-    // 以後の余計な投了行を黙殺（任意）
     if (m_usi1) m_usi1->setSquelchResignLogging(true);
     if (m_usi2) m_usi2->setSquelchResignLogging(true);
 
