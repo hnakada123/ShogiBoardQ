@@ -3259,6 +3259,9 @@ void MainWindow::startHumanVsEngineGame()
 
     // 対局開始の初期化
     m_gameIsOver = false;                 // ★ 終局フラグは毎対局リセット
+    m_gameoverMoveAppended = false;   // ★ 追加
+    m_hasLastGameOver      = false;
+
     m_usi1->setSquelchResignLogging(false);
 
     // エンジン割り当て
@@ -3434,6 +3437,7 @@ void MainWindow::startEngineVsHumanGame()
     // 対局開始の初期化
     m_gameIsOver = false;                 // ★ 終局フラグは毎対局リセット
     m_gameoverMoveAppended = false;   // ★ 追加
+    m_hasLastGameOver      = false;
 
     m_usi1->setSquelchResignLogging(false);
 
@@ -3586,6 +3590,7 @@ void MainWindow::startEngineVsEngineGame()
     // 終局フラグ初期化（重要：毎対局false）
     m_gameIsOver = false;
     m_gameoverMoveAppended = false;   // ★ 追加
+    m_hasLastGameOver      = false;
 
     // 投了ログ黙殺フラグは開始時に解除
     m_usi1->setSquelchResignLogging(false);
@@ -5921,30 +5926,61 @@ QChar MainWindow::glyphForPlayer(bool isPlayerOne) const
 // 終局理由つきの終局表記をセット（棋譜欄の最後に出す "▲投了" / "△時間切れ" 等）
 void MainWindow::setGameOverMove(GameOverCause cause, bool loserIsPlayerOne)
 {
+    // 既に終局行を書いていれば何もしない
+    if (m_gameoverMoveAppended) {
+        qDebug().nospace() << "[KIF] setGameOverMove suppressed (already appended)"
+                           << " cause=" << (cause == GameOverCause::Resignation ? "RESIGN" : "TIMEOUT")
+                           << " loser=" << (loserIsPlayerOne ? "P1" : "P2");
+        return;
+    }
+
+    // 同一内容の重複（保険）
     if (m_hasLastGameOver &&
         m_lastGameOverCause == cause &&
-        m_lastLoserIsP1 == loserIsPlayerOne) {
-        return; // ★ 同じ内容なら追記しない
+        m_lastLoserIsP1    == loserIsPlayerOne) {
+        qDebug() << "[KIF] setGameOverMove suppressed (duplicate content)";
+        return;
     }
-    // ここで棋譜に追記...
-    m_hasLastGameOver = true;
-    m_lastGameOverCause = cause;
-    m_lastLoserIsP1 = loserIsPlayerOne;
 
-    // ★追加：ログ用の直近結果を保持
+    // 直近メタ更新
+    m_hasLastGameOver   = true;
     m_lastGameOverCause = cause;
     m_lastLoserIsP1     = loserIsPlayerOne;
 
+    // 表示テキスト（▲/△ 投了 or 時間切れ）
     const QChar mark = glyphForPlayer(loserIsPlayerOne);
+    const QString line =
+        (cause == GameOverCause::Resignation)
+            ? QString("%1投了").arg(mark)
+            : QString("%1時間切れ").arg(mark);
 
-    switch (cause) {
-    case GameOverCause::Resignation:
-        m_lastMove = QString("%1投了").arg(mark);
-        break;
-    case GameOverCause::Timeout:
-        m_lastMove = QString("%1時間切れ").arg(mark);
-        break;
-    }
+    // 終局行の消費時間文字列を取得（負け側＝投了/時間切れした側の考慮時間＋残時間）
+    const QString elapsed =
+        loserIsPlayerOne
+            ? m_shogiClock->getPlayer1ConsiderationAndTotalTime()
+            : m_shogiClock->getPlayer2ConsiderationAndTotalTime();
+
+    // ★ 即時に 1 回だけ棋譜へ追記
+    appendKifuLine(line, elapsed);
+
+    // “書いた”ことを確定（以後の重複を抑止）
+    m_gameoverMoveAppended = true;
+
+    qDebug().nospace() << "[KIF] setGameOverMove appended"
+                       << " cause=" << (cause == GameOverCause::Resignation ? "RESIGN" : "TIMEOUT")
+                       << " loser=" << (loserIsPlayerOne ? "P1" : "P2");
+}
+
+void MainWindow::appendKifuLine(const QString& text, const QString& elapsedTime)
+{
+    // KIF 追記の既存フローに合わせて m_lastMove を経由し、updateGameRecord() を1回だけ呼ぶ
+    m_lastMove = text;
+
+    // ここで棋譜へ 1 行追加（手数インクリメントやモデル反映は updateGameRecord が面倒を見る）
+    updateGameRecord(elapsedTime);
+
+    // 二重追記防止のためクリア
+    m_lastMove.clear();
 }
 
 // 互換ラッパ：既存の呼び出しを生かしたまま内部で新 API に委譲
@@ -5955,6 +5991,8 @@ void MainWindow::setResignationMove(bool isPlayerOneResigning)
 
 void MainWindow::onEngine1Resigns()
 {
+    qDebug() << "[ARBITER] onEngine1Resigns() ENTER";
+
     // 二重実行の防止：終局処理や棋譜追記は一度きり
     if (m_gameIsOver) return;
     if (m_gameoverMoveAppended) return;
@@ -5983,6 +6021,8 @@ void MainWindow::onEngine1Resigns()
 
 void MainWindow::onEngine2Resigns()
 {
+    qDebug() << "[ARBITER] onEngine2Resigns() ENTER";
+
     if (m_gameIsOver) { /* 既に終局 */ }
     if (m_gameoverMoveAppended) return;           // ★ 二重防止（棋譜）
 

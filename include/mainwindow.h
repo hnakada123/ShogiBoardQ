@@ -885,10 +885,6 @@ private:
     // 表示用の▲/△を返す（既存の setResignationMove と同じ規則を踏襲）
     QChar glyphForPlayer(bool isPlayerOne) const;
 
-    // 終局の直近結果（ログ用）
-    GameOverCause m_lastGameOverCause = GameOverCause::Timeout; // 初期値はダミー（必ず上書きされる前提）
-    bool          m_lastLoserIsP1     = false;                  // 直近の敗者が先手か
-
     // 投了裁定の明示関数（エンジン1が投了／エンジン2が投了）
     void onEngine1Resigns(); // 先手（エンジン1）が投了 → 先手lose／後手win
     void onEngine2Resigns(); // 後手（エンジン2）が投了 → 後手lose／先手win
@@ -896,10 +892,13 @@ private:
     // 対局中か（終局が決まったら true にして以後の思考呼び出し・適用を停止）
     bool m_gameIsOver = false; // NEW
 
-    // 終局行は一度だけ記録する
-    bool m_gameoverMoveAppended = false;   // NEW: 棋譜に終局行を書いたか？
+    // MainWindow の private: など適切な場所に追加（既にあればこの初期化値でOK）
+    bool          m_gameoverMoveAppended = false;        // 棋譜の終局行を実際に追記したか
+    bool          m_hasLastGameOver      = false;        // 直近の終局メタがあるか
+    GameOverCause m_lastGameOverCause    = GameOverCause::Resignation; // 初期値は何でもOK
+    bool          m_lastLoserIsP1        = false;        // 直近終局の敗者
 
-    bool m_hasLastGameOver = false;
+    void appendKifuLine(const QString& text, const QString& elapsedTime);
 };
 
 #endif // MAINWINDOW_H
