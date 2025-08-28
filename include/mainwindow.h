@@ -889,6 +889,9 @@ private:
     GameOverCause m_lastGameOverCause = GameOverCause::Timeout; // 初期値はダミー（必ず上書きされる前提）
     bool          m_lastLoserIsP1     = false;                  // 直近の敗者が先手か
 
+    // 投了裁定の明示関数（エンジン1が投了／エンジン2が投了）
+    void onEngine1Resigns(); // 先手（エンジン1）が投了 → 先手lose／後手win
+    void onEngine2Resigns(); // 後手（エンジン2）が投了 → 後手lose／先手win
 };
 
 #endif // MAINWINDOW_H
