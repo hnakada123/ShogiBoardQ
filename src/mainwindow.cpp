@@ -5930,44 +5930,57 @@ void MainWindow::onPlayer2TimeOut()
 // 表示用の▲/△を返す（既存 setResignationMove の分岐をそのまま一般化）
 QChar MainWindow::glyphForPlayer(bool isPlayerOne) const
 {
-    const bool flip =
-        (m_playMode == EvenHumanVsEngine) ||
-        (m_playMode == HandicapHumanVsEngine) ||
-        (m_playMode == HandicapEngineVsEngine);
-
-    // flip が true のときは P1/P2 を反転して表示
-    return ((isPlayerOne ^ flip) ? QChar(u'▲') : QChar(u'△'));
+    // 棋譜用は絶対座席で固定（UIの flip は無視）
+    return isPlayerOne ? QChar(u'▲') : QChar(u'△');
 }
 
 // 終局理由つきの終局表記をセット（棋譜欄の最後に出す "▲投了" / "△時間切れ" 等）
 void MainWindow::setGameOverMove(GameOverCause cause, bool loserIsPlayerOne)
 {
-    if (m_gameoverMoveAppended) return;
+    // 既に終局行を書いていれば何もしない
+    if (m_gameoverMoveAppended) {
+        qDebug() << "[KIFU] setGameOverMove suppressed (already appended)";
+        return;
+    }
+
+    // ★ まず時計を止めて、その瞬間の考慮時間を確定させる（重要）
+    m_shogiClock->stopClock();
+
+    // 同一内容の重複（保険）— ここで return する場合でも以後の処理は抑制
     if (m_hasLastGameOver &&
         m_lastGameOverCause == cause &&
-        m_lastLoserIsP1    == loserIsPlayerOne) return;
+        m_lastLoserIsP1    == loserIsPlayerOne) {
+        m_gameIsOver = true;
+        disarmHumanTimerIfNeeded();
+        qDebug() << "[KIFU] setGameOverMove suppressed (duplicate content)";
+        return;
+    }
 
+    // メタ更新（最後に何で終わったかを保持）
     m_hasLastGameOver   = true;
     m_lastGameOverCause = cause;
     m_lastLoserIsP1     = loserIsPlayerOne;
 
+    // ▲/△は“絶対座席”で（UIのflipは無視）
     const QChar mark = glyphForPlayer(loserIsPlayerOne);
-    const QString line = (cause == GameOverCause::Resignation)
-                           ? QString("%1投了").arg(mark)
-                           : QString("%1時間切れ").arg(mark);
 
+    const QString line =
+        (cause == GameOverCause::Resignation)
+            ? QString("%1投了").arg(mark)
+            : QString("%1時間切れ").arg(mark);
+
+    // ★ stopClock() 済なので、直近の経過が反映された値が取得できる
     const QString elapsed =
         loserIsPlayerOne
             ? m_shogiClock->getPlayer1ConsiderationAndTotalTime()
             : m_shogiClock->getPlayer2ConsiderationAndTotalTime();
 
-    // ★ 1回だけ即時追記
+    // 1回だけ即時追記（内部で updateGameRecord を1回だけ呼ぶ）
     appendKifuLine(line, elapsed);
 
-    // ★ ここで“終局”を確定 → 以後は 1) と 2) のガードで空行が出なくなる
+    // 以後の追記・時間更新を抑止
     m_gameoverMoveAppended = true;
-    m_gameIsOver           = true;          // ← 重要
-    m_shogiClock->stopClock();
+    m_gameIsOver           = true;
     disarmHumanTimerIfNeeded();
 
     qDebug().nospace() << "[KIFU] setGameOverMove appended"
