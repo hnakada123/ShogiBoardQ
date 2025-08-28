@@ -2785,6 +2785,13 @@ void MainWindow::updateTurnAndTimekeepingDisplay()
     updateTurnStatus(nextIsP1 ? 1 : 2);
     m_shogiClock->startClock();
 
+    // ★ 新しい手番の「この手」の開始時刻を記録
+    {
+        const qint64 now = ShogiUtils::nowMs();
+        if (nextIsP1) m_turnEpochP1Ms = now;
+        else          m_turnEpochP2Ms = now;
+    }
+
     if (isHumanTurn()) armHumanTimerIfNeeded();
     else               disarmHumanTimerIfNeeded();
 }
@@ -3301,6 +3308,20 @@ void MainWindow::startHumanVsEngineGame()
     }
     m_shogiClock->startClock();    // この瞬間から残時間カウント開始
 
+    // ★ 対局ごとにエポックをリセット
+    m_turnEpochP1Ms = -1;
+    m_turnEpochP2Ms = -1;
+
+    // 例：updateTurnStatus(cur); m_shogiClock->startClock(); の直後あたりに
+    {
+        const qint64 now = ShogiUtils::nowMs();
+        if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
+            m_turnEpochP1Ms = now;
+        } else {
+            m_turnEpochP2Ms = now;
+        }
+    }
+
     // ★ 対局用エポック開始（最初の go を送るより“前”に必ず1回）
     ShogiUtils::startGameEpoch();
     qDebug() << "[ARBITER] epoch started (Human vs Engine)";
@@ -3461,6 +3482,28 @@ void MainWindow::startEngineVsHumanGame()
 
     // 思考前に昇格フラグをクリア
     m_gameController->setPromote(false);
+
+    // 将棋クロックとUI手番表示の同期
+    m_shogiClock->stopClock();
+    {
+        const int cur = (m_gameController->currentPlayer() == ShogiGameController::Player2) ? 2 : 1;
+        updateTurnStatus(cur);
+    }
+    m_shogiClock->startClock();
+
+    // ★ 対局ごとにエポックをリセット
+    m_turnEpochP1Ms = -1;
+    m_turnEpochP2Ms = -1;
+
+    // 例：updateTurnStatus(cur); m_shogiClock->startClock(); の直後あたりに
+    {
+        const qint64 now = ShogiUtils::nowMs();
+        if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
+            m_turnEpochP1Ms = now;
+        } else {
+            m_turnEpochP2Ms = now;
+        }
+    }
 
     // 対局用エポック開始（最初の go の前に必ず一回）
     ShogiUtils::startGameEpoch();
@@ -3624,6 +3667,20 @@ void MainWindow::startEngineVsEngineGame()
         updateTurnStatus(cur);
     }
     m_shogiClock->startClock();
+
+    // ★ 対局ごとにエポックをリセット
+    m_turnEpochP1Ms = -1;
+    m_turnEpochP2Ms = -1;
+
+    // 例：updateTurnStatus(cur); m_shogiClock->startClock(); の直後あたりに
+    {
+        const qint64 now = ShogiUtils::nowMs();
+        if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
+            m_turnEpochP1Ms = now;
+        } else {
+            m_turnEpochP2Ms = now;
+        }
+    }
 
     // 対局用エポック開始（最初の go の前に必ず一回）
     ShogiUtils::startGameEpoch();
@@ -4403,6 +4460,10 @@ void MainWindow::setTimerAndStart()
     // 各対局者の残り時間を設定する。
     m_shogiClock->setPlayerTimes(remainingTime1, remainingTime2, byoyomi1, byoyomi2, binc, winc,
                                  hasTimeLimit);
+
+    // setPlayerTimes(...) の直後など “開始前” に一度だけ
+    m_initialTimeP1Ms = m_shogiClock->getPlayer1TimeIntMs();
+    m_initialTimeP2Ms = m_shogiClock->getPlayer2TimeIntMs();
 
     // 手番に応じて将棋クロックの手番変更およびGUIの手番表示を更新する。
     updateTurnDisplay();
@@ -5937,16 +5998,12 @@ QChar MainWindow::glyphForPlayer(bool isPlayerOne) const
 // 終局理由つきの終局表記をセット（棋譜欄の最後に出す "▲投了" / "△時間切れ" 等）
 void MainWindow::setGameOverMove(GameOverCause cause, bool loserIsPlayerOne)
 {
-    // 既に終局行を書いていれば何もしない
-    if (m_gameoverMoveAppended) {
-        qDebug() << "[KIFU] setGameOverMove suppressed (already appended)";
-        return;
-    }
+    if (m_gameoverMoveAppended) return;
 
-    // ★ まず時計を止めて、その瞬間の考慮時間を確定させる（重要）
+    // ★ まず時計停止（この時点の残りmsを固定）
     m_shogiClock->stopClock();
 
-    // 同一内容の重複（保険）— ここで return する場合でも以後の処理は抑制
+    // 同一内容の重複ガード（任意）
     if (m_hasLastGameOver &&
         m_lastGameOverCause == cause &&
         m_lastLoserIsP1    == loserIsPlayerOne) {
@@ -5956,36 +6013,49 @@ void MainWindow::setGameOverMove(GameOverCause cause, bool loserIsPlayerOne)
         return;
     }
 
-    // メタ更新（最後に何で終わったかを保持）
+    // メタ保持
     m_hasLastGameOver   = true;
     m_lastGameOverCause = cause;
     m_lastLoserIsP1     = loserIsPlayerOne;
 
-    // ▲/△は“絶対座席”で（UIのflipは無視）
+    // 表記（▲/△は絶対座席）
     const QChar mark = glyphForPlayer(loserIsPlayerOne);
+    const QString line = (cause == GameOverCause::Resignation)
+                           ? QString("%1投了").arg(mark)
+                           : QString("%1時間切れ").arg(mark);
 
-    const QString line =
-        (cause == GameOverCause::Resignation)
-            ? QString("%1投了").arg(mark)
-            : QString("%1時間切れ").arg(mark);
+    // ★ 自前で「この手の思考秒 / 合計消費秒」を算出
+    const qint64 now = ShogiUtils::nowMs();
 
-    // ★ stopClock() 済なので、直近の経過が反映された値が取得できる
-    const QString elapsed =
-        loserIsPlayerOne
-            ? m_shogiClock->getPlayer1ConsiderationAndTotalTime()
-            : m_shogiClock->getPlayer2ConsiderationAndTotalTime();
+    // この手の開始エポック
+    const qint64 epochMs = loserIsPlayerOne ? m_turnEpochP1Ms : m_turnEpochP2Ms;
+    qint64 considerMs    = (epochMs > 0) ? (now - epochMs) : 0;
+    if (considerMs < 0) considerMs = 0; // 念のため
 
-    // 1回だけ即時追記（内部で updateGameRecord を1回だけ呼ぶ）
+    // 合計消費 = 初期持ち時間 − 現在の残り時間
+    const qint64 remMs   = loserIsPlayerOne
+                           ? m_shogiClock->getPlayer1TimeIntMs()
+                           : m_shogiClock->getPlayer2TimeIntMs();
+    const qint64 initMs  = loserIsPlayerOne ? m_initialTimeP1Ms : m_initialTimeP2Ms;
+    qint64 totalUsedMs   = initMs - remMs;
+    if (totalUsedMs < 0) totalUsedMs = 0;
+
+    const QString elapsed = QStringLiteral("%1/%2")
+                                .arg(fmt_mmss(considerMs))
+                                .arg(fmt_hhmmss(totalUsedMs));
+
+    // 1回だけ即時追記
     appendKifuLine(line, elapsed);
 
-    // 以後の追記・時間更新を抑止
+    // 以後の更新を抑止
     m_gameoverMoveAppended = true;
     m_gameIsOver           = true;
     disarmHumanTimerIfNeeded();
 
     qDebug().nospace() << "[KIFU] setGameOverMove appended"
                        << " cause=" << (cause == GameOverCause::Resignation ? "RESIGN" : "TIMEOUT")
-                       << " loser=" << (loserIsPlayerOne ? "P1" : "P2");
+                       << " loser=" << (loserIsPlayerOne ? "P1" : "P2")
+                       << " elapsed=" << elapsed;
 }
 
 void MainWindow::appendKifuLine(const QString& text, const QString& elapsedTime)
