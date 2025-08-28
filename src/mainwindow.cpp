@@ -2586,12 +2586,8 @@ void MainWindow::handleClickForPlayerVsEngine(const QPoint& field)
             return;
         }
 
-        // 将棋エンジンが投了した場合
-        if (m_usi1->isResignMove()) {          
-            // 将棋エンジンが"bestmove resign"コマンドで投了した場合の処理を行う。
-            handleEngineTwoResignation();
-
-            // 処理を終了する。
+          if (m_usi1->isResignMove()) {
+            onEngine1Resigns();   // ★ エンジン1が投了したので「エンジン1 lose／エンジン2 win」
             return;
         }
 
@@ -3282,7 +3278,7 @@ void MainWindow::startHumanVsEngineGame()
         );
 
         if (m_usi1->isResignMove()) {
-            handleEngineTwoResignation();
+            onEngine1Resigns();   // ★ エンジン1が投了したので「エンジン1 lose／エンジン2 win」
             return;
         }
 
@@ -3390,7 +3386,7 @@ void MainWindow::startEngineVsHumanGame()
     );
 
     if (m_usi1->isResignMove()) {
-        handleEngineTwoResignation();
+        onEngine1Resigns();   // ★ エンジン1が投了したので「エンジン1 lose／エンジン2 win」
         return;
     }
 
@@ -3527,8 +3523,9 @@ void MainWindow::startEngineVsEngineGame()
             m_addEachMoveMiliSec1, m_addEachMoveMiliSec2, m_useByoyomi
         );
 
+        // 先手側（Engine1）の思考直後
         if (m_usi1->isResignMove()) {
-            handleEngineTwoResignation();
+            onEngine1Resigns();   // ★ エンジン1が投了したので「エンジン1 lose／エンジン2 win」
             return;
         }
 
@@ -3591,8 +3588,9 @@ void MainWindow::startEngineVsEngineGame()
             m_addEachMoveMiliSec1, m_addEachMoveMiliSec2, m_useByoyomi
         );
 
+        // 後手側（Engine2）の思考直後
         if (m_usi2->isResignMove()) {
-            handleEngineOneResignation();
+            onEngine2Resigns();   // ★ エンジン2が投了したので「エンジン2 lose／エンジン1 win」
             return;
         }
 
@@ -5795,4 +5793,44 @@ void MainWindow::setGameOverMove(GameOverCause cause, bool loserIsPlayerOne)
 void MainWindow::setResignationMove(bool isPlayerOneResigning)
 {
     setGameOverMove(GameOverCause::Resignation, isPlayerOneResigning);
+}
+
+void MainWindow::onEngine1Resigns()
+{
+    // 先手（エンジン1）の投了
+    qDebug().nospace() << "[ARBITER] RESIGN P1 at t+" << ShogiUtils::nowMs() << "ms";
+
+    // 時計停止＆終局表記
+    m_shogiClock->markGameOver();
+    setGameOverMove(GameOverCause::Resignation, /*loserIsPlayerOne=*/true);
+
+    // 負け側（エンジン1）には lose、相手（エンジン2）には win
+    if (m_usi1) m_usi1->sendGameOverLoseAndQuitCommands();
+    if (m_usi2) m_usi2->sendGameOverWinAndQuitCommands();
+
+    // 以後の余計な投了行を黙殺（任意だが安全）
+    if (m_usi1) m_usi1->setSquelchResignLogging(true);
+    if (m_usi2) m_usi2->setSquelchResignLogging(true);
+
+    displayResultsAndUpdateGui();
+}
+
+void MainWindow::onEngine2Resigns()
+{
+    // 後手（エンジン2）の投了
+    qDebug().nospace() << "[ARBITER] RESIGN P2 at t+" << ShogiUtils::nowMs() << "ms";
+
+    // 時計停止＆終局表記
+    m_shogiClock->markGameOver();
+    setGameOverMove(GameOverCause::Resignation, /*loserIsPlayerOne=*/false);
+
+    // 負け側（エンジン2）には lose、相手（エンジン1）には win
+    if (m_usi2) m_usi2->sendGameOverLoseAndQuitCommands();
+    if (m_usi1) m_usi1->sendGameOverWinAndQuitCommands();
+
+    // 以後の余計な投了行を黙殺（任意）
+    if (m_usi1) m_usi1->setSquelchResignLogging(true);
+    if (m_usi2) m_usi2->setSquelchResignLogging(true);
+
+    displayResultsAndUpdateGui();
 }
