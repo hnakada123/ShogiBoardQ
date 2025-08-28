@@ -9,6 +9,7 @@
 #include <QtCharts/QChartView>
 #include <QtCharts/QLineSeries>
 #include <QValueAxis>
+#include <QTime>
 
 #include "kifurecordlistmodel.h"
 #include "shogienginethinkingmodel.h"
@@ -899,6 +900,23 @@ private:
     bool          m_lastLoserIsP1        = false;        // 直近終局の敗者
 
     void appendKifuLine(const QString& text, const QString& elapsedTime);
+
+    // --- これらを MainWindow クラス定義内（private: あたり）に追加 ---
+    qint64 m_initialTimeP1Ms = 0;
+    qint64 m_initialTimeP2Ms = 0;
+
+    qint64 m_turnEpochP1Ms = -1;   // 先手の「この手」の開始ms
+    qint64 m_turnEpochP2Ms = -1;   // 後手の「この手」の開始ms
+
+    // mm:ss / hh:mm:ss の整形ヘルパ
+    static inline QString fmt_mmss(qint64 ms) {
+        if (ms < 0) ms = 0;
+        QTime t(0,0); return t.addMSecs(static_cast<int>(ms)).toString("mm:ss");
+    }
+    static inline QString fmt_hhmmss(qint64 ms) {
+        if (ms < 0) ms = 0;
+        QTime t(0,0); return t.addMSecs(static_cast<int>(ms)).toString("hh:mm:ss");
+    }
 };
 
 #endif // MAINWINDOW_H
