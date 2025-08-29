@@ -449,6 +449,8 @@ private:
     ShutdownState m_shutdownState = ShutdownState::Running;
     bool m_resignNotified  = false;  // resign の多重 emit 防止
     bool m_timeoutDeclared = false;  // ★ GUIにより旗落ち確定（この局の bestmove は受け付けない）
+
+    bool shouldAbortWait() const;  // タイムアウト/終了状態なら true
 };
 
 // GUIのメインスレッドとは別のスレッドでgo ponderコマンド受信後の将棋エンジンの処理を行う。
