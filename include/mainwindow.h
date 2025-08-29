@@ -917,6 +917,10 @@ private:
         if (ms < 0) ms = 0;
         QTime t(0,0); return t.addMSecs(static_cast<int>(ms)).toString("hh:mm:ss");
     }
+
+    // 追加：読み込んだUSI手列を保持（再生や解析に利用）
+    QStringList m_loadedUsiMoves;
+    QStringList m_loadedSfens;     // ← 各手後のSFENを保持したい場合に
 };
 
 #endif // MAINWINDOW_H

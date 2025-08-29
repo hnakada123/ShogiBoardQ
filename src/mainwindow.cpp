@@ -4,7 +4,6 @@
 #include <QSplitter>
 #include <QTableWidget>
 #include <QTextEdit>
-#include <iostream>
 #include <QDesktopServices>
 #include <QTextStream>
 #include <QDir>
@@ -47,10 +46,11 @@
 #include "startgamedialog.h"
 #include "kifuanalysisdialog.h"
 #include "kiftosfenconverter.h"
-#include "enginesettingsconstants.h"
 #include "shogiclock.h"
 #include "shogiutils.h"
 #include "apptooltipfilter.h"
+#include "sfenpositiontracer.h"
+#include "enginesettingsconstants.h"
 
 using namespace EngineSettingsConstants;
 
@@ -4809,6 +4809,9 @@ void MainWindow::resetToInitialState()
 // 棋譜欄に「指し手」と「消費時間」のデータを表示させる。
 void MainWindow::displayGameRecord(QStringList& kifuMoves, QStringList& kifuMovesConsumptionTime, const QString& handicapType)
 {
+    //begin
+    qDebug() << "in MainWindow::displayGameRecord";
+    //end
     // 棋譜欄のデータのクリア
     m_moveRecords->clear();
 
@@ -4838,6 +4841,10 @@ void MainWindow::displayGameRecord(QStringList& kifuMoves, QStringList& kifuMove
 
         // 手数を設定する。0から始まっているのでupdateGameRecord関数でインクリメントして現在の手数に直している。
         m_currentMoveIndex = i;
+
+        //begin
+        qDebug() << "@@@" <<kifuMovesConsumptionTime.at(i);
+        //end
 
         // 棋譜を更新し、GUIの表示も同時に更新する。
         updateGameRecord(kifuMovesConsumptionTime.at(i));
@@ -4887,45 +4894,57 @@ QStringList MainWindow::loadTextLinesFromFile(const QString& filePath)
 
 // KIF形式の棋譜ファイルを読み込む。
 // 参考．http://kakinoki.o.oo7.jp/kif_format.html
-void MainWindow::loadKifuFromFile(const QString &filePath)
+// 棋譜ファイルを読み込み、KIF→USI（SFEN1手表記）へ変換して保持する。
+void MainWindow::loadKifuFromFile(const QString& filePath)
 {
-    // 棋譜ファイルのテキストデータを1行ずつ読み込む。
-    QStringList kifuTextLines = loadTextLinesFromFile(filePath);
+    KifToSfenConverter conv;
 
-    // SFENクラスのオブジェクト作成
-    KifToSfenConverter converter;
+    // 1) 手合割から初期SFENを決定
+    QString teaiLabel;
+    const QString initialSfen = KifToSfenConverter::detectInitialSfenFromFile(filePath, &teaiLabel);
 
-    // KIF形式の棋譜データから指し手部分を取り出してkifuMoveに格納する。
-    QStringList kifuMoves;
+    // 2) KIF → USI 手列
+    QString error;
+    m_loadedUsiMoves = conv.convertFile(filePath, &error);
 
-    // 指し手部分の消費時間
-    QStringList kifuMovesConsumptionTime;
+    // ログ（必要に応じて）
+    if (!error.isEmpty()) {
+        qWarning().noquote() << "[KIF convert warnings]\n" << error.trimmed();
+    }
+    qDebug().noquote() << QStringLiteral("KIF読込: %1手（%2）").arg(m_loadedUsiMoves.size()).arg(QFileInfo(filePath).fileName());
+    for (int i = 0; i < qMin(5, m_loadedUsiMoves.size()); ++i) {
+        qDebug().noquote() << QStringLiteral("USI[%1]: %2").arg(i+1).arg(m_loadedUsiMoves.at(i));
+    }
 
-    // 対局者名
-    QString sentePlayerName = "";
-    QString gotePlayerName = "";
-    QString uwatePlayerName = "";
-    QString shitatePlayerName = "";
-    QString handicapType = "";
+    if (m_loadedUsiMoves.isEmpty()) {
+        QMessageBox::warning(this, tr("読み込み失敗"),
+                             tr("%1 から指し手を取得できませんでした。").arg(filePath));
+        return;
+    }
 
-    // KIF形式の棋譜データをSFEN形式に変換する。
-    converter.convertKifToSfen(kifuTextLines, kifuMoves, kifuMovesConsumptionTime, m_sfenRecord, m_gameMoves, sentePlayerName, gotePlayerName,
-                               uwatePlayerName, shitatePlayerName, handicapType);
+    // 3) 初期SFENを先頭に置き、各手適用後のSFENを生成
+    SfenPositionTracer tracer;
+    if (!tracer.setFromSfen(initialSfen)) {
+        // 念のため平手でリカバリ
+        tracer.setFromSfen(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"));
+    }
 
-    // 棋譜欄に「指し手」と「消費時間」のデータを表示させる。
-    displayGameRecord(kifuMoves, kifuMovesConsumptionTime, handicapType);
+    QStringList sfenList;
+    sfenList << tracer.toSfenString(); // ★ 初期局面を先頭に出力
+    for (const QString& mv : m_loadedUsiMoves) {
+        tracer.applyUsiMove(mv);
+        sfenList << tracer.toSfenString();
+    }
+    m_loadedSfens = sfenList;
 
-    // 棋譜欄の指し手を始めに戻して表示させる。
-    navigateToFirstMove();
+    // 4) 出力（抜粋表示）
+    qDebug().noquote() << QStringLiteral("手合割: %1").arg(teaiLabel.isEmpty() ? QStringLiteral("平手(既定)") : teaiLabel);
+    //for (int i = 0; i < qMin(12, m_loadedSfens.size()); ++i) {
+    for (int i = 0; i < m_loadedSfens.size(); ++i) {
+        qDebug().noquote() << QStringLiteral("%1) %2").arg(i).arg(m_loadedSfens.at(i)); // 0) が初期局面
+    }
 
-    // 棋譜欄の下の矢印ボタンを有効にする。
-    enableArrowButtons();
-
-    // 棋譜欄をシングルクリックで選択できるようにする。
-    m_gameRecordView->setSelectionMode(QAbstractItemView::SingleSelection);
-
-    // positionコマンド文字列を生成しリストに格納する。
-    createPositionCommands();
+    // 以降、GUIの局面再現に m_loadedSfens[i] を使えます（position sfen <SFEN>）
 }
 
 // 棋譜を更新し、GUIの表示も同時に更新する。

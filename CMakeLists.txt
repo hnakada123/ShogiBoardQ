@@ -44,6 +44,7 @@ set(SOURCE_FILES
         src/longlongspinbox.cpp
         src/movevalidator.cpp
         src/promotedialog.cpp
+        src/sfenpositiontracer.cpp
         src/shogiboard.cpp
         src/shogiclock.cpp
         src/shogiengineinfoparser.cpp
@@ -81,6 +82,7 @@ set(HEADER_FILES
         include/movevalidator.h
         include/playmode.h
         include/promotedialog.h
+        include/sfenpositiontracer.h
         include/shogiboard.h
         include/shogiclock.h
         include/shogiengineinfoparser.h
