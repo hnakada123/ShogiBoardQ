@@ -2700,3 +2700,15 @@ void ShogiView::applyStartupTypography()
 
 void ShogiView::setBlackTimeMs(qint64 ms) { m_blackTimeMs = ms; }
 void ShogiView::setWhiteTimeMs(qint64 ms) { m_whiteTimeMs = ms; }
+
+QImage ShogiView::toImage(qreal scale)
+{
+    QPixmap pm = this->grab(rect());        // 背景＋子ウィジェット込み
+    QImage img = pm.toImage();
+    if (!qFuzzyCompare(scale, 1.0)) {
+        img = img.scaled(img.size() * scale,
+                         Qt::IgnoreAspectRatio,
+                         Qt::SmoothTransformation);
+    }
+    return img;
+}

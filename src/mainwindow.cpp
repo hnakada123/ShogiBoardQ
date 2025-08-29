@@ -32,6 +32,8 @@
 #include <QMenuBar>
 #include <QMenu>
 #include <QTimer>
+#include <QStandardPaths>
+#include <QImageWriter>
 
 #include "mainwindow.h"
 #include "promotedialog.h"
@@ -226,7 +228,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionUndoMove, &QAction::triggered, this, &MainWindow::undoLastTwoMoves);
 
     // 「将棋盤の画像をファイルに保存」
-    connect(ui->actionCopyBoardToClipboard, &QAction::triggered, this, &MainWindow::saveShogiBoardImage);
+    connect(ui->actionSaveBoardImage, &QAction::triggered, this, &MainWindow::saveShogiBoardImage);
 
     // 「開く」 棋譜ファイルを選択して読み込む。
     connect(ui->actionOpenKifuFile, &QAction::triggered, this, &MainWindow::chooseAndLoadKifuFile);
@@ -370,26 +372,103 @@ void MainWindow::displayErrorMessage(const QString& errorMessage)
     QMessageBox::critical(this, tr("Error"), errorMessage);
 }
 
+// 「jpg / jpeg」をまとめて扱うためのヘルパ
+static bool hasFormat(const QSet<QString>& fmts, const QString& key) {
+    if (key == "jpeg") return fmts.contains("jpeg") || fmts.contains("jpg");
+    return fmts.contains(key);
+}
+
 // 将棋盤の画像をファイルとして出力する。
+// 保存（grabベース、可用フォーマットを動的に列挙）
 void MainWindow::saveShogiBoardImage()
 {
-    // ファイルダイアログを通じて、画像の保存パスを取得する。
-    QString savePath = QFileDialog::getSaveFileName(this, tr("Output the image"), "", "png(*.png);; tiff(*.tiff *.tif);; jpeg(*.jpg *.jpeg)");
+    // 1) 実行環境で書き出し可能な形式を収集（小文字）
+    QSet<QString> fmts;
+    for (const QByteArray& f : QImageWriter::supportedImageFormats()) {
+        fmts.insert(QString::fromLatin1(f).toLower());
+    }
 
-    if (savePath.isEmpty()) {
-        // 保存パスが空の場合は何もしない。
+    // 2) 表示順とフィルタ文言（必要なら追加/順序変更OK）
+    struct F { QString key; QString filter; QString extForNewFile; };
+    QVector<F> candidates = {
+        {"png",  "PNG (*.png)",                    "png"},
+        {"tiff", "TIFF (*.tiff *.tif)",            "tiff"},
+        {"jpeg", "JPEG (*.jpg *.jpeg)",            "jpg"},  // 拡張子はjpgに寄せる
+        {"webp", "WebP (*.webp)",                  "webp"},
+        {"bmp",  "BMP (*.bmp)",                    "bmp"},
+        {"ppm",  "PPM (*.ppm)",                    "ppm"},
+        {"pgm",  "PGM (*.pgm)",                    "pgm"},
+        {"pbm",  "PBM (*.pbm)",                    "pbm"},
+        {"xbm",  "XBM (*.xbm)",                    "xbm"},
+        {"xpm",  "XPM (*.xpm)",                    "xpm"},
+        // {"ico", "ICO (*.ico)",                  "ico"},   // プラグインがあれば
+        // {"tga", "TGA (*.tga)",                  "tga"},   // 環境依存
+    };
+
+    QStringList filterList;
+    QMap<QString, F> filterToFormat; // クリックされたフィルタ→形式
+    for (const auto& c : candidates) {
+        if (hasFormat(fmts, c.key)) {
+            filterList << c.filter;
+            filterToFormat.insert(c.filter, c);
+        }
+    }
+    if (filterList.isEmpty()) {
+        displayErrorMessage(tr("No writable image formats are available."));
         return;
     }
 
-    // 拡張子がない場合は、デフォルトで .png を追加する。
-    if (QFileInfo(savePath).suffix().isEmpty()) {
-        savePath.append(".png");
+    // 3) 既定名（日時入り）とデフォ拡張子（PNGがあればPNG、なければ先頭）
+    const QString stamp = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss");
+    const QString base   = QStringLiteral("ShogiBoard_%1").arg(stamp);
+    const QString picturesDir = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation);
+    const QString defaultExt  = hasFormat(fmts, "png") ? "png"
+                              : filterToFormat[filterList.first()].extForNewFile;
+    const QString initialPath = QDir(picturesDir).filePath(base + "." + defaultExt);
+
+    // 4) ダイアログ表示
+    QString selectedFilter = filterList.first();
+    const QString filters = filterList.join(";;");
+    QString path = QFileDialog::getSaveFileName(
+        this, tr("Output the image"),
+        initialPath,
+        filters,
+        &selectedFilter
+    );
+    if (path.isEmpty()) return;
+
+    // 5) 拡張子補完＆保存形式決定
+    QString suffix = QFileInfo(path).suffix().toLower();
+    QString format; // QImageWriterに渡す形式名
+
+    if (suffix.isEmpty()) {
+        const F fmt = filterToFormat.value(selectedFilter);
+        path += "." + fmt.extForNewFile;
+        format = fmt.key; // "jpeg" は内部キーとして使うが "jpg" もOK
+    } else {
+        // 入力された拡張子から推定（jpeg/jpg統合処理）
+        if (suffix == "jpg") suffix = "jpeg";
+        format = suffix;
+        if (!hasFormat(fmts, format)) {
+            displayErrorMessage(tr("This image format is not available: %1").arg(suffix));
+            return;
+        }
     }
 
-    // 現在の将棋盤の状態を画像としてキャプチャし、保存する。
-    if (!m_shogiView->grab().toImage().save(savePath)) {
-        // 画像の保存が失敗した場合は、エラーメッセージを表示する。
-        displayErrorMessage(tr("Failed to save the image."));
+    // 6) 画像取得（grab→Image）
+    const QImage img = m_shogiView->grab().toImage();
+
+    // 7) QImageWriterで明示的に書き出し（品質等の指定も可能）
+    QImageWriter writer(path, format.toLatin1());
+    if (format == "jpeg" || format == "webp") {
+        writer.setQuality(95); // 0-100（可逆でない形式の画質）
+    }
+    // 例：PNG圧縮レベル（0=圧縮なし, 9=最大）※環境により無視されることも
+    // if (format == "png") writer.setCompression(9);
+
+    if (!writer.write(img)) {
+        // 具体的なエラー内容を表示
+        displayErrorMessage(tr("Failed to save the image: %1").arg(writer.errorString()));
     }
 }
 
@@ -3062,7 +3141,7 @@ void MainWindow::endDrag()
 // Webサイトをブラウザで表示する。
 void MainWindow::openWebsiteInExternalBrowser()
 {
-    QDesktopServices::openUrl(QUrl("https://www.yahoo.co.jp/"));
+    QDesktopServices::openUrl(QUrl("https://github.com/hnakada123/ShogiBoardQ"));
 }
 
 // 対局ダイアログの設定を出力する。

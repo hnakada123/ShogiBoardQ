@@ -148,6 +148,8 @@ public:
     void setBlackTimeMs(qint64 ms);
     void setWhiteTimeMs(qint64 ms);
 
+    QImage toImage(qreal scale = 1.0);
+
 public slots:
     // Q_PROPERTY 用 setter（レイアウト更新・ラベル再配置を含む）
     void setFieldSize(QSize fieldSize);
