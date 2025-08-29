@@ -575,25 +575,26 @@ void Usi::printShogiBoard(const QVector<QChar>& boardData) const
 }
 
 // 残り時間になるまでbestmoveを待機する。
-void Usi::waitAndCheckForBestMoveRemainingTime(int byoyomiMilliSec, const QString& btime, const QString& wtime, bool useByoyomi)
+void Usi::waitAndCheckForBestMoveRemainingTime(int byoyomiMilliSec,
+                                               const QString& btime,
+                                               const QString& wtime,
+                                               bool useByoyomi)
 {
-    // 関数の先頭付近に追加（戻り値が bool の場合）
-    if (m_timeoutDeclared || m_shutdownState != ShutdownState::Running) {
+    // ★ ここで即座に中断可否をチェック（終局・quit後・タイムアウト宣言後など）
+    if (shouldAbortWait()) {
         qDebug().nospace() << logPrefix() << " [wait-abort] timeout/ignore declared";
-        return; // 以後の bestmove は採用しない
+        return; // 以後の bestmove は採用しない（例外も投げない）
     }
 
     const bool p1turn = (m_gameController->currentPlayer() == ShogiGameController::Player1);
     const int  mainMs = p1turn ? btime.toInt() : wtime.toInt();
 
-    // ★ 修正(2): 上限は「メイン (+ 秒読み)」。インクリメントは“着手後”に付くため待機時間に加えない
+    // 上限は「メイン(+秒読み)」。インクリメントは“着手後”に付くため待機時間に加えない
     int capMs = useByoyomi ? (mainMs + byoyomiMilliSec) : mainMs;
 
-    // ★ 修正(3): “常に -100ms” はやめる。大きく残っている時のみ少し控えめに。
-    // （例）200ms以上ある時にだけ100ms控えめ。小残量時はそのまま。
+    // 200ms以上の時だけ控えめに -100ms
     if (capMs >= 200) capMs -= 100;
 
-    // ★ 修正(4): デバッグ強化
     qDebug().nospace()
         << "[USI] waitBestmove  turn=" << (p1turn ? "P1" : "P2")
         << " cap=" << capMs << "ms"
@@ -601,34 +602,41 @@ void Usi::waitAndCheckForBestMoveRemainingTime(int byoyomiMilliSec, const QStrin
         << ", byoyomi=" << byoyomiMilliSec
         << ", mode=" << (useByoyomi ? "byoyomi" : "increment") << ")";
 
-    // ★ 修正(2): まず“予算内”で待つ。ダメなら“小さな猶予”内で再度待つ
-    if (!waitForBestMoveWithGrace(capMs, kBestmoveGraceMs)) {
-        // ここまで来たら“本当に”遅延と見なす
-        // → 呼び出し元ではゲーム側の旗落ち判定（手番側のみ）に委ねることを想定
-        QString errorMessage = tr("An error occurred in Usi::waitAndCheckForBestMoveRemainingTime. Timeout waiting for bestmove.");
+    // “予算 + 小さな猶予”だけ待つ
+    const bool got = waitForBestMoveWithGrace(capMs, kBestmoveGraceMs);
+
+    if (!got) {
+        // ここで再度「中断指示が出ているか」を確認
+        if (shouldAbortWait()) {
+            qDebug().nospace() << logPrefix() << " [wait-abort-2] timeout/quit during wait";
+            return;  // 例外なしで終了
+        }
+
+        // まだ Running なのに bestmove が来ない → 本当のタイムアウトとして扱う
+        const QString errorMessage =
+            tr("An error occurred in Usi::waitAndCheckForBestMoveRemainingTime. Timeout waiting for bestmove.");
         ShogiUtils::logAndThrowError(errorMessage);
     }
 }
 
-// ★ 追加(2): 予算(cap)で待ち、ダメなら“猶予”でリトライ
-bool Usi::waitForBestMoveWithGrace(int budgetMs, int graceMs)
+bool Usi::waitForBestMoveWithGrace(int capMs, int graceMs)
 {
-    // まずは正規の予算内
-    if (budgetMs <= 0) {
-        // 予算0でも、最小の猶予だけ認める
-        budgetMs = 1;
-    }
-    if (waitForBestMove(budgetMs)) return true;
+    QElapsedTimer t; t.start();
+    const qint64 hard = capMs + qMax(0, graceMs);
 
-    // 猶予で再トライ
-    if (graceMs > 0 && waitForBestMove(graceMs)) {
-        qint64 over = m_goTimer.isValid() ? (m_goTimer.elapsed() - budgetMs) : -1;
-        qDebug().nospace()
-            << "[USI] bestmove within grace  over=" << (over < 0 ? 0 : over) << "ms"
-            << " grace=" << graceMs << "ms";
-        return true;
+    m_bestMoveSignalReceived = false; // 念のため
+
+    while (t.elapsed() < hard) {
+        // ★ ここを追加（任意）：終局/quit/タイムアウト宣言なら早期離脱
+        if (shouldAbortWait()) return false;
+
+        // ...既存のイベントポンプや m_bestMoveSignalReceived チェック...
+        QCoreApplication::processEvents(QEventLoop::AllEvents, 5);
+        if (m_bestMoveSignalReceived) return true;
+
+        QThread::msleep(1); // 実装に応じて
     }
-    return false;
+    return m_bestMoveSignalReceived;
 }
 
 // 将棋エンジンからのレスポンスに基づいて、適切なコマンドを送信し、必要に応じて処理を行う。
@@ -1797,4 +1805,18 @@ bool Usi::shouldLogAfterQuit(const QString& line) const
 void Usi::setSquelchResignLogging(bool on)
 {
     m_squelchResignLogs = on;
+}
+
+bool Usi::shouldAbortWait() const
+{
+    // 1) GUI側で旗落ち確定などにより「もう採用しない」と宣言済み
+    if (m_timeoutDeclared) return true;
+
+    // 2) quit 送信後の受信抑止モード（info string だけ許可など）
+    if (m_shutdownState != ShutdownState::Running) return true;
+
+    // 3) プロセスが既に死んでいる/書き込み終了後など
+    if (!m_process || m_process->state() != QProcess::Running) return true;
+
+    return false;
 }
