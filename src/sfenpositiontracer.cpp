@@ -284,3 +284,10 @@ bool SfenPositionTracer::setFromSfen(const QString& sfen) {
 
     return true;
 }
+
+QString SfenPositionTracer::tokenAtFileRank(int file, QChar rankLetter) const {
+    int col = fileToCol(file);
+    int row = rankLetterToRow(rankLetter);
+    if (col < 0 || row < 0) return QString();
+    return m_board[row][col];
+}

@@ -4897,60 +4897,58 @@ QStringList MainWindow::loadTextLinesFromFile(const QString& filePath)
 // 棋譜ファイルを読み込み、KIF→USI（SFEN1手表記）へ変換して保持する。
 void MainWindow::loadKifuFromFile(const QString& filePath)
 {
-    // 1) 手合割から初期SFENを決定
+    // ===== 0) 手合割 → 初期SFEN を決定 =====
     QString teaiLabel;
     const QString initialSfen =
         KifToSfenConverter::detectInitialSfenFromFile(filePath, &teaiLabel);
 
-    // 2) 表示用：「指し手＋消費時間」を抽出（終局/中断も含む）
+    // ===== 1) 表示用：「指し手＋消費時間」（終局/中断も含む） =====
     QString parseWarn;
     const QList<KifDisplayItem> disp =
         KifToSfenConverter::extractMovesWithTimes(filePath, &parseWarn);
 
-    // 終局/中断キーワード（表示末尾がこれらなら投了/中断等が発生）
+    // 終局/中断キーワード
     static const QStringList kTerminalKeywords = {
-        QStringLiteral("投了"),
-        QStringLiteral("中断"),
-        QStringLiteral("持将棋"),
-        QStringLiteral("千日手"),
-        QStringLiteral("切れ負け"),
-        QStringLiteral("反則勝ち"),
-        QStringLiteral("反則負け"),
-        QStringLiteral("入玉勝ち"),
-        QStringLiteral("不戦勝"),
-        QStringLiteral("不戦敗"),
-        QStringLiteral("詰み"),
-        QStringLiteral("不詰"),
+        QStringLiteral("投了"), QStringLiteral("中断"), QStringLiteral("持将棋"),
+        QStringLiteral("千日手"), QStringLiteral("切れ負け"),
+        QStringLiteral("反則勝ち"), QStringLiteral("反則負け"),
+        QStringLiteral("入玉勝ち"), QStringLiteral("不戦勝"),
+        QStringLiteral("不戦敗"), QStringLiteral("詰み"), QStringLiteral("不詰"),
     };
     auto isTerminalPretty = [&](const QString& s)->bool {
-        for (const auto& kw : kTerminalKeywords)
-            if (s.contains(kw)) return true;
+        for (const auto& kw : kTerminalKeywords) if (s.contains(kw)) return true;
         return false;
     };
     const bool hasTerminal =
         (!disp.isEmpty() && isTerminalPretty(disp.back().prettyMove));
 
-    // 3) USI手列（終局/中断で打ち切り済み）
+    // ===== 2) USI手列（終局/中断で打ち切り済み） =====
     QString convertWarn;
     KifToSfenConverter conv;
-    m_loadedUsiMoves = conv.convertFile(filePath, &convertWarn);
+    m_usiMoves = conv.convertFile(filePath, &convertWarn);  // ← 旧: m_loadedUsiMoves
 
-    // 4) ログ出力（必要に応じて）
+    // ===== 3) ログ（任意） =====
     if (!parseWarn.isEmpty())
         qWarning().noquote() << "[KIF parse warnings]\n" << parseWarn.trimmed();
     if (!convertWarn.isEmpty())
         qWarning().noquote() << "[KIF convert warnings]\n" << convertWarn.trimmed();
 
     qDebug().noquote() << QStringLiteral("KIF読込: %1手（%2）")
-                          .arg(m_loadedUsiMoves.size())
+                          .arg(m_usiMoves.size())
                           .arg(QFileInfo(filePath).fileName());
-    for (int i = 0; i < qMin(5, m_loadedUsiMoves.size()); ++i) {
+    for (int i = 0; i < qMin(5, m_usiMoves.size()); ++i) {
         qDebug().noquote() << QStringLiteral("USI[%1]: %2")
                               .arg(i + 1)
-                              .arg(m_loadedUsiMoves.at(i));
+                              .arg(m_usiMoves.at(i));
     }
 
-    // 5) SFEN列を生成：先頭に初期SFEN、各手適用後、終局/中断があれば現局面をもう1本
+    if (m_usiMoves.isEmpty() && !hasTerminal) {
+        QMessageBox::warning(this, tr("読み込み失敗"),
+                             tr("%1 から指し手を取得できませんでした。").arg(filePath));
+        return;
+    }
+
+    // ===== 4) 盤を初期SFENからセット =====
     SfenPositionTracer tracer;
     if (!tracer.setFromSfen(initialSfen)) {
         // 念のため平手でリカバリ
@@ -4958,57 +4956,171 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
             "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"));
     }
 
+    // ===== 5) SFEN列を作成（0=初期、以降=各手後、終局/中断があれば+1本） =====
     QStringList sfenList;
-    sfenList << tracer.toSfenString(); // 0) 初期局面
-    for (const QString& mv : m_loadedUsiMoves) {
+    sfenList << tracer.toSfenString();
+    for (const QString& mv : m_usiMoves) {
         tracer.applyUsiMove(mv);
-        sfenList << tracer.toSfenString(); // 1..N) 各手後
+        sfenList << tracer.toSfenString();
     }
     if (hasTerminal) {
-        // 投了/中断などは盤が変わらないため、現局面を表示用に1本追加
-        sfenList << tracer.toSfenString(); // N+1) 終局/中断表示用
+        sfenList << tracer.toSfenString();
     }
-    m_loadedSfens = sfenList;
 
-    // 6) 表示用「指し手＋時間」をそのままログ（GUIに流すならここでモデルへ）
+    // GUIがポインタなら確保
+    if (!m_sfenRecord) m_sfenRecord = new QStringList;
+    // COWで軽い代入
+    *m_sfenRecord = sfenList;
+
+    // ===== 6) m_gameMoves を生成 =====
+    //  ヘルパ：rank文字('a'..'i') → 数値1..9
+    auto rankLetterToNum = [](QChar r)->int {
+        ushort u = r.toLower().unicode();
+        if (u < 'a' || u > 'i') return -1;
+        return int(u - 'a') + 1;
+    };
+    //  ヘルパ：ドロップ記号 → サイド付き1文字（P/p 等）
+    auto dropLetterWithSide = [](QChar upper, bool black)->QChar {
+        return black ? upper.toUpper() : upper.toLower();
+    };
+    //  ヘルパ：SfenPositionTracer のトークン("+P","p","") → あなたの1文字へ
+    auto tokenToOneChar = [](const QString& tok)->QChar {
+        if (tok.isEmpty()) return QLatin1Char(' ');
+        if (tok.size() == 1) return tok.at(0); // 非成駒：P/L/N/S/G/B/R/K or p/l/...
+        // 成駒："+X" または "+x"
+        static const QHash<QString,QChar> map = {
+            // 先手
+            { QStringLiteral("+P"), QLatin1Char('Q') },
+            { QStringLiteral("+L"), QLatin1Char('M') },
+            { QStringLiteral("+N"), QLatin1Char('O') },
+            { QStringLiteral("+S"), QLatin1Char('T') },
+            { QStringLiteral("+B"), QLatin1Char('C') },
+            { QStringLiteral("+R"), QLatin1Char('U') },
+            // 後手
+            { QStringLiteral("+p"), QLatin1Char('q') },
+            { QStringLiteral("+l"), QLatin1Char('m') },
+            { QStringLiteral("+n"), QLatin1Char('o') },
+            { QStringLiteral("+s"), QLatin1Char('t') },
+            { QStringLiteral("+b"), QLatin1Char('c') },
+            { QStringLiteral("+r"), QLatin1Char('u') },
+        };
+        const auto it = map.find(tok);
+        return it == map.end() ? QLatin1Char(' ') : *it;
+    };
+
+    m_gameMoves.clear();
+
+    //  盤面をもう一つ用意せず、tracer を用いて
+    //  「適用前」の盤を参照→ ShogiMove 作成 → apply の順で進める
+    //  そのため、一旦 tracer を初期局面からやり直す
+    tracer.setFromSfen((*m_sfenRecord).first());
+
+    for (const QString& usi : m_usiMoves) {
+        // Drop か？
+        if (usi.size() >= 4 && usi.at(1) == QLatin1Char('*')) {
+            const bool black = tracer.blackToMove();
+            const QChar dropUpper = usi.at(0).toUpper();     // P/L/N/S/G/B/R
+            const int file = usi.at(2).toLatin1() - '0';     // '1'..'9'
+            const int rankNum = rankLetterToNum(usi.at(3));  // 1..9
+            if (file < 1 || file > 9 || rankNum < 1 || rankNum > 9) {
+                tracer.applyUsiMove(usi); // 念のため進めておく
+                continue;
+            }
+            const QPoint from(-1, -1);                        // ドロップ
+            const QPoint to(file - 1, rankNum - 1);          // (file-1, rank-1)
+            const QChar moving = dropLetterWithSide(dropUpper, black);
+            const QChar captured = QLatin1Char(' ');          // 将棋は打で取りはしない
+            const bool promotion = false;
+
+            m_gameMoves.push_back(ShogiMove(from, to, moving, captured, promotion));
+
+            tracer.applyUsiMove(usi);
+            continue;
+        }
+
+        // 通常の移動: "7g7f" or "2b3c+"
+        if (usi.size() < 4) { tracer.applyUsiMove(usi); continue; }
+
+        const int fileFrom = usi.at(0).toLatin1() - '0';
+        const int rankFrom = rankLetterToNum(usi.at(1));
+        const int fileTo   = usi.at(2).toLatin1() - '0';
+        const int rankTo   = rankLetterToNum(usi.at(3));
+        const bool isProm  = (usi.size() >= 5 && usi.at(4) == QLatin1Char('+'));
+
+        if (fileFrom < 1 || fileFrom > 9 || rankFrom < 1 || rankFrom > 9 ||
+            fileTo   < 1 || fileTo   > 9 || rankTo   < 1 || rankTo   > 9) {
+            tracer.applyUsiMove(usi); // 念のため進めておく
+            continue;
+        }
+
+        // 「適用前」の盤で駒情報を取得
+        const QString fromTok = tracer.tokenAtFileRank(fileFrom, usi.at(1));
+        const QString toTok   = tracer.tokenAtFileRank(fileTo,   usi.at(3));
+
+        const QPoint from(fileFrom - 1, rankFrom - 1);
+        const QPoint to  (fileTo   - 1, rankTo   - 1);
+
+        const QChar moving = tokenToOneChar(fromTok);  // 成駒なら Q/M/O/T/C/U or q/m/...
+        const QChar captured = tokenToOneChar(toTok);  // 空なら ' '
+        const bool promotion = isProm;
+
+        m_gameMoves.push_back(ShogiMove(from, to, moving, captured, promotion));
+
+        // 盤を進める
+        tracer.applyUsiMove(usi);
+    }
+
+    // ===== 7) 参考ログ出力（任意） =====
+    qDebug().noquote() << QStringLiteral("手合割: %1")
+                          .arg(teaiLabel.isEmpty()
+                                   ? QStringLiteral("平手(既定)")
+                                   : teaiLabel);
+
+    // 表示用：指し手＋時間（投了/中断等も含む）
     for (const auto& it : disp) {
         qDebug().noquote()
             << QStringLiteral("「%1」「%2」")
                    .arg(it.prettyMove,
                         it.timeText.isEmpty()
-                            ? QStringLiteral("00:00/00:00:00") // 保険
+                            ? QStringLiteral("00:00/00:00:00")
                             : it.timeText);
     }
 
-    // 7) SFEN抜粋（先頭から12本）
-    qDebug().noquote() << QStringLiteral("手合割: %1")
-                          .arg(teaiLabel.isEmpty()
-                                   ? QStringLiteral("平手(既定)")
-                                   : teaiLabel);
-    //for (int i = 0; i < qMin(12, m_loadedSfens.size()); ++i) {
-    for (int i = 0; i < m_loadedSfens.size(); ++i) {
+    // SFEN抜粋
+    for (int i = 0; i < qMin(12, m_sfenRecord->size()); ++i) {
         qDebug().noquote()
-            << QStringLiteral("%1) %2").arg(i).arg(m_loadedSfens.at(i));
+            << QStringLiteral("%1) %2").arg(i).arg(m_sfenRecord->at(i));
     }
 
-    // 8) エラーハンドリング（USI手も終局も無い＝指し手が取れなかったケース）
-    if (m_loadedUsiMoves.isEmpty() && !hasTerminal) {
-        QMessageBox::warning(this, tr("読み込み失敗"),
-                             tr("%1 から指し手を取得できませんでした。")
-                                 .arg(filePath));
-        return;
-    }
+    displayGameRecordNew(disp);
 
-    // 必要なら：ここで GUI へ反映（例）
-    // - 棋譜リストへ disp を投入
-    // - 盤面再現に m_loadedSfens を利用（index 0 が初期、以降が各手後/終局）
-    // - エンジンへ "position sfen <m_loadedSfens[i]>" で再現 など
+    // 棋譜欄の指し手を始めに戻して表示させる。
+    navigateToFirstMove();
 
+    // 棋譜欄の下の矢印ボタンを有効にする。
+    enableArrowButtons();
+
+    // 棋譜欄をシングルクリックで選択できるようにする。
+    m_gameRecordView->setSelectionMode(QAbstractItemView::SingleSelection);
+}
+
+void MainWindow::displayGameRecordNew(const QList<KifDisplayItem> disp)
+{
     // 棋譜欄のデータのクリア
     m_moveRecords->clear();
+    m_currentMoveIndex = 0;
+    m_kifuDataList.clear();
+    m_moveRecords->clear();
+    m_gameRecordModel->clearAllItems();
 
     // 棋譜欄の項目にヘッダを付け加える。
     m_gameRecordModel->appendItem(new KifuDisplay("=== 開始局面 ===", "（１手 / 合計）"));
+
+    // 各手を棋譜欄に表示する。
+    for (const auto& it : disp) {
+        m_lastMove = it.prettyMove;
+        updateGameRecord(it.timeText);
+    }
 }
 
 // 棋譜を更新し、GUIの表示も同時に更新する。

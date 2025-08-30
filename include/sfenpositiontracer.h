@@ -30,6 +30,10 @@ public:
     // 初期SFENから現在局面をセットする（4フィールド形式を想定: board stm hands ply）
     bool setFromSfen(const QString& sfen);
 
+    bool blackToMove() const { return m_blackToMove; }
+    // file: 1..9, rank: 'a'..'i'。空なら空文字列を返す
+    QString tokenAtFileRank(int file, QChar rankLetter) const;
+
 private:
     // 盤: [rank 0..8][file 0..8]  rank0='a'(最上段) ～ rank8='i'(最下段), file0='1' ～ file8='9'
     QString m_board[9][9];
