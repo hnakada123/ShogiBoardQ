@@ -14,12 +14,9 @@ QStringList KifToSfenConverter::convertFile(const QString& kifPath, QString* err
     QStringList out;
     QFile f(kifPath);
     if (!f.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        if (errorMessage) {
-            *errorMessage += QStringLiteral("[open fail] %1\n").arg(kifPath);
-        }
+        if (errorMessage) *errorMessage += QStringLiteral("[open fail] %1\n").arg(kifPath);
         return out;
     }
-
     QTextStream ts(&f);
 #if QT_VERSION >= QT_VERSION_CHECK(6,0,0)
     ts.setEncoding(QStringConverter::Encoding::Utf8);
@@ -34,13 +31,14 @@ QStringList KifToSfenConverter::convertFile(const QString& kifPath, QString* err
         const QString line = raw.trimmed();
         if (line.isEmpty() || isSkippableLine(line)) continue;
 
+        // ★ 終局/中断なら打ち切り
+        if (containsAnyTerminal(line)) break;
+
         QString usi;
         if (convertMoveLine(line, usi)) {
             out << usi;
-        } else {
-            if (errorMessage) {
-                *errorMessage += QStringLiteral("[skip %1] %2\n").arg(lineNo).arg(line);
-            }
+        } else if (errorMessage) {
+            *errorMessage += QStringLiteral("[skip %1] %2\n").arg(lineNo).arg(line);
         }
     }
     return out;
@@ -239,21 +237,32 @@ QChar KifToSfenConverter::pieceKanaToUsiDropLetter(const QString& line)
     return QChar(); // 不明
 }
 
+// 先に提示した isSkippableLine を少し強化（ヘッダ類を弾く）
 bool KifToSfenConverter::isSkippableLine(const QString& line)
 {
-    // コメントやヘッダ、結果行などの簡易判定
+    if (line.isEmpty()) return true;
     if (line.startsWith(QLatin1Char('*'))) return true; // コメント
-    if (line.contains(QStringLiteral("手数="))) return true;
-    if (line.contains(QStringLiteral("開始日時"))) return true;
-    if (line.contains(QStringLiteral("終了日時"))) return true;
-    if (line.contains(QStringLiteral("先手：")) || line.contains(QStringLiteral("後手："))) return true;
-    if (line.contains(QStringLiteral("先手：")) || line.contains(QStringLiteral("上手："))
-        || line.contains(QStringLiteral("下手：")) ) return true;
-    if (line.contains(QStringLiteral("まで")) && line.contains(QStringLiteral("手で"))) return true; // までxx手で…
-    if (line.contains(QStringLiteral("投了")) || line.contains(QStringLiteral("中断"))
-        || line.contains(QStringLiteral("詰")) ) return true;
 
-    // 指し手番号（例: "  1 ７六歩(77)   ( 0:00/00:00:00)"）が付いていてもこのまま解析可能なのでスキップしない
+    // 見出し・メタ情報
+    static const QStringList keys = {
+        QStringLiteral("手数="), QStringLiteral("開始日時"), QStringLiteral("終了日時"),
+        QStringLiteral("先手："), QStringLiteral("後手："),
+        QStringLiteral("上手："), QStringLiteral("下手："),
+        QStringLiteral("棋戦："), QStringLiteral("場所："),
+        QStringLiteral("持ち時間："), QStringLiteral("消費時間："),
+        QStringLiteral("戦型："), QStringLiteral("手合割"),
+        QStringLiteral("手数----指手---------消費時間--")
+    };
+    for (const auto& k : keys) if (line.contains(k)) return true;
+
+    // 集計行「まで◯◯手で…」はスキップ
+    if (line.contains(QStringLiteral("まで")) && line.contains(QStringLiteral("手で"))) return true;
+
+    // ★ 終局/中断系はスキップしない
+    QString matched;
+    if (containsAnyTerminal(line, &matched)) return false;
+
+    // 「投了」「中断」等でない普通の行はここで false（=スキップしない）
     return false;
 }
 
@@ -315,4 +324,90 @@ QString KifToSfenConverter::detectInitialSfenFromFile(const QString& kifPath, QS
     label = label.trimmed();
     if (detectedLabel) *detectedLabel = label;
     return mapHandicapToSfen(label);
+}
+
+// 追加：KIFから「指し手＋消費時間」を抽出
+QList<KifDisplayItem> KifToSfenConverter::extractMovesWithTimes(const QString& kifPath,
+                                                                QString* errorMessage)
+{
+    QList<KifDisplayItem> out;
+
+    QFile f(kifPath);
+    if (!f.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        if (errorMessage) *errorMessage += QStringLiteral("[open fail] %1\n").arg(kifPath);
+        return out;
+    }
+    QTextStream ts(&f);
+#if QT_VERSION >= QT_VERSION_CHECK(6,0,0)
+    ts.setEncoding(QStringConverter::Encoding::Utf8);
+#else
+    ts.setCodec("UTF-8");
+#endif
+
+    int moveIndex = 0;
+    const QRegularExpression timeRe(
+        QStringLiteral("\\(\\s*(\\d{1,2}:\\d{2}/\\d{2}:\\d{2}:\\d{2})\\s*\\)")
+        );
+
+    while (!ts.atEnd()) {
+        const QString raw = ts.readLine();
+        const QString line = raw.trimmed();
+        if (isSkippableLine(line)) continue;
+        if (line.isEmpty()) continue;
+
+        // 手数（半/全角）を読む
+        int i = 0, digits = 0;
+        while (i < line.size()) {
+            const QChar ch = line.at(i);
+            const ushort u = ch.unicode();
+            const bool ascii = (u >= '0' && u <= '9');
+            const bool zenk  = QStringLiteral("０１２３４５６７８９").contains(ch);
+            if (ascii || zenk) { ++i; ++digits; } else break;
+        }
+        if (digits == 0) { if (errorMessage) *errorMessage += QStringLiteral("[skip ?] %1\n").arg(line); continue; }
+        while (i < line.size() && line.at(i).isSpace()) ++i;
+        if (i >= line.size()) continue;
+
+        const QString rest = line.mid(i);
+        QRegularExpressionMatch tm = timeRe.match(rest);
+        QString moveText = rest.trimmed();
+        QString timeText;
+
+        if (tm.hasMatch()) {
+            timeText = tm.captured(1).trimmed();
+            moveText = rest.left(tm.capturedStart(0)).trimmed();
+        }
+
+        if (moveText.isEmpty()) { if (errorMessage) *errorMessage += QStringLiteral("[skip ?] %1\n").arg(line); continue; }
+
+        ++moveIndex;
+        const bool black = (moveIndex % 2 == 1);
+        const QString teban = black ? QStringLiteral("▲") : QStringLiteral("△");
+
+        // 終局/中断キーワード処理
+        QString matched;
+        if (containsAnyTerminal(moveText, &matched)) {
+            KifDisplayItem item;
+            item.prettyMove = teban + matched;
+
+            // 仕様：千日手の消費時間は 0
+            if (matched == QStringLiteral("千日手")) {
+                item.timeText = QStringLiteral("00:00/00:00:00");
+            } else {
+                item.timeText = timeText.isEmpty() ? QStringLiteral("00:00/00:00:00") : timeText;
+            }
+            out.push_back(item);
+
+            // 終局/中断以降は通常は終了（ここで break しても良い）
+            // break;
+            continue;
+        }
+
+        // 通常の指し手
+        KifDisplayItem item;
+        item.prettyMove = teban + moveText;                  // 例: "▲２六歩(27)"
+        item.timeText   = timeText;                          // 例: "00:00/00:00:00"
+        out.push_back(item);
+    }
+    return out;
 }

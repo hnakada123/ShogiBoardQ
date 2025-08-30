@@ -5,6 +5,35 @@
 #include <QStringList>
 #include <QPoint>
 
+// 先頭付近に追加（共通キーワード）
+static const QStringList kTerminalKeywords = {
+    QStringLiteral("投了"),
+    QStringLiteral("中断"),
+    QStringLiteral("持将棋"),
+    QStringLiteral("千日手"),
+    QStringLiteral("切れ負け"),
+    QStringLiteral("反則勝ち"),
+    QStringLiteral("反則負け"),
+    QStringLiteral("入玉勝ち"),
+    QStringLiteral("不戦勝"),
+    QStringLiteral("不戦敗"),
+    QStringLiteral("詰み"),
+    QStringLiteral("不詰"),
+};
+
+static bool containsAnyTerminal(const QString& s, QString* matched = nullptr) {
+    for (const auto& kw : kTerminalKeywords) {
+        if (s.contains(kw)) { if (matched) *matched = kw; return true; }
+    }
+    return false;
+}
+
+// 追加：GUI表示用の「指し手＋時間」レコード
+struct KifDisplayItem {
+    QString prettyMove;  // 例: "▲２六歩(27)"
+    QString timeText;    // 例: "00:00/00:00:00"（無ければ空）
+};
+
 /**
  * @brief KIF の指し手行を USI/SFEN 文字列へ変換する簡易コンバータ。
  *
@@ -41,6 +70,11 @@ public:
     // KIF 内の「手合割」を見て初期SFENを返す（見つからない/未対応は平手）
     // detectedLabel には見つけた手合名（例: "平手", "香落ち" など）を返す
     static QString detectInitialSfenFromFile(const QString& kifPath, QString* detectedLabel = nullptr);
+
+    // 追加：KIFから「指し手＋消費時間」を順番に抽出（手番記号▲/△付き）
+    // エラーやスキップは errorMessage に追記（任意）
+    static QList<KifDisplayItem> extractMovesWithTimes(const QString& kifPath,
+                                                       QString* errorMessage = nullptr);
 
 private:
     // --- 文字/数値の変換ユーティリティ ---
