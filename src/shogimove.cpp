@@ -25,3 +25,20 @@ std::ostream& operator<<(std::ostream& os, const ShogiMove& move) {
     os << " Promotion: " << (move.isPromotion ? "true" : "false");
     return os;
 }
+
+// ...既存コードの下に追加
+QDebug operator<<(QDebug dbg, const ShogiMove& move) {
+    QDebugStateSaver saver(dbg);
+    auto disp = [](int v) -> int {
+        // 盤上(0..8)は +1 表示、駒台(9,10など)はそのまま
+        return (0 <= v && v <= 8) ? (v + 1) : v;
+    };
+
+    dbg.nospace()
+        << "From:(" << disp(move.fromSquare.x()) << "," << disp(move.fromSquare.y()) << ") "
+        << "To:("   << disp(move.toSquare.x())   << "," << disp(move.toSquare.y())   << ") "
+        << "Moving:"   << move.movingPiece
+        << " Captured:" << move.capturedPiece
+        << " Promotion:" << (move.isPromotion ? "true" : "false");
+    return dbg;
+}

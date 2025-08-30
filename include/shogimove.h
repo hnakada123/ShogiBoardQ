@@ -3,7 +3,8 @@
 
 #include <QPoint>
 #include <iostream>
-#include<QVector>
+#include <QVector>
+#include <QDebug>
 
 struct ShogiMove {
     // 駒の移動元のマス
@@ -33,5 +34,7 @@ struct ShogiMove {
     // 構造体ShogiMoveのデバッグプリント用演算子"<<"の定義
     friend std::ostream& operator<<(std::ostream& os, const ShogiMove& move);
 };
+
+QDebug operator<<(QDebug dbg, const ShogiMove& move);
 
 #endif // SHOGIMOVE_H

@@ -561,6 +561,11 @@ void MainWindow::clearMoveHighlights()
 // 駒の移動元と移動先のマスをそれぞれ別の色でハイライトする。
 void MainWindow::addMoveHighlights()
 {
+    //begin
+    qDebug() << "in MainWindow::addMoveHighlights()";
+    qDebug() << "m_currentMoveIndex: " << m_currentMoveIndex;
+    qDebug() << "fromSquare: " << m_gameMoves.at(m_currentMoveIndex - 1).fromSquare;
+    //end
     // 駒の移動元のマスを薄い赤色でハイライトするフィールドを生成
     m_selectedField = new ShogiView::FieldHighlight(m_gameMoves.at(m_currentMoveIndex - 1).fromSquare.x() + 1,
                                                     m_gameMoves.at(m_currentMoveIndex - 1).fromSquare.y() + 1,
@@ -569,7 +574,7 @@ void MainWindow::addMoveHighlights()
     // 駒の移動元のマスをハイライトする。
     m_shogiView->addHighlight(m_selectedField);
 
-    // 駒の移動元のマスを黄色でハイライトするフィールドを生成
+    // 駒の移動先のマスを黄色でハイライトするフィールドを生成
     m_movedField = new ShogiView::FieldHighlight(m_gameMoves.at(m_currentMoveIndex - 1).toSquare.x() + 1,
                                                  m_gameMoves.at(m_currentMoveIndex - 1).toSquare.y() + 1,
                                                  Qt::yellow);
@@ -4925,7 +4930,7 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
     // ===== 2) USI手列（終局/中断で打ち切り済み） =====
     QString convertWarn;
     KifToSfenConverter conv;
-    m_usiMoves = conv.convertFile(filePath, &convertWarn);  // ← 旧: m_loadedUsiMoves
+    m_usiMoves = conv.convertFile(filePath, &convertWarn);
 
     // ===== 3) ログ（任意） =====
     if (!parseWarn.isEmpty())
@@ -5007,6 +5012,22 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
         const auto it = map.find(tok);
         return it == map.end() ? QLatin1Char(' ') : *it;
     };
+    // ★ ヘルパ：打ちの fromSquare 座標（ご指定仕様）
+    auto dropFromSquare = [](QChar dropUpper, bool black)->QPoint {
+        const int x = black ? 9 : 10;  // 先手=9, 後手=10
+        int y = -1;
+        switch (dropUpper.toUpper().unicode()) {
+        case 'P': y = black ? 0 : 8; break; // 歩
+        case 'L': y = black ? 1 : 7; break; // 香
+        case 'N': y = black ? 2 : 6; break; // 桂
+        case 'S': y = black ? 3 : 5; break; // 銀
+        case 'G': y = 4;            break; // 金（先後とも4）
+        case 'B': y = black ? 5 : 3; break; // 角
+        case 'R': y = black ? 6 : 2; break; // 飛
+        default:  y = -1;           break;
+        }
+        return QPoint(x, y);
+    };
 
     m_gameMoves.clear();
 
@@ -5016,29 +5037,29 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
     tracer.setFromSfen((*m_sfenRecord).first());
 
     for (const QString& usi : m_usiMoves) {
-        // Drop か？
+        // === ドロップ: "P*5e" など ===
         if (usi.size() >= 4 && usi.at(1) == QLatin1Char('*')) {
             const bool black = tracer.blackToMove();
-            const QChar dropUpper = usi.at(0).toUpper();     // P/L/N/S/G/B/R
-            const int file = usi.at(2).toLatin1() - '0';     // '1'..'9'
-            const int rankNum = rankLetterToNum(usi.at(3));  // 1..9
+            const QChar dropUpper = usi.at(0).toUpper();       // P/L/N/S/G/B/R
+            const int  file = usi.at(2).toLatin1() - '0';      // '1'..'9'
+            const int  rankNum = rankLetterToNum(usi.at(3));   // 1..9
             if (file < 1 || file > 9 || rankNum < 1 || rankNum > 9) {
-                tracer.applyUsiMove(usi); // 念のため進めておく
+                tracer.applyUsiMove(usi);
                 continue;
             }
-            const QPoint from(-1, -1);                        // ドロップ
-            const QPoint to(file - 1, rankNum - 1);          // (file-1, rank-1)
-            const QChar moving = dropLetterWithSide(dropUpper, black);
-            const QChar captured = QLatin1Char(' ');          // 将棋は打で取りはしない
-            const bool promotion = false;
+
+            const QPoint from = dropFromSquare(dropUpper, black);     // ★修正点
+            const QPoint to(file - 1, rankNum - 1);                   // (file-1, rank-1)
+            const QChar moving   = dropLetterWithSide(dropUpper, black);
+            const QChar captured = QLatin1Char(' ');                  // 打ちは取りなし
+            const bool  promotion = false;
 
             m_gameMoves.push_back(ShogiMove(from, to, moving, captured, promotion));
-
             tracer.applyUsiMove(usi);
             continue;
         }
 
-        // 通常の移動: "7g7f" or "2b3c+"
+        // === 通常の移動: "7g7f" or "2b3c+" ===
         if (usi.size() < 4) { tracer.applyUsiMove(usi); continue; }
 
         const int fileFrom = usi.at(0).toLatin1() - '0';
@@ -5049,24 +5070,22 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
 
         if (fileFrom < 1 || fileFrom > 9 || rankFrom < 1 || rankFrom > 9 ||
             fileTo   < 1 || fileTo   > 9 || rankTo   < 1 || rankTo   > 9) {
-            tracer.applyUsiMove(usi); // 念のため進めておく
+            tracer.applyUsiMove(usi);
             continue;
         }
 
-        // 「適用前」の盤で駒情報を取得
+        // 適用前の盤で駒情報を取得
         const QString fromTok = tracer.tokenAtFileRank(fileFrom, usi.at(1));
         const QString toTok   = tracer.tokenAtFileRank(fileTo,   usi.at(3));
 
         const QPoint from(fileFrom - 1, rankFrom - 1);
         const QPoint to  (fileTo   - 1, rankTo   - 1);
 
-        const QChar moving = tokenToOneChar(fromTok);  // 成駒なら Q/M/O/T/C/U or q/m/...
-        const QChar captured = tokenToOneChar(toTok);  // 空なら ' '
+        const QChar moving = tokenToOneChar(fromTok);  // 例: '+P'→'Q', 'p'→'p'
+        const QChar captured = tokenToOneChar(toTok);  // 取りなしなら ' '
         const bool promotion = isProm;
 
         m_gameMoves.push_back(ShogiMove(from, to, moving, captured, promotion));
-
-        // 盤を進める
         tracer.applyUsiMove(usi);
     }
 
@@ -5090,6 +5109,11 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
     for (int i = 0; i < qMin(12, m_sfenRecord->size()); ++i) {
         qDebug().noquote()
             << QStringLiteral("%1) %2").arg(i).arg(m_sfenRecord->at(i));
+    }
+
+    qDebug() << "m_gameMoves size:" << m_gameMoves.size();
+    for (int i = 0; i < m_gameMoves.size(); ++i) {
+        qDebug().noquote() << QString("%1) ").arg(i + 1) << m_gameMoves[i];
     }
 
     displayGameRecordNew(disp);
