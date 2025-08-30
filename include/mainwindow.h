@@ -724,7 +724,7 @@ private:
     void makeDefaultSaveFileName();
 
     // 棋譜欄に「指し手」と「消費時間」のデータを表示させる。
-    void displayGameRecord(QStringList& kifuMove, QStringList& kifuMoveConsumptionTime, const QString& handicapType);
+    void displayGameRecord(const QList<KifDisplayItem> disp);
 
     // 対局者の残り時間と秒読みを設定する。
     void setRemainingTimeAndCountDown();
@@ -923,7 +923,22 @@ private:
     QStringList m_usiMoves;
     QStringList m_loadedSfens;     // ← 各手後のSFENを保持したい場合に
 
-    void displayGameRecordNew(const QList<KifDisplayItem> disp);
+    QString prepareInitialSfen(const QString& filePath, QString& teaiLabel) const;
+    QList<KifDisplayItem> parseDisplayMovesAndDetectTerminal(const QString& filePath,
+                                                             bool& hasTerminal,
+                                                             QString* warn = nullptr) const;
+    QStringList convertKifToUsiMoves(const QString& filePath, QString* warn = nullptr) const;
+    void rebuildSfenRecord(const QString& initialSfen,
+                           const QStringList& usiMoves,
+                           bool hasTerminal);
+    void rebuildGameMoves(const QString& initialSfen,
+                          const QStringList& usiMoves);
+    void logImportSummary(const QString& filePath,
+                          const QStringList& usiMoves,
+                          const QList<KifDisplayItem>& disp,
+                          const QString& teaiLabel,
+                          const QString& warnParse,
+                          const QString& warnConvert) const;
 };
 
 #endif // MAINWINDOW_H
