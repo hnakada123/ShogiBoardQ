@@ -25,6 +25,7 @@
 #include "considarationdialog.h"
 #include "tsumeshogisearchdialog.h"
 #include "shogiclock.h"
+#include "kiftosfenconverter.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -919,8 +920,10 @@ private:
     }
 
     // 追加：読み込んだUSI手列を保持（再生や解析に利用）
-    QStringList m_loadedUsiMoves;
+    QStringList m_usiMoves;
     QStringList m_loadedSfens;     // ← 各手後のSFENを保持したい場合に
+
+    void displayGameRecordNew(const QList<KifDisplayItem> disp);
 };
 
 #endif // MAINWINDOW_H
