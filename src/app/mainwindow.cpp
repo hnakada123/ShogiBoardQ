@@ -4921,7 +4921,8 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
 
     m_usiMoves = convertKifToUsiMoves(filePath, &warnConvert);
 
-    if (m_usiMoves.isEmpty() && !hasTerminal) {
+    // 新：表示用指し手(disp)が全く無いケースだけ警告
+    if (m_usiMoves.isEmpty() && !hasTerminal && disp.isEmpty()) {
         QMessageBox::warning(this, tr("読み込み失敗"),
                              tr("%1 から指し手を取得できませんでした。").arg(filePath));
         return;

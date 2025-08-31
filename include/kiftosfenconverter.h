@@ -3,99 +3,33 @@
 
 #include <QString>
 #include <QStringList>
+#include <QList>
 #include <QPoint>
 
-// 先頭付近に追加（共通キーワード）
-static const QStringList kTerminalKeywords = {
-    QStringLiteral("投了"),
-    QStringLiteral("中断"),
-    QStringLiteral("持将棋"),
-    QStringLiteral("千日手"),
-    QStringLiteral("切れ負け"),
-    QStringLiteral("反則勝ち"),
-    QStringLiteral("反則負け"),
-    QStringLiteral("入玉勝ち"),
-    QStringLiteral("不戦勝"),
-    QStringLiteral("不戦敗"),
-    QStringLiteral("詰み"),
-    QStringLiteral("不詰"),
-};
-
-static bool containsAnyTerminal(const QString& s, QString* matched = nullptr) {
-    for (const auto& kw : kTerminalKeywords) {
-        if (s.contains(kw)) { if (matched) *matched = kw; return true; }
-    }
-    return false;
-}
-
-// 追加：GUI表示用の「指し手＋時間」レコード
 struct KifDisplayItem {
-    QString prettyMove;  // 例: "▲２六歩(27)"
-    QString timeText;    // 例: "00:00/00:00:00"（無ければ空）
+    QString prettyMove;
+    QString timeText;
 };
 
-/**
- * @brief KIF の指し手行を USI/SFEN 文字列へ変換する簡易コンバータ。
- *
- * 取り扱い仕様（簡潔版）
- * - 対応: 「７六歩(77)」「同　銀(42)」「８八角成(99)」「４五歩打」
- * - 打ち: 「打」を検出し USI では "P*5e" 形式にする
- * - 成り: 行に「不成」が無く「成」を含む → 末尾に '+'
- * - 「同」: 直前手の着手地点を再利用
- * - 無視: ヘッダ/コメント（先手：、手数＝、* で始まる等）、投了/中断など
- * - 前提: KIF 行に移動元 "(77)" のような表記が含まれていること（打ちは除く）
- */
 class KifToSfenConverter
 {
 public:
     KifToSfenConverter();
 
-    /**
-     * @brief KIFファイルを読み込んで、各指し手を USI/SFEN の QStringList で返す。
-     *        解析できなかった行はスキップ（errorMessage に詳細を追記）。
-     * @param kifPath KIFファイルパス
-     * @param errorMessage 失敗やスキップの詳細（任意）
-     * @return USI/SFEN 指し手列（例: {"7g7f","3c3d","P*5e",...}）
-     */
     QStringList convertFile(const QString& kifPath, QString* errorMessage = nullptr);
-
-    /**
-     * @brief KIFの1行から USI/SFEN の1手を得る。
-     * @param line KIFの指し手行
-     * @param usiMove 変換された1手（成功時のみ書き込み）
-     * @return 変換に成功したら true
-     */
-    bool convertMoveLine(const QString& line, QString& usiMove);
-
-    // KIF 内の「手合割」を見て初期SFENを返す（見つからない/未対応は平手）
-    // detectedLabel には見つけた手合名（例: "平手", "香落ち" など）を返す
-    static QString detectInitialSfenFromFile(const QString& kifPath, QString* detectedLabel = nullptr);
-
-    // 追加：KIFから「指し手＋消費時間」を順番に抽出（手番記号▲/△付き）
-    // エラーやスキップは errorMessage に追記（任意）
     static QList<KifDisplayItem> extractMovesWithTimes(const QString& kifPath,
                                                        QString* errorMessage = nullptr);
+    static QString detectInitialSfenFromFile(const QString& kifPath, QString* detectedLabel = nullptr);
+    static QString mapHandicapToSfen(const QString& label);
 
 private:
-    // --- 文字/数値の変換ユーティリティ ---
-    static int zenkakuDigitToInt(QChar ch); // '１'..'９' → 1..9（それ以外は0）
-    static int kanjiDigitToInt(QChar ch);   // '一'..'九' → 1..9（それ以外は0）
-    static int asciiDigitToInt(QChar ch);   // '1'..'9'   → 1..9（それ以外は0）
-    static QChar rankNumToLetter(int rank); // 1→'a' … 9→'i'
-
-    // "(77)" や "（77）" を抽出（全角括弧対応、内側は半角/全角数字OK）
-    static bool parseOrigin(const QString& src, int& fromFile, int& fromRank);
-
-    // 行から着手先 (file, rank) を抽出する。「同」は isSameAsPrev=true にする
+    bool convertMoveLine(const QString& line, QString& usiMove);
+    static int asciiDigitToInt(QChar c);
+    static int zenkakuDigitToInt(QChar c);
+    static int kanjiDigitToInt(QChar c);
     static bool findDestination(const QString& line, int& toFile, int& toRank, bool& isSameAsPrev);
 
-    // 「打ち」で使う駒種の USI ドロップ用一文字（P/L/N/S/G/B/R/K）を返す
-    static QChar pieceKanaToUsiDropLetter(const QString& line);
-
-    // 行が指し手として無効/無視対象か
-    static bool isSkippableLine(const QString& line);
-
-    // 直前手の着手先（「同」用）: x=file(1..9), y=rank(1..9)。未設定は (-1,-1)
+private:
     QPoint m_lastDest;
 };
 
