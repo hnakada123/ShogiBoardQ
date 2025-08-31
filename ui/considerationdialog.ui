@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>ConsidarationDialog</class>
- <widget class="QDialog" name="ConsidarationDialog">
+ <class>ConsiderationDialog</class>
+ <widget class="QDialog" name="ConsiderationDialog">
   <property name="geometry">
    <rect>
     <x>0</x>

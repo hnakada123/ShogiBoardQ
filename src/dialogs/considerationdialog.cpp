@@ -1,6 +1,6 @@
-#include "considarationdialog.h"
+#include "considerationdialog.h"
 #include "changeenginesettingsdialog.h"
-#include "ui_considarationdialog.h"
+#include "ui_considerationdialog.h"
 #include "enginesettingsconstants.h"
 #include <QFile>
 #include <QTextStream>
@@ -10,8 +10,8 @@ using namespace EngineSettingsConstants;
 
 // 検討ダイアログを表示する。
 // コンストラクタ
-ConsidarationDialog::ConsidarationDialog(QWidget *parent)
-    : QDialog(parent), ui(new Ui::ConsidarationDialog)
+ConsiderationDialog::ConsiderationDialog(QWidget *parent)
+    : QDialog(parent), ui(new Ui::ConsiderationDialog)
 {
     // UIをセットアップする。
     ui->setupUi(this);
@@ -23,27 +23,27 @@ ConsidarationDialog::ConsidarationDialog(QWidget *parent)
     readEngineNameAndDir();
 
     // エンジン設定ボタンが押されたときの処理
-    connect(ui->engineSetting, &QPushButton::clicked, this, &ConsidarationDialog::showEngineSettingsDialog);
+    connect(ui->engineSetting, &QPushButton::clicked, this, &ConsiderationDialog::showEngineSettingsDialog);
 
     // OKボタンが押された場合、ダイアログを受け入れたとして閉じる動作を行う。
-    connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &ConsidarationDialog::accept);
+    connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &ConsiderationDialog::accept);
 
     // OKボタンが押された場合、エンジン名、エンジン番号、解析局面フラグ、思考時間を取得する。
-    connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &ConsidarationDialog::processEngineSettings);
+    connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &ConsiderationDialog::processEngineSettings);
 
     // キャンセルボタンが押された場合、ダイアログを拒否する動作を行う。
-    connect(ui->buttonBox, &QDialogButtonBox::rejected, this, &ConsidarationDialog::reject);
+    connect(ui->buttonBox, &QDialogButtonBox::rejected, this, &ConsiderationDialog::reject);
 }
 
 // デストラクタ
-ConsidarationDialog::~ConsidarationDialog()
+ConsiderationDialog::~ConsiderationDialog()
 {
     // UIを削除する。
     delete ui;
 }
 
 // エンジン設定ボタンが押された場合、エンジン設定ダイアログを表示する。
-void ConsidarationDialog::showEngineSettingsDialog()
+void ConsiderationDialog::showEngineSettingsDialog()
 {
     // 選択したエンジン番号を取得する。
     m_engineNumber = ui->comboBoxEngine1->currentIndex();
@@ -75,25 +75,25 @@ void ConsidarationDialog::showEngineSettingsDialog()
 }
 
 // エンジン名を取得する。
-const QString& ConsidarationDialog::getEngineName() const
+const QString& ConsiderationDialog::getEngineName() const
 {
     return m_engineName;
 }
 
 // エンジン番号を取得する。
-int ConsidarationDialog::getEngineNumber() const
+int ConsiderationDialog::getEngineNumber() const
 {
     return m_engineNumber;
 }
 
 // 1手あたりの思考時間（秒数）を取得する。
-int ConsidarationDialog::getByoyomiSec() const
+int ConsiderationDialog::getByoyomiSec() const
 {
     return m_byoyomiSec;
 }
 
 // エンジン名、エンジン番号、時間無制限フラグ、検討時間フラグ、検討時間を取得する。
-void ConsidarationDialog::processEngineSettings()
+void ConsiderationDialog::processEngineSettings()
 {
     // 選択したエンジン名を取得する。
     m_engineName = ui->comboBoxEngine1->currentText();
@@ -113,7 +113,7 @@ void ConsidarationDialog::processEngineSettings()
 }
 
 // 設定ファイルからエンジンの名前とディレクトリを読み込む。
-void ConsidarationDialog::readEngineNameAndDir()
+void ConsiderationDialog::readEngineNameAndDir()
 {
     // 現在のディレクトリをアプリケーションのディレクトリに設定する。
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -146,7 +146,7 @@ void ConsidarationDialog::readEngineNameAndDir()
 }
 
 // エンジンの名前とディレクトリを格納するリストを取得する。
-const QList<ConsidarationDialog::Engine>& ConsidarationDialog::getEngineList() const
+const QList<ConsiderationDialog::Engine>& ConsiderationDialog::getEngineList() const
 {
     return engineList;
 }

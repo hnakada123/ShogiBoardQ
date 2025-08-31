@@ -4151,16 +4151,16 @@ void MainWindow::displayAnalysisResults()
 void MainWindow::displayConsiderationDialog()
 {
     // 検討ダイアログを生成する。
-    m_considarationDialog = new ConsidarationDialog(this);
+    m_considerationDialog = new ConsiderationDialog(this);
 
     // 検討ダイアログを表示後にユーザーがOKボタンを押した場合
-    if (m_considarationDialog->exec() == QDialog::Accepted) {
+    if (m_considerationDialog->exec() == QDialog::Accepted) {
         // 検討を開始する。
         startConsidaration();
     }
 
     // 検討ダイアログを削除する。
-    delete m_considarationDialog;
+    delete m_considerationDialog;
 }
 
 // 詰み探索ダイアログを表示する。
@@ -5212,13 +5212,13 @@ void MainWindow::startConsidaration()
     connect(m_usi1, &Usi::bestMoveResignReceived, this, &MainWindow::processResignCommand);
 
     // GUIに登録された将棋エンジン番号を取得する。
-    int engineNumber1 = m_considarationDialog->getEngineNumber();
+    int engineNumber1 = m_considerationDialog->getEngineNumber();
 
     // 将棋エンジン実行ファイル名を設定する。
-    m_engineFile1 = m_considarationDialog->getEngineList().at(engineNumber1).path;
+    m_engineFile1 = m_considerationDialog->getEngineList().at(engineNumber1).path;
 
     // 将棋エンジン名を取得する。
-    QString engineName1 = m_considarationDialog->getEngineName();
+    QString engineName1 = m_considerationDialog->getEngineName();
 
     m_usi1->setLogIdentity("[E1]", "P1", engineName1);
 
@@ -5243,13 +5243,13 @@ void MainWindow::startConsidaration()
     m_positionStr1 = m_positionStrList.at(m_currentMoveIndex);
 
     // 時間無制限の場合
-    if (m_considarationDialog->unlimitedTimeFlag()) {
+    if (m_considerationDialog->unlimitedTimeFlag()) {
         m_byoyomiMilliSec1 = 0;
     }
     // 時間制限の場合
     else {
         // 秒読み時間を設定（単位はミリ秒）
-        m_byoyomiMilliSec1 = m_considarationDialog->getByoyomiSec() * 1000;
+        m_byoyomiMilliSec1 = m_considerationDialog->getByoyomiSec() * 1000;
     }
 
     // 将棋エンジンにpositionコマンドを送信し、指し手を受信する。
