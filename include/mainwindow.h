@@ -22,7 +22,7 @@
 #include "playmode.h"
 #include "shogimove.h"
 #include "usicommlogmodel.h"
-#include "considarationdialog.h"
+#include "considerationdialog.h"
 #include "tsumeshogisearchdialog.h"
 #include "shogiclock.h"
 #include "kiftosfenconverter.h"
@@ -357,7 +357,7 @@ private:
     StartGameDialog* m_startGameDialog;
 
     // 検討ダイアログ
-    ConsidarationDialog* m_considarationDialog;
+    ConsiderationDialog* m_considerationDialog;
 
     // 検討ダイアログ
     TsumeShogiSearchDialog* m_tsumeShogiSearchDialog;

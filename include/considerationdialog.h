@@ -1,23 +1,23 @@
-#ifndef CONSIDARATIONDIALOG_H
-#define CONSIDARATIONDIALOG_H
+#ifndef CONSIDERATIONDIALOG_H
+#define CONSIDERATIONDIALOG_H
 
 #include <QDialog>
 
 namespace Ui {
-class ConsidarationDialog;
+class ConsiderationDialog;
 }
 
 // 検討ダイアログを表示する。
-class ConsidarationDialog : public QDialog
+class ConsiderationDialog : public QDialog
 {
     Q_OBJECT
 
 public:
     // コンストラクタ
-    explicit ConsidarationDialog(QWidget *parent = nullptr);
+    explicit ConsiderationDialog(QWidget *parent = nullptr);
 
     // デストラクタ
-    ~ConsidarationDialog();
+    ~ConsiderationDialog();
 
     // 1手あたりの思考時間（秒数）を取得する。
      int getByoyomiSec() const;
@@ -36,7 +36,7 @@ public:
     };
 
     // エンジンの名前とディレクトリを格納するリストを取得する。
-    const QList<ConsidarationDialog::Engine>& getEngineList() const;
+    const QList<ConsiderationDialog::Engine>& getEngineList() const;
 
     bool unlimitedTimeFlag() const;
 
@@ -49,7 +49,7 @@ private slots:
 
 private:
     // UI
-    Ui::ConsidarationDialog* ui;
+    Ui::ConsiderationDialog* ui;
 
     // 選択したエンジン名
     QString m_engineName;
@@ -70,9 +70,9 @@ private:
     void readEngineNameAndDir();
 };
 
-inline bool ConsidarationDialog::unlimitedTimeFlag() const
+inline bool ConsiderationDialog::unlimitedTimeFlag() const
 {
     return m_unlimitedTimeFlag;
 }
 
-#endif // CONSIDARATIONDIALOG_H
+#endif // CONSIDERATIONDIALOG_H

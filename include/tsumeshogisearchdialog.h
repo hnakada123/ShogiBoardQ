@@ -1,14 +1,14 @@
 #ifndef TSUMESHOGISEARCHDIALOG_H
 #define TSUMESHOGISEARCHDIALOG_H
 
-#include "considarationdialog.h"
+#include "considerationdialog.h"
 
 namespace Ui {
 class TsumeShogiSearchDialog;
 }
 
 // 詰み探索ダイアログを表示する。
-class TsumeShogiSearchDialog : public ConsidarationDialog
+class TsumeShogiSearchDialog : public ConsiderationDialog
 {
     Q_OBJECT
 
