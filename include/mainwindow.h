@@ -960,6 +960,12 @@ private:
     void updateBranchTextForRow(int row);
 
     QTextBrowser* m_branchText = nullptr;
+
+    // ★ 追加：m_tab1 に置くミラー用のコメントビュー
+    QTextBrowser* m_branchTextInTab1 = nullptr;
+
+    // （任意）HTML生成のヘルパ
+    QString makeBranchHtml(const QString& text) const;
 };
 
 #endif // MAINWINDOW_H

@@ -1902,6 +1902,13 @@ void MainWindow::initializeEngine1ThoughtTab()
     m_tab1->addTab(m_usiView1, "思考1");
     m_tab1->addTab(m_usiCommLogEdit, "USIプロトコル通信ログ");
 
+    // ★ 追加：棋譜コメントのタブ
+    m_branchTextInTab1 = new QTextBrowser(m_tab1);
+    m_branchTextInTab1->setOpenExternalLinks(true);
+    m_branchTextInTab1->setWordWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
+    m_branchTextInTab1->setPlaceholderText(tr("コメントを表示"));
+    m_tab1->addTab(m_branchTextInTab1, tr("棋譜コメント"));
+
     // 将棋エンジン1のタブウィジェットの高さを150に設定する。
     m_tab1->setMinimumHeight(150);
 
@@ -2047,80 +2054,6 @@ void MainWindow::setupRecordAndEvaluationLayout()
     m_gameRecordLayoutWidget = new QWidget;
     m_gameRecordLayoutWidget->setLayout(vboxLayout);
 }
-
-/*
-void MainWindow::setupRecordAndEvaluationLayout()
-{
-    // 左（棋譜+矢印）の縦レイアウト
-    QVBoxLayout* vboxKifuLayout = new QVBoxLayout;
-    vboxKifuLayout->setContentsMargins(0, 0, 0, 0); // ★ 余白を消す
-    vboxKifuLayout->setSpacing(6);                  // （任意）テーブルと矢印の間
-    vboxKifuLayout->addWidget(m_kifuView);
-    vboxKifuLayout->addWidget(m_arrows);
-
-    QWidget* kifuWidget = new QWidget;
-    kifuWidget->setLayout(vboxKifuLayout);
-    kifuWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
-
-    // 左右を並べる横レイアウト
-    QHBoxLayout* hboxLayout = new QHBoxLayout;
-    hboxLayout->setContentsMargins(0, 0, 0, 0);     // ★ 念のためここも 0
-    hboxLayout->setSpacing(8);
-    hboxLayout->addWidget(kifuWidget);
-    hboxLayout->addWidget(m_kifuBranchView);
-    m_kifuBranchView->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
-
-    QWidget* addBranchWidget = new QWidget;
-    addBranchWidget->setLayout(hboxLayout);
-
-    QVBoxLayout* vboxLayout = new QVBoxLayout;
-    vboxLayout->setContentsMargins(0, 0, 0, 0);     // （任意）
-    vboxLayout->setSpacing(8);
-    vboxLayout->addWidget(addBranchWidget);
-    vboxLayout->addWidget(m_scrollArea);
-
-    m_gameRecordLayoutWidget = new QWidget;
-    m_gameRecordLayoutWidget->setLayout(vboxLayout);
-
-    // （オプション）ヘッダ高さを完全一致させたい場合
-    // int h = m_kifuView->horizontalHeader()->height();
-    // m_kifuBranchView->horizontalHeader()->setFixedHeight(h);
-}
-*/
-
-/*
-void MainWindow::setupRecordAndEvaluationLayout()
-{
-    QVBoxLayout* vboxKifuLayout = new QVBoxLayout;
-    vboxKifuLayout->addWidget(m_kifuView);
-    vboxKifuLayout->addWidget(m_arrows);
-
-    // Widgetを作成する。
-    QWidget* kifuWidget = new QWidget;
-    kifuWidget->setLayout(vboxKifuLayout);
-
-    QHBoxLayout* hboxLayout = new QHBoxLayout;
-    hboxLayout->addWidget(kifuWidget);
-    hboxLayout->addWidget(m_kifuBranchView);
-
-    // Widgetを作成する。
-    QWidget* addBranchWidget = new QWidget;
-    addBranchWidget->setLayout(hboxLayout);
-
-    // 縦ボックスレイアウトを作成する。
-    QVBoxLayout* vboxLayout = new QVBoxLayout;
-
-    // 棋譜、矢印ボタン、評価値グラフを縦ボックス化する。
-    vboxLayout->addWidget(addBranchWidget);
-    vboxLayout->addWidget(m_scrollArea);
-
-    // 縦ボックスウィジェットを作成する。
-    m_gameRecordLayoutWidget = new QWidget;
-
-    // 縦ボックスウィジェットに縦ボックスレイアウトを設定する。
-    m_gameRecordLayoutWidget->setLayout(vboxLayout);
-}
-*/
 
 // 対局者名と残り時間、将棋盤と棋譜、矢印ボタン、評価値グラフのグループを横に並べて表示する。
 void MainWindow::setupHorizontalGameLayout()
@@ -3326,25 +3259,6 @@ void MainWindow::printGameDialogSettings(StartGameDialog* m_gamedlg)
     qDebug() << "m_gamedlg->isLoseOnTimeout() = " << m_gamedlg->isLoseOnTimeout();
     qDebug() << "m_gamedlg->isSwitchTurnEachGame() = " << m_gamedlg->isSwitchTurnEachGame();
 }
-
-/*
-// 平手、駒落ち Player1: Human, Player2: Human
-void MainWindow::startHumanVsHumanGame()
-{
-    // マウスでクリックして駒を選択して指す処理を行う。
-    connect(m_shogiView, &ShogiView::clicked, this, &MainWindow::handleHumanVsHumanClick);
-
-    // （必要なら）手番表示やクリック許可の初期化
-    // updateTurnAndTimekeepingDisplay();
-    // m_shogiView->setMouseClickMode(true);
-
-    // 次フレームでアーム → 初期描画を思考時間に含めない
-    QTimer::singleShot(0, this, [this] {
-        armTurnTimerIfNeeded();
-    });
-}
-*/
-
 
 // 対局者2をエンジン1で初期化して対局を開始する。
 void MainWindow::initializeAndStartPlayer2WithEngine1()
@@ -5385,29 +5299,36 @@ static QString toHtmlWithLinks(const QString& plain)
     return html;
 }
 
-void MainWindow::updateBranchTextForRow(int row)
+QString MainWindow::makeBranchHtml(const QString& text) const
 {
-    if (!m_branchText) return;
+    if (text.isEmpty())
+        return QString();
 
-    QString text;
-    if (row >= 0 && row < m_commentsByRow.size())
-        text = m_commentsByRow.at(row).trimmed();
-
-    if (text.isEmpty()) {
-        // 空なら淡色のプレースホルダを表示
-        m_branchText->setHtml(
-            QStringLiteral("<div style='color:gray;'><i>%1</i></div>")
-            .arg(tr("コメントなし"))
-        );
-    } else {
-        // リンク化してHTMLで流し込む
-        m_branchText->setHtml(toHtmlWithLinks(text));
-    }
-
-    // 先頭へスクロール（任意）
-    m_branchText->moveCursor(QTextCursor::Start);
+    // エスケープ → URL をリンク化（簡易）
+    QString esc = Qt::convertFromPlainText(text); // 改行を <br> に、& などをエスケープ
+    static const QRegularExpression re(R"((https?://[^\s<]+))");
+    esc.replace(re, R"(<a href="\1">\1</a>)");
+    return esc;
 }
 
+void MainWindow::updateBranchTextForRow(int row)
+{
+    QString raw;
+    if (row >= 0 && row < m_commentsByRow.size())
+        raw = m_commentsByRow.at(row).trimmed();
+
+    const QString html = makeBranchHtml(raw);
+
+    // 元のコメントパネルを更新
+    if (m_branchText) {
+        m_branchText->setHtml(html);
+    }
+
+    // ★ 追加：m_tab1 のコメントタブも更新
+    if (m_branchTextInTab1) {
+        m_branchTextInTab1->setHtml(html);
+    }
+}
 
 // 棋譜を更新し、GUIの表示も同時に更新する。
 // elapsedTimeは指し手にかかった時間を表す文字列
