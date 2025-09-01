@@ -952,6 +952,13 @@ private:
 
     QPlainTextEdit* m_branchText = nullptr;
     void setupBranchTextWidget();
+
+    // コメントを「棋譜欄の行インデックス」で引けるようにする
+    QVector<QString> m_commentsByRow;
+
+    // 指定行のコメントを m_branchText に反映
+    void updateBranchTextForRow(int row);
+
 };
 
 #endif // MAINWINDOW_H

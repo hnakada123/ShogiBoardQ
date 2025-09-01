@@ -656,6 +656,9 @@ void MainWindow::navigateToNextMove()
         // 駒の移動元と移動先のマスをハイライトする。
         addMoveHighlights();
     }
+
+    // ★ コメント欄を更新
+    updateBranchTextForRow(nextRow);
 }
 
 // 棋譜欄下の矢印「10手進む」
@@ -702,6 +705,9 @@ void MainWindow::navigateForwardTenMoves()
         // 駒の移動元と移動先のマスをハイライトする。
         addMoveHighlights();
     }
+
+    // ★ コメント欄を更新
+    updateBranchTextForRow(nextRow);
 }
 
 // 棋譜欄下の矢印「最後まで進む」
@@ -729,6 +735,9 @@ void MainWindow::navigateToLastMove()
 
         // 現在の手数を更新
         m_currentMoveIndex = lastRowIndex;
+
+        // ★ コメント欄を更新
+        updateBranchTextForRow(lastRowIndex);
     }
 }
 
@@ -758,6 +767,9 @@ void MainWindow::navigateToPreviousMove()
 
         // 現在の手数をセットする。
         m_currentMoveIndex = indexAfter.row();
+
+        // ★ コメント欄を更新
+        updateBranchTextForRow(rowToMove);
     }
 
     // マスのハイライトを更新する。
@@ -802,6 +814,9 @@ void MainWindow::navigateBackwardTenMoves()
 
     // 1手以上指している時、駒の移動元と移動先のマスをそれぞれ別の色でハイライトする。
     if (m_currentMoveIndex) addMoveHighlights();
+
+    // ★ コメント欄を更新
+    updateBranchTextForRow(rowToMove);
 }
 
 // 棋譜欄下の矢印「最初の局面に戻る」
@@ -821,6 +836,9 @@ void MainWindow::navigateToFirstMove()
 
     // 盤面を更新する。
     m_gameController->board()->setSfen(sfenStr);
+
+    // ★ コメント欄を更新
+    updateBranchTextForRow(0);
 }
 
 // 待ったをした場合、position文字列のセットと評価値グラフの値を削除する。
@@ -1003,11 +1021,6 @@ void MainWindow::initializeNewGame(QString& startSfenStr)
 // 対局モードに応じて将棋盤上部に表示される対局者名をセットする。
 void MainWindow::setPlayersNamesForMode()
 {
-    //begin
-    qDebug() << "in MainWindow::setPlayersNamesForMode";
-    qDebug() << "m_playMode: " << m_playMode;
-    //end
-
     // ▲▽の記号はここでは名前に含めない。
     QString blackName;
     QString whiteName;
@@ -5041,6 +5054,9 @@ inline QPoint dropFromSquare(QChar dropUpper, bool black) {
 // ===================== 司令塔 =====================
 void MainWindow::loadKifuFromFile(const QString& filePath)
 {
+    m_commentsByRow.clear();
+    if (m_branchText) m_branchText->clear();
+
     // 1) 初期局面（手合割）を決定
     QString teaiLabel;
     const QString initialSfen = prepareInitialSfen(filePath, teaiLabel);
@@ -5295,25 +5311,77 @@ void MainWindow::logImportSummary(const QString& filePath,
 
 void MainWindow::displayGameRecord(const QList<KifDisplayItem> disp)
 {
-    // 棋譜欄のデータのクリア
+    // クリア
     m_moveRecords->clear();
     m_currentMoveIndex = 0;
     m_kifuDataList.clear();
     m_moveRecords->clear();
     m_kifuRecordModel->clearAllItems();
 
-    // ヘッダ
-    m_kifuRecordModel->appendItem(new KifuDisplay("=== 開始局面 ===", "（１手 / 合計）"));
+    // ヘッダ（開始局面）
+    m_kifuRecordModel->appendItem(new KifuDisplay(QStringLiteral("=== 開始局面 ==="),
+                                                  QStringLiteral("（1手 / 合計）")));
 
-    // 本譜のみ一覧表示（従来通り）
-    for (const auto& it : disp) {
+    // ★ コメント表を（SFENの行数に合わせて）準備
+    m_commentsByRow.clear();
+    const int moveCount = disp.size();                             // 手数
+    const int rowCount  = m_sfenRecord ? m_sfenRecord->size()
+                                       : (moveCount + 1);          // 行=開始局面(0) + 各手(1..N)
+    m_commentsByRow.resize(rowCount);                              // 既定は空
+
+    // 先に「開始局面のコメント」を設定（= 初手の直前コメント）
+    if (moveCount > 0)
+        m_commentsByRow[0] = disp[0].comment;
+
+    // 棋譜欄へ各手を追加しつつ、「その手のコメント」は disp[i+1] を採用
+    //   行番号: row = i+1
+    //   表示コメント: disp[i+1].comment（= その手の後に書かれるコメント）
+    for (int i = 0; i < moveCount; ++i) {
+        const auto &it = disp[i];
+
+        // 行→コメントの対応（ズレ補正）
+        const int row = i + 1;                   // 1..N
+        if (row < m_commentsByRow.size()) {
+            if (i + 1 < moveCount) {
+                m_commentsByRow[row] = disp[i + 1].comment;  // その手の“後”のコメント
+            } else {
+                m_commentsByRow[row].clear();                // 最終手の後は通常コメントなし
+            }
+        }
+
+        // 棋譜欄へ行を追加（既存処理）
         m_lastMove = it.prettyMove;
         updateGameRecord(it.timeText);
-        // ★コメントを棋譜欄でも出したければ、ここでサブ行を追加する実装に拡張してください。
-        //   例）m_gameRecordModel->appendItem(new KifuDisplay(QString("　※ %1").arg(it.comment), ""));
-        //   （※ モデル/ビューの構造に依るので、今回はログ出力のみに留めています）
     }
+
+    // 初期表示を開始局面に合わせておく（任意）
+    if (m_kifuView)
+        m_kifuView->setCurrentIndex(m_kifuRecordModel->index(0, 0));
+    if (m_branchText) {
+        const QString head = (0 < m_commentsByRow.size() ? m_commentsByRow[0].trimmed()
+                                                         : QString());
+        m_branchText->setPlainText(head.isEmpty() ? tr("コメントなし") : head);
+    }
+
+    // 行選択が変わったらコメントも更新
+    connect(m_kifuView->selectionModel(), &QItemSelectionModel::currentRowChanged,
+            this, [this](const QModelIndex& cur, const QModelIndex&) {
+                updateBranchTextForRow(cur.row());
+            });
+
 }
+
+void MainWindow::updateBranchTextForRow(int row)
+{
+    if (!m_branchText) return;
+
+    QString text;
+    if (row >= 0 && row < m_commentsByRow.size())
+        text = m_commentsByRow.at(row).trimmed();
+
+    m_branchText->setPlainText(text);
+}
+
 
 // 棋譜を更新し、GUIの表示も同時に更新する。
 // elapsedTimeは指し手にかかった時間を表す文字列
