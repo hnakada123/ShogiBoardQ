@@ -34,7 +34,7 @@
 #include <QStandardPaths>
 #include <QImageWriter>
 #include <QSplitter>
-#include <QPlainTextEdit>
+#include <QTextBrowser>
 #include <QTextOption>
 
 #include "mainwindow.h"
@@ -1998,11 +1998,14 @@ QString MainWindow::parseStartPositionToSfen(QString startPositionStr)
 
 void MainWindow::setupBranchTextWidget()
 {
-    m_branchText = new QPlainTextEdit;
-    m_branchText->setReadOnly(true);
-    m_branchText->setPlaceholderText(tr("コメントを表示"));
-    m_branchText->setWordWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
-    m_branchText->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    auto* tb = new QTextBrowser(this);
+    tb->setReadOnly(true); // 既定でreadOnlyですが明示でもOK
+    tb->setOpenExternalLinks(true);  // クリックで外部ブラウザを開く
+    tb->setOpenLinks(true);          // 既定true（falseでも外部は開くがtrueで無難）
+    tb->setPlaceholderText(tr("コメントを表示"));
+    tb->setWordWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
+    tb->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    m_branchText = tb;
 }
 
 void MainWindow::setupRecordAndEvaluationLayout()
@@ -5371,6 +5374,17 @@ void MainWindow::displayGameRecord(const QList<KifDisplayItem> disp)
 
 }
 
+static QString toHtmlWithLinks(const QString& plain)
+{
+    // 改行などを <br> に変換してHTML化
+    QString html = Qt::convertFromPlainText(plain, Qt::WhiteSpaceNormal);
+
+    // http/https のURLをリンクに
+    static const QRegularExpression re(QStringLiteral(R"((https?://[^\s<>"']+))"));
+    html.replace(re, QStringLiteral(R"(<a href="\1">\1</a>)"));
+    return html;
+}
+
 void MainWindow::updateBranchTextForRow(int row)
 {
     if (!m_branchText) return;
@@ -5379,7 +5393,19 @@ void MainWindow::updateBranchTextForRow(int row)
     if (row >= 0 && row < m_commentsByRow.size())
         text = m_commentsByRow.at(row).trimmed();
 
-    m_branchText->setPlainText(text);
+    if (text.isEmpty()) {
+        // 空なら淡色のプレースホルダを表示
+        m_branchText->setHtml(
+            QStringLiteral("<div style='color:gray;'><i>%1</i></div>")
+            .arg(tr("コメントなし"))
+        );
+    } else {
+        // リンク化してHTMLで流し込む
+        m_branchText->setHtml(toHtmlWithLinks(text));
+    }
+
+    // 先頭へスクロール（任意）
+    m_branchText->moveCursor(QTextCursor::Start);
 }
 
 
@@ -6663,4 +6689,3 @@ void MainWindow::onEngine2Resigns()
 
     displayResultsAndUpdateGui();
 }
-

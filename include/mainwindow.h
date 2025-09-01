@@ -10,6 +10,7 @@
 #include <QtCharts/QLineSeries>
 #include <QValueAxis>
 #include <QTime>
+#include <QTextBrowser>
 
 #include "kifurecordlistmodel.h"
 #include "kifubranchlistmodel.h"
@@ -950,7 +951,6 @@ private:
                           const QString& warnParse,
                           const QString& warnConvert) const;
 
-    QPlainTextEdit* m_branchText = nullptr;
     void setupBranchTextWidget();
 
     // コメントを「棋譜欄の行インデックス」で引けるようにする
@@ -959,6 +959,7 @@ private:
     // 指定行のコメントを m_branchText に反映
     void updateBranchTextForRow(int row);
 
+    QTextBrowser* m_branchText = nullptr;
 };
 
 #endif // MAINWINDOW_H
