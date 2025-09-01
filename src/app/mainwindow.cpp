@@ -33,6 +33,9 @@
 #include <QTimer>
 #include <QStandardPaths>
 #include <QImageWriter>
+#include <QSplitter>
+#include <QPlainTextEdit>
+#include <QTextOption>
 
 #include "mainwindow.h"
 #include "promotedialog.h"
@@ -91,7 +94,10 @@ MainWindow::MainWindow(QWidget *parent) :
     initializeComponents();
 
     // 棋譜欄の表示設定
-    setupGameRecordView();
+    setupKifuRecordView();
+
+    // 棋譜の分岐欄の表示設定
+    setupKifuBranchView();
 
     // 矢印ボタンの表示
     setupArrowButtons();
@@ -259,7 +265,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(m_gameController, &ShogiGameController::showPromotionDialog, this, &MainWindow::displayPromotionDialog);
 
     // 棋譜欄の指し手をクリックするとその局面に将棋盤を更新する。
-    connect(m_gameRecordView, &QTableView::clicked, this, &MainWindow::updateBoardFromMoveHistory);
+    connect(m_kifuView, &QTableView::clicked, this, &MainWindow::updateBoardFromMoveHistory);
 
     // 棋譜欄下の矢印ボタン
     // 初期局面を表示する。
@@ -585,7 +591,7 @@ void MainWindow::updateBoardFromMoveHistory()
     clearMoveHighlights();
 
     // 棋譜欄の現在の指し手のインデックスを取得する。
-    QModelIndex index = m_gameRecordView->currentIndex();
+    QModelIndex index = m_kifuView->currentIndex();
 
     // SFEN文字列リストより現在のインデックス行のSFEN文字列を取り出す。
     QString str = m_sfenRecord->at(index.row());
@@ -597,7 +603,7 @@ void MainWindow::updateBoardFromMoveHistory()
     m_currentMoveIndex = index.row();
 
     // 最終行のインデックスを取得
-    int lastRowIndex = m_gameRecordModel->rowCount() - 1;
+    int lastRowIndex = m_kifuRecordModel->rowCount() - 1;
 
     // 指し手が１手以上でかつ移動先が最終行でない場合
     if ((m_currentMoveIndex > 0) && (m_currentMoveIndex != lastRowIndex)) {
@@ -614,24 +620,24 @@ void MainWindow::navigateToNextMove()
     clearMoveHighlights();
 
     // 現在のインデックスを取得する。
-    QModelIndex currentIndex = m_gameRecordView->currentIndex();
+    QModelIndex currentIndex = m_kifuView->currentIndex();
 
     // 現在の行を取得する。
     int currentRow = currentIndex.row();
 
     // 棋譜欄で次の手（1手進む）に移動する。
-    int nextRow = currentRow == -1 ? m_gameRecordModel->rowCount() - 1 : currentRow + 1;
+    int nextRow = currentRow == -1 ? m_kifuRecordModel->rowCount() - 1 : currentRow + 1;
 
     // 棋譜のリストの範囲を超えていないかチェックする。
-    if (nextRow >= m_gameRecordModel->rowCount()) {
+    if (nextRow >= m_kifuRecordModel->rowCount()) {
         // 最後の手に移動する。
-        nextRow = m_gameRecordModel->rowCount() - 1;
+        nextRow = m_kifuRecordModel->rowCount() - 1;
     }
 
     // 移動先のインデックスをセットする。
-    QModelIndex nextIndex = m_gameRecordModel->index(nextRow, 0, QModelIndex());
+    QModelIndex nextIndex = m_kifuRecordModel->index(nextRow, 0, QModelIndex());
 
-    m_gameRecordView->setCurrentIndex(nextIndex);
+    m_kifuView->setCurrentIndex(nextIndex);
 
     // SFEN文字列を取得し、盤面を更新する。
     QString sfenStr = m_sfenRecord->at(nextRow);
@@ -643,7 +649,7 @@ void MainWindow::navigateToNextMove()
     m_currentMoveIndex = nextRow;
 
     // 最終行のインデックスを取得する。
-    int lastRowIndex = m_gameRecordModel->rowCount() - 1;
+    int lastRowIndex = m_kifuRecordModel->rowCount() - 1;
 
     // 移動先が最終行でない場合
     if (nextRow != lastRowIndex) {
@@ -660,24 +666,24 @@ void MainWindow::navigateForwardTenMoves()
     clearMoveHighlights();
 
     // 現在のインデックスを取得する。
-    QModelIndex currentIndex = m_gameRecordView->currentIndex();
+    QModelIndex currentIndex = m_kifuView->currentIndex();
 
     // 現在の行を取得する。
     int currentRow = currentIndex.row();
 
     // 棋譜欄で次の10手（10手進む）に移動する。
-    int nextRow = currentRow == -1 ? m_gameRecordModel->rowCount() - 1 : currentRow + 10;
+    int nextRow = currentRow == -1 ? m_kifuRecordModel->rowCount() - 1 : currentRow + 10;
 
     // 棋譜のリストの範囲を超えていないかチェックする。
-    if (nextRow >= m_gameRecordModel->rowCount()) {
+    if (nextRow >= m_kifuRecordModel->rowCount()) {
         // 最後の手に移動する。
-        nextRow = m_gameRecordModel->rowCount() - 1;
+        nextRow = m_kifuRecordModel->rowCount() - 1;
     }
 
     // 移動先のインデックスをセットする。
-    QModelIndex nextIndex = m_gameRecordModel->index(nextRow, 0, QModelIndex());
+    QModelIndex nextIndex = m_kifuRecordModel->index(nextRow, 0, QModelIndex());
 
-    m_gameRecordView->setCurrentIndex(nextIndex);
+    m_kifuView->setCurrentIndex(nextIndex);
 
     // SFEN文字列を取得する。
     QString sfenStr = m_sfenRecord->at(nextRow);
@@ -689,7 +695,7 @@ void MainWindow::navigateForwardTenMoves()
     m_currentMoveIndex = nextRow;
 
     // 最終行のインデックスを取得
-    int lastRowIndex = m_gameRecordModel->rowCount() - 1;
+    int lastRowIndex = m_kifuRecordModel->rowCount() - 1;
 
     // 移動先が最終行でない場合
     if (nextRow != lastRowIndex) {
@@ -706,14 +712,14 @@ void MainWindow::navigateToLastMove()
     clearMoveHighlights();
 
     // 最終行のインデックスを取得
-    int lastRowIndex = m_gameRecordModel->rowCount() - 1;
+    int lastRowIndex = m_kifuRecordModel->rowCount() - 1;
 
     // 最終行のインデックスが有効な場合のみ処理
     if (lastRowIndex >= 0) {
         // 棋譜欄の最終行のインデックスを現在のインデックスにセット
-        QModelIndex lastIndex = m_gameRecordModel->index(lastRowIndex, 0);
+        QModelIndex lastIndex = m_kifuRecordModel->index(lastRowIndex, 0);
 
-        m_gameRecordView->setCurrentIndex(lastIndex);
+        m_kifuView->setCurrentIndex(lastIndex);
 
         // SFEN文字列を取得し、盤面を更新
         QString sfenStr = m_sfenRecord->at(lastRowIndex);
@@ -731,18 +737,18 @@ void MainWindow::navigateToLastMove()
 void MainWindow::navigateToPreviousMove()
 {
     // 棋譜欄下の矢印「1手戻る」ボタンを押した時の元のインデックスを指す。
-    QModelIndex indexBefore = m_gameRecordView->currentIndex();
+    QModelIndex indexBefore = m_kifuView->currentIndex();
 
     // 移動先のインデックスを計算する。
-    int rowToMove = indexBefore.row() == -1 ? m_gameRecordModel->rowCount() - 1 : indexBefore.row() - 1;
+    int rowToMove = indexBefore.row() == -1 ? m_kifuRecordModel->rowCount() - 1 : indexBefore.row() - 1;
 
     // 移動先のインデックスが有効な範囲内か確認する。
-    if (rowToMove >= 0 && rowToMove < m_gameRecordModel->rowCount()) {
+    if (rowToMove >= 0 && rowToMove < m_kifuRecordModel->rowCount()) {
         // 移動先のインデックスを現在のインデックスにセットする。
-        QModelIndex indexAfter = m_gameRecordModel->index(rowToMove, 0, QModelIndex());
+        QModelIndex indexAfter = m_kifuRecordModel->index(rowToMove, 0, QModelIndex());
 
         // 移動先のインデックスを現在のインデックスにセットする。
-        m_gameRecordView->setCurrentIndex(indexAfter);
+        m_kifuView->setCurrentIndex(indexAfter);
 
         // SFEN文字列リストより移動先のインデックス行のSFEN文字列を取り出す。
         QString str = m_sfenRecord->at(indexAfter.row());
@@ -766,10 +772,10 @@ void MainWindow::navigateToPreviousMove()
 void MainWindow::navigateBackwardTenMoves()
 {
     // 棋譜欄下の矢印「10手戻る」ボタンを押した時の元のインデックスを指す。
-    QModelIndex indexBefore = m_gameRecordView->currentIndex();
+    QModelIndex indexBefore = m_kifuView->currentIndex();
 
     // 現在の行が無効な場合、最後の行に設定する。
-    int rowToMove = indexBefore.row() == -1 ? m_gameRecordModel->rowCount() - 1 : indexBefore.row();
+    int rowToMove = indexBefore.row() == -1 ? m_kifuRecordModel->rowCount() - 1 : indexBefore.row();
 
     // 10手戻る先の行数を計算する。
     rowToMove -= 10;
@@ -777,10 +783,10 @@ void MainWindow::navigateBackwardTenMoves()
     // 移動先のインデックスが有効な範囲内か確認する。無効な場合は最初の手（インデックス0）に移動する。
     rowToMove = (rowToMove < 0) ? 0 : rowToMove;
 
-    QModelIndex indexAfter = m_gameRecordModel->index(rowToMove, 0, QModelIndex());
+    QModelIndex indexAfter = m_kifuRecordModel->index(rowToMove, 0, QModelIndex());
 
     // 移動先のインデックスを現在のインデックスにセットする。
-    m_gameRecordView->setCurrentIndex(indexAfter);
+    m_kifuView->setCurrentIndex(indexAfter);
 
     // SFEN文字列リストより移動先のインデックス行のSFEN文字列を取り出す。
     QString str = m_sfenRecord->at(indexAfter.row());
@@ -806,9 +812,9 @@ void MainWindow::navigateToFirstMove()
     clearMoveHighlights();
 
     // 棋譜欄の最初のインデックス（初期状態）をセットする。
-    QModelIndex firstIndex = m_gameRecordModel->index(0, 0);
+    QModelIndex firstIndex = m_kifuRecordModel->index(0, 0);
 
-    m_gameRecordView->setCurrentIndex(firstIndex);
+    m_kifuView->setCurrentIndex(firstIndex);
 
     // SFEN文字列リストから最初のインデックス行のSFEN文字列を取得し、盤面を更新
     QString sfenStr = m_sfenRecord->at(0);
@@ -926,8 +932,8 @@ void MainWindow::undoLastTwoMoves()
 
         clearMoveHighlights();
 
-        m_gameRecordModel->removeLastItem();
-        m_gameRecordModel->removeLastItem();
+        m_kifuRecordModel->removeLastItem();
+        m_kifuRecordModel->removeLastItem();
 
         // 持ち時間・考慮時間も2手前へ
         m_shogiClock->undo();
@@ -1111,31 +1117,55 @@ void MainWindow::flipBoardAndUpdatePlayerInfo()
 }
 
 // 棋譜欄の表示を設定する。
-void MainWindow::setupGameRecordView()
+void MainWindow::setupKifuRecordView()
 {
     // 棋譜欄を作成する。
-    m_gameRecordView = new QTableView;
+    m_kifuView = new QTableView;
 
     // シングルクリックで選択する。
-    m_gameRecordView->setSelectionMode(QAbstractItemView::SingleSelection);
+    m_kifuView->setSelectionMode(QAbstractItemView::SingleSelection);
 
     // 行のみを選択する。
-    m_gameRecordView->setSelectionBehavior(QAbstractItemView::SelectRows);
+    m_kifuView->setSelectionBehavior(QAbstractItemView::SelectRows);
 
     // 垂直方向のヘッダは表示させない。
-    m_gameRecordView->verticalHeader()->setVisible(false);
+    m_kifuView->verticalHeader()->setVisible(false);
 
     // 棋譜のListModelを作成する。
-    m_gameRecordModel = new KifuRecordListModel;
+    m_kifuRecordModel = new KifuRecordListModel;
 
     // 棋譜のListModelをセットする。
-    m_gameRecordView->setModel(m_gameRecordModel);
+    m_kifuView->setModel(m_kifuRecordModel);
 
     // 「指し手」の列を伸縮可能にする。
-    m_gameRecordView->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
+    m_kifuView->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
 
     // 「消費時間」の列を伸縮可能にする。
-    m_gameRecordView->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
+    m_kifuView->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
+}
+
+void MainWindow::setupKifuBranchView()
+{
+    // 棋譜の分岐欄を作成する。
+    m_kifuBranchView = new QTableView;
+
+    // シングルクリックで選択する。
+    m_kifuBranchView->setSelectionMode(QAbstractItemView::SingleSelection);
+
+    // 行のみを選択する。
+    m_kifuBranchView->setSelectionBehavior(QAbstractItemView::SelectRows);
+
+    // 垂直方向のヘッダは表示させない。
+    m_kifuBranchView->verticalHeader()->setVisible(false);
+
+    // 棋譜のListModelを作成する。
+    m_kifuBranchModel = new KifuBranchListModel;
+
+    // 棋譜のListModelをセットする。
+    m_kifuBranchView->setModel(m_kifuBranchModel);
+
+    // 「指し手」の列を伸縮可能にする。
+    m_kifuBranchView->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
 }
 
 // 棋譜欄下の矢印ボタンを作成する。
@@ -1953,15 +1983,119 @@ QString MainWindow::parseStartPositionToSfen(QString startPositionStr)
     }
 }
 
-// 棋譜、矢印ボタン、評価値グラフを縦ボックス化する。
+void MainWindow::setupBranchTextWidget()
+{
+    m_branchText = new QPlainTextEdit;
+    m_branchText->setReadOnly(true);
+    m_branchText->setPlaceholderText(tr("コメントを表示"));
+    m_branchText->setWordWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
+    m_branchText->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+}
+
 void MainWindow::setupRecordAndEvaluationLayout()
 {
+    // 左（棋譜 + 矢印）
+    auto* vboxKifuLayout = new QVBoxLayout;
+    vboxKifuLayout->setContentsMargins(0, 0, 0, 0);
+    vboxKifuLayout->setSpacing(6);
+    vboxKifuLayout->addWidget(m_kifuView);
+    vboxKifuLayout->addWidget(m_arrows);
+
+    auto* kifuWidget = new QWidget;
+    kifuWidget->setLayout(vboxKifuLayout);
+    kifuWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+
+    // 右（分岐 + テキスト）※縦に並べる
+    setupBranchTextWidget();
+
+    auto* rightSplitter = new QSplitter(Qt::Vertical);
+    rightSplitter->addWidget(m_kifuBranchView); // 上：分岐一覧
+    rightSplitter->addWidget(m_branchText);     // 下：テキスト表示
+    rightSplitter->setChildrenCollapsible(false);
+    rightSplitter->setSizes({300, 200});        // 初期比率（お好みで）
+
+    // 左右に配置
+    auto* lrSplitter = new QSplitter(Qt::Horizontal);
+    lrSplitter->addWidget(kifuWidget);      // 左
+    lrSplitter->addWidget(rightSplitter);   // 右
+    lrSplitter->setChildrenCollapsible(false);
+    lrSplitter->setSizes({600, 400});       // 初期比率（お好みで）
+
+    // 下に評価値グラフ（スクロールエリア）
+    auto* vboxLayout = new QVBoxLayout;
+    vboxLayout->setContentsMargins(0, 0, 0, 0);
+    vboxLayout->setSpacing(8);
+    vboxLayout->addWidget(lrSplitter);
+    vboxLayout->addWidget(m_scrollArea);
+
+    m_gameRecordLayoutWidget = new QWidget;
+    m_gameRecordLayoutWidget->setLayout(vboxLayout);
+}
+
+/*
+void MainWindow::setupRecordAndEvaluationLayout()
+{
+    // 左（棋譜+矢印）の縦レイアウト
+    QVBoxLayout* vboxKifuLayout = new QVBoxLayout;
+    vboxKifuLayout->setContentsMargins(0, 0, 0, 0); // ★ 余白を消す
+    vboxKifuLayout->setSpacing(6);                  // （任意）テーブルと矢印の間
+    vboxKifuLayout->addWidget(m_kifuView);
+    vboxKifuLayout->addWidget(m_arrows);
+
+    QWidget* kifuWidget = new QWidget;
+    kifuWidget->setLayout(vboxKifuLayout);
+    kifuWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+
+    // 左右を並べる横レイアウト
+    QHBoxLayout* hboxLayout = new QHBoxLayout;
+    hboxLayout->setContentsMargins(0, 0, 0, 0);     // ★ 念のためここも 0
+    hboxLayout->setSpacing(8);
+    hboxLayout->addWidget(kifuWidget);
+    hboxLayout->addWidget(m_kifuBranchView);
+    m_kifuBranchView->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+
+    QWidget* addBranchWidget = new QWidget;
+    addBranchWidget->setLayout(hboxLayout);
+
+    QVBoxLayout* vboxLayout = new QVBoxLayout;
+    vboxLayout->setContentsMargins(0, 0, 0, 0);     // （任意）
+    vboxLayout->setSpacing(8);
+    vboxLayout->addWidget(addBranchWidget);
+    vboxLayout->addWidget(m_scrollArea);
+
+    m_gameRecordLayoutWidget = new QWidget;
+    m_gameRecordLayoutWidget->setLayout(vboxLayout);
+
+    // （オプション）ヘッダ高さを完全一致させたい場合
+    // int h = m_kifuView->horizontalHeader()->height();
+    // m_kifuBranchView->horizontalHeader()->setFixedHeight(h);
+}
+*/
+
+/*
+void MainWindow::setupRecordAndEvaluationLayout()
+{
+    QVBoxLayout* vboxKifuLayout = new QVBoxLayout;
+    vboxKifuLayout->addWidget(m_kifuView);
+    vboxKifuLayout->addWidget(m_arrows);
+
+    // Widgetを作成する。
+    QWidget* kifuWidget = new QWidget;
+    kifuWidget->setLayout(vboxKifuLayout);
+
+    QHBoxLayout* hboxLayout = new QHBoxLayout;
+    hboxLayout->addWidget(kifuWidget);
+    hboxLayout->addWidget(m_kifuBranchView);
+
+    // Widgetを作成する。
+    QWidget* addBranchWidget = new QWidget;
+    addBranchWidget->setLayout(hboxLayout);
+
     // 縦ボックスレイアウトを作成する。
     QVBoxLayout* vboxLayout = new QVBoxLayout;
 
     // 棋譜、矢印ボタン、評価値グラフを縦ボックス化する。
-    vboxLayout->addWidget(m_gameRecordView);
-    vboxLayout->addWidget(m_arrows);
+    vboxLayout->addWidget(addBranchWidget);
     vboxLayout->addWidget(m_scrollArea);
 
     // 縦ボックスウィジェットを作成する。
@@ -1970,6 +2104,7 @@ void MainWindow::setupRecordAndEvaluationLayout()
     // 縦ボックスウィジェットに縦ボックスレイアウトを設定する。
     m_gameRecordLayoutWidget->setLayout(vboxLayout);
 }
+*/
 
 // 対局者名と残り時間、将棋盤と棋譜、矢印ボタン、評価値グラフのグループを横に並べて表示する。
 void MainWindow::setupHorizontalGameLayout()
@@ -2192,7 +2327,7 @@ void MainWindow::displayResultsAndUpdateGui()
     }
 
     enableArrowButtons();
-    m_gameRecordView->setSelectionMode(QAbstractItemView::SingleSelection);
+    m_kifuView->setSelectionMode(QAbstractItemView::SingleSelection);
 
 
     const qint64 tms = ShogiUtils::nowMs();
@@ -4353,11 +4488,11 @@ void MainWindow::prepareDataCurrentPosition()
     }
 
     // ListModelRecordの全データを削除する。
-    m_gameRecordModel->clearAllItems();
+    m_kifuRecordModel->clearAllItems();
 
     // 前対局で選択した途中の局面まで棋譜欄に棋譜データを1行ずつ格納する。
     for (int i = 0; i < m_currentMoveIndex; i++) {
-        m_gameRecordModel->appendItem(m_moveRecords->at(i));
+        m_kifuRecordModel->appendItem(m_moveRecords->at(i));
     }
 
     // 途中からの対局の場合、駒の移動元と移動先のマスをそれぞれ別の色でハイライトする。
@@ -4422,7 +4557,7 @@ void MainWindow::prepareInitialPosition()
     m_startSfenStr = parseStartPositionToSfen(m_startPosStr);
 
     // 棋譜欄の項目にヘッダを付け加える。
-    m_gameRecordModel->appendItem(new KifuDisplay("=== 開始局面 ===", "（１手 / 合計）"));
+    m_kifuRecordModel->appendItem(new KifuDisplay("=== 開始局面 ===", "（１手 / 合計）"));
 
     // "sfen "を削除したSFEN文字列を格納する。
     m_sfenRecord->append(m_startSfenStr);
@@ -4663,7 +4798,7 @@ void MainWindow::initializeGame()
             disableArrowButtons();
 
             // 棋譜欄の行をクリックしても選択できないようにする。
-            m_gameRecordView->setSelectionMode(QAbstractItemView::NoSelection);
+            m_kifuView->setSelectionMode(QAbstractItemView::NoSelection);
         }
 
         // 現在の手番を設定
@@ -4765,7 +4900,7 @@ void MainWindow::resetToInitialState()
     m_shogiView->whiteClockLabel()->setText("00:00:00");
 
     // 棋譜欄を初期化する。
-    m_gameRecordModel->clearAllItems();
+    m_kifuRecordModel->clearAllItems();
 
     // 評価値グラフを初期化する。
     m_series1->clear();
@@ -4993,7 +5128,7 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
     displayGameRecord(disp);
     navigateToFirstMove();
     enableArrowButtons();
-    m_gameRecordView->setSelectionMode(QAbstractItemView::SingleSelection);
+    m_kifuView->setSelectionMode(QAbstractItemView::SingleSelection);
 }
 
 // ===================== ヘルパ実装 =====================
@@ -5165,10 +5300,10 @@ void MainWindow::displayGameRecord(const QList<KifDisplayItem> disp)
     m_currentMoveIndex = 0;
     m_kifuDataList.clear();
     m_moveRecords->clear();
-    m_gameRecordModel->clearAllItems();
+    m_kifuRecordModel->clearAllItems();
 
     // ヘッダ
-    m_gameRecordModel->appendItem(new KifuDisplay("=== 開始局面 ===", "（１手 / 合計）"));
+    m_kifuRecordModel->appendItem(new KifuDisplay("=== 開始局面 ===", "（１手 / 合計）"));
 
     // 本譜のみ一覧表示（従来通り）
     for (const auto& it : disp) {
@@ -5220,11 +5355,11 @@ void MainWindow::updateGameRecord(const QString& elapsedTime)
     m_moveRecords->append(new KifuDisplay(recordLine, elapsedTime));
 
     // 最後の指し手のレコードを表示用モデルに追加する。
-    m_gameRecordModel->appendItem(m_moveRecords->last());
+    m_kifuRecordModel->appendItem(m_moveRecords->last());
 
     // 棋譜表示を最下部へスクロールする。
-    m_gameRecordView->scrollToBottom();
-    m_gameRecordView->update();
+    m_kifuView->scrollToBottom();
+    m_kifuView->update();
 
     // 直前に指した側の考慮時間と、その時点の残時間をログ
     qCDebug(ClockLog) << "in MainWindow::updateGameRecord";
@@ -5259,7 +5394,7 @@ void MainWindow::processResignCommand()
     enableArrowButtons();
 
     // 棋譜欄をシングルクリックで選択できるようにする。
-    m_gameRecordView->setSelectionMode(QAbstractItemView::SingleSelection);
+    m_kifuView->setSelectionMode(QAbstractItemView::SingleSelection);
 }
 
 // 検討を開始する。
@@ -5650,7 +5785,7 @@ void MainWindow::beginPositionEditing()
     m_moveRecords->clear();
 
     // 棋譜欄に「=== 開始局面 ===」「（１手 / 合計）」のデータを追加する。
-    m_gameRecordModel->appendItem(new KifuDisplay("=== 開始局面 ===", "（１手 / 合計）"));
+    m_kifuRecordModel->appendItem(new KifuDisplay("=== 開始局面 ===", "（１手 / 合計）"));
 
     // 初期SFEN文字列をm_sfenRecordに格納しておく。
     m_sfenRecord->append(m_startSfenStr);
@@ -5659,7 +5794,7 @@ void MainWindow::beginPositionEditing()
     disableArrowButtons();
 
     // 棋譜欄の行をクリックしても選択できないようにする。
-    m_gameRecordView->setSelectionMode(QAbstractItemView::NoSelection);
+    m_kifuView->setSelectionMode(QAbstractItemView::NoSelection);
 
     // 手番が先手あるいは下手の場合
     if (m_shogiView->board()->currentPlayer() == "b") {
