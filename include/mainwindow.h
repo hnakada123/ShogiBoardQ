@@ -12,6 +12,7 @@
 #include <QTime>
 
 #include "kifurecordlistmodel.h"
+#include "kifubranchlistmodel.h"
 #include "shogienginethinkingmodel.h"
 #include "kifuanalysislistmodel.h"
 #include "shogigamecontroller.h"
@@ -366,7 +367,10 @@ private:
     KifuAnalysisDialog* m_analyzeGameRecordDialog;
 
     // 棋譜欄を表示するクラス
-    KifuRecordListModel* m_gameRecordModel;
+    KifuRecordListModel* m_kifuRecordModel;
+
+    // 棋譜の分岐を表示するクラス
+    KifuBranchListModel* m_kifuBranchModel;
 
     // エンジン1の思考結果をGUI上で表示するためのクラスのインスタンス
     ShogiEngineThinkingModel* m_modelThinking1;
@@ -393,7 +397,10 @@ private:
     QTableView* m_usiView2;
 
     // GUIの棋譜ビュー
-    QTableView* m_gameRecordView;
+    QTableView* m_kifuView;
+
+    // GUIの棋譜分岐ビュー
+    QTableView* m_kifuBranchView;
 
     // GUIの棋譜解析結果ビュー
     QTableView* m_analysisResultsView;
@@ -604,7 +611,10 @@ private:
     void renderShogiBoard();
 
     // 棋譜欄の表示を設定する。
-    void setupGameRecordView();
+    void setupKifuRecordView();
+
+    // 棋譜欄の分岐表示を設定する。
+    void setupKifuBranchView();
 
     // 棋譜解析結果を表示するためのテーブルビューを設定および表示する。
     void displayAnalysisResults();
@@ -939,6 +949,9 @@ private:
                           const QString& teaiLabel,
                           const QString& warnParse,
                           const QString& warnConvert) const;
+
+    QPlainTextEdit* m_branchText = nullptr;
+    void setupBranchTextWidget();
 };
 
 #endif // MAINWINDOW_H
