@@ -561,11 +561,6 @@ void MainWindow::clearMoveHighlights()
 // 駒の移動元と移動先のマスをそれぞれ別の色でハイライトする。
 void MainWindow::addMoveHighlights()
 {
-    //begin
-    qDebug() << "in MainWindow::addMoveHighlights()";
-    qDebug() << "m_currentMoveIndex: " << m_currentMoveIndex;
-    qDebug() << "fromSquare: " << m_gameMoves.at(m_currentMoveIndex - 1).fromSquare;
-    //end
     // 駒の移動元のマスを薄い赤色でハイライトするフィールドを生成
     m_selectedField = new ShogiView::FieldHighlight(m_gameMoves.at(m_currentMoveIndex - 1).fromSquare.x() + 1,
                                                     m_gameMoves.at(m_currentMoveIndex - 1).fromSquare.y() + 1,
@@ -4911,29 +4906,90 @@ inline QPoint dropFromSquare(QChar dropUpper, bool black) {
 // ===================== 司令塔 =====================
 void MainWindow::loadKifuFromFile(const QString& filePath)
 {
+    // 1) 初期局面（手合割）を決定
     QString teaiLabel;
     const QString initialSfen = prepareInitialSfen(filePath, teaiLabel);
 
-    QString warnParse, warnConvert;
-    bool hasTerminal = false;
-    const QList<KifDisplayItem> disp =
-        parseDisplayMovesAndDetectTerminal(filePath, hasTerminal, &warnParse);
+    // 2) 解析（本譜＋分岐＋コメント）を一括取得
+    KifParseResult res;         // ← out パラメータ
+    QString parseWarn;          // ← 警告や簡易エラーメッセージ受け
+    KifToSfenConverter::parseWithVariations(filePath, res, &parseWarn);
 
-    m_usiMoves = convertKifToUsiMoves(filePath, &warnConvert);
+    // 本譜（GUIはまずここだけ使えば従来通り動作）
+    const QList<KifDisplayItem>& disp = res.mainline.disp;
+    m_usiMoves = res.mainline.usiMoves;
 
-    // 新：表示用指し手(disp)が全く無いケースだけ警告
+    // 終局/中断の有無（従来と同じロジック）
+    static const QStringList kTerminalKeywords = {
+        QStringLiteral("投了"), QStringLiteral("中断"), QStringLiteral("持将棋"),
+        QStringLiteral("千日手"), QStringLiteral("切れ負け"),
+        QStringLiteral("反則勝ち"), QStringLiteral("反則負け"),
+        QStringLiteral("入玉勝ち"), QStringLiteral("不戦勝"),
+        QStringLiteral("不戦敗"), QStringLiteral("詰み"), QStringLiteral("不詰"),
+    };
+    auto isTerminalPretty = [&](const QString& s)->bool {
+        for (const auto& kw : kTerminalKeywords) if (s.contains(kw)) return true;
+        return false;
+    };
+    const bool hasTerminal = (!disp.isEmpty() && isTerminalPretty(disp.back().prettyMove));
+
+    // 3) 何も取れなかったら警告（本譜が空／変化だけの棋譜でも disp は何か入る想定）
     if (m_usiMoves.isEmpty() && !hasTerminal && disp.isEmpty()) {
         QMessageBox::warning(this, tr("読み込み失敗"),
                              tr("%1 から指し手を取得できませんでした。").arg(filePath));
         return;
     }
 
+    // 4) 本譜のSFEN列と m_gameMoves を再構築（従来ロジック）
     rebuildSfenRecord(initialSfen, m_usiMoves, hasTerminal);
     rebuildGameMoves(initialSfen, m_usiMoves);
 
-    logImportSummary(filePath, m_usiMoves, disp, teaiLabel, warnParse, warnConvert);
+    // 5) ログ（parseWarn を parse 側に、convert 側は空で渡す）
+    logImportSummary(filePath, m_usiMoves, disp, teaiLabel, parseWarn, QString());
 
-    // --- GUI連携（既存呼び出し） ---
+    // 6) 追加ログ：分岐（変化）の概要を表示（KifLine に startPly/label が無い前提）
+    // 6) 追加ログ：分岐（変化）の概要を表示
+    if (!res.variations.isEmpty()) {
+        qDebug().noquote() << "== Variations (変化) ==";
+        int vidx = 0;
+
+        // ★ KifVariation で回す（以前は KifLine で回していたため型不一致でした）
+        for (const KifVariation& v : res.variations) {
+
+            // --- B) KifVariation が KifLine line; を「内包」する版の場合は下に切り替え ---
+            const int usiN  = v.line.usiMoves.size();
+            const int dispN = v.line.disp.size();
+
+            qDebug().noquote()
+                << QStringLiteral("[変化%1] USI手数=%2, 表示用手数=%3")
+                       .arg(++vidx).arg(usiN).arg(dispN);
+
+            const int preview = qMin(6, dispN);
+            for (int i = 0; i < preview; ++i) {
+
+                // --- B) 内包版 ---
+                const auto& it = v.line.disp.at(i);
+
+                const QString time = it.timeText.isEmpty()
+                                         ? QStringLiteral("00:00/00:00:00")
+                                         : it.timeText;
+                qDebug().noquote()
+                    << QStringLiteral("   ・「%1」「%2」").arg(it.prettyMove, time);
+                if (!it.comment.trimmed().isEmpty()) {
+                    qDebug().noquote()
+                        << QStringLiteral("      └ コメント: %1")
+                               .arg(it.comment.trimmed());
+                }
+            }
+            if (dispN > preview) {
+                qDebug().noquote()
+                    << QStringLiteral("   ……（以下 %1 手）").arg(dispN - preview);
+            }
+        }
+    }
+
+
+    // --- GUI連携（従来通り：まずは本譜のみ表示） ---
     displayGameRecord(disp);
     navigateToFirstMove();
     enableArrowButtons();
@@ -5074,15 +5130,19 @@ void MainWindow::logImportSummary(const QString& filePath,
                                    ? QStringLiteral("平手(既定)")
                                    : teaiLabel);
 
-    // 棋譜表示用
+    // 本譜（表示用）。コメントがあれば直後に出力。
     for (const auto& it : disp) {
-        qDebug().noquote() << QStringLiteral("「%1」「%2」")
-                              .arg(it.prettyMove,
-                                   it.timeText.isEmpty()
-                                       ? QStringLiteral("00:00/00:00:00")
-                                       : it.timeText);
+        const QString time = it.timeText.isEmpty()
+                                 ? QStringLiteral("00:00/00:00:00")
+                                 : it.timeText;
+        qDebug().noquote() << QStringLiteral("「%1」「%2」").arg(it.prettyMove, time);
+        if (!it.comment.trimmed().isEmpty()) {
+            qDebug().noquote() << QStringLiteral("  └ コメント: %1")
+                                  .arg(it.comment.trimmed());
+        }
     }
 
+    // SFEN（抜粋）
     if (m_sfenRecord) {
         for (int i = 0; i < qMin(12, m_sfenRecord->size()); ++i) {
             qDebug().noquote() << QStringLiteral("%1) %2")
@@ -5091,6 +5151,7 @@ void MainWindow::logImportSummary(const QString& filePath,
         }
     }
 
+    // m_gameMoves（従来通り）
     qDebug() << "m_gameMoves size:" << m_gameMoves.size();
     for (int i = 0; i < m_gameMoves.size(); ++i) {
         qDebug().noquote() << QString("%1) ").arg(i + 1) << m_gameMoves[i];
@@ -5106,13 +5167,16 @@ void MainWindow::displayGameRecord(const QList<KifDisplayItem> disp)
     m_moveRecords->clear();
     m_gameRecordModel->clearAllItems();
 
-    // 棋譜欄の項目にヘッダを付け加える。
+    // ヘッダ
     m_gameRecordModel->appendItem(new KifuDisplay("=== 開始局面 ===", "（１手 / 合計）"));
 
-    // 各手を棋譜欄に表示する。
+    // 本譜のみ一覧表示（従来通り）
     for (const auto& it : disp) {
         m_lastMove = it.prettyMove;
         updateGameRecord(it.timeText);
+        // ★コメントを棋譜欄でも出したければ、ここでサブ行を追加する実装に拡張してください。
+        //   例）m_gameRecordModel->appendItem(new KifuDisplay(QString("　※ %1").arg(it.comment), ""));
+        //   （※ モデル/ビューの構造に依るので、今回はログ出力のみに留めています）
     }
 }
 
