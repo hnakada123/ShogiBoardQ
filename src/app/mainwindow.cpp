@@ -134,9 +134,6 @@ MainWindow::MainWindow(QWidget *parent) :
     // 対局者名と残り時間、将棋盤と棋譜、矢印ボタン、評価値グラフのグループを横に並べて表示
     setupHorizontalGameLayout();
 
-    // info行の予想手、探索手、エンジンの読み筋を縦ボックス化
-    setupVerticalEngineInfoDisplay();
-
     // 対局者名と残り時間、将棋盤、棋譜、矢印ボタン、評価値グラフのウィジェットと
     // info行の予想手、探索手、エンジンの読み筋のウィジェットを縦ボックス化して
     // セントラルウィジェットにセットする。
@@ -1913,7 +1910,7 @@ void MainWindow::initializeEngine1ThoughtTab()
     v1->setStretch(0, 0);
     v1->setStretch(1, 1);
 
-    m_tab1->addTab(page1, tr("思考1"));
+    m_tab1->addTab(page1, tr("思考"));
 
     // 既存のログ／コメントタブはそのまま
     m_tab1->addTab(m_usiCommLogEdit, tr("USIプロトコル通信ログ"));
@@ -1925,6 +1922,12 @@ void MainWindow::initializeEngine1ThoughtTab()
     m_tab1->addTab(m_branchTextInTab1, tr("棋譜コメント"));
 
     m_tab1->setMinimumHeight(150);
+
+    if (m_engine2InfoLayoutWidget) {
+        m_engine2InfoLayoutWidget->setParent(nullptr);
+        m_engine2InfoLayoutWidget->deleteLater();
+    }
+    m_engine2InfoLayoutWidget = m_tab1;
 
     connect(m_lineEditModel1, &UsiCommLogModel::usiCommLogChanged, this, [this]() {
         m_usiCommLogEdit->appendPlainText(m_lineEditModel1->usiCommLog());
@@ -2050,27 +2053,6 @@ void MainWindow::setupHorizontalGameLayout()
 
     m_hsplit->addWidget(m_shogiView);
     m_hsplit->addWidget(m_gameRecordLayoutWidget);
-}
-
-void MainWindow::setupVerticalEngineInfoDisplay()
-{
-    auto* vboxLayout = new QVBoxLayout;
-
-    // ★ ここでは info を積まない（タブの中へ移動したため）
-    // vboxLayout->addWidget(m_infoWidget1);
-    vboxLayout->setSpacing(0);
-    vboxLayout->addWidget(m_tab1);
-
-
-    QWidget* newWidget3 = new QWidget;
-    newWidget3->setLayout(vboxLayout);
-    newWidget3->setParent(this);
-
-    if (m_engine2InfoLayoutWidget) {
-        m_engine2InfoLayoutWidget->setParent(nullptr);
-        m_engine2InfoLayoutWidget->deleteLater();
-    }
-    m_engine2InfoLayoutWidget = newWidget3;
 }
 
 // 対局者名と残り時間、将棋盤、棋譜、矢印ボタン、評価値グラフのウィジェットと
