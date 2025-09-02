@@ -1917,6 +1917,9 @@ void MainWindow::initializeEngine1ThoughtTab()
     m_branchTextInTab1->setPlaceholderText(tr("コメントを表示"));
     m_tab->addTab(m_branchTextInTab1, tr("棋譜コメント"));
 
+    // 対局情報タブを「棋譜コメント」の後ろに差し込む
+    addGameInfoTabIfMissing();
+
     m_tab->setMinimumHeight(150);
 
     connect(m_lineEditModel1, &UsiCommLogModel::usiCommLogChanged, this, [this]() {
@@ -4917,6 +4920,13 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
     QString parseWarn;          // ← 警告や簡易エラーメッセージ受け
     KifToSfenConverter::parseWithVariations(filePath, res, &parseWarn);
 
+    // ★★★ 追加：対局情報（ヘッダ）を抽出してGUIに反映 ★★★
+    {
+        const QList<KifGameInfoItem> infoItems =
+            KifToSfenConverter::extractGameInfo(filePath);
+        populateGameInfo(infoItems);
+    }
+
     // 本譜（GUIはまずここだけ使えば従来通り動作）
     const QList<KifDisplayItem>& disp = res.mainline.disp;
     m_usiMoves = res.mainline.usiMoves;
@@ -6543,4 +6553,62 @@ void MainWindow::onEngine2Resigns()
     if (m_usi2) m_usi2->setSquelchResignLogging(true);
 
     displayResultsAndUpdateGui();
+}
+
+void MainWindow::ensureGameInfoTable()
+{
+    if (m_gameInfoTable) return;
+
+    m_gameInfoTable = new QTableWidget(this);
+    m_gameInfoTable->setColumnCount(2);
+    m_gameInfoTable->setHorizontalHeaderLabels({ tr("項目"), tr("内容") });
+    m_gameInfoTable->horizontalHeader()->setStretchLastSection(true);
+    m_gameInfoTable->verticalHeader()->setVisible(false);
+    m_gameInfoTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    m_gameInfoTable->setSelectionMode(QAbstractItemView::NoSelection);
+    m_gameInfoTable->setWordWrap(true);
+    m_gameInfoTable->setShowGrid(false);
+}
+
+void MainWindow::addGameInfoTabIfMissing()
+{
+    ensureGameInfoTable();
+    if (!m_tab) return;
+
+    // もしドック内に入っていたら取り外して破棄（二重親防止）
+    if (m_gameInfoDock && m_gameInfoDock->widget() == m_gameInfoTable) {
+        m_gameInfoDock->setWidget(nullptr);
+        m_gameInfoDock->deleteLater();
+        m_gameInfoDock = nullptr;
+    }
+
+    if (m_tab->indexOf(m_gameInfoTable) == -1) {
+        const int commentsIdx = m_tab->indexOf(m_branchTextInTab1);
+        const int insertPos   = (commentsIdx >= 0) ? commentsIdx + 1 : m_tab->count();
+        m_tab->insertTab(insertPos, m_gameInfoTable, tr("対局情報"));
+        // お好みで：m_tab->setCurrentIndex(insertPos); // 追加直後に選択したい場合
+    }
+}
+
+void MainWindow::populateGameInfo(const QList<KifGameInfoItem>& items)
+{
+    ensureGameInfoTable();
+
+    m_gameInfoTable->clearContents();
+    m_gameInfoTable->setRowCount(items.size());
+
+    for (int row = 0; row < items.size(); ++row) {
+        const auto& it = items.at(row);
+        auto *keyItem   = new QTableWidgetItem(it.key);
+        auto *valueItem = new QTableWidgetItem(it.value);
+        keyItem->setFlags(keyItem->flags() & ~Qt::ItemIsEditable);
+        valueItem->setFlags(valueItem->flags() & ~Qt::ItemIsEditable);
+        m_gameInfoTable->setItem(row, 0, keyItem);
+        m_gameInfoTable->setItem(row, 1, valueItem);
+    }
+
+    m_gameInfoTable->resizeColumnToContents(0);
+
+    // まだタブに載ってなければ、このタイミングで追加しておくと確実
+    addGameInfoTabIfMissing();
 }
