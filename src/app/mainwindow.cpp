@@ -1874,78 +1874,82 @@ void MainWindow::updateEngine2HashUsageDisplay()
     m_hashfullText2->setText(m_lineEditModel2->hashUsage());
 }
 
-// エンジン1の思考タブを作成する。
 void MainWindow::initializeEngine1ThoughtTab()
 {
-    // 将棋エンジン1の思考タブを作成する。
     m_usiView1 = new QTableView;
-
-    // エンジン1の思考結果をGUI上で表示するためのクラスのインスタンス
     m_modelThinking1 = new ShogiEngineThinkingModel;
-
-    // 将棋エンジン1の思考タブにモデルm_modelThinking1を設定する。
     m_usiView1->setModel(m_modelThinking1);
-
-    // 将棋エンジン1の思考タブの横幅を4列目をストレッチする形に設定する。
     m_usiView1->horizontalHeader()->setSectionResizeMode(4, QHeaderView::Stretch);
 
-    // 将棋エンジンのUSIプロトコル通信ログを表示するためのテキストエディタを作成する。
     m_usiCommLogEdit = new QPlainTextEdit;
-
-    // 将棋エンジン1のUSIプロトコル通信ログを表示するためのテキストエディタをリードオンリーにする。
     m_usiCommLogEdit->setReadOnly(true);
 
-    // タブウィジェットを作成する。
     m_tab1 = new QTabWidget;
 
-    // 思考1タブとUSIプロトコル通信ログタブをタブウィジェットに追加する。
-    m_tab1->addTab(m_usiView1, "思考1");
-    m_tab1->addTab(m_usiCommLogEdit, "USIプロトコル通信ログ");
+    // ★ ここから：思考1タブのページ（縦並び）
+    if (!m_infoWidget1) {
+        // まだ生成していない場合に備えて（あなたの初期化順に合わせて調整可）
+        initializeEngine1InfoDisplay();
+    }
+    QWidget* page1 = new QWidget(m_tab1);
+    auto* v1 = new QVBoxLayout(page1);
+    v1->setContentsMargins(4,4,4,4);
+    v1->setSpacing(4);
+    v1->addWidget(m_infoWidget1);   // 上：情報ウィジェット
+    v1->addWidget(m_usiView1);      // 下：思考表
+    v1->setStretch(0, 0);
+    v1->setStretch(1, 1);
 
-    // ★ 追加：棋譜コメントのタブ
+    m_tab1->addTab(page1, tr("思考1"));
+
+    // 既存のログ／コメントタブはそのまま
+    m_tab1->addTab(m_usiCommLogEdit, tr("USIプロトコル通信ログ"));
+
     m_branchTextInTab1 = new QTextBrowser(m_tab1);
     m_branchTextInTab1->setOpenExternalLinks(true);
     m_branchTextInTab1->setWordWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
     m_branchTextInTab1->setPlaceholderText(tr("コメントを表示"));
     m_tab1->addTab(m_branchTextInTab1, tr("棋譜コメント"));
 
-    // 将棋エンジン1のタブウィジェットの高さを150に設定する。
     m_tab1->setMinimumHeight(150);
 
-    // 将棋エンジン1のUSIプロトコル通信ログを表示するためのシグナル・スロットを設定する。
     connect(m_lineEditModel1, &UsiCommLogModel::usiCommLogChanged, this, [this]() {
         m_usiCommLogEdit->appendPlainText(m_lineEditModel1->usiCommLog());
-        });
+    });
 }
 
-// 将棋エンジン2の思考タブを作成する。
 void MainWindow::initializeEngine2ThoughtTab()
 {
-    // 将棋エンジン2の思考タブを作成する。
     m_usiView2 = new QTableView;
-
-    // エンジン2の思考結果をGUI上で表示するためのクラスのインスタンス
     m_modelThinking2 = new ShogiEngineThinkingModel;
-
-    // 将棋エンジン2の思考タブにモデルm_modelThinking2を設定する。
     m_usiView2->setModel(m_modelThinking2);
-
-    // 将棋エンジン2の思考タブの横幅を4列目をストレッチする形に設定する。
     m_usiView2->horizontalHeader()->setSectionResizeMode(4, QHeaderView::Stretch);
 
-    // 将棋エンジン2のUSIプロトコル通信ログを表示するためのテキストエディタを作成する。
     m_tab2 = new QTabWidget;
 
-    // 将棋エンジン2の思考タブをタブウィジェットに追加する。
-    m_tab2->addTab(m_usiView2, "思考2");
+    // ★ ここから：思考2タブのページ（縦並び）
+    if (!m_infoWidget2) {
+        initializeEngine2InfoDisplay(); // まだなら生成
+    }
+    QWidget* page2 = new QWidget(m_tab2);
+    auto* v2 = new QVBoxLayout(page2);
+    v2->setContentsMargins(4,4,4,4);
+    v2->setSpacing(4);
+    v2->addWidget(m_infoWidget2);   // 上：情報ウィジェット
+    v2->addWidget(m_usiView2);      // 下：思考表
+    v2->setStretch(0, 0);
+    v2->setStretch(1, 1);
 
-    // 将棋エンジン2のタブウィジェットの高さを150に設定する。
+    m_tab2->addTab(page2, tr("思考2"));
     m_tab2->setMinimumHeight(150);
 
-    // 将棋エンジン2のUSIプロトコル通信ログを表示するためのテキストエディタを作成する。
+    // ※ Engine2 のログを別タブにしたい場合は、必要ならここで
+    // QPlainTextEdit* m_usiCommLogEdit2 を用意して addTab してください
+
     connect(m_lineEditModel2, &UsiCommLogModel::usiCommLogChanged, this, [this]() {
+        // もともと m_usiCommLogEdit（1側）へ追記していた仕様を維持
         m_usiCommLogEdit->appendPlainText(m_lineEditModel2->usiCommLog());
-        });
+    });
 }
 
 // "sfen 〜"で始まる文字列startpositionstrを入力して"sfen "を削除したSFEN文字列を
@@ -2064,49 +2068,33 @@ void MainWindow::setupHorizontalGameLayout()
     m_hsplit->addWidget(m_gameRecordLayoutWidget);
 }
 
-// info行の予想手、探索手、エンジンの読み筋を縦ボックス化する。
 void MainWindow::setupVerticalEngineInfoDisplay()
 {
-    // 縦ボックスレイアウトを作成する。
-    QVBoxLayout* vboxLayout = new QVBoxLayout;
+    auto* vboxLayout = new QVBoxLayout;
 
-    // エンジン名1、予想手1、探索手1、深さ1、ノード数1、局面探索数1、ハッシュ使用率1、思考1タブをレイアウトに追加する。
-    vboxLayout->addWidget(m_infoWidget1);
+    // ★ ここでは info を積まない（タブの中へ移動したため）
+    // vboxLayout->addWidget(m_infoWidget1);
     vboxLayout->setSpacing(0);
     vboxLayout->addWidget(m_tab1);
 
-    // エンジン2の予想手、探索手などの情報を表示する。
-    initializeEngine2InfoDisplay();
+    // Engine2
+    // initializeEngine2InfoDisplay(); ← initializeEngine2ThoughtTab 内で未生成なら呼ぶので不要
+    // ただし生成順の都合で必要なら残してOK
 
-    // 将棋エンジン2の思考タブを作成する。
+    // initializeEngine2ThoughtTab(); ← ここは今まで通り呼ぶ
     initializeEngine2ThoughtTab();
 
-    // エンジン名2、予想手2、探索手2、深さ2、ノード数2、局面探索数2、ハッシュ使用率2、思考2タブをレイアウトに追加する。
-    vboxLayout->addWidget(m_infoWidget2);
+    // vboxLayout->addWidget(m_infoWidget2);
     vboxLayout->addWidget(m_tab2);
 
-    // エンジン名2、予想手2、探索手2、深さ2、ノード数2、局面探索数2、ハッシュ使用率2、思考2タブを非表示にする。
-    m_infoWidget2->hide();
-    m_tab2->hide();
-
-    // 新しいウィジェットを作成する。
     QWidget* newWidget3 = new QWidget;
     newWidget3->setLayout(vboxLayout);
-
-    // newWidget3の親ウィジェットをthisに設定する。
-    // これにより、メモリ管理が簡単になり、親ウィジェットと一緒に表示・非表示が管理されるようになる。
     newWidget3->setParent(this);
 
-    // 古いウィジェットを削除する。
     if (m_engine2InfoLayoutWidget) {
-        // 親子関係を解除する。
         m_engine2InfoLayoutWidget->setParent(nullptr);
-
-        // イベントループが次回アイドル状態になったときに削除されるようにする。
         m_engine2InfoLayoutWidget->deleteLater();
     }
-
-    // 新しいウィジェットをm_widget3に設定する。
     m_engine2InfoLayoutWidget = newWidget3;
 }
 
