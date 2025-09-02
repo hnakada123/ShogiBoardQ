@@ -1881,6 +1881,11 @@ void MainWindow::initializeEngine1ThoughtTab()
     m_usiView1->setModel(m_modelThinking1);
     m_usiView1->horizontalHeader()->setSectionResizeMode(4, QHeaderView::Stretch);
 
+    m_usiView2 = new QTableView;
+    m_modelThinking2 = new ShogiEngineThinkingModel;
+    m_usiView2->setModel(m_modelThinking2);
+    m_usiView2->horizontalHeader()->setSectionResizeMode(4, QHeaderView::Stretch);
+
     m_usiCommLogEdit = new QPlainTextEdit;
     m_usiCommLogEdit->setReadOnly(true);
 
@@ -1891,12 +1896,20 @@ void MainWindow::initializeEngine1ThoughtTab()
         // まだ生成していない場合に備えて（あなたの初期化順に合わせて調整可）
         initializeEngine1InfoDisplay();
     }
+
+    if (!m_infoWidget2) {
+        // まだ生成していない場合に備えて（あなたの初期化順に合わせて調整可）
+        initializeEngine2InfoDisplay();
+    }
+
     QWidget* page1 = new QWidget(m_tab1);
     auto* v1 = new QVBoxLayout(page1);
     v1->setContentsMargins(4,4,4,4);
     v1->setSpacing(4);
-    v1->addWidget(m_infoWidget1);   // 上：情報ウィジェット
-    v1->addWidget(m_usiView1);      // 下：思考表
+    v1->addWidget(m_infoWidget1);   // 1：情報ウィジェット
+    v1->addWidget(m_usiView1);      // 2：思考表
+    v1->addWidget(m_infoWidget2);   // 3：エンジン2の情報ウィジェット（あってもなくても良い）
+    v1->addWidget(m_usiView2);      // 4：エンジン2の思考表（あってもなくても良い）
     v1->setStretch(0, 0);
     v1->setStretch(1, 1);
 
@@ -1916,35 +1929,6 @@ void MainWindow::initializeEngine1ThoughtTab()
     connect(m_lineEditModel1, &UsiCommLogModel::usiCommLogChanged, this, [this]() {
         m_usiCommLogEdit->appendPlainText(m_lineEditModel1->usiCommLog());
     });
-}
-
-void MainWindow::initializeEngine2ThoughtTab()
-{
-    m_usiView2 = new QTableView;
-    m_modelThinking2 = new ShogiEngineThinkingModel;
-    m_usiView2->setModel(m_modelThinking2);
-    m_usiView2->horizontalHeader()->setSectionResizeMode(4, QHeaderView::Stretch);
-
-    m_tab2 = new QTabWidget;
-
-    // ★ ここから：思考2タブのページ（縦並び）
-    if (!m_infoWidget2) {
-        initializeEngine2InfoDisplay(); // まだなら生成
-    }
-    QWidget* page2 = new QWidget(m_tab2);
-    auto* v2 = new QVBoxLayout(page2);
-    v2->setContentsMargins(4,4,4,4);
-    v2->setSpacing(4);
-    v2->addWidget(m_infoWidget2);   // 上：情報ウィジェット
-    v2->addWidget(m_usiView2);      // 下：思考表
-    v2->setStretch(0, 0);
-    v2->setStretch(1, 1);
-
-    m_tab2->addTab(page2, tr("思考2"));
-    m_tab2->setMinimumHeight(150);
-
-    // ※ Engine2 のログを別タブにしたい場合は、必要ならここで
-    // QPlainTextEdit* m_usiCommLogEdit2 を用意して addTab してください
 
     connect(m_lineEditModel2, &UsiCommLogModel::usiCommLogChanged, this, [this]() {
         // もともと m_usiCommLogEdit（1側）へ追記していた仕様を維持
@@ -2077,15 +2061,6 @@ void MainWindow::setupVerticalEngineInfoDisplay()
     vboxLayout->setSpacing(0);
     vboxLayout->addWidget(m_tab1);
 
-    // Engine2
-    // initializeEngine2InfoDisplay(); ← initializeEngine2ThoughtTab 内で未生成なら呼ぶので不要
-    // ただし生成順の都合で必要なら残してOK
-
-    // initializeEngine2ThoughtTab(); ← ここは今まで通り呼ぶ
-    initializeEngine2ThoughtTab();
-
-    // vboxLayout->addWidget(m_infoWidget2);
-    vboxLayout->addWidget(m_tab2);
 
     QWidget* newWidget3 = new QWidget;
     newWidget3->setLayout(vboxLayout);
@@ -4658,10 +4633,8 @@ void MainWindow::initializeGame()
         // 「将棋エンジン 対 将棋エンジン」
         if ((m_playMode == EvenEngineVsEngine) || (m_playMode == HandicapEngineVsEngine)) {
             m_infoWidget2->show();
-            m_tab2->show();
-        } else {
+             } else {
             m_infoWidget2->hide();
-            m_tab2->hide();
         }
 
         // 棋譜ファイル情報の作成
