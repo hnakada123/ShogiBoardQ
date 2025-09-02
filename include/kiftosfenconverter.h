@@ -5,8 +5,14 @@
 #include <QStringList>
 #include <QList>
 #include <QVector>
+#include <QPair>
+#include <QMap>
 
-#include "kifreader.h"
+// KIFの「(キーワード)：(内容)」行を表すペア
+struct KifGameInfoItem {
+    QString key;    // 例: "開始日時"
+    QString value;  // 例: "2025/03/02 09:00"
+};
 
 // 表示用1手（指し手/時間/コメント）
 struct KifDisplayItem {
@@ -51,6 +57,15 @@ public:
 
     // 手合→初期SFEN（ユーザー提供のマップ）
     static QString mapHandicapToSfen(const QString& label);
+
+    // 追加: KIFファイルから「対局情報」を抽出して順序付きで返す
+    //   - ファイル全体を走査して「： or :」の区切りを持つ行を収集
+    //   - 同一キーが複数回出る場合は値を改行で連結（備考など）
+    //   - 値中の「\n」文字列は実改行に変換
+    static QList<KifGameInfoItem> extractGameInfo(const QString& filePath);
+
+    // 追加（任意）：キー→値 へ高速アクセスしたい場合のマップ版
+    static QMap<QString, QString> extractGameInfoMap(const QString& filePath);
 
 private:
     // ---------- ヘルパ（共通） ----------

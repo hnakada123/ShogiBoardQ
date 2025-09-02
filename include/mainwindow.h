@@ -11,6 +11,8 @@
 #include <QValueAxis>
 #include <QTime>
 #include <QTextBrowser>
+#include <QDockWidget>
+#include <QTableWidget>
 
 #include "kifurecordlistmodel.h"
 #include "kifubranchlistmodel.h"
@@ -960,6 +962,13 @@ private:
 
     // （任意）HTML生成のヘルパ
     QString makeBranchHtml(const QString& text) const;
+
+    QDockWidget*   m_gameInfoDock  = nullptr;   // 使わないなら残してOK（null化/削除）
+    QTableWidget*  m_gameInfoTable = nullptr;
+
+    void ensureGameInfoTable();          // テーブルの生成だけ行う（親は付けない）
+    void addGameInfoTabIfMissing();      // 「棋譜コメント」の後ろにタブ追加
+    void populateGameInfo(const QList<KifGameInfoItem>& items); // ←既存をこの実装に置換
 };
 
 #endif // MAINWINDOW_H

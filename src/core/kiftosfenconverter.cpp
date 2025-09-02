@@ -5,6 +5,7 @@
 #include <QTextStream>
 #include <QRegularExpression>
 #include <QDebug>
+#include <algorithm>
 
 // 先頭が「全角/半角の 1..9 が空白区切りで並ぶだけ」の行かどうかを判定。
 // 例: " ９ ８ ７ … １" / "9 8 7 6 5 4 3 2 1" など。
@@ -634,4 +635,120 @@ bool KifToSfenConverter::convertMoveLine(const QString& moveText,
     prevToFile = toF;
     prevToRank = toR;
     return true;
+}
+
+static const QStringList kPreferredOrder = {
+    QStringLiteral("対局ID"),
+    QStringLiteral("記録ID"),
+    QStringLiteral("開始日時"),
+    QStringLiteral("終了日時"),
+    QStringLiteral("棋戦"),
+    QStringLiteral("戦型"),
+    QStringLiteral("手合割"),
+    QStringLiteral("持ち時間"),
+    QStringLiteral("秒読み"),
+    QStringLiteral("消費時間"),
+    QStringLiteral("先手"),
+    QStringLiteral("後手"),
+    QStringLiteral("先手省略名"),
+    QStringLiteral("後手省略名"),
+    QStringLiteral("振り駒"),
+    QStringLiteral("図"),
+    QStringLiteral("場所"),
+    QStringLiteral("昼食休憩"),
+    QStringLiteral("昼休前消費時間"),
+    QStringLiteral("先手消費時間加算"),
+    QStringLiteral("後手消費時間加算"),
+    QStringLiteral("備考"),
+};
+
+static inline QString normalizeKey(const QString& raw) {
+    QString k = raw.trimmed();
+    if (k.endsWith(u'：') || k.endsWith(u':')) k.chop(1);
+    return k.trimmed();
+}
+static inline QString normalizeValue(QString v) {
+    v = v.trimmed();
+    v.replace(QStringLiteral("\\n"), QStringLiteral("\n"));
+    return v;
+}
+
+QList<KifGameInfoItem> KifToSfenConverter::extractGameInfo(const QString& filePath)
+{
+    QList<KifGameInfoItem> ordered;
+    if (filePath.isEmpty()) return ordered;
+
+    // ==== ここが差し替えポイント（Shift-JIS対応）====
+    QString usedEnc, warn;
+    QStringList lines;
+    if (!KifReader::readLinesAuto(filePath, lines, &usedEnc, &warn)) {
+        qWarning() << "[KIF] read failed:" << filePath << "warn:" << warn;
+        return ordered;
+    }
+    qDebug().noquote() << QStringLiteral("[KIF] encoding = %1 , lines = %2")
+                              .arg(usedEnc).arg(lines.size());
+    // ================================================
+
+    static const QRegularExpression kHeaderLine(
+        QStringLiteral("^\\s*([^：:]+?)\\s*[：:]\\s*(.*?)\\s*$")
+        );
+
+    QMap<QString, int> indexByKey;
+
+    for (const QString& rawLine : lines) {
+        const QString line = rawLine;
+        const QString t = line.trimmed();
+
+        // 「*」「＊」コメント行は除外（指し手コメント側で扱う）
+        if (t.startsWith(u'*') || t.startsWith(QChar(0xFF0A))) continue;
+
+        // 空行は除外
+        if (t.isEmpty()) continue;
+
+        // （任意）棋譜表ヘッダや盤面フレームらしき行を弾く
+        if (t.startsWith(QStringLiteral("手数"))) continue;               // 手数----指手---------
+        if (t.startsWith(QStringLiteral("まで"))) continue;               // まで◯手で…
+        // 必要なら、既存の静的ヘルパ（isBoardHeaderOrFrame 等）が
+        // このファイル内にあればそれを呼んでもOK
+
+        QRegularExpressionMatch m = kHeaderLine.match(line);
+        if (!m.hasMatch()) continue;
+
+        const QString key = normalizeKey(m.captured(1));
+        if (key.isEmpty()) continue;
+        const QString val = normalizeValue(m.captured(2));
+
+        if (indexByKey.contains(key)) {
+            const int idx = indexByKey.value(key);
+            if (!val.isEmpty()) {
+                ordered[idx].value += (ordered[idx].value.isEmpty() ? QString() : QStringLiteral("\n")) + val;
+            }
+        } else {
+            indexByKey.insert(key, ordered.size());
+            ordered.push_back({ key, val });
+        }
+    }
+
+    // 既知項目を優先して表示、未知キーは後方でキー名順
+    auto prefRank = [](const QString& k)->int {
+        const int idx = kPreferredOrder.indexOf(k);
+        return (idx >= 0) ? idx : 1000;
+    };
+    std::stable_sort(ordered.begin(), ordered.end(),
+                     [&](const KifGameInfoItem& a, const KifGameInfoItem& b) {
+                         const int ra = prefRank(a.key);
+                         const int rb = prefRank(b.key);
+                         if (ra != rb) return ra < rb;
+                         return a.key < b.key;
+                     });
+
+    return ordered;
+}
+
+QMap<QString, QString> KifToSfenConverter::extractGameInfoMap(const QString& filePath)
+{
+    QMap<QString, QString> m;
+    const auto items = extractGameInfo(filePath);
+    for (const auto& it : items) m.insert(it.key, it.value);
+    return m;
 }
