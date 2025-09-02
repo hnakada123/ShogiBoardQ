@@ -68,13 +68,14 @@ MainWindow::MainWindow(QWidget *parent) :
     m_playMode(NotStarted),
     m_lineEditModel1(new UsiCommLogModel(this)),
     m_lineEditModel2(new UsiCommLogModel(this)),
-    m_engine2InfoLayoutWidget(nullptr),
     m_gameCount(0),
     m_gameController(nullptr),
     m_selectedField(nullptr),
     m_selectedField2(nullptr),
     m_movedField(nullptr),
     m_waitingSecondClick(false),
+    m_infoWidget1(nullptr),
+    m_infoWidget2(nullptr),
     m_analysisModel(nullptr)
 {
     ui->setupUi(this);
@@ -299,11 +300,6 @@ MainWindow::MainWindow(QWidget *parent) :
 // 将棋盤上での左クリックイベントをハンドリングする。
 void MainWindow::onShogiViewClicked(const QPoint &pt)
 {
-    //begin
-    qDebug() << "in MainWindow::onShogiViewClicked() with point: " << pt;
-    qDebug() << "m_waitingSecondClick: " << m_waitingSecondClick;
-    //end
-
     // １回目クリック（つまみ始め）で、かつ持ち駒マスなら枚数をチェックする。
     // 念のため、ShogiView::startDragにもガードを入れている。
     // 持ち駒が1枚も無いマスを左クリックすると駒画像がドラッグされないようにする。
@@ -517,16 +513,13 @@ void MainWindow::hideGameActions()
 }
 
 // 「表示」の「思考」 思考タブの表示・非表示
-// info行の予想手、探索手、エンジンの読み筋を縦ボックス化したm_widget3の表示・非表示を切り替える。
 void MainWindow::toggleEngineAnalysisVisibility()
 {
     // 「表示」の「思考」にチェックが入っている場合
     if (ui->actionToggleEngineAnalysis->isChecked()) {
-        m_engine2InfoLayoutWidget->setVisible(true);
     }
     // 「表示」の「思考」にチェックが入っていない場合
     else {
-        m_engine2InfoLayoutWidget->setVisible(false);
     }
 }
 
@@ -1886,7 +1879,7 @@ void MainWindow::initializeEngine1ThoughtTab()
     m_usiCommLogEdit = new QPlainTextEdit;
     m_usiCommLogEdit->setReadOnly(true);
 
-    m_tab1 = new QTabWidget;
+    m_tab = new QTabWidget;
 
     // ★ ここから：思考1タブのページ（縦並び）
     if (!m_infoWidget1) {
@@ -1899,7 +1892,7 @@ void MainWindow::initializeEngine1ThoughtTab()
         initializeEngine2InfoDisplay();
     }
 
-    QWidget* page1 = new QWidget(m_tab1);
+    QWidget* page1 = new QWidget(m_tab);
     auto* v1 = new QVBoxLayout(page1);
     v1->setContentsMargins(4,4,4,4);
     v1->setSpacing(4);
@@ -1910,24 +1903,21 @@ void MainWindow::initializeEngine1ThoughtTab()
     v1->setStretch(0, 0);
     v1->setStretch(1, 1);
 
-    m_tab1->addTab(page1, tr("思考"));
+    m_infoWidget2->setVisible(false); // 初期状態では非表示
+    m_usiView2->setVisible(false);    // 初期状態では非表示
+
+    m_tab->addTab(page1, tr("思考"));
 
     // 既存のログ／コメントタブはそのまま
-    m_tab1->addTab(m_usiCommLogEdit, tr("USIプロトコル通信ログ"));
+    m_tab->addTab(m_usiCommLogEdit, tr("USIプロトコル通信ログ"));
 
-    m_branchTextInTab1 = new QTextBrowser(m_tab1);
+    m_branchTextInTab1 = new QTextBrowser(m_tab);
     m_branchTextInTab1->setOpenExternalLinks(true);
     m_branchTextInTab1->setWordWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
     m_branchTextInTab1->setPlaceholderText(tr("コメントを表示"));
-    m_tab1->addTab(m_branchTextInTab1, tr("棋譜コメント"));
+    m_tab->addTab(m_branchTextInTab1, tr("棋譜コメント"));
 
-    m_tab1->setMinimumHeight(150);
-
-    if (m_engine2InfoLayoutWidget) {
-        m_engine2InfoLayoutWidget->setParent(nullptr);
-        m_engine2InfoLayoutWidget->deleteLater();
-    }
-    m_engine2InfoLayoutWidget = m_tab1;
+    m_tab->setMinimumHeight(150);
 
     connect(m_lineEditModel1, &UsiCommLogModel::usiCommLogChanged, this, [this]() {
         m_usiCommLogEdit->appendPlainText(m_lineEditModel1->usiCommLog());
@@ -2067,7 +2057,7 @@ void MainWindow::initializeCentralGameDisplay()
     // info行の予想手、探索手、エンジンの読み筋のウィジェットを縦ボックスレイアウトに追加する。
     vboxLayout->addWidget(m_hsplit);
     vboxLayout->setSpacing(0);
-    vboxLayout->addWidget(m_engine2InfoLayoutWidget);
+    vboxLayout->addWidget(m_tab);
 
     // 新しいウィジェットを作成する。
     QWidget* newWidget = new QWidget;
@@ -4613,11 +4603,12 @@ void MainWindow::initializeGame()
         getOptionFromStartGameDialog();
 
         // 「将棋エンジン 対 将棋エンジン」
-        if ((m_playMode == EvenEngineVsEngine) || (m_playMode == HandicapEngineVsEngine)) {
-            m_infoWidget2->show();
-             } else {
-            m_infoWidget2->hide();
-        }
+        const bool engineVsEngine =
+            (m_playMode == EvenEngineVsEngine) ||
+            (m_playMode == HandicapEngineVsEngine);
+
+        m_infoWidget2->setVisible(engineVsEngine);
+        m_usiView2->setVisible(engineVsEngine);
 
         // 棋譜ファイル情報の作成
         makeKifuFileHeader();
@@ -4790,7 +4781,7 @@ void MainWindow::resetToInitialState()
 
     // USIプロトコル通信ログを初期化する。
     m_usiCommLogEdit->clear();
-    m_tab1->setCurrentWidget(m_usiView1);
+    m_tab->setCurrentWidget(m_usiView1);
 
     // エンジン1の予想手、探索手などの情報を初期化する。
     m_engineNameText1->setText("");

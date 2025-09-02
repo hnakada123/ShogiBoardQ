@@ -386,7 +386,7 @@ private:
     QPlainTextEdit* m_usiCommLogEdit;
 
     // GUIの思考1タブ
-    QTabWidget* m_tab1;
+    QTabWidget* m_tab;
 
     // GUIの思考2タブ
     QTabWidget* m_tab2;
@@ -485,9 +485,6 @@ private:
 
     // 棋譜、矢印ボタン、評価値グラフを縦ボックス化したウィジェット
     QWidget* m_gameRecordLayoutWidget;
-
-    // エンジン名2、予想手2、探索手2、深さ2、ノード数2、局面探索数2、ハッシュ使用率2、思考2タブを縦ボックス化したウィジェット
-    QWidget* m_engine2InfoLayoutWidget;
 
     // // 対局者名と残り時間、将棋盤を縦ボックス化したウィジェット
     QWidget* m_playerAndBoardLayoutWidget;
