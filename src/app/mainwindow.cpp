@@ -5122,28 +5122,47 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
         qDebug() << "[VAR] branchable set =" << m_branchablePlies;
     }
 
-    // 6) ログ（任意）
+    // 6) ログ（任意）— 再マッピング後の分岐情報を出力
     logImportSummary(filePath, m_usiMoves, disp, teaiLabel, parseWarn, QString());
-    if (!res.variations.isEmpty()) {
-        qDebug().noquote() << "== Variations (変化) ==";
-        int vidx = 0;
-        for (const KifVariation& v : res.variations) {
-            qDebug().noquote()
-                << QStringLiteral("[変化%1] start=%2, USI=%3手, 表示=%4手")
-                      .arg(++vidx).arg(v.line.startPly)
-                      .arg(v.line.usiMoves.size()).arg(v.line.disp.size());
-            const int preview = qMin(6, v.line.disp.size());
-            for (int i = 0; i < preview; ++i) {
-                const auto& it = v.line.disp.at(i);
-                qDebug().noquote() << QStringLiteral("   ・「%1」「%2」")
-                                      .arg(it.prettyMove,
-                                           it.timeText.isEmpty()
+
+    {
+        qDebug().noquote() << "== Variations (変化, after remap) ==";
+
+        QList<int> keys = m_variationsByPly.keys();
+        std::sort(keys.begin(), keys.end());
+
+        if (keys.isEmpty()) {
+            qDebug().noquote() << "  (none)";
+        } else {
+            for (int startPly : keys) {
+                const auto& bucket = m_variationsByPly[startPly];
+                int vidx = 0;
+
+                for (const auto& v : bucket) {
+                    qDebug().noquote()
+                        << QStringLiteral("[変化%1] start=%2, USI=%3手, 表示=%4手")
+                              .arg(++vidx)
+                              .arg(v.startPly)
+                              .arg(v.usiMoves.size())
+                              .arg(v.disp.size());
+
+                    const int preview = qMin(6, v.disp.size());
+                    for (int i = 0; i < preview; ++i) {
+                        const auto& it = v.disp.at(i);
+                        qDebug().noquote()
+                            << QStringLiteral("   ・「%1」「%2」")
+                                  .arg(it.prettyMove,
+                                       it.timeText.isEmpty()
                                            ? QStringLiteral("00:00/00:00:00")
                                            : it.timeText);
+                    }
+                    if (v.disp.size() > preview) {
+                        qDebug().noquote()
+                            << QStringLiteral("   ……（以下 %1 手）")
+                                  .arg(v.disp.size() - preview);
+                    }
+                }
             }
-            if (v.line.disp.size() > preview)
-                qDebug().noquote() << QStringLiteral("   ……（以下 %1 手）")
-                                      .arg(v.line.disp.size()-preview);
         }
     }
 
