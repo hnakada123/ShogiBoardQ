@@ -31,6 +31,8 @@
 #include "shogiclock.h"
 #include "kiftosfenconverter.h"
 
+using VariationBucket = QVector<KifLine>;     // 手目からの候補群
+
 QT_BEGIN_NAMESPACE
 namespace Ui {
 class MainWindow;
@@ -262,6 +264,11 @@ private slots:
 
     void onPlayer1TimeOut();
     void onPlayer2TimeOut();
+
+    // MainWindow クラス宣言内（private slots: などの所）に追加
+private slots:
+    void onBranchRowClicked(const QModelIndex& index);
+    void onMainMoveRowChanged(const QModelIndex& current, const QModelIndex& previous); // 既に使っているなら
 
 private:
     // 平手初期局面のSFEN文字列
@@ -976,6 +983,20 @@ private:
 
     // 先手／後手（上手／下手もフォールバック）を ShogiView に反映
     void applyPlayersFromGameInfo(const QList<KifGameInfoItem>& items);
+
+    void populateBranchListForPly(int ply);
+    void applyVariation(int parentPly, int branchIndex);
+
+    // MainWindow の private: に追加
+    QHash<int, VariationBucket> m_variationsByPly;
+
+    // 本譜スナップショット（分岐から戻す用）
+    QList<KifDisplayItem> m_dispMain;
+    QStringList           m_sfenMain;
+    QVector<ShogiMove>    m_gmMain;
+
+    // 現在、本譜で選択中の手目（分岐リスト更新に使う）
+    int m_currentSelectedPly = -1;
 };
 
 #endif // MAINWINDOW_H

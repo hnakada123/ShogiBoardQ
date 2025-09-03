@@ -7,6 +7,8 @@
 #include <QVector>
 #include <QPair>
 #include <QMap>
+#include "shogimove.h"
+#include "kifdisplayitem.h"
 
 // KIFの「(キーワード)：(内容)」行を表すペア
 struct KifGameInfoItem {
@@ -14,20 +16,17 @@ struct KifGameInfoItem {
     QString value;  // 例: "2025/03/02 09:00"
 };
 
-// 表示用1手（指し手/時間/コメント）
-struct KifDisplayItem {
-    QString prettyMove;   // "▲２六歩(27)" / "△投了" など
-    QString timeText;     // "0:00/00:00:00" など（空可）
-    QString comment;      // 直前の * コメントをまとめて格納（空可）
-};
-
-// 1本の手順（本譜 or 変化）
+// ==== 分岐用データ構造 ====
+// 1本の手順（分岐ライン）
 struct KifLine {
-    QString baseSfen;             // 初期局面（本譜はdetectInitialSfen、変化はGUI側で設定推奨）
-    QStringList usiMoves;         // USI手列（"7g7f" / "P*5e" など）
-    QList<KifDisplayItem> disp;   // 表示用（指し手+時間+コメント）
+    int startPly = 1;            // どの手目から開始か（例: 5）
+    QString baseSfen;            // 分岐開始局面（メインを startPly-1 まで進めたSFEN）
+    QStringList usiMoves;        // 分岐のUSI列
+    QList<KifDisplayItem> disp;  // 表示用（▲△＋時間）: 先頭=分岐の最初の手
+    QStringList sfenList;        // base含む局面列（0=base, 以降=各手後）
+    QVector<ShogiMove> gameMoves;// GUI用指し手列
+    bool endsWithTerminal=false;
 };
-
 // 変化（どの手から始まるか）
 struct KifVariation {
     int startPly = 1;  // 例: 「変化：65手」なら 65
