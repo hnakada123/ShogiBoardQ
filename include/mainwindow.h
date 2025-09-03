@@ -969,6 +969,13 @@ private:
     void ensureGameInfoTable();          // テーブルの生成だけ行う（親は付けない）
     void addGameInfoTabIfMissing();      // 「棋譜コメント」の後ろにタブ追加
     void populateGameInfo(const QList<KifGameInfoItem>& items); // ←既存をこの実装に置換
+
+    // 対局情報（KIFヘッダ）から、keys のどれかに一致する最初の値を返す
+    QString findGameInfoValue(const QList<KifGameInfoItem>& items,
+                              const QStringList& keys) const;
+
+    // 先手／後手（上手／下手もフォールバック）を ShogiView に反映
+    void applyPlayersFromGameInfo(const QList<KifGameInfoItem>& items);
 };
 
 #endif // MAINWINDOW_H

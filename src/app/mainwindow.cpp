@@ -1911,15 +1911,14 @@ void MainWindow::initializeEngine1ThoughtTab()
     // 既存のログ／コメントタブはそのまま
     m_tab->addTab(m_usiCommLogEdit, tr("USIプロトコル通信ログ"));
 
+    // 対局情報タブを「棋譜コメント」の前に差し込む
+    addGameInfoTabIfMissing();
+
     m_branchTextInTab1 = new QTextBrowser(m_tab);
     m_branchTextInTab1->setOpenExternalLinks(true);
     m_branchTextInTab1->setWordWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
     m_branchTextInTab1->setPlaceholderText(tr("コメントを表示"));
     m_tab->addTab(m_branchTextInTab1, tr("棋譜コメント"));
-
-    // 対局情報タブを「棋譜コメント」の後ろに差し込む
-    addGameInfoTabIfMissing();
-
     m_tab->setMinimumHeight(150);
 
     connect(m_lineEditModel1, &UsiCommLogModel::usiCommLogChanged, this, [this]() {
@@ -4925,6 +4924,9 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
         const QList<KifGameInfoItem> infoItems =
             KifToSfenConverter::extractGameInfo(filePath);
         populateGameInfo(infoItems);
+
+        // ★ 追加：先手／後手の名前を ShogiView へ
+        applyPlayersFromGameInfo(infoItems);
     }
 
     // 本譜（GUIはまずここだけ使えば従来通り動作）
@@ -6611,4 +6613,40 @@ void MainWindow::populateGameInfo(const QList<KifGameInfoItem>& items)
 
     // まだタブに載ってなければ、このタイミングで追加しておくと確実
     addGameInfoTabIfMissing();
+}
+
+QString MainWindow::findGameInfoValue(const QList<KifGameInfoItem>& items,
+                                      const QStringList& keys) const
+{
+    for (const auto& it : items) {
+        // KifGameInfoItem.key は「先手」「後手」等（末尾コロンは normalize 済み）
+        if (keys.contains(it.key)) {
+            const QString v = it.value.trimmed();
+            if (!v.isEmpty()) return v;
+        }
+    }
+    return QString();
+}
+
+void MainWindow::applyPlayersFromGameInfo(const QList<KifGameInfoItem>& items)
+{
+    // 優先順：先手/後手 →（未取得なら）下手/上手 →（さらに未取得なら）省略名
+    QString black = findGameInfoValue(items, { QStringLiteral("先手") });
+    QString white = findGameInfoValue(items, { QStringLiteral("後手") });
+
+    if (black.isEmpty())
+        black = findGameInfoValue(items, { QStringLiteral("下手") });
+    if (white.isEmpty())
+        white = findGameInfoValue(items, { QStringLiteral("上手") });
+
+    if (black.isEmpty())
+        black = findGameInfoValue(items, { QStringLiteral("先手省略名") });
+    if (white.isEmpty())
+        white = findGameInfoValue(items, { QStringLiteral("後手省略名") });
+
+    // 取得できた方だけ反映（既存の表示を尊重）
+    if (!black.isEmpty() && m_shogiView)
+        m_shogiView->setBlackPlayerName(black);
+    if (!white.isEmpty() && m_shogiView)
+        m_shogiView->setWhitePlayerName(white);
 }
