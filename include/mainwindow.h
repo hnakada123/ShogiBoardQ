@@ -997,6 +997,9 @@ private:
 
     // 現在、本譜で選択中の手目（分岐リスト更新に使う）
     int m_currentSelectedPly = -1;
+
+    // 分岐の開始手（本譜のどの手に分岐があるか）を記録
+    QSet<int> m_branchablePlies;
 };
 
 #endif // MAINWINDOW_H

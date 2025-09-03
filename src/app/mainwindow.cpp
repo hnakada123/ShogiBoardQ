@@ -36,6 +36,7 @@
 #include <QSplitter>
 #include <QTextBrowser>
 #include <QTextOption>
+#include <QRegularExpression>
 
 #include "mainwindow.h"
 #include "promotedialog.h"
@@ -54,6 +55,7 @@
 #include "apptooltipfilter.h"
 #include "sfenpositiontracer.h"
 #include "enginesettingsconstants.h"
+#include "kifreader.h"
 
 using namespace EngineSettingsConstants;
 
@@ -4913,111 +4915,6 @@ inline QPoint dropFromSquare(QChar dropUpper, bool black) {
 } // anonymous namespace
 
 // ===================== 司令塔 =====================
-/*
-void MainWindow::loadKifuFromFile(const QString& filePath)
-{
-    m_commentsByRow.clear();
-    if (m_branchText) m_branchText->clear();
-
-    // 1) 初期局面（手合割）を決定
-    QString teaiLabel;
-    const QString initialSfen = prepareInitialSfen(filePath, teaiLabel);
-
-    // 2) 解析（本譜＋分岐＋コメント）を一括取得
-    KifParseResult res;         // ← out パラメータ
-    QString parseWarn;          // ← 警告や簡易エラーメッセージ受け
-    KifToSfenConverter::parseWithVariations(filePath, res, &parseWarn);
-
-    // ★★★ 追加：対局情報（ヘッダ）を抽出してGUIに反映 ★★★
-    {
-        const QList<KifGameInfoItem> infoItems =
-            KifToSfenConverter::extractGameInfo(filePath);
-        populateGameInfo(infoItems);
-
-        // ★ 追加：先手／後手の名前を ShogiView へ
-        applyPlayersFromGameInfo(infoItems);
-    }
-
-    // 本譜（GUIはまずここだけ使えば従来通り動作）
-    const QList<KifDisplayItem>& disp = res.mainline.disp;
-    m_usiMoves = res.mainline.usiMoves;
-
-    // 終局/中断の有無（従来と同じロジック）
-    static const QStringList kTerminalKeywords = {
-        QStringLiteral("投了"), QStringLiteral("中断"), QStringLiteral("持将棋"),
-        QStringLiteral("千日手"), QStringLiteral("切れ負け"),
-        QStringLiteral("反則勝ち"), QStringLiteral("反則負け"),
-        QStringLiteral("入玉勝ち"), QStringLiteral("不戦勝"),
-        QStringLiteral("不戦敗"), QStringLiteral("詰み"), QStringLiteral("不詰"),
-    };
-    auto isTerminalPretty = [&](const QString& s)->bool {
-        for (const auto& kw : kTerminalKeywords) if (s.contains(kw)) return true;
-        return false;
-    };
-    const bool hasTerminal = (!disp.isEmpty() && isTerminalPretty(disp.back().prettyMove));
-
-    // 3) 何も取れなかったら警告（本譜が空／変化だけの棋譜でも disp は何か入る想定）
-    if (m_usiMoves.isEmpty() && !hasTerminal && disp.isEmpty()) {
-        QMessageBox::warning(this, tr("読み込み失敗"),
-                             tr("%1 から指し手を取得できませんでした。").arg(filePath));
-        return;
-    }
-
-    // 4) 本譜のSFEN列と m_gameMoves を再構築（従来ロジック）
-    rebuildSfenRecord(initialSfen, m_usiMoves, hasTerminal);
-    rebuildGameMoves(initialSfen, m_usiMoves);
-
-    // 5) ログ（parseWarn を parse 側に、convert 側は空で渡す）
-    logImportSummary(filePath, m_usiMoves, disp, teaiLabel, parseWarn, QString());
-
-    // 6) 追加ログ：分岐（変化）の概要を表示（KifLine に startPly/label が無い前提）
-    // 6) 追加ログ：分岐（変化）の概要を表示
-    if (!res.variations.isEmpty()) {
-        qDebug().noquote() << "== Variations (変化) ==";
-        int vidx = 0;
-
-        // ★ KifVariation で回す（以前は KifLine で回していたため型不一致でした）
-        for (const KifVariation& v : res.variations) {
-
-            // --- B) KifVariation が KifLine line; を「内包」する版の場合は下に切り替え ---
-            const int usiN  = v.line.usiMoves.size();
-            const int dispN = v.line.disp.size();
-
-            qDebug().noquote()
-                << QStringLiteral("[変化%1] USI手数=%2, 表示用手数=%3")
-                       .arg(++vidx).arg(usiN).arg(dispN);
-
-            const int preview = qMin(6, dispN);
-            for (int i = 0; i < preview; ++i) {
-
-                // --- B) 内包版 ---
-                const auto& it = v.line.disp.at(i);
-
-                const QString time = it.timeText.isEmpty()
-                                         ? QStringLiteral("00:00/00:00:00")
-                                         : it.timeText;
-                qDebug().noquote()
-                    << QStringLiteral("   ・「%1」「%2」").arg(it.prettyMove, time);
-                if (!it.comment.trimmed().isEmpty()) {
-                    qDebug().noquote()
-                        << QStringLiteral("      └ コメント: %1")
-                               .arg(it.comment.trimmed());
-                }
-            }
-            if (dispN > preview) {
-                qDebug().noquote()
-                    << QStringLiteral("   ……（以下 %1 手）").arg(dispN - preview);
-            }
-        }
-    }
-
-    // --- GUI連携（従来通り：まずは本譜のみ表示） ---
-    displayGameRecord(disp);
-    navigateToFirstMove();
-    enableArrowButtons();
-    m_kifuView->setSelectionMode(QAbstractItemView::SingleSelection);
-}
-*/
 void MainWindow::loadKifuFromFile(const QString& filePath)
 {
     m_commentsByRow.clear();
@@ -5074,6 +4971,57 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
 
     // 5) 分岐（変化）を m_variationsByPly に構築
     m_variationsByPly.clear();
+    m_branchablePlies.clear();
+
+    // 5-0) 本譜本文から「＋」付きの手目を順に収集（分岐の開始手）
+    QString usedEnc2, readErr2;
+    QStringList kLines;
+    if (!KifReader::readLinesAuto(filePath, kLines, &usedEnc2, &readErr2)) {
+        qWarning().noquote() << "[VAR] readLinesAuto failed:" << readErr2;
+    }
+
+    // 見出しや分岐ブロックを除外しつつ「手数＋末尾＋」を拾う
+    static const QRegularExpression s_varHdr(QStringLiteral(R"(変化[：:]\s*[0-9０-９]+\s*手)"));
+    static const QRegularExpression s_mainHdr(QStringLiteral(R"(^\s*本譜\s*$)"));
+    static const QRegularExpression s_moveHead(QStringLiteral("^\\s*([0-9０-９]+)\\s")); // 先頭の手数
+    static const QRegularExpression s_plusAtEnd(QStringLiteral("\\+\\s*$"));
+
+    auto flexDigitsToInt = [](const QString& s)->int {
+        int v = 0;
+        for (QChar ch : s) {
+            int d = -1;
+            const ushort u = ch.unicode();
+            if (u >= '0' && u <= '9') d = (u - '0');
+            else {
+                static const QString z = QStringLiteral("０１２３４５６７８９");
+                int idx = z.indexOf(ch);
+                if (idx >= 0) d = idx;
+            }
+            if (d >= 0) v = v * 10 + d;
+        }
+        return v;
+    };
+
+    QList<int> plusStarts;  // 例: [5, 16, 27] のように収集
+    {
+        bool inVariation = false;
+        for (const QString& raw : kLines) {
+            const QString line = raw.trimmed();
+            if (line.isEmpty()) continue;
+
+            if (s_mainHdr.match(line).hasMatch()) { inVariation = false; continue; }
+            if (s_varHdr.match(line).hasMatch())  { inVariation = true;  continue; }
+            if (inVariation) continue;
+
+            auto mh = s_moveHead.match(line);
+            if (!mh.hasMatch()) continue;
+            if (!s_plusAtEnd.match(line).hasMatch()) continue;
+
+            const int ply = flexDigitsToInt(mh.captured(1));
+            if (ply > 0) plusStarts << ply;
+        }
+    }
+    qDebug() << "[VAR] plus markers =" << plusStarts;
 
     // 5-1) 手目→baseSFEN をキャッシュ（同じ手目の分岐で共有）
     QHash<int, QString> baseByPly;
@@ -5087,23 +5035,29 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
         return base;
     };
 
-    // 5-2) 変化を1本ずつ KifLine 化
+    // 5-2) 変化を1本ずつ KifLine 化（startPly を「＋」印マーカーで上書き）
+    int vi = 0;
     for (const KifVariation& v0 : res.variations) {
         KifLine v;
-        v.startPly = v0.line.startPly;
+
+        int sp = v0.line.startPly;                   // 解析結果の既定
+        if (vi < plusStarts.size()) sp = plusStarts[vi]; // 「＋」の順に割り当て直す
+
+        v.startPly = sp;
         v.usiMoves = v0.line.usiMoves;
         v.disp     = v0.line.disp;
         v.endsWithTerminal = v0.line.endsWithTerminal;
         v.baseSfen = getBaseForPly(v.startPly);
 
-        // （Lazy化したいならここはスキップして applyVariation 側で初回生成）
-        // いまは先行生成：v.sfenList / v.gameMoves を作る
+        // バケツキー
+        m_branchablePlies.insert(v.startPly);
+
+        // --- v.sfenList / v.gameMoves を先行生成（あなたの既存ロジックを流用） ---
         {
             SfenPositionTracer tr; tr.setFromSfen(v.baseSfen);
             v.sfenList.clear();
             v.sfenList << tr.toSfenString();
 
-            // USI→ShogiMove 変換の簡易版（既存ロジックを関数化済みならそれを呼ぶ）
             auto rankLetterToNum = [](QChar r)->int {
                 ushort u = r.toLower().unicode();
                 return (u<'a'||u>'i') ? -1 : int(u-'a')+1;
@@ -5122,7 +5076,6 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
             v.gameMoves.clear();
             for (const QString& usi : v.usiMoves) {
                 if (usi.size()>=2 && usi[1]==QLatin1Char('*')) {
-                    // 打
                     const bool black = tr.blackToMove();
                     const QChar up = usi.at(0).toUpper(); // P/L/N/S/G/B/R
                     const int f = usi.at(2).toLatin1()-'0';
@@ -5138,7 +5091,6 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
                     continue;
                 }
 
-                // 通常の移動
                 const int ff = usi.at(0).toLatin1()-'0';
                 const int rf = rankLetterToNum(usi.at(1));
                 const int ft = usi.at(2).toLatin1()-'0';
@@ -5159,6 +5111,15 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
         }
 
         m_variationsByPly[v.startPly].push_back(std::move(v));
+        ++vi;
+    }
+
+    // 5-3) できたキーを確認
+    {
+        QList<int> keys = m_variationsByPly.keys();
+        std::sort(keys.begin(), keys.end());
+        qDebug().noquote() << "[VAR] keys(after remap) =" << keys;
+        qDebug() << "[VAR] branchable set =" << m_branchablePlies;
     }
 
     // 6) ログ（任意）
@@ -5191,6 +5152,19 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
     navigateToFirstMove();
     enableArrowButtons();
     m_kifuView->setSelectionMode(QAbstractItemView::SingleSelection);
+
+    // ★開始時は必ず空にする（開始局面選択の想定）
+    m_currentSelectedPly = 0;
+    m_kifuBranchModel->clearBranchCandidates();
+    m_kifuBranchView->setEnabled(false);
+
+    if (m_kifuView->selectionModel()) {
+        connect(m_kifuView->selectionModel(),
+                &QItemSelectionModel::currentRowChanged,
+                this,
+                &MainWindow::onMainMoveRowChanged,
+                Qt::UniqueConnection);
+    }
 }
 
 // ===================== ヘルパ実装 =====================
@@ -6844,30 +6818,53 @@ void MainWindow::applyPlayersFromGameInfo(const QList<KifGameInfoItem>& items)
 
 void MainWindow::onMainMoveRowChanged(const QModelIndex& current, const QModelIndex&)
 {
-    // 本譜の行 index(0-based) → 手目(1-based)
-    const int ply = current.isValid() ? (current.row() + 1) : -1;
-    m_currentSelectedPly = ply;
-    populateBranchListForPly(ply);
+    const int row = current.isValid() ? current.row() : -1;
+    // 行0 = 「=== 開始局面 ===」、行n = n手目 という前提
+    m_currentSelectedPly = (row <= 0) ? 0 : row;
+
+    qDebug() << "[SEL] rowChanged row=" << row
+             << " -> ply=" << m_currentSelectedPly
+             << " branchable?=" << m_branchablePlies.contains(m_currentSelectedPly);
+
+    populateBranchListForPly(m_currentSelectedPly);
 }
 
 void MainWindow::populateBranchListForPly(int ply)
 {
+    qDebug() << "[BRANCH] populate ply=" << ply
+             << " hasKey=" << m_variationsByPly.contains(ply)
+             << " dispMainSz=" << m_dispMain.size();
+
     if (ply <= 0 || !m_variationsByPly.contains(ply)) {
-        m_kifuBranchModel->clearBranchCandidates();   // ← ここに置換
+        qDebug() << "[BRANCH] -> clear (no bucket)";
+        m_kifuBranchModel->clearBranchCandidates();
         m_kifuBranchView->setEnabled(false);
         return;
     }
+
     const VariationBucket& bucket = m_variationsByPly[ply];
+    qDebug() << "[BRANCH] bucket size =" << bucket.size();
 
     QList<KifDisplayItem> items;
-    items.reserve(bucket.size());
+    if (ply >= 1 && ply <= m_dispMain.size())
+        items << m_dispMain.at(ply - 1); // 本譜のその手（例:「▲２五歩(26)」）
+
     for (const KifLine& v : bucket) {
-        if (!v.disp.isEmpty()) items << v.disp.first();
+        if (!v.disp.isEmpty()) items << v.disp.first(); // 分岐の初手（例:「▲１六歩(17)」）
     }
 
-    m_kifuBranchModel->setBranchCandidatesFromKif(items); // ← ここに置換
-    m_kifuBranchView->setEnabled(true);
+    for (int i = 0; i < items.size(); ++i) {
+        qDebug().noquote()
+            << QString("[BRANCH] item%1: 「%2」, time=%3")
+                   .arg(i + 1).arg(items[i].prettyMove,
+                                   items[i].timeText.isEmpty()
+                                     ? QStringLiteral("-") : items[i].timeText);
+    }
+
+    m_kifuBranchModel->setBranchCandidatesFromKif(items);
+    m_kifuBranchView->setEnabled(!items.isEmpty());
 }
+
 
 void MainWindow::applyVariation(int parentPly, int branchIndex)
 {
@@ -6912,14 +6909,81 @@ void MainWindow::applyVariation(int parentPly, int branchIndex)
     enableArrowButtons();
 }
 
-// 分岐候補をクリックしたとき
 void MainWindow::onBranchRowClicked(const QModelIndex& index)
 {
     if (!index.isValid()) return;
-    if (m_currentSelectedPly <= 0) return;
+    if (m_currentSelectedPly <= 0) return;  // 開始局面などは無効
 
-    const int parentPly = m_currentSelectedPly; // 本譜で選択中の手目
-    const int choice    = index.row();          // 分岐候補の何番目か
+    const int parentPly = m_currentSelectedPly;
+    const int row = index.row();
 
-    applyVariation(parentPly, choice);          // 分岐へ切り替え（既存実装を呼ぶ）
+    // 分岐候補欄の 0 行目は「本譜のその手」→ クリックしても本譜のまま
+    if (row == 0) {
+        // 必要なら本譜へ戻す処理を明示的に行ってもよい
+        // *m_sfenRecord = m_sfenMain; m_gameMoves = m_gmMain; displayGameRecord(m_dispMain);
+        return;
+    }
+
+    // 1 行目以降が分岐（bucket の 0..に対応）
+    const int branchIndex = row - 1;
+    applyVariation(parentPly, branchIndex);
+}
+
+// 全角/半角の数字を int に
+static int flexDigitsToInt(const QString& s) {
+    int v = 0;
+    for (const QChar &ch : s) {
+        ushort u = ch.unicode();
+        if (u >= u'0' && u <= u'9')        v = v*10 + (u - u'0');
+        else if (u >= 0xFF10 && u <= 0xFF19) v = v*10 + (u - 0xFF10); // 全角0..9
+    }
+    return v;
+}
+
+// KIF を1回なめて「変化：N手」「本譜行末の +」を拾う
+static QList<int> scanVariationStarts(const QString& kifPath, QSet<int>& outBranchablePlies)
+{
+    outBranchablePlies.clear();
+    QList<int> starts; // 変化ブロックの開始手を出現順に
+
+    QString usedEnc, err;
+    QStringList lines;
+    if (!KifReader::readLinesAuto(kifPath, lines, &usedEnc, &err)) return starts;
+
+    static const QRegularExpression reVar(
+        QStringLiteral(R"(変化[：:]\s*([0-9０-９]+)\s*手)"));
+    static const QRegularExpression reMoveHead(
+        QStringLiteral(R"(^\s*([0-9０-９]+)\s)"));      // 本譜の手数頭
+    static const QRegularExpression rePlusAtEnd(
+        QStringLiteral(R"(\+\s*$)"));                   // 行末 '+'
+
+    bool inVariation = false; // 変化ブロック内の + は無視したい
+    int moveIndex = 0;        // 本譜の現在手数を数える
+
+    for (const QString& raw : lines) {
+        const QString line = raw.trimmed();
+
+        // 変化ヘッダ
+        if (const auto m = reVar.match(line); m.hasMatch()) {
+            const int ply = flexDigitsToInt(m.captured(1));
+            if (ply > 0) { starts << ply; outBranchablePlies.insert(ply); }
+            inVariation = true;
+            continue;
+        }
+
+        // 本譜の手数行か？
+        if (const auto mh = reMoveHead.match(line); mh.hasMatch()) {
+            moveIndex = flexDigitsToInt(mh.captured(1));
+            if (!inVariation && rePlusAtEnd.match(line).hasMatch()) {
+                if (moveIndex > 0) outBranchablePlies.insert(moveIndex);
+            }
+            continue;
+        }
+
+        // 非手行。シンプルに：空行や「本譜」等で変化抜け扱い
+        if (line.isEmpty() || line.contains(QStringLiteral("本譜"))) {
+            inVariation = false;
+        }
+    }
+    return starts;
 }

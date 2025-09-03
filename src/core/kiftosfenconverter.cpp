@@ -208,30 +208,49 @@ QString KifToSfenConverter::detectInitialSfenFromFile(const QString& kifPath, QS
     return mapHandicapToSfenImpl(label);
 }
 
-QList<KifDisplayItem> KifToSfenConverter::extractMovesWithTimes(const QString& kifPath, QString* errorMessage)
+QList<KifDisplayItem> KifToSfenConverter::extractMovesWithTimes(const QString& kifPath,
+                                                                QString* errorMessage)
 {
     QList<KifDisplayItem> out;
+
     QString usedEnc;
     QStringList lines;
     if (!KifReader::readLinesAuto(kifPath, lines, &usedEnc, errorMessage)) {
         return out;
     }
-    qDebug().noquote() << QStringLiteral("[extractMovesWithTimes] encoding = %1 , lines = %2")
-                          .arg(usedEnc).arg(lines.size());
+    qDebug().noquote()
+        << QStringLiteral("[extractMovesWithTimes] encoding = %1 , lines = %2")
+               .arg(usedEnc).arg(lines.size());
 
+    // 時間 "( m:ss/HH:MM:SS )"
     static const QRegularExpression s_timeRe(
         QStringLiteral("\\(\\s*(\\d{1,2}:\\d{2}/\\d{2}:\\d{2}:\\d{2})\\s*\\)")
-    );
+        );
+
+    // 「変化：N手」ブロックを検出
+    static const QRegularExpression s_varHdr(
+        QStringLiteral(R"(変化[：:]\s*([0-9０-９]+)\s*手)")
+        );
+
+    // 明示的な「本譜」「変化譜」見出しにも対応
+    static const QRegularExpression s_mainHdr(
+        QStringLiteral(R"(^\s*本譜\s*$)")
+        );
+    static const QRegularExpression s_varListHdr(
+        QStringLiteral(R"(^\s*変化譜\s*$)")
+        );
 
     QString commentBuf;
     int moveIndex = 0;
+    bool inVariation = false;  // 変化ブロック中か？
+    bool seenTerminal = false; // 本譜で終局語を見つけたか？
 
     for (auto it = lines.cbegin(); it != lines.cend(); ++it) {
-        const QString raw = *it;
+        const QString raw  = *it;
         const QString line = raw.trimmed();
 
+        // コメント行は次手にひも付け
         if (line.startsWith(QLatin1Char('*'))) {
-            // コメントは次の手に付与
             QString c = line.mid(1).trimmed();
             if (!c.isEmpty()) {
                 if (!commentBuf.isEmpty()) commentBuf += QLatin1Char('\n');
@@ -239,20 +258,42 @@ QList<KifDisplayItem> KifToSfenConverter::extractMovesWithTimes(const QString& k
             }
             continue;
         }
+
+        // 罫線やBODヘッダなどのスキップ対象
         if (line.isEmpty() || isSkippableLine(line) || isBoardHeaderOrFrame(line))
             continue;
 
+        // 「本譜」「変化譜」見出しでモードを切替
+        if (s_mainHdr.match(line).hasMatch()) { inVariation = false; continue; }
+        if (s_varListHdr.match(line).hasMatch()) { inVariation = true;  continue; }
+
+        // 「変化：N手」を見つけたら以降は（本譜見出しが来るまで）分岐扱いとして無視
+        if (s_varHdr.match(line).hasMatch()) {
+            inVariation = true;
+            continue;
+        }
+
+        // 変化ブロックは本譜用の表示リストに入れない
+        if (inVariation) continue;
+
+        // 本譜で既に終局を見つけていれば打ち切り
+        if (seenTerminal) break;
+
+        // 手数（半/全角）から始まるか？
         int digits = 0;
         if (!startsWithMoveNumber(line, &digits)) {
             if (errorMessage) *errorMessage += QStringLiteral("[skip ?] %1\n").arg(line);
             continue;
         }
+
+        // 手数の後の本文へ
         int i = digits;
         while (i < line.size() && line.at(i).isSpace()) ++i;
         if (i >= line.size()) continue;
 
         QString rest = line.mid(i).trimmed();
-        // 時間
+
+        // （末尾の）時間を取り出し
         QRegularExpressionMatch tm = s_timeRe.match(rest);
         QString timeText;
         if (tm.hasMatch()) {
@@ -260,38 +301,55 @@ QList<KifDisplayItem> KifToSfenConverter::extractMovesWithTimes(const QString& k
             rest = rest.left(tm.capturedStart(0)).trimmed();
         }
 
+        if (rest.isEmpty()) {
+            if (errorMessage) *errorMessage += QStringLiteral("[skip ?] %1\n").arg(line);
+            continue;
+        }
+
         // 終局/中断？
         QString term;
         if (containsAnyTerminal(rest, &term)) {
             ++moveIndex;
             const QString teban = (moveIndex % 2 == 1) ? QStringLiteral("▲") : QStringLiteral("△");
+
             KifDisplayItem item;
             item.prettyMove = teban + term;
-            item.timeText = (term == QStringLiteral("千日手"))
-                            ? QStringLiteral("00:00/00:00:00")
-                            : (timeText.isEmpty() ? QStringLiteral("00:00/00:00:00") : timeText);
-            item.comment = commentBuf;
+            item.timeText   = (term == QStringLiteral("千日手"))
+                                ? QStringLiteral("00:00/00:00:00")
+                                : (timeText.isEmpty() ? QStringLiteral("00:00/00:00:00") : timeText);
+            item.comment    = commentBuf;
             commentBuf.clear();
+
             out.push_back(item);
-            qDebug().noquote() << QStringLiteral("[extractMovesWithTimes] terminal: %1 , %2")
-                                  .arg(item.prettyMove, item.timeText);
-            continue;
+            qDebug().noquote()
+                << QStringLiteral("[extractMovesWithTimes] terminal: %1 , %2")
+                       .arg(item.prettyMove, item.timeText);
+
+            // ★ 本譜はここで打ち切る（分岐の手は以降拾わない）
+            seenTerminal = true;
+            break;
         }
 
         // 通常の指し手
         ++moveIndex;
         const QString teban = (moveIndex % 2 == 1) ? QStringLiteral("▲") : QStringLiteral("△");
+
         KifDisplayItem item;
-        item.prettyMove = teban + rest;
-        item.timeText   = timeText;
+        item.prettyMove = teban + rest;                  // 例: "▲２五歩(26)"
+        item.timeText   = timeText;                      // 例: "00:00/00:00:00"
         item.comment    = commentBuf;
         commentBuf.clear();
+
         out.push_back(item);
-        qDebug().noquote() << QStringLiteral("[extractMovesWithTimes] move: %1 , %2")
-                              .arg(item.prettyMove, item.timeText.isEmpty() ? QStringLiteral("-") : item.timeText);
+        qDebug().noquote()
+            << QStringLiteral("[extractMovesWithTimes] move: %1 , %2")
+                   .arg(item.prettyMove,
+                        item.timeText.isEmpty() ? QStringLiteral("-") : item.timeText);
     }
 
-    qDebug().noquote() << QStringLiteral("[extractMovesWithTimes] total moves extracted = %1").arg(out.size());
+    qDebug().noquote()
+        << QStringLiteral("[extractMovesWithTimes] total moves extracted = %1")
+               .arg(out.size());
     return out;
 }
 
