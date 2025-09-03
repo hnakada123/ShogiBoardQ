@@ -637,31 +637,7 @@ bool KifToSfenConverter::convertMoveLine(const QString& moveText,
     return true;
 }
 
-static const QStringList kPreferredOrder = {
-    QStringLiteral("対局ID"),
-    QStringLiteral("記録ID"),
-    QStringLiteral("開始日時"),
-    QStringLiteral("終了日時"),
-    QStringLiteral("棋戦"),
-    QStringLiteral("戦型"),
-    QStringLiteral("手合割"),
-    QStringLiteral("持ち時間"),
-    QStringLiteral("秒読み"),
-    QStringLiteral("消費時間"),
-    QStringLiteral("先手"),
-    QStringLiteral("後手"),
-    QStringLiteral("先手省略名"),
-    QStringLiteral("後手省略名"),
-    QStringLiteral("振り駒"),
-    QStringLiteral("図"),
-    QStringLiteral("場所"),
-    QStringLiteral("昼食休憩"),
-    QStringLiteral("昼休前消費時間"),
-    QStringLiteral("先手消費時間加算"),
-    QStringLiteral("後手消費時間加算"),
-    QStringLiteral("備考"),
-};
-
+// ====== Game Info Extraction (file-order, duplicates kept as separate rows) ======
 static inline QString normalizeKey(const QString& raw) {
     QString k = raw.trimmed();
     if (k.endsWith(u'：') || k.endsWith(u':')) k.chop(1);
@@ -673,12 +649,29 @@ static inline QString normalizeValue(QString v) {
     return v;
 }
 
+// 全角コロンのみ許容（半角コロンは無視）かつ「行頭（先頭空白は許容）」でのヘッダ判定
+static const QRegularExpression kHeaderLine(
+    QStringLiteral("^\\s*([^：]+?)\\s*：\\s*(.*?)\\s*$")
+    );
+// 「*」「＊」で始まるコメント行
+static const QRegularExpression kLineIsComment(
+    QStringLiteral("^\\s*[\\*\\uFF0A]")
+    );
+// 指し手行（手数で始まる）。半角/全角数字どちらにもマッチ
+static const QRegularExpression kLineLooksLikeMoveNo(
+    QStringLiteral("^\\s*[0-9０-９]+\\s")
+    );
+// 変化ヘッダ「変化：◯手」は対局情報から除外
+static const QRegularExpression kVariationHead(
+    QStringLiteral("^\\s*変化[：:]\\s*[0-9０-９]+手")
+    );
+
 QList<KifGameInfoItem> KifToSfenConverter::extractGameInfo(const QString& filePath)
 {
     QList<KifGameInfoItem> ordered;
     if (filePath.isEmpty()) return ordered;
 
-    // ==== ここが差し替えポイント（Shift-JIS対応）====
+    // Auto-detect encoding (Shift-JIS / UTF-8 etc.)
     QString usedEnc, warn;
     QStringList lines;
     if (!KifReader::readLinesAuto(filePath, lines, &usedEnc, &warn)) {
@@ -687,30 +680,19 @@ QList<KifGameInfoItem> KifToSfenConverter::extractGameInfo(const QString& filePa
     }
     qDebug().noquote() << QStringLiteral("[KIF] encoding = %1 , lines = %2")
                               .arg(usedEnc).arg(lines.size());
-    // ================================================
-
-    static const QRegularExpression kHeaderLine(
-        QStringLiteral("^\\s*([^：:]+?)\\s*[：:]\\s*(.*?)\\s*$")
-        );
-
-    QMap<QString, int> indexByKey;
 
     for (const QString& rawLine : lines) {
         const QString line = rawLine;
         const QString t = line.trimmed();
 
-        // 「*」「＊」コメント行は除外（指し手コメント側で扱う）
-        if (t.startsWith(u'*') || t.startsWith(QChar(0xFF0A))) continue;
+        // 1) コメント/指し手/棋譜表ヘッダ/全角コロン無し/変化ヘッダ を早期フィルタ
+        if (kLineIsComment.match(t).hasMatch()) continue;
+        if (kLineLooksLikeMoveNo.match(t).hasMatch()) continue;
+        if (t.startsWith(QStringLiteral("手数"))) continue;
+        if (!t.contains(QChar(0xFF1A))) continue; // 全角コロン「：」が無い
+        if (kVariationHead.match(t).hasMatch()) continue; // 変化：◯手
 
-        // 空行は除外
-        if (t.isEmpty()) continue;
-
-        // （任意）棋譜表ヘッダや盤面フレームらしき行を弾く
-        if (t.startsWith(QStringLiteral("手数"))) continue;               // 手数----指手---------
-        if (t.startsWith(QStringLiteral("まで"))) continue;               // まで◯手で…
-        // 必要なら、既存の静的ヘルパ（isBoardHeaderOrFrame 等）が
-        // このファイル内にあればそれを呼んでもOK
-
+        // 2) 全角コロン限定で key/value 抽出（行頭のみ許容）
         QRegularExpressionMatch m = kHeaderLine.match(line);
         if (!m.hasMatch()) continue;
 
@@ -718,37 +700,20 @@ QList<KifGameInfoItem> KifToSfenConverter::extractGameInfo(const QString& filePa
         if (key.isEmpty()) continue;
         const QString val = normalizeValue(m.captured(2));
 
-        if (indexByKey.contains(key)) {
-            const int idx = indexByKey.value(key);
-            if (!val.isEmpty()) {
-                ordered[idx].value += (ordered[idx].value.isEmpty() ? QString() : QStringLiteral("\n")) + val;
-            }
-        } else {
-            indexByKey.insert(key, ordered.size());
-            ordered.push_back({ key, val });
-        }
+        // 3) 出現順のまま格納（重複キーも別行として push_back）
+        ordered.push_back({ key, val });
     }
 
-    // 既知項目を優先して表示、未知キーは後方でキー名順
-    auto prefRank = [](const QString& k)->int {
-        const int idx = kPreferredOrder.indexOf(k);
-        return (idx >= 0) ? idx : 1000;
-    };
-    std::stable_sort(ordered.begin(), ordered.end(),
-                     [&](const KifGameInfoItem& a, const KifGameInfoItem& b) {
-                         const int ra = prefRank(a.key);
-                         const int rb = prefRank(b.key);
-                         if (ra != rb) return ra < rb;
-                         return a.key < b.key;
-                     });
-
+    // ※ 並べ替えも集約も行わない：KIFファイルの先頭からの出現順をそのまま維持
     return ordered;
 }
 
 QMap<QString, QString> KifToSfenConverter::extractGameInfoMap(const QString& filePath)
 {
+    // 注意: QMap はキー重複を保持しません（後勝ち）。
+    // 複数値を保持したい場合は、シグネチャを QMultiMap<QString, QString> に変更してください。
     QMap<QString, QString> m;
     const auto items = extractGameInfo(filePath);
-    for (const auto& it : items) m.insert(it.key, it.value);
+    for (const auto& it : items) m.insert(it.key, it.value); // 後勝ち
     return m;
 }
