@@ -67,6 +67,9 @@ public:
     // 追加（任意）：キー→値 へ高速アクセスしたい場合のマップ版
     static QMap<QString, QString> extractGameInfoMap(const QString& filePath);
 
+    static bool buildInitialSfenFromBod(const QStringList& lines, QString& outSfen,
+                                        QString* detectedLabel = nullptr, QString* warn = nullptr);
+
 private:
     // ---------- ヘルパ（共通） ----------
     static bool isSkippableLine(const QString& line);
