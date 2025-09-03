@@ -1,58 +1,61 @@
 #include "kifubranchlistmodel.h"
 
-// 棋譜欄を表示するクラス
-// コンストラクタ
-KifuBranchListModel::KifuBranchListModel(QObject *parent): AbstractListModel<KifuBranchDisplay>(parent)
-{
-}
+KifuBranchListModel::KifuBranchListModel(QObject *parent)
+    : AbstractListModel<KifuBranchDisplay>(parent)
+{}
 
-// 列数を返す。
 int KifuBranchListModel::columnCount(const QModelIndex &parent) const
 {
     Q_UNUSED(parent)
-
-    // 「分岐」の1列
-    return 1;
+    return 1; // 「分岐候補」1列
 }
 
-// データを返す。
+int KifuBranchListModel::rowCount(const QModelIndex &parent) const
+{
+    Q_UNUSED(parent)
+    return m_useInternalRows ? m_rows.size() : list.size(); // 後方互換
+}
+
 QVariant KifuBranchListModel::data(const QModelIndex &index, int role) const
 {
-    if (!index.isValid() || role != Qt::DisplayRole) {
-        return QVariant();
-    }
+    if (!index.isValid() || role != Qt::DisplayRole) return {};
 
-    // 列番号によって処理を分岐する。
-    switch (index.column()) {
-    case 0:
-        // 指し手を返す。
+    if (m_useInternalRows) {
+        // 新方式：KifDisplayItem を直接表示
+        return m_rows.at(index.row()).prettyMove;
+    } else {
+        // 旧方式（後方互換）：KifuBranchDisplay（QObject派生）
+        // 既存コードと同じ
         return list[index.row()]->currentMove();
-    default:
-        // それ以外の場合は空のQVariantを返す。
-        return QVariant();
     }
 }
 
-// ヘッダを返す。
-QVariant KifuBranchListModel::headerData(int section, Qt::Orientation orientation, int role) const
+QVariant KifuBranchListModel::headerData(int section, Qt::Orientation orientation,
+                                         int role) const
 {
-    // roleが表示用のデータを要求していない場合、空のQVariantを返す。
-    if (role != Qt::DisplayRole) {
-        return QVariant();
-    }
-
-    // 横方向のヘッダが要求された場合
+    if (role != Qt::DisplayRole) return {};
     if (orientation == Qt::Horizontal) {
-        switch (section) {
-        case 0:
-            // 指し手
-            return tr("Move");
-        default:
-            // それ以外の場合は空のQVariantを返す。
-            return QVariant();
-        }
+        if (section == 0) return tr("分岐候補");
+        return {};
     } else {
-        // 縦方向のヘッダが要求された場合、セクション番号を返す。
-        return QVariant(section + 1);
+        return section + 1; // 行番号
     }
+}
+
+// ---------------- 追加API ----------------
+
+void KifuBranchListModel::clearBranchCandidates()
+{
+    beginResetModel();
+    m_rows.clear();
+    m_useInternalRows = true;   // 空の内部行を使う
+    endResetModel();
+}
+
+void KifuBranchListModel::setBranchCandidatesFromKif(const QList<KifDisplayItem>& rows)
+{
+    beginResetModel();
+    m_rows = rows;
+    m_useInternalRows = true;   // 以降は内部行を使う
+    endResetModel();
 }
