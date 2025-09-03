@@ -6630,21 +6630,29 @@ QString MainWindow::findGameInfoValue(const QList<KifGameInfoItem>& items,
 
 void MainWindow::applyPlayersFromGameInfo(const QList<KifGameInfoItem>& items)
 {
-    // 優先順：先手/後手 →（未取得なら）下手/上手 →（さらに未取得なら）省略名
+    // 優先度：
+    // 1) 先手／後手
+    // 2) 下手／上手（→ 下手=Black, 上手=White）
+    // 3) 先手省略名／後手省略名
     QString black = findGameInfoValue(items, { QStringLiteral("先手") });
     QString white = findGameInfoValue(items, { QStringLiteral("後手") });
 
-    if (black.isEmpty())
-        black = findGameInfoValue(items, { QStringLiteral("下手") });
-    if (white.isEmpty())
-        white = findGameInfoValue(items, { QStringLiteral("上手") });
+    // 下手/上手にも対応（必要な側だけ補完）
+    const QString shitate = findGameInfoValue(items, { QStringLiteral("下手") });
+    const QString uwate   = findGameInfoValue(items, { QStringLiteral("上手") });
 
+    if (black.isEmpty() && !shitate.isEmpty())
+        black = shitate;                   // 下手 → Black
+    if (white.isEmpty() && !uwate.isEmpty())
+        white = uwate;                     // 上手 → White
+
+    // 省略名でのフォールバック
     if (black.isEmpty())
         black = findGameInfoValue(items, { QStringLiteral("先手省略名") });
     if (white.isEmpty())
         white = findGameInfoValue(items, { QStringLiteral("後手省略名") });
 
-    // 取得できた方だけ反映（既存の表示を尊重）
+    // 取得できた方だけ反映（既存表示を尊重）
     if (!black.isEmpty() && m_shogiView)
         m_shogiView->setBlackPlayerName(black);
     if (!white.isEmpty() && m_shogiView)
