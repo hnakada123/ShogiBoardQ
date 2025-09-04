@@ -1000,6 +1000,12 @@ private:
 
     // 分岐の開始手（本譜のどの手に分岐があるか）を記録
     QSet<int> m_branchablePlies;
+
+    void showRecordAtPly(const QList<KifDisplayItem>& disp, int selectPly);
+
+    QString m_initialSfen;
+
+    bool m_isKifuReplay = false;   // KIF読み込み/再生中フラグ
 };
 
 #endif // MAINWINDOW_H

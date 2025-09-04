@@ -4924,6 +4924,11 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
     QString teaiLabel;
     const QString initialSfen = prepareInitialSfen(filePath, teaiLabel);
 
+    // ← ここで保存
+    m_initialSfen = initialSfen;
+    // 追加：KIF再生モードに入る（時計アクセス抑止）
+    m_isKifuReplay = true;
+
     // 2) 解析（本譜＋分岐＋コメント）を一括取得
     KifParseResult res;
     QString parseWarn;
@@ -5167,8 +5172,8 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
     }
 
     // 7) GUI表示（まずは本譜）
-    displayGameRecord(disp);
-    navigateToFirstMove();
+    // ★開始時は必ず「開始局面」を選ぶ
+    showRecordAtPly(disp, /*selectPly=*/0);
     enableArrowButtons();
     m_kifuView->setSelectionMode(QAbstractItemView::SingleSelection);
 
@@ -5407,7 +5412,6 @@ void MainWindow::displayGameRecord(const QList<KifDisplayItem> disp)
             this, [this](const QModelIndex& cur, const QModelIndex&) {
                 updateBranchTextForRow(cur.row());
             });
-
 }
 
 static QString toHtmlWithLinks(const QString& plain)
@@ -5498,10 +5502,20 @@ void MainWindow::updateGameRecord(const QString& elapsedTime)
     m_kifuView->scrollToBottom();
     m_kifuView->update();
 
-    // 直前に指した側の考慮時間と、その時点の残時間をログ
-    qCDebug(ClockLog) << "in MainWindow::updateGameRecord";
+    // === ここから下がクラッシュ原因。KIF再生中は時計に触らない ===
+    if (m_isKifuReplay) {
+        qCDebug(ClockLog) << "[KIFU] replay mode: skip clock logging";
+        return;
+    }
+
+    // 追加の安全策：ポインタ存在チェック
+    if (!m_shogiClock || !m_gameController) {
+        qCDebug(ClockLog) << "[KIFU] clock/controller not ready, skip";
+        return;
+    }
+
+    // live対局時のみログ
     if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
-        // これから先手が考える＝最後に指したのは後手
         qCDebug(ClockLog) << "[KIFU] last-move consider_ms(P2)="
                           << m_shogiClock->getPlayer2ConsiderationTimeMs()
                           << " rem_ms(P2)=" << m_shogiClock->getPlayer2TimeIntMs();
@@ -6931,21 +6945,52 @@ void MainWindow::applyVariation(int parentPly, int branchIndex)
 void MainWindow::onBranchRowClicked(const QModelIndex& index)
 {
     if (!index.isValid()) return;
-    if (m_currentSelectedPly <= 0) return;  // 開始局面などは無効
+    const int ply = m_currentSelectedPly;
+    if (ply <= 0) return;
 
-    const int parentPly = m_currentSelectedPly;
-    const int row = index.row();
+    auto it = m_variationsByPly.constFind(ply);
+    if (it == m_variationsByPly.cend()) return;
+    const VariationBucket& bucket = it.value();
 
-    // 分岐候補欄の 0 行目は「本譜のその手」→ クリックしても本譜のまま
-    if (row == 0) {
-        // 必要なら本譜へ戻す処理を明示的に行ってもよい
-        // *m_sfenRecord = m_sfenMain; m_gameMoves = m_gmMain; displayGameRecord(m_dispMain);
+    // 0 行目は「本譜へ戻る（同手）」とする
+    if (index.row() == 0) {
+        // 本譜スナップショットへ戻す
+        *m_sfenRecord = m_sfenMain;
+        m_gameMoves   = m_gmMain;
+        showRecordAtPly(m_dispMain, /*selectPly=*/ply);   // 同じ手を選択状態で表示
         return;
     }
 
-    // 1 行目以降が分岐（bucket の 0..に対応）
-    const int branchIndex = row - 1;
-    applyVariation(parentPly, branchIndex);
+    // 1 行目以降が分岐（表示側の行index → 分岐indexに -1 で写像）
+    const int vIdx = index.row() - 1;
+    if (vIdx < 0 || vIdx >= bucket.size()) return;
+    const KifLine& v = bucket[vIdx];
+
+    // ---- 表示用リストを「本譜(～startPly-1) + 分岐」の形に合成 ----
+    QList<KifDisplayItem> mergedDisp;
+    if (v.startPly > 1)
+        mergedDisp = m_dispMain.mid(0, v.startPly - 1);
+    mergedDisp += v.disp;
+
+    // ---- SFEN列も「本譜prefix + 分岐v.sfenList(先頭重複除去)」で合成 ----
+    // m_sfenMain: [0]=初期, [n]=n手後。startPly の基底局面は index = startPly-1
+    QStringList mergedSfen = m_sfenMain.mid(0, v.startPly);
+    mergedSfen += v.sfenList.mid(1); // v.sfenList[0] は基底局面なので重複回避
+
+    // ---- m_gameMoves も同様に合成 ----
+    QVector<ShogiMove> mergedGm;
+    if (v.startPly > 1)
+        mergedGm = m_gmMain.mid(0, v.startPly - 1);
+    mergedGm += v.gameMoves;
+
+    *m_sfenRecord = mergedSfen;
+    m_gameMoves   = mergedGm;
+
+    // 分岐の最初の手（= startPly手目）を選択状態で表示
+    showRecordAtPly(mergedDisp, /*selectPly=*/v.startPly);
+
+    // （必要なら）この時点の分岐候補欄を維持/再表示
+    populateBranchListForPly(v.startPly);
 }
 
 // 全角/半角の数字を int に
@@ -7005,4 +7050,20 @@ static QList<int> scanVariationStarts(const QString& kifPath, QSet<int>& outBran
         }
     }
     return starts;
+}
+
+void MainWindow::showRecordAtPly(const QList<KifDisplayItem>& disp, int selectPly)
+{
+    // 既存のテーブル更新関数をそのまま使う（navigateToFirstMove を呼ばない方）
+    displayGameRecord(disp);
+
+    // 「=== 開始局面 ===」が row=0、1手目が row=1 という前提で行を選択
+    const int rc  = m_kifuRecordModel->rowCount();
+    const int row = qBound(0, selectPly, rc > 0 ? rc - 1 : 0);
+
+    const QModelIndex idx = m_kifuRecordModel->index(row, 0);
+    if (idx.isValid()) {
+        m_kifuView->setCurrentIndex(idx);
+        m_kifuView->scrollTo(idx, QAbstractItemView::PositionAtCenter);
+    }
 }
