@@ -1006,6 +1006,12 @@ private:
     QString m_initialSfen;
 
     bool m_isKifuReplay = false;   // KIF読み込み/再生中フラグ
+
+    // いまの m_currentSelectedPly に対応するSFENで盤面を更新する共通ヘルパ
+    void applySfenAtCurrentPly();
+
+    void refreshBoardAndHighlightsForRow(int row);
+
 };
 
 #endif // MAINWINDOW_H

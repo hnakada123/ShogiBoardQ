@@ -606,6 +606,58 @@ void MainWindow::updateBoardFromMoveHistory()
 
 // 棋譜欄下の矢印「1手進む」
 // 現局面から1手進んだ局面を表示する。
+// 棋譜欄下の矢印「1手進む」
+// 現局面から1手進んだ局面を表示する。
+void MainWindow::navigateToNextMove()
+{
+    // 既存の強調をクリア
+    clearMoveHighlights();
+
+    if (!m_kifuRecordModel || !m_sfenRecord || m_kifuRecordModel->rowCount() <= 0)
+        return;
+
+    // 現在の行（m_currentSelectedPly を優先、未設定ならビューの選択から）
+    int currentRow = (m_currentSelectedPly >= 0)
+                     ? m_currentSelectedPly
+                     : m_kifuView->currentIndex().row();
+
+    // 1手進める（未選択なら末尾に行くという従来挙動を踏襲）
+    int nextRow = (currentRow == -1)
+                  ? (m_kifuRecordModel->rowCount() - 1)
+                  : (currentRow + 1);
+
+    // 範囲内に丸める
+    if (nextRow >= m_kifuRecordModel->rowCount())
+        nextRow = m_kifuRecordModel->rowCount() - 1;
+    if (nextRow < 0) return;
+
+    // 内部状態を更新
+    m_currentSelectedPly = nextRow;   // 分岐切替でも使う“現在手数”
+    m_currentMoveIndex   = nextRow;   // 既存コードが参照している場合に備えて
+
+    // 棋譜欄の選択を見た目上も同期
+    const QModelIndex nextIndex = m_kifuRecordModel->index(nextRow, 0, QModelIndex());
+    m_kifuView->setCurrentIndex(nextIndex);
+    m_kifuView->scrollTo(nextIndex, QAbstractItemView::PositionAtCenter);
+
+    // ★盤面をこの手数のSFENに強制同期（共通化）
+    applySfenAtCurrentPly();
+
+    // 末尾でなければ移動元/先のハイライト
+    const int lastRow = m_kifuRecordModel->rowCount() - 1;
+    if (nextRow != lastRow) {
+        addMoveHighlights();
+    }
+
+    // コメント＆分岐候補の欄も更新
+    updateBranchTextForRow(nextRow);
+    populateBranchListForPly(nextRow);
+
+    // 矢印ボタンの有効/無効を更新（必要なら）
+    enableArrowButtons();
+}
+
+/*
 void MainWindow::navigateToNextMove()
 {
     // マスのハイライトを消去する。
@@ -652,6 +704,7 @@ void MainWindow::navigateToNextMove()
     // ★ コメント欄を更新
     updateBranchTextForRow(nextRow);
 }
+*/
 
 // 棋譜欄下の矢印「10手進む」
 // 現局面から10手進んだ局面を表示する。
@@ -6945,6 +6998,8 @@ void MainWindow::applyVariation(int parentPly, int branchIndex)
 void MainWindow::onBranchRowClicked(const QModelIndex& index)
 {
     if (!index.isValid()) return;
+
+    // いま棋譜欄で選択されている“手目”（= 分岐開始手）
     const int ply = m_currentSelectedPly;
     if (ply <= 0) return;
 
@@ -6952,30 +7007,54 @@ void MainWindow::onBranchRowClicked(const QModelIndex& index)
     if (it == m_variationsByPly.cend()) return;
     const VariationBucket& bucket = it.value();
 
-    // 0 行目は「本譜へ戻る（同手）」とする
+    // --- 0 行目は「本譜（同手へ戻る）」 ---
     if (index.row() == 0) {
         // 本譜スナップショットへ戻す
         *m_sfenRecord = m_sfenMain;
         m_gameMoves   = m_gmMain;
-        showRecordAtPly(m_dispMain, /*selectPly=*/ply);   // 同じ手を選択状態で表示
+
+        // 表示（本譜）を“同じ手目 ply”で再構築
+        showRecordAtPly(m_dispMain, /*selectPly=*/ply);
+
+        // 棋譜欄の選択も合わせる
+        if (m_kifuRecordModel && m_kifuView) {
+            const QModelIndex idx = m_kifuRecordModel->index(ply, 0);
+            m_kifuView->setCurrentIndex(idx);
+            m_kifuView->scrollTo(idx, QAbstractItemView::PositionAtCenter);
+        }
+
+        // 内部手数も揃える
+        m_currentSelectedPly = ply;
+        m_currentMoveIndex   = ply;
+
+        // ★ 盤面をこの手数に明示同期し、HLを本譜のものに更新
+        applySfenAtCurrentPly();
+        clearMoveHighlights();
+        if (ply > 0 && ply <= m_gameMoves.size()) {
+            addMoveHighlights();
+        }
+
+        // 分岐候補欄をこの手目で再構築（本譜に戻した状態の候補を出す）
+        populateBranchListForPly(ply);
+
+        enableArrowButtons();
         return;
     }
 
-    // 1 行目以降が分岐（表示側の行index → 分岐indexに -1 で写像）
+    // --- 1 行目以降が分岐（表示行 index → 分岐 index = index.row()-1） ---
     const int vIdx = index.row() - 1;
     if (vIdx < 0 || vIdx >= bucket.size()) return;
     const KifLine& v = bucket[vIdx];
 
-    // ---- 表示用リストを「本譜(～startPly-1) + 分岐」の形に合成 ----
+    // ---- 表示用リスト：本譜(～startPly-1) + 分岐 ----
     QList<KifDisplayItem> mergedDisp;
     if (v.startPly > 1)
         mergedDisp = m_dispMain.mid(0, v.startPly - 1);
     mergedDisp += v.disp;
 
-    // ---- SFEN列も「本譜prefix + 分岐v.sfenList(先頭重複除去)」で合成 ----
-    // m_sfenMain: [0]=初期, [n]=n手後。startPly の基底局面は index = startPly-1
+    // ---- SFEN列：本譜prefix + 分岐v.sfenList(先頭は基底なので除外) ----
     QStringList mergedSfen = m_sfenMain.mid(0, v.startPly);
-    mergedSfen += v.sfenList.mid(1); // v.sfenList[0] は基底局面なので重複回避
+    mergedSfen += v.sfenList.mid(1);
 
     // ---- m_gameMoves も同様に合成 ----
     QVector<ShogiMove> mergedGm;
@@ -6983,14 +7062,35 @@ void MainWindow::onBranchRowClicked(const QModelIndex& index)
         mergedGm = m_gmMain.mid(0, v.startPly - 1);
     mergedGm += v.gameMoves;
 
+    // メンバを差し替え
     *m_sfenRecord = mergedSfen;
     m_gameMoves   = mergedGm;
 
-    // 分岐の最初の手（= startPly手目）を選択状態で表示
+    // 分岐の最初の手（= startPly 手目）を選択状態で表示
     showRecordAtPly(mergedDisp, /*selectPly=*/v.startPly);
 
-    // （必要なら）この時点の分岐候補欄を維持/再表示
+    // 分岐候補欄も、この手目で再構築（“本譜に戻る＋他の候補”）
     populateBranchListForPly(v.startPly);
+
+    // 内部手数・GUI選択を揃える
+    m_currentSelectedPly = v.startPly;
+    m_currentMoveIndex   = v.startPly;
+
+    if (m_kifuRecordModel && m_kifuView) {
+        const QModelIndex idx = m_kifuRecordModel->index(m_currentSelectedPly, 0);
+        m_kifuView->setCurrentIndex(idx);
+        m_kifuView->scrollTo(idx, QAbstractItemView::PositionAtCenter);
+    }
+
+    // ★ 最重要：盤面をこの手数に明示同期し、HLを“分岐”のものに更新
+    applySfenAtCurrentPly();
+    clearMoveHighlights();
+    if (m_currentSelectedPly > 0 && m_currentSelectedPly <= m_gameMoves.size()) {
+        addMoveHighlights();
+    }
+
+    // 矢印ボタンなどの有効/無効を更新
+    enableArrowButtons();
 }
 
 // 全角/半角の数字を int に
@@ -7065,5 +7165,39 @@ void MainWindow::showRecordAtPly(const QList<KifDisplayItem>& disp, int selectPl
     if (idx.isValid()) {
         m_kifuView->setCurrentIndex(idx);
         m_kifuView->scrollTo(idx, QAbstractItemView::PositionAtCenter);
+    }
+}
+
+// 現在の手数（m_currentSelectedPly）に対応するSFENを盤面へ反映
+void MainWindow::applySfenAtCurrentPly()
+{
+    if (!m_sfenRecord || m_sfenRecord->isEmpty()) return;
+
+    const int idx = qBound(0, m_currentSelectedPly, m_sfenRecord->size() - 1);
+    QString sfen = m_sfenRecord->at(idx);
+
+    // 既存の盤面反映APIに合わせてください
+    m_gameController->board()->setSfen(sfen);
+}
+
+// MainWindow.cpp
+void MainWindow::refreshBoardAndHighlightsForRow(int row)
+{
+    if (!m_sfenRecord || m_sfenRecord->isEmpty()) return;
+    if (row < 0) row = 0;
+    if (row >= m_sfenRecord->size()) row = m_sfenRecord->size() - 1;
+
+    // “現在手数”として内部状態を揃える（既存実装に合わせて両方更新）
+    m_currentSelectedPly = row;
+    m_currentMoveIndex   = row;
+
+    // 盤面をこの手数のSFENへ
+    applySfenAtCurrentPly();
+
+    // ハイライトの更新
+    clearMoveHighlights();
+    // 開始局面(row==0)ではハイライト不要。m_gameMovesは手数分だけ入っている想定。
+    if (row > 0 && row <= m_gameMoves.size()) {
+        addMoveHighlights();
     }
 }
