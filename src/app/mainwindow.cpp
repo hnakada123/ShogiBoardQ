@@ -657,55 +657,6 @@ void MainWindow::navigateToNextMove()
     enableArrowButtons();
 }
 
-/*
-void MainWindow::navigateToNextMove()
-{
-    // マスのハイライトを消去する。
-    clearMoveHighlights();
-
-    // 現在のインデックスを取得する。
-    QModelIndex currentIndex = m_kifuView->currentIndex();
-
-    // 現在の行を取得する。
-    int currentRow = currentIndex.row();
-
-    // 棋譜欄で次の手（1手進む）に移動する。
-    int nextRow = currentRow == -1 ? m_kifuRecordModel->rowCount() - 1 : currentRow + 1;
-
-    // 棋譜のリストの範囲を超えていないかチェックする。
-    if (nextRow >= m_kifuRecordModel->rowCount()) {
-        // 最後の手に移動する。
-        nextRow = m_kifuRecordModel->rowCount() - 1;
-    }
-
-    // 移動先のインデックスをセットする。
-    QModelIndex nextIndex = m_kifuRecordModel->index(nextRow, 0, QModelIndex());
-
-    m_kifuView->setCurrentIndex(nextIndex);
-
-    // SFEN文字列を取得し、盤面を更新する。
-    QString sfenStr = m_sfenRecord->at(nextRow);
-
-    // 盤面を更新する。
-    m_gameController->board()->setSfen(sfenStr);
-
-    // 現在の手数を更新する。
-    m_currentMoveIndex = nextRow;
-
-    // 最終行のインデックスを取得する。
-    int lastRowIndex = m_kifuRecordModel->rowCount() - 1;
-
-    // 移動先が最終行でない場合
-    if (nextRow != lastRowIndex) {
-        // 駒の移動元と移動先のマスをハイライトする。
-        addMoveHighlights();
-    }
-
-    // ★ コメント欄を更新
-    updateBranchTextForRow(nextRow);
-}
-*/
-
 // 棋譜欄下の矢印「10手進む」
 // 現局面から10手進んだ局面を表示する。
 void MainWindow::navigateForwardTenMoves()
@@ -713,46 +664,47 @@ void MainWindow::navigateForwardTenMoves()
     // マスのハイライトを消去する。
     clearMoveHighlights();
 
-    // 現在のインデックスを取得する。
-    QModelIndex currentIndex = m_kifuView->currentIndex();
+    if (!m_kifuRecordModel || !m_sfenRecord || m_kifuRecordModel->rowCount() <= 0)
+        return;
 
-    // 現在の行を取得する。
-    int currentRow = currentIndex.row();
+    // 現在の行（分岐対応のため m_currentSelectedPly を優先）
+    int currentRow = (m_currentSelectedPly >= 0)
+                     ? m_currentSelectedPly
+                     : m_kifuView->currentIndex().row();
 
-    // 棋譜欄で次の10手（10手進む）に移動する。
-    int nextRow = currentRow == -1 ? m_kifuRecordModel->rowCount() - 1 : currentRow + 10;
+    // 10手先へ（未選択なら末尾へという従来挙動を踏襲）
+    int nextRow = (currentRow == -1)
+                  ? (m_kifuRecordModel->rowCount() - 1)
+                  : (currentRow + 10);
 
-    // 棋譜のリストの範囲を超えていないかチェックする。
-    if (nextRow >= m_kifuRecordModel->rowCount()) {
-        // 最後の手に移動する。
-        nextRow = m_kifuRecordModel->rowCount() - 1;
-    }
+    // 範囲に丸める
+    const int lastRow = m_kifuRecordModel->rowCount() - 1;
+    if (nextRow > lastRow) nextRow = lastRow;
+    if (nextRow < 0)       nextRow = 0;
 
-    // 移動先のインデックスをセットする。
-    QModelIndex nextIndex = m_kifuRecordModel->index(nextRow, 0, QModelIndex());
+    // 内部状態を更新（分岐切替や前/次ナビと統一）
+    m_currentSelectedPly = nextRow;
+    m_currentMoveIndex   = nextRow;  // 互換のため維持
 
+    // 棋譜欄の選択も同期
+    const QModelIndex nextIndex = m_kifuRecordModel->index(nextRow, 0, QModelIndex());
     m_kifuView->setCurrentIndex(nextIndex);
+    m_kifuView->scrollTo(nextIndex, QAbstractItemView::PositionAtCenter);
 
-    // SFEN文字列を取得する。
-    QString sfenStr = m_sfenRecord->at(nextRow);
+    // ★ 現在手数に対応するSFENを盤面へ反映（共通ヘルパ）
+    applySfenAtCurrentPly();
 
-    // 盤面を更新する。
-    m_gameController->board()->setSfen(sfenStr);
-
-    // 現在の手数を更新する。
-    m_currentMoveIndex = nextRow;
-
-    // 最終行のインデックスを取得
-    int lastRowIndex = m_kifuRecordModel->rowCount() - 1;
-
-    // 移動先が最終行でない場合
-    if (nextRow != lastRowIndex) {
-        // 駒の移動元と移動先のマスをハイライトする。
+    // 末尾でなければ移動元/先のハイライト
+    if (nextRow != lastRow) {
         addMoveHighlights();
     }
 
-    // ★ コメント欄を更新
+    // コメント欄＆分岐候補を更新
     updateBranchTextForRow(nextRow);
+    populateBranchListForPly(nextRow);
+
+    // 矢印ボタンの有効/無効を更新（必要なら）
+    enableArrowButtons();
 }
 
 // 棋譜欄下の矢印「最後まで進む」
@@ -762,128 +714,146 @@ void MainWindow::navigateToLastMove()
     // マスのハイライトを消去
     clearMoveHighlights();
 
-    // 最終行のインデックスを取得
-    int lastRowIndex = m_kifuRecordModel->rowCount() - 1;
+    if (!m_kifuRecordModel || !m_sfenRecord || m_kifuRecordModel->rowCount() <= 0)
+        return;
 
-    // 最終行のインデックスが有効な場合のみ処理
-    if (lastRowIndex >= 0) {
-        // 棋譜欄の最終行のインデックスを現在のインデックスにセット
-        QModelIndex lastIndex = m_kifuRecordModel->index(lastRowIndex, 0);
+    // 最終行
+    const int lastRowIndex = m_kifuRecordModel->rowCount() - 1;
+    if (lastRowIndex < 0) return;
 
-        m_kifuView->setCurrentIndex(lastIndex);
+    // 内部状態を更新（分岐切替や他ナビと統一）
+    m_currentSelectedPly = lastRowIndex;
+    m_currentMoveIndex   = lastRowIndex; // 互換維持
 
-        // SFEN文字列を取得し、盤面を更新
-        QString sfenStr = m_sfenRecord->at(lastRowIndex);
+    // 棋譜欄の選択も同期
+    const QModelIndex lastIndex = m_kifuRecordModel->index(lastRowIndex, 0, QModelIndex());
+    m_kifuView->setCurrentIndex(lastIndex);
+    m_kifuView->scrollTo(lastIndex, QAbstractItemView::PositionAtCenter);
 
-        // 盤面を更新する。
-        m_gameController->board()->setSfen(sfenStr);
+    // ★ 現在手数に対応するSFENを盤面へ反映（共通ヘルパ）
+    applySfenAtCurrentPly();
 
-        // 現在の手数を更新
-        m_currentMoveIndex = lastRowIndex;
+    // 最終手なので移動元/先ハイライトは付けない（従来仕様を踏襲）
 
-        // ★ コメント欄を更新
-        updateBranchTextForRow(lastRowIndex);
-    }
+    // コメント欄＆分岐候補を更新
+    updateBranchTextForRow(lastRowIndex);
+    populateBranchListForPly(lastRowIndex);
+
+    // 矢印ボタンの有効/無効を更新（必要なら）
+    enableArrowButtons();
 }
 
 // 棋譜欄下の矢印「1手戻る」
 // 現局面から1手戻った局面を表示する。
 void MainWindow::navigateToPreviousMove()
 {
-    // 棋譜欄下の矢印「1手戻る」ボタンを押した時の元のインデックスを指す。
-    QModelIndex indexBefore = m_kifuView->currentIndex();
-
-    // 移動先のインデックスを計算する。
-    int rowToMove = indexBefore.row() == -1 ? m_kifuRecordModel->rowCount() - 1 : indexBefore.row() - 1;
-
-    // 移動先のインデックスが有効な範囲内か確認する。
-    if (rowToMove >= 0 && rowToMove < m_kifuRecordModel->rowCount()) {
-        // 移動先のインデックスを現在のインデックスにセットする。
-        QModelIndex indexAfter = m_kifuRecordModel->index(rowToMove, 0, QModelIndex());
-
-        // 移動先のインデックスを現在のインデックスにセットする。
-        m_kifuView->setCurrentIndex(indexAfter);
-
-        // SFEN文字列リストより移動先のインデックス行のSFEN文字列を取り出す。
-        QString str = m_sfenRecord->at(indexAfter.row());
-
-        // SFEN文字列の盤面を描画する。
-        m_gameController->board()->setSfen(str);
-
-        // 現在の手数をセットする。
-        m_currentMoveIndex = indexAfter.row();
-
-        // ★ コメント欄を更新
-        updateBranchTextForRow(rowToMove);
-    }
-
-    // マスのハイライトを更新する。
+    // まず既存ハイライトを消す
     clearMoveHighlights();
 
-    // 1手以上指している時、駒の移動元と移動先のマスをそれぞれ別の色でハイライトする。
-    if (m_currentMoveIndex) addMoveHighlights();
+    if (!m_kifuRecordModel || !m_sfenRecord || m_kifuRecordModel->rowCount() <= 0)
+        return;
+
+    // 元の選択
+    const QModelIndex cur = m_kifuView->currentIndex();
+    const int curRow = cur.row();
+
+    // 移動先（1手戻る）
+    int prevRow = (curRow == -1) ? (m_kifuRecordModel->rowCount() - 1) : (curRow - 1);
+    if (prevRow < 0) prevRow = 0;  // 先頭より戻らない
+
+    // 内部手数も更新（分岐/本譜どちらでも共通）
+    m_currentSelectedPly = prevRow;
+    m_currentMoveIndex   = prevRow; // 既存互換
+
+    // 棋譜欄の選択を同期
+    const QModelIndex prevIdx = m_kifuRecordModel->index(prevRow, 0, QModelIndex());
+    m_kifuView->setCurrentIndex(prevIdx);
+    m_kifuView->scrollTo(prevIdx, QAbstractItemView::PositionAtCenter);
+
+    // ★ 現在手数に対応するSFENを盤面へ反映（本譜/分岐を自動判定）
+    applySfenAtCurrentPly();
+
+    // 先頭以外なら移動元/先ハイライト
+    if (prevRow > 0) addMoveHighlights();
+
+    // コメント欄と分岐候補欄を更新
+    updateBranchTextForRow(prevRow);
+    populateBranchListForPly(prevRow);
+
+    // 矢印ボタンの有効/無効を更新
+    enableArrowButtons();
 }
 
 // 棋譜欄下の矢印「10手戻る」
 // 現局面から10手戻った局面を表示する。
 void MainWindow::navigateBackwardTenMoves()
 {
-    // 棋譜欄下の矢印「10手戻る」ボタンを押した時の元のインデックスを指す。
-    QModelIndex indexBefore = m_kifuView->currentIndex();
-
-    // 現在の行が無効な場合、最後の行に設定する。
-    int rowToMove = indexBefore.row() == -1 ? m_kifuRecordModel->rowCount() - 1 : indexBefore.row();
-
-    // 10手戻る先の行数を計算する。
-    rowToMove -= 10;
-
-    // 移動先のインデックスが有効な範囲内か確認する。無効な場合は最初の手（インデックス0）に移動する。
-    rowToMove = (rowToMove < 0) ? 0 : rowToMove;
-
-    QModelIndex indexAfter = m_kifuRecordModel->index(rowToMove, 0, QModelIndex());
-
-    // 移動先のインデックスを現在のインデックスにセットする。
-    m_kifuView->setCurrentIndex(indexAfter);
-
-    // SFEN文字列リストより移動先のインデックス行のSFEN文字列を取り出す。
-    QString str = m_sfenRecord->at(indexAfter.row());
-
-    // SFEN文字列の盤面を描画する。
-    m_gameController->board()->setSfen(str);
-
-    // 現在の手数をセットする。
-    m_currentMoveIndex = indexAfter.row();
-
-    // マスのハイライトを更新する。
+    // 既存ハイライトを消去
     clearMoveHighlights();
 
-    // 1手以上指している時、駒の移動元と移動先のマスをそれぞれ別の色でハイライトする。
-    if (m_currentMoveIndex) addMoveHighlights();
+    if (!m_kifuRecordModel || !m_sfenRecord || m_kifuRecordModel->rowCount() <= 0)
+        return;
 
-    // ★ コメント欄を更新
-    updateBranchTextForRow(rowToMove);
+    // 現在行（未選択なら最終行扱い）
+    const QModelIndex cur = m_kifuView->currentIndex();
+    const int curRow = (cur.row() == -1) ? (m_kifuRecordModel->rowCount() - 1) : cur.row();
+
+    // 10手戻る（0でクランプ）
+    int target = curRow - 10;
+    if (target < 0) target = 0;
+
+    // 内部手数を更新（分岐/本譜共通の現在手）
+    m_currentSelectedPly = target;
+    m_currentMoveIndex   = target; // 既存互換
+
+    // 棋譜欄の選択を同期
+    const QModelIndex idx = m_kifuRecordModel->index(target, 0, QModelIndex());
+    m_kifuView->setCurrentIndex(idx);
+    m_kifuView->scrollTo(idx, QAbstractItemView::PositionAtCenter);
+
+    // ★ 現在手に対応するSFENを盤面へ（本譜/分岐を自動判定）
+    applySfenAtCurrentPly();
+
+    // 先頭以外なら移動元/先をハイライト
+    if (target > 0) addMoveHighlights();
+
+    // コメント欄＆分岐候補欄を更新
+    updateBranchTextForRow(target);
+    populateBranchListForPly(target);
+
+    // 矢印ボタンの有効/無効更新
+    enableArrowButtons();
 }
 
 // 棋譜欄下の矢印「最初の局面に戻る」
 // 現局面から最初の局面を表示する。
 void MainWindow::navigateToFirstMove()
 {
-    // マスのハイライトを消去
+    // 既存ハイライトを消去
     clearMoveHighlights();
 
-    // 棋譜欄の最初のインデックス（初期状態）をセットする。
-    QModelIndex firstIndex = m_kifuRecordModel->index(0, 0);
+    if (!m_kifuRecordModel || m_kifuRecordModel->rowCount() <= 0)
+        return;
 
+    // 先頭へ
+    m_currentSelectedPly = 0;
+    m_currentMoveIndex   = 0; // 既存互換
+
+    const QModelIndex firstIndex = m_kifuRecordModel->index(0, 0);
     m_kifuView->setCurrentIndex(firstIndex);
+    m_kifuView->scrollTo(firstIndex, QAbstractItemView::PositionAtTop);
 
-    // SFEN文字列リストから最初のインデックス行のSFEN文字列を取得し、盤面を更新
-    QString sfenStr = m_sfenRecord->at(0);
+    // ★ 現在手(=0)に対応するSFENを盤面へ（本譜/分岐を自動判定）
+    applySfenAtCurrentPly();
 
-    // 盤面を更新する。
-    m_gameController->board()->setSfen(sfenStr);
+    // 先頭なのでハイライトは無し
 
-    // ★ コメント欄を更新
+    // コメント欄＆分岐候補欄を更新
     updateBranchTextForRow(0);
+    populateBranchListForPly(0);
+
+    // 矢印ボタンの有効/無効更新
+    enableArrowButtons();
 }
 
 // 待ったをした場合、position文字列のセットと評価値グラフの値を削除する。
