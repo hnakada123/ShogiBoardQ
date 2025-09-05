@@ -6887,40 +6887,57 @@ void MainWindow::onMainMoveRowChanged(const QModelIndex& current, const QModelIn
 
 void MainWindow::populateBranchListForPly(int ply)
 {
-    qDebug() << "[BRANCH] populate ply=" << ply
-             << " hasKey=" << m_variationsByPly.contains(ply)
-             << " dispMainSz=" << m_dispMain.size();
+    qDebug().noquote() << "[BRANCH] populate ply=" << ply
+                       << " hasKey=" << m_variationsByPly.contains(ply)
+                       << " dispMainSz=" << m_dispMain.size();
 
+    // 分岐が無い → 空
     if (ply <= 0 || !m_variationsByPly.contains(ply)) {
-        qDebug() << "[BRANCH] -> clear (no bucket)";
         m_kifuBranchModel->clearBranchCandidates();
+        m_kifuBranchModel->setHasBackToMainRow(false);
         m_kifuBranchView->setEnabled(false);
         return;
     }
 
     const VariationBucket& bucket = m_variationsByPly[ply];
-    qDebug() << "[BRANCH] bucket size =" << bucket.size();
+    if (bucket.isEmpty()) {
+        m_kifuBranchModel->clearBranchCandidates();
+        m_kifuBranchModel->setHasBackToMainRow(false);
+        m_kifuBranchView->setEnabled(false);
+        return;
+    }
 
+    // 分岐候補：本譜のその手（= ply手目の手）＋ 各分岐の最初の手
     QList<KifDisplayItem> items;
-    if (ply >= 1 && ply <= m_dispMain.size())
-        items << m_dispMain.at(ply - 1); // 本譜のその手（例:「▲２五歩(26)」）
+    items.reserve(bucket.size() + 1);
 
+    if (ply - 1 >= 0 && ply - 1 < m_dispMain.size()) {
+        items << m_dispMain.at(ply - 1); // 例：「▲２五歩(26)」
+    }
     for (const KifLine& v : bucket) {
-        if (!v.disp.isEmpty()) items << v.disp.first(); // 分岐の初手（例:「▲１六歩(17)」）
+        if (!v.disp.isEmpty()) items << v.disp.first(); // 例：「▲１六歩(17)」
     }
 
-    for (int i = 0; i < items.size(); ++i) {
-        qDebug().noquote()
-            << QString("[BRANCH] item%1: 「%2」, time=%3")
-                   .arg(i + 1).arg(items[i].prettyMove,
-                                   items[i].timeText.isEmpty()
-                                     ? QStringLiteral("-") : items[i].timeText);
-    }
-
+    // モデル反映：候補セット＆末尾に「本譜へ戻る」を出す
     m_kifuBranchModel->setBranchCandidatesFromKif(items);
-    m_kifuBranchView->setEnabled(!items.isEmpty());
-}
+    m_kifuBranchModel->setHasBackToMainRow(true);
+    m_kifuBranchView->setEnabled(true);
 
+    // 参考ログ
+    qDebug().noquote() << "[BRANCH] bucket size =" << bucket.size();
+    if (!items.isEmpty()) {
+        qDebug().noquote() << "[BRANCH] item1:" << QStringLiteral("「%1」, time=%2")
+                              .arg(items.first().prettyMove,
+                                   items.first().timeText.isEmpty()
+                                       ? QStringLiteral("-") : items.first().timeText);
+        if (items.size() >= 2) {
+            qDebug().noquote() << "[BRANCH] item2:" << QStringLiteral("「%1」, time=%2")
+                                  .arg(items.at(1).prettyMove,
+                                       items.at(1).timeText.isEmpty()
+                                           ? QStringLiteral("-") : items.at(1).timeText);
+        }
+    }
+}
 
 void MainWindow::applyVariation(int parentPly, int branchIndex)
 {
@@ -6965,11 +6982,36 @@ void MainWindow::applyVariation(int parentPly, int branchIndex)
     enableArrowButtons();
 }
 
+void MainWindow::syncBoardAndHighlightsAtRow(int row)
+{
+    if (!m_sfenRecord) return;
+
+    // sfen の最大インデックスは size-1（0=初期局面）
+    const int last = m_sfenRecord->size() - 1;
+    if (last < 0) return;
+
+    // row を安全な範囲にクリップ
+    const int safeRow = qBound(0, row, last);
+
+    // 内部状態をまず揃える
+    m_currentSelectedPly = safeRow;
+    m_currentMoveIndex   = safeRow;
+
+    // 盤面 → ハイライト の順で更新（ハイライトは1手目以降のみ）
+    clearMoveHighlights();
+    applySfenAtCurrentPly();
+
+    if (safeRow > 0 && safeRow - 1 < m_gameMoves.size()) {
+        addMoveHighlights();
+    } else {
+        // 必要ならデバッグログ
+        // qDebug() << "[SYNC] highlight skipped: row=" << safeRow << " gameMoves=" << m_gameMoves.size();
+    }
+}
+
 void MainWindow::onBranchRowClicked(const QModelIndex& index)
 {
     if (!index.isValid()) return;
-
-    // いま棋譜欄で選択されている“手目”（= 分岐開始手）
     const int ply = m_currentSelectedPly;
     if (ply <= 0) return;
 
@@ -6977,89 +7019,73 @@ void MainWindow::onBranchRowClicked(const QModelIndex& index)
     if (it == m_variationsByPly.cend()) return;
     const VariationBucket& bucket = it.value();
 
-    // --- 0 行目は「本譜（同手へ戻る）」 ---
-    if (index.row() == 0) {
-        // 本譜スナップショットへ戻す
+    const int row = index.row();
+
+    // 末尾の「本譜へ戻る」行？
+    if (m_kifuBranchModel->isBackToMainRow(row)) {
         *m_sfenRecord = m_sfenMain;
         m_gameMoves   = m_gmMain;
-
-        // 表示（本譜）を“同じ手目 ply”で再構築
         showRecordAtPly(m_dispMain, /*selectPly=*/ply);
 
-        // 棋譜欄の選択も合わせる
-        if (m_kifuRecordModel && m_kifuView) {
-            const QModelIndex idx = m_kifuRecordModel->index(ply, 0);
-            m_kifuView->setCurrentIndex(idx);
-            m_kifuView->scrollTo(idx, QAbstractItemView::PositionAtCenter);
-        }
+        // 盤・ハイライトも即時同期（本譜の同じ手へ）
+        syncBoardAndHighlightsAtRow(ply);
 
-        // 内部手数も揃える
-        m_currentSelectedPly = ply;
-        m_currentMoveIndex   = ply;
-
-        // ★ 盤面をこの手数に明示同期し、HLを本譜のものに更新
-        applySfenAtCurrentPly();
-        clearMoveHighlights();
-        if (ply > 0 && ply <= m_gameMoves.size()) {
-            addMoveHighlights();
-        }
-
-        // 分岐候補欄をこの手目で再構築（本譜に戻した状態の候補を出す）
         populateBranchListForPly(ply);
-
         enableArrowButtons();
         return;
     }
 
-    // --- 1 行目以降が分岐（表示行 index → 分岐 index = index.row()-1） ---
-    const int vIdx = index.row() - 1;
+    // 行0は「本譜のその手」：本譜維持で同手選択に戻す
+    if (row == 0) {
+        *m_sfenRecord = m_sfenMain;
+        m_gameMoves   = m_gmMain;
+        showRecordAtPly(m_dispMain, /*selectPly=*/ply);
+
+        syncBoardAndHighlightsAtRow(ply);
+
+        populateBranchListForPly(ply);
+        enableArrowButtons();
+        return;
+    }
+
+    // それ以外は分岐（行1が分岐0）
+    const int vIdx = row - 1;
     if (vIdx < 0 || vIdx >= bucket.size()) return;
     const KifLine& v = bucket[vIdx];
 
-    // ---- 表示用リスト：本譜(～startPly-1) + 分岐 ----
+    // 本譜prefix + 分岐 で合成
     QList<KifDisplayItem> mergedDisp;
     if (v.startPly > 1)
         mergedDisp = m_dispMain.mid(0, v.startPly - 1);
     mergedDisp += v.disp;
 
-    // ---- SFEN列：本譜prefix + 分岐v.sfenList(先頭は基底なので除外) ----
     QStringList mergedSfen = m_sfenMain.mid(0, v.startPly);
     mergedSfen += v.sfenList.mid(1);
 
-    // ---- m_gameMoves も同様に合成 ----
     QVector<ShogiMove> mergedGm;
     if (v.startPly > 1)
         mergedGm = m_gmMain.mid(0, v.startPly - 1);
     mergedGm += v.gameMoves;
 
-    // メンバを差し替え
     *m_sfenRecord = mergedSfen;
     m_gameMoves   = mergedGm;
 
-    // 分岐の最初の手（= startPly 手目）を選択状態で表示
+    // 分岐の最初の手（= startPly）を選択状態で表示
     showRecordAtPly(mergedDisp, /*selectPly=*/v.startPly);
-
-    // 分岐候補欄も、この手目で再構築（“本譜に戻る＋他の候補”）
-    populateBranchListForPly(v.startPly);
-
-    // 内部手数・GUI選択を揃える
     m_currentSelectedPly = v.startPly;
-    m_currentMoveIndex   = v.startPly;
 
+    // 棋譜欄の選択も合わせる
     if (m_kifuRecordModel && m_kifuView) {
         const QModelIndex idx = m_kifuRecordModel->index(m_currentSelectedPly, 0);
         m_kifuView->setCurrentIndex(idx);
         m_kifuView->scrollTo(idx, QAbstractItemView::PositionAtCenter);
     }
 
-    // ★ 最重要：盤面をこの手数に明示同期し、HLを“分岐”のものに更新
-    applySfenAtCurrentPly();
-    clearMoveHighlights();
-    if (m_currentSelectedPly > 0 && m_currentSelectedPly <= m_gameMoves.size()) {
-        addMoveHighlights();
-    }
+    // ★ここがポイント：分岐の手で同期する
+    syncBoardAndHighlightsAtRow(v.startPly);
 
-    // 矢印ボタンなどの有効/無効を更新
+    // 分岐候補欄は同じ手目のまま（“戻る”行込み）
+    populateBranchListForPly(v.startPly);
     enableArrowButtons();
 }
 

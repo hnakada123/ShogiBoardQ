@@ -18,3 +18,8 @@ QString KifuBranchDisplay::currentMove() const
 {
     return m_currentMove;
 }
+
+void KifuBranchDisplay::setCurrentMove(const QString &newCurrentMove)
+{
+    m_currentMove = newCurrentMove;
+}

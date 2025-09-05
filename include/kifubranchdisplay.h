@@ -19,6 +19,8 @@ public:
     // 指し手を取得する。
     QString currentMove() const;
 
+    void setCurrentMove(const QString &newCurrentMove);
+
 private:
     // 指し手
     QString m_currentMove;
