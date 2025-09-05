@@ -1,4 +1,6 @@
 
 /build
 CMakeLists.txt.user
-CMakeLists.txt.user
+
+# Qt Creator user files
+*.user
