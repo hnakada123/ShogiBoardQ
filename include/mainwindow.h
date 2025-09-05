@@ -1012,6 +1012,8 @@ private:
 
     void refreshBoardAndHighlightsForRow(int row);
 
+    // MainWindow の private: に追加
+    void syncBoardAndHighlightsAtRow(int row);
 };
 
 #endif // MAINWINDOW_H
