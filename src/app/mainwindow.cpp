@@ -581,24 +581,21 @@ void MainWindow::updateBoardFromMoveHistory()
     // 既存ハイライトを消す
     clearMoveHighlights();
 
-    if (!m_kifuRecordModel || !m_sfenRecord || m_sfenRecord->isEmpty()) {
+    // 必須ポインタの存在チェック
+    if (!m_kifuView || !m_kifuRecordModel || !m_sfenRecord || m_sfenRecord->isEmpty()) {
         return;
     }
 
-    // 現在行を取得（無効なら初期局面に合わせる）
+    // 現在行（無効なら 0＝開始局面）
     const QModelIndex index = m_kifuView->currentIndex();
     int viewRow = index.isValid() ? index.row() : 0;
 
-    // SFEN は「初期局面を含む手数+1」個。
-    // 一方、終局行（投了/中断など）は局面を増やさないので
-    // 表示行数の方が 1 だけ多くなる場合がある。
-    const int sfenCount = m_sfenRecord->size();           // 例: 手数5なら 6
-    const int modelLastRow = m_kifuRecordModel->rowCount() - 1;
+    // SFEN は「初期局面を含む手数+1」個
+    const int sfenCount   = m_sfenRecord->size();            // 例: 手数5 → 6
+    const int modelLast   = m_kifuRecordModel->rowCount() - 1;
+    const bool isTerminal = (viewRow >= sfenCount);          // “投了”等の終局行？
 
-    // “終局行”かどうか（＝SFENに対応しない余分な行か）を判定
-    const bool isTerminalRow = (viewRow >= sfenCount);
-
-    // SFEN参照用にクランプ（終局行なら最後の局面を使う）
+    // SFEN 参照行をクランプ（終局行は最後の局面を使う）
     int sfenRow = viewRow;
     if (sfenRow >= sfenCount) sfenRow = sfenCount - 1;
     if (sfenRow < 0)          sfenRow = 0;
@@ -607,23 +604,30 @@ void MainWindow::updateBoardFromMoveHistory()
     QString sfenStr = m_sfenRecord->at(sfenRow);
     m_gameController->board()->setSfen(sfenStr);
 
-    // 現在手数も SFEN に合わせて保持
-    m_currentMoveIndex = sfenRow;
+    // 現在手数を同期（GUI内の“現在選択手”の基準は局面側に合わせる）
+    m_currentMoveIndex   = sfenRow;
+    m_currentSelectedPly = sfenRow;
 
-    // ハイライトは「実際に動いた手」に対してのみ表示する。
-    // ・行0（開始局面）はハイライト無し
-    // ・“終局行”もハイライト無し（局面が増えないため）
-    // ・それ以外は m_gameMoves の範囲チェックも加える
+    // ハイライトは「実際に動いた手」のみ
     const bool canHighlight =
-        (!isTerminalRow) &&
+        (!isTerminal) &&
         (sfenRow > 0) &&
         (sfenRow - 1 >= 0) &&
         (sfenRow - 1 < m_gameMoves.size()) &&
-        (viewRow != modelLastRow); // 従来の最終行抑制ロジックを踏襲するなら
+        (viewRow != modelLast);   // 従来の最終行抑制ロジック
 
     if (canHighlight) {
         addMoveHighlights();
     }
+
+    // コメント欄を更新（表示行ベース。終局行でも問題なし）
+    updateBranchTextForRow(qBound(0, viewRow, m_kifuRecordModel->rowCount() - 1));
+
+    // 分岐候補欄も現在の手目で更新（“戻る”行の有/無はモデル側で制御）
+    populateBranchListForPly(m_currentSelectedPly);
+
+    // ナビゲーションボタンの有効/無効
+    enableArrowButtons();
 }
 
 // 棋譜欄下の矢印「1手進む」
@@ -4969,9 +4973,8 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
     QString teaiLabel;
     const QString initialSfen = prepareInitialSfen(filePath, teaiLabel);
 
-    // ← ここで保存
+    // 保存＆KIF再生モード
     m_initialSfen = initialSfen;
-    // 追加：KIF再生モードに入る（時計アクセス抑止）
     m_isKifuReplay = true;
 
     // 2) 解析（本譜＋分岐＋コメント）を一括取得
@@ -5023,16 +5026,18 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
     m_variationsByPly.clear();
     m_branchablePlies.clear();
 
-    // 5-0) 本譜本文から「＋」付きの手目を順に収集（分岐の開始手）
+    // 5-0) 本譜本文から「＋」付き手目と「変化：n手」の見出しを収集
     QString usedEnc2, readErr2;
     QStringList kLines;
     if (!KifReader::readLinesAuto(filePath, kLines, &usedEnc2, &readErr2)) {
         qWarning().noquote() << "[VAR] readLinesAuto failed:" << readErr2;
     }
 
-    static const QRegularExpression s_varHdr(QStringLiteral(R"(変化[：:]\s*[0-9０-９]+\s*手)"));
+    // 見出しや分岐ブロックを除外しつつ収集
+    static const QRegularExpression s_varHdrCap(
+        QStringLiteral(R"(^\s*変化[：:]\s*([0-9０-９]+)\s*手)")); // 見出しの数字をキャプチャ
     static const QRegularExpression s_mainHdr(QStringLiteral(R"(^\s*本譜\s*$)"));
-    static const QRegularExpression s_moveHead(QStringLiteral("^\\s*([0-9０-９]+)\\s"));
+    static const QRegularExpression s_moveHead(QStringLiteral("^\\s*([0-9０-９]+)\\s")); // 先頭の手数
     static const QRegularExpression s_plusAtEnd(QStringLiteral("\\+\\s*$"));
 
     auto flexDigitsToInt = [](const QString& s)->int {
@@ -5051,15 +5056,24 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
         return v;
     };
 
-    QList<int> plusStarts;
+    QList<int> plusStarts;    // 本譜末尾「+」マーク由来
+    QList<int> headerStarts;  // 見出し「変化：n手」由来
     {
         bool inVariation = false;
         for (const QString& raw : kLines) {
             const QString line = raw.trimmed();
             if (line.isEmpty()) continue;
 
-            if (s_mainHdr.match(line).hasMatch()) { inVariation = false; continue; }
-            if (s_varHdr.match(line).hasMatch())  { inVariation = true;  continue; }
+            if (s_mainHdr.match(line).hasMatch()) {
+                inVariation = false;
+                continue;
+            }
+            auto vh = s_varHdrCap.match(line);
+            if (vh.hasMatch()) {
+                inVariation = true;
+                headerStarts << flexDigitsToInt(vh.captured(1)); // 見出しの数字
+                continue;
+            }
             if (inVariation) continue;
 
             auto mh = s_moveHead.match(line);
@@ -5070,7 +5084,8 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
             if (ply > 0) plusStarts << ply;
         }
     }
-    qDebug() << "[VAR] plus markers =" << plusStarts;
+    qDebug() << "[VAR] plus markers   =" << plusStarts;
+    qDebug() << "[VAR] header markers =" << headerStarts;
 
     // 5-1) 手目→baseSFEN をキャッシュ
     QHash<int, QString> baseByPly;
@@ -5084,13 +5099,21 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
         return base;
     };
 
-    // 5-2) 変化を1本ずつ KifLine 化（startPly を「＋」印マーカーで上書き）
+    // 5-2) 変化を1本ずつ KifLine 化（startPly を「＋」→見出し→既定の順で決定）
+    const int mainN = m_usiMoves.size();
     int vi = 0;
     for (const KifVariation& v0 : res.variations) {
         KifLine v;
 
-        int sp = v0.line.startPly;
-        if (vi < plusStarts.size()) sp = plusStarts[vi];
+        int sp = v0.line.startPly;                    // 解析既定
+        if (vi < plusStarts.size()) {
+            sp = plusStarts[vi];                      // 末尾「+」優先
+        } else if (vi < headerStarts.size()) {
+            sp = headerStarts[vi];                    // 見出し「変化：n手」
+        }
+        // サニティ（1..mainN にクランプ）
+        if (sp < 1) sp = 1;
+        if (mainN > 0 && sp > mainN) sp = mainN;
 
         v.startPly = sp;
         v.usiMoves = v0.line.usiMoves;
@@ -5100,6 +5123,7 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
 
         m_branchablePlies.insert(v.startPly);
 
+        // v.sfenList / v.gameMoves を先行生成（既存ロジック）
         {
             SfenPositionTracer tr; tr.setFromSfen(v.baseSfen);
             v.sfenList.clear();
@@ -5209,16 +5233,13 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
     // 7) GUI表示（まずは本譜：開始局面を選択）
     showRecordAtPly(disp, /*selectPly=*/0);
 
-    // ★ BOD対応：読み込み直後に開始局面（ply=0）を盤へ反映
+    // 読み込み直後に開始局面を盤へ反映
     m_currentSelectedPly = 0;
-
     if (m_kifuRecordModel && m_kifuView) {
         const QModelIndex idx0 = m_kifuRecordModel->index(0, 0);
         m_kifuView->setCurrentIndex(idx0);
         m_kifuView->scrollTo(idx0, QAbstractItemView::PositionAtTop);
     }
-
-    // 盤・ハイライト・コメントの即時同期（ply=0 はハイライト無し）
     syncBoardAndHighlightsAtRow(0);
 
     // 分岐候補は開始局面では空
@@ -7051,52 +7072,51 @@ void MainWindow::onBranchRowClicked(const QModelIndex& index)
 
     const int row = index.row();
 
-    // 末尾の「本譜へ戻る」行？
+    // 末尾「本譜へ戻る」
     if (m_kifuBranchModel->isBackToMainRow(row)) {
         *m_sfenRecord = m_sfenMain;
         m_gameMoves   = m_gmMain;
         showRecordAtPly(m_dispMain, /*selectPly=*/ply);
-
-        // 盤・ハイライトも即時同期（本譜の同じ手へ）
         syncBoardAndHighlightsAtRow(ply);
-
         populateBranchListForPly(ply);
         enableArrowButtons();
         return;
     }
 
-    // 行0は「本譜のその手」：本譜維持で同手選択に戻す
+    // 行0 = 「本譜のその手」（同手に戻す）
     if (row == 0) {
         *m_sfenRecord = m_sfenMain;
         m_gameMoves   = m_gmMain;
         showRecordAtPly(m_dispMain, /*selectPly=*/ply);
-
         syncBoardAndHighlightsAtRow(ply);
-
         populateBranchListForPly(ply);
         enableArrowButtons();
         return;
     }
 
-    // それ以外は分岐（行1が分岐0）
+    // 1行目以降が分岐
     const int vIdx = row - 1;
     if (vIdx < 0 || vIdx >= bucket.size()) return;
     const KifLine& v = bucket[vIdx];
 
-    // 本譜prefix + 分岐 で合成
+    // ★★★ ここが肝：合成の土台を“本譜”ではなく「現在の経路」にする ★★★
+    // prefix は「現在表示している経路」の v.startPly-1 手まで
     QList<KifDisplayItem> mergedDisp;
     if (v.startPly > 1)
-        mergedDisp = m_dispMain.mid(0, v.startPly - 1);
+        mergedDisp = m_dispCurrent.mid(0, v.startPly - 1);
     mergedDisp += v.disp;
 
-    QStringList mergedSfen = m_sfenMain.mid(0, v.startPly);
-    mergedSfen += v.sfenList.mid(1);
+    // SFEN も「現在の経路」の v.startPly 手目の局面までで prefix を作る
+    QStringList mergedSfen = m_sfenRecord->mid(0, v.startPly);
+    mergedSfen += v.sfenList.mid(1); // 先頭は基底と重複するので除外
 
+    // m_gameMoves も同様に合成
     QVector<ShogiMove> mergedGm;
     if (v.startPly > 1)
-        mergedGm = m_gmMain.mid(0, v.startPly - 1);
+        mergedGm = m_gameMoves.mid(0, v.startPly - 1);
     mergedGm += v.gameMoves;
 
+    // 反映
     *m_sfenRecord = mergedSfen;
     m_gameMoves   = mergedGm;
 
@@ -7104,17 +7124,17 @@ void MainWindow::onBranchRowClicked(const QModelIndex& index)
     showRecordAtPly(mergedDisp, /*selectPly=*/v.startPly);
     m_currentSelectedPly = v.startPly;
 
-    // 棋譜欄の選択も合わせる
+    // 見た目の選択も同期
     if (m_kifuRecordModel && m_kifuView) {
-        const QModelIndex idx = m_kifuRecordModel->index(m_currentSelectedPly, 0);
-        m_kifuView->setCurrentIndex(idx);
-        m_kifuView->scrollTo(idx, QAbstractItemView::PositionAtCenter);
+        const QModelIndex idx2 = m_kifuRecordModel->index(m_currentSelectedPly, 0);
+        m_kifuView->setCurrentIndex(idx2);
+        m_kifuView->scrollTo(idx2, QAbstractItemView::PositionAtCenter);
     }
 
-    // ★ここがポイント：分岐の手で同期する
-    syncBoardAndHighlightsAtRow(v.startPly);
+    // 盤面＆ハイライトを即同期
+    syncBoardAndHighlightsAtRow(m_currentSelectedPly);
 
-    // 分岐候補欄は同じ手目のまま（“戻る”行込み）
+    // 同じ手目の分岐候補は維持（末尾「本譜へ戻る」も残る）
     populateBranchListForPly(v.startPly);
     enableArrowButtons();
 }
@@ -7180,10 +7200,13 @@ static QList<int> scanVariationStarts(const QString& kifPath, QSet<int>& outBran
 
 void MainWindow::showRecordAtPly(const QList<KifDisplayItem>& disp, int selectPly)
 {
-    // 既存のテーブル更新関数をそのまま使う（navigateToFirstMove を呼ばない方）
+    // ★ これを保持しておくと、分岐クリック時に「現在の経路」を前提に合成できる
+    m_dispCurrent = disp;
+
+    // 既存のテーブル更新
     displayGameRecord(disp);
 
-    // 「=== 開始局面 ===」が row=0、1手目が row=1 という前提で行を選択
+    // 「=== 開始局面 ===」が row=0、1手目が row=1
     const int rc  = m_kifuRecordModel->rowCount();
     const int row = qBound(0, selectPly, rc > 0 ? rc - 1 : 0);
 

@@ -1014,6 +1014,9 @@ private:
 
     // MainWindow の private: に追加
     void syncBoardAndHighlightsAtRow(int row);
+
+    // いまテーブルに表示している棋譜（本譜 or 分岐合成後）を保持
+    QList<KifDisplayItem> m_dispCurrent;
 };
 
 #endif // MAINWINDOW_H
