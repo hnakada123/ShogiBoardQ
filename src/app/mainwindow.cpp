@@ -576,30 +576,52 @@ void MainWindow::addMoveHighlights()
     m_shogiView->addHighlight(m_movedField);
 }
 
-// 棋譜欄の指し手をクリックするとその局面に将棋盤を更新する。
 void MainWindow::updateBoardFromMoveHistory()
 {
-    // 駒の移動元と移動先のマスのハイライトを消去する。
+    // 既存ハイライトを消す
     clearMoveHighlights();
 
-    // 棋譜欄の現在の指し手のインデックスを取得する。
-    QModelIndex index = m_kifuView->currentIndex();
+    if (!m_kifuRecordModel || !m_sfenRecord || m_sfenRecord->isEmpty()) {
+        return;
+    }
 
-    // SFEN文字列リストより現在のインデックス行のSFEN文字列を取り出す。
-    QString str = m_sfenRecord->at(index.row());
+    // 現在行を取得（無効なら初期局面に合わせる）
+    const QModelIndex index = m_kifuView->currentIndex();
+    int viewRow = index.isValid() ? index.row() : 0;
 
-    // SFEN文字列の盤面を描画する。
-    m_gameController->board()->setSfen(str);
+    // SFEN は「初期局面を含む手数+1」個。
+    // 一方、終局行（投了/中断など）は局面を増やさないので
+    // 表示行数の方が 1 だけ多くなる場合がある。
+    const int sfenCount = m_sfenRecord->size();           // 例: 手数5なら 6
+    const int modelLastRow = m_kifuRecordModel->rowCount() - 1;
 
-    // 現在の手数をセットする。
-    m_currentMoveIndex = index.row();
+    // “終局行”かどうか（＝SFENに対応しない余分な行か）を判定
+    const bool isTerminalRow = (viewRow >= sfenCount);
 
-    // 最終行のインデックスを取得
-    int lastRowIndex = m_kifuRecordModel->rowCount() - 1;
+    // SFEN参照用にクランプ（終局行なら最後の局面を使う）
+    int sfenRow = viewRow;
+    if (sfenRow >= sfenCount) sfenRow = sfenCount - 1;
+    if (sfenRow < 0)          sfenRow = 0;
 
-    // 指し手が１手以上でかつ移動先が最終行でない場合
-    if ((m_currentMoveIndex > 0) && (m_currentMoveIndex != lastRowIndex)) {
-        // 駒の移動元と移動先のマスをハイライトする。
+    // 盤面を反映
+    QString sfenStr = m_sfenRecord->at(sfenRow);
+    m_gameController->board()->setSfen(sfenStr);
+
+    // 現在手数も SFEN に合わせて保持
+    m_currentMoveIndex = sfenRow;
+
+    // ハイライトは「実際に動いた手」に対してのみ表示する。
+    // ・行0（開始局面）はハイライト無し
+    // ・“終局行”もハイライト無し（局面が増えないため）
+    // ・それ以外は m_gameMoves の範囲チェックも加える
+    const bool canHighlight =
+        (!isTerminalRow) &&
+        (sfenRow > 0) &&
+        (sfenRow - 1 >= 0) &&
+        (sfenRow - 1 < m_gameMoves.size()) &&
+        (viewRow != modelLastRow); // 従来の最終行抑制ロジックを踏襲するなら
+
+    if (canHighlight) {
         addMoveHighlights();
     }
 }
@@ -5482,7 +5504,7 @@ void MainWindow::updateBranchTextForRow(int row)
 // 棋譜を更新し、GUIの表示も同時に更新する。
 // elapsedTimeは指し手にかかった時間を表す文字列
 void MainWindow::updateGameRecord(const QString& elapsedTime)
-{   
+{
     qCDebug(ClockLog) << "in MainWindow::updateGameRecord";
     qCDebug(ClockLog) << "elapsedTime=" << elapsedTime;
 
@@ -5498,6 +5520,8 @@ void MainWindow::updateGameRecord(const QString& elapsedTime)
         return;
     }
 
+    // --- ここから下は「再生中」でも実行してOK（棋譜欄の行を作る） ---
+
     // 手数をインクリメントし、文字列に変換する。
     QString moveNumberStr = QString::number(++m_currentMoveIndex);
 
@@ -5509,23 +5533,27 @@ void MainWindow::updateGameRecord(const QString& elapsedTime)
 
     // KIF形式レコードを生成する。（消費時間含む）
     QString kifuLine = recordLine + " ( " + elapsedTime + ")";
-    kifuLine.remove("▲");
-    kifuLine.remove("△");
+    kifuLine.remove(QStringLiteral("▲"));
+    kifuLine.remove(QStringLiteral("△"));
 
     // KIF形式のデータを保存する。
     m_kifuDataList.append(kifuLine);
 
     // 指し手のレコードを生成し、保存する。
-    m_moveRecords->append(new KifuDisplay(recordLine, elapsedTime));
-
-    // 最後の指し手のレコードを表示用モデルに追加する。
-    m_kifuRecordModel->appendItem(m_moveRecords->last());
+    if (m_moveRecords) {
+        m_moveRecords->append(new KifuDisplay(recordLine, elapsedTime));
+    }
+    if (m_kifuRecordModel && m_moveRecords && !m_moveRecords->isEmpty()) {
+        m_kifuRecordModel->appendItem(m_moveRecords->last());
+    }
 
     // 棋譜表示を最下部へスクロールする。
-    m_kifuView->scrollToBottom();
-    m_kifuView->update();
+    if (m_kifuView) {
+        m_kifuView->scrollToBottom();
+        m_kifuView->update();
+    }
 
-    // === ここから下がクラッシュ原因。KIF再生中は時計に触らない ===
+    // === ここから下が時計まわり。KIF再生中はスキップ ===
     if (m_isKifuReplay) {
         qCDebug(ClockLog) << "[KIFU] replay mode: skip clock logging";
         return;
@@ -5539,6 +5567,7 @@ void MainWindow::updateGameRecord(const QString& elapsedTime)
 
     // live対局時のみログ
     if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
+        // これから先手が考える＝最後に指したのは後手
         qCDebug(ClockLog) << "[KIFU] last-move consider_ms(P2)="
                           << m_shogiClock->getPlayer2ConsiderationTimeMs()
                           << " rem_ms(P2)=" << m_shogiClock->getPlayer2TimeIntMs();
