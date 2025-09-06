@@ -56,6 +56,7 @@
 #include "sfenpositiontracer.h"
 #include "enginesettingsconstants.h"
 #include "kifreader.h"
+#include "kifuvariationgraphwidget.h"
 
 using namespace EngineSettingsConstants;
 
@@ -1988,6 +1989,28 @@ void MainWindow::initializeEngine1ThoughtTab()
         // もともと m_usiCommLogEdit（1側）へ追記していた仕様を維持
         m_usiCommLogEdit->appendPlainText(m_lineEditModel2->usiCommLog());
     });
+
+    // 分岐ツリータブ
+    m_varGraph = new KifuVariationGraphWidget(m_tab);
+    m_tab->addTab(m_varGraph, tr("分岐ツリー"));
+
+    // クリック → 本譜／分岐に反映
+    connect(m_varGraph, &KifuVariationGraphWidget::mainlineNodeClicked,
+            this, [this](int ply){
+                // 本譜スナップショットに戻し、その手を選択表示
+                *m_sfenRecord = m_sfenMain;
+                m_gameMoves   = m_gmMain;
+                showRecordAtPly(m_dispMain, ply);
+                m_currentSelectedPly = ply;
+                syncBoardAndHighlightsAtRow(ply);
+                populateBranchListForPly(ply);
+                enableArrowButtons();
+            });
+
+    connect(m_varGraph, &KifuVariationGraphWidget::variationNodeClicked,
+            this, [this](int startPly, int bucketIndex){
+                applyVariationByKey(startPly, bucketIndex);
+            });
 }
 
 // "sfen 〜"で始まる文字列startpositionstrを入力して"sfen "を削除したSFEN文字列を
@@ -5256,6 +5279,11 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
                 &MainWindow::onMainMoveRowChanged,
                 Qt::UniqueConnection);
     }
+
+    if (m_varGraph) {
+        refreshVariationGraph();                 // グラフにデータ投下
+        m_varGraph->setCurrentPly(0);            // 開始局面
+    }
 }
 
 // ===================== ヘルパ実装 =====================
@@ -6934,6 +6962,8 @@ void MainWindow::onMainMoveRowChanged(const QModelIndex& current, const QModelIn
              << " branchable?=" << m_branchablePlies.contains(m_currentSelectedPly);
 
     populateBranchListForPly(m_currentSelectedPly);
+
+    if (m_varGraph) m_varGraph->setCurrentPly(m_currentSelectedPly);
 }
 
 void MainWindow::populateBranchListForPly(int ply)
@@ -7239,7 +7269,6 @@ void MainWindow::applySfenAtCurrentPly()
     m_gameController->board()->setSfen(sfen);
 }
 
-// MainWindow.cpp
 void MainWindow::refreshBoardAndHighlightsForRow(int row)
 {
     if (!m_sfenRecord || m_sfenRecord->isEmpty()) return;
@@ -7258,5 +7287,82 @@ void MainWindow::refreshBoardAndHighlightsForRow(int row)
     // 開始局面(row==0)ではハイライト不要。m_gameMovesは手数分だけ入っている想定。
     if (row > 0 && row <= m_gameMoves.size()) {
         addMoveHighlights();
+    }
+}
+
+void MainWindow::refreshVariationGraph()
+{
+    if (!m_varGraph) return;
+
+    // 本譜テキスト列（index=ply）
+    QStringList mainPretty;
+    mainPretty.resize(m_dispMain.size()+1); // [0..N] だが 0 は空でよい
+    for (int i = 0; i < m_dispMain.size(); ++i) {
+        mainPretty[i+1] = m_dispMain[i].prettyMove;
+    }
+    m_varGraph->setMainline(mainPretty);
+
+    // 分岐パス列
+    QVector<KifuVariationGraphWidget::VariationPath> paths;
+    QList<int> keys = m_variationsByPly.keys();
+    std::sort(keys.begin(), keys.end());
+    for (int startPly : keys) {
+        const VariationBucket& bucket = m_variationsByPly[startPly];
+        for (int b = 0; b < bucket.size(); ++b) {
+            const KifLine& v = bucket[b];
+            KifuVariationGraphWidget::VariationPath p;
+            p.startPly = startPly;
+            p.bucketIndex = b;
+            p.labels.reserve(v.disp.size());
+            for (const auto& di : v.disp)
+                p.labels << di.prettyMove;
+            paths.push_back(std::move(p));
+        }
+    }
+    m_varGraph->setVariationPaths(paths);
+    m_varGraph->setCurrentPly(m_currentSelectedPly);
+}
+
+void MainWindow::applyVariationByKey(int startPly, int bucketIndex)
+{
+    auto it = m_variationsByPly.constFind(startPly);
+    if (it == m_variationsByPly.cend()) return;
+    const VariationBucket& bucket = it.value();
+    if (bucket.isEmpty() || bucketIndex < 0 || bucketIndex >= bucket.size()) return;
+
+    const KifLine& v = bucket[bucketIndex];
+
+    QList<KifDisplayItem> mergedDisp;
+    if (v.startPly > 1)
+        mergedDisp = m_dispMain.mid(0, v.startPly - 1);
+    mergedDisp += v.disp;
+
+    QStringList mergedSfen = m_sfenMain.mid(0, v.startPly);
+    mergedSfen += v.sfenList.mid(1);
+
+    QVector<ShogiMove> mergedGm;
+    if (v.startPly > 1)
+        mergedGm = m_gmMain.mid(0, v.startPly - 1);
+    mergedGm += v.gameMoves;
+
+    *m_sfenRecord = mergedSfen;
+    m_gameMoves   = mergedGm;
+
+    // 分岐の最初の手を選択
+    showRecordAtPly(mergedDisp, v.startPly);
+    m_currentSelectedPly = v.startPly;
+    syncBoardAndHighlightsAtRow(v.startPly);
+
+    // 分岐候補欄を同手目で再表示
+    populateBranchListForPly(v.startPly);
+    enableArrowButtons();
+
+    if (m_varGraph) m_varGraph->setCurrentPly(m_currentSelectedPly);
+
+    // 棋譜欄の見た目も合わせる
+    if (m_kifuRecordModel && m_kifuView) {
+        const QModelIndex idx = m_kifuRecordModel->index(m_currentSelectedPly, 0);
+        m_kifuView->setCurrentIndex(idx);
+        m_kifuView->scrollTo(idx, QAbstractItemView::PositionAtCenter);
     }
 }

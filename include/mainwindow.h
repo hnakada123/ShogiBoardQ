@@ -30,6 +30,7 @@
 #include "tsumeshogisearchdialog.h"
 #include "shogiclock.h"
 #include "kiftosfenconverter.h"
+#include "kifuvariationgraphwidget.h"
 
 using VariationBucket = QVector<KifLine>;     // 手目からの候補群
 
@@ -1017,6 +1018,14 @@ private:
 
     // いまテーブルに表示している棋譜（本譜 or 分岐合成後）を保持
     QList<KifDisplayItem> m_dispCurrent;
+
+    KifuVariationGraphWidget* m_varGraph = nullptr;
+
+    // グラフへデータ反映
+    void refreshVariationGraph();
+
+    // 分岐切替ハンドラ（既存の onBranchRowClicked と同趣旨）
+    void applyVariationByKey(int startPly, int bucketIndex);
 };
 
 #endif // MAINWINDOW_H
