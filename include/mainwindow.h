@@ -1023,6 +1023,7 @@ private:
 
     // 分岐ツリー描画用
     QGraphicsView* m_branchTreeView = nullptr;
+    QGraphicsPathItem*   m_branchTreeSelectedNode = nullptr;  // 分岐ツリーの選択ノード
 
     // 変化を“ファイル登場順”で保持する（ツリー接続に使用）
     QList<KifLine> m_variationsSeq;
@@ -1037,7 +1038,7 @@ private:
     static constexpr int BR_ROLE_STARTPLY  = 0x202; // 分岐の開始手
     static constexpr int BR_ROLE_BUCKET    = 0x203; // 同一開始手内での分岐Index
 
-    bool eventFilter(QObject* obj, QEvent* ev) override;
+    bool eventFilter(QObject* obj, QEvent* ev) override;    
 };
 
 #endif // MAINWINDOW_H
