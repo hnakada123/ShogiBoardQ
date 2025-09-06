@@ -6942,37 +6942,47 @@ void MainWindow::populateBranchListForPly(int ply)
                        << " hasKey=" << m_variationsByPly.contains(ply)
                        << " dispMainSz=" << m_dispMain.size();
 
-    // 分岐が無い → 空
+    // 1) ガード：開始局面 or 分岐キー無し → 空表示
     if (ply <= 0 || !m_variationsByPly.contains(ply)) {
-        m_kifuBranchModel->clearBranchCandidates();
-        m_kifuBranchModel->setHasBackToMainRow(false);
-        m_kifuBranchView->setEnabled(false);
+        if (m_kifuBranchModel) {
+            m_kifuBranchModel->clearBranchCandidates();
+            m_kifuBranchModel->setHasBackToMainRow(false);
+        }
+        if (m_kifuBranchView) m_kifuBranchView->setEnabled(false);
         return;
     }
 
     const VariationBucket& bucket = m_variationsByPly[ply];
     if (bucket.isEmpty()) {
-        m_kifuBranchModel->clearBranchCandidates();
-        m_kifuBranchModel->setHasBackToMainRow(false);
-        m_kifuBranchView->setEnabled(false);
+        if (m_kifuBranchModel) {
+            m_kifuBranchModel->clearBranchCandidates();
+            m_kifuBranchModel->setHasBackToMainRow(false);
+        }
+        if (m_kifuBranchView) m_kifuBranchView->setEnabled(false);
         return;
     }
 
-    // 分岐候補：本譜のその手（= ply手目の手）＋ 各分岐の最初の手
+    // 2) 分岐候補：本譜の“その手”＋ 各分岐の最初の手
     QList<KifDisplayItem> items;
     items.reserve(bucket.size() + 1);
 
+    // 本譜の“その手”は常に m_dispMain から取得（分岐表示中でも正しい本譜手を出す）
     if (ply - 1 >= 0 && ply - 1 < m_dispMain.size()) {
-        items << m_dispMain.at(ply - 1); // 例：「▲２五歩(26)」
+        items << m_dispMain.at(ply - 1);
     }
     for (const KifLine& v : bucket) {
-        if (!v.disp.isEmpty()) items << v.disp.first(); // 例：「▲１六歩(17)」
+        if (!v.disp.isEmpty()) items << v.disp.first();
     }
 
-    // モデル反映：候補セット＆末尾に「本譜へ戻る」を出す
-    m_kifuBranchModel->setBranchCandidatesFromKif(items);
-    m_kifuBranchModel->setHasBackToMainRow(true);
-    m_kifuBranchView->setEnabled(true);
+    // 3) モデル反映
+    if (m_kifuBranchModel) {
+        m_kifuBranchModel->setBranchCandidatesFromKif(items);
+
+        // 『本譜へ戻る』は“分岐側を表示中”のときだけ末尾に出す
+        const bool viewingVariation = (*m_sfenRecord != m_sfenMain);
+        m_kifuBranchModel->setHasBackToMainRow(viewingVariation);
+    }
+    if (m_kifuBranchView) m_kifuBranchView->setEnabled(true);
 
     // 参考ログ
     qDebug().noquote() << "[BRANCH] bucket size =" << bucket.size();
