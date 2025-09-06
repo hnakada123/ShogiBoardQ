@@ -30,7 +30,6 @@
 #include "tsumeshogisearchdialog.h"
 #include "shogiclock.h"
 #include "kiftosfenconverter.h"
-#include "kifuvariationgraphwidget.h"
 
 using VariationBucket = QVector<KifLine>;     // 手目からの候補群
 
@@ -1019,13 +1018,26 @@ private:
     // いまテーブルに表示している棋譜（本譜 or 分岐合成後）を保持
     QList<KifDisplayItem> m_dispCurrent;
 
-    KifuVariationGraphWidget* m_varGraph = nullptr;
-
-    // グラフへデータ反映
-    void refreshVariationGraph();
-
     // 分岐切替ハンドラ（既存の onBranchRowClicked と同趣旨）
     void applyVariationByKey(int startPly, int bucketIndex);
+
+    // 分岐ツリー描画用
+    QGraphicsView* m_branchTreeView = nullptr;
+
+    // 変化を“ファイル登場順”で保持する（ツリー接続に使用）
+    QList<KifLine> m_variationsSeq;
+    void rebuildBranchTreeView();   // ツリーを再描画
+
+    // MainWindow クラス内（private: あたり）
+    enum BranchNodeKind { BNK_Start=1, BNK_Main=2, BNK_Var=3 };
+
+    // QGraphicsItem::setData 用キー
+    static constexpr int BR_ROLE_KIND      = 0x200;
+    static constexpr int BR_ROLE_PLY       = 0x201; // 本譜ノードの ply
+    static constexpr int BR_ROLE_STARTPLY  = 0x202; // 分岐の開始手
+    static constexpr int BR_ROLE_BUCKET    = 0x203; // 同一開始手内での分岐Index
+
+    bool eventFilter(QObject* obj, QEvent* ev) override;
 };
 
 #endif // MAINWINDOW_H
