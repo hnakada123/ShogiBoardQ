@@ -2,6 +2,7 @@
 #include <QBrush>
 #include <QColor>
 #include <QFont>
+#include <QRegularExpression>
 
 KifuBranchListModel::KifuBranchListModel(QObject *parent)
     : AbstractListModel<KifuBranchDisplay>(parent)
@@ -80,21 +81,24 @@ void KifuBranchListModel::clearBranchCandidates()
 void KifuBranchListModel::setBranchCandidatesFromKif(const QList<KifDisplayItem>& rows)
 {
     beginResetModel();
-
-    // 既存行を破棄
     qDeleteAll(list);
     list.clear();
 
-    // 候補を追加（KifuBranchDisplay は QObject 派生なのでコピー不可 → new で保持）
+    // 先頭に「手数（半角/全角）+空白」が付いていたら落とす
+    static const QRegularExpression kDropHeadNumber(
+        QStringLiteral(R"(^\s*[0-9０-９]+\s*)"));
+
     list.reserve(rows.size());
     for (const auto& k : rows) {
         auto* b = new KifuBranchDisplay();
-        b->setCurrentMove(k.prettyMove);
-        // KifuBranchDisplay に API があれば時間も渡す（無ければこの行は残したまま無効）
-        // if (!k.timeText.isEmpty()) b->setTimeText(k.timeText);
+
+        QString label = k.prettyMove;       // 例: "3 ▲２六歩(27)" or "▲２六歩(27)"
+        label.replace(kDropHeadNumber, QString());
+        label = label.trimmed();            // 念のため前後の空白を除去
+
+        b->setCurrentMove(label);
         list.push_back(b);
     }
-
     endResetModel();
 }
 
