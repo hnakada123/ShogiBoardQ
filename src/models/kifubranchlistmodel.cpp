@@ -80,17 +80,21 @@ void KifuBranchListModel::clearBranchCandidates()
 void KifuBranchListModel::setBranchCandidatesFromKif(const QList<KifDisplayItem>& rows)
 {
     beginResetModel();
+
+    // 既存行を破棄
     qDeleteAll(list);
     list.clear();
 
-    // KifuBranchDisplay は QObject 派生なのでコピー不可。都度newして保持する
+    // 候補を追加（KifuBranchDisplay は QObject 派生なのでコピー不可 → new で保持）
     list.reserve(rows.size());
     for (const auto& k : rows) {
         auto* b = new KifuBranchDisplay();
         b->setCurrentMove(k.prettyMove);
-        //if (!k.timeText.isEmpty()) b->setTimeText(k.timeText);
+        // KifuBranchDisplay に API があれば時間も渡す（無ければこの行は残したまま無効）
+        // if (!k.timeText.isEmpty()) b->setTimeText(k.timeText);
         list.push_back(b);
     }
+
     endResetModel();
 }
 
