@@ -720,7 +720,7 @@ private:
     void loadWindowSettings();
 
     // ウィンドウを閉じる処理を行う。
-    void closeEvent(QCloseEvent* event);
+    void closeEvent(QCloseEvent* event) override;
 
     // 局面編集中のメニュー表示に変更する。
     void displayPositionEditMenu();
@@ -1038,7 +1038,7 @@ private:
     static constexpr int BR_ROLE_STARTPLY  = 0x202; // 分岐の開始手
     static constexpr int BR_ROLE_BUCKET    = 0x203; // 同一開始手内での分岐Index
 
-    bool eventFilter(QObject* obj, QEvent* ev) override;    
+    bool eventFilter(QObject* obj, QEvent* ev) override;
 };
 
 #endif // MAINWINDOW_H
