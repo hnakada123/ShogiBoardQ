@@ -31,6 +31,8 @@
 #include "shogiclock.h"
 #include "kiftosfenconverter.h"
 
+#define SHOGIBOARDQ_DEBUG_KIF 1   // 0にすればログは一切出ません
+
 using VariationBucket = QVector<KifLine>;     // 手目からの候補群
 
 QT_BEGIN_NAMESPACE
@@ -1039,6 +1041,19 @@ private:
     static constexpr int BR_ROLE_BUCKET    = 0x203; // 同一開始手内での分岐Index
 
     bool eventFilter(QObject* obj, QEvent* ev) override;
+
+// class MainWindow { の private: へ追加
+#ifdef SHOGIBOARDQ_DEBUG_KIF
+    // 「1▲７六歩(77)」「2△３四歩(33)」…という同じ体裁で出力
+    void dbgDumpMoves(const QList<KifDisplayItem>& disp,
+                      const QString& tag,
+                      int startPly = 1) const;
+
+    // 2 系列を比較して差分位置を示す
+    void dbgCompareGraphVsKifu(const QList<KifDisplayItem>& graphDisp,
+                               const QList<KifDisplayItem>& kifuDisp,
+                               int selPly, const QString& where) const;
+#endif
 };
 
 #endif // MAINWINDOW_H
