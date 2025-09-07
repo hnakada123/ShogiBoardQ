@@ -49,10 +49,10 @@ QVariant KifuRecordListModel::headerData(int section, Qt::Orientation orientatio
         switch (section) {
         case 0:
             // 指し手
-            return tr("Move");
+            return tr("指し手");
         case 1:
             // 消費時間
-            return tr("Time Spent");
+            return tr("消費時間");
         default:
             // それ以外の場合は空のQVariantを返す。
             return QVariant();

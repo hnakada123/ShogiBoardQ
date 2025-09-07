@@ -61,7 +61,7 @@ QVariant KifuBranchListModel::headerData(int section, Qt::Orientation orientatio
 
     if (orientation == Qt::Horizontal) {
         switch (section) {
-        case 0:  return tr("Move");
+        case 0:  return tr("分岐候補");
         default: return QVariant();
         }
     } else {
