@@ -1042,6 +1042,15 @@ private:
 
     bool eventFilter(QObject* obj, QEvent* ev) override;
 
+
+    // mainwindow.h （適当な public/private セクションに）
+    struct BranchRowAction {
+        enum Kind { Main, Var };
+        Kind kind;
+        int  ply;       // この手数での候補
+        int  varIndex;  // Var のときのみ有効
+    };
+
 // class MainWindow { の private: へ追加
 #ifdef SHOGIBOARDQ_DEBUG_KIF
     // 「1▲７六歩(77)」「2△３四歩(33)」…という同じ体裁で出力
@@ -1054,6 +1063,59 @@ private:
                                const QList<KifDisplayItem>& kifuDisp,
                                int selPly, const QString& where) const;
 #endif
+
+    // --- 既存の MainWindow のメンバに追記 ---
+
+    // 「後勝ち」で解決済みの 1 行ぶん
+    struct ResolvedLine {
+        int row = 0;               // 行番号: 0=本譜, 1..=ファイル登場順の分岐
+        int varIndex = -1;         // -1=本譜, それ以外= m_variationsSeq の index
+        int startPly = 1;          // 分岐の開始手（本譜は1）
+        QList<KifDisplayItem> disp; // 1..N手ぶんの表示（前半は「後勝ち」適用済み）
+        QStringList sfenList;      // 先頭に初期SFENを含む（index 0 が初期局面）
+        QVector<ShogiMove> gameMoves; // 盤ハイライト用（あれば）
+    };
+
+    QVector<ResolvedLine> m_resolvedLines; // 行ごとの完成済みライン
+
+    // 構築・反映ユーティリティ
+    void buildResolvedRowsAfterLoad();                     // ← これを実装
+
+    struct BranchRowMap { int resolvedRow = 0; int ply = 0; };
+
+    // === 解決済み行（後勝ちで合成した1行ぶん） ===
+    struct ResolvedRow {
+        int startPly = 1;                      // 行の開始手数（本譜は常に1）
+        QList<KifDisplayItem> disp;            // 表示用（棋譜欄/分岐ツリーに出すテキスト列）
+        QStringList sfen;                      // 0..N の局面列（apply用）
+        QVector<ShogiMove> gm;                 // USI（apply用）
+        int varIndex = -1;                     // 対応する分岐のインデックス（本譜は -1）
+    };
+
+private:
+    // --- 後勝ちで構築した“解決済み行” ---
+    QVector<ResolvedRow> m_resolvedRows;    // 行0=本譜, 行1..=分岐
+
+    // MainWindow のプライベートメンバ
+
+    // いま表示している“解決済み行”のインデックス（0 = 本譜）
+    int m_activeResolvedRow = 0;
+
+    // 分岐候補テーブルの 1 行 → どの解決済み行(row)の何手目(ply)を開くか
+    using BranchRowEntry = QPair<int,int>;   // first=row, second=ply
+    QList<BranchRowEntry> m_branchRowMap;
+
+
+private:
+    // 読み込み直後に一度だけ作る（本譜+分岐を“後勝ち”で解決して行データ化）
+    void buildResolvedLinesAfterLoad();
+
+    // 指定の解決済み行 row を適用し、棋譜欄の selPly を選択する
+    void applyResolvedRowAndSelect(int row, int selPly);
+
+private slots:
+    // 分岐候補欄でEnter/シングルクリックなどのアクティベートに反応
+    void onBranchCandidateActivated(const QModelIndex& idx);
 };
 
 #endif // MAINWINDOW_H

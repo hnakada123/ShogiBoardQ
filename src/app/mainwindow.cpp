@@ -1209,30 +1209,20 @@ void MainWindow::setupKifuRecordView()
 
 void MainWindow::setupKifuBranchView()
 {
-    // 棋譜の分岐欄を作成する。
     m_kifuBranchView = new QTableView;
-
-    // シングルクリックで選択する。
     m_kifuBranchView->setSelectionMode(QAbstractItemView::SingleSelection);
-
-    // 行のみを選択する。
     m_kifuBranchView->setSelectionBehavior(QAbstractItemView::SelectRows);
-
-    // 垂直方向のヘッダは表示させない。
     m_kifuBranchView->verticalHeader()->setVisible(false);
 
-    // 棋譜のListModelを作成する。
     m_kifuBranchModel = new KifuBranchListModel;
-
-    // 棋譜のListModelをセットする。
     m_kifuBranchView->setModel(m_kifuBranchModel);
-
-    // 「指し手」の列を伸縮可能にする。
     m_kifuBranchView->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
 
-    // 追加：分岐候補をクリックしたら切り替え
+    // クリック/Enter 両方とも onBranchCandidateActivated へ
+    connect(m_kifuBranchView, &QTableView::activated,
+            this, &MainWindow::onBranchCandidateActivated, Qt::UniqueConnection);
     connect(m_kifuBranchView, &QTableView::clicked,
-            this, &MainWindow::onBranchRowClicked);
+            this, &MainWindow::onBranchCandidateActivated, Qt::UniqueConnection);
 }
 
 // 棋譜欄下の矢印ボタンを作成する。
@@ -4983,6 +4973,7 @@ inline QPoint dropFromSquare(QChar dropUpper, bool black) {
 // ===================== 司令塔 =====================
 void MainWindow::loadKifuFromFile(const QString& filePath)
 {
+    // 0) リセット
     m_commentsByRow.clear();
     if (m_branchText) m_branchText->clear();
 
@@ -4991,15 +4982,15 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
     const QString initialSfen = prepareInitialSfen(filePath, teaiLabel);
 
     // 保存＆KIF再生モード
-    m_initialSfen = initialSfen;
-    m_isKifuReplay = true;
+    m_initialSfen   = initialSfen;
+    m_isKifuReplay  = true;
 
     // 2) 解析（本譜＋分岐＋コメント）を一括取得
     KifParseResult res;
     QString parseWarn;
     KifToSfenConverter::parseWithVariations(filePath, res, &parseWarn);
 
-    // 先手/後手名などヘッダ反映（既存）
+    // 先手/後手名などヘッダ反映
     {
         const QList<KifGameInfoItem> infoItems = KifToSfenConverter::extractGameInfo(filePath);
         populateGameInfo(infoItems);
@@ -5010,7 +5001,7 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
     const QList<KifDisplayItem>& disp = res.mainline.disp;
     m_usiMoves = res.mainline.usiMoves;
 
-    // 終局/中断判定（既存）
+    // 終局/中断判定
     static const QStringList kTerminalKeywords = {
         QStringLiteral("投了"), QStringLiteral("中断"), QStringLiteral("持将棋"),
         QStringLiteral("千日手"), QStringLiteral("切れ負け"),
@@ -5030,21 +5021,21 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
         return;
     }
 
-    // 3) 本譜のSFEN列と m_gameMoves を再構築（既存）
+    // 3) 本譜のSFEN列と m_gameMoves を再構築
     rebuildSfenRecord(initialSfen, m_usiMoves, hasTerminal);
     rebuildGameMoves(initialSfen, m_usiMoves);
 
-    // 4) スナップショット退避（分岐切替→本譜に戻すときに使う）
+    // 4) スナップショット退避（本譜）
     m_dispMain = disp;
     m_sfenMain = *m_sfenRecord;
     m_gmMain   = m_gameMoves;
 
-    // 5) 分岐（変化）を m_variationsByPly に構築
+    // 5) 分岐データの構築（m_variationsByPly / m_variationsSeq など）
     m_variationsByPly.clear();
     m_branchablePlies.clear();
-    m_variationsSeq.clear();   // ★ ツリー用：登場順で保持
+    m_variationsSeq.clear();   // ツリー接続用：ファイル登場順に保持
 
-    // 5-0) 本譜本文から「＋」付き手目と「変化：n手」の見出しを収集
+    // 5-0) 本文から「＋」と「変化：n手」見出しを収集
     QString usedEnc2, readErr2;
     QStringList kLines;
     if (!KifReader::readLinesAuto(filePath, kLines, &usedEnc2, &readErr2)) {
@@ -5104,51 +5095,43 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
     qDebug() << "[VAR] plus markers   =" << plusStarts;
     qDebug() << "[VAR] header markers =" << headerStarts;
 
-    // 5-1) 本譜からの基底（startPly-1 手後）を作るヘルパ
-    auto baseFromMainline = [&](int startPly)->QString {
+    // 5-1) 手目→baseSFEN をキャッシュ
+    QHash<int, QString> baseByPly;
+    auto getBaseForPly = [&](int startPly)->QString {
+        if (baseByPly.contains(startPly)) return baseByPly[startPly];
         SfenPositionTracer tr; tr.setFromSfen(initialSfen);
         const int parentMoves = qMin(startPly - 1, m_usiMoves.size());
         for (int i = 0; i < parentMoves; ++i) tr.applyUsiMove(m_usiMoves[i]);
-        return tr.toSfenString();
+        const QString base = tr.toSfenString();
+        baseByPly.insert(startPly, base);
+        return base;
     };
 
-    // 5-2) 変化を1本ずつ KifLine 化（startPly 決定は既存のまま）
+    // 5-2) 変化を1本ずつ KifLine 化（startPly は「＋」→見出し→既定の順で決定）
     const int mainN = m_usiMoves.size();
     int vi = 0;
     for (const KifVariation& v0 : res.variations) {
         KifLine v;
 
-        int sp = v0.line.startPly;
-        if (vi < plusStarts.size())      sp = plusStarts[vi];     // 「＋」優先
-        else if (vi < headerStarts.size()) sp = headerStarts[vi]; // 見出し
-        sp = qBound(1, sp, qMax(1, mainN));
+        int sp = v0.line.startPly;                    // 解析既定
+        if (vi < plusStarts.size()) {
+            sp = plusStarts[vi];                      // 末尾「+」優先
+        } else if (vi < headerStarts.size()) {
+            sp = headerStarts[vi];                    // 見出し「変化：n手」
+        }
+        // サニティ（1..mainN にクランプ）
+        if (sp < 1) sp = 1;
+        if (mainN > 0 && sp > mainN) sp = mainN;
+
         v.startPly = sp;
         v.usiMoves = v0.line.usiMoves;
         v.disp     = v0.line.disp;
         v.endsWithTerminal = v0.line.endsWithTerminal;
-
-        // --- 親分岐を直近のものに決める（S列=登場順で後ろから探す）---
-        int parentIdx = -1;
-        for (int j = m_variationsSeq.size() - 1; j >= 0; --j) {
-            if (m_variationsSeq[j].startPly < v.startPly) { parentIdx = j; break; }
-        }
-
-        // --- 基底SFENを正しく構築 ---
-        if (parentIdx < 0) {
-            // 親なし＝本譜に直接ぶら下がる
-            v.baseSfen = baseFromMainline(v.startPly);
-        } else {
-            // 親の基底から (v.startPly - 親.startPly) 手だけ親のUSIを適用
-            const KifLine& p = m_variationsSeq[parentIdx];
-            SfenPositionTracer tr; tr.setFromSfen(p.baseSfen);
-            const int off = qMax(0, v.startPly - p.startPly);
-            for (int t = 0; t < off && t < p.usiMoves.size(); ++t) tr.applyUsiMove(p.usiMoves[t]);
-            v.baseSfen = tr.toSfenString();
-        }
+        v.baseSfen = getBaseForPly(v.startPly);
 
         m_branchablePlies.insert(v.startPly);
 
-        // --- v.sfenList / v.gameMoves を生成（既存ロジックそのまま）---
+        // v.sfenList / v.gameMoves 生成
         {
             SfenPositionTracer tr; tr.setFromSfen(v.baseSfen);
             v.sfenList.clear();
@@ -5206,13 +5189,15 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
             }
         }
 
-        // 登場順リストと手目バケツへ
+        // ツリー接続用：ファイル登場順で保存
         m_variationsSeq.push_back(v);
+        // バケツにも格納（候補欄用）
         m_variationsByPly[v.startPly].push_back(v);
+
         ++vi;
     }
 
-    // 5-3) キー確認
+    // 5-3) キー確認・ログ
     {
         QList<int> keys = m_variationsByPly.keys();
         std::sort(keys.begin(), keys.end());
@@ -5257,35 +5242,29 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
         }
     }
 
-    // 7) GUI表示（まずは本譜：開始局面を選択）
-    showRecordAtPly(disp, /*selectPly=*/0);
+    // 7) ★ 「後勝ち」前計算：行（本譜＋分岐）を一括解決
+    buildResolvedLinesAfterLoad();
 
-    // 読み込み直後に開始局面を盤へ反映
-    m_currentSelectedPly = 0;
-    if (m_kifuRecordModel && m_kifuView) {
-        const QModelIndex idx0 = m_kifuRecordModel->index(0, 0);
-        m_kifuView->setCurrentIndex(idx0);
-        m_kifuView->scrollTo(idx0, QAbstractItemView::PositionAtTop);
-    }
-    syncBoardAndHighlightsAtRow(0);
+    // 8) GUI初期表示は「解決済み 本譜 行・0手目」を適用するだけ
+    applyResolvedRowAndSelect(/*resolvedRow=*/0, /*selectPly=*/0);
 
-    // 分岐候補は開始局面では空
-    if (m_kifuBranchModel) m_kifuBranchModel->clearBranchCandidates();
-    if (m_kifuBranchView)  m_kifuBranchView->setEnabled(false);
-
-    enableArrowButtons();
-    m_kifuView->setSelectionMode(QAbstractItemView::SingleSelection);
-
-    if (m_kifuView->selectionModel()) {
-        connect(m_kifuView->selectionModel(),
-                &QItemSelectionModel::currentRowChanged,
-                this,
-                &MainWindow::onMainMoveRowChanged,
-                Qt::UniqueConnection);
+    // 9) 棋譜欄の選択ハンドラ（既存）
+    if (m_kifuView) {
+        m_kifuView->setSelectionMode(QAbstractItemView::SingleSelection);
+        if (m_kifuView->selectionModel()) {
+            connect(m_kifuView->selectionModel(),
+                    &QItemSelectionModel::currentRowChanged,
+                    this,
+                    &MainWindow::onMainMoveRowChanged,
+                    Qt::UniqueConnection);
+        }
     }
 
-    // ★ 分岐ツリー（S列・列ヘッダ付き）を再描画
+    // 10) 分岐ツリーを再描画（クリック時は applyResolvedRowAndSelect を使用）
     rebuildBranchTreeView();
+
+    // 11) そのほか UI の整合
+    enableArrowButtons();
 }
 
 // ===================== ヘルパ実装 =====================
@@ -6968,166 +6947,92 @@ void MainWindow::onMainMoveRowChanged(const QModelIndex& current, const QModelIn
 
 void MainWindow::populateBranchListForPly(int ply)
 {
+    // 事前チェック
+    if (!m_kifuBranchModel) return;
+
+    const int rows = m_resolvedRows.size();
+    const int active = qBound(0, m_activeResolvedRow, rows - 1);
+
     qDebug().noquote() << "[BRANCH] populate ply=" << ply
-                       << " hasKey=" << m_variationsByPly.contains(ply)
-                       << " dispMainSz=" << m_dispMain.size();
+                       << " activeRow=" << active
+                       << " resolved=" << rows;
 
-    // 分岐が無い → 空
-    if (ply <= 0 || !m_variationsByPly.contains(ply)) {
+    // 非表示条件（手数0やデータなし）
+    if (ply <= 0 || rows == 0) {
         m_kifuBranchModel->clearBranchCandidates();
         m_kifuBranchModel->setHasBackToMainRow(false);
         if (m_kifuBranchView) m_kifuBranchView->setEnabled(false);
-#ifdef SHOGIBOARDQ_DEBUG_KIF
-        qDebug().noquote() << "[BRANCH] no variations at ply" << ply << "(<=0 or no key).";
-#endif
+        qDebug().noquote() << "[BRANCH] only self -> hide";
         return;
     }
 
-    const VariationBucket& bucket = m_variationsByPly[ply];
-    if (bucket.isEmpty()) {
-        m_kifuBranchModel->clearBranchCandidates();
-        m_kifuBranchModel->setHasBackToMainRow(false);
-        if (m_kifuBranchView) m_kifuBranchView->setEnabled(false);
-#ifdef SHOGIBOARDQ_DEBUG_KIF
-        qDebug().noquote() << "[BRANCH] bucket empty at ply" << ply;
-#endif
-        return;
-    }
+    // ここから候補を構築
+    m_branchRowMap.clear();
+    QList<KifDisplayItem> items;
+    QSet<QString> seen;
 
-    // === いま表示している“文脈”の基底SFEN（sp-1手目の局面） ===
-    QString currentBase;
-    if (ply == 0) currentBase = m_initialSfen;
-    else if (m_sfenRecord && ply-1 >= 0 && ply-1 < m_sfenRecord->size())
-        currentBase = m_sfenRecord->at(ply - 1);
-    else
-        currentBase = m_initialSfen;
-
-#ifdef SHOGIBOARDQ_DEBUG_KIF
-    // 参考：本譜側の（sp-1）局面と比較して、本譜文脈かどうかを見る
-    QString mainBase = m_initialSfen;
-    if (ply == 0) mainBase = m_initialSfen;
-    else if (ply-1 >= 0 && ply-1 < m_sfenMain.size()) mainBase = m_sfenMain.at(ply-1);
-
-    const bool onMainContext = (currentBase == mainBase);
-    qDebug().noquote()
-        << "[BRANCH] baseSFEN:"
-        << "current=" << (currentBase.left(30) + "...")
-        << " main="   << (mainBase.left(30)   + "...")
-        << " onMain?" << onMainContext
-        << " bucketSz=" << bucket.size();
-#endif
-
-    // 先頭セルの整形（棋譜モデル由来の「手数」プレフィックスを落とす）
-    auto normalizeCandidateText = [](QString s)->QString {
-        // 先頭の半角/全角数字＋空白を落とす
-        static const QRegularExpression headNum(R"(^\s*[0-9０-９]+\s*)");
-        s.remove(headNum);
+    auto norm = [](QString s)->QString {
+        // 先頭の手数表記などを落とす（「  1 ▲７六歩(77) 」→「▲７六歩(77)」）
+        static const QRegularExpression reHead(QStringLiteral(R"(^\s*[0-9０-９]+\s+)"));
+        s.remove(reHead);
         return s.trimmed();
     };
 
-    // === 候補リスト ===
-    QList<KifDisplayItem> items;
-    items.reserve(bucket.size() + 1);
+    // --- 1) 自分の行（activeRow）の同手を先頭に ---
+    const ResolvedRow& self = m_resolvedRows[active];
+    if (ply-1 < self.disp.size()) {
+        const QString t = norm(self.disp.at(ply-1).prettyMove);
+        if (!t.isEmpty()) {
+            items << KifDisplayItem{ t, QString() };
+            seen.insert(t);
+            m_branchRowMap.append(qMakePair(active, ply));   // 0行目＝自分
+            qDebug().noquote() << "[BRANCH] row+Self   :「" << t << "」";
+        }
+    }
 
-    // 先頭に「現在ルートのその手」を置く
-    // ※棋譜モデルは 0 行目が開始局面なので “その手” は index(ply, 0)
-    bool selfInserted = false;
-    if (m_kifuRecordModel && m_kifuView) {
-        if (ply >= 0 && ply < m_kifuRecordModel->rowCount()) {
-            const QString raw = m_kifuRecordModel->data(m_kifuRecordModel->index(ply, 0)).toString();
-            const QString text = normalizeCandidateText(raw);
-            if (!text.isEmpty()) {
-                items << KifDisplayItem{ text, QString() };
-                selfInserted = true;
-#ifdef SHOGIBOARDQ_DEBUG_KIF
-                qDebug().noquote() << "[BRANCH] self-from-model:"
-                                   << "raw=「" << raw  << "」"
-                                   << "norm=「" << text << "」";
-#endif
+    // --- 2) 「この手数 ply から分岐を開始する行」だけを候補に追加 ---
+    //      → startPly == ply の行。後勝ち順（読み込んだ順）で並んでいるので
+    //         そのまま前から走査で OK。
+    for (int r = 0; r < rows; ++r) {
+        if (r == active) continue;               // すでに先頭へ入れた
+        const ResolvedRow& RL = m_resolvedRows[r];
+        if (RL.startPly != ply) continue;        // この手から始まる分岐のみ
+
+        if (ply-1 < RL.disp.size()) {
+            const QString t = norm(RL.disp.at(ply-1).prettyMove);
+            qDebug().noquote() << "[BRANCH] row+Var idx=" << r << " :「" << t << "」";
+            if (!t.isEmpty() && !seen.contains(t)) {
+                items << KifDisplayItem{ t, QString() };
+                seen.insert(t);
+                m_branchRowMap.append(qMakePair(r, ply));
+                qDebug().noquote() << "[BRANCH] keep start=" << RL.startPly
+                                   << " first=「" << t << "」";
             }
         }
-    }
-    // モデルに無ければ本譜テキストでフォールバック（本譜は 1 手目が index 0）
-    if (!selfInserted && ply-1 >= 0 && ply-1 < m_dispMain.size()) {
-        items << m_dispMain.at(ply - 1);
-#ifdef SHOGIBOARDQ_DEBUG_KIF
-        qDebug().noquote() << "[BRANCH] self-from-mainline:"
-                           << "text=「" << m_dispMain.at(ply-1).prettyMove << "」";
-#endif
-    }
-
-    // === 同じ基底局面から分岐する手だけを表示 ===
-#ifdef SHOGIBOARDQ_DEBUG_KIF
-    int kept = 0, skippedBase = 0, skippedEmpty = 0;
-#endif
-    for (const KifLine& v : bucket) {
-        if (v.disp.isEmpty()) {
-#ifdef SHOGIBOARDQ_DEBUG_KIF
-            ++skippedEmpty;
-            qDebug().noquote() << "[BRANCH] skip (empty disp)"
-                               << " start=" << v.startPly;
-#endif
-            continue;
-        }
-        if (v.baseSfen != currentBase) {
-#ifdef SHOGIBOARDQ_DEBUG_KIF
-            ++skippedBase;
-            qDebug().noquote() << "[BRANCH] skip (base mismatch)"
-                               << " start=" << v.startPly
-                               << " base(v)=" << (v.baseSfen.left(24) + "...");
-#endif
-            continue;
-        }
-
-        // 採用
-        items << v.disp.first();
-#ifdef SHOGIBOARDQ_DEBUG_KIF
-        ++kept;
-        qDebug().noquote() << "[BRANCH] keep  start=" << v.startPly
-                           << " first=「" << v.disp.first().prettyMove << "」";
-#endif
-    }
-
-#ifdef SHOGIBOARDQ_DEBUG_KIF
-    // 現在の棋譜欄（ply行）が本当に「自分自身」になっているか軽く検査
-    if (ply-1 >= 0 && ply-1 < m_dispMain.size() && !items.isEmpty()) {
-        const QString expect = m_dispMain.at(ply-1).prettyMove;
-        const QString got    = items.first().prettyMove;
-        qDebug().noquote() << "[BRANCH] self-check:"
-                           << " expected=「" << expect << "」"
-                           << " got=「"      << got    << "」"
-                           << (expect==got ? "[OK]" : "[MISMATCH]");
-    }
-
-    qDebug().noquote() << "[BRANCH] summary:"
-                       << "kept=" << kept
-                       << "skipBase=" << skippedBase
-                       << "skipEmpty=" << skippedEmpty
-                       << "totalItems=" << items.size();
-#endif
-
-    // ★候補が「自分だけ」なら分岐候補なしとして非表示（モデル更新もしない）
-    if (items.size() <= 1) {
-#ifdef SHOGIBOARDQ_DEBUG_KIF
-        qDebug().noquote() << "[BRANCH] only self present -> hide branch list.";
-#endif
-        m_kifuBranchModel->clearBranchCandidates();
-        m_kifuBranchModel->setHasBackToMainRow(false);
-        if (m_kifuBranchView) m_kifuBranchView->setEnabled(false);
-        return;
     }
 
     // 反映
     m_kifuBranchModel->setBranchCandidatesFromKif(items);
+    // 先頭に“自分”を置いているので「本譜へ戻る」行は常時 true でもよい
     m_kifuBranchModel->setHasBackToMainRow(true);
-    if (m_kifuBranchView) m_kifuBranchView->setEnabled(true);
+    if (m_kifuBranchView) m_kifuBranchView->setEnabled(items.size() > 1);
 
-#ifdef SHOGIBOARDQ_DEBUG_KIF
-    // 画面に出した最終候補の列挙（視覚とログを同じ順序で確認できる）
-    QStringList listShown;
-    for (const auto& it : items) listShown << it.prettyMove;
-    qDebug().noquote() << "[BRANCH] shown list =" << listShown;
-#endif
+    // ログ＋“自分だけ”なら非表示
+    if (items.size() <= 1) {
+        m_kifuBranchModel->clearBranchCandidates();
+        m_kifuBranchModel->setHasBackToMainRow(false);
+        if (m_kifuBranchView) m_kifuBranchView->setEnabled(false);
+        qDebug().noquote() << "[BRANCH] only self -> hide";
+        return;
+    }
+
+    // デバッグ：作った rowMap を可視化
+    for (int i = 0; i < m_branchRowMap.size(); ++i) {
+        qDebug().noquote() << "[BRANCH] rowMap[" << i
+                           << "] = " << (m_branchRowMap[i].first == 0 ? "Main" : "Var")
+                           << " ply=" << m_branchRowMap[i].second
+                           << " resolvedRow=" << m_branchRowMap[i].first;
+    }
 }
 
 void MainWindow::applyVariation(int parentPly, int branchIndex)
@@ -7528,6 +7433,7 @@ void MainWindow::rebuildBranchTreeView()
 {
     if (!m_branchTreeView) return;
 
+    // 既存シーン破棄→新規作成
     if (auto* old = m_branchTreeView->scene()) old->deleteLater();
     auto* sc = new QGraphicsScene(m_branchTreeView);
     m_branchTreeView->setScene(sc);
@@ -7542,22 +7448,22 @@ void MainWindow::rebuildBranchTreeView()
     const qreal ROW_H   = 64;
     const qreal RADIUS  = 8.0;
 
-    // ---- 役割定数 ----
-    enum { RoleKind=0, RolePly=1, RoleVarIdx=2, RoleVarOff=3,
+    // ---- ロール ----
+    enum { RoleKind=0, RolePly=1, RoleRow=2,
            RoleBasePen=10, RoleBasePenW=11, RoleBaseBrush=12 };
     enum { NodeRoot=0, NodeMain=1, NodeVar=2 };
 
-    // ---- 色設定 ----
+    // ---- 色 ----
     const QPen   penRoot (QColor(160,160,160), 1.1);
     const QBrush brRoot  (QColor(245,245,245));
     const QPen   penBlack(QColor( 72,120,170), 1.2);
-    const QBrush brBlack(QColor(232,245,255));
+    const QBrush brBlack(QColor(232,245,255));   // ▲奇数手
     const QPen   penWhite(QColor(190,110,120), 1.2);
-    const QBrush brWhite(QColor(255,236,242));
-    const QPen   penSel  (QColor(255,200,0), 3.0); // 選択黄色
+    const QBrush brWhite(QColor(255,236,242));   // △偶数手
+    const QPen   penSel  (QColor(255,200,0), 3.0);
 
     // ---- ユーティリティ ----
-    auto makePath = [&](const QSizeF& sz) {
+    auto makePath = [&](const QSizeF& sz){
         QPainterPath p; p.addRoundedRect(QRectF(QPointF(0,0), sz), RADIUS, RADIUS); return p;
     };
     auto storeBaseStyle = [&](QGraphicsPathItem* it, const QPen& p, const QBrush& b){
@@ -7579,7 +7485,7 @@ void MainWindow::rebuildBranchTreeView()
     auto leftCenter  = [](const QRectF& rc){ return QPointF(rc.left(),  rc.center().y()); };
 
     auto addNode = [&](const QPointF& posScene, const QString& text,
-                       int role, int ply, int vi, int off,
+                       int role, int ply, int row,
                        const QPen& p, const QBrush& b) -> QGraphicsPathItem*
     {
         auto* it = new QGraphicsPathItem;
@@ -7588,8 +7494,7 @@ void MainWindow::rebuildBranchTreeView()
         it->setZValue(10);
         it->setData(RoleKind, role);
         it->setData(RolePly,  ply);
-        it->setData(RoleVarIdx, vi);
-        it->setData(RoleVarOff, off);
+        it->setData(RoleRow,  row);
         it->setFlag(QGraphicsItem::ItemIsSelectable, true);
         it->setAcceptedMouseButtons(Qt::LeftButton);
         it->setCursor(Qt::PointingHandCursor);
@@ -7611,12 +7516,18 @@ void MainWindow::rebuildBranchTreeView()
         ln->setZValue(-10); return ln;
     };
 
-    // ---- 列ヘッダ ----
-    const int mainN = m_dispMain.size();
-    int maxPly = mainN;
-    for (const auto& v : m_variationsSeq)
-        maxPly = qMax(maxPly, v.startPly + qMax(0, v.disp.size()-1));
+    // === 最大手数の見積り（※ fullDisp は 1..N の“総手数”）===
+    int maxPly = 0;
+    if (!m_resolvedRows.isEmpty()) {
+        maxPly = m_resolvedRows.first().disp.size();           // 本譜の最終手
+        for (int r = 1; r < m_resolvedRows.size(); ++r) {
+            maxPly = qMax(maxPly, m_resolvedRows[r].disp.size()); // 分岐行の最終手
+        }
+    } else {
+        maxPly = m_dispMain.size();
+    }
 
+    // 列ヘッダ
     for (int i=1; i<=maxPly; ++i) {
         auto* h = sc->addText(QStringLiteral("%1手目").arg(i));
         const QRectF br = h->boundingRect();
@@ -7624,248 +7535,109 @@ void MainWindow::rebuildBranchTreeView()
         h->setZValue(100);
     }
 
-    // ---- 本譜ノード作成 ----
-    QHash<int,QRectF> anchorAtCol;
+    // 親アンカー
+    QHash<int,QRectF> lastRectAtCol;
+
+    // S ノード
     QRectF rcRoot(QPointF(colX(0), TOP_Y), QSizeF(NODE_W, NODE_H));
-    addNode(rcRoot.topLeft(), QStringLiteral("S"), NodeRoot, 0, -1, -1, penRoot, brRoot);
-    anchorAtCol[0] = rcRoot;
+    addNode(rcRoot.topLeft(), QStringLiteral("S"), NodeRoot, 0, 0, penRoot, brRoot);
+    lastRectAtCol[0] = rcRoot;
 
-    QRectF prev = rcRoot;
-    QHash<int,QRectF> mainRectAtCol; mainRectAtCol[0] = rcRoot;
-
-    for (int i=1; i<=mainN; ++i) {
-        const bool black = (i % 2 == 1);
-        QRectF rc(QPointF(colX(i), TOP_Y), QSizeF(NODE_W, NODE_H));
-        addNode(rc.topLeft(), m_dispMain.at(i-1).prettyMove,
-                NodeMain, i, -1, -1,
-                black ? penBlack : penWhite, black ? brBlack : brWhite);
-        addEdge(rightCenter(prev), leftCenter(rc));
-        prev = rc;
-        mainRectAtCol[i] = rc;
-        anchorAtCol[i]   = rc;
+    // --- 行0：本譜 ---
+    if (!m_resolvedRows.isEmpty()) {
+        const auto& R0 = m_resolvedRows.first();
+        QRectF prev = rcRoot;
+        for (int i=1; i<=R0.disp.size(); ++i) {
+            const bool black = (i % 2 == 1);
+            QRectF rc(QPointF(colX(i), TOP_Y), QSizeF(NODE_W, NODE_H));
+            addNode(rc.topLeft(), R0.disp.at(i-1).prettyMove,
+                    NodeMain, i, 0,
+                    black ? penBlack : penWhite,
+                    black ? brBlack : brWhite);
+            addEdge(rightCenter(prev), leftCenter(rc));
+            prev = rc;
+            lastRectAtCol[i] = rc;
+        }
+    } else {
+        // フォールバック
+        QRectF prev = rcRoot;
+        for (int i=1; i<=m_dispMain.size(); ++i) {
+            const bool black = (i % 2 == 1);
+            QRectF rc(QPointF(colX(i), TOP_Y), QSizeF(NODE_W, NODE_H));
+            addNode(rc.topLeft(), m_dispMain.at(i-1).prettyMove,
+                    NodeMain, i, 0,
+                    black ? penBlack : penWhite,
+                    black ? brBlack : brWhite);
+            addEdge(rightCenter(prev), leftCenter(rc));
+            prev = rc;
+            lastRectAtCol[i] = rc;
+        }
     }
 
-    // ---- 分岐ノード作成（各分岐は独立行） ----
-    int nextVarRow = 1;
-    for (int vi = 0; vi < m_variationsSeq.size(); ++vi) {
-        const KifLine& v = m_variationsSeq.at(vi);
-        if (v.disp.isEmpty()) continue;
+    // --- 行1..：分岐行 ---
+    for (int row = 1; row < m_resolvedRows.size(); ++row) {
+        const auto& RL = m_resolvedRows[row];
+        if (RL.disp.isEmpty()) continue;
 
-        const int start = qBound(1, v.startPly, qMax(1, mainN));
-        const int row = nextVarRow++;
+        const int start = qMax(1, RL.startPly);
+        // ← ここがポイント：分岐開始以降の区間だけを描く
+        const QList<KifDisplayItem> seq = RL.disp.mid(start - 1);
 
         QRectF prevVar;
-        for (int k = 0; k < v.disp.size(); ++k) {
-            const int col = start + k;
+        for (int k = 0; k < seq.size(); ++k) {
+            const int col = start + k;               // 実際の手数列
             const bool black = (col % 2 == 1);
-            QRectF rc(QPointF(colX(col), VAR_Y0 + (row-1)*ROW_H), QSizeF(NODE_W, NODE_H));
+            const qreal y = VAR_Y0 + (row-1)*ROW_H;  // 行ごとの段
+            QRectF rc(QPointF(colX(col), y), QSizeF(NODE_W, NODE_H));
 
-            addNode(rc.topLeft(), v.disp.at(k).prettyMove,
-                    NodeVar, col, vi, k,
-                    black ? penBlack : penWhite, black ? brBlack : brWhite);
+            addNode(rc.topLeft(), seq.at(k).prettyMove,
+                    NodeVar, col, row,
+                    black ? penBlack : penWhite,
+                    black ? brBlack : brWhite);
 
             if (k == 0) {
-                const QRectF parent = anchorAtCol.value(start - 1, mainRectAtCol.value(start - 1, rcRoot));
+                // 親は “col-1 の最後に描いたノード”（後勝ちの親に自然に繋がる）
+                const QRectF parent = lastRectAtCol.value(col-1, rcRoot);
                 addEdge(rightCenter(parent), leftCenter(rc));
             } else {
                 addEdge(rightCenter(prevVar), leftCenter(rc));
             }
 
             prevVar = rc;
-            anchorAtCol[col] = rc;
+            lastRectAtCol[col] = rc;                 // この列の“直近ノード”を更新
         }
     }
 
     sc->setSceneRect(sc->itemsBoundingRect().adjusted(-20,-20, 200, 60));
 
-    // ---- 選択状態処理 ----
+    // ---- 選択ハンドラ ----
     QObject::disconnect(sc, nullptr, this, nullptr);
     QObject::connect(sc, &QGraphicsScene::selectionChanged, this,
         [this, sc, penSel, restoreBaseStyle]()
     {
-        // 1) 全ノードの枠を既定に戻す（黄色を一括解除）
         for (auto* item : sc->items()) {
-            auto* it = qgraphicsitem_cast<QGraphicsPathItem*>(item);
-            if (it) restoreBaseStyle(it);
+            if (auto* it = qgraphicsitem_cast<QGraphicsPathItem*>(item)) restoreBaseStyle(it);
         }
-
-        // 2) 選択ノード取得
-        const auto selected = sc->selectedItems();
-        if (selected.isEmpty()) return;
-
-        auto* it = qgraphicsitem_cast<QGraphicsPathItem*>(selected.first());
+        const auto sel = sc->selectedItems();
+        if (sel.isEmpty()) return;
+        auto* it = qgraphicsitem_cast<QGraphicsPathItem*>(sel.first());
         if (!it) return;
 
-        // 3) 選択ノードは黄色枠
         it->setPen(penSel);
 
         const int role = it->data(RoleKind).toInt();
-        const int ply  = it->data(RolePly ).toInt();
+        const int ply  = qMax(0, it->data(RolePly).toInt());
+        const int row  = qMax(0, it->data(RoleRow).toInt());
 
-        // 本譜へジャンプ（S/本譜）
-        auto gotoMain = [&](int selPly){
-#ifdef SHOGIBOARDQ_DEBUG_KIF
-            QList<KifDisplayItem> graphDisp = m_dispMain.mid(0, qMax(0, selPly));
-            QList<KifDisplayItem> kifuDisp  = graphDisp;
-            dbgCompareGraphVsKifu(graphDisp, kifuDisp, selPly, QStringLiteral("Tree:Main/Root"));
-#endif
-            *m_sfenRecord = m_sfenMain;
-            m_gameMoves   = m_gmMain;
-            showRecordAtPly(m_dispMain, selPly);
-            m_currentSelectedPly = selPly;
-
-            if (m_kifuRecordModel && m_kifuView) {
-                const QModelIndex idx = m_kifuRecordModel->index(selPly, 0);
-                m_kifuView->setCurrentIndex(idx);
-                m_kifuView->scrollTo(idx, QAbstractItemView::PositionAtCenter);
-            }
-            populateBranchListForPly(selPly);
-            syncBoardAndHighlightsAtRow(selPly);
-            enableArrowButtons();
-        };
-
-        if (role == NodeRoot) { gotoMain(0); return; }
-        if (role == NodeMain) { gotoMain(qMax(0, ply)); return; }
-
-        // === NodeVar: 分岐ノード =========================================
-        const int vi = it->data(RoleVarIdx).toInt();
-        const int off= it->data(RoleVarOff).toInt();
-        if (vi < 0 || vi >= m_variationsSeq.size()) return;
-        const KifLine& v = m_variationsSeq.at(vi);
-
-        // 1) 表示中ツリーと同じ規則（後勝ち）で 1..(start-1) を再構築
-        const int start = qMax(1, v.startPly);
-        const int maxCol = qMax(m_usiMoves.size(), start-1);
-
-        QVector<KifDisplayItem> dispAtCol(maxCol);
-        QVector<QString>        usiAtCol (maxCol);
-
-        // 本譜で初期化
-        for (int c=1; c<=maxCol; ++c) {
-            if (c-1 < m_dispMain.size()) dispAtCol[c-1] = m_dispMain[c-1];
-            if (c-1 < m_usiMoves.size())  usiAtCol[c-1]  = m_usiMoves[c-1];
+        if (role == NodeRoot) {
+            applyResolvedRowAndSelect(0, 0);
+        } else {
+            applyResolvedRowAndSelect(row, ply);     // 行・手数で一元遷移
         }
-        // 先に登場した分岐で上書き（後勝ち）
-        for (int j=0; j<vi; ++j) {
-            const KifLine& u = m_variationsSeq.at(j);
-            for (int k=0; k<u.disp.size(); ++k) {
-                const int col = u.startPly + k;            // 1-origin
-                if (col>=1 && col<=maxCol) {
-                    dispAtCol[col-1] = u.disp[k];
-                    if (k < u.usiMoves.size()) usiAtCol[col-1] = u.usiMoves[k];
-                }
-            }
-        }
-
-        QList<KifDisplayItem> prefixDisp;
-        QStringList           prefixUsi;
-        for (int c=1; c<=start-1; ++c) {
-            if (!dispAtCol[c-1].prettyMove.isEmpty()) prefixDisp << dispAtCol[c-1];
-            if (!usiAtCol[c-1].isEmpty())             prefixUsi  << usiAtCol[c-1];
-        }
-
-        // 2) プレフィクス + 当該分岐の結合（表示 / USI）
-        QList<KifDisplayItem> mergedDisp = prefixDisp;
-        mergedDisp += v.disp;
-        QStringList mergedUsi = prefixUsi;
-        mergedUsi += v.usiMoves;
-
-        // 3) USI から SFEN と ShogiMove を作り直す（ハイライト正確化）
-        auto buildRecordFromUsi = [&](const QString& sfen0,
-                                      const QStringList& usis,
-                                      QStringList& outSfen,
-                                      QVector<ShogiMove>& outGm)
-        {
-            SfenPositionTracer tr; tr.setFromSfen(sfen0);
-            outSfen.clear(); outSfen << tr.toSfenString();
-            outGm.clear();
-
-            auto rankLetterToNum = [](QChar r)->int {
-                ushort u = r.toLower().unicode();
-                return (u<'a'||u>'i') ? -1 : int(u-'a')+1;
-            };
-            auto tokenToOneChar = [](const QString& tok)->QChar {
-                if (tok.isEmpty()) return QLatin1Char(' ');
-                if (tok.size()==1) return tok.at(0);
-                static const QHash<QString,QChar> map = {
-                    {"+P",'Q'},{"+L",'M'},{"+N",'O'},{"+S",'T'},{"+B",'C'},{"+R",'U'},
-                    {"+p",'q'},{"+l",'m'},{"+n",'o'},{"+s",'t'},{"+b",'c'},{"+r",'u'},
-                };
-                auto it = map.find(tok);
-                return it==map.end()? QLatin1Char(' '): *it;
-            };
-
-            for (const QString& usi : usis) {
-                if (usi.size()>=2 && usi[1]==QLatin1Char('*')) {
-                    const bool black = tr.blackToMove();
-                    const QChar up = usi.at(0).toUpper();
-                    const int f = usi.at(2).toLatin1()-'0';
-                    const int r = rankLetterToNum(usi.at(3));
-                    const QPoint from(black ? 9 : 10,
-                                      black ? (up=='P'?0:up=='L'?1:up=='N'?2:up=='S'?3:up=='G'?4:up=='B'?5:6)
-                                            : (up=='P'?8:up=='L'?7:up=='N'?6:up=='S'?5:up=='G'?4:up=='B'?3:2));
-                    const QPoint to(f-1, r-1);
-                    const QChar moving = black ? up : up.toLower();
-                    outGm.push_back(ShogiMove(from, to, moving, QLatin1Char(' '), false));
-                    tr.applyUsiMove(usi);
-                    outSfen << tr.toSfenString();
-                    continue;
-                }
-
-                const int ff = usi.at(0).toLatin1()-'0';
-                const int rf = rankLetterToNum(usi.at(1));
-                const int ft = usi.at(2).toLatin1()-'0';
-                const int rt = rankLetterToNum(usi.at(3));
-                const bool prom = (usi.size()>=5 && usi.at(4)==QLatin1Char('+'));
-
-                const QString fromTok = tr.tokenAtFileRank(ff, usi.at(1));
-                const QString toTok   = tr.tokenAtFileRank(ft, usi.at(3));
-                const QPoint from(ff-1, rf-1);
-                const QPoint to  (ft-1, rt-1);
-                const QChar moving   = tokenToOneChar(fromTok);
-                const QChar captured = tokenToOneChar(toTok);
-
-                outGm.push_back(ShogiMove(from, to, moving, captured, prom));
-                tr.applyUsiMove(usi);
-                outSfen << tr.toSfenString();
-            }
-        };
-
-        QStringList mergedSfen;
-        QVector<ShogiMove> mergedGm;
-        buildRecordFromUsi(m_initialSfen, mergedUsi, mergedSfen, mergedGm);
-
-        // 4) 反映 & 選択
-        *m_sfenRecord = mergedSfen;
-        m_gameMoves   = mergedGm;
-
-        const int selPly = start + qMax(0, off);
-        showRecordAtPly(mergedDisp, selPly);
-        m_currentSelectedPly = selPly;
-
-#ifdef SHOGIBOARDQ_DEBUG_KIF
-        // 棋譜欄に実際に出ている内容と比較
-        QList<KifDisplayItem> kifuDisp;
-        if (m_kifuRecordModel) {
-            const int rows = m_kifuRecordModel->rowCount();
-            for (int r=0; r<rows; ++r) {
-                const QString s = m_kifuRecordModel->data(m_kifuRecordModel->index(r,0)).toString().trimmed();
-                if (!s.isEmpty()) kifuDisp << KifDisplayItem{ s, QString() };
-            }
-        }
-        dbgCompareGraphVsKifu(mergedDisp, kifuDisp, selPly, QStringLiteral("Tree:NodeVar"));
-#endif
-
-        if (m_kifuRecordModel && m_kifuView) {
-            const QModelIndex idx = m_kifuRecordModel->index(selPly, 0);
-            m_kifuView->setCurrentIndex(idx);
-            m_kifuView->scrollTo(idx, QAbstractItemView::PositionAtCenter);
-        }
-        populateBranchListForPly(start);
-        syncBoardAndHighlightsAtRow(selPly);
-        enableArrowButtons();
     });
 }
+
+
 
 #ifdef SHOGIBOARDQ_DEBUG_KIF
 static QString dbgFlatMoves(const QList<KifDisplayItem>& disp, int startPly)
@@ -7916,3 +7688,183 @@ void MainWindow::dbgCompareGraphVsKifu(const QList<KifDisplayItem>& graphDisp,
     qDebug().noquote() << "===============================================";
 }
 #endif
+
+void MainWindow::onBranchCandidateActivated(const QModelIndex& idx)
+{
+    if (!idx.isValid() || idx.row() < 0 || idx.row() >= m_branchRowMap.size())
+        return;
+
+    const auto map = m_branchRowMap.at(idx.row());
+    const int row  = map.first;   // ← .row ではなく .first
+    const int ply  = map.second;  // ← .ply ではなく .second
+
+    applyResolvedRowAndSelect(row, ply);
+}
+
+void MainWindow::buildResolvedLinesAfterLoad()
+{
+    m_resolvedRows.clear();
+
+    // --- 行0 = 本譜 ---
+    ResolvedRow mainRow;
+    mainRow.startPly = 1;
+    mainRow.disp     = m_dispMain;   // 表示用
+    mainRow.sfen     = m_sfenMain;   // 0..N
+    mainRow.gm       = m_gmMain;     // USI
+    mainRow.varIndex = -1;
+    m_resolvedRows.push_back(mainRow);
+
+    // --- 行1.. = 分岐（後勝ちプレフィクス + 自身） ---
+    for (int vi = 0; vi < m_variationsSeq.size(); ++vi) {
+        const KifLine& v = m_variationsSeq.at(vi);
+        if (v.disp.isEmpty()) continue;
+
+        // 1) プレフィクス(1..start-1)：本譜で初期化
+        const int start = qMax(1, v.startPly);
+        QList<KifDisplayItem> prefixDisp = m_dispMain.mid(0, start - 1);
+        QStringList           prefixSfen = m_sfenMain.mid(0, start);        // 0..start-1 の局面
+        QVector<ShogiMove>    prefixGm   = m_gmMain.mid(0, start - 1);      // 1..start-1 の手
+
+        // 2) “それ以前に登場した”分岐で上書き（後勝ち）
+        for (int uj = 0; uj < vi; ++uj) {
+            const KifLine& u = m_variationsSeq.at(uj);
+            if (u.disp.isEmpty()) continue;
+
+            const int uStart = qMax(1, u.startPly);
+            const int uEnd   = uStart + u.disp.size() - 1;
+            const int endCol = qMin(start - 1, uEnd);
+            if (endCol < uStart) continue;
+
+            for (int col = uStart; col <= endCol; ++col) {
+                const int idx = col - 1;          // disp は 1始まりを0始まりへ
+                const int off = col - uStart;     // u 内オフセット
+                if (0 <= idx && idx < prefixDisp.size()
+                 && 0 <= off && off < u.disp.size()) {
+                    prefixDisp[idx] = u.disp.at(off);
+                }
+            }
+            // sfen/gm は後段でまとめて作り直すのでここでは触らない
+        }
+
+        // 3) 分岐本体と連結して行を作る
+        ResolvedRow row;
+        row.startPly = start;
+        row.varIndex = vi;
+
+        row.disp = prefixDisp;
+        row.disp += v.disp;
+
+        // 盤面適用用の完全列：prefix(～start-1) + v本体
+        // v.sfenList は base を先頭に含む想定なので mid(1) で差分局面を接続
+        row.sfen = prefixSfen;
+        row.sfen += v.sfenList.mid(1);
+
+        row.gm   = prefixGm;
+        row.gm  += v.gameMoves;
+
+        m_resolvedRows.push_back(row);
+    }
+
+#ifdef SHOGIBOARDQ_DEBUG_KIF
+    qDebug().noquote() << "[RESOLVED] lines=" << m_resolvedRows.size();
+    for (int i=0;i<m_resolvedRows.size();++i) {
+        const auto& r = m_resolvedRows[i];
+        QStringList pm; pm.reserve(r.disp.size());
+        for (const auto& d : r.disp) pm << d.prettyMove;
+        qDebug().noquote()
+            << "  [" << (i==0?"Main":QString("Var%1").arg(r.varIndex)) << "]"
+            << " start=" << r.startPly
+            << " ndisp=" << r.disp.size()
+            << " seq=「 " << pm.join(" / ") << " 」";
+    }
+#endif
+}
+
+void MainWindow::applyResolvedRowAndSelect(int row, int selPly)
+{
+    if (row < 0 || row >= m_resolvedRows.size()) {
+        qDebug() << "[APPLY] invalid row =" << row << " rows=" << m_resolvedRows.size();
+        return;
+    }
+    m_activeResolvedRow = row;
+    const auto& r = m_resolvedRows[row];
+
+    // 盤面＆棋譜モデルへ
+    *m_sfenRecord = r.sfen;
+    m_gameMoves   = r.gm;
+
+    selPly = qBound(0, selPly, r.disp.size()); // 0=開始局面
+    showRecordAtPly(r.disp, selPly);
+    m_currentSelectedPly = selPly;
+
+    if (m_kifuRecordModel && m_kifuView) {
+        const QModelIndex idx = m_kifuRecordModel->index(selPly, 0);
+        m_kifuView->setCurrentIndex(idx);
+        m_kifuView->scrollTo(idx, QAbstractItemView::PositionAtCenter);
+    }
+    populateBranchListForPly(selPly);
+    syncBoardAndHighlightsAtRow(selPly);
+    enableArrowButtons();
+
+    qDebug().noquote() << "[APPLY] row=" << row << " ply=" << selPly
+                       << " rows=" << m_resolvedRows.size()
+                       << " dispSz=" << r.disp.size();
+}
+
+void MainWindow::buildResolvedRowsAfterLoad()
+{
+    QVector<ResolvedRow> rows;
+    rows.reserve(1 + m_variationsSeq.size());
+
+    // 行0 = 本譜
+    {
+        ResolvedRow r;
+        r.startPly  = 1;
+        r.disp  = m_dispMain;
+        r.sfen  = m_sfenMain;
+        r.gm = m_gmMain;
+        rows.push_back(std::move(r));
+    }
+
+    // 行1.. = 分岐（後勝ちで prefix を上書き）
+    for (int vi = 0; vi < m_variationsSeq.size(); ++vi) {
+        const KifLine& v = m_variationsSeq.at(vi);
+        if (v.disp.isEmpty()) continue;
+
+        QList<KifDisplayItem> prefixDisp  = m_dispMain.mid(0, qMax(0, v.startPly - 1));
+        QStringList           prefixSfen  = m_sfenMain.mid(0, qMax(0, v.startPly));
+        QVector<ShogiMove>    prefixMoves = m_gmMain.mid(0, qMax(0, v.startPly - 1));
+
+        // それ以前に登場した分岐で上書き
+        for (int u = 0; u < vi; ++u) {
+            const KifLine& up = m_variationsSeq.at(u);
+            if (up.disp.isEmpty()) continue;
+            const int s = qMax(1, up.startPly);
+            const int e = qMin(v.startPly - 1, up.startPly + up.disp.size() - 1);
+            for (int col = s; col <= e; ++col) {
+                const int idx = col - 1;
+                if (idx >= 0 && idx < prefixDisp.size())
+                    prefixDisp[idx] = up.disp.at(idx - (up.startPly - 1));
+                if (col >= 1 && col < prefixSfen.size())
+                    prefixSfen[col] = up.sfenList.at(col - (up.startPly - 1));
+                if (idx >= 0 && idx < prefixMoves.size())
+                    prefixMoves[idx] = up.gameMoves.at(idx - (up.startPly - 1));
+            }
+        }
+
+        ResolvedRow r;
+        r.startPly  = qMax(1, v.startPly);
+        r.disp  = prefixDisp;  r.disp += v.disp;
+        r.sfen  = prefixSfen;  {
+            QStringList body = v.sfenList;
+            if (!body.isEmpty()) body.pop_front();
+            r.sfen += body;
+        }
+        r.gm = prefixMoves; r.gm += v.gameMoves;
+
+        rows.push_back(std::move(r));
+    }
+
+    // ★ここがキモ：メンバに保存（これが残らないと rows=0 になります）
+    m_resolvedRows = std::move(rows);
+}
