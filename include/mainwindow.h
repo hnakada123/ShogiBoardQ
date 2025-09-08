@@ -1124,6 +1124,13 @@ private:
     // 事前計算ビルド
     void buildBranchCandidateIndex();
 
+    QHash<QPair<int,int>, QGraphicsPathItem*> m_branchNodeIndex;
+    bool m_branchTreeSelectGuard = false; // 再入抑止（プログラム選択→selectionChangedでapplyを呼ばせない）
+
+    QGraphicsPathItem* branchNodeFor(int row, int ply) const;
+    void highlightBranchTreeAt(int row, int ply, bool centerOn /*=false*/);
+
+    int  m_activePly = 0;                   // 現在の手数（0=初期局面）
 
 private slots:
     // 分岐候補欄でEnter/シングルクリックなどのアクティベートに反応

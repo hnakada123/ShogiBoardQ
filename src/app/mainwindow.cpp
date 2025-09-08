@@ -637,254 +637,120 @@ void MainWindow::updateBoardFromMoveHistory()
 
 // 棋譜欄下の矢印「1手進む」
 // 現局面から1手進んだ局面を表示する。
-// 棋譜欄下の矢印「1手進む」
-// 現局面から1手進んだ局面を表示する。
 void MainWindow::navigateToNextMove()
 {
-    // 既存の強調をクリア
-    clearMoveHighlights();
+    if (m_resolvedRows.isEmpty()) return;
 
-    if (!m_kifuRecordModel || !m_sfenRecord || m_kifuRecordModel->rowCount() <= 0)
+    const int row = qBound(0, m_activeResolvedRow, m_resolvedRows.size() - 1);
+    const auto& r = m_resolvedRows[row];
+
+    // 0..N の範囲に丸めた現在手数から +1
+    const int maxPly = r.disp.size();      // 末尾手数
+    const int cur    = qBound(0, m_activePly, maxPly);
+    if (cur >= maxPly) {
+        // もう末尾。必要ならビープ等
         return;
-
-    // 現在の行（m_currentSelectedPly を優先、未設定ならビューの選択から）
-    int currentRow = (m_currentSelectedPly >= 0)
-                     ? m_currentSelectedPly
-                     : m_kifuView->currentIndex().row();
-
-    // 1手進める（未選択なら末尾に行くという従来挙動を踏襲）
-    int nextRow = (currentRow == -1)
-                  ? (m_kifuRecordModel->rowCount() - 1)
-                  : (currentRow + 1);
-
-    // 範囲内に丸める
-    if (nextRow >= m_kifuRecordModel->rowCount())
-        nextRow = m_kifuRecordModel->rowCount() - 1;
-    if (nextRow < 0) return;
-
-    // 内部状態を更新
-    m_currentSelectedPly = nextRow;   // 分岐切替でも使う“現在手数”
-    m_currentMoveIndex   = nextRow;   // 既存コードが参照している場合に備えて
-
-    // 棋譜欄の選択を見た目上も同期
-    const QModelIndex nextIndex = m_kifuRecordModel->index(nextRow, 0, QModelIndex());
-    m_kifuView->setCurrentIndex(nextIndex);
-    m_kifuView->scrollTo(nextIndex, QAbstractItemView::PositionAtCenter);
-
-    // ★盤面をこの手数のSFENに強制同期（共通化）
-    applySfenAtCurrentPly();
-
-    // 末尾でなければ移動元/先のハイライト
-    const int lastRow = m_kifuRecordModel->rowCount() - 1;
-    if (nextRow != lastRow) {
-        addMoveHighlights();
     }
+    const int nextPly = cur + 1;
 
-    // コメント＆分岐候補の欄も更新
-    updateBranchTextForRow(nextRow);
-    populateBranchListForPly(nextRow);
-
-    // 矢印ボタンの有効/無効を更新（必要なら）
-    enableArrowButtons();
+    // これだけで：盤面・棋譜欄・分岐候補欄・矢印ボタン・ツリーハイライトまで一括同期
+    applyResolvedRowAndSelect(row, nextPly);
 }
 
 // 棋譜欄下の矢印「10手進む」
 // 現局面から10手進んだ局面を表示する。
 void MainWindow::navigateForwardTenMoves()
 {
-    // マスのハイライトを消去する。
-    clearMoveHighlights();
+    if (m_resolvedRows.isEmpty()) return;
 
-    if (!m_kifuRecordModel || !m_sfenRecord || m_kifuRecordModel->rowCount() <= 0)
-        return;
+    const int row = qBound(0, m_activeResolvedRow, m_resolvedRows.size() - 1);
+    const auto& r = m_resolvedRows[row];
 
-    // 現在の行（分岐対応のため m_currentSelectedPly を優先）
-    int currentRow = (m_currentSelectedPly >= 0)
-                     ? m_currentSelectedPly
-                     : m_kifuView->currentIndex().row();
+    // 0..N の範囲に丸めた現在手数から +10（末尾を超えない）
+    const int maxPly = r.disp.size();              // 最終手
+    const int cur    = qBound(0, m_activePly, maxPly);
+    if (cur >= maxPly) return;                     // 既に末尾
 
-    // 10手先へ（未選択なら末尾へという従来挙動を踏襲）
-    int nextRow = (currentRow == -1)
-                  ? (m_kifuRecordModel->rowCount() - 1)
-                  : (currentRow + 10);
+    int nextPly = cur + 10;
+    if (nextPly > maxPly) nextPly = maxPly;
 
-    // 範囲に丸める
-    const int lastRow = m_kifuRecordModel->rowCount() - 1;
-    if (nextRow > lastRow) nextRow = lastRow;
-    if (nextRow < 0)       nextRow = 0;
-
-    // 内部状態を更新（分岐切替や前/次ナビと統一）
-    m_currentSelectedPly = nextRow;
-    m_currentMoveIndex   = nextRow;  // 互換のため維持
-
-    // 棋譜欄の選択も同期
-    const QModelIndex nextIndex = m_kifuRecordModel->index(nextRow, 0, QModelIndex());
-    m_kifuView->setCurrentIndex(nextIndex);
-    m_kifuView->scrollTo(nextIndex, QAbstractItemView::PositionAtCenter);
-
-    // ★ 現在手数に対応するSFENを盤面へ反映（共通ヘルパ）
-    applySfenAtCurrentPly();
-
-    // 末尾でなければ移動元/先のハイライト
-    if (nextRow != lastRow) {
-        addMoveHighlights();
-    }
-
-    // コメント欄＆分岐候補を更新
-    updateBranchTextForRow(nextRow);
-    populateBranchListForPly(nextRow);
-
-    // 矢印ボタンの有効/無効を更新（必要なら）
-    enableArrowButtons();
+    // 盤面・棋譜欄・分岐候補欄・矢印ボタン・ツリーハイライトまで一括同期
+    applyResolvedRowAndSelect(row, nextPly);
 }
 
 // 棋譜欄下の矢印「最後まで進む」
 // 最終局面を表示する。
 void MainWindow::navigateToLastMove()
 {
-    // マスのハイライトを消去
-    clearMoveHighlights();
+    if (m_resolvedRows.isEmpty()) return;
 
-    if (!m_kifuRecordModel || !m_sfenRecord || m_kifuRecordModel->rowCount() <= 0)
-        return;
+    const int row = qBound(0, m_activeResolvedRow, m_resolvedRows.size() - 1);
+    const auto& r = m_resolvedRows[row];
 
-    // 最終行
-    const int lastRowIndex = m_kifuRecordModel->rowCount() - 1;
-    if (lastRowIndex < 0) return;
+    // 最終手（0..N の N）
+    const int lastPly = r.disp.size();
 
-    // 内部状態を更新（分岐切替や他ナビと統一）
-    m_currentSelectedPly = lastRowIndex;
-    m_currentMoveIndex   = lastRowIndex; // 互換維持
-
-    // 棋譜欄の選択も同期
-    const QModelIndex lastIndex = m_kifuRecordModel->index(lastRowIndex, 0, QModelIndex());
-    m_kifuView->setCurrentIndex(lastIndex);
-    m_kifuView->scrollTo(lastIndex, QAbstractItemView::PositionAtCenter);
-
-    // ★ 現在手数に対応するSFENを盤面へ反映（共通ヘルパ）
-    applySfenAtCurrentPly();
-
-    // 最終手なので移動元/先ハイライトは付けない（従来仕様を踏襲）
-
-    // コメント欄＆分岐候補を更新
-    updateBranchTextForRow(lastRowIndex);
-    populateBranchListForPly(lastRowIndex);
-
-    // 矢印ボタンの有効/無効を更新（必要なら）
-    enableArrowButtons();
+    // 盤面・棋譜欄・分岐候補欄・矢印ボタン・ツリーハイライトまで一括同期
+    applyResolvedRowAndSelect(row, lastPly);
 }
 
 // 棋譜欄下の矢印「1手戻る」
 // 現局面から1手戻った局面を表示する。
 void MainWindow::navigateToPreviousMove()
 {
-    // まず既存ハイライトを消す
-    clearMoveHighlights();
+    if (m_resolvedRows.isEmpty()) return;
 
-    if (!m_kifuRecordModel || !m_sfenRecord || m_kifuRecordModel->rowCount() <= 0)
-        return;
+    // 現在の“行”は分岐も含めて m_activeResolvedRow を信頼
+    const int row = qBound(0, m_activeResolvedRow, m_resolvedRows.size() - 1);
+    const auto& r = m_resolvedRows[row];
 
-    // 元の選択
-    const QModelIndex cur = m_kifuView->currentIndex();
-    const int curRow = cur.row();
+    // 現在手数（m_activePly を優先。未設定なら棋譜ビューの選択をフォールバック）
+    int curPly = (m_activePly >= 0)
+                 ? m_activePly
+                 : (m_kifuRecordModel && m_kifuView ? m_kifuView->currentIndex().row() : 0);
+    curPly = qBound(0, curPly, r.disp.size());
 
-    // 移動先（1手戻る）
-    int prevRow = (curRow == -1) ? (m_kifuRecordModel->rowCount() - 1) : (curRow - 1);
-    if (prevRow < 0) prevRow = 0;  // 先頭より戻らない
+    // 1手戻す（先頭で止める）
+    const int prevPly = qMax(0, curPly - 1);
 
-    // 内部手数も更新（分岐/本譜どちらでも共通）
-    m_currentSelectedPly = prevRow;
-    m_currentMoveIndex   = prevRow; // 既存互換
-
-    // 棋譜欄の選択を同期
-    const QModelIndex prevIdx = m_kifuRecordModel->index(prevRow, 0, QModelIndex());
-    m_kifuView->setCurrentIndex(prevIdx);
-    m_kifuView->scrollTo(prevIdx, QAbstractItemView::PositionAtCenter);
-
-    // ★ 現在手数に対応するSFENを盤面へ反映（本譜/分岐を自動判定）
-    applySfenAtCurrentPly();
-
-    // 先頭以外なら移動元/先ハイライト
-    if (prevRow > 0) addMoveHighlights();
-
-    // コメント欄と分岐候補欄を更新
-    updateBranchTextForRow(prevRow);
-    populateBranchListForPly(prevRow);
-
-    // 矢印ボタンの有効/無効を更新
-    enableArrowButtons();
+    // 盤面・棋譜欄・分岐候補・矢印ボタン・ツリーハイライトを一括同期
+    applyResolvedRowAndSelect(row, prevPly);
 }
 
 // 棋譜欄下の矢印「10手戻る」
 // 現局面から10手戻った局面を表示する。
 void MainWindow::navigateBackwardTenMoves()
 {
-    // 既存ハイライトを消去
-    clearMoveHighlights();
+    if (m_resolvedRows.isEmpty()) return;
 
-    if (!m_kifuRecordModel || !m_sfenRecord || m_kifuRecordModel->rowCount() <= 0)
-        return;
+    // 現在の“行”は分岐も含めて m_activeResolvedRow を使用
+    const int row = qBound(0, m_activeResolvedRow, m_resolvedRows.size() - 1);
+    const auto& r = m_resolvedRows[row];
 
-    // 現在行（未選択なら最終行扱い）
-    const QModelIndex cur = m_kifuView->currentIndex();
-    const int curRow = (cur.row() == -1) ? (m_kifuRecordModel->rowCount() - 1) : cur.row();
+    // 現在手数（m_activePly を優先。未設定なら棋譜ビュー選択へフォールバック）
+    int curPly = (m_activePly >= 0)
+                 ? m_activePly
+                 : (m_kifuRecordModel && m_kifuView ? m_kifuView->currentIndex().row() : 0);
+    curPly = qBound(0, curPly, r.disp.size());
 
-    // 10手戻る（0でクランプ）
-    int target = curRow - 10;
-    if (target < 0) target = 0;
+    // 10手戻す（0でクランプ）
+    const int targetPly = qMax(0, curPly - 10);
 
-    // 内部手数を更新（分岐/本譜共通の現在手）
-    m_currentSelectedPly = target;
-    m_currentMoveIndex   = target; // 既存互換
-
-    // 棋譜欄の選択を同期
-    const QModelIndex idx = m_kifuRecordModel->index(target, 0, QModelIndex());
-    m_kifuView->setCurrentIndex(idx);
-    m_kifuView->scrollTo(idx, QAbstractItemView::PositionAtCenter);
-
-    // ★ 現在手に対応するSFENを盤面へ（本譜/分岐を自動判定）
-    applySfenAtCurrentPly();
-
-    // 先頭以外なら移動元/先をハイライト
-    if (target > 0) addMoveHighlights();
-
-    // コメント欄＆分岐候補欄を更新
-    updateBranchTextForRow(target);
-    populateBranchListForPly(target);
-
-    // 矢印ボタンの有効/無効更新
-    enableArrowButtons();
+    // 盤面・棋譜欄・分岐候補・矢印ボタン・ツリーハイライトを一括同期
+    applyResolvedRowAndSelect(row, targetPly);
 }
 
 // 棋譜欄下の矢印「最初の局面に戻る」
 // 現局面から最初の局面を表示する。
 void MainWindow::navigateToFirstMove()
 {
-    // 既存ハイライトを消去
-    clearMoveHighlights();
+    if (m_resolvedRows.isEmpty()) return;
 
-    if (!m_kifuRecordModel || m_kifuRecordModel->rowCount() <= 0)
-        return;
+    // 現在の“行”（本譜/分岐）は m_activeResolvedRow を採用
+    const int row = qBound(0, m_activeResolvedRow, m_resolvedRows.size() - 1);
 
-    // 先頭へ
-    m_currentSelectedPly = 0;
-    m_currentMoveIndex   = 0; // 既存互換
-
-    const QModelIndex firstIndex = m_kifuRecordModel->index(0, 0);
-    m_kifuView->setCurrentIndex(firstIndex);
-    m_kifuView->scrollTo(firstIndex, QAbstractItemView::PositionAtTop);
-
-    // ★ 現在手(=0)に対応するSFENを盤面へ（本譜/分岐を自動判定）
-    applySfenAtCurrentPly();
-
-    // 先頭なのでハイライトは無し
-
-    // コメント欄＆分岐候補欄を更新
-    updateBranchTextForRow(0);
-    populateBranchListForPly(0);
-
-    // 矢印ボタンの有効/無効更新
-    enableArrowButtons();
+    // 先頭手数(=0)へ。盤面・棋譜欄・分岐候補・ツリーハイライトまで一括同期
+    applyResolvedRowAndSelect(row, /*selPly=*/0);
 }
 
 // 待ったをした場合、position文字列のセットと評価値グラフの値を削除する。
@@ -7440,6 +7306,9 @@ void MainWindow::rebuildBranchTreeView()
 {
     if (!m_branchTreeView) return;
 
+    // 3-1) 索引クリア
+    m_branchNodeIndex.clear();
+
     // 既存シーン破棄→新規作成
     if (auto* old = m_branchTreeView->scene()) old->deleteLater();
     auto* sc = new QGraphicsScene(m_branchTreeView);
@@ -7523,13 +7392,12 @@ void MainWindow::rebuildBranchTreeView()
         ln->setZValue(-10); return ln;
     };
 
-    // === 最大手数の見積り（※ fullDisp は 1..N の“総手数”）===
+    // === 最大手数の見積り ===
     int maxPly = 0;
     if (!m_resolvedRows.isEmpty()) {
         maxPly = m_resolvedRows.first().disp.size();           // 本譜の最終手
-        for (int r = 1; r < m_resolvedRows.size(); ++r) {
-            maxPly = qMax(maxPly, m_resolvedRows[r].disp.size()); // 分岐行の最終手
-        }
+        for (int r = 1; r < m_resolvedRows.size(); ++r)
+            maxPly = qMax(maxPly, m_resolvedRows[r].disp.size());
     } else {
         maxPly = m_dispMain.size();
     }
@@ -7545,9 +7413,10 @@ void MainWindow::rebuildBranchTreeView()
     // 親アンカー
     QHash<int,QRectF> lastRectAtCol;
 
-    // S ノード
+    // S ノード（3-2 索引登録）
     QRectF rcRoot(QPointF(colX(0), TOP_Y), QSizeF(NODE_W, NODE_H));
-    addNode(rcRoot.topLeft(), QStringLiteral("S"), NodeRoot, 0, 0, penRoot, brRoot);
+    auto* itRoot = addNode(rcRoot.topLeft(), QStringLiteral("S"), NodeRoot, 0, 0, penRoot, brRoot);
+    m_branchNodeIndex.insert(qMakePair(0, 0), itRoot);
     lastRectAtCol[0] = rcRoot;
 
     // --- 行0：本譜 ---
@@ -7557,10 +7426,13 @@ void MainWindow::rebuildBranchTreeView()
         for (int i=1; i<=R0.disp.size(); ++i) {
             const bool black = (i % 2 == 1);
             QRectF rc(QPointF(colX(i), TOP_Y), QSizeF(NODE_W, NODE_H));
-            addNode(rc.topLeft(), R0.disp.at(i-1).prettyMove,
-                    NodeMain, i, 0,
-                    black ? penBlack : penWhite,
-                    black ? brBlack : brWhite);
+            auto* itMain = addNode(rc.topLeft(), R0.disp.at(i-1).prettyMove,
+                                   NodeMain, i, 0,
+                                   black ? penBlack : penWhite,
+                                   black ? brBlack : brWhite);
+            // 3-2 索引登録
+            m_branchNodeIndex.insert(qMakePair(0, i), itMain);
+
             addEdge(rightCenter(prev), leftCenter(rc));
             prev = rc;
             lastRectAtCol[i] = rc;
@@ -7571,10 +7443,13 @@ void MainWindow::rebuildBranchTreeView()
         for (int i=1; i<=m_dispMain.size(); ++i) {
             const bool black = (i % 2 == 1);
             QRectF rc(QPointF(colX(i), TOP_Y), QSizeF(NODE_W, NODE_H));
-            addNode(rc.topLeft(), m_dispMain.at(i-1).prettyMove,
-                    NodeMain, i, 0,
-                    black ? penBlack : penWhite,
-                    black ? brBlack : brWhite);
+            auto* itMain = addNode(rc.topLeft(), m_dispMain.at(i-1).prettyMove,
+                                   NodeMain, i, 0,
+                                   black ? penBlack : penWhite,
+                                   black ? brBlack : brWhite);
+            // 3-2 索引登録
+            m_branchNodeIndex.insert(qMakePair(0, i), itMain);
+
             addEdge(rightCenter(prev), leftCenter(rc));
             prev = rc;
             lastRectAtCol[i] = rc;
@@ -7587,7 +7462,6 @@ void MainWindow::rebuildBranchTreeView()
         if (RL.disp.isEmpty()) continue;
 
         const int start = qMax(1, RL.startPly);
-        // ← ここがポイント：分岐開始以降の区間だけを描く
         const QList<KifDisplayItem> seq = RL.disp.mid(start - 1);
 
         QRectF prevVar;
@@ -7597,13 +7471,14 @@ void MainWindow::rebuildBranchTreeView()
             const qreal y = VAR_Y0 + (row-1)*ROW_H;  // 行ごとの段
             QRectF rc(QPointF(colX(col), y), QSizeF(NODE_W, NODE_H));
 
-            addNode(rc.topLeft(), seq.at(k).prettyMove,
-                    NodeVar, col, row,
-                    black ? penBlack : penWhite,
-                    black ? brBlack : brWhite);
+            auto* itVar = addNode(rc.topLeft(), seq.at(k).prettyMove,
+                                  NodeVar, col, row,
+                                  black ? penBlack : penWhite,
+                                  black ? brBlack : brWhite);
+            // 3-2 索引登録
+            m_branchNodeIndex.insert(qMakePair(row, col), itVar);
 
             if (k == 0) {
-                // 親は “col-1 の最後に描いたノード”（後勝ちの親に自然に繋がる）
                 const QRectF parent = lastRectAtCol.value(col-1, rcRoot);
                 addEdge(rightCenter(parent), leftCenter(rc));
             } else {
@@ -7617,7 +7492,7 @@ void MainWindow::rebuildBranchTreeView()
 
     sc->setSceneRect(sc->itemsBoundingRect().adjusted(-20,-20, 200, 60));
 
-    // ---- 選択ハンドラ ----
+    // ---- 選択ハンドラ（3-3 再入抑止付き）----
     QObject::disconnect(sc, nullptr, this, nullptr);
     QObject::connect(sc, &QGraphicsScene::selectionChanged, this,
         [this, sc, penSel, restoreBaseStyle]()
@@ -7636,6 +7511,9 @@ void MainWindow::rebuildBranchTreeView()
         const int ply  = qMax(0, it->data(RolePly).toInt());
         const int row  = qMax(0, it->data(RoleRow).toInt());
 
+        // ★ プログラム側からの選択変更時はここで打ち切り
+        if (m_branchTreeSelectGuard) return;
+
         if (role == NodeRoot) {
             applyResolvedRowAndSelect(0, 0);
         } else {
@@ -7643,8 +7521,6 @@ void MainWindow::rebuildBranchTreeView()
         }
     });
 }
-
-
 
 #ifdef SHOGIBOARDQ_DEBUG_KIF
 static QString dbgFlatMoves(const QList<KifDisplayItem>& disp, int startPly)
@@ -7807,29 +7683,41 @@ void MainWindow::applyResolvedRowAndSelect(int row, int selPly)
         qDebug() << "[APPLY] invalid row =" << row << " rows=" << m_resolvedRows.size();
         return;
     }
+
+    // 行を確定
     m_activeResolvedRow = row;
     const auto& r = m_resolvedRows[row];
 
-    // 盤面＆棋譜モデルへ
-    *m_sfenRecord = r.sfen;
-    m_gameMoves   = r.gm;
+    // 盤面＆棋譜モデル（まず行データを丸ごと差し替え）
+    *m_sfenRecord = r.sfen;   // 0..N のSFEN列
+    m_gameMoves   = r.gm;     // 1..N のUSI列
 
-    selPly = qBound(0, selPly, r.disp.size()); // 0=開始局面
-    showRecordAtPly(r.disp, selPly);
-    m_currentSelectedPly = selPly;
+    // ★ 手数を正規化して共有メンバへ反映（0=初期局面）
+    const int maxPly = r.disp.size();
+    m_activePly = qBound(0, selPly, maxPly);
+
+    // 棋譜欄へ反映
+    showRecordAtPly(r.disp, m_activePly);
+    m_currentSelectedPly = m_activePly;
 
     if (m_kifuRecordModel && m_kifuView) {
-        const QModelIndex idx = m_kifuRecordModel->index(selPly, 0);
+        const QModelIndex idx = m_kifuRecordModel->index(m_activePly, 0);
         m_kifuView->setCurrentIndex(idx);
         m_kifuView->scrollTo(idx, QAbstractItemView::PositionAtCenter);
     }
-    populateBranchListForPly(selPly);
-    syncBoardAndHighlightsAtRow(selPly);
+
+    // 分岐候補・盤面ハイライト・矢印ボタン
+    populateBranchListForPly(m_activePly);
+    syncBoardAndHighlightsAtRow(m_activePly);
     enableArrowButtons();
 
-    qDebug().noquote() << "[APPLY] row=" << row << " ply=" << selPly
+    qDebug().noquote() << "[APPLY] row=" << row
+                       << " ply=" << m_activePly
                        << " rows=" << m_resolvedRows.size()
                        << " dispSz=" << r.disp.size();
+
+    // 分岐ツリー側の黄色ハイライト同期（centerOnはお好みで）
+    highlightBranchTreeAt(/*row*/m_activeResolvedRow, /*ply*/m_activePly, /*centerOn*/false);
 }
 
 void MainWindow::buildResolvedRowsAfterLoad()
@@ -7953,4 +7841,32 @@ void MainWindow::buildBranchCandidateIndex()
     }
 
     qDebug().noquote() << "[BIDX] built ply keys =" << m_branchIndex.keys();
+}
+
+QGraphicsPathItem* MainWindow::branchNodeFor(int row, int ply) const
+{
+    const auto it = m_branchNodeIndex.constFind(qMakePair(row, ply));
+    return (it == m_branchNodeIndex.constEnd()) ? nullptr : it.value();
+}
+
+void MainWindow::highlightBranchTreeAt(int row, int ply, bool centerOn /*=false*/)
+{
+    if (!m_branchTreeView || !m_branchTreeView->scene()) return;
+
+    // まずは「その行のその手」を探す
+    QGraphicsPathItem* it = branchNodeFor(row, ply);
+    // 無ければ本譜同手へフォールバック（分岐行のプレフィクス部分など）
+    if (!it && row != 0) it = branchNodeFor(/*main*/0, ply);
+    // さらに無ければルートへ
+    if (!it && ply == 0) it = branchNodeFor(/*row*/0, /*ply*/0);
+
+    if (!it) return;
+
+    // selectionChanged の中で applyResolvedRowAndSelect が呼ばれないようにガード
+    m_branchTreeSelectGuard = true;
+    auto* sc = m_branchTreeView->scene();
+    sc->clearSelection();      // 既存選択解除 → selectionChanged が走る
+    it->setSelected(true);     // ここで selectionChanged が走り、黄色枠の描画はされる
+    if (centerOn) m_branchTreeView->centerOn(it);
+    m_branchTreeSelectGuard = false;
 }
