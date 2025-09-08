@@ -64,15 +64,6 @@
 
 using namespace EngineSettingsConstants;
 
-namespace {
-static inline QString baseKeyFromSfen(const QString& s) {
-    // "board turn hands ply" のうち、盤面(board)と手番(turn)だけをキーに使う
-    const QStringList f = s.split(' ');
-    if (f.size() >= 2) return f[0] + ' ' + f[1];
-    return s;
-}
-}
-
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
@@ -6968,6 +6959,7 @@ void MainWindow::populateBranchListForPly(int ply)
                        << " activeRow=" << active
                        << " resolved=" << rows;
 
+    // 手数0・データ不足 → 非表示
     if (ply <= 0 || rows == 0) {
         m_kifuBranchModel->clearBranchCandidates();
         m_kifuBranchModel->setHasBackToMainRow(false);
@@ -6976,42 +6968,38 @@ void MainWindow::populateBranchListForPly(int ply)
         return;
     }
 
-    auto norm = [](QString s)->QString {
-        static const QRegularExpression reHead(QStringLiteral(R"(^\s*[0-9０-９]+\s+)"));
-        s.remove(reHead);
-        return s.trimmed();
-    };
-
+    // アクティブ行の基底SFEN（ply-1局面）
     const auto& self = m_resolvedRows[active];
     const int idx = ply - 1;
-    if (idx < 0 || idx >= self.disp.size() || idx >= self.sfen.size()) {
+    if (idx < 0 || idx >= self.sfen.size()) {
         m_kifuBranchModel->clearBranchCandidates();
         m_kifuBranchModel->setHasBackToMainRow(false);
         if (m_kifuBranchView) m_kifuBranchView->setEnabled(false);
-        qDebug().noquote() << "[BRANCH] hide (out of range)";
+        qDebug().noquote() << "[BRANCH] hide (base sfen out of range)";
         return;
     }
-    const QString baseKey = baseKeyFromSfen(self.sfen.at(idx));
+    const QString base = self.sfen.at(idx);
 
-    const auto plyIt  = m_branchIndex.constFind(ply);
-    if (plyIt == m_branchIndex.constEnd()) {
+    // 事前計算テーブルから候補を取得（この ply × baseSFEN のみ） — SFEN一本化
+    const auto byPly = m_branchIndex.constFind(ply);
+    if (byPly == m_branchIndex.constEnd()) {
         m_kifuBranchModel->clearBranchCandidates();
         m_kifuBranchModel->setHasBackToMainRow(false);
         if (m_kifuBranchView) m_kifuBranchView->setEnabled(false);
         qDebug().noquote() << "[BRANCH] hide (no index at ply)";
         return;
     }
-    const auto grpIt = plyIt->constFind(baseKey);
-    if (grpIt == plyIt->constEnd()) {
+    const auto byBase = byPly->constFind(base);
+    if (byBase == byPly->constEnd()) {
         m_kifuBranchModel->clearBranchCandidates();
         m_kifuBranchModel->setHasBackToMainRow(false);
         if (m_kifuBranchView) m_kifuBranchView->setEnabled(false);
-        qDebug().noquote() << "[BRANCH] hide (no group for baseKey)";
+        qDebug().noquote() << "[BRANCH] hide (no group for base)";
         return;
     }
 
-    // “自分”を先頭へ
-    QList<BranchCandidate> ordered = grpIt.value();
+    // 候補（self を先頭へ移動）
+    QList<BranchCandidate> ordered = byBase.value();
     if (!ordered.isEmpty() && ordered.first().row != active) {
         int selfPos = -1;
         for (int i = 0; i < ordered.size(); ++i)
@@ -7022,6 +7010,7 @@ void MainWindow::populateBranchListForPly(int ply)
         }
     }
 
+    // 表示用に整形
     QList<KifDisplayItem> items;
     m_branchRowMap.clear();
     for (const auto& c : ordered) {
@@ -7029,10 +7018,11 @@ void MainWindow::populateBranchListForPly(int ply)
         m_branchRowMap.append(qMakePair(c.row, c.ply));
     }
 
+    // 反映：分岐点（候補2件以上）のみ表示
     const bool show = (items.size() >= 2);
     if (show) {
         m_kifuBranchModel->setBranchCandidatesFromKif(items);
-        m_kifuBranchModel->setHasBackToMainRow(active != 0);
+        m_kifuBranchModel->setHasBackToMainRow(active != 0); // バリエーションなら「本譜へ戻る」
         if (m_kifuBranchView) m_kifuBranchView->setEnabled(true);
     } else {
         m_kifuBranchModel->clearBranchCandidates();
@@ -7040,8 +7030,10 @@ void MainWindow::populateBranchListForPly(int ply)
         if (m_kifuBranchView) m_kifuBranchView->setEnabled(false);
     }
 
-    QStringList ls; for (auto &it: items) ls << it.prettyMove;
-    qDebug().noquote() << "[BRANCH] baseKey=" << (baseKey.left(24) + "...")
+    // デバッグ
+    QStringList ls;
+    for (const auto& it : items) ls << it.prettyMove;
+    qDebug().noquote() << "[BRANCH] baseKey=" << (base.left(24) + "...")
                        << " items=" << ls;
     for (int i = 0; i < m_branchRowMap.size(); ++i) {
         qDebug().noquote() << "[BRANCH] idx" << i
@@ -7913,32 +7905,34 @@ void MainWindow::buildBranchCandidateIndex()
         return s.trimmed();
     };
 
-    // 最大手数（表示列数の最大）
+    // 最大手数
     int maxPly = 0;
     for (const auto& r : m_resolvedRows)
         maxPly = qMax(maxPly, r.disp.size());
 
+    // 各手数ごとに「基底SFEN単位」で候補を集約
     for (int ply = 1; ply <= maxPly; ++ply) {
-        const int idx = ply - 1;
         QHash<QString, QList<BranchCandidate>> groups;  // baseSFEN -> candidates
-        QHash<QString, QSet<QString>> seen;             // 重複排除（同じ文字列の手は1回）
+        QHash<QString, QSet<QString>> seenByBase;       // 重複排除（同じ文字の手）
+
+        const int idx = ply - 1;
 
         for (int row = 0; row < m_resolvedRows.size(); ++row) {
             const auto& R = m_resolvedRows[row];
-            if (idx < 0 || idx >= R.disp.size()) continue;
-            if (idx < 0 || idx >= R.sfen.size()) continue;  // ★再計算済みなので idx は必ず有効のはず
+            if (idx < 0 || idx >= R.disp.size() || idx >= R.sfen.size())
+                continue;
 
-            const QString base = baseKeyFromSfen(R.sfen.at(idx));         // 基底（ply-1手目局面）
-            const QString text = norm(R.disp.at(idx).prettyMove);         // 同手目の表示
-
+            const QString base = R.sfen.at(idx);                   // 基底SFEN（ply-1局面）
+            const QString text = norm(R.disp.at(idx).prettyMove);  // その手の表示
             if (text.isEmpty()) continue;
-            if (!seen[base].contains(text)) {
+
+            if (!seenByBase[base].contains(text)) {
                 groups[base].append(BranchCandidate{ text, row, ply });
-                seen[base].insert(text);
+                seenByBase[base].insert(text);
             }
         }
 
-        // 候補が2つ以上（分岐）だけを残す
+        // 分岐になっていない（候補1件以下）の基底は捨てる
         for (auto it = groups.begin(); it != groups.end(); ) {
             if (it->size() <= 1) it = groups.erase(it);
             else                 ++it;
@@ -7946,9 +7940,11 @@ void MainWindow::buildBranchCandidateIndex()
 
         if (!groups.isEmpty()) {
             m_branchIndex.insert(ply, groups);
+
             // デバッグ
             for (auto g = groups.constBegin(); g != groups.constEnd(); ++g) {
-                QStringList ls; for (const auto& c : g.value()) ls << c.text;
+                QStringList ls;
+                for (const auto& c : g.value()) ls << c.text;
                 qDebug().noquote() << "[BIDX] ply=" << ply
                                    << " base=" << (g.key().left(24) + "...")
                                    << " cand=" << ls;
@@ -7956,8 +7952,5 @@ void MainWindow::buildBranchCandidateIndex()
         }
     }
 
-    QStringList plys;
-    for (auto it = m_branchIndex.constBegin(); it != m_branchIndex.constEnd(); ++it)
-        plys << QString::number(it.key());
-    qDebug().noquote() << "[BIDX] built ply keys =" << plys;
+    qDebug().noquote() << "[BIDX] built ply keys =" << m_branchIndex.keys();
 }

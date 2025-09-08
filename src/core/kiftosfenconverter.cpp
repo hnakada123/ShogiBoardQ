@@ -714,7 +714,7 @@ static const QRegularExpression kHeaderLine(
     );
 // 「*」「＊」で始まるコメント行
 static const QRegularExpression kLineIsComment(
-    QStringLiteral("^\\s*[\\*\\uFF0A]")
+    QStringLiteral("^\\s*[\\*\\＊]")
     );
 // 指し手行（手数で始まる）。半角/全角数字どちらにもマッチ
 static const QRegularExpression kLineLooksLikeMoveNo(
