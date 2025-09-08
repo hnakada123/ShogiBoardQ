@@ -1101,17 +1101,29 @@ private:
     // いま表示している“解決済み行”のインデックス（0 = 本譜）
     int m_activeResolvedRow = 0;
 
-    // 分岐候補テーブルの 1 行 → どの解決済み行(row)の何手目(ply)を開くか
-    using BranchRowEntry = QPair<int,int>;   // first=row, second=ply
-    QList<BranchRowEntry> m_branchRowMap;
-
-
 private:
     // 読み込み直後に一度だけ作る（本譜+分岐を“後勝ち”で解決して行データ化）
     void buildResolvedLinesAfterLoad();
 
     // 指定の解決済み行 row を適用し、棋譜欄の selPly を選択する
     void applyResolvedRowAndSelect(int row, int selPly);
+
+    // --- 事前計算した「分岐候補」1件 ---
+    struct BranchCandidate {
+        QString text;  // 「▲２六歩(27)」など（正規化済み）
+        int row;       // この手を持つ resolved 行インデックス（0=本譜）
+        int ply;       // 手数（1始まり）
+    };
+
+    // [手数 ply] -> [基底SFEN] -> 候補リスト
+    QHash<int, QHash<QString, QList<BranchCandidate>>> m_branchIndex;
+
+    // 分岐候補ビューで、行クリック→どの resolved 行/手数へ飛ぶか
+    QList<QPair<int,int>> m_branchRowMap; // .first=row, .second=ply
+
+    // 事前計算ビルド
+    void buildBranchCandidateIndex();
+
 
 private slots:
     // 分岐候補欄でEnter/シングルクリックなどのアクティベートに反応
