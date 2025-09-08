@@ -583,56 +583,19 @@ void MainWindow::addMoveHighlights()
 
 void MainWindow::updateBoardFromMoveHistory()
 {
-    // 既存ハイライトを消す
-    clearMoveHighlights();
-
-    // 必須ポインタの存在チェック
-    if (!m_kifuView || !m_kifuRecordModel || !m_sfenRecord || m_sfenRecord->isEmpty()) {
+    // 必須チェック
+    if (!m_kifuView || !m_kifuRecordModel || m_resolvedRows.isEmpty())
         return;
-    }
 
-    // 現在行（無効なら 0＝開始局面）
-    const QModelIndex index = m_kifuView->currentIndex();
-    int viewRow = index.isValid() ? index.row() : 0;
+    // クリックされた棋譜行（無効なら 0）
+    const QModelIndex idx = m_kifuView->currentIndex();
+    int selPly = idx.isValid() ? idx.row() : 0;
 
-    // SFEN は「初期局面を含む手数+1」個
-    const int sfenCount   = m_sfenRecord->size();            // 例: 手数5 → 6
-    const int modelLast   = m_kifuRecordModel->rowCount() - 1;
-    const bool isTerminal = (viewRow >= sfenCount);          // “投了”等の終局行？
+    // 現在の“行”（本譜/分岐）は m_activeResolvedRow を使う
+    const int row = qBound(0, m_activeResolvedRow, m_resolvedRows.size() - 1);
 
-    // SFEN 参照行をクランプ（終局行は最後の局面を使う）
-    int sfenRow = viewRow;
-    if (sfenRow >= sfenCount) sfenRow = sfenCount - 1;
-    if (sfenRow < 0)          sfenRow = 0;
-
-    // 盤面を反映
-    QString sfenStr = m_sfenRecord->at(sfenRow);
-    m_gameController->board()->setSfen(sfenStr);
-
-    // 現在手数を同期（GUI内の“現在選択手”の基準は局面側に合わせる）
-    m_currentMoveIndex   = sfenRow;
-    m_currentSelectedPly = sfenRow;
-
-    // ハイライトは「実際に動いた手」のみ
-    const bool canHighlight =
-        (!isTerminal) &&
-        (sfenRow > 0) &&
-        (sfenRow - 1 >= 0) &&
-        (sfenRow - 1 < m_gameMoves.size()) &&
-        (viewRow != modelLast);   // 従来の最終行抑制ロジック
-
-    if (canHighlight) {
-        addMoveHighlights();
-    }
-
-    // コメント欄を更新（表示行ベース。終局行でも問題なし）
-    updateBranchTextForRow(qBound(0, viewRow, m_kifuRecordModel->rowCount() - 1));
-
-    // 分岐候補欄も現在の手目で更新（“戻る”行の有/無はモデル側で制御）
-    populateBranchListForPly(m_currentSelectedPly);
-
-    // ナビゲーションボタンの有効/無効
-    enableArrowButtons();
+    // 盤面・棋譜欄・分岐候補・矢印・分岐ツリーハイライトまで一括同期
+    applyResolvedRowAndSelect(row, selPly);
 }
 
 // 棋譜欄下の矢印「1手進む」
@@ -6818,14 +6781,9 @@ void MainWindow::populateBranchListForPly(int ply)
 {
     if (!m_kifuBranchModel) return;
 
-    const int rows   = m_resolvedRows.size();
-    const int active = qBound(0, m_activeResolvedRow, rows - 1);
+    const int rows = m_resolvedRows.size();
 
-    qDebug().noquote() << "[BRANCH] populate ply=" << ply
-                       << " activeRow=" << active
-                       << " resolved=" << rows;
-
-    // 手数0・データ不足 → 非表示
+    // ★ 先に早期リターン（rows==0 もここで抜ける）
     if (ply <= 0 || rows == 0) {
         m_kifuBranchModel->clearBranchCandidates();
         m_kifuBranchModel->setHasBackToMainRow(false);
@@ -6833,6 +6791,13 @@ void MainWindow::populateBranchListForPly(int ply)
         qDebug().noquote() << "[BRANCH] hide (ply<=0 or no rows)";
         return;
     }
+
+    // ここから rows>0 が保証されるので qBound を安全に使える
+    const int active = qBound(0, m_activeResolvedRow, rows - 1);
+
+    qDebug().noquote() << "[BRANCH] populate ply=" << ply
+                       << " activeRow=" << active
+                       << " resolved=" << rows;
 
     // アクティブ行の基底SFEN（ply-1局面）
     const auto& self = m_resolvedRows[active];
@@ -6846,7 +6811,7 @@ void MainWindow::populateBranchListForPly(int ply)
     }
     const QString base = self.sfen.at(idx);
 
-    // 事前計算テーブルから候補を取得（この ply × baseSFEN のみ） — SFEN一本化
+    // 事前計算テーブルから候補取得（SFEN一本化）
     const auto byPly = m_branchIndex.constFind(ply);
     if (byPly == m_branchIndex.constEnd()) {
         m_kifuBranchModel->clearBranchCandidates();
@@ -6864,7 +6829,7 @@ void MainWindow::populateBranchListForPly(int ply)
         return;
     }
 
-    // 候補（self を先頭へ移動）
+    // 候補（self を先頭へ）
     QList<BranchCandidate> ordered = byBase.value();
     if (!ordered.isEmpty() && ordered.first().row != active) {
         int selfPos = -1;
@@ -6876,7 +6841,7 @@ void MainWindow::populateBranchListForPly(int ply)
         }
     }
 
-    // 表示用に整形
+    // モデルへ反映
     QList<KifDisplayItem> items;
     m_branchRowMap.clear();
     for (const auto& c : ordered) {
@@ -6884,11 +6849,10 @@ void MainWindow::populateBranchListForPly(int ply)
         m_branchRowMap.append(qMakePair(c.row, c.ply));
     }
 
-    // 反映：分岐点（候補2件以上）のみ表示
     const bool show = (items.size() >= 2);
     if (show) {
         m_kifuBranchModel->setBranchCandidatesFromKif(items);
-        m_kifuBranchModel->setHasBackToMainRow(active != 0); // バリエーションなら「本譜へ戻る」
+        m_kifuBranchModel->setHasBackToMainRow(active != 0);
         if (m_kifuBranchView) m_kifuBranchView->setEnabled(true);
     } else {
         m_kifuBranchModel->clearBranchCandidates();
@@ -6897,8 +6861,7 @@ void MainWindow::populateBranchListForPly(int ply)
     }
 
     // デバッグ
-    QStringList ls;
-    for (const auto& it : items) ls << it.prettyMove;
+    QStringList ls; for (const auto& it : items) ls << it.prettyMove;
     qDebug().noquote() << "[BRANCH] baseKey=" << (base.left(24) + "...")
                        << " items=" << ls;
     for (int i = 0; i < m_branchRowMap.size(); ++i) {
