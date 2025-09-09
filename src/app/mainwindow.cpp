@@ -7535,16 +7535,30 @@ void MainWindow::dbgCompareGraphVsKifu(const QList<KifDisplayItem>& graphDisp,
 }
 #endif
 
-void MainWindow::onBranchCandidateActivated(const QModelIndex& idx)
+// 分岐候補ビューで行がクリック/アクティベートされたとき
+void MainWindow::onBranchCandidateActivated(const QModelIndex& index)
 {
-    if (!idx.isValid()) return;
-    const int row = idx.row();
-    if (row < 0 || row >= m_branchRowMap.size()) return;
+    // --- バリデーション ---
+    if (!index.isValid() || !m_kifuBranchModel) return;
 
-    const int targetRow = m_branchRowMap[row].first;
-    const int targetPly = m_branchRowMap[row].second;
+    const int row = index.row();
 
-    applyResolvedRowAndSelect(targetRow, targetPly);
+    // 1) 「本譜へ戻る」行が押された場合：本譜（解決済み行0）を再適用
+    if (m_kifuBranchModel->isBackToMainRow(row)) {
+        // 直前に見ていた手数（m_currentSelectedPly）を維持して本譜に戻る
+        // applyResolvedRowAndSelect は 盤面/棋譜欄/分岐候補/矢印/ハイライト を一括同期します
+        applyResolvedRowAndSelect(/*row=*/0, /*selPly=*/m_currentSelectedPly);  // 本譜へ
+        return;
+    }
+
+    // 2) 通常の分岐候補：m_branchRowMap から解決済み行と手数を取り出してジャンプ
+    if (row >= 0 && row < m_branchRowMap.size()) {
+        const int resolvedRow = m_branchRowMap[row].first;   // どの「行」（本譜=0/分岐=1..）か
+        const int targetPly   = m_branchRowMap[row].second;  // その行での手数(0..N)
+
+        // 盤面・棋譜欄・分岐候補・矢印ボタン・ツリーハイライトまで一括同期
+        applyResolvedRowAndSelect(resolvedRow, targetPly);
+    }
 }
 
 void MainWindow::buildResolvedLinesAfterLoad()
@@ -7681,6 +7695,9 @@ void MainWindow::applyResolvedRowAndSelect(int row, int selPly)
 
     // 分岐ツリー側の黄色ハイライト同期（centerOnはお好みで）
     highlightBranchTreeAt(/*row*/m_activeResolvedRow, /*ply*/m_activePly, /*centerOn*/false);
+
+    // ★ 棋譜欄の「分岐あり」行をオレンジでマーク
+    updateKifuBranchMarkersForActiveRow();
 }
 
 void MainWindow::buildResolvedRowsAfterLoad()
@@ -7804,6 +7821,9 @@ void MainWindow::buildBranchCandidateIndex()
     }
 
     qDebug().noquote() << "[BIDX] built ply keys =" << m_branchIndex.keys();
+
+    // デバッグ出力などの後
+    updateKifuBranchMarkersForActiveRow();
 }
 
 QGraphicsPathItem* MainWindow::branchNodeFor(int row, int ply) const
@@ -7832,4 +7852,78 @@ void MainWindow::highlightBranchTreeAt(int row, int ply, bool centerOn /*=false*
     it->setSelected(true);     // ここで selectionChanged が走り、黄色枠の描画はされる
     if (centerOn) m_branchTreeView->centerOn(it);
     m_branchTreeSelectGuard = false;
+}
+
+void MainWindow::BranchRowDelegate::paint(
+    QPainter* painter,
+    const QStyleOptionViewItem& option,
+    const QModelIndex& index) const
+{
+    QStyleOptionViewItem opt(option);
+    QStyledItemDelegate::initStyleOption(&opt, index);
+
+    const bool isBranchable = (m_marks && m_marks->contains(index.row()));
+
+    // 選択時のハイライトと衝突しないように、未選択時のみオレンジ背景
+    if (isBranchable && !(opt.state & QStyle::State_Selected)) {
+        painter->save();
+        painter->fillRect(opt.rect, QColor(255, 220, 160));
+        painter->restore();
+    }
+
+    QStyledItemDelegate::paint(painter, opt, index);
+}
+
+// ====== デリゲートの取り付け（初回のみ） ======
+void MainWindow::ensureBranchRowDelegateInstalled()
+{
+    if (!m_kifuView) return;
+    if (!m_branchRowDelegate) {
+        m_branchRowDelegate = new BranchRowDelegate(m_kifuView);
+        // ビュー全体に適用（列単位にしたければ setItemDelegateForColumn(列) を使ってください）
+        m_kifuView->setItemDelegate(m_branchRowDelegate);
+    }
+    m_branchRowDelegate->setMarkers(&m_branchablePlySet);
+}
+
+// ====== アクティブ行に対する「分岐あり手」の再計算 → ビュー再描画 ======
+void MainWindow::updateKifuBranchMarkersForActiveRow()
+{
+    m_branchablePlySet.clear();
+
+    if (m_resolvedRows.isEmpty()) {
+        if (m_kifuView) m_kifuView->viewport()->update();
+        return;
+    }
+
+    const int active = qBound(0, m_activeResolvedRow, m_resolvedRows.size()-1);
+    const auto& r = m_resolvedRows[active];
+
+    // r.disp: 1..N の手表示, r.sfen: 0..N の局面列
+    for (int ply = 1; ply <= r.disp.size(); ++ply) {
+        const int idx = ply - 1;                 // sfen は ply-1 が基底
+        if (idx < 0 || idx >= r.sfen.size()) continue;
+
+        const auto itPly = m_branchIndex.constFind(ply);
+        if (itPly == m_branchIndex.constEnd()) continue;
+
+        const QString base = r.sfen.at(idx);
+        const auto itBase = itPly->constFind(base);
+        if (itBase == itPly->constEnd()) continue;
+
+        if (itBase->size() >= 2) {
+            m_branchablePlySet.insert(ply);      // 候補が2件以上 → 分岐点
+        }
+    }
+
+    ensureBranchRowDelegateInstalled();
+
+    if (m_kifuView) m_kifuView->viewport()->update();
+
+#ifdef SHOGIBOARDQ_DEBUG_KIF
+    if (!m_branchablePlySet.isEmpty()) {
+        QStringList ls; for (int p : m_branchablePlySet) ls << QString::number(p);
+        qDebug().noquote() << "[KIF-HL] branchable ply =" << ls;
+    }
+#endif
 }

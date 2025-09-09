@@ -13,6 +13,8 @@
 #include <QTextBrowser>
 #include <QDockWidget>
 #include <QTableWidget>
+#include <QStyledItemDelegate>
+#include <QSet>
 
 #include "kifurecordlistmodel.h"
 #include "kifubranchlistmodel.h"
@@ -42,6 +44,9 @@ class MainWindow;
 QT_END_NAMESPACE
 
 class ShogiGameController;
+class QPainter;
+class QStyleOptionViewItem;
+class QModelIndex;
 
 class MainWindow : public QMainWindow
 {
@@ -1131,6 +1136,33 @@ private:
     void highlightBranchTreeAt(int row, int ply, bool centerOn /*=false*/);
 
     int  m_activePly = 0;                   // 現在の手数（0=初期局面）
+
+    // 「この手に分岐候補がある」手数（ply）の集合
+    QSet<int> m_branchablePlySet;
+
+    // 棋譜欄の分岐マーカー描画用デリゲート（ヘッダ側に宣言を移動）
+    class BranchRowDelegate : public QStyledItemDelegate
+    {
+    public:
+        explicit BranchRowDelegate(QObject* parent = nullptr)
+            : QStyledItemDelegate(parent) {}
+
+        void setMarkers(const QSet<int>* marks) { m_marks = marks; }
+
+        // 実装は .cpp に出します
+        void paint(QPainter* painter,
+                   const QStyleOptionViewItem& option,
+                   const QModelIndex& index) const override;
+
+    private:
+        const QSet<int>* m_marks = nullptr;
+    };
+
+    BranchRowDelegate* m_branchRowDelegate = nullptr;
+
+    // 内部ユーティリティ
+    void ensureBranchRowDelegateInstalled();
+    void updateKifuBranchMarkersForActiveRow();
 
 private slots:
     // 分岐候補欄でEnter/シングルクリックなどのアクティベートに反応
