@@ -1164,6 +1164,16 @@ private:
     void ensureBranchRowDelegateInstalled();
     void updateKifuBranchMarkersForActiveRow();
 
+private:
+    Qt::ConnectionType connTypeFor(QObject* obj) const;
+    void resetGameFlags();
+    void syncClockTurnAndEpoch();
+    void startMatchEpoch(const char* tag);
+    void wireResignToArbiter(Usi* engine, bool asP1);
+    void setConsiderationForJustMoved(qint64 thinkMs);
+    bool engineThinkApplyMove(Usi* engine, QString& positionStr, QString& ponderStr,
+                              QPoint* outFrom, QPoint* outTo);
+
 private slots:
     // 分岐候補欄でEnter/シングルクリックなどのアクティベートに反応
     void onBranchCandidateActivated(const QModelIndex& idx);
