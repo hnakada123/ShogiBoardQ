@@ -1169,10 +1169,35 @@ private:
     void resetGameFlags();
     void syncClockTurnAndEpoch();
     void startMatchEpoch(const char* tag);
+    void startMatchEpoch(const QString& tag);
     void wireResignToArbiter(Usi* engine, bool asP1);
     void setConsiderationForJustMoved(qint64 thinkMs);
     bool engineThinkApplyMove(Usi* engine, QString& positionStr, QString& ponderStr,
                               QPoint* outFrom, QPoint* outTo);
+    void destroyEngine(Usi*& e);
+    void initSingleEnginePvE(bool engineIsP1);
+    void initEnginesForEvE();
+    void setupInitialPositionStrings();
+    void setPvEClickHandler();
+    void setPvPClickHandler();
+    void syncAndEpoch(const QString& title);
+    bool isHumanTurnNow(bool engineIsP1) const;
+    bool engineMoveOnce(Usi* eng,
+                        QString& positionStr,
+                        QString& ponderStr,
+                        bool useSelectedField2,
+                        int engineIndex,
+                        QPoint* outTo = nullptr);
+    // EvEで「片側が1手指す」共通処理
+    bool playOneEngineTurn(Usi* mover, Usi* receiver,
+                           QString& positionStr,
+                           QString& ponderStr,
+                           int engineIndex);
+
+    // ---- assignment helpers ----
+    void assignSidesHumanVsEngine();      // HvE: m_usi1 を先後どちらに割り当てるか
+    void assignSidesEngineVsHuman();      // EvH: m_usi1 を先後どちらに割り当てるか
+    void assignEnginesEngineVsEngine();   // EvE: m_usi1/m_usi2 を先後に割り当てる
 
 private slots:
     // 分岐候補欄でEnter/シングルクリックなどのアクティベートに反応
