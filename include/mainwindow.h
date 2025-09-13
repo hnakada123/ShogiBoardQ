@@ -32,6 +32,7 @@
 #include "tsumeshogisearchdialog.h"
 #include "shogiclock.h"
 #include "kiftosfenconverter.h"
+#include "navigationcontext.h"
 
 #define SHOGIBOARDQ_DEBUG_KIF 1   // 0にすればログは一切出ません
 
@@ -48,7 +49,7 @@ class QPainter;
 class QStyleOptionViewItem;
 class QModelIndex;
 
-class MainWindow : public QMainWindow
+class MainWindow : public QMainWindow, public INavigationContext
 {
     Q_OBJECT
 
@@ -104,24 +105,6 @@ private slots:
 
     // 駒台を含む将棋盤全体の画像をクリップボードにコピーする。
     void copyBoardToClipboard();
-
-    // 現局面から1手進んだ局面を表示する。
-    void navigateToNextMove();
-
-    // 現局面から1手戻った局面を表示する。
-    void navigateToPreviousMove();
-
-    // 現局面から10手進んだ局面を表示する。
-    void navigateForwardTenMoves();
-
-    // 現局面から10手戻った局面を表示する。
-    void navigateBackwardTenMoves();
-
-    // 最終局面を表示する。
-    void navigateToLastMove();
-
-    // 現局面から最初の局面を表示する。
-    void navigateToFirstMove();
 
     // info行の予想手、探索手、エンジンの読み筋を縦ボックス化したm_widget3の表示・非表示を切り替える。
     void toggleEngineAnalysisVisibility();
@@ -1198,6 +1181,15 @@ private:
     void assignSidesHumanVsEngine();      // HvE: m_usi1 を先後どちらに割り当てるか
     void assignSidesEngineVsHuman();      // EvH: m_usi1 を先後どちらに割り当てるか
     void assignEnginesEngineVsEngine();   // EvE: m_usi1/m_usi2 を先後に割り当てる
+
+public: // INavigationContext
+    bool hasResolvedRows() const override;
+    int  resolvedRowCount() const override;
+    int  activeResolvedRow() const override;
+    int  maxPlyAtRow(int row) const override;
+    int  currentPly() const override;
+    void applySelect(int row, int ply) override; // 既存の applyResolvedRowAndSelect を呼ぶ
+
 
 private slots:
     // 分岐候補欄でEnter/シングルクリックなどのアクティベートに反応
