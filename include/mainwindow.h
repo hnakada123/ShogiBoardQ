@@ -48,6 +48,7 @@ class ShogiGameController;
 class QPainter;
 class QStyleOptionViewItem;
 class QModelIndex;
+class EngineInfoWidget;
 
 class MainWindow : public QMainWindow, public INavigationContext
 {
@@ -191,48 +192,6 @@ private slots:
 
     // 棋譜をファイルに上書き保存する。
     void overwriteKifuFile();
-
-    // GUIのエンジン名欄1を変更する。
-    void updateEngine1NameDisplay();
-
-    // GUIの予想手欄1を変更する。
-    void updateEngine1PredictedMoveDisplay();
-
-    // GUIの探索手欄1を変更する。
-    void updateEngine1SearchedMoveDisplay();
-
-    // GUIの探索深さ欄1を変更する。
-    void updateEngine1DepthDisplay();
-
-    // GUIのノード数欄1を変更する。
-    void updateEngine1NodesCountDisplay();
-
-    // GUIの局面探索数欄1を変更する。
-    void updateEngine1NpsDisplay();
-
-    // GUIのハッシュ使用率欄1を変更する。
-    void updateEngine1HashUsageDisplay();
-
-    // GUIのエンジン名欄2を変更する。
-    void updateEngine2NameDisplay();
-
-    // GUIの予想手欄2を変更する。
-    void updateEngine2PredictedMoveDisplay();
-
-    // GUIの探索手欄2を変更する。
-    void updateEngine2SearchedMoveDisplay();
-
-    // GUIの探索深さ欄2を変更する。
-    void updateEngine2DepthDisplay();
-
-    // GUIのノード数欄2を変更する。
-    void updateEngine2NodesCountDisplay();
-
-    // GUIの局面探索数欄2を変更する。
-    void updateEngine2NpsDisplay();
-
-    // GUIのハッシュ使用率欄2を変更する。
-    void updateEngine2HashUsageDisplay();
 
     // gameover resignコマンドを受信した場合の終了処理を行う。
     void processResignCommand();
@@ -465,10 +424,10 @@ private:
     QLabel* m_hashfullLabel2;
 
     // エンジン名1、予想手1、探索手1、深さ1、ノード数1、局面探索数1、ハッシュ使用率1を横ボックス化したウィジェット
-    QWidget* m_infoWidget1;
+    EngineInfoWidget* m_infoWidget1 = nullptr;
 
     // エンジン名2、予想手2、探索手2、深さ2、ノード数2、局面探索数2、ハッシュ使用率2を横ボックス化したウィジェット
-    QWidget* m_infoWidget2;
+    EngineInfoWidget* m_infoWidget2 = nullptr;
 
     // エンジン名1、予想手1、探索手1、深さ1、ノード数1、局面探索数1、ハッシュ使用率1の更新に関するオブジェクト
     UsiCommLogModel* m_lineEditModel1;

@@ -63,6 +63,7 @@
 #include "kifreader.h"
 #include "navigationcontroller.h"
 #include "boardimageexporter.h"
+#include "engineinfowidget.h"
 
 using namespace EngineSettingsConstants;
 
@@ -1016,57 +1017,48 @@ void MainWindow::createEvaluationChartView()
 // 対局モードに応じて将棋盤下部に表示されるエンジン名をセットする。
 void MainWindow::setEngineNamesBasedOnMode()
 {
-    // 対局モード
     switch (m_playMode) {
-    // 平手 Player1: Human, Player2: USI Engine
     case EvenHumanVsEngine:
-
-    // 駒落ち Player1: Human（下手）, Player2: USI Engine（上手）
     case HandicapHumanVsEngine:
-        // エンジン名2をエンジン名欄1に表示する。
-        m_engineNameText1->setText(m_engineName2);
+        m_infoWidget1->setModel(m_lineEditModel1);
+        m_infoWidget1->setDisplayNameFallback(m_engineName2);
+        m_infoWidget2->setModel(nullptr);
+        m_infoWidget2->setDisplayNameFallback(QString());
+        m_infoWidget2->setVisible(false);
         break;
 
-    // 平手 Player1: USI Engine, Player2: Human
     case EvenEngineVsHuman:
-
-    // 駒落ち Player1: USI Engine（下手）, Player2: Human（上手）
     case HandicapEngineVsHuman:
-        // エンジン名1をエンジン名欄1に表示する。
-        m_engineNameText1->setText(m_engineName1);
+        m_infoWidget1->setModel(m_lineEditModel1);
+        m_infoWidget1->setDisplayNameFallback(m_engineName1);
+        m_infoWidget2->setModel(nullptr);
+        m_infoWidget2->setDisplayNameFallback(QString());
+        m_infoWidget2->setVisible(false);
         break;
 
-    // 平手 Player1: USI Engine, Player2: USI Engine
     case EvenEngineVsEngine:
-        // エンジン名1、エンジン名2をエンジン名欄1、エンジン名欄2に表示する。
-        m_engineNameText1->setText(m_engineName1);
-        m_engineNameText2->setText(m_engineName2);
+        m_infoWidget1->setModel(m_lineEditModel1);
+        m_infoWidget1->setDisplayNameFallback(m_engineName1);
+        m_infoWidget2->setModel(m_lineEditModel2);
+        m_infoWidget2->setDisplayNameFallback(m_engineName2);
+        m_infoWidget2->setVisible(true);
         break;
 
-    // 駒落ち Player1: USI Engine（下手）, Player2: USI Engine
     case HandicapEngineVsEngine:
-        // エンジン名1、エンジン名2をエンジン名欄2、エンジン名欄1に表示する。
-        m_engineNameText1->setText(m_engineName2);
-        m_engineNameText2->setText(m_engineName1);
+        // 立場が入れ替わる仕様ならこちらも入れ替え
+        m_infoWidget1->setModel(m_lineEditModel2);
+        m_infoWidget1->setDisplayNameFallback(m_engineName2);
+        m_infoWidget2->setModel(m_lineEditModel1);
+        m_infoWidget2->setDisplayNameFallback(m_engineName1);
+        m_infoWidget2->setVisible(true);
         break;
 
-    // まだ対局を開始していない状態
-    case NotStarted:
-
-    // 人間同士の対局
-    case HumanVsHuman:
-
-    // 棋譜解析モード
-    case AnalysisMode:
-
-    // 検討モード
-    case ConsidarationMode:
-
-    // 詰将棋探索モード
-    case TsumiSearchMode:
-
-    // 対局モードエラー
-    case PlayModeError:
+    default:
+        m_infoWidget1->setModel(nullptr);
+        m_infoWidget1->setDisplayNameFallback(QString());
+        m_infoWidget2->setModel(nullptr);
+        m_infoWidget2->setDisplayNameFallback(QString());
+        m_infoWidget2->setVisible(false);
         break;
     }
 }
@@ -1074,457 +1066,15 @@ void MainWindow::setEngineNamesBasedOnMode()
 // エンジン1の予想手、探索手などの情報を表示する。
 void MainWindow::initializeEngine1InfoDisplay()
 {
-    // フォントを指定する。
-    QFont font("Noto Sans CJK JP", 8);
-
-    // エンジン名1の表示欄を作成する。
-    m_engineNameText1 = new QLineEdit;
-
-    // エンジン名1の表示欄のフォントを指定する。
-    m_engineNameText1->setFont(font);
-
-    // エンジン名1の表示欄の横幅を300に設定する。
-    m_engineNameText1->setFixedWidth(300);
-
-    // エンジン名1の表示欄をリードオンリーにする。
-    m_engineNameText1->setReadOnly(true);
-
-    // 予想手1のラベル欄を作成する。
-    m_predictiveHandLabel1 = new QLabel;
-
-    // 予想手1のラベル欄に「予想手」と表示する。
-    m_predictiveHandLabel1->setText("予想手");
-
-    // 予想手1のラベル欄にフォントを設定する。
-    m_predictiveHandLabel1->setFont(font);
-
-    // 予想手1の欄を作成する。
-    m_predictiveHandText1 = new QLineEdit;
-
-    // 予想手1の欄をリードオンリーにする。
-    m_predictiveHandText1->setReadOnly(true);
-
-    // 予想手1の欄にフォントを設定する。
-    m_predictiveHandText1->setFont(font);
-
-    // 探索手1のラベル欄を作成する。
-    m_searchedHandLabel1 = new QLabel;
-
-    // 探索手1のラベル欄に「探索手」と表示する。
-    m_searchedHandLabel1->setText("探索手");
-
-    // 探索手1のラベル欄にフォントを設定する。
-    m_searchedHandLabel1->setFont(font);
-
-    // 探索手1の欄を作成する。
-    m_searchedHandText1 = new QLineEdit;
-
-    // 探索手1の欄をリードオンリーにする。
-    m_searchedHandText1->setReadOnly(true);
-
-    // 探索手1の欄にフォントを設定する。
-    m_searchedHandText1->setFont(font);
-
-    // 深さ1のラベル欄を作成する。
-    m_depthLabel1 = new QLabel;
-
-    // 深さ1のラベル欄に「深さ」と表示する。
-    m_depthLabel1->setText("深さ");
-
-    // 深さ1のラベル欄にフォントを設定する。
-    m_depthLabel1->setFont(font);
-
-    // 探さ1の欄を作成する。
-    m_depthText1 = new QLineEdit;
-
-    // 探さ1の欄をリードオンリーにする。
-    m_depthText1->setReadOnly(true);
-
-    // 探さ1の欄の表示を右揃えにする。
-    m_depthText1->setAlignment(Qt::AlignRight);
-
-    // 探さ1の欄にフォントを設定する。
-    m_depthText1->setFont(font);
-
-    // 探さ1の欄の横幅を60に固定する。
-    m_depthText1->setFixedWidth(60);
-
-    // ノード数1のラベル欄を作成する。
-    m_nodesLabel1 = new QLabel;
-
-    // ノード数1のラベル欄に「ノード数」と表示する。
-    m_nodesLabel1->setText("ノード数");
-
-    // ノード数1のラベル欄にフォントを設定する。
-    m_nodesLabel1->setFont(font);
-
-    // ノード数1の欄を作成する。
-    m_nodesText1 = new QLineEdit;
-
-    // ノード数1の欄をリードオンリーにする。
-    m_nodesText1->setReadOnly(true);
-
-    // ノード数1の欄の表示を右揃えにする。
-    m_nodesText1->setAlignment(Qt::AlignRight);
-
-    // ノード数1のラベル欄にフォントを設定する。
-    m_nodesText1->setFont(font);
-
-    // 探索局面数1のラベル欄の作成する。
-    m_npsLabel1 = new QLabel;
-
-    // 探索局面数1のラベル欄に「探索局面数」と表示する。
-    m_npsLabel1->setText("探索局面数");
-
-    // 探索局面数1のラベル欄にフォントを設定する。
-    m_npsLabel1->setFont(font);
-
-    // 探索局面数1の欄を作成する。
-    m_npsText1 = new QLineEdit;
-
-    // 探索局面数1の欄をリードオンリーにする。
-    m_npsText1->setReadOnly(true);
-
-    // 探索局面数1の欄の表示を右揃えにする。
-    m_npsText1->setAlignment(Qt::AlignRight);
-
-    // 探索局面数1の欄にフォントを設定する。
-    m_npsText1->setFont(font);
-
-    // ハッシュ使用率1のラベル欄を作成する。
-    m_hashfullLabel1 = new QLabel;
-
-    // ハッシュ使用率1のラベル欄に「ハッシュ使用率」と表示する。
-    m_hashfullLabel1->setText("ハッシュ使用率");
-
-    // ハッシュ使用率1のラベル欄にフォントを設定する。
-    m_hashfullLabel1->setFont(font);
-
-    // ハッシュ使用率1の欄を作成する。
-    m_hashfullText1 = new QLineEdit;
-
-    // ハッシュ使用率1の欄をリードオンリーにする。
-    m_hashfullText1->setReadOnly(true);
-
-    // ハッシュ使用率1の欄の表示を右揃えにする。
-    m_hashfullText1->setAlignment(Qt::AlignRight);
-
-    // ハッシュ使用率1の欄にフォントを設定する。
-    m_hashfullText1->setFont(font);
-
-    // ハッシュ使用率1の欄の幅を60に固定する。
-    m_hashfullText1->setFixedWidth(60);
-
-    // エンジン名1、予想手1、探索手1、深さ1、ノード数1、局面探索数1、ハッシュ使用率1を横ボックス化したレイアウト
-    QHBoxLayout* hboxLayout = new QHBoxLayout;
-    hboxLayout->addWidget(m_engineNameText1);
-    hboxLayout->addWidget(m_predictiveHandLabel1);
-    hboxLayout->addWidget(m_predictiveHandText1);
-    hboxLayout->addWidget(m_searchedHandLabel1);
-    hboxLayout->addWidget(m_searchedHandText1);
-    hboxLayout->addWidget(m_depthLabel1);
-    hboxLayout->addWidget(m_depthText1);
-    hboxLayout->addWidget(m_nodesLabel1);
-    hboxLayout->addWidget(m_nodesText1);
-    hboxLayout->addWidget(m_npsLabel1);
-    hboxLayout->addWidget(m_npsText1);
-    hboxLayout->addWidget(m_hashfullLabel1);
-    hboxLayout->addWidget(m_hashfullText1);
-
-    // 上記ウィジェットを纏めて1つのウィジェットm_infoWidget1に設定する。
-    m_infoWidget1 = new QWidget;
-    m_infoWidget1->setLayout(hboxLayout);
-
-    // エンジン名が変更された場合、GUIのエンジン名を変更する。
-    connect(m_lineEditModel1, &UsiCommLogModel::engineNameChanged, this, &MainWindow::updateEngine1NameDisplay);
-
-    // 予想手が変更された場合、GUIの予想手を変更する。
-    connect(m_lineEditModel1, &UsiCommLogModel::predictiveMoveChanged, this, &MainWindow::updateEngine1PredictedMoveDisplay);
-
-    // 探索手が変更された場合、GUIの探索手を変更する。
-    connect(m_lineEditModel1, &UsiCommLogModel::searchedMoveChanged, this, &MainWindow::updateEngine1SearchedMoveDisplay);
-
-    // 深さが変更された場合、GUIの深さを変更する。
-    connect(m_lineEditModel1, &UsiCommLogModel::searchDepthChanged, this, &MainWindow::updateEngine1DepthDisplay);
-
-    // ノード数が変更された場合、GUIのノード数を変更する。
-    connect(m_lineEditModel1, &UsiCommLogModel::nodeCountChanged, this, &MainWindow::updateEngine1NodesCountDisplay);
-
-    // 局面探索数が変更された場合、GUIの局面探索数を変更する。
-    connect(m_lineEditModel1, &UsiCommLogModel::nodesPerSecondChanged, this, &MainWindow::updateEngine1NpsDisplay);
-
-    // ハッシュ使用率が変更された場合、GUIのハッシュ使用率を変更する。
-    connect(m_lineEditModel1, &UsiCommLogModel::hashUsageChanged, this, &MainWindow::updateEngine1HashUsageDisplay);
-}
-
-// GUIのエンジン名欄1を変更する。
-void MainWindow::updateEngine1NameDisplay()
-{
-    m_engineNameText1->setText(m_lineEditModel1->engineName());
-}
-
-// GUIの予想手欄1を変更する。
-void MainWindow::updateEngine1PredictedMoveDisplay()
-{
-    m_predictiveHandText1->setText(m_lineEditModel1->predictiveMove());
-}
-
-// GUIの探索手欄1を変更する。
-void MainWindow::updateEngine1SearchedMoveDisplay()
-{
-    m_searchedHandText1->setText(m_lineEditModel1->searchedMove());
-}
-
-// GUIの深さ欄1を変更する。
-void MainWindow::updateEngine1DepthDisplay()
-{
-    m_depthText1->setText(m_lineEditModel1->searchDepth());
-}
-
-// GUIのノード数欄1を変更する。
-void MainWindow::updateEngine1NodesCountDisplay()
-{
-    m_nodesText1->setText(m_lineEditModel1->nodeCount());
-}
-
-// GUIの局面探索数欄1を変更する。
-void MainWindow::updateEngine1NpsDisplay()
-{
-    m_npsText1->setText(m_lineEditModel1->nodesPerSecond());
-}
-
-// GUIのハッシュ使用率欄1を変更する。
-void MainWindow::updateEngine1HashUsageDisplay()
-{
-    m_hashfullText1->setText(m_lineEditModel1->hashUsage());
+    m_infoWidget1 = new EngineInfoWidget(this);
+    m_infoWidget1->setModel(m_lineEditModel1);
 }
 
 // エンジン2の予想手、探索手などの情報を表示する。
 void MainWindow::initializeEngine2InfoDisplay()
 {
-    // フォントを指定する。
-    QFont font("Noto Sans CJK JP", 8);
-
-    // エンジン名2の表示欄を作成する。
-    m_engineNameText2 = new QLineEdit;
-
-    // エンジン名2の表示欄のフォントを指定する。
-    m_engineNameText2->setFont(font);
-
-    // エンジン名2の表示欄の横幅を300に設定する。
-    m_engineNameText2->setFixedWidth(300);
-
-    // エンジン名2の表示欄をリードオンリーにする。
-    m_engineNameText2->setReadOnly(true);
-
-    // 予想手2のラベル欄を作成する。
-    m_predictiveHandLabel2 = new QLabel;
-
-    // 予想手2のラベル欄に「予想手」と表示する。
-    m_predictiveHandLabel2->setText("予想手");
-
-    // 予想手2のラベル欄にフォントを設定する。
-    m_predictiveHandLabel2->setFont(font);
-
-    // 予想手2の欄を作成する。
-    m_predictiveHandText2 = new QLineEdit;
-
-    // 予想手2の欄をリードオンリーにする。
-    m_predictiveHandText2->setReadOnly(true);
-
-    // 予想手2の欄にフォントを設定する。
-    m_predictiveHandText2->setFont(font);
-
-    // 探索手2のラベル欄を作成する。
-    m_searchedHandLabel2 = new QLabel;
-
-    // 探索手2のラベル欄に「探索手」と表示する。
-    m_searchedHandLabel2->setText("探索手");
-
-    // 探索手2のラベル欄にフォントを設定する。
-    m_searchedHandLabel2->setFont(font);
-
-    // 探索手2の欄を作成する。
-    m_searchedHandText2 = new QLineEdit;
-
-    // 探索手2の欄をリードオンリーにする。
-    m_searchedHandText2->setReadOnly(true);
-
-    // 探索手2の欄にフォントを設定する。
-    m_searchedHandText2->setFont(font);
-
-    // 深さ2のラベル欄を作成する。
-    m_depthLabel2 = new QLabel;
-
-    // 深さ2のラベル欄に「深さ」と表示する。
-    m_depthLabel2->setText("深さ");
-
-    // 深さ2のラベル欄にフォントを設定する。
-    m_depthLabel2->setFont(font);
-
-    // 探さ2の欄を作成する。
-    m_depthText2 = new QLineEdit;
-
-    // 探さ2の欄をリードオンリーにする。
-    m_depthText2->setReadOnly(true);
-
-    // 探さ2の欄の表示を右揃えにする。
-    m_depthText2->setAlignment(Qt::AlignRight);
-
-    // 探さ2の欄にフォントを設定する。
-    m_depthText2->setFont(font);
-
-    // 探さ2の欄の横幅を60に固定する。
-    m_depthText2->setFixedWidth(60);
-
-    // ノード数2のラベル欄を作成する。
-    m_nodesLabel2 = new QLabel;
-
-    // ノード数2のラベル欄に「ノード数」と表示する。
-    m_nodesLabel2->setText("ノード数");
-
-    // ノード数2のラベル欄にフォントを設定する。
-    m_nodesLabel2->setFont(font);
-
-    // ノード数2の欄を作成する。
-    m_nodesText2 = new QLineEdit;
-
-    // ノード数2の欄をリードオンリーにする。
-    m_nodesText2->setReadOnly(true);
-
-    // ノード数2の欄の表示を右揃えにする。
-    m_nodesText2->setAlignment(Qt::AlignRight);
-
-    // ノード数2のラベル欄にフォントを設定する。
-    m_nodesText2->setFont(font);
-
-    // 探索局面数2のラベル欄を作成する。
-    m_npsLabel2 = new QLabel;
-
-    // 探索局面数2のラベル欄に「探索局面数」と表示する。
-    m_npsLabel2->setText("探索局面数");
-
-    // 探索局面数2のラベル欄にフォントを設定する。
-    m_npsLabel2->setFont(font);
-
-    // 探索局面数2の欄を作成する。
-    m_npsText2 = new QLineEdit;
-
-    // 探索局面数2の欄をリードオンリーにする。
-    m_npsText2->setReadOnly(true);
-
-    // 探索局面数2の欄の表示を右揃えにする。
-    m_npsText2->setAlignment(Qt::AlignRight);
-
-    // 探索局面数2の欄にフォントを設定する。
-    m_npsText2->setFont(font);
-
-    // ハッシュ使用率2のラベル欄を作成する。
-    m_hashfullLabel2 = new QLabel;
-
-    // ハッシュ使用率2のラベル欄に「ハッシュ使用率」と表示する。
-    m_hashfullLabel2->setText("ハッシュ使用率");
-
-    // ハッシュ使用率2のラベル欄にフォントを設定する。
-    m_hashfullLabel2->setFont(font);
-
-    // ハッシュ使用率2の欄を作成する。
-    m_hashfullText2 = new QLineEdit;
-
-    // ハッシュ使用率2の欄をリードオンリーにする。
-    m_hashfullText2->setReadOnly(true);
-
-    // ハッシュ使用率2の欄の表示を右揃えにする。
-    m_hashfullText2->setAlignment(Qt::AlignRight);
-
-    // ハッシュ使用率2の欄にフォントを設定する。
-    m_hashfullText2->setFont(font);
-
-    // ハッシュ使用率2の欄の幅を60に固定する。
-    m_hashfullText2->setFixedWidth(60);
-
-    // エンジン名2、予想手2、探索手2、深さ2、ノード数2、局面探索数2、ハッシュ使用率2を横ボックス化したレイアウト
-    QHBoxLayout* hboxLayout = new QHBoxLayout;
-    hboxLayout->addWidget(m_engineNameText2);
-    hboxLayout->addWidget(m_predictiveHandLabel2);
-    hboxLayout->addWidget(m_predictiveHandText2);
-    hboxLayout->addWidget(m_searchedHandLabel2);
-    hboxLayout->addWidget(m_searchedHandText2);
-    hboxLayout->addWidget(m_depthLabel2);
-    hboxLayout->addWidget(m_depthText2);
-    hboxLayout->addWidget(m_nodesLabel2);
-    hboxLayout->addWidget(m_nodesText2);
-    hboxLayout->addWidget(m_npsLabel2);
-    hboxLayout->addWidget(m_npsText2);
-    hboxLayout->addWidget(m_hashfullLabel2);
-    hboxLayout->addWidget(m_hashfullText2);
-
-    // 上記ウィジェットを纏めて2つのウィジェットm_infoWidget2に設定する。
-    m_infoWidget2 = new QWidget;
-    m_infoWidget2->setLayout(hboxLayout);
-
-    // エンジン名が変更された場合、GUIのエンジン名を変更する。
-    connect(m_lineEditModel2, &UsiCommLogModel::engineNameChanged, this, &MainWindow::updateEngine2NameDisplay);
-
-    // 予想手が変更された場合、GUIの予想手を変更する。
-    connect(m_lineEditModel2, &UsiCommLogModel::predictiveMoveChanged, this, &MainWindow::updateEngine2PredictedMoveDisplay);
-
-    // 探索手が変更された場合、GUIの探索手を変更する。
-    connect(m_lineEditModel2, &UsiCommLogModel::searchedMoveChanged, this, &MainWindow::updateEngine2SearchedMoveDisplay);
-
-    // 深さが変更された場合、GUIの深さを変更する。
-    connect(m_lineEditModel2, &UsiCommLogModel::searchDepthChanged, this, &MainWindow::updateEngine2DepthDisplay);
-
-    // ノード数が変更された場合、GUIのノード数を変更する。
-    connect(m_lineEditModel2, &UsiCommLogModel::nodeCountChanged, this, &MainWindow::updateEngine2NodesCountDisplay);
-
-    // 局面探索数が変更された場合、GUIの局面探索数を変更する。
-    connect(m_lineEditModel2, &UsiCommLogModel::nodesPerSecondChanged, this, &MainWindow::updateEngine2NpsDisplay);
-
-    // ハッシュ使用率が変更された場合、GUIのハッシュ使用率を変更する。
-    connect(m_lineEditModel2, &UsiCommLogModel::hashUsageChanged, this, &MainWindow::updateEngine2HashUsageDisplay);
-}
-
-// GUIのエンジン名欄2を変更する。
-void MainWindow::updateEngine2NameDisplay()
-{
-    m_engineNameText2->setText(m_lineEditModel2->engineName());
-}
-
-// GUIの予想手欄2を変更する。
-void MainWindow::updateEngine2PredictedMoveDisplay()
-{
-    m_predictiveHandText2->setText(m_lineEditModel2->predictiveMove());
-}
-
-// GUIの探索手欄2を変更する。
-void MainWindow::updateEngine2SearchedMoveDisplay()
-{
-    m_searchedHandText2->setText(m_lineEditModel2->searchedMove());
-}
-
-// GUIの深さ欄2を変更する。
-void MainWindow::updateEngine2DepthDisplay()
-{
-    m_depthText2->setText(m_lineEditModel2->searchDepth());
-}
-
-// GUIのノード数欄2を変更する。
-void MainWindow::updateEngine2NodesCountDisplay()
-{
-    m_nodesText2->setText(m_lineEditModel2->nodeCount());
-}
-
-// GUIの局面探索数欄2を変更する。
-void MainWindow::updateEngine2NpsDisplay()
-{
-    m_npsText2->setText(m_lineEditModel2->nodesPerSecond());
-}
-
-// GUIのハッシュ使用率欄2を変更する。
-void MainWindow::updateEngine2HashUsageDisplay()
-{
-    m_hashfullText2->setText(m_lineEditModel2->hashUsage());
+    m_infoWidget2 = new EngineInfoWidget(this);
+    m_infoWidget2->setModel(m_lineEditModel2);
 }
 
 void MainWindow::initializeEngine1ThoughtTab()
