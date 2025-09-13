@@ -8,13 +8,12 @@ NavigationController::NavigationController(const Buttons& b,
                                            QObject* parent)
     : QObject(parent), m_ctx(ctx)
 {
-    // 自己配線（MainWindow の connect を減らす）
-    if (b.first)  connect(b.first,  &QPushButton::clicked, this, &NavigationController::toFirst);
-    if (b.back10) connect(b.back10, &QPushButton::clicked, this, &NavigationController::back10);
-    if (b.prev)   connect(b.prev,   &QPushButton::clicked, this, &NavigationController::prev);
-    if (b.next)   connect(b.next,   &QPushButton::clicked, this, &NavigationController::next);
-    if (b.fwd10)  connect(b.fwd10,  &QPushButton::clicked, this, &NavigationController::fwd10);
-    if (b.last)   connect(b.last,   &QPushButton::clicked, this, &NavigationController::toLast);
+    if (b.first)  connect(b.first,  &QPushButton::clicked, this, [this](bool){ toFirst();  });
+    if (b.back10) connect(b.back10, &QPushButton::clicked, this, [this](bool){ back10();   });
+    if (b.prev)   connect(b.prev,   &QPushButton::clicked, this, [this](bool){ prev();     });
+    if (b.next)   connect(b.next,   &QPushButton::clicked, this, [this](bool){ next();     });
+    if (b.fwd10)  connect(b.fwd10,  &QPushButton::clicked, this, [this](bool){ fwd10();    });
+    if (b.last)   connect(b.last,   &QPushButton::clicked, this, [this](bool){ toLast();   });
 }
 
 int NavigationController::clampRow(int row) const {
