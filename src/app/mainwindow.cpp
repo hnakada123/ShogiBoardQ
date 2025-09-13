@@ -62,6 +62,7 @@
 #include "enginesettingsconstants.h"
 #include "kifreader.h"
 #include "navigationcontroller.h"
+#include "boardimageexporter.h"
 
 using namespace EngineSettingsConstants;
 
@@ -370,100 +371,6 @@ void MainWindow::displayErrorMessage(const QString& errorMessage)
 static bool hasFormat(const QSet<QString>& fmts, const QString& key) {
     if (key == "jpeg") return fmts.contains("jpeg") || fmts.contains("jpg");
     return fmts.contains(key);
-}
-
-// 将棋盤の画像をファイルとして出力する。
-// 保存（grabベース、可用フォーマットを動的に列挙）
-void MainWindow::saveShogiBoardImage()
-{
-    // 1) 実行環境で書き出し可能な形式を収集（小文字）
-    QSet<QString> fmts;
-    for (const QByteArray& f : QImageWriter::supportedImageFormats()) {
-        fmts.insert(QString::fromLatin1(f).toLower());
-    }
-
-    // 2) 表示順とフィルタ文言（必要なら追加/順序変更OK）
-    struct F { QString key; QString filter; QString extForNewFile; };
-    QVector<F> candidates = {
-        {"png",  "PNG (*.png)",                    "png"},
-        {"tiff", "TIFF (*.tiff *.tif)",            "tiff"},
-        {"jpeg", "JPEG (*.jpg *.jpeg)",            "jpg"},  // 拡張子はjpgに寄せる
-        {"webp", "WebP (*.webp)",                  "webp"},
-        {"bmp",  "BMP (*.bmp)",                    "bmp"},
-        {"ppm",  "PPM (*.ppm)",                    "ppm"},
-        {"pgm",  "PGM (*.pgm)",                    "pgm"},
-        {"pbm",  "PBM (*.pbm)",                    "pbm"},
-        {"xbm",  "XBM (*.xbm)",                    "xbm"},
-        {"xpm",  "XPM (*.xpm)",                    "xpm"},
-        // {"ico", "ICO (*.ico)",                  "ico"},   // プラグインがあれば
-        // {"tga", "TGA (*.tga)",                  "tga"},   // 環境依存
-    };
-
-    QStringList filterList;
-    QMap<QString, F> filterToFormat; // クリックされたフィルタ→形式
-    for (const auto& c : candidates) {
-        if (hasFormat(fmts, c.key)) {
-            filterList << c.filter;
-            filterToFormat.insert(c.filter, c);
-        }
-    }
-    if (filterList.isEmpty()) {
-        displayErrorMessage(tr("No writable image formats are available."));
-        return;
-    }
-
-    // 3) 既定名（日時入り）とデフォ拡張子（PNGがあればPNG、なければ先頭）
-    const QString stamp = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss");
-    const QString base   = QStringLiteral("ShogiBoard_%1").arg(stamp);
-    const QString picturesDir = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation);
-    const QString defaultExt  = hasFormat(fmts, "png") ? "png"
-                              : filterToFormat[filterList.first()].extForNewFile;
-    const QString initialPath = QDir(picturesDir).filePath(base + "." + defaultExt);
-
-    // 4) ダイアログ表示
-    QString selectedFilter = filterList.first();
-    const QString filters = filterList.join(";;");
-    QString path = QFileDialog::getSaveFileName(
-        this, tr("Output the image"),
-        initialPath,
-        filters,
-        &selectedFilter
-    );
-    if (path.isEmpty()) return;
-
-    // 5) 拡張子補完＆保存形式決定
-    QString suffix = QFileInfo(path).suffix().toLower();
-    QString format; // QImageWriterに渡す形式名
-
-    if (suffix.isEmpty()) {
-        const F fmt = filterToFormat.value(selectedFilter);
-        path += "." + fmt.extForNewFile;
-        format = fmt.key; // "jpeg" は内部キーとして使うが "jpg" もOK
-    } else {
-        // 入力された拡張子から推定（jpeg/jpg統合処理）
-        if (suffix == "jpg") suffix = "jpeg";
-        format = suffix;
-        if (!hasFormat(fmts, format)) {
-            displayErrorMessage(tr("This image format is not available: %1").arg(suffix));
-            return;
-        }
-    }
-
-    // 6) 画像取得（grab→Image）
-    const QImage img = m_shogiView->grab().toImage();
-
-    // 7) QImageWriterで明示的に書き出し（品質等の指定も可能）
-    QImageWriter writer(path, format.toLatin1());
-    if (format == "jpeg" || format == "webp") {
-        writer.setQuality(95); // 0-100（可逆でない形式の画質）
-    }
-    // 例：PNG圧縮レベル（0=圧縮なし, 9=最大）※環境により無視されることも
-    // if (format == "png") writer.setCompression(9);
-
-    if (!writer.write(img)) {
-        // 具体的なエラー内容を表示
-        displayErrorMessage(tr("Failed to save the image: %1").arg(writer.errorString()));
-    }
 }
 
 // 対局中のメニュー表示に変更する。
@@ -839,12 +746,15 @@ void MainWindow::setPlayersNamesForMode()
 }
 
 // 駒台を含む将棋盤全体の画像をクリップボードにコピーする。
-void MainWindow::copyBoardToClipboard()
-{
-    QClipboard* clipboard = QApplication::clipboard();
-
-    clipboard->setPixmap(m_shogiView->grab());
+void MainWindow::copyBoardToClipboard() {
+    BoardImageExporter::copyToClipboard(m_shogiView);
 }
+
+
+void MainWindow::saveShogiBoardImage() {
+    BoardImageExporter::saveImage(this, m_shogiView);
+}
+
 
 // 将棋盤を180度回転させる。それに伴って、対局者名、残り時間も入れ替える。
 // m_shogiView->flipMode ノーマル:0、反転:1
