@@ -11,8 +11,8 @@
 #include <QHBoxLayout>
 #include <QScrollBar>
 #include <QHeaderView>
-#include <QtCharts/QChartView>
-#include <QtCharts/QLineSeries>
+//#include <QtCharts/QChartView>
+//#include <QtCharts/QLineSeries>
 #include <QValueAxis>
 #include <QPushButton>
 #include <QLineEdit>
@@ -507,7 +507,7 @@ void MainWindow::handleUndoMove(int index)
 
         // 待ったボタンを押す前の評価値グラフの値を削除
         // (X, Y) = (m_numberOfMoves, m_scoreCp.last())
-        m_series2->remove(m_currentMoveIndex, m_scoreCp.last());
+        m_evalChart->removeLastP2();
         break;
 
     // 平手 Player1: USI Engine, Player2: Human
@@ -517,7 +517,7 @@ void MainWindow::handleUndoMove(int index)
 
         // 待ったボタンを押す前の評価値グラフの値を削除
         // (X, Y) = (m_numberOfMoves, m_scoreCp.last())
-        m_series1->remove(m_currentMoveIndex, m_scoreCp.last());
+        m_evalChart->removeLastP1();
         break;
 
     // 駒落ち Player1: Human（下手）, Player2: USI Engine（上手）
@@ -527,7 +527,7 @@ void MainWindow::handleUndoMove(int index)
 
         // 待ったボタンを押す前の評価値グラフの値を削除
         // (X, Y) = (m_numberOfMoves, m_scoreCp.last())
-        m_series1->remove(m_currentMoveIndex, m_scoreCp.last());
+        m_evalChart->removeLastP1();
         break;
 
     // 駒落ち Player1: USI Engine（下手）, Player2: Human（上手）
@@ -537,7 +537,7 @@ void MainWindow::handleUndoMove(int index)
 
         // 待ったボタンを押す前の評価値グラフの値を削除
         // (X, Y) = (m_numberOfMoves, m_scoreCp.last())
-        m_series2->remove(m_currentMoveIndex, m_scoreCp.last());
+        m_evalChart->removeLastP2();
         break;
 
     // まだ対局を開始していない状態
@@ -900,117 +900,25 @@ void MainWindow::setupArrowButtons()
 // 評価値グラフを表示する。
 void MainWindow::createEvaluationChartView()
 {
-    // 参考．https://doc.qt.io/qt-5/qtcharts-customchart-example.html
-    // フォントの指定
-    QFont labelsFont("Noto Sans CJK JP", 6);
+    // 評価値チャート本体
+    m_evalChart = new EvaluationChartWidget(this);
 
-    // 横軸「手数」を作成する。
-    m_axisX = new QValueAxis;
+    // 以前は QChartView に対して setFixedHeight(170), setFixedWidth(10000) でしたが
+    // 同じ見た目を維持したければラッパーにも幅を与えます（任意）
+    m_evalChart->setMinimumHeight(170);
+    m_evalChart->setFixedWidth(10000);  // 横スクロールしたい場合（任意）
 
-    // 横軸「手数」の範囲指定。1000手まで表示する。
-    m_axisX->setRange(0, 1000);
+    // スクロールコンテナは従来通り
+    auto* hbox = new QHBoxLayout;
+    hbox->setContentsMargins(0,0,0,0);
+    hbox->addWidget(m_evalChart);
 
-    // 横軸「手数」の目盛りの数を設定する。
-    // 200にすると間隔が5ではなく6になる部分が生じるので201に設定している。
-    m_axisX->setTickCount(201);
-
-    // 横軸「手数」の目盛りのフォントを設定する。
-    m_axisX->setLabelsFont(labelsFont);
-
-    // 横軸「手数」は整数で表示する。
-    m_axisX->setLabelFormat("%i");
-
-    // 縦軸「評価値」を作成する。
-    m_axisY = new QValueAxis;
-
-    // 縦軸「評価値」の範囲は、-2000〜2000までに設定する。
-    m_axisY->setRange(-2000, 2000);
-
-    // 縦軸「評価値」の目盛りの数を設定する。
-    m_axisY->setTickCount(5);
-
-    // 縦軸「評価値」の目盛りのフォントを設定する。
-    m_axisY->setLabelsFont(labelsFont);
-
-    // 縦軸「評価値」は整数で表示する。
-    m_axisY->setLabelFormat("%i");
-
-    // チャートを作成する。
-    m_chart = new QChart;
-
-    // チャートの背面をオセロ盤のような濃い緑色に設定する。
-    QColor darkGreen(0, 100, 0); // または QColor darkGreen("#006400");
-    m_chart->setBackgroundBrush(QBrush(darkGreen));
-
-    // 目盛りの文字色を明るい灰色に設定する。
-    QColor lightGray(192, 192, 192);
-    QPen pen(lightGray);
-    m_axisX->setLabelsColor(pen.color());
-    m_axisY->setLabelsColor(pen.color());
-
-    // チャートの凡例（説明書き）を非表示にする。
-    m_chart->legend()->hide();
-
-    // 横軸「手数」の目盛りは、チャートの一番下に表示する。
-    m_chart->addAxis(m_axisX, Qt::AlignBottom);
-
-    // 縦軸「評価値」の目盛りは、チャートの一番左に表示する。
-    m_chart->addAxis(m_axisY, Qt::AlignLeft);
-
-    // 先手評価値グラフを作成する。
-    m_series1 = new QLineSeries;
-
-    // 先手評価値グラフをチャートに追加する。
-    m_chart->addSeries(m_series1);
-
-    // 先手評価値グラフ軸を横軸「手数」、縦軸「評価値」に設定する。
-    m_series1->attachAxis(m_axisX);
-    m_series1->attachAxis(m_axisY);
-
-    // 後手評価値グラフを作成する。
-    m_series2 = new QLineSeries;
-
-    // 後手評価値グラフをチャートに追加する。
-    m_chart->addSeries(m_series2);
-
-    // 後手評価値グラフを横軸「手数」、縦軸「評価値」に設定する。
-    m_series2->attachAxis(m_axisX);
-    m_series2->attachAxis(m_axisY);
-
-    // チャートを作成する。
-    m_chartView = new QChartView(m_chart);
-
-    // チャートのレンダリングをアンチエイリアスに設定する。
-    m_chartView->setRenderHint(QPainter::Antialiasing);
-
-    // チャートの高さを170に固定する。
-    m_chartView->setFixedHeight(170);
-
-    // チャートの幅を10000に固定する。
-    m_chartView->setFixedWidth(10000);
-
-    // レイアウトを作成する。
-    QHBoxLayout* hboxLayout = new QHBoxLayout;
-
-    // レイアウトにチャートを指定する。
-    hboxLayout->addWidget(m_chartView);
-
-    // スクロールエリアを作成する。
-    m_scrollArea = new QScrollArea;
-
-    // スクロールエリアの高さを200に設定する。
-    m_scrollArea->setFixedHeight(200);
-
-    // スクロールエリアのバーを常に表示する。
-    m_scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
-
-    // スクロールエリア用のウィジェットを作成する。
     QWidget* scrollAreaWidget = new QWidget;
+    scrollAreaWidget->setLayout(hbox);
 
-    // スクロールエリアのウィジェットのレイアウトにm_layを指定する。
-    scrollAreaWidget->setLayout(hboxLayout);
-
-    // スクロールエリアにm_scrollAreaWidgetContentsを指定する。
+    m_scrollArea = new QScrollArea;
+    m_scrollArea->setFixedHeight(200);
+    m_scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     m_scrollArea->setWidget(scrollAreaWidget);
 }
 
@@ -1520,184 +1428,28 @@ void MainWindow::renderShogiBoard()
 // エンジン1の評価値グラフの再描画を行う。
 void MainWindow::redrawEngine1EvaluationGraph()
 {
-    // シリーズを削除する。
-    m_chart->removeSeries(m_series1);
+    // 旧ロジックの「符号反転条件」を踏襲
+    const bool invert =
+        (m_playMode == EvenHumanVsEngine) ||
+        (m_playMode == HandicapEngineVsEngine) ||
+        (m_playMode == HandicapHumanVsEngine) ||
+        (m_playMode == AnalysisMode);
 
-    // 対局モードが駒落ちのエンジン対エンジン、あるいは平手の人間対エンジン、あるいは駒落ちの人間対エンジン、解析モードの場合
-    if ((m_playMode == HandicapEngineVsEngine) || (m_playMode == EvenHumanVsEngine) || (m_playMode == HandicapHumanVsEngine)
-        || (m_playMode == AnalysisMode)) {
-        // エンジン1の評価値グラフの色を白に設定する。
-        m_series1->setColor(Qt::white);
-    } else {
-        // エンジン1の評価値グラフの色を黒に設定する。
-        m_series1->setColor(Qt::black);
-    }
+    m_evalChart->appendScoreP1(m_currentMoveIndex, m_usi1->lastScoreCp(), invert);
 
-    // シリーズのペンを取得する。
-    QPen pen = m_series1->pen();
-
-    // シリーズのペンの太さを2に設定する。
-    pen.setWidth(2);
-
-    // シリーズのペンを設定する。
-    m_series1->setPen(pen);
-
-    // シリーズの点を表示する。
-    m_series1->setPointsVisible(true);
-
-    // ラベルのフォントを設定する。
-    QFont labelsFont("Noto Sans CJK JP", 6);
-
-    // X軸の範囲を設定する。
-    m_axisX->setRange(0, 1000);
-
-    // X軸の目盛りの数を設定する。
-    m_axisX->setTickCount(201);
-
-    // X軸のラベルのフォントを設定する。
-    m_axisX->setLabelsFont(labelsFont);
-
-    // X軸のラベルのフォーマットを設定する。
-    m_axisX->setLabelFormat("%i");
-
-    // Y軸の範囲を設定する。
-    m_axisY->setRange(-2000, 2000);
-
-    // Y軸の目盛りの数を設定する。
-    m_axisY->setTickCount(5);
-
-    // Y軸のラベルのフォントを設定する。
-    m_axisY->setLabelsFont(labelsFont);
-
-    // Y軸のラベルのフォーマットを設定する。
-    m_axisY->setLabelFormat("%i");
-
-    // 凡例を非表示にする。
-    m_chart->legend()->hide();
-
-    // シリーズを追加する。
-    m_chart->addSeries(m_series1);
-
-    // X軸を追加する。
-    m_series1->attachAxis(m_axisX);
-
-    // Y軸を追加する。
-    m_series1->attachAxis(m_axisY);
-
-    // 対局モード
-    switch (m_playMode) {
-    // 対局モードが解析モード、平手のエンジン対エンジン、駒落ちのエンジン対エンジン、駒落ちの人間対エンジンの場合
-    case AnalysisMode:
-    case EvenEngineVsHuman:
-    case EvenEngineVsEngine:
-    case HandicapEngineVsHuman:
-        // エンジン1の評価値を追加する。
-        m_series1->append(m_currentMoveIndex, m_usi1->lastScoreCp());
-        break;
-
-    // 平手の人間対エンジン、駒落ちのエンジン対エンジン、駒落ちの人間対エンジンの場合
-    case EvenHumanVsEngine:
-    case HandicapEngineVsEngine:
-    case HandicapHumanVsEngine:
-        // エンジン1の評価値を符号を反転させて追加する。
-        m_series1->append(m_currentMoveIndex, - m_usi1->lastScoreCp());
-        break;
-
-    default:
-        break;
-    }
-
-    // 評価値のリストに評価値を追加する。
+    // 従来通り記録も残す
     m_scoreCp.append(m_usi1->lastScoreCp());
-
-    // 評価値グラフを更新する。
-    m_chartView->update();
 }
 
 // エンジン2の評価値グラフの再描画を行う。
 void MainWindow::redrawEngine2EvaluationGraph()
 {
-    // シリーズを削除する。
-    m_chart->removeSeries(m_series2);
+    // 旧ロジックでは「駒落ちのエンジン対エンジン以外」は反転
+    const bool invert = (m_playMode != HandicapEngineVsEngine);
 
-    // 対局モードが駒落ちのエンジン対エンジンの場合
-    if (m_playMode == HandicapEngineVsEngine) {
-        // エンジン2の評価値グラフの色を黒に設定する。
-        m_series2->setColor(Qt::black);
-    }
-    // それ以外の対局モードの場合
-    else {
-        // エンジン2の評価値グラフの色を白に設定する。
-        m_series2->setColor(Qt::white);
-    }
+    m_evalChart->appendScoreP2(m_currentMoveIndex, m_usi2->lastScoreCp(), invert);
 
-    // シリーズのペンを取得する。
-    QPen pen = m_series2->pen();
-
-    // シリーズのペンの太さを2に設定する。
-    pen.setWidth(2);
-
-    // シリーズのペンを設定する。
-    m_series2->setPen(pen);
-
-    // シリーズの点を表示する。
-    m_series2->setPointsVisible(true);
-
-    // ラベルのフォントを設定する。
-    QFont labelsFont("Noto Sans CJK JP", 6);
-
-    // X軸の範囲を設定する。
-    m_axisX->setRange(0, 1000);
-
-    // X軸の目盛りの数を設定する。
-    m_axisX->setTickCount(201);
-
-    // X軸のラベルのフォントを設定する。
-    m_axisX->setLabelsFont(labelsFont);
-
-    // X軸のラベルのフォーマットを設定する。
-    m_axisX->setLabelFormat("%i");
-
-    // Y軸の範囲を設定する。
-    m_axisY->setRange(-2000, 2000);
-
-    // Y軸の目盛りの数を設定する。
-    m_axisY->setTickCount(5);
-
-    // Y軸のラベルのフォントを設定する。
-    m_axisY->setLabelsFont(labelsFont);
-
-    // Y軸のラベルのフォーマットを設定する。
-    m_axisY->setLabelFormat("%i");
-
-    // 凡例を非表示にする。
-    m_chart->legend()->hide();
-
-    // シリーズを追加する。
-    m_chart->addSeries(m_series2);
-
-    // X軸を追加する。
-    m_series2->attachAxis(m_axisX);
-
-    // Y軸を追加する。
-    m_series2->attachAxis(m_axisY);
-
-    // 対局モードが駒落ちのエンジン対エンジンの場合
-    if (m_playMode == HandicapEngineVsEngine) {
-        // エンジン2の評価値をそのまま追加する。
-        m_series2->append(m_currentMoveIndex, m_usi2->lastScoreCp());
-    }
-    // それ以外の対局モードの場合
-    else {
-        // エンジン2の評価値を符号を反転させて追加する。
-        m_series2->append(m_currentMoveIndex, - m_usi2->lastScoreCp());
-    }
-
-    // 評価値のリストに評価値を追加する。
     m_scoreCp.append(m_usi2->lastScoreCp());
-
-    // 評価値グラフを更新する。
-    m_chartView->update();
 }
 
 // 対局者のクリックをリセットし、選択したハイライトを削除する。
@@ -3365,8 +3117,7 @@ void MainWindow::resetToInitialState()
     m_kifuRecordModel->clearAllItems();
 
     // 評価値グラフを初期化する。
-    m_series1->clear();
-    m_series2->clear();
+    m_evalChart->clearAll();
 
     // 将棋盤を平手の初期配置に戻す。
     startNewShogiGame(m_startSfenStr);
