@@ -104,26 +104,13 @@ MainWindow::MainWindow(QWidget *parent) :
     // GUIを構成するWidgetなどのnew生成
     initializeComponents();
 
-    // 棋譜欄の表示設定
-    setupKifuRecordView();
-
-    // 棋譜の分岐欄の表示設定
-    setupKifuBranchView();
-
-    // 矢印ボタンの表示
-    setupArrowButtons();
-
-    // 評価値グラフの表示
-    createEvaluationChartView();
+    setupRecordPane();
 
     // 予想手、探索手などの情報表示
     initializeEngine1InfoDisplay();
 
     // エンジン1の現在の読み筋とUSIプロトコル通信ログの表示
     initializeEngine1ThoughtTab();
-
-    // 棋譜、矢印ボタン、評価値グラフを縦ボックス化
-    setupRecordAndEvaluationLayout();
 
     // 将棋盤、駒台を初期化（何も駒がない）し、入力のSFEN文字列の配置に将棋盤、駒台の駒を
     // 配置し、対局結果を結果なし、現在の手番がどちらでもない状態に設定する。
@@ -271,15 +258,6 @@ MainWindow::MainWindow(QWidget *parent) :
 
     // 対局中に成るか不成で指すかのダイアログを表示する。
     connect(m_gameController, &ShogiGameController::showPromotionDialog, this, &MainWindow::displayPromotionDialog);
-
-    // 棋譜欄の指し手をクリックするとその局面に将棋盤を更新する。
-    connect(m_kifuView, &QTableView::clicked, this, &MainWindow::updateBoardFromMoveHistory);
-
-     auto* nav = new NavigationController(
-        { m_playButton1, m_playButton2, m_playButton3, m_playButton4, m_playButton5, m_playButton6 },
-        /*ctx*/ this,
-        /*parent*/ this
-    );
 
     // 将棋盤表示でエラーが発生した場合、エラーメッセージを表示する。
     connect(m_shogiView, &ShogiView::errorOccurred, this, &MainWindow::displayErrorMessage);
@@ -475,23 +453,6 @@ void MainWindow::addMoveHighlights()
 
     // 駒の移動先のマスをハイライトする。
     m_shogiView->addHighlight(m_movedField);
-}
-
-void MainWindow::updateBoardFromMoveHistory()
-{
-    // 必須チェック
-    if (!m_kifuView || !m_kifuRecordModel || m_resolvedRows.isEmpty())
-        return;
-
-    // クリックされた棋譜行（無効なら 0）
-    const QModelIndex idx = m_kifuView->currentIndex();
-    int selPly = idx.isValid() ? idx.row() : 0;
-
-    // 現在の“行”（本譜/分岐）は m_activeResolvedRow を使う
-    const int row = qBound(0, m_activeResolvedRow, m_resolvedRows.size() - 1);
-
-    // 盤面・棋譜欄・分岐候補・矢印・分岐ツリーハイライトまで一括同期
-    applyResolvedRowAndSelect(row, selPly);
 }
 
 // 待ったをした場合、position文字列のセットと評価値グラフの値を削除する。
@@ -785,143 +746,6 @@ void MainWindow::flipBoardAndUpdatePlayerInfo()
     }
 }
 
-// 棋譜欄の表示を設定する。
-void MainWindow::setupKifuRecordView()
-{
-    // 棋譜欄を作成する。
-    m_kifuView = new QTableView;
-
-    // シングルクリックで選択する。
-    m_kifuView->setSelectionMode(QAbstractItemView::SingleSelection);
-
-    // 行のみを選択する。
-    m_kifuView->setSelectionBehavior(QAbstractItemView::SelectRows);
-
-    // 垂直方向のヘッダは表示させない。
-    m_kifuView->verticalHeader()->setVisible(false);
-
-    // 棋譜のListModelを作成する。
-    m_kifuRecordModel = new KifuRecordListModel;
-
-    // 棋譜のListModelをセットする。
-    m_kifuView->setModel(m_kifuRecordModel);
-
-    // 「指し手」の列を伸縮可能にする。
-    m_kifuView->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
-
-    // 「消費時間」の列を伸縮可能にする。
-    m_kifuView->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
-
-    // 追加：行選択変化でコールバック
-    connect(m_kifuView->selectionModel(), &QItemSelectionModel::currentRowChanged,
-            this, &MainWindow::onMainMoveRowChanged);
-}
-
-void MainWindow::setupKifuBranchView()
-{
-    m_kifuBranchView = new QTableView;
-    m_kifuBranchView->setSelectionMode(QAbstractItemView::SingleSelection);
-    m_kifuBranchView->setSelectionBehavior(QAbstractItemView::SelectRows);
-    m_kifuBranchView->verticalHeader()->setVisible(false);
-
-    m_kifuBranchModel = new KifuBranchListModel;
-    m_kifuBranchView->setModel(m_kifuBranchModel);
-    m_kifuBranchView->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
-
-    // クリック/Enter 両方とも onBranchCandidateActivated へ
-    connect(m_kifuBranchView, &QTableView::activated,
-            this, &MainWindow::onBranchCandidateActivated, Qt::UniqueConnection);
-    connect(m_kifuBranchView, &QTableView::clicked,
-            this, &MainWindow::onBranchCandidateActivated, Qt::UniqueConnection);
-}
-
-// 棋譜欄下の矢印ボタンを作成する。
-void MainWindow::setupArrowButtons()
-{
-    // 6つの矢印ボタンを作成する。
-    m_playButton1 = new QPushButton;
-    m_playButton2 = new QPushButton;
-    m_playButton3 = new QPushButton;
-    m_playButton4 = new QPushButton;
-    m_playButton5 = new QPushButton;
-    m_playButton6 = new QPushButton;
-
-    QPalette pal;
-
-    // パレットを緑色に設定する。
-    pal.setColor(QPalette::Button, QColor(79, 146, 114));
-
-    // 6つの矢印ボタンの色を緑に設定する。
-    m_playButton1->setPalette(pal);
-    m_playButton2->setPalette(pal);
-    m_playButton3->setPalette(pal);
-    m_playButton4->setPalette(pal);
-    m_playButton5->setPalette(pal);
-    m_playButton6->setPalette(pal);
-
-    // 矢印ボタンの画像をセットする。
-    m_playButton1->setIcon(QIcon(":/icons/gtk-media-next-rtl.png"));
-    m_playButton2->setIcon(QIcon(":/icons/gtk-media-forward-rtl.png"));
-    m_playButton3->setIcon(QIcon(":/icons/gtk-media-play-rtr.png"));
-    m_playButton4->setIcon(QIcon(":/icons/gtk-media-play-ltr.png"));
-    m_playButton5->setIcon(QIcon(":/icons/gtk-media-forward-ltr.png"));
-    m_playButton6->setIcon(QIcon(":/icons/gtk-media-next-ltr.png"));
-
-    // 矢印ボタンのサイズを指定する。
-    m_playButton1->setIconSize(QSize(32, 32));
-    m_playButton2->setIconSize(QSize(32, 32));
-    m_playButton3->setIconSize(QSize(32, 32));
-    m_playButton4->setIconSize(QSize(32, 32));
-    m_playButton5->setIconSize(QSize(32, 32));
-    m_playButton6->setIconSize(QSize(32, 32));
-
-    // 6つの矢印ボタンを横ボックス化したレイアウトを作成する。
-    QHBoxLayout* hboxLayout = new QHBoxLayout;
-    hboxLayout->addWidget(m_playButton1);
-    hboxLayout->addWidget(m_playButton2);
-    hboxLayout->addWidget(m_playButton3);
-    hboxLayout->addWidget(m_playButton4);
-    hboxLayout->addWidget(m_playButton5);
-    hboxLayout->addWidget(m_playButton6);
-
-    // 6つの矢印ボタン用のウィジェットを作成する。
-    m_arrows = new QWidget;
-
-    // 6つの矢印ボタンをウィジェットとしてm_arrowsに設定する。
-    m_arrows->setLayout(hboxLayout);
-
-    // 6つの矢印ボタンの高さを50に固定する。
-    m_arrows->setFixedHeight(50);
-
-    // 6つの矢印ボタン全体の最小幅を600に設定する。
-    m_arrows->setMinimumWidth(600);
-}
-
-// 評価値グラフを表示する。
-void MainWindow::createEvaluationChartView()
-{
-    // 評価値チャート本体
-    m_evalChart = new EvaluationChartWidget(this);
-
-    // 以前は QChartView に対して setFixedHeight(170), setFixedWidth(10000) でしたが
-    // 同じ見た目を維持したければラッパーにも幅を与えます（任意）
-    m_evalChart->setMinimumHeight(170);
-    m_evalChart->setFixedWidth(10000);  // 横スクロールしたい場合（任意）
-
-    // スクロールコンテナは従来通り
-    auto* hbox = new QHBoxLayout;
-    hbox->setContentsMargins(0,0,0,0);
-    hbox->addWidget(m_evalChart);
-
-    QWidget* scrollAreaWidget = new QWidget;
-    scrollAreaWidget->setLayout(hbox);
-
-    m_scrollArea = new QScrollArea;
-    m_scrollArea->setFixedHeight(200);
-    m_scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
-    m_scrollArea->setWidget(scrollAreaWidget);
-}
-
 // 対局モードに応じて将棋盤下部に表示されるエンジン名をセットする。
 void MainWindow::setEngineNamesBasedOnMode()
 {
@@ -1119,58 +943,6 @@ QString MainWindow::parseStartPositionToSfen(QString startPositionStr)
     }
 }
 
-void MainWindow::setupBranchTextWidget()
-{
-    auto* tb = new QTextBrowser(this);
-    tb->setReadOnly(true); // 既定でreadOnlyですが明示でもOK
-    tb->setOpenExternalLinks(true);  // クリックで外部ブラウザを開く
-    tb->setOpenLinks(true);          // 既定true（falseでも外部は開くがtrueで無難）
-    tb->setPlaceholderText(tr("コメントを表示"));
-    tb->setWordWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
-    tb->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    m_branchText = tb;
-}
-
-void MainWindow::setupRecordAndEvaluationLayout()
-{
-    // 左（棋譜 + 矢印）
-    auto* vboxKifuLayout = new QVBoxLayout;
-    vboxKifuLayout->setContentsMargins(0, 0, 0, 0);
-    vboxKifuLayout->setSpacing(6);
-    vboxKifuLayout->addWidget(m_kifuView);
-    vboxKifuLayout->addWidget(m_arrows);
-
-    auto* kifuWidget = new QWidget;
-    kifuWidget->setLayout(vboxKifuLayout);
-    kifuWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
-
-    // 右（分岐 + テキスト）※縦に並べる
-    setupBranchTextWidget();
-
-    auto* rightSplitter = new QSplitter(Qt::Vertical);
-    rightSplitter->addWidget(m_kifuBranchView); // 上：分岐一覧
-    rightSplitter->addWidget(m_branchText);     // 下：テキスト表示
-    rightSplitter->setChildrenCollapsible(false);
-    rightSplitter->setSizes({300, 200});        // 初期比率（お好みで）
-
-    // 左右に配置
-    auto* lrSplitter = new QSplitter(Qt::Horizontal);
-    lrSplitter->addWidget(kifuWidget);      // 左
-    lrSplitter->addWidget(rightSplitter);   // 右
-    lrSplitter->setChildrenCollapsible(false);
-    lrSplitter->setSizes({600, 400});       // 初期比率（お好みで）
-
-    // 下に評価値グラフ（スクロールエリア）
-    auto* vboxLayout = new QVBoxLayout;
-    vboxLayout->setContentsMargins(0, 0, 0, 0);
-    vboxLayout->setSpacing(8);
-    vboxLayout->addWidget(lrSplitter);
-    vboxLayout->addWidget(m_scrollArea);
-
-    m_gameRecordLayoutWidget = new QWidget;
-    m_gameRecordLayoutWidget->setLayout(vboxLayout);
-}
-
 // 対局者名と残り時間、将棋盤と棋譜、矢印ボタン、評価値グラフのグループを横に並べて表示する。
 void MainWindow::setupHorizontalGameLayout()
 {
@@ -1265,23 +1037,13 @@ void MainWindow::startNewShogiGame(QString& startSfenStr)
 // 棋譜欄の下の矢印ボタンを無効にする。
 void MainWindow::disableArrowButtons()
 {
-    m_playButton1->setEnabled(false);
-    m_playButton2->setEnabled(false);
-    m_playButton3->setEnabled(false);
-    m_playButton4->setEnabled(false);
-    m_playButton5->setEnabled(false);
-    m_playButton6->setEnabled(false);
+    if (m_recordPane) m_recordPane->setArrowButtonsEnabled(false);
 }
 
 // 棋譜欄の下の矢印ボタンを有効にする。
 void MainWindow::enableArrowButtons()
 {
-    m_playButton1->setEnabled(true);
-    m_playButton2->setEnabled(true);
-    m_playButton3->setEnabled(true);
-    m_playButton4->setEnabled(true);
-    m_playButton5->setEnabled(true);
-    m_playButton6->setEnabled(true);
+    if (m_recordPane) m_recordPane->setArrowButtonsEnabled(true);
 }
 
 // 将棋エンジン1に対して、gameover winコマンドとquitコマンドを送信する。
@@ -1435,7 +1197,9 @@ void MainWindow::redrawEngine1EvaluationGraph()
         (m_playMode == HandicapHumanVsEngine) ||
         (m_playMode == AnalysisMode);
 
-    m_evalChart->appendScoreP1(m_currentMoveIndex, m_usi1->lastScoreCp(), invert);
+    if (auto ec = m_recordPane ? m_recordPane->evalChart() : nullptr) {
+        ec->appendScoreP1(m_currentMoveIndex, m_usi1->lastScoreCp(), invert);
+    }
 
     // 従来通り記録も残す
     m_scoreCp.append(m_usi1->lastScoreCp());
@@ -1444,11 +1208,16 @@ void MainWindow::redrawEngine1EvaluationGraph()
 // エンジン2の評価値グラフの再描画を行う。
 void MainWindow::redrawEngine2EvaluationGraph()
 {
-    // 旧ロジックでは「駒落ちのエンジン対エンジン以外」は反転
+    if (!m_usi2) return;  // 念のため
+
+    // 旧ロジック：駒落ちのエンジン対エンジン以外は反転
     const bool invert = (m_playMode != HandicapEngineVsEngine);
 
-    m_evalChart->appendScoreP2(m_currentMoveIndex, m_usi2->lastScoreCp(), invert);
+    if (auto ec = m_recordPane ? m_recordPane->evalChart() : nullptr) {
+        ec->appendScoreP2(m_currentMoveIndex, m_usi2->lastScoreCp(), invert);
+    }
 
+    // 既存仕様に合わせてそのまま記録
     m_scoreCp.append(m_usi2->lastScoreCp());
 }
 
@@ -3532,18 +3301,6 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
     // 8) GUI初期表示は「解決済み 本譜 行・0手目」を適用するだけ
     applyResolvedRowAndSelect(/*resolvedRow=*/0, /*selectPly=*/0);
 
-    // 9) 棋譜欄の選択ハンドラ（既存）
-    if (m_kifuView) {
-        m_kifuView->setSelectionMode(QAbstractItemView::SingleSelection);
-        if (m_kifuView->selectionModel()) {
-            connect(m_kifuView->selectionModel(),
-                    &QItemSelectionModel::currentRowChanged,
-                    this,
-                    &MainWindow::onMainMoveRowChanged,
-                    Qt::UniqueConnection);
-        }
-    }
-
     // 10) 分岐ツリーを再描画（クリック時は applyResolvedRowAndSelect を使用）
     rebuildBranchTreeView();
 
@@ -3860,12 +3617,6 @@ void MainWindow::updateGameRecord(const QString& elapsedTime)
     }
     if (m_kifuRecordModel && m_moveRecords && !m_moveRecords->isEmpty()) {
         m_kifuRecordModel->appendItem(m_moveRecords->last());
-    }
-
-    // 棋譜表示を最下部へスクロールする。
-    if (m_kifuView) {
-        m_kifuView->scrollToBottom();
-        m_kifuView->update();
     }
 
     // === ここから下が時計まわり。KIF再生中はスキップ ===
@@ -5223,17 +4974,17 @@ void MainWindow::applyPlayersFromGameInfo(const QList<KifGameInfoItem>& items)
         m_shogiView->setWhitePlayerName(white);
 }
 
-void MainWindow::onMainMoveRowChanged(const QModelIndex& current, const QModelIndex&)
+void MainWindow::onMainMoveRowChanged(int selPly)
 {
-    const int row = current.isValid() ? current.row() : -1;
-    // 行0 = 「=== 開始局面 ===」、行n = n手目 という前提
-    m_currentSelectedPly = (row <= 0) ? 0 : row;
+    // 既存の安全確認ロジックを流用
+    if (!m_kifuView || !m_kifuRecordModel || m_resolvedRows.isEmpty())
+        return;
 
-    qDebug() << "[SEL] rowChanged row=" << row
-             << " -> ply=" << m_currentSelectedPly
-             << " branchable?=" << m_branchablePlies.contains(m_currentSelectedPly);
+    // いまアクティブな「本譜 or 分岐」の行
+    const int row = qBound(0, m_activeResolvedRow, m_resolvedRows.size() - 1);
 
-    populateBranchListForPly(m_currentSelectedPly);
+    // 盤面・棋譜欄・分岐候補・矢印・分岐ツリーハイライトまで一括同期
+    applyResolvedRowAndSelect(row, qMax(0, selPly));
 }
 
 void MainWindow::populateBranchListForPly(int ply)
@@ -6830,4 +6581,56 @@ int MainWindow::currentPly() const {
 }
 void MainWindow::applySelect(int row, int ply) {
     applyResolvedRowAndSelect(row, ply); // 既存の“統一適用”関数へ委譲
+}
+
+// MainWindow.cpp
+void MainWindow::setupRecordPane()
+{
+    // 1) モデルが無ければ生成（既にあれば再利用）
+    if (!m_kifuRecordModel)
+        m_kifuRecordModel = new KifuRecordListModel(this);
+    if (!m_kifuBranchModel)
+        m_kifuBranchModel = new KifuBranchListModel(this);
+
+    // 2) RecordPane 生成（既にあれば使い回し）
+    const bool firstTime = (m_recordPane == nullptr);
+    if (!m_recordPane) {
+        m_recordPane = new RecordPane(this);
+
+        // RecordPane → MainWindow 通知
+        connect(m_recordPane, &RecordPane::mainRowChanged,
+                this, &MainWindow::onMainMoveRowChanged);
+        connect(m_recordPane, &RecordPane::branchActivated,
+                this, &MainWindow::onBranchCandidateActivated);
+
+        // 旧: setupRecordAndEvaluationLayout() が返していた root の置き換え
+        m_gameRecordLayoutWidget = m_recordPane;
+    }
+
+    // 3) モデルをビューにセット
+    m_recordPane->setModels(m_kifuRecordModel, m_kifuBranchModel);
+
+    // 4) NavigationController を RecordPane のボタンで構築（再実行に強いよう毎回作り直し）
+    if (m_nav) {
+        m_nav->deleteLater();
+        m_nav = nullptr;
+    }
+
+    NavigationController::Buttons btns{
+        m_recordPane->firstButton(),
+        m_recordPane->back10Button(),
+        m_recordPane->prevButton(),
+        m_recordPane->nextButton(),
+        m_recordPane->fwd10Button(),
+        m_recordPane->lastButton(),
+    };
+
+    // すべてのボタンが存在する前提。デバッグ時に早期に気付けるようアサート
+    Q_ASSERT(btns.first && btns.back10 && btns.prev &&
+             btns.next && btns.fwd10 && btns.last);
+
+    m_nav = new NavigationController(btns, /*ctx=*/this, /*parent=*/this);
+
+    // （初回のみで良い UI 調整があれば firstTime を使って分岐できます）
+    Q_UNUSED(firstTime);
 }

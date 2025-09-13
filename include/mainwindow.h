@@ -34,6 +34,7 @@
 #include "kiftosfenconverter.h"
 #include "navigationcontext.h"
 #include "evaluationchartwidget.h"
+#include "recordpane.h"
 
 #define SHOGIBOARDQ_DEBUG_KIF 1   // 0にすればログは一切出ません
 
@@ -50,6 +51,7 @@ class QPainter;
 class QStyleOptionViewItem;
 class QModelIndex;
 class EngineInfoWidget;
+class NavigationController;
 
 class MainWindow : public QMainWindow, public INavigationContext
 {
@@ -151,9 +153,6 @@ private slots:
     // 対局結果の表示とGUIの更新処理を行う。
     void displayResultsAndUpdateGui();
 
-    // 棋譜欄の指し手をクリックするとその局面に将棋盤を更新する。
-    void updateBoardFromMoveHistory();
-
     // 棋譜欄の下の矢印ボタンを無効にする。
     void disableArrowButtons();
 
@@ -218,7 +217,6 @@ private slots:
     // MainWindow クラス宣言内（private slots: などの所）に追加
 private slots:
     void onBranchRowClicked(const QModelIndex& index);
-    void onMainMoveRowChanged(const QModelIndex& current, const QModelIndex& previous); // 既に使っているなら
 
 private:
     // 平手初期局面のSFEN文字列
@@ -327,10 +325,10 @@ private:
     KifuAnalysisDialog* m_analyzeGameRecordDialog;
 
     // 棋譜欄を表示するクラス
-    KifuRecordListModel* m_kifuRecordModel;
+    KifuRecordListModel* m_kifuRecordModel = nullptr;
 
     // 棋譜の分岐を表示するクラス
-    KifuBranchListModel* m_kifuBranchModel;
+    KifuBranchListModel* m_kifuBranchModel = nullptr;
 
     // エンジン1の思考結果をGUI上で表示するためのクラスのインスタンス
     ShogiEngineThinkingModel* m_modelThinking1;
@@ -367,14 +365,6 @@ private:
 
     // 6つの矢印ボタン用のウィジェット
     QWidget* m_arrows;
-
-    // 棋譜を前後に進める6つの矢印ボタン
-    QPushButton* m_playButton1;
-    QPushButton* m_playButton2;
-    QPushButton* m_playButton3;
-    QPushButton* m_playButton4;
-    QPushButton* m_playButton5;
-    QPushButton* m_playButton6;
 
     // 予想手1のラベル欄
     QLabel* m_predictiveHandLabel1;
@@ -551,20 +541,8 @@ private:
     // 将棋盤と駒台を描画する。
     void renderShogiBoard();
 
-    // 棋譜欄の表示を設定する。
-    void setupKifuRecordView();
-
-    // 棋譜欄の分岐表示を設定する。
-    void setupKifuBranchView();
-
     // 棋譜解析結果を表示するためのテーブルビューを設定および表示する。
     void displayAnalysisResults();
-
-    // 棋譜欄下の矢印ボタンを作成する。
-    void setupArrowButtons();
-
-    // 評価値グラフを表示する。
-    void createEvaluationChartView();
 
     // エンジン1の予想手、探索手などの情報を表示する。
     void initializeEngine1InfoDisplay();
@@ -630,9 +608,6 @@ private:
 
     // GUIを構成するWidgetなどを生成する。
     void initializeComponents();
-
-    // 棋譜、矢印ボタン、評価値グラフを縦ボックス化する。
-    void setupRecordAndEvaluationLayout();
 
     // 対局者名と残り時間、将棋盤と棋譜、矢印ボタン、評価値グラフのグループを横に並べて表示する。
     void setupHorizontalGameLayout();
@@ -888,8 +863,6 @@ private:
                           const QString& warnParse,
                           const QString& warnConvert) const;
 
-    void setupBranchTextWidget();
-
     // コメントを「棋譜欄の行インデックス」で引けるようにする
     QVector<QString> m_commentsByRow;
 
@@ -1126,6 +1099,13 @@ private:
     void assignSidesEngineVsHuman();      // EvH: m_usi1 を先後どちらに割り当てるか
     void assignEnginesEngineVsEngine();   // EvE: m_usi1/m_usi2 を先後に割り当てる
 
+    RecordPane* m_recordPane = nullptr;
+
+    void setupRecordPane();
+
+    // ★追加：矢印操作のコントローラ
+    NavigationController* m_nav = nullptr;
+
 public: // INavigationContext
     bool hasResolvedRows() const override;
     int  resolvedRowCount() const override;
@@ -1138,6 +1118,9 @@ public: // INavigationContext
 private slots:
     // 分岐候補欄でEnter/シングルクリックなどのアクティベートに反応
     void onBranchCandidateActivated(const QModelIndex& idx);
+
+    // RecordPane からの「行が変わった」通知を受ける int 版のスロット
+    void onMainMoveRowChanged(int row);
 };
 
 #endif // MAINWINDOW_H
