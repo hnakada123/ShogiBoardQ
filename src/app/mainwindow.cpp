@@ -61,6 +61,7 @@
 #include "sfenpositiontracer.h"
 #include "enginesettingsconstants.h"
 #include "kifreader.h"
+#include "navigationcontroller.h"
 
 using namespace EngineSettingsConstants;
 
@@ -272,24 +273,11 @@ MainWindow::MainWindow(QWidget *parent) :
     // 棋譜欄の指し手をクリックするとその局面に将棋盤を更新する。
     connect(m_kifuView, &QTableView::clicked, this, &MainWindow::updateBoardFromMoveHistory);
 
-    // 棋譜欄下の矢印ボタン
-    // 初期局面を表示する。
-    connect(m_playButton1, &QPushButton::clicked, this, &MainWindow::navigateToFirstMove);
-
-    // 現局面から10手戻った局面を表示する。
-    connect(m_playButton2, &QPushButton::clicked, this, &MainWindow::navigateBackwardTenMoves);
-
-    // 現局面から1手戻った局面を表示する。
-    connect(m_playButton3, &QPushButton::clicked, this, &MainWindow::navigateToPreviousMove);
-
-    // 現局面から1手進んだ局面を表示する。
-    connect(m_playButton4, &QPushButton::clicked, this, &MainWindow::navigateToNextMove);
-
-    // 現局面から10手進んだ局面を表示する。
-    connect(m_playButton5, &QPushButton::clicked, this, &MainWindow::navigateForwardTenMoves);
-
-    // 最終局面を表示する。
-    connect(m_playButton6, &QPushButton::clicked, this, &MainWindow::navigateToLastMove);
+     auto* nav = new NavigationController(
+        { m_playButton1, m_playButton2, m_playButton3, m_playButton4, m_playButton5, m_playButton6 },
+        /*ctx*/ this,
+        /*parent*/ this
+    );
 
     // 将棋盤表示でエラーが発生した場合、エラーメッセージを表示する。
     connect(m_shogiView, &ShogiView::errorOccurred, this, &MainWindow::displayErrorMessage);
@@ -596,124 +584,6 @@ void MainWindow::updateBoardFromMoveHistory()
 
     // 盤面・棋譜欄・分岐候補・矢印・分岐ツリーハイライトまで一括同期
     applyResolvedRowAndSelect(row, selPly);
-}
-
-// 棋譜欄下の矢印「1手進む」
-// 現局面から1手進んだ局面を表示する。
-void MainWindow::navigateToNextMove()
-{
-    if (m_resolvedRows.isEmpty()) return;
-
-    const int row = qBound(0, m_activeResolvedRow, m_resolvedRows.size() - 1);
-    const auto& r = m_resolvedRows[row];
-
-    // 0..N の範囲に丸めた現在手数から +1
-    const int maxPly = r.disp.size();      // 末尾手数
-    const int cur    = qBound(0, m_activePly, maxPly);
-    if (cur >= maxPly) {
-        // もう末尾。必要ならビープ等
-        return;
-    }
-    const int nextPly = cur + 1;
-
-    // これだけで：盤面・棋譜欄・分岐候補欄・矢印ボタン・ツリーハイライトまで一括同期
-    applyResolvedRowAndSelect(row, nextPly);
-}
-
-// 棋譜欄下の矢印「10手進む」
-// 現局面から10手進んだ局面を表示する。
-void MainWindow::navigateForwardTenMoves()
-{
-    if (m_resolvedRows.isEmpty()) return;
-
-    const int row = qBound(0, m_activeResolvedRow, m_resolvedRows.size() - 1);
-    const auto& r = m_resolvedRows[row];
-
-    // 0..N の範囲に丸めた現在手数から +10（末尾を超えない）
-    const int maxPly = r.disp.size();              // 最終手
-    const int cur    = qBound(0, m_activePly, maxPly);
-    if (cur >= maxPly) return;                     // 既に末尾
-
-    int nextPly = cur + 10;
-    if (nextPly > maxPly) nextPly = maxPly;
-
-    // 盤面・棋譜欄・分岐候補欄・矢印ボタン・ツリーハイライトまで一括同期
-    applyResolvedRowAndSelect(row, nextPly);
-}
-
-// 棋譜欄下の矢印「最後まで進む」
-// 最終局面を表示する。
-void MainWindow::navigateToLastMove()
-{
-    if (m_resolvedRows.isEmpty()) return;
-
-    const int row = qBound(0, m_activeResolvedRow, m_resolvedRows.size() - 1);
-    const auto& r = m_resolvedRows[row];
-
-    // 最終手（0..N の N）
-    const int lastPly = r.disp.size();
-
-    // 盤面・棋譜欄・分岐候補欄・矢印ボタン・ツリーハイライトまで一括同期
-    applyResolvedRowAndSelect(row, lastPly);
-}
-
-// 棋譜欄下の矢印「1手戻る」
-// 現局面から1手戻った局面を表示する。
-void MainWindow::navigateToPreviousMove()
-{
-    if (m_resolvedRows.isEmpty()) return;
-
-    // 現在の“行”は分岐も含めて m_activeResolvedRow を信頼
-    const int row = qBound(0, m_activeResolvedRow, m_resolvedRows.size() - 1);
-    const auto& r = m_resolvedRows[row];
-
-    // 現在手数（m_activePly を優先。未設定なら棋譜ビューの選択をフォールバック）
-    int curPly = (m_activePly >= 0)
-                 ? m_activePly
-                 : (m_kifuRecordModel && m_kifuView ? m_kifuView->currentIndex().row() : 0);
-    curPly = qBound(0, curPly, r.disp.size());
-
-    // 1手戻す（先頭で止める）
-    const int prevPly = qMax(0, curPly - 1);
-
-    // 盤面・棋譜欄・分岐候補・矢印ボタン・ツリーハイライトを一括同期
-    applyResolvedRowAndSelect(row, prevPly);
-}
-
-// 棋譜欄下の矢印「10手戻る」
-// 現局面から10手戻った局面を表示する。
-void MainWindow::navigateBackwardTenMoves()
-{
-    if (m_resolvedRows.isEmpty()) return;
-
-    // 現在の“行”は分岐も含めて m_activeResolvedRow を使用
-    const int row = qBound(0, m_activeResolvedRow, m_resolvedRows.size() - 1);
-    const auto& r = m_resolvedRows[row];
-
-    // 現在手数（m_activePly を優先。未設定なら棋譜ビュー選択へフォールバック）
-    int curPly = (m_activePly >= 0)
-                 ? m_activePly
-                 : (m_kifuRecordModel && m_kifuView ? m_kifuView->currentIndex().row() : 0);
-    curPly = qBound(0, curPly, r.disp.size());
-
-    // 10手戻す（0でクランプ）
-    const int targetPly = qMax(0, curPly - 10);
-
-    // 盤面・棋譜欄・分岐候補・矢印ボタン・ツリーハイライトを一括同期
-    applyResolvedRowAndSelect(row, targetPly);
-}
-
-// 棋譜欄下の矢印「最初の局面に戻る」
-// 現局面から最初の局面を表示する。
-void MainWindow::navigateToFirstMove()
-{
-    if (m_resolvedRows.isEmpty()) return;
-
-    // 現在の“行”（本譜/分岐）は m_activeResolvedRow を採用
-    const int row = qBound(0, m_activeResolvedRow, m_resolvedRows.size() - 1);
-
-    // 先頭手数(=0)へ。盤面・棋譜欄・分岐候補・ツリーハイライトまで一括同期
-    applyResolvedRowAndSelect(row, /*selPly=*/0);
 }
 
 // 待ったをした場合、position文字列のセットと評価値グラフの値を削除する。
@@ -5066,8 +4936,15 @@ void MainWindow::analyzeGameRecord()
         // 棋譜解析結果のビューを更新する。
         m_analysisResultsView->update();
 
-        // 現局面から1手進んだ局面を表示する。
-        navigateToNextMove();
+        // 現局面から1手進める（Controller/スロットに依存しない）
+        if (!m_resolvedRows.isEmpty()) {
+            const int row    = qBound(0, m_activeResolvedRow, m_resolvedRows.size() - 1);
+            const int maxPly = m_resolvedRows[row].disp.size();
+            const int cur    = qBound(0, m_activePly, maxPly);
+            if (cur < maxPly) {
+                applySelect(row, cur + 1);   // ← 旧 navigateToNextMove() 相当
+            }
+        }
 
         // 評価値グラフを更新する。
         redrawEngine1EvaluationGraph();
@@ -6280,8 +6157,12 @@ void MainWindow::applyVariation(int parentPly, int branchIndex)
     // m_kifuBranchModel->setItems({});
     // m_kifuBranchView->setEnabled(false);
 
-    // 再生位置や矢印ボタンの初期化
-    navigateToFirstMove();
+    // 再生位置: 分岐適用後の“現在の行”の先頭へ
+    if (!m_resolvedRows.isEmpty()) {
+        const int row = qBound(0, m_activeResolvedRow, m_resolvedRows.size() - 1);
+        applySelect(row, /*ply=*/0);   // ← navigateToFirstMove() の代替
+        // もしくは applyResolvedRowAndSelect(row, 0); でも可（ラッパーを使うのが推奨）
+    }
     enableArrowButtons();
 }
 
@@ -7714,4 +7595,28 @@ void MainWindow::startEngineVsEngineGame()
     }
 
     updateTurnAndTimekeepingDisplay();
+}
+
+// --- INavigationContext の実装 ---
+bool MainWindow::hasResolvedRows() const {
+    return !m_resolvedRows.isEmpty();
+}
+int MainWindow::resolvedRowCount() const {
+    return m_resolvedRows.size();
+}
+int MainWindow::activeResolvedRow() const {
+    return m_activeResolvedRow;
+}
+int MainWindow::maxPlyAtRow(int row) const {
+    // r.disp.size() と同義
+    const int clamped = qBound(0, row, m_resolvedRows.size() > 0 ? m_resolvedRows.size() - 1 : 0);
+    return m_resolvedRows[clamped].disp.size();
+}
+int MainWindow::currentPly() const {
+    if (m_activePly >= 0) return m_activePly;
+    // フォールバック：棋譜ビューの選択行
+    return (m_kifuView ? qMax(0, m_kifuView->currentIndex().row()) : 0);
+}
+void MainWindow::applySelect(int row, int ply) {
+    applyResolvedRowAndSelect(row, ply); // 既存の“統一適用”関数へ委譲
 }
