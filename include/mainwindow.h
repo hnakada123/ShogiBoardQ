@@ -33,6 +33,7 @@
 #include "shogiclock.h"
 #include "kiftosfenconverter.h"
 #include "navigationcontext.h"
+#include "evaluationchartwidget.h"
 
 #define SHOGIBOARDQ_DEBUG_KIF 1   // 0にすればログは一切出ません
 
@@ -364,18 +365,6 @@ private:
     // GUIの棋譜解析結果ビュー
     QTableView* m_analysisResultsView;
 
-    // エンジン1の評価値チャートのデータ
-    QLineSeries* m_series1;
-
-    // エンジン2の評価値チャートのデータ
-    QLineSeries* m_series2;
-
-    // 評価値チャート
-    QChart* m_chart;
-
-    // 評価値チャートビュー
-    QChartView* m_chartView;
-
     // 6つの矢印ボタン用のウィジェット
     QWidget* m_arrows;
 
@@ -488,7 +477,9 @@ private:
     QLineEdit* m_hashfullText2;
 
     // 評価値チャートのスクロールエリア
-    QScrollArea* m_scrollArea;
+    QScrollArea* m_scrollArea = nullptr;
+
+    EvaluationChartWidget* m_evalChart = nullptr;
 
     // エンジンによる現在の評価値リスト
     QList<int> m_scoreCp;
@@ -504,12 +495,6 @@ private:
 
     // 対局者がエンジンの場合の対局者名2
     QString m_engineName2;
-
-    // 評価値チャートの横軸「手数」
-    QValueAxis* m_axisX;
-
-    // 評価値チャートの縦軸「評価値」
-    QValueAxis* m_axisY;
 
     // SFEN文字列のリスト
     QStringList* m_sfenRecord;
