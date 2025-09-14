@@ -44,7 +44,11 @@ private:
 
 private slots:
     void onKifuRowsInserted(const QModelIndex& parent, int first, int last);
-    void onKifuCurrentRowChanged(const QModelIndex& current, const QModelIndex& previous);
+    void onKifuCurrentRowChanged(const QModelIndex& cur, const QModelIndex& prev);
+
+private:
+    QMetaObject::Connection m_connRowChanged;
+    QMetaObject::Connection m_connRowsInserted;
 };
 
 #endif // RECORDPANE_H

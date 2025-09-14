@@ -1,20 +1,24 @@
 #include "engineanalysistab.h"
-#include "engineinfowidget.h"
-#include "shogienginethinkingmodel.h"
-#include "usicommlogmodel.h"
 
 #include <QTabWidget>
 #include <QTableView>
+#include <QVBoxLayout>
+#include <QHBoxLayout>
 #include <QPlainTextEdit>
 #include <QTextBrowser>
 #include <QGraphicsView>
-#include <QVBoxLayout>
+#include <QGraphicsScene>
+#include <QGraphicsPathItem>
+#include <QGraphicsSimpleTextItem>
+#include <QPainterPath>
 #include <QHeaderView>
-#include <QFontDatabase>
-#include <QPainter>
-#include <QTextCursor>
-#include <QSplitter>
-#include <QLabel>
+#include <QFont>
+#include <QMouseEvent>
+#include <QtMath>
+
+#include "engineinfowidget.h"
+#include "shogienginethinkingmodel.h"
+#include "usicommlogmodel.h"
 
 EngineAnalysisTab::EngineAnalysisTab(QWidget* parent)
     : QWidget(parent)
@@ -24,205 +28,271 @@ EngineAnalysisTab::EngineAnalysisTab(QWidget* parent)
 
 void EngineAnalysisTab::buildUi()
 {
-    auto* root = new QVBoxLayout(this);
-    root->setContentsMargins(0, 0, 0, 0);
-    root->setSpacing(6);
-
     m_tab = new QTabWidget(this);
 
-    // --- Tab 1: エンジン1 + エンジン2（縦分割） ---
-    {
-        auto* page = new QWidget(m_tab);
-        auto* outer = new QVBoxLayout(page);
-        outer->setContentsMargins(6, 6, 6, 6);
-        outer->setSpacing(6);
+    // --- 思考タブ ---
+    QWidget* page = new QWidget(m_tab);
+    auto* v = new QVBoxLayout(page);
+    v->setContentsMargins(4,4,4,4);
+    v->setSpacing(4);
 
-        // 縦分割
-        auto* split = new QSplitter(Qt::Vertical, page);
+    m_info1 = new EngineInfoWidget(page);
+    m_view1 = new QTableView(page);
+    m_info2 = new EngineInfoWidget(page);
+    m_view2 = new QTableView(page);
 
-        // 上段（エンジン1）
-        auto* w1 = new QWidget(split);
-        auto* v1 = new QVBoxLayout(w1);
-        v1->setContentsMargins(0,0,0,0);
-        v1->setSpacing(6);
-        m_info1 = new EngineInfoWidget(w1);
-        m_view1 = new QTableView(w1);
-        m_view1->setSelectionBehavior(QAbstractItemView::SelectRows);
-        m_view1->setSelectionMode(QAbstractItemView::SingleSelection);
-        m_view1->setAlternatingRowColors(true);
-        if (auto* hh = m_view1->horizontalHeader()) hh->setStretchLastSection(true);
-        v1->addWidget(m_info1);
-        v1->addWidget(m_view1, 1);
-        w1->setLayout(v1);
+    if (auto* hh = m_view1->horizontalHeader()) hh->setSectionResizeMode(4, QHeaderView::Stretch);
+    if (auto* hh2 = m_view2->horizontalHeader()) hh2->setSectionResizeMode(4, QHeaderView::Stretch);
 
-        // 下段（エンジン2）
-        auto* w2 = new QWidget(split);
-        auto* v2 = new QVBoxLayout(w2);
-        v2->setContentsMargins(0,0,0,0);
-        v2->setSpacing(6);
-        m_info2 = new EngineInfoWidget(w2);
-        m_view2 = new QTableView(w2);
-        m_view2->setSelectionBehavior(QAbstractItemView::SelectRows);
-        m_view2->setSelectionMode(QAbstractItemView::SingleSelection);
-        m_view2->setAlternatingRowColors(true);
-        if (auto* hh2 = m_view2->horizontalHeader()) hh2->setStretchLastSection(true);
-        v2->addWidget(m_info2);
-        v2->addWidget(m_view2, 1);
-        w2->setLayout(v2);
+    v->addWidget(m_info1);
+    v->addWidget(m_view1, 1);
+    v->addWidget(m_info2);
+    v->addWidget(m_view2, 1);
 
-        split->addWidget(w1);
-        split->addWidget(w2);
-        // 初期を 50/50 に
-        split->setSizes({2000, 2000});
+    m_tab->addTab(page, tr("思考"));
 
-        m_panel2 = w2; // ← setDualEngineVisible で show/hide するため保持
-        outer->addWidget(split, 1);
-        page->setLayout(outer);
+    // --- USI通信ログ ---
+    m_usiLog = new QPlainTextEdit(m_tab);
+    m_usiLog->setReadOnly(true);
+    m_tab->addTab(m_usiLog, tr("USI通信ログ"));
 
-        m_tab->addTab(page, tr("エンジン"));
-    }
+    // --- 棋譜コメント ---
+    m_comment = new QTextBrowser(m_tab);
+    m_comment->setOpenExternalLinks(true);
+    m_tab->addTab(m_comment, tr("棋譜コメント"));
 
-    // --- USI ログ（以降は従来どおり） ---
-    {
-        auto* page = new QWidget(m_tab);
-        auto* v = new QVBoxLayout(page);
-        v->setContentsMargins(6, 6, 6, 6);
-        v->setSpacing(6);
+    // --- 分岐ツリー ---
+    m_branchTree = new QGraphicsView(m_tab);
+    m_branchTree->setRenderHint(QPainter::Antialiasing, true);
+    m_branchTree->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    m_branchTree->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    m_branchTree->setAlignment(Qt::AlignLeft | Qt::AlignTop);
 
-        m_usiLog = new QPlainTextEdit(page);
-        m_usiLog->setReadOnly(true);
-        m_usiLog->setLineWrapMode(QPlainTextEdit::NoWrap);
-        m_usiLog->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+    m_scene = new QGraphicsScene(m_branchTree);
+    m_branchTree->setScene(m_scene);
+    m_branchTree->viewport()->installEventFilter(this);
 
-        v->addWidget(m_usiLog, 1);
-        page->setLayout(v);
+    m_tab->addTab(m_branchTree, tr("分岐ツリー"));
 
-        m_tab->addTab(page, tr("USIログ"));
-    }
+    // 外側
+    auto* outer = new QVBoxLayout(this);
+    outer->setContentsMargins(0,0,0,0);
+    outer->addWidget(m_tab);
 
-    {
-        auto* page = new QWidget(m_tab);
-        auto* v = new QVBoxLayout(page);
-        v->setContentsMargins(6, 6, 6, 6);
-        v->setSpacing(6);
-        m_comment = new QTextBrowser(page);
-        v->addWidget(m_comment, 1);
-        page->setLayout(v);
-        m_tab->addTab(page, tr("コメント"));
-    }
-
-    {
-        auto* page = new QWidget(m_tab);
-        auto* v = new QVBoxLayout(page);
-        v->setContentsMargins(6, 6, 6, 6);
-        v->setSpacing(6);
-        m_branchTree = new QGraphicsView(page);
-        m_branchTree->setRenderHint(QPainter::Antialiasing, true);
-        v->addWidget(m_branchTree, 1);
-        page->setLayout(v);
-        m_tab->addTab(page, tr("分岐"));
-    }
-
-    root->addWidget(m_tab);
-    setLayout(root);
-
-    // ★ デフォルト: 起動時は「エンジン1のみ表示」
-    setDualEngineVisible(false);
+    // 分岐ツリータブ（m_branchTree）を生成済みならクリック検知を仕込む
+    if (m_branchTree && m_branchTree->viewport())
+        m_branchTree->viewport()->installEventFilter(this);
 }
-
-void EngineAnalysisTab::setDualEngineVisible(bool on) {
-    if (!m_panel2) return;
-    m_panel2->setVisible(on);
-}
-
 
 void EngineAnalysisTab::setModels(ShogiEngineThinkingModel* m1, ShogiEngineThinkingModel* m2,
                                   UsiCommLogModel* log1, UsiCommLogModel* log2)
 {
-    // 思考テーブル
-    if (m_view1) {
-        m_view1->setModel(m1);
-        if (auto* hh = m_view1->horizontalHeader())
-            hh->setStretchLastSection(true);
+    m_model1 = m1;
+    m_model2 = m2;
+    m_log1 = log1;
+    m_log2 = log2;
+
+    if (m_view1 && m1) m_view1->setModel(m1);
+    if (m_view2 && m2) m_view2->setModel(m2);
+
+    if (m_info1 && log1) m_info1->setModel(log1);
+    if (m_info2 && log2) m_info2->setModel(log2);
+
+    if (m_log1) {
+        connect(m_log1, &UsiCommLogModel::usiCommLogChanged, this, [this]() {
+            if (m_usiLog) m_usiLog->appendPlainText(m_log1->usiCommLog());
+        });
     }
-    if (m_view2) {
-        m_view2->setModel(m2);
-        if (auto* hh = m_view2->horizontalHeader())
-            hh->setStretchLastSection(true);
+    if (m_log2) {
+        connect(m_log2, &UsiCommLogModel::usiCommLogChanged, this, [this]() {
+            if (m_usiLog) m_usiLog->appendPlainText(m_log2->usiCommLog());
+        });
     }
-
-    // EngineInfoWidget は UsiCommLogModel* を受け取る
-    if (m_info1) m_info1->setModel(log1);
-    if (m_info2) m_info2->setModel(log2);
-
-    // USIログのライブ追記（UniqueConnectionは使わない：ラムダは重複判定できない）
-    if (m_usiLog) m_usiLog->clear();
-
-    auto hook = [this](UsiCommLogModel* log, const QString& prefix) {
-        if (!log || !m_usiLog) return;
-
-        // 最初に現在値があれば追記
-        const QString cur = log->usiCommLog();
-        if (!cur.isEmpty()) {
-            m_usiLog->appendPlainText(prefix + cur);
-            m_usiLog->moveCursor(QTextCursor::End);
-        }
-
-        // 以後の更新を受けて追記
-        QObject::disconnect(log, nullptr, this, nullptr); // 二重接続の保険
-        connect(log, &UsiCommLogModel::usiCommLogChanged, this,
-                [this, log, prefix]() {
-                    if (!m_usiLog) return;
-                    const QString s = log->usiCommLog();
-                    if (!s.isEmpty()) {
-                        m_usiLog->appendPlainText(prefix + s);
-                        m_usiLog->moveCursor(QTextCursor::End);
-                    }
-                });
-    };
-
-    hook(log1, QStringLiteral("[E1] "));
-    hook(log2, QStringLiteral("[E2] "));
 }
 
-QTabWidget* EngineAnalysisTab::tab() const
-{
-    return m_tab;
-}
+QTabWidget* EngineAnalysisTab::tab() const { return m_tab; }
 
 void EngineAnalysisTab::setAnalysisVisible(bool on)
 {
-    if (m_tab) m_tab->setVisible(on);
-    setVisible(on);
+    if (this->isVisible() != on) this->setVisible(on);
 }
 
+void EngineAnalysisTab::setCommentHtml(const QString& html)
+{
+    if (m_comment) m_comment->setHtml(html);
+}
+
+void EngineAnalysisTab::setBranchTreeRows(const QVector<ResolvedRowLite>& rows)
+{
+    m_rows = rows;
+    rebuildBranchTree();
+}
+
+QGraphicsPathItem* EngineAnalysisTab::addNode(int row, int ply, const QString& text)
+{
+    // 配置：x=手数方向, y=行方向
+    const qreal r = 8.0;
+    const qreal x = 40.0 + ply * 20.0;
+    const qreal y = 30.0 + row * 50.0;
+
+    QPainterPath path;
+    path.addEllipse(QPointF(x, y), r, r);
+    auto* item = m_scene->addPath(path, QPen(Qt::black, 1.0));
+    item->setBrush(Qt::white);
+
+    // ラベル（小さめの手数表示）
+    auto* label = m_scene->addSimpleText(text, QFont(QStringLiteral("Noto Sans"), 8));
+    QRectF br = label->boundingRect();
+    label->setPos(x - br.width()/2.0, y - r - br.height() - 2.0);
+
+    // クリック用メタ
+    item->setData(ROLE_ROW, row);
+    item->setData(ROLE_PLY, ply);
+
+    m_nodeIndex.insert(qMakePair(row, ply), item);
+    return item;
+}
+
+void EngineAnalysisTab::addEdge(QGraphicsPathItem* from, QGraphicsPathItem* to)
+{
+    if (!from || !to) return;
+    QPainterPath path;
+    QPointF a = from->path().boundingRect().center();
+    QPointF b = to->path().boundingRect().center();
+    path.moveTo(a);
+    // 緩やかなベジェ
+    QPointF c1(a.x() + 8, a.y());
+    QPointF c2(b.x() - 8, b.y());
+    path.cubicTo(c1, c2, b);
+    m_scene->addPath(path, QPen(QColor(80,160,80), 1.2));
+}
+
+void EngineAnalysisTab::rebuildBranchTree()
+{
+    if (!m_scene) return;
+    m_scene->clear();
+    m_nodeIndex.clear();
+
+    // 本譜（row=0）
+    if (!m_rows.isEmpty()) {
+        const auto& main = m_rows.at(0);
+        QGraphicsPathItem* prev = nullptr;
+        int ply = 0;
+        for (const auto& it : main.disp) {
+            Q_UNUSED(it);
+            ++ply;
+            auto* node = addNode(0, ply, QString::number(ply));
+            if (prev) addEdge(prev, node);
+            prev = node;
+        }
+    }
+
+    // 分岐（row=1..）
+    for (int row = 1; row < m_rows.size(); ++row) {
+        const auto& rv = m_rows.at(row);
+
+        // 接続元：本譜 startPly のノード
+        const int basePly = qMax(1, qMin(rv.startPly, m_rows.value(0).disp.size()));
+        QGraphicsPathItem* prev = m_nodeIndex.value(qMakePair(0, basePly), nullptr);
+
+        int local = 0;
+        for (const auto& it : rv.disp) {
+            Q_UNUSED(it);
+            ++local;
+            const int ply = rv.startPly - 1 + local;
+            auto* node = addNode(row, ply, QString::number(ply));
+            if (prev) addEdge(prev, node);
+            prev = node;
+        }
+    }
+
+    // シーン境界
+    const int mainLen = m_rows.isEmpty() ? 0 : m_rows.at(0).disp.size();
+    m_scene->setSceneRect(QRectF(0, 0, 40 + 20 * qMax(40, mainLen + 10),
+                                 30 + 50 * qMax(2, m_rows.size() + 1)));
+}
+
+void EngineAnalysisTab::highlightBranchTreeAt(int row, int ply, bool centerOn)
+{
+    auto it = m_nodeIndex.find(qMakePair(row, ply));
+    if (it == m_nodeIndex.end()) return;
+
+    // 一旦リセット
+    for (auto* n : m_nodeIndex) if (n) n->setBrush(Qt::white);
+
+    // ハイライト
+    QGraphicsPathItem* node = it.value();
+    node->setBrush(QColor(255, 240, 160));
+    if (centerOn && m_branchTree) m_branchTree->centerOn(node);
+}
+
+bool EngineAnalysisTab::eventFilter(QObject* obj, QEvent* ev)
+{
+    if (m_branchTree && obj == m_branchTree->viewport()
+        && (ev->type() == QEvent::MouseButtonRelease /* または MouseButtonPress */))
+    {
+        auto* me = static_cast<QMouseEvent*>(ev);
+        const QPointF scenePt = m_branchTree->mapToScene(me->pos());
+
+        QGraphicsItem* hit =
+            m_branchTree->scene() ? m_branchTree->scene()->itemAt(scenePt, QTransform()) : nullptr;
+
+        // 子(Text)に当たることがあるので親まで遡る
+        while (hit && !hit->data(BR_ROLE_KIND).isValid())
+            hit = hit->parentItem();
+        if (!hit) return false;
+
+        const int kind = hit->data(BR_ROLE_KIND).toInt();
+        switch (kind) {
+        case BNK_Start:
+            emit requestApplyStart();
+            return true;
+
+        case BNK_Main: {
+            const int ply = hit->data(BR_ROLE_PLY).toInt();
+            emit requestApplyMainAtPly(ply);
+            return true;
+        }
+
+        case BNK_Var: {
+            const int sp  = hit->data(BR_ROLE_STARTPLY).toInt();
+            const int bix = hit->data(BR_ROLE_BUCKET).toInt();
+            emit requestApplyVariation(sp, bix);
+            return true;
+        }
+
+        default:
+            break;
+        }
+    }
+    return QWidget::eventFilter(obj, ev);
+}
+
+// ===== 互換API 実装 =====
 void EngineAnalysisTab::setSecondEngineVisible(bool on)
 {
     if (m_info2)  m_info2->setVisible(on);
     if (m_view2)  m_view2->setVisible(on);
-    // 必要ならレイアウト再計算
-    if (m_tab) m_tab->update();
+}
+
+void EngineAnalysisTab::setEngine1ThinkingModel(ShogiEngineThinkingModel* m)
+{
+    m_model1 = m;
+    if (m_view1) m_view1->setModel(m);
+    if (m_view1 && m_view1->horizontalHeader())
+        m_view1->horizontalHeader()->setSectionResizeMode(4, QHeaderView::Stretch);
+}
+
+void EngineAnalysisTab::setEngine2ThinkingModel(ShogiEngineThinkingModel* m)
+{
+    m_model2 = m;
+    if (m_view2) m_view2->setModel(m);
+    if (m_view2 && m_view2->horizontalHeader())
+        m_view2->horizontalHeader()->setSectionResizeMode(4, QHeaderView::Stretch);
 }
 
 void EngineAnalysisTab::setCommentText(const QString& text)
 {
-    if (m_comment) m_comment->setText(text);
-}
-
-// ThinkingModel は表にだけ関連付け
-void EngineAnalysisTab::setEngine1ThinkingModel(ShogiEngineThinkingModel* m) {
-    if (m_view1) m_view1->setModel(m);
-}
-
-void EngineAnalysisTab::setEngine2ThinkingModel(ShogiEngineThinkingModel* m) {
-    if (m_view2) m_view2->setModel(m);
-}
-
-// LogModel は EngineInfoWidget に関連付け
-void EngineAnalysisTab::setEngine1LogModel(UsiCommLogModel* log) {
-    if (m_info1) m_info1->setModel(log);
-}
-
-void EngineAnalysisTab::setEngine2LogModel(UsiCommLogModel* log) {
-    if (m_info2) m_info2->setModel(log);
+    // 旧コード互換：プレーンテキストで設定（HTML解釈させたくない想定）
+    if (m_comment) m_comment->setPlainText(text);
 }

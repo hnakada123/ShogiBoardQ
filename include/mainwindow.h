@@ -551,7 +551,6 @@ private:
     // ---------- “旧UI”互換のエイリアス（nullable） ----------
     // 既存コードが m_kifuView / m_kifuBranchView を参照している箇所のための受け皿。
     // 実体は RecordPane 等から取得して代入しておく（下の NOTE 参照）。
-    QTableView*      m_kifuView        = nullptr;
     QTableView*      m_kifuBranchView  = nullptr;
 
     // 解析結果テーブル
@@ -592,6 +591,9 @@ private:
 
     void highlightBranchTreeAt(int row, int ply, bool centerOn = true);
     QGraphicsPathItem* branchNodeFor(int row, int ply) const;
+    QMetaObject::Connection m_connKifuRowChanged;
+
+    bool m_onMainRowGuard = false; // 再入防止
 
 public: // INavigationContext
     bool hasResolvedRows() const override;
@@ -604,9 +606,7 @@ public: // INavigationContext
 private slots:
     void onBranchCandidateActivated(const QModelIndex& idx);
     void onMainMoveRowChanged(int row);
-
-protected:
-    bool eventFilter(QObject* obj, QEvent* ev) override;
+    void onKifuCurrentRowChanged(const QModelIndex& cur, const QModelIndex& prev);
 };
 
 #endif // MAINWINDOW_H
