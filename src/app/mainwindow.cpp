@@ -6021,7 +6021,7 @@ inline void pumpUi() {
 // 平手、駒落ち Player1: Human, Player2: Human
 void MainWindow::startHumanVsHumanGame()
 {    
-    applyEnginePanelsByMode();
+    m_engineAnalysisTab->setDualEngineVisible(false);
 
     // 盤クリック受付（人対人）
     setPvPClickHandler();
@@ -6044,7 +6044,10 @@ void MainWindow::startHumanVsEngineGame()
         m_lineEditModel1 = new UsiCommLogModel(this);
     }
 
-    applyEnginePanelsByMode();
+    if (m_engineAnalysisTab) {
+        m_engineAnalysisTab->setEngine1ThinkingModel(m_modelThinking1);
+        m_engineAnalysisTab->setDualEngineVisible(false);
+    }
 
     const bool engineIsP1 = (m_playMode == HandicapEngineVsHuman); // 駒落ち=先手エンジン
     initSingleEnginePvE(engineIsP1);
@@ -6088,7 +6091,10 @@ void MainWindow::startEngineVsHumanGame()
         m_lineEditModel1 = new UsiCommLogModel(this);
     }
 
-    applyEnginePanelsByMode();
+    if (m_engineAnalysisTab) {
+        m_engineAnalysisTab->setEngine1ThinkingModel(m_modelThinking1);
+        m_engineAnalysisTab->setDualEngineVisible(false);
+    }
 
     const bool engineIsP1 = (m_playMode == EvenEngineVsHuman); // 平手=先手エンジン
     initSingleEnginePvE(engineIsP1);
@@ -6138,7 +6144,11 @@ void MainWindow::startEngineVsEngineGame()
         m_lineEditModel2 = new UsiCommLogModel(this);
     }
 
-    applyEnginePanelsByMode();
+    if (m_engineAnalysisTab) {
+        m_engineAnalysisTab->setEngine1ThinkingModel(m_modelThinking1);
+        m_engineAnalysisTab->setEngine2ThinkingModel(m_modelThinking2);
+        m_engineAnalysisTab->setDualEngineVisible(true);
+    }
 
     initEnginesForEvE();
 
@@ -6270,12 +6280,4 @@ void MainWindow::setupEngineAnalysisTab()
                 this, &MainWindow::toggleEngineAnalysisVisibility,
                 Qt::UniqueConnection);
     }
-}
-
-void MainWindow::applyEnginePanelsByMode()
-{
-    if (!m_engineAnalysisTab) return;
-    const bool isEvE = (m_playMode == EvenEngineVsEngine ||
-                        m_playMode == HandicapEngineVsEngine);
-    m_engineAnalysisTab->setDualEngineVisible(isEvE);
 }

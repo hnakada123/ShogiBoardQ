@@ -30,63 +30,54 @@ void EngineAnalysisTab::buildUi()
 
     m_tab = new QTabWidget(this);
 
-    // --- Tab 1: エンジン（1 と 2 を上下に） ---
+    // --- Tab 1: エンジン1 + エンジン2（縦分割） ---
     {
         auto* page = new QWidget(m_tab);
-        auto* v = new QVBoxLayout(page);
-        v->setContentsMargins(6, 6, 6, 6);
-        v->setSpacing(6);
+        auto* outer = new QVBoxLayout(page);
+        outer->setContentsMargins(6, 6, 6, 6);
+        outer->setSpacing(6);
 
-        m_engineSplit = new QSplitter(Qt::Vertical, page);
-        m_engineSplit->setChildrenCollapsible(false);
+        // 縦分割
+        auto* split = new QSplitter(Qt::Vertical, page);
 
-        // 上段：エンジン1
-        m_engine1Pane = new QWidget(m_engineSplit);
-        auto* v1 = new QVBoxLayout(m_engine1Pane);
-        v1->setContentsMargins(0, 0, 0, 0);
+        // 上段（エンジン1）
+        auto* w1 = new QWidget(split);
+        auto* v1 = new QVBoxLayout(w1);
+        v1->setContentsMargins(0,0,0,0);
         v1->setSpacing(6);
-
-        auto* label1 = new QLabel(tr("エンジン1"), m_engine1Pane);
-        m_info1 = new EngineInfoWidget(m_engine1Pane);
-        m_view1 = new QTableView(m_engine1Pane);
+        m_info1 = new EngineInfoWidget(w1);
+        m_view1 = new QTableView(w1);
         m_view1->setSelectionBehavior(QAbstractItemView::SelectRows);
         m_view1->setSelectionMode(QAbstractItemView::SingleSelection);
         m_view1->setAlternatingRowColors(true);
-        if (auto* hh = m_view1->horizontalHeader())
-            hh->setStretchLastSection(true);
-
-        v1->addWidget(label1);
+        if (auto* hh = m_view1->horizontalHeader()) hh->setStretchLastSection(true);
         v1->addWidget(m_info1);
         v1->addWidget(m_view1, 1);
-        m_engine1Pane->setLayout(v1);
+        w1->setLayout(v1);
 
-        // 下段：エンジン2
-        m_engine2Pane = new QWidget(m_engineSplit);
-        auto* v2 = new QVBoxLayout(m_engine2Pane);
-        v2->setContentsMargins(0, 0, 0, 0);
+        // 下段（エンジン2）
+        auto* w2 = new QWidget(split);
+        auto* v2 = new QVBoxLayout(w2);
+        v2->setContentsMargins(0,0,0,0);
         v2->setSpacing(6);
-
-        auto* label2 = new QLabel(tr("エンジン2"), m_engine2Pane);
-        m_info2 = new EngineInfoWidget(m_engine2Pane);
-        m_view2 = new QTableView(m_engine2Pane);
+        m_info2 = new EngineInfoWidget(w2);
+        m_view2 = new QTableView(w2);
         m_view2->setSelectionBehavior(QAbstractItemView::SelectRows);
         m_view2->setSelectionMode(QAbstractItemView::SingleSelection);
         m_view2->setAlternatingRowColors(true);
-        if (auto* hh2 = m_view2->horizontalHeader())
-            hh2->setStretchLastSection(true);
-
-        v2->addWidget(label2);
+        if (auto* hh2 = m_view2->horizontalHeader()) hh2->setStretchLastSection(true);
         v2->addWidget(m_info2);
         v2->addWidget(m_view2, 1);
-        m_engine2Pane->setLayout(v2);
+        w2->setLayout(v2);
 
-        m_engineSplit->addWidget(m_engine1Pane);
-        m_engineSplit->addWidget(m_engine2Pane);
-        m_engineSplit->setStretchFactor(0, 1);
-        m_engineSplit->setStretchFactor(1, 1);
+        split->addWidget(w1);
+        split->addWidget(w2);
+        // 初期を 50/50 に
+        split->setSizes({2000, 2000});
 
-        v->addWidget(m_engineSplit, 1);
-        page->setLayout(v);
+        m_panel2 = w2; // ← setDualEngineVisible で show/hide するため保持
+        outer->addWidget(split, 1);
+        page->setLayout(outer);
 
         m_tab->addTab(page, tr("エンジン"));
     }
@@ -139,23 +130,11 @@ void EngineAnalysisTab::buildUi()
     setDualEngineVisible(false);
 }
 
-void EngineAnalysisTab::setEngine1ThinkingModel(QAbstractItemModel* m)
-{
-    if (m_view1) m_view1->setModel(m);
+void EngineAnalysisTab::setDualEngineVisible(bool on) {
+    if (!m_panel2) return;
+    m_panel2->setVisible(on);
 }
 
-void EngineAnalysisTab::setEngine2ThinkingModel(QAbstractItemModel* m)
-{
-    if (m_view2) m_view2->setModel(m);
-}
-
-// 例（前にお渡しした実装と同等）
-void EngineAnalysisTab::setDualEngineVisible(bool on)
-{
-    if (!m_info2 || !m_view2) return;
-    m_info2->setVisible(on);
-    m_view2->setVisible(on);
-}
 
 void EngineAnalysisTab::setModels(ShogiEngineThinkingModel* m1, ShogiEngineThinkingModel* m2,
                                   UsiCommLogModel* log1, UsiCommLogModel* log2)
@@ -228,4 +207,22 @@ void EngineAnalysisTab::setSecondEngineVisible(bool on)
 void EngineAnalysisTab::setCommentText(const QString& text)
 {
     if (m_comment) m_comment->setText(text);
+}
+
+// ThinkingModel は表にだけ関連付け
+void EngineAnalysisTab::setEngine1ThinkingModel(ShogiEngineThinkingModel* m) {
+    if (m_view1) m_view1->setModel(m);
+}
+
+void EngineAnalysisTab::setEngine2ThinkingModel(ShogiEngineThinkingModel* m) {
+    if (m_view2) m_view2->setModel(m);
+}
+
+// LogModel は EngineInfoWidget に関連付け
+void EngineAnalysisTab::setEngine1LogModel(UsiCommLogModel* log) {
+    if (m_info1) m_info1->setModel(log);
+}
+
+void EngineAnalysisTab::setEngine2LogModel(UsiCommLogModel* log) {
+    if (m_info2) m_info2->setModel(log);
 }

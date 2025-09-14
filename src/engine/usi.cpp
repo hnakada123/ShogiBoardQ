@@ -1367,7 +1367,7 @@ void Usi::sendSetOptionCommands()
 // info行を全て削除する。
 void Usi::infoRecordClear()
 {
-    m_modelThinking->clearAllItems();
+    if (m_modelThinking) m_modelThinking->clearAllItems();
 }
 
 // go ponderコマンドを将棋エンジンに送信する。

@@ -595,8 +595,6 @@ private:
 
     EngineAnalysisTab* m_engineAnalysisTab = nullptr;
 
-    void applyEnginePanelsByMode();
-
 public: // INavigationContext
     bool hasResolvedRows() const override;
     int  resolvedRowCount() const override;
