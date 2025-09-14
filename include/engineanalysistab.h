@@ -3,7 +3,7 @@
 
 #include <QWidget>
 class QTabWidget; class QTableView; class ShogiEngineThinkingModel; class QTextBrowser; class QPlainTextEdit;
-class EngineInfoWidget; class QGraphicsView; class UsiCommLogModel; class QSplitter; class QAbstractItemModel;
+class EngineInfoWidget; class QGraphicsView; class UsiCommLogModel; class QSplitter;
 
 class EngineAnalysisTab : public QWidget {
     Q_OBJECT
@@ -15,8 +15,10 @@ public:
 
     QTabWidget* tab() const;
 
-    void setEngine1ThinkingModel(QAbstractItemModel* m);
-    void setEngine2ThinkingModel(QAbstractItemModel* m);
+    void setEngine1ThinkingModel(ShogiEngineThinkingModel* m);
+    void setEngine2ThinkingModel(ShogiEngineThinkingModel* m);
+    void setEngine1LogModel(UsiCommLogModel* model);   // ★追加
+    void setEngine2LogModel(UsiCommLogModel* model);   // ★追加
     void setDualEngineVisible(bool on);
 
 public slots:
@@ -44,6 +46,8 @@ private:
     QSplitter* m_engineSplit = nullptr;
     QWidget*   m_engine1Pane = nullptr;
     QWidget*   m_engine2Pane = nullptr;
+
+    QWidget* m_panel2 = nullptr;
 };
 
 #endif // ENGINEANALYSISTAB_H
