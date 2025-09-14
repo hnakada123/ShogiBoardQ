@@ -2801,6 +2801,22 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
     // 4) 棋譜表示へ反映（本譜）
     displayGameRecord(disp);
 
+    // ★★★ 追加：本譜スナップショットを保存（buildResolvedLinesAfterLoadの材料）
+    m_dispMain = disp;
+    m_sfenMain = *m_sfenRecord;   // 0..N のSFEN列
+    m_gmMain   = m_gameMoves;     // 1..N のUSIムーブ
+
+    // ★★★ 追加：（任意だが推奨）分岐のバケツ化と順序リスト
+    m_variationsByPly.clear();
+    m_variationsSeq.clear();
+    for (const KifVariation& kv : res.variations) {
+        KifLine L = kv.line;
+        L.startPly = kv.startPly;
+        if (L.disp.isEmpty()) continue;
+        m_variationsByPly[L.startPly].push_back(L);
+        m_variationsSeq.push_back(L);
+    }
+
     // 5) テーブル初期選択（RecordPane経由）…（あなたの現状コードのまま）
     // 5) RecordPane 側のビューを初期化（このままでOK）
     if (m_recordPane && m_recordPane->kifuView()) {
