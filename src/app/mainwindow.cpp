@@ -6021,8 +6021,6 @@ inline void pumpUi() {
 // 平手、駒落ち Player1: Human, Player2: Human
 void MainWindow::startHumanVsHumanGame()
 {    
-    m_engineAnalysisTab->setDualEngineVisible(false);
-
     // 盤クリック受付（人対人）
     setPvPClickHandler();
 
@@ -6037,16 +6035,12 @@ void MainWindow::startHumanVsHumanGame()
 // 駒落ち Player1: USI Engine（下手）, Player2: Human（上手）
 void MainWindow::startHumanVsEngineGame()
 {
-    if (!m_modelThinking1) {
-        m_modelThinking1 = new ShogiEngineThinkingModel(this);
-    }
-    if (!m_lineEditModel1) {
-        m_lineEditModel1 = new UsiCommLogModel(this);
-    }
+    if (!m_modelThinking1) m_modelThinking1 = new ShogiEngineThinkingModel(this);
+    if (!m_lineEditModel1) m_lineEditModel1 = new UsiCommLogModel(this);
 
-    if (m_engineAnalysisTab) {
-        m_engineAnalysisTab->setEngine1ThinkingModel(m_modelThinking1);
-        m_engineAnalysisTab->setDualEngineVisible(false);
+    if (m_analysisTab) {
+        m_analysisTab->setEngine1ThinkingModel(m_modelThinking1);
+        m_analysisTab->setDualEngineVisible(false);
     }
 
     const bool engineIsP1 = (m_playMode == HandicapEngineVsHuman); // 駒落ち=先手エンジン
@@ -6084,16 +6078,13 @@ void MainWindow::startHumanVsEngineGame()
 // 駒落ち Player1: Human（下手）,  Player2: USI Engine（上手）
 void MainWindow::startEngineVsHumanGame()
 {   
-    if (!m_modelThinking1) {
-        m_modelThinking1 = new ShogiEngineThinkingModel(this);
-    }
-    if (!m_lineEditModel1) {
-        m_lineEditModel1 = new UsiCommLogModel(this);
-    }
+    if (!m_modelThinking1) m_modelThinking1 = new ShogiEngineThinkingModel(this);
+    if (!m_lineEditModel1) m_lineEditModel1 = new UsiCommLogModel(this);
 
-    if (m_engineAnalysisTab) {
-        m_engineAnalysisTab->setEngine1ThinkingModel(m_modelThinking1);
-        m_engineAnalysisTab->setDualEngineVisible(false);
+    // 変更後
+    if (m_analysisTab) {
+        m_analysisTab->setEngine1ThinkingModel(m_modelThinking1);
+        m_analysisTab->setDualEngineVisible(false);
     }
 
     const bool engineIsP1 = (m_playMode == EvenEngineVsHuman); // 平手=先手エンジン
@@ -6130,24 +6121,16 @@ void MainWindow::startEngineVsHumanGame()
 // 平手、駒落ち Player1: USI Engine, Player2: USI Engine
 void MainWindow::startEngineVsEngineGame()
 {
-    if (!m_modelThinking1) {
-        m_modelThinking1 = new ShogiEngineThinkingModel(this);
-    }
-    if (!m_lineEditModel1) {
-        m_lineEditModel1 = new UsiCommLogModel(this);
-    }
+    if (!m_modelThinking1) m_modelThinking1 = new ShogiEngineThinkingModel(this);
+    if (!m_modelThinking2) m_modelThinking2 = new ShogiEngineThinkingModel(this);
+    if (!m_lineEditModel1) m_lineEditModel1 = new UsiCommLogModel(this);
+    if (!m_lineEditModel2) m_lineEditModel2 = new UsiCommLogModel(this);
 
-    if (!m_modelThinking2) {
-        m_modelThinking2 = new ShogiEngineThinkingModel(this);
-    }
-    if (!m_lineEditModel2) {
-        m_lineEditModel2 = new UsiCommLogModel(this);
-    }
-
-    if (m_engineAnalysisTab) {
-        m_engineAnalysisTab->setEngine1ThinkingModel(m_modelThinking1);
-        m_engineAnalysisTab->setEngine2ThinkingModel(m_modelThinking2);
-        m_engineAnalysisTab->setDualEngineVisible(true);
+    // 変更後
+    if (m_analysisTab) {
+        m_analysisTab->setEngine1ThinkingModel(m_modelThinking1);
+        m_analysisTab->setEngine2ThinkingModel(m_modelThinking2);
+        m_analysisTab->setDualEngineVisible(true);
     }
 
     initEnginesForEvE();
