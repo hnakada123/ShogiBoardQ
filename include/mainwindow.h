@@ -593,8 +593,6 @@ private:
     void highlightBranchTreeAt(int row, int ply, bool centerOn = true);
     QGraphicsPathItem* branchNodeFor(int row, int ply) const;
 
-    EngineAnalysisTab* m_engineAnalysisTab = nullptr;
-
 public: // INavigationContext
     bool hasResolvedRows() const override;
     int  resolvedRowCount() const override;
