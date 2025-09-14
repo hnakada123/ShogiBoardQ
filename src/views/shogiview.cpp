@@ -2712,3 +2712,28 @@ QImage ShogiView::toImage(qreal scale)
     }
     return img;
 }
+
+void ShogiView::applyBoardAndRender(ShogiBoard* board)
+{
+    if (!board) return;
+
+    // 1) 駒アイコンの用意（複数回呼ばれても安全な実装にしておく）
+    setPieces();
+
+    // 2) 盤データの適用
+    setBoard(board);
+
+    // 3) マスサイズの再適用（必要なら）
+    setFieldSize(QSize(squareSize(), squareSize()));
+
+    // 4) 再描画
+    update();
+}
+
+void ShogiView::configureFixedSizing(int squarePx)
+{
+    setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+    const int s = (squarePx > 0) ? squarePx : squareSize();
+    setFieldSize(QSize(s, s));
+    update();
+}

@@ -150,6 +150,13 @@ public:
 
     QImage toImage(qreal scale = 1.0);
 
+    // board を適用して即再描画する（ピース読み込みも面倒見ます）
+    void applyBoardAndRender(ShogiBoard* board);
+
+    // レイアウト都合の固定サイズ指定は外側の責務にするのが基本ですが、
+    // まとめたいならこちらも用意可（任意）
+    void configureFixedSizing(int squarePx = -1);
+
 public slots:
     // Q_PROPERTY 用 setter（レイアウト更新・ラベル再配置を含む）
     void setFieldSize(QSize fieldSize);

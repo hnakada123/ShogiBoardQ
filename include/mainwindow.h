@@ -133,9 +133,6 @@ private slots:
     void onPlayer1TimeOut();
     void onPlayer2TimeOut();
 
-    // 分岐候補欄（RecordPane 側）クリック
-    void onBranchRowClicked(const QModelIndex& index);
-
 private:
     // --- 基本状態 ---
     QString m_startSfenStr;
@@ -233,7 +230,6 @@ private:
     void createPlayerNameAndMoveDisplay();
     void setPlayersNamesForMode();
     void setupTimeAndTurnIndicators();
-    void renderShogiBoard();
     void displayAnalysisResults();
 
     void initializeNewGame(QString& startSfenStr);
@@ -399,15 +395,6 @@ private:
                           const QString& warnParse,
                           const QString& warnConvert) const;
 
-#ifdef SHOGIBOARDQ_DEBUG_KIF
-    void dbgDumpMoves(const QList<KifDisplayItem>& disp,
-                      const QString& tag,
-                      int startPly = 1) const;
-    void dbgCompareGraphVsKifu(const QList<KifDisplayItem>& graphDisp,
-                               const QList<KifDisplayItem>& kifuDisp,
-                               int selPly, const QString& where) const;
-#endif
-
     // --- “後勝ち”で作った解決済み行 ---
     struct ResolvedRow {
         int startPly = 1;
@@ -431,9 +418,8 @@ private:
     QHash<int, QHash<QString, QList<BranchCandidate>>> m_branchIndex;
     QList<QPair<int,int>> m_branchRowMap; // .first=row, .second=ply
 
-    void buildBranchCandidateIndex();
     void populateBranchListForPly(int ply);
-    void applyVariation(int parentPly, int branchIndex);
+
     void applyVariationByKey(int startPly, int bucketIndex);
 
     // KIFヘッダ（対局情報）タブ
@@ -535,18 +521,12 @@ private:
     QVector<QString> m_commentsByRow;
 
     // ---------- 分岐コメント ----------
-    QString makeBranchHtml(const QString& text) const;   // 宣言だけでOK（実装はcpp）
     void    updateBranchTextForRow(int row);             // 同上
 
     // ---------- 棋譜表示／分岐操作 ----------
     void showRecordAtPly(const QList<KifDisplayItem>& disp, int selectPly);
     void syncBoardAndHighlightsAtRow(int row);
     void applySfenAtCurrentPly();
-    void refreshBoardAndHighlightsForRow(int row);
-    void rebuildBranchTreeView();
-    QGraphicsPathItem* branchNodeFor(int row, int ply);
-
-    void buildResolvedRowsAfterLoad();   // 既にあれば重複可。なければ追加。
 
     // ---------- “旧UI”互換のエイリアス（nullable） ----------
     // 既存コードが m_kifuView / m_kifuBranchView を参照している箇所のための受け皿。
@@ -555,11 +535,6 @@ private:
 
     // 解析結果テーブル
     QTableView*      m_analysisResultsView = nullptr;
-
-    // ---------- 分岐ツリー ----------
-    QGraphicsView*   m_branchTreeView  = nullptr;
-    QHash<QPair<int,int>, QGraphicsPathItem*> m_branchNodeIndex;
-    bool             m_branchTreeSelectGuard = false;
 
     // ---------- 分岐／本譜データのスナップショット ----------
     QList<KifDisplayItem> m_dispMain;
@@ -571,8 +546,6 @@ private:
     QHash<int, QList<KifLine>> m_variationsByPly;
     QList<KifLine>             m_variationsSeq;
 
-    // 分岐可能手集合（名前揺れ対策で両方持つ）
-    QSet<int> m_branchablePlies;
     QSet<int> m_branchablePlySet;  // = m_branchablePlies のミラー
 
     // ---------- カレント選択 ----------
@@ -581,16 +554,6 @@ private:
 
     QString m_initialSfen;
 
-    // ---------- 分岐ツリーの role / kind 定数 ----------
-    enum BranchNodeKind { BNK_Start=0, BNK_Main=1, BNK_Var=2 };
-    static constexpr int BR_ROLE_KIND     = 0;
-    static constexpr int BR_ROLE_PLY      = 1;
-    static constexpr int BR_ROLE_ROW      = 2;
-    static constexpr int BR_ROLE_STARTPLY = 3;
-    static constexpr int BR_ROLE_BUCKET   = 4;
-
-    void highlightBranchTreeAt(int row, int ply, bool centerOn = true);
-    QGraphicsPathItem* branchNodeFor(int row, int ply) const;
     QMetaObject::Connection m_connKifuRowChanged;
 
     bool m_onMainRowGuard = false; // 再入防止
