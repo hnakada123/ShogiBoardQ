@@ -160,18 +160,25 @@ void RecordPane::setModels(KifuRecordListModel* recModel, KifuBranchListModel* b
     // --- 棋譜テーブル ---
     m_kifu->setModel(recModel);
 
-    // 行挿入→自動スクロール
+    // 行追加→自動スクロール（多重接続防止）
     if (auto* model = m_kifu->model()) {
-        connect(model, &QAbstractItemModel::rowsInserted,
-                this, &RecordPane::onKifuRowsInserted,
-                Qt::UniqueConnection);
+        if (m_connRowsInserted)
+            disconnect(m_connRowsInserted);
+        m_connRowsInserted = connect(model, &QAbstractItemModel::rowsInserted,
+                                     m_kifu, [this](const QModelIndex&, int, int) {
+                                         m_kifu->scrollToBottom();
+                                     });
     }
 
-    // 現在行変更→親へ通知
+    // 行選択の中継（多重接続防止 & メンバ関数スロット化）
     if (auto* sel = m_kifu->selectionModel()) {
-        connect(sel, &QItemSelectionModel::currentRowChanged,
-                this, &RecordPane::onKifuCurrentRowChanged,
-                Qt::UniqueConnection);
+        if (m_connRowChanged)
+            disconnect(m_connRowChanged);
+        m_connRowChanged = connect(sel,
+                                   &QItemSelectionModel::currentRowChanged,
+                                   this,
+                                   &RecordPane::onKifuCurrentRowChanged,
+                                   Qt::UniqueConnection);
     }
 
     if (auto* hh = m_kifu->horizontalHeader()) {
@@ -230,7 +237,7 @@ void RecordPane::onKifuRowsInserted(const QModelIndex&, int, int)
     if (m_kifu) m_kifu->scrollToBottom();
 }
 
-void RecordPane::onKifuCurrentRowChanged(const QModelIndex& current, const QModelIndex&)
+void RecordPane::onKifuCurrentRowChanged(const QModelIndex& cur, const QModelIndex&)
 {
-    emit mainRowChanged(current.isValid() ? current.row() : 0);
+    emit mainRowChanged(cur.isValid() ? cur.row() : 0);
 }

@@ -390,13 +390,9 @@ void MainWindow::hideGameActions()
 }
 
 // 「表示」の「思考」 思考タブの表示・非表示
-void MainWindow::toggleEngineAnalysisVisibility()
-{
+void MainWindow::toggleEngineAnalysisVisibility() {
     if (!m_analysisTab) return;
-    const bool on = ui->actionToggleEngineAnalysis
-                        ? ui->actionToggleEngineAnalysis->isChecked()
-                        : true;
-    m_analysisTab->setAnalysisVisible(on);
+    m_analysisTab->setAnalysisVisible(ui->actionToggleEngineAnalysis->isChecked());
 }
 
 // 駒の移動元と移動先のマスのハイライトを消去する。
@@ -2802,11 +2798,11 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
     rebuildSfenRecord(initialSfen, m_usiMoves, hasTerminal);
     rebuildGameMoves(initialSfen, m_usiMoves);
 
-    // 4) 棋譜表示へ反映（モデルに投入）
-    //    既存ユーティリティに任せます。内部で m_kifuRecordModel へ反映される前提。
+    // 4) 棋譜表示へ反映（本譜）
     displayGameRecord(disp);
 
-    // 5) GUI側：棋譜テーブルの最初の行を選択＆スクロール（RecordPane 経由）
+    // 5) テーブル初期選択（RecordPane経由）…（あなたの現状コードのまま）
+    // 5) RecordPane 側のビューを初期化（このままでOK）
     if (m_recordPane && m_recordPane->kifuView()) {
         QTableView* view = m_recordPane->kifuView();
         if (view->model() && view->model()->rowCount() > 0) {
@@ -2819,13 +2815,63 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
         }
     }
 
-    // 6) そのほか UI の整合（旧来の動作踏襲）
-    enableArrowButtons();
+    // ★★★ ここから追加：最小構成の解決済み行を作る
+    {
+        m_resolvedRows.clear();
 
-    // 7) ログ（任意）
+        ResolvedRow r;
+        r.startPly = 1;
+        r.disp     = disp;           // 本譜の表示列（1..N）
+        r.sfen     = *m_sfenRecord;  // 0..N のSFEN
+        r.gm       = m_gameMoves;    // 1..N のUSIムーブ
+        r.varIndex = -1;             // 本譜
+
+        m_resolvedRows.push_back(r);
+        m_activeResolvedRow = 0;
+        m_activePly         = 0;
+
+        // 0手目（開始局面）を適用
+        applyResolvedRowAndSelect(/*row=*/0, /*selPly=*/0);
+    }
+
+    // 6) そのほか UI の整合
+    enableArrowButtons();
+    logImportSummary(filePath, m_usiMoves, disp, teaiLabel, parseWarn, QString());
+
+    // 7) 分岐候補欄を簡易反映（先頭手を一覧化）
+    if (m_kifuBranchModel) {
+        m_kifuBranchModel->clearAllItems();
+        for (const KifVariation& v : res.variations) {
+            if (v.line.disp.isEmpty()) continue;
+            // 最初の手を候補として表示
+            auto* d = new KifuBranchDisplay(v.line.disp.first().prettyMove, m_kifuBranchModel);
+            m_kifuBranchModel->appendItem(d);
+        }
+    }
+
+    // 8) 「後勝ち」で解決済み行を構築（既存実装）
+    buildResolvedLinesAfterLoad();
+
+    // 9) EngineAnalysisTab へ分岐ツリー行データを供給
+    if (m_analysisTab) {
+        QVector<EngineAnalysisTab::ResolvedRowLite> rows;
+        rows.reserve(m_resolvedRows.size());
+        for (const auto& r : m_resolvedRows) {
+            EngineAnalysisTab::ResolvedRowLite x;
+            x.startPly = r.startPly;
+            x.disp     = r.disp;
+            x.sfen     = r.sfen;
+            rows.push_back(std::move(x));
+        }
+        m_analysisTab->setBranchTreeRows(rows);
+
+        // 読み込み直後は「本譜 0手」をハイライト（必要なら）
+        m_analysisTab->highlightBranchTreeAt(/*row=*/0, /*ply=*/0, /*centerOn=*/true);
+    }
+
+    // 10) ログ（任意）
     logImportSummary(filePath, m_usiMoves, disp, teaiLabel, parseWarn, QString());
 }
-
 
 // ===================== ヘルパ実装 =====================
 
@@ -3051,19 +3097,17 @@ void MainWindow::displayGameRecord(const QList<KifDisplayItem> disp)
 
         // 行選択が変わったらコメントも更新
         if (view->selectionModel()) {
-            connect(view->selectionModel(),
-                    &QItemSelectionModel::currentRowChanged,
-                    this,
-                    [this](const QModelIndex& cur, const QModelIndex&) {
-                        const int row = cur.isValid() ? cur.row() : 0;
-                        QString text;
-                        if (row >= 0 && row < m_commentsByRow.size())
-                            text = m_commentsByRow[row].trimmed();
-                        if (m_analysisTab)
-                            m_analysisTab->setCommentText(text.isEmpty() ? tr("コメントなし") : text);
-                    },
-                    Qt::UniqueConnection);
+            // 既存接続があれば一度切る（多重接続防止）
+            if (m_connKifuRowChanged)
+                disconnect(m_connKifuRowChanged);
+
+            m_connKifuRowChanged = connect(view->selectionModel(),
+                                           &QItemSelectionModel::currentRowChanged,
+                                           this,
+                                           &MainWindow::onKifuCurrentRowChanged,
+                                           Qt::UniqueConnection); // ← メンバ関数なのでOK
         }
+
     }
 }
 
@@ -3181,23 +3225,28 @@ void MainWindow::updateGameRecord(const QString& elapsedTime)
 // bestmove resignコマンドを受信した場合の終了処理を行う。
 void MainWindow::processResignCommand()
 {
-    // エンジンに対してgameover winコマンドを送る。
-    // エンジン同士の対局の場合
+    // エンジンに対してgameover winコマンドを送る（EvE のみ）
     if ((m_playMode == EvenEngineVsEngine) || (m_playMode == HandicapEngineVsEngine)) {
-        if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
-            m_usi1->sendGameOverWinAndQuitCommands();
-            m_lastMove = "△投了";
+        if (m_gameController && m_gameController->currentPlayer() == ShogiGameController::Player1) {
+            // いま先手番＝後手が「投了」した → 先手勝ち
+            if (m_usi1) m_usi1->sendGameOverWinAndQuitCommands();
+            m_lastMove = QStringLiteral("△投了");
         } else {
-            m_usi2->sendGameOverWinAndQuitCommands();
-            m_lastMove = "▲投了";
+            // いま後手番＝先手が「投了」した → 後手勝ち
+            if (m_usi2) m_usi2->sendGameOverWinAndQuitCommands();
+            m_lastMove = QStringLiteral("▲投了");
         }
     }
 
-    // 棋譜欄の下の矢印ボタンを有効にする。
+    // 矢印ボタンの再有効化
     enableArrowButtons();
 
-    // 棋譜欄をシングルクリックで選択できるようにする。
-    m_kifuView->setSelectionMode(QAbstractItemView::SingleSelection);
+    // 棋譜テーブルの選択モードを復帰（RecordPane 経由）
+    if (m_recordPane) {
+        if (auto* view = m_recordPane->kifuView()) {
+            view->setSelectionMode(QAbstractItemView::SingleSelection);
+        }
+    }
 }
 
 // 検討を開始する。
@@ -3559,93 +3608,93 @@ void MainWindow::beginPositionEditing()
 
     // 0手目に戻す。
     m_currentMoveIndex = 0;
-
-    // 手数を0に戻す。
     m_totalMove = 0;
 
-    // マウスの左クリックで指す駒を選択したマスのハイライトのポインタを初期化する。
-    m_selectedField = nullptr;
+    // ハイライト関連のリセット
+    m_selectedField  = nullptr;
     m_selectedField2 = nullptr;
+    m_movedField     = nullptr;
 
-    // 指した先のマスのハイライトのポインタを初期化する。
-    m_movedField = nullptr;
-
-    // 現局面のSFEN文字列を取り出す。
+    // 現局面のSFEN文字列を取り出して保持
     m_startSfenStr = parseStartPositionToSfen(m_currentSfenStr);
 
-    // 局面編集モードのフラグ
-    bool positionEditMode = true;
+    // 局面編集フラグをオン
+    const bool positionEditMode = true;
+    if (m_shogiView) {
+        m_shogiView->setPositionEditMode(positionEditMode);
+        m_shogiView->update();
+    }
 
-    // 局面編集モードのフラグを更新する。
-    m_shogiView->setPositionEditMode(positionEditMode);
-
-    // 将棋盤と駒台を再描画する。
-    m_shogiView->update();
-
-    // 局面編集中のメニュー表示に変更する。
+    // メニューの切替
     displayPositionEditMenu();
-
-    // 対局中のメニュー表示に変更する。
     setGameInProgressActions();
 
-    // SFEN文字列の棋譜データを初期化（データ削除）する。
-    m_sfenRecord->clear();
+    // SFEN列を初期化
+    if (m_sfenRecord) m_sfenRecord->clear();
+    if (m_sfenRecord) m_sfenRecord->append(m_startSfenStr);
 
-    // 棋譜欄データの初期化（データ削除）する。
-    m_moveRecords->clear();
+    // 棋譜モデルを初期化（RecordPane で使われるモデル）
+    if (!m_kifuRecordModel) m_kifuRecordModel = new KifuRecordListModel(this);
+    m_kifuRecordModel->clearAllItems();
+    m_kifuRecordModel->appendItem(new KifuDisplay(QStringLiteral("=== 開始局面 ==="),
+                                                  QStringLiteral("（１手 / 合計）")));
 
-    // 棋譜欄に「=== 開始局面 ===」「（１手 / 合計）」のデータを追加する。
-    m_kifuRecordModel->appendItem(new KifuDisplay("=== 開始局面 ===", "（１手 / 合計）"));
-
-    // 初期SFEN文字列をm_sfenRecordに格納しておく。
-    m_sfenRecord->append(m_startSfenStr);
-
-    // 棋譜欄の下の矢印ボタンを無効にする。
+    // 矢印ボタンを無効化
     disableArrowButtons();
 
-    // 棋譜欄の行をクリックしても選択できないようにする。
-    m_kifuView->setSelectionMode(QAbstractItemView::NoSelection);
-
-    // 手番が先手あるいは下手の場合
-    if (m_shogiView->board()->currentPlayer() == "b") {
-      // 手番を先手あるいは下手に設定する。
-      m_gameController->setCurrentPlayer(ShogiGameController::Player1);
-    }
-    // 手番が後手あるいは上手の場合
-    else if (m_shogiView->board()->currentPlayer() == "w") {
-      // 手番を後手あるいは上手に設定する。
-      m_gameController->setCurrentPlayer(ShogiGameController::Player2);
+    // 棋譜テーブルの選択禁止（RecordPane 経由）
+    if (m_recordPane) {
+        if (auto* view = m_recordPane->kifuView()) {
+            view->setSelectionMode(QAbstractItemView::NoSelection);
+        }
     }
 
-    // 局面編集モードで、クリックされたマスに基づいて駒の移動を処理する。
-    connect(m_shogiView, &ShogiView::clicked, this, &MainWindow::handleEditModeClick);
+    // 手番を GameController に反映
+    if (m_shogiView && m_gameController) {
+        if (m_shogiView->board()->currentPlayer() == "b") {
+            m_gameController->setCurrentPlayer(ShogiGameController::Player1);
+        } else if (m_shogiView->board()->currentPlayer() == "w") {
+            m_gameController->setCurrentPlayer(ShogiGameController::Player2);
+        }
+    }
 
-    // 局面編集モードで右クリックした駒を成る・不成の表示に変換する。
-    connect(m_shogiView, &ShogiView::rightClicked, this, &MainWindow::togglePiecePromotionOnClick);
+    // --- 接続（再入で多重接続しないよう UniqueConnection を付ける） ---
+    if (m_shogiView) {
+        connect(m_shogiView, &ShogiView::clicked,
+                this, &MainWindow::handleEditModeClick,
+                Qt::UniqueConnection);
+        connect(m_shogiView, &ShogiView::rightClicked,
+                this, &MainWindow::togglePiecePromotionOnClick,
+                Qt::UniqueConnection);
+    }
 
-    // 全ての駒を駒台に置く。
-    connect(ui->returnAllPiecesOnStand, &QAction::triggered, this, &MainWindow::resetPiecesToStand);
+    if (ui) {
+        connect(ui->returnAllPiecesOnStand, &QAction::triggered,
+                this, &MainWindow::resetPiecesToStand,
+                Qt::UniqueConnection);
 
-    // 手番を変更する。
-    connect(ui->turnaround, &QAction::triggered, this, &MainWindow::switchTurns);
+        connect(ui->turnaround, &QAction::triggered,
+                this, &MainWindow::switchTurns,
+                Qt::UniqueConnection);
 
-    // 平手初期局面に盤面を初期化する。
-    connect(ui->flatHandInitialPosition, &QAction::triggered, this, &MainWindow::setStandardStartPosition);
+        connect(ui->flatHandInitialPosition, &QAction::triggered,
+                this, &MainWindow::setStandardStartPosition,
+                Qt::UniqueConnection);
 
-    // 詰将棋の初期局面に盤面を初期化する。
-    connect(ui->shogiProblemInitialPosition, &QAction::triggered, this, &MainWindow::setTsumeShogiStartPosition);
+        connect(ui->shogiProblemInitialPosition, &QAction::triggered,
+                this, &MainWindow::setTsumeShogiStartPosition,
+                Qt::UniqueConnection);
 
-    // 先手の配置を後手の配置に変更し、後手の配置を先手の配置に変更する。
-    connect(ui->reversal, &QAction::triggered, this, &MainWindow::swapBoardSides);
+        connect(ui->reversal, &QAction::triggered,
+                this, &MainWindow::swapBoardSides,
+                Qt::UniqueConnection);
+    }
 
-    // 将棋盤上での左クリックイベントをハンドリングする。
-    //connect(m_shogiView, &ShogiView::clicked, this, &MainWindow::onShogiViewClicked);
-
-    // 将棋盤上での右クリックイベントをハンドリングする。
-    //connect(m_shogiView, &ShogiView::rightClicked, this, &MainWindow::onShogiViewRightClicked);
-
-    // 駒のドラッグを終了する。
-    connect(m_gameController, &ShogiGameController::endDragSignal, this, &MainWindow::endDrag);
+    if (m_gameController) {
+        connect(m_gameController, &ShogiGameController::endDragSignal,
+                this, &MainWindow::endDrag,
+                Qt::UniqueConnection);
+    }
 }
 
 // 局面編集を終了した場合の処理を行う。
@@ -4526,15 +4575,24 @@ void MainWindow::applyPlayersFromGameInfo(const QList<KifGameInfoItem>& items)
 
 void MainWindow::onMainMoveRowChanged(int selPly)
 {
-    // 既存の安全確認ロジックを流用
-    if (!m_kifuView || !m_kifuRecordModel || m_resolvedRows.isEmpty())
+    // 再入防止（applyResolvedRowAndSelect 内で選択を動かすと再度シグナルが来るため）
+    if (m_onMainRowGuard)
         return;
+    m_onMainRowGuard = true;
 
-    // いまアクティブな「本譜 or 分岐」の行
+    // 解決済み行が無ければ何もしない
+    if (m_resolvedRows.isEmpty()) {
+        m_onMainRowGuard = false;
+        return;
+    }
+
+    // いまアクティブな“本譜 or 分岐”行
     const int row = qBound(0, m_activeResolvedRow, m_resolvedRows.size() - 1);
 
-    // 盤面・棋譜欄・分岐候補・矢印・分岐ツリーハイライトまで一括同期
+    // 盤面・棋譜欄・分岐候補・矢印・分岐ツリー（EngineAnalysisTab経由）まで一括同期
     applyResolvedRowAndSelect(row, qMax(0, selPly));
+
+    m_onMainRowGuard = false;
 }
 
 void MainWindow::populateBranchListForPly(int ply)
@@ -4708,79 +4766,41 @@ void MainWindow::syncBoardAndHighlightsAtRow(int row)
 void MainWindow::onBranchRowClicked(const QModelIndex& index)
 {
     if (!index.isValid()) return;
+
+    // いま棋譜欄で選択されている手目（RecordPane → MainWindow で最新化されている前提）
     const int ply = m_currentSelectedPly;
     if (ply <= 0) return;
 
+    // 分岐候補モデルが無いなら何もしない
+    if (!m_kifuBranchModel) return;
+
+    const int row = index.row();
+
+    // --- 0行目は「本譜のその手へ」／末尾は「本譜へ戻る」扱い ---
+    if (row == 0 || m_kifuBranchModel->isBackToMainRow(row)) {
+        // 本譜（行=0）を適用し、同じ手目 ply を選択
+        applyResolvedRowAndSelect(/*row=*/0, /*selPly=*/ply);
+        // 分岐候補欄を同手目で再構築
+        populateBranchListForPly(ply);
+        // 矢印ボタンなど有効/無効の整合
+        enableArrowButtons();
+        return;
+    }
+
+    // --- 以降は「分岐 vIdx」 ---
     auto it = m_variationsByPly.constFind(ply);
     if (it == m_variationsByPly.cend()) return;
     const VariationBucket& bucket = it.value();
 
-    const int row = index.row();
-
-    // 末尾「本譜へ戻る」
-    if (m_kifuBranchModel->isBackToMainRow(row)) {
-        *m_sfenRecord = m_sfenMain;
-        m_gameMoves   = m_gmMain;
-        showRecordAtPly(m_dispMain, /*selectPly=*/ply);
-        syncBoardAndHighlightsAtRow(ply);
-        populateBranchListForPly(ply);
-        enableArrowButtons();
-        return;
-    }
-
-    // 行0 = 「本譜のその手」（同手に戻す）
-    if (row == 0) {
-        *m_sfenRecord = m_sfenMain;
-        m_gameMoves   = m_gmMain;
-        showRecordAtPly(m_dispMain, /*selectPly=*/ply);
-        syncBoardAndHighlightsAtRow(ply);
-        populateBranchListForPly(ply);
-        enableArrowButtons();
-        return;
-    }
-
-    // 1行目以降が分岐
-    const int vIdx = row - 1;
+    const int vIdx = row - 1; // 行0が本譜なので -1
     if (vIdx < 0 || vIdx >= bucket.size()) return;
-    const KifLine& v = bucket[vIdx];
 
-    // ★★★ ここが肝：合成の土台を“本譜”ではなく「現在の経路」にする ★★★
-    // prefix は「現在表示している経路」の v.startPly-1 手まで
-    QList<KifDisplayItem> mergedDisp;
-    if (v.startPly > 1)
-        mergedDisp = m_dispCurrent.mid(0, v.startPly - 1);
-    mergedDisp += v.disp;
+    // 既存ヘルパ（“現在の経路”を土台に分岐へジャンプする版）を使用
+    // ※ 先にご案内した refactor 後の applyVariationByKey(startPly, bucketIndex) を前提
+    applyVariationByKey(/*startPly=*/ply, /*bucketIndex=*/vIdx);
 
-    // SFEN も「現在の経路」の v.startPly 手目の局面までで prefix を作る
-    QStringList mergedSfen = m_sfenRecord->mid(0, v.startPly);
-    mergedSfen += v.sfenList.mid(1); // 先頭は基底と重複するので除外
-
-    // m_gameMoves も同様に合成
-    QVector<ShogiMove> mergedGm;
-    if (v.startPly > 1)
-        mergedGm = m_gameMoves.mid(0, v.startPly - 1);
-    mergedGm += v.gameMoves;
-
-    // 反映
-    *m_sfenRecord = mergedSfen;
-    m_gameMoves   = mergedGm;
-
-    // 分岐の最初の手（= startPly）を選択状態で表示
-    showRecordAtPly(mergedDisp, /*selectPly=*/v.startPly);
-    m_currentSelectedPly = v.startPly;
-
-    // 見た目の選択も同期
-    if (m_kifuRecordModel && m_kifuView) {
-        const QModelIndex idx2 = m_kifuRecordModel->index(m_currentSelectedPly, 0);
-        m_kifuView->setCurrentIndex(idx2);
-        m_kifuView->scrollTo(idx2, QAbstractItemView::PositionAtCenter);
-    }
-
-    // 盤面＆ハイライトを即同期
-    syncBoardAndHighlightsAtRow(m_currentSelectedPly);
-
-    // 同じ手目の分岐候補は維持（末尾「本譜へ戻る」も残る）
-    populateBranchListForPly(v.startPly);
+    // 同手目の候補を維持（「本譜へ戻る」も含む）
+    populateBranchListForPly(ply);
     enableArrowButtons();
 }
 
@@ -4845,21 +4865,29 @@ static QList<int> scanVariationStarts(const QString& kifPath, QSet<int>& outBran
 
 void MainWindow::showRecordAtPly(const QList<KifDisplayItem>& disp, int selectPly)
 {
-    // ★ これを保持しておくと、分岐クリック時に「現在の経路」を前提に合成できる
+    // いま表示中の棋譜列を保持
     m_dispCurrent = disp;
 
-    // 既存のテーブル更新
+    // モデルへ反映（既存）
     displayGameRecord(disp);
 
-    // 「=== 開始局面 ===」が row=0、1手目が row=1
-    const int rc  = m_kifuRecordModel->rowCount();
+    // ★ RecordPane 内のビューを使う
+    QTableView* view = (m_recordPane ? m_recordPane->kifuView() : nullptr);
+    if (!view || !view->model()) return;
+
+    const int rc  = view->model()->rowCount();               // ← view の model を使う
     const int row = qBound(0, selectPly, rc > 0 ? rc - 1 : 0);
 
-    const QModelIndex idx = m_kifuRecordModel->index(row, 0);
-    if (idx.isValid()) {
-        m_kifuView->setCurrentIndex(idx);
-        m_kifuView->scrollTo(idx, QAbstractItemView::PositionAtCenter);
+    const QModelIndex idx = view->model()->index(row, 0);    // ← view の model を使う
+    if (!idx.isValid()) return;
+
+    if (auto* sel = view->selectionModel()) {
+        sel->setCurrentIndex(idx,
+            QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+    } else {
+        view->setCurrentIndex(idx);
     }
+    view->scrollTo(idx, QAbstractItemView::PositionAtCenter);
 }
 
 // 現在の手数（m_currentSelectedPly）に対応するSFENを盤面へ反映
@@ -4912,8 +4940,8 @@ void MainWindow::applyVariationByKey(int startPly, int bucketIndex)
         mergedDisp = m_dispMain.mid(0, v.startPly - 1);
     mergedDisp += v.disp;
 
-    QStringList mergedSfen = m_sfenMain.mid(0, v.startPly);   // [0..startPly-1] まで本譜
-    mergedSfen += v.sfenList.mid(1);                           // 先頭(基底)は重複するので除外
+    QStringList mergedSfen = m_sfenMain.mid(0, v.startPly);  // [0..startPly-1] まで本譜
+    mergedSfen += v.sfenList.mid(1);                         // 先頭(基底)は重複するので除外
 
     QVector<ShogiMove> mergedGm;
     if (v.startPly > 1)
@@ -4921,8 +4949,8 @@ void MainWindow::applyVariationByKey(int startPly, int bucketIndex)
     mergedGm += v.gameMoves;
 
     // --- 現在の表示・局面ソースに反映 ---
-    *m_sfenRecord = mergedSfen;
-    m_gameMoves   = mergedGm;
+    if (m_sfenRecord) *m_sfenRecord = mergedSfen;
+    m_gameMoves = mergedGm;
 
     // 分岐の最初の手（= startPly手目）を選択
     const int selPly = v.startPly;
@@ -4930,10 +4958,20 @@ void MainWindow::applyVariationByKey(int startPly, int bucketIndex)
     m_currentSelectedPly = selPly;
 
     // 棋譜欄の見た目も合わせる（明示的に選択＆スクロール）
-    if (m_kifuRecordModel && m_kifuView) {
-        const QModelIndex idx = m_kifuRecordModel->index(selPly, 0);
-        m_kifuView->setCurrentIndex(idx);
-        m_kifuView->scrollTo(idx, QAbstractItemView::PositionAtCenter);
+    if (m_kifuRecordModel) {
+        QTableView* view = (m_recordPane ? m_recordPane->kifuView() : nullptr);
+        if (view) {
+            const QModelIndex idx = m_kifuRecordModel->index(selPly, 0);
+            if (idx.isValid()) {
+                if (auto* sel = view->selectionModel()) {
+                    sel->setCurrentIndex(idx,
+                        QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+                } else {
+                    view->setCurrentIndex(idx);
+                }
+                view->scrollTo(idx, QAbstractItemView::PositionAtCenter);
+            }
+        }
     }
 
     // 盤・ハイライトを必ず即時同期（古いハイライト残り対策）
@@ -4947,86 +4985,6 @@ void MainWindow::applyVariationByKey(int startPly, int bucketIndex)
 
     // 矢印ボタンの有効/無効を更新
     enableArrowButtons();
-}
-
-bool MainWindow::eventFilter(QObject* obj, QEvent* ev)
-{
-    if (m_branchTreeView && obj == m_branchTreeView->viewport()
-        && ev->type() == QEvent::MouseButtonRelease)
-    {
-        auto* me = static_cast<QMouseEvent*>(ev);
-        const QPointF sp = m_branchTreeView->mapToScene(me->pos());
-
-        QGraphicsItem* hit = m_branchTreeView->scene()
-                                 ? m_branchTreeView->scene()->itemAt(sp, QTransform())
-                                 : nullptr;
-        // 子(Text)が当たることがあるので親まで遡ってデータを探す
-        while (hit && !hit->data(BR_ROLE_KIND).isValid())
-            hit = hit->parentItem();
-        if (!hit) return false;
-
-        const int kind = hit->data(BR_ROLE_KIND).toInt();
-
-        // 以降はハイライトを“必ず”更新する流れで統一
-        auto selectRowInView = [&](int row){
-            if (m_kifuRecordModel && m_kifuView) {
-                const QModelIndex idx = m_kifuRecordModel->index(row, 0);
-                m_kifuView->setCurrentIndex(idx);
-                m_kifuView->scrollTo(idx, QAbstractItemView::PositionAtCenter);
-            }
-        };
-
-        switch (kind) {
-        case BNK_Start: {
-            // 開始局面へ
-            *m_sfenRecord = m_sfenMain;
-            m_gameMoves   = m_gmMain;
-            showRecordAtPly(m_dispMain, /*selectPly=*/0);
-            m_currentSelectedPly = 0;
-            selectRowInView(0);
-
-            // 分岐候補は空＆無効
-            if (m_kifuBranchModel) m_kifuBranchModel->clearBranchCandidates();
-            if (m_kifuBranchView)  m_kifuBranchView->setEnabled(false);
-
-            // 盤・ハイライト
-            syncBoardAndHighlightsAtRow(0);
-            enableArrowButtons();
-            return true;
-        }
-        case BNK_Main: {
-            const int ply = hit->data(BR_ROLE_PLY).toInt();
-            *m_sfenRecord = m_sfenMain;
-            m_gameMoves   = m_gmMain;
-            showRecordAtPly(m_dispMain, /*selectPly=*/ply);
-            m_currentSelectedPly = ply;
-            selectRowInView(ply);
-
-            // この手での分岐候補
-            populateBranchListForPly(ply);
-
-            // 盤・ハイライト
-            syncBoardAndHighlightsAtRow(ply);
-            enableArrowButtons();
-            return true;
-        }
-        case BNK_Var: {
-            const int startPly = hit->data(BR_ROLE_STARTPLY).toInt();
-            const int bIdx     = hit->data(BR_ROLE_BUCKET).toInt();
-
-            // 既存のヘルパを活用（棋譜差し替え＋選択まで）
-            applyVariationByKey(startPly, bIdx);
-
-            // 念のため盤・ハイライトを明示同期
-            syncBoardAndHighlightsAtRow(startPly);
-            enableArrowButtons();
-            return true;
-        }
-        default:
-            break;
-        }
-    }
-    return QObject::eventFilter(obj, ev);
 }
 
 void MainWindow::rebuildBranchTreeView()
@@ -5437,14 +5395,24 @@ void MainWindow::applyResolvedRowAndSelect(int row, int selPly)
     const int maxPly = r.disp.size();
     m_activePly = qBound(0, selPly, maxPly);
 
-    // 棋譜欄へ反映
+    // 棋譜欄へ反映（モデル差し替え＋選択手へスクロール）
     showRecordAtPly(r.disp, m_activePly);
     m_currentSelectedPly = m_activePly;
 
-    if (m_kifuRecordModel && m_kifuView) {
+    // RecordPane 経由で安全に選択・スクロール
+    if (m_kifuRecordModel) {
         const QModelIndex idx = m_kifuRecordModel->index(m_activePly, 0);
-        m_kifuView->setCurrentIndex(idx);
-        m_kifuView->scrollTo(idx, QAbstractItemView::PositionAtCenter);
+        if (idx.isValid()) {
+            if (m_recordPane) {
+                if (QTableView* view = m_recordPane->kifuView()) {
+                    // 念のためモデル一致を確認（違っていたら何もしない）
+                    if (view->model() == m_kifuRecordModel) {
+                        view->setCurrentIndex(idx);
+                        view->scrollTo(idx, QAbstractItemView::PositionAtCenter);
+                    }
+                }
+            }
+        }
     }
 
     // 分岐候補・盤面ハイライト・矢印ボタン
@@ -5457,8 +5425,12 @@ void MainWindow::applyResolvedRowAndSelect(int row, int selPly)
                        << " rows=" << m_resolvedRows.size()
                        << " dispSz=" << r.disp.size();
 
-    // 分岐ツリー側の黄色ハイライト同期（centerOnはお好みで）
-    highlightBranchTreeAt(/*row*/m_activeResolvedRow, /*ply*/m_activePly, /*centerOn*/false);
+    // 分岐ツリー側の黄色ハイライト同期（EngineAnalysisTab に移譲）
+    if (m_analysisTab) {
+        m_analysisTab->highlightBranchTreeAt(/*row*/m_activeResolvedRow,
+                                             /*ply*/m_activePly,
+                                             /*centerOn*/false);
+    }
 
     // ★ 棋譜欄の「分岐あり」行をオレンジでマーク
     updateKifuBranchMarkersForActiveRow();
@@ -5640,15 +5612,25 @@ void MainWindow::BranchRowDelegate::paint(
     QStyledItemDelegate::paint(painter, opt, index);
 }
 
-// ====== デリゲートの取り付け（初回のみ） ======
 void MainWindow::ensureBranchRowDelegateInstalled()
 {
-    if (!m_kifuView) return;
+    // RecordPane から棋譜ビューを取得
+    QTableView* view = (m_recordPane ? m_recordPane->kifuView() : nullptr);
+    if (!view) return;
+
     if (!m_branchRowDelegate) {
-        m_branchRowDelegate = new BranchRowDelegate(m_kifuView);
-        // ビュー全体に適用（列単位にしたければ setItemDelegateForColumn(列) を使ってください）
-        m_kifuView->setItemDelegate(m_branchRowDelegate);
+        // デリゲートをビューの子として作成し、ビューに適用
+        m_branchRowDelegate = new BranchRowDelegate(view);
+        view->setItemDelegate(m_branchRowDelegate);
+    } else {
+        // 念のため親が違う場合は付け替え
+        if (m_branchRowDelegate->parent() != view) {
+            m_branchRowDelegate->setParent(view);
+            view->setItemDelegate(m_branchRowDelegate);
+        }
     }
+
+    // 「分岐あり」マーカーの集合をデリゲートへ渡す
     m_branchRowDelegate->setMarkers(&m_branchablePlySet);
 }
 
@@ -5657,12 +5639,15 @@ void MainWindow::updateKifuBranchMarkersForActiveRow()
 {
     m_branchablePlySet.clear();
 
+    // まずビュー参照を取得（nullでも安全に抜ける）
+    QTableView* view = (m_recordPane ? m_recordPane->kifuView() : nullptr);
+
     if (m_resolvedRows.isEmpty()) {
-        if (m_kifuView) m_kifuView->viewport()->update();
+        if (view && view->viewport()) view->viewport()->update();
         return;
     }
 
-    const int active = qBound(0, m_activeResolvedRow, m_resolvedRows.size()-1);
+    const int active = qBound(0, m_activeResolvedRow, m_resolvedRows.size() - 1);
     const auto& r = m_resolvedRows[active];
 
     // r.disp: 1..N の手表示, r.sfen: 0..N の局面列
@@ -5677,14 +5662,17 @@ void MainWindow::updateKifuBranchMarkersForActiveRow()
         const auto itBase = itPly->constFind(base);
         if (itBase == itPly->constEnd()) continue;
 
+        // 同じ手目に候補が2つ以上 → 分岐点としてマーキング
         if (itBase->size() >= 2) {
-            m_branchablePlySet.insert(ply);      // 候補が2件以上 → 分岐点
+            m_branchablePlySet.insert(ply);
         }
     }
 
+    // デリゲート装着（未装着ならここで装着）
     ensureBranchRowDelegateInstalled();
 
-    if (m_kifuView) m_kifuView->viewport()->update();
+    // 再描画
+    if (view && view->viewport()) view->viewport()->update();
 
 #ifdef SHOGIBOARDQ_DEBUG_KIF
     if (!m_branchablePlySet.isEmpty()) {
@@ -6166,22 +6154,35 @@ void MainWindow::startEngineVsEngineGame()
 bool MainWindow::hasResolvedRows() const {
     return !m_resolvedRows.isEmpty();
 }
+
 int MainWindow::resolvedRowCount() const {
     return m_resolvedRows.size();
 }
+
 int MainWindow::activeResolvedRow() const {
     return m_activeResolvedRow;
 }
+
 int MainWindow::maxPlyAtRow(int row) const {
     // r.disp.size() と同義
     const int clamped = qBound(0, row, m_resolvedRows.size() > 0 ? m_resolvedRows.size() - 1 : 0);
     return m_resolvedRows[clamped].disp.size();
 }
-int MainWindow::currentPly() const {
+
+int MainWindow::currentPly() const
+{
+    // すでにナビ用に追跡している値があればそれを返す
     if (m_activePly >= 0) return m_activePly;
-    // フォールバック：棋譜ビューの選択行
-    return (m_kifuView ? qMax(0, m_kifuView->currentIndex().row()) : 0);
+
+    // フォールバック：RecordPane の棋譜ビューの選択行
+    const QTableView* view = (m_recordPane ? m_recordPane->kifuView() : nullptr);
+    if (view) {
+        const QModelIndex cur = view->currentIndex();
+        if (cur.isValid()) return qMax(0, cur.row());
+    }
+    return 0;
 }
+
 void MainWindow::applySelect(int row, int ply) {
     applyResolvedRowAndSelect(row, ply); // 既存の“統一適用”関数へ委譲
 }
@@ -6238,29 +6239,57 @@ void MainWindow::setupRecordPane()
     Q_UNUSED(firstTime);
 }
 
+// どこかの初期化パスで（例：initializeComponents 内やコンストラクタ末尾）
 void MainWindow::setupEngineAnalysisTab()
 {
-    if (!m_analysisTab) {
-        m_analysisTab = new EngineAnalysisTab(this);
+    if (m_analysisTab) return;
 
-        // 既存で m_tab を使い回したいので、EngineAnalysisTab 内部の QTabWidget を拝借
-        m_tab = m_analysisTab->tab();
-    }
-
-    // Thinking/USIログ/EngineInfo をアタッチ
+    m_analysisTab = new EngineAnalysisTab(this);
+    // モデルを渡す（既存ポインタをそのまま利用）
     m_analysisTab->setModels(m_modelThinking1, m_modelThinking2,
                              m_lineEditModel1, m_lineEditModel2);
 
-    // 表示の on/off をメニューと同期
-    const bool on = ui->actionToggleEngineAnalysis
-                        ? ui->actionToggleEngineAnalysis->isChecked()
-                        : true;
-    m_analysisTab->setAnalysisVisible(on);
+    // 既存の m_tab を差し替えたい場合は以下のように
+    m_tab = m_analysisTab->tab();
 
-    // メニューのトグル連動
-    if (ui->actionToggleEngineAnalysis) {
-        connect(ui->actionToggleEngineAnalysis, &QAction::toggled,
-                this, &MainWindow::toggleEngineAnalysisVisibility,
-                Qt::UniqueConnection);
-    }
+    // ツリー上のクリック → 解決済み行/手数を適用
+    connect(m_analysisTab, &EngineAnalysisTab::branchNodeActivated,
+            this, [this](int row, int ply){
+                applyResolvedRowAndSelect(row, ply);
+            });
+
+    connect(m_analysisTab, &EngineAnalysisTab::requestApplyStart,
+            this, [this]{
+                applyResolvedRowAndSelect(/*row=*/0, /*selPly=*/0);
+                if (m_kifuBranchModel) m_kifuBranchModel->clearBranchCandidates();
+                if (auto* br = m_recordPane ? m_recordPane->branchView() : nullptr)
+                    br->setEnabled(false);
+                enableArrowButtons();
+            });
+
+    connect(m_analysisTab, &EngineAnalysisTab::requestApplyMainAtPly,
+            this, [this](int ply){
+                applyResolvedRowAndSelect(/*row=*/0, /*selPly=*/qMax(0, ply));
+                populateBranchListForPly(qMax(0, ply));
+                enableArrowButtons();
+            });
+
+    connect(m_analysisTab, &EngineAnalysisTab::requestApplyVariation,
+            this, [this](int startPly, int bucketIndex){
+                applyVariationByKey(startPly, bucketIndex);
+                populateBranchListForPly(startPly);
+                enableArrowButtons();
+            });
+}
+
+void MainWindow::onKifuCurrentRowChanged(const QModelIndex& cur, const QModelIndex&)
+{
+    const int row = cur.isValid() ? cur.row() : 0;
+
+    QString text;
+    if (row >= 0 && row < m_commentsByRow.size())
+        text = m_commentsByRow[row].trimmed();
+
+    if (m_analysisTab)
+        m_analysisTab->setCommentText(text.isEmpty() ? tr("コメントなし") : text);
 }
