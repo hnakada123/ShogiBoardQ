@@ -58,7 +58,6 @@
 #include "apptooltipfilter.h"
 #include "sfenpositiontracer.h"
 #include "enginesettingsconstants.h"
-#include "kifreader.h"
 #include "navigationcontroller.h"
 #include "boardimageexporter.h"
 #include "engineinfowidget.h"
@@ -86,7 +85,6 @@ MainWindow::MainWindow(QWidget *parent) :
     m_analysisModel(nullptr)
 {
     ui->setupUi(this);
-
 
     QToolBar* tb = ui->toolBar;                  // Designerで作った場合の例
     tb->setIconSize(QSize(18, 18));                  // ← 16px（お好みで 16/18/20/24 など）
@@ -5607,6 +5605,8 @@ void MainWindow::setupEngineAnalysisTab()
     // モデルを渡す（既存ポインタをそのまま利用）
     m_analysisTab->setModels(m_modelThinking1, m_modelThinking2,
                              m_lineEditModel1, m_lineEditModel2);
+
+    m_analysisTab->setDualEngineVisible(false);
 
     // 既存の m_tab を差し替えたい場合は以下のように
     m_tab = m_analysisTab->tab();
