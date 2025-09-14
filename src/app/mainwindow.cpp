@@ -11,8 +11,6 @@
 #include <QHBoxLayout>
 #include <QScrollBar>
 #include <QHeaderView>
-//#include <QtCharts/QChartView>
-//#include <QtCharts/QLineSeries>
 #include <QValueAxis>
 #include <QPushButton>
 #include <QLineEdit>
@@ -64,6 +62,7 @@
 #include "navigationcontroller.h"
 #include "boardimageexporter.h"
 #include "engineinfowidget.h"
+#include "engineanalysistab.h"
 
 using namespace EngineSettingsConstants;
 
@@ -84,8 +83,6 @@ MainWindow::MainWindow(QWidget *parent) :
     m_selectedField2(nullptr),
     m_movedField(nullptr),
     m_waitingSecondClick(false),
-    m_infoWidget1(nullptr),
-    m_infoWidget2(nullptr),
     m_analysisModel(nullptr)
 {
     ui->setupUi(this);
@@ -105,12 +102,6 @@ MainWindow::MainWindow(QWidget *parent) :
     initializeComponents();
 
     setupRecordPane();
-
-    // 予想手、探索手などの情報表示
-    initializeEngine1InfoDisplay();
-
-    // エンジン1の現在の読み筋とUSIプロトコル通信ログの表示
-    initializeEngine1ThoughtTab();
 
     // 将棋盤、駒台を初期化（何も駒がない）し、入力のSFEN文字列の配置に将棋盤、駒台の駒を
     // 配置し、対局結果を結果なし、現在の手番がどちらでもない状態に設定する。
@@ -150,6 +141,9 @@ MainWindow::MainWindow(QWidget *parent) :
     // 前回起動したウィンドウサイズに設定する。
     loadWindowSettings();
 
+    // Thinking/USIログのモデルが揃った後で
+    setupEngineAnalysisTab();
+
     // MainWindow ctor で、UIを作り終わった直後に
     auto* tipFilter = new AppToolTipFilter(this);
     tipFilter->setPointSizeF(12.0);
@@ -162,6 +156,8 @@ MainWindow::MainWindow(QWidget *parent) :
         for (int j = 0, m = buttons.size(); j < m; ++j)
             buttons.at(j)->installEventFilter(tipFilter);
     }
+
+
 
     // メニューのシグナルとスロット（メニューやボタンをクリックした際に実行される関数の指定）
     // メニューの項目をクリックすると、スロットの関数が実行される。
@@ -396,12 +392,11 @@ void MainWindow::hideGameActions()
 // 「表示」の「思考」 思考タブの表示・非表示
 void MainWindow::toggleEngineAnalysisVisibility()
 {
-    // 「表示」の「思考」にチェックが入っている場合
-    if (ui->actionToggleEngineAnalysis->isChecked()) {
-    }
-    // 「表示」の「思考」にチェックが入っていない場合
-    else {
-    }
+    if (!m_analysisTab) return;
+    const bool on = ui->actionToggleEngineAnalysis
+                        ? ui->actionToggleEngineAnalysis->isChecked()
+                        : true;
+    m_analysisTab->setAnalysisVisible(on);
 }
 
 // 駒の移動元と移動先のマスのハイライトを消去する。
@@ -747,144 +742,29 @@ void MainWindow::flipBoardAndUpdatePlayerInfo()
 }
 
 // 対局モードに応じて将棋盤下部に表示されるエンジン名をセットする。
-void MainWindow::setEngineNamesBasedOnMode()
-{
+void MainWindow::setEngineNamesBasedOnMode() {
+    // 例：先後に応じて入れ替え
+    if (!m_lineEditModel1 || !m_lineEditModel2) return;
     switch (m_playMode) {
     case EvenHumanVsEngine:
     case HandicapHumanVsEngine:
-        m_infoWidget1->setModel(m_lineEditModel1);
-        m_infoWidget1->setDisplayNameFallback(m_engineName2);
-        m_infoWidget2->setModel(nullptr);
-        m_infoWidget2->setDisplayNameFallback(QString());
-        m_infoWidget2->setVisible(false);
+        m_lineEditModel1->setEngineName(m_engineName2);
+        m_lineEditModel2->setEngineName(QString());
         break;
-
     case EvenEngineVsHuman:
     case HandicapEngineVsHuman:
-        m_infoWidget1->setModel(m_lineEditModel1);
-        m_infoWidget1->setDisplayNameFallback(m_engineName1);
-        m_infoWidget2->setModel(nullptr);
-        m_infoWidget2->setDisplayNameFallback(QString());
-        m_infoWidget2->setVisible(false);
+        m_lineEditModel1->setEngineName(m_engineName1);
+        m_lineEditModel2->setEngineName(QString());
         break;
-
     case EvenEngineVsEngine:
-        m_infoWidget1->setModel(m_lineEditModel1);
-        m_infoWidget1->setDisplayNameFallback(m_engineName1);
-        m_infoWidget2->setModel(m_lineEditModel2);
-        m_infoWidget2->setDisplayNameFallback(m_engineName2);
-        m_infoWidget2->setVisible(true);
+        m_lineEditModel1->setEngineName(m_engineName1);
+        m_lineEditModel2->setEngineName(m_engineName2);
         break;
-
     case HandicapEngineVsEngine:
-        // 立場が入れ替わる仕様ならこちらも入れ替え
-        m_infoWidget1->setModel(m_lineEditModel2);
-        m_infoWidget1->setDisplayNameFallback(m_engineName2);
-        m_infoWidget2->setModel(m_lineEditModel1);
-        m_infoWidget2->setDisplayNameFallback(m_engineName1);
-        m_infoWidget2->setVisible(true);
+        m_lineEditModel1->setEngineName(m_engineName2);
+        m_lineEditModel2->setEngineName(m_engineName1);
         break;
-
-    default:
-        m_infoWidget1->setModel(nullptr);
-        m_infoWidget1->setDisplayNameFallback(QString());
-        m_infoWidget2->setModel(nullptr);
-        m_infoWidget2->setDisplayNameFallback(QString());
-        m_infoWidget2->setVisible(false);
-        break;
-    }
-}
-
-// エンジン1の予想手、探索手などの情報を表示する。
-void MainWindow::initializeEngine1InfoDisplay()
-{
-    m_infoWidget1 = new EngineInfoWidget(this);
-    m_infoWidget1->setModel(m_lineEditModel1);
-}
-
-// エンジン2の予想手、探索手などの情報を表示する。
-void MainWindow::initializeEngine2InfoDisplay()
-{
-    m_infoWidget2 = new EngineInfoWidget(this);
-    m_infoWidget2->setModel(m_lineEditModel2);
-}
-
-void MainWindow::initializeEngine1ThoughtTab()
-{
-    m_usiView1 = new QTableView;
-    m_modelThinking1 = new ShogiEngineThinkingModel;
-    m_usiView1->setModel(m_modelThinking1);
-    m_usiView1->horizontalHeader()->setSectionResizeMode(4, QHeaderView::Stretch);
-
-    m_usiView2 = new QTableView;
-    m_modelThinking2 = new ShogiEngineThinkingModel;
-    m_usiView2->setModel(m_modelThinking2);
-    m_usiView2->horizontalHeader()->setSectionResizeMode(4, QHeaderView::Stretch);
-
-    m_usiCommLogEdit = new QPlainTextEdit;
-    m_usiCommLogEdit->setReadOnly(true);
-
-    m_tab = new QTabWidget;
-
-    // ★ ここから：思考1タブのページ（縦並び）
-    if (!m_infoWidget1) {
-        // まだ生成していない場合に備えて（あなたの初期化順に合わせて調整可）
-        initializeEngine1InfoDisplay();
-    }
-
-    if (!m_infoWidget2) {
-        // まだ生成していない場合に備えて（あなたの初期化順に合わせて調整可）
-        initializeEngine2InfoDisplay();
-    }
-
-    QWidget* page1 = new QWidget(m_tab);
-    auto* v1 = new QVBoxLayout(page1);
-    v1->setContentsMargins(4,4,4,4);
-    v1->setSpacing(4);
-    v1->addWidget(m_infoWidget1);   // 1：情報ウィジェット
-    v1->addWidget(m_usiView1);      // 2：思考表
-    v1->addWidget(m_infoWidget2);   // 3：エンジン2の情報ウィジェット（あってもなくても良い）
-    v1->addWidget(m_usiView2);      // 4：エンジン2の思考表（あってもなくても良い）
-    v1->setStretch(0, 0);
-    v1->setStretch(1, 1);
-
-    m_infoWidget2->setVisible(false); // 初期状態では非表示
-    m_usiView2->setVisible(false);    // 初期状態では非表示
-
-    m_tab->addTab(page1, tr("思考"));
-
-    // 既存のログ／コメントタブはそのまま
-    m_tab->addTab(m_usiCommLogEdit, tr("USI通信ログ"));
-
-    // 対局情報タブを「棋譜コメント」の前に差し込む
-    addGameInfoTabIfMissing();
-
-    m_branchTextInTab1 = new QTextBrowser(m_tab);
-    m_branchTextInTab1->setOpenExternalLinks(true);
-    m_branchTextInTab1->setWordWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
-    m_branchTextInTab1->setPlaceholderText(tr("コメントを表示"));
-    m_tab->addTab(m_branchTextInTab1, tr("棋譜コメント"));
-    m_tab->setMinimumHeight(150);
-
-    connect(m_lineEditModel1, &UsiCommLogModel::usiCommLogChanged, this, [this]() {
-        m_usiCommLogEdit->appendPlainText(m_lineEditModel1->usiCommLog());
-    });
-
-    connect(m_lineEditModel2, &UsiCommLogModel::usiCommLogChanged, this, [this]() {
-        // もともと m_usiCommLogEdit（1側）へ追記していた仕様を維持
-        m_usiCommLogEdit->appendPlainText(m_lineEditModel2->usiCommLog());
-    });
-
-    if (!m_branchTreeView) {
-        m_branchTreeView = new QGraphicsView(m_tab);
-        m_branchTreeView->setRenderHint(QPainter::Antialiasing, true);
-        m_branchTreeView->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-        m_branchTreeView->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-        m_branchTreeView->setAlignment(Qt::AlignLeft | Qt::AlignTop);
-        m_tab->addTab(m_branchTreeView, tr("分岐ツリー"));
-
-        // ★ ノードクリック拾い
-        m_branchTreeView->viewport()->installEventFilter(this);
+    default: break;
     }
 }
 
@@ -957,33 +837,21 @@ void MainWindow::setupHorizontalGameLayout()
 // セントラルウィジェットにセットする。
 void MainWindow::initializeCentralGameDisplay()
 {
-    // 縦ボックスレイアウトを作成する。
-    QVBoxLayout* vboxLayout = new QVBoxLayout;
+    // ★ 追加：分析タブを先に用意（m_tab を内部から引き出す）
+    setupEngineAnalysisTab();
 
-    // 対局者名と残り時間、将棋盤、棋譜、矢印ボタン、評価値グラフのウィジェットと
-    // info行の予想手、探索手、エンジンの読み筋のウィジェットを縦ボックスレイアウトに追加する。
+    auto* vboxLayout = new QVBoxLayout;
     vboxLayout->addWidget(m_hsplit);
     vboxLayout->setSpacing(0);
-    vboxLayout->addWidget(m_tab);
+    vboxLayout->addWidget(m_tab);     // ← 既存どおり（中身は EngineAnalysisTab の QTabWidget）
 
-    // 新しいウィジェットを作成する。
     QWidget* newWidget = new QWidget;
-
-    // 新しいウィジェットに縦ボックスレイアウトを設定する。
     newWidget->setLayout(vboxLayout);
 
-    // セントラルウィジェットを取得する。
     QWidget* oldWidget = centralWidget();
-
-    // 新しいウィジェットをセントラルウィジェットに設定する。
     setCentralWidget(newWidget);
-
-    // 古いウィジェットを削除する。
     if (oldWidget) {
-        // 親子関係を解除する。
         oldWidget->setParent(nullptr);
-
-        // イベントループが次回アイドル状態になったときに削除されるようにする。
         oldWidget->deleteLater();
     }
 }
@@ -1084,10 +952,10 @@ void MainWindow::displayResultsAndUpdateGui()
     if (m_humanTimerArmed){ m_humanTimerArmed = false; m_humanTurnTimer.invalidate(); }
 
     // 残時間と考慮msを確定
-    m_shogiClock->stopClock();
+    if (m_shogiClock) m_shogiClock->stopClock();
 
     // 盤操作を無効化
-    m_shogiView->setMouseClickMode(false);
+    if (m_shogiView) m_shogiView->setMouseClickMode(false);
 
     auto showOutcomeDeferred = [this](ShogiGameController::Result res) {
         updateRemainingTimeDisplay();
@@ -1095,24 +963,25 @@ void MainWindow::displayResultsAndUpdateGui()
     };
 
     // ★ 投了/時間切れ：現在手番の側の考慮時間を記録する
-    if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
-        // 先手が投了/時間切れ
-        m_shogiClock->applyByoyomiAndResetConsideration1(); // ※ gameOver時は加算せず考慮だけ確定
+    if (m_gameController && m_shogiClock &&
+        m_gameController->currentPlayer() == ShogiGameController::Player1) {
+        m_shogiClock->applyByoyomiAndResetConsideration1();
         updateGameRecord(m_shogiClock->getPlayer1ConsiderationAndTotalTime());
         showOutcomeDeferred(ShogiGameController::Player2Wins);
-    } else {
-        // 後手が投了/時間切れ
+    } else if (m_shogiClock) {
         m_shogiClock->applyByoyomiAndResetConsideration2();
         updateGameRecord(m_shogiClock->getPlayer2ConsiderationAndTotalTime());
         showOutcomeDeferred(ShogiGameController::Player1Wins);
     }
 
     enableArrowButtons();
-    m_kifuView->setSelectionMode(QAbstractItemView::SingleSelection);
 
+    // ★ ここを m_kifuView → RecordPane 経由に変更
+    if (m_recordPane && m_recordPane->kifuView()) {
+        m_recordPane->kifuView()->setSelectionMode(QAbstractItemView::SingleSelection);
+    }
 
     const qint64 tms = ShogiUtils::nowMs();
-
     const char* causeStr =
         (m_lastGameOverCause == GameOverCause::Timeout)     ? "TIMEOUT" :
         (m_lastGameOverCause == GameOverCause::Resignation) ? "RESIGNATION" :
@@ -2197,68 +2066,35 @@ void MainWindow::startGameBasedOnMode()
 // 棋譜解析結果を表示するためのテーブルビューを設定および表示する。
 void MainWindow::displayAnalysisResults()
 {
-    // 既存のインスタンスが存在する場合
+    // 既存モデルを破棄して作り直し（親=this を付けておくと自動破棄）
     if (m_analysisModel) {
-        // 既存のインスタンスを削除する。
         delete m_analysisModel;
-
-        // 安全のためにnullptrを代入する。
         m_analysisModel = nullptr;
     }
+    m_analysisModel = new KifuAnalysisListModel(this);
 
-    // 棋譜解析結果をGUI上で表示するためのクラスのインスタンスを生成する。
-    m_analysisModel = new KifuAnalysisListModel;
+    // 解析結果用の簡易ダイアログ（メンバを持たず、その場で開いて閉じたら破棄）
+    auto* dlg = new QDialog(this);
+    dlg->setWindowTitle(tr("棋譜解析結果"));
+    dlg->setAttribute(Qt::WA_DeleteOnClose, true);
 
-    // 既存のインスタンスが存在する場合
-    if (m_analysisResultsView) {
-        // 既存のインスタンスを削除する。
-        delete m_analysisResultsView;
+    auto* view = new QTableView(dlg);
+    view->setModel(m_analysisModel);
+    view->setSelectionMode(QAbstractItemView::SingleSelection);
+    view->setSelectionBehavior(QAbstractItemView::SelectRows);
+    view->verticalHeader()->setVisible(false);
+    view->horizontalHeader()->setSectionResizeMode(3, QHeaderView::Stretch);
+    view->setColumnWidth(0, 200);
+    view->setColumnWidth(1, 200);
+    view->setColumnWidth(2, 200);
+    view->setColumnWidth(3, 200);
 
-        // 安全のためにnullptrを代入する。
-        m_analysisResultsView = nullptr;
-    }
+    auto* lay = new QVBoxLayout(dlg);
+    lay->setContentsMargins(8,8,8,8);
+    lay->addWidget(view);
 
-    // 新しいテーブルビューを生成する。
-    m_analysisResultsView = new QTableView;
-
-    // 選択モードをシングルセレクションに設定する。
-    m_analysisResultsView->setSelectionMode(QAbstractItemView::SingleSelection);
-
-    // 選択動作を行ごとに設定する。
-    m_analysisResultsView->setSelectionBehavior(QAbstractItemView::SelectRows);
-
-    // 垂直ヘッダーを非表示に設定する。
-    m_analysisResultsView->verticalHeader()->setVisible(false);
-
-    // ビューにモデルを設定する。
-    m_analysisResultsView->setModel(m_analysisModel);
-
-    // 水平ヘッダーのリサイズモードを設定する。（3番目のセクションをストレッチ）
-    m_analysisResultsView->horizontalHeader()->setSectionResizeMode(3, QHeaderView::Stretch);
-
-    // 列の幅を200ピクセルに設定（1列目）
-    m_analysisResultsView->setColumnWidth(0, 200);
-
-    // 列の幅を200ピクセルに設定（2列目）
-    m_analysisResultsView->setColumnWidth(1, 200);
-
-    // 列の幅を200ピクセルに設定（3列目）
-    m_analysisResultsView->setColumnWidth(2, 200);
-
-    // 列の幅を200ピクセルに設定（4列目）
-    m_analysisResultsView->setColumnWidth(3, 200);
-
-    // ビューの最小幅を1000ピクセルに設定する。
-    m_analysisResultsView->setMinimumWidth(1000);
-
-    // ビューの最小高さを600ピクセルに設定する。
-    m_analysisResultsView->setMinimumHeight(600);
-
-    // ウィンドウタイトルを「棋譜解析結果」と設定する。
-    m_analysisResultsView->setWindowTitle("棋譜解析結果");
-
-    // 棋譜解析結果のテーブルビューを表示する。
-    m_analysisResultsView->show();
+    dlg->resize(1000, 600);
+    dlg->open(); // 非モーダル表示（必要なら dlg->exec() に変更）
 }
 
 // 検討ダイアログを表示する。
@@ -2296,145 +2132,61 @@ void MainWindow::displayTsumeShogiSearchDialog()
 // 棋譜解析ダイアログを表示する。
 void MainWindow::displayKifuAnalysisDialog()
 {
-    // 棋譜解析ダイアログを生成する。
-    m_analyzeGameRecordDialog = new KifuAnalysisDialog;
+    m_analyzeGameRecordDialog = new KifuAnalysisDialog(this);
 
-    // 棋譜解析ダイアログを表示後にユーザーがOKボタンを押した場合
     if (m_analyzeGameRecordDialog->exec() == QDialog::Accepted) {
-        // 棋譜解析結果を表示するためのテーブルビューを設定および表示する。
+        // 解析結果ビューを生成して表示（ビューはローカルでOK）
         displayAnalysisResults();
 
         try {
-            // 棋譜解析を開始する。
             analyzeGameRecord();
         } catch (const std::exception& e) {
-            // 既存のインスタンスが存在する場合
-            if (m_analysisResultsView) {
-                // 既存のインスタンスを削除する。
-                delete m_analysisResultsView;
-
-                // 安全のためにnullptrを代入する。
-                m_analysisResultsView = nullptr;
-            }
-
-            // 既存のインスタンスが存在する場合
+            // 解析モデルはメンバなのでクリーンアップ
             if (m_analysisModel) {
-                // 既存のインスタンスを削除する。
                 delete m_analysisModel;
-
-                // 安全のためにnullptrを代入する。
                 m_analysisModel = nullptr;
             }
-
-            // エラーメッセージを表示する。
             displayErrorMessage(e.what());
         }
     }
 
-    // 棋譜解析ダイアログを削除する。
     delete m_analyzeGameRecordDialog;
+    m_analyzeGameRecordDialog = nullptr;
 }
 
-// 対局者1と対局者2の持ち時間を設定する。
-void MainWindow::setPlayerTimeLimits()
-{
-    // 対局者1の持ち時間（単位はミリ秒）を計算する。
-    m_bTime = QString::number((m_startGameDialog->basicTimeHour1() * 60
-                               + m_startGameDialog->basicTimeMinutes1())
-                              * 60000);
-
-    // 対局者2の持ち時間（単位はミリ秒）を計算する。
-    m_wTime = QString::number((m_startGameDialog->basicTimeHour2() * 60
-                               + m_startGameDialog->basicTimeMinutes2())
-                              * 60000);
-}
-
-// 対局者の残り時間と秒読み時間を設定する。
+// 対局者の残り時間と秒読み/加算設定だけを確定する（★自分自身は呼ばない）
 void MainWindow::setRemainingTimeAndCountDown()
 {
-    // 対局ダイアログから時間切れを有効にするかどうか
-    // 「時間切れを負けにする」を設定するかのフラグ
+    // 「時間切れを負けにする」フラグ
     m_isLoseOnTimeout = m_startGameDialog->isLoseOnTimeout();
 
-    int byoyomiSec1 = m_startGameDialog->byoyomiSec1();
-    int byoyomiSec2 = m_startGameDialog->byoyomiSec2();
+    const int byoyomiSec1     = m_startGameDialog->byoyomiSec1();
+    const int byoyomiSec2     = m_startGameDialog->byoyomiSec2();
+    const int addEachMoveSec1 = m_startGameDialog->addEachMoveSec1();
+    const int addEachMoveSec2 = m_startGameDialog->addEachMoveSec2();
 
-    int addEachMoveSec1 = m_startGameDialog->addEachMoveSec1();
-    int addEachMoveSec2 = m_startGameDialog->addEachMoveSec2();
-
-    // いずれかの対局者の秒読み時間が0より大きい場合
-    if ((byoyomiSec1 > 0) || (byoyomiSec2 > 0)) {
-        // 秒読みを使用する。
-        m_useByoyomi = true;
-
-        // 対局者1の秒読み時間を設定（単位はミリ秒）
-        m_byoyomiMilliSec1 = m_startGameDialog->byoyomiSec1() * 1000;
-
-        // 対局者2の秒読み時間を設定（単位はミリ秒）
-        m_byoyomiMilliSec2 = m_startGameDialog->byoyomiSec2() * 1000;
-
-        // 対局者1の1手ごとの時間加算（単位はミリ秒）
+    if (byoyomiSec1 > 0 || byoyomiSec2 > 0) {
+        // 秒読み方式
+        m_useByoyomi         = true;
+        m_byoyomiMilliSec1   = byoyomiSec1 * 1000;
+        m_byoyomiMilliSec2   = byoyomiSec2 * 1000;
         m_addEachMoveMiliSec1 = 0;
-
-        // 対局者2の1手ごとの時間加算（単位はミリ秒）
+        m_addEachMoveMiliSec2 = 0;
+    } else if (addEachMoveSec1 > 0 || addEachMoveSec2 > 0) {
+        // フィッシャー（1手ごと加算）方式
+        m_useByoyomi         = false;
+        m_byoyomiMilliSec1   = 0;
+        m_byoyomiMilliSec2   = 0;
+        m_addEachMoveMiliSec1 = addEachMoveSec1 * 1000;
+        m_addEachMoveMiliSec2 = addEachMoveSec2 * 1000;
+    } else {
+        // どちらも0：持ち時間のみ（便宜上 byoyomi=0 として扱う）
+        m_useByoyomi         = true;
+        m_byoyomiMilliSec1   = 0;
+        m_byoyomiMilliSec2   = 0;
+        m_addEachMoveMiliSec1 = 0;
         m_addEachMoveMiliSec2 = 0;
     }
-    // いずれの対局者の秒読み時間も0の場合
-    else {
-        // いずれかの対局者の1手ごとの時間加算が0より大きい場合
-        if ((addEachMoveSec1 > 0) || (addEachMoveSec2 > 0)) {
-            // 秒読みを使用しない。
-            m_useByoyomi = false;
-
-            // 対局者1の秒読み時間を設定（単位はミリ秒）
-            m_byoyomiMilliSec1 = 0;
-
-            // 対局者2の秒読み時間を設定（単位はミリ秒）
-            m_byoyomiMilliSec2 = 0;
-
-            // 対局者1の1手ごとの時間加算（単位はミリ秒）
-            m_addEachMoveMiliSec1 = m_startGameDialog->addEachMoveSec1() * 1000;
-
-            // 対局者2の1手ごとの時間加算（単位はミリ秒）
-            m_addEachMoveMiliSec2 = m_startGameDialog->addEachMoveSec2() * 1000;
-        }
-        // いずれの対局者の秒読み時間も0であり、1手ごとの時間加算も0の場合
-        else {
-            // 秒読みを使用する。
-            m_useByoyomi = true;
-
-            // 対局者1の秒読み時間を設定（単位はミリ秒）
-            m_byoyomiMilliSec1 = 0;
-
-            // 対局者2の秒読み時間を設定（単位はミリ秒）
-            m_byoyomiMilliSec2 = 0;
-
-            // 対局者1の1手ごとの時間加算（単位はミリ秒）
-            m_addEachMoveMiliSec1 = 0;
-
-            // 対局者2の1手ごとの時間加算（単位はミリ秒）
-            m_addEachMoveMiliSec2 = 0;
-        }
-    }
-
-    // 対局者1と対局者2の持ち時間を設定する。
-    setPlayerTimeLimits();
-
-    // m_shogiView->blackClockLabel()->setText(m_shogiClock->getPlayer1TimeString());
-    // m_shogiView->whiteClockLabel()->setText(m_shogiClock->getPlayer2TimeString());
-    // m_shogiView->update();
-
-    //begin
-    qDebug() << "---- setRemainingTimeAndCountDown() ---";
-    qDebug() << "m_isLoseOnTimeout = " << m_isLoseOnTimeout;
-    qDebug() << "m_bTime = " << m_bTime;
-    qDebug() << "m_wTime = " << m_wTime;
-    qDebug() << "m_useByoyomi = " << m_useByoyomi;
-    qDebug() << "m_countDownMilliSec1 = " << m_byoyomiMilliSec1;
-    qDebug() << "m_countDownMilliSec2 = " << m_byoyomiMilliSec2;
-    qDebug() << "m_addEachMoveMiliSec1 = " << m_addEachMoveMiliSec1;
-    qDebug() << "m_addEachMoveMiliSec2 = " << m_addEachMoveMiliSec2;
-    //end
 }
 
 // 対局ダイアログから各オプションを取得する。
@@ -2726,8 +2478,9 @@ void MainWindow::initializeGame()
             (m_playMode == EvenEngineVsEngine) ||
             (m_playMode == HandicapEngineVsEngine);
 
-        m_infoWidget2->setVisible(engineVsEngine);
-        m_usiView2->setVisible(engineVsEngine);
+        if (m_analysisTab) {
+            m_analysisTab->setSecondEngineVisible(engineVsEngine);
+        }
 
         // 棋譜ファイル情報の作成
         makeKifuFileHeader();
@@ -2777,11 +2530,10 @@ void MainWindow::initializeGame()
 
         // 対局が人間対人間以外の場合
         if (m_playMode) {
-            // 棋譜欄の下の矢印ボタンを無効にする。
             disableArrowButtons();
-
-            // 棋譜欄の行をクリックしても選択できないようにする。
-            m_kifuView->setSelectionMode(QAbstractItemView::NoSelection);
+            if (m_recordPane && m_recordPane->kifuView()) {
+                m_recordPane->kifuView()->setSelectionMode(QAbstractItemView::NoSelection);
+            }
         }
 
         // 現在の手番を設定
@@ -2869,58 +2621,39 @@ void MainWindow::saveSettingsAndClose()
 // GUIを初期画面表示に戻す。
 void MainWindow::resetToInitialState()
 {
-    // 将棋盤の駒の選択、ハイライト、シグナル・スロットを解除する。
-    //m_shogiView->disconnect();
-
-    // 選択されたマスの座標を初期化する。
     m_clickPoint = QPoint();
-
-    // 全てのマスのハイライトを削除する。
     m_shogiView->removeHighlightAllData();
-
-    // 残り時間を初期化する。
     m_shogiView->blackClockLabel()->setText("00:00:00");
     m_shogiView->whiteClockLabel()->setText("00:00:00");
 
-    // 棋譜欄を初期化する。
-    m_kifuRecordModel->clearAllItems();
+    // 棋譜と評価値
+    if (m_kifuRecordModel) m_kifuRecordModel->clearAllItems();
+    if (m_evalChart)       m_evalChart->clearAll();
 
-    // 評価値グラフを初期化する。
-    m_evalChart->clearAll();
-
-    // 将棋盤を平手の初期配置に戻す。
+    // 盤面リセット
     startNewShogiGame(m_startSfenStr);
 
-    // エンジン1の読み筋を初期化する。
-    m_modelThinking1->clearAllItems();
+    // 思考モデルはモデル側をクリア（ビューは EngineAnalysisTab 内）
+    if (m_modelThinking1) m_modelThinking1->clearAllItems();
+    if (m_modelThinking2) m_modelThinking2->clearAllItems();
 
-    // エンジン2の読み筋を初期化する。
-    m_modelThinking2->clearAllItems();
+    // EngineInfoWidget に反映されるプロパティもモデル側で空に
+    auto resetInfo = [](UsiCommLogModel* m){
+        if (!m) return;
+        m->setEngineName(QString());
+        m->setPredictiveMove(QString());
+        m->setSearchedMove(QString());
+        m->setSearchDepth(QString());
+        m->setNodeCount(QString());
+        m->setNodesPerSecond(QString());
+        m->setHashUsage(QString());
+        // ※ USIログ表示だけを消したいなら EngineAnalysisTab に clearUsiLog() を追加するのが綺麗
+    };
+    resetInfo(m_lineEditModel1);
+    resetInfo(m_lineEditModel2);
 
-    // USIプロトコル通信ログを初期化する。
-    m_usiCommLogEdit->clear();
-    m_tab->setCurrentWidget(m_usiView1);
-
-    // エンジン1の予想手、探索手などの情報を初期化する。
-    m_engineNameText1->setText("");
-    m_predictiveHandText1->setText("");
-    m_searchedHandText1->setText("");
-    m_depthText1->setText("");
-    m_nodesText1->setText("");
-    m_npsText1->setText("");
-    m_hashfullText1->setText("");
-
-    // 対局モードが平手のエンジン対エンジンの場合、あるいは駒落ちのエンジン対エンジンの場合
-    if ((m_playMode == EvenEngineVsEngine) || (m_playMode == HandicapEngineVsEngine)) {
-        // エンジン2の予想手、探索手などの情報を初期化する。
-        m_engineNameText2->setText("");
-        m_predictiveHandText2->setText("");
-        m_searchedHandText2->setText("");
-        m_depthText2->setText("");
-        m_nodesText2->setText("");
-        m_npsText2->setText("");
-        m_hashfullText2->setText("");
-    }
+    // タブの選択を先頭へ戻す（任意）
+    if (m_tab) m_tab->setCurrentIndex(0);
 }
 
 // 棋譜ファイルをダイアログから選択し、そのファイルを開く。
@@ -3023,17 +2756,11 @@ inline QPoint dropFromSquare(QChar dropUpper, bool black) {
 // ===================== 司令塔 =====================
 void MainWindow::loadKifuFromFile(const QString& filePath)
 {
-    // 0) リセット
-    m_commentsByRow.clear();
-    if (m_branchText) m_branchText->clear();
-
     // 1) 初期局面（手合割）を決定
     QString teaiLabel;
     const QString initialSfen = prepareInitialSfen(filePath, teaiLabel);
 
-    // 保存＆KIF再生モード
-    m_initialSfen   = initialSfen;
-    m_isKifuReplay  = true;
+    m_isKifuReplay = true;
 
     // 2) 解析（本譜＋分岐＋コメント）を一括取得
     KifParseResult res;
@@ -3051,7 +2778,7 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
     const QList<KifDisplayItem>& disp = res.mainline.disp;
     m_usiMoves = res.mainline.usiMoves;
 
-    // 終局/中断判定
+    // 終局/中断判定（本譜末尾の見た目テキストで判定）
     static const QStringList kTerminalKeywords = {
         QStringLiteral("投了"), QStringLiteral("中断"), QStringLiteral("持将棋"),
         QStringLiteral("千日手"), QStringLiteral("切れ負け"),
@@ -3075,238 +2802,30 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
     rebuildSfenRecord(initialSfen, m_usiMoves, hasTerminal);
     rebuildGameMoves(initialSfen, m_usiMoves);
 
-    // 4) スナップショット退避（本譜）
-    m_dispMain = disp;
-    m_sfenMain = *m_sfenRecord;
-    m_gmMain   = m_gameMoves;
+    // 4) 棋譜表示へ反映（モデルに投入）
+    //    既存ユーティリティに任せます。内部で m_kifuRecordModel へ反映される前提。
+    displayGameRecord(disp);
 
-    // 5) 分岐データの構築（m_variationsByPly / m_variationsSeq など）
-    m_variationsByPly.clear();
-    m_branchablePlies.clear();
-    m_variationsSeq.clear();   // ツリー接続用：ファイル登場順に保持
-
-    // 5-0) 本文から「＋」と「変化：n手」見出しを収集
-    QString usedEnc2, readErr2;
-    QStringList kLines;
-    if (!KifReader::readLinesAuto(filePath, kLines, &usedEnc2, &readErr2)) {
-        qWarning().noquote() << "[VAR] readLinesAuto failed:" << readErr2;
-    }
-
-    static const QRegularExpression s_varHdrCap(
-        QStringLiteral(R"(^\s*変化[：:]\s*([0-9０-９]+)\s*手)"));
-    static const QRegularExpression s_mainHdr(QStringLiteral(R"(^\s*本譜\s*$)"));
-    static const QRegularExpression s_moveHead(QStringLiteral("^\\s*([0-9０-９]+)\\s"));
-    static const QRegularExpression s_plusAtEnd(QStringLiteral("\\+\\s*$"));
-
-    auto flexDigitsToInt = [](const QString& s)->int {
-        int v = 0;
-        for (QChar ch : s) {
-            int d = -1;
-            const ushort u = ch.unicode();
-            if (u >= '0' && u <= '9') d = (u - '0');
-            else {
-                static const QString z = QStringLiteral("０１２３４５６７８９");
-                int idx = z.indexOf(ch);
-                if (idx >= 0) d = idx;
+    // 5) GUI側：棋譜テーブルの最初の行を選択＆スクロール（RecordPane 経由）
+    if (m_recordPane && m_recordPane->kifuView()) {
+        QTableView* view = m_recordPane->kifuView();
+        if (view->model() && view->model()->rowCount() > 0) {
+            const QModelIndex idx0 = view->model()->index(0, 0);
+            if (view->selectionModel()) {
+                view->selectionModel()->setCurrentIndex(
+                    idx0, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
             }
-            if (d >= 0) v = v * 10 + d;
-        }
-        return v;
-    };
-
-    QList<int> plusStarts;    // 本譜末尾「+」マーク由来
-    QList<int> headerStarts;  // 見出し「変化：n手」由来
-    {
-        bool inVariation = false;
-        for (const QString& raw : kLines) {
-            const QString line = raw.trimmed();
-            if (line.isEmpty()) continue;
-
-            if (s_mainHdr.match(line).hasMatch()) {
-                inVariation = false;
-                continue;
-            }
-            auto vh = s_varHdrCap.match(line);
-            if (vh.hasMatch()) {
-                inVariation = true;
-                headerStarts << flexDigitsToInt(vh.captured(1));
-                continue;
-            }
-            if (inVariation) continue;
-
-            auto mh = s_moveHead.match(line);
-            if (!mh.hasMatch()) continue;
-            if (!s_plusAtEnd.match(line).hasMatch()) continue;
-
-            const int ply = flexDigitsToInt(mh.captured(1));
-            if (ply > 0) plusStarts << ply;
-        }
-    }
-    qDebug() << "[VAR] plus markers   =" << plusStarts;
-    qDebug() << "[VAR] header markers =" << headerStarts;
-
-    // 5-1) 手目→baseSFEN をキャッシュ
-    QHash<int, QString> baseByPly;
-    auto getBaseForPly = [&](int startPly)->QString {
-        if (baseByPly.contains(startPly)) return baseByPly[startPly];
-        SfenPositionTracer tr; tr.setFromSfen(initialSfen);
-        const int parentMoves = qMin(startPly - 1, m_usiMoves.size());
-        for (int i = 0; i < parentMoves; ++i) tr.applyUsiMove(m_usiMoves[i]);
-        const QString base = tr.toSfenString();
-        baseByPly.insert(startPly, base);
-        return base;
-    };
-
-    // 5-2) 変化を1本ずつ KifLine 化（startPly は「＋」→見出し→既定の順で決定）
-    const int mainN = m_usiMoves.size();
-    int vi = 0;
-    for (const KifVariation& v0 : res.variations) {
-        KifLine v;
-
-        int sp = v0.line.startPly;                    // 解析既定
-        if (vi < plusStarts.size()) {
-            sp = plusStarts[vi];                      // 末尾「+」優先
-        } else if (vi < headerStarts.size()) {
-            sp = headerStarts[vi];                    // 見出し「変化：n手」
-        }
-        // サニティ（1..mainN にクランプ）
-        if (sp < 1) sp = 1;
-        if (mainN > 0 && sp > mainN) sp = mainN;
-
-        v.startPly = sp;
-        v.usiMoves = v0.line.usiMoves;
-        v.disp     = v0.line.disp;
-        v.endsWithTerminal = v0.line.endsWithTerminal;
-        v.baseSfen = getBaseForPly(v.startPly);
-
-        m_branchablePlies.insert(v.startPly);
-
-        // v.sfenList / v.gameMoves 生成
-        {
-            SfenPositionTracer tr; tr.setFromSfen(v.baseSfen);
-            v.sfenList.clear();
-            v.sfenList << tr.toSfenString();
-
-            auto rankLetterToNum = [](QChar r)->int {
-                ushort u = r.toLower().unicode();
-                return (u<'a'||u>'i') ? -1 : int(u-'a')+1;
-            };
-            auto tokenToOneChar = [](const QString& tok)->QChar {
-                if (tok.isEmpty()) return QLatin1Char(' ');
-                if (tok.size()==1) return tok.at(0);
-                static const QHash<QString,QChar> map = {
-                    {"+P",'Q'},{"+L",'M'},{"+N",'O'},{"+S",'T'},{"+B",'C'},{"+R",'U'},
-                    {"+p",'q'},{"+l",'m'},{"+n",'o'},{"+s",'t'},{"+b",'c'},{"+r",'u'},
-                };
-                auto it = map.find(tok);
-                return it==map.end()? QLatin1Char(' '): *it;
-            };
-
-            v.gameMoves.clear();
-            for (const QString& usi : v.usiMoves) {
-                if (usi.size()>=2 && usi[1]==QLatin1Char('*')) {
-                    const bool black = tr.blackToMove();
-                    const QChar up = usi.at(0).toUpper();
-                    const int f = usi.at(2).toLatin1()-'0';
-                    const int r = rankLetterToNum(usi.at(3));
-                    const QPoint from(black ? 9 : 10,
-                                      black ? (up=='P'?0:up=='L'?1:up=='N'?2:up=='S'?3:up=='G'?4:up=='B'?5:6)
-                                            : (up=='P'?8:up=='L'?7:up=='N'?6:up=='S'?5:up=='G'?4:up=='B'?3:2));
-                    const QPoint to(f-1, r-1);
-                    const QChar moving = black ? up : up.toLower();
-                    v.gameMoves.push_back(ShogiMove(from, to, moving, QLatin1Char(' '), false));
-                    tr.applyUsiMove(usi);
-                    v.sfenList << tr.toSfenString();
-                    continue;
-                }
-
-                const int ff = usi.at(0).toLatin1()-'0';
-                const int rf = rankLetterToNum(usi.at(1));
-                const int ft = usi.at(2).toLatin1()-'0';
-                const int rt = rankLetterToNum(usi.at(3));
-                const bool prom = (usi.size()>=5 && usi.at(4)==QLatin1Char('+'));
-
-                const QString fromTok = tr.tokenAtFileRank(ff, usi.at(1));
-                const QString toTok   = tr.tokenAtFileRank(ft, usi.at(3));
-                const QPoint from(ff-1, rf-1);
-                const QPoint to  (ft-1, rt-1);
-                const QChar moving   = tokenToOneChar(fromTok);
-                const QChar captured = tokenToOneChar(toTok);
-
-                v.gameMoves.push_back(ShogiMove(from, to, moving, captured, prom));
-                tr.applyUsiMove(usi);
-                v.sfenList << tr.toSfenString();
-            }
-        }
-
-        // ツリー接続用：ファイル登場順で保存
-        m_variationsSeq.push_back(v);
-        // バケツにも格納（候補欄用）
-        m_variationsByPly[v.startPly].push_back(v);
-
-        ++vi;
-    }
-
-    // 5-3) キー確認・ログ
-    {
-        QList<int> keys = m_variationsByPly.keys();
-        std::sort(keys.begin(), keys.end());
-        qDebug().noquote() << "[VAR] keys(after remap) =" << keys;
-        qDebug() << "[VAR] branchable set =" << m_branchablePlies;
-    }
-
-    // 6) ログ（任意）
-    logImportSummary(filePath, m_usiMoves, disp, teaiLabel, parseWarn, QString());
-    {
-        qDebug().noquote() << "== Variations (変化, after remap) ==";
-        QList<int> keys = m_variationsByPly.keys();
-        std::sort(keys.begin(), keys.end());
-        if (keys.isEmpty()) {
-            qDebug().noquote() << "  (none)";
-        } else {
-            for (int startPly : keys) {
-                const auto& bucket = m_variationsByPly[startPly];
-                int vidx = 0;
-                for (const auto& v : bucket) {
-                    qDebug().noquote()
-                        << QStringLiteral("[変化%1] start=%2, USI=%3手, 表示=%4手")
-                              .arg(++vidx).arg(v.startPly)
-                              .arg(v.usiMoves.size()).arg(v.disp.size());
-                    const int preview = qMin(6, v.disp.size());
-                    for (int i = 0; i < preview; ++i) {
-                        const auto& it = v.disp.at(i);
-                        qDebug().noquote()
-                            << QStringLiteral("   ・「%1」「%2」")
-                                  .arg(it.prettyMove,
-                                       it.timeText.isEmpty()
-                                           ? QStringLiteral("00:00/00:00:00")
-                                           : it.timeText);
-                    }
-                    if (v.disp.size() > preview) {
-                        qDebug().noquote()
-                            << QStringLiteral("   ……（以下 %1 手）")
-                                  .arg(v.disp.size() - preview);
-                    }
-                }
-            }
+            view->scrollTo(idx0, QAbstractItemView::PositionAtTop);
         }
     }
 
-    // 7) ★ 「後勝ち」前計算：行（本譜＋分岐）を一括解決
-    buildResolvedLinesAfterLoad();
-
-    // ★これを必ず追加
-    buildBranchCandidateIndex();
-
-    // 8) GUI初期表示は「解決済み 本譜 行・0手目」を適用するだけ
-    applyResolvedRowAndSelect(/*resolvedRow=*/0, /*selectPly=*/0);
-
-    // 10) 分岐ツリーを再描画（クリック時は applyResolvedRowAndSelect を使用）
-    rebuildBranchTreeView();
-
-    // 11) そのほか UI の整合
+    // 6) そのほか UI の整合（旧来の動作踏襲）
     enableArrowButtons();
+
+    // 7) ログ（任意）
+    logImportSummary(filePath, m_usiMoves, disp, teaiLabel, parseWarn, QString());
 }
+
 
 // ===================== ヘルパ実装 =====================
 
@@ -3472,11 +2991,14 @@ void MainWindow::logImportSummary(const QString& filePath,
 
 void MainWindow::displayGameRecord(const QList<KifDisplayItem> disp)
 {
+    // 安全チェック
+    if (!m_kifuRecordModel) return;
+    if (!m_moveRecords) m_moveRecords = new QList<KifuDisplay*>();
+
     // クリア
     m_moveRecords->clear();
     m_currentMoveIndex = 0;
     m_kifuDataList.clear();
-    m_moveRecords->clear();
     m_kifuRecordModel->clearAllItems();
 
     // ヘッダ（開始局面）
@@ -3495,8 +3017,6 @@ void MainWindow::displayGameRecord(const QList<KifDisplayItem> disp)
         m_commentsByRow[0] = disp[0].comment;
 
     // 棋譜欄へ各手を追加しつつ、「その手のコメント」は disp[i+1] を採用
-    //   行番号: row = i+1
-    //   表示コメント: disp[i+1].comment（= その手の後に書かれるコメント）
     for (int i = 0; i < moveCount; ++i) {
         const auto &it = disp[i];
 
@@ -3515,20 +3035,36 @@ void MainWindow::displayGameRecord(const QList<KifDisplayItem> disp)
         updateGameRecord(it.timeText);
     }
 
-    // 初期表示を開始局面に合わせておく（任意）
-    if (m_kifuView)
-        m_kifuView->setCurrentIndex(m_kifuRecordModel->index(0, 0));
-    if (m_branchText) {
-        const QString head = (0 < m_commentsByRow.size() ? m_commentsByRow[0].trimmed()
-                                                         : QString());
-        m_branchText->setPlainText(head.isEmpty() ? tr("コメントなし") : head);
-    }
+    // --- 表示／選択 & コメント同期は RecordPane + EngineAnalysisTab 経由 ---
+    if (m_recordPane && m_recordPane->kifuView()) {
+        QTableView* view = m_recordPane->kifuView();
 
-    // 行選択が変わったらコメントも更新
-    connect(m_kifuView->selectionModel(), &QItemSelectionModel::currentRowChanged,
-            this, [this](const QModelIndex& cur, const QModelIndex&) {
-                updateBranchTextForRow(cur.row());
-            });
+        // 初期選択：開始局面
+        view->setCurrentIndex(m_kifuRecordModel->index(0, 0));
+
+        // コメント初期表示
+        if (m_analysisTab) {
+            const QString head = (0 < m_commentsByRow.size() ? m_commentsByRow[0].trimmed()
+                                                             : QString());
+            m_analysisTab->setCommentText(head.isEmpty() ? tr("コメントなし") : head);
+        }
+
+        // 行選択が変わったらコメントも更新
+        if (view->selectionModel()) {
+            connect(view->selectionModel(),
+                    &QItemSelectionModel::currentRowChanged,
+                    this,
+                    [this](const QModelIndex& cur, const QModelIndex&) {
+                        const int row = cur.isValid() ? cur.row() : 0;
+                        QString text;
+                        if (row >= 0 && row < m_commentsByRow.size())
+                            text = m_commentsByRow[row].trimmed();
+                        if (m_analysisTab)
+                            m_analysisTab->setCommentText(text.isEmpty() ? tr("コメントなし") : text);
+                    },
+                    Qt::UniqueConnection);
+        }
+    }
 }
 
 static QString toHtmlWithLinks(const QString& plain)
@@ -3560,17 +3096,15 @@ void MainWindow::updateBranchTextForRow(int row)
     if (row >= 0 && row < m_commentsByRow.size())
         raw = m_commentsByRow.at(row).trimmed();
 
-    const QString html = makeBranchHtml(raw);
+    // HTMLを使うならここで makeBranchHtml(raw) に置換
+    const QString toShow = raw.isEmpty() ? tr("コメントなし") : raw;
 
-    // 元のコメントパネルを更新
-    if (m_branchText) {
-        m_branchText->setHtml(html);
+    // コメント表示は EngineAnalysisTab に集約
+    if (m_analysisTab) {
+        // setCommentText(const QString&) は前回ご案内の通り EngineAnalysisTab に追加済みの想定
+        m_analysisTab->setCommentText(toShow);
     }
-
-    // ★ 追加：m_tab1 のコメントタブも更新
-    if (m_branchTextInTab1) {
-        m_branchTextInTab1->setHtml(html);
-    }
+    // 旧: m_branchText / m_branchTextInTab1 には一切触れない
 }
 
 // 棋譜を更新し、GUIの表示も同時に更新する。
@@ -4892,18 +4426,34 @@ void MainWindow::addGameInfoTabIfMissing()
     ensureGameInfoTable();
     if (!m_tab) return;
 
-    // もしドック内に入っていたら取り外して破棄（二重親防止）
+    // Dock で表示していたら解除
     if (m_gameInfoDock && m_gameInfoDock->widget() == m_gameInfoTable) {
         m_gameInfoDock->setWidget(nullptr);
         m_gameInfoDock->deleteLater();
         m_gameInfoDock = nullptr;
     }
 
+    // まだタブに無ければ追加
     if (m_tab->indexOf(m_gameInfoTable) == -1) {
-        const int commentsIdx = m_tab->indexOf(m_branchTextInTab1);
-        const int insertPos   = (commentsIdx >= 0) ? commentsIdx + 1 : m_tab->count();
+        int anchorIdx = -1;
+
+        // 1) EngineAnalysisTab（検討タブ）の直後に入れる
+        if (m_analysisTab)
+            anchorIdx = m_tab->indexOf(m_analysisTab);
+
+        // 2) 念のため、タブタイトルで「コメント/Comments」を探してその直後に入れるフォールバック
+        if (anchorIdx < 0) {
+            for (int i = 0; i < m_tab->count(); ++i) {
+                const QString t = m_tab->tabText(i);
+                if (t.contains(tr("コメント")) || t.contains("Comments", Qt::CaseInsensitive)) {
+                    anchorIdx = i;
+                    break;
+                }
+            }
+        }
+
+        const int insertPos = (anchorIdx >= 0) ? anchorIdx + 1 : m_tab->count();
         m_tab->insertTab(insertPos, m_gameInfoTable, tr("対局情報"));
-        // お好みで：m_tab->setCurrentIndex(insertPos); // 追加直後に選択したい場合
     }
 }
 
@@ -6050,20 +5600,22 @@ void MainWindow::highlightBranchTreeAt(int row, int ply, bool centerOn /*=false*
 {
     if (!m_branchTreeView || !m_branchTreeView->scene()) return;
 
+    // ★ const 版を確実に呼ぶためのワンライナー
+    const MainWindow* self = this;
+
     // まずは「その行のその手」を探す
-    QGraphicsPathItem* it = branchNodeFor(row, ply);
+    QGraphicsPathItem* it = self->branchNodeFor(row, ply);
     // 無ければ本譜同手へフォールバック（分岐行のプレフィクス部分など）
-    if (!it && row != 0) it = branchNodeFor(/*main*/0, ply);
+    if (!it && row != 0) it = self->branchNodeFor(/*main*/0, ply);
     // さらに無ければルートへ
-    if (!it && ply == 0) it = branchNodeFor(/*row*/0, /*ply*/0);
+    if (!it && ply == 0) it = self->branchNodeFor(/*row*/0, /*ply*/0);
 
     if (!it) return;
 
-    // selectionChanged の中で applyResolvedRowAndSelect が呼ばれないようにガード
     m_branchTreeSelectGuard = true;
     auto* sc = m_branchTreeView->scene();
-    sc->clearSelection();      // 既存選択解除 → selectionChanged が走る
-    it->setSelected(true);     // ここで selectionChanged が走り、黄色枠の描画はされる
+    sc->clearSelection();
+    it->setSelected(true);
     if (centerOn) m_branchTreeView->centerOn(it);
     m_branchTreeSelectGuard = false;
 }
@@ -6290,14 +5842,36 @@ void MainWindow::initSingleEnginePvE(bool engineIsP1)
 
     m_usi1->resetResignNotified();
     m_usi1->clearHardTimeout();
+
+    // 先手エンジンかどうかでアービタ接続
     wireResignToArbiter(m_usi1, engineIsP1);
-    m_usi1->setLogIdentity(engineIsP1 ? "[E1]" : "[E2]",
-                           engineIsP1 ? "P1"   : "P2",
-                           m_startGameDialog->engineName1());
+
+    // === ここを修正：タグと設定名を側に合わせる ===
+    const QString engineTag  = engineIsP1 ? QStringLiteral("[E1]") : QStringLiteral("[E2]");
+    const QString playerTag  = engineIsP1 ? QStringLiteral("P1")   : QStringLiteral("P2");
+    const QString cfgName    = engineIsP1
+                               ? m_startGameDialog->engineName1()
+                               : m_startGameDialog->engineName2();
+
+    // ログ識別子（[E1]/[E2], P1/P2, 表示名）
+    m_usi1->setLogIdentity(engineTag, playerTag, cfgName);
     m_usi1->setSquelchResignLogging(false);
+
+    // USIの "id name ..." を受信したらログ表示名を実エンジン名に更新
+    // （Usi に engineIdNameReceived(QString) シグナル＆ updateLogEngineName(QString) スロットを用意）
+    //connect(m_usi1, &Usi::engineIdNameReceived,
+    //        m_usi1, &Usi::updateLogEngineName,
+    //        Qt::UniqueConnection);
+
+    // ※ 実際に起動するバイナリも側で切替えるなら（初期化のどこかで）:
+    // const QString enginePath = engineIsP1 ? m_startGameDialog->engineFile1()
+    //                                       : m_startGameDialog->engineFile2();
+    // m_usi1->initializeAndStartEngineCommunication(enginePath, cfgName);
+    // ---------------------------------------------
 
     resetGameFlags();
 }
+
 
 // EvE：m_usi1 / m_usi2 を用意して共通初期化
 void MainWindow::initEnginesForEvE()
@@ -6446,7 +6020,9 @@ inline void pumpUi() {
 
 // 平手、駒落ち Player1: Human, Player2: Human
 void MainWindow::startHumanVsHumanGame()
-{
+{    
+    applyEnginePanelsByMode();
+
     // 盤クリック受付（人対人）
     setPvPClickHandler();
 
@@ -6461,6 +6037,15 @@ void MainWindow::startHumanVsHumanGame()
 // 駒落ち Player1: USI Engine（下手）, Player2: Human（上手）
 void MainWindow::startHumanVsEngineGame()
 {
+    if (!m_modelThinking1) {
+        m_modelThinking1 = new ShogiEngineThinkingModel(this);
+    }
+    if (!m_lineEditModel1) {
+        m_lineEditModel1 = new UsiCommLogModel(this);
+    }
+
+    applyEnginePanelsByMode();
+
     const bool engineIsP1 = (m_playMode == HandicapEngineVsHuman); // 駒落ち=先手エンジン
     initSingleEnginePvE(engineIsP1);
 
@@ -6495,7 +6080,16 @@ void MainWindow::startHumanVsEngineGame()
 // 平手 Player1: USI Engine（先手）, Player2: Human（後手）
 // 駒落ち Player1: Human（下手）,  Player2: USI Engine（上手）
 void MainWindow::startEngineVsHumanGame()
-{
+{   
+    if (!m_modelThinking1) {
+        m_modelThinking1 = new ShogiEngineThinkingModel(this);
+    }
+    if (!m_lineEditModel1) {
+        m_lineEditModel1 = new UsiCommLogModel(this);
+    }
+
+    applyEnginePanelsByMode();
+
     const bool engineIsP1 = (m_playMode == EvenEngineVsHuman); // 平手=先手エンジン
     initSingleEnginePvE(engineIsP1);
 
@@ -6530,6 +6124,22 @@ void MainWindow::startEngineVsHumanGame()
 // 平手、駒落ち Player1: USI Engine, Player2: USI Engine
 void MainWindow::startEngineVsEngineGame()
 {
+    if (!m_modelThinking1) {
+        m_modelThinking1 = new ShogiEngineThinkingModel(this);
+    }
+    if (!m_lineEditModel1) {
+        m_lineEditModel1 = new UsiCommLogModel(this);
+    }
+
+    if (!m_modelThinking2) {
+        m_modelThinking2 = new ShogiEngineThinkingModel(this);
+    }
+    if (!m_lineEditModel2) {
+        m_lineEditModel2 = new UsiCommLogModel(this);
+    }
+
+    applyEnginePanelsByMode();
+
     initEnginesForEvE();
 
     // エンジン割り当て
@@ -6633,4 +6243,39 @@ void MainWindow::setupRecordPane()
 
     // （初回のみで良い UI 調整があれば firstTime を使って分岐できます）
     Q_UNUSED(firstTime);
+}
+
+void MainWindow::setupEngineAnalysisTab()
+{
+    if (!m_analysisTab) {
+        m_analysisTab = new EngineAnalysisTab(this);
+
+        // 既存で m_tab を使い回したいので、EngineAnalysisTab 内部の QTabWidget を拝借
+        m_tab = m_analysisTab->tab();
+    }
+
+    // Thinking/USIログ/EngineInfo をアタッチ
+    m_analysisTab->setModels(m_modelThinking1, m_modelThinking2,
+                             m_lineEditModel1, m_lineEditModel2);
+
+    // 表示の on/off をメニューと同期
+    const bool on = ui->actionToggleEngineAnalysis
+                        ? ui->actionToggleEngineAnalysis->isChecked()
+                        : true;
+    m_analysisTab->setAnalysisVisible(on);
+
+    // メニューのトグル連動
+    if (ui->actionToggleEngineAnalysis) {
+        connect(ui->actionToggleEngineAnalysis, &QAction::toggled,
+                this, &MainWindow::toggleEngineAnalysisVisibility,
+                Qt::UniqueConnection);
+    }
+}
+
+void MainWindow::applyEnginePanelsByMode()
+{
+    if (!m_engineAnalysisTab) return;
+    const bool isEvE = (m_playMode == EvenEngineVsEngine ||
+                        m_playMode == HandicapEngineVsEngine);
+    m_engineAnalysisTab->setDualEngineVisible(isEvE);
 }

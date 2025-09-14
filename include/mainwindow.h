@@ -6,9 +6,6 @@
 #include <QLabel>
 #include <QHBoxLayout>
 #include <QSplitter>
-#include <QtCharts/QChartView>
-#include <QtCharts/QLineSeries>
-#include <QValueAxis>
 #include <QTime>
 #include <QTextBrowser>
 #include <QDockWidget>
@@ -35,727 +32,291 @@
 #include "navigationcontext.h"
 #include "evaluationchartwidget.h"
 #include "recordpane.h"
+#include "engineanalysistab.h"
 
 #define SHOGIBOARDQ_DEBUG_KIF 1   // 0にすればログは一切出ません
 
 using VariationBucket = QVector<KifLine>;     // 手目からの候補群
 
 QT_BEGIN_NAMESPACE
-namespace Ui {
-class MainWindow;
-}
+namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
 
 class ShogiGameController;
 class QPainter;
 class QStyleOptionViewItem;
 class QModelIndex;
-class EngineInfoWidget;
 class NavigationController;
+class QGraphicsView;
+class QGraphicsPathItem;
+class QTableView;
+class QTableWidget;
+class QEvent;
+class QGraphicsPathItem;
+class EngineAnalysisTab;
 
 class MainWindow : public QMainWindow, public INavigationContext
 {
     Q_OBJECT
 
 public:
-    // コンストラクタ
     explicit MainWindow(QWidget* parent = 0);
 
 protected:
-     Ui::MainWindow *ui;
+    Ui::MainWindow *ui;
 
 private slots:
-    // エラーメッセージを表示する。
     void displayErrorMessage(const QString& message);
-
-    // 棋譜ファイルをダイアログから選択し、そのファイルを開く。
     void chooseAndLoadKifuFile();
 
-    // 人間対エンジンあるいはエンジン対人間の対局で、クリックされたマスに基づいて駒の移動を処理する。
     void handlePlayerVsEngineClick(const QPoint& field);
-
-    // 人間対人間の対局で、クリックされたマスに基づいて駒の移動を処理する。
     void handleHumanVsHumanClick(const QPoint& field);
-
-    // 局面編集モードで、クリックされたマスに基づいて駒の移動を処理する。
     void handleEditModeClick(const QPoint& field);
-
-    // 局面編集モードで右クリックした駒を成る・不成の表示に変換する。
     void togglePiecePromotionOnClick(const QPoint& field);
-
-    // 成る・不成の選択ダイアログを起動する。
     void displayPromotionDialog();
 
-    // エンジン設定のダイアログを起動する。
     void displayEngineSettingsDialog();
-
-    // GUIのバージョン情報を表示する。
     void displayVersionInformation();
-
-    // Webサイトをブラウザで表示する。
     void openWebsiteInExternalBrowser();
 
-    // 対局を開始する。
     void initializeGame();
-
-    // 検討ダイアログを表示する。
     void displayConsiderationDialog();
-
-    // 棋譜解析ダイアログを表示する。
     void displayKifuAnalysisDialog();
 
-    // 将棋盤を180度回転させる。それに伴って、対局者名、残り時間も入れ替える。
     void flipBoardAndUpdatePlayerInfo();
-
-    // 駒台を含む将棋盤全体の画像をクリップボードにコピーする。
     void copyBoardToClipboard();
 
-    // info行の予想手、探索手、エンジンの読み筋を縦ボックス化したm_widget3の表示・非表示を切り替える。
+    // EngineAnalysisTab の表示切り替え
     void toggleEngineAnalysisVisibility();
 
-    // 待ったボタンを押すと、2手戻る。
     void undoLastTwoMoves();
-
-    // 将棋盤の画像をファイルとして出力する。
     void saveShogiBoardImage();
-
-    // 設定ファイルにGUI全体のウィンドウサイズを書き込む。
-    // また、将棋盤のマスサイズも書き込む。その後、GUIを終了する。
     void saveSettingsAndClose();
-
-    // GUIを初期画面表示に戻す。
     void resetToInitialState();
 
-    // 対局結果を表示する。
     void displayGameOutcome(ShogiGameController::Result);
-
-    // メニューで「投了」をクリックした場合の処理を行う。
     void handleResignation();
-
-    // 将棋エンジン2が"bestmove resign"コマンドで投了した場合の処理を行う。
     void handleEngineTwoResignation();
-
-    // 将棋エンジン1が"bestmove resign"コマンドで投了した場合の処理を行う。
     void handleEngineOneResignation();
-
-    // 将棋エンジン1に対して、gameover winコマンドとquitコマンドを送信する。
     void sendCommandsToEngineOne();
-
-    // 将棋エンジン2に対して、gameover winコマンドとquitコマンドを送信する。
     void sendCommandsToEngineTwo();
 
-    // 投了時の棋譜欄に表示する文字列を設定する。
     void setResignationMove(bool isPlayerOneResigning);
-
-    // 将棋クロックの停止と将棋エンジンへの対局終了コマンド送信処理を行う。
     void stopClockAndSendCommands();
-
-    // 対局結果の表示とGUIの更新処理を行う。
     void displayResultsAndUpdateGui();
 
-    // 棋譜欄の下の矢印ボタンを無効にする。
     void disableArrowButtons();
-
-    // 棋譜欄の下の矢印ボタンを有効にする。
     void enableArrowButtons();
 
-    // 局面編集を開始する。
     void beginPositionEditing();
-
-    // 局面編集を終了した場合の処理を行う。
     void finishPositionEditing();
-
-    // 「全ての駒を駒台へ」をクリックした時に実行される。
-    // 先手と後手の駒を同じ枚数にして全ての駒を駒台に載せる。
     void resetPiecesToStand();
 
-    // 手番を変更する。
     void switchTurns();
-
-    // 平手初期局面に盤面を初期化する。
     void setStandardStartPosition();
-
-    // 詰将棋の初期局面に盤面を初期化する。
     void setTsumeShogiStartPosition();
-
-    // 先手の配置を後手の配置に変更し、後手の配置を先手の配置に変更する。
     void swapBoardSides();
-
-    // 盤面のサイズを拡大する。
     void enlargeBoard();
-
-    // 盤面のサイズを縮小する。
     void reduceBoardSize();
 
-    // 棋譜をファイルに保存する。
     void saveKifuToFile();
-
-    // 棋譜をファイルに上書き保存する。
     void overwriteKifuFile();
-
-    // gameover resignコマンドを受信した場合の終了処理を行う。
     void processResignCommand();
 
-    // 対局者1の残り時間の文字色を赤色に指定する。
     void setPlayer1TimeTextToRed();
-
-    // 対局者2の残り時間の文字色を赤色に指定する。
     void setPlayer2TimeTextToRed();
 
-    // 将棋盤上での左クリックイベントをハンドリングする。
     void onShogiViewClicked(const QPoint &pt);
-
-    // 将棋盤上での右クリックイベントをハンドリングする。
     void onShogiViewRightClicked(const QPoint &);
-
-    // ドラッグを終了する。駒を移動してカーソルを戻す。
     void endDrag();
 
     void onPlayer1TimeOut();
     void onPlayer2TimeOut();
 
-    // MainWindow クラス宣言内（private slots: などの所）に追加
-private slots:
+    // 分岐候補欄（RecordPane 側）クリック
     void onBranchRowClicked(const QModelIndex& index);
 
 private:
-    // 平手初期局面のSFEN文字列
+    // --- 基本状態 ---
     QString m_startSfenStr;
-
-    // 現在の局面のSFEN文字列
     QString m_currentSfenStr;
+    bool    m_errorOccurred = false;
 
-    // エラーが発生したかどうかを示すフラグ
-    bool m_errorOccurred;
+    QString m_bTime;  // 先手/下手の残り
+    QString m_wTime;  // 後手/上手の残り
+    bool    m_isLoseOnTimeout = false;
 
-    // 先手あるいは下手の残り時間
-    QString m_bTime;
-
-    // 後手あるいは上手の残り時間
-    QString m_wTime;
-
-    // 持ち時間の制限があるかどうかを示すフラグ
-    bool m_isLoseOnTimeout;
-
-    // 現在の手数
-    int m_currentMoveIndex;
-
-    // 棋譜欄最後の指し手
+    int     m_currentMoveIndex = 0;
     QString m_lastMove;
 
-    // USIプロトコル通信により、将棋エンジン1と通信を行うためのオブジェクト
-    Usi* m_usi1;
+    Usi* m_usi1 = nullptr;
+    Usi* m_usi2 = nullptr;
 
-    // USIプロトコル通信により、将棋エンジン2と通信を行うためのオブジェクト
-    Usi* m_usi2;
-
-    // エンジン1のpositionコマンド文字列
     QString m_positionStr1;
-
-    // エンジン2のpositionコマンド文字列
     QString m_positionStr2;
-
-    // positionコマンド文字列のリスト
     QStringList m_positionStrList;
-
-    // ponderを受信した後のエンジン1のpositionコマンド文字列
     QString m_positionPonder1;
-
-    // ponderを受信した後のエンジン1のpositionコマンド文字列
     QString m_positionPonder2;
 
-    // 対局モード
-    PlayMode m_playMode;
+    PlayMode m_playMode = NotStarted;
 
-    // エンジン1の実行ファイル名
-    QString m_engineFile1;
+    QString m_engineFile1, m_engineFile2;
 
-    // エンジン2の実行ファイル名
-    QString m_engineFile2;
+    int  m_byoyomiMilliSec1 = 0;
+    int  m_byoyomiMilliSec2 = 0;
+    int  m_addEachMoveMiliSec1 = 0;
+    int  m_addEachMoveMiliSec2 = 0;
+    bool m_useByoyomi = false;
 
-    // 対局者1の秒読み時間（単位はミリ秒）
-    int m_byoyomiMilliSec1;
+    int  m_totalMove = 0;
 
-    // 対局者2の秒読み時間（単位はミリ秒）
-    int m_byoyomiMilliSec2;
+    ShogiView*          m_shogiView = nullptr;
+    ShogiGameController* m_gameController = nullptr;
 
-    // 対局者1の1手ごとの時間加算（単位はミリ秒）
-    int m_addEachMoveMiliSec1;
-
-    // 対局者2の1手ごとの時間加算（単位はミリ秒）
-    int m_addEachMoveMiliSec2;
-
-    // 秒読みを行うかどうかのフラグ
-    bool m_useByoyomi;
-
-    // 全手数
-    int m_totalMove;
-
-    // 将棋盤に関するビュー
-    ShogiView* m_shogiView;
-
-    // 将棋の対局全体を管理し、盤面の初期化、指し手の処理、合法手の検証、対局状態の管理を行うオブジェクト
-    ShogiGameController* m_gameController;
-
-    // クリックされたマスポイント
     QPoint m_clickPoint;
-
-    // 移動元のマスのハイライト
     ShogiView::FieldHighlight* m_selectedField = nullptr;
+    ShogiView::FieldHighlight* m_selectedField2 = nullptr;
+    ShogiView::FieldHighlight* m_movedField    = nullptr;
 
-    // 移動元のマスのハイライト2
-    ShogiView::FieldHighlight* m_selectedField2;
-
-    // 移動先のマスのハイライト
-    ShogiView::FieldHighlight* m_movedField;
-
-    // 対局初期状態のpositionコマンド文字列
     QString m_startPosStr;
 
-    // 対局ダイアログ
-    StartGameDialog* m_startGameDialog;
+    StartGameDialog*         m_startGameDialog = nullptr;
+    ConsiderationDialog*     m_considerationDialog = nullptr;
+    TsumeShogiSearchDialog*  m_tsumeShogiSearchDialog = nullptr;
+    KifuAnalysisDialog*      m_analyzeGameRecordDialog = nullptr;
 
-    // 検討ダイアログ
-    ConsiderationDialog* m_considerationDialog;
+    // --- モデル群 ---
+    KifuRecordListModel*       m_kifuRecordModel  = nullptr;
+    KifuBranchListModel*       m_kifuBranchModel  = nullptr;
+    ShogiEngineThinkingModel*  m_modelThinking1   = nullptr;
+    ShogiEngineThinkingModel*  m_modelThinking2   = nullptr;
+    KifuAnalysisListModel*     m_analysisModel    = nullptr;
 
-    // 検討ダイアログ
-    TsumeShogiSearchDialog* m_tsumeShogiSearchDialog;
+    UsiCommLogModel* m_lineEditModel1 = nullptr; // Engine 1 info
+    UsiCommLogModel* m_lineEditModel2 = nullptr; // Engine 2 info
 
-    // 棋譜解析ダイアログ
-    KifuAnalysisDialog* m_analyzeGameRecordDialog;
+    // --- 画面構成 ---
+    QTabWidget* m_tab = nullptr;              // EngineAnalysisTab 内部の QTabWidget を流用
+    QWidget*    m_gameRecordLayoutWidget = nullptr; // 右側（RecordPane）
+    QWidget*    m_playerAndBoardLayoutWidget = nullptr;
+    QSplitter*  m_hsplit = nullptr;
 
-    // 棋譜欄を表示するクラス
-    KifuRecordListModel* m_kifuRecordModel = nullptr;
-
-    // 棋譜の分岐を表示するクラス
-    KifuBranchListModel* m_kifuBranchModel = nullptr;
-
-    // エンジン1の思考結果をGUI上で表示するためのクラスのインスタンス
-    ShogiEngineThinkingModel* m_modelThinking1;
-
-    // エンジン2の思考結果をGUI上で表示するためのクラスのインスタンス
-    ShogiEngineThinkingModel* m_modelThinking2;
-
-    // 棋譜解析結果をGUI上で表示するためのクラス
-    KifuAnalysisListModel* m_analysisModel = nullptr;
-
-    // エンジンのUSIプロトコル通信ログ表示欄
-    QPlainTextEdit* m_usiCommLogEdit;
-
-    // GUIの思考1タブ
-    QTabWidget* m_tab;
-
-    // GUIの思考2タブ
-    QTabWidget* m_tab2;
-
-    // GUIの思考1ビュー
-    QTableView* m_usiView1;
-
-    // GUIの思考2ビュー
-    QTableView* m_usiView2;
-
-    // GUIの棋譜ビュー
-    QTableView* m_kifuView;
-
-    // GUIの棋譜分岐ビュー
-    QTableView* m_kifuBranchView;
-
-    // GUIの棋譜解析結果ビュー
-    QTableView* m_analysisResultsView;
-
-    // 6つの矢印ボタン用のウィジェット
-    QWidget* m_arrows;
-
-    // 予想手1のラベル欄
-    QLabel* m_predictiveHandLabel1;
-
-    // 予想手2のラベル欄
-    QLabel* m_predictiveHandLabel2;
-
-    // 探索手1のラベル欄
-    QLabel* m_searchedHandLabel1;
-
-    // 探索手2のラベル欄
-    QLabel* m_searchedHandLabel2;
-
-    // 探索深さ1のラベル欄
-    QLabel* m_depthLabel1;
-
-    // 探索深さ2のラベル欄
-    QLabel* m_depthLabel2;
-
-    // ノード数1のラベル欄
-    QLabel* m_nodesLabel1;
-
-    // ノード数2のラベル欄
-    QLabel* m_nodesLabel2;
-
-    // 探索局面数1のラベル欄
-    QLabel* m_npsLabel1;
-
-    // 探索局面数2のラベル欄
-    QLabel* m_npsLabel2;
-
-    // ハッシュ使用率1のラベル欄
-    QLabel* m_hashfullLabel1;
-
-    // ハッシュ使用率2のラベル欄
-    QLabel* m_hashfullLabel2;
-
-    // エンジン名1、予想手1、探索手1、深さ1、ノード数1、局面探索数1、ハッシュ使用率1を横ボックス化したウィジェット
-    EngineInfoWidget* m_infoWidget1 = nullptr;
-
-    // エンジン名2、予想手2、探索手2、深さ2、ノード数2、局面探索数2、ハッシュ使用率2を横ボックス化したウィジェット
-    EngineInfoWidget* m_infoWidget2 = nullptr;
-
-    // エンジン名1、予想手1、探索手1、深さ1、ノード数1、局面探索数1、ハッシュ使用率1の更新に関するオブジェクト
-    UsiCommLogModel* m_lineEditModel1;
-
-    // エンジン名2、予想手2、探索手2、深さ2、ノード数2、局面探索数2、ハッシュ使用率2の更新に関するオブジェクト
-    UsiCommLogModel* m_lineEditModel2;
-
-    // エンジン名1の表示欄
-    QLineEdit* m_engineNameText1;
-
-    // エンジン名2の表示欄
-    QLineEdit* m_engineNameText2;
-
-    // 棋譜、矢印ボタン、評価値グラフを縦ボックス化したウィジェット
-    QWidget* m_gameRecordLayoutWidget;
-
-    // // 対局者名と残り時間、将棋盤を縦ボックス化したウィジェット
-    QWidget* m_playerAndBoardLayoutWidget;
-
-    // 対局者名と残り時間、将棋盤と棋譜、矢印ボタン、評価値グラフのグループを横に並べて表示する。
-    // リサイズできる複数のセクションにエリアを分割するために使用されるウィジェット。
-    QSplitter* m_hsplit;
-
-    // 予想手1の表示欄
-    QLineEdit* m_predictiveHandText1;
-
-    // 予想手2の表示欄
-    QLineEdit* m_predictiveHandText2;
-
-    // 探索手1の表示欄
-    QLineEdit* m_searchedHandText1;
-
-    // 探索手2の表示欄
-    QLineEdit* m_searchedHandText2;
-
-    // 探索深さ1の表示欄
-    QLineEdit* m_depthText1;
-
-    // 探索深さ2の表示欄
-    QLineEdit* m_depthText2;
-
-    // ノード数1の表示欄
-    QLineEdit* m_nodesText1;
-
-    // ノード数2の表示欄
-    QLineEdit* m_nodesText2;
-
-    // 局面探索数1の表示欄
-    QLineEdit* m_npsText1;
-
-    // 局面探索数2の表示欄
-    QLineEdit* m_npsText2;
-
-    // ハッシュ使用率1の表示欄
-    QLineEdit* m_hashfullText1;
-
-    // ハッシュ使用率2の表示欄
-    QLineEdit* m_hashfullText2;
-
-    // 評価値チャートのスクロールエリア
-    QScrollArea* m_scrollArea = nullptr;
-
+    // 評価グラフ（RecordPane から受け取る。必要なら保持）
     EvaluationChartWidget* m_evalChart = nullptr;
 
-    // エンジンによる現在の評価値リスト
-    QList<int> m_scoreCp;
+    QList<int>       m_scoreCp;
+    QString          m_humanName1, m_humanName2;
+    QString          m_engineName1, m_engineName2;
 
-    // 対局者が人間の場合の対局者名1
-    QString m_humanName1;
+    QStringList*             m_sfenRecord   = nullptr;
+    QList<KifuDisplay *>*    m_moveRecords  = nullptr;
 
-    // 対局者が人間の場合の対局者名2
-    QString m_humanName2;
-
-    // 対局者がエンジンの場合の対局者名1
-    QString m_engineName1;
-
-    // 対局者がエンジンの場合の対局者名2
-    QString m_engineName2;
-
-    // SFEN文字列のリスト
-    QStringList* m_sfenRecord;
-
-    // 棋譜データのリスト
-    QList<KifuDisplay *>* m_moveRecords;
-
-    // 対局数
-    int m_gameCount;
-
-    // KIF形式の棋譜データリスト
+    int         m_gameCount = 0;
     QStringList m_kifuDataList;
+    QString     defaultSaveFileName;
+    QString     kifuSaveFileName;
 
-    // 棋譜のデフォルト保存ファイル名
-    QString defaultSaveFileName;
-
-    // 棋譜の保存ファイル名
-    QString kifuSaveFileName;
-
-    // 指し手のリスト
     QVector<ShogiMove> m_gameMoves;
 
-    // 将棋クロック
-    ShogiClock* m_shogiClock;
+    ShogiClock* m_shogiClock = nullptr;
 
-    // 2回目のクリックを待っているかどうかを示すフラグ
-    bool m_waitingSecondClick;
-
-    // 1回目のクリック位置
+    bool   m_waitingSecondClick = false;
     QPoint m_firstClick;
 
-    // 将棋盤、駒台を初期化（何も駒がない）し、入力のSFEN文字列の配置に将棋盤、駒台の駒を
-    // 配置し、対局結果を結果なし、現在の手番がどちらでもない状態に設定する。
+    // --- ロジック ---
     void startNewShogiGame(QString& startSfenStr);
-
-    // 棋譜を更新し、GUIの表示も同時に更新する。
     void updateGameRecord(const QString& elapsedTime);
 
-    // 対局ダイアログの設定を出力する。
     void printGameDialogSettings(StartGameDialog* m_gamedlg);
-
-    // 待ったをした場合、position文字列のセットと評価値グラフの値を削除する。
     void handleUndoMove(int index);
 
-    // 将棋盤上部の対局者名欄、手数欄を作成し、パックしてウィジェットにまとめる。
     void createPlayerNameAndMoveDisplay();
-
-    // 対局モードに応じて将棋盤上部に表示される対局者名をセットする。
     void setPlayersNamesForMode();
-
-    // 将棋盤上部の残り時間と手番を示す赤丸を設定する。
     void setupTimeAndTurnIndicators();
-
-    // 将棋盤と駒台を描画する。
     void renderShogiBoard();
-
-    // 棋譜解析結果を表示するためのテーブルビューを設定および表示する。
     void displayAnalysisResults();
 
-    // エンジン1の予想手、探索手などの情報を表示する。
-    void initializeEngine1InfoDisplay();
-
-    // エンジン2の予想手、探索手などの情報を表示する。
-    void initializeEngine2InfoDisplay();
-
-    // エンジン1の思考タブを作成する。
-    void initializeEngine1ThoughtTab();
-
-    // エンジン2の思考タブを作成する。
-    void initializeEngine2ThoughtTab();
-
-    // 新規対局の準備をする。
     void initializeNewGame(QString& startSfenStr);
-
-    // "sfen 〜"で始まる文字列startpositionstrを入力して"sfen "を削除したSFEN文字列を返す。
     QString parseStartPositionToSfen(QString startPositionStr);
 
-    // 平手、駒落ち Player1: Human, Player2: Human
     void startHumanVsHumanGame();
-
-    // 平手 Player1: Human, Player2: USI Engine
-    // 駒落ち Player1: USI Engine（下手）, Player2: Human（上手）
     void startHumanVsEngineGame();
-
-    // 平手 Player1: USI Engine（先手）, Player2: Human（後手）
-    // 駒落ち Player1: Human（下手）, Player2: USI Engine（上手）
     void startEngineVsHumanGame();
-
-    // 平手、駒落ち Player1: USI Engine, Player2: USI Engine
     void startEngineVsEngineGame();
 
-    // 検討を開始する。
     void startConsidaration();
-
-    // 棋譜解析を開始する。
     void analyzeGameRecord();
-
-    // 対局モード（人間対エンジンなど）に応じて対局処理を開始する。
     void startGameBasedOnMode();
 
-    // エンジン1の評価値グラフの再描画を行う。
     void redrawEngine1EvaluationGraph();
-
-    // エンジン2の評価値グラフの再描画を行う。
     void redrawEngine2EvaluationGraph();
 
-    // 駒の移動元と移動先のマスのハイライトを消去する。
     void clearMoveHighlights();
-
-    // 駒の移動元と移動先のマスをそれぞれ別の色でハイライトする。
     void addMoveHighlights();
 
-    // GUIの残り時間を更新する。
     void updateRemainingTimeDisplay();
-
-    // 対局のメニュー表示を一部隠す。
     void hideGameActions();
-
-    // 対局中のメニュー表示に変更する。
     void setGameInProgressActions();
 
-    // GUIを構成するWidgetなどを生成する。
     void initializeComponents();
-
-    // 対局者名と残り時間、将棋盤と棋譜、矢印ボタン、評価値グラフのグループを横に並べて表示する。
     void setupHorizontalGameLayout();
-
-    // 対局者名と残り時間、将棋盤、棋譜、矢印ボタン、評価値グラフのウィジェットと
-    // info行の予想手、探索手、エンジンの読み筋のウィジェットを縦ボックス化して
-    // セントラルウィジェットにセットする。
     void initializeCentralGameDisplay();
 
-    // 対局モードに応じて将棋盤下部に表示されるエンジン名をセットする。
     void setEngineNamesBasedOnMode();
 
-    // 設定ファイルにGUI全体のウィンドウサイズを書き込む。
-    // また、将棋盤のマスサイズも書き込む。
     void saveWindowAndBoardSettings();
-
-    // ShogibanQ全体のウィンドウサイズを読み込む。
-    // 前回起動したウィンドウサイズに設定する。
     void loadWindowSettings();
-
-    // ウィンドウを閉じる処理を行う。
     void closeEvent(QCloseEvent* event) override;
 
-    // 局面編集中のメニュー表示に変更する。
     void displayPositionEditMenu();
-
-    // 局面編集メニュー後のメニュー表示に変更する。
     void hidePositionEditMenu();
 
-    // 棋譜ファイルのヘッダー部分を作成する。
     void makeKifuFileHeader();
-
-    // 棋譜ファイルのヘッダー部分の対局者名を作成する。
     void getPlayersName(QString& playersName1, QString& playersName2);
-
-    // 保存ファイルのデフォルト名を作成する。
     void makeDefaultSaveFileName();
 
-    // 棋譜欄に「指し手」と「消費時間」のデータを表示させる。
     void displayGameRecord(const QList<KifDisplayItem> disp);
 
-    // 対局者の残り時間と秒読みを設定する。
     void setRemainingTimeAndCountDown();
-
-    // 対局ダイアログから各オプションを取得する。
     void getOptionFromStartGameDialog();
-
-    // 現在の局面で開始する場合に必要なListデータなどを用意する。
     void prepareDataCurrentPosition();
-
-    // 初期局面からの対局する場合の準備を行う。
     void prepareInitialPosition();
-
-    // 残り時間をセットしてタイマーを開始する。
     void setTimerAndStart();
-
-    // 現在の手番を設定する。
     void setCurrentTurn();
 
-    // 対局モードを決定する。
-    PlayMode determinePlayMode(const int initPositionNumber, const bool isPlayer1Human, const bool isPlayer2Human) const;
-
-    // 対局モードを決定する。
+    PlayMode determinePlayMode(int initPositionNumber, bool isPlayer1Human, bool isPlayer2Human) const;
     PlayMode setPlayMode();
 
-    // 指す駒を左クリックで選択した場合、そのマスをオレンジ色にする。
     void selectPieceAndHighlight(const QPoint& field);
-
-    // 将棋のGUIでクリックされたポイントに基づいて駒の移動を処理する。
-    // 対局者が将棋盤上で駒をクリックして移動させる際の一連の処理を担当する。
     void handleClickForPlayerVsEngine(const QPoint& field);
-
-    // 人間対人間の対局で、クリックされたポイントに基づいて駒の移動を処理する。
-    // 対局者が将棋盤上で駒をクリックして移動させる際の一連の処理を担当する。
     void handleClickForHumanVsHuman(const QPoint& field);
-
-    // 局面編集モードで、クリックされたポイントに基づいて駒の移動を処理する。
-    // 対局者が将棋盤上で駒をクリックして移動させる際の一連の処理を担当する。
     void handleClickForEditMode(const QPoint &field);
 
-    // ユーザーのクリックをリセットし、選択したハイライトを削除する。
     void resetSelectionAndHighlight();
-
-    // 既存のフィールドハイライトを更新し、新しいフィールドハイライトを作成してビューに追加する。
     void updateHighlight(ShogiView::FieldHighlight*& highlightField, const QPoint& field, const QColor& color);
-
-    // 既存のハイライトをクリアし（nullでないことが前提）、新しいハイライトを作成して表示する。
     void clearAndSetNewHighlight(ShogiView::FieldHighlight*& highlightField, const QPoint& to, const QColor& color);
-
-    // 指定されたハイライトを削除する。
     void deleteHighlight(ShogiView::FieldHighlight*& highlightField);
-
-    // 新しいハイライトを作成し、それを表示する。
     void addNewHighlight(ShogiView::FieldHighlight*& highlightField, const QPoint& position, const QColor& color);
 
-    // 棋譜を更新し、GUIの表示も同時に更新する。
     void updateGameRecordAndGUI();
-
-    // 「すぐ指させる」
-    // エンジンにstopコマンドを送る。
-    // エンジンに対し思考停止を命令するコマンド。エンジンはstopを受信したら、できるだけすぐ思考を中断し、
-    // bestmoveで指し手を返す。
     void movePieceImmediately();
 
-    // KIF形式の棋譜ファイルを読み込む。
-    // 参考．http://kakinoki.o.oo7.jp/kif_format.html
     void loadKifuFromFile(const QString &filePath);
-
-    // positionコマンド文字列を生成し、リストに格納する。
     void createPositionCommands();
-
-    // ファイルからテキストの行を読み込み、QStringListとして返す。
     QStringList loadTextLinesFromFile(const QString& filePath);
 
-    // 対局者2をエンジン1で初期化して対局を開始する。
     void initializeAndStartPlayer2WithEngine1();
-
-    // 対局者1をエンジン1で初期化して対局を開始する。
     void initializeAndStartPlayer1WithEngine1();
-
-    // 対局者2をエンジン2で初期化して対局を開始する。
     void initializeAndStartPlayer2WithEngine2();
-
-    // 対局者1をエンジン2で初期化して対局を開始する。
     void initializeAndStartPlayer1WithEngine2();
 
-    // 手番に応じて将棋クロックの手番変更およびGUIの手番表示を更新する。
     void updateTurnAndTimekeepingDisplay();
-
-    // GUIの残り時間を更新する。
     void updateRemainingTimeDisplayHumanVsHuman();
-
-    // 手番に応じて将棋クロックの手番変更する。
     void updateTurnDisplay();
-
-    // 将棋クロックの手番を設定する。
     void updateTurnStatus(int currentPlayer);
 
-    // 対局者1と対局者2の持ち時間を設定する。
-    void setPlayerTimeLimits();
-
-    // 詰み探索ダイアログを表示する。
     void displayTsumeShogiSearchDialog();
-
-    // 詰み探索を開始する。
     void startTsumiSearch();
-
-    // ドラッグ操作のリセットを行う。
     void finalizeDrag();
 
     QElapsedTimer m_humanTurnTimer;
@@ -763,14 +324,14 @@ private:
 
     ShogiGameController::Player humanPlayerSide() const;
     bool isHumanTurn() const;
-    void armHumanTimerIfNeeded();         // 人間手番になったら一度だけ start
-    void finishHumanTimerAndSetConsideration(); // 合法手確定時に ShogiClock へ反映
+    void armHumanTimerIfNeeded();
+    void finishHumanTimerAndSetConsideration();
 
-    QElapsedTimer m_turnTimer;     // 人間用：手番スタート→合法手確定まで
+    QElapsedTimer m_turnTimer;
     bool          m_turnTimerArmed = false;
 
-    void armTurnTimerIfNeeded(); // 現在手番に対して未アームなら start
-    void finishTurnTimerAndSetConsiderationFor(ShogiGameController::Player mover); // mover に加算
+    void armTurnTimerIfNeeded();
+    void finishTurnTimerAndSetConsiderationFor(ShogiGameController::Player mover);
 
     void disarmHumanTimerIfNeeded();
 
@@ -778,61 +339,37 @@ private:
     void refreshClockLabels();
     static QString formatMs(int ms);
 
-    // MainWindow のメンバに追加
     bool m_p1HasMoved = false;
     bool m_p2HasMoved = false;
 
     void computeGoTimesForUSI(qint64& outB, qint64& outW);
     void refreshGoTimes();
 
-    // ★ 追加: GUI側の旗落ち判定に使う最小猶予（ms）
-    static constexpr int kFlagFallGraceMs = 200; // 推奨: 150〜300 の範囲で好みに調整
-
-    // ★ 追加: その「手番の側」の想定予算(ms)を算出
-    int computeMoveBudgetMsForCurrentTurn() const;
-
-    // ★ 追加: 旗落ち（時間切れ）を処理。moverP1がtrueなら先手(P1)が時間切れ
+    static constexpr int kFlagFallGraceMs = 200;
+    int  computeMoveBudgetMsForCurrentTurn() const;
     void handleFlagFallForMover(bool moverP1);
-
     enum class Winner { P1, P2 };
     void stopClockAndSendGameOver(Winner w);
 
-    // 終局理由
-    enum class GameOverCause {
-        Resignation,   // 投了
-        Timeout        // 時間切れ
-        // （必要なら Checkmate, Illegal, Draw などを今後追加）
-    };
-
-    // 棋譜欄の終局表記（"▲投了" / "△時間切れ" 等）をセット
+    enum class GameOverCause { Resignation, Timeout };
     void setGameOverMove(GameOverCause cause, bool loserIsPlayerOne);
-
-    // 表示用の▲/△を返す（既存の setResignationMove と同じ規則を踏襲）
     QChar glyphForPlayer(bool isPlayerOne) const;
+    void onEngine1Resigns();
+    void onEngine2Resigns();
 
-    // 投了裁定の明示関数（エンジン1が投了／エンジン2が投了）
-    void onEngine1Resigns(); // 先手（エンジン1）が投了 → 先手lose／後手win
-    void onEngine2Resigns(); // 後手（エンジン2）が投了 → 後手lose／先手win
-
-    // 対局中か（終局が決まったら true にして以後の思考呼び出し・適用を停止）
-    bool m_gameIsOver = false; // NEW
-
-    // MainWindow の private: など適切な場所に追加（既にあればこの初期化値でOK）
-    bool          m_gameoverMoveAppended = false;        // 棋譜の終局行を実際に追記したか
-    bool          m_hasLastGameOver      = false;        // 直近の終局メタがあるか
-    GameOverCause m_lastGameOverCause    = GameOverCause::Resignation; // 初期値は何でもOK
-    bool          m_lastLoserIsP1        = false;        // 直近終局の敗者
+    bool m_gameIsOver = false;
+    bool m_gameoverMoveAppended = false;
+    bool m_hasLastGameOver = false;
+    GameOverCause m_lastGameOverCause = GameOverCause::Resignation;
+    bool m_lastLoserIsP1 = false;
 
     void appendKifuLine(const QString& text, const QString& elapsedTime);
 
-    // --- これらを MainWindow クラス定義内（private: あたり）に追加 ---
     qint64 m_initialTimeP1Ms = 0;
     qint64 m_initialTimeP2Ms = 0;
+    qint64 m_turnEpochP1Ms   = -1;
+    qint64 m_turnEpochP2Ms   = -1;
 
-    qint64 m_turnEpochP1Ms = -1;   // 先手の「この手」の開始ms
-    qint64 m_turnEpochP2Ms = -1;   // 後手の「この手」の開始ms
-
-    // mm:ss / hh:mm:ss の整形ヘルパ
     static inline QString fmt_mmss(qint64 ms) {
         if (ms < 0) ms = 0;
         QTime t(0,0); return t.addMSecs(static_cast<int>(ms)).toString("mm:ss");
@@ -842,9 +379,8 @@ private:
         QTime t(0,0); return t.addMSecs(static_cast<int>(ms)).toString("hh:mm:ss");
     }
 
-    // 追加：読み込んだUSI手列を保持（再生や解析に利用）
     QStringList m_usiMoves;
-    QStringList m_loadedSfens;     // ← 各手後のSFENを保持したい場合に
+    QStringList m_loadedSfens;
 
     QString prepareInitialSfen(const QString& filePath, QString& teaiLabel) const;
     QList<KifDisplayItem> parseDisplayMovesAndDetectTerminal(const QString& filePath,
@@ -863,248 +399,203 @@ private:
                           const QString& warnParse,
                           const QString& warnConvert) const;
 
-    // コメントを「棋譜欄の行インデックス」で引けるようにする
-    QVector<QString> m_commentsByRow;
-
-    // 指定行のコメントを m_branchText に反映
-    void updateBranchTextForRow(int row);
-
-    QTextBrowser* m_branchText = nullptr;
-
-    // ★ 追加：m_tab1 に置くミラー用のコメントビュー
-    QTextBrowser* m_branchTextInTab1 = nullptr;
-
-    // （任意）HTML生成のヘルパ
-    QString makeBranchHtml(const QString& text) const;
-
-    QDockWidget*   m_gameInfoDock  = nullptr;   // 使わないなら残してOK（null化/削除）
-    QTableWidget*  m_gameInfoTable = nullptr;
-
-    void ensureGameInfoTable();          // テーブルの生成だけ行う（親は付けない）
-    void addGameInfoTabIfMissing();      // 「棋譜コメント」の後ろにタブ追加
-    void populateGameInfo(const QList<KifGameInfoItem>& items); // ←既存をこの実装に置換
-
-    // 対局情報（KIFヘッダ）から、keys のどれかに一致する最初の値を返す
-    QString findGameInfoValue(const QList<KifGameInfoItem>& items,
-                              const QStringList& keys) const;
-
-    // 先手／後手（上手／下手もフォールバック）を ShogiView に反映
-    void applyPlayersFromGameInfo(const QList<KifGameInfoItem>& items);
-
-    void populateBranchListForPly(int ply);
-    void applyVariation(int parentPly, int branchIndex);
-
-    // MainWindow の private: に追加
-    QHash<int, VariationBucket> m_variationsByPly;
-
-    // 本譜スナップショット（分岐から戻す用）
-    QList<KifDisplayItem> m_dispMain;
-    QStringList           m_sfenMain;
-    QVector<ShogiMove>    m_gmMain;
-
-    // 現在、本譜で選択中の手目（分岐リスト更新に使う）
-    int m_currentSelectedPly = -1;
-
-    // 分岐の開始手（本譜のどの手に分岐があるか）を記録
-    QSet<int> m_branchablePlies;
-
-    void showRecordAtPly(const QList<KifDisplayItem>& disp, int selectPly);
-
-    QString m_initialSfen;
-
-    bool m_isKifuReplay = false;   // KIF読み込み/再生中フラグ
-
-    // いまの m_currentSelectedPly に対応するSFENで盤面を更新する共通ヘルパ
-    void applySfenAtCurrentPly();
-
-    void refreshBoardAndHighlightsForRow(int row);
-
-    // MainWindow の private: に追加
-    void syncBoardAndHighlightsAtRow(int row);
-
-    // いまテーブルに表示している棋譜（本譜 or 分岐合成後）を保持
-    QList<KifDisplayItem> m_dispCurrent;
-
-    // 分岐切替ハンドラ（既存の onBranchRowClicked と同趣旨）
-    void applyVariationByKey(int startPly, int bucketIndex);
-
-    // 分岐ツリー描画用
-    QGraphicsView* m_branchTreeView = nullptr;
-    QGraphicsPathItem*   m_branchTreeSelectedNode = nullptr;  // 分岐ツリーの選択ノード
-
-    // 変化を“ファイル登場順”で保持する（ツリー接続に使用）
-    QList<KifLine> m_variationsSeq;
-    void rebuildBranchTreeView();   // ツリーを再描画
-
-    // MainWindow クラス内（private: あたり）
-    enum BranchNodeKind { BNK_Start=1, BNK_Main=2, BNK_Var=3 };
-
-    // QGraphicsItem::setData 用キー
-    static constexpr int BR_ROLE_KIND      = 0x200;
-    static constexpr int BR_ROLE_PLY       = 0x201; // 本譜ノードの ply
-    static constexpr int BR_ROLE_STARTPLY  = 0x202; // 分岐の開始手
-    static constexpr int BR_ROLE_BUCKET    = 0x203; // 同一開始手内での分岐Index
-
-    bool eventFilter(QObject* obj, QEvent* ev) override;
-
-
-    // mainwindow.h （適当な public/private セクションに）
-    struct BranchRowAction {
-        enum Kind { Main, Var };
-        Kind kind;
-        int  ply;       // この手数での候補
-        int  varIndex;  // Var のときのみ有効
-    };
-
-// class MainWindow { の private: へ追加
 #ifdef SHOGIBOARDQ_DEBUG_KIF
-    // 「1▲７六歩(77)」「2△３四歩(33)」…という同じ体裁で出力
     void dbgDumpMoves(const QList<KifDisplayItem>& disp,
                       const QString& tag,
                       int startPly = 1) const;
-
-    // 2 系列を比較して差分位置を示す
     void dbgCompareGraphVsKifu(const QList<KifDisplayItem>& graphDisp,
                                const QList<KifDisplayItem>& kifuDisp,
                                int selPly, const QString& where) const;
 #endif
 
-    // --- 既存の MainWindow のメンバに追記 ---
-
-    // 「後勝ち」で解決済みの 1 行ぶん
-    struct ResolvedLine {
-        int row = 0;               // 行番号: 0=本譜, 1..=ファイル登場順の分岐
-        int varIndex = -1;         // -1=本譜, それ以外= m_variationsSeq の index
-        int startPly = 1;          // 分岐の開始手（本譜は1）
-        QList<KifDisplayItem> disp; // 1..N手ぶんの表示（前半は「後勝ち」適用済み）
-        QStringList sfenList;      // 先頭に初期SFENを含む（index 0 が初期局面）
-        QVector<ShogiMove> gameMoves; // 盤ハイライト用（あれば）
-    };
-
-    QVector<ResolvedLine> m_resolvedLines; // 行ごとの完成済みライン
-
-    // 構築・反映ユーティリティ
-    void buildResolvedRowsAfterLoad();                     // ← これを実装
-
-    struct BranchRowMap { int resolvedRow = 0; int ply = 0; };
-
-    // === 解決済み行（後勝ちで合成した1行ぶん） ===
+    // --- “後勝ち”で作った解決済み行 ---
     struct ResolvedRow {
-        int startPly = 1;                      // 行の開始手数（本譜は常に1）
-        QList<KifDisplayItem> disp;            // 表示用（棋譜欄/分岐ツリーに出すテキスト列）
-        QStringList sfen;                      // 0..N の局面列（apply用）
-        QVector<ShogiMove> gm;                 // USI（apply用）
-        int varIndex = -1;                     // 対応する分岐のインデックス（本譜は -1）
+        int startPly = 1;
+        QList<KifDisplayItem> disp;
+        QStringList sfen;
+        QVector<ShogiMove> gm;
+        int varIndex = -1; // 本譜=-1
     };
-
-private:
-    // --- 後勝ちで構築した“解決済み行” ---
-    QVector<ResolvedRow> m_resolvedRows;    // 行0=本譜, 行1..=分岐
-
-    // MainWindow のプライベートメンバ
-
-    // いま表示している“解決済み行”のインデックス（0 = 本譜）
+    QVector<ResolvedRow> m_resolvedRows;
     int m_activeResolvedRow = 0;
 
-private:
-    // 読み込み直後に一度だけ作る（本譜+分岐を“後勝ち”で解決して行データ化）
     void buildResolvedLinesAfterLoad();
-
-    // 指定の解決済み行 row を適用し、棋譜欄の selPly を選択する
     void applyResolvedRowAndSelect(int row, int selPly);
 
-    // --- 事前計算した「分岐候補」1件 ---
+    // 分岐候補（テキスト）側の索引（※分岐ツリー表示は EngineAnalysisTab へ移管）
     struct BranchCandidate {
-        QString text;  // 「▲２六歩(27)」など（正規化済み）
-        int row;       // この手を持つ resolved 行インデックス（0=本譜）
-        int ply;       // 手数（1始まり）
+        QString text;  // 「▲２六歩(27)」
+        int row;       // resolved 行
+        int ply;       // 1始まり
     };
-
-    // [手数 ply] -> [基底SFEN] -> 候補リスト
     QHash<int, QHash<QString, QList<BranchCandidate>>> m_branchIndex;
-
-    // 分岐候補ビューで、行クリック→どの resolved 行/手数へ飛ぶか
     QList<QPair<int,int>> m_branchRowMap; // .first=row, .second=ply
 
-    // 事前計算ビルド
     void buildBranchCandidateIndex();
+    void populateBranchListForPly(int ply);
+    void applyVariation(int parentPly, int branchIndex);
+    void applyVariationByKey(int startPly, int bucketIndex);
 
-    QHash<QPair<int,int>, QGraphicsPathItem*> m_branchNodeIndex;
-    bool m_branchTreeSelectGuard = false; // 再入抑止（プログラム選択→selectionChangedでapplyを呼ばせない）
+    // KIFヘッダ（対局情報）タブ
+    QDockWidget*  m_gameInfoDock  = nullptr;
+    QTableWidget* m_gameInfoTable = nullptr;
+    void ensureGameInfoTable();
+    void addGameInfoTabIfMissing();
+    void populateGameInfo(const QList<KifGameInfoItem>& items);
+    QString findGameInfoValue(const QList<KifGameInfoItem>& items,
+                              const QStringList& keys) const;
+    void applyPlayersFromGameInfo(const QList<KifGameInfoItem>& items);
 
-    QGraphicsPathItem* branchNodeFor(int row, int ply) const;
-    void highlightBranchTreeAt(int row, int ply, bool centerOn /*=false*/);
-
-    int  m_activePly = 0;                   // 現在の手数（0=初期局面）
-
-    // 「この手に分岐候補がある」手数（ply）の集合
-    QSet<int> m_branchablePlySet;
-
-    // 棋譜欄の分岐マーカー描画用デリゲート（ヘッダ側に宣言を移動）
-    class BranchRowDelegate : public QStyledItemDelegate
-    {
+    // 分岐候補の手数マーカー描画（棋譜テーブル用）
+    class BranchRowDelegate : public QStyledItemDelegate {
     public:
         explicit BranchRowDelegate(QObject* parent = nullptr)
             : QStyledItemDelegate(parent) {}
-
         void setMarkers(const QSet<int>* marks) { m_marks = marks; }
-
-        // 実装は .cpp に出します
         void paint(QPainter* painter,
                    const QStyleOptionViewItem& option,
                    const QModelIndex& index) const override;
-
     private:
         const QSet<int>* m_marks = nullptr;
     };
-
     BranchRowDelegate* m_branchRowDelegate = nullptr;
-
-    // 内部ユーティリティ
     void ensureBranchRowDelegateInstalled();
     void updateKifuBranchMarkersForActiveRow();
 
-private:
+    // --- 新UI部品 ---
+    RecordPane*          m_recordPane = nullptr;
+    NavigationController* m_nav = nullptr;
+    EngineAnalysisTab*    m_analysisTab = nullptr;
+
+    void setupRecordPane();
+    void setupEngineAnalysisTab();
+
+    // 接続タイプの補助
     Qt::ConnectionType connTypeFor(QObject* obj) const;
+
+    // 対局状態フラグや時計の同期
     void resetGameFlags();
     void syncClockTurnAndEpoch();
+
+    // 記録用のエポック開始（オーバーロード2種）
     void startMatchEpoch(const char* tag);
     void startMatchEpoch(const QString& tag);
+
+    // 投了通知の配線
     void wireResignToArbiter(Usi* engine, bool asP1);
+
+    // 直前に指した側の思考時間を時計へ反映
     void setConsiderationForJustMoved(qint64 thinkMs);
-    bool engineThinkApplyMove(Usi* engine, QString& positionStr, QString& ponderStr,
-                              QPoint* outFrom, QPoint* outTo);
+
+    // エンジンの思考→指し手適用（true=適用した）
+    bool engineThinkApplyMove(Usi* engine,
+                              QString& positionStr,
+                              QString& ponderStr,
+                              QPoint* outFrom,
+                              QPoint* outTo);
+
+    // エンジン生成/破棄と初期化
     void destroyEngine(Usi*& e);
     void initSingleEnginePvE(bool engineIsP1);
     void initEnginesForEvE();
     void setupInitialPositionStrings();
+
+    // クリックハンドラ（対局モードに応じて差し替え）
     void setPvEClickHandler();
     void setPvPClickHandler();
+
+    // UIと時計の同期（タイトル等）
     void syncAndEpoch(const QString& title);
+
+    // 人間手番かどうか
     bool isHumanTurnNow(bool engineIsP1) const;
+
+    // エンジンに1手だけ指させる共通処理
     bool engineMoveOnce(Usi* eng,
                         QString& positionStr,
                         QString& ponderStr,
                         bool useSelectedField2,
                         int engineIndex,
                         QPoint* outTo = nullptr);
-    // EvEで「片側が1手指す」共通処理
+
+    // EvEで「片側が1手指す」
     bool playOneEngineTurn(Usi* mover, Usi* receiver,
                            QString& positionStr,
                            QString& ponderStr,
                            int engineIndex);
 
-    // ---- assignment helpers ----
-    void assignSidesHumanVsEngine();      // HvE: m_usi1 を先後どちらに割り当てるか
-    void assignSidesEngineVsHuman();      // EvH: m_usi1 を先後どちらに割り当てるか
-    void assignEnginesEngineVsEngine();   // EvE: m_usi1/m_usi2 を先後に割り当てる
+    // サイド割当（HvE/EvH/EvE）
+    void assignSidesHumanVsEngine();
+    void assignSidesEngineVsHuman();
+    void assignEnginesEngineVsEngine();
 
-    RecordPane* m_recordPane = nullptr;
+    // KIF読み込み/再生中フラグ
+    bool m_isKifuReplay = false;
 
-    void setupRecordPane();
+    QVector<QString> m_commentsByRow;
 
-    // ★追加：矢印操作のコントローラ
-    NavigationController* m_nav = nullptr;
+    // ---------- 分岐コメント ----------
+    QString makeBranchHtml(const QString& text) const;   // 宣言だけでOK（実装はcpp）
+    void    updateBranchTextForRow(int row);             // 同上
+
+    // ---------- 棋譜表示／分岐操作 ----------
+    void showRecordAtPly(const QList<KifDisplayItem>& disp, int selectPly);
+    void syncBoardAndHighlightsAtRow(int row);
+    void applySfenAtCurrentPly();
+    void refreshBoardAndHighlightsForRow(int row);
+    void rebuildBranchTreeView();
+    QGraphicsPathItem* branchNodeFor(int row, int ply);
+
+    void buildResolvedRowsAfterLoad();   // 既にあれば重複可。なければ追加。
+
+    // ---------- “旧UI”互換のエイリアス（nullable） ----------
+    // 既存コードが m_kifuView / m_kifuBranchView を参照している箇所のための受け皿。
+    // 実体は RecordPane 等から取得して代入しておく（下の NOTE 参照）。
+    QTableView*      m_kifuView        = nullptr;
+    QTableView*      m_kifuBranchView  = nullptr;
+
+    // 解析結果テーブル
+    QTableView*      m_analysisResultsView = nullptr;
+
+    // ---------- 分岐ツリー ----------
+    QGraphicsView*   m_branchTreeView  = nullptr;
+    QHash<QPair<int,int>, QGraphicsPathItem*> m_branchNodeIndex;
+    bool             m_branchTreeSelectGuard = false;
+
+    // ---------- 分岐／本譜データのスナップショット ----------
+    QList<KifDisplayItem> m_dispMain;
+    QList<KifDisplayItem> m_dispCurrent;
+    QStringList           m_sfenMain;
+    QVector<ShogiMove>    m_gmMain;
+
+    // 変化バケツ：手目 → 変化リスト
+    QHash<int, QList<KifLine>> m_variationsByPly;
+    QList<KifLine>             m_variationsSeq;
+
+    // 分岐可能手集合（名前揺れ対策で両方持つ）
+    QSet<int> m_branchablePlies;
+    QSet<int> m_branchablePlySet;  // = m_branchablePlies のミラー
+
+    // ---------- カレント選択 ----------
+    int m_activePly          = 0;
+    int m_currentSelectedPly = 0;
+
+    QString m_initialSfen;
+
+    // ---------- 分岐ツリーの role / kind 定数 ----------
+    enum BranchNodeKind { BNK_Start=0, BNK_Main=1, BNK_Var=2 };
+    static constexpr int BR_ROLE_KIND     = 0;
+    static constexpr int BR_ROLE_PLY      = 1;
+    static constexpr int BR_ROLE_ROW      = 2;
+    static constexpr int BR_ROLE_STARTPLY = 3;
+    static constexpr int BR_ROLE_BUCKET   = 4;
+
+    void highlightBranchTreeAt(int row, int ply, bool centerOn = true);
+    QGraphicsPathItem* branchNodeFor(int row, int ply) const;
+
+    EngineAnalysisTab* m_engineAnalysisTab = nullptr;
+
+    void applyEnginePanelsByMode();
 
 public: // INavigationContext
     bool hasResolvedRows() const override;
@@ -1112,15 +603,14 @@ public: // INavigationContext
     int  activeResolvedRow() const override;
     int  maxPlyAtRow(int row) const override;
     int  currentPly() const override;
-    void applySelect(int row, int ply) override; // 既存の applyResolvedRowAndSelect を呼ぶ
-
+    void applySelect(int row, int ply) override;
 
 private slots:
-    // 分岐候補欄でEnter/シングルクリックなどのアクティベートに反応
     void onBranchCandidateActivated(const QModelIndex& idx);
-
-    // RecordPane からの「行が変わった」通知を受ける int 版のスロット
     void onMainMoveRowChanged(int row);
+
+protected:
+    bool eventFilter(QObject* obj, QEvent* ev) override;
 };
 
 #endif // MAINWINDOW_H
