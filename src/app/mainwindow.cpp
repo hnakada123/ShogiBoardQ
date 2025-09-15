@@ -258,47 +258,6 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(m_gameController, &ShogiGameController::endDragSignal, this, &MainWindow::endDrag);
 }
 
-// 将棋盤上での左クリックイベントをハンドリングする。
-void MainWindow::onShogiViewClicked(const QPoint &pt)
-{
-    // １回目クリック（つまみ始め）で、かつ持ち駒マスなら枚数をチェックする。
-    // 念のため、ShogiView::startDragにもガードを入れている。
-    // 持ち駒が1枚も無いマスを左クリックすると駒画像がドラッグされないようにする。
-    // このチェックが無いと、持ち駒が1枚も無いマスを左クリックするとドラッグされてしまう。
-    if (!m_waitingSecondClick && (pt.x() == 10 || pt.x() == 11)) {
-        QChar piece = m_shogiView->board()->getPieceCharacter(pt.x(), pt.y());
-
-        // 持ち駒の枚数が0なら何もしない。
-        if (m_shogiView->board()->m_pieceStand.value(piece) <= 0) return;
-    }
-
-    // 1回めのクリックの場合
-    if (!m_waitingSecondClick) {
-        // １回目にクリックしたマスの座標を保存する。
-        m_firstClick = pt;
-
-        // 駒のドラッグを開始する。
-        m_shogiView->startDrag(pt);
-
-        // 2回目のクリックを待っているかどうかを示すフラグを設定する。
-        m_waitingSecondClick = true;
-    }
-    // 2回目のクリックの場合
-    else {
-        // 2回目のクリックを待っているかどうかを示すフラグをリセットする。
-        m_waitingSecondClick = false;
-    }
-}
-
-// 将棋盤上での右クリックイベントをハンドリングする。
-void MainWindow::onShogiViewRightClicked(const QPoint &)
-{
-    // 2回目のクリックの場合
-    if (m_waitingSecondClick) {
-        // ドラッグ操作のリセットを行う。
-        finalizeDrag();
-    }
-}
 
 // GUIを構成するWidgetなどを生成する。
 void MainWindow::initializeComponents()
@@ -391,52 +350,26 @@ void MainWindow::toggleEngineAnalysisVisibility() {
 // 駒の移動元と移動先のマスのハイライトを消去する。
 void MainWindow::clearMoveHighlights()
 {
-    // 駒の移動元のマスのハイライトを消去する。
-    m_shogiView->removeHighlight(m_selectedField);
-
-    // 駒の移動元のマスを削除
-    delete m_selectedField;
-
-    // 駒の移動元のマスのポインタを初期化する。
-    m_selectedField = nullptr;
-
-    // 駒の移動元のマス2のハイライトを消去する。
-    m_shogiView->removeHighlight(m_selectedField2);
-
-    // 駒の移動元のマス2を削除
-    delete m_selectedField2;
-
-    // 駒の移動元のマス2のポインタを初期化する。
-    m_selectedField2 = nullptr;
-
-    // 駒の移動先のマスのハイライトを消去する。
-    m_shogiView->removeHighlight(m_movedField);
-
-    // 駒の移動先のマスを削除
-    delete m_movedField;
-
-    // 駒の移動先のマスのポインタを初期化する。
-    m_movedField = nullptr;
+    if (m_boardController) {
+        m_boardController->clearAllHighlights(); // ない場合は追加してください
+        return;
+    }
 }
 
 // 駒の移動元と移動先のマスをそれぞれ別の色でハイライトする。
 void MainWindow::addMoveHighlights()
 {
-    // 駒の移動元のマスを薄い赤色でハイライトするフィールドを生成
-    m_selectedField = new ShogiView::FieldHighlight(m_gameMoves.at(m_currentMoveIndex - 1).fromSquare.x() + 1,
-                                                    m_gameMoves.at(m_currentMoveIndex - 1).fromSquare.y() + 1,
-                                                    QColor(255, 0, 0, 50));
+    // コントローラ経由で直前の1手をハイライト
+    if (!m_boardController) return;
 
-    // 駒の移動元のマスをハイライトする。
-    m_shogiView->addHighlight(m_selectedField);
+    // 直前の手が無ければ何もしない
+    if (m_currentMoveIndex <= 0 || m_currentMoveIndex > m_gameMoves.size())
+        return;
 
-    // 駒の移動先のマスを黄色でハイライトするフィールドを生成
-    m_movedField = new ShogiView::FieldHighlight(m_gameMoves.at(m_currentMoveIndex - 1).toSquare.x() + 1,
-                                                 m_gameMoves.at(m_currentMoveIndex - 1).toSquare.y() + 1,
-                                                 Qt::yellow);
+    const ShogiMove& mv = m_gameMoves.at(m_currentMoveIndex - 1);
 
-    // 駒の移動先のマスをハイライトする。
-    m_shogiView->addHighlight(m_movedField);
+    // BoardInteractionController に統一（座標は 0-based のまま渡す前提）
+    m_boardController->showMoveHighlights(mv.fromSquare, mv.toSquare);
 }
 
 // 待ったをした場合、position文字列のセットと評価値グラフの値を削除する。
@@ -1043,16 +976,6 @@ void MainWindow::redrawEngine2EvaluationGraph()
     m_scoreCp.append(m_usi2->lastScoreCp());
 }
 
-// 対局者のクリックをリセットし、選択したハイライトを削除する。
-void MainWindow::resetSelectionAndHighlight()
-{
-    // クリックポイントをリセットする。
-    m_clickPoint = QPoint();
-
-    // 選択したハイライトを削除する。
-    deleteHighlight(m_selectedField);
-}
-
 // 指す駒を左クリックで選択した場合、そのマスをオレンジ色にする。
 void MainWindow::selectPieceAndHighlight(const QPoint& field)
 {
@@ -1108,55 +1031,6 @@ void MainWindow::selectPieceAndHighlight(const QPoint& field)
     m_shogiView->addHighlight(m_selectedField);
 }
 
-// 既存のハイライトをクリアし、新しいハイライトを作成して表示する。
-void MainWindow::updateHighlight(ShogiView::FieldHighlight*& highlightField, const QPoint& field, const QColor& color)
-{
-    // highlightFieldがnullでない場合
-    if (highlightField) {
-        // 既存のハイライトをクリアする。
-        deleteHighlight(highlightField);
-    }
-
-    // 新しいハイライトを作成し、それを表示する。
-    addNewHighlight(highlightField, field, color);
-}
-
-// 既存のハイライトをクリアし（nullでないことが前提）、新しいハイライトを作成して表示する。
-void MainWindow::clearAndSetNewHighlight(ShogiView::FieldHighlight*& highlightField, const QPoint& field, const QColor& color)
-{
-    // 既存のハイライトをクリアする。
-    deleteHighlight(highlightField);
-
-    // 新しいハイライトを作成し、それを表示する。
-    addNewHighlight(highlightField, field, color);
-}
-
-// 指定されたハイライトを削除する。
-void MainWindow::deleteHighlight(ShogiView::FieldHighlight*& highlightField)
-{
-    // highlightFieldがnullptrでない場合
-    if (highlightField != nullptr) {
-        // ハイライトを削除する。
-        m_shogiView->removeHighlight(highlightField);
-
-        // 既存のハイライトのポインタをnullに設定する。
-        delete highlightField;
-
-        // ハイライトのポインタをnullptrに設定する。
-        highlightField = nullptr;
-    }
-}
-
-// 新しいハイライトを作成し、それを表示する。
-void MainWindow::addNewHighlight(ShogiView::FieldHighlight*& highlightField, const QPoint& position, const QColor& color)
-{
-    // 新しいハイライトを作成する。
-    highlightField = new ShogiView::FieldHighlight(position.x(), position.y(), color);
-
-    // 指定されたハイライトオブジェクトをハイライトリストに追加し、表示を更新する。
-    m_shogiView->addHighlight(highlightField);
-}
-
 // 棋譜を更新し、GUIの表示も同時に更新する。
 void MainWindow::updateGameRecordAndGUI()
 {
@@ -1182,185 +1056,7 @@ void MainWindow::finalizeDrag()
     m_waitingSecondClick = false;
 
     // 駒の移動元と移動先のマスのハイライトを消去する。
-    resetSelectionAndHighlight();
-}
-
-// 将棋のGUIでクリックされたポイントに基づいて駒の移動を処理する。
-// 対局者が将棋盤上で駒をクリックして移動させる際の一連の処理を担当する。
-void MainWindow::handleClickForPlayerVsEngine(const QPoint& field)
-{
-    // 移動先のマスが移動元のマスと同じになってしまった場合
-    if (field == m_clickPoint) {
-        // ドラッグ操作のリセットを行う。
-        finalizeDrag();
-
-        // 何もしない。
-        return;
-    }
-
-    // 人間の指した手の移動元のマスをoutFromに設定する。
-    QPoint outFrom = m_clickPoint;
-
-    // 人間の指した手の移動先のマスをoutToに設定する。
-    QPoint outTo = field;
-
-    // 将棋エンジンにpositionコマンドを送信し、指し手を受信する。
-    // 将棋エンジンが指した手の移動元のマスがoutFromに、移動先のマスがoutToに上書きされる。
-    bool isMoveValid;
-
-    try {
-        isMoveValid = m_gameController->validateAndMove(outFrom, outTo, m_lastMove, m_playMode, m_currentMoveIndex, m_sfenRecord, m_gameMoves);
-    } catch (const std::exception& e) {
-        // エラーメッセージを表示する。
-        displayErrorMessage(e.what());
-
-        // エラーが発生した場合、処理を終了する。
-        return;
-    }
-
-    if (isMoveValid) {
-        // ★ この手の「考慮時間」を ShogiClock に反映（合法手が確定した瞬間）
-        finishHumanTimerAndSetConsideration();
-
-        // 現在の駒の移動先の筋と段番号を直前の移動先として保存しておく。
-        m_usi1->setPreviousFileTo(outTo.x());
-        m_usi1->setPreviousRankTo(outTo.y());
-
-        // 既存の移動先のハイライトをクリアし、新しいハイライトを作成してビューに追加する。
-        updateHighlight(m_movedField, outTo, Qt::yellow);
-
-        // 既存の移動元のハイライトをクリアする。
-        deleteHighlight(m_selectedField2);
-
-        // 将棋盤内をマウスでクリックしても反応しないようにする。
-        m_shogiView->setMouseClickMode(false);
-
-        // 手番に応じて将棋クロックの手番変更およびGUIの手番表示を更新する。
-        updateTurnAndTimekeepingDisplay();
-
-        try {
-            // 人間が指してエンジンに返すとき（Human vs Engine）
-            refreshGoTimes();
-
-            // 将棋エンジンにpositionコマンドを送信し、指し手を受信する。
-            m_usi1->handleHumanVsEngineCommunication(m_positionStr1, m_positionPonder1, outFrom, outTo, m_byoyomiMilliSec2,
-                                                     m_bTime, m_wTime, m_positionStrList, m_addEachMoveMiliSec1, m_addEachMoveMiliSec2,
-                                                     m_useByoyomi);
-        } catch (const std::exception& e) {
-            // エラーメッセージを表示する。
-            displayErrorMessage(e.what());
-
-            // エラーが発生した場合、処理を終了する。
-            return;
-        }
-
-        // 移動元のマスをオレンジ色に着色する。
-        addNewHighlight(m_selectedField2, outFrom, QColor(255, 0, 0, 50));
-
-        // 将棋エンジンが指そうとした手が合法手だった場合、盤面を更新する。
-        bool isMoveValid;
-
-        try {
-            isMoveValid = m_gameController->validateAndMove(outFrom, outTo, m_lastMove, m_playMode, m_currentMoveIndex, m_sfenRecord, m_gameMoves);
-        } catch (const std::exception& e) {
-            // エラーメッセージを表示する。
-            displayErrorMessage(e.what());
-
-            // エラーが発生した場合、処理を終了する。
-            return;
-        }
-
-        if (isMoveValid) {
-            const qint64 thinkMs = m_usi1->lastBestmoveElapsedMs();
-
-            // validateAndMove 後は手番が“人間側”に切り替わっているので
-            // 「非手番 = 直前に指した側（エンジン）」の考慮時間にセット
-            if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
-                // 今の手番は先手 → さっき指したのは後手（エンジン）
-                m_shogiClock->setPlayer2ConsiderationTime(static_cast<int>(thinkMs));
-            } else {
-                // 今の手番は後手 → さっき指したのは先手（エンジン）
-                m_shogiClock->setPlayer1ConsiderationTime(static_cast<int>(thinkMs));
-            }
-
-            // 手番に応じて将棋クロックの手番変更およびGUIの手番表示を更新する。
-            updateTurnAndTimekeepingDisplay();
-
-            // 将棋エンジンの指し手が合法手だったのでpositionコマンド文字列をリストに追加する。
-            m_positionStrList.append(m_positionStr1);
-
-            // 将棋盤内をマウスでクリックして反応できるように設定を戻す。
-            m_shogiView->setMouseClickMode(true);
-
-            // 移動先のマスを黄色に着色する。
-            updateHighlight(m_movedField, outTo, Qt::yellow);
-
-            // 評価値グラフを更新する。
-            redrawEngine1EvaluationGraph();
-
-            // ★ ここで“人間手番開始”のストップウォッチを起動
-            armHumanTimerIfNeeded();
-        }
-        // 将棋エンジンが指そうとした手が合法手でない場合、エラー処理を行う。
-        else {
-            // エラーメッセージを表示する。
-            displayErrorMessage(tr("An error occurred in MainWindow::handleNonNullClickPoint. The move attempted by the shogi engine is not legal."));
-
-            return;
-        }
-    }
-
-    // クリックをリセットして選択していたハイライトを削除する。
-    resetSelectionAndHighlight();
-
-    // 成・不成のフラグを不成に戻しておく。
-    m_gameController->setPromote(false);
-}
-
-// 人間対人間の対局で、クリックされたポイントに基づいて駒の移動を処理する。
-// 対局者が将棋盤上で駒をクリックして移動させる際の一連の処理を担当する。
-void MainWindow::handleClickForHumanVsHuman(const QPoint& field)
-{
-    // 同一マス → 何もしない
-    if (field == m_clickPoint) {
-        finalizeDrag();
-        return;
-    }
-
-    // ★ この着手をするのは “今の手番”
-    const auto mover = m_gameController->currentPlayer();
-
-    QPoint outFrom = m_clickPoint;
-    QPoint outTo   = field;
-
-    bool isMoveValid = false;
-    try {
-        isMoveValid = m_gameController->validateAndMove(
-            outFrom, outTo, m_lastMove, m_playMode, m_currentMoveIndex, m_sfenRecord, m_gameMoves
-        );
-    } catch (const std::exception& e) {
-        displayErrorMessage(e.what());
-        return;
-    }
-
-    if (isMoveValid) {
-        // ★ 合法手が“確定した瞬間”にこの手の考慮時間を確定（UI処理より先）
-        finishTurnTimerAndSetConsiderationFor(mover);
-
-        // UI：ハイライトなど（これは考慮時間に含めない）
-        updateHighlight(m_movedField, outTo, Qt::yellow);
-
-        // ★ ShogiClock 側の集計・秒読み/インクリメント適用・手番表示など
-        updateTurnAndTimekeepingDisplay();
-
-        // 次の人の操作準備
-        // （描画負荷を含めたくなければ singleShot(0) で次フレームに回す）
-        // QTimer::singleShot(0, this, [this](){ armTurnTimerIfNeeded(); });
-        armTurnTimerIfNeeded();
-    }
-
-    // クリック状態のリセット
-    resetSelectionAndHighlight();
+    if (m_boardController) m_boardController->clearSelectionHighlight();
 }
 
 // 将棋クロックの手番を設定する。
@@ -1456,68 +1152,6 @@ void MainWindow::disarmHumanTimerIfNeeded()
     // qDebug() << "[HUMAN] timer disarmed";
 }
 
-// 局面編集モードで、クリックされたポイントに基づいて駒の移動を処理する。
-// 対局者が将棋盤上で駒をクリックして移動させる際の一連の処理を担当する。
-void MainWindow::handleClickForEditMode(const QPoint& field)
-{
-    //begin
-    qDebug() << "in MainWindow::handleClickForEditMode";
-    qDebug() << "field: " << field;
-    qDebug() << "m_clickPoint: " << m_clickPoint;
-    //end
-    // 移動先のマスが移動元のマスと同じになってしまった場合
-    if (field == m_clickPoint) {
-        // ドラッグ操作のリセットを行う。
-        finalizeDrag();
-
-        // 何もしない。
-        return;
-    }
-
-    // 人間の指した手の移動元のマスをoutFromに設定する。
-    QPoint outFrom = m_clickPoint;
-
-    // 人間の指した手の移動先のマスをoutToに設定する。
-    QPoint outTo = field;
-
-    // 駒移動を行い、局面を更新した場合
-    if (m_gameController->editPosition(outFrom, outTo)) {
-        // 移動先のマスを黄色に着色する。
-        updateHighlight(m_movedField, outTo, Qt::yellow);
-    }
-
-    // 移動元のマスの選択を解除する。
-    resetSelectionAndHighlight();
-}
-
-// 局面編集モードで、クリックされたマスに基づいて駒の移動を処理する。
-void MainWindow::handleEditModeClick(const QPoint& field)
-{
-    //begin
-    qDebug() << "in MainWindow::handleEditModeClick";
-    qDebug() << "m_clickPoint: " << m_clickPoint;
-    //end
-
-    // 移動させる駒をクリックした場合
-    if (m_clickPoint.isNull()) {
-        // 指す駒を左クリックで選択した時にそのマスをオレンジ色にする。
-        selectPieceAndHighlight(field);
-
-        // ハイライトを削除する。
-        // 以下の行が無いと赤と黄色が混ざってしまう。
-        m_shogiView->removeHighlight(m_movedField);
-    }
-    // すでに移動させる駒を選択している場合
-    else {
-        // 局面編集モードで、クリックされたポイントに基づいて駒の移動を処理する。
-        // 対局者が将棋盤上で駒をクリックして移動させる際の一連の処理を担当する。
-        handleClickForEditMode(field);
-
-        // ドラッグ操作のリセットを行う。
-        endDrag();
-    }
-}
-
 // 局面編集モードで右クリックした駒を成る・不成の表示に変換する。
 void MainWindow::togglePiecePromotionOnClick(const QPoint &field)
 {
@@ -1538,14 +1172,14 @@ void MainWindow::togglePiecePromotionOnClick(const QPoint &field)
                 m_gameController->switchPiecePromotionStatusOnRightClick(field.x(), field.y());
 
                 // クリックをリセットして選択していたハイライトを削除する。
-                resetSelectionAndHighlight();
+                if (m_boardController) m_boardController->clearSelectionHighlight();
             }
         }
     }
     // すでに移動させる駒を選択している場合
     else {
         // クリックをリセットして選択していたハイライトを削除する。
-        resetSelectionAndHighlight();
+        if (m_boardController) m_boardController->clearSelectionHighlight();
     }
 }
 
@@ -3530,27 +3164,23 @@ void MainWindow::hidePositionEditMenu()
 }
 
 // 局面編集を開始する。
+// 局面編集を開始する（BIC対応版）
 void MainWindow::beginPositionEditing()
 {
-    // ShogiBoardQを初期画面表示に戻す。
+    // いったん初期表示へ（盤面・棋譜・評価値などをクリーンに）
     resetToInitialState();
 
-    // 0手目に戻す。
+    // 指し手インデックス類をリセット
     m_currentMoveIndex = 0;
-    m_totalMove = 0;
+    m_totalMove        = 0;
 
-    // ハイライト関連のリセット
-    m_selectedField  = nullptr;
-    m_selectedField2 = nullptr;
-    m_movedField     = nullptr;
-
-    // 現局面のSFEN文字列を取り出して保持
+    // いま表示している局面を SFEN として保持
     m_startSfenStr = parseStartPositionToSfen(m_currentSfenStr);
 
-    // 局面編集フラグをオン
-    const bool positionEditMode = true;
+    // 局面編集フラグ ON（BIC の挙動にも効く）
     if (m_shogiView) {
-        m_shogiView->setPositionEditMode(positionEditMode);
+        m_shogiView->setPositionEditMode(true);
+        m_shogiView->setMouseClickMode(true);  // 編集中はクリック可
         m_shogiView->update();
     }
 
@@ -3558,27 +3188,29 @@ void MainWindow::beginPositionEditing()
     displayPositionEditMenu();
     setGameInProgressActions();
 
-    // SFEN列を初期化
-    if (m_sfenRecord) m_sfenRecord->clear();
-    if (m_sfenRecord) m_sfenRecord->append(m_startSfenStr);
+    // SFEN 列を初期化（0手＝開始局面のみ）
+    if (m_sfenRecord) {
+        m_sfenRecord->clear();
+        m_sfenRecord->append(m_startSfenStr);
+    }
 
-    // 棋譜モデルを初期化（RecordPane で使われるモデル）
+    // 棋譜モデルを初期化（RecordPane 用）
     if (!m_kifuRecordModel) m_kifuRecordModel = new KifuRecordListModel(this);
     m_kifuRecordModel->clearAllItems();
-    m_kifuRecordModel->appendItem(new KifuDisplay(QStringLiteral("=== 開始局面 ==="),
-                                                  QStringLiteral("（１手 / 合計）")));
+    m_kifuRecordModel->appendItem(
+        new KifuDisplay(QStringLiteral("=== 開始局面 ==="),
+                        QStringLiteral("（１手 / 合計）"))
+    );
 
-    // 矢印ボタンを無効化
+    // 矢印ボタン無効化＆棋譜テーブルの選択禁止
     disableArrowButtons();
-
-    // 棋譜テーブルの選択禁止（RecordPane 経由）
     if (m_recordPane) {
         if (auto* view = m_recordPane->kifuView()) {
             view->setSelectionMode(QAbstractItemView::NoSelection);
         }
     }
 
-    // 手番を GameController に反映
+    // 手番を GameController に反映（盤の b/w に合わせる）
     if (m_shogiView && m_gameController) {
         if (m_shogiView->board()->currentPlayer() == "b") {
             m_gameController->setCurrentPlayer(ShogiGameController::Player1);
@@ -3587,13 +3219,19 @@ void MainWindow::beginPositionEditing()
         }
     }
 
-    if (m_boardController)
+    // --- ここから BIC（BoardInteractionController）への切替点 ---
+    // 未生成なら念のため配線
+    if (!m_boardController) {
+        wireBoardInteractionController();
+    }
+
+    // 編集モードにセットし、ハイライトはコントローラ経由で全消し
+    if (m_boardController) {
         m_boardController->setMode(BoardInteractionController::Mode::Edit);
-
-    // ハイライト類のリセットもコントローラ経由に統一
-    if (m_boardController)
         m_boardController->clearAllHighlights();
+    }
 
+    // 編集用アクションの接続（重複を避けるため UniqueConnection）
     if (ui) {
         connect(ui->returnAllPiecesOnStand, &QAction::triggered,
                 this, &MainWindow::resetPiecesToStand,
@@ -3616,6 +3254,7 @@ void MainWindow::beginPositionEditing()
                 Qt::UniqueConnection);
     }
 
+    // ドラッグ終了シグナルは従来どおり（BIC 内で start/endDrag を呼んでいます）
     if (m_gameController) {
         connect(m_gameController, &ShogiGameController::endDragSignal,
                 this, &MainWindow::endDrag,
@@ -3624,57 +3263,42 @@ void MainWindow::beginPositionEditing()
 }
 
 // 局面編集を終了した場合の処理を行う。
+// 局面編集を終了した場合の処理を行う（BIC 対応版）
 void MainWindow::finishPositionEditing()
 {
-    // SFEN文字列の棋譜データを初期化（データ削除）する。
-    m_sfenRecord->clear();
+    // 1) 編集結果の SFEN を反映
+    if (m_sfenRecord) m_sfenRecord->clear();
+    if (m_gameController) {
+        m_gameController->updateSfenRecordAfterEdit(m_sfenRecord);
+    }
 
-    // 局面編集後の局面をSFEN形式に変換し、リストに追加する。
-    m_gameController->updateSfenRecordAfterEdit(m_sfenRecord);
-
-    // 局面編集モードで、クリックされたマスに基づいて駒の移動を処理するシグナルとスロットの接続を解除する。
-    disconnect(m_shogiView, &ShogiView::clicked, this, &MainWindow::handleEditModeClick);
-
-    // 局面編集モードで右クリックした駒を成る・不成の表示に変換するシグナルとスロットの接続を解除する。
-    disconnect(m_shogiView, &ShogiView::rightClicked, this, &MainWindow::togglePiecePromotionOnClick);
-
-    // 旧: disconnect の代わりに、モードだけ通常対局用に戻す
-    if (m_boardController)
+    // 2) BIC を通常モードへ & ハイライトはコントローラ経由で全消去
+    if (m_boardController) {
         m_boardController->setMode(BoardInteractionController::Mode::HumanVsHuman);
-
-    // 必要ならここでハイライトもクリア
-    if (m_boardController)
         m_boardController->clearAllHighlights();
+    }
 
-    // 全ての駒を駒台に置くシグナルとスロットの接続を解除する。
-    disconnect(ui->returnAllPiecesOnStand, &QAction::triggered, this, &MainWindow::resetPiecesToStand);
+    // 3) 編集系アクションの切断（UniqueConnection で張っていたものだけ外す）
+    if (ui) {
+        disconnect(ui->returnAllPiecesOnStand,     &QAction::triggered, this, &MainWindow::resetPiecesToStand);
+        disconnect(ui->turnaround,                 &QAction::triggered, this, &MainWindow::switchTurns);
+        disconnect(ui->flatHandInitialPosition,    &QAction::triggered, this, &MainWindow::setStandardStartPosition);
+        disconnect(ui->shogiProblemInitialPosition,&QAction::triggered, this, &MainWindow::setTsumeShogiStartPosition);
+        disconnect(ui->reversal,                   &QAction::triggered, this, &MainWindow::swapBoardSides);
+    }
 
-    // 手番を変更するシグナルとスロットの接続を解除する。
-    disconnect(ui->turnaround, &QAction::triggered, this, &MainWindow::switchTurns);
-
-    // 平手初期局面に盤面を初期化するシグナルとスロットの接続を解除する。
-    disconnect(ui->flatHandInitialPosition, &QAction::triggered, this, &MainWindow::setStandardStartPosition);
-
-    // 詰将棋の初期局面に盤面を初期化するシグナルとスロットの接続を解除する。
-    disconnect(ui->shogiProblemInitialPosition, &QAction::triggered, this, &MainWindow::setTsumeShogiStartPosition);
-
-    // 先手の配置を後手の配置に変更し、後手の配置を先手の配置に変更するシグナルとスロットの接続を解除する
-    disconnect(ui->reversal, &QAction::triggered, this, &MainWindow::swapBoardSides);
-
-    // 局面編集メニュー後のメニュー表示に変更する。
+    // 4) 編集メニューを閉じる
     hidePositionEditMenu();
 
-    // ハイライトリストから全てのデータを削除し、表示を更新する。
-    m_shogiView->removeHighlightAllData();
+    // 5) 編集フラグOFF & 盤クリックは一旦無効化（ゲーム開始時に再有効化）
+    if (m_shogiView) {
+        m_shogiView->setPositionEditMode(false);
+        m_shogiView->setMouseClickMode(false);
+        m_shogiView->update();
+    }
 
-    // 局面編集モードかどうかのフラグ
-    bool positionEditMode = false;
-
-    // 局面編集モードのフラグを更新する。
-    m_shogiView->setPositionEditMode(positionEditMode);
-
-    // 将棋盤と駒台を再描画する。
-    m_shogiView->update();
+    // 6) （必要なら）ドラッグ終了シグナルの接続はそのままでも問題なし
+    //    ※ 既に UniqueConnection で接続済みのためここで外す必要はありません。
 }
 
 // 「全ての駒を駒台へ」をクリックした時に実行される。
@@ -5238,12 +4862,10 @@ bool MainWindow::isHumanTurnNow(bool engineIsP1) const
 }
 
 // エンジンに1手指させ、ハイライトと評価グラフを更新（共通）
-// useSelectedField2=true なら m_selectedField2 を、false なら m_selectedField を使う
-// engineIndex: 1 -> redrawEngine1EvaluationGraph(), 2 -> redrawEngine2EvaluationGraph()
 bool MainWindow::engineMoveOnce(Usi* eng,
                                 QString& positionStr,
                                 QString& ponderStr,
-                                bool useSelectedField2,
+                                bool /*useSelectedField2*/,
                                 int engineIndex,
                                 QPoint* outTo)
 {
@@ -5251,9 +4873,9 @@ bool MainWindow::engineMoveOnce(Usi* eng,
     if (!engineThinkApplyMove(eng, positionStr, ponderStr, &from, &to))
         return false;
 
-    updateHighlight(useSelectedField2 ? m_selectedField2 : m_selectedField,
-                    from, QColor(255, 0, 0, 50));
-    updateHighlight(m_movedField, to, Qt::yellow);
+    // ★ ハイライトはコントローラに一元化
+    if (m_boardController)
+        m_boardController->showMoveHighlights(from, to);   // 赤=from, 黄=to
 
     if (engineIndex == 1) redrawEngine1EvaluationGraph();
     else                  redrawEngine2EvaluationGraph();

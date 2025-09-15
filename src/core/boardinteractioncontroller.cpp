@@ -110,6 +110,14 @@ void BoardInteractionController::clearAllHighlights()
     deleteHighlight(m_movedField);
 }
 
+void BoardInteractionController::clearSelectionHighlight()
+{
+    // resetSelectionAndHighlight() と同義だが公開メソッドとして提供
+    m_clickPoint = QPoint();
+    deleteHighlight(m_selectedField); // 選択（オレンジ）だけ消す
+    // m_selectedField2（赤）と m_movedField（黄）は残す
+}
+
 // ===================== private helpers =====================
 
 void BoardInteractionController::selectPieceAndHighlight(const QPoint& field)
