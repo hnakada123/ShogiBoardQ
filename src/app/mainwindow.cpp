@@ -254,12 +254,6 @@ MainWindow::MainWindow(QWidget *parent) :
     // 将棋盤表示でエラーが発生した場合、エラーメッセージを表示する。
     connect(m_shogiView, &ShogiView::errorOccurred, this, &MainWindow::displayErrorMessage);
 
-    // 将棋盤上での左クリックイベントをハンドリングする。
-    connect(m_shogiView, &ShogiView::clicked, this, &MainWindow::onShogiViewClicked);
-
-    // 将棋盤上での右クリックイベントをハンドリングする。
-    connect(m_shogiView, &ShogiView::rightClicked, this, &MainWindow::onShogiViewRightClicked);
-
     // 駒のドラッグを終了する。
     connect(m_gameController, &ShogiGameController::endDragSignal, this, &MainWindow::endDrag);
 }
@@ -317,6 +311,9 @@ void MainWindow::initializeComponents()
 
     // 好みの倍率に設定（表示前にやるのがスムーズ）
     m_shogiView->setNameFontScale(0.30);
+
+    // ───────────────── BoardInteractionController を配線 ─────────────────
+    wireBoardInteractionController();
 
     // SFEN文字列のリスト
     m_sfenRecord = new QStringList;
@@ -1320,22 +1317,6 @@ void MainWindow::handleClickForPlayerVsEngine(const QPoint& field)
     m_gameController->setPromote(false);
 }
 
-// 人間対エンジンあるいはエンジン対人間の対局で、クリックされたマスに基づいて駒の移動を処理する。
-void MainWindow::handlePlayerVsEngineClick(const QPoint& field)
-{
-    // 移動させる駒をクリックした場合
-    if (m_clickPoint.isNull()) {
-        // 指す駒を左クリックで選択した時にそのマスをオレンジ色にする。
-        selectPieceAndHighlight(field);
-    }
-    // すでに移動させたい駒を選択している場合
-    else {
-        // 将棋のGUIでクリックされたポイントに基づいて駒の移動を処理する。
-        // 対局者が将棋盤上で駒をクリックして移動させる際の一連の処理を担当する。
-        handleClickForPlayerVsEngine(field);
-    }
-}
-
 // 人間対人間の対局で、クリックされたポイントに基づいて駒の移動を処理する。
 // 対局者が将棋盤上で駒をクリックして移動させる際の一連の処理を担当する。
 void MainWindow::handleClickForHumanVsHuman(const QPoint& field)
@@ -1473,22 +1454,6 @@ void MainWindow::disarmHumanTimerIfNeeded()
     m_humanTimerArmed = false;
     m_humanTurnTimer.invalidate();      // QElapsedTimer を無効化（elapsed() は 0 扱い）
     // qDebug() << "[HUMAN] timer disarmed";
-}
-
-// 人間対人間の対局で、クリックされたマスに基づいて駒の移動を処理する。
-void MainWindow::handleHumanVsHumanClick(const QPoint& field)
-{
-    // 移動させる駒をクリックした場合
-    if (m_clickPoint.isNull()) {
-        // 指す駒を左クリックで選択した時にそのマスをオレンジ色にする。
-        selectPieceAndHighlight(field);
-    }
-    // すでに移動させる駒をクリックしている場合
-    else {
-        // 人間対人間の対局で、クリックされたポイントに基づいて駒の移動を処理する。
-        // 対局者が将棋盤上で駒をクリックして移動させる際の一連の処理を担当する。
-        handleClickForHumanVsHuman(field);
-    }
 }
 
 // 局面編集モードで、クリックされたポイントに基づいて駒の移動を処理する。
@@ -3622,15 +3587,12 @@ void MainWindow::beginPositionEditing()
         }
     }
 
-    // --- 接続（再入で多重接続しないよう UniqueConnection を付ける） ---
-    if (m_shogiView) {
-        connect(m_shogiView, &ShogiView::clicked,
-                this, &MainWindow::handleEditModeClick,
-                Qt::UniqueConnection);
-        connect(m_shogiView, &ShogiView::rightClicked,
-                this, &MainWindow::togglePiecePromotionOnClick,
-                Qt::UniqueConnection);
-    }
+    if (m_boardController)
+        m_boardController->setMode(BoardInteractionController::Mode::Edit);
+
+    // ハイライト類のリセットもコントローラ経由に統一
+    if (m_boardController)
+        m_boardController->clearAllHighlights();
 
     if (ui) {
         connect(ui->returnAllPiecesOnStand, &QAction::triggered,
@@ -3675,6 +3637,14 @@ void MainWindow::finishPositionEditing()
 
     // 局面編集モードで右クリックした駒を成る・不成の表示に変換するシグナルとスロットの接続を解除する。
     disconnect(m_shogiView, &ShogiView::rightClicked, this, &MainWindow::togglePiecePromotionOnClick);
+
+    // 旧: disconnect の代わりに、モードだけ通常対局用に戻す
+    if (m_boardController)
+        m_boardController->setMode(BoardInteractionController::Mode::HumanVsHuman);
+
+    // 必要ならここでハイライトもクリア
+    if (m_boardController)
+        m_boardController->clearAllHighlights();
 
     // 全ての駒を駒台に置くシグナルとスロットの接続を解除する。
     disconnect(ui->returnAllPiecesOnStand, &QAction::triggered, this, &MainWindow::resetPiecesToStand);
@@ -5251,22 +5221,6 @@ void MainWindow::setupInitialPositionStrings()
     m_positionPonder2 = m_positionStr1;
 }
 
-// PvE 用クリックハンドラへ張り替え
-void MainWindow::setPvEClickHandler()
-{
-    QObject::disconnect(m_shogiView, &ShogiView::clicked, this, &MainWindow::handleHumanVsHumanClick);
-    QObject::disconnect(m_shogiView, &ShogiView::clicked, this, &MainWindow::handlePlayerVsEngineClick);
-    QObject::connect   (m_shogiView, &ShogiView::clicked, this, &MainWindow::handlePlayerVsEngineClick);
-}
-
-// PvP 用クリックハンドラへ張り替え
-void MainWindow::setPvPClickHandler()
-{
-    QObject::disconnect(m_shogiView, &ShogiView::clicked, this, &MainWindow::handlePlayerVsEngineClick);
-    QObject::disconnect(m_shogiView, &ShogiView::clicked, this, &MainWindow::handleHumanVsHumanClick);
-    QObject::connect(m_shogiView, &ShogiView::clicked, this, &MainWindow::handleHumanVsHumanClick);
-}
-
 // 時計・手番同期と対局エポック開始
 void MainWindow::syncAndEpoch(const QString& title)
 {
@@ -5366,9 +5320,12 @@ inline void pumpUi() {
 
 // 平手、駒落ち Player1: Human, Player2: Human
 void MainWindow::startHumanVsHumanGame()
-{    
-    // 盤クリック受付（人対人）
-    setPvPClickHandler();
+{
+    if (m_boardController)
+           m_boardController->setMode(BoardInteractionController::Mode::HumanVsHuman);
+
+    // ← 追加：シングルエンジンではないので必ず false に
+    m_engine1IsP1 = false;
 
     // 将棋クロックとUI手番の同期
     syncClockTurnAndEpoch();
@@ -5381,6 +5338,9 @@ void MainWindow::startHumanVsHumanGame()
 // 駒落ち Player1: USI Engine（下手）, Player2: Human（上手）
 void MainWindow::startHumanVsEngineGame()
 {
+    if (m_boardController)
+         m_boardController->setMode(BoardInteractionController::Mode::HumanVsEngine);
+
     if (!m_modelThinking1) m_modelThinking1 = new ShogiEngineThinkingModel(this);
     if (!m_lineEditModel1) m_lineEditModel1 = new UsiCommLogModel(this);
 
@@ -5390,14 +5350,16 @@ void MainWindow::startHumanVsEngineGame()
     }
 
     const bool engineIsP1 = (m_playMode == HandicapEngineVsHuman); // 駒落ち=先手エンジン
+
+    m_engine1IsP1 = engineIsP1;   // ← 追加：以後の“次手は人間？”判定に使う
+
     initSingleEnginePvE(engineIsP1);
 
     // 担当割り当て
     assignSidesHumanVsEngine();
 
-    // 初期 position とクリックハンドラ
+    // 初期 position
     setupInitialPositionStrings();
-    setPvEClickHandler();
 
     // 時計同期＋エポック
     syncAndEpoch(QStringLiteral("Human vs Engine"));
@@ -5423,7 +5385,10 @@ void MainWindow::startHumanVsEngineGame()
 // 平手 Player1: USI Engine（先手）, Player2: Human（後手）
 // 駒落ち Player1: Human（下手）,  Player2: USI Engine（上手）
 void MainWindow::startEngineVsHumanGame()
-{   
+{
+    if (m_boardController)
+            m_boardController->setMode(BoardInteractionController::Mode::HumanVsEngine);
+
     if (!m_modelThinking1) m_modelThinking1 = new ShogiEngineThinkingModel(this);
     if (!m_lineEditModel1) m_lineEditModel1 = new UsiCommLogModel(this);
 
@@ -5434,6 +5399,9 @@ void MainWindow::startEngineVsHumanGame()
     }
 
     const bool engineIsP1 = (m_playMode == EvenEngineVsHuman); // 平手=先手エンジン
+
+    m_engine1IsP1 = engineIsP1;   // ← 追加
+
     initSingleEnginePvE(engineIsP1);
 
     // 担当割り当て
@@ -5441,7 +5409,6 @@ void MainWindow::startEngineVsHumanGame()
 
     // 初期 position とクリックハンドラ
     setupInitialPositionStrings();
-    setPvEClickHandler();
 
     // 時計同期＋エポック
     syncAndEpoch(QStringLiteral("Engine vs Human"));
@@ -5467,6 +5434,8 @@ void MainWindow::startEngineVsHumanGame()
 // 平手、駒落ち Player1: USI Engine, Player2: USI Engine
 void MainWindow::startEngineVsEngineGame()
 {
+    m_shogiView->setMouseClickMode(false);
+
     if (!m_modelThinking1) m_modelThinking1 = new ShogiEngineThinkingModel(this);
     if (!m_modelThinking2) m_modelThinking2 = new ShogiEngineThinkingModel(this);
     if (!m_lineEditModel1) m_lineEditModel1 = new UsiCommLogModel(this);
@@ -5478,6 +5447,9 @@ void MainWindow::startEngineVsEngineGame()
         m_analysisTab->setEngine2ThinkingModel(m_modelThinking2);
         m_analysisTab->setDualEngineVisible(true);
     }
+
+    // ← 追加：シングルエンジンではない（両方エンジン）ので false にしておく
+    m_engine1IsP1 = false;
 
     initEnginesForEvE();
 
@@ -5651,4 +5623,179 @@ void MainWindow::onKifuCurrentRowChanged(const QModelIndex& cur, const QModelInd
 
     if (m_analysisTab)
         m_analysisTab->setCommentText(text.isEmpty() ? tr("コメントなし") : text);
+}
+
+void MainWindow::wireBoardInteractionController()
+{
+    // 既存があれば入れ替え
+    if (m_boardController) {
+        m_boardController->deleteLater();
+        m_boardController = nullptr;
+    }
+
+    // コントローラ生成
+    m_boardController = new BoardInteractionController(m_shogiView, m_gameController, this);
+
+    // 盤クリックを全面的にコントローラへ
+    QObject::connect(m_shogiView, &ShogiView::clicked,
+                     m_boardController, &BoardInteractionController::onLeftClick,
+                     Qt::UniqueConnection);
+    QObject::connect(m_shogiView, &ShogiView::rightClicked,
+                     m_boardController, &BoardInteractionController::onRightClick,
+                     Qt::UniqueConnection);
+
+    // コントローラ → Main（合法判定＆適用）
+    QObject::connect(m_boardController, &BoardInteractionController::moveRequested,
+                     this, [this](const QPoint& from, const QPoint& to)
+    {
+        // ★ 着手前の手番（＝この手を指す側）を控えておく
+        const auto moverBefore = m_gameController->currentPlayer();
+
+        // validateAndMove が非常参照パラメータの場合に備えてローカルコピー
+        QPoint hFrom = from, hTo = to;
+
+        bool ok = false;
+        try {
+            ok = m_gameController->validateAndMove(
+                hFrom, hTo, m_lastMove, m_playMode, m_currentMoveIndex, m_sfenRecord, m_gameMoves
+            );
+        } catch (const std::exception& e) {
+            displayErrorMessage(e.what());
+            if (m_boardController) m_boardController->onMoveApplied(from, to, /*ok=*/false);
+            return;
+        }
+
+        // 適用結果をコントローラへ通知（ハイライト／ドラッグ状態の確定）
+        if (m_boardController) m_boardController->onMoveApplied(from, to, ok);
+        if (!ok) return;
+
+        // 人間の着手ハイライト（コントローラに集約）
+        if (m_boardController)
+            m_boardController->showMoveHighlights(hFrom, hTo);
+
+        // ── ここから成功時の後続処理 ─────────────────────────────────────
+
+        switch (m_playMode) {
+
+        // ▼ 人間 vs 人間
+        case HumanVsHuman: {
+            // この手を指した側（着手前の手番）の考慮時間を確定
+            finishTurnTimerAndSetConsiderationFor(moverBefore);
+
+            // 時計・手番表示を確定
+            updateTurnAndTimekeepingDisplay();
+            pumpUi();
+
+            // 次手の人間用（共通）ストップウォッチ
+            QTimer::singleShot(0, this, [this]{ armTurnTimerIfNeeded(); });
+            m_shogiView->setMouseClickMode(true);
+            break;
+        }
+
+        // ▼ 人間とエンジン（先後どちらでもOK）
+        case EvenHumanVsEngine:
+        case HandicapHumanVsEngine:
+        case EvenEngineVsHuman:
+        case HandicapEngineVsHuman: {
+            // 人間の手が確定 → 人間側ストップウォッチを確定
+            finishHumanTimerAndSetConsideration();
+
+            // “同○” 判定用（従来踏襲）
+            if (m_usi1) {
+                m_usi1->setPreviousFileTo(hTo.x());
+                m_usi1->setPreviousRankTo(hTo.y());
+            }
+
+            // まず UI/時計を確定（byoyomi / increment の適用もここで）
+            updateTurnAndTimekeepingDisplay();
+
+            // 人の操作は一旦不可に（エンジン思考中）
+            m_shogiView->setMouseClickMode(false);
+
+            // go パラメータを最新化
+            refreshGoTimes();
+
+            // この対局で “エンジンが先手か？”
+            const bool engineIsP1 =
+                (m_playMode == EvenEngineVsHuman) || (m_playMode == HandicapEngineVsHuman);
+
+            // 直後の手番がエンジンなら 1手だけ指させる
+            if (!isHumanTurnNow(engineIsP1)) {
+                // ★ ここがポイント：
+                // handleHumanVsEngineCommunication は「引数の from/to に
+                //   人間の着手を渡し、戻り時にエンジンの着手に上書き」する設計。
+                QPoint eFrom = hFrom;   // 人間の着手を渡す（必須）
+                QPoint eTo   = hTo;     // 人間の着手を渡す（必須）
+
+                const int engineByoyomiMs = engineIsP1 ? m_byoyomiMilliSec1 : m_byoyomiMilliSec2;
+
+                try {
+                    m_usi1->handleHumanVsEngineCommunication(
+                        m_positionStr1, m_positionPonder1,
+                        eFrom, eTo,                      // ← 人間の着手で渡し、戻りはエンジン着手
+                        engineByoyomiMs,
+                        m_bTime, m_wTime,
+                        m_positionStrList,
+                        m_addEachMoveMiliSec1, m_addEachMoveMiliSec2,
+                        m_useByoyomi
+                    );
+                } catch (const std::exception& e) {
+                    displayErrorMessage(e.what());
+                    m_shogiView->setMouseClickMode(true);
+                    return;
+                }
+
+                // 受け取った bestmove（eFrom,eTo）を適用
+                bool ok2 = false;
+                try {
+                    ok2 = m_gameController->validateAndMove(
+                        eFrom, eTo, m_lastMove, m_playMode,
+                        m_currentMoveIndex, m_sfenRecord, m_gameMoves
+                    );
+                } catch (const std::exception& e) {
+                    displayErrorMessage(e.what());
+                    m_shogiView->setMouseClickMode(true);
+                    return;
+                }
+
+                if (ok2) {
+                    // エンジン着手ハイライト
+                    if (m_boardController)
+                        m_boardController->showMoveHighlights(eFrom, eTo);
+
+                    // エンジンの思考時間を考慮時間へ反映
+                    const qint64 thinkMs = m_usi1 ? m_usi1->lastBestmoveElapsedMs() : 0;
+                    if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
+                        // 今の手番は先手 → 直前に指したのは後手（エンジン）
+                        m_shogiClock->setPlayer2ConsiderationTime(static_cast<int>(thinkMs));
+                    } else {
+                        // 今の手番は後手 → 直前に指したのは先手（エンジン）
+                        m_shogiClock->setPlayer1ConsiderationTime(static_cast<int>(thinkMs));
+                    }
+
+                    // 時計・手番表示と評価値グラフ
+                    updateTurnAndTimekeepingDisplay();
+                    m_positionStrList.append(m_positionStr1);
+                    redrawEngine1EvaluationGraph();
+                    pumpUi();
+                }
+            }
+
+            // 終局でなければ次は人間手番：クリック受付と人間用タイマーを整える
+            if (!m_gameIsOver) {
+                m_shogiView->setMouseClickMode(true);
+                QTimer::singleShot(0, this, [this]{ armHumanTimerIfNeeded(); });
+            }
+            break;
+        }
+
+        // ▼ エンジン vs エンジン / 解析系など
+        default:
+            // ここでは何もしない（エンジン側ループや既存処理に委ねる）
+            break;
+        }
+    });
+
+    // 既定モード（必要に応じて開始時に上書き）
+    m_boardController->setMode(BoardInteractionController::Mode::HumanVsHuman);
 }
