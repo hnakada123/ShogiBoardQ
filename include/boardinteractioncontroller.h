@@ -21,16 +21,19 @@ public:
     void setMode(Mode m) { m_mode = m; }
     Mode mode() const { return m_mode; }
 
+    // 選択中（オレンジ）のみを消し、直前手の赤/黄は残す
+    void clearSelectionHighlight();
+
+    // 局面移動等でハイライトだけ反映したい時
+    void showMoveHighlights(const QPoint& from, const QPoint& to);
+    void clearAllHighlights();
+
 public slots:
     void onLeftClick(const QPoint& pt);
     void onRightClick(const QPoint& pt);
 
     // 呼び元で着手が適用された結果を通知
     void onMoveApplied(const QPoint& from, const QPoint& to, bool success);
-
-    // 局面移動等でハイライトだけ反映したい時
-    void showMoveHighlights(const QPoint& from, const QPoint& to);
-    void clearAllHighlights();
 
 signals:
     void moveRequested(const QPoint& from, const QPoint& to);

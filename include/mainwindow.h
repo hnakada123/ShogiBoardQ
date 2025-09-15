@@ -70,7 +70,6 @@ private slots:
     void displayErrorMessage(const QString& message);
     void chooseAndLoadKifuFile();
 
-    void handleEditModeClick(const QPoint& field);
     void togglePiecePromotionOnClick(const QPoint& field);
     void displayPromotionDialog();
 
@@ -125,8 +124,6 @@ private slots:
     void setPlayer1TimeTextToRed();
     void setPlayer2TimeTextToRed();
 
-    void onShogiViewClicked(const QPoint &pt);
-    void onShogiViewRightClicked(const QPoint &);
     void endDrag();
 
     void onPlayer1TimeOut();
@@ -283,15 +280,6 @@ private:
     PlayMode setPlayMode();
 
     void selectPieceAndHighlight(const QPoint& field);
-    void handleClickForPlayerVsEngine(const QPoint& field);
-    void handleClickForHumanVsHuman(const QPoint& field);
-    void handleClickForEditMode(const QPoint &field);
-
-    void resetSelectionAndHighlight();
-    void updateHighlight(ShogiView::FieldHighlight*& highlightField, const QPoint& field, const QColor& color);
-    void clearAndSetNewHighlight(ShogiView::FieldHighlight*& highlightField, const QPoint& to, const QColor& color);
-    void deleteHighlight(ShogiView::FieldHighlight*& highlightField);
-    void addNewHighlight(ShogiView::FieldHighlight*& highlightField, const QPoint& position, const QColor& color);
 
     void updateGameRecordAndGUI();
     void movePieceImmediately();
