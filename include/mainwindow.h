@@ -33,6 +33,7 @@
 #include "evaluationchartwidget.h"
 #include "recordpane.h"
 #include "engineanalysistab.h"
+#include "boardinteractioncontroller.h"
 
 #define SHOGIBOARDQ_DEBUG_KIF 1   // 0にすればログは一切出ません
 
@@ -69,8 +70,6 @@ private slots:
     void displayErrorMessage(const QString& message);
     void chooseAndLoadKifuFile();
 
-    void handlePlayerVsEngineClick(const QPoint& field);
-    void handleHumanVsHumanClick(const QPoint& field);
     void handleEditModeClick(const QPoint& field);
     void togglePiecePromotionOnClick(const QPoint& field);
     void displayPromotionDialog();
@@ -557,6 +556,13 @@ private:
     QMetaObject::Connection m_connKifuRowChanged;
 
     bool m_onMainRowGuard = false; // 再入防止
+
+    BoardInteractionController* m_boardController = nullptr;
+
+    // 配線ヘルパ
+    void wireBoardInteractionController();
+
+    bool m_engine1IsP1 = false; // シングルエンジン時、エンジン1の担当が先手なら true
 
 public: // INavigationContext
     bool hasResolvedRows() const override;
