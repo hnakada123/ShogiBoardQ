@@ -190,10 +190,9 @@ MainWindow::MainWindow(QWidget *parent) :
 
     // 「盤面の回転」
     // 将棋盤を180度回転させる。それに伴って、対局者名、残り時間も入れ替える。
-    // m_shogiView->flipMode ノーマル:0、反転:1
-    // flipModeは、0か1かのフラグでm_shogiViewをリペイントする際に、
-    // 先手が将棋盤の手前か後手が手前になるかが決まる。
-    connect(ui->actionFlipBoard, &QAction::triggered, this, &MainWindow::flipBoardAndUpdatePlayerInfo);
+    connect(ui->actionFlipBoard, &QAction::triggered,
+            this, &MainWindow::onActionFlipBoardTriggered,
+            Qt::UniqueConnection);
 
     // 「将棋盤の画像をクリップボードにコピー」
     // 駒台を含む将棋盤全体の画像をクリップボードにコピーする。
@@ -243,9 +242,6 @@ MainWindow::MainWindow(QWidget *parent) :
 
     // 「詰み探索」
     connect(ui->actionTsumeShogiSearch, &QAction::triggered, this, &MainWindow::displayTsumeShogiSearchDialog);
-
-    // 対局終了ダイアログを表示する。
-    connect(m_gameController, &ShogiGameController::gameOver, this, &MainWindow::displayGameOutcome);
 
     // 対局中に成るか不成で指すかのダイアログを表示する。
     connect(m_gameController, &ShogiGameController::showPromotionDialog, this, &MainWindow::displayPromotionDialog);
@@ -297,31 +293,6 @@ void MainWindow::displayErrorMessage(const QString& errorMessage)
 static bool hasFormat(const QSet<QString>& fmts, const QString& key) {
     if (key == "jpeg") return fmts.contains("jpeg") || fmts.contains("jpg");
     return fmts.contains(key);
-}
-
-// 対局中のメニュー表示に変更する。
-void MainWindow::setGameInProgressActions()
-{
-    // 「投了」を表示する。
-    ui->actionResign->setVisible(true);
-
-    // 「待った」を表示する。
-    ui->actionUndoMove->setVisible(true);
-
-    // 「すぐ指させる」を表示する。
-    ui->actionMakeImmediateMove->setVisible(true);
-
-    // 「中断」を表示する。
-    ui->breakOffGame->setVisible(true);
-
-    // 「盤面の回転」の表示
-    ui->actionFlipBoard->setVisible(true);
-
-    // 「検討」を隠す。
-    ui->actionConsideration->setVisible(true);
-
-    // 「棋譜解析」を隠す。
-    ui->actionAnalyzeKifu->setVisible(true);
 }
 
 // 対局のメニュー表示を一部隠す。
@@ -605,35 +576,6 @@ void MainWindow::saveShogiBoardImage() {
     BoardImageExporter::saveImage(this, m_shogiView);
 }
 
-
-// 将棋盤を180度回転させる。それに伴って、対局者名、残り時間も入れ替える。
-// m_shogiView->flipMode ノーマル:0、反転:1
-// flipModeは、0か1かのフラグでm_shogiViewをリペイントする際に、
-// 先手が将棋盤の手前か後手が手前になるかが決まる。
-void MainWindow::flipBoardAndUpdatePlayerInfo()
-{
-    // 将棋盤が反転している場合（後手が手前）
-    if (m_shogiView->getFlipMode()) {
-        // 将棋盤を正常に戻すフラグflipModeを設定する。
-        m_shogiView->setFlipMode(0);
-
-        // 将棋の駒画像を各駒文字（1文字）にセットする。
-        // 駒文字と駒画像をm_piecesに格納する。
-        // m_piecesの型はQMap<char, QIcon>
-        m_shogiView->setPieces();
-    }
-    // 将棋盤が正常な場合（先手が手前）
-    else {
-        //  将棋盤を反転させるフラグflipModeを設定する。
-        m_shogiView->setFlipMode(1);
-
-        // 将棋の駒画像を各駒文字（1文字）にセットする。
-        // 駒文字と駒画像をm_piecesに格納する。
-        // m_piecesの型はQMap<char, QIcon>
-        m_shogiView->setPiecesFlip();
-    }
-}
-
 // 対局モードに応じて将棋盤下部に表示されるエンジン名をセットする。
 void MainWindow::setEngineNamesBasedOnMode() {
     // 例：先後に応じて入れ替え
@@ -833,46 +775,34 @@ void MainWindow::stopClockAndSendCommands()
 // 対局結果の表示とGUIの更新処理を行う。
 void MainWindow::displayResultsAndUpdateGui()
 {
-    // --- 終局では人間用ストップウォッチを無効化 ---
-    if (m_turnTimerArmed) { m_turnTimerArmed = false; m_turnTimer.invalidate(); }
-    if (m_humanTimerArmed){ m_humanTimerArmed = false; m_humanTurnTimer.invalidate(); }
+    // タイマー系リセット
+    if (m_turnTimerArmed)  { m_turnTimerArmed = false;  m_turnTimer.invalidate(); }
+    if (m_humanTimerArmed) { m_humanTimerArmed = false; m_humanTurnTimer.invalidate(); }
 
-    // 残時間と考慮msを確定
     if (m_shogiClock) m_shogiClock->stopClock();
+    if (m_shogiView)  m_shogiView->setMouseClickMode(false);
 
-    // 盤操作を無効化
-    if (m_shogiView) m_shogiView->setMouseClickMode(false);
-
-    auto showOutcomeDeferred = [this](ShogiGameController::Result res) {
-        updateRemainingTimeDisplay();
-        QTimer::singleShot(0, this, [this, res]() { displayGameOutcome(res); });
-    };
-
-    // ★ 投了/時間切れ：現在手番の側の考慮時間を記録する
-    if (m_gameController && m_shogiClock &&
-        m_gameController->currentPlayer() == ShogiGameController::Player1) {
-        m_shogiClock->applyByoyomiAndResetConsideration1();
-        updateGameRecord(m_shogiClock->getPlayer1ConsiderationAndTotalTime());
-        showOutcomeDeferred(ShogiGameController::Player2Wins);
-    } else if (m_shogiClock) {
-        m_shogiClock->applyByoyomiAndResetConsideration2();
-        updateGameRecord(m_shogiClock->getPlayer2ConsiderationAndTotalTime());
-        showOutcomeDeferred(ShogiGameController::Player1Wins);
+    // 考慮時間の確定と棋譜更新（必要なら残す）
+    if (m_gameController && m_shogiClock) {
+        if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
+            m_shogiClock->applyByoyomiAndResetConsideration1();
+            updateGameRecord(m_shogiClock->getPlayer1ConsiderationAndTotalTime());
+        } else {
+            m_shogiClock->applyByoyomiAndResetConsideration2();
+            updateGameRecord(m_shogiClock->getPlayer2ConsiderationAndTotalTime());
+        }
     }
 
+    updateRemainingTimeDisplay();
     enableArrowButtons();
-
-    // ★ ここを m_kifuView → RecordPane 経由に変更
-    if (m_recordPane && m_recordPane->kifuView()) {
+    if (m_recordPane && m_recordPane->kifuView())
         m_recordPane->kifuView()->setSelectionMode(QAbstractItemView::SingleSelection);
-    }
 
+    // ログは任意
     const qint64 tms = ShogiUtils::nowMs();
     const char* causeStr =
         (m_lastGameOverCause == GameOverCause::Timeout)     ? "TIMEOUT" :
-        (m_lastGameOverCause == GameOverCause::Resignation) ? "RESIGNATION" :
-                                                              "OTHER";
-
+            (m_lastGameOverCause == GameOverCause::Resignation) ? "RESIGNATION" : "OTHER";
     qDebug().nospace()
         << "[ARBITER] decision " << causeStr
         << " loser=" << (m_lastLoserIsP1 ? "P1" : "P2")
@@ -1053,107 +983,6 @@ void MainWindow::disarmHumanTimerIfNeeded()
     m_humanTimerArmed = false;
     m_humanTurnTimer.invalidate();      // QElapsedTimer を無効化（elapsed() は 0 扱い）
     // qDebug() << "[HUMAN] timer disarmed";
-}
-
-// 対局結果を表示する。
-void MainWindow::displayGameOutcome(ShogiGameController::Result result)
-{
-    QString text;
-
-    switch (result) {
-    // 対局者1が勝利した場合
-    case ShogiGameController::Player1Wins:
-        // 対局モード
-        switch (m_playMode) {
-        // 人間対人間
-        case HumanVsHuman:
-
-        // 平手の人間対エンジン
-        case EvenHumanVsEngine:
-
-        // 平手のエンジン対人間
-        case EvenEngineVsHuman:
-
-        // 平手のエンジン対エンジン
-        case EvenEngineVsEngine:
-            // 先手（黒）の勝ち
-            text = tr("Sente (Black) wins.");
-            break;
-
-        // 駒落ちのエンジン対人間
-        case HandicapEngineVsHuman:
-
-        // 駒落ちの人間対エンジン
-        case HandicapHumanVsEngine:
-
-        // 駒落ちのエンジン対エンジン
-        case HandicapEngineVsEngine:
-            // 下手の勝ち
-            text = tr("Shitate (Lower player) wins.");
-            break;
-
-        default:
-            // プレイヤー1の勝ち
-            text = tr("Player 1 wins.");
-        }
-
-        break;
-
-    // 対局者2が勝利した場合
-    case ShogiGameController::Player2Wins:
-        // 対局モード
-        switch (m_playMode) {
-
-        // 人間対人間
-        case HumanVsHuman:
-
-        // 平手の人間対エンジン
-        case EvenHumanVsEngine:
-
-        // 平手のエンジン対人間
-        case EvenEngineVsHuman:
-
-        // 平手のエンジン対エンジン
-        case EvenEngineVsEngine:
-            // 後手（白）の勝ち
-            text = tr("Gote (White) wins.");
-
-            break;
-
-        // 駒落ちのエンジン対人間
-        case HandicapEngineVsHuman:
-
-        // 駒落ちの人間対エンジン
-        case HandicapHumanVsEngine:
-
-        // 駒落ちのエンジン対エンジン
-        case HandicapEngineVsEngine:
-            // 上手の勝ち
-            text = tr("Uwate (Upper player) wins.");
-
-            break;
-
-        default:
-            // プレイヤー2の勝ち
-            text = tr("Player 2 wins.");
-        }
-
-        break;
-
-    default:
-        // 引き分け
-        text = tr("It is a draw.");
-    }
-
-    // 対局結果を表示する。
-    // 非同期に開く（モーダル表示はされるが、open() なのでイベントループは回る）
-    auto *box = new QMessageBox(QMessageBox::Information,
-                                tr("Game Over"),
-                                tr("The game has ended. %1").arg(text),
-                                QMessageBox::Ok,
-                                this);
-    box->setAttribute(Qt::WA_DeleteOnClose);
-    box->open();
 }
 
 // GUIのバージョン情報を表示する。
@@ -1432,8 +1261,7 @@ void MainWindow::startGameBasedOnMode()
         //end
 
         if (isShowHumanInFront) {
-            // 盤面を反転して対局者の情報を更新し、人間側が手前に来るようにする。
-            flipBoardAndUpdatePlayerInfo();
+            if (m_match) m_match->flipBoard();
         }
 
         startEngineVsHumanGame();
@@ -1457,8 +1285,7 @@ void MainWindow::startGameBasedOnMode()
         //end
 
         if (isShowHumanInFront) {
-            // 盤面を反転して対局者の情報を更新し、人間側が手前に来るようにする。
-            flipBoardAndUpdatePlayerInfo();
+            if (m_match) m_match->flipBoard();
         }
 
         startHumanVsEngineGame();
@@ -1883,7 +1710,6 @@ void MainWindow::initializeGame()
             m_match->startNewGame(m_startSfenStr);   // ← 先にフックが飛ぶことを想定
         }
 
-        setGameInProgressActions();
         if (m_playMode) {
             disableArrowButtons();
             if (m_recordPane && m_recordPane->kifuView())
@@ -2954,7 +2780,6 @@ void MainWindow::hidePositionEditMenu()
     ui->turnaround->setVisible(false);
 }
 
-// 局面編集を開始する。
 // 局面編集を開始する（BIC対応版）
 void MainWindow::beginPositionEditing()
 {
@@ -2977,7 +2802,8 @@ void MainWindow::beginPositionEditing()
 
     // メニューの切替
     displayPositionEditMenu();
-    setGameInProgressActions();
+
+    hideGameActions();
 
     // SFEN 列を初期化（0手＝開始局面のみ）
     if (m_sfenRecord) {
@@ -3029,7 +2855,7 @@ void MainWindow::beginPositionEditing()
                 Qt::UniqueConnection);
 
         connect(ui->turnaround, &QAction::triggered,
-                this, &MainWindow::switchTurns,
+                this, &MainWindow::toggleEditSideToMove,
                 Qt::UniqueConnection);
 
         connect(ui->flatHandInitialPosition, &QAction::triggered,
@@ -3040,9 +2866,9 @@ void MainWindow::beginPositionEditing()
                 this, &MainWindow::setTsumeShogiStartPosition,
                 Qt::UniqueConnection);
 
-        connect(ui->reversal, &QAction::triggered,
-                this, &MainWindow::swapBoardSides,
-                Qt::UniqueConnection);
+        connect(ui->reversal, &QAction::triggered, this, [this]{
+            if (m_match) m_match->flipBoard();
+        }, Qt::UniqueConnection);
     }
 
     // ドラッグ終了シグナルは従来どおり（BIC 内で start/endDrag を呼んでいます）
@@ -3053,7 +2879,6 @@ void MainWindow::beginPositionEditing()
     }
 }
 
-// 局面編集を終了した場合の処理を行う。
 // 局面編集を終了した場合の処理を行う（BIC 対応版）
 void MainWindow::finishPositionEditing()
 {
@@ -3072,7 +2897,7 @@ void MainWindow::finishPositionEditing()
     // 3) 編集系アクションの切断（UniqueConnection で張っていたものだけ外す）
     if (ui) {
         disconnect(ui->returnAllPiecesOnStand,     &QAction::triggered, this, &MainWindow::resetPiecesToStand);
-        disconnect(ui->turnaround,                 &QAction::triggered, this, &MainWindow::switchTurns);
+        disconnect(ui->turnaround,                 &QAction::triggered, this, &MainWindow::toggleEditSideToMove);
         disconnect(ui->flatHandInitialPosition,    &QAction::triggered, this, &MainWindow::setStandardStartPosition);
         disconnect(ui->shogiProblemInitialPosition,&QAction::triggered, this, &MainWindow::setTsumeShogiStartPosition);
         disconnect(ui->reversal,                   &QAction::triggered, this, &MainWindow::swapBoardSides);
@@ -3102,21 +2927,6 @@ void MainWindow::resetPiecesToStand()
     m_shogiView->resetAndEqualizePiecesOnStands();
 }
 
-// 手番を変更する。
-void MainWindow::switchTurns()
-{
-    // 手番が先手あるいは下手の場合
-    if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
-        // 手番を後手あるいは上手に設定する。
-        m_gameController->setCurrentPlayer(ShogiGameController::Player2);
-    }
-    // 手番が後手あるいは上手の場合
-    else {
-        // 手番を先手あるいは下手に設定する。
-        m_gameController->setCurrentPlayer(ShogiGameController::Player1);
-    }
-}
-
 // 平手初期局面に盤面を初期化する。
 void MainWindow::setStandardStartPosition()
 {
@@ -3138,7 +2948,6 @@ void MainWindow::setTsumeShogiStartPosition()
         displayErrorMessage(e.what());
     }
 }
-
 
 // 先手の配置を後手の配置に変更し、後手の配置を先手の配置に変更する。
 void MainWindow::swapBoardSides()
@@ -5254,9 +5063,8 @@ void MainWindow::initMatchCoordinator()
 
     // 対局中メニュー表示の切り替え
     d.hooks.setGameActions = [this](bool inProgress){
-        if (inProgress) setGameInProgressActions();
-        else            hideGameActions();
-    };
+            setGameInProgressActions(inProgress);
+        };
 
     // 盤面再描画（GC→View 反映）
     d.hooks.renderBoardFromGc = [this](){
@@ -5316,20 +5124,19 @@ void MainWindow::initMatchCoordinator()
     m_match = new MatchCoordinator(d, this);
 
     // ---------- UIシグナル接続 ----------
-    // ゲーム開始/終了でメニューの表示を切替
-    connect(m_match, &MatchCoordinator::gameStarted,
-            this, &MainWindow::onMatchGameStarted,
-            Qt::UniqueConnection);
-
     // ゲーム終了 → 時計を終了表示にして残り時間を更新
     connect(m_match, &MatchCoordinator::gameEnded,
             this, &MainWindow::onMatchGameEnded,
             Qt::UniqueConnection);
 
-    // 盤反転通知 → 引数は受け取るが使わない
-    connect(m_match, &MatchCoordinator::boardFlipped,
-            this, &MainWindow::onBoardFlipped,
-            Qt::UniqueConnection);
+    // 盤反転通知 → 明示キャストでシグナルを特定して通常スロットへ
+    connect(
+        m_match,
+        static_cast<void (MatchCoordinator::*)(bool)>(&MatchCoordinator::boardFlipped),
+        this,
+        &MainWindow::onBoardFlipped,
+        Qt::UniqueConnection
+        );
 
     // 初期のエンジンポインタを供給（null可）
     m_match->updateUsiPtrs(m_usi1, m_usi2);
@@ -5364,12 +5171,6 @@ void MainWindow::ensureClockReady_()
             Qt::UniqueConnection);
 }
 
-void MainWindow::onMatchGameStarted()
-{
-    setGameInProgressActions();
-}
-
-// mainwindow.cpp
 void MainWindow::onMatchGameEnded()
 {
     if (m_shogiClock) {
@@ -5382,4 +5183,53 @@ void MainWindow::onBoardFlipped(bool /*nowFlipped*/)
 {
     // 既存の処理をそのまま呼ぶ
     swapBoardSides();
+}
+
+void MainWindow::toggleEditSideToMove()
+{
+    if (!m_gameController) return;
+
+    auto cur = m_gameController->currentPlayer();
+    m_gameController->setCurrentPlayer(
+        (cur == ShogiGameController::Player1)
+            ? ShogiGameController::Player2
+            : ShogiGameController::Player1);
+
+    // 編集中のハイライト/表示を更新（必要に応じて）
+    if (m_shogiView) m_shogiView->update();
+}
+
+void MainWindow::setGameInProgressActions(bool inProgress)
+{
+    if (inProgress) {
+        // ここに旧 setGameInProgressActions() の本体をそのまま貼る
+        // 例）対局中メニューのON、操作の有効化/無効化 など
+        // 「投了」を表示する。
+        ui->actionResign->setVisible(true);
+
+        // 「待った」を表示する。
+        ui->actionUndoMove->setVisible(true);
+
+        // 「すぐ指させる」を表示する。
+        ui->actionMakeImmediateMove->setVisible(true);
+
+        // 「中断」を表示する。
+        ui->breakOffGame->setVisible(true);
+
+        // 「盤面の回転」の表示
+        ui->actionFlipBoard->setVisible(true);
+
+        // 「検討」を隠す。
+        ui->actionConsideration->setVisible(true);
+
+        // 「棋譜解析」を隠す。
+        ui->actionAnalyzeKifu->setVisible(true);
+    } else {
+        hideGameActions(); // 既存の終了時UIへ戻す処理
+    }
+}
+
+void MainWindow::onActionFlipBoardTriggered(bool /*checked*/)
+{
+    if (m_match) m_match->flipBoard();
 }
