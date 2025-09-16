@@ -108,6 +108,10 @@ public:
     void clearHardTimeout()    { m_timeoutDeclared = false; }
     bool isIgnoring() const    { return m_shutdownState != ShutdownState::Running; }
 
+    // goコマンドを将棋エンジンに送信する。
+    void sendGoCommand(int byoyomiMilliSec, const QString& btime, const QString& wtime,
+                       int addEachMoveMilliSec1, int addEachMoveMilliSec2, bool useByoyomi);
+
 signals:
     // stopあるいはponderhitコマンドが送信されたことを通知するシグナル
     void stopOrPonderhitCommandSent();
@@ -291,10 +295,6 @@ private:
 
     // 将棋エンジンからreadyokを受信するまで待つ。
     bool waitForReadyOk(const int timeoutMilliseconds);
-
-    // goコマンドを将棋エンジンに送信する。
-    void sendGoCommand(int byoyomiMilliSec, const QString& btime, const QString& wtime,
-                       int addEachMoveMilliSec1, int addEachMoveMilliSec2, bool useByoyomi);
 
     // 将棋エンジンからbestmoveを受信するまで待つ。
     bool waitForBestMove(const int timeoutMilliseconds);

@@ -62,6 +62,7 @@
 #include "boardimageexporter.h"
 #include "engineinfowidget.h"
 #include "engineanalysistab.h"
+#include "matchcoordinator.h"
 
 using namespace EngineSettingsConstants;
 
@@ -150,6 +151,8 @@ MainWindow::MainWindow(QWidget *parent) :
         for (int j = 0, m = buttons.size(); j < m; ++j)
             buttons.at(j)->installEventFilter(tipFilter);
     }
+
+    initMatchCoordinator();
 
     // メニューのシグナルとスロット（メニューやボタンをクリックした際に実行される関数の指定）
     // メニューの項目をクリックすると、スロットの関数が実行される。
@@ -964,14 +967,14 @@ void MainWindow::updateTurnStatus(int currentPlayer)
 {
     if (!m_shogiView) return;
 
-    m_shogiClock->setCurrentPlayer(currentPlayer);
-
-    // 1=先手, 2=後手 以外が来たら何もしない（既存の表示を維持）
-    if (currentPlayer == 1) {
-        m_shogiView->setActiveSide(true);   // 先手手番
-    } else if (currentPlayer == 2) {
-        m_shogiView->setActiveSide(false);  // 後手手番
+    if (!m_shogiClock) { // 念のため
+        qWarning() << "ShogiClock not ready yet";
+        ensureClockReady_();
+        // まだ準備できないなら return でもOK
     }
+
+    m_shogiClock->setCurrentPlayer(currentPlayer);
+    m_shogiView->setActiveSide(currentPlayer == 1);
 }
 
 // 手番に応じて将棋クロックの手番変更する。
@@ -1635,26 +1638,22 @@ void MainWindow::getOptionFromStartGameDialog()
 // 現在の局面で開始する場合に必要なListデータなどを用意する。
 void MainWindow::prepareDataCurrentPosition()
 {
-    // 前対局で格納したSFEN文字列の数
-    int n = m_sfenRecord->size();
+    // --- 履歴の整形 ---
+    const int n = m_sfenRecord->size();
 
-    // 前対局で選択した途中の局面以降のListデータを削除する。
-    for (int i = n; i > m_currentMoveIndex + 1; i--) {
-        // 棋譜欄データを部分削除
+    // 途中局面以降を削る
+    for (int i = n; i > m_currentMoveIndex + 1; --i) {
         m_moveRecords->removeLast();
-        // SFEN文字列データを部分削除
         m_sfenRecord->removeLast();
     }
 
-    // ListModelRecordの全データを削除
+    // 棋譜欄を該当手数まで再構築
     m_kifuRecordModel->clearAllItems();
-
-    // 途中の局面まで棋譜欄に棋譜データを1行ずつ格納
-    for (int i = 0; i < m_currentMoveIndex; i++) {
+    for (int i = 0; i < m_currentMoveIndex; ++i) {
         m_kifuRecordModel->appendItem(m_moveRecords->at(i));
     }
 
-    // 途中からの対局の場合、直前の一手のみ再ハイライト
+    // 直前手のハイライト
     if (m_boardController) {
         m_boardController->clearAllHighlights();
         if (m_currentMoveIndex > 0 && m_gameMoves.size() >= m_currentMoveIndex) {
@@ -1663,10 +1662,35 @@ void MainWindow::prepareDataCurrentPosition()
         }
     }
 
-    // 開始局面文字列をSFEN形式でセット（sfen 付き／なし）
-    m_startPosStr   = "sfen " + m_sfenRecord->last();
-    m_startSfenStr  = m_sfenRecord->last();
-    m_currentSfenStr = m_startPosStr;
+    // --- 開始局面の決定（必ず "startpos" か "sfen <...>" を用意する） ---
+    QString baseSfen; // "lnsgkgsnl/... b - 1" のような純SFEN
+
+    if (!m_sfenRecord->isEmpty()) {
+        baseSfen = m_sfenRecord->last().trimmed();
+    } else if (!m_startSfenStr.trimmed().isEmpty()) {
+        // 既にどこかで算出済みなら流用
+        baseSfen = m_startSfenStr.trimmed();
+    } else {
+        // 取得手段が無い/記録ゼロなら平手にフォールバック
+        // parseStartPositionToSfen("startpos") が使えるなら純SFENに変換して保持
+        // （使えない場合は baseSfen を空のままにして分岐させる）
+        baseSfen = parseStartPositionToSfen(QStringLiteral("startpos")).trimmed();
+    }
+
+    if (!baseSfen.isEmpty()) {
+        // 例: "position sfen <純SFEN> moves ..." を構築できる頭
+        m_startPosStr    = QStringLiteral("sfen ") + baseSfen;
+        m_startSfenStr   = baseSfen;
+        m_currentSfenStr = m_startPosStr;   // ここは "sfen ..." で保持（既存仕様に合わせる）
+    } else {
+        // 最後の砦：USIには "position startpos ..." を送れるようにしておく
+        m_startPosStr    = QStringLiteral("startpos");
+        m_startSfenStr.clear();             // 純SFEN不明
+        m_currentSfenStr = m_startPosStr;
+    }
+
+    // 以後 setupInitialPositionStrings() で
+    // m_positionStr1 = "position " + m_startPosStr + " moves" になる
 }
 
 // 初期局面からの対局する場合の準備を行う。
@@ -1753,100 +1777,44 @@ void MainWindow::setPlayer2TimeTextToRed()
 }
 
 // 残り時間をセットしてタイマーを開始する。
+// 残り時間をセットしてタイマーを開始する。
 void MainWindow::setTimerAndStart()
 {
-    // 将棋クロックのインスタンスを生成する。
-    m_shogiClock = new ShogiClock;
+    // ★ 既にあるはずだが保険
+    ensureClockReady_();
 
-    // GUIの残り時間表示を更新する。
-    connect(m_shogiClock, &ShogiClock::timeUpdated, this, &MainWindow::updateRemainingTimeDisplay);
-
-    // 対局者1の残り時間が0になった場合、対局者1の残り時間の文字色を赤色に指定する。
-    connect(m_shogiClock, &ShogiClock::player1TimeOut, this, &MainWindow::setPlayer1TimeTextToRed);
-
-    // 対局者2の残り時間が0になった場合、対局者2の残り時間の文字色を赤色に指定する。
-    connect(m_shogiClock, &ShogiClock::player2TimeOut, this, &MainWindow::setPlayer2TimeTextToRed);
-
-    // 対局者の持ち時間が0になった場合、時間切れの処理を行う。
-    connect(m_shogiClock, &ShogiClock::player1TimeOut, this, &MainWindow::onPlayer1TimeOut);
-    connect(m_shogiClock, &ShogiClock::player2TimeOut, this, &MainWindow::onPlayer2TimeOut);
-
-
-    // 対局者1の持ち時間の時間を取得する。
-    int basicTimeHour1 = m_startGameDialog->basicTimeHour1();
-
-    // 対局者1の持ち時間の分を取得する。
+    // （以下は元コードのまま＝時刻の読み取り）
+    int basicTimeHour1    = m_startGameDialog->basicTimeHour1();
     int basicTimeMinutes1 = m_startGameDialog->basicTimeMinutes1();
-
-    // 対局者2の持ち時間の時間を取得する。
-    int basicTimeHour2 = m_startGameDialog->basicTimeHour2();
-
-    // 対局者2の持ち時間の分を取得する。
+    int basicTimeHour2    = m_startGameDialog->basicTimeHour2();
     int basicTimeMinutes2 = m_startGameDialog->basicTimeMinutes2();
+    int byoyomi1          = m_startGameDialog->byoyomiSec1();
+    int byoyomi2          = m_startGameDialog->byoyomiSec2();
+    int binc              = m_startGameDialog->addEachMoveSec1();
+    int winc              = m_startGameDialog->addEachMoveSec2();
 
-    // 対局者1の秒読み時間を取得する。
-    int byoyomi1 = m_startGameDialog->byoyomiSec1();
-
-    // 対局者2の秒読み時間を取得する。
-    int byoyomi2 = m_startGameDialog->byoyomiSec2();
-
-    // 対局者1の1手ごとの加算時間を取得する。
-    // 秒読みが0より大きい場合、1手ごとの加算時間は必ず0になる。
-    int binc = m_startGameDialog->addEachMoveSec1();
-
-    // 対局者2の1手ごとの加算時間を取得する。
-    // 秒読みが0より大きい場合、1手ごとの加算時間は必ず0になる。
-    int winc = m_startGameDialog->addEachMoveSec2();
-
-    // 対局者1の残り時間を秒に変換する。
     int remainingTime1 = basicTimeHour1 * 3600 + basicTimeMinutes1 * 60;
-
-    // 対局者2の残り時間を秒に変換する。
     int remainingTime2 = basicTimeHour2 * 3600 + basicTimeMinutes2 * 60;
 
-    // 時間切れを負けにするかどうかのフラグを取得する。
     bool isLoseOnTimeout = m_startGameDialog->isLoseOnTimeout();
-
-    // 「持ち時間制か？」（どちらかの基本時間/秒読み/加算が設定されているか）
     bool hasTimeLimit =
         (basicTimeHour1*3600 + basicTimeMinutes1*60) > 0 ||
         (basicTimeHour2*3600 + basicTimeMinutes2*60) > 0 ||
-        byoyomi1 > 0 || byoyomi2 > 0 ||
-        binc > 0 || winc > 0;
+        byoyomi1 > 0 || byoyomi2 > 0 || binc > 0 || winc > 0;
 
-    // 0になったら負け扱いにするか（表示とロジックを分離）
     m_shogiClock->setLoseOnTimeout(isLoseOnTimeout);
-
-    //begin
-    qDebug() << "in MainWindow::setTimerAndStart";
-    qDebug() << "basicTimeHour1 = " << basicTimeHour1;
-    qDebug() << "basicTimeMinutes1 = " << basicTimeMinutes1;
-    qDebug() << "basicTimeHour2 = " << basicTimeHour2;
-    qDebug() << "basicTimeMinutes2 = " << basicTimeMinutes2;
-    qDebug() << "byoyomi1 = " << byoyomi1;
-    qDebug() << "byoyomi2 = " << byoyomi2;
-    qDebug() << "binc = " << binc;
-    qDebug() << "winc = " << winc;
-    qDebug() << "remainingTime1 = " << remainingTime1;
-    qDebug() << "remainingTime2 = " << remainingTime2;
-    qDebug() << "m_isLoseOnTimeout = " << m_isLoseOnTimeout;
-    //end
-
-    // 各対局者の残り時間を設定する。
-    m_shogiClock->setPlayerTimes(remainingTime1, remainingTime2, byoyomi1, byoyomi2, binc, winc,
+    m_shogiClock->setPlayerTimes(remainingTime1, remainingTime2,
+                                 byoyomi1, byoyomi2,
+                                 binc, winc,
                                  hasTimeLimit);
 
-    // setPlayerTimes(...) の直後など “開始前” に一度だけ
     m_initialTimeP1Ms = m_shogiClock->getPlayer1TimeIntMs();
     m_initialTimeP2Ms = m_shogiClock->getPlayer2TimeIntMs();
 
-    // 手番に応じて将棋クロックの手番変更およびGUIの手番表示を更新する。
+    // ここはお好み：フックでも turn 更新が入るので重複しても害なし
     updateTurnDisplay();
 
-    // 残り時間を更新する。
     m_shogiClock->updateClock();
-
-    // タイマーを開始する。
     m_shogiClock->startClock();
 }
 
@@ -1872,39 +1840,24 @@ void MainWindow::initializeGame()
     m_errorOccurred = false;
 
     // 将棋盤に関するクラスのエラー設定をエラーが発生していない状態に設定する。
-    m_shogiView->setErrorOccurred(false);
+    if (m_shogiView) m_shogiView->setErrorOccurred(false);
 
     // 対局ダイアログを生成する。
     m_startGameDialog = new StartGameDialog;
 
     // 対局ダイアログを実行し、OKボタンをクリックした場合
     if (m_startGameDialog->exec() == QDialog::Accepted) {
-        // ゲームカウントを1加算する。
         m_gameCount++;
-
-        // 対局数が2以上の時、ShogiBoardQを初期画面表示に戻す。
         if (m_gameCount > 1) resetToInitialState();
 
-        // 対局者の残り時間と秒読み時間を設定する。
         setRemainingTimeAndCountDown();
-
-        // 対局ダイアログから各オプションを取得する。
         getOptionFromStartGameDialog();
+        // ...（開始局面の準備など）
 
-        // 「将棋エンジン 対 将棋エンジン」
-        const bool engineVsEngine =
-            (m_playMode == EvenEngineVsEngine) ||
-            (m_playMode == HandicapEngineVsEngine);
+        // ★ ここを追加：MatchCoordinator が turn 表示をコールする前に時計を用意
+        ensureClockReady_();
 
-        if (m_analysisTab) {
-            m_analysisTab->setSecondEngineVisible(engineVsEngine);
-        }
-
-        // 棋譜ファイル情報の作成
-        makeKifuFileHeader();
-
-        int startingPositionNumber = m_startGameDialog->startingPositionNumber();
-
+         int startingPositionNumber = m_startGameDialog->startingPositionNumber();
         // 開始局面が「現在の局面」の場合
         if (startingPositionNumber == 0) {
             // 現在の局面で開始する場合に必要なListデータ等の準備
@@ -1926,56 +1879,30 @@ void MainWindow::initializeGame()
             }
         }
 
-        // 将棋盤、駒台を初期化（何も駒がない）し、入力のSFEN文字列の配置に将棋盤、駒台の駒を
-        // 配置し、対局結果を結果なし、現在の手番がどちらでもない状態に設定する。
-        // 将棋盤の表示
-        // 将棋の駒画像を各駒文字（1文字）にセットする。
-        // 駒文字と駒画像をm_piecesに格納する。
-        // m_piecesの型はQMap<char, QIcon>
-        // m_boardにboardをセットする。
-        // 将棋盤データが更新されたら再描画する。
-        // 将棋盤と駒台のサイズは固定にする。
-        // 将棋盤と駒台のマスのサイズをセットする。
-        // 将棋盤と駒台の再描画
-        // 対局者名の設定
-        // 対局モードに応じて将棋盤上部に表示される対局者名をセットする。
-        // エンジン名の設定
-        // 対局モードに応じて将棋盤下部に表示されるエンジン名をセットする。
-        startNewShogiGame(m_startSfenStr);
-
-        // 対局メニューの表示・非表示
-        setGameInProgressActions();
-
-        // 対局が人間対人間以外の場合
-        if (m_playMode) {
-            disableArrowButtons();
-            if (m_recordPane && m_recordPane->kifuView()) {
-                m_recordPane->kifuView()->setSelectionMode(QAbstractItemView::NoSelection);
-            }
+        // --- 盤の初期化／対局開始 ---
+        if (m_match) {
+            m_match->startNewGame(m_startSfenStr);   // ← 先にフックが飛ぶことを想定
         }
 
-        // 現在の手番を設定
+        setGameInProgressActions();
+        if (m_playMode) {
+            disableArrowButtons();
+            if (m_recordPane && m_recordPane->kifuView())
+                m_recordPane->kifuView()->setSelectionMode(QAbstractItemView::NoSelection);
+        }
+
         setCurrentTurn();
 
-        // 残り時間をセットしてタイマーを開始する。
+        // ★ 時間のセット＆時計開始は従来どおりこの後でOK
         setTimerAndStart();
 
-        //begin
-        qDebug() << "---- initializeGame() ---";
-        qDebug() << "m_bTime = " << m_bTime;
-        qDebug() << "m_wTime = " << m_wTime;
-        //end
-
         try {
-            // 対局モード（人間対エンジンなど）に応じて対局処理を開始する。
             startGameBasedOnMode();
         } catch (const std::exception& e) {
-            // エラーメッセージを表示する。
             displayErrorMessage(e.what());
         }
     }
 
-    // 対局ダイアログを削除する。
     delete m_startGameDialog;
 }
 
@@ -4666,20 +4593,19 @@ void MainWindow::initSingleEnginePvE(bool engineIsP1)
     // 先手エンジンかどうかでアービタ接続
     wireResignToArbiter(m_usi1, engineIsP1);
 
-    // === ここを修正：タグと設定名を側に合わせる ===
+    // ログ識別子
     const QString engineTag  = engineIsP1 ? QStringLiteral("[E1]") : QStringLiteral("[E2]");
     const QString playerTag  = engineIsP1 ? QStringLiteral("P1")   : QStringLiteral("P2");
-    const QString cfgName    = engineIsP1
-                               ? m_startGameDialog->engineName1()
-                               : m_startGameDialog->engineName2();
-
-    // ログ識別子（[E1]/[E2], P1/P2, 表示名）
+    const QString cfgName    = engineIsP1 ? m_startGameDialog->engineName1()
+                                       : m_startGameDialog->engineName2();
     m_usi1->setLogIdentity(engineTag, playerTag, cfgName);
     m_usi1->setSquelchResignLogging(false);
 
     resetGameFlags();
-}
 
+    // ★ MatchCoordinator に最新のポインタを知らせる（重要）
+    if (m_match) m_match->updateUsiPtrs(m_usi1, m_usi2);
+}
 
 // EvE：m_usi1 / m_usi2 を用意して共通初期化
 void MainWindow::initEnginesForEvE()
@@ -4702,6 +4628,9 @@ void MainWindow::initEnginesForEvE()
     m_usi2->setSquelchResignLogging(false);
 
     resetGameFlags();
+
+    // ★ MatchCoordinator に最新のポインタを知らせる（重要）
+    if (m_match) m_match->updateUsiPtrs(m_usi1, m_usi2);
 }
 
 // 初期 position（共通） ※PvE でも EvE でも両方の ponder を同値で初期化して問題なし
@@ -5288,4 +5217,108 @@ void MainWindow::wireBoardInteractionController()
 
     // 既定モード（必要に応じて開始時に上書き）
     m_boardController->setMode(BoardInteractionController::Mode::HumanVsHuman);
+}
+
+void MainWindow::initMatchCoordinator()   // ← 関数名はあなたのプロジェクト側に合わせて
+{
+    MatchCoordinator::Deps d;
+    d.gc    = m_gameController;
+    d.clock = m_shogiClock;
+    d.view  = m_shogiView;
+    d.usi1  = m_usi1;
+    d.usi2  = m_usi2;
+
+    // --- GUI固有の初期化（必要なら既存処理をここに移していく） ---
+    d.hooks.initializeNewGame = [this](const QString& sfen){
+        Q_UNUSED(sfen);
+        resetToInitialState();       // 既存のあなたの関数
+    };
+
+    // --- 盤面再描画：renderShogiBoard() は使わず View を直接更新 ---
+    d.hooks.renderBoardFromGc = [this](){
+        if (m_shogiView) m_shogiView->update();
+    };
+
+    // --- 手番/表示の更新（既存の updateTurnStatus を委譲） ---
+    d.hooks.updateTurnDisplay = [this](MatchCoordinator::Player cur){
+        updateTurnStatus(static_cast<int>(cur));
+    };
+
+    // --- 対局アクション（表示ON/OFFの共通化） ---
+    d.hooks.setGameActions = [this](bool inProgress){
+        if (inProgress) setGameInProgressActions();
+        else            hideGameActions();
+    };
+
+    // --- 名前系：既存は引数なしシグネチャなので、受け取った値は無視して既存を呼ぶ ---
+    d.hooks.setPlayersNames = [this](const QString&, const QString&){
+        setPlayersNamesForMode();              // ← 引数なし版
+    };
+    d.hooks.setEngineNames = [this](const QString&, const QString&){
+        setEngineNamesBasedOnMode();           // ← 引数なし版
+    };
+
+    // --- 残り時間/インクリメント/秒読み（long long を返すよう明示） ---
+    d.hooks.remainingMsFor = [this](MatchCoordinator::Player p) -> long long {
+        return (p == MatchCoordinator::P1)
+        ? static_cast<long long>(m_shogiClock->getPlayer1TimeIntMs())
+        : static_cast<long long>(m_shogiClock->getPlayer2TimeIntMs());
+    };
+    d.hooks.incrementMsFor = [this](MatchCoordinator::Player p) -> long long {
+        return (p == MatchCoordinator::P1)
+        ? static_cast<long long>(m_shogiClock->getBincMs())
+        : static_cast<long long>(m_shogiClock->getWincMs());
+    };
+    d.hooks.byoyomiMs = [this]() -> long long {
+        return static_cast<long long>(m_shogiClock->getCommonByoyomiMs());
+    };
+
+    // --- USI 送受（Usi の実装に合わせる） ---
+    d.hooks.sendStopToEngine = [this](Usi* u){
+        if (u) u->sendStopCommand();           // ← stop() ではなく sendStopCommand()
+    };
+    d.hooks.sendGoToEngine = [this](Usi* u, const MatchCoordinator::GoTimes& times){
+        if (!u) return;
+
+        // 現在の残り時間をそのまま（ミリ秒）で文字列化
+        const QString btime = QString::number(m_shogiClock->getPlayer1TimeIntMs());
+        const QString wtime = QString::number(m_shogiClock->getPlayer2TimeIntMs());
+
+        // ShogiClock から直接取得（今回追加した Getter を利用）
+        const int byoyomi = static_cast<int>(m_shogiClock->getCommonByoyomiMs());
+        const int binc    = static_cast<int>(m_shogiClock->getBincMs());
+        const int winc    = static_cast<int>(m_shogiClock->getWincMs());
+        const bool useByo = (byoyomi > 0);
+
+        Q_UNUSED(times); // ← 将来 MatchCoordinator 側で算出したら差し替え
+
+        u->sendGoCommand(byoyomi, btime, wtime, binc, winc, useByo);
+    };
+
+    // --- 終局ダイアログ（既存 displayGameOutcome はシグネチャ不一致なのでここでは軽量表示） ---
+    d.hooks.showGameOverDialog = [this](const QString& title, const QString& msg){
+        QMessageBox::information(this, title, msg);
+        // 必要に応じて、あなたの Result に写像して displayGameOutcome(...) を呼んでもOK
+        // displayGameOutcome(ShogiGameController::Result::Resign); など
+    };
+
+    d.hooks.log = [](const QString& s){ qDebug() << s; };
+
+    // 生成
+    m_match = new MatchCoordinator(d, this);
+}
+
+// MainWindow の private メソッドとして追加
+void MainWindow::ensureClockReady_()
+{
+    if (m_shogiClock) return;
+
+    m_shogiClock = new ShogiClock(this);  // ★ 親を this に
+
+    // === もともと setTimerAndStart() にあった接続をこちらへ移動 ===
+    connect(m_shogiClock, &ShogiClock::timeUpdated,      this, &MainWindow::updateRemainingTimeDisplay);
+    connect(m_shogiClock, &ShogiClock::player1TimeOut,   this, &MainWindow::setPlayer1TimeTextToRed);
+    connect(m_shogiClock, &ShogiClock::player2TimeOut,   this, &MainWindow::setPlayer2TimeTextToRed);
+    connect(m_shogiClock, &ShogiClock::player1TimeOut,   this, &MainWindow::onPlayer1TimeOut);
+    connect(m_shogiClock, &ShogiClock::player2TimeOut,   this, &MainWindow::onPlayer2TimeOut);
 }
