@@ -967,10 +967,10 @@ void MainWindow::updateTurnStatus(int currentPlayer)
 {
     if (!m_shogiView) return;
 
-    if (!m_shogiClock) { // 念のため
+    if (!m_shogiClock) { // 保険
         qWarning() << "ShogiClock not ready yet";
         ensureClockReady_();
-        // まだ準備できないなら return でもOK
+        if (!m_shogiClock) return;
     }
 
     m_shogiClock->setCurrentPlayer(currentPlayer);
@@ -1777,27 +1777,26 @@ void MainWindow::setPlayer2TimeTextToRed()
 }
 
 // 残り時間をセットしてタイマーを開始する。
-// 残り時間をセットしてタイマーを開始する。
 void MainWindow::setTimerAndStart()
 {
-    // ★ 既にあるはずだが保険
+    // 時計が先に必要（MatchCoordinator のフックから触られても安全に）
     ensureClockReady_();
 
     // （以下は元コードのまま＝時刻の読み取り）
-    int basicTimeHour1    = m_startGameDialog->basicTimeHour1();
-    int basicTimeMinutes1 = m_startGameDialog->basicTimeMinutes1();
-    int basicTimeHour2    = m_startGameDialog->basicTimeHour2();
-    int basicTimeMinutes2 = m_startGameDialog->basicTimeMinutes2();
-    int byoyomi1          = m_startGameDialog->byoyomiSec1();
-    int byoyomi2          = m_startGameDialog->byoyomiSec2();
-    int binc              = m_startGameDialog->addEachMoveSec1();
-    int winc              = m_startGameDialog->addEachMoveSec2();
+    const int basicTimeHour1    = m_startGameDialog->basicTimeHour1();
+    const int basicTimeMinutes1 = m_startGameDialog->basicTimeMinutes1();
+    const int basicTimeHour2    = m_startGameDialog->basicTimeHour2();
+    const int basicTimeMinutes2 = m_startGameDialog->basicTimeMinutes2();
+    const int byoyomi1          = m_startGameDialog->byoyomiSec1();
+    const int byoyomi2          = m_startGameDialog->byoyomiSec2();
+    const int binc              = m_startGameDialog->addEachMoveSec1();
+    const int winc              = m_startGameDialog->addEachMoveSec2();
 
-    int remainingTime1 = basicTimeHour1 * 3600 + basicTimeMinutes1 * 60;
-    int remainingTime2 = basicTimeHour2 * 3600 + basicTimeMinutes2 * 60;
+    const int remainingTime1 = basicTimeHour1 * 3600 + basicTimeMinutes1 * 60;
+    const int remainingTime2 = basicTimeHour2 * 3600 + basicTimeMinutes2 * 60;
 
-    bool isLoseOnTimeout = m_startGameDialog->isLoseOnTimeout();
-    bool hasTimeLimit =
+    const bool isLoseOnTimeout = m_startGameDialog->isLoseOnTimeout();
+    const bool hasTimeLimit =
         (basicTimeHour1*3600 + basicTimeMinutes1*60) > 0 ||
         (basicTimeHour2*3600 + basicTimeMinutes2*60) > 0 ||
         byoyomi1 > 0 || byoyomi2 > 0 || binc > 0 || winc > 0;
@@ -1808,12 +1807,12 @@ void MainWindow::setTimerAndStart()
                                  binc, winc,
                                  hasTimeLimit);
 
+    // 初期msを保持（棋譜表示等の計算に使用）
     m_initialTimeP1Ms = m_shogiClock->getPlayer1TimeIntMs();
     m_initialTimeP2Ms = m_shogiClock->getPlayer2TimeIntMs();
 
-    // ここはお好み：フックでも turn 更新が入るので重複しても害なし
+    // 手番表示 → 時計更新 → スタート（順序はこのままでOK）
     updateTurnDisplay();
-
     m_shogiClock->updateClock();
     m_shogiClock->startClock();
 }
@@ -4593,18 +4592,21 @@ void MainWindow::initSingleEnginePvE(bool engineIsP1)
     // 先手エンジンかどうかでアービタ接続
     wireResignToArbiter(m_usi1, engineIsP1);
 
-    // ログ識別子
+    // === ここを修正：タグと設定名を側に合わせる ===
     const QString engineTag  = engineIsP1 ? QStringLiteral("[E1]") : QStringLiteral("[E2]");
     const QString playerTag  = engineIsP1 ? QStringLiteral("P1")   : QStringLiteral("P2");
-    const QString cfgName    = engineIsP1 ? m_startGameDialog->engineName1()
-                                       : m_startGameDialog->engineName2();
+    const QString cfgName    = engineIsP1
+                                ? m_startGameDialog->engineName1()
+                                : m_startGameDialog->engineName2();
+
+    // ログ識別子（[E1]/[E2], P1/P2, 表示名）
     m_usi1->setLogIdentity(engineTag, playerTag, cfgName);
     m_usi1->setSquelchResignLogging(false);
 
-    resetGameFlags();
-
-    // ★ MatchCoordinator に最新のポインタを知らせる（重要）
+    // ★ 追加：MatchCoordinator に新しいポインタを渡す
     if (m_match) m_match->updateUsiPtrs(m_usi1, m_usi2);
+
+    resetGameFlags();
 }
 
 // EvE：m_usi1 / m_usi2 を用意して共通初期化
@@ -4627,10 +4629,10 @@ void MainWindow::initEnginesForEvE()
     m_usi1->setSquelchResignLogging(false);
     m_usi2->setSquelchResignLogging(false);
 
-    resetGameFlags();
-
-    // ★ MatchCoordinator に最新のポインタを知らせる（重要）
+    // ★ 追加：MatchCoordinator に新しいポインタを渡す
     if (m_match) m_match->updateUsiPtrs(m_usi1, m_usi2);
+
+    resetGameFlags();
 }
 
 // 初期 position（共通） ※PvE でも EvE でも両方の ponder を同値で初期化して問題なし
@@ -5219,8 +5221,14 @@ void MainWindow::wireBoardInteractionController()
     m_boardController->setMode(BoardInteractionController::Mode::HumanVsHuman);
 }
 
-void MainWindow::initMatchCoordinator()   // ← 関数名はあなたのプロジェクト側に合わせて
+void MainWindow::initMatchCoordinator()
 {
+    // 依存が揃っていない場合は何もしない
+    if (!m_gameController || !m_shogiView) return;
+
+    // まず時計を用意（nullでも可だが、あれば渡す）
+    ensureClockReady_();
+
     MatchCoordinator::Deps d;
     d.gc    = m_gameController;
     d.clock = m_shogiClock;
@@ -5228,97 +5236,150 @@ void MainWindow::initMatchCoordinator()   // ← 関数名はあなたのプロ�
     d.usi1  = m_usi1;
     d.usi2  = m_usi2;
 
-    // --- GUI固有の初期化（必要なら既存処理をここに移していく） ---
-    d.hooks.initializeNewGame = [this](const QString& sfen){
-        Q_UNUSED(sfen);
-        resetToInitialState();       // 既存のあなたの関数
-    };
-
-    // --- 盤面再描画：renderShogiBoard() は使わず View を直接更新 ---
-    d.hooks.renderBoardFromGc = [this](){
-        if (m_shogiView) m_shogiView->update();
-    };
-
-    // --- 手番/表示の更新（既存の updateTurnStatus を委譲） ---
+    // ---------- Hooks: MainWindow の既存APIに委譲 ----------
+    // 手番表示（1=先手,2=後手）
     d.hooks.updateTurnDisplay = [this](MatchCoordinator::Player cur){
         updateTurnStatus(static_cast<int>(cur));
     };
 
-    // --- 対局アクション（表示ON/OFFの共通化） ---
+    // 対局者名表示（引数は捨て、既存ロジックに委譲）
+    d.hooks.setPlayersNames = [this](const QString&, const QString&){
+        setPlayersNamesForMode();
+    };
+
+    // エンジン名表示（引数は捨て、既存ロジックに委譲）
+    d.hooks.setEngineNames = [this](const QString&, const QString&){
+        setEngineNamesBasedOnMode();
+    };
+
+    // 対局中メニュー表示の切り替え
     d.hooks.setGameActions = [this](bool inProgress){
         if (inProgress) setGameInProgressActions();
         else            hideGameActions();
     };
 
-    // --- 名前系：既存は引数なしシグネチャなので、受け取った値は無視して既存を呼ぶ ---
-    d.hooks.setPlayersNames = [this](const QString&, const QString&){
-        setPlayersNamesForMode();              // ← 引数なし版
-    };
-    d.hooks.setEngineNames = [this](const QString&, const QString&){
-        setEngineNamesBasedOnMode();           // ← 引数なし版
+    // 盤面再描画（GC→View 反映）
+    d.hooks.renderBoardFromGc = [this](){
+        if (m_shogiView && m_gameController)
+            m_shogiView->applyBoardAndRender(m_gameController->board());
     };
 
-    // --- 残り時間/インクリメント/秒読み（long long を返すよう明示） ---
-    d.hooks.remainingMsFor = [this](MatchCoordinator::Player p) -> long long {
-        return (p == MatchCoordinator::P1)
-        ? static_cast<long long>(m_shogiClock->getPlayer1TimeIntMs())
-        : static_cast<long long>(m_shogiClock->getPlayer2TimeIntMs());
-    };
-    d.hooks.incrementMsFor = [this](MatchCoordinator::Player p) -> long long {
-        return (p == MatchCoordinator::P1)
-        ? static_cast<long long>(m_shogiClock->getBincMs())
-        : static_cast<long long>(m_shogiClock->getWincMs());
-    };
-    d.hooks.byoyomiMs = [this]() -> long long {
-        return static_cast<long long>(m_shogiClock->getCommonByoyomiMs());
+    // ★ここがコンパイルエラーの原因でした：型を (title, message) に合わせる
+    d.hooks.showGameOverDialog = [this](const QString& title, const QString& message){
+        // 既存の displayGameOutcome(Result) ではなく、汎用メッセージダイアログで表示
+        QMessageBox::information(this,
+                                 title.isEmpty() ? tr("Game Over") : title,
+                                 tr("The game has ended. %1").arg(message));
     };
 
-    // --- USI 送受（Usi の実装に合わせる） ---
+    // 任意ログ
+    d.hooks.log = [](const QString& s){ qDebug().noquote() << s; };
+
+    // 時計値の問い合わせ
+    d.hooks.remainingMsFor = [this](MatchCoordinator::Player p)->qint64 {
+        if (!m_shogiClock) return 0;
+        return (p == MatchCoordinator::P1)
+                   ? m_shogiClock->getPlayer1TimeIntMs()
+                   : m_shogiClock->getPlayer2TimeIntMs();
+    };
+    d.hooks.incrementMsFor = [this](MatchCoordinator::Player p)->qint64 {
+        if (!m_shogiClock) return 0;
+        return (p == MatchCoordinator::P1)
+                   ? m_shogiClock->getBincMs()
+                   : m_shogiClock->getWincMs();
+    };
+    d.hooks.byoyomiMs = [this]()->qint64 {
+        return m_shogiClock ? m_shogiClock->getCommonByoyomiMs() : 0;
+    };
+
+    // USI送受（必要最低限）
+    d.hooks.sendGoToEngine = nullptr; // 必要になったら実装
     d.hooks.sendStopToEngine = [this](Usi* u){
-        if (u) u->sendStopCommand();           // ← stop() ではなく sendStopCommand()
+        if (u) u->sendStopCommand();
     };
-    d.hooks.sendGoToEngine = [this](Usi* u, const MatchCoordinator::GoTimes& times){
-        if (!u) return;
-
-        // 現在の残り時間をそのまま（ミリ秒）で文字列化
-        const QString btime = QString::number(m_shogiClock->getPlayer1TimeIntMs());
-        const QString wtime = QString::number(m_shogiClock->getPlayer2TimeIntMs());
-
-        // ShogiClock から直接取得（今回追加した Getter を利用）
-        const int byoyomi = static_cast<int>(m_shogiClock->getCommonByoyomiMs());
-        const int binc    = static_cast<int>(m_shogiClock->getBincMs());
-        const int winc    = static_cast<int>(m_shogiClock->getWincMs());
-        const bool useByo = (byoyomi > 0);
-
-        Q_UNUSED(times); // ← 将来 MatchCoordinator 側で算出したら差し替え
-
-        u->sendGoCommand(byoyomi, btime, wtime, binc, winc, useByo);
+    d.hooks.sendRawToEngine = [this](Usi* u, const QString& cmd){
+        if (u) u->sendRaw(cmd);
     };
 
-    // --- 終局ダイアログ（既存 displayGameOutcome はシグネチャ不一致なのでここでは軽量表示） ---
-    d.hooks.showGameOverDialog = [this](const QString& title, const QString& msg){
-        QMessageBox::information(this, title, msg);
-        // 必要に応じて、あなたの Result に写像して displayGameOutcome(...) を呼んでもOK
-        // displayGameOutcome(ShogiGameController::Result::Resign); など
+    // 新規対局の初期化（盤/名前/表示など）
+    d.hooks.initializeNewGame = [this](const QString& sfenStart){
+        QString s = sfenStart;     // 既存APIが非常参照なのでコピーして渡す
+        startNewShogiGame(s);
     };
 
-    d.hooks.log = [](const QString& s){ qDebug() << s; };
-
-    // 生成
+    // ---------- 生成 or 置き換え ----------
+    if (m_match) {
+        // ★ここがエラーでした：MatchCoordinator に reinit が無いので作り直す
+        delete m_match;
+        m_match = nullptr;
+    }
     m_match = new MatchCoordinator(d, this);
+
+    // ---------- UIシグナル接続 ----------
+    // ゲーム開始/終了でメニューの表示を切替
+    connect(m_match, &MatchCoordinator::gameStarted,
+            this, &MainWindow::onMatchGameStarted,
+            Qt::UniqueConnection);
+
+    // ゲーム終了 → 時計を終了表示にして残り時間を更新
+    connect(m_match, &MatchCoordinator::gameEnded,
+            this, &MainWindow::onMatchGameEnded,
+            Qt::UniqueConnection);
+
+    // 盤反転通知 → 引数は受け取るが使わない
+    connect(m_match, &MatchCoordinator::boardFlipped,
+            this, &MainWindow::onBoardFlipped,
+            Qt::UniqueConnection);
+
+    // 初期のエンジンポインタを供給（null可）
+    m_match->updateUsiPtrs(m_usi1, m_usi2);
 }
 
-// MainWindow の private メソッドとして追加
+// --- 時計の生成と配線（未生成なら生成、生成済みなら何もしない） ---
 void MainWindow::ensureClockReady_()
 {
     if (m_shogiClock) return;
 
-    m_shogiClock = new ShogiClock(this);  // ★ 親を this に
+    m_shogiClock = new ShogiClock(this);
 
-    // === もともと setTimerAndStart() にあった接続をこちらへ移動 ===
-    connect(m_shogiClock, &ShogiClock::timeUpdated,      this, &MainWindow::updateRemainingTimeDisplay);
-    connect(m_shogiClock, &ShogiClock::player1TimeOut,   this, &MainWindow::setPlayer1TimeTextToRed);
-    connect(m_shogiClock, &ShogiClock::player2TimeOut,   this, &MainWindow::setPlayer2TimeTextToRed);
-    connect(m_shogiClock, &ShogiClock::player1TimeOut,   this, &MainWindow::onPlayer1TimeOut);
-    connect(m_shogiClock, &ShogiClock::player2TimeOut,   this, &MainWindow::onPlayer2TimeOut);
+    // GUIの残り時間表示を更新する。
+    connect(m_shogiClock, &ShogiClock::timeUpdated,
+            this, &MainWindow::updateRemainingTimeDisplay,
+            Qt::UniqueConnection);
+
+    // 0になった時の色変更
+    connect(m_shogiClock, &ShogiClock::player1TimeOut,
+            this, &MainWindow::setPlayer1TimeTextToRed,
+            Qt::UniqueConnection);
+    connect(m_shogiClock, &ShogiClock::player2TimeOut,
+            this, &MainWindow::setPlayer2TimeTextToRed,
+            Qt::UniqueConnection);
+
+    // 時間切れ時の処理
+    connect(m_shogiClock, &ShogiClock::player1TimeOut,
+            this, &MainWindow::onPlayer1TimeOut,
+            Qt::UniqueConnection);
+    connect(m_shogiClock, &ShogiClock::player2TimeOut,
+            this, &MainWindow::onPlayer2TimeOut,
+            Qt::UniqueConnection);
+}
+
+void MainWindow::onMatchGameStarted()
+{
+    setGameInProgressActions();
+}
+
+// mainwindow.cpp
+void MainWindow::onMatchGameEnded()
+{
+    if (m_shogiClock) {
+        m_shogiClock->markGameOver();
+        updateRemainingTimeDisplay();
+    }
+}
+
+void MainWindow::onBoardFlipped(bool /*nowFlipped*/)
+{
+    // 既存の処理をそのまま呼ぶ
+    swapBoardSides();
 }

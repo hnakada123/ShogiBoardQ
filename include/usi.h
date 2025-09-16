@@ -112,6 +112,9 @@ public:
     void sendGoCommand(int byoyomiMilliSec, const QString& btime, const QString& wtime,
                        int addEachMoveMilliSec1, int addEachMoveMilliSec2, bool useByoyomi);
 
+    // 任意の USI コマンドをそのまま送る（ログ出力は sendCommand 側で実施）
+    void sendRaw(const QString& command) const;
+
 signals:
     // stopあるいはponderhitコマンドが送信されたことを通知するシグナル
     void stopOrPonderhitCommandSent();
