@@ -80,7 +80,6 @@ private slots:
     void displayConsiderationDialog();
     void displayKifuAnalysisDialog();
 
-    void flipBoardAndUpdatePlayerInfo();
     void copyBoardToClipboard();
 
     // EngineAnalysisTab の表示切り替え
@@ -91,7 +90,6 @@ private slots:
     void saveSettingsAndClose();
     void resetToInitialState();
 
-    void displayGameOutcome(ShogiGameController::Result);
     void handleResignation();
     void handleEngineTwoResignation();
     void handleEngineOneResignation();
@@ -109,7 +107,6 @@ private slots:
     void finishPositionEditing();
     void resetPiecesToStand();
 
-    void switchTurns();
     void setStandardStartPosition();
     void setTsumeShogiStartPosition();
     void swapBoardSides();
@@ -236,7 +233,6 @@ private:
 
     void updateRemainingTimeDisplay();
     void hideGameActions();
-    void setGameInProgressActions();
 
     void initializeComponents();
     void setupHorizontalGameLayout();
@@ -539,6 +535,8 @@ private:
 
     void initMatchCoordinator();
 
+    void setGameInProgressActions(bool inProgress); // フックの受け口（残す）
+
 public: // INavigationContext
     bool hasResolvedRows() const override;
     int  resolvedRowCount() const override;
@@ -551,9 +549,10 @@ private slots:
     void onBranchCandidateActivated(const QModelIndex& idx);
     void onMainMoveRowChanged(int row);
     void onKifuCurrentRowChanged(const QModelIndex& cur, const QModelIndex& prev);
-    void onMatchGameStarted();
     void onMatchGameEnded();
     void onBoardFlipped(bool nowFlipped);
+    void toggleEditSideToMove();
+    void onActionFlipBoardTriggered(bool checked = false);
 };
 
 #endif // MAINWINDOW_H
