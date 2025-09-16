@@ -18,7 +18,6 @@
 #include "shogienginethinkingmodel.h"
 #include "kifuanalysislistmodel.h"
 #include "shogigamecontroller.h"
-#include "shogiview.h"
 #include "usi.h"
 #include "startgamedialog.h"
 #include "kifuanalysisdialog.h"
@@ -53,8 +52,8 @@ class QGraphicsPathItem;
 class QTableView;
 class QTableWidget;
 class QEvent;
-class QGraphicsPathItem;
 class EngineAnalysisTab;
+class ShogiView;
 
 class MainWindow : public QMainWindow, public INavigationContext
 {
@@ -70,7 +69,6 @@ private slots:
     void displayErrorMessage(const QString& message);
     void chooseAndLoadKifuFile();
 
-    void togglePiecePromotionOnClick(const QPoint& field);
     void displayPromotionDialog();
 
     void displayEngineSettingsDialog();
@@ -166,11 +164,6 @@ private:
     ShogiView*          m_shogiView = nullptr;
     ShogiGameController* m_gameController = nullptr;
 
-    QPoint m_clickPoint;
-    ShogiView::FieldHighlight* m_selectedField = nullptr;
-    ShogiView::FieldHighlight* m_selectedField2 = nullptr;
-    ShogiView::FieldHighlight* m_movedField    = nullptr;
-
     QString m_startPosStr;
 
     StartGameDialog*         m_startGameDialog = nullptr;
@@ -213,9 +206,6 @@ private:
 
     ShogiClock* m_shogiClock = nullptr;
 
-    bool   m_waitingSecondClick = false;
-    QPoint m_firstClick;
-
     // --- ロジック ---
     void startNewShogiGame(QString& startSfenStr);
     void updateGameRecord(const QString& elapsedTime);
@@ -242,9 +232,6 @@ private:
 
     void redrawEngine1EvaluationGraph();
     void redrawEngine2EvaluationGraph();
-
-    void clearMoveHighlights();
-    void addMoveHighlights();
 
     void updateRemainingTimeDisplay();
     void hideGameActions();
@@ -279,8 +266,6 @@ private:
     PlayMode determinePlayMode(int initPositionNumber, bool isPlayer1Human, bool isPlayer2Human) const;
     PlayMode setPlayMode();
 
-    void selectPieceAndHighlight(const QPoint& field);
-
     void updateGameRecordAndGUI();
     void movePieceImmediately();
 
@@ -300,7 +285,6 @@ private:
 
     void displayTsumeShogiSearchDialog();
     void startTsumiSearch();
-    void finalizeDrag();
 
     QElapsedTimer m_humanTurnTimer;
     bool m_humanTimerArmed = false;
@@ -472,10 +456,6 @@ private:
     void initSingleEnginePvE(bool engineIsP1);
     void initEnginesForEvE();
     void setupInitialPositionStrings();
-
-    // クリックハンドラ（対局モードに応じて差し替え）
-    void setPvEClickHandler();
-    void setPvPClickHandler();
 
     // UIと時計の同期（タイトル等）
     void syncAndEpoch(const QString& title);
