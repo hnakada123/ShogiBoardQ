@@ -1820,3 +1820,12 @@ bool Usi::shouldAbortWait() const
 
     return false;
 }
+
+void Usi::sendRaw(const QString& command) const
+{
+    if (!m_process) {
+        qWarning() << "Usi::sendRaw called but m_process is null.";
+        return;
+    }
+    sendCommand(command);
+}

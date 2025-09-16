@@ -551,6 +551,9 @@ private slots:
     void onBranchCandidateActivated(const QModelIndex& idx);
     void onMainMoveRowChanged(int row);
     void onKifuCurrentRowChanged(const QModelIndex& cur, const QModelIndex& prev);
+    void onMatchGameStarted();
+    void onMatchGameEnded();
+    void onBoardFlipped(bool nowFlipped);
 };
 
 #endif // MAINWINDOW_H
