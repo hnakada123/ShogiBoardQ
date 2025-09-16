@@ -1,6 +1,12 @@
 #include "matchcoordinator.h"
 #include <QDebug>
 
+// 依存の完全型が必要な箇所は cpp 側で include
+#include "shogiclock.h"
+#include "usi.h"
+#include "shogigamecontroller.h"
+#include "shogiview.h"
+
 MatchCoordinator::MatchCoordinator(const Deps& d, QObject* parent)
     : QObject(parent)
     , m_gc(d.gc)
@@ -41,12 +47,64 @@ void MatchCoordinator::startNewGame(const QString& sfenStart) {
 
 void MatchCoordinator::handleResign() {
     stopClockAndSendStops_();
-    displayResultsAndUpdateGui_(QStringLiteral("Human resigned"));
+
+    GameEndInfo info;
+    info.cause = Cause::Resignation;
+    info.loser = m_cur; // 現在手番側が投了したとみなす（必要に応じて呼び出し側で明示管理）
+
+    // エンジンへ通知（任意）
+    if (m_hooks.sendRawToEngine) {
+        if (info.loser == P1) {
+            if (m_usi1) m_hooks.sendRawToEngine(m_usi1, QStringLiteral("gameover lose"));
+            if (m_usi2) m_hooks.sendRawToEngine(m_usi2, QStringLiteral("gameover win"));
+        } else {
+            if (m_usi2) m_hooks.sendRawToEngine(m_usi2, QStringLiteral("gameover lose"));
+            if (m_usi1) m_hooks.sendRawToEngine(m_usi1, QStringLiteral("gameover win"));
+        }
+    }
+
+    displayResultsAndUpdateGui_(info);
 }
 
 void MatchCoordinator::handleEngineResign(int idx) {
     stopClockAndSendStops_();
-    displayResultsAndUpdateGui_(QStringLiteral("Engine %1 resigned").arg(idx));
+
+    GameEndInfo info;
+    info.cause = Cause::Resignation;
+    info.loser = (idx == 1 ? P1 : P2);
+
+    if (m_hooks.sendRawToEngine) {
+        if (info.loser == P1) {
+            if (m_usi1) m_hooks.sendRawToEngine(m_usi1, QStringLiteral("gameover lose"));
+            if (m_usi2) m_hooks.sendRawToEngine(m_usi2, QStringLiteral("gameover win"));
+        } else {
+            if (m_usi2) m_hooks.sendRawToEngine(m_usi2, QStringLiteral("gameover lose"));
+            if (m_usi1) m_hooks.sendRawToEngine(m_usi1, QStringLiteral("gameover win"));
+        }
+    }
+
+    displayResultsAndUpdateGui_(info);
+}
+
+void MatchCoordinator::notifyTimeout(Player loser) {
+    stopClockAndSendStops_();
+
+    // 任意：エンジンへ gameover 通知（生コマンドで十分）
+    if (m_hooks.sendRawToEngine) {
+        if (loser == P1) {
+            if (m_usi1) m_hooks.sendRawToEngine(m_usi1, QStringLiteral("gameover lose"));
+            if (m_usi2) m_hooks.sendRawToEngine(m_usi2, QStringLiteral("gameover win"));
+        } else {
+            if (m_usi2) m_hooks.sendRawToEngine(m_usi2, QStringLiteral("gameover lose"));
+            if (m_usi1) m_hooks.sendRawToEngine(m_usi1, QStringLiteral("gameover win"));
+        }
+    }
+
+    GameEndInfo info;
+    info.cause = Cause::Timeout;
+    info.loser = loser;
+
+    displayResultsAndUpdateGui_(info);
 }
 
 void MatchCoordinator::flipBoard() {
@@ -111,21 +169,30 @@ MatchCoordinator::GoTimes MatchCoordinator::computeGoTimes_() const {
     if (m_hooks.byoyomiMs) {
         t.byoyomi = m_hooks.byoyomiMs();
     }
-    // 必要なら「残り0で増加0」等の調整をここに加える
     return t;
 }
 
 void MatchCoordinator::stopClockAndSendStops_() {
+    if (m_clock) m_clock->stopClock();
     if (m_hooks.sendStopToEngine) {
         if (m_usi1) m_hooks.sendStopToEngine(m_usi1);
         if (m_usi2) m_hooks.sendStopToEngine(m_usi2);
     }
 }
 
-void MatchCoordinator::displayResultsAndUpdateGui_(const QString& reason) {
+void MatchCoordinator::displayResultsAndUpdateGui_(const GameEndInfo& info) {
     setGameInProgressActions_(false);
-    if (m_hooks.showGameOverDialog) m_hooks.showGameOverDialog(tr("Game Over"), reason);
-    if (m_hooks.log) m_hooks.log(QStringLiteral("Game ended: ") + reason);
-    emit gameEnded();
+
+    if (m_hooks.showGameOverDialog) {
+        const QString loserStr = (info.loser == P1) ? QStringLiteral("P1") : QStringLiteral("P2");
+        const QString msg = (info.cause == Cause::Timeout)
+                                ? tr("Timeout: %1 lost").arg(loserStr)
+                                : tr("Resignation: %1 lost").arg(loserStr);
+        m_hooks.showGameOverDialog(tr("Game Over"), msg);
+    }
+
+    if (m_hooks.log) m_hooks.log(QStringLiteral("Game ended"));
+
+    emit gameEnded(info);
     emit gameOverShown();
 }

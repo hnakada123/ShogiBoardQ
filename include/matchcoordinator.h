@@ -16,12 +16,19 @@ class MatchCoordinator : public QObject {
 public:
     enum Player : int { P1 = 1, P2 = 2 };
 
+    enum class Cause : int { Resignation = 0, Timeout = 1 };
+
     struct GoTimes {
         qint64 btime = 0;   // 先手 残り(ms)
         qint64 wtime = 0;   // 後手 残り(ms)
         qint64 byoyomi = 0; // 共通 秒読み(ms)
         qint64 binc = 0;    // 先手 増加(ms)
         qint64 winc = 0;    // 後手 増加(ms)
+    };
+
+    struct GameEndInfo {
+        Cause  cause = Cause::Resignation;
+        Player loser = P1;
     };
 
     struct Hooks {
@@ -39,7 +46,7 @@ public:
         std::function<qint64(Player)> incrementMsFor; // フィッシャー増加
         std::function<qint64()> byoyomiMs;            // 秒読み（共通）
 
-        // --- USI 送受（go/stop の最終送信を委譲） ---
+        // --- USI 送受（go/stop/任意生コマンド） ---
         std::function<void(Usi* which, const GoTimes& t)> sendGoToEngine;
         std::function<void(Usi* which)> sendStopToEngine;
         std::function<void(Usi* which, const QString& cmd)> sendRawToEngine; // 任意
@@ -64,6 +71,7 @@ public:
     void startNewGame(const QString& sfenStart);
     void handleResign();                 // 人間の投了
     void handleEngineResign(int idx);    // エンジン投了通知(1 or 2)
+    void notifyTimeout(Player loser);    // ★ 時間切れ通知（UI→司令塔）
     void flipBoard();                    // 盤反転 + 表示更新
     void onTurnFinishedAndSwitch();      // 手番切替時（時計/UI更新 + go送信）
     void updateUsiPtrs(Usi* e1, Usi* e2);// エンジン再生成時などに差し替え
@@ -72,7 +80,7 @@ signals:
     void gameOverShown();
     void boardFlipped(bool nowFlipped);
     void gameStarted();
-    void gameEnded();
+    void gameEnded(const GameEndInfo& info);
 
 private:
     // NOTE: QPointer は使わず raw ポインタ（寿命は Main 側で管理）
@@ -98,7 +106,7 @@ private:
 
     // 終局処理
     void stopClockAndSendStops_();
-    void displayResultsAndUpdateGui_(const QString& reason);
+    void displayResultsAndUpdateGui_(const GameEndInfo& info);
 };
 
 #endif // MATCHCOORDINATOR_H
