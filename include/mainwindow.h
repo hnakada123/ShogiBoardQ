@@ -54,6 +54,7 @@ class QTableWidget;
 class QEvent;
 class EngineAnalysisTab;
 class ShogiView;
+class MatchCoordinator;
 
 class MainWindow : public QMainWindow, public INavigationContext
 {
@@ -531,6 +532,12 @@ private:
     void wireBoardInteractionController();
 
     bool m_engine1IsP1 = false; // シングルエンジン時、エンジン1の担当が先手なら true
+
+    MatchCoordinator* m_match = nullptr;
+
+    void ensureClockReady_();
+
+    void initMatchCoordinator();
 
 public: // INavigationContext
     bool hasResolvedRows() const override;

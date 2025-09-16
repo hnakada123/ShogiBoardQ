@@ -82,6 +82,16 @@ public:
     int getPlayer1ConsiderationTimeMs() const;
     int getPlayer2ConsiderationTimeMs() const;
 
+    // --- USI パラメータ用 Getter（最小限） ---
+    qint64 getBincMs() const { return m_bincMs; }
+    qint64 getWincMs() const { return m_wincMs; }
+
+    // 両者同値の byoyomi だけ返す（不一致なら 0 を返す＝USIの byoyomi は使わない）
+    qint64 getCommonByoyomiMs() const {
+        return (m_byoyomi1TimeMs > 0 && m_byoyomi2TimeMs > 0 && m_byoyomi1TimeMs == m_byoyomi2TimeMs)
+        ? m_byoyomi1TimeMs : 0;
+    }
+
 signals:
     void timeUpdated();
     void player1TimeOut();
