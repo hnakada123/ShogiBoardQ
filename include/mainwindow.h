@@ -33,6 +33,7 @@
 #include "recordpane.h"
 #include "engineanalysistab.h"
 #include "boardinteractioncontroller.h"
+#include "matchcoordinator.h"
 
 #define SHOGIBOARDQ_DEBUG_KIF 1   // 0にすればログは一切出ません
 
@@ -54,7 +55,6 @@ class QTableWidget;
 class QEvent;
 class EngineAnalysisTab;
 class ShogiView;
-class MatchCoordinator;
 
 class MainWindow : public QMainWindow, public INavigationContext
 {
@@ -97,8 +97,6 @@ private slots:
     void sendCommandsToEngineTwo();
 
     void setResignationMove(bool isPlayerOneResigning);
-    void stopClockAndSendCommands();
-    void displayResultsAndUpdateGui();
 
     void disableArrowButtons();
     void enableArrowButtons();
@@ -124,6 +122,8 @@ private slots:
 
     void onPlayer1TimeOut();
     void onPlayer2TimeOut();
+
+    void onMatchGameEnded(const MatchCoordinator::GameEndInfo& info); // ★引数付きに変更
 
 private:
     // --- 基本状態 ---
@@ -549,7 +549,6 @@ private slots:
     void onBranchCandidateActivated(const QModelIndex& idx);
     void onMainMoveRowChanged(int row);
     void onKifuCurrentRowChanged(const QModelIndex& cur, const QModelIndex& prev);
-    void onMatchGameEnded();
     void onBoardFlipped(bool nowFlipped);
     void toggleEditSideToMove();
     void onActionFlipBoardTriggered(bool checked = false);
