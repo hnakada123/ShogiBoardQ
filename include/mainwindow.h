@@ -2,16 +2,11 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <QWidget>
-#include <QLabel>
-#include <QHBoxLayout>
 #include <QSplitter>
 #include <QTime>
-#include <QTextBrowser>
 #include <QDockWidget>
 #include <QTableWidget>
 #include <QStyledItemDelegate>
-#include <QSet>
 
 #include "kifurecordlistmodel.h"
 #include "kifubranchlistmodel.h"
@@ -114,9 +109,6 @@ private slots:
     void saveKifuToFile();
     void overwriteKifuFile();
     void processResignCommand();
-
-    void setPlayer1TimeTextToRed();
-    void setPlayer2TimeTextToRed();
 
     void endDrag();
 

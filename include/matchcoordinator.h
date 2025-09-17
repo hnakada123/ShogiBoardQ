@@ -4,7 +4,10 @@
 #include <QObject>
 #include <QString>
 #include <functional>
+#include "playmode.h"
 
+class UsiCommLogModel;
+class ShogiEngineThinkingModel;
 class ShogiGameController;
 class ShogiClock;
 class ShogiView;
@@ -61,6 +64,10 @@ public:
         ShogiView*           view = nullptr;
         Usi*                 usi1 = nullptr;
         Usi*                 usi2 = nullptr;
+        UsiCommLogModel*           comm1 = nullptr;
+        ShogiEngineThinkingModel*  think1 = nullptr;
+        UsiCommLogModel*           comm2 = nullptr;
+        ShogiEngineThinkingModel*  think2 = nullptr;
         Hooks                hooks;
     };
 
@@ -138,6 +145,44 @@ private:
 private slots:
     void onEngine1Resign();
     void onEngine2Resign();
+
+public:
+    // ↓↓↓ 追加（PlayMode を司令塔に設定）
+    void setPlayMode(PlayMode m);
+
+    // ↓↓↓ 追加（EvE 用のエンジン生成・配線・初期化）
+    void initEnginesForEvE(const QString& engineName1,
+                           const QString& engineName2);
+
+    // ↓↓↓ 追加（エンジン手進行ロジックの集約）
+    bool engineThinkApplyMove(Usi* engine,
+                              QString& positionStr,
+                              QString& ponderStr,
+                              QPoint* outFrom,
+                              QPoint* outTo);
+
+    bool engineMoveOnce(Usi* eng,
+                        QString& positionStr,
+                        QString& ponderStr,
+                        bool /*useSelectedField2*/,
+                        int engineIndex,
+                        QPoint* outTo);
+
+    bool playOneEngineTurn(Usi* mover,
+                           Usi* receiver,
+                           QString& positionStr,
+                           QString& ponderStr,
+                           int engineIndex);
+
+    // ↓↓↓ 追加（PlayMode に応じた WIN+QUIT 通知を内包）
+    void sendGameOverWinAndQuit();
+
+private:
+    PlayMode                 m_playMode = NotStarted;
+    UsiCommLogModel*         m_comm1    = nullptr;
+    ShogiEngineThinkingModel*m_think1   = nullptr;
+    UsiCommLogModel*         m_comm2    = nullptr;
+    ShogiEngineThinkingModel*m_think2   = nullptr;
 };
 
 #endif // MATCHCOORDINATOR_H

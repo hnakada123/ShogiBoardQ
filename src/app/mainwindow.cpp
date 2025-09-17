@@ -1,45 +1,9 @@
-#include <QApplication>
-#include <QLayout>
 #include <QMessageBox>
-#include <QSplitter>
-#include <QTableWidget>
-#include <QTextEdit>
 #include <QDesktopServices>
-#include <QTextStream>
-#include <QDir>
-#include <QTimer>
 #include <QHBoxLayout>
-#include <QScrollBar>
 #include <QHeaderView>
-#include <QValueAxis>
-#include <QPushButton>
-#include <QLineEdit>
-#include <QSpacerItem>
-#include <QClipboard>
-#include <QModelIndex>
-#include <QScrollArea>
 #include <QFileDialog>
-#include <QImage>
-#include <QRegularExpression>
-#include <QSettings>
-#include <QDebug>
-#include <QDateTime>
-#include <QToolBar>
 #include <QToolButton>
-#include <QMenuBar>
-#include <QMenu>
-#include <QTimer>
-#include <QStandardPaths>
-#include <QImageWriter>
-#include <QSplitter>
-#include <QTextBrowser>
-#include <QTextOption>
-#include <QRegularExpression>
-#include <QGraphicsScene>
-#include <QGraphicsView>
-#include <QGraphicsPathItem>
-#include <QPainterPath>
-#include <QPointer>
 
 #include "mainwindow.h"
 #include "promotedialog.h"
@@ -1500,34 +1464,6 @@ void MainWindow::prepareInitialPosition()
     m_sfenRecord->append(m_startSfenStr);
 }
 
-// 対局者1の残り時間の文字色を赤色に指定する。
-void MainWindow::setPlayer1TimeTextToRed()
-{
-    // パレットを赤色に指定する。
-    QPalette palette = m_shogiView->blackClockLabel()->palette();
-    palette.setColor(QPalette::WindowText, Qt::red);
-
-    // 対局者1の残り時間の文字色を赤色に指定する。
-    m_shogiView->blackClockLabel()->setPalette(palette);
-
-    // 対局者1の残り時間を0にする。
-    m_bTime = "0";
-}
-
-// 対局者2の残り時間の文字色を赤色に指定する。
-void MainWindow::setPlayer2TimeTextToRed()
-{  
-    // パレットを赤色に指定する。
-    QPalette palette = m_shogiView->whiteClockLabel()->palette();
-    palette.setColor(QPalette::WindowText, Qt::red);
-
-    // 対局者1の残り時間の文字色を赤色に指定する。
-    m_shogiView->whiteClockLabel()->setPalette(palette);
-
-    // 対局者2の残り時間を0にする。
-    m_wTime = "0";
-}
-
 // 残り時間をセットしてタイマーを開始する。
 void MainWindow::setTimerAndStart()
 {
@@ -1687,18 +1623,6 @@ void MainWindow::updateRemainingTimeDisplay()
                       << "P2(ms)=" << m_shogiClock->getPlayer2TimeIntMs()
                       << "P1(label)=" << p1
                       << "P2(label)=" << p2;
-}
-
-void ShogiView::applyClockUrgency(qint64 activeRemainMs)
-{
-    Urgency next = Urgency::Normal;
-    if      (activeRemainMs <= kWarn5Ms)  next = Urgency::Warn5;
-    else if (activeRemainMs <= kWarn10Ms) next = Urgency::Warn10;
-
-    if (next != m_urgency) {
-        m_urgency = next;
-        setUrgencyVisuals(m_urgency);
-    }
 }
 
 // 設定ファイルにGUI全体のウィンドウサイズを書き込む。
@@ -4151,69 +4075,15 @@ void MainWindow::setConsiderationForJustMoved(qint64 thinkMs)
     }
 }
 
-bool MainWindow::engineThinkApplyMove(Usi* engine, QString& positionStr, QString& ponderStr, QPoint* outFrom, QPoint* outTo)
+bool MainWindow::engineThinkApplyMove(Usi* engine,
+                                      QString& positionStr,
+                                      QString& ponderStr,
+                                      QPoint* outFrom,
+                                      QPoint* outTo)
 {
-    if (!engine) return false;
-
-    // go パラメータを最新化
-    refreshGoTimes();
-
-    // 旗落ち判定用に「指す前の手番（＝この手を指す側）」と上限を確定
-    const bool moverWasP1 = (m_gameController->currentPlayer() == ShogiGameController::Player1);
-    const int  budgetMs   = computeMoveBudgetMsForCurrentTurn();
-
-    // 思考要求
-    QPoint from(-1, -1), to(-1, -1);
-    m_gameController->setPromote(false);
-    engine->handleEngineVsHumanOrEngineMatchCommunication(
-        positionStr, ponderStr,
-        from, to,
-        m_byoyomiMilliSec1, m_bTime, m_wTime,
-        m_addEachMoveMiliSec1, m_addEachMoveMiliSec2, m_useByoyomi
-    );
-
-    // 投了で終局したらここで終了
-    if (m_gameIsOver) {
-        updateTurnAndTimekeepingDisplay();
-        return false;
-    }
-
-    // 着手適用
-    bool ok = false;
-    try {
-        ok = m_gameController->validateAndMove(
-            from, to, m_lastMove, m_playMode,
-            m_currentMoveIndex, m_sfenRecord, m_gameMoves
-        );
-    } catch (const std::exception& e) {
-        displayErrorMessage(e.what());
-        return false;
-    }
-
-    if (m_gameIsOver) {
-        updateTurnAndTimekeepingDisplay();
-        return false;
-    }
-    if (!ok) return false;
-
-    // 旗落ち判定と思考時間反映
-    const qint64 thinkMs = engine->lastBestmoveElapsedMs();
-    if (thinkMs > budgetMs + kFlagFallGraceMs) {
-        qDebug().nospace()
-            << "[GUI] Flag-fall (engine move) "
-            << "think=" << thinkMs << "ms "
-            << "budget=" << budgetMs << "ms "
-            << "grace=" << kFlagFallGraceMs << "ms";
-        handleFlagFallForMover(moverWasP1);
-        return false;
-    }
-
-    setConsiderationForJustMoved(thinkMs);
-    updateTurnAndTimekeepingDisplay();
-
-    if (outFrom) *outFrom = from;
-    if (outTo)   *outTo   = to;
-    return true;
+    return (m_match
+                ? m_match->engineThinkApplyMove(engine, positionStr, ponderStr, outFrom, outTo)
+                : false);
 }
 
 void MainWindow::destroyEngine(Usi*& e)
@@ -4264,31 +4134,14 @@ void MainWindow::initSingleEnginePvE(bool engineIsP1)
     resetGameFlags();
 }
 
-// EvE：m_usi1 / m_usi2 を用意して共通初期化
 void MainWindow::initEnginesForEvE()
 {
-    destroyEngine(m_usi1);
-    destroyEngine(m_usi2);
-    m_usi1 = new Usi(m_lineEditModel1, m_modelThinking1, m_gameController, m_playMode, this);
-    m_usi2 = new Usi(m_lineEditModel2, m_modelThinking2, m_gameController, m_playMode, this);
-
-    m_usi1->resetResignNotified(); m_usi1->clearHardTimeout();
-    m_usi2->resetResignNotified(); m_usi2->clearHardTimeout();
-
-    wireResignToArbiter(m_usi1, /*asP1=*/true);
-    wireResignToArbiter(m_usi2, /*asP1=*/false);
-
-    m_usi1->setLogIdentity("[E1]", "P1", m_startGameDialog->engineName1());
-    m_usi2->setLogIdentity("[E2]", "P2", m_startGameDialog->engineName2());
-
-    m_usi1->setSquelchResignLogging(false);
-    m_usi2->setSquelchResignLogging(false);
-
-    // ★ 追加：MatchCoordinator に新しいポインタを渡す
-    if (m_match) m_match->updateUsiPtrs(m_usi1, m_usi2);
-
-    resetGameFlags();
+    if (!m_match) return;
+    // ここでは名前だけ司令塔へ渡す（モデルは Deps 経由）
+    m_match->initEnginesForEvE(m_startGameDialog->engineName1(),
+                               m_startGameDialog->engineName2());
 }
+
 
 // 初期 position（共通） ※PvE でも EvE でも両方の ponder を同値で初期化して問題なし
 void MainWindow::setupInitialPositionStrings()
@@ -4319,45 +4172,24 @@ bool MainWindow::isHumanTurnNow(bool engineIsP1) const
 bool MainWindow::engineMoveOnce(Usi* eng,
                                 QString& positionStr,
                                 QString& ponderStr,
-                                bool /*useSelectedField2*/,
+                                bool useSelectedField2,
                                 int engineIndex,
                                 QPoint* outTo)
 {
-    QPoint from, to;
-    if (!engineThinkApplyMove(eng, positionStr, ponderStr, &from, &to))
-        return false;
-
-    // ★ ハイライトはコントローラに一元化
-    if (m_boardController)
-        m_boardController->showMoveHighlights(from, to);   // 赤=from, 黄=to
-
-    if (engineIndex == 1) redrawEngine1EvaluationGraph();
-    else                  redrawEngine2EvaluationGraph();
-
-    if (outTo) *outTo = to;
-    return true;
+    return (m_match
+                ? m_match->engineMoveOnce(eng, positionStr, ponderStr, useSelectedField2, engineIndex, outTo)
+                : false);
 }
 
-bool MainWindow::playOneEngineTurn(Usi* mover, Usi* receiver,
+bool MainWindow::playOneEngineTurn(Usi* mover,
+                                   Usi* receiver,
                                    QString& positionStr,
                                    QString& ponderStr,
                                    int engineIndex)
 {
-    // EvEではどちらも m_selectedField を使っていた既存挙動を踏襲
-    QPoint to;
-    if (!engineMoveOnce(mover, positionStr, ponderStr,
-                        /*useSelectedField2=*/false, engineIndex, &to)) {
-        return false; // 投了・エラー等
-    }
-
-    // 次手のヒント（直前に動いた"to"を相手側へ伝える）
-    receiver->setPreviousFileTo(to.x());
-    receiver->setPreviousRankTo(to.y());
-
-    // engineMoveOnce 内で終局になった可能性もある
-    if (m_gameIsOver) return false;
-
-    return true;
+    return (m_match
+                ? m_match->playOneEngineTurn(mover, receiver, positionStr, ponderStr, engineIndex)
+                : false);
 }
 
 void MainWindow::assignSidesHumanVsEngine()
@@ -4891,6 +4723,13 @@ void MainWindow::initMatchCoordinator()
     d.usi1  = m_usi1;
     d.usi2  = m_usi2;
 
+    // --- ここから追加（EvE 用：司令塔にモデルを渡す） ---
+    d.comm1  = m_lineEditModel1;     // UsiCommLogModel*（先手）
+    d.think1 = m_modelThinking1;     // ShogiEngineThinkingModel*（先手）
+    d.comm2  = m_lineEditModel2;     // UsiCommLogModel*（後手）
+    d.think2 = m_modelThinking2;     // ShogiEngineThinkingModel*（後手）
+    // --- 追加ここまで ---
+
     // ---------- Hooks: MainWindow の既存APIに委譲 ----------
     // 手番表示（1=先手,2=後手）
     d.hooks.updateTurnDisplay = [this](MatchCoordinator::Player cur){
@@ -4967,6 +4806,9 @@ void MainWindow::initMatchCoordinator()
     }
     m_match = new MatchCoordinator(d, this);
 
+    // ★ PlayMode を司令塔へ伝える（追加）
+    m_match->setPlayMode(m_playMode);
+
     // ---------- UIシグナル接続 ----------
     // ゲーム終了 → 時計を終了表示にして残り時間を更新
     connect(
@@ -4979,7 +4821,6 @@ void MainWindow::initMatchCoordinator()
         Qt::UniqueConnection
         );
 
-
     // 盤反転通知 → 明示スロットへ一本化
     connect(m_match, &MatchCoordinator::boardFlipped,
             this, &MainWindow::onBoardFlipped,
@@ -4989,27 +4830,18 @@ void MainWindow::initMatchCoordinator()
     m_match->updateUsiPtrs(m_usi1, m_usi2);
 }
 
-// --- 時計の生成と配線（未生成なら生成、生成済みなら何もしない） ---
 void MainWindow::ensureClockReady_()
 {
     if (m_shogiClock) return;
 
     m_shogiClock = new ShogiClock(this);
 
-    // GUIの残り時間表示を更新する。
+    // 残り時間のUI反映（ここで ShogiView::applyClockUrgency までやる）
     connect(m_shogiClock, &ShogiClock::timeUpdated,
             this, &MainWindow::updateRemainingTimeDisplay,
             Qt::UniqueConnection);
 
-    // 0になった時の色変更
-    connect(m_shogiClock, &ShogiClock::player1TimeOut,
-            this, &MainWindow::setPlayer1TimeTextToRed,
-            Qt::UniqueConnection);
-    connect(m_shogiClock, &ShogiClock::player2TimeOut,
-            this, &MainWindow::setPlayer2TimeTextToRed,
-            Qt::UniqueConnection);
-
-    // 時間切れ時の処理
+    // 時間切れ時の処理（終局ハンドラは残す）
     connect(m_shogiClock, &ShogiClock::player1TimeOut,
             this, &MainWindow::onPlayer1TimeOut,
             Qt::UniqueConnection);
