@@ -4,6 +4,9 @@
 #include <QObject>
 #include <QString>
 #include <functional>
+#include <QStringList>
+#include <QVector>
+#include "shogimove.h"
 #include "playmode.h"
 
 class UsiCommLogModel;
@@ -145,6 +148,7 @@ private:
 private slots:
     void onEngine1Resign();
     void onEngine2Resign();
+    void kickNextEvETurn_();  // EvE を1手ずつ進める
 
 public:
     // ↓↓↓ 追加（PlayMode を司令塔に設定）
@@ -183,6 +187,51 @@ private:
     ShogiEngineThinkingModel*m_think1   = nullptr;
     UsiCommLogModel*         m_comm2    = nullptr;
     ShogiEngineThinkingModel*m_think2   = nullptr;
+
+public:
+    // 対局開始のためのオプション
+    struct StartOptions {
+        PlayMode mode = NotStarted;
+        QString  sfenStart;
+
+        // エンジン情報（必要なら空でもOK）
+        QString engineName1;
+        QString enginePath1;
+        QString engineName2;
+        QString enginePath2;
+
+        // HvE の場合、エンジンがどちら側か
+        bool engineIsP1 = false;
+        bool engineIsP2 = false;
+    };
+
+    // 対局開始フローを一元化
+    void configureAndStart(const StartOptions& opt);
+
+public:
+    Usi* primaryEngine() const;  // HvE/EvH で司令塔が使う主エンジン（これまで m_usi1 に相当）
+    Usi* secondaryEngine() const; // ★ 追加
+
+private:
+    // 内部ヘルパ
+    void startHumanVsHuman_(const StartOptions& opt);
+    void startHumanVsEngine_(const StartOptions& opt, bool engineIsP1);
+    void initPositionStringsForEvE_();        // ← 新規ヘルパ
+    void startEngineVsEngine_(const StartOptions& /*opt*/);
+
+private:
+    // USI "position ... moves" の作業用バッファ
+    QString m_positionStr1, m_positionPonder1;
+    QString m_positionStr2, m_positionPonder2;
+
+    // 棋譜／SFEN 記録（ShogiGameController::validateAndMove の引数用）
+    int m_currentMoveIndex = 0;
+    QStringList m_sfenRecord;
+    QVector<ShogiMove> m_gameMoves;
+    // EvE 専用の棋譜保持（MainWindow から独立）
+    QStringList      m_eveSfenRecord;
+    QVector<ShogiMove> m_eveGameMoves;
+    int              m_eveMoveIndex = 0;
 };
 
 #endif // MATCHCOORDINATOR_H

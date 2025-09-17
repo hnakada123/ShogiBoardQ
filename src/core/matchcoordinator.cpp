@@ -2,18 +2,22 @@
 #include "shogiclock.h"
 #include "usi.h"
 #include "shogiview.h"
-
+#include <limits>
 #include <QObject>
 #include <QDebug>
 
 MatchCoordinator::MatchCoordinator(const Deps& d, QObject* parent)
-    : QObject(parent)
+    : QObject(parent) 
     , m_gc(d.gc)
     , m_clock(d.clock)
     , m_view(d.view)
     , m_usi1(d.usi1)
     , m_usi2(d.usi2)
     , m_hooks(d.hooks)
+    , m_comm1(d.comm1)
+    , m_think1(d.think1)
+    , m_comm2(d.comm2)
+    , m_think2(d.think2)
 {
 }
 
@@ -24,7 +28,8 @@ void MatchCoordinator::updateUsiPtrs(Usi* e1, Usi* e2) {
     m_usi2 = e2;
 }
 
-void MatchCoordinator::startNewGame(const QString& sfenStart) {
+void MatchCoordinator::startNewGame(const QString& sfenStart)
+{
     // 1) GUI固有の初期化
     if (m_hooks.initializeNewGame) m_hooks.initializeNewGame(sfenStart);
 
@@ -36,8 +41,19 @@ void MatchCoordinator::startNewGame(const QString& sfenStart) {
     // 3) 盤面描画
     renderShogiBoard_();
 
-    // 4) 初手は P1（必要なら gc 側の現手番から同期）
-    m_cur = P1;
+    // 4) 初手手番を SFEN から決定（なければ P1）
+    ShogiGameController::Player first = ShogiGameController::Player1;
+    if (!sfenStart.isEmpty()) {
+        // “… b …”=先手番, “… w …”=後手番（SFEN準拠）
+        if (sfenStart.contains(QStringLiteral(" w ")))
+            first = ShogiGameController::Player2;
+        else if (sfenStart.contains(QStringLiteral(" b ")))
+            first = ShogiGameController::Player1;
+    }
+
+    // GC の手番を必ず確定してから UI 反映
+    if (m_gc) m_gc->setCurrentPlayer(first);
+    m_cur = (first == ShogiGameController::Player1 ? P1 : P2);
     updateTurnDisplay_(m_cur);
 
     if (m_hooks.log) m_hooks.log(QStringLiteral("MatchCoordinator: startNewGame done"));
@@ -310,29 +326,37 @@ void MatchCoordinator::initEnginesForEvE(const QString& engineName1,
     // 既存エンジンの破棄
     destroyEngines();
 
-    // EvE 用の USI を生成（GUI 依存のモデルは Deps 経由で受け取る）
-    m_usi1 = new Usi(m_comm1, m_think1, m_gc, m_playMode, this);
-    m_usi2 = new Usi(m_comm2, m_think2, m_gc, m_playMode, this);
+    // モデル（GUI から貰えない場合はフォールバック生成）
+    UsiCommLogModel*          comm1  = m_comm1 ? m_comm1 : new UsiCommLogModel(this);
+    ShogiEngineThinkingModel* think1 = m_think1 ? m_think1 : new ShogiEngineThinkingModel(this);
+    UsiCommLogModel*          comm2  = m_comm2 ? m_comm2 : new UsiCommLogModel(this);
+    ShogiEngineThinkingModel* think2 = m_think2 ? m_think2 : new ShogiEngineThinkingModel(this);
+
+    if (!m_comm1)  { m_comm1  = comm1;  qWarning() << "[EvE] comm1 fallback created"; }
+    if (!m_think1) { m_think1 = think1; qWarning() << "[EvE] think1 fallback created"; }
+    if (!m_comm2)  { m_comm2  = comm2;  qWarning() << "[EvE] comm2 fallback created"; }
+    if (!m_think2) { m_think2 = think2; qWarning() << "[EvE] think2 fallback created"; }
+
+    // USI を生成（この時点ではプロセス未起動）
+    m_usi1 = new Usi(comm1, think1, m_gc, m_playMode, this);
+    m_usi2 = new Usi(comm2, think2, m_gc, m_playMode, this);
 
     // 状態初期化
     m_usi1->resetResignNotified(); m_usi1->clearHardTimeout();
     m_usi2->resetResignNotified(); m_usi2->clearHardTimeout();
 
-    // 投了シグナル配線（司令塔で一元）
+    // 投了配線
     wireResignToArbiter_(m_usi1, /*asP1=*/true);
-    wireResignToArbiter_(m_usi2, /*asP2=*/false);
+    wireResignToArbiter_(m_usi2, /*asP1=*/false);
 
-    // ログ識別子（GUI で表示するもの）
+    // ログ識別
     m_usi1->setLogIdentity(QStringLiteral("[E1]"), QStringLiteral("P1"), engineName1);
     m_usi2->setLogIdentity(QStringLiteral("[E2]"), QStringLiteral("P2"), engineName2);
     m_usi1->setSquelchResignLogging(false);
     m_usi2->setSquelchResignLogging(false);
 
-    // MainWindow 互換：司令塔が保有する USI を最新化（既存 API）
+    // MainWindow 互換：司令塔が保有する USI を最新化
     updateUsiPtrs(m_usi1, m_usi2);
-
-    // 対局フラグ初期化（既存メソッドがあれば呼ぶ／無ければ必要なメンバをクリア）
-    // resetGameFlags(); // 既存なら有効化。無ければ m_gameIsOver等を初期化。
 }
 
 bool MatchCoordinator::engineThinkApplyMove(Usi* engine,
@@ -449,4 +473,300 @@ void MatchCoordinator::sendGameOverWinAndQuit()
         // NotStarted / Analysis / Consideration / TsumiSearch / など
         break;
     }
+}
+
+void MatchCoordinator::configureAndStart(const StartOptions& opt)
+{
+    m_playMode = opt.mode;
+
+    // 盤・名前などの初期化（GUI側へ委譲）
+    if (m_hooks.initializeNewGame) m_hooks.initializeNewGame(opt.sfenStart);
+    if (m_hooks.setPlayersNames)   m_hooks.setPlayersNames(QString(), QString());
+    if (m_hooks.setEngineNames)    m_hooks.setEngineNames(opt.engineName1, opt.engineName2);
+    if (m_hooks.setGameActions)    m_hooks.setGameActions(true);
+    if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
+
+    // EvE 用の内部棋譜コンテナを初期化
+    m_eveSfenRecord.clear();
+    m_eveGameMoves.clear();
+    m_eveMoveIndex = 0;
+
+    switch (m_playMode) {
+    case EvenEngineVsEngine:
+    case HandicapEngineVsEngine: {
+        // 1) USIインスタンスの生成（ログモデル等の配線もここで）
+        initEnginesForEvE(opt.engineName1, opt.engineName2);
+
+        // 2) 2台とも USI プロセスを起動・初期化（usi→isready→usinewgame）
+        initializeAndStartEngineFor(P1, opt.enginePath1, opt.engineName1);
+        initializeAndStartEngineFor(P2, opt.enginePath2, opt.engineName2);
+
+        // 3) 先手初手を開始（ここで position/go を送る）
+        startEngineVsEngine_(opt);
+        break;
+    }
+
+    case EvenHumanVsEngine:
+    case HandicapHumanVsEngine: {
+        // HvE/EvH は既存の単独エンジン起動ルートへ
+        const bool engineIsP1 = opt.engineIsP1;
+        startHumanVsEngine_(opt, engineIsP1);
+        break;
+    }
+
+    case EvenEngineVsHuman:
+    case HandicapEngineVsHuman: {
+        const bool engineIsP1 = true; // 先手エンジン
+        startHumanVsEngine_(opt, engineIsP1);
+        break;
+    }
+
+    case HumanVsHuman:
+        startHumanVsHuman_(opt);
+        break;
+
+    default:
+        // NotStarted / Analysis 等
+        break;
+    }
+}
+
+void MatchCoordinator::startHumanVsHuman_(const StartOptions& /*opt*/)
+{
+    if (m_hooks.log) m_hooks.log(QStringLiteral("[Match] Start HvH"));
+    // HvH はエンジン不要。必要ならここで追加の初期化のみ。
+}
+
+void MatchCoordinator::startHumanVsEngine_(const StartOptions& opt, bool engineIsP1)
+{
+    if (m_hooks.log) {
+        m_hooks.log(QStringLiteral("[Match] Start HvE (engineIsP1=%1)").arg(engineIsP1));
+    }
+
+    // 以前のエンジンが残っているとログモデル指し替えが難しいため一度クリーンに
+    destroyEngines();
+
+    // サイドに応じて GUI モデルを選択（P1側エンジンなら comm1/think1、P2側なら comm2/think2）
+    UsiCommLogModel*          comm  = engineIsP1 ? m_comm1  : m_comm2;
+    ShogiEngineThinkingModel* think = engineIsP1 ? m_think1 : m_think2;
+
+    // GUI が該当側のモデルを用意していない場合のフォールバック（クラッシュ回避）
+    if (!comm)  comm  = new UsiCommLogModel(this);
+    if (!think) think = new ShogiEngineThinkingModel(this);
+
+    // HvE は既存仕様どおり m_usi1 を使用（内部の先後は logIdentity で区別）
+    m_usi1 = new Usi(comm, think, m_gc, m_playMode, this);
+    updateUsiPtrs(m_usi1, nullptr);
+
+    m_usi1->resetResignNotified();
+    m_usi1->clearHardTimeout();
+
+    // 投了シグナル配線
+    wireResignToArbiter_(m_usi1, /*asP1=*/true);
+
+    // ログ識別（P1/P2 を表示に反映）
+    const QString eName = engineIsP1 ? opt.engineName1 : opt.engineName2;
+    m_usi1->setLogIdentity(QStringLiteral("[E]"),
+                           engineIsP1 ? QStringLiteral("P1") : QStringLiteral("P2"),
+                           eName);
+    m_usi1->setSquelchResignLogging(false);
+
+    // USI 起動（パス＋表示名）
+    const QString ePath = engineIsP1 ? opt.enginePath1 : opt.enginePath2;
+    const QString eDisp = engineIsP1 ? opt.engineName1 : opt.engineName2;
+    initializeAndStartEngineFor(P1, ePath, eDisp); // HvE でも P1 側を使う（既存仕様）
+}
+
+// EvE の初手を開始する（起動・初期化済み前提）
+void MatchCoordinator::startEngineVsEngine_(const StartOptions& /*opt*/)
+{
+    if (!m_usi1 || !m_usi2 || !m_gc) return;
+
+    // GC の手番が未設定なら先手にしておく
+    if (m_gc->currentPlayer() == ShogiGameController::NoPlayer) {
+        m_gc->setCurrentPlayer(ShogiGameController::Player1);
+        m_cur = P1;
+        updateTurnDisplay_(m_cur);
+    }
+
+    // "position ... moves" の初期化（startpos 前提。SFEN 始点に拡張するならここで分岐）
+    initPositionStringsForEvE_();
+
+    // 先手エンジン（P1）に初手思考を要求
+    const GoTimes t1 = computeGoTimes_();
+    const QString btimeStr1 = QString::number(t1.btime);
+    const QString wtimeStr1 = QString::number(t1.wtime);
+
+    QPoint p1From(-1, -1), p1To(-1, -1);
+    m_gc->setPromote(false);
+
+    try {
+        m_usi1->handleEngineVsHumanOrEngineMatchCommunication(
+            m_positionStr1, m_positionPonder1,
+            p1From, p1To,
+            static_cast<int>(t1.byoyomi),
+            btimeStr1, wtimeStr1,
+            static_cast<int>(t1.binc), static_cast<int>(t1.winc),
+            (t1.byoyomi > 0)
+            );
+    } catch (const std::exception& e) {
+        qWarning() << "[EvE] engine1 first move failed:" << e.what();
+        return;
+    }
+
+    // bestmove を盤へ適用（EvE 専用の棋譜コンテナを使用）
+    QString rec1;
+    PlayMode pm = m_playMode;
+    try {
+        if (!m_gc->validateAndMove(
+                p1From, p1To, rec1,
+                pm,
+                m_eveMoveIndex,
+                &m_eveSfenRecord,
+                m_eveGameMoves
+                )) {
+            return;
+        }
+    } catch (const std::exception& e) {
+        qWarning() << "[EvE] validateAndMove(P1) failed:" << e.what();
+        return;
+    }
+
+    // 盤描画＆手番表示
+    if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
+    updateTurnDisplay_(
+        (m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2
+        );
+
+    // ─────────────────────────────────────────────────────────────
+    // ★ ここが今回の追加ポイント：
+    //   先手の着手で更新された position を後手用にも反映し、P2 に 1手指させる
+    // ─────────────────────────────────────────────────────────────
+
+    // “同○”ヒントを P2 へ（必要なら）
+    if (m_usi2) {
+        m_usi2->setPreviousFileTo(p1To.x());
+        m_usi2->setPreviousRankTo(p1To.y());
+    }
+
+    // 後手用 position は先手用をそのままコピー（"position ... moves ..." に先手着手が入っている）
+    m_positionStr2     = m_positionStr1;
+    m_positionPonder2.clear(); // 不要ならクリア
+
+    const GoTimes t2 = computeGoTimes_();
+    const QString btimeStr2 = QString::number(t2.btime);
+    const QString wtimeStr2 = QString::number(t2.wtime);
+
+    QPoint p2From(-1, -1), p2To(-1, -1);
+    m_gc->setPromote(false);
+
+    try {
+        m_usi2->handleEngineVsHumanOrEngineMatchCommunication(
+            m_positionStr2, m_positionPonder2,
+            p2From, p2To,
+            static_cast<int>(t2.byoyomi),
+            btimeStr2, wtimeStr2,
+            static_cast<int>(t2.binc), static_cast<int>(t2.winc),
+            (t2.byoyomi > 0)
+            );
+    } catch (const std::exception& e) {
+        qWarning() << "[EvE] engine2 first reply failed:" << e.what();
+        return;
+    }
+
+    // 後手の着手を盤へ適用
+    QString rec2;
+    try {
+        if (!m_gc->validateAndMove(
+                p2From, p2To, rec2,
+                pm,
+                m_eveMoveIndex,
+                &m_eveSfenRecord,
+                m_eveGameMoves
+                )) {
+            return;
+        }
+    } catch (const std::exception& e) {
+        qWarning() << "[EvE] validateAndMove(P2) failed:" << e.what();
+        return;
+    }
+
+    // 反映
+    if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
+    updateTurnDisplay_(
+        (m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2
+        );
+
+    QTimer::singleShot(0, this, &MatchCoordinator::kickNextEvETurn_);
+}
+
+Usi* MatchCoordinator::primaryEngine() const
+{
+    return m_usi1;
+}
+
+Usi* MatchCoordinator::secondaryEngine() const
+{
+    return m_usi2;
+}
+
+void MatchCoordinator::initPositionStringsForEvE_()
+{
+    m_positionStr1.clear();
+    m_positionPonder1.clear();
+    m_positionStr2.clear();
+    m_positionPonder2.clear();
+
+    const QString base = QStringLiteral("position startpos moves");
+    m_positionStr1 = base;
+    m_positionStr2 = base;
+}
+
+void MatchCoordinator::kickNextEvETurn_()
+{
+    // EvE 以外・未初期化は何もしない
+    if (m_playMode != EvenEngineVsEngine && m_playMode != HandicapEngineVsEngine) return;
+    if (!m_usi1 || !m_usi2 || !m_gc) return;
+
+    // いま指す側と相手側を決める（GCの現手番に従う）
+    const bool p1ToMove = (m_gc->currentPlayer() == ShogiGameController::Player1);
+    Usi* mover    = p1ToMove ? m_usi1 : m_usi2;
+    Usi* receiver = p1ToMove ? m_usi2 : m_usi1;
+
+    // mover が使う position/ponder を選び、直前の相手側の position に同期
+    QString& pos    = p1ToMove ? m_positionStr1     : m_positionStr2;
+    QString& ponder = p1ToMove ? m_positionPonder1  : m_positionPonder2;
+    if (p1ToMove) pos = m_positionStr2; else pos = m_positionStr1;
+
+    // 1手思考 → bestmove 取得
+    QPoint from(-1,-1), to(-1,-1);
+    if (!engineThinkApplyMove(mover, pos, ponder, &from, &to))
+        return;
+
+    // 盤へ適用（EvE用の安全な記録バッファを使用）
+    QString rec;
+    try {
+        if (!m_gc->validateAndMove(from, to, rec, m_playMode,
+                                   m_eveMoveIndex, &m_eveSfenRecord, m_eveGameMoves)) {
+            return;
+        }
+    } catch (const std::exception& e) {
+        qWarning() << "[EvE] validateAndMove failed:" << e.what();
+        return;
+    }
+
+    // 相手エンジンに “同○” ヒント
+    if (receiver) {
+        receiver->setPreviousFileTo(to.x());
+        receiver->setPreviousRankTo(to.y());
+    }
+
+    // 盤の再描画＆手番表示
+    if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
+    updateTurnDisplay_(
+        (m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2
+        );
+
+    // 次の手をすぐ（イベントキュー経由で）回す
+    QTimer::singleShot(0, this, &MatchCoordinator::kickNextEvETurn_);
 }

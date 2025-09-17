@@ -1076,9 +1076,10 @@ void Usi::sendGameOverWinAndQuitCommands()
 // 標準出力からの受信
 void Usi::readFromEngine()
 {
+    // スロット内で例外を投げるとアプリが死にやすいので、警告に留めて戻る
     if (!m_process) {
-        const QString errorMessage = tr("An error occurred in Usi::readFromEngine. m_process is null. Cannot read data from the engine.");
-        ShogiUtils::logAndThrowError(errorMessage);
+        qWarning() << "[USI] readFromEngine called but m_process is null; ignoring.";
+        return;
     }
 
     while (m_process && m_process->canReadLine()) {
@@ -1086,26 +1087,27 @@ void Usi::readFromEngine()
         QString line = QString::fromUtf8(data).trimmed();
         if (line.isEmpty()) continue;
 
-        // "id name" は起動直後のみ有意。終局後に拾う必要はないので先に扱っても問題なし。
+        // 起動直後のみエンジン名を確定（ログ接頭辞に使う）
         if (line.startsWith(QStringLiteral("id name "))) {
             const QString n = line.mid(8).trimmed();
             if (!n.isEmpty() && m_logEngineName.isEmpty())
                 m_logEngineName = n;
         }
 
-        // ---- ★ 終局後の遮断ロジック -----------------------------------------
-        // タイムアウト宣言が立っている：完全黙殺（ログも出さない）
+        // ---- 終局/終了後の遮断ロジック ---------------------------------------
         if (m_timeoutDeclared) {
             qDebug().nospace() << logPrefix() << " [drop-after-timeout] " << line;
             continue;
         }
-
-        // quit 後：基本黙殺。ただし "info string ..." を N 行までだけログ許可。
         if (m_shutdownState == ShutdownState::IgnoreAllExceptInfoString) {
             if (line.startsWith(QStringLiteral("info string")) &&
                 m_postQuitInfoStringLinesLeft > 0) {
                 const QString pfx = logPrefix();
-                m_model->appendUsiCommLog(pfx + " < " + line);
+                if (m_model) {
+                    m_model->appendUsiCommLog(pfx + " < " + line);
+                } else {
+                    qWarning().noquote() << pfx << " usidebug< (no-log-model) " << line;
+                }
                 qDebug().nospace() << pfx << " usidebug< " << line;
                 --m_postQuitInfoStringLinesLeft;
             } else {
@@ -1113,20 +1115,25 @@ void Usi::readFromEngine()
             }
             continue;
         }
-
-        // 旧来の「完全遮断」モード
         if (m_shutdownState == ShutdownState::IgnoreAll) {
             qDebug().nospace() << logPrefix() << " [drop-ignore-all] " << line;
             continue;
         }
         // ---------------------------------------------------------------------
 
-        // === 通常処理（Running のときのみ到達） ===
+        // === 通常処理 ===
         const QString pfx = logPrefix();
         m_lines.append(line);
-        m_model->appendUsiCommLog(pfx + " < " + line);
+
+        // ★ 受信ログのヌルガード（EvEでcommモデル未配線でも落とさない）
+        if (m_model) {
+            m_model->appendUsiCommLog(pfx + " < " + line);
+        } else {
+            qWarning().noquote() << pfx << " usidebug< (no-log-model) " << line;
+        }
         qDebug().nospace() << pfx << " usidebug< " << line;
 
+        // フラグ類の更新
         if (line.startsWith(QStringLiteral("bestmove"))) {
             m_bestMoveSignalReceived = true;
             bestMoveReceived(line);
@@ -1248,12 +1255,15 @@ void Usi::sendCommand(const QString& command) const
 {
     if (!m_process || (m_process->state() != QProcess::Running && m_process->state() != QProcess::Starting)) {
         qWarning() << "[USI] process not ready; command ignored:" << command;
-        return; // もしくは Q_ASSERT(false);
+        return;
     }
 
     m_process->write((command + "\n").toUtf8());
+
     const QString pfx = logPrefix();
-    m_model->appendUsiCommLog(pfx + " > " + command);
+    if (m_model) {
+        m_model->appendUsiCommLog(pfx + " > " + command);
+    }
     qDebug().nospace() << pfx << " usidebug> " << command;
 }
 

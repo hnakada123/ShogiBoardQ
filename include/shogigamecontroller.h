@@ -93,6 +93,8 @@ public:
     // 成り・不成のフラグを返す。
     bool promote() const;
 
+    QPoint lastMoveTo() const;  // 直前着手の移動先（筋, 段）を返す
+
 public slots:
     // 新規対局の準備
     // 将棋盤、駒台を初期化（何も駒がない）し、入力のSFEN文字列の配置に将棋盤、駒台の駒を
