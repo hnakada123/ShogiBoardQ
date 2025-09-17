@@ -4673,6 +4673,10 @@ void MainWindow::initMatchCoordinator()
         startNewShogiGame(s);
     };
 
+    d.hooks.showMoveHighlights = [this](const QPoint& from, const QPoint& to){
+        if (m_boardController) m_boardController->showMoveHighlights(from, to);
+    };
+
     // ---------- 生成 or 置き換え ----------
     if (m_match) {
         delete m_match;

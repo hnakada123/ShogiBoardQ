@@ -28,32 +28,31 @@ void MatchCoordinator::updateUsiPtrs(Usi* e1, Usi* e2) {
     m_usi2 = e2;
 }
 
-void MatchCoordinator::startNewGame(const QString& sfenStart)
-{
-    // 1) GUI固有の初期化
+void MatchCoordinator::startNewGame(const QString& sfenStart) {
+    // 既存
     if (m_hooks.initializeNewGame) m_hooks.initializeNewGame(sfenStart);
-
-    // 2) 表示/アクション
     setPlayersNamesForMode_();
     setEngineNamesBasedOnMode_();
     setGameInProgressActions_(true);
-
-    // 3) 盤面描画
     renderShogiBoard_();
 
-    // 4) 初手手番を SFEN から決定（なければ P1）
-    ShogiGameController::Player first = ShogiGameController::Player1;
-    if (!sfenStart.isEmpty()) {
-        // “… b …”=先手番, “… w …”=後手番（SFEN準拠）
-        if (sfenStart.contains(QStringLiteral(" w ")))
-            first = ShogiGameController::Player2;
-        else if (sfenStart.contains(QStringLiteral(" b ")))
-            first = ShogiGameController::Player1;
+    // ★ GC の手番を SFEN から決定（無ければ先手）
+    if (m_gc) {
+        ShogiGameController::Player start = ShogiGameController::Player1;
+        if (!sfenStart.isEmpty()) {
+            const auto parts = sfenStart.split(' ', Qt::SkipEmptyParts);
+            if (parts.size() >= 2) {
+                if (parts[1] == QLatin1String("w") || parts[1] == QLatin1String("W"))
+                    start = ShogiGameController::Player2;
+                else
+                    start = ShogiGameController::Player1; // "b" or それ以外は先手扱い
+            }
+        }
+        m_gc->setCurrentPlayer(start);
     }
 
-    // GC の手番を必ず確定してから UI 反映
-    if (m_gc) m_gc->setCurrentPlayer(first);
-    m_cur = (first == ShogiGameController::Player1 ? P1 : P2);
+    // 司令塔の手番も同期（既存のままでもOKですが念のため）
+    m_cur = P1;
     updateTurnDisplay_(m_cur);
 
     if (m_hooks.log) m_hooks.log(QStringLiteral("MatchCoordinator: startNewGame done"));
@@ -634,6 +633,7 @@ void MatchCoordinator::startEngineVsEngine_(const StartOptions& /*opt*/)
 
     // 盤描画＆手番表示
     if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
+    if (m_hooks.showMoveHighlights) m_hooks.showMoveHighlights(p1From, p1To);
     updateTurnDisplay_(
         (m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2
         );
@@ -693,6 +693,7 @@ void MatchCoordinator::startEngineVsEngine_(const StartOptions& /*opt*/)
 
     // 反映
     if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
+    if (m_hooks.showMoveHighlights) m_hooks.showMoveHighlights(p2From, p2To);
     updateTurnDisplay_(
         (m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2
         );
@@ -763,6 +764,7 @@ void MatchCoordinator::kickNextEvETurn_()
 
     // 盤の再描画＆手番表示
     if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
+    if (m_hooks.showMoveHighlights) m_hooks.showMoveHighlights(from, to);
     updateTurnDisplay_(
         (m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2
         );

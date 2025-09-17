@@ -46,6 +46,8 @@ public:
         std::function<void()> renderBoardFromGc;             // gc→view 反映
         std::function<void(const QString& title, const QString& message)> showGameOverDialog;
         std::function<void(const QString& msg)> log;         // 任意ログ
+        // 追加：直前の着手（移動元→先）のハイライト
+        std::function<void(const QPoint& from, const QPoint& to)> showMoveHighlights;
 
         // --- 時計読み出し（ShogiClock API 差異吸収） ---
         std::function<qint64(Player)> remainingMsFor; // 残り時間
