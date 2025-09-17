@@ -1527,11 +1527,6 @@ void MainWindow::initializeGame()
             }
         }
 
-        // --- 盤の初期化／対局開始 ---
-        if (m_match) {
-            m_match->startNewGame(m_startSfenStr);   // ← 先にフックが飛ぶことを想定
-        }
-
         if (m_playMode) {
             disableArrowButtons();
             if (m_recordPane && m_recordPane->kifuView())

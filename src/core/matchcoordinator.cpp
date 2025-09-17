@@ -485,6 +485,18 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
     if (m_hooks.setGameActions)    m_hooks.setGameActions(true);
     if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
 
+    // ★ 追加：SFEN から GC の手番を決定（無ければ先手）
+    if (m_gc) {
+        ShogiGameController::Player start = ShogiGameController::Player1;
+        if (!opt.sfenStart.isEmpty()) {
+            const auto parts = opt.sfenStart.split(' ', Qt::SkipEmptyParts);
+            if (parts.size() >= 2 && (parts[1] == QLatin1String("w") || parts[1] == QLatin1String("W"))) {
+                start = ShogiGameController::Player2;
+            }
+        }
+        m_gc->setCurrentPlayer(start);
+    }
+
     // EvE 用の内部棋譜コンテナを初期化
     m_eveSfenRecord.clear();
     m_eveGameMoves.clear();
