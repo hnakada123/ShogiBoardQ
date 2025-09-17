@@ -742,21 +742,14 @@ void MainWindow::enableArrowButtons()
     if (m_recordPane) m_recordPane->setArrowButtonsEnabled(true);
 }
 
-// 将棋エンジン1に対して、gameover winコマンドとquitコマンドを送信する。
 void MainWindow::sendCommandsToEngineOne()
 {
-    if (m_playMode != HumanVsHuman) {
-        m_usi1->sendGameOverWinAndQuitCommands();
-    }
+    if (m_match) m_match->sendGameOverWinAndQuitTo(1);
 }
 
-// 将棋エンジン2に対して、gameover winコマンドとquitコマンドを送信する。
 void MainWindow::sendCommandsToEngineTwo()
 {
-    // 対局モードが平手のエンジン対エンジンまたは、駒落ちのエンジン対エンジンの場合
-    if ((m_playMode == EvenEngineVsEngine) || (m_playMode == HandicapEngineVsEngine)) {
-        m_usi2->sendGameOverWinAndQuitCommands();
-    }
+    if (m_match) m_match->sendGameOverWinAndQuitTo(2);
 }
 
 // メニューで「投了」をクリックした場合の処理を行う。
@@ -1003,84 +996,84 @@ void MainWindow::printGameDialogSettings(StartGameDialog* m_gamedlg)
 // 対局者2をエンジン1で初期化して対局を開始する。
 void MainWindow::initializeAndStartPlayer2WithEngine1()
 {
-    // GUIに登録された将棋エンジン番号を取得する。
-    int engineNumber2 = m_startGameDialog->engineNumber2();
+    const int idx2 = m_startGameDialog->engineNumber2();
+    const auto list = m_startGameDialog->getEngineList();
+    const QString path2 = list.at(idx2).path;
+    const QString name2 = m_startGameDialog->engineName2();
 
-    // 将棋エンジン実行ファイル名を設定する。
-    m_engineFile2 = m_startGameDialog->getEngineList().at(engineNumber2).path;
+    const bool isHvE = (m_playMode == EvenEngineVsHuman) || (m_playMode == HandicapEngineVsHuman);
 
-    // 将棋エンジン名を取得する。
-    QString engineName2 = m_startGameDialog->engineName2();
-
-    try {
-        // 将棋エンジンを起動し、対局開始までのコマンドを実行する。
-        m_usi1->initializeAndStartEngineCommunication(m_engineFile2, engineName2);
-    } catch (const std::exception& e) {
-        // エラーを再スローし、エラーメッセージを表示する。
-        throw;
+    if (m_match) {
+        if (isHvE) {
+            // HvE でも m_usi1 を使う（後手エンジンでも実体は m_usi1）
+            m_match->initializeAndStartEngineFor(MatchCoordinator::P1, path2, name2);
+        } else {
+            // EvE の後手は P2 へ
+            m_match->initializeAndStartEngineFor(MatchCoordinator::P2, path2, name2);
+        }
     }
 }
 
 // 対局者1をエンジン1で初期化して対局を開始する。
 void MainWindow::initializeAndStartPlayer1WithEngine1()
 {
-    // GUIに登録された将棋エンジン番号を取得する。
-    int engineNumber1 = m_startGameDialog->engineNumber1();
+    const int idx1 = m_startGameDialog->engineNumber1();
+    const auto list = m_startGameDialog->getEngineList();
+    const QString path1 = list.at(idx1).path;
+    const QString name1 = m_startGameDialog->engineName1();
 
-    // 将棋エンジン実行ファイル名を設定する。
-    m_engineFile1 = m_startGameDialog->getEngineList().at(engineNumber1).path;
+    const bool isHvE = (m_playMode == EvenEngineVsHuman) || (m_playMode == HandicapEngineVsHuman);
 
-    // 将棋エンジンを起動し、対局開始までのコマンドを実行する。
-    QString engineName1 = m_startGameDialog->engineName1();
-
-    try {
-        // 将棋エンジンを起動し、対局開始までのコマンドを実行する。
-        m_usi1->initializeAndStartEngineCommunication(m_engineFile1, engineName1);
-    } catch (const std::exception& e) {
-        // エラーを再スローし、エラーメッセージを表示する。
-        throw;
+    if (m_match) {
+        if (isHvE) {
+            // HvE は常に m_usi1 を使う
+            m_match->initializeAndStartEngineFor(MatchCoordinator::P1, path1, name1);
+        } else {
+            // EvE のときは素直に先手へ
+            m_match->initializeAndStartEngineFor(MatchCoordinator::P1, path1, name1);
+        }
     }
 }
 
 // 対局者2をエンジン2で初期化して対局を開始する。
 void MainWindow::initializeAndStartPlayer2WithEngine2()
 {
-    // GUIに登録された将棋エンジン番号を取得する。
-    int engineNumber2 = m_startGameDialog->engineNumber2();
+    const int idx2 = m_startGameDialog->engineNumber2();
+    const auto list = m_startGameDialog->getEngineList();
+    const QString path2 = list.at(idx2).path;
+    const QString name2 = m_startGameDialog->engineName2();
 
-    // 将棋エンジン実行ファイル名を設定する。
-    m_engineFile2 = m_startGameDialog->getEngineList().at(engineNumber2).path;
+    const bool isHvE = (m_playMode == EvenEngineVsHuman) || (m_playMode == HandicapEngineVsHuman);
 
-    // 将棋エンジン名を取得する。
-    QString engineName2 = m_startGameDialog->engineName2();
-
-    try {
-        // 将棋エンジンを起動し、対局開始までのコマンドを実行する。
-        m_usi2->initializeAndStartEngineCommunication(m_engineFile2, engineName2);
-    } catch (const std::exception& e) {
-        // エラーを再スローし、エラーメッセージを表示する。
-        throw;
+    if (m_match) {
+        if (isHvE) {
+            // HvE でも m_usi1 を使う
+            m_match->initializeAndStartEngineFor(MatchCoordinator::P1, path2, name2);
+        } else {
+            // EvE の後手は P2
+            m_match->initializeAndStartEngineFor(MatchCoordinator::P2, path2, name2);
+        }
     }
 }
 
 // 対局者1をエンジン2で初期化して対局を開始する。
 void MainWindow::initializeAndStartPlayer1WithEngine2()
 {
-    // GUIに登録された将棋エンジン番号を取得する。
-    int engineNumber1 = m_startGameDialog->engineNumber1();
+    const int idx1 = m_startGameDialog->engineNumber1();
+    const auto list = m_startGameDialog->getEngineList();
+    const QString path1 = list.at(idx1).path;
+    const QString name1 = m_startGameDialog->engineName1();
 
-    // 将棋エンジン実行ファイル名を設定する。
-    m_engineFile1 = m_startGameDialog->getEngineList().at(engineNumber1).path;
+    const bool isHvE = (m_playMode == EvenEngineVsHuman) || (m_playMode == HandicapEngineVsHuman);
 
-    // 将棋エンジン名を取得する。
-    QString engineName1 = m_startGameDialog->engineName1();
-
-    try {
-        // 将棋エンジンを起動し、対局開始までのコマンドを実行する。
-        m_usi2->initializeAndStartEngineCommunication(m_engineFile1, engineName1);
-    } catch (const std::exception& e) {
-        // エラーを再スローし、エラーメッセージを表示する。
-        throw;
+    if (m_match) {
+        if (isHvE) {
+            // HvE は常に m_usi1
+            m_match->initializeAndStartEngineFor(MatchCoordinator::P1, path1, name1);
+        } else {
+            // EvE のときも先手は P1
+            m_match->initializeAndStartEngineFor(MatchCoordinator::P1, path1, name1);
+        }
     }
 }
 
@@ -4139,16 +4132,11 @@ void MainWindow::startMatchEpoch(const char* tag)
     qDebug() << "[ARBITER] epoch started (" << tag << ")";
 }
 
-void MainWindow::wireResignToArbiter(Usi* engine, bool asP1)
+void MainWindow::wireResignToArbiter(Usi* /*engine*/, bool /*asP1*/)
 {
-    if (!engine) return;
-    QObject::disconnect(engine, &Usi::bestMoveResignReceived, this, &MainWindow::onEngine1Resigns);
-    QObject::disconnect(engine, &Usi::bestMoveResignReceived, this, &MainWindow::onEngine2Resigns);
-    const auto t = connTypeFor(engine);
-    if (asP1) {
-        QObject::connect(engine, &Usi::bestMoveResignReceived, this, &MainWindow::onEngine1Resigns, t);
-    } else {
-        QObject::connect(engine, &Usi::bestMoveResignReceived, this, &MainWindow::onEngine2Resigns, t);
+    if (m_match) {
+        // 司令塔側で P1/P2 ともに張り替える
+        m_match->wireResignSignals();
     }
 }
 
@@ -4228,10 +4216,20 @@ bool MainWindow::engineThinkApplyMove(Usi* engine, QString& positionStr, QString
     return true;
 }
 
-// ======================== ヘルパ実装 ========================
 void MainWindow::destroyEngine(Usi*& e)
 {
-    if (e) { delete e; e = nullptr; }
+    if (!m_match) return;
+
+    // 司令塔が実エンジンを所有しているため、idx を解決して削除させる
+    if (e == m_match->enginePtr(1)) {
+        m_match->destroyEngine(1);
+    } else if (e == m_match->enginePtr(2)) {
+        m_match->destroyEngine(2);
+    } else {
+        // どちらでもない/すでに司令塔外なら念のため delete
+        delete e;
+    }
+    e = nullptr;
 }
 
 // PvE：m_usi1 を用意して共通初期化

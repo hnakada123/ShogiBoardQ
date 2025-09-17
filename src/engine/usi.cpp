@@ -1246,12 +1246,14 @@ void Usi::startEngine(const QString& engineFile)
 // 将棋エンジンにコマンドを送信し、GUIのUSIプロトコル通信ログに表示する。
 void Usi::sendCommand(const QString& command) const
 {
-    m_process->write((command + "\n").toUtf8());
+    if (!m_process || (m_process->state() != QProcess::Running && m_process->state() != QProcess::Starting)) {
+        qWarning() << "[USI] process not ready; command ignored:" << command;
+        return; // もしくは Q_ASSERT(false);
+    }
 
+    m_process->write((command + "\n").toUtf8());
     const QString pfx = logPrefix();
-    // GUI 側ログモデル
     m_model->appendUsiCommLog(pfx + " > " + command);
-    // デバッガ
     qDebug().nospace() << pfx << " usidebug> " << command;
 }
 

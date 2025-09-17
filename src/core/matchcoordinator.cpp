@@ -1,11 +1,9 @@
 #include "matchcoordinator.h"
-#include <QDebug>
-
-// 依存の完全型が必要な箇所は cpp 側で include
 #include "shogiclock.h"
 #include "usi.h"
-#include "shogigamecontroller.h"
 #include "shogiview.h"
+#include <QObject>
+#include <QDebug>
 
 MatchCoordinator::MatchCoordinator(const Deps& d, QObject* parent)
     : QObject(parent)
@@ -195,4 +193,107 @@ void MatchCoordinator::displayResultsAndUpdateGui_(const GameEndInfo& info) {
 
     emit gameEnded(info);
     emit gameOverShown();
+}
+
+void MatchCoordinator::initializeAndStartEngineFor(Player side,
+                                                   const QString& enginePathIn,
+                                                   const QString& engineNameIn)
+{
+    Usi*& eng = (side == P1 ? m_usi1 : m_usi2);
+
+    if (!eng) {
+        // HvE フォールバック：m_usi1 しか無い場合は m_usi1 を使う
+        if (m_usi1 && !m_usi2) {
+            if (m_hooks.log) m_hooks.log(QStringLiteral("[Match] fallback to m_usi1 for HvE"));
+            eng = m_usi1;
+        } else {
+            if (m_hooks.log) m_hooks.log(QStringLiteral("[Match] engine ptr is null (side=%1)").arg(side == P1 ? "P1" : "P2"));
+            return;
+        }
+    }
+
+    QString path = enginePathIn;
+    QString name = engineNameIn;
+
+    try {
+        eng->initializeAndStartEngineCommunication(path, name);
+    } catch (...) {
+        if (m_hooks.log) m_hooks.log(QStringLiteral("[Match] init/start failed"));
+        throw;
+    }
+
+    wireResignToArbiter_(eng, (eng == m_usi1)); // m_usi1=先手扱い（HvE でも OK）
+}
+
+void MatchCoordinator::wireResignSignals()
+{
+    if (m_usi1) wireResignToArbiter_(m_usi1, /*asP1=*/true);
+    if (m_usi2) wireResignToArbiter_(m_usi2, /*asP1=*/false);
+}
+
+void MatchCoordinator::wireResignToArbiter_(Usi* engine, bool asP1)
+{
+    if (!engine) return;
+
+    // 既存接続の掃除は「該当シグナルのみ」を明示して行う
+    QObject::disconnect(engine, &Usi::bestMoveResignReceived, this, nullptr);
+
+    if (asP1) {
+        QObject::connect(engine, &Usi::bestMoveResignReceived,
+                         this,   &MatchCoordinator::onEngine1Resign,
+                         Qt::UniqueConnection);
+    } else {
+        QObject::connect(engine, &Usi::bestMoveResignReceived,
+                         this,   &MatchCoordinator::onEngine2Resign,
+                         Qt::UniqueConnection);
+    }
+}
+
+void MatchCoordinator::onEngine1Resign()
+{
+    // 既存のハンドラへ委譲（番号は 1 = P1）
+    this->handleEngineResign(1);
+}
+
+void MatchCoordinator::onEngine2Resign()
+{
+    // 既存のハンドラへ委譲（番号は 2 = P2）
+    this->handleEngineResign(2);
+}
+
+void MatchCoordinator::sendGameOverWinAndQuitTo(int idx)
+{
+    Usi* target = (idx == 1 ? m_usi1 : m_usi2);
+    if (!target) return;
+
+    // HvE のときは opponent が nullptr の可能性があるが、WIN 側だけ送れば良い。
+    target->sendGameOverWinAndQuitCommands();
+}
+
+void MatchCoordinator::destroyEngine(int idx)
+{
+    Usi*& ref = (idx == 1 ? m_usi1 : m_usi2);
+    if (ref) {
+        delete ref;
+        ref = nullptr;
+    }
+}
+
+void MatchCoordinator::destroyEngines()
+{
+    destroyEngine(1);
+    destroyEngine(2);
+}
+
+Usi* MatchCoordinator::enginePtr(int idx) const
+{
+    return (idx == 1 ? m_usi1 : (idx == 2 ? m_usi2 : nullptr));
+}
+
+int MatchCoordinator::indexForEngine_(const Usi* p) const
+{
+    if (!p) return 0;
+    if (p == m_usi1) return 1;
+    if (p == m_usi2) return 2;
+    return 0;
 }
