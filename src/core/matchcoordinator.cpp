@@ -2,6 +2,7 @@
 #include "shogiclock.h"
 #include "usi.h"
 #include "shogiview.h"
+
 #include <QObject>
 #include <QDebug>
 
@@ -296,4 +297,156 @@ int MatchCoordinator::indexForEngine_(const Usi* p) const
     if (p == m_usi1) return 1;
     if (p == m_usi2) return 2;
     return 0;
+}
+
+void MatchCoordinator::setPlayMode(PlayMode m)
+{
+    m_playMode = m;
+}
+
+void MatchCoordinator::initEnginesForEvE(const QString& engineName1,
+                                         const QString& engineName2)
+{
+    // 既存エンジンの破棄
+    destroyEngines();
+
+    // EvE 用の USI を生成（GUI 依存のモデルは Deps 経由で受け取る）
+    m_usi1 = new Usi(m_comm1, m_think1, m_gc, m_playMode, this);
+    m_usi2 = new Usi(m_comm2, m_think2, m_gc, m_playMode, this);
+
+    // 状態初期化
+    m_usi1->resetResignNotified(); m_usi1->clearHardTimeout();
+    m_usi2->resetResignNotified(); m_usi2->clearHardTimeout();
+
+    // 投了シグナル配線（司令塔で一元）
+    wireResignToArbiter_(m_usi1, /*asP1=*/true);
+    wireResignToArbiter_(m_usi2, /*asP2=*/false);
+
+    // ログ識別子（GUI で表示するもの）
+    m_usi1->setLogIdentity(QStringLiteral("[E1]"), QStringLiteral("P1"), engineName1);
+    m_usi2->setLogIdentity(QStringLiteral("[E2]"), QStringLiteral("P2"), engineName2);
+    m_usi1->setSquelchResignLogging(false);
+    m_usi2->setSquelchResignLogging(false);
+
+    // MainWindow 互換：司令塔が保有する USI を最新化（既存 API）
+    updateUsiPtrs(m_usi1, m_usi2);
+
+    // 対局フラグ初期化（既存メソッドがあれば呼ぶ／無ければ必要なメンバをクリア）
+    // resetGameFlags(); // 既存なら有効化。無ければ m_gameIsOver等を初期化。
+}
+
+bool MatchCoordinator::engineThinkApplyMove(Usi* engine,
+                                            QString& positionStr,
+                                            QString& ponderStr,
+                                            QPoint* outFrom,
+                                            QPoint* outTo)
+{
+    if (!engine || !m_gc) return false;
+
+    const GoTimes t = computeGoTimes_();
+
+    // byoyomi が設定されていれば USI 的には秒読みを使う
+    const bool useByoyomi = (t.byoyomi > 0);
+
+    // qint64 → int への安全な変換（オーバーフロー防止）
+    auto clampMsToInt = [](qint64 ms) -> int {
+        if (ms < 0) return 0;
+        if (ms > std::numeric_limits<int>::max()) return std::numeric_limits<int>::max();
+        return static_cast<int>(ms);
+    };
+
+    // qint64 → QString（ミリ秒の数値文字列）
+    const QString btimeStr = QString::number(t.btime);
+    const QString wtimeStr = QString::number(t.wtime);
+
+    QPoint from(-1, -1), to(-1, -1);
+    m_gc->setPromote(false);
+
+    engine->handleEngineVsHumanOrEngineMatchCommunication(
+        positionStr,                // 現局面（SFEN/position）
+        ponderStr,                  // ponder
+        from, to,                   // 出力される移動先
+        clampMsToInt(t.byoyomi),    // byoyomi ms (int)
+        btimeStr,                   // btime (QString)
+        wtimeStr,                   // wtime (QString)
+        clampMsToInt(t.binc),       // 先手加算 (int)
+        clampMsToInt(t.winc),       // 後手加算 (int)
+        useByoyomi                  // byoyomi 使用フラグ
+        );
+
+    if (outFrom) *outFrom = from;
+    if (outTo)   *outTo   = to;
+    return true;
+}
+
+bool MatchCoordinator::engineMoveOnce(Usi* eng,
+                                      QString& positionStr,
+                                      QString& ponderStr,
+                                      bool /*useSelectedField2*/,
+                                      int engineIndex,
+                                      QPoint* outTo)
+{
+    QPoint from, to;
+    if (!engineThinkApplyMove(eng, positionStr, ponderStr, &from, &to))
+        return false;
+
+    // ハイライト／評価グラフの更新は UI 側（Hookなど）に委譲するのが理想
+    // ここでは盤描画だけを促す
+    if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
+
+    if (outTo) *outTo = to;
+    return true;
+}
+
+bool MatchCoordinator::playOneEngineTurn(Usi* mover,
+                                         Usi* receiver,
+                                         QString& positionStr,
+                                         QString& ponderStr,
+                                         int engineIndex)
+{
+    QPoint to;
+    if (!engineMoveOnce(mover, positionStr, ponderStr,
+                        /*useSelectedField2=*/false,
+                        engineIndex, &to)) {
+        return false;
+    }
+
+    // 次手ヒントを相手エンジンへ
+    if (receiver) {
+        receiver->setPreviousFileTo(to.x());
+        receiver->setPreviousRankTo(to.y());
+    }
+
+    // ここでの終局判定は未定義メンバ m_gameIsOver を参照せず、
+    // 司令塔の gameEnded() 発火側に委譲します。
+    return true;
+}
+
+void MatchCoordinator::sendGameOverWinAndQuit()
+{
+    switch (m_playMode) {
+    case HumanVsHuman:
+        // 送信不要
+        break;
+
+    case EvenHumanVsEngine:
+    case HandicapHumanVsEngine:
+        if (m_usi2) m_usi2->sendGameOverWinAndQuitCommands();
+        break;
+
+    case EvenEngineVsHuman:
+    case HandicapEngineVsHuman:
+        if (m_usi1) m_usi1->sendGameOverWinAndQuitCommands();
+        break;
+
+    case EvenEngineVsEngine:
+    case HandicapEngineVsEngine:
+        if (m_usi1) m_usi1->sendGameOverWinAndQuitCommands();
+        if (m_usi2) m_usi2->sendGameOverWinAndQuitCommands();
+        break;
+
+    default:
+        // NotStarted / Analysis / Consideration / TsumiSearch / など
+        break;
+    }
 }

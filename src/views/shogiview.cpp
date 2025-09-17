@@ -2737,3 +2737,15 @@ void ShogiView::configureFixedSizing(int squarePx)
     setFieldSize(QSize(s, s));
     update();
 }
+
+void ShogiView::applyClockUrgency(qint64 activeRemainMs)
+{
+    Urgency next = Urgency::Normal;
+    if      (activeRemainMs <= kWarn5Ms)  next = Urgency::Warn5;
+    else if (activeRemainMs <= kWarn10Ms) next = Urgency::Warn10;
+
+    if (next != m_urgency) {
+        m_urgency = next;
+        setUrgencyVisuals(m_urgency);
+    }
+}
