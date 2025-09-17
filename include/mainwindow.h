@@ -141,7 +141,7 @@ private:
 
     PlayMode m_playMode = NotStarted;
 
-    QString m_engineFile1, m_engineFile2;
+    QString m_engineFile1;
 
     int  m_byoyomiMilliSec1 = 0;
     int  m_byoyomiMilliSec2 = 0;
@@ -203,9 +203,8 @@ private:
     void printGameDialogSettings(StartGameDialog* m_gamedlg);
     void handleUndoMove(int index);
 
-    void createPlayerNameAndMoveDisplay();
     void setPlayersNamesForMode();
-    void setupTimeAndTurnIndicators();
+
     void displayAnalysisResults();
 
     void initializeNewGame(QString& startSfenStr);
@@ -268,7 +267,7 @@ private:
     void initializeAndStartPlayer1WithEngine2();
 
     void updateTurnAndTimekeepingDisplay();
-    void updateRemainingTimeDisplayHumanVsHuman();
+
     void updateTurnDisplay();
     void updateTurnStatus(int currentPlayer);
 
@@ -292,8 +291,6 @@ private:
     void disarmHumanTimerIfNeeded();
 
     QTimer* m_uiClockTimer = nullptr;
-    void refreshClockLabels();
-    static QString formatMs(int ms);
 
     bool m_p1HasMoved = false;
     bool m_p2HasMoved = false;
