@@ -107,6 +107,37 @@ private:
     // 終局処理
     void stopClockAndSendStops_();
     void displayResultsAndUpdateGui_(const GameEndInfo& info);
+
+public:
+    // MainWindow からエンジン初期化/開始を委譲するための統一API
+    // side: P1 or P2
+    void initializeAndStartEngineFor(Player side,
+                                     const QString& enginePathIn,
+                                     const QString& engineNameIn);
+
+    // resign シグナルの配線（司令塔→自分の onXxx に直結）
+    void wireResignSignals();
+
+    // ゲームオーバー（win+quit）を一方のエンジンに送る
+    void sendGameOverWinAndQuitTo(int idx); // idx: 1 or 2
+
+    // エンジン破棄（片方 or 両方）
+    void destroyEngine(int idx);   // idx: 1 or 2
+    void destroyEngines();
+
+    // （移行ステップ用）ポインタ参照が必要な場合に備えたアクセサ
+    Usi* enginePtr(int idx) const; // 1 or 2 → Usi*
+
+private:
+    // resign 配線の実装（内部ユーティリティ）
+    void wireResignToArbiter_(Usi* engine, bool asP1);
+
+    // 保有エンジンから index を求める（1/2/0）
+    int indexForEngine_(const Usi* p) const;
+
+private slots:
+    void onEngine1Resign();
+    void onEngine2Resign();
 };
 
 #endif // MATCHCOORDINATOR_H
