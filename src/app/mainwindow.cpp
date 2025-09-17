@@ -733,6 +733,7 @@ void MainWindow::handleEngineTwoResignation()
 }
 
 // エンジン1の評価値グラフの再描画を行う。
+// エンジン1の評価値グラフの再描画を行う。
 void MainWindow::redrawEngine1EvaluationGraph()
 {
     // 旧ロジックの「符号反転条件」を踏襲
@@ -742,28 +743,38 @@ void MainWindow::redrawEngine1EvaluationGraph()
         (m_playMode == HandicapHumanVsEngine) ||
         (m_playMode == AnalysisMode);
 
+    // ★ 司令塔から主エンジンを取得（m_usi1 は使わない）
+    Usi* eng = (m_match ? m_match->primaryEngine() : nullptr);
+
+    // エンジンが未初期化でも落ちないようにガード
+    const int scoreCp = eng ? eng->lastScoreCp() : 0;
+
     if (auto ec = m_recordPane ? m_recordPane->evalChart() : nullptr) {
-        ec->appendScoreP1(m_currentMoveIndex, m_usi1->lastScoreCp(), invert);
+        ec->appendScoreP1(m_currentMoveIndex, scoreCp, invert);
     }
 
-    // 従来通り記録も残す
-    m_scoreCp.append(m_usi1->lastScoreCp());
+    // 記録も更新（整合のためエンジン未初期化時は 0 を入れておく）
+    m_scoreCp.append(scoreCp);
 }
 
 // エンジン2の評価値グラフの再描画を行う。
 void MainWindow::redrawEngine2EvaluationGraph()
 {
-    if (!m_usi2) return;  // 念のため
-
     // 旧ロジック：駒落ちのエンジン対エンジン以外は反転
     const bool invert = (m_playMode != HandicapEngineVsEngine);
 
+    // ★ 司令塔から 2nd エンジンを取得（m_usi2 は使わない）
+    Usi* eng2 = (m_match ? m_match->secondaryEngine() : nullptr);
+
+    // エンジン未初期化でも落ちないように 0 を既定値に
+    const int scoreCp = eng2 ? eng2->lastScoreCp() : 0;
+
     if (auto ec = m_recordPane ? m_recordPane->evalChart() : nullptr) {
-        ec->appendScoreP2(m_currentMoveIndex, m_usi2->lastScoreCp(), invert);
+        ec->appendScoreP2(m_currentMoveIndex, scoreCp, invert);
     }
 
-    // 既存仕様に合わせてそのまま記録
-    m_scoreCp.append(m_usi2->lastScoreCp());
+    // 既存仕様に合わせてそのまま記録（未初期化時は 0 を入れる）
+    m_scoreCp.append(scoreCp);
 }
 
 // 棋譜を更新し、GUIの表示も同時に更新する。
@@ -1117,92 +1128,42 @@ PlayMode MainWindow::setPlayMode()
 // 対局モード（人間対エンジンなど）に応じて対局処理を開始する。
 void MainWindow::startGameBasedOnMode()
 {
-    // 将棋エンジン対人間の場合、人間側を手前にするかどうかを取得する。
-    bool isShowHumanInFront = m_startGameDialog->isShowHumanInFront();
+    if (!m_match) return;
 
-    // 対局モード
-    switch (m_playMode) {
+    // 14.開始順序: ensureClockReady → (startNewGameは司令塔Hook) → 手番P1
+    ensureClockReady_();
 
-    // Player1: Human, Player2: Human
-    case HumanVsHuman:
-        //begin
-        qDebug() << "HumanVsHuman = " << HumanVsHuman;
-        //end
+    // ★ USI "position ... moves" のベースを必ず用意（空だと " 7g7f" 事故になる）
+    initializePositionStringsForMatch_();
 
-        startHumanVsHumanGame();
+    MatchCoordinator::StartOptions opt;
+    opt.mode      = m_playMode;
+    opt.sfenStart = m_startSfenStr;
 
-        break;
+    // エンジン情報（UIの選択値から）
+    const auto engines = m_startGameDialog->getEngineList();
 
-    // Player1: Human, Player2: USI Engine
-    case EvenHumanVsEngine:
-        //begin
-        qDebug() << "EvenHumanVsEngine = " << EvenHumanVsEngine;
-        //end
+    const int idx1 = m_startGameDialog->engineNumber1();
+    if (idx1 >= 0 && idx1 < engines.size()) {
+        opt.engineName1 = m_startGameDialog->engineName1();
+        opt.enginePath1 = engines.at(idx1).path;
+    }
 
-        startHumanVsEngineGame();
+    const int idx2 = m_startGameDialog->engineNumber2();
+    if (idx2 >= 0 && idx2 < engines.size()) {
+        opt.engineName2 = m_startGameDialog->engineName2();
+        opt.enginePath2 = engines.at(idx2).path;
+    }
 
-        break;
+    opt.engineIsP1 = (m_playMode == EvenEngineVsHuman || m_playMode == HandicapEngineVsHuman);
+    opt.engineIsP2 = (m_playMode == EvenHumanVsEngine || m_playMode == HandicapHumanVsEngine);
 
-    // Player1: USI Engine, Player2: Human
-    case EvenEngineVsHuman:
-        //begin
-        qDebug() << "EvenEngineVsHuman = " << EvenEngineVsHuman;
-        //end
+    // 司令塔へ委譲（newGame/名前/UI切替/エンジン起動など）
+    m_match->configureAndStart(opt);
 
-        if (isShowHumanInFront) {
-            if (m_match) m_match->flipBoard();
-        }
-
-        startEngineVsHumanGame();
-
-        break;
-
-    // Player1: USI Engine, Player2: USI Engine
-    case EvenEngineVsEngine:
-        //begin
-        qDebug() << "EvenEngineVsEngine = " << EvenEngineVsEngine;
-        //end
-
-        startEngineVsEngineGame();
-
-        break;
-
-    // 駒落ち Player1: USI Engine（下手）, Player2: Human（上手）
-    case HandicapEngineVsHuman:
-        //begin
-        qDebug() << "HandicapEngineVsHuman = " << HandicapEngineVsHuman;
-        //end
-
-        if (isShowHumanInFront) {
-            if (m_match) m_match->flipBoard();
-        }
-
-        startHumanVsEngineGame();
-
-        break;
-
-    // 駒落ち Player1: Human（下手）, Player2: USI Engine（上手）
-    case HandicapHumanVsEngine:
-        //begin
-        qDebug() << "HandicapHumanVsEngine = " << HandicapHumanVsEngine;
-        //end
-
-        startEngineVsHumanGame();
-
-        break;
-
-    // 駒落ち Player1: USI Engine（下手）, Player2: USI Engine（上手）
-    case HandicapEngineVsEngine:
-        //begin
-        qDebug() << "HandicapEngineVsEngine = " << HandicapEngineVsEngine;
-        //end
-
-        startEngineVsEngineGame();
-
-        break;
-
-    default:
-        qDebug() << "Invalid PlayMode: " << m_playMode;
+    // ★ ここがポイント：エンジンが先手のモードでは、この場で初手エンジンを必ず起動する
+    if (opt.mode == EvenEngineVsHuman || opt.mode == HandicapEngineVsHuman) {
+        startInitialEngineMoveEvH_();
     }
 }
 
@@ -4246,146 +4207,70 @@ void MainWindow::startHumanVsHumanGame()
 // 駒落ち Player1: USI Engine（下手）, Player2: Human（上手）
 void MainWindow::startHumanVsEngineGame()
 {
+    // 盤操作モードだけUI側で設定（残りは司令塔に一任）
     if (m_boardController)
-         m_boardController->setMode(BoardInteractionController::Mode::HumanVsEngine);
+        m_boardController->setMode(BoardInteractionController::Mode::HumanVsEngine);
 
+    // 解析タブの見た目はUI側の責務なので従来どおり維持（モデルは既存のものをそのまま渡す）
     if (!m_modelThinking1) m_modelThinking1 = new ShogiEngineThinkingModel(this);
     if (!m_lineEditModel1) m_lineEditModel1 = new UsiCommLogModel(this);
-
     if (m_analysisTab) {
         m_analysisTab->setEngine1ThinkingModel(m_modelThinking1);
         m_analysisTab->setDualEngineVisible(false);
     }
 
-    const bool engineIsP1 = (m_playMode == HandicapEngineVsHuman); // 駒落ち=先手エンジン
-
-    m_engine1IsP1 = engineIsP1;   // ← 追加：以後の“次手は人間？”判定に使う
-
-    initSingleEnginePvE(engineIsP1);
-
-    // 担当割り当て
-    assignSidesHumanVsEngine();
-
-    // 初期 position
-    setupInitialPositionStrings();
-
-    // 時計同期＋エポック
-    syncAndEpoch(QStringLiteral("Human vs Engine"));
-
-    // 人間が初手なら go は送らず UI だけ整える
-    if (isHumanTurnNow(engineIsP1)) {
-        QTimer::singleShot(0, this, [this]{ armHumanTimerIfNeeded(); });
-        updateTurnAndTimekeepingDisplay();
-        return;
-    }
-
-    // --- エンジン初手（HvE は m_selectedField2 を使用していた挙動を踏襲） ---
-    if (!engineMoveOnce(m_usi1, m_positionStr1, m_positionPonder1,
-                        /*useSelectedField2=*/true, /*engineIndex=*/1))
-        return;
-
-    // 次は人間手番
-    m_shogiView->setMouseClickMode(true);
-    QTimer::singleShot(0, this, [this]{ armHumanTimerIfNeeded(); });
-    pumpUi();
+    // 集約後の単一路呼び出し
+    // ※ startGameBasedOnMode() 内で ensureClockReady_() と
+    //    initializePositionStringsForMatch_() を実行し、
+    //    m_match->configureAndStart(opt) に委譲します。
+    startGameBasedOnMode();
 }
 
 // 平手 Player1: USI Engine（先手）, Player2: Human（後手）
 // 駒落ち Player1: Human（下手）,  Player2: USI Engine（上手）
 void MainWindow::startEngineVsHumanGame()
 {
+    // 盤操作モードは PvE
     if (m_boardController)
-            m_boardController->setMode(BoardInteractionController::Mode::HumanVsEngine);
+        m_boardController->setMode(BoardInteractionController::Mode::HumanVsEngine);
 
+    // 評価表示用のモデル（UI側の責務）
     if (!m_modelThinking1) m_modelThinking1 = new ShogiEngineThinkingModel(this);
     if (!m_lineEditModel1) m_lineEditModel1 = new UsiCommLogModel(this);
 
-    // 変更後
     if (m_analysisTab) {
         m_analysisTab->setEngine1ThinkingModel(m_modelThinking1);
         m_analysisTab->setDualEngineVisible(false);
     }
 
-    const bool engineIsP1 = (m_playMode == EvenEngineVsHuman); // 平手=先手エンジン
+    // 司令塔に集約された開始フロー
+    startGameBasedOnMode();
 
-    m_engine1IsP1 = engineIsP1;   // ← 追加
-
-    initSingleEnginePvE(engineIsP1);
-
-    // 担当割り当て
-    assignSidesEngineVsHuman();
-
-    // 初期 position とクリックハンドラ
-    setupInitialPositionStrings();
-
-    // 時計同期＋エポック
-    syncAndEpoch(QStringLiteral("Engine vs Human"));
-
-    // 人間が初手なら UI 調整のみ
-    if (isHumanTurnNow(engineIsP1)) {
-        QTimer::singleShot(0, this, [this]{ armHumanTimerIfNeeded(); });
-        updateTurnAndTimekeepingDisplay();
-        return;
-    }
-
-    // --- エンジン初手（EvH は m_selectedField を使用していた挙動を踏襲） ---
-    if (!engineMoveOnce(m_usi1, m_positionStr1, m_positionPonder1,
-                        /*useSelectedField2=*/false, /*engineIndex=*/1))
-        return;
-
-    // 次は人間手番
-    m_shogiView->setMouseClickMode(true);
-    QTimer::singleShot(0, this, [this]{ armHumanTimerIfNeeded(); });
-    pumpUi();
+    // ★ EvH（エンジン先手）の場合はここで初手エンジンを起動する
+    startInitialEngineMoveEvH_();
 }
+
 
 // 平手、駒落ち Player1: USI Engine, Player2: USI Engine
 void MainWindow::startEngineVsEngineGame()
 {
-    m_shogiView->setMouseClickMode(false);
+    // EvE はクリック不可
+    if (m_shogiView) m_shogiView->setMouseClickMode(false);
 
+    // 評価表示用のモデル（両エンジン分）
     if (!m_modelThinking1) m_modelThinking1 = new ShogiEngineThinkingModel(this);
     if (!m_modelThinking2) m_modelThinking2 = new ShogiEngineThinkingModel(this);
     if (!m_lineEditModel1) m_lineEditModel1 = new UsiCommLogModel(this);
     if (!m_lineEditModel2) m_lineEditModel2 = new UsiCommLogModel(this);
 
-    // 変更後
     if (m_analysisTab) {
         m_analysisTab->setEngine1ThinkingModel(m_modelThinking1);
         m_analysisTab->setEngine2ThinkingModel(m_modelThinking2);
         m_analysisTab->setDualEngineVisible(true);
     }
 
-    // ← 追加：シングルエンジンではない（両方エンジン）ので false にしておく
-    m_engine1IsP1 = false;
-
-    initEnginesForEvE();
-
-    // エンジン割り当て
-    assignEnginesEngineVsEngine();
-
-    // 初期 position（双方 ponder）
-    setupInitialPositionStrings();
-
-    // 時計同期＋エポック
-    syncAndEpoch(QStringLiteral("Engine vs Engine"));
-
-    // 指し合いループ（1手単位の共通処理でスリム化）
-    while (!m_gameIsOver) {
-        if (!playOneEngineTurn(m_usi1, m_usi2, m_positionStr1, m_positionPonder1, /*engineIndex=*/1))
-            break;
-
-        // 1手目の描画を確実に反映させたいなら入れる
-        pumpUi();
-
-        if (!playOneEngineTurn(m_usi2, m_usi1, m_positionStr1, m_positionPonder2, /*engineIndex=*/2))
-            break;
-
-        // ここは従来どおり保険として残してOK（なくても大差はない）
-        pumpUi();
-    }
-
-    updateTurnAndTimekeepingDisplay();
+    // 開始フローは司令塔へ
+    startGameBasedOnMode();
 }
 
 // --- INavigationContext の実装 ---
@@ -4555,154 +4440,143 @@ void MainWindow::wireBoardInteractionController()
     // コントローラ → Main（合法判定＆適用）
     QObject::connect(m_boardController, &BoardInteractionController::moveRequested,
                      this, [this](const QPoint& from, const QPoint& to)
-    {
-        // ★ 着手前の手番（＝この手を指す側）を控えておく
-        const auto moverBefore = m_gameController->currentPlayer();
+                     {
+                         // ★ 着手前の手番（＝この手を指す側）を控えておく
+                         const auto moverBefore = m_gameController->currentPlayer();
 
-        // validateAndMove が非常参照パラメータの場合に備えてローカルコピー
-        QPoint hFrom = from, hTo = to;
+                         // validateAndMove が非常参照パラメータの場合に備えてローカルコピー
+                         QPoint hFrom = from, hTo = to;
 
-        bool ok = false;
-        try {
-            ok = m_gameController->validateAndMove(
-                hFrom, hTo, m_lastMove, m_playMode, m_currentMoveIndex, m_sfenRecord, m_gameMoves
-            );
-        } catch (const std::exception& e) {
-            displayErrorMessage(e.what());
-            if (m_boardController) m_boardController->onMoveApplied(from, to, /*ok=*/false);
-            return;
-        }
+                         bool ok = false;
+                         try {
+                             ok = m_gameController->validateAndMove(
+                                 hFrom, hTo, m_lastMove, m_playMode, m_currentMoveIndex, m_sfenRecord, m_gameMoves
+                                 );
+                         } catch (const std::exception& e) {
+                             displayErrorMessage(e.what());
+                             if (m_boardController) m_boardController->onMoveApplied(from, to, /*ok=*/false);
+                             return;
+                         }
 
-        // 適用結果をコントローラへ通知（ハイライト／ドラッグ状態の確定）
-        if (m_boardController) m_boardController->onMoveApplied(from, to, ok);
-        if (!ok) return;
+                         // 適用結果をコントローラへ通知（ハイライト／ドラッグ状態の確定）
+                         if (m_boardController) m_boardController->onMoveApplied(from, to, ok);
+                         if (!ok) return;
 
-        // 人間の着手ハイライト（コントローラに集約）
-        if (m_boardController)
-            m_boardController->showMoveHighlights(hFrom, hTo);
+                         // 人間の着手ハイライト（コントローラに集約）
+                         if (m_boardController)
+                             m_boardController->showMoveHighlights(hFrom, hTo);
 
-        // ── ここから成功時の後続処理 ─────────────────────────────────────
+                         // ── ここから成功時の後続処理 ─────────────────────────────────────
 
-        switch (m_playMode) {
+                         switch (m_playMode) {
 
-        // ▼ 人間 vs 人間
-        case HumanVsHuman: {
-            // この手を指した側（着手前の手番）の考慮時間を確定
-            finishTurnTimerAndSetConsiderationFor(moverBefore);
+                         // ▼ 人間 vs 人間
+                         case HumanVsHuman: {
+                             finishTurnTimerAndSetConsiderationFor(moverBefore);
+                             updateTurnAndTimekeepingDisplay();
+                             pumpUi();
+                             QTimer::singleShot(0, this, [this]{ armTurnTimerIfNeeded(); });
+                             m_shogiView->setMouseClickMode(true);
+                             break;
+                         }
 
-            // 時計・手番表示を確定
-            updateTurnAndTimekeepingDisplay();
-            pumpUi();
+                         // ▼ 人間とエンジン（先後どちらでもOK）
+                         case EvenHumanVsEngine:
+                         case HandicapHumanVsEngine:
+                         case EvenEngineVsHuman:
+                         case HandicapEngineVsHuman: {
+                             finishHumanTimerAndSetConsideration();
 
-            // 次手の人間用（共通）ストップウォッチ
-            QTimer::singleShot(0, this, [this]{ armTurnTimerIfNeeded(); });
-            m_shogiView->setMouseClickMode(true);
-            break;
-        }
+                             // “同○” 判定用のヒントは司令塔の主エンジンへ
+                             Usi* eng = (m_match ? m_match->primaryEngine() : nullptr);
+                             if (eng) {
+                                 eng->setPreviousFileTo(hTo.x());
+                                 eng->setPreviousRankTo(hTo.y());
+                             }
 
-        // ▼ 人間とエンジン（先後どちらでもOK）
-        case EvenHumanVsEngine:
-        case HandicapHumanVsEngine:
-        case EvenEngineVsHuman:
-        case HandicapEngineVsHuman: {
-            // 人間の手が確定 → 人間側ストップウォッチを確定
-            finishHumanTimerAndSetConsideration();
+                             updateTurnAndTimekeepingDisplay();
+                             m_shogiView->setMouseClickMode(false);
 
-            // “同○” 判定用（従来踏襲）
-            if (m_usi1) {
-                m_usi1->setPreviousFileTo(hTo.x());
-                m_usi1->setPreviousRankTo(hTo.y());
-            }
+                             refreshGoTimes();
 
-            // まず UI/時計を確定（byoyomi / increment の適用もここで）
-            updateTurnAndTimekeepingDisplay();
+                             const bool engineIsP1 =
+                                 (m_playMode == EvenEngineVsHuman) || (m_playMode == HandicapEngineVsHuman);
 
-            // 人の操作は一旦不可に（エンジン思考中）
-            m_shogiView->setMouseClickMode(false);
+                             // 直後の手番がエンジンなら 1手だけ指させる
+                             if (!isHumanTurnNow(engineIsP1)) {
+                                 QPoint eFrom = hFrom;   // 人間の着手を渡す（必須）
+                                 QPoint eTo   = hTo;     // 人間の着手を渡す（必須）
 
-            // go パラメータを最新化
-            refreshGoTimes();
+                                 const int engineByoyomiMs = engineIsP1 ? m_byoyomiMilliSec1 : m_byoyomiMilliSec2;
 
-            // この対局で “エンジンが先手か？”
-            const bool engineIsP1 =
-                (m_playMode == EvenEngineVsHuman) || (m_playMode == HandicapEngineVsHuman);
+                                 try {
+                                     // ★ ここも司令塔の主エンジンを使用（m_usi1 は参照しない）
+                                     eng = (m_match ? m_match->primaryEngine() : nullptr);
+                                     if (!eng) {
+                                         // エンジンが未初期化なら安全に中断（クラッシュ回避）
+                                         qWarning() << "[HvE] engine instance not ready; skip engine move.";
+                                         m_shogiView->setMouseClickMode(true);
+                                         return;
+                                     }
 
-            // 直後の手番がエンジンなら 1手だけ指させる
-            if (!isHumanTurnNow(engineIsP1)) {
-                // ★ ここがポイント：
-                // handleHumanVsEngineCommunication は「引数の from/to に
-                //   人間の着手を渡し、戻り時にエンジンの着手に上書き」する設計。
-                QPoint eFrom = hFrom;   // 人間の着手を渡す（必須）
-                QPoint eTo   = hTo;     // 人間の着手を渡す（必須）
+                                     eng->handleHumanVsEngineCommunication(
+                                         m_positionStr1, m_positionPonder1,
+                                         eFrom, eTo,
+                                         engineByoyomiMs,
+                                         m_bTime, m_wTime,
+                                         m_positionStrList,
+                                         m_addEachMoveMiliSec1, m_addEachMoveMiliSec2,
+                                         m_useByoyomi
+                                         );
+                                 } catch (const std::exception& e) {
+                                     displayErrorMessage(e.what());
+                                     m_shogiView->setMouseClickMode(true);
+                                     return;
+                                 }
 
-                const int engineByoyomiMs = engineIsP1 ? m_byoyomiMilliSec1 : m_byoyomiMilliSec2;
+                                 // 受け取った bestmove（eFrom,eTo）を適用
+                                 bool ok2 = false;
+                                 try {
+                                     ok2 = m_gameController->validateAndMove(
+                                         eFrom, eTo, m_lastMove, m_playMode,
+                                         m_currentMoveIndex, m_sfenRecord, m_gameMoves
+                                         );
+                                 } catch (const std::exception& e) {
+                                     displayErrorMessage(e.what());
+                                     m_shogiView->setMouseClickMode(true);
+                                     return;
+                                 }
 
-                try {
-                    m_usi1->handleHumanVsEngineCommunication(
-                        m_positionStr1, m_positionPonder1,
-                        eFrom, eTo,                      // ← 人間の着手で渡し、戻りはエンジン着手
-                        engineByoyomiMs,
-                        m_bTime, m_wTime,
-                        m_positionStrList,
-                        m_addEachMoveMiliSec1, m_addEachMoveMiliSec2,
-                        m_useByoyomi
-                    );
-                } catch (const std::exception& e) {
-                    displayErrorMessage(e.what());
-                    m_shogiView->setMouseClickMode(true);
-                    return;
-                }
+                                 if (ok2) {
+                                     if (m_boardController)
+                                         m_boardController->showMoveHighlights(eFrom, eTo);
 
-                // 受け取った bestmove（eFrom,eTo）を適用
-                bool ok2 = false;
-                try {
-                    ok2 = m_gameController->validateAndMove(
-                        eFrom, eTo, m_lastMove, m_playMode,
-                        m_currentMoveIndex, m_sfenRecord, m_gameMoves
-                    );
-                } catch (const std::exception& e) {
-                    displayErrorMessage(e.what());
-                    m_shogiView->setMouseClickMode(true);
-                    return;
-                }
+                                     const qint64 thinkMs = (eng ? eng->lastBestmoveElapsedMs() : 0);
+                                     if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
+                                         m_shogiClock->setPlayer2ConsiderationTime(static_cast<int>(thinkMs));
+                                     } else {
+                                         m_shogiClock->setPlayer1ConsiderationTime(static_cast<int>(thinkMs));
+                                     }
 
-                if (ok2) {
-                    // エンジン着手ハイライト
-                    if (m_boardController)
-                        m_boardController->showMoveHighlights(eFrom, eTo);
+                                     updateTurnAndTimekeepingDisplay();
+                                     m_positionStrList.append(m_positionStr1);
+                                     redrawEngine1EvaluationGraph();
+                                     pumpUi();
+                                 }
+                             }
 
-                    // エンジンの思考時間を考慮時間へ反映
-                    const qint64 thinkMs = m_usi1 ? m_usi1->lastBestmoveElapsedMs() : 0;
-                    if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
-                        // 今の手番は先手 → 直前に指したのは後手（エンジン）
-                        m_shogiClock->setPlayer2ConsiderationTime(static_cast<int>(thinkMs));
-                    } else {
-                        // 今の手番は後手 → 直前に指したのは先手（エンジン）
-                        m_shogiClock->setPlayer1ConsiderationTime(static_cast<int>(thinkMs));
-                    }
+                             if (!m_gameIsOver) {
+                                 m_shogiView->setMouseClickMode(true);
+                                 QTimer::singleShot(0, this, [this]{ armHumanTimerIfNeeded(); });
+                             }
+                             break;
+                         }
 
-                    // 時計・手番表示と評価値グラフ
-                    updateTurnAndTimekeepingDisplay();
-                    m_positionStrList.append(m_positionStr1);
-                    redrawEngine1EvaluationGraph();
-                    pumpUi();
-                }
-            }
-
-            // 終局でなければ次は人間手番：クリック受付と人間用タイマーを整える
-            if (!m_gameIsOver) {
-                m_shogiView->setMouseClickMode(true);
-                QTimer::singleShot(0, this, [this]{ armHumanTimerIfNeeded(); });
-            }
-            break;
-        }
-
-        // ▼ エンジン vs エンジン / 解析系など
-        default:
-            // ここでは何もしない（エンジン側ループや既存処理に委ねる）
-            break;
-        }
-    });
+                         // ▼ エンジン vs エンジン / 解析系など
+                         default:
+                             break;
+                         }
+                     });
 
     // 既定モード（必要に応じて開始時に上書き）
     m_boardController->setMode(BoardInteractionController::Mode::HumanVsHuman);
@@ -4941,4 +4815,134 @@ void MainWindow::setGameInProgressActions(bool inProgress)
 void MainWindow::onActionFlipBoardTriggered(bool /*checked*/)
 {
     if (m_match) m_match->flipBoard();
+}
+
+// 対局開始時に USI "position ..." のベース文字列を初期化する。
+// これが空だと " 7g7f" だけが送られてしまうので必ずセットする。
+void MainWindow::initializePositionStringsForMatch_()
+{
+    // 既存の文字列群をクリア
+    m_positionStr1.clear();
+    m_positionPonder1.clear();
+    if (!m_positionStrList.isEmpty()) m_positionStrList.clear();
+
+    // 開始局面の種別（従来ダイアログ）
+    const int startingPositionNumber =
+        m_startGameDialog ? m_startGameDialog->startingPositionNumber() : 1; // 0=現在, 1=初期(など)
+
+    // ベースの "position ..." を決める
+    // - 「現在の局面」なら SFEN 指定を使う（m_startSfenStr が空/ "startpos" なら startpos にフォールバック）
+    // - それ以外は初期局面として startpos を使う
+    if (startingPositionNumber == 0) {
+        if (!m_startSfenStr.isEmpty() && m_startSfenStr != QStringLiteral("startpos")) {
+            m_positionStr1 = QStringLiteral("position sfen %1 moves").arg(m_startSfenStr);
+        } else {
+            m_positionStr1 = QStringLiteral("position startpos moves");
+        }
+    } else {
+        m_positionStr1 = QStringLiteral("position startpos moves");
+    }
+
+    // 履歴の先頭にも入れておく（handleHumanVsEngineCommunication で追記していく）
+    m_positionStrList.append(m_positionStr1);
+
+    // 一応、現在の残り時間文字列も更新しておく（未設定なら "0"）
+    if (m_shogiClock) {
+        m_bTime = QString::number(m_shogiClock->getPlayer1TimeIntMs());
+        m_wTime = QString::number(m_shogiClock->getPlayer2TimeIntMs());
+    } else {
+        m_bTime = QStringLiteral("0");
+        m_wTime = QStringLiteral("0");
+    }
+}
+
+// EvH（エンジンが先手）の初手を起動する（position ベース → go → bestmove を適用）
+void MainWindow::startInitialEngineMoveEvH_()
+{
+    const bool engineIsP1 =
+        (m_playMode == EvenEngineVsHuman) || (m_playMode == HandicapEngineVsHuman);
+    if (!engineIsP1) return;
+
+    // 司令塔から主エンジンを取得（MainWindowでm_usi1は使わない）
+    Usi* eng = (m_match ? m_match->primaryEngine() : nullptr);
+    if (!eng) {
+        qWarning() << "[EvH] engine instance not ready; skip first move.";
+        return;
+    }
+
+    // ベースの "position ... moves" が空なら初期化（安全側）
+    if (m_positionStr1.isEmpty()) {
+        initializePositionStringsForMatch_();
+    }
+
+    // 念のため "position" が含まれているかチェック（ログで原因特定しやすくする）
+    if (!m_positionStr1.startsWith("position ")) {
+        qWarning() << "[EvH] position base is invalid:" << m_positionStr1;
+        // 最低限、初期局面で開始
+        m_positionStr1 = QStringLiteral("position startpos moves");
+    }
+
+    // エンジン初手の思考 → bestmove の from/to を受け取る
+    QPoint eFrom(-1, -1), eTo(-1, -1);
+
+    // Byoyomi/加算（P1/P2）と残り時間（ms→文字列）を用意
+    const int  engineByoyomiMs = m_byoyomiMilliSec1;            // 先手用
+    const bool useByoyomi      = m_useByoyomi;
+    if (m_shogiClock) {
+        m_bTime = QString::number(m_shogiClock->getPlayer1TimeIntMs());
+        m_wTime = QString::number(m_shogiClock->getPlayer2TimeIntMs());
+    } else {
+        m_bTime = QStringLiteral("0");
+        m_wTime = QStringLiteral("0");
+    }
+
+    try {
+        // USI "position ... moves" と "go ..." を一括で処理して bestmove を返す
+        eng->handleEngineVsHumanOrEngineMatchCommunication(
+            m_positionStr1,        // [in/out] position base に bestmove を連結してくる
+            m_positionPonder1,     // [in/out] 使っていなければ空のままでOK
+            eFrom, eTo,            // [out] エンジンの着手が返る
+            engineByoyomiMs,
+            m_bTime, m_wTime,
+            m_addEachMoveMiliSec1, m_addEachMoveMiliSec2,
+            useByoyomi
+            );
+    } catch (const std::exception& e) {
+        displayErrorMessage(e.what());
+        return;
+    }
+
+    // 返ってきた bestmove を盤へ適用
+    bool ok = false;
+    try {
+        ok = m_gameController->validateAndMove(
+            eFrom, eTo, m_lastMove, m_playMode,
+            m_currentMoveIndex, m_sfenRecord, m_gameMoves
+            );
+    } catch (const std::exception& e) {
+        displayErrorMessage(e.what());
+        return;
+    }
+    if (!ok) return;
+
+    // ハイライト・思考時間の反映
+    if (m_boardController)
+        m_boardController->showMoveHighlights(eFrom, eTo);
+
+    const qint64 thinkMs = eng->lastBestmoveElapsedMs();
+    // この直後は人間手番＝直前に指したのは P1（エンジン）
+    if (m_shogiClock)
+        m_shogiClock->setPlayer1ConsiderationTime(static_cast<int>(thinkMs));
+
+    // UI更新と履歴
+    updateTurnAndTimekeepingDisplay();
+    m_positionStrList.append(m_positionStr1);
+    redrawEngine1EvaluationGraph();
+    pumpUi();
+
+    // 次は人間手番：クリック受付と人間用タイマー
+    if (!m_gameIsOver) {
+        if (m_shogiView) m_shogiView->setMouseClickMode(true);
+        QTimer::singleShot(0, this, [this]{ armHumanTimerIfNeeded(); });
+    }
 }

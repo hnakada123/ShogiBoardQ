@@ -13,6 +13,8 @@
 // コンストラクタ
 ShogiGameController::ShogiGameController(QObject* parent)
     : QObject(parent), m_board(nullptr), m_result(NoResult), m_currentPlayer(NoPlayer), m_promote(false)
+    , previousFileTo(0)     // 追加：未着手時は 0 に初期化
+    , previousRankTo(0)     // 追加：未着手時は 0 に初期化
 {
 }
 
@@ -730,4 +732,10 @@ void ShogiGameController::updateSfenRecordAfterEdit(QStringList* m_sfenRecord)
 
     // 現在の盤面をSFEN形式に変換し、その文字列をリストに追加する。
     board()->addSfenRecord(nextTurn, moveIndex, m_sfenRecord);
+}
+
+QPoint ShogiGameController::lastMoveTo() const
+{
+    // previousFileTo/previousRankTo は 1..9（盤上）または 0（未設定）想定
+    return QPoint(previousFileTo, previousRankTo);
 }

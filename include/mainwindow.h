@@ -529,6 +529,11 @@ private:
 
     void setGameInProgressActions(bool inProgress); // フックの受け口（残す）
 
+    void initializePositionStringsForMatch_();
+
+    // EvH（エンジンが先手）の初手を起動する（position ベースを作り、go を送って 1手適用）
+    void startInitialEngineMoveEvH_();
+
 public: // INavigationContext
     bool hasResolvedRows() const override;
     int  resolvedRowCount() const override;
