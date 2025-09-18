@@ -123,9 +123,6 @@ private:
     QString m_currentSfenStr;
     bool    m_errorOccurred = false;
 
-    QString m_bTime;  // 先手/下手の残り
-    QString m_wTime;  // 後手/上手の残り
-
     int     m_currentMoveIndex = 0;
     QString m_lastMove;
 
@@ -280,17 +277,10 @@ private:
     enum class Winner { P1, P2 };
     void stopClockAndSendGameOver(Winner w);
 
-    enum class GameOverCause { Resignation, Timeout };
-    void setGameOverMove(GameOverCause cause, bool loserIsPlayerOne);
+    void setGameOverMove(MatchCoordinator::Cause cause, bool loserIsPlayerOne);
     QChar glyphForPlayer(bool isPlayerOne) const;
     void onEngine1Resigns();
     void onEngine2Resigns();
-
-    bool m_gameIsOver = false;
-    bool m_gameoverMoveAppended = false;
-    bool m_hasLastGameOver = false;
-    GameOverCause m_lastGameOverCause = GameOverCause::Resignation;
-    bool m_lastLoserIsP1 = false;
 
     void appendKifuLine(const QString& text, const QString& elapsedTime);
 
@@ -307,7 +297,6 @@ private:
     }
 
     QStringList m_usiMoves;
-    QStringList m_loadedSfens;
 
     QString prepareInitialSfen(const QString& filePath, QString& teaiLabel) const;
     QList<KifDisplayItem> parseDisplayMovesAndDetectTerminal(const QString& filePath,
@@ -488,7 +477,7 @@ private:
     BoardInteractionController* m_boardController = nullptr;
 
     // 配線ヘルパ
-    void wireBoardInteractionController();
+    void setupBoardInteractionController();
 
     bool m_engine1IsP1 = false; // シングルエンジン時、エンジン1の担当が先手なら true
 
@@ -520,6 +509,7 @@ private slots:
     void onBoardFlipped(bool nowFlipped);
     void toggleEditSideToMove();
     void onActionFlipBoardTriggered(bool checked = false);
+    void onRequestAppendGameOverMove(const MatchCoordinator::GameEndInfo& info);
 
 private:
     QMetaObject::Connection m_timeConn{};
@@ -527,7 +517,23 @@ private:
 
 private slots:
     void onMatchTimeUpdated(qint64 p1ms, qint64 p2ms, bool p1turn, qint64 urgencyMs);
+    void onMoveRequested_(const QPoint& from, const QPoint& to);
 
+private:
+    // 細分化したヘルパ
+    void connectBoardClicks_();
+    void connectMoveRequested_();
+
+    // moveRequested 後の分岐ハンドラ
+    void handleMove_HvH_(ShogiGameController::Player moverBefore,
+                         const QPoint& from, const QPoint& to);
+    void handleMove_HvE_(const QPoint& humanFrom, const QPoint& humanTo);
+
+    // USIに渡す btime/wtime を毎回ローカル生成
+    std::pair<QString, QString> currentBWTimesForUSI_() const;
+
+    // ゲームオーバーの統一判定
+    bool isGameOver_() const;
 };
 
 #endif // MAINWINDOW_H

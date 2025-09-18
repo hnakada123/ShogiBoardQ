@@ -2,6 +2,9 @@
 #include "shogiclock.h"
 #include "usi.h"
 #include "shogiview.h"
+#include "usicommlogmodel.h"
+#include "shogienginethinkingmodel.h"
+
 #include <limits>
 #include <QObject>
 #include <QDebug>
@@ -706,7 +709,7 @@ void MatchCoordinator::startEngineVsEngine_(const StartOptions& /*opt*/)
         (m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2
         );
 
-    QTimer::singleShot(0, this, &MatchCoordinator::kickNextEvETurn_);
+    QTimer::singleShot(std::chrono::milliseconds(0), this, &MatchCoordinator::kickNextEvETurn_);
 }
 
 Usi* MatchCoordinator::primaryEngine() const
@@ -962,7 +965,6 @@ void MatchCoordinator::emitTimeUpdateFromClock_()
     emit timeUpdated(p1ms, p2ms, p1turn, urgencyMs);
 }
 
-// matchcoordinator.cpp
 void MatchCoordinator::wireClock_()
 {
     if (!m_clock) return;
@@ -978,4 +980,52 @@ void MatchCoordinator::wireClock_()
 void MatchCoordinator::unwireClock_()
 {
     if (m_clockConn) { QObject::disconnect(m_clockConn); m_clockConn = {}; }
+}
+
+void MatchCoordinator::clearGameOverState()
+{
+    const bool wasOver = m_gameOver.isOver;
+    m_gameOver = GameOverState{}; // 全クリア
+    if (wasOver) {
+        emit gameOverStateChanged(m_gameOver);
+        qDebug() << "[Match] clearGameOverState()";
+    }
+}
+
+// 司令塔が終局を確定させる唯一の入口
+void MatchCoordinator::setGameOver(const GameEndInfo& info, bool loserIsP1, bool appendMoveOnce)
+{
+    // すでに終局済みなら上書きしない（多重通知の防止）
+    if (m_gameOver.isOver) {
+        qDebug() << "[Match] setGameOver() ignored: already over";
+        return;
+    }
+
+    m_gameOver.isOver        = true;
+    m_gameOver.hasLast       = true;
+    m_gameOver.lastLoserIsP1 = loserIsP1;
+    m_gameOver.lastInfo      = info;
+    m_gameOver.when          = QDateTime::currentDateTime();
+
+    // まず内部状態を公開
+    emit gameOverStateChanged(m_gameOver);
+
+    // 既存の設計を継承：高粒度のイベント（UI/ログ/後処理）
+    emit gameEnded(info);
+
+    // 棋譜の終局一意追記：司令塔主導でやる場合は request を出し、
+    // MainWindow（またはモデル側）が追記し終えたら markGameOverMoveAppended() を呼ぶ
+    if (appendMoveOnce && !m_gameOver.moveAppended) {
+        emit requestAppendGameOverMove(info);
+    }
+}
+
+void MatchCoordinator::markGameOverMoveAppended()
+{
+    if (!m_gameOver.isOver) return;
+    if (m_gameOver.moveAppended) return;
+
+    m_gameOver.moveAppended = true;
+    emit gameOverStateChanged(m_gameOver);
+    qDebug() << "[Match] markGameOverMoveAppended()";
 }
