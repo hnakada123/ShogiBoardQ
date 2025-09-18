@@ -355,16 +355,18 @@ void MainWindow::handleUndoMove(int index)
 }
 
 // 待ったボタンを押すと、2手戻る。
+// 待ったボタンを押すと、2手戻る。
 void MainWindow::undoLastTwoMoves()
 {
     // --- 追加(1): いま計測中なら止める（巻き戻し時間を混入させない） ---
-    if (m_turnTimerArmed) {
-        m_turnTimerArmed = false;
-        m_turnTimer.invalidate();
-    }
-    if (m_humanTimerArmed) {
-        m_humanTimerArmed = false;
-        m_humanTurnTimer.invalidate();
+    if (m_match) {
+        // HvEの人間タイマーは確実に解除
+        m_match->disarmHumanTimerIfNeeded();
+
+        // HvHのターン計測タイマーは「未記録で止めたい」ケース。
+        // disarmTurnTimerIfNeeded() を用意していればこちらを呼ぶ。
+        // まだ未実装ならこの行はコメントアウトのままでOK（副作用は小）。
+        // m_match->disarmTurnTimerIfNeeded();
     }
 
     // ---- ここから下は既存処理（2手巻き戻し） ----
@@ -422,24 +424,20 @@ void MainWindow::undoLastTwoMoves()
 
     if (isHuman(sideToMove)) {
         QTimer::singleShot(0, this, [this]{
-            if constexpr (true) {
-                armTurnTimerIfNeeded();   // H2H 共通
+            if (!m_match) return;
+
+            if (m_playMode == HumanVsHuman) {
+                // H2H：両者共通のターン計測
+                m_match->armTurnTimerIfNeeded();
             } else {
-                armHumanTimerIfNeeded();  // HvE 用にしている場合
+                // HvE：人間側の計測
+                m_match->armHumanTimerIfNeeded();
             }
         });
     }
 
-    // ★ 簡易復元：現在手数で決め打ち
-    if (m_currentMoveIndex <= 0) {
-        m_p1HasMoved = false; m_p2HasMoved = false;
-    } else if (m_currentMoveIndex == 1) {
-        const bool nextIsP1 = (m_gameController->currentPlayer() == ShogiGameController::Player1);
-        m_p1HasMoved = !nextIsP1;
-        m_p2HasMoved =  nextIsP1;
-    } else {
-        m_p1HasMoved = true; m_p2HasMoved = true;
-    }
+    // ★ 旧フラグ（m_p1HasMoved / m_p2HasMoved）は司令塔移譲または廃止。
+    //   復元ロジックは不要なので削除しました。
 }
 
 // 新規対局の準備をする。
@@ -807,21 +805,6 @@ void MainWindow::updateTurnStatus(int currentPlayer)
     m_shogiView->setActiveSide(currentPlayer == 1);
 }
 
-// 手番に応じて将棋クロックの手番変更する。
-void MainWindow::updateTurnDisplay()
-{
-    // 手番が対局者1の場合
-    if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
-        // 将棋クロックの手番を対局者1に設定し、GUIの手番表示を更新する。
-        updateTurnStatus(1);
-    }
-    // 手番が対局者2の場合
-    else if (m_gameController->currentPlayer() == ShogiGameController::Player2) {
-        // 将棋クロックの手番を対局者2に設定し、GUIの手番表示を更新する。
-        updateTurnStatus(2);
-    }
-}
-
 // 手番に応じて将棋クロックの手番変更およびGUIの手番表示を更新する。
 void MainWindow::updateTurnAndTimekeepingDisplay()
 {
@@ -830,7 +813,7 @@ void MainWindow::updateTurnAndTimekeepingDisplay()
         qDebug() << "[ARBITER] suppress updateTurnAndTimekeepingDisplay (game over)";
         m_shogiClock->stopClock();
         updateRemainingTimeDisplay();   // 表示だけ整えるなら任意
-        disarmHumanTimerIfNeeded();     // 人間用ストップウォッチがあれば停止
+        if (m_match) m_match->disarmHumanTimerIfNeeded(); // 人間用ストップウォッチ停止
         return;
     }
 
@@ -844,45 +827,48 @@ void MainWindow::updateTurnAndTimekeepingDisplay()
         m_shogiClock->applyByoyomiAndResetConsideration2();
         updateGameRecord(m_shogiClock->getPlayer2ConsiderationAndTotalTime());
         m_shogiClock->setPlayer2ConsiderationTime(0);
-        m_p2HasMoved = true;   // ← 後手は着手済み扱い
     } else {
         // これから後手が指す → 直前に指したのは先手
         m_shogiClock->applyByoyomiAndResetConsideration1();
         updateGameRecord(m_shogiClock->getPlayer1ConsiderationAndTotalTime());
         m_shogiClock->setPlayer1ConsiderationTime(0);
-        m_p1HasMoved = true;   // ← 先手は着手済み扱い
     }
 
-    // 3) 表示更新
+    // 3) 表示更新（残時間ラベルなど）
     updateRemainingTimeDisplay();
 
-    // 4) ★ USI に渡す残時間（ms）を“pre-add風”に整形
+    // 4) USI に渡す残時間（ms）を“pre-add風”に整形（司令塔に一任）
     qint64 bMs = 0, wMs = 0;
-    computeGoTimesForUSI(bMs, wMs);
-    m_bTime = QString::number(bMs);
-    m_wTime = QString::number(wMs);
+    if (m_match) {
+        m_match->computeGoTimesForUSI(bMs, wMs);
+        m_bTime = QString::number(bMs);
+        m_wTime = QString::number(wMs);
+    } else {
+        m_bTime = "0";
+        m_wTime = "0";
+    }
 
     // 5) 手番表示・時計再開
     updateTurnStatus(nextIsP1 ? 1 : 2);
     m_shogiClock->startClock();
 
-    // ★ 新しい手番の「この手」の開始時刻を記録
-    {
-        const qint64 now = ShogiUtils::nowMs();
-        if (nextIsP1) m_turnEpochP1Ms = now;
-        else          m_turnEpochP2Ms = now;
+    // 6) 新しい手番の「この手」の開始時刻を司令塔に記録
+    if (m_match) {
+        m_match->markTurnEpochNowFor(nextIsP1 ? MatchCoordinator::P1 : MatchCoordinator::P2);
     }
 
-    if (isHumanTurn()) armHumanTimerIfNeeded();
-    else               disarmHumanTimerIfNeeded();
-}
-
-void MainWindow::disarmHumanTimerIfNeeded()
-{
-    if (!m_humanTimerArmed) return;     // 既に無効なら何もしない
-    m_humanTimerArmed = false;
-    m_humanTurnTimer.invalidate();      // QElapsedTimer を無効化（elapsed() は 0 扱い）
-    // qDebug() << "[HUMAN] timer disarmed";
+    // 7) 人間の手番なら人間用／H2H用の計測をアーム、そうでなければ解除
+    if (isHumanTurn()) {
+        if (m_match) {
+            if (m_playMode == HumanVsHuman) {
+                m_match->armTurnTimerIfNeeded();   // H2H 共通計測
+            } else {
+                m_match->armHumanTimerIfNeeded();  // HvE 人間側計測
+            }
+        }
+    } else {
+        if (m_match) m_match->disarmHumanTimerIfNeeded();
+    }
 }
 
 // GUIのバージョン情報を表示する。
@@ -1261,35 +1247,45 @@ void MainWindow::displayKifuAnalysisDialog()
 // 対局者の残り時間と秒読み/加算設定だけを確定する（★自分自身は呼ばない）
 void MainWindow::setRemainingTimeAndCountDown()
 {
-    // 「時間切れを負けにする」フラグ
-    m_isLoseOnTimeout = m_startGameDialog->isLoseOnTimeout();
+    // 1) ダイアログ値の取得（秒読み・加算は秒単位で来る想定）
+    const bool loseOnTimeout = m_startGameDialog->isLoseOnTimeout();
+    const int  byoyomiSec1     = m_startGameDialog->byoyomiSec1();
+    const int  byoyomiSec2     = m_startGameDialog->byoyomiSec2();
+    const int  addEachMoveSec1 = m_startGameDialog->addEachMoveSec1();
+    const int  addEachMoveSec2 = m_startGameDialog->addEachMoveSec2();
 
-    const int byoyomiSec1     = m_startGameDialog->byoyomiSec1();
-    const int byoyomiSec2     = m_startGameDialog->byoyomiSec2();
-    const int addEachMoveSec1 = m_startGameDialog->addEachMoveSec1();
-    const int addEachMoveSec2 = m_startGameDialog->addEachMoveSec2();
-
+    // 2) 方式判定
+    //  - どちらかの byoyomi > 0 → 「秒読み方式」（useByoyomi = true）
+    //  - それ以外でどちらかの increment > 0 → 「フィッシャー方式」（useByoyomi = false）
+    //  - どちらも 0 → 「持ち時間のみ（便宜上 byoyomi=0 扱い）」→ useByoyomi = true（by=0）
+    bool useByoyomi = true;
     if (byoyomiSec1 > 0 || byoyomiSec2 > 0) {
-        // 秒読み方式
-        m_useByoyomi         = true;
-        m_byoyomiMilliSec1   = byoyomiSec1 * 1000;
-        m_byoyomiMilliSec2   = byoyomiSec2 * 1000;
-        m_addEachMoveMiliSec1 = 0;
-        m_addEachMoveMiliSec2 = 0;
+        useByoyomi = true;
     } else if (addEachMoveSec1 > 0 || addEachMoveSec2 > 0) {
-        // フィッシャー（1手ごと加算）方式
-        m_useByoyomi         = false;
-        m_byoyomiMilliSec1   = 0;
-        m_byoyomiMilliSec2   = 0;
-        m_addEachMoveMiliSec1 = addEachMoveSec1 * 1000;
-        m_addEachMoveMiliSec2 = addEachMoveSec2 * 1000;
+        useByoyomi = false; // フィッシャー方式
     } else {
-        // どちらも0：持ち時間のみ（便宜上 byoyomi=0 として扱う）
-        m_useByoyomi         = true;
-        m_byoyomiMilliSec1   = 0;
-        m_byoyomiMilliSec2   = 0;
-        m_addEachMoveMiliSec1 = 0;
-        m_addEachMoveMiliSec2 = 0;
+        useByoyomi = true;  // by=0 の秒読み扱い
+    }
+
+    // 3) ms に変換
+    const int by1Ms  = byoyomiSec1     * 1000;
+    const int by2Ms  = byoyomiSec2     * 1000;
+    const int inc1Ms = addEachMoveSec1 * 1000;
+    const int inc2Ms = addEachMoveSec2 * 1000;
+
+    // 4) 司令塔へ集約設定（MainWindow 側の m_* 変数はもう使わない）
+    if (m_match) {
+        m_match->setTimeControlConfig(
+            useByoyomi,
+            by1Ms, by2Ms,
+            inc1Ms, inc2Ms,
+            loseOnTimeout
+            );
+    }
+
+    // 5) （従来どおりなら）ShogiClock にも「時間切れ負け」を反映
+    if (m_shogiClock) {
+        m_shogiClock->setLoseOnTimeout(loseOnTimeout);
     }
 }
 
@@ -2244,12 +2240,12 @@ void MainWindow::startConsidaration()
     if (m_usi1 != nullptr) delete m_usi1;
 
     // 将棋エンジンとUSIプロトコルに関するクラスのインスタンスを生成する。
-    m_usi1 = new Usi(m_lineEditModel1, m_modelThinking1, m_gameController, m_playMode,this);
+    m_usi1 = new Usi(m_lineEditModel1, m_modelThinking1, m_gameController, m_playMode, this);
 
     connect(m_usi1, &Usi::bestMoveResignReceived, this, &MainWindow::processResignCommand);
 
     // GUIに登録された将棋エンジン番号を取得する。
-    int engineNumber1 = m_considerationDialog->getEngineNumber();
+    const int engineNumber1 = m_considerationDialog->getEngineNumber();
 
     // 将棋エンジン実行ファイル名を設定する。
     m_engineFile1 = m_considerationDialog->getEngineList().at(engineNumber1).path;
@@ -2258,14 +2254,12 @@ void MainWindow::startConsidaration()
     QString engineName1 = m_considerationDialog->getEngineName();
 
     m_usi1->setLogIdentity("[E1]", "P1", engineName1);
-
     if (m_usi1) m_usi1->setSquelchResignLogging(false);
 
     try {
         // 将棋エンジンを起動し、対局開始までのコマンドを実行する。
         m_usi1->initializeAndStartEngineCommunication(m_engineFile1, engineName1);
-    } catch (const std::exception& e) {
-        // エラーを再スローし、エラーメッセージを表示する。
+    } catch (const std::exception&) {
         throw;
     }
 
@@ -2279,18 +2273,14 @@ void MainWindow::startConsidaration()
     // positionコマンド文字列の生成
     m_positionStr1 = m_positionStrList.at(m_currentMoveIndex);
 
-    // 時間無制限の場合
-    if (m_considerationDialog->unlimitedTimeFlag()) {
-        m_byoyomiMilliSec1 = 0;
-    }
-    // 時間制限の場合
-    else {
-        // 秒読み時間を設定（単位はミリ秒）
-        m_byoyomiMilliSec1 = m_considerationDialog->getByoyomiSec() * 1000;
+    // --- ここをローカル変数に変更（m_byoyomiMilliSec1 はもう存在しない）---
+    int byoyomiMs = 0;
+    if (!m_considerationDialog->unlimitedTimeFlag()) {
+        byoyomiMs = m_considerationDialog->getByoyomiSec() * 1000; // 秒→ms
     }
 
     // 将棋エンジンにpositionコマンドを送信し、指し手を受信する。
-    m_usi1->executeAnalysisCommunication(m_positionStr1, m_byoyomiMilliSec1);
+    m_usi1->executeAnalysisCommunication(m_positionStr1, byoyomiMs);
 }
 
 // 詰み探索を開始する。
@@ -2392,78 +2382,59 @@ void MainWindow::analyzeGameRecord()
     // 対局モードを棋譜解析モードに設定する。
     m_playMode = AnalysisMode;
 
-    // 秒読み時間を設定（単位はミリ秒）
-    m_byoyomiMilliSec1 = m_analyzeGameRecordDialog->byoyomiSec() * 1000;
+    // 秒読み(ms)はローカルに保持（MainWindowのメンバは廃止済み）
+    const int byoyomiMs = m_analyzeGameRecordDialog->byoyomiSec() * 1000;
 
-    int startIndex;
-
-    if (m_analyzeGameRecordDialog->initPosition()) {
-        startIndex = 0;
-    } else {
-        startIndex = m_currentMoveIndex;
-    }
+    int startIndex = m_analyzeGameRecordDialog->initPosition() ? 0 : m_currentMoveIndex;
 
     // 将棋エンジンとUSIプロトコルに関するクラスの削除と生成
     if (m_usi1 != nullptr) delete m_usi1;
-    m_usi1 = new Usi(m_lineEditModel1, m_modelThinking1, m_gameController, m_playMode,this);
+    m_usi1 = new Usi(m_lineEditModel1, m_modelThinking1, m_gameController, m_playMode, this);
 
     // GUIに登録された将棋エンジン番号を取得する。
-    int engineNumber1 = m_analyzeGameRecordDialog->engineNumber();
+    const int engineNumber1 = m_analyzeGameRecordDialog->engineNumber();
 
-    // 将棋エンジン実行ファイル名を設定する。
+    // 将棋エンジン実行ファイル名/名称
     m_engineFile1 = m_analyzeGameRecordDialog->engineList().at(engineNumber1).path;
-
-    // 将棋エンジン名を取得する。
     QString engineName1 = m_analyzeGameRecordDialog->engineName();
 
     m_usi1->setLogIdentity("[E1]", "P1", engineName1);
-
     if (m_usi1) m_usi1->setSquelchResignLogging(false);
 
+    // エンジン起動
     m_usi1->initializeAndStartEngineCommunication(m_engineFile1, engineName1);
 
     // 前の手の評価値
     int previousScore = 0;
 
-    // 初手から最終手までの指し手までループする。
-    //for (int moveIndex = startIndex; moveIndex < m_gameMoves.size(); ++moveIndex) {
+    // 初手から最終手までの指し手までループ（※デバッグで 8 手に制限中）
+    // for (int moveIndex = startIndex; moveIndex < m_gameMoves.size(); ++moveIndex) {
     for (int moveIndex = startIndex; moveIndex < 8; ++moveIndex) {
-        // 各手に対応するpositionコマンド文字列を取得する。
+        // 各手の position 文字列
         m_positionStr1 = m_positionStrList.at(moveIndex);
 
-        std::cout << "m_gameMoves.at(" << moveIndex << ").movingPiece = " << m_gameMoves.at(moveIndex).movingPiece.toLatin1() << std::endl;
-
-        // 手番を設定する。
+        // 手番を設定
         if (m_gameMoves.at(moveIndex).movingPiece.isUpper()) {
             m_gameController->setCurrentPlayer(ShogiGameController::Player1);
         } else {
             m_gameController->setCurrentPlayer(ShogiGameController::Player2);
         }
 
-        m_usi1->executeAnalysisCommunication(m_positionStr1, m_byoyomiMilliSec1);
+        // 解析コマンド送信（byoyomiMs はローカル）
+        m_usi1->executeAnalysisCommunication(m_positionStr1, byoyomiMs);
 
-        // 指し手を取得する。
-        QString currentMoveRecord = m_moveRecords->at(moveIndex)->currentMove();
-
-        // 評価値を取得する。
-        QString currentScore = m_usi1->scoreStr();
-
-        // 今回の指し手と前回の指し手の評価値の差を求める。
-        QString scoreDifference = QString::number(currentScore.toInt() - previousScore);
-
-        // 将棋エンジンの読み筋を取得する。
-        QString engineReadout = m_usi1->pvKanjiStr();
-
-        // 前の手の評価値として現在の評価値を代入する。
+        // 指し手/評価値/差分/読み筋
+        const QString currentMoveRecord = m_moveRecords->at(moveIndex)->currentMove();
+        const QString currentScore      = m_usi1->scoreStr();
+        const QString scoreDifference   = QString::number(currentScore.toInt() - previousScore);
+        const QString engineReadout     = m_usi1->pvKanjiStr();
         previousScore = currentScore.toInt();
 
-        // 棋譜解析結果をモデルに追加する。
-        m_analysisModel->appendItem(new KifuAnalysisResultsDisplay(currentMoveRecord, currentScore, scoreDifference, engineReadout));
-
-        // 棋譜解析結果の一番下が見えるようにビューを表示する。
+        // 解析結果をモデルに追加してビューを更新
+        m_analysisModel->appendItem(
+            new KifuAnalysisResultsDisplay(currentMoveRecord, currentScore, scoreDifference, engineReadout)
+            );
         m_analysisResultsView->scrollToBottom();
-
-        // 棋譜解析結果のビューを更新する。
         m_analysisResultsView->update();
 
         // 現局面から1手進める（Controller/スロットに依存しない）
@@ -2476,13 +2447,14 @@ void MainWindow::analyzeGameRecord()
             }
         }
 
-        // 評価値グラフを更新する。
+        // 評価値グラフ更新
         redrawEngine1EvaluationGraph();
     }
 
-    // 将棋エンジンにquitコマンドを送る。
+    // 終了
     m_usi1->sendQuitCommand();
 }
+
 
 // 設定ファイルにGUI全体のウィンドウサイズを書き込む。
 // また、将棋盤のマスサイズも書き込む。
@@ -3056,107 +3028,6 @@ bool MainWindow::isHumanTurn() const
     return m_gameController->currentPlayer() == humanPlayerSide();
 }
 
-void MainWindow::armHumanTimerIfNeeded()
-{
-    if (!m_humanTimerArmed && isHumanTurn()) {
-        m_humanTurnTimer.start();
-        m_humanTimerArmed = true;
-        // qDebug() << "[HUMAN] turn start, timer armed";
-    }
-}
-
-void MainWindow::finishHumanTimerAndSetConsideration()
-{
-    // 直前に指した「人間側」を取得（HvE なら固定、HvH なら呼び出し側で適切に）
-    const auto side = humanPlayerSide(); // ShogiGameController::Player1 / Player2
-
-    // ShogiClock が積算中の“その手の考慮時間(ms)”を取得
-    const qint64 clkMs = (side == ShogiGameController::Player1)
-        ? m_shogiClock->player1ConsiderationMs()
-        : m_shogiClock->player2ConsiderationMs();
-
-    // 表示用にそのまま流し込む（内部ロジックと完全一致）
-    if (side == ShogiGameController::Player1) {
-        m_shogiClock->setPlayer1ConsiderationTime(static_cast<int>(clkMs));
-    } else {
-        m_shogiClock->setPlayer2ConsiderationTime(static_cast<int>(clkMs));
-    }
-
-    // ローカルの人間用タイマーは無効化しておく（ズレを残さない）
-    if (m_humanTurnTimer.isValid()) m_humanTurnTimer.invalidate();
-    m_humanTimerArmed = false;
-
-    // qDebug() << "[HUMAN] committed, ShogiClock-based =" << clkMs << "ms";
-}
-
-// mainwindow.cpp
-void MainWindow::armTurnTimerIfNeeded() {
-    if (!m_turnTimerArmed) {
-        m_turnTimer.start();
-        m_turnTimerArmed = true;
-        // qDebug() << "[H2H] turn timer armed";
-    }
-}
-
-void MainWindow::finishTurnTimerAndSetConsiderationFor(ShogiGameController::Player mover) {
-    if (!m_turnTimerArmed) return;
-    const qint64 ms = m_turnTimer.isValid() ? m_turnTimer.elapsed() : 0;
-
-    if (mover == ShogiGameController::Player1) {
-        m_shogiClock->setPlayer1ConsiderationTime(static_cast<int>(ms));
-    } else {
-        m_shogiClock->setPlayer2ConsiderationTime(static_cast<int>(ms));
-    }
-
-    m_turnTimerArmed = false;
-    m_turnTimer.invalidate();
-    // qDebug() << "[H2H] move committed by" << mover << "elapsed" << ms << "ms";
-}
-
-void MainWindow::computeGoTimesForUSI(qint64& outB, qint64& outW)
-{
-    // ShogiClock の「内部残時間」（ms）を取得
-    const qint64 rawB = qMax<qint64>(0, m_shogiClock->getPlayer1TimeIntMs());
-    const qint64 rawW = qMax<qint64>(0, m_shogiClock->getPlayer2TimeIntMs());
-
-    if (m_useByoyomi) {
-        // ★ 秒読み方式：btime/wtime は「メイン持ち時間のみ」
-        // いま秒読み“適用中”なら 0 を送る
-        outB = m_shogiClock->byoyomi1Applied() ? 0 : rawB;
-        outW = m_shogiClock->byoyomi2Applied() ? 0 : rawW;
-        return;
-    }
-
-    // ★ フィッシャー方式：常に pre-add に正規化（内部は post-add なので1回だけ引く）
-    outB = rawB;
-    outW = rawW;
-
-    const qint64 incB = static_cast<qint64>(m_addEachMoveMiliSec1);
-    const qint64 incW = static_cast<qint64>(m_addEachMoveMiliSec2);
-    if (incB > 0) outB = qMax<qint64>(0, outB - incB);
-    if (incW > 0) outW = qMax<qint64>(0, outW - incW);
-}
-
-void MainWindow::refreshGoTimes()
-{
-    qint64 b, w;
-    computeGoTimesForUSI(b, w);
-    m_bTime = QString::number(b);
-    m_wTime = QString::number(w);
-}
-
-// ★ 追加: いまの手番の側の「この手で使える上限(ms)」を算出
-//   - 秒読みあり: main残 + byoyomi
-//   - 秒読みなし(インクリ): main残のみ（incは次手で付与されるため“上限”に含めない）
-//   - refreshGoTimes() の直後に呼ぶ想定（m_bTime/m_wTime が最新）
-int MainWindow::computeMoveBudgetMsForCurrentTurn() const
-{
-    const bool p1turn = (m_gameController->currentPlayer() == ShogiGameController::Player1);
-    const int  mainMs = p1turn ? m_bTime.toInt() : m_wTime.toInt();
-    const int  byoMs  = m_useByoyomi ? m_byoyomiMilliSec1 : 0;
-    return mainMs + byoMs;
-}
-
 // ★ 追加: 旗落ち時の終了処理（勝敗通知とクリーンアップ）
 //   ここはプロジェクトの既存ハンドラに合わせてください。
 //   例では: mover が時間切れ → 相手の勝ち。
@@ -3248,7 +3119,7 @@ void MainWindow::setGameOverMove(GameOverCause cause, bool loserIsPlayerOne)
         m_lastGameOverCause == cause &&
         m_lastLoserIsP1    == loserIsPlayerOne) {
         m_gameIsOver = true;
-        disarmHumanTimerIfNeeded();
+        if (m_match) m_match->disarmHumanTimerIfNeeded();
         qDebug() << "[KIFU] setGameOverMove suppressed (duplicate content)";
         return;
     }
@@ -3261,21 +3132,25 @@ void MainWindow::setGameOverMove(GameOverCause cause, bool loserIsPlayerOne)
     // 表記（▲/△は絶対座席）
     const QChar mark = glyphForPlayer(loserIsPlayerOne);
     const QString line = (cause == GameOverCause::Resignation)
-                           ? QString("%1投了").arg(mark)
-                           : QString("%1時間切れ").arg(mark);
+                             ? QString("%1投了").arg(mark)
+                             : QString("%1時間切れ").arg(mark);
 
-    // ★ 自前で「この手の思考秒 / 合計消費秒」を算出
-    const qint64 now = ShogiUtils::nowMs();
+    // ★ 「この手」の思考秒 / 合計消費秒を算出
+    const qint64 now = QDateTime::currentMSecsSinceEpoch();
 
-    // この手の開始エポック
-    const qint64 epochMs = loserIsPlayerOne ? m_turnEpochP1Ms : m_turnEpochP2Ms;
-    qint64 considerMs    = (epochMs > 0) ? (now - epochMs) : 0;
+    // この手の開始エポック（司令塔から取得）
+    qint64 epochMs = -1;
+    if (m_match) {
+        epochMs = m_match->turnEpochFor(loserIsPlayerOne ? MatchCoordinator::P1
+                                                         : MatchCoordinator::P2);
+    }
+    qint64 considerMs = (epochMs > 0) ? (now - epochMs) : 0;
     if (considerMs < 0) considerMs = 0; // 念のため
 
     // 合計消費 = 初期持ち時間 − 現在の残り時間
     const qint64 remMs   = loserIsPlayerOne
-                           ? m_shogiClock->getPlayer1TimeIntMs()
-                           : m_shogiClock->getPlayer2TimeIntMs();
+                             ? m_shogiClock->getPlayer1TimeIntMs()
+                             : m_shogiClock->getPlayer2TimeIntMs();
     const qint64 initMs  = loserIsPlayerOne ? m_initialTimeP1Ms : m_initialTimeP2Ms;
     qint64 totalUsedMs   = initMs - remMs;
     if (totalUsedMs < 0) totalUsedMs = 0;
@@ -3290,7 +3165,9 @@ void MainWindow::setGameOverMove(GameOverCause cause, bool loserIsPlayerOne)
     // 以後の更新を抑止
     m_gameoverMoveAppended = true;
     m_gameIsOver           = true;
-    disarmHumanTimerIfNeeded();
+
+    // 人間用ストップウォッチ解除（HvE/HvH）
+    if (m_match) m_match->disarmHumanTimerIfNeeded();
 
     qDebug().nospace() << "[KIFU] setGameOverMove appended"
                        << " cause=" << (cause == GameOverCause::Resignation ? "RESIGN" : "TIMEOUT")
@@ -3984,18 +3861,17 @@ void MainWindow::resetGameFlags()
 
 void MainWindow::syncClockTurnAndEpoch()
 {
+    // 時計の手番表示と動作を現在手番に同期
     m_shogiClock->stopClock();
     const int cur = (m_gameController->currentPlayer() == ShogiGameController::Player2) ? 2 : 1;
     updateTurnStatus(cur);
     m_shogiClock->startClock();
 
-    // 現在手番側のターン・エポックを開始
-    const qint64 now = ShogiUtils::nowMs();
-    m_turnEpochP1Ms = m_turnEpochP2Ms = -1;
-    if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
-        m_turnEpochP1Ms = now;
-    } else {
-        m_turnEpochP2Ms = now;
+    // エポック管理は司令塔へ一元化
+    if (m_match) {
+        m_match->resetTurnEpochs();
+        const bool p1turn = (m_gameController->currentPlayer() == ShogiGameController::Player1);
+        m_match->markTurnEpochNowFor(p1turn ? MatchCoordinator::P1 : MatchCoordinator::P2);
     }
 }
 
@@ -4195,7 +4071,7 @@ void MainWindow::startHumanVsHumanGame()
     syncClockTurnAndEpoch();
 
     // 人間手番のストップウォッチを同時起動
-    armTurnTimerIfNeeded();
+    if (m_match) m_match->armTurnTimerIfNeeded();
 }
 
 // 平手 Player1: Human, Player2: USI Engine
@@ -4467,10 +4343,16 @@ void MainWindow::wireBoardInteractionController()
 
                          // ▼ 人間 vs 人間
                          case HumanVsHuman: {
-                             finishTurnTimerAndSetConsiderationFor(moverBefore);
+                             if (m_match) {
+                                 const auto moverP = (moverBefore == ShogiGameController::Player1)
+                                 ? MatchCoordinator::P1 : MatchCoordinator::P2;
+                                 m_match->finishTurnTimerAndSetConsiderationFor(moverP);
+                             }
                              updateTurnAndTimekeepingDisplay();
                              pumpUi();
-                             QTimer::singleShot(0, this, [this]{ armTurnTimerIfNeeded(); });
+                             QTimer::singleShot(0, this, [this]{
+                                 if (m_match) m_match->armTurnTimerIfNeeded();
+                             });
                              m_shogiView->setMouseClickMode(true);
                              break;
                          }
@@ -4480,7 +4362,7 @@ void MainWindow::wireBoardInteractionController()
                          case HandicapHumanVsEngine:
                          case EvenEngineVsHuman:
                          case HandicapEngineVsHuman: {
-                             finishHumanTimerAndSetConsideration();
+                             if (m_match) m_match->finishHumanTimerAndSetConsideration();
 
                              // “同○” 判定用のヒントは司令塔の主エンジンへ
                              Usi* eng = (m_match ? m_match->primaryEngine() : nullptr);
@@ -4492,7 +4374,13 @@ void MainWindow::wireBoardInteractionController()
                              updateTurnAndTimekeepingDisplay();
                              m_shogiView->setMouseClickMode(false);
 
-                             refreshGoTimes();
+                             // USIへ渡す btime/wtime を司令塔から取得して文字列に反映
+                             if (m_match) {
+                                 qint64 bMs = 0, wMs = 0;
+                                 m_match->computeGoTimesForUSI(bMs, wMs);
+                                 m_bTime = QString::number(bMs);
+                                 m_wTime = QString::number(wMs);
+                             }
 
                              const bool engineIsP1 =
                                  (m_playMode == EvenEngineVsHuman) || (m_playMode == HandicapEngineVsHuman);
@@ -4502,26 +4390,27 @@ void MainWindow::wireBoardInteractionController()
                                  QPoint eFrom = hFrom;   // 人間の着手を渡す（必須）
                                  QPoint eTo   = hTo;     // 人間の着手を渡す（必須）
 
-                                 const int engineByoyomiMs = engineIsP1 ? m_byoyomiMilliSec1 : m_byoyomiMilliSec2;
+                                 // 時間ルールは司令塔から取得
+                                 const auto tc = m_match ? m_match->timeControl() : MatchCoordinator::TimeControl{};
+                                 const int engineByoyomiMs = engineIsP1 ? tc.byoyomiMs1 : tc.byoyomiMs2;
 
                                  try {
-                                     // ★ ここも司令塔の主エンジンを使用（m_usi1 は参照しない）
                                      eng = (m_match ? m_match->primaryEngine() : nullptr);
                                      if (!eng) {
-                                         // エンジンが未初期化なら安全に中断（クラッシュ回避）
                                          qWarning() << "[HvE] engine instance not ready; skip engine move.";
                                          m_shogiView->setMouseClickMode(true);
                                          return;
                                      }
 
+                                     // btime/wtime は直近の m_bTime/m_wTime を渡す（上の計算で更新済み）
                                      eng->handleHumanVsEngineCommunication(
                                          m_positionStr1, m_positionPonder1,
                                          eFrom, eTo,
                                          engineByoyomiMs,
                                          m_bTime, m_wTime,
                                          m_positionStrList,
-                                         m_addEachMoveMiliSec1, m_addEachMoveMiliSec2,
-                                         m_useByoyomi
+                                         tc.incMs1, tc.incMs2,
+                                         tc.useByoyomi
                                          );
                                  } catch (const std::exception& e) {
                                      displayErrorMessage(e.what());
@@ -4562,7 +4451,9 @@ void MainWindow::wireBoardInteractionController()
 
                              if (!m_gameIsOver) {
                                  m_shogiView->setMouseClickMode(true);
-                                 QTimer::singleShot(0, this, [this]{ armHumanTimerIfNeeded(); });
+                                 QTimer::singleShot(0, this, [this]{
+                                     if (m_match) m_match->armHumanTimerIfNeeded();
+                                 });
                              }
                              break;
                          }
@@ -4735,15 +4626,18 @@ void MainWindow::onMatchGameEnded(const MatchCoordinator::GameEndInfo& info)
                               : GameOverCause::Resignation;
     m_lastLoserIsP1 = (info.loser == MatchCoordinator::P1);
 
-    // --- ここからは従来 displayResultsAndUpdateGui() 相当のUI更新のみ ---
-    // ストップウォッチ類の停止
-    if (m_turnTimerArmed)  { m_turnTimerArmed = false;  m_turnTimer.invalidate(); }
-    if (m_humanTimerArmed) { m_humanTimerArmed = false; m_humanTurnTimer.invalidate(); }
+    // --- displayResultsAndUpdateGui() 相当のUI更新のみ ---
+    // （司令塔へ移譲済みのストップウォッチは m_match 経由で解除）
+    if (m_match) {
+        m_match->disarmHumanTimerIfNeeded();
+        // H2H 用のターン計測を“記録せず止める”APIを用意していればここで呼ぶ:
+        // m_match->disarmTurnTimerIfNeeded();
+    }
 
     if (m_shogiClock) m_shogiClock->stopClock();
     if (m_shogiView)  m_shogiView->setMouseClickMode(false);
 
-    // （棋譜への末尾追記は司令塔に移譲済みなのでここでは行わない）
+    // （棋譜への末尾追記は司令塔に移譲済み）
 
     updateRemainingTimeDisplay();
     enableArrowButtons();
@@ -4751,10 +4645,10 @@ void MainWindow::onMatchGameEnded(const MatchCoordinator::GameEndInfo& info)
         m_recordPane->kifuView()->setSelectionMode(QAbstractItemView::SingleSelection);
 
     // 任意ログ
-    const qint64 tms = ShogiUtils::nowMs();
+    const qint64 tms = QDateTime::currentMSecsSinceEpoch();
     const char* causeStr =
-        (m_lastGameOverCause == GameOverCause::Timeout)     ? "TIMEOUT" :
-            (m_lastGameOverCause == GameOverCause::Resignation) ? "RESIGNATION" : "OTHER";
+        (m_lastGameOverCause == GameOverCause::Timeout)        ? "TIMEOUT" :
+            (m_lastGameOverCause == GameOverCause::Resignation)    ? "RESIGNATION" : "OTHER";
     qDebug().nospace()
         << "[ARBITER] decision " << causeStr
         << " loser=" << (m_lastLoserIsP1 ? "P1" : "P2")
@@ -4884,15 +4778,26 @@ void MainWindow::startInitialEngineMoveEvH_()
     // エンジン初手の思考 → bestmove の from/to を受け取る
     QPoint eFrom(-1, -1), eTo(-1, -1);
 
-    // Byoyomi/加算（P1/P2）と残り時間（ms→文字列）を用意
-    const int  engineByoyomiMs = m_byoyomiMilliSec1;            // 先手用
-    const bool useByoyomi      = m_useByoyomi;
-    if (m_shogiClock) {
-        m_bTime = QString::number(m_shogiClock->getPlayer1TimeIntMs());
-        m_wTime = QString::number(m_shogiClock->getPlayer2TimeIntMs());
+    // 時間ルールは司令塔から取得
+    const auto tc = m_match ? m_match->timeControl() : MatchCoordinator::TimeControl{};
+    const int  engineByoyomiMs = tc.byoyomiMs1;   // 先手（エンジン）用
+    const bool useByoyomi      = tc.useByoyomi;
+
+    // USIへ渡す btime/wtime を“pre-add風”に整形して取得
+    if (m_match) {
+        qint64 bMs = 0, wMs = 0;
+        m_match->computeGoTimesForUSI(bMs, wMs);
+        m_bTime = QString::number(bMs);
+        m_wTime = QString::number(wMs);
     } else {
-        m_bTime = QStringLiteral("0");
-        m_wTime = QStringLiteral("0");
+        // フォールバック：時計からそのまま
+        if (m_shogiClock) {
+            m_bTime = QString::number(m_shogiClock->getPlayer1TimeIntMs());
+            m_wTime = QString::number(m_shogiClock->getPlayer2TimeIntMs());
+        } else {
+            m_bTime = QStringLiteral("0");
+            m_wTime = QStringLiteral("0");
+        }
     }
 
     try {
@@ -4903,7 +4808,7 @@ void MainWindow::startInitialEngineMoveEvH_()
             eFrom, eTo,            // [out] エンジンの着手が返る
             engineByoyomiMs,
             m_bTime, m_wTime,
-            m_addEachMoveMiliSec1, m_addEachMoveMiliSec2,
+            tc.incMs1, tc.incMs2,  // 先手/後手の1手加算（フィッシャー用）
             useByoyomi
             );
     } catch (const std::exception& e) {
@@ -4942,6 +4847,15 @@ void MainWindow::startInitialEngineMoveEvH_()
     // 次は人間手番：クリック受付と人間用タイマー
     if (!m_gameIsOver) {
         if (m_shogiView) m_shogiView->setMouseClickMode(true);
-        QTimer::singleShot(0, this, [this]{ armHumanTimerIfNeeded(); });
+        QTimer::singleShot(0, this, [this]{
+            if (m_match) m_match->armHumanTimerIfNeeded();
+        });
     }
+}
+
+// mainwindow.cpp のどこでもOK（他のメンバ実装と同じスコープ）
+void MainWindow::updateTurnDisplay()
+{
+    const int cur = (m_gameController->currentPlayer() == ShogiGameController::Player2) ? 2 : 1;
+    updateTurnStatus(cur);
 }

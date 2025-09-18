@@ -5,6 +5,13 @@
 #include <limits>
 #include <QObject>
 #include <QDebug>
+#include <QElapsedTimer>
+#include <QtGlobal>
+#include <QDateTime>
+
+using P = MatchCoordinator::Player;
+
+static inline P toP(int gcPlayer) { return (gcPlayer == 1) ? MatchCoordinator::P1 : MatchCoordinator::P2; }
 
 MatchCoordinator::MatchCoordinator(const Deps& d, QObject* parent)
     : QObject(parent) 
@@ -19,6 +26,9 @@ MatchCoordinator::MatchCoordinator(const Deps& d, QObject* parent)
     , m_comm2(d.comm2)
     , m_think2(d.think2)
 {
+    // 既定値
+    m_cur = P1;
+    m_turnEpochP1Ms = m_turnEpochP2Ms = -1;
 }
 
 MatchCoordinator::~MatchCoordinator() = default;
@@ -168,22 +178,6 @@ void MatchCoordinator::renderShogiBoard_() {
 
 void MatchCoordinator::updateTurnDisplay_(Player p) {
     if (m_hooks.updateTurnDisplay) m_hooks.updateTurnDisplay(p);
-}
-
-MatchCoordinator::GoTimes MatchCoordinator::computeGoTimes_() const {
-    GoTimes t;
-    if (m_hooks.remainingMsFor) {
-        t.btime = m_hooks.remainingMsFor(P1);
-        t.wtime = m_hooks.remainingMsFor(P2);
-    }
-    if (m_hooks.incrementMsFor) {
-        t.binc = m_hooks.incrementMsFor(P1);
-        t.winc = m_hooks.incrementMsFor(P2);
-    }
-    if (m_hooks.byoyomiMs) {
-        t.byoyomi = m_hooks.byoyomiMs();
-    }
-    return t;
 }
 
 void MatchCoordinator::stopClockAndSendStops_() {
@@ -783,4 +777,140 @@ void MatchCoordinator::kickNextEvETurn_()
 
     // 次の手をすぐ（イベントキュー経由で）回す
     QTimer::singleShot(0, this, &MatchCoordinator::kickNextEvETurn_);
+}
+
+// ===== 時間制御の設定／照会 =====
+
+void MatchCoordinator::setTimeControlConfig(bool useByoyomi,
+                                            int byoyomiMs1, int byoyomiMs2,
+                                            int incMs1,     int incMs2,
+                                            bool loseOnTimeout)
+{
+    m_tc.useByoyomi       = useByoyomi;
+    m_tc.byoyomiMs1       = qMax(0, byoyomiMs1);
+    m_tc.byoyomiMs2       = qMax(0, byoyomiMs2);
+    m_tc.incMs1           = qMax(0, incMs1);
+    m_tc.incMs2           = qMax(0, incMs2);
+    m_tc.loseOnTimeout    = loseOnTimeout;
+}
+
+const MatchCoordinator::TimeControl& MatchCoordinator::timeControl() const {
+    return m_tc;
+}
+
+// ===== エポック管理（1手の開始時刻） =====
+
+void MatchCoordinator::markTurnEpochNowFor(Player side, qint64 nowMs /*=-1*/) {
+    if (nowMs < 0) nowMs = QDateTime::currentMSecsSinceEpoch();
+    if (side == P1) m_turnEpochP1Ms = nowMs; else m_turnEpochP2Ms = nowMs;
+}
+
+qint64 MatchCoordinator::turnEpochFor(Player side) const {
+    return (side == P1) ? m_turnEpochP1Ms : m_turnEpochP2Ms;
+}
+
+void MatchCoordinator::resetTurnEpochs() {
+    m_turnEpochP1Ms = m_turnEpochP2Ms = -1;
+}
+
+// ===== ターン計測（HvH用の簡易ストップウォッチ） =====
+
+void MatchCoordinator::armTurnTimerIfNeeded() {
+    if (!m_turnTimerArmed) {
+        m_turnTimer.start();
+        m_turnTimerArmed = true;
+    }
+}
+
+void MatchCoordinator::finishTurnTimerAndSetConsiderationFor(Player mover) {
+    if (!m_turnTimerArmed) return;
+    const qint64 ms = m_turnTimer.isValid() ? m_turnTimer.elapsed() : 0;
+    if (m_clock) {
+        if (mover == P1) m_clock->setPlayer1ConsiderationTime(static_cast<int>(ms));
+        else             m_clock->setPlayer2ConsiderationTime(static_cast<int>(ms));
+    }
+    m_turnTimer.invalidate();
+    m_turnTimerArmed = false;
+}
+
+// ===== 人間側の計測（HvEでの人間手） =====
+
+void MatchCoordinator::armHumanTimerIfNeeded() {
+    if (!m_humanTimerArmed) {
+        m_humanTurnTimer.start();
+        m_humanTimerArmed = true;
+    }
+}
+
+void MatchCoordinator::finishHumanTimerAndSetConsideration() {
+    // どちらが「人間側」かは Main からのフックで取得（HvE想定）
+    if (!m_hooks.humanPlayerSide) return;
+    const Player side = m_hooks.humanPlayerSide();
+
+    // ShogiClock 内部の考慮msをそのまま反映
+    if (m_clock) {
+        const qint64 clkMs = (side == P1) ? m_clock->player1ConsiderationMs()
+                                          : m_clock->player2ConsiderationMs();
+        if (side == P1) m_clock->setPlayer1ConsiderationTime(static_cast<int>(clkMs));
+        else            m_clock->setPlayer2ConsiderationTime(static_cast<int>(clkMs));
+    }
+    if (m_humanTurnTimer.isValid()) m_humanTurnTimer.invalidate();
+    m_humanTimerArmed = false;
+}
+
+void MatchCoordinator::disarmHumanTimerIfNeeded() {
+    if (!m_humanTimerArmed) return;
+    m_humanTimerArmed = false;
+    m_humanTurnTimer.invalidate();
+}
+
+// ===== USI用 残時間算出 =====
+
+MatchCoordinator::GoTimes MatchCoordinator::computeGoTimes_() const {
+    GoTimes t;
+
+    // 残り（ms）
+    const qint64 rawB = m_hooks.remainingMsFor ? qMax<qint64>(0, m_hooks.remainingMsFor(P1)) : 0;
+    const qint64 rawW = m_hooks.remainingMsFor ? qMax<qint64>(0, m_hooks.remainingMsFor(P2)) : 0;
+
+    if (m_tc.useByoyomi) {
+        // 秒読み：btime/wtime はメイン残のみ。秒読み“適用中”なら 0 を送る。
+        const bool bApplied = m_clock ? m_clock->byoyomi1Applied() : false;
+        const bool wApplied = m_clock ? m_clock->byoyomi2Applied() : false;
+        t.btime = bApplied ? 0 : rawB;
+        t.wtime = wApplied ? 0 : rawW;
+        t.byoyomi = (m_hooks.byoyomiMs ? m_hooks.byoyomiMs() : 0);
+        t.binc = t.winc = 0;
+    } else {
+        // フィッシャー：pre-add に正規化（内部はpost-addなので1回だけ引く）
+        t.btime = rawB;
+        t.wtime = rawW;
+        t.byoyomi = 0;
+        t.binc = m_tc.incMs1;
+        t.winc = m_tc.incMs2;
+        if (t.binc > 0) t.btime = qMax<qint64>(0, t.btime - t.binc);
+        if (t.winc > 0) t.wtime = qMax<qint64>(0, t.wtime - t.winc);
+    }
+    return t;
+}
+
+void MatchCoordinator::computeGoTimesForUSI(qint64& outB, qint64& outW) const {
+    const GoTimes t = computeGoTimes_();
+    outB = t.btime;
+    outW = t.wtime;
+}
+
+void MatchCoordinator::refreshGoTimes() {
+    qint64 b=0, w=0;
+    computeGoTimesForUSI(b, w);
+    m_bTimeStr = QString::number(b);
+    m_wTimeStr = QString::number(w);
+    emit timesForUSIUpdated(b, w);
+}
+
+int MatchCoordinator::computeMoveBudgetMsForCurrentTurn() const {
+    const bool p1turn = (m_gc && m_gc->currentPlayer() == ShogiGameController::Player1);
+    const int  mainMs = p1turn ? m_bTimeStr.toInt() : m_wTimeStr.toInt();
+    const int  byoMs  = m_tc.useByoyomi ? (p1turn ? m_tc.byoyomiMs1 : m_tc.byoyomiMs2) : 0;
+    return mainMs + byoMs;
 }
