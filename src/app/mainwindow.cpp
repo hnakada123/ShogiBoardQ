@@ -1024,8 +1024,9 @@ void MainWindow::startGameBasedOnMode()
 {
     if (!m_match) return;
 
-    // 14.開始順序: ensureClockReady → (startNewGameは司令塔Hook) → 手番P1
-    ensureClockReady_();
+    // ※ 開始順序は initializeGame() で保証済み：
+    //   ensureClockReady_() → m_match->startNewGame(sfen) → setCurrentTurn() → setTimerAndStart()
+    // ここでは時計準備や startNewGame は行わない。
 
     // ★ USI "position ... moves" のベースを必ず用意（空だと " 7g7f" 事故になる）
     initializePositionStringsForMatch_();
@@ -1052,10 +1053,10 @@ void MainWindow::startGameBasedOnMode()
     opt.engineIsP1 = (m_playMode == EvenEngineVsHuman || m_playMode == HandicapEngineVsHuman);
     opt.engineIsP2 = (m_playMode == EvenHumanVsEngine || m_playMode == HandicapHumanVsEngine);
 
-    // 司令塔へ委譲（newGame/名前/UI切替/エンジン起動など）
+    // 司令塔へ構成/起動のみ委譲（startNewGame は既に済）
     m_match->configureAndStart(opt);
 
-    // ★ ここがポイント：エンジンが先手のモードでは、この場で初手エンジンを必ず起動する
+    // ★ エンジンが先手のモードでは、この場で初手エンジンを必ず起動する
     if (opt.mode == EvenEngineVsHuman || opt.mode == HandicapEngineVsHuman) {
         startInitialEngineMoveEvH_();
     }
@@ -1407,46 +1408,48 @@ void MainWindow::initializeGame()
         m_gameCount++;
         if (m_gameCount > 1) resetToInitialState();
 
+        // 対局オプションの取り込み
         setRemainingTimeAndCountDown();
         getOptionFromStartGameDialog();
-        // ...（開始局面の準備など）
 
-        // ★ ここを追加：MatchCoordinator が turn 表示をコールする前に時計を用意
+        // ① 時計を必ず先に準備（司令塔通知より先行させる）
         ensureClockReady_();
 
-         int startingPositionNumber = m_startGameDialog->startingPositionNumber();
-        // 開始局面が「現在の局面」の場合
+        // 開始局面の準備
+        const int startingPositionNumber = m_startGameDialog->startingPositionNumber();
         if (startingPositionNumber == 0) {
-            // 現在の局面で開始する場合に必要なListデータ等の準備
+            // 現在局面から開始
             prepareDataCurrentPosition();
-        }
-        // 開始局面が「初期局面」の場合
-        else {
+        } else {
             try {
-                // 初期局面からの対局の場合の準備
+                // 初期局面から開始
                 prepareInitialPosition();
             } catch (const std::exception& e) {
-                // エラーメッセージを表示する。
                 displayErrorMessage(e.what());
-
-                // 対局ダイアログを削除する。
                 delete m_startGameDialog;
-
                 return;
             }
         }
 
+        // 棋譜UIの状態調整
         if (m_playMode) {
             disableArrowButtons();
             if (m_recordPane && m_recordPane->kifuView())
                 m_recordPane->kifuView()->setSelectionMode(QAbstractItemView::NoSelection);
         }
 
+        // ② 司令塔へ新規対局開始（SFEN確定後）
+        if (m_match) {
+            m_match->startNewGame(m_startSfenStr);
+        }
+
+        // ③ 現在手番をUI/Controllerへ反映
         setCurrentTurn();
 
-        // ★ 時間のセット＆時計開始は従来どおりこの後でOK
+        // ④ 残り時間のセット → 時計スタート
         setTimerAndStart();
 
+        // 以降：エンジン構成/起動など
         try {
             startGameBasedOnMode();
         } catch (const std::exception& e) {
