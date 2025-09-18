@@ -376,9 +376,6 @@ private:
     void setupRecordPane();
     void setupEngineAnalysisTab();
 
-    // 接続タイプの補助
-    Qt::ConnectionType connTypeFor(QObject* obj) const;
-
     // 対局状態フラグや時計の同期
     void resetGameFlags();
     void syncClockTurnAndEpoch();
