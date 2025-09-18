@@ -428,9 +428,6 @@ private:
     void assignSidesEngineVsHuman();
     void assignEnginesEngineVsEngine();
 
-    // KIF読み込み/再生中フラグ
-    bool m_isKifuReplay = false;
-
     QVector<QString> m_commentsByRow;
 
     // ---------- 分岐コメント ----------
@@ -508,9 +505,13 @@ private slots:
     void onActionFlipBoardTriggered(bool checked = false);
     void onRequestAppendGameOverMove(const MatchCoordinator::GameEndInfo& info);
 
+    // 司令塔を触らず MainWindow 内で再生モードを一元管理
+    void setReplayMode(bool on);         // ← 追加
+
 private:
     QMetaObject::Connection m_timeConn{};
     void wireMatchSignals_();
+    bool m_isReplayMode = false;         // ← 追加：UI 側単一ソース
 
 private slots:
     void onMatchTimeUpdated(qint64 p1ms, qint64 p2ms, bool p1turn, qint64 urgencyMs);
