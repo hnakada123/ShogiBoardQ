@@ -215,7 +215,6 @@ private:
     void redrawEngine1EvaluationGraph();
     void redrawEngine2EvaluationGraph();
 
-    void updateRemainingTimeDisplay();
     void hideGameActions();
 
     void initializeComponents();
@@ -521,6 +520,14 @@ private slots:
     void onBoardFlipped(bool nowFlipped);
     void toggleEditSideToMove();
     void onActionFlipBoardTriggered(bool checked = false);
+
+private:
+    QMetaObject::Connection m_timeConn{};
+    void wireMatchSignals_();
+
+private slots:
+    void onMatchTimeUpdated(qint64 p1ms, qint64 p2ms, bool p1turn, qint64 urgencyMs);
+
 };
 
 #endif // MAINWINDOW_H

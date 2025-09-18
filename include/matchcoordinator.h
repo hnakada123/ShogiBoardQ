@@ -136,6 +136,11 @@ signals:
     // MainWindow はこれを受けて m_bTime/m_wTime を表示用に更新するだけ
     void timesForUSIUpdated(qint64 bMs, qint64 wMs);
 
+    // p1ms/p2ms: 両者の残りミリ秒
+    // p1turn   : 現在手番が先手なら true
+    // urgencyMs: 盤の緊急カラー用 ms（非緊急なら std::numeric_limits<qint64>::max()）
+    void timeUpdated(qint64 p1ms, qint64 p2ms, bool p1turn, qint64 urgencyMs);
+
 private:
     // NOTE: QPointer は使わず raw ポインタ（寿命は Main 側で管理）
     ShogiGameController* m_gc   = nullptr;
@@ -189,10 +194,18 @@ private:
     // 保有エンジンから index を求める（1/2/0）
     int indexForEngine_(const Usi* p) const;
 
+    // 共通ロジック：時計と手番を読んで timeUpdated(...) を発火
+    void emitTimeUpdateFromClock_();
+
 private slots:
     void onEngine1Resign();
     void onEngine2Resign();
     void kickNextEvETurn_();  // EvE を1手ずつ進める
+    void onClockTick_();
+
+public slots:
+    // 即時に現在値で timeUpdated(...) を発火（UIをすぐ同期させたい時に使う）
+    void pokeTimeUpdateNow();
 
 public:
     // ↓↓↓ 追加（PlayMode を司令塔に設定）
@@ -295,6 +308,15 @@ private:
     // 人間側の計測（HvE）
     QElapsedTimer m_humanTurnTimer;
     bool          m_humanTimerArmed = false;
+
+public:
+    // 既存 Deps に clock が入ってこない場合に備えて、後から差し替え可能に
+    void setClock(ShogiClock* clock);
+
+private:
+    void wireClock_();           // ★追加：時計と onClockTick_ の connect を一元化
+    void unwireClock_();         // ★追加：既存接続の解除
+    QMetaObject::Connection m_clockConn; // ★追加：接続ハンドル保持
 };
 
 #endif // MATCHCOORDINATOR_H
