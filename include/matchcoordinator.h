@@ -6,6 +6,7 @@
 #include <functional>
 #include <QStringList>
 #include <QVector>
+#include <QElapsedTimer>
 #include "shogimove.h"
 #include "playmode.h"
 
@@ -54,6 +55,9 @@ public:
         std::function<qint64(Player)> incrementMsFor; // フィッシャー増加
         std::function<qint64()> byoyomiMs;            // 秒読み（共通）
 
+        // HvE: 人間側の手番（P1/P2）を返す（finishHumanTimer...で使用）
+        std::function<Player()> humanPlayerSide = nullptr;
+
         // --- USI 送受（go/stop/任意生コマンド） ---
         std::function<void(Usi* which, const GoTimes& t)> sendGoToEngine;
         std::function<void(Usi* which)> sendStopToEngine;
@@ -88,11 +92,49 @@ public:
     void onTurnFinishedAndSwitch();      // 手番切替時（時計/UI更新 + go送信）
     void updateUsiPtrs(Usi* e1, Usi* e2);// エンジン再生成時などに差し替え
 
+    // === 時間管理（MainWindowから移譲） ===
+    struct TimeControl {
+        bool useByoyomi    = false;
+        int  byoyomiMs1    = 0;
+        int  byoyomiMs2    = 0;
+        int  incMs1        = 0;
+        int  incMs2        = 0;
+        bool loseOnTimeout = false;
+    };
+
+    void setTimeControlConfig(bool useByoyomi,
+                              int byoyomiMs1, int byoyomiMs2,
+                              int incMs1,     int incMs2,
+                              bool loseOnTimeout);
+    const TimeControl& timeControl() const;
+
+    // HvH/HvE: 1手の開始エポック管理（KIF表示用）
+    void   markTurnEpochNowFor(Player side, qint64 nowMs = -1);
+    qint64 turnEpochFor(Player side) const;
+    void   resetTurnEpochs();
+
+    // HvH: ターン計測
+    void armTurnTimerIfNeeded();
+    void finishTurnTimerAndSetConsiderationFor(Player mover);
+
+    // HvE: 人間の計測
+    void armHumanTimerIfNeeded();
+    void finishHumanTimerAndSetConsideration();
+    void disarmHumanTimerIfNeeded();
+
+    // USI時間
+    void computeGoTimesForUSI(qint64& outB, qint64& outW) const;
+    void refreshGoTimes();
+    int  computeMoveBudgetMsForCurrentTurn() const;
+
 signals:
     void gameOverShown();
     void boardFlipped(bool nowFlipped);
     void gameStarted();
     void gameEnded(const GameEndInfo& info);
+
+    // MainWindow はこれを受けて m_bTime/m_wTime を表示用に更新するだけ
+    void timesForUSIUpdated(qint64 bMs, qint64 wMs);
 
 private:
     // NOTE: QPointer は使わず raw ポインタ（寿命は Main 側で管理）
@@ -234,6 +276,25 @@ private:
     QStringList      m_eveSfenRecord;
     QVector<ShogiMove> m_eveGameMoves;
     int              m_eveMoveIndex = 0;
+
+private:
+    // 「その手の開始」エポック（KIFの消費時間計算に使用）
+    qint64 m_turnEpochP1Ms = -1;
+    qint64 m_turnEpochP2Ms = -1;
+
+    // USI表記用の直近文字列（MainWindow側はラベル更新のみ）
+    QString m_bTimeStr, m_wTimeStr;
+
+    // 時間ルール（byoyomi / increment / timeout）
+    TimeControl m_tc;
+    // === ここから MainWindow から移した状態 ===
+    // ターン計測（HvH）
+    QElapsedTimer m_turnTimer;
+    bool          m_turnTimerArmed  = false;
+
+    // 人間側の計測（HvE）
+    QElapsedTimer m_humanTurnTimer;
+    bool          m_humanTimerArmed = false;
 };
 
 #endif // MATCHCOORDINATOR_H

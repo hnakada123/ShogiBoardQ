@@ -125,7 +125,6 @@ private:
 
     QString m_bTime;  // 先手/下手の残り
     QString m_wTime;  // 後手/上手の残り
-    bool    m_isLoseOnTimeout = false;
 
     int     m_currentMoveIndex = 0;
     QString m_lastMove;
@@ -142,12 +141,6 @@ private:
     PlayMode m_playMode = NotStarted;
 
     QString m_engineFile1;
-
-    int  m_byoyomiMilliSec1 = 0;
-    int  m_byoyomiMilliSec2 = 0;
-    int  m_addEachMoveMiliSec1 = 0;
-    int  m_addEachMoveMiliSec2 = 0;
-    bool m_useByoyomi = false;
 
     int  m_totalMove = 0;
 
@@ -274,32 +267,16 @@ private:
     void displayTsumeShogiSearchDialog();
     void startTsumiSearch();
 
-    QElapsedTimer m_humanTurnTimer;
-    bool m_humanTimerArmed = false;
-
     ShogiGameController::Player humanPlayerSide() const;
     bool isHumanTurn() const;
-    void armHumanTimerIfNeeded();
-    void finishHumanTimerAndSetConsideration();
-
-    QElapsedTimer m_turnTimer;
-    bool          m_turnTimerArmed = false;
-
-    void armTurnTimerIfNeeded();
-    void finishTurnTimerAndSetConsiderationFor(ShogiGameController::Player mover);
-
-    void disarmHumanTimerIfNeeded();
 
     QTimer* m_uiClockTimer = nullptr;
 
     bool m_p1HasMoved = false;
     bool m_p2HasMoved = false;
 
-    void computeGoTimesForUSI(qint64& outB, qint64& outW);
-    void refreshGoTimes();
-
     static constexpr int kFlagFallGraceMs = 200;
-    int  computeMoveBudgetMsForCurrentTurn() const;
+
     void handleFlagFallForMover(bool moverP1);
     enum class Winner { P1, P2 };
     void stopClockAndSendGameOver(Winner w);
@@ -320,8 +297,6 @@ private:
 
     qint64 m_initialTimeP1Ms = 0;
     qint64 m_initialTimeP2Ms = 0;
-    qint64 m_turnEpochP1Ms   = -1;
-    qint64 m_turnEpochP2Ms   = -1;
 
     static inline QString fmt_mmss(qint64 ms) {
         if (ms < 0) ms = 0;
