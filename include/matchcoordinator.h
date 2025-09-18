@@ -6,6 +6,7 @@
 #include <functional>
 #include <QStringList>
 #include <QVector>
+#include <QDateTime>
 #include <QElapsedTimer>
 #include "shogimove.h"
 #include "playmode.h"
@@ -20,6 +21,7 @@ class Usi;
 // 対局進行/終局/時計/USI送受のハブ（寿命は Main 側で管理）
 class MatchCoordinator : public QObject {
     Q_OBJECT
+
 public:
     enum Player : int { P1 = 1, P2 = 2 };
 
@@ -36,6 +38,16 @@ public:
     struct GameEndInfo {
         Cause  cause = Cause::Resignation;
         Player loser = P1;
+    };
+
+    // ← その後に GameOverState を “クラス内” に定義
+    struct GameOverState {
+        bool        isOver       = false;
+        bool        moveAppended = false;
+        bool        hasLast      = false;
+        bool        lastLoserIsP1= false;
+        GameEndInfo lastInfo;
+        QDateTime   when;
     };
 
     struct Hooks {
@@ -317,6 +329,22 @@ private:
     void wireClock_();           // ★追加：時計と onClockTick_ の connect を一元化
     void unwireClock_();         // ★追加：既存接続の解除
     QMetaObject::Connection m_clockConn; // ★追加：接続ハンドル保持
+
+public:
+    // ---- [GameOver 統合API] ----
+    const GameOverState& gameOverState() const { return m_gameOver; }
+    void clearGameOverState();  // 対局開始/局面編集開始などで呼ぶ
+    void setGameOver(const GameEndInfo& info, bool loserIsP1, bool appendMoveOnce = true);
+    void markGameOverMoveAppended(); // MainWindow が棋譜に一意追記後に通知
+
+signals:
+    // 既存: gameEnded(const GameEndInfo& info) はそのまま活用
+    void gameOverStateChanged(const GameOverState& st);  // 参照側UI向け
+    void requestAppendGameOverMove(const GameEndInfo& info); // 必要なら司令塔から一意追記をリクエスト
+
+private:
+    // ...（既存）
+    GameOverState m_gameOver;
 };
 
 #endif // MATCHCOORDINATOR_H
