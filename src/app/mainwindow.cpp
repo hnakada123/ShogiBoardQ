@@ -31,7 +31,6 @@
 using namespace EngineSettingsConstants;
 using GameOverCause = MatchCoordinator::Cause;
 
-
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
@@ -50,43 +49,28 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
 
     QToolBar* tb = ui->toolBar;                  // Designerで作った場合の例
-    tb->setIconSize(QSize(18, 18));                  // ← 16px（お好みで 16/18/20/24 など）
+    tb->setIconSize(QSize(18, 18));              // ← 16px（お好みで 16/18/20/24 など）
     tb->setToolButtonStyle(Qt::ToolButtonIconOnly);  // ← テキストを消して高さを詰める
-
-    // さらに詰めたい場合のパディング調整（任意）
     tb->setStyleSheet(
         "QToolBar{margin:0px; padding:0px; spacing:2px;}"
         "QToolButton{margin:0px; padding:2px;}"
-    );
+        );
 
     // GUIを構成するWidgetなどのnew生成
     initializeComponents();
 
     setupRecordPane();
 
-    // 将棋盤、駒台を初期化（何も駒がない）し、入力のSFEN文字列の配置に将棋盤、駒台の駒を
-    // 配置し、対局結果を結果なし、現在の手番がどちらでもない状態に設定する。
-    // 将棋盤の表示
-    // 将棋の駒画像を各駒文字（1文字）にセットする。
-    // 駒文字と駒画像をm_piecesに格納する。
-    // m_piecesの型はQMap<char, QIcon>
-    // m_boardにboardをセットする。
-    // 将棋盤データが更新されたら再描画する。
-    // 将棋盤と駒台のサイズは固定にする。
-    // 将棋盤と駒台のマスのサイズをセットする。
-    // 将棋盤と駒台の再描画
-    // 対局者名の設定
-    // 対局モードに応じて将棋盤上部に表示される対局者名をセットする。
-    // エンジン名の設定
-    // 対局モードに応じて将棋盤下部に表示されるエンジン名をセットする。
+    // 盤・駒台などの初期化
     startNewShogiGame(m_startSfenStr);
 
-    // 対局者名と残り時間、将棋盤と棋譜、矢印ボタン、評価値グラフのグループを横に並べて表示
+    // 横並びレイアウトの構築
     setupHorizontalGameLayout();
 
-    // 対局者名と残り時間、将棋盤、棋譜、矢印ボタン、評価値グラフのウィジェットと
-    // info行の予想手、探索手、エンジンの読み筋のウィジェットを縦ボックス化して
-    // セントラルウィジェットにセットする。
+    // ★ EngineAnalysisTab はここで一度だけ初期化して m_tab を用意する
+    setupEngineAnalysisTab();
+
+    // セントラルウィジェット構築（m_tab を add する側）
     initializeCentralGameDisplay();
 
     // 対局のメニュー表示を一部隠す。
@@ -98,14 +82,10 @@ MainWindow::MainWindow(QWidget *parent) :
     // 局面編集メニューの表示・非表示
     hidePositionEditMenu();
 
-    // GUI全体のウィンドウサイズの読み込み。
-    // 前回起動したウィンドウサイズに設定する。
+    // ウィンドウサイズの復元
     loadWindowSettings();
 
-    // Thinking/USIログのモデルが揃った後で
-    setupEngineAnalysisTab();
-
-    // MainWindow ctor で、UIを作り終わった直後に
+    // MainWindow ctor で、UIを作り終わった直後にツールチップ調整
     auto* tipFilter = new AppToolTipFilter(this);
     tipFilter->setPointSizeF(12.0);
     tipFilter->setCompact(true);
@@ -120,105 +100,38 @@ MainWindow::MainWindow(QWidget *parent) :
 
     initMatchCoordinator();
 
-    // メニューのシグナルとスロット（メニューやボタンをクリックした際に実行される関数の指定）
-    // メニューの項目をクリックすると、スロットの関数が実行される。
-    // 「終了」
-    // 設定ファイルにGUI全体のウィンドウサイズを書き込む。
-    // また、将棋盤のマスサイズも書き込む。その後、ShogiBoardQを終了する。
+    // メニューのシグナルとスロット
     connect(ui->actionQuit, &QAction::triggered, this, &MainWindow::saveSettingsAndClose);
-
-    // 「名前を付けて保存」
-    // 棋譜をファイルに保存する。
     connect(ui->actionSaveAs, &QAction::triggered, this, &MainWindow::saveKifuToFile);
-
-    // 「上書き保存」
-    // 棋譜をファイルに上書き保存する。
     connect(ui->actionSave, &QAction::triggered, this, &MainWindow::overwriteKifuFile);
-
-    // 「エンジン設定」
-    // エンジン設定のダイアログを起動する。
     connect(ui->actionEngineSettings, &QAction::triggered, this, &MainWindow::displayEngineSettingsDialog);
-
-    // 「バージョン情報」
-    // GUIのバージョン情報を表示する。
     connect(ui->actionVersionInfo, &QAction::triggered, this, &MainWindow::displayVersionInformation);
-
-    // 「ホームページ」
-    // GUIのWebサイトをブラウザで表示する。
     connect(ui->actionOpenWebsite, &QAction::triggered, this, &MainWindow::openWebsiteInExternalBrowser);
-
-    // 「対局」
     connect(ui->actionStartGame, &QAction::triggered, this, &MainWindow::initializeGame);
-
-    // 「投了」
-    // メニューで投了をクリックした時の処理を行う。
     connect(ui->actionResign, &QAction::triggered, this, &MainWindow::handleResignation);
-
-    // 「盤面の回転」
-    // 将棋盤を180度回転させる。それに伴って、対局者名、残り時間も入れ替える。
     connect(ui->actionFlipBoard, &QAction::triggered,
             this, &MainWindow::onActionFlipBoardTriggered,
             Qt::UniqueConnection);
-
-    // 「将棋盤の画像をクリップボードにコピー」
-    // 駒台を含む将棋盤全体の画像をクリップボードにコピーする。
     connect(ui->actionCopyBoardToClipboard, &QAction::triggered, this, &MainWindow::copyBoardToClipboard);
-
-    // 「表示」の「思考」 思考タブの表示・非表示
-    // info行の予想手、探索手、エンジンの読み筋を縦ボックス化したm_widget3の表示・非表示
     connect(ui->actionToggleEngineAnalysis, &QAction::triggered, this, &MainWindow::toggleEngineAnalysisVisibility);
-
-    // 「すぐ指させる」
-    // エンジンにstopコマンドを送る。
-    // エンジンに対し思考停止を命令するコマンド。エンジンはstopを受信したら、できるだけすぐ思考を中断し、
-    // bestmoveで指し手を返す。
     connect(ui->actionMakeImmediateMove, &QAction::triggered, this, &MainWindow::movePieceImmediately);
-
-    // 「将棋盤の拡大」
     connect(ui->actionEnlargeBoard, &QAction::triggered, this, &MainWindow::enlargeBoard);
-
-    // 「将棋盤の縮小」
     connect(ui->actionShrinkBoard, &QAction::triggered, this, &MainWindow::reduceBoardSize);
-
-    // 「待った」
-    // 待ったをした時、2手戻る。
     connect(ui->actionUndoMove, &QAction::triggered, this, &MainWindow::undoLastTwoMoves);
-
-    // 「将棋盤の画像をファイルに保存」
     connect(ui->actionSaveBoardImage, &QAction::triggered, this, &MainWindow::saveShogiBoardImage);
-
-    // 「開く」 棋譜ファイルを選択して読み込む。
     connect(ui->actionOpenKifuFile, &QAction::triggered, this, &MainWindow::chooseAndLoadKifuFile);
-
-    // 「検討」
     connect(ui->actionConsideration, &QAction::triggered, this, &MainWindow::displayConsiderationDialog);
-
-    // 「棋譜解析」
     connect(ui->actionAnalyzeKifu, &QAction::triggered, this, &MainWindow::displayKifuAnalysisDialog);
-
-    // 「新規」
-    // ShogiBoardQを初期画面表示に戻す。
     connect(ui->actionNewGame, &QAction::triggered, this, &MainWindow::resetToInitialState);
-
-    // 「局面編集開始」
     connect(ui->actionStartEditPosition, &QAction::triggered, this, &MainWindow::beginPositionEditing);
-
-    // 「局面編集終了」
     connect(ui->actionEndEditPosition, &QAction::triggered, this, &MainWindow::finishPositionEditing);
-
-    // 「詰み探索」
     connect(ui->actionTsumeShogiSearch, &QAction::triggered, this, &MainWindow::displayTsumeShogiSearchDialog);
 
-    // 対局中に成るか不成で指すかのダイアログを表示する。
+    // 将棋盤表示・エラー・昇格ダイアログ等
     connect(m_gameController, &ShogiGameController::showPromotionDialog, this, &MainWindow::displayPromotionDialog);
-
-    // 将棋盤表示でエラーが発生した場合、エラーメッセージを表示する。
     connect(m_shogiView, &ShogiView::errorOccurred, this, &MainWindow::displayErrorMessage);
-
-    // 駒のドラッグを終了する。
     connect(m_gameController, &ShogiGameController::endDragSignal, this, &MainWindow::endDrag);
 }
-
 
 // GUIを構成するWidgetなどを生成する。
 void MainWindow::initializeComponents()
@@ -636,9 +549,6 @@ void MainWindow::setupHorizontalGameLayout()
 // セントラルウィジェットにセットする。
 void MainWindow::initializeCentralGameDisplay()
 {
-    // ★ 追加：分析タブを先に用意（m_tab を内部から引き出す）
-    setupEngineAnalysisTab();
-
     auto* vboxLayout = new QVBoxLayout;
     vboxLayout->addWidget(m_hsplit);
     vboxLayout->setSpacing(0);
