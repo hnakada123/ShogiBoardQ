@@ -518,6 +518,7 @@ private:
 private slots:
     void onMatchTimeUpdated(qint64 p1ms, qint64 p2ms, bool p1turn, qint64 urgencyMs);
     void onMoveRequested_(const QPoint& from, const QPoint& to);
+    void onReverseTriggered();
 
 private:
     // 細分化したヘルパ
@@ -534,6 +535,12 @@ private:
 
     // ゲームオーバーの統一判定
     bool isGameOver_() const;
+
+private slots:
+    void onBranchNodeActivated(int row, int ply);
+    void onRequestApplyStart();
+    void onRequestApplyMainAtPly(int ply);
+    void onRequestApplyVariation(int startPly, int bucketIndex);
 };
 
 #endif // MAINWINDOW_H

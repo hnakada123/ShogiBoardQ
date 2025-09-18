@@ -109,9 +109,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionOpenWebsite, &QAction::triggered, this, &MainWindow::openWebsiteInExternalBrowser);
     connect(ui->actionStartGame, &QAction::triggered, this, &MainWindow::initializeGame);
     connect(ui->actionResign, &QAction::triggered, this, &MainWindow::handleResignation);
-    connect(ui->actionFlipBoard, &QAction::triggered,
-            this, &MainWindow::onActionFlipBoardTriggered,
-            Qt::UniqueConnection);
+    connect(ui->actionFlipBoard, &QAction::triggered, this, &MainWindow::onActionFlipBoardTriggered);
     connect(ui->actionCopyBoardToClipboard, &QAction::triggered, this, &MainWindow::copyBoardToClipboard);
     connect(ui->actionToggleEngineAnalysis, &QAction::triggered, this, &MainWindow::toggleEngineAnalysisVisibility);
     connect(ui->actionMakeImmediateMove, &QAction::triggered, this, &MainWindow::movePieceImmediately);
@@ -130,7 +128,7 @@ MainWindow::MainWindow(QWidget *parent) :
     // 将棋盤表示・エラー・昇格ダイアログ等
     connect(m_gameController, &ShogiGameController::showPromotionDialog, this, &MainWindow::displayPromotionDialog);
     connect(m_shogiView, &ShogiView::errorOccurred, this, &MainWindow::displayErrorMessage);
-    connect(m_gameController, &ShogiGameController::endDragSignal, this, &MainWindow::endDrag);
+    connect(m_gameController, &ShogiGameController::endDragSignal, this, &MainWindow::endDrag, Qt::UniqueConnection);
 }
 
 // GUIを構成するWidgetなどを生成する。
@@ -2387,8 +2385,10 @@ void MainWindow::loadWindowSettings()
     // 設定ファイルShogiBoardQ.iniを指定する。
     QSettings settings(SettingsFileName, QSettings::IniFormat);
 
-    // メインウィンドウのリサイズを行う。
-    resize(settings.value("SizeRelated/mainWindowSize").toSize());
+    // メインウィンドウのリサイズを行う。  
+    const QSize sz = settings.value("SizeRelated/mainWindowSize", QSize(1100, 720)).toSize();
+    if (sz.isValid() && sz.width() > 100 && sz.height() > 100) resize(sz);
+
 }
 
 // 局面編集中のメニュー表示に変更する。
@@ -2527,17 +2527,14 @@ void MainWindow::beginPositionEditing()
                 this, &MainWindow::setTsumeShogiStartPosition,
                 Qt::UniqueConnection);
 
-        connect(ui->reversal, &QAction::triggered, this, [this]{
-            if (m_match) m_match->flipBoard();
-        }, Qt::UniqueConnection);
-    }
-
-    // ドラッグ終了シグナルは従来どおり（BIC 内で start/endDrag を呼んでいます）
-    if (m_gameController) {
-        connect(m_gameController, &ShogiGameController::endDragSignal,
-                this, &MainWindow::endDrag,
+        connect(ui->reversal, &QAction::triggered,
+                this, &MainWindow::onReverseTriggered,
                 Qt::UniqueConnection);
     }
+}
+
+void MainWindow::onReverseTriggered() {
+    if (m_match) m_match->flipBoard();
 }
 
 // 局面編集を終了した場合の処理を行う（BIC 対応版）
@@ -2561,7 +2558,7 @@ void MainWindow::finishPositionEditing()
         disconnect(ui->turnaround,                 &QAction::triggered, this, &MainWindow::toggleEditSideToMove);
         disconnect(ui->flatHandInitialPosition,    &QAction::triggered, this, &MainWindow::setStandardStartPosition);
         disconnect(ui->shogiProblemInitialPosition,&QAction::triggered, this, &MainWindow::setTsumeShogiStartPosition);
-        disconnect(ui->reversal,                   &QAction::triggered, this, &MainWindow::swapBoardSides);
+        disconnect(ui->reversal,                   &QAction::triggered, this, &MainWindow::onReverseTriggered);
     }
 
     // 4) 編集メニューを閉じる
@@ -4106,49 +4103,56 @@ void MainWindow::setupRecordPane()
     Q_UNUSED(firstTime);
 }
 
+void MainWindow::onBranchNodeActivated(int row, int ply) {
+    applyResolvedRowAndSelect(row, ply);
+}
+
+void MainWindow::onRequestApplyStart() {
+    applyResolvedRowAndSelect(/*row=*/0, /*selPly=*/0);
+    if (m_kifuBranchModel) m_kifuBranchModel->clearBranchCandidates();
+    if (auto* br = m_recordPane ? m_recordPane->branchView() : nullptr)
+        br->setEnabled(false);
+    enableArrowButtons();
+}
+
+void MainWindow::onRequestApplyMainAtPly(int ply) {
+    const int p = qMax(0, ply);
+    applyResolvedRowAndSelect(/*row=*/0, /*selPly=*/p);
+    populateBranchListForPly(p);
+    enableArrowButtons();
+}
+
+void MainWindow::onRequestApplyVariation(int startPly, int bucketIndex) {
+    applyVariationByKey(startPly, bucketIndex);
+    populateBranchListForPly(startPly);
+    enableArrowButtons();
+}
+
 // どこかの初期化パスで（例：initializeComponents 内やコンストラクタ末尾）
 void MainWindow::setupEngineAnalysisTab()
 {
     if (m_analysisTab) return;
 
     m_analysisTab = new EngineAnalysisTab(this);
-    // モデルを渡す（既存ポインタをそのまま利用）
     m_analysisTab->setModels(m_modelThinking1, m_modelThinking2,
                              m_lineEditModel1, m_lineEditModel2);
-
     m_analysisTab->setDualEngineVisible(false);
 
-    // 既存の m_tab を差し替えたい場合は以下のように
+    // 既存の m_tab を差し替えたい場合
     m_tab = m_analysisTab->tab();
 
-    // ツリー上のクリック → 解決済み行/手数を適用
+    // ── ここから：ラムダ→メンバスロット ──
     connect(m_analysisTab, &EngineAnalysisTab::branchNodeActivated,
-            this, [this](int row, int ply){
-                applyResolvedRowAndSelect(row, ply);
-            });
+            this, &MainWindow::onBranchNodeActivated, Qt::UniqueConnection);
 
     connect(m_analysisTab, &EngineAnalysisTab::requestApplyStart,
-            this, [this]{
-                applyResolvedRowAndSelect(/*row=*/0, /*selPly=*/0);
-                if (m_kifuBranchModel) m_kifuBranchModel->clearBranchCandidates();
-                if (auto* br = m_recordPane ? m_recordPane->branchView() : nullptr)
-                    br->setEnabled(false);
-                enableArrowButtons();
-            });
+            this, &MainWindow::onRequestApplyStart, Qt::UniqueConnection);
 
     connect(m_analysisTab, &EngineAnalysisTab::requestApplyMainAtPly,
-            this, [this](int ply){
-                applyResolvedRowAndSelect(/*row=*/0, /*selPly=*/qMax(0, ply));
-                populateBranchListForPly(qMax(0, ply));
-                enableArrowButtons();
-            });
+            this, &MainWindow::onRequestApplyMainAtPly, Qt::UniqueConnection);
 
     connect(m_analysisTab, &EngineAnalysisTab::requestApplyVariation,
-            this, [this](int startPly, int bucketIndex){
-                applyVariationByKey(startPly, bucketIndex);
-                populateBranchListForPly(startPly);
-                enableArrowButtons();
-            });
+            this, &MainWindow::onRequestApplyVariation, Qt::UniqueConnection);
 }
 
 void MainWindow::onKifuCurrentRowChanged(const QModelIndex& cur, const QModelIndex&)
