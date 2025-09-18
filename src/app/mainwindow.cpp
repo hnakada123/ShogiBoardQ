@@ -717,7 +717,14 @@ void MainWindow::updateTurnStatus(int currentPlayer)
 
 // 手番に応じて将棋クロックの手番変更およびGUIの手番表示を更新する。
 void MainWindow::updateTurnAndTimekeepingDisplay()
-{
+{   
+    // KIF再生中は時計を動かさない（一本化）
+    if (m_isReplayMode) {
+        if (m_shogiClock) m_shogiClock->stopClock();
+        if (m_match)      m_match->pokeTimeUpdateNow();
+        return;
+    }
+
     // 司令塔の終局状態で判定
     const bool gameOver = (m_match && m_match->gameOverState().isOver);
 
@@ -1365,10 +1372,12 @@ void MainWindow::setTimerAndStart()
     m_initialTimeP1Ms = m_shogiClock->getPlayer1TimeIntMs();
     m_initialTimeP2Ms = m_shogiClock->getPlayer2TimeIntMs();
 
-    // 手番表示 → 時計更新 → スタート（順序はこのままでOK）
+    // 再生中は時計を動かさない（表示だけ合わせて終了）
     updateTurnDisplay();
     m_shogiClock->updateClock();
-    m_shogiClock->startClock();
+    if (!m_isReplayMode) {
+        m_shogiClock->startClock();
+    }
 
     if (m_match && m_shogiClock) {
         m_match->setClock(m_shogiClock);     // ★後差し替えでも確実に配線
@@ -1405,6 +1414,9 @@ void MainWindow::initializeGame()
 
     // 対局ダイアログを実行し、OKボタンをクリックした場合
     if (m_startGameDialog->exec() == QDialog::Accepted) {
+        // ライブ対局に入るので再生モードをOFF
+        setReplayMode(false);
+
         m_gameCount++;
         if (m_gameCount > 1) resetToInitialState();
 
@@ -1612,11 +1624,11 @@ inline QPoint dropFromSquare(QChar dropUpper, bool black) {
 // ===================== 司令塔 =====================
 void MainWindow::loadKifuFromFile(const QString& filePath)
 {
+    setReplayMode(true);
+
     // 1) 初期局面（手合割）を決定
     QString teaiLabel;
     const QString initialSfen = prepareInitialSfen(filePath, teaiLabel);
-
-    m_isKifuReplay = true;
 
     // 2) 解析（本譜＋分岐＋コメント）を一括取得
     KifParseResult res;
@@ -4776,4 +4788,19 @@ std::pair<QString, QString> MainWindow::currentBWTimesForUSI_() const
 bool MainWindow::isGameOver_() const
 {
     return (m_match && m_match->gameOverState().isOver);
+}
+
+// 再生モードの切替を MainWindow 内で一元管理
+void MainWindow::setReplayMode(bool on)
+{
+    m_isReplayMode = on;
+
+    // 再生中は時計を止め、表示だけ整える
+    if (m_shogiClock) {
+        m_shogiClock->stopClock();
+        m_shogiClock->updateClock(); // 表示だけは最新化
+    }
+    if (m_match) {
+        m_match->pokeTimeUpdateNow(); // 残時間ラベル等の静的更新だけ反映
+    }
 }
