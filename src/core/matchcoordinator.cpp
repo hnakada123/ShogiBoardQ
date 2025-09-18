@@ -29,6 +29,8 @@ MatchCoordinator::MatchCoordinator(const Deps& d, QObject* parent)
     // 既定値
     m_cur = P1;
     m_turnEpochP1Ms = m_turnEpochP2Ms = -1;
+
+    wireClock_(); // ★CTOR でも配線
 }
 
 MatchCoordinator::~MatchCoordinator() = default;
@@ -913,4 +915,67 @@ int MatchCoordinator::computeMoveBudgetMsForCurrentTurn() const {
     const int  mainMs = p1turn ? m_bTimeStr.toInt() : m_wTimeStr.toInt();
     const int  byoMs  = m_tc.useByoyomi ? (p1turn ? m_tc.byoyomiMs1 : m_tc.byoyomiMs2) : 0;
     return mainMs + byoMs;
+}
+
+void MatchCoordinator::setClock(ShogiClock* clock)
+{
+    if (m_clock == clock) return;
+    unwireClock_();
+    m_clock = clock;
+    wireClock_();
+}
+
+void MatchCoordinator::onClockTick_()
+{
+    // デバッグ：ここが動いていれば Coordinator は時計を受信できている
+    qDebug() << "[Match] onClockTick_()";
+    emitTimeUpdateFromClock_();
+}
+
+void MatchCoordinator::pokeTimeUpdateNow()
+{
+    emitTimeUpdateFromClock_();
+}
+
+void MatchCoordinator::emitTimeUpdateFromClock_()
+{
+    if (!m_clock || !m_gc) return;
+
+    const qint64 p1ms = m_clock->getPlayer1TimeIntMs();
+    const qint64 p2ms = m_clock->getPlayer2TimeIntMs();
+    const bool p1turn = (m_gc->currentPlayer() == ShogiGameController::Player1);
+
+    const bool hasByoyomi = p1turn ? m_clock->hasByoyomi1()
+                                   : m_clock->hasByoyomi2();
+    const bool inByoyomi  = p1turn ? m_clock->byoyomi1Applied()
+                                  : m_clock->byoyomi2Applied();
+    const bool enableUrgency = (!hasByoyomi) || inByoyomi;
+
+    const qint64 activeMs = p1turn ? p1ms : p2ms;
+    const qint64 urgencyMs = enableUrgency ? activeMs
+                                           : std::numeric_limits<qint64>::max();
+
+    // デバッグ：UI へ送る値を確認
+    qDebug() << "[Match] emit timeUpdated p1ms=" << p1ms << " p2ms=" << p2ms
+             << " p1turn=" << p1turn << " urgencyMs=" << urgencyMs;
+
+    emit timeUpdated(p1ms, p2ms, p1turn, urgencyMs);
+}
+
+// matchcoordinator.cpp
+void MatchCoordinator::wireClock_()
+{
+    if (!m_clock) return;
+    if (m_clockConn) { QObject::disconnect(m_clockConn); m_clockConn = {}; }
+
+    // 明示シグネチャにしておくと安心（ShogiClock 側の timeUpdated が多態でも解決）
+    m_clockConn = connect(m_clock, &ShogiClock::timeUpdated,
+                          this, &MatchCoordinator::onClockTick_,
+                          Qt::UniqueConnection);
+    Q_ASSERT(m_clockConn);
+}
+
+void MatchCoordinator::unwireClock_()
+{
+    if (m_clockConn) { QObject::disconnect(m_clockConn); m_clockConn = {}; }
 }

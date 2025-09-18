@@ -812,7 +812,7 @@ void MainWindow::updateTurnAndTimekeepingDisplay()
     if (m_gameIsOver) {
         qDebug() << "[ARBITER] suppress updateTurnAndTimekeepingDisplay (game over)";
         m_shogiClock->stopClock();
-        updateRemainingTimeDisplay();   // 表示だけ整えるなら任意
+        if (m_match) m_match->pokeTimeUpdateNow();   // 表示だけ整えるなら任意
         if (m_match) m_match->disarmHumanTimerIfNeeded(); // 人間用ストップウォッチ停止
         return;
     }
@@ -835,7 +835,7 @@ void MainWindow::updateTurnAndTimekeepingDisplay()
     }
 
     // 3) 表示更新（残時間ラベルなど）
-    updateRemainingTimeDisplay();
+    if (m_match) m_match->pokeTimeUpdateNow();
 
     // 4) USI に渡す残時間（ms）を“pre-add風”に整形（司令塔に一任）
     qint64 bMs = 0, wMs = 0;
@@ -1460,6 +1460,11 @@ void MainWindow::setTimerAndStart()
     updateTurnDisplay();
     m_shogiClock->updateClock();
     m_shogiClock->startClock();
+
+    if (m_match && m_shogiClock) {
+        m_match->setClock(m_shogiClock);     // ★後差し替えでも確実に配線
+        m_match->pokeTimeUpdateNow();        // ★初期表示を即反映
+    }
 }
 
 // 現在の手番を設定する。
@@ -1542,39 +1547,6 @@ void MainWindow::initializeGame()
     }
 
     delete m_startGameDialog;
-}
-
-// GUIの残り時間表示を更新する。
-void MainWindow::updateRemainingTimeDisplay()
-{
-    const QString p1 = m_shogiClock->getPlayer1TimeString(); // 実残りms→切り上げ
-    const QString p2 = m_shogiClock->getPlayer2TimeString();
-
-    m_shogiView->blackClockLabel()->setText(p1);
-    m_shogiView->whiteClockLabel()->setText(p2);
-
-    const bool p1turn = (m_gameController->currentPlayer() == ShogiGameController::Player1);
-    const qint64 activeMs = p1turn ? m_shogiClock->getPlayer1TimeIntMs()
-                                   : m_shogiClock->getPlayer2TimeIntMs();
-
-    const bool hasByoyomi = p1turn ? m_shogiClock->hasByoyomi1()
-                                   : m_shogiClock->hasByoyomi2();
-    const bool inByoyomi  = p1turn ? m_shogiClock->byoyomi1Applied()
-                                   : m_shogiClock->byoyomi2Applied();
-    const bool enableUrgency = (!hasByoyomi) || inByoyomi;
-    const qint64 msForUrgency = enableUrgency ? activeMs
-                                              : std::numeric_limits<qint64>::max();
-
-    m_shogiView->applyClockUrgency(msForUrgency);
-
-    // （任意）盤面描画用に ms を渡す。描画側がここから時間文字列を再計算しない設計が安全。
-    m_shogiView->setBlackTimeMs(m_shogiClock->getPlayer1TimeIntMs());
-    m_shogiView->setWhiteTimeMs(m_shogiClock->getPlayer2TimeIntMs());
-
-    qCDebug(ClockLog) << "[UI] P1(ms)=" << m_shogiClock->getPlayer1TimeIntMs()
-                      << "P2(ms)=" << m_shogiClock->getPlayer2TimeIntMs()
-                      << "P1(label)=" << p1
-                      << "P2(label)=" << p2;
 }
 
 // 設定ファイルにGUI全体のウィンドウサイズを書き込む。
@@ -4570,6 +4542,12 @@ void MainWindow::initMatchCoordinator()
     }
     m_match = new MatchCoordinator(d, this);
 
+    // wireMatchSignals_ の直前などで
+    qDebug() << "[DBG] signal index:"
+             << m_match->metaObject()->indexOfSignal("timeUpdated(long long,long long,bool,long long)");
+
+    wireMatchSignals_();
+
     // ★ PlayMode を司令塔へ伝える（追加）
     m_match->setPlayMode(m_playMode);
 
@@ -4600,10 +4578,17 @@ void MainWindow::ensureClockReady_()
 
     m_shogiClock = new ShogiClock(this);
 
-    // 残り時間のUI反映（ここで ShogiView::applyClockUrgency までやる）
-    connect(m_shogiClock, &ShogiClock::timeUpdated,
-            this, &MainWindow::updateRemainingTimeDisplay,
-            Qt::UniqueConnection);
+    if (m_match) {
+        connect(m_match, &MatchCoordinator::timeUpdated,
+                this, [this](qint64 p1ms, qint64 p2ms, bool /*p1turn*/, qint64 urgencyMs) {
+                    m_shogiView->blackClockLabel()->setText(fmt_hhmmss(p1ms));
+                    m_shogiView->whiteClockLabel()->setText(fmt_hhmmss(p2ms));
+                    m_shogiView->applyClockUrgency(urgencyMs);
+                    m_shogiView->setBlackTimeMs(p1ms);
+                    m_shogiView->setWhiteTimeMs(p2ms);
+                },
+                Qt::UniqueConnection);
+    }
 
     // 時間切れ時の処理（終局ハンドラは残す）
     connect(m_shogiClock, &ShogiClock::player1TimeOut,
@@ -4639,7 +4624,7 @@ void MainWindow::onMatchGameEnded(const MatchCoordinator::GameEndInfo& info)
 
     // （棋譜への末尾追記は司令塔に移譲済み）
 
-    updateRemainingTimeDisplay();
+    if (m_match) m_match->pokeTimeUpdateNow();
     enableArrowButtons();
     if (m_recordPane && m_recordPane->kifuView())
         m_recordPane->kifuView()->setSelectionMode(QAbstractItemView::SingleSelection);
@@ -4858,4 +4843,28 @@ void MainWindow::updateTurnDisplay()
 {
     const int cur = (m_gameController->currentPlayer() == ShogiGameController::Player2) ? 2 : 1;
     updateTurnStatus(cur);
+}
+
+void MainWindow::wireMatchSignals_()
+{
+    if (!m_match) return;
+    if (m_timeConn) { QObject::disconnect(m_timeConn); m_timeConn = {}; }
+
+    auto sig = static_cast<void (MatchCoordinator::*)(qint64,qint64,bool,qint64)>
+        (&MatchCoordinator::timeUpdated);
+
+    m_timeConn = connect(m_match, sig,
+                         this, &MainWindow::onMatchTimeUpdated,
+                         Qt::UniqueConnection);
+    Q_ASSERT(m_timeConn);
+}
+
+void MainWindow::onMatchTimeUpdated(qint64 p1ms, qint64 p2ms, bool /*p1turn*/, qint64 urgencyMs)
+{
+    qDebug() << "[UI] timeUpdated received p1ms=" << p1ms << " p2ms=" << p2ms;
+    m_shogiView->blackClockLabel()->setText(fmt_hhmmss(p1ms));
+    m_shogiView->whiteClockLabel()->setText(fmt_hhmmss(p2ms));
+    m_shogiView->applyClockUrgency(urgencyMs);
+    m_shogiView->setBlackTimeMs(p1ms);
+    m_shogiView->setWhiteTimeMs(p2ms);
 }
