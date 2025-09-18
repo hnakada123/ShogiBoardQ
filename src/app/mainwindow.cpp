@@ -2015,14 +2015,13 @@ void MainWindow::updateBranchTextForRow(int row)
     // 旧: m_branchText / m_branchTextInTab1 には一切触れない
 }
 
-// 棋譜を更新し、GUIの表示も同時に更新する。
-// elapsedTimeは指し手にかかった時間を表す文字列
+// 棋譜を1行だけUIへ反映する（ビジネスロジックなし / 表示専用）
 void MainWindow::updateGameRecord(const QString& elapsedTime)
 {
     qCDebug(ClockLog) << "in MainWindow::updateGameRecord";
     qCDebug(ClockLog) << "elapsedTime=" << elapsedTime;
 
-    // ★ 終局後に終局行を既に追記済みなら、これ以上は書かない
+    // 1) 終局後、すでに終局行を追記済みなら何もしない
     const bool gameOverAppended =
         (m_match && m_match->gameOverState().isOver && m_match->gameOverState().moveAppended);
     if (gameOverAppended) {
@@ -2030,62 +2029,38 @@ void MainWindow::updateGameRecord(const QString& elapsedTime)
         return;
     }
 
-    // ★ 手文字列が空のときは棋譜行を作らない（空行防止）
-    if (m_lastMove.trimmed().isEmpty()) {
+    // 2) 手文字列が空なら行を作らない（空行防止）
+    const QString last = m_lastMove.trimmed();
+    if (last.isEmpty()) {
         qCDebug(ClockLog) << "[KIFU] skip empty move line";
         return;
     }
 
-    // --- ここから下は「再生中」でも実行してOK（棋譜欄の行を作る） ---
+    // 3) 手数をインクリメントして整形（表示上は左寄せ幅4桁）
+    const QString moveNumberStr = QString::number(++m_currentMoveIndex);
+    const QString spaceStr = QString(qMax(0, 4 - moveNumberStr.length()), QLatin1Char(' '));
 
-    // 手数をインクリメントし、文字列に変換する。
-    QString moveNumberStr = QString::number(++m_currentMoveIndex);
+    // 4) 表示用の行（例: "   1 ▲７六歩"）
+    const QString recordLine = spaceStr + moveNumberStr + QLatin1Char(' ') + last;
 
-    // 手数表示のための空白を算出し、生成する。
-    QString spaceStr = QString(qMax(0, 4 - moveNumberStr.length()), ' ');
-
-    // 表示用レコードを生成する。（手数と最後の手）
-    QString recordLine = spaceStr + moveNumberStr + " " + m_lastMove;
-
-    // KIF形式レコードを生成する。（消費時間含む）
-    QString kifuLine = recordLine + " ( " + elapsedTime + ")";
+    // 5) KIF 出力用の行（先後記号は外し、消費時間を付与）
+    QString kifuLine = recordLine + QStringLiteral(" ( ") + elapsedTime + QLatin1String(" )");
     kifuLine.remove(QStringLiteral("▲"));
     kifuLine.remove(QStringLiteral("△"));
 
-    // KIF形式のデータを保存する。
+    // 6) KIFテキスト蓄積
     m_kifuDataList.append(kifuLine);
 
-    // 指し手のレコードを生成し、保存する。
-    if (m_moveRecords) {
-        m_moveRecords->append(new KifuDisplay(recordLine, elapsedTime));
-    }
-    if (m_kifuRecordModel && m_moveRecords && !m_moveRecords->isEmpty()) {
+    // 7) 表示モデル更新（モデルがなければ作る）
+    if (!m_moveRecords) m_moveRecords = new QList<KifuDisplay*>();
+    m_moveRecords->append(new KifuDisplay(recordLine, elapsedTime));
+
+    if (m_kifuRecordModel && !m_moveRecords->isEmpty()) {
         m_kifuRecordModel->appendItem(m_moveRecords->last());
     }
 
-    // === ここから下が時計まわり。KIF再生中はスキップ ===
-    if (m_isKifuReplay) {
-        qCDebug(ClockLog) << "[KIFU] replay mode: skip clock logging";
-        return;
-    }
-
-    // 追加の安全策：ポインタ存在チェック
-    if (!m_shogiClock || !m_gameController) {
-        qCDebug(ClockLog) << "[KIFU] clock/controller not ready, skip";
-        return;
-    }
-
-    // live対局時のみログ
-    if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
-        // これから先手が考える＝最後に指したのは後手
-        qCDebug(ClockLog) << "[KIFU] last-move consider_ms(P2)="
-                          << m_shogiClock->getPlayer2ConsiderationTimeMs()
-                          << " rem_ms(P2)=" << m_shogiClock->getPlayer2TimeIntMs();
-    } else {
-        qCDebug(ClockLog) << "[KIFU] last-move consider_ms(P1)="
-                          << m_shogiClock->getPlayer1ConsiderationTimeMs()
-                          << " rem_ms(P1)=" << m_shogiClock->getPlayer1TimeIntMs();
-    }
+    // ※ 本関数はUI反映のみ。考慮時間の確定 / 秒読み・加算の適用は
+    //    MatchCoordinator 側で行い、その結果（elapsedTime 等）だけを受け取って表示する。
 }
 
 // bestmove resignコマンドを受信した場合の終了処理を行う。
@@ -3718,11 +3693,6 @@ void MainWindow::updateKifuBranchMarkersForActiveRow()
         qDebug().noquote() << "[KIF-HL] branchable ply =" << ls;
     }
 #endif
-}
-
-Qt::ConnectionType MainWindow::connTypeFor(QObject* obj) const
-{
-    return (obj && obj->thread() == this->thread()) ? Qt::DirectConnection : Qt::AutoConnection;
 }
 
 void MainWindow::resetGameFlags()
