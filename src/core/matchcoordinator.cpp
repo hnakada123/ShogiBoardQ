@@ -74,65 +74,99 @@ void MatchCoordinator::startNewGame(const QString& sfenStart) {
     emit gameStarted();
 }
 
-void MatchCoordinator::handleResign() {
-    stopClockAndSendStops_();
+void MatchCoordinator::handleResign()
+{
+    // 1) まず時計だけ止める（思考停止の "stop" は送らない：人間投了でエンジンは勝者）
+    if (m_clock) m_clock->stopClock();
 
-    GameEndInfo info;
-    info.cause = Cause::Resignation;
-    info.loser = m_cur; // 現在手番側が投了したとみなす（必要に応じて呼び出し側で明示管理）
+    // 2) 投了した側＝現在手番側とみなす（GCがあればそれに従う）
+    Player loser = m_cur;
+    if (m_gc) {
+        loser = (m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2;
+    }
+    const Player winner = (loser == P1 ? P2 : P1);
 
-    // エンジンへ通知（任意）
-    if (m_hooks.sendRawToEngine) {
-        if (info.loser == P1) {
-            if (m_usi1) m_hooks.sendRawToEngine(m_usi1, QStringLiteral("gameover lose"));
-            if (m_usi2) m_hooks.sendRawToEngine(m_usi2, QStringLiteral("gameover win"));
-        } else {
-            if (m_usi2) m_hooks.sendRawToEngine(m_usi2, QStringLiteral("gameover lose"));
-            if (m_usi1) m_hooks.sendRawToEngine(m_usi1, QStringLiteral("gameover win"));
-        }
+    // 3) エンジンへの最終通知
+    //    HvE：m_usi1 しか無い前提 → 人間投了＝エンジン勝ち → m_usi1 に win+quit
+    //    EvE：両方あり → loser 側に lose+quit、winner 側に win+quit
+    if (m_usi1 && !m_usi2) {
+        // HvE / EvH（片側エンジン）
+        m_usi1->sendGameOverWinAndQuitCommands();
+        m_usi1->setSquelchResignLogging(true);
+    } else {
+        // EvE（両エンジン）
+        Usi* loserEng  = (loser  == P1) ? m_usi1 : m_usi2;
+        Usi* winnerEng = (winner == P1) ? m_usi1 : m_usi2;
+        if (loserEng)  { loserEng->sendGameOverLoseAndQuitCommands();  loserEng->setSquelchResignLogging(true); }
+        if (winnerEng) { winnerEng->sendGameOverWinAndQuitCommands();  winnerEng->setSquelchResignLogging(true); }
     }
 
+    // 4) UI へ終局通知
+    GameEndInfo info; info.cause = Cause::Resignation; info.loser = loser;
     displayResultsAndUpdateGui_(info);
 }
 
-void MatchCoordinator::handleEngineResign(int idx) {
-    stopClockAndSendStops_();
+void MatchCoordinator::handleEngineResign(int idx)
+{
+    // 1) 時計停止（stop は要らない。エンジン側は自発的に投了している）
+    if (m_clock) m_clock->stopClock();
 
-    GameEndInfo info;
-    info.cause = Cause::Resignation;
-    info.loser = (idx == 1 ? P1 : P2);
+    // 2) loser/winner の決定
+    const Player loser  = (idx == 1 ? P1 : P2);
+    const Player winner = (loser == P1 ? P2 : P1);
 
-    if (m_hooks.sendRawToEngine) {
-        if (info.loser == P1) {
-            if (m_usi1) m_hooks.sendRawToEngine(m_usi1, QStringLiteral("gameover lose"));
-            if (m_usi2) m_hooks.sendRawToEngine(m_usi2, QStringLiteral("gameover win"));
-        } else {
-            if (m_usi2) m_hooks.sendRawToEngine(m_usi2, QStringLiteral("gameover lose"));
-            if (m_usi1) m_hooks.sendRawToEngine(m_usi1, QStringLiteral("gameover win"));
-        }
+    // 3) エンジンへ最終通知
+    if (m_usi1 && !m_usi2) {
+        // HvE：唯一のエンジンが投了した＝エンジン負け
+        m_usi1->sendGameOverLoseAndQuitCommands();
+        m_usi1->setSquelchResignLogging(true);
+    } else {
+        // EvE：両エンジンが居る
+        Usi* loserEng  = (loser  == P1) ? m_usi1 : m_usi2;
+        Usi* winnerEng = (winner == P1) ? m_usi1 : m_usi2;
+        if (loserEng)  { loserEng->sendGameOverLoseAndQuitCommands();  loserEng->setSquelchResignLogging(true); }
+        if (winnerEng) { winnerEng->sendGameOverWinAndQuitCommands();  winnerEng->setSquelchResignLogging(true); }
     }
 
+    // 4) UI へ終局通知
+    GameEndInfo info; info.cause = Cause::Resignation; info.loser = loser;
     displayResultsAndUpdateGui_(info);
 }
 
 void MatchCoordinator::notifyTimeout(Player loser) {
-    stopClockAndSendStops_();
+    // 1) 時計停止（以降の進行を止める）
+    if (m_clock) m_clock->stopClock();
 
-    // 任意：エンジンへ gameover 通知（生コマンドで十分）
-    if (m_hooks.sendRawToEngine) {
-        if (loser == P1) {
-            if (m_usi1) m_hooks.sendRawToEngine(m_usi1, QStringLiteral("gameover lose"));
-            if (m_usi2) m_hooks.sendRawToEngine(m_usi2, QStringLiteral("gameover win"));
-        } else {
-            if (m_usi2) m_hooks.sendRawToEngine(m_usi2, QStringLiteral("gameover lose"));
-            if (m_usi1) m_hooks.sendRawToEngine(m_usi1, QStringLiteral("gameover win"));
-        }
+    const Player winner = (loser == P1 ? P2 : P1);
+
+    // 2) HvE の人間側判定（あれば利用）：人間が時間切れならエンジン勝ち
+    Player humanSide = P1;
+    const bool hasHumanSide = static_cast<bool>(m_hooks.humanPlayerSide);
+    if (hasHumanSide) {
+        humanSide = m_hooks.humanPlayerSide();
     }
 
-    GameEndInfo info;
-    info.cause = Cause::Timeout;
-    info.loser = loser;
+    // 3) エンジンへ最終通知
+    if (m_usi1 && !m_usi2) {
+        // 片側エンジン（HvE）
+        if (!hasHumanSide || loser == humanSide) {
+            // 人間が時間切れ → エンジン勝ち
+            m_usi1->sendGameOverWinAndQuitCommands();
+        } else {
+            // 例外的：エンジンが時間切れ（ほぼ無いが一応）
+            m_usi1->sendGameOverLoseAndQuitCommands();
+        }
+        m_usi1->setSquelchResignLogging(true);
+    } else {
+        // EvE：両エンジンが居る
+        Usi* loserEng  = (loser  == P1) ? m_usi1 : m_usi2;
+        Usi* winnerEng = (winner == P1) ? m_usi1 : m_usi2;
+        if (loserEng)  { loserEng->sendGameOverLoseAndQuitCommands();  loserEng->setSquelchResignLogging(true); }
+        if (winnerEng) { winnerEng->sendGameOverWinAndQuitCommands();  winnerEng->setSquelchResignLogging(true); }
+    }
 
+    // 4) UI へ終局通知
+    GameEndInfo info; info.cause = Cause::Timeout; info.loser = loser;
     displayResultsAndUpdateGui_(info);
 }
 
@@ -995,11 +1029,16 @@ void MatchCoordinator::clearGameOverState()
 // 司令塔が終局を確定させる唯一の入口
 void MatchCoordinator::setGameOver(const GameEndInfo& info, bool loserIsP1, bool appendMoveOnce)
 {
-    // すでに終局済みなら上書きしない（多重通知の防止）
     if (m_gameOver.isOver) {
-        qDebug() << "[Match] setGameOver() ignored: already over";
+        qDebug() << "[MC] setGameOver() ignored: already over";
         return;
     }
+
+    qDebug().nospace()
+        << "[MC] setGameOver cause="
+        << ((info.cause==Cause::Timeout)?"Timeout":"Resign")
+        << " loser=" << ((info.loser==P1)?"P1":"P2")
+        << " appendMoveOnce=" << appendMoveOnce;
 
     m_gameOver.isOver        = true;
     m_gameOver.hasLast       = true;
@@ -1007,15 +1046,11 @@ void MatchCoordinator::setGameOver(const GameEndInfo& info, bool loserIsP1, bool
     m_gameOver.lastInfo      = info;
     m_gameOver.when          = QDateTime::currentDateTime();
 
-    // まず内部状態を公開
     emit gameOverStateChanged(m_gameOver);
-
-    // 既存の設計を継承：高粒度のイベント（UI/ログ/後処理）
     emit gameEnded(info);
 
-    // 棋譜の終局一意追記：司令塔主導でやる場合は request を出し、
-    // MainWindow（またはモデル側）が追記し終えたら markGameOverMoveAppended() を呼ぶ
     if (appendMoveOnce && !m_gameOver.moveAppended) {
+        qDebug() << "[MC] emit requestAppendGameOverMove";
         emit requestAppendGameOverMove(info);
     }
 }

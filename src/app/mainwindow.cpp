@@ -641,7 +641,6 @@ void MainWindow::handleEngineTwoResignation()
 }
 
 // エンジン1の評価値グラフの再描画を行う。
-// エンジン1の評価値グラフの再描画を行う。
 void MainWindow::redrawEngine1EvaluationGraph()
 {
     // 旧ロジックの「符号反転条件」を踏襲
@@ -2031,6 +2030,7 @@ void MainWindow::updateBranchTextForRow(int row)
 void MainWindow::updateGameRecord(const QString& elapsedTime)
 {
     qCDebug(ClockLog) << "in MainWindow::updateGameRecord";
+    qDebug() << "[UI] updateGameRecord append <<" << elapsedTime;
     qCDebug(ClockLog) << "elapsedTime=" << elapsedTime;
 
     // 1) 終局後、すでに終局行を追記済みなら何もしない
@@ -2099,7 +2099,7 @@ void MainWindow::processResignCommand()
         if (auto* view = m_recordPane->kifuView()) {
             view->setSelectionMode(QAbstractItemView::SingleSelection);
         }
-    }
+    }    
 }
 
 // 検討を開始する。
@@ -2980,6 +2980,12 @@ QChar MainWindow::glyphForPlayer(bool isPlayerOne) const
 // 終局理由つきの終局表記をセット（棋譜欄の最後に出す "▲投了" / "△時間切れ" 等）
 void MainWindow::setGameOverMove(GameOverCause cause, bool loserIsPlayerOne)
 {
+    const QString who = loserIsPlayerOne ? QStringLiteral("▲") : QStringLiteral("△");
+    const QString what = (cause == GameOverCause::Timeout)
+                             ? QStringLiteral("時間切れ")
+                             : QStringLiteral("投了");
+    qDebug().nospace() << "[UI] setGameOverMove append '" << who << what << "'";
+
     // 司令塔が存在しない/終局でないなら何もしない
     if (!m_match || !m_match->gameOverState().isOver) return;
 
@@ -3031,7 +3037,7 @@ void MainWindow::setGameOverMove(GameOverCause cause, bool loserIsPlayerOne)
     qDebug().nospace() << "[KIFU] setGameOverMove appended"
                        << " cause=" << (cause == GameOverCause::Resignation ? "RESIGN" : "TIMEOUT")
                        << " loser=" << (loserIsPlayerOne ? "P1" : "P2")
-                       << " elapsed=" << elapsed;
+                       << " elapsed=" << elapsed;   
 }
 
 
@@ -4311,36 +4317,60 @@ void MainWindow::ensureClockReady_()
             Qt::UniqueConnection);
 }
 
-// 司令塔から届く単一の対局終了イベント（UI反映のみ）
+// 司令塔から届く単一の対局終了イベント（UI反映＋棋譜「投了/時間切れ」＋時間追記）
 void MainWindow::onMatchGameEnded(const MatchCoordinator::GameEndInfo& info)
 {
-    // ★ 終局後の計測・入力は停止（状態は司令塔に一元化）
-    if (m_match) {
-        m_match->disarmHumanTimerIfNeeded();
-        // H2H 用の“記録せず止める”APIがあればここで呼ぶ:
-        // m_match->disarmTurnTimerIfNeeded();
-    }
+    qDebug().nospace()
+    << "[UI] onMatchGameEnded ENTER cause="
+    << ((info.cause==MatchCoordinator::Cause::Timeout)?"Timeout":"Resign")
+    << " loser=" << ((info.loser==MatchCoordinator::P1)?"P1":"P2");
+
+    if (m_match) m_match->disarmHumanTimerIfNeeded();
     if (m_shogiClock) m_shogiClock->stopClock();
     if (m_shogiView)  m_shogiView->setMouseClickMode(false);
 
-    // 表示を現状に同期（盤面の残り時間ラベルなど）
-    if (m_match) m_match->pokeTimeUpdateNow();
+    // 1) 「▲/△投了」or「▲/△時間切れ」行を必ず挿入
+    const bool loserIsP1 =
+        (info.loser == MatchCoordinator::P1);
+    const GameOverCause cause =
+        (info.cause == MatchCoordinator::Cause::Timeout)
+            ? GameOverCause::Timeout
+            : GameOverCause::Resignation;
 
-    // UI の操作状態
+    qDebug() << "[UI] setGameOverMove before";
+    setGameOverMove(cause, /*loserIsPlayerOne=*/loserIsP1);
+    qDebug() << "[UI] setGameOverMove after";
+
+    // 2) 同じ手に消費時間(MM:SS/HH:MM:SS)を追記
+    if (m_shogiClock) {
+        m_shogiClock->markGameOver();
+        if (loserIsP1) {
+            m_shogiClock->applyByoyomiAndResetConsideration1();
+            const QString s = m_shogiClock->getPlayer1ConsiderationAndTotalTime();
+            qDebug() << "[UI] updateGameRecord(P1) <<" << s;
+            updateGameRecord(s);
+        } else {
+            m_shogiClock->applyByoyomiAndResetConsideration2();
+            const QString s = m_shogiClock->getPlayer2ConsiderationAndTotalTime();
+            qDebug() << "[UI] updateGameRecord(P2) <<" << s;
+            updateGameRecord(s);
+        }
+    } else {
+        qDebug() << "[UI] m_shogiClock == null, skip time append";
+    }
+
+    // 3) 重複防止フラグは司令塔に一元化
+    if (m_match) {
+        qDebug() << "[UI] markGameOverMoveAppended";
+        m_match->markGameOverMoveAppended();
+        m_match->pokeTimeUpdateNow();
+    }
+
     enableArrowButtons();
     if (m_recordPane && m_recordPane->kifuView())
         m_recordPane->kifuView()->setSelectionMode(QAbstractItemView::SingleSelection);
 
-    // 任意ログ（原因・敗者は info から直接取得）
-    const qint64 tms = QDateTime::currentMSecsSinceEpoch();
-    const char* causeStr =
-        (info.cause == MatchCoordinator::Cause::Timeout)     ? "TIMEOUT" :
-            (info.cause == MatchCoordinator::Cause::Resignation) ? "RESIGNATION" :
-            "OTHER";
-    qDebug().nospace()
-        << "[ARBITER] decision " << causeStr
-        << " loser=" << ((info.loser == MatchCoordinator::P1) ? "P1" : "P2")
-        << " at t+" << tms << "ms";
+    qDebug() << "[UI] onMatchGameEnded LEAVE";
 }
 
 void MainWindow::onBoardFlipped(bool /*nowFlipped*/)
