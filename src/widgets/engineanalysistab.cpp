@@ -223,6 +223,21 @@ void EngineAnalysisTab::addEdge(QGraphicsPathItem* from, QGraphicsPathItem* to)
     edge->setZValue(0); // ← 線は常に背面（長方形の中に罫線が見えなくなる）
 }
 
+// --- 追加ヘルパ：row(>=1) の分岐元となる「親行」を決める ---
+// 直前の変化 a、さらにその前の変化 c、… を遡り、startPly(b) > startPly(その行) を満たす最初の行を返す。
+// 見つからなければ本譜 row=0 を親とする。
+int EngineAnalysisTab::resolveParentRowForVariation_(int row) const
+{
+    Q_ASSERT(row >= 1 && row < m_rows.size());
+    const int b = m_rows.at(row).startPly;   // この変化の開始手数（1-origin）
+
+    for (int prev = row - 1; prev >= 1; --prev) {
+        const int a = m_rows.at(prev).startPly;
+        if (b > a) return prev;              // 見つけたらその変化行を親に
+    }
+    return 0;                                 // どれにも入らなければ本譜
+}
+
 void EngineAnalysisTab::rebuildBranchTree()
 {
     if (!m_scene) return;
@@ -231,7 +246,7 @@ void EngineAnalysisTab::rebuildBranchTree()
 
     static constexpr qreal STEP_X   = 110.0;
     static constexpr qreal BASE_X   = 40.0;
-    static constexpr qreal SHIFT_X  = 40.0;   // ← addNode と同じ値
+    static constexpr qreal SHIFT_X  = 40.0;   // addNode() と同じ
     static constexpr qreal BASE_Y   = 40.0;
     static constexpr qreal STEP_Y   = 56.0;
     static constexpr qreal RADIUS   = 8.0;
@@ -243,9 +258,9 @@ void EngineAnalysisTab::rebuildBranchTree()
     if (!m_rows.isEmpty()) {
         const auto& main = m_rows.at(0);
 
-        // 「開始局面」（ply=0）— 全体シフトを適用
+        // 「開始局面」（ply=0）
         {
-            const qreal x = BASE_X + SHIFT_X;     // ← ここも右寄せ
+            const qreal x = BASE_X + SHIFT_X;
             const qreal y = BASE_Y + 0 * STEP_Y;
             const QString label = QStringLiteral("開始局面");
 
@@ -277,7 +292,7 @@ void EngineAnalysisTab::rebuildBranchTree()
                       rect.center().y() - br.height() / 2.0);
         }
 
-        // 本譜の手札（addNode 内で SHIFT_X が効く）
+        // 本譜のノード（ply=1..）
         QGraphicsPathItem* prev = startNode;
         int ply = 0;
         for (const auto& it : main.disp) {
@@ -289,18 +304,40 @@ void EngineAnalysisTab::rebuildBranchTree()
     }
 
     // ===== 分岐 row=1.. =====
+    // 親の決め方は、直前→さらに前…と遡って startPly(b) > startPly(親候補) を満たす最初の行。
+    // ノード配置は「分岐の開始手(startPly)以降のみ」を使う（本譜の初手からは入れない）。
     for (int row = 1; row < m_rows.size(); ++row) {
         const auto& rv = m_rows.at(row);
-        const int basePly = qMax(0, rv.startPly - 1);
-        QGraphicsPathItem* prev = m_nodeIndex.value(qMakePair(0, basePly), nullptr);
+        const int startPly = qMax(1, rv.startPly);      // 1-origin
 
-        int local = 0;
-        for (const auto& it : rv.disp) {
-            ++local;
-            const int ply = rv.startPly - 1 + local;
+        // 1) 親行を決定
+        const int parentRow = resolveParentRowForVariation_(row);
 
-            auto* node = addNode(row, ply, it.prettyMove);
-            node->setData(BR_ROLE_STARTPLY, rv.startPly);
+        // 2) 親と繋ぐ“合流手”は (startPly - 1) 手目のノード
+        const int joinPly = startPly - 1;
+
+        // 親の joinPly ノードを取得。無ければ本譜→開始局面へフォールバック。
+        QGraphicsPathItem* prev =
+            m_nodeIndex.value(qMakePair(parentRow, joinPly),
+                              m_nodeIndex.value(qMakePair(0, joinPly),
+                                                m_nodeIndex.value(qMakePair(0, 0), nullptr)));
+
+        // 3) 分岐の手リストを「開始手以降だけ」にスライス
+        //    rv.disp は“その行の全手”が入っていることがあるため、ここで切り出す。
+        const int cut = qMax(0, startPly - 1);              // 0-origin index
+        const int total = rv.disp.size();
+        const int take = (cut < total) ? (total - cut) : 0;
+        if (take <= 0) continue;                            // 描くもの無し
+
+        // 4) 切り出した手だけを絶対手数で並べる（absPly = startPly + i）
+        for (int i = 0; i < take; ++i) {
+            const auto& it = rv.disp.at(cut + i);
+            const int absPly = startPly + i;
+
+            auto* node = addNode(row, absPly, it.prettyMove);
+
+            // クリック用メタ
+            node->setData(BR_ROLE_STARTPLY, startPly);
             node->setData(BR_ROLE_BUCKET,    row - 1);
 
             if (prev) addEdge(prev, node);
@@ -308,9 +345,9 @@ void EngineAnalysisTab::rebuildBranchTree()
         }
     }
 
-    // シーン境界：シフトぶん余白を足す
+    // シーン境界
     const int mainLen = m_rows.isEmpty() ? 0 : m_rows.at(0).disp.size();
-    const qreal width  = (BASE_X + SHIFT_X) + STEP_X * qMax(40, mainLen + 3) + 40.0;
+    const qreal width  = (BASE_X + SHIFT_X) + STEP_X * qMax(40, mainLen + 6) + 40.0;
     const qreal height = 30 + STEP_Y * qMax(2, m_rows.size() + 1);
     m_scene->setSceneRect(QRectF(0, 0, width, height));
 }
