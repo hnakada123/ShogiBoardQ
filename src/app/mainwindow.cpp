@@ -75,7 +75,7 @@ MainWindow::MainWindow(QWidget *parent) :
     initializeCentralGameDisplay();
 
     // 対局のメニュー表示を一部隠す。
-    hideGameActions();
+    //hideGameActions();
 
     // 棋譜欄の下の矢印ボタンを無効にする。
     disableArrowButtons();
@@ -2461,7 +2461,7 @@ void MainWindow::beginPositionEditing()
     // メニューの切替
     displayPositionEditMenu();
 
-    hideGameActions();
+    //hideGameActions();
 
     // SFEN 列を初期化（0手＝開始局面のみ）
     if (m_sfenRecord) {
@@ -4483,7 +4483,7 @@ void MainWindow::setGameInProgressActions(bool inProgress)
         // 「棋譜解析」を隠す。
         ui->actionAnalyzeKifu->setVisible(true);
     } else {
-        hideGameActions(); // 既存の終了時UIへ戻す処理
+        //hideGameActions(); // 既存の終了時UIへ戻す処理
     }
 }
 
