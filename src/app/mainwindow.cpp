@@ -27,6 +27,7 @@
 #include "engineinfowidget.h"
 #include "engineanalysistab.h"
 #include "matchcoordinator.h"
+#include "kifuvariationengine.h"
 
 using namespace EngineSettingsConstants;
 using GameOverCause = MatchCoordinator::Cause;
@@ -1758,6 +1759,17 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
 
     // 10) ログ（任意）
     logImportSummary(filePath, m_usiMoves, disp, teaiLabel, parseWarn, QString());
+
+    if (!m_varEngine) m_varEngine = std::make_unique<KifuVariationEngine>();
+    {
+        // m_usiMoves (USI 文字列列) → QVector<UsiMove> に詰め替え
+        QVector<UsiMove> usiMain;
+        usiMain.reserve(m_usiMoves.size());
+        for (const auto& u : m_usiMoves) {
+            usiMain.push_back(UsiMove(u));  // using UsiMove = QString; or 変換コンストラクタ
+        }
+        m_varEngine->ingest(res, m_sfenMain, usiMain, m_dispMain);
+    }
 }
 
 // ===================== ヘルパ実装 =====================
@@ -3443,29 +3455,77 @@ void MainWindow::applyVariationByKey(int startPly, int bucketIndex)
     enableArrowButtons();
 }
 
-// 分岐候補ビューで行がクリック/アクティベートされたとき
-void MainWindow::onBranchCandidateActivated(const QModelIndex& index)
+void MainWindow::onKifuPlySelected(int ply)
 {
-    // --- バリデーション ---
-    if (!index.isValid() || !m_kifuBranchModel) return;
+    if (ply < 0) return;
+    if (!m_varEngine) return;
+    if (!m_kifuBranchModel) return;
 
-    const int row = index.row();
+    // VarEngine から候補を取得（本譜も含める）
+    const auto cands = m_varEngine->branchCandidatesForPly(ply, /*includeMainline=*/true);
 
-    // 1) 「本譜へ戻る」行が押された場合：本譜（解決済み行0）を再適用
-    if (m_kifuBranchModel->isBackToMainRow(row)) {
-        // 直前に見ていた手数（m_currentSelectedPly）を維持して本譜に戻る
-        // applyResolvedRowAndSelect は 盤面/棋譜欄/分岐候補/矢印/ハイライト を一括同期します
-        applyResolvedRowAndSelect(/*row=*/0, /*selPly=*/m_currentSelectedPly);  // 本譜へ
-        return;
+    // モデルへ渡す表示用アイテムに変換（KifuBranchListModel はラベルしか持たない）
+    QList<KifDisplayItem> rows;
+    rows.reserve(cands.size());
+    m_branchVarIds.clear();
+    m_branchVarIds.reserve(cands.size() + 1);
+
+    for (const auto& c : cands) {
+        KifDisplayItem k;
+        k.prettyMove = c.label;   // ← BranchCandidate 側の表示用文字列
+        rows.push_back(k);
+        m_branchVarIds.push_back(c.variationId); // 行→variationId
     }
 
-    // 2) 通常の分岐候補：m_branchRowMap から解決済み行と手数を取り出してジャンプ
-    if (row >= 0 && row < m_branchRowMap.size()) {
-        const int resolvedRow = m_branchRowMap[row].first;   // どの「行」（本譜=0/分岐=1..）か
-        const int targetPly   = m_branchRowMap[row].second;  // その行での手数(0..N)
+    // モデルを更新
+    m_kifuBranchModel->setBranchCandidatesFromKif(rows);
+    m_kifuBranchModel->setHasBackToMainRow(true);   // 末尾に「本譜へ戻る」を出す
+    m_branchVarIds.push_back(-1);                   // 末尾用のダミーID
 
-        // 盤面・棋譜欄・分岐候補・矢印ボタン・ツリーハイライトまで一括同期
-        applyResolvedRowAndSelect(resolvedRow, targetPly);
+    m_branchPlyContext = ply;
+
+    // 候補ビューの先頭にフォーカス（任意）
+    if (m_recordPane && m_recordPane->branchView()) {
+        auto* v = m_recordPane->branchView();
+        if (v->model() && v->model()->rowCount() > 0) {
+            const auto idx0 = v->model()->index(0, 0);
+            v->setCurrentIndex(idx0);
+            v->scrollTo(idx0, QAbstractItemView::PositionAtTop);
+        }
+    }
+}
+
+void MainWindow::onBranchCandidateActivated(const QModelIndex& index)
+{
+    if (!index.isValid()) return;
+    if (!m_kifuBranchModel) return;
+
+    // 末尾の「本譜へ戻る」行？
+    if (m_kifuBranchModel->isBackToMainRow(index.row())) {
+        // 本譜に戻す：既存スナップショットから再表示
+        displayGameRecord(m_dispMain);
+        rebuildSfenRecord(m_startSfenStr, m_usiMoves, /*hasTerminal=*/false);
+        rebuildGameMoves(m_startSfenStr, m_usiMoves);
+    } else {
+        // 行→variationId を引いて確定ラインを取得
+        if (index.row() < 0 || index.row() >= m_branchVarIds.size()) return;
+        const int variationId = m_branchVarIds.at(index.row());
+        if (!m_varEngine) return;
+
+        const auto line = m_varEngine->resolveAfterWins(variationId);
+
+        // 表示列の差し替え（既存関数）
+        displayGameRecord(line.disp);
+
+        // USI/SFEN は既存の安全経路で再構築
+        rebuildSfenRecord(m_startSfenStr, line.usi, /*hasTerminal=*/false);
+        rebuildGameMoves(m_startSfenStr, line.usi);
+    }
+
+    // 以後：ハイライト・分岐ツリー同期など既存処理へ（最小限）
+    enableArrowButtons();
+    if (m_analysisTab) {
+        m_analysisTab->highlightBranchTreeAt(/*row=*/0, /*ply=*/0, /*centerOn=*/true);
     }
 }
 
@@ -4058,8 +4118,10 @@ void MainWindow::setupRecordPane()
         // RecordPane → MainWindow 通知
         connect(m_recordPane, &RecordPane::mainRowChanged,
                 this, &MainWindow::onMainMoveRowChanged);
+
         connect(m_recordPane, &RecordPane::branchActivated,
-                this, &MainWindow::onBranchCandidateActivated);
+                this, &MainWindow::onBranchCandidateActivated,
+                Qt::UniqueConnection);
 
         // 旧: setupRecordAndEvaluationLayout() が返していた root の置き換え
         m_gameRecordLayoutWidget = m_recordPane;
@@ -4149,12 +4211,15 @@ void MainWindow::onKifuCurrentRowChanged(const QModelIndex& cur, const QModelInd
 {
     const int row = cur.isValid() ? cur.row() : 0;
 
+    // コメント同期（現状のまま）
     QString text;
     if (row >= 0 && row < m_commentsByRow.size())
         text = m_commentsByRow[row].trimmed();
-
     const QString toShow = text.isEmpty() ? tr("コメントなし") : text;
     broadcastComment(toShow, /*asHtml=*/true);
+
+    // 分岐候補：次に指す手 = row + 1 手目の候補を出す
+    onKifuPlySelected(row + 1);
 }
 
 void MainWindow::initMatchCoordinator()

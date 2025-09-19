@@ -116,6 +116,8 @@ private:
 
     // ツリークリック検出
     bool eventFilter(QObject* obj, QEvent* ev) override;
+
+    int resolveParentRowForVariation_(int row) const;
 };
 
 #endif // ENGINEANALYSISTAB_H

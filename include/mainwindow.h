@@ -39,6 +39,7 @@
 #include "recordpane.h"
 #include "engineanalysistab.h"
 #include "boardinteractioncontroller.h"
+#include "kifuvariationengine.h"
 
 // ==============================
 // Macros / aliases
@@ -393,6 +394,8 @@ private:
     // コメントを両画面にブロードキャスト
     void broadcastComment(const QString& text, bool asHtml=false);
 
+    std::unique_ptr<KifuVariationEngine> m_varEngine;
+
     // --- 小さなフォーマッタ ---
     static inline QString fmt_mmss(qint64 ms) {
         if (ms < 0) ms = 0;
@@ -466,7 +469,6 @@ private slots:
     void undoLastTwoMoves();
 
     // --- 分岐 / 棋譜ナビゲーション ---
-    void onBranchCandidateActivated(const QModelIndex& idx);
     void onMainMoveRowChanged(int row);
     void onKifuCurrentRowChanged(const QModelIndex& cur, const QModelIndex& prev);
     void onBranchNodeActivated(int row, int ply);
@@ -498,6 +500,13 @@ private slots:
     void handleMove_HvH_(ShogiGameController::Player moverBefore,
                          const QPoint& from, const QPoint& to);
     void handleMove_HvE_(const QPoint& humanFrom, const QPoint& humanTo);
+
+private slots:
+    void onKifuPlySelected(int ply);
+    void onBranchCandidateActivated(const QModelIndex& index); // QModelIndex 版に変更
+private:
+    QVector<int> m_branchVarIds;   // 行→variationId の対応（末尾の「本譜へ戻る」は -1）
+    int m_branchPlyContext = -1;   // どの ply の候補か（必要なら使用）
 };
 
 #endif // MAINWINDOW_H
