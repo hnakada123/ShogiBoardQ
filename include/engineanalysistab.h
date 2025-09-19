@@ -67,6 +67,11 @@ public:
     static constexpr int BR_ROLE_STARTPLY = 0x202; // 分岐の開始手
     static constexpr int BR_ROLE_BUCKET   = 0x203; // 同一開始手内での分岐Index
 
+    // item->data 用ロールキー
+    static constexpr int ROLE_ROW = 0x501;
+    static constexpr int ROLE_PLY = 0x502;
+    static constexpr int ROLE_ORIGINAL_BRUSH = 0x503;   // ← これを追加
+
 public slots:
     void setAnalysisVisible(bool on);
     void setCommentHtml(const QString& html);
@@ -108,10 +113,6 @@ private:
 
     // クリック判定用： (row,ply) -> node item
     QMap<QPair<int,int>, QGraphicsPathItem*> m_nodeIndex;
-
-    // item->data 用ロールキー
-    static constexpr int ROLE_ROW = 0x501;
-    static constexpr int ROLE_PLY = 0x502;
 
     // ツリークリック検出
     bool eventFilter(QObject* obj, QEvent* ev) override;
