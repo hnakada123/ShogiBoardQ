@@ -2,6 +2,7 @@
 #include "kifurecordlistmodel.h"
 #include "kifubranchlistmodel.h"
 
+#include <QTextBrowser>
 #include <QTableView>
 #include <QHeaderView>
 #include <QAbstractItemView>
@@ -240,4 +241,14 @@ void RecordPane::onKifuRowsInserted(const QModelIndex&, int, int)
 void RecordPane::onKifuCurrentRowChanged(const QModelIndex& cur, const QModelIndex&)
 {
     emit mainRowChanged(cur.isValid() ? cur.row() : 0);
+}
+
+void RecordPane::setBranchCommentText(const QString& text)
+{
+    if (m_branchText) m_branchText->setPlainText(text);
+}
+
+void RecordPane::setBranchCommentHtml(const QString& html)
+{
+    if (m_branchText) m_branchText->setHtml(html);
 }

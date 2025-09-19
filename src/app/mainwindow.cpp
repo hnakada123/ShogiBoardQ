@@ -1976,10 +1976,11 @@ void MainWindow::displayGameRecord(const QList<KifDisplayItem> disp)
         view->setCurrentIndex(m_kifuRecordModel->index(0, 0));
 
         // コメント初期表示
-        if (m_analysisTab) {
+        if (m_analysisTab || m_recordPane) {
             const QString head = (0 < m_commentsByRow.size() ? m_commentsByRow[0].trimmed()
                                                              : QString());
-            m_analysisTab->setCommentText(head.isEmpty() ? tr("コメントなし") : head);
+            const QString toShow = head.isEmpty() ? tr("コメントなし") : head;
+            broadcastComment(toShow, /*asHtml=*/true);
         }
 
         // 行選択が変わったらコメントも更新
@@ -2017,13 +2018,7 @@ void MainWindow::updateBranchTextForRow(int row)
 
     // HTMLを使うならここで makeBranchHtml(raw) に置換
     const QString toShow = raw.isEmpty() ? tr("コメントなし") : raw;
-
-    // コメント表示は EngineAnalysisTab に集約
-    if (m_analysisTab) {
-        // setCommentText(const QString&) は前回ご案内の通り EngineAnalysisTab に追加済みの想定
-        m_analysisTab->setCommentText(toShow);
-    }
-    // 旧: m_branchText / m_branchTextInTab1 には一切触れない
+    broadcastComment(toShow, /*asHtml=*/true);
 }
 
 // 棋譜を1行だけUIへ反映する（ビジネスロジックなし / 表示専用）
@@ -4158,8 +4153,8 @@ void MainWindow::onKifuCurrentRowChanged(const QModelIndex& cur, const QModelInd
     if (row >= 0 && row < m_commentsByRow.size())
         text = m_commentsByRow[row].trimmed();
 
-    if (m_analysisTab)
-        m_analysisTab->setCommentText(text.isEmpty() ? tr("コメントなし") : text);
+    const QString toShow = text.isEmpty() ? tr("コメントなし") : text;
+    broadcastComment(toShow, /*asHtml=*/true);
 }
 
 void MainWindow::initMatchCoordinator()
@@ -4858,3 +4853,13 @@ void MainWindow::setReplayMode(bool on)
     }
 }
 
+void MainWindow::broadcastComment(const QString& text, bool asHtml)
+{
+    if (asHtml) {
+        if (m_analysisTab) m_analysisTab->setCommentHtml(text);
+        if (m_recordPane)  m_recordPane->setBranchCommentHtml(text);
+    } else {
+        if (m_analysisTab) m_analysisTab->setCommentText(text);
+        if (m_recordPane)  m_recordPane->setBranchCommentText(text);
+    }
+}

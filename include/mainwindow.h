@@ -390,6 +390,9 @@ private:
     void startConsidaration();     // 旧実装の呼び出しあり（綴りそのまま）
     void startTsumiSearch();       // 旧実装の呼び出しあり
 
+    // コメントを両画面にブロードキャスト
+    void broadcastComment(const QString& text, bool asHtml=false);
+
     // --- 小さなフォーマッタ ---
     static inline QString fmt_mmss(qint64 ms) {
         if (ms < 0) ms = 0;
@@ -398,7 +401,7 @@ private:
     static inline QString fmt_hhmmss(qint64 ms) {
         if (ms < 0) ms = 0;
         QTime t(0,0); return t.addMSecs(static_cast<int>(ms)).toString("hh:mm:ss");
-    }
+    }    
 
 private slots:
     // ========================================================
