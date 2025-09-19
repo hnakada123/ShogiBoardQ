@@ -2749,3 +2749,22 @@ void ShogiView::applyClockUrgency(qint64 activeRemainMs)
         setUrgencyVisuals(m_urgency);
     }
 }
+
+void ShogiView::clearTurnHighlight()
+{
+    // 非手番配色（薄いグレー背景/通常フォント）を両陣営へ適用
+    const QColor fg(51, 51, 51);
+    const QColor bg(239, 240, 241);
+    setLabelStyle(m_blackNameLabel,  fg, bg, 0, QColor(0,0,0,0), /*bold=*/false);
+    setLabelStyle(m_blackClockLabel, fg, bg, 0, QColor(0,0,0,0), /*bold=*/false);
+    setLabelStyle(m_whiteNameLabel,  fg, bg, 0, QColor(0,0,0,0), /*bold=*/false);
+    setLabelStyle(m_whiteClockLabel, fg, bg, 0, QColor(0,0,0,0), /*bold=*/false);
+
+    // 内部状態も「通常」に戻す（念のため）
+    m_urgency = Urgency::Normal;
+}
+
+// ShogiView.cpp
+void ShogiView::setUiMuted(bool on) {
+    m_uiMuted = on;
+}
