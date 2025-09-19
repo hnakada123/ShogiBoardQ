@@ -49,6 +49,13 @@ private slots:
 private:
     QMetaObject::Connection m_connRowChanged;
     QMetaObject::Connection m_connRowsInserted;
+
+public slots:
+    // プレーンテキストで分岐コメント欄に反映
+    void setBranchCommentText(const QString& text);
+
+    // HTMLで分岐コメント欄に反映（将来HTML対応したくなった時用）
+    void setBranchCommentHtml(const QString& html);
 };
 
 #endif // RECORDPANE_H
