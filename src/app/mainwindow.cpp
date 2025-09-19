@@ -3307,37 +3307,41 @@ void MainWindow::populateBranchListForPly(int ply)
     }
 }
 
+// ヘルパ（0→1 始まり）
+static inline QPoint toOne(const QPoint& z) { return QPoint(z.x() + 1, z.y() + 1); }
+
 void MainWindow::syncBoardAndHighlightsAtRow(int row)
 {
     if (!m_sfenRecord) return;
 
-    // sfen の最大インデックスは size-1（0=初期局面）
     const int last = m_sfenRecord->size() - 1;
     if (last < 0) return;
 
-    // row を安全な範囲にクリップ
     const int safeRow = qBound(0, row, last);
-
-    // 内部状態をまず揃える
     m_currentSelectedPly = safeRow;
     m_currentMoveIndex   = safeRow;
 
-    // 盤面 → ハイライト の順で更新
     if (m_boardController) {
         m_boardController->clearAllHighlights();
     }
 
     applySfenAtCurrentPly();
 
-    // 1手目以降なら直前の一手を再ハイライト
     if (m_boardController && safeRow > 0 && safeRow - 1 < m_gameMoves.size()) {
         const ShogiMove& lastMove = m_gameMoves.at(safeRow - 1);
-        const QPoint from = lastMove.fromSquare;
-        const QPoint to   = lastMove.toSquare;
-        m_boardController->showMoveHighlights(from, to);
-    } else {
-        // 必要ならデバッグログ
-        // qDebug() << "[SYNC] highlight skipped: row=" << safeRow << " gameMoves=" << m_gameMoves.size();
+
+        // ドロップ（持ち駒打ち）なら from は無効値の可能性あり（例: (-1,-1)）
+        const bool hasFrom =
+            (lastMove.fromSquare.x() >= 0 && lastMove.fromSquare.y() >= 0);
+
+        const QPoint to1   = toOne(lastMove.toSquare);
+        if (hasFrom) {
+            const QPoint from1 = toOne(lastMove.fromSquare);
+            m_boardController->showMoveHighlights(from1, to1);
+        } else {
+            // 打つ手は移動元をハイライトしない／もしくは駒台を別色で、など設計に応じて
+            m_boardController->showMoveHighlights(QPoint(), to1);
+        }
     }
 }
 
