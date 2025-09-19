@@ -4837,4 +4837,24 @@ void MainWindow::setReplayMode(bool on)
     if (m_match) {
         m_match->pokeTimeUpdateNow(); // 残時間ラベル等の静的更新だけ反映
     }
+
+    // ★ 再生モードの入/出でハイライト方針を切替
+    if (m_shogiView) {
+        m_shogiView->setUiMuted(on);
+        if (on) {
+            m_shogiView->clearTurnHighlight();   // 中立に
+        } else {
+            // 対局に戻る: 現手番・残時間から再適用
+            const bool p1turn = (m_gameController &&
+                                 m_gameController->currentPlayer() == ShogiGameController::Player1);
+            // ★ enum ではなく bool を渡す（true = 先手手番）
+            m_shogiView->setActiveSide(p1turn);  // or setBlackActive(p1turn); ※ヘッダに合わせて
+
+            // ★ Urgency は時計側の更新イベントで再適用させる
+            if (m_shogiClock) {
+                m_shogiClock->updateClock();   // timeUpdated が飛び、既存の結線で applyClockUrgency が呼ばれる想定
+            }
+        }
+    }
 }
+

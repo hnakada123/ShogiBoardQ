@@ -157,6 +157,11 @@ public:
     // まとめたいならこちらも用意可（任意）
     void configureFixedSizing(int squarePx = -1);
 
+    void clearTurnHighlight();
+
+    void setUiMuted(bool on);
+    bool uiMuted() const { return m_uiMuted; }
+
 public slots:
     // Q_PROPERTY 用 setter（レイアウト更新・ラベル再配置を含む）
     void setFieldSize(QSize fieldSize);
@@ -374,6 +379,8 @@ private:
     // ログスパム防止（前回値と同じなら出力しない）
     qint64 m_lastLoggedBlackMs = -2;
     qint64 m_lastLoggedWhiteMs = -2;
+
+    bool m_uiMuted = false;
 };
 
 #endif // SHOGIVIEW_H
