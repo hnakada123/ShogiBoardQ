@@ -16,29 +16,28 @@ void KifuVariationEngine::ingest(const KifParseResult& res,
                                  const QVector<UsiMove>& usiMain,
                                  const QList<KifDisplayItem>& dispMain)
 {
+    qDebug() << "[VE] ingest() begin";
     m_dispMain = dispMain;
     m_usiMain  = usiMain;
     m_vars.clear();
     m_idx.clear();
 
-    // 1) 本譜
+    // 本譜
     {
         Variation v;
-        v.id = 0;
-        v.fileOrder = 0;
-        v.isMainline = true;
+        v.id = 0; v.fileOrder = 0; v.isMainline = true;
         v.startPly = 1;
-        v.disp = dispMain;
-        v.usi  = usiMain;
+        v.disp = dispMain; v.usi = usiMain;
         m_vars.push_back(v);
 
         for (int li=0; li<v.disp.size(); ++li) {
-            const int ply = v.startPly + li; // = li+1
+            const int ply = v.startPly + li;
             m_idx[ply].push_back({v.id, li});
         }
+        qDebug().nospace() << "[VE] mainline: moves=" << v.disp.size();
     }
 
-    // 2) 変化（KIF の登場順で fileOrder=1..）
+    // 変化
     int order = 1;
     int nextId = 1;
     for (const KifVariation& kv : res.variations) {
@@ -57,18 +56,35 @@ void KifuVariationEngine::ingest(const KifParseResult& res,
             const int ply = v.startPly + li;
             m_idx[ply].push_back({v.id, li});
         }
+        qDebug().nospace() << "[VE] var id=" << v.id
+                           << " start=" << v.startPly
+                           << " len=" << v.disp.size();
+    }
+
+    // インデックス概要
+    qDebug() << "[VE] ingest() built index:";
+    for (auto it = m_idx.constBegin(); it != m_idx.constEnd(); ++it) {
+        qDebug().nospace() << "  ply " << it.key() << " -> count " << it.value().size();
     }
 }
 
 QList<BranchCandidate> KifuVariationEngine::branchCandidatesForPly(int ply,
                                                                    bool includeMainline) const
 {
-    QList<BranchCandidate> out;
-    const auto it = m_idx.find(ply);
-    if (it == m_idx.end()) return out;
+    qDebug().nospace() << "[VE] branchCandidatesForPly ply=" << ply
+                       << " includeMainline=" << includeMainline;
 
-    // 表示順は 本譜→変化(登場順)。
-    auto pairs = it.value(); // QVector<QPair<int,int>>
+    QList<BranchCandidate> out;
+
+    const auto it = m_idx.find(ply);
+    if (it == m_idx.end()) {
+        qDebug() << "[VE] no index for ply -> 0 candidates";
+        return out;
+    }
+
+    auto pairs = it.value(); // QVector<QPair<int,int>> (variationId, localIndex)
+    qDebug().nospace() << "[VE] raw pairs=" << pairs.size();
+
     std::sort(pairs.begin(), pairs.end(), [&](auto a, auto b){
         const auto& va = m_vars[a.first];
         const auto& vb = m_vars[b.first];
@@ -77,22 +93,37 @@ QList<BranchCandidate> KifuVariationEngine::branchCandidatesForPly(int ply,
     });
 
     QSet<QString> seen;
+    int n = 0;
     for (auto [vid, li] : pairs) {
         const auto& v = m_vars[vid];
-        if (!includeMainline && v.isMainline) continue;
+        if (!includeMainline && v.isMainline) {
+            qDebug().nospace() << "  skip mainline vid=" << vid << " li=" << li;
+            continue;
+        }
         const auto& d = v.disp[li];
 
         BranchCandidate c;
-        c.label = pickLabel(d);
-        if (seen.contains(c.label)) continue; // 重複ラベル除去（必要に応じて厳密判定へ）
-        seen.insert(c.label);
-
+        c.label       = pickLabel(d);
         c.variationId = vid;
         c.ply         = ply;
         c.isBlack     = isBlackOnPly(ply);
         c.isMainline  = v.isMainline;
+
+        if (seen.contains(c.label)) {
+            qDebug().nospace() << "  drop dup label=" << c.label;
+            continue;
+        }
+        seen.insert(c.label);
         out.push_back(std::move(c));
+
+        qDebug().nospace() << "  [" << (n++) << "] vid=" << vid
+                           << " li=" << li
+                           << " start=" << v.startPly
+                           << " label=" << d.prettyMove
+                           << " isMain=" << v.isMainline;
     }
+
+    qDebug().nospace() << "[VE] produced candidates=" << out.size();
     return out;
 }
 

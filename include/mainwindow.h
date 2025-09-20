@@ -10,6 +10,7 @@
 #include <QStyledItemDelegate>
 #include <QTableWidget>
 #include <QTime>
+#include <QVBoxLayout>
 
 // ==============================
 // Project includes (types used by value ＝前方宣言できないもの優先)
@@ -40,6 +41,7 @@
 #include "engineanalysistab.h"
 #include "boardinteractioncontroller.h"
 #include "kifuvariationengine.h"
+#include "branchcandidatescontroller.h"
 
 // ==============================
 // Macros / aliases
@@ -504,9 +506,28 @@ private slots:
 private slots:
     void onKifuPlySelected(int ply);
     void onBranchCandidateActivated(const QModelIndex& index); // QModelIndex 版に変更
+
+    // BranchCandidatesController → MainWindow
+    void onApplyResolvedLine(const ResolvedLine& line);
+    void onBackToMainlineRequested();
+
+    void onApplyLineRequested_(const QList<KifDisplayItem>& disp,
+                               const QList<QString>& usiStrs);
+
 private:
     QVector<int> m_branchVarIds;   // 行→variationId の対応（末尾の「本譜へ戻る」は -1）
     int m_branchPlyContext = -1;   // どの ply の候補か（必要なら使用）
+
+    // --- MainWindow.h にメンバを追加 ---
+    QWidget*     m_central = nullptr;
+    QVBoxLayout* m_centralLayout = nullptr;
+
+    BranchCandidatesController* m_branchCtl = nullptr;
+
+    void setupBranchCandidatesWiring_();
+
+    void populateBranchCandidates_(int ply);
+    void setupBranchView_();
 };
 
 #endif // MAINWINDOW_H
