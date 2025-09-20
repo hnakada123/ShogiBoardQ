@@ -1654,11 +1654,11 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
         applyPlayersFromGameInfo(infoItems);
     }
 
-    // 本譜
+    // 本譜（表示／USI）
     const QList<KifDisplayItem>& disp = res.mainline.disp;
     m_usiMoves = res.mainline.usiMoves;
 
-    // 終局/中断判定（本譜末尾の見た目テキストで判定）
+    // 終局/中断判定（見た目文字列で簡易判定）
     static const QStringList kTerminalKeywords = {
         QStringLiteral("投了"), QStringLiteral("中断"), QStringLiteral("持将棋"),
         QStringLiteral("千日手"), QStringLiteral("切れ負け"),
@@ -1678,30 +1678,30 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
         return;
     }
 
-    // 3) 本譜のSFEN列と m_gameMoves を再構築
+    // 3) 本譜の SFEN 列と m_gameMoves を再構築
     rebuildSfenRecord(initialSfen, m_usiMoves, hasTerminal);
     rebuildGameMoves(initialSfen, m_usiMoves);
 
     // 4) 棋譜表示へ反映（本譜）
     displayGameRecord(disp);
 
-    // ★★★ 追加：本譜スナップショットを保存（buildResolvedLinesAfterLoadの材料）
-    m_dispMain = disp;
-    m_sfenMain = *m_sfenRecord;   // 0..N のSFEN列
-    m_gmMain   = m_gameMoves;     // 1..N のUSIムーブ
+    // 5) 本譜スナップショットを保持（以降の解決・描画に使用）
+    m_dispMain = disp;          // 表示列（1..N）
+    m_sfenMain = *m_sfenRecord; // 0..N の局面列
+    m_gmMain   = m_gameMoves;   // 1..N のUSIムーブ
 
-    // ★★★ 追加：（任意だが推奨）分岐のバケツ化と順序リスト
+    // 6) 変化を取りまとめ（startPly を保持した順序列と、手数ごとのバケツ）
     m_variationsByPly.clear();
     m_variationsSeq.clear();
     for (const KifVariation& kv : res.variations) {
         KifLine L = kv.line;
-        L.startPly = kv.startPly;
+        L.startPly = kv.startPly;         // ← “その変化が始まる絶対手数（1-origin）”
         if (L.disp.isEmpty()) continue;
         m_variationsByPly[L.startPly].push_back(L);
-        m_variationsSeq.push_back(L);
+        m_variationsSeq.push_back(L);     // 入力順（KIF出現順）を保持
     }
 
-    // 5) テーブル初期選択（RecordPane経由）
+    // 7) 棋譜テーブルの初期選択（開始局面を選択）
     if (m_recordPane && m_recordPane->kifuView()) {
         QTableView* view = m_recordPane->kifuView();
         if (view->model() && view->model()->rowCount() > 0) {
@@ -1714,35 +1714,35 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
         }
     }
 
-    // ★★★ ここから追加：最小構成の解決済み行を作る
+    // 8) 最小の解決行（本譜のみ）を作って 0手を適用
     {
         m_resolvedRows.clear();
 
         ResolvedRow r;
         r.startPly = 1;
-        r.disp     = disp;           // 本譜の表示列（1..N）
-        r.sfen     = *m_sfenRecord;  // 0..N のSFEN
-        r.gm       = m_gameMoves;    // 1..N のUSIムーブ
-        r.varIndex = -1;             // 本譜
+        r.disp     = disp;          // 1..N
+        r.sfen     = *m_sfenRecord; // 0..N
+        r.gm       = m_gameMoves;   // 1..N
+        r.varIndex = -1;            // 本譜
 
         m_resolvedRows.push_back(r);
         m_activeResolvedRow = 0;
         m_activePly         = 0;
-
-        // 0手目（開始局面）を適用
         applyResolvedRowAndSelect(/*row=*/0, /*selPly=*/0);
     }
 
-    // 6) そのほか UI の整合
+    // 9) UIの整合
     enableArrowButtons();
     logImportSummary(filePath, m_usiMoves, disp, teaiLabel, parseWarn, QString());
 
-    // ★★★（重要な変更点）“簡易反映”を削除：開始局面で候補を強制表示しない
+    // 10) （重要）開始局面で分岐候補を強制表示しない
+    //     ※ ここでは m_kifuBranchModel を触らない
 
-    // 8) 「後勝ち」で解決済み行を構築（既存実装）
+    // 11) 解決済み行を構築 ――「後勝ち」ではなく“親探索規則”で親子関係を決定
+    //     （buildResolvedLinesAfterLoad は新ルール版を使用）
     buildResolvedLinesAfterLoad();
 
-    // 9) EngineAnalysisTab へ分岐ツリー行データを供給
+    // 12) 分岐ツリーへ供給
     if (m_analysisTab) {
         QVector<EngineAnalysisTab::ResolvedRowLite> rows;
         rows.reserve(m_resolvedRows.size());
@@ -1757,44 +1757,32 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
         m_analysisTab->highlightBranchTreeAt(/*row=*/0, /*ply=*/0, /*centerOn=*/true);
     }
 
-    // 10) ログ（任意）
-    logImportSummary(filePath, m_usiMoves, disp, teaiLabel, parseWarn, QString());
-
-    // 11) VariationEngine に投入
+    // 13) VariationEngine に投入（候補生成の下地）
     if (!m_varEngine) m_varEngine = std::make_unique<KifuVariationEngine>();
     {
-        // m_usiMoves (USI 文字列列) → QVector<UsiMove> に詰め替え
         QVector<UsiMove> usiMain;
         usiMain.reserve(m_usiMoves.size());
-        for (const auto& u : m_usiMoves) {
-            usiMain.push_back(UsiMove(u));  // using UsiMove = QString; or 変換コンストラクタ
-        }
+        for (const auto& u : m_usiMoves) usiMain.push_back(UsiMove(u));
         m_varEngine->ingest(res, m_sfenMain, usiMain, m_dispMain);
     }
 
-    // ★★★ 12) コントローラへエンジンを注入し、現在の選択手で候補を初期更新
-    // コントローラ未生成ならここで配線を用意（内部で ve=null でもOK。直後に setEngine する）
+    // 14) ブランチ候補ワイヤリング（開始局面での強制表示は行わない）
     if (!m_branchCtl) {
-        setupBranchCandidatesWiring_();
+        setupBranchCandidatesWiring_();   // RecordPane のシグナル→コントローラ→モデル
     }
     if (m_branchCtl) {
         m_branchCtl->setEngine(m_varEngine.get());
-        qDebug() << "[WIRE] BranchCandidatesController::setEngine done ve="
-                 << (void*)m_varEngine.get();
 
-        // 今の選択行から ply を取得（0=startpos, 1=1手目, ...）
+        // 現在の選択行（開始局面）から ply を取得
         int ply = 0;
         if (m_recordPane && m_recordPane->kifuView() && m_recordPane->kifuView()->selectionModel()) {
             const int row = m_recordPane->kifuView()->selectionModel()->currentIndex().row();
-            ply = std::max(0, row);
+            ply = std::max(0, row);       // 0=startpos, 1=1手目, ...
         }
-        const bool includeMainline = (ply > 0);
-        qDebug() << "[WIRE] initial refreshCandidatesForPly ply=" << ply
-                 << " includeMainline=" << includeMainline;
-
+        const bool includeMainline = (ply > 0); // 0手目では本譜手は提示しない
         m_branchCtl->refreshCandidatesForPly(ply, includeMainline);
     } else if (m_kifuBranchModel) {
-        // 最低限のフォールバック（モデルだけクリア）
+        // フォールバック：モデルだけクリア
         m_kifuBranchModel->clearBranchCandidates();
         m_kifuBranchModel->setHasBackToMainRow(false);
     }
@@ -3503,64 +3491,84 @@ void MainWindow::onBranchCandidateActivated(const QModelIndex& index)
 
 void MainWindow::buildResolvedLinesAfterLoad()
 {
+    // 本関数は「後勝ち」をやめ、各変化の“親”を
+    // 直前→さらに前…と遡って「b(=この変化の startPly) > a(=先行変化の startPly)」
+    // を満たす最初の変化行にする（無ければ本譜 row=0）という規則で構築する。
+
     m_resolvedRows.clear();
 
     // --- 行0 = 本譜 ---
     ResolvedRow mainRow;
     mainRow.startPly = 1;
-    mainRow.disp     = m_dispMain;   // 表示用
-    mainRow.sfen     = m_sfenMain;   // 0..N（本譜の再生済み）
-    mainRow.gm       = m_gmMain;     // USI列
-    mainRow.varIndex = -1;
+    mainRow.disp     = m_dispMain;   // 1..N（表示）
+    mainRow.sfen     = m_sfenMain;   // 0..N（局面）
+    mainRow.gm       = m_gmMain;     // 1..N（USIムーブ）
+    mainRow.varIndex = -1;           // 本譜
     m_resolvedRows.push_back(mainRow);
 
-    // --- 行1.. = 分岐（後勝ちプレフィクス + 自身） ---
-    for (int vi = 0; vi < m_variationsSeq.size(); ++vi) {
-        const KifLine& v = m_variationsSeq.at(vi);
-        if (v.disp.isEmpty()) continue;
+    if (m_variationsSeq.isEmpty()) {
+#ifdef SHOGIBOARDQ_DEBUG_KIF
+        qDebug().noquote() << "[RESOLVED] only mainline (no variations).";
+#endif
+        return;
+    }
 
-        const int start = qMax(1, v.startPly);
+    // 変化 vi → 解決済み行 index の写像（empty の変化は -1）
+    QVector<int> varToRowIndex(m_variationsSeq.size(), -1);
 
-        // 1) プレフィクス(1..start-1) を本譜で初期化
-        QList<KifDisplayItem> prefixDisp = m_dispMain.mid(0, start - 1); // 手目は1始まり→indexは0始まり
-        QVector<ShogiMove>    prefixGm   = m_gmMain.mid(0, start - 1);
-        QStringList           prefixSfen = m_sfenMain.mid(0, start);     // 0..start-1 の局面
-
-        // 2) それ以前に登場した分岐で “後勝ち” 上書き
-        //    disp / gm に加え、sfen も u.sfenList で該当範囲を上書きする
-        for (int uj = 0; uj < vi; ++uj) {
-            const KifLine& u = m_variationsSeq.at(uj);
-            if (u.disp.isEmpty()) continue;
-
-            const int uStart = qMax(1, u.startPly);
-            const int uEnd   = uStart + u.disp.size() - 1;
-            const int endCol = qMin(start - 1, uEnd);  // プレフィクス内で上書き可能な終端
-            if (endCol < uStart) continue;
-
-            // sfenList は「基底（uStart-1手目後）」が index=0、以降の各手後が +1 で入っている想定
-            // まず基底（uStart-1手目後）を安全に反映
-            if (!u.sfenList.isEmpty() && uStart - 1 < prefixSfen.size()) {
-                prefixSfen[uStart - 1] = u.sfenList.at(0);
-            }
-
-            for (int col = uStart; col <= endCol; ++col) {
-                const int idx = col - 1;          // disp/gm のインデックス
-                const int off = col - uStart;     // u 内のオフセット（0始まり）
-
-                if (0 <= idx && idx < prefixDisp.size() && 0 <= off && off < u.disp.size())
-                    prefixDisp[idx] = u.disp.at(off);
-
-                if (0 <= idx && idx < prefixGm.size() && 0 <= off && off < u.gameMoves.size())
-                    prefixGm[idx] = u.gameMoves.at(off);
-
-                // sfen：col 手目後 = u.sfenList[off+1]
-                const int sfenIdx = off + 1;
-                if (col < prefixSfen.size() && 0 <= sfenIdx && sfenIdx < u.sfenList.size())
-                    prefixSfen[col] = u.sfenList.at(sfenIdx);
+    // 親行を解決するローカルラムダ：
+    // 直前→さらに前…へ遡り、startPly(prev) < startPly(cur) を満たす
+    // 先行変化を見つけたら、その変化の“解決済み行 index”を返す。無ければ 0（本譜）。
+    auto resolveParentRowIndex = [&](int vi)->int {
+        const int b = qMax(1, m_variationsSeq.at(vi).startPly);
+        for (int prev = vi - 1; prev >= 0; --prev) {
+            const KifLine& p = m_variationsSeq.at(prev);
+            if (p.disp.isEmpty()) continue;          // 空の変化は親候補にしない
+            const int a = qMax(1, p.startPly);
+            if (b > a && varToRowIndex.at(prev) >= 0) {
+                return varToRowIndex.at(prev);        // その変化の“行 index”
             }
         }
+        return 0; // 見つからなければ本譜
+    };
 
-        // 3) 分岐本体と連結して “行” を確定
+    // --- 行1.. = 各変化 ---
+    for (int vi = 0; vi < m_variationsSeq.size(); ++vi) {
+        const KifLine& v = m_variationsSeq.at(vi);
+        if (v.disp.isEmpty()) {
+            varToRowIndex[vi] = -1;
+            continue;
+        }
+
+        const int start = qMax(1, v.startPly);   // 1-origin
+        const int parentRow = resolveParentRowIndex(vi);
+        const ResolvedRow& base = m_resolvedRows.at(parentRow);
+
+        // 1) プレフィクス（1..start-1）を“親行”から切り出し、足りない分は本譜で補完
+        QList<KifDisplayItem> prefixDisp = base.disp;
+        if (prefixDisp.size() > start - 1) prefixDisp.resize(start - 1);
+
+        QVector<ShogiMove> prefixGm = base.gm;
+        if (prefixGm.size() > start - 1) prefixGm.resize(start - 1);
+
+        QStringList prefixSfen = base.sfen;
+        if (prefixSfen.size() > start) prefixSfen.resize(start);
+
+        // 親行が短い場合は本譜で延長（disp/gm/sfen を一致させる）
+        while (prefixDisp.size() < start - 1 && prefixDisp.size() < m_dispMain.size()) {
+            const int idx = prefixDisp.size(); // 0.. → 手数は idx+1
+            prefixDisp.append(m_dispMain.at(idx));
+        }
+        while (prefixGm.size() < start - 1 && prefixGm.size() < m_gmMain.size()) {
+            const int idx = prefixGm.size();
+            prefixGm.append(m_gmMain.at(idx));
+        }
+        while (prefixSfen.size() < start && prefixSfen.size() < m_sfenMain.size()) {
+            const int sidx = prefixSfen.size(); // 0.. → sfen は 0=初期,1=1手後...
+            prefixSfen.append(m_sfenMain.at(sidx));
+        }
+
+        // 2) 変化本体を連結
         ResolvedRow row;
         row.startPly = start;
         row.varIndex = vi;
@@ -3571,24 +3579,31 @@ void MainWindow::buildResolvedLinesAfterLoad()
         row.gm = prefixGm;
         row.gm += v.gameMoves;
 
-        row.sfen = prefixSfen;                 // 0..start-1 は上で“後勝ち”反映済み
-        if (v.sfenList.size() >= 2)            // v.sfenList[0] は基底（start-1手目後）
-            row.sfen += v.sfenList.mid(1);     // start.. の各手後局面を接続
+        // v.sfenList は [0]=基底（start-1 手後）, [1..]=各手後 を想定
+        row.sfen = prefixSfen;                  // 0..start-1 は既に parent→本譜で整合
+        if (v.sfenList.size() >= 2) {
+            row.sfen += v.sfenList.mid(1);      // start.. の各手後
+        } else if (v.sfenList.size() == 1) {
+            // 念のため：基底のみしか無い場合でも、prefix は揃っているので何もしない
+        }
 
+        // 追加
         m_resolvedRows.push_back(row);
+        varToRowIndex[vi] = m_resolvedRows.size() - 1;
     }
 
 #ifdef SHOGIBOARDQ_DEBUG_KIF
     qDebug().noquote() << "[RESOLVED] lines=" << m_resolvedRows.size();
-    for (int i=0;i<m_resolvedRows.size();++i) {
+    for (int i = 0; i < m_resolvedRows.size(); ++i) {
         const auto& r = m_resolvedRows[i];
         QStringList pm; pm.reserve(r.disp.size());
         for (const auto& d : r.disp) pm << d.prettyMove;
         qDebug().noquote()
             << "  [" << (i==0?"Main":QString("Var%1").arg(r.varIndex)) << "]"
-            << " start=" << r.startPly
-            << " ndisp=" << r.disp.size()
-            << " nsfen=" << r.sfen.size()
+            << " parent=" << (i==0? -1 : resolveParentRowIndex(r.varIndex))   // 参考
+            << " start="  << r.startPly
+            << " ndisp="  << r.disp.size()
+            << " nsfen="  << r.sfen.size()
             << " seq=「 " << pm.join(" / ") << " 」";
     }
 #endif
