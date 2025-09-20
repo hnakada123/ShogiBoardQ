@@ -3,7 +3,8 @@
 
 #include <QString>
 #include <QtGlobal>
-#include <QMetaType>   // ★ これが無いと Q_DECLARE_METATYPE が未定義でエラー
+#include <QMetaType>
+#include <QList>     // ← 追加
 
 struct KifDisplayItem
 {
@@ -27,6 +28,8 @@ struct KifDisplayItem
     bool operator!=(const KifDisplayItem& o) const noexcept { return !(*this == o); }
 };
 
+// ★ メタタイプ宣言はこのヘッダに「1か所だけ」
 Q_DECLARE_METATYPE(KifDisplayItem)
+Q_DECLARE_METATYPE(QList<KifDisplayItem>)   // ← これが無いと QList<...> の接続でコケます
 
 #endif // KIFDISPLAYITEM_H
