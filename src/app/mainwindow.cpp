@@ -1636,6 +1636,9 @@ inline QPoint dropFromSquare(QChar dropUpper, bool black) {
 // ===================== 司令塔 =====================
 void MainWindow::loadKifuFromFile(const QString& filePath)
 {
+    // --- IN ログ ---
+    qDebug().noquote() << "[MAIN] loadKifuFromFile IN file=" << filePath;
+
     setReplayMode(true);
 
     // 1) 初期局面（手合割）を決定
@@ -1675,6 +1678,7 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
     if (m_usiMoves.isEmpty() && !hasTerminal && disp.isEmpty()) {
         QMessageBox::warning(this, tr("読み込み失敗"),
                              tr("%1 から指し手を取得できませんでした。").arg(filePath));
+        qDebug().noquote() << "[MAIN] loadKifuFromFile OUT (no moves)";
         return;
     }
 
@@ -1736,10 +1740,8 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
     logImportSummary(filePath, m_usiMoves, disp, teaiLabel, parseWarn, QString());
 
     // 10) （重要）開始局面で分岐候補を強制表示しない
-    //     ※ ここでは m_kifuBranchModel を触らない
 
-    // 11) 解決済み行を構築 ――「後勝ち」ではなく“親探索規則”で親子関係を決定
-    //     （buildResolvedLinesAfterLoad は新ルール版を使用）
+    // 11) 解決済み行を構築（親探索規則で親子関係を決定）
     buildResolvedLinesAfterLoad();
 
     // 12) 分岐ツリーへ供給
@@ -1757,7 +1759,7 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
         m_analysisTab->highlightBranchTreeAt(/*row=*/0, /*ply=*/0, /*centerOn=*/true);
     }
 
-    // 13) VariationEngine に投入（候補生成の下地）
+    // 13) VariationEngine に投入
     if (!m_varEngine) m_varEngine = std::make_unique<KifuVariationEngine>();
     {
         QVector<UsiMove> usiMain;
@@ -1766,11 +1768,14 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
         m_varEngine->ingest(res, m_sfenMain, usiMain, m_dispMain);
     }
 
-    // 14) ブランチ候補ワイヤリング（開始局面での強制表示は行わない）
+    qDebug() << "m_branchCtl: " << m_branchCtl;
+
+    // 14) ブランチ候補ワイヤリング（★prevSfen を渡す版）
     if (!m_branchCtl) {
-        setupBranchCandidatesWiring_();   // RecordPane のシグナル→コントローラ→モデル
+        setupBranchCandidatesWiring_();
     }
     if (m_branchCtl) {
+        qDebug() << "m_varEngine: " << m_varEngine.get();
         m_branchCtl->setEngine(m_varEngine.get());
 
         // 現在の選択行（開始局面）から ply を取得
@@ -1780,12 +1785,36 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
             ply = std::max(0, row);       // 0=startpos, 1=1手目, ...
         }
         const bool includeMainline = (ply > 0); // 0手目では本譜手は提示しない
-        m_branchCtl->refreshCandidatesForPly(ply, includeMainline);
+
+        // ★ 直前の局面（ply-1）の SFEN を“現在の解決行”から取得して文脈に渡す
+        QString prevSfen;
+        int rix = 0;
+        if (m_activeResolvedRow >= 0 && m_activeResolvedRow < m_resolvedRows.size()) {
+            rix = m_activeResolvedRow;
+        }
+        if (ply > 0 && rix >= 0 && rix < m_resolvedRows.size()) {
+            const auto& rr = m_resolvedRows.at(rix);
+            if (ply-1 >= 0 && ply-1 < rr.sfen.size()) {
+                prevSfen = rr.sfen.at(ply-1); // ★ ply-1 手後の局面
+            }
+        }
+
+        qDebug().noquote() << "[MAIN] branch init"
+                           << " ply=" << ply
+                           << " includeMainline=" << includeMainline
+                           << " rix=" << rix
+                           << " prevSfen=" << (prevSfen.isEmpty() ? "<EMPTY>" : prevSfen);
+
+        // ★ 文脈付きの 3 引数版を必ず呼ぶ
+        m_branchCtl->refreshCandidatesForPly(ply, includeMainline, prevSfen);
     } else if (m_kifuBranchModel) {
         // フォールバック：モデルだけクリア
         m_kifuBranchModel->clearBranchCandidates();
         m_kifuBranchModel->setHasBackToMainRow(false);
     }
+
+    // --- OUT ログ ---
+    qDebug().noquote() << "[MAIN] loadKifuFromFile OUT";
 }
 
 // ===================== ヘルパ実装 =====================
@@ -3595,13 +3624,30 @@ void MainWindow::buildResolvedLinesAfterLoad()
     }
 
     qDebug().noquote() << "[RESOLVED] lines=" << m_resolvedRows.size();
+
+    auto varIdOf = [&](int varIndex)->int {
+        if (varIndex < 0) return -1; // 本譜
+        if (m_varEngine) {
+            const int id = m_varEngine->varIdForSourceIndex(varIndex);
+            return (id >= 0) ? id : (varIndex + 1); // フォールバック
+        }
+        return varIndex + 1; // 既存仕様に準拠（空行スキップ条件が一致している前提）
+    };
+
     for (int i = 0; i < m_resolvedRows.size(); ++i) {
         const auto& r = m_resolvedRows[i];
         QStringList pm; pm.reserve(r.disp.size());
         for (const auto& d : r.disp) pm << d.prettyMove;
+
+        const bool isMain = (i == 0);
+        const int  parentShown = isMain ? -1 : resolveParentRowIndex(r.varIndex);
+        const QString label = isMain
+                                  ? "Main"
+                                  : QString("Var%1(id=%2)").arg(r.varIndex).arg(varIdOf(r.varIndex)); // ★ id 併記
+
         qDebug().noquote()
-            << "  [" << (i==0?"Main":QString("Var%1").arg(r.varIndex)) << "]"
-            << " parent=" << (i==0? -1 : resolveParentRowIndex(r.varIndex))   // 参考
+            << "  [" << label << "]"
+            << " parent=" << parentShown
             << " start="  << r.startPly
             << " ndisp="  << r.disp.size()
             << " nsfen="  << r.sfen.size()
@@ -3611,6 +3657,10 @@ void MainWindow::buildResolvedLinesAfterLoad()
 
 void MainWindow::applyResolvedRowAndSelect(int row, int selPly)
 {
+    //begin
+    qDebug().noquote() << "--- applyResolvedRowAndSelect(row=" << row << ", selPly=" << selPly << ") called.";
+    //end
+
     if (row < 0 || row >= m_resolvedRows.size()) {
         qDebug() << "[APPLY] invalid row =" << row << " rows=" << m_resolvedRows.size();
         return;
@@ -4921,6 +4971,10 @@ void MainWindow::broadcastComment(const QString& text, bool asHtml)
 
 void MainWindow::setupBranchCandidatesWiring_()
 {
+    //begin
+    qDebug() << "[WIRE] setupBranchCandidatesWiring_ ENTER";
+    //end
+
     if (!m_recordPane) {
         qWarning() << "[WIRE] no RecordPane; skip setupBranchCandidatesWiring_";
         return;

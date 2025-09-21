@@ -24,10 +24,10 @@ public slots:
     // 分岐候補ビューでのクリック（RecordPane 等から QModelIndex を受け取る）
     void activateCandidate(const QModelIndex& index);
 
-    void refreshCandidatesForPly(int ply, bool includeMainline = false);
-
     void refreshForPly(int ply) { refreshCandidatesForPly(ply, /*includeMainline=*/false); } // ← 委譲
 
+    void refreshCandidatesForPly(int ply, bool includeMainline);                    // 既存
+    void refreshCandidatesForPly(int ply, bool includeMainline, const QString& prevSfen); // ★追加
 
 signals:
     // MainWindow 側で display/rebuild を行うための通知

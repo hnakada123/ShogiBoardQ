@@ -50,17 +50,25 @@ void BranchCandidatesController::activateCandidate(const QModelIndex& index)
     emit applyLineRequested(line.disp, usiList);
 }
 
-void BranchCandidatesController::refreshCandidatesForPly(int ply, bool includeMainline)
+// 本体（文脈 prevSfen つき）
+void BranchCandidatesController::refreshCandidatesForPly(int ply,
+                                                         bool includeMainline,
+                                                         const QString& prevSfen)
 {
     if (!m_ve || !m_model) {
         qDebug() << "[BRANCH-CTL] missing ve/model; abort";
         return;
     }
 
-    // 候補を取得
-    auto cs = m_ve->branchCandidatesForPly(ply, includeMainline);
+    qDebug().noquote()
+        << "[BRANCH-CTL] refresh ply=" << ply
+        << " includeMainline=" << includeMainline
+        << " prevSfen=" << (prevSfen.isEmpty() ? "<EMPTY>" : prevSfen);
 
-    // ★ 修正: 「includeMainline=true かつ 候補数=1」⇒ 本譜だけ = 分岐なし → 非表示
+    // エンジンへ（★ 文脈 SFEN を渡す）
+    auto cs = m_ve->branchCandidatesForPly(ply, includeMainline, prevSfen);
+
+    // 本譜のみしか無いなら非表示
     if (includeMainline && cs.size() <= 1) {
         m_model->clearBranchCandidates();
         m_model->setHasBackToMainRow(false);
@@ -68,15 +76,23 @@ void BranchCandidatesController::refreshCandidatesForPly(int ply, bool includeMa
         return;
     }
 
-    // ここから「分岐あり」だけモデル反映
+    // 候補をモデルに反映
     QList<KifDisplayItem> items;
     items.reserve(cs.size());
+    int i = 0;
     for (const auto& c : cs) {
-        // c.label を使って表示ラベル作成（従来どおり）
         items.push_back(KifDisplayItem{ c.label, QString() });
+        qDebug().noquote()
+            << "  [BRANCH-CTL] item[" << i++ << "]=" << c.label;
     }
 
     m_model->setBranchCandidatesFromKif(items);
-    // 「戻る」を付けるのは “本譜+分岐” を並べた場合のみ
     m_model->setHasBackToMainRow(includeMainline && cs.size() > 1);
+}
+
+// 互換ラッパ（prevSfen を渡し忘れた経路の早期検知用）
+void BranchCandidatesController::refreshCandidatesForPly(int ply, bool includeMainline)
+{
+    qWarning() << "[BRANCH-CTL] WARN: called without prevSfen; context filter disabled";
+    refreshCandidatesForPly(ply, includeMainline, QString{});
 }
