@@ -59,15 +59,31 @@ public:
     // 分岐候補がクリックされた際：後勝ちで一本の列を合成して返す
     ResolvedLine resolveAfterWins(int variationId) const;
 
+    // ★追加: RESOLVED 側から「VarN(=sourceIndex)に対応する id」を知るための API
+    int varIdForSourceIndex(int sourceIndex) const {
+        auto it = m_sourceToId.find(sourceIndex);
+        return (it == m_sourceToId.end()) ? -1 : it.value();
+    }
+
+    QList<BranchCandidate> branchCandidatesForPly(int ply,
+                                                  bool includeMainline,
+                                                  const QString& contextPrevSfen) const;
+
 private:
     struct Variation {
         int id = -1;
-        int fileOrder = 0;     // KIF登場順。本譜=0、変化=1,2,…
-        int startPly = 1;
-        QList<KifDisplayItem> disp;  // 表示列
-        QVector<UsiMove>      usi;   // USI列（disp と同じ長さ or 空でも可）
+        int fileOrder = -1;
         bool isMainline = false;
+        int startPly = 1;
+        QList<KifDisplayItem> disp;
+        QVector<UsiMove>      usi;
+
+        int sourceIndex = -1;         // 既存（前に追加済み）
+        QList<QString> sfen;          // ★追加：0..(手数) の局面。mainは初期局面を含む
+        // 変化は [0]=startPly-1手後（基底）, [1..]=各手後 の想定
     };
+
+    QString prevSfenFor(int vid, int li) const;
 
     // インデックス
     QList<KifDisplayItem> m_dispMain;    // 本譜 1..N
@@ -77,6 +93,8 @@ private:
     QHash<int, QVector<QPair<int,int>>> m_idx;
 
     static QString pickLabel(const KifDisplayItem& d); // "１六歩(17)" を返す（prettyMove 流用）
+
+    QHash<int,int> m_sourceToId;  // ★追加: key=sourceIndex(vi), value=variation id
 };
 
 #endif // KIFUVARIATIONENGINE_H
