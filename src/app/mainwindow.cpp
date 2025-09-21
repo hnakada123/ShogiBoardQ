@@ -3491,6 +3491,10 @@ void MainWindow::onBranchCandidateActivated(const QModelIndex& index)
 
 void MainWindow::buildResolvedLinesAfterLoad()
 {
+    //begin
+    qDebug().noquote() << "--- buildResolvedLinesAfterLoad() called.";
+    //end
+
     // 本関数は「後勝ち」をやめ、各変化の“親”を
     // 直前→さらに前…と遡って「b(=この変化の startPly) > a(=先行変化の startPly)」
     // を満たす最初の変化行にする（無ければ本譜 row=0）という規則で構築する。
@@ -3507,9 +3511,7 @@ void MainWindow::buildResolvedLinesAfterLoad()
     m_resolvedRows.push_back(mainRow);
 
     if (m_variationsSeq.isEmpty()) {
-#ifdef SHOGIBOARDQ_DEBUG_KIF
         qDebug().noquote() << "[RESOLVED] only mainline (no variations).";
-#endif
         return;
     }
 
@@ -3592,7 +3594,6 @@ void MainWindow::buildResolvedLinesAfterLoad()
         varToRowIndex[vi] = m_resolvedRows.size() - 1;
     }
 
-#ifdef SHOGIBOARDQ_DEBUG_KIF
     qDebug().noquote() << "[RESOLVED] lines=" << m_resolvedRows.size();
     for (int i = 0; i < m_resolvedRows.size(); ++i) {
         const auto& r = m_resolvedRows[i];
@@ -3606,7 +3607,6 @@ void MainWindow::buildResolvedLinesAfterLoad()
             << " nsfen="  << r.sfen.size()
             << " seq=「 " << pm.join(" / ") << " 」";
     }
-#endif
 }
 
 void MainWindow::applyResolvedRowAndSelect(int row, int selPly)
