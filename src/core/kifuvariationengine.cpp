@@ -5,8 +5,6 @@
 #include <QDebug>
 #include <QSet>
 
-#include <algorithm>
-
 // ヘルパ：ラベルは prettyMove をそのまま使う（必要ならトリム）
 QString KifuVariationEngine::pickLabel(const KifDisplayItem& d) {
     return d.prettyMove.trimmed();
@@ -29,22 +27,37 @@ void KifuVariationEngine::ingest(const KifParseResult& res,
     m_idx.clear();
     m_sourceToId.clear();
 
-    // 0) 本譜を id=0 で登録
+    // 0) 本譜（id=0）
     {
         Variation v;
         v.id          = 0;
         v.fileOrder   = 0;
         v.isMainline  = true;
-        v.startPly    = 1;          // 本譜は 1 手目開始
+        v.startPly    = 1;
         v.disp        = dispMain;
         v.usi         = usiMain;
         v.sourceIndex = 0;
-        v.sfen        = sfenMain;   // 0..N （開始局面含む）
+        v.sfen        = sfenMain;   // 0..N（開始局面含む）
 
         m_vars.push_back(v);
         m_dispMain = dispMain;
         m_usiMain  = usiMain;
     }
+
+    // ユーティリティ：ある基準局面から USI を順に適用して SFEN 列を合成
+    auto composeFromBase = [](const QString& base, const QVector<UsiMove>& usis) -> QList<QString> {
+        QList<QString> out;
+        if (base.isEmpty()) return out;
+        SfenPositionTracer tr;
+        if (!tr.setFromSfen(base)) return {};
+        out.reserve(usis.size() + 1);
+        out.push_back(tr.toSfenString());      // [0] = 基準（直前局面）
+        for (int i = 0; i < usis.size(); ++i) {
+            tr.applyUsiMove(usis.at(i));
+            out.push_back(tr.toSfenString());  // [1..] 各手後
+        }
+        return out;
+    };
 
     // 1) 変化群（id は 1 始まり）
     int nextId = 1;
@@ -55,30 +68,63 @@ void KifuVariationEngine::ingest(const KifParseResult& res,
         v.id          = nextId++;
         v.fileOrder   = i + 1;
         v.isMainline  = false;
-        v.startPly    = kv.startPly;
+        v.startPly    = kv.startPly;         // グローバル手数での開始
         v.disp        = kv.line.disp;
         v.usi         = kv.line.usiMoves;
         v.sourceIndex = i;
 
-        // 変化の SFEN：ファイルに入っていればそれを使用。空なら合成する。
+        // --- 変化の SFEN を用意 ---
         if (!kv.line.sfenList.isEmpty()) {
+            // パーサが SFEN を持っているならそれを採用
             v.sfen = kv.line.sfenList;
         } else {
-            // 合成：本譜の (startPly-1) 局面から v.usi を順に適用して作る
-            if (!m_vars.isEmpty() && !m_vars[0].sfen.isEmpty()) {
-                const QList<QString>& mainSfen = m_vars[0].sfen;
-                const int baseIdx = v.startPly - 1;
-                if (baseIdx >= 0 && baseIdx < mainSfen.size()) {
-                    SfenPositionTracer tr;
-                    if (tr.setFromSfen(mainSfen.at(baseIdx))) {
-                        QList<QString> list;
-                        list.reserve(v.usi.size() + 1);
-                        list.push_back(tr.toSfenString());   // [0] = 直前局面（startPly-1）
-                        for (int li = 0; li < v.usi.size(); ++li) {
-                            tr.applyUsiMove(v.usi.at(li));
-                            list.push_back(tr.toSfenString()); // [1..] 各手後
-                        }
-                        v.sfen = list;
+            // ★合成：globalPrev = startPly-1 の局面を「もっとも深い既存行」から取る
+            const int globalPrev = v.startPly - 1;
+            QString basePrev;
+            int baseFromVid = -1;
+            int baseIdx     = -1;
+
+            // 既に構築済みの行（本譜=先頭, 変化=その後）を「逆順」に走査して最深を選ぶ
+            for (int p = m_vars.size() - 1; p >= 0; --p) {
+                const auto& par = m_vars[p];
+                if (par.isMainline) {
+                    // 本譜は sfen[globalPrev] がそのまま「直前局面」
+                    if (globalPrev >= 0 && globalPrev < par.sfen.size()) {
+                        basePrev   = par.sfen.at(globalPrev);
+                        baseFromVid= par.id;              // 0
+                        baseIdx    = globalPrev;
+                        break;
+                    }
+                } else {
+                    // 変化 p の sfen[k] は「グローバル (p.startPly + k - 1) 手目後」を表す
+                    // よって globalPrev に対応するインデックスは：
+                    const int k = globalPrev - par.startPly + 1; // 0..disp.size()
+                    if (k >= 0 && k < par.sfen.size()) {
+                        basePrev   = par.sfen.at(k);
+                        baseFromVid= par.id;
+                        baseIdx    = k;
+                        break;
+                    }
+                }
+            }
+
+            if (!basePrev.isEmpty()) {
+                v.sfen = composeFromBase(basePrev, v.usi);
+                qDebug().noquote().nospace()
+                    << "[VE] compose var id=" << v.id
+                    << " start=" << v.startPly
+                    << " base.fromVid=" << baseFromVid
+                    << " base.idx=" << baseIdx
+                    << " out.len=" << v.sfen.size();
+            } else {
+                // フォールバック：本譜から（理論上ここはほぼ通らない想定）
+                if (!m_vars.isEmpty() && !m_vars[0].sfen.isEmpty()) {
+                    const auto& mainSfen = m_vars[0].sfen;
+                    if (globalPrev >= 0 && globalPrev < mainSfen.size()) {
+                        v.sfen = composeFromBase(mainSfen.at(globalPrev), v.usi);
+                        qWarning().noquote()
+                            << "[VE] compose fallback from MAIN at prev=" << globalPrev
+                            << " var=" << v.id;
                     }
                 }
             }
@@ -115,12 +161,11 @@ void KifuVariationEngine::ingest(const KifParseResult& res,
         }
     }
 
-    // デバッグ
+    // デバッグ：索引ダンプ
     {
         QStringList lines;
         for (auto it = m_idx.constBegin(); it != m_idx.constEnd(); ++it) {
-            lines << QString("  ply %1 -> count %2")
-            .arg(it.key()).arg(it.value().size());
+            lines << QString("  ply %1 -> count %2").arg(it.key()).arg(it.value().size());
         }
         lines.sort();
         qDebug().noquote() << "[VE] ingest() built index:\n " << lines.join("\n  ");
@@ -183,23 +228,19 @@ const KifuVariationEngine::Variation* findVarById(const QList<KifuVariationEngin
     return nullptr;
 }
 
-// ★この関数は既に定義済みならそのままでOK
-QString KifuVariationEngine::prevSfenFor(int vid, int li) const
+QString KifuVariationEngine::prevSfenFor(int variationId, int li) const
 {
+    // variationId に対応する Variation を探す
     const Variation* var = nullptr;
-    for (const auto& v : m_vars) if (v.id == vid) { var = &v; break; }
-    if (!var || var->sfen.isEmpty()) return QString();
-
-    if (var->isMainline) {
-        // 本譜の手 li の直前 = main.sfen[li]
-        return (li >= 0 && li < var->sfen.size()) ? var->sfen.at(li) : QString();
+    for (const auto& v : m_vars) {
+        if (v.id == variationId) { var = &v; break; }
     }
+    if (!var) return {};
 
-    // 変化の手 li の直前：
-    //   li==0 → 基底（startPly-1後）= sfen[0]
-    //   li>=1 → 変化内で (li-1) 手指した後 = sfen[li]
-    const int idx = (li == 0) ? 0 : li;
-    return (idx >= 0 && idx < var->sfen.size()) ? var->sfen.at(idx) : QString();
+    // li は「この variation のローカル手インデックス」
+    // prev SFEN は「その手を指す直前の局面」＝ var->sfen[li]
+    if (li < 0 || li >= var->sfen.size()) return {};
+    return var->sfen.at(li);
 }
 
 QList<BranchCandidate>
@@ -212,60 +253,58 @@ KifuVariationEngine::branchCandidatesForPly(int ply,
     auto it = m_idx.find(ply);
     if (it == m_idx.end()) return out;
 
-    const auto &pairs = it.value();
-    QSet<QString> seen;                  // ラベル重複ガード
-    const auto &main = m_vars.front();   // id=0
+    const auto& pairs = it.value();
+    QSet<QString> seen;
 
     for (int i = 0; i < pairs.size(); ++i) {
         const int vid = pairs[i].first;
         const int li  = pairs[i].second;
 
-        // バリエーションを引く
+        // 該当 variation
         const Variation* var = nullptr;
         for (const auto& v : m_vars) if (v.id == vid) { var = &v; break; }
         if (!var) continue;
 
-        // 本譜候補を含めない指定ならスキップ
+        // 本譜を出す/出さない
         if (!includeMainline && var->isMainline) continue;
 
-        // 直前局面を算出
-        QString prev =
-            var->isMainline
-                ? ((li >= 0 && li < main.sfen.size()) ? main.sfen.at(li) : QString())
-                : prevSfenFor(vid, li);
+        // ★ 直前局面：本譜/変化を問わず variation 側の SFEN から取る
+        const QString prev = prevSfenFor(vid, li);
 
-        // 文脈があるなら一致チェック（≠なら弾く）
+        // 文脈SFENが指定されていれば一致するものだけ通す
         if (!ctxPrevSfen.isEmpty()) {
-            if (prev.isEmpty() || prev != ctxPrevSfen)
-                continue;
+            if (prev.isEmpty() || prev != ctxPrevSfen) continue;
         }
 
-        // 表示ラベル
-        const QString label =
-            (li >= 0 && li < var->disp.size()) ? pickLabel(var->disp.at(li))
-                                               : QString();
+        // ラベル（この variation の表示配列から）
+        QString label;
+        if (li >= 0 && li < var->disp.size()) {
+            label = pickLabel(var->disp.at(li));   // クラス内の静的/プライベートでOK
+        }
         if (label.isEmpty()) continue;
 
-        // 既に同ラベルが出ていればスキップ（安全側）
         if (seen.contains(label)) continue;
         seen.insert(label);
 
-        // 追加
         BranchCandidate c;
-        c.label      = label;
-        c.variationId= vid;
-        c.ply        = ply;
-        c.isMainline = var->isMainline;
-        c.isBlack    = (ply % 2 == 1);       // （先手手番=奇数手）
-
+        c.label       = label;
+        c.variationId = vid;
+        c.ply         = ply;
+        c.isMainline  = var->isMainline;
+        c.isBlack     = (ply % 2 == 1);
         out.push_back(std::move(c));
 
-        // （任意）デバッグ
-        qDebug().noquote()
-            << QString("  [add] idx=%1 vid=%2 li=%3 start=%4 label=\"%5\" isMain=%6 prevSfen=%7")
-                   .arg(i).arg(vid).arg(li).arg(var->startPly).arg(c.label)
-                   .arg(var->isMainline ? "true" : "false")
-            << (prev.isEmpty() ? "<EMPTY>" : prev.left(60) + "...");
+        // デバッグ
+        qDebug().noquote().nospace()
+            << "  [add] idx=" << i
+            << " vid=" << vid
+            << " li=" << li
+            << " start=" << var->startPly
+            << " label=\"" << label << "\""
+            << " isMain=" << (var->isMainline ? "true" : "false")
+            << " prev(cand)=" << (prev.isEmpty() ? "<EMPTY>" : prev)
+            << (ctxPrevSfen.isEmpty() ? "" :
+                    QString("  prev(ctx)=%1").arg(ctxPrevSfen));
     }
 
     return out;
@@ -283,4 +322,8 @@ KifuVariationEngine::branchCandidatesForPly(int ply, bool includeMainline) const
             ctx = main.sfen.at(idx);
     }
     return branchCandidatesForPly(ply, includeMainline, ctx); // ← 3引数版へ
+}
+
+int KifuVariationEngine::idForSourceIndex(int sourceIndex) const {
+    return m_sourceToId.value(sourceIndex, -1);
 }

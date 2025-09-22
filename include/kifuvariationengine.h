@@ -95,6 +95,10 @@ private:
     static QString pickLabel(const KifDisplayItem& d); // "１六歩(17)" を返す（prettyMove 流用）
 
     QHash<int,int> m_sourceToId;  // ★追加: key=sourceIndex(vi), value=variation id
+
+public:
+    // sourceIndex(=Var0->0, Var1->1, ...) から vid を得る
+    int idForSourceIndex(int sourceIndex) const;
 };
 
 #endif // KIFUVARIATIONENGINE_H

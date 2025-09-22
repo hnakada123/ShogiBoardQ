@@ -529,7 +529,25 @@ private:
     void populateBranchCandidates_(int ply);
     void setupBranchView_();
 
-    QString contextPrevSfenFor(int ply) const;
+    // 行 index -> (ply -> 許可する variationId 集合)
+    QVector<QHash<int, QSet<int>>> m_branchWhitelist;
+
+    void rebuildBranchWhitelist();          // 解決行構築後に呼ぶ
+    QSet<int> allowedVarIdsFor(int row, int ply) const;
+    int        varIdForResolvedRow(int row) const;
+    int        guessParentRow(int childRow) const; // 親行を推定（親が保持されていない場合用）
+
+    QString    contextPrevSfenFor(int ply) const;  // 既にお持ちなら既存を利用
+
+    // 分岐ホワイトリスト: 行(row) → 手数(ply) → 許可する variationId の集合
+    QHash<int, QHash<int, QSet<int>>> m_branchWL;
+
+    // mainwindow.h （private: あたりに追加）
+    bool m_loadingKifu = false;   // KIF読込～WL完成まで分岐更新を抑止
+
+    bool m_branchTreeLocked = false;  // ← 分岐ツリーの追加・変更を禁止するロック
+
+    int rowIndexForVariationId(int vid) const;
 };
 
 #endif // MAINWINDOW_H
