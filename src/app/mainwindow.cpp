@@ -1633,6 +1633,15 @@ inline QPoint dropFromSquare(QChar dropUpper, bool black) {
 
 } // anonymous namespace
 
+QString MainWindow::contextPrevSfenFor(int ply) const
+{
+    if (ply <= 0) return QString();
+    if (m_activeResolvedRow < 0 || m_activeResolvedRow >= m_resolvedRows.size()) return QString();
+    const auto& rr = m_resolvedRows.at(m_activeResolvedRow);
+    const int idx = ply - 1;               // 「直前局面」は ply-1
+    return (idx >= 0 && idx < rr.sfen.size()) ? rr.sfen.at(idx) : QString();
+}
+
 // ===================== 司令塔 =====================
 void MainWindow::loadKifuFromFile(const QString& filePath)
 {
@@ -1770,7 +1779,7 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
 
     qDebug() << "m_branchCtl: " << m_branchCtl;
 
-    // 14) ブランチ候補ワイヤリング（★prevSfen を渡す版）
+    // 14) ブランチ候補ワイヤリング（★contextPrevSfenFor を使用）
     if (!m_branchCtl) {
         setupBranchCandidatesWiring_();
     }
@@ -1784,29 +1793,18 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
             const int row = m_recordPane->kifuView()->selectionModel()->currentIndex().row();
             ply = std::max(0, row);       // 0=startpos, 1=1手目, ...
         }
-        const bool includeMainline = (ply > 0); // 0手目では本譜手は提示しない
 
-        // ★ 直前の局面（ply-1）の SFEN を“現在の解決行”から取得して文脈に渡す
-        QString prevSfen;
-        int rix = 0;
-        if (m_activeResolvedRow >= 0 && m_activeResolvedRow < m_resolvedRows.size()) {
-            rix = m_activeResolvedRow;
-        }
-        if (ply > 0 && rix >= 0 && rix < m_resolvedRows.size()) {
-            const auto& rr = m_resolvedRows.at(rix);
-            if (ply-1 >= 0 && ply-1 < rr.sfen.size()) {
-                prevSfen = rr.sfen.at(ply-1); // ★ ply-1 手後の局面
-            }
-        }
+        const bool includeMainline = (ply > 0); // ← 指定どおり
 
+        // デバッグ用に prevSfen をログする（呼び出しは下で contextPrevSfenFor を直接渡す）
+        const QString dbgPrevSfen = contextPrevSfenFor(ply);
         qDebug().noquote() << "[MAIN] branch init"
                            << " ply=" << ply
                            << " includeMainline=" << includeMainline
-                           << " rix=" << rix
-                           << " prevSfen=" << (prevSfen.isEmpty() ? "<EMPTY>" : prevSfen);
+                           << " prevSfen=" << (dbgPrevSfen.isEmpty() ? "<EMPTY>" : dbgPrevSfen);
 
-        // ★ 文脈付きの 3 引数版を必ず呼ぶ
-        m_branchCtl->refreshCandidatesForPly(ply, includeMainline, prevSfen);
+        // ★ 指定の呼び出し形
+        m_branchCtl->refreshCandidatesForPly(ply, includeMainline, contextPrevSfenFor(ply));
     } else if (m_kifuBranchModel) {
         // フォールバック：モデルだけクリア
         m_kifuBranchModel->clearBranchCandidates();
@@ -3272,8 +3270,8 @@ void MainWindow::populateBranchListForPly(int ply)
 
     // 候補の再計算は BranchCandidatesController に任せる
     if (m_branchCtl) {
-        const bool includeMainline = (ply > 0); // 1手目以降は本譜も含める
-        m_branchCtl->refreshCandidatesForPly(ply, includeMainline);
+        const bool includeMainline = (ply > 0);
+        m_branchCtl->refreshCandidatesForPly(ply, includeMainline, contextPrevSfenFor(ply));
     }
 
     // 表示対象のビュー取得（どちらか使っている方）
@@ -3447,13 +3445,52 @@ void MainWindow::applyVariationByKey(int startPly, int bucketIndex)
 void MainWindow::onKifuPlySelected(int ply)
 {
     if (ply < 0) return;
-    if (!m_varEngine) return;
     if (!m_kifuBranchModel) return;
 
-    // VarEngine から候補を取得（本譜も含める）
-    const auto cands = m_varEngine->branchCandidatesForPly(ply, /*includeMainline=*/true);
+    // まずは新ロジック：BranchCandidatesController に一任
+    if (m_branchCtl) {
+        const bool includeMainline = (ply > 0);
+        const QString prevSfen = contextPrevSfenFor(ply);
 
-    // モデルへ渡す表示用アイテムに変換（KifuBranchListModel はラベルしか持たない）
+        qDebug().noquote()
+            << "-------[BRANCH] onKifuPlySelected"
+            << " ply=" << ply
+            << " includeMainline=" << includeMainline
+            << " prevSfen=" << (prevSfen.isEmpty() ? "<EMPTY>" : prevSfen);
+
+        m_branchCtl->refreshCandidatesForPly(ply, includeMainline, prevSfen);
+
+        // 表示/非表示の最終制御（モデルの件数で素直に判断）
+        QTableView* view = m_kifuBranchView
+                               ? m_kifuBranchView
+                               : (m_recordPane ? m_recordPane->branchView() : nullptr);
+        if (view) {
+            const int rows = m_kifuBranchModel->rowCount();
+            const bool show = (ply > 0) && (rows > 0);
+            view->setVisible(show);
+            view->setEnabled(show);
+            if (show) {
+                const QModelIndex idx0 = m_kifuBranchModel->index(0, 0);
+                if (idx0.isValid() && view->selectionModel()) {
+                    view->selectionModel()->setCurrentIndex(
+                        idx0, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+                }
+                view->scrollToTop();
+            }
+        }
+
+        m_branchPlyContext = ply;
+        return;
+    }
+
+    // ---- フォールバック（旧ロジック）：直接 VarEngine を叩く ----
+    if (!m_varEngine) return;
+
+    const bool includeMainline = (ply > 0);
+    const QString prevSfen = contextPrevSfenFor(ply);
+    const auto cands = m_varEngine->branchCandidatesForPly(ply, includeMainline, prevSfen);
+
+    // モデルへ渡す表示用アイテムに変換（ラベルのみ）
     QList<KifDisplayItem> rows;
     rows.reserve(cands.size());
     m_branchVarIds.clear();
@@ -3461,27 +3498,32 @@ void MainWindow::onKifuPlySelected(int ply)
 
     for (const auto& c : cands) {
         KifDisplayItem k;
-        k.prettyMove = c.label;   // ← BranchCandidate 側の表示用文字列
+        k.prettyMove = c.label;
         rows.push_back(k);
         m_branchVarIds.push_back(c.variationId); // 行→variationId
     }
 
-    // モデルを更新
+    // モデル更新とビュー制御
     m_kifuBranchModel->setBranchCandidatesFromKif(rows);
-    m_kifuBranchModel->setHasBackToMainRow(true);   // 末尾に「本譜へ戻る」を出す
-    m_branchVarIds.push_back(-1);                   // 末尾用のダミーID
+    m_kifuBranchModel->setHasBackToMainRow(true);
+    m_branchVarIds.push_back(-1); // 末尾「本譜へ戻る」用
 
-    m_branchPlyContext = ply;
-
-    // 候補ビューの先頭にフォーカス（任意）
-    if (m_recordPane && m_recordPane->branchView()) {
-        auto* v = m_recordPane->branchView();
-        if (v->model() && v->model()->rowCount() > 0) {
-            const auto idx0 = v->model()->index(0, 0);
-            v->setCurrentIndex(idx0);
-            v->scrollTo(idx0, QAbstractItemView::PositionAtTop);
+    QTableView* view = m_kifuBranchView
+                           ? m_kifuBranchView
+                           : (m_recordPane ? m_recordPane->branchView() : nullptr);
+    if (view) {
+        const int rcount = m_kifuBranchModel->rowCount();
+        const bool show = (ply > 0) && (rcount > 0);
+        view->setVisible(show);
+        view->setEnabled(show);
+        if (show) {
+            const auto idx0 = m_kifuBranchModel->index(0, 0);
+            view->setCurrentIndex(idx0);
+            view->scrollTo(idx0, QAbstractItemView::PositionAtTop);
         }
     }
+
+    m_branchPlyContext = ply;
 }
 
 void MainWindow::onBranchCandidateActivated(const QModelIndex& index)
@@ -3688,7 +3730,6 @@ void MainWindow::applyResolvedRowAndSelect(int row, int selPly)
         if (idx.isValid()) {
             if (m_recordPane) {
                 if (QTableView* view = m_recordPane->kifuView()) {
-                    // 念のためモデル一致を確認（違っていたら何もしない）
                     if (view->model() == m_kifuRecordModel) {
                         view->setCurrentIndex(idx);
                         view->scrollTo(idx, QAbstractItemView::PositionAtCenter);
@@ -3698,8 +3739,52 @@ void MainWindow::applyResolvedRowAndSelect(int row, int selPly)
         }
     }
 
-    // 分岐候補・盤面ハイライト・矢印ボタン
-    populateBranchListForPly(m_activePly);
+    // --- 分岐候補の更新（BranchCandidatesController 経由）
+    if (m_kifuBranchModel) {
+        if (m_branchCtl) {
+            const int ply = m_activePly;
+            const bool includeMainline = (ply > 0);
+            const QString prevSfen = contextPrevSfenFor(ply);
+
+            qDebug().noquote()
+                << "-------[BRANCH] applyResolvedRowAndSelect"
+                << " row=" << row
+                << " ply=" << ply
+                << " includeMainline=" << includeMainline
+                << " prevSfen=" << (prevSfen.isEmpty() ? "<EMPTY>" : prevSfen);
+
+            m_branchCtl->refreshCandidatesForPly(ply, includeMainline, prevSfen);
+
+            // 表示/非表示の最終制御（モデルの件数で素直に判断）
+            QTableView* view = m_kifuBranchView
+                                   ? m_kifuBranchView
+                                   : (m_recordPane ? m_recordPane->branchView() : nullptr);
+            if (view) {
+                const int rows = m_kifuBranchModel->rowCount();
+                const bool show = (ply > 0) && (rows > 0);
+                view->setVisible(show);
+                view->setEnabled(show);
+                qDebug().nospace() << "[BRANCH] rows= " << rows
+                                   << "  ply= " << ply
+                                   << "  show= " << (show ? "true" : "false");
+                if (show) {
+                    const QModelIndex idx0 = m_kifuBranchModel->index(0, 0);
+                    if (idx0.isValid() && view->selectionModel()) {
+                        view->selectionModel()->setCurrentIndex(
+                            idx0, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+                    }
+                    view->scrollToTop();
+                }
+            }
+
+            m_branchPlyContext = ply;
+        } else {
+            // フォールバック（旧ロジックを使用）
+            populateBranchListForPly(m_activePly);
+        }
+    }
+
+    // 盤面ハイライト・矢印ボタン
     syncBoardAndHighlightsAtRow(m_activePly);
     enableArrowButtons();
 
@@ -4258,8 +4343,6 @@ void MainWindow::onKifuCurrentRowChanged(const QModelIndex& cur, const QModelInd
 
     // ★ 分岐候補は SFEN 基準の自前インデックスで更新
     populateBranchListForPly(row);
-
-    // ※ここで m_branchCtl->refreshCandidatesForPly(...) を呼ばない
 }
 
 void MainWindow::initMatchCoordinator()

@@ -69,7 +69,6 @@ public:
                                                   bool includeMainline,
                                                   const QString& contextPrevSfen) const;
 
-private:
     struct Variation {
         int id = -1;
         int fileOrder = -1;
@@ -83,6 +82,7 @@ private:
         // 変化は [0]=startPly-1手後（基底）, [1..]=各手後 の想定
     };
 
+private:
     QString prevSfenFor(int vid, int li) const;
 
     // インデックス

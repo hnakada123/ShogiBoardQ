@@ -528,6 +528,8 @@ private:
 
     void populateBranchCandidates_(int ply);
     void setupBranchView_();
+
+    QString contextPrevSfenFor(int ply) const;
 };
 
 #endif // MAINWINDOW_H
