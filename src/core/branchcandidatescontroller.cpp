@@ -1,7 +1,7 @@
 #include "branchcandidatescontroller.h"
-
 #include "kifuvariationengine.h"
 #include "kifubranchlistmodel.h"
+#include <QDebug>
 
 //====================== コンストラクタ ======================
 BranchCandidatesController::BranchCandidatesController(KifuVariationEngine* ve,
@@ -9,9 +9,9 @@ BranchCandidatesController::BranchCandidatesController(KifuVariationEngine* ve,
                                                        QObject* parent)
     : QObject(parent), m_ve(ve), m_model(model)
 {
-    // 何もなし（必要ならここでシグナル配線）
 }
 
+//====================== クリック処理 ======================
 void BranchCandidatesController::activateCandidate(const QModelIndex& index)
 {
     qDebug().nospace() << "[BRANCH-CTL] activateCandidate row=" << index.row()
@@ -50,49 +50,40 @@ void BranchCandidatesController::activateCandidate(const QModelIndex& index)
     emit applyLineRequested(line.disp, usiList);
 }
 
-// 本体（文脈 prevSfen つき）
+// BranchCandidatesController.cpp
 void BranchCandidatesController::refreshCandidatesForPly(int ply,
                                                          bool includeMainline,
-                                                         const QString& prevSfen)
+                                                         const QString& prevSfen,
+                                                         const QSet<int>& restrictVarIds)
 {
-    if (!m_ve || !m_model) {
-        qDebug() << "[BRANCH-CTL] missing ve/model; abort";
-        return;
+    if (!m_ve || !m_model) return;
+
+    auto cands = m_ve->branchCandidatesForPly(ply, includeMainline, prevSfen);
+
+    // ★変更点：ホワイトリストがある場合は “ID完全一致” のみ採用（mainline特例は廃止）
+    if (!restrictVarIds.isEmpty()) {
+        QList<BranchCandidate> filtered;
+        filtered.reserve(cands.size());
+        for (const auto& c : cands) {
+            if (restrictVarIds.contains(c.variationId)) {
+                filtered.push_back(c);
+            }
+        }
+        cands.swap(filtered);
     }
 
-    qDebug().noquote()
-        << "[BRANCH-CTL] refresh ply=" << ply
-        << " includeMainline=" << includeMainline
-        << " prevSfen=" << (prevSfen.isEmpty() ? "<EMPTY>" : prevSfen);
+    // ↓ 以降は従来どおりモデル更新
+    QList<KifDisplayItem> rows;
+    rows.reserve(cands.size());
+    m_varIds.clear();
+    m_varIds.reserve(cands.size() + 1);
 
-    // エンジンへ（★ 文脈 SFEN を渡す）
-    auto cs = m_ve->branchCandidatesForPly(ply, includeMainline, prevSfen);
-
-    // 本譜のみしか無いなら非表示
-    if (includeMainline && cs.size() <= 1) {
-        m_model->clearBranchCandidates();
-        m_model->setHasBackToMainRow(false);
-        qDebug() << "[BRANCH-CTL] only mainline (size<=1). hide at ply=" << ply;
-        return;
+    for (const auto& c : cands) {
+        rows.push_back(KifDisplayItem{ c.label, QString() });
+        m_varIds.push_back(c.variationId);
     }
 
-    // 候補をモデルに反映
-    QList<KifDisplayItem> items;
-    items.reserve(cs.size());
-    int i = 0;
-    for (const auto& c : cs) {
-        items.push_back(KifDisplayItem{ c.label, QString() });
-        qDebug().noquote()
-            << "  [BRANCH-CTL] item[" << i++ << "]=" << c.label;
-    }
-
-    m_model->setBranchCandidatesFromKif(items);
-    m_model->setHasBackToMainRow(includeMainline && cs.size() > 1);
-}
-
-// 互換ラッパ（prevSfen を渡し忘れた経路の早期検知用）
-void BranchCandidatesController::refreshCandidatesForPly(int ply, bool includeMainline)
-{
-    qWarning() << "[BRANCH-CTL] WARN: called without prevSfen; context filter disabled";
-    refreshCandidatesForPly(ply, includeMainline, QString{});
+    m_model->setBranchCandidatesFromKif(rows);
+    m_model->setHasBackToMainRow(!cands.isEmpty());  // 候補があれば「本譜へ戻る」を出す
+    m_varIds.push_back(-1);                          // 末尾ダミー
 }

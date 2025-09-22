@@ -39,7 +39,31 @@ public:
     // 「本譜へ戻る」行のindex（無効時は -1）
     int backToMainRowIndex() const;
 
-private:
+    // 表示行 index のラベルを返す（BackToMain 行ならその文字列が返る）
+    QString labelAt(int row) const {
+        if (row < 0 || row >= m_rows.size()) return {};
+        return m_rows.at(row).label;  // m_rows[i].label を使っている前提
+    }
+
+    // BackToMain を除いた“実質の候補数”
+    int branchCandidateCount() const {
+        int n = rowCount();
+        return n - (m_hasBackToMainRow ? 1 : 0);
+    }
+
+    // BackToMain を除いた最初の候補の行インデックス（なければ -1）
+    int firstBranchRowIndex() const {
+        if (rowCount() == 0) return -1;
+        return m_hasBackToMainRow ? (rowCount() >= 2 ? 1 : -1) : 0;
+    }
+
+private:  
+    struct RowItem {
+        QString label;
+        // …既存のフィールド（variationId など）がある前提…
+        bool isBackToMain = false; // 使っていないなら m_hasBackToMainRow だけでもOK
+    };
+    QVector<RowItem> m_rows;
     bool m_hasBackToMainRow = false;
 };
 
