@@ -166,13 +166,13 @@ private:
     qint64      m_initialTimeP2Ms = 0;
     static constexpr int kFlagFallGraceMs = 200;
 
-    // --- “後勝ち”で作った解決済み行 ---
     struct ResolvedRow {
         int startPly = 1;
+        int parent   = -1;                 // ★追加：親行。Main は -1
         QList<KifDisplayItem> disp;
         QStringList sfen;
         QVector<ShogiMove> gm;
-        int varIndex = -1; // 本譜=-1
+        int varIndex = -1;                 // 本譜 = -1
     };
     QVector<ResolvedRow> m_resolvedRows;
     int m_activeResolvedRow = 0;
@@ -247,7 +247,7 @@ private:
     void updateTurnDisplay();
     void updateTurnStatus(int currentPlayer);
     void showRecordAtPly(const QList<KifDisplayItem>& disp, int selectPly);
-    void syncBoardAndHighlightsAtRow(int row);
+    void syncBoardAndHighlightsAtRow(int ply1);
     void applySfenAtCurrentPly();
     void displayGameRecord(const QList<KifDisplayItem> disp);
     void ensureBranchRowDelegateInstalled();
@@ -577,6 +577,11 @@ private:
     void dumpBranchCandidateDisplayPlan() const;
 
     void showBranchCandidatesFromPlan(int row, int ply1);
+
+    void ensureResolvedRowsHaveFullSfen();   // 各行の sfen を確実に満たす
+    void dumpAllRowsSfenTable() const;       // ご指定フォーマットでログ出力
+
+    inline QString sfenAt_(int row, int ply1) const;
 
 private slots:
     void onBranchPlanActivated_(int row, int ply1);                // Plan選択 → 行/手へジャンプ

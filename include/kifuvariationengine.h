@@ -82,6 +82,10 @@ public:
         // 変化は [0]=startPly-1手後（基底）, [1..]=各手後 の想定
     };
 
+    QList<QString> mainlineSfen() const;
+    QList<QString> sfenForVariationId(int variationId) const;
+    int variationIdFromSourceIndex(int sourceIndex) const;
+
 private:
     QString prevSfenFor(int vid, int li) const;
 

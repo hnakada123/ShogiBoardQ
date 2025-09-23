@@ -327,3 +327,17 @@ KifuVariationEngine::branchCandidatesForPly(int ply, bool includeMainline) const
 int KifuVariationEngine::idForSourceIndex(int sourceIndex) const {
     return m_sourceToId.value(sourceIndex, -1);
 }
+
+QList<QString> KifuVariationEngine::mainlineSfen() const
+{
+    return m_vars.isEmpty() ? QList<QString>() : m_vars.front().sfen;
+}
+QList<QString> KifuVariationEngine::sfenForVariationId(int variationId) const
+{
+    for (const auto& v : m_vars) if (v.id == variationId) return v.sfen;
+    return {};
+}
+int KifuVariationEngine::variationIdFromSourceIndex(int sourceIndex) const
+{
+    return m_sourceToId.value(sourceIndex, -1);
+}
