@@ -548,6 +548,33 @@ private:
     bool m_branchTreeLocked = false;  // ← 分岐ツリーの追加・変更を禁止するロック
 
     int rowIndexForVariationId(int vid) const;
+
+    QString rowNameFor_(int row) const;
+    QString labelAt_(const ResolvedRow& rr, int ply) const;
+    bool prefixEqualsUpTo_(int rowA, int rowB, int p) const;
+    void dumpBranchSplitReport() const;
+
+    // 分岐候補の表示アイテム（どの行のどのラベルか）
+    struct BranchCandidateDisplayItem {
+        int     row;        // 0=Main, 1=Var0, 2=Var1, ...
+        int     varN;       // -1=Main, それ以外は VarN の N
+        QString lineName;   // "Main" or "VarN"
+        QString label;      // "▲２六歩(27)" 等
+    };
+
+    // 1行・1手（ply）に対する表示計画
+    struct BranchCandidateDisplay {
+        int     ply;        // 1-based。表示する手数（「分岐あり」を1手先へ移した位置）
+        QString baseLabel;  // その行の ply 手目の指し手（見出し用）
+        QVector<BranchCandidateDisplayItem> items; // 表示候補（重複整理後）
+    };
+
+    // 行(row) → (ply → 表示計画) の保持
+    // 例: m_branchDisplayPlan[row][ply]
+    QHash<int, QMap<int, BranchCandidateDisplay>> m_branchDisplayPlan;
+
+    void buildBranchCandidateDisplayPlan();
+    void dumpBranchCandidateDisplayPlan() const;
 };
 
 #endif // MAINWINDOW_H
