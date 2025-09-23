@@ -1,89 +1,90 @@
 #include "branchcandidatescontroller.h"
 #include "kifuvariationengine.h"
 #include "kifubranchlistmodel.h"
+
 #include <QDebug>
 
 //====================== コンストラクタ ======================
 BranchCandidatesController::BranchCandidatesController(KifuVariationEngine* ve,
                                                        KifuBranchListModel* model,
                                                        QObject* parent)
-    : QObject(parent), m_ve(ve), m_model(model)
+    : QObject(parent)
+    , m_ve(ve)
+    , m_model(model)
 {
+    m_planMode = true;     // ★Plan方式を常時有効
+    m_planMetas.clear();
 }
 
 //====================== クリック処理 ======================
-void BranchCandidatesController::activateCandidate(const QModelIndex& index)
+void BranchCandidatesController::activateCandidate(int rowIndex)
 {
-    qDebug().nospace() << "[BRANCH-CTL] activateCandidate row=" << index.row()
-    << " valid=" << index.isValid();
-
-    if (!index.isValid() || !m_model) {
-        qWarning() << "[BRANCH-CTL] invalid index or model null";
+    // Plan 方式のみ
+    if (rowIndex < 0 || rowIndex >= m_planMetas.size()) {
+        qDebug() << "[BRANCH-CTL] activateCandidate: out of range idx=" << rowIndex
+                 << " metas=" << m_planMetas.size();
         return;
     }
-
-    if (m_model->isBackToMainRow(index.row())) {
-        qDebug() << "[BRANCH-CTL] backToMain clicked";
-        emit backToMainRequested();
-        return;
-    }
-
-    const int r = index.row();
-    if (r < 0 || r >= m_varIds.size() || !m_ve) {
-        qWarning().nospace() << "[BRANCH-CTL] row out-of-range or ve null; r=" << r
-                             << " size=" << m_varIds.size();
-        return;
-    }
-
-    const int variationId = m_varIds.at(r);
-    qDebug().nospace() << "[BRANCH-CTL] resolve variationId=" << variationId;
-
-    const ResolvedLine line = m_ve->resolveAfterWins(variationId);
-    qDebug().nospace() << "[BRANCH-CTL] resolved: disp=" << line.disp.size()
-                       << " usi=" << line.usi.size();
-
-    QStringList usiList;
-    usiList.reserve(line.usi.size());
-    for (const auto& u : line.usi) usiList.push_back(u);
-
-    qDebug() << "[BRANCH-CTL] emit applyLineRequested";
-    emit applyLineRequested(line.disp, usiList);
+    const auto& m = m_planMetas[rowIndex];
+    qDebug() << "[BRANCH-CTL] planActivated row=" << m.targetRow
+             << " ply=" << m.targetPly
+             << " label=" << m.label
+             << " line=" << m.lineName;
+    emit planActivated(m.targetRow, m.targetPly);
 }
 
-// BranchCandidatesController.cpp
-void BranchCandidatesController::refreshCandidatesForPly(int ply,
-                                                         bool includeMainline,
-                                                         const QString& prevSfen,
-                                                         const QSet<int>& restrictVarIds)
+//====================== （互換）旧方式はノーオペ ======================
+// 旧：VarEngine から prevSfen/whitelist で候補生成 → Model 反映
+// 新：すべて MainWindow が Plan を用意するため、ここではクリアのみ。
+void BranchCandidatesController::refreshCandidatesForPly(int /*ply*/,
+                                                         bool /*includeMainline*/,
+                                                         const QString& /*prevSfen*/,
+                                                         const QSet<int>& /*restrictVarIds*/)
 {
-    if (!m_ve || !m_model) return;
+    if (!m_model) return;
+    m_planMode = true;            // 念のため Plan モードを維持
+    m_planMetas.clear();
 
-    auto cands = m_ve->branchCandidatesForPly(ply, includeMainline, prevSfen);
+    m_model->clearBranchCandidates();
+    m_model->setHasBackToMainRow(false);
+    qDebug() << "[BRANCH-CTL] refreshCandidatesForPly: legacy API (no-op in Plan mode)";
+}
 
-    // ★変更点：ホワイトリストがある場合は “ID完全一致” のみ採用（mainline特例は廃止）
-    if (!restrictVarIds.isEmpty()) {
-        QList<BranchCandidate> filtered;
-        filtered.reserve(cands.size());
-        for (const auto& c : cands) {
-            if (restrictVarIds.contains(c.variationId)) {
-                filtered.push_back(c);
-            }
-        }
-        cands.swap(filtered);
+//====================== Plan をそのまま表示 ======================
+void BranchCandidatesController::refreshCandidatesFromPlan(
+    int ply1,
+    const QVector<BranchCandidateDisplayItem>& items,
+    const QString& /*baseLabel*/)
+{
+    m_planMode = true;
+    m_planMetas.clear();
+
+    if (m_model) {
+        m_model->clearBranchCandidates();
+        m_model->setHasBackToMainRow(false); // Plan は「戻る」不要
     }
 
-    // ↓ 以降は従来どおりモデル更新
+    // モデルに「指し手ラベル」だけ流す
     QList<KifDisplayItem> rows;
-    rows.reserve(cands.size());
-    m_varIds.clear();
-    m_varIds.reserve(cands.size() + 1);
-
-    for (const auto& c : cands) {
-        rows.push_back(KifDisplayItem{ c.label, QString() });
-        m_varIds.push_back(c.variationId);
+    rows.reserve(items.size());
+    for (const auto& it : items) {
+        rows.push_back(KifDisplayItem(it.label)); // 例: "▲２六歩(27)"
+    }
+    if (m_model) {
+        m_model->setBranchCandidatesFromKif(rows);
     }
 
-    m_model->setBranchCandidatesFromKif(rows);
-    m_model->setHasBackToMainRow(!cands.isEmpty());  // 候補があれば「本譜へ戻る」を出す
-    m_varIds.push_back(-1);                          // 末尾ダミー
+    // クリック時のジャンプ先（行/手）をメタに揃えて保持
+    m_planMetas.reserve(items.size());
+    for (const auto& it : items) {
+        PlanMeta meta;
+        meta.targetRow  = it.row;
+        meta.targetPly  = ply1;       // 「その手」で切替える
+        meta.label      = it.label;
+        meta.lineName   = it.lineName;
+        m_planMetas.push_back(meta);
+    }
+
+    qDebug() << "[BRANCH-CTL] set plan items =" << items.size()
+             << " ply=" << ply1;
 }

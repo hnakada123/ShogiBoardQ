@@ -1,49 +1,59 @@
-#ifndef BRANCHCANDIDATESCONTROLLER_H
-#define BRANCHCANDIDATESCONTROLLER_H
+#ifndef BRANCHCANDIDATESCANDIDATESCONTROLLER_H
+#define BRANCHCANDIDATESCANDIDATESCONTROLLER_H
 
 #include <QObject>
 #include <QVector>
-#include <QModelIndex>
 #include <QSet>
+#include <QString>
 #include "kifdisplayitem.h"
+#include "branchdisplayplan.h"   // ★ 共通型（BranchCandidateDisplayItem など）
 
 class KifuVariationEngine;
 class KifuBranchListModel;
-struct KifDisplayItem;
 
-class BranchCandidatesController : public QObject {
+class BranchCandidatesController : public QObject
+{
     Q_OBJECT
 public:
     explicit BranchCandidatesController(KifuVariationEngine* ve,
                                         KifuBranchListModel* model,
                                         QObject* parent = nullptr);
 
-    // あと差し用
-    void setEngine(KifuVariationEngine* ve) { m_ve = ve; }
+    // クリック（候補の行）→ Plan メタに従って行/手へジャンプ
+    Q_INVOKABLE void activateCandidate(int rowIndex);
 
-public slots:
-    // 分岐候補ビューでのクリック
-    void activateCandidate(const QModelIndex& index);
+    // ★Plan 方式：MainWindow 側で作った Plan をそのまま流し込む
+    void refreshCandidatesFromPlan(int ply1,
+                                   const QVector<BranchCandidateDisplayItem>& items,
+                                   const QString& baseLabel);
 
-    // 互換ラッパ（空の文脈・空セットで呼ぶ）
-    void refreshForPly(int ply) {
-        refreshCandidatesForPly(ply, /*includeMainline=*/false, QString(), QSet<int>());
-    }
-
-    // ★この1本に統一（restrictVarIds は省略可）
-    void refreshCandidatesForPly(int ply,
-                                 bool includeMainline,
-                                 const QString& prevSfen,
-                                 const QSet<int>& restrictVarIds = QSet<int>());
+    // （互換）旧ロジックの名残り。Plan専用化により実質ノーオペにしておく。
+    void refreshCandidatesForPly(int /*ply*/,
+                                 bool /*includeMainline*/,
+                                 const QString& /*prevSfen*/,
+                                 const QSet<int>& /*restrictVarIds*/);
 
 signals:
-    void applyLineRequested(const QList<KifDisplayItem>& disp, const QStringList& usi);
+    // 旧来イベント（必要なら残す）
+    void applyLineRequested(const QList<KifDisplayItem>& disp,
+                            const QStringList& usiStrs);
     void backToMainRequested();
 
+    // ★Plan専用：候補クリック時に MainWindow 側で行/手へジャンプ
+    void planActivated(int row, int ply1);
+
 private:
-    KifuVariationEngine*  m_ve    = nullptr;
-    KifuBranchListModel*  m_model = nullptr;
-    QVector<int>          m_varIds;  // 行→variationId の対応
+    struct PlanMeta {
+        int     targetRow  = -1;
+        int     targetPly  =  0;   // 1-based
+        QString label;
+        QString lineName;          // "Main" or "VarN"
+    };
+
+    KifuVariationEngine*         m_ve   = nullptr;   // 参照だけ残す（現状Planでは未使用）
+    KifuBranchListModel*         m_model = nullptr;
+    bool                         m_planMode = true; // 常にPlanモード
+    QVector<PlanMeta>            m_planMetas;       // 表示に対応するクリック時メタ
 };
 
-#endif // BRANCHCANDIDATESCONTROLLER_H
+#endif // BRANCHCANDIDATESCANDIDATESCONTROLLER_H
