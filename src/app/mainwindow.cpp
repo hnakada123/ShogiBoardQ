@@ -1736,6 +1736,7 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
 
         ResolvedRow r;
         r.startPly = 1;
+        r.parent   = -1;           // ★本譜
         r.disp     = disp;          // 1..N
         r.sfen     = *m_sfenRecord; // 0..N
         r.gm       = m_gameMoves;   // 1..N
@@ -1784,6 +1785,11 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
         for (const auto& u : m_usiMoves) usiMain.push_back(UsiMove(u));
         m_varEngine->ingest(res, m_sfenMain, usiMain, m_dispMain);
     }
+
+    // ←ここで SFEN を各行に流し込む
+    ensureResolvedRowsHaveFullSfen();
+    // ←そして表を出す
+    dumpAllRowsSfenTable();
 
     // 14) （Plan方式化に伴い）WL 構築や従来の候補再計算は廃止
     //     rebuildBranchWhitelist();                         // ← 削除
@@ -3300,38 +3306,92 @@ void MainWindow::populateBranchListForPly(int ply)
 // ヘルパ（0→1 始まり）
 static inline QPoint toOne(const QPoint& z) { return QPoint(z.x() + 1, z.y() + 1); }
 
-void MainWindow::syncBoardAndHighlightsAtRow(int row)
+void MainWindow::syncBoardAndHighlightsAtRow(int ply1)
 {
+    //begin
+    qDebug().nospace() << "[UI] syncBoardAndHighlightsAtRow ply=" << ply1;
+    //end
+
     if (!m_sfenRecord) return;
 
-    const int last = m_sfenRecord->size() - 1;
-    if (last < 0) return;
+    // ---- 0) 範囲正規化（0=初期局面, 1.. = 手数）----
+    const int maxPly = m_sfenRecord->size() - 1;
+    if (maxPly < 0) return;
+    const int safePly = qBound(0, ply1, maxPly);
 
-    const int safeRow = qBound(0, row, last);
-    m_currentSelectedPly = safeRow;
-    m_currentMoveIndex   = safeRow;
+    // UI 側の現在手を同期（applySfenAtCurrentPly が参照）
+    m_currentSelectedPly = safePly;
+    m_currentMoveIndex   = safePly;
 
+    // ---- 1) 盤面更新は “現在行の SFEN” 一本化 ----
+    // 既存描画ルートを使って、m_sfenRecord[safePly] を反映
     if (m_boardController) {
         m_boardController->clearAllHighlights();
     }
+    applySfenAtCurrentPly();   // (*m_sfenRecord)[m_currentSelectedPly] を描画
 
-    applySfenAtCurrentPly();
+    //begin
+    qDebug() << "checkpoint1";
+    //end
+    // ---- 2) ハイライトは “USI（gm）” 基準 ----
+    // safePly=0 は初期局面で手なし
+    if (!m_boardController || safePly <= 0) return;
 
-    if (m_boardController && safeRow > 0 && safeRow - 1 < m_gameMoves.size()) {
-        const ShogiMove& lastMove = m_gameMoves.at(safeRow - 1);
+    //begin
+    qDebug() << "checkpoint2";
+    //end
 
-        // ドロップ（持ち駒打ち）なら from は無効値の可能性あり（例: (-1,-1)）
-        const bool hasFrom =
-            (lastMove.fromSquare.x() >= 0 && lastMove.fromSquare.y() >= 0);
+    const int mvIdx = safePly - 1;
 
-        const QPoint to1   = toOne(lastMove.toSquare);
-        if (hasFrom) {
-            const QPoint from1 = toOne(lastMove.fromSquare);
-            m_boardController->showMoveHighlights(from1, to1);
-        } else {
-            // 打つ手は移動元をハイライトしない／もしくは駒台を別色で、など設計に応じて
-            m_boardController->showMoveHighlights(QPoint(), to1);
-        }
+    //begin
+    qDebug().nospace() << "[UI] syncBoardAndHighlightsAtRow ply=" << safePly
+                       << " mvIdx=" << mvIdx
+                       << " gm.size=" << m_gameMoves.size();
+    // m_gameMovesの中身を確認
+    for (int i = 0; i < m_gameMoves.size(); ++i) {
+        const ShogiMove& mv = m_gameMoves.at(i);
+        qDebug().nospace() << "  gm[" << i << "] move=" << mv.movingPiece
+                           << " from=" << mv.fromSquare
+                           << " to=" << mv.toSquare;
+    }
+    //end
+
+    if (mvIdx < 0 || mvIdx >= m_gameMoves.size()) return;
+
+    //begin
+    qDebug() << "checkpoint3";
+    //end
+
+    const ShogiMove& lastMove = m_gameMoves.at(mvIdx);
+
+    //begin
+    qDebug().nospace()
+        << "@@@@@@@@@@@[UI] syncBoardAndHighlightsAtRow ply=" << safePly
+        << " move=" << lastMove.movingPiece
+        << " from=" << lastMove.fromSquare
+        << " to=" << lastMove.toSquare;
+    //end
+
+    // ドロップ（持ち駒打ち）対策：無効座標を除外
+    const bool hasFrom =
+        (lastMove.fromSquare.x() >= 0 && lastMove.fromSquare.y() >= 0);
+
+    const QPoint to1 = toOne(lastMove.toSquare);
+    if (hasFrom) {
+        const QPoint from1 = toOne(lastMove.fromSquare);
+
+        //begin
+        qDebug().nospace()
+            << "[UI] syncBoardAndHighlightsAtRow ply=" << safePly
+            << " move=" << lastMove.movingPiece
+            << " from=" << from1
+            << " to=" << to1;
+        //end
+
+        m_boardController->showMoveHighlights(from1, to1);
+    } else {
+        // 打つ手は移動元をハイライトしない（必要なら駒台強調などに差し替え）
+        m_boardController->showMoveHighlights(QPoint(), to1);
     }
 }
 
@@ -3518,6 +3578,7 @@ void MainWindow::buildResolvedLinesAfterLoad()
     // --- 行0 = 本譜 ---
     ResolvedRow mainRow;
     mainRow.startPly = 1;
+    mainRow.parent   = -1;           // ★追加：本譜の親は -1 を明示
     mainRow.disp     = m_dispMain;   // 1..N（表示）
     mainRow.sfen     = m_sfenMain;   // 0..N（局面）
     mainRow.gm       = m_gmMain;     // 1..N（USIムーブ）
@@ -3587,6 +3648,7 @@ void MainWindow::buildResolvedLinesAfterLoad()
         // 2) 変化本体を連結
         ResolvedRow row;
         row.startPly = start;
+        row.parent   = parentRow;    // ★追加：親行 index を保存
         row.varIndex = vi;
 
         row.disp = prefixDisp;
@@ -3625,14 +3687,14 @@ void MainWindow::buildResolvedLinesAfterLoad()
         for (const auto& d : r.disp) pm << d.prettyMove;
 
         const bool isMain = (i == 0);
-        const int  parentShown = isMain ? -1 : resolveParentRowIndex(r.varIndex);
         const QString label = isMain
                                   ? "Main"
                                   : QString("Var%1(id=%2)").arg(r.varIndex).arg(varIdOf(r.varIndex)); // ★ id 併記
 
+        // ★修正：表示も保存済みの r.parent を使用（再計算しない）
         qDebug().noquote()
             << "  [" << label << "]"
-            << " parent=" << parentShown
+            << " parent=" << r.parent
             << " start="  << r.startPly
             << " ndisp="  << r.disp.size()
             << " nsfen="  << r.sfen.size()
@@ -5470,15 +5532,12 @@ void MainWindow::rebuildBranchWhitelist()
     qDebug() << "[BRANCH-WL] rebuild end";
 }
 
-// 既に同等の関数があればそれを使ってOK
-QString MainWindow::contextPrevSfenFor(int ply) const
+QString MainWindow::contextPrevSfenFor(int ply1) const
 {
-    if (ply <= 0) return QString();
-    if (m_activeResolvedRow < 0 || m_activeResolvedRow >= m_resolvedRows.size()) return QString();
-    const auto& rr = m_resolvedRows.at(m_activeResolvedRow);
-    const int idx = ply - 1;
-    if (idx < 0 || idx >= rr.sfen.size()) return QString();
-    return rr.sfen.at(idx);
+    // prev は「一手前 = ply1-1」なので下限は 0
+    const int row = m_activeResolvedRow;
+    const int prevPly = qMax(0, ply1 - 1);
+    return sfenAt_(row, prevPly);
 }
 
 QSet<int> MainWindow::allowedVarIdsFor(int row, int ply) const
@@ -5916,4 +5975,138 @@ void MainWindow::onRecordPaneBranchActivated_(const QModelIndex& index)
     if (!index.isValid()) return;
     if (!m_branchCtl)     return;
     m_branchCtl->activateCandidate(index.row());
+}
+
+void MainWindow::ensureResolvedRowsHaveFullSfen()
+{
+    if (m_resolvedRows.isEmpty()) return;
+
+    // Main の SFEN（0..N）。VE から取れなければ既存の main を使う。
+    QList<QString> veMain = (m_varEngine ? m_varEngine->mainlineSfen() : QList<QString>());
+    if (veMain.isEmpty() && !m_resolvedRows[0].sfen.isEmpty())
+        veMain = m_resolvedRows[0].sfen;
+
+    auto sfenFromVeForRow = [&](const ResolvedRow& rr)->QList<QString> {
+        if (rr.varIndex < 0) {
+            // 本譜
+            return veMain;
+        }
+        if (!m_varEngine) return {};
+        const int vid = m_varEngine->variationIdFromSourceIndex(rr.varIndex);
+        return m_varEngine->sfenForVariationId(vid);
+    };
+
+    // 親→子の順に合成される想定（Main が 0、Var は 1,2,... で parent < child）
+    for (int r = 0; r < m_resolvedRows.size(); ++r) {
+        auto& rr = m_resolvedRows[r];
+
+        const int need = rr.disp.size() + 1;   // 0..N
+        const int s    = qMax(1, rr.startPly); // 1-origin
+        const int base = s - 1;                // プレフィクスの終端添字（直前局面）
+
+        // プレフィクスは親行の SFEN。親がなければ Main（行0）。
+        int parentRow = 0;
+        if constexpr (true) { // 親を持っていれば優先
+            // rr.parent が無い環境のための安全策:
+            //  - メンバが存在しない場合は下の if をコメントアウトし、parentRow=0 固定で運用してください。
+            if (rr.parent >= 0 && rr.parent < m_resolvedRows.size()) {
+                parentRow = rr.parent;
+            } else if (r > 0) {
+                // 何も無ければ最低限 Main を親扱い
+                parentRow = 0;
+            }
+        }
+
+        const QStringList& prefix = (!m_resolvedRows[parentRow].sfen.isEmpty()
+                                     ? m_resolvedRows[parentRow].sfen
+                                     : veMain);
+
+        // VE が用意した、この行の「分岐直前からの SFEN 配列」(startPly-1 を先頭とする 0..M)
+        const QList<QString> veRow = sfenFromVeForRow(rr);
+
+        // 合成先
+        QStringList full;
+        full.resize(need); // すべての手を 0..N で持つ
+
+        // 1) プレフィクス 0..base を親行からコピー（不足分は空のまま）
+        if (!prefix.isEmpty()) {
+            const int upto = qMin(base, prefix.size() - 1);
+            for (int i = 0; i <= upto && i < full.size(); ++i) {
+                full[i] = prefix.at(i);
+            }
+        }
+
+        // 2) VE の部分配列を「base を起点」に重ねる
+        //    veRow[0] が「直前局面 (startPly-1)」→ full[base]
+        //    veRow[1] が「分岐1手目後」                → full[base+1]
+        //    ...
+        if (!veRow.isEmpty()) {
+            for (int j = 0; j < veRow.size(); ++j) {
+                const int pos = base + j;
+                if (0 <= pos && pos < full.size()) {
+                    full[pos] = veRow.at(j);
+                }
+            }
+        }
+
+        // 3) 検査＆警告（未充足箇所があればログ）
+        bool missing = false;
+        for (int i = 0; i < full.size(); ++i) {
+            if (full.at(i).isEmpty()) { missing = true; break; }
+        }
+        if (missing) {
+            qWarning().noquote()
+                << "[SFEN] WARN(fill) row=" << r
+                << " startPly=" << rr.startPly
+                << " need=" << need
+                << " prefix(sz=" << prefix.size() << ")"
+                << " veRow(sz=" << veRow.size() << ")";
+        }
+
+        rr.sfen = std::move(full);
+    }
+}
+
+void MainWindow::dumpAllRowsSfenTable() const
+{
+    if (m_resolvedRows.isEmpty()) return;
+
+    auto labelAt = [&](int row, int ply1)->QString {
+        const int li = ply1 - 1;
+        const auto& disp = m_resolvedRows[row].disp;
+        return (li >= 0 && li < disp.size()) ? pickLabelForDisp(disp.at(li)) : QString();
+    };
+
+    for (int r = 0; r < m_resolvedRows.size(); ++r) {
+        const auto& rr = m_resolvedRows[r];
+        qDebug().noquote() << (r == 0 ? "Main" : QString("Var%1").arg(r - 1));
+
+        // 0: 開始局面
+        const QString s0 = (!rr.sfen.isEmpty() ? rr.sfen.first() : QStringLiteral("<SFEN MISSING>"));
+        qDebug().noquote() << QStringLiteral("0 開始局面 %1").arg(s0);
+
+        // 1..N
+        for (int ply1 = 1; ply1 <= rr.disp.size(); ++ply1) {
+            const QString lbl  = labelAt(r, ply1);
+            QString sfen = (ply1 >= 0 && ply1 < rr.sfen.size()) ? rr.sfen.at(ply1) : QString();
+            if (sfen.isEmpty()) sfen = QStringLiteral("<SFEN MISSING>");
+
+            qDebug().noquote()
+                << QString("%1 %2 %3")
+                       .arg(ply1)
+                       .arg(lbl.isEmpty() ? QStringLiteral("<EMPTY>") : lbl)
+                       .arg(sfen);
+        }
+        qDebug().noquote() << "";
+    }
+}
+
+// MainWindow.cpp (privateメソッドとして)
+inline QString MainWindow::sfenAt_(int row, int ply1) const
+{
+    if (row < 0 || row >= m_resolvedRows.size()) return {};
+    const auto& s = m_resolvedRows[row].sfen;      // 0..N （ensureResolvedRowsHaveFullSfenで揃っている前提）
+    if (s.isEmpty()) return {};
+    const int idx = qBound(0, ply1, s.size() - 1); // ply1 は 0=初期局面, 1=1手後...
+    return s.at(idx);
 }
