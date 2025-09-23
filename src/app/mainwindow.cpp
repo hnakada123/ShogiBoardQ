@@ -38,6 +38,10 @@ static inline QString pickLabelForDisp(const KifDisplayItem& d)
     return d.prettyMove;
 }
 
+static inline QString lineNameForRow(int row) {
+    return (row == 0) ? QStringLiteral("Main") : QStringLiteral("Var%1").arg(row - 1);
+}
+
 using namespace EngineSettingsConstants;
 using GameOverCause = MatchCoordinator::Cause;
 
@@ -1749,6 +1753,11 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
     // 11) 解決済み行を構築（親探索規則で親子関係を決定）
     buildResolvedLinesAfterLoad();
 
+    dumpBranchSplitReport();
+
+    buildBranchCandidateDisplayPlan();
+    dumpBranchCandidateDisplayPlan();
+
     // 12) 分岐ツリーへ供給
     if (m_analysisTab) {
         QVector<EngineAnalysisTab::ResolvedRowLite> rows;
@@ -3322,7 +3331,51 @@ void MainWindow::populateBranchListForPly(int ply)
     if (!view) return;
 
     const int rows = m_kifuBranchModel->rowCount();   // BackToMain を含む
-    const bool show = (ply > 0) && (rows > 0);
+    bool show = (ply > 0) && (rows > 0);
+
+    // --- 単一候補かつ現在の手と同一なら非表示 ---
+    if (show) {
+        // 現在の行・手のラベル
+        QString baseLbl;
+        if (m_activeResolvedRow >= 0 && m_activeResolvedRow < m_resolvedRows.size()) {
+            const auto& rr = m_resolvedRows[m_activeResolvedRow];
+            if (ply - 1 >= 0 && ply - 1 < rr.disp.size()) {
+                baseLbl = pickLabelForDisp(rr.disp.at(ply - 1));
+            }
+        }
+
+        // 実候補数（BackToMain除外）と一致判定
+        int candidateCount = 0;
+        bool sameAsBase = false;
+        const int RoleIsBackToMain = Qt::UserRole + 1;
+
+        for (int i = 0; i < rows; ++i) {
+            const QModelIndex ridx = m_kifuBranchModel->index(i, 0);
+            if (!ridx.isValid()) continue;
+
+            const QVariant vIsBack = m_kifuBranchModel->data(ridx, RoleIsBackToMain);
+            if (vIsBack.isValid() && vIsBack.toBool()) {
+                continue; // BackToMain 行は候補から除外
+            }
+
+            const QString candLbl =
+                m_kifuBranchModel->data(ridx, Qt::DisplayRole).toString().trimmed();
+            if (candLbl.isEmpty()) continue;
+
+            ++candidateCount;
+            if (!baseLbl.isEmpty() && candLbl == baseLbl) {
+                sameAsBase = true;
+            }
+        }
+
+        if (candidateCount == 1 && sameAsBase) {
+            qDebug() << "[BRANCH] hide: single candidate equals current move (populateBranchListForPly)"
+                     << " ply=" << ply
+                     << " label=" << baseLbl;
+            show = false;
+        }
+    }
+    // --- ここまで ---
 
     view->setVisible(show);
     view->setEnabled(show);
@@ -3520,14 +3573,59 @@ void MainWindow::onKifuPlySelected(int ply)
     if (m_branchCtl) {
         m_branchCtl->refreshCandidatesForPly(ply, includeMainline, prev, wl);
 
-        // （任意）ビューの表示/非表示を最終制御
+        // ビューの表示/非表示（＋ 単一かつ同一手なら非表示）
         if (m_kifuBranchModel) {
             QTableView* view = m_kifuBranchView
                                    ? m_kifuBranchView
                                    : (m_recordPane ? m_recordPane->branchView() : nullptr);
             if (view) {
                 const int rows = m_kifuBranchModel->rowCount();
-                const bool show = (ply > 0) && (rows > 0);
+                bool show = (ply > 0) && (rows > 0);
+
+                // --- 単一候補かつ現在の手と同一なら非表示 ---
+                if (show) {
+                    // 現在の行・手のラベル
+                    QString baseLbl;
+                    if (m_activeResolvedRow >= 0 && m_activeResolvedRow < m_resolvedRows.size()) {
+                        const auto& rr = m_resolvedRows[m_activeResolvedRow];
+                        if (ply - 1 >= 0 && ply - 1 < rr.disp.size()) {
+                            baseLbl = pickLabelForDisp(rr.disp.at(ply - 1));
+                        }
+                    }
+
+                    // 実候補数（BackToMain除外）と一致判定
+                    int candidateCount = 0;
+                    bool sameAsBase = false;
+                    const int RoleIsBackToMain = Qt::UserRole + 1;
+
+                    for (int i = 0; i < rows; ++i) {
+                        const QModelIndex ridx = m_kifuBranchModel->index(i, 0);
+                        if (!ridx.isValid()) continue;
+
+                        const QVariant vIsBack = m_kifuBranchModel->data(ridx, RoleIsBackToMain);
+                        if (vIsBack.isValid() && vIsBack.toBool()) {
+                            continue; // BackToMain 行は候補数から除外
+                        }
+
+                        const QString candLbl =
+                            m_kifuBranchModel->data(ridx, Qt::DisplayRole).toString().trimmed();
+                        if (candLbl.isEmpty()) continue;
+
+                        ++candidateCount;
+                        if (!baseLbl.isEmpty() && candLbl == baseLbl) {
+                            sameAsBase = true;
+                        }
+                    }
+
+                    if (candidateCount == 1 && sameAsBase) {
+                        qDebug() << "[BRANCH] hide: single candidate equals current move (onKifuPlySelected)"
+                                 << " ply=" << ply
+                                 << " label=" << baseLbl;
+                        show = false;
+                    }
+                }
+                // --- ここまで ---
+
                 view->setVisible(show);
                 view->setEnabled(show);
                 if (show) {
@@ -5702,4 +5800,265 @@ int MainWindow::rowIndexForVariationId(int vid) const
         if (expectedVid == vid) return i;
     }
     return -1;
+}
+
+// 行番号から表示名を作る（Main / VarN）
+QString MainWindow::rowNameFor_(int row) const {
+    if (row < 0 || row >= m_resolvedRows.size()) return QString("<?>");
+    const auto& rr = m_resolvedRows[row];
+    return (rr.varIndex < 0) ? QStringLiteral("Main")
+                             : QStringLiteral("Var%1").arg(rr.varIndex);
+}
+
+// 1始まり hand-ply のラベル（無ければ ""）
+QString MainWindow::labelAt_(const ResolvedRow& rr, int ply) const {
+    const int li = ply - 1;
+    if (li < 0 || li >= rr.disp.size()) return QString();
+    return pickLabelForDisp(rr.disp.at(li));
+}
+
+// 1..p までの完全一致（両方に手が存在し、かつ全ラベル一致）なら true
+bool MainWindow::prefixEqualsUpTo_(int rowA, int rowB, int p) const {
+    if (rowA < 0 || rowA >= m_resolvedRows.size()) return false;
+    if (rowB < 0 || rowB >= m_resolvedRows.size()) return false;
+    const auto& A = m_resolvedRows[rowA];
+    const auto& B = m_resolvedRows[rowB];
+    for (int k = 1; k <= p; ++k) {
+        const QString a = labelAt_(A, k);
+        const QString b = labelAt_(B, k);
+        if (a.isEmpty() || b.isEmpty() || a != b) return false;
+    }
+    return true;
+}
+
+// デバッグ出力：各ラインごとに、各手k（=直前まで一致）で次手(k+1)が割れるなら
+// 「分岐あり <各ライン名 次手>」、割れなければ「分岐なし」を出力
+void MainWindow::dumpBranchSplitReport() const
+{
+    if (m_resolvedRows.isEmpty()) return;
+
+    // 行ごとに出力
+    for (int r = 0; r < m_resolvedRows.size(); ++r) {
+        const auto& rr = m_resolvedRows[r];
+        const QString header = rowNameFor_(r);
+        qDebug().noquote() << header;
+
+        const int maxPly = rr.disp.size();
+        for (int p = 1; p <= maxPly; ++p) {
+            const QString curLbl = labelAt_(rr, p);
+
+            // この行と「1..p まで完全一致」する仲間を抽出
+            QList<int> group;
+            for (int j = 0; j < m_resolvedRows.size(); ++j) {
+                if (prefixEqualsUpTo_(r, j, p)) group << j;
+            }
+
+            // その仲間たちの「次手 (p+1)」を集計（存在するものだけ）
+            struct NextMove { QString who; QString lbl; };
+            QVector<NextMove> nexts; nexts.reserve(group.size());
+            QSet<QString> uniq;
+            for (int j : group) {
+                const QString lblNext = labelAt_(m_resolvedRows[j], p + 1);
+                if (lblNext.isEmpty()) continue; // ここで終端は候補に出さない
+                const QString who = rowNameFor_(j);
+                nexts.push_back({who, lblNext});
+                uniq.insert(lblNext);
+            }
+
+            if (uniq.size() > 1) {
+                // 分岐あり：各ライン名と次手を「、」で列挙
+                QStringList parts;
+                parts.reserve(nexts.size());
+                for (const auto& nm : nexts) {
+                    parts << QString("%1 %2").arg(nm.who, nm.lbl);
+                }
+                qDebug().noquote()
+                    << QString("%1 %2 分岐あり %3")
+                           .arg(p)
+                           .arg(curLbl.isEmpty() ? QStringLiteral("<EMPTY>") : curLbl)
+                           .arg(parts.join(QStringLiteral("、")));
+            } else {
+                qDebug().noquote()
+                    << QString("%1 %2 分岐なし")
+                           .arg(p)
+                           .arg(curLbl.isEmpty() ? QStringLiteral("<EMPTY>") : curLbl);
+            }
+        }
+
+        // 行間の空行
+        qDebug().noquote() << "";
+    }
+}
+
+void MainWindow::buildBranchCandidateDisplayPlan()
+{
+    m_branchDisplayPlan.clear();
+
+    const int R = m_resolvedRows.size();
+    if (R == 0) return;
+
+    auto labelAt = [&](int row, int li)->QString {
+        const auto& disp = m_resolvedRows[row].disp;
+        return (li >= 0 && li < disp.size()) ? pickLabelForDisp(disp.at(li)) : QString();
+    };
+
+    auto prefixEquals = [&](int r1, int r2, int uptoLi)->bool {
+        // li=0 のときは「初手より前の共通部分」は空なので常に一致とみなす
+        for (int i = 0; i < uptoLi; ++i) {
+            if (labelAt(r1, i) != labelAt(r2, i)) return false;
+        }
+        return true;
+    };
+
+    // 各行 r の各ローカル添字 li（0-based）について、
+    // 「初手から li-1 まで完全一致する行」をグループ化し、
+    // その li 手目に 2 種類以上の指し手があれば分岐とみなす。
+    // ★ 表示は “その手（li）” に出す（＝1手先に送らない）
+    for (int r = 0; r < R; ++r) {
+        const int len = m_resolvedRows[r].disp.size();
+        if (len == 0) continue;
+
+        for (int li = 0; li < len; ++li) {
+            // この行 r と「初手から li-1 まで一致」する行
+            QVector<int> group;
+            group.reserve(R);
+            for (int g = 0; g < R; ++g) {
+                if (li < m_resolvedRows[g].disp.size() && prefixEquals(r, g, li)) {
+                    group.push_back(g);
+                }
+            }
+            if (group.size() <= 1) continue; // 比較相手がいない
+
+            // グループの li 手目ラベルを集計
+            QHash<QString, QVector<int>> labelToRows;
+            for (int g : group) {
+                const QString lbl = labelAt(g, li);
+                labelToRows[lbl].push_back(g);
+            }
+            if (labelToRows.size() <= 1) continue; // 全員同じ指し手 → 分岐ではない
+
+            // 表示先 ply（1-based）。li は 0-based
+            const int targetPly = li + 1;
+            if (targetPly > m_resolvedRows[r].disp.size()) continue;
+
+            // 見出し（この行 r の li 手目）
+            const QString baseForDisplay = labelAt(r, li);
+
+            // ===== 重複整理（自分の行 > Main(=row0) > 若い VarN）=====
+            struct TmpKeep { QString lbl; int keepRow; };
+            QVector<TmpKeep> keeps; keeps.reserve(labelToRows.size());
+
+            for (auto it = labelToRows.constBegin(); it != labelToRows.constEnd(); ++it) {
+                const QString lbl = it.key();
+                const QVector<int>& rowsWithLbl = it.value();
+
+                int keep = -1;
+
+                // 1) 自分の行 r を最優先
+                bool hasSelf = false;
+                for (int cand : rowsWithLbl) {
+                    if (cand == r) { keep = cand; hasSelf = true; break; }
+                }
+
+                // 2) 自分が無ければ Main(row=0)
+                if (!hasSelf) {
+                    bool hasMain = false;
+                    for (int cand : rowsWithLbl) {
+                        if (cand == 0) { keep = 0; hasMain = true; break; }
+                    }
+
+                    // 3) それも無ければ最小 row（VarN の若い方）
+                    if (!hasMain) {
+                        keep = rowsWithLbl.first();
+                        for (int cand : rowsWithLbl) {
+                            if (cand < keep) keep = cand;
+                        }
+                    }
+                }
+
+                keeps.push_back({ lbl, keep });
+            }
+
+            // 表示順: Main が先、次に row 昇順
+            std::sort(keeps.begin(), keeps.end(), [](const TmpKeep& a, const TmpKeep& b){
+                if (a.keepRow == 0 && b.keepRow != 0) return true;
+                if (a.keepRow != 0 && b.keepRow == 0) return false;
+                return a.keepRow < b.keepRow;
+            });
+
+            QVector<BranchCandidateDisplayItem> items;
+            items.reserve(keeps.size());
+            for (const auto& k : keeps) {
+                BranchCandidateDisplayItem itx;
+                itx.row      = k.keepRow;
+                itx.varN     = (k.keepRow == 0 ? -1 : k.keepRow - 1);
+                itx.lineName = lineNameForRow(k.keepRow); // "Main" / "VarN"
+                itx.label    = k.lbl;
+                items.push_back(itx);
+            }
+
+            // 保存
+            BranchCandidateDisplay plan;
+            plan.ply       = targetPly;
+            plan.baseLabel = baseForDisplay;
+            plan.items     = std::move(items);
+            m_branchDisplayPlan[r].insert(targetPly, std::move(plan));
+        }
+    }
+}
+
+void MainWindow::dumpBranchCandidateDisplayPlan() const
+{
+    if (m_resolvedRows.isEmpty()) return;
+
+    auto labelAt = [&](int row, int ply1)->QString {
+        // ply1 は 1-based
+        const int li = ply1 - 1;
+        const auto& disp = m_resolvedRows[row].disp;
+        return (li >= 0 && li < disp.size()) ? pickLabelForDisp(disp.at(li)) : QString();
+    };
+
+    // 行ごとに
+    for (int r = 0; r < m_resolvedRows.size(); ++r) {
+        qDebug().noquote() << (r == 0 ? "Main" : QString("Var%1").arg(r - 1));
+
+        const int len = m_resolvedRows[r].disp.size();
+        const auto itRow = m_branchDisplayPlan.constFind(r);
+
+        for (int ply1 = 1; ply1 <= len; ++ply1) {
+            const QString base = labelAt(r, ply1);
+            bool has = false;
+            QVector<BranchCandidateDisplayItem> items;
+
+            if (itRow != m_branchDisplayPlan.constEnd()) {
+                const auto& mp = itRow.value();
+                auto itP = mp.constFind(ply1);
+                if (itP != mp.constEnd()) {
+                    has   = true;
+                    items = itP.value().items;
+                }
+            }
+
+            if (!has) {
+                qDebug().noquote()
+                    << QString("%1 %2 分岐候補表示なし")
+                       .arg(ply1).arg(base.isEmpty() ? "<EMPTY>" : base);
+            } else {
+                // "Main ▲…、Var0 ▲…、Var2 ▲…" の並びを構築
+                QStringList parts;
+                parts.reserve(items.size());
+                for (const auto& it : items) {
+                    parts << QString("%1 %2").arg(it.lineName, it.label);
+                }
+                qDebug().noquote()
+                    << QString("%1 %2 分岐候補表示あり %3")
+                       .arg(ply1)
+                       .arg(base.isEmpty() ? "<EMPTY>" : base)
+                       .arg(parts.join(QStringLiteral("、")));
+            }
+        }
+
+        // 行間の空行
+        qDebug().noquote() << "";
+    }
 }
