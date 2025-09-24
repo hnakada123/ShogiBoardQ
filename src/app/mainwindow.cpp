@@ -1791,6 +1791,10 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
     // ←そして表を出す
     dumpAllRowsSfenTable();
 
+    ensureResolvedRowsHaveFullGameMoves();
+
+    dumpAllLinesGameMoves();
+
     // 14) （Plan方式化に伴い）WL 構築や従来の候補再計算は廃止
     //     rebuildBranchWhitelist();                         // ← 削除
     //     m_branchCtl->refreshCandidatesForPly(...);        // ← 呼ばない
@@ -5977,6 +5981,7 @@ void MainWindow::onRecordPaneBranchActivated_(const QModelIndex& index)
     m_branchCtl->activateCandidate(index.row());
 }
 
+/*
 void MainWindow::ensureResolvedRowsHaveFullSfen()
 {
     if (m_resolvedRows.isEmpty()) return;
@@ -6066,6 +6071,144 @@ void MainWindow::ensureResolvedRowsHaveFullSfen()
         rr.sfen = std::move(full);
     }
 }
+*/
+void MainWindow::ensureResolvedRowsHaveFullSfen()
+{
+    if (m_resolvedRows.isEmpty()) return;
+
+    qDebug() << "[SFEN] ensureResolvedRowsHaveFullSfen BEGIN";
+
+    // Main の SFEN（VEが空なら既存の行0を使う）
+    QStringList veMain = (m_varEngine ? m_varEngine->mainlineSfen() : QStringList());
+    if (veMain.isEmpty() && !m_resolvedRows[0].sfen.isEmpty())
+        veMain = m_resolvedRows[0].sfen;
+
+    auto sfenFromVeForRow = [&](const ResolvedRow& rr)->QStringList {
+        if (rr.varIndex < 0) {
+            // 本譜
+            return veMain;
+        }
+        if (!m_varEngine) return {};
+        const int vid = m_varEngine->variationIdFromSourceIndex(rr.varIndex);
+        return m_varEngine->sfenForVariationId(vid);
+    };
+
+    const int rowCount = m_resolvedRows.size();
+    for (int r = 0; r < rowCount; ++r) {
+        auto& rr = m_resolvedRows[r];
+
+        const int need = rr.disp.size() + 1;     // 0..N
+        const int s    = qMax(1, rr.startPly);   // 1-origin
+        const int base = s - 1;                  // 直前局面の添字
+
+        // 親行（無ければ Main=0）
+        int parentRow = 0;
+        if (rr.parent >= 0 && rr.parent < rowCount) {
+            parentRow = rr.parent;
+        }
+
+        // 親のプレフィクス（親が空なら mainline を使う）
+        const QStringList parentPrefix =
+            (!m_resolvedRows[parentRow].sfen.isEmpty()
+                 ? m_resolvedRows[parentRow].sfen
+                 : veMain);
+
+        // この行の VE 配列（base を先頭とする 0..M）
+        const QStringList veRow = sfenFromVeForRow(rr);
+
+        // 合成先。既存をベースにするが、0..base は必ず親で上書きする
+        QStringList full = rr.sfen;
+
+        // --- 1) 0..base を親の SFEN で「強制上書き」 -----------------------
+        //     ※ ここが今回の肝：古い/別行の値が残らないようにする
+        for (int i = 0; i <= base; ++i) {
+            if (i >= parentPrefix.size()) break;   // 親に無ければ打ち切り
+            const QString pv = parentPrefix.at(i);
+            if (i < full.size()) {
+                full[i] = pv;                      // 常に上書き
+            } else if (!pv.isEmpty()) {
+                full.append(pv);                   // 既知のものだけ追加
+            } else {
+                break;                             // 空は追加しない
+            }
+        }
+
+        // デバッグ（境界確認）
+        auto hashS = [](const QString& s){ return qHash(s); };
+        auto safeAt = [&](const QStringList& a, int i)->QString{
+            return (0<=i && i<a.size() ? a.at(i) : QString());
+        };
+
+        qDebug().noquote()
+                << "[SFEN] row=" << r
+                << " base=" << base
+                << " pre(base-1)#=" << hashS(safeAt(full, base-1))
+                << " pre(base)#="   << hashS(safeAt(full, base))
+                << " pre(base+1)#=" << hashS(safeAt(full, base+1));
+
+
+        // --- 2) VE の部分配列を base から重ねる（空は書かない／ギャップは埋めない） ---
+        bool gap = false;
+        if (!veRow.isEmpty()) {
+            for (int j = 0; j < veRow.size(); ++j) {
+                const int pos = base + j;
+                const QString v = veRow.at(j);
+                if (v.isEmpty()) continue;
+
+                if (pos < full.size()) {
+                    full[pos] = v;
+                } else if (pos == full.size()) {
+                    full.append(v);
+                } else {
+                    // 間の index が未充足（空で埋めない方針なので打ち切り）
+                    gap = true;
+                    break;
+                }
+            }
+        } else {
+            // veRow が空：壊さずスキップ（警告のみ）
+            if (full.size() < need) {
+                qWarning().noquote()
+                        << "[SFEN] SKIP(fill) row=" << r
+                        << " startPly=" << rr.startPly
+                        << " need=" << need
+                        << " prefix(sz=" << parentPrefix.size() << ")"
+                        << " veRow(sz=0)  -- keep r.sfen as-is";
+            }
+        }
+
+        // --- 3) 検査＆警告 ---------------------------------------------------
+        bool missing = (full.size() < need);
+        if (!missing) {
+            for (int i = 0; i < need; ++i) {
+                if (full.at(i).isEmpty()) { missing = true; break; }
+            }
+        }
+        if (missing || gap) {
+            qWarning().noquote()
+                    << "[SFEN] WARN(fill) row=" << r
+                    << " startPly=" << rr.startPly
+                    << " need=" << need
+                    << " prefix(sz=" << parentPrefix.size() << ")"
+                    << " veRow(sz=" << veRow.size() << ")"
+                    << (gap ? " GAP" : "");
+        }
+
+        // デバッグ（境界確認：合成後）
+
+        qDebug().noquote()
+                << "[SFEN] row=" << r
+                << " post(base-1)#=" << hashS(safeAt(full, base-1))
+                << " post(base)#="   << hashS(safeAt(full, base))
+                << " post(base+1)#=" << hashS(safeAt(full, base+1));
+
+
+        rr.sfen = std::move(full);
+    }
+
+    qDebug() << "[SFEN] ensureResolvedRowsHaveFullSfen END";
+}
+
 
 void MainWindow::dumpAllRowsSfenTable() const
 {
@@ -6110,3 +6253,329 @@ inline QString MainWindow::sfenAt_(int row, int ply1) const
     const int idx = qBound(0, ply1, s.size() - 1); // ply1 は 0=初期局面, 1=1手後...
     return s.at(idx);
 }
+
+void MainWindow::dumpAllLinesGameMoves() const
+{
+    if (m_resolvedRows.isEmpty()) return;
+
+    // 終局判定（見た目ベース）
+    static const QStringList kTerminalKeywords = {
+        QStringLiteral("投了"), QStringLiteral("中断"), QStringLiteral("持将棋"),
+        QStringLiteral("千日手"), QStringLiteral("切れ負け"),
+        QStringLiteral("反則勝ち"), QStringLiteral("反則負け"),
+        QStringLiteral("入玉勝ち"), QStringLiteral("不戦勝"),
+        QStringLiteral("不戦敗"), QStringLiteral("詰み"), QStringLiteral("不詰"),
+    };
+    auto isTerminalPretty = [&](const QString& s)->bool {
+        for (const auto& kw : kTerminalKeywords) if (s.contains(kw)) return true;
+        return false;
+    };
+
+    auto lineNameFor = [](int row)->QString {
+        return (row == 0) ? QStringLiteral("Main")
+                          : QStringLiteral("Var%1").arg(row - 1);
+    };
+    auto labelAt = [&](const ResolvedRow& rr, int li)->QString {
+        return (li >= 0 && li < rr.disp.size())
+                 ? pickLabelForDisp(rr.disp.at(li))
+                 : QString();
+    };
+    auto fmtPt = [](const QPoint& p)->QString {
+        return QStringLiteral("(%1,%2)").arg(p.x()).arg(p.y());
+    };
+
+    // QChar/char/整数 いずれでも文字列化できる汎用ヘルパ
+    auto pieceToQString = [](auto v)->QString {
+        using T = std::decay_t<decltype(v)>;
+        if constexpr (std::is_same_v<T, QChar>) {
+            return v.isNull() ? QString() : QString(v);
+        } else if constexpr (std::is_same_v<T, char>) {
+            return v ? QString(QChar(v)) : QString();
+        } else if constexpr (std::is_integral_v<T>) {
+            return v ? QString(QChar(static_cast<ushort>(v))) : QString();
+        } else {
+            return QString();
+        }
+    };
+
+    for (int r = 0; r < m_resolvedRows.size(); ++r) {
+        const auto& rr = m_resolvedRows[r];
+        qDebug().noquote() << lineNameFor(r);
+
+        // 0) 開始局面（From/To 等は出さない）
+        qDebug().noquote() << "0 開始局面";
+
+        const int M = rr.disp.size();
+        for (int li = 0; li < M; ++li) {
+            const QString pretty = labelAt(rr, li);
+            const bool terminal  = isTerminalPretty(pretty);
+
+            // ヘッダ（手数 + 見た目ラベル）
+            const QString head = QStringLiteral("%1 %2").arg(li + 1).arg(pretty);
+
+            if (terminal || li >= rr.gm.size()) {
+                // 投了など or GM不足 → そのまま
+                qDebug().noquote() << head;
+                continue;
+            }
+
+            const ShogiMove& mv = rr.gm.at(li);
+
+            // ドロップ（打つ手）は fromSquare が無効座標の可能性
+            const bool hasFrom = (mv.fromSquare.x() >= 0 && mv.fromSquare.y() >= 0);
+            const QString fromS = hasFrom ? fmtPt(mv.fromSquare) : QString();
+            const QString toS   = fmtPt(mv.toSquare);
+
+            const QString moving = pieceToQString(mv.movingPiece);
+            const QString cap    = pieceToQString(mv.capturedPiece);
+            const bool promoted  = mv.isPromotion;   // ← 正しいフィールド名
+
+            qDebug().noquote()
+                << QString("%1 From:%2 To:%3 Moving:%4 Captured:%5 Promotion:%6")
+                       .arg(head)
+                       .arg(fromS)
+                       .arg(toS)
+                       .arg(moving)
+                       .arg(cap)
+                       .arg(promoted ? "true" : "false");
+        }
+
+        qDebug().noquote() << "";
+    }
+}
+
+// ==== MainWindow.cpp （適当な実装ファイル）====
+
+// デバッグのオン/オフ（必要に応じて false に）
+static bool kGM_VERBOSE = true;
+
+// 1セルを "file-rank" 表示（USI基準とL2R基準の両方を出す）
+static inline QString idxHuman(int idx) {
+    const int col = idx % 9;       // 0..8   左→右
+    const int row = idx / 9;       // 0..8   上→下
+    const int fileL2R = col + 1;   // 1..9   左→右
+    const int rankTop = row + 1;   // 1..9   上→下
+    const int fileUSI = 9 - col;   // 9..1   右→左（一般的なUSIの筋）
+    const int rankUSI = 9 - row;   // 9..1   下→上（一般的なUSIの段）
+    return QStringLiteral("[idx=%1 L2R(%2,%3) USI(%4,%5)]")
+            .arg(idx).arg(fileL2R).arg(rankTop).arg(fileUSI).arg(rankUSI);
+}
+
+// 盤面(81マス)をトークン列に展開（空は ""。駒は "P","p","+P" のように '+' 付きも保持）
+static QVector<QString> sfenBoardTo81Tokens(const QString& sfen)
+{
+    const QString board = sfen.section(QLatin1Char(' '), 0, 0); // 盤面部分
+    QVector<QString> cells; cells.reserve(81);
+
+    for (int i = 0; i < board.size() && cells.size() < 81; ++i) {
+        const QChar ch = board.at(i);
+        if (ch == QLatin1Char('/')) continue;
+        if (ch.isDigit()) {
+            const int n = ch.digitValue();
+            for (int k = 0; k < n; ++k) cells.push_back(QString()); // 空マス
+            continue;
+        }
+        if (ch == QLatin1Char('+')) {
+            if (i + 1 < board.size()) {
+                cells.push_back(QStringLiteral("+") + board.at(i + 1));
+                ++i;
+            }
+            continue;
+        }
+        // 通常駒1文字
+        cells.push_back(QString(ch));
+    }
+    while (cells.size() < 81) cells.push_back(QString());
+
+    if (kGM_VERBOSE) {
+        qDebug().noquote() << "[GM] sfenBoardTo81Tokens parsed"
+                           << " len=" << cells.size()
+                           << " board=\"" << board << "\"";
+    }
+    return cells;
+}
+
+static inline bool tokenEmpty(const QString& t) { return t.isEmpty(); }
+static inline bool tokenPromoted(const QString& t) { return (!t.isEmpty() && t.at(0) == QLatin1Char('+')); }
+static inline QChar tokenBasePiece(const QString& t) {
+    if (t.isEmpty()) return QChar();
+    return t.back(); // '+P' → 'P', 'p' → 'p'
+}
+
+// SFENペアから 1手分の ShogiMove を復元（差分なし=終局などは false）
+static bool deriveMoveFromSfenPair(const QString& prevSfen,
+                                   const QString& nextSfen,
+                                   ShogiMove* out)
+{
+    const QVector<QString> A = sfenBoardTo81Tokens(prevSfen);
+    const QVector<QString> B = sfenBoardTo81Tokens(nextSfen);
+
+    int fromIdx = -1, toIdx = -1;
+    QString fromTok, toTokPrev, toTokNew;
+
+    // どのセルが変わったか（詳細ログ用）
+    QVector<int> diffs; diffs.reserve(4);
+
+    for (int i = 0; i < 81; ++i) {
+        const QString& a = A.at(i);
+        const QString& b = B.at(i);
+        if (a == b) continue;
+
+        diffs.push_back(i);
+
+        // 移動元：a に駒があり b が空
+        if (!tokenEmpty(a) && tokenEmpty(b)) {
+            fromIdx = i;
+            fromTok = a;
+            continue;
+        }
+        // 移動先：b に駒があり a と異なる
+        if (!tokenEmpty(b) && a != b) {
+            toIdx     = i;
+            toTokNew  = b;
+            toTokPrev = a; // 取りがあった場合は a に相手駒がいた
+        }
+    }
+
+    if (kGM_VERBOSE) {
+        qDebug().noquote() << "[GM] deriveMoveFromSfenPair  diffs=" << diffs.size();
+        for (int i = 0; i < diffs.size(); ++i) {
+            const int d = diffs.at(i);
+            qDebug().noquote()
+                << "      diff[" << i << "] idx=" << d
+                << "  A=\"" << A.at(d) << "\""
+                << "  B=\"" << B.at(d) << "\""
+                << "  " << idxHuman(d);
+        }
+        qDebug().noquote() << "      picked fromIdx=" << fromIdx
+                           << (fromIdx>=0 ? (" tok=\""+fromTok+"\" "+idxHuman(fromIdx)) : QString())
+                           << "  toIdx=" << toIdx
+                           << (toIdx>=0 ? (" tokPrev=\""+toTokPrev+"\" tokNew=\""+toTokNew+"\" "+idxHuman(toIdx)) : QString());
+    }
+
+    if (fromIdx < 0 && toIdx < 0) {
+        // 盤が全く同じ → 投了など「着手なし」
+        if (kGM_VERBOSE) qDebug() << "[GM] no board delta (resign/terminal/comment only)";
+        return false;
+    }
+
+    // 盤座標 ← idx
+    auto idxToPointL2R     = [](int idx)->QPoint { return QPoint(idx % 9, idx / 9); };
+    auto idxToPointFlipped = [](int idx)->QPoint { return QPoint(8 - (idx % 9), idx / 9); };
+
+    // 出力フィールド（※最終的に out へ入れるのは FLIP 側）
+    QPoint from(-1, -1), to(-1, -1);
+    QChar moving, captured;
+    bool isPromotion = false;
+
+    if (fromIdx < 0 && toIdx >= 0) {
+        // 打つ手（ドロップ）
+        from = QPoint(-1, -1);
+        // ★ 採用は FLIP 側
+        to   = idxToPointFlipped(toIdx);
+        moving    = tokenBasePiece(toTokNew);              // 駒台から打った駒
+        captured  = QChar();                               // 取りは無い
+        isPromotion = false;                               // 打ちは成りなし
+    } else if (fromIdx >= 0 && toIdx >= 0) {
+        // 通常移動（★ 採用は FLIP 側）
+        from     = idxToPointFlipped(fromIdx);
+        to       = idxToPointFlipped(toIdx);
+        moving   = tokenBasePiece(fromTok);               // 元の升の駒（非成り形）
+        captured = tokenEmpty(toTokPrev) ? QChar() : tokenBasePiece(toTokPrev);
+        isPromotion = tokenPromoted(toTokNew);
+    } else {
+        if (kGM_VERBOSE) qDebug() << "[GM] inconsistent from/to detection";
+        return false;
+    }
+
+    if (kGM_VERBOSE) {
+        // 参考ログ：L2R と FLIP の両方を出す（採用は FLIP）
+        QPoint l2rFrom(-1,-1), l2rTo(-1,-1);
+        if (fromIdx >= 0) l2rFrom = idxToPointL2R(fromIdx);
+        if (toIdx   >= 0) l2rTo   = idxToPointL2R(toIdx);
+
+        QPoint flipFrom(-1,-1), flipTo(-1,-1);
+        if (fromIdx >= 0) flipFrom = idxToPointFlipped(fromIdx);
+        if (toIdx   >= 0) flipTo   = idxToPointFlipped(toIdx);
+
+        qDebug().noquote()
+            << "      L2R  from=" << l2rFrom << " to=" << l2rTo;
+        qDebug().noquote()
+            << "      FLIP from=" << flipFrom << " to=" << flipTo << "  <-- chosen";
+
+        qDebug().noquote()
+            << "      moving=" << moving
+            << " captured=" << (captured.isNull() ? QChar(' ') : captured)
+            << " promoted=" << (isPromotion ? "T" : "F");
+    }
+
+    if (out) *out = ShogiMove(from, to, moving, captured, isPromotion);
+    return true;
+}
+
+// 各 ResolvedRow の SFEN 列から gm（ShogiMove 列）を復元する（詳細ログ付き）
+void MainWindow::ensureResolvedRowsHaveFullGameMoves()
+{
+    qDebug() << "[GM] ensureResolvedRowsHaveFullGameMoves BEGIN";
+    for (int i = 0; i < m_resolvedRows.size(); ++i) {
+        auto& r = m_resolvedRows[i];
+
+        const int nsfen = r.sfen.size();     // 0..N
+        const int ndisp = r.disp.size();     // 1..N
+        // resign など「盤が変わらない終端」は 1 手として数えないので、基本は min(ndisp, nsfen-1)
+        const int want  = qMax(0, qMin(ndisp, nsfen - 1));
+
+        const QString label = (i == 0)
+                              ? QStringLiteral("Main")
+                              : QStringLiteral("Var%1(id=%2)")
+                                    .arg(r.varIndex)
+                                    .arg(m_varEngine ? m_varEngine->varIdForSourceIndex(r.varIndex)
+                                                     : (r.varIndex + 1));
+
+        qDebug().noquote()
+            << QString("[GM] row=%1 \"%2\" start=%3 nsfen=%4 ndisp=%5 current_gm=%6 want=%7")
+                  .arg(i).arg(label).arg(r.startPly).arg(nsfen).arg(ndisp).arg(r.gm.size()).arg(want);
+
+        // サイズが一致していればスキップ（必要に応じて強制再構築したい場合はこの if を外す）
+        if (r.gm.size() == want) {
+            qDebug().noquote() << QString("[GM] row=%1 keep (size match)").arg(i);
+            continue;
+        }
+
+        r.gm.clear();
+
+        for (int ply1 = 1; ply1 <= want; ++ply1) {
+            const QString prev = r.sfen.at(ply1 - 1);
+            const QString next = r.sfen.at(ply1);
+            const QString pretty = r.disp.at(ply1 - 1).prettyMove;
+
+            ShogiMove mv;
+            const bool ok = deriveMoveFromSfenPair(prev, next, &mv); // ★ 内部で FLIP（USI向き）を採用
+
+            if (!ok) {
+                // 盤が同一 → 投了やコメントのみなど（gm へは積まない）
+                qDebug().noquote()
+                    << QString("[GM] row=%1 ply=%2 \"%3\" : NO-DELTA (terminal/comment)")
+                           .arg(i).arg(ply1).arg(pretty);
+                continue;
+            }
+
+            r.gm.push_back(mv);
+
+            auto qcharToStr = [](QChar c)->QString { return c.isNull() ? QString(" ") : QString(c); };
+            qDebug().noquote()
+                << QString("[GM] row=%1 ply=%2 \"%3\"  From:(%4,%5) To:(%6,%7) Moving:%8 Captured:%9 Promotion:%10")
+                       .arg(i).arg(ply1).arg(pretty)
+                       .arg(mv.fromSquare.x()).arg(mv.fromSquare.y())
+                       .arg(mv.toSquare.x()).arg(mv.toSquare.y())
+                       .arg(qcharToStr(mv.movingPiece))
+                       .arg(qcharToStr(mv.capturedPiece))
+                       .arg(mv.isPromotion ? "true" : "false");
+        }
+
+        qDebug().noquote()
+            << QString("[GM] row=%1 built gm.size=%2 / want=%3").arg(i).arg(r.gm.size()).arg(want);
+    }
+    qDebug() << "[GM] ensureResolvedRowsHaveFullGameMoves END";
+}
+
