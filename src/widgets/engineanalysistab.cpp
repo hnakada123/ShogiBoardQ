@@ -420,15 +420,15 @@ void EngineAnalysisTab::highlightNodeId_(int nodeId, bool centerOn)
 }
 
 // ===================== クリック検出 =====================
-
 bool EngineAnalysisTab::eventFilter(QObject* obj, QEvent* ev)
 {
     if (m_branchTree && obj == m_branchTree->viewport()
-        && (ev->type() == QEvent::MouseButtonRelease /* または MouseButtonPress */))
+        && ev->type() == QEvent::MouseButtonRelease)
     {
         auto* me = static_cast<QMouseEvent*>(ev);
-        const QPointF scenePt = m_branchTree->mapToScene(me->pos());
+        if (!(me->button() & Qt::LeftButton)) return QWidget::eventFilter(obj, ev);
 
+        const QPointF scenePt = m_branchTree->mapToScene(me->pos());
         QGraphicsItem* hit =
             m_branchTree->scene() ? m_branchTree->scene()->itemAt(scenePt, QTransform()) : nullptr;
 
@@ -437,37 +437,16 @@ bool EngineAnalysisTab::eventFilter(QObject* obj, QEvent* ev)
             hit = hit->parentItem();
         if (!hit) return false;
 
-        const int kind = hit->data(BR_ROLE_KIND).toInt();
-        switch (kind) {
-        case BNK_Start:
-            emit requestApplyStart();
-            return true;
+        // クリックされたノードの絶対(row, ply)
+        const int row = hit->data(ROLE_ROW).toInt();  // 0=Main, 1..=VarN
+        const int ply = hit->data(ROLE_PLY).toInt();  // 0=開始局面, 1..=手数
 
-        case BNK_Main: {
-            const int ply = hit->data(BR_ROLE_PLY).toInt();
-            emit requestApplyMainAtPly(ply);
-            return true;
-        }
+        // 即時の視覚フィードバック（黄色）※任意だが体感向上
+        highlightBranchTreeAt(row, ply, /*centerOn=*/false);
 
-        // engineanalysistab.cpp の eventFilter 内 switch(kind) の BNK_Var 節を置き換え
-        case BNK_Var: {
-            // クリックされた分岐ノードの絶対 (row, ply) を取り出す
-            const int row    = hit->data(ROLE_ROW).toInt();
-            const int absPly = hit->data(ROLE_PLY).toInt();
-
-            // 即時の視覚応答（任意）：先に自分でも黄色にしておくとキビキビ見える
-            highlightBranchTreeAt(row, absPly, /*centerOn=*/false);
-
-            // ★ 新：MainWindow に (row, ply) で直接適用させる
-            emit branchNodeActivated(row, absPly);
-
-            return true;
-        }
-
-
-        default:
-            break;
-        }
+        // 新API：MainWindow 側で (row, ply) をそのまま適用
+        emit branchNodeActivated(row, ply);
+        return true;
     }
     return QWidget::eventFilter(obj, ev);
 }
