@@ -102,7 +102,6 @@ signals:
     // MainWindow に「何を適用したいか」を伝える
     void requestApplyStart();                         // 開始局面へ
     void requestApplyMainAtPly(int ply);             // 本譜の ply 手へ
-    void requestApplyVariation(int startPly, int bucketIndex); // 分岐へ
 
 private:
     void buildUi();

@@ -449,12 +449,21 @@ bool EngineAnalysisTab::eventFilter(QObject* obj, QEvent* ev)
             return true;
         }
 
+        // engineanalysistab.cpp の eventFilter 内 switch(kind) の BNK_Var 節を置き換え
         case BNK_Var: {
-            const int sp  = hit->data(BR_ROLE_STARTPLY).toInt();
-            const int bix = hit->data(BR_ROLE_BUCKET).toInt();
-            emit requestApplyVariation(sp, bix);
+            // クリックされた分岐ノードの絶対 (row, ply) を取り出す
+            const int row    = hit->data(ROLE_ROW).toInt();
+            const int absPly = hit->data(ROLE_PLY).toInt();
+
+            // 即時の視覚応答（任意）：先に自分でも黄色にしておくとキビキビ見える
+            highlightBranchTreeAt(row, absPly, /*centerOn=*/false);
+
+            // ★ 新：MainWindow に (row, ply) で直接適用させる
+            emit branchNodeActivated(row, absPly);
+
             return true;
         }
+
 
         default:
             break;
