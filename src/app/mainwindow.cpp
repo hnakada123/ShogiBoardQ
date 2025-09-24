@@ -4315,8 +4315,8 @@ void MainWindow::setupEngineAnalysisTab()
     connect(m_analysisTab, &EngineAnalysisTab::requestApplyMainAtPly,
             this, &MainWindow::onRequestApplyMainAtPly, Qt::UniqueConnection);
 
-    connect(m_analysisTab, &EngineAnalysisTab::requestApplyVariation,
-            this, &MainWindow::onRequestApplyVariation, Qt::UniqueConnection);
+    connect(m_analysisTab, &EngineAnalysisTab::branchNodeActivated,
+            this, &MainWindow::onBranchNodeActivated_);
 }
 
 void MainWindow::onKifuCurrentRowChanged(const QModelIndex& cur, const QModelIndex&)
@@ -6516,4 +6516,16 @@ std::pair<int,int> MainWindow::resolveBranchHighlightTarget(int row, int ply) co
         return resolveBranchHighlightTarget(parentRow, ply);
     }
     return { vid, ply };
+}
+
+void MainWindow::onBranchNodeActivated_(int row, int ply)
+{
+    if (row < 0 || row >= m_resolvedRows.size()) return;
+
+    // その行の手数内にクランプ（0=開始局面, 1..N）
+    const int maxPly = m_resolvedRows[row].disp.size();
+    const int selPly = qBound(0, ply, maxPly);
+
+    // これだけで：局面更新 / 棋譜欄差し替え＆選択 / 分岐候補欄更新 / ツリーハイライト同期
+    applyResolvedRowAndSelect(row, selPly);
 }

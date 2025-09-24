@@ -593,6 +593,7 @@ private:
 private slots:
     void onBranchPlanActivated_(int row, int ply1);                // Plan選択 → 行/手へジャンプ
     void onRecordPaneBranchActivated_(const QModelIndex& index);   // QModelIndex → row へアダプト
+    void onBranchNodeActivated_(int row, int ply);
 };
 
 #endif // MAINWINDOW_H
