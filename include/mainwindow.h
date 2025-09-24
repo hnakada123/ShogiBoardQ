@@ -473,10 +473,6 @@ private slots:
     // --- 分岐 / 棋譜ナビゲーション ---
     void onMainMoveRowChanged(int row);
     void onKifuCurrentRowChanged(const QModelIndex& cur, const QModelIndex& prev);
-    void onBranchNodeActivated(int row, int ply);
-    void onRequestApplyStart();
-    void onRequestApplyMainAtPly(int ply);
-    void onRequestApplyVariation(int startPly, int bucketIndex);
 
     // --- 盤面・反転 ---
     void onBoardFlipped(bool nowFlipped);

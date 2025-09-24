@@ -4267,31 +4267,6 @@ void MainWindow::setupRecordPane()
     setupBranchView_();
 }
 
-void MainWindow::onBranchNodeActivated(int row, int ply) {
-    applyResolvedRowAndSelect(row, ply);
-}
-
-void MainWindow::onRequestApplyStart() {
-    applyResolvedRowAndSelect(/*row=*/0, /*selPly=*/0);
-    if (m_kifuBranchModel) m_kifuBranchModel->clearBranchCandidates();
-    if (auto* br = m_recordPane ? m_recordPane->branchView() : nullptr)
-        br->setEnabled(false);
-    enableArrowButtons();
-}
-
-void MainWindow::onRequestApplyMainAtPly(int ply) {
-    const int p = qMax(0, ply);
-    applyResolvedRowAndSelect(/*row=*/0, /*selPly=*/p);
-    populateBranchListForPly(p);
-    enableArrowButtons();
-}
-
-void MainWindow::onRequestApplyVariation(int startPly, int bucketIndex) {
-    applyVariationByKey(startPly, bucketIndex);
-    populateBranchListForPly(startPly);
-    enableArrowButtons();
-}
-
 // どこかの初期化パスで（例：initializeComponents 内やコンストラクタ末尾）
 void MainWindow::setupEngineAnalysisTab()
 {
@@ -4304,16 +4279,6 @@ void MainWindow::setupEngineAnalysisTab()
 
     // 既存の m_tab を差し替えたい場合
     m_tab = m_analysisTab->tab();
-
-    // ── ここから：ラムダ→メンバスロット ──
-    connect(m_analysisTab, &EngineAnalysisTab::branchNodeActivated,
-            this, &MainWindow::onBranchNodeActivated, Qt::UniqueConnection);
-
-    connect(m_analysisTab, &EngineAnalysisTab::requestApplyStart,
-            this, &MainWindow::onRequestApplyStart, Qt::UniqueConnection);
-
-    connect(m_analysisTab, &EngineAnalysisTab::requestApplyMainAtPly,
-            this, &MainWindow::onRequestApplyMainAtPly, Qt::UniqueConnection);
 
     connect(m_analysisTab, &EngineAnalysisTab::branchNodeActivated,
             this, &MainWindow::onBranchNodeActivated_);
