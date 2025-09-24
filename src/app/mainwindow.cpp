@@ -3397,6 +3397,10 @@ void MainWindow::syncBoardAndHighlightsAtRow(int ply1)
         // 打つ手は移動元をハイライトしない（必要なら駒台強調などに差し替え）
         m_boardController->showMoveHighlights(QPoint(), to1);
     }
+
+    // 選択中の行を使ってハイライト解決
+    const int row = m_activeResolvedRow; // 選択更新時に維持していること
+    updateBranchCandidatesHighlightForSelection(row, ply1);
 }
 
 void MainWindow::showRecordAtPly(const QList<KifDisplayItem>& disp, int selectPly)
@@ -3790,6 +3794,9 @@ void MainWindow::applyResolvedRowAndSelect(int row, int selPly)
 
     // ★ 棋譜欄の「分岐あり」行をオレンジでマーク
     updateKifuBranchMarkersForActiveRow();
+
+    // 分岐候補ハイライト更新（ここを追加）
+    updateBranchCandidatesHighlightForSelection(row, selPly);
 }
 
 void MainWindow::BranchRowDelegate::paint(
@@ -5081,6 +5088,11 @@ void MainWindow::setupBranchCandidatesWiring_()
                                  Qt::UniqueConnection);
         qDebug() << "[WIRE] connect RecordPane.branchActivated -> MainWindow.onRecordPaneBranchActivated_ :" << okB;
     }
+
+    const bool okH =
+        connect(m_branchCtl, &BranchCandidatesController::highlightChanged,
+                m_kifuBranchModel, &KifuBranchListModel::setActiveVidPly);
+    qDebug() << "[WIRE] connect BranchCtl.highlightChanged -> BranchModel.setActiveVidPly :" << okH;
 
     // 旧方式は念のため切断
     QObject::disconnect(m_branchCtl, &BranchCandidatesController::applyLineRequested,
@@ -6488,3 +6500,67 @@ void MainWindow::ensureResolvedRowsHaveFullGameMoves()
     qDebug() << "[GM] ensureResolvedRowsHaveFullGameMoves END";
 }
 
+std::pair<int,int> MainWindow::resolveBranchHighlightTarget(int row, int ply) const
+{
+    if (!m_varEngine) return {-1, -1};
+    if (row < 0 || row >= m_resolvedRows.size() || ply < 0) return {-1, -1};
+
+    const ResolvedRow& rr = m_resolvedRows[row];
+
+    // Main 行（varIndex < 0）は常に vid=0（本譜）
+    if (rr.varIndex < 0) {
+        return { 0, ply };
+    }
+
+    // 親行（無ければ Main=0）
+    const int parentRow =
+        (rr.parent >= 0 && rr.parent < m_resolvedRows.size()) ? rr.parent : 0;
+
+    // 分岐前の手は親行の vid でハイライト
+    if (ply < rr.startPly) {
+        return resolveBranchHighlightTarget(parentRow, ply);
+    }
+
+    // 分岐以降は当該分岐の vid（sourceIndex -> variationId）
+    const int vid = m_varEngine->variationIdFromSourceIndex(rr.varIndex);
+    if (vid < 0) {
+        // 念のためフォールバック
+        return resolveBranchHighlightTarget(parentRow, ply);
+    }
+    return { vid, ply };
+}
+
+void MainWindow::updateBranchCandidatesHighlightForSelection(int row, int ply)
+{
+    auto *ctl = m_branchCtl;
+    if (!ctl) return;
+
+    auto [vid, hp] = resolveBranchHighlightTarget(row, ply);
+
+    if (vid < 0) {
+        // クリア系：どれか一つがあればOK
+        bool ok = QMetaObject::invokeMethod(ctl, "clearHighlight");
+        if (!ok) {
+            QMetaObject::invokeMethod(ctl, "setActiveVariation", Q_ARG(int, -1));
+            QMetaObject::invokeMethod(ctl, "setActivePly",        Q_ARG(int, -1));
+        }
+        return;
+    }
+
+    // まとめ指定があればそれを使う
+    bool ok =
+        QMetaObject::invokeMethod(ctl, "setActive",
+                                  Q_ARG(int, vid), Q_ARG(int, hp)) ||
+        QMetaObject::invokeMethod(ctl, "setActiveVidPly",
+                                  Q_ARG(int, vid), Q_ARG(int, hp));
+
+    // 無ければ variation と ply を個別に渡す
+    if (!ok) {
+        QMetaObject::invokeMethod(ctl, "setActiveVariation", Q_ARG(int, vid));
+        QMetaObject::invokeMethod(ctl, "setActivePly",        Q_ARG(int, hp));
+    }
+
+    qDebug() << "[BRANCH] highlight resolve row=" << row
+             << " ply=" << ply << " -> vid=" << vid << " ply=" << hp
+             << " ok=" << ok;
+}

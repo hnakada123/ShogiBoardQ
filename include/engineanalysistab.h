@@ -7,6 +7,8 @@
 #include <QStringList>
 #include <QMap>
 #include <QPair>
+#include <QHash>
+#include <QSet>
 
 class QTabWidget;
 class QTableView;
@@ -70,7 +72,24 @@ public:
     // item->data 用ロールキー
     static constexpr int ROLE_ROW = 0x501;
     static constexpr int ROLE_PLY = 0x502;
-    static constexpr int ROLE_ORIGINAL_BRUSH = 0x503;   // ← これを追加
+    static constexpr int ROLE_ORIGINAL_BRUSH = 0x503;
+    static constexpr int ROLE_NODE_ID = 0x504;     // ★ 追加：グラフノードID
+
+    // ===== 追加：分岐ツリー・グラフAPI（初期構築時に使用） =====
+    // 再構築の先頭で呼ぶ（内部グラフをクリア）
+    void clearBranchGraph();
+
+    // 矩形を生成した直後に呼ぶ：ノード登録して nodeId を返す
+    // ※戻り値は各矩形に setData(ROLE_NODE_ID, id) して保持してください
+    int registerNode(int vid, int row, int ply, QGraphicsPathItem* item);
+
+    // 罫線を引く直前に、接続する2つのノード id で呼ぶ
+    void linkEdge(int prevId, int nextId);
+
+    // アクセサ： (row,ply) → nodeId（無ければ -1）
+    int nodeIdFor(int row, int ply) const {
+        return m_nodeIdByRowPly.value(qMakePair(row, ply), -1);
+    }
 
 public slots:
     void setAnalysisVisible(bool on);
@@ -93,6 +112,10 @@ private:
     QGraphicsPathItem* addNode(int row, int ply, const QString& text);
     void addEdge(QGraphicsPathItem* from, QGraphicsPathItem* to);
 
+    // ---- 追加：フォールバック探索とハイライト実体（実装は .cpp） ----
+    int  graphFallbackToPly_(int row, int targetPly) const;
+    void highlightNodeId_(int nodeId, bool centerOn);
+
     // --- UI ---
     QTabWidget* m_tab=nullptr;
     EngineInfoWidget *m_info1=nullptr, *m_info2=nullptr;
@@ -111,8 +134,31 @@ private:
     // --- 分岐データ ---
     QVector<ResolvedRowLite> m_rows;   // 行0=本譜、行1..=ファイル登場順の分岐
 
-    // クリック判定用： (row,ply) -> node item
+    // クリック判定用： (row,ply) -> node item（既存）
     QMap<QPair<int,int>, QGraphicsPathItem*> m_nodeIndex;
+
+    // ==== 追加：罫線フォールバック用のグラフ ====
+    struct BranchGraphNode {
+        int id   = -1;
+        int vid  = -1;   // 0=Main / 1..=VarN
+        int row  = -1;   // ResolvedRow の行インデックス
+        int ply  =  0;   // グローバル手数（1-based。初期局面は 0）
+        QGraphicsPathItem* item = nullptr;
+    };
+
+    // (row,ply) -> nodeId
+    QHash<QPair<int,int>, int> m_nodeIdByRowPly;
+    // nodeId -> ノード
+    QHash<int, BranchGraphNode> m_nodesById;
+    // nodeId の前後リンク集合
+    QHash<int, QVector<int>> m_prevIds;
+    QHash<int, QVector<int>> m_nextIds;
+    // 行ごとの入口ノード（分岐開始ノード等）
+    QHash<int, int> m_rowEntryNode;
+    // 連番発行
+    int m_nextNodeId = 1;
+    // 直前に黄色にした item
+    QGraphicsPathItem* m_prevSelected = nullptr;
 
     // ツリークリック検出
     bool eventFilter(QObject* obj, QEvent* ev) override;

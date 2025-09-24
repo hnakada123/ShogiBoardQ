@@ -14,6 +14,10 @@ BranchCandidatesController::BranchCandidatesController(KifuVariationEngine* ve,
 {
     m_planMode = true;     // ★Plan方式を常時有効
     m_planMetas.clear();
+
+    qDebug().nospace()
+        << "[WIRE] BranchCandidatesController created ve=" << static_cast<void*>(ve)
+        << " model=" << static_cast<void*>(model);
 }
 
 //====================== クリック処理 ======================
@@ -34,8 +38,6 @@ void BranchCandidatesController::activateCandidate(int rowIndex)
 }
 
 //====================== （互換）旧方式はノーオペ ======================
-// 旧：VarEngine から prevSfen/whitelist で候補生成 → Model 反映
-// 新：すべて MainWindow が Plan を用意するため、ここではクリアのみ。
 void BranchCandidatesController::refreshCandidatesForPly(int /*ply*/,
                                                          bool /*includeMainline*/,
                                                          const QString& /*prevSfen*/,
@@ -87,4 +89,47 @@ void BranchCandidatesController::refreshCandidatesFromPlan(
 
     qDebug() << "[BRANCH-CTL] set plan items =" << items.size()
              << " ply=" << ply1;
+}
+
+//====================== ハイライト API（invokeMethod 互換） ======================
+void BranchCandidatesController::clearHighlight()
+{
+    m_activeVid = -1;
+    m_activePly = -1;
+    applyHighlight_();
+}
+
+bool BranchCandidatesController::setActive(int variationId, int ply)
+{
+    m_activeVid = variationId;
+    m_activePly = ply;
+    applyHighlight_();
+    return true;
+}
+
+void BranchCandidatesController::setActiveVariation(int variationId)
+{
+    m_activeVid = variationId;
+    applyHighlight_();
+}
+
+void BranchCandidatesController::setActivePly(int ply)
+{
+    m_activePly = ply;
+    applyHighlight_();
+}
+
+void BranchCandidatesController::applyHighlight_()
+{
+    // 追加：モデルに直接伝える（シグネチャは int,int）
+    if (m_model) {
+        QMetaObject::invokeMethod(
+            m_model, "setActiveVidPly", Qt::QueuedConnection,
+            Q_ARG(int, m_activeVid), Q_ARG(int, m_activePly));
+    }
+
+    emit highlightChanged(m_activeVid, m_activePly);
+    qDebug().nospace()
+        << "[BRANCH-CTL] highlight vid=" << m_activeVid
+        << " ply=" << m_activePly;
 }

@@ -587,6 +587,12 @@ private:
 
     void ensureResolvedRowsHaveFullGameMoves();
 
+    // 選択（行row, 手数ply）から、ハイライトすべき(variation id, ply)を解決
+    std::pair<int,int> resolveBranchHighlightTarget(int row, int ply) const;
+
+    // 上の解決結果を使って分岐候補ビューのハイライトを更新
+    void updateBranchCandidatesHighlightForSelection(int row, int ply);
+
 private slots:
     void onBranchPlanActivated_(int row, int ply1);                // Plan選択 → 行/手へジャンプ
     void onRecordPaneBranchActivated_(const QModelIndex& index);   // QModelIndex → row へアダプト
