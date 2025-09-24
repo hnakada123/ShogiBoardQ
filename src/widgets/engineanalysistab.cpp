@@ -17,10 +17,14 @@
 #include <QtMath>
 #include <QFontMetrics>
 #include <QRegularExpression>
+#include <QQueue>
+#include <QSet>
 
 #include "engineinfowidget.h"
 #include "shogienginethinkingmodel.h"
 #include "usicommlogmodel.h"
+
+// ===================== コンストラクタ/UI =====================
 
 EngineAnalysisTab::EngineAnalysisTab(QWidget* parent)
     : QWidget(parent)
@@ -124,11 +128,15 @@ void EngineAnalysisTab::setCommentHtml(const QString& html)
     if (m_comment) m_comment->setHtml(html);
 }
 
+// ===================== 分岐ツリー・データ設定 =====================
+
 void EngineAnalysisTab::setBranchTreeRows(const QVector<ResolvedRowLite>& rows)
 {
     m_rows = rows;
     rebuildBranchTree();
 }
+
+// ===================== ノード/エッジ描画（＋登録） =====================
 
 // ノード（指し手札）を描く：row=0(本譜)/1..(分岐), ply=手数(1始まり), rawText=指し手
 QGraphicsPathItem* EngineAnalysisTab::addNode(int row, int ply, const QString& rawText)
@@ -201,7 +209,13 @@ QGraphicsPathItem* EngineAnalysisTab::addNode(int row, int ply, const QString& r
                        rect.top() - gap - nbr.height());
     }
 
+    // クリック解決用（従来）
     m_nodeIndex.insert(qMakePair(row, ply), item);
+
+    // ★ グラフ登録（vid はここでは row と同義で十分）
+    const int nodeId = registerNode(/*vid*/row, row, ply, item);
+    item->setData(ROLE_NODE_ID, nodeId);
+
     return item;
 }
 
@@ -221,11 +235,14 @@ void EngineAnalysisTab::addEdge(QGraphicsPathItem* from, QGraphicsPathItem* to)
 
     auto* edge = m_scene->addPath(path, QPen(QColor(90, 90, 90), 1.0));
     edge->setZValue(0); // ← 線は常に背面（長方形の中に罫線が見えなくなる）
+
+    // ★ グラフ接続
+    const int prevId = from->data(ROLE_NODE_ID).toInt();
+    const int nextId = to  ->data(ROLE_NODE_ID).toInt();
+    if (prevId > 0 && nextId > 0) linkEdge(prevId, nextId);
 }
 
 // --- 追加ヘルパ：row(>=1) の分岐元となる「親行」を決める ---
-// 直前の変化 a、さらにその前の変化 c、… を遡り、startPly(b) > startPly(その行) を満たす最初の行を返す。
-// 見つからなければ本譜 row=0 を親とする。
 int EngineAnalysisTab::resolveParentRowForVariation_(int row) const
 {
     Q_ASSERT(row >= 1 && row < m_rows.size());
@@ -238,11 +255,17 @@ int EngineAnalysisTab::resolveParentRowForVariation_(int row) const
     return 0;                                 // どれにも入らなければ本譜
 }
 
+// ===================== シーン再構築 =====================
+
 void EngineAnalysisTab::rebuildBranchTree()
 {
     if (!m_scene) return;
     m_scene->clear();
     m_nodeIndex.clear();
+
+    // ★ グラフもクリア
+    clearBranchGraph();
+    m_prevSelected = nullptr;
 
     static constexpr qreal STEP_X   = 110.0;
     static constexpr qreal BASE_X   = 40.0;
@@ -290,6 +313,10 @@ void EngineAnalysisTab::rebuildBranchTree()
             t->setParentItem(startNode);
             t->setPos(rect.center().x() - br.width() / 2.0,
                       rect.center().y() - br.height() / 2.0);
+
+            // ★ 開始局面もノード登録
+            const int nid = registerNode(/*vid*/0, /*row*/0, /*ply*/0, startNode);
+            startNode->setData(ROLE_NODE_ID, nid);
         }
 
         // 本譜のノード（ply=1..）
@@ -304,8 +331,6 @@ void EngineAnalysisTab::rebuildBranchTree()
     }
 
     // ===== 分岐 row=1.. =====
-    // 親の決め方は、直前→さらに前…と遡って startPly(b) > startPly(親候補) を満たす最初の行。
-    // ノード配置は「分岐の開始手(startPly)以降のみ」を使う（本譜の初手からは入れない）。
     for (int row = 1; row < m_rows.size(); ++row) {
         const auto& rv = m_rows.at(row);
         const int startPly = qMax(1, rv.startPly);      // 1-origin
@@ -323,7 +348,6 @@ void EngineAnalysisTab::rebuildBranchTree()
                                                 m_nodeIndex.value(qMakePair(0, 0), nullptr)));
 
         // 3) 分岐の手リストを「開始手以降だけ」にスライス
-        //    rv.disp は“その行の全手”が入っていることがあるため、ここで切り出す。
         const int cut = qMax(0, startPly - 1);              // 0-origin index
         const int total = rv.disp.size();
         const int take = (cut < total) ? (total - cut) : 0;
@@ -352,28 +376,50 @@ void EngineAnalysisTab::rebuildBranchTree()
     m_scene->setSceneRect(QRectF(0, 0, width, height));
 }
 
+// ===================== ハイライト（フォールバック対応） =====================
+
 void EngineAnalysisTab::highlightBranchTreeAt(int row, int ply, bool centerOn)
 {
+    // まず (row,ply) 直指定
     auto it = m_nodeIndex.find(qMakePair(row, ply));
-    if (it == m_nodeIndex.end()) return;
-
-    static QGraphicsPathItem* s_prevSelected = nullptr;
-    if (s_prevSelected) {
-        const auto argb = s_prevSelected->data(ROLE_ORIGINAL_BRUSH).toUInt();
-        s_prevSelected->setBrush(QColor::fromRgba(argb));
-        s_prevSelected->setPen(QPen(Qt::black, 1.2));
-        s_prevSelected->setZValue(10);
-        s_prevSelected = nullptr;
+    if (it != m_nodeIndex.end()) {
+        highlightNodeId_(it.value()->data(ROLE_NODE_ID).toInt(), centerOn);
+        return;
     }
 
-    QGraphicsPathItem* node = it.value();
-    node->setBrush(QColor(255, 235, 80));   // ← はっきりした黄色
-    node->setPen(QPen(Qt::black, 1.8));
-    node->setZValue(20);
-    s_prevSelected = node;
-
-    if (centerOn && m_branchTree) m_branchTree->centerOn(node);
+    // 無ければグラフでフォールバック（分岐開始前は親行へ、あるいは next/prev を辿る）
+    const int nid = graphFallbackToPly_(row, ply);
+    if (nid > 0) {
+        highlightNodeId_(nid, centerOn);
+    }
 }
+
+void EngineAnalysisTab::highlightNodeId_(int nodeId, bool centerOn)
+{
+    if (nodeId <= 0) return;
+    const auto node = m_nodesById.value(nodeId);
+    QGraphicsPathItem* item = node.item;
+    if (!item) return;
+
+    // 直前ハイライト復元
+    if (m_prevSelected) {
+        const auto argb = m_prevSelected->data(ROLE_ORIGINAL_BRUSH).toUInt();
+        m_prevSelected->setBrush(QColor::fromRgba(argb));
+        m_prevSelected->setPen(QPen(Qt::black, 1.2));
+        m_prevSelected->setZValue(10);
+        m_prevSelected = nullptr;
+    }
+
+    // 黄色へ
+    item->setBrush(QColor(255, 235, 80));
+    item->setPen(QPen(Qt::black, 1.8));
+    item->setZValue(20);
+    m_prevSelected = item;
+
+    if (centerOn && m_branchTree) m_branchTree->centerOn(item);
+}
+
+// ===================== クリック検出 =====================
 
 bool EngineAnalysisTab::eventFilter(QObject* obj, QEvent* ev)
 {
@@ -444,4 +490,127 @@ void EngineAnalysisTab::setCommentText(const QString& text)
 {
     // 旧コード互換：プレーンテキストで設定（HTML解釈させたくない想定）
     if (m_comment) m_comment->setPlainText(text);
+}
+
+// ===================== グラフAPI 実装 =====================
+
+void EngineAnalysisTab::clearBranchGraph()
+{
+    m_nodeIdByRowPly.clear();
+    m_nodesById.clear();
+    m_prevIds.clear();
+    m_nextIds.clear();
+    m_rowEntryNode.clear();
+    m_nextNodeId = 1;
+}
+
+int EngineAnalysisTab::registerNode(int vid, int row, int ply, QGraphicsPathItem* item)
+{
+    if (!item) return -1;
+    const int id = m_nextNodeId++;
+
+    BranchGraphNode n;
+    n.id   = id;
+    n.vid  = vid;
+    n.row  = row;
+    n.ply  = ply;
+    n.item = item;
+
+    m_nodesById.insert(id, n);
+    m_nodeIdByRowPly.insert(qMakePair(row, ply), id);
+
+    // 行のエントリノード（最初に登録されたもの）を覚えておくと探索が楽
+    if (!m_rowEntryNode.contains(row))
+        m_rowEntryNode.insert(row, id);
+
+    return id;
+}
+
+void EngineAnalysisTab::linkEdge(int prevId, int nextId)
+{
+    if (prevId <= 0 || nextId <= 0) return;
+    m_nextIds[prevId].push_back(nextId);
+    m_prevIds[nextId].push_back(prevId);
+}
+
+// ===================== フォールバック探索 =====================
+
+int EngineAnalysisTab::graphFallbackToPly_(int row, int targetPly) const
+{
+    // 1) まず (row, ply) にノードがあるならそれ
+    const int direct = nodeIdFor(row, targetPly);
+    if (direct > 0) return direct;
+
+    // 2) 分岐行の「開始手より前」なら親行へ委譲する
+    if (row >= 1 && row < m_rows.size()) {
+        const int startPly = qMax(1, m_rows.at(row).startPly);
+        if (targetPly < startPly) {
+            const int parentRow = resolveParentRowForVariation_(row);
+            return graphFallbackToPly_(parentRow, targetPly);
+        }
+    }
+
+    // 3) 同じ行内で近いノードから next を辿って同一 ply を探す
+    //    まず「targetPly 以下で最も近い既存 ply」を見つける
+    int seedId = -1;
+    for (int p = targetPly; p >= 0; --p) {
+        seedId = nodeIdFor(row, p);
+        if (seedId > 0) break;
+    }
+    if (seedId <= 0) {
+        // 行に何も無ければ、行の入口（例えば開始局面や最初の手）から辿る
+        seedId = m_rowEntryNode.value(row, -1);
+    }
+
+    if (seedId > 0) {
+        // BFSで next を辿り、targetPly と一致する ply を持つノードを探す
+        QQueue<int> q;
+        QSet<int> seen;
+        q.enqueue(seedId);
+        seen.insert(seedId);
+
+        while (!q.isEmpty()) {
+            const int cur = q.dequeue();
+            const auto node = m_nodesById.value(cur);
+            if (node.ply == targetPly) return cur;
+
+            const auto nexts = m_nextIds.value(cur);
+            for (int nx : nexts) {
+                if (!seen.contains(nx)) {
+                    seen.insert(nx);
+                    q.enqueue(nx);
+                }
+            }
+        }
+    }
+
+    // 4) それでも見つからない場合、親行へ委譲してみる（最終手段）
+    if (row >= 1 && row < m_rows.size()) {
+        const int parentRow = resolveParentRowForVariation_(row);
+        if (parentRow != row) {
+            const int viaParent = graphFallbackToPly_(parentRow, targetPly);
+            if (viaParent > 0) return viaParent;
+        }
+    }
+
+    // 5) 本譜 row=0 の seed からも探索してみる
+    {
+        int seed0 = nodeIdFor(0, targetPly);
+        if (seed0 <= 0) seed0 = m_rowEntryNode.value(0, -1);
+        if (seed0 > 0) {
+            QQueue<int> q;
+            QSet<int> seen;
+            q.enqueue(seed0);
+            seen.insert(seed0);
+            while (!q.isEmpty()) {
+                const int cur = q.dequeue();
+                const auto node = m_nodesById.value(cur);
+                if (node.ply == targetPly) return cur;
+                const auto nexts = m_nextIds.value(cur);
+                for (int nx : nexts) if (!seen.contains(nx)) { seen.insert(nx); q.enqueue(nx); }
+            }
+        }
+    }
+
+    return -1;
 }

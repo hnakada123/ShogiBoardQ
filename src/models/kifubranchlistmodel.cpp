@@ -130,3 +130,139 @@ int KifuBranchListModel::backToMainRowIndex() const
 {
     return m_hasBackToMainRow ? list.size() : -1;
 }
+
+int KifuBranchListModel::registerNode(int vid, int globalPly, int row, const QRectF& rect)
+{
+    Node n;
+    n.id  = m_nodes.size();
+    n.vid = vid;
+    n.ply = globalPly;
+    n.row = row;
+    n.rect= rect;
+    m_nodes.push_back(n);
+
+    // (vid,ply) -> nodeId の逆引きを持っておく（後で高速に拾える）
+    m_key2node.insert(vpKey(vid, globalPly), n.id);
+
+    return n.id;
+}
+
+void KifuBranchListModel::linkEdge(int prevId, int nextId)
+{
+    if (prevId < 0 || prevId >= m_nodes.size()) return;
+    if (nextId < 0 || nextId >= m_nodes.size()) return;
+    m_nodes[prevId].nextIds.push_back(nextId);
+    // 直前ノードも覚えておく（最短 1 本の前辺だけ使えれば十分）
+    if (m_nodes[nextId].prevId < 0) {
+        m_nodes[nextId].prevId = prevId;
+    }
+}
+
+// —— ハイライトの基準：まず (vid, ply) によるダイレクト指定 ——
+// 見つからない/動かない場合は「グラフFallback」で必ず動かす。
+void KifuBranchListModel::setActiveVidPly(int vid, int ply)
+{
+    const auto it = m_key2node.constFind(vpKey(vid, ply));
+    if (it != m_key2node.constEnd()) {
+        setActiveNode_(it.value());
+        emit activeVidPlyChanged(vid, ply);
+        return;
+    }
+
+    // ここに来るのは (vid,ply) で二度目以降が見つからない時など。
+    // ご要望どおり、罫線（前後エッジ）を使って前/後に“移動”させる。
+    // 目的 ply が現在より小さければ 1 手戻りを優先、大きければ 1 手進みを優先。
+    bool preferPrev = true;
+    if (m_activeNodeId >= 0) {
+        preferPrev = (ply < m_nodes[m_activeNodeId].ply);
+    }
+    if (graphFallbackToPly_(ply, preferPrev)) {
+        emit activeVidPlyChanged(vid, ply);
+        return;
+    }
+
+    // それでも見つからなければ、同 ply の“本譜”にフォールバック
+    const auto itMain = m_key2node.constFind(vpKey(m_mainVid, ply));
+    if (itMain != m_key2node.constEnd()) {
+        setActiveNode_(itMain.value());
+        emit activeVidPlyChanged(m_mainVid, ply);
+        return;
+    }
+
+    // 最後の手段：全ノード走査で ply 一致の最初
+    for (int i = 0; i < m_nodes.size(); ++i) {
+        if (m_nodes[i].ply == ply) {
+            setActiveNode_(i);
+            emit activeVidPlyChanged(m_nodes[i].vid, ply);
+            return;
+        }
+    }
+
+    qWarning() << "[BRANCH-MODEL] setActiveVidPly: no node for vid=" << vid
+               << " ply=" << ply << "(graph + main fallback failed)";
+}
+
+// 1手戻る/進む（罫線に従う）
+void KifuBranchListModel::stepToPrev()
+{
+    if (m_activeNodeId < 0) return;
+    const int p = m_nodes[m_activeNodeId].prevId;
+    if (p >= 0) setActiveNode_(p);
+}
+void KifuBranchListModel::stepToNext()
+{
+    if (m_activeNodeId < 0) return;
+    const auto& nxts = m_nodes[m_activeNodeId].nextIds;
+    if (!nxts.isEmpty()) setActiveNode_(nxts.front()); // 最左（もしくはお好みで戦略）
+}
+
+void KifuBranchListModel::setActiveNode_(int nodeId)
+{
+    if (nodeId < 0 || nodeId >= m_nodes.size()) return;
+    if (m_activeNodeId == nodeId) return;
+
+    m_activeNodeId = nodeId;
+
+    // ここでビュー再描画（全体 or 必要範囲）を促す
+    // ※あなたの実装に合わせて適切な index 範囲を渡してください。
+    emit dataChanged(index(0,0), index(rowCount()-1, columnCount()-1));
+    emit activeNodeChanged(nodeId);
+
+    const auto& n = m_nodes[nodeId];
+    qDebug().nospace()
+        << "[BRANCH-MODEL] active nodeId=" << nodeId
+        << " vid=" << n.vid << " ply=" << n.ply
+        << " row=" << n.row << " prev=" << n.prevId
+        << " nexts=" << n.nextIds.size();
+}
+
+// 罫線（前後エッジ）だけで targetPly を探すフォールバック。
+// preferPrev=true のとき、まず prev を見て一致すれば採用、だめなら next 側を探す。
+bool KifuBranchListModel::graphFallbackToPly_(int targetPly, bool preferPrev)
+{
+    if (m_activeNodeId < 0) return false;
+
+    const auto tryPrev = [&]()->bool{
+        const int p = m_nodes[m_activeNodeId].prevId;
+        if (p >= 0 && m_nodes[p].ply == targetPly) {
+            setActiveNode_(p); return true;
+        }
+        return false;
+    };
+    const auto tryNext = [&]()->bool{
+        const auto& nx = m_nodes[m_activeNodeId].nextIds;
+        for (int id : nx) if (m_nodes[id].ply == targetPly) {
+                setActiveNode_(id); return true;
+            }
+        return false;
+    };
+
+    if (preferPrev) {
+        if (tryPrev()) return true;
+        if (tryNext()) return true;
+    } else {
+        if (tryNext()) return true;
+        if (tryPrev()) return true;
+    }
+    return false;
+}
