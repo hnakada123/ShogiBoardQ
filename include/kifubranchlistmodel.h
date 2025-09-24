@@ -71,23 +71,6 @@ private:
     int m_activeVid = -1;
     int m_activePly = -1; // グローバル手数
 
-public:
-    // === 既存APIはそのまま ===
-
-    // --- 追加: 分岐ツリーの“グラフ”を管理する軽量API ---
-    // ツリー生成時、各長方形（ノード）ごとに1回呼ぶ。返る nodeId は linkEdge で使う。
-    Q_INVOKABLE int registerNode(int vid, int globalPly, int row, const QRectF& rect);
-
-    // 罫線（エッジ）を引くタイミングで呼ぶ。prevId -> nextId の一方向（必要なら両方向呼ぶ）
-    Q_INVOKABLE void linkEdge(int prevId, int nextId);
-
-public slots:
-    // MainWindow / Controller から呼ぶ“標準”ハイライト切替
-    Q_INVOKABLE void setActiveVidPly(int vid, int ply);
-    // 1手進む/戻るボタンからダイレクトに使えるフォールバック（エッジ辿り）
-    Q_INVOKABLE void stepToPrev();
-    Q_INVOKABLE void stepToNext();
-
 signals:
     void activeNodeChanged(int nodeId);        // 任意（ビューの再レイアウト等）
     void activeVidPlyChanged(int vid, int ply);// 任意（ログ用など）
