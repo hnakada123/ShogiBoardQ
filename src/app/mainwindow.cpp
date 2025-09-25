@@ -1112,25 +1112,6 @@ void MainWindow::startGameBasedOnMode()
         m_analysisTab->setDualEngineVisible(!isSingleEngine);
     }
 
-    // ★【重要】ここで「詰め替え」や「片側をクリア」はしない！
-    //    HvE（engineIsP1=false）では司令塔は enginePath2 を使って起動するため、
-    //    #2 を空にすると必ずコケる。
-    //    どうしても安全にしたいなら、両スロットを“選択エンジンでミラー”しておくのは可。
-    //    （ただし“上段に出す”という見た目は司令塔側の配線で制御すべき）
-#if 0
-    if (isSingleEngine) {
-        const bool seatIsP1 = opt.engineIsP1;
-        const QString chosenName = seatIsP1 ? opt.engineName1 : opt.engineName2;
-        const QString chosenPath = seatIsP1 ? opt.enginePath1 : opt.enginePath2;
-
-        // ミラーするならこう（どちらも空ではない状態を担保）：
-        opt.engineName1 = chosenName;
-        opt.enginePath1 = chosenPath;
-        opt.engineName2 = chosenName;
-        opt.enginePath2 = chosenPath;
-    }
-#endif
-
     // デバッグ出力
     qDebug().nospace()
         << "[ANALYSIS] singleEngine=" << (isSingleEngine?1:0)
