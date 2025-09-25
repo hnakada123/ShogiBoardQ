@@ -3076,6 +3076,12 @@ void MainWindow::setGameOverMove(GameOverCause cause, bool loserIsPlayerOne)
     // ★ まず時計停止（この時点の残りmsを固定）
     if (m_shogiClock) m_shogiClock->stopClock();
 
+    //begin
+    qDebug() << "[KIFU] setGameOverMove cause="
+             << (cause == GameOverCause::Resignation ? "RESIGN" : "TIMEOUT")
+             << " loser=" << (loserIsPlayerOne ? "P1" : "P2");
+    //end
+
     // 表記（▲/△は絶対座席）
     const QChar mark = glyphForPlayer(loserIsPlayerOne);
     const QString line = (cause == GameOverCause::Resignation)
@@ -3104,6 +3110,10 @@ void MainWindow::setGameOverMove(GameOverCause cause, bool loserIsPlayerOne)
                                 .arg(fmt_hhmmss(totalUsedMs));
 
     // 1回だけ即時追記
+    //begin
+    qDebug().nospace() << "[KIFU] setGameOverMove appending '" << line << "'"
+                       << " elapsed=" << elapsed;
+    //end
     appendKifuLine(line, elapsed);
 
     // 人間用ストップウォッチ解除（HvE/HvH）
@@ -3117,7 +3127,6 @@ void MainWindow::setGameOverMove(GameOverCause cause, bool loserIsPlayerOne)
                        << " loser=" << (loserIsPlayerOne ? "P1" : "P2")
                        << " elapsed=" << elapsed;   
 }
-
 
 void MainWindow::appendKifuLine(const QString& text, const QString& elapsedTime)
 {

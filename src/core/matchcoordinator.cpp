@@ -78,7 +78,8 @@ void MatchCoordinator::startNewGame(const QString& sfenStart) {
 void MatchCoordinator::handleResign() {
     GameEndInfo info;
     info.cause = Cause::Resignation;
-    info.loser = m_cur;                     // 投了したのは現在手番
+    //info.loser = m_cur;                     // 投了したのは現在手番
+    info.loser = (m_gc && m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2;
     const Player winner = (m_cur == P1 ? P2 : P1);
 
     if (m_hooks.sendRawToEngine) {
@@ -208,6 +209,7 @@ void MatchCoordinator::renderShogiBoard_() {
 }
 
 void MatchCoordinator::updateTurnDisplay_(Player p) {
+    m_cur = p; // ★ 同期
     if (m_hooks.updateTurnDisplay) m_hooks.updateTurnDisplay(p);
 }
 
