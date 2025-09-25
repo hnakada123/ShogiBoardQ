@@ -1092,13 +1092,51 @@ void MainWindow::startGameBasedOnMode()
         opt.enginePath2 = engines.at(idx2).path;
     }
 
-    opt.engineIsP1 = (m_playMode == EvenHumanVsEngine || m_playMode == EvenEngineVsHuman || m_playMode == HandicapEngineVsHuman);
-    opt.engineIsP2 = (m_playMode == HandicapHumanVsEngine);
+    // 先手がエンジンのモードだけ true（EvH／HandicapEvH）
+    opt.engineIsP1 = (m_playMode == EvenEngineVsHuman
+                   || m_playMode == HandicapEngineVsHuman);
 
-    if (m_playMode == EvenEngineVsEngine || m_playMode == HandicapEngineVsEngine) {
-        if (m_analysisTab)
-             m_analysisTab->setDualEngineVisible(true);
+    // 後手がエンジンのモードだけ true（HvE／HandicapHvE）
+    opt.engineIsP2 = (m_playMode == EvenHumanVsEngine
+                   || m_playMode == HandicapHumanVsEngine);
+
+    // 単発エンジン（HvE/EvH/駒落ちの片側エンジン）か？
+    const bool isSingleEngine =
+        (m_playMode == EvenHumanVsEngine) ||
+        (m_playMode == EvenEngineVsHuman) ||
+        (m_playMode == HandicapHumanVsEngine) ||
+        (m_playMode == HandicapEngineVsHuman);
+
+    // ★ 表示は：単発=上段のみ、EvE=上下
+    if (m_analysisTab) {
+        m_analysisTab->setDualEngineVisible(!isSingleEngine);
     }
+
+    // ★【重要】ここで「詰め替え」や「片側をクリア」はしない！
+    //    HvE（engineIsP1=false）では司令塔は enginePath2 を使って起動するため、
+    //    #2 を空にすると必ずコケる。
+    //    どうしても安全にしたいなら、両スロットを“選択エンジンでミラー”しておくのは可。
+    //    （ただし“上段に出す”という見た目は司令塔側の配線で制御すべき）
+#if 0
+    if (isSingleEngine) {
+        const bool seatIsP1 = opt.engineIsP1;
+        const QString chosenName = seatIsP1 ? opt.engineName1 : opt.engineName2;
+        const QString chosenPath = seatIsP1 ? opt.enginePath1 : opt.enginePath2;
+
+        // ミラーするならこう（どちらも空ではない状態を担保）：
+        opt.engineName1 = chosenName;
+        opt.enginePath1 = chosenPath;
+        opt.engineName2 = chosenName;
+        opt.enginePath2 = chosenPath;
+    }
+#endif
+
+    // デバッグ出力
+    qDebug().nospace()
+        << "[ANALYSIS] singleEngine=" << (isSingleEngine?1:0)
+        << " engineIsP1=" << (opt.engineIsP1?1:0)
+        << " name1=" << opt.engineName1 << " path1=" << opt.enginePath1
+        << " name2=" << opt.engineName2 << " path2=" << opt.enginePath2;
 
     // 司令塔へ構成/起動のみ委譲（startNewGame は既に済）
     m_match->configureAndStart(opt);
