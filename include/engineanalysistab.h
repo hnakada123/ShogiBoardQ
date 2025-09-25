@@ -25,10 +25,14 @@ class UsiCommLogModel;
 
 #include "kifdisplayitem.h"
 
-class EngineAnalysisTab : public QWidget {
+class EngineAnalysisTab : public QWidget
+{
     Q_OBJECT
+
 public:
     explicit EngineAnalysisTab(QWidget* parent=nullptr);
+
+    void buildUi();
 
     void setModels(ShogiEngineThinkingModel* m1, ShogiEngineThinkingModel* m2,
                    UsiCommLogModel* log1, UsiCommLogModel* log2);
@@ -91,6 +95,12 @@ public:
         return m_nodeIdByRowPly.value(qMakePair(row, ply), -1);
     }
 
+    // ★ 追加（HvE/EvE の配線で使う）
+    EngineInfoWidget* info1() const { return m_info1; }
+    EngineInfoWidget* info2() const { return m_info2; }
+    QTableView*       view1() const { return m_view1; }
+    QTableView*       view2() const { return m_view2; }
+
 public slots:
     void setAnalysisVisible(bool on);
     void setCommentHtml(const QString& html);
@@ -104,8 +114,6 @@ signals:
     void requestApplyMainAtPly(int ply);             // 本譜の ply 手へ
 
 private:
-    void buildUi();
-
     // --- 内部：ツリー描画 ---
     void rebuildBranchTree();
     QGraphicsPathItem* addNode(int row, int ply, const QString& text);

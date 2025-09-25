@@ -115,6 +115,17 @@ public:
     // 任意の USI コマンドをそのまま送る（ログ出力は sendCommand 側で実施）
     void sendRaw(const QString& command) const;
 
+public:
+    // ★ 追加：後からThinking/Logモデルを挿し直すためのsetter
+    void setThinkingModel(ShogiEngineThinkingModel* m) { m_modelThinking = m; }
+    void setLogModel(UsiCommLogModel* m) { m_model = m; }
+
+#ifdef QT_DEBUG
+    // ★ 追加：デバッグ用ダンプ
+    ShogiEngineThinkingModel* debugThinkingModel() const { return m_modelThinking; }
+    UsiCommLogModel*          debugLogModel()      const { return m_model; }
+#endif
+
 signals:
     // stopあるいはponderhitコマンドが送信されたことを通知するシグナル
     void stopOrPonderhitCommandSent();

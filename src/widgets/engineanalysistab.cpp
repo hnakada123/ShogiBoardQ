@@ -29,12 +29,17 @@
 EngineAnalysisTab::EngineAnalysisTab(QWidget* parent)
     : QWidget(parent)
 {
-    buildUi();
 }
 
 void EngineAnalysisTab::buildUi()
 {
-    m_tab = new QTabWidget(this);
+    // --- QTabWidget を再入安全に用意（親なしで生成して MainWindow 側で貼る） ---
+    if (!m_tab) {
+        m_tab = new QTabWidget(nullptr);                // 親なし → addWidget 時に reparent
+        m_tab->setObjectName(QStringLiteral("analysisTabs"));
+    } else {
+        m_tab->clear();                                 // 同じ m_tab を再利用（重複生成しない）
+    }
 
     // --- 思考タブ ---
     QWidget* page = new QWidget(m_tab);
@@ -76,18 +81,20 @@ void EngineAnalysisTab::buildUi()
 
     m_scene = new QGraphicsScene(m_branchTree);
     m_branchTree->setScene(m_scene);
-    m_branchTree->viewport()->installEventFilter(this);
 
     m_tab->addTab(m_branchTree, tr("分岐ツリー"));
 
-    // 外側
-    auto* outer = new QVBoxLayout(this);
-    outer->setContentsMargins(0,0,0,0);
-    outer->addWidget(m_tab);
+    // ★ 重要：EngineAnalysisTab 自身のレイアウトに m_tab を add しない（MainWindow 側で add）
+    // （ここに outer レイアウトは作らない）
 
-    // 分岐ツリータブ（m_branchTree）を生成済みならクリック検知を仕込む
-    if (m_branchTree && m_branchTree->viewport())
-        m_branchTree->viewport()->installEventFilter(this);
+    // --- 分岐ツリーのクリック検知（二重 install 防止のガード付き） ---
+    if (m_branchTree && m_branchTree->viewport()) {
+        QObject* vp = m_branchTree->viewport();
+        if (!vp->property("branchFilterInstalled").toBool()) {
+            vp->installEventFilter(this);
+            vp->setProperty("branchFilterInstalled", true);
+        }
+    }
 }
 
 void EngineAnalysisTab::setModels(ShogiEngineThinkingModel* m1, ShogiEngineThinkingModel* m2,
