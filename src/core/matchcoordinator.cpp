@@ -304,15 +304,6 @@ void MatchCoordinator::onEngine2Resign()
     this->handleEngineResign(2);
 }
 
-void MatchCoordinator::sendGameOverWinAndQuitTo(int idx)
-{
-    Usi* target = (idx == 1 ? m_usi1 : m_usi2);
-    if (!target) return;
-
-    // HvE のときは opponent が nullptr の可能性があるが、WIN 側だけ送れば良い。
-    target->sendGameOverWinAndQuitCommands();
-}
-
 void MatchCoordinator::destroyEngine(int idx)
 {
     Usi*& ref = (idx == 1 ? m_usi1 : m_usi2);
@@ -481,11 +472,13 @@ void MatchCoordinator::sendGameOverWinAndQuit()
 
     case EvenHumanVsEngine:
     case HandicapHumanVsEngine:
-        if (m_usi2) m_usi2->sendGameOverWinAndQuitCommands();
+        // ★ 単発は常に m_usi1 を使う
+        if (m_usi1) m_usi1->sendGameOverWinAndQuitCommands();
         break;
 
     case EvenEngineVsHuman:
     case HandicapEngineVsHuman:
+        // 単発は常に m_usi1
         if (m_usi1) m_usi1->sendGameOverWinAndQuitCommands();
         break;
 
@@ -496,7 +489,6 @@ void MatchCoordinator::sendGameOverWinAndQuit()
         break;
 
     default:
-        // NotStarted / Analysis / Consideration / TsumiSearch / など
         break;
     }
 }
@@ -581,38 +573,42 @@ void MatchCoordinator::startHumanVsEngine_(const StartOptions& opt, bool engineI
         m_hooks.log(QStringLiteral("[Match] Start HvE (engineIsP1=%1)").arg(engineIsP1));
     }
 
-    // 以前のエンジンが残っているとログモデル指し替えが難しいため一度クリーンに
+    // 以前のエンジンは破棄
     destroyEngines();
 
-    // サイドに応じて GUI モデルを選択（P1側エンジンなら comm1/think1、P2側なら comm2/think2）
-    UsiCommLogModel*          comm  = engineIsP1 ? m_comm1  : m_comm2;
-    ShogiEngineThinkingModel* think = engineIsP1 ? m_think1 : m_think2;
+    // ★ 単発エンジン＝表示は常に #1 スロット（上段）へ流す
+    //    → 座席が P1 でも P2 でも、comm/think は #1 を使う
+    UsiCommLogModel*          comm  = m_comm1;
+    ShogiEngineThinkingModel* think = m_think1;
 
-    // GUI が該当側のモデルを用意していない場合のフォールバック（クラッシュ回避）
-    if (!comm)  comm  = new UsiCommLogModel(this);
-    if (!think) think = new ShogiEngineThinkingModel(this);
+    // GUI が #1 モデルをまだ持っていなければフォールバック生成して保持
+    if (!comm)  { comm  = new UsiCommLogModel(this);         m_comm1  = comm;  }
+    if (!think) { think = new ShogiEngineThinkingModel(this); m_think1 = think; }
 
-    // HvE は既存仕様どおり m_usi1 を使用（内部の先後は logIdentity で区別）
+    // 単発は既存仕様どおり m_usi1 を使用（内部の先後識別は logIdentity で持つ）
     m_usi1 = new Usi(comm, think, m_gc, m_playMode, this);
     updateUsiPtrs(m_usi1, nullptr);
 
     m_usi1->resetResignNotified();
     m_usi1->clearHardTimeout();
 
-    // 投了シグナル配線
-    wireResignToArbiter_(m_usi1, /*asP1=*/true);
+    // ★ 投了シグナルの配線は「実際の座席」に合わせる（P1/P2 を正しく扱う）
+    wireResignToArbiter_(m_usi1, /*asP1=*/engineIsP1);
 
-    // ログ識別（P1/P2 を表示に反映）
+    // ログ識別：表示上は P1/P2 を正しく出す（ただし表示面は常に上段）
     const QString eName = engineIsP1 ? opt.engineName1 : opt.engineName2;
     m_usi1->setLogIdentity(QStringLiteral("[E]"),
                            engineIsP1 ? QStringLiteral("P1") : QStringLiteral("P2"),
                            eName);
     m_usi1->setSquelchResignLogging(false);
 
-    // USI 起動（パス＋表示名）
+    // USI 起動（パス＋表示名）：座席に応じて正しいパス/名を渡す
     const QString ePath = engineIsP1 ? opt.enginePath1 : opt.enginePath2;
     const QString eDisp = engineIsP1 ? opt.engineName1 : opt.engineName2;
-    initializeAndStartEngineFor(P1, ePath, eDisp); // HvE でも P1 側を使う（既存仕様）
+
+    // 既存の HvE 実装と互換を保つため、内部的には P1 側のスロットで起動する
+    // （以降の go/stop はフック側で m_usi1 に送る運用）
+    initializeAndStartEngineFor(P1, ePath, eDisp);
 }
 
 // EvE の初手を開始する（起動・初期化済み前提）
@@ -1097,4 +1093,13 @@ void MatchCoordinator::markGameOverMoveAppended()
     m_gameOver.moveAppended = true;
     emit gameOverStateChanged(m_gameOver);
     qDebug() << "[Match] markGameOverMoveAppended()";
+}
+
+void MatchCoordinator::sendGameOverWinAndQuitTo(int idx)
+{
+    Usi* target = (idx == 1 ? m_usi1 : m_usi2);
+    if (!target) return;
+
+    // HvE のときは opponent が nullptr の可能性があるが、WIN 側だけ送れば良い。
+    target->sendGameOverWinAndQuitCommands();
 }
