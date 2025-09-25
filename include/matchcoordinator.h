@@ -77,6 +77,9 @@ public:
 
         // --- 新規対局の初期化（GUI固有処理） ---
         std::function<void(const QString& sfenStart)> initializeNewGame;
+
+        // ★ 追加：棋譜1行追記（例：text="▲７六歩", elapsed="00:03/00:00:06"）
+        std::function<void(const QString& text, const QString& elapsed)> appendKifuLine;
     };
 
     struct Deps {

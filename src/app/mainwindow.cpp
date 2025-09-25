@@ -580,8 +580,12 @@ void MainWindow::initializeCentralGameDisplay()
 {
     if (!m_centralLayout) return;
     clearLayout(m_centralLayout);
-    m_centralLayout->addWidget(m_hsplit);
-    m_centralLayout->addWidget(m_tab);
+
+    Q_ASSERT(m_hsplit);
+    Q_ASSERT(m_tab);                // ここで早期に気づける
+
+    if (m_hsplit) m_centralLayout->addWidget(m_hsplit);
+    if (m_tab)    m_centralLayout->addWidget(m_tab);
 }
 
 // 将棋盤、駒台を初期化（何も駒がない）し、入力のSFEN文字列の配置に将棋盤、駒台の駒を
@@ -4391,6 +4395,11 @@ void MainWindow::initMatchCoordinator()
 
     d.hooks.showMoveHighlights = [this](const QPoint& from, const QPoint& to){
         if (m_boardController) m_boardController->showMoveHighlights(from, to);
+    };
+
+    d.hooks.appendKifuLine = [this](const QString& text, const QString& elapsed){
+        // 既存の安全な1行追記ラッパー
+        appendKifuLine(text, elapsed);
     };
 
     // ---------- 生成 or 置き換え ----------
