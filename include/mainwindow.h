@@ -274,10 +274,6 @@ private:
     QString parseStartPositionToSfen(QString startPositionStr);
     void startNewShogiGame(QString& startSfenStr);
     void startGameBasedOnMode();
-    void startHumanVsHumanGame();
-    void startHumanVsEngineGame();
-    void startEngineVsHumanGame();
-    void startEngineVsEngineGame();
     void setEngineNamesBasedOnMode();
 
     // --- 時計 / 時間管理 ---
@@ -406,7 +402,12 @@ private:
     static inline QString fmt_hhmmss(qint64 ms) {
         if (ms < 0) ms = 0;
         QTime t(0,0); return t.addMSecs(static_cast<int>(ms)).toString("hh:mm:ss");
-    }    
+    }
+
+    void wireEngineThinking_(Usi* usi,
+                             ShogiEngineThinkingModel* model,
+                             EngineInfoWidget* infoWidget,
+                             QTableView* tableView);
 
 private slots:
     // ========================================================
@@ -585,6 +586,12 @@ private:
 
     // 選択（行row, 手数ply）から、ハイライトすべき(variation id, ply)を解決
     std::pair<int,int> resolveBranchHighlightTarget(int row, int ply) const;
+
+private:
+    void ensureHvEThinkingWiring_();
+#ifdef QT_DEBUG
+    void dumpHvEThinkingWiring_(const char* tag);
+#endif
 
 private slots:
     void onBranchPlanActivated_(int row, int ply1);                // Plan選択 → 行/手へジャンプ

@@ -99,6 +99,9 @@ MainWindow::MainWindow(QWidget *parent) :
     // セントラルウィジェット構築（m_tab を add する側）
     initializeCentralGameDisplay();
 
+    qDebug() << "tab parents:" << m_tab->parent();
+    qDebug() << "tabs in window:" << this->findChildren<QTabWidget*>().size();
+
     // 対局のメニュー表示を一部隠す。
     //hideGameActions();
 
@@ -586,6 +589,18 @@ void MainWindow::initializeCentralGameDisplay()
 
     if (m_hsplit) m_centralLayout->addWidget(m_hsplit);
     if (m_tab)    m_centralLayout->addWidget(m_tab);
+
+    qDebug() << "tab parents:" << m_tab->parent();
+    qDebug() << "tabs in window:" << this->findChildren<QTabWidget*>().size();
+
+    auto tabs = this->findChildren<QTabWidget*>();
+    qDebug() << "QTabWidget count =" << tabs.size();
+    for (auto* t : tabs) {
+        qDebug() << " tab*" << t
+                 << " objectName=" << t->objectName()
+                 << " parent=" << t->parent();
+    }
+    qDebug() << " m_tab =" << m_tab;
 }
 
 // 将棋盤、駒台を初期化（何も駒がない）し、入力のSFEN文字列の配置に将棋盤、駒台の駒を
@@ -1054,10 +1069,6 @@ PlayMode MainWindow::setPlayMode()
 void MainWindow::startGameBasedOnMode()
 {
     if (!m_match) return;
-
-    // ※ 開始順序は initializeGame() で保証済み：
-    //   ensureClockReady_() → m_match->startNewGame(sfen) → setCurrentTurn() → setTimerAndStart()
-    // ここでは時計準備や startNewGame は行わない。
 
     // ★ USI "position ... moves" のベースを必ず用意（空だと " 7g7f" 事故になる）
     initializePositionStringsForMatch_();
@@ -4093,92 +4104,6 @@ inline void pumpUi() {
     QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents, 5); // 最大5ms程度
 }
 
-// 平手、駒落ち Player1: Human, Player2: Human
-void MainWindow::startHumanVsHumanGame()
-{
-    if (m_boardController)
-           m_boardController->setMode(BoardInteractionController::Mode::HumanVsHuman);
-
-    // ← 追加：シングルエンジンではないので必ず false に
-    m_engine1IsP1 = false;
-
-    // 将棋クロックとUI手番の同期
-    syncClockTurnAndEpoch();
-
-    // 人間手番のストップウォッチを同時起動
-    if (m_match) m_match->armTurnTimerIfNeeded();
-}
-
-// 平手 Player1: Human, Player2: USI Engine
-// 駒落ち Player1: USI Engine（下手）, Player2: Human（上手）
-void MainWindow::startHumanVsEngineGame()
-{
-    // 盤操作モードだけUI側で設定（残りは司令塔に一任）
-    if (m_boardController)
-        m_boardController->setMode(BoardInteractionController::Mode::HumanVsEngine);
-
-    // 解析タブの見た目はUI側の責務なので従来どおり維持（モデルは既存のものをそのまま渡す）
-    if (!m_modelThinking1) m_modelThinking1 = new ShogiEngineThinkingModel(this);
-    if (!m_lineEditModel1) m_lineEditModel1 = new UsiCommLogModel(this);
-    if (m_analysisTab) {
-        m_analysisTab->setEngine1ThinkingModel(m_modelThinking1);
-        m_analysisTab->setDualEngineVisible(false);
-    }
-
-    // 集約後の単一路呼び出し
-    // ※ startGameBasedOnMode() 内で ensureClockReady_() と
-    //    initializePositionStringsForMatch_() を実行し、
-    //    m_match->configureAndStart(opt) に委譲します。
-    startGameBasedOnMode();
-}
-
-// 平手 Player1: USI Engine（先手）, Player2: Human（後手）
-// 駒落ち Player1: Human（下手）,  Player2: USI Engine（上手）
-void MainWindow::startEngineVsHumanGame()
-{
-    // 盤操作モードは PvE
-    if (m_boardController)
-        m_boardController->setMode(BoardInteractionController::Mode::HumanVsEngine);
-
-    // 評価表示用のモデル（UI側の責務）
-    if (!m_modelThinking1) m_modelThinking1 = new ShogiEngineThinkingModel(this);
-    if (!m_lineEditModel1) m_lineEditModel1 = new UsiCommLogModel(this);
-
-    if (m_analysisTab) {
-        m_analysisTab->setEngine1ThinkingModel(m_modelThinking1);
-        m_analysisTab->setDualEngineVisible(false);
-    }
-
-    // 司令塔に集約された開始フロー
-    startGameBasedOnMode();
-
-    // ★ EvH（エンジン先手）の場合はここで初手エンジンを起動する
-    startInitialEngineMoveEvH_();
-}
-
-
-// 平手、駒落ち Player1: USI Engine, Player2: USI Engine
-void MainWindow::startEngineVsEngineGame()
-{
-    // EvE はクリック不可
-    if (m_shogiView) m_shogiView->setMouseClickMode(false);
-
-    // 評価表示用のモデル（両エンジン分）
-    if (!m_modelThinking1) m_modelThinking1 = new ShogiEngineThinkingModel(this);
-    if (!m_modelThinking2) m_modelThinking2 = new ShogiEngineThinkingModel(this);
-    if (!m_lineEditModel1) m_lineEditModel1 = new UsiCommLogModel(this);
-    if (!m_lineEditModel2) m_lineEditModel2 = new UsiCommLogModel(this);
-
-    if (m_analysisTab) {
-        m_analysisTab->setEngine1ThinkingModel(m_modelThinking1);
-        m_analysisTab->setEngine2ThinkingModel(m_modelThinking2);
-        m_analysisTab->setDualEngineVisible(true);
-    }
-
-    // 開始フローは司令塔へ
-    startGameBasedOnMode();
-}
-
 // --- INavigationContext の実装 ---
 bool MainWindow::hasResolvedRows() const {
     return !m_resolvedRows.isEmpty();
@@ -4271,21 +4196,49 @@ void MainWindow::setupRecordPane()
     setupBranchView_();
 }
 
-// どこかの初期化パスで（例：initializeComponents 内やコンストラクタ末尾）
 void MainWindow::setupEngineAnalysisTab()
 {
-    if (m_analysisTab) return;
+    // すでに作成済みなら、防御的に m_tab だけ拾って終了
+    if (m_analysisTab) {
+        if (!m_tab) {
+            if (auto* tw = m_analysisTab->tab()) m_tab = tw;  // ← EngineAnalysisTab 側の accessor を利用
+        }
+        return;
+    }
 
+    // EngineAnalysisTab を 1個だけ生成
     m_analysisTab = new EngineAnalysisTab(this);
+
+    // ★ 先に UI を構築して内部の m_tab / m_view1 / m_view2 を生成
+    m_analysisTab->buildUi();
+
+    // 生成後にモデルを渡す（UI ができてから）
     m_analysisTab->setModels(m_modelThinking1, m_modelThinking2,
                              m_lineEditModel1, m_lineEditModel2);
+
+    // 初期状態は単機表示（EvE 開始時に必要なら true にする）
     m_analysisTab->setDualEngineVisible(false);
 
-    // 既存の m_tab を差し替えたい場合
+    // ★ EngineAnalysisTab が作成した同じ QTabWidget を受け取って中央に貼る
     m_tab = m_analysisTab->tab();
+    Q_ASSERT(m_tab);
+    qDebug() << "tab parents:" << m_tab->parent();
+    qDebug() << "tabs in window:" << this->findChildren<QTabWidget*>().size();
 
+    auto tabs = this->findChildren<QTabWidget*>();
+    qDebug() << "QTabWidget count =" << tabs.size();
+    for (auto* t : tabs) {
+        qDebug() << " tab*" << t
+                 << " objectName=" << t->objectName()
+                 << " parent=" << t->parent();
+    }
+    qDebug() << " m_tab =" << m_tab;
+
+
+
+    // 分岐ツリークリック → MainWindow へ（重複接続防止）
     connect(m_analysisTab, &EngineAnalysisTab::branchNodeActivated,
-            this, &MainWindow::onBranchNodeActivated_);
+            this, &MainWindow::onBranchNodeActivated_, Qt::UniqueConnection);
 }
 
 void MainWindow::onKifuCurrentRowChanged(const QModelIndex& cur, const QModelIndex&)
@@ -6503,3 +6456,95 @@ void MainWindow::onBranchNodeActivated_(int row, int ply)
     // これだけで：局面更新 / 棋譜欄差し替え＆選択 / 分岐候補欄更新 / ツリーハイライト同期
     applyResolvedRowAndSelect(row, selPly);
 }
+
+void MainWindow::wireEngineThinking_(Usi* usi,
+                                     ShogiEngineThinkingModel* model,
+                                     EngineInfoWidget* infoWidget,
+                                     QTableView* tableView)
+{
+    if (!usi || !model) return;
+
+    // 既存の重複接続を避けるため一旦切る（必要に応じて）
+    // QObject::disconnect(usi, nullptr, model, nullptr);
+
+    // ★ USI の思考情報をモデルへ（※シグナル名は実装に合わせて置き換えてください）
+    // 例1: "info string ..." の生テキストをモデル側で解析する場合
+    connect(usi, SIGNAL(infoStringReceived(QString)),
+            model, SLOT(onInfoString(QString)),
+            Qt::UniqueConnection);
+
+    // 例2: USI層で既にパース済みの構造体を吐く場合
+    // connect(usi, &Usi::thinkingUpdated,
+    //         model, &ShogiEngineThinkingModel::appendThinkingRow,
+    //         Qt::UniqueConnection);
+
+    // ベストムーブ・探索完了などで1手の思考を確定
+    connect(usi, SIGNAL(bestmoveEmitted(QString)),
+            model, SLOT(finalizeCurrentSearch(QString)),
+            Qt::UniqueConnection);
+
+    // ★ TableView を自動スクロール（行追加時）
+    if (tableView) {
+        connect(model, &QAbstractItemModel::rowsInserted,
+                tableView, [tableView](const QModelIndex&, int, int){
+                    tableView->scrollToBottom();
+                }, Qt::UniqueConnection);
+        // ビューにモデルを再確認で刺しておく（念のため）
+        if (tableView->model() != model) tableView->setModel(model);
+    }
+
+    // ★ InfoWidget 側の表示連動（エンジン名や現在のdepth/nps等）
+    if (infoWidget) {
+        // 例: エンジン名
+        connect(usi, SIGNAL(idNameChanged(QString)),
+                infoWidget, SLOT(setEngineName(QString)),
+                Qt::UniqueConnection);
+
+        // 例: 進捗（実装に応じて適宜差し替え）
+        connect(model, SIGNAL(progressUpdated(int,int,int,int)),   // depth, seldepth, nps, nodes 等
+                infoWidget, SLOT(updateProgress(int,int,int,int)),
+                Qt::UniqueConnection);
+    }
+}
+
+void MainWindow::ensureHvEThinkingWiring_()
+{
+    if (!m_analysisTab) return;
+
+    // HvE は2段目を隠す（任意・UI方針次第）
+    m_analysisTab->setSecondEngineVisible(false);
+
+    // ★ Usi 側に “実際にビューが使っている” モデル実体を渡す
+    if (m_usi1) {
+        m_usi1->setThinkingModel(m_modelThinking1);
+        m_usi1->setLogModel(m_lineEditModel1);
+    }
+
+    // ★ ビューに改めて念押しでモデルを刺す（ズレ防止）
+    if (auto* v1 = m_analysisTab->view1()) {
+        if (v1->model() != m_modelThinking1)
+            v1->setModel(m_modelThinking1);
+        // 行追加で自動スクロール（任意）
+        connect(m_modelThinking1, &QAbstractItemModel::rowsInserted,
+                v1, [v1](const QModelIndex&, int, int){ v1->scrollToBottom(); },
+                Qt::UniqueConnection);
+    }
+
+    // ★ Infoパネルも “同じログモデル” を明示（setModelsで済んでいる想定だが保険）
+    if (auto* info1 = m_analysisTab->info1()) {
+        if (m_lineEditModel1) info1->setModel(m_lineEditModel1);
+    }
+}
+
+#ifdef QT_DEBUG
+void MainWindow::dumpHvEThinkingWiring_(const char* tag)
+{
+    qDebug().nospace()
+        << "[WIRECHK:" << (tag?tag:"") << "] "
+        << " view1.model=" << (m_analysisTab && m_analysisTab->view1() ? m_analysisTab->view1()->model() : nullptr)
+        << " modelThinking1=" << m_modelThinking1
+        << " usi1.thinking=" << (m_usi1 ? m_usi1->debugThinkingModel() : nullptr)
+        << " logModel1=" << m_lineEditModel1
+        << " usi1.log=" << (m_usi1 ? m_usi1->debugLogModel() : nullptr);
+}
+#endif
