@@ -668,6 +668,16 @@ void MatchCoordinator::startEngineVsEngine_(const StartOptions& /*opt*/)
         return;
     }
 
+    // ★ EvE: 先手の1手目を棋譜欄へ反映
+    if (m_clock) {
+        const qint64 thinkMs = m_usi1 ? m_usi1->lastBestmoveElapsedMs() : 0;
+        m_clock->setPlayer1ConsiderationTime(static_cast<int>(thinkMs));
+        m_clock->applyByoyomiAndResetConsideration1(); // byoyomi/Fischer適用 & 直近考慮秒の確定
+    }
+    if (m_hooks.appendKifuLine && m_clock) {
+        m_hooks.appendKifuLine(rec1, m_clock->getPlayer1ConsiderationAndTotalTime());
+    }
+
     // 盤描画＆手番表示
     if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
     if (m_hooks.showMoveHighlights) m_hooks.showMoveHighlights(p1From, p1To);
@@ -726,6 +736,16 @@ void MatchCoordinator::startEngineVsEngine_(const StartOptions& /*opt*/)
     } catch (const std::exception& e) {
         qWarning() << "[EvE] validateAndMove(P2) failed:" << e.what();
         return;
+    }
+
+    // ★ EvE: 後手の1手目を棋譜欄へ反映
+    if (m_clock) {
+        const qint64 thinkMs = m_usi2 ? m_usi2->lastBestmoveElapsedMs() : 0;
+        m_clock->setPlayer2ConsiderationTime(static_cast<int>(thinkMs));
+        m_clock->applyByoyomiAndResetConsideration2();
+    }
+    if (m_hooks.appendKifuLine && m_clock) {
+        m_hooks.appendKifuLine(rec2, m_clock->getPlayer2ConsiderationAndTotalTime());
     }
 
     // 反映
@@ -791,6 +811,26 @@ void MatchCoordinator::kickNextEvETurn_()
     } catch (const std::exception& e) {
         qWarning() << "[EvE] validateAndMove failed:" << e.what();
         return;
+    }
+
+    // ★ EvE: 今指した側（mover）を棋譜欄へ反映
+    if (m_clock) {
+        const qint64 thinkMs = mover ? mover->lastBestmoveElapsedMs() : 0;
+        if (p1ToMove) {
+            // いま指したのはP1
+            m_clock->setPlayer1ConsiderationTime(static_cast<int>(thinkMs));
+            m_clock->applyByoyomiAndResetConsideration1();
+        } else {
+            // いま指したのはP2
+            m_clock->setPlayer2ConsiderationTime(static_cast<int>(thinkMs));
+            m_clock->applyByoyomiAndResetConsideration2();
+        }
+    }
+    if (m_hooks.appendKifuLine && m_clock) {
+        const QString elapsed = p1ToMove
+                                    ? m_clock->getPlayer1ConsiderationAndTotalTime()
+                                    : m_clock->getPlayer2ConsiderationAndTotalTime();
+        m_hooks.appendKifuLine(rec, elapsed);
     }
 
     // 相手エンジンに “同○” ヒント
