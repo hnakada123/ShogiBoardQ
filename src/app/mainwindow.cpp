@@ -4012,31 +4012,6 @@ void MainWindow::initSingleEnginePvE(bool engineIsP1)
     resetGameFlags();
 }
 
-void MainWindow::initEnginesForEvE()
-{
-    if (!m_match) return;
-    // ここでは名前だけ司令塔へ渡す（モデルは Deps 経由）
-    m_match->initEnginesForEvE(m_startGameDialog->engineName1(),
-                               m_startGameDialog->engineName2());
-}
-
-
-// 初期 position（共通） ※PvE でも EvE でも両方の ponder を同値で初期化して問題なし
-void MainWindow::setupInitialPositionStrings()
-{
-    m_positionStr1 = "position " + m_startPosStr + " moves";
-    m_positionStrList.append(m_positionStr1);
-    m_positionPonder1 = m_positionStr1;
-    m_positionPonder2 = m_positionStr1;
-}
-
-// 時計・手番同期と対局エポック開始
-void MainWindow::syncAndEpoch(const QString& title)
-{
-    syncClockTurnAndEpoch();
-    startMatchEpoch(title);
-}
-
 // いま手番が人間か？
 bool MainWindow::isHumanTurnNow(bool engineIsP1) const
 {
@@ -4044,60 +4019,6 @@ bool MainWindow::isHumanTurnNow(bool engineIsP1) const
     const auto engineSide = engineIsP1 ? ShogiGameController::Player1
                                        : ShogiGameController::Player2;
     return (cur != engineSide);
-}
-
-// エンジンに1手指させ、ハイライトと評価グラフを更新（共通）
-bool MainWindow::engineMoveOnce(Usi* eng,
-                                QString& positionStr,
-                                QString& ponderStr,
-                                bool useSelectedField2,
-                                int engineIndex,
-                                QPoint* outTo)
-{
-    return (m_match
-                ? m_match->engineMoveOnce(eng, positionStr, ponderStr, useSelectedField2, engineIndex, outTo)
-                : false);
-}
-
-bool MainWindow::playOneEngineTurn(Usi* mover,
-                                   Usi* receiver,
-                                   QString& positionStr,
-                                   QString& ponderStr,
-                                   int engineIndex)
-{
-    return (m_match
-                ? m_match->playOneEngineTurn(mover, receiver, positionStr, ponderStr, engineIndex)
-                : false);
-}
-
-void MainWindow::assignSidesHumanVsEngine()
-{
-    // 平手: 後手エンジン / 駒落ち: 先手エンジン
-    if (m_playMode == EvenHumanVsEngine)
-        initializeAndStartPlayer2WithEngine1(); // 後手エンジン
-    else
-        initializeAndStartPlayer1WithEngine1(); // 先手エンジン
-}
-
-void MainWindow::assignSidesEngineVsHuman()
-{
-    // 平手: 先手エンジン / 駒落ち: 後手エンジン
-    if (m_playMode == EvenEngineVsHuman)
-        initializeAndStartPlayer1WithEngine1(); // 先手エンジン
-    else
-        initializeAndStartPlayer2WithEngine1(); // 後手エンジン
-}
-
-void MainWindow::assignEnginesEngineVsEngine()
-{
-    // 平手: (P1=Engine1, P2=Engine2) / 駒落ち: (P1=Engine2, P2=Engine1)
-    if (m_playMode == EvenEngineVsEngine) {
-        initializeAndStartPlayer1WithEngine1();
-        initializeAndStartPlayer2WithEngine2();
-    } else { // HandicapEngineVsEngine
-        initializeAndStartPlayer2WithEngine1();
-        initializeAndStartPlayer1WithEngine2();
-    }
 }
 
 inline void pumpUi() {
@@ -4212,6 +4133,10 @@ void MainWindow::setupEngineAnalysisTab()
     // ★ 先に UI を構築して内部の m_tab / m_view1 / m_view2 を生成
     m_analysisTab->buildUi();
 
+    // 例：MainWindow::MainWindow(...) の本体先頭あたり
+    m_modelThinking1 = new ShogiEngineThinkingModel(this);
+    m_modelThinking2 = new ShogiEngineThinkingModel(this);
+
     // 生成後にモデルを渡す（UI ができてから）
     m_analysisTab->setModels(m_modelThinking1, m_modelThinking2,
                              m_lineEditModel1, m_lineEditModel2);
@@ -4233,8 +4158,6 @@ void MainWindow::setupEngineAnalysisTab()
                  << " parent=" << t->parent();
     }
     qDebug() << " m_tab =" << m_tab;
-
-
 
     // 分岐ツリークリック → MainWindow へ（重複接続防止）
     connect(m_analysisTab, &EngineAnalysisTab::branchNodeActivated,

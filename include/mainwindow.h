@@ -309,23 +309,8 @@ private:
     // --- USI / エンジン ---
     void destroyEngine(Usi*& e);
     void initSingleEnginePvE(bool engineIsP1);
-    void initEnginesForEvE();
-    void setupInitialPositionStrings();
-    void syncAndEpoch(const QString& title);
     bool isHumanTurnNow(bool engineIsP1) const;
-    bool engineMoveOnce(Usi* eng,
-                        QString& positionStr,
-                        QString& ponderStr,
-                        bool useSelectedField2,
-                        int engineIndex,
-                        QPoint* outTo = nullptr);
-    bool playOneEngineTurn(Usi* mover, Usi* receiver,
-                           QString& positionStr,
-                           QString& ponderStr,
-                           int engineIndex);
-    void assignSidesHumanVsEngine();
-    void assignSidesEngineVsHuman();
-    void assignEnginesEngineVsEngine();
+
     bool engineThinkApplyMove(Usi* engine,
                               QString& positionStr,
                               QString& ponderStr,
