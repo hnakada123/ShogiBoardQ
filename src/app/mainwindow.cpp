@@ -1092,8 +1092,13 @@ void MainWindow::startGameBasedOnMode()
         opt.enginePath2 = engines.at(idx2).path;
     }
 
-    opt.engineIsP1 = (m_playMode == EvenEngineVsHuman || m_playMode == HandicapEngineVsHuman);
-    opt.engineIsP2 = (m_playMode == EvenHumanVsEngine || m_playMode == HandicapHumanVsEngine);
+    opt.engineIsP1 = (m_playMode == EvenHumanVsEngine || m_playMode == EvenEngineVsHuman || m_playMode == HandicapEngineVsHuman);
+    opt.engineIsP2 = (m_playMode == HandicapHumanVsEngine);
+
+    if (m_playMode == EvenEngineVsEngine || m_playMode == HandicapEngineVsEngine) {
+        if (m_analysisTab)
+             m_analysisTab->setDualEngineVisible(true);
+    }
 
     // 司令塔へ構成/起動のみ委譲（startNewGame は既に済）
     m_match->configureAndStart(opt);
