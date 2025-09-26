@@ -160,7 +160,7 @@ void MatchCoordinator::notifyTimeout(Player loser) {
 
     // 4) UI へ終局通知
     GameEndInfo info; info.cause = Cause::Timeout; info.loser = loser;
-    displayResultsAndUpdateGui_(info);
+    setGameOver(info, /*loserIsP1=*/(loser == P1), /*appendMoveOnce=*/true);
 }
 
 void MatchCoordinator::flipBoard() {
