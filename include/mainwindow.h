@@ -389,11 +389,6 @@ private:
         QTime t(0,0); return t.addMSecs(static_cast<int>(ms)).toString("hh:mm:ss");
     }
 
-    void wireEngineThinking_(Usi* usi,
-                             ShogiEngineThinkingModel* model,
-                             EngineInfoWidget* infoWidget,
-                             QTableView* tableView);
-
 private slots:
     // ========================================================
     // Private Slots（connect先になるものはすべてここ）
@@ -510,18 +505,10 @@ private:
 
     void setupBranchCandidatesWiring_();
 
-    void populateBranchCandidates_(int ply);
     void setupBranchView_();
 
     // 行 index -> (ply -> 許可する variationId 集合)
     QVector<QHash<int, QSet<int>>> m_branchWhitelist;
-
-    void rebuildBranchWhitelist();          // 解決行構築後に呼ぶ
-    QSet<int> allowedVarIdsFor(int row, int ply) const;
-    int        varIdForResolvedRow(int row) const;
-    int        guessParentRow(int childRow) const; // 親行を推定（親が保持されていない場合用）
-
-    QString    contextPrevSfenFor(int ply) const;  // 既にお持ちなら既存を利用
 
     // 分岐ホワイトリスト: 行(row) → 手数(ply) → 許可する variationId の集合
     QHash<int, QHash<int, QSet<int>>> m_branchWL;
@@ -530,8 +517,6 @@ private:
     bool m_loadingKifu = false;   // KIF読込～WL完成まで分岐更新を抑止
 
     bool m_branchTreeLocked = false;  // ← 分岐ツリーの追加・変更を禁止するロック
-
-    int rowIndexForVariationId(int vid) const;
 
     QString rowNameFor_(int row) const;
     QString labelAt_(const ResolvedRow& rr, int ply) const;
@@ -573,12 +558,6 @@ private:
 
     // 選択（行row, 手数ply）から、ハイライトすべき(variation id, ply)を解決
     std::pair<int,int> resolveBranchHighlightTarget(int row, int ply) const;
-
-private:
-    void ensureHvEThinkingWiring_();
-#ifdef QT_DEBUG
-    void dumpHvEThinkingWiring_(const char* tag);
-#endif
 
 private slots:
     void onBranchPlanActivated_(int row, int ply1);                // Plan選択 → 行/手へジャンプ
