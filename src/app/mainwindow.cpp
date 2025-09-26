@@ -158,6 +158,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(m_gameController, &ShogiGameController::showPromotionDialog, this, &MainWindow::displayPromotionDialog);
     connect(m_shogiView, &ShogiView::errorOccurred, this, &MainWindow::displayErrorMessage);
     connect(m_gameController, &ShogiGameController::endDragSignal, this, &MainWindow::endDrag, Qt::UniqueConnection);
+    connect(m_gameController, &ShogiGameController::moveCommitted, this, &MainWindow::onMoveCommitted, Qt::UniqueConnection);
 }
 
 // GUIを構成するWidgetなどを生成する。
@@ -620,6 +621,12 @@ void MainWindow::initializeCentralGameDisplay()
 // 対局モードに応じて将棋盤下部に表示されるエンジン名をセットする。
 void MainWindow::startNewShogiGame(QString& startSfenStr)
 {
+    // 評価値グラフと記録を初期化
+    if (auto ec = m_recordPane ? m_recordPane->evalChart() : nullptr) {
+        ec->clearAll();
+    }
+    m_scoreCp.clear();
+
     // 新規対局の準備
     // 将棋盤、駒台を初期化（何も駒がない）し、入力のSFEN文字列の配置に将棋盤、駒台の駒を
     // 配置し、対局結果を結果なし、現在の手番がどちらでもない状態に設定する。
@@ -696,8 +703,25 @@ void MainWindow::redrawEngine1EvaluationGraph()
     // エンジンが未初期化でも落ちないようにガード
     const int scoreCp = eng ? eng->lastScoreCp() : 0;
 
-    if (auto ec = m_recordPane ? m_recordPane->evalChart() : nullptr) {
+    auto* ec = m_recordPane ? m_recordPane->evalChart() : nullptr;
+
+    // ---- デバッグ出力 ----
+    qDebug() << "[EVAL][P1] redraw"
+             << "moveIndex=" << m_currentMoveIndex
+             << "invert=" << invert
+             << "scoreCp=" << scoreCp
+             << "playMode(int)=" << int(m_playMode)
+             << "engine=" << static_cast<const void*>(eng)
+             << "chart="  << static_cast<const void*>(ec)
+             << "thread=" << QThread::currentThread();
+
+    if (!eng) qDebug() << "[EVAL][P1][WARN] primaryEngine() is null";
+    if (!ec)  qDebug() << "[EVAL][P1][WARN] evalChart() is null";
+
+    if (ec) {
         ec->appendScoreP1(m_currentMoveIndex, scoreCp, invert);
+        qDebug() << "[EVAL][P1] appendScoreP1 done"
+                 << "idx=" << m_currentMoveIndex << "cp=" << scoreCp << "invert=" << invert;
     }
 
     // 記録も更新（整合のためエンジン未初期化時は 0 を入れておく）
@@ -716,8 +740,25 @@ void MainWindow::redrawEngine2EvaluationGraph()
     // エンジン未初期化でも落ちないように 0 を既定値に
     const int scoreCp = eng2 ? eng2->lastScoreCp() : 0;
 
-    if (auto ec = m_recordPane ? m_recordPane->evalChart() : nullptr) {
+    auto* ec = m_recordPane ? m_recordPane->evalChart() : nullptr;
+
+    // ---- デバッグ出力 ----
+    qDebug() << "[EVAL][P2] redraw"
+             << "moveIndex=" << m_currentMoveIndex
+             << "invert=" << invert
+             << "scoreCp=" << scoreCp
+             << "playMode(int)=" << int(m_playMode)
+             << "engine2=" << static_cast<const void*>(eng2)
+             << "chart="  << static_cast<const void*>(ec)
+             << "thread=" << QThread::currentThread();
+
+    if (!eng2) qDebug() << "[EVAL][P2][WARN] secondaryEngine() is null";
+    if (!ec)   qDebug() << "[EVAL][P2][WARN] evalChart() is null";
+
+    if (ec) {
         ec->appendScoreP2(m_currentMoveIndex, scoreCp, invert);
+        qDebug() << "[EVAL][P2] appendScoreP2 done"
+                 << "idx=" << m_currentMoveIndex << "cp=" << scoreCp << "invert=" << invert;
     }
 
     // 既存仕様に合わせてそのまま記録（未初期化時は 0 を入れる）
@@ -1107,9 +1148,13 @@ void MainWindow::startGameBasedOnMode()
         (m_playMode == HandicapHumanVsEngine) ||
         (m_playMode == HandicapEngineVsHuman);
 
-    // ★ 表示は：単発=上段のみ、EvE=上下
+    // ★ EvE のときだけ上下2段にする（HvH を含む“非 EvE”は上段のみ）
+    const bool isEvE =
+        (m_playMode == EvenEngineVsEngine) ||
+        (m_playMode == HandicapEngineVsEngine);
+
     if (m_analysisTab) {
-        m_analysisTab->setDualEngineVisible(!isSingleEngine);
+        m_analysisTab->setDualEngineVisible(isEvE);  // ← ここを !isSingleEngine から置換
     }
 
     // デバッグ出力
@@ -4231,7 +4276,31 @@ void MainWindow::initMatchCoordinator()
     d.think1 = m_modelThinking1;     // ShogiEngineThinkingModel*（先手）
     d.comm2  = m_lineEditModel2;     // UsiCommLogModel*（後手）
     d.think2 = m_modelThinking2;     // ShogiEngineThinkingModel*（後手）
+
+    //d.hooks.appendEvalP1 = [this] { redrawEngine1EvaluationGraph(); };
+    //d.hooks.appendEvalP2 = [this] { redrawEngine2EvaluationGraph(); };
     // --- 追加ここまで ---
+
+    // （MainWindow::setupDeps / ensure... など hooks を設定している塊に追加）
+    qDebug() << "[WIRE][Eval] installing eval hooks";
+
+    d.hooks.appendEvalP1 = [this] {
+        // GUIスレッドに投げる（EvE のスレッドからでも安全）
+        QMetaObject::invokeMethod(this, [this]{
+            qDebug() << "[HOOK] appendEvalP1 -> redrawEngine1EvaluationGraph() on thread" << QThread::currentThread();
+            redrawEngine1EvaluationGraph();
+        }, Qt::QueuedConnection);
+    };
+
+    d.hooks.appendEvalP2 = [this] {
+        QMetaObject::invokeMethod(this, [this]{
+            qDebug() << "[HOOK] appendEvalP2 -> redrawEngine2EvaluationGraph() on thread" << QThread::currentThread();
+            redrawEngine2EvaluationGraph();
+        }, Qt::QueuedConnection);
+    };
+
+    qDebug() << "[WIRE][Eval] appendEvalP1 set =" << bool(d.hooks.appendEvalP1)
+             << " appendEvalP2 set =" << bool(d.hooks.appendEvalP2);
 
     // ---------- Hooks: MainWindow の既存APIに委譲 ----------
     // 手番表示（1=先手,2=後手）
@@ -6504,3 +6573,17 @@ void MainWindow::dumpHvEThinkingWiring_(const char* tag)
         << " usi1.log=" << (m_usi1 ? m_usi1->debugLogModel() : nullptr);
 }
 #endif
+
+void MainWindow::onMoveCommitted(ShogiGameController::Player mover, int /*ply*/)
+{
+    const bool isEvE =
+        (m_playMode == EvenEngineVsEngine) ||
+        (m_playMode == HandicapEngineVsEngine);
+    if (!isEvE) return;
+
+    if (mover == ShogiGameController::Player1) {
+        redrawEngine1EvaluationGraph();
+    } else if (mover == ShogiGameController::Player2) {
+        redrawEngine2EvaluationGraph();
+    }
+}

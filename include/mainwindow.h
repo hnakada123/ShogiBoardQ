@@ -496,6 +496,8 @@ private slots:
     void onApplyLineRequested_(const QList<KifDisplayItem>& disp,
                                const QList<QString>& usiStrs);
 
+    void onMoveCommitted(ShogiGameController::Player mover, int ply);
+
 private:
     QVector<int> m_branchVarIds;   // 行→variationId の対応（末尾の「本譜へ戻る」は -1）
     int m_branchPlyContext = -1;   // どの ply の候補か（必要なら使用）

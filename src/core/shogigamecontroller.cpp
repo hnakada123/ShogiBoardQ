@@ -372,13 +372,13 @@ MoveValidator::Turn ShogiGameController::getCurrentTurnForValidator(MoveValidato
 }
 
 bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QString& record, PlayMode& playMode, int& moveNumber,
-                                     QStringList* m_sfenRecord, QVector<ShogiMove>& gameMoves)
+                                          QStringList* m_sfenRecord, QVector<ShogiMove>& gameMoves)
 {
     // 指し手の移動元と移動先のマスの筋と段を取得する。
     int fileFrom = outFrom.x();
     int rankFrom = outFrom.y();
-    int fileTo = outTo.x();
-    int rankTo = outTo.y();
+    int fileTo   = outTo.x();
+    int rankTo   = outTo.y();
 
     //begin
     qDebug() << "in ShogiGameController::validateAndMove";
@@ -398,56 +398,48 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
     MoveValidator::Turn turn = getCurrentTurnForValidator(validator);
 
     // 合成手判定で使用する指し手データを生成する。
-    // 移動元と移動先のマスの筋と段を指定してマスの座標を生成する。
     QPoint fromPoint(fileFrom - 1, rankFrom - 1);
     QPoint toPoint(fileTo - 1, rankTo - 1);
 
     // 指した駒文字を取得する。
-    QChar movingPiece = board()->getPieceCharacter(fileFrom, rankFrom);
-
-    // 指した先の取られた駒文字を取得する。
-    QChar capturedPiece = board()->getPieceCharacter(fileTo, rankTo);
+    QChar movingPiece   = board()->getPieceCharacter(fileFrom, rankFrom);
+    QChar capturedPiece = board()->getPieceCharacter(fileTo,   rankTo);
 
     // 合法手判定に関するクラスで利用するための指し手データを生成する。
     ShogiMove currentMove(fromPoint, toPoint, movingPiece, capturedPiece, m_promote);
 
-    // 人間が指した場合に指し手で成る手と不成の手が合法手であるかを判定し、GUIのダイアログで対局者に
-    // 成るか成らないかを選択させて、その結果をcurrentMove.isPromotionに保存する。
-    // 指し手が合法であればtrue、不合法であればfalseを返す。
+    // 成／不成の決定（人間手のとき）
     if (!decidePromotion(playMode, validator, turn, fileFrom, rankFrom, fileTo, rankTo, movingPiece, currentMove)) {
-        // decidePromotion関数実施後に必要な処理
-        // 駒のドラッグを終了する。
         emit endDragSignal();
-
-        // 指そうとした手が合法手でない場合は、指せないことを示すfalseを返す。
         return false;
     } else {
-        // 駒のドラッグを終了する。
         emit endDragSignal();
     }
 
-    // 現在の指し手を追加保存する。
+    // 現在の指し手を追加保存する（ここで確定後の手数が gameMoves.size() になる）
     gameMoves.append(currentMove);
 
-    // 将棋盤と駒台の駒数を更新する。
+    // 盤面更新
     board()->updateBoardAndPieceStand(movingPiece, capturedPiece, fileFrom, rankFrom, fileTo, rankTo, m_promote);
 
-    // 相手の手番をSFEN形式の手番bまたはwで取得する。
+    // SFEN 保存
     QString nextPlayerColorSfen = getNextPlayerSfen();
-
-    // SFEN形式の文字列に変換し、その文字列を追加保存する。
     board()->addSfenRecord(nextPlayerColorSfen, moveNumber, m_sfenRecord);
 
-    // 指し手の駒を漢字で取得する。
+    // 棋譜文字列
     QString kanjiPiece = getPieceKanji(movingPiece);
-
-    // 指し手の文字列を漢字で取得する。
     record = convertMoveToKanjiStr(kanjiPiece, fileFrom, rankFrom, fileTo, rankTo);
 
-    // 手番を変える。
+    // ---- ★ 着手確定シグナル：手番切替の「前」に出す！ ----
+    const Player moverBefore   = currentPlayer();     // 着手者（切替前）
+    const int confirmedPly     = gameMoves.size();    // 確定後の手数（1始まり）
+    qDebug() << "[GC] emit moveCommitted mover=" << moverBefore << "ply=" << confirmedPly;
+    emit moveCommitted(moverBefore, confirmedPly);
+    // ------------------------------------------------------
+
+    // 手番を変える（ここから先は次手番）
     setCurrentPlayer(currentPlayer() == Player1 ? Player2 : Player1);
 
-    // 指そうとした手が合法手である場合は、指せることを示すtrueを返す。
     return true;
 }
 
