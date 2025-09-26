@@ -162,6 +162,19 @@ public:
     void setUiMuted(bool on);
     bool uiMuted() const { return m_uiMuted; }
 
+    void setActiveIsBlack(bool activeIsBlack);
+
+    // ── 状態管理
+    // 既存 enum に 0秒用の状態を追加
+    enum class Urgency { Normal, Warn10, Warn5 };
+    Urgency m_urgency = Urgency::Normal;
+
+    // しきい値（ミリ秒）
+    static constexpr qint64 kWarn10Ms = 10'000;
+    static constexpr qint64 kWarn5Ms  = 5'000;
+
+    void setUrgencyVisuals(Urgency u);
+
 public slots:
     // Q_PROPERTY 用 setter（レイアウト更新・ラベル再配置を含む）
     void setFieldSize(QSize fieldSize);
@@ -323,10 +336,6 @@ private:
     QColor m_highlightFgOff = QColor(51, 51, 51);
     bool   m_blackActive    = true;
 
-    // しきい値（ミリ秒）
-    static constexpr qint64 kWarn10Ms = 10'000;
-    static constexpr qint64 kWarn5Ms  = 5'000;
-
     // 既存の「手番ハイライト色」を Normal として利用
     // 追加：10秒/5秒で使う配色
     QColor m_urgencyBgWarn10 = QColor(255, 193, 7);// 濃いめの黄橙
@@ -344,19 +353,10 @@ private:
     const QColor kWarn5Bg  = QColor(255, 255,   0); // 5秒 背景（黄）
     const QColor kWarn5Fg  = QColor(255,   0,   0); // 5秒 文字（赤）
 
-    //const QColor kWarn10Border = QColor(  0,  0, 255); // 10秒 枠色（青）
-    //const QColor kWarn5Border  = QColor(255,   0,   0); // 5秒 枠色（赤）
-
-    const QColor kWarn10Border = QColor(255, 255,   0); // 10秒 枠色（青）
-    const QColor kWarn5Border  = QColor(255, 255,   0); // 5秒 枠色（赤）
-
-    // ── 状態管理
-    // 既存 enum に 0秒用の状態を追加
-    enum class Urgency { Normal, Warn10, Warn5 };
-    Urgency m_urgency = Urgency::Normal;
+    const QColor kWarn10Border = QColor(  0,  0, 255); // 10秒 枠色（青）
+    const QColor kWarn5Border  = QColor(255,   0,   0); // 5秒 枠色（赤）
 
     // ── ヘルパ
-    void setUrgencyVisuals(Urgency u);
     void setLabelStyle(QLabel* lbl,
                        const QColor& fg, const QColor& bg,
                        int borderPx, const QColor& borderColor,

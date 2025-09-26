@@ -15,6 +15,7 @@
 #include <QDebug>
 #include <QSizePolicy>
 #include <QLayout>
+#include <QFontDatabase>
 
 Q_LOGGING_CATEGORY(ClockLog, "clock")
 
@@ -2662,21 +2663,25 @@ void ShogiView::setUrgencyVisuals(Urgency u)
 
     switch (u) {
     case Urgency::Normal:
-        setLabelStyle(actName,  kTurnFg,   kTurnBg,   1, QColor(240,220,120), /*bold=*/false);
-        setLabelStyle(actClock, kTurnFg,   kTurnBg,   1, QColor(240,220,120), /*bold=*/false);
+        // 旧仕様：手番は黄背景＋青文字、枠なし、太字
+        setLabelStyle(actName,  kTurnFg,   kTurnBg,   0, QColor(0,0,0,0), /*bold=*/true);
+        setLabelStyle(actClock, kTurnFg,   kTurnBg,   0, QColor(0,0,0,0), /*bold=*/true);
         setInactive(inactName, inactClock);
         break;
 
     case Urgency::Warn10:
-        setLabelStyle(actName,  kWarn10Fg, kWarn10Bg, 1, kWarn10Border,       /*bold=*/false);
-        setLabelStyle(actClock, kWarn10Fg, kWarn10Bg, 1, kWarn10Border,       /*bold=*/false);
+        // 旧仕様：10秒以下は黄色地＋枠無し＋太字
+        // ※ kWarn10Border を青 (0,0,255) にしておくこと
+        setLabelStyle(actName,  kWarn10Fg, kWarn10Bg, 0, kWarn10Border, /*bold=*/true);
+        setLabelStyle(actClock, kWarn10Fg, kWarn10Bg, 0, kWarn10Border, /*bold=*/true);
         setInactive(inactName, inactClock);
         break;
 
     case Urgency::Warn5:
-        // ★ 枠は常に赤3px（固定表示、点滅なし）
-        setLabelStyle(actName,  kWarn5Fg,  kWarn5Bg,  1, kWarn5Border,        /*bold=*/false);
-        setLabelStyle(actClock, kWarn5Fg,  kWarn5Bg,  1, kWarn5Border,        /*bold=*/false);
+        // 旧仕様：5秒以下は黄色地＋枠無し＋太字
+        // ※ kWarn5Border を赤 (255,0,0) にしておくこと
+        setLabelStyle(actName,  kWarn5Fg,  kWarn5Bg,  0, kWarn5Border,  /*bold=*/true);
+        setLabelStyle(actClock, kWarn5Fg,  kWarn5Bg,  0, kWarn5Border,  /*bold=*/true);
         setInactive(inactName, inactClock);
         break;
     }
@@ -2717,8 +2722,9 @@ void ShogiView::applyBoardAndRender(ShogiBoard* board)
 {
     if (!board) return;
 
-    // 1) 駒アイコンの用意（複数回呼ばれても安全な実装にしておく）
-    setPieces();
+    // 1) 駒アイコンの用意：現在の反転状態に合わせて読込
+    if (m_flipMode) setPiecesFlip();
+    else            setPieces();
 
     // 2) 盤データの適用
     setBoard(board);
@@ -2764,7 +2770,11 @@ void ShogiView::clearTurnHighlight()
     m_urgency = Urgency::Normal;
 }
 
-// ShogiView.cpp
 void ShogiView::setUiMuted(bool on) {
     m_uiMuted = on;
+}
+
+void ShogiView::setActiveIsBlack(bool activeIsBlack)
+{
+    m_blackActive = activeIsBlack;
 }

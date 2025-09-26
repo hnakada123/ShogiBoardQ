@@ -431,6 +431,7 @@ private slots:
     void setStandardStartPosition();
     void setTsumeShogiStartPosition();
     void swapBoardSides();
+    void flipBoardAndUpdatePlayerInfo();
     void enlargeBoard();
     void reduceBoardSize();
     void endDrag();
@@ -558,6 +559,20 @@ private:
 
     // 選択（行row, 手数ply）から、ハイライトすべき(variation id, ply)を解決
     std::pair<int,int> resolveBranchHighlightTarget(int row, int ply) const;
+
+    // 直近の手番と残時間（回転直後の復元に使う）
+    bool   m_lastP1Turn = true;
+    qint64 m_lastP1Ms   = 0;
+    qint64 m_lastP2Ms   = 0;
+
+    // しきい値（必要なら QSettings で差し替え可）
+    int m_warnMs  = 10 * 1000; // 10秒
+    int m_dangerMs=  5 * 1000; // 5秒
+
+    // 描画ヘルパ
+    void updateUrgencyStyles_(bool p1turn);
+    void applyTurnHighlights_(bool p1turn);   // 中で updateUrgencyStyles_ を呼ぶようにします
+    void setupNameAndClockFonts_();           // フォント明示設定
 
 private slots:
     void onBranchPlanActivated_(int row, int ply1);                // Plan選択 → 行/手へジャンプ
