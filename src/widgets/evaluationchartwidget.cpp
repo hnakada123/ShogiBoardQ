@@ -9,6 +9,9 @@
 #include <QPen>
 #include <QFont>
 #include <QColor>
+#include <QDebug>
+#include <QtGlobal> // qIsFinite
+#include <QThread>
 
 EvaluationChartWidget::EvaluationChartWidget(QWidget* parent)
     : QWidget(parent)
@@ -81,18 +84,96 @@ EvaluationChartWidget::EvaluationChartWidget(QWidget* parent)
 
 void EvaluationChartWidget::appendScoreP1(int ply, int cp, bool invert)
 {
+    if (!m_s1) { qDebug() << "[CHART][P1][ERR] series null"; return; }
+
     const qreal y = invert ? -cp : cp;
+    if (!qIsFinite(y)) qDebug() << "[CHART][P1][WARN] non-finite y" << y << "from cp=" << cp;
+
+    const int before = m_s1->count();
+    qDebug() << "[CHART][P1] append"
+             << "ply=" << ply
+             << "cp=" << cp
+             << "invert=" << invert
+             << "y=" << y
+             << "beforeCount=" << before
+             << "xRange=" << (m_axX ? QPointF(m_axX->min(), m_axX->max()) : QPointF(-1, -1))
+             << "yRange=" << (m_axY ? QPointF(m_axY->min(), m_axY->max()) : QPointF(-1, -1))
+             << "chartView=" << static_cast<const void*>(m_chartView)
+             << "thread=" << QThread::currentThread();
+
     m_s1->append(ply, y);
-    if (ply > m_axX->max()) m_axX->setRange(0, ply + 50);
-    if (m_chartView) m_chartView->update();
+
+    const int after = m_s1->count();
+    QPointF lastPt;
+    if (after > 0) lastPt = m_s1->at(after - 1);
+
+    qDebug() << "[CHART][P1] appended"
+             << "afterCount=" << after
+             << "lastPoint=" << lastPt;
+
+    if (m_axX) {
+        if (ply > m_axX->max()) {
+            const qreal newMax = ply + 50;
+            qDebug() << "[CHART][P1] expand X range ->" << newMax;
+            m_axX->setRange(0, newMax);
+        }
+    } else {
+        qDebug() << "[CHART][P1][WARN] m_axX is null; skip range expand";
+    }
+
+    if (m_chartView) {
+        m_chartView->update();
+        qDebug() << "[CHART][P1] chartView updated";
+    } else {
+        qDebug() << "[CHART][P1][WARN] chartView is null; not updated";
+    }
 }
 
 void EvaluationChartWidget::appendScoreP2(int ply, int cp, bool invert)
 {
+    if (!m_s2) { qDebug() << "[CHART][P2][ERR] series null"; return; }
+
     const qreal y = invert ? -cp : cp;
+    if (!qIsFinite(y)) qDebug() << "[CHART][P2][WARN] non-finite y" << y << "from cp=" << cp;
+
+    const int before = m_s2->count();
+    qDebug() << "[CHART][P2] append"
+             << "ply=" << ply
+             << "cp=" << cp
+             << "invert=" << invert
+             << "y=" << y
+             << "beforeCount=" << before
+             << "xRange=" << (m_axX ? QPointF(m_axX->min(), m_axX->max()) : QPointF(-1, -1))
+             << "yRange=" << (m_axY ? QPointF(m_axY->min(), m_axY->max()) : QPointF(-1, -1))
+             << "chartView=" << static_cast<const void*>(m_chartView)
+             << "thread=" << QThread::currentThread();
+
     m_s2->append(ply, y);
-    if (ply > m_axX->max()) m_axX->setRange(0, ply + 50);
-    if (m_chartView) m_chartView->update();
+
+    const int after = m_s2->count();
+    QPointF lastPt;
+    if (after > 0) lastPt = m_s2->at(after - 1);
+
+    qDebug() << "[CHART][P2] appended"
+             << "afterCount=" << after
+             << "lastPoint=" << lastPt;
+
+    if (m_axX) {
+        if (ply > m_axX->max()) {
+            const qreal newMax = ply + 50;
+            qDebug() << "[CHART][P2] expand X range ->" << newMax;
+            m_axX->setRange(0, newMax);
+        }
+    } else {
+        qDebug() << "[CHART][P2][WARN] m_axX is null; skip range expand";
+    }
+
+    if (m_chartView) {
+        m_chartView->update();
+        qDebug() << "[CHART][P2] chartView updated";
+    } else {
+        qDebug() << "[CHART][P2][WARN] chartView is null; not updated";
+    }
 }
 
 void EvaluationChartWidget::clearAll()

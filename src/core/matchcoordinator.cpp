@@ -417,6 +417,8 @@ bool MatchCoordinator::engineThinkApplyMove(Usi* engine,
 
     if (outFrom) *outFrom = from;
     if (outTo)   *outTo   = to;
+
+    // 評価値フックの呼出は呼び出し元（engineMoveOnce）で行う
     return true;
 }
 
@@ -427,13 +429,38 @@ bool MatchCoordinator::engineMoveOnce(Usi* eng,
                                       int engineIndex,
                                       QPoint* outTo)
 {
-    QPoint from, to;
-    if (!engineThinkApplyMove(eng, positionStr, ponderStr, &from, &to))
-        return false;
+    if (!m_gc) return false;
 
-    // ハイライト／評価グラフの更新は UI 側（Hookなど）に委譲するのが理想
-    // ここでは盤描画だけを促す
+    const auto moverBefore = m_gc->currentPlayer();
+    qDebug() << "[EVE] engineMoveOnce enter"
+             << "engineIndex=" << engineIndex
+             << "moverBefore=" << int(moverBefore)
+             << "thread=" << QThread::currentThread();
+
+    QPoint from, to;
+    if (!engineThinkApplyMove(eng, positionStr, ponderStr, &from, &to)) {
+        qDebug() << "[EVE] engineThinkApplyMove FAILED";
+        return false;
+    }
+    qDebug() << "[EVE] engineThinkApplyMove OK from=" << from << "to=" << to;
+
     if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
+
+    switch (moverBefore) {
+    case ShogiGameController::Player1:
+        qDebug() << "[EVE] calling appendEvalP1";
+        if (m_hooks.appendEvalP1) m_hooks.appendEvalP1();
+        else qDebug() << "[EVE][WARN] appendEvalP1 NOT set";
+        break;
+    case ShogiGameController::Player2:
+        qDebug() << "[EVE] calling appendEvalP2";
+        if (m_hooks.appendEvalP2) m_hooks.appendEvalP2();
+        else qDebug() << "[EVE][WARN] appendEvalP2 NOT set";
+        break;
+    default:
+        qDebug() << "[EVE][WARN] moverBefore=NoPlayer -> skip eval append";
+        break;
+    }
 
     if (outTo) *outTo = to;
     return true;

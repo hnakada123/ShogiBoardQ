@@ -117,6 +117,8 @@ signals:
     // 駒のドラッグを終了したことを通知する。
     void endDragSignal();
 
+    void moveCommitted(ShogiGameController::Player mover, int ply);
+
 private:
     // 将棋盤のポインタ
     ShogiBoard* m_board;

@@ -80,6 +80,9 @@ public:
 
         // ★ 追加：棋譜1行追記（例：text="▲７六歩", elapsed="00:03/00:00:06"）
         std::function<void(const QString& text, const QString& elapsed)> appendKifuLine;
+
+        std::function<void()> appendEvalP1; // P1(先手)エンジンが着手確定 → 評価値を1本目に追記
+        std::function<void()> appendEvalP2; // P2(後手)エンジンが着手確定 → 評価値を2本目に追記
     };
 
     struct Deps {
