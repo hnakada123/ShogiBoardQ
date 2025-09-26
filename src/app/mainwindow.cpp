@@ -129,6 +129,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     initMatchCoordinator();
 
+    setupNameAndClockFonts_();
+
     // メニューのシグナルとスロット
     connect(ui->actionQuit, &QAction::triggered, this, &MainWindow::saveSettingsAndClose);
     connect(ui->actionSaveAs, &QAction::triggered, this, &MainWindow::saveKifuToFile);
@@ -4423,25 +4425,13 @@ void MainWindow::ensureClockReady_()
 
     m_shogiClock = new ShogiClock(this);
 
-    if (m_match) {
-        connect(m_match, &MatchCoordinator::timeUpdated,
-                this, [this](qint64 p1ms, qint64 p2ms, bool /*p1turn*/, qint64 urgencyMs) {
-                    m_shogiView->blackClockLabel()->setText(fmt_hhmmss(p1ms));
-                    m_shogiView->whiteClockLabel()->setText(fmt_hhmmss(p2ms));
-                    m_shogiView->applyClockUrgency(urgencyMs);
-                    m_shogiView->setBlackTimeMs(p1ms);
-                    m_shogiView->setWhiteTimeMs(p2ms);
-                },
-                Qt::UniqueConnection);
-    }
+    // ★ ここでは timeUpdated を m_match に接続しない
+    //    （接続は wireMatchSignals_() に一本化）
 
-    // 時間切れ時の処理（終局ハンドラは残す）
     connect(m_shogiClock, &ShogiClock::player1TimeOut,
-            this, &MainWindow::onPlayer1TimeOut,
-            Qt::UniqueConnection);
+            this, &MainWindow::onPlayer1TimeOut, Qt::UniqueConnection);
     connect(m_shogiClock, &ShogiClock::player2TimeOut,
-            this, &MainWindow::onPlayer2TimeOut,
-            Qt::UniqueConnection);
+            this, &MainWindow::onPlayer2TimeOut, Qt::UniqueConnection);
 }
 
 // 司令塔から届く単一の対局終了イベント（UI反映＋棋譜「投了/時間切れ」＋時間追記）
@@ -4502,8 +4492,7 @@ void MainWindow::onMatchGameEnded(const MatchCoordinator::GameEndInfo& info)
 
 void MainWindow::onBoardFlipped(bool /*nowFlipped*/)
 {
-    // 既存の処理をそのまま呼ぶ
-    swapBoardSides();
+    flipBoardAndUpdatePlayerInfo();
 }
 
 void MainWindow::toggleEditSideToMove()
@@ -4716,14 +4705,23 @@ void MainWindow::onRequestAppendGameOverMove(const MatchCoordinator::GameEndInfo
     setGameOverMove(toUiCause(info.cause), loserIsP1);
 }
 
-void MainWindow::onMatchTimeUpdated(qint64 p1ms, qint64 p2ms, bool /*p1turn*/, qint64 urgencyMs)
+void MainWindow::onMatchTimeUpdated(qint64 p1ms, qint64 p2ms, bool p1turn, qint64 /*urgencyMs*/)
 {
-    qDebug() << "[UI] timeUpdated received p1ms=" << p1ms << " p2ms=" << p2ms;
-    m_shogiView->blackClockLabel()->setText(fmt_hhmmss(p1ms));
-    m_shogiView->whiteClockLabel()->setText(fmt_hhmmss(p2ms));
-    m_shogiView->applyClockUrgency(urgencyMs);
-    m_shogiView->setBlackTimeMs(p1ms);
-    m_shogiView->setWhiteTimeMs(p2ms);
+    // 直近状態をキャッシュ
+    m_lastP1Turn = p1turn;
+    m_lastP1Ms   = p1ms;
+    m_lastP2Ms   = p2ms;
+
+    // 時計ラベルを更新
+    if (m_shogiView) {
+        m_shogiView->blackClockLabel()->setText(fmt_hhmmss(p1ms));
+        m_shogiView->whiteClockLabel()->setText(fmt_hhmmss(p2ms));
+        m_shogiView->setBlackTimeMs(p1ms);
+        m_shogiView->setWhiteTimeMs(p2ms);
+    }
+
+    // 手番強調＋緊急色を統合適用
+    applyTurnHighlights_(p1turn);
 }
 
 void MainWindow::setupBoardInteractionController()
@@ -6165,4 +6163,77 @@ void MainWindow::onMoveCommitted(ShogiGameController::Player mover, int /*ply*/)
     } else if (mover == ShogiGameController::Player2) {
         redrawEngine2EvaluationGraph();
     }
+}
+
+void MainWindow::flipBoardAndUpdatePlayerInfo()
+{
+    qDebug() << "[UI] flipBoardAndUpdatePlayerInfo ENTER";
+    if (!m_shogiView) return;
+
+    // ★回転前にハイライトを消さない（removeHighlightAllData / clearTurnHighlight を呼ばない）
+    //   ハイライトは論理マス保持のまま、描画側が flipMode を見て追従させます。
+
+    // 盤の表示向きをトグル（UI反転）
+    const bool flipped = !m_shogiView->getFlipMode();
+    m_shogiView->setFlipMode(flipped);
+
+    // 駒画像セットは向きに合わせる
+    if (flipped) m_shogiView->setPiecesFlip();
+    else         m_shogiView->setPieces();
+
+    // ★手番ハイライト（名前・時計の強調）を回転直後に再適用
+    applyTurnHighlights_(m_lastP1Turn);
+
+    m_shogiView->update();
+    qDebug() << "[UI] flipBoardAndUpdatePlayerInfo LEAVE";
+}
+
+void MainWindow::applyTurnHighlights_(bool p1turn)
+{
+    // ここでは「誰が手番か」だけ渡して、実際の見た目組み立ては下へ委譲
+    updateUrgencyStyles_(p1turn);
+}
+
+// MainWindow.cpp
+void MainWindow::updateUrgencyStyles_(bool p1turn)
+{
+    if (!m_shogiView) return;
+
+    // アクティブ側（先手=黒か）をビューへ通知
+    // ※ セッターが無ければ下の「補足：ShogiView側の追加」を実装してください
+    m_shogiView->setActiveIsBlack(p1turn);
+
+    // 残り時間から緊急度を決定
+    const qint64 ms = p1turn ? m_lastP1Ms : m_lastP2Ms;
+    ShogiView::Urgency u;
+    if (ms <= ShogiView::kWarn5Ms)        u = ShogiView::Urgency::Warn5;
+    else if (ms <= ShogiView::kWarn10Ms)  u = ShogiView::Urgency::Warn10;
+    else                                   u = ShogiView::Urgency::Normal;
+
+    // 見た目の適用は ShogiView に一元化
+    m_shogiView->setUrgencyVisuals(u);
+}
+
+void MainWindow::setupNameAndClockFonts_()
+{
+    if (!m_shogiView) return;
+    auto* n1 = m_shogiView->blackNameLabel();
+    auto* n2 = m_shogiView->whiteNameLabel();
+    auto* c1 = m_shogiView->blackClockLabel();
+    auto* c2 = m_shogiView->whiteClockLabel();
+    if (!n1 || !n2 || !c1 || !c2) return;
+
+    // 例：等幅は環境依存のため FixedFont をベースに
+    QFont nameFont = QFontDatabase::systemFont(QFontDatabase::GeneralFont);
+    nameFont.setPointSize(12);         // お好みで
+    nameFont.setWeight(QFont::DemiBold);
+
+    QFont clockFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+    clockFont.setPointSize(16);        // お好みで
+    clockFont.setWeight(QFont::DemiBold);
+
+    n1->setFont(nameFont);
+    n2->setFont(nameFont);
+    c1->setFont(clockFont);
+    c2->setFont(clockFont);
 }
