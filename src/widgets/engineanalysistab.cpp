@@ -20,6 +20,7 @@
 #include <QQueue>
 #include <QSet>
 
+#include "numeric_right_align_comma_delegate.h"
 #include "engineinfowidget.h"
 #include "shogienginethinkingmodel.h"
 #include "usicommlogmodel.h"
@@ -33,12 +34,12 @@ EngineAnalysisTab::EngineAnalysisTab(QWidget* parent)
 
 void EngineAnalysisTab::buildUi()
 {
-    // --- QTabWidget を再入安全に用意（親なしで生成して MainWindow 側で貼る） ---
+    // --- QTabWidget 準備 ---
     if (!m_tab) {
-        m_tab = new QTabWidget(nullptr);                // 親なし → addWidget 時に reparent
+        m_tab = new QTabWidget(nullptr);
         m_tab->setObjectName(QStringLiteral("analysisTabs"));
     } else {
-        m_tab->clear();                                 // 同じ m_tab を再利用（重複生成しない）
+        m_tab->clear();
     }
 
     // --- 思考タブ ---
@@ -52,8 +53,9 @@ void EngineAnalysisTab::buildUi()
     m_info2 = new EngineInfoWidget(page);
     m_view2 = new QTableView(page);
 
-    if (auto* hh = m_view1->horizontalHeader()) hh->setSectionResizeMode(4, QHeaderView::Stretch);
-    if (auto* hh2 = m_view2->horizontalHeader()) hh2->setSectionResizeMode(4, QHeaderView::Stretch);
+    // ヘッダのリサイズポリシー（PV 列を広く等）
+    tuneColumnsForThinkingView_(m_view1);
+    tuneColumnsForThinkingView_(m_view2);
 
     v->addWidget(m_info1);
     v->addWidget(m_view1, 1);
@@ -84,8 +86,9 @@ void EngineAnalysisTab::buildUi()
 
     m_tab->addTab(m_branchTree, tr("分岐ツリー"));
 
-    // ★ 重要：EngineAnalysisTab 自身のレイアウトに m_tab を add しない（MainWindow 側で add）
-    // （ここに outer レイアウトは作らない）
+    // ★ 初回起動時（あるいは再構築時）にモデルが既にあるなら即時適用
+    reapplyViewTuning_(m_view1, m_model1);  // 右寄せ＋3桁カンマ＆列幅チューニング
+    reapplyViewTuning_(m_view2, m_model2);
 
     // --- 分岐ツリーのクリック検知（二重 install 防止のガード付き） ---
     if (m_branchTree && m_branchTree->viewport()) {
@@ -97,29 +100,69 @@ void EngineAnalysisTab::buildUi()
     }
 }
 
+void EngineAnalysisTab::reapplyViewTuning_(QTableView* v, QAbstractItemModel* m)
+{
+    if (!v) return;
+    // 列幅チューニング（PVを広く等）
+    tuneColumnsForThinkingView_(v);
+    // 数値列（Time/Depth/Nodes/Score）の右寄せ＆3桁カンマ
+    if (m) applyNumericFormattingTo_(v, m);
+}
+
+void EngineAnalysisTab::onModel1Reset_()
+{
+    reapplyViewTuning_(m_view1, m_model1);
+}
+
+void EngineAnalysisTab::onModel2Reset_()
+{
+    reapplyViewTuning_(m_view2, m_model2);
+}
+
+void EngineAnalysisTab::onLog1Changed_()
+{
+    if (m_usiLog && m_log1) m_usiLog->appendPlainText(m_log1->usiCommLog());
+}
+
+void EngineAnalysisTab::onLog2Changed_()
+{
+    if (m_usiLog && m_log2) m_usiLog->appendPlainText(m_log2->usiCommLog());
+}
+
 void EngineAnalysisTab::setModels(ShogiEngineThinkingModel* m1, ShogiEngineThinkingModel* m2,
                                   UsiCommLogModel* log1, UsiCommLogModel* log2)
 {
-    m_model1 = m1;
-    m_model2 = m2;
-    m_log1 = log1;
-    m_log2 = log2;
+    m_model1 = m1;  m_model2 = m2;
+    m_log1   = log1; m_log2  = log2;
 
-    if (m_view1 && m1) m_view1->setModel(m1);
-    if (m_view2 && m2) m_view2->setModel(m2);
+    if (m_view1) m_view1->setModel(m1);
+    if (m_view2) m_view2->setModel(m2);
 
-    if (m_info1 && log1) m_info1->setModel(log1);
-    if (m_info2 && log2) m_info2->setModel(log2);
+    if (m_info1) m_info1->setModel(log1);
+    if (m_info2) m_info2->setModel(log2);
 
+    // モデル設定直後に再適用
+    reapplyViewTuning_(m_view1, m_model1);
+    reapplyViewTuning_(m_view2, m_model2);
+
+    // modelReset時に再適用（ラムダ→関数スロット）
+    if (m_model1) {
+        QObject::connect(m_model1, &QAbstractItemModel::modelReset,
+                         this, &EngineAnalysisTab::onModel1Reset_, Qt::UniqueConnection);
+    }
+    if (m_model2) {
+        QObject::connect(m_model2, &QAbstractItemModel::modelReset,
+                         this, &EngineAnalysisTab::onModel2Reset_, Qt::UniqueConnection);
+    }
+
+    // USIログ反映（ラムダ→関数スロット）
     if (m_log1) {
-        connect(m_log1, &UsiCommLogModel::usiCommLogChanged, this, [this]() {
-            if (m_usiLog) m_usiLog->appendPlainText(m_log1->usiCommLog());
-        });
+        QObject::connect(m_log1, &UsiCommLogModel::usiCommLogChanged,
+                         this, &EngineAnalysisTab::onLog1Changed_, Qt::UniqueConnection);
     }
     if (m_log2) {
-        connect(m_log2, &UsiCommLogModel::usiCommLogChanged, this, [this]() {
-            if (m_usiLog) m_usiLog->appendPlainText(m_log2->usiCommLog());
-        });
+        QObject::connect(m_log2, &UsiCommLogModel::usiCommLogChanged,
+                         this, &EngineAnalysisTab::onLog2Changed_, Qt::UniqueConnection);
     }
 }
 
@@ -608,4 +651,68 @@ int EngineAnalysisTab::graphFallbackToPly_(int row, int targetPly) const
     }
 
     return -1;
+}
+
+void EngineAnalysisTab::tuneColumnsForThinkingView_(QTableView* v)
+{
+    if (!v) return;
+    auto* h = v->horizontalHeader();
+    if (!h) return;
+
+    // ★ PV 列のインデックス（必要なら変更）
+    constexpr int kPvCol = 4;
+
+    // 数値系の列は固定幅にして横幅を食い過ぎないようにする
+    struct ColW { int col; int w; };
+    const ColW fixedCols[] = {
+        {0, 48},   // depth
+        {1, 56},   // seldepth
+        {2, 88},   // nodes
+        {3, 110},  // nps
+        // 必要なら他の列もここに追加
+    };
+    for (const auto& cw : fixedCols) {
+        if (cw.col >= 0) {
+            h->setSectionResizeMode(cw.col, QHeaderView::Fixed);
+            v->setColumnWidth(cw.col, cw.w);
+        }
+    }
+
+    // PV 列は残りを広く使う
+    h->setSectionResizeMode(kPvCol, QHeaderView::Stretch);
+    h->setStretchLastSection(true);       // PV が最後の列なら有効
+    h->setMinimumSectionSize(24);         // 変に潰れないように最低幅
+    h->resizeSection(kPvCol, 380);        // 初期表示でしっかり広い（お好みで調整）
+}
+
+// 追加：ヘッダー名で列を探す（大文字小文字は無視）
+int EngineAnalysisTab::findColumnByHeader_(QAbstractItemModel* model, const QString& title)
+{
+    if (!model) return -1;
+    const int cols = model->columnCount();
+    for (int c = 0; c < cols; ++c) {
+        const QVariant hd = model->headerData(c, Qt::Horizontal, Qt::DisplayRole);
+        const QString h = hd.toString().trimmed();
+        if (QString::compare(h, title, Qt::CaseInsensitive) == 0) {
+            return c;
+        }
+    }
+    return -1;
+}
+
+// 追加：Time/Depth/Nodes/Score を「右寄せ＋3桁カンマ」で表示するデリゲートを適用
+void EngineAnalysisTab::applyNumericFormattingTo_(QTableView* view, QAbstractItemModel* model)
+{
+    if (!view || !model) return;
+
+    // 同じデリゲートを複数列に使い回す。親を view にしてメモリ管理を任せる
+    auto* delegate = new NumericRightAlignCommaDelegate(view);
+
+    const QStringList targets = { "Time", "Depth", "Nodes", "Score" };
+    for (const QString& t : targets) {
+        const int col = findColumnByHeader_(model, t);
+        if (col >= 0) {
+            view->setItemDelegateForColumn(col, delegate);
+        }
+    }
 }
