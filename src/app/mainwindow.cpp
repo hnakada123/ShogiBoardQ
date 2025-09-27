@@ -3230,7 +3230,7 @@ void MainWindow::ensureGameInfoTable()
 {
     if (m_gameInfoTable) return;
 
-    m_gameInfoTable = new QTableWidget(this);
+    m_gameInfoTable = new QTableWidget(m_central);
     m_gameInfoTable->setColumnCount(2);
     m_gameInfoTable->setHorizontalHeaderLabels({ tr("項目"), tr("内容") });
     m_gameInfoTable->horizontalHeader()->setStretchLastSection(true);
@@ -4153,7 +4153,7 @@ void MainWindow::setupRecordPane()
     // 2) RecordPane 生成（既にあれば使い回し）
     const bool firstTime = (m_recordPane == nullptr);
     if (!m_recordPane) {
-        m_recordPane = new RecordPane(this);
+        m_recordPane = new RecordPane(m_central);
 
         // RecordPane → MainWindow 通知
         connect(m_recordPane, &RecordPane::mainRowChanged,
