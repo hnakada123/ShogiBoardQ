@@ -361,6 +361,7 @@ private:
     void movePieceImmediately();
     void resetGameFlags();
     void initializePositionStringsForMatch_();
+    void startInitialEngineMoveIfNeeded_();
     void startInitialEngineMoveEvH_();
     void setGameOverMove(MatchCoordinator::Cause cause, bool loserIsPlayerOne);
     QChar glyphForPlayer(bool isPlayerOne) const;
