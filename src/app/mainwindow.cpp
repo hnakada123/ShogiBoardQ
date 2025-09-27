@@ -65,11 +65,10 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
 
     // --- コンストラクタで一度だけ centralWidget をセット ---
-    m_central = new QWidget(this);
+    m_central = ui->centralwidget;
     m_centralLayout = new QVBoxLayout(m_central);
     m_centralLayout->setContentsMargins(0, 0, 0, 0);
     m_centralLayout->setSpacing(0);
-    setCentralWidget(m_central);
 
     QToolBar* tb = ui->toolBar;                  // Designerで作った場合の例
     tb->setIconSize(QSize(18, 18));              // ← 16px（お好みで 16/18/20/24 など）
@@ -4209,7 +4208,7 @@ void MainWindow::setupEngineAnalysisTab()
     }
 
     // EngineAnalysisTab を 1個だけ生成
-    m_analysisTab = new EngineAnalysisTab(this);
+    m_analysisTab = new EngineAnalysisTab(m_central);
 
     // ★ 先に UI を構築して内部の m_tab / m_view1 / m_view2 を生成
     m_analysisTab->buildUi();
