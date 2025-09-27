@@ -9,6 +9,7 @@
 #include <QPair>
 #include <QHash>
 #include <QSet>
+#include <QAbstractItemModel>
 
 class QTabWidget;
 class QTableView;
@@ -171,6 +172,22 @@ private:
     bool eventFilter(QObject* obj, QEvent* ev) override;
 
     int resolveParentRowForVariation_(int row) const;
+
+    // すでに Q_OBJECT が付いている前提
+private slots:
+    void onModel1Reset_();
+    void onModel2Reset_();
+    void onLog1Changed_();
+    void onLog2Changed_();
+
+private:
+    void reapplyViewTuning_(QTableView* v, QAbstractItemModel* m);
+
+    // 既に導入済みのヘルパ（前回案）
+private:
+    void tuneColumnsForThinkingView_(QTableView* v);
+    void applyNumericFormattingTo_(QTableView* view, QAbstractItemModel* model);
+    static int findColumnByHeader_(QAbstractItemModel* model, const QString& title);
 };
 
 #endif // ENGINEANALYSISTAB_H
