@@ -578,6 +578,13 @@ private slots:
     void onBranchPlanActivated_(int row, int ply1);                // Plan選択 → 行/手へジャンプ
     void onRecordPaneBranchActivated_(const QModelIndex& index);   // QModelIndex → row へアダプト
     void onBranchNodeActivated_(int row, int ply);
+
+private:
+    // いま下段が先手(P1)か？ true=先手が手前、false=後手が手前
+    bool m_bottomIsP1 = true;
+
+    // HvE / EvH のときだけ「人間が手前」になるよう必要なら反転
+    void ensureHumanAtBottomIfApplicable_();
 };
 
 #endif // MAINWINDOW_H

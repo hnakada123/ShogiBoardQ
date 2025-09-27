@@ -1166,6 +1166,9 @@ void MainWindow::startGameBasedOnMode()
         << " name1=" << opt.engineName1 << " path1=" << opt.enginePath1
         << " name2=" << opt.engineName2 << " path2=" << opt.enginePath2;
 
+    // ここで「人間を手前」にそろえる（必要なときだけ1回反転）
+    ensureHumanAtBottomIfApplicable_();
+
     // 司令塔へ構成/起動のみ委譲（startNewGame は既に済）
     m_match->configureAndStart(opt);
 
@@ -4490,11 +4493,6 @@ void MainWindow::onMatchGameEnded(const MatchCoordinator::GameEndInfo& info)
     qDebug() << "[UI] onMatchGameEnded LEAVE";
 }
 
-void MainWindow::onBoardFlipped(bool /*nowFlipped*/)
-{
-    flipBoardAndUpdatePlayerInfo();
-}
-
 void MainWindow::toggleEditSideToMove()
 {
     if (!m_gameController) return;
@@ -6236,4 +6234,32 @@ void MainWindow::setupNameAndClockFonts_()
     n2->setFont(nameFont);
     c1->setFont(clockFont);
     c2->setFont(clockFont);
+}
+
+// 盤反転の通知を受けたら、手前が先手かどうかのフラグをトグル
+void MainWindow::onBoardFlipped(bool /*flipped*/)
+{
+    m_bottomIsP1 = !m_bottomIsP1;
+
+    // （必要なら）プレイヤー名や駒台ラベルの入れ替えなど既存処理をここに
+    flipBoardAndUpdatePlayerInfo();
+}
+
+void MainWindow::ensureHumanAtBottomIfApplicable_()
+{
+    if (!m_startGameDialog) return;
+
+    const bool humanP1  = m_startGameDialog->isHuman1();
+    const bool humanP2  = m_startGameDialog->isHuman2();
+    const bool oneHuman = (humanP1 ^ humanP2); // HvE または EvH のときだけ true
+
+    if (!oneHuman) return; // HvH / EvE は対象外（仕様どおり）
+
+    // 現在「手前が先手か？」と「人間が先手か？」が食い違っていたら1回だけ反転
+    const bool needFlip = (humanP1 != m_bottomIsP1);
+    if (needFlip) {
+        // 指定の関数経由で実反転。内部で m_match->flipBoard() が呼ばれる
+        onActionFlipBoardTriggered(false);
+        // onBoardFlipped() が呼ばれ、m_bottomIsP1 はトグルされます
+    }
 }

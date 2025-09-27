@@ -105,23 +105,28 @@ void MatchCoordinator::handleResign() {
 
 // 2) エンジン側の投了
 void MatchCoordinator::handleEngineResign(int idx) {
-    stopClockAndSendStops_();
+    // 【修正】stop は送らず、時計だけ停止
+    if (m_clock) m_clock->stopClock();
 
     GameEndInfo info;
     info.cause = Cause::Resignation;
     info.loser = (idx == 1 ? P1 : P2);
 
-    if (m_hooks.sendRawToEngine) {
-        if (info.loser == P1) {
-            if (m_usi1) m_hooks.sendRawToEngine(m_usi1, QStringLiteral("gameover lose"));
-            if (m_usi2) m_hooks.sendRawToEngine(m_usi2, QStringLiteral("gameover win"));
-        } else {
-            if (m_usi2) m_hooks.sendRawToEngine(m_usi2, QStringLiteral("gameover lose"));
-            if (m_usi1) m_hooks.sendRawToEngine(m_usi1, QStringLiteral("gameover win"));
-        }
+    // 【修正】負け側には gameover lose + quit、勝ち側には gameover win + quit を送る
+    //          （Usi 側のヘルパーを使う／stop は一切送らない）
+    Usi* loserEng  = (info.loser == P1) ? m_usi1 : m_usi2;
+    Usi* winnerEng = (info.loser == P1) ? m_usi2 : m_usi1;
+
+    if (loserEng) {
+        loserEng->sendGameOverLoseAndQuitCommands();
+        loserEng->setSquelchResignLogging(true); // 終局後の雑音ログを抑制（任意）
+    }
+    if (winnerEng) {
+        winnerEng->sendGameOverWinAndQuitCommands();
+        winnerEng->setSquelchResignLogging(true); // 任意
     }
 
-    // ★ 同様に setGameOver(...) を使う
+    // 終局の正規ルート（棋譜「投了」一意追記は appendMoveOnce=true で司令塔→UI に委譲）
     const bool loserIsP1 = (info.loser == P1);
     setGameOver(info, loserIsP1, /*appendMoveOnce=*/true);
 }
