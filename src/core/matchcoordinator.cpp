@@ -67,7 +67,7 @@ void MatchCoordinator::startNewGame(const QString& sfenStart) {
     }
 
     // 司令塔の手番も同期（既存のままでもOKですが念のため）
-    m_cur = P1;
+    m_cur = (m_gc && m_gc->currentPlayer() == ShogiGameController::Player2) ? P2 : P1;
     updateTurnDisplay_(m_cur);
 
     if (m_hooks.log) m_hooks.log(QStringLiteral("MatchCoordinator: startNewGame done"));
