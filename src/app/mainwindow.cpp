@@ -3191,7 +3191,18 @@ void MainWindow::setGameOverMove(GameOverCause cause, bool loserIsPlayerOne)
     qDebug().nospace() << "[KIFU] setGameOverMove appended"
                        << " cause=" << (cause == GameOverCause::Resignation ? "RESIGN" : "TIMEOUT")
                        << " loser=" << (loserIsPlayerOne ? "P1" : "P2")
-                       << " elapsed=" << elapsed;   
+                       << " elapsed=" << elapsed;
+
+    // --- ここから追記（関数の最後でOK） ---
+    enableArrowButtons();
+    if (m_recordPane) {
+        if (auto* view = m_recordPane->kifuView()) {
+            view->setSelectionMode(QAbstractItemView::SingleSelection);
+        }
+    }
+    // 可能なら“リプレイモード”に入れて時計・強調等を安定化
+    setReplayMode(true);
+    // --- 追記おわり ---
 }
 
 void MainWindow::appendKifuLine(const QString& text, const QString& elapsedTime)
@@ -4157,7 +4168,8 @@ void MainWindow::setupRecordPane()
 
         // RecordPane → MainWindow 通知
         connect(m_recordPane, &RecordPane::mainRowChanged,
-                this, &MainWindow::onMainMoveRowChanged);
+                this, &MainWindow::onMainMoveRowChanged,
+                Qt::UniqueConnection);
 
         connect(m_recordPane, &RecordPane::branchActivated,
                 this, &MainWindow::onBranchCandidateActivated,

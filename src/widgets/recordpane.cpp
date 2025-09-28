@@ -145,11 +145,40 @@ void RecordPane::buildUi()
 
 void RecordPane::wireSignals()
 {
-    // 分岐テーブルの「選択/アクティベート」を上位へ中継
-    connect(m_branch, &QTableView::activated,
-            this, &RecordPane::branchActivated, Qt::UniqueConnection);
-    connect(m_branch, &QTableView::clicked,
-            this, &RecordPane::branchActivated, Qt::UniqueConnection);
+    // 既存：
+    connect(m_branch, &QTableView::activated, this, &RecordPane::branchActivated, Qt::UniqueConnection);
+    connect(m_branch, &QTableView::clicked,    this, &RecordPane::branchActivated, Qt::UniqueConnection);
+
+    // 追加：矢印ボタンで棋譜表の選択行を移動
+    auto currentRow = [this]() -> int {
+        if (!m_kifu || !m_kifu->selectionModel()) return 0;
+        const QModelIndex cur = m_kifu->selectionModel()->currentIndex();
+        return cur.isValid() ? cur.row() : 0;
+    };
+
+    auto gotoRow = [this](int newRow) {
+        if (!m_kifu || !m_kifu->model()) return;
+        const int rows = m_kifu->model()->rowCount();
+        if (rows <= 0) return;
+
+        newRow = qBound(0, newRow, rows - 1);
+        const QModelIndex idx = m_kifu->model()->index(newRow, 0);
+        if (idx.isValid()) {
+            m_kifu->setCurrentIndex(idx);
+            m_kifu->scrollTo(idx, QAbstractItemView::PositionAtCenter);
+            // selectionModel の currentRowChanged → RecordPane::onKifuCurrentRowChanged → mainRowChanged(row) が飛ぶ
+        }
+    };
+
+    connect(m_btn1, &QPushButton::clicked, this, [=]{ gotoRow(0); });
+    connect(m_btn2, &QPushButton::clicked, this, [=]{ gotoRow(currentRow() - 10); });
+    connect(m_btn3, &QPushButton::clicked, this, [=]{ gotoRow(currentRow() - 1); }); // 早戻し
+    connect(m_btn4, &QPushButton::clicked, this, [=]{ gotoRow(currentRow() + 1); }); // 早送り
+    connect(m_btn5, &QPushButton::clicked, this, [=]{ gotoRow(currentRow() + 10); });
+    connect(m_btn6, &QPushButton::clicked, this, [=]{
+        const int last = m_kifu && m_kifu->model() ? m_kifu->model()->rowCount() - 1 : 0;
+        gotoRow(last);
+    });
 }
 
 void RecordPane::setModels(KifuRecordListModel* recModel, KifuBranchListModel* brModel)
