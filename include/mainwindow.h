@@ -595,6 +595,7 @@ private:
     // 待った中は棋譜追記を抑止するフラグ
     bool m_isUndoInProgress = false;
 
+    void handleBreakOffGame();
 };
 
 #endif // MAINWINDOW_H
