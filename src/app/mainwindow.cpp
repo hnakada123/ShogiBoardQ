@@ -186,6 +186,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionStartEditPosition, &QAction::triggered, this, &MainWindow::beginPositionEditing);
     connect(ui->actionEndEditPosition, &QAction::triggered, this, &MainWindow::finishPositionEditing);
     connect(ui->actionTsumeShogiSearch, &QAction::triggered, this, &MainWindow::displayTsumeShogiSearchDialog);
+    connect(ui->breakOffGame, &QAction::triggered, this, &MainWindow::handleBreakOffGame);
 
     // 将棋盤表示・エラー・昇格ダイアログ等
     connect(m_gameController, &ShogiGameController::showPromotionDialog, this, &MainWindow::displayPromotionDialog);
@@ -6498,4 +6499,10 @@ void MainWindow::updateHighlightsForPly_(int selPly)
     const QPoint to   = normalizeBoardPoint_(mv.toSquare);
 
     m_boardController->showMoveHighlights(from, to);
+}
+
+// 中断処理を行う。
+void MainWindow::handleBreakOffGame()
+{
+
 }
