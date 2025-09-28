@@ -592,6 +592,9 @@ private:
     void removeLastKifuPlies_(int n);
     void updateHighlightsForPly_(int selPly); // まだ無ければ宣言を追加
 
+    // 待った中は棋譜追記を抑止するフラグ
+    bool m_isUndoInProgress = false;
+
 };
 
 #endif // MAINWINDOW_H

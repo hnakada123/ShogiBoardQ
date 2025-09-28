@@ -426,7 +426,7 @@ void ShogiBoard::setPiecePlacementFromSfen(QString& initialSfenStr)
 }
 
 // SFEN文字列を入力し、エラーチェックを行い、次の手番、次の手が何手目かを取得する。
-void ShogiBoard::validateSfenString(QString& sfenStr, QString& sfenBoardStr, QString& sfenStandStr)
+void ShogiBoard::validateSfenString(const QString& sfenStr, QString& sfenBoardStr, QString& sfenStandStr)
 {
     QStringList sfenComponents = sfenStr.split(" ");
 
@@ -489,7 +489,7 @@ void ShogiBoard::validateSfenString(QString& sfenStr, QString& sfenBoardStr, QSt
 // 将棋盤に入力で渡されるsfen形式の文字列に文法的に誤りが無いかチェックする。
 // 将棋盤と駒台のSFEN文字列を指定して将棋盤と駒台の駒の更新を行い、再描画する。
 // 入力は、将棋盤と駒台を含むSFEN文字列
-void ShogiBoard::setSfen(QString& sfenStr)
+void ShogiBoard::setSfen(const QString& sfenStr)
 {
     // 例．
     // "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"の

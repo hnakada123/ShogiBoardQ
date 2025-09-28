@@ -25,7 +25,7 @@ public:
     // 将棋盤に入力で渡されるsfen形式の文字列に文法的に誤りが無いかチェックする。
     // 将棋盤と駒台のSFEN文字列を指定して将棋盤と駒台の駒の更新を行い、再描画する。
     // 入力は、将棋盤と駒台を含むSFEN文字列
-    void setSfen(QString& sfenStr);
+    void setSfen(const QString& sfenStr);
 
     // 駒を指定したマスへ移動する。配置データのみを更新する。
     void movePieceToSquare(QChar selectedPiece, const int fileFrom, const int rankFrom,
@@ -131,7 +131,7 @@ private:
     void decrementPieceOnStand(QChar source);
 
     // SFEN文字列を入力し、エラーチェックを行い、次の手番、次の手が何手目かを取得する。
-    void validateSfenString(QString& sfenStr, QString& sfenBoardStr, QString& sfenStandStr);
+    void validateSfenString(const QString& sfenStr, QString& sfenBoardStr, QString& sfenStandStr);
 
     // 手番の持ち駒を出力する。
     void printPlayerPieces(const QString& player, const QString& pieceSet) const;
