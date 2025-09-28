@@ -47,6 +47,38 @@ using namespace EngineSettingsConstants;
 using GameOverCause = MatchCoordinator::Cause;
 using BCDI = ::BranchCandidateDisplayItem;
 
+namespace {
+// 0始まり(0..8)なら1始まり(1..9)へ、すでに1..9なら変更なし
+static inline QPoint normalizeBoardPoint_(const QPoint& p) {
+    if (p.x() >= 0 && p.x() <= 8 && p.y() >= 0 && p.y() <= 8)
+        return QPoint(p.x() + 1, p.y() + 1);
+    return p;
+}
+}
+
+namespace {
+constexpr int COL_NO   = 0;   // 手数
+constexpr int COL_P1   = 1;   // 先手の指し手
+constexpr int COL_P2   = 2;   // 後手の指し手
+
+static inline QString cellText(const QAbstractItemModel* m, int r, int c) {
+    if (!m) return {};
+    const QModelIndex ix = m->index(r, c);
+    return ix.isValid() ? m->data(ix, Qt::DisplayRole).toString() : QString();
+}
+
+static void dumpTailState(const QAbstractItemModel* m, const char* tag) {
+    if (!m) { qDebug() << tag << "[model=null]"; return; }
+    const int rows = m->rowCount();
+    if (rows <= 0) { qDebug() << tag << "rows=0"; return; }
+    const int last = rows - 1;
+    qDebug().noquote() << QString("%1 rows=%2 lastRow=%3  P1='%4'  P2='%5'")
+                          .arg(tag).arg(rows).arg(last)
+                          .arg(cellText(m, last, COL_P1))
+                          .arg(cellText(m, last, COL_P2));
+}
+}
+
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
@@ -160,6 +192,23 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(m_shogiView, &ShogiView::errorOccurred, this, &MainWindow::displayErrorMessage);
     connect(m_gameController, &ShogiGameController::endDragSignal, this, &MainWindow::endDrag, Qt::UniqueConnection);
     connect(m_gameController, &ShogiGameController::moveCommitted, this, &MainWindow::onMoveCommitted, Qt::UniqueConnection);
+
+    // 既に接続していなければ 1 回だけで OK
+    QObject::connect(m_kifuRecordModel, &QAbstractItemModel::rowsAboutToBeRemoved,
+                     this, [](const QModelIndex& parent, int first, int last){
+        Q_UNUSED(parent);
+        qDebug() << "[SIG] rowsAboutToBeRemoved" << first << last;
+    });
+    QObject::connect(m_kifuRecordModel, &QAbstractItemModel::rowsRemoved,
+                     this, [](const QModelIndex& parent, int first, int last){
+        Q_UNUSED(parent);
+        qDebug() << "[SIG] rowsRemoved" << first << last;
+    });
+    QObject::connect(m_kifuRecordModel, &QAbstractItemModel::dataChanged,
+                     this, [](const QModelIndex& tl, const QModelIndex& br, const QVector<int>& roles){
+        qDebug() << "[SIG] dataChanged" << tl.row() << tl.column() << "->" << br.row() << br.column()
+                 << "roles=" << roles;
+    });
 }
 
 // GUIを構成するWidgetなどを生成する。
@@ -275,19 +324,37 @@ void MainWindow::handleUndoMove(int index)
 // 待ったボタンを押すと、2手戻る。
 void MainWindow::undoLastTwoMoves()
 {
-    // (1) 進行中の人間用タイマーは止める（巻き戻しで時間が混入しないように）
+    // --- UNDO 中は棋譜追記を抑止 ---
+    m_isUndoInProgress = true;
+
+    // (1) 進行中の人間用タイマーは止める（巻き戻し時間を混入させない）
     if (m_match) {
         m_match->disarmHumanTimerIfNeeded();
-        // H2H の共通ターン計測を使っているならこちらも用意があれば:
+        // H2H の共通ターン計測を使っているなら用意があれば:
         // m_match->disarmTurnTimerIfNeeded();
     }
 
     // 2手戻すには現在インデックスが2以上必要
     if (m_currentMoveIndex < 2) {
+        m_isUndoInProgress = false;  // ★ 早期returnでも必ず解除
         return;
     }
 
     const int moveNumber = m_currentMoveIndex - 2;
+
+    // ---- 以降、巻き戻し処理 ----
+    const bool prevGuard = m_onMainRowGuard;
+    m_onMainRowGuard = true;
+
+    // ★★★ 重要 ★★★
+    // 棋譜モデルの2手削除は、m_currentMoveIndex を触る前に行う。
+    // これにより「最後の手」は正しく“後手→先手”の順で落ちる。
+    if (m_kifuRecordModel) {
+        m_kifuRecordModel->removeLastItems(2);   // ← 一括削除API（推奨）
+        // もし removeLastItems が未実装なら:
+        // m_kifuRecordModel->removeLastItem();
+        // m_kifuRecordModel->removeLastItem();
+    }
 
     // --- 指し手配列を安全に2つ削除 ---
     if (m_gameMoves.size() >= 2) {
@@ -308,11 +375,9 @@ void MainWindow::undoLastTwoMoves()
         m_positionStrList.clear();
     }
 
-    // --- 盤面（SFEN）を2手前へ ---
-    m_currentMoveIndex = moveNumber;
-
-    if (m_sfenRecord && m_currentMoveIndex >= 0 && m_currentMoveIndex < m_sfenRecord->size()) {
-        QString str = m_sfenRecord->at(m_currentMoveIndex);
+    // --- 盤面（SFEN）を2手前へ（この時点で m_currentMoveIndex はまだ旧値） ---
+    if (m_sfenRecord && moveNumber >= 0 && moveNumber < m_sfenRecord->size()) {
+        const QString str = m_sfenRecord->at(moveNumber);
         if (m_gameController && m_gameController->board()) {
             m_gameController->board()->setSfen(str);
         }
@@ -328,19 +393,19 @@ void MainWindow::undoLastTwoMoves()
         }
     }
 
-    // ハイライトのクリア
-    if (m_boardController) m_boardController->clearAllHighlights();
+    // ここで“ようやく”現在手数を更新
+    m_currentMoveIndex = moveNumber;
 
-    // --- 棋譜モデルも“必ず2手（2 ply）”分削除（再入ガード付き） ---
-    removeLastKifuPlies_(2);
+    // ハイライトのクリア → 復元（0→1始まりに +1 補正版を使用）
+    if (m_boardController) m_boardController->clearAllHighlights();
+    updateHighlightsForPly_(m_currentMoveIndex);
+
+    m_onMainRowGuard = prevGuard;
 
     // 時計を2手前へ
     if (m_shogiClock) m_shogiClock->undo();
 
-    // --- 2手前の移動ハイライトを復元（座標正規化込み） ---
-    updateHighlightsForPly_(m_currentMoveIndex);
-
-    // 表示の整合を先に更新
+    // 表示の整合を更新
     updateTurnAndTimekeepingDisplay();
 
     // いまの手番が人間なら計測再アーム & クリック可否の更新
@@ -368,6 +433,9 @@ void MainWindow::undoLastTwoMoves()
             }
         });
     }
+
+    // --- UNDO 中フラグ OFF（最後に必ず解除） ---
+    m_isUndoInProgress = false;
 }
 
 // 新規対局の準備をする。
@@ -755,6 +823,12 @@ void MainWindow::redrawEngine2EvaluationGraph()
 // 棋譜を更新し、GUIの表示も同時に更新する。
 void MainWindow::updateGameRecordAndGUI()
 {
+    // 追加：待った中は追記を抑止
+    if (m_isUndoInProgress) {
+        qDebug() << "clock: [KIFU] suppress updateGameRecord during UNDO";
+        return;
+    }
+
     // 棋譜欄の最後に表示する投了の文字列を設定する。
     // 対局モードが平手のエンジン対エンジンの場合
     if ((m_playMode == EvenHumanVsEngine) || (m_playMode == HandicapHumanVsEngine)) {
@@ -2159,6 +2233,8 @@ void MainWindow::updateBranchTextForRow(int row)
 // 棋譜を1行だけUIへ反映する（ビジネスロジックなし / 表示専用）
 void MainWindow::updateGameRecord(const QString& elapsedTime)
 {
+    if (m_isUndoInProgress) return;  // UNDO中は棋譜追記を抑止
+
     qCDebug(ClockLog) << "in MainWindow::updateGameRecord";
     qDebug() << "[UI] updateGameRecord append <<" << elapsedTime;
     qCDebug(ClockLog) << "elapsedTime=" << elapsedTime;
@@ -6385,26 +6461,25 @@ void MainWindow::removeLastKifuPlies_(int n)
 {
     if (!m_kifuRecordModel || n <= 0) return;
 
-    // 棋譜側の選択変更シグナル等で再入して処理が止まらないようにガード
-    const bool prev = m_onMainRowGuard;
+    const bool prevGuard = m_onMainRowGuard;
     m_onMainRowGuard = true;
 
-    int left = n;
-    while (left-- > 0) {
-        if (m_kifuRecordModel->rowCount() <= 0) break;
-        m_kifuRecordModel->removeLastItem(); // 1手（1 ply）削除
+    for (int i = 0; i < n; ++i) {
+        dumpTailState(m_kifuRecordModel, "[UNDO] before");
+        const int before = m_kifuRecordModel->rowCount();
+        if (before <= 0) break;
+
+        qDebug() << "[UNDO] call removeLastItem() #" << (i+1);
+        m_kifuRecordModel->removeLastItem();
+
+        // モデル内部の詰め替え／行削除を確定
+        QCoreApplication::processEvents(QEventLoop::AllEvents, 10);
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+
+        dumpTailState(m_kifuRecordModel, "[UNDO] after ");
     }
 
-    m_onMainRowGuard = prev;
-}
-
-namespace {
-// 1始まり(1..9)なら0始まり(0..8)へ、すでに0..8なら変更なし
-static inline QPoint normalizeBoardPoint_(const QPoint& p) {
-    if (p.x() >= 1 && p.x() <= 9 && p.y() >= 1 && p.y() <= 9)
-        return QPoint(p.x() - 1, p.y() - 1);
-    return p;
-}
+    m_onMainRowGuard = prevGuard;
 }
 
 void MainWindow::updateHighlightsForPly_(int selPly)
