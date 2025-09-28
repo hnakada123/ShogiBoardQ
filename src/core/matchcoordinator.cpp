@@ -1136,3 +1136,26 @@ void MatchCoordinator::sendGameOverWinAndQuitTo(int idx)
     // HvE のときは opponent が nullptr の可能性があるが、WIN 側だけ送れば良い。
     target->sendGameOverWinAndQuitCommands();
 }
+
+// 投了と同様に“対局の実体”として中断を一元処理
+void MatchCoordinator::handleBreakOff()
+{
+    // すでに終局なら何もしない
+    if (m_gameOver.isOver) return;
+
+    // 進行系タイマを停止（人間用のみでOK）
+    disarmHumanTimerIfNeeded();
+
+    // 司令塔として終局状態を確定（中断）
+    m_gameOver.isOver        = true;
+    m_gameOver.when          = QDateTime::currentDateTime();
+    m_gameOver.hasLast       = true;
+    m_gameOver.lastInfo.cause= Cause::BreakOff;   // ★ ここがポイント
+
+    // UIへ通知（UI側で「▲/△中断」追記やリプレイ移行を実施）
+    emit gameOverStateChanged(m_gameOver);
+
+    // 起動中エンジンに quit
+    if (m_usi1) m_usi1->sendQuitCommand();
+    if (m_usi2) m_usi2->sendQuitCommand();
+}

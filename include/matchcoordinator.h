@@ -25,7 +25,8 @@ class MatchCoordinator : public QObject {
 public:
     enum Player : int { P1 = 1, P2 = 2 };
 
-    enum class Cause : int { Resignation = 0, Timeout = 1 };
+    // ★ BreakOff を追加（中断終局）
+    enum class Cause : int { Resignation = 0, Timeout = 1, BreakOff = 2 };
 
     struct GoTimes {
         qint64 btime = 0;   // 先手 残り(ms)
@@ -40,7 +41,7 @@ public:
         Player loser = P1;
     };
 
-    // ← その後に GameOverState を “クラス内” に定義
+    // 直近の終局状態（既存仕様を維持）
     struct GameOverState {
         bool        isOver       = false;
         bool        moveAppended = false;
@@ -78,7 +79,7 @@ public:
         // --- 新規対局の初期化（GUI固有処理） ---
         std::function<void(const QString& sfenStart)> initializeNewGame;
 
-        // ★ 追加：棋譜1行追記（例：text="▲７六歩", elapsed="00:03/00:00:06"）
+        // ★ 棋譜1行追記（例：text="▲７六歩", elapsed="00:03/00:00:06"）
         std::function<void(const QString& text, const QString& elapsed)> appendKifuLine;
 
         std::function<void()> appendEvalP1; // P1(先手)エンジンが着手確定 → 評価値を1本目に追記
@@ -109,6 +110,7 @@ public:
     void flipBoard();                    // 盤反転 + 表示更新
     void onTurnFinishedAndSwitch();      // 手番切替時（時計/UI更新 + go送信）
     void updateUsiPtrs(Usi* e1, Usi* e2);// エンジン再生成時などに差し替え
+    void handleBreakOff();               // ★ 中断（UI→司令塔）
 
     // === 時間管理（MainWindowから移譲） ===
     struct TimeControl {
@@ -284,7 +286,7 @@ public:
     void configureAndStart(const StartOptions& opt);
 
 public:
-    Usi* primaryEngine() const;  // HvE/EvH で司令塔が使う主エンジン（これまで m_usi1 に相当）
+    Usi* primaryEngine() const;   // HvE/EvH で司令塔が使う主エンジン（これまで m_usi1 に相当）
     Usi* secondaryEngine() const; // ★ 追加
 
 private:
@@ -304,9 +306,9 @@ private:
     QStringList m_sfenRecord;
     QVector<ShogiMove> m_gameMoves;
     // EvE 専用の棋譜保持（MainWindow から独立）
-    QStringList      m_eveSfenRecord;
+    QStringList        m_eveSfenRecord;
     QVector<ShogiMove> m_eveGameMoves;
-    int              m_eveMoveIndex = 0;
+    int                m_eveMoveIndex = 0;
 
 private:
     // 「その手の開始」エポック（KIFの消費時間計算に使用）
@@ -345,7 +347,7 @@ public:
 
 signals:
     // 既存: gameEnded(const GameEndInfo& info) はそのまま活用
-    void gameOverStateChanged(const GameOverState& st);  // 参照側UI向け
+    void gameOverStateChanged(const GameOverState& st);      // 参照側UI向け
     void requestAppendGameOverMove(const GameEndInfo& info); // 必要なら司令塔から一意追記をリクエスト
 
 private:
