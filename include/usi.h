@@ -465,6 +465,9 @@ private:
     bool m_timeoutDeclared = false;  // ★ GUIにより旗落ち確定（この局の bestmove は受け付けない）
 
     bool shouldAbortWait() const;  // タイムアウト/終了状態なら true
+
+private slots:
+    void onProcessFinished(int exitCode, QProcess::ExitStatus status);
 };
 
 // GUIのメインスレッドとは別のスレッドでgo ponderコマンド受信後の将棋エンジンの処理を行う。

@@ -1235,6 +1235,11 @@ void Usi::startEngine(const QString& engineFile)
     // QProcessのエラー発生時にonProcessError関数を呼び出す。
     connect(m_process, &QProcess::errorOccurred, this, &Usi::onProcessError);
 
+    // ★追加: 終了時に残りの出力を回収
+    connect(m_process,
+            QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+            this, &Usi::onProcessFinished);
+
     // 将棋エンジンプロセスを起動する。
     m_process->start(engineFile, args, QIODevice::ReadWrite);
 
@@ -1289,13 +1294,14 @@ void Usi::sendQuitCommand()
 {
     if (!m_process) return;
 
-    // ★ 以後はエンジン出力を無視（"info string ..." だけ任意で通す）
-    m_shutdownState = ShutdownState::IgnoreAll;
+    // ★ 以後は「info string …」だけ許可（終端の Thank You を拾う）
+    m_shutdownState = ShutdownState::IgnoreAllExceptInfoString;
+    m_postQuitInfoStringLinesLeft = 1;   // 1行だけ通す（必要なら2に）
 
     // quit を送る
     sendCommand(QStringLiteral("quit"));
 
-    // （任意）ドレイン
+    // 軽くドレインしてから書き込み側だけ閉じる（読み取りは生かす）
     (void)m_process->readAllStandardOutput();
     (void)m_process->readAllStandardError();
     m_process->closeWriteChannel();
@@ -1840,4 +1846,64 @@ void Usi::sendRaw(const QString& command) const
         return;
     }
     sendCommand(command);
+}
+
+void Usi::onProcessFinished(int /*exitCode*/, QProcess::ExitStatus /*status*/)
+{
+    if (!m_process) return;
+
+    const QByteArray outTail = m_process->readAllStandardOutput();
+    const QByteArray errTail = m_process->readAllStandardError();
+
+    auto flushTail = [this](const QByteArray& data, bool isStderr) {
+        if (data.isEmpty()) return;
+
+        const QStringList lines = QString::fromUtf8(data).split('\n', Qt::SkipEmptyParts);
+        for (const QString& raw : lines) {
+            const QString line = raw.trimmed();
+            if (line.isEmpty()) continue;
+
+            // --- 送信後の遮断ポリシー ---
+            if (m_shutdownState == ShutdownState::IgnoreAllExceptInfoString) {
+                // 「info string …」だけ許可（指定行数まで）
+                if (line.startsWith(QStringLiteral("info string")) &&
+                    m_postQuitInfoStringLinesLeft > 0) {
+
+                    const QString pfx = logPrefix();
+                    if (m_model) {
+                        m_model->appendUsiCommLog(pfx + " < " + line);
+                    }
+                    --m_postQuitInfoStringLinesLeft;
+
+                    // 取り切ったら完全遮断へ
+                    if (m_postQuitInfoStringLinesLeft <= 0) {
+                        m_shutdownState = ShutdownState::IgnoreAll;
+                    }
+                }
+                continue; // それ以外は捨てる
+            }
+
+            if (m_shutdownState == ShutdownState::IgnoreAll) {
+                // 念のため "info string" は救済してもよい（不要なら丸ごとcontinueでOK）
+                if (line.startsWith(QStringLiteral("info string"))) {
+                    const QString pfx = logPrefix();
+                    if (m_model) m_model->appendUsiCommLog(pfx + " < " + line);
+                }
+                continue;
+            }
+
+            // --- 通常時：そのままログ ---
+            const QString pfx = logPrefix();
+            if (m_model) {
+                if (isStderr) m_model->appendUsiCommLog(pfx + " <stderr> " + line);
+                else          m_model->appendUsiCommLog(pfx + " < "       + line);
+            }
+        }
+    };
+
+    flushTail(outTail, /*stderr=*/false);
+    flushTail(errTail, /*stderr=*/true);
+
+    // 最終的には完全遮断に移行
+    m_shutdownState = ShutdownState::IgnoreAll;
 }
