@@ -586,6 +586,8 @@ private:
 
     // HvE / EvH のときだけ「人間が手前」になるよう必要なら反転
     void ensureHumanAtBottomIfApplicable_();
+
+    void syncBoardToPly_(int selPly);
 };
 
 #endif // MAINWINDOW_H
