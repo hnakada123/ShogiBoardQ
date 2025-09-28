@@ -225,134 +225,125 @@ void MainWindow::toggleEngineAnalysisVisibility() {
     m_analysisTab->setAnalysisVisible(ui->actionToggleEngineAnalysis->isChecked());
 }
 
-// 待ったをした場合、position文字列のセットと評価値グラフの値を削除する。
 void MainWindow::handleUndoMove(int index)
 {
+    // まず index の範囲チェック
+    if (index < 0 || index >= m_positionStrList.size()) {
+        // 想定外だが安全のため何もしない
+        return;
+    }
+
     switch (m_playMode) {
-    // 平手 Player1: Human, Player2: USI Engine
+    // 平手 P1: Human, P2: Engine
     case EvenHumanVsEngine:
-    // 駒落ち Player1: USI Engine（下手）, Player2: USI Engine（上手）
+    // 駒落ち P1: Engine(下手), P2: Engine(上手)
     case HandicapEngineVsEngine:
-        // 待ったをした時の2手前のposition文字列をセット
+        // 2手前のposition文字列
         m_positionStr1 = m_positionStrList.at(index);
-
-        // 待ったボタンを押す前の評価値グラフの値を削除
-        // (X, Y) = (m_numberOfMoves, m_scoreCp.last())
-        m_evalChart->removeLastP2();
+        // 評価値グラフ（後手= P2 側）から最後を1点だけ削除
+        if (m_evalChart) m_evalChart->removeLastP2();
         break;
 
-    // 平手 Player1: USI Engine, Player2: Human
+    // 平手 P1: Engine, P2: Human
     case EvenEngineVsHuman:
-        // 待ったをした時の2手前のposition文字列をセット
         m_positionStr1 = m_positionStrList.at(index);
-
-        // 待ったボタンを押す前の評価値グラフの値を削除
-        // (X, Y) = (m_numberOfMoves, m_scoreCp.last())
-        m_evalChart->removeLastP1();
+        if (m_evalChart) m_evalChart->removeLastP1();
         break;
 
-    // 駒落ち Player1: Human（下手）, Player2: USI Engine（上手）
+    // 駒落ち P1: Human(下手), P2: Engine(上手)
     case HandicapHumanVsEngine:
-        // 待ったをした時の2手前のposition文字列をセット
         m_positionStr1 = m_positionStrList.at(index);
-
-        // 待ったボタンを押す前の評価値グラフの値を削除
-        // (X, Y) = (m_numberOfMoves, m_scoreCp.last())
-        m_evalChart->removeLastP1();
+        if (m_evalChart) m_evalChart->removeLastP1();
         break;
 
-    // 駒落ち Player1: USI Engine（下手）, Player2: Human（上手）
+    // 駒落ち P1: Engine(下手), P2: Human(上手)
     case HandicapEngineVsHuman:
-        // 待ったをした時の2手前のposition文字列をセット
         m_positionStr2 = m_positionStrList.at(index);
-
-        // 待ったボタンを押す前の評価値グラフの値を削除
-        // (X, Y) = (m_numberOfMoves, m_scoreCp.last())
-        m_evalChart->removeLastP2();
+        if (m_evalChart) m_evalChart->removeLastP2();
         break;
 
-    // まだ対局を開始していない状態
-    case NotStarted:
-
-    // Player1: Human, Player2: Human
-    case HumanVsHuman:
-
-    // Player1: USI Engine, Player2: USI Engine
-    case EvenEngineVsEngine:
-
-    // 解析モード
-    case AnalysisMode:
-
-    // 検討モード
-    case ConsidarationMode:
-
-    // 詰将棋探索モード
-    case TsumiSearchMode:
-
-    // 対局モードエラー
-    case PlayModeError:
+    default:
         break;
     }
 
-    // 待ったボタンを押す前の評価値を削除
-    m_scoreCp.removeLast();
+    // 待った前の評価値も末尾を1つだけ取り消し（空なら触らない）
+    if (!m_scoreCp.isEmpty()) {
+        m_scoreCp.removeLast();
+    }
 }
 
 // 待ったボタンを押すと、2手戻る。
-// 待ったボタンを押すと、2手戻る。
 void MainWindow::undoLastTwoMoves()
 {
-    // --- 追加(1): いま計測中なら止める（巻き戻し時間を混入させない） ---
+    // (1) 進行中の人間用タイマーは止める（巻き戻しで時間が混入しないように）
     if (m_match) {
-        // HvEの人間タイマーは確実に解除
         m_match->disarmHumanTimerIfNeeded();
-
-        // HvHのターン計測タイマーは「未記録で止めたい」ケース。
-        // disarmTurnTimerIfNeeded() を用意していればこちらを呼ぶ。
-        // まだ未実装ならこの行はコメントアウトのままでOK（副作用は小）。
+        // H2H の共通ターン計測を使っているならこちらも用意があれば:
         // m_match->disarmTurnTimerIfNeeded();
     }
 
-    // ---- ここから下は既存処理（2手巻き戻し） ----
-    int moveNumber = m_currentMoveIndex - 2;
+    // 2手戻すには現在インデックスが2以上必要
+    if (m_currentMoveIndex < 2) {
+        return;
+    }
 
-    if (moveNumber >= 0) {
+    const int moveNumber = m_currentMoveIndex - 2;
+
+    // --- 指し手配列を安全に2つ削除 ---
+    if (m_gameMoves.size() >= 2) {
         m_gameMoves.removeLast();
         m_gameMoves.removeLast();
+    } else {
+        m_gameMoves.clear();
+    }
 
-        handleUndoMove(moveNumber);
+    // 評価値などの巻き戻し（position の復元を先に）
+    handleUndoMove(moveNumber);
 
+    // --- position 文字列も2つ削除 ---
+    if (m_positionStrList.size() >= 2) {
         m_positionStrList.removeLast();
         m_positionStrList.removeLast();
+    } else {
+        m_positionStrList.clear();
+    }
 
-        m_currentMoveIndex = moveNumber;
+    // --- 盤面（SFEN）を2手前へ ---
+    m_currentMoveIndex = moveNumber;
 
+    if (m_sfenRecord && m_currentMoveIndex >= 0 && m_currentMoveIndex < m_sfenRecord->size()) {
         QString str = m_sfenRecord->at(m_currentMoveIndex);
-        m_gameController->board()->setSfen(str);
-
-        m_sfenRecord->removeLast();
-        m_sfenRecord->removeLast();
-
-        if (m_boardController) m_boardController->clearAllHighlights();
-
-        m_kifuRecordModel->removeLastItem();
-        m_kifuRecordModel->removeLastItem();
-
-        // 持ち時間・考慮時間も2手前へ
-        m_shogiClock->undo();
+        if (m_gameController && m_gameController->board()) {
+            m_gameController->board()->setSfen(str);
+        }
     }
 
-    if (m_boardController && m_currentMoveIndex > 0 && m_gameMoves.size() >= m_currentMoveIndex) {
-        const ShogiMove& last = m_gameMoves.at(m_currentMoveIndex - 1);
-        const QPoint from = last.fromSquare;
-        const QPoint to   = last.toSquare;
-        m_boardController->showMoveHighlights(from, to);
+    // SFEN レコードも末尾2つ削除
+    if (m_sfenRecord) {
+        if (m_sfenRecord->size() >= 2) {
+            m_sfenRecord->removeLast();
+            m_sfenRecord->removeLast();
+        } else {
+            m_sfenRecord->clear();
+        }
     }
 
-    // --- 追加(2): 盤と時計を戻し終えたので、表示の整合を先に更新 ---
+    // ハイライトのクリア
+    if (m_boardController) m_boardController->clearAllHighlights();
+
+    // --- 棋譜モデルも“必ず2手（2 ply）”分削除（再入ガード付き） ---
+    removeLastKifuPlies_(2);
+
+    // 時計を2手前へ
+    if (m_shogiClock) m_shogiClock->undo();
+
+    // --- 2手前の移動ハイライトを復元（座標正規化込み） ---
+    updateHighlightsForPly_(m_currentMoveIndex);
+
+    // 表示の整合を先に更新
     updateTurnAndTimekeepingDisplay();
 
-    // --- 追加(3): 今の手番が「人間」なら計測を再アーム ---
+    // いまの手番が人間なら計測再アーム & クリック可否の更新
     auto isHuman = [this](ShogiGameController::Player p) {
         switch (m_playMode) {
         case HumanVsHuman:                return true;
@@ -363,25 +354,20 @@ void MainWindow::undoLastTwoMoves()
         }
     };
 
-    const auto sideToMove = m_gameController->currentPlayer();
-    m_shogiView->setMouseClickMode(isHuman(sideToMove));
+    const auto sideToMove = m_gameController ? m_gameController->currentPlayer()
+                                             : ShogiGameController::NoPlayer;
+    if (m_shogiView) m_shogiView->setMouseClickMode(isHuman(sideToMove));
 
     if (isHuman(sideToMove)) {
         QTimer::singleShot(0, this, [this]{
             if (!m_match) return;
-
             if (m_playMode == HumanVsHuman) {
-                // H2H：両者共通のターン計測
                 m_match->armTurnTimerIfNeeded();
             } else {
-                // HvE：人間側の計測
                 m_match->armHumanTimerIfNeeded();
             }
         });
     }
-
-    // ★ 旧フラグ（m_p1HasMoved / m_p2HasMoved）は司令塔移譲または廃止。
-    //   復元ロジックは不要なので削除しました。
 }
 
 // 新規対局の準備をする。
@@ -6393,4 +6379,48 @@ void MainWindow::ensureHumanAtBottomIfApplicable_()
         onActionFlipBoardTriggered(false);
         // onBoardFlipped() が呼ばれ、m_bottomIsP1 はトグルされます
     }
+}
+
+void MainWindow::removeLastKifuPlies_(int n)
+{
+    if (!m_kifuRecordModel || n <= 0) return;
+
+    // 棋譜側の選択変更シグナル等で再入して処理が止まらないようにガード
+    const bool prev = m_onMainRowGuard;
+    m_onMainRowGuard = true;
+
+    int left = n;
+    while (left-- > 0) {
+        if (m_kifuRecordModel->rowCount() <= 0) break;
+        m_kifuRecordModel->removeLastItem(); // 1手（1 ply）削除
+    }
+
+    m_onMainRowGuard = prev;
+}
+
+namespace {
+// 1始まり(1..9)なら0始まり(0..8)へ、すでに0..8なら変更なし
+static inline QPoint normalizeBoardPoint_(const QPoint& p) {
+    if (p.x() >= 1 && p.x() <= 9 && p.y() >= 1 && p.y() <= 9)
+        return QPoint(p.x() - 1, p.y() - 1);
+    return p;
+}
+}
+
+void MainWindow::updateHighlightsForPly_(int selPly)
+{
+    if (!m_boardController) return;
+
+    m_boardController->clearAllHighlights();
+
+    // selPly は「この手数時点の盤面」。直前に指された手は selPly-1 にある
+    if (selPly <= 0) return;
+    if (selPly - 1 >= m_gameMoves.size()) return;
+
+    const ShogiMove& mv = m_gameMoves.at(selPly - 1);
+
+    const QPoint from = normalizeBoardPoint_(mv.fromSquare);
+    const QPoint to   = normalizeBoardPoint_(mv.toSquare);
+
+    m_boardController->showMoveHighlights(from, to);
 }
