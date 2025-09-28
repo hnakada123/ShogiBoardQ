@@ -588,6 +588,10 @@ private:
     void ensureHumanAtBottomIfApplicable_();
 
     void syncBoardToPly_(int selPly);
+
+    void removeLastKifuPlies_(int n);
+    void updateHighlightsForPly_(int selPly); // まだ無ければ宣言を追加
+
 };
 
 #endif // MAINWINDOW_H
