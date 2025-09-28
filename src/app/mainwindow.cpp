@@ -3374,6 +3374,8 @@ void MainWindow::onMainMoveRowChanged(int selPly)
     // 盤面・棋譜欄・分岐候補・矢印・分岐ツリー（EngineAnalysisTab経由）まで一括同期
     applyResolvedRowAndSelect(row, qMax(0, selPly));
 
+    applySfenAtCurrentPly();
+
     m_onMainRowGuard = false;
 }
 
@@ -3535,13 +3537,30 @@ void MainWindow::showRecordAtPly(const QList<KifDisplayItem>& disp, int selectPl
 // 現在の手数（m_currentSelectedPly）に対応するSFENを盤面へ反映
 void MainWindow::applySfenAtCurrentPly()
 {
+    //begin
+    qDebug().nospace() << "[UI] applySfenAtCurrentPly ply=" << m_currentSelectedPly;
+    //end
+
     if (!m_sfenRecord || m_sfenRecord->isEmpty()) return;
 
     const int idx = qBound(0, m_currentSelectedPly, m_sfenRecord->size() - 1);
     QString sfen = m_sfenRecord->at(idx);
 
+    //begin
+    qDebug().nospace() << "[UI] applySfenAtCurrentPly applying SFEN: " << sfen;
+    //end
+
     // 既存の盤面反映APIに合わせてください
     m_gameController->board()->setSfen(sfen);
+
+    // 盤面データの適用後に View へ即時反映（矢印ナビでも盤が連動）
+    if (m_shogiView && m_gameController) {
+        // ShogiView に現在の Board を適用して再描画
+        m_shogiView->applyBoardAndRender(m_gameController->board());
+    } else if (m_shogiView) {
+        // 最低限の再描画（Board 取得APIがない場合のフォールバック）
+        m_shogiView->update();
+    }
 }
 
 void MainWindow::applyVariationByKey(int startPly, int bucketIndex)
