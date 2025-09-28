@@ -3358,12 +3358,16 @@ void MainWindow::applyPlayersFromGameInfo(const QList<KifGameInfoItem>& items)
 void MainWindow::onMainMoveRowChanged(int selPly)
 {
     // 再入防止（applyResolvedRowAndSelect 内で選択を動かすと再度シグナルが来るため）
-    if (m_onMainRowGuard)
-        return;
+    if (m_onMainRowGuard) return;
     m_onMainRowGuard = true;
 
-    // 解決済み行が無ければ何もしない
+    const int safePly = qMax(0, selPly);
+
+    // ライブ対局（m_resolvedRows が空）でも、KIF再生（分岐解決あり）でも
+    // いずれも最終的に syncBoardAndHighlightsAtRow を呼ぶようにする
     if (m_resolvedRows.isEmpty()) {
+        // ← 投了後の矢印ナビはここに入る。局面＋ハイライトを一括同期
+        syncBoardAndHighlightsAtRow(safePly);
         m_onMainRowGuard = false;
         return;
     }
@@ -3371,10 +3375,11 @@ void MainWindow::onMainMoveRowChanged(int selPly)
     // いまアクティブな“本譜 or 分岐”行
     const int row = qBound(0, m_activeResolvedRow, m_resolvedRows.size() - 1);
 
-    // 盤面・棋譜欄・分岐候補・矢印・分岐ツリー（EngineAnalysisTab経由）まで一括同期
-    applyResolvedRowAndSelect(row, qMax(0, selPly));
+    // 行に対応する disp/sfen/gm を差し替えたうえで
+    applyResolvedRowAndSelect(row, safePly);
 
-    applySfenAtCurrentPly();
+    // その手数の局面を反映し、最後の一手をハイライト
+    syncBoardAndHighlightsAtRow(safePly);
 
     m_onMainRowGuard = false;
 }
