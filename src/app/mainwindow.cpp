@@ -1444,11 +1444,14 @@ void MainWindow::prepareDataCurrentPosition()
         m_gameMoves.resize(selPly);
     }
 
-    // --- 6) SFEN履歴は「開始SFENのみ」にし、以降は着手ごとに伸ばす ---
+    // --- 6) SFEN履歴は「選択手まで残して、以降を切る」---
     if (m_sfenRecord) {
-        m_sfenRecord->clear();
-        if (!m_startSfenStr.isEmpty())
-            m_sfenRecord->append(m_startSfenStr); // index 0 = 開始局面
+        const int keep = qMin(m_sfenRecord->size(), selPly + 1); // 0..selPly を保持
+        while (m_sfenRecord->size() > keep) {
+            m_sfenRecord->removeLast();
+        }
+        // ※ index 0 は“本当の開始局面（平手/駒落ち）”のまま。
+        //    エンジンへは m_startPosStr（= selPly の局面）を使うので整合は取れる。
     }
 
     // --- 7) KIFテキストも末尾だけ整合させる（ヘッダは残す） ---
