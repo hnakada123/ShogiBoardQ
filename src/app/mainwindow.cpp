@@ -1621,43 +1621,40 @@ void MainWindow::setCurrentTurn()
 // 対局を開始する。
 void MainWindow::initializeGame()
 {
-    // エラーが発生していない状態に設定する。
     m_errorOccurred = false;
-
-    // 将棋盤に関するクラスのエラー設定をエラーが発生していない状態に設定する。
     if (m_shogiView) m_shogiView->setErrorOccurred(false);
 
-    // 対局ダイアログを生成する。
     m_startGameDialog = new StartGameDialog;
 
-    // 対局ダイアログを実行し、OKボタンをクリックした場合
     if (m_startGameDialog->exec() == QDialog::Accepted) {
-        // ライブ対局に入るので再生モードをOFF
         setReplayMode(false);
 
-        m_gameCount++;
-        if (m_gameCount > 1) resetToInitialState();
+        // ★ 先に取得しておく（これが肝）
+        const int startingPositionNumber = m_startGameDialog->startingPositionNumber();
+        qDebug() << "startingPositionNumber:" << startingPositionNumber;
 
-        // 対局オプションの取り込み
+        m_gameCount++;
+
+        // ★ 2回目以降の対局でも、「現局面から」はフルリセットしない
+        if (m_gameCount > 1) {
+            if (startingPositionNumber == 0) {
+                resetUiForResumeFromCurrent_();   // 新規追加（下に定義）
+            } else {
+                resetToInitialState();            // 既存のフルリセット
+            }
+        }
+
+        // 対局オプションなど
         setRemainingTimeAndCountDown();
         getOptionFromStartGameDialog();
 
-        // ① 時計を必ず先に準備（司令塔通知より先行させる）
         ensureClockReady_();
 
-        // 開始局面の準備
-        const int startingPositionNumber = m_startGameDialog->startingPositionNumber();
-
-        //begin
-        qDebug() << "startingPositionNumber:" << startingPositionNumber;
-        //end
-
         if (startingPositionNumber == 0) {
-            // 現在局面から開始
+            // 現在局面から開始：ここで「選択手まで残して末尾だけ切る」
             prepareDataCurrentPosition();
         } else {
             try {
-                // 初期局面から開始
                 prepareInitialPosition();
             } catch (const std::exception& e) {
                 displayErrorMessage(e.what());
@@ -1666,32 +1663,25 @@ void MainWindow::initializeGame()
             }
         }
 
-        // 棋譜UIの状態調整
+        // 棋譜UI調整
         if (m_playMode) {
             disableArrowButtons();
             if (m_recordPane && m_recordPane->kifuView())
                 m_recordPane->kifuView()->setSelectionMode(QAbstractItemView::NoSelection);
         }
 
-        // ② 司令塔へ新規対局開始（SFEN確定後）
         if (m_match) {
             m_match->startNewGame(m_startSfenStr);
         }
-
-        // ③ 現在手番をUI/Controllerへ反映
         setCurrentTurn();
-
-        // ④ 残り時間のセット → 時計スタート
         setTimerAndStart();
 
-        // 以降：エンジン構成/起動など
         try {
             startGameBasedOnMode();
         } catch (const std::exception& e) {
             displayErrorMessage(e.what());
         }
     }
-
     delete m_startGameDialog;
 }
 
@@ -6632,4 +6622,39 @@ void MainWindow::handleBreakOffGame()
 {
     if (!m_match || m_match->gameOverState().isOver) return;
     m_match->handleBreakOff();
+}
+
+// フルリセットの代わりに、現局面再開用の軽量クリア
+void MainWindow::resetUiForResumeFromCurrent_()
+{
+    if (m_boardController) m_boardController->clearAllHighlights();
+
+    if (m_shogiView) {
+        m_shogiView->blackClockLabel()->setText("00:00:00");
+        m_shogiView->whiteClockLabel()->setText("00:00:00");
+    }
+
+    // ★ 棋譜は消さない：m_kifuRecordModel->clearAllItems() は呼ばない
+
+    // 評価値グラフ・思考欄はクリアしてOK
+    if (m_evalChart)       m_evalChart->clearAll();
+    if (m_modelThinking1)  m_modelThinking1->clearAllItems();
+    if (m_modelThinking2)  m_modelThinking2->clearAllItems();
+
+    auto resetInfo = [](UsiCommLogModel* m){
+        if (!m) return;
+        m->setEngineName({});
+        m->setPredictiveMove({});
+        m->setSearchedMove({});
+        m->setSearchDepth({});
+        m->setNodeCount({});
+        m->setNodesPerSecond({});
+        m->setHashUsage({});
+    };
+    resetInfo(m_lineEditModel1);
+    resetInfo(m_lineEditModel2);
+
+    if (m_tab) m_tab->setCurrentIndex(0);
+
+    // ★ 盤は初期化しない：startNewShogiGame(m_startSfenStr) を呼ばない
 }
