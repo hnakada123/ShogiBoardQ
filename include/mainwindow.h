@@ -597,6 +597,8 @@ private:
     bool m_isUndoInProgress = false;
 
     void handleBreakOffGame();
+
+    void resetUiForResumeFromCurrent_();
 };
 
 #endif // MAINWINDOW_H
