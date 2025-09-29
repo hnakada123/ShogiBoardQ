@@ -1471,19 +1471,23 @@ void MainWindow::prepareDataCurrentPosition()
     }
 
     // --- 8) 「次に追記される手番の番号」を selPly にセット ---
-    // updateGameRecord() は ++m_currentMoveIndex を使うため、
-    // ここで selPly を入れておくと次の追記は (selPly+1) 手目になる。
     m_currentMoveIndex = selPly;
 
     // --- 9) ライブ中は棋譜表の選択を無効化（誤作動防止・任意） ---
     if (m_recordPane) {
         if (auto* view = m_recordPane->kifuView()) {
+            // ★ 追加：選択変更でスロットが走らないようにガード
+            const bool prevGuard = m_onMainRowGuard;
+            m_onMainRowGuard = true;
+
             view->setSelectionMode(QAbstractItemView::NoSelection);
             if (auto* sel = view->selectionModel())
                 sel->clearSelection();
-            // 見た目上は最後に残した行へ合わせたいならここを変更
+            // 見た目上は先頭へ
             view->setCurrentIndex(m_kifuRecordModel->index(0, 0));
             view->scrollToTop();
+
+            m_onMainRowGuard = prevGuard;
         }
     }
 
@@ -1491,8 +1495,11 @@ void MainWindow::prepareDataCurrentPosition()
     if (m_boardController) {
         m_boardController->clearAllHighlights();
     }
-    m_currentSelectedPly = 0;   // 「新しい開始局面」を 0 手目として扱う
-    applySfenAtCurrentPly();    // ここは引数なし版
+    m_currentSelectedPly = 0;
+    applySfenAtCurrentPly();
+
+    // ★ 保険：万一どこかで変わっても次の追記は selPly+1 から
+    m_currentMoveIndex = selPly;
 
     // --- 11) 投了後の“追記抑止”を解除 ---
     if (m_match) {
@@ -3311,7 +3318,9 @@ void MainWindow::setGameOverMove(GameOverCause cause, bool loserIsPlayerOne)
     }
     // 可能なら“リプレイモード”に入れて時計・強調等を安定化
     setReplayMode(true);
-    // --- 追記おわり ---
+
+    // ★ 追加：現局面再開モードの解除（選択復活）
+    exitLiveAppendMode_();
 }
 
 void MainWindow::appendKifuLine(const QString& text, const QString& elapsedTime)
@@ -6640,6 +6649,11 @@ void MainWindow::handleBreakOffGame()
 // フルリセットの代わりに、現局面再開用の軽量クリア
 void MainWindow::resetUiForResumeFromCurrent_()
 {
+    enterLiveAppendMode_();   // 現局面から再開モード（選択無効化）
+
+    const bool prevGuard = m_onMainRowGuard;
+    m_onMainRowGuard = true;
+
     if (m_boardController) m_boardController->clearAllHighlights();
 
     if (m_shogiView) {
@@ -6647,9 +6661,8 @@ void MainWindow::resetUiForResumeFromCurrent_()
         m_shogiView->whiteClockLabel()->setText("00:00:00");
     }
 
-    // ★ 棋譜は消さない：m_kifuRecordModel->clearAllItems() は呼ばない
+    // ★ 棋譜は消さない
 
-    // 評価値グラフ・思考欄はクリアしてOK
     if (m_evalChart)       m_evalChart->clearAll();
     if (m_modelThinking1)  m_modelThinking1->clearAllItems();
     if (m_modelThinking2)  m_modelThinking2->clearAllItems();
@@ -6669,5 +6682,34 @@ void MainWindow::resetUiForResumeFromCurrent_()
 
     if (m_tab) m_tab->setCurrentIndex(0);
 
-    // ★ 盤は初期化しない：startNewShogiGame(m_startSfenStr) を呼ばない
+    // ★ 追加：次の追記手番の基準&局面再適用
+    const int maxPly = (m_sfenRecord && !m_sfenRecord->isEmpty())
+                       ? (m_sfenRecord->size() - 1) : 0;
+    m_currentSelectedPly = qBound(0, m_currentSelectedPly, maxPly);
+    m_currentMoveIndex   = m_currentSelectedPly;  // 次は N+1 手目から
+    applySfenAtCurrentPly();
+    updateHighlightsForPly_(m_currentSelectedPly); // （必要なら）
+
+    m_onMainRowGuard = prevGuard;
+}
+
+void MainWindow::enterLiveAppendMode_()
+{
+    m_isLiveAppendMode = true;
+    if (!m_recordPane) return;
+    if (auto* view = m_recordPane->kifuView()) {
+        view->setSelectionMode(QAbstractItemView::NoSelection);
+        view->setFocusPolicy(Qt::NoFocus);
+        if (auto* sel = view->selectionModel()) sel->clearSelection();
+    }
+}
+
+void MainWindow::exitLiveAppendMode_()
+{
+    m_isLiveAppendMode = false;
+    if (!m_recordPane) return;
+    if (auto* view = m_recordPane->kifuView()) {
+        view->setSelectionMode(QAbstractItemView::SingleSelection);
+        view->setFocusPolicy(Qt::StrongFocus);
+    }
 }

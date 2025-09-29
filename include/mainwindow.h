@@ -599,6 +599,10 @@ private:
     void handleBreakOffGame();
 
     void resetUiForResumeFromCurrent_();
+
+    bool m_isLiveAppendMode = false;
+    void enterLiveAppendMode_();  // 再開中は選択を無効化
+    void exitLiveAppendMode_();   // 終局で選択を元に戻す
 };
 
 #endif // MAINWINDOW_H
