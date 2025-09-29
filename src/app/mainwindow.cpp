@@ -3621,22 +3621,26 @@ void MainWindow::syncBoardAndHighlightsAtRow(int ply1)
     }
 }
 
+// 現在表示用の棋譜列（disp）を使ってモデルを再構成し、selectPly 行を選択・同期する
 void MainWindow::showRecordAtPly(const QList<KifDisplayItem>& disp, int selectPly)
 {
-    // いま表示中の棋譜列を保持
+    // いま表示中の棋譜列を保持（分岐⇄本譜の復帰で再利用）
     m_dispCurrent = disp;
 
-    // モデルへ反映（既存）
+    // （既存）モデルへ反映：ここで displayGameRecord(disp) が呼ばれ、
+    // その過程で m_currentMoveIndex が 0 に戻る実装になっている
     displayGameRecord(disp);
 
     // ★ RecordPane 内のビューを使う
     QTableView* view = (m_recordPane ? m_recordPane->kifuView() : nullptr);
     if (!view || !view->model()) return;
 
-    const int rc  = view->model()->rowCount();               // ← view の model を使う
+    // 行数（0 は「=== 開始局面 ===」、1..N が各手）
+    const int rc  = view->model()->rowCount();
     const int row = qBound(0, selectPly, rc > 0 ? rc - 1 : 0);
 
-    const QModelIndex idx = view->model()->index(row, 0);    // ← view の model を使う
+    // 対象行を選択
+    const QModelIndex idx = view->model()->index(row, 0);
     if (!idx.isValid()) return;
 
     if (auto* sel = view->selectionModel()) {
@@ -3646,6 +3650,15 @@ void MainWindow::showRecordAtPly(const QList<KifDisplayItem>& disp, int selectPl
         view->setCurrentIndex(idx);
     }
     view->scrollTo(idx, QAbstractItemView::PositionAtCenter);
+
+    // ＝＝＝＝＝＝＝＝＝＝＝＝ ここが肝 ＝＝＝＝＝＝＝＝＝＝＝＝
+    // displayGameRecord() が 0 に戻した “現在の手数” を、選択行へ復元する。
+    // （row は 0=開始局面, 1..N=それぞれの手。よって「次の追記」は row+1 手目になる）
+    m_currentSelectedPly = row;
+    m_currentMoveIndex   = row;
+
+    // 盤面・ハイライトも現在手に同期（applySfenAtCurrentPly は m_currentSelectedPly を参照）
+    syncBoardAndHighlightsAtRow(row);
 }
 
 // 現在の手数（m_currentSelectedPly）に対応するSFENを盤面へ反映
