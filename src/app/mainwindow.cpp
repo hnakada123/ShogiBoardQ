@@ -1394,59 +1394,64 @@ void MainWindow::getOptionFromStartGameDialog()
 // 現在の局面で開始する場合に必要なListデータなどを用意する。
 void MainWindow::prepareDataCurrentPosition()
 {
-    // --- 履歴の整形 ---
-    const int n = m_sfenRecord->size();
-
-    // 途中局面以降を削る
-    for (int i = n; i > m_currentMoveIndex + 1; --i) {
-        m_moveRecords->removeLast();
-        m_sfenRecord->removeLast();
-    }
-
-    // 棋譜欄を該当手数まで再構築
-    m_kifuRecordModel->clearAllItems();
-    for (int i = 0; i < m_currentMoveIndex; ++i) {
-        m_kifuRecordModel->appendItem(m_moveRecords->at(i));
-    }
-
-    // 直前手のハイライト
-    if (m_boardController) {
-        m_boardController->clearAllHighlights();
-        if (m_currentMoveIndex > 0 && m_gameMoves.size() >= m_currentMoveIndex) {
-            const ShogiMove& last = m_gameMoves.at(m_currentMoveIndex - 1);
-            m_boardController->showMoveHighlights(last.fromSquare, last.toSquare);
-        }
-    }
-
-    // --- 開始局面の決定（必ず "startpos" か "sfen <...>" を用意する） ---
-    QString baseSfen; // "lnsgkgsnl/... b - 1" のような純SFEN
-
-    if (!m_sfenRecord->isEmpty()) {
-        baseSfen = m_sfenRecord->last().trimmed();
+    // 1) 選択 ply の SFEN を厳密に取得（例：4手目選択なら index=4）
+    QString baseSfen;
+    if (m_sfenRecord && m_sfenRecord->size() > m_currentMoveIndex) {
+        baseSfen = m_sfenRecord->at(m_currentMoveIndex).trimmed();
     } else if (!m_startSfenStr.trimmed().isEmpty()) {
-        // 既にどこかで算出済みなら流用
         baseSfen = m_startSfenStr.trimmed();
+        // 必要なら：baseSfen = rebuildSfenByApplyingMoves(m_startSfenStr, m_gameMoves, m_currentMoveIndex);
     } else {
-        // 取得手段が無い/記録ゼロなら平手にフォールバック
-        // parseStartPositionToSfen("startpos") が使えるなら純SFENに変換して保持
-        // （使えない場合は baseSfen を空のままにして分岐させる）
         baseSfen = parseStartPositionToSfen(QStringLiteral("startpos")).trimmed();
     }
 
-    if (!baseSfen.isEmpty()) {
-        // 例: "position sfen <純SFEN> moves ..." を構築できる頭
-        m_startPosStr    = QStringLiteral("sfen ") + baseSfen;
-        m_startSfenStr   = baseSfen;
-        m_currentSfenStr = m_startPosStr;   // ここは "sfen ..." で保持（既存仕様に合わせる）
-    } else {
-        // 最後の砦：USIには "position startpos ..." を送れるようにしておく
-        m_startPosStr    = QStringLiteral("startpos");
-        m_startSfenStr.clear();             // 純SFEN不明
-        m_currentSfenStr = m_startPosStr;
+    // 2) エンジン送信用と保持用へ反映
+    m_startPosStr    = baseSfen.isEmpty() ? QStringLiteral("startpos")
+                                          : QStringLiteral("sfen ") + baseSfen;
+    m_startSfenStr   = baseSfen;
+    m_currentSfenStr = m_startPosStr;
+
+    // 3) まずモデルをクリア（モデルが KifuDisplay* を所有・破棄）
+    if (m_kifuRecordModel) {
+        m_kifuRecordModel->clearAllItems(); // beginResetModel()/endResetModel() 実装推奨
     }
 
-    // 以後 setupInitialPositionStrings() で
-    // m_positionStr1 = "position " + m_startPosStr + " moves" になる
+    // 4) ★ 履歴は完全リセット（“局面のみ”を残す）— 二重 delete 防止のため qDeleteAll はしない
+    if (m_sfenRecord) {
+        m_sfenRecord->clear();
+        if (!m_startSfenStr.isEmpty()) m_sfenRecord->append(m_startSfenStr); // index 0 = 開始SFEN
+    }
+    if (m_moveRecords) {
+        m_moveRecords->clear(); // 参照配列を空にするだけ（所有はモデル）
+    }
+    m_gameMoves.clear();
+    m_currentMoveIndex = 0;
+
+    // 5) 棋譜欄はヘッダのみ
+    if (m_kifuRecordModel) {
+        m_kifuRecordModel->appendItem(
+            new KifuDisplay(QStringLiteral("=== 開始局面 ==="),
+                            QStringLiteral("（１手 / 合計）"))
+        );
+    }
+
+    // 6) ビューの古い選択を必ずクリアして0行目に揃える（SEGV対策）
+    if (QTableView* tv = (m_recordPane ? m_recordPane->kifuView() : nullptr)) {
+        if (auto* sel = tv->selectionModel()) sel->clearSelection();
+        tv->setCurrentIndex(m_kifuRecordModel->index(0, 0));
+        tv->scrollToTop();
+    }
+
+    // 7) 直前手ハイライトを消し、開始局面を盤へ適用
+    if (m_boardController) {
+        m_boardController->clearAllHighlights();
+    }
+    // ★ 選択中 ply を 0 に揃えてから、引数なしの applySfenAtCurrentPly() を呼ぶ
+    m_currentSelectedPly = 0;
+    applySfenAtCurrentPly();
+
+    // 8) （任意）評価値グラフや消費時間の累計なども必要に応じてリセット
+    // resetEvalGraph(); resetClockTotals(); など
 }
 
 // 初期局面からの対局する場合の準備を行う。
