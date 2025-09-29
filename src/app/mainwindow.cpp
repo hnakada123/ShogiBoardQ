@@ -1596,6 +1596,11 @@ void MainWindow::initializeGame()
 
         // 開始局面の準備
         const int startingPositionNumber = m_startGameDialog->startingPositionNumber();
+
+        //begin
+        qDebug() << "startingPositionNumber:" << startingPositionNumber;
+        //end
+
         if (startingPositionNumber == 0) {
             // 現在局面から開始
             prepareDataCurrentPosition();
