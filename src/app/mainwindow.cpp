@@ -1394,64 +1394,110 @@ void MainWindow::getOptionFromStartGameDialog()
 // 現在の局面で開始する場合に必要なListデータなどを用意する。
 void MainWindow::prepareDataCurrentPosition()
 {
-    // 1) 選択 ply の SFEN を厳密に取得（例：4手目選択なら index=4）
+    // 現在ユーザが選んだ手数（0=開始局面, 1..N）
+    const int selPly = qMax(0, m_currentMoveIndex);
+
+    // --- 1) 選択手の局面を SFEN で取得 ---
     QString baseSfen;
-    if (m_sfenRecord && m_sfenRecord->size() > m_currentMoveIndex) {
-        baseSfen = m_sfenRecord->at(m_currentMoveIndex).trimmed();
+    if (m_sfenRecord && m_sfenRecord->size() > selPly) {
+        baseSfen = m_sfenRecord->at(selPly).trimmed();
     } else if (!m_startSfenStr.trimmed().isEmpty()) {
         baseSfen = m_startSfenStr.trimmed();
-        // 必要なら：baseSfen = rebuildSfenByApplyingMoves(m_startSfenStr, m_gameMoves, m_currentMoveIndex);
+        // 必要なら：“開始SFEN＋手順適用”で再構築
+        // baseSfen = rebuildSfenByApplyingMoves(m_startSfenStr, m_gameMoves, selPly);
     } else {
         baseSfen = parseStartPositionToSfen(QStringLiteral("startpos")).trimmed();
     }
 
-    // 2) エンジン送信用と保持用へ反映
+    // --- 2) 開始位置文字列を確定（エンジンへはこの startpos/sfen を渡す） ---
     m_startPosStr    = baseSfen.isEmpty() ? QStringLiteral("startpos")
                                           : QStringLiteral("sfen ") + baseSfen;
     m_startSfenStr   = baseSfen;
     m_currentSfenStr = m_startPosStr;
 
-    // 3) まずモデルをクリア（モデルが KifuDisplay* を所有・破棄）
+    // --- 3) 表示モデルは「選択手まで残して、末尾だけ切り詰める」 ---
+    // モデルを clearAllItems() で全消ししないことが重要！
     if (m_kifuRecordModel) {
-        m_kifuRecordModel->clearAllItems(); // beginResetModel()/endResetModel() 実装推奨
+        const int rc        = m_kifuRecordModel->rowCount();
+        const int keepRows  = selPly + 1; // 先頭の「=== 開始局面 ===」行 + selPly 行
+        const int toRemove  = qMax(0, rc - keepRows);
+        if (toRemove > 0) {
+            m_kifuRecordModel->removeLastItems(toRemove);
+        } else if (rc == 0) {
+            // 念のためヘッダ行が無ければ追加
+            m_kifuRecordModel->appendItem(
+                new KifuDisplay(QStringLiteral("=== 開始局面 ==="),
+                                QStringLiteral("（1手 / 合計）")));
+        }
     }
 
-    // 4) ★ 履歴は完全リセット（“局面のみ”を残す）— 二重 delete 防止のため qDeleteAll はしない
+    // --- 4) 内部の表示用リスト（ポインタ配列）はポインタだけ末尾を詰める ---
+    // （所有権はモデル側にある前提。モデルが removeLastItems() で delete 済み。）
+    if (m_moveRecords) {
+        while (m_moveRecords->size() > selPly) {
+            m_moveRecords->removeLast(); // delete はしない
+        }
+    }
+
+    // --- 5) 実際の手順（ロジック用）は selPly までに揃える ---
+    if (m_gameMoves.size() > selPly) {
+        m_gameMoves.resize(selPly);
+    }
+
+    // --- 6) SFEN履歴は「開始SFENのみ」にし、以降は着手ごとに伸ばす ---
     if (m_sfenRecord) {
         m_sfenRecord->clear();
-        if (!m_startSfenStr.isEmpty()) m_sfenRecord->append(m_startSfenStr); // index 0 = 開始SFEN
-    }
-    if (m_moveRecords) {
-        m_moveRecords->clear(); // 参照配列を空にするだけ（所有はモデル）
-    }
-    m_gameMoves.clear();
-    m_currentMoveIndex = 0;
-
-    // 5) 棋譜欄はヘッダのみ
-    if (m_kifuRecordModel) {
-        m_kifuRecordModel->appendItem(
-            new KifuDisplay(QStringLiteral("=== 開始局面 ==="),
-                            QStringLiteral("（１手 / 合計）"))
-        );
+        if (!m_startSfenStr.isEmpty())
+            m_sfenRecord->append(m_startSfenStr); // index 0 = 開始局面
     }
 
-    // 6) ビューの古い選択を必ずクリアして0行目に揃える（SEGV対策）
-    if (QTableView* tv = (m_recordPane ? m_recordPane->kifuView() : nullptr)) {
-        if (auto* sel = tv->selectionModel()) sel->clearSelection();
-        tv->setCurrentIndex(m_kifuRecordModel->index(0, 0));
-        tv->scrollToTop();
+    // --- 7) KIFテキストも末尾だけ整合させる（ヘッダは残す） ---
+    if (!m_kifuDataList.isEmpty()) {
+        int headerIdx = -1;
+        for (int i = 0; i < m_kifuDataList.size(); ++i) {
+            if (m_kifuDataList.at(i).contains(QStringLiteral("手数----指手"))) {
+                headerIdx = i;
+                break;
+            }
+        }
+        if (headerIdx >= 0) {
+            const int movesNow = m_kifuDataList.size() - (headerIdx + 1);
+            const int toRemove = qMax(0, movesNow - selPly);
+            for (int i = 0; i < toRemove; ++i) {
+                if (!m_kifuDataList.isEmpty())
+                    m_kifuDataList.removeLast();
+            }
+        }
     }
 
-    // 7) 直前手ハイライトを消し、開始局面を盤へ適用
+    // --- 8) 「次に追記される手番の番号」を selPly にセット ---
+    // updateGameRecord() は ++m_currentMoveIndex を使うため、
+    // ここで selPly を入れておくと次の追記は (selPly+1) 手目になる。
+    m_currentMoveIndex = selPly;
+
+    // --- 9) ライブ中は棋譜表の選択を無効化（誤作動防止・任意） ---
+    if (m_recordPane) {
+        if (auto* view = m_recordPane->kifuView()) {
+            view->setSelectionMode(QAbstractItemView::NoSelection);
+            if (auto* sel = view->selectionModel())
+                sel->clearSelection();
+            // 見た目上は最後に残した行へ合わせたいならここを変更
+            view->setCurrentIndex(m_kifuRecordModel->index(0, 0));
+            view->scrollToTop();
+        }
+    }
+
+    // --- 10) 盤のハイライト等リセット → 新しい開始局面を盤へ適用 ---
     if (m_boardController) {
         m_boardController->clearAllHighlights();
     }
-    // ★ 選択中 ply を 0 に揃えてから、引数なしの applySfenAtCurrentPly() を呼ぶ
-    m_currentSelectedPly = 0;
-    applySfenAtCurrentPly();
+    m_currentSelectedPly = 0;   // 「新しい開始局面」を 0 手目として扱う
+    applySfenAtCurrentPly();    // ここは引数なし版
 
-    // 8) （任意）評価値グラフや消費時間の累計なども必要に応じてリセット
-    // resetEvalGraph(); resetClockTotals(); など
+    // --- 11) 投了後の“追記抑止”を解除 ---
+    if (m_match) {
+        m_match->clearGameOverState();
+    }
 }
 
 // 初期局面からの対局する場合の準備を行う。
