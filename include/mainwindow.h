@@ -603,6 +603,9 @@ private:
     bool m_isLiveAppendMode = false;
     void enterLiveAppendMode_();  // 再開中は選択を無効化
     void exitLiveAppendMode_();   // 終局で選択を元に戻す
+    void purgeBranchPlayback_();
+
+    void dumpSfenRecord_(const char* tag, int extraPly = -1);
 };
 
 #endif // MAINWINDOW_H
