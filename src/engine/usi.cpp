@@ -52,6 +52,15 @@ static inline QString fmtMs(qint64 ms)
     return QString("%1.%2s").arg(s).arg(rem, 3, 10, QChar('0')); // 例: "1.234s"
 }
 
+// usi.cpp（ファイル先頭の他ヘルパ定義付近に追加）
+static inline void ensureMovesKeyword(QString& s) {
+    // 既に " moves" が含まれていなければ挿入
+    if (!s.contains(QStringLiteral(" moves"))) {
+        s = s.trimmed();
+        s += QStringLiteral(" moves");
+    }
+}
+
 // USIプロトコル通信により、将棋エンジンと通信を行うクラス
 // コンストラクタ
 Usi::Usi(UsiCommLogModel* model, ShogiEngineThinkingModel* modelThinking, ShogiGameController* gameController, PlayMode& playMode, QObject* parent)
@@ -490,6 +499,7 @@ void Usi::startPonderingAfterBestMove(QString& positionStr, QString& positionPon
         applyMovesToBoardFromBestMoveAndPonder();
 
         // position文字列に予想した相手の指し手を追加する。
+        ensureMovesKeyword(positionStr);
         positionPonderStr = positionStr + " " + m_predictedOpponentMove;
 
         // positionコマンドを将棋エンジンに送信する。
@@ -510,6 +520,7 @@ void Usi::startPonderingAfterBestMove(QString& positionStr, QString& positionPon
 void Usi::appendBestMoveAndStartPondering(QString& positionStr, QString& positionPonderStr)
 {
     // position文字列に将棋エンジンが返した最善手の文字列を追加する。
+    ensureMovesKeyword(positionStr);
     positionStr += " " + m_bestMove;
 
     // 相手の指し手が予想できた場合、予想手を考慮した処理を開始する。
@@ -720,6 +731,8 @@ void Usi::handleHumanVsEngineCommunication(QString& positionStr, QString& positi
 
     // bestmove文字列の作成
     m_bestMove = convertHumanMoveToUsiFormat(outFrom, outTo, m_gameController->promote());
+
+    ensureMovesKeyword(positionStr);
 
     // position文字列にbestmoveの文字列を追加する。
     positionStr += " " + m_bestMove;
