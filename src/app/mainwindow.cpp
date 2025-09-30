@@ -1394,6 +1394,8 @@ void MainWindow::getOptionFromStartGameDialog()
 // 現在の局面で開始する場合に必要なListデータなどを用意する。
 void MainWindow::prepareDataCurrentPosition()
 {
+    purgeBranchPlayback_();
+
     // 現在ユーザが選んだ手数（0=開始局面, 1..N）
     const int selPly = qMax(0, m_currentMoveIndex);
 
@@ -1588,6 +1590,8 @@ void MainWindow::prepareDataCurrentPosition()
     if (m_match) {
         m_match->clearGameOverState();
     }
+
+    dumpSfenRecord_("after-prepareDataCurrentPosition");
 }
 
 // 初期局面からの対局する場合の準備を行う。
@@ -2160,6 +2164,8 @@ void MainWindow::rebuildSfenRecord(const QString& initialSfen,
 
     if (!m_sfenRecord) m_sfenRecord = new QStringList;
     *m_sfenRecord = list;                    // COW
+
+    dumpSfenRecord_("after-rebuildSfenRecord");
 }
 
 void MainWindow::rebuildGameMoves(const QString& initialSfen,
@@ -3404,6 +3410,8 @@ void MainWindow::setGameOverMove(GameOverCause cause, bool loserIsPlayerOne)
 
     // ★ 追加：現局面再開モードの解除（選択復活）
     exitLiveAppendMode_();
+
+    dumpSfenRecord_("after-setGameOverMove");
 }
 
 void MainWindow::appendKifuLine(const QString& text, const QString& elapsedTime)
@@ -3558,15 +3566,19 @@ void MainWindow::applyPlayersFromGameInfo(const QList<KifGameInfoItem>& items)
 
 void MainWindow::onMainMoveRowChanged(int selPly)
 {
+    qDebug().noquote() << "[ROW] onMainMoveRowChanged selPly=" << selPly
+                       << " resolvedRows=" << m_resolvedRows.size()
+                       << " isLiveAppend=" << m_isLiveAppendMode;
+    dumpSfenRecord_("rowChanged-before", selPly);
+
     // 再入防止（applyResolvedRowAndSelect 内で選択を動かすと再度シグナルが来るため）
     if (m_onMainRowGuard) return;
     m_onMainRowGuard = true;
 
     const int safePly = qMax(0, selPly);
 
-    // ライブ対局（m_resolvedRows が空）でも、KIF再生（分岐解決あり）でも
-    // いずれも最終的に syncBoardAndHighlightsAtRow を呼ぶようにする
-    if (m_resolvedRows.isEmpty()) {
+    // ライブ中は常にライブ経路で同期（分岐再生を強制無効化）
+    if (m_isLiveAppendMode || m_resolvedRows.isEmpty()) {
         // ← 投了後の矢印ナビはここに入る。局面＋ハイライトを一括同期
         syncBoardAndHighlightsAtRow(safePly);
         m_onMainRowGuard = false;
@@ -3756,9 +3768,8 @@ void MainWindow::showRecordAtPly(const QList<KifDisplayItem>& disp, int selectPl
 // 現在の手数（m_currentSelectedPly）に対応するSFENを盤面へ反映
 void MainWindow::applySfenAtCurrentPly()
 {
-    //begin
-    qDebug().nospace() << "[UI] applySfenAtCurrentPly ply=" << m_currentSelectedPly;
-    //end
+    qDebug().noquote() << "[UI] applySfenAtCurrentPly ply=" << m_currentSelectedPly;
+    dumpSfenRecord_("applySfenAtCurrentPly", m_currentSelectedPly);
 
     if (!m_sfenRecord || m_sfenRecord->isEmpty()) return;
 
@@ -6754,6 +6765,14 @@ void MainWindow::handleBreakOffGame()
 // フルリセットの代わりに、現局面再開用の軽量クリア
 void MainWindow::resetUiForResumeFromCurrent_()
 {
+    // GUI 側のメイン棋譜用バッファを完全クリア
+    m_gameMoves.clear();
+    m_currentMoveIndex = 0;           // 使っていれば
+    m_isLiveAppendMode = true;        // 現局面再開はライブ扱いに
+
+    // ハイライトや選択状態の残骸があればクリア
+    if (m_shogiView) m_shogiView->removeHighlightAllData();
+
     enterLiveAppendMode_();   // 現局面から再開モード（選択無効化）
 
     const bool prevGuard = m_onMainRowGuard;
@@ -6796,6 +6815,8 @@ void MainWindow::resetUiForResumeFromCurrent_()
     updateHighlightsForPly_(m_currentSelectedPly); // （必要なら）
 
     m_onMainRowGuard = prevGuard;
+
+    dumpSfenRecord_("after-resetUiForResumeFromCurrent");
 }
 
 void MainWindow::enterLiveAppendMode_()
@@ -6816,5 +6837,45 @@ void MainWindow::exitLiveAppendMode_()
     if (auto* view = m_recordPane->kifuView()) {
         view->setSelectionMode(QAbstractItemView::SingleSelection);
         view->setFocusPolicy(Qt::StrongFocus);
+    }
+}
+
+void MainWindow::purgeBranchPlayback_()
+{
+    // KIF再生（分岐解決）状態を完全クリア
+    m_resolvedRows.clear();
+    m_activeResolvedRow = -1;
+
+    if (m_kifuBranchModel) {
+        m_kifuBranchModel->clearBranchCandidates();
+        m_kifuBranchModel->setHasBackToMainRow(false);
+    }
+    if (QTableView* view = m_kifuBranchView
+                               ? m_kifuBranchView
+                               : (m_recordPane ? m_recordPane->branchView() : nullptr)) {
+        view->setVisible(false);
+        view->setEnabled(false);
+    }
+}
+
+void MainWindow::dumpSfenRecord_(const char* tag, int extraPly)
+{
+    if (!m_sfenRecord) {
+        qDebug().noquote() << QString("[SFEN][%1] m_sfenRecord = null").arg(tag);
+        return;
+    }
+    const int n = m_sfenRecord->size();
+    qDebug().noquote().nospace()
+        << "[SFEN][" << tag << "] size=" << n
+        << " resolvedRows=" << m_resolvedRows.size()
+        << " isLiveAppend=" << m_isLiveAppendMode;
+
+    // 先頭/末尾と、必要なら特定 ply を確認
+    if (n > 0) {
+        qDebug().noquote() << "  [0]   " << m_sfenRecord->at(0);
+        if (n > 1) qDebug().noquote() << "  [" << n-1 << "] " << m_sfenRecord->at(n-1);
+    }
+    if (extraPly >= 0 && extraPly < n) {
+        qDebug().noquote() << "  [" << extraPly << "] " << m_sfenRecord->at(extraPly);
     }
 }
