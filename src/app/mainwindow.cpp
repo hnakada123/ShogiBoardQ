@@ -1409,14 +1409,42 @@ void MainWindow::prepareDataCurrentPosition()
         baseSfen = parseStartPositionToSfen(QStringLiteral("startpos")).trimmed();
     }
 
-    // --- 2) 開始位置文字列を確定（エンジンへはこの startpos/sfen を渡す） ---
+    // --- 2) 手番トークンを「次に指す側」に強制補正する ---
+    auto enforceTurnInSfen = [](const QString& sfen, bool blackToMove) -> QString {
+        QStringList parts = sfen.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+        if (parts.size() >= 2) {
+            parts[1] = blackToMove ? QStringLiteral("b") : QStringLiteral("w");
+            return parts.join(QLatin1Char(' '));
+        }
+        return sfen;
+    };
+
+    // 初期手番（平手=先手、駒落ちだと w 開始のこともある）
+    bool startIsBlack = true;
+    if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
+        const QStringList p0 = m_sfenRecord->first().split(QLatin1Char(' '), Qt::SkipEmptyParts);
+        if (p0.size() >= 2) startIsBlack = (p0[1].trimmed().toLower() == QLatin1String("b"));
+    } else if (!m_startSfenStr.isEmpty()) {
+        const QStringList p0 = m_startSfenStr.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+        if (p0.size() >= 2) startIsBlack = (p0[1].trimmed().toLower() == QLatin1String("b"));
+    }
+    const bool nextIsBlack = startIsBlack ? ((selPly % 2) == 0) : ((selPly % 2) == 1);
+    baseSfen = enforceTurnInSfen(baseSfen, nextIsBlack);
+
+    // --- 3) 開始位置文字列（SFEN）を確定（※ここでは "moves" を付けない） ---
+    m_startSfenStr   = baseSfen;
     m_startPosStr    = baseSfen.isEmpty() ? QStringLiteral("startpos")
                                           : QStringLiteral("sfen ") + baseSfen;
-    m_startSfenStr   = baseSfen;
     m_currentSfenStr = m_startPosStr;
 
-    // --- 3) 表示モデルは「選択手まで残して、末尾だけ切り詰める」 ---
-    // モデルを clearAllItems() で全消ししないことが重要！
+    // --- 3b) ★ 重要：USIの position ベースを "position ... moves" で初期化 ---
+    // ここで必ず moves を含む土台を作っておく（後で bestmove を連結しても欠落しない）
+    m_positionStr1      = QStringLiteral("position %1 moves").arg(m_startPosStr);
+    m_positionPonder1.clear();
+    m_positionStrList.clear();
+    m_positionStrList.append(m_positionStr1);
+
+    // --- 4) 表示モデルは「選択手まで残して、末尾だけ切り詰める」 ---
     if (m_kifuRecordModel) {
         const int rc        = m_kifuRecordModel->rowCount();
         const int keepRows  = selPly + 1; // 先頭の「=== 開始局面 ===」行 + selPly 行
@@ -1424,87 +1452,75 @@ void MainWindow::prepareDataCurrentPosition()
         if (toRemove > 0) {
             m_kifuRecordModel->removeLastItems(toRemove);
         } else if (rc == 0) {
-            // 念のためヘッダ行が無ければ追加
             m_kifuRecordModel->appendItem(
                 new KifuDisplay(QStringLiteral("=== 開始局面 ==="),
                                 QStringLiteral("（1手 / 合計）")));
         }
     }
 
-    // --- 4) 内部の表示用リスト（ポインタ配列）はポインタだけ末尾を詰める ---
-    // （所有権はモデル側にある前提。モデルが removeLastItems() で delete 済み。）
+    // --- 5) 内部の表示用リスト（ポインタ配列）は末尾だけ詰める ---
     if (m_moveRecords) {
         while (m_moveRecords->size() > selPly) {
-            m_moveRecords->removeLast(); // delete はしない
+            m_moveRecords->removeLast(); // delete はしない（所有権はモデル）
         }
     }
 
-    // --- 5) 実際の手順（ロジック用）は selPly までに揃える ---
+    // --- 6) 実際の手順（ロジック用）は selPly までに揃える ---
     if (m_gameMoves.size() > selPly) {
         m_gameMoves.resize(selPly);
     }
 
-    // --- 6) SFEN履歴は「選択手まで残して、以降を切る」---
+    // --- 7) SFEN履歴は「開始SFENのみ」にし、以降は着手ごとに伸ばす ---
     if (m_sfenRecord) {
-        const int keep = qMin(m_sfenRecord->size(), selPly + 1); // 0..selPly を保持
-        while (m_sfenRecord->size() > keep) {
-            m_sfenRecord->removeLast();
-        }
-        // ※ index 0 は“本当の開始局面（平手/駒落ち）”のまま。
-        //    エンジンへは m_startPosStr（= selPly の局面）を使うので整合は取れる。
+        m_sfenRecord->clear();
+        if (!m_startSfenStr.isEmpty())
+            m_sfenRecord->append(m_startSfenStr); // index 0 = 開始局面
     }
 
-    // --- 7) KIFテキストも末尾だけ整合させる（ヘッダは残す） ---
+    // --- 8) KIFテキストも末尾だけ整合させる（ヘッダは残す） ---
     if (!m_kifuDataList.isEmpty()) {
         int headerIdx = -1;
         for (int i = 0; i < m_kifuDataList.size(); ++i) {
             if (m_kifuDataList.at(i).contains(QStringLiteral("手数----指手"))) {
-                headerIdx = i;
-                break;
+                headerIdx = i; break;
             }
         }
         if (headerIdx >= 0) {
             const int movesNow = m_kifuDataList.size() - (headerIdx + 1);
             const int toRemove = qMax(0, movesNow - selPly);
             for (int i = 0; i < toRemove; ++i) {
-                if (!m_kifuDataList.isEmpty())
-                    m_kifuDataList.removeLast();
+                if (!m_kifuDataList.isEmpty()) m_kifuDataList.removeLast();
             }
         }
     }
 
-    // --- 8) 「次に追記される手番の番号」を selPly にセット ---
+    // --- 9) 次に追記される手番の番号を selPly にセット ---
     m_currentMoveIndex = selPly;
 
-    // --- 9) ライブ中は棋譜表の選択を無効化（誤作動防止・任意） ---
+    // --- 10) 表の選択無効化など ---
     if (m_recordPane) {
         if (auto* view = m_recordPane->kifuView()) {
-            // ★ 追加：選択変更でスロットが走らないようにガード
             const bool prevGuard = m_onMainRowGuard;
             m_onMainRowGuard = true;
-
             view->setSelectionMode(QAbstractItemView::NoSelection);
-            if (auto* sel = view->selectionModel())
-                sel->clearSelection();
-            // 見た目上は先頭へ
+            if (auto* sel = view->selectionModel()) sel->clearSelection();
             view->setCurrentIndex(m_kifuRecordModel->index(0, 0));
             view->scrollToTop();
-
             m_onMainRowGuard = prevGuard;
         }
     }
 
-    // --- 10) 盤のハイライト等リセット → 新しい開始局面を盤へ適用 ---
+    // --- 11) 盤のハイライト等リセット → 新しい開始局面を盤へ適用 ---
     if (m_boardController) {
         m_boardController->clearAllHighlights();
     }
     m_currentSelectedPly = 0;
     applySfenAtCurrentPly();
 
-    // ★ 保険：万一どこかで変わっても次の追記は selPly+1 から
+    // 念のため
     m_currentMoveIndex = selPly;
 
-    // --- 11) 投了後の“追記抑止”を解除 ---
+    // --- 12) 投了後の“追記抑止”を解除 ---
     if (m_match) {
         m_match->clearGameOverState();
     }
@@ -4713,33 +4729,52 @@ void MainWindow::onActionFlipBoardTriggered(bool /*checked*/)
     if (m_match) m_match->flipBoard();
 }
 
-// 対局開始時に USI "position ..." のベース文字列を初期化する。
-// これが空だと " 7g7f" だけが送られてしまうので必ずセットする。
 void MainWindow::initializePositionStringsForMatch_()
 {
-    // 既存の文字列群をクリア
     m_positionStr1.clear();
     m_positionPonder1.clear();
     if (!m_positionStrList.isEmpty()) m_positionStrList.clear();
 
-    // m_startSfenStr が使えるなら必ず SFEN をベースにする（駒落ち "w" 開始にも対応）
+    // 再開時：m_gameMoves には selPly までが残っている前提
+    const bool hasHistory = !m_gameMoves.isEmpty();
+
     if (!m_startSfenStr.isEmpty() && m_startSfenStr != QStringLiteral("startpos")) {
-        m_positionStr1 = QStringLiteral("position sfen %1 moves").arg(m_startSfenStr);
+        m_positionStr1 = hasHistory
+            ? QStringLiteral("position sfen %1 moves").arg(m_startSfenStr)
+            : QStringLiteral("position sfen %1").arg(m_startSfenStr); // 末尾に "moves" を付けない
     } else {
-        m_positionStr1 = QStringLiteral("position startpos moves");
+        m_positionStr1 = hasHistory
+            ? QStringLiteral("position startpos moves")
+            : QStringLiteral("position startpos");
     }
 
-    // 履歴の先頭にも入れておく（handleHumanVsEngineCommunication で追記していく）
+    // 既存着手を前置（USI表記化）
+    if (hasHistory) {
+        auto rankToAlphabet = [](int rank1){ return QChar('a' + (rank1 - 1)); };
+        for (int i = 0; i < m_gameMoves.size(); ++i) {
+            const auto& mv = m_gameMoves.at(i);
+            const int fromX = mv.fromSquare.x() + 1;
+            const int fromY = mv.fromSquare.y() + 1;
+            const int toX   = mv.toSquare.x()   + 1;
+            const int toY   = mv.toSquare.y()   + 1;
+
+            // 打ち駒などの分岐はプロジェクトの既存実装に合わせて必要なら拡張
+            QString usi;
+            if (1 <= fromX && fromX <= 9 && 1 <= toX && toX <= 9) {
+                usi = QString::number(fromX) + rankToAlphabet(fromY)
+                    + QString::number(toX)   + rankToAlphabet(toY)
+                    + (mv.isPromotion ? QStringLiteral("+") : QString());
+            } else {
+                // 打ち駒など（必要に応じて既存の Piece→USI 変換関数を使用）
+                // usi = "...";
+            }
+            m_positionStr1 += QLatin1Char(' ');
+            m_positionStr1 += usi;
+        }
+    }
+
     m_positionStrList.append(m_positionStr1);
-
-    // ※ ここで m_bTime / m_wTime の更新は行わない。
-    //    USI呼び出し直前に:
-    //      qint64 bMs=0, wMs=0; m_match->computeGoTimesForUSI(bMs, wMs);
-    //      const QString bTime = QString::number(bMs);
-    //      const QString wTime = QString::number(wMs);
-    //    のようにその場で生成してください。
 }
-
 
 // EvH（エンジンが先手）の初手を起動する（position ベース → go → bestmove を適用）
 void MainWindow::startInitialEngineMoveEvH_()
