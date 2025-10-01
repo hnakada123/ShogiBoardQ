@@ -99,6 +99,7 @@ private:
     // --- 基本状態 / ゲーム状態 ---
     QString  m_startSfenStr;
     QString  m_currentSfenStr;
+    QString  m_resumeSfenStr; // 再開用
     bool     m_errorOccurred = false;
     int      m_currentMoveIndex = 0;
     QString  m_lastMove;
