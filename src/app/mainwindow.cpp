@@ -450,6 +450,14 @@ void MainWindow::initializeNewGame(QString& startSfenStr)
         // エラーメッセージを表示する。
         displayErrorMessage(e.what());
     }
+
+    if (!m_resumeSfenStr.isEmpty()) {
+        auto* b = m_gameController ? m_gameController->board() : nullptr;
+        if (b) {
+            b->setSfen(m_resumeSfenStr);
+            if (m_shogiView) m_shogiView->applyBoardAndRender(b);
+        }
+    }
 }
 
 // 対局モードに応じて将棋盤上部に表示される対局者名をセットする。
@@ -1466,7 +1474,7 @@ void MainWindow::prepareDataCurrentPosition()
                 m_sfenRecord->removeLast();
             }
         } else {
-            m_sfenRecord->clear();
+            // 既に selPly+1 以下なら何もしない（クリアしない）
         }
     }
 
@@ -1483,9 +1491,16 @@ void MainWindow::prepareDataCurrentPosition()
 
     m_onMainRowGuard = prevGuard;
 
+    // 再開用のスナップショット（選択手の局面）
+    m_resumeSfenStr.clear();
+    if (m_sfenRecord && m_sfenRecord->size() > selPly) {
+        m_resumeSfenStr = m_sfenRecord->at(selPly);
+    }
+
     m_startSfenStr = m_sfenRecord->at(0);
 
     //begin
+    qDebug() << "m_resumeSfenStr = " << m_resumeSfenStr;
     qDebug() << "m_startSfenStr = " << m_startSfenStr;
     //end
 }
