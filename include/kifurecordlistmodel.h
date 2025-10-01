@@ -22,6 +22,8 @@ public:
 
     // ★ 追加（任意だが推奨）：末尾から n 手（=n行）を一括削除。成功したら true
     bool removeLastItems(int n);
+
+    bool prependItem(KifuDisplay* item);
 };
 
 #endif // KIFURECORDLISTMODEL_H

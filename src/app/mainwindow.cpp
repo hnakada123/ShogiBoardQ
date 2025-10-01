@@ -1394,204 +1394,100 @@ void MainWindow::getOptionFromStartGameDialog()
 // 現在の局面で開始する場合に必要なListデータなどを用意する。
 void MainWindow::prepareDataCurrentPosition()
 {
-    purgeBranchPlayback_();
-
     // 現在ユーザが選んだ手数（0=開始局面, 1..N）
     const int selPly = qMax(0, m_currentMoveIndex);
 
-    // --- A) USI 用に “真の開始局面” を先に確保（※この関数内で上書きする前に退避） ---
-    QString originalStartSfen;
-    if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
-        originalStartSfen = m_sfenRecord->first().trimmed();  // 読み込んだ棋譜の開始SFEN
-    } else if (!m_startSfenStr.trimmed().isEmpty()) {
-        originalStartSfen = m_startSfenStr.trimmed();         // 既存保持があればそれ
-    } else {
-        originalStartSfen = parseStartPositionToSfen(QStringLiteral("startpos")).trimmed();
-    }
+    const int moveNumber = selPly;
 
-    // --- 1) UI 用：「選択手の局面」を SFEN で取得（ベース＝盤表示/見出し用） ---
-    QString resumeSfen;
-    if (m_sfenRecord && m_sfenRecord->size() > selPly) {
-        resumeSfen = m_sfenRecord->at(selPly).trimmed();      // selPly の局面SFEN
-    } else if (!m_startSfenStr.trimmed().isEmpty()) {
-        // 直近の開始SFENから再構築する場合のフォールバック
-        resumeSfen = m_startSfenStr.trimmed();
-        // 必要なら：“開始SFEN＋手順適用”で再構築
-        // resumeSfen = rebuildSfenByApplyingMoves(m_startSfenStr, m_gameMoves, selPly);
-    } else {
-        resumeSfen = parseStartPositionToSfen(QStringLiteral("startpos")).trimmed();
-    }
+    // ---- 以降、巻き戻し処理 ----
+    const bool prevGuard = m_onMainRowGuard;
+    m_onMainRowGuard = true;
 
-    // --- 2) （UI用に）手番トークンを「次に指す側」に強制補正する ---
-    auto enforceTurnInSfen = [](const QString& sfen, bool blackToMove) -> QString {
-        QStringList parts = sfen.split(QLatin1Char(' '), Qt::SkipEmptyParts);
-        if (parts.size() >= 2) {
-            parts[1] = blackToMove ? QStringLiteral("b") : QStringLiteral("w");
-            return parts.join(QLatin1Char(' '));
-        }
-        return sfen;
-    };
+    //begin
+    qDebug() << "MainWindow::prepareDataCurrentPosition()";
+    // 現在の手数
+    qDebug() << "selPly = " << selPly;
+    //end
 
-    // 初期手番（平手=先手開始、駒落ちだと w 開始のケースあり）を“真の開始局面”から判定
-    bool startIsBlack = true;
-    {
-        const QStringList p0 = originalStartSfen.split(QLatin1Char(' '), Qt::SkipEmptyParts);
-        if (p0.size() >= 2) startIsBlack = (p0[1].trimmed().toLower() == QLatin1String("b"));
-    }
-    const bool nextIsBlack = startIsBlack ? ((selPly % 2) == 0) : ((selPly % 2) == 1);
-    resumeSfen = enforceTurnInSfen(resumeSfen, nextIsBlack);
-
-    // --- 3) UI 表示用の開始位置文字列（※ここでは "moves" を付けない） ---
-    m_startSfenStr   = resumeSfen;  // ← UI用（盤面に今から見せる“開始局面”）
-    m_startPosStr    = resumeSfen.isEmpty() ? QStringLiteral("startpos")
-                                            : QStringLiteral("sfen ") + resumeSfen;
-    m_currentSfenStr = m_startPosStr;
-
-    // --- 4) 実際の手順（ロジック用）は selPly までに揃える（以降は新規手を積む） ---
-    //      ※ 先に揃えておくことで、この後の「履歴連結」が常に selPly ぴったりになる
-    if (m_gameMoves.size() > selPly) {
-        m_gameMoves.resize(selPly);
-    }
-
-    // --- 5) ★ USI の position ベースは “真の開始局面” 固定 + selPly までの履歴を前置 ---
-    const QString usiBase = originalStartSfen.isEmpty()
-                                ? QStringLiteral("startpos")
-                                : QStringLiteral("sfen %1").arg(originalStartSfen);
-
-    // m_gameMoves は ShogiMove の配列。USI 文字列に直して前置する。
-    QString historyForEngine;
-    if (!m_gameMoves.isEmpty()) {
-        QStringList hist;
-        hist.reserve(m_gameMoves.size());
-
-        auto rankToAlphabet = [](int rank1){ return QChar('a' + (rank1 - 1)); };
-
-        // ここまでで m_gameMoves は selPly までに resize 済み（※先にやっておく）
-        for (int i = 0; i < m_gameMoves.size(); ++i) {
-            const ShogiMove& mv = m_gameMoves.at(i);
-
-            const int fx = mv.fromSquare.x();
-            const int fy = mv.fromSquare.y();
-            const int tx = mv.toSquare.x();
-            const int ty = mv.toSquare.y();
-
-            QString usi;
-            // 盤上の通常手（0..8 の範囲なら盤上）
-            if (0 <= fx && fx <= 8 && 0 <= fy && fy <= 8 &&
-                0 <= tx && tx <= 8 && 0 <= ty && ty <= 8) {
-                const int ff = fx + 1;
-                const int rf = fy + 1;
-                const int ft = tx + 1;
-                const int rt = ty + 1;
-
-                usi  = QString::number(ff);
-                usi += rankToAlphabet(rf);
-                usi += QString::number(ft);
-                usi += rankToAlphabet(rt);
-                if (mv.isPromotion) usi += QLatin1Char('+');
-            } else {
-                // 打ち駒（駒台出発）。movingPiece は side 込みの 1文字(P/p 等)が入っている想定。
-                const int ft = tx + 1;
-                const int rt = ty + 1;
-                const QChar dropLetter = mv.movingPiece.toUpper(); // USIの打ちは常に大文字の駒
-                usi  = QString(dropLetter);
-                usi += QLatin1Char('*');
-                usi += QString::number(ft);
-                usi += rankToAlphabet(rt);
-            }
-            hist << usi;
-        }
-
-        historyForEngine = hist.join(QLatin1Char(' '));
-    }
-
-    if (historyForEngine.isEmpty()) {
-        m_positionStr1 = QStringLiteral("position %1").arg(usiBase);
-    } else {
-        m_positionStr1 = QStringLiteral("position %1 moves %2").arg(usiBase, historyForEngine);
-    }
-
-    m_positionPonder1.clear();
-    m_positionStrList.clear();
-    m_positionStrList.append(m_positionStr1);
-
-    // --- 6) 表示モデルは「選択手まで残して、末尾だけ切り詰める」 ---
     if (m_kifuRecordModel) {
-        const int rc        = m_kifuRecordModel->rowCount();
-        const int keepRows  = selPly + 1; // 先頭の「=== 開始局面 ===」行 + selPly 行
-        const int toRemove  = qMax(0, rc - keepRows);
-        if (toRemove > 0) {
-            m_kifuRecordModel->removeLastItems(toRemove);
-        } else if (rc == 0) {
-            m_kifuRecordModel->appendItem(
-                new KifuDisplay(QStringLiteral("=== 開始局面 ==="),
-                                QStringLiteral("（1手 / 合計）")));
+        while (m_kifuRecordModel->rowCount() > (selPly + 1)) {
+            m_kifuRecordModel->removeLastItem();
         }
     }
 
-    // --- 7) 内部の表示用リスト（ポインタ配列）は末尾だけ詰める ---
-    if (m_moveRecords) {
-        while (m_moveRecords->size() > selPly) {
-            m_moveRecords->removeLast(); // delete はしない（所有権はモデル）
+    //begin
+    // m_kifuRevordModel のサイズ
+    qDebug() << "m_kifuRecordModel->size() = " << (m_kifuRecordModel ? m_kifuRecordModel->rowCount() : -1);
+    // m_kifuRecordModel の中身
+    if (m_kifuRecordModel) {
+        qDebug() << "m_kifuRecordModel->rowCount() = " << m_kifuRecordModel->rowCount();
+        QModelIndex index;
+        for (int i = 0; i < m_kifuRecordModel->rowCount(); i++) {
+            index = m_kifuRecordModel->index(i, 0);
+            const auto item = m_kifuRecordModel->data(index, Qt::DisplayRole);
+            qDebug() << "m_kifuRecordModel[" << i << "] = " << item;
         }
     }
+    //end
 
-    // --- 8) SFEN履歴は「UI開始SFENのみ」にし、以降は着手ごとに伸ばす ---
+    if (m_gameMoves.size() > selPly) {
+        while (m_gameMoves.size() > selPly) {
+            m_gameMoves.removeLast();
+        }
+    } else {
+        m_gameMoves.clear();
+    }
+
+    //begin
+    qDebug() << "m_gameMoves.size() = " << m_gameMoves.size();
+    for (int i = 0; i < m_gameMoves.size(); i++) {
+        qDebug() << "m_gameMoves[" << i << "] = " << m_gameMoves.at(i);
+    }
+
+    if (m_positionStrList.size() > (selPly + 1)) {
+        while (m_positionStrList.size() > (selPly + 1)) {
+            m_positionStrList.removeLast();
+        }
+    } else {
+        m_positionStrList.clear();
+    }
+
+    //begin
+    qDebug() << "m_positionStrList.size() = " << m_positionStrList.size();
+    for (int i = 0; i < m_positionStrList.size(); i++) {
+        qDebug() << "m_positionStrList[" << i << "] = " << m_positionStrList.at(i);
+    }
+    //end
+
+
     if (m_sfenRecord) {
-        m_sfenRecord->clear();
-        if (!m_startSfenStr.isEmpty())
-            m_sfenRecord->append(m_startSfenStr); // index 0 = UI上の開始局面（＝再開局面）
-    }
-
-    // --- 9) KIFテキストも末尾だけ整合させる（ヘッダは残す） ---
-    if (!m_kifuDataList.isEmpty()) {
-        int headerIdx = -1;
-        for (int i = 0; i < m_kifuDataList.size(); ++i) {
-            if (m_kifuDataList.at(i).contains(QStringLiteral("手数----指手"))) {
-                headerIdx = i; break;
+        if (m_sfenRecord->size() > (selPly + 1)) {
+            while (m_sfenRecord->size() > (selPly + 1)) {
+                m_sfenRecord->removeLast();
             }
-        }
-        if (headerIdx >= 0) {
-            const int movesNow = m_kifuDataList.size() - (headerIdx + 1);
-            const int toRemove = qMax(0, movesNow - selPly);
-            for (int i = 0; i < toRemove; ++i) {
-                if (!m_kifuDataList.isEmpty()) m_kifuDataList.removeLast();
-            }
+        } else {
+            m_sfenRecord->clear();
         }
     }
 
-    // --- 10) 次に追記される手番の番号を selPly にセット ---
-    m_currentMoveIndex = selPly;
-
-    // --- 11) 表の選択無効化など ---
-    if (m_recordPane) {
-        if (auto* view = m_recordPane->kifuView()) {
-            const bool prevGuard = m_onMainRowGuard;
-            m_onMainRowGuard = true;
-            view->setSelectionMode(QAbstractItemView::NoSelection);
-            if (auto* sel = view->selectionModel()) sel->clearSelection();
-            view->setCurrentIndex(m_kifuRecordModel->index(0, 0));
-            view->scrollToTop();
-            m_onMainRowGuard = prevGuard;
-        }
+    //begin
+    qDebug() << "m_sfenRecord->size() = " << (m_sfenRecord ? m_sfenRecord->size() : -1);
+    for (int i = 0; i < (m_sfenRecord ? m_sfenRecord->size() : 0); i++) {
+        qDebug() << "m_sfenRecord[" << i << "] = " << m_sfenRecord->at(i);
     }
+    //end
 
-    // --- 12) 盤のハイライト等リセット → 新しい（UI上の）開始局面を盤へ適用 ---
-    if (m_boardController) {
-        m_boardController->clearAllHighlights();
-    }
-    m_currentSelectedPly = 0;
-    applySfenAtCurrentPly();
+    // ハイライトのクリア → 復元（0→1始まりに +1 補正版を使用）
+    if (m_boardController) m_boardController->clearAllHighlights();
+    updateHighlightsForPly_(selPly);
 
-    // 念のため
-    m_currentMoveIndex = selPly;
+    m_onMainRowGuard = prevGuard;
 
-    // --- 13) 投了後の“追記抑止”を解除 ---
-    if (m_match) {
-        m_match->clearGameOverState();
-    }
+    m_startSfenStr = m_sfenRecord->at(0);
 
-    dumpSfenRecord_("after-prepareDataCurrentPosition");
+    //begin
+    qDebug() << "m_startSfenStr = " << m_startSfenStr;
+    //end
 }
 
 // 初期局面からの対局する場合の準備を行う。
@@ -1715,6 +1611,20 @@ void MainWindow::setCurrentTurn()
 // 対局を開始する。
 void MainWindow::initializeGame()
 {
+    //begin
+    // m_kifuRecordModel の中身
+    qDebug() << "MainWindow::initializeGame()";
+    if (m_kifuRecordModel) {
+        qDebug() << "m_kifuRecordModel->rowCount() = " << m_kifuRecordModel->rowCount();
+        QModelIndex index;
+        for (int i = 0; i < m_kifuRecordModel->rowCount(); i++) {
+            index = m_kifuRecordModel->index(i, 0);
+            const auto item = m_kifuRecordModel->data(index, Qt::DisplayRole);
+            qDebug() << "m_kifuRecordModel[" << i << "] = " << item;
+        }
+    }
+    //end
+
     m_errorOccurred = false;
     if (m_shogiView) m_shogiView->setErrorOccurred(false);
 
@@ -1731,12 +1641,23 @@ void MainWindow::initializeGame()
 
         // ★ 2回目以降の対局でも、「現局面から」はフルリセットしない
         if (m_gameCount > 1) {
-            if (startingPositionNumber == 0) {
-                resetUiForResumeFromCurrent_();   // 新規追加（下に定義）
-            } else {
+            if (startingPositionNumber > 0) {
                 resetToInitialState();            // 既存のフルリセット
             }
         }
+
+        //begin
+        qDebug() << "check point2 MainWindow::initializeGame()";
+        if (m_kifuRecordModel) {
+            qDebug() << "m_kifuRecordModel->rowCount() = " << m_kifuRecordModel->rowCount();
+            QModelIndex index;
+            for (int i = 0; i < m_kifuRecordModel->rowCount(); i++) {
+                index = m_kifuRecordModel->index(i, 0);
+                const auto item = m_kifuRecordModel->data(index, Qt::DisplayRole);
+                qDebug() << "m_kifuRecordModel[" << i << "] = " << item;
+            }
+        }
+        //end
 
         // 対局オプションなど
         setRemainingTimeAndCountDown();
@@ -6765,8 +6686,7 @@ void MainWindow::handleBreakOffGame()
 // フルリセットの代わりに、現局面再開用の軽量クリア
 void MainWindow::resetUiForResumeFromCurrent_()
 {
-    // GUI 側のメイン棋譜用バッファを完全クリア
-    m_gameMoves.clear();
+    // GUI 側のメイン棋譜用バッファは残す（再開時に selPly まで前置が必要なため）
     m_currentMoveIndex = 0;           // 使っていれば
     m_isLiveAppendMode = true;        // 現局面再開はライブ扱いに
 

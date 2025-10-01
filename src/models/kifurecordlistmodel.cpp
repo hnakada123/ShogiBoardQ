@@ -84,3 +84,14 @@ bool KifuRecordListModel::removeLastItems(int n)
     endRemoveRows();
     return true;
 }
+
+// 先頭に1件追加
+bool KifuRecordListModel::prependItem(KifuDisplay* item)
+{
+    if (!item) return false;
+
+    beginInsertRows(QModelIndex(), 0, 0);
+    list.insert(0, item);      // 先頭へ
+    endInsertRows();
+    return true;
+}
