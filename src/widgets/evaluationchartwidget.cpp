@@ -200,3 +200,6 @@ void EvaluationChartWidget::removeLastP2()
     if (n > 0) m_s2->removePoints(n - 1, 1);
     if (m_chartView) m_chartView->update();
 }
+
+int EvaluationChartWidget::countP1() const { return m_s1 ? m_s1->count() : 0; }
+int EvaluationChartWidget::countP2() const { return m_s2 ? m_s2->count() : 0; }

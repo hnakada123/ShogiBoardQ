@@ -607,6 +607,8 @@ private:
     void purgeBranchPlayback_();
 
     void dumpSfenRecord_(const char* tag, int extraPly = -1);
+
+    void trimEvalChartForResume_(int selPly);
 };
 
 #endif // MAINWINDOW_H

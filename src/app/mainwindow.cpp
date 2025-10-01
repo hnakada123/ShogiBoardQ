@@ -1483,6 +1483,9 @@ void MainWindow::prepareDataCurrentPosition()
     }
     //end
 
+    // 評価値グラフを selPly まで巻き戻す ← ★ これを追加
+    trimEvalChartForResume_(selPly);
+
     // ハイライトのクリア → 復元（0→1始まりに +1 補正版を使用）
     if (m_boardController) m_boardController->clearAllHighlights();
     updateHighlightsForPly_(selPly);
@@ -6814,4 +6817,62 @@ void MainWindow::dumpSfenRecord_(const char* tag, int extraPly)
     if (extraPly >= 0 && extraPly < n) {
         qDebug().noquote() << "  [" << extraPly << "] " << m_sfenRecord->at(extraPly);
     }
+}
+
+// 指定手数 selPly（0=開始局面, 1..）まで評価値グラフを巻き戻す
+void MainWindow::trimEvalChartForResume_(int selPly)
+{
+    if (!m_evalChart) return;
+
+    const int ply = qMax(0, selPly);
+
+    // P1/P2 がそれまでに指した回数（= その側の評価点の“最大許容量”）
+    // P1 は奇数手、P2 は偶数手を担当
+    const int targetP1 = (ply + 1) / 2;  // 例: ply=4 → 2（1,3手目）
+    const int targetP2 = (ply) / 2;      // 例: ply=4 → 2（2,4手目）
+
+    // どの系列を残すか（=どの側の評価点を保持するか）は PlayMode に依存
+    bool keepP1 = false, keepP2 = false;
+    switch (m_playMode) {
+    case EvenEngineVsHuman:       // P1=Engine, P2=Human
+    case HandicapHumanVsEngine:   // あなたの実装では P1 側を描画（handleUndoMove と同じ規則に合わせる）
+        keepP1 = true; break;
+
+    case EvenHumanVsEngine:       // P1=Human, P2=Engine
+    case HandicapEngineVsHuman:   // あなたの実装では P2 側を描画（handleUndoMove と同じ規則に合わせる）
+        keepP2 = true; break;
+
+    case HandicapEngineVsEngine:  // 両側 Engine
+        keepP1 = keepP2 = true; break;
+
+    default:
+        // 編集モード等、不明なら両方消す（=0）にしておく
+        keepP1 = keepP2 = false; break;
+    }
+
+    // まず不要側は全部落とす
+    int curP1 = m_evalChart->countP1();
+    int curP2 = m_evalChart->countP2();
+    if (!keepP1) while (curP1-- > 0) m_evalChart->removeLastP1();
+    if (!keepP2) while (curP2-- > 0) m_evalChart->removeLastP2();
+
+    // 使う側だけ、目標数まで末尾から削る
+    if (keepP1) {
+        curP1 = m_evalChart->countP1();
+        while (curP1 > targetP1) { m_evalChart->removeLastP1(); --curP1; }
+    }
+    if (keepP2) {
+        curP2 = m_evalChart->countP2();
+        while (curP2 > targetP2) { m_evalChart->removeLastP2(); --curP2; }
+    }
+
+    // スカラー履歴（最後に push している CP 値の束）も整合を取る
+    const int targetTotal = (keepP1 ? targetP1 : 0) + (keepP2 ? targetP2 : 0);
+    while (!m_scoreCp.isEmpty() && m_scoreCp.size() > targetTotal)
+        m_scoreCp.removeLast();
+
+    qDebug() << "[EVAL] trim to ply=" << ply
+             << " target(P1,P2)=" << (keepP1?targetP1:0) << (keepP2?targetP2:0)
+             << " now(P1,P2)=" << m_evalChart->countP1() << m_evalChart->countP2()
+             << " scoreCp=" << m_scoreCp.size();
 }

@@ -22,6 +22,9 @@ public:
     void removeLastP1();
     void removeLastP2();
 
+    int countP1() const;
+    int countP2() const;
+
 private:
     QChart*      m_chart = nullptr;
     QLineSeries* m_s1    = nullptr;
