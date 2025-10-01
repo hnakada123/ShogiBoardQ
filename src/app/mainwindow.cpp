@@ -1405,8 +1405,6 @@ void MainWindow::prepareDataCurrentPosition()
     // 現在ユーザが選んだ手数（0=開始局面, 1..N）
     const int selPly = qMax(0, m_currentMoveIndex);
 
-    const int moveNumber = selPly;
-
     // ---- 以降、巻き戻し処理 ----
     const bool prevGuard = m_onMainRowGuard;
     m_onMainRowGuard = true;
@@ -1503,6 +1501,9 @@ void MainWindow::prepareDataCurrentPosition()
     qDebug() << "m_resumeSfenStr = " << m_resumeSfenStr;
     qDebug() << "m_startSfenStr = " << m_startSfenStr;
     //end
+
+    // ★ 直前の終局状態を必ずクリア（これが残っていると updateGameRecord が return します）
+    resetGameFlags();
 }
 
 // 初期局面からの対局する場合の準備を行う。
