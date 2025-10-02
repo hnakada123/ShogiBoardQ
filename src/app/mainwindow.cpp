@@ -1399,11 +1399,58 @@ void MainWindow::getOptionFromStartGameDialog()
     m_playMode = setPlayMode();
 }
 
+// 「現在の局面から（履歴なし）」で呼ばれたときは平手にフォールバック
+void MainWindow::prepareFallbackEvenStartForResume_()
+{
+    // 0手目から
+    m_currentMoveIndex = 0;
+
+    // 平手 startpos → SFEN へ
+    m_startPosStr  = QStringLiteral("startpos");
+    m_startSfenStr = parseStartPositionToSfen(m_startPosStr); // "… b - 1"
+
+    // sfenRecord を確実に用意して 0手目を積む
+    if (!m_sfenRecord) m_sfenRecord = new QStringList;
+    m_sfenRecord->clear();
+    m_sfenRecord->append(m_startSfenStr);
+
+    // 他の保持データもまっさらに
+    m_gameMoves.clear();
+    m_positionStrList.clear();
+
+    // 棋譜欄は「開始局面」を必ず表示
+    if (m_kifuRecordModel) {
+        while (m_kifuRecordModel->rowCount() > 0)
+            m_kifuRecordModel->removeLastItem();
+        m_kifuRecordModel->appendItem(new KifuDisplay(
+            QStringLiteral("=== 開始局面 ==="),
+            QStringLiteral("（１手 / 合計）")));
+    }
+
+    // 評価値グラフ／ハイライトも 0 手目に整える
+    trimEvalChartForResume_(0);
+    if (m_boardController) m_boardController->clearAllHighlights();
+    updateHighlightsForPly_(0);
+
+    // 再開用スナップショットは開始局面
+    m_resumeSfenStr = m_startSfenStr;
+
+    // 直前の終局フラグなどを必ず掃除
+    resetGameFlags();
+}
+
 // 現在の局面で開始する場合に必要なListデータなどを用意する。
 void MainWindow::prepareDataCurrentPosition()
 {
     // 現在ユーザが選んだ手数（0=開始局面, 1..N）
     const int selPly = qMax(0, m_currentMoveIndex);
+
+    // ★ 初回（履歴なし）で「現在の局面から」を選ばれたら → 平手で開始にフォールバック
+    if (!m_sfenRecord || m_sfenRecord->isEmpty()) {
+        qDebug() << "[resume] no history -> fallback to startpos (even game)";
+        prepareFallbackEvenStartForResume_();
+        return;
+    }
 
     // ---- 以降、巻き戻し処理 ----
     const bool prevGuard = m_onMainRowGuard;
