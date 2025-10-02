@@ -609,6 +609,8 @@ private:
     void dumpSfenRecord_(const char* tag, int extraPly = -1);
 
     void trimEvalChartForResume_(int selPly);
+
+    void prepareFallbackEvenStartForResume_();
 };
 
 #endif // MAINWINDOW_H
