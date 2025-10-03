@@ -685,11 +685,13 @@ void MainWindow::initializeCentralGameDisplay()
 // 対局モードに応じて将棋盤下部に表示されるエンジン名をセットする。
 void MainWindow::startNewShogiGame(QString& startSfenStr)
 {
-    // 評価値グラフと記録を初期化
+    const bool resume = m_isResumeFromCurrent;
+
+    // 評価値グラフと記録の初期化（再開時は消さない）
     if (auto ec = m_recordPane ? m_recordPane->evalChart() : nullptr) {
-        ec->clearAll();
+        if (!resume) ec->clearAll();       // ★ ガード
     }
-    m_scoreCp.clear();
+    if (!resume) m_scoreCp.clear();        // ★ ガード
 
     // 新規対局の準備
     // 将棋盤、駒台を初期化（何も駒がない）し、入力のSFEN文字列の配置に将棋盤、駒台の駒を
@@ -1179,6 +1181,8 @@ PlayMode MainWindow::setPlayMode()
 // 対局モード（人間対エンジンなど）に応じて対局処理を開始する。
 void MainWindow::startGameBasedOnMode()
 {
+    dumpEval("enter startGameBasedOnMode");
+
     if (!m_match) return;
 
     // ★ USI "position ... moves" のベースを必ず用意（空だと " 7g7f" 事故になる）
@@ -1229,7 +1233,7 @@ void MainWindow::startGameBasedOnMode()
 
     // デバッグ出力
     qDebug().nospace()
-        << "[ANALYSIS] singleEngine=" << (isSingleEngine?1:0)
+        << "===============[ANALYSIS] singleEngine=" << (isSingleEngine?1:0)
         << " engineIsP1=" << (opt.engineIsP1?1:0)
         << " name1=" << opt.engineName1 << " path1=" << opt.enginePath1
         << " name2=" << opt.engineName2 << " path2=" << opt.enginePath2;
@@ -1242,6 +1246,12 @@ void MainWindow::startGameBasedOnMode()
 
     // ★ 初手がエンジン手番なら、この場で初手エンジンを必ず起動する（先手・後手どちらでも）
     startInitialEngineMoveIfNeeded_();
+
+    // …(エンジン起動/タブ再構築/チャート初期化など従来処理)…
+    applyPendingEvalTrim_();   // ← 最後に必ず呼ぶ
+    m_isResumeFromCurrent = false;     // 再開モード解除
+
+    dumpEval("after startGameBasedOnMode (after UI rebuild)");
 }
 
 // 棋譜解析結果を表示するためのテーブルビューを設定および表示する。
@@ -1442,8 +1452,13 @@ void MainWindow::prepareFallbackEvenStartForResume_()
 // 現在の局面で開始する場合に必要なListデータなどを用意する。
 void MainWindow::prepareDataCurrentPosition()
 {
+    dumpEval("enter prepareDataCurrentPosition");
+
     // 現在ユーザが選んだ手数（0=開始局面, 1..N）
     const int selPly = qMax(0, m_currentMoveIndex);
+
+    m_isResumeFromCurrent = true;       // ← 再開モードを宣言
+    m_pendingEvalTrimPly  = selPly;     // ← 何手目まで残すかを記録だけしておく
 
     // ★ 初回（履歴なし）で「現在の局面から」を選ばれたら → 平手で開始にフォールバック
     if (!m_sfenRecord || m_sfenRecord->isEmpty()) {
@@ -1531,7 +1546,7 @@ void MainWindow::prepareDataCurrentPosition()
     //end
 
     // 評価値グラフを selPly まで巻き戻す ← ★ これを追加
-    trimEvalChartForResume_(selPly);
+    //trimEvalChartForResume_(selPly);
 
     // ハイライトのクリア → 復元（0→1始まりに +1 補正版を使用）
     if (m_boardController) m_boardController->clearAllHighlights();
@@ -1554,6 +1569,8 @@ void MainWindow::prepareDataCurrentPosition()
 
     // ★ 直前の終局状態を必ずクリア（これが残っていると updateGameRecord が return します）
     resetGameFlags();
+
+    dumpEval("after trims (before UI rebuild)");
 }
 
 // 初期局面からの対局する場合の準備を行う。
@@ -6771,9 +6788,11 @@ void MainWindow::resetUiForResumeFromCurrent_()
         m_shogiView->whiteClockLabel()->setText("00:00:00");
     }
 
-    // ★ 棋譜は消さない
+    // ★ 再開中はグラフを消さない
+    if (!m_isResumeFromCurrent) {
+        if (m_evalChart) m_evalChart->clearAll();
+    }
 
-    if (m_evalChart)       m_evalChart->clearAll();
     if (m_modelThinking1)  m_modelThinking1->clearAllItems();
     if (m_modelThinking2)  m_modelThinking2->clearAllItems();
 
@@ -6869,6 +6888,12 @@ void MainWindow::dumpSfenRecord_(const char* tag, int extraPly)
 // 指定手数 selPly（0=開始局面, 1..）まで評価値グラフを巻き戻す
 void MainWindow::trimEvalChartForResume_(int selPly)
 {
+    //begin
+    qDebug() << "=================[EVAL] trimEvalChartForResume_ ENTER"
+             << " selPly=" << selPly
+             << " isResumeFromCurrent=" << m_isResumeFromCurrent;
+    qDebug() << "m_evalChart ptr=" << static_cast<const void*>(m_evalChart);
+    //end
     if (!m_evalChart) return;
 
     const int ply = qMax(0, selPly);
@@ -6918,8 +6943,31 @@ void MainWindow::trimEvalChartForResume_(int selPly)
     while (!m_scoreCp.isEmpty() && m_scoreCp.size() > targetTotal)
         m_scoreCp.removeLast();
 
-    qDebug() << "[EVAL] trim to ply=" << ply
+    qDebug() << "@@@@@@@@@@@@@@@@@@[EVAL] trim to ply=" << ply
              << " target(P1,P2)=" << (keepP1?targetP1:0) << (keepP2?targetP2:0)
              << " now(P1,P2)=" << m_evalChart->countP1() << m_evalChart->countP2()
              << " scoreCp=" << m_scoreCp.size();
+}
+
+void MainWindow::dumpEval(const char* tag) const {
+    qDebug().nospace()
+        << "[EVAL] " << tag
+        << " ptr=" << static_cast<const void*>(m_evalChart)
+        << " P1=" << (m_evalChart ? m_evalChart->countP1() : -1)
+        << " P2=" << (m_evalChart ? m_evalChart->countP2() : -1)
+        << " scoreCp=" << m_scoreCp.size();
+}
+
+void MainWindow::applyPendingEvalTrim_()
+{
+    //begin
+    qDebug() << "=================[EVAL] applyPendingEvalTrim_ ENTER"
+             << " pendingEvalTrimPly=" << m_pendingEvalTrimPly
+             << " isResumeFromCurrent=" << m_isResumeFromCurrent;
+    //end
+    if (m_pendingEvalTrimPly >= 0) {
+        trimEvalChartForResume_(m_pendingEvalTrimPly); // ← ここで初めて刈る
+        m_pendingEvalTrimPly = -1;
+    }
+    m_isResumeFromCurrent = false;  // ← 再開モード解除
 }

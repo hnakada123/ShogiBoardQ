@@ -611,6 +611,12 @@ private:
     void trimEvalChartForResume_(int selPly);
 
     void prepareFallbackEvenStartForResume_();
+
+    void dumpEval(const char* tag) const;
+
+    bool m_isResumeFromCurrent = false;
+    int  m_pendingEvalTrimPly  = -1;
+    void applyPendingEvalTrim_();
 };
 
 #endif // MAINWINDOW_H
