@@ -1974,6 +1974,31 @@ void MainWindow::loadKifuFromFile(const QString& filePath)
     rebuildSfenRecord(initialSfen, m_usiMoves, hasTerminal);
     rebuildGameMoves(initialSfen, m_usiMoves);
 
+    // 3.5) USI position コマンド列を構築（0..N）
+    //     initialSfen は prepareInitialSfen() が返す手合い込みの SFEN
+    //     m_usiMoves は 1..N の USI 文字列（"7g7f" 等）
+    m_positionStrList.clear();
+    m_positionStrList.reserve(m_usiMoves.size() + 1);
+
+    const QString base = QStringLiteral("position sfen %1").arg(initialSfen);
+    m_positionStrList.push_back(base);  // 0手目：moves なし
+
+    QStringList acc; // 先頭からの累積
+    acc.reserve(m_usiMoves.size());
+    for (int i = 0; i < m_usiMoves.size(); ++i) {
+        acc.push_back(m_usiMoves.at(i));
+        // i+1 手目：先頭から i+1 個の moves を連結
+        m_positionStrList.push_back(base + QStringLiteral(" moves ") + acc.join(' '));
+    }
+
+    // （任意）ログで確認
+    qDebug().noquote() << "[USI] position list built. count=" << m_positionStrList.size();
+    if (!m_positionStrList.isEmpty()) {
+        qDebug().noquote() << "[USI] pos[0]=" << m_positionStrList.first();
+        if (m_positionStrList.size() > 1)
+            qDebug().noquote() << "[USI] pos[1]=" << m_positionStrList.at(1);
+    }
+
     // 4) 棋譜表示へ反映（本譜）
     displayGameRecord(disp);
 
