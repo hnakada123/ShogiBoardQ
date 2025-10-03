@@ -3724,6 +3724,8 @@ void MainWindow::syncBoardAndHighlightsAtRow(int ply1)
         // 打つ手は移動元をハイライトしない（必要なら駒台強調などに差し替え）
         m_boardController->showMoveHighlights(QPoint(), to1);
     }
+
+    m_activePly = m_currentSelectedPly;
 }
 
 // 現在表示用の棋譜列（disp）を使ってモデルを再構成し、selectPly 行を選択・同期する
@@ -4388,10 +4390,22 @@ int MainWindow::maxPlyAtRow(int row) const
 
 int MainWindow::currentPly() const
 {
-    // すでにナビ用に追跡している値があればそれを返す
+    // ★ リプレイ／再開（ライブ追記）中は UI 側のトラッキング値を優先
+    if (m_isLiveAppendMode) {
+        if (m_currentSelectedPly >= 0) return m_currentSelectedPly;
+
+        // 念のためビューの currentIndex もフォールバックに
+        const QTableView* view = (m_recordPane ? m_recordPane->kifuView() : nullptr);
+        if (view) {
+            const QModelIndex cur = view->currentIndex();
+            if (cur.isValid()) return qMax(0, cur.row());
+        }
+        return 0;
+    }
+
+    // 通常時は従来通り m_activePly を優先
     if (m_activePly >= 0) return m_activePly;
 
-    // フォールバック：RecordPane の棋譜ビューの選択行
     const QTableView* view = (m_recordPane ? m_recordPane->kifuView() : nullptr);
     if (view) {
         const QModelIndex cur = view->currentIndex();
