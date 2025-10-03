@@ -4063,10 +4063,6 @@ void MainWindow::buildResolvedLinesAfterLoad()
 
 void MainWindow::applyResolvedRowAndSelect(int row, int selPly)
 {
-    //begin
-    qDebug().noquote() << "--- applyResolvedRowAndSelect(row=" << row << ", selPly=" << selPly << ") called.";
-    //end
-
     if (row < 0 || row >= m_resolvedRows.size()) {
         qDebug() << "[APPLY] invalid row =" << row << " rows=" << m_resolvedRows.size();
         return;
@@ -4378,9 +4374,15 @@ int MainWindow::activeResolvedRow() const {
     return m_activeResolvedRow;
 }
 
-int MainWindow::maxPlyAtRow(int row) const {
-    // r.disp.size() と同義
-    const int clamped = qBound(0, row, m_resolvedRows.size() > 0 ? m_resolvedRows.size() - 1 : 0);
+int MainWindow::maxPlyAtRow(int row) const
+{
+    // 解決済み行が無い → 棋譜モデルの最終行を上限に使う
+    if (m_resolvedRows.isEmpty()) {
+        const int rows = (m_kifuRecordModel ? m_kifuRecordModel->rowCount() : 0);
+        return (rows > 0) ? (rows - 1) : 0;  // 0=開始局面のみ
+    }
+
+    const int clamped = qBound(0, row, m_resolvedRows.size() - 1);
     return m_resolvedRows[clamped].disp.size();
 }
 
@@ -4398,8 +4400,38 @@ int MainWindow::currentPly() const
     return 0;
 }
 
-void MainWindow::applySelect(int row, int ply) {
-    applyResolvedRowAndSelect(row, ply); // 既存の“統一適用”関数へ委譲
+void MainWindow::applySelect(int row, int ply)
+{
+    // ライブ append 中 or 解決済み行が未構築のときは
+    // → 表の選択を直接動かして局面・ハイライトを同期
+    if (m_isLiveAppendMode || m_resolvedRows.isEmpty()) {
+        if (m_recordPane && m_kifuRecordModel) {
+            if (QTableView* view = m_recordPane->kifuView()) {
+                const int rows = m_kifuRecordModel->rowCount();
+                const int safe = (rows > 0) ? qBound(0, ply, rows - 1) : 0;
+
+                const QModelIndex idx = m_kifuRecordModel->index(safe, 0);
+                if (idx.isValid()) {
+                    if (auto* sel = view->selectionModel()) {
+                        sel->setCurrentIndex(
+                            idx, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+                    } else {
+                        view->setCurrentIndex(idx);
+                    }
+                    view->scrollTo(idx, QAbstractItemView::PositionAtCenter);
+                }
+
+                // 盤・ハイライト即時同期（従来の onMainMoveRowChanged と同じ流れ）
+                syncBoardAndHighlightsAtRow(safe);
+                m_currentSelectedPly = safe;
+                m_currentMoveIndex   = safe;
+            }
+        }
+        return;
+    }
+
+    // 通常（KIF再生/分岐再生）ルート
+    applyResolvedRowAndSelect(row, ply);
 }
 
 void MainWindow::setupRecordPane()

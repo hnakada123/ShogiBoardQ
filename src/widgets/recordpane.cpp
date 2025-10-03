@@ -170,15 +170,15 @@ void RecordPane::wireSignals()
         }
     };
 
-    connect(m_btn1, &QPushButton::clicked, this, [=]{ gotoRow(0); });
-    connect(m_btn2, &QPushButton::clicked, this, [=]{ gotoRow(currentRow() - 10); });
-    connect(m_btn3, &QPushButton::clicked, this, [=]{ gotoRow(currentRow() - 1); }); // 早戻し
-    connect(m_btn4, &QPushButton::clicked, this, [=]{ gotoRow(currentRow() + 1); }); // 早送り
-    connect(m_btn5, &QPushButton::clicked, this, [=]{ gotoRow(currentRow() + 10); });
-    connect(m_btn6, &QPushButton::clicked, this, [=]{
-        const int last = m_kifu && m_kifu->model() ? m_kifu->model()->rowCount() - 1 : 0;
-        gotoRow(last);
-    });
+    //connect(m_btn1, &QPushButton::clicked, this, [=]{ gotoRow(0); });
+    //connect(m_btn2, &QPushButton::clicked, this, [=]{ gotoRow(currentRow() - 10); });
+    //connect(m_btn3, &QPushButton::clicked, this, [=]{ gotoRow(currentRow() - 1); }); // 早戻し
+    //connect(m_btn4, &QPushButton::clicked, this, [=]{ gotoRow(currentRow() + 1); }); // 早送り
+    //connect(m_btn5, &QPushButton::clicked, this, [=]{ gotoRow(currentRow() + 10); });
+    //connect(m_btn6, &QPushButton::clicked, this, [=]{
+    //    const int last = m_kifu && m_kifu->model() ? m_kifu->model()->rowCount() - 1 : 0;
+    //    gotoRow(last);
+    //});
 }
 
 void RecordPane::setModels(KifuRecordListModel* recModel, KifuBranchListModel* brModel)
