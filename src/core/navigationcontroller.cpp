@@ -22,49 +22,61 @@ int NavigationController::clampRow(int row) const {
 }
 
 void NavigationController::toFirst() {
-    if (!m_ctx->hasResolvedRows()) return;
-    const int row = clampRow(m_ctx->activeResolvedRow());
+    const bool has = m_ctx->hasResolvedRows();
+    const int  row = has ? clampRow(m_ctx->activeResolvedRow()) : 0;
     m_ctx->applySelect(row, 0);
 }
 
 void NavigationController::back10() {
-    if (!m_ctx->hasResolvedRows()) return;
-    const int row    = clampRow(m_ctx->activeResolvedRow());
-    const int cur    = qBound(0, m_ctx->currentPly(), m_ctx->maxPlyAtRow(row));
+    const bool has = m_ctx->hasResolvedRows();
+    const int  row = has ? clampRow(m_ctx->activeResolvedRow()) : 0;
+
+    const int maxPly = m_ctx->maxPlyAtRow(row);                 // 空なら MainWindow 側でモデル行数-1から算出
+    const int cur    = qBound(0, m_ctx->currentPly(), maxPly);
     const int target = qMax(0, cur - 10);
+
     m_ctx->applySelect(row, target);
 }
 
 void NavigationController::prev() {
-    if (!m_ctx->hasResolvedRows()) return;
-    const int row    = clampRow(m_ctx->activeResolvedRow());
-    const int cur    = qBound(0, m_ctx->currentPly(), m_ctx->maxPlyAtRow(row));
+    const bool has = m_ctx->hasResolvedRows();
+    const int  row = has ? clampRow(m_ctx->activeResolvedRow()) : 0;
+
+    const int maxPly = m_ctx->maxPlyAtRow(row);
+    const int cur    = qBound(0, m_ctx->currentPly(), maxPly);
     const int target = qMax(0, cur - 1);
+
     m_ctx->applySelect(row, target);
 }
 
 void NavigationController::next() {
-    if (!m_ctx->hasResolvedRows()) return;
-    const int row     = clampRow(m_ctx->activeResolvedRow());
-    const int maxPly  = m_ctx->maxPlyAtRow(row);
-    const int cur     = qBound(0, m_ctx->currentPly(), maxPly);
+    // 解決済み行が無くても続行する（row は 0 扱い）
+    const bool has = m_ctx->hasResolvedRows();
+    const int  row = has ? clampRow(m_ctx->activeResolvedRow()) : 0;
+
+    const int maxPly = m_ctx->maxPlyAtRow(row);         // 空の時は MainWindow 側でモデル行数から算出
+    const int cur    = qBound(0, m_ctx->currentPly(), maxPly);
     if (cur >= maxPly) return;
-    m_ctx->applySelect(row, cur + 1);
+
+    m_ctx->applySelect(row, cur + 1);                    // 空の時は MainWindow 側のフォールバックが実行
 }
 
 void NavigationController::fwd10() {
-    if (!m_ctx->hasResolvedRows()) return;
-    const int row     = clampRow(m_ctx->activeResolvedRow());
-    const int maxPly  = m_ctx->maxPlyAtRow(row);
-    const int cur     = qBound(0, m_ctx->currentPly(), maxPly);
-    if (cur >= maxPly) return;
-    const int target  = qMin(maxPly, cur + 10);
+    const bool has = m_ctx->hasResolvedRows();
+    const int  row = has ? clampRow(m_ctx->activeResolvedRow()) : 0;
+
+    const int maxPly = m_ctx->maxPlyAtRow(row);
+    const int cur    = qBound(0, m_ctx->currentPly(), maxPly);
+    if (cur >= maxPly) return;                                   // 末尾なら何もしない
+
+    const int target = qMin(maxPly, cur + 10);
     m_ctx->applySelect(row, target);
 }
 
 void NavigationController::toLast() {
-    if (!m_ctx->hasResolvedRows()) return;
-    const int row     = clampRow(m_ctx->activeResolvedRow());
-    const int lastPly = m_ctx->maxPlyAtRow(row);
+    const bool has   = m_ctx->hasResolvedRows();
+    const int  row   = has ? clampRow(m_ctx->activeResolvedRow()) : 0;
+    const int  lastPly = m_ctx->maxPlyAtRow(row);                // 空なら 0（開始局面）想定
+
     m_ctx->applySelect(row, lastPly);
 }
