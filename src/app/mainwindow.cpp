@@ -193,23 +193,6 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(m_shogiView, &ShogiView::errorOccurred, this, &MainWindow::displayErrorMessage);
     connect(m_gameController, &ShogiGameController::endDragSignal, this, &MainWindow::endDrag, Qt::UniqueConnection);
     connect(m_gameController, &ShogiGameController::moveCommitted, this, &MainWindow::onMoveCommitted, Qt::UniqueConnection);
-
-    // 既に接続していなければ 1 回だけで OK
-    QObject::connect(m_kifuRecordModel, &QAbstractItemModel::rowsAboutToBeRemoved,
-                     this, [](const QModelIndex& parent, int first, int last){
-        Q_UNUSED(parent);
-        qDebug() << "[SIG] rowsAboutToBeRemoved" << first << last;
-    });
-    QObject::connect(m_kifuRecordModel, &QAbstractItemModel::rowsRemoved,
-                     this, [](const QModelIndex& parent, int first, int last){
-        Q_UNUSED(parent);
-        qDebug() << "[SIG] rowsRemoved" << first << last;
-    });
-    QObject::connect(m_kifuRecordModel, &QAbstractItemModel::dataChanged,
-                     this, [](const QModelIndex& tl, const QModelIndex& br, const QVector<int>& roles){
-        qDebug() << "[SIG] dataChanged" << tl.row() << tl.column() << "->" << br.row() << br.column()
-                 << "roles=" << roles;
-    });
 }
 
 // GUIを構成するWidgetなどを生成する。
