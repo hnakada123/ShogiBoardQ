@@ -283,6 +283,10 @@ void MainWindow::handleUndoMove(int index)
         return;
     }
 
+    // 評価値グラフの実体は RecordPane が所有しているので、
+    // ここで都度ゲッター経由で取得（配線漏れ/順序依存を回避）
+    EvaluationChartWidget* ec = (m_recordPane ? m_recordPane->evalChart() : nullptr);
+
     switch (m_playMode) {
     // 平手 P1: Human, P2: Engine
     case EvenHumanVsEngine:
@@ -291,25 +295,25 @@ void MainWindow::handleUndoMove(int index)
         // 2手前のposition文字列
         m_positionStr1 = m_positionStrList.at(index);
         // 評価値グラフ（後手= P2 側）から最後を1点だけ削除
-        if (m_evalChart) m_evalChart->removeLastP2();
+        if (ec) ec->removeLastP2();
         break;
 
     // 平手 P1: Engine, P2: Human
     case EvenEngineVsHuman:
         m_positionStr1 = m_positionStrList.at(index);
-        if (m_evalChart) m_evalChart->removeLastP1();
+        if (ec) ec->removeLastP1();
         break;
 
     // 駒落ち P1: Human(下手), P2: Engine(上手)
     case HandicapHumanVsEngine:
         m_positionStr1 = m_positionStrList.at(index);
-        if (m_evalChart) m_evalChart->removeLastP1();
+        if (ec) ec->removeLastP1();
         break;
 
     // 駒落ち P1: Engine(下手), P2: Human(上手)
     case HandicapEngineVsHuman:
         m_positionStr2 = m_positionStrList.at(index);
-        if (m_evalChart) m_evalChart->removeLastP2();
+        if (ec) ec->removeLastP2();
         break;
 
     default:
@@ -1181,8 +1185,6 @@ PlayMode MainWindow::setPlayMode()
 // 対局モード（人間対エンジンなど）に応じて対局処理を開始する。
 void MainWindow::startGameBasedOnMode()
 {
-    dumpEval("enter startGameBasedOnMode");
-
     if (!m_match) return;
 
     // ★ USI "position ... moves" のベースを必ず用意（空だと " 7g7f" 事故になる）
@@ -1250,8 +1252,6 @@ void MainWindow::startGameBasedOnMode()
     // …(エンジン起動/タブ再構築/チャート初期化など従来処理)…
     applyPendingEvalTrim_();   // ← 最後に必ず呼ぶ
     m_isResumeFromCurrent = false;     // 再開モード解除
-
-    dumpEval("after startGameBasedOnMode (after UI rebuild)");
 }
 
 // 棋譜解析結果を表示するためのテーブルビューを設定および表示する。
@@ -1452,8 +1452,6 @@ void MainWindow::prepareFallbackEvenStartForResume_()
 // 現在の局面で開始する場合に必要なListデータなどを用意する。
 void MainWindow::prepareDataCurrentPosition()
 {
-    dumpEval("enter prepareDataCurrentPosition");
-
     // 現在ユーザが選んだ手数（0=開始局面, 1..N）
     const int selPly = qMax(0, m_currentMoveIndex);
 
@@ -1569,8 +1567,6 @@ void MainWindow::prepareDataCurrentPosition()
 
     // ★ 直前の終局状態を必ずクリア（これが残っていると updateGameRecord が return します）
     resetGameFlags();
-
-    dumpEval("after trims (before UI rebuild)");
 }
 
 // 初期局面からの対局する場合の準備を行う。
@@ -1802,12 +1798,18 @@ void MainWindow::resetToInitialState()
     if (m_boardController)
         m_boardController->clearAllHighlights();
 
-    m_shogiView->blackClockLabel()->setText("00:00:00");
-    m_shogiView->whiteClockLabel()->setText("00:00:00");
+    if (m_shogiView) {
+        m_shogiView->blackClockLabel()->setText("00:00:00");
+        m_shogiView->whiteClockLabel()->setText("00:00:00");
+    }
 
     // 棋譜と評価値
     if (m_kifuRecordModel) m_kifuRecordModel->clearAllItems();
-    if (m_evalChart)       m_evalChart->clearAll();
+
+    // 評価値チャートは RecordPane が所有。毎回ゲッターで取得してクリア
+    if (auto* ec = (m_recordPane ? m_recordPane->evalChart() : nullptr)) {
+        ec->clearAll();
+    }
 
     // 盤面リセット
     startNewShogiGame(m_startSfenStr);
@@ -2168,8 +2170,6 @@ void MainWindow::rebuildSfenRecord(const QString& initialSfen,
 
     if (!m_sfenRecord) m_sfenRecord = new QStringList;
     *m_sfenRecord = list;                    // COW
-
-    dumpSfenRecord_("after-rebuildSfenRecord");
 }
 
 void MainWindow::rebuildGameMoves(const QString& initialSfen,
@@ -3414,8 +3414,6 @@ void MainWindow::setGameOverMove(GameOverCause cause, bool loserIsPlayerOne)
 
     // ★ 追加：現局面再開モードの解除（選択復活）
     exitLiveAppendMode_();
-
-    dumpSfenRecord_("after-setGameOverMove");
 }
 
 void MainWindow::appendKifuLine(const QString& text, const QString& elapsedTime)
@@ -3573,7 +3571,6 @@ void MainWindow::onMainMoveRowChanged(int selPly)
     qDebug().noquote() << "[ROW] onMainMoveRowChanged selPly=" << selPly
                        << " resolvedRows=" << m_resolvedRows.size()
                        << " isLiveAppend=" << m_isLiveAppendMode;
-    dumpSfenRecord_("rowChanged-before", selPly);
 
     // 再入防止（applyResolvedRowAndSelect 内で選択を動かすと再度シグナルが来るため）
     if (m_onMainRowGuard) return;
@@ -3773,7 +3770,6 @@ void MainWindow::showRecordAtPly(const QList<KifDisplayItem>& disp, int selectPl
 void MainWindow::applySfenAtCurrentPly()
 {
     qDebug().noquote() << "[UI] applySfenAtCurrentPly ply=" << m_currentSelectedPly;
-    dumpSfenRecord_("applySfenAtCurrentPly", m_currentSelectedPly);
 
     if (!m_sfenRecord || m_sfenRecord->isEmpty()) return;
 
@@ -6788,9 +6784,11 @@ void MainWindow::resetUiForResumeFromCurrent_()
         m_shogiView->whiteClockLabel()->setText("00:00:00");
     }
 
-    // ★ 再開中はグラフを消さない
+    // ★ 再開中はグラフを消さない（RecordPane から毎回取得）
     if (!m_isResumeFromCurrent) {
-        if (m_evalChart) m_evalChart->clearAll();
+        if (auto* ec = (m_recordPane ? m_recordPane->evalChart() : nullptr)) {
+            ec->clearAll();
+        }
     }
 
     if (m_modelThinking1)  m_modelThinking1->clearAllItems();
@@ -6820,8 +6818,6 @@ void MainWindow::resetUiForResumeFromCurrent_()
     updateHighlightsForPly_(m_currentSelectedPly); // （必要なら）
 
     m_onMainRowGuard = prevGuard;
-
-    dumpSfenRecord_("after-resetUiForResumeFromCurrent");
 }
 
 void MainWindow::enterLiveAppendMode_()
@@ -6863,38 +6859,12 @@ void MainWindow::purgeBranchPlayback_()
     }
 }
 
-void MainWindow::dumpSfenRecord_(const char* tag, int extraPly)
-{
-    if (!m_sfenRecord) {
-        qDebug().noquote() << QString("[SFEN][%1] m_sfenRecord = null").arg(tag);
-        return;
-    }
-    const int n = m_sfenRecord->size();
-    qDebug().noquote().nospace()
-        << "[SFEN][" << tag << "] size=" << n
-        << " resolvedRows=" << m_resolvedRows.size()
-        << " isLiveAppend=" << m_isLiveAppendMode;
-
-    // 先頭/末尾と、必要なら特定 ply を確認
-    if (n > 0) {
-        qDebug().noquote() << "  [0]   " << m_sfenRecord->at(0);
-        if (n > 1) qDebug().noquote() << "  [" << n-1 << "] " << m_sfenRecord->at(n-1);
-    }
-    if (extraPly >= 0 && extraPly < n) {
-        qDebug().noquote() << "  [" << extraPly << "] " << m_sfenRecord->at(extraPly);
-    }
-}
-
 // 指定手数 selPly（0=開始局面, 1..）まで評価値グラフを巻き戻す
 void MainWindow::trimEvalChartForResume_(int selPly)
 {
-    //begin
-    qDebug() << "=================[EVAL] trimEvalChartForResume_ ENTER"
-             << " selPly=" << selPly
-             << " isResumeFromCurrent=" << m_isResumeFromCurrent;
-    qDebug() << "m_evalChart ptr=" << static_cast<const void*>(m_evalChart);
-    //end
-    if (!m_evalChart) return;
+    // 評価値グラフは RecordPane が所有。毎回ゲッターで取得して順序依存を回避
+    EvaluationChartWidget* ec = (m_recordPane ? m_recordPane->evalChart() : nullptr);
+    if (!ec) return;
 
     const int ply = qMax(0, selPly);
 
@@ -6907,55 +6877,41 @@ void MainWindow::trimEvalChartForResume_(int selPly)
     bool keepP1 = false, keepP2 = false;
     switch (m_playMode) {
     case EvenEngineVsHuman:       // P1=Engine, P2=Human
-    case HandicapHumanVsEngine:   // あなたの実装では P1 側を描画（handleUndoMove と同じ規則に合わせる）
+    case HandicapHumanVsEngine:   // あなたの実装では P1 側を描画（handleUndoMove と同じ規則）
         keepP1 = true; break;
 
     case EvenHumanVsEngine:       // P1=Human, P2=Engine
-    case HandicapEngineVsHuman:   // あなたの実装では P2 側を描画（handleUndoMove と同じ規則に合わせる）
+    case HandicapEngineVsHuman:   // あなたの実装では P2 側を描画（handleUndoMove と同じ規則）
         keepP2 = true; break;
 
     case HandicapEngineVsEngine:  // 両側 Engine
         keepP1 = keepP2 = true; break;
 
     default:
-        // 編集モード等、不明なら両方消す（=0）にしておく
+        // 編集モード等、不明なら両方消す（=0）
         keepP1 = keepP2 = false; break;
     }
 
     // まず不要側は全部落とす
-    int curP1 = m_evalChart->countP1();
-    int curP2 = m_evalChart->countP2();
-    if (!keepP1) while (curP1-- > 0) m_evalChart->removeLastP1();
-    if (!keepP2) while (curP2-- > 0) m_evalChart->removeLastP2();
+    int curP1 = ec->countP1();
+    int curP2 = ec->countP2();
+    if (!keepP1) while (curP1-- > 0) ec->removeLastP1();
+    if (!keepP2) while (curP2-- > 0) ec->removeLastP2();
 
     // 使う側だけ、目標数まで末尾から削る
     if (keepP1) {
-        curP1 = m_evalChart->countP1();
-        while (curP1 > targetP1) { m_evalChart->removeLastP1(); --curP1; }
+        curP1 = ec->countP1();
+        while (curP1 > targetP1) { ec->removeLastP1(); --curP1; }
     }
     if (keepP2) {
-        curP2 = m_evalChart->countP2();
-        while (curP2 > targetP2) { m_evalChart->removeLastP2(); --curP2; }
+        curP2 = ec->countP2();
+        while (curP2 > targetP2) { ec->removeLastP2(); --curP2; }
     }
 
     // スカラー履歴（最後に push している CP 値の束）も整合を取る
     const int targetTotal = (keepP1 ? targetP1 : 0) + (keepP2 ? targetP2 : 0);
     while (!m_scoreCp.isEmpty() && m_scoreCp.size() > targetTotal)
         m_scoreCp.removeLast();
-
-    qDebug() << "@@@@@@@@@@@@@@@@@@[EVAL] trim to ply=" << ply
-             << " target(P1,P2)=" << (keepP1?targetP1:0) << (keepP2?targetP2:0)
-             << " now(P1,P2)=" << m_evalChart->countP1() << m_evalChart->countP2()
-             << " scoreCp=" << m_scoreCp.size();
-}
-
-void MainWindow::dumpEval(const char* tag) const {
-    qDebug().nospace()
-        << "[EVAL] " << tag
-        << " ptr=" << static_cast<const void*>(m_evalChart)
-        << " P1=" << (m_evalChart ? m_evalChart->countP1() : -1)
-        << " P2=" << (m_evalChart ? m_evalChart->countP2() : -1)
-        << " scoreCp=" << m_scoreCp.size();
 }
 
 void MainWindow::applyPendingEvalTrim_()

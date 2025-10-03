@@ -131,7 +131,6 @@ private:
     QWidget*    m_gameRecordLayoutWidget = nullptr; // 右側（RecordPane）
     QWidget*    m_playerAndBoardLayoutWidget = nullptr;
     QSplitter*  m_hsplit = nullptr;
-    EvaluationChartWidget* m_evalChart = nullptr;
 
     // --- ダイアログ / 補助ウィンドウ ---
     StartGameDialog*         m_startGameDialog = nullptr;
@@ -606,13 +605,9 @@ private:
     void exitLiveAppendMode_();   // 終局で選択を元に戻す
     void purgeBranchPlayback_();
 
-    void dumpSfenRecord_(const char* tag, int extraPly = -1);
-
     void trimEvalChartForResume_(int selPly);
 
     void prepareFallbackEvenStartForResume_();
-
-    void dumpEval(const char* tag) const;
 
     bool m_isResumeFromCurrent = false;
     int  m_pendingEvalTrimPly  = -1;
