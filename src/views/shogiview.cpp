@@ -604,14 +604,9 @@ void ShogiView::drawPieces(QPainter* painter)
 // 備考：重ね順は「駒 → 枚数」の順（枚数テキストを上に重ねる）。
 void ShogiView::drawPiecesBlackStandInEditMode(QPainter* painter)
 {
-    // 必要なら共通の文字色やレンダリングヒントをここで一度だけ設定
-    // painter->setPen(palette().color(QPalette::WindowText));
-    // painter->setRenderHint(QPainter::SmoothPixmapTransform, true); // アイコン拡縮の画質向上
-
     for (int r = 2; r <= 9; ++r) {
         // 各行での状態保存は行わない（コスト削減）。
         drawEditModeBlackStandPiece(painter, 2, r);       // 駒アイコン等
-        drawEditModeBlackStandPieceCount(painter, 1, r);  // 枚数テキスト
     }
 }
 
@@ -619,12 +614,8 @@ void ShogiView::drawPiecesBlackStandInEditMode(QPainter* painter)
 // 方針・前提は先手側と同じ。重ね順は「駒 → 枚数」。
 void ShogiView::drawPiecesWhiteStandInEditMode(QPainter* painter)
 {
-    // painter->setPen(palette().color(QPalette::WindowText));
-    // painter->setRenderHint(QPainter::SmoothPixmapTransform, true);
-
     for (int r = 1; r <= 8; ++r) {
         drawEditModeWhiteStandPiece(painter, 1, r);
-        drawEditModeWhiteStandPieceCount(painter, 2, r);
     }
 }
 
@@ -633,12 +624,8 @@ void ShogiView::drawPiecesWhiteStandInEditMode(QPainter* painter)
 // 前提：drawBlackStandPiece()/drawBlackStandPieceCount() は QPainter の永続状態を汚さない。
 void ShogiView::drawPiecesBlackStandInNormalMode(QPainter* painter)
 {
-    // painter->setPen(palette().color(QPalette::WindowText));
-    // painter->setRenderHint(QPainter::SmoothPixmapTransform, true);
-
     for (int r = 3; r <= 9; ++r) {
         drawBlackStandPiece(painter, 2, r);
-        drawBlackStandPieceCount(painter, 1, r);
     }
 }
 
@@ -646,12 +633,8 @@ void ShogiView::drawPiecesBlackStandInNormalMode(QPainter* painter)
 // 方針・前提は先手側と同じ。重ね順は「駒 → 枚数」。
 void ShogiView::drawPiecesWhiteStandInNormalMode(QPainter* painter)
 {
-    // painter->setPen(palette().color(QPalette::WindowText));
-    // painter->setRenderHint(QPainter::SmoothPixmapTransform, true);
-
     for (int r = 1; r <= 7; ++r) {
         drawWhiteStandPiece(painter, 1, r);
-        drawWhiteStandPieceCount(painter, 2, r);
     }
 }
 
@@ -969,67 +952,100 @@ void ShogiView::drawPiece(QPainter* painter, const int file, const int rank)
     }
 }
 
-// 駒台セルの矩形（adjustedRect）内に、指定の駒（value）のアイコンを描画する。
-// 方針：QPainter の永続状態（ペン/ブラシ/変換/クリップ等）は変更しない（状態は汚さない）。
-// 役割：
-//  - ドラッグ中は一時カウント（m_tempPieceStandCounts）を優先して表示枚数を反映
-//  - 枚数が 1 以上かつ value が空白でない場合のみ、対応アイコンを中央揃えで描画
-// 引数：
-//  - painter      : 既に有効な QPainter（状態はここで変更しない）
-//  - adjustedRect : すでに盤/駒台オフセットを加味した描画矩形（セルの表示領域）
-//  - value        : 駒文字（'P','L','N','B','R','G','S','K','p',… など）。' ' は空
+// 駒台セル（adjustedRect）内に、value の駒アイコンを「枚数ぶん」重ねて描き、
+// 右下に見やすい枚数バッジを重ねる
 void ShogiView::drawStandPieceIcon(QPainter* painter, const QRect& adjustedRect, QChar value) const
 {
-    // 【表示枚数の決定】
-    // ドラッグ中で、その駒の一時枚数が用意されている場合はそれを優先。
-    // そうでなければ通常の駒台枚数（m_board->m_pieceStand）を参照。
     const int count = (m_dragging && m_tempPieceStandCounts.contains(value))
-                          ? m_tempPieceStandCounts[value]
-                          : m_board->m_pieceStand.value(value);
+    ? m_tempPieceStandCounts[value]
+    : m_board->m_pieceStand.value(value);
+    if (count <= 0 || value == QLatin1Char(' ')) return;
 
-    // 【描画条件】
-    //  - 枚数が 1 以上（0 以下なら何も置かれていない）
-    //  - 駒文字が空白でない（防御的チェック）
-    if (count > 0 && value != QLatin1Char(' ')) {
-        // 駒文字に対応するアイコンを取得（無ければ何もしない）
-        const QIcon icon = piece(value);
-        if (!icon.isNull()) {
-            // 【描画】painter の状態は汚さず、セル中央にアイコンを配置
-            icon.paint(painter, adjustedRect, Qt::AlignCenter);
+    const QIcon icon = piece(value);
+
+    // ---- レイアウト計算 ----
+    const qreal scale = 0.88;
+    const int cellW = adjustedRect.width();
+    const int cellH = adjustedRect.height();
+    const int iconW = qMax(1, int(cellW * scale));
+    const int iconH = qMax(1, int(cellH * scale));
+
+    // 基準矩形（セル中央）
+    QRect base(0, 0, iconW, iconH);
+    base.moveCenter(adjustedRect.center());
+
+    // 左->右へ、かつ少しだけ上に積む
+    const qreal slackX = qMax(0, cellW - iconW);
+    const qreal dx     = (count > 1) ? (slackX / qreal(count - 1)) : 0.0;
+
+    const qreal slackY = qMax(0, cellH - iconH);
+    const qreal dy     = (count > 1) ? (-qMin(iconH * 0.25, slackY * 0.6) / qreal(count - 1)) : 0.0;
+
+    painter->save();
+    painter->setClipRect(adjustedRect);
+    painter->setRenderHint(QPainter::SmoothPixmapTransform, true);
+    painter->setRenderHint(QPainter::Antialiasing, true);
+
+    // アイコン → ピクスマップ化（確実に描けるように）
+    QPixmap pm = icon.pixmap(QSize(iconW, iconH), QIcon::Normal, QIcon::On);
+
+    // フォールバック（万一アイコンが無い場合は文字で描く）
+    const bool iconOk = !pm.isNull();
+
+    // 奥→手前の順で重ね描き
+    for (int i = 0; i < count; ++i) {
+        const QRect r = base.translated(int(i * dx), int(i * dy));
+        if (iconOk) {
+            painter->drawPixmap(r, pm);
+        } else {
+            QFont f = painter->font();
+            f.setPixelSize(qMax(8, int(iconH * 0.7)));
+            painter->setFont(f);
+            painter->drawText(r, Qt::AlignCenter, QString(value));
         }
     }
-}
 
-// 駒台セル内に表示する「枚数テキスト」を描画する。
-// 方針：QPainter の永続状態（フォント/ペン/ブラシ/変換/クリップ等）は変更しない（状態は汚さない）。
-// 役割：
-//  - ドラッグ中は一時枚数（m_tempPieceStandCounts）を優先して表示に反映
-//  - 編集モードでは 0 でも「0」を表示、通常モードでは 0 のときは空白表示にして省略
-// 引数：
-//  - painter      : 既に有効な QPainter。ここでは状態を変更しない。
-//  - adjustedRect : 駒台セル（1マス）の描画領域（盤オフセット反映済み）
-//  - value        : 駒文字（'P','L','N','B','R','G','S','K','p', …）
-// 注意：文字色やフォントサイズなどのスタイルは呼び出し元（外側）で共通設定する。
-void ShogiView::drawStandPieceCount(QPainter* painter, const QRect& adjustedRect, QChar value) const
-{
-    // 【表示枚数の決定】
-    // ドラッグ中は一時カウントを優先。それ以外は通常の駒台カウントを使用。
-    const int count = (m_dragging && m_tempPieceStandCounts.contains(value))
-                          ? m_tempPieceStandCounts[value]
-                          : m_board->m_pieceStand.value(value);
+    // ---- 枚数バッジ（2枚以上のときだけ）----
+    if (count >= 2) {
+        // 最前面アイコンの矩形
+        const QRect topRect = base.translated(int((count - 1) * dx), int((count - 1) * dy));
 
-    // 【テキストの決定】
-    // 編集モード：0 でも "0" を表示（在庫確認や配置編集の明確化のため）
-    // 通常モード：0 のときは空白（スペース1個）として非表示っぽく見せる
-    QString pieceCountText;
-    if (m_positionEditMode) {
-        pieceCountText = QString::number(count);
-    } else {
-        pieceCountText = (count > 0) ? QString::number(count) : QStringLiteral(" ");
+        const QString text = QString::number(count);
+
+        // バッジ用フォント（アイコン高さに応じて自動調整）
+        QFont f = painter->font();
+        const int px = qBound(9, int(iconH * 0.34), 48); // だいたい1/3弱
+        f.setPixelSize(px);
+        f.setBold(true);
+        painter->setFont(f);
+
+        QFontMetrics fm(f);
+        const int padX = qMax(3, iconW / 18);
+        const int padY = qMax(2, iconH / 22);
+        const QSize tsz = fm.size(Qt::TextSingleLine, text);
+
+        QRect badge(0, 0, tsz.width() + padX * 2, tsz.height() + padY * 2);
+
+        // 右下に配置（少しだけ内側に寄せる）
+        const int margin = qMax(2, iconW / 40);
+        badge.moveBottomRight(QPoint(topRect.right() - margin, topRect.bottom() - margin));
+
+        // 背景（半透明黒）＋白縁 → 白文字
+        const qreal radius = qMin(badge.width(), badge.height()) * 0.35;
+        QPen outline(QColor(255, 255, 255, 220), qMax(1, iconW / 60));
+        painter->setPen(Qt::NoPen);
+        painter->setBrush(QColor(0, 0, 0, 170));
+        painter->drawRoundedRect(badge, radius, radius);
+
+        painter->setPen(outline);
+        painter->setBrush(Qt::NoBrush);
+        painter->drawRoundedRect(badge, radius, radius);
+
+        painter->setPen(Qt::white);
+        painter->drawText(badge, Qt::AlignCenter, text);
     }
 
-    // 【描画】painter の状態は汚さず、矩形中央（垂直・水平）にテキストを配置
-    painter->drawText(adjustedRect, Qt::AlignVCenter | Qt::AlignCenter, pieceCountText);
+    painter->restore();
 }
 
 // 先手（黒）側の名前ラベル（ElideLabel）を返すゲッター。
@@ -1108,58 +1124,6 @@ void ShogiView::drawWhiteStandPiece(QPainter* painter, const int file, const int
     // (4) 駒台セル内へアイコン描画（枚数0なら描かない／ドラッグ中は一時枚数を優先）
     //     ※ drawStandPieceIcon は painter の状態を汚さない前提。
     drawStandPieceIcon(painter, adjustedRect, value);
-}
-
-// 先手（黒）側の駒台セルに対応する「枚数テキスト」を描画する。
-// 方針：本関数は QPainter の永続状態（フォント/ペン/ブラシ/変換/クリップ等）を変更しない。
-// 手順：
-//  1) (file, rank) の基準マス矩形を取得（反転状態を内部で考慮）
-//  2) 基準マスから「左側の駒台」方向へ水平シフトして、駒台セル矩形を算出
-//  3) rank を先手の駒種（駒文字）へマッピング
-//  4) ヘルパ drawStandPieceCount() に委譲（ドラッグ中の一時枚数やモード別表示規則を適用）
-void ShogiView::drawBlackStandPieceCount(QPainter* painter, const int file, const int rank) const
-{
-    // (1) 盤座標 → 基準マス矩形
-    const QRect fieldRect = calculateSquareRectangleBasedOnBoardState(file, rank);
-
-    // (2) 先手は左側の駒台へ配置（m_param1 は先手用の水平シフト量）
-    QRect adjustedRect = makeStandCellRect(
-        m_flipMode,               // 反転有無
-        m_param1,                 // 先手側の寄せ量
-        m_offsetX, m_offsetY,     // 盤全体の原点シフト
-        fieldRect,
-        /*leftSide=*/true
-        );
-
-    // (3) 段番号 → 先手の駒種（駒文字）
-    QChar value = rankToBlackShogiPiece(rank);
-
-    // (4) 駒台セル内に枚数テキストを描画（編集/通常モードの表示規則は内部で処理）
-    drawStandPieceCount(painter, adjustedRect, value);
-}
-
-// 後手（白）側の駒台セルに対応する「枚数テキスト」を描画する。
-// 方針：本関数は QPainter の永続状態を変更しない（必要なスタイルは呼び出し元で共通設定）。
-// 手順は先手側と同様だが、(2) で右側の駒台へ寄せ、(3) で後手の駒種にマッピングする点が異なる。
-void ShogiView::drawWhiteStandPieceCount(QPainter* painter, const int file, const int rank) const
-{
-    // (1) 盤座標 → 基準マス矩形
-    const QRect fieldRect = calculateSquareRectangleBasedOnBoardState(file, rank);
-
-    // (2) 後手は右側の駒台へ配置（m_param2 は後手用の水平シフト量）
-    QRect adjustedRect = makeStandCellRect(
-        m_flipMode,               // 反転有無
-        m_param2,                 // 後手側の寄せ量
-        m_offsetX, m_offsetY,     // 盤全体の原点シフト
-        fieldRect,
-        /*leftSide=*/false
-        );
-
-    // (3) 段番号 → 後手の駒種（駒文字）
-    QChar value = rankToWhiteShogiPiece(rank);
-
-    // (4) 駒台セル内に枚数テキストを描画（ドラッグ中は一時枚数を優先）
-    drawStandPieceCount(painter, adjustedRect, value);
 }
 
 // 盤上および駒台（疑似座標 file=10/11）のハイライト矩形を塗る。
@@ -1699,20 +1663,6 @@ void ShogiView::drawEditModeBlackStandPiece(QPainter* painter, const int file, c
     }
 }
 
-// 【編集モード：先手（黒）側の駒台セルに“枚数テキスト”を描画】
-// 方針：本関数は QPainter の永続状態を変更しない（フォント/色は呼び出し側の共通設定に従う）。
-// 手順：基準マス → 左側駒台へシフト → 先手の駒種へマッピング → ヘルパで枚数描画。
-// 備考：編集モードでは 0 でも "0" を表示（drawStandPieceCount 内部仕様）。
-void ShogiView::drawEditModeBlackStandPieceCount(QPainter* painter, const int file, const int rank) const
-{
-    const QRect fieldRect = calculateSquareRectangleBasedOnBoardState(file, rank);
-    QRect adjustedRect = makeStandCellRect(
-        m_flipMode, m_param1, m_offsetX, m_offsetY, fieldRect, /*leftSide=*/true
-        );
-    QChar value = rankToBlackShogiPiece(rank);
-    drawStandPieceCount(painter, adjustedRect, value);
-}
-
 // 【編集モード：後手（白）側の駒台セルに“駒アイコン”を描画】
 // 方針：QPainter の永続状態は変更しない。
 // 手順：基準マス → 右側駒台へシフト（m_param2）→ 後手の駒種へマッピング → アイコン描画。
@@ -1736,19 +1686,6 @@ void ShogiView::drawEditModeWhiteStandPiece(QPainter* painter, const int file, c
             icon.paint(painter, adjustedRect, Qt::AlignCenter);
         }
     }
-}
-
-// 【編集モード：後手（白）側の駒台セルに“枚数テキスト”を描画】
-// 方針：QPainter の永続状態は変更しない。具体的なスタイルは呼び出し側の共通設定に従う。
-// 手順：基準マス → 右側駒台へシフト → 後手の駒種へマッピング → ヘルパで枚数描画。
-void ShogiView::drawEditModeWhiteStandPieceCount(QPainter* painter, const int file, const int rank) const
-{
-    const QRect fieldRect = calculateSquareRectangleBasedOnBoardState(file, rank);
-    QRect adjustedRect = makeStandCellRect(
-        m_flipMode, m_param2, m_offsetX, m_offsetY, fieldRect, /*leftSide=*/false
-        );
-    QChar value = rankToWhiteShogiPiece(rank);
-    drawStandPieceCount(painter, adjustedRect, value);
 }
 
 // 盤の反転モード（先手/後手の向き）を切り替えるセッター。
