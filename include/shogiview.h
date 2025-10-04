@@ -222,14 +222,10 @@ private:
     // 駒台（駒・枚数：通常モード）
     void drawBlackStandPiece(QPainter* painter, int file, int rank) const;
     void drawWhiteStandPiece(QPainter* painter, int file, int rank) const;
-    void drawBlackStandPieceCount(QPainter* painter, int file, int rank) const;
-    void drawWhiteStandPieceCount(QPainter* painter, int file, int rank) const;
 
     // 駒台（駒・枚数：編集モード）
     void drawEditModeBlackStandPiece(QPainter* painter, int file, int rank) const;
-    void drawEditModeBlackStandPieceCount(QPainter* painter, int file, int rank) const;
     void drawEditModeWhiteStandPiece(QPainter* painter, int file, int rank) const;
-    void drawEditModeWhiteStandPieceCount(QPainter* painter, int file, int rank) const;
     void drawEditModeFeatures(QPainter* painter);
 
     // 表示モード別の駒台領域/駒描画
@@ -250,7 +246,6 @@ private:
 
     // 駒台の駒・枚数描画の共通ロジック
     void drawStandPieceIcon(QPainter* painter, const QRect& adjustedRect, QChar value) const;
-    void drawStandPieceCount(QPainter* painter, const QRect& adjustedRect, QChar value) const;
 
     // 駒台の段→駒文字マッピング
     QChar rankToBlackShogiPiece(int rank) const;
