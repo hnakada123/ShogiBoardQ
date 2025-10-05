@@ -317,6 +317,47 @@ QRect ShogiView::calculateSquareRectangleBasedOnBoardState(const int file, const
     return QRect(xPosition, yPosition, fs.width(), fs.height());
 }
 
+QRect ShogiView::calculateSquareRectangleBasedOnBoardState2(const int file, const int rank) const
+{
+    // 盤未設定なら空矩形を返す（呼び出し側で無視できるように）。
+    if (!m_board) return QRect();
+
+    const QSize fs = fieldSize();
+    int xPosition, yPosition;
+
+    // rank を変換
+    int adjustedRank = 0;
+    switch (rank) {
+    case 2:
+    case 3:
+        adjustedRank = 6;
+        break;
+    case 4:
+    case 5:
+        adjustedRank = 7;
+        break;
+    case 6:
+    case 7:
+        adjustedRank = 8;
+        break;
+    case 8:
+    case 9:
+        adjustedRank = 9;
+        break;
+    }
+
+    // 【座標系の切替】反転モードのときは上下/左右の向きを入れ替える。
+    if (m_flipMode) {
+        xPosition = (file - 1) * fs.width();
+        yPosition = (m_board->ranks() - adjustedRank) * fs.height();
+    } else {
+        xPosition = (m_board->files() - file) * fs.width();
+        yPosition = (adjustedRank - 1) * fs.height();
+    }
+
+    return QRect(xPosition, yPosition, fs.width(), fs.height());
+}
+
 // 段番号/筋番号などのラベル描画に用いる矩形領域を算出。
 // 盤の反転状態に合わせてYのみ上下を切替。Xは左→右の自然順で配置し、最後にUI都合で +30px 平行移動。
 // ※ +30px はラベルの視認性/余白確保のための固定オフセット（デザイン調整値）。
@@ -491,41 +532,23 @@ void ShogiView::drawEditModeStand(QPainter* painter)
     drawWhiteEditModeStand(painter);
 }
 
-// 【通常対局モード：先手（黒）の駒台マスを描画】
-// 最適化方針：セルごとの save()/restore() を撤去し、共通状態は外側で一度だけ設定。
-// 前提：drawBlackStandField() は QPainter の永続状態（ペン/ブラシ/変換/クリップ等）を汚さないこと。
-//       一時的な状態変更が必要な場合は、drawBlackStandField() 内で当該箇所のみ局所 save()/restore() を行う。
 void ShogiView::drawBlackNormalModeStand(QPainter* painter)
 {
-    // 【共通状態の一括設定】
-    // 駒台グリッド線などの描画に用いるペン色。必要に応じて調整してください。
     painter->setPen(palette().color(QPalette::Dark));
-    // painter->setBrush(Qt::NoBrush); // 必要に応じて
-
-    // 【描画ループ】通常モードの先手駒台領域：r=3..9, c=1..2 を走査し、各セルの描画を委譲
-    for (int r = 3; r <= 9; ++r) {
+    // ★ r=3..9 → r=6..9（4行）に短縮
+    for (int r = 6; r <= 9; ++r) {
         for (int c = 1; c <= 2; ++c) {
-            // セルごとの save/restore は行わない（コスト削減）。
-            // drawBlackStandField 側は必要箇所のみ局所保護する契約。
             drawBlackStandField(painter, c, r);
         }
     }
 }
 
-// 【通常対局モード：後手（白）の駒台マスを描画】
-// 最適化方針：セルごとの save()/restore() を撤去し、共通状態は外側で一度だけ設定。
-// 前提：drawWhiteStandField() は QPainter の永続状態を汚さない（必要時のみ局所 save()/restore()）。
 void ShogiView::drawWhiteNormalModeStand(QPainter* painter)
 {
-    // 【共通状態の一括設定】
     painter->setPen(palette().color(QPalette::Dark));
-    // painter->setBrush(Qt::NoBrush); // 必要に応じて
-
-    // 【描画ループ】通常モードの後手駒台領域：r=1..7, c=1..2 を走査し、各セルの描画を委譲
-    for (int r = 1; r <= 7; ++r) {
+    // ★ r=1..7 → r=1..4（4行）に短縮
+    for (int r = 1; r <= 4; ++r) {
         for (int c = 1; c <= 2; ++c) {
-            // セルごとの save/restore は行わない（コスト削減）。
-            // drawWhiteStandField 側で必要箇所のみ局所保護する。
             drawWhiteStandField(painter, c, r);
         }
     }
@@ -619,22 +642,33 @@ void ShogiView::drawPiecesWhiteStandInEditMode(QPainter* painter)
     }
 }
 
-// 【通常対局モード：先手（黒）の駒台にある“駒”と“枚数”を描画】
-// 最適化方針：save()/restore() の反復を撤去。共通状態は外側一括設定。
-// 前提：drawBlackStandPiece()/drawBlackStandPieceCount() は QPainter の永続状態を汚さない。
+// 【通常対局モード：先手（左側）駒台のアイコンを 4×2 で描画】
 void ShogiView::drawPiecesBlackStandInNormalMode(QPainter* painter)
 {
-    for (int r = 3; r <= 9; ++r) {
-        drawBlackStandPiece(painter, 2, r);
+    // 左列：R, G, N, P （= 飛, 金, 桂, 歩）
+    // 右列：K, B, S, L （= 王, 角, 銀, 香）
+    const int ranks [4] = { 6, 7, 8, 9 };
+
+    // 左列は file=2、右列は file=1（このコードの座標系では file=2 の方が左寄り）
+    for (int row = 0; row < 4; ++row) {
+        for (int file = 1; file <= 2; ++file) {
+            drawBlackStandPiece(painter, file, ranks[row]);
+        }
     }
 }
 
-// 【通常対局モード：後手（白）の駒台にある“駒”と“枚数”を描画】
-// 方針・前提は先手側と同じ。重ね順は「駒 → 枚数」。
+// 【通常対局モード：後手（右側）駒台のアイコンを 4×2 で描画】
 void ShogiView::drawPiecesWhiteStandInNormalMode(QPainter* painter)
 {
-    for (int r = 1; r <= 7; ++r) {
-        drawWhiteStandPiece(painter, 1, r);
+    // 左列：r, g, n, p（= 飛, 金, 桂, 歩）
+    // 右列：k, b, s, l（= 王, 角, 銀, 香）
+    const int ranks [4] = { 4, 3, 2, 1 };
+
+    // 右側駒台でも相対的な“左列”は file=2、“右列”は file=1 が自然に並ぶ
+    for (int row = 0; row < 4; ++row) {
+        for (int file = 1; file <= 2; ++file) {
+            drawWhiteStandPiece(painter, file, ranks[row]);
+        }
     }
 }
 
@@ -1090,7 +1124,7 @@ void ShogiView::drawBlackStandPiece(QPainter* painter, const int file, const int
 
     // (3) 段番号→先手の駒種（駒文字）へのマッピング
     //     例：歩・香・桂・銀・金・角・飛・玉…などの並びを rank に応じて返す想定。
-    QChar value = rankToBlackShogiPiece(rank);
+    QChar value = rankToBlackShogiPiece(file, rank);
 
     // (4) 駒台セル内へアイコン描画（枚数 0 なら描かない、ドラッグ中は一時枚数を優先）
     //     ※ drawStandPieceIcon は painter の状態を汚さない前提。
@@ -1119,7 +1153,7 @@ void ShogiView::drawWhiteStandPiece(QPainter* painter, const int file, const int
         );
 
     // (3) 段番号 → 後手の駒種（駒文字）へのマッピング
-    QChar value = rankToWhiteShogiPiece(rank);
+    QChar value = rankToWhiteShogiPiece(file, rank);
 
     // (4) 駒台セル内へアイコン描画（枚数0なら描かない／ドラッグ中は一時枚数を優先）
     //     ※ drawStandPieceIcon は painter の状態を汚さない前提。
@@ -1652,7 +1686,7 @@ void ShogiView::drawEditModeBlackStandPiece(QPainter* painter, const int file, c
         );
 
     // (3) 段番号 → 先手の駒種
-    QChar value = rankToBlackShogiPiece(rank);
+    QChar value = rankToBlackShogiPiece(file, rank);
 
     // (4) 駒アイコンの描画（空白なら描かない）
     if (value != QLatin1Char(' ')) {
@@ -1677,7 +1711,7 @@ void ShogiView::drawEditModeWhiteStandPiece(QPainter* painter, const int file, c
         );
 
     // (3) 段番号 → 後手の駒種
-    QChar value = rankToWhiteShogiPiece(rank);
+    QChar value = rankToWhiteShogiPiece(file, rank);
 
     // (4) 駒アイコンの描画（空白なら描かない）
     if (value != QLatin1Char(' ')) {
@@ -1786,31 +1820,59 @@ void ShogiView::flipBoardSides()
     update();                  // (3) 画面再描画
 }
 
-// 段番号（rank）を「先手（黒）」の駒文字に対応付けて返す。
-// 用途：駒台の各段にどの駒を並べるかを決めるためのヘルパ。
-// 仕様：rank=2..9 を K,R,B,G,S,N,L,P に割当て。未定義の段は空白 ' ' を返す。
-// 実装：関数内 static の QMap を用いて一度だけ初期化（C++11以降はスレッド安全な静的初期化）。
-QChar ShogiView::rankToBlackShogiPiece(const int rank) const
+QChar ShogiView::rankToBlackShogiPiece(const int file, const int rank) const
 {
-    static const QMap<int, QChar> rankToPiece = {
-        {2, 'K'}, {3, 'R'}, {4, 'B'}, {5, 'G'}, {6, 'S'}, {7, 'N'}, {8, 'L'}, {9, 'P'}
-    };
-    return rankToPiece.value(rank, ' ');  // 未該当は空
+    // 右列(file=1): K, B, S, L
+    if (file == 1) {
+        switch (rank) {
+        case 6: return 'K';
+        case 7: return 'B';
+        case 8: return 'S';
+        case 9: return 'L';
+        default: return ' '; // 想定外の段は空
+        }
+    }
+    // 左列(file=2): R, G, N, P
+    else if (file == 2) {
+        switch (rank) {
+        case 6: return 'R';
+        case 7: return 'G';
+        case 8: return 'N';
+        case 9: return 'P';
+        default: return ' '; // 想定外の段は空
+        }
+    }
+    else {
+        return ' '; // file が 1/2 以外なら空
+    }
 }
 
-// 段番号（rank）を「後手（白）」の駒文字に対応付けて返す。
-// 用途：駒台の各段にどの駒を並べるかを決めるためのヘルパ。
-// 仕様：rank=1..8 を p,l,n,s,g,b,r,k に割当て。未定義の段は空白 ' ' を返す。
-// 備考：大文字＝先手、 小文字＝後手 の規約に従う。
-QChar ShogiView::rankToWhiteShogiPiece(const int rank) const
+QChar ShogiView::rankToWhiteShogiPiece(const int file, const int rank) const
 {
-    static const QMap<int, QChar> rankToPiece = {
-        {1, 'p'}, {2, 'l'}, {3, 'n'}, {4, 's'}, {5, 'g'}, {6, 'b'}, {7, 'r'}, {8, 'k'}
-    };
-    return rankToPiece.value(rank, ' ');  // 未該当は空
+    // 左列(file=1): r, g, n, p
+    if (file == 1) {
+        switch (rank) {
+        case 4: return 'r';
+        case 3: return 'g';
+        case 2: return 'n';
+        case 1: return 'p';
+        default: return ' '; // 想定外の段は空
+        }
+    }
+    // 右列(file=2): k, b, s, l
+    else if (file == 2) {
+        switch (rank) {
+        case 4: return 'k';
+        case 3: return 'b';
+        case 2: return 's';
+        case 1: return 'l';
+        default: return ' '; // 想定外の段は空
+        }
+    }
+    else {
+        return ' '; // file が 1/2 以外なら空
+    }
 }
-
-
 
 // ドラッグ操作の開始処理。
 // 役割：
