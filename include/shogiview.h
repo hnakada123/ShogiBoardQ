@@ -81,6 +81,7 @@ public:
 
     // 盤/ラベル座標計算（反転考慮）
     QRect calculateSquareRectangleBasedOnBoardState(int file, int rank) const;
+    QRect calculateSquareRectangleBasedOnBoardState2(const int file, const int rank) const;
     QRect calculateRectangleForRankOrFileLabel(int file, int rank) const;
 
     // ───────────────────────────── 駒画像管理 ────────────────────────────────
@@ -248,8 +249,8 @@ private:
     void drawStandPieceIcon(QPainter* painter, const QRect& adjustedRect, QChar value) const;
 
     // 駒台の段→駒文字マッピング
-    QChar rankToBlackShogiPiece(int rank) const;
-    QChar rankToWhiteShogiPiece(int rank) const;
+    QChar rankToBlackShogiPiece(const int file, const int rank) const;
+    QChar rankToWhiteShogiPiece(const int file, const int rank) const;
 
     // ───────────────────────────── ラベルとレイアウト ──────────────────────
     void updateBlackClockLabelGeometry();   // 黒側ラベルのジオメトリ更新
