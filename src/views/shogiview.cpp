@@ -1239,9 +1239,20 @@ QPoint ShogiView::getClickedSquareInDefaultState(const QPoint& pos) const
     // ───────────────────────── 2) 駒台（file=10 側）判定 ─────────────────────────
     // X,Y を盤の左上原点に正規化して、駒台の「1列ぶん幅（[0,1)）」に入っているかを判定する。
     // m_param2 はこの駒台列の水平シフト量（UI 調整値）。
+
+    //begin
+    qDebug() << "in getClickedSquareInDefaultState";
+    //end
+
     float tempFile = (pos.x() - m_param2 - m_offsetX) / float(w);
     float tempRank = (pos.y() - m_offsetY) / float(h);
+    int   file     = static_cast<int>(tempFile);
     int   rank     = static_cast<int>(tempRank);
+
+    //begin
+    //qDebug() << "tempFile:" << tempFile << ", tempRank:" << tempRank;
+    //qDebug() << "file:" << file << ", rank:" << rank;
+    //end
 
     if (m_positionEditMode) {
         // 編集モード：有効な rank は [1..8]
@@ -1250,25 +1261,49 @@ QPoint ShogiView::getClickedSquareInDefaultState(const QPoint& pos) const
             return QPoint(10, m_board->ranks() - rank);
     } else {
         // 通常モード：有効な rank は [2..8]（仕様踏襲）
-        if ((tempFile >= 0) && (tempFile < 1) && (rank >= 2) && (rank <= 8))
-            return QPoint(10, m_board->ranks() - rank);
+        if (file == 0) {
+            if (rank == 8) return QPoint(10, 1); // 歩 P
+            if (rank == 7) return QPoint(10, 3); // 桂 N
+            if (rank == 6) return QPoint(10, 5); // 金 G
+            if (rank == 5) return QPoint(10, 7); // 飛 R
+        } else if (file == 1) {
+            if (rank == 8) return QPoint(10, 2); // 香 L
+            if (rank == 7) return QPoint(10, 4); // 銀 S
+            if (rank == 6) return QPoint(10, 6); // 角 B
+            if (rank == 5) return QPoint(10, 8); // 玉 K
+        }
     }
 
     // ───────────────────────── 3) 駒台（file=11 側）判定 ─────────────────────────
     // こちらは m_param1 を使った別側の駒台列。整数部 file==1（2列目）を条件としている既存仕様を踏襲。
     tempFile = (pos.x() + m_param1 - m_offsetX) / float(w);
     tempRank = (pos.y() - m_offsetY) / float(h);
-    int file = static_cast<int>(tempFile);
+    file     = static_cast<int>(tempFile);
     rank     = static_cast<int>(tempRank);
+
+    //begin
+    qDebug() << "in getClickedSquareInDefaultState (file=11 side)";
+    qDebug() << "tempFile:" << tempFile << ", tempRank:" << tempRank;
+    qDebug() << "file:" << file << ", rank:" << rank;
+    //end
 
     if (m_positionEditMode) {
         // 編集モード：有効な rank は [0..7]
         if ((file == 1) && (rank >= 0) && (rank <= 7))
             return QPoint(11, m_board->ranks() - rank);
     } else {
-        // 通常モード：有効な rank は [0..6]（仕様踏襲）
-        if ((file == 1) && (rank >= 0) && (rank <= 6))
-            return QPoint(11, m_board->ranks() - rank);
+        // 通常モード：有効な rank は [2..8]（仕様踏襲）
+        if (file == 1) {
+            if (rank == 0) return QPoint(11, 9); // 歩 p
+            if (rank == 1) return QPoint(11, 7); // 桂 n
+            if (rank == 2) return QPoint(11, 5); // 金 g
+            if (rank == 3) return QPoint(11, 3); // 飛 r
+        } else if (file == 0) {
+            if (rank == 0) return QPoint(11, 8); // 香 l
+            if (rank == 1) return QPoint(11, 6); // 銀 s
+            if (rank == 2) return QPoint(11, 4); // 角 b
+            if (rank == 3) return QPoint(11, 2); // 玉 k
+        }
     }
 
     // 盤内でも駒台でもない
@@ -1321,9 +1356,20 @@ QPoint ShogiView::getClickedSquareInFlippedState(const QPoint& pos) const
     // ───────────────────────── 2) 駒台（file=11 側：反転時の左側列）判定 ─────────────────────────
     // 反転時は「m_param2 を用いる側」が file=11 に対応（既存実装のまま）。
     // X を盤原点で正規化：tempFile が [0,1) の範囲に入れば「1列幅」に収まっている。
+
+    //begin
+    qDebug() << "in getClickedSquareInFlippedState";
+    //end
+
     float tempFile = (pos.x() - m_param2 - m_offsetX) / float(w);
     float tempRank = (pos.y() - m_offsetY) / float(h);
+    int   file     = static_cast<int>(tempFile);
     int   rank     = static_cast<int>(tempRank);
+
+    //begin
+    qDebug() << "tempFile:" << tempFile << ", tempRank:" << tempRank;
+    qDebug() << "file:" << file << ", rank:" << rank;
+    //end
 
     if (m_positionEditMode) {
         // 編集モード：有効 rank 範囲 [1..8]
@@ -1332,8 +1378,17 @@ QPoint ShogiView::getClickedSquareInFlippedState(const QPoint& pos) const
             return QPoint(11, rank + 1);
     } else {
         // 通常モード：有効 rank 範囲 [2..8]
-        if ((tempFile >= 0) && (tempFile < 1) && (rank >= 2) && (rank <= 8))
-            return QPoint(11, rank + 1);
+        if (file == 0) {
+            if (rank == 8) return QPoint(11, 9); // 歩 p
+            if (rank == 7) return QPoint(11, 7); // 桂 n
+            if (rank == 6) return QPoint(11, 5); // 金 g
+            if (rank == 5) return QPoint(11, 3); // 飛 r
+        } else if (file == 1) {
+            if (rank == 8) return QPoint(11, 8); // 香 l
+            if (rank == 7) return QPoint(11, 6); // 銀 s
+            if (rank == 6) return QPoint(11, 4); // 角 b
+            if (rank == 5) return QPoint(11, 2); // 玉 k
+        }
     }
 
     // ───────────────────────── 3) 駒台（file=10 側：反転時の右側列）判定 ─────────────────────────
@@ -1347,9 +1402,18 @@ QPoint ShogiView::getClickedSquareInFlippedState(const QPoint& pos) const
         if ((tempFile >= 1) && (tempFile < 2) && (rank >= 0) && (rank <= 7))
             return QPoint(10, rank + 1);
     } else {
-        // 通常モード：有効 rank 範囲 [0..6]
-        if ((tempFile >= 1) && (tempFile < 2) && (rank >= 0) && (rank <= 6))
-            return QPoint(10, rank + 1);
+        // 通常モード：有効な rank は [2..8]（仕様踏襲）
+        if (file == -10) {
+            if (rank == 0) return QPoint(10, 1); // 歩 p
+            if (rank == 1) return QPoint(10, 3); // 桂 n
+            if (rank == 2) return QPoint(10, 5); // 金 g
+            if (rank == 3) return QPoint(10, 7); // 飛 r
+        } else if (file == -11) {
+            if (rank == 0) return QPoint(10, 2); // 香 l
+            if (rank == 1) return QPoint(10, 4); // 銀 s
+            if (rank == 2) return QPoint(10, 6); // 角 b
+            if (rank == 3) return QPoint(10, 8); // 玉 k
+        }
     }
 
     // 盤内でも駒台でもない
@@ -1377,6 +1441,12 @@ void ShogiView::mouseReleaseEvent(QMouseEvent *event)
     // 【左ボタン解放】
     if (event->button() == Qt::LeftButton) {
         QPoint pt = getClickedSquare(event->pos());     // クリック位置を盤/駒台のマス座標に変換
+
+        //begin
+        qDebug() << "----mouseReleaseEvent: pos=" << event->pos() << " -> square=" << pt;
+        qDebug() << "pt.x()=" << pt.x() << ", pt.y()=" << pt.y();
+        //end
+
         if (pt.isNull()) return;                        // 盤外等は無視
         if (m_errorOccurred) return;                    // 異常時はシグナル送出を抑止
         emit clicked(pt);                               // 左クリック通知（選択/移動確定など呼び出し側で処理）
