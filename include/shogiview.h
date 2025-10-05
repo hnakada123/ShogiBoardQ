@@ -81,7 +81,6 @@ public:
 
     // 盤/ラベル座標計算（反転考慮）
     QRect calculateSquareRectangleBasedOnBoardState(int file, int rank) const;
-    QRect calculateSquareRectangleBasedOnBoardState2(const int file, const int rank) const;
     QRect calculateRectangleForRankOrFileLabel(int file, int rank) const;
 
     // ───────────────────────────── 駒画像管理 ────────────────────────────────

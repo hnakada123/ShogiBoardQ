@@ -317,47 +317,6 @@ QRect ShogiView::calculateSquareRectangleBasedOnBoardState(const int file, const
     return QRect(xPosition, yPosition, fs.width(), fs.height());
 }
 
-QRect ShogiView::calculateSquareRectangleBasedOnBoardState2(const int file, const int rank) const
-{
-    // 盤未設定なら空矩形を返す（呼び出し側で無視できるように）。
-    if (!m_board) return QRect();
-
-    const QSize fs = fieldSize();
-    int xPosition, yPosition;
-
-    // rank を変換
-    int adjustedRank = 0;
-    switch (rank) {
-    case 2:
-    case 3:
-        adjustedRank = 6;
-        break;
-    case 4:
-    case 5:
-        adjustedRank = 7;
-        break;
-    case 6:
-    case 7:
-        adjustedRank = 8;
-        break;
-    case 8:
-    case 9:
-        adjustedRank = 9;
-        break;
-    }
-
-    // 【座標系の切替】反転モードのときは上下/左右の向きを入れ替える。
-    if (m_flipMode) {
-        xPosition = (file - 1) * fs.width();
-        yPosition = (m_board->ranks() - adjustedRank) * fs.height();
-    } else {
-        xPosition = (m_board->files() - file) * fs.width();
-        yPosition = (adjustedRank - 1) * fs.height();
-    }
-
-    return QRect(xPosition, yPosition, fs.width(), fs.height());
-}
-
 // 段番号/筋番号などのラベル描画に用いる矩形領域を算出。
 // 盤の反転状態に合わせてYのみ上下を切替。Xは左→右の自然順で配置し、最後にUI都合で +30px 平行移動。
 // ※ +30px はラベルの視認性/余白確保のための固定オフセット（デザイン調整値）。
