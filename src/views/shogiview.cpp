@@ -945,8 +945,8 @@ void ShogiView::drawPiece(QPainter* painter, const int file, const int rank)
     }
 }
 
-// 駒台セル（adjustedRect）内に、value の駒アイコンを「枚数ぶん」重ねて描き、
-// 右下に見やすい枚数バッジを重ねる
+// 等倍アイコンを、最大5段階まで左に重ねる（6枚以上は重なり据え置き）。
+// 重ね全体は基本マス中央。最前面＋バッジが右にはみ出す場合のみ左に寄せて収める。
 void ShogiView::drawStandPieceIcon(QPainter* painter, const QRect& adjustedRect, QChar value) const
 {
     const int count = (m_dragging && m_tempPieceStandCounts.contains(value))
@@ -956,38 +956,48 @@ void ShogiView::drawStandPieceIcon(QPainter* painter, const QRect& adjustedRect,
 
     const QIcon icon = piece(value);
 
-    // ---- レイアウト計算 ----
-    const qreal scale = 0.88;
+    // === 等倍（セルいっぱい） ===
     const int cellW = adjustedRect.width();
     const int cellH = adjustedRect.height();
-    const int iconW = qMax(1, int(cellW * scale));
-    const int iconH = qMax(1, int(cellH * scale));
+    const int iconW = cellW;
+    const int iconH = cellH;
 
-    // 基準矩形（セル中央）
+    // --- 重なり段数は最大3段（= 4枚目以降は前面に吸着）---
+    const int stepsEff = qMax(0, qMin(count - 1, 3));     // 0..3
+    const qreal perStep = iconW * 0.05;                   // 1段あたりのずらし（5%）
+    const qreal hardMax = iconW * 0.85;                   // 見栄え上限
+    const qreal totalSpread = qMin(hardMax, perStep * qreal(stepsEff));
+
+    // --- 最前面（右側）の基準矩形を「重ね全体センター=マス中心」に合わせる ---
     QRect base(0, 0, iconW, iconH);
-    base.moveCenter(adjustedRect.center());
+    base.moveCenter(QPoint(adjustedRect.center().x() + int(totalSpread / 2.0),
+                           adjustedRect.center().y()));
 
-    // 左->右へ、かつ少しだけ上に積む
-    const qreal slackX = qMax(0, cellW - iconW);
-    const qreal dx     = (count > 1) ? (slackX / qreal(count - 1)) : 0.0;
-
-    const qreal slackY = qMax(0, cellH - iconH);
-    const qreal dy     = (count > 1) ? (-qMin(iconH * 0.25, slackY * 0.6) / qreal(count - 1)) : 0.0;
+    // --- 右下バッジがはみ出さないように、必要なら少しだけ左へ寄せる ---
+    // （バッジの右端は base.right()-margin 相当。ここをセル内に収める）
+    int margin = qMax(2, iconW / 40);
+    int overflowRight = base.right() - (adjustedRect.right() - margin);
+    if (overflowRight > 0) base.translate(-overflowRight, 0);
 
     painter->save();
-    painter->setClipRect(adjustedRect);
+    painter->setClipRect(adjustedRect);                 // セル外は不可視
     painter->setRenderHint(QPainter::SmoothPixmapTransform, true);
     painter->setRenderHint(QPainter::Antialiasing, true);
 
-    // アイコン → ピクスマップ化（確実に描けるように）
     QPixmap pm = icon.pixmap(QSize(iconW, iconH), QIcon::Normal, QIcon::On);
-
-    // フォールバック（万一アイコンが無い場合は文字で描く）
     const bool iconOk = !pm.isNull();
 
-    // 奥→手前の順で重ね描き
+    // --- 奥(左) → 手前(右) の順で描画。stepsEff を上限に圧縮して“最大5段”にする ---
     for (int i = 0; i < count; ++i) {
-        const QRect r = base.translated(int(i * dx), int(i * dy));
+        qreal s;
+        if (stepsEff > 0) {
+            s = qMin<qreal>(1.0, qreal(i) / qreal(stepsEff));  // 0..1（6枚目以降は1で打ち止め）
+        } else {
+            s = 1.0;
+        }
+        const qreal shiftX = -totalSpread * (1.0 - s);         // -totalSpread..0
+        const QRect r = base.translated(int(shiftX), 0);
+
         if (iconOk) {
             painter->drawPixmap(r, pm);
         } else {
@@ -998,32 +1008,46 @@ void ShogiView::drawStandPieceIcon(QPainter* painter, const QRect& adjustedRect,
         }
     }
 
-    // ---- 枚数バッジ（2枚以上のときだけ）----
+    // ---- 右下バッジ（2枚以上）。※前回のバッジ仕様のまま（自動縮小つき）----
     if (count >= 2) {
-        // 最前面アイコンの矩形
-        const QRect topRect = base.translated(int((count - 1) * dx), int((count - 1) * dy));
+        const QRect topRect = base; // 最前面は base（shiftX=0）
 
-        const QString text = QString::number(count);
-
-        // バッジ用フォント（アイコン高さに応じて自動調整）
         QFont f = painter->font();
-        const int px = qBound(9, int(iconH * 0.34), 48); // だいたい1/3弱
+        int px = qBound(9, int(iconH * 0.34), 48);
         f.setPixelSize(px);
         f.setBold(true);
         painter->setFont(f);
 
+        const QString text = QString::number(count);
         QFontMetrics fm(f);
-        const int padX = qMax(3, iconW / 18);
-        const int padY = qMax(2, iconH / 22);
-        const QSize tsz = fm.size(Qt::TextSingleLine, text);
+        int padX = qMax(3, iconW / 18);
+        int padY = qMax(2, iconH / 22);
+        QSize tsz = fm.size(Qt::TextSingleLine, text);
 
-        QRect badge(0, 0, tsz.width() + padX * 2, tsz.height() + padY * 2);
+        // バッジはセル内に必ず収まるよう自動縮小（前回仕様）
+        const int maxBadgeW = qMax(8, iconW - 2 * margin);
+        const int maxBadgeH = qMax(8, iconH - 2 * margin);
+        {
+            const int needW = tsz.width() + padX * 2;
+            const int needH = tsz.height() + padY * 2;
+            const qreal scaleW = qreal(maxBadgeW) / qreal(needW);
+            const qreal scaleH = qreal(maxBadgeH) / qreal(needH);
+            const qreal scale = qMin<qreal>(1.0, qMin(scaleW, scaleH));
+            if (scale < 1.0) {
+                px   = qMax(8, int(px   * scale));
+                padX = qMax(2, int(padX * scale));
+                padY = qMax(2, int(padY * scale));
+                f.setPixelSize(px);
+                painter->setFont(f);
+                fm  = QFontMetrics(f);
+                tsz = fm.size(Qt::TextSingleLine, text);
+            }
+        }
 
-        // 右下に配置（少しだけ内側に寄せる）
-        const int margin = qMax(2, iconW / 40);
+        QRect badge(0, 0, qMin(maxBadgeW, tsz.width() + padX * 2),
+                    qMin(maxBadgeH, tsz.height() + padY * 2));
         badge.moveBottomRight(QPoint(topRect.right() - margin, topRect.bottom() - margin));
 
-        // 背景（半透明黒）＋白縁 → 白文字
         const qreal radius = qMin(badge.width(), badge.height()) * 0.35;
         QPen outline(QColor(255, 255, 255, 220), qMax(1, iconW / 60));
         painter->setPen(Qt::NoPen);
