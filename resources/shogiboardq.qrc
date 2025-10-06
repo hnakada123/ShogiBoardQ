@@ -70,5 +70,6 @@
         <file>images/icons/shou.png</file>
         <file>images/icons/dai.png</file>
         <file>translations/ShogiBoardQ_ja_JP.ts</file>
+        <file>images/icons/owari.png</file>
     </qresource>
 </RCC>
