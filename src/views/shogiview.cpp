@@ -1152,62 +1152,94 @@ void ShogiView::drawWhiteStandPiece(QPainter* painter, const int file, const int
 }
 
 // 盤上および駒台（疑似座標 file=10/11）のハイライト矩形を塗る。
-// 最適化方針：分岐重複（flip 有/無）を統合し、矩形算出のみを条件分岐する。
-// 前提：painter の永続状態（ペン/ブラシ/変換/クリップ等）は汚さない
-//      （fillRect(rect, color) は painter 状態を書き換えない）。
-// 仕様メモ：
-//  - 通常マス：calculateSquareRectangleBasedOnBoardState(file, rank) を m_offsetX/Y で平行移動して使用
-//  - 駒台マス：file==10/11 を「駒台の疑似座標」として特別処理
-//      * file==10 … 片側の駒台列1
-//      * file==11 … もう片側の駒台列2
-//    ※ Y 方向について、file==11 のときは m_squareSize*8 - r.top() + m_offsetY という鏡映的補正あり（既存仕様踏襲）
+// 方針：盤上/駒台とも「駒アイコンと同じ算出経路」で矩形を作る。
+//   1) 盤上 … calculateSquareRectangleBasedOnBoardState() の結果に m_offsetX/Y を足す
+//   2) 駒台 … 疑似座標(file=10/11, rank=1..9) → 基準盤マス(file=1/2, rank=6..9 or 4..1)へ変換
+//              → calculateSquareRectangleBasedOnBoardState() → makeStandCellRect() で駒台側へ水平シフト
+// これにより、反転(m_flipMode)や左右の寄せ(m_param1/m_param2)、全体オフセット(m_offsetX/Y)が
+// 駒描画と完全一致し、クリック位置とハイライト位置のズレが解消される。
 void ShogiView::drawHighlights(QPainter* painter)
 {
     if (!m_board) return;
 
-    // ハイライト矩形を求めるローカル関数（flip の有無と file=10/11 の仕様を内包）
-    const auto makeHighlightRect = [&](const FieldHighlight* fhl) -> QRect {
-        // 駒台列その1（file==10）
-        if (fhl->file() == 10) {
-            // rank は 10 - rank で変換してから基準矩形を得る仕様（既存コード踏襲）
-            const QRect r = calculateSquareRectangleBasedOnBoardState(fhl->file(), 10 - fhl->rank());
-            // X 方向のずらし量は flip により左右反転
-            const int xShift = m_flipMode ? (-m_param2 - m_squareSize) : (m_param2 + m_squareSize);
-            return QRect(r.left() + xShift + m_offsetX,
-                         r.top()  + m_offsetY,
-                         r.width(), r.height());
+    // 駒台の疑似座標 (10/11, 1..9) → 駒台描画で使う基準盤マス(file=1/2, rank=...) へ変換
+    // 返り値：{ok, baseFile(=1/2), baseRank(黒:6..9 / 白:4..1), useBlackStand(true=先手駒台)}
+    const auto standPseudoToBase = [&](int pseudoFile, int pseudoRank)
+        -> std::tuple<bool,int,int,bool> {
+        // 先手（黒）駒台：file==10
+        if (pseudoFile == 10) {
+            // 左列(=file=2)：R,G,N,P → rank 7,5,3,1 → 盤rank 6,7,8,9
+            if (pseudoRank == 7 || pseudoRank == 5 || pseudoRank == 3 || pseudoRank == 1) {
+                const int baseFile = 2;
+                const int baseRank = 6 + ((7 - pseudoRank) / 2); // 7→6, 5→7, 3→8, 1→9
+                return {true, baseFile, baseRank, true};
+            }
+            // 右列(=file=1)：K,B,S,L → rank 8,6,4,2 → 盤rank 6,7,8,9
+            if (pseudoRank == 8 || pseudoRank == 6 || pseudoRank == 4 || pseudoRank == 2) {
+                const int baseFile = 1;
+                const int baseRank = 6 + ((8 - pseudoRank) / 2); // 8→6, 6→7, 4→8, 2→9
+                return {true, baseFile, baseRank, true};
+            }
+            return {false, 0, 0, true};
         }
 
-        // 駒台列その2（file==11）
-        if (fhl->file() == 11) {
-            const QRect r = calculateSquareRectangleBasedOnBoardState(fhl->file(), fhl->rank());
-            // X 方向は左右に大きくオフセット（± m_squareSize*10）、さらに ±m_param2
-            const int xShift = m_flipMode ? (-m_squareSize * 10 + m_param2)
-                                          : ( m_squareSize * 10 - m_param2);
-            // Y 方向は m_squareSize*8 - r.top() + m_offsetY という鏡映的補正（既存仕様踏襲）
-            const int y = m_squareSize * 8 - r.top() + m_offsetY;
-            return QRect(r.left() + xShift + m_offsetX,
-                         y,
-                         r.width(), r.height());
+        // 後手（白）駒台：file==11
+        if (pseudoFile == 11) {
+            // 左列(=file=1)：r,g,n,p → rank 3,5,7,9 → 盤rank 4,3,2,1
+            if (pseudoRank == 3 || pseudoRank == 5 || pseudoRank == 7 || pseudoRank == 9) {
+                const int baseFile = 1;
+                const int baseRank = (11 - pseudoRank) / 2;      // 3→4, 5→3, 7→2, 9→1
+                return {true, baseFile, baseRank, false};
+            }
+            // 右列(=file=2)：k,b,s,l → rank 2,4,6,8 → 盤rank 4,3,2,1
+            if (pseudoRank == 2 || pseudoRank == 4 || pseudoRank == 6 || pseudoRank == 8) {
+                const int baseFile = 2;
+                const int baseRank = (10 - pseudoRank) / 2;      // 2→4, 4→3, 6→2, 8→1
+                return {true, baseFile, baseRank, false};
+            }
+            return {false, 0, 0, false};
         }
 
-        // 通常の盤マス（file=1..files, rank=1..ranks）
-        {
-            const QRect r = calculateSquareRectangleBasedOnBoardState(fhl->file(), fhl->rank());
-            return QRect(r.left() + m_offsetX,
-                         r.top()  + m_offsetY,
-                         r.width(), r.height());
-        }
+        // 盤上（疑似ではない）
+        return {false, 0, 0, false};
     };
 
-    // すべてのハイライトを走査し、FieldHighlight のみ描画
-    for (int idx = 0; idx < highlightCount(); ++idx) {
-        Highlight* hl = highlight(idx);
-        if (hl->type() != FieldHighlight::Type) continue;
+    // 盤/駒台共通：ハイライト矩形を算出
+    const auto makeHighlightRect = [&](const FieldHighlight* fhl) -> QRect {
+        const int f = fhl->file();
+        const int r = fhl->rank();
 
-        auto* fhl = static_cast<FieldHighlight*>(hl);
+        // 駒台の疑似座標（file=10/11）
+        if (f == 10 || f == 11) {
+            auto [ok, baseFile, baseRank, isBlackStand] = standPseudoToBase(f, r);
+            if (!ok) return QRect(); // 変換不可はスキップ
+
+            // 基準盤マス矩形 → 駒台側へ水平シフト
+            const QRect base = calculateSquareRectangleBasedOnBoardState(baseFile, baseRank);
+            const int   param = isBlackStand ? m_param1 : m_param2;
+            const bool  leftSide = isBlackStand; // 先手駒台=左側, 後手駒台=右側
+            const QRect adjusted = makeStandCellRect(m_flipMode, param, m_offsetX, m_offsetY,
+                                                     base, leftSide);
+            return adjusted;
+        }
+
+        // 通常の盤マス（file=1..9, rank=1..9）
+        const QRect base = calculateSquareRectangleBasedOnBoardState(f, r);
+        return QRect(base.left() + m_offsetX,
+                     base.top()  + m_offsetY,
+                     base.width(), base.height());
+    };
+
+    // 描画
+    for (int i = 0; i < highlightCount(); ++i) {
+        Highlight* hl = highlight(i);
+        if (!hl || hl->type() != FieldHighlight::Type) continue;
+
+        const auto* fhl = static_cast<FieldHighlight*>(hl);
         const QRect rect = makeHighlightRect(fhl);
-        painter->fillRect(rect, fhl->color());  // 状態を汚さず塗る
+        if (!rect.isNull()) {
+            painter->fillRect(rect, fhl->color());
+        }
     }
 }
 
