@@ -1598,42 +1598,51 @@ void Usi::sendGoCommand(int byoyomiMilliSec, const QString& btime, const QString
     sendCommand(command);
 }
 
-// 棋譜解析モードでgoコマンドを将棋エンジンに送信する。
+// 棋譜解析モードで go コマンドを将棋エンジンに送信する。
 void Usi::sendGoCommandByAnalysys(int byoyomiMilliSec)
 {
-    // GUIの「思考」タブの内容をクリアする。
+    // 解析ビューをクリア
     infoRecordClear();
 
-    // goコマンドの文字列を生成する。
-    QString command = "go infinite";
+    // 解析は go infinite -> 後で stop の流れに統一
+    sendCommand("go infinite");
 
-    // 将棋エンジンにコマンドを送信する。
-    sendCommand(command);
-
-    // 検討時間が無制限の場合
-    if (byoyomiMilliSec == 0) {
-        // 将棋エンジンからbestmoveを受信するまで待ち続ける。
+    // 無制限なら bestmove が来るまで待つ既存ルートを使用
+    if (byoyomiMilliSec <= 0) {
         keepWaitingForBestMove();
+        return;
     }
-    else {
-        // 検討時間が0より大きい場合
-        // 指定されたミリ秒後に "stop" コマンドを送信する。
-        QTimer::singleShot(byoyomiMilliSec, this, [this]() {
-            sendCommand("stop");
-        });
 
-        // 将棋エンジンからbestmoveを受信するまで最大10秒待つ。
-        // 10秒よりもっと少なくても良いが4秒以上はあった方が良いと思われる。
-        if (!waitForBestMove(10000)) {
-            // 将棋エンジンプロセスを終了し、プロセスとスレッドを削除する。
-            cleanupEngineProcessAndThread();
+    // byoyomi 後に stop を投げる（既存のシングルショットでOK）
+    QTimer::singleShot(byoyomiMilliSec, this, [this]() {
+        sendCommand("stop");
+    });
 
-            // bestmoveを指定した時間内に受信できなかった場合、エラーメッセージを表示する。
-            QString errorMessage = tr("An error occurred in Usi::sendGoCommandByAnalysys. Failed to receive bestmove.");
+    // ★重要★: 待機時間は「検討時間 + 余裕時間」
+    // エンジンは stop 後に後処理してから bestmove を返すことがあるため、
+    // ここで十分なマージン（例: 4秒）を持たせる。
+    static constexpr int kPostStopGraceMs = 4000; // 4秒の余裕
+    // 低い byoyomi の場合のために最低限の総待機時間も確保
+    const int waitBudget = qMax(byoyomiMilliSec + kPostStopGraceMs, 2500);
 
-            ShogiUtils::logAndThrowError(errorMessage);
+    // まずは余裕込みで待つ
+    if (!waitForBestMove(waitBudget)) {
+        // まだ来ない場合の最終保険：stop をもう一度送って短く追い待ち
+        sendCommand("stop");
+
+        // ここは短い追い待ち（2秒程度）。それでも来なければ諦めるが、
+        // 解析モードでは致命エラーにせず、単に戻る（UI は継続）。
+        if (!waitForBestMove(2000)) {
+            qWarning() << "[USI][Analysis] bestmove timeout (non-fatal). waited(ms)="
+                       << (waitBudget + 2000);
+            // ★以前はここで cleanupEngineProcessAndThread() と例外送出していたが、
+            //   解析モードでは致命にしない。GUI は“待機したが来なかった”として継続。
+            return;
         }
     }
+
+    // ここまで来れば bestmove を取得できている
+    // （以降の後処理は既存フローに任せる）
 }
 
 // 将棋エンジンからbestmoveを受信するまで待つ。
