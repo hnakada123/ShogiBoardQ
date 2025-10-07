@@ -2463,57 +2463,43 @@ void MainWindow::processResignCommand()
     }    
 }
 
-// 検討を開始する。
+// 検討を開始する（司令塔へ依頼する形に集約）
 void MainWindow::startConsidaration()
 {
-    // 対局モードを棋譜解析モードに設定する。
+    // 1) 対局モードを検討モードへ（UI の状態保持用）
     m_playMode = ConsidarationMode;
 
-    // 将棋エンジンとUSIプロトコルに関するクラスのインスタンスを削除する。
-    if (m_usi1 != nullptr) delete m_usi1;
-
-    // 将棋エンジンとUSIプロトコルに関するクラスのインスタンスを生成する。
-    m_usi1 = new Usi(m_lineEditModel1, m_modelThinking1, m_gameController, m_playMode, this);
-
-    connect(m_usi1, &Usi::bestMoveResignReceived, this, &MainWindow::processResignCommand);
-
-    // GUIに登録された将棋エンジン番号を取得する。
-    const int engineNumber1 = m_considerationDialog->getEngineNumber();
-
-    // 将棋エンジン実行ファイル名を設定する。
-    m_engineFile1 = m_considerationDialog->getEngineList().at(engineNumber1).path;
-
-    // 将棋エンジン名を取得する。
-    QString engineName1 = m_considerationDialog->getEngineName();
-
-    m_usi1->setLogIdentity("[E1]", "P1", engineName1);
-    if (m_usi1) m_usi1->setSquelchResignLogging(false);
-
-    try {
-        // 将棋エンジンを起動し、対局開始までのコマンドを実行する。
-        m_usi1->initializeAndStartEngineCommunication(m_engineFile1, engineName1);
-    } catch (const std::exception&) {
-        throw;
-    }
-
-    // 手番を設定する。
+    // 2) 盤面の手番表示用に現在手番を更新（従来コードを踏襲）
+    //    ※ positionStr に手番情報は含まれるが、UI の手番表示は GameController にも反映しておく
     if (m_gameMoves.at(m_currentMoveIndex).movingPiece.isUpper()) {
         m_gameController->setCurrentPlayer(ShogiGameController::Player1);
     } else {
         m_gameController->setCurrentPlayer(ShogiGameController::Player2);
     }
 
-    // positionコマンド文字列の生成
+    // 3) 送信用 position 構築（従来のリストをそのまま利用）
     m_positionStr1 = m_positionStrList.at(m_currentMoveIndex);
 
-    // --- ここをローカル変数に変更（m_byoyomiMilliSec1 はもう存在しない）---
+    // 4) ダイアログからエンジン/時間設定を取得
+    const int engineNumber = m_considerationDialog->getEngineNumber();
+    const auto engine      = m_considerationDialog->getEngineList().at(engineNumber);
+
     int byoyomiMs = 0;
     if (!m_considerationDialog->unlimitedTimeFlag()) {
         byoyomiMs = m_considerationDialog->getByoyomiSec() * 1000; // 秒→ms
     }
 
-    // 将棋エンジンにpositionコマンドを送信し、指し手を受信する。
-    m_usi1->executeAnalysisCommunication(m_positionStr1, byoyomiMs);
+    // 5) 司令塔に検討を依頼
+    if (m_match) {
+        MatchCoordinator::AnalysisOptions opt;
+        opt.enginePath  = engine.path;
+        opt.engineName  = m_considerationDialog->getEngineName();
+        opt.positionStr = m_positionStr1;
+        opt.byoyomiMs   = byoyomiMs;
+        opt.mode        = ConsidarationMode;
+
+        m_match->startAnalysis(opt);
+    }
 }
 
 // 詰み探索を開始する。
