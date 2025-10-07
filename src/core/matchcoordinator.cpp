@@ -1159,3 +1159,67 @@ void MatchCoordinator::handleBreakOff()
     if (m_usi1) m_usi1->sendQuitCommand();
     if (m_usi2) m_usi2->sendQuitCommand();
 }
+
+// 検討を開始する（単発エンジンセッション）
+// - 既存の HvE と同じく m_usi1 を使用し、表示モデルは #1 スロットに流す。
+// - resign シグナルは P1 扱いで司令塔（Arbiter）に配線する（検討でも安全側）。
+void MatchCoordinator::startAnalysis(const AnalysisOptions& opt)
+{
+    // 1) モード設定
+    setPlayMode(opt.mode); // 通常は ConsidarationMode
+
+    // 2) 以前のエンジンは破棄（単発セッションの独立性を保つ）
+    destroyEngines();
+
+    // 3) 表示モデル（#1 を使う。無ければフォールバック生成して保持）
+    UsiCommLogModel*          comm  = m_comm1;
+    ShogiEngineThinkingModel* think = m_think1;
+    if (!comm)  { comm  = new UsiCommLogModel(this);          m_comm1  = comm;  }
+    if (!think) { think = new ShogiEngineThinkingModel(this);  m_think1 = think; }
+
+    // 4) エンジン生成（単発は常に m_usi1 を使用）
+    m_usi1 = new Usi(comm, think, m_gc, m_playMode, this);
+    updateUsiPtrs(m_usi1, nullptr);
+
+    // 5) resign 配線（単発＝P1 扱いで十分。内部で onEngine1Resign に委譲）
+    m_usi1->resetResignNotified();
+    m_usi1->clearHardTimeout();
+    wireResignToArbiter_(m_usi1, /*asP1=*/true);
+
+    // 6) ログ識別（検討用に "[A]" を付与。座席表示は P1 固定で OK）
+    m_usi1->setLogIdentity(QStringLiteral("[A]"),
+                           QStringLiteral("P1"),
+                           opt.engineName);
+    m_usi1->setSquelchResignLogging(false);
+
+    // 7) USI 初期化＆起動
+    try {
+        initializeAndStartEngineFor(P1, opt.enginePath, opt.engineName);
+    } catch (...) {
+        if (m_hooks.log) m_hooks.log(QStringLiteral("[Analysis] init/start failed"));
+        throw;
+    }
+
+    // 8) UI 側（思考欄の見出しなど）にエンジン名を通知したい場合
+    if (m_hooks.setEngineNames) m_hooks.setEngineNames(opt.engineName, QString());
+
+    // 9) 解析実行（position と byoyomiMs をそのまま渡す）
+    QString pos = opt.positionStr;
+    m_usi1->executeAnalysisCommunication(pos, opt.byoyomiMs);
+}
+
+// 検討の停止（stop コマンド送信のみ。プロセス終了は destroyEngines() に委譲）
+void MatchCoordinator::stopAnalysis()
+{
+    if (m_playMode != ConsidarationMode) return;
+    if (m_usi1) {
+        m_usi1->sendStopCommand();
+        // 必要なら：m_usi1->waitForStopOrPonderhitCommand();
+    }
+}
+
+// 検討中かを返す（モードと m_usi1 の有無で判定）
+bool MatchCoordinator::isAnalysisActive() const
+{
+    return (m_playMode == ConsidarationMode) && (m_usi1 != nullptr);
+}

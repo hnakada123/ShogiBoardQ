@@ -285,6 +285,20 @@ public:
     // 対局開始フローを一元化
     void configureAndStart(const StartOptions& opt);
 
+    // ==== 追加：検討用オプション ====
+    struct AnalysisOptions {
+        QString  enginePath;   // 検討に使うエンジン実行ファイル
+        QString  engineName;   // 表示用エンジン名
+        QString  positionStr;  // "position sfen ... [moves ...]" の完全文字列
+        int      byoyomiMs = 0;           // 0=無制限、>0=秒→ms
+        PlayMode mode      = ConsidarationMode; // 既定で検討モード
+    };
+
+    // ==== 追加：検討API ====
+    void startAnalysis(const AnalysisOptions& opt);
+    void stopAnalysis();
+    bool isAnalysisActive() const;
+
 public:
     Usi* primaryEngine() const;   // HvE/EvH で司令塔が使う主エンジン（これまで m_usi1 に相当）
     Usi* secondaryEngine() const; // ★ 追加
