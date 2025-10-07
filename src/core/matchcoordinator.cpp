@@ -1229,21 +1229,19 @@ bool MatchCoordinator::isAnalysisActive() const
 //  - Usi::sendQuitCommand() は終了時のログ抑止などの安全策込み
 //  - 送信後にプロセス/スレッドを片付け、Usi オブジェクトも破棄
 //  - モードは NotStarted に戻す（isAnalysisActive() が偽になる）
-void MatchCoordinator::handleBreakOffAnalysis()
+void MatchCoordinator::handleBreakOffConsidaration()
 {
     if (m_playMode != ConsidarationMode)
         return;
 
     // 単発検討は m_usi1 を利用している前提（存在すれば確実に止める）
     if (m_usi1) {
-        m_usi1->sendQuitCommand();              // 要求通り明示的に quit を送る
         m_usi1->cleanupEngineProcessAndThread(); // 読み取り側をドレインして安全終了
         destroyEngine(1);                       // Usi オブジェクト自体も破棄
     }
 
     // 念のため、片側だけの想定でも m_usi2 が残っていれば同様に止める
     if (m_usi2) {
-        m_usi2->sendQuitCommand();
         m_usi2->cleanupEngineProcessAndThread();
         destroyEngine(2);
     }
