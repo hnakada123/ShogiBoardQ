@@ -6972,7 +6972,7 @@ void MainWindow::handleBreakOffConsidaration()
     if (!m_match) return;
 
     // 司令塔に依頼（内部で quit 送信→プロセス/Usi 破棄→モード NotStarted）
-    m_match->handleBreakOffAnalysis();
+    m_match->handleBreakOffConsidaration();
 
     // UI の後始末（任意）——検討のハイライトなどをクリアしておく
     if (m_shogiView) m_shogiView->removeHighlightAllData();

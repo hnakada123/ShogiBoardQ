@@ -91,46 +91,56 @@ Usi::~Usi()
 // 将棋エンジンプロセスを終了し、プロセスとスレッドを削除する。
 void Usi::cleanupEngineProcessAndThread()
 {
+    // --- 1) エンジンプロセスの終了 ---
     if (m_process) {
-        // プロセスが起動している場合にのみquitコマンドを送信する。
+        // 起動中ならまず quit を送り、段階的に待つ → terminate → kill
         if (m_process->state() == QProcess::Running) {
-            // 将棋エンジンにquitコマンドを送信する。
+            // 将棋エンジンに quit コマンドを送信
             sendQuitCommand();
 
-            // プロセスが指定時間内に終了しなかった場合、強制終了する。
+            // 通常はここで終了を待つ
             if (!m_process->waitForFinished(3000)) {
-                // プロセスが指定時間内に終了しなかった場合、強制終了する。
+                // 閉じない場合は terminate
                 m_process->terminate();
                 if (!m_process->waitForFinished(1000)) {
-                    // 強制終了できなかった場合、killする。
+                    // それでも閉じない場合は kill（最終手段）
                     m_process->kill();
-
-                    // kill後の終了を確実に待つ。
-                    m_process->waitForFinished();
+                    // kill 後は確実に終了を待つ
+                    m_process->waitForFinished(-1);
                 }
             }
         }
 
-        // 全ての接続を切断
+        // 念のためすべての接続を切断してから破棄
         disconnect(m_process, nullptr, this, nullptr);
         delete m_process;
         m_process = nullptr;
     }
 
-    // 別スレッドの終了処理を行う。
+    // --- 2) USI スレッドの後始末 ---
     if (m_usiThread) {
-        m_usiThread->quit();
+        // ★ UsiThread::run() 側で QEventLoop の終了待ちになっている可能性があるため
+        //    stop / ponderhit 相当の合図を emit して確実にループを抜けさせる
+        Q_EMIT stopOrPonderhitCommandSent();
 
-        // スレッドの応答がない場合
-        if (!m_usiThread->wait(3000)) {
-            // エラーメッセージを表示する。
-            const QString errorMessage = "An error occurred in Usi::cleanupEngineProcessAndThread. USI thread did not finish properly.";
+        // 協調的停止のお願い（run() がこれを見るなら有効）
+        m_usiThread->requestInterruption();
 
-            ShogiUtils::logAndThrowError(errorMessage);
+        // まずは短時間だけ待ってみる
+        if (!m_usiThread->wait(500)) {
+            // run() 内で QThread::exec() を使っている場合のために quit() も投げる
+            m_usiThread->quit();
+
+            // それでも止まらない場合は、段階的に強く止める
+            if (!m_usiThread->wait(1000)) {
+                qWarning() << "[USI] UsiThread did not stop after quit(); forcing termination.";
+                // 最終手段：terminate（本来は避けたいが、アプリ終了時のハング回避を優先）
+                m_usiThread->terminate();
+                m_usiThread->wait(1000);
+            }
         }
 
         delete m_usiThread;
-
         m_usiThread = nullptr;
     }
 }
@@ -1422,6 +1432,9 @@ void Usi::sendStopCommand()
 {
     // 将棋エンジンにコマンドを送信する。
     sendCommand("stop");
+
+    // ★ これが無いと UsiThread が wait している QEventLoop が抜けられません
+    Q_EMIT stopOrPonderhitCommandSent();
 }
 
 // ponderhitコマンドを将棋エンジンに送信する。
@@ -1437,6 +1450,9 @@ void Usi::sendPonderHitCommand()
                        << " prevTo=(" << m_previousFileTo << "," << m_previousRankTo << ")";
 
     sendCommand("ponderhit");
+
+    // ★ これも wait 中の QEventLoop を必ず抜けさせる
+    Q_EMIT stopOrPonderhitCommandSent();
 
     // 以後は通常思考フェーズ
     m_phase = SearchPhase::Main;
@@ -1757,23 +1773,20 @@ void Usi::bestMoveReceived(const QString& line)
     // （この後の適用可否は MainWindow 側で m_gameIsOver を再チェック）
 }
 
-// 新しいスレッドを生成し、GUIが将棋エンジンにstopまたはponderhitコマンドを送信するまで待つ。
-// start関数が実行されることでrun関数が実行され、その中でwaitForStopOrPonderhitCommand関数が実行される。
 void Usi::startUsiThread()
 {
-    // 既存のスレッドが存在し、実行中の場合は終了を待つ。
+    // 既存スレッドがあれば確実に終了させてから破棄
     if (m_usiThread) {
-        m_usiThread->quit();
+        Q_EMIT stopOrPonderhitCommandSent();
         m_usiThread->wait();
+        delete m_usiThread;
+        m_usiThread = nullptr;
     }
 
-    // 新しいスレッドを生成する。
+    // 新しいスレッドを生成
     m_usiThread = new UsiThread(this, this);
 
-    // UsiThreadオブジェクトの実行が終了した（runメソッドが終了した）ときに、m_usiThreadオブジェクトが適切に削除されるようにする。
-    connect(m_usiThread, &UsiThread::finished, m_usiThread, &QObject::deleteLater);
-
-    // 新しいスレッドを実行する。
+    // 実行
     m_usiThread->start();
 }
 

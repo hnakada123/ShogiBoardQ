@@ -370,7 +370,7 @@ private:
 
 public:
     // ==== 追加：検討の強制終了（quit送信→エンジン破棄） ====
-    void handleBreakOffAnalysis();
+    void handleBreakOffConsidaration();
 };
 
 #endif // MATCHCOORDINATOR_H
