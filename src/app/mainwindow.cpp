@@ -130,9 +130,6 @@ MainWindow::MainWindow(QWidget *parent) :
     // セントラルウィジェット構築（m_tab を add する側）
     initializeCentralGameDisplay();
 
-    qDebug() << "tab parents:" << m_tab->parent();
-    qDebug() << "tabs in window:" << this->findChildren<QTabWidget*>().size();
-
     // 対局のメニュー表示を一部隠す。
     //hideGameActions();
 
@@ -187,6 +184,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionEndEditPosition, &QAction::triggered, this, &MainWindow::finishPositionEditing);
     connect(ui->actionTsumeShogiSearch, &QAction::triggered, this, &MainWindow::displayTsumeShogiSearchDialog);
     connect(ui->breakOffGame, &QAction::triggered, this, &MainWindow::handleBreakOffGame);
+    connect(ui->actionQuitEngine, &QAction::triggered, this, &MainWindow::handleBreakOffConsidaration);
 
     // 将棋盤表示・エラー・昇格ダイアログ等
     connect(m_gameController, &ShogiGameController::showPromotionDialog, this, &MainWindow::displayPromotionDialog);
@@ -6966,4 +6964,27 @@ void MainWindow::applyPendingEvalTrim_()
         m_pendingEvalTrimPly = -1;
     }
     m_isResumeFromCurrent = false;  // ← 再開モード解除
+}
+
+// 「検討を終了」アクション用：エンジンに quit を送り検討セッションを終了
+void MainWindow::handleBreakOffConsidaration()
+{
+    if (!m_match) return;
+
+    // 司令塔に依頼（内部で quit 送信→プロセス/Usi 破棄→モード NotStarted）
+    m_match->handleBreakOffAnalysis();
+
+    // UI の後始末（任意）——検討のハイライトなどをクリアしておく
+    if (m_shogiView) m_shogiView->removeHighlightAllData();
+
+    // MainWindow 側のモードも念のため合わせる（UI 表示に依存がある場合）
+    m_playMode = NotStarted;
+
+    // 盤下のエンジン名表示などを通常状態へ（関数がある場合）
+    setEngineNamesBasedOnMode();
+
+    // ここでは UI の大規模リセットは行わず、検討終了の状態だけ示す
+    if (statusBar()) {
+        statusBar()->showMessage(tr("検討を中断しました（エンジンに quit を送信）。"), 3000);
+    }
 }

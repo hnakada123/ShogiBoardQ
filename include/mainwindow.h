@@ -598,6 +598,9 @@ private:
 
     void handleBreakOffGame();
 
+    // 検討（ConsidarationMode）の手動終了（quit 送信）
+    void handleBreakOffConsidaration();
+
     void resetUiForResumeFromCurrent_();
 
     bool m_isLiveAppendMode = false;
