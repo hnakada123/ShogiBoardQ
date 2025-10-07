@@ -120,6 +120,9 @@ public:
     void setThinkingModel(ShogiEngineThinkingModel* m) { m_modelThinking = m; }
     void setLogModel(UsiCommLogModel* m) { m_model = m; }
 
+    // 将棋エンジンのプロセスを終了し、プロセスとスレッドを削除する。
+    void cleanupEngineProcessAndThread();
+
 #ifdef QT_DEBUG
     // ★ 追加：デバッグ用ダンプ
     ShogiEngineThinkingModel* debugThinkingModel() const { return m_modelThinking; }
@@ -219,9 +222,6 @@ private:
 
     // GUIがbestmove winを受信したかどうかのフラグ
     bool m_isWinMove;
-
-    // 将棋エンジンのプロセスを終了し、プロセスとスレッドを削除する。
-    void cleanupEngineProcessAndThread();
 
     // 将棋エンジンからデータを受信して保管した行リストをクリアする。
     void clearResponseData();
