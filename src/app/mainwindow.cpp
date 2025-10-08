@@ -1266,7 +1266,9 @@ void MainWindow::displayAnalysisResults()
     lay->addWidget(view);
 
     dlg->resize(1000, 600);
-    dlg->open(); // 非モーダル表示（必要なら dlg->exec() に変更）
+    dlg->setModal(false);
+    dlg->setWindowModality(Qt::NonModal);
+    dlg->show();
 }
 
 // 検討ダイアログを表示する。
