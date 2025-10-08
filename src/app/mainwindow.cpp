@@ -7,6 +7,7 @@
 #include <QWidgetAction>
 #include <QMetaType>
 #include <QDebug>
+#include <QScrollBar>
 
 #include "mainwindow.h"
 #include "promotedialog.h"
@@ -32,6 +33,7 @@
 #include "matchcoordinator.h"
 #include "kifuvariationengine.h"
 #include "branchcandidatescontroller.h"
+#include "numeric_right_align_comma_delegate.h"
 
 // mainwindow.cpp の先頭（インクルードの後、どのメンバ関数より上）に追加
 static inline QString pickLabelForDisp(const KifDisplayItem& d)
@@ -1236,6 +1238,7 @@ void MainWindow::startGameBasedOnMode()
 }
 
 // 棋譜解析結果を表示するためのテーブルビューを設定および表示する。
+// 棋譜解析結果を表示するためのテーブルビューを設定および表示する。
 void MainWindow::displayAnalysisResults()
 {
     // 既存モデルを破棄して作り直し（親=this を付けておくと自動破棄）
@@ -1245,46 +1248,96 @@ void MainWindow::displayAnalysisResults()
     }
     m_analysisModel = new KifuAnalysisListModel(this);
 
-    // 解析結果用の簡易ダイアログ（メンバを持たず、その場で開いて閉じたら破棄）
+    // 解析結果用ダイアログ
     auto* dlg = new QDialog(this);
     dlg->setWindowTitle(tr("棋譜解析結果"));
     dlg->setAttribute(Qt::WA_DeleteOnClose, true);
 
+    // テーブルビュー本体
     auto* view = new QTableView(dlg);
     view->setModel(m_analysisModel);
-    view->setSelectionMode(QAbstractItemView::SingleSelection);
-    view->setSelectionBehavior(QAbstractItemView::SelectRows);
     view->setAlternatingRowColors(true);
+    view->setWordWrap(false);
     view->verticalHeader()->setVisible(false);
+    view->setSelectionBehavior(QAbstractItemView::SelectRows);
+    view->setSelectionMode(QAbstractItemView::SingleSelection);
+    view->setTextElideMode(Qt::ElideRight); // PV が長いときは末尾省略
 
-    // --- 幅の自動調整方針 ---
-    // 0列目：手数など → 内容に合わせる（最小幅は確保）
-    // 1列目：指し手 → 内容に合わせる
-    // 2列目：評価値 → 内容に合わせる
-    // 3列目：読み/説明など長文 → 余白をすべて受ける（伸縮）
+    // 「思考」タブと同じ：数値列を右寄せ＋3桁カンマ
+    {
+        auto* numDelegate = new NumericRightAlignCommaDelegate(view);
+        view->setItemDelegateForColumn(1, numDelegate); // Evaluation Value
+        view->setItemDelegateForColumn(2, numDelegate); // Difference
+    }
+
+    // 列幅ポリシー
     auto* header = view->horizontalHeader();
-    header->setStretchLastSection(true);                 // 最終列は常に余白を受ける
     header->setMinimumSectionSize(60);
-    header->setSectionResizeMode(0, QHeaderView::ResizeToContents);
-    header->setSectionResizeMode(1, QHeaderView::ResizeToContents);
-    header->setSectionResizeMode(2, QHeaderView::ResizeToContents);
-    header->setSectionResizeMode(3, QHeaderView::Stretch); // 最終列は伸びる
+    header->setSectionResizeMode(0, QHeaderView::ResizeToContents); // Move
+    header->setSectionResizeMode(1, QHeaderView::ResizeToContents); // Evaluation
+    header->setSectionResizeMode(2, QHeaderView::ResizeToContents); // Difference
+    header->setSectionResizeMode(3, QHeaderView::Stretch);          // PV
+    header->setStretchLastSection(true);
 
-    // 固定幅指定は削除（setColumnWidth(...) は不要）
+    // --- 重要：PV がゼロ幅になるのを防ぐ再レイアウト関数 ---
+    // 1) 一時的に PV を Interactive にして幅を決める
+    // 2) その後で Stretch に戻す（ウィンドウリサイズ追従のため）
+    auto reflowNow = [view, header]() {
+        if (!view || !header) return;
 
-    // モデル更新時に一度だけ計測し直す（重い dataChanged 連打は避ける）
-    auto doAutoSize = [view]() {
-        // ResizeToContents の列を現在内容で再計測
+        // 0..2 は内容幅で確定
+        header->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+        header->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+        header->setSectionResizeMode(2, QHeaderView::ResizeToContents);
+
+        // まずは自動採寸
         view->resizeColumnsToContents();
-        // ただし最後の列は Stretch を維持
+
+        // PV をいったん手動サイズにして確実に幅を与える
+        header->setSectionResizeMode(3, QHeaderView::Interactive);
+
+        const int w0 = header->sectionSize(0);
+        const int w1 = header->sectionSize(1);
+        const int w2 = header->sectionSize(2);
+
+        const int viewportW  = view->viewport()->width();
+        const int vScrollW   = view->verticalScrollBar()->isVisible() ? view->verticalScrollBar()->width() : 0;
+        const int margins    = 4; // 誤差吸収
+        const int remain     = viewportW - (w0 + w1 + w2) - vScrollW - margins;
+        const int pvWidth    = qMax(160, remain); // 最低幅を確保
+
+        header->resizeSection(3, pvWidth);
+
+        // 仕上げに Stretch へ戻す（以降はウィンドウ幅に追従）
+        header->setSectionResizeMode(3, QHeaderView::Stretch);
+        header->setStretchLastSection(true);
     };
-    QObject::connect(m_analysisModel, &QAbstractItemModel::modelReset, view, doAutoSize);
+
+    // イベントループ戻し後に実行（初回表示対策）
+    auto reflowQueued = [view, reflowNow]() {
+        QTimer::singleShot(0, view, reflowNow);
+    };
+
+    // モデル側の各種シグナルにフック（解析中の逐次更新に追従）
+    QObject::connect(m_analysisModel, &QAbstractItemModel::modelReset,   view, reflowQueued);
     QObject::connect(m_analysisModel, &QAbstractItemModel::rowsInserted, view,
-                     [doAutoSize](const QModelIndex&, int, int){ doAutoSize(); });
+                     [reflowQueued](const QModelIndex&, int, int){ reflowQueued(); });
+    QObject::connect(m_analysisModel, &QAbstractItemModel::dataChanged,  view,
+                     [reflowQueued](const QModelIndex&, const QModelIndex&, const QList<int>&){ reflowQueued(); });
+    QObject::connect(m_analysisModel, &QAbstractItemModel::layoutChanged, view, reflowQueued);
 
-    // 初回表示時にも一度だけ実行（イベントループ戻し後）
-    QTimer::singleShot(0, view, doAutoSize);
+    // スクロールバーの出現/消失でも viewport 幅が変わるので再レイアウト
+    QObject::connect(view->verticalScrollBar(), &QAbstractSlider::rangeChanged,
+                     view, [reflowQueued](int, int){ reflowQueued(); });
 
+    // 初回も必ず走らせる
+    QTimer::singleShot(0, view, reflowNow);
+
+    // 後片付け用
+    m_analysisResultsView = view;
+    QObject::connect(dlg, &QObject::destroyed, this, [this](){ m_analysisResultsView = nullptr; });
+
+    // レイアウト
     auto* lay = new QVBoxLayout(dlg);
     lay->setContentsMargins(8,8,8,8);
     lay->addWidget(view);
@@ -2655,9 +2708,10 @@ void MainWindow::analyzeGameRecord()
     const int startIndexRaw = m_analyzeGameRecordDialog->initPosition() ? 0 : m_currentMoveIndex;
     const int startIndex    = qBound(0, startIndexRaw, m_positionStrList.size() - 1);
 
-    // 4) ループ上限（元コードのデバッグ制限 8 手を踏襲）
+    // 4) ループ上限
     const int totalMoves = qMin(m_positionStrList.size(), m_gameMoves.size());
-    const int endIndex   = qMin(totalMoves, 8);  // ← 必要なら制限解除可
+    const int endIndex   = qMin(totalMoves, 3);
+    //const int endIndex   = totalMoves;
 
     // 5) 直前評価値（差分計算用）
     int previousScore = 0;
