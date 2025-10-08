@@ -1263,6 +1263,7 @@ void MainWindow::displayAnalysisResults()
     // 2列目：評価値 → 内容に合わせる
     // 3列目：読み/説明など長文 → 余白をすべて受ける（伸縮）
     auto* header = view->horizontalHeader();
+    header->setStretchLastSection(true);                 // 最終列は常に余白を受ける
     header->setMinimumSectionSize(60);
     header->setSectionResizeMode(0, QHeaderView::ResizeToContents);
     header->setSectionResizeMode(1, QHeaderView::ResizeToContents);
