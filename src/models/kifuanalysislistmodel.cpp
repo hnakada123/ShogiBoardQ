@@ -18,27 +18,30 @@ int KifuAnalysisListModel::columnCount(const QModelIndex &parent) const
 // データを返す。
 QVariant KifuAnalysisListModel::data(const QModelIndex &index, int role) const
 {
-    // roleが表示用のデータを要求していない場合、空のQVariantを返す。
-    if (!index.isValid() || role != Qt::DisplayRole) {
+    if (!index.isValid())
+        return QVariant();
+
+    // 右寄せ：Evaluation / Difference 列は常に右寄せ（デリゲートが無い場面でも崩れないように）
+    if (role == Qt::TextAlignmentRole) {
+        if (index.column() == 1 || index.column() == 2) {
+            return QVariant::fromValue<int>(Qt::AlignRight | Qt::AlignVCenter);
+        }
         return QVariant();
     }
 
-    // 列番号によって処理を分岐する。
+    if (role != Qt::DisplayRole)
+        return QVariant();
+
     switch (index.column()) {
-    case 0:
-        // 指し手を返す。
+    case 0: // 指し手
         return list[index.row()]->currentMove();
-    case 1:
-        // 評価値を返す。
+    case 1: // 評価値
         return list[index.row()]->evaluationValue();
-    case 2:
-        // 差を返す。
+    case 2: // 差
         return list[index.row()]->evaluationDifference();
-    case 3:
-        // 読み筋を返す。
+    case 3: // 読み筋
         return list[index.row()]->principalVariation();
     default:
-        // それ以外の場合は空のQVariantを返す。
         return QVariant();
     }
 }
