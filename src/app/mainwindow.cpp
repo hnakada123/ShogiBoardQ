@@ -1254,12 +1254,35 @@ void MainWindow::displayAnalysisResults()
     view->setModel(m_analysisModel);
     view->setSelectionMode(QAbstractItemView::SingleSelection);
     view->setSelectionBehavior(QAbstractItemView::SelectRows);
+    view->setAlternatingRowColors(true);
     view->verticalHeader()->setVisible(false);
-    view->horizontalHeader()->setSectionResizeMode(3, QHeaderView::Stretch);
-    view->setColumnWidth(0, 200);
-    view->setColumnWidth(1, 200);
-    view->setColumnWidth(2, 200);
-    view->setColumnWidth(3, 200);
+
+    // --- 幅の自動調整方針 ---
+    // 0列目：手数など → 内容に合わせる（最小幅は確保）
+    // 1列目：指し手 → 内容に合わせる
+    // 2列目：評価値 → 内容に合わせる
+    // 3列目：読み/説明など長文 → 余白をすべて受ける（伸縮）
+    auto* header = view->horizontalHeader();
+    header->setMinimumSectionSize(60);
+    header->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    header->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+    header->setSectionResizeMode(2, QHeaderView::ResizeToContents);
+    header->setSectionResizeMode(3, QHeaderView::Stretch); // 最終列は伸びる
+
+    // 固定幅指定は削除（setColumnWidth(...) は不要）
+
+    // モデル更新時に一度だけ計測し直す（重い dataChanged 連打は避ける）
+    auto doAutoSize = [view]() {
+        // ResizeToContents の列を現在内容で再計測
+        view->resizeColumnsToContents();
+        // ただし最後の列は Stretch を維持
+    };
+    QObject::connect(m_analysisModel, &QAbstractItemModel::modelReset, view, doAutoSize);
+    QObject::connect(m_analysisModel, &QAbstractItemModel::rowsInserted, view,
+                     [doAutoSize](const QModelIndex&, int, int){ doAutoSize(); });
+
+    // 初回表示時にも一度だけ実行（イベントループ戻し後）
+    QTimer::singleShot(0, view, doAutoSize);
 
     auto* lay = new QVBoxLayout(dlg);
     lay->setContentsMargins(8,8,8,8);
