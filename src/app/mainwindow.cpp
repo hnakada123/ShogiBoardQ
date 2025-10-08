@@ -1306,14 +1306,30 @@ void MainWindow::displayKifuAnalysisDialog()
 {
     m_analyzeGameRecordDialog = new KifuAnalysisDialog(this);
 
-    if (m_analyzeGameRecordDialog->exec() == QDialog::Accepted) {
-        // 解析結果ビューを生成して表示（ビューはローカルでOK）
+    const int result = m_analyzeGameRecordDialog->exec();
+    if (result == QDialog::Accepted) {
+        // 解析は司令塔（MatchCoordinator）経由のため、存在を保証する
+        if (!m_match) {
+            initMatchCoordinator();
+        }
+        if (!m_match) {
+            displayErrorMessage(u8"内部エラー: MatchCoordinator を初期化できません。");
+            delete m_analyzeGameRecordDialog;
+            m_analyzeGameRecordDialog = nullptr;
+            return;
+        }
+
+        // 解析結果ビューを用意（モデル/ビューの生成・表示）
         displayAnalysisResults();
 
         try {
+            // 本体は司令塔委譲版 analyzeGameRecord() を呼ぶ
             analyzeGameRecord();
         } catch (const std::exception& e) {
-            // 解析モデルはメンバなのでクリーンアップ
+            // 例外時は解析を確実に後始末してからモデルを片付ける
+            if (m_match) {
+                m_match->handleBreakOffConsidaration();
+            }
             if (m_analysisModel) {
                 delete m_analysisModel;
                 m_analysisModel = nullptr;
@@ -1325,6 +1341,7 @@ void MainWindow::displayKifuAnalysisDialog()
     delete m_analyzeGameRecordDialog;
     m_analyzeGameRecordDialog = nullptr;
 }
+
 
 // 対局者の残り時間と秒読み/加算設定だけを確定する（★自分自身は呼ばない）
 void MainWindow::setRemainingTimeAndCountDown()
@@ -2593,85 +2610,98 @@ void MainWindow::createPositionCommands()
     }
 }
 
-// 棋譜解析を開始する。
+// 棋譜解析を開始する（エンジン制御は MatchCoordinator に委譲）
 void MainWindow::analyzeGameRecord()
 {
-    // 対局モードを棋譜解析モードに設定する。
+    // 1) UI 上のプレイモードは「棋譜解析モード」を保持
     m_playMode = AnalysisMode;
 
-    // 秒読み(ms)はローカルに保持（MainWindowのメンバは廃止済み）
-    const int byoyomiMs = m_analyzeGameRecordDialog->byoyomiSec() * 1000;
+    if (!m_match || !m_analyzeGameRecordDialog) return;
 
-    int startIndex = m_analyzeGameRecordDialog->initPosition() ? 0 : m_currentMoveIndex;
+    // 2) 解析設定（ダイアログ値）
+    const int  byoyomiMs  = m_analyzeGameRecordDialog->byoyomiSec() * 1000;
+    const int  engineIdx  = m_analyzeGameRecordDialog->engineNumber();
+    const auto engine     = m_analyzeGameRecordDialog->engineList().at(engineIdx);
+    const QString enginePath = engine.path;
+    const QString engineName = m_analyzeGameRecordDialog->engineName();
 
-    // 将棋エンジンとUSIプロトコルに関するクラスの削除と生成
-    if (m_usi1 != nullptr) delete m_usi1;
-    m_usi1 = new Usi(m_lineEditModel1, m_modelThinking1, m_gameController, m_playMode, this);
+    // 3) 解析開始手（初手から / 現在手から）
+    const int startIndexRaw = m_analyzeGameRecordDialog->initPosition() ? 0 : m_currentMoveIndex;
+    const int startIndex    = qBound(0, startIndexRaw, m_positionStrList.size() - 1);
 
-    // GUIに登録された将棋エンジン番号を取得する。
-    const int engineNumber1 = m_analyzeGameRecordDialog->engineNumber();
+    // 4) ループ上限（元コードのデバッグ制限 8 手を踏襲）
+    const int totalMoves = qMin(m_positionStrList.size(), m_gameMoves.size());
+    const int endIndex   = qMin(totalMoves, 8);  // ← 必要なら制限解除可
 
-    // 将棋エンジン実行ファイル名/名称
-    m_engineFile1 = m_analyzeGameRecordDialog->engineList().at(engineNumber1).path;
-    QString engineName1 = m_analyzeGameRecordDialog->engineName();
-
-    m_usi1->setLogIdentity("[E1]", "P1", engineName1);
-    if (m_usi1) m_usi1->setSquelchResignLogging(false);
-
-    // エンジン起動
-    m_usi1->initializeAndStartEngineCommunication(m_engineFile1, engineName1);
-
-    // 前の手の評価値
+    // 5) 直前評価値（差分計算用）
     int previousScore = 0;
 
-    // 初手から最終手までの指し手までループ（※デバッグで 8 手に制限中）
-    // for (int moveIndex = startIndex; moveIndex < m_gameMoves.size(); ++moveIndex) {
-    for (int moveIndex = startIndex; moveIndex < 8; ++moveIndex) {
-        // 各手の position 文字列
-        m_positionStr1 = m_positionStrList.at(moveIndex);
-
-        // 手番を設定
+    for (int moveIndex = startIndex; moveIndex < endIndex; ++moveIndex) {
+        // --- UI：現在手番の表示を GameController に反映（従来挙動を踏襲） ---
         if (m_gameMoves.at(moveIndex).movingPiece.isUpper()) {
             m_gameController->setCurrentPlayer(ShogiGameController::Player1);
         } else {
             m_gameController->setCurrentPlayer(ShogiGameController::Player2);
         }
 
-        // 解析コマンド送信（byoyomiMs はローカル）
-        m_usi1->executeAnalysisCommunication(m_positionStr1, byoyomiMs);
+        // --- 送信用 position を取得 ---
+        const QString positionStr = m_positionStrList.at(moveIndex);
 
-        // 指し手/評価値/差分/読み筋
-        const QString currentMoveRecord = m_moveRecords->at(moveIndex)->currentMove();
-        const QString currentScore      = m_usi1->scoreStr();
-        const QString scoreDifference   = QString::number(currentScore.toInt() - previousScore);
-        const QString engineReadout     = m_usi1->pvKanjiStr();
+        // --- エンジン制御は司令塔へ。cleanup 互換のためモードは ConsidarationMode を指定 ---
+        MatchCoordinator::AnalysisOptions opt;
+        opt.enginePath  = enginePath;
+        opt.engineName  = engineName;
+        opt.positionStr = positionStr;
+        opt.byoyomiMs   = byoyomiMs;
+        opt.mode        = ConsidarationMode; // ★ engine 側の停止/片付けルートを使う
+
+        m_match->startAnalysis(opt);
+
+        // --- 解析結果の取得（司令塔から主エンジンを覗く） ---
+        auto* eng = m_match->primaryEngine();
+        const QString currentScore   = (eng ? eng->scoreStr()    : QStringLiteral("0"));
+        const QString engineReadout  = (eng ? eng->pvKanjiStr()  : QString());
+
+        // --- モデルへ追加：指し手/評価値/差分/読み筋 ---
+        const QString currentMoveRecord =
+            (m_moveRecords && moveIndex < m_moveRecords->size())
+                ? m_moveRecords->at(moveIndex)->currentMove()
+                : QString();
+
+        const QString scoreDifference =
+            QString::number(currentScore.toInt() - previousScore);
         previousScore = currentScore.toInt();
 
-        // 解析結果をモデルに追加してビューを更新
-        m_analysisModel->appendItem(
-            new KifuAnalysisResultsDisplay(currentMoveRecord, currentScore, scoreDifference, engineReadout)
-            );
-        m_analysisResultsView->scrollToBottom();
-        m_analysisResultsView->update();
+        if (m_analysisModel) {
+            m_analysisModel->appendItem(
+                new KifuAnalysisResultsDisplay(currentMoveRecord,
+                                               currentScore,
+                                               scoreDifference,
+                                               engineReadout));
+        }
+        if (m_analysisResultsView) {
+            m_analysisResultsView->scrollToBottom();
+            m_analysisResultsView->update();
+        }
 
-        // 現局面から1手進める（Controller/スロットに依存しない）
+        // --- 現局面から 1 手進める（既存の選択適用フローを踏襲） ---
         if (!m_resolvedRows.isEmpty()) {
             const int row    = qBound(0, m_activeResolvedRow, m_resolvedRows.size() - 1);
             const int maxPly = m_resolvedRows[row].disp.size();
             const int cur    = qBound(0, m_activePly, maxPly);
             if (cur < maxPly) {
-                applySelect(row, cur + 1);   // ← 旧 navigateToNextMove() 相当
+                applySelect(row, cur + 1);   // 旧 navigateToNextMove 相当
             }
         }
 
-        // 評価値グラフ更新
+        // --- 評価値グラフ更新（先手側を使用） ---
         redrawEngine1EvaluationGraph();
     }
 
-    // 終了
-    m_usi1->sendQuitCommand();
+    // 6) 単発解析セッションの確実な後始末（quit→破棄）
+    //    ※ MatchCoordinator 側の cleanup は ConsidarationMode 前提
+    m_match->handleBreakOffConsidaration();
 }
-
 
 // 設定ファイルにGUI全体のウィンドウサイズを書き込む。
 // また、将棋盤のマスサイズも書き込む。
