@@ -1255,3 +1255,16 @@ void MatchCoordinator::handleBreakOffConsidaration()
     // 手番表示などの軽い再描画（必要なければ削ってOK）
     updateTurnDisplay_(m_cur);
 }
+
+void MatchCoordinator::continueAnalysis(const QString& positionStr, int byoyomiMs)
+{
+    // 検討モードで単発エンジン m_usi1 が起動済みであることが前提
+    if (m_playMode != ConsidarationMode || !m_usi1) {
+        if (m_hooks.log) m_hooks.log(QStringLiteral("[Analysis] continueAnalysis skipped (no active engine)"));
+        return;
+    }
+
+    // Usi::executeAnalysisCommunication は非常参照引数なのでコピーを渡す
+    QString pos = positionStr;
+    m_usi1->executeAnalysisCommunication(pos, byoyomiMs);
+}
