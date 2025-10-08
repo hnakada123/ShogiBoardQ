@@ -2708,10 +2708,10 @@ void MainWindow::analyzeGameRecord()
     const int startIndexRaw = m_analyzeGameRecordDialog->initPosition() ? 0 : m_currentMoveIndex;
     const int startIndex    = qBound(0, startIndexRaw, m_positionStrList.size() - 1);
 
-    // 4) ループ上限
+    // 4) ループ上限（※テスト用で3手に絞っていた制限を解除）
     const int totalMoves = qMin(m_positionStrList.size(), m_gameMoves.size());
-    const int endIndex   = qMin(totalMoves, 3);
     //const int endIndex   = totalMoves;
+    const int endIndex   = 3;
 
     // 5) 直前評価値（差分計算用）
     int previousScore = 0;
@@ -2735,7 +2735,14 @@ void MainWindow::analyzeGameRecord()
         opt.byoyomiMs   = byoyomiMs;
         opt.mode        = ConsidarationMode; // ★ engine 側の停止/片付けルートを使う
 
-        m_match->startAnalysis(opt);
+        // ★ ここが重要 ★
+        // 初回だけ startAnalysis() でエンジンを起動し、
+        // 2手目以降は continueAnalysis() で同一プロセスに次の position を送る。
+        if (moveIndex == startIndex) {
+            m_match->startAnalysis(opt); // 初回のみ起動（内部で destroy→起動）
+        } else {
+            m_match->continueAnalysis(positionStr, byoyomiMs); // 2手目以降は使い回し（quit しない）
+        }
 
         // --- 解析結果の取得（司令塔から主エンジンを覗く） ---
         auto* eng = m_match->primaryEngine();
@@ -2778,8 +2785,8 @@ void MainWindow::analyzeGameRecord()
         redrawEngine1EvaluationGraph();
     }
 
-    // 6) 単発解析セッションの確実な後始末（quit→破棄）
-    //    ※ MatchCoordinator 側の cleanup は ConsidarationMode 前提
+    // 6) 解析セッションの後始末（ここでだけ quit→破棄）
+    //    ※ 途中では絶対に quit を送らない
     m_match->handleBreakOffConsidaration();
 }
 

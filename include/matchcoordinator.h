@@ -299,6 +299,10 @@ public:
     void stopAnalysis();
     bool isAnalysisActive() const;
 
+    // ==== 追加：棋譜解析 継続API ====
+    // 既に startAnalysis() 済みの単発エンジンを使い回し、次の position を送って解析を継続する（途中では quit しない）
+    void continueAnalysis(const QString& positionStr, int byoyomiMs);
+
 public:
     Usi* primaryEngine() const;   // HvE/EvH で司令塔が使う主エンジン（これまで m_usi1 に相当）
     Usi* secondaryEngine() const; // ★ 追加
