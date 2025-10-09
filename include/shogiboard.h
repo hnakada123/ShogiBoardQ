@@ -77,6 +77,12 @@ public:
 
     QString currentPlayer() const;
 
+    // 盤面をSFEN形式へ変換する。
+    QString convertBoardToSfen();
+
+    // 駒台のSFEN形式への変換
+    QString convertStandToSfen() const;
+
 signals:
     // エラーを報告するためのシグナル
     void errorReported(const QString& errorMessage);
@@ -147,12 +153,6 @@ private:
 
     // 成り駒の文字をSFEN形式の駒文字列に変換する。
     QString convertPieceToSfen(const QChar piece) const;
-
-    // 盤面をSFEN形式へ変換する。
-    QString convertBoardToSfen();
-
-    // 駒台のSFEN形式への変換
-    QString convertStandToSfen() const;
 };
 
 #endif // SHOGIBOARD_H
