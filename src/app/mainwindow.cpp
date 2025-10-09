@@ -1175,7 +1175,16 @@ void MainWindow::startGameBasedOnMode()
 
     MatchCoordinator::StartOptions opt;
     opt.mode      = m_playMode;
-    opt.sfenStart = m_startSfenStr;
+
+    // ★ 最優先は編集後開始SFEN
+    if (!m_startSfenStr.isEmpty()) {
+        opt.sfenStart = m_startSfenStr;
+    } else if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
+        opt.sfenStart = m_sfenRecord->first();
+    } else {
+        // 念のためのフォールバック（通常ここには来ない）
+        opt.sfenStart = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+    }
 
     // エンジン情報（UIの選択値から）
     const auto engines = m_startGameDialog->getEngineList();
@@ -3066,6 +3075,12 @@ void MainWindow::finishPositionEditing()
 
     // --- D) 自動同期を再開 ---
     m_onMainRowGuard = prevGuard;
+
+    // 末尾（D) 自動同期を再開 の直前か直後に 1 行追加）
+    qDebug() << "[EDIT-END] flags: editMode="
+             << (m_shogiView ? m_shogiView->positionEditMode() : false)
+             << " guard=" << m_onMainRowGuard
+             << " m_startSfenStr=" << m_startSfenStr;
 }
 
 // 「全ての駒を駒台へ」をクリックした時に実行される。
@@ -5010,54 +5025,41 @@ void MainWindow::onActionFlipBoardTriggered(bool /*checked*/)
     if (m_match) m_match->flipBoard();
 }
 
+// エンジンに渡す "position ..." を編集後SFEN基準で 0手開始に再生成する。
+// ポイント：
+//  - m_startSfenStr を最優先に採用（"sfen ..." 形式の完全SFENを想定）
+//  - moves は付けない（= 0手開始）。編集直後は指し手履歴を前置しない
+//  - ライブ追記モードでも再初期化する（編集→開始の安定動作を優先）
+//  - 予備として m_sfenRecord 先頭、最終フォールバックは平手SFEN
 void MainWindow::initializePositionStringsForMatch_()
 {
-    // ライブ追記（現局面から再開）で既に m_positionStr1 を正しく用意済みなら再初期化しない
-    if (m_isLiveAppendMode && !m_positionStr1.isEmpty()) return;
-
+    // 既存状態をクリア（ライブ追記モードでも再初期化する）
     m_positionStr1.clear();
     m_positionPonder1.clear();
     if (!m_positionStrList.isEmpty()) m_positionStrList.clear();
 
-    // 再開時：m_gameMoves には selPly までが残っている前提
-    const bool hasHistory = !m_gameMoves.isEmpty();
-
-    if (!m_startSfenStr.isEmpty() && m_startSfenStr != QStringLiteral("startpos")) {
-        m_positionStr1 = hasHistory
-            ? QStringLiteral("position sfen %1 moves").arg(m_startSfenStr)
-            : QStringLiteral("position sfen %1").arg(m_startSfenStr); // 末尾に "moves" を付けない
+    // --- ベースSFENの決定 ---
+    QString baseSfen;
+    if (!m_startSfenStr.isEmpty()) {
+        // 最優先：編集終了時に確定した開始SFEN
+        baseSfen = m_startSfenStr;  // 例: "lnsgkgsnl/... b - 1"
+    } else if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
+        // 予備：SFEN履歴の先頭をベースに
+        baseSfen = m_sfenRecord->first();
     } else {
-        m_positionStr1 = hasHistory
-            ? QStringLiteral("position startpos moves")
-            : QStringLiteral("position startpos");
+        // 最終フォールバック（通常ここには来ない）
+        baseSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
     }
 
-    // 既存着手を前置（USI表記化）
-    if (hasHistory) {
-        auto rankToAlphabet = [](int rank1){ return QChar('a' + (rank1 - 1)); };
-        for (int i = 0; i < m_gameMoves.size(); ++i) {
-            const auto& mv = m_gameMoves.at(i);
-            const int fromX = mv.fromSquare.x() + 1;
-            const int fromY = mv.fromSquare.y() + 1;
-            const int toX   = mv.toSquare.x()   + 1;
-            const int toY   = mv.toSquare.y()   + 1;
+    // --- 0手開始で "position sfen ..." を生成（moves は付けない）---
+    m_positionStr1     = QStringLiteral("position sfen %1").arg(baseSfen);
+    m_positionPonder1  = m_positionStr1;   // ひな形は同じでOK
+    m_positionStrList << m_positionStr1;
 
-            // 打ち駒などの分岐はプロジェクトの既存実装に合わせて必要なら拡張
-            QString usi;
-            if (1 <= fromX && fromX <= 9 && 1 <= toX && toX <= 9) {
-                usi = QString::number(fromX) + rankToAlphabet(fromY)
-                    + QString::number(toX)   + rankToAlphabet(toY)
-                    + (mv.isPromotion ? QStringLiteral("+") : QString());
-            } else {
-                // 打ち駒など（必要に応じて既存の Piece→USI 変換関数を使用）
-                // usi = "...";
-            }
-            m_positionStr1 += QLatin1Char(' ');
-            m_positionStr1 += usi;
-        }
-    }
-
-    m_positionStrList.append(m_positionStr1);
+#ifdef QT_DEBUG
+    qDebug() << "[INIT-POS] base sfen =" << baseSfen;
+    qDebug() << "[INIT-POS] positionStr1 =" << m_positionStr1;
+#endif
 }
 
 // EvH（エンジンが先手）の初手を起動する（position ベース → go → bestmove を適用）
