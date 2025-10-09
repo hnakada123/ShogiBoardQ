@@ -713,16 +713,19 @@ bool ShogiGameController::checkGetKingOpponentPiece(const QChar source, const QC
     return true;
 }
 
-// 局面編集後の局面をSFEN形式に変換し、リストに追加する。
+// 局面編集後の局面を SFEN 形式に変換し、リストに 0手局面として追加する。
 void ShogiGameController::updateSfenRecordAfterEdit(QStringList* m_sfenRecord)
 {
-    // 仮の手数を設定する。board()->addSfenRecord関数内で2手足して初手になるよう帳尻を合わせている。
-    int moveIndex = -1;
+    if (!board() || !m_sfenRecord) return;
 
-    // 相手の手番をSFEN形式の手番bに設定する。
-    QString nextTurn = "b";
+    // moveIndex=-1 を渡すと addSfenRecord 側の (+2) で " 1 " になる仕様
+    const int moveIndex = -1;
 
-    // 現在の盤面をSFEN形式に変換し、その文字列をリストに追加する。
+    // 編集メニューの「手番変更」に追従
+    const QString nextTurn = (currentPlayer() == ShogiGameController::Player1)
+                                 ? QStringLiteral("b") : QStringLiteral("w");
+
+    // 現在の gameBoard（＝ MainWindow 側で setSfen 済み）を 0手局面として登録
     board()->addSfenRecord(nextTurn, moveIndex, m_sfenRecord);
 }
 
