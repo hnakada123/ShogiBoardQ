@@ -5303,8 +5303,32 @@ void MainWindow::connectMoveRequested_()
         Qt::UniqueConnection);
 }
 
+// 盤/駒台クリックで移動要求が来たときに呼ばれるスロット
 void MainWindow::onMoveRequested_(const QPoint& from, const QPoint& to)
 {
+    // 編集モードでは対局用の合法手検証は通さず、編集専用の移動APIを使う
+    if (m_boardController && m_boardController->mode() == BoardInteractionController::Mode::Edit) {
+        QPoint hFrom = from, hTo = to;  // 以降のAPIが参照を取るのでローカルコピー
+        bool ok = false;
+
+        try {
+            ok = (m_gameController && m_gameController->editPosition(hFrom, hTo));
+        } catch (const std::exception& e) {
+            displayErrorMessage(e.what());
+            ok = false;
+        }
+
+        // ハイライト更新（直前手の赤/黄・選択解除などは BIC に委譲）
+        if (m_boardController) m_boardController->onMoveApplied(hFrom, hTo, ok);
+
+        // 盤の再描画
+        if (ok && m_shogiView) m_shogiView->update();
+
+        // 編集モードのときはここで終了（対局処理へは進めない）
+        return;
+    }
+
+    // 以降は通常対局処理（従来どおり）
     // 着手前の手番（＝この手を指す側）を控える
     const auto moverBefore = m_gameController->currentPlayer();
 
@@ -5315,21 +5339,17 @@ void MainWindow::onMoveRequested_(const QPoint& from, const QPoint& to)
     try {
         ok = m_gameController->validateAndMove(
             hFrom, hTo, m_lastMove, m_playMode, m_currentMoveIndex, m_sfenRecord, m_gameMoves
-            );
+        );
     } catch (const std::exception& e) {
         displayErrorMessage(e.what());
         if (m_boardController) m_boardController->onMoveApplied(from, to, /*ok=*/false);
         return;
     }
 
-    // 適用結果通知（ドラッグ/ハイライト確定）
-    if (m_boardController) m_boardController->onMoveApplied(from, to, ok);
+    if (m_boardController) m_boardController->onMoveApplied(hFrom, hTo, ok);
     if (!ok) return;
 
-    // 人間の着手ハイライト
-    if (m_boardController) m_boardController->showMoveHighlights(hFrom, hTo);
-
-    // モード別の後続処理
+    // 対局モードごとの後処理
     switch (m_playMode) {
     case HumanVsHuman:
         handleMove_HvH_(moverBefore, hFrom, hTo);
