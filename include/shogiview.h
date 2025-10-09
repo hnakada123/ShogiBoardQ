@@ -223,23 +223,13 @@ private:
     void drawBlackStandPiece(QPainter* painter, int file, int rank) const;
     void drawWhiteStandPiece(QPainter* painter, int file, int rank) const;
 
-    // 駒台（駒・枚数：編集モード）
-    void drawEditModeBlackStandPiece(QPainter* painter, int file, int rank) const;
-    void drawEditModeWhiteStandPiece(QPainter* painter, int file, int rank) const;
-    void drawEditModeFeatures(QPainter* painter);
-
     // 表示モード別の駒台領域/駒描画
-    void drawBlackEditModeStand(QPainter* painter);
-    void drawWhiteEditModeStand(QPainter* painter);
-    void drawEditModeStand(QPainter* painter);
     void drawBlackNormalModeStand(QPainter* painter);
     void drawWhiteNormalModeStand(QPainter* painter);
     void drawNormalModeStand(QPainter* painter);
-    void drawPiecesBlackStandInEditMode(QPainter* painter);
-    void drawPiecesWhiteStandInEditMode(QPainter* painter);
     void drawPiecesBlackStandInNormalMode(QPainter* painter);
     void drawPiecesWhiteStandInNormalMode(QPainter* painter);
-    void drawPiecesEditModeStandFeatures(QPainter* painter);
+    void drawPiecesStandFeatures(QPainter* painter);
 
     // ドラッグ中の駒（カーソル追従）
     void drawDraggingPiece(QPainter* painter);

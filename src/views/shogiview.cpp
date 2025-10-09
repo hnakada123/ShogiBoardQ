@@ -436,61 +436,6 @@ void ShogiView::drawBoardFields(QPainter* painter)
     }
 }
 
-// 【局面編集モード：先手（黒）の駒台マスを描画】
-// 最適化方針：セルごとの save()/restore() を撤去し、共通状態は外側で一度だけ設定。
-// 前提：drawBlackStandField() は QPainter の永続状態（ペン/ブラシ/変換/クリップ等）を汚さないこと。
-//       もし一時的に変更する必要がある場合は、drawBlackStandField() 内で当該箇所のみ局所 save()/restore() を行う。
-void ShogiView::drawBlackEditModeStand(QPainter* painter)
-{
-    // 【共通状態の一括設定】
-    // 例：駒台グリッドの線色。必要に応じて調整してください。
-    painter->setPen(palette().color(QPalette::Dark));
-    // painter->setBrush(Qt::NoBrush);  // 必要に応じて
-
-    // 【描画ループ】r: 2..9, c: 1..2 の駒台領域を走査し、各セルの描画を委譲
-    for (int r = 2; r <= 9; ++r) {
-        for (int c = 1; c <= 2; ++c) {
-            // セルごとの save/restore は行わない（コスト削減）。
-            // drawBlackStandField 側は必要箇所のみ局所的に状態保護する契約。
-            drawBlackStandField(painter, c, r);
-        }
-    }
-}
-
-// 【局面編集モード：後手（白）の駒台マスを描画】
-// 最適化方針：セルごとの save()/restore() を撤去し、共通状態は外側で一度だけ設定。
-// 前提：drawWhiteStandField() は QPainter の永続状態を汚さない（必要時のみ局所 save()/restore()）。
-void ShogiView::drawWhiteEditModeStand(QPainter* painter)
-{
-    // 【共通状態の一括設定】
-    painter->setPen(palette().color(QPalette::Dark));
-    // painter->setBrush(Qt::NoBrush);  // 必要に応じて
-
-    // 【描画ループ】r: 1..8, c: 1..2 の駒台領域を走査し、各セルの描画を委譲
-    for (int r = 1; r <= 8; ++r) {
-        for (int c = 1; c <= 2; ++c) {
-            // セルごとの save/restore は行わない（コスト削減）。
-            // drawWhiteStandField 側で必要箇所のみ局所保護する。
-            drawWhiteStandField(painter, c, r);
-        }
-    }
-}
-
-// 局面編集モードにおける「駒台」描画の統括エントリポイント。
-// 役割：先手（黒）側 → 後手（白）側の順に、駒台マスの描画を委譲して実行する。
-// 方針：共通状態（ペン/ブラシ等）は各サブ関数側で一括設定済みとし、ここでは状態を変更しない。
-// 前提：drawBlackEditModeStand()/drawWhiteEditModeStand() は QPainter の永続状態を汚さない
-//       （必要箇所だけ局所 save()/restore() を行う契約）。
-// 備考：描画順は視覚的な重なりに影響する可能性があるため、UI要件に応じて入れ替え可。
-void ShogiView::drawEditModeStand(QPainter* painter)
-{
-    // 先手（黒）側の駒台を描画
-    drawBlackEditModeStand(painter);
-
-    // 後手（白）側の駒台を描画
-    drawWhiteEditModeStand(painter);
-}
-
 void ShogiView::drawBlackNormalModeStand(QPainter* painter)
 {
     painter->setPen(palette().color(QPalette::Dark));
@@ -528,25 +473,6 @@ void ShogiView::drawNormalModeStand(QPainter* painter)
     drawWhiteNormalModeStand(painter);
 }
 
-// 局面編集モードに応じて、盤周辺の追加描画（駒台など）を振り分けるエントリポイント。
-// 役割：
-//  - m_positionEditMode が true のときは「編集モード用」の描画を実行
-//  - false のときは「通常対局モード用」の描画を実行
-// 方針：ここでは分岐と委譲のみを行い、描画状態（ペン/ブラシ等）の具体設定は下位関数側に任せる。
-// 前提：drawEditModeStand()/drawNormalModeStand() は QPainter の永続状態を汚さない
-//      （必要箇所のみ局所 save()/restore() を行う契約）。
-// 備考：将来的に編集専用のガイド線・ハイライト等を追加する場合は、true 側のブロックに追記する。
-void ShogiView::drawEditModeFeatures(QPainter* painter)
-{
-    if (m_positionEditMode) {
-        // 局面編集モード用の駒台や補助描画
-        drawEditModeStand(painter);
-    } else {
-        // 通常対局モード用の駒台描画
-        drawNormalModeStand(painter);
-    }
-}
-
 // 盤上の全ての駒を描画するエントリポイント。
 // 最適化方針：セル（マス）ごとの save()/restore() を撤去し、共通状態は外側で必要に応じて一度だけ設定。
 // 前提：drawPiece() は QPainter の永続状態（ペン/ブラシ/変換/クリップ等）を汚さないこと。
@@ -576,28 +502,6 @@ void ShogiView::drawPieces(QPainter* painter)
             // ここでの早期 return でも painter 状態リークの懸念はない。
             if (m_errorOccurred) return;
         }
-    }
-}
-
-// 【局面編集モード：先手（黒）の駒台にある“駒”と“枚数”を描画】
-// 最適化方針：行ごとの save()/restore() を撤去し、共通状態は外側で必要に応じて一度だけ設定。
-// 前提：drawEditModeBlackStandPiece()/drawEditModeBlackStandPieceCount() は QPainter の永続状態
-//      （ペン/ブラシ/変換/クリップ等）を汚さないこと。必要な一時変更は内部で局所 save()/restore()。
-// 備考：重ね順は「駒 → 枚数」の順（枚数テキストを上に重ねる）。
-void ShogiView::drawPiecesBlackStandInEditMode(QPainter* painter)
-{
-    for (int r = 2; r <= 9; ++r) {
-        // 各行での状態保存は行わない（コスト削減）。
-        drawEditModeBlackStandPiece(painter, 2, r);       // 駒アイコン等
-    }
-}
-
-// 【局面編集モード：後手（白）の駒台にある“駒”と“枚数”を描画】
-// 方針・前提は先手側と同じ。重ね順は「駒 → 枚数」。
-void ShogiView::drawPiecesWhiteStandInEditMode(QPainter* painter)
-{
-    for (int r = 1; r <= 8; ++r) {
-        drawEditModeWhiteStandPiece(painter, 1, r);
     }
 }
 
@@ -631,25 +535,11 @@ void ShogiView::drawPiecesWhiteStandInNormalMode(QPainter* painter)
     }
 }
 
-// 駒台（スタンド）上の「駒」と「枚数」描画を、モード（編集/通常）に応じて振り分ける統括エントリ。
-// 役割：
-//  - m_positionEditMode == true  → 編集モード用の描画関数群を呼ぶ
-//  - m_positionEditMode == false → 通常モード用の描画関数群を呼ぶ
-// 方針：この関数では QPainter の共通状態は変更しない（最適化適用後の契約）。
-//       具体的なペン/ブラシ/フォント/レンダリングヒント等の設定は、呼び出し先の各関数側で
-//       一括設定し、必要箇所のみ局所 save()/restore() を行う。
-// 備考：描画順は「先手→後手」。重なりや視覚効果の要件に応じて入れ替え可能。
-void ShogiView::drawPiecesEditModeStandFeatures(QPainter* painter)
+void ShogiView::drawPiecesStandFeatures(QPainter* painter)
 {
-    if (m_positionEditMode) {
-        // 局面編集モード：先手/後手の駒台にある「駒」と「枚数」を描画
-        drawPiecesBlackStandInEditMode(painter);
-        drawPiecesWhiteStandInEditMode(painter);
-    } else {
-        // 通常対局モード：先手/後手の駒台にある「駒」と「枚数」を描画
-        drawPiecesBlackStandInNormalMode(painter);
-        drawPiecesWhiteStandInNormalMode(painter);
-    }
+    // 先手/後手の駒台にある「駒」と「枚数」を描画
+    drawPiecesBlackStandInNormalMode(painter);
+    drawPiecesWhiteStandInNormalMode(painter);
 }
 
 // 画面全体の描画エントリポイント（paintEvent）。
@@ -679,7 +569,7 @@ void ShogiView::paintEvent(QPaintEvent *)
     drawBoardFields(&painter);
 
     // 2) 局面編集/通常に応じた周辺（駒台グリッドなどのフィールド）
-    drawEditModeFeatures(&painter);
+    drawNormalModeStand(&painter);
 
     // 3) 盤の星（目印）
     drawFourStars(&painter);
@@ -693,8 +583,8 @@ void ShogiView::paintEvent(QPaintEvent *)
     // 描画中に致命的な異常が検知された場合はここで打ち切る。
     if (m_errorOccurred) return;
 
-    // 6) 駒台上の「駒」「枚数」（編集/通常モードに合わせて）
-    drawPiecesEditModeStandFeatures(&painter);
+    // 6) 先手/後手の駒台にある「駒」と「枚数」を描画
+    drawPiecesStandFeatures(&painter);
 
     // 7) 段・筋ラベル（最前面に近いレイヤに載せる）
     drawRanks(&painter);
@@ -1318,24 +1208,17 @@ QPoint ShogiView::getClickedSquareInDefaultState(const QPoint& pos) const
     //qDebug() << "file:" << file << ", rank:" << rank;
     //end
 
-    if (m_positionEditMode) {
-        // 編集モード：有効な rank は [1..8]
-        if ((tempFile >= 0) && (tempFile < 1) && (rank >= 1) && (rank <= 8))
-            // 駒台は盤と上下の向きが反転している想定のため、rank を反転して返す
-            return QPoint(10, m_board->ranks() - rank);
-    } else {
-        // 通常モード：有効な rank は [2..8]（仕様踏襲）
-        if (file == 0) {
-            if (rank == 8) return QPoint(10, 1); // 歩 P
-            if (rank == 7) return QPoint(10, 3); // 桂 N
-            if (rank == 6) return QPoint(10, 5); // 金 G
-            if (rank == 5) return QPoint(10, 7); // 飛 R
-        } else if (file == 1) {
-            if (rank == 8) return QPoint(10, 2); // 香 L
-            if (rank == 7) return QPoint(10, 4); // 銀 S
-            if (rank == 6) return QPoint(10, 6); // 角 B
-            if (rank == 5) return QPoint(10, 8); // 玉 K
-        }
+    // 通常モード：有効な rank は [2..8]（仕様踏襲）
+    if (file == 0) {
+        if (rank == 8) return QPoint(10, 1); // 歩 P
+        if (rank == 7) return QPoint(10, 3); // 桂 N
+        if (rank == 6) return QPoint(10, 5); // 金 G
+        if (rank == 5) return QPoint(10, 7); // 飛 R
+    } else if (file == 1) {
+        if (rank == 8) return QPoint(10, 2); // 香 L
+        if (rank == 7) return QPoint(10, 4); // 銀 S
+        if (rank == 6) return QPoint(10, 6); // 角 B
+        if (rank == 5) return QPoint(10, 8); // 玉 K
     }
 
     // ───────────────────────── 3) 駒台（file=11 側）判定 ─────────────────────────
@@ -1351,23 +1234,17 @@ QPoint ShogiView::getClickedSquareInDefaultState(const QPoint& pos) const
     qDebug() << "file:" << file << ", rank:" << rank;
     //end
 
-    if (m_positionEditMode) {
-        // 編集モード：有効な rank は [0..7]
-        if ((file == 1) && (rank >= 0) && (rank <= 7))
-            return QPoint(11, m_board->ranks() - rank);
-    } else {
-        // 通常モード：有効な rank は [2..8]（仕様踏襲）
-        if (file == 1) {
-            if (rank == 0) return QPoint(11, 9); // 歩 p
-            if (rank == 1) return QPoint(11, 7); // 桂 n
-            if (rank == 2) return QPoint(11, 5); // 金 g
-            if (rank == 3) return QPoint(11, 3); // 飛 r
-        } else if (file == 0) {
-            if (rank == 0) return QPoint(11, 8); // 香 l
-            if (rank == 1) return QPoint(11, 6); // 銀 s
-            if (rank == 2) return QPoint(11, 4); // 角 b
-            if (rank == 3) return QPoint(11, 2); // 玉 k
-        }
+    // 通常モード：有効な rank は [2..8]（仕様踏襲）
+    if (file == 1) {
+        if (rank == 0) return QPoint(11, 9); // 歩 p
+        if (rank == 1) return QPoint(11, 7); // 桂 n
+        if (rank == 2) return QPoint(11, 5); // 金 g
+        if (rank == 3) return QPoint(11, 3); // 飛 r
+    } else if (file == 0) {
+        if (rank == 0) return QPoint(11, 8); // 香 l
+        if (rank == 1) return QPoint(11, 6); // 銀 s
+        if (rank == 2) return QPoint(11, 4); // 角 b
+        if (rank == 3) return QPoint(11, 2); // 玉 k
     }
 
     // 盤内でも駒台でもない
@@ -1435,49 +1312,35 @@ QPoint ShogiView::getClickedSquareInFlippedState(const QPoint& pos) const
     qDebug() << "file:" << file << ", rank:" << rank;
     //end
 
-    if (m_positionEditMode) {
-        // 編集モード：有効 rank 範囲 [1..8]
-        if ((tempFile >= 0) && (tempFile < 1) && (rank >= 1) && (rank <= 8))
-            // 反転時は rank を「上→下にそのまま +1 で 1..8 → 2..9」へ（既存仕様どおり）
-            return QPoint(11, rank + 1);
-    } else {
-        // 通常モード：有効 rank 範囲 [2..8]
-        if (file == 0) {
-            if (rank == 8) return QPoint(11, 9); // 歩 p
-            if (rank == 7) return QPoint(11, 7); // 桂 n
-            if (rank == 6) return QPoint(11, 5); // 金 g
-            if (rank == 5) return QPoint(11, 3); // 飛 r
-        } else if (file == 1) {
-            if (rank == 8) return QPoint(11, 8); // 香 l
-            if (rank == 7) return QPoint(11, 6); // 銀 s
-            if (rank == 6) return QPoint(11, 4); // 角 b
-            if (rank == 5) return QPoint(11, 2); // 玉 k
-        }
+    // 通常モード：有効 rank 範囲 [2..8]
+    if (file == 0) {
+        if (rank == 8) return QPoint(11, 9); // 歩 p
+        if (rank == 7) return QPoint(11, 7); // 桂 n
+        if (rank == 6) return QPoint(11, 5); // 金 g
+        if (rank == 5) return QPoint(11, 3); // 飛 r
+    } else if (file == 1) {
+        if (rank == 8) return QPoint(11, 8); // 香 l
+        if (rank == 7) return QPoint(11, 6); // 銀 s
+        if (rank == 6) return QPoint(11, 4); // 角 b
+        if (rank == 5) return QPoint(11, 2); // 玉 k
     }
 
     // ───────────────────────── 3) 駒台（file=10 側：反転時の右側列）判定 ─────────────────────────
     // こちらは m_param1 を用いる側。tempFile の整数部が [1,2) の列に入っているかで判定（既存仕様踏襲）。
-    tempFile = (pos.x() + m_param1 - m_offsetX) / float(w);
     tempRank = (pos.y() - m_offsetY) / float(h);
     rank     = static_cast<int>(tempRank);
 
-    if (m_positionEditMode) {
-        // 編集モード：有効 rank 範囲 [0..7]
-        if ((tempFile >= 1) && (tempFile < 2) && (rank >= 0) && (rank <= 7))
-            return QPoint(10, rank + 1);
-    } else {
-        // 通常モード：有効な rank は [2..8]（仕様踏襲）
-        if (file == -10) {
-            if (rank == 0) return QPoint(10, 1); // 歩 p
-            if (rank == 1) return QPoint(10, 3); // 桂 n
-            if (rank == 2) return QPoint(10, 5); // 金 g
-            if (rank == 3) return QPoint(10, 7); // 飛 r
-        } else if (file == -11) {
-            if (rank == 0) return QPoint(10, 2); // 香 l
-            if (rank == 1) return QPoint(10, 4); // 銀 s
-            if (rank == 2) return QPoint(10, 6); // 角 b
-            if (rank == 3) return QPoint(10, 8); // 玉 k
-        }
+    // 通常モード：有効な rank は [2..8]（仕様踏襲）
+    if (file == -10) {
+        if (rank == 0) return QPoint(10, 1); // 歩 p
+        if (rank == 1) return QPoint(10, 3); // 桂 n
+        if (rank == 2) return QPoint(10, 5); // 金 g
+        if (rank == 3) return QPoint(10, 7); // 飛 r
+    } else if (file == -11) {
+        if (rank == 0) return QPoint(10, 2); // 香 l
+        if (rank == 1) return QPoint(10, 4); // 銀 s
+        if (rank == 2) return QPoint(10, 6); // 角 b
+        if (rank == 3) return QPoint(10, 8); // 玉 k
     }
 
     // 盤内でも駒台でもない
@@ -1761,60 +1624,6 @@ void ShogiView::setStandGapCols(double cols)
     update();
 }
 
-// 【編集モード：先手（黒）側の駒台セルに“駒アイコン”を描画】
-// 方針：本関数は QPainter の永続状態（ペン/ブラシ/変換/クリップ等）を変更しない。
-// 手順：
-//  1) (file, rank) の基準マス矩形を取得（反転考慮）
-//  2) 左側駒台方向へ水平シフトして駒台セル矩形を算出（m_param1 使用）
-//  3) rank を先手の駒種（駒文字）へマッピング
-//  4) 空でなければ対応アイコンを中央に描画
-void ShogiView::drawEditModeBlackStandPiece(QPainter* painter, const int file, const int rank) const
-{
-    // (1) 盤座標 → 基準マス矩形
-    const QRect fieldRect = calculateSquareRectangleBasedOnBoardState(file, rank);
-
-    // (2) 先手は左側の駒台へ配置
-    QRect adjustedRect = makeStandCellRect(
-        m_flipMode, m_param1, m_offsetX, m_offsetY, fieldRect, /*leftSide=*/true
-        );
-
-    // (3) 段番号 → 先手の駒種
-    QChar value = rankToBlackShogiPiece(file, rank);
-
-    // (4) 駒アイコンの描画（空白なら描かない）
-    if (value != QLatin1Char(' ')) {
-        const QIcon icon = piece(value);
-        if (!icon.isNull()) {
-            icon.paint(painter, adjustedRect, Qt::AlignCenter);
-        }
-    }
-}
-
-// 【編集モード：後手（白）側の駒台セルに“駒アイコン”を描画】
-// 方針：QPainter の永続状態は変更しない。
-// 手順：基準マス → 右側駒台へシフト（m_param2）→ 後手の駒種へマッピング → アイコン描画。
-void ShogiView::drawEditModeWhiteStandPiece(QPainter* painter, const int file, const int rank) const
-{
-    // (1) 盤座標 → 基準マス矩形
-    const QRect fieldRect = calculateSquareRectangleBasedOnBoardState(file, rank);
-
-    // (2) 後手は右側の駒台へ配置
-    QRect adjustedRect = makeStandCellRect(
-        m_flipMode, m_param2, m_offsetX, m_offsetY, fieldRect, /*leftSide=*/false
-        );
-
-    // (3) 段番号 → 後手の駒種
-    QChar value = rankToWhiteShogiPiece(file, rank);
-
-    // (4) 駒アイコンの描画（空白なら描かない）
-    if (value != QLatin1Char(' ')) {
-        const QIcon icon = piece(value);
-        if (!icon.isNull()) {
-            icon.paint(painter, adjustedRect, Qt::AlignCenter);
-        }
-    }
-}
-
 // 盤の反転モード（先手/後手の向き）を切り替えるセッター。
 // 役割：
 //  - 内部フラグ m_flipMode を更新
@@ -2060,11 +1869,11 @@ QRect ShogiView::blackStandBoundingRect() const
                                            : QSize(m_squareSize, m_squareSize);
 
     // 行数はモードで変化
-    const int rows     = m_positionEditMode ? 8 : 7;
+    const int rows     = 4;
 
     // 左上セル（基準セル）の rank / file を決定
-    //  非反転：編集=rank 2, 通常=rank 3 / 反転：rank 9
-    const int topRank  = m_flipMode ? 9 : (m_positionEditMode ? 2 : 3);
+    //  非反転：編集=rank 2, 通常=rank 6 / 反転：rank 9
+    const int topRank  = m_flipMode ? 9 : 6;
     // 左列の column：反転=1、通常=2（駒台は2列ぶん想定）
     const int leftCol  = m_flipMode ? 1 : 2;
 
@@ -2094,11 +1903,10 @@ QRect ShogiView::whiteStandBoundingRect() const
                                            : QSize(m_squareSize, m_squareSize);
 
     // 行数はモードで変化
-    const int rows    = m_positionEditMode ? 8 : 7;
+    const int rows    = 4;
 
     // 左上セル（基準セル）の rank / file を決定
-    //  非反転：rank 1、反転：編集=8, 通常=7
-    const int topRank = m_flipMode ? (m_positionEditMode ? 8 : 7) : 1;
+    const int topRank = m_flipMode ? 4 : 1;
     const int leftCol = m_flipMode ? 1 : 2;
 
     // 基準セルの矩形
@@ -2127,13 +1935,6 @@ QRect ShogiView::whiteStandBoundingRect() const
 //  - マージンは外側 marginOuter と名前・時計間 marginInner を使用
 void ShogiView::updateBlackClockLabelGeometry()
 {
-    // 編集モード中はラベル非表示
-    if (m_positionEditMode) {
-        if (m_blackClockLabel) m_blackClockLabel->hide();
-        if (m_blackNameLabel)  m_blackNameLabel->hide();
-        return;
-    }
-
     // ラベル未生成なら何もしない
     if (!m_blackClockLabel || !m_blackNameLabel) return;
 
@@ -2203,13 +2004,6 @@ void ShogiView::updateBlackClockLabelGeometry()
 // 備考：名前ラベルのフォントベースとして黒側のフォントを流用している（デザイン統一のため）。
 void ShogiView::updateWhiteClockLabelGeometry()
 {
-    // 編集モード中はラベル非表示
-    if (m_positionEditMode) {
-        if (m_whiteClockLabel) m_whiteClockLabel->hide();
-        if (m_whiteNameLabel)  m_whiteNameLabel->hide();
-        return;
-    }
-
     // ラベル未生成なら何もしない
     if (!m_whiteClockLabel || !m_whiteNameLabel) return;
 
