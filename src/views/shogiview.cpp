@@ -1150,13 +1150,6 @@ QPoint ShogiView::getClickedSquare(const QPoint &clickPosition) const
     }
 }
 
-// 【通常（非反転）状態でのクリック座標 → 盤/駒台のマス座標(file, rank) への変換】
-// 役割：
-//  1) まず「盤の矩形」内かどうかを判定し、盤内なら (file, rank) を計算して返す
-//  2) 盤外なら「駒台（スタンド）」かどうかを判定し、該当すれば file=10/11 の疑似座標で返す
-//     - 編集モード/通常モードで駒台の有効行（rank 範囲）が異なる仕様を反映
-// 前提：ここはデフォルト向き（m_flipMode==false）用。オフセットやマスサイズはこの関数で考慮。
-// 戻り値：有効なマスなら QPoint(file, rank)、該当なしなら空の QPoint()。
 QPoint ShogiView::getClickedSquareInDefaultState(const QPoint& pos) const
 {
     // 【安全弁】盤が未設定なら無効座標を返す
@@ -1190,25 +1183,62 @@ QPoint ShogiView::getClickedSquareInDefaultState(const QPoint& pos) const
         return QPoint(file, rank);
     }
 
-    // ───────────────────────── 2) 駒台（file=10 側）判定 ─────────────────────────
-    // X,Y を盤の左上原点に正規化して、駒台の「1列ぶん幅（[0,1)）」に入っているかを判定する。
-    // m_param2 はこの駒台列の水平シフト量（UI 調整値）。
+    // ───────────────────────── 2) 駒台の外接矩形を定義（デフォルト向き） ─────────────────────────
+    // 先手（右側）駒台：x = m_offsetX + m_param2 が「駒台の左端」になる想定。行帯は rank 5..8（4段）を使用。
+    const int blackStandLeft = m_offsetX + static_cast<int>(m_param2);
+    const QRect blackStandRect(blackStandLeft, m_offsetY + 5 * h, 2 * w, 4 * h);
 
-    //begin
-    qDebug() << "in getClickedSquareInDefaultState";
-    //end
+    // 後手（左側）駒台：x = m_offsetX - m_param1 が「駒台の左端」になる想定。行帯は rank 0..3（4段）。
+    const int whiteStandLeft = m_offsetX - static_cast<int>(m_param1);
+    const QRect whiteStandRect(whiteStandLeft, m_offsetY + 0 * h, 2 * w, 4 * h);
 
+    // ───────────────────────── 3) 局面編集モード：駒台矩形内だけをワイルドカード着地可 ─────────────────────────
+    if (m_positionEditMode) {
+        // 先手駒台内
+        if (blackStandRect.contains(pos)) {
+            const QChar p = m_dragPiece;
+            if (p != QChar(' ')) {
+                const QChar up = p.toUpper(); // 先手は大文字で判定（p でも P 扱い）
+                if      (up == 'P') return QPoint(10, 1);
+                else if (up == 'L') return QPoint(10, 2);
+                else if (up == 'N') return QPoint(10, 3);
+                else if (up == 'S') return QPoint(10, 4);
+                else if (up == 'G') return QPoint(10, 5);
+                else if (up == 'B') return QPoint(10, 6);
+                else if (up == 'R') return QPoint(10, 7);
+                else if (up == 'K') return QPoint(10, 8);
+            }
+            return QPoint(); // 駒未保持などは無効
+        }
+
+        // 後手駒台内
+        if (whiteStandRect.contains(pos)) {
+            const QChar p = m_dragPiece;
+            if (p != QChar(' ')) {
+                const QChar low = p.toLower(); // 後手は小文字で判定（P でも p 扱い）
+                if      (low == 'p') return QPoint(11, 9);
+                else if (low == 'l') return QPoint(11, 8);
+                else if (low == 'n') return QPoint(11, 7);
+                else if (low == 's') return QPoint(11, 6);
+                else if (low == 'g') return QPoint(11, 5);
+                else if (low == 'b') return QPoint(11, 4);
+                else if (low == 'r') return QPoint(11, 3);
+                else if (low == 'k') return QPoint(11, 2);
+            }
+            return QPoint(); // 駒未保持などは無効
+        }
+
+        // 盤外かつ駒台外：編集モードではヒットさせない
+        return QPoint();
+    }
+
+    // ───────────────────────── 4) 通常モード：従来どおりの file/rank マッピング ─────────────────────────
+    // （必要ならここは既存コードのまま。以下は元の実装の踏襲）
     float tempFile = (pos.x() - m_param2 - m_offsetX) / float(w);
     float tempRank = (pos.y() - m_offsetY) / float(h);
     int   file     = static_cast<int>(tempFile);
     int   rank     = static_cast<int>(tempRank);
 
-    //begin
-    //qDebug() << "tempFile:" << tempFile << ", tempRank:" << tempRank;
-    //qDebug() << "file:" << file << ", rank:" << rank;
-    //end
-
-    // 通常モード：有効な rank は [2..8]（仕様踏襲）
     if (file == 0) {
         if (rank == 8) return QPoint(10, 1); // 歩 P
         if (rank == 7) return QPoint(10, 3); // 桂 N
@@ -1221,20 +1251,11 @@ QPoint ShogiView::getClickedSquareInDefaultState(const QPoint& pos) const
         if (rank == 5) return QPoint(10, 8); // 玉 K
     }
 
-    // ───────────────────────── 3) 駒台（file=11 側）判定 ─────────────────────────
-    // こちらは m_param1 を使った別側の駒台列。整数部 file==1（2列目）を条件としている既存仕様を踏襲。
     tempFile = (pos.x() + m_param1 - m_offsetX) / float(w);
     tempRank = (pos.y() - m_offsetY) / float(h);
     file     = static_cast<int>(tempFile);
     rank     = static_cast<int>(tempRank);
 
-    //begin
-    qDebug() << "in getClickedSquareInDefaultState (file=11 side)";
-    qDebug() << "tempFile:" << tempFile << ", tempRank:" << tempRank;
-    qDebug() << "file:" << file << ", rank:" << rank;
-    //end
-
-    // 通常モード：有効な rank は [2..8]（仕様踏襲）
     if (file == 1) {
         if (rank == 0) return QPoint(11, 9); // 歩 p
         if (rank == 1) return QPoint(11, 7); // 桂 n
