@@ -1272,15 +1272,6 @@ QPoint ShogiView::getClickedSquareInDefaultState(const QPoint& pos) const
     return QPoint();
 }
 
-// 【反転（flip=true）状態でのクリック座標 → 盤/駒台のマス座標(file, rank) への変換】
-// 役割：
-//  1) 盤の矩形内なら、反転向きの座標系で (file, rank) を算出して返す
-//  2) 盤外なら、駒台（file=10/11 の疑似座標）かどうかを判定し、該当すれば返す
-// ポイント：
-//  - 反転時は file/rank の進行方向が通常と逆になる（file は左→右に 1..9、rank は上→下が 9..1）
-//  - 駒台の左右も入れ替わるため、通常時とは file=10/11 の割り当てが逆転している箇所がある（既存仕様踏襲）
-//  - 編集モード（m_positionEditMode）と通常モードで、駒台の有効行範囲が異なる
-// 戻り値：有効なら QPoint(file, rank)、該当なしなら空の QPoint()。
 QPoint ShogiView::getClickedSquareInFlippedState(const QPoint& pos) const
 {
     // 【安全弁】盤が未設定なら無効座標
@@ -1315,53 +1306,96 @@ QPoint ShogiView::getClickedSquareInFlippedState(const QPoint& pos) const
         return QPoint(file, rank);
     }
 
-    // ───────────────────────── 2) 駒台（file=11 側：反転時の左側列）判定 ─────────────────────────
-    // 反転時は「m_param2 を用いる側」が file=11 に対応（既存実装のまま）。
-    // X を盤原点で正規化：tempFile が [0,1) の範囲に入れば「1列幅」に収まっている。
+    // ───────────────────────── 2) 駒台の外接矩形（反転時の見た目配置に合わせる） ─────────────────────────
+    // 反転時は「m_param2 側（右側の2列相当）」を gote(=file=11)、「m_param1 側（左側の2列相当）」を sente(=file=10) として扱う。
+    // 画面上のY帯は、goteは下側(5..8段ぶん)、senteは上側(0..3段ぶん)。
+    const int goteStandLeft  = m_offsetX + static_cast<int>(m_param2); // 右側（既存実装で m_param2 を使う側）
+    const int senteStandLeft = m_offsetX - static_cast<int>(m_param1); // 左側（既存実装で m_param1 を使う側）
 
-    //begin
-    qDebug() << "in getClickedSquareInFlippedState";
-    //end
+    const QRect goteStandRect (goteStandLeft,  m_offsetY + 5 * h, 2 * w, 4 * h); // file=11 側（下帯）
+    const QRect senteStandRect(senteStandLeft, m_offsetY + 0 * h, 2 * w, 4 * h); // file=10 側（上帯）
 
-    float tempFile = (pos.x() - m_param2 - m_offsetX) / float(w);
-    float tempRank = (pos.y() - m_offsetY) / float(h);
-    int   file     = static_cast<int>(tempFile);
-    int   rank     = static_cast<int>(tempRank);
+    // ───────────────────────── 3) 局面編集モード：駒台矩形内だけをワイルドカード着地可 ─────────────────────────
+    if (m_positionEditMode) {
+        // 先手駒台（file=10）内
+        if (senteStandRect.contains(pos)) {
+            const QChar p = m_dragPiece;
+            if (p != QChar(' ')) {
+                const QChar up = p.toUpper(); // 先手は大文字で判定（p でも P 扱い）
+                if      (up == 'P') return QPoint(10, 1);
+                else if (up == 'L') return QPoint(10, 2);
+                else if (up == 'N') return QPoint(10, 3);
+                else if (up == 'S') return QPoint(10, 4);
+                else if (up == 'G') return QPoint(10, 5);
+                else if (up == 'B') return QPoint(10, 6);
+                else if (up == 'R') return QPoint(10, 7);
+                else if (up == 'K') return QPoint(10, 8);
+            }
+            return QPoint(); // 駒未保持などは無効
+        }
 
-    //begin
-    qDebug() << "tempFile:" << tempFile << ", tempRank:" << tempRank;
-    qDebug() << "file:" << file << ", rank:" << rank;
-    //end
+        // 後手駒台（file=11）内
+        if (goteStandRect.contains(pos)) {
+            const QChar p = m_dragPiece;
+            if (p != QChar(' ')) {
+                const QChar low = p.toLower(); // 後手は小文字で判定（P でも p 扱い）
+                if      (low == 'p') return QPoint(11, 9);
+                else if (low == 'l') return QPoint(11, 8);
+                else if (low == 'n') return QPoint(11, 7);
+                else if (low == 's') return QPoint(11, 6);
+                else if (low == 'g') return QPoint(11, 5);
+                else if (low == 'b') return QPoint(11, 4);
+                else if (low == 'r') return QPoint(11, 3);
+                else if (low == 'k') return QPoint(11, 2);
+            }
+            return QPoint(); // 駒未保持などは無効
+        }
 
-    // 通常モード：有効 rank 範囲 [2..8]
-    if (file == 0) {
-        if (rank == 8) return QPoint(11, 9); // 歩 p
-        if (rank == 7) return QPoint(11, 7); // 桂 n
-        if (rank == 6) return QPoint(11, 5); // 金 g
-        if (rank == 5) return QPoint(11, 3); // 飛 r
-    } else if (file == 1) {
-        if (rank == 8) return QPoint(11, 8); // 香 l
-        if (rank == 7) return QPoint(11, 6); // 銀 s
-        if (rank == 6) return QPoint(11, 4); // 角 b
-        if (rank == 5) return QPoint(11, 2); // 玉 k
+        // 盤外かつ駒台外：編集モードではヒットさせない
+        return QPoint();
     }
 
-    // ───────────────────────── 3) 駒台（file=10 側：反転時の右側列）判定 ─────────────────────────
-    // こちらは m_param1 を用いる側。tempFile の整数部が [1,2) の列に入っているかで判定（既存仕様踏襲）。
-    tempRank = (pos.y() - m_offsetY) / float(h);
-    rank     = static_cast<int>(tempRank);
+    // ───────────────────────── 4) 通常モード：従来仕様（file/rank マッピング） ─────────────────────────
+    // 反転時の「左側（見た目では右側）」= gote/file=11 側（m_param2 利用）
+    {
+        float tempFile = (pos.x() - m_param2 - m_offsetX) / float(w);
+        float tempRank = (pos.y() - m_offsetY) / float(h);
+        int   file     = static_cast<int>(tempFile);
+        int   rank     = static_cast<int>(tempRank);
 
-    // 通常モード：有効な rank は [2..8]（仕様踏襲）
-    if (file == -10) {
-        if (rank == 0) return QPoint(10, 1); // 歩 p
-        if (rank == 1) return QPoint(10, 3); // 桂 n
-        if (rank == 2) return QPoint(10, 5); // 金 g
-        if (rank == 3) return QPoint(10, 7); // 飛 r
-    } else if (file == -11) {
-        if (rank == 0) return QPoint(10, 2); // 香 l
-        if (rank == 1) return QPoint(10, 4); // 銀 s
-        if (rank == 2) return QPoint(10, 6); // 角 b
-        if (rank == 3) return QPoint(10, 8); // 玉 k
+        // 従来仕様：rank 5..8 帯の固定マッピング（file=11）
+        if (file == 0) {
+            if (rank == 8) return QPoint(11, 9); // 歩 p
+            if (rank == 7) return QPoint(11, 7); // 桂 n
+            if (rank == 6) return QPoint(11, 5); // 金 g
+            if (rank == 5) return QPoint(11, 3); // 飛 r
+        } else if (file == 1) {
+            if (rank == 8) return QPoint(11, 8); // 香 l
+            if (rank == 7) return QPoint(11, 6); // 銀 s
+            if (rank == 6) return QPoint(11, 4); // 角 b
+            if (rank == 5) return QPoint(11, 2); // 玉 k
+        }
+    }
+
+    // 反転時の「右側（見た目では左側）」= sente/file=10 側（m_param1 利用）
+    {
+        float tempFile = (pos.x() + m_param1 - m_offsetX) / float(w);
+        float tempRank = (pos.y() - m_offsetY) / float(h);
+        int   file     = static_cast<int>(tempFile);
+        int   rank     = static_cast<int>(tempRank);
+
+        // 従来仕様：rank 0..3 帯の固定マッピング（file=10）
+        if (file == 0) {
+            if (rank == 0) return QPoint(10, 1); // 歩 P
+            if (rank == 1) return QPoint(10, 3); // 桂 N
+            if (rank == 2) return QPoint(10, 5); // 金 G
+            if (rank == 3) return QPoint(10, 7); // 飛 R
+        } else if (file == 1) {
+            if (rank == 0) return QPoint(10, 2); // 香 L
+            if (rank == 1) return QPoint(10, 4); // 銀 S
+            if (rank == 2) return QPoint(10, 6); // 角 B
+            if (rank == 3) return QPoint(10, 8); // 玉 K
+        }
     }
 
     // 盤内でも駒台でもない
