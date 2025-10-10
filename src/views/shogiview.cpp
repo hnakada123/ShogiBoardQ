@@ -1183,22 +1183,24 @@ QPoint ShogiView::getClickedSquareInDefaultState(const QPoint& pos) const
         return QPoint(file, rank);
     }
 
-    // ───────────────────────── 2) 駒台の外接矩形を定義（デフォルト向き） ─────────────────────────
-    // 先手（右側）駒台：x = m_offsetX + m_param2 が「駒台の左端」になる想定。行帯は rank 5..8（4段）を使用。
+    // ───────────────────────── 2) 駒台の外接矩形（デフォルト向き） ─────────────────────────
+    // 先手（右側）駒台：x = m_offsetX + m_param2 が「駒台の左端」。行帯は rank 5..8（4段）。
     const int blackStandLeft = m_offsetX + static_cast<int>(m_param2);
     const QRect blackStandRect(blackStandLeft, m_offsetY + 5 * h, 2 * w, 4 * h);
 
-    // 後手（左側）駒台：x = m_offsetX - m_param1 が「駒台の左端」になる想定。行帯は rank 0..3（4段）。
+    // 後手（左側）駒台：x = m_offsetX - m_param1 が「駒台の左端」。行帯は rank 0..3（4段）。
     const int whiteStandLeft = m_offsetX - static_cast<int>(m_param1);
     const QRect whiteStandRect(whiteStandLeft, m_offsetY + 0 * h, 2 * w, 4 * h);
 
-    // ───────────────────────── 3) 局面編集モード：駒台矩形内だけをワイルドカード着地可 ─────────────────────────
-    if (m_positionEditMode) {
-        // 先手駒台内
+    // ───────────────────────── 3) 局面編集モード：挙動を分岐 ─────────────────────────
+    //  (A) ドラッグ中（2回目＝ドロップ）：駒種に応じた“ワイルドカード着地”へマップ
+    //  (B) 非ドラッグ（1回目＝選択）：従来の固定マッピングで「実セル座標」を返す（＝選択可能に）
+    if (m_positionEditMode && m_dragging) {
+        // (A) ドロップ時：駒台内なら駒種ごとのワイルドカード座標を返す
         if (blackStandRect.contains(pos)) {
             const QChar p = m_dragPiece;
             if (p != QChar(' ')) {
-                const QChar up = p.toUpper(); // 先手は大文字で判定（p でも P 扱い）
+                const QChar up = p.toUpper();
                 if      (up == 'P') return QPoint(10, 1);
                 else if (up == 'L') return QPoint(10, 2);
                 else if (up == 'N') return QPoint(10, 3);
@@ -1210,12 +1212,10 @@ QPoint ShogiView::getClickedSquareInDefaultState(const QPoint& pos) const
             }
             return QPoint(); // 駒未保持などは無効
         }
-
-        // 後手駒台内
         if (whiteStandRect.contains(pos)) {
             const QChar p = m_dragPiece;
             if (p != QChar(' ')) {
-                const QChar low = p.toLower(); // 後手は小文字で判定（P でも p 扱い）
+                const QChar low = p.toLower();
                 if      (low == 'p') return QPoint(11, 9);
                 else if (low == 'l') return QPoint(11, 8);
                 else if (low == 'n') return QPoint(11, 7);
@@ -1227,45 +1227,49 @@ QPoint ShogiView::getClickedSquareInDefaultState(const QPoint& pos) const
             }
             return QPoint(); // 駒未保持などは無効
         }
-
-        // 盤外かつ駒台外：編集モードではヒットさせない
+        // 盤外かつ駒台外のドロップは無効
         return QPoint();
     }
 
-    // ───────────────────────── 4) 通常モード：従来どおりの file/rank マッピング ─────────────────────────
-    // （必要ならここは既存コードのまま。以下は元の実装の踏襲）
-    float tempFile = (pos.x() - m_param2 - m_offsetX) / float(w);
-    float tempRank = (pos.y() - m_offsetY) / float(h);
-    int   file     = static_cast<int>(tempFile);
-    int   rank     = static_cast<int>(tempRank);
+    // (B) 1回目クリック（選択）：従来の固定マッピングで実セル座標を返す
+    // 先手（右側＝m_param2 側）駒台：rank 5..8 帯
+    {
+        float tempFile = (pos.x() - m_param2 - m_offsetX) / float(w);
+        float tempRank = (pos.y() - m_offsetY) / float(h);
+        int   file     = static_cast<int>(tempFile);
+        int   rank     = static_cast<int>(tempRank);
 
-    if (file == 0) {
-        if (rank == 8) return QPoint(10, 1); // 歩 P
-        if (rank == 7) return QPoint(10, 3); // 桂 N
-        if (rank == 6) return QPoint(10, 5); // 金 G
-        if (rank == 5) return QPoint(10, 7); // 飛 R
-    } else if (file == 1) {
-        if (rank == 8) return QPoint(10, 2); // 香 L
-        if (rank == 7) return QPoint(10, 4); // 銀 S
-        if (rank == 6) return QPoint(10, 6); // 角 B
-        if (rank == 5) return QPoint(10, 8); // 玉 K
+        if (file == 0) {
+            if (rank == 8) return QPoint(10, 1); // 歩 P
+            if (rank == 7) return QPoint(10, 3); // 桂 N
+            if (rank == 6) return QPoint(10, 5); // 金 G
+            if (rank == 5) return QPoint(10, 7); // 飛 R
+        } else if (file == 1) {
+            if (rank == 8) return QPoint(10, 2); // 香 L
+            if (rank == 7) return QPoint(10, 4); // 銀 S
+            if (rank == 6) return QPoint(10, 6); // 角 B
+            if (rank == 5) return QPoint(10, 8); // 玉 K
+        }
     }
 
-    tempFile = (pos.x() + m_param1 - m_offsetX) / float(w);
-    tempRank = (pos.y() - m_offsetY) / float(h);
-    file     = static_cast<int>(tempFile);
-    rank     = static_cast<int>(tempRank);
+    // 後手（左側＝m_param1 側）駒台：rank 0..3 帯
+    {
+        float tempFile = (pos.x() + m_param1 - m_offsetX) / float(w);
+        float tempRank = (pos.y() - m_offsetY) / float(h);
+        int   file     = static_cast<int>(tempFile);
+        int   rank     = static_cast<int>(tempRank);
 
-    if (file == 1) {
-        if (rank == 0) return QPoint(11, 9); // 歩 p
-        if (rank == 1) return QPoint(11, 7); // 桂 n
-        if (rank == 2) return QPoint(11, 5); // 金 g
-        if (rank == 3) return QPoint(11, 3); // 飛 r
-    } else if (file == 0) {
-        if (rank == 0) return QPoint(11, 8); // 香 l
-        if (rank == 1) return QPoint(11, 6); // 銀 s
-        if (rank == 2) return QPoint(11, 4); // 角 b
-        if (rank == 3) return QPoint(11, 2); // 玉 k
+        if (file == 1) {
+            if (rank == 0) return QPoint(11, 9); // 歩 p
+            if (rank == 1) return QPoint(11, 7); // 桂 n
+            if (rank == 2) return QPoint(11, 5); // 金 g
+            if (rank == 3) return QPoint(11, 3); // 飛 r
+        } else if (file == 0) {
+            if (rank == 0) return QPoint(11, 8); // 香 l
+            if (rank == 1) return QPoint(11, 6); // 銀 s
+            if (rank == 2) return QPoint(11, 4); // 角 b
+            if (rank == 3) return QPoint(11, 2); // 玉 k
+        }
     }
 
     // 盤内でも駒台でもない
@@ -1293,35 +1297,30 @@ QPoint ShogiView::getClickedSquareInFlippedState(const QPoint& pos) const
         const int xIn = pos.x() - boardRect.left();
         const int yIn = pos.y() - boardRect.top();
 
-        // 左端からの列番号(0..files-1)／上端からの行番号(0..ranks-1)
-        const int colFromLeft = xIn / w;      // 0..8
-        const int rowFromTop  = yIn / h;      // 0..8
-
-        // 【反転時の file/rank 変換】
-        // file：左→右に 1..9
-        const int file = colFromLeft + 1;
-        // rank：上→下に 9..1（最上段が 9、最下段が 1）
-        const int rank = m_board->ranks() - rowFromTop;
+        // 反転時：file は左→右に 1..9、rank は上→下に 9..1
+        const int colFromLeft = xIn / w;                // 0..8
+        const int rowFromTop  = yIn / h;                // 0..8
+        const int file = colFromLeft + 1;               // 1..9
+        const int rank = m_board->ranks() - rowFromTop; // 9..1
 
         return QPoint(file, rank);
     }
 
-    // ───────────────────────── 2) 駒台の外接矩形（反転時の見た目配置に合わせる） ─────────────────────────
-    // 反転時は「m_param2 側（右側の2列相当）」を gote(=file=11)、「m_param1 側（左側の2列相当）」を sente(=file=10) として扱う。
-    // 画面上のY帯は、goteは下側(5..8段ぶん)、senteは上側(0..3段ぶん)。
-    const int goteStandLeft  = m_offsetX + static_cast<int>(m_param2); // 右側（既存実装で m_param2 を使う側）
-    const int senteStandLeft = m_offsetX - static_cast<int>(m_param1); // 左側（既存実装で m_param1 を使う側）
+    // ───────────────────────── 2) 駒台の外接矩形（反転配置に合わせる） ─────────────────────────
+    // 反転時は画面下側(5..8段)が「後手/file=11」、上側(0..3段)が「先手/file=10」になる
+    const int goteStandLeft  = m_offsetX + static_cast<int>(m_param2); // 右側
+    const int senteStandLeft = m_offsetX - static_cast<int>(m_param1); // 左側
+    const QRect goteStandRect (goteStandLeft,  m_offsetY + 5 * h, 2 * w, 4 * h); // file=11
+    const QRect senteStandRect(senteStandLeft, m_offsetY + 0 * h, 2 * w, 4 * h); // file=10
 
-    const QRect goteStandRect (goteStandLeft,  m_offsetY + 5 * h, 2 * w, 4 * h); // file=11 側（下帯）
-    const QRect senteStandRect(senteStandLeft, m_offsetY + 0 * h, 2 * w, 4 * h); // file=10 側（上帯）
-
-    // ───────────────────────── 3) 局面編集モード：駒台矩形内だけをワイルドカード着地可 ─────────────────────────
-    if (m_positionEditMode) {
-        // 先手駒台（file=10）内
+    // ───────────────────────── 3) 局面編集モード：挙動を分岐 ─────────────────────────
+    if (m_positionEditMode && m_dragging) {
+        // (A) ドロップ時：駒台内なら駒種ごとのワイルドカードへ
+        // 先手（file=10）は上帯＝senteStandRect
         if (senteStandRect.contains(pos)) {
             const QChar p = m_dragPiece;
             if (p != QChar(' ')) {
-                const QChar up = p.toUpper(); // 先手は大文字で判定（p でも P 扱い）
+                const QChar up = p.toUpper();
                 if      (up == 'P') return QPoint(10, 1);
                 else if (up == 'L') return QPoint(10, 2);
                 else if (up == 'N') return QPoint(10, 3);
@@ -1331,14 +1330,13 @@ QPoint ShogiView::getClickedSquareInFlippedState(const QPoint& pos) const
                 else if (up == 'R') return QPoint(10, 7);
                 else if (up == 'K') return QPoint(10, 8);
             }
-            return QPoint(); // 駒未保持などは無効
+            return QPoint();
         }
-
-        // 後手駒台（file=11）内
+        // 後手（file=11）は下帯＝goteStandRect
         if (goteStandRect.contains(pos)) {
             const QChar p = m_dragPiece;
             if (p != QChar(' ')) {
-                const QChar low = p.toLower(); // 後手は小文字で判定（P でも p 扱い）
+                const QChar low = p.toLower();
                 if      (low == 'p') return QPoint(11, 9);
                 else if (low == 'l') return QPoint(11, 8);
                 else if (low == 'n') return QPoint(11, 7);
@@ -1348,22 +1346,20 @@ QPoint ShogiView::getClickedSquareInFlippedState(const QPoint& pos) const
                 else if (low == 'r') return QPoint(11, 3);
                 else if (low == 'k') return QPoint(11, 2);
             }
-            return QPoint(); // 駒未保持などは無効
+            return QPoint();
         }
-
-        // 盤外かつ駒台外：編集モードではヒットさせない
+        // 盤外かつ駒台外のドロップは無効
         return QPoint();
     }
 
-    // ───────────────────────── 4) 通常モード：従来仕様（file/rank マッピング） ─────────────────────────
-    // 反転時の「左側（見た目では右側）」= gote/file=11 側（m_param2 利用）
+    // (B) 1回目クリック（選択）：従来の固定マッピングで実セル座標を返す
+    // 反転時の「左側（見た目では右側）」= gote/file=11 側（m_param2 利用, rank 5..8）
     {
         float tempFile = (pos.x() - m_param2 - m_offsetX) / float(w);
         float tempRank = (pos.y() - m_offsetY) / float(h);
         int   file     = static_cast<int>(tempFile);
         int   rank     = static_cast<int>(tempRank);
 
-        // 従来仕様：rank 5..8 帯の固定マッピング（file=11）
         if (file == 0) {
             if (rank == 8) return QPoint(11, 9); // 歩 p
             if (rank == 7) return QPoint(11, 7); // 桂 n
@@ -1377,14 +1373,13 @@ QPoint ShogiView::getClickedSquareInFlippedState(const QPoint& pos) const
         }
     }
 
-    // 反転時の「右側（見た目では左側）」= sente/file=10 側（m_param1 利用）
+    // 反転時の「右側（見た目では左側）」= sente/file=10 側（m_param1 利用, rank 0..3）
     {
         float tempFile = (pos.x() + m_param1 - m_offsetX) / float(w);
         float tempRank = (pos.y() - m_offsetY) / float(h);
         int   file     = static_cast<int>(tempFile);
         int   rank     = static_cast<int>(tempRank);
 
-        // 従来仕様：rank 0..3 帯の固定マッピング（file=10）
         if (file == 0) {
             if (rank == 0) return QPoint(10, 1); // 歩 P
             if (rank == 1) return QPoint(10, 3); // 桂 N
