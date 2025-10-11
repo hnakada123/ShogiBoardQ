@@ -2606,23 +2606,89 @@ void MainWindow::startConsidaration()
 }
 
 // 詰み探索を開始する（TsumeShogiSearchDialogのOK後に呼ばれる）
+// 詰み探索を開始する（TsumeShogiSearchDialogのOK後に呼ばれる）
 void MainWindow::startTsumiSearch()
 {
     // 1) 対局モードを詰み探索モードへ（UI の状態保持用）
     m_playMode = TsumiSearchMode;
 
-    // 2) 盤面の手番表示用に現在手番を更新
-    if (m_gameMoves.at(m_currentMoveIndex).movingPiece.isUpper()) {
-        m_gameController->setCurrentPlayer(ShogiGameController::Player1);
-    } else {
-        m_gameController->setCurrentPlayer(ShogiGameController::Player2);
+    // 2) 選択手数を正規化して SFEN スナップショットを取得（moves は使わない）
+    QString baseSfen;
+    const int sel = qMax(0, m_currentMoveIndex);
+
+    if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
+        const int safe = qBound(0, sel, m_sfenRecord->size() - 1);
+        baseSfen = m_sfenRecord->at(safe); // 例: "lnsgkgsnl/... b - 1"
+    } else if (!m_startSfenStr.isEmpty()) {
+        baseSfen = m_startSfenStr;
+    } else if (!m_positionStrList.isEmpty()) {
+        const int safe = qBound(0, sel, m_positionStrList.size() - 1);
+        const QString pos = m_positionStrList.at(safe).trimmed();
+        if (pos.startsWith(QStringLiteral("position sfen"))) {
+            QString t = pos.mid(14).trimmed(); // "position sfen" の後ろ
+            const int m = t.indexOf(QStringLiteral(" moves "));
+            baseSfen = (m >= 0) ? t.left(m).trimmed() : t; // moves 以降は捨てる
+        }
     }
 
-    // 3) 送信用 position 構築（既存のリストをそのまま利用）
-    //    選択中の手数（m_currentMoveIndex）の局面から探索を開始する
-    m_positionStr1 = m_positionStrList.at(m_currentMoveIndex);
+    if (baseSfen.isEmpty()) {
+        displayErrorMessage(u8"詰み探索用の局面（SFEN）が取得できません。棋譜を読み込むか局面を指定してください。");
+        return;
+    }
 
-    // 4) ダイアログからエンジン/時間設定を取得（TsumeShogiSearchDialog は ConsiderationDialog 派生）
+    // 3) 玉配置から手番を推定:
+    //    - k（後手玉）のみ → 攻方=先手(b)
+    //    - K（先手玉）のみ → 攻方=後手(w)
+    //    - 両方 or どちらも無し → SFENトークン(b/w) → それも無ければ b
+    auto decideTurnFromSfen = [](const QString& sfen)->QChar {
+        const QStringList toks = sfen.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+        if (toks.isEmpty()) return QLatin1Char('b');
+
+        const QString& board = toks.at(0);
+        int cntK = 0, cntk = 0;
+        for (const QChar ch : board) {
+            if (ch == QLatin1Char('K')) ++cntK;
+            else if (ch == QLatin1Char('k')) ++cntk;
+        }
+        // どちらか片方だけのときはそれを優先
+        if ((cntK > 0) ^ (cntk > 0)) {
+            // kのみ → 後手玉を詰める → 攻方=先手(b)
+            // Kのみ → 先手玉を詰める → 攻方=後手(w)
+            return (cntk > 0) ? QLatin1Char('b') : QLatin1Char('w');
+        }
+        // 両方 or どちらも無し → SFEN手番トークンを参照
+        if (toks.size() >= 2) {
+            if (toks[1] == QLatin1String("b")) return QLatin1Char('b');
+            if (toks[1] == QLatin1String("w")) return QLatin1Char('w');
+        }
+        return QLatin1Char('b'); // 最終フォールバック：先手
+    };
+
+    const QChar desiredTurn = decideTurnFromSfen(baseSfen);
+
+    // 4) SFENの手番を強制上書き（手数トークンは1にリセットしておくと無難）
+    auto forceTurnInSfen = [](const QString& sfen, QChar turn)->QString {
+        QStringList toks = sfen.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+        if (toks.size() >= 2) {
+            toks[1] = QString(turn);
+            if (toks.size() >= 4) toks[3] = QStringLiteral("1");
+            return toks.join(QLatin1Char(' '));
+        }
+        return sfen;
+    };
+    const QString forcedSfen = forceTurnInSfen(baseSfen, desiredTurn);
+
+    // 5) 送信用 position は固定局面のみ（moves を付けない）
+    m_positionStr1 = QStringLiteral("position sfen %1").arg(forcedSfen);
+
+    // 6) UI 手番表示を同期
+    m_gameController->setCurrentPlayer(
+        (desiredTurn == QLatin1Char('b'))
+        ? ShogiGameController::Player1
+        : ShogiGameController::Player2
+    );
+
+    // 7) ダイアログからエンジン/時間設定を取得
     const int  engineNumber = m_tsumeShogiSearchDialog->getEngineNumber();
     const auto engine       = m_tsumeShogiSearchDialog->getEngineList().at(engineNumber);
 
@@ -2631,16 +2697,16 @@ void MainWindow::startTsumiSearch()
         byoyomiMs = m_tsumeShogiSearchDialog->getByoyomiSec() * 1000; // 秒→ms
     }
 
-    // 5) 司令塔に委譲（エンジン起動/USI初期化などは司令塔が行う）
+    // 8) 司令塔に委譲
     if (m_match) {
         MatchCoordinator::AnalysisOptions opt;
         opt.enginePath  = engine.path;
         opt.engineName  = m_tsumeShogiSearchDialog->getEngineName();
-        opt.positionStr = m_positionStr1;  // "position sfen ... [moves ...]"
+        opt.positionStr = m_positionStr1;  // "position sfen <...>"
         opt.byoyomiMs   = byoyomiMs;
-        opt.mode        = TsumiSearchMode; // ★詰み探索モード
+        opt.mode        = TsumiSearchMode; // → go mate を使う
 
-        m_match->startAnalysis(opt);       // 内部で Tsumi 用に go mate を使用（後述の修正で対応）
+        m_match->startAnalysis(opt);
     }
 }
 

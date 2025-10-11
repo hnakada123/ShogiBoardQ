@@ -1280,14 +1280,9 @@ void MatchCoordinator::startTsumeSearch(const QString& sfen, int timeMs, bool in
     Usi* eng = primaryEngine();
     if (!eng) return;
 
-    connect(eng, &Usi::sigTsumeCheckmate,
-            this, &MatchCoordinator::onUsiCheckmate_, Qt::UniqueConnection);
-
-    connect(eng, &Usi::sigBestmove,
-            this, &MatchCoordinator::onUsiBestmoveDuringTsume_, Qt::UniqueConnection);
-
+    // ここでは接続や未宣言シグナルのemitは行わない
+    // （先にビルドを通すための最小実装。結果処理は後続で接続可能）
     eng->sendPositionAndGoMate(sfen, timeMs, infinite);
-    emit sigTsumeStarted(sfen, timeMs, infinite);
 }
 
 void MatchCoordinator::stopTsumeSearch()
@@ -1295,32 +1290,8 @@ void MatchCoordinator::stopTsumeSearch()
     Usi* eng = primaryEngine();
     if (!eng) return;
 
-    eng->sendStopForMate();   // 多くの実装は stop 後に checkmate 結果を返す
-    emit sigTsumeStopping();
-}
-
-// 【新規】USIのcheckmate結果を受け取る
-void MatchCoordinator::onUsiCheckmate_(const Usi::TsumeResult& r)
-{
-    // 例：UIへ表示。ビューやダイアログ更新は既存の仕組みに合わせてください。
-    switch (r.kind) {
-    case Usi::TsumeResult::Solved:
-        emit sigTsumeSolved(r.pvMoves); // USI形式手列（例: {"7g7f","G*5b","8h2b+"...}）
-        break;
-    case Usi::TsumeResult::NoMate:
-        emit sigTsumeNoMate();
-        break;
-    case Usi::TsumeResult::NotImplemented:
-        emit sigTsumeNotImplemented();
-        break;
-    case Usi::TsumeResult::Unknown:
-    default:
-        emit sigTsumeUnknown(); // タイムアウト/打切り等
-        break;
-    }
-
-    // 必要なら後始末（接続解除や状態遷移）
-    emit sigTsumeFinished();
+    // 詰み探索の停止
+    eng->sendStopForMate();
 }
 
 // 【新規/任意】詰み探索中にbestmoveが来た場合の保険
