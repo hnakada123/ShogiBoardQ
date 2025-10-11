@@ -2902,38 +2902,62 @@ void MainWindow::hidePositionEditMenu()
     ui->turnaround->setVisible(false);
 }
 
-// 局面編集を開始する（BIC対応版）
+// 局面編集を開始する。
+// 仕様：
+//  - 棋譜欄などで選択中の途中局面（m_currentSelectedPly）のSFENを起点として編集モードへ入る
+//  - フォールバック順：m_sfenRecord[sel] → m_resumeSfenStr → m_startSfenStr → 平手初期SFEN
+//  - メニューは「局面編集開始」を隠し「局面編集終了」を表示（displayPositionEditMenu）
+//  - 編集中は applySfenAtCurrentPly() が positionEditMode() で自動的に無効化される
 void MainWindow::beginPositionEditing()
 {
-    // いったん初期表示へ（盤面・棋譜・評価値などをクリーンに）
+    // ---- 0) 編集開始SFENの決定（選択手から）----
+    QString baseSfen;
+    if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
+        const int idx = qBound(0, m_currentSelectedPly, m_sfenRecord->size() - 1);
+        baseSfen = m_sfenRecord->at(idx);
+    }
+    if (baseSfen.isEmpty() && !m_resumeSfenStr.isEmpty()) {
+        baseSfen = m_resumeSfenStr;
+    }
+    if (baseSfen.isEmpty() && !m_startSfenStr.isEmpty()) {
+        baseSfen = m_startSfenStr;
+    }
+    if (baseSfen.isEmpty()) {
+        baseSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"); // 平手
+    }
+
+    // ---- 1) UIの軽い初期化（盤は後で上書きする）----
     resetToInitialState();
 
-    // 指し手インデックス類をリセット
+    // インデックス類は編集用に 0 始まりへ
     m_currentMoveIndex = 0;
     m_totalMove        = 0;
 
-    // いま表示している局面を SFEN として保持
-    m_startSfenStr = parseStartPositionToSfen(m_currentSfenStr);
+    // ---- 2) 盤へ選択局面を適用 ----
+    if (m_gameController && m_gameController->board()) {
+        m_gameController->board()->setSfen(baseSfen);
+        if (m_shogiView) m_shogiView->applyBoardAndRender(m_gameController->board());
+    } else if (m_shogiView) {
+        // 最低限の再描画
+        m_shogiView->update();
+    }
 
-    // 局面編集フラグ ON（BIC の挙動にも効く）
+    // ---- 3) 編集モードON ＆ メニュー切替 ----
     if (m_shogiView) {
         m_shogiView->setPositionEditMode(true);
         m_shogiView->setMouseClickMode(true);  // 編集中はクリック可
         m_shogiView->update();
     }
+    displayPositionEditMenu(); // 「開始」を隠し「終了」を表示。その他の編集用アクションも表示
 
-    // メニューの切替
-    displayPositionEditMenu();
-
-    //hideGameActions();
-
-    // SFEN 列を初期化（0手＝開始局面のみ）
+    // ---- 4) SFEN系の初期化（0手＝開始局面のみ）----
+    m_startSfenStr = baseSfen;                // 編集のベースSFENを確定
     if (m_sfenRecord) {
         m_sfenRecord->clear();
-        m_sfenRecord->append(m_startSfenStr);
+        m_sfenRecord->append(m_startSfenStr); // 0手目のみ
     }
 
-    // 棋譜モデルを初期化（RecordPane 用）
+    // ---- 5) 棋譜モデルを初期化（RecordPane用）----
     if (!m_kifuRecordModel) m_kifuRecordModel = new KifuRecordListModel(this);
     m_kifuRecordModel->clearAllItems();
     m_kifuRecordModel->appendItem(
@@ -2941,7 +2965,7 @@ void MainWindow::beginPositionEditing()
                         QStringLiteral("（１手 / 合計）"))
     );
 
-    // 矢印ボタン無効化＆棋譜テーブルの選択禁止
+    // ---- 6) 矢印ボタン無効化＆棋譜テーブル選択禁止 ----
     disableArrowButtons();
     if (m_recordPane) {
         if (auto* view = m_recordPane->kifuView()) {
@@ -2949,7 +2973,16 @@ void MainWindow::beginPositionEditing()
         }
     }
 
-    // 手番を GameController に反映（盤の b/w に合わせる）
+    // ---- 7) BIC を編集モードにし、ハイライトを整理 ----
+    if (!m_boardController) {
+        setupBoardInteractionController();
+    }
+    if (m_boardController) {
+        m_boardController->setMode(BoardInteractionController::Mode::Edit);
+        m_boardController->clearAllHighlights();
+    }
+
+    // ---- 8) 手番を GameController に同期（盤の b/w に合わせる）----
     if (m_shogiView && m_gameController) {
         if (m_shogiView->board()->currentPlayer() == "b") {
             m_gameController->setCurrentPlayer(ShogiGameController::Player1);
@@ -2958,40 +2991,20 @@ void MainWindow::beginPositionEditing()
         }
     }
 
-    // --- ここから BIC（BoardInteractionController）への切替点 ---
-    // 未生成なら念のため配線
-    if (!m_boardController) {
-        setupBoardInteractionController();
-    }
-
-    // 編集モードにセットし、ハイライトはコントローラ経由で全消し
-    if (m_boardController) {
-        m_boardController->setMode(BoardInteractionController::Mode::Edit);
-        m_boardController->clearAllHighlights();
-    }
-
-    // 編集用アクションの接続（重複を避けるため UniqueConnection）
+    // ---- 9) 編集用アクションの接続（重複防止）----
     if (ui) {
-        connect(ui->returnAllPiecesOnStand, &QAction::triggered,
-                this, &MainWindow::resetPiecesToStand,
-                Qt::UniqueConnection);
-
-        connect(ui->turnaround, &QAction::triggered,
-                this, &MainWindow::toggleEditSideToMove,
-                Qt::UniqueConnection);
-
-        connect(ui->flatHandInitialPosition, &QAction::triggered,
-                this, &MainWindow::setStandardStartPosition,
-                Qt::UniqueConnection);
-
-        connect(ui->shogiProblemInitialPosition, &QAction::triggered,
-                this, &MainWindow::setTsumeShogiStartPosition,
-                Qt::UniqueConnection);
-
-        connect(ui->reversal, &QAction::triggered,
-                this, &MainWindow::onReverseTriggered,
-                Qt::UniqueConnection);
+        connect(ui->returnAllPiecesOnStand,      &QAction::triggered, this, &MainWindow::resetPiecesToStand,         Qt::UniqueConnection);
+        connect(ui->turnaround,                  &QAction::triggered, this, &MainWindow::toggleEditSideToMove,       Qt::UniqueConnection);
+        connect(ui->flatHandInitialPosition,     &QAction::triggered, this, &MainWindow::setStandardStartPosition,   Qt::UniqueConnection);
+        connect(ui->shogiProblemInitialPosition, &QAction::triggered, this, &MainWindow::setTsumeShogiStartPosition, Qt::UniqueConnection);
+        connect(ui->reversal,                    &QAction::triggered, this, &MainWindow::onReverseTriggered,         Qt::UniqueConnection);
     }
+
+#ifdef QT_DEBUG
+    qDebug().noquote() << "[EDIT-BEGIN] baseSfen=" << baseSfen
+                       << " selPly=" << m_currentSelectedPly
+                       << " sfenRecord.size=" << (m_sfenRecord ? m_sfenRecord->size() : 0);
+#endif
 }
 
 void MainWindow::onReverseTriggered()
