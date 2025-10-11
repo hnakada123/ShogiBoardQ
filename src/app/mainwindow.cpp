@@ -2608,36 +2608,41 @@ void MainWindow::startConsidaration()
 // 詰み探索を開始する。
 void MainWindow::startTsumiSearch()
 {
-    // 対局モードを棋譜解析モードに設定する。
+    // 1) 対局モードを詰み探索モードへ（UI の状態保持用）
     m_playMode = TsumiSearchMode;
 
-    // 将棋エンジンとUSIプロトコルに関するクラスのインスタンスを削除する。
-    if (m_usi1 != nullptr) delete m_usi1;
+    // 2) 盤面の手番表示用に現在手番を更新（startConsidaration と同様）
+    //    ※ positionStr に手番情報は含まれるが、UI の手番表示は GameController にも反映しておく
+    if (m_gameMoves.at(m_currentMoveIndex).movingPiece.isUpper()) {
+        m_gameController->setCurrentPlayer(ShogiGameController::Player1);
+    } else {
+        m_gameController->setCurrentPlayer(ShogiGameController::Player2);
+    }
 
-    // 将棋エンジンとUSIプロトコルに関するクラスのインスタンスを生成する。
-    m_usi1 = new Usi(m_lineEditModel1, m_modelThinking1, m_gameController, m_playMode,this);
+    // 3) 送信用 position 構築（既存のリストをそのまま利用）
+    //    選択中の手数（m_currentMoveIndex）の局面から探索を開始する
+    m_positionStr1 = m_positionStrList.at(m_currentMoveIndex);
 
-    connect(m_usi1, &Usi::bestMoveResignReceived, this, &MainWindow::processResignCommand);
+    // 4) ダイアログからエンジン/時間設定を取得（TsumeShogiSearchDialog は ConsiderationDialog 派生）
+    const int  engineNumber = m_tsumeShogiSearchDialog->getEngineNumber();
+    const auto engine       = m_tsumeShogiSearchDialog->getEngineList().at(engineNumber);
 
-    // GUIに登録された将棋エンジン番号を取得する。
-    int engineNumber1 = m_tsumeShogiSearchDialog->getEngineNumber();
+    int byoyomiMs = 0;
+    if (!m_tsumeShogiSearchDialog->unlimitedTimeFlag()) {
+        byoyomiMs = m_tsumeShogiSearchDialog->getByoyomiSec() * 1000; // 秒→ms
+    }
 
-    // 将棋エンジン実行ファイル名を設定する。
-    m_engineFile1 = m_tsumeShogiSearchDialog->getEngineList().at(engineNumber1).path;
+    // 5) 司令塔に「詰み探索」として検討を依頼
+    //    （エンジンの起動/USI初期化、ログ識別、go送信などは MatchCoordinator 側で実施）
+    if (m_match) {
+        MatchCoordinator::AnalysisOptions opt;
+        opt.enginePath  = engine.path;
+        opt.engineName  = m_tsumeShogiSearchDialog->getEngineName();
+        opt.positionStr = m_positionStr1;
+        opt.byoyomiMs   = byoyomiMs;
+        opt.mode        = TsumiSearchMode;  // ★検討モードではなく詰み探索モード
 
-    // 将棋エンジン名を取得する。
-    QString engineName1 = m_tsumeShogiSearchDialog->getEngineName();
-
-    m_usi1->setLogIdentity("[E1]", "P1", engineName1);
-
-    if (m_usi1) m_usi1->setSquelchResignLogging(false);
-
-    try {
-        // 将棋エンジンを起動し、対局開始までのコマンドを実行する。
-        m_usi1->initializeAndStartEngineCommunication(m_engineFile1, engineName1);
-    } catch (const std::exception& e) {
-        // エラーを再スローし、エラーメッセージを表示する。
-        throw;
+        m_match->startAnalysis(opt);
     }
 }
 
