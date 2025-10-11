@@ -223,6 +223,8 @@ private slots:
     void kickNextEvETurn_();  // EvE を1手ずつ進める
     void onClockTick_();
 
+    void onUsiBestmoveDuringTsume_(const QString& bestmove);
+
 public slots:
     // 即時に現在値で timeUpdated(...) を発火（UIをすぐ同期させたい時に使う）
     void pokeTimeUpdateNow();
@@ -371,6 +373,9 @@ signals:
 private:
     // ...（既存）
     GameOverState m_gameOver;
+
+    void startTsumeSearch(const QString& sfen, int timeMs, bool infinite);
+    void stopTsumeSearch();
 
 public:
     // ==== 追加：検討の強制終了（quit送信→エンジン破棄） ====

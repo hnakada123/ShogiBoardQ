@@ -123,6 +123,19 @@ public:
     // 将棋エンジンのプロセスを終了し、プロセスとスレッドを削除する。
     void cleanupEngineProcessAndThread();
 
+    void sendPositionAndGoMate(const QString& sfen, int timeMs, bool infinite);
+    void sendStopForMate();
+
+    // --- 詰み結果 ---
+    struct TsumeResult {
+        enum Kind { Solved, NoMate, NotImplemented, Unknown } kind = Unknown;
+        QStringList pvMoves;
+    };
+
+    void executeTsumeCommunication(QString& positionStr, int mateLimitMilliSec);
+    void sendPositionAndGoMateCommands(int mateLimitMilliSec, QString& positionStr);
+
+
 #ifdef QT_DEBUG
     // ★ 追加：デバッグ用ダンプ
     ShogiEngineThinkingModel* debugThinkingModel() const { return m_modelThinking; }
@@ -135,6 +148,14 @@ signals:
 
     // bestmove resignを受信したことを通知するシグナル
     void bestMoveResignReceived();
+
+    void sigTsumeCheckmate(const Usi::TsumeResult& result);
+
+    // 追加: 詰将棋の最終結果
+    void checkmateSolved(const QStringList& pvMoves);
+    void checkmateNoMate();
+    void checkmateNotImplemented();
+    void checkmateUnknown();
 
 private:
     // 盤面の1辺のマス数（列数と段数）
@@ -465,6 +486,10 @@ private:
     bool m_timeoutDeclared = false;  // ★ GUIにより旗落ち確定（この局の bestmove は受け付けない）
 
     bool shouldAbortWait() const;  // タイムアウト/終了状態なら true
+
+private:
+    bool m_modeTsume = false; // 詰み探索中フラグ
+    void handleCheckmateLine(const QString& line);
 
 private slots:
     void onProcessFinished(int exitCode, QProcess::ExitStatus status);
