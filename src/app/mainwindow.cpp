@@ -2605,14 +2605,13 @@ void MainWindow::startConsidaration()
     }
 }
 
-// 詰み探索を開始する。
+// 詰み探索を開始する（TsumeShogiSearchDialogのOK後に呼ばれる）
 void MainWindow::startTsumiSearch()
 {
     // 1) 対局モードを詰み探索モードへ（UI の状態保持用）
     m_playMode = TsumiSearchMode;
 
-    // 2) 盤面の手番表示用に現在手番を更新（startConsidaration と同様）
-    //    ※ positionStr に手番情報は含まれるが、UI の手番表示は GameController にも反映しておく
+    // 2) 盤面の手番表示用に現在手番を更新
     if (m_gameMoves.at(m_currentMoveIndex).movingPiece.isUpper()) {
         m_gameController->setCurrentPlayer(ShogiGameController::Player1);
     } else {
@@ -2632,17 +2631,16 @@ void MainWindow::startTsumiSearch()
         byoyomiMs = m_tsumeShogiSearchDialog->getByoyomiSec() * 1000; // 秒→ms
     }
 
-    // 5) 司令塔に「詰み探索」として検討を依頼
-    //    （エンジンの起動/USI初期化、ログ識別、go送信などは MatchCoordinator 側で実施）
+    // 5) 司令塔に委譲（エンジン起動/USI初期化などは司令塔が行う）
     if (m_match) {
         MatchCoordinator::AnalysisOptions opt;
         opt.enginePath  = engine.path;
         opt.engineName  = m_tsumeShogiSearchDialog->getEngineName();
-        opt.positionStr = m_positionStr1;
+        opt.positionStr = m_positionStr1;  // "position sfen ... [moves ...]"
         opt.byoyomiMs   = byoyomiMs;
-        opt.mode        = TsumiSearchMode;  // ★検討モードではなく詰み探索モード
+        opt.mode        = TsumiSearchMode; // ★詰み探索モード
 
-        m_match->startAnalysis(opt);
+        m_match->startAnalysis(opt);       // 内部で Tsumi 用に go mate を使用（後述の修正で対応）
     }
 }
 

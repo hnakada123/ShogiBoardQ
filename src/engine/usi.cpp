@@ -1156,7 +1156,13 @@ void Usi::readFromEngine()
         }
         qDebug().nospace() << pfx << " usidebug< " << line;
 
-        // フラグ類の更新
+        // ───────── 詰将棋の最終結果は最優先で処理 ─────────
+        if (line.startsWith(QStringLiteral("checkmate"))) {
+            handleCheckmateLine(line);
+            continue;
+        }
+
+        // ───────── 既存のbestmove/infoなど ─────────
         if (line.startsWith(QStringLiteral("bestmove"))) {
             m_bestMoveSignalReceived = true;
             bestMoveReceived(line);
@@ -1941,4 +1947,88 @@ void Usi::onProcessFinished(int /*exitCode*/, QProcess::ExitStatus /*status*/)
 
     // 最終的には完全遮断に移行
     m_shutdownState = ShutdownState::IgnoreAll;
+}
+
+// 【新規】詰み探索用：position→go mate
+void Usi::sendPositionAndGoMate(const QString& sfen, int timeMs, bool infinite)
+{
+    if (!m_process || m_process->state() != QProcess::Running) {
+        ShogiUtils::logAndThrowError("USI engine is not running.");
+    }
+
+    // "position sfen <SFEN>"
+    QString pos = QStringLiteral("position sfen %1").arg(sfen.trimmed());
+    sendCommand(pos);
+
+    // "go mate <ms>" または "go mate infinite"
+    if (infinite || timeMs <= 0) {
+        sendCommand(QStringLiteral("go mate infinite"));
+    } else {
+        sendCommand(QStringLiteral("go mate %1").arg(timeMs)); // 単位はミリ秒
+    }
+
+    m_modeTsume = true;
+}
+
+// 【新規】詰み探索の停止
+void Usi::sendStopForMate()
+{
+    if (!m_process || m_process->state() != QProcess::Running) return;
+    // 既存の停止APIがあるならそれを使ってもOK（sendStopCommand() 等）
+    sendCommand(QStringLiteral("stop"));
+}
+
+// 詰み探索用の実行（position → go mate）
+void Usi::executeTsumeCommunication(QString& positionStr, int mateLimitMilliSec)
+{
+    // 現在の局面（盤内のみ）をコピー（描画や後続処理に合わせて従来仕様を踏襲）
+    cloneCurrentBoardData();
+
+    // position → go mate の送信
+    sendPositionAndGoMateCommands(mateLimitMilliSec, positionStr);
+}
+
+// "position ..." を送ってから "go mate ..." を送る
+void Usi::sendPositionAndGoMateCommands(int mateLimitMilliSec, QString& positionStr)
+{
+    // positionコマンドを将棋エンジンに送信
+    sendPositionCommand(positionStr);
+
+    // go mate <ms|infinite> を送信（無制限なら infinite）
+    if (mateLimitMilliSec <= 0) {
+        sendCommand(QStringLiteral("go mate infinite"));
+    } else {
+        sendCommand(QStringLiteral("go mate %1").arg(mateLimitMilliSec));
+    }
+
+    // ※解析時のような「bestmove待ち」は行わない。
+    //   詰み探索は最終結果として "checkmate ..." が返ってくるので、
+    //   受信側（readFromEngine）で処理する。
+}
+
+// "checkmate ..." の行を解析してシグナルを発火
+void Usi::handleCheckmateLine(const QString& line)
+{
+    const QString rest = line.mid(QStringLiteral("checkmate").size()).trimmed();
+
+    if (rest.compare(QStringLiteral("nomate"), Qt::CaseInsensitive) == 0) {
+        emit checkmateNoMate();
+        return;
+    }
+    if (rest.compare(QStringLiteral("notimplemented"), Qt::CaseInsensitive) == 0) {
+        emit checkmateNotImplemented();
+        return;
+    }
+    if (rest.isEmpty() || rest.compare(QStringLiteral("unknown"), Qt::CaseInsensitive) == 0) {
+        emit checkmateUnknown();
+        return;
+    }
+
+    // 以降は USI の手列
+    const QStringList pv = rest.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+    if (pv.isEmpty()) {
+        emit checkmateUnknown();
+        return;
+    }
+    emit checkmateSolved(pv);
 }
