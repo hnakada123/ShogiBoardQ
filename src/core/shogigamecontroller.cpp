@@ -480,9 +480,6 @@ bool ShogiGameController::editPosition(const QPoint& outFrom, const QPoint& outT
         setCurrentPlayer(Player2);
     }
 
-    // 駒台に載せる場合、移動元と移動先の駒文字が一致しない場合は指せない。
-    if ((fileTo >= 10) && (source.toUpper() != dest.toUpper())) return false;
-
     // 禁じ手をチェックする。
     if (!checkMovePiece(source, dest, fileFrom, fileTo)) return false;
 
