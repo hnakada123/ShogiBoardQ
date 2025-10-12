@@ -2979,12 +2979,46 @@ void MainWindow::hidePositionEditMenu()
 //  - 編集中は applySfenAtCurrentPly() が positionEditMode() で自動的に無効化される
 void MainWindow::beginPositionEditing()
 {
-    // ---- 0) 編集開始SFENの決定（選択手から）----
+    // ---- 0) 編集開始SFENの決定（選択手から）----  ← ここを差し替え
     QString baseSfen;
+
+    // 1) sfenRecord があれば最適なインデックスを選ぶ
     if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
-        const int idx = qBound(0, m_currentSelectedPly, m_sfenRecord->size() - 1);
+        const int lastIdx = m_sfenRecord->size() - 1;
+
+        int idx = -1;
+
+        // 1-1) 終局直後は常に末尾：最後に確定している盤面から編集開始
+        if (m_match && m_match->gameOverState().isOver) {
+            idx = lastIdx;
+        } else {
+            // 1-2) 明示選択 > UIの実効手数(active) > 末尾 の順で採用
+            if (m_currentSelectedPly > 0)
+                idx = qBound(0, m_currentSelectedPly, lastIdx);
+            else if (m_activePly > 0)
+                idx = qBound(0, m_activePly, lastIdx);
+            else
+                idx = lastIdx;
+        }
+
         baseSfen = m_sfenRecord->at(idx);
     }
+
+    // 2) sfenRecord が空のときは、現在の盤面から合成（より堅牢）
+    if (baseSfen.isEmpty() && m_gameController && m_gameController->board()) {
+        ShogiBoard* board = m_gameController->board();
+        const QString nextTurn =
+            (m_gameController->currentPlayer() == ShogiGameController::Player1)
+                ? QStringLiteral("b") : QStringLiteral("w");
+        // 手数は 1 に丸め（編集開始の基準なので十分）
+        baseSfen = QStringLiteral("%1 %2 %3 %4")
+            .arg(board->convertBoardToSfen(),
+                 nextTurn,
+                 board->convertStandToSfen(),
+                 QStringLiteral("1"));
+    }
+
+    // 3) それでも空なら既存の後退順
     if (baseSfen.isEmpty() && !m_resumeSfenStr.isEmpty()) {
         baseSfen = m_resumeSfenStr;
     }
@@ -2992,7 +3026,8 @@ void MainWindow::beginPositionEditing()
         baseSfen = m_startSfenStr;
     }
     if (baseSfen.isEmpty()) {
-        baseSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"); // 平手
+        // 最終保険（平手）
+        baseSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
     }
 
     // ---- 1) UIの軽い初期化（盤は後で上書きする）----
@@ -3651,6 +3686,13 @@ void MainWindow::setGameOverMove(GameOverCause cause, bool loserIsPlayerOne)
 
     // --- ここから追記（関数の最後でOK） ---
     enableArrowButtons();
+
+    // 末尾の手（=直近局面）を現在選択にしておくと、その後の「局面編集」も確実に末尾から始まる
+    if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
+        m_currentSelectedPly = m_sfenRecord->size() - 1;
+        m_activePly         = m_currentSelectedPly;
+    }
+
     if (m_recordPane) {
         if (auto* view = m_recordPane->kifuView()) {
             view->setSelectionMode(QAbstractItemView::SingleSelection);
