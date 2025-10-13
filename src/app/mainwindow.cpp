@@ -34,6 +34,7 @@
 #include "kifuvariationengine.h"
 #include "branchcandidatescontroller.h"
 #include "numeric_right_align_comma_delegate.h"
+#include "turnmanager.h"
 
 // mainwindow.cpp の先頭（インクルードの後、どのメンバ関数より上）に追加
 static inline QString pickLabelForDisp(const KifDisplayItem& d)
@@ -1758,18 +1759,43 @@ void MainWindow::setTimerAndStart()
     }
 }
 
+// TurnManager::changed を受けて UI/Clock を更新（＋盤の "b"/"w" も同期）
+void MainWindow::onTurnManagerChanged(ShogiGameController::Player now)
+{
+    const int cur = (now == ShogiGameController::Player2) ? 2 : 1;
+    updateTurnStatus(cur);
+
+    // ★ 追加：TurnManager → Board の手番トークン同期（ズレ防止）
+    if (m_shogiView && m_shogiView->board()) {
+        if (auto* tm = this->findChild<TurnManager*>(QStringLiteral("TurnManager"))) {
+            m_shogiView->board()->setCurrentPlayer(tm->toSfenToken()); // "b" or "w"
+        }
+    }
+}
+
 // 現在の手番を設定する。
 void MainWindow::setCurrentTurn()
 {
-    // 現在の手番が先手あるいは下手の場合
-    if (m_shogiView->board()->currentPlayer() == "b") {
-        // 現在の手番を対局者1に設定する。
-        m_gameController->setCurrentPlayer(ShogiGameController::Player1);
+    // TurnManager を確保
+    TurnManager* tm = this->findChild<TurnManager*>(QStringLiteral("TurnManager"));
+    if (!tm) {
+        tm = new TurnManager(this);
+        tm->setObjectName(QStringLiteral("TurnManager"));
+        // ラムダを使わず、メンバ関数に接続
+        connect(tm, &TurnManager::changed,
+                this, &MainWindow::onTurnManagerChanged,
+                Qt::UniqueConnection);
     }
-    // 現在の手番が後手あるいは上手の場合
-    else if (m_shogiView->board()->currentPlayer() == "w") {
-        // 現在の手番を対局者2に設定する。
-        m_gameController->setCurrentPlayer(ShogiGameController::Player2);
+
+    // 盤（SFEN）の "b"/"w" から TurnManager へ → UI/Clock は changed によって更新
+    const QString bw = (m_shogiView && m_shogiView->board())
+                       ? m_shogiView->board()->currentPlayer()
+                       : QStringLiteral("b");
+    tm->setFromSfenToken(bw);
+
+    // GC 側も TurnManager に揃える（意味統一＝GC 方式）
+    if (m_gameController) {
+        m_gameController->setCurrentPlayer(tm->toGc());
     }
 }
 
@@ -5386,11 +5412,25 @@ void MainWindow::startInitialEngineMoveIfNeeded_()
         });
     }
 }
-// mainwindow.cpp のどこでもOK（他のメンバ実装と同じスコープ）
+
 void MainWindow::updateTurnDisplay()
 {
-    const int cur = (m_gameController->currentPlayer() == ShogiGameController::Player2) ? 2 : 1;
-    updateTurnStatus(cur);
+    // TurnManager を（無ければ）生成して接続：QObject 階層から取得
+    TurnManager* tm = this->findChild<TurnManager*>("TurnManager");
+    if (!tm) {
+        tm = new TurnManager(this);
+        tm->setObjectName(QStringLiteral("TurnManager"));
+        // ★ 手番変化を一元配信：ShogiClock と盤ハイライトの更新を既存関数に委譲
+        connect(tm, &TurnManager::changed, this, [this](ShogiGameController::Player now){
+            const int cur = (now == ShogiGameController::Player2) ? 2 : 1;
+            updateTurnStatus(cur);
+        }, Qt::UniqueConnection);
+    }
+
+    // 現在の GC 手番を TurnManager に反映（→ changed 経由で UI/Clock 同期）
+    const auto gcSide = m_gameController ? m_gameController->currentPlayer()
+                                         : ShogiGameController::Player1;
+    tm->setFromGc(gcSide);
 }
 
 void MainWindow::wireMatchSignals_()
