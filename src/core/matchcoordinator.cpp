@@ -1163,33 +1163,30 @@ void MatchCoordinator::handleBreakOff()
 // 検討を開始する（単発エンジンセッション）
 // - 既存の HvE と同じく m_usi1 を使用し、表示モデルは #1 スロットに流す。
 // - resign シグナルは P1 扱いで司令塔（Arbiter）に配線する（検討でも安全側）。
+// src/core/matchcoordinator.cpp
+
 void MatchCoordinator::startAnalysis(const AnalysisOptions& opt)
 {
-    // 1) モード設定
-    setPlayMode(opt.mode); // 通常は ConsidarationMode
+    // 1) モード設定（検討 / 詰み探索）
+    setPlayMode(opt.mode); // ConsidarationMode or TsumiSearchMode
 
-    // 2) 以前のエンジンは破棄（単発セッションの独立性を保つ）
+    // 2) 以前の単発エンジンは破棄（独立性確保）
     destroyEngines();
 
-    // 3) 表示モデル（#1 を使う。無ければフォールバック生成して保持）
+    // 3) 表示モデル（無ければ生成して保持）
     UsiCommLogModel*          comm  = m_comm1;
     ShogiEngineThinkingModel* think = m_think1;
     if (!comm)  { comm  = new UsiCommLogModel(this);          m_comm1  = comm;  }
-    if (!think) { think = new ShogiEngineThinkingModel(this);  m_think1 = think; }
+    if (!think) { think = new ShogiEngineThinkingModel(this); m_think1 = think; }
 
-    // 4) エンジン生成（単発は常に m_usi1 を使用）
+    // 4) 単発エンジン生成（常に m_usi1 を使用）
     m_usi1 = new Usi(comm, think, m_gc, m_playMode, this);
-    updateUsiPtrs(m_usi1, nullptr);
 
-    // 5) resign 配線（単発＝P1 扱いで十分。内部で onEngine1Resign に委譲）
-    m_usi1->resetResignNotified();
-    m_usi1->clearHardTimeout();
+    // 5) 投了配線（保険）
     wireResignToArbiter_(m_usi1, /*asP1=*/true);
 
-    // 6) ログ識別（検討用に "[A]" を付与。座席表示は P1 固定で OK）
-    m_usi1->setLogIdentity(QStringLiteral("[A]"),
-                           QStringLiteral("P1"),
-                           opt.engineName);
+    // 6) ログ識別
+    m_usi1->setLogIdentity(QStringLiteral("[E1]"), QStringLiteral("P1"), opt.engineName);
     m_usi1->setSquelchResignLogging(false);
 
     // 7) USI 初期化＆起動
@@ -1203,14 +1200,62 @@ void MatchCoordinator::startAnalysis(const AnalysisOptions& opt)
     // 8) UI 側にエンジン名を通知（必要時）
     if (m_hooks.setEngineNames) m_hooks.setEngineNames(opt.engineName, QString());
 
-    // 9) 解析/詰み探索の実行
-    QString pos = opt.positionStr;
+    // 9) ★ 詰み探索結果の配線（TsumiSearchMode のときだけ、メンバー関数へ接続）
+    if (opt.mode == TsumiSearchMode && m_usi1) {
+        connect(m_usi1, &Usi::checkmateSolved,
+                this,  &MatchCoordinator::onCheckmateSolved_,
+                Qt::UniqueConnection);
+
+        connect(m_usi1, &Usi::checkmateNoMate,
+                this,  &MatchCoordinator::onCheckmateNoMate_,
+                Qt::UniqueConnection);
+
+        connect(m_usi1, &Usi::checkmateNotImplemented,
+                this,  &MatchCoordinator::onCheckmateNotImplemented_,
+                Qt::UniqueConnection);
+
+        connect(m_usi1, &Usi::checkmateUnknown,
+                this,  &MatchCoordinator::onCheckmateUnknown_,
+                Qt::UniqueConnection);
+    }
+
+    // 10) 解析/詰み探索の実行
+    QString pos = opt.positionStr; // "position sfen <...>"
     if (opt.mode == TsumiSearchMode) {
-        // ★詰み探索：go mate を使う実行ルート
+        // go mate <ms|infinite>
         m_usi1->executeTsumeCommunication(pos, opt.byoyomiMs);
     } else {
-        // 従来の検討：go infinite（または byoyomi 停止）
+        // 従来の検討
         m_usi1->executeAnalysisCommunication(pos, opt.byoyomiMs);
+    }
+}
+
+void MatchCoordinator::onCheckmateSolved_(const QStringList& pv)
+{
+    if (m_hooks.showGameOverDialog) {
+        const QString msg = tr("詰みあり（手順 %1 手）").arg(pv.size());
+        m_hooks.showGameOverDialog(tr("詰み探索"), msg);
+    }
+}
+
+void MatchCoordinator::onCheckmateNoMate_()
+{
+    if (m_hooks.showGameOverDialog) {
+        m_hooks.showGameOverDialog(tr("詰み探索"), tr("詰みなし"));
+    }
+}
+
+void MatchCoordinator::onCheckmateNotImplemented_()
+{
+    if (m_hooks.showGameOverDialog) {
+        m_hooks.showGameOverDialog(tr("詰み探索"), tr("（エンジン側）未実装"));
+    }
+}
+
+void MatchCoordinator::onCheckmateUnknown_()
+{
+    if (m_hooks.showGameOverDialog) {
+        m_hooks.showGameOverDialog(tr("詰み探索"), tr("不明（解析不能）"));
     }
 }
 

@@ -4937,11 +4937,13 @@ void MainWindow::initMatchCoordinator()
             m_shogiView->applyBoardAndRender(m_gameController->board());
     };
 
-    // 汎用ゲーム終了ダイアログ表示（title, message）
+    // ★修正：タイトルが空なら従来メッセージ／空でなければ message をそのまま表示
     d.hooks.showGameOverDialog = [this](const QString& title, const QString& message){
-        QMessageBox::information(this,
-                                 title.isEmpty() ? tr("Game Over") : title,
-                                 tr("The game has ended. %1").arg(message));
+        const bool titleEmpty = title.isEmpty();
+        const QString dlgTitle = titleEmpty ? tr("Game Over") : title;
+        const QString dlgText  = titleEmpty ? tr("The game has ended. %1").arg(message)
+                                            : message;
+        QMessageBox::information(this, dlgTitle, dlgText);
     };
 
     // 任意ログ
