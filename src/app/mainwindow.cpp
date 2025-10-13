@@ -1759,19 +1759,22 @@ void MainWindow::setTimerAndStart()
     }
 }
 
-// TurnManager::changed を受けて UI/Clock を更新（＋盤の "b"/"w" も同期）
+// TurnManager::changed を受けて UI/Clock を更新（＋手番を GameController に同期）
 void MainWindow::onTurnManagerChanged(ShogiGameController::Player now)
 {
+    // 1) UI側（先手=1, 後手=2）に反映
     const int cur = (now == ShogiGameController::Player2) ? 2 : 1;
     updateTurnStatus(cur);
 
-    // ★ 追加：TurnManager → Board の手番トークン同期（ズレ防止）
-    if (m_shogiView && m_shogiView->board()) {
-        if (auto* tm = this->findChild<TurnManager*>(QStringLiteral("TurnManager"))) {
-            m_shogiView->board()->setCurrentPlayer(tm->toSfenToken()); // "b" or "w"
-        }
+    // 2) 盤オブジェクト(ShogiBoard)には setCurrentPlayer は無いので呼ばない
+    //    手番は ShogiGameController に集約して同期させる
+    if (m_gameController) {
+        m_gameController->setCurrentPlayer(now);  // ← ここだけで十分に同期できる
     }
+
+    // （必要に応じて：ここでステータスバー表示やログ出力などを追加してもOK）
 }
+
 
 // 現在の手番を設定する。
 void MainWindow::setCurrentTurn()
