@@ -580,6 +580,7 @@ private slots:
     void onRecordPaneBranchActivated_(const QModelIndex& index);   // QModelIndex → row へアダプト
     void onBranchNodeActivated_(int row, int ply);
     void onGameOverStateChanged(const MatchCoordinator::GameOverState& st);
+    void onTurnManagerChanged(ShogiGameController::Player now);
 
 private:
     // いま下段が先手(P1)か？ true=先手が手前、false=後手が手前

@@ -4,6 +4,7 @@
 #include "shogiview.h"
 #include "usicommlogmodel.h"
 #include "shogienginethinkingmodel.h"
+#include "turnmanager.h"
 
 #include <limits>
 #include <QObject>
@@ -52,19 +53,19 @@ void MatchCoordinator::startNewGame(const QString& sfenStart) {
     renderShogiBoard_();
 
     // ★ GC の手番を SFEN から決定（無ければ先手）
-    if (m_gc) {
-        ShogiGameController::Player start = ShogiGameController::Player1;
-        if (!sfenStart.isEmpty()) {
-            const auto parts = sfenStart.split(' ', Qt::SkipEmptyParts);
-            if (parts.size() >= 2) {
-                if (parts[1] == QLatin1String("w") || parts[1] == QLatin1String("W"))
-                    start = ShogiGameController::Player2;
-                else
-                    start = ShogiGameController::Player1; // "b" or それ以外は先手扱い
-            }
+    ShogiGameController::Player start = ShogiGameController::Player1;
+    if (!sfenStart.isEmpty()) {
+        const auto parts = sfenStart.split(' ', Qt::SkipEmptyParts);
+        if (parts.size() >= 2 && (parts[1] == QLatin1String("w") || parts[1] == QLatin1String("W"))) {
+            start = ShogiGameController::Player2;
         }
-        m_gc->setCurrentPlayer(start);
     }
+    if (m_gc) m_gc->setCurrentPlayer(start);
+
+    // ★ TurnManager へも反映（MainWindow を親として検索）
+    TurnManager* tm = nullptr;
+    if (QObject* p = parent()) tm = p->findChild<TurnManager*>("TurnManager");
+    if (tm) tm->setFromGc(start);
 
     // 司令塔の手番も同期（既存のままでもOKですが念のため）
     m_cur = (m_gc && m_gc->currentPlayer() == ShogiGameController::Player2) ? P2 : P1;
@@ -535,25 +536,65 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
     if (m_hooks.setPlayersNames)   m_hooks.setPlayersNames(QString(), QString());
     if (m_hooks.setEngineNames)    m_hooks.setEngineNames(opt.engineName1, opt.engineName2);
     if (m_hooks.setGameActions)    m_hooks.setGameActions(true);
-    if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
 
-    // ★ 追加：SFEN から GC の手番を決定（無ければ先手）
-    if (m_gc) {
+    // ---- 開始手番の決定（SFEN 解析：position sfen ... / 素のSFEN の両対応）
+    auto decideStartSideFromSfen = [](const QString& sfen) -> ShogiGameController::Player {
+        // 既定は先手
         ShogiGameController::Player start = ShogiGameController::Player1;
-        if (!opt.sfenStart.isEmpty()) {
-            const auto parts = opt.sfenStart.split(' ', Qt::SkipEmptyParts);
-            if (parts.size() >= 2 && (parts[1] == QLatin1String("w") || parts[1] == QLatin1String("W"))) {
-                start = ShogiGameController::Player2;
+        if (sfen.isEmpty()) return start;
+
+        const QStringList tok = sfen.split(' ', Qt::SkipEmptyParts);
+        if (tok.size() < 2) return start;
+
+        int sideIdx = -1;
+        // 形式1: "position sfen <board> <side> <..." → side は index=3
+        if (tok.size() >= 4 && tok[0] == QLatin1String("position") && tok[1] == QLatin1String("sfen")) {
+            sideIdx = 3;
+        }
+        // 形式2: "<board> <side> <..." → side は index=1
+        else if (tok.size() >= 2) {
+            sideIdx = 1;
+        }
+
+        if (sideIdx >= 0 && sideIdx < tok.size()) {
+            const QString side = tok[sideIdx];
+            if (side.compare(QLatin1String("w"), Qt::CaseInsensitive) == 0) {
+                start = ShogiGameController::Player2; // 後手番
+            } else {
+                start = ShogiGameController::Player1; // 先手番
             }
         }
-        m_gc->setCurrentPlayer(start);
+        return start;
+    };
+
+    const ShogiGameController::Player startSide =
+        decideStartSideFromSfen(opt.sfenStart);
+
+    // ★ GC へ開始手番を反映（無ければ先手既定）
+    if (m_gc) {
+        m_gc->setCurrentPlayer(startSide);
     }
+
+    // ★ TurnManager にも反映（MainWindow 直下にある想定）
+    if (QObject* p = parent()) {
+        if (auto* tm = p->findChild<TurnManager*>(QStringLiteral("TurnManager"))) {
+            tm->setFromGc(startSide);
+        }
+    }
+
+    // ★ 盤描画は「手番反映のあと」に行う（ハイライト/時計表示のズレ防止）
+    if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
 
     // EvE 用の内部棋譜コンテナを初期化
     m_eveSfenRecord.clear();
     m_eveGameMoves.clear();
     m_eveMoveIndex = 0;
 
+    // 司令塔の内部手番も GC に同期（既存コードとの互換維持）
+    m_cur = (startSide == ShogiGameController::Player2) ? P2 : P1;
+    updateTurnDisplay_(m_cur);
+
+    // ---- モード別の起動ルート
     switch (m_playMode) {
     case EvenEngineVsEngine:
     case HandicapEngineVsEngine: {
@@ -571,7 +612,6 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
 
     case EvenHumanVsEngine:
     case HandicapHumanVsEngine: {
-        // HvE/EvH は既存の単独エンジン起動ルートへ
         const bool engineIsP1 = opt.engineIsP1;
         startHumanVsEngine_(opt, engineIsP1);
         break;
@@ -594,12 +634,34 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
     }
 }
 
+// HvH（人間対人間）
 void MatchCoordinator::startHumanVsHuman_(const StartOptions& /*opt*/)
 {
     if (m_hooks.log) m_hooks.log(QStringLiteral("[Match] Start HvH"));
-    // HvH はエンジン不要。必要ならここで追加の初期化のみ。
+
+    // --- 手番の単一ソースを確立：GC → TurnManager → m_cur → 表示
+    ShogiGameController::Player side =
+        m_gc ? m_gc->currentPlayer() : ShogiGameController::NoPlayer;
+    if (side == ShogiGameController::NoPlayer) {
+        side = ShogiGameController::Player1;         // 既定は先手
+        if (m_gc) m_gc->setCurrentPlayer(side);
+    }
+
+    if (QObject* p = parent()) {
+        if (auto* tm = p->findChild<TurnManager*>(QStringLiteral("TurnManager"))) {
+            tm->setFromGc(side);
+        }
+    }
+
+    m_cur = (side == ShogiGameController::Player2) ? P2 : P1;
+
+    // 盤描画は手番反映のあと（ハイライト/時計のズレ防止）
+    if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
+    updateTurnDisplay_(m_cur);
 }
 
+// HvE（人間対エンジン）
+//   engineIsP1 == true ならエンジンは先手座席、false なら後手座席
 void MatchCoordinator::startHumanVsEngine_(const StartOptions& opt, bool engineIsP1)
 {
     if (m_hooks.log) {
@@ -625,7 +687,7 @@ void MatchCoordinator::startHumanVsEngine_(const StartOptions& opt, bool engineI
     m_usi1->resetResignNotified();
     m_usi1->clearHardTimeout();
 
-    // ★ 投了シグナルの配線は「実際の座席」に合わせる（P1/P2 を正しく扱う）
+    // 投了シグナルの配線は「実際の座席」に合わせる
     wireResignToArbiter_(m_usi1, /*asP1=*/engineIsP1);
 
     // ログ識別：表示上は P1/P2 を正しく出す（ただし表示面は常に上段）
@@ -639,9 +701,28 @@ void MatchCoordinator::startHumanVsEngine_(const StartOptions& opt, bool engineI
     const QString ePath = engineIsP1 ? opt.enginePath1 : opt.enginePath2;
     const QString eDisp = engineIsP1 ? opt.engineName1 : opt.engineName2;
 
-    // 既存の HvE 実装と互換を保つため、内部的には P1 側のスロットで起動する
-    // （以降の go/stop はフック側で m_usi1 に送る運用）
+    // 既存の HvE 実装と互換を保つため、内部的には P1 側のスロットで起動
     initializeAndStartEngineFor(P1, ePath, eDisp);
+
+    // --- 手番の単一ソースを確立：GC → TurnManager → m_cur → 表示
+    ShogiGameController::Player side =
+        m_gc ? m_gc->currentPlayer() : ShogiGameController::NoPlayer;
+    if (side == ShogiGameController::NoPlayer) {
+        side = ShogiGameController::Player1;         // 既定は先手（SFEN未指定時）
+        if (m_gc) m_gc->setCurrentPlayer(side);
+    }
+
+    if (QObject* p = parent()) {
+        if (auto* tm = p->findChild<TurnManager*>(QStringLiteral("TurnManager"))) {
+            tm->setFromGc(side);
+        }
+    }
+
+    m_cur = (side == ShogiGameController::Player2) ? P2 : P1;
+
+    // 盤描画は手番反映のあと
+    if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
+    updateTurnDisplay_(m_cur);
 }
 
 // EvE の初手を開始する（起動・初期化済み前提）
@@ -649,12 +730,17 @@ void MatchCoordinator::startEngineVsEngine_(const StartOptions& /*opt*/)
 {
     if (!m_usi1 || !m_usi2 || !m_gc) return;
 
-    // GC の手番が未設定なら先手にしておく
+    // --- 開始直後の手番同期：GC → TurnManager → m_cur → 表示
     if (m_gc->currentPlayer() == ShogiGameController::NoPlayer) {
         m_gc->setCurrentPlayer(ShogiGameController::Player1);
-        m_cur = P1;
-        updateTurnDisplay_(m_cur);
     }
+    if (QObject* p = parent()) {
+        if (auto* tm = p->findChild<TurnManager*>(QStringLiteral("TurnManager"))) {
+            tm->setFromGc(m_gc->currentPlayer());
+        }
+    }
+    m_cur = (m_gc->currentPlayer() == ShogiGameController::Player2) ? P2 : P1;
+    updateTurnDisplay_(m_cur);
 
     // "position ... moves" の初期化（startpos 前提。SFEN 始点に拡張するならここで分岐）
     initPositionStringsForEvE_();
@@ -699,7 +785,14 @@ void MatchCoordinator::startEngineVsEngine_(const StartOptions& /*opt*/)
         return;
     }
 
-    // ★ EvE: 先手の1手目を棋譜欄へ反映
+    // ★ GC の手番はここで後手番に切り替わっているはず → TurnManager へも反映
+    if (QObject* p = parent()) {
+        if (auto* tm = p->findChild<TurnManager*>(QStringLiteral("TurnManager"))) {
+            tm->setFromGc(m_gc->currentPlayer());
+        }
+    }
+
+    // EvE: 先手の1手目を棋譜欄/時計へ反映
     if (m_clock) {
         const qint64 thinkMs = m_usi1 ? m_usi1->lastBestmoveElapsedMs() : 0;
         m_clock->setPlayer1ConsiderationTime(static_cast<int>(thinkMs));
@@ -709,16 +802,13 @@ void MatchCoordinator::startEngineVsEngine_(const StartOptions& /*opt*/)
         m_hooks.appendKifuLine(rec1, m_clock->getPlayer1ConsiderationAndTotalTime());
     }
 
-    // 盤描画＆手番表示
+    // 盤描画＆手番表示（GC→P1/P2 で表示）
     if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
     if (m_hooks.showMoveHighlights) m_hooks.showMoveHighlights(p1From, p1To);
-    updateTurnDisplay_(
-        (m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2
-        );
+    updateTurnDisplay_((m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2);
 
     // ─────────────────────────────────────────────────────────────
-    // ★ ここが今回の追加ポイント：
-    //   先手の着手で更新された position を後手用にも反映し、P2 に 1手指させる
+    // 先手の着手で更新された position を後手用にも反映し、P2 に 1手指させる
     // ─────────────────────────────────────────────────────────────
 
     // “同○”ヒントを P2 へ（必要なら）
@@ -727,7 +817,7 @@ void MatchCoordinator::startEngineVsEngine_(const StartOptions& /*opt*/)
         m_usi2->setPreviousRankTo(p1To.y());
     }
 
-    // 後手用 position は先手用をそのままコピー（"position ... moves ..." に先手着手が入っている）
+    // 後手用 position は先手用をそのままコピー（moves に先手着手が入っている）
     m_positionStr2     = m_positionStr1;
     m_positionPonder2.clear(); // 不要ならクリア
 
@@ -769,7 +859,14 @@ void MatchCoordinator::startEngineVsEngine_(const StartOptions& /*opt*/)
         return;
     }
 
-    // ★ EvE: 後手の1手目を棋譜欄へ反映
+    // ★ GC の手番はここで再び先手番に切り替わっているはず → TurnManager へも反映
+    if (QObject* p = parent()) {
+        if (auto* tm = p->findChild<TurnManager*>(QStringLiteral("TurnManager"))) {
+            tm->setFromGc(m_gc->currentPlayer());
+        }
+    }
+
+    // EvE: 後手の1手目を棋譜欄/時計へ反映
     if (m_clock) {
         const qint64 thinkMs = m_usi2 ? m_usi2->lastBestmoveElapsedMs() : 0;
         m_clock->setPlayer2ConsiderationTime(static_cast<int>(thinkMs));
@@ -782,9 +879,7 @@ void MatchCoordinator::startEngineVsEngine_(const StartOptions& /*opt*/)
     // 反映
     if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
     if (m_hooks.showMoveHighlights) m_hooks.showMoveHighlights(p2From, p2To);
-    updateTurnDisplay_(
-        (m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2
-        );
+    updateTurnDisplay_((m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2);
 
     QTimer::singleShot(std::chrono::milliseconds(0), this, &MatchCoordinator::kickNextEvETurn_);
 }
