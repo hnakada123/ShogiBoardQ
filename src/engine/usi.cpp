@@ -177,11 +177,12 @@ void Usi::onProcessError(QProcess::ProcessError error)
         break;
     }
 
-    // 将棋エンジンプロセスを終了し、プロセスとスレッドを削除する。
+    // 安全に後片付け（プロセス/スレッド終了・切断）
     cleanupEngineProcessAndThread();
 
-    // エラーメッセージを表示する。
-    ShogiUtils::logAndThrowError(errorMessage);
+    // 例外は投げず、上位（MainWindow 等）へ通知して終了
+    Q_EMIT errorOccurred(errorMessage);
+    return;
 }
 
 // 将棋エンジンプロセスを起動し、対局を開始するUSIコマンドを送受信する。
@@ -548,17 +549,21 @@ void Usi::sendCommandsAndProcess(
     int byoyomiMilliSec, QString& positionStr, const QString& btime, const QString& wtime,
     QString& positionPonderStr, int addEachMoveMilliSec1, int addEachMoveMilliSec2, bool useByoyomi)
 {
+    // ★ このセット（position→go→bestmove）専用の ctx/ID を開始
+    const quint64 opId = beginOperationContext();
+
     // position → go
     sendPositionCommand(positionStr);
     cloneCurrentBoardData();
     sendGoCommand(byoyomiMilliSec, btime, wtime, addEachMoveMilliSec1, addEachMoveMilliSec2, useByoyomi);
 
-    // ★ 修正(2)(3): byoyomi の有無に関わらず、手番側の上限時間で待機する
+    // 待機（内部で “IDが変わったら離脱” を判定）
     waitAndCheckForBestMoveRemainingTime(byoyomiMilliSec, btime, wtime, useByoyomi);
 
     if (m_isResignMove) return;
 
-    // bestmove 受信後の処理
+    // bestmove 受信後の処理（ここで opId と m_seq が食い違っていたら
+    // bestmoveReceived 側で弾かれているため、通常通り続行してOK）
     appendBestMoveAndStartPondering(positionStr, positionPonderStr);
 }
 
@@ -601,19 +606,14 @@ void Usi::waitAndCheckForBestMoveRemainingTime(int byoyomiMilliSec,
                                                const QString& wtime,
                                                bool useByoyomi)
 {
-    // ★ ここで即座に中断可否をチェック（終局・quit後・タイムアウト宣言後など）
     if (shouldAbortWait()) {
         qDebug().nospace() << logPrefix() << " [wait-abort] timeout/ignore declared";
-        return; // 以後の bestmove は採用しない（例外も投げない）
+        return;
     }
 
     const bool p1turn = (m_gameController->currentPlayer() == ShogiGameController::Player1);
     const int  mainMs = p1turn ? btime.toInt() : wtime.toInt();
-
-    // 上限は「メイン(+秒読み)」。インクリメントは“着手後”に付くため待機時間に加えない
     int capMs = useByoyomi ? (mainMs + byoyomiMilliSec) : mainMs;
-
-    // 200ms以上の時だけ控えめに -100ms
     if (capMs >= 200) capMs -= 100;
 
     qDebug().nospace()
@@ -623,17 +623,14 @@ void Usi::waitAndCheckForBestMoveRemainingTime(int byoyomiMilliSec,
         << ", byoyomi=" << byoyomiMilliSec
         << ", mode=" << (useByoyomi ? "byoyomi" : "increment") << ")";
 
-    // “予算 + 小さな猶予”だけ待つ
+    // ★ ここで ID も監視（waitForBestMoveWithGrace 内で expectedId をチェック）
     const bool got = waitForBestMoveWithGrace(capMs, kBestmoveGraceMs);
 
     if (!got) {
-        // ここで再度「中断指示が出ているか」を確認
         if (shouldAbortWait()) {
             qDebug().nospace() << logPrefix() << " [wait-abort-2] timeout/quit during wait";
-            return;  // 例外なしで終了
+            return;
         }
-
-        // まだ Running なのに bestmove が来ない → 本当のタイムアウトとして扱う
         const QString errorMessage =
             tr("An error occurred in Usi::waitAndCheckForBestMoveRemainingTime. Timeout waiting for bestmove.");
         ShogiUtils::logAndThrowError(errorMessage);
@@ -645,17 +642,19 @@ bool Usi::waitForBestMoveWithGrace(int capMs, int graceMs)
     QElapsedTimer t; t.start();
     const qint64 hard = capMs + qMax(0, graceMs);
 
-    m_bestMoveSignalReceived = false; // 念のため
+    m_bestMoveSignalReceived = false;
+
+    // ★ この待機が属するオペの “期待ID”
+    const quint64 expectedId = m_seq;
 
     while (t.elapsed() < hard) {
-        // ★ ここを追加（任意）：終局/quit/タイムアウト宣言なら早期離脱
-        if (shouldAbortWait()) return false;
+        // ★ オペがキャンセル/切替されたら即離脱（旧bestmoveは採用しない）
+        if (m_seq != expectedId || shouldAbortWait()) return false;
 
-        // ...既存のイベントポンプや m_bestMoveSignalReceived チェック...
         QCoreApplication::processEvents(QEventLoop::AllEvents, 5);
         if (m_bestMoveSignalReceived) return true;
 
-        QThread::msleep(1); // 実装に応じて
+        QThread::msleep(1);
     }
     return m_bestMoveSignalReceived;
 }
@@ -1323,14 +1322,14 @@ void Usi::sendQuitCommand()
 {
     if (!m_process) return;
 
-    // ★ 以後は「info string …」だけ許可（終端の Thank You を拾う）
-    m_shutdownState = ShutdownState::IgnoreAllExceptInfoString;
-    m_postQuitInfoStringLinesLeft = 1;   // 1行だけ通す（必要なら2に）
+    // ★ 現行オペをキャンセル（ctx破棄＋ID進め）
+    cancelCurrentOperation();
 
-    // quit を送る
+    m_shutdownState = ShutdownState::IgnoreAllExceptInfoString;
+    m_postQuitInfoStringLinesLeft = 1;
+
     sendCommand(QStringLiteral("quit"));
 
-    // 軽くドレインしてから書き込み側だけ閉じる（読み取りは生かす）
     (void)m_process->readAllStandardOutput();
     (void)m_process->readAllStandardError();
     m_process->closeWriteChannel();
@@ -1621,50 +1620,45 @@ void Usi::sendGoCommand(int byoyomiMilliSec, const QString& btime, const QString
 }
 
 // 棋譜解析モードで go コマンドを将棋エンジンに送信する。
+// （以降の後処理は既存フローに任せる）
 void Usi::sendGoCommandByAnalysys(int byoyomiMilliSec)
 {
-    // 解析ビューをクリア
-    infoRecordClear();
+    // ★ 解析オペ開始（ctx+ID）
+    const quint64 opId = beginOperationContext();
 
-    // 解析は go infinite -> 後で stop の流れに統一
+    infoRecordClear();
     sendCommand("go infinite");
 
-    // 無制限なら bestmove が来るまで待つ既存ルートを使用
     if (byoyomiMilliSec <= 0) {
-        keepWaitingForBestMove();
+        keepWaitingForBestMove(); // 無制限：従来どおり。ただし bestmoveReceived 側でIDガード
         return;
     }
 
-    // byoyomi 後に stop を投げる（既存のシングルショットでOK）
-    QTimer::singleShot(byoyomiMilliSec, this, [this]() {
+    // ★ QTimer を ctx にぶら下げて stop を投げる
+    auto* timer = new QTimer(m_opCtx);
+    timer->setSingleShot(true);
+    connect(timer, &QTimer::timeout, m_opCtx, [this]() {
         sendCommand("stop");
     });
+    timer->start(byoyomiMilliSec);
 
-    // ★重要★: 待機時間は「検討時間 + 余裕時間」
-    // エンジンは stop 後に後処理してから bestmove を返すことがあるため、
-    // ここで十分なマージン（例: 4秒）を持たせる。
-    static constexpr int kPostStopGraceMs = 4000; // 4秒の余裕
-    // 低い byoyomi の場合のために最低限の総待機時間も確保
+    // stop 後の余裕時間も待つ（IDミスマッチ/終了宣言で即離脱）
+    static constexpr int kPostStopGraceMs = 4000;
     const int waitBudget = qMax(byoyomiMilliSec + kPostStopGraceMs, 2500);
 
-    // まずは余裕込みで待つ
     if (!waitForBestMove(waitBudget)) {
-        // まだ来ない場合の最終保険：stop をもう一度送って短く追い待ち
-        sendCommand("stop");
+        // 最終保険：短く追い待ち（ctx配下で再度stop）
+        auto* chase = new QTimer(m_opCtx);
+        chase->setSingleShot(true);
+        connect(chase, &QTimer::timeout, m_opCtx, [this](){ sendCommand("stop"); });
+        chase->start(0); // すぐ投げる
 
-        // ここは短い追い待ち（2秒程度）。それでも来なければ諦めるが、
-        // 解析モードでは致命エラーにせず、単に戻る（UI は継続）。
         if (!waitForBestMove(2000)) {
             qWarning() << "[USI][Analysis] bestmove timeout (non-fatal). waited(ms)="
                        << (waitBudget + 2000);
-            // ★以前はここで cleanupEngineProcessAndThread() と例外送出していたが、
-            //   解析モードでは致命にしない。GUI は“待機したが来なかった”として継続。
             return;
         }
     }
-
-    // ここまで来れば bestmove を取得できている
-    // （以降の後処理は既存フローに任せる）
 }
 
 // 将棋エンジンからbestmoveを受信するまで待つ。
@@ -1724,59 +1718,52 @@ bool Usi::keepWaitingForBestMove()
 // 将棋エンジンからbestmoveを受信した時に最善手を取得する。
 void Usi::bestMoveReceived(const QString& line)
 {
-    // ★ 裁定後は一切採用しない（ここが今回のキモ）
-    if (m_timeoutDeclared) {
-        qDebug().nospace() << logPrefix() << " [drop-bestmove] (timeout-declared) " << line;
-        return;
-    }
-    if (m_shutdownState != ShutdownState::Running) {
-        qDebug().nospace() << logPrefix() << " [drop-bestmove] (ignore-all) " << line;
+    // ★ この受信が属する（と見なす）IDを入口でキャプチャ
+    const quint64 observedId = m_seq;
+
+    if (m_timeoutDeclared || m_shutdownState != ShutdownState::Running) {
+        qDebug().nospace() << logPrefix() << " [drop-bestmove] (inactive-state) " << line;
         return;
     }
 
-    // 最善手の文字列をクリア
-    m_bestMove.clear();
-
-    // "bestmove xxx [ponder yyy]" をトークン化
     const QStringList tokens = line.split(whitespaceRe(), Qt::SkipEmptyParts);
-    const int bestMoveIndex = tokens.indexOf(QStringLiteral("bestmove"));
+    const int bestMoveIndex  = tokens.indexOf(QStringLiteral("bestmove"));
 
     if (bestMoveIndex == -1 || bestMoveIndex + 1 >= tokens.size()) {
-        cleanupEngineProcessAndThread();
-        QString errorMessage = tr("An error occurred in Usi::bestMoveReceived. bestmove or its succeeding string not found.");
-        ShogiUtils::logAndThrowError(errorMessage);
+        const QString msg = tr("An error occurred in Usi::bestMoveReceived. bestmove or its succeeding string not found.");
+        qWarning().noquote() << logPrefix() << " " << msg << " line=" << line;
+        Q_EMIT errorOccurred(msg);
+        return;
+    }
+
+    // ★ オペが切り替わっていたら旧bestmoveは採用しない
+    if (observedId != m_seq) {
+        qDebug().nospace() << logPrefix() << " [drop-bestmove] (op-id-mismatch) " << line;
         return;
     }
 
     m_bestMove = tokens.at(bestMoveIndex + 1);
 
-    // 経過時間（go→bestmove）を記録（既存のタイマがあれば）
     qint64 elapsed = m_goTimer.isValid() ? m_goTimer.elapsed() : -1;
-    m_lastGoToBestmoveMs = (elapsed >= 0) ? elapsed : 0;
+    m_lastGoToBestmoveMs   = (elapsed >= 0) ? elapsed : 0;
     m_bestMoveSignalReceived = true;
 
-    // resign は GUI 側にシグナルで通知（多重emit防止）
     if (m_bestMove.compare(QStringLiteral("resign"), Qt::CaseInsensitive) == 0) {
         if (m_resignNotified) {
             qDebug().nospace() << logPrefix() << " [dup-resign-ignored]";
             return;
         }
         m_resignNotified = true;
-
         qDebug().nospace() << logPrefix() << " [TRACE] resign-detected t+" << ShogiUtils::nowMs() << "ms";
-        emit bestMoveResignReceived();
+        Q_EMIT bestMoveResignReceived();
         return;
     }
 
-    // ここ以降は通常手の処理（既存どおり）
-    // 例：ponder の取り出しなど
-    int ponderIdx = tokens.indexOf(QStringLiteral("ponder"));
+    const int ponderIdx = tokens.indexOf(QStringLiteral("ponder"));
     if (ponderIdx != -1 && ponderIdx + 1 < tokens.size()) {
         const QString ponderStr = tokens.at(ponderIdx + 1);
         qDebug().nospace() << logPrefix() << " [ponder] " << ponderStr;
     }
-
-    // （この後の適用可否は MainWindow 側で m_gameIsOver を再チェック）
 }
 
 void Usi::startUsiThread()
@@ -2031,4 +2018,30 @@ void Usi::handleCheckmateLine(const QString& line)
         return;
     }
     emit checkmateSolved(pv);
+}
+
+// 【新規】オペレーション用の一時コンテキストを開始（auto-disconnect/auto-delete用）
+// 返り値：このオペに対応するID（リクエストID）
+quint64 Usi::beginOperationContext()
+{
+    // 旧オペを破棄（ぶら下がる QTimer なども一括で消える）
+    if (m_opCtx) {
+        m_opCtx->deleteLater();
+        m_opCtx = nullptr;
+    }
+    m_opCtx = new QObject(this); // この ctx を connect の受け側に使う
+
+    // リクエストIDを進めて「旧オペのシグナルは無視」状態にする
+    return ++m_seq;
+}
+
+// 【新規】現在のオペレーションをキャンセル
+void Usi::cancelCurrentOperation()
+{
+    if (m_opCtx) {
+        m_opCtx->deleteLater();
+        m_opCtx = nullptr;
+    }
+    // ID を進めることで、旧オペ経由の bestmove/info はすべて無視される
+    ++m_seq;
 }
