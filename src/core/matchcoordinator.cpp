@@ -4,7 +4,6 @@
 #include "shogiview.h"
 #include "usicommlogmodel.h"
 #include "shogienginethinkingmodel.h"
-#include "turnmanager.h"
 
 #include <limits>
 #include <QObject>
@@ -263,14 +262,11 @@ void MatchCoordinator::initializeAndStartEngineFor(Player side,
     QString path = enginePathIn;
     QString name = engineNameIn;
 
-    try {
-        eng->initializeAndStartEngineCommunication(path, name);
-    } catch (...) {
-        if (m_hooks.log) m_hooks.log(QStringLiteral("[Match] init/start failed"));
-        throw;
-    }
+    // 例外を投げない前提：失敗は内部でシグナル/ログ通知される
+    eng->initializeAndStartEngineCommunication(path, name);
 
-    wireResignToArbiter_(eng, (eng == m_usi1)); // m_usi1=先手扱い（HvE でも OK）
+    // 投了シグナル配線（m_usi1=先手扱い）
+    wireResignToArbiter_(eng, (eng == m_usi1));
 }
 
 void MatchCoordinator::wireResignSignals()
@@ -401,29 +397,40 @@ bool MatchCoordinator::engineThinkApplyMove(Usi* engine,
         return static_cast<int>(ms);
     };
 
-    // qint64 → QString（ミリ秒の数値文字列）
     const QString btimeStr = QString::number(t.btime);
     const QString wtimeStr = QString::number(t.wtime);
 
     QPoint from(-1, -1), to(-1, -1);
     m_gc->setPromote(false);
 
+    // 例外を投げない前提：失敗は内部でログ/シグナル通知済み
     engine->handleEngineVsHumanOrEngineMatchCommunication(
-        positionStr,                // 現局面（SFEN/position）
-        ponderStr,                  // ponder
-        from, to,                   // 出力される移動先
-        clampMsToInt(t.byoyomi),    // byoyomi ms (int)
-        btimeStr,                   // btime (QString)
-        wtimeStr,                   // wtime (QString)
-        clampMsToInt(t.binc),       // 先手加算 (int)
-        clampMsToInt(t.winc),       // 後手加算 (int)
-        useByoyomi                  // byoyomi 使用フラグ
+        positionStr,              // 現局面（SFEN/position）
+        ponderStr,                // ponder
+        from, to,                 // 出力される移動先
+        clampMsToInt(t.byoyomi),  // byoyomi ms (int)
+        btimeStr,                 // btime (QString)
+        wtimeStr,                 // wtime (QString)
+        clampMsToInt(t.binc),     // 先手加算 (int)
+        clampMsToInt(t.winc),     // 後手加算 (int)
+        useByoyomi                // byoyomi 使用フラグ
         );
 
     if (outFrom) *outFrom = from;
     if (outTo)   *outTo   = to;
 
-    // 評価値フックの呼出は呼び出し元（engineMoveOnce）で行う
+    // resign/win/draw 等では from/to が (-1,-1) のままになる想定 → false で中断
+    auto isValidTo = [](const QPoint& p) {
+        return (p.x() >= 1 && p.x() <= 9 && p.y() >= 1 && p.y() <= 9);
+    };
+    if (!isValidTo(to)) {
+        qInfo() << "[Match] engineThinkApplyMove: no legal 'to' returned (resign/abort?). from="
+                << from << "to=" << to;
+        if (m_hooks.log) m_hooks.log(QStringLiteral("[Match] engineThinkApplyMove: no legal move (resign/abort?)"));
+        return false;
+    }
+
+    // from は 1..9（盤上）または 10/11（打ち駒）を許容。細かい妥当性は validateAndMove に委譲。
     return true;
 }
 
@@ -717,7 +724,7 @@ void MatchCoordinator::startEngineVsEngine_(const StartOptions& /*opt*/)
     m_cur = (m_gc->currentPlayer() == ShogiGameController::Player2) ? P2 : P1;
     updateTurnDisplay_(m_cur);
 
-    // "position ... moves" の初期化（startpos 前提。SFEN 始点に拡張するならここで分岐）
+    // "position ... moves" の初期化
     initPositionStringsForEvE_();
 
     // 先手エンジン（P1）に初手思考を要求
@@ -728,35 +735,26 @@ void MatchCoordinator::startEngineVsEngine_(const StartOptions& /*opt*/)
     QPoint p1From(-1, -1), p1To(-1, -1);
     m_gc->setPromote(false);
 
-    try {
-        m_usi1->handleEngineVsHumanOrEngineMatchCommunication(
-            m_positionStr1, m_positionPonder1,
-            p1From, p1To,
-            static_cast<int>(t1.byoyomi),
-            btimeStr1, wtimeStr1,
-            static_cast<int>(t1.binc), static_cast<int>(t1.winc),
-            (t1.byoyomi > 0)
-            );
-    } catch (const std::exception& e) {
-        qWarning() << "[EvE] engine1 first move failed:" << e.what();
-        return;
-    }
+    // 例外非使用前提（内部で失敗通知）
+    m_usi1->handleEngineVsHumanOrEngineMatchCommunication(
+        m_positionStr1, m_positionPonder1,
+        p1From, p1To,
+        static_cast<int>(t1.byoyomi),
+        btimeStr1, wtimeStr1,
+        static_cast<int>(t1.binc), static_cast<int>(t1.winc),
+        (t1.byoyomi > 0)
+        );
 
-    // bestmove を盤へ適用（EvE 専用の棋譜コンテナを使用）
+    // bestmove を盤へ適用
     QString rec1;
     PlayMode pm = m_playMode;
-    try {
-        if (!m_gc->validateAndMove(
-                p1From, p1To, rec1,
-                pm,
-                m_eveMoveIndex,
-                &m_eveSfenRecord,
-                m_eveGameMoves
-                )) {
-            return;
-        }
-    } catch (const std::exception& e) {
-        qWarning() << "[EvE] validateAndMove(P1) failed:" << e.what();
+    if (!m_gc->validateAndMove(
+            p1From, p1To, rec1,
+            pm,
+            m_eveMoveIndex,
+            &m_eveSfenRecord,
+            m_eveGameMoves
+            )) {
         return;
     }
 
@@ -764,30 +762,25 @@ void MatchCoordinator::startEngineVsEngine_(const StartOptions& /*opt*/)
     if (m_clock) {
         const qint64 thinkMs = m_usi1 ? m_usi1->lastBestmoveElapsedMs() : 0;
         m_clock->setPlayer1ConsiderationTime(static_cast<int>(thinkMs));
-        m_clock->applyByoyomiAndResetConsideration1(); // byoyomi/Fischer適用 & 直近考慮秒の確定
+        m_clock->applyByoyomiAndResetConsideration1();
     }
     if (m_hooks.appendKifuLine && m_clock) {
         m_hooks.appendKifuLine(rec1, m_clock->getPlayer1ConsiderationAndTotalTime());
     }
 
-    // 盤描画＆手番表示（GC→P1/P2 で表示）
+    // 盤描画＆手番表示
     if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
     if (m_hooks.showMoveHighlights) m_hooks.showMoveHighlights(p1From, p1To);
     updateTurnDisplay_((m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2);
 
-    // ─────────────────────────────────────────────────────────────
-    // 先手の着手で更新された position を後手用にも反映し、P2 に 1手指させる
-    // ─────────────────────────────────────────────────────────────
-
-    // “同○”ヒントを P2 へ（必要なら）
+    // ─ 後手の1手目 ─
     if (m_usi2) {
         m_usi2->setPreviousFileTo(p1To.x());
         m_usi2->setPreviousRankTo(p1To.y());
     }
 
-    // 後手用 position は先手用をそのままコピー（moves に先手着手が入っている）
     m_positionStr2     = m_positionStr1;
-    m_positionPonder2.clear(); // 不要ならクリア
+    m_positionPonder2.clear();
 
     const GoTimes t2 = computeGoTimes_();
     const QString btimeStr2 = QString::number(t2.btime);
@@ -796,38 +789,26 @@ void MatchCoordinator::startEngineVsEngine_(const StartOptions& /*opt*/)
     QPoint p2From(-1, -1), p2To(-1, -1);
     m_gc->setPromote(false);
 
-    try {
-        m_usi2->handleEngineVsHumanOrEngineMatchCommunication(
-            m_positionStr2, m_positionPonder2,
-            p2From, p2To,
-            static_cast<int>(t2.byoyomi),
-            btimeStr2, wtimeStr2,
-            static_cast<int>(t2.binc), static_cast<int>(t2.winc),
-            (t2.byoyomi > 0)
-            );
-    } catch (const std::exception& e) {
-        qWarning() << "[EvE] engine2 first reply failed:" << e.what();
-        return;
-    }
+    m_usi2->handleEngineVsHumanOrEngineMatchCommunication(
+        m_positionStr2, m_positionPonder2,
+        p2From, p2To,
+        static_cast<int>(t2.byoyomi),
+        btimeStr2, wtimeStr2,
+        static_cast<int>(t2.binc), static_cast<int>(t2.winc),
+        (t2.byoyomi > 0)
+        );
 
-    // 後手の着手を盤へ適用
     QString rec2;
-    try {
-        if (!m_gc->validateAndMove(
-                p2From, p2To, rec2,
-                pm,
-                m_eveMoveIndex,
-                &m_eveSfenRecord,
-                m_eveGameMoves
-                )) {
-            return;
-        }
-    } catch (const std::exception& e) {
-        qWarning() << "[EvE] validateAndMove(P2) failed:" << e.what();
+    if (!m_gc->validateAndMove(
+            p2From, p2To, rec2,
+            pm,
+            m_eveMoveIndex,
+            &m_eveSfenRecord,
+            m_eveGameMoves
+            )) {
         return;
     }
 
-    // EvE: 後手の1手目を棋譜欄/時計へ反映
     if (m_clock) {
         const qint64 thinkMs = m_usi2 ? m_usi2->lastBestmoveElapsedMs() : 0;
         m_clock->setPlayer2ConsiderationTime(static_cast<int>(thinkMs));
@@ -837,7 +818,6 @@ void MatchCoordinator::startEngineVsEngine_(const StartOptions& /*opt*/)
         m_hooks.appendKifuLine(rec2, m_clock->getPlayer2ConsiderationAndTotalTime());
     }
 
-    // 反映
     if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
     if (m_hooks.showMoveHighlights) m_hooks.showMoveHighlights(p2From, p2To);
     updateTurnDisplay_((m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2);
@@ -883,32 +863,25 @@ void MatchCoordinator::kickNextEvETurn_()
     QString& ponder = p1ToMove ? m_positionPonder1  : m_positionPonder2;
     if (p1ToMove) pos = m_positionStr2; else pos = m_positionStr1;
 
-    // 1手思考 → bestmove 取得
+    // 1手思考 → bestmove 取得（例外非使用前提）
     QPoint from(-1,-1), to(-1,-1);
     if (!engineThinkApplyMove(mover, pos, ponder, &from, &to))
         return;
 
     // 盤へ適用（EvE用の安全な記録バッファを使用）
     QString rec;
-    try {
-        if (!m_gc->validateAndMove(from, to, rec, m_playMode,
-                                   m_eveMoveIndex, &m_eveSfenRecord, m_eveGameMoves)) {
-            return;
-        }
-    } catch (const std::exception& e) {
-        qWarning() << "[EvE] validateAndMove failed:" << e.what();
+    if (!m_gc->validateAndMove(from, to, rec, m_playMode,
+                               m_eveMoveIndex, &m_eveSfenRecord, m_eveGameMoves)) {
         return;
     }
 
-    // ★ EvE: 今指した側（mover）を棋譜欄へ反映
+    // EvE: 今指した側（mover）を棋譜欄/時計へ反映
     if (m_clock) {
         const qint64 thinkMs = mover ? mover->lastBestmoveElapsedMs() : 0;
         if (p1ToMove) {
-            // いま指したのはP1
             m_clock->setPlayer1ConsiderationTime(static_cast<int>(thinkMs));
             m_clock->applyByoyomiAndResetConsideration1();
         } else {
-            // いま指したのはP2
             m_clock->setPlayer2ConsiderationTime(static_cast<int>(thinkMs));
             m_clock->applyByoyomiAndResetConsideration2();
         }
@@ -1219,14 +1192,13 @@ void MatchCoordinator::handleBreakOff()
 // 検討を開始する（単発エンジンセッション）
 // - 既存の HvE と同じく m_usi1 を使用し、表示モデルは #1 スロットに流す。
 // - resign シグナルは P1 扱いで司令塔（Arbiter）に配線する（検討でも安全側）。
-// src/core/matchcoordinator.cpp
-
+// 検討を開始する（単発エンジンセッション）
 void MatchCoordinator::startAnalysis(const AnalysisOptions& opt)
 {
     // 1) モード設定（検討 / 詰み探索）
     setPlayMode(opt.mode); // ConsidarationMode or TsumiSearchMode
 
-    // 2) 以前の単発エンジンは破棄（独立性確保）
+    // 2) 以前の単発エンジンは破棄
     destroyEngines();
 
     // 3) 表示モデル（無ければ生成して保持）
@@ -1238,38 +1210,30 @@ void MatchCoordinator::startAnalysis(const AnalysisOptions& opt)
     // 4) 単発エンジン生成（常に m_usi1 を使用）
     m_usi1 = new Usi(comm, think, m_gc, m_playMode, this);
 
-    // 5) 投了配線（保険）
+    // 5) 投了配線
     wireResignToArbiter_(m_usi1, /*asP1=*/true);
 
     // 6) ログ識別
     m_usi1->setLogIdentity(QStringLiteral("[E1]"), QStringLiteral("P1"), opt.engineName);
     m_usi1->setSquelchResignLogging(false);
 
-    // 7) USI 初期化＆起動
-    try {
-        initializeAndStartEngineFor(P1, opt.enginePath, opt.engineName);
-    } catch (...) {
-        if (m_hooks.log) m_hooks.log(QStringLiteral("[Analysis] init/start failed"));
-        throw;
-    }
+    // 7) USI 初期化＆起動（例外非使用前提）
+    initializeAndStartEngineFor(P1, opt.enginePath, opt.engineName);
 
     // 8) UI 側にエンジン名を通知（必要時）
     if (m_hooks.setEngineNames) m_hooks.setEngineNames(opt.engineName, QString());
 
-    // 9) ★ 詰み探索結果の配線（TsumiSearchMode のときだけ、メンバー関数へ接続）
+    // 9) 詰み探索の配線（TsumiSearchMode のときのみ）
     if (opt.mode == TsumiSearchMode && m_usi1) {
         connect(m_usi1, &Usi::checkmateSolved,
                 this,  &MatchCoordinator::onCheckmateSolved_,
                 Qt::UniqueConnection);
-
         connect(m_usi1, &Usi::checkmateNoMate,
                 this,  &MatchCoordinator::onCheckmateNoMate_,
                 Qt::UniqueConnection);
-
         connect(m_usi1, &Usi::checkmateNotImplemented,
                 this,  &MatchCoordinator::onCheckmateNotImplemented_,
                 Qt::UniqueConnection);
-
         connect(m_usi1, &Usi::checkmateUnknown,
                 this,  &MatchCoordinator::onCheckmateUnknown_,
                 Qt::UniqueConnection);
@@ -1278,10 +1242,8 @@ void MatchCoordinator::startAnalysis(const AnalysisOptions& opt)
     // 10) 解析/詰み探索の実行
     QString pos = opt.positionStr; // "position sfen <...>"
     if (opt.mode == TsumiSearchMode) {
-        // go mate <ms|infinite>
         m_usi1->executeTsumeCommunication(pos, opt.byoyomiMs);
     } else {
-        // 従来の検討
         m_usi1->executeAnalysisCommunication(pos, opt.byoyomiMs);
     }
 }
@@ -1402,4 +1364,3 @@ void MatchCoordinator::onUsiBestmoveDuringTsume_(const QString& bestmove)
     // 多くの場合は無視で良い。ログだけ残す。
     qInfo() << "[Tsume] bestmove during mate-search:" << bestmove;
 }
-

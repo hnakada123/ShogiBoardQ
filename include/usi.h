@@ -8,6 +8,7 @@
 #include <QtCharts/QLineSeries>
 #include <QThread>
 #include <QElapsedTimer>
+#include <QPointer>
 
 #include "shogienginethinkingmodel.h"
 #include "shogiengineinfoparser.h"
@@ -156,6 +157,9 @@ signals:
     void checkmateNoMate();
     void checkmateNotImplemented();
     void checkmateUnknown();
+
+    // ★未宣言で Q_EMIT errorOccurred(...) がエラーになっているので追加
+    void errorOccurred(const QString& message);
 
 private:
     // 盤面の1辺のマス数（列数と段数）
@@ -486,6 +490,14 @@ private:
     bool m_timeoutDeclared = false;  // ★ GUIにより旗落ち確定（この局の bestmove は受け付けない）
 
     bool shouldAbortWait() const;  // タイムアウト/終了状態なら true
+
+    // usi.h の private: あたりに追加
+    QPointer<QObject> m_opCtx { nullptr };  // オペ単位の一時コンテキスト
+    quint64           m_seq   { 0 };        // リクエストID（切替で++）
+
+    // public または private にメソッド宣言
+    quint64 beginOperationContext(); // 新規
+    void    cancelCurrentOperation(); // 新規
 
 private:
     bool m_modeTsume = false; // 詰み探索中フラグ
