@@ -194,6 +194,8 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(m_shogiView, &ShogiView::errorOccurred, this, &MainWindow::displayErrorMessage);
     connect(m_gameController, &ShogiGameController::endDragSignal, this, &MainWindow::endDrag, Qt::UniqueConnection);
     connect(m_gameController, &ShogiGameController::moveCommitted, this, &MainWindow::onMoveCommitted, Qt::UniqueConnection);
+
+    ensureTurnSyncBridge_();
 }
 
 // GUIを構成するWidgetなどを生成する。
@@ -1238,6 +1240,8 @@ void MainWindow::startGameBasedOnMode()
 
     // 司令塔へ構成/起動のみ委譲（startNewGame は既に済）
     m_match->configureAndStart(opt);
+
+    ensureTurnSyncBridge_();
 
     // ★ 初手がエンジン手番なら、この場で初手エンジンを必ず起動する（先手・後手どちらでも）
     startInitialEngineMoveIfNeeded_();
@@ -5430,10 +5434,9 @@ void MainWindow::updateTurnDisplay()
         }, Qt::UniqueConnection);
     }
 
-    // 現在の GC 手番を TurnManager に反映（→ changed 経由で UI/Clock 同期）
-    const auto gcSide = m_gameController ? m_gameController->currentPlayer()
-                                         : ShogiGameController::Player1;
-    tm->setFromGc(gcSide);
+    // 初期同期は ensureTurnSyncBridge_() により
+    //   GC::currentPlayerChanged → TurnManager::setFromGc → changed(UI更新)
+    // が自動で行われるため、ここでは何もしない。
 }
 
 void MainWindow::wireMatchSignals_()
@@ -7346,4 +7349,26 @@ void MainWindow::handleBreakOffConsidaration()
     if (statusBar()) {
         statusBar()->showMessage(tr("検討を中断しました（エンジンに quit を送信）。"), 3000);
     }
+}
+
+void MainWindow::ensureTurnSyncBridge_()
+{
+    // ShogiGameController と TurnManager を取得
+    auto* gc = m_gameController;                          // 既存メンバ想定
+    auto* tm = findChild<TurnManager*>("TurnManager");    // 既存オブジェクト名想定
+
+    if (!gc || !tm) return;
+
+    // 1) GCの手番変更 → TurnManagerへミラー（重複接続は抑止）
+    QObject::connect(gc, &ShogiGameController::currentPlayerChanged,
+                     tm, &TurnManager::setFromGc,
+                     Qt::UniqueConnection);
+
+    // 2) TurnManagerの変更 → MainWindowのUI更新（未配線なら接続）
+    QObject::connect(tm, &TurnManager::changed,
+                     this, &MainWindow::onTurnManagerChanged,
+                     Qt::UniqueConnection);
+
+    // 3) 初期同期：現時点の手番を即時反映（時計/ラベルのズレ防止）
+    tm->setFromGc(gc->currentPlayer());
 }

@@ -616,6 +616,8 @@ private:
     bool m_isResumeFromCurrent = false;
     int  m_pendingEvalTrimPly  = -1;
     void applyPendingEvalTrim_();
+
+    void ensureTurnSyncBridge_();
 };
 
 #endif // MAINWINDOW_H

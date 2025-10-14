@@ -44,6 +44,7 @@ void MatchCoordinator::updateUsiPtrs(Usi* e1, Usi* e2) {
     m_usi2 = e2;
 }
 
+// MatchCoordinator.cpp
 void MatchCoordinator::startNewGame(const QString& sfenStart) {
     // 既存
     if (m_hooks.initializeNewGame) m_hooks.initializeNewGame(sfenStart);
@@ -60,14 +61,11 @@ void MatchCoordinator::startNewGame(const QString& sfenStart) {
             start = ShogiGameController::Player2;
         }
     }
+
+    // GC に反映（currentPlayerChanged → TurnManager は恒常接続で自動伝播）
     if (m_gc) m_gc->setCurrentPlayer(start);
 
-    // ★ TurnManager へも反映（MainWindow を親として検索）
-    TurnManager* tm = nullptr;
-    if (QObject* p = parent()) tm = p->findChild<TurnManager*>("TurnManager");
-    if (tm) tm->setFromGc(start);
-
-    // 司令塔の手番も同期（既存のままでもOKですが念のため）
+    // 司令塔の手番も同期（既存のまま）
     m_cur = (m_gc && m_gc->currentPlayer() == ShogiGameController::Player2) ? P2 : P1;
     updateTurnDisplay_(m_cur);
 
@@ -575,13 +573,6 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
         m_gc->setCurrentPlayer(startSide);
     }
 
-    // ★ TurnManager にも反映（MainWindow 直下にある想定）
-    if (QObject* p = parent()) {
-        if (auto* tm = p->findChild<TurnManager*>(QStringLiteral("TurnManager"))) {
-            tm->setFromGc(startSide);
-        }
-    }
-
     // ★ 盤描画は「手番反映のあと」に行う（ハイライト/時計表示のズレ防止）
     if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
 
@@ -647,12 +638,6 @@ void MatchCoordinator::startHumanVsHuman_(const StartOptions& /*opt*/)
         if (m_gc) m_gc->setCurrentPlayer(side);
     }
 
-    if (QObject* p = parent()) {
-        if (auto* tm = p->findChild<TurnManager*>(QStringLiteral("TurnManager"))) {
-            tm->setFromGc(side);
-        }
-    }
-
     m_cur = (side == ShogiGameController::Player2) ? P2 : P1;
 
     // 盤描画は手番反映のあと（ハイライト/時計のズレ防止）
@@ -712,12 +697,6 @@ void MatchCoordinator::startHumanVsEngine_(const StartOptions& opt, bool engineI
         if (m_gc) m_gc->setCurrentPlayer(side);
     }
 
-    if (QObject* p = parent()) {
-        if (auto* tm = p->findChild<TurnManager*>(QStringLiteral("TurnManager"))) {
-            tm->setFromGc(side);
-        }
-    }
-
     m_cur = (side == ShogiGameController::Player2) ? P2 : P1;
 
     // 盤描画は手番反映のあと
@@ -734,11 +713,7 @@ void MatchCoordinator::startEngineVsEngine_(const StartOptions& /*opt*/)
     if (m_gc->currentPlayer() == ShogiGameController::NoPlayer) {
         m_gc->setCurrentPlayer(ShogiGameController::Player1);
     }
-    if (QObject* p = parent()) {
-        if (auto* tm = p->findChild<TurnManager*>(QStringLiteral("TurnManager"))) {
-            tm->setFromGc(m_gc->currentPlayer());
-        }
-    }
+
     m_cur = (m_gc->currentPlayer() == ShogiGameController::Player2) ? P2 : P1;
     updateTurnDisplay_(m_cur);
 
@@ -783,13 +758,6 @@ void MatchCoordinator::startEngineVsEngine_(const StartOptions& /*opt*/)
     } catch (const std::exception& e) {
         qWarning() << "[EvE] validateAndMove(P1) failed:" << e.what();
         return;
-    }
-
-    // ★ GC の手番はここで後手番に切り替わっているはず → TurnManager へも反映
-    if (QObject* p = parent()) {
-        if (auto* tm = p->findChild<TurnManager*>(QStringLiteral("TurnManager"))) {
-            tm->setFromGc(m_gc->currentPlayer());
-        }
     }
 
     // EvE: 先手の1手目を棋譜欄/時計へ反映
@@ -857,13 +825,6 @@ void MatchCoordinator::startEngineVsEngine_(const StartOptions& /*opt*/)
     } catch (const std::exception& e) {
         qWarning() << "[EvE] validateAndMove(P2) failed:" << e.what();
         return;
-    }
-
-    // ★ GC の手番はここで再び先手番に切り替わっているはず → TurnManager へも反映
-    if (QObject* p = parent()) {
-        if (auto* tm = p->findChild<TurnManager*>(QStringLiteral("TurnManager"))) {
-            tm->setFromGc(m_gc->currentPlayer());
-        }
     }
 
     // EvE: 後手の1手目を棋譜欄/時計へ反映
