@@ -814,15 +814,7 @@ void ShogiView::drawPiece(QPainter* painter, const int file, const int rank)
                        fieldRect.height());
 
     // 【盤から駒種を取得】
-    // 例外安全：盤実装が例外を投げた場合はエラーフラグを立てて通知し、描画を中断する。
-    QChar value;
-    try {
-        value = m_board->getPieceCharacter(file, rank);
-    } catch (const std::exception& e) {
-        m_errorOccurred = true;
-        emit errorOccurred(QString(e.what()));
-        return;
-    }
+    QChar value = m_board->getPieceCharacter(file, rank);
 
     // 【アイコン描画】
     // 空白でなければ駒に対応する QIcon を取得し、存在する場合のみ中央揃えで描く。

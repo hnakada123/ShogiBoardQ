@@ -1,23 +1,25 @@
 #include "shogiutils.h"
+#include "errorbus.h"
 #include <QStringList>
 #include <QDebug>
 #include <QAtomicInteger>
+#include <QObject>
 
-// GUIで使用する共通関数
 namespace ShogiUtils {
+
 // 指した先のマスの段を漢字表記で出力する。
 QString transRankTo(const int rankTo)
 {
     static const QStringList rankStrings = { "", "一", "二", "三", "四", "五", "六", "七", "八", "九" };
 
-    // 指定された段が1から9の範囲外の場合
     if (rankTo < 1 || rankTo > 9) {
-        // エラーメッセージを表示する。
-        const QString errorMessage = "The rank must be a value between 1 and 9.";
-
-        logAndThrowError(errorMessage);
+        const QString msg = QObject::tr("The rank must be a value between 1 and 9. (got %1)")
+        .arg(rankTo);
+        qWarning().noquote() << "[ShogiUtils]" << msg;
+        ErrorBus::instance().postError(msg);     // ← ここで通知
+        return QString();                        // 呼び出し側で空チェックして早期return
     }
-    return rankStrings[rankTo];
+    return rankStrings.at(rankTo);               // 範囲内なので at() でも安全
 }
 
 // 指した先のマスの筋を漢字表記で出力する。
@@ -25,24 +27,17 @@ QString transFileTo(const int fileTo)
 {
     static const QStringList fileStrings = { "", "１", "２", "３", "４", "５", "６", "７", "８", "９" };
 
-    // 指定された筋が1から9の範囲外の場合
     if (fileTo < 1 || fileTo > 9) {
-        // エラーメッセージを表示する。
-        const QString errorMessage = "The file must be a value between 1 and 9.";
-
-        logAndThrowError(errorMessage);
+        const QString msg = QObject::tr("The file must be a value between 1 and 9. (got %1)")
+        .arg(fileTo);
+        qWarning().noquote() << "[ShogiUtils]" << msg;
+        ErrorBus::instance().postError(msg);     // ← 通知
+        return QString();
     }
-    return fileStrings[fileTo];
+    return fileStrings.at(fileTo);
 }
 
-// エラーメッセージをログ出力し、例外をスローする。
-void logAndThrowError(const QString& errorMessage)
-{
-    qWarning() << errorMessage;
-
-    throw std::runtime_error(errorMessage.toStdString());
-}
-}
+} // namespace ShogiUtils
 
 namespace {
 QElapsedTimer g_gameEpoch;

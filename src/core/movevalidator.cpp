@@ -24,7 +24,7 @@ MoveValidator::MoveValidator(QObject* parent) : QObject(parent)
 
 // 二歩が存在するかどうかをチェックする。
 // 先手あるいは後手の歩が同じ筋に複数存在する場合、二歩が存在すると判定する。
-void MoveValidator::checkDoublePawn(const QVector<QChar>& boardData) const
+void MoveValidator::checkDoublePawn(const QVector<QChar>& boardData)
 {
     // 筋
     for (int file = 0; file < BOARD_SIZE; ++file) {
@@ -41,13 +41,13 @@ void MoveValidator::checkDoublePawn(const QVector<QChar>& boardData) const
         if (pawnCountWhite > 1 || pawnCountBlack > 1) {
             const QString errorMessage = tr("An error occurred in MoveValidator::checkDoublePawn. There is a double pawn situation.");
 
-            ShogiUtils::logAndThrowError(errorMessage);
+            emit errorOccurred(errorMessage);
         }
     }
 }
 
 // 各駒の数が最大数を超えていないかチェックする。
-void MoveValidator::checkPieceCount(const QVector<QChar>& boardData, const QMap<QChar, int>& pieceStand) const
+void MoveValidator::checkPieceCount(const QVector<QChar>& boardData, const QMap<QChar, int>& pieceStand)
 {
     // 各駒のカウント数
     QMap<QChar, int> currentPieceCount;
@@ -77,13 +77,13 @@ void MoveValidator::checkPieceCount(const QVector<QChar>& boardData, const QMap<
         if (currentPieceCount[it.key()] > it.value()) {
             const QString errorMessage = tr("An error occurred in MoveValidator::checkPieceCount. The number of pieces exceeds the maximum allowed.");
 
-            ShogiUtils::logAndThrowError(errorMessage);
+            emit errorOccurred(errorMessage);
         }
     }
 }
 
 // 玉が一方の対局者につき一つ存在していることをチェックする。
-void MoveValidator::checkKingPresence(const QVector<QChar>& boardData, const QMap<QChar, int>& pieceStand) const
+void MoveValidator::checkKingPresence(const QVector<QChar>& boardData, const QMap<QChar, int>& pieceStand)
 {
     // 先手と後手の玉の数をカウントする。
     int kingCountWhite = pieceStand['K'];
@@ -99,12 +99,12 @@ void MoveValidator::checkKingPresence(const QVector<QChar>& boardData, const QMa
     if ((kingCountWhite != 1) || (kingCountBlack != 1)) {
         const QString errorMessage = tr("An error occurred in MoveValidator::checkKingPresence. There is not exactly one king per player.");
 
-        ShogiUtils::logAndThrowError(errorMessage);
+        emit errorOccurred(errorMessage);
     }
 }
 
 // 将棋の盤面上の各駒が適切な位置にあるかどうかをチェックする。
-void MoveValidator::checkCorrectPosition(const QVector<QChar>& boardData) const
+void MoveValidator::checkCorrectPosition(const QVector<QChar>& boardData)
 {
     // 将棋盤のマスの数だけ繰り返す。
     for (int i = 0; i < boardData.size(); ++i) {
@@ -126,7 +126,7 @@ void MoveValidator::checkCorrectPosition(const QVector<QChar>& boardData) const
             (piece == 'N' && (rank == 1 || rank == 2))) {
             const QString errorMessage = tr("An error occurred in MoveValidator::checkCorrectPosition. A piece that should be promoted is in an incorrect position.");
 
-            ShogiUtils::logAndThrowError(errorMessage);
+            emit errorOccurred(errorMessage);
         }
     }
 }
@@ -159,7 +159,7 @@ void MoveValidator::validateMoveFileValue(int fromSquareX)
         // 無効な筋の値をログに出力する。
         qDebug() << "Move file value: " << fromSquareX;
 
-        ShogiUtils::logAndThrowError(errorMessage);
+        emit errorOccurred(errorMessage);
     }
 }
 
@@ -184,7 +184,7 @@ void MoveValidator::validateMovingPiece(const ShogiMove& currentMove, const QVec
             // 盤面の駒の情報をログに出力する。
             qDebug() << "Piece on the square: " << boardData[fromIndex];
 
-            ShogiUtils::logAndThrowError(errorMessage);
+            emit errorOccurred(errorMessage);
         }
     }
 }
@@ -201,7 +201,7 @@ void MoveValidator::logAndShowPieceStandError(const QString& errorMessage, QChar
     // 問題のある駒の駒台での数をログに出力する。
     qDebug() << "Number of pieces in the stand: " << pieceStand[piece];
 
-    ShogiUtils::logAndThrowError(errorMessage);
+    emit errorOccurred(errorMessage);
 }
 
 // 駒台の駒が有効かどうかを検証する。
@@ -272,7 +272,7 @@ void MoveValidator::validateCapturedPiece(const ShogiMove& currentMove, const QV
         // 盤面の駒の情報をログに出力する。
         qDebug() << "Piece on the square: " << boardData[toIndex];
 
-        ShogiUtils::logAndThrowError(errorMessage);
+        emit errorOccurred(errorMessage);
     }
 }
 
@@ -404,7 +404,7 @@ LegalMoveStatus MoveValidator::isLegalMove(const Turn& turn, const QVector<QChar
         printBoardAndPieces(boardData, pieceStand);
 
         // エラーメッセージを表示する。
-        ShogiUtils::logAndThrowError(errorMessage);
+        emit errorOccurred(errorMessage);
     }
 
     // 手番の玉が王手されているかどうかを調べる。
@@ -457,7 +457,7 @@ LegalMoveStatus MoveValidator::isBoardMoveValid(const Turn& turn, const QVector<
             // 指し手の駒
             qDebug() << "Piece: " << currentMove.movingPiece;
 
-            ShogiUtils::logAndThrowError(errorMessage);
+            emit errorOccurred(errorMessage);
         }
 
         // 王手されているときに王手を避ける指し手リスト候補を生成する。
@@ -519,7 +519,7 @@ bool MoveValidator::isHandPieceMoveValid(const Turn& turn, const QVector<QChar>&
         // エラー発生。両王手の場合、駒台から駒を打つ手はあり得ない。
         const QString errorMessage = tr("An error occurred in MoveValidator::isHandPieceMoveValid. In the case of double check, dropping a piece from the piece stand is not possible.");
 
-        ShogiUtils::logAndThrowError(errorMessage);
+        emit errorOccurred(errorMessage);
 
         break;
     }
@@ -531,7 +531,7 @@ bool MoveValidator::isHandPieceMoveValid(const Turn& turn, const QVector<QChar>&
         qDebug() << "Number of pieces putting the player's king in check: " << numChecks;
 
         // エラーメッセージを表示する。
-        ShogiUtils::logAndThrowError(errorMessage);
+        emit errorOccurred(errorMessage);
 
         break;
     }
@@ -558,7 +558,7 @@ bool MoveValidator::generateLegalMovesForPiece(const Turn& turn, const QVector<Q
         qDebug() << "Piece: " << dropPiece;
 
         // エラーメッセージを表示する。
-        ShogiUtils::logAndThrowError(errorMessage);
+        emit errorOccurred(errorMessage);
     }
 
     switch (dropPiece.toUpper().toLatin1()) {
@@ -587,7 +587,7 @@ bool MoveValidator::generateLegalMovesForPiece(const Turn& turn, const QVector<Q
         qDebug() << "Piece: " << dropPiece;
 
         // エラーメッセージを表示する。
-        ShogiUtils::logAndThrowError(errorMessage);
+        emit errorOccurred(errorMessage);
 
         break;
     }
@@ -741,7 +741,7 @@ int MoveValidator::generateLegalMoves(const Turn& turn, const QVector<QChar>& bo
         printBoardAndPieces(boardData, pieceStand);
 
         // エラーメッセージを表示する。
-        ShogiUtils::logAndThrowError(errorMessage);
+        emit errorOccurred(errorMessage);
     }
 
     // 手番の玉が王手されているかどうかを調べる。
@@ -1446,7 +1446,7 @@ int MoveValidator::isKingInCheck(const Turn& turn, const QVector<QVector<std::bi
         // エラー発生。手番の玉は相手の3つ以上の駒から同時に王手されている。
         const QString errorMessage = tr("An error occurred in MoveValidator::isKingInCheck. The player's king is checked by three or more pieces at the same time.");
 
-        ShogiUtils::logAndThrowError(errorMessage);
+        emit errorOccurred(errorMessage);
     }
 
     //begin
@@ -1861,13 +1861,13 @@ void MoveValidator::decreasePieceCount(const ShogiMove& move, const QMap<QChar, 
             // 駒の数が0なら、エラーメッセージを出力する。
             const QString errorMessage = tr("An error occurred in MoveValidator::decreasePieceCount. There is no piece of %1.").arg(piece);
 
-            ShogiUtils::logAndThrowError(errorMessage);
+            emit errorOccurred(errorMessage);
         }
     } else {
         // 駒がマップに存在しない場合、エラーメッセージを出力する。
         const QString errorMessage = tr("An error occurred in MoveValidator::decreasePieceCount. There is no piece of %1.").arg(piece);
 
-        ShogiUtils::logAndThrowError(errorMessage);
+        emit errorOccurred(errorMessage);
     }
 }
 

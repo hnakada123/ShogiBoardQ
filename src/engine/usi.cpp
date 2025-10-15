@@ -196,7 +196,7 @@ void Usi::initializeAndStartEngineCommunication(QString& engineFile, QString& en
         // エラーメッセージを表示する。
         QString errorMessage = tr("An error occurred in Usi::initializeAndStartEngineCommunication. Engine file path is empty.");
 
-        ShogiUtils::logAndThrowError(errorMessage);
+        emit errorOccurred(errorMessage);
     }
 
     // カレントディレクトリをエンジンファイルのあるディレクトリに移動する。
@@ -220,7 +220,7 @@ void Usi::changeDirectoryToEnginePath(const QString& engineFile)
         // エラーメッセージを表示する。
         QString errorMessage = tr("An error occurred in Usi::changeDirectoryToEnginePath. Failed to move to %1. Cannot launch the shogi engine %2.").arg(fileInfo.path(), fileInfo.baseName());
 
-        ShogiUtils::logAndThrowError(errorMessage);
+        emit errorOccurred(errorMessage);
     }
 }
 
@@ -267,7 +267,7 @@ void Usi::sendUsiCommandAndWaitForUsiOk()
         // usiokを受信できなかった場合、エラーメッセージを表示する。
         QString errorMessage = tr("An error occurred in Usi::sendUsiCommandAndWaitForUsiOk. Timeout waiting for usiok.");
 
-        ShogiUtils::logAndThrowError(errorMessage);
+        emit errorOccurred(errorMessage);
     }
 }
 
@@ -285,7 +285,7 @@ void Usi::sendIsReadyCommandAndWaitForReadyOk()
         // readyokを受信できなかった場合、エラーメッセージを表示する。
         QString errorMessage = tr("An error occurred in Usi::sendIsReadyCommandAndWaitForReadyOk. Timeout waiting for readyok.");
 
-        ShogiUtils::logAndThrowError(errorMessage);
+        emit errorOccurred(errorMessage);
     }
 }
 
@@ -384,7 +384,7 @@ QString Usi::convertHumanMoveToUsiFormat(const QPoint& outFrom, const QPoint& ou
         // 駒台の筋番号が不正な場合、エラーメッセージを表示する。
         QString errorMessage = tr("An error occurred in Usi::convertHumanMoveToUsiFormat. Invalid fileFrom.");
 
-        ShogiUtils::logAndThrowError(errorMessage);
+        emit errorOccurred(errorMessage);
     }
 
     return bestMove;
@@ -426,7 +426,7 @@ void Usi::parseMoveFrom(const QString& move, int& fileFrom, int& rankFrom)
         // 移動元の文字列が不正な場合、エラーメッセージを表示する。
         QString errorMessage = tr("An error occurred in Usi::parseMoveFrom. Invalid move format in moveFrom.");
 
-        ShogiUtils::logAndThrowError(errorMessage);
+        emit errorOccurred(errorMessage);
     }
 }
 
@@ -441,7 +441,7 @@ void Usi::parseMoveTo(const QString& move, int& fileTo, int& rankTo)
         // 移動先の文字列が不正な場合、エラーメッセージを表示する。
         QString errorMessage = tr("An error occurred in Usi::parseMoveTo. Invalid move format in moveTo.");
 
-        ShogiUtils::logAndThrowError(errorMessage);
+        emit errorOccurred(errorMessage);
     }
 
     // 移動先の筋と段を取得する。
@@ -470,7 +470,7 @@ void Usi::parseMoveCoordinates(int& fileFrom, int& rankFrom, int& fileTo, int& r
         // bestmove文字列が最低限の長さを満たしていない場合、エラーメッセージを表示する。
         QString errorMessage = tr("An error occurred in Usi::parseMoveCoordinates. Invalid bestmove format.");
 
-        ShogiUtils::logAndThrowError(errorMessage);
+        emit errorOccurred(errorMessage);
     }
 
     // 移動元の座標を解析
@@ -491,7 +491,7 @@ void Usi::waitAndCheckForBestMove(const int time)
         // bestmoveを指定した時間内に受信できなかった場合、エラーメッセージを表示する。
         QString errorMessage = tr("An error occurred in Usi::waitAndCheckForBestMove. Timeout waiting for bestmove.");
 
-        ShogiUtils::logAndThrowError(errorMessage);
+        emit errorOccurred(errorMessage);
     }
 }
 
@@ -633,7 +633,7 @@ void Usi::waitAndCheckForBestMoveRemainingTime(int byoyomiMilliSec,
         }
         const QString errorMessage =
             tr("An error occurred in Usi::waitAndCheckForBestMoveRemainingTime. Timeout waiting for bestmove.");
-        ShogiUtils::logAndThrowError(errorMessage);
+        emit errorOccurred(errorMessage);
     }
 }
 
@@ -1226,7 +1226,7 @@ void Usi::startEngine(const QString& engineFile)
         // エラーメッセージを表示する。
         QString errorMessage = tr("An error occurred in Usi::startEngine. The specified engine file does not exist: %1").arg(engineFile);
 
-        ShogiUtils::logAndThrowError(errorMessage);
+        emit errorOccurred(errorMessage);
     }
 
     // 将棋エンジンの起動引数を設定（必要に応じて）
@@ -1279,7 +1279,7 @@ void Usi::startEngine(const QString& engineFile)
         // エラーメッセージを表示する。
         QString errorMessage = tr("An error occurred in Usi::startEngine. Failed to start the engine: %1").arg(engineFile);
 
-        ShogiUtils::logAndThrowError(errorMessage);
+        emit errorOccurred(errorMessage);
     }
 }
 
@@ -1314,7 +1314,7 @@ void Usi::clearResponseData()
         // 行リストのクリアに失敗したことを表示する。
         QString errorMessage = tr("An error occurred in Usi::clearResponseData. Failed to clear the line list.");
 
-        ShogiUtils::logAndThrowError(errorMessage);
+        emit errorOccurred(errorMessage);
     }
 }
 
@@ -1940,7 +1940,9 @@ void Usi::onProcessFinished(int /*exitCode*/, QProcess::ExitStatus /*status*/)
 void Usi::sendPositionAndGoMate(const QString& sfen, int timeMs, bool infinite)
 {
     if (!m_process || m_process->state() != QProcess::Running) {
-        ShogiUtils::logAndThrowError("USI engine is not running.");
+
+        QString errorMessage = tr("USI engine is not running.");
+        emit errorOccurred(errorMessage);
     }
 
     // "position sfen <SFEN>"
