@@ -225,6 +225,8 @@ private slots:
 
     void onUsiBestmoveDuringTsume_(const QString& bestmove);
 
+    void onUsiError_(const QString& msg);
+
 public slots:
     // 即時に現在値で timeUpdated(...) を発火（UIをすぐ同期させたい時に使う）
     void pokeTimeUpdateNow();

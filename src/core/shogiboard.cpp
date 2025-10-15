@@ -18,61 +18,36 @@ ShogiBoard::ShogiBoard(int ranks, int files, QObject *parent)
 // rank: 段（先手は1〜7「歩、香車、桂馬、銀、金、角、飛車」、後手は3〜9「飛車、角、金、銀、桂馬、香車、歩」を使用）
 QChar ShogiBoard::getPieceCharacter(const int file, const int rank)
 {
-    // 先手の駒台（筋は10）と後手の駒台（筋11）の駒のマッピング
-    static const QMap<int, QChar> pieceMapBlack = {{1, 'P'}, {2, 'L'}, {3, 'N'}, {4, 'S'}, {5, 'G'}, {6, 'B'}, {7, 'R'}, {8, 'K'}};
-    static const QMap<int, QChar> pieceMapWhite = {{2, 'k'}, {3, 'r'}, {4, 'b'}, {5, 'g'}, {6, 's'}, {7, 'n'}, {8, 'l'}, {9, 'p'}};
+    static const QMap<int, QChar> pieceMapBlack = {{1,'P'},{2,'L'},{3,'N'},{4,'S'},{5,'G'},{6,'B'},{7,'R'},{8,'K'}};
+    static const QMap<int, QChar> pieceMapWhite = {{2,'k'},{3,'r'},{4,'b'},{5,'g'},{6,'s'},{7,'n'},{8,'l'},{9,'p'}};
 
-    // 筋番号が盤面の範囲内の場合
-    if ((file >= 1) && (file <= 9)) {
-        // 盤上の駒文字を返す。
+    if (file >= 1 && file <= 9) {
         return m_boardData.at((rank - 1) * files() + (file - 1));
-    }
-    // 筋番号が先手の駒台の場合
-    else if (file == 10) {
-        auto iter = pieceMapBlack.find(rank);
+    } else if (file == 10) {
+        const auto it = pieceMapBlack.find(rank);
+        if (it != pieceMapBlack.end()) return it.value();
 
-        // 先手の駒台の段番号が有効な場合
-        if (iter != pieceMapBlack.end()) {
-            // 先手の駒台の段番号に対応する駒文字を返す。
-            return iter.value();
-        }
-        // 先手の駒台の段番号が無効な場合
-        else {
-            // エラーメッセージを表示する。
-            const QString errorMessage = tr("An error occurred in ShogiBoard::getPieceCharacter. Invalid rank for the black player's stand.");
-
-            qDebug() << "rank: " << rank;
-            emit errorOccurred(errorMessage);
-        }
-    }
-    // 筋番号が後手の駒台の場合
-    else if (file == 11) {
-        auto iter = pieceMapWhite.find(rank);
-
-        // 後手の駒台の段番号が有効な場合
-        if (iter != pieceMapWhite.end()) {
-            // 後手の駒台の段番号に対応する駒文字を返す。
-            return iter.value();
-        }
-        // 後手の駒台の段番号が無効な場合
-        else {
-            // エラーメッセージを表示する。
-            const QString errorMessage = tr("An error occurred in ShogiBoard::getPieceCharacter. Invalid rank for the white player's stand.");
-
-            qDebug() << "rank: " << rank;
-            emit errorOccurred(errorMessage);
-        }
-    }
-    // 筋番号が範囲外の場合
-    else {
-        // エラーメッセージを表示する。
-        const QString errorMessage = tr("An error occurred in ShogiBoard::getPieceCharacter. Invalid file value.");
-
-        qDebug() << "file: " << file;
+        const QString errorMessage =
+            tr("An error occurred in ShogiBoard::getPieceCharacter. Invalid rank for the black player's stand.");
+        qDebug() << "rank:" << rank;
         emit errorOccurred(errorMessage);
-    }
+        return QChar(); // ★ 打ち切り
+    } else if (file == 11) {
+        const auto it = pieceMapWhite.find(rank);
+        if (it != pieceMapWhite.end()) return it.value();
 
-    return QChar();
+        const QString errorMessage =
+            tr("An error occurred in ShogiBoard::getPieceCharacter. Invalid rank for the white player's stand.");
+        qDebug() << "rank:" << rank;
+        emit errorOccurred(errorMessage);
+        return QChar(); // ★ 打ち切り
+    } else {
+        const QString errorMessage =
+            tr("An error occurred in ShogiBoard::getPieceCharacter. Invalid file value.");
+        qDebug() << "file:" << file;
+        emit errorOccurred(errorMessage);
+        return QChar(); // ★ 打ち切り
+    }
 }
 
 // 将棋盤のマスに駒を配置する。

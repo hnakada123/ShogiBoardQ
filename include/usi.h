@@ -135,7 +135,7 @@ public:
 
     void executeTsumeCommunication(QString& positionStr, int mateLimitMilliSec);
     void sendPositionAndGoMateCommands(int mateLimitMilliSec, QString& positionStr);
-
+    void cancelCurrentOperation();
 
 #ifdef QT_DEBUG
     // ★ 追加：デバッグ用ダンプ
@@ -497,7 +497,6 @@ private:
 
     // public または private にメソッド宣言
     quint64 beginOperationContext(); // 新規
-    void    cancelCurrentOperation(); // 新規
 
 private:
     bool m_modeTsume = false; // 詰み探索中フラグ

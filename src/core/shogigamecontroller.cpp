@@ -327,34 +327,20 @@ QString ShogiGameController::getPieceKanji(const QChar& piece)
 // 相手の手番をSFEN形式の手番bまたはwで取得する。
 QString ShogiGameController::getNextPlayerSfen()
 {
-    // 相手のSFEN形式の手番
     QString nextPlayerColorSfen;
 
-    // 現在の手番に応じて相手の手番を設定する。
-    switch (currentPlayer()) {
-    // 先手、下手の場合
-    case Player1:
-        nextPlayerColorSfen = "w";
-
-        break;
-
-    // 後手、上手の場合
-    case Player2:
-        nextPlayerColorSfen = "b";
-
-        break;
-
-    // それ以外の場合は、エラーにする。
-    default:
-        // エラーメッセージを表示する。
-        const QString errorMessage = tr("An error occurred in ShogiGameController::getNextPlayerSfen: Invalid player state.");
-
-        qDebug() << "currentPlayer() = " << currentPlayer();
-
+    if (currentPlayer() == Player1) {
+        nextPlayerColorSfen = QStringLiteral("w");
+    } else if (currentPlayer() == Player2) {
+        nextPlayerColorSfen = QStringLiteral("b");
+    } else {
+        const QString errorMessage =
+            tr("An error occurred in ShogiGameController::getNextPlayerSfen: Invalid player state.");
+        qDebug() << "currentPlayer() =" << currentPlayer();
         emit errorOccurred(errorMessage);
+        return QString(); // ★ 打ち切り（不正状態）
     }
 
-    // 相手のSFEN形式の手番を返す。
     return nextPlayerColorSfen;
 }
 
