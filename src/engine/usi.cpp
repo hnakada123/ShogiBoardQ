@@ -121,7 +121,7 @@ void Usi::cleanupEngineProcessAndThread()
     if (m_usiThread) {
         // ★ UsiThread::run() 側で QEventLoop の終了待ちになっている可能性があるため
         //    stop / ponderhit 相当の合図を emit して確実にループを抜けさせる
-        Q_EMIT stopOrPonderhitCommandSent();
+        emit stopOrPonderhitCommandSent();
 
         // 協調的停止のお願い（run() がこれを見るなら有効）
         m_usiThread->requestInterruption();
@@ -181,7 +181,10 @@ void Usi::onProcessError(QProcess::ProcessError error)
     cleanupEngineProcessAndThread();
 
     // 例外は投げず、上位（MainWindow 等）へ通知して終了
-    Q_EMIT errorOccurred(errorMessage);
+    emit errorOccurred(errorMessage);
+
+    // ★ ここで“打ち切り”を確定：オペ用コンテキストを破棄して以降の継続処理を無効化
+    cancelCurrentOperation();
     return;
 }
 
@@ -190,37 +193,38 @@ void Usi::initializeAndStartEngineCommunication(QString& engineFile, QString& en
 {
     // 将棋エンジンのファイルパスが空の場合
     if (engineFile.isEmpty()) {
-        // 将棋エンジンプロセスを終了し、プロセスとスレッドを削除する。
+        // 安全に後片付け（プロセス/スレッド終了・切断）
         cleanupEngineProcessAndThread();
 
-        // エラーメッセージを表示する。
+        // エラーメッセージ通知 → 以後の処理を打ち切り
         QString errorMessage = tr("An error occurred in Usi::initializeAndStartEngineCommunication. Engine file path is empty.");
-
         emit errorOccurred(errorMessage);
+        cancelCurrentOperation();
+        return;
     }
 
-    // カレントディレクトリをエンジンファイルのあるディレクトリに移動する。
+    // エンジンのあるディレクトリへ移動（失敗時は当該関数内でemit→打ち切り）
     changeDirectoryToEnginePath(engineFile);
 
-    // 将棋エンジンを起動し、対局開始に関するコマンドを送信する。
+    // 将棋エンジンを起動し、初期化
     startAndInitializeEngine(engineFile, enginename);
 }
 
 // カレントディレクトリをエンジンファイルのあるディレクトリに移動する。
 void Usi::changeDirectoryToEnginePath(const QString& engineFile)
 {
-    // 将棋エンジンのファイルパスからファイル情報を取得する。
-    QFileInfo fileInfo(engineFile);
+    const QFileInfo fileInfo(engineFile);
 
-    // カレントディレクトリをエンジンファイルのあるディレクトリに移動できなかった場合
+    // カレントディレクトリの切り替えに失敗した場合は即打ち切り
     if (!QDir::setCurrent(fileInfo.path())) {
-        // 将棋エンジンプロセスを終了し、プロセスとスレッドを削除する。
         cleanupEngineProcessAndThread();
 
-        // エラーメッセージを表示する。
-        QString errorMessage = tr("An error occurred in Usi::changeDirectoryToEnginePath. Failed to move to %1. Cannot launch the shogi engine %2.").arg(fileInfo.path(), fileInfo.baseName());
-
+        const QString errorMessage =
+            tr("An error occurred in Usi::changeDirectoryToEnginePath. Failed to change current directory to %1 for the shogi engine %2.")
+                .arg(fileInfo.path(), fileInfo.baseName());
         emit errorOccurred(errorMessage);
+        cancelCurrentOperation();
+        return;
     }
 }
 
@@ -256,36 +260,34 @@ void Usi::sendInitialCommands(const QString& enginename)
 // usiコマンドを将棋エンジンに送り、usiokを待機する。
 void Usi::sendUsiCommandAndWaitForUsiOk()
 {
-    // usiコマンドを将棋エンジンに送信する。
     sendUsiCommand();
 
-    // usiokを待機する。5000ms = 5秒をタイムアウトとして設定する。
+    // 5秒待っても usiok が来なければ打ち切り
     if (!waitForUsiOK(5000)) {
-        // 将棋エンジンプロセスを終了し、プロセスとスレッドを削除する。
         cleanupEngineProcessAndThread();
 
-        // usiokを受信できなかった場合、エラーメッセージを表示する。
-        QString errorMessage = tr("An error occurred in Usi::sendUsiCommandAndWaitForUsiOk. Timeout waiting for usiok.");
-
+        const QString errorMessage =
+            tr("An error occurred in Usi::sendUsiCommandAndWaitForUsiOk. Timeout waiting for usiok.");
         emit errorOccurred(errorMessage);
+        cancelCurrentOperation();
+        return;
     }
 }
 
 // isreadyコマンドを将棋エンジンに送り、readyokを待機する。
 void Usi::sendIsReadyCommandAndWaitForReadyOk()
 {
-    // isreadyコマンドを将棋エンジンに送信する。
     sendIsReadyCommand();
 
-    // readyokを待機する。5000ms = 5秒をタイムアウトとして設定する。
+    // 5秒待っても readyok が来なければ打ち切り
     if (!waitForReadyOk(5000)) {
-        // 将棋エンジンプロセスを終了し、プロセスとスレッドを削除する。
         cleanupEngineProcessAndThread();
 
-        // readyokを受信できなかった場合、エラーメッセージを表示する。
-        QString errorMessage = tr("An error occurred in Usi::sendIsReadyCommandAndWaitForReadyOk. Timeout waiting for readyok.");
-
+        const QString errorMessage =
+            tr("An error occurred in Usi::sendIsReadyCommandAndWaitForReadyOk. Timeout waiting for readyok.");
         emit errorOccurred(errorMessage);
+        cancelCurrentOperation();
+        return;
     }
 }
 
@@ -359,32 +361,25 @@ QString Usi::convertDropMoveToUsi(int fileFrom, int rankFrom, int fileTo, int ra
 // 人間の指し手をUSI形式の指し手に直す。
 QString Usi::convertHumanMoveToUsiFormat(const QPoint& outFrom, const QPoint& outTo, bool promote)
 {
-    // QPointの変数から列番号と段番号を取り出す。
-    int fileFrom = outFrom.x();
-    int rankFrom = outFrom.y();
-    int fileTo = outTo.x();
-    int rankTo = outTo.y();
+    const int fileFrom = outFrom.x();
+    const int rankFrom = outFrom.y();
+    const int fileTo   = outTo.x();
+    const int rankTo   = outTo.y();
 
-    // bestmove文字列
     QString bestMove;
 
-    // 指し手の筋が1～9の場合（すなわち、盤上の駒を動かす場合）
-    if ((fileFrom >= 1) && (fileFrom <= 9)) {
-        // 盤上の駒を動かす場合の指し手をUSI形式に変換する。
+    if (fileFrom >= 1 && fileFrom <= 9) {
         bestMove = convertBoardMoveToUsi(fileFrom, rankFrom, fileTo, rankTo, promote);
-    }
-    // 持ち駒を打つ場合
-    else if (fileFrom == 10 || fileFrom == 11) {
-        // 持ち駒を打つ場合の指し手をUSI形式に変換する。
+    } else if (fileFrom == 10 || fileFrom == 11) {
         bestMove = convertDropMoveToUsi(fileFrom, rankFrom, fileTo, rankTo);
     } else {
-        // 将棋エンジンプロセスを終了し、プロセスとスレッドを削除する。
         cleanupEngineProcessAndThread();
 
-        // 駒台の筋番号が不正な場合、エラーメッセージを表示する。
-        QString errorMessage = tr("An error occurred in Usi::convertHumanMoveToUsiFormat. Invalid fileFrom.");
-
+        const QString errorMessage =
+            tr("An error occurred in Usi::convertHumanMoveToUsiFormat. Invalid fileFrom.");
         emit errorOccurred(errorMessage);
+        cancelCurrentOperation();
+        return QString();
     }
 
     return bestMove;
@@ -393,94 +388,89 @@ QString Usi::convertHumanMoveToUsiFormat(const QPoint& outFrom, const QPoint& ou
 // bestmove文字列（例: "7g7f", "P*5e"など）から移動元の座標（盤上の駒の場合）または持ち駒の種類（持ち駒を打つ場合）を解析する。
 void Usi::parseMoveFrom(const QString& move, int& fileFrom, int& rankFrom)
 {
-    // 最初の文字が123456789のいずれかの場合
-    if (QString("123456789").contains(move[0])) {
-        // 移動元の筋と段を取得する。
+    if (QStringLiteral("123456789").contains(move[0])) {
         fileFrom = move[0].digitValue();
         rankFrom = alphabetToRank(move[1]);
+        return;
     }
-    // 最初の文字がPLNSGBRのいずれかで、次が'*'の場合
-    else if (QString("PLNSGBR").contains(move[0]) && move[1] == '*') {
-        // 現在の手番が先手の場合
+
+    if (QStringLiteral("PLNSGBR").contains(move[0]) && move[1] == '*') {
         if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
-            // fileFromに先手の駒台を示す番号10を代入する。
-            fileFrom = 10;
-
-            // rankFromに先手の持ち駒の駒番号を代入する。
-            rankFrom = pieceToRankBlack(move[0]);
+            fileFrom = 10; rankFrom = pieceToRankBlack(move[0]);
+        } else {
+            fileFrom = 11; rankFrom = pieceToRankWhite(move[0]);
         }
-        // 現在の手番が後手の場合
-        else if (m_gameController->currentPlayer() == ShogiGameController::Player2) {
-            // fileFromに後手の駒台を示す番号11を代入する。
-            fileFrom = 11;
-
-            // rankFromに後手の持ち駒の駒番号を代入する。
-            rankFrom = pieceToRankWhite(move[0]);
-        }
+        return;
     }
-    // それ以外の場合、エラーとして例外を投げる。
-    else {
-        // 将棋エンジンプロセスを終了し、プロセスとスレッドを削除する。
-        cleanupEngineProcessAndThread();
 
-        // 移動元の文字列が不正な場合、エラーメッセージを表示する。
-        QString errorMessage = tr("An error occurred in Usi::parseMoveFrom. Invalid move format in moveFrom.");
-
-        emit errorOccurred(errorMessage);
-    }
+    // 不正
+    cleanupEngineProcessAndThread();
+    const QString errorMessage =
+        tr("An error occurred in Usi::parseMoveFrom. Invalid move format in moveFrom.");
+    emit errorOccurred(errorMessage);
+    cancelCurrentOperation();
+    return;
 }
 
 // bestmove文字列（例: "7g7f", "P*5e"など）から移動先の座標を解析する。
 void Usi::parseMoveTo(const QString& move, int& fileTo, int& rankTo)
 {
-    // 第3の文字が数字でない場合と第4の文字がアルファベットの文字でない場合、エラーになる。
     if (!move[2].isDigit() || !move[3].isLetter()) {
-        // 将棋エンジンプロセスを終了し、プロセスとスレッドを削除する。
         cleanupEngineProcessAndThread();
 
-        // 移動先の文字列が不正な場合、エラーメッセージを表示する。
-        QString errorMessage = tr("An error occurred in Usi::parseMoveTo. Invalid move format in moveTo.");
-
+        const QString errorMessage =
+            tr("An error occurred in Usi::parseMoveTo. Invalid move format in moveTo.");
         emit errorOccurred(errorMessage);
+        cancelCurrentOperation();
+        return;
     }
 
-    // 移動先の筋と段を取得する。
     fileTo = move[2].digitValue();
     rankTo = alphabetToRank(move[3]);
 }
 
 // 将棋エンジンがbestmove文字列で返した最善手から移動元の筋と段、移動先の筋と段を取得する。
+// USIのbestmove（例: "7g7f", "7g7f+", "P*7f", "resign" など）を分解し、
+// m_gameController->setPromote(...) を必ず設定してから from/to 座標を返す。
+// エラー時はUIへ通知して打ち切り（座標は -1 に初期化）。
 void Usi::parseMoveCoordinates(int& fileFrom, int& rankFrom, int& fileTo, int& rankTo)
 {
-    QString move = m_bestMove;
+    // デフォルト（エラー/特殊トークン時はこの値のまま戻す）
+    fileFrom = rankFrom = fileTo = rankTo = -1;
 
-    // 投了/勝ち/引き分けなどの非着手トークンはパースしない（保険）
-    const QString lmove = move.trimmed().toLower();
-    if (lmove == QLatin1String("resign") || lmove == QLatin1String("win") || lmove == QLatin1String("draw")) {
-        // 呼び出しミスでも落ちないようにデフォルト値を入れて抜ける
-        fileFrom = rankFrom = fileTo = rankTo = -1;
+    const QString move = m_bestMove.trimmed();
+    const QString lmove = move.toLower();
+
+    // 特殊トークン（勝敗/引き分けなど）
+    if (lmove == QLatin1String("resign") ||
+        lmove == QLatin1String("win")    ||
+        lmove == QLatin1String("draw"))
+    {
+        if (m_gameController) m_gameController->setPromote(false);
         return;
     }
 
-    // bestmove文字列の長さが最低限の長さを満たしているかチェックする。
-    if (move.length() < 4) {
-        // 将棋エンジンプロセスを終了し、プロセスとスレッドを削除する。
+    // 最低長チェック（"7g7f" や "P*7f" で4文字。昇格なら5文字 "7g7f+"）
+    if (move.size() < 4) {
         cleanupEngineProcessAndThread();
-
-        // bestmove文字列が最低限の長さを満たしていない場合、エラーメッセージを表示する。
-        QString errorMessage = tr("An error occurred in Usi::parseMoveCoordinates. Invalid bestmove format.");
-
+        const QString errorMessage =
+            tr("An error occurred in Usi::parseMoveCoordinates. Invalid bestmove format: \"%1\"").arg(move);
         emit errorOccurred(errorMessage);
+        cancelCurrentOperation();
+        return;
     }
 
-    // 移動元の座標を解析
+    // ★ 昇格フラグを先に決めておく（末尾が '+' なら昇格）
+    const bool promote = (move.size() >= 5 && move.at(4) == QLatin1Char('+'));
+    if (m_gameController) m_gameController->setPromote(promote);
+
+    // from/to を分解（各関数は不正時に emit 済み・早期return）
+    // ここでは初期値 -1 のままかどうかで失敗を判断できるようにしている。
     parseMoveFrom(move, fileFrom, rankFrom);
+    if (fileFrom < 0 || rankFrom < 0) return;  // 既にエラー通知＆打ち切り済み
 
-    // 移動先の座標を解析
     parseMoveTo(move, fileTo, rankTo);
-
-    // 成り駒の場合、promoteフラグを設定
-    m_gameController->setPromote(move.size() > 4 && move[4] == '+');
+    if (fileTo < 0 || rankTo < 0) return;      // 既にエラー通知＆打ち切り済み
 }
 
 // bestmoveを指定した時間内に受信するまで待機する。
@@ -488,10 +478,11 @@ void Usi::parseMoveCoordinates(int& fileFrom, int& rankFrom, int& fileTo, int& r
 void Usi::waitAndCheckForBestMove(const int time)
 {
     if (!waitForBestMove(time)) {
-        // bestmoveを指定した時間内に受信できなかった場合、エラーメッセージを表示する。
-        QString errorMessage = tr("An error occurred in Usi::waitAndCheckForBestMove. Timeout waiting for bestmove.");
-
+        const QString errorMessage =
+            tr("An error occurred in Usi::waitAndCheckForBestMove. Timeout waiting for bestmove.");
         emit errorOccurred(errorMessage);
+        cancelCurrentOperation();
+        return;
     }
 }
 
@@ -634,6 +625,8 @@ void Usi::waitAndCheckForBestMoveRemainingTime(int byoyomiMilliSec,
         const QString errorMessage =
             tr("An error occurred in Usi::waitAndCheckForBestMoveRemainingTime. Timeout waiting for bestmove.");
         emit errorOccurred(errorMessage);
+        cancelCurrentOperation();
+        return;
     }
 }
 
@@ -1221,66 +1214,50 @@ void Usi::readFromEngineStderr()
 // 将棋エンジンを起動する。
 void Usi::startEngine(const QString& engineFile)
 {
-    // エンジンファイルの存在を確認する。
+    // エンジンファイル存在チェック
     if (engineFile.isEmpty() || !QFile::exists(engineFile)) {
-        // エラーメッセージを表示する。
-        QString errorMessage = tr("An error occurred in Usi::startEngine. The specified engine file does not exist: %1").arg(engineFile);
-
+        const QString errorMessage =
+            tr("An error occurred in Usi::startEngine. The specified engine file does not exist: %1").arg(engineFile);
         emit errorOccurred(errorMessage);
+        cancelCurrentOperation();
+        return;
     }
 
-    // 将棋エンジンの起動引数を設定（必要に応じて）
     QStringList args;
 
-    // 旧プロセスが存在している場合、適切に終了させる。
+    // 旧プロセスが生きていたら念のため終了（重複起動防止）
     if (m_process) {
-        // 全ての接続を切断する。
         disconnect(m_process, nullptr, this, nullptr);
-
         if (m_process->state() != QProcess::NotRunning) {
-            // プロセスが実行中の場合は、終了を要求し、最大3秒間終了を待つ。
-            m_process->terminate();
-            m_process->waitForFinished(3000);
-
-            if (m_process->state() != QProcess::NotRunning) {
-                // 終了しない場合は、強制終了する。
-                m_process->kill();
-            }
+            sendQuitCommand();
+            m_process->waitForFinished(1000);
         }
-
-        // プロセスオブジェクトを削除する。
-        delete m_process;
+        m_process->deleteLater();
+        m_process = nullptr;
     }
 
-    // 新しい将棋エンジンプロセスを作成する。
-    m_process = new QProcess;
+    // 新規 QProcess 準備
+    m_process = new QProcess(this);
 
-    // m_processからの標準出力が読み取り可能になったとき、readFromEngine関数を呼び出す。
-    connect(m_process, &QProcess::readyReadStandardOutput, this, &Usi::readFromEngine);
-
-    connect(m_process, &QProcess::readyReadStandardError, this, &Usi::readFromEngineStderr);
-
-    // QProcessのエラー発生時にonProcessError関数を呼び出す。
-    connect(m_process, &QProcess::errorOccurred, this, &Usi::onProcessError);
-
-    // ★追加: 終了時に残りの出力を回収
-    connect(m_process,
-            QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
-            this, &Usi::onProcessFinished);
-
-    // 将棋エンジンプロセスを起動する。
+    // 起動
     m_process->start(engineFile, args, QIODevice::ReadWrite);
 
-    // 将棋エンジンプロセスが正常に起動しなかった場合
+    // 起動失敗 → 打ち切り
     if (!m_process->waitForStarted()) {
-        // 将棋エンジンプロセスを終了し、プロセスとスレッドを削除する。
         cleanupEngineProcessAndThread();
-
-        // エラーメッセージを表示する。
-        QString errorMessage = tr("An error occurred in Usi::startEngine. Failed to start the engine: %1").arg(engineFile);
-
+        const QString errorMessage =
+            tr("An error occurred in Usi::startEngine. Failed to start the engine: %1").arg(engineFile);
         emit errorOccurred(errorMessage);
+        cancelCurrentOperation();
+        return;
     }
+
+    // コールバック接続
+    connect(m_process, &QProcess::readyReadStandardOutput, this, &Usi::readFromEngine);
+    connect(m_process, &QProcess::readyReadStandardError,  this, &Usi::readFromEngineStderr);
+    connect(m_process, &QProcess::errorOccurred,           this, &Usi::onProcessError);
+    connect(m_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+            this, &Usi::onProcessFinished);
 }
 
 // 将棋エンジンにコマンドを送信し、GUIのUSIプロトコル通信ログに表示する。
@@ -1315,6 +1292,8 @@ void Usi::clearResponseData()
         QString errorMessage = tr("An error occurred in Usi::clearResponseData. Failed to clear the line list.");
 
         emit errorOccurred(errorMessage);
+        cancelCurrentOperation();
+        return;
     }
 }
 
@@ -1439,7 +1418,7 @@ void Usi::sendStopCommand()
     sendCommand("stop");
 
     // ★ これが無いと UsiThread が wait している QEventLoop が抜けられません
-    Q_EMIT stopOrPonderhitCommandSent();
+    emit stopOrPonderhitCommandSent();
 }
 
 // ponderhitコマンドを将棋エンジンに送信する。
@@ -1457,7 +1436,7 @@ void Usi::sendPonderHitCommand()
     sendCommand("ponderhit");
 
     // ★ これも wait 中の QEventLoop を必ず抜けさせる
-    Q_EMIT stopOrPonderhitCommandSent();
+    emit stopOrPonderhitCommandSent();
 
     // 以後は通常思考フェーズ
     m_phase = SearchPhase::Main;
@@ -1732,7 +1711,9 @@ void Usi::bestMoveReceived(const QString& line)
     if (bestMoveIndex == -1 || bestMoveIndex + 1 >= tokens.size()) {
         const QString msg = tr("An error occurred in Usi::bestMoveReceived. bestmove or its succeeding string not found.");
         qWarning().noquote() << logPrefix() << " " << msg << " line=" << line;
-        Q_EMIT errorOccurred(msg);
+        emit errorOccurred(msg);
+        // ★ ここで“打ち切り”を確定（以降の継続処理を無効化）
+        cancelCurrentOperation();
         return;
     }
 
@@ -1745,7 +1726,7 @@ void Usi::bestMoveReceived(const QString& line)
     m_bestMove = tokens.at(bestMoveIndex + 1);
 
     qint64 elapsed = m_goTimer.isValid() ? m_goTimer.elapsed() : -1;
-    m_lastGoToBestmoveMs   = (elapsed >= 0) ? elapsed : 0;
+    m_lastGoToBestmoveMs     = (elapsed >= 0) ? elapsed : 0;
     m_bestMoveSignalReceived = true;
 
     if (m_bestMove.compare(QStringLiteral("resign"), Qt::CaseInsensitive) == 0) {
@@ -1755,7 +1736,7 @@ void Usi::bestMoveReceived(const QString& line)
         }
         m_resignNotified = true;
         qDebug().nospace() << logPrefix() << " [TRACE] resign-detected t+" << ShogiUtils::nowMs() << "ms";
-        Q_EMIT bestMoveResignReceived();
+        emit bestMoveResignReceived();
         return;
     }
 
@@ -1770,7 +1751,7 @@ void Usi::startUsiThread()
 {
     // 既存スレッドがあれば確実に終了させてから破棄
     if (m_usiThread) {
-        Q_EMIT stopOrPonderhitCommandSent();
+        emit stopOrPonderhitCommandSent();
         m_usiThread->wait();
         delete m_usiThread;
         m_usiThread = nullptr;
@@ -1940,20 +1921,20 @@ void Usi::onProcessFinished(int /*exitCode*/, QProcess::ExitStatus /*status*/)
 void Usi::sendPositionAndGoMate(const QString& sfen, int timeMs, bool infinite)
 {
     if (!m_process || m_process->state() != QProcess::Running) {
-
-        QString errorMessage = tr("USI engine is not running.");
+        const QString errorMessage = tr("USI engine is not running.");
         emit errorOccurred(errorMessage);
+        cancelCurrentOperation();
+        return;
     }
 
     // "position sfen <SFEN>"
-    QString pos = QStringLiteral("position sfen %1").arg(sfen.trimmed());
-    sendCommand(pos);
+    sendCommand(QStringLiteral("position sfen %1").arg(sfen.trimmed()));
 
     // "go mate <ms>" または "go mate infinite"
     if (infinite || timeMs <= 0) {
         sendCommand(QStringLiteral("go mate infinite"));
     } else {
-        sendCommand(QStringLiteral("go mate %1").arg(timeMs)); // 単位はミリ秒
+        sendCommand(QStringLiteral("go mate %1").arg(timeMs)); // 単位: ms
     }
 
     m_modeTsume = true;

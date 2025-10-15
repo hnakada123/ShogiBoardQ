@@ -1210,6 +1210,11 @@ void MatchCoordinator::startAnalysis(const AnalysisOptions& opt)
     // 4) 単発エンジン生成（常に m_usi1 を使用）
     m_usi1 = new Usi(comm, think, m_gc, m_playMode, this);
 
+    // 既存の接続（bestmove等）はそのまま。エラー用だけスロット接続を追加。
+    connect(m_usi1, &Usi::errorOccurred,
+            this,   &MatchCoordinator::onUsiError_,
+            Qt::UniqueConnection);
+
     // 5) 投了配線
     wireResignToArbiter_(m_usi1, /*asP1=*/true);
 
@@ -1363,4 +1368,13 @@ void MatchCoordinator::onUsiBestmoveDuringTsume_(const QString& bestmove)
     Q_UNUSED(bestmove);
     // 多くの場合は無視で良い。ログだけ残す。
     qInfo() << "[Tsume] bestmove during mate-search:" << bestmove;
+}
+
+void MatchCoordinator::onUsiError_(const QString& msg)
+{
+    // ログへ（あれば）
+    if (m_hooks.log) m_hooks.log(QStringLiteral("[USI-ERROR] ") + msg);
+    // 実行中の USI オペを明示的に打ち切る
+    if (m_usi1) m_usi1->cancelCurrentOperation();
+    if (m_usi2) m_usi2->cancelCurrentOperation();
 }

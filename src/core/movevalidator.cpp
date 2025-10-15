@@ -40,8 +40,8 @@ void MoveValidator::checkDoublePawn(const QVector<QChar>& boardData)
         // 先手あるいは後手の歩が同じ筋に複数存在する場合、二歩が存在すると判定する。
         if (pawnCountWhite > 1 || pawnCountBlack > 1) {
             const QString errorMessage = tr("An error occurred in MoveValidator::checkDoublePawn. There is a double pawn situation.");
-
             emit errorOccurred(errorMessage);
+            return; // ★ 打ち切り
         }
     }
 }
@@ -76,8 +76,8 @@ void MoveValidator::checkPieceCount(const QVector<QChar>& boardData, const QMap<
         // 各駒の数が最大数を超えていた場合
         if (currentPieceCount[it.key()] > it.value()) {
             const QString errorMessage = tr("An error occurred in MoveValidator::checkPieceCount. The number of pieces exceeds the maximum allowed.");
-
             emit errorOccurred(errorMessage);
+            return; // ★ 打ち切り
         }
     }
 }
