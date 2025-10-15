@@ -1,6 +1,5 @@
 #include "shogiboard.h"
 #include "qdebug.h"
-#include "shogiutils.h"
 
 // 将棋盤に関するクラス
 // コンストラクタ
@@ -43,8 +42,7 @@ QChar ShogiBoard::getPieceCharacter(const int file, const int rank)
             const QString errorMessage = tr("An error occurred in ShogiBoard::getPieceCharacter. Invalid rank for the black player's stand.");
 
             qDebug() << "rank: " << rank;
-
-            ShogiUtils::logAndThrowError(errorMessage);
+            emit errorOccurred(errorMessage);
         }
     }
     // 筋番号が後手の駒台の場合
@@ -62,8 +60,7 @@ QChar ShogiBoard::getPieceCharacter(const int file, const int rank)
             const QString errorMessage = tr("An error occurred in ShogiBoard::getPieceCharacter. Invalid rank for the white player's stand.");
 
             qDebug() << "rank: " << rank;
-
-            ShogiUtils::logAndThrowError(errorMessage);
+            emit errorOccurred(errorMessage);
         }
     }
     // 筋番号が範囲外の場合
@@ -72,8 +69,7 @@ QChar ShogiBoard::getPieceCharacter(const int file, const int rank)
         const QString errorMessage = tr("An error occurred in ShogiBoard::getPieceCharacter. Invalid file value.");
 
         qDebug() << "file: " << file;
-
-        ShogiUtils::logAndThrowError(errorMessage);
+        emit errorOccurred(errorMessage);
     }
 
     return QChar();
@@ -202,8 +198,7 @@ QString ShogiBoard::validateAndConvertSfenBoardStr(QString initialSfenStr)
         const QString errorMessage = tr("An error occurred in ShogiBoard::validateAndConvertSfenBoardStr. SFEN string must contain exactly 9 parts.");
 
         qDebug() << "initialSfenStr: " << initialSfenStr;
-
-        ShogiUtils::logAndThrowError(errorMessage);
+        emit errorOccurred(errorMessage);
     }
 
     // 各段に配置可能な駒のリスト
@@ -237,7 +232,7 @@ QString ShogiBoard::validateAndConvertSfenBoardStr(QString initialSfenStr)
                 qDebug() << "rankStr: " << rankStr;
                 qDebug() << "ch: " << ch;
 
-                ShogiUtils::logAndThrowError(errorMessage);
+                emit errorOccurred(errorMessage);
             }
         }
 
@@ -249,7 +244,7 @@ QString ShogiBoard::validateAndConvertSfenBoardStr(QString initialSfenStr)
             qDebug() << "sfenStr: " << initialSfenStr;
             qDebug() << "pieceCount: " << pieceCount;
 
-            ShogiUtils::logAndThrowError(errorMessage);
+            emit errorOccurred(errorMessage);
         }
     }
 
@@ -273,7 +268,7 @@ void ShogiBoard::setPieceStandFromSfen(const QString& str)
         // エラーメッセージを表示する。
         qDebug() << "str: " << str;
 
-        ShogiUtils::logAndThrowError(errorMessage);
+        emit errorOccurred(errorMessage);
     }
 
     // 2桁の数字が含まれているかどうかを示すフラグ
@@ -314,7 +309,7 @@ void ShogiBoard::setPieceStandFromSfen(const QString& str)
                     qDebug() << "i: " << i;
                     qDebug() << "str[i]: " << str[i];
 
-                    ShogiUtils::logAndThrowError(errorMessage);
+                    emit errorOccurred(errorMessage);
                 }
             }
             else {
@@ -348,7 +343,7 @@ void ShogiBoard::setPieceStandFromSfen(const QString& str)
                     qDebug() << "i: " << i;
                     qDebug() << "str[i]: " << str[i];
 
-                    ShogiUtils::logAndThrowError(errorMessage);
+                    emit errorOccurred(errorMessage);
                 }
             }
         }
@@ -364,7 +359,7 @@ void ShogiBoard::setPieceStandFromSfen(const QString& str)
             // エラーメッセージを表示する。
             qDebug() << "str: " << str;
 
-            ShogiUtils::logAndThrowError(errorMessage);
+            emit errorOccurred(errorMessage);
         }
     }
 }
@@ -438,7 +433,7 @@ void ShogiBoard::validateSfenString(const QString& sfenStr, QString& sfenBoardSt
         qDebug() << "sfenStr: " << sfenStr;
         qDebug() << "sfenComponents.size(): " << sfenComponents.size();
 
-        ShogiUtils::logAndThrowError(errorMessage);
+        emit errorOccurred(errorMessage);
     }
 
     // 将棋盤内のみのSFEN文字列を取得する。
@@ -461,7 +456,7 @@ void ShogiBoard::validateSfenString(const QString& sfenStr, QString& sfenBoardSt
         qDebug() << "sfenStr: " << sfenStr;
         qDebug() << "playerTurnStr: " << playerTurnStr;
 
-        ShogiUtils::logAndThrowError(errorMessage);
+        emit errorOccurred(errorMessage);
     }
 
     // 持ち駒のSFEN文字列を取得する。
@@ -481,7 +476,7 @@ void ShogiBoard::validateSfenString(const QString& sfenStr, QString& sfenBoardSt
         // エラーメッセージを表示する。
         qDebug() << "sfenStr: " << sfenStr;
 
-        ShogiUtils::logAndThrowError(errorMessage);
+        emit errorOccurred(errorMessage);
     }
 }
 

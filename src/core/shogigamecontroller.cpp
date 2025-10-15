@@ -318,7 +318,7 @@ QString ShogiGameController::getPieceKanji(const QChar& piece)
         // エラーメッセージを表示する。
         const QString errorMessage = tr("An error occurred in ShogiGameController::getPieceKanji: The piece %1 is not found.").arg(piece);
 
-        ShogiUtils::logAndThrowError(errorMessage);
+        emit errorOccurred(errorMessage);
     }
 
     return QString();
@@ -351,7 +351,7 @@ QString ShogiGameController::getNextPlayerSfen()
 
         qDebug() << "currentPlayer() = " << currentPlayer();
 
-        ShogiUtils::logAndThrowError(errorMessage);
+        emit errorOccurred(errorMessage);
     }
 
     // 相手のSFEN形式の手番を返す。

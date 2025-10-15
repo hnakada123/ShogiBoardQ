@@ -58,6 +58,10 @@ public:
     // 指定局面での合法手を生成する。
     int generateLegalMoves(const Turn& turn, const QVector<QChar>& boardData, const QMap<QChar, int>& pieceStand);
 
+signals:
+    // エラーを報告するためのシグナル
+    void errorOccurred(const QString& errorMessage);
+
 private:
     // 全ての駒の種類を1文字のアルファベットで表す。
     QVector<QChar> m_allPieces;
@@ -68,16 +72,16 @@ private:
 
     // 二歩のチェック
     // 先手あるいは後手の歩が同じ筋に複数存在する場合、二歩が存在すると判定する。
-    void checkDoublePawn(const QVector<QChar>& boardData) const;
+    void checkDoublePawn(const QVector<QChar>& boardData);
 
     // 各駒の数が最大数を超えていないかチェックする。
-    void checkPieceCount(const QVector<QChar>& boardData, const QMap<QChar, int>& pieceStand) const;
+    void checkPieceCount(const QVector<QChar>& boardData, const QMap<QChar, int>& pieceStand);
 
     // 玉が一方の対局者につき一つ存在していることをチェックする。
-    void checkKingPresence(const QVector<QChar>& boardData, const QMap<QChar, int>& pieceStand) const;
+    void checkKingPresence(const QVector<QChar>& boardData, const QMap<QChar, int>& pieceStand);
 
     // この関数は、将棋の盤面上の各駒が適切な位置にあるかどうかをチェックする。
-    void checkCorrectPosition(const QVector<QChar>& boardData) const;
+    void checkCorrectPosition(const QVector<QChar>& boardData);
 
     // 先手および後手、各駒の種類ごとのbitboardを表す型を略称化
     using BoardStateArray = std::array<std::array<std::bitset<NUM_BOARD_SQUARES>, NUM_PIECE_TYPES>, NUM_PLAYERS>;

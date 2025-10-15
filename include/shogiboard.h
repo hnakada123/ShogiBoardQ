@@ -85,7 +85,7 @@ public:
 
 signals:
     // エラーを報告するためのシグナル
-    void errorReported(const QString& errorMessage);
+    void errorOccurred(const QString& errorMessage);
 
     // ShogiView::setBoardのconnectで使用されているシグナル
     // スロットのrepaint関数が実行される。（将棋盤、駒台の再描画）

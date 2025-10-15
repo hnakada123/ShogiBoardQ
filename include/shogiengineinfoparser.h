@@ -113,6 +113,10 @@ public:
     // 評価値の文字列を取得する。
     QString score() const;
 
+signals:
+    // エラーを報告するためのシグナル
+    void errorOccurred(const QString& errorMessage);
+
 private:
     // 現在思考中の手の探索深さ
     QString m_depth;
@@ -191,7 +195,7 @@ private:
 
     // 段を示す文字を整数に変換する関数
     // 文字'a'から'i'までを1から9に変換する。
-    int convertRankCharToInt(const QChar rankChar) const;
+    int convertRankCharToInt(const QChar rankChar);
 
     // 駒文字を駒台の段番号に変換する。
     int convertPieceToStandRank(const QChar pieceChar);
@@ -203,10 +207,10 @@ private:
     int parseMoveString(const QString& moveStr, int& fileFrom, int& rankFrom, int& fileTo, int& rankTo, bool& promote);
 
     // 駒文字から漢字の駒を返す。
-    QString getPieceKanjiName(QChar symbol) const;
+    QString getPieceKanjiName(QChar symbol);
 
     // 指定した位置の駒を表す文字を返す。
-    QChar getPieceCharacter(const QVector<QChar>& boardData, const int file, const int rank) const;
+    QChar getPieceCharacter(const QVector<QChar>& boardData, const int file, const int rank);
 
     // 将棋盤のマスに駒を配置する。
     bool setData(QVector<QChar>& boardData, const int file, const int rank, const QChar piece) const;

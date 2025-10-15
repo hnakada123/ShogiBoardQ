@@ -35,6 +35,7 @@
 #include "branchcandidatescontroller.h"
 #include "numeric_right_align_comma_delegate.h"
 #include "turnmanager.h"
+#include "errorbus.h"
 
 // mainwindow.cpp の先頭（インクルードの後、どのメンバ関数より上）に追加
 static inline QString pickLabelForDisp(const KifDisplayItem& d)
@@ -194,6 +195,9 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(m_shogiView, &ShogiView::errorOccurred, this, &MainWindow::displayErrorMessage);
     connect(m_gameController, &ShogiGameController::endDragSignal, this, &MainWindow::endDrag, Qt::UniqueConnection);
     connect(m_gameController, &ShogiGameController::moveCommitted, this, &MainWindow::onMoveCommitted, Qt::UniqueConnection);
+
+    connect(&ErrorBus::instance(), &ErrorBus::errorOccurred,
+            this, [this](const QString& msg){ this->displayErrorMessage(msg); });
 
     ensureTurnSyncBridge_();
 }
@@ -434,12 +438,7 @@ void MainWindow::undoLastTwoMoves()
 // 配置し、対局結果を結果なし、現在の手番がどちらでもない状態に設定する。
 void MainWindow::initializeNewGame(QString& startSfenStr)
 {
-    try {
-        m_gameController->newGame(startSfenStr);
-    } catch (const std::exception& e) {
-        // エラーメッセージを表示する。
-        displayErrorMessage(e.what());
-    }
+    m_gameController->newGame(startSfenStr);
 
     if (!m_resumeSfenStr.isEmpty()) {
         auto* b = m_gameController ? m_gameController->board() : nullptr;
@@ -607,8 +606,7 @@ QString MainWindow::parseStartPositionToSfen(QString startPositionStr)
         if (!match.hasMatch()) {
             // エラーメッセージを表示する。
             const QString errorMessage = tr("An error occurred in MainWindow::getStartSfenStr. There is an error in the SFEN format string.");
-
-            ShogiUtils::logAndThrowError(errorMessage);
+            displayErrorMessage(errorMessage);
 
             return QString();
         } else {
@@ -1415,26 +1413,13 @@ void MainWindow::displayKifuAnalysisDialog()
         // 解析結果ビューを用意（モデル/ビューの生成・表示）
         displayAnalysisResults();
 
-        try {
-            // 本体は司令塔委譲版 analyzeGameRecord() を呼ぶ
-            analyzeGameRecord();
-        } catch (const std::exception& e) {
-            // 例外時は解析を確実に後始末してからモデルを片付ける
-            if (m_match) {
-                m_match->handleBreakOffConsidaration();
-            }
-            if (m_analysisModel) {
-                delete m_analysisModel;
-                m_analysisModel = nullptr;
-            }
-            displayErrorMessage(e.what());
-        }
+        // 本体は司令塔委譲版 analyzeGameRecord() を呼ぶ
+        analyzeGameRecord();
     }
 
     delete m_analyzeGameRecordDialog;
     m_analyzeGameRecordDialog = nullptr;
 }
-
 
 // 対局者の残り時間と秒読み/加算設定だけを確定する（★自分自身は呼ばない）
 void MainWindow::setRemainingTimeAndCountDown()
@@ -1867,13 +1852,7 @@ void MainWindow::initializeGame()
             // 現在局面から開始：ここで「選択手まで残して末尾だけ切る」
             prepareDataCurrentPosition();
         } else {
-            try {
-                prepareInitialPosition();
-            } catch (const std::exception& e) {
-                displayErrorMessage(e.what());
-                delete m_startGameDialog;
-                return;
-            }
+            prepareInitialPosition();
         }
 
         // 棋譜UI調整
@@ -1889,11 +1868,7 @@ void MainWindow::initializeGame()
         setCurrentTurn();
         setTimerAndStart();
 
-        try {
-            startGameBasedOnMode();
-        } catch (const std::exception& e) {
-            displayErrorMessage(e.what());
-        }
+        startGameBasedOnMode();
     }
     delete m_startGameDialog;
 }
@@ -3258,11 +3233,7 @@ void MainWindow::setTsumeShogiStartPosition()
     if (m_boardController)
         m_boardController->clearAllHighlights();
 
-    try {
-        m_shogiView->shogiProblemInitialPosition();
-    } catch (const std::exception& e) {
-        displayErrorMessage(e.what());
-    }
+    m_shogiView->shogiProblemInitialPosition();
 }
 
 // 先手の配置を後手の配置に変更し、後手の配置を先手の配置に変更する。
@@ -5258,33 +5229,24 @@ void MainWindow::startInitialEngineMoveEvH_()
     // USIへ渡す btime/wtime を“pre-add風”に整形して毎回その場で作成
     const auto [bTime, wTime] = currentBWTimesForUSI_();
 
-    try {
-        // USI "position ... moves" と "go ..." を一括で処理して bestmove を返す
-        eng->handleEngineVsHumanOrEngineMatchCommunication(
-            m_positionStr1,        // [in/out] position base に bestmove を連結してくる
-            m_positionPonder1,     // [in/out] 使っていなければ空のままでOK
-            eFrom, eTo,            // [out] エンジンの着手が返る
-            engineByoyomiMs,
-            bTime, wTime,          // ← m_bTime/m_wTime は使わず、その場生成
-            tc.incMs1, tc.incMs2,  // 先手/後手の1手加算（フィッシャー用）
-            useByoyomi
-            );
-    } catch (const std::exception& e) {
-        displayErrorMessage(e.what());
-        return;
-    }
+
+    // USI "position ... moves" と "go ..." を一括で処理して bestmove を返す
+    eng->handleEngineVsHumanOrEngineMatchCommunication(
+                m_positionStr1,        // [in/out] position base に bestmove を連結してくる
+                m_positionPonder1,     // [in/out] 使っていなければ空のままでOK
+                eFrom, eTo,            // [out] エンジンの着手が返る
+                engineByoyomiMs,
+                bTime, wTime,          // ← m_bTime/m_wTime は使わず、その場生成
+                tc.incMs1, tc.incMs2,  // 先手/後手の1手加算（フィッシャー用）
+                useByoyomi
+                );
 
     // 返ってきた bestmove を盤へ適用
     bool ok = false;
-    try {
-        ok = m_gameController->validateAndMove(
-            eFrom, eTo, m_lastMove, m_playMode,
-            m_currentMoveIndex, m_sfenRecord, m_gameMoves
-            );
-    } catch (const std::exception& e) {
-        displayErrorMessage(e.what());
-        return;
-    }
+    ok = m_gameController->validateAndMove(
+                eFrom, eTo, m_lastMove, m_playMode,
+                m_currentMoveIndex, m_sfenRecord, m_gameMoves
+                );
     if (!ok) return;
 
     // ハイライト・思考時間の反映
@@ -5363,33 +5325,23 @@ void MainWindow::startInitialEngineMoveIfNeeded_()
     // USIへ渡す btime/wtime はその場で取得（pre-add整形は司令塔側に委譲）
     const auto [bTime, wTime] = currentBWTimesForUSI_();
 
-    try {
-        // USI "position ... moves" と "go ..." を一括で処理して bestmove を返す
-        eng->handleEngineVsHumanOrEngineMatchCommunication(
-            m_positionStr1,        // [in/out] position base に bestmove を連結してくる
-            m_positionPonder1,     // [in/out] 使っていなければ空のままでOK
-            eFrom, eTo,            // [out] エンジンの着手が返る
-            engineByoyomiMs,
-            bTime, wTime,
-            tc.incMs1, tc.incMs2,
-            useByoyomi
-            );
-    } catch (const std::exception& e) {
-        displayErrorMessage(e.what());
-        return;
-    }
+    // USI "position ... moves" と "go ..." を一括で処理して bestmove を返す
+    eng->handleEngineVsHumanOrEngineMatchCommunication(
+                m_positionStr1,        // [in/out] position base に bestmove を連結してくる
+                m_positionPonder1,     // [in/out] 使っていなければ空のままでOK
+                eFrom, eTo,            // [out] エンジンの着手が返る
+                engineByoyomiMs,
+                bTime, wTime,
+                tc.incMs1, tc.incMs2,
+                useByoyomi
+                );
 
     // 返ってきた bestmove を盤へ適用
     bool ok = false;
-    try {
-        ok = m_gameController->validateAndMove(
-            eFrom, eTo, m_lastMove, m_playMode,
-            m_currentMoveIndex, m_sfenRecord, m_gameMoves
-            );
-    } catch (const std::exception& e) {
-        displayErrorMessage(e.what());
-        return;
-    }
+    ok = m_gameController->validateAndMove(
+                eFrom, eTo, m_lastMove, m_playMode,
+                m_currentMoveIndex, m_sfenRecord, m_gameMoves
+                );
     if (!ok) return;
 
     // ハイライト・思考時間の反映
@@ -5534,14 +5486,10 @@ void MainWindow::onMoveRequested_(const QPoint& from, const QPoint& to)
     // 編集モードでは対局用の合法手検証は通さず、編集専用の移動APIを使う
     if (m_boardController && m_boardController->mode() == BoardInteractionController::Mode::Edit) {
         QPoint hFrom = from, hTo = to;  // 以降のAPIが参照を取るのでローカルコピー
-        bool ok = false;
 
-        try {
-            ok = (m_gameController && m_gameController->editPosition(hFrom, hTo));
-        } catch (const std::exception& e) {
-            displayErrorMessage(e.what());
-            ok = false;
-        }
+        bool ok = false;
+        ok = (m_gameController && m_gameController->editPosition(hFrom, hTo));
+        if (!ok) return;
 
         // ハイライト更新（直前手の赤/黄・選択解除などは BIC に委譲）
         if (m_boardController) m_boardController->onMoveApplied(hFrom, hTo, ok);
@@ -5561,15 +5509,9 @@ void MainWindow::onMoveRequested_(const QPoint& from, const QPoint& to)
     QPoint hFrom = from, hTo = to;
 
     bool ok = false;
-    try {
-        ok = m_gameController->validateAndMove(
-            hFrom, hTo, m_lastMove, m_playMode, m_currentMoveIndex, m_sfenRecord, m_gameMoves
-        );
-    } catch (const std::exception& e) {
-        displayErrorMessage(e.what());
-        if (m_boardController) m_boardController->onMoveApplied(from, to, /*ok=*/false);
-        return;
-    }
+    ok = m_gameController->validateAndMove(
+                hFrom, hTo, m_lastMove, m_playMode, m_currentMoveIndex, m_sfenRecord, m_gameMoves
+                );
 
     if (m_boardController) m_boardController->onMoveApplied(hFrom, hTo, ok);
     if (!ok) return;
@@ -5639,48 +5581,37 @@ void MainWindow::handleMove_HvE_(const QPoint& humanFrom, const QPoint& humanTo)
         const auto tc = m_match ? m_match->timeControl() : MatchCoordinator::TimeControl{};
         const int engineByoyomiMs = engineIsP1 ? tc.byoyomiMs1 : tc.byoyomiMs2;
 
-        try {
-            Usi* eng = (m_match ? m_match->primaryEngine() : nullptr);
-            if (!eng) {
-                qWarning() << "[HvE] engine instance not ready; skip engine move.";
-                if (m_shogiView) m_shogiView->setMouseClickMode(true);
-                return;
-            }
-
-            eng->handleHumanVsEngineCommunication(
-                m_positionStr1, m_positionPonder1,
-                eFrom, eTo,
-                engineByoyomiMs,
-                bTime, wTime,
-                m_positionStrList,
-                tc.incMs1, tc.incMs2,
-                tc.useByoyomi
-                );
-        } catch (const std::exception& e) {
-            displayErrorMessage(e.what());
+        Usi* eng = (m_match ? m_match->primaryEngine() : nullptr);
+        if (!eng) {
+            qWarning() << "[HvE] engine instance not ready; skip engine move.";
             if (m_shogiView) m_shogiView->setMouseClickMode(true);
             return;
         }
+
+        eng->handleHumanVsEngineCommunication(
+                    m_positionStr1, m_positionPonder1,
+                    eFrom, eTo,
+                    engineByoyomiMs,
+                    bTime, wTime,
+                    m_positionStrList,
+                    tc.incMs1, tc.incMs2,
+                    tc.useByoyomi
+                    );
 
         // 受け取った bestmove を盤へ適用
         bool ok2 = false;
-        try {
-            ok2 = m_gameController->validateAndMove(
-                eFrom, eTo, m_lastMove, m_playMode,
-                m_currentMoveIndex, m_sfenRecord, m_gameMoves
-                );
-        } catch (const std::exception& e) {
-            displayErrorMessage(e.what());
-            if (m_shogiView) m_shogiView->setMouseClickMode(true);
-            return;
-        }
+
+        ok2 = m_gameController->validateAndMove(
+                    eFrom, eTo, m_lastMove, m_playMode,
+                    m_currentMoveIndex, m_sfenRecord, m_gameMoves
+                    );
 
         if (ok2) {
             if (m_boardController) m_boardController->showMoveHighlights(eFrom, eTo);
 
             // エンジン思考時間 → 時計へ
             const qint64 thinkMs =
-                (m_match && m_match->primaryEngine())
+                    (m_match && m_match->primaryEngine())
                     ? m_match->primaryEngine()->lastBestmoveElapsedMs()
                     : 0;
             if (m_gameController->currentPlayer() == ShogiGameController::Player1) {

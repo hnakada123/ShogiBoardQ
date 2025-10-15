@@ -167,7 +167,7 @@ QString ShogiEngineInfoParser::convertMoveToShogiString(const QString& kanji, co
 
 // 段を示す文字を整数に変換する。
 // 文字'a'から'i'までを1から9に変換する。
-int ShogiEngineInfoParser::convertRankCharToInt(const QChar rankChar) const
+int ShogiEngineInfoParser::convertRankCharToInt(const QChar rankChar)
 {
     // アルファベットの文字（A-Zまたはa-z）であるかどうか、
     // かつ'i'またはそれより前（アルファベット順）の文字であることを確認する。
@@ -179,7 +179,7 @@ int ShogiEngineInfoParser::convertRankCharToInt(const QChar rankChar) const
         // エラーメッセージを表示する。
         QString errorMessage = tr("An error occurred in ShogiEngineInfoParser::convertRankCharToInt. Invalid character conversion %1.").arg(rankChar);
 
-        ShogiUtils::logAndThrowError(errorMessage);
+        emit errorOccurred(errorMessage);
 
         return -1;
     }
@@ -210,7 +210,7 @@ int ShogiEngineInfoParser::parseMoveString(const QString& moveStr, int& fileFrom
         // エラーメッセージを表示する。
         QString errorMessage = tr("An error occurred in ShogiEngineInfoParser::parseMoveString. The length of the move string %1 is insufficient.").arg(moveStr);
 
-        ShogiUtils::logAndThrowError(errorMessage);
+        emit errorOccurred(errorMessage);
     }
 
     // 指し手を表す文字列の最初の文字を指すQChar型のポインタを返す。
@@ -271,7 +271,7 @@ int ShogiEngineInfoParser::parseMoveString(const QString& moveStr, int& fileFrom
         // 無効な文字が検出された場合、エラーメッセージを表示する。
         QString errorMessage = tr("An error occurred in ShogiEngineInfoParser::parseMoveString. The coordinates of the source square are invalid.");
 
-        ShogiUtils::logAndThrowError(errorMessage);
+        emit errorOccurred(errorMessage);
     }
 
     // 移動先の筋番号を取得する。
@@ -285,7 +285,7 @@ int ShogiEngineInfoParser::parseMoveString(const QString& moveStr, int& fileFrom
         // 無効な文字が検出された場合、エラーメッセージを表示する。
         QString errorMessage = tr("An error occurred in ShogiEngineInfoParser::parseMoveString. The coordinates of the destination square are invalid.");
 
-        ShogiUtils::logAndThrowError(errorMessage);
+        emit errorOccurred(errorMessage);
     }
 
     // 移動先の段番号を取得する。
@@ -300,7 +300,7 @@ int ShogiEngineInfoParser::parseMoveString(const QString& moveStr, int& fileFrom
 
         qDebug() << "moveChars[3] = " << moveChars[3];
 
-        ShogiUtils::logAndThrowError(errorMessage);
+        emit errorOccurred(errorMessage);
     }
 
     // 成、不成のフラグを取得する。
@@ -334,7 +334,7 @@ void ShogiEngineInfoParser::setPreviousRankTo(int newPreviousRankTo)
 }
 
 // 駒文字から漢字の駒を返す。
-QString ShogiEngineInfoParser::getPieceKanjiName(QChar symbol) const
+QString ShogiEngineInfoParser::getPieceKanjiName(QChar symbol)
 {
     // 駒文字を大文字に変換する。
     symbol = symbol.toUpper();
@@ -349,14 +349,14 @@ QString ShogiEngineInfoParser::getPieceKanjiName(QChar symbol) const
         // 無効な文字が検出された場合、エラーメッセージを表示する。
         QString errorMessage = tr("An error occurred in ShogiEngineInfoParser::getPieceKanjiName. The piece character '%1' does not exist.").arg(symbol);
 
-        ShogiUtils::logAndThrowError(errorMessage);
+        emit errorOccurred(errorMessage);
 
         return QString();
     }
 }
 
 // 指定した位置の駒を表す文字を返す。
-QChar ShogiEngineInfoParser::getPieceCharacter(const QVector<QChar>& boardData, const int file, const int rank) const
+QChar ShogiEngineInfoParser::getPieceCharacter(const QVector<QChar>& boardData, const int file, const int rank)
 {
     // 盤上の駒の場合
     if ((file >= 1) && (file <= 9)) {
@@ -378,7 +378,7 @@ QChar ShogiEngineInfoParser::getPieceCharacter(const QVector<QChar>& boardData, 
 
             qDebug() << "rank = " << rank;
 
-            ShogiUtils::logAndThrowError(errorMessage);
+            emit errorOccurred(errorMessage);
 
             return QChar();
         }
@@ -390,7 +390,7 @@ QChar ShogiEngineInfoParser::getPieceCharacter(const QVector<QChar>& boardData, 
 
         qDebug() << "file = " << file;
 
-        ShogiUtils::logAndThrowError(errorMessage);
+        emit errorOccurred(errorMessage);
 
         return QChar();
     }

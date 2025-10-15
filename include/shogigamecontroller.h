@@ -119,6 +119,9 @@ signals:
 
     void moveCommitted(ShogiGameController::Player mover, int ply);
 
+    // エラーを報告するためのシグナル
+    void errorOccurred(const QString& errorMessage);
+
 private:
     // 将棋盤のポインタ
     ShogiBoard* m_board;
