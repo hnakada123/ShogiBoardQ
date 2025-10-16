@@ -205,106 +205,94 @@ bool ShogiEngineInfoParser::isBoardRankChar(const QChar rankChar) const
 // 指し手を表す文字列から指し手のマスの座標と成るかどうかのフラグを取得する。
 int ShogiEngineInfoParser::parseMoveString(const QString& moveStr, int& fileFrom, int& rankFrom, int& fileTo, int& rankTo, bool& promote)
 {
-    // 指し手を表す文字列が4文字未満ならばエラー処理を行う。
-    if (moveStr.length() < 4) {
-        // エラーメッセージを表示する。
-        QString errorMessage = tr("An error occurred in ShogiEngineInfoParser::parseMoveString. The length of the move string %1 is insufficient.").arg(moveStr);
+    // 初期化
+    fileFrom = rankFrom = fileTo = rankTo = 0;
+    promote = false;
 
+    // 指し手を表す文字列が4文字未満ならばエラー処理を行い、打ち切り
+    if (moveStr.length() < 4) {
+        const QString errorMessage =
+            tr("An error occurred in ShogiEngineInfoParser::parseMoveString. The length of the move string %1 is insufficient.").arg(moveStr);
         emit errorOccurred(errorMessage);
+        return -1; // ★ 打ち切り
     }
 
-    // 指し手を表す文字列の最初の文字を指すQChar型のポインタを返す。
+    // 指し手を表す文字列の最初の文字を指すQChar型のポインタ
     const QChar* moveChars = moveStr.data();
 
-    // fileFromを取得する。
-    // 盤上の駒を指した場合
+    // fileFrom を取得
     if (moveChars[0].isDigit()) {
+        // 盤上の駒
         fileFrom = moveChars[0].digitValue();
-    }
-    // 駒台の駒を指した場合
-    else {
-        // 駒台の駒を指した場合の段の番号を取得する。
-        // 歩、香、桂、銀、金、角、飛の段番号は1から7までの整数である。
-        int standPieceNumber = convertPieceToStandRank(moveChars[0]);
-
-        // 駒台の段番号が1から7の整数である場合
-        if ((standPieceNumber >= 1) && (standPieceNumber <= 7)) {
-            // 要注意！
-            // 読み筋に表示される「G*5b」のような駒を打った指し手には、盤上の駒を動かした場合と違って
-            // 移動元のマス情報(fileFrom, rankFrom)が無く、駒を打った場合、「５二金打」とだけ書く。
-            // 後続の処理で指した駒文字を取得する以下のコードがあるが必要なのは、打った駒文字だけ必要になる。
-            // QChar movingPiece = getPieceCharacter(copyBoardData, fileFrom, rankFrom);
-            // 本来、先手の駒台を示す筋番号は10、後手の駒台は11にしているが、先手、後手に関わらず
-            // 「５二金打」とだけ書くので駒文字と「打」の文字が取得できればよいのでここでは、とりあえず
-            // STAND_FILE = 99に設定しておく。
-            fileFrom = STAND_FILE;
-        }
-        // それ以外の場合
-        // "info multipv 1 score cp 0 depth 32 pv 3c3d 6g6f 2b3c 7i6h 8b2b 6h6g 3a4b 8h7g (57.54%)"
-        // の"(57.54%)"のような文字列が入力された場合が該当する。
-        else {
-            // 指し手以外の文字列が検出された場合、指し手を初期化する。
-            fileFrom = 0;
-            fileTo = 0;
-            rankFrom = 0;
-            rankTo = 0;
+    } else {
+        // 駒台の駒（例: "G*5b"）
+        const int standPieceNumber = convertPieceToStandRank(moveChars[0]); // 1..7 or -1
+        if (standPieceNumber >= 1 && standPieceNumber <= 7) {
+            fileFrom = STAND_FILE; // 盤外（駒台）を示す特別値
+        } else {
+            // 指し手以外（例: "(57.54%)"）→ 特別ケース
+            fileFrom = rankFrom = fileTo = rankTo = 0;
             promote = false;
-
             return INFO_STRING_SPECIAL_CASE;
         }
     }
 
-    // 移動元のマスの段番号を取得する。
-    // 1文字目が数字の場合、盤上の駒の場合
+    // rankFrom を取得
     if (isBoardRankChar(moveChars[1])) {
-        // 段を示す文字を整数に変換する。
-        // 文字'a'から'i'までを1から9に変換する。
         rankFrom = convertRankCharToInt(moveChars[1]);
-    }
-    // 2文字目が'*'の場合、駒台の駒の場合
-    else if (moveChars[1] == '*') {
-        // 駒台の駒を指した場合の段の番号を取得する。
-        rankFrom = convertPieceToStandRank(moveChars[0]);
-    }
-    // それ以外の場合
-    else {
-        // 無効な文字が検出された場合、エラーメッセージを表示する。
-        QString errorMessage = tr("An error occurred in ShogiEngineInfoParser::parseMoveString. The coordinates of the source square are invalid.");
-
-        emit errorOccurred(errorMessage);
-    }
-
-    // 移動先の筋番号を取得する。
-    // 3文字目が数字の場合
-    if (moveChars[2].isDigit()) {
-        // 移動先の筋番号を取得する。
-        fileTo = moveChars[2].digitValue();
-    }
-    // それ以外の場合
-    else {
-        // 無効な文字が検出された場合、エラーメッセージを表示する。
-        QString errorMessage = tr("An error occurred in ShogiEngineInfoParser::parseMoveString. The coordinates of the destination square are invalid.");
-
-        emit errorOccurred(errorMessage);
-    }
-
-    // 移動先の段番号を取得する。
-    // 4文字目が将棋盤のランクを表す文字（'a'から'i'）である場合
-    if (isBoardRankChar(moveChars[3])) {
-        // 段を示す文字を整数に変換する。
-        // 文字'a'から'i'までを1から9に変換する。
-        rankTo = convertRankCharToInt(moveChars[3]);
+        if (rankFrom <= 0) {
+            const QString errorMessage =
+                tr("An error occurred in ShogiEngineInfoParser::parseMoveString. Failed to convert source rank.");
+            emit errorOccurred(errorMessage);
+            return -1; // ★ 打ち切り
+        }
+    } else if (moveChars[1] == QLatin1Char('*')) {
+        // 駒打ち："G*5b" のようなケース
+        const int standPieceNumber = convertPieceToStandRank(moveChars[0]); // 1..7 or -1
+        if (standPieceNumber >= 1 && standPieceNumber <= 7) {
+            rankFrom = standPieceNumber;
+        } else {
+            const QString errorMessage =
+                tr("An error occurred in ShogiEngineInfoParser::parseMoveString. Invalid stand piece specification.");
+            emit errorOccurred(errorMessage);
+            return -1; // ★ 打ち切り
+        }
     } else {
-        // 無効な文字が検出された場合、エラーメッセージを表示する。
-        QString errorMessage = tr("An error occurred in ShogiEngineInfoParser::parseMoveString. The coordinates of the destination square are invalid.");
-
-        qDebug() << "moveChars[3] = " << moveChars[3];
-
+        const QString errorMessage =
+            tr("An error occurred in ShogiEngineInfoParser::parseMoveString. The coordinates of the source square are invalid.");
         emit errorOccurred(errorMessage);
+        return -1; // ★ 打ち切り
     }
 
-    // 成、不成のフラグを取得する。
-    promote = (moveChars[4] == '+');
+    // fileTo を取得
+    if (moveChars[2].isDigit()) {
+        fileTo = moveChars[2].digitValue();
+    } else {
+        const QString errorMessage =
+            tr("An error occurred in ShogiEngineInfoParser::parseMoveString. The coordinates of the destination file are invalid.");
+        emit errorOccurred(errorMessage);
+        return -1; // ★ 打ち切り
+    }
+
+    // rankTo を取得
+    if (isBoardRankChar(moveChars[3])) {
+        rankTo = convertRankCharToInt(moveChars[3]);
+        if (rankTo <= 0) {
+            const QString errorMessage =
+                tr("An error occurred in ShogiEngineInfoParser::parseMoveString. Failed to convert destination rank.");
+            emit errorOccurred(errorMessage);
+            return -1; // ★ 打ち切り
+        }
+    } else {
+        const QString errorMessage =
+            tr("An error occurred in ShogiEngineInfoParser::parseMoveString. The coordinates of the destination square are invalid.");
+        qDebug() << "moveChars[3] = " << moveChars[3];
+        emit errorOccurred(errorMessage);
+        return -1; // ★ 打ち切り
+    }
+
+    // 成/不成フラグ（5文字目が '+' のとき）
+    promote = (moveStr.size() > 4 && moveChars[4] == QLatin1Char('+'));
 
     return 0;
 }
@@ -438,27 +426,28 @@ void ShogiEngineInfoParser::movePieceToSquare(QVector<QChar>& boardData, QChar m
 }
 
 // 将棋エンジンからinfo currmove <move>が返された場合、その漢字の指し手に変換する。
+// 将棋エンジンからbestmove相当の現在指し手を漢字表記へ（currmove）
 QString ShogiEngineInfoParser::convertCurrMoveToKanjiNotation(const QString& str, const ShogiGameController* algorithm, QVector<QChar>& clonedBoardData,
                                                               const bool isPondering)
 {
-    // 指し手のマスの移動元の筋と段と移動先の筋と段、成る・不成のフラグ
-    int fileFrom;
-    int rankFrom;
-    int fileTo;
-    int rankTo;
-    bool promote;
+    int fileFrom = 0, rankFrom = 0, fileTo = 0, rankTo = 0;
+    bool promote = false;
 
-    // 指し手を表す文字列から指し手のマスの座標と成るかどうかのフラグを取得する。
-    parseMoveString(str, fileFrom, rankFrom, fileTo, rankTo, promote);
+    const int rc = parseMoveString(str, fileFrom, rankFrom, fileTo, rankTo, promote);
+    if (rc < 0) {
+        // 既に parseMoveString 内で emit しているのでここで打ち切る
+        return QString(); // ★ 打ち切り
+    }
+    if (rc == INFO_STRING_SPECIAL_CASE) {
+        return QString(); // currmoveでこのケースは通常来ないが保険
+    }
 
-    // 指し手の駒文字
-    QChar movingPiece = getPieceCharacter(clonedBoardData, fileFrom, rankFrom);
+    const QChar movingPiece = getPieceCharacter(clonedBoardData, fileFrom, rankFrom);
+    const QString kanjiMovePiece = getPieceKanjiName(movingPiece);
+    if (kanjiMovePiece.isEmpty()) {
+        return QString(); // ★ 打ち切り（エラー通知済み）
+    }
 
-    // 指し手の駒文字を漢字に直す。
-    QString kanjiMovePiece = getPieceKanjiName(movingPiece);
-
-    // 将棋エンジンから受信した読み筋を将棋の指し手の文字列に変換する。
-    // 例．「7g7h」->「△７八馬(77)」
     return convertMoveToShogiString(kanjiMovePiece, fileFrom, rankFrom, fileTo, rankTo, promote, algorithm, 0, isPondering);
 }
 
@@ -529,59 +518,50 @@ void ShogiEngineInfoParser::setEvaluationBound(EvaluationBound newEvaluationBoun
     m_evaluationBound = newEvaluationBound;
 }
 
-// pvの情報を解析し、それに基づいて盤面を更新する。
+// pv の情報を解析し、それに基づいて盤面を更新する。
 int ShogiEngineInfoParser::parsePvAndSimulateMoves(const QStringList& pvTokens, const ShogiGameController* algorithm, QVector<QChar> clonedBoardData,
                                                    const bool isPondering)
 {
-    // 指し手のマスの移動元の筋と段と移動先の筋と段、成る・不成のフラグ
-    int fileFrom = 0;
-    int rankFrom = 0;
-    int fileTo = 0;
-    int rankTo = 0;
+    int fileFrom = 0, rankFrom = 0, fileTo = 0, rankTo = 0;
     bool promote = false;
 
-    // 読み筋を初期化する。
     m_pvKanjiStr.clear();
 
-    for (int i = 0; i < pvTokens.size(); i++) {
-        // 指し手を表す文字列から指し手のマスの座標と成るかどうかのフラグを取得する。
-        int parseResult = parseMoveString(pvTokens.at(i).trimmed(), fileFrom, rankFrom, fileTo, rankTo, promote);
+    for (int i = 0; i < pvTokens.size(); ++i) {
+        const QString token = pvTokens.at(i).trimmed();
 
-        // pv文字列の最後に指し手以外の文字列があった場合
-        // "info multipv 1 score cp 0 depth 32 pv 3c3d 6g6f 2b3c 7i6h 8b2b 6h6g 3a4b 8h7g (57.54%)"
-        // の"(57.54%)"のような文字列が入力された場合が該当する。
-        if ((parseResult == INFO_STRING_SPECIAL_CASE) && (i == pvTokens.size() - 1)) {
-            // 漢字に変換した指し手文字列にその文字列を追加する。
-            m_pvKanjiStr += " " + pvTokens.at(i);
-
-            return 0;
+        const int rc = parseMoveString(token, fileFrom, rankFrom, fileTo, rankTo, promote);
+        if (rc == INFO_STRING_SPECIAL_CASE) {
+            if (i == pvTokens.size() - 1) {
+                // 末尾の "(57.54%)" 等はそのまま付加して終了
+                m_pvKanjiStr += " " + token;
+                return 0;
+            }
+            // 途中に来るのは想定外だが、打ち切り
+            return -1; // ★ 打ち切り
+        }
+        if (rc < 0) {
+            // parse 内で emit 済み
+            return -1; // ★ 打ち切り
         }
 
-        // 指し手の駒文字
-        QChar movingPiece = getPieceCharacter(clonedBoardData, fileFrom, rankFrom);
+        const QChar movingPiece = getPieceCharacter(clonedBoardData, fileFrom, rankFrom);
+        const QString kanjiMovePiece = getPieceKanjiName(movingPiece);
+        if (kanjiMovePiece.isEmpty()) {
+            return -1; // ★ 打ち切り（通知済み）
+        }
 
-        // 指し手の駒文字を漢字に直す。
-        QString kanjiMovePiece = getPieceKanjiName(movingPiece);
+        const QString shogiStr = convertMoveToShogiString(kanjiMovePiece, fileFrom, rankFrom, fileTo, rankTo, promote,
+                                                          algorithm, i, isPondering);
 
-        // 将棋エンジンから受信した読み筋を将棋の指し手の文字列に変換する。
-        // 例．
-        // 「7g7h 2f2e 8e8f 2e2d 2c2d 8i7g 8f8g+」
-        // 「△７八馬(77)▲２五歩(26)△８六歩(85)▲２四歩(25)△同歩(23)▲７七桂(89)△８七歩成(86)」 
-        QString shogiStr = convertMoveToShogiString(kanjiMovePiece, fileFrom, rankFrom, fileTo, rankTo, promote, algorithm, i, isPondering);
-
-        // 直前の指し手のマスの筋と段を保存しておく。
         setPreviousFileTo(fileTo);
         setPreviousRankTo(rankTo);
 
         m_pvKanjiStr += shogiStr;
 
-        // GUIの「探索手」の欄に表示する読み筋の最初の文字列を取得する。
-        if (i == 0) {
-            m_searchedHand = shogiStr;
-        }
+        if (i == 0) m_searchedHand = shogiStr;
 
-        // 将棋盤と駒台の駒を更新する。（1手指した局面を作成する。）
-        // 指す駒を指したマスに移動させる。boardDataの入れ替えだけを行う。
+        // 盤面に 1 手適用
         movePieceToSquare(clonedBoardData, movingPiece, fileFrom, rankFrom, fileTo, rankTo, promote);
     }
 
@@ -591,21 +571,20 @@ int ShogiEngineInfoParser::parsePvAndSimulateMoves(const QStringList& pvTokens, 
 // 指し手を解析し、その指し手に基づいてコピーした盤面データを更新する。
 void ShogiEngineInfoParser::parseAndApplyMoveToClonedBoard(const QString& str, QVector<QChar>& clonedBoardData)
 {
-    // 指し手のマスの移動元の筋と段と移動先の筋と段、成る・不成のフラグ
-    int fileFrom;
-    int rankFrom;
-    int fileTo;
-    int rankTo;
-    bool promote;
+    int fileFrom = 0, rankFrom = 0, fileTo = 0, rankTo = 0;
+    bool promote = false;
 
-    // 指し手を表す文字列から指し手のマスの座標と成るかどうかのフラグを取得する。
-    parseMoveString(str, fileFrom, rankFrom, fileTo, rankTo, promote);
+    const int rc = parseMoveString(str, fileFrom, rankFrom, fileTo, rankTo, promote);
+    if (rc < 0) {
+        // 既にエラー通知済み
+        return; // ★ 打ち切り
+    }
+    if (rc == INFO_STRING_SPECIAL_CASE) {
+        return; // 指し手ではないので無視
+    }
 
-    // 指し手の駒文字
-    QChar movingPiece = getPieceCharacter(clonedBoardData, fileFrom, rankFrom);
-
-    // 将棋盤と駒台の駒を更新する。（1手指した局面を作成する。）
-    // 指す駒を指したマスに移動させる。boardDataの入れ替えだけを行う。
+    const QChar movingPiece = getPieceCharacter(clonedBoardData, fileFrom, rankFrom);
+    // getPieceKanjiName は不要（盤更新のみ）
     movePieceToSquare(clonedBoardData, movingPiece, fileFrom, rankFrom, fileTo, rankTo, promote);
 }
 
@@ -659,33 +638,27 @@ void ShogiEngineInfoParser::parseEngineOutputAndUpdateState(QString& line, const
 // 将棋エンジンから受信した対局相手の予想手を漢字の指し手文字列に変換する。
 QString ShogiEngineInfoParser::convertPredictedMoveToKanjiString(const ShogiGameController* algorithm, QString& predictedOpponentMove, QVector<QChar>& clonedBoardData)
 {
-    // 指し手のマスの移動元の筋と段と移動先の筋と段、成る・不成のフラグ
-    int fileFrom = 0;
-    int rankFrom = 0;
-    int fileTo = 0;
-    int rankTo = 0;
+    int fileFrom = 0, rankFrom = 0, fileTo = 0, rankTo = 0;
     bool promote = false;
 
-    // 指し手を表す文字列から指し手のマスの座標と成るかどうかのフラグを取得する。
-    parseMoveString(predictedOpponentMove, fileFrom, rankFrom, fileTo, rankTo, promote);
+    const int rc = parseMoveString(predictedOpponentMove, fileFrom, rankFrom, fileTo, rankTo, promote);
+    if (rc < 0 || rc == INFO_STRING_SPECIAL_CASE) {
+        // 既にエラー通知済み or 指し手以外
+        return QString(); // ★ 打ち切り
+    }
 
-    // 指し手の駒文字
-    QChar movingPiece = getPieceCharacter(clonedBoardData, fileFrom, rankFrom);
+    const QChar movingPiece = getPieceCharacter(clonedBoardData, fileFrom, rankFrom);
+    const QString kanjiMovePiece = getPieceKanjiName(movingPiece);
+    if (kanjiMovePiece.isEmpty()) {
+        return QString(); // ★ 打ち切り（通知済み）
+    }
 
-    // 指し手の駒文字を漢字に直す。
-    QString kanjiMovePiece = getPieceKanjiName(movingPiece);
+    const bool isPondering = true;
+    const int i = 0;
 
-    // 将棋エンジンから受信した読み筋を将棋の指し手の文字列に変換する。
-    // 例．
-    // 「7g7h 2f2e 8e8f 2e2d 2c2d 8i7g 8f8g+」
-    // 「△７八馬(77)▲２五歩(26)△８六歩(85)▲２四歩(25)△同歩(23)▲７七桂(89)△８七歩成(86)」
-    int i = 0;
+    const QString shogiStr =
+        convertMoveToShogiString(kanjiMovePiece, fileFrom, rankFrom, fileTo, rankTo, promote, algorithm, i, isPondering);
 
-    bool isPondering = true;
-
-    QString shogiStr = convertMoveToShogiString(kanjiMovePiece, fileFrom, rankFrom, fileTo, rankTo, promote, algorithm, i, isPondering);
-
-    // 直前の指し手のマスの筋と段を保存しておく。
     setPreviousFileTo(fileTo);
     setPreviousRankTo(rankTo);
 

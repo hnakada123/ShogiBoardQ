@@ -59,6 +59,14 @@ void ShogiGameController::setupBoard()
 // 将棋盤のポインタを設定する。
 void ShogiGameController::setBoard(ShogiBoard* board)
 {
+    // ★ 異常ガード：null を渡されたら通知して打ち切り
+    if (!board) {
+        const QString errorMessage =
+            tr("An error occurred in ShogiGameController::setBoard: null board was passed.");
+        emit errorOccurred(errorMessage);
+        return; // 打ち切り
+    }
+
     // すでに設定されている場合は何もしない。
     if (board == m_board) return;
 
@@ -75,10 +83,6 @@ void ShogiGameController::setBoard(ShogiBoard* board)
 // 対局結果を設定する。
 void ShogiGameController::setResult(Result value)
 {
-    //begin
-    qDebug() << "in ShogiGameController::setResult";
-    //end
-
     // すでに設定されている場合は何もしない。
     if (result() == value) return;
 
@@ -120,6 +124,14 @@ void ShogiGameController::setCurrentPlayer(const Player player)
 // 指し手を漢字の文字列に変換する。
 QString ShogiGameController::convertMoveToKanjiStr(const QString piece, const int fileFrom, const int rankFrom, const int fileTo, const int rankTo)
 {
+    // ★ 手番未設定はエラーとして打ち切る（"▲/△" が付与できないため）
+    if (currentPlayer() != Player1 && currentPlayer() != Player2) {
+        const QString errorMessage =
+            tr("An error occurred in ShogiGameController::convertMoveToKanjiStr: current player is invalid.");
+        emit errorOccurred(errorMessage);
+        return QString(); // 打ち切り
+    }
+
     // 駒の漢字表記
     QString pieceKanji;
 
@@ -140,18 +152,14 @@ QString ShogiGameController::convertMoveToKanjiStr(const QString piece, const in
     // 現在の手番に応じて指し手の漢字文字列を設定する。
     if (currentPlayer() == Player1) {
         moveStr = "▲";
-    } else if (currentPlayer() == Player2) {
+    } else { // Player2
         moveStr = "△";
     }
 
     // 同じマスに駒を移動する場合
     if ((fileTo == previousFileTo) && (rankTo == previousRankTo)) {
-        // 漢字文字列に「同」を追加する。
         moveStr += "同　" + pieceKanji;
-    }
-    // 同じマスに駒を移動しない場合
-    else {
-        // 漢字文字列に移動先のマスを追加する。
+    } else {
         moveStr += ShogiUtils::transFileTo(fileTo) + ShogiUtils::transRankTo(rankTo) + pieceKanji;
     }
 
@@ -160,12 +168,8 @@ QString ShogiGameController::convertMoveToKanjiStr(const QString piece, const in
 
     // 駒台から打つ場合（10は先手の駒台番号、11は後手の駒台番号）
     if ((fileFrom >= 10) && (fileFrom <= 11)) {
-        // 漢字文字列に「打」を追加する。
         moveStr += "打";
-    }
-    // 駒台から打たない場合
-    else {
-        // 漢字文字列に移動元のマスを追加する。
+    } else {
         moveStr += "(" + QString::number(fileFrom) + QString::number(rankFrom) + ")";
     }
 
@@ -173,7 +177,6 @@ QString ShogiGameController::convertMoveToKanjiStr(const QString piece, const in
     previousFileTo = fileTo;
     previousRankTo = rankTo;
 
-    // 漢字文字列を返す。
     return moveStr;
 }
 
@@ -360,13 +363,22 @@ MoveValidator::Turn ShogiGameController::getCurrentTurnForValidator(MoveValidato
 bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QString& record, PlayMode& playMode, int& moveNumber,
                                           QStringList* m_sfenRecord, QVector<ShogiMove>& gameMoves)
 {
+    // ★ 異常ガード：盤未設定
+    if (!board()) {
+        const QString errorMessage =
+            tr("An error occurred in ShogiGameController::validateAndMove: board() is null.");
+        emit errorOccurred(errorMessage);
+        emit endDragSignal();
+        return false; // 打ち切り
+    }
+
     // 指し手の移動元と移動先のマスの筋と段を取得する。
     int fileFrom = outFrom.x();
     int rankFrom = outFrom.y();
     int fileTo   = outTo.x();
     int rankTo   = outTo.y();
 
-    //begin
+    //begin debug
     qDebug() << "in ShogiGameController::validateAndMove";
     qDebug() << "playMode = " << playMode;
     qDebug() << "promote = " << m_promote;
@@ -375,7 +387,7 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
     qDebug() << "fileTo = " << fileTo;
     qDebug() << "rankTo = " << rankTo;
     qDebug() << "currentPlayer() = " << currentPlayer();
-    //end
+    //end debug
 
     // 合法手判定に関するクラス
     MoveValidator validator;
@@ -391,6 +403,15 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
     QChar movingPiece   = board()->getPieceCharacter(fileFrom, rankFrom);
     QChar capturedPiece = board()->getPieceCharacter(fileTo,   rankTo);
 
+    // ★ 盤上移動のとき、移動元が空白は打ち切り（駒台からの打ちなら fileFrom=10/11 で許可）
+    if ((fileFrom >= 1 && fileFrom <= 9) && movingPiece == QLatin1Char(' ')) {
+        const QString errorMessage =
+            tr("An error occurred in ShogiGameController::validateAndMove: the source square is empty.");
+        emit errorOccurred(errorMessage);
+        emit endDragSignal();
+        return false; // 打ち切り
+    }
+
     // 合法手判定に関するクラスで利用するための指し手データを生成する。
     ShogiMove currentMove(fromPoint, toPoint, movingPiece, capturedPiece, m_promote);
 
@@ -402,19 +423,31 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
         emit endDragSignal();
     }
 
-    // 現在の指し手を追加保存する（ここで確定後の手数が gameMoves.size() になる）
+    // ★ 手番SFENの取得を先に行い、異常時は打ち切る（盤更新より前に失敗させる）
+    QString nextPlayerColorSfen = getNextPlayerSfen();
+    if (nextPlayerColorSfen.isEmpty()) {
+        // getNextPlayerSfen 内で emit 済み
+        return false; // 打ち切り
+    }
+
+    // 現在の指し手を追加保存（ここで確定後の手数が gameMoves.size() になる）
     gameMoves.append(currentMove);
 
     // 盤面更新
     board()->updateBoardAndPieceStand(movingPiece, capturedPiece, fileFrom, rankFrom, fileTo, rankTo, m_promote);
 
     // SFEN 保存
-    QString nextPlayerColorSfen = getNextPlayerSfen();
     board()->addSfenRecord(nextPlayerColorSfen, moveNumber, m_sfenRecord);
 
     // 棋譜文字列
     QString kanjiPiece = getPieceKanji(movingPiece);
+    // （getPieceKanji がエラー時は空を返すが、盤更新済みのためここでは通知済みとして続行）
+
     record = convertMoveToKanjiStr(kanjiPiece, fileFrom, rankFrom, fileTo, rankTo);
+    if (record.isEmpty()) {
+        // convertMoveToKanjiStr 内でエラー通知済み。状態は既に更新済みなので、そのまま false 返却。
+        return false; // 打ち切り
+    }
 
     // ---- ★ 着手確定シグナル：手番切替の「前」に出す！ ----
     const Player moverBefore   = currentPlayer();     // 着手者（切替前）
@@ -438,16 +471,19 @@ void ShogiGameController::changeCurrentPlayer()
 // 局面編集で駒移動を行い、局面を更新する。
 bool ShogiGameController::editPosition(const QPoint& outFrom, const QPoint& outTo)
 {
+    // ★ 異常ガード：盤未設定
+    if (!board()) {
+        const QString errorMessage =
+            tr("An error occurred in ShogiGameController::editPosition: board() is null.");
+        emit errorOccurred(errorMessage);
+        return false; // 打ち切り
+    }
+
     // 指し手の移動元と移動先のマスの筋と段を取得する。
     int fileFrom = outFrom.x();
     int rankFrom = outFrom.y();
     int fileTo = outTo.x();
     int rankTo = outTo.y();
-
-    //begin
-    // 持ち駒を出力する。
-    // board()->printPieceStand();
-    //end
 
     // 移動元のマスの駒文字を取得する。
     QChar source = board()->getPieceCharacter(fileFrom, rankFrom);
@@ -455,14 +491,10 @@ bool ShogiGameController::editPosition(const QPoint& outFrom, const QPoint& outT
     // 移動先のマスの駒文字を取得する。
     QChar dest = board()->getPieceCharacter(fileTo, rankTo);
 
-    // 移動先の駒文字が大文字の場合、先手あるいは下手の駒である。
+    // 手番の設定（移動元の駒の大文字/小文字から推定）
     if (source.isUpper()) {
-        // 手番を先手あるいは下手に設定する。
         setCurrentPlayer(Player1);
-    }
-    // 移動先の駒文字が小文字の場合、後手の駒である。
-    else {
-        // 手番を後手あるいは上手に設定する。
+    } else {
         setCurrentPlayer(Player2);
     }
 
@@ -475,7 +507,6 @@ bool ShogiGameController::editPosition(const QPoint& outFrom, const QPoint& outT
     // 将棋盤と駒台の駒数を更新する。
     board()->updateBoardAndPieceStand(source, dest, fileFrom, rankFrom, fileTo, rankTo, m_promote);
 
-    // 駒の移動が可能な場合、trueを返す。
     return true;
 }
 
@@ -699,7 +730,19 @@ bool ShogiGameController::checkGetKingOpponentPiece(const QChar source, const QC
 // 局面編集後の局面を SFEN 形式に変換し、リストに 0手局面として追加する。
 void ShogiGameController::updateSfenRecordAfterEdit(QStringList* m_sfenRecord)
 {
-    if (!board() || !m_sfenRecord) return;
+    // ★ 異常ガード：盤/出力が無い
+    if (!board()) {
+        const QString errorMessage =
+            tr("An error occurred in ShogiGameController::updateSfenRecordAfterEdit: board() is null.");
+        emit errorOccurred(errorMessage);
+        return; // 打ち切り
+    }
+    if (!m_sfenRecord) {
+        const QString errorMessage =
+            tr("An error occurred in ShogiGameController::updateSfenRecordAfterEdit: record list is null.");
+        emit errorOccurred(errorMessage);
+        return; // 打ち切り
+    }
 
     // moveIndex=-1 を渡すと addSfenRecord 側の (+2) で " 1 " になる仕様
     const int moveIndex = -1;
@@ -708,7 +751,7 @@ void ShogiGameController::updateSfenRecordAfterEdit(QStringList* m_sfenRecord)
     const QString nextTurn = (currentPlayer() == ShogiGameController::Player1)
                                  ? QStringLiteral("b") : QStringLiteral("w");
 
-    // 現在の gameBoard（＝ MainWindow 側で setSfen 済み）を 0手局面として登録
+    // 現在の gameBoard を 0手局面として登録
     board()->addSfenRecord(nextTurn, moveIndex, m_sfenRecord);
 }
 
