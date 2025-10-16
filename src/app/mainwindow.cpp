@@ -5482,23 +5482,29 @@ void MainWindow::connectMoveRequested_()
 
 // 盤/駒台クリックで移動要求が来たときに呼ばれるスロット
 void MainWindow::onMoveRequested_(const QPoint& from, const QPoint& to)
-{
+{   
     // 編集モードでは対局用の合法手検証は通さず、編集専用の移動APIを使う
     if (m_boardController && m_boardController->mode() == BoardInteractionController::Mode::Edit) {
         QPoint hFrom = from, hTo = to;  // 以降のAPIが参照を取るのでローカルコピー
 
-        bool ok = false;
-        ok = (m_gameController && m_gameController->editPosition(hFrom, hTo));
-        if (!ok) return;
+        const bool ok = (m_gameController && m_gameController->editPosition(hFrom, hTo));
+
+        // ★対局では GC が endDragSignal を出すが、編集モードでは出さないためここで必ず終了
+        if (m_shogiView) m_shogiView->endDrag();
+
+        // 失敗時は選択とドラッグ状態をクリアして抜ける
+        if (!ok) {
+            if (m_boardController) m_boardController->onMoveApplied(hFrom, hTo, ok); // ← false で finalizeDrag() 呼ばれる
+            return;
+        }
 
         // ハイライト更新（直前手の赤/黄・選択解除などは BIC に委譲）
         if (m_boardController) m_boardController->onMoveApplied(hFrom, hTo, ok);
 
         // 盤の再描画
-        if (ok && m_shogiView) m_shogiView->update();
+        if (m_shogiView) m_shogiView->update();
 
-        // 編集モードのときはここで終了（対局処理へは進めない）
-        return;
+        return; // Edit はここで完結
     }
 
     // 以降は通常対局処理（従来どおり）
