@@ -174,6 +174,7 @@ QString ShogiBoard::validateAndConvertSfenBoardStr(QString initialSfenStr)
 
         qDebug() << "initialSfenStr: " << initialSfenStr;
         emit errorOccurred(errorMessage);
+        return QString(); // ★ 打ち切り
     }
 
     // 各段に配置可能な駒のリスト
@@ -208,6 +209,7 @@ QString ShogiBoard::validateAndConvertSfenBoardStr(QString initialSfenStr)
                 qDebug() << "ch: " << ch;
 
                 emit errorOccurred(errorMessage);
+                return QString(); // ★ 打ち切り
             }
         }
 
@@ -220,6 +222,7 @@ QString ShogiBoard::validateAndConvertSfenBoardStr(QString initialSfenStr)
             qDebug() << "pieceCount: " << pieceCount;
 
             emit errorOccurred(errorMessage);
+            return QString(); // ★ 打ち切り
         }
     }
 
@@ -244,6 +247,7 @@ void ShogiBoard::setPieceStandFromSfen(const QString& str)
         qDebug() << "str: " << str;
 
         emit errorOccurred(errorMessage);
+        return; // ★ 打ち切り
     }
 
     // 2桁の数字が含まれているかどうかを示すフラグ
@@ -285,6 +289,7 @@ void ShogiBoard::setPieceStandFromSfen(const QString& str)
                     qDebug() << "str[i]: " << str[i];
 
                     emit errorOccurred(errorMessage);
+                    return; // ★ 打ち切り
                 }
             }
             else {
@@ -319,6 +324,7 @@ void ShogiBoard::setPieceStandFromSfen(const QString& str)
                     qDebug() << "str[i]: " << str[i];
 
                     emit errorOccurred(errorMessage);
+                    return; // ★ 打ち切り
                 }
             }
         }
@@ -335,6 +341,7 @@ void ShogiBoard::setPieceStandFromSfen(const QString& str)
             qDebug() << "str: " << str;
 
             emit errorOccurred(errorMessage);
+            return; // ★ 打ち切り
         }
     }
 }
@@ -409,6 +416,7 @@ void ShogiBoard::validateSfenString(const QString& sfenStr, QString& sfenBoardSt
         qDebug() << "sfenComponents.size(): " << sfenComponents.size();
 
         emit errorOccurred(errorMessage);
+        return; // ★ 打ち切り
     }
 
     // 将棋盤内のみのSFEN文字列を取得する。
@@ -432,6 +440,7 @@ void ShogiBoard::validateSfenString(const QString& sfenStr, QString& sfenBoardSt
         qDebug() << "playerTurnStr: " << playerTurnStr;
 
         emit errorOccurred(errorMessage);
+        return; // ★ 打ち切り
     }
 
     // 持ち駒のSFEN文字列を取得する。
@@ -452,6 +461,7 @@ void ShogiBoard::validateSfenString(const QString& sfenStr, QString& sfenBoardSt
         qDebug() << "sfenStr: " << sfenStr;
 
         emit errorOccurred(errorMessage);
+        return; // ★ 打ち切り
     }
 }
 
