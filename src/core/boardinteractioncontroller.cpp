@@ -46,7 +46,7 @@ void BoardInteractionController::onLeftClick(const QPoint& pt)
     // 2nd クリック：同一マスならキャンセル扱い
     m_waitingSecondClick = false;
     if (pt == m_clickPoint) {
-        finalizeDrag();
+        finalizeDrag(); // ← ここでは従来通りキャンセル時のみドラッグ終了
         return;
     }
 
@@ -55,10 +55,16 @@ void BoardInteractionController::onLeftClick(const QPoint& pt)
     const QPoint to   = pt;
 
     // 直前の赤ハイライトは、適用が成功したタイミングで描くためここでは触らない
-    // ドラッグを終える＆選択は維持（呼び元が失敗を返す場合に備えてもOK）
-    m_view->endDrag();
-
+    // ★重要★ ここではドラッグを終了しない。
+    //         理由：成/不成ダイアログ表示中も “相手駒に重なった状態” を維持したい。
+    //         ドラッグの終了は ShogiGameController 側で昇格判定後に endDragSignal を emit し、
+    //         MainWindow::endDrag() 経由で ShogiView::endDrag() が呼ばれて行われる。
     emit moveRequested(from, to);
+
+    // （補足）Edit モードの右クリックトグルは従来通り維持
+    if (m_mode == Mode::Edit) {
+        togglePiecePromotionOnClick(pt);
+    }
 }
 
 void BoardInteractionController::onRightClick(const QPoint& pt)
