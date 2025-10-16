@@ -659,7 +659,7 @@ void ShogiGameController::switchPiecePromotionStatusOnRightClick(const int fileF
         // 段
         for (int rank = 1; rank <= 9; rank++) {
             // と金のある段に歩が存在していた場合は、と金は歩にできない。（二歩）
-            if (board()->getPieceCharacter(fileFrom, rank) == 'P') return;
+            if (board()->getPieceCharacter(fileFrom, rank) == 'p') return;
         }
     }
 
@@ -668,7 +668,7 @@ void ShogiGameController::switchPiecePromotionStatusOnRightClick(const int fileF
         // 段
         for (int rank = 1; rank <= 9; rank++) {
             // と金のある段に歩が存在していた場合は、と金は歩にできない。（二歩）
-            if (board()->getPieceCharacter(fileFrom, rank) == 'p') return;
+            if (board()->getPieceCharacter(fileFrom, rank) == 'P') return;
         }
     }
 

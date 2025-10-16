@@ -616,11 +616,11 @@ void ShogiBoard::promoteOrDemotePiece(const int fileFrom, const int rankFrom)
 {
     // 成駒・不成駒の変換マップ
     static const QMap<QChar, QChar> pieceTransformMap = {
-                                                   {'P', 'Q'}, {'L', 'M'}, {'N', 'O'}, {'S', 'T'}, {'B', 'C'}, {'R', 'U'},
-                                                   {'Q', 'P'}, {'M', 'L'}, {'O', 'N'}, {'T', 'S'}, {'C', 'B'}, {'U', 'R'},
-                                                   {'p', 'q'}, {'l', 'm'}, {'n', 'o'}, {'s', 't'}, {'b', 'c'}, {'r', 'u'},
-                                                   {'q', 'p'}, {'m', 'l'}, {'o', 'n'}, {'t', 's'}, {'c', 'b'}, {'u', 'r'},
-                                                   };
+                                                         {'P', 'Q'}, {'L', 'M'}, {'N', 'O'}, {'S', 'T'}, {'B', 'C'}, {'R', 'U'},
+                                                         {'Q', 'p'}, {'M', 'l'}, {'O', 'n'}, {'T', 's'}, {'C', 'b'}, {'U', 'r'},
+                                                         {'p', 'q'}, {'l', 'm'}, {'n', 'o'}, {'s', 't'}, {'b', 'c'}, {'r', 'u'},
+                                                         {'q', 'P'}, {'m', 'L'}, {'o', 'N'}, {'t', 'S'}, {'c', 'B'}, {'u', 'R'},
+                                                         };
 
     // 現在の駒文字を取得する。
     QChar currentPiece = getPieceCharacter(fileFrom, rankFrom);
