@@ -623,7 +623,7 @@ void ShogiBoard::addSfenRecord(const QString& nextTurn, const int moveNumber, QS
     m_sfenRecord->append(sfen);
 }
 
-// 局面編集中に右クリックで成駒/不成駒/先後を巡回変換する（禁置き段はスキップ）。
+// 局面編集中に右クリックで成駒/不成駒/先後を巡回変換する（禁置き段＋二歩をスキップ）。
 void ShogiBoard::promoteOrDemotePiece(const int fileFrom, const int rankFrom)
 {
     auto nextInCycle = [](const QVector<QChar>& cyc, QChar cur)->QChar {
@@ -641,7 +641,6 @@ void ShogiBoard::promoteOrDemotePiece(const int fileFrom, const int rankFrom)
 
     const QChar cur = getPieceCharacter(fileFrom, rankFrom);
     QVector<QChar> base;
-
     switch (cur.unicode()) {
     case 'L': case 'M': case 'l': case 'm': base = lanceCycle;  break;
     case 'N': case 'O': case 'n': case 'o': base = knightCycle; break;
@@ -653,18 +652,37 @@ void ShogiBoard::promoteOrDemotePiece(const int fileFrom, const int rankFrom)
         return; // 金・玉などは変換対象外
     }
 
-    // 置けない“不成”を段で判定（歩/桂/香）
-    auto isDisallowed = [&](QChar piece)->bool {
-        // 香
-        if (piece == 'L' && rankFrom == 1) return true;                    // 先手香の1段目は不可
-        if (piece == 'l' && rankFrom == 9) return true;                    // 後手香の9段目は不可
-        // 桂
-        if (piece == 'N' && (rankFrom == 1 || rankFrom == 2)) return true; // 先手桂の1,2段目は不可
-        if (piece == 'n' && (rankFrom == 8 || rankFrom == 9)) return true; // 後手桂の8,9段目は不可
-        // 歩
-        if (piece == 'P' && rankFrom == 1) return true;                    // 先手歩の1段目は不可
-        if (piece == 'p' && rankFrom == 9) return true;                    // 後手歩の9段目は不可
+    const bool onBoard = (fileFrom >= 1 && fileFrom <= 9);
+
+    // 段による不成禁止（必成）を判定
+    auto isRankDisallowed = [&](QChar piece)->bool {
+        if (!onBoard) return false;
+        // 先手側
+        if (piece == 'L' && rankFrom == 1) return true;
+        if (piece == 'N' && (rankFrom == 1 || rankFrom == 2)) return true;
+        if (piece == 'P' && rankFrom == 1) return true;
+        // 後手側
+        if (piece == 'l' && rankFrom == 9) return true;
+        if (piece == 'n' && (rankFrom == 8 || rankFrom == 9)) return true;
+        if (piece == 'p' && rankFrom == 9) return true;
         return false;
+    };
+
+    // 二歩禁止：その筋に別の同側の“歩（不成）”が既にあるなら P/p は不可
+    auto isNiFuDisallowed = [&](QChar candidate)->bool {
+        if (!onBoard) return false;
+        if (candidate != 'P' && candidate != 'p') return false;
+        for (int r = 1; r <= 9; ++r) {
+            if (r == rankFrom) continue; // 自マスは除外
+            const QChar pc = getPieceCharacter(fileFrom, r);
+            if (candidate == 'P' && pc == 'P') return true; // 同筋に先手歩
+            if (candidate == 'p' && pc == 'p') return true; // 同筋に後手歩
+        }
+        return false;
+    };
+
+    auto isDisallowed = [&](QChar piece)->bool {
+        return isRankDisallowed(piece) || isNiFuDisallowed(piece);
     };
 
     // 禁止形は巡回列から除外（= 自動スキップ）
@@ -675,7 +693,7 @@ void ShogiBoard::promoteOrDemotePiece(const int fileFrom, const int rankFrom)
     }
     if (filtered.isEmpty()) return;
 
-    // 「現在が filtered 外（既に不許可形）」なら、base を回して許可形まで進める
+    // 現在形が filtered 外（既に禁止形）なら、base を回して最初の許可形へジャンプ
     QChar next = cur;
     if (filtered.indexOf(cur) < 0) {
         QChar probe = cur;
@@ -684,7 +702,7 @@ void ShogiBoard::promoteOrDemotePiece(const int fileFrom, const int rankFrom)
             if (filtered.indexOf(probe) >= 0) { next = probe; break; }
         }
     } else {
-        // 通常：filtered 内で次へ（= 禁止形は自動スキップ）
+        // 通常：filtered 内で次へ
         int idx = filtered.indexOf(cur);
         next = filtered[(idx + 1) % filtered.size()];
     }
