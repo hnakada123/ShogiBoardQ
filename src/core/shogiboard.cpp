@@ -63,39 +63,51 @@ void ShogiBoard::setData(const int file, const int rank, const QChar piece)
 }
 
 // 駒を指定したマスへ移動する。配置データのみを更新する。
+// 駒を指定したマスへ移動する。配置データのみを更新する。
+// ★編集局面でも使用されるため、歩/桂/香の禁置き段では自動で成駒に置き換える（必成）。
 void ShogiBoard::movePieceToSquare(QChar selectedPiece, const int fileFrom, const int rankFrom,
                                    const int fileTo, const int rankTo, const bool promote)
 {
-    // 駒が成る場合
+    auto promotedOf = [](QChar p)->QChar {
+        static const QMap<QChar, QChar> promoteMap = {
+            {'P','Q'},{'L','M'},{'N','O'},{'S','T'},{'B','C'},{'R','U'},
+            {'p','q'},{'l','m'},{'n','o'},{'s','t'},{'b','c'},{'r','u'}
+        };
+        return promoteMap.contains(p) ? promoteMap[p] : p;
+    };
+
+    // 1) 「成る」指定が来ていれば、先に成駒へ
     if (promote) {
-        // 駒とその成駒の対応マップ
-        static QMap<QChar, QChar> promoteMap = {{'P', 'Q'}, {'L', 'M'}, {'N', 'O'}, {'S', 'T'},
-                                                {'B', 'C'}, {'R', 'U'}, {'p', 'q'}, {'l', 'm'},
-                                                {'n', 'o'}, {'s', 't'}, {'b', 'c'}, {'r', 'u'}};
+        selectedPiece = promotedOf(selectedPiece);
+    }
 
-        // 成り駒の文字を取得する。
-        if (promoteMap.contains(selectedPiece)) {
-            selectedPiece = promoteMap[selectedPiece];
-        }
-
-        // 指した先に成った駒を設定し、元の位置を空白にする。
-        setData(fileTo, rankTo, selectedPiece);
-
+    // 2) 元位置を空白に
+    if ((fileFrom >= 1) && (fileFrom <= 9)) {
         setData(fileFrom, rankFrom, ' ');
     }
-    // 不成の場合
-    else {
-        // 駒台から打つ場合、元の位置は変更しない。（すなわち、駒台から打つ場合はこの関数を
-        // 使用する前に駒台から駒を取り除く。）
 
-        // 盤上の駒を動かす場合、元の位置を空白にする。
-        if ((fileFrom >= 1) && (fileFrom <= 9)) {
-            setData(fileFrom, rankFrom, ' ');
+    // 3) まず素の駒を置く（盤上のみ）
+    if ((fileTo >= 1) && (fileTo <= 9)) {
+        setData(fileTo, rankTo, selectedPiece);
+
+        // 4) 置いた結果に対して「必成」補正（歩/桂/香）
+        QChar placed = getPieceCharacter(fileTo, rankTo);
+
+        // 先手の必成
+        if (placed == 'P' && rankTo == 1) {
+            setData(fileTo, rankTo, 'Q'); // 先手歩 → と金
+        } else if (placed == 'L' && rankTo == 1) {
+            setData(fileTo, rankTo, 'M'); // 先手香 → 成香
+        } else if (placed == 'N' && (rankTo == 1 || rankTo == 2)) {
+            setData(fileTo, rankTo, 'O'); // 先手桂 → 成桂
         }
-
-        // 新しい位置に駒を配置する
-        if  ((fileTo >= 1) && (fileTo <= 9)) {
-            setData(fileTo, rankTo, selectedPiece);
+        // 後手の必成
+        else if (placed == 'p' && rankTo == 9) {
+            setData(fileTo, rankTo, 'q'); // 後手歩 → と金
+        } else if (placed == 'l' && rankTo == 9) {
+            setData(fileTo, rankTo, 'm'); // 後手香 → 成香
+        } else if (placed == 'n' && (rankTo == 8 || rankTo == 9)) {
+            setData(fileTo, rankTo, 'o'); // 後手桂 → 成桂
         }
     }
 }
@@ -611,25 +623,73 @@ void ShogiBoard::addSfenRecord(const QString& nextTurn, const int moveNumber, QS
     m_sfenRecord->append(sfen);
 }
 
-// 局面編集中に右クリックで成駒、不成駒に変換する。
+// 局面編集中に右クリックで成駒/不成駒/先後を巡回変換する（禁置き段はスキップ）。
 void ShogiBoard::promoteOrDemotePiece(const int fileFrom, const int rankFrom)
 {
-    // 成駒・不成駒の変換マップ
-    static const QMap<QChar, QChar> pieceTransformMap = {
-                                                         {'P', 'Q'}, {'L', 'M'}, {'N', 'O'}, {'S', 'T'}, {'B', 'C'}, {'R', 'U'},
-                                                         {'Q', 'p'}, {'M', 'l'}, {'O', 'n'}, {'T', 's'}, {'C', 'b'}, {'U', 'r'},
-                                                         {'p', 'q'}, {'l', 'm'}, {'n', 'o'}, {'s', 't'}, {'b', 'c'}, {'r', 'u'},
-                                                         {'q', 'P'}, {'m', 'L'}, {'o', 'N'}, {'t', 'S'}, {'c', 'B'}, {'u', 'R'},
-                                                         };
+    auto nextInCycle = [](const QVector<QChar>& cyc, QChar cur)->QChar {
+        int idx = cyc.indexOf(cur);
+        if (idx < 0) return cur;
+        return cyc[(idx + 1) % cyc.size()];
+    };
 
-    // 現在の駒文字を取得する。
-    QChar currentPiece = getPieceCharacter(fileFrom, rankFrom);
+    const auto lanceCycle  = QVector<QChar>{'L','M','l','m'}; // 香 → 成香 → 相手香 → 相手成香
+    const auto knightCycle = QVector<QChar>{'N','O','n','o'}; // 桂 → 成桂 → 相手桂 → 相手成桂
+    const auto silverCycle = QVector<QChar>{'S','T','s','t'};
+    const auto bishopCycle = QVector<QChar>{'B','C','b','c'};
+    const auto rookCycle   = QVector<QChar>{'R','U','r','u'};
+    const auto pawnCycle   = QVector<QChar>{'P','Q','p','q'}; // 歩 → と金 → 相手歩 → 相手と金
 
-    // 駒文字が変換マップに含まれている場合
-    if (pieceTransformMap.contains(currentPiece)) {
-        // 駒文字を変換して、局面を更新する。
-        setData(fileFrom, rankFrom, pieceTransformMap[currentPiece]);
+    const QChar cur = getPieceCharacter(fileFrom, rankFrom);
+    QVector<QChar> base;
+
+    switch (cur.unicode()) {
+    case 'L': case 'M': case 'l': case 'm': base = lanceCycle;  break;
+    case 'N': case 'O': case 'n': case 'o': base = knightCycle; break;
+    case 'S': case 'T': case 's': case 't': base = silverCycle; break;
+    case 'B': case 'C': case 'b': case 'c': base = bishopCycle; break;
+    case 'R': case 'U': case 'r': case 'u': base = rookCycle;   break;
+    case 'P': case 'Q': case 'p': case 'q': base = pawnCycle;   break;
+    default:
+        return; // 金・玉などは変換対象外
     }
+
+    // 置けない“不成”を段で判定（歩/桂/香）
+    auto isDisallowed = [&](QChar piece)->bool {
+        // 香
+        if (piece == 'L' && rankFrom == 1) return true;                    // 先手香の1段目は不可
+        if (piece == 'l' && rankFrom == 9) return true;                    // 後手香の9段目は不可
+        // 桂
+        if (piece == 'N' && (rankFrom == 1 || rankFrom == 2)) return true; // 先手桂の1,2段目は不可
+        if (piece == 'n' && (rankFrom == 8 || rankFrom == 9)) return true; // 後手桂の8,9段目は不可
+        // 歩
+        if (piece == 'P' && rankFrom == 1) return true;                    // 先手歩の1段目は不可
+        if (piece == 'p' && rankFrom == 9) return true;                    // 後手歩の9段目は不可
+        return false;
+    };
+
+    // 禁止形は巡回列から除外（= 自動スキップ）
+    QVector<QChar> filtered;
+    filtered.reserve(base.size());
+    for (QChar p : base) {
+        if (!isDisallowed(p)) filtered.push_back(p);
+    }
+    if (filtered.isEmpty()) return;
+
+    // 「現在が filtered 外（既に不許可形）」なら、base を回して許可形まで進める
+    QChar next = cur;
+    if (filtered.indexOf(cur) < 0) {
+        QChar probe = cur;
+        for (int i = 0; i < base.size(); ++i) {
+            probe = nextInCycle(base, probe);
+            if (filtered.indexOf(probe) >= 0) { next = probe; break; }
+        }
+    } else {
+        // 通常：filtered 内で次へ（= 禁止形は自動スキップ）
+        int idx = filtered.indexOf(cur);
+        next = filtered[(idx + 1) % filtered.size()];
+    }
+
+    setData(fileFrom, rankFrom, next);
 }
 
 // 手番の持ち駒を出力する。
