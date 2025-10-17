@@ -91,8 +91,6 @@ ShogiView::ShogiView(QWidget *parent)
         f.setPointSizeF(qMax(8.0, m_squareSize * 0.45));
         m_blackClockLabel->setFont(f);
     }
-    // 時計ラベル上側に 10px のマージンを与え、盤/駒台との「視覚的な呼吸」を確保。
-    m_blackClockLabel->setContentsMargins(0, 10, 0, 0);
 
     // 先手（黒）の名前ラベル（長い名前を省略表示できる特殊ラベル）を生成。
     m_blackNameLabel = new ElideLabel(this);
@@ -108,8 +106,6 @@ ShogiView::ShogiView(QWidget *parent)
     m_blackNameLabel->setSlideSpeed(2);
     // スクロールの更新間隔（ミリ秒）。16ms ≒ 60fps で滑らかに。
     m_blackNameLabel->setSlideInterval(16);
-    // 名前ラベル上側にも 10px のマージンを付与して密集感を回避。
-    m_blackNameLabel->setContentsMargins(0, 10, 0, 0);
 
     // ───────────────────────────────── 名前ラベル（後手：白） ─────────────────────────────────
 
@@ -121,7 +117,6 @@ ShogiView::ShogiView(QWidget *parent)
     m_whiteNameLabel->setManualPanEnabled(true);
     m_whiteNameLabel->setSlideSpeed(2);
     m_whiteNameLabel->setSlideInterval(16);
-    m_whiteNameLabel->setContentsMargins(0, 10, 0, 0);
 
     // ───────────────────────────────── 時計ラベル（後手：白） ─────────────────────────────────
 
@@ -138,8 +133,6 @@ ShogiView::ShogiView(QWidget *parent)
         f.setPointSizeF(qMax(8.0, m_squareSize * 0.45));
         m_whiteClockLabel->setFont(f);
     }
-    // 後手の時計ラベルも上側に 10px のマージンで余白を確保。
-    m_whiteClockLabel->setContentsMargins(0, 10, 0, 0);
 
     // 【初期配置の反映】
     // 現在のレイアウトパラメータに基づき、時計ラベルの位置・サイズを更新。
