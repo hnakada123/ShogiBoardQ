@@ -60,11 +60,6 @@ void BoardInteractionController::onLeftClick(const QPoint& pt)
     //         ドラッグの終了は ShogiGameController 側で昇格判定後に endDragSignal を emit し、
     //         MainWindow::endDrag() 経由で ShogiView::endDrag() が呼ばれて行われる。
     emit moveRequested(from, to);
-
-    // （補足）Edit モードの右クリックトグルは従来通り維持
-    if (m_mode == Mode::Edit) {
-        togglePiecePromotionOnClick(pt);
-    }
 }
 
 void BoardInteractionController::onRightClick(const QPoint& pt)
