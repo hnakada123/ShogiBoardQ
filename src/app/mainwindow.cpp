@@ -1755,15 +1755,18 @@ void MainWindow::onTurnManagerChanged(ShogiGameController::Player now)
     const int cur = (now == ShogiGameController::Player2) ? 2 : 1;
     updateTurnStatus(cur);
 
-    // 2) 盤オブジェクト(ShogiBoard)には setCurrentPlayer は無いので呼ばない
-    //    手番は ShogiGameController に集約して同期させる
+    // 2) 盤モデルの手番は GC に集約
     if (m_gameController) {
-        m_gameController->setCurrentPlayer(now);  // ← ここだけで十分に同期できる
+        m_gameController->setCurrentPlayer(now);
     }
 
-    // （必要に応じて：ここでステータスバー表示やログ出力などを追加してもOK）
-}
+    // ★ 3) 盤ビュー側の「次の手番」ラベル表示を更新（片側のみ表示）
+    if (m_shogiView) {
+        m_shogiView->updateTurnIndicator(now);
+    }
 
+    // （必要なら：ここでログやステータスバー更新などを追加）
+}
 
 // 現在の手番を設定する。
 void MainWindow::setCurrentTurn()
