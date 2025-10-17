@@ -3,6 +3,8 @@
 #include "enginesettingsconstants.h"
 #include "elidelabel.h"
 #include "globaltooltip.h"
+#include "shogigamecontroller.h"
+
 #include <QColor>
 #include <QMouseEvent>
 #include <QPainter>
@@ -1877,9 +1879,12 @@ void ShogiView::resizeEvent(QResizeEvent* e)
     // 既定のレイアウト更新など
     QWidget::resizeEvent(e);
 
-    // あなたの既存のジオメトリ更新（必要なら順序はこの後でもOK）
+    // 既存のジオメトリ更新
     updateBlackClockLabelGeometry();
     updateWhiteClockLabelGeometry();
+
+    // ★ 手番ラベルの再配置（名前/時計の確定ジオメトリに追従）
+    relayoutTurnLabels_();
 }
 
 // 先手（黒）側の駒台全体を覆う境界矩形（バウンディングボックス）を算出して返す。
@@ -2325,6 +2330,9 @@ void ShogiView::recalcLayoutParams()
 
     // 実効ギャップの px 値（後続の計算や描画に利用）
     m_standGapPx = qRound(effCols * m_squareSize);
+
+    // ★ 手番ラベルも最新レイアウトに追従
+    relayoutTurnLabels_();
 }
 
 // 指定段（rank）に対応する「段ラベル（漢数字）」を、盤の外縁と駒台の内縁のあいだに描画する。
@@ -2529,6 +2537,9 @@ void ShogiView::updateBoardSize()
 {
     setFieldSize(QSize(m_squareSize, m_squareSize)); // 1 マスのサイズを更新（内部で再レイアウトも行う）
     updateGeometry();                                // 冗長だが安全側の再通知
+
+    // ★ 盤マスサイズ変更に伴い、手番ラベルの位置/フォントも追従
+    relayoutTurnLabels_();
 }
 
 QString ShogiView::toRgb(const QColor& c)
@@ -2692,4 +2703,150 @@ void ShogiView::setUiMuted(bool on) {
 void ShogiView::setActiveIsBlack(bool activeIsBlack)
 {
     m_blackActive = activeIsBlack;
+}
+
+// 手番ラベルを（無ければ）生成して初期設定する。
+// ヘッダ追加を避けるため、turnLabelBlack / turnLabelWhite は findChild で管理。
+// 既存の m_squareSize に連動してフォントサイズも設定する。
+void ShogiView::ensureTurnLabels_()
+{
+    // 先手用手番ラベル
+    QLabel* tlBlack = this->findChild<QLabel*>(QStringLiteral("turnLabelBlack"));
+    if (!tlBlack) {
+        tlBlack = new QLabel(QStringLiteral("次の手番"), this);
+        tlBlack->setObjectName(QStringLiteral("turnLabelBlack"));
+        tlBlack->setAlignment(Qt::AlignCenter);
+        tlBlack->setAttribute(Qt::WA_TransparentForMouseEvents, true);
+        tlBlack->setStyleSheet(QStringLiteral("background: transparent; color: black;"));
+        tlBlack->hide(); // 初期は非表示
+    }
+    // 後手用手番ラベル
+    QLabel* tlWhite = this->findChild<QLabel*>(QStringLiteral("turnLabelWhite"));
+    if (!tlWhite) {
+        tlWhite = new QLabel(QStringLiteral("次の手番"), this);
+        tlWhite->setObjectName(QStringLiteral("turnLabelWhite"));
+        tlWhite->setAlignment(Qt::AlignCenter);
+        tlWhite->setAttribute(Qt::WA_TransparentForMouseEvents, true);
+        tlWhite->setStyleSheet(QStringLiteral("background: transparent; color: black;"));
+        tlWhite->hide(); // 初期は非表示
+    }
+
+    // フォントは盤のマスサイズに追従（小さ過ぎないよう最低値も確保）
+    auto applyFont = [this](QLabel* lab){
+        if (!lab) return;
+        QFont f = this->font();
+        f.setBold(true);
+        f.setPointSizeF(qMax(8.0, m_squareSize * 0.33)); // 時計より一回り小さめ
+        lab->setFont(f);
+    };
+    applyFont(tlBlack);
+    applyFont(tlWhite);
+}
+
+// 手番ラベルの位置・サイズを、既存ラベルのジオメトリに基づいて再配置する。
+// ・先手（黒）: 名前ラベルの上に「次の手番」
+// ・後手（白）: 時計ラベルの下に「次の手番」
+// ※ 既存の m_blackNameLabel / m_whiteClockLabel が前提。
+void ShogiView::relayoutTurnLabels_()
+{
+    ensureTurnLabels_();
+
+    QLabel* tlBlack = this->findChild<QLabel*>(QStringLiteral("turnLabelBlack"));
+    QLabel* tlWhite = this->findChild<QLabel*>(QStringLiteral("turnLabelWhite"));
+
+    // 余白と高さはマスサイズ基準
+    const int margin = qRound(qMax(4.0, m_squareSize * 0.15));
+    const int h      = qRound(qMax(12.0, m_squareSize * 0.40));
+
+    // 先手：名前ラベルの上
+    if (tlBlack && m_blackNameLabel) {
+        const QRect base = m_blackNameLabel->geometry();
+        const QRect r(base.left(), base.top() - margin - h, base.width(), h);
+        tlBlack->setGeometry(r);
+    }
+
+    // 後手：時計ラベルの下
+    if (tlWhite && m_whiteClockLabel) {
+        const QRect base = m_whiteClockLabel->geometry();
+        const QRect r(base.left(), base.bottom() + 1 + margin, base.width(), h);
+        tlWhite->setGeometry(r);
+    }
+}
+
+// 片側だけ「次の手番」を表示する（先手=名前ラベルの上／後手=時計ラベルの下）
+// 前提：時計・名前ラベルのジオメトリは updateBlack/WhiteClockLabelGeometry() で確定する設計。
+//       ここでは必要に応じて idempotent に「手番ラベル」を生成し、現在手番側のみ表示する。
+void ShogiView::updateTurnIndicator(ShogiGameController::Player now)
+{
+    // 1) ベースラベルが未生成なら安全に抜ける
+    if (!m_blackNameLabel || !m_whiteClockLabel) return;
+
+    // 2) 手番ラベル（先手/後手）を遅延生成（ヘッダ追加不要・何度呼んでもOK）
+    QLabel* tlBlack = this->findChild<QLabel*>(QStringLiteral("turnLabelBlack"));
+    if (!tlBlack) {
+        tlBlack = new QLabel(tr("次の手番"), this);
+        tlBlack->setObjectName(QStringLiteral("turnLabelBlack"));
+        tlBlack->setAlignment(Qt::AlignCenter);
+        tlBlack->setAttribute(Qt::WA_TransparentForMouseEvents, true);
+        tlBlack->setStyleSheet(QStringLiteral("background: transparent; color: black;"));
+        tlBlack->hide();
+    }
+    QLabel* tlWhite = this->findChild<QLabel*>(QStringLiteral("turnLabelWhite"));
+    if (!tlWhite) {
+        tlWhite = new QLabel(tr("次の手番"), this);
+        tlWhite->setObjectName(QStringLiteral("turnLabelWhite"));
+        tlWhite->setAlignment(Qt::AlignCenter);
+        tlWhite->setAttribute(Qt::WA_TransparentForMouseEvents, true);
+        tlWhite->setStyleSheet(QStringLiteral("background: transparent; color: black;"));
+        tlWhite->hide();
+    }
+
+    // 3) 先に既存ラベルの位置・サイズを確定（反転や盤サイズ変更に追従）
+    updateBlackClockLabelGeometry();
+    updateWhiteClockLabelGeometry();
+
+    // 4) フォントは盤マスに連動（時計ラベルより少し小さめ）
+    auto applyFont = [this](QLabel* lab){
+        if (!lab) return;
+        QFont f = this->font();
+        f.setBold(true);
+        f.setPointSizeF(qMax(8.0, m_squareSize * 0.33));
+        lab->setFont(f);
+    };
+    applyFont(tlBlack);
+    applyFont(tlWhite);
+
+    // 5) まず両方隠す（NoPlayer 等にも対応）
+    tlBlack->hide();
+    tlWhite->hide();
+
+    // 配置用パラメータ（名前/時計ラベル矩形を基準に、上下へ適度にオフセット）
+    const int margin = qRound(qMax(4.0,  m_squareSize * 0.15));
+    const int h      = qRound(qMax(12.0, m_squareSize * 0.40));
+
+    // 6) 現在手番だけを表示
+    if (now == ShogiGameController::Player1) {
+        // 先手：名前ラベルの上に配置
+        const QRect nameRect = m_blackNameLabel->geometry();
+        if (nameRect.isValid()) {
+            const QRect r(nameRect.left(),
+                          nameRect.top() - margin - h,
+                          nameRect.width(), h);
+            tlBlack->setGeometry(r);
+            tlBlack->raise();
+            tlBlack->show();
+        }
+    } else if (now == ShogiGameController::Player2) {
+        // 後手：時計ラベルの下に配置
+        const QRect clockRect = m_whiteClockLabel->geometry();
+        if (clockRect.isValid()) {
+            const QRect r(clockRect.left(),
+                          clockRect.bottom() + 1 + margin,
+                          clockRect.width(), h);
+            tlWhite->setGeometry(r);
+            tlWhite->raise();
+            tlWhite->show();
+        }
+    }
+    // NoPlayer の場合は何も表示しない（hide 済み）
 }

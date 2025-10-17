@@ -13,6 +13,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 #include "elidelabel.h"
+#include "shogigamecontroller.h"
+
 #include <QIcon>
 #include <QMap>
 #include <QPointer>
@@ -174,6 +176,8 @@ public:
     static constexpr qint64 kWarn5Ms  = 5'000;
 
     void setUrgencyVisuals(Urgency u);
+
+    void updateTurnIndicator(ShogiGameController::Player now);
 
 public slots:
     // Q_PROPERTY 用 setter（レイアウト更新・ラベル再配置を含む）
@@ -366,6 +370,9 @@ private:
     qint64 m_lastLoggedWhiteMs = -2;
 
     bool m_uiMuted = false;
+
+    void ensureTurnLabels_();
+    void relayoutTurnLabels_();
 };
 
 #endif // SHOGIVIEW_H
