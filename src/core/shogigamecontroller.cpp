@@ -651,30 +651,12 @@ void ShogiGameController::gameResult()
 // 編集局面モードの際、右クリックで駒を成・不成に変換する。
 void ShogiGameController::switchPiecePromotionStatusOnRightClick(const int fileFrom, const int rankFrom) const
 {
-    // 動かす駒
-    QChar source = board()->getPieceCharacter(fileFrom, rankFrom);
+    if (!board()) return;
 
-    // 動かす駒が先手と金であった時
-    if (source == 'Q') {
-        // 段
-        for (int rank = 1; rank <= 9; rank++) {
-            // と金のある段に歩が存在していた場合は、と金は歩にできない。（二歩）
-            if (board()->getPieceCharacter(fileFrom, rank) == 'p') return;
-        }
-    }
-
-    // 動かす駒が後手と金であった時
-    if (source == 'q') {
-        // 段
-        for (int rank = 1; rank <= 9; rank++) {
-            // と金のある段に歩が存在していた場合は、と金は歩にできない。（二歩）
-            if (board()->getPieceCharacter(fileFrom, rank) == 'P') return;
-        }
-    }
-
-    // 成・不成の駒に変換
+    // 二歩や段の必成などの禁止形スキップは board 側で一括処理する
     board()->promoteOrDemotePiece(fileFrom, rankFrom);
 }
+
 
 // 駒台から駒台に駒を移動することが可能かどうかをチェックする。
 // 先手の駒台の駒から後手の駒台の異種駒には、駒は移せない。
