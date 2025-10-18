@@ -1677,19 +1677,37 @@ void ShogiView::setStandGapCols(double cols)
     update();
 }
 
-// 盤の反転モード（先手/後手の向き）を切り替えるセッター。
-// 役割：
-//  - 内部フラグ m_flipMode を更新
-//  - 反転に伴い、名前ラベルの表示内容/並びを refreshNameLabels() で更新
-//  - 時計ラベルのジオメトリ（位置・サイズ）を再計算してレイアウトに反映
-// 注意：ここでは明示的に update() は呼んでいない（ジオメトリ更新で再レイアウトが走る想定）。
-//       必要に応じて盤や駒の見た目も入れ替える場合は setPieces()/setPiecesFlip() を呼ぶ設計にする。
 void ShogiView::setFlipMode(bool newFlipMode)
 {
-    m_flipMode = newFlipMode;            // 反転状態を更新
-    refreshNameLabels();                 // ラベル内容/向きに依存する表示を更新
-    updateBlackClockLabelGeometry();     // 黒側の時計ラベル再配置
-    updateWhiteClockLabelGeometry();     // 白側の時計ラベル再配置
+    // 変化なしなら何もしない（無駄な再配置を避ける）
+    if (m_flipMode == newFlipMode) return;
+
+    // いま表示中の手番ラベルを記録しておく（反転後に可視状態を維持するため）
+    QLabel* tlBlack = this->findChild<QLabel*>(QStringLiteral("turnLabelBlack"));
+    QLabel* tlWhite = this->findChild<QLabel*>(QStringLiteral("turnLabelWhite"));
+    const bool blackShown = (tlBlack && tlBlack->isVisible());
+    const bool whiteShown = (tlWhite && tlWhite->isVisible());
+
+    // 反転状態を更新
+    m_flipMode = newFlipMode;
+
+    // ▲/▼/▽/△ の付け替えなど、名前表示を反転状態に同期
+    refreshNameLabels();
+
+    // 先手/後手の時計・名前ラベルのジオメトリを反転後の座標系で確定
+    updateBlackClockLabelGeometry();
+    updateWhiteClockLabelGeometry();
+
+    // ★ 手番ラベルも「反転後の名前/時計の最終ジオメトリ」に追従させる
+    //    （フォント/スタイルのコピーと角丸無効化も relayout 内で同期されます）
+    relayoutTurnLabels_();
+
+    // 反転前の可視状態を復元（「次の手番」が見えなくなる問題を防ぐ）
+    if (tlBlack) { tlBlack->setVisible(blackShown); tlBlack->raise(); }
+    if (tlWhite) { tlWhite->setVisible(whiteShown); tlWhite->raise(); }
+
+    // 再描画
+    update();
 }
 
 // 反転モードの現在値を取得するゲッター。
