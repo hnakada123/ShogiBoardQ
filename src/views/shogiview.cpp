@@ -2597,9 +2597,10 @@ void ShogiView::setLabelStyle(QLabel* lbl,
 {
     if (!lbl) return;
 
+    // ★ 角丸を 0px に
     const QString css = QStringLiteral(
                             "color:%1; background:%2; border:%3px solid %4; font-weight:%5; "
-                            "padding:2px; border-radius:6px;")
+                            "padding:2px; border-radius:0px;")
                             .arg(
                                 toRgb(fg),                         // %1
                                 toRgb(bg),                         // %2
