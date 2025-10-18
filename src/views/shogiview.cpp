@@ -2794,12 +2794,6 @@ void ShogiView::ensureTurnLabels_()
     }
 }
 
-// 名前/時計/手番ラベルの再配置と見た目同期。
-// ・黒: [手番][名前][時計] を「駒台直上」に下詰めで密着（空間ゼロ）
-//      → 黒の時計ラベルの元 bottom() をアンカーとして使用
-// ・白: [名前][時計][手番] を上から密着
-// ・各ラベルの高さは sizeHint() ベースで安全値を採用（文字欠け回避）
-// ・フォント/スタイルは参照元に同期し、角丸は無効化（四角い枠）
 void ShogiView::relayoutTurnLabels_()
 {
     ensureTurnLabels_();
@@ -2807,98 +2801,130 @@ void ShogiView::relayoutTurnLabels_()
     QLabel* tlBlack = this->findChild<QLabel*>(QStringLiteral("turnLabelBlack"));
     QLabel* tlWhite = this->findChild<QLabel*>(QStringLiteral("turnLabelWhite"));
 
-    QLabel* bn = m_blackNameLabel;
-    QLabel* bc = m_blackClockLabel;
-    QLabel* wn = m_whiteNameLabel;
-    QLabel* wc = m_whiteClockLabel;
+    QLabel* bn = m_blackNameLabel;  // 先手（黒）名前
+    QLabel* bc = m_blackClockLabel; // 先手（黒）時計
+    QLabel* wn = m_whiteNameLabel;  // 後手（白）名前
+    QLabel* wc = m_whiteClockLabel; // 後手（白）時計
+    if (!bn || !bc || !wn || !wc || !tlBlack || !tlWhite) return;
 
-    auto safeH = [](QLabel* lab)->int {
-        if (!lab) return 0;
-        const int sh = lab->sizeHint().height();
-        return qMax(sh, sh); // 必要なら +2 程度まで
+    // 角丸を完全無効化（見た目を統一）
+    auto safeSquare = [](QLabel* lab){ if (lab) enforceSquareCorners(lab); };
+    safeSquare(bn); safeSquare(bc); safeSquare(wn); safeSquare(wc);
+    safeSquare(tlBlack); safeSquare(tlWhite);
+
+    // 1マス寸法（fallbackあり）
+    const QSize fs = fieldSize().isValid() ? fieldSize()
+                                           : QSize(m_squareSize, m_squareSize);
+
+    // ラベル高さの安全取得
+    auto hLab = [&](QLabel* lab, int fallbackPx)->int {
+        if (!lab) return fallbackPx;
+        int h = lab->geometry().height();
+        if (h <= 0) h = lab->sizeHint().height();
+        if (h <= 0) h = fallbackPx;
+        return h;
     };
 
-    // ───────── 先手側：駒台直上に下詰め配置 ─────────
-    if (bn && bc) {
-        // 横基準は「名前ラベル」の現在の X/W を踏襲
-        const QRect base = bn->geometry();
-        if (base.isValid()) {
-            const int W = base.width();
-            const int X = base.left();
-
-            // アンカー: 修正前の「黒の時計ラベルの bottom()」
-            const int prevClockBottom = bc->geometry().bottom();
-
-            // 各高さを先に確定
-            const int H_turn  = tlBlack ? safeH(tlBlack) : 0;
-            const int H_name  = safeH(bn);
-            const int H_clock = safeH(bc);
-
-            // 時計（黒）：アンカーボトムに下詰め配置（見かけ上の隙間ゼロ）
-            const int Y_clock = (prevClockBottom >= 0) ? (prevClockBottom - H_clock + 1)
-                                                       : (base.bottom() + 1);
-            bc->setGeometry(QRect(X, Y_clock, W, H_clock));
-
-            // 名前（黒）：時計の直上に密着
-            const int Y_name = bc->geometry().top() - H_name - 1;
-            bn->setGeometry(QRect(X, Y_name, W, H_name));
-
-            // 手番（黒）：名前の直上に密着
-            if (tlBlack) {
-                // 見た目同期 + 角丸オフ
-                tlBlack->setFont(bn->font());
-                tlBlack->setStyleSheet(bn->styleSheet());
-                enforceSquareCorners(bn);
-                enforceSquareCorners(bc);
-                enforceSquareCorners(tlBlack);
-
-                const int Y_turn = bn->geometry().top() - H_turn;
-                tlBlack->setGeometry(QRect(X, Y_turn, W, H_turn));
-                tlBlack->raise();
-            } else {
-                // 角丸オフ（手番無くても名前/時計は適用）
-                enforceSquareCorners(bn);
-                enforceSquareCorners(bc);
-            }
-        }
+    // 名前ラベルのフォントを（双方）同一スケールで調整
+    {
+        QFont f = bn->font();
+        f.setPointSizeF(qMax(8.0, fs.height() * m_nameFontScale));
+        bn->setFont(f);
+        wn->setFont(f);
     }
 
-    // ───────── 後手側：上から密着配置（従来OK） ─────────
-    if (wn) {
-        const QRect base = wn->geometry();
-        if (base.isValid()) {
-            const int W = base.width();
-            const int X = base.left();
+    // 外側余白は維持、ラベル間の余白は 0 にする
+    const int marginOuter = 2; // 駒台と最上段/最下段ラベルの外側余白
+    const int marginInner = 0; // ★ ラベル間の余白をゼロに
 
-            const int H_name  = safeH(wn);
-            wn->setGeometry(QRect(X, base.top(), W, H_name));
+    // 駒台外接矩形
+    const QRect standBlack = blackStandBoundingRect();
+    const QRect standWhite = whiteStandBoundingRect();
+    if (!standBlack.isValid() || !standWhite.isValid()) return;
 
-            if (wc) {
-                const int H_clock = safeH(wc);
-                const int Y_clock = wn->geometry().bottom() + 1; // 隙間ゼロ見かけ
-                wc->setGeometry(QRect(X, Y_clock, W, H_clock));
+    const int BW = standBlack.width();
+    const int BX = standBlack.left();
+    const int WW = standWhite.width();
+    const int WX = standWhite.left();
 
-                if (tlWhite) {
-                    // 見た目同期 + 角丸オフ
-                    tlWhite->setFont(wc->font());
-                    tlWhite->setStyleSheet(wc->styleSheet());
-                    enforceSquareCorners(wn);
-                    enforceSquareCorners(wc);
-                    enforceSquareCorners(tlWhite);
+    // 各高さ
+    const int HnBlack = hLab(bn, fs.height());
+    const int HcBlack = hLab(bc, fs.height());
+    const int HtBlack = hLab(tlBlack, fs.height());
 
-                    const int H_turn = safeH(tlWhite);
-                    const int Y_turn = wc->geometry().bottom() + 1;
-                    tlWhite->setGeometry(QRect(X, Y_turn, W, H_turn));
-                    tlWhite->raise();
-                } else {
-                    enforceSquareCorners(wn);
-                    enforceSquareCorners(wc);
-                }
-            } else {
-                enforceSquareCorners(wn);
-            }
+    const int HnWhite = hLab(wn, fs.height());
+    const int HcWhite = hLab(wc, fs.height());
+    const int HtWhite = hLab(tlWhite, fs.height());
+
+    // 可視制御は updateTurnIndicator() で行う
+    tlBlack->hide();
+    tlWhite->hide();
+
+    // 直下に縦積み（駒台の下）: [lab1][lab2][lab3] を隙間ゼロで積む
+    auto stackBelowStand = [&](const QRect& stand, int X, int W,
+                               QLabel* lab1, int H1,
+                               QLabel* lab2, int H2,
+                               QLabel* lab3, int H3)
+    {
+        int y = stand.bottom() + 1 + marginOuter;
+        QRect r1(X, y, W, H1);
+        QRect r2(X, r1.bottom() + 1 + marginInner, W, H2); // marginInner=0 で密着
+        QRect r3(X, r2.bottom() + 1 + marginInner, W, H3);
+
+        // 画面下オーバー分は上に押し上げる（順序は保持）
+        int overflow = (r3.bottom() + marginOuter) - height();
+        if (overflow > 0) { r1.translate(0,-overflow); r2.translate(0,-overflow); r3.translate(0,-overflow); }
+
+        lab1->setGeometry(r1);
+        lab2->setGeometry(r2);
+        lab3->setGeometry(r3);
+
+        // 時計は枠にフィット
+        if (lab2 == m_blackClockLabel || lab2 == m_whiteClockLabel) {
+            fitLabelFontToRect(lab2, lab2->text(), r2, 2);
         }
+    };
+
+    // 直上に縦積み（駒台の上）: 上から [lab1][lab2][lab3] を隙間ゼロで積む
+    auto stackAboveStand = [&](const QRect& stand, int X, int W,
+                               QLabel* lab1, int H1,
+                               QLabel* lab2, int H2,
+                               QLabel* lab3, int H3)
+    {
+        const int totalH = H1 + marginInner + H2 + marginInner + H3; // marginInner=0
+        int yTop = stand.top() - 1 - marginOuter - totalH;
+        if (yTop < 0) yTop = 0;
+
+        QRect r1(X, yTop, W, H1);
+        QRect r2(X, r1.bottom() + 1 + marginInner, W, H2);
+        QRect r3(X, r2.bottom() + 1 + marginInner, W, H3);
+
+        lab1->setGeometry(r1);
+        lab2->setGeometry(r2);
+        lab3->setGeometry(r3);
+
+        // 時計は枠にフィット
+        if (lab3 == m_blackClockLabel || lab3 == m_whiteClockLabel) {
+            fitLabelFontToRect(lab3, lab3->text(), r3, 2);
+        }
+    };
+
+    // 並び順は以前の仕様通り（未反転: 左=後手・右=先手 / 反転: 左=先手・右=後手）
+    if (!m_flipMode) {
+        // 左（後手）：駒台の下に [名前][時計][次の手番]
+        stackBelowStand(standWhite, WX, WW, wn, HnWhite, wc, HcWhite, tlWhite, HtWhite);
+        // 右（先手）：駒台の上に [次の手番][名前][時計]
+        stackAboveStand(standBlack, BX, BW, tlBlack, HtBlack, bn, HnBlack, bc, HcBlack);
+    } else {
+        // 左（先手）：駒台の下に [名前][時計][次の手番]
+        stackBelowStand(standBlack, BX, BW, bn, HnBlack, bc, HcBlack, tlBlack, HtBlack);
+        // 右（後手）：駒台の上に [次の手番][名前][時計]
+        stackAboveStand(standWhite, WX, WW, tlWhite, HtWhite, wn, HnWhite, wc, HcWhite);
     }
+
+    // Zオーダー
+    bn->raise(); bc->raise(); wn->raise(); wc->raise();
+    tlBlack->raise(); tlWhite->raise();
 }
 
 // 現在手番のみ「次の手番」を表示。
