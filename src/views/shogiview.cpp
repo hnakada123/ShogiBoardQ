@@ -2808,7 +2808,7 @@ void ShogiView::relayoutTurnLabels_()
     QLabel* wc = m_whiteClockLabel; // 後手（白）時計
     if (!bn || !bc || !wn || !wc || !tlBlack || !tlWhite) return;
 
-    // 角丸を完全無効化（見た目を統一）
+    // 角丸を完全無効化（見た目を統一） ※ 可視/不可視には触らない
     auto safeSquare = [](QLabel* lab){ if (lab) enforceSquareCorners(lab); };
     safeSquare(bn); safeSquare(bc); safeSquare(wn); safeSquare(wc);
     safeSquare(tlBlack); safeSquare(tlWhite);
@@ -2834,9 +2834,9 @@ void ShogiView::relayoutTurnLabels_()
         wn->setFont(f);
     }
 
-    // 外側余白は維持、ラベル間の余白は 0 にする
+    // 外側余白は維持、ラベル間の余白は 0 にする（実際は +1px の微小スペース）
     const int marginOuter = 2; // 駒台と最上段/最下段ラベルの外側余白
-    const int marginInner = 0; // ★ ラベル間の余白をゼロに
+    const int marginInner = 0; // ラベル間の余白ゼロ（+1は境界線的に残す）
 
     // 駒台外接矩形
     const QRect standBlack = blackStandBoundingRect();
@@ -2848,7 +2848,7 @@ void ShogiView::relayoutTurnLabels_()
     const int WW = standWhite.width();
     const int WX = standWhite.left();
 
-    // 各高さ
+    // 各高さ（turn は sizeHint/既存geometry を尊重）
     const int HnBlack = hLab(bn, fs.height());
     const int HcBlack = hLab(bc, fs.height());
     const int HtBlack = hLab(tlBlack, fs.height());
@@ -2857,11 +2857,7 @@ void ShogiView::relayoutTurnLabels_()
     const int HcWhite = hLab(wc, fs.height());
     const int HtWhite = hLab(tlWhite, fs.height());
 
-    // 可視制御は updateTurnIndicator() で行う
-    tlBlack->hide();
-    tlWhite->hide();
-
-    // 直下に縦積み（駒台の下）: [lab1][lab2][lab3] を隙間ゼロで積む
+    // 直下に縦積み（駒台の下）: [lab1][lab2][lab3]
     auto stackBelowStand = [&](const QRect& stand, int X, int W,
                                QLabel* lab1, int H1,
                                QLabel* lab2, int H2,
@@ -2869,7 +2865,7 @@ void ShogiView::relayoutTurnLabels_()
     {
         int y = stand.bottom() + 1 + marginOuter;
         QRect r1(X, y, W, H1);
-        QRect r2(X, r1.bottom() + 1 + marginInner, W, H2); // marginInner=0 で密着
+        QRect r2(X, r1.bottom() + 1 + marginInner, W, H2);
         QRect r3(X, r2.bottom() + 1 + marginInner, W, H3);
 
         // 画面下オーバー分は上に押し上げる（順序は保持）
@@ -2886,13 +2882,13 @@ void ShogiView::relayoutTurnLabels_()
         }
     };
 
-    // 直上に縦積み（駒台の上）: 上から [lab1][lab2][lab3] を隙間ゼロで積む
+    // 直上に縦積み（駒台の上）: 上から [lab1][lab2][lab3]
     auto stackAboveStand = [&](const QRect& stand, int X, int W,
                                QLabel* lab1, int H1,
                                QLabel* lab2, int H2,
                                QLabel* lab3, int H3)
     {
-        const int totalH = H1 + marginInner + H2 + marginInner + H3; // marginInner=0
+        const int totalH = H1 + marginInner + H2 + marginInner + H3;
         int yTop = stand.top() - 1 - marginOuter - totalH;
         if (yTop < 0) yTop = 0;
 
@@ -2923,7 +2919,7 @@ void ShogiView::relayoutTurnLabels_()
         stackAboveStand(standWhite, WX, WW, tlWhite, HtWhite, wn, HnWhite, wc, HcWhite);
     }
 
-    // Zオーダー
+    // Zオーダー（可視/不可視は変更しない）
     bn->raise(); bc->raise(); wn->raise(); wc->raise();
     tlBlack->raise(); tlWhite->raise();
 }
