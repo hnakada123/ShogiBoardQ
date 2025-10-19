@@ -8,6 +8,7 @@
 #include <QMetaType>
 #include <QDebug>
 #include <QScrollBar>
+#include <QPushButton>
 
 #include "mainwindow.h"
 #include "promotedialog.h"
@@ -3120,6 +3121,8 @@ void MainWindow::beginPositionEditing()
                        << " selPly=" << m_currentSelectedPly
                        << " sfenRecord.size=" << (m_sfenRecord ? m_sfenRecord->size() : 0);
 #endif
+
+    showEditExitButtonOnBoard_();
 }
 
 void MainWindow::onReverseTriggered()
@@ -3209,6 +3212,8 @@ void MainWindow::finishPositionEditing()
              << (m_shogiView ? m_shogiView->positionEditMode() : false)
              << " guard=" << m_onMainRowGuard
              << " m_startSfenStr=" << m_startSfenStr;
+
+    hideEditExitButtonOnBoard_();
 }
 
 // 「全ての駒を駒台へ」をクリックした時に実行される。
@@ -7311,4 +7316,36 @@ void MainWindow::ensureTurnSyncBridge_()
 
     // 3) 初期同期：現時点の手番を即時反映（時計/ラベルのズレ防止）
     tm->setFromGc(gc->currentPlayer());
+}
+
+// 編集モードに入ったタイミングで呼ぶ：ボタン表示＆スロット接続（ラムダ不使用）
+void MainWindow::showEditExitButtonOnBoard_()
+{
+    if (!m_shogiView) return;
+
+    // ShogiView 側で作成&配置（必要なら内部で作成される）
+    m_shogiView->relayoutEditExitButton();
+
+    // ボタン取得
+    QPushButton* exitBtn = m_shogiView->findChild<QPushButton*>(QStringLiteral("editExitButton"));
+    if (!exitBtn) return;
+
+    // 重複接続防止のため一旦切る
+    QObject::disconnect(exitBtn, SIGNAL(clicked()), this, SLOT(finishPositionEditing()));
+
+    // 旧式マクロ接続（ラムダ不使用）
+    connect(exitBtn, SIGNAL(clicked()), this, SLOT(finishPositionEditing()));
+
+    // 表示
+    exitBtn->show();
+    exitBtn->raise();
+}
+
+// 編集モードを抜けるときに呼ぶ：ボタン非表示（接続は残しても害なし）
+void MainWindow::hideEditExitButtonOnBoard_()
+{
+    if (!m_shogiView) return;
+    if (QPushButton* exitBtn = m_shogiView->findChild<QPushButton*>(QStringLiteral("editExitButton"))) {
+        exitBtn->hide();
+    }
 }
