@@ -618,6 +618,9 @@ private:
     void applyPendingEvalTrim_();
 
     void ensureTurnSyncBridge_();
+
+    void showEditExitButtonOnBoard_();
+    void hideEditExitButtonOnBoard_();
 };
 
 #endif // MAINWINDOW_H

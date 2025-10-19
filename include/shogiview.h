@@ -20,6 +20,7 @@
 #include <QPointer>
 #include <QWidget>
 #include <QLoggingCategory>
+#include <QPushButton>
 
 Q_DECLARE_LOGGING_CATEGORY(ClockLog)
 
@@ -178,6 +179,8 @@ public:
     void setUrgencyVisuals(Urgency u);
 
     void updateTurnIndicator(ShogiGameController::Player now);
+
+    void relayoutEditExitButton();
 
 public slots:
     // Q_PROPERTY 用 setter（レイアウト更新・ラベル再配置を含む）
@@ -373,6 +376,11 @@ private:
 
     void ensureTurnLabels_();
     void relayoutTurnLabels_();
+
+    void ensureAndPlaceEditExitButton_();
+
+    void styleEditExitButton_(QPushButton* btn);
+    void fitEditExitButtonFont_(QPushButton* btn, int maxWidth);
 };
 
 #endif // SHOGIVIEW_H

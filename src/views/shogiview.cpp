@@ -19,6 +19,7 @@
 #include <QLayout>
 #include <QFontDatabase>
 #include <QRegularExpression>
+#include <QPushButton>
 
 // 角丸(border-radius)を 0px に強制するユーティリティ
 static QString ensureNoBorderRadiusStyle(const QString& base)
@@ -2922,6 +2923,8 @@ void ShogiView::relayoutTurnLabels_()
     // Zオーダー（可視/不可視は変更しない）
     bn->raise(); bc->raise(); wn->raise(); wc->raise();
     tlBlack->raise(); tlWhite->raise();
+
+    relayoutEditExitButton();
 }
 
 // 現在手番のみ「次の手番」を表示。
@@ -2950,5 +2953,177 @@ void ShogiView::updateTurnIndicator(ShogiGameController::Player now)
     } else if (now == ShogiGameController::Player2) {
         tlWhite->show();
         tlWhite->raise();
+    }
+}
+
+// 「常に盤面の右側」に固定しつつ、目立つ配色＆文字が切れないように自動縮小
+void ShogiView::ensureAndPlaceEditExitButton_()
+{
+    // ラベルの遅延生成に備える
+    ensureTurnLabels_();
+
+    QLabel* bn = m_blackNameLabel;
+    QLabel* wn = m_whiteNameLabel;
+    if (!bn) bn = this->findChild<QLabel*>(QStringLiteral("blackNameLabel"));
+    if (!wn) wn = this->findChild<QLabel*>(QStringLiteral("whiteNameLabel"));
+
+    // ボタン生成 or 取得
+    QPushButton* exitBtn = this->findChild<QPushButton*>(QStringLiteral("editExitButton"));
+    if (!exitBtn) {
+        exitBtn = new QPushButton(tr("編集終了"), this);
+        exitBtn->setObjectName(QStringLiteral("editExitButton"));
+        exitBtn->setVisible(false);               // 表示制御は MainWindow 側
+        exitBtn->setFocusPolicy(Qt::NoFocus);
+        exitBtn->setCursor(Qt::PointingHandCursor);
+        exitBtn->setAutoDefault(false);
+        exitBtn->setDefault(false);
+        exitBtn->raise();
+    }
+
+    // 見た目（色・文字色等）を適用
+    styleEditExitButton_(exitBtn);
+
+    // ── 基準の決定：「より右側にある“名前ラベル”」を基準にする ──
+    QLabel* base = nullptr;
+    if (bn && wn) {
+        const int bx = bn->geometry().center().x();
+        const int wx = wn->geometry().center().x();
+        base = (bx > wx) ? bn : wn;  // 画面右側にある方
+    } else {
+        base = bn ? bn : wn;
+    }
+
+    QRect baseGeo;
+    if (base) {
+        baseGeo = base->geometry();
+        // まずは基準フォント（太字は styleSheet で付与済み）
+        QFont f = base->font();
+        exitBtn->setFont(f);
+    } else {
+        // フォールバック：盤の右外側に最低幅で配置
+        if (m_board) {
+            const QSize fs = fieldSize().isValid() ? fieldSize()
+                                                   : QSize(m_squareSize, m_squareSize);
+            const QRect boardRect(m_offsetX, m_offsetY,
+                                  fs.width() * m_board->files(),
+                                  fs.height() * m_board->ranks());
+            const int sideGap  = 8;
+            const int sideWide = 160;
+            baseGeo = QRect(boardRect.right() + 1 + sideGap,
+                            boardRect.top(), sideWide, 1);
+        } else {
+            baseGeo = QRect(this->width() - 180, 10, 160, 1);
+        }
+    }
+
+    // ── 幅に文字を収める：フォント自動縮小 ──
+    int x = baseGeo.x();
+    int w = baseGeo.width();
+    const int maxW = this->width() - x - 4;  // はみ出し対策
+    if (w > maxW) w = maxW;
+
+    fitEditExitButtonFont_(exitBtn, w);
+
+    // フォントが変わったので高さを再評価
+    const int vGap = 4;
+    const int hBtn = qMax(exitBtn->sizeHint().height(), 24);
+    int y = baseGeo.y() - hBtn - vGap;
+    if (y < 0) y = 0;
+
+    exitBtn->setGeometry(x, y, w, hBtn);
+    exitBtn->raise();
+}
+
+// ラベル類の再配置後に呼んでください（resizeEvent/盤サイズ変更/回転後など）。
+void ShogiView::relayoutEditExitButton()
+{
+    ensureAndPlaceEditExitButton_();
+}
+
+// 「局面編集終了」ボタンの見た目（目立つ色・文字色）を設定
+void ShogiView::styleEditExitButton_(QPushButton* btn)
+{
+    if (!btn) return;
+
+    // 角丸は 0（プロジェクトの統一方針に合わせてスクエア）
+    // 目立つ赤系、文字は白、ホバー/押下で濃くする
+    btn->setStyleSheet(
+        "QPushButton#editExitButton {"
+        "  background: #e53935;"
+        "  color: #ffffff;"
+        "  border: 1px solid #8e0000;"
+        "  padding: 6px 10px;"
+        "  font-weight: 600;"
+        "  border-radius: 0px;"
+        "}"
+        "QPushButton#editExitButton:hover {"
+        "  background: #d32f2f;"
+        "}"
+        "QPushButton#editExitButton:pressed {"
+        "  background: #b71c1c;"
+        "}"
+        "QPushButton#editExitButton:disabled {"
+        "  background: #bdbdbd;"
+        "  color: #ffffff;"
+        "  border-color: #9e9e9e;"
+        "}"
+        );
+}
+
+// ボタンの文字列が maxWidth に必ず収まるよう、フォントサイズを自動調整（縮小のみ）
+void ShogiView::fitEditExitButtonFont_(QPushButton* btn, int maxWidth)
+{
+    if (!btn || maxWidth <= 20) return;
+
+    // 左右パディングと枠線ぶんを控除（styleSheet に合わせて 10px+10px + α）
+    const int inner = qMax(1, maxWidth - 24);
+
+    QFont f = btn->font();
+    int point = f.pointSize();
+    int pixel = f.pixelSize();
+
+    // pointSize が -1 の場合に備えて pixelSize を優先的に使う
+    if (point <= 0 && pixel <= 0) {
+        // どちらも不明なら適当な既定値
+        point = 12;
+        f.setPointSize(point);
+        btn->setFont(f);
+    }
+
+    auto fits = [&](const QFont& tf)->bool {
+        QFontMetrics fm(tf);
+        const int textW = fm.horizontalAdvance(btn->text());
+        return textW <= inner;
+    };
+
+    // まず現在サイズで試す
+    if (fits(f)) {
+        btn->setFont(f);
+        return;
+    }
+
+    // 縮小ループ（下限 8pt or 12px）
+    const int minPoint = 8;
+    const int minPixel = 12;
+
+    if (pixel > 0) {
+        int sz = pixel;
+        while (sz > minPixel) {
+            QFont tf = f;
+            tf.setPixelSize(--sz);
+            if (fits(tf)) { btn->setFont(tf); return; }
+        }
+        // 収まらない場合でも下限でセット
+        f.setPixelSize(minPixel);
+        btn->setFont(f);
+    } else {
+        int sz = point;
+        while (sz > minPoint) {
+            QFont tf = f;
+            tf.setPointSize(--sz);
+            if (fits(tf)) { btn->setFont(tf); return; }
+        }
+        f.setPointSize(minPoint);
+        btn->setFont(f);
     }
 }
