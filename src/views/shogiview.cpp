@@ -2927,9 +2927,6 @@ void ShogiView::relayoutTurnLabels_()
     relayoutEditExitButton();
 }
 
-// 現在手番のみ「次の手番」を表示。
-// ・表示直前に再配置（黒側は駒台直上アンカー、白側は従来通り）
-// ・見た目は参照元に同期し、角丸は常に無効化
 void ShogiView::updateTurnIndicator(ShogiGameController::Player now)
 {
     if (!m_blackNameLabel || !m_whiteClockLabel) return;
@@ -2940,26 +2937,31 @@ void ShogiView::updateTurnIndicator(ShogiGameController::Player now)
     QLabel* tlWhite = this->findChild<QLabel*>(QStringLiteral("turnLabelWhite"));
     if (!tlBlack || !tlWhite) return;
 
+    // いったん両方隠す
     tlBlack->hide();
     tlWhite->hide();
 
-    // レイアウト更新（黒:駒台直上アンカー／白:従来）
+    // 配置更新（黒は駒台直上アンカー／白は従来）。内部で角丸無効化・スタイル同期も実施。
     relayoutTurnLabels_();
 
-    // 手番側のみ表示（見た目同期＆角丸オフは relayout 内で実施済）
-    if (now == ShogiGameController::Player1) {
+    // ★ 起動直後など now==NoPlayer の場合でも先手を既定表示にする
+    const auto side = (now == ShogiGameController::Player1 || now == ShogiGameController::Player2)
+                          ? now : ShogiGameController::Player1;
+
+    if (side == ShogiGameController::Player1) {
         tlBlack->show();
         tlBlack->raise();
-    } else if (now == ShogiGameController::Player2) {
+    } else {
         tlWhite->show();
         tlWhite->raise();
     }
 }
 
-// 「常に盤面の右側」に固定しつつ、目立つ配色＆文字が切れないように自動縮小
+// 「常に盤面の右側」に固定しつつ、見やすい配色＆文字が切れないように自動縮小。
+// さらに ★Y座標を“将棋盤の1段目の位置”に合わせる★ ように修正。
 void ShogiView::ensureAndPlaceEditExitButton_()
 {
-    // ラベルの遅延生成に備える
+    // ラベルの遅延生成に備える（右側の基準ラベル取得で必要）
     ensureTurnLabels_();
 
     QLabel* bn = m_blackNameLabel;
@@ -2972,7 +2974,7 @@ void ShogiView::ensureAndPlaceEditExitButton_()
     if (!exitBtn) {
         exitBtn = new QPushButton(tr("編集終了"), this);
         exitBtn->setObjectName(QStringLiteral("editExitButton"));
-        exitBtn->setVisible(false);               // 表示制御は MainWindow 側
+        exitBtn->setVisible(false);               // 表示/非表示は外側(MainWindow)で管理
         exitBtn->setFocusPolicy(Qt::NoFocus);
         exitBtn->setCursor(Qt::PointingHandCursor);
         exitBtn->setAutoDefault(false);
@@ -2983,7 +2985,7 @@ void ShogiView::ensureAndPlaceEditExitButton_()
     // 見た目（色・文字色等）を適用
     styleEditExitButton_(exitBtn);
 
-    // ── 基準の決定：「より右側にある“名前ラベル”」を基準にする ──
+    // ── 基準の決定：「より右側にある“名前ラベル”」を基準にする（Xと幅はこれに合わせる）──
     QLabel* base = nullptr;
     if (bn && wn) {
         const int bx = bn->geometry().center().x();
@@ -2996,7 +2998,7 @@ void ShogiView::ensureAndPlaceEditExitButton_()
     QRect baseGeo;
     if (base) {
         baseGeo = base->geometry();
-        // まずは基準フォント（太字は styleSheet で付与済み）
+        // 基準ラベルのフォントを土台に（ボタン側は自動縮小で最終調整）
         QFont f = base->font();
         exitBtn->setFont(f);
     } else {
@@ -3016,22 +3018,38 @@ void ShogiView::ensureAndPlaceEditExitButton_()
         }
     }
 
-    // ── 幅に文字を収める：フォント自動縮小 ──
+    // ── 横幅は右側ラベルに合わせつつ、はみ出し防止 ──
     int x = baseGeo.x();
     int w = baseGeo.width();
-    const int maxW = this->width() - x - 4;  // はみ出し対策
+    const int maxW = this->width() - x - 4;  // 右端はみ出し対策
     if (w > maxW) w = maxW;
 
+    // 文字が切れないようにボタン内フォントを縮小
     fitEditExitButtonFont_(exitBtn, w);
 
-    // フォントが変わったので高さを再評価
-    const int vGap = 4;
+    // ── ★Y座標を“将棋盤の1段目の位置”に揃える ──
     const int hBtn = qMax(exitBtn->sizeHint().height(), 24);
-    int y = baseGeo.y() - hBtn - vGap;
-    if (y < 0) y = 0;
+    int y = 0;
+    bool yFixed = false;
+    if (m_board) {
+        const QSize fs = fieldSize().isValid() ? fieldSize()
+                                               : QSize(m_squareSize, m_squareSize);
+        const QRect boardRect(m_offsetX, m_offsetY,
+                              fs.width() * m_board->files(),
+                              fs.height() * m_board->ranks());
+        // 1段目のY＝盤矩形のtop（画面上の1段目ライン）
+        y = boardRect.top();
+        yFixed = true;
+    }
+
+    // 盤が未設定などのフォールバック時は従来ロジックで上側に寄せる
+    if (!yFixed) {
+        const int vGap = 4;
+        y = baseGeo.y() - hBtn - vGap;
+        if (y < 0) y = 0;
+    }
 
     exitBtn->setGeometry(x, y, w, hBtn);
-    exitBtn->raise();
 }
 
 // ラベル類の再配置後に呼んでください（resizeEvent/盤サイズ変更/回転後など）。
