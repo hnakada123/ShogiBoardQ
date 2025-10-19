@@ -209,7 +209,7 @@ void MainWindow::initializeComponents()
     // 将棋の対局全体を管理し、盤面の初期化、指し手の処理、合法手の検証、対局状態の管理を行うクラスのインスタンス
     m_gameController = new ShogiGameController;
 
-    // 将棋盤と駒台を生成する。
+    // 将棋盤と駒台を生成するビュー
     m_shogiView = new ShogiView;
 
     // 好みの倍率に設定（表示前にやるのがスムーズ）
@@ -223,6 +223,26 @@ void MainWindow::initializeComponents()
 
     // 棋譜データのリスト
     m_moveRecords = new QList<KifuDisplay *>;
+
+    // ───────────────── 追加：起動直後に盤モデルを用意してビューへ渡す ─────────────────
+    // 初期局面（" ... b - 1"）で盤データを構築
+    {
+        QString sfen = m_startSfenStr;
+        m_gameController->newGame(sfen);                 // ShogiBoard を内部で生成し setSfen
+
+        // ビューに盤モデルを接続（以後 m_shogiView->board() が有効）
+        m_shogiView->setBoard(m_gameController->board());
+    }
+
+    // ───────────────── 追加：手番を先手（Player1）で初期化し、ラベルを即時表示 ─────────────────
+    // 1) TurnManager を生成＋現在の "b"/"w" を反映（board()->currentPlayer() は newGame で "b"）
+    //    → setCurrentTurn() は TurnManager を作成し "b" を Player1 に変換して changed を発火
+    setCurrentTurn();
+
+    // 2) GC ↔ TurnManager のブリッジを確立し、初期同期も実施
+    //    ensureTurnSyncBridge_() の末尾で tm->setFromGc(gc->currentPlayer()) が呼ばれ、
+    //    NoPlayer の場合でも TurnManager 側で Player1 に正規化されて changed が流れます。
+    ensureTurnSyncBridge_();
 }
 
 // エラーメッセージを表示する。
