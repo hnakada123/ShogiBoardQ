@@ -3003,131 +3003,96 @@ void MainWindow::hidePositionEditMenu()
     ui->turnaround->setVisible(false);
 }
 
-// 局面編集を開始する。
-// 仕様：
-//  - 棋譜欄などで選択中の途中局面（m_currentSelectedPly）のSFENを起点として編集モードへ入る
-//  - フォールバック順：m_sfenRecord[sel] → m_resumeSfenStr → m_startSfenStr → 平手初期SFEN
-//  - メニューは「局面編集開始」を隠し「局面編集終了」を表示（displayPositionEditMenu）
-//  - 編集中は applySfenAtCurrentPly() が positionEditMode() で自動的に無効化される
 void MainWindow::beginPositionEditing()
 {
-    // ---- 0) 編集開始SFENの決定（選択手から）----  ← ここを差し替え
+    // ───────────────── 0) 現在のGUI手番をキャプチャ ─────────────────
+    // 可能なら TurnManager を、無ければ GameController から取得。既定は先手。
+    ShogiGameController::Player preSide = ShogiGameController::Player1;
+    if (auto* tm = this->findChild<TurnManager*>(QStringLiteral("TurnManager"))) {
+        preSide = tm->toGc();
+    } else if (m_gameController) {
+        preSide = m_gameController->currentPlayer();
+        if (preSide == ShogiGameController::NoPlayer) preSide = ShogiGameController::Player1;
+    }
+    const QChar desiredTurn = (preSide == ShogiGameController::Player2) ? QLatin1Char('w')
+                                                                        : QLatin1Char('b');
+
+    // ───────────────── 1) 編集開始SFENの決定（従来ロジックを踏襲） ─────────────────
     QString baseSfen;
 
-    // 1) sfenRecord があれば最適なインデックスを選ぶ
     if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
         const int lastIdx = m_sfenRecord->size() - 1;
-
         int idx = -1;
 
-        // 1-1) 終局直後は常に末尾：最後に確定している盤面から編集開始
+        // 終局直後は常に末尾
         if (m_match && m_match->gameOverState().isOver) {
             idx = lastIdx;
         } else {
-            // 1-2) 明示選択 > UIの実効手数(active) > 末尾 の順で採用
-            if (m_currentSelectedPly > 0)
-                idx = qBound(0, m_currentSelectedPly, lastIdx);
-            else if (m_activePly > 0)
-                idx = qBound(0, m_activePly, lastIdx);
-            else
+            // 明示選択 > UIの実効手数(active) > 末尾 の順で採用
+            if (m_currentSelectedPly >= 0 && m_currentSelectedPly <= lastIdx) {
+                idx = m_currentSelectedPly;
+            } else if (m_activePly >= 0 && m_activePly <= lastIdx) {
+                idx = m_activePly;
+            } else {
                 idx = lastIdx;
+            }
         }
 
-        baseSfen = m_sfenRecord->at(idx);
+        if (idx >= 0 && idx <= lastIdx) {
+            baseSfen = m_sfenRecord->at(idx);
+        }
     }
 
-    // 2) sfenRecord が空のときは、現在の盤面から合成（より堅牢）
-    if (baseSfen.isEmpty() && m_gameController && m_gameController->board()) {
-        ShogiBoard* board = m_gameController->board();
-        const QString nextTurn =
-            (m_gameController->currentPlayer() == ShogiGameController::Player1)
-                ? QStringLiteral("b") : QStringLiteral("w");
-        // 手数は 1 に丸め（編集開始の基準なので十分）
-        baseSfen = QStringLiteral("%1 %2 %3 %4")
-            .arg(board->convertBoardToSfen(),
-                 nextTurn,
-                 board->convertStandToSfen(),
-                 QStringLiteral("1"));
-    }
-
-    // 3) それでも空なら既存の後退順
-    if (baseSfen.isEmpty() && !m_resumeSfenStr.isEmpty()) {
-        baseSfen = m_resumeSfenStr;
-    }
-    if (baseSfen.isEmpty() && !m_startSfenStr.isEmpty()) {
-        baseSfen = m_startSfenStr;
-    }
     if (baseSfen.isEmpty()) {
-        // 最終保険（平手）
-        baseSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+        if (!m_startSfenStr.isEmpty()) {
+            baseSfen = m_startSfenStr;
+        } else {
+            // 最終フォールバック（平手先手番）
+            baseSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+        }
     }
 
-    // ---- 1) UIの軽い初期化（盤は後で上書きする）----
-    resetToInitialState();
+    // ───────────────── 2) SFENの手番を“現在のGUI手番”に強制上書き ─────────────────
+    auto forceTurnInSfen = [](const QString& sfen, QChar turn) -> QString {
+        // "board turn stand ply" の4トークン前提（既存 validateSfenString と整合）
+        QStringList toks = sfen.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+        if (toks.size() >= 2) {
+            toks[1] = QString(turn);           // 手番 b/w を上書き
+            if (toks.size() >= 4) toks[3] = QStringLiteral("1"); // 手数は 1 にリセットが無難
+            return toks.join(QLatin1Char(' '));
+        }
+        return sfen; // 不正ならそのまま返す（validateSfenString 側で検出）
+    };
+    baseSfen = forceTurnInSfen(baseSfen, desiredTurn);
 
-    // インデックス類は編集用に 0 始まりへ
+    // ───────────────── 3) UIの軽い初期化（従来通り） ─────────────────
+    resetToInitialState();
     m_currentMoveIndex = 0;
     m_totalMove        = 0;
 
-    // ---- 2) 盤へ選択局面を適用 ----
-    if (m_gameController && m_gameController->board()) {
-        m_gameController->board()->setSfen(baseSfen);
-        if (m_shogiView) m_shogiView->applyBoardAndRender(m_gameController->board());
-    } else if (m_shogiView) {
-        // 最低限の再描画
-        m_shogiView->update();
-    }
-
-    // ---- 3) 編集モードON ＆ メニュー切替 ----
-    if (m_shogiView) {
+    // ───────────────── 4) 盤へ選択局面を適用（手番は既に強制済み） ─────────────────
+    if (m_shogiView && m_shogiView->board()) {
+        m_shogiView->board()->setSfen(baseSfen);
         m_shogiView->setPositionEditMode(true);
-        m_shogiView->setMouseClickMode(true);  // 編集中はクリック可
+        m_shogiView->setMouseClickMode(true);
         m_shogiView->update();
     }
-    displayPositionEditMenu(); // 「開始」を隠し「終了」を表示。その他の編集用アクションも表示
 
-    // ---- 4) SFEN系の初期化（0手＝開始局面のみ）----
-    m_startSfenStr = baseSfen;                // 編集のベースSFENを確定
-    if (m_sfenRecord) {
-        m_sfenRecord->clear();
-        m_sfenRecord->append(m_startSfenStr); // 0手目のみ
-    }
-
-    // ---- 5) 棋譜モデルを初期化（RecordPane用）----
-    if (!m_kifuRecordModel) m_kifuRecordModel = new KifuRecordListModel(this);
-    m_kifuRecordModel->clearAllItems();
-    m_kifuRecordModel->appendItem(
-        new KifuDisplay(QStringLiteral("=== 開始局面 ==="),
-                        QStringLiteral("（１手 / 合計）"))
-    );
-
-    // ---- 6) 矢印ボタン無効化＆棋譜テーブル選択禁止 ----
-    disableArrowButtons();
-    if (m_recordPane) {
-        if (auto* view = m_recordPane->kifuView()) {
-            view->setSelectionMode(QAbstractItemView::NoSelection);
-        }
-    }
-
-    // ---- 7) BIC を編集モードにし、ハイライトを整理 ----
-    if (!m_boardController) {
-        setupBoardInteractionController();
-    }
+    // ───────────────── 5) 編集モードへ（ハイライト等の初期化） ─────────────────
     if (m_boardController) {
         m_boardController->setMode(BoardInteractionController::Mode::Edit);
         m_boardController->clearAllHighlights();
     }
 
-    // ---- 8) 手番を GameController に同期（盤の b/w に合わせる）----
-    if (m_shogiView && m_gameController) {
-        if (m_shogiView->board()->currentPlayer() == "b") {
-            m_gameController->setCurrentPlayer(ShogiGameController::Player1);
-        } else if (m_shogiView->board()->currentPlayer() == "w") {
-            m_gameController->setCurrentPlayer(ShogiGameController::Player2);
-        }
+    // ───────────────── 6) 手番を GC に同期（盤の b/w → GC）。※既に desiredTurn に揃っている ─────────────────
+    if (m_shogiView && m_shogiView->board() && m_gameController) {
+        const QString bw = m_shogiView->board()->currentPlayer();
+        m_gameController->setCurrentPlayer(
+            (bw == QLatin1String("w")) ? ShogiGameController::Player2
+                                       : ShogiGameController::Player1);
     }
 
-    // ---- 9) 編集用アクションの接続（重複防止）----
+    // ───────────────── 7) 編集用アクション接続（重複防止） ─────────────────
     if (ui) {
         connect(ui->returnAllPiecesOnStand,      &QAction::triggered, this, &MainWindow::resetPiecesToStand,         Qt::UniqueConnection);
         connect(ui->turnaround,                  &QAction::triggered, this, &MainWindow::toggleEditSideToMove,       Qt::UniqueConnection);
@@ -3137,11 +3102,13 @@ void MainWindow::beginPositionEditing()
     }
 
 #ifdef QT_DEBUG
-    qDebug().noquote() << "[EDIT-BEGIN] baseSfen=" << baseSfen
-                       << " selPly=" << m_currentSelectedPly
-                       << " sfenRecord.size=" << (m_sfenRecord ? m_sfenRecord->size() : 0);
+    qDebug().noquote()
+        << "[EDIT-BEGIN] baseSfen(after force)=" << baseSfen
+        << " preSide=" << (preSide == ShogiGameController::Player2 ? "P2(w)" : "P1(b)")
+        << " boardTurn=" << (m_shogiView && m_shogiView->board() ? m_shogiView->board()->currentPlayer() : QString("?"));
 #endif
 
+    // 盤面右側の「局面編集終了」ボタンの表示（既存処理）
     showEditExitButtonOnBoard_();
 }
 
