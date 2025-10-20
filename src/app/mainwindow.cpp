@@ -3005,6 +3005,8 @@ void MainWindow::hidePositionEditMenu()
 
 void MainWindow::beginPositionEditing()
 {
+    displayPositionEditMenu();
+
     // ───────────────── 0) 現在のGUI手番をキャプチャ ─────────────────
     // 可能なら TurnManager を、無ければ GameController から取得。既定は先手。
     ShogiGameController::Player preSide = ShogiGameController::Player1;
