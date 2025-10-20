@@ -1626,29 +1626,32 @@ void ShogiView::setErrorOccurred(bool newErrorOccurred)
     m_errorOccurred = newErrorOccurred;
 }
 
-// 局面編集モードのオン/オフを切り替えるセッター。
-// 役割：
-//  - モードの変化がなければ何もしない（無駄な再配置/再描画を避ける）
-//  - モードに応じて、先手側の時計/名前ラベルの可視状態を切り替える（編集モード中は隠す）
-//  - 時計ラベルのジオメトリ（位置・サイズ）を再計算してレイアウトに反映
-// 注意：ここでは主に先手側ラベルの可視切り替えのみを行っている（白側は別箇所で制御している前提）。
 void ShogiView::setPositionEditMode(bool positionEditMode)
 {
-    // 【無駄な処理の回避】状態に変化がない場合は早期 return
+    // 変更なしなら何もしない
     if (m_positionEditMode == positionEditMode) return;
 
-    // 【内部状態の更新】
+    // 手番ラベルの可視状態を退避（再レイアウト後に復元する）
+    QLabel* tlBlack = this->findChild<QLabel*>(QStringLiteral("turnLabelBlack"));
+    QLabel* tlWhite = this->findChild<QLabel*>(QStringLiteral("turnLabelWhite"));
+    const bool blackTurnShown = (tlBlack && tlBlack->isVisible());
+    const bool whiteTurnShown = (tlWhite && tlWhite->isVisible());
+
+    // 内部状態更新
     m_positionEditMode = positionEditMode;
 
-    // 【UI可視性の切り替え】
-    // 編集モードでは先手（黒）側の時計/名前ラベルを非表示にして編集領域を確保。
-    if (m_blackClockLabel) m_blackClockLabel->setVisible(!m_positionEditMode);
-    if (m_blackNameLabel)  m_blackNameLabel->setVisible(!m_positionEditMode);
+    // ── ここが肝 ──────────────────────────────────────────────
+    // 名前・時計・手番の三者を同一ロジックで一括再配置する
+    // （updateBlack/White... だけだと手番ラベルとズレる）
+    relayoutTurnLabels_();
+    // ────────────────────────────────────────────────────────
 
-    // 【ジオメトリ更新】
-    // モード切り替えに伴うレイアウト変化を反映（フォント/サイズ比率が変わる設計にも対応）。
-    updateBlackClockLabelGeometry();
-    updateWhiteClockLabelGeometry();
+    // 手番ラベルの可視状態を復元して前面へ
+    if (tlBlack) { tlBlack->setVisible(blackTurnShown); tlBlack->raise(); }
+    if (tlWhite) { tlWhite->setVisible(whiteTurnShown); tlWhite->raise(); }
+
+    // 再描画
+    update();
 }
 
 // 駒台（スタンド）と盤の横方向ギャップを「何マスぶん（列数）」で設定するセッター。
