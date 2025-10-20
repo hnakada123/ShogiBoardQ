@@ -76,19 +76,21 @@ void MatchCoordinator::startNewGame(const QString& sfenStart) {
 void MatchCoordinator::handleResign() {
     GameEndInfo info;
     info.cause = Cause::Resignation;
-    //info.loser = m_cur;                     // 投了したのは現在手番
+
+    // 投了は「現在手番側」が行う：GCの現在手番から判定
     info.loser = (m_gc && m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2;
     const Player winner = (m_cur == P1 ? P2 : P1);
 
+    // エンジンへの最終通知（HvE / EvE の両方に対応）
     if (m_hooks.sendRawToEngine) {
         if (m_usi1 && !m_usi2) {
-            // HvE：エンジンは常に m_usi1。人間が投了＝エンジン勝ち。
+            // HvE：エンジンは m_usi1。人間が投了＝エンジン勝ち。
             m_hooks.sendRawToEngine(m_usi1, QStringLiteral("gameover win"));
             m_hooks.sendRawToEngine(m_usi1, QStringLiteral("quit")); // 再戦しないなら送る
         } else {
             // EvE：勝者/敗者のエンジンをそれぞれに通知
-            Usi* winEng  = (winner    == P1) ? m_usi1 : m_usi2;
-            Usi* loseEng = (info.loser== P1) ? m_usi1 : m_usi2;
+            Usi* winEng  = (winner     == P1) ? m_usi1 : m_usi2;
+            Usi* loseEng = (info.loser == P1) ? m_usi1 : m_usi2;
             if (loseEng) m_hooks.sendRawToEngine(loseEng, QStringLiteral("gameover lose"));
             if (winEng)  {
                 m_hooks.sendRawToEngine(winEng,  QStringLiteral("gameover win"));
@@ -97,36 +99,41 @@ void MatchCoordinator::handleResign() {
         }
     }
 
-    // 終局の正規ルート（棋譜「投了」追記はこれが emit する requestAppendGameOverMove で）
+    // 司令塔のゲームオーバー状態を確定（棋譜「投了」一意追記は appendMoveOnce=true で司令塔→UIへ）
     setGameOver(info, /*loserIsP1=*/(info.loser==P1), /*appendMoveOnce=*/true);
+
+    // ★ 追加：投了時も結果ダイアログを表示
+    displayResultsAndUpdateGui_(info);
 }
 
 // 2) エンジン側の投了
 void MatchCoordinator::handleEngineResign(int idx) {
-    // 【修正】stop は送らず、時計だけ停止
+    // エンジン投了時はまず時計だけ停止（stop は送らない）
     if (m_clock) m_clock->stopClock();
 
     GameEndInfo info;
     info.cause = Cause::Resignation;
     info.loser = (idx == 1 ? P1 : P2);
 
-    // 【修正】負け側には gameover lose + quit、勝ち側には gameover win + quit を送る
-    //          （Usi 側のヘルパーを使う／stop は一切送らない）
+    // 負け側には lose + quit、勝ち側には win + quit を送る
     Usi* loserEng  = (info.loser == P1) ? m_usi1 : m_usi2;
     Usi* winnerEng = (info.loser == P1) ? m_usi2 : m_usi1;
 
     if (loserEng) {
         loserEng->sendGameOverLoseAndQuitCommands();
-        loserEng->setSquelchResignLogging(true); // 終局後の雑音ログを抑制（任意）
+        loserEng->setSquelchResignLogging(true); // 任意：終局後の雑音ログ抑制
     }
     if (winnerEng) {
         winnerEng->sendGameOverWinAndQuitCommands();
-        winnerEng->setSquelchResignLogging(true); // 任意
+        winnerEng->setSquelchResignLogging(true);
     }
 
-    // 終局の正規ルート（棋譜「投了」一意追記は appendMoveOnce=true で司令塔→UI に委譲）
+    // 司令塔のゲームオーバー状態を確定（棋譜「投了」一意追記は appendMoveOnce=true で司令塔→UIへ）
     const bool loserIsP1 = (info.loser == P1);
     setGameOver(info, loserIsP1, /*appendMoveOnce=*/true);
+
+    // ★ 追加：エンジン投了時も結果ダイアログを表示
+    displayResultsAndUpdateGui_(info);
 }
 
 void MatchCoordinator::notifyTimeout(Player loser) {
@@ -226,18 +233,40 @@ void MatchCoordinator::stopClockAndSendStops_() {
 }
 
 void MatchCoordinator::displayResultsAndUpdateGui_(const GameEndInfo& info) {
+    // 対局中メニューのON/OFFなどUI側の状態を更新
     setGameInProgressActions_(false);
 
+    // 先後の文字列（日本語）
+    const bool loserIsP1  = (info.loser == P1);
+    const QString loserJP = loserIsP1 ? tr("先手") : tr("後手");
+    const QString winnerJP= loserIsP1 ? tr("後手") : tr("先手");
+
+    // メッセージ本文（日本語）
+    QString msg;
+    switch (info.cause) {
+    case Cause::Resignation:
+        // 例）「先手の投了。後手の勝ちです。」
+        msg = tr("%1の投了。%2の勝ちです。").arg(loserJP, winnerJP);
+        break;
+    case Cause::Timeout:
+        // 例）「先手の時間切れ。後手の勝ちです。」
+        msg = tr("%1の時間切れ。%2の勝ちです。").arg(loserJP, winnerJP);
+        break;
+    case Cause::BreakOff:
+    default:
+        // 念のためのフォールバック
+        msg = tr("対局が終了しました。");
+        break;
+    }
+
+    // ダイアログ表示（MainWindow 側フックで QMessageBox を出します）
     if (m_hooks.showGameOverDialog) {
-        const QString loserStr = (info.loser == P1) ? QStringLiteral("P1") : QStringLiteral("P2");
-        const QString msg = (info.cause == Cause::Timeout)
-                                ? tr("Timeout: %1 lost").arg(loserStr)
-                                : tr("Resignation: %1 lost").arg(loserStr);
-        m_hooks.showGameOverDialog(tr("Game Over"), msg);
+        m_hooks.showGameOverDialog(tr("対局終了"), msg);
     }
 
     if (m_hooks.log) m_hooks.log(QStringLiteral("Game ended"));
 
+    // UI 全体へも通知（既存のUI処理と整合）
     emit gameEnded(info);
     emit gameOverShown();
 }
