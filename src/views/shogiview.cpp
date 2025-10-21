@@ -2960,11 +2960,8 @@ void ShogiView::updateTurnIndicator(ShogiGameController::Player now)
     }
 }
 
-// 「常に盤面の右側」に固定しつつ、見やすい配色＆文字が切れないように自動縮小。
-// さらに ★Y座標を“将棋盤の1段目の位置”に合わせる★ ように修正。
 void ShogiView::ensureAndPlaceEditExitButton_()
 {
-    // ラベルの遅延生成に備える（右側の基準ラベル取得で必要）
     ensureTurnLabels_();
 
     QLabel* bn = m_blackNameLabel;
@@ -2972,28 +2969,52 @@ void ShogiView::ensureAndPlaceEditExitButton_()
     if (!bn) bn = this->findChild<QLabel*>(QStringLiteral("blackNameLabel"));
     if (!wn) wn = this->findChild<QLabel*>(QStringLiteral("whiteNameLabel"));
 
-    // ボタン生成 or 取得
     QPushButton* exitBtn = this->findChild<QPushButton*>(QStringLiteral("editExitButton"));
     if (!exitBtn) {
         exitBtn = new QPushButton(tr("編集終了"), this);
         exitBtn->setObjectName(QStringLiteral("editExitButton"));
-        exitBtn->setVisible(false);               // 表示/非表示は外側(MainWindow)で管理
+        exitBtn->setVisible(false);
         exitBtn->setFocusPolicy(Qt::NoFocus);
         exitBtn->setCursor(Qt::PointingHandCursor);
         exitBtn->setAutoDefault(false);
         exitBtn->setDefault(false);
+        exitBtn->setFlat(false);
         exitBtn->raise();
     }
 
-    // 見た目（色・文字色等）を適用
-    styleEditExitButton_(exitBtn);
+    // 背景は全面赤（他はそのまま）
+    const QString solidRedSS = QString::fromLatin1(R"(
+        QPushButton#editExitButton {
+            border: 1px solid #b40000;
+            border-radius: 12px;
+            padding: 4px 12px;
+            color: #ffffff;
+            font-weight: 600;
+            background-color: #e00000;
+        }
+        QPushButton#editExitButton:hover {
+            border: 1px solid #ff4444;
+            background-color: #e00000;
+        }
+        QPushButton#editExitButton:pressed {
+            padding-top: 5px; padding-bottom: 3px;
+            border: 1px solid #8a0000;
+            background-color: #e00000;
+        }
+        QPushButton#editExitButton:disabled {
+            color: rgba(255,255,255,0.75);
+            border-color: #9a0000;
+            background-color: #e00000;
+        }
+    )");
+    exitBtn->setStyleSheet(solidRedSS);
 
-    // ── 基準の決定：「より右側にある“名前ラベル”」を基準にする（Xと幅はこれに合わせる）──
+    // ── 右側の“名前ラベル”を基準に配置 ──
     QLabel* base = nullptr;
     if (bn && wn) {
         const int bx = bn->geometry().center().x();
         const int wx = wn->geometry().center().x();
-        base = (bx > wx) ? bn : wn;  // 画面右側にある方
+        base = (bx > wx) ? bn : wn;
     } else {
         base = bn ? bn : wn;
     }
@@ -3001,11 +3022,8 @@ void ShogiView::ensureAndPlaceEditExitButton_()
     QRect baseGeo;
     if (base) {
         baseGeo = base->geometry();
-        // 基準ラベルのフォントを土台に（ボタン側は自動縮小で最終調整）
-        QFont f = base->font();
-        exitBtn->setFont(f);
+        exitBtn->setFont(base->font());
     } else {
-        // フォールバック：盤の右外側に最低幅で配置
         if (m_board) {
             const QSize fs = fieldSize().isValid() ? fieldSize()
                                                    : QSize(m_squareSize, m_squareSize);
@@ -3021,31 +3039,27 @@ void ShogiView::ensureAndPlaceEditExitButton_()
         }
     }
 
-    // ── 横幅は右側ラベルに合わせつつ、はみ出し防止 ──
     int x = baseGeo.x();
     int w = baseGeo.width();
-    const int maxW = this->width() - x - 4;  // 右端はみ出し対策
+    const int maxW = this->width() - x - 4;
     if (w > maxW) w = maxW;
 
-    // 文字が切れないようにボタン内フォントを縮小
     fitEditExitButtonFont_(exitBtn, w);
 
-    // ── ★Y座標を“将棋盤の1段目の位置”に揃える ──
-    const int hBtn = qMax(exitBtn->sizeHint().height(), 24);
-    int y = 0;
+    const int hBtn = qMax(exitBtn->sizeHint().height(), 28);
+    int  y = 0;
     bool yFixed = false;
+
     if (m_board) {
         const QSize fs = fieldSize().isValid() ? fieldSize()
                                                : QSize(m_squareSize, m_squareSize);
         const QRect boardRect(m_offsetX, m_offsetY,
                               fs.width() * m_board->files(),
                               fs.height() * m_board->ranks());
-        // 1段目のY＝盤矩形のtop（画面上の1段目ライン）
-        y = boardRect.top();
+        y = boardRect.top();        // ★1段目のY
         yFixed = true;
     }
 
-    // 盤が未設定などのフォールバック時は従来ロジックで上側に寄せる
     if (!yFixed) {
         const int vGap = 4;
         y = baseGeo.y() - hBtn - vGap;
