@@ -42,6 +42,7 @@
 #include "boardinteractioncontroller.h"
 #include "kifuvariationengine.h"
 #include "branchcandidatescontroller.h"
+#include "kifuloadcoordinator.h"
 
 // ==============================
 // Macros / aliases
@@ -288,7 +289,6 @@ private:
     void getPlayersName(QString& playersName1, QString& playersName2);
     void makeDefaultSaveFileName();
     void loadKifuFromFile(const QString &filePath);
-    QStringList loadTextLinesFromFile(const QString& filePath);
 
     // --- KIF ヘッダ（対局情報）周り ---
     void ensureGameInfoTable();
@@ -375,6 +375,7 @@ private slots:
 
     // --- ファイル I/O / 外部操作（★重複宣言禁止：ここだけに置く） ---
     void chooseAndLoadKifuFile();
+    void chooseAndLoadKifuFile2();
     void saveShogiBoardImage();
     void copyBoardToClipboard();
     void openWebsiteInExternalBrowser();
@@ -576,6 +577,8 @@ private:
 
     void showEditExitButtonOnBoard_();
     void hideEditExitButtonOnBoard_();
+
+    KifuLoadCoordinator *m_kifuLoadCoordinator = nullptr;
 };
 
 #endif // MAINWINDOW_H
