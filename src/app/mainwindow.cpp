@@ -37,6 +37,7 @@
 #include "numeric_right_align_comma_delegate.h"
 #include "turnmanager.h"
 #include "errorbus.h"
+#include "kifuloadcoordinator.h"
 
 // デバッグのオン/オフ（必要に応じて false に）
 static bool kGM_VERBOSE = true;
@@ -1735,33 +1736,21 @@ void MainWindow::chooseAndLoadKifuFile()
     }
 }
 
-// ファイルからテキストの行を読み込み、QStringListとして返す。
-QStringList MainWindow::loadTextLinesFromFile(const QString& filePath)
+void MainWindow::chooseAndLoadKifuFile2()
 {
-    // テキスト行を格納するリスト
-    QStringList textLines;
+    // ファイル選択ダイアログを表示し、選択されたファイルのパスを取得する。
+    QString filePath = QFileDialog::getOpenFileName(this, tr("KIFファイルを開く"), "", tr("KIF Files (*.kif *.kifu)"));
 
-    // ファイルを開く
-    QFile file(filePath);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        displayErrorMessage(tr("An error occurred in MainWindow::loadTextLinesFromFile. Could not open the file: %1.").arg(filePath));
-        qDebug() << "ファイルを開けませんでした：" << filePath;
-
-        // 空のリストを返す。
-        return textLines;
+    // ユーザーがファイルを選択した場合（キャンセルしなかった場合）、ファイルを開く。
+    if (!filePath.isEmpty()) {
+        setReplayMode(true);
+        ensureGameInfoTable();
+        m_kifuLoadCoordinator = new KifuLoadCoordinator(this);
+        m_kifuLoadCoordinator->setGameInfoTable(m_gameInfoTable);
+        m_kifuLoadCoordinator->setTab(m_tab);
+        m_kifuLoadCoordinator->setShogiView(m_shogiView);
+        m_kifuLoadCoordinator->loadKifuFromFile(filePath);
     }
-
-    // テキスト行を1行ずつ読み込む。
-    QTextStream in(&file);
-
-    while (!in.atEnd()) {
-        textLines.append(in.readLine());
-    }
-
-    file.close();
-
-    // 読み込んだテキスト行を返す。
-    return textLines;
 }
 
 // ---- 無名名前空間: 共有ユーティリティ ----
