@@ -38,6 +38,9 @@
 #include "turnmanager.h"
 #include "errorbus.h"
 
+// デバッグのオン/オフ（必要に応じて false に）
+static bool kGM_VERBOSE = true;
+
 // mainwindow.cpp の先頭（インクルードの後、どのメンバ関数より上）に追加
 static inline QString pickLabelForDisp(const KifDisplayItem& d)
 {
@@ -258,30 +261,9 @@ void MainWindow::displayErrorMessage(const QString& errorMessage)
     QMessageBox::critical(this, tr("Error"), errorMessage);
 }
 
-// 「jpg / jpeg」をまとめて扱うためのヘルパ
-static bool hasFormat(const QSet<QString>& fmts, const QString& key) {
-    if (key == "jpeg") return fmts.contains("jpeg") || fmts.contains("jpg");
-    return fmts.contains(key);
-}
-
-// 対局のメニュー表示を一部隠す。
-void MainWindow::hideGameActions()
-{
-    // 「投了」を隠す。
-    ui->actionResign->setVisible(false);
-
-    // 「待った」を隠す。
-    ui->actionUndoMove->setVisible(false);
-
-    // 「すぐ指させる」を隠す。
-    ui->actionMakeImmediateMove->setVisible(false);
-
-    // 「中断」を隠す。
-    ui->breakOffGame->setVisible(false);
-}
-
 // 「表示」の「思考」 思考タブの表示・非表示
-void MainWindow::toggleEngineAnalysisVisibility() {
+void MainWindow::toggleEngineAnalysisVisibility()
+{
     if (!m_analysisTab) return;
     m_analysisTab->setAnalysisVisible(ui->actionToggleEngineAnalysis->isChecked());
 }
@@ -546,17 +528,20 @@ void MainWindow::setPlayersNamesForMode()
 }
 
 // 駒台を含む将棋盤全体の画像をクリップボードにコピーする。
-void MainWindow::copyBoardToClipboard() {
+void MainWindow::copyBoardToClipboard()
+{
     BoardImageExporter::copyToClipboard(m_shogiView);
 }
 
 
-void MainWindow::saveShogiBoardImage() {
+void MainWindow::saveShogiBoardImage()
+{
     BoardImageExporter::saveImage(this, m_shogiView);
 }
 
 // 対局モードに応じて将棋盤下部に表示されるエンジン名をセットする。
-void MainWindow::setEngineNamesBasedOnMode() {
+void MainWindow::setEngineNamesBasedOnMode()
+{
     // 例：先後に応じて入れ替え
     if (!m_lineEditModel1 || !m_lineEditModel2) return;
     switch (m_playMode) {
@@ -663,18 +648,6 @@ void MainWindow::initializeCentralGameDisplay()
 
     if (m_hsplit) m_centralLayout->addWidget(m_hsplit);
     if (m_tab)    m_centralLayout->addWidget(m_tab);
-
-    qDebug() << "tab parents:" << m_tab->parent();
-    qDebug() << "tabs in window:" << this->findChildren<QTabWidget*>().size();
-
-    auto tabs = this->findChildren<QTabWidget*>();
-    qDebug() << "QTabWidget count =" << tabs.size();
-    for (auto* t : tabs) {
-        qDebug() << " tab*" << t
-                 << " objectName=" << t->objectName()
-                 << " parent=" << t->parent();
-    }
-    qDebug() << " m_tab =" << m_tab;
 }
 
 // 将棋盤、駒台を初期化（何も駒がない）し、入力のSFEN文字列の配置に将棋盤、駒台の駒を
@@ -778,27 +751,6 @@ void MainWindow::redrawEngine1EvaluationGraph()
     // エンジンが未初期化でも落ちないようにガード
     const int scoreCp = eng ? eng->lastScoreCp() : 0;
 
-    auto* ec = m_recordPane ? m_recordPane->evalChart() : nullptr;
-
-    // ---- デバッグ出力 ----
-    qDebug() << "[EVAL][P1] redraw"
-             << "moveIndex=" << m_currentMoveIndex
-             << "invert=" << invert
-             << "scoreCp=" << scoreCp
-             << "playMode(int)=" << int(m_playMode)
-             << "engine=" << static_cast<const void*>(eng)
-             << "chart="  << static_cast<const void*>(ec)
-             << "thread=" << QThread::currentThread();
-
-    if (!eng) qDebug() << "[EVAL][P1][WARN] primaryEngine() is null";
-    if (!ec)  qDebug() << "[EVAL][P1][WARN] evalChart() is null";
-
-    if (ec) {
-        ec->appendScoreP1(m_currentMoveIndex, scoreCp, invert);
-        qDebug() << "[EVAL][P1] appendScoreP1 done"
-                 << "idx=" << m_currentMoveIndex << "cp=" << scoreCp << "invert=" << invert;
-    }
-
     // 記録も更新（整合のためエンジン未初期化時は 0 を入れておく）
     m_scoreCp.append(scoreCp);
 }
@@ -815,50 +767,8 @@ void MainWindow::redrawEngine2EvaluationGraph()
     // エンジン未初期化でも落ちないように 0 を既定値に
     const int scoreCp = eng2 ? eng2->lastScoreCp() : 0;
 
-    auto* ec = m_recordPane ? m_recordPane->evalChart() : nullptr;
-
-    // ---- デバッグ出力 ----
-    qDebug() << "[EVAL][P2] redraw"
-             << "moveIndex=" << m_currentMoveIndex
-             << "invert=" << invert
-             << "scoreCp=" << scoreCp
-             << "playMode(int)=" << int(m_playMode)
-             << "engine2=" << static_cast<const void*>(eng2)
-             << "chart="  << static_cast<const void*>(ec)
-             << "thread=" << QThread::currentThread();
-
-    if (!eng2) qDebug() << "[EVAL][P2][WARN] secondaryEngine() is null";
-    if (!ec)   qDebug() << "[EVAL][P2][WARN] evalChart() is null";
-
-    if (ec) {
-        ec->appendScoreP2(m_currentMoveIndex, scoreCp, invert);
-        qDebug() << "[EVAL][P2] appendScoreP2 done"
-                 << "idx=" << m_currentMoveIndex << "cp=" << scoreCp << "invert=" << invert;
-    }
-
     // 既存仕様に合わせてそのまま記録（未初期化時は 0 を入れる）
     m_scoreCp.append(scoreCp);
-}
-
-// 棋譜を更新し、GUIの表示も同時に更新する。
-void MainWindow::updateGameRecordAndGUI()
-{
-    // 追加：待った中は追記を抑止
-    if (m_isUndoInProgress) {
-        qDebug() << "clock: [KIFU] suppress updateGameRecord during UNDO";
-        return;
-    }
-
-    // 棋譜欄の最後に表示する投了の文字列を設定する。
-    // 対局モードが平手のエンジン対エンジンの場合
-    if ((m_playMode == EvenHumanVsEngine) || (m_playMode == HandicapHumanVsEngine)) {
-        m_lastMove = "▲投了";
-    } else {
-        m_lastMove = "△投了";
-    }
-
-    // 棋譜を更新し、UIの表示も同時に更新する。
-    updateGameRecord(0);
 }
 
 // 将棋クロックの手番を設定する。
@@ -1030,90 +940,6 @@ void MainWindow::printGameDialogSettings(StartGameDialog* m_gamedlg)
     qDebug() << "m_gamedlg->isSwitchTurnEachGame() = " << m_gamedlg->isSwitchTurnEachGame();
 }
 
-// 対局者2をエンジン1で初期化して対局を開始する。
-void MainWindow::initializeAndStartPlayer2WithEngine1()
-{
-    const int idx2 = m_startGameDialog->engineNumber2();
-    const auto list = m_startGameDialog->getEngineList();
-    const QString path2 = list.at(idx2).path;
-    const QString name2 = m_startGameDialog->engineName2();
-
-    const bool isHvE = (m_playMode == EvenEngineVsHuman) || (m_playMode == HandicapEngineVsHuman);
-
-    if (m_match) {
-        if (isHvE) {
-            // HvE でも m_usi1 を使う（後手エンジンでも実体は m_usi1）
-            m_match->initializeAndStartEngineFor(MatchCoordinator::P1, path2, name2);
-        } else {
-            // EvE の後手は P2 へ
-            m_match->initializeAndStartEngineFor(MatchCoordinator::P2, path2, name2);
-        }
-    }
-}
-
-// 対局者1をエンジン1で初期化して対局を開始する。
-void MainWindow::initializeAndStartPlayer1WithEngine1()
-{
-    const int idx1 = m_startGameDialog->engineNumber1();
-    const auto list = m_startGameDialog->getEngineList();
-    const QString path1 = list.at(idx1).path;
-    const QString name1 = m_startGameDialog->engineName1();
-
-    const bool isHvE = (m_playMode == EvenEngineVsHuman) || (m_playMode == HandicapEngineVsHuman);
-
-    if (m_match) {
-        if (isHvE) {
-            // HvE は常に m_usi1 を使う
-            m_match->initializeAndStartEngineFor(MatchCoordinator::P1, path1, name1);
-        } else {
-            // EvE のときは素直に先手へ
-            m_match->initializeAndStartEngineFor(MatchCoordinator::P1, path1, name1);
-        }
-    }
-}
-
-// 対局者2をエンジン2で初期化して対局を開始する。
-void MainWindow::initializeAndStartPlayer2WithEngine2()
-{
-    const int idx2 = m_startGameDialog->engineNumber2();
-    const auto list = m_startGameDialog->getEngineList();
-    const QString path2 = list.at(idx2).path;
-    const QString name2 = m_startGameDialog->engineName2();
-
-    const bool isHvE = (m_playMode == EvenEngineVsHuman) || (m_playMode == HandicapEngineVsHuman);
-
-    if (m_match) {
-        if (isHvE) {
-            // HvE でも m_usi1 を使う
-            m_match->initializeAndStartEngineFor(MatchCoordinator::P1, path2, name2);
-        } else {
-            // EvE の後手は P2
-            m_match->initializeAndStartEngineFor(MatchCoordinator::P2, path2, name2);
-        }
-    }
-}
-
-// 対局者1をエンジン2で初期化して対局を開始する。
-void MainWindow::initializeAndStartPlayer1WithEngine2()
-{
-    const int idx1 = m_startGameDialog->engineNumber1();
-    const auto list = m_startGameDialog->getEngineList();
-    const QString path1 = list.at(idx1).path;
-    const QString name1 = m_startGameDialog->engineName1();
-
-    const bool isHvE = (m_playMode == EvenEngineVsHuman) || (m_playMode == HandicapEngineVsHuman);
-
-    if (m_match) {
-        if (isHvE) {
-            // HvE は常に m_usi1
-            m_match->initializeAndStartEngineFor(MatchCoordinator::P1, path1, name1);
-        } else {
-            // EvE のときも先手は P1
-            m_match->initializeAndStartEngineFor(MatchCoordinator::P1, path1, name1);
-        }
-    }
-}
-
 // 対局モードを決定する。
 PlayMode MainWindow::determinePlayMode(const int initPositionNumber, const bool isPlayer1Human, const bool isPlayer2Human) const
 {
@@ -1247,13 +1073,6 @@ void MainWindow::startGameBasedOnMode()
         m_analysisTab->setDualEngineVisible(isEvE);  // ← ここを !isSingleEngine から置換
     }
 
-    // デバッグ出力
-    qDebug().nospace()
-        << "===============[ANALYSIS] singleEngine=" << (isSingleEngine?1:0)
-        << " engineIsP1=" << (opt.engineIsP1?1:0)
-        << " name1=" << opt.engineName1 << " path1=" << opt.enginePath1
-        << " name2=" << opt.engineName2 << " path2=" << opt.enginePath2;
-
     // ここで「人間を手前」にそろえる（必要なときだけ1回反転）
     ensureHumanAtBottomIfApplicable_();
 
@@ -1270,7 +1089,6 @@ void MainWindow::startGameBasedOnMode()
     m_isResumeFromCurrent = false;     // 再開モード解除
 }
 
-// 棋譜解析結果を表示するためのテーブルビューを設定および表示する。
 // 棋譜解析結果を表示するためのテーブルビューを設定および表示する。
 void MainWindow::displayAnalysisResults()
 {
@@ -1566,32 +1384,11 @@ void MainWindow::prepareDataCurrentPosition()
     const bool prevGuard = m_onMainRowGuard;
     m_onMainRowGuard = true;
 
-    //begin
-    qDebug() << "MainWindow::prepareDataCurrentPosition()";
-    // 現在の手数
-    qDebug() << "selPly = " << selPly;
-    //end
-
     if (m_kifuRecordModel) {
         while (m_kifuRecordModel->rowCount() > (selPly + 1)) {
             m_kifuRecordModel->removeLastItem();
         }
     }
-
-    //begin
-    // m_kifuRevordModel のサイズ
-    qDebug() << "m_kifuRecordModel->size() = " << (m_kifuRecordModel ? m_kifuRecordModel->rowCount() : -1);
-    // m_kifuRecordModel の中身
-    if (m_kifuRecordModel) {
-        qDebug() << "m_kifuRecordModel->rowCount() = " << m_kifuRecordModel->rowCount();
-        QModelIndex index;
-        for (int i = 0; i < m_kifuRecordModel->rowCount(); i++) {
-            index = m_kifuRecordModel->index(i, 0);
-            const auto item = m_kifuRecordModel->data(index, Qt::DisplayRole);
-            qDebug() << "m_kifuRecordModel[" << i << "] = " << item;
-        }
-    }
-    //end
 
     if (m_gameMoves.size() > selPly) {
         while (m_gameMoves.size() > selPly) {
@@ -1599,12 +1396,6 @@ void MainWindow::prepareDataCurrentPosition()
         }
     } else {
         m_gameMoves.clear();
-    }
-
-    //begin
-    qDebug() << "m_gameMoves.size() = " << m_gameMoves.size();
-    for (int i = 0; i < m_gameMoves.size(); i++) {
-        qDebug() << "m_gameMoves[" << i << "] = " << m_gameMoves.at(i);
     }
 
     if (m_positionStrList.size() > (selPly + 1)) {
@@ -1615,14 +1406,6 @@ void MainWindow::prepareDataCurrentPosition()
         m_positionStrList.clear();
     }
 
-    //begin
-    qDebug() << "m_positionStrList.size() = " << m_positionStrList.size();
-    for (int i = 0; i < m_positionStrList.size(); i++) {
-        qDebug() << "m_positionStrList[" << i << "] = " << m_positionStrList.at(i);
-    }
-    //end
-
-
     if (m_sfenRecord) {
         if (m_sfenRecord->size() > (selPly + 1)) {
             while (m_sfenRecord->size() > (selPly + 1)) {
@@ -1632,16 +1415,6 @@ void MainWindow::prepareDataCurrentPosition()
             // 既に selPly+1 以下なら何もしない（クリアしない）
         }
     }
-
-    //begin
-    qDebug() << "m_sfenRecord->size() = " << (m_sfenRecord ? m_sfenRecord->size() : -1);
-    for (int i = 0; i < (m_sfenRecord ? m_sfenRecord->size() : 0); i++) {
-        qDebug() << "m_sfenRecord[" << i << "] = " << m_sfenRecord->at(i);
-    }
-    //end
-
-    // 評価値グラフを selPly まで巻き戻す ← ★ これを追加
-    //trimEvalChartForResume_(selPly);
 
     // ハイライトのクリア → 復元（0→1始まりに +1 補正版を使用）
     if (m_boardController) m_boardController->clearAllHighlights();
@@ -1656,11 +1429,6 @@ void MainWindow::prepareDataCurrentPosition()
     }
 
     m_startSfenStr = m_sfenRecord->at(0);
-
-    //begin
-    qDebug() << "m_resumeSfenStr = " << m_resumeSfenStr;
-    qDebug() << "m_startSfenStr = " << m_startSfenStr;
-    //end
 
     // ★ 直前の終局状態を必ずクリア（これが残っていると updateGameRecord が return します）
     resetGameFlags();
@@ -2269,31 +2037,7 @@ QString MainWindow::prepareInitialSfen(const QString& filePath, QString& teaiLab
         : sfen;
 }
 
-QList<KifDisplayItem>
-MainWindow::parseDisplayMovesAndDetectTerminal(const QString& filePath,
-                                               bool& hasTerminal,
-                                               QString* warn) const
-{
-    QString w;
-    const QList<KifDisplayItem> disp =
-        KifToSfenConverter::extractMovesWithTimes(filePath, &w);
-    if (warn) *warn = w;
-    hasTerminal = (!disp.isEmpty() && isTerminalPretty(disp.back().prettyMove));
-    return disp;
-}
-
-QStringList MainWindow::convertKifToUsiMoves(const QString& filePath, QString* warn) const
-{
-    KifToSfenConverter conv;
-    QString w;
-    const QStringList moves = conv.convertFile(filePath, &w);
-    if (warn) *warn = w;
-    return moves;
-}
-
-void MainWindow::rebuildSfenRecord(const QString& initialSfen,
-                                   const QStringList& usiMoves,
-                                   bool hasTerminal)
+void MainWindow::rebuildSfenRecord(const QString& initialSfen, const QStringList& usiMoves, bool hasTerminal)
 {
     SfenPositionTracer tracer;
     if (!tracer.setFromSfen(initialSfen)) {
@@ -2315,8 +2059,7 @@ void MainWindow::rebuildSfenRecord(const QString& initialSfen,
     *m_sfenRecord = list;                    // COW
 }
 
-void MainWindow::rebuildGameMoves(const QString& initialSfen,
-                                  const QStringList& usiMoves)
+void MainWindow::rebuildGameMoves(const QString& initialSfen, const QStringList& usiMoves)
 {
     m_gameMoves.clear();
 
@@ -2498,17 +2241,6 @@ void MainWindow::displayGameRecord(const QList<KifDisplayItem> disp)
     }
 }
 
-static QString toHtmlWithLinks(const QString& plain)
-{
-    // 改行などを <br> に変換してHTML化
-    QString html = Qt::convertFromPlainText(plain, Qt::WhiteSpaceNormal);
-
-    // http/https のURLをリンクに
-    static const QRegularExpression re(QStringLiteral(R"((https?://[^\s<>"']+))"));
-    html.replace(re, QStringLiteral(R"(<a href="\1">\1</a>)"));
-    return html;
-}
-
 void MainWindow::updateBranchTextForRow(int row)
 {
     QString raw;
@@ -2566,36 +2298,6 @@ void MainWindow::updateGameRecord(const QString& elapsedTime)
     if (m_kifuRecordModel && !m_moveRecords->isEmpty()) {
         m_kifuRecordModel->appendItem(m_moveRecords->last());
     }
-
-    // ※ 本関数はUI反映のみ。考慮時間の確定 / 秒読み・加算の適用は
-    //    MatchCoordinator 側で行い、その結果（elapsedTime 等）だけを受け取って表示する。
-}
-
-// bestmove resignコマンドを受信した場合の終了処理を行う。
-void MainWindow::processResignCommand()
-{
-    // エンジンに対してgameover winコマンドを送る（EvE のみ）
-    if ((m_playMode == EvenEngineVsEngine) || (m_playMode == HandicapEngineVsEngine)) {
-        if (m_gameController && m_gameController->currentPlayer() == ShogiGameController::Player1) {
-            // いま先手番＝後手が「投了」した → 先手勝ち
-            if (m_usi1) m_usi1->sendGameOverWinAndQuitCommands();
-            m_lastMove = QStringLiteral("△投了");
-        } else {
-            // いま後手番＝先手が「投了」した → 後手勝ち
-            if (m_usi2) m_usi2->sendGameOverWinAndQuitCommands();
-            m_lastMove = QStringLiteral("▲投了");
-        }
-    }
-
-    // 矢印ボタンの再有効化
-    enableArrowButtons();
-
-    // 棋譜テーブルの選択モードを復帰（RecordPane 経由）
-    if (m_recordPane) {
-        if (auto* view = m_recordPane->kifuView()) {
-            view->setSelectionMode(QAbstractItemView::SingleSelection);
-        }
-    }    
 }
 
 // 検討を開始する（司令塔へ依頼する形に集約）
@@ -2637,7 +2339,6 @@ void MainWindow::startConsidaration()
     }
 }
 
-// 詰み探索を開始する（TsumeShogiSearchDialogのOK後に呼ばれる）
 // 詰み探索を開始する（TsumeShogiSearchDialogのOK後に呼ばれる）
 void MainWindow::startTsumiSearch()
 {
@@ -2739,63 +2440,6 @@ void MainWindow::startTsumiSearch()
         opt.mode        = TsumiSearchMode; // → go mate を使う
 
         m_match->startAnalysis(opt);
-    }
-}
-
-// positionコマンド文字列を生成し、リストに格納する。
-void MainWindow::createPositionCommands()
-{
-    // 開始局面文字列をSFEN形式でセットする。（sfen文字あり）
-    m_startPosStr = "sfen " + m_sfenRecord->at(0);
-
-    // positionコマンド文字列の生成
-    m_positionStr1 = "position " + m_startPosStr + " moves";
-
-    // positionコマンド文字列リストをクリアする。
-    m_positionStrList.clear();
-
-    // 対局開始の初期状態のpositionコマンド文字列をリストに追加する。
-    m_positionStrList.append(m_positionStr1);
-
-    // 初手から最終手までの指し手までループする。
-    for (int moveIndex = 1; moveIndex < m_gameMoves.size(); ++moveIndex) {
-        // 次の手番のデータをセットする。
-        // 移動元
-        QPoint from = m_gameMoves.at(moveIndex - 1).fromSquare;
-
-        // 移動先
-        QPoint to = m_gameMoves.at(moveIndex - 1).toSquare;
-
-        // 成るかどうかのフラグ
-        bool isPromotion = m_gameMoves.at(moveIndex - 1).isPromotion;
-
-        // 移動元のマスの筋と段の番号を取得する。
-        int fromX = from.x() + 1;
-        int fromY = from.y() + 1;
-        int toX = to.x() + 1;
-        int toY = to.y() + 1;
-
-        // 移動元の筋が盤面内の場合
-        if ((fromX >= 1) && (fromX <= 9)) {
-            m_positionStr1 += " " + QString::number(fromX) + m_usi1->rankToAlphabet(fromY);
-        }
-        // 移動元の筋が先手あるいは下手の持ち駒の場合
-        else if (fromX == 10) {
-            m_positionStr1 += " " + m_usi1->convertFirstPlayerPieceNumberToSymbol(fromY);
-        }
-        // 移動元の筋が後手あるいは上手の持ち駒の場合
-        else if (fromX == 11) {
-            m_positionStr1 += " " + m_usi1->convertSecondPlayerPieceNumberToSymbol(fromY);
-        }
-
-        // 移動先の筋と段の番号からpositionコマンド文字列を生成する。
-        m_positionStr1 += QString::number(toX) + m_usi1->rankToAlphabet(toY);
-
-        // 成った場合、文字列"+"を追加する。
-        if (isPromotion) m_positionStr1 += "+";
-
-        // 対局開始の初期状態のpositionコマンド文字列をリストに追加する。
-        m_positionStrList.append(m_positionStr1);
     }
 }
 
@@ -3103,13 +2747,6 @@ void MainWindow::beginPositionEditing()
         connect(ui->reversal,                    &QAction::triggered, this, &MainWindow::onReverseTriggered,         Qt::UniqueConnection);
     }
 
-#ifdef QT_DEBUG
-    qDebug().noquote()
-        << "[EDIT-BEGIN] baseSfen(after force)=" << baseSfen
-        << " preSide=" << (preSide == ShogiGameController::Player2 ? "P2(w)" : "P1(b)")
-        << " boardTurn=" << (m_shogiView && m_shogiView->board() ? m_shogiView->board()->currentPlayer() : QString("?"));
-#endif
-
     // 盤面右側の「局面編集終了」ボタンの表示（既存処理）
     showEditExitButtonOnBoard_();
 }
@@ -3231,15 +2868,6 @@ void MainWindow::setTsumeShogiStartPosition()
         m_boardController->clearAllHighlights();
 
     m_shogiView->shogiProblemInitialPosition();
-}
-
-// 先手の配置を後手の配置に変更し、後手の配置を先手の配置に変更する。
-void MainWindow::swapBoardSides()
-{
-    if (m_boardController)
-        m_boardController->clearAllHighlights();
-
-    m_shogiView->flipBoardSides();
 }
 
 // 盤面のサイズを拡大する。
@@ -3465,36 +3093,6 @@ void MainWindow::getPlayersName(QString& playersName1, QString& playersName2)
     }
 }
 
-// 棋譜ファイルのヘッダー部分を作成する。
-void MainWindow::makeKifuFileHeader()
-{
-    // 棋譜ファイルのヘッダー部分を作成する。
-    m_kifuDataList.append("#KIF version=2.0 encoding=UTF-8");
-
-    // 開始日時
-    QDateTime dateTime = QDateTime::currentDateTime();
-    m_kifuDataList.append("開始日時：" + dateTime.toString("yyyy/MM/dd hh:mm:ss"));
-
-    // 手合割
-    m_kifuDataList.append("手合割：" + m_startGameDialog->startingPositionName());
-
-    // 対局者名
-    QString playersName1;
-    QString playersName2;
-
-    // 対局者名を取得する。
-    getPlayersName(playersName1, playersName2);
-
-    // 先手　あるいは　下手
-    m_kifuDataList.append(playersName1);
-
-    // 後手　あるいは　上手
-    m_kifuDataList.append(playersName2);
-
-    // 手数、指し手、消費時間の文字列
-    m_kifuDataList.append("手数----指手---------消費時間--");
-}
-
 // 「すぐ指させる」
 // エンジンにstopコマンドを送る。
 // エンジンに対し思考停止を命令するコマンド。エンジンはstopを受信したら、できるだけすぐ思考を中断し、
@@ -3533,65 +3131,6 @@ ShogiGameController::Player MainWindow::humanPlayerSide() const
 bool MainWindow::isHumanTurn() const
 {
     return m_gameController->currentPlayer() == humanPlayerSide();
-}
-
-// ★ 追加: 旗落ち時の終了処理（勝敗通知とクリーンアップ）
-//   ここはプロジェクトの既存ハンドラに合わせてください。
-//   例では: mover が時間切れ → 相手の勝ち。
-//   Usiに直接 win/lose+quit を送る or 既存の handleEngineOne/TwoResignation を呼ぶ、のいずれか。
-void MainWindow::handleFlagFallForMover(bool moverP1)
-{
-    qDebug().nospace()
-        << "[GUI] Flag-fall: mover=" << (moverP1 ? "P1" : "P2");
-
-    // 既存のハンドラ流儀に合わせる場合は、以下のどちらかを選択:
-    // A) Usi 経由で gameover/quit を直接送る（分かりやすい）
-    if (moverP1) {
-        if (m_usi1) m_usi1->sendGameOverLoseAndQuitCommands(); // 時間切れ側
-        if (m_usi2) m_usi2->sendGameOverWinAndQuitCommands();  // 勝ち側
-    } else {
-        if (m_usi2) m_usi2->sendGameOverLoseAndQuitCommands(); // 時間切れ側
-        if (m_usi1) m_usi1->sendGameOverWinAndQuitCommands();  // 勝ち側
-    }
-
-    // B) 既存の「投了ハンドラ」に乗せる場合（プロジェクト命名に応じて置換）
-    if (moverP1) {
-        handleEngineOneResignation(); // P1が負け扱い
-    } else {
-        handleEngineTwoResignation(); // P2が負け扱い
-    }
-
-    // ゲーム終了へ
-    // （必要に応じてUI閉じ処理やログ表示などを追加）
-}
-
-void MainWindow::stopClockAndSendGameOver(Winner w)
-{
-    m_shogiClock->stopClock();
-
-    // Engine vs Engine のときは両方に通知
-    if (m_playMode == EvenEngineVsEngine || m_playMode == HandicapEngineVsEngine) {
-        if (w == Winner::P1) {
-            m_usi1->sendGameOverWinAndQuitCommands();
-            m_usi2->sendGameOverLoseAndQuitCommands();
-        } else {
-            m_usi1->sendGameOverLoseAndQuitCommands();
-            m_usi2->sendGameOverWinAndQuitCommands();
-        }
-    } else {
-        // Human が混ざるモードの保険（片側だけエンジンに送る）
-        if (w == Winner::P1) {
-            if (m_playMode == EvenEngineVsHuman || m_playMode == HandicapEngineVsHuman)
-                m_usi1->sendGameOverWinAndQuitCommands();
-            else if (m_playMode == EvenHumanVsEngine || m_playMode == HandicapHumanVsEngine)
-                m_usi2->sendGameOverLoseAndQuitCommands();
-        } else {
-            if (m_playMode == EvenEngineVsHuman || m_playMode == HandicapEngineVsHuman)
-                m_usi1->sendGameOverLoseAndQuitCommands();
-            else if (m_playMode == EvenHumanVsEngine || m_playMode == HandicapHumanVsEngine)
-                m_usi2->sendGameOverWinAndQuitCommands();
-        }
-    }
 }
 
 // 先手が時間切れ → 先手敗北
@@ -3716,26 +3255,6 @@ void MainWindow::appendKifuLine(const QString& text, const QString& elapsedTime)
 
     // 二重追記防止のためクリア
     m_lastMove.clear();
-}
-
-// 互換ラッパ：既存の呼び出しを生かしたまま内部で新 API に委譲
-void MainWindow::setResignationMove(bool isPlayerOneResigning)
-{
-    setGameOverMove(GameOverCause::Resignation, isPlayerOneResigning);
-}
-
-// 先手エンジンが投了
-void MainWindow::onEngine1Resigns()
-{
-    // 司令塔へ委譲（終局処理・時計停止・USI通知・gameEnded 発火までを司令塔で実施）
-    if (m_match) m_match->handleEngineResign(1);
-}
-
-// 後手エンジンが投了
-void MainWindow::onEngine2Resigns()
-{
-    // 司令塔へ委譲
-    if (m_match) m_match->handleEngineResign(2);
 }
 
 void MainWindow::ensureGameInfoTable()
@@ -3934,10 +3453,6 @@ void MainWindow::syncBoardAndHighlightsAtRow(int ply1)
         return;
     }
 
-    //begin
-    qDebug().nospace() << "[UI] syncBoardAndHighlightsAtRow ply=" << ply1;
-    //end
-
     if (!m_sfenRecord) return;
 
     // ---- 0) 範囲正規化（0=初期局面, 1.. = 手数）----
@@ -3956,47 +3471,15 @@ void MainWindow::syncBoardAndHighlightsAtRow(int ply1)
     }
     applySfenAtCurrentPly();   // (*m_sfenRecord)[m_currentSelectedPly] を描画
 
-    //begin
-    qDebug() << "checkpoint1";
-    //end
     // ---- 2) ハイライトは “USI（gm）” 基準 ----
     // safePly=0 は初期局面で手なし
     if (!m_boardController || safePly <= 0) return;
 
-    //begin
-    qDebug() << "checkpoint2";
-    //end
-
     const int mvIdx = safePly - 1;
-
-    //begin
-    qDebug().nospace() << "[UI] syncBoardAndHighlightsAtRow ply=" << safePly
-                       << " mvIdx=" << mvIdx
-                       << " gm.size=" << m_gameMoves.size();
-    // m_gameMovesの中身を確認
-    for (int i = 0; i < m_gameMoves.size(); ++i) {
-        const ShogiMove& mv = m_gameMoves.at(i);
-        qDebug().nospace() << "  gm[" << i << "] move=" << mv.movingPiece
-                           << " from=" << mv.fromSquare
-                           << " to=" << mv.toSquare;
-    }
-    //end
 
     if (mvIdx < 0 || mvIdx >= m_gameMoves.size()) return;
 
-    //begin
-    qDebug() << "checkpoint3";
-    //end
-
     const ShogiMove& lastMove = m_gameMoves.at(mvIdx);
-
-    //begin
-    qDebug().nospace()
-        << "@@@@@@@@@@@[UI] syncBoardAndHighlightsAtRow ply=" << safePly
-        << " move=" << lastMove.movingPiece
-        << " from=" << lastMove.fromSquare
-        << " to=" << lastMove.toSquare;
-    //end
 
     // ドロップ（持ち駒打ち）対策：無効座標を除外
     const bool hasFrom =
@@ -4005,15 +3488,6 @@ void MainWindow::syncBoardAndHighlightsAtRow(int ply1)
     const QPoint to1 = toOne(lastMove.toSquare);
     if (hasFrom) {
         const QPoint from1 = toOne(lastMove.fromSquare);
-
-        //begin
-        qDebug().nospace()
-            << "[UI] syncBoardAndHighlightsAtRow ply=" << safePly
-            << " move=" << lastMove.movingPiece
-            << " from=" << from1
-            << " to=" << to1;
-        //end
-
         m_boardController->showMoveHighlights(from1, to1);
     } else {
         // 打つ手は移動元をハイライトしない（必要なら駒台強調などに差し替え）
@@ -4095,97 +3569,6 @@ void MainWindow::applySfenAtCurrentPly()
     }
 }
 
-void MainWindow::applyVariationByKey(int startPly, int bucketIndex)
-{
-    // --- バリデーション ---
-    auto it = m_variationsByPly.constFind(startPly);
-    if (it == m_variationsByPly.cend()) return;
-    const VariationBucket& bucket = it.value();
-    if (bucket.isEmpty() || bucketIndex < 0 || bucketIndex >= bucket.size()) return;
-
-    const KifLine& v = bucket[bucketIndex];
-    if (v.disp.isEmpty()) return;
-
-    // --- 表示用・SFEN・ゲームムーブを「本譜prefix + 分岐」で合成 ---
-    QList<KifDisplayItem> mergedDisp;
-    if (v.startPly > 1)
-        mergedDisp = m_dispMain.mid(0, v.startPly - 1);
-    mergedDisp += v.disp;
-
-    QStringList mergedSfen = m_sfenMain.mid(0, v.startPly);  // [0..startPly-1] まで本譜
-    mergedSfen += v.sfenList.mid(1);                         // 先頭(基底)は重複するので除外
-
-    QVector<ShogiMove> mergedGm;
-    if (v.startPly > 1)
-        mergedGm = m_gmMain.mid(0, v.startPly - 1);
-    mergedGm += v.gameMoves;
-
-    // --- 現在の表示・局面ソースに反映 ---
-    if (m_sfenRecord) *m_sfenRecord = mergedSfen;
-    m_gameMoves = mergedGm;
-
-    // 分岐の最初の手（= startPly手目）を選択
-    const int selPly = v.startPly;
-    showRecordAtPly(mergedDisp, /*selectPly=*/selPly);
-    m_currentSelectedPly = selPly;
-
-    // 棋譜欄の見た目も合わせる（明示的に選択＆スクロール）
-    if (m_kifuRecordModel) {
-        QTableView* view = (m_recordPane ? m_recordPane->kifuView() : nullptr);
-        if (view) {
-            const QModelIndex idx = m_kifuRecordModel->index(selPly, 0);
-            if (idx.isValid()) {
-                if (auto* sel = view->selectionModel()) {
-                    sel->setCurrentIndex(idx,
-                        QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
-                } else {
-                    view->setCurrentIndex(idx);
-                }
-                view->scrollTo(idx, QAbstractItemView::PositionAtCenter);
-            }
-        }
-    }
-
-    // 盤・ハイライトを必ず即時同期（古いハイライト残り対策）
-    syncBoardAndHighlightsAtRow(selPly);
-
-    // 分岐候補欄を同手目で再表示（“本譜へ戻る”行付き）
-    populateBranchListForPly(v.startPly);
-
-    // （任意）コメント欄など行依存UIを更新したい場合
-    updateBranchTextForRow(selPly);
-
-    // 矢印ボタンの有効/無効を更新
-    enableArrowButtons();
-}
-
-void MainWindow::onKifuPlySelected(int ply)
-{
-    if (ply < 0) return;
-
-    // ★ 読み込み中はスキップ（ノイズ抑制）
-    if (m_loadingKifu) {
-        qDebug() << "[BRANCH] skip during loading (onKifuPlySelected)";
-        return;
-    }
-
-    // ★ 現在のアクティブ行が有効かチェック（安全側）
-    if (m_activeResolvedRow < 0 || m_activeResolvedRow >= m_resolvedRows.size()) {
-        qDebug() << "[BRANCH] onKifuPlySelected: active row invalid"
-                 << " row=" << m_activeResolvedRow
-                 << " rows=" << m_resolvedRows.size();
-        return;
-    }
-
-    // ★ コンテキスト記録（どの手を基準に候補を出しているか）
-    m_branchPlyContext = ply;
-
-    // ★ Plan データだけで分岐候補欄を構築・表示
-    //   （単一候補かつ現在手と同一なら非表示、などの最終制御は
-    //     showBranchCandidatesFromPlan() 側で実施）
-    showBranchCandidatesFromPlan(/*row*/m_activeResolvedRow, /*ply1*/ply);
-}
-
 void MainWindow::onBranchCandidateActivated(const QModelIndex& index)
 {
     if (!index.isValid()) return;
@@ -4222,10 +3605,6 @@ void MainWindow::onBranchCandidateActivated(const QModelIndex& index)
 
 void MainWindow::buildResolvedLinesAfterLoad()
 {
-    //begin
-    qDebug().noquote() << "--- buildResolvedLinesAfterLoad() called.";
-    //end
-
     // 既存: Resolved行の構築や m_varEngine->ingest(), rebuildBranchWhitelist() の後
     m_branchTreeLocked = true;
     qDebug() << "[BRANCH] tree locked (after buildResolvedLinesAfterLoad)";
@@ -4445,10 +3824,7 @@ void MainWindow::applyResolvedRowAndSelect(int row, int selPly)
     updateKifuBranchMarkersForActiveRow();
 }
 
-void MainWindow::BranchRowDelegate::paint(
-    QPainter* painter,
-    const QStyleOptionViewItem& option,
-    const QModelIndex& index) const
+void MainWindow::BranchRowDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const
 {
     QStyleOptionViewItem opt(option);
     QStyledItemDelegate::initStyleOption(&opt, index);
@@ -4526,13 +3902,6 @@ void MainWindow::updateKifuBranchMarkersForActiveRow()
 
     // 再描画
     if (view && view->viewport()) view->viewport()->update();
-
-#ifdef SHOGIBOARDQ_DEBUG_KIF
-    if (!m_branchablePlySet.isEmpty()) {
-        QStringList ls; for (int p : m_branchablePlySet) ls << QString::number(p);
-        qDebug().noquote() << "[KIF-HL] branchable ply =" << ls;
-    }
-#endif
 }
 
 void MainWindow::resetGameFlags()
@@ -4541,29 +3910,6 @@ void MainWindow::resetGameFlags()
     if (m_match) {
         m_match->clearGameOverState();
     }
-}
-
-void MainWindow::syncClockTurnAndEpoch()
-{
-    // 時計の手番表示と動作を現在手番に同期
-    m_shogiClock->stopClock();
-    const int cur = (m_gameController->currentPlayer() == ShogiGameController::Player2) ? 2 : 1;
-    updateTurnStatus(cur);
-    m_shogiClock->startClock();
-
-    // エポック管理は司令塔へ一元化
-    if (m_match) {
-        m_match->resetTurnEpochs();
-        const bool p1turn = (m_gameController->currentPlayer() == ShogiGameController::Player1);
-        m_match->markTurnEpochNowFor(p1turn ? MatchCoordinator::P1 : MatchCoordinator::P2);
-    }
-}
-
-void MainWindow::startMatchEpoch(const QString& tag)
-{
-    // 必要に応じてUTF-8へ（既存の const char* 版がUTF-8前提なら）
-    const QByteArray utf8 = tag.toUtf8();
-    startMatchEpoch(utf8.constData());  // 既存の const char* 版へ委譲（同期処理を想定）
 }
 
 void MainWindow::startMatchEpoch(const char* tag)
@@ -4580,28 +3926,6 @@ void MainWindow::wireResignToArbiter(Usi* /*engine*/, bool /*asP1*/)
     }
 }
 
-void MainWindow::setConsiderationForJustMoved(qint64 thinkMs)
-{
-    // validateAndMove 後の currentPlayer() は「これから指す側」
-    // ＝直前に指した側はその逆
-    if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
-        m_shogiClock->setPlayer2ConsiderationTime(static_cast<int>(thinkMs));
-    } else {
-        m_shogiClock->setPlayer1ConsiderationTime(static_cast<int>(thinkMs));
-    }
-}
-
-bool MainWindow::engineThinkApplyMove(Usi* engine,
-                                      QString& positionStr,
-                                      QString& ponderStr,
-                                      QPoint* outFrom,
-                                      QPoint* outTo)
-{
-    return (m_match
-                ? m_match->engineThinkApplyMove(engine, positionStr, ponderStr, outFrom, outTo)
-                : false);
-}
-
 void MainWindow::destroyEngine(Usi*& e)
 {
     if (!m_match) return;
@@ -4616,38 +3940,6 @@ void MainWindow::destroyEngine(Usi*& e)
         delete e;
     }
     e = nullptr;
-}
-
-// PvE：m_usi1 を用意して共通初期化
-void MainWindow::initSingleEnginePvE(bool engineIsP1)
-{
-    destroyEngine(m_usi1);
-    m_usi1 = new Usi(m_lineEditModel1, m_modelThinking1, m_gameController, m_playMode, this);
-
-    // 念のため存在していれば m_usi2 もクリア系だけ実施
-    if (m_usi2) { m_usi2->resetResignNotified(); m_usi2->clearHardTimeout(); }
-
-    m_usi1->resetResignNotified();
-    m_usi1->clearHardTimeout();
-
-    // 先手エンジンかどうかでアービタ接続
-    wireResignToArbiter(m_usi1, engineIsP1);
-
-    // === ここを修正：タグと設定名を側に合わせる ===
-    const QString engineTag  = engineIsP1 ? QStringLiteral("[E1]") : QStringLiteral("[E2]");
-    const QString playerTag  = engineIsP1 ? QStringLiteral("P1")   : QStringLiteral("P2");
-    const QString cfgName    = engineIsP1
-                                ? m_startGameDialog->engineName1()
-                                : m_startGameDialog->engineName2();
-
-    // ログ識別子（[E1]/[E2], P1/P2, 表示名）
-    m_usi1->setLogIdentity(engineTag, playerTag, cfgName);
-    m_usi1->setSquelchResignLogging(false);
-
-    // ★ 追加：MatchCoordinator に新しいポインタを渡す
-    if (m_match) m_match->updateUsiPtrs(m_usi1, m_usi2);
-
-    resetGameFlags();
 }
 
 // いま手番が人間か？
@@ -4834,17 +4126,6 @@ void MainWindow::setupEngineAnalysisTab()
     // ★ EngineAnalysisTab が作成した同じ QTabWidget を受け取って中央に貼る
     m_tab = m_analysisTab->tab();
     Q_ASSERT(m_tab);
-    qDebug() << "tab parents:" << m_tab->parent();
-    qDebug() << "tabs in window:" << this->findChildren<QTabWidget*>().size();
-
-    auto tabs = this->findChildren<QTabWidget*>();
-    qDebug() << "QTabWidget count =" << tabs.size();
-    for (auto* t : tabs) {
-        qDebug() << " tab*" << t
-                 << " objectName=" << t->objectName()
-                 << " parent=" << t->parent();
-    }
-    qDebug() << " m_tab =" << m_tab;
 
     // 分岐ツリークリック → MainWindow へ（重複接続防止）
     connect(m_analysisTab, &EngineAnalysisTab::branchNodeActivated,
@@ -5182,11 +4463,6 @@ void MainWindow::initializePositionStringsForMatch_()
     m_positionStr1     = QStringLiteral("position sfen %1").arg(baseSfen);
     m_positionPonder1  = m_positionStr1;   // ひな形は同じでOK
     m_positionStrList << m_positionStr1;
-
-#ifdef QT_DEBUG
-    qDebug() << "[INIT-POS] base sfen =" << baseSfen;
-    qDebug() << "[INIT-POS] positionStr1 =" << m_positionStr1;
-#endif
 }
 
 // EvH（エンジンが先手）の初手を起動する（position ベース → go → bestmove を適用）
@@ -5270,7 +4546,6 @@ void MainWindow::startInitialEngineMoveEvH_()
         });
     }
 }
-
 
 // 駒落ち（"w" 開始）など、開始手番が後手で、後手がエンジンのときに初手を自動で指させる。
 // 先手エンジン（EvH）の場合もここから既存の startInitialEngineMoveEvH_() を呼ぶ。
@@ -5943,7 +5218,8 @@ void MainWindow::setupBranchView_()
 }
 
 // 行番号から表示名を作る（Main / VarN）
-QString MainWindow::rowNameFor_(int row) const {
+QString MainWindow::rowNameFor_(int row) const
+{
     if (row < 0 || row >= m_resolvedRows.size()) return QString("<?>");
     const auto& rr = m_resolvedRows[row];
     return (rr.varIndex < 0) ? QStringLiteral("Main")
@@ -5951,14 +5227,16 @@ QString MainWindow::rowNameFor_(int row) const {
 }
 
 // 1始まり hand-ply のラベル（無ければ ""）
-QString MainWindow::labelAt_(const ResolvedRow& rr, int ply) const {
+QString MainWindow::labelAt_(const ResolvedRow& rr, int ply) const
+{
     const int li = ply - 1;
     if (li < 0 || li >= rr.disp.size()) return QString();
     return pickLabelForDisp(rr.disp.at(li));
 }
 
 // 1..p までの完全一致（両方に手が存在し、かつ全ラベル一致）なら true
-bool MainWindow::prefixEqualsUpTo_(int rowA, int rowB, int p) const {
+bool MainWindow::prefixEqualsUpTo_(int rowA, int rowB, int p) const
+{
     if (rowA < 0 || rowA >= m_resolvedRows.size()) return false;
     if (rowB < 0 || rowB >= m_resolvedRows.size()) return false;
     const auto& A = m_resolvedRows[rowA];
@@ -6488,16 +5766,6 @@ void MainWindow::dumpAllRowsSfenTable() const
     }
 }
 
-// MainWindow.cpp (privateメソッドとして)
-inline QString MainWindow::sfenAt_(int row, int ply1) const
-{
-    if (row < 0 || row >= m_resolvedRows.size()) return {};
-    const auto& s = m_resolvedRows[row].sfen;      // 0..N （ensureResolvedRowsHaveFullSfenで揃っている前提）
-    if (s.isEmpty()) return {};
-    const int idx = qBound(0, ply1, s.size() - 1); // ply1 は 0=初期局面, 1=1手後...
-    return s.at(idx);
-}
-
 void MainWindow::dumpAllLinesGameMoves() const
 {
     if (m_resolvedRows.isEmpty()) return;
@@ -6587,11 +5855,6 @@ void MainWindow::dumpAllLinesGameMoves() const
         qDebug().noquote() << "";
     }
 }
-
-// ==== MainWindow.cpp （適当な実装ファイル）====
-
-// デバッグのオン/オフ（必要に応じて false に）
-static bool kGM_VERBOSE = true;
 
 // 1セルを "file-rank" 表示（USI基準とL2R基準の両方を出す）
 static inline QString idxHuman(int idx) {
@@ -6908,7 +6171,6 @@ void MainWindow::applyTurnHighlights_(bool p1turn)
     updateUrgencyStyles_(p1turn);
 }
 
-// MainWindow.cpp
 void MainWindow::updateUrgencyStyles_(bool p1turn)
 {
     if (!m_shogiView) return;
@@ -6978,31 +6240,6 @@ void MainWindow::ensureHumanAtBottomIfApplicable_()
         onActionFlipBoardTriggered(false);
         // onBoardFlipped() が呼ばれ、m_bottomIsP1 はトグルされます
     }
-}
-
-void MainWindow::removeLastKifuPlies_(int n)
-{
-    if (!m_kifuRecordModel || n <= 0) return;
-
-    const bool prevGuard = m_onMainRowGuard;
-    m_onMainRowGuard = true;
-
-    for (int i = 0; i < n; ++i) {
-        dumpTailState(m_kifuRecordModel, "[UNDO] before");
-        const int before = m_kifuRecordModel->rowCount();
-        if (before <= 0) break;
-
-        qDebug() << "[UNDO] call removeLastItem() #" << (i+1);
-        m_kifuRecordModel->removeLastItem();
-
-        // モデル内部の詰め替え／行削除を確定
-        QCoreApplication::processEvents(QEventLoop::AllEvents, 10);
-        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
-
-        dumpTailState(m_kifuRecordModel, "[UNDO] after ");
-    }
-
-    m_onMainRowGuard = prevGuard;
 }
 
 void MainWindow::updateHighlightsForPly_(int selPly)
@@ -7096,64 +6333,6 @@ void MainWindow::handleBreakOffGame()
     m_match->handleBreakOff();
 }
 
-// フルリセットの代わりに、現局面再開用の軽量クリア
-void MainWindow::resetUiForResumeFromCurrent_()
-{
-    // GUI 側のメイン棋譜用バッファは残す（再開時に selPly まで前置が必要なため）
-    m_currentMoveIndex = 0;           // 使っていれば
-    m_isLiveAppendMode = true;        // 現局面再開はライブ扱いに
-
-    // ハイライトや選択状態の残骸があればクリア
-    if (m_shogiView) m_shogiView->removeHighlightAllData();
-
-    enterLiveAppendMode_();   // 現局面から再開モード（選択無効化）
-
-    const bool prevGuard = m_onMainRowGuard;
-    m_onMainRowGuard = true;
-
-    if (m_boardController) m_boardController->clearAllHighlights();
-
-    if (m_shogiView) {
-        m_shogiView->blackClockLabel()->setText("00:00:00");
-        m_shogiView->whiteClockLabel()->setText("00:00:00");
-    }
-
-    // ★ 再開中はグラフを消さない（RecordPane から毎回取得）
-    if (!m_isResumeFromCurrent) {
-        if (auto* ec = (m_recordPane ? m_recordPane->evalChart() : nullptr)) {
-            ec->clearAll();
-        }
-    }
-
-    if (m_modelThinking1)  m_modelThinking1->clearAllItems();
-    if (m_modelThinking2)  m_modelThinking2->clearAllItems();
-
-    auto resetInfo = [](UsiCommLogModel* m){
-        if (!m) return;
-        m->setEngineName({});
-        m->setPredictiveMove({});
-        m->setSearchedMove({});
-        m->setSearchDepth({});
-        m->setNodeCount({});
-        m->setNodesPerSecond({});
-        m->setHashUsage({});
-    };
-    resetInfo(m_lineEditModel1);
-    resetInfo(m_lineEditModel2);
-
-    if (m_tab) m_tab->setCurrentIndex(0);
-
-    // ★ 追加：次の追記手番の基準&局面再適用
-    const int maxPly = (m_sfenRecord && !m_sfenRecord->isEmpty())
-                       ? (m_sfenRecord->size() - 1) : 0;
-    m_currentSelectedPly = qBound(0, m_currentSelectedPly, maxPly);
-    m_currentMoveIndex   = m_currentSelectedPly;  // 次は N+1 手目から
-    applySfenAtCurrentPly();
-    updateHighlightsForPly_(m_currentSelectedPly); // （必要なら）
-
-    m_onMainRowGuard = prevGuard;
-}
-
 void MainWindow::enterLiveAppendMode_()
 {
     m_isLiveAppendMode = true;
@@ -7172,24 +6351,6 @@ void MainWindow::exitLiveAppendMode_()
     if (auto* view = m_recordPane->kifuView()) {
         view->setSelectionMode(QAbstractItemView::SingleSelection);
         view->setFocusPolicy(Qt::StrongFocus);
-    }
-}
-
-void MainWindow::purgeBranchPlayback_()
-{
-    // KIF再生（分岐解決）状態を完全クリア
-    m_resolvedRows.clear();
-    m_activeResolvedRow = -1;
-
-    if (m_kifuBranchModel) {
-        m_kifuBranchModel->clearBranchCandidates();
-        m_kifuBranchModel->setHasBackToMainRow(false);
-    }
-    if (QTableView* view = m_kifuBranchView
-                               ? m_kifuBranchView
-                               : (m_recordPane ? m_recordPane->branchView() : nullptr)) {
-        view->setVisible(false);
-        view->setEnabled(false);
     }
 }
 

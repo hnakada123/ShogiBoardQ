@@ -241,7 +241,6 @@ private:
 
     // --- UI / 表示更新 ---
     void displayAnalysisResults();
-    void hideGameActions();
     void updateGameRecord(const QString& elapsedTime);
     void updateTurnAndTimekeepingDisplay();
     void updateTurnDisplay();
@@ -279,24 +278,17 @@ private:
     // --- 時計 / 時間管理 ---
     void setRemainingTimeAndCountDown();
     void setTimerAndStart();
-    void syncClockTurnAndEpoch();
     void startMatchEpoch(const char* tag);
-    void startMatchEpoch(const QString& tag);
-    void setConsiderationForJustMoved(qint64 thinkMs);
-    void handleFlagFallForMover(bool moverP1);
     enum class Winner { P1, P2 };
-    void stopClockAndSendGameOver(Winner w);
 
     // --- 入出力 / 設定 ---
     void printGameDialogSettings(StartGameDialog* m_gamedlg);
     void saveWindowAndBoardSettings();
     void loadWindowSettings();
-    void makeKifuFileHeader();
     void getPlayersName(QString& playersName1, QString& playersName2);
     void makeDefaultSaveFileName();
     void loadKifuFromFile(const QString &filePath);
     QStringList loadTextLinesFromFile(const QString& filePath);
-    void createPositionCommands();
 
     // --- KIF ヘッダ（対局情報）周り ---
     void ensureGameInfoTable();
@@ -308,34 +300,18 @@ private:
 
     // --- USI / エンジン ---
     void destroyEngine(Usi*& e);
-    void initSingleEnginePvE(bool engineIsP1);
     bool isHumanTurnNow(bool engineIsP1) const;
-
-    bool engineThinkApplyMove(Usi* engine,
-                              QString& positionStr,
-                              QString& ponderStr,
-                              QPoint* outFrom,
-                              QPoint* outTo);
     void wireResignToArbiter(Usi* engine, bool asP1);
     std::pair<QString, QString> currentBWTimesForUSI_() const;
-    void initializeAndStartPlayer2WithEngine1();
-    void initializeAndStartPlayer1WithEngine1();
-    void initializeAndStartPlayer2WithEngine2();
-    void initializeAndStartPlayer1WithEngine2();
 
     // --- 分岐 / 変化 ---
     void buildResolvedLinesAfterLoad();
     void applyResolvedRowAndSelect(int row, int selPly);
     void populateBranchListForPly(int ply);
-    void applyVariationByKey(int startPly, int bucketIndex);
     void updateBranchTextForRow(int row);
 
     // --- 取込 / 解析補助 ---
     QString prepareInitialSfen(const QString& filePath, QString& teaiLabel) const;
-    QList<KifDisplayItem> parseDisplayMovesAndDetectTerminal(const QString& filePath,
-                                                             bool& hasTerminal,
-                                                             QString* warn = nullptr) const;
-    QStringList convertKifToUsiMoves(const QString& filePath, QString* warn = nullptr) const;
     void rebuildSfenRecord(const QString& initialSfen,
                            const QStringList& usiMoves,
                            bool hasTerminal);
@@ -357,7 +333,6 @@ private:
     void prepareDataCurrentPosition();
     void prepareInitialPosition();
     void setCurrentTurn();
-    void updateGameRecordAndGUI();
     void movePieceImmediately();
     void resetGameFlags();
     void initializePositionStringsForMatch_();
@@ -365,8 +340,6 @@ private:
     void startInitialEngineMoveEvH_();
     void setGameOverMove(MatchCoordinator::Cause cause, bool loserIsPlayerOne);
     QChar glyphForPlayer(bool isPlayerOne) const;
-    void onEngine1Resigns();
-    void onEngine2Resigns();
     void appendKifuLine(const QString& text, const QString& elapsedTime);
     ShogiGameController::Player humanPlayerSide() const;
     bool isHumanTurn() const;
@@ -418,11 +391,9 @@ private slots:
 
     // --- ゲーム開始 / 終了 ---
     void initializeGame();
-    void processResignCommand();
     void handleResignation();
     void handleEngineTwoResignation();
     void handleEngineOneResignation();
-    void setResignationMove(bool isPlayerOneResigning);
     void onMatchGameEnded(const MatchCoordinator::GameEndInfo& info);
 
     // --- 盤編集 / 表示 ---
@@ -431,7 +402,6 @@ private slots:
     void resetPiecesToStand();
     void setStandardStartPosition();
     void setTsumeShogiStartPosition();
-    void swapBoardSides();
     void flipBoardAndUpdatePlayerInfo();
     void enlargeBoard();
     void reduceBoardSize();
@@ -483,7 +453,6 @@ private slots:
     void handleMove_HvE_(const QPoint& humanFrom, const QPoint& humanTo);
 
 private slots:
-    void onKifuPlySelected(int ply);
     void onBranchCandidateActivated(const QModelIndex& index); // QModelIndex 版に変更
 
     // BranchCandidatesController → MainWindow
@@ -546,16 +515,10 @@ private:
 
     void buildBranchCandidateDisplayPlan();
     void dumpBranchCandidateDisplayPlan() const;
-
     void showBranchCandidatesFromPlan(int row, int ply1);
-
     void ensureResolvedRowsHaveFullSfen();   // 各行の sfen を確実に満たす
     void dumpAllRowsSfenTable() const;       // ご指定フォーマットでログ出力
-
-    inline QString sfenAt_(int row, int ply1) const;
-
     void dumpAllLinesGameMoves() const;
-
     void ensureResolvedRowsHaveFullGameMoves();
 
     // 選択（行row, 手数ply）から、ハイライトすべき(variation id, ply)を解決
@@ -588,10 +551,7 @@ private:
 
     // HvE / EvH のときだけ「人間が手前」になるよう必要なら反転
     void ensureHumanAtBottomIfApplicable_();
-
     void syncBoardToPly_(int selPly);
-
-    void removeLastKifuPlies_(int n);
     void updateHighlightsForPly_(int selPly); // まだ無ければ宣言を追加
 
     // 待った中は棋譜追記を抑止するフラグ
@@ -601,14 +561,9 @@ private:
 
     // 検討（ConsidarationMode）の手動終了（quit 送信）
     void handleBreakOffConsidaration();
-
-    void resetUiForResumeFromCurrent_();
-
     bool m_isLiveAppendMode = false;
     void enterLiveAppendMode_();  // 再開中は選択を無効化
     void exitLiveAppendMode_();   // 終局で選択を元に戻す
-    void purgeBranchPlayback_();
-
     void trimEvalChartForResume_(int selPly);
 
     void prepareFallbackEvenStartForResume_();
