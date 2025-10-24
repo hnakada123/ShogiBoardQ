@@ -4,14 +4,29 @@
 #include <QObject>
 #include <QTableWidget>
 #include <QDockWidget>
+#include <QStyledItemDelegate>
 
 #include "kiftosfenconverter.h"
 #include "engineanalysistab.h"
 #include "shogiview.h"
+#include "recordpane.h"
+#include "branchcandidatescontroller.h"
+
+struct ResolvedRow {
+    int startPly = 1;
+    int parent   = -1;                 // ★追加：親行。Main は -1
+    QList<KifDisplayItem> disp;
+    QStringList sfen;
+    QVector<ShogiMove> gm;
+    int varIndex = -1;                 // 本譜 = -1
+};
+
+class KifuRecordListModel;
 
 class KifuLoadCoordinator : public QObject
 {
     Q_OBJECT
+
 public:
     // コンストラクタ
     explicit KifuLoadCoordinator(QObject *parent = nullptr);
@@ -24,9 +39,32 @@ public:
 
     void setShogiView(ShogiView *newShogiView);
 
+    void setSfenRecord(QStringList *newSfenRecord);
+
+    void setGameMoves(const QVector<ShogiMove> &newGameMoves);
+
+    void setPositionStrList(const QStringList &newPositionStrList);
+
+    void setDispMain(const QList<KifDisplayItem> &newDispMain);
+
+    void setSfenMain(const QStringList &newSfenMain);
+
+    void setGmMain(const QVector<ShogiMove> &newGmMain);
+
+    void setVariationsByPly(const QHash<int, QList<KifLine> > &newVariationsByPly);
+
+    void setVariationsSeq(const QList<KifLine> &newVariationsSeq);
+
+    void setRecordPane(RecordPane *newRecordPane);
+
+    void setResolvedRows(const QVector<ResolvedRow> &newResolvedRows);
+
 signals:
     void errorOccurred(const QString& errorMessage);
     void setReplayMode(bool on);
+    void displayGameRecord(const QList<KifDisplayItem> disp);
+    void syncBoardAndHighlightsAtRow(int ply1);
+    void enableArrowButtons();
 
 private:
     bool m_loadingKifu = false;
@@ -36,12 +74,65 @@ private:
     QTabWidget* m_tab = nullptr;
     ShogiView* m_shogiView = nullptr;
     QStringList m_usiMoves;
+    QStringList* m_sfenRecord = nullptr;
+    QVector<ShogiMove> m_gameMoves;
+    QStringList m_positionStrList;
+    QList<KifDisplayItem> m_dispMain;
+    QList<KifDisplayItem> m_dispCurrent;
+    QStringList           m_sfenMain;
+    QVector<ShogiMove>    m_gmMain;
+    QHash<int, QList<KifLine>> m_variationsByPly;
+    QList<KifLine> m_variationsSeq;
+    RecordPane* m_recordPane = nullptr;
+    QVector<ResolvedRow> m_resolvedRows;
+    int m_activeResolvedRow = 0;
+    int m_activePly = 0;
+    int m_currentSelectedPly = 0;
+    int m_currentMoveIndex = 0;
+    KifuRecordListModel* m_kifuRecordModel  = nullptr;
+    KifuBranchListModel*       m_kifuBranchModel  = nullptr;
+    BranchCandidatesController* m_branchCtl = nullptr;
+    QTableView* m_kifuBranchView = nullptr;
+    int m_branchPlyContext = -1;
+    QSet<int> m_branchablePlySet;
+    // --- 分岐候補（テキスト）側の索引 ---
+    struct BranchCandidate {
+        QString text;  // 「▲２六歩(27)」
+        int row;       // resolved 行
+        int ply;       // 1始まり
+    };
+    QHash<int, QHash<QString, QList<BranchCandidate>>> m_branchIndex;
+
+    // 行(row) → (ply → 表示計画) の保持
+    // 例: m_branchDisplayPlan[row][ply]
+    QHash<int, QMap<int, BranchCandidateDisplay>> m_branchDisplayPlan;
 
     QString prepareInitialSfen(const QString& filePath, QString& teaiLabel) const;
     void populateGameInfo(const QList<KifGameInfoItem>& items);
     void addGameInfoTabIfMissing();
     void applyPlayersFromGameInfo(const QList<KifGameInfoItem>& items);
     QString findGameInfoValue(const QList<KifGameInfoItem>& items, const QStringList& keys) const;
+    void rebuildSfenRecord(const QString& initialSfen, const QStringList& usiMoves, bool hasTerminal);
+    void rebuildGameMoves(const QString& initialSfen, const QStringList& usiMoves);
+    void applyResolvedRowAndSelect(int row, int selPly);
+    void showRecordAtPly(const QList<KifDisplayItem>& disp, int selectPly);
+    void showBranchCandidatesFromPlan(int row, int ply1);
+    void updateKifuBranchMarkersForActiveRow();
+    void ensureBranchRowDelegateInstalled();
+
+    // --- 装飾（棋譜テーブル マーカー描画） ---
+    class BranchRowDelegate : public QStyledItemDelegate {
+    public:
+        explicit BranchRowDelegate(QObject* parent = nullptr)
+            : QStyledItemDelegate(parent) {}
+        void setMarkers(const QSet<int>* marks) { m_marks = marks; }
+        void paint(QPainter* painter,
+                   const QStyleOptionViewItem& option,
+                   const QModelIndex& index) const override;
+    private:
+        const QSet<int>* m_marks = nullptr;
+    };
+    BranchRowDelegate* m_branchRowDelegate = nullptr;
 };
 
 #endif // KIFULOADCOORDINATOR_H
