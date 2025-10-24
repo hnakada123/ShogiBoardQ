@@ -7,8 +7,8 @@
 #include <QString>
 #include "kifdisplayitem.h"
 #include "branchdisplayplan.h"   // ★ 共通型（BranchCandidateDisplayItem など）
+#include "kifuvariationengine.h"
 
-class KifuVariationEngine;
 class KifuBranchListModel;
 
 class BranchCandidatesController : public QObject

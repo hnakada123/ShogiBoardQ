@@ -478,8 +478,6 @@ private:
 
     BranchCandidatesController* m_branchCtl = nullptr;
 
-    void setupBranchCandidatesWiring_();
-
     void setupBranchView_();
 
     // 行 index -> (ply -> 許可する variationId 集合)
@@ -548,6 +546,7 @@ private slots:
     void onBranchNodeActivated_(int row, int ply);
     void onGameOverStateChanged(const MatchCoordinator::GameOverState& st);
     void onTurnManagerChanged(ShogiGameController::Player now);
+    void setupBranchCandidatesWiring_();
 
 private:
     // いま下段が先手(P1)か？ true=先手が手前、false=後手が手前
