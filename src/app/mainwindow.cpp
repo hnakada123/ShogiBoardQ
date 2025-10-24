@@ -185,7 +185,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionShrinkBoard, &QAction::triggered, this, &MainWindow::reduceBoardSize);
     connect(ui->actionUndoMove, &QAction::triggered, this, &MainWindow::undoLastTwoMoves);
     connect(ui->actionSaveBoardImage, &QAction::triggered, this, &MainWindow::saveShogiBoardImage);
-    connect(ui->actionOpenKifuFile, &QAction::triggered, this, &MainWindow::chooseAndLoadKifuFile2);
+    connect(ui->actionOpenKifuFile, &QAction::triggered, this, &MainWindow::chooseAndLoadKifuFile);
     connect(ui->actionConsideration, &QAction::triggered, this, &MainWindow::displayConsiderationDialog);
     connect(ui->actionAnalyzeKifu, &QAction::triggered, this, &MainWindow::displayKifuAnalysisDialog);
     connect(ui->actionNewGame, &QAction::triggered, this, &MainWindow::resetToInitialState);
@@ -1758,6 +1758,21 @@ void MainWindow::chooseAndLoadKifuFile2()
         m_kifuLoadCoordinator->setVariationsByPly(m_variationsByPly);
         m_kifuLoadCoordinator->setVariationsSeq(m_variationsSeq);
         m_kifuLoadCoordinator->setRecordPane(m_recordPane);
+        // m_kifuLoadCoordinator->setResolvedRows(m_resolvedRows);
+        m_kifuLoadCoordinator->setActiveResolvedRow(m_activeResolvedRow);
+        m_kifuLoadCoordinator->setActivePly(m_activePly);
+        m_kifuLoadCoordinator->setCurrentSelectedPly(m_currentSelectedPly);
+        m_kifuLoadCoordinator->setCurrentMoveIndex(m_currentMoveIndex);
+        m_kifuLoadCoordinator->setKifuRecordModel(m_kifuRecordModel);
+        m_kifuLoadCoordinator->setKifuBranchModel(m_kifuBranchModel);
+        m_kifuLoadCoordinator->setBranchCtl(m_branchCtl);
+        m_kifuLoadCoordinator->setKifuBranchView(m_kifuBranchView);
+        m_kifuLoadCoordinator->setBranchPlyContext(m_branchPlyContext);
+        m_kifuLoadCoordinator->setBranchablePlySet(m_branchablePlySet);
+        // m_kifuLoadCoordinator->setBranchIndex(m_branchIndex);
+        // m_kifuLoadCoordinator->setBranchDisplayPlan(m_branchDisplayPlan);
+        // m_kifuLoadCoordinator->setVarEngine(m_varEngine);
+        m_kifuLoadCoordinator->setBranchTreeLocked(m_branchTreeLocked);
 
         connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::displayGameRecord,
                 this, &MainWindow::displayGameRecord, Qt::UniqueConnection);
@@ -1765,6 +1780,8 @@ void MainWindow::chooseAndLoadKifuFile2()
                 this, &MainWindow::syncBoardAndHighlightsAtRow, Qt::UniqueConnection);
         connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::enableArrowButtons,
                 this, &MainWindow::enableArrowButtons, Qt::UniqueConnection);
+        connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::setupBranchCandidatesWiring_,
+                this, &MainWindow::setupBranchCandidatesWiring_, Qt::UniqueConnection);
 
         m_kifuLoadCoordinator->loadKifuFromFile(filePath);
     }
@@ -5736,7 +5753,6 @@ void MainWindow::ensureResolvedRowsHaveFullSfen()
 
     qDebug() << "[SFEN] ensureResolvedRowsHaveFullSfen END";
 }
-
 
 void MainWindow::dumpAllRowsSfenTable() const
 {
