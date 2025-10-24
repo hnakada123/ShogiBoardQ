@@ -185,7 +185,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionShrinkBoard, &QAction::triggered, this, &MainWindow::reduceBoardSize);
     connect(ui->actionUndoMove, &QAction::triggered, this, &MainWindow::undoLastTwoMoves);
     connect(ui->actionSaveBoardImage, &QAction::triggered, this, &MainWindow::saveShogiBoardImage);
-    connect(ui->actionOpenKifuFile, &QAction::triggered, this, &MainWindow::chooseAndLoadKifuFile);
+    connect(ui->actionOpenKifuFile, &QAction::triggered, this, &MainWindow::chooseAndLoadKifuFile2);
     connect(ui->actionConsideration, &QAction::triggered, this, &MainWindow::displayConsiderationDialog);
     connect(ui->actionAnalyzeKifu, &QAction::triggered, this, &MainWindow::displayKifuAnalysisDialog);
     connect(ui->actionNewGame, &QAction::triggered, this, &MainWindow::resetToInitialState);
@@ -1746,9 +1746,13 @@ void MainWindow::chooseAndLoadKifuFile2()
         setReplayMode(true);
         ensureGameInfoTable();
         m_kifuLoadCoordinator = new KifuLoadCoordinator(this);
+        m_kifuLoadCoordinator->setLoadingKifu(m_loadingKifu);
         m_kifuLoadCoordinator->setGameInfoTable(m_gameInfoTable);
+        m_kifuLoadCoordinator->setGameInfoDock(m_gameInfoDock);
+        m_kifuLoadCoordinator->setAnalysisTab(m_analysisTab);
         m_kifuLoadCoordinator->setTab(m_tab);
         m_kifuLoadCoordinator->setShogiView(m_shogiView);
+        m_kifuLoadCoordinator->setUsiMoves(m_usiMoves);
         m_kifuLoadCoordinator->setSfenRecord(m_sfenRecord);
         m_kifuLoadCoordinator->setGameMoves(m_gameMoves);
         m_kifuLoadCoordinator->setPositionStrList(m_positionStrList);

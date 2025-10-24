@@ -377,7 +377,15 @@ void KifuLoadCoordinator::loadKifuFromFile(const QString& filePath)
     dumpBranchCandidateDisplayPlan();
 
     // 12) 分岐ツリーへ供給（黄色ハイライトは applyResolvedRowAndSelect 内で同期）
+    //begin
+    // m_analysisTab が nullptrであるかどうかのチェックを追加
+    qDebug() << "checkpoint0";
+    qDebug() << "m_analysisTab:" << m_analysisTab;
+    //end
     if (m_analysisTab) {
+        //begin
+        qDebug() << "checkpoint1";
+        //end
         QVector<EngineAnalysisTab::ResolvedRowLite> rows;
         rows.reserve(m_resolvedRows.size());
 
@@ -571,6 +579,26 @@ void KifuLoadCoordinator::setVarEngine(std::unique_ptr<KifuVariationEngine> newV
 void KifuLoadCoordinator::setBranchTreeLocked(bool newBranchTreeLocked)
 {
     m_branchTreeLocked = newBranchTreeLocked;
+}
+
+void KifuLoadCoordinator::setGameInfoDock(QDockWidget *newGameInfoDock)
+{
+    m_gameInfoDock = newGameInfoDock;
+}
+
+void KifuLoadCoordinator::setLoadingKifu(bool newLoadingKifu)
+{
+    m_loadingKifu = newLoadingKifu;
+}
+
+void KifuLoadCoordinator::setAnalysisTab(EngineAnalysisTab *newAnalysisTab)
+{
+    m_analysisTab = newAnalysisTab;
+}
+
+void KifuLoadCoordinator::setUsiMoves(const QStringList &newUsiMoves)
+{
+    m_usiMoves = newUsiMoves;
 }
 
 QString KifuLoadCoordinator::prepareInitialSfen(const QString& filePath, QString& teaiLabel) const
