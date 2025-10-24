@@ -107,6 +107,14 @@ public:
 
     void setBranchTreeLocked(bool newBranchTreeLocked);
 
+    void setGameInfoDock(QDockWidget *newGameInfoDock);
+
+    void setLoadingKifu(bool newLoadingKifu);
+
+    void setAnalysisTab(EngineAnalysisTab *newAnalysisTab);
+
+    void setUsiMoves(const QStringList &newUsiMoves);
+
 signals:
     void errorOccurred(const QString& errorMessage);
     void setReplayMode(bool on);
@@ -119,7 +127,7 @@ private:
     bool m_loadingKifu = false;
     QTableWidget* m_gameInfoTable = nullptr;
     QDockWidget*  m_gameInfoDock  = nullptr;
-    EngineAnalysisTab*    m_analysisTab = nullptr;
+    EngineAnalysisTab* m_analysisTab = nullptr;
     QTabWidget* m_tab = nullptr;
     ShogiView* m_shogiView = nullptr;
     QStringList m_usiMoves;
