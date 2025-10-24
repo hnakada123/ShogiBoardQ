@@ -247,9 +247,9 @@ private:
     void updateTurnDisplay();
     void updateTurnStatus(int currentPlayer);
     void showRecordAtPly(const QList<KifDisplayItem>& disp, int selectPly);
-    void syncBoardAndHighlightsAtRow(int ply1);
+
     void applySfenAtCurrentPly();
-    void displayGameRecord(const QList<KifDisplayItem> disp);
+
     void ensureBranchRowDelegateInstalled();
     void updateKifuBranchMarkersForActiveRow();
     void setGameInProgressActions(bool inProgress);
@@ -464,6 +464,9 @@ private slots:
                                const QList<QString>& usiStrs);
 
     void onMoveCommitted(ShogiGameController::Player mover, int ply);
+
+    void displayGameRecord(const QList<KifDisplayItem> disp);
+    void syncBoardAndHighlightsAtRow(int ply1);
 
 private:
     QVector<int> m_branchVarIds;   // 行→variationId の対応（末尾の「本譜へ戻る」は -1）

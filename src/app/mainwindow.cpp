@@ -185,7 +185,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionShrinkBoard, &QAction::triggered, this, &MainWindow::reduceBoardSize);
     connect(ui->actionUndoMove, &QAction::triggered, this, &MainWindow::undoLastTwoMoves);
     connect(ui->actionSaveBoardImage, &QAction::triggered, this, &MainWindow::saveShogiBoardImage);
-    connect(ui->actionOpenKifuFile, &QAction::triggered, this, &MainWindow::chooseAndLoadKifuFile);
+    connect(ui->actionOpenKifuFile, &QAction::triggered, this, &MainWindow::chooseAndLoadKifuFile2);
     connect(ui->actionConsideration, &QAction::triggered, this, &MainWindow::displayConsiderationDialog);
     connect(ui->actionAnalyzeKifu, &QAction::triggered, this, &MainWindow::displayKifuAnalysisDialog);
     connect(ui->actionNewGame, &QAction::triggered, this, &MainWindow::resetToInitialState);
@@ -1749,6 +1749,23 @@ void MainWindow::chooseAndLoadKifuFile2()
         m_kifuLoadCoordinator->setGameInfoTable(m_gameInfoTable);
         m_kifuLoadCoordinator->setTab(m_tab);
         m_kifuLoadCoordinator->setShogiView(m_shogiView);
+        m_kifuLoadCoordinator->setSfenRecord(m_sfenRecord);
+        m_kifuLoadCoordinator->setGameMoves(m_gameMoves);
+        m_kifuLoadCoordinator->setPositionStrList(m_positionStrList);
+        m_kifuLoadCoordinator->setDispMain(m_dispMain);
+        m_kifuLoadCoordinator->setSfenMain(m_sfenMain);
+        m_kifuLoadCoordinator->setGmMain(m_gmMain);
+        m_kifuLoadCoordinator->setVariationsByPly(m_variationsByPly);
+        m_kifuLoadCoordinator->setVariationsSeq(m_variationsSeq);
+        m_kifuLoadCoordinator->setRecordPane(m_recordPane);
+
+        connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::displayGameRecord,
+                this, &MainWindow::displayGameRecord, Qt::UniqueConnection);
+        connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::syncBoardAndHighlightsAtRow,
+                this, &MainWindow::syncBoardAndHighlightsAtRow, Qt::UniqueConnection);
+        connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::enableArrowButtons,
+                this, &MainWindow::enableArrowButtons, Qt::UniqueConnection);
+
         m_kifuLoadCoordinator->loadKifuFromFile(filePath);
     }
 }
