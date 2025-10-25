@@ -185,7 +185,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionShrinkBoard, &QAction::triggered, this, &MainWindow::reduceBoardSize);
     connect(ui->actionUndoMove, &QAction::triggered, this, &MainWindow::undoLastTwoMoves);
     connect(ui->actionSaveBoardImage, &QAction::triggered, this, &MainWindow::saveShogiBoardImage);
-    connect(ui->actionOpenKifuFile, &QAction::triggered, this, &MainWindow::chooseAndLoadKifuFile2);
+    connect(ui->actionOpenKifuFile, &QAction::triggered, this, &MainWindow::chooseAndLoadKifuFile);
     connect(ui->actionConsideration, &QAction::triggered, this, &MainWindow::displayConsiderationDialog);
     connect(ui->actionAnalyzeKifu, &QAction::triggered, this, &MainWindow::displayKifuAnalysisDialog);
     connect(ui->actionNewGame, &QAction::triggered, this, &MainWindow::resetToInitialState);
@@ -3522,8 +3522,8 @@ static inline QPoint toOne(const QPoint& z) { return QPoint(z.x() + 1, z.y() + 1
 
 void MainWindow::syncBoardAndHighlightsAtRow(int ply1)
 {
-    if ((m_shogiView && m_shogiView->positionEditMode()) || m_onMainRowGuard) {
-        qDebug() << "[UI] syncBoardAndHighlightsAtRow skipped (edit-mode or guard). ply=" << ply1;
+    if (m_shogiView && m_shogiView->positionEditMode()) {
+        qDebug() << "[UI] syncBoardAndHighlightsAtRow skipped (edit-mode). ply=" << ply1;
         return;
     }
 
@@ -3614,12 +3614,12 @@ void MainWindow::showRecordAtPly(const QList<KifDisplayItem>& disp, int selectPl
 // 現在の手数（m_currentSelectedPly）に対応するSFENを盤面へ反映
 void MainWindow::applySfenAtCurrentPly()
 {
-    if ((m_shogiView && m_shogiView->positionEditMode()) || m_onMainRowGuard) {
-        qDebug() << "[UI] applySfenAtCurrentPly skipped (edit-mode or guard). ply=" << m_currentSelectedPly;
+    if (m_shogiView && m_shogiView->positionEditMode()) {
+        qDebug() << "[UI] applySfenAtCurrentPly skipped (edit-mode). m_currentSelectedPly=" << m_currentSelectedPly;
         return;
     }
 
-    qDebug().noquote() << "[UI] applySfenAtCurrentPly ply=" << m_currentSelectedPly;
+    qDebug().noquote() << "[UI] applySfenAtCurrentPly m_currentSelectedPly=" << m_currentSelectedPly;
 
     if (!m_sfenRecord || m_sfenRecord->isEmpty()) return;
 
