@@ -185,7 +185,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->actionShrinkBoard, &QAction::triggered, this, &MainWindow::reduceBoardSize);
     connect(ui->actionUndoMove, &QAction::triggered, this, &MainWindow::undoLastTwoMoves);
     connect(ui->actionSaveBoardImage, &QAction::triggered, this, &MainWindow::saveShogiBoardImage);
-    connect(ui->actionOpenKifuFile, &QAction::triggered, this, &MainWindow::chooseAndLoadKifuFile);
+    connect(ui->actionOpenKifuFile, &QAction::triggered, this, &MainWindow::chooseAndLoadKifuFile2);
     connect(ui->actionConsideration, &QAction::triggered, this, &MainWindow::displayConsiderationDialog);
     connect(ui->actionAnalyzeKifu, &QAction::triggered, this, &MainWindow::displayKifuAnalysisDialog);
     connect(ui->actionNewGame, &QAction::triggered, this, &MainWindow::resetToInitialState);
