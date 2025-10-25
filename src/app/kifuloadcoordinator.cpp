@@ -230,9 +230,28 @@ static bool deriveMoveFromSfenPair(const QString& prevSfen,
 
 using BCDI = ::BranchCandidateDisplayItem;
 
-KifuLoadCoordinator::KifuLoadCoordinator(QObject* parent)
+KifuLoadCoordinator::KifuLoadCoordinator(QVector<ShogiMove>& gameMoves,
+                                         QVector<ResolvedRow>& resolvedRows,
+                                         QStringList& positionStrList,
+                                         int& activeResolvedRow,
+                                         int& activePly,
+                                         int& currentSelectedPly,
+                                         int& currentMoveIndex,
+                                         QStringList* sfenRecord,
+                                         QObject* parent)
     : QObject(parent)
+    , m_gameMoves(gameMoves)                // ← 参照メンバに束縛（同一実体を共有）
+    , m_resolvedRows(resolvedRows)          // ← 同上
+    , m_positionStrList(positionStrList)    // ← 同上
+    , m_activeResolvedRow(activeResolvedRow)
+    , m_activePly(activePly)
+    , m_currentSelectedPly(currentSelectedPly)
+    , m_currentMoveIndex(currentMoveIndex)
+    , m_sfenRecord(sfenRecord)              // ← これはポインタ共有（任意でnull可）
 {
+    // 必要ならデバッグ時にチェック
+    // Q_ASSERT(m_sfenRecord && "sfenRecord must not be null");
+    // ここで初期同期が必要ならシグナル発火や内部初期化を追加してください。
 }
 
 void KifuLoadCoordinator::loadKifuFromFile(const QString& filePath)

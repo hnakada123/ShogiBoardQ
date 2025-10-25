@@ -12,15 +12,7 @@
 #include "recordpane.h"
 #include "branchcandidatescontroller.h"
 #include "kifurecordlistmodel.h"
-
-struct ResolvedRow {
-    int startPly = 1;
-    int parent   = -1;                 // ★追加：親行。Main は -1
-    QList<KifDisplayItem> disp;
-    QStringList sfen;
-    QVector<ShogiMove> gm;
-    int varIndex = -1;                 // 本譜 = -1
-};
+#include "kifutypes.h"
 
 class KifuLoadCoordinator : public QObject
 {
@@ -28,7 +20,15 @@ class KifuLoadCoordinator : public QObject
 
 public:
     // コンストラクタ
-    explicit KifuLoadCoordinator(QObject *parent = nullptr);
+    explicit KifuLoadCoordinator(QVector<ShogiMove>& gameMoves,
+                        QVector<ResolvedRow>& resolvedRows,
+                        QStringList& positionStrList,
+                        int& activeResolvedRow,
+                        int& activePly,
+                        int& currentSelectedPly,
+                        int& currentMoveIndex,
+                        QStringList* sfenRecord,         // これはポインタ共有のまま
+                        QObject* parent=nullptr);
 
     // --- 装飾（棋譜テーブル マーカー描画） ---
     class BranchRowDelegate : public QStyledItemDelegate {
@@ -115,6 +115,9 @@ public:
 
     void setUsiMoves(const QStringList &newUsiMoves);
 
+public slots:
+    void applyResolvedRowAndSelect(int row, int selPly);
+
 signals:
     void errorOccurred(const QString& errorMessage);
     void setReplayMode(bool on);
@@ -166,7 +169,6 @@ private:
     QString findGameInfoValue(const QList<KifGameInfoItem>& items, const QStringList& keys) const;
     void rebuildSfenRecord(const QString& initialSfen, const QStringList& usiMoves, bool hasTerminal);
     void rebuildGameMoves(const QString& initialSfen, const QStringList& usiMoves);
-    void applyResolvedRowAndSelect(int row, int selPly);
     void showRecordAtPly(const QList<KifDisplayItem>& disp, int selectPly);
     void showBranchCandidatesFromPlan(int row, int ply1);
     void updateKifuBranchMarkersForActiveRow();
