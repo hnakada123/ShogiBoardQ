@@ -43,6 +43,7 @@
 #include "kifuvariationengine.h"
 #include "branchcandidatescontroller.h"
 #include "kifuloadcoordinator.h"
+#include "kifutypes.h"
 
 // ==============================
 // Macros / aliases
@@ -167,14 +168,6 @@ private:
     qint64      m_initialTimeP2Ms = 0;
     static constexpr int kFlagFallGraceMs = 200;
 
-    struct ResolvedRow {
-        int startPly = 1;
-        int parent   = -1;                 // ★追加：親行。Main は -1
-        QList<KifDisplayItem> disp;
-        QStringList sfen;
-        QVector<ShogiMove> gm;
-        int varIndex = -1;                 // 本譜 = -1
-    };
     QVector<ResolvedRow> m_resolvedRows;
     int m_activeResolvedRow = 0;
 

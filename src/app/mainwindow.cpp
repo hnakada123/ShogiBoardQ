@@ -1738,57 +1738,84 @@ void MainWindow::chooseAndLoadKifuFile()
 
 void MainWindow::chooseAndLoadKifuFile2()
 {
-    // ファイル選択ダイアログを表示し、選択されたファイルのパスを取得する。
-    QString filePath = QFileDialog::getOpenFileName(this, tr("KIFファイルを開く"), "", tr("KIF Files (*.kif *.kifu)"));
+    // ファイル選択ダイアログ
+    const QString filePath =
+        QFileDialog::getOpenFileName(this, tr("KIFファイルを開く"), QString(), tr("KIF Files (*.kif *.kifu)"));
+    if (filePath.isEmpty()) return;
 
-    // ユーザーがファイルを選択した場合（キャンセルしなかった場合）、ファイルを開く。
-    if (!filePath.isEmpty()) {
-        setReplayMode(true);
-        ensureGameInfoTable();
-        m_kifuLoadCoordinator = new KifuLoadCoordinator(this);
-        m_kifuLoadCoordinator->setLoadingKifu(m_loadingKifu);
-        m_kifuLoadCoordinator->setGameInfoTable(m_gameInfoTable);
-        m_kifuLoadCoordinator->setGameInfoDock(m_gameInfoDock);
-        m_kifuLoadCoordinator->setAnalysisTab(m_analysisTab);
-        m_kifuLoadCoordinator->setTab(m_tab);
-        m_kifuLoadCoordinator->setShogiView(m_shogiView);
-        m_kifuLoadCoordinator->setUsiMoves(m_usiMoves);
-        m_kifuLoadCoordinator->setSfenRecord(m_sfenRecord);
-        m_kifuLoadCoordinator->setGameMoves(m_gameMoves);
-        m_kifuLoadCoordinator->setPositionStrList(m_positionStrList);
-        m_kifuLoadCoordinator->setDispMain(m_dispMain);
-        m_kifuLoadCoordinator->setSfenMain(m_sfenMain);
-        m_kifuLoadCoordinator->setGmMain(m_gmMain);
-        m_kifuLoadCoordinator->setVariationsByPly(m_variationsByPly);
-        m_kifuLoadCoordinator->setVariationsSeq(m_variationsSeq);
-        m_kifuLoadCoordinator->setRecordPane(m_recordPane);
-        // m_kifuLoadCoordinator->setResolvedRows(m_resolvedRows);
-        m_kifuLoadCoordinator->setActiveResolvedRow(m_activeResolvedRow);
-        m_kifuLoadCoordinator->setActivePly(m_activePly);
-        m_kifuLoadCoordinator->setCurrentSelectedPly(m_currentSelectedPly);
-        m_kifuLoadCoordinator->setCurrentMoveIndex(m_currentMoveIndex);
-        m_kifuLoadCoordinator->setKifuRecordModel(m_kifuRecordModel);
-        m_kifuLoadCoordinator->setKifuBranchModel(m_kifuBranchModel);
-        m_kifuLoadCoordinator->setBranchCtl(m_branchCtl);
-        m_kifuLoadCoordinator->setKifuBranchView(m_kifuBranchView);
-        m_kifuLoadCoordinator->setBranchPlyContext(m_branchPlyContext);
-        m_kifuLoadCoordinator->setBranchablePlySet(m_branchablePlySet);
-        // m_kifuLoadCoordinator->setBranchIndex(m_branchIndex);
-        // m_kifuLoadCoordinator->setBranchDisplayPlan(m_branchDisplayPlan);
-        // m_kifuLoadCoordinator->setVarEngine(m_varEngine);
-        m_kifuLoadCoordinator->setBranchTreeLocked(m_branchTreeLocked);
+    setReplayMode(true);
+    ensureGameInfoTable();
 
-        connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::displayGameRecord,
-                this, &MainWindow::displayGameRecord, Qt::UniqueConnection);
-        connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::syncBoardAndHighlightsAtRow,
-                this, &MainWindow::syncBoardAndHighlightsAtRow, Qt::UniqueConnection);
-        connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::enableArrowButtons,
-                this, &MainWindow::enableArrowButtons, Qt::UniqueConnection);
-        connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::setupBranchCandidatesWiring_,
-                this, &MainWindow::setupBranchCandidatesWiring_, Qt::UniqueConnection);
-
-        m_kifuLoadCoordinator->loadKifuFromFile(filePath);
+    // 既存があれば破棄予約（多重生成対策）
+    if (m_kifuLoadCoordinator) {
+        m_kifuLoadCoordinator->deleteLater();
+        m_kifuLoadCoordinator = nullptr;
     }
+
+    // ★ 中核状態は“参照注入”で共有（同一実体を両者で使う）
+    //   KifuLoadCoordinator のコンストラクタは次の形を想定：
+    //   KifuLoadCoordinator(QVector<ShogiMove>& gameMoves,
+    //                       QVector<ResolvedRow>& resolvedRows,
+    //                       QStringList& positionStrList,
+    //                       int& activeResolvedRow, int& activePly,
+    //                       int& currentSelectedPly, int& currentMoveIndex,
+    //                       QStringList* sfenRecord, QObject* parent)
+    m_kifuLoadCoordinator = new KifuLoadCoordinator(
+        m_gameMoves,
+        m_resolvedRows,
+        m_positionStrList,
+        m_activeResolvedRow,
+        m_activePly,
+        m_currentSelectedPly,
+        m_currentMoveIndex,
+        m_sfenRecord,                 // ← これはポインタ共有のまま
+        this
+    );
+
+    // ▼ UI / View / Model 系は従来どおりポインタ渡しでOK（共有で十分）
+    m_kifuLoadCoordinator->setGameInfoTable(m_gameInfoTable);
+    m_kifuLoadCoordinator->setGameInfoDock(m_gameInfoDock);
+    m_kifuLoadCoordinator->setAnalysisTab(m_analysisTab);
+    m_kifuLoadCoordinator->setTab(m_tab);
+    m_kifuLoadCoordinator->setShogiView(m_shogiView);
+    m_kifuLoadCoordinator->setRecordPane(m_recordPane);
+    m_kifuLoadCoordinator->setKifuRecordModel(m_kifuRecordModel);
+    m_kifuLoadCoordinator->setKifuBranchModel(m_kifuBranchModel);
+    m_kifuLoadCoordinator->setBranchCtl(m_branchCtl);
+    m_kifuLoadCoordinator->setKifuBranchView(m_kifuBranchView);
+
+    // ▼ 暫定共有（将来は Coordinator 内に集約できるなら外せる）
+    m_kifuLoadCoordinator->setUsiMoves(m_usiMoves);
+    m_kifuLoadCoordinator->setDispMain(m_dispMain);
+    m_kifuLoadCoordinator->setSfenMain(m_sfenMain);
+    m_kifuLoadCoordinator->setGmMain(m_gmMain);
+
+    // ▼ 不要セッターは渡さない（Coordinator 内で完結させる）
+    // setLoadingKifu / setVariationsByPly / setVariationsSeq / setBranchTreeLocked
+    // setBranchPlyContext / setBranchablePlySet / setBranchIndex / setBranchDisplayPlan / setVarEngine
+    // ※ 本関数からは呼ばない
+
+    // 分岐ツリーのクリックを MainWindow ではなく Coordinator に直結
+    if (m_analysisTab) {
+        QObject::disconnect(m_analysisTab, &EngineAnalysisTab::branchNodeActivated,
+                            this, &MainWindow::onBranchNodeActivated_);
+        connect(m_analysisTab, &EngineAnalysisTab::branchNodeActivated,
+                m_kifuLoadCoordinator, &KifuLoadCoordinator::applyResolvedRowAndSelect,
+                Qt::UniqueConnection);
+    }
+
+    // Coordinator -> MainWindow の通知は従来どおり
+    connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::displayGameRecord,
+            this, &MainWindow::displayGameRecord, Qt::UniqueConnection);
+    connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::syncBoardAndHighlightsAtRow,
+            this, &MainWindow::syncBoardAndHighlightsAtRow, Qt::UniqueConnection);
+    connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::enableArrowButtons,
+            this, &MainWindow::enableArrowButtons, Qt::UniqueConnection);
+    connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::setupBranchCandidatesWiring_,
+            this, &MainWindow::setupBranchCandidatesWiring_, Qt::UniqueConnection);
+
+    // 読み込み実行
+    m_kifuLoadCoordinator->loadKifuFromFile(filePath);
 }
 
 // ---- 無名名前空間: 共有ユーティリティ ----
