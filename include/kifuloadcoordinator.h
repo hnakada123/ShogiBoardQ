@@ -27,7 +27,17 @@ public:
                         int& activePly,
                         int& currentSelectedPly,
                         int& currentMoveIndex,
-                        QStringList* sfenRecord,         // これはポインタ共有のまま
+                        QStringList* sfenRecord,
+                        QTableWidget* gameInfoTable,
+                        QDockWidget* gameInfoDock,
+                        EngineAnalysisTab* analysisTab,
+                        QTabWidget* tab,
+                        ShogiView* shogiView,
+                        RecordPane* recordPane,
+                        KifuRecordListModel* kifuRecordModel,
+                        KifuBranchListModel* kifuBranchModel,
+                        BranchCandidatesController* branchCtl,
+                        QTableView* kifuBranchView,
                         QObject* parent=nullptr);
 
     // --- 装飾（棋譜テーブル マーカー描画） ---
@@ -128,13 +138,13 @@ signals:
 
 private:
     bool m_loadingKifu = false;
-    QTableWidget* m_gameInfoTable = nullptr;
-    QDockWidget*  m_gameInfoDock  = nullptr;
-    EngineAnalysisTab* m_analysisTab = nullptr;
-    QTabWidget* m_tab = nullptr;
-    ShogiView* m_shogiView = nullptr;
+    QTableWidget* m_gameInfoTable;
+    QDockWidget*  m_gameInfoDock;
+    EngineAnalysisTab* m_analysisTab;
+    QTabWidget* m_tab;
+    ShogiView* m_shogiView;
     QStringList m_usiMoves;
-    QStringList* m_sfenRecord = nullptr;
+    QStringList* m_sfenRecord;
     QVector<ShogiMove>& m_gameMoves;
     QStringList& m_positionStrList;
     QList<KifDisplayItem> m_dispMain;
@@ -143,16 +153,16 @@ private:
     QVector<ShogiMove>    m_gmMain;
     QHash<int, QList<KifLine>> m_variationsByPly;
     QList<KifLine> m_variationsSeq;
-    RecordPane* m_recordPane = nullptr;
+    RecordPane* m_recordPane;
     QVector<ResolvedRow>& m_resolvedRows;
     int& m_activeResolvedRow;
     int& m_activePly;
     int& m_currentSelectedPly;
     int& m_currentMoveIndex;
-    KifuRecordListModel* m_kifuRecordModel  = nullptr;
-    KifuBranchListModel* m_kifuBranchModel  = nullptr;
-    BranchCandidatesController* m_branchCtl = nullptr;
-    QTableView* m_kifuBranchView = nullptr;
+    KifuRecordListModel* m_kifuRecordModel;
+    KifuBranchListModel* m_kifuBranchModel;
+    BranchCandidatesController* m_branchCtl;
+    QTableView* m_kifuBranchView;
     int m_branchPlyContext = -1;
     QSet<int> m_branchablePlySet;
     QHash<int, QHash<QString, QList<BranchCandidate>>> m_branchIndex;
