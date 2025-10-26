@@ -238,6 +238,16 @@ KifuLoadCoordinator::KifuLoadCoordinator(QVector<ShogiMove>& gameMoves,
                                          int& currentSelectedPly,
                                          int& currentMoveIndex,
                                          QStringList* sfenRecord,
+                                         QTableWidget* gameInfoTable,
+                                         QDockWidget* gameInfoDock,
+                                         EngineAnalysisTab* analysisTab,
+                                         QTabWidget* tab,
+                                         ShogiView* shogiView,
+                                         RecordPane* recordPane,
+                                         KifuRecordListModel* kifuRecordModel,
+                                         KifuBranchListModel* kifuBranchModel,
+                                         BranchCandidatesController* branchCtl,
+                                         QTableView* kifuBranchView,
                                          QObject* parent)
     : QObject(parent)
     , m_gameMoves(gameMoves)                // ← 参照メンバに束縛（同一実体を共有）
@@ -247,7 +257,17 @@ KifuLoadCoordinator::KifuLoadCoordinator(QVector<ShogiMove>& gameMoves,
     , m_activePly(activePly)
     , m_currentSelectedPly(currentSelectedPly)
     , m_currentMoveIndex(currentMoveIndex)
-    , m_sfenRecord(sfenRecord)              // ← これはポインタ共有（任意でnull可）
+    , m_sfenRecord(sfenRecord)
+    , m_gameInfoTable(gameInfoTable)
+    , m_gameInfoDock(gameInfoDock)
+    , m_analysisTab(analysisTab)
+    , m_tab(tab)
+    , m_shogiView(shogiView)
+    , m_recordPane(recordPane)
+    , m_kifuRecordModel(kifuRecordModel)
+    , m_kifuBranchModel(kifuBranchModel)
+    , m_branchCtl(branchCtl)
+    , m_kifuBranchView(kifuBranchView)
 {
     // 必要ならデバッグ時にチェック
     // Q_ASSERT(m_sfenRecord && "sfenRecord must not be null");

@@ -1768,21 +1768,19 @@ void MainWindow::chooseAndLoadKifuFile2()
         m_activePly,
         m_currentSelectedPly,
         m_currentMoveIndex,
-        m_sfenRecord,                 // ← これはポインタ共有のまま
+        m_sfenRecord,
+        m_gameInfoTable,
+        m_gameInfoDock,
+        m_analysisTab,
+        m_tab,
+        m_shogiView,
+        m_recordPane,
+        m_kifuRecordModel,
+        m_kifuBranchModel,
+        m_branchCtl,
+        m_kifuBranchView,
         this
     );
-
-    // ▼ UI / View / Model 系は従来どおりポインタ渡しでOK（共有で十分）
-    m_kifuLoadCoordinator->setGameInfoTable(m_gameInfoTable);
-    m_kifuLoadCoordinator->setGameInfoDock(m_gameInfoDock);
-    m_kifuLoadCoordinator->setAnalysisTab(m_analysisTab);
-    m_kifuLoadCoordinator->setTab(m_tab);
-    m_kifuLoadCoordinator->setShogiView(m_shogiView);
-    m_kifuLoadCoordinator->setRecordPane(m_recordPane);
-    m_kifuLoadCoordinator->setKifuRecordModel(m_kifuRecordModel);
-    m_kifuLoadCoordinator->setKifuBranchModel(m_kifuBranchModel);
-    m_kifuLoadCoordinator->setBranchCtl(m_branchCtl);
-    m_kifuLoadCoordinator->setKifuBranchView(m_kifuBranchView);
 
     // ▼ 暫定共有（将来は Coordinator 内に集約できるなら外せる）
     m_kifuLoadCoordinator->setUsiMoves(m_usiMoves);
