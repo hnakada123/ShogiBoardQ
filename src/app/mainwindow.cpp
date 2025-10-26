@@ -2292,26 +2292,6 @@ void MainWindow::displayGameRecord(const QList<KifDisplayItem> disp)
                                            Qt::UniqueConnection); // ← メンバ関数なのでOK
         }
     }
-
-    // --- ここから末尾に追記（強制初期同期＋配線の再確認） ---
-    connect(m_recordPane, &RecordPane::mainRowChanged,
-            this, &MainWindow::onMainMoveRowChanged,
-            Qt::UniqueConnection);
-
-    if (m_recordPane && m_recordPane->kifuView()) {
-        QTableView* v = m_recordPane->kifuView();
-        QModelIndex cur = v->currentIndex();
-
-        // 選択が空なら 0 行目を選ぶ（モデルが空でなければ）
-        if (!cur.isValid() && v->model() && v->model()->rowCount() > 0) {
-            cur = v->model()->index(0, 0);
-            v->setCurrentIndex(cur);
-        }
-
-        const int row = cur.isValid() ? cur.row() : 0;
-        onMainMoveRowChanged(row);  // 読み込み直後の一回だけ強制同期
-    }
-    // --- 追記ここまで ---
 }
 
 void MainWindow::updateBranchTextForRow(int row)

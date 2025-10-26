@@ -396,15 +396,7 @@ void KifuLoadCoordinator::loadKifuFromFile(const QString& filePath)
     dumpBranchCandidateDisplayPlan();
 
     // 12) 分岐ツリーへ供給（黄色ハイライトは applyResolvedRowAndSelect 内で同期）
-    //begin
-    // m_analysisTab が nullptrであるかどうかのチェックを追加
-    qDebug() << "checkpoint0";
-    qDebug() << "m_analysisTab:" << m_analysisTab;
-    //end
     if (m_analysisTab) {
-        //begin
-        qDebug() << "checkpoint1";
-        //end
         QVector<EngineAnalysisTab::ResolvedRowLite> rows;
         rows.reserve(m_resolvedRows.size());
 
