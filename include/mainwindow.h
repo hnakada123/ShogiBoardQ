@@ -272,7 +272,6 @@ private:
     // --- 時計 / 時間管理 ---
     void setRemainingTimeAndCountDown();
     void setTimerAndStart();
-    void startMatchEpoch(const char* tag);
     enum class Winner { P1, P2 };
 
     // --- 入出力 / 設定 ---
@@ -281,41 +280,27 @@ private:
     void loadWindowSettings();
     void getPlayersName(QString& playersName1, QString& playersName2);
     void makeDefaultSaveFileName();
-    void loadKifuFromFile(const QString &filePath);
 
     // --- KIF ヘッダ（対局情報）周り ---
     void ensureGameInfoTable();
     void addGameInfoTabIfMissing();
-    void populateGameInfo(const QList<KifGameInfoItem>& items);
     QString findGameInfoValue(const QList<KifGameInfoItem>& items,
                               const QStringList& keys) const;
-    void applyPlayersFromGameInfo(const QList<KifGameInfoItem>& items);
 
     // --- USI / エンジン ---
-    void destroyEngine(Usi*& e);
     bool isHumanTurnNow(bool engineIsP1) const;
-    void wireResignToArbiter(Usi* engine, bool asP1);
     std::pair<QString, QString> currentBWTimesForUSI_() const;
 
     // --- 分岐 / 変化 ---
-    void buildResolvedLinesAfterLoad();
     void applyResolvedRowAndSelect(int row, int selPly);
     void populateBranchListForPly(int ply);
-    void updateBranchTextForRow(int row);
 
     // --- 取込 / 解析補助 ---
-    QString prepareInitialSfen(const QString& filePath, QString& teaiLabel) const;
     void rebuildSfenRecord(const QString& initialSfen,
                            const QStringList& usiMoves,
                            bool hasTerminal);
     void rebuildGameMoves(const QString& initialSfen,
                           const QStringList& usiMoves);
-    void logImportSummary(const QString& filePath,
-                          const QStringList& usiMoves,
-                          const QList<KifDisplayItem>& disp,
-                          const QString& teaiLabel,
-                          const QString& warnParse,
-                          const QString& warnConvert) const;
 
     // --- ユーティリティ ---
     void handleUndoMove(int index);
@@ -368,7 +353,6 @@ private slots:
 
     // --- ファイル I/O / 外部操作（★重複宣言禁止：ここだけに置く） ---
     void chooseAndLoadKifuFile();
-    void chooseAndLoadKifuFile2();
     void saveShogiBoardImage();
     void copyBoardToClipboard();
     void openWebsiteInExternalBrowser();
@@ -489,7 +473,6 @@ private:
     QString rowNameFor_(int row) const;
     QString labelAt_(const ResolvedRow& rr, int ply) const;
     bool prefixEqualsUpTo_(int rowA, int rowB, int p) const;
-    void dumpBranchSplitReport() const;
 
     // 分岐候補の表示アイテム（どの行のどのラベルか）
     struct BranchCandidateDisplayItem {
@@ -510,12 +493,7 @@ private:
     // 例: m_branchDisplayPlan[row][ply]
     QHash<int, QMap<int, BranchCandidateDisplay>> m_branchDisplayPlan;
 
-    void dumpBranchCandidateDisplayPlan() const;
     void showBranchCandidatesFromPlan(int row, int ply1);
-    void ensureResolvedRowsHaveFullSfen();   // 各行の sfen を確実に満たす
-    void dumpAllRowsSfenTable() const;       // ご指定フォーマットでログ出力
-    void dumpAllLinesGameMoves() const;
-    void ensureResolvedRowsHaveFullGameMoves();
 
     // 選択（行row, 手数ply）から、ハイライトすべき(variation id, ply)を解決
     std::pair<int,int> resolveBranchHighlightTarget(int row, int ply) const;
@@ -559,7 +537,6 @@ private:
     // 検討（ConsidarationMode）の手動終了（quit 送信）
     void handleBreakOffConsidaration();
     bool m_isLiveAppendMode = false;
-    void enterLiveAppendMode_();  // 再開中は選択を無効化
     void exitLiveAppendMode_();   // 終局で選択を元に戻す
     void trimEvalChartForResume_(int selPly);
 
