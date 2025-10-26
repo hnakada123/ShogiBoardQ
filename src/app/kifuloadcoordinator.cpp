@@ -412,7 +412,7 @@ void KifuLoadCoordinator::loadKifuFromFile(const QString& filePath)
 
     // 11) 分岐レポート → Plan 構築（Plan方式の基礎データ）
     dumpBranchSplitReport();
-    buildBranchCandidateDisplayPlan();
+    emit buildBranchCandidateDisplayPlan();
     dumpBranchCandidateDisplayPlan();
 
     // 12) 分岐ツリーへ供給（黄色ハイライトは applyResolvedRowAndSelect 内で同期）
@@ -1407,6 +1407,7 @@ void KifuLoadCoordinator::dumpBranchSplitReport() const
     }
 }
 
+/*
 void KifuLoadCoordinator::buildBranchCandidateDisplayPlan()
 {
     m_branchDisplayPlan.clear();
@@ -1523,6 +1524,7 @@ void KifuLoadCoordinator::buildBranchCandidateDisplayPlan()
         }
     }
 }
+*/
 
 void KifuLoadCoordinator::dumpBranchCandidateDisplayPlan() const
 {
