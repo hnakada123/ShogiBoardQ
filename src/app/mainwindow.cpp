@@ -1731,6 +1731,7 @@ void MainWindow::chooseAndLoadKifuFile()
         m_kifuBranchModel,
         m_branchCtl,
         m_kifuBranchView,
+        m_branchDisplayPlan,
         this
     );
 
@@ -3262,84 +3263,8 @@ void MainWindow::onBranchCandidateActivated(const QModelIndex& index)
 
 void MainWindow::applyResolvedRowAndSelect(int row, int selPly)
 {
-    if (row < 0 || row >= m_resolvedRows.size()) {
-        qDebug() << "[APPLY] invalid row =" << row << " rows=" << m_resolvedRows.size();
-        return;
-    }
-
-    // 行を確定
-    m_activeResolvedRow = row;
-    const auto& r = m_resolvedRows[row];
-
-    // 盤面＆棋譜モデル（まず行データを丸ごと差し替え）
-    *m_sfenRecord = r.sfen;   // 0..N のSFEN列
-    m_gameMoves   = r.gm;     // 1..N のUSI列
-
-    // ★ 手数を正規化して共有メンバへ反映（0=初期局面）
-    const int maxPly = r.disp.size();
-    m_activePly = qBound(0, selPly, maxPly);
-
-    // 棋譜欄へ反映（モデル差し替え＋選択手へスクロール）
-    showRecordAtPly(r.disp, m_activePly);
-    m_currentSelectedPly = m_activePly;
-
-    // RecordPane 経由で安全に選択・スクロール
-    if (m_kifuRecordModel) {
-        const QModelIndex idx = m_kifuRecordModel->index(m_activePly, 0);
-        if (idx.isValid()) {
-            if (m_recordPane) {
-                if (QTableView* view = m_recordPane->kifuView()) {
-                    if (view->model() == m_kifuRecordModel) {
-                        view->setCurrentIndex(idx);
-                        view->scrollTo(idx, QAbstractItemView::PositionAtCenter);
-                    }
-                }
-            }
-        }
-    }
-
-    // ======== 分岐候補の更新（Plan 方式に一本化）========
-    {
-        if (m_loadingKifu) {
-            // ★ 読み込み中は分岐更新をスキップ（ノイズ抑制）
-            qDebug() << "[BRANCH] skip during loading (applyResolvedRowAndSelect)";
-            if (m_kifuBranchModel) {
-                m_kifuBranchModel->clearBranchCandidates();
-                m_kifuBranchModel->setHasBackToMainRow(false);
-            }
-            if (QTableView* view = m_kifuBranchView
-                                        ? m_kifuBranchView
-                                        : (m_recordPane ? m_recordPane->branchView() : nullptr)) {
-                if (view) {
-                    view->setVisible(false);
-                    view->setEnabled(false);
-                }
-            }
-        } else {
-            // ★ ここだけで十分：Plan から分岐候補欄を構築・表示
-            showBranchCandidatesFromPlan(/*row*/m_activeResolvedRow, /*ply1*/m_activePly);
-        }
-    }
-    // ======== 差し替えここまで ========
-
-    // 盤面ハイライト・矢印ボタン
-    syncBoardAndHighlightsAtRow(m_activePly);
-    enableArrowButtons();
-
-    qDebug().noquote() << "[APPLY] row=" << row
-                       << " ply=" << m_activePly
-                       << " rows=" << m_resolvedRows.size()
-                       << " dispSz=" << r.disp.size();
-
-    // 分岐ツリー側の黄色ハイライト同期（EngineAnalysisTab に移譲）
-    if (m_analysisTab) {
-        m_analysisTab->highlightBranchTreeAt(/*row*/m_activeResolvedRow,
-                                             /*ply*/m_activePly,
-                                             /*centerOn*/false);
-    }
-
-    // ★ 棋譜欄の「分岐あり」行をオレンジでマーク
-    updateKifuBranchMarkersForActiveRow();
+    if (!m_kifuLoadCoordinator) return;
+    m_kifuLoadCoordinator->applyResolvedRowAndSelect(row, selPly);
 }
 
 void MainWindow::BranchRowDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const
@@ -4833,10 +4758,10 @@ void MainWindow::buildBranchCandidateDisplayPlan()
                 return a.keepRow < b.keepRow;
             });
 
-            QVector<BranchCandidateDisplayItem> items;
+            QVector<::BranchCandidateDisplayItem> items;
             items.reserve(keeps.size());
             for (const auto& k : keeps) {
-                BranchCandidateDisplayItem itx;
+                ::BranchCandidateDisplayItem itx;
                 itx.row      = k.keepRow;
                 itx.varN     = (k.keepRow == 0 ? -1 : k.keepRow - 1);
                 itx.lineName = lineNameForRow(k.keepRow); // "Main" / "VarN"
@@ -4845,7 +4770,7 @@ void MainWindow::buildBranchCandidateDisplayPlan()
             }
 
             // 保存
-            BranchCandidateDisplay plan;
+            ::BranchCandidateDisplay plan;
             plan.ply       = targetPly;
             plan.baseLabel = baseForDisplay;
             plan.items     = std::move(items);
