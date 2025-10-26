@@ -1811,6 +1811,8 @@ void MainWindow::chooseAndLoadKifuFile2()
             this, &MainWindow::enableArrowButtons, Qt::UniqueConnection);
     connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::setupBranchCandidatesWiring_,
             this, &MainWindow::setupBranchCandidatesWiring_, Qt::UniqueConnection);
+    connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::buildBranchCandidateDisplayPlan,
+            this, &MainWindow::buildBranchCandidateDisplayPlan, Qt::UniqueConnection);
 
     // 読み込み実行
     m_kifuLoadCoordinator->loadKifuFromFile(filePath);

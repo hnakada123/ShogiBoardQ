@@ -461,6 +461,8 @@ private slots:
     void displayGameRecord(const QList<KifDisplayItem> disp);
     void syncBoardAndHighlightsAtRow(int ply1);
 
+    void buildBranchCandidateDisplayPlan();
+
 private:
     QVector<int> m_branchVarIds;   // 行→variationId の対応（末尾の「本譜へ戻る」は -1）
     int m_branchPlyContext = -1;   // どの ply の候補か（必要なら使用）
@@ -508,7 +510,6 @@ private:
     // 例: m_branchDisplayPlan[row][ply]
     QHash<int, QMap<int, BranchCandidateDisplay>> m_branchDisplayPlan;
 
-    void buildBranchCandidateDisplayPlan();
     void dumpBranchCandidateDisplayPlan() const;
     void showBranchCandidatesFromPlan(int row, int ply1);
     void ensureResolvedRowsHaveFullSfen();   // 各行の sfen を確実に満たす

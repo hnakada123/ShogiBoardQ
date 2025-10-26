@@ -135,6 +135,7 @@ signals:
     void syncBoardAndHighlightsAtRow(int ply1);
     void enableArrowButtons();
     void setupBranchCandidatesWiring_();
+    void buildBranchCandidateDisplayPlan();
 
 private:
     bool m_loadingKifu = false;
@@ -194,7 +195,7 @@ private:
     QString rowNameFor_(int row) const;
     QString labelAt_(const ResolvedRow& rr, int ply) const;
     bool prefixEqualsUpTo_(int rowA, int rowB, int p) const;
-    void buildBranchCandidateDisplayPlan();
+
     void dumpBranchCandidateDisplayPlan() const;
     void ensureResolvedRowsHaveFullSfen();
     void ensureResolvedRowsHaveFullGameMoves();
