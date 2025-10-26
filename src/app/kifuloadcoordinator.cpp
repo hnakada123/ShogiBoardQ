@@ -4,6 +4,7 @@
 #include "recordpane.h"              // これまで通り（前方宣言側）
 #include "kifurecordlistmodel.h"     // ← 実体定義（必須）
 #include "kifubranchlistmodel.h"     // ← 実体定義（必須）
+#include "branchdisplayplan.h"
 
 #include <QStyledItemDelegate>
 #include <QAbstractItemView>         // view->model() を使うなら
@@ -248,6 +249,7 @@ KifuLoadCoordinator::KifuLoadCoordinator(QVector<ShogiMove>& gameMoves,
                                          KifuBranchListModel* kifuBranchModel,
                                          BranchCandidatesController* branchCtl,
                                          QTableView* kifuBranchView,
+                                         QHash<int, QMap<int, ::BranchCandidateDisplay>>& branchDisplayPlan,
                                          QObject* parent)
     : QObject(parent)
     , m_gameMoves(gameMoves)                // ← 参照メンバに束縛（同一実体を共有）
@@ -268,6 +270,7 @@ KifuLoadCoordinator::KifuLoadCoordinator(QVector<ShogiMove>& gameMoves,
     , m_kifuBranchModel(kifuBranchModel)
     , m_branchCtl(branchCtl)
     , m_kifuBranchView(kifuBranchView)
+    , m_branchDisplayPlan(branchDisplayPlan)
 {
     // 必要ならデバッグ時にチェック
     // Q_ASSERT(m_sfenRecord && "sfenRecord must not be null");

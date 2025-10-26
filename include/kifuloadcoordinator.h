@@ -13,6 +13,7 @@
 #include "branchcandidatescontroller.h"
 #include "kifurecordlistmodel.h"
 #include "kifutypes.h"
+#include "branchdisplayplan.h"
 
 class KifuLoadCoordinator : public QObject
 {
@@ -38,6 +39,7 @@ public:
                         KifuBranchListModel* kifuBranchModel,
                         BranchCandidatesController* branchCtl,
                         QTableView* kifuBranchView,
+                        QHash<int, QMap<int, ::BranchCandidateDisplay>>& branchDisplayPlan,
                         QObject* parent=nullptr);
 
     // --- 装飾（棋譜テーブル マーカー描画） ---
@@ -107,7 +109,7 @@ private:
     QHash<int, QHash<QString, QList<BranchCandidate>>> m_branchIndex;
     // 行(row) → (ply → 表示計画) の保持
     // 例: m_branchDisplayPlan[row][ply]
-    QHash<int, QMap<int, BranchCandidateDisplay>> m_branchDisplayPlan;
+    QHash<int, QMap<int, BranchCandidateDisplay>>& m_branchDisplayPlan;
     std::unique_ptr<KifuVariationEngine> m_varEngine;
     bool m_branchTreeLocked = false;  // ← 分岐ツリーの追加・変更を禁止するロック
 
