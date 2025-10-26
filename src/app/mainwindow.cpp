@@ -1712,14 +1712,6 @@ void MainWindow::chooseAndLoadKifuFile()
         m_kifuLoadCoordinator = nullptr;
     }
 
-    // ★ 中核状態は“参照注入”で共有（同一実体を両者で使う）
-    //   KifuLoadCoordinator のコンストラクタは次の形を想定：
-    //   KifuLoadCoordinator(QVector<ShogiMove>& gameMoves,
-    //                       QVector<ResolvedRow>& resolvedRows,
-    //                       QStringList& positionStrList,
-    //                       int& activeResolvedRow, int& activePly,
-    //                       int& currentSelectedPly, int& currentMoveIndex,
-    //                       QStringList* sfenRecord, QObject* parent)
     m_kifuLoadCoordinator = new KifuLoadCoordinator(
         m_gameMoves,
         m_resolvedRows,
@@ -1741,17 +1733,6 @@ void MainWindow::chooseAndLoadKifuFile()
         m_kifuBranchView,
         this
     );
-
-    // ▼ 暫定共有（将来は Coordinator 内に集約できるなら外せる）
-    m_kifuLoadCoordinator->setUsiMoves(m_usiMoves);
-    m_kifuLoadCoordinator->setDispMain(m_dispMain);
-    m_kifuLoadCoordinator->setSfenMain(m_sfenMain);
-    m_kifuLoadCoordinator->setGmMain(m_gmMain);
-
-    // ▼ 不要セッターは渡さない（Coordinator 内で完結させる）
-    // setLoadingKifu / setVariationsByPly / setVariationsSeq / setBranchTreeLocked
-    // setBranchPlyContext / setBranchablePlySet / setBranchIndex / setBranchDisplayPlan / setVarEngine
-    // ※ 本関数からは呼ばない
 
     // 分岐ツリーのクリックを MainWindow ではなく Coordinator に直結
     if (m_analysisTab) {

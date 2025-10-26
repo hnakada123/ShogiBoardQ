@@ -63,68 +63,6 @@ public:
 
     void loadKifuFromFile(const QString& filePath);
 
-    void setGameInfoTable(QTableWidget *newGameInfoTable);
-
-    void setTab(QTabWidget *newTab);
-
-    void setShogiView(ShogiView *newShogiView);
-
-    void setSfenRecord(QStringList *newSfenRecord);
-
-    void setGameMoves(const QVector<ShogiMove> &newGameMoves);
-
-    void setPositionStrList(const QStringList &newPositionStrList);
-
-    void setDispMain(const QList<KifDisplayItem> &newDispMain);
-
-    void setSfenMain(const QStringList &newSfenMain);
-
-    void setGmMain(const QVector<ShogiMove> &newGmMain);
-
-    void setVariationsByPly(const QHash<int, QList<KifLine> > &newVariationsByPly);
-
-    void setVariationsSeq(const QList<KifLine> &newVariationsSeq);
-
-    void setRecordPane(RecordPane *newRecordPane);
-
-    void setResolvedRows(QVector<ResolvedRow> &newResolvedRows);
-
-    void setActiveResolvedRow(int newActiveResolvedRow);
-
-    void setActivePly(int newActivePly);
-
-    void setCurrentSelectedPly(int newCurrentSelectedPly);
-
-    void setCurrentMoveIndex(int newCurrentMoveIndex);
-
-    void setKifuRecordModel(KifuRecordListModel *newKifuRecordModel);
-
-    void setKifuBranchModel(KifuBranchListModel *newKifuBranchModel);
-
-    void setBranchCtl(BranchCandidatesController *newBranchCtl);
-
-    void setKifuBranchView(QTableView *newKifuBranchView);
-
-    void setBranchPlyContext(int newBranchPlyContext);
-
-    void setBranchablePlySet(const QSet<int> &newBranchablePlySet);
-
-    void setBranchIndex(const QHash<int, QHash<QString, QList<BranchCandidate> > > &newBranchIndex);
-
-    void setBranchDisplayPlan(const QHash<int, QMap<int, BranchCandidateDisplay> > &newBranchDisplayPlan);
-
-    void setVarEngine(std::unique_ptr<KifuVariationEngine> newVarEngine);
-
-    void setBranchTreeLocked(bool newBranchTreeLocked);
-
-    void setGameInfoDock(QDockWidget *newGameInfoDock);
-
-    void setLoadingKifu(bool newLoadingKifu);
-
-    void setAnalysisTab(EngineAnalysisTab *newAnalysisTab);
-
-    void setUsiMoves(const QStringList &newUsiMoves);
-
 public slots:
     void applyResolvedRowAndSelect(int row, int selPly);
 
