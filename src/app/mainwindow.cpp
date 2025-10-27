@@ -548,7 +548,6 @@ void MainWindow::copyBoardToClipboard()
     BoardImageExporter::copyToClipboard(m_shogiView);
 }
 
-
 void MainWindow::saveShogiBoardImage()
 {
     BoardImageExporter::saveImage(this, m_shogiView);
@@ -1036,11 +1035,11 @@ void MainWindow::startGameBasedOnMode()
 
     // 先手がエンジンのモードだけ true（EvH／HandicapEvH）
     opt.engineIsP1 = (m_playMode == EvenEngineVsHuman
-                   || m_playMode == HandicapEngineVsHuman);
+                      || m_playMode == HandicapEngineVsHuman);
 
     // 後手がエンジンのモードだけ true（HvE／HandicapHvE）
     opt.engineIsP2 = (m_playMode == EvenHumanVsEngine
-                   || m_playMode == HandicapHumanVsEngine);
+                      || m_playMode == HandicapHumanVsEngine);
 
     // ★ EvE のときだけ上下2段にする（HvH を含む“非 EvE”は上段のみ）
     const bool isEvE =
@@ -2867,39 +2866,16 @@ void MainWindow::onMainMoveRowChanged(int selPly)
 
 void MainWindow::populateBranchListForPly(int ply)
 {
-    // 表示モデルが無ければ何もしない
-    if (!m_kifuBranchModel) return;
+    // Coordinator 主導へ一本化（表示のみ更新）
+    if (!m_kifuLoadCoordinator) return;
 
-    // 読み込み中はスキップ（ノイズ抑制）
-    if (m_loadingKifu) {
-        qDebug() << "[BRANCH] skip during loading (populateBranchListForPly)";
-        return;
-    }
+    // いまアクティブな行を安全化
+    const int row = (m_resolvedRows.isEmpty()
+                         ? 0
+                         : qBound(0, m_activeResolvedRow, m_resolvedRows.size() - 1));
 
-    // アクティブ行の安全チェック
-    if (m_activeResolvedRow < 0 || m_activeResolvedRow >= m_resolvedRows.size()) {
-        qDebug() << "[BRANCH] populateBranchListForPly: active row invalid"
-                 << " row=" << m_activeResolvedRow
-                 << " rows=" << m_resolvedRows.size();
-        m_kifuBranchModel->clearBranchCandidates();
-        m_kifuBranchModel->setHasBackToMainRow(false);
-        if (QTableView* view = m_kifuBranchView
-                                   ? m_kifuBranchView
-                                   : (m_recordPane ? m_recordPane->branchView() : nullptr)) {
-            view->setVisible(false);
-            view->setEnabled(false);
-        }
-        m_onMainRowGuard = false;
-        return;
-    }
-
-    // この時点の文脈（どの手で候補を見せているか）を保持
-    m_branchPlyContext = ply;
-
-    // ★ Plan データのみで分岐候補欄を構築・表示
-    //    表示/非表示の最終制御（単一候補かつ現在手と同一なら非表示 等）は
-    //    showBranchCandidatesFromPlan() 側に集約している前提。
-    showBranchCandidatesFromPlan(/*row*/m_activeResolvedRow, /*ply1*/ply);
+    const int safePly = qMax(0, ply);
+    m_kifuLoadCoordinator->showBranchCandidates(row, safePly);
 }
 
 void MainWindow::syncBoardAndHighlightsAtRow(int ply1)
@@ -3975,29 +3951,29 @@ void MainWindow::handleMove_HvE_(const QPoint& humanFrom, const QPoint& humanTo)
         }
 
         eng->handleHumanVsEngineCommunication(
-                    m_positionStr1, m_positionPonder1,
-                    eFrom, eTo,
-                    engineByoyomiMs,
-                    bTime, wTime,
-                    m_positionStrList,
-                    tc.incMs1, tc.incMs2,
-                    tc.useByoyomi
-                    );
+            m_positionStr1, m_positionPonder1,
+            eFrom, eTo,
+            engineByoyomiMs,
+            bTime, wTime,
+            m_positionStrList,
+            tc.incMs1, tc.incMs2,
+            tc.useByoyomi
+            );
 
         // 受け取った bestmove を盤へ適用
         bool ok2 = false;
 
         ok2 = m_gameController->validateAndMove(
-                    eFrom, eTo, m_lastMove, m_playMode,
-                    m_currentMoveIndex, m_sfenRecord, m_gameMoves
-                    );
+            eFrom, eTo, m_lastMove, m_playMode,
+            m_currentMoveIndex, m_sfenRecord, m_gameMoves
+            );
 
         if (ok2) {
             if (m_boardController) m_boardController->showMoveHighlights(eFrom, eTo);
 
             // エンジン思考時間 → 時計へ
             const qint64 thinkMs =
-                    (m_match && m_match->primaryEngine())
+                (m_match && m_match->primaryEngine())
                     ? m_match->primaryEngine()->lastBestmoveElapsedMs()
                     : 0;
             if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
@@ -4327,102 +4303,9 @@ void MainWindow::setupBranchView_()
 
 void MainWindow::showBranchCandidatesFromPlan(int row, int ply1)
 {
-    if (!m_branchCtl || !m_kifuBranchModel) return;
-
-    // 0手目や行範囲外は非表示
-    if (ply1 <= 0 || row < 0 || row >= m_resolvedRows.size()) {
-        m_kifuBranchModel->clearBranchCandidates();
-        m_kifuBranchModel->setHasBackToMainRow(false);
-        if (QTableView* view = m_recordPane ? m_recordPane->branchView() : m_kifuBranchView) {
-            view->setVisible(false);
-            view->setEnabled(false);
-        }
-        return;
-    }
-
-    // Plan 参照
-    const auto itRow = m_branchDisplayPlan.constFind(row);
-    if (itRow == m_branchDisplayPlan.constEnd()) {
-        // Plan なし → 非表示
-        m_kifuBranchModel->clearBranchCandidates();
-        m_kifuBranchModel->setHasBackToMainRow(false);
-        if (QTableView* view = m_recordPane ? m_recordPane->branchView() : m_kifuBranchView) {
-            view->setVisible(false);
-            view->setEnabled(false);
-        }
-        return;
-    }
-    const auto& mp = itRow.value();
-    const auto itP = mp.constFind(ply1);
-    if (itP == mp.constEnd()) {
-        // この手の Plan なし → 非表示
-        m_kifuBranchModel->clearBranchCandidates();
-        m_kifuBranchModel->setHasBackToMainRow(false);
-        if (QTableView* view = m_recordPane ? m_recordPane->branchView() : m_kifuBranchView) {
-            view->setVisible(false);
-            view->setEnabled(false);
-        }
-        return;
-    }
-
-    const BranchCandidateDisplay& plan = itP.value(); // ply/baseLabel/items
-
-    // 「候補が1つ＆現在指し手と同じなら隠す」ルール
-    const QString currentLbl = [&, this]{
-        const int li = ply1 - 1;
-        const auto& disp = m_resolvedRows[row].disp;
-        return (li >= 0 && li < disp.size()) ? pickLabelForDisp(disp.at(li)) : QString();
-    }();
-
-    bool hide = false;
-    if (plan.items.size() == 1) {
-        const auto& only = plan.items.front();
-        if (!only.label.isEmpty() && only.label == currentLbl) hide = true;
-    }
-
-    if (hide || plan.items.isEmpty()) {
-        m_kifuBranchModel->clearBranchCandidates();
-        m_kifuBranchModel->setHasBackToMainRow(false);
-        if (QTableView* view = m_recordPane ? m_recordPane->branchView() : m_kifuBranchView) {
-            view->setVisible(false);
-            view->setEnabled(false);
-        }
-        return;
-    }
-
-    // 表示（Controller経由で Plan をそのまま流し込む）
-    // MainWindow ローカル型 → 公開型(グローバル)へ明示変換
-    QVector<BCDI> pubItems;
-    pubItems.reserve(plan.items.size());
-    for (const auto& it : plan.items) {
-        BCDI x;
-        x.row      = it.row;
-        x.varN     = it.varN;
-        x.lineName = it.lineName;
-        x.label    = it.label;
-        pubItems.push_back(std::move(x));
-    }
-    m_branchCtl->refreshCandidatesFromPlan(ply1, pubItems, plan.baseLabel);
-
-    // ビューの可視化
-    if (QTableView* view = m_recordPane ? m_recordPane->branchView() : m_kifuBranchView) {
-        const int rows = m_kifuBranchModel->rowCount();
-        const bool show = (rows > 0);
-        view->setVisible(show);
-        view->setEnabled(show);
-        if (show) {
-            const QModelIndex idx0 = m_kifuBranchModel->index(0, 0);
-            if (idx0.isValid() && view->selectionModel()) {
-                view->selectionModel()->setCurrentIndex(
-                    idx0, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
-            }
-            view->scrollToTop();
-        }
-    }
-
-    // UI 状態
-    m_branchPlyContext   = ply1;
-    m_activeResolvedRow  = row; // ←行は applyResolvedRowAndSelect でも更新されますが念のため同期
+    // MainWindow 実装はやめ、Coordinator へ委譲
+    if (!m_kifuLoadCoordinator) return;
+    m_kifuLoadCoordinator->showBranchCandidates(row, ply1);
 }
 
 void MainWindow::onBranchPlanActivated_(int row, int ply1)

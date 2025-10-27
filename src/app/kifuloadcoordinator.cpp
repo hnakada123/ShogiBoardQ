@@ -1759,3 +1759,10 @@ void KifuLoadCoordinator::buildBranchCandidateDisplayPlan()
         }
     }
 }
+
+// 追加実装（ラッパー）
+void KifuLoadCoordinator::showBranchCandidates(int row, int ply1)
+{
+    // 既存の内部関数に委譲（表示だけ更新・選択は動かさない）
+    showBranchCandidatesFromPlan(row, ply1);
+}
