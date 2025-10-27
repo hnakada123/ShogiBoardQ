@@ -689,53 +689,47 @@ void MatchCoordinator::startHumanVsEngine_(const StartOptions& opt, bool engineI
         m_hooks.log(QStringLiteral("[Match] Start HvE (engineIsP1=%1)").arg(engineIsP1));
     }
 
-    // 以前のエンジンは破棄
+    // 以前のエンジンは破棄（安全化）
     destroyEngines();
 
     // ★ 単発エンジン＝表示は常に #1 スロット（上段）へ流す
-    //    → 座席が P1 でも P2 でも、comm/think は #1 を使う
+    //    → 座席が P1/P2 でも comm/think は #1 を使う
     UsiCommLogModel*          comm  = m_comm1;
     ShogiEngineThinkingModel* think = m_think1;
-
-    // GUI が #1 モデルをまだ持っていなければフォールバック生成して保持
     if (!comm)  { comm  = new UsiCommLogModel(this);         m_comm1  = comm;  }
     if (!think) { think = new ShogiEngineThinkingModel(this); m_think1 = think; }
 
-    // 単発は既存仕様どおり m_usi1 を使用（内部の先後識別は logIdentity で持つ）
+    // USI を生成（この時点ではプロセス未起動）
     m_usi1 = new Usi(comm, think, m_gc, m_playMode, this);
-    updateUsiPtrs(m_usi1, nullptr);
+    m_usi2 = nullptr; // HvE は単発
 
-    m_usi1->resetResignNotified();
-    m_usi1->clearHardTimeout();
+    // 投了配線（m_usi1=先手扱いでよい：内部で asP1=true として扱う）
+    wireResignToArbiter_(m_usi1, /*asP1=*/true);
 
-    // 投了シグナルの配線は「実際の座席」に合わせる
-    wireResignToArbiter_(m_usi1, /*asP1=*/engineIsP1);
+    // ログ識別（UI 表示用）
+    if (m_usi1) {
+        const QString dispName = opt.engineName1.isEmpty() ? QStringLiteral("Engine") : opt.engineName1;
+        m_usi1->setLogIdentity(QStringLiteral("[E1]"), QStringLiteral("P1"), dispName);
+        m_usi1->setSquelchResignLogging(false);
+    }
 
-    // ログ識別：表示上は P1/P2 を正しく出す（ただし表示面は常に上段）
-    const QString eName = engineIsP1 ? opt.engineName1 : opt.engineName2;
-    m_usi1->setLogIdentity(QStringLiteral("[E]"),
-                           engineIsP1 ? QStringLiteral("P1") : QStringLiteral("P2"),
-                           eName);
-    m_usi1->setSquelchResignLogging(false);
+    // ★★★ ここが肝心：USI エンジンを起動（path/name 必須） ★★★
+    initializeAndStartEngineFor(P1, opt.enginePath1, opt.engineName1);
 
-    // USI 起動（パス＋表示名）：座席に応じて正しいパス/名を渡す
-    const QString ePath = engineIsP1 ? opt.enginePath1 : opt.enginePath2;
-    const QString eDisp = engineIsP1 ? opt.engineName1 : opt.engineName2;
+    // UI 側にエンジン名を通知（必要時）
+    if (m_hooks.setEngineNames) m_hooks.setEngineNames(opt.engineName1, QString());
 
-    // 既存の HvE 実装と互換を保つため、内部的には P1 側のスロットで起動
-    initializeAndStartEngineFor(P1, ePath, eDisp);
-
-    // --- 手番の単一ソースを確立：GC → TurnManager → m_cur → 表示
+    // --- 手番の単一ソースを確立：GC → m_cur → 表示 ---
     ShogiGameController::Player side =
         m_gc ? m_gc->currentPlayer() : ShogiGameController::NoPlayer;
     if (side == ShogiGameController::NoPlayer) {
-        side = ShogiGameController::Player1;         // 既定は先手（SFEN未指定時）
+        // 既定は先手（SFEN未指定時）
+        side = ShogiGameController::Player1;
         if (m_gc) m_gc->setCurrentPlayer(side);
     }
-
     m_cur = (side == ShogiGameController::Player2) ? P2 : P1;
 
-    // 盤描画は手番反映のあと
+    // 盤描画は手番反映のあと（ハイライト/時計のズレ防止）
     if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
     updateTurnDisplay_(m_cur);
 }
