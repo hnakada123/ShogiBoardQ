@@ -43,10 +43,6 @@ static inline QString pickLabelForDisp(const KifDisplayItem& d)
     return d.prettyMove;
 }
 
-static inline QString lineNameForRow(int row) {
-    return (row == 0) ? QStringLiteral("Main") : QStringLiteral("Var%1").arg(row - 1);
-}
-
 // ヘルパ（0→1 始まり）
 static inline QPoint toOne(const QPoint& z) { return QPoint(z.x() + 1, z.y() + 1); }
 
