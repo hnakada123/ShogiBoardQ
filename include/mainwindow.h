@@ -240,8 +240,6 @@ private:
     void updateTurnDisplay();
     void updateTurnStatus(int currentPlayer);
     void applySfenAtCurrentPly();
-    void ensureBranchRowDelegateInstalled();
-    void updateKifuBranchMarkersForActiveRow();
     void setGameInProgressActions(bool inProgress);
     void displayPositionEditMenu();
     void hidePositionEditMenu();
@@ -275,14 +273,10 @@ private:
     void printGameDialogSettings(StartGameDialog* m_gamedlg);
     void saveWindowAndBoardSettings();
     void loadWindowSettings();
-    void getPlayersName(QString& playersName1, QString& playersName2);
     void makeDefaultSaveFileName();
 
     // --- KIF ヘッダ（対局情報）周り ---
     void ensureGameInfoTable();
-    void addGameInfoTabIfMissing();
-    QString findGameInfoValue(const QList<KifGameInfoItem>& items,
-                              const QStringList& keys) const;
 
     // --- USI / エンジン ---
     bool isHumanTurnNow(bool engineIsP1) const;
@@ -458,10 +452,6 @@ private:
     bool m_loadingKifu = false;   // KIF読込～WL完成まで分岐更新を抑止
 
     bool m_branchTreeLocked = false;  // ← 分岐ツリーの追加・変更を禁止するロック
-
-    QString rowNameFor_(int row) const;
-    QString labelAt_(const ResolvedRow& rr, int ply) const;
-    bool prefixEqualsUpTo_(int rowA, int rowB, int p) const;
 
     // 分岐候補の表示アイテム（どの行のどのラベルか）
     struct BranchCandidateDisplayItem {

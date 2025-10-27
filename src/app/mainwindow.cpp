@@ -21,7 +21,6 @@
 #include "usi.h"
 #include "startgamedialog.h"
 #include "kifuanalysisdialog.h"
-#include "kiftosfenconverter.h"
 #include "shogiclock.h"
 #include "apptooltipfilter.h"
 #include "sfenpositiontracer.h"
@@ -38,9 +37,6 @@
 #include "errorbus.h"
 #include "kifuloadcoordinator.h"
 
-// デバッグのオン/オフ（必要に応じて false に）
-static bool kGM_VERBOSE = true;
-
 // mainwindow.cpp の先頭（インクルードの後、どのメンバ関数より上）に追加
 static inline QString pickLabelForDisp(const KifDisplayItem& d)
 {
@@ -50,6 +46,9 @@ static inline QString pickLabelForDisp(const KifDisplayItem& d)
 static inline QString lineNameForRow(int row) {
     return (row == 0) ? QStringLiteral("Main") : QStringLiteral("Var%1").arg(row - 1);
 }
+
+// ヘルパ（0→1 始まり）
+static inline QPoint toOne(const QPoint& z) { return QPoint(z.x() + 1, z.y() + 1); }
 
 using namespace EngineSettingsConstants;
 using GameOverCause = MatchCoordinator::Cause;
@@ -63,6 +62,49 @@ static inline QPoint normalizeBoardPoint_(const QPoint& p) {
     return p;
 }
 }
+
+// ---- 無名名前空間: 共有ユーティリティ ----
+namespace {
+
+inline int rankLetterToNum(QChar r) { // 'a'..'i' -> 1..9
+    ushort u = r.toLower().unicode();
+    return (u < 'a' || u > 'i') ? -1 : int(u - 'a') + 1;
+}
+
+inline QChar dropLetterWithSide(QChar upper, bool black) {
+    return black ? upper.toUpper() : upper.toLower();
+}
+
+// 成駒トークン("+P"等) -> 1文字表現。非成駒はトークンそのまま1文字。
+inline QChar tokenToOneChar(const QString& tok) {
+    if (tok.isEmpty()) return QLatin1Char(' ');
+    if (tok.size() == 1) return tok.at(0);
+    static const QHash<QString,QChar> map = {
+                                              {"+P",'Q'},{"+L",'M'},{"+N",'O'},{"+S",'T'},{"+B",'C'},{"+R",'U'},
+                                              {"+p",'q'},{"+l",'m'},{"+n",'o'},{"+s",'t'},{"+b",'c'},{"+r",'u'},
+                                              };
+    const auto it = map.find(tok);
+    return it == map.end() ? QLatin1Char(' ') : *it;
+}
+
+// ★打ちの fromSquare を駒台座標にマップ
+inline QPoint dropFromSquare(QChar dropUpper, bool black) {
+    const int x = black ? 9 : 10; // 先手=9, 後手=10
+    int y = -1;
+    switch (dropUpper.toUpper().unicode()) {
+    case 'P': y = black ? 0 : 8; break;
+    case 'L': y = black ? 1 : 7; break;
+    case 'N': y = black ? 2 : 6; break;
+    case 'S': y = black ? 3 : 5; break;
+    case 'G': y = 4;            break; // 共通
+    case 'B': y = black ? 5 : 3; break;
+    case 'R': y = black ? 6 : 2; break;
+    default:  y = -1;           break;
+    }
+    return QPoint(x, y);
+}
+
+} // anonymous namespace
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -1698,62 +1740,6 @@ void MainWindow::chooseAndLoadKifuFile()
     m_kifuLoadCoordinator->loadKifuFromFile(filePath);
 }
 
-// ---- 無名名前空間: 共有ユーティリティ ----
-namespace {
-
-inline bool isTerminalPretty(const QString& s) {
-    static const QStringList keywords = {
-        QStringLiteral("投了"), QStringLiteral("中断"), QStringLiteral("持将棋"),
-        QStringLiteral("千日手"), QStringLiteral("切れ負け"),
-        QStringLiteral("反則勝ち"), QStringLiteral("反則負け"),
-        QStringLiteral("入玉勝ち"), QStringLiteral("不戦勝"),
-        QStringLiteral("不戦敗"), QStringLiteral("詰み"), QStringLiteral("不詰"),
-    };
-    for (const auto& kw : keywords)
-        if (s.contains(kw)) return true;
-    return false;
-}
-
-inline int rankLetterToNum(QChar r) { // 'a'..'i' -> 1..9
-    ushort u = r.toLower().unicode();
-    return (u < 'a' || u > 'i') ? -1 : int(u - 'a') + 1;
-}
-
-inline QChar dropLetterWithSide(QChar upper, bool black) {
-    return black ? upper.toUpper() : upper.toLower();
-}
-
-// 成駒トークン("+P"等) -> 1文字表現。非成駒はトークンそのまま1文字。
-inline QChar tokenToOneChar(const QString& tok) {
-    if (tok.isEmpty()) return QLatin1Char(' ');
-    if (tok.size() == 1) return tok.at(0);
-    static const QHash<QString,QChar> map = {
-        {"+P",'Q'},{"+L",'M'},{"+N",'O'},{"+S",'T'},{"+B",'C'},{"+R",'U'},
-        {"+p",'q'},{"+l",'m'},{"+n",'o'},{"+s",'t'},{"+b",'c'},{"+r",'u'},
-    };
-    const auto it = map.find(tok);
-    return it == map.end() ? QLatin1Char(' ') : *it;
-}
-
-// ★打ちの fromSquare を駒台座標にマップ
-inline QPoint dropFromSquare(QChar dropUpper, bool black) {
-    const int x = black ? 9 : 10; // 先手=9, 後手=10
-    int y = -1;
-    switch (dropUpper.toUpper().unicode()) {
-    case 'P': y = black ? 0 : 8; break;
-    case 'L': y = black ? 1 : 7; break;
-    case 'N': y = black ? 2 : 6; break;
-    case 'S': y = black ? 3 : 5; break;
-    case 'G': y = 4;            break; // 共通
-    case 'B': y = black ? 5 : 3; break;
-    case 'R': y = black ? 6 : 2; break;
-    default:  y = -1;           break;
-    }
-    return QPoint(x, y);
-}
-
-} // anonymous namespace
-
 void MainWindow::rebuildSfenRecord(const QString& initialSfen, const QStringList& usiMoves, bool hasTerminal)
 {
     SfenPositionTracer tracer;
@@ -2676,72 +2662,6 @@ void MainWindow::makeDefaultSaveFileName()
     }
 }
 
-// 棋譜ファイルのヘッダー部分の対局者名を作成する。
-void MainWindow::getPlayersName(QString& playersName1, QString& playersName2)
-{
-    // 対局モード
-    switch (m_playMode) {
-    // Player1: Human, Player2: Human
-    case HumanVsHuman:
-        playersName1 = "先手：" + m_humanName1;
-        playersName2 = "後手：" + m_humanName2;
-        break;
-
-    // Player1: Human, Player2: USI Engine
-    case EvenHumanVsEngine:
-        playersName1 = "先手：" + m_humanName1;
-        playersName2 = "後手：" + m_engineName2;
-        break;
-
-    // Player1: USI Engine, Player2: Human
-    case EvenEngineVsHuman:
-        playersName1 = "先手：" + m_engineName1;
-        playersName2 = "後手：" + m_humanName2;
-        break;
-
-    // Player1: USI Engine, Player2: USI Engine
-    case EvenEngineVsEngine:
-        playersName1 = "先手：" + m_engineName1;
-        playersName2 = "後手：" + m_engineName2;
-        break;
-
-    // 駒落ち Player1: Human（下手）, Player2: USI Engine（上手）
-    case HandicapHumanVsEngine:
-        playersName1 = "下手：" + m_humanName1;
-        playersName2 = "上手：" + m_engineName2;
-        break;
-
-    // 駒落ち Player1: USI Engine（下手）, Player2: Human（上手）
-    case HandicapEngineVsHuman:
-        playersName1 = "下手：" + m_engineName1;
-        playersName2 = "上手：" + m_humanName2;
-        break;
-
-    // 駒落ち Player1: USI Engine（下手）, Player2: USI Engine（上手）
-    case HandicapEngineVsEngine:
-        playersName1 = "下手：" + m_engineName1;
-        playersName2 = "上手：" + m_engineName2;
-        break;
-
-    // まだ対局を開始していない状態
-    case NotStarted:
-
-    // 解析モード
-    case AnalysisMode:
-
-    // 検討モード
-    case ConsidarationMode:
-
-
-    // 詰将棋探索モード
-    case TsumiSearchMode:
-
-    // エラー
-    case PlayModeError:
-        break;
-    }
-}
-
 // 「すぐ指させる」
 // エンジンにstopコマンドを送る。
 // エンジンに対し思考停止を命令するコマンド。エンジンはstopを受信したら、できるだけすぐ思考を中断し、
@@ -2856,10 +2776,6 @@ void MainWindow::setGameOverMove(GameOverCause cause, bool loserIsPlayerOne)
                                      fmt_hhmmss(totalUsedMs));
 
     // 1回だけ即時追記
-    //begin
-    qDebug().nospace() << "[KIFU] setGameOverMove appending '" << line << "'"
-                       << " elapsed=" << elapsed;
-    //end
     appendKifuLine(line, elapsed);
 
     // 人間用ストップウォッチ解除（HvE/HvH）
@@ -2919,55 +2835,6 @@ void MainWindow::ensureGameInfoTable()
     m_gameInfoTable->setSelectionMode(QAbstractItemView::NoSelection);
     m_gameInfoTable->setWordWrap(true);
     m_gameInfoTable->setShowGrid(false);
-}
-
-void MainWindow::addGameInfoTabIfMissing()
-{
-    ensureGameInfoTable();
-    if (!m_tab) return;
-
-    // Dock で表示していたら解除
-    if (m_gameInfoDock && m_gameInfoDock->widget() == m_gameInfoTable) {
-        m_gameInfoDock->setWidget(nullptr);
-        m_gameInfoDock->deleteLater();
-        m_gameInfoDock = nullptr;
-    }
-
-    // まだタブに無ければ追加
-    if (m_tab->indexOf(m_gameInfoTable) == -1) {
-        int anchorIdx = -1;
-
-        // 1) EngineAnalysisTab（検討タブ）の直後に入れる
-        if (m_analysisTab)
-            anchorIdx = m_tab->indexOf(m_analysisTab);
-
-        // 2) 念のため、タブタイトルで「コメント/Comments」を探してその直後に入れるフォールバック
-        if (anchorIdx < 0) {
-            for (int i = 0; i < m_tab->count(); ++i) {
-                const QString t = m_tab->tabText(i);
-                if (t.contains(tr("コメント")) || t.contains("Comments", Qt::CaseInsensitive)) {
-                    anchorIdx = i;
-                    break;
-                }
-            }
-        }
-
-        const int insertPos = (anchorIdx >= 0) ? anchorIdx + 1 : m_tab->count();
-        m_tab->insertTab(insertPos, m_gameInfoTable, tr("対局情報"));
-    }
-}
-
-QString MainWindow::findGameInfoValue(const QList<KifGameInfoItem>& items,
-                                      const QStringList& keys) const
-{
-    for (const auto& it : items) {
-        // KifGameInfoItem.key は「先手」「後手」等（末尾コロンは normalize 済み）
-        if (keys.contains(it.key)) {
-            const QString v = it.value.trimmed();
-            if (!v.isEmpty()) return v;
-        }
-    }
-    return QString();
 }
 
 void MainWindow::onMainMoveRowChanged(int selPly)
@@ -3038,9 +2905,6 @@ void MainWindow::populateBranchListForPly(int ply)
     //    showBranchCandidatesFromPlan() 側に集約している前提。
     showBranchCandidatesFromPlan(/*row*/m_activeResolvedRow, /*ply1*/ply);
 }
-
-// ヘルパ（0→1 始まり）
-static inline QPoint toOne(const QPoint& z) { return QPoint(z.x() + 1, z.y() + 1); }
 
 void MainWindow::syncBoardAndHighlightsAtRow(int ply1)
 {
@@ -3180,69 +3044,6 @@ void MainWindow::BranchRowDelegate::paint(QPainter* painter, const QStyleOptionV
     }
 
     QStyledItemDelegate::paint(painter, opt, index);
-}
-
-void MainWindow::ensureBranchRowDelegateInstalled()
-{
-    // RecordPane から棋譜ビューを取得
-    QTableView* view = (m_recordPane ? m_recordPane->kifuView() : nullptr);
-    if (!view) return;
-
-    if (!m_branchRowDelegate) {
-        // デリゲートをビューの子として作成し、ビューに適用
-        m_branchRowDelegate = new BranchRowDelegate(view);
-        view->setItemDelegate(m_branchRowDelegate);
-    } else {
-        // 念のため親が違う場合は付け替え
-        if (m_branchRowDelegate->parent() != view) {
-            m_branchRowDelegate->setParent(view);
-            view->setItemDelegate(m_branchRowDelegate);
-        }
-    }
-
-    // 「分岐あり」マーカーの集合をデリゲートへ渡す
-    m_branchRowDelegate->setMarkers(&m_branchablePlySet);
-}
-
-// ====== アクティブ行に対する「分岐あり手」の再計算 → ビュー再描画 ======
-void MainWindow::updateKifuBranchMarkersForActiveRow()
-{
-    m_branchablePlySet.clear();
-
-    // まずビュー参照を取得（nullでも安全に抜ける）
-    QTableView* view = (m_recordPane ? m_recordPane->kifuView() : nullptr);
-
-    if (m_resolvedRows.isEmpty()) {
-        if (view && view->viewport()) view->viewport()->update();
-        return;
-    }
-
-    const int active = qBound(0, m_activeResolvedRow, m_resolvedRows.size() - 1);
-    const auto& r = m_resolvedRows[active];
-
-    // r.disp: 1..N の手表示, r.sfen: 0..N の局面列
-    for (int ply = 1; ply <= r.disp.size(); ++ply) {
-        const int idx = ply - 1;                 // sfen は ply-1 が基底
-        if (idx < 0 || idx >= r.sfen.size()) continue;
-
-        const auto itPly = m_branchIndex.constFind(ply);
-        if (itPly == m_branchIndex.constEnd()) continue;
-
-        const QString base = r.sfen.at(idx);
-        const auto itBase = itPly->constFind(base);
-        if (itBase == itPly->constEnd()) continue;
-
-        // 同じ手目に候補が2つ以上 → 分岐点としてマーキング
-        if (itBase->size() >= 2) {
-            m_branchablePlySet.insert(ply);
-        }
-    }
-
-    // デリゲート装着（未装着ならここで装着）
-    ensureBranchRowDelegateInstalled();
-
-    // 再描画
-    if (view && view->viewport()) view->viewport()->update();
 }
 
 void MainWindow::resetGameFlags()
@@ -4528,38 +4329,6 @@ void MainWindow::setupBranchView_()
     view->setVisible(false);
 }
 
-// 行番号から表示名を作る（Main / VarN）
-QString MainWindow::rowNameFor_(int row) const
-{
-    if (row < 0 || row >= m_resolvedRows.size()) return QString("<?>");
-    const auto& rr = m_resolvedRows[row];
-    return (rr.varIndex < 0) ? QStringLiteral("Main")
-                             : QStringLiteral("Var%1").arg(rr.varIndex);
-}
-
-// 1始まり hand-ply のラベル（無ければ ""）
-QString MainWindow::labelAt_(const ResolvedRow& rr, int ply) const
-{
-    const int li = ply - 1;
-    if (li < 0 || li >= rr.disp.size()) return QString();
-    return pickLabelForDisp(rr.disp.at(li));
-}
-
-// 1..p までの完全一致（両方に手が存在し、かつ全ラベル一致）なら true
-bool MainWindow::prefixEqualsUpTo_(int rowA, int rowB, int p) const
-{
-    if (rowA < 0 || rowA >= m_resolvedRows.size()) return false;
-    if (rowB < 0 || rowB >= m_resolvedRows.size()) return false;
-    const auto& A = m_resolvedRows[rowA];
-    const auto& B = m_resolvedRows[rowB];
-    for (int k = 1; k <= p; ++k) {
-        const QString a = labelAt_(A, k);
-        const QString b = labelAt_(B, k);
-        if (a.isEmpty() || b.isEmpty() || a != b) return false;
-    }
-    return true;
-}
-
 void MainWindow::showBranchCandidatesFromPlan(int row, int ply1)
 {
     if (!m_branchCtl || !m_kifuBranchModel) return;
@@ -4671,170 +4440,6 @@ void MainWindow::onRecordPaneBranchActivated_(const QModelIndex& index)
     if (!index.isValid()) return;
     if (!m_branchCtl)     return;
     m_branchCtl->activateCandidate(index.row());
-}
-
-// 1セルを "file-rank" 表示（USI基準とL2R基準の両方を出す）
-static inline QString idxHuman(int idx) {
-    const int col = idx % 9;       // 0..8   左→右
-    const int row = idx / 9;       // 0..8   上→下
-    const int fileL2R = col + 1;   // 1..9   左→右
-    const int rankTop = row + 1;   // 1..9   上→下
-    const int fileUSI = 9 - col;   // 9..1   右→左（一般的なUSIの筋）
-    const int rankUSI = 9 - row;   // 9..1   下→上（一般的なUSIの段）
-    return QStringLiteral("[idx=%1 L2R(%2,%3) USI(%4,%5)]")
-            .arg(idx).arg(fileL2R).arg(rankTop).arg(fileUSI).arg(rankUSI);
-}
-
-// 盤面(81マス)をトークン列に展開（空は ""。駒は "P","p","+P" のように '+' 付きも保持）
-static QVector<QString> sfenBoardTo81Tokens(const QString& sfen)
-{
-    const QString board = sfen.section(QLatin1Char(' '), 0, 0); // 盤面部分
-    QVector<QString> cells; cells.reserve(81);
-
-    for (int i = 0; i < board.size() && cells.size() < 81; ++i) {
-        const QChar ch = board.at(i);
-        if (ch == QLatin1Char('/')) continue;
-        if (ch.isDigit()) {
-            const int n = ch.digitValue();
-            for (int k = 0; k < n; ++k) cells.push_back(QString()); // 空マス
-            continue;
-        }
-        if (ch == QLatin1Char('+')) {
-            if (i + 1 < board.size()) {
-                cells.push_back(QStringLiteral("+") + board.at(i + 1));
-                ++i;
-            }
-            continue;
-        }
-        // 通常駒1文字
-        cells.push_back(QString(ch));
-    }
-    while (cells.size() < 81) cells.push_back(QString());
-
-    if (kGM_VERBOSE) {
-        qDebug().noquote() << "[GM] sfenBoardTo81Tokens parsed"
-                           << " len=" << cells.size()
-                           << " board=\"" << board << "\"";
-    }
-    return cells;
-}
-
-static inline bool tokenEmpty(const QString& t) { return t.isEmpty(); }
-static inline bool tokenPromoted(const QString& t) { return (!t.isEmpty() && t.at(0) == QLatin1Char('+')); }
-static inline QChar tokenBasePiece(const QString& t) {
-    if (t.isEmpty()) return QChar();
-    return t.back(); // '+P' → 'P', 'p' → 'p'
-}
-
-// SFENペアから 1手分の ShogiMove を復元（差分なし=終局などは false）
-static bool deriveMoveFromSfenPair(const QString& prevSfen,
-                                   const QString& nextSfen,
-                                   ShogiMove* out)
-{
-    const QVector<QString> A = sfenBoardTo81Tokens(prevSfen);
-    const QVector<QString> B = sfenBoardTo81Tokens(nextSfen);
-
-    int fromIdx = -1, toIdx = -1;
-    QString fromTok, toTokPrev, toTokNew;
-
-    // どのセルが変わったか（詳細ログ用）
-    QVector<int> diffs; diffs.reserve(4);
-
-    for (int i = 0; i < 81; ++i) {
-        const QString& a = A.at(i);
-        const QString& b = B.at(i);
-        if (a == b) continue;
-
-        diffs.push_back(i);
-
-        // 移動元：a に駒があり b が空
-        if (!tokenEmpty(a) && tokenEmpty(b)) {
-            fromIdx = i;
-            fromTok = a;
-            continue;
-        }
-        // 移動先：b に駒があり a と異なる
-        if (!tokenEmpty(b) && a != b) {
-            toIdx     = i;
-            toTokNew  = b;
-            toTokPrev = a; // 取りがあった場合は a に相手駒がいた
-        }
-    }
-
-    if (kGM_VERBOSE) {
-        qDebug().noquote() << "[GM] deriveMoveFromSfenPair  diffs=" << diffs.size();
-        for (int i = 0; i < diffs.size(); ++i) {
-            const int d = diffs.at(i);
-            qDebug().noquote()
-                << "      diff[" << i << "] idx=" << d
-                << "  A=\"" << A.at(d) << "\""
-                << "  B=\"" << B.at(d) << "\""
-                << "  " << idxHuman(d);
-        }
-        qDebug().noquote() << "      picked fromIdx=" << fromIdx
-                           << (fromIdx>=0 ? (" tok=\""+fromTok+"\" "+idxHuman(fromIdx)) : QString())
-                           << "  toIdx=" << toIdx
-                           << (toIdx>=0 ? (" tokPrev=\""+toTokPrev+"\" tokNew=\""+toTokNew+"\" "+idxHuman(toIdx)) : QString());
-    }
-
-    if (fromIdx < 0 && toIdx < 0) {
-        // 盤が全く同じ → 投了など「着手なし」
-        if (kGM_VERBOSE) qDebug() << "[GM] no board delta (resign/terminal/comment only)";
-        return false;
-    }
-
-    // 盤座標 ← idx
-    auto idxToPointL2R     = [](int idx)->QPoint { return QPoint(idx % 9, idx / 9); };
-    auto idxToPointFlipped = [](int idx)->QPoint { return QPoint(8 - (idx % 9), idx / 9); };
-
-    // 出力フィールド（※最終的に out へ入れるのは FLIP 側）
-    QPoint from(-1, -1), to(-1, -1);
-    QChar moving, captured;
-    bool isPromotion = false;
-
-    if (fromIdx < 0 && toIdx >= 0) {
-        // 打つ手（ドロップ）
-        from = QPoint(-1, -1);
-        // ★ 採用は FLIP 側
-        to   = idxToPointFlipped(toIdx);
-        moving    = tokenBasePiece(toTokNew);              // 駒台から打った駒
-        captured  = QChar();                               // 取りは無い
-        isPromotion = false;                               // 打ちは成りなし
-    } else if (fromIdx >= 0 && toIdx >= 0) {
-        // 通常移動（★ 採用は FLIP 側）
-        from     = idxToPointFlipped(fromIdx);
-        to       = idxToPointFlipped(toIdx);
-        moving   = tokenBasePiece(fromTok);               // 元の升の駒（非成り形）
-        captured = tokenEmpty(toTokPrev) ? QChar() : tokenBasePiece(toTokPrev);
-        isPromotion = tokenPromoted(toTokNew);
-    } else {
-        if (kGM_VERBOSE) qDebug() << "[GM] inconsistent from/to detection";
-        return false;
-    }
-
-    if (kGM_VERBOSE) {
-        // 参考ログ：L2R と FLIP の両方を出す（採用は FLIP）
-        QPoint l2rFrom(-1,-1), l2rTo(-1,-1);
-        if (fromIdx >= 0) l2rFrom = idxToPointL2R(fromIdx);
-        if (toIdx   >= 0) l2rTo   = idxToPointL2R(toIdx);
-
-        QPoint flipFrom(-1,-1), flipTo(-1,-1);
-        if (fromIdx >= 0) flipFrom = idxToPointFlipped(fromIdx);
-        if (toIdx   >= 0) flipTo   = idxToPointFlipped(toIdx);
-
-        qDebug().noquote()
-            << "      L2R  from=" << l2rFrom << " to=" << l2rTo;
-        qDebug().noquote()
-            << "      FLIP from=" << flipFrom << " to=" << flipTo << "  <-- chosen";
-
-        qDebug().noquote()
-            << "      moving=" << moving
-            << " captured=" << (captured.isNull() ? QChar(' ') : captured)
-            << " promoted=" << (isPromotion ? "T" : "F");
-    }
-
-    if (out) *out = ShogiMove(from, to, moving, captured, isPromotion);
-    return true;
 }
 
 std::pair<int,int> MainWindow::resolveBranchHighlightTarget(int row, int ply) const
