@@ -36,6 +36,7 @@
 #include "turnmanager.h"
 #include "errorbus.h"
 #include "kifuloadcoordinator.h"
+#include "evaluationchartwidget.h"
 
 // mainwindow.cpp の先頭（インクルードの後、どのメンバ関数より上）に追加
 static inline QString pickLabelForDisp(const KifDisplayItem& d)
@@ -1041,6 +1042,9 @@ void MainWindow::startGameBasedOnMode()
         }
     }
     // --- ここまで：対局ダイアログの選択を反映 --
+
+    // 人間を手前に（必要時のみ反転）
+    ensureHumanAtBottomIfApplicable_();
 
     // --- 対局開始（司令塔へ委譲） ---
     m_match->configureAndStart(opt);
@@ -3720,14 +3724,39 @@ void MainWindow::handleMove_HvH_(ShogiGameController::Player moverBefore,
     if (m_shogiView) m_shogiView->setMouseClickMode(true);
 }
 
+// 人間 vs エンジン：人間が指した直後の処理（棋譜追記＋1手返し）
 void MainWindow::handleMove_HvE_(const QPoint& humanFrom, const QPoint& humanTo)
 {
     if (!m_match) return;
 
-    // ★ 人間着手後の一連（タイマー停止→エンジン1手返し→時計反映）は司令塔へ
+    // 1) 人間の考慮時間を確定（HvE 専用の人間タイマー → Clock へ反映）
+    m_match->finishHumanTimerAndSetConsideration();
+
+    // 2) 秒読み/インクリメントを適用して「人間の手」を棋譜欄に 1 行追記
+    if (m_shogiClock) {
+        const bool humanIsP1 =
+            (m_playMode == EvenHumanVsEngine) || (m_playMode == HandicapHumanVsEngine);
+
+        if (humanIsP1) {
+            m_shogiClock->applyByoyomiAndResetConsideration1();
+            appendKifuLine(m_lastMove, m_shogiClock->getPlayer1ConsiderationAndTotalTime());
+            m_shogiClock->setPlayer1ConsiderationTime(0);
+        } else {
+            m_shogiClock->applyByoyomiAndResetConsideration2();
+            appendKifuLine(m_lastMove, m_shogiClock->getPlayer2ConsiderationAndTotalTime());
+            m_shogiClock->setPlayer2ConsiderationTime(0);
+        }
+        // ラベル等の即時更新
+        m_match->pokeTimeUpdateNow();
+    }
+
+    // 3) 直前着手のハイライト（任意）
+    if (m_boardController) m_boardController->showMoveHighlights(humanFrom, humanTo);
+
+    // 4) 人間着手後の 1 手返し（go → bestmove → 盤/棋譜反映）は司令塔で実行（エンジンの手は司令塔側で追記される）
     m_match->onHumanMove_HvE(humanFrom, humanTo);
 
-    // UI 側の入力復帰など最低限のみ
+    // 5) UI 側の入力復帰など最低限のみ
     if (!isGameOver_()) {
         if (m_shogiView) m_shogiView->setMouseClickMode(true);
         QTimer::singleShot(0, this, [this]{ if (m_match) m_match->armHumanTimerIfNeeded(); });
@@ -4260,5 +4289,24 @@ void MainWindow::hideEditExitButtonOnBoard_()
     if (!m_shogiView) return;
     if (QPushButton* exitBtn = m_shogiView->findChild<QPushButton*>(QStringLiteral("editExitButton"))) {
         exitBtn->hide();
+    }
+}
+
+void MainWindow::ensureHumanAtBottomIfApplicable_()
+{
+    if (!m_startGameDialog) return;
+
+    const bool humanP1  = m_startGameDialog->isHuman1();
+    const bool humanP2  = m_startGameDialog->isHuman2();
+    const bool oneHuman = (humanP1 ^ humanP2); // HvE または EvH のときだけ true
+
+    if (!oneHuman) return; // HvH / EvE は対象外（仕様どおり）
+
+    // 現在「手前が先手か？」と「人間が先手か？」が食い違っていたら1回だけ反転
+    const bool needFlip = (humanP1 != m_bottomIsP1);
+    if (needFlip) {
+        // 指定の関数経由で実反転。内部で m_match->flipBoard() が呼ばれる
+        onActionFlipBoardTriggered(false);
+        // onBoardFlipped() が呼ばれ、m_bottomIsP1 はトグルされます
     }
 }

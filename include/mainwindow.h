@@ -36,7 +36,6 @@
 #include "shogiclock.h"
 #include "kiftosfenconverter.h"
 #include "navigationcontext.h"
-#include "evaluationchartwidget.h"
 #include "recordpane.h"
 #include "engineanalysistab.h"
 #include "boardinteractioncontroller.h"
@@ -522,6 +521,8 @@ private:
     void hideEditExitButtonOnBoard_();
 
     KifuLoadCoordinator *m_kifuLoadCoordinator = nullptr;
+
+    void ensureHumanAtBottomIfApplicable_();
 };
 
 #endif // MAINWINDOW_H
