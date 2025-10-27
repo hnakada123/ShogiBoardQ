@@ -417,16 +417,7 @@ private slots:
 
 private slots:
     void onBranchCandidateActivated(const QModelIndex& index); // QModelIndex 版に変更
-
-    // BranchCandidatesController → MainWindow
-    void onApplyResolvedLine(const ResolvedLine& line);
-    void onBackToMainlineRequested();
-
-    void onApplyLineRequested_(const QList<KifDisplayItem>& disp,
-                               const QList<QString>& usiStrs);
-
     void onMoveCommitted(ShogiGameController::Player mover, int ply);
-
     void displayGameRecord(const QList<KifDisplayItem> disp);
     void syncBoardAndHighlightsAtRow(int ply1);
 
@@ -505,8 +496,6 @@ private:
     // いま下段が先手(P1)か？ true=先手が手前、false=後手が手前
     bool m_bottomIsP1 = true;
 
-    // HvE / EvH のときだけ「人間が手前」になるよう必要なら反転
-    void ensureHumanAtBottomIfApplicable_();
     void syncBoardToPly_(int selPly);
     void updateHighlightsForPly_(int selPly); // まだ無ければ宣言を追加
 
