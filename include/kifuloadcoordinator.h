@@ -75,7 +75,7 @@ signals:
     void syncBoardAndHighlightsAtRow(int ply1);
     void enableArrowButtons();
     void setupBranchCandidatesWiring_();
-    void buildBranchCandidateDisplayPlan();
+
 
 private:
     bool m_loadingKifu = false;
@@ -141,6 +141,7 @@ private:
     void ensureResolvedRowsHaveFullGameMoves();
     void dumpAllRowsSfenTable() const;
     void dumpAllLinesGameMoves() const;
+    void buildBranchCandidateDisplayPlan();
 };
 
 #endif // KIFULOADCOORDINATOR_H

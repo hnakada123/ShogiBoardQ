@@ -64,18 +64,6 @@ static inline QPoint normalizeBoardPoint_(const QPoint& p) {
 }
 }
 
-namespace {
-constexpr int COL_NO   = 0;   // 手数
-constexpr int COL_P1   = 1;   // 先手の指し手
-constexpr int COL_P2   = 2;   // 後手の指し手
-
-static inline QString cellText(const QAbstractItemModel* m, int r, int c) {
-    if (!m) return {};
-    const QModelIndex ix = m->index(r, c);
-    return ix.isValid() ? m->data(ix, Qt::DisplayRole).toString() : QString();
-}
-}
-
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
@@ -698,30 +686,10 @@ void MainWindow::enableArrowButtons()
     if (m_recordPane) m_recordPane->setArrowButtonsEnabled(true);
 }
 
-void MainWindow::sendCommandsToEngineOne()
-{
-    if (m_match) m_match->sendGameOverWinAndQuitTo(1);
-}
-
-void MainWindow::sendCommandsToEngineTwo()
-{
-    if (m_match) m_match->sendGameOverWinAndQuitTo(2);
-}
-
 // メニューで「投了」をクリックした場合の処理を行う。
 void MainWindow::handleResignation()
 {
     if (m_match) m_match->handleResign();
-}
-
-void MainWindow::handleEngineOneResignation()
-{
-    if (m_match) m_match->handleEngineResign(1);
-}
-
-void MainWindow::handleEngineTwoResignation()
-{
-    if (m_match) m_match->handleEngineResign(2);
 }
 
 // エンジン1の評価値グラフの再描画を行う。
@@ -1558,20 +1526,6 @@ void MainWindow::setCurrentTurn()
 // 対局を開始する。
 void MainWindow::initializeGame()
 {
-    //begin
-    // m_kifuRecordModel の中身
-    qDebug() << "MainWindow::initializeGame()";
-    if (m_kifuRecordModel) {
-        qDebug() << "m_kifuRecordModel->rowCount() = " << m_kifuRecordModel->rowCount();
-        QModelIndex index;
-        for (int i = 0; i < m_kifuRecordModel->rowCount(); i++) {
-            index = m_kifuRecordModel->index(i, 0);
-            const auto item = m_kifuRecordModel->data(index, Qt::DisplayRole);
-            qDebug() << "m_kifuRecordModel[" << i << "] = " << item;
-        }
-    }
-    //end
-
     m_errorOccurred = false;
     if (m_shogiView) m_shogiView->setErrorOccurred(false);
 
@@ -1582,7 +1536,6 @@ void MainWindow::initializeGame()
 
         // ★ 先に取得しておく（これが肝）
         const int startingPositionNumber = m_startGameDialog->startingPositionNumber();
-        qDebug() << "startingPositionNumber:" << startingPositionNumber;
 
         m_gameCount++;
 
@@ -1592,19 +1545,6 @@ void MainWindow::initializeGame()
                 resetToInitialState();            // 既存のフルリセット
             }
         }
-
-        //begin
-        qDebug() << "check point2 MainWindow::initializeGame()";
-        if (m_kifuRecordModel) {
-            qDebug() << "m_kifuRecordModel->rowCount() = " << m_kifuRecordModel->rowCount();
-            QModelIndex index;
-            for (int i = 0; i < m_kifuRecordModel->rowCount(); i++) {
-                index = m_kifuRecordModel->index(i, 0);
-                const auto item = m_kifuRecordModel->data(index, Qt::DisplayRole);
-                qDebug() << "m_kifuRecordModel[" << i << "] = " << item;
-            }
-        }
-        //end
 
         // 対局オプションなど
         setRemainingTimeAndCountDown();
@@ -1753,8 +1693,6 @@ void MainWindow::chooseAndLoadKifuFile()
             this, &MainWindow::enableArrowButtons, Qt::UniqueConnection);
     connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::setupBranchCandidatesWiring_,
             this, &MainWindow::setupBranchCandidatesWiring_, Qt::UniqueConnection);
-    connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::buildBranchCandidateDisplayPlan,
-            this, &MainWindow::buildBranchCandidateDisplayPlan, Qt::UniqueConnection);
 
     // 読み込み実行
     m_kifuLoadCoordinator->loadKifuFromFile(filePath);
@@ -3153,46 +3091,6 @@ void MainWindow::syncBoardAndHighlightsAtRow(int ply1)
     }
 
     m_activePly = m_currentSelectedPly;
-}
-
-// 現在表示用の棋譜列（disp）を使ってモデルを再構成し、selectPly 行を選択・同期する
-void MainWindow::showRecordAtPly(const QList<KifDisplayItem>& disp, int selectPly)
-{
-    // いま表示中の棋譜列を保持（分岐⇄本譜の復帰で再利用）
-    m_dispCurrent = disp;
-
-    // （既存）モデルへ反映：ここで displayGameRecord(disp) が呼ばれ、
-    // その過程で m_currentMoveIndex が 0 に戻る実装になっている
-    displayGameRecord(disp);
-
-    // ★ RecordPane 内のビューを使う
-    QTableView* view = (m_recordPane ? m_recordPane->kifuView() : nullptr);
-    if (!view || !view->model()) return;
-
-    // 行数（0 は「=== 開始局面 ===」、1..N が各手）
-    const int rc  = view->model()->rowCount();
-    const int row = qBound(0, selectPly, rc > 0 ? rc - 1 : 0);
-
-    // 対象行を選択
-    const QModelIndex idx = view->model()->index(row, 0);
-    if (!idx.isValid()) return;
-
-    if (auto* sel = view->selectionModel()) {
-        sel->setCurrentIndex(idx,
-            QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
-    } else {
-        view->setCurrentIndex(idx);
-    }
-    view->scrollTo(idx, QAbstractItemView::PositionAtCenter);
-
-    // ＝＝＝＝＝＝＝＝＝＝＝＝ ここが肝 ＝＝＝＝＝＝＝＝＝＝＝＝
-    // displayGameRecord() が 0 に戻した “現在の手数” を、選択行へ復元する。
-    // （row は 0=開始局面, 1..N=それぞれの手。よって「次の追記」は row+1 手目になる）
-    m_currentSelectedPly = row;
-    m_currentMoveIndex   = row;
-
-    // 盤面・ハイライトも現在手に同期（applySfenAtCurrentPly は m_currentSelectedPly を参照）
-    syncBoardAndHighlightsAtRow(row);
 }
 
 // 現在の手数（m_currentSelectedPly）に対応するSFENを盤面へ反映
@@ -4660,123 +4558,6 @@ bool MainWindow::prefixEqualsUpTo_(int rowA, int rowB, int p) const
         if (a.isEmpty() || b.isEmpty() || a != b) return false;
     }
     return true;
-}
-
-void MainWindow::buildBranchCandidateDisplayPlan()
-{
-    m_branchDisplayPlan.clear();
-
-    const int R = m_resolvedRows.size();
-    if (R == 0) return;
-
-    auto labelAt = [&](int row, int li)->QString {
-        const auto& disp = m_resolvedRows[row].disp;
-        return (li >= 0 && li < disp.size()) ? pickLabelForDisp(disp.at(li)) : QString();
-    };
-
-    auto prefixEquals = [&](int r1, int r2, int uptoLi)->bool {
-        // li=0 のときは「初手より前の共通部分」は空なので常に一致とみなす
-        for (int i = 0; i < uptoLi; ++i) {
-            if (labelAt(r1, i) != labelAt(r2, i)) return false;
-        }
-        return true;
-    };
-
-    // 各行 r の各ローカル添字 li（0-based）について、
-    // 「初手から li-1 まで完全一致する行」をグループ化し、
-    // その li 手目に 2 種類以上の指し手があれば分岐とみなす。
-    // ★ 表示は “その手（li）” に出す（＝1手先に送らない）
-    for (int r = 0; r < R; ++r) {
-        const int len = m_resolvedRows[r].disp.size();
-        if (len == 0) continue;
-
-        for (int li = 0; li < len; ++li) {
-            // この行 r と「初手から li-1 まで一致」する行
-            QVector<int> group;
-            group.reserve(R);
-            for (int g = 0; g < R; ++g) {
-                if (li < m_resolvedRows[g].disp.size() && prefixEquals(r, g, li)) {
-                    group.push_back(g);
-                }
-            }
-            if (group.size() <= 1) continue; // 比較相手がいない
-
-            // グループの li 手目ラベルを集計
-            QHash<QString, QVector<int>> labelToRows;
-            for (int g : group) {
-                const QString lbl = labelAt(g, li);
-                labelToRows[lbl].push_back(g);
-            }
-            if (labelToRows.size() <= 1) continue; // 全員同じ指し手 → 分岐ではない
-
-            // 表示先 ply（1-based）。li は 0-based
-            const int targetPly = li + 1;
-            if (targetPly > m_resolvedRows[r].disp.size()) continue;
-
-            // 見出し（この行 r の li 手目）
-            const QString baseForDisplay = labelAt(r, li);
-
-            // ===== 重複整理（自分の行 > Main(=row0) > 若い VarN）=====
-            struct TmpKeep { QString lbl; int keepRow; };
-            QVector<TmpKeep> keeps; keeps.reserve(labelToRows.size());
-
-            for (auto it = labelToRows.constBegin(); it != labelToRows.constEnd(); ++it) {
-                const QString lbl = it.key();
-                const QVector<int>& rowsWithLbl = it.value();
-
-                int keep = -1;
-
-                // 1) 自分の行 r を最優先
-                bool hasSelf = false;
-                for (int cand : rowsWithLbl) {
-                    if (cand == r) { keep = cand; hasSelf = true; break; }
-                }
-
-                // 2) 自分が無ければ Main(row=0)
-                if (!hasSelf) {
-                    bool hasMain = false;
-                    for (int cand : rowsWithLbl) {
-                        if (cand == 0) { keep = 0; hasMain = true; break; }
-                    }
-
-                    // 3) それも無ければ最小 row（VarN の若い方）
-                    if (!hasMain) {
-                        keep = rowsWithLbl.first();
-                        for (int cand : rowsWithLbl) {
-                            if (cand < keep) keep = cand;
-                        }
-                    }
-                }
-
-                keeps.push_back({ lbl, keep });
-            }
-
-            // 表示順: Main が先、次に row 昇順
-            std::sort(keeps.begin(), keeps.end(), [](const TmpKeep& a, const TmpKeep& b){
-                if (a.keepRow == 0 && b.keepRow != 0) return true;
-                if (a.keepRow != 0 && b.keepRow == 0) return false;
-                return a.keepRow < b.keepRow;
-            });
-
-            QVector<::BranchCandidateDisplayItem> items;
-            items.reserve(keeps.size());
-            for (const auto& k : keeps) {
-                ::BranchCandidateDisplayItem itx;
-                itx.row      = k.keepRow;
-                itx.varN     = (k.keepRow == 0 ? -1 : k.keepRow - 1);
-                itx.lineName = lineNameForRow(k.keepRow); // "Main" / "VarN"
-                itx.label    = k.lbl;
-                items.push_back(itx);
-            }
-
-            // 保存
-            ::BranchCandidateDisplay plan;
-            plan.ply       = targetPly;
-            plan.baseLabel = baseForDisplay;
-            plan.items     = std::move(items);
-            m_branchDisplayPlan[r].insert(targetPly, std::move(plan));
-        }
-    }
 }
 
 void MainWindow::showBranchCandidatesFromPlan(int row, int ply1)
