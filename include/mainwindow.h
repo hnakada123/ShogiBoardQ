@@ -239,10 +239,7 @@ private:
     void updateTurnAndTimekeepingDisplay();
     void updateTurnDisplay();
     void updateTurnStatus(int currentPlayer);
-    void showRecordAtPly(const QList<KifDisplayItem>& disp, int selectPly);
-
     void applySfenAtCurrentPly();
-
     void ensureBranchRowDelegateInstalled();
     void updateKifuBranchMarkersForActiveRow();
     void setGameInProgressActions(bool inProgress);
@@ -370,8 +367,6 @@ private slots:
     // --- ゲーム開始 / 終了 ---
     void initializeGame();
     void handleResignation();
-    void handleEngineTwoResignation();
-    void handleEngineOneResignation();
     void onMatchGameEnded(const MatchCoordinator::GameEndInfo& info);
 
     // --- 盤編集 / 表示 ---
@@ -388,10 +383,6 @@ private slots:
     // --- 時計 / タイムアウト ---
     void onPlayer1TimeOut();
     void onPlayer2TimeOut();
-
-    // --- エンジン操作（手動コマンド） ---
-    void sendCommandsToEngineOne();
-    void sendCommandsToEngineTwo();
 
     // --- ボタン有効/無効 ---
     void disableArrowButtons();
@@ -444,8 +435,6 @@ private slots:
 
     void displayGameRecord(const QList<KifDisplayItem> disp);
     void syncBoardAndHighlightsAtRow(int ply1);
-
-    void buildBranchCandidateDisplayPlan();
 
 private:
     QVector<int> m_branchVarIds;   // 行→variationId の対応（末尾の「本譜へ戻る」は -1）

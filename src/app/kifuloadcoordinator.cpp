@@ -415,7 +415,7 @@ void KifuLoadCoordinator::loadKifuFromFile(const QString& filePath)
 
     // 11) 分岐レポート → Plan 構築（Plan方式の基礎データ）
     dumpBranchSplitReport();
-    emit buildBranchCandidateDisplayPlan();
+    buildBranchCandidateDisplayPlan();
     dumpBranchCandidateDisplayPlan();
 
     // 12) 分岐ツリーへ供給（黄色ハイライトは applyResolvedRowAndSelect 内で同期）
@@ -1640,5 +1640,122 @@ void KifuLoadCoordinator::dumpAllLinesGameMoves() const
         }
 
         qDebug().noquote() << "";
+    }
+}
+
+void KifuLoadCoordinator::buildBranchCandidateDisplayPlan()
+{
+    m_branchDisplayPlan.clear();
+
+    const int R = m_resolvedRows.size();
+    if (R == 0) return;
+
+    auto labelAt = [&](int row, int li)->QString {
+        const auto& disp = m_resolvedRows[row].disp;
+        return (li >= 0 && li < disp.size()) ? pickLabelForDisp(disp.at(li)) : QString();
+    };
+
+    auto prefixEquals = [&](int r1, int r2, int uptoLi)->bool {
+        // li=0 のときは「初手より前の共通部分」は空なので常に一致とみなす
+        for (int i = 0; i < uptoLi; ++i) {
+            if (labelAt(r1, i) != labelAt(r2, i)) return false;
+        }
+        return true;
+    };
+
+    // 各行 r の各ローカル添字 li（0-based）について、
+    // 「初手から li-1 まで完全一致する行」をグループ化し、
+    // その li 手目に 2 種類以上の指し手があれば分岐とみなす。
+    // ★ 表示は “その手（li）” に出す（＝1手先に送らない）
+    for (int r = 0; r < R; ++r) {
+        const int len = m_resolvedRows[r].disp.size();
+        if (len == 0) continue;
+
+        for (int li = 0; li < len; ++li) {
+            // この行 r と「初手から li-1 まで一致」する行
+            QVector<int> group;
+            group.reserve(R);
+            for (int g = 0; g < R; ++g) {
+                if (li < m_resolvedRows[g].disp.size() && prefixEquals(r, g, li)) {
+                    group.push_back(g);
+                }
+            }
+            if (group.size() <= 1) continue; // 比較相手がいない
+
+            // グループの li 手目ラベルを集計
+            QHash<QString, QVector<int>> labelToRows;
+            for (int g : group) {
+                const QString lbl = labelAt(g, li);
+                labelToRows[lbl].push_back(g);
+            }
+            if (labelToRows.size() <= 1) continue; // 全員同じ指し手 → 分岐ではない
+
+            // 表示先 ply（1-based）。li は 0-based
+            const int targetPly = li + 1;
+            if (targetPly > m_resolvedRows[r].disp.size()) continue;
+
+            // 見出し（この行 r の li 手目）
+            const QString baseForDisplay = labelAt(r, li);
+
+            // ===== 重複整理（自分の行 > Main(=row0) > 若い VarN）=====
+            struct TmpKeep { QString lbl; int keepRow; };
+            QVector<TmpKeep> keeps; keeps.reserve(labelToRows.size());
+
+            for (auto it = labelToRows.constBegin(); it != labelToRows.constEnd(); ++it) {
+                const QString lbl = it.key();
+                const QVector<int>& rowsWithLbl = it.value();
+
+                int keep = -1;
+
+                // 1) 自分の行 r を最優先
+                bool hasSelf = false;
+                for (int cand : rowsWithLbl) {
+                    if (cand == r) { keep = cand; hasSelf = true; break; }
+                }
+
+                // 2) 自分が無ければ Main(row=0)
+                if (!hasSelf) {
+                    bool hasMain = false;
+                    for (int cand : rowsWithLbl) {
+                        if (cand == 0) { keep = 0; hasMain = true; break; }
+                    }
+
+                    // 3) それも無ければ最小 row（VarN の若い方）
+                    if (!hasMain) {
+                        keep = rowsWithLbl.first();
+                        for (int cand : rowsWithLbl) {
+                            if (cand < keep) keep = cand;
+                        }
+                    }
+                }
+
+                keeps.push_back({ lbl, keep });
+            }
+
+            // 表示順: Main が先、次に row 昇順
+            std::sort(keeps.begin(), keeps.end(), [](const TmpKeep& a, const TmpKeep& b){
+                if (a.keepRow == 0 && b.keepRow != 0) return true;
+                if (a.keepRow != 0 && b.keepRow == 0) return false;
+                return a.keepRow < b.keepRow;
+            });
+
+            QVector<::BranchCandidateDisplayItem> items;
+            items.reserve(keeps.size());
+            for (const auto& k : keeps) {
+                ::BranchCandidateDisplayItem itx;
+                itx.row      = k.keepRow;
+                itx.varN     = (k.keepRow == 0 ? -1 : k.keepRow - 1);
+                itx.lineName = lineNameForRow(k.keepRow); // "Main" / "VarN"
+                itx.label    = k.lbl;
+                items.push_back(itx);
+            }
+
+            // 保存
+            ::BranchCandidateDisplay plan;
+            plan.ply       = targetPly;
+            plan.baseLabel = baseForDisplay;
+            plan.items     = std::move(items);
+            m_branchDisplayPlan[r].insert(targetPly, std::move(plan));
+        }
     }
 }
