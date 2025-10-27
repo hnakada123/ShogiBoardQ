@@ -147,6 +147,22 @@ public:
     void refreshGoTimes();
     int  computeMoveBudgetMsForCurrentTurn() const;
 
+    // --- public: Main からの委譲で呼ばれるAPIを追加 ---
+public:
+    // MainWindow::initializePositionStringsForMatch_ の置き換え
+    void initializePositionStringsForStart(const QString& sfenStart);
+
+    // MainWindow::startInitialEngineMoveIfNeeded_ / startInitialEngineMoveEvH_ の置き換え
+    void startInitialEngineMoveIfNeeded();
+
+    // MainWindow::handleMove_HvE_ の置き換え
+    void onHumanMove_HvE(const QPoint& humanFrom, const QPoint& humanTo);
+
+    // --- private: 内部ヘルパ ---
+private:
+    void initPositionStringsFromSfen_(const QString& sfenBase);
+    void startInitialEngineMoveFor_(Player engineSide);  // 先手/後手どちらでも1手だけ指す
+
 signals:
     void gameOverShown();
     void boardFlipped(bool nowFlipped);
