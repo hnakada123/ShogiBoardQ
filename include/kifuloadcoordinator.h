@@ -68,6 +68,10 @@ public:
 public slots:
     void applyResolvedRowAndSelect(int row, int selPly);
 
+    // ★ 新規公開：行(row)・手数(ply1)の分岐候補を“表示のみ”更新
+    //   （内部で showBranchCandidatesFromPlan を呼ぶラッパー）
+    void showBranchCandidates(int row, int ply1);
+
 signals:
     void errorOccurred(const QString& errorMessage);
     void setReplayMode(bool on);
