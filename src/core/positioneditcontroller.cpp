@@ -3,29 +3,77 @@
 #include "shogiview.h"
 #include "shogiboard.h"
 #include "shogigamecontroller.h"
-// BoardInteractionController を使っていなければこの include は外してOK
 #include "boardinteractioncontroller.h"
 
 #include <QStringList>
+#include <QRegularExpression>
 #include <Qt>
 
 namespace {
 
-// "board turn stand ply" 形式の SFEN の手番だけを b/w に上書きし、手数を 1 にする
-static QString forceTurnInSfen(const QString& sfen, QChar turnBW)
+// 将棋の平手初期配置（board部分）
+static const QString kInitialBoard =
+    QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL");
+static const QString kInitialStand = QStringLiteral("-");
+
+// 入力文字列（startpos / sfen ... / すでに最小SFEN / それ以外）を最小SFENに正規化
+static QString toMinimalSfen(const QString& in)
 {
-    QStringList toks = sfen.split(QLatin1Char(' '), Qt::SkipEmptyParts);
-    if (toks.size() >= 2) {
-        toks[1] = QString(turnBW);
-        if (toks.size() >= 4) toks[3] = QStringLiteral("1");
-        return toks.join(QLatin1Char(' '));
+    const QString s = in.trimmed();
+    if (s.isEmpty()) {
+        return QStringLiteral("%1 %2 %3 %4").arg(kInitialBoard, "b", kInitialStand, "1");
     }
-    return sfen;
+
+    const QStringList parts = s.split(QRegularExpression("\\s+"), Qt::SkipEmptyParts);
+    if (parts.isEmpty()) {
+        return QStringLiteral("%1 %2 %3 %4").arg(kInitialBoard, "b", kInitialStand, "1");
+    }
+
+    // 1) "startpos"（moves は編集開始では無視）
+    if (parts[0] == QStringLiteral("startpos")) {
+        return QStringLiteral("%1 %2 %3 %4").arg(kInitialBoard, "b", kInitialStand, "1");
+    }
+
+    // 2) "sfen <board> <turn> <stand> <ply> (moves ...)?"
+    if (parts[0] == QStringLiteral("sfen")) {
+        if (parts.size() >= 5) {
+            // moves は無視、最小SFENを返す
+            return QStringLiteral("%1 %2 %3 %4").arg(parts[1], parts[2], parts[3], parts[4]);
+        }
+        // 壊れていれば平手へ
+        return QStringLiteral("%1 %2 %3 %4").arg(kInitialBoard, "b", kInitialStand, "1");
+    }
+
+    // 3) 既に最小SFEN（board に / を含む）
+    if (parts.size() >= 4 && parts[0].contains(QLatin1Char('/'))) {
+        return QStringLiteral("%1 %2 %3 %4").arg(parts[0], parts[1], parts[2], parts[3]);
+    }
+
+    // 4) 不明形式は平手へ
+    return QStringLiteral("%1 %2 %3 %4").arg(kInitialBoard, "b", kInitialStand, "1");
 }
 
-static inline QString defaultInitialSfen()
+// 最小SFEN（board turn stand ply）を受け取り、手番と手数を上書きして返す
+static QString forceTurnAndPly(const QString& minimalSfen, QChar turnBW, int ply = 1)
 {
-    return QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+    QStringList t = minimalSfen.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+    while (t.size() < 4) t << QString();
+    t[1] = QString(turnBW);
+    t[3] = QString::number(ply);
+    return QStringLiteral("%1 %2 %3 %4").arg(t[0], t[1], t[2], t[3]);
+}
+
+static QChar toBW(ShogiGameController::Player p)
+{
+    // Player1=先手(b), Player2=後手(w)
+    return (p == ShogiGameController::Player2) ? QLatin1Char('w') : QLatin1Char('b');
+}
+
+static ShogiGameController::Player fromBW(const QString& bw)
+{
+    return (bw == QStringLiteral("w"))
+    ? ShogiGameController::Player2
+    : ShogiGameController::Player1;
 }
 
 } // namespace
@@ -35,17 +83,20 @@ void PositionEditController::beginPositionEditing(const BeginEditContext& c)
     if (!c.view || !c.gc) return;
     if (!c.view->board()) return;
 
-    // 0) 現在の GUI 手番を取得（未設定は先手）
+    ShogiBoard* board = c.view->board();
+
+    // 0) 既存 GC 手番から desiredTurn を決める（未設定なら先手扱い）
     ShogiGameController::Player preSide = c.gc->currentPlayer();
     if (preSide == ShogiGameController::NoPlayer) preSide = ShogiGameController::Player1;
-    const QChar desiredTurn = (preSide == ShogiGameController::Player2) ? QLatin1Char('w')
-                                                                        : QLatin1Char('b');
+    const QChar desiredTurn = toBW(preSide);
 
-    // 1) 編集開始 SFEN
+    // 1) 編集開始SFENの決定（record / current / resume / 盤 から）
     QString baseSfen;
+
     if (c.sfenRecord && !c.sfenRecord->isEmpty()) {
         const int lastIdx = c.sfenRecord->size() - 1;
         int idx = -1;
+
         if (c.gameOver) {
             idx = lastIdx;
         } else if (c.selectedPly >= 0 && c.selectedPly <= lastIdx) {
@@ -57,18 +108,30 @@ void PositionEditController::beginPositionEditing(const BeginEditContext& c)
         }
         if (idx >= 0 && idx <= lastIdx) baseSfen = c.sfenRecord->at(idx);
     }
+
     if (baseSfen.isEmpty()) {
-        if (!c.startSfen.isEmpty())       baseSfen = c.startSfen;
-        else if (!c.currentSfen.isEmpty()) baseSfen = c.currentSfen;
-        else                                baseSfen = defaultInitialSfen();
+        if (c.currentSfenStr && !c.currentSfenStr->isEmpty()) {
+            baseSfen = *c.currentSfenStr;
+        } else if (c.resumeSfenStr && !c.resumeSfenStr->isEmpty()) {
+            baseSfen = *c.resumeSfenStr;
+        } else {
+            // 盤の現在状態から最小SFENを組み立てる
+            baseSfen = QStringLiteral("%1 %2 %3 %4")
+                           .arg(board->convertBoardToSfen(),
+                                board->currentPlayer(),
+                                board->convertStandToSfen(),
+                                QString::number(1));
+        }
     }
 
-    // 2) 手番を現在の GUI 手番に合わせる
-    baseSfen = forceTurnInSfen(baseSfen, desiredTurn);
+    // ★ ここが今回の修正ポイント：
+    //    startpos / sfen ... / 既に最小SFEN のいずれでも最小SFENに正規化してから
+    //    手番と手数を強制上書きする
+    const QString minimal = toMinimalSfen(baseSfen);
+    const QString adjusted = forceTurnAndPly(minimal, desiredTurn, /*ply*/1);
 
     // 3) 盤へ適用し、編集モードへ
-    ShogiBoard* board = c.view->board();
-    board->setSfen(baseSfen);
+    board->setSfen(adjusted);
     c.view->setPositionEditMode(true);
     c.view->setMouseClickMode(true);
     c.view->update();
@@ -79,14 +142,18 @@ void PositionEditController::beginPositionEditing(const BeginEditContext& c)
         c.bic->clearAllHighlights();
     }
 
-    // 5) GC の手番を盤に同期
+    // 5) GC の手番を盤へ同期
     const QString bw = board->currentPlayer();
-    c.gc->setCurrentPlayer(
-        (bw == QLatin1String("w")) ? ShogiGameController::Player2
-                                   : ShogiGameController::Player1);
+    c.gc->setCurrentPlayer(fromBW(bw));
 
-    // 6) 「局面編集終了」ボタン表示（任意）
+    // 6) UI: 「編集終了」ボタン表示
     if (c.onShowEditExitButton) c.onShowEditExitButton();
+
+    // 7) 任意: startSfenStr にも記録（必要なら）
+    if (c.sfenRecord && c.startSfenStr) {
+        if (!c.sfenRecord->isEmpty()) *c.startSfenStr = c.sfenRecord->first();
+        else                          *c.startSfenStr = adjusted;
+    }
 }
 
 void PositionEditController::finishPositionEditing(const PositionEditController::FinishEditContext& c)
@@ -95,7 +162,7 @@ void PositionEditController::finishPositionEditing(const PositionEditController:
 
     ShogiBoard* board = c.view->board();
 
-    // 盤モデルから SFEN を再構成（手数は 1 に統一）
+    // 盤モデルから SFEN を再構成（最小SFEN）
     const QString bw = board->currentPlayer();
     const QString sfenNow = QStringLiteral("%1 %2 %3 %4")
                                 .arg(board->convertBoardToSfen(),
@@ -105,9 +172,11 @@ void PositionEditController::finishPositionEditing(const PositionEditController:
 
     // 盤面へ反映し、描画
     board->setSfen(sfenNow);
-    c.view->applyBoardAndRender(board);
+    c.view->setPositionEditMode(false);
+    c.view->setMouseClickMode(false);
+    c.view->update();
 
-    // 編集結果を sfenRecord に書き戻す
+    // sfenRecord を 0手局面として再保存
     if (c.sfenRecord) {
         c.sfenRecord->clear();
         c.sfenRecord->push_back(sfenNow);
@@ -125,7 +194,6 @@ void PositionEditController::finishPositionEditing(const PositionEditController:
     // UI 後片付け
     if (c.bic) {
         c.bic->clearAllHighlights();
-        // 必要なら通常モードへ戻す: c.bic->setMode(BoardInteractionController::Mode::Normal);
     }
     if (c.onHideEditExitButton) c.onHideEditExitButton();
 }

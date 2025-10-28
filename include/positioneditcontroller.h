@@ -16,38 +16,41 @@ class PositionEditController final : public QObject {
 public:
     explicit PositionEditController(QObject* parent = nullptr) : QObject(parent) {}
 
+    // 局面編集開始に必要な情報
     struct BeginEditContext {
-        ShogiGameController* gc = nullptr;                // 必須
-        ShogiView*           view = nullptr;              // 必須
-        BoardInteractionController* bic = nullptr;        // 任意（無ければ nullptr）
+        ShogiView*                 view = nullptr;          // 必須
+        ShogiGameController*       gc   = nullptr;          // 必須
+        BoardInteractionController* bic = nullptr;          // 任意（ハイライト等）
 
-        // 既存の局面列（0手局面を含む）
-        QStringList* sfenRecord = nullptr;
+        // SFEN 蓄積（0手局面～）の実体ポインタ
+        QStringList* sfenRecord = nullptr;                  // 任意
 
-        // UI 状態
-        int  selectedPly = -1;
-        int  activePly   = -1;
-        bool gameOver    = false;
+        // 選択状態
+        int  selectedPly = -1;                              // 任意
+        int  activePly   = -1;                              // 任意
+        bool gameOver    = false;                           // 任意
 
-        // 参照 SFEN 候補
-        QString startSfen;
-        QString currentSfen;
-        QString resumeSfen;
+        // 文字列側の状態（存在すれば採用）
+        QString* startSfenStr   = nullptr;                  // 任意
+        QString* currentSfenStr = nullptr;                  // 任意
+        QString* resumeSfenStr  = nullptr;                  // 任意
 
-        // UI 操作用コールバック（あれば実行）
-        std::function<void()> onShowEditExitButton;
+        // UI: 盤面右の「編集終了」ボタン表示
+        std::function<void()> onShowEditExitButton;         // 任意
     };
 
+    // 局面編集終了に必要な情報
     struct FinishEditContext {
-        ShogiGameController* gc = nullptr;                 // 必須
-        ShogiView*           view = nullptr;               // 必須
-        BoardInteractionController* bic = nullptr;         // 任意
+        ShogiView*                 view = nullptr;          // 必須
+        ShogiGameController*       gc   = nullptr;          // 必須
+        BoardInteractionController* bic = nullptr;          // 任意
 
-        QStringList* sfenRecord = nullptr;                 // 編集結果の 0手局面を書き戻す宛先
-        QString*     startSfenStr = nullptr;               // 必要なら開始 SFEN に反映
-        bool*        isResumeFromCurrent = nullptr;        // 再開フラグがあれば false に
+        QStringList* sfenRecord = nullptr;                  // 任意（0手局面として再保存）
+        QString*     startSfenStr = nullptr;                // 任意（startSfen更新）
+        bool*        isResumeFromCurrent = nullptr;         // 任意（falseに落とす）
 
-        std::function<void()> onHideEditExitButton;        // UI 後片付け
+        // UI: 「編集終了」ボタンの後片付け
+        std::function<void()> onHideEditExitButton;         // 任意
     };
 
     void beginPositionEditing(const BeginEditContext& c);
