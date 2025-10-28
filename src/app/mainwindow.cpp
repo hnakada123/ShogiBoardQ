@@ -874,38 +874,6 @@ void MainWindow::openWebsiteInExternalBrowser()
     QDesktopServices::openUrl(QUrl("https://github.com/hnakada123/ShogiBoardQ"));
 }
 
-// 対局ダイアログの設定を出力する。
-void MainWindow::printGameDialogSettings(StartGameDialog* m_gamedlg)
-{
-    qDebug() << "MainWindow::printGameDialogSettings()";
-    qDebug() << "m_gamedlg->isHuman1() = " << m_gamedlg->isHuman1();
-    qDebug() << "m_gamedlg->isEngine1() = " << m_gamedlg->isEngine1();
-    qDebug() << "m_gamedlg->humanName1() = " << m_gamedlg->humanName1();
-    qDebug() << "m_gamedlg->engineName1() = " << m_gamedlg->engineName1();
-    qDebug() << "m_gamedlg->engineNumber1() = " << m_gamedlg->engineNumber1();
-    qDebug() << "m_gamedlg->basicTimeHour1() = " << m_gamedlg->basicTimeHour1();
-    qDebug() << "m_gamedlg->basicTimeMinutes1() = " << m_gamedlg->basicTimeMinutes1();
-    qDebug() << "m_gamedlg->byoyomiSec1() = " << m_gamedlg->byoyomiSec1();
-    qDebug() << "m_gamedlg->addEachMoveSec1() = " << m_gamedlg->addEachMoveSec1();
-    qDebug() << "m_gamedlg->isHuman2() = " << m_gamedlg->isHuman2();
-    qDebug() << "m_gamedlg->isEngine2() = " << m_gamedlg->isEngine2();
-    qDebug() << "m_gamedlg->humanName2() = " << m_gamedlg->humanName2();
-    qDebug() << "m_gamedlg->engineName2() = " << m_gamedlg->engineName2();
-    qDebug() << "m_gamedlg->engineNumber2() = " << m_gamedlg->engineNumber2();
-    qDebug() << "m_gamedlg->basicTimeHour2() = " << m_gamedlg->basicTimeHour2();
-    qDebug() << "m_gamedlg->basicTimeMinutes2() = " << m_gamedlg->basicTimeMinutes2();
-    qDebug() << "m_gamedlg->byoyomiSec2() = " << m_gamedlg->byoyomiSec2();
-    qDebug() << "m_gamedlg->addEachMoveSec2() = " << m_gamedlg->addEachMoveSec2();
-    qDebug() << "m_gamedlg->startingPositionName() = " << m_gamedlg->startingPositionName();
-    qDebug() << "m_gamedlg->startingPositionNumber() = " << m_gamedlg->startingPositionNumber();
-    qDebug() << "m_gamedlg->maxMoves() = " << m_gamedlg->maxMoves();
-    qDebug() << "m_gamedlg->consecutiveGames() = " << m_gamedlg->consecutiveGames();
-    qDebug() << "m_gamedlg->isShowHumanInFront() = " << m_gamedlg->isShowHumanInFront();
-    qDebug() << "m_gamedlg->isAutoSaveKifu() = " << m_gamedlg->isAutoSaveKifu();
-    qDebug() << "m_gamedlg->isLoseOnTimeout() = " << m_gamedlg->isLoseOnTimeout();
-    qDebug() << "m_gamedlg->isSwitchTurnEachGame() = " << m_gamedlg->isSwitchTurnEachGame();
-}
-
 // 対局モードを決定する。
 PlayMode MainWindow::determinePlayMode(const int initPositionNumber, const bool isPlayer1Human, const bool isPlayer2Human) const
 {
@@ -963,16 +931,10 @@ PlayMode MainWindow::setPlayMode()
     // 対局モードを決定する。
     PlayMode mode = determinePlayMode(initPositionNumber, isPlayerHuman1 && !isPlayerEngine1, isPlayerHuman2 && !isPlayerEngine2);
 
-    // デバッグプリント
-    printGameDialogSettings(m_startGameDialog);
-
     // エラーが発生した場合
     if (mode == PlayModeError) {
         // エラーメッセージを表示する。
         displayErrorMessage(tr("An error occurred in MainWindow::determinePlayMode. There is a mistake in the game options."));
-
-        // デバッグプリント
-        printGameDialogSettings(m_startGameDialog);
     }
 
     // 対局モードを返す。
@@ -2421,20 +2383,6 @@ void MainWindow::movePieceImmediately()
     }
 }
 
-ShogiGameController::Player MainWindow::humanPlayerSide() const
-{
-    // 本関数（Human vs Engine）では：
-    // EvenHumanVsEngine / HandicapHumanVsEngine → Player1 が人間
-    // HandicapEngineVsHuman → Player2 が人間
-    if (m_playMode == HandicapEngineVsHuman) return ShogiGameController::Player2;
-    return ShogiGameController::Player1;
-}
-
-bool MainWindow::isHumanTurn() const
-{
-    return m_gameController->currentPlayer() == humanPlayerSide();
-}
-
 // 先手が時間切れ → 先手敗北
 void MainWindow::onPlayer1TimeOut()
 {
@@ -2762,15 +2710,6 @@ void MainWindow::resetGameFlags()
     if (m_match) {
         m_match->clearGameOverState();
     }
-}
-
-// いま手番が人間か？
-bool MainWindow::isHumanTurnNow(bool engineIsP1) const
-{
-    const auto cur = m_gameController->currentPlayer();
-    const auto engineSide = engineIsP1 ? ShogiGameController::Player1
-                                       : ShogiGameController::Player2;
-    return (cur != engineSide);
 }
 
 inline void pumpUi() {
@@ -3271,23 +3210,6 @@ void MainWindow::initializePositionStringsForMatch_()
     m_match->initializePositionStringsForStart(sfenBase);
 }
 
-// EvH（エンジンが先手）の初手を起動する（position ベース → go → bestmove を適用）
-void MainWindow::startInitialEngineMoveEvH_()
-{
-    if (!m_match) return;
-    // EvH 初手の実行も司令塔へ集約
-    m_match->startInitialEngineMoveIfNeeded();
-
-    // （必要なら）UIのマウス受付などを整える
-    if (m_shogiView) m_shogiView->setMouseClickMode(true);
-}
-
-void MainWindow::startInitialEngineMoveIfNeeded_()
-{
-    if (!m_match) return;
-    m_match->startInitialEngineMoveIfNeeded();
-}
-
 void MainWindow::updateTurnDisplay()
 {
     // TurnManager を（無ければ）生成して接続：QObject 階層から取得
@@ -3508,21 +3430,6 @@ void MainWindow::handleMove_HvE_(const QPoint& humanFrom, const QPoint& humanTo)
         if (m_shogiView) m_shogiView->setMouseClickMode(true);
         QTimer::singleShot(0, this, [this]{ if (m_match) m_match->armHumanTimerIfNeeded(); });
     }
-}
-
-std::pair<QString, QString> MainWindow::currentBWTimesForUSI_() const
-{
-    QString bTime = QStringLiteral("0"), wTime = QStringLiteral("0");
-    if (m_match) {
-        qint64 bMs = 0, wMs = 0;
-        m_match->computeGoTimesForUSI(bMs, wMs);
-        bTime = QString::number(bMs);
-        wTime = QString::number(wMs);
-    } else if (m_shogiClock) {
-        bTime = QString::number(m_shogiClock->getPlayer1TimeIntMs());
-        wTime = QString::number(m_shogiClock->getPlayer2TimeIntMs());
-    }
-    return {bTime, wTime};
 }
 
 bool MainWindow::isGameOver_() const

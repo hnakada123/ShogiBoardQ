@@ -270,17 +270,12 @@ private:
     enum class Winner { P1, P2 };
 
     // --- 入出力 / 設定 ---
-    void printGameDialogSettings(StartGameDialog* m_gamedlg);
     void saveWindowAndBoardSettings();
     void loadWindowSettings();
     void makeDefaultSaveFileName();
 
     // --- KIF ヘッダ（対局情報）周り ---
     void ensureGameInfoTable();
-
-    // --- USI / エンジン ---
-    bool isHumanTurnNow(bool engineIsP1) const;
-    std::pair<QString, QString> currentBWTimesForUSI_() const;
 
     // --- 分岐 / 変化 ---
     void applyResolvedRowAndSelect(int row, int selPly);
@@ -305,13 +300,9 @@ private:
     void movePieceImmediately();
     void resetGameFlags();
     void initializePositionStringsForMatch_();
-    void startInitialEngineMoveIfNeeded_();
-    void startInitialEngineMoveEvH_();
     void setGameOverMove(MatchCoordinator::Cause cause, bool loserIsPlayerOne);
     QChar glyphForPlayer(bool isPlayerOne) const;
     void appendKifuLine(const QString& text, const QString& elapsedTime);
-    ShogiGameController::Player humanPlayerSide() const;
-    bool isHumanTurn() const;
     bool isGameOver_() const;
     void analyzeGameRecord();      // 旧実装の呼び出しあり
     void startConsidaration();     // 旧実装の呼び出しあり（綴りそのまま）
