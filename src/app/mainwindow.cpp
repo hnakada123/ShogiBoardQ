@@ -37,6 +37,12 @@
 #include "errorbus.h"
 #include "kifuloadcoordinator.h"
 #include "evaluationchartwidget.h"
+#include "timekeepingservice.h"
+#include "kifuioservice.h"
+#include "positioneditcontroller.h"
+
+using KifuIoService::makeDefaultSaveFileName;
+using KifuIoService::writeKifuFile;
 
 // mainwindow.cpp の先頭（インクルードの後、どのメンバ関数より上）に追加
 static inline QString pickLabelForDisp(const KifDisplayItem& d)
@@ -182,6 +188,8 @@ MainWindow::MainWindow(QWidget *parent) :
     initMatchCoordinator();
 
     setupNameAndClockFonts_();
+
+    ensurePositionEditController_();
 
     // メニューのシグナルとスロット
     connect(ui->actionQuit, &QAction::triggered, this, &MainWindow::saveSettingsAndClose);
@@ -773,73 +781,46 @@ void MainWindow::updateTurnStatus(int currentPlayer)
 
 // 手番に応じて将棋クロックの手番変更およびGUIの手番表示を更新する。
 void MainWindow::updateTurnAndTimekeepingDisplay()
-{   
-    // KIF再生中は時計を動かさない（一本化）
+{
+    // KIF再生中は時計を動かさない（統一）
     if (m_isReplayMode) {
         if (m_shogiClock) m_shogiClock->stopClock();
         if (m_match)      m_match->pokeTimeUpdateNow();
         return;
     }
 
-    // 司令塔の終局状態で判定
+    // 終局後は何もしない（時計停止と整えのみ）
     const bool gameOver = (m_match && m_match->gameOverState().isOver);
-
-    // ★ 終局後は何もしない（時計は止める）
     if (gameOver) {
-        qDebug() << "[ARBITER] suppress updateTurnAndTimekeepingDisplay (game over)";
         if (m_shogiClock) m_shogiClock->stopClock();
         if (m_match) {
-            m_match->pokeTimeUpdateNow();        // 表示だけ整える
-            m_match->disarmHumanTimerIfNeeded(); // 人間用ストップウォッチ停止
+            m_match->pokeTimeUpdateNow();
+            m_match->disarmHumanTimerIfNeeded();
         }
         return;
     }
 
-    // 1) 今走っている側を止めて残時間確定
+    // 1) まず停止して残時間を確定
     if (m_shogiClock) m_shogiClock->stopClock();
 
-    // 2) 直前に指した側へ increment/秒読みを適用 + 考慮時間の記録
-    const bool nextIsP1 = (m_gameController->currentPlayer() == ShogiGameController::Player1);
-    if (m_shogiClock) {
-        if (nextIsP1) {
-            // これから先手が指す → 直前に指したのは後手
-            m_shogiClock->applyByoyomiAndResetConsideration2();
-            updateGameRecord(m_shogiClock->getPlayer2ConsiderationAndTotalTime());
-            m_shogiClock->setPlayer2ConsiderationTime(0);
-        } else {
-            // これから後手が指す → 直前に指したのは先手
-            m_shogiClock->applyByoyomiAndResetConsideration1();
-            updateGameRecord(m_shogiClock->getPlayer1ConsiderationAndTotalTime());
-            m_shogiClock->setPlayer1ConsiderationTime(0);
-        }
+    // 2) 次手番を判定（= GC の currentPlayer がこれから指す側）
+    const bool nextIsP1 = (m_gameController &&
+                           m_gameController->currentPlayer() == ShogiGameController::Player1);
+
+    // 3) 直前手の byoyomi/increment 適用と経過テキストの取得（サービスへ）
+    const QString elapsed =
+        TimekeepingService::applyByoyomiAndCollectElapsed(m_shogiClock, nextIsP1);
+    if (!elapsed.isEmpty()) {
+        // 既存仕様どおり「この手」の消費/累計を1行追記
+        updateGameRecord(elapsed);
     }
 
-    // 3) 表示更新（残時間ラベルなど）
-    if (m_match) m_match->pokeTimeUpdateNow();
-
-    // （※旧④は削除：USI向け btime/wtime は必要箇所で都度 computeGoTimesForUSI() を呼ぶ）
-
-    // 5) 手番表示・時計再開
+    // 4) UIの手番表示
     updateTurnStatus(nextIsP1 ? 1 : 2);
-    if (m_shogiClock) m_shogiClock->startClock();
 
-    // 6) 新しい手番の「この手」の開始時刻を司令塔に記録
-    if (m_match) {
-        m_match->markTurnEpochNowFor(nextIsP1 ? MatchCoordinator::P1 : MatchCoordinator::P2);
-    }
-
-    // 7) 人間の手番なら人間用／H2H用の計測をアーム、そうでなければ解除
-    if (isHumanTurn()) {
-        if (m_match) {
-            if (m_playMode == HumanVsHuman) {
-                m_match->armTurnTimerIfNeeded();   // H2H 共通計測
-            } else {
-                m_match->armHumanTimerIfNeeded();  // HvE 人間側計測
-            }
-        }
-    } else {
-        if (m_match) m_match->disarmHumanTimerIfNeeded();
-    }
+    // 5) 時計・司令塔の後処理（poke, start, epoch 記録、人間タイマのアーム/解除）
+    TimekeepingService::finalizeTurnPresentation(m_shogiClock, m_match, m_gameController,
+                                                 nextIsP1, m_isReplayMode);
 }
 
 // GUIのバージョン情報を表示する。
@@ -2503,151 +2484,6 @@ void MainWindow::reduceBoardSize()
     m_shogiView->reduceBoard();
 }
 
-// 棋譜をファイルに上書き保存する。
-void MainWindow::overwriteKifuFile()
-{
-    // 保存棋譜ファイル名が空の場合
-    // （まだファイル保存を行っていない場合）
-    if (kifuSaveFileName.isEmpty()) {
-        // 棋譜をファイルに保存する。
-        saveKifuToFile();
-    }
-    // 保存棋譜ファイルが空でない場合（一度、棋譜ファイルに保存している場合）
-    else {
-        // 保存棋譜ファイルを開いて棋譜ファイルデータを書き込む。
-        QFile file(kifuSaveFileName);
-
-        // ファイルを開けない場合
-        if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-            // エラーメッセージを表示する。
-            displayErrorMessage(tr("An error occurred in MainWindow::overWriteKifuFile. Could not open the saved game file."));
-
-            return;
-        }
-
-        // fileという名前のQFileオブジェクトに関連付けられたテキストストリームを作成する。
-        QTextStream out(&file);
-
-        // 棋譜ファイルデータを書き込む。
-        for (int i = 0; i < m_kifuDataList.size(); i++) {
-            out << m_kifuDataList.at(i) << "\n";
-        }
-
-        // ファイルを閉じる。
-        file.close();
-    }
-}
-
-// 棋譜をファイルに保存する。
-void MainWindow::saveKifuToFile()
-{
-    // カレントディレクトリをホームディレクトリに設定する。
-    QDir::setCurrent(QDir::homePath());
-
-    // 保存ファイルのデフォルト名を作成する。
-    makeDefaultSaveFileName();
-
-    // 対局者名が指定されていない場合、ファイル名をuntitled.kifuに設定する。
-    if (defaultSaveFileName == "_vs.kifu") {
-       defaultSaveFileName = "untitled.kifu";
-    }
-
-    // ファイルダイアログでデフォルトファイル名を表示する。
-    // 実際に保存するファイル名を取得する。
-    kifuSaveFileName = QFileDialog::getSaveFileName(this, tr("Save File"), defaultSaveFileName, tr("Kif(*.kifu)"));
-
-    // 保存ファイル名が空でない時、ファイルを開いて棋譜ファイルデータを書き込む。
-    if (!kifuSaveFileName.isEmpty()) {
-        // 保存ファイル名を設定する。
-        QFile file(kifuSaveFileName);
-
-        // ファイルを開けない場合
-        if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-            // エラーメッセージを表示する。
-            displayErrorMessage(tr("An error occurred in MainWindow::saveKifuFile. Could not save the game file."));
-
-            return;
-        }
-
-        // fileという名前のQFileオブジェクトに関連付けられたテキストストリームを作成する。
-        QTextStream out(&file);
-
-        // 棋譜ファイルデータを書き込む。
-        for (int i = 0; i < m_kifuDataList.size(); i++) {
-            out << m_kifuDataList.at(i) << "\n";
-        }
-
-        // ファイルを閉じる。
-        file.close();
-    }
-
-    // カレントディレクトリをShogiBoardQの実行ファイルのあるディレクトリに設定する。
-    QDir::setCurrent(QApplication::applicationDirPath());
-}
-
-// 保存ファイルのデフォルト名を作成する。
-void MainWindow::makeDefaultSaveFileName()
-{
-    QDateTime dateTime = QDateTime::currentDateTime();
-
-    // 日付から保存ファイル名を設定する。
-    defaultSaveFileName = dateTime.toString("yyyyMMdd_hhmmss");
-
-    // 対局モードに応じて対局者名とファイル拡張子を追加する。
-    switch (m_playMode) {
-    // Player1: Human, Player2: Human
-    case HumanVsHuman:
-        defaultSaveFileName += "_" + m_humanName1 + "vs" + m_humanName2 + ".kifu";
-        break;
-
-    // Player1: Human, Player2: USI Engine
-    case EvenHumanVsEngine:
-        defaultSaveFileName += "_" + m_humanName1 + "vs" + m_engineName2 + ".kifu";
-        break;
-
-    // Player1: USI Engine, Player2: Human
-    case EvenEngineVsHuman:
-        defaultSaveFileName += "_" + m_engineName1 + "vs" + m_humanName2 + ".kifu";
-        break;
-
-    // Player1: USI Engine, Player2: USI Engine
-    case EvenEngineVsEngine:
-        defaultSaveFileName += "_" + m_engineName1 + "vs" + m_engineName2 + ".kifu";
-        break;
-
-    // 駒落ち Player1: Human（下手）, Player2: USI Engine（上手）
-    case HandicapHumanVsEngine:
-        defaultSaveFileName += "_" + m_humanName1 + "vs" + m_engineName2 + ".kifu";
-        break;
-
-    // 駒落ち Player1: USI Engine（下手）, Player2: Human（上手）
-    case HandicapEngineVsHuman:
-        defaultSaveFileName += "_" + m_engineName1 + "vs" + m_humanName2 + ".kifu";
-        break;
-
-    // 駒落ち Player1: USI Engine（下手）, Player2: USI Engine（上手）
-    case HandicapEngineVsEngine:
-        defaultSaveFileName += "_" + m_engineName1 + "vs" + m_engineName2 + ".kifu";
-        break;
-
-    // まだ対局を開始していない状態
-    case NotStarted:
-
-    // 解析モード
-    case AnalysisMode:
-
-    // 検討モード
-    case ConsidarationMode:
-
-    // 詰将棋探索モード
-    case TsumiSearchMode:
-
-    // エラー
-    case PlayModeError:
-        break;
-    }
-}
-
 // 「すぐ指させる」
 // エンジンにstopコマンドを送る。
 // エンジンに対し思考停止を命令するコマンド。エンジンはstopを受信したら、できるだけすぐ思考を中断し、
@@ -4309,4 +4145,55 @@ void MainWindow::ensureHumanAtBottomIfApplicable_()
         onActionFlipBoardTriggered(false);
         // onBoardFlipped() が呼ばれ、m_bottomIsP1 はトグルされます
     }
+}
+
+// 置き換え：makeDefaultSaveFileName()
+void MainWindow::makeDefaultSaveFileName()
+{
+    defaultSaveFileName = KifuIoService::makeDefaultSaveFileName(
+        m_playMode, m_humanName1, m_humanName2, m_engineName1, m_engineName2,
+        QDateTime::currentDateTime());
+
+    if (defaultSaveFileName == "_vs.kifu") {
+        defaultSaveFileName = "untitled.kifu";
+    }
+}
+
+// 置き換え：saveKifuToFile()
+void MainWindow::saveKifuToFile()
+{
+    QDir::setCurrent(QDir::homePath());
+
+    makeDefaultSaveFileName();
+    if (defaultSaveFileName == "_vs.kifu") defaultSaveFileName = "untitled.kifu";
+
+    kifuSaveFileName = QFileDialog::getSaveFileName(
+        this, tr("Save File"), defaultSaveFileName, tr("Kif(*.kifu)"));
+
+    if (!kifuSaveFileName.isEmpty()) {
+        QString err;
+        if (!writeKifuFile(kifuSaveFileName, m_kifuDataList, &err)) {
+            displayErrorMessage(tr("An error occurred in MainWindow::saveKifuFile. %1").arg(err));
+        }
+    }
+    QDir::setCurrent(QApplication::applicationDirPath());
+}
+
+// 置き換え：overwriteKifuFile()
+void MainWindow::overwriteKifuFile()
+{
+    if (kifuSaveFileName.isEmpty()) {
+        saveKifuToFile();
+        return;
+    }
+    QString err;
+    if (!writeKifuFile(kifuSaveFileName, m_kifuDataList, &err)) {
+        displayErrorMessage(tr("An error occurred in MainWindow::overWriteKifuFile. %1").arg(err));
+    }
+}
+
+void MainWindow::ensurePositionEditController_()
+{
+    if (m_posEdit) return;
+    m_posEdit = new PositionEditController(this); // 親=MainWindow にして寿命管理
 }

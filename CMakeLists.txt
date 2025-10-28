@@ -43,6 +43,7 @@ file(GLOB_RECURSE SRC_ENGINE   CONFIGURE_DEPENDS src/engine/*.cpp)
 file(GLOB_RECURSE SRC_MODELS   CONFIGURE_DEPENDS src/models/*.cpp)
 file(GLOB_RECURSE SRC_WIDGETS  CONFIGURE_DEPENDS src/widgets/*.cpp)
 file(GLOB_RECURSE SRC_DIALOGS  CONFIGURE_DEPENDS src/dialogs/*.cpp)
+file(GLOB_RECURSE SRC_SERVICES CONFIGURE_DEPENDS src/services/*.cpp)
 
 # ==== Headers (for AUTOMOC) ====
 file(GLOB_RECURSE HDRS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h)
@@ -58,6 +59,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         ${SRC_MODELS}
         ${SRC_WIDGETS}
         ${SRC_DIALOGS}
+        ${SRC_SERVICES}
         ${UI_FILES}
         ${HDRS}
         resources/shogiboardq.qrc   # ← QRC を 1 行だけ。画像を個別列挙する必要はありません
@@ -75,6 +77,7 @@ else()
         ${SRC_MODELS}
         ${SRC_WIDGETS}
         ${SRC_DIALOGS}
+        ${SRC_SERVICES}
         ${UI_FILES}
         resources/shogiboardq.qrc
     )
