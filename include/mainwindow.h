@@ -43,6 +43,7 @@
 #include "branchcandidatescontroller.h"
 #include "kifuloadcoordinator.h"
 #include "kifutypes.h"
+#include "positioneditcontroller.h"
 
 // ==============================
 // Macros / aliases
@@ -523,6 +524,11 @@ private:
     KifuLoadCoordinator *m_kifuLoadCoordinator = nullptr;
 
     void ensureHumanAtBottomIfApplicable_();
+
+private:
+    PositionEditController* m_posEdit = nullptr;
+
+    void ensurePositionEditController_();
 };
 
 #endif // MAINWINDOW_H
