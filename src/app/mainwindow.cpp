@@ -45,12 +45,6 @@
 using KifuIoService::makeDefaultSaveFileName;
 using KifuIoService::writeKifuFile;
 
-// mainwindow.cpp の先頭（インクルードの後、どのメンバ関数より上）に追加
-static inline QString pickLabelForDisp(const KifDisplayItem& d)
-{
-    return d.prettyMove;
-}
-
 // ヘルパ（0→1 始まり）
 static inline QPoint toOne(const QPoint& z) { return QPoint(z.x() + 1, z.y() + 1); }
 
@@ -110,167 +104,258 @@ inline QPoint dropFromSquare(QChar dropUpper, bool black) {
 
 } // anonymous namespace
 
-MainWindow::MainWindow(QWidget *parent) :
-    QMainWindow(parent),
-    ui(new Ui::MainWindow),
-    m_startSfenStr("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"),
-    m_currentSfenStr("startpos"),
-    m_errorOccurred(false),
-    m_usi1(nullptr),
-    m_usi2(nullptr),
-    m_playMode(NotStarted),
-    m_lineEditModel1(new UsiCommLogModel(this)),
-    m_lineEditModel2(new UsiCommLogModel(this)),
-    m_gameCount(0),
-    m_gameController(nullptr),
-    m_analysisModel(nullptr)
+MainWindow::MainWindow(QWidget *parent)
+    : QMainWindow(parent)
+    , ui(new Ui::MainWindow)
+    , m_startSfenStr(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"))
+    , m_currentSfenStr(QStringLiteral("startpos"))
+    , m_errorOccurred(false)
+    , m_usi1(nullptr)
+    , m_usi2(nullptr)
+    , m_playMode(NotStarted)
+    , m_lineEditModel1(new UsiCommLogModel(this))
+    , m_lineEditModel2(new UsiCommLogModel(this))
+    , m_gameCount(0)
+    , m_gameController(nullptr)
+    , m_analysisModel(nullptr)
 {
     ui->setupUi(this);
 
-    // --- コンストラクタで一度だけ centralWidget をセット ---
+    setupCentralWidgetContainer_();
+
+    configureToolBarFromUi_();
+
+    // コア部品（GC, View, 盤モデル etc.）は既存関数で初期化
+    initializeComponents();
+
+    // 画面骨格（棋譜/分岐/レイアウト/タブ/中央表示）
+    buildGamePanels_();
+
+    // 初期UI状態（ボタン無効化・編集メニュー非表示など）
+    applyInitialUiState_();
+
+    // ウィンドウ設定の復元（位置/サイズなど）
+    restoreWindowAndSync_();
+
+    // メニュー/アクションのconnect（関数ポインタで統一）
+    connectAllActions_();
+
+    // コアシグナル（昇格ダイアログ・エラー・ドラッグ終了・指し手確定 等）
+    connectCoreSignals_();
+
+    // ツールチップをコンパクト表示へ
+    installAppToolTips_();
+
+    // 司令塔やUIフォント/位置編集コントローラの最終初期化
+    finalizeCoordinators_();
+
+    // ※ initializeComponents() 内で ensureTurnSyncBridge_() を呼んでいる想定。
+    //   二重呼び出しを避けるため、ここでは呼ばない。
+}
+
+void MainWindow::setupCentralWidgetContainer_()
+{
     m_central = ui->centralwidget;
     m_centralLayout = new QVBoxLayout(m_central);
     m_centralLayout->setContentsMargins(0, 0, 0, 0);
     m_centralLayout->setSpacing(0);
+}
 
-    QToolBar* tb = ui->toolBar;                  // Designerで作った場合の例
-    tb->setIconSize(QSize(18, 18));              // ← 16px（お好みで 16/18/20/24 など）
-    tb->setToolButtonStyle(Qt::ToolButtonIconOnly);  // ← テキストを消して高さを詰める
-    tb->setStyleSheet(
-        "QToolBar{margin:0px; padding:0px; spacing:2px;}"
-        "QToolButton{margin:0px; padding:2px;}"
-        );
+void MainWindow::configureToolBarFromUi_()
+{
+    if (QToolBar* tb = ui->toolBar) {
+        tb->setIconSize(QSize(18, 18)); // お好みで 16/18/20/24
+        tb->setToolButtonStyle(Qt::ToolButtonIconOnly);
+        tb->setStyleSheet(
+            "QToolBar{margin:0px; padding:0px; spacing:2px;}"
+            "QToolButton{margin:0px; padding:2px;}"
+            );
+    }
+}
 
-    // GUIを構成するWidgetなどのnew生成
-    initializeComponents();
-
+void MainWindow::buildGamePanels_()
+{
     setupRecordPane();
 
-    // m_kifuBranchModel や m_varEngine の初期化が済んでいる前提で
+    // m_kifuBranchModel / m_varEngine の初期化が済んでいる前提で分岐配線
     setupBranchCandidatesWiring_();
 
-    // 盤・駒台などの初期化
+    // 盤・駒台などの初期化（既存の newGame とは重なるが、従来の順序を維持）
     startNewShogiGame(m_startSfenStr);
 
-    // 横並びレイアウトの構築
+    // 盤＋各パネルの横並びレイアウト構築
     setupHorizontalGameLayout();
 
-    // ★ EngineAnalysisTab はここで一度だけ初期化して m_tab を用意する
+    // EngineAnalysisTab を作ってタブ（m_tab）を用意
     setupEngineAnalysisTab();
 
-    // セントラルウィジェット構築（m_tab を add する側）
+    // m_tab を central に add する側を初期化
     initializeCentralGameDisplay();
+}
 
-    // 対局のメニュー表示を一部隠す。
-    //hideGameActions();
+void MainWindow::applyInitialUiState_()
+{
+    // 対局メニューの一部は必要に応じて。デフォルトでは非実行
+    // hideGameActions();
 
-    // 棋譜欄の下の矢印ボタンを無効にする。
+    // 棋譜欄の下の矢印ボタンを無効化
     disableArrowButtons();
 
-    // 局面編集メニューの表示・非表示
+    // 局面編集メニューを隠す
     hidePositionEditMenu();
+}
 
-    // ウィンドウサイズの復元
+void MainWindow::restoreWindowAndSync_()
+{
     loadWindowSettings();
+    // ensureTurnSyncBridge_(); // ← initializeComponents() 内で済ませる方針のためここでは呼ばない
+}
 
-    // MainWindow ctor で、UIを作り終わった直後にツールチップ調整
+void MainWindow::connectAllActions_()
+{
+    // ファイル/アプリ
+    connect(ui->actionQuit,                 &QAction::triggered, this, &MainWindow::saveSettingsAndClose);
+    connect(ui->actionSaveAs,               &QAction::triggered, this, &MainWindow::saveKifuToFile);
+    connect(ui->actionSave,                 &QAction::triggered, this, &MainWindow::overwriteKifuFile);
+    connect(ui->actionOpenKifuFile,         &QAction::triggered, this, &MainWindow::chooseAndLoadKifuFile);
+    connect(ui->actionVersionInfo,          &QAction::triggered, this, &MainWindow::displayVersionInformation);
+    connect(ui->actionOpenWebsite,          &QAction::triggered, this, &MainWindow::openWebsiteInExternalBrowser);
+
+    // 対局
+    connect(ui->actionNewGame,              &QAction::triggered, this, &MainWindow::resetToInitialState);
+    connect(ui->actionStartGame,            &QAction::triggered, this, &MainWindow::initializeGame);
+    connect(ui->actionResign,               &QAction::triggered, this, &MainWindow::handleResignation);
+    connect(ui->breakOffGame,               &QAction::triggered, this, &MainWindow::handleBreakOffGame);
+
+    // 盤操作・表示
+    connect(ui->actionFlipBoard,            &QAction::triggered, this, &MainWindow::onActionFlipBoardTriggered);
+    connect(ui->actionCopyBoardToClipboard, &QAction::triggered, this, &MainWindow::copyBoardToClipboard);
+    connect(ui->actionMakeImmediateMove,    &QAction::triggered, this, &MainWindow::movePieceImmediately);
+    connect(ui->actionEnlargeBoard,         &QAction::triggered, this, &MainWindow::enlargeBoard);
+    connect(ui->actionShrinkBoard,          &QAction::triggered, this, &MainWindow::reduceBoardSize);
+    connect(ui->actionUndoMove,             &QAction::triggered, this, &MainWindow::undoLastTwoMoves);
+    connect(ui->actionSaveBoardImage,       &QAction::triggered, this, &MainWindow::saveShogiBoardImage);
+
+    // 解析/検討/詰み・エンジン設定
+    connect(ui->actionToggleEngineAnalysis, &QAction::triggered, this, &MainWindow::toggleEngineAnalysisVisibility);
+    connect(ui->actionEngineSettings,       &QAction::triggered, this, &MainWindow::displayEngineSettingsDialog);
+    connect(ui->actionConsideration,        &QAction::triggered, this, &MainWindow::displayConsiderationDialog);
+    connect(ui->actionAnalyzeKifu,          &QAction::triggered, this, &MainWindow::displayKifuAnalysisDialog);
+    connect(ui->actionStartEditPosition,    &QAction::triggered, this, &MainWindow::beginPositionEditing);
+    connect(ui->actionEndEditPosition,      &QAction::triggered, this, &MainWindow::finishPositionEditing);
+    connect(ui->actionTsumeShogiSearch,     &QAction::triggered, this, &MainWindow::displayTsumeShogiSearchDialog);
+    connect(ui->actionQuitEngine,           &QAction::triggered, this, &MainWindow::handleBreakOffConsidaration);
+}
+
+void MainWindow::connectCoreSignals_()
+{
+    // 将棋盤表示・昇格・ドラッグ終了・指し手確定
+    if (m_gameController) {
+        connect(m_gameController, &ShogiGameController::showPromotionDialog,
+                this, &MainWindow::displayPromotionDialog, Qt::UniqueConnection);
+        connect(m_gameController, &ShogiGameController::endDragSignal,
+                this, &MainWindow::endDrag, Qt::UniqueConnection);
+        connect(m_gameController, &ShogiGameController::moveCommitted,
+                this, &MainWindow::onMoveCommitted, Qt::UniqueConnection);
+    }
+    if (m_shogiView) {
+        connect(m_shogiView, &ShogiView::errorOccurred,
+                this, &MainWindow::displayErrorMessage, Qt::UniqueConnection);
+    }
+
+    // ErrorBus はラムダを使わず専用スロットへ
+    connect(&ErrorBus::instance(), &ErrorBus::errorOccurred,
+            this, &MainWindow::onErrorBusOccurred, Qt::UniqueConnection);
+}
+
+void MainWindow::installAppToolTips_()
+{
     auto* tipFilter = new AppToolTipFilter(this);
     tipFilter->setPointSizeF(12.0);
     tipFilter->setCompact(true);
 
-    auto toolbars = findChildren<QToolBar*>();
-    for (int i = 0, n = toolbars.size(); i < n; ++i) {
-        QToolBar* tb = toolbars.at(i);
-        auto buttons = tb->findChildren<QToolButton*>();
-        for (int j = 0, m = buttons.size(); j < m; ++j)
-            buttons.at(j)->installEventFilter(tipFilter);
+    const auto toolbars = findChildren<QToolBar*>();
+    for (QToolBar* tb : toolbars) {
+        const auto buttons = tb->findChildren<QToolButton*>();
+        for (QToolButton* b : buttons) {
+            b->installEventFilter(tipFilter);
+        }
     }
-
-    initMatchCoordinator();
-
-    setupNameAndClockFonts_();
-
-    ensurePositionEditController_();
-
-    // メニューのシグナルとスロット
-    connect(ui->actionQuit, &QAction::triggered, this, &MainWindow::saveSettingsAndClose);
-    connect(ui->actionSaveAs, &QAction::triggered, this, &MainWindow::saveKifuToFile);
-    connect(ui->actionSave, &QAction::triggered, this, &MainWindow::overwriteKifuFile);
-    connect(ui->actionEngineSettings, &QAction::triggered, this, &MainWindow::displayEngineSettingsDialog);
-    connect(ui->actionVersionInfo, &QAction::triggered, this, &MainWindow::displayVersionInformation);
-    connect(ui->actionOpenWebsite, &QAction::triggered, this, &MainWindow::openWebsiteInExternalBrowser);
-    connect(ui->actionStartGame, &QAction::triggered, this, &MainWindow::initializeGame);
-    connect(ui->actionResign, &QAction::triggered, this, &MainWindow::handleResignation);
-    connect(ui->actionFlipBoard, &QAction::triggered, this, &MainWindow::onActionFlipBoardTriggered);
-    connect(ui->actionCopyBoardToClipboard, &QAction::triggered, this, &MainWindow::copyBoardToClipboard);
-    connect(ui->actionToggleEngineAnalysis, &QAction::triggered, this, &MainWindow::toggleEngineAnalysisVisibility);
-    connect(ui->actionMakeImmediateMove, &QAction::triggered, this, &MainWindow::movePieceImmediately);
-    connect(ui->actionEnlargeBoard, &QAction::triggered, this, &MainWindow::enlargeBoard);
-    connect(ui->actionShrinkBoard, &QAction::triggered, this, &MainWindow::reduceBoardSize);
-    connect(ui->actionUndoMove, &QAction::triggered, this, &MainWindow::undoLastTwoMoves);
-    connect(ui->actionSaveBoardImage, &QAction::triggered, this, &MainWindow::saveShogiBoardImage);
-    connect(ui->actionOpenKifuFile, &QAction::triggered, this, &MainWindow::chooseAndLoadKifuFile);
-    connect(ui->actionConsideration, &QAction::triggered, this, &MainWindow::displayConsiderationDialog);
-    connect(ui->actionAnalyzeKifu, &QAction::triggered, this, &MainWindow::displayKifuAnalysisDialog);
-    connect(ui->actionNewGame, &QAction::triggered, this, &MainWindow::resetToInitialState);
-    connect(ui->actionStartEditPosition, &QAction::triggered, this, &MainWindow::beginPositionEditing);
-    connect(ui->actionEndEditPosition, &QAction::triggered, this, &MainWindow::finishPositionEditing);
-    connect(ui->actionTsumeShogiSearch, &QAction::triggered, this, &MainWindow::displayTsumeShogiSearchDialog);
-    connect(ui->breakOffGame, &QAction::triggered, this, &MainWindow::handleBreakOffGame);
-    connect(ui->actionQuitEngine, &QAction::triggered, this, &MainWindow::handleBreakOffConsidaration);
-
-    // 将棋盤表示・エラー・昇格ダイアログ等
-    connect(m_gameController, &ShogiGameController::showPromotionDialog, this, &MainWindow::displayPromotionDialog);
-    connect(m_shogiView, &ShogiView::errorOccurred, this, &MainWindow::displayErrorMessage);
-    connect(m_gameController, &ShogiGameController::endDragSignal, this, &MainWindow::endDrag, Qt::UniqueConnection);
-    connect(m_gameController, &ShogiGameController::moveCommitted, this, &MainWindow::onMoveCommitted, Qt::UniqueConnection);
-
-    connect(&ErrorBus::instance(), &ErrorBus::errorOccurred,
-            this, [this](const QString& msg){ this->displayErrorMessage(msg); });
-
-    ensureTurnSyncBridge_();
 }
 
-// GUIを構成するWidgetなどを生成する。
+void MainWindow::finalizeCoordinators_()
+{
+    initMatchCoordinator();       // 司令塔の初期化
+    setupNameAndClockFonts_();    // 盤面ラベル等のフォント初期化
+    ensurePositionEditController_(); // 局面編集コントローラの用意
+}
+
+void MainWindow::onErrorBusOccurred(const QString& msg)
+{
+    displayErrorMessage(msg);
+}
+
+// GUIを構成するWidgetなどを生成する。（リファクタ後）
 void MainWindow::initializeComponents()
 {
-    // 将棋の対局全体を管理し、盤面の初期化、指し手の処理、合法手の検証、対局状態の管理を行うクラスのインスタンス
-    m_gameController = new ShogiGameController;
+    // ───────────────── Core models ─────────────────
+    // ShogiGameController は QObject 親を付けてリーク防止
+    if (!m_gameController) {
+        m_gameController = new ShogiGameController(this);
+    } else {
+        // 再初期化に備えて、必要ならシグナル切断などをここで行う
+        // m_gameController->disconnect(this);
+    }
 
-    // 将棋盤と駒台を生成するビュー
-    m_shogiView = new ShogiView;
+    // 局面履歴（SFEN列）を確保（起動直後の初期化なのでクリアもOK）
+    if (!m_sfenRecord) m_sfenRecord = new QStringList;
+    else               m_sfenRecord->clear();
 
-    // 好みの倍率に設定（表示前にやるのがスムーズ）
-    m_shogiView->setNameFontScale(0.30);
+    // 棋譜表示用のレコードリストを確保（ここでは容器だけ用意）
+    if (!m_moveRecords) m_moveRecords = new QList<KifuDisplay *>;
+    else                m_moveRecords->clear();
 
-    // ───────────────── BoardInteractionController を配線 ─────────────────
+    // ───────────────── View ─────────────────
+    if (!m_shogiView) {
+        m_shogiView = new ShogiView(this);     // 親をMainWindowに
+        m_shogiView->setNameFontScale(0.30);   // 好みの倍率（表示前に設定）
+    } else {
+        // 再初期化時も念のためパラメータを揃える
+        m_shogiView->setParent(this);
+        m_shogiView->setNameFontScale(0.30);
+    }
+
+    // 盤・駒台操作の配線（BoardInteractionController など）
     setupBoardInteractionController();
 
-    // SFEN文字列のリスト
-    m_sfenRecord = new QStringList;
+    // ───────────────── Board model 初期化 ─────────────────
+    // m_startSfenStr が "startpos ..." の場合は必ず完全 SFEN に正規化してから newGame。
+    // 既存のユーティリティを使用（MainWindow::parseStartPositionToSfen）
+    QString start = m_startSfenStr;
+    if (start.isEmpty()) {
+        // 既定：平手初期局面の完全SFEN
+        start = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+    } else if (start.startsWith(QLatin1String("startpos"))) {
+        start = parseStartPositionToSfen(start);
+    }
 
-    // 棋譜データのリスト
-    m_moveRecords = new QList<KifuDisplay *>;
-
-    // ───────────────── 追加：起動直後に盤モデルを用意してビューへ渡す ─────────────────
-    // 初期局面（" ... b - 1"）で盤データを構築
-    {
-        QString sfen = m_startSfenStr;
-        m_gameController->newGame(sfen);                 // ShogiBoard を内部で生成し setSfen
-
-        // ビューに盤モデルを接続（以後 m_shogiView->board() が有効）
+    // 盤データを生成してビューへ接続（view->board() が常に有効になるように順序を固定）
+    m_gameController->newGame(start);
+    if (m_shogiView->board() != m_gameController->board()) {
         m_shogiView->setBoard(m_gameController->board());
     }
 
-    // ───────────────── 追加：手番を先手（Player1）で初期化し、ラベルを即時表示 ─────────────────
-    // 1) TurnManager を生成＋現在の "b"/"w" を反映（board()->currentPlayer() は newGame で "b"）
-    //    → setCurrentTurn() は TurnManager を作成し "b" を Player1 に変換して changed を発火
+    // ───────────────── Turn 初期化 & 同期 ─────────────────
+    // 1) TurnManager 側の初期手番（b→Player1）を立ち上げる
     setCurrentTurn();
 
-    // 2) GC ↔ TurnManager のブリッジを確立し、初期同期も実施
-    //    ensureTurnSyncBridge_() の末尾で tm->setFromGc(gc->currentPlayer()) が呼ばれ、
-    //    NoPlayer の場合でも TurnManager 側で Player1 に正規化されて changed が流れます。
+    // 2) GC ↔ TurnManager のブリッジ確立＆初期同期（内部で gc->currentPlayer() を反映）
     ensureTurnSyncBridge_();
+
+    // ───────────────── 表示名・ログモデル名の初期反映（任意だが初期表示を安定化） ─────────────────
+    // setPlayersNamesForMode / setEngineNamesBasedOnMode がサービスへ移設済みでも呼び出し名は同じ
+    setPlayersNamesForMode();
+    setEngineNamesBasedOnMode();
 }
 
 // エラーメッセージを表示する。

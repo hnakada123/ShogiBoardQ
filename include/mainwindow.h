@@ -520,6 +520,21 @@ private:
     PositionEditController* m_posEdit = nullptr;
 
     void ensurePositionEditController_();
+
+private slots:
+    void onErrorBusOccurred(const QString& msg);
+
+private:
+    // --- ctorの分割先 ---
+    void setupCentralWidgetContainer_();   // centralWidget と QVBoxLayout を一度だけ構築
+    void configureToolBarFromUi_();        // ツールバーのアイコン/スタイル初期化
+    void buildGamePanels_();               // 棋譜ペイン/分岐配線/レイアウト/タブなどUI骨格
+    void applyInitialUiState_();           // ボタン無効化・編集メニュー非表示など初期状態
+    void restoreWindowAndSync_();          // ウィンドウ設定の復元（同期は initializeComponents 内で実施）
+    void connectAllActions_();             // メニュー/アクション群のconnect
+    void connectCoreSignals_();            // GC/ビュー/エラーバス等のconnect
+    void installAppToolTips_();            // コンパクトツールチップのインストール
+    void finalizeCoordinators_();          // 司令塔やフォント/位置編集コントローラの最終初期化
 };
 
 #endif // MAINWINDOW_H
