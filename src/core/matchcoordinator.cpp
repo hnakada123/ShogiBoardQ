@@ -1628,3 +1628,48 @@ void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& hu
         armHumanTimerIfNeeded();
     }
 }
+
+// 人間手直後に「考慮時間確定 → byoyomi/inc 適用 → KIF追記 → 人間手ハイライト」を済ませ、
+// その後のエンジン1手返し等は既存の2引数版へ委譲する。
+void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& humanTo, const QString& prettyMove)
+{
+    // 0) 人間手のハイライト
+    if (m_hooks.showMoveHighlights) {
+        m_hooks.showMoveHighlights(humanFrom, humanTo);
+    }
+
+    // 1) 人間側の考慮時間を確定 → byoyomi/inc を適用 → KIF 追記
+    if (m_clock) {
+        const bool humanIsP1 =
+            (m_playMode == EvenHumanVsEngine) || (m_playMode == HandicapHumanVsEngine);
+
+        if (humanIsP1) {
+            const qint64 ms = m_clock->player1ConsiderationMs();
+            m_clock->setPlayer1ConsiderationTime(static_cast<int>(ms));
+            m_clock->applyByoyomiAndResetConsideration1();
+
+            if (m_hooks.appendKifuLine) {
+                m_hooks.appendKifuLine(prettyMove, m_clock->getPlayer1ConsiderationAndTotalTime());
+            }
+            // 従来互換：クリア
+            m_clock->setPlayer1ConsiderationTime(0);
+        } else {
+            const qint64 ms = m_clock->player2ConsiderationMs();
+            m_clock->setPlayer2ConsiderationTime(static_cast<int>(ms));
+            m_clock->applyByoyomiAndResetConsideration2();
+
+            if (m_hooks.appendKifuLine) {
+                m_hooks.appendKifuLine(prettyMove, m_clock->getPlayer2ConsiderationAndTotalTime());
+            }
+            // 従来互換：クリア
+            m_clock->setPlayer2ConsiderationTime(0);
+        }
+
+        // ラベルなど即時更新
+        pokeTimeUpdateNow();
+    }
+
+    // 2) 以降（エンジン go → bestmove → 盤/棋譜反映）は既存の2引数版に委譲
+    //    finishHumanTimerAndSetConsideration() は2引数版の先頭で呼ばれるが、二重でも実害が出ない想定。
+    onHumanMove_HvE(humanFrom, humanTo);
+}
