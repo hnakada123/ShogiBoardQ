@@ -155,8 +155,10 @@ public:
     // MainWindow::startInitialEngineMoveIfNeeded_ / startInitialEngineMoveEvH_ の置き換え
     void startInitialEngineMoveIfNeeded();
 
-    // MainWindow::handleMove_HvE_ の置き換え
     void onHumanMove_HvE(const QPoint& humanFrom, const QPoint& humanTo);
+
+    // 追加：人間の整形済み棋譜文字列（prettyMove）を受け取る版
+    void onHumanMove_HvE(const QPoint& humanFrom, const QPoint& humanTo, const QString& prettyMove);
 
     // --- private: 内部ヘルパ ---
 private:

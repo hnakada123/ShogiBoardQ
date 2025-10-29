@@ -40,6 +40,7 @@
 #include "timekeepingservice.h"
 #include "kifuioservice.h"
 #include "positioneditcontroller.h"
+#include "playernameservice.h"
 
 using KifuIoService::makeDefaultSaveFileName;
 using KifuIoService::writeKifuFile;
@@ -479,76 +480,12 @@ void MainWindow::initializeNewGame(QString& startSfenStr)
 // 対局モードに応じて将棋盤上部に表示される対局者名をセットする。
 void MainWindow::setPlayersNamesForMode()
 {
-    // ▲▽の記号はここでは名前に含めない。
-    QString blackName;
-    QString whiteName;
-
-    switch (m_playMode) {
-    // Player1: Human, Player2: Human
-    case HumanVsHuman:
-        blackName = m_humanName1;
-        whiteName = m_humanName2;
-        break;
-
-    // Player1: Human, Player2: USI Engine
-    case EvenHumanVsEngine:
-        blackName = m_humanName1;
-        whiteName = m_engineName2;
-        break;
-
-    // Player1: USI Engine, Player2: Human
-    case EvenEngineVsHuman:
-        blackName = m_engineName1;
-        whiteName = m_humanName2;
-        break;
-
-    // Player1: USI Engine, Player2: USI Engine
-    case EvenEngineVsEngine:
-        blackName = m_engineName1;
-        whiteName = m_engineName2;
-        break;
-
-    // 駒落ち Player1: Human（下手）, Player2: USI Engine（上手）
-    case HandicapHumanVsEngine:
-        blackName = m_humanName1;
-        whiteName = m_engineName2;
-        break;
-
-    // 駒落ち Player1: USI Engine（下手）, Player2: Human（上手）
-    case HandicapEngineVsHuman:
-        blackName = m_engineName1;
-        whiteName = m_humanName2;
-        break;
-
-    // 駒落ち Player1: USI Engine（下手）, Player2: USI Engine（上手）
-    case HandicapEngineVsEngine:
-        blackName = m_engineName1;
-        whiteName = m_engineName2;
-        break;
-
-    // まだ対局を開始していない状態
-    case NotStarted:
-        blackName = tr("先手");
-        whiteName = tr("後手");
-        break;
-
-    // 棋譜解析モード
-    case AnalysisMode:
-
-    // 検討モード
-    case ConsidarationMode:
-
-    // 詰将棋探索モード
-    case TsumiSearchMode:
-
-    // 対局モードエラー
-    case PlayModeError:
-        break;
-    }
+    const PlayerNameMapping names =
+        PlayerNameService::computePlayers(m_playMode, m_humanName1, m_humanName2, m_engineName1, m_engineName2);
 
     // 対局者名をセットする。
-    m_shogiView->setBlackPlayerName(blackName);
-    m_shogiView->setWhitePlayerName(whiteName);
+    m_shogiView->setBlackPlayerName(names.p1);
+    m_shogiView->setWhitePlayerName(names.p2);
 }
 
 // 駒台を含む将棋盤全体の画像をクリップボードにコピーする。
@@ -565,29 +502,11 @@ void MainWindow::saveShogiBoardImage()
 // 対局モードに応じて将棋盤下部に表示されるエンジン名をセットする。
 void MainWindow::setEngineNamesBasedOnMode()
 {
-    // 例：先後に応じて入れ替え
-    if (!m_lineEditModel1 || !m_lineEditModel2) return;
-    switch (m_playMode) {
-    case EvenHumanVsEngine:
-    case HandicapHumanVsEngine:
-        m_lineEditModel1->setEngineName(m_engineName2);
-        m_lineEditModel2->setEngineName(QString());
-        break;
-    case EvenEngineVsHuman:
-    case HandicapEngineVsHuman:
-        m_lineEditModel1->setEngineName(m_engineName1);
-        m_lineEditModel2->setEngineName(QString());
-        break;
-    case EvenEngineVsEngine:
-        m_lineEditModel1->setEngineName(m_engineName1);
-        m_lineEditModel2->setEngineName(m_engineName2);
-        break;
-    case HandicapEngineVsEngine:
-        m_lineEditModel1->setEngineName(m_engineName2);
-        m_lineEditModel2->setEngineName(m_engineName1);
-        break;
-    default: break;
-    }
+    const EngineNameMapping e =
+        PlayerNameService::computeEngineModels(m_playMode, m_engineName1, m_engineName2);
+
+    if (m_lineEditModel1) m_lineEditModel1->setEngineName(e.model1);
+    if (m_lineEditModel2) m_lineEditModel2->setEngineName(e.model2);
 }
 
 // "sfen 〜"で始まる文字列startpositionstrを入力して"sfen "を削除したSFEN文字列を
@@ -3393,43 +3312,12 @@ void MainWindow::handleMove_HvH_(ShogiGameController::Player moverBefore,
     if (m_shogiView) m_shogiView->setMouseClickMode(true);
 }
 
-// 人間 vs エンジン：人間が指した直後の処理（棋譜追記＋1手返し）
+// 人間 vs エンジン：人間が指した直後の処理（棋譜追記＋1手返しを司令塔へ一本化）
 void MainWindow::handleMove_HvE_(const QPoint& humanFrom, const QPoint& humanTo)
 {
     if (!m_match) return;
-
-    // 1) 人間の考慮時間を確定（HvE 専用の人間タイマー → Clock へ反映）
-    m_match->finishHumanTimerAndSetConsideration();
-
-    // 2) 秒読み/インクリメントを適用して「人間の手」を棋譜欄に 1 行追記
-    if (m_shogiClock) {
-        const bool humanIsP1 =
-            (m_playMode == EvenHumanVsEngine) || (m_playMode == HandicapHumanVsEngine);
-
-        if (humanIsP1) {
-            m_shogiClock->applyByoyomiAndResetConsideration1();
-            appendKifuLine(m_lastMove, m_shogiClock->getPlayer1ConsiderationAndTotalTime());
-            m_shogiClock->setPlayer1ConsiderationTime(0);
-        } else {
-            m_shogiClock->applyByoyomiAndResetConsideration2();
-            appendKifuLine(m_lastMove, m_shogiClock->getPlayer2ConsiderationAndTotalTime());
-            m_shogiClock->setPlayer2ConsiderationTime(0);
-        }
-        // ラベル等の即時更新
-        m_match->pokeTimeUpdateNow();
-    }
-
-    // 3) 直前着手のハイライト（任意）
-    if (m_boardController) m_boardController->showMoveHighlights(humanFrom, humanTo);
-
-    // 4) 人間着手後の 1 手返し（go → bestmove → 盤/棋譜反映）は司令塔で実行（エンジンの手は司令塔側で追記される）
-    m_match->onHumanMove_HvE(humanFrom, humanTo);
-
-    // 5) UI 側の入力復帰など最低限のみ
-    if (!isGameOver_()) {
-        if (m_shogiView) m_shogiView->setMouseClickMode(true);
-        QTimer::singleShot(0, this, [this]{ if (m_match) m_match->armHumanTimerIfNeeded(); });
-    }
+    // validateAndMove() でセット済みの m_lastMove（「▲７六歩」等の整形文字列）を司令塔へ渡す
+    m_match->onHumanMove_HvE(humanFrom, humanTo, m_lastMove);
 }
 
 bool MainWindow::isGameOver_() const
