@@ -790,17 +790,40 @@ void MainWindow::startGameBasedOnMode()
 {
     if (!m_match) return;
 
-    // 司令塔が準備〜開始〜初手 go まで一括処理
-    m_match->prepareAndStartGame(
-        m_playMode,
-        m_startSfenStr,
-        m_sfenRecord,
-        m_startGameDialog,
-        m_bottomIsP1);
+    // ★ USI "position ... moves" のベースを必ず用意（空だと " 7g7f" 事故になる）
+    initializePositionStringsForMatch_();
 
-    // --- UI 後処理は MainWindow に残す（評価グラフの刈り込み等）
-    applyPendingEvalTrim_();
-    m_isResumeFromCurrent = false;
+    // 1) StartOptions は従来どおり MatchCoordinator 側のビルダで構築
+    //    （エンジン選択やSFEN決定ロジックは既存動作を温存）
+    const MatchCoordinator::StartOptions opt =
+        m_match->buildStartOptions(
+            m_playMode,
+            m_startSfenStr,
+            m_sfenRecord,
+            m_startGameDialog);
+
+    // 2) GameStartCoordinator に「開始前の適用」を委譲（時計/人手前などの事前ポリシー）
+    //    ※ GameStartCoordinator は applyTimeControlRequested(TimeControl) を emit し、
+    //       MainWindow::onApplyTimeControlRequested_() が ShogiClock へ反映します。
+    if (m_gameStart) {
+        GameStartCoordinator::Request req;
+        req.mode         = m_playMode;
+        req.startSfen    = opt.sfenStart;
+        req.bottomIsP1   = m_bottomIsP1;
+        req.startDialog  = m_startGameDialog;   // ダイアログ上の持ち時間設定などを参照
+        req.clock        = m_shogiClock;        // 任意（Coordinator 内で参照する場合）
+
+        m_gameStart->prepare(req);
+    }
+
+    // 3) 「人を手前に（必要時のみ反転）」は司令塔のユーティリティで最終決定
+    m_match->ensureHumanAtBottomIfApplicable(m_startGameDialog, m_bottomIsP1);
+
+    // 4) 対局開始（手番/時計の実始動・USI初期化などは司令塔へ集約）
+    m_match->configureAndStart(opt);
+
+    // 5) 初手がエンジン手番なら司令塔側で go → bestmove を実行
+    m_match->startInitialEngineMoveIfNeeded();
 }
 
 void MainWindow::displayAnalysisResults()
