@@ -8,6 +8,8 @@
 #include <QVector>
 #include <QDateTime>
 #include <QElapsedTimer>
+
+#include "shogigamecontroller.h"
 #include "shogimove.h"
 #include "playmode.h"
 
@@ -17,6 +19,8 @@ class ShogiGameController;
 class ShogiClock;
 class ShogiView;
 class Usi;
+class KifuRecordListModel;
+class BoardInteractionController;
 
 // 対局進行/終局/時計/USI送受のハブ（寿命は Main 側で管理）
 class MatchCoordinator : public QObject {
@@ -160,7 +164,50 @@ public:
     // 追加：人間の整形済み棋譜文字列（prettyMove）を受け取る版
     void onHumanMove_HvE(const QPoint& humanFrom, const QPoint& humanTo, const QString& prettyMove);
 
-    // --- private: 内部ヘルパ ---
+public:
+    // --- 既存の Deps 等はそのまま ---
+
+    // UNDO に必要な参照（ランタイム状態を司令塔に集約）
+    struct UndoRefs {
+        KifuRecordListModel*          recordModel      = nullptr;
+        QVector<ShogiMove>*           gameMoves        = nullptr;
+        QStringList*                  positionStrList  = nullptr;  // 可：null
+        QStringList*                  sfenRecord       = nullptr;  // 可：null
+        int*                          currentMoveIndex = nullptr;
+
+        ShogiGameController*          gc       = nullptr;
+        BoardInteractionController*   boardCtl = nullptr;
+        ShogiClock*                   clock    = nullptr;
+        ShogiView*                    view     = nullptr;
+    };
+
+    // MainWindow に残す UI/雑務（評価値巻戻し/ハイライト/表示更新/ガード）のフック群
+    struct UndoHooks {
+        std::function<bool()>                         getMainRowGuard;               // 省略可
+        std::function<void(bool)>                     setMainRowGuard;               // 省略可
+        std::function<void(int /*ply*/)>              updateHighlightsForPly;        // 推奨
+        std::function<void()>                         updateTurnAndTimekeepingDisplay; // 推奨
+        std::function<void(int /*moveNumber*/)>       handleUndoMove;                // 推奨（評価値等）
+        std::function<bool(ShogiGameController::Player)> isHumanSide;                // 必須
+        std::function<bool()>                         isHvH;                         // 必須（H2H 共有タイマか）
+    };
+
+    // MainWindow から一度セット
+    void setUndoBindings(const UndoRefs& refs, const UndoHooks& hooks);
+
+    // ← これが MainWindow::undoLastTwoMoves の移行先
+    bool undoTwoPlies();
+
+private slots:
+    void armTimerAfterUndo_();
+
+private:
+    bool tryRemoveLastItems_(QObject* model, int n);
+    bool m_isUndoInProgress = false;
+    UndoRefs  u_;
+    UndoHooks h_;
+
+// --- private: 内部ヘルパ ---
 private:
     void initPositionStringsFromSfen_(const QString& sfenBase);
     void startInitialEngineMoveFor_(Player engineSide);  // 先手/後手どちらでも1手だけ指す
