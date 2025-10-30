@@ -4,10 +4,11 @@
 #include "shogiview.h"
 #include "usicommlogmodel.h"
 #include "shogienginethinkingmodel.h"
-#include "kifurecordlistmodel.h"
 #include "shogigamecontroller.h"
 #include "shogiboard.h"
 #include "boardinteractioncontroller.h"
+#include "startgamedialog.h"
+#include "kifurecordlistmodel.h"
 
 #include <limits>
 #include <QObject>
@@ -1811,4 +1812,95 @@ bool MatchCoordinator::tryRemoveLastItems_(QObject* model, int n) {
     if (idx < 0) return false;
     bool ok = QMetaObject::invokeMethod(model, "removeLastItems", Q_ARG(int, n));
     return ok;
+}
+
+MatchCoordinator::StartOptions
+MatchCoordinator::buildStartOptions(PlayMode mode,
+                                    const QString& startSfenStr,
+                                    const QStringList* sfenRecord,
+                                    const StartGameDialog* dlg) const
+{
+    StartOptions opt;
+    opt.mode = mode;
+
+    // --- 開始SFEN（空なら司令塔側で startpos を使用／従来互換）
+    if (!startSfenStr.isEmpty()) {
+        opt.sfenStart = startSfenStr;
+    } else if (sfenRecord && !sfenRecord->isEmpty()) {
+        opt.sfenStart = sfenRecord->first();
+    } else {
+        opt.sfenStart.clear();
+    }
+
+    // --- どちらがエンジン座席か（PlayMode から決定：従来ロジック踏襲）
+    const bool engineIsP1 =
+        (mode == PlayMode::EvenEngineVsHuman) ||
+        (mode == PlayMode::HandicapEngineVsHuman);
+    opt.engineIsP1 = engineIsP1;
+    opt.engineIsP2 = !engineIsP1;
+
+    // --- 対局ダイアログの選択を反映（dlg==nullptr でも安全に）
+    if (!dlg) {
+        qWarning() << "[MatchCoordinator] buildStartOptions: dlg is null. Engine selections not applied.";
+        return opt;
+    }
+
+    const auto engines = dlg->getEngineList();
+
+    const int idx1 = dlg->engineNumber1();
+    if (idx1 >= 0 && idx1 < engines.size()) {
+        opt.engineName1 = dlg->engineName1();
+        opt.enginePath1 = engines.at(idx1).path;
+    }
+
+    const int idx2 = dlg->engineNumber2();
+    if (idx2 >= 0 && idx2 < engines.size()) {
+        opt.engineName2 = dlg->engineName2();
+        opt.enginePath2 = engines.at(idx2).path;
+    }
+
+    return opt;
+}
+
+void MatchCoordinator::ensureHumanAtBottomIfApplicable(const StartGameDialog* dlg, bool bottomIsP1)
+{
+    if (!dlg) return;
+
+    const bool humanP1  = dlg->isHuman1();
+    const bool humanP2  = dlg->isHuman2();
+    const bool oneHuman = (humanP1 ^ humanP2); // HvE / EvH のときだけ true
+
+    if (!oneHuman) {
+        // HvH / EvE は対象外（仕様どおり）
+        return;
+    }
+
+    // 「現在の向き（bottomIsP1）」と「人間が先手か？」が食い違っていたら1回だけ反転
+    const bool needFlip = (humanP1 != bottomIsP1);
+    if (needFlip) {
+        // MainWindow::onActionFlipBoardTriggered(false) の代わりに司令塔から反転
+        // 既存の flipBoard() が view と内部状態を適切に切り替える想定
+        this->flipBoard();
+        // この呼び出しにより、既存の onBoardFlipped シグナル連鎖で
+        // MainWindow 側の m_bottomIsP1 も従来どおりトグルされます
+    }
+}
+
+void MatchCoordinator::prepareAndStartGame(PlayMode mode,
+                                           const QString& startSfenStr,
+                                           const QStringList* sfenRecord,
+                                           const StartGameDialog* dlg,
+                                           bool bottomIsP1)
+{
+    // 1) オプション構築
+    StartOptions opt = buildStartOptions(mode, startSfenStr, sfenRecord, dlg);
+
+    // 2) 人間を手前へ（必要なら反転）
+    ensureHumanAtBottomIfApplicable(dlg, bottomIsP1);
+
+    // 3) 対局の構成と開始
+    configureAndStart(opt);
+
+    // 4) 初手がエンジン手番なら go→bestmove
+    startInitialEngineMoveIfNeeded();
 }
