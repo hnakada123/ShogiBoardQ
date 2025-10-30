@@ -4,6 +4,10 @@
 #include "shogiview.h"
 #include "usicommlogmodel.h"
 #include "shogienginethinkingmodel.h"
+#include "kifurecordlistmodel.h"
+#include "shogigamecontroller.h"
+#include "shogiboard.h"
+#include "boardinteractioncontroller.h"
 
 #include <limits>
 #include <QObject>
@@ -11,6 +15,9 @@
 #include <QElapsedTimer>
 #include <QtGlobal>
 #include <QDateTime>
+#include <QTimer>
+#include <QMetaObject>
+#include <QMetaMethod>
 
 using P = MatchCoordinator::Player;
 
@@ -1672,4 +1679,136 @@ void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& hu
     // 2) 以降（エンジン go → bestmove → 盤/棋譜反映）は既存の2引数版に委譲
     //    finishHumanTimerAndSetConsideration() は2引数版の先頭で呼ばれるが、二重でも実害が出ない想定。
     onHumanMove_HvE(humanFrom, humanTo);
+}
+
+void MatchCoordinator::setUndoBindings(const UndoRefs& refs, const UndoHooks& hooks) {
+    u_ = refs;
+    h_ = hooks;
+}
+
+bool MatchCoordinator::undoTwoPlies() {
+    // 依存チェック
+    if (!u_.gameMoves || !u_.currentMoveIndex || !u_.gc) return false;
+
+    // UNDO フラグ ON
+    m_isUndoInProgress = true;
+
+    // 進行中の人間用タイマーは止める
+    disarmHumanTimerIfNeeded();
+    // H2H の共有タイマーを使っている場合は、実装があるならこちらも
+    // disarmTurnTimerIfNeeded();
+
+    // 2手戻すには現在インデックスが2以上必要
+    if (*u_.currentMoveIndex < 2) {
+        m_isUndoInProgress = false;
+        return false;
+    }
+
+    const int moveNumber = *u_.currentMoveIndex - 2;
+
+    // ガード保存＆ON
+    bool prevGuard = false;
+    if (h_.getMainRowGuard) prevGuard = h_.getMainRowGuard();
+    if (h_.setMainRowGuard) h_.setMainRowGuard(true);
+
+    // 棋譜モデルの2手削除（メタ呼び出しで removeLastItems(int) があれば優先）
+    if (u_.recordModel) {
+        if (!tryRemoveLastItems_(u_.recordModel, 2)) {
+            // フォールバック：removeLastItem() を 2 回呼ぶ（あれば）
+            QMetaObject::invokeMethod(u_.recordModel, "removeLastItem");
+            QMetaObject::invokeMethod(u_.recordModel, "removeLastItem");
+        }
+    }
+
+    // 指し手配列を安全に2つ削除
+    if (u_.gameMoves->size() >= 2) {
+        u_.gameMoves->removeLast();
+        u_.gameMoves->removeLast();
+    } else {
+        u_.gameMoves->clear();
+    }
+
+    // 評価値や内部集計の巻き戻し（先に position 復元を想定）
+    if (h_.handleUndoMove) h_.handleUndoMove(moveNumber);
+
+    // position 文字列も2つ削除
+    if (u_.positionStrList) {
+        if (u_.positionStrList->size() >= 2) {
+            u_.positionStrList->removeLast();
+            u_.positionStrList->removeLast();
+        } else {
+            u_.positionStrList->clear();
+        }
+    }
+
+    // 盤面（SFEN）を2手前へ（この時点で currentMoveIndex は旧値）
+    if (u_.sfenRecord && moveNumber >= 0 && moveNumber < u_.sfenRecord->size()) {
+        const QString sfen = u_.sfenRecord->at(moveNumber);
+        if (u_.gc->board()) {
+            u_.gc->board()->setSfen(sfen);
+        }
+    }
+
+    // SFEN レコード末尾2つ削除
+    if (u_.sfenRecord) {
+        if (u_.sfenRecord->size() >= 2) {
+            u_.sfenRecord->removeLast();
+            u_.sfenRecord->removeLast();
+        } else {
+            u_.sfenRecord->clear();
+        }
+    }
+
+    // 現在手数を更新
+    *u_.currentMoveIndex = moveNumber;
+
+    // ハイライトのクリア → 復元
+    if (u_.boardCtl) u_.boardCtl->clearAllHighlights();
+    if (h_.updateHighlightsForPly) h_.updateHighlightsForPly(*u_.currentMoveIndex);
+
+    // ガード復元
+    if (h_.setMainRowGuard) h_.setMainRowGuard(prevGuard);
+
+    // 時計を2手前へ
+    if (u_.clock) u_.clock->undo();
+
+    // 表示の整合を更新
+    if (h_.updateTurnAndTimekeepingDisplay) h_.updateTurnAndTimekeepingDisplay();
+
+    // いまの手番が人間ならクリック可否＆計測再アーム
+    const auto sideToMove = u_.gc ? u_.gc->currentPlayer() : ShogiGameController::NoPlayer;
+    const bool humanNow   = h_.isHumanSide ? h_.isHumanSide(sideToMove) : false;
+
+    if (u_.view) u_.view->setMouseClickMode(humanNow);
+
+    // タイマ再アームはイベントキューで
+    QMetaObject::invokeMethod(this, "armTimerAfterUndo_", Qt::QueuedConnection);
+
+    // UNDO フラグ OFF（最後に必ず解除）
+    m_isUndoInProgress = false;
+    return true;
+}
+
+void MatchCoordinator::armTimerAfterUndo_() {
+    if (!u_.gc || !u_.clock || !h_.isHumanSide || !h_.isHvH) return;
+
+    const auto sideToMove = u_.gc->currentPlayer();
+    if (!h_.isHumanSide(sideToMove)) return;
+
+    if (h_.isHvH()) {
+        // 人対人：共有ターンタイマ
+        armTurnTimerIfNeeded();
+    } else {
+        // 人対エンジン系：人間用タイマ
+        armHumanTimerIfNeeded();
+    }
+}
+
+bool MatchCoordinator::tryRemoveLastItems_(QObject* model, int n) {
+    if (!model) return false;
+    const QMetaObject* mo = model->metaObject();
+    const int idx = mo->indexOfMethod("removeLastItems(int)");
+    if (idx < 0) return false;
+    bool ok = QMetaObject::invokeMethod(model, "removeLastItems", Q_ARG(int, n));
+    return ok;
 }

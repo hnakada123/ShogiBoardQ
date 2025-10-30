@@ -289,7 +289,6 @@ private:
                           const QStringList& usiMoves);
 
     // --- ユーティリティ ---
-    void handleUndoMove(int index);
     void setPlayersNamesForMode();
     PlayMode determinePlayMode(int initPositionNumber, bool isPlayer1Human, bool isPlayer2Human) const;
     PlayMode setPlayMode();
