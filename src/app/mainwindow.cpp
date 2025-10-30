@@ -41,13 +41,11 @@
 #include "kifuioservice.h"
 #include "positioneditcontroller.h"
 #include "playernameservice.h"
+#include "analysisresultspresenter.h"
+#include "boardsyncpresenter.h"
 
 using KifuIoService::makeDefaultSaveFileName;
 using KifuIoService::writeKifuFile;
-
-// ヘルパ（0→1 始まり）
-static inline QPoint toOne(const QPoint& z) { return QPoint(z.x() + 1, z.y() + 1); }
-
 using namespace EngineSettingsConstants;
 using GameOverCause = MatchCoordinator::Cause;
 using BCDI = ::BranchCandidateDisplayItem;
@@ -285,9 +283,11 @@ void MainWindow::installAppToolTips_()
 
 void MainWindow::finalizeCoordinators_()
 {
-    initMatchCoordinator();       // 司令塔の初期化
-    setupNameAndClockFonts_();    // 盤面ラベル等のフォント初期化
-    ensurePositionEditController_(); // 局面編集コントローラの用意
+    initMatchCoordinator();
+    setupNameAndClockFonts_();
+    ensurePositionEditController_();
+    ensureBoardSyncPresenter_();
+    ensureAnalysisPresenter_();
 }
 
 void MainWindow::onErrorBusOccurred(const QString& msg)
@@ -803,114 +803,19 @@ void MainWindow::startGameBasedOnMode()
     m_isResumeFromCurrent = false;
 }
 
-// 棋譜解析結果を表示するためのテーブルビューを設定および表示する。
 void MainWindow::displayAnalysisResults()
 {
-    // 既存モデルを破棄して作り直し（親=this を付けておくと自動破棄）
     if (m_analysisModel) {
         delete m_analysisModel;
         m_analysisModel = nullptr;
     }
     m_analysisModel = new KifuAnalysisListModel(this);
 
-    // 解析結果用ダイアログ
-    auto* dlg = new QDialog(this);
-    dlg->setWindowTitle(tr("棋譜解析結果"));
-    dlg->setAttribute(Qt::WA_DeleteOnClose, true);
+    ensureAnalysisPresenter_();
+    m_analysisPresenter->showWithModel(m_analysisModel);
 
-    // テーブルビュー本体
-    auto* view = new QTableView(dlg);
-    view->setModel(m_analysisModel);
-    view->setAlternatingRowColors(true);
-    view->setWordWrap(false);
-    view->verticalHeader()->setVisible(false);
-    view->setSelectionBehavior(QAbstractItemView::SelectRows);
-    view->setSelectionMode(QAbstractItemView::SingleSelection);
-    view->setTextElideMode(Qt::ElideRight); // PV が長いときは末尾省略
-
-    // 「思考」タブと同じ：数値列を右寄せ＋3桁カンマ
-    {
-        auto* numDelegate = new NumericRightAlignCommaDelegate(view);
-        view->setItemDelegateForColumn(1, numDelegate); // Evaluation Value
-        view->setItemDelegateForColumn(2, numDelegate); // Difference
-    }
-
-    // 列幅ポリシー
-    auto* header = view->horizontalHeader();
-    header->setMinimumSectionSize(60);
-    header->setSectionResizeMode(0, QHeaderView::ResizeToContents); // Move
-    header->setSectionResizeMode(1, QHeaderView::ResizeToContents); // Evaluation
-    header->setSectionResizeMode(2, QHeaderView::ResizeToContents); // Difference
-    header->setSectionResizeMode(3, QHeaderView::Stretch);          // PV
-    header->setStretchLastSection(true);
-
-    // --- 重要：PV がゼロ幅になるのを防ぐ再レイアウト関数 ---
-    // 1) 一時的に PV を Interactive にして幅を決める
-    // 2) その後で Stretch に戻す（ウィンドウリサイズ追従のため）
-    auto reflowNow = [view, header]() {
-        if (!view || !header) return;
-
-        // 0..2 は内容幅で確定
-        header->setSectionResizeMode(0, QHeaderView::ResizeToContents);
-        header->setSectionResizeMode(1, QHeaderView::ResizeToContents);
-        header->setSectionResizeMode(2, QHeaderView::ResizeToContents);
-
-        // まずは自動採寸
-        view->resizeColumnsToContents();
-
-        // PV をいったん手動サイズにして確実に幅を与える
-        header->setSectionResizeMode(3, QHeaderView::Interactive);
-
-        const int w0 = header->sectionSize(0);
-        const int w1 = header->sectionSize(1);
-        const int w2 = header->sectionSize(2);
-
-        const int viewportW  = view->viewport()->width();
-        const int vScrollW   = view->verticalScrollBar()->isVisible() ? view->verticalScrollBar()->width() : 0;
-        const int margins    = 4; // 誤差吸収
-        const int remain     = viewportW - (w0 + w1 + w2) - vScrollW - margins;
-        const int pvWidth    = qMax(160, remain); // 最低幅を確保
-
-        header->resizeSection(3, pvWidth);
-
-        // 仕上げに Stretch へ戻す（以降はウィンドウ幅に追従）
-        header->setSectionResizeMode(3, QHeaderView::Stretch);
-        header->setStretchLastSection(true);
-    };
-
-    // イベントループ戻し後に実行（初回表示対策）
-    auto reflowQueued = [view, reflowNow]() {
-        QTimer::singleShot(0, view, reflowNow);
-    };
-
-    // モデル側の各種シグナルにフック（解析中の逐次更新に追従）
-    QObject::connect(m_analysisModel, &QAbstractItemModel::modelReset,   view, reflowQueued);
-    QObject::connect(m_analysisModel, &QAbstractItemModel::rowsInserted, view,
-                     [reflowQueued](const QModelIndex&, int, int){ reflowQueued(); });
-    QObject::connect(m_analysisModel, &QAbstractItemModel::dataChanged,  view,
-                     [reflowQueued](const QModelIndex&, const QModelIndex&, const QList<int>&){ reflowQueued(); });
-    QObject::connect(m_analysisModel, &QAbstractItemModel::layoutChanged, view, reflowQueued);
-
-    // スクロールバーの出現/消失でも viewport 幅が変わるので再レイアウト
-    QObject::connect(view->verticalScrollBar(), &QAbstractSlider::rangeChanged,
-                     view, [reflowQueued](int, int){ reflowQueued(); });
-
-    // 初回も必ず走らせる
-    QTimer::singleShot(0, view, reflowNow);
-
-    // 後片付け用
-    m_analysisResultsView = view;
-    QObject::connect(dlg, &QObject::destroyed, this, [this](){ m_analysisResultsView = nullptr; });
-
-    // レイアウト
-    auto* lay = new QVBoxLayout(dlg);
-    lay->setContentsMargins(8,8,8,8);
-    lay->addWidget(view);
-
-    dlg->resize(1000, 600);
-    dlg->setModal(false);
-    dlg->setWindowModality(Qt::NonModal);
-    dlg->show();
+    // 互換性のために保持（スクロール追従等）
+    m_analysisResultsView = m_analysisPresenter->view();
 }
 
 // 検討ダイアログを表示する。
@@ -2373,81 +2278,34 @@ void MainWindow::syncBoardAndHighlightsAtRow(int ply1)
         qDebug() << "[UI] syncBoardAndHighlightsAtRow skipped (edit-mode). ply=" << ply1;
         return;
     }
-
     if (!m_sfenRecord) return;
 
-    // ---- 0) 範囲正規化（0=初期局面, 1.. = 手数）----
     const int maxPly = m_sfenRecord->size() - 1;
     if (maxPly < 0) return;
+
     const int safePly = qBound(0, ply1, maxPly);
 
-    // UI 側の現在手を同期（applySfenAtCurrentPly が参照）
+    // UI 側の現在手を同期（旧仕様踏襲）
     m_currentSelectedPly = safePly;
     m_currentMoveIndex   = safePly;
 
-    // ---- 1) 盤面更新は “現在行の SFEN” 一本化 ----
-    // 既存描画ルートを使って、m_sfenRecord[safePly] を反映
-    if (m_boardController) {
-        m_boardController->clearAllHighlights();
-    }
-    applySfenAtCurrentPly();   // (*m_sfenRecord)[m_currentSelectedPly] を描画
-
-    // ---- 2) ハイライトは “USI（gm）” 基準 ----
-    // safePly=0 は初期局面で手なし
-    if (!m_boardController || safePly <= 0) return;
-
-    const int mvIdx = safePly - 1;
-
-    if (mvIdx < 0 || mvIdx >= m_gameMoves.size()) return;
-
-    const ShogiMove& lastMove = m_gameMoves.at(mvIdx);
-
-    // ドロップ（持ち駒打ち）対策：無効座標を除外
-    const bool hasFrom =
-        (lastMove.fromSquare.x() >= 0 && lastMove.fromSquare.y() >= 0);
-
-    const QPoint to1 = toOne(lastMove.toSquare);
-    if (hasFrom) {
-        const QPoint from1 = toOne(lastMove.fromSquare);
-        m_boardController->showMoveHighlights(from1, to1);
-    } else {
-        // 打つ手は移動元をハイライトしない（必要なら駒台強調などに差し替え）
-        m_boardController->showMoveHighlights(QPoint(), to1);
-    }
+    ensureBoardSyncPresenter_();
+    if (m_boardController) m_boardController->clearAllHighlights();
+    m_boardSync->syncBoardAndHighlightsAtRow(safePly);
 
     m_activePly = m_currentSelectedPly;
 }
 
-// 現在の手数（m_currentSelectedPly）に対応するSFENを盤面へ反映
 void MainWindow::applySfenAtCurrentPly()
 {
     if (m_shogiView && m_shogiView->positionEditMode()) {
         qDebug() << "[UI] applySfenAtCurrentPly skipped (edit-mode). m_currentSelectedPly=" << m_currentSelectedPly;
         return;
     }
-
-    qDebug().noquote() << "[UI] applySfenAtCurrentPly m_currentSelectedPly=" << m_currentSelectedPly;
-
     if (!m_sfenRecord || m_sfenRecord->isEmpty()) return;
 
-    const int idx = qBound(0, m_currentSelectedPly, m_sfenRecord->size() - 1);
-    QString sfen = m_sfenRecord->at(idx);
-
-    //begin
-    qDebug().nospace() << "[UI] applySfenAtCurrentPly applying SFEN: " << sfen;
-    //end
-
-    // 既存の盤面反映APIに合わせてください
-    m_gameController->board()->setSfen(sfen);
-
-    // 盤面データの適用後に View へ即時反映（矢印ナビでも盤が連動）
-    if (m_shogiView && m_gameController) {
-        // ShogiView に現在の Board を適用して再描画
-        m_shogiView->applyBoardAndRender(m_gameController->board());
-    } else if (m_shogiView) {
-        // 最低限の再描画（Board 取得APIがない場合のフォールバック）
-        m_shogiView->update();
-    }
+    ensureBoardSyncPresenter_();
+    m_boardSync->applySfenAtPly(qBound(0, m_currentSelectedPly, m_sfenRecord->size() - 1));
 }
 
 void MainWindow::onBranchCandidateActivated(const QModelIndex& index)
@@ -3786,4 +3644,24 @@ void MainWindow::ensurePositionEditController_()
 {
     if (m_posEdit) return;
     m_posEdit = new PositionEditController(this); // 親=MainWindow にして寿命管理
+}
+
+void MainWindow::ensureBoardSyncPresenter_()
+{
+    if (m_boardSync) return;
+
+    BoardSyncPresenter::Deps d;
+    d.gc         = m_gameController;
+    d.view       = m_shogiView;
+    d.bic        = m_boardController;
+    d.sfenRecord = m_sfenRecord;
+    d.gameMoves  = &m_gameMoves;
+
+    m_boardSync = new BoardSyncPresenter(d, this);
+}
+
+void MainWindow::ensureAnalysisPresenter_()
+{
+    if (!m_analysisPresenter)
+        m_analysisPresenter = new AnalysisResultsPresenter(this);
 }

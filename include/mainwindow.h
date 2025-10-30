@@ -68,6 +68,8 @@ class QGraphicsPathItem;
 class QTableView;
 class QEvent;
 class ShogiView;
+class BoardSyncPresenter;
+class AnalysisResultsPresenter;
 
 // ============================================================
 // MainWindow
@@ -534,6 +536,13 @@ private:
     void connectCoreSignals_();            // GC/ビュー/エラーバス等のconnect
     void installAppToolTips_();            // コンパクトツールチップのインストール
     void finalizeCoordinators_();          // 司令塔やフォント/位置編集コントローラの最終初期化
+
+private:
+    BoardSyncPresenter* m_boardSync = nullptr;
+    AnalysisResultsPresenter* m_analysisPresenter = nullptr;
+
+    void ensureBoardSyncPresenter_();
+    void ensureAnalysisPresenter_();
 };
 
 #endif // MAINWINDOW_H
