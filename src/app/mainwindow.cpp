@@ -790,56 +790,15 @@ void MainWindow::startGameBasedOnMode()
 {
     if (!m_match) return;
 
-    MatchCoordinator::StartOptions opt;
-    opt.mode = m_playMode;
+    // 司令塔が準備〜開始〜初手 go まで一括処理
+    m_match->prepareAndStartGame(
+        m_playMode,
+        m_startSfenStr,
+        m_sfenRecord,
+        m_startGameDialog,
+        m_bottomIsP1);
 
-    // --- 開始SFEN（空なら司令塔側で startpos を使用） ---
-    if (!m_startSfenStr.isEmpty()) {
-        opt.sfenStart = m_startSfenStr;
-    } else if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
-        opt.sfenStart = m_sfenRecord->first();
-    } else {
-        opt.sfenStart.clear();
-    }
-
-    // --- どちらがエンジン座席か（PlayModeから決定） ---
-    const bool engineIsP1 =
-        (m_playMode == PlayMode::EvenEngineVsHuman) ||
-        (m_playMode == PlayMode::HandicapEngineVsHuman);
-    opt.engineIsP1 = engineIsP1;
-    opt.engineIsP2 = !engineIsP1;
-
-    // --- ここから：対局ダイアログで選択されたエンジンをそのまま使う ---
-    // （元の実装に揃える）
-    if (!m_startGameDialog) {
-        qWarning() << "[startGameBasedOnMode] m_startGameDialog is null. Using empty engine settings.";
-    } else {
-        const auto engines = m_startGameDialog->getEngineList();
-
-        const int idx1 = m_startGameDialog->engineNumber1();
-        if (idx1 >= 0 && idx1 < engines.size()) {
-            opt.engineName1 = m_startGameDialog->engineName1();
-            opt.enginePath1 = engines.at(idx1).path;
-        }
-
-        const int idx2 = m_startGameDialog->engineNumber2();
-        if (idx2 >= 0 && idx2 < engines.size()) {
-            opt.engineName2 = m_startGameDialog->engineName2();
-            opt.enginePath2 = engines.at(idx2).path;
-        }
-    }
-    // --- ここまで：対局ダイアログの選択を反映 --
-
-    // 人間を手前に（必要時のみ反転）
-    ensureHumanAtBottomIfApplicable_();
-
-    // --- 対局開始（司令塔へ委譲） ---
-    m_match->configureAndStart(opt);
-
-    // --- 初手がエンジン手番なら司令塔側で go → bestmove を実行 ---
-    m_match->startInitialEngineMoveIfNeeded();
-
-    // UI 後処理（評価グラフの刈り込み等：既存）
+    // --- UI 後処理は MainWindow に残す（評価グラフの刈り込み等）
     applyPendingEvalTrim_();
     m_isResumeFromCurrent = false;
 }

@@ -21,6 +21,7 @@ class ShogiView;
 class Usi;
 class KifuRecordListModel;
 class BoardInteractionController;
+class StartGameDialog;
 
 // 対局進行/終局/時計/USI送受のハブ（寿命は Main 側で管理）
 class MatchCoordinator : public QObject {
@@ -453,6 +454,21 @@ private slots:
     void onCheckmateNoMate_();
     void onCheckmateNotImplemented_();
     void onCheckmateUnknown_();
+
+public:
+    StartOptions buildStartOptions(PlayMode mode,
+                                   const QString& startSfenStr,
+                                   const QStringList* sfenRecord,
+                                   const StartGameDialog* dlg) const;
+
+    void ensureHumanAtBottomIfApplicable(const StartGameDialog* dlg, bool bottomIsP1);
+
+    // ★新規：準備→開始→必要なら初手 go までを一括実行
+    void prepareAndStartGame(PlayMode mode,
+                             const QString& startSfenStr,
+                             const QStringList* sfenRecord,
+                             const StartGameDialog* dlg,
+                             bool bottomIsP1);
 };
 
 #endif // MATCHCOORDINATOR_H
