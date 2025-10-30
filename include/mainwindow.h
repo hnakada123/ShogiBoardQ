@@ -44,6 +44,7 @@
 #include "kifuloadcoordinator.h"
 #include "kifutypes.h"
 #include "positioneditcontroller.h"
+#include "gamestartcoordinator.h"
 
 // ==============================
 // Macros / aliases
@@ -70,6 +71,7 @@ class QEvent;
 class ShogiView;
 class BoardSyncPresenter;
 class AnalysisResultsPresenter;
+class GameStartCoordinator;
 
 // ============================================================
 // MainWindow
@@ -525,6 +527,12 @@ private:
 private slots:
     void onErrorBusOccurred(const QString& msg);
 
+    void onPreStartCleanupRequested_();
+    void onApplyTimeControlRequested_(const GameStartCoordinator::TimeControl& tc);
+    void onGameWillStart_(const MatchCoordinator::StartOptions& opt);
+    void onGameStarted_(const MatchCoordinator::StartOptions& opt);
+    void onGameStartFailed_(const QString& reason);
+
 private:
     // --- ctorの分割先 ---
     void setupCentralWidgetContainer_();   // centralWidget と QVBoxLayout を一度だけ構築
@@ -543,6 +551,9 @@ private:
 
     void ensureBoardSyncPresenter_();
     void ensureAnalysisPresenter_();
+
+    GameStartCoordinator* m_gameStart = nullptr;
+    void ensureGameStartCoordinator_();
 };
 
 #endif // MAINWINDOW_H
