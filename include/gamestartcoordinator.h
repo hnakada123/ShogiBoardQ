@@ -7,6 +7,7 @@
 // 既存の司令塔
 #include "matchcoordinator.h"
 
+class QWidget;
 class ShogiClock;
 class ShogiGameController;
 class ShogiView;
@@ -54,11 +55,23 @@ public:
         bool autoStartEngineMove = true;        // 先手がエンジンなら初手 go を起動
     };
 
+    // ★ 追加: MainWindow から「開始前の適用（時計/人手前など）」を依頼するための軽量入力
+    struct Request {
+        int       mode = 0;           // PlayMode を int で受ける（enum 依存を避ける）
+        QString   startSfen;          // "startpos ..." or "<sfen> [b|w] ..."
+        bool      bottomIsP1 = true;  // 「人を手前」初期希望
+        QWidget*  startDialog = nullptr; // 持ち時間UI（QWidgetなら型不問：objectNameとproperty参照）
+        ShogiClock* clock = nullptr;     // 任意（参照のみ）
+    };
+
 public:
     explicit GameStartCoordinator(const Deps& deps, QObject* parent = nullptr);
 
     // メイン API: StartOptions を受け取り対局を開始
     void start(const StartParams& params);
+
+    // ★ 追加: 開始前の時計/表示ポリシー適用（MainWindow::startGameBasedOnMode 内から呼ぶ）
+    void prepare(const Request& req);
 
 signals:
     // （開始前フック）UI/状態を初期化してほしい
@@ -66,6 +79,9 @@ signals:
 
     // 時計適用の依頼（MainWindow 側の既存ロジックへ接続してください）
     void requestApplyTimeControl(const GameStartCoordinator::TimeControl& tc);
+
+    // ★ 追加: コメントに合わせたエイリアス（どちらか一方だけを接続してください）
+    void applyTimeControlRequested(const GameStartCoordinator::TimeControl& tc);
 
     // 進捗通知
     void willStart(const MatchCoordinator::StartOptions& opt);
@@ -75,11 +91,21 @@ signals:
 private:
     bool validate_(const StartParams& params, QString& whyNot) const;
 
+    // ★ 追加: ダイアログからの抽出ヘルパ（型非依存：objectName + property 読み）
+    static int  readIntProperty (const QObject* root, const char* objectName,
+                               const char* prop = "value",   int  def = 0);
+    static bool readBoolProperty(const QObject* root, const char* objectName,
+                                 const char* prop = "checked", bool def = false);
+    static TimeControl extractTimeControlFromDialog(const QWidget* dlg);
+
 private:
     MatchCoordinator*    m_match = nullptr;
     ShogiClock*          m_clock = nullptr;
     ShogiGameController* m_gc    = nullptr;
     ShogiView*           m_view  = nullptr;
 };
+
+Q_DECLARE_METATYPE(GameStartCoordinator::TimeControl)
+Q_DECLARE_METATYPE(GameStartCoordinator::Request)
 
 #endif // GAMESTARTCOORDINATOR_H
