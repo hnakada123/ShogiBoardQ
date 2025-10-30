@@ -32,7 +32,6 @@
 #include "matchcoordinator.h"
 #include "kifuvariationengine.h"
 #include "branchcandidatescontroller.h"
-#include "numeric_right_align_comma_delegate.h"
 #include "turnmanager.h"
 #include "errorbus.h"
 #include "kifuloadcoordinator.h"
@@ -43,6 +42,7 @@
 #include "playernameservice.h"
 #include "analysisresultspresenter.h"
 #include "boardsyncpresenter.h"
+#include "gamestartcoordinator.h"
 
 using KifuIoService::makeDefaultSaveFileName;
 using KifuIoService::writeKifuFile;
@@ -3664,4 +3664,125 @@ void MainWindow::ensureAnalysisPresenter_()
 {
     if (!m_analysisPresenter)
         m_analysisPresenter = new AnalysisResultsPresenter(this);
+}
+
+void MainWindow::ensureGameStartCoordinator_()
+{
+    if (m_gameStart) return;
+
+    GameStartCoordinator::Deps d;
+    d.match = m_match;
+    d.clock = m_shogiClock;
+    d.gc    = m_gameController;
+    d.view  = m_shogiView;
+
+    m_gameStart = new GameStartCoordinator(d, this);
+
+    // 依頼シグナルを既存メソッドへ接続（ラムダ不使用）
+    connect(m_gameStart, &GameStartCoordinator::requestPreStartCleanup,
+            this, &MainWindow::onPreStartCleanupRequested_);
+
+    connect(m_gameStart, &GameStartCoordinator::requestApplyTimeControl,
+            this, &MainWindow::onApplyTimeControlRequested_);
+
+    // 任意（ログやUI反映）
+    connect(m_gameStart, &GameStartCoordinator::willStart,
+            this, &MainWindow::onGameWillStart_);
+
+    connect(m_gameStart, &GameStartCoordinator::started,
+            this, &MainWindow::onGameStarted_);
+
+    connect(m_gameStart, &GameStartCoordinator::startFailed,
+            this, &MainWindow::onGameStartFailed_);
+}
+
+// 対局開始前の UI/状態初期化（ハイライトや選択をクリア等）
+void MainWindow::onPreStartCleanupRequested_()
+{
+    if (m_boardController) m_boardController->clearAllHighlights();
+    // 棋譜欄や解析UIのリセット、各種フラグ初期化など
+    // setReplayMode(false); 等、既存処理をここへ集約
+}
+
+// 対局開始前の時計適用（GameStartCoordinator からの依頼を受ける）
+void MainWindow::onApplyTimeControlRequested_(const GameStartCoordinator::TimeControl& tc)
+{
+    if (!m_shogiClock) return;
+
+    // 1) 進行中なら一旦止めて経過分を確定させる（安全）
+    m_shogiClock->stopClock();
+
+    // 2) ms → sec 変換（切り捨て：UIは分単位入力が多く端数は通常発生しない想定）
+    auto msToSecFloor = [](qint64 ms) -> int {
+        return (ms <= 0) ? 0 : static_cast<int>(ms / 1000);
+    };
+
+    const bool limited = tc.enabled;
+
+    const int p1BaseSec = limited ? msToSecFloor(tc.p1.baseMs) : 0;
+    const int p2BaseSec = limited ? msToSecFloor(tc.p2.baseMs) : 0;
+
+    const int byo1Sec   = msToSecFloor(tc.p1.byoyomiMs);
+    const int byo2Sec   = msToSecFloor(tc.p2.byoyomiMs);
+    const int inc1Sec   = msToSecFloor(tc.p1.incrementMs);
+    const int inc2Sec   = msToSecFloor(tc.p2.incrementMs);
+
+    // 3) byoyomi と increment は排他的：byoyomi が1つでも設定されていれば byoyomi を優先
+    const bool useByoyomi = (byo1Sec > 0) || (byo2Sec > 0);
+
+    const int finalByo1 = useByoyomi ? byo1Sec : 0;
+    const int finalByo2 = useByoyomi ? byo2Sec : 0;
+    const int finalInc1 = useByoyomi ? 0       : inc1Sec;
+    const int finalInc2 = useByoyomi ? 0       : inc2Sec;
+
+    // 4) 時間切れ敗北の扱い
+    //    有限時間なら true、無制限（考慮時間のみ計測）なら false
+    m_shogiClock->setLoseOnTimeout(limited);
+
+    // 5) 時計へ一括適用（内部で各種状態/キャッシュが初期化され、timeUpdated がemitされる）
+    m_shogiClock->setPlayerTimes(
+        p1BaseSec, p2BaseSec,
+        finalByo1, finalByo2,
+        finalInc1, finalInc2,
+        /*isLimitedTime=*/limited
+        );
+
+    // 6) 初期手番の推定（SFENの手番 ' b ' = 先手, ' w ' = 後手）
+    //    StartOptionsはここに来ないため、MainWindowが保持するSFENから推定します。
+    auto sideFromSfen = [](const QString& sfen) -> int {
+        // " ... b ... " / " ... w ... " を想定
+        return sfen.contains(QStringLiteral(" w ")) ? 2 : 1; // 既定は先手
+    };
+    const QString sfenForStart =
+        !m_startSfenStr.isEmpty() ? m_startSfenStr :
+            (!m_currentSfenStr.isEmpty() ? m_currentSfenStr : QStringLiteral("startpos b - 1"));
+    m_shogiClock->setCurrentPlayer(sideFromSfen(sfenForStart));
+
+    // ここでは startClock() は呼びません。
+    // 実際の開始/手番側の起動は MatchCoordinator / GameStartCoordinator 側のフローに委譲します。
+    qDebug().noquote()
+        << "[Clock] applied:"
+        << "p1=" << p1BaseSec << "s,"
+        << "p2=" << p2BaseSec << "s,"
+        << (useByoyomi
+                ? QStringLiteral("byoyomi(%1/%2)s").arg(finalByo1).arg(finalByo2)
+                : QStringLiteral("increment(%1/%2)s").arg(finalInc1).arg(finalInc2))
+        << "limited=" << limited
+        << "startSide=" << (m_shogiClock->currentPlayer() == 1 ? "P1" : "P2");
+}
+
+// ログやUI反映用（任意）
+void MainWindow::onGameWillStart_(const MatchCoordinator::StartOptions& opt)
+{
+    Q_UNUSED(opt);
+    // ステータスバー表示など
+}
+void MainWindow::onGameStarted_(const MatchCoordinator::StartOptions& opt)
+{
+    Q_UNUSED(opt);
+    // ボタン状態やラベルの更新など
+}
+void MainWindow::onGameStartFailed_(const QString& reason)
+{
+    // QMessageBox::critical(this, tr("開始失敗"), reason);
 }
