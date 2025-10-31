@@ -742,3 +742,48 @@ QPoint ShogiGameController::lastMoveTo() const
     // previousFileTo/previousRankTo は 1..9（盤上）または 0（未設定）想定
     return QPoint(previousFileTo, previousRankTo);
 }
+
+void ShogiGameController::applyTimeoutLossFor(int clockPlayer)
+{
+    // すでに結果が付いているなら何もしない
+    if (m_result != NoResult) return;
+
+    // clockPlayer: 1 or 2（それ以外は無視）
+    if (clockPlayer == 1) {
+        // 先手（Player1）が時間切れ → 後手（Player2）の勝ち
+        setResult(Player2Wins);
+    } else if (clockPlayer == 2) {
+        // 後手（Player2）が時間切れ → 先手（Player1）の勝ち
+        setResult(Player1Wins);
+    } else {
+        // 不正値は無視（必要ならエラー通知も可）
+        // emit errorOccurred(tr("applyTimeoutLossFor: invalid player %1").arg(clockPlayer));
+    }
+}
+
+void ShogiGameController::applyResignationOfCurrentSide()
+{
+    // すでに結果が付いているなら何もしない
+    if (m_result != NoResult) return;
+
+    // 現在手番側が投了 → 相手の勝ち
+    if (m_currentPlayer == Player1) {
+        setResult(Player2Wins);
+    } else if (m_currentPlayer == Player2) {
+        setResult(Player1Wins);
+    } else {
+        // 手番未設定時は安全側に倒して引き分け扱い（必要に応じて変更可）
+        // emit errorOccurred(tr("applyResignationOfCurrentSide: current player is invalid."));
+        setResult(Draw);
+    }
+}
+
+void ShogiGameController::finalizeGameResult()
+{
+    // 既に確定していれば何もしない
+    if (m_result != NoResult) return;
+
+    // ここまで来て未確定なら、currentPlayer に基づく既存の決定ロジックを利用
+    // （あなたの既存メソッド：現手番が後手なら先手勝ち、現手番が先手なら後手勝ち）
+    gameResult();
+}

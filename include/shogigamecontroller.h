@@ -95,6 +95,11 @@ public:
 
     QPoint lastMoveTo() const;  // 直前着手の移動先（筋, 段）を返す
 
+    // 既存の public: メソッド群のどこか（validateAndMove などの近く）に追記
+    void applyTimeoutLossFor(int clockPlayer);     // player==1 なら先手の時間切れ→後手勝ち／player==2 なら先手勝ち
+    void applyResignationOfCurrentSide();          // 現在手番側が投了 → 相手の勝ち
+    void finalizeGameResult();                     // 結果未確定なら最終決定（未決のときは currentPlayer に基づいて勝敗をセット）
+
 public slots:
     // 新規対局の準備
     // 将棋盤、駒台を初期化（何も駒がない）し、入力のSFEN文字列の配置に将棋盤、駒台の駒を
