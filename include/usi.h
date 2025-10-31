@@ -127,6 +127,9 @@ public:
     void sendPositionAndGoMate(const QString& sfen, int timeMs, bool infinite);
     void sendStopForMate();
 
+    // 将棋エンジンを起動し、対局開始に関するコマンドを送信する。
+    void startAndInitializeEngine(const QString& engineFile, const QString& enginename);
+
     // --- 詰み結果 ---
     struct TsumeResult {
         enum Kind { Solved, NoMate, NotImplemented, Unknown } kind = Unknown;
@@ -411,9 +414,6 @@ private:
 
     // 将棋エンジンに対局開始に関するコマンドを送信する。
     void sendInitialCommands(const QString& enginename);
-
-    // 将棋エンジンを起動し、対局開始に関するコマンドを送信する。
-    void startAndInitializeEngine(const QString& engineFile, const QString& enginename);
 
     // bestmove文字列（例: "7g7f", "P*5e"など）から移動元の座標（盤上の駒の場合）または持ち駒の種類（持ち駒を打つ場合）を解析する。
     void parseMoveFrom(const QString& move, int& fileFrom, int& rankFrom);
