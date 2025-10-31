@@ -3,6 +3,7 @@
 #include "matchcoordinator.h"
 #include "shogiclock.h"
 #include "shogigamecontroller.h"
+#include "sfenpositiontracer.h"
 
 #include <QDebug>
 #include <QWidget>
@@ -29,8 +30,8 @@ bool GameStartCoordinator::validate_(const StartParams& p, QString& whyNot) cons
         whyNot = QStringLiteral("MatchCoordinator が未設定です。");
         return false;
     }
-    // StartOptions の最低限チェック（必要に応じて追加）
-    if (p.opt.mode == MatchCoordinator::Mode::NotStarted) {
+    // ★ StartOptions::mode は PlayMode。NotStarted を弾く
+    if (p.opt.mode == PlayMode::NotStarted) {
         whyNot = QStringLiteral("対局モードが NotStarted のままです。");
         return false;
     }
@@ -112,17 +113,27 @@ void GameStartCoordinator::prepareInitialPosition(const Ctx& c)
 {
     if (!c.view) return;
 
-    // 開始SFEN → 現在SFEN → 平手初期 の優先で盤へ反映
-    if (c.startSfenStr && !c.startSfenStr->isEmpty()) {
-        c.view->setFromSfen(*c.startSfenStr);
-    } else if (c.currentSfenStr && !c.currentSfenStr->isEmpty()) {
-        c.view->setFromSfen(*c.currentSfenStr);
-    } else {
-        c.view->initializeToFlatStartingPosition();
+    // 優先順：開始SFEN → 現在SFEN
+    const QString sfen =
+        (c.startSfenStr   && !c.startSfenStr->isEmpty())   ? *c.startSfenStr :
+            (c.currentSfenStr && !c.currentSfenStr->isEmpty()) ? *c.currentSfenStr :
+            QString();
+
+    if (!sfen.isEmpty()) {
+        // ★ ここで妥当性チェックのみ。適用は既存フローに委譲する。
+        SfenPositionTracer tracer;
+        if (tracer.setFromSfen(sfen)) {
+            qDebug().noquote() << "[GameStartCoordinator] SFEN validated.";
+            return; // 有効ならここで終了（実適用は後段フローに任せる）
+        } else {
+            qWarning().noquote() << "[GameStartCoordinator] Invalid SFEN. Fallback to flat start.";
+        }
     }
-    // GameController 側の内部初期化が必要なら、プロジェクトの実APIに合わせて追記してください。
-    // if (c.gc) { c.gc->resetGameStateForNewMatch(); }
+
+    // ★ SFENが空 or 無効 → 平手初期を盤に用意（このAPIは既存）
+    c.view->initializeToFlatStartingPosition();
 }
+
 
 void GameStartCoordinator::initializeGame(const Ctx& c)
 {
