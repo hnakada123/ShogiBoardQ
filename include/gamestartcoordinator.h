@@ -55,7 +55,7 @@ public:
         bool autoStartEngineMove = true;        // 先手がエンジンなら初手 go を起動
     };
 
-    // ★ 追加: MainWindow から「開始前の適用（時計/人手前など）」を依頼するための軽量入力
+    // ★ MainWindow から「開始前の適用（時計/人手前など）」を依頼するための軽量入力
     struct Request {
         int       mode = 0;           // PlayMode を int で受ける（enum 依存を避ける）
         QString   startSfen;          // "startpos ..." or "<sfen> [b|w] ..."
@@ -64,14 +64,33 @@ public:
         ShogiClock* clock = nullptr;     // 任意（参照のみ）
     };
 
+    // ★ 段階実行用（開始準備の小分け実行に使う）
+    struct Ctx {
+        ShogiView*           view   = nullptr;
+        ShogiGameController* gc     = nullptr;
+        ShogiClock*          clock  = nullptr;
+        // 開始SFEN・現在SFENを必要に応じて参照（存在すれば使用）
+        QString*             startSfenStr   = nullptr;
+        QString*             currentSfenStr = nullptr;
+    };
+
 public:
     explicit GameStartCoordinator(const Deps& deps, QObject* parent = nullptr);
 
     // メイン API: StartOptions を受け取り対局を開始
     void start(const StartParams& params);
 
-    // ★ 追加: 開始前の時計/表示ポリシー適用（MainWindow::startGameBasedOnMode 内から呼ぶ）
+    // 開始前の時計/表示ポリシー適用（MainWindow::startGameBasedOnMode 内から呼ぶ）
     void prepare(const Request& req);
+
+    // ★ 段階実行 API（MainWindow から逐次呼び出し可能）
+    void prepareDataCurrentPosition(const Ctx& c);
+    void prepareInitialPosition(const Ctx& c);
+    void initializeGame(const Ctx& c);
+    void setTimerAndStart(const Ctx& c);
+
+    // ★ プレイモード判定（StartOptions を司令塔で評価）
+    int  determinePlayMode(const MatchCoordinator::StartOptions& opt) const;
 
 signals:
     // （開始前フック）UI/状態を初期化してほしい
@@ -80,7 +99,7 @@ signals:
     // 時計適用の依頼（MainWindow 側の既存ロジックへ接続してください）
     void requestApplyTimeControl(const GameStartCoordinator::TimeControl& tc);
 
-    // ★ 追加: コメントに合わせたエイリアス（どちらか一方だけを接続してください）
+    // 互換用エイリアス（どちらか一方だけ接続してください：ラムダ不要）
     void applyTimeControlRequested(const GameStartCoordinator::TimeControl& tc);
 
     // 進捗通知
@@ -91,7 +110,7 @@ signals:
 private:
     bool validate_(const StartParams& params, QString& whyNot) const;
 
-    // ★ 追加: ダイアログからの抽出ヘルパ（型非依存：objectName + property 読み）
+    // ダイアログからの抽出ヘルパ（型非依存：objectName + property 読み）
     static int  readIntProperty (const QObject* root, const char* objectName,
                                const char* prop = "value",   int  def = 0);
     static bool readBoolProperty(const QObject* root, const char* objectName,

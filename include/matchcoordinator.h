@@ -469,6 +469,32 @@ public:
                              const QStringList* sfenRecord,
                              const StartGameDialog* dlg,
                              bool bottomIsP1);
+
+    // ★ 今回追加：時間/手番・終局の処理（MainWindowから移管）
+    void handleTimeUpdated();
+    void handlePlayerTimeOut(int player); // 1 or 2
+    void handleResignationRequest();
+    void handleGameEnded();
+    void handleGameOverStateChanged();
+
+    // ★ 開始直後のタイマー起動や初手 go 判定を1本化
+    void startMatchTimingAndMaybeInitialGo();
+
+signals:
+    // UIへは最小限の“文字列/色”等だけ通知（Presenterで受ける前提でもOK）
+    void uiUpdateTurnAndClock(const QString& turnText,
+                              const QString& p1Text,
+                              const QString& p2Text);
+    void uiNotifyTimeout(int player);
+    void uiNotifyResign();
+    void uiNotifyGameEnded();
+
+    // 司令塔内のタイムティックが進んだ際（MainWindowはこの1本でUI更新に反応）
+    void timeTick();
+
+private:
+    // 内部の計算ヘルパ（UI非依存）
+    void recomputeClockSnapshot(QString& turnText, QString& p1, QString& p2) const;
 };
 
 #endif // MATCHCOORDINATOR_H
