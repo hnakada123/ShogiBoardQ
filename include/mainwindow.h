@@ -554,6 +554,9 @@ private:
 
     GameStartCoordinator* m_gameStart = nullptr;
     void ensureGameStartCoordinator_();
+
+    // mainwindow.h のプライベートメンバ
+    class NavigationPresenter* m_navPresenter = nullptr;
 };
 
 #endif // MAINWINDOW_H

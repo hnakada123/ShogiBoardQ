@@ -15,6 +15,9 @@
 #include "kifutypes.h"
 #include "branchdisplayplan.h"
 
+class NavigationPresenter;
+class EngineAnalysisTab;
+
 class KifuLoadCoordinator : public QObject
 {
     Q_OBJECT
@@ -64,6 +67,8 @@ public:
     };
 
     void loadKifuFromFile(const QString& filePath);
+
+    void setAnalysisTab(EngineAnalysisTab* tab);
 
 public slots:
     void applyResolvedRowAndSelect(int row, int selPly);
@@ -116,6 +121,7 @@ private:
     QHash<int, QMap<int, BranchCandidateDisplay>>& m_branchDisplayPlan;
     std::unique_ptr<KifuVariationEngine> m_varEngine;
     bool m_branchTreeLocked = false;  // ← 分岐ツリーの追加・変更を禁止するロック
+    NavigationPresenter* m_navPresenter = nullptr;
 
     QString prepareInitialSfen(const QString& filePath, QString& teaiLabel) const;
     void populateGameInfo(const QList<KifGameInfoItem>& items);
@@ -146,6 +152,7 @@ private:
     void dumpAllRowsSfenTable() const;
     void dumpAllLinesGameMoves() const;
     void buildBranchCandidateDisplayPlan();
+    void ensureNavigationPresenter_();
 };
 
 #endif // KIFULOADCOORDINATOR_H

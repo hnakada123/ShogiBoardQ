@@ -5,7 +5,10 @@
 #include "kifurecordlistmodel.h"     // ← 実体定義（必須）
 #include "kifubranchlistmodel.h"     // ← 実体定義（必須）
 #include "branchdisplayplan.h"
+#include "navigationpresenter.h"
+#include "engineanalysistab.h"
 
+#include <QDebug>
 #include <QStyledItemDelegate>
 #include <QAbstractItemView>         // view->model() を使うなら
 #include <QFile>
@@ -659,88 +662,6 @@ void KifuLoadCoordinator::rebuildGameMoves(const QString& initialSfen, const QSt
         m_gameMoves.push_back(ShogiMove(from, to, moving, captured, isProm));
         tracer.applyUsiMove(usi);
     }
-}
-
-void KifuLoadCoordinator::applyResolvedRowAndSelect(int row, int selPly)
-{
-    if (row < 0 || row >= m_resolvedRows.size()) {
-        qDebug() << "[APPLY] invalid row =" << row << " rows=" << m_resolvedRows.size();
-        return;
-    }
-
-    // 行を確定
-    m_activeResolvedRow = row;
-    const auto& r = m_resolvedRows[row];
-
-    // 盤面＆棋譜モデル（まず行データを丸ごと差し替え）
-    *m_sfenRecord = r.sfen;   // 0..N のSFEN列
-    m_gameMoves   = r.gm;     // 1..N のUSI列
-
-    // ★ 手数を正規化して共有メンバへ反映（0=初期局面）
-    const int maxPly = r.disp.size();
-    m_activePly = qBound(0, selPly, maxPly);
-
-    // 棋譜欄へ反映（モデル差し替え＋選択手へスクロール）
-    showRecordAtPly(r.disp, m_activePly);
-    m_currentSelectedPly = m_activePly;
-
-    // RecordPane 経由で安全に選択・スクロール
-    if (m_kifuRecordModel) {
-        const QModelIndex idx = m_kifuRecordModel->index(m_activePly, 0);
-        if (idx.isValid()) {
-            if (m_recordPane) {
-                if (QTableView* view = m_recordPane->kifuView()) {
-                    if (view->model() == m_kifuRecordModel) {
-                        view->setCurrentIndex(idx);
-                        view->scrollTo(idx, QAbstractItemView::PositionAtCenter);
-                    }
-                }
-            }
-        }
-    }
-
-    // ======== 分岐候補の更新（Plan 方式に一本化）========
-    {
-        if (m_loadingKifu) {
-            // ★ 読み込み中は分岐更新をスキップ（ノイズ抑制）
-            qDebug() << "[BRANCH] skip during loading (applyResolvedRowAndSelect)";
-            if (m_kifuBranchModel) {
-                m_kifuBranchModel->clearBranchCandidates();
-                m_kifuBranchModel->setHasBackToMainRow(false);
-            }
-            if (QTableView* view = m_kifuBranchView
-                                       ? m_kifuBranchView
-                                       : (m_recordPane ? m_recordPane->branchView() : nullptr)) {
-                if (view) {
-                    view->setVisible(false);
-                    view->setEnabled(false);
-                }
-            }
-        } else {
-            // ★ ここだけで十分：Plan から分岐候補欄を構築・表示
-            showBranchCandidatesFromPlan(/*row*/m_activeResolvedRow, /*ply1*/m_activePly);
-        }
-    }
-    // ======== 差し替えここまで ========
-
-    // 盤面ハイライト・矢印ボタン
-    emit syncBoardAndHighlightsAtRow(m_activePly);
-    emit enableArrowButtons();
-
-    qDebug().noquote() << "[APPLY] row=" << row
-                       << " ply=" << m_activePly
-                       << " rows=" << m_resolvedRows.size()
-                       << " dispSz=" << r.disp.size();
-
-    // 分岐ツリー側の黄色ハイライト同期（EngineAnalysisTab に移譲）
-    if (m_analysisTab) {
-        m_analysisTab->highlightBranchTreeAt(/*row*/m_activeResolvedRow,
-                                             /*ply*/m_activePly,
-                                             /*centerOn*/false);
-    }
-
-    // ★ 棋譜欄の「分岐あり」行をオレンジでマーク
-    updateKifuBranchMarkersForActiveRow();
 }
 
 // 現在表示用の棋譜列（disp）を使ってモデルを再構成し、selectPly 行を選択・同期する
@@ -1760,9 +1681,52 @@ void KifuLoadCoordinator::buildBranchCandidateDisplayPlan()
     }
 }
 
-// 追加実装（ラッパー）
-void KifuLoadCoordinator::showBranchCandidates(int row, int ply1)
+// AnalysisTab の受け取り（MainWindow 側から呼ばれる想定）
+void KifuLoadCoordinator::setAnalysisTab(EngineAnalysisTab* tab)
 {
-    // 既存の内部関数に委譲（表示だけ更新・選択は動かさない）
-    showBranchCandidatesFromPlan(row, ply1);
+    m_analysisTab = tab;
+
+    // Presenter が既にあれば依存を更新
+    if (m_navPresenter) {
+        NavigationPresenter::Deps d;
+        d.coordinator = this;
+        d.analysisTab = m_analysisTab;
+        m_navPresenter->setDeps(d);
+    }
+}
+
+void KifuLoadCoordinator::ensureNavigationPresenter_()
+{
+    if (m_navPresenter) return;
+
+    NavigationPresenter::Deps d;
+    d.coordinator = this;
+    d.analysisTab = m_analysisTab;
+
+    m_navPresenter = new NavigationPresenter(d, this);
+
+    // 必要なら通知を拾ってログや別UIに伝播
+    // connect(m_navPresenter, &NavigationPresenter::branchUiUpdated,
+    //         this, &KifuLoadCoordinator::onBranchUiUpdated); // ※スロット用意時
+}
+
+// 既存：disp/sfen/gm の差し替え・モデル更新などを行った後で Presenter を呼ぶ
+void KifuLoadCoordinator::applyResolvedRowAndSelect(int row, int selPly)
+{
+    // ...（既存処理：disp/sfen/gmを差し替え、選択/盤/棋譜を同期）...
+
+    // Presenter に“一括更新”を依頼（候補再構築 → ハイライト）
+    ensureNavigationPresenter_();
+    m_navPresenter->refreshAll(row, selPly);
+}
+
+// 既存：分岐候補モデルの構築・表示更新を担う関数
+void KifuLoadCoordinator::showBranchCandidates(int row, int ply)
+{
+    // ...（既存処理：候補の生成、branchModel への詰め替え、RecordPane の表示更新 等）...
+
+    // ※ ここで m_navPresenter->refreshBranchCandidates(...) を呼ぶと再帰になるので NG
+    //    代わりに「事後通知API」で“ハイライトと通知”だけ行う
+    ensureNavigationPresenter_();
+    m_navPresenter->updateAfterBranchListChanged(row, ply);
 }
