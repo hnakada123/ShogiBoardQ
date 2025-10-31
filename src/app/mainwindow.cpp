@@ -44,6 +44,10 @@
 #include "boardsyncpresenter.h"
 #include "gamestartcoordinator.h"
 #include "navigationpresenter.h"
+#include "analysiscoordinator.h"
+#include "kifuanalysislistmodel.h"
+#include "kifuanalysisresultsdisplay.h"
+#include "analysiscoordinator.h"
 
 using KifuIoService::makeDefaultSaveFileName;
 using KifuIoService::writeKifuFile;
@@ -117,6 +121,7 @@ MainWindow::MainWindow(QWidget *parent)
     , m_gameCount(0)
     , m_gameController(nullptr)
     , m_analysisModel(nullptr)
+    , m_anaCoord(nullptr)
 {
     ui->setupUi(this);
 
@@ -881,21 +886,10 @@ void MainWindow::displayKifuAnalysisDialog()
 
     const int result = m_analyzeGameRecordDialog->exec();
     if (result == QDialog::Accepted) {
-        // 解析は司令塔（MatchCoordinator）経由のため、存在を保証する
-        if (!m_match) {
-            initMatchCoordinator();
-        }
-        if (!m_match) {
-            displayErrorMessage(u8"内部エラー: MatchCoordinator を初期化できません。");
-            delete m_analyzeGameRecordDialog;
-            m_analyzeGameRecordDialog = nullptr;
-            return;
-        }
-
-        // 解析結果ビューを用意（モデル/ビューの生成・表示）
+        // 解析結果の受け皿（モデル/ビュー）を準備
         displayAnalysisResults();
 
-        // 本体は司令塔委譲版 analyzeGameRecord() を呼ぶ
+        // 実行（以降の“回し方／投入”は AnalysisCoordinator 側）
         analyzeGameRecord();
     }
 
@@ -1741,104 +1735,121 @@ void MainWindow::startTsumiSearch()
     }
 }
 
-// 棋譜解析を開始する（エンジン制御は MatchCoordinator に委譲）
 void MainWindow::analyzeGameRecord()
 {
-    // 1) UI 上のプレイモードは「棋譜解析モード」を保持
     m_playMode = AnalysisMode;
 
-    if (!m_match || !m_analyzeGameRecordDialog) return;
-
-    // 2) 解析設定（ダイアログ値）
-    const int  byoyomiMs  = m_analyzeGameRecordDialog->byoyomiSec() * 1000;
-    const int  engineIdx  = m_analyzeGameRecordDialog->engineNumber();
-    const auto engine     = m_analyzeGameRecordDialog->engineList().at(engineIdx);
-    const QString enginePath = engine.path;
-    const QString engineName = m_analyzeGameRecordDialog->engineName();
-
-    // 3) 解析開始手（初手から / 現在手から）
-    const int startIndexRaw = m_analyzeGameRecordDialog->initPosition() ? 0 : m_currentMoveIndex;
-    const int startIndex    = qBound(0, startIndexRaw, m_positionStrList.size() - 1);
-
-    // 4) ループ上限（※テスト用で3手に絞っていた制限を解除）
-    const int endIndex   = 3;
-
-    // 5) 直前評価値（差分計算用）
-    int previousScore = 0;
-
-    for (int moveIndex = startIndex; moveIndex < endIndex; ++moveIndex) {
-        // --- UI：現在手番の表示を GameController に反映（従来挙動を踏襲） ---
-        if (m_gameMoves.at(moveIndex).movingPiece.isUpper()) {
-            m_gameController->setCurrentPlayer(ShogiGameController::Player1);
-        } else {
-            m_gameController->setCurrentPlayer(ShogiGameController::Player2);
-        }
-
-        // --- 送信用 position を取得 ---
-        const QString positionStr = m_positionStrList.at(moveIndex);
-
-        // --- エンジン制御は司令塔へ。cleanup 互換のためモードは ConsidarationMode を指定 ---
-        MatchCoordinator::AnalysisOptions opt;
-        opt.enginePath  = enginePath;
-        opt.engineName  = engineName;
-        opt.positionStr = positionStr;
-        opt.byoyomiMs   = byoyomiMs;
-        opt.mode        = ConsidarationMode; // ★ engine 側の停止/片付けルートを使う
-
-        // ★ ここが重要 ★
-        // 初回だけ startAnalysis() でエンジンを起動し、
-        // 2手目以降は continueAnalysis() で同一プロセスに次の position を送る。
-        if (moveIndex == startIndex) {
-            m_match->startAnalysis(opt); // 初回のみ起動（内部で destroy→起動）
-        } else {
-            m_match->continueAnalysis(positionStr, byoyomiMs); // 2手目以降は使い回し（quit しない）
-        }
-
-        // --- 解析結果の取得（司令塔から主エンジンを覗く） ---
-        auto* eng = m_match->primaryEngine();
-        const QString currentScore   = (eng ? eng->scoreStr()    : QStringLiteral("0"));
-        const QString engineReadout  = (eng ? eng->pvKanjiStr()  : QString());
-
-        // --- モデルへ追加：指し手/評価値/差分/読み筋 ---
-        const QString currentMoveRecord =
-            (m_moveRecords && moveIndex < m_moveRecords->size())
-                ? m_moveRecords->at(moveIndex)->currentMove()
-                : QString();
-
-        const QString scoreDifference =
-            QString::number(currentScore.toInt() - previousScore);
-        previousScore = currentScore.toInt();
-
-        if (m_analysisModel) {
-            m_analysisModel->appendItem(
-                new KifuAnalysisResultsDisplay(currentMoveRecord,
-                                               currentScore,
-                                               scoreDifference,
-                                               engineReadout));
-        }
-        if (m_analysisResultsView) {
-            m_analysisResultsView->scrollToBottom();
-            m_analysisResultsView->update();
-        }
-
-        // --- 現局面から 1 手進める（既存の選択適用フローを踏襲） ---
-        if (!m_resolvedRows.isEmpty()) {
-            const int row    = qBound(0, m_activeResolvedRow, m_resolvedRows.size() - 1);
-            const int maxPly = m_resolvedRows[row].disp.size();
-            const int cur    = qBound(0, m_activePly, maxPly);
-            if (cur < maxPly) {
-                applySelect(row, cur + 1);   // 旧 navigateToNextMove 相当
-            }
-        }
-
-        // --- 評価値グラフ更新（先手側を使用） ---
-        redrawEngine1EvaluationGraph();
+    if (!m_analyzeGameRecordDialog) return;
+    if (!m_sfenRecord || m_sfenRecord->isEmpty()) {
+        displayErrorMessage(QStringLiteral("内部エラー: sfenRecord が未準備です。棋譜読み込み後に実行してください。"));
+        return;
     }
 
-    // 6) 解析セッションの後始末（ここでだけ quit→破棄）
-    //    ※ 途中では絶対に quit を送らない
-    m_match->handleBreakOffConsidaration();
+    // --- AnalysisCoordinator を用意（初回のみ生成）---
+    if (!m_anaCoord) {
+        AnalysisCoordinator::Deps d;
+        d.sfenRecord = m_sfenRecord;          // ★ ここを AC に渡す
+        m_anaCoord = new AnalysisCoordinator(d, this);
+
+        // (A) AC → エンジン送信（USI生文字列）
+        // 既存の主エンジン（m_usi1）にブリッジ
+        connect(m_anaCoord, &AnalysisCoordinator::requestSendUsiCommand,
+                m_usi1,     &Usi::sendRaw, Qt::UniqueConnection);
+
+        // (B) エンジン標準出力 → AC への橋渡し
+        // Usi が生行を signal していないため、ログモデル経由で拾う（直近行のみ）
+        // もし Usi に「engineStdoutLine(QString)」のような signal を足せるなら、
+        // そちらを onEngineInfoLine/onEngineBestmoveReceived に直結する方が綺麗です。
+        if (m_lineEditModel1) {
+            connect(m_lineEditModel1, &UsiCommLogModel::usiCommLogChanged, this, [this]() {
+                if (!m_anaCoord) return;
+                const QString line = m_lineEditModel1->usiCommLog().trimmed();
+                if (line.startsWith(QStringLiteral("info "))) {
+                    m_anaCoord->onEngineInfoLine(line);
+                } else if (line.startsWith(QStringLiteral("bestmove "))) {
+                    m_anaCoord->onEngineBestmoveReceived(line);
+                }
+            });
+        }
+
+        // (C) 進捗を結果モデルへ投入（差分は簡易に直前値から算出）
+        connect(m_anaCoord, &AnalysisCoordinator::analysisProgress,
+                this, [this](int ply, int depth, int seldepth, int scoreCp, int mate,
+                       const QString& pv, const QString& raw) {
+                    if (!m_analysisModel) return;
+
+                    // 現手の表記（存在すれば棋譜モデルから）
+                    QString moveLabel;
+                    if (m_moveRecords && ply >= 0 && m_moveRecords->size() > ply) {
+                        moveLabel = m_moveRecords->at(ply)->currentMove();
+                    } else {
+                        moveLabel = QStringLiteral("ply %1").arg(ply);
+                    }
+
+                    // 評価値（詰みは便宜上大きな値表現 or そのまま "mate N" にしたければ文字列化）
+                    QString evalStr;
+                    static int prev = 0;
+                    if (mate != 0) {
+                        evalStr = QStringLiteral("mate %1").arg(mate);
+                    } else if (scoreCp != std::numeric_limits<int>::min()) {
+                        evalStr = QString::number(scoreCp);
+                    } else {
+                        evalStr = QStringLiteral("0");
+                    }
+                    const int curVal = (mate != 0) ? prev : (scoreCp == std::numeric_limits<int>::min() ? 0 : scoreCp);
+                    const QString diff = QString::number(curVal - prev);
+                    prev = curVal;
+
+                    m_analysisModel->appendItem(new KifuAnalysisResultsDisplay(
+                        moveLabel,              // 指し手
+                        evalStr,                // 評価値
+                        diff,                   // 差分
+                        pv                      // 読み筋（Kanji化は必要なら既存経路で）
+                        ));
+                });
+
+        // （任意）開始/終了イベントでUI側の状態を合わせたい場合
+        // connect(m_anaCoord, &AnalysisCoordinator::analysisStarted,  this, [](int s, int e, AnalysisCoordinator::Mode m){ /* ... */ });
+        // connect(m_anaCoord, &AnalysisCoordinator::analysisFinished, this, [](AnalysisCoordinator::Mode m){ /* ... */ });
+    }
+
+    // --- ダイアログ設定を Options に反映 ---
+    AnalysisCoordinator::Options opt;
+    {
+        // 1局面あたりの思考時間
+        opt.movetimeMs = m_analyzeGameRecordDialog->byoyomiSec() * 1000;
+
+        // 範囲（初手から/現在から）
+        const int startPlyRaw = m_analyzeGameRecordDialog->initPosition() ? 0 : qMax(0, m_activePly);
+        opt.startPly = qBound(0, startPlyRaw, m_sfenRecord->size() - 1);
+        opt.endPly   = m_sfenRecord->size() - 1;  // 末尾まで
+
+        // MultiPV（ダイアログに項目がなければ 1 固定）
+        // 例: if (m_analyzeGameRecordDialog->hasMultiPV()) opt.multiPV = m_analyzeGameRecordDialog->multiPV();
+        opt.multiPV     = 1;
+        opt.centerTree  = true;
+    }
+    m_anaCoord->setOptions(opt);
+
+    // --- エンジン起動（選択エンジンで USI 初期化）---
+    const int  engineIdx = m_analyzeGameRecordDialog->engineNumber();
+    const auto engines   = m_analyzeGameRecordDialog->engineList();
+    if (engineIdx < 0 || engineIdx >= engines.size()) {
+        displayErrorMessage(QStringLiteral("エンジン選択が不正です。"));
+        return;
+    }
+    if (!m_usi1) {
+        displayErrorMessage(QStringLiteral("内部エラー: Usi インスタンスが未初期化です。"));
+        return;
+    }
+    const QString enginePath = engines.at(engineIdx).path;
+    const QString engineName = m_analyzeGameRecordDialog->engineName();
+    m_usi1->startAndInitializeEngine(enginePath, engineName); // usi→usiok / setoption / isready→readyok
+
+    // --- 解析開始！（AC が position / go を投げ、結果を analysisProgress で通知）---
+    m_anaCoord->startAnalyzeRange();
 }
+
 
 // 設定ファイルにGUI全体のウィンドウサイズを書き込む。
 // また、将棋盤のマスサイズも書き込む。

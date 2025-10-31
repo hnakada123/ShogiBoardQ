@@ -72,6 +72,7 @@ class ShogiView;
 class BoardSyncPresenter;
 class AnalysisResultsPresenter;
 class GameStartCoordinator;
+class AnalysisCoordinator;
 
 // ============================================================
 // MainWindow
@@ -557,6 +558,8 @@ private:
 
     // mainwindow.h のプライベートメンバ
     class NavigationPresenter* m_navPresenter = nullptr;
+
+    AnalysisCoordinator* m_anaCoord { nullptr };  // 解析司令塔（AC）
 };
 
 #endif // MAINWINDOW_H
