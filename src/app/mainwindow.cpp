@@ -43,6 +43,7 @@
 #include "analysisresultspresenter.h"
 #include "boardsyncpresenter.h"
 #include "gamestartcoordinator.h"
+#include "navigationpresenter.h"
 
 using KifuIoService::makeDefaultSaveFileName;
 using KifuIoService::writeKifuFile;
@@ -2272,7 +2273,7 @@ void MainWindow::onMainMoveRowChanged(int selPly)
     // いまアクティブな“本譜 or 分岐”行
     const int row = qBound(0, m_activeResolvedRow, m_resolvedRows.size() - 1);
 
-    // 行に対応する disp/sfen/gm を差し替えたうえで
+    // 行に対応する disp/sfen/gm を差し替え（Presenter更新は Coordinator 側で実施）
     applyResolvedRowAndSelect(row, safePly);
 
     // その手数の局面を反映し、最後の一手をハイライト
@@ -2292,6 +2293,8 @@ void MainWindow::populateBranchListForPly(int ply)
                          : qBound(0, m_activeResolvedRow, m_resolvedRows.size() - 1));
 
     const int safePly = qMax(0, ply);
+
+    // 分岐候補欄の更新は Coordinator へ委譲
     m_kifuLoadCoordinator->showBranchCandidates(row, safePly);
 }
 
@@ -2368,6 +2371,8 @@ void MainWindow::onBranchCandidateActivated(const QModelIndex& index)
 void MainWindow::applyResolvedRowAndSelect(int row, int selPly)
 {
     if (!m_kifuLoadCoordinator) return;
+
+    // 状態の差し替え（disp/sfen/gm）と Presenter 更新は Coordinator 側の責務
     m_kifuLoadCoordinator->applyResolvedRowAndSelect(row, selPly);
 }
 
