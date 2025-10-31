@@ -1,5 +1,8 @@
 #include "gamestartcoordinator.h"
 #include "shogiview.h"
+#include "matchcoordinator.h"
+#include "shogiclock.h"
+#include "shogigamecontroller.h"
 
 #include <QDebug>
 #include <QWidget>
@@ -27,13 +30,16 @@ bool GameStartCoordinator::validate_(const StartParams& p, QString& whyNot) cons
         return false;
     }
     // StartOptions の最低限チェック（必要に応じて追加）
-    if (p.opt.mode == PlayMode::NotStarted) {
+    if (p.opt.mode == MatchCoordinator::Mode::NotStarted) {
         whyNot = QStringLiteral("対局モードが NotStarted のままです。");
         return false;
     }
     return true;
 }
 
+// ===================================================================
+// メイン API: StartOptions を受け取り対局を開始
+// ===================================================================
 void GameStartCoordinator::start(const StartParams& params)
 {
     QString reason;
@@ -49,17 +55,17 @@ void GameStartCoordinator::start(const StartParams& params)
     // --- 2) 時計適用の依頼（具体的なセットは UI 層に任せる） ---
     if (params.tc.enabled) {
         emit requestApplyTimeControl(params.tc);
-        // 互換のため、コメント記述に合わせた別名シグナルも併発
+        // 互換シグナル（どちらか一方だけ接続想定）
         emit applyTimeControlRequested(params.tc);
     }
 
     // --- 3) 対局をセットアップ & 開始 ---
     emit willStart(params.opt);
 
-    // configure（司令塔へ一任）
+    // 司令塔へ一任
     m_match->configureAndStart(params.opt);
 
-    // --- 4) 初手がエンジン手番なら go を起動（司令塔側が内包していても重複起動ではなく安全） ---
+    // --- 4) 初手がエンジン手番なら go を起動 ---
     if (params.autoStartEngineMove) {
         m_match->startInitialEngineMoveIfNeeded();
     }
@@ -70,8 +76,9 @@ void GameStartCoordinator::start(const StartParams& params)
                        << static_cast<int>(params.opt.mode);
 }
 
-// ========================= 追加：開始前適用 API =========================
-
+// ===================================================================
+// 追加：開始前適用 API（軽量リクエスト）
+// ===================================================================
 void GameStartCoordinator::prepare(const Request& req)
 {
     Q_UNUSED(req.mode);
@@ -79,7 +86,7 @@ void GameStartCoordinator::prepare(const Request& req)
     Q_UNUSED(req.bottomIsP1);
     Q_UNUSED(req.clock);
 
-    // 1) UI/内部状態のプレクリアを要求（必要に応じて MainWindow 側で処理）
+    // 1) UI/内部状態のプレクリアを要求
     emit requestPreStartCleanup();
 
     // 2) ダイアログ（QWidget）から時間設定を抽出して依頼
@@ -90,8 +97,62 @@ void GameStartCoordinator::prepare(const Request& req)
     emit applyTimeControlRequested(tc);
 }
 
-// ========================= 追加：ダイアログ抽出ヘルパ =========================
+// ===================================================================
+// 段階実行 API：MainWindow 側の関数差し替え先
+// ===================================================================
+void GameStartCoordinator::prepareDataCurrentPosition(const Ctx& c)
+{
+    Q_UNUSED(c);
+    // ここでは UI 側でのプレクリア（シグナル）を優先し、具体的な同期は必要最小限に留める。
+    // 必要に応じて、ビュー側の「現在選択手番での局面反映」等を呼ぶ。
+    // 例）if (c.view) { /* c.view->applySfenAtCurrentPlyIfAllowed(); */ }
+}
 
+void GameStartCoordinator::prepareInitialPosition(const Ctx& c)
+{
+    if (!c.view) return;
+
+    // 開始SFEN → 現在SFEN → 平手初期 の優先で盤へ反映
+    if (c.startSfenStr && !c.startSfenStr->isEmpty()) {
+        c.view->setFromSfen(*c.startSfenStr);
+    } else if (c.currentSfenStr && !c.currentSfenStr->isEmpty()) {
+        c.view->setFromSfen(*c.currentSfenStr);
+    } else {
+        c.view->initializeToFlatStartingPosition();
+    }
+    // GameController 側の内部初期化が必要なら、プロジェクトの実APIに合わせて追記してください。
+    // if (c.gc) { c.gc->resetGameStateForNewMatch(); }
+}
+
+void GameStartCoordinator::initializeGame(const Ctx& c)
+{
+    Q_UNUSED(c);
+    // 盤とコントローラの整合、先後・手番の初期表示などを司令塔外で済ませている場合は NO-OP。
+    // 必要に応じて、ここに c.gc ↔ c.view の同期 API を追加してください。
+    // 例）if (c.gc && c.view) { c.gc->syncBoardFromView(c.view); }
+}
+
+void GameStartCoordinator::setTimerAndStart(const Ctx& c)
+{
+    Q_UNUSED(c);
+    if (!m_match) return;
+
+    // 時計の具体的適用は UI 層（MainWindow の onApplyTimeControlRequested_）で実施済み想定。
+    // ここでは司令塔にタイマー起動と初手 go の起動可否判断を一任。
+    m_match->startMatchTimingAndMaybeInitialGo();
+}
+
+// ===================================================================
+// プレイモード判定（StartOptions を司令塔で評価）
+// ===================================================================
+int GameStartCoordinator::determinePlayMode(const MatchCoordinator::StartOptions& opt) const
+{
+    return static_cast<int>(opt.mode);
+}
+
+// ===================================================================
+// ダイアログ抽出ヘルパ
+// ===================================================================
 int GameStartCoordinator::readIntProperty(const QObject* root,
                                           const char* objectName,
                                           const char* prop,
@@ -147,13 +208,13 @@ GameStartCoordinator::extractTimeControlFromDialog(const QWidget* dlg)
         tc.p1.incrementMs = 0;
         tc.p2.incrementMs = 0;
     } else if (inc1 > 0 || inc2 > 0) {
-        tc.p1.byoyomiMs   = 0;
-        tc.p2.byoyomiMs   = 0;
-        tc.p1.incrementMs = qMax(0, inc1) * 1000LL;
-        tc.p2.incrementMs = qMax(0, inc2) * 1000LL;
+        tc.p1.byoyomiMs = qMax(0, inc1) * 1000LL;
+        tc.p2.byoyomiMs = qMax(0, inc2) * 1000LL;
+        tc.p1.byoyomiMs = 0;
+        tc.p2.byoyomiMs = 0;
     } else {
-        tc.p1.byoyomiMs   = 0;
-        tc.p2.byoyomiMs   = 0;
+        tc.p1.byoyomiMs = 0;
+        tc.p2.byoyomiMs = 0;
         tc.p1.incrementMs = 0;
         tc.p2.incrementMs = 0;
     }

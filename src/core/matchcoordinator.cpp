@@ -1904,3 +1904,77 @@ void MatchCoordinator::prepareAndStartGame(PlayMode mode,
     // 4) 初手がエンジン手番なら go→bestmove
     startInitialEngineMoveIfNeeded();
 }
+
+void MatchCoordinator::startMatchTimingAndMaybeInitialGo()
+{
+    // タイマー起動
+    if (m_clock) m_clock->armAndStartCurrentTurn();
+
+    // 初手がエンジンなら go
+    startInitialEngineMoveIfNeeded();
+}
+
+void MatchCoordinator::handleTimeUpdated()
+{
+    // MainWindow::onMatchTimeUpdated → 司令塔へ
+    emit timeTick(); // UI側はこの信号でリフレッシュをかける
+
+    QString turn, p1, p2;
+    recomputeClockSnapshot(turn, p1, p2);
+    emit uiUpdateTurnAndClock(turn, p1, p2);
+}
+
+void MatchCoordinator::handlePlayerTimeOut(int player)
+{
+    if (!m_gc) return;
+    // 負け処理を司令塔で集約
+    m_gc->applyTimeoutLossFor(player);
+    emit uiNotifyTimeout(player);
+    handleGameEnded();
+}
+
+void MatchCoordinator::handleResignationRequest()
+{
+    if (!m_gc) return;
+    m_gc->applyResignationOfCurrentSide();
+    emit uiNotifyResign();
+    handleGameEnded();
+}
+
+void MatchCoordinator::handleGameEnded()
+{
+    if (!m_gc) return;
+    m_gc->finalizeGameResult();
+    emit uiNotifyGameEnded();
+}
+
+void MatchCoordinator::handleGameOverStateChanged()
+{
+    // 元 MainWindow::onGameOverStateChanged のロジックをここへ
+    // 例：go/stopの扱い・UI有効/無効トグルの司令塔視点の判断などを集約
+    // 必要に応じて追加のUI信号を定義して通知
+}
+
+void MatchCoordinator::recomputeClockSnapshot(QString& turnText, QString& p1, QString& p2) const
+{
+    // 元 MainWindow::updateTurnAndTimekeepingDisplay の“計算部分”をここへ
+    // p1/p2 残り時間と手番表示を文字列化
+    if (!m_clock || !m_gc) { turnText.clear(); p1.clear(); p2.clear(); return; }
+
+    const bool p1Turn = (m_gc->sideToMove() == 1);
+    turnText = p1Turn ? QObject::tr("先手番") : QObject::tr("後手番");
+
+    const qint64 t1ms = m_clock->player1RemainingMs();
+    const qint64 t2ms = m_clock->player2RemainingMs();
+
+    auto mmss = [](qint64 ms) {
+        const qint64 s = ms / 1000;
+        const qint64 m = s / 60;
+        const qint64 r = s % 60;
+        return QStringLiteral("%1:%2").arg(m, 2, 10, QLatin1Char('0'))
+            .arg(r, 2, 10, QLatin1Char('0'));
+    };
+
+    p1 = mmss(t1ms);
+    p2 = mmss(t2ms);
+}

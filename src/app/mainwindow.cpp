@@ -1886,7 +1886,6 @@ void MainWindow::loadWindowSettings()
     // メインウィンドウのリサイズを行う。  
     const QSize sz = settings.value("SizeRelated/mainWindowSize", QSize(1100, 720)).toSize();
     if (sz.isValid() && sz.width() > 100 && sz.height() > 100) resize(sz);
-
 }
 
 void MainWindow::onReverseTriggered()
@@ -2039,7 +2038,6 @@ void MainWindow::onShogiProblemInitialPositionTriggered()
         m_posEdit->setTsumeShogiStartPosition(m_shogiView, m_boardController);
     }
 }
-
 
 // 盤面のサイズを拡大する。
 void MainWindow::enlargeBoard()
