@@ -246,8 +246,6 @@ private:
     void updateTurnStatus(int currentPlayer);
     void applySfenAtCurrentPly();
     void setGameInProgressActions(bool inProgress);
-    void displayPositionEditMenu();
-    void hidePositionEditMenu();
     void redrawEngine1EvaluationGraph();
     void redrawEngine2EvaluationGraph();
 
@@ -361,9 +359,6 @@ private slots:
     // --- 盤編集 / 表示 ---
     void beginPositionEditing();
     void finishPositionEditing();
-    void resetPiecesToStand();
-    void setStandardStartPosition();
-    void setTsumeShogiStartPosition();
     void flipBoardAndUpdatePlayerInfo();
     void enlargeBoard();
     void reduceBoardSize();
@@ -513,9 +508,6 @@ private:
 
     void ensureTurnSyncBridge_();
 
-    void showEditExitButtonOnBoard_();
-    void hideEditExitButtonOnBoard_();
-
     KifuLoadCoordinator *m_kifuLoadCoordinator = nullptr;
 
     void ensureHumanAtBottomIfApplicable_();
@@ -560,6 +552,11 @@ private:
     class NavigationPresenter* m_navPresenter = nullptr;
 
     AnalysisCoordinator* m_anaCoord { nullptr };  // 解析司令塔（AC）
+
+private slots:
+    void onReturnAllPiecesOnStandTriggered();
+    void onFlatHandInitialPositionTriggered();
+    void onShogiProblemInitialPositionTriggered();
 };
 
 #endif // MAINWINDOW_H

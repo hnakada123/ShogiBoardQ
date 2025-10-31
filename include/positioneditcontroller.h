@@ -37,6 +37,7 @@ public:
 
         // UI: 盤面右の「編集終了」ボタン表示
         std::function<void()> onShowEditExitButton;         // 任意
+        std::function<void()> onEnterEditMenu;               // 追加: 編集開始時に呼ぶ
     };
 
     // 局面編集終了に必要な情報
@@ -51,10 +52,19 @@ public:
 
         // UI: 「編集終了」ボタンの後片付け
         std::function<void()> onHideEditExitButton;         // 任意
+        std::function<void()> onLeaveEditMenu;               // 追加: 編集終了時に呼ぶ
     };
 
     void beginPositionEditing(const BeginEditContext& c);
     void finishPositionEditing(const FinishEditContext& c);
+
+    // ★ 追加: 盤操作と「編集終了」ボタン制御（アクション/開始時に直接呼ぶ）
+    void resetPiecesToStand(ShogiView* view, BoardInteractionController* bic);
+    void setStandardStartPosition(ShogiView* view, BoardInteractionController* bic);
+    void setTsumeShogiStartPosition(ShogiView* view, BoardInteractionController* bic);
+
+    void showEditExitButtonOnBoard(ShogiView* view, QObject* receiver, const char* finishSlot);
+    void hideEditExitButtonOnBoard(ShogiView* view);
 };
 
 #endif // POSITIONEDITCONTROLLER_H
