@@ -1908,7 +1908,7 @@ void MatchCoordinator::prepareAndStartGame(PlayMode mode,
 void MatchCoordinator::startMatchTimingAndMaybeInitialGo()
 {
     // タイマー起動
-    if (m_clock) m_clock->armAndStartCurrentTurn();
+    if (m_clock) m_clock->startClock();
 
     // 初手がエンジンなら go
     startInitialEngineMoveIfNeeded();
@@ -1955,23 +1955,28 @@ void MatchCoordinator::handleGameOverStateChanged()
     // 必要に応じて追加のUI信号を定義して通知
 }
 
+// これに置き換え（該当関数のみ）
 void MatchCoordinator::recomputeClockSnapshot(QString& turnText, QString& p1, QString& p2) const
 {
-    // 元 MainWindow::updateTurnAndTimekeepingDisplay の“計算部分”をここへ
-    // p1/p2 残り時間と手番表示を文字列化
-    if (!m_clock || !m_gc) { turnText.clear(); p1.clear(); p2.clear(); return; }
+    turnText.clear(); p1.clear(); p2.clear();
+    if (!m_clock) return;
 
-    const bool p1Turn = (m_gc->sideToMove() == 1);
-    turnText = p1Turn ? QObject::tr("先手番") : QObject::tr("後手番");
+    // 手番テキスト：GCがあれば currentPlayer() で判定
+    if (m_gc) {
+        const bool p1Turn = (m_gc->currentPlayer() == ShogiGameController::Player1);
+        turnText = p1Turn ? QObject::tr("先手番") : QObject::tr("後手番");
+    }
 
-    const qint64 t1ms = m_clock->player1RemainingMs();
-    const qint64 t2ms = m_clock->player2RemainingMs();
+    // 残り時間：ShogiClockの既存ゲッターを利用
+    const qint64 t1ms = qMax<qint64>(0, m_clock->getPlayer1TimeIntMs());
+    const qint64 t2ms = qMax<qint64>(0, m_clock->getPlayer2TimeIntMs());
 
     auto mmss = [](qint64 ms) {
         const qint64 s = ms / 1000;
         const qint64 m = s / 60;
         const qint64 r = s % 60;
-        return QStringLiteral("%1:%2").arg(m, 2, 10, QLatin1Char('0'))
+        return QStringLiteral("%1:%2")
+            .arg(m, 2, 10, QLatin1Char('0'))
             .arg(r, 2, 10, QLatin1Char('0'));
     };
 
