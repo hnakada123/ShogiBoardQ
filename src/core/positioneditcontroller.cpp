@@ -1,5 +1,4 @@
 #include "positioneditcontroller.h"
-
 #include "shogiview.h"
 #include "shogiboard.h"
 #include "shogigamecontroller.h"
@@ -196,4 +195,60 @@ void PositionEditController::finishPositionEditing(const PositionEditController:
         c.bic->clearAllHighlights();
     }
     if (c.onHideEditExitButton) c.onHideEditExitButton();
+
+    // 追加: メニュー非表示（MainWindow 実装のコールバック）
+    if (c.onLeaveEditMenu) c.onLeaveEditMenu();
+}
+
+// ─────────────────────────────────────────────────────────────
+// 追加: 盤操作 API
+// ─────────────────────────────────────────────────────────────
+void PositionEditController::resetPiecesToStand(ShogiView* view, BoardInteractionController* bic)
+{
+    if (!view) return;
+    if (bic) bic->clearAllHighlights();
+    view->resetAndEqualizePiecesOnStands();
+}
+
+void PositionEditController::setStandardStartPosition(ShogiView* view, BoardInteractionController* bic)
+{
+    if (!view) return;
+    if (bic) bic->clearAllHighlights();
+    view->initializeToFlatStartingPosition();
+}
+
+void PositionEditController::setTsumeShogiStartPosition(ShogiView* view, BoardInteractionController* bic)
+{
+    if (!view) return;
+    if (bic) bic->clearAllHighlights();
+    view->shogiProblemInitialPosition();
+}
+
+// ─────────────────────────────────────────────────────────────
+// 追加: 「編集終了」ボタンの出し入れ（ShogiView 内の既存ボタンを利用）
+// ─────────────────────────────────────────────────────────────
+void PositionEditController::showEditExitButtonOnBoard(ShogiView* view, QObject* receiver, const char* finishSlot)
+{
+    if (!view) return;
+
+    // ShogiView 側で作成&配置（必要なら内部で生成）
+    view->relayoutEditExitButton();
+
+    // ボタン取得
+    if (QPushButton* exitBtn = view->findChild<QPushButton*>(QStringLiteral("editExitButton"))) {
+        // 重複接続防止
+        QObject::disconnect(exitBtn, SIGNAL(clicked()), receiver, finishSlot);
+        // 旧式シグナル（ラムダ不使用ポリシーに合わせる）
+        QObject::connect(exitBtn, SIGNAL(clicked()), receiver, finishSlot);
+        exitBtn->show();
+        exitBtn->raise();
+    }
+}
+
+void PositionEditController::hideEditExitButtonOnBoard(ShogiView* view)
+{
+    if (!view) return;
+    if (QPushButton* exitBtn = view->findChild<QPushButton*>(QStringLiteral("editExitButton"))) {
+        exitBtn->hide();
+    }
 }

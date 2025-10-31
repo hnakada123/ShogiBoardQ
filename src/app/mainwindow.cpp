@@ -135,9 +135,6 @@ MainWindow::MainWindow(QWidget *parent)
     // 画面骨格（棋譜/分岐/レイアウト/タブ/中央表示）
     buildGamePanels_();
 
-    // 初期UI状態（ボタン無効化・編集メニュー非表示など）
-    applyInitialUiState_();
-
     // ウィンドウ設定の復元（位置/サイズなど）
     restoreWindowAndSync_();
 
@@ -195,18 +192,6 @@ void MainWindow::buildGamePanels_()
 
     // m_tab を central に add する側を初期化
     initializeCentralGameDisplay();
-}
-
-void MainWindow::applyInitialUiState_()
-{
-    // 対局メニューの一部は必要に応じて。デフォルトでは非実行
-    // hideGameActions();
-
-    // 棋譜欄の下の矢印ボタンを無効化
-    disableArrowButtons();
-
-    // 局面編集メニューを隠す
-    hidePositionEditMenu();
 }
 
 void MainWindow::restoreWindowAndSync_()
@@ -1904,60 +1889,13 @@ void MainWindow::loadWindowSettings()
 
 }
 
-// 局面編集中のメニュー表示に変更する。
-void MainWindow::displayPositionEditMenu()
+void MainWindow::onReverseTriggered()
 {
-    // 「局面編集開始」を隠す。
-    ui->actionStartEditPosition->setVisible(false);
-
-    // 「局面編集終了」を表示する。
-    ui->actionEndEditPosition->setVisible(true);
-
-    // 「平手初期配置」を表示する。
-    ui->flatHandInitialPosition->setVisible(true);
-
-    // 「全ての駒を駒台へ」を表示する。
-    ui->returnAllPiecesOnStand->setVisible(true);
-
-    // 「先後反転」を表示する。
-    ui->reversal->setVisible(true);
-
-    // 「詰将棋初期配置」を表示する。
-    ui->shogiProblemInitialPosition->setVisible(true);
-
-    // 「手番変更」を表示する。
-    ui->turnaround->setVisible(true);
-}
-
-// 局面編集メニュー後のメニュー表示に変更する。
-void MainWindow::hidePositionEditMenu()
-{
-    // 「局面編集開始」を表示する。
-    ui->actionStartEditPosition->setVisible(true);
-
-    // 「局面編集終了」を隠す。
-    ui->actionEndEditPosition->setVisible(false);
-
-    // 「平手初期配置」を隠す。
-    ui->flatHandInitialPosition->setVisible(false);
-
-    // 「詰将棋初期配置」を隠す。
-    ui->shogiProblemInitialPosition->setVisible(false);
-
-    // 「全ての駒を駒台へ」を隠す。
-    ui->returnAllPiecesOnStand->setVisible(false);
-
-    // 「先後反転」を隠す。
-    ui->reversal->setVisible(false);
-
-    // 「手番変更」を隠す。
-    ui->turnaround->setVisible(false);
+    if (m_match) m_match->flipBoard();
 }
 
 void MainWindow::beginPositionEditing()
 {
-    displayPositionEditMenu();
-
     ensurePositionEditController_();
     if (!m_posEdit || !m_shogiView || !m_gameController) return;
 
@@ -1975,34 +1913,58 @@ void MainWindow::beginPositionEditing()
     ctx.currentSfenStr = &m_currentSfenStr;
     ctx.resumeSfenStr  = &m_resumeSfenStr;
 
-    // 盤右の「編集終了」ボタンは MainWindow のヘルパで表示
-    ctx.onShowEditExitButton = [this]() { this->showEditExitButtonOnBoard_(); };
+    // ★ メニュー表示（Controller → callback）
+    ctx.onEnterEditMenu = [this]() {
+        if (!ui) return;
+        ui->actionStartEditPosition->setVisible(false);
+        ui->actionEndEditPosition->setVisible(true);
+        ui->flatHandInitialPosition->setVisible(true);
+        ui->returnAllPiecesOnStand->setVisible(true);
+        ui->reversal->setVisible(true);
+        ui->shogiProblemInitialPosition->setVisible(true);
+        ui->turnaround->setVisible(true);
+    };
 
-    // 実行
+    // ★ 「編集終了」ボタン表示（Controller の API 経由）
+    ctx.onShowEditExitButton = [this]() {
+        if (m_posEdit && m_shogiView) {
+            m_posEdit->showEditExitButtonOnBoard(m_shogiView, this, SLOT(finishPositionEditing()));
+        }
+    };
+
+    // 実行（盤と文字列状態の同期・0手局面保存などは Controller が担当）
     m_posEdit->beginPositionEditing(ctx);
 
-    // ── 編集用アクション接続（重複防止） ───────────────────────────────
+    // ── 編集用アクション接続（ラムダを使わない / 重複防止） ─────────────
     if (ui) {
-        connect(ui->returnAllPiecesOnStand,      &QAction::triggered, this, &MainWindow::resetPiecesToStand,         Qt::UniqueConnection);
-        connect(ui->turnaround,                  &QAction::triggered, this, &MainWindow::toggleEditSideToMove,       Qt::UniqueConnection);
-        connect(ui->flatHandInitialPosition,     &QAction::triggered, this, &MainWindow::setStandardStartPosition,   Qt::UniqueConnection);
-        connect(ui->shogiProblemInitialPosition, &QAction::triggered, this, &MainWindow::setTsumeShogiStartPosition, Qt::UniqueConnection);
-        connect(ui->reversal,                    &QAction::triggered, this, &MainWindow::onReverseTriggered,         Qt::UniqueConnection);
-    }
-}
+        connect(ui->returnAllPiecesOnStand,     &QAction::triggered,
+                this, &MainWindow::onReturnAllPiecesOnStandTriggered,
+                Qt::UniqueConnection);
 
-void MainWindow::onReverseTriggered()
-{
-    if (m_match) m_match->flipBoard();
+        connect(ui->flatHandInitialPosition,    &QAction::triggered,
+                this, &MainWindow::onFlatHandInitialPositionTriggered,
+                Qt::UniqueConnection);
+
+        connect(ui->shogiProblemInitialPosition,&QAction::triggered,
+                this, &MainWindow::onShogiProblemInitialPositionTriggered,
+                Qt::UniqueConnection);
+
+        // 既存（手番変更/先後反転）はそのままでOK（ラムダ不使用）
+        connect(ui->turnaround, &QAction::triggered,
+                this, &MainWindow::toggleEditSideToMove,
+                Qt::UniqueConnection);
+
+        connect(ui->reversal,   &QAction::triggered,
+                this, &MainWindow::onReverseTriggered,
+                Qt::UniqueConnection);
+    }
 }
 
 void MainWindow::finishPositionEditing()
 {
-    // --- A) 自動同期を停止（ここが肝） ---
+    // --- A) 自動同期を一時停止（ここが肝） ---
     const bool prevGuard = m_onMainRowGuard;
     m_onMainRowGuard = true;
-
-    hidePositionEditMenu();
 
     ensurePositionEditController_();
     if (!m_posEdit || !m_shogiView || !m_gameController) {
@@ -2012,39 +1974,36 @@ void MainWindow::finishPositionEditing()
 
     // Controller に委譲して SFEN の確定・sfenRecord/開始SFEN の更新・UI 後片付けを実施
     PositionEditController::FinishEditContext ctx;
-    ctx.view               = m_shogiView;
-    ctx.gc                 = m_gameController;
-    ctx.bic                = m_boardController;
-    ctx.sfenRecord         = m_sfenRecord ? m_sfenRecord : nullptr;
+    ctx.view       = m_shogiView;
+    ctx.gc         = m_gameController;
+    ctx.bic        = m_boardController;
+    ctx.sfenRecord = m_sfenRecord ? m_sfenRecord : nullptr;
     ctx.startSfenStr       = &m_startSfenStr;
-    ctx.isResumeFromCurrent= &m_isResumeFromCurrent;
+    ctx.isResumeFromCurrent = &m_isResumeFromCurrent;
 
-    // 盤右の「編集終了」ボタンを隠す（MainWindow ヘルパ）
-    ctx.onHideEditExitButton = [this]() { this->hideEditExitButtonOnBoard_(); };
+    // ★ 「編集終了」ボタンの後片付け（Controller の API 経由）
+    ctx.onHideEditExitButton = [this]() {
+        if (m_posEdit && m_shogiView) {
+            m_posEdit->hideEditExitButtonOnBoard(m_shogiView);
+        }
+    };
 
+    // ★ メニューを元に戻す（Controller → callback）
+    ctx.onLeaveEditMenu = [this]() {
+        if (!ui) return;
+        ui->actionStartEditPosition->setVisible(true);
+        ui->actionEndEditPosition->setVisible(false);
+        ui->flatHandInitialPosition->setVisible(false);
+        ui->shogiProblemInitialPosition->setVisible(false);
+        ui->returnAllPiecesOnStand->setVisible(false);
+        ui->reversal->setVisible(false);
+        ui->turnaround->setVisible(false);
+    };
+
+    // 実行（盤→SFEN 反映、各種フラグ落とし、UI 後片付け）
     m_posEdit->finishPositionEditing(ctx);
 
-    // --- B) モデル/カウンタ系の初期化（既存の動きに合わせる） ---
-    m_currentMoveIndex    = 0;
-    m_totalMove           = 0;
-
-    // USI "position ..." ひな形を再生成（空 moves 事故防止）
-    initializePositionStringsForMatch_();
-
-    // --- C) UI後片付け ---
-    if (m_boardController) {
-        m_boardController->setMode(BoardInteractionController::Mode::HumanVsHuman);
-        m_boardController->clearAllHighlights();
-    }
-    if (ui) {
-        disconnect(ui->returnAllPiecesOnStand,      &QAction::triggered, this, &MainWindow::resetPiecesToStand);
-        disconnect(ui->turnaround,                  &QAction::triggered, this, &MainWindow::toggleEditSideToMove);
-        disconnect(ui->flatHandInitialPosition,     &QAction::triggered, this, &MainWindow::setStandardStartPosition);
-        disconnect(ui->shogiProblemInitialPosition, &QAction::triggered, this, &MainWindow::setTsumeShogiStartPosition);
-        disconnect(ui->reversal,                    &QAction::triggered, this, &MainWindow::onReverseTriggered);
-    }
-
-    // 編集フラグは Controller 側でも落としていますが、念のため明示
+    // 念のため（Controller 側でも落としています）
     if (m_shogiView) {
         m_shogiView->setPositionEditMode(false);
         m_shogiView->setMouseClickMode(false);
@@ -2060,33 +2019,27 @@ void MainWindow::finishPositionEditing()
              << " m_startSfenStr=" << m_startSfenStr;
 }
 
-// 「全ての駒を駒台へ」をクリックした時に実行される。
-// 先手と後手の駒を同じ枚数にして全ての駒を駒台に載せる。
-void MainWindow::resetPiecesToStand()
+void MainWindow::onReturnAllPiecesOnStandTriggered()
 {
-    if (m_boardController)
-        m_boardController->clearAllHighlights();
-
-    m_shogiView->resetAndEqualizePiecesOnStands();
+    if (m_posEdit && m_shogiView) {
+        m_posEdit->resetPiecesToStand(m_shogiView, m_boardController);
+    }
 }
 
-// 平手初期局面に盤面を初期化する。
-void MainWindow::setStandardStartPosition()
+void MainWindow::onFlatHandInitialPositionTriggered()
 {
-    if (m_boardController)
-        m_boardController->clearAllHighlights();
-
-    m_shogiView->initializeToFlatStartingPosition();
+    if (m_posEdit && m_shogiView) {
+        m_posEdit->setStandardStartPosition(m_shogiView, m_boardController);
+    }
 }
 
-// 詰将棋の初期局面に盤面を初期化する。
-void MainWindow::setTsumeShogiStartPosition()
+void MainWindow::onShogiProblemInitialPositionTriggered()
 {
-    if (m_boardController)
-        m_boardController->clearAllHighlights();
-
-    m_shogiView->shogiProblemInitialPosition();
+    if (m_posEdit && m_shogiView) {
+        m_posEdit->setTsumeShogiStartPosition(m_shogiView, m_boardController);
+    }
 }
+
 
 // 盤面のサイズを拡大する。
 void MainWindow::enlargeBoard()
@@ -3581,38 +3534,6 @@ void MainWindow::ensureTurnSyncBridge_()
 
     // 3) 初期同期：現時点の手番を即時反映（時計/ラベルのズレ防止）
     tm->setFromGc(gc->currentPlayer());
-}
-
-// 編集モードに入ったタイミングで呼ぶ：ボタン表示＆スロット接続（ラムダ不使用）
-void MainWindow::showEditExitButtonOnBoard_()
-{
-    if (!m_shogiView) return;
-
-    // ShogiView 側で作成&配置（必要なら内部で作成される）
-    m_shogiView->relayoutEditExitButton();
-
-    // ボタン取得
-    QPushButton* exitBtn = m_shogiView->findChild<QPushButton*>(QStringLiteral("editExitButton"));
-    if (!exitBtn) return;
-
-    // 重複接続防止のため一旦切る
-    QObject::disconnect(exitBtn, SIGNAL(clicked()), this, SLOT(finishPositionEditing()));
-
-    // 旧式マクロ接続（ラムダ不使用）
-    connect(exitBtn, SIGNAL(clicked()), this, SLOT(finishPositionEditing()));
-
-    // 表示
-    exitBtn->show();
-    exitBtn->raise();
-}
-
-// 編集モードを抜けるときに呼ぶ：ボタン非表示（接続は残しても害なし）
-void MainWindow::hideEditExitButtonOnBoard_()
-{
-    if (!m_shogiView) return;
-    if (QPushButton* exitBtn = m_shogiView->findChild<QPushButton*>(QStringLiteral("editExitButton"))) {
-        exitBtn->hide();
-    }
 }
 
 void MainWindow::ensureHumanAtBottomIfApplicable_()
