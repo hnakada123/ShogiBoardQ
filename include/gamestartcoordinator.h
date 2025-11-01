@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QString>
+#include <QDialog>
 
 // 既存の司令塔
 #include "matchcoordinator.h"
@@ -64,15 +65,30 @@ public:
         ShogiClock* clock = nullptr;     // 任意（参照のみ）
     };
 
-    // ★ 段階実行用（開始準備の小分け実行に使う）
     struct Ctx {
-        ShogiView*           view   = nullptr;
-        ShogiGameController* gc     = nullptr;
-        ShogiClock*          clock  = nullptr;
-        // 開始SFEN・現在SFENを必要に応じて参照（存在すれば使用）
-        QString*             startSfenStr   = nullptr;
-        QString*             currentSfenStr = nullptr;
+        ShogiView*             view = nullptr;
+        ShogiGameController*   gc = nullptr;
+        ShogiClock*            clock = nullptr;
+        QDialog*               startDlg = nullptr;
+        QString*               startSfenStr = nullptr;
+        QString*               currentSfenStr = nullptr;
+
+        // 追加（元MainWindowの状態を渡すため）
+        int   selectedPly = -1;       // 例: qMax(0, m_currentMoveIndex)
+        bool  resumeFromCurrent = true;
+
+        // ★ 追加：棋譜欄モデル／SFEN履歴（MainWindow が持っていたものを注入）
+        KifuRecordListModel* kifuModel  = nullptr;
+        QStringList*         sfenRecord = nullptr;
+
+        // 追加：この関数で使う情報
+        bool                 isReplayMode = false;     // 再生モード中は時計を動かさない
+
+        // MainWindow 側へ初期msを戻したい場合（NULLなら無視）
+        qint64*                 initialTimeP1MsOut = nullptr;
+        qint64*                 initialTimeP2MsOut = nullptr;
     };
+
 
 public:
     explicit GameStartCoordinator(const Deps& deps, QObject* parent = nullptr);
@@ -106,6 +122,8 @@ signals:
     void willStart(const MatchCoordinator::StartOptions& opt);
     void started(const MatchCoordinator::StartOptions& opt);
     void startFailed(const QString& reason);
+
+    void requestUpdateTurnDisplay();
 
 private:
     bool validate_(const StartParams& params, QString& whyNot) const;
