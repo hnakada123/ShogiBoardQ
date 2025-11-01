@@ -989,174 +989,61 @@ void MainWindow::prepareFallbackEvenStartForResume_()
 // 現在の局面で開始する場合に必要なListデータなどを用意する。
 void MainWindow::prepareDataCurrentPosition()
 {
-    // 現在ユーザが選んだ手数（0=開始局面, 1..N）
-    const int selPly = qMax(0, m_currentMoveIndex);
+    ensureGameStartCoordinator_();
 
-    m_isResumeFromCurrent = true;       // ← 再開モードを宣言
-    m_pendingEvalTrimPly  = selPly;     // ← 何手目まで残すかを記録だけしておく
+    GameStartCoordinator::Ctx c;
+    c.view           = m_shogiView;
+    c.gc             = m_gameController;
+    c.clock          = m_shogiClock;
+    c.startDlg       = m_startGameDialog;
+    c.startSfenStr   = &m_startSfenStr;
+    c.currentSfenStr = &m_currentSfenStr;
+    c.selectedPly        = qMax(0, m_currentMoveIndex);
+    c.resumeFromCurrent  = true;
 
-    // ★ 初回（履歴なし）で「現在の局面から」を選ばれたら → 平手で開始にフォールバック
-    if (!m_sfenRecord || m_sfenRecord->isEmpty()) {
-        qDebug() << "[resume] no history -> fallback to startpos (even game)";
-        prepareFallbackEvenStartForResume_();
-        return;
-    }
-
-    // ---- 以降、巻き戻し処理 ----
-    const bool prevGuard = m_onMainRowGuard;
-    m_onMainRowGuard = true;
-
-    if (m_kifuRecordModel) {
-        while (m_kifuRecordModel->rowCount() > (selPly + 1)) {
-            m_kifuRecordModel->removeLastItem();
-        }
-    }
-
-    if (m_gameMoves.size() > selPly) {
-        while (m_gameMoves.size() > selPly) {
-            m_gameMoves.removeLast();
-        }
-    } else {
-        m_gameMoves.clear();
-    }
-
-    if (m_positionStrList.size() > (selPly + 1)) {
-        while (m_positionStrList.size() > (selPly + 1)) {
-            m_positionStrList.removeLast();
-        }
-    } else {
-        m_positionStrList.clear();
-    }
-
-    if (m_sfenRecord) {
-        if (m_sfenRecord->size() > (selPly + 1)) {
-            while (m_sfenRecord->size() > (selPly + 1)) {
-                m_sfenRecord->removeLast();
-            }
-        } else {
-            // 既に selPly+1 以下なら何もしない（クリアしない）
-        }
-    }
-
-    // ハイライトのクリア → 復元（0→1始まりに +1 補正版を使用）
-    if (m_boardController) m_boardController->clearAllHighlights();
-    updateHighlightsForPly_(selPly);
-
-    m_onMainRowGuard = prevGuard;
-
-    // 再開用のスナップショット（選択手の局面）
-    m_resumeSfenStr.clear();
-    if (m_sfenRecord && m_sfenRecord->size() > selPly) {
-        m_resumeSfenStr = m_sfenRecord->at(selPly);
-    }
-
-    m_startSfenStr = m_sfenRecord->at(0);
-
-    // ★ 直前の終局状態を必ずクリア（これが残っていると updateGameRecord が return します）
-    resetGameFlags();
+    m_gameStart->prepareDataCurrentPosition(c);
 }
 
 // 初期局面からの対局する場合の準備を行う。
 void MainWindow::prepareInitialPosition()
 {
-    // 手数を0に戻す。
-    m_currentMoveIndex = 0;
+    ensureGameStartCoordinator_();
 
-    // 開始局面文字列をSFEN形式でセットする。（sfen文字あり）
-    static const QString startingPositionStr[14] = {
-        //  0. 平手
-        "startpos",
-        //  1. 香落ち
-        "sfen lnsgkgsn1/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1",
-        //  2. 右香落ち"
-        "sfen 1nsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1",
-        //  3. 角落ち
-        "sfen lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1",
-        //  4. 飛車落ち
-        "sfen lnsgkgsnl/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1",
-        //  5. 飛香落ち
-        "sfen lnsgkgsn1/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1",
-        //  6. 二枚落ち
-        "sfen lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1",
-        //  7. 三枚落ち
-        "sfen lnsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1",
-        //  8. 四枚落ち
-        "sfen 1nsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1",
-        //  9. 五枚落ち
-        "sfen 2sgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1",
-        // 10. 左五枚落ち
-        "sfen 1nsgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1",
-        // 11. 六枚落ち
-        "sfen 2sgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1",
-        // 12. 八枚落ち
-        "sfen 3gkg3/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1",
-        // 13. 十枚落ち
-        "sfen 4k4/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"
-    };
+    GameStartCoordinator::Ctx c;
+    c.view           = m_shogiView;
+    c.gc             = m_gameController;
+    c.clock          = m_shogiClock;
+    c.startDlg       = m_startGameDialog;
+    c.startSfenStr   = &m_startSfenStr;
+    c.currentSfenStr = &m_currentSfenStr;
+    c.kifuModel  = m_kifuRecordModel;
+    c.sfenRecord = m_sfenRecord;
 
-    // 「平手」「香落ち」等に開始局面文字列をセットする。
-    m_startPosStr = startingPositionStr[m_startGameDialog->startingPositionNumber() - 1];
-
-    // sfen文字列の取り出し
-    // "sfen 〜"で始まる文字列startpositionstrを入力して"sfen "を削除したSFEN文字列を
-    // 返す。startposの場合は、
-    // "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"を
-    // 返す。
-    m_startSfenStr = parseStartPositionToSfen(m_startPosStr);
-
-    // 棋譜欄の項目にヘッダを付け加える。
-    m_kifuRecordModel->appendItem(new KifuDisplay("=== 開始局面 ===", "（１手 / 合計）"));
-
-    // "sfen "を削除したSFEN文字列を格納する。
-    m_sfenRecord->append(m_startSfenStr);
+    m_gameStart->prepareInitialPosition(c);
 }
 
 // 残り時間をセットしてタイマーを開始する。
 void MainWindow::setTimerAndStart()
 {
-    // 時計が先に必要（MatchCoordinator のフックから触られても安全に）
     ensureClockReady_();
 
-    // （以下は元コードのまま＝時刻の読み取り）
-    const int basicTimeHour1    = m_startGameDialog->basicTimeHour1();
-    const int basicTimeMinutes1 = m_startGameDialog->basicTimeMinutes1();
-    const int basicTimeHour2    = m_startGameDialog->basicTimeHour2();
-    const int basicTimeMinutes2 = m_startGameDialog->basicTimeMinutes2();
-    const int byoyomi1          = m_startGameDialog->byoyomiSec1();
-    const int byoyomi2          = m_startGameDialog->byoyomiSec2();
-    const int binc              = m_startGameDialog->addEachMoveSec1();
-    const int winc              = m_startGameDialog->addEachMoveSec2();
+    ensureGameStartCoordinator_();
+    // 司令塔シグナルとUIの接続（初回どこかで一度だけ）
+    connect(m_gameStart, &GameStartCoordinator::requestUpdateTurnDisplay,
+            this, &MainWindow::updateTurnDisplay, Qt::UniqueConnection);
 
-    const int remainingTime1 = basicTimeHour1 * 3600 + basicTimeMinutes1 * 60;
-    const int remainingTime2 = basicTimeHour2 * 3600 + basicTimeMinutes2 * 60;
+    GameStartCoordinator::Ctx c;
+    c.view                 = m_shogiView;
+    c.gc                   = m_gameController;
+    c.clock                = m_shogiClock;
+    c.startDlg             = m_startGameDialog;
+    c.startSfenStr         = &m_startSfenStr;
+    c.currentSfenStr       = &m_currentSfenStr;
+    c.isReplayMode         = m_isReplayMode;
+    c.initialTimeP1MsOut   = &m_initialTimeP1Ms;  // 必要なら
+    c.initialTimeP2MsOut   = &m_initialTimeP2Ms;  // 必要なら
 
-    const bool isLoseOnTimeout = m_startGameDialog->isLoseOnTimeout();
-    const bool hasTimeLimit =
-        (basicTimeHour1*3600 + basicTimeMinutes1*60) > 0 ||
-        (basicTimeHour2*3600 + basicTimeMinutes2*60) > 0 ||
-        byoyomi1 > 0 || byoyomi2 > 0 || binc > 0 || winc > 0;
-
-    m_shogiClock->setLoseOnTimeout(isLoseOnTimeout);
-    m_shogiClock->setPlayerTimes(remainingTime1, remainingTime2,
-                                 byoyomi1, byoyomi2,
-                                 binc, winc,
-                                 hasTimeLimit);
-
-    // 初期msを保持（棋譜表示等の計算に使用）
-    m_initialTimeP1Ms = m_shogiClock->getPlayer1TimeIntMs();
-    m_initialTimeP2Ms = m_shogiClock->getPlayer2TimeIntMs();
-
-    // 再生中は時計を動かさない（表示だけ合わせて終了）
-    updateTurnDisplay();
-    m_shogiClock->updateClock();
-    if (!m_isReplayMode) {
-        m_shogiClock->startClock();
-    }
-
-    if (m_match && m_shogiClock) {
-        m_match->setClock(m_shogiClock);     // ★後差し替えでも確実に配線
-        m_match->pokeTimeUpdateNow();        // ★初期表示を即反映
-    }
+    m_gameStart->setTimerAndStart(c);
 }
 
 // TurnManager::changed を受けて UI/Clock を更新（＋手番を GameController に同期）
