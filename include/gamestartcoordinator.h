@@ -105,8 +105,8 @@ public:
     void initializeGame(const Ctx& c);
     void setTimerAndStart(const Ctx& c);
 
-    // ★ プレイモード判定（StartOptions を司令塔で評価）
-    int  determinePlayMode(const MatchCoordinator::StartOptions& opt) const;
+    // ダイアログ状態を読み、対局モードを返す（MainWindow::setPlayMode の移管）
+    PlayMode setPlayMode(const Ctx& c) const;
 
 signals:
     // （開始前フック）UI/状態を初期化してほしい
@@ -140,6 +140,15 @@ private:
     ShogiClock*          m_clock = nullptr;
     ShogiGameController* m_gc    = nullptr;
     ShogiView*           m_view  = nullptr;
+
+    // 対局モード判定（MainWindow から移管）
+    PlayMode determinePlayMode(int initPositionNumber,
+                               bool isPlayer1Human,
+                               bool isPlayer2Human) const;
+
+signals:
+    // エラー表示を UI に委譲（MainWindow::displayErrorMessage 相当）
+    void requestDisplayError(const QString& message) const;
 };
 
 Q_DECLARE_METATYPE(GameStartCoordinator::TimeControl)
