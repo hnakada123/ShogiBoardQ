@@ -149,9 +149,6 @@ MainWindow::MainWindow(QWidget *parent)
 
     // 司令塔やUIフォント/位置編集コントローラの最終初期化
     finalizeCoordinators_();
-
-    // ※ initializeComponents() 内で ensureTurnSyncBridge_() を呼んでいる想定。
-    //   二重呼び出しを避けるため、ここでは呼ばない。
 }
 
 void MainWindow::setupCentralWidgetContainer_()
@@ -709,71 +706,18 @@ void MainWindow::openWebsiteInExternalBrowser()
     QDesktopServices::openUrl(QUrl("https://github.com/hnakada123/ShogiBoardQ"));
 }
 
-// 対局モードを決定する。
-PlayMode MainWindow::determinePlayMode(const int initPositionNumber, const bool isPlayer1Human, const bool isPlayer2Human) const
-{
-    // 平手の対局の場合
-    if (initPositionNumber == 1) {
-        // 平手の人間対人間
-        if (isPlayer1Human && isPlayer2Human) return HumanVsHuman;
-
-        // 平手の人間対エンジン
-        if (isPlayer1Human && !isPlayer2Human) return EvenHumanVsEngine;
-
-        // 平手のエンジン対人間
-        if (!isPlayer1Human && isPlayer2Human) return EvenEngineVsHuman;
-
-        // 平手のエンジン対エンジン
-        if (!isPlayer1Human && !isPlayer2Human) return EvenEngineVsEngine;
-    }
-    // 駒落ちの対局の場合
-    else {
-        // 駒落ちの人間対人間
-        if (isPlayer1Human && isPlayer2Human) return HumanVsHuman;
-
-        // 駒落ちの人間対エンジン
-        if (isPlayer1Human && !isPlayer2Human) return HandicapHumanVsEngine;
-
-        // 駒落ちのエンジン対人間
-        if (!isPlayer1Human && isPlayer2Human) return HandicapEngineVsHuman;
-
-        // 駒落ちのエンジン対エンジン
-        if (!isPlayer1Human && !isPlayer2Human) return HandicapEngineVsEngine;
-    }
-
-    // 対局モードエラー
-    return PlayModeError;
-}
-
-// 対局モードを決定する。
 PlayMode MainWindow::setPlayMode()
 {
-    // 対局の開始局面番号を取得する。
-    int initPositionNumber = m_startGameDialog->startingPositionNumber();
+    ensureGameStartCoordinator_();
 
-    // 対局者1が人間であるかを取得する。
-    bool isPlayerHuman1 = m_startGameDialog->isHuman1();
+    GameStartCoordinator::Ctx c;
+    c.startDlg = m_startGameDialog;  // StartGameDialog*
 
-    // 対局者2が人間であるかを取得する。
-    bool isPlayerHuman2 = m_startGameDialog->isHuman2();
+    // 司令塔→UI のエラー表示接続（どこか一度だけでOK）
+    connect(m_gameStart, &GameStartCoordinator::requestDisplayError,
+            this, &MainWindow::displayErrorMessage, Qt::UniqueConnection);
 
-    // 対局者1がエンジンであるかを取得する。
-    bool isPlayerEngine1 = m_startGameDialog->isEngine1();
-
-    // 対局者2がエンジンであるかを取得する。
-    bool isPlayerEngine2 = m_startGameDialog->isEngine2();
-
-    // 対局モードを決定する。
-    PlayMode mode = determinePlayMode(initPositionNumber, isPlayerHuman1 && !isPlayerEngine1, isPlayerHuman2 && !isPlayerEngine2);
-
-    // エラーが発生した場合
-    if (mode == PlayModeError) {
-        // エラーメッセージを表示する。
-        displayErrorMessage(tr("An error occurred in MainWindow::determinePlayMode. There is a mistake in the game options."));
-    }
-
-    // 対局モードを返す。
-    return mode;
+    return m_gameStart->setPlayMode(c);
 }
 
 // 対局モード（人間対エンジンなど）に応じて対局処理を開始する。

@@ -365,14 +365,6 @@ void GameStartCoordinator::setTimerAndStart(const Ctx& c)
 }
 
 // ===================================================================
-// プレイモード判定（StartOptions を司令塔で評価）
-// ===================================================================
-int GameStartCoordinator::determinePlayMode(const MatchCoordinator::StartOptions& opt) const
-{
-    return static_cast<int>(opt.mode);
-}
-
-// ===================================================================
 // ダイアログ抽出ヘルパ
 // ===================================================================
 int GameStartCoordinator::readIntProperty(const QObject* root,
@@ -449,4 +441,75 @@ GameStartCoordinator::extractTimeControlFromDialog(const QWidget* dlg)
     }
 
     return tc;
+}
+
+PlayMode GameStartCoordinator::determinePlayMode(const int initPositionNumber,
+                                                 const bool isPlayer1Human,
+                                                 const bool isPlayer2Human) const
+{
+    // 平手（=1）と駒落ち（!=1）で分岐は同じ構造。元コードを忠実移植。
+    const bool isEven = (initPositionNumber == 1);
+
+    if (isEven) {
+        if (isPlayer1Human && isPlayer2Human)  return HumanVsHuman;
+        if (isPlayer1Human && !isPlayer2Human) return EvenHumanVsEngine;
+        if (!isPlayer1Human && isPlayer2Human) return EvenEngineVsHuman;
+        if (!isPlayer1Human && !isPlayer2Human) return EvenEngineVsEngine;
+    } else {
+        if (isPlayer1Human && isPlayer2Human)  return HumanVsHuman;
+        if (isPlayer1Human && !isPlayer2Human) return HandicapHumanVsEngine;
+        if (!isPlayer1Human && isPlayer2Human) return HandicapEngineVsHuman;
+        if (!isPlayer1Human && !isPlayer2Human) return HandicapEngineVsEngine;
+    }
+
+    return PlayModeError;
+}
+
+PlayMode GameStartCoordinator::setPlayMode(const Ctx& c) const
+{
+    // StartGameDialog から値を取得（MainWindow::setPlayMode の移管）
+    int  initPositionNumber = 1;
+    bool isHuman1 = false, isHuman2 = false;
+    bool isEngine1 = false, isEngine2 = false;
+
+    if (c.startDlg) {
+        if (auto dlg = qobject_cast<StartGameDialog*>(c.startDlg)) {
+            initPositionNumber = dlg->startingPositionNumber();
+            isHuman1           = dlg->isHuman1();
+            isHuman2           = dlg->isHuman2();
+            isEngine1          = dlg->isEngine1();
+            isEngine2          = dlg->isEngine2();
+        } else {
+            // 互換: property 経由のフェールセーフ
+            bool ok=false;
+            const QVariant pn = c.startDlg->property("startingPositionNumber");
+            initPositionNumber = pn.isValid() ? pn.toInt(&ok) : 1;
+            if (!ok) initPositionNumber = 1;
+
+            isHuman1  = c.startDlg->property("isHuman1").toBool();
+            isHuman2  = c.startDlg->property("isHuman2").toBool();
+            isEngine1 = c.startDlg->property("isEngine1").toBool();
+            isEngine2 = c.startDlg->property("isEngine2").toBool();
+        }
+    }
+
+    // 「Human と Engine の排他」を元コードと同じくここで整形
+    const bool p1Human = (isHuman1  && !isEngine1);
+    const bool p2Human = (isHuman2  && !isEngine2);
+
+    const PlayMode mode = determinePlayMode(initPositionNumber, p1Human, p2Human);
+
+    if (mode == PlayModeError) {
+        // 元のメッセージに近い文面で、UI へ委譲（MainWindow::displayErrorMessage 相当）
+        emit requestDisplayError(tr("An error occurred in GameStartCoordinator::determinePlayMode. "
+                                    "There is a mistake in the game options."));
+        qWarning().noquote() << "[GameStartCoordinator] setPlayMode: PlayModeError"
+                             << "initPos=" << initPositionNumber
+                             << " p1Human=" << p1Human << " p2Human=" << p2Human
+                             << " (raw human/engine: "
+                             << isHuman1 << "/" << isEngine1 << ", "
+                             << isHuman2 << "/" << isEngine2 << ")";
+    }
+
+    return mode;
 }
