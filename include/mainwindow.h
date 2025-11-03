@@ -73,6 +73,7 @@ class BoardSyncPresenter;
 class AnalysisResultsPresenter;
 class GameStartCoordinator;
 class AnalysisCoordinator;
+class GameRecordPresenter;
 
 // ============================================================
 // MainWindow
@@ -552,6 +553,9 @@ private:
     class NavigationPresenter* m_navPresenter = nullptr;
 
     AnalysisCoordinator* m_anaCoord { nullptr };  // 解析司令塔（AC）
+
+    GameRecordPresenter* m_recordPresenter {nullptr};
+    void ensureRecordPresenter_();
 
 private slots:
     void onReturnAllPiecesOnStandTriggered();

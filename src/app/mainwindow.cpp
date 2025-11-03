@@ -48,6 +48,7 @@
 #include "kifuanalysislistmodel.h"
 #include "kifuanalysisresultsdisplay.h"
 #include "analysiscoordinator.h"
+#include "recordpresenter.h"
 
 using KifuIoService::makeDefaultSaveFileName;
 using KifuIoService::writeKifuFile;
@@ -1039,55 +1040,20 @@ void MainWindow::setCurrentTurn()
 // 対局を開始する。
 void MainWindow::initializeGame()
 {
-    m_errorOccurred = false;
-    if (m_shogiView) m_shogiView->setErrorOccurred(false);
+    ensureGameStartCoordinator_();
 
-    m_startGameDialog = new StartGameDialog;
+    GameStartCoordinator::Ctx c;
+    c.view            = m_shogiView;
+    c.gc              = m_gameController;
+    c.clock           = m_shogiClock;
+    c.sfenRecord      = m_sfenRecord;           // QStringList*
+    c.currentSfenStr  = &m_currentSfenStr;       // 現局面の SFEN
+    c.startSfenStr    = &m_startSfenStr;         // 既定開始 SFEN（空でも可）
+    c.selectedPly     = m_currentSelectedPly;   // 必要なら GameStart 側で利用
+    c.isReplayMode    = m_isReplayMode;
 
-    if (m_startGameDialog->exec() == QDialog::Accepted) {
-        setReplayMode(false);
-
-        // ★ 先に取得しておく（これが肝）
-        const int startingPositionNumber = m_startGameDialog->startingPositionNumber();
-
-        m_gameCount++;
-
-        // ★ 2回目以降の対局でも、「現局面から」はフルリセットしない
-        if (m_gameCount > 1) {
-            if (startingPositionNumber > 0) {
-                resetToInitialState();            // 既存のフルリセット
-            }
-        }
-
-        // 対局オプションなど
-        setRemainingTimeAndCountDown();
-        getOptionFromStartGameDialog();
-
-        ensureClockReady_();
-
-        if (startingPositionNumber == 0) {
-            // 現在局面から開始：ここで「選択手まで残して末尾だけ切る」
-            prepareDataCurrentPosition();
-        } else {
-            prepareInitialPosition();
-        }
-
-        // 棋譜UI調整
-        if (m_playMode) {
-            disableArrowButtons();
-            if (m_recordPane && m_recordPane->kifuView())
-                m_recordPane->kifuView()->setSelectionMode(QAbstractItemView::NoSelection);
-        }
-
-        if (m_match) {
-            m_match->startNewGame(m_startSfenStr);
-        }
-        setCurrentTurn();
-        setTimerAndStart();
-
-        startGameBasedOnMode();
-    }
-    delete m_startGameDialog;
+    // 実処理は GameStartCoordinator 側で完結
+    m_gameStart->initializeGame(c);
 }
 
 // 設定ファイルにGUI全体のウィンドウサイズを書き込む。
@@ -3574,4 +3540,15 @@ void MainWindow::onGameStarted_(const MatchCoordinator::StartOptions& opt)
 void MainWindow::onGameStartFailed_(const QString& reason)
 {
     // QMessageBox::critical(this, tr("開始失敗"), reason);
+}
+
+void MainWindow::ensureRecordPresenter_()
+{
+    if (m_recordPresenter) return;
+
+    GameRecordPresenter::Deps d;
+    d.model = m_kifuRecordModel; // 既存の棋譜リストモデル
+    d.recordPane = m_recordPane; // 既存のRecordPane（任意）
+
+    m_recordPresenter = new GameRecordPresenter(d, this);
 }
