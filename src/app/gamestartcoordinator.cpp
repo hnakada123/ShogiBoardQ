@@ -9,6 +9,7 @@
 #include "startgamedialog.h"
 #include "kifudisplay.h"
 
+#include <QPointer>
 #include <QDebug>
 #include <QWidget>
 #include <QObject>
@@ -266,14 +267,6 @@ void GameStartCoordinator::prepareInitialPosition(const Ctx& c)
     qDebug().noquote() << "[GameStartCoordinator] prepareInitialPosition: sfen=" << sfen;
 }
 
-void GameStartCoordinator::initializeGame(const Ctx& c)
-{
-    Q_UNUSED(c);
-    // 盤とコントローラの整合、先後・手番の初期表示などを司令塔外で済ませている場合は NO-OP。
-    // 必要に応じて、ここに c.gc ↔ c.view の同期 API を追加してください。
-    // 例）if (c.gc && c.view) { c.gc->syncBoardFromView(c.view); }
-}
-
 void GameStartCoordinator::setTimerAndStart(const Ctx& c)
 {
     // 依存チェック
@@ -512,4 +505,97 @@ PlayMode GameStartCoordinator::setPlayMode(const Ctx& c) const
     }
 
     return mode;
+}
+
+void GameStartCoordinator::initializeGame(const Ctx& c)
+{
+    // --- ダイアログ生成 ---
+    StartGameDialog* dlg = new StartGameDialog;
+    if (!dlg) {
+        return;
+    }
+    if (dlg->exec() != QDialog::Accepted) {
+        delete dlg;
+        return;
+    }
+
+    // --- 開始前の準備（時計/オプション適用などは既存の prepare() に委譲） ---
+    Request req;
+    req.startDialog = dlg;
+    prepare(req);
+
+    // --- プレイモード決定 ---
+    Ctx c2 = c;
+    c2.startDlg = dlg;
+    const PlayMode mode = setPlayMode(c2);
+    if (!static_cast<int>(mode)) { // 0 = NotStarted を想定
+        delete dlg;
+        return;
+    }
+
+    // --- 開始SFENの決定 ---
+    const int startingPosNumber = dlg->startingPositionNumber();
+
+    // まずは既定値（Ctx の startSfenStr があれば採用）。QString* なので * でデリファレンス
+    QString startSfen;
+    if (c.startSfenStr && !c.startSfenStr->isEmpty()) {
+        startSfen = *(c.startSfenStr);
+    } // 無ければ空のまま。下で埋めます。
+
+    if (startingPosNumber == 0) {
+        // 現在局面から開始：選択手まで残して末尾だけ切る（既存のロジックへ委譲）
+        prepareDataCurrentPosition(c2);
+
+        // 現在局面SFENがあれば優先
+        if (c.currentSfenStr && !c.currentSfenStr->isEmpty()) {
+            startSfen = *(c.currentSfenStr); // ★ ポインタはデリファレンスして代入
+        } else if (startSfen.isEmpty()) {
+            // 念のためのフォールバック
+            startSfen = QStringLiteral("startpos");
+        }
+    } else {
+        // 手合割プリセット（必要に応じて既存の表に合わせて調整）
+        const QStringList presets = {
+            QString(), // 0 (未使用)
+            QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"), // 1: 平手
+            QStringLiteral("lnsgkgsn1/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"), // 2: 香落ち
+            QStringLiteral("1nsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"), // 3: 右香落ち
+            QStringLiteral("lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),   // 4: 角落ち
+            QStringLiteral("lnsgkgsnl/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),   // 5: 飛車落ち
+            QStringLiteral("lnsgkgsn1/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),   // 6: 飛香落ち
+            QStringLiteral("lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),     // 7: 二枚落ち
+            QStringLiteral("lnsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),     // 8: 三枚落ち
+            QStringLiteral("1nsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),     // 9: 四枚落ち
+            QStringLiteral("2sgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),      // 10: 五枚落ち
+            QStringLiteral("1nsgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),      // 11: 左五枚落ち
+            QStringLiteral("2sgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),       // 12: 六枚落ち
+            QStringLiteral("3gkg3/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),         // 13: 八枚落ち
+            QStringLiteral("4k4/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1")            // 14: 十枚落ち
+        };
+        int idx = startingPosNumber;
+        if (idx < 1) idx = 1;
+        if (idx >= presets.size()) idx = presets.size() - 1;
+        startSfen = presets.at(idx);
+
+        // 駒落ち開始に合わせた内部状態調整（既存ロジックに委譲）
+        prepareInitialPosition(c2);
+    }
+
+    // --- StartOptions 構築 → 司令塔へ ---
+    if (!m_match) {
+        delete dlg;
+        return;
+    }
+    MatchCoordinator::StartOptions opt =
+        m_match->buildStartOptions(mode, startSfen, c.sfenRecord, dlg);
+
+    // --- 対局開始（時計設定 + 初手 go 実行フラグ） ---
+    StartParams params;
+    params.opt  = opt;
+    params.tc   = extractTimeControlFromDialog(dlg);
+    params.autoStartEngineMove = true;
+
+    start(params);
+
+    delete dlg;
 }
