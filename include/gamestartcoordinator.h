@@ -87,6 +87,8 @@ public:
         // MainWindow 側へ初期msを戻したい場合（NULLなら無視）
         qint64*                 initialTimeP1MsOut = nullptr;
         qint64*                 initialTimeP2MsOut = nullptr;
+
+        bool bottomIsP1 = true;  // 手前が先手なら true（MainWindow の m_bottomIsP1 をそのまま渡す）
     };
 
 
