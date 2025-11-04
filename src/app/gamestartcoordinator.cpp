@@ -507,13 +507,61 @@ PlayMode GameStartCoordinator::setPlayMode(const Ctx& c) const
     return mode;
 }
 
+QChar GameStartCoordinator::turnFromSfen_(const QString& sfen)
+{
+    const QString s = sfen.trimmed();
+    if (s.isEmpty()) return QChar();
+
+    // 典型: "<board> b - 1" / "<board> w - 1"
+    const QStringList toks = s.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+    if (toks.size() >= 2) {
+        const QString t = toks.at(1).toLower();
+        if (t == QLatin1String("b")) return QLatin1Char('b');
+        if (t == QLatin1String("w")) return QLatin1Char('w');
+    }
+    // "startpos b 1" 形式の保険
+    if (s.contains(QLatin1String(" b "))) return QLatin1Char('b');
+    if (s.contains(QLatin1String(" w "))) return QLatin1Char('w');
+    return QChar();
+}
+
+PlayMode GameStartCoordinator::determinePlayModeAlignedWithTurn(
+    int initPositionNumber, bool isPlayer1Human, bool isPlayer2Human, const QString& startSfen)
+{
+    const QChar turn = turnFromSfen_(startSfen); // 'b' / 'w' / null
+    const bool isEven = (initPositionNumber == 1);
+    const bool hvh = (isPlayer1Human && isPlayer2Human);
+    const bool eve = (!isPlayer1Human && !isPlayer2Human);
+    const bool oneVsEngine = !hvh && !eve;
+
+    if (isEven) {
+        if (hvh) return HumanVsHuman;
+        if (eve) return EvenEngineVsEngine;
+        if (oneVsEngine) {
+            if (turn == QLatin1Char('b')) return EvenHumanVsEngine;   // 先手＝人間
+            if (turn == QLatin1Char('w')) return EvenEngineVsHuman;   // 先手＝エンジン
+            // 取得不能時は座席でフォールバック
+            return (isPlayer1Human && !isPlayer2Human) ? EvenHumanVsEngine : EvenEngineVsHuman;
+        }
+        return NotStarted;
+    } else {
+        if (hvh) return HumanVsHuman;
+        if (eve) return HandicapEngineVsEngine;
+        if (oneVsEngine) {
+            if (turn == QLatin1Char('b')) return HandicapHumanVsEngine;
+            if (turn == QLatin1Char('w')) return HandicapEngineVsHuman;
+            return (isPlayer1Human && !isPlayer2Human) ? HandicapHumanVsEngine : HandicapEngineVsHuman;
+        }
+        return NotStarted;
+    }
+}
+
 void GameStartCoordinator::initializeGame(const Ctx& c)
 {
     // --- ダイアログ生成 ---
     StartGameDialog* dlg = new StartGameDialog;
-    if (!dlg) {
-        return;
-    }
+    if (!dlg) return;
+
     if (dlg->exec() != QDialog::Accepted) {
         delete dlg;
         return;
@@ -524,39 +572,34 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
     req.startDialog = dlg;
     prepare(req);
 
-    // --- プレイモード決定 ---
-    Ctx c2 = c;
-    c2.startDlg = dlg;
-    const PlayMode mode = setPlayMode(c2);
-    if (!static_cast<int>(mode)) { // 0 = NotStarted を想定
-        delete dlg;
-        return;
-    }
+    // --- ダイアログから必要情報を取得（←ここがご要望のゲッター埋め込み） ---
+    const int  initPosNo = dlg->startingPositionNumber();  // ★ 正しいゲッター
+    const bool p1Human   = dlg->isHuman1();                 // ★ 正しいゲッター
+    const bool p2Human   = dlg->isHuman2();                 // ★ 正しいゲッター
 
-    // --- 開始SFENの決定 ---
-    const int startingPosNumber = dlg->startingPositionNumber();
+    // --- 開始SFENの決定（既存ロジックを踏襲） ---
+    const int startingPosNumber = initPosNo;
 
-    // まずは既定値（Ctx の startSfenStr があれば採用）。QString* なので * でデリファレンス
+    // Ctx に startSfenStr が入っていれば優先
     QString startSfen;
     if (c.startSfenStr && !c.startSfenStr->isEmpty()) {
         startSfen = *(c.startSfenStr);
-    } // 無ければ空のまま。下で埋めます。
-
+    }
     if (startingPosNumber == 0) {
-        // 現在局面から開始：選択手まで残して末尾だけ切る（既存のロジックへ委譲）
+        // 現在局面から開始
+        Ctx c2 = c;
+        c2.startDlg = dlg;
         prepareDataCurrentPosition(c2);
 
-        // 現在局面SFENがあれば優先
         if (c.currentSfenStr && !c.currentSfenStr->isEmpty()) {
-            startSfen = *(c.currentSfenStr); // ★ ポインタはデリファレンスして代入
+            startSfen = *(c.currentSfenStr);
         } else if (startSfen.isEmpty()) {
-            // 念のためのフォールバック
             startSfen = QStringLiteral("startpos");
         }
-    } else {
-        // 手合割プリセット（必要に応じて既存の表に合わせて調整）
-        const QStringList presets = {
-            QString(), // 0 (未使用)
+    } else if (startSfen.isEmpty()) {
+        // 平手/駒落ちプリセット
+        static const QVector<QString> presets = {
+            QString(), // 0: 未使用（現在局面）
             QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"), // 1: 平手
             QStringLiteral("lnsgkgsn1/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"), // 2: 香落ち
             QStringLiteral("1nsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"), // 3: 右香落ち
@@ -577,9 +620,14 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
         if (idx >= presets.size()) idx = presets.size() - 1;
         startSfen = presets.at(idx);
 
-        // 駒落ち開始に合わせた内部状態調整（既存ロジックに委譲）
+        // 駒落ち開始の内部状態整備（既存メソッド）
+        Ctx c2 = c; c2.startDlg = dlg;
         prepareInitialPosition(c2);
     }
+
+    // --- PlayMode を SFEN手番と整合させて最終決定（←推奨修正） ---
+    PlayMode mode = determinePlayModeAlignedWithTurn(initPosNo, p1Human, p2Human, startSfen);
+    qInfo() << "[GameStart] Final PlayMode =" << mode << "  startSfen=" << startSfen;
 
     // --- StartOptions 構築 → 司令塔へ ---
     if (!m_match) {
