@@ -495,6 +495,10 @@ signals:
 private:
     // 内部の計算ヘルパ（UI非依存）
     void recomputeClockSnapshot(QString& turnText, QString& p1, QString& p2) const;
+
+public:
+    // 現在のプレイモードを外部に公開
+    PlayMode playMode() const;
 };
 
 #endif // MATCHCOORDINATOR_H

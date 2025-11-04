@@ -543,6 +543,19 @@ void Usi::sendCommandsAndProcess(
     // ★ このセット（position→go→bestmove）専用の ctx/ID を開始
     const quint64 opId = beginOperationContext();
 
+    //begin
+    const QString posPreview = (positionStr.size() > 200)
+                                   ? (positionStr.left(200) + QStringLiteral(" ..."))
+                                   : positionStr;
+    qInfo() << "[USI] send position+go"
+            << "opId=" << opId
+            << "position=" << posPreview
+            << "byoyomiMs=" << byoyomiMilliSec
+            << "btime=" << btime << "wtime=" << wtime
+            << "inc1=" << addEachMoveMilliSec1 << "inc2=" << addEachMoveMilliSec2
+            << "useByoyomi=" << useByoyomi;
+    //end
+
     // position → go
     sendPositionCommand(positionStr);
     cloneCurrentBoardData();
@@ -720,6 +733,7 @@ void Usi::executeEngineCommunication(QString& positionStr, QString& positionPond
 }
 
 // 人間対将棋エンジンの対局で将棋エンジンとUSIプロトコル通信を行う。
+/*
 void Usi::handleHumanVsEngineCommunication(QString& positionStr, QString& positionPonderStr, QPoint& outFrom, QPoint& outTo,
                                           int byoyomiMilliSec, const QString& btime, const QString& wtime, QStringList& positionStrList,
                                           int addEachMoveMilliSec1, int addEachMoveMilliSec2, bool useByoyomi)
@@ -744,6 +758,40 @@ void Usi::handleHumanVsEngineCommunication(QString& positionStr, QString& positi
 
     // 共通のエンジン通信処理を実行する。
     executeEngineCommunication(positionStr, positionPonderStr, outFrom, outTo, byoyomiMilliSec, btime, wtime,
+                               addEachMoveMilliSec1, addEachMoveMilliSec2, useByoyomi);
+}
+*/
+
+void Usi::handleHumanVsEngineCommunication(QString& positionStr, QString& positionPonderStr,
+                                           QPoint& outFrom, QPoint& outTo,
+                                           int byoyomiMilliSec, const QString& btime, const QString& wtime,
+                                           QStringList& positionStrList, int addEachMoveMilliSec1,
+                                           int addEachMoveMilliSec2, bool useByoyomi)
+{
+    qDebug() << "[USI][HvE] enter handleHumanVsEngineCommunication"
+             << "byoyomiMs=" << byoyomiMilliSec
+             << "btime=" << btime << "wtime=" << wtime;
+
+    // 送信前の position をプレビュー
+    const QString prePreview = (positionStr.size() > 200)
+                                   ? (positionStr.left(200) + QStringLiteral(" ..."))
+                                   : positionStr;
+    qDebug() << "[USI][HvE] position(before ensureMoves/bestmove) =" << prePreview;
+
+    // bestmove 生成（人間手）
+    m_bestMove = convertHumanMoveToUsiFormat(outFrom, outTo, m_gameController->promote());
+
+    ensureMovesKeyword(positionStr);   // "moves" を必ず含める
+    positionStr += " " + m_bestMove;   // 人間手を末尾に追加
+    positionStrList.append(positionStr);
+
+    const QString postPreview = (positionStr.size() > 200)
+                                    ? (positionStr.left(200) + QStringLiteral(" ..."))
+                                    : positionStr;
+    qDebug() << "[USI][HvE] position(after append bestmove) =" << postPreview;
+
+    executeEngineCommunication(positionStr, positionPonderStr, outFrom, outTo,
+                               byoyomiMilliSec, btime, wtime,
                                addEachMoveMilliSec1, addEachMoveMilliSec2, useByoyomi);
 }
 

@@ -2764,61 +2764,86 @@ void MainWindow::connectMoveRequested_()
 
 // 盤/駒台クリックで移動要求が来たときに呼ばれるスロット
 void MainWindow::onMoveRequested_(const QPoint& from, const QPoint& to)
-{   
-    // 編集モードでは対局用の合法手検証は通さず、編集専用の移動APIを使う
+{
+    qInfo() << "[UI] onMoveRequested_ from=" << from << " to=" << to
+            << " m_playMode=" << int(m_playMode);
+
+    // 編集モードは既存どおり
     if (m_boardController && m_boardController->mode() == BoardInteractionController::Mode::Edit) {
-        QPoint hFrom = from, hTo = to;  // 以降のAPIが参照を取るのでローカルコピー
+        QPoint hFrom = from, hTo = to;
 
         const bool ok = (m_gameController && m_gameController->editPosition(hFrom, hTo));
 
-        // ★対局では GC が endDragSignal を出すが、編集モードでは出さないためここで必ず終了
         if (m_shogiView) m_shogiView->endDrag();
 
-        // 失敗時は選択とドラッグ状態をクリアして抜ける
         if (!ok) {
-            if (m_boardController) m_boardController->onMoveApplied(hFrom, hTo, ok); // ← false で finalizeDrag() 呼ばれる
+            if (m_boardController) m_boardController->onMoveApplied(hFrom, hTo, ok);
             return;
         }
-
-        // ハイライト更新（直前手の赤/黄・選択解除などは BIC に委譲）
         if (m_boardController) m_boardController->onMoveApplied(hFrom, hTo, ok);
-
-        // 盤の再描画
         if (m_shogiView) m_shogiView->update();
-
-        return; // Edit はここで完結
+        return;
     }
 
-    // 以降は通常対局処理（従来どおり）
-    // 着手前の手番（＝この手を指す側）を控える
+    // ▼▼▼ ここから通常対局（有効な PlayMode を決定） ▼▼▼
+    PlayMode matchMode = NotStarted;
+    if (m_match) {
+        // 司令塔に問い合わせ（getter 追加）
+        matchMode = m_match->playMode();
+    }
+    // UI 側 m_playMode が 0 のままなら司令塔の値を使用
+    PlayMode modeNow = (m_playMode != NotStarted) ? m_playMode : matchMode;
+
+    qInfo() << "[UI] effective modeNow=" << int(modeNow)
+            << "(ui m_playMode=" << int(m_playMode) << ", matchMode=" << int(matchMode) << ")";
+
+    // 着手前の手番（HvH用）
     const auto moverBefore = m_gameController->currentPlayer();
 
-    // validateAndMove は参照を取りうるためローカルコピーで渡す
+    // validateAndMove は参照を取るのでローカルコピーで渡す
     QPoint hFrom = from, hTo = to;
 
-    bool ok = false;
-    ok = m_gameController->validateAndMove(
-                hFrom, hTo, m_lastMove, m_playMode, m_currentMoveIndex, m_sfenRecord, m_gameMoves
-                );
+    // ★ 重要：validateAndMove にも「有効な PlayMode」を渡す（0を渡さない）
+    bool ok = m_gameController->validateAndMove(
+        hFrom, hTo, m_lastMove, modeNow, m_currentMoveIndex, m_sfenRecord, m_gameMoves);
 
     if (m_boardController) m_boardController->onMoveApplied(hFrom, hTo, ok);
-    if (!ok) return;
+    if (!ok) {
+        qInfo() << "[UI] validateAndMove failed (human move rejected)";
+        return;
+    }
 
-    // 対局モードごとの後処理
-    switch (m_playMode) {
+    // --- 対局モードごとの後処理（modeNow で分岐） ---
+    switch (modeNow) {
     case HumanVsHuman:
+        qInfo() << "[UI] HvH: post-human-move handle";
         handleMove_HvH_(moverBefore, hFrom, hTo);
         break;
 
     case EvenHumanVsEngine:
     case HandicapHumanVsEngine:
     case EvenEngineVsHuman:
-    case HandicapEngineVsHuman:
-        handleMove_HvE_(hFrom, hTo);
+    case HandicapEngineVsHuman: {
+        if (m_match) {
+            qInfo() << "[UI] HvE: forwarding to MatchCoordinator::onHumanMove_HvE"
+                    << " from=" << hFrom << " to=" << hTo;
+            m_match->onHumanMove_HvE(hFrom, hTo);
+        } else {
+            qWarning() << "[UI][WARN] m_match is null; fallback to handleMove_HvE_ (legacy path)";
+            handleMove_HvE_(hFrom, hTo);
+        }
         break;
+    }
 
     default:
+        qInfo() << "[UI] mode has no post-processing (modeNow=" << int(modeNow) << ")";
         break;
+    }
+
+    // UI 側の m_playMode が未設定なら、ここで同期しておくと以降のログが分かりやすい（任意）
+    if (m_playMode == NotStarted && modeNow != NotStarted) {
+        m_playMode = modeNow;
+        qInfo() << "[UI] m_playMode synchronized to" << int(m_playMode);
     }
 }
 
