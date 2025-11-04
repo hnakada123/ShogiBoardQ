@@ -1550,6 +1550,7 @@ void MatchCoordinator::startInitialEngineMoveFor_(Player engineSide)
 // ---------------------------------------------
 // HvE: 人間が指した直後の 1手返しを司令塔で完結
 // ---------------------------------------------
+/*
 void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& humanTo)
 {
     finishHumanTimerAndSetConsideration();
@@ -1630,6 +1631,142 @@ void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& hu
         m_cur = (m_gc->currentPlayer() == ShogiGameController::Player2) ? P2 : P1;
         updateTurnDisplay_(m_cur);
     }
+
+    // 終局でなければ人間タイマーを再武装
+    if (!gameOverState().isOver) {
+        armHumanTimerIfNeeded();
+    }
+}
+*/
+
+void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& humanTo)
+{
+    qInfo() << "[HvE] entered onHumanMove_HvE"
+            << "from=" << humanFrom << "to=" << humanTo
+            << "playMode=" << int(m_playMode);
+
+    finishHumanTimerAndSetConsideration();
+
+    // 直前の人間手（“同○”ヒント）をエンジンへ
+    if (Usi* eng = primaryEngine()) {
+        eng->setPreviousFileTo(humanTo.x());
+        eng->setPreviousRankTo(humanTo.y());
+    } else {
+        qWarning() << "[HvE] primaryEngine() is null; cannot think";
+    }
+
+    // go時間を計算（ログ出力しておく）
+    qint64 bMs = 0, wMs = 0;
+    computeGoTimesForUSI(bMs, wMs);
+    const QString bTime = QString::number(bMs);
+    const QString wTime = QString::number(wMs);
+    qInfo() << "[HvE] go-times bMs=" << bMs << " wMs=" << wMs
+            << " GC.currentPlayer=" << (m_gc ? int(m_gc->currentPlayer()) : -1);
+
+    // 直後の手番がエンジンなら 1手だけ指す
+    const bool engineIsP1 = (m_playMode == EvenEngineVsHuman) || (m_playMode == HandicapEngineVsHuman);
+    const ShogiGameController::Player engineSeat =
+        engineIsP1 ? ShogiGameController::Player1 : ShogiGameController::Player2;
+
+    const bool engineTurnNow =
+        (m_gc && (m_gc->currentPlayer() == engineSeat));
+
+    qInfo() << "[HvE] engineIsP1=" << engineIsP1
+            << "engineSeat=" << int(engineSeat)
+            << "engineTurnNow=" << engineTurnNow;
+
+    if (!engineTurnNow) {
+        // ここに来るなら「まだ人間手番」→ position/go は送らない
+        qInfo() << "[HvE] skip engine move (human turn), no position/go";
+        // 終局でなければ人間タイマーを再武装
+        if (!gameOverState().isOver) {
+            armHumanTimerIfNeeded();
+        }
+        return;
+    }
+
+    // ここからエンジン1手返しルート
+    Usi* eng = primaryEngine();
+    if (!eng || !m_gc) {
+        qWarning() << "[HvE] primaryEngine or GC is null; abort engine move";
+        if (!gameOverState().isOver) armHumanTimerIfNeeded();
+        return;
+    }
+
+    // position 文字列の準備（なければ startpos moves に初期化）
+    if (m_positionStr1.isEmpty()) {
+        qInfo() << "[HvE] m_positionStr1 empty -> initPositionStringsFromSfen_() with startpos";
+        initPositionStringsFromSfen_(QString());
+    }
+    if (!m_positionStr1.startsWith(QLatin1String("position "))) {
+        qWarning() << "[HvE] m_positionStr1 does not start with 'position ' -> fixing to startpos moves";
+        m_positionStr1 = QStringLiteral("position startpos moves");
+    }
+
+    // 送る直前の position をログに（長過ぎるときは一部だけ）
+    const QString preview = (m_positionStr1.size() > 200)
+                                ? (m_positionStr1.left(200) + QStringLiteral(" ..."))
+                                : m_positionStr1;
+    qInfo() << "[HvE] call Usi::handleHumanVsEngineCommunication"
+            << "pos(constraint) =" << preview;
+
+    const auto tc = timeControl();
+    const int byoyomiMs = engineIsP1 ? tc.byoyomiMs1 : tc.byoyomiMs2;
+
+    // bestmove を受け取り、盤/棋譜反映まで（内部で position→go を送る）
+    // ※ ここが呼ばれているのに engine 側ログに " > position ..." が出ないなら
+    //    Usi 側の sendCommand が弾かれている（プロセス未起動/停止）可能性が高い
+    QPoint eFrom = humanFrom;
+    QPoint eTo   = humanTo;
+    m_gc->setPromote(false);
+
+    // 人間→エンジン（HvE）用の1手返し通信
+    eng->handleHumanVsEngineCommunication(
+        m_positionStr1, m_positionPonder1,
+        eFrom, eTo,
+        byoyomiMs,
+        bTime, wTime,
+        m_sfenRecord,
+        tc.incMs1, tc.incMs2,
+        tc.useByoyomi
+        );
+
+    // 受け取った bestmove を盤へ適用（失敗時はログ）
+    QString rec;
+    const bool ok = m_gc->validateAndMove(
+        eFrom, eTo, rec, m_playMode,
+        m_currentMoveIndex, &m_sfenRecord, m_gameMoves
+        );
+    qInfo() << "[HvE] validateAndMove(engine) result=" << ok
+            << " from=" << eFrom << " to=" << eTo;
+
+    if (!ok) {
+        qWarning() << "[HvE] validateAndMove failed; engine move rejected";
+        if (!gameOverState().isOver) armHumanTimerIfNeeded();
+        return;
+    }
+
+    // ハイライト/ラベル/手番表示など
+    if (m_hooks.showMoveHighlights) m_hooks.showMoveHighlights(eFrom, eTo);
+
+    const qint64 thinkMs = eng->lastBestmoveElapsedMs();
+    if (m_clock) {
+        if (m_gc->currentPlayer() == ShogiGameController::Player1) {
+            m_clock->setPlayer2ConsiderationTime(static_cast<int>(thinkMs));
+        } else {
+            m_clock->setPlayer1ConsiderationTime(static_cast<int>(thinkMs));
+        }
+    }
+    if (m_hooks.appendKifuLine && m_clock) {
+        const QString elapsed = (m_gc->currentPlayer() == ShogiGameController::Player1)
+        ? m_clock->getPlayer2ConsiderationAndTotalTime()
+        : m_clock->getPlayer1ConsiderationAndTotalTime();
+        m_hooks.appendKifuLine(rec, elapsed);
+    }
+
+    if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
+    m_cur = (m_gc->currentPlayer() == ShogiGameController::Player2) ? P2 : P1;
+    updateTurnDisplay_(m_cur);
 
     // 終局でなければ人間タイマーを再武装
     if (!gameOverState().isOver) {
@@ -1982,4 +2119,9 @@ void MatchCoordinator::recomputeClockSnapshot(QString& turnText, QString& p1, QS
 
     p1 = mmss(t1ms);
     p2 = mmss(t2ms);
+}
+
+PlayMode MatchCoordinator::playMode() const
+{
+    return m_playMode;
 }
