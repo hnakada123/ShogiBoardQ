@@ -104,6 +104,9 @@ void RecordPane::buildUi()
     m_branchText->setOpenLinks(true);
     m_branchText->setPlaceholderText(tr("コメントを表示"));
 
+    // ★ 追加: アダプタに実体を紐付け
+    m_commentAdapter.reset(m_branchText);
+
     m_right = new QSplitter(Qt::Vertical, this);
     m_right->addWidget(m_branch);
     m_right->addWidget(m_branchText);
@@ -270,4 +273,10 @@ void RecordPane::setBranchCommentText(const QString& text)
 void RecordPane::setBranchCommentHtml(const QString& html)
 {
     if (m_branchText) m_branchText->setHtml(html);
+}
+
+// ★ 追加: MainWindow から呼ばれる getter 実装
+CommentTextAdapter* RecordPane::commentLabel()
+{
+    return &m_commentAdapter;
 }

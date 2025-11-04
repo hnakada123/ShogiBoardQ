@@ -6,7 +6,9 @@
 
 #include <QAbstractItemView>
 #include <QDebug>
-#include <qtableview.h>
+#include <QTableView>
+#include <QItemSelectionModel>
+#include <QDebug>
 
 GameRecordPresenter::GameRecordPresenter(const Deps& d, QObject* parent)
     : QObject(parent), m_d(d) {}
@@ -71,4 +73,72 @@ void GameRecordPresenter::appendMoveLine(const QString& prettyMove, const QStrin
     if (m_d.model) {
         m_d.model->appendItem(new KifuDisplay(recordLine, elapsedTime));
     }
+}
+
+void GameRecordPresenter::setCommentsByRow(const QStringList& commentsByRow)
+{
+    m_commentsByRow = commentsByRow;
+}
+
+void GameRecordPresenter::setCommentsFromDisplayItems(const QList<KifDisplayItem>& disp, int rowCount)
+{
+    // 以前 MainWindow が行っていたマッピングを Presenter で再現
+    // rowCount: 0手目(初期局面)を含む行数
+    m_commentsByRow.clear();
+    m_commentsByRow.resize(qMax(0, rowCount));
+
+    const int moveCount = disp.size();
+
+    if (moveCount > 0 && !m_commentsByRow.isEmpty()) {
+        // 行0のコメントは disp[0] を採用（従来動作踏襲）
+        m_commentsByRow[0] = disp[0].comment;
+    }
+
+    for (int i = 0; i < moveCount; ++i) {
+        const int row = i + 1; // 1手目→行1
+        if (row >= 0 && row < m_commentsByRow.size())
+            m_commentsByRow[row] = disp[i].comment;
+    }
+}
+
+QString GameRecordPresenter::commentForRow(int row) const
+{
+    if (row >= 0 && row < m_commentsByRow.size())
+        return m_commentsByRow[row];
+    return QString();
+}
+
+void GameRecordPresenter::onKifuCurrentRowChanged_(const QModelIndex& current,
+                                                   const QModelIndex& /*previous*/)
+{
+    const int row = current.isValid() ? current.row() : -1;
+    const QString cmt = commentForRow(row);
+    emit currentRowChanged(row, cmt);
+}
+
+void GameRecordPresenter::bindKifuSelection(QTableView* kifuView)
+{
+    if (!kifuView) {
+        qWarning() << "[RecordPresenter] bindKifuSelection: view is null";
+        return;
+    }
+    m_kifuView = kifuView;
+
+    // 既存の接続を解除
+    if (m_connRowChanged)
+        QObject::disconnect(m_connRowChanged);
+
+    auto* sel = m_kifuView->selectionModel();
+    if (!sel) {
+        qWarning() << "[RecordPresenter] selectionModel is null";
+        return;
+    }
+
+    // KifuView の currentRowChanged を Presenter が受け、
+    // 行とコメントを整形して currentRowChanged(row, cmt) を発火
+    m_connRowChanged = connect(
+        sel, &QItemSelectionModel::currentRowChanged,
+        this, &GameRecordPresenter::onKifuCurrentRowChanged_,
+        Qt::UniqueConnection
+        );
 }

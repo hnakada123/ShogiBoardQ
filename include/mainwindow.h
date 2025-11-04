@@ -454,6 +454,7 @@ private slots:
     void onReturnAllPiecesOnStandTriggered();
     void onFlatHandInitialPositionTriggered();
     void onShogiProblemInitialPositionTriggered();
+    void onRecordRowChangedByPresenter(int row, const QString& comment);
 };
 
 #endif // MAINWINDOW_H
