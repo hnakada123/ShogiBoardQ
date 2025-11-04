@@ -649,6 +649,8 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
     MatchCoordinator::StartOptions opt =
         m_match->buildStartOptions(mode, startSfen, c.sfenRecord, dlg);
 
+    m_match->ensureHumanAtBottomIfApplicable(dlg, c.bottomIsP1);
+
     // --- 対局開始（時計設定 + 初手 go 実行フラグ） ---
     StartParams params;
     params.opt  = opt;

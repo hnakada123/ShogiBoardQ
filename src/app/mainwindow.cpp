@@ -773,6 +773,7 @@ void MainWindow::initializeGame()
     c.startSfenStr    = &m_startSfenStr;         // 既定開始 SFEN（空でも可）
     c.selectedPly     = m_currentSelectedPly;   // 必要なら GameStart 側で利用
     c.isReplayMode    = m_isReplayMode;
+    c.bottomIsP1 = m_bottomIsP1;
 
     // 実処理は GameStartCoordinator 側で完結
     m_gameStart->initializeGame(c);
