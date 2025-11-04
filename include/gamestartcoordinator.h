@@ -108,6 +108,14 @@ public:
     // ダイアログ状態を読み、対局モードを返す（MainWindow::setPlayMode の移管）
     PlayMode setPlayMode(const Ctx& c) const;
 
+    // これを追加：SFENの手番とダイアログ設定を整合させて PlayMode を決定
+    static PlayMode determinePlayModeAlignedWithTurn(
+        int initPositionNumber,
+        bool isPlayer1Human,
+        bool isPlayer2Human,
+        const QString& startSfen
+        );
+
 signals:
     // （開始前フック）UI/状態を初期化してほしい
     void requestPreStartCleanup();
@@ -149,6 +157,10 @@ private:
 signals:
     // エラー表示を UI に委譲（MainWindow::displayErrorMessage 相当）
     void requestDisplayError(const QString& message) const;
+
+private:
+    // これを追加：SFENから手番('b' or 'w')を抽出
+    static QChar turnFromSfen_(const QString& sfen);
 };
 
 Q_DECLARE_METATYPE(GameStartCoordinator::TimeControl)
