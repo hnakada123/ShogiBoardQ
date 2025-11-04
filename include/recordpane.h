@@ -2,9 +2,23 @@
 #define RECORDPANE_H
 
 #include <QWidget>
+#include <QTextBrowser>
+
 class QTableView; class QPushButton; class QTextBrowser; class QSplitter; class QScrollArea;
 class KifuRecordListModel; class KifuBranchListModel;
 class EvaluationChartWidget;
+
+// ★ 追加: コメント表示用のラッパ（setText を提供）
+class CommentTextAdapter {
+public:
+    explicit CommentTextAdapter(QTextBrowser* tb = nullptr) : m_tb(tb) {}
+    void setText(const QString& text) { if (m_tb) m_tb->setPlainText(text); }
+    void setHtml(const QString& html) { if (m_tb) m_tb->setHtml(html); }
+    QTextBrowser* widget() const { return m_tb; }
+    void reset(QTextBrowser* tb) { m_tb = tb; }
+private:
+    QTextBrowser* m_tb = nullptr;
+};
 
 class RecordPane : public QWidget {
     Q_OBJECT
@@ -24,6 +38,8 @@ public:
     QPushButton* nextButton()   const { return m_btn4; }
     QPushButton* fwd10Button()  const { return m_btn5; }
     QPushButton* lastButton()   const { return m_btn6; }
+
+    CommentTextAdapter* commentLabel();
 
 signals:
     void mainRowChanged(int row);
@@ -49,6 +65,9 @@ private slots:
 private:
     QMetaObject::Connection m_connRowChanged;
     QMetaObject::Connection m_connRowsInserted;
+
+    // ★ 追加: コメント用アダプタの実体
+    CommentTextAdapter m_commentAdapter{nullptr};
 
 public slots:
     // プレーンテキストで分岐コメント欄に反映

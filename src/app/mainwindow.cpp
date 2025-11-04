@@ -19,7 +19,6 @@
 #include "engineregistrationdialog.h"
 #include "versiondialog.h"
 #include "usi.h"
-#include "startgamedialog.h"
 #include "kifuanalysisdialog.h"
 #include "shogiclock.h"
 #include "apptooltipfilter.h"
@@ -54,59 +53,6 @@ using KifuIoService::makeDefaultSaveFileName;
 using KifuIoService::writeKifuFile;
 using namespace EngineSettingsConstants;
 using GameOverCause = MatchCoordinator::Cause;
-using BCDI = ::BranchCandidateDisplayItem;
-
-namespace {
-// 0始まり(0..8)なら1始まり(1..9)へ、すでに1..9なら変更なし
-static inline QPoint normalizeBoardPoint_(const QPoint& p) {
-    if (p.x() >= 0 && p.x() <= 8 && p.y() >= 0 && p.y() <= 8)
-        return QPoint(p.x() + 1, p.y() + 1);
-    return p;
-}
-}
-
-// ---- 無名名前空間: 共有ユーティリティ ----
-namespace {
-
-inline int rankLetterToNum(QChar r) { // 'a'..'i' -> 1..9
-    ushort u = r.toLower().unicode();
-    return (u < 'a' || u > 'i') ? -1 : int(u - 'a') + 1;
-}
-
-inline QChar dropLetterWithSide(QChar upper, bool black) {
-    return black ? upper.toUpper() : upper.toLower();
-}
-
-// 成駒トークン("+P"等) -> 1文字表現。非成駒はトークンそのまま1文字。
-inline QChar tokenToOneChar(const QString& tok) {
-    if (tok.isEmpty()) return QLatin1Char(' ');
-    if (tok.size() == 1) return tok.at(0);
-    static const QHash<QString,QChar> map = {
-                                              {"+P",'Q'},{"+L",'M'},{"+N",'O'},{"+S",'T'},{"+B",'C'},{"+R",'U'},
-                                              {"+p",'q'},{"+l",'m'},{"+n",'o'},{"+s",'t'},{"+b",'c'},{"+r",'u'},
-                                              };
-    const auto it = map.find(tok);
-    return it == map.end() ? QLatin1Char(' ') : *it;
-}
-
-// ★打ちの fromSquare を駒台座標にマップ
-inline QPoint dropFromSquare(QChar dropUpper, bool black) {
-    const int x = black ? 9 : 10; // 先手=9, 後手=10
-    int y = -1;
-    switch (dropUpper.toUpper().unicode()) {
-    case 'P': y = black ? 0 : 8; break;
-    case 'L': y = black ? 1 : 7; break;
-    case 'N': y = black ? 2 : 6; break;
-    case 'S': y = black ? 3 : 5; break;
-    case 'G': y = 4;            break; // 共通
-    case 'B': y = black ? 5 : 3; break;
-    case 'R': y = black ? 6 : 2; break;
-    default:  y = -1;           break;
-    }
-    return QPoint(x, y);
-}
-
-} // anonymous namespace
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -953,124 +899,51 @@ void MainWindow::chooseAndLoadKifuFile()
     m_kifuLoadCoordinator->loadKifuFromFile(filePath);
 }
 
-void MainWindow::rebuildSfenRecord(const QString& initialSfen, const QStringList& usiMoves, bool hasTerminal)
+void MainWindow::rebuildSfenRecord(const QString& initialSfen,
+                                   const QStringList& usiMoves,
+                                   bool hasTerminal)
 {
-    SfenPositionTracer tracer;
-    if (!tracer.setFromSfen(initialSfen)) {
-        tracer.setFromSfen(QStringLiteral(
-            "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"));
-    }
-
-    QStringList list;
-    list << tracer.toSfenString();          // 0) 初期
-    for (const QString& mv : usiMoves) {
-        tracer.applyUsiMove(mv);
-        list << tracer.toSfenString();      // 1..N) 各手後
-    }
-    if (hasTerminal) {
-        list << tracer.toSfenString();      // N+1) 終局/中断表示用
-    }
-
+    const QStringList list = SfenPositionTracer::buildSfenRecord(initialSfen, usiMoves, hasTerminal);
     if (!m_sfenRecord) m_sfenRecord = new QStringList;
-    *m_sfenRecord = list;                    // COW
+    *m_sfenRecord = list; // COW
 }
 
-void MainWindow::rebuildGameMoves(const QString& initialSfen, const QStringList& usiMoves)
+void MainWindow::rebuildGameMoves(const QString& initialSfen,
+                                  const QStringList& usiMoves)
 {
-    m_gameMoves.clear();
-
-    SfenPositionTracer tracer;
-    tracer.setFromSfen(initialSfen);
-
-    for (const QString& usi : usiMoves) {
-        // ドロップ: "P*5e"
-        if (usi.size() >= 4 && usi.at(1) == QLatin1Char('*')) {
-            const bool black = tracer.blackToMove();
-            const QChar dropUpper = usi.at(0).toUpper();      // P/L/N/S/G/B/R
-            const int  file = usi.at(2).toLatin1() - '0';     // '1'..'9'
-            const int  rank = rankLetterToNum(usi.at(3));     // 1..9
-            if (file < 1 || file > 9 || rank < 1 || rank > 9) { tracer.applyUsiMove(usi); continue; }
-
-            const QPoint from = dropFromSquare(dropUpper, black);     // ★ 駒台
-            const QPoint to(file - 1, rank - 1);
-            const QChar  moving   = dropLetterWithSide(dropUpper, black);
-            const QChar  captured = QLatin1Char(' ');
-            const bool   promo    = false;
-
-            m_gameMoves.push_back(ShogiMove(from, to, moving, captured, promo));
-            tracer.applyUsiMove(usi);
-            continue;
-        }
-
-        // 通常手: "7g7f" or "2b3c+"
-        if (usi.size() < 4) { tracer.applyUsiMove(usi); continue; }
-
-        const int ff = usi.at(0).toLatin1() - '0';
-        const int rf = rankLetterToNum(usi.at(1));
-        const int ft = usi.at(2).toLatin1() - '0';
-        const int rt = rankLetterToNum(usi.at(3));
-        const bool isProm = (usi.size() >= 5 && usi.at(4) == QLatin1Char('+'));
-        if (ff<1||ff>9||rf<1||rf>9||ft<1||ft>9||rt<1||rt>9) { tracer.applyUsiMove(usi); continue; }
-
-        const QString fromTok = tracer.tokenAtFileRank(ff, usi.at(1));
-        const QString toTok   = tracer.tokenAtFileRank(ft, usi.at(3));
-
-        const QPoint from(ff - 1, rf - 1);
-        const QPoint to  (ft - 1, rt - 1);
-
-        const QChar moving   = tokenToOneChar(fromTok);
-        const QChar captured = tokenToOneChar(toTok);
-
-        m_gameMoves.push_back(ShogiMove(from, to, moving, captured, isProm));
-        tracer.applyUsiMove(usi);
-    }
+    m_gameMoves = SfenPositionTracer::buildGameMoves(initialSfen, usiMoves);
 }
 
-// 置き換え：棋譜描画は Presenter へ委譲
+// MainWindow::displayGameRecord を置き換え
 void MainWindow::displayGameRecord(const QList<KifDisplayItem> disp)
 {
     if (!m_kifuRecordModel) return;
 
-    // --- コメント配列は UI 側で保持 ---
-    m_commentsByRow.clear();
-    const int moveCount = disp.size();
-    const int rowCount  = m_sfenRecord ? m_sfenRecord->size() : (moveCount + 1);
-    m_commentsByRow.resize(rowCount);
-
-    if (moveCount > 0)
-        m_commentsByRow[0] = disp[0].comment;
-
-    for (int i = 0; i < moveCount; ++i) {
-        const int row = i + 1;
-        if (row < m_commentsByRow.size()) {
-            if (i + 1 < moveCount) {
-                m_commentsByRow[row] = disp[i + 1].comment;
-            } else {
-                m_commentsByRow[row].clear();
-            }
-        }
-    }
-
-    // --- 描画は Presenter ---
     ensureRecordPresenter_();
-    if (m_recordPresenter) {
-        m_recordPresenter->presentGameRecord(disp);
-    }
+    if (!m_recordPresenter) return;
 
-    // 初期コメント表示（開始局面）
-    const QString head = (0 < m_commentsByRow.size() ? m_commentsByRow[0].trimmed() : QString());
-    broadcastComment(head.isEmpty() ? tr("コメントなし") : head, /*asHtml=*/true);
+    // 1) 棋譜の表示（従来どおり Presenter に任せる）
+    m_recordPresenter->presentGameRecord(disp);
 
-    // 行選択→コメント更新の接続（従来通り）
-    if (m_recordPane) {
-        if (auto* view = m_recordPane->kifuView(); view && view->selectionModel()) {
-            if (m_connKifuRowChanged) disconnect(m_connKifuRowChanged);
-            m_connKifuRowChanged = connect(view->selectionModel(),
-                                           &QItemSelectionModel::currentRowChanged,
-                                           this,
-                                           &MainWindow::onKifuCurrentRowChanged,
-                                           Qt::UniqueConnection);
-        }
+    // 2) コメントは Presenter 側で保持
+    const int moveCount = disp.size();
+    const int rowCount  = (m_sfenRecord && !m_sfenRecord->isEmpty())
+                             ? m_sfenRecord->size()
+                             : (moveCount + 1);
+    m_recordPresenter->setCommentsFromDisplayItems(disp, rowCount);
+
+    // 3) KifuView の選択変更は Presenter が受けて、MainWindow へ signal 転送
+    if (m_recordPane && m_recordPane->kifuView()) {
+        m_recordPresenter->bindKifuSelection(m_recordPane->kifuView());
+
+        // 二重接続を防ぐ
+        static QMetaObject::Connection s_conn;
+        if (s_conn) disconnect(s_conn);
+        s_conn = connect(
+            m_recordPresenter, &GameRecordPresenter::currentRowChanged,
+            this, &MainWindow::onRecordRowChangedByPresenter,
+            Qt::UniqueConnection
+            );
     }
 }
 
@@ -1773,28 +1646,22 @@ void MainWindow::populateBranchListForPly(int ply)
     m_kifuLoadCoordinator->showBranchCandidates(row, safePly);
 }
 
-void MainWindow::syncBoardAndHighlightsAtRow(int ply1)
+// MainWindow::syncBoardAndHighlightsAtRow を置き換え
+void MainWindow::syncBoardAndHighlightsAtRow(int ply)
 {
+    // 位置編集モード中は従来どおりスキップ
     if (m_shogiView && m_shogiView->positionEditMode()) {
-        qDebug() << "[UI] syncBoardAndHighlightsAtRow skipped (edit-mode). ply=" << ply1;
+        qDebug() << "[UI] syncBoardAndHighlightsAtRow skipped (edit-mode). ply=" << ply;
         return;
     }
-    if (!m_sfenRecord) return;
-
-    const int maxPly = m_sfenRecord->size() - 1;
-    if (maxPly < 0) return;
-
-    const int safePly = qBound(0, ply1, maxPly);
-
-    // UI 側の現在手を同期（旧仕様踏襲）
-    m_currentSelectedPly = safePly;
-    m_currentMoveIndex   = safePly;
 
     ensureBoardSyncPresenter_();
-    if (m_boardController) m_boardController->clearAllHighlights();
-    m_boardSync->syncBoardAndHighlightsAtRow(safePly);
+    if (m_boardSync) {
+        m_boardSync->syncBoardAndHighlightsAtRow(ply);
+    }
 
-    m_activePly = m_currentSelectedPly;
+    // 旧コードが行っていた「矢印ボタンの活性化」等の軽いUIは残す
+    enableArrowButtons();
 }
 
 void MainWindow::onBranchCandidateActivated(const QModelIndex& index)
@@ -3098,4 +2965,23 @@ void MainWindow::ensureRecordPresenter_()
     d.recordPane = m_recordPane; // 既存のRecordPane（任意）
 
     m_recordPresenter = new GameRecordPresenter(d, this);
+}
+
+void MainWindow::onRecordRowChangedByPresenter(int row, const QString& comment)
+{
+    // 行番号ベースで従来処理を呼び出し
+    // 例：盤面とハイライトの同期、コメント欄の反映など
+    if (row >= 0) {
+        syncBoardAndHighlightsAtRow(row);
+    }
+
+    // コメントの表示（適宜 UI 側のラベルに反映）
+    if (m_recordPane) {
+        if (auto* info = m_recordPane->commentLabel()) { // 例: コメント表示の QLabel を持っている想定
+            info->setText(comment);
+        }
+    }
+
+    // 必要であれば他UI（矢印ボタン活性/非活性やゲーム情報）の更新もここで
+    enableArrowButtons();
 }

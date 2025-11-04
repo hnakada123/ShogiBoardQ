@@ -1,10 +1,12 @@
 #ifndef SFENPOSITIONTRACER_H
 #define SFENPOSITIONTRACER_H
 
-#pragma once
 #include <QString>
 #include <QStringList>
 #include <array>
+#include <QPoint>
+#include <QVector>
+#include "shogimove.h"
 
 /**
  * @brief USI手列を順に適用し、各手後のSFENを生成する簡易トレーサ。
@@ -68,6 +70,23 @@ private:
     QString boardToSfenField() const;
     // 持ち駒→SFEN第3フィールド（なければ "-"）
     QString handsToSfenField() const;
+
+public:
+    // ---- ユーティリティ（今回新設） ----
+    // 初期SFENとUSI手列から 0..N(+1) の局面列を構築（hasTerminal==true のとき終局用にもう1つ末尾に同一局面を追加）
+    static QStringList buildSfenRecord(const QString& initialSfen,
+                                       const QStringList& usiMoves,
+                                       bool hasTerminal);
+
+    // 初期SFENとUSI手列から可視化用の ShogiMove 列（1..N）を構築
+    static QVector<ShogiMove> buildGameMoves(const QString& initialSfen,
+                                             const QStringList& usiMoves);
+
+    // USI座標ヘルパ（既存の MainWindow/KifuLoadCoordinator から移したい補助関数）
+    static int    rankLetterToNum(QChar r);                          // 'a'..'i' -> 1..9（無効時は -1）
+    static QPoint dropFromSquare(QChar dropUpper, bool black);       // 駒打ち時の「駒台」座標（UI内部表現）
+    static QChar  dropLetterWithSide(QChar upper, bool black);       // 先手なら大文字/後手なら小文字
+    static QChar  tokenToOneChar(const QString& tok);                // "+p" 等を一文字へマップ（成駒対応）
 };
 
 #endif // SFENPOSITIONTRACER_H

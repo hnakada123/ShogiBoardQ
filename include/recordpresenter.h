@@ -4,10 +4,13 @@
 #include <QObject>
 #include <QStringList>
 #include <QList>
+#include <QPointer>
 
 class KifuRecordListModel;
 class RecordPane;
 class KifDisplayItem;
+class QTableView;
+class QItemSelectionModel;
 
 class GameRecordPresenter : public QObject {
     Q_OBJECT
@@ -40,6 +43,30 @@ private:
     Deps        m_d;
     int         m_currentMoveIndex {0};
     QStringList m_kifuDataList; // KIF文字列出力用の蓄積（必要なければ未使用でOK）
+
+public:
+    // 追加：コメントを Presenter 側で管理
+    void setCommentsByRow(const QStringList& commentsByRow);
+    // 追加：disp からコメント配列を構築（rowCount = sfenRecord->size() or disp.size()+1）
+    void setCommentsFromDisplayItems(const QList<KifDisplayItem>& disp, int rowCount);
+
+    // 追加：KifuView の選択変更を Presenter が直接受け取り、MainWindow へ signal を転送
+    void bindKifuSelection(QTableView* kifuView);
+
+    // 補助：行に対応するコメント取得
+    QString commentForRow(int row) const;
+
+signals:
+    // Presenter 経由で MainWindow に「現在行＋コメント」を通知
+    void currentRowChanged(int row, const QString& comment);
+
+private:
+    QPointer<QTableView> m_kifuView;
+    QMetaObject::Connection m_connRowChanged;
+    QStringList m_commentsByRow;
+
+private slots:
+    void onKifuCurrentRowChanged_(const QModelIndex& current, const QModelIndex& previous);
 };
 
 #endif // RECORDPRESENTER_H

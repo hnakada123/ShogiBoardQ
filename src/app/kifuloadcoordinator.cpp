@@ -591,77 +591,19 @@ void KifuLoadCoordinator::applyPlayersFromGameInfo(const QList<KifGameInfoItem>&
         m_shogiView->setWhitePlayerName(white);
 }
 
-void KifuLoadCoordinator::rebuildSfenRecord(const QString& initialSfen, const QStringList& usiMoves, bool hasTerminal)
+void KifuLoadCoordinator::rebuildSfenRecord(const QString& initialSfen,
+                                            const QStringList& usiMoves,
+                                            bool hasTerminal)
 {
-    SfenPositionTracer tracer;
-    if (!tracer.setFromSfen(initialSfen)) {
-        tracer.setFromSfen(QStringLiteral(
-            "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"));
-    }
-
-    QStringList list;
-    list << tracer.toSfenString();          // 0) 初期
-    for (const QString& mv : usiMoves) {
-        tracer.applyUsiMove(mv);
-        list << tracer.toSfenString();      // 1..N) 各手後
-    }
-    if (hasTerminal) {
-        list << tracer.toSfenString();      // N+1) 終局/中断表示用
-    }
-
+    const QStringList list = SfenPositionTracer::buildSfenRecord(initialSfen, usiMoves, hasTerminal);
     if (!m_sfenRecord) m_sfenRecord = new QStringList;
-    *m_sfenRecord = list;                    // COW
+    *m_sfenRecord = list; // COW
 }
 
-void KifuLoadCoordinator::rebuildGameMoves(const QString& initialSfen, const QStringList& usiMoves)
+void KifuLoadCoordinator::rebuildGameMoves(const QString& initialSfen,
+                                           const QStringList& usiMoves)
 {
-    m_gameMoves.clear();
-
-    SfenPositionTracer tracer;
-    tracer.setFromSfen(initialSfen);
-
-    for (const QString& usi : usiMoves) {
-        // ドロップ: "P*5e"
-        if (usi.size() >= 4 && usi.at(1) == QLatin1Char('*')) {
-            const bool black = tracer.blackToMove();
-            const QChar dropUpper = usi.at(0).toUpper();      // P/L/N/S/G/B/R
-            const int  file = usi.at(2).toLatin1() - '0';     // '1'..'9'
-            const int  rank = rankLetterToNum(usi.at(3));     // 1..9
-            if (file < 1 || file > 9 || rank < 1 || rank > 9) { tracer.applyUsiMove(usi); continue; }
-
-            const QPoint from = dropFromSquare(dropUpper, black);     // ★ 駒台
-            const QPoint to(file - 1, rank - 1);
-            const QChar  moving   = dropLetterWithSide(dropUpper, black);
-            const QChar  captured = QLatin1Char(' ');
-            const bool   promo    = false;
-
-            m_gameMoves.push_back(ShogiMove(from, to, moving, captured, promo));
-            tracer.applyUsiMove(usi);
-            continue;
-        }
-
-        // 通常手: "7g7f" or "2b3c+"
-        if (usi.size() < 4) { tracer.applyUsiMove(usi); continue; }
-
-        const int ff = usi.at(0).toLatin1() - '0';
-        const int rf = rankLetterToNum(usi.at(1));
-        const int ft = usi.at(2).toLatin1() - '0';
-        const int rt = rankLetterToNum(usi.at(3));
-        const bool isProm = (usi.size() >= 5 && usi.at(4) == QLatin1Char('+'));
-        if (ff<1||ff>9||rf<1||rf>9||ft<1||ft>9||rt<1||rt>9) { tracer.applyUsiMove(usi); continue; }
-
-        const QString fromTok = tracer.tokenAtFileRank(ff, usi.at(1));
-        const QString toTok   = tracer.tokenAtFileRank(ft, usi.at(3));
-
-        const QPoint from(ff - 1, rf - 1);
-        const QPoint to  (ft - 1, rt - 1);
-
-        const QChar moving   = tokenToOneChar(fromTok);
-        const QChar captured = tokenToOneChar(toTok);
-
-        m_gameMoves.push_back(ShogiMove(from, to, moving, captured, isProm));
-        tracer.applyUsiMove(usi);
-    }
+    m_gameMoves = SfenPositionTracer::buildGameMoves(initialSfen, usiMoves);
 }
 
 // 現在表示用の棋譜列（disp）を使ってモデルを再構成し、selectPly 行を選択・同期する
