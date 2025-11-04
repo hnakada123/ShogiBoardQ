@@ -119,7 +119,6 @@ MainWindow::MainWindow(QWidget *parent)
     , m_playMode(NotStarted)
     , m_lineEditModel1(new UsiCommLogModel(this))
     , m_lineEditModel2(new UsiCommLogModel(this))
-    , m_gameCount(0)
     , m_gameController(nullptr)
     , m_analysisModel(nullptr)
     , m_anaCoord(nullptr)
@@ -547,10 +546,6 @@ void MainWindow::startNewShogiGame(QString& startSfenStr)
     // エンジン名の設定
     // 対局モードに応じて将棋盤下部に表示されるエンジン名をセットする。
     setEngineNamesBasedOnMode();
-
-    // ★ 追加：開局時は両者とも未着手
-    m_p1HasMoved = false;
-    m_p2HasMoved = false;
 }
 
 // 棋譜欄の下の矢印ボタンを無効にする。
@@ -707,61 +702,6 @@ void MainWindow::openWebsiteInExternalBrowser()
     QDesktopServices::openUrl(QUrl("https://github.com/hnakada123/ShogiBoardQ"));
 }
 
-PlayMode MainWindow::setPlayMode()
-{
-    ensureGameStartCoordinator_();
-
-    GameStartCoordinator::Ctx c;
-    c.startDlg = m_startGameDialog;  // StartGameDialog*
-
-    // 司令塔→UI のエラー表示接続（どこか一度だけでOK）
-    connect(m_gameStart, &GameStartCoordinator::requestDisplayError,
-            this, &MainWindow::displayErrorMessage, Qt::UniqueConnection);
-
-    return m_gameStart->setPlayMode(c);
-}
-
-// 対局モード（人間対エンジンなど）に応じて対局処理を開始する。
-void MainWindow::startGameBasedOnMode()
-{
-    if (!m_match) return;
-
-    // ★ USI "position ... moves" のベースを必ず用意（空だと " 7g7f" 事故になる）
-    initializePositionStringsForMatch_();
-
-    // 1) StartOptions は従来どおり MatchCoordinator 側のビルダで構築
-    //    （エンジン選択やSFEN決定ロジックは既存動作を温存）
-    const MatchCoordinator::StartOptions opt =
-        m_match->buildStartOptions(
-            m_playMode,
-            m_startSfenStr,
-            m_sfenRecord,
-            m_startGameDialog);
-
-    // 2) GameStartCoordinator に「開始前の適用」を委譲（時計/人手前などの事前ポリシー）
-    //    ※ GameStartCoordinator は applyTimeControlRequested(TimeControl) を emit し、
-    //       MainWindow::onApplyTimeControlRequested_() が ShogiClock へ反映します。
-    if (m_gameStart) {
-        GameStartCoordinator::Request req;
-        req.mode         = m_playMode;
-        req.startSfen    = opt.sfenStart;
-        req.bottomIsP1   = m_bottomIsP1;
-        req.startDialog  = m_startGameDialog;   // ダイアログ上の持ち時間設定などを参照
-        req.clock        = m_shogiClock;        // 任意（Coordinator 内で参照する場合）
-
-        m_gameStart->prepare(req);
-    }
-
-    // 3) 「人を手前に（必要時のみ反転）」は司令塔のユーティリティで最終決定
-    m_match->ensureHumanAtBottomIfApplicable(m_startGameDialog, m_bottomIsP1);
-
-    // 4) 対局開始（手番/時計の実始動・USI初期化などは司令塔へ集約）
-    m_match->configureAndStart(opt);
-
-    // 5) 初手がエンジン手番なら司令塔側で go → bestmove を実行
-    m_match->startInitialEngineMoveIfNeeded();
-}
-
 void MainWindow::displayAnalysisResults()
 {
     if (m_analysisModel) {
@@ -825,170 +765,6 @@ void MainWindow::displayKifuAnalysisDialog()
 
     delete m_analyzeGameRecordDialog;
     m_analyzeGameRecordDialog = nullptr;
-}
-
-// 対局者の残り時間と秒読み/加算設定だけを確定する（★自分自身は呼ばない）
-void MainWindow::setRemainingTimeAndCountDown()
-{
-    // 1) ダイアログ値の取得（秒読み・加算は秒単位で来る想定）
-    const bool loseOnTimeout = m_startGameDialog->isLoseOnTimeout();
-    const int  byoyomiSec1     = m_startGameDialog->byoyomiSec1();
-    const int  byoyomiSec2     = m_startGameDialog->byoyomiSec2();
-    const int  addEachMoveSec1 = m_startGameDialog->addEachMoveSec1();
-    const int  addEachMoveSec2 = m_startGameDialog->addEachMoveSec2();
-
-    // 2) 方式判定
-    //  - どちらかの byoyomi > 0 → 「秒読み方式」（useByoyomi = true）
-    //  - それ以外でどちらかの increment > 0 → 「フィッシャー方式」（useByoyomi = false）
-    //  - どちらも 0 → 「持ち時間のみ（便宜上 byoyomi=0 扱い）」→ useByoyomi = true（by=0）
-    bool useByoyomi = true;
-    if (byoyomiSec1 > 0 || byoyomiSec2 > 0) {
-        useByoyomi = true;
-    } else if (addEachMoveSec1 > 0 || addEachMoveSec2 > 0) {
-        useByoyomi = false; // フィッシャー方式
-    } else {
-        useByoyomi = true;  // by=0 の秒読み扱い
-    }
-
-    // 3) ms に変換
-    const int by1Ms  = byoyomiSec1     * 1000;
-    const int by2Ms  = byoyomiSec2     * 1000;
-    const int inc1Ms = addEachMoveSec1 * 1000;
-    const int inc2Ms = addEachMoveSec2 * 1000;
-
-    // 4) 司令塔へ集約設定（MainWindow 側の m_* 変数はもう使わない）
-    if (m_match) {
-        m_match->setTimeControlConfig(
-            useByoyomi,
-            by1Ms, by2Ms,
-            inc1Ms, inc2Ms,
-            loseOnTimeout
-            );
-    }
-
-    // 5) （従来どおりなら）ShogiClock にも「時間切れ負け」を反映
-    if (m_shogiClock) {
-        m_shogiClock->setLoseOnTimeout(loseOnTimeout);
-    }
-}
-
-// 対局ダイアログから各オプションを取得する。
-void MainWindow::getOptionFromStartGameDialog()
-{
-    // 先手の人間の場合の対局者名
-    m_humanName1 = m_startGameDialog->humanName1();
-
-    // 後手の人間の場合の対局者名
-    m_humanName2 = m_startGameDialog->humanName2();
-
-    // 先手がUSIエンジンの場合のエンジン名
-    m_engineName1 = m_startGameDialog->engineName1();
-
-    // 後手がUSIエンジンの場合のエンジン名
-    m_engineName2 = m_startGameDialog->engineName2();
-
-    // 対局モードの設定
-    m_playMode = setPlayMode();
-}
-
-// 「現在の局面から（履歴なし）」で呼ばれたときは平手にフォールバック
-void MainWindow::prepareFallbackEvenStartForResume_()
-{
-    // 0手目から
-    m_currentMoveIndex = 0;
-
-    // 平手 startpos → SFEN へ
-    m_startPosStr  = QStringLiteral("startpos");
-    m_startSfenStr = parseStartPositionToSfen(m_startPosStr); // "… b - 1"
-
-    // sfenRecord を確実に用意して 0手目を積む
-    if (!m_sfenRecord) m_sfenRecord = new QStringList;
-    m_sfenRecord->clear();
-    m_sfenRecord->append(m_startSfenStr);
-
-    // 他の保持データもまっさらに
-    m_gameMoves.clear();
-    m_positionStrList.clear();
-
-    // 棋譜欄は「開始局面」を必ず表示
-    if (m_kifuRecordModel) {
-        while (m_kifuRecordModel->rowCount() > 0)
-            m_kifuRecordModel->removeLastItem();
-        m_kifuRecordModel->appendItem(new KifuDisplay(
-            QStringLiteral("=== 開始局面 ==="),
-            QStringLiteral("（１手 / 合計）")));
-    }
-
-    // 評価値グラフ／ハイライトも 0 手目に整える
-    trimEvalChartForResume_(0);
-    if (m_boardController) m_boardController->clearAllHighlights();
-    updateHighlightsForPly_(0);
-
-    // 再開用スナップショットは開始局面
-    m_resumeSfenStr = m_startSfenStr;
-
-    // 直前の終局フラグなどを必ず掃除
-    resetGameFlags();
-}
-
-// 現在の局面で開始する場合に必要なListデータなどを用意する。
-void MainWindow::prepareDataCurrentPosition()
-{
-    ensureGameStartCoordinator_();
-
-    GameStartCoordinator::Ctx c;
-    c.view           = m_shogiView;
-    c.gc             = m_gameController;
-    c.clock          = m_shogiClock;
-    c.startDlg       = m_startGameDialog;
-    c.startSfenStr   = &m_startSfenStr;
-    c.currentSfenStr = &m_currentSfenStr;
-    c.selectedPly        = qMax(0, m_currentMoveIndex);
-    c.resumeFromCurrent  = true;
-
-    m_gameStart->prepareDataCurrentPosition(c);
-}
-
-// 初期局面からの対局する場合の準備を行う。
-void MainWindow::prepareInitialPosition()
-{
-    ensureGameStartCoordinator_();
-
-    GameStartCoordinator::Ctx c;
-    c.view           = m_shogiView;
-    c.gc             = m_gameController;
-    c.clock          = m_shogiClock;
-    c.startDlg       = m_startGameDialog;
-    c.startSfenStr   = &m_startSfenStr;
-    c.currentSfenStr = &m_currentSfenStr;
-    c.kifuModel  = m_kifuRecordModel;
-    c.sfenRecord = m_sfenRecord;
-
-    m_gameStart->prepareInitialPosition(c);
-}
-
-// 残り時間をセットしてタイマーを開始する。
-void MainWindow::setTimerAndStart()
-{
-    ensureClockReady_();
-
-    ensureGameStartCoordinator_();
-    // 司令塔シグナルとUIの接続（初回どこかで一度だけ）
-    connect(m_gameStart, &GameStartCoordinator::requestUpdateTurnDisplay,
-            this, &MainWindow::updateTurnDisplay, Qt::UniqueConnection);
-
-    GameStartCoordinator::Ctx c;
-    c.view                 = m_shogiView;
-    c.gc                   = m_gameController;
-    c.clock                = m_shogiClock;
-    c.startDlg             = m_startGameDialog;
-    c.startSfenStr         = &m_startSfenStr;
-    c.currentSfenStr       = &m_currentSfenStr;
-    c.isReplayMode         = m_isReplayMode;
-    c.initialTimeP1MsOut   = &m_initialTimeP1Ms;  // 必要なら
-    c.initialTimeP2MsOut   = &m_initialTimeP2Ms;  // 必要なら
-
-    m_gameStart->setTimerAndStart(c);
 }
 
 // TurnManager::changed を受けて UI/Clock を更新（＋手番を GameController に同期）
@@ -1250,128 +1026,68 @@ void MainWindow::rebuildGameMoves(const QString& initialSfen, const QStringList&
     }
 }
 
+// 置き換え：棋譜描画は Presenter へ委譲
 void MainWindow::displayGameRecord(const QList<KifDisplayItem> disp)
 {
-    // 安全チェック
     if (!m_kifuRecordModel) return;
-    if (!m_moveRecords) m_moveRecords = new QList<KifuDisplay*>();
 
-    // クリア
-    m_moveRecords->clear();
-    m_currentMoveIndex = 0;
-    m_kifuDataList.clear();
-    m_kifuRecordModel->clearAllItems();
-
-    // ヘッダ（開始局面）
-    m_kifuRecordModel->appendItem(new KifuDisplay(QStringLiteral("=== 開始局面 ==="),
-                                                  QStringLiteral("（1手 / 合計）")));
-
-    // ★ コメント表を（SFENの行数に合わせて）準備
+    // --- コメント配列は UI 側で保持 ---
     m_commentsByRow.clear();
-    const int moveCount = disp.size();                             // 手数
-    const int rowCount  = m_sfenRecord ? m_sfenRecord->size()
-                                       : (moveCount + 1);          // 行=開始局面(0) + 各手(1..N)
-    m_commentsByRow.resize(rowCount);                              // 既定は空
+    const int moveCount = disp.size();
+    const int rowCount  = m_sfenRecord ? m_sfenRecord->size() : (moveCount + 1);
+    m_commentsByRow.resize(rowCount);
 
-    // 先に「開始局面のコメント」を設定（= 初手の直前コメント）
     if (moveCount > 0)
         m_commentsByRow[0] = disp[0].comment;
 
-    // 棋譜欄へ各手を追加しつつ、「その手のコメント」は disp[i+1] を採用
     for (int i = 0; i < moveCount; ++i) {
-        const auto &it = disp[i];
-
-        // 行→コメントの対応（ズレ補正）
-        const int row = i + 1;                   // 1..N
+        const int row = i + 1;
         if (row < m_commentsByRow.size()) {
             if (i + 1 < moveCount) {
-                m_commentsByRow[row] = disp[i + 1].comment;  // その手の“後”のコメント
+                m_commentsByRow[row] = disp[i + 1].comment;
             } else {
-                m_commentsByRow[row].clear();                // 最終手の後は通常コメントなし
+                m_commentsByRow[row].clear();
             }
         }
-
-        // 棋譜欄へ行を追加（既存処理）
-        m_lastMove = it.prettyMove;
-        updateGameRecord(it.timeText);
     }
 
-    // --- 表示／選択 & コメント同期は RecordPane + EngineAnalysisTab 経由 ---
-    if (m_recordPane && m_recordPane->kifuView()) {
-        QTableView* view = m_recordPane->kifuView();
+    // --- 描画は Presenter ---
+    ensureRecordPresenter_();
+    if (m_recordPresenter) {
+        m_recordPresenter->presentGameRecord(disp);
+    }
 
-        // 初期選択：開始局面
-        view->setCurrentIndex(m_kifuRecordModel->index(0, 0));
+    // 初期コメント表示（開始局面）
+    const QString head = (0 < m_commentsByRow.size() ? m_commentsByRow[0].trimmed() : QString());
+    broadcastComment(head.isEmpty() ? tr("コメントなし") : head, /*asHtml=*/true);
 
-        // コメント初期表示
-        if (m_analysisTab || m_recordPane) {
-            const QString head = (0 < m_commentsByRow.size() ? m_commentsByRow[0].trimmed()
-                                                             : QString());
-            const QString toShow = head.isEmpty() ? tr("コメントなし") : head;
-            broadcastComment(toShow, /*asHtml=*/true);
-        }
-
-        // 行選択が変わったらコメントも更新
-        if (view->selectionModel()) {
-            // 既存接続があれば一度切る（多重接続防止）
-            if (m_connKifuRowChanged)
-                disconnect(m_connKifuRowChanged);
-
+    // 行選択→コメント更新の接続（従来通り）
+    if (m_recordPane) {
+        if (auto* view = m_recordPane->kifuView(); view && view->selectionModel()) {
+            if (m_connKifuRowChanged) disconnect(m_connKifuRowChanged);
             m_connKifuRowChanged = connect(view->selectionModel(),
                                            &QItemSelectionModel::currentRowChanged,
                                            this,
                                            &MainWindow::onKifuCurrentRowChanged,
-                                           Qt::UniqueConnection); // ← メンバ関数なのでOK
+                                           Qt::UniqueConnection);
         }
     }
 }
 
-// 棋譜を1行だけUIへ反映する（ビジネスロジックなし / 表示専用）
+// 置き換え：1手追記も Presenter に一本化
 void MainWindow::updateGameRecord(const QString& elapsedTime)
 {
-    if (m_isUndoInProgress) return;  // UNDO中は棋譜追記を抑止
-
-    qCDebug(ClockLog) << "in MainWindow::updateGameRecord";
-    qDebug() << "[UI] updateGameRecord append <<" << elapsedTime;
-    qCDebug(ClockLog) << "elapsedTime=" << elapsedTime;
-
-    // 1) 終局後、すでに終局行を追記済みなら何もしない
     const bool gameOverAppended =
         (m_match && m_match->gameOverState().isOver && m_match->gameOverState().moveAppended);
-    if (gameOverAppended) {
-        qCDebug(ClockLog) << "[KIFU] suppress updateGameRecord after game over";
-        return;
+    if (gameOverAppended) return;
+
+    ensureRecordPresenter_();
+    if (m_recordPresenter) {
+        m_recordPresenter->appendMoveLine(m_lastMove, elapsedTime);
     }
 
-    // 2) 手文字列が空なら行を作らない（空行防止）
-    const QString last = m_lastMove.trimmed();
-    if (last.isEmpty()) {
-        qCDebug(ClockLog) << "[KIFU] skip empty move line";
-        return;
-    }
-
-    // 3) 手数をインクリメントして整形（表示上は左寄せ幅4桁）
-    const QString moveNumberStr = QString::number(++m_currentMoveIndex);
-    const QString spaceStr = QString(qMax(0, 4 - moveNumberStr.length()), QLatin1Char(' '));
-
-    // 4) 表示用の行（例: "   1 ▲７六歩"）
-    const QString recordLine = spaceStr + moveNumberStr + QLatin1Char(' ') + last;
-
-    // 5) KIF 出力用の行（先後記号は外し、消費時間を付与）
-    QString kifuLine = recordLine + QStringLiteral(" ( ") + elapsedTime + QLatin1String(" )");
-    kifuLine.remove(QStringLiteral("▲"));
-    kifuLine.remove(QStringLiteral("△"));
-
-    // 6) KIFテキスト蓄積
-    m_kifuDataList.append(kifuLine);
-
-    // 7) 表示モデル更新（モデルがなければ作る）
-    if (!m_moveRecords) m_moveRecords = new QList<KifuDisplay*>();
-    m_moveRecords->append(new KifuDisplay(recordLine, elapsedTime));
-
-    if (m_kifuRecordModel && !m_moveRecords->isEmpty()) {
-        m_kifuRecordModel->appendItem(m_moveRecords->last());
-    }
+    // 二重追記防止（従来どおり）
+    m_lastMove.clear();
 }
 
 // 検討を開始する（司令塔へ依頼する形に集約）
@@ -2081,18 +1797,6 @@ void MainWindow::syncBoardAndHighlightsAtRow(int ply1)
     m_activePly = m_currentSelectedPly;
 }
 
-void MainWindow::applySfenAtCurrentPly()
-{
-    if (m_shogiView && m_shogiView->positionEditMode()) {
-        qDebug() << "[UI] applySfenAtCurrentPly skipped (edit-mode). m_currentSelectedPly=" << m_currentSelectedPly;
-        return;
-    }
-    if (!m_sfenRecord || m_sfenRecord->isEmpty()) return;
-
-    ensureBoardSyncPresenter_();
-    m_boardSync->applySfenAtPly(qBound(0, m_currentSelectedPly, m_sfenRecord->size() - 1));
-}
-
 void MainWindow::onBranchCandidateActivated(const QModelIndex& index)
 {
     if (!index.isValid()) return;
@@ -2150,14 +1854,6 @@ void MainWindow::BranchRowDelegate::paint(QPainter* painter, const QStyleOptionV
     }
 
     QStyledItemDelegate::paint(painter, opt, index);
-}
-
-void MainWindow::resetGameFlags()
-{
-    // 司令塔に終局状態の全クリアを依頼（isOver / moveAppended / hasLast など一括）
-    if (m_match) {
-        m_match->clearGameOverState();
-    }
 }
 
 inline void pumpUi() {
@@ -2642,41 +2338,6 @@ void MainWindow::onActionFlipBoardTriggered(bool /*checked*/)
     if (m_match) m_match->flipBoard();
 }
 
-void MainWindow::initializePositionStringsForMatch_()
-{
-    // 司令塔に開始局面の文字列初期化を委譲（Main 側の一時バッファは使わない）
-    if (!m_match) return;
-
-    QString sfenBase;
-    if (!m_startSfenStr.isEmpty()) {
-        sfenBase = m_startSfenStr;
-    } else if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
-        sfenBase = m_sfenRecord->first();
-    } else {
-        sfenBase.clear(); // 司令塔側で startpos を使う
-    }
-    m_match->initializePositionStringsForStart(sfenBase);
-}
-
-void MainWindow::updateTurnDisplay()
-{
-    // TurnManager を（無ければ）生成して接続：QObject 階層から取得
-    TurnManager* tm = this->findChild<TurnManager*>("TurnManager");
-    if (!tm) {
-        tm = new TurnManager(this);
-        tm->setObjectName(QStringLiteral("TurnManager"));
-        // ★ 手番変化を一元配信：ShogiClock と盤ハイライトの更新を既存関数に委譲
-        connect(tm, &TurnManager::changed, this, [this](ShogiGameController::Player now){
-            const int cur = (now == ShogiGameController::Player2) ? 2 : 1;
-            updateTurnStatus(cur);
-        }, Qt::UniqueConnection);
-    }
-
-    // 初期同期は ensureTurnSyncBridge_() により
-    //   GC::currentPlayerChanged → TurnManager::setFromGc → changed(UI更新)
-    // が自動で行われるため、ここでは何もしない。
-}
-
 void MainWindow::wireMatchSignals_()
 {
     if (!m_match) return;
@@ -2874,11 +2535,6 @@ void MainWindow::handleMove_HvE_(const QPoint& humanFrom, const QPoint& humanTo)
     m_match->onHumanMove_HvE(humanFrom, humanTo, m_lastMove);
 }
 
-bool MainWindow::isGameOver_() const
-{
-    return (m_match && m_match->gameOverState().isOver);
-}
-
 // 再生モードの切替を MainWindow 内で一元管理
 void MainWindow::setReplayMode(bool on)
 {
@@ -2987,13 +2643,6 @@ void MainWindow::setupBranchView_()
 
     // 初期は隠しておく（候補が入ったら populateBranchCandidates_ で制御）
     view->setVisible(false);
-}
-
-void MainWindow::showBranchCandidatesFromPlan(int row, int ply1)
-{
-    // MainWindow 実装はやめ、Coordinator へ委譲
-    if (!m_kifuLoadCoordinator) return;
-    m_kifuLoadCoordinator->showBranchCandidates(row, ply1);
 }
 
 void MainWindow::onBranchPlanActivated_(int row, int ply1)
@@ -3146,24 +2795,6 @@ void MainWindow::onBoardFlipped(bool /*flipped*/)
     flipBoardAndUpdatePlayerInfo();
 }
 
-void MainWindow::updateHighlightsForPly_(int selPly)
-{
-    if (!m_boardController) return;
-
-    m_boardController->clearAllHighlights();
-
-    // selPly は「この手数時点の盤面」。直前に指された手は selPly-1 にある
-    if (selPly <= 0) return;
-    if (selPly - 1 >= m_gameMoves.size()) return;
-
-    const ShogiMove& mv = m_gameMoves.at(selPly - 1);
-
-    const QPoint from = normalizeBoardPoint_(mv.fromSquare);
-    const QPoint to   = normalizeBoardPoint_(mv.toSquare);
-
-    m_boardController->showMoveHighlights(from, to);
-}
-
 void MainWindow::onGameOverStateChanged(const MatchCoordinator::GameOverState& st)
 {
     if (!st.isOver) return;
@@ -3247,70 +2878,6 @@ void MainWindow::exitLiveAppendMode_()
     }
 }
 
-// 指定手数 selPly（0=開始局面, 1..）まで評価値グラフを巻き戻す
-void MainWindow::trimEvalChartForResume_(int selPly)
-{
-    // 評価値グラフは RecordPane が所有。毎回ゲッターで取得して順序依存を回避
-    EvaluationChartWidget* ec = (m_recordPane ? m_recordPane->evalChart() : nullptr);
-    if (!ec) return;
-
-    const int ply = qMax(0, selPly);
-
-    // P1/P2 がそれまでに指した回数（= その側の評価点の“最大許容量”）
-    // P1 は奇数手、P2 は偶数手を担当
-    const int targetP1 = (ply + 1) / 2;  // 例: ply=4 → 2（1,3手目）
-    const int targetP2 = (ply) / 2;      // 例: ply=4 → 2（2,4手目）
-
-    // どの系列を残すか（=どの側の評価点を保持するか）は PlayMode に依存
-    bool keepP1 = false, keepP2 = false;
-    switch (m_playMode) {
-    case EvenEngineVsHuman:       // P1=Engine, P2=Human
-    case HandicapHumanVsEngine:   // あなたの実装では P1 側を描画（handleUndoMove と同じ規則）
-        keepP1 = true; break;
-
-    case EvenHumanVsEngine:       // P1=Human, P2=Engine
-    case HandicapEngineVsHuman:   // あなたの実装では P2 側を描画（handleUndoMove と同じ規則）
-        keepP2 = true; break;
-
-    case HandicapEngineVsEngine:  // 両側 Engine
-        keepP1 = keepP2 = true; break;
-
-    default:
-        // 編集モード等、不明なら両方消す（=0）
-        keepP1 = keepP2 = false; break;
-    }
-
-    // まず不要側は全部落とす
-    int curP1 = ec->countP1();
-    int curP2 = ec->countP2();
-    if (!keepP1) while (curP1-- > 0) ec->removeLastP1();
-    if (!keepP2) while (curP2-- > 0) ec->removeLastP2();
-
-    // 使う側だけ、目標数まで末尾から削る
-    if (keepP1) {
-        curP1 = ec->countP1();
-        while (curP1 > targetP1) { ec->removeLastP1(); --curP1; }
-    }
-    if (keepP2) {
-        curP2 = ec->countP2();
-        while (curP2 > targetP2) { ec->removeLastP2(); --curP2; }
-    }
-
-    // スカラー履歴（最後に push している CP 値の束）も整合を取る
-    const int targetTotal = (keepP1 ? targetP1 : 0) + (keepP2 ? targetP2 : 0);
-    while (!m_scoreCp.isEmpty() && m_scoreCp.size() > targetTotal)
-        m_scoreCp.removeLast();
-}
-
-void MainWindow::applyPendingEvalTrim_()
-{
-    if (m_pendingEvalTrimPly >= 0) {
-        trimEvalChartForResume_(m_pendingEvalTrimPly); // ← ここで初めて刈る
-        m_pendingEvalTrimPly = -1;
-    }
-    m_isResumeFromCurrent = false;  // ← 再開モード解除
-}
-
 // 「検討を終了」アクション用：エンジンに quit を送り検討セッションを終了
 void MainWindow::handleBreakOffConsidaration()
 {
@@ -3354,25 +2921,6 @@ void MainWindow::ensureTurnSyncBridge_()
 
     // 3) 初期同期：現時点の手番を即時反映（時計/ラベルのズレ防止）
     tm->setFromGc(gc->currentPlayer());
-}
-
-void MainWindow::ensureHumanAtBottomIfApplicable_()
-{
-    if (!m_startGameDialog) return;
-
-    const bool humanP1  = m_startGameDialog->isHuman1();
-    const bool humanP2  = m_startGameDialog->isHuman2();
-    const bool oneHuman = (humanP1 ^ humanP2); // HvE または EvH のときだけ true
-
-    if (!oneHuman) return; // HvH / EvE は対象外（仕様どおり）
-
-    // 現在「手前が先手か？」と「人間が先手か？」が食い違っていたら1回だけ反転
-    const bool needFlip = (humanP1 != m_bottomIsP1);
-    if (needFlip) {
-        // 指定の関数経由で実反転。内部で m_match->flipBoard() が呼ばれる
-        onActionFlipBoardTriggered(false);
-        // onBoardFlipped() が呼ばれ、m_bottomIsP1 はトグルされます
-    }
 }
 
 // 置き換え：makeDefaultSaveFileName()
@@ -3464,16 +3012,6 @@ void MainWindow::ensureGameStartCoordinator_()
 
     connect(m_gameStart, &GameStartCoordinator::requestApplyTimeControl,
             this, &MainWindow::onApplyTimeControlRequested_);
-
-    // 任意（ログやUI反映）
-    connect(m_gameStart, &GameStartCoordinator::willStart,
-            this, &MainWindow::onGameWillStart_);
-
-    connect(m_gameStart, &GameStartCoordinator::started,
-            this, &MainWindow::onGameStarted_);
-
-    connect(m_gameStart, &GameStartCoordinator::startFailed,
-            this, &MainWindow::onGameStartFailed_);
 }
 
 // 対局開始前の UI/状態初期化（ハイライトや選択をクリア等）
@@ -3549,22 +3087,6 @@ void MainWindow::onApplyTimeControlRequested_(const GameStartCoordinator::TimeCo
                 : QStringLiteral("increment(%1/%2)s").arg(finalInc1).arg(finalInc2))
         << "limited=" << limited
         << "startSide=" << (m_shogiClock->currentPlayer() == 1 ? "P1" : "P2");
-}
-
-// ログやUI反映用（任意）
-void MainWindow::onGameWillStart_(const MatchCoordinator::StartOptions& opt)
-{
-    Q_UNUSED(opt);
-    // ステータスバー表示など
-}
-void MainWindow::onGameStarted_(const MatchCoordinator::StartOptions& opt)
-{
-    Q_UNUSED(opt);
-    // ボタン状態やラベルの更新など
-}
-void MainWindow::onGameStartFailed_(const QString& reason)
-{
-    // QMessageBox::critical(this, tr("開始失敗"), reason);
 }
 
 void MainWindow::ensureRecordPresenter_()
