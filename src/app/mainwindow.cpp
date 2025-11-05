@@ -9,6 +9,7 @@
 #include <QDebug>
 #include <QScrollBar>
 #include <QPushButton>
+#include <functional>
 
 #include "mainwindow.h"
 #include "promotedialog.h"
@@ -45,7 +46,6 @@
 #include "navigationpresenter.h"
 #include "analysiscoordinator.h"
 #include "kifuanalysislistmodel.h"
-#include "kifuanalysisresultsdisplay.h"
 #include "analysiscoordinator.h"
 #include "recordpresenter.h"
 #include "tsumepositionutil.h"
@@ -56,6 +56,8 @@ using KifuIoService::makeDefaultSaveFileName;
 using KifuIoService::writeKifuFile;
 using namespace EngineSettingsConstants;
 using GameOverCause = MatchCoordinator::Cause;
+using std::placeholders::_1;
+using std::placeholders::_2;
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -1702,6 +1704,7 @@ void MainWindow::initMatchCoordinator()
     // まず時計を用意（nullでも可だが、あれば渡す）
     ensureClockReady_();
 
+    // --- MatchCoordinator::Deps を構築（UI hooks は従来どおりここで設定） ---
     MatchCoordinator::Deps d;
     d.gc    = m_gameController;
     d.clock = m_shogiClock;
@@ -1709,156 +1712,83 @@ void MainWindow::initMatchCoordinator()
     d.usi1  = m_usi1;
     d.usi2  = m_usi2;
 
-    // --- ここから追加（EvE 用：司令塔にモデルを渡す） ---
-    d.comm1  = m_lineEditModel1;     // UsiCommLogModel*（先手）
-    d.think1 = m_modelThinking1;     // ShogiEngineThinkingModel*（先手）
-    d.comm2  = m_lineEditModel2;     // UsiCommLogModel*（後手）
-    d.think2 = m_modelThinking2;     // ShogiEngineThinkingModel*（後手）
+    // （EvE 用）ログ／思考モデル
+    d.comm1  = m_lineEditModel1;
+    d.think1 = m_modelThinking1;
+    d.comm2  = m_lineEditModel2;
+    d.think2 = m_modelThinking2;
 
-    //d.hooks.appendEvalP1 = [this] { redrawEngine1EvaluationGraph(); };
-    //d.hooks.appendEvalP2 = [this] { redrawEngine2EvaluationGraph(); };
-    // --- 追加ここまで ---
+    // ---- ここは「コメントアウト」せず、関数バインドで割り当て ----
+    d.hooks.appendEvalP1     = std::bind(&MainWindow::requestRedrawEngine1Eval_, this);
+    d.hooks.appendEvalP2     = std::bind(&MainWindow::requestRedrawEngine2Eval_, this);
+    d.hooks.sendGoToEngine   = std::bind(&MainWindow::sendGoToEngine_, this, _1, _2);
+    d.hooks.sendStopToEngine = std::bind(&MainWindow::sendStopToEngine_, this, _1);
+    d.hooks.sendRawToEngine  = std::bind(&MainWindow::sendRawToEngine_, this, _1, _2);
+    d.hooks.initializeNewGame= std::bind(&MainWindow::initializeNewGame_, this, _1);
+    d.hooks.showMoveHighlights= std::bind(&MainWindow::showMoveHighlights_, this, _1, _2);
+    d.hooks.appendKifuLine   = std::bind(&MainWindow::appendKifuLineHook_, this, _1, _2);
 
-    // （MainWindow::setupDeps / ensure... など hooks を設定している塊に追加）
-    qDebug() << "[WIRE][Eval] installing eval hooks";
+    // --- GameStartCoordinator の確保（1 回だけ） ---
+    if (!m_gameStartCoordinator) {
+        GameStartCoordinator::Deps gd;
+        gd.match = nullptr;
+        gd.clock = m_shogiClock;
+        gd.gc    = m_gameController;
+        gd.view  = m_shogiView;
 
-    d.hooks.appendEvalP1 = [this] {
-        // GUIスレッドに投げる（EvE のスレッドからでも安全）
-        QMetaObject::invokeMethod(this, [this]{
-            qDebug() << "[HOOK] appendEvalP1 -> redrawEngine1EvaluationGraph() on thread" << QThread::currentThread();
-            redrawEngine1EvaluationGraph();
-        }, Qt::QueuedConnection);
-    };
+        m_gameStartCoordinator = new GameStartCoordinator(gd, this);
 
-    d.hooks.appendEvalP2 = [this] {
-        QMetaObject::invokeMethod(this, [this]{
-            qDebug() << "[HOOK] appendEvalP2 -> redrawEngine2EvaluationGraph() on thread" << QThread::currentThread();
-            redrawEngine2EvaluationGraph();
-        }, Qt::QueuedConnection);
-    };
+        // ★ Coordinator の転送シグナルを MainWindow のスロットへ接続
+        // timeUpdated
+        if (m_timeConn) { QObject::disconnect(m_timeConn); m_timeConn = {}; }
+        m_timeConn = connect(
+            m_gameStartCoordinator,
+            static_cast<void (GameStartCoordinator::*)(qint64,qint64,bool,qint64)>(&GameStartCoordinator::timeUpdated),
+            this,
+            &MainWindow::onMatchTimeUpdated,
+            Qt::UniqueConnection);
 
-    qDebug() << "[WIRE][Eval] appendEvalP1 set =" << bool(d.hooks.appendEvalP1)
-             << " appendEvalP2 set =" << bool(d.hooks.appendEvalP2);
+        // requestAppendGameOverMove
+        connect(m_gameStartCoordinator, &GameStartCoordinator::requestAppendGameOverMove,
+                this,                   &MainWindow::onRequestAppendGameOverMove,
+                Qt::UniqueConnection);
 
-    // ---------- Hooks: MainWindow の既存APIに委譲 ----------
-    // 手番表示（1=先手,2=後手）
-    d.hooks.updateTurnDisplay = [this](MatchCoordinator::Player cur){
-        updateTurnStatus(static_cast<int>(cur));
-    };
+        // boardFlipped
+        connect(m_gameStartCoordinator, &GameStartCoordinator::boardFlipped,
+                this,                   &MainWindow::onBoardFlipped,
+                Qt::UniqueConnection);
 
-    // 対局者名表示（引数は捨て、既存ロジックに委譲）
-    d.hooks.setPlayersNames = [this](const QString&, const QString&){
-        setPlayersNamesForMode();
-    };
+        // gameOverStateChanged
+        connect(m_gameStartCoordinator, &GameStartCoordinator::gameOverStateChanged,
+                this,                   &MainWindow::onGameOverStateChanged,
+                Qt::UniqueConnection);
 
-    // エンジン名表示（引数は捨て、既存ロジックに委譲）
-    d.hooks.setEngineNames = [this](const QString&, const QString&){
-        setEngineNamesBasedOnMode();
-    };
-
-    // 対局中メニュー表示の切り替え
-    d.hooks.setGameActions = [this](bool inProgress){
-        setGameInProgressActions(inProgress);
-    };
-
-    // 盤面再描画（GC→View 反映）
-    d.hooks.renderBoardFromGc = [this](){
-        if (m_shogiView && m_gameController)
-            m_shogiView->applyBoardAndRender(m_gameController->board());
-    };
-
-    // ★修正：タイトルが空なら従来メッセージ／空でなければ message をそのまま表示
-    d.hooks.showGameOverDialog = [this](const QString& title, const QString& message){
-        const bool titleEmpty = title.isEmpty();
-        const QString dlgTitle = titleEmpty ? tr("Game Over") : title;
-        const QString dlgText  = titleEmpty ? tr("The game has ended. %1").arg(message)
-                                            : message;
-        QMessageBox::information(this, dlgTitle, dlgText);
-    };
-
-    // 任意ログ
-    d.hooks.log = [](const QString& s){ qDebug().noquote() << s; };
-
-    // 時計値の問い合わせ
-    d.hooks.remainingMsFor = [this](MatchCoordinator::Player p)->qint64 {
-        if (!m_shogiClock) return 0;
-        return (p == MatchCoordinator::P1)
-                   ? m_shogiClock->getPlayer1TimeIntMs()
-                   : m_shogiClock->getPlayer2TimeIntMs();
-    };
-    d.hooks.incrementMsFor = [this](MatchCoordinator::Player p)->qint64 {
-        if (!m_shogiClock) return 0;
-        return (p == MatchCoordinator::P1)
-                   ? m_shogiClock->getBincMs()
-                   : m_shogiClock->getWincMs();
-    };
-    d.hooks.byoyomiMs = [this]()->qint64 {
-        return m_shogiClock ? m_shogiClock->getCommonByoyomiMs() : 0;
-    };
-
-    // USI送受（必要最低限）
-    d.hooks.sendGoToEngine = nullptr; // 必要になったら実装
-    d.hooks.sendStopToEngine = [this](Usi* u){
-        if (u) u->sendStopCommand();
-    };
-    d.hooks.sendRawToEngine = [this](Usi* u, const QString& cmd){
-        if (u) u->sendRaw(cmd);
-    };
-
-    // 新規対局の初期化（盤/名前/表示など）
-    d.hooks.initializeNewGame = [this](const QString& sfenStart){
-        QString s = sfenStart;     // 既存APIが非常参照なのでコピーして渡す
-        startNewShogiGame(s);
-    };
-
-    d.hooks.showMoveHighlights = [this](const QPoint& from, const QPoint& to){
-        if (m_boardController) m_boardController->showMoveHighlights(from, to);
-    };
-
-    d.hooks.appendKifuLine = [this](const QString& text, const QString& elapsed){
-        // 既存の安全な1行追記ラッパー
-        appendKifuLine(text, elapsed);
-    };
-
-    // ---------- 生成 or 置き換え ----------
-    if (m_match) {
-        delete m_match;
-        m_match = nullptr;
+        // gameEnded → onMatchGameEnded
+        connect(
+            m_gameStartCoordinator,
+            static_cast<void (GameStartCoordinator::*)(const MatchCoordinator::GameEndInfo&)>(&GameStartCoordinator::matchGameEnded),
+            this,
+            static_cast<void (MainWindow::*)(const MatchCoordinator::GameEndInfo&)>(&MainWindow::onMatchGameEnded),
+            Qt::UniqueConnection);
     }
-    m_match = new MatchCoordinator(d, this);
 
-    // wireMatchSignals_ の直前などで
-    qDebug() << "[DBG] signal index:"
-             << m_match->metaObject()->indexOfSignal("timeUpdated(long long,long long,bool,long long)");
+    // --- 司令塔の生成＆初期配線を Coordinator に委譲 ---
+    m_match = m_gameStartCoordinator->createAndWireMatch(d, this);
 
-    wireMatchSignals_();
+    // PlayMode を司令塔へ伝達（従来どおり）
+    if (m_match) {
+        m_match->setPlayMode(m_playMode);
+    }
 
-    // ★ PlayMode を司令塔へ伝える（追加）
-    m_match->setPlayMode(m_playMode);
+    // Clock → MainWindow のタイムアウト系は従来どおり UI 側で受ける
+    if (m_shogiClock) {
+        connect(m_shogiClock, &ShogiClock::player1TimeOut,
+                this, &MainWindow::onPlayer1TimeOut, Qt::UniqueConnection);
+        connect(m_shogiClock, &ShogiClock::player2TimeOut,
+                this, &MainWindow::onPlayer2TimeOut, Qt::UniqueConnection);
+    }
 
-    // ---------- UIシグナル接続 ----------
-    // ゲーム終了 → 時計を終了表示にして残り時間を更新
-    connect(
-        m_match,
-        static_cast<void (MatchCoordinator::*)(const MatchCoordinator::GameEndInfo&)>(
-            &MatchCoordinator::gameEnded),
-        this,
-        static_cast<void (MainWindow::*)(const MatchCoordinator::GameEndInfo&)>(
-            &MainWindow::onMatchGameEnded),
-        Qt::UniqueConnection
-        );
-
-    // 盤反転通知 → 明示スロットへ一本化
-    connect(m_match, &MatchCoordinator::boardFlipped,
-            this, &MainWindow::onBoardFlipped,
-            Qt::UniqueConnection);
-
-    connect(m_match, &MatchCoordinator::gameOverStateChanged,
-            this,     &MainWindow::onGameOverStateChanged,
-            Qt::UniqueConnection);
-
-    // 初期のエンジンポインタを供給（null可）
-    m_match->updateUsiPtrs(m_usi1, m_usi2);
+    // ※ 旧：wireMatchSignals_() は Coordinator で転送するようにしたため不要です
 }
 
 void MainWindow::ensureClockReady_()
@@ -2700,4 +2630,63 @@ void MainWindow::onRecordRowChangedByPresenter(int row, const QString& comment)
 
     // 必要であれば他UI（矢印ボタン活性/非活性やゲーム情報）の更新もここで
     enableArrowButtons();
+}
+
+// UIスレッド安全のため queued 呼び出しにしています
+void MainWindow::requestRedrawEngine1Eval_() {
+    QMetaObject::invokeMethod(this, &MainWindow::redrawEngine1EvaluationGraph, Qt::QueuedConnection);
+}
+
+void MainWindow::requestRedrawEngine2Eval_() {
+    QMetaObject::invokeMethod(this, &MainWindow::redrawEngine2EvaluationGraph, Qt::QueuedConnection);
+}
+
+// qint64 → int の安全な縮小（オーバーフロー防止）
+static inline int clampMsToInt(qint64 v) {
+    if (v > std::numeric_limits<int>::max()) return std::numeric_limits<int>::max();
+    if (v < std::numeric_limits<int>::min()) return std::numeric_limits<int>::min();
+    return static_cast<int>(v);
+}
+
+void MainWindow::sendGoToEngine_(Usi* u, const MatchCoordinator::GoTimes& t) {
+    if (!u) return;
+
+    // byoyomi と increment は通常どちらか一方を使う
+    const bool useByoyomi = (t.byoyomi > 0 && t.binc == 0 && t.winc == 0);
+
+    u->sendGoCommand(
+        clampMsToInt(t.byoyomi),        // byoyomi(ms)
+        QString::number(t.btime),       // btime(ms) → 文字列
+        QString::number(t.wtime),       // wtime(ms) → 文字列
+        clampMsToInt(t.binc),           // 先手inc(ms)
+        clampMsToInt(t.winc),           // 後手inc(ms)
+        useByoyomi
+        );
+}
+
+void MainWindow::sendStopToEngine_(Usi* u)
+{
+    if (!u) return;
+    u->sendStopCommand();
+}
+
+void MainWindow::sendRawToEngine_(Usi* u, const QString& cmd)
+{
+    if (u) u->sendRaw(cmd);
+}
+
+void MainWindow::initializeNewGame_(const QString& s)
+{
+    QString s2 = s;
+    startNewShogiGame(s2);
+}
+
+void MainWindow::showMoveHighlights_(const QPoint& from, const QPoint& to)
+{
+    if (m_boardController) m_boardController->showMoveHighlights(from, to);
+}
+
+void MainWindow::appendKifuLineHook_(const QString& text, const QString& elapsed)
+{
+    appendKifuLine(text, elapsed);
 }
