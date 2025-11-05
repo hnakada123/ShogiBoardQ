@@ -45,6 +45,7 @@
 #include "kifutypes.h"
 #include "positioneditcontroller.h"
 #include "gamestartcoordinator.h"
+#include "analysisflowcontroller.h"
 
 // ==============================
 // Macros / aliases
@@ -449,6 +450,7 @@ private:
 
     GameRecordPresenter* m_recordPresenter {nullptr};
     void ensureRecordPresenter_();
+    QPointer<AnalysisFlowController> m_analysisFlow;
 
 private slots:
     void onReturnAllPiecesOnStandTriggered();
