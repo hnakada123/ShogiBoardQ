@@ -1953,49 +1953,40 @@ void MainWindow::connectMoveRequested_()
         Qt::UniqueConnection);
 }
 
-// 盤/駒台クリックで移動要求が来たときに呼ばれるスロット
 void MainWindow::onMoveRequested_(const QPoint& from, const QPoint& to)
 {
     qInfo() << "[UI] onMoveRequested_ from=" << from << " to=" << to
             << " m_playMode=" << int(m_playMode);
 
-    // 編集モードは既存どおり
+    // --- 編集モードは Controller へ丸投げ ---
     if (m_boardController && m_boardController->mode() == BoardInteractionController::Mode::Edit) {
-        QPoint hFrom = from, hTo = to;
+        ensurePositionEditController_();
+        if (!m_posEdit || !m_shogiView || !m_gameController) return;
 
-        const bool ok = (m_gameController && m_gameController->editPosition(hFrom, hTo));
-
-        if (m_shogiView) m_shogiView->endDrag();
-
-        if (!ok) {
-            if (m_boardController) m_boardController->onMoveApplied(hFrom, hTo, ok);
-            return;
-        }
-        if (m_boardController) m_boardController->onMoveApplied(hFrom, hTo, ok);
-        if (m_shogiView) m_shogiView->update();
+        const bool ok = m_posEdit->applyEditMove(from, to, m_shogiView, m_gameController, m_boardController);
+        if (!ok) qInfo() << "[UI] editPosition failed (edit-mode move rejected)";
         return;
     }
 
     // ▼▼▼ ここから通常対局（有効な PlayMode を決定） ▼▼▼
-    PlayMode matchMode = NotStarted;
-    if (m_match) {
-        // 司令塔に問い合わせ（getter 追加）
-        matchMode = m_match->playMode();
+    if (!m_gameController) {
+        qWarning() << "[UI][WARN] m_gameController is null";
+        return;
     }
-    // UI 側 m_playMode が 0 のままなら司令塔の値を使用
-    PlayMode modeNow = (m_playMode != NotStarted) ? m_playMode : matchMode;
+
+    PlayMode matchMode = (m_match ? m_match->playMode() : NotStarted);
+    PlayMode modeNow   = (m_playMode != NotStarted) ? m_playMode : matchMode;
 
     qInfo() << "[UI] effective modeNow=" << int(modeNow)
             << "(ui m_playMode=" << int(m_playMode) << ", matchMode=" << int(matchMode) << ")";
 
-    // 着手前の手番（HvH用）
+    // 着手前の手番（HvH 後処理で使う）
     const auto moverBefore = m_gameController->currentPlayer();
 
-    // validateAndMove は参照を取るのでローカルコピーで渡す
+    // validateAndMove は参照引数なのでローカルに退避
     QPoint hFrom = from, hTo = to;
 
-    // ★ 重要：validateAndMove にも「有効な PlayMode」を渡す（0を渡さない）
-    bool ok = m_gameController->validateAndMove(
+    const bool ok = m_gameController->validateAndMove(
         hFrom, hTo, m_lastMove, modeNow, m_currentMoveIndex, m_sfenRecord, m_gameMoves);
 
     if (m_boardController) m_boardController->onMoveApplied(hFrom, hTo, ok);
@@ -2004,57 +1995,32 @@ void MainWindow::onMoveRequested_(const QPoint& from, const QPoint& to)
         return;
     }
 
-    // --- 対局モードごとの後処理（modeNow で分岐） ---
+    // --- 対局モードごとの後処理 ---
     switch (modeNow) {
     case HumanVsHuman:
-        qInfo() << "[UI] HvH: post-human-move handle";
-        handleMove_HvH_(moverBefore, hFrom, hTo);
+        qInfo() << "[UI] HvH: delegate post-human-move to MatchCoordinator";
+        if (m_match) {
+            m_match->onHumanMove_HvH(moverBefore);
+        }
         break;
 
     case EvenHumanVsEngine:
     case HandicapHumanVsEngine:
     case EvenEngineVsHuman:
-    case HandicapEngineVsHuman: {
+    case HandicapEngineVsHuman:
         if (m_match) {
-            qInfo() << "[UI] HvE: forwarding to MatchCoordinator::onHumanMove_HvE"
-                    << " from=" << hFrom << " to=" << hTo;
-            m_match->onHumanMove_HvE(hFrom, hTo);
+            qInfo() << "[UI] HvE: forwarding to MatchCoordinator::onHumanMove_HvE";
+            m_match->onHumanMove_HvE(hFrom, hTo, m_lastMove);
         } else {
             qWarning() << "[UI][WARN] m_match is null; fallback to handleMove_HvE_ (legacy path)";
             handleMove_HvE_(hFrom, hTo);
         }
         break;
-    }
 
     default:
-        qInfo() << "[UI] mode has no post-processing (modeNow=" << int(modeNow) << ")";
+        qInfo() << "[UI] not a live play mode; skip post-handling";
         break;
     }
-
-    // UI 側の m_playMode が未設定なら、ここで同期しておくと以降のログが分かりやすい（任意）
-    if (m_playMode == NotStarted && modeNow != NotStarted) {
-        m_playMode = modeNow;
-        qInfo() << "[UI] m_playMode synchronized to" << int(m_playMode);
-    }
-}
-
-void MainWindow::handleMove_HvH_(ShogiGameController::Player moverBefore,
-                                 const QPoint& /*from*/, const QPoint& /*to*/)
-{
-    // ★ 時間/消費の扱いは司令塔に一元化、UI更新は最小限（配線）
-    if (m_match) {
-        const auto moverP = (moverBefore == ShogiGameController::Player1)
-        ? MatchCoordinator::P1 : MatchCoordinator::P2;
-        m_match->finishTurnTimerAndSetConsiderationFor(moverP);
-    }
-
-    updateTurnAndTimekeepingDisplay();
-    pumpUi();
-
-    QTimer::singleShot(0, this, [this]{
-        if (m_match) m_match->armTurnTimerIfNeeded();
-    });
-    if (m_shogiView) m_shogiView->setMouseClickMode(true);
 }
 
 // 人間 vs エンジン：人間が指した直後の処理（棋譜追記＋1手返しを司令塔へ一本化）

@@ -291,3 +291,25 @@ void PositionEditController::onToggleSideToMoveTriggered()
             : ShogiGameController::Player1);
     if (m_view) m_view->update();
 }
+
+bool PositionEditController::applyEditMove(const QPoint& from,
+                                           const QPoint& to,
+                                           ShogiView* view,
+                                           ShogiGameController* gc,
+                                           BoardInteractionController* bic)
+{
+    if (!view || !gc || !bic) return false;
+
+    // validate & apply in edit-mode
+    QPoint hFrom = from, hTo = to;
+    const bool ok = gc->editPosition(hFrom, hTo);
+
+    // UI 後処理（ドラッグ終了／結果通知）
+    view->endDrag();
+    bic->onMoveApplied(hFrom, hTo, ok);
+
+    if (ok) {
+        view->update();
+    }
+    return ok;
+}
