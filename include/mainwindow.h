@@ -454,6 +454,16 @@ private:
 
     GameStartCoordinator* m_gameStartCoordinator = nullptr;
 
+    // hooks 用のメンバー関数（ラムダ不使用）
+    void requestRedrawEngine1Eval_();
+    void requestRedrawEngine2Eval_();
+    void sendGoToEngine_(Usi* u, const MatchCoordinator::GoTimes& t);
+    void sendStopToEngine_(Usi* u);
+    void sendRawToEngine_(Usi* u, const QString& cmd);
+    void initializeNewGame_(const QString& s);
+    void showMoveHighlights_(const QPoint& from, const QPoint& to);
+    void appendKifuLineHook_(const QString& text, const QString& elapsed);
+
 private slots:
     void onReturnAllPiecesOnStandTriggered();
     void onFlatHandInitialPositionTriggered();
