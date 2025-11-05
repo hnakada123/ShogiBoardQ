@@ -1623,12 +1623,28 @@ void KifuLoadCoordinator::buildBranchCandidateDisplayPlan()
     }
 }
 
-// AnalysisTab の受け取り（MainWindow 側から呼ばれる想定）
 void KifuLoadCoordinator::setAnalysisTab(EngineAnalysisTab* tab)
 {
+    // 既存の接続を解除（重複接続/古いタブへのぶら下がり防止）
+    if (m_analysisTab) {
+        QObject::disconnect(
+            m_analysisTab, &EngineAnalysisTab::branchNodeActivated,
+            this,         &KifuLoadCoordinator::applyResolvedRowAndSelect
+            );
+    }
+
     m_analysisTab = tab;
 
-    // Presenter が既にあれば依存を更新
+    // 新しいタブに配線（「分岐ツリーのクリック → 行適用＆選択」）
+    if (m_analysisTab) {
+        QObject::connect(
+            m_analysisTab, &EngineAnalysisTab::branchNodeActivated,
+            this,          &KifuLoadCoordinator::applyResolvedRowAndSelect,
+            Qt::UniqueConnection
+            );
+    }
+
+    // 既存の Presenter 依存も更新（従来どおり）
     if (m_navPresenter) {
         NavigationPresenter::Deps d;
         d.coordinator = this;
