@@ -505,6 +505,10 @@ public:
 
     // HvH：人間が指した直後の後処理（時計の消費設定／次手番開始など）を司令塔で一括実行
     void onHumanMove_HvH(ShogiGameController::Player moverBefore);
+
+public:
+    // 現在の状況に応じて適切なエンジンへ stop を送り、即時bestmoveを促す
+    void forceImmediateMove();
 };
 
 #endif // MATCHCOORDINATOR_H

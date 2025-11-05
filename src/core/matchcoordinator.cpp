@@ -2180,3 +2180,29 @@ void MatchCoordinator::onHumanMove_HvH(ShogiGameController::Player moverBefore)
     // 次手番の計測と UI 準備
     armTurnTimerIfNeeded();
 }
+
+void MatchCoordinator::forceImmediateMove()
+{
+    if (!m_gc) return;
+
+    const bool isEvE =
+        (m_playMode == EvenEngineVsEngine) || (m_playMode == HandicapEngineVsEngine);
+
+    if (isEvE) {
+        // 現在手番のエンジンへ stop
+        const Player turn =
+            (m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2;
+        Usi* eng = (turn == P1) ? m_usi1 : m_usi2;
+        if (eng && m_hooks.sendStopToEngine) {
+            m_hooks.sendStopToEngine(eng);
+        }
+        return;
+    }
+
+    // HvE の場合は主エンジンへ stop
+    if (Usi* eng = primaryEngine()) {
+        if (m_hooks.sendStopToEngine) {
+            m_hooks.sendStopToEngine(eng);
+        }
+    }
+}
