@@ -48,6 +48,8 @@
 #include "kifuanalysisresultsdisplay.h"
 #include "analysiscoordinator.h"
 #include "recordpresenter.h"
+#include "tsumepositionutil.h"
+#include "timecontrolutil.h"
 
 using KifuIoService::makeDefaultSaveFileName;
 using KifuIoService::writeKifuFile;
@@ -1003,106 +1005,39 @@ void MainWindow::startConsidaration()
     }
 }
 
-// 詰み探索を開始する（TsumeShogiSearchDialogのOK後に呼ばれる）
+// 関数差し替え
 void MainWindow::startTsumiSearch()
 {
-    // 1) 対局モードを詰み探索モードへ（UI の状態保持用）
     m_playMode = TsumiSearchMode;
+    if (!m_tsumeShogiSearchDialog) return;
 
-    // 2) 選択手数を正規化して SFEN スナップショットを取得（moves は使わない）
-    QString baseSfen;
-    const int sel = qMax(0, m_currentMoveIndex);
-
-    if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
-        const int safe = qBound(0, sel, m_sfenRecord->size() - 1);
-        baseSfen = m_sfenRecord->at(safe); // 例: "lnsgkgsnl/... b - 1"
-    } else if (!m_startSfenStr.isEmpty()) {
-        baseSfen = m_startSfenStr;
-    } else if (!m_positionStrList.isEmpty()) {
-        const int safe = qBound(0, sel, m_positionStrList.size() - 1);
-        const QString pos = m_positionStrList.at(safe).trimmed();
-        if (pos.startsWith(QStringLiteral("position sfen"))) {
-            QString t = pos.mid(14).trimmed(); // "position sfen" の後ろ
-            const int m = t.indexOf(QStringLiteral(" moves "));
-            baseSfen = (m >= 0) ? t.left(m).trimmed() : t; // moves 以降は捨てる
-        }
-    }
-
-    if (baseSfen.isEmpty()) {
+    // 局面の決定（ユーティリティへ委譲）
+    const QString pos = TsumePositionUtil::buildPositionForMate(
+        m_sfenRecord, m_startSfenStr, m_positionStrList, qMax(0, m_currentMoveIndex));
+    if (pos.isEmpty()) {
         displayErrorMessage(u8"詰み探索用の局面（SFEN）が取得できません。棋譜を読み込むか局面を指定してください。");
         return;
     }
+    m_positionStr1 = pos; // 既存のフィールド互換
 
-    // 3) 玉配置から手番を推定:
-    //    - k（後手玉）のみ → 攻方=先手(b)
-    //    - K（先手玉）のみ → 攻方=後手(w)
-    //    - 両方 or どちらも無し → SFENトークン(b/w) → それも無ければ b
-    auto decideTurnFromSfen = [](const QString& sfen)->QChar {
-        const QStringList toks = sfen.split(QLatin1Char(' '), Qt::SkipEmptyParts);
-        if (toks.isEmpty()) return QLatin1Char('b');
-
-        const QString& board = toks.at(0);
-        int cntK = 0, cntk = 0;
-        for (const QChar ch : board) {
-            if (ch == QLatin1Char('K')) ++cntK;
-            else if (ch == QLatin1Char('k')) ++cntk;
-        }
-        // どちらか片方だけのときはそれを優先
-        if ((cntK > 0) ^ (cntk > 0)) {
-            // kのみ → 後手玉を詰める → 攻方=先手(b)
-            // Kのみ → 先手玉を詰める → 攻方=後手(w)
-            return (cntk > 0) ? QLatin1Char('b') : QLatin1Char('w');
-        }
-        // 両方 or どちらも無し → SFEN手番トークンを参照
-        if (toks.size() >= 2) {
-            if (toks[1] == QLatin1String("b")) return QLatin1Char('b');
-            if (toks[1] == QLatin1String("w")) return QLatin1Char('w');
-        }
-        return QLatin1Char('b'); // 最終フォールバック：先手
-    };
-
-    const QChar desiredTurn = decideTurnFromSfen(baseSfen);
-
-    // 4) SFENの手番を強制上書き（手数トークンは1にリセットしておくと無難）
-    auto forceTurnInSfen = [](const QString& sfen, QChar turn)->QString {
-        QStringList toks = sfen.split(QLatin1Char(' '), Qt::SkipEmptyParts);
-        if (toks.size() >= 2) {
-            toks[1] = QString(turn);
-            if (toks.size() >= 4) toks[3] = QStringLiteral("1");
-            return toks.join(QLatin1Char(' '));
-        }
-        return sfen;
-    };
-    const QString forcedSfen = forceTurnInSfen(baseSfen, desiredTurn);
-
-    // 5) 送信用 position は固定局面のみ（moves を付けない）
-    m_positionStr1 = QStringLiteral("position sfen %1").arg(forcedSfen);
-
-    // 6) UI 手番表示を同期
-    m_gameController->setCurrentPlayer(
-        (desiredTurn == QLatin1Char('b'))
-        ? ShogiGameController::Player1
-        : ShogiGameController::Player2
-    );
-
-    // 7) ダイアログからエンジン/時間設定を取得
-    const int  engineNumber = m_tsumeShogiSearchDialog->getEngineNumber();
-    const auto engine       = m_tsumeShogiSearchDialog->getEngineList().at(engineNumber);
-
-    int byoyomiMs = 0;
-    if (!m_tsumeShogiSearchDialog->unlimitedTimeFlag()) {
-        byoyomiMs = m_tsumeShogiSearchDialog->getByoyomiSec() * 1000; // 秒→ms
+    // エンジンと byoyomi
+    const auto engines = m_tsumeShogiSearchDialog->getEngineList();
+    const int engineIndex = m_tsumeShogiSearchDialog->getEngineNumber();
+    if (engineIndex < 0 || engineIndex >= engines.size()) {
+        displayErrorMessage(u8"エンジン選択が不正です。");
+        return;
     }
+    const auto engine   = engines.at(engineIndex);
+    const int  byoyomiMs = m_tsumeShogiSearchDialog->getByoyomiSec() * 1000;
 
-    // 8) 司令塔に委譲
+    // 司令塔へ（go mate）
     if (m_match) {
         MatchCoordinator::AnalysisOptions opt;
         opt.enginePath  = engine.path;
         opt.engineName  = m_tsumeShogiSearchDialog->getEngineName();
-        opt.positionStr = m_positionStr1;  // "position sfen <...>"
+        opt.positionStr = m_positionStr1;
         opt.byoyomiMs   = byoyomiMs;
-        opt.mode        = TsumiSearchMode; // → go mate を使う
-
+        opt.mode        = TsumiSearchMode;
         m_match->startAnalysis(opt);
     }
 }
@@ -1483,92 +1418,23 @@ QChar MainWindow::glyphForPlayer(bool isPlayerOne) const
     return isPlayerOne ? QChar(u'▲') : QChar(u'△');
 }
 
-// 終局理由つきの終局表記をセット（棋譜欄の最後に出す "▲投了" / "△時間切れ" 等）
 void MainWindow::setGameOverMove(GameOverCause cause, bool loserIsPlayerOne)
 {
-    const QString who = loserIsPlayerOne ? QStringLiteral("▲") : QStringLiteral("△");
-    const QString what = (cause == GameOverCause::Timeout)
-                             ? QStringLiteral("時間切れ")
-                             : QStringLiteral("投了");
-    qDebug().nospace() << "[UI] setGameOverMove append '" << who << what << "'";
-
-    // 司令塔が存在しない/終局でないなら何もしない
     if (!m_match || !m_match->gameOverState().isOver) return;
 
-    // 司令塔の「一意追記フラグ」で重複防止
-    if (m_match->gameOverState().moveAppended) {
-        qCDebug(ClockLog) << "[KIFU] setGameOverMove suppressed (already appended)";
-        return;
-    }
+    m_match->appendGameOverLineAndMark(
+        (cause == GameOverCause::Resignation) ? MatchCoordinator::Cause::Resignation
+                                              : MatchCoordinator::Cause::Timeout,
+        loserIsPlayerOne ? MatchCoordinator::P1 : MatchCoordinator::P2);
 
-    // ★ まず時計停止（この時点の残りmsを固定）
-    if (m_shogiClock) m_shogiClock->stopClock();
-
-    //begin
-    qDebug() << "[KIFU] setGameOverMove cause="
-             << (cause == GameOverCause::Resignation ? "RESIGN" : "TIMEOUT")
-             << " loser=" << (loserIsPlayerOne ? "P1" : "P2");
-    //end
-
-    // 表記（▲/△は絶対座席）
-    const QChar mark = glyphForPlayer(loserIsPlayerOne);
-    const QString line = (cause == GameOverCause::Resignation)
-                             ? QString("%1投了").arg(mark)
-                             : QString("%1時間切れ").arg(mark);
-
-    // ★ 「この手」の思考秒 / 合計消費秒を算出
-    const qint64 now = QDateTime::currentMSecsSinceEpoch();
-
-    // この手の開始エポック（司令塔から取得）
-    qint64 epochMs = m_match->turnEpochFor(loserIsPlayerOne ? MatchCoordinator::P1
-                                                            : MatchCoordinator::P2);
-    qint64 considerMs = (epochMs > 0) ? (now - epochMs) : 0;
-    if (considerMs < 0) considerMs = 0; // 念のため
-
-    // 合計消費 = 初期持ち時間 − 現在の残り時間
-    qint64 remMs  = loserIsPlayerOne
-                       ? (m_shogiClock ? m_shogiClock->getPlayer1TimeIntMs() : 0)
-                       : (m_shogiClock ? m_shogiClock->getPlayer2TimeIntMs() : 0);
-    const qint64 initMs = loserIsPlayerOne ? m_initialTimeP1Ms : m_initialTimeP2Ms;
-    qint64 totalUsedMs  = initMs - remMs;
-    if (totalUsedMs < 0) totalUsedMs = 0;
-
-    const QString elapsed = QStringLiteral("%1/%2")
-                                .arg(fmt_mmss(considerMs),
-                                     fmt_hhmmss(totalUsedMs));
-
-    // 1回だけ即時追記
-    appendKifuLine(line, elapsed);
-
-    // 人間用ストップウォッチ解除（HvE/HvH）
-    m_match->disarmHumanTimerIfNeeded();
-
-    // ★ 司令塔へ「追記完了」を通知 → 以後の重複追記を司令塔側でブロック
-    m_match->markGameOverMoveAppended();
-
-    qDebug().nospace() << "[KIFU] setGameOverMove appended"
-                       << " cause=" << (cause == GameOverCause::Resignation ? "RESIGN" : "TIMEOUT")
-                       << " loser=" << (loserIsPlayerOne ? "P1" : "P2")
-                       << " elapsed=" << elapsed;
-
-    // --- ここから追記（関数の最後でOK） ---
-    enableArrowButtons();
-
-    // 末尾の手（=直近局面）を現在選択にしておくと、その後の「局面編集」も確実に末尾から始まる
-    if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
-        m_currentSelectedPly = m_sfenRecord->size() - 1;
-        m_activePly         = m_currentSelectedPly;
-    }
-
+    // UI 後処理は従来通り
+    if (m_shogiView) m_shogiView->update();
     if (m_recordPane) {
         if (auto* view = m_recordPane->kifuView()) {
             view->setSelectionMode(QAbstractItemView::SingleSelection);
         }
     }
-    // 可能なら“リプレイモード”に入れて時計・強調等を安定化
     setReplayMode(true);
-
-    // ★ 追加：現局面再開モードの解除（選択復活）
     exitLiveAppendMode_();
 }
 
@@ -2890,71 +2756,11 @@ void MainWindow::onPreStartCleanupRequested_()
     // setReplayMode(false); 等、既存処理をここへ集約
 }
 
-// 対局開始前の時計適用（GameStartCoordinator からの依頼を受ける）
+// 関数差し替え
 void MainWindow::onApplyTimeControlRequested_(const GameStartCoordinator::TimeControl& tc)
 {
-    if (!m_shogiClock) return;
-
-    // 1) 進行中なら一旦止めて経過分を確定させる（安全）
-    m_shogiClock->stopClock();
-
-    // 2) ms → sec 変換（切り捨て：UIは分単位入力が多く端数は通常発生しない想定）
-    auto msToSecFloor = [](qint64 ms) -> int {
-        return (ms <= 0) ? 0 : static_cast<int>(ms / 1000);
-    };
-
-    const bool limited = tc.enabled;
-
-    const int p1BaseSec = limited ? msToSecFloor(tc.p1.baseMs) : 0;
-    const int p2BaseSec = limited ? msToSecFloor(tc.p2.baseMs) : 0;
-
-    const int byo1Sec   = msToSecFloor(tc.p1.byoyomiMs);
-    const int byo2Sec   = msToSecFloor(tc.p2.byoyomiMs);
-    const int inc1Sec   = msToSecFloor(tc.p1.incrementMs);
-    const int inc2Sec   = msToSecFloor(tc.p2.incrementMs);
-
-    // 3) byoyomi と increment は排他的：byoyomi が1つでも設定されていれば byoyomi を優先
-    const bool useByoyomi = (byo1Sec > 0) || (byo2Sec > 0);
-
-    const int finalByo1 = useByoyomi ? byo1Sec : 0;
-    const int finalByo2 = useByoyomi ? byo2Sec : 0;
-    const int finalInc1 = useByoyomi ? 0       : inc1Sec;
-    const int finalInc2 = useByoyomi ? 0       : inc2Sec;
-
-    // 4) 時間切れ敗北の扱い
-    //    有限時間なら true、無制限（考慮時間のみ計測）なら false
-    m_shogiClock->setLoseOnTimeout(limited);
-
-    // 5) 時計へ一括適用（内部で各種状態/キャッシュが初期化され、timeUpdated がemitされる）
-    m_shogiClock->setPlayerTimes(
-        p1BaseSec, p2BaseSec,
-        finalByo1, finalByo2,
-        finalInc1, finalInc2,
-        /*isLimitedTime=*/limited
-        );
-
-    // 6) 初期手番の推定（SFENの手番 ' b ' = 先手, ' w ' = 後手）
-    //    StartOptionsはここに来ないため、MainWindowが保持するSFENから推定します。
-    auto sideFromSfen = [](const QString& sfen) -> int {
-        // " ... b ... " / " ... w ... " を想定
-        return sfen.contains(QStringLiteral(" w ")) ? 2 : 1; // 既定は先手
-    };
-    const QString sfenForStart =
-        !m_startSfenStr.isEmpty() ? m_startSfenStr :
-            (!m_currentSfenStr.isEmpty() ? m_currentSfenStr : QStringLiteral("startpos b - 1"));
-    m_shogiClock->setCurrentPlayer(sideFromSfen(sfenForStart));
-
-    // ここでは startClock() は呼びません。
-    // 実際の開始/手番側の起動は MatchCoordinator / GameStartCoordinator 側のフローに委譲します。
-    qDebug().noquote()
-        << "[Clock] applied:"
-        << "p1=" << p1BaseSec << "s,"
-        << "p2=" << p2BaseSec << "s,"
-        << (useByoyomi
-                ? QStringLiteral("byoyomi(%1/%2)s").arg(finalByo1).arg(finalByo2)
-                : QStringLiteral("increment(%1/%2)s").arg(finalInc1).arg(finalInc2))
-        << "limited=" << limited
-        << "startSide=" << (m_shogiClock->currentPlayer() == 1 ? "P1" : "P2");
+    TimeControlUtil::applyToClock(m_shogiClock, tc, m_startSfenStr, m_currentSfenStr);
+    if (m_shogiView) m_shogiView->update(); // 任意
 }
 
 void MainWindow::ensureRecordPresenter_()

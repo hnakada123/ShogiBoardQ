@@ -2125,3 +2125,43 @@ PlayMode MatchCoordinator::playMode() const
 {
     return m_playMode;
 }
+
+void MatchCoordinator::appendGameOverLineAndMark(Cause cause, Player loser)
+{
+    if (!m_gameOver.isOver) return;
+    if (m_gameOver.moveAppended) return;
+    if (!m_clock || !m_hooks.appendKifuLine) {
+        markGameOverMoveAppended();
+        return;
+    }
+
+    // 残り時間を固定
+    m_clock->stopClock();
+
+    // 表記（▲/△は絶対座席）
+    const QString mark = (loser == P1) ? QStringLiteral("▲") : QStringLiteral("△");
+    const QString line = (cause == Cause::Resignation)
+                             ? QStringLiteral("%1投了").arg(mark)
+                             : QStringLiteral("%1時間切れ").arg(mark);
+
+    // 「この手」の思考時間を暫定的に反映（KIF 表示のため）
+    const qint64 now     = QDateTime::currentMSecsSinceEpoch();
+    const qint64 epochMs = turnEpochFor(loser);
+    qint64 considerMs    = (epochMs > 0) ? (now - epochMs) : 0;
+    if (considerMs < 0) considerMs = 0;
+    if (loser == P1) m_clock->setPlayer1ConsiderationTime(int(considerMs));
+    else             m_clock->setPlayer2ConsiderationTime(int(considerMs));
+
+    const QString elapsed = (loser == P1)
+                                ? m_clock->getPlayer1ConsiderationAndTotalTime()
+                                : m_clock->getPlayer2ConsiderationAndTotalTime();
+
+    // 1回だけ即時追記
+    m_hooks.appendKifuLine(line, elapsed);
+
+    // HvE/HvH の人間用ストップウォッチ解除
+    disarmHumanTimerIfNeeded();
+
+    // 重複追記ブロックを有効化
+    markGameOverMoveAppended();
+}

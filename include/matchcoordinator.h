@@ -499,6 +499,9 @@ private:
 public:
     // 現在のプレイモードを外部に公開
     PlayMode playMode() const;
+
+    // 終局1回だけの棋譜追記（投了/時間切れ）と重複防止を司令塔で一括処理
+    void appendGameOverLineAndMark(Cause cause, Player loser);
 };
 
 #endif // MATCHCOORDINATOR_H
