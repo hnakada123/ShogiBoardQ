@@ -5,6 +5,7 @@
 #include <QString>
 #include <QStringList>
 #include <functional>
+#include <QPointer>
 
 class ShogiView;
 class ShogiBoard;
@@ -65,6 +66,18 @@ public:
 
     void showEditExitButtonOnBoard(ShogiView* view, QObject* receiver, const char* finishSlot);
     void hideEditExitButtonOnBoard(ShogiView* view);
+
+    // class PositionEditController 内に追記（publicの下に）
+public slots:
+    void onReturnAllPiecesOnStandTriggered();
+    void onFlatHandInitialPositionTriggered();
+    void onShogiProblemInitialPositionTriggered();
+    void onToggleSideToMoveTriggered();
+
+private:
+    QPointer<ShogiView>                 m_view;
+    QPointer<ShogiGameController>       m_gc;
+    QPointer<BoardInteractionController> m_bic;
 };
 
 #endif // POSITIONEDITCONTROLLER_H

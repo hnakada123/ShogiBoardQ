@@ -332,7 +332,6 @@ private slots:
 
     // --- 盤面・反転 ---
     void onBoardFlipped(bool nowFlipped);
-    void toggleEditSideToMove();
     void onActionFlipBoardTriggered(bool checked = false);
     void onReverseTriggered();
 
@@ -465,9 +464,6 @@ private:
     void appendKifuLineHook_(const QString& text, const QString& elapsed);
 
 private slots:
-    void onReturnAllPiecesOnStandTriggered();
-    void onFlatHandInitialPositionTriggered();
-    void onShogiProblemInitialPositionTriggered();
     void onRecordRowChangedByPresenter(int row, const QString& comment);
 };
 
