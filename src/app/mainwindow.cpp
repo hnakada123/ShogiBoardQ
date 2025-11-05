@@ -845,7 +845,7 @@ void MainWindow::resetToInitialState()
 // 棋譜ファイルをダイアログから選択し、そのファイルを開く。
 void MainWindow::chooseAndLoadKifuFile()
 {
-    // ファイル選択ダイアログ
+    // --- 1) ファイル選択（UI層に残す） ---
     const QString filePath =
         QFileDialog::getOpenFileName(this, tr("KIFファイルを開く"), QString(), tr("KIF Files (*.kif *.kifu)"));
     if (filePath.isEmpty()) return;
@@ -859,39 +859,35 @@ void MainWindow::chooseAndLoadKifuFile()
         m_kifuLoadCoordinator = nullptr;
     }
 
+    // --- 2) 読み込み系の配線と依存は Coordinator に集約 ---
     m_kifuLoadCoordinator = new KifuLoadCoordinator(
-        m_gameMoves,
-        m_resolvedRows,
-        m_positionStrList,
-        m_activeResolvedRow,
-        m_activePly,
-        m_currentSelectedPly,
-        m_currentMoveIndex,
-        m_sfenRecord,
-        m_gameInfoTable,
-        m_gameInfoDock,
-        m_analysisTab,
-        m_tab,
-        m_shogiView,
-        m_recordPane,
-        m_kifuRecordModel,
-        m_kifuBranchModel,
-        m_branchCtl,
-        m_kifuBranchView,
-        m_branchDisplayPlan,
-        this
-    );
+        /* gameMoves           */ m_gameMoves,
+        /* resolvedRows        */ m_resolvedRows,
+        /* positionStrList     */ m_positionStrList,
+        /* activeResolvedRow   */ m_activeResolvedRow,
+        /* activePly           */ m_activePly,
+        /* currentSelectedPly  */ m_currentSelectedPly,
+        /* currentMoveIndex    */ m_currentMoveIndex,
+        /* sfenRecord          */ m_sfenRecord,
+        /* gameInfoTable       */ m_gameInfoTable,
+        /* gameInfoDock        */ m_gameInfoDock,
+        /* analysisTab         */ m_analysisTab,
+        /* tab                 */ m_tab,
+        /* shogiView           */ m_shogiView,
+        /* recordPane          */ m_recordPane,
+        /* kifuRecordModel     */ m_kifuRecordModel,
+        /* kifuBranchModel     */ m_kifuBranchModel,
+        /* branchCtl           */ m_branchCtl,
+        /* kifuBranchView      */ m_kifuBranchView,
+        /* branchDisplayPlan   */ m_branchDisplayPlan,
+        /* parent              */ this
+        );
 
-    // 分岐ツリーのクリックを MainWindow ではなく Coordinator に直結
-    if (m_analysisTab) {
-        QObject::disconnect(m_analysisTab, &EngineAnalysisTab::branchNodeActivated,
-                            this, &MainWindow::onBranchNodeActivated_);
-        connect(m_analysisTab, &EngineAnalysisTab::branchNodeActivated,
-                m_kifuLoadCoordinator, &KifuLoadCoordinator::applyResolvedRowAndSelect,
-                Qt::UniqueConnection);
-    }
+    // ★ MainWindow 側でやっていた branchNode 配線は setAnalysisTab() に委譲
+    //   （内部で disconnect / connect を一貫管理）
+    m_kifuLoadCoordinator->setAnalysisTab(m_analysisTab);
 
-    // Coordinator -> MainWindow の通知は従来どおり
+    // --- 3) Coordinator -> MainWindow の通知（UI更新）は従来どおり受ける ---
     connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::displayGameRecord,
             this, &MainWindow::displayGameRecord, Qt::UniqueConnection);
     connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::syncBoardAndHighlightsAtRow,
@@ -901,7 +897,7 @@ void MainWindow::chooseAndLoadKifuFile()
     connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::setupBranchCandidatesWiring_,
             this, &MainWindow::setupBranchCandidatesWiring_, Qt::UniqueConnection);
 
-    // 読み込み実行
+    // --- 4) 読み込み実行（ロジックは Coordinator へ） ---
     m_kifuLoadCoordinator->loadKifuFromFile(filePath);
 }
 
