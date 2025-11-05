@@ -452,6 +452,8 @@ private:
     void ensureRecordPresenter_();
     QPointer<AnalysisFlowController> m_analysisFlow;
 
+    GameStartCoordinator* m_gameStartCoordinator = nullptr;
+
 private slots:
     void onReturnAllPiecesOnStandTriggered();
     void onFlatHandInitialPositionTriggered();
