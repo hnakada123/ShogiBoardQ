@@ -67,6 +67,16 @@ public:
     void showEditExitButtonOnBoard(ShogiView* view, QObject* receiver, const char* finishSlot);
     void hideEditExitButtonOnBoard(ShogiView* view);
 
+    // 局面編集中の「from→to」着手要求を適用する。
+    // - 成功/失敗に関わらず view のドラッグ終了と bic.onMoveApplied(...) までを含めて処理します。
+    // - 成功時のみ view->update() を呼びます。
+    // 返り値: 成功すれば true、失敗すれば false。
+    bool applyEditMove(const QPoint& from,
+                       const QPoint& to,
+                       ShogiView* view,
+                       ShogiGameController* gc,
+                       BoardInteractionController* bic);
+
     // class PositionEditController 内に追記（publicの下に）
 public slots:
     void onReturnAllPiecesOnStandTriggered();

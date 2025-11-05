@@ -350,8 +350,6 @@ private slots:
     void connectMoveRequested_();
 
     // --- moveRequested 後の分岐ハンドラ（対局モード別） ---
-    void handleMove_HvH_(ShogiGameController::Player moverBefore,
-                         const QPoint& from, const QPoint& to);
     void handleMove_HvE_(const QPoint& humanFrom, const QPoint& humanTo);
 
 private slots:

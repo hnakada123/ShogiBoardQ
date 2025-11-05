@@ -502,6 +502,9 @@ public:
 
     // 終局1回だけの棋譜追記（投了/時間切れ）と重複防止を司令塔で一括処理
     void appendGameOverLineAndMark(Cause cause, Player loser);
+
+    // HvH：人間が指した直後の後処理（時計の消費設定／次手番開始など）を司令塔で一括実行
+    void onHumanMove_HvH(ShogiGameController::Player moverBefore);
 };
 
 #endif // MATCHCOORDINATOR_H
