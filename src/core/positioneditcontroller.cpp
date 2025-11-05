@@ -82,6 +82,11 @@ void PositionEditController::beginPositionEditing(const BeginEditContext& c)
     if (!c.view || !c.gc) return;
     if (!c.view->board()) return;
 
+    // ★ 追加: 編集セッションの参照を保持（アクション用スロットで利用）
+    m_view = c.view;
+    m_gc   = c.gc;
+    m_bic  = c.bic;
+
     ShogiBoard* board = c.view->board();
 
     // 0) 既存 GC 手番から desiredTurn を決める（未設定なら先手扱い）
@@ -198,6 +203,11 @@ void PositionEditController::finishPositionEditing(const PositionEditController:
 
     // 追加: メニュー非表示（MainWindow 実装のコールバック）
     if (c.onLeaveEditMenu) c.onLeaveEditMenu();
+
+    // ★ 追加: 編集セッションの参照を保持（アクション用スロットで利用）
+    m_view = c.view;
+    m_gc   = c.gc;
+    m_bic  = c.bic;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -251,4 +261,33 @@ void PositionEditController::hideEditExitButtonOnBoard(ShogiView* view)
     if (QPushButton* exitBtn = view->findChild<QPushButton*>(QStringLiteral("editExitButton"))) {
         exitBtn->hide();
     }
+}
+
+void PositionEditController::onReturnAllPiecesOnStandTriggered()
+{
+    if (!m_view) return;
+    resetPiecesToStand(m_view, m_bic);
+}
+
+void PositionEditController::onFlatHandInitialPositionTriggered()
+{
+    if (!m_view) return;
+    setStandardStartPosition(m_view, m_bic);
+}
+
+void PositionEditController::onShogiProblemInitialPositionTriggered()
+{
+    if (!m_view) return;
+    setTsumeShogiStartPosition(m_view, m_bic);
+}
+
+void PositionEditController::onToggleSideToMoveTriggered()
+{
+    if (!m_gc) return;
+    auto cur = m_gc->currentPlayer();
+    m_gc->setCurrentPlayer(
+        (cur == ShogiGameController::Player1)
+            ? ShogiGameController::Player2
+            : ShogiGameController::Player1);
+    if (m_view) m_view->update();
 }
