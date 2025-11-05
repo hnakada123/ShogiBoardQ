@@ -509,6 +509,11 @@ public:
 public:
     // 現在の状況に応じて適切なエンジンへ stop を送り、即時bestmoveを促す
     void forceImmediateMove();
+
+private:
+    void sendGoToCurrentEngine_(const GoTimes& t);
+    void sendStopAllEngines_();
+    void sendRawTo_(Usi* which, const QString& cmd);
 };
 
 #endif // MATCHCOORDINATOR_H

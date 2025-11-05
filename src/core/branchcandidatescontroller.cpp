@@ -1,7 +1,10 @@
 #include "branchcandidatescontroller.h"
 #include "kifuvariationengine.h"
 #include "kifubranchlistmodel.h"
+#include "recordpane.h"
 
+#include <QMetaType>
+#include <QModelIndex>
 #include <QDebug>
 
 //====================== コンストラクタ ======================
@@ -89,4 +92,24 @@ void BranchCandidatesController::refreshCandidatesFromPlan(
 
     qDebug() << "[BRANCH-CTL] set plan items =" << items.size()
              << " ply=" << ply1;
+}
+
+void BranchCandidatesController::attachRecordPane(RecordPane* pane)
+{
+    if (!pane) return;
+
+    // ここで必要なメタタイプ登録を Controller 側に寄せる
+    qRegisterMetaType<KifDisplayItem>("KifDisplayItem");
+    qRegisterMetaType<QList<KifDisplayItem>>("QList<KifDisplayItem>");
+    qRegisterMetaType<QStringList>("QStringList");
+
+    QObject::connect(pane, &RecordPane::branchActivated,
+                     this, &BranchCandidatesController::onRecordPaneBranchActivated,
+                     Qt::UniqueConnection);
+}
+
+void BranchCandidatesController::onRecordPaneBranchActivated(const QModelIndex& index)
+{
+    if (!index.isValid()) return;
+    activateCandidate(index.row());
 }
