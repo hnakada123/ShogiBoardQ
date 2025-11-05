@@ -458,47 +458,62 @@ void MainWindow::initializeCentralGameDisplay()
     if (m_tab)    m_centralLayout->addWidget(m_tab);
 }
 
-// 将棋盤、駒台を初期化（何も駒がない）し、入力のSFEN文字列の配置に将棋盤、駒台の駒を
-// 配置し、対局結果を結果なし、現在の手番がどちらでもない状態に設定する。
-// 将棋盤の表示
-// 将棋の駒画像を各駒文字（1文字）にセットする。
-// 駒文字と駒画像をm_piecesに格納する。
-// m_piecesの型はQMap<char, QIcon>
-// m_boardにboardをセットする。
-// 将棋盤データが更新されたら再描画する。
-// 将棋盤と駒台のサイズは固定にする。
-// 将棋盤と駒台のマスのサイズをセットする。
-// 将棋盤と駒台の再描画
-// 対局者名の設定
-// 対局モードに応じて将棋盤上部に表示される対局者名をセットする。
-// エンジン名の設定
-// 対局モードに応じて将棋盤下部に表示されるエンジン名をセットする。
 void MainWindow::startNewShogiGame(QString& startSfenStr)
 {
     const bool resume = m_isResumeFromCurrent;
 
-    // 評価値グラフと記録の初期化（再開時は消さない）
+    // --- UI: 評価値グラフと内部スコアの初期化（再開時は消さない） ---
     if (auto ec = m_recordPane ? m_recordPane->evalChart() : nullptr) {
-        if (!resume) ec->clearAll();       // ★ ガード
+        if (!resume) ec->clearAll();
     }
-    if (!resume) m_scoreCp.clear();        // ★ ガード
+    if (!resume) {
+        m_scoreCp.clear();
+    }
 
-    // 新規対局の準備
-    // 将棋盤、駒台を初期化（何も駒がない）し、入力のSFEN文字列の配置に将棋盤、駒台の駒を
-    // 配置し、対局結果を結果なし、現在の手番がどちらでもない状態に設定する。
+    // --- 司令塔を用意 ---
+    if (!m_match) {
+        initMatchCoordinator();    // m_match を生成・配線
+    }
+    ensureGameStartCoordinator_(); // m_gameStart を用意
+    if (!m_match || !m_gameStart) return;
+
+    // --- まず従来どおり UI 側で盤を即時初期化→描画（★ここが今回の表示不具合の核心） ---
+    // ※ 将来的には司令塔の UI フックへ移すが、現時点ではここで確実に盤を見せる
     initializeNewGame(startSfenStr);
 
-    // 将棋盤の表示
-    m_shogiView->applyBoardAndRender(m_gameController->board());
-    m_shogiView->configureFixedSizing();
+    if (m_shogiView && m_gameController && m_gameController->board()) {
+        m_shogiView->applyBoardAndRender(m_gameController->board());
+        m_shogiView->configureFixedSizing();
+    }
 
-    // 対局者名の設定
-    // 対局モードに応じて将棋盤上部に表示される対局者名をセットする。
+    // 対局者名・エンジン名も現時点では UI 層で更新しておく
     setPlayersNamesForMode();
-
-    // エンジン名の設定
-    // 対局モードに応じて将棋盤下部に表示されるエンジン名をセットする。
     setEngineNamesBasedOnMode();
+
+    // --- 以降は司令塔へ ---
+    GameStartCoordinator::Request req;
+    req.mode        = static_cast<int>(m_playMode);
+    req.startSfen   = startSfenStr;
+    req.bottomIsP1  = m_bottomIsP1;
+    req.startDialog = m_startGameDialog;
+    req.clock       = m_shogiClock;
+    m_gameStart->prepare(req);
+
+    MatchCoordinator::StartOptions opt =
+        m_match->buildStartOptions(
+            m_playMode,
+            startSfenStr,
+            m_sfenRecord,
+            m_startGameDialog);
+
+    m_match->ensureHumanAtBottomIfApplicable(m_startGameDialog, m_bottomIsP1);
+
+    GameStartCoordinator::StartParams p;
+    p.opt                 = opt;
+    p.autoStartEngineMove = true;
+    m_gameStart->start(p);
+
+    // （将来）司令塔の UI フックが整ったら、上の initializeNewGame/描画/名前更新は外します
 }
 
 // 棋譜欄の下の矢印ボタンを無効にする。
@@ -1258,28 +1273,10 @@ void MainWindow::reduceBoardSize()
 }
 
 // 「すぐ指させる」
-// エンジンにstopコマンドを送る。
-// エンジンに対し思考停止を命令するコマンド。エンジンはstopを受信したら、できるだけすぐ思考を中断し、
-// bestmoveで指し手を返す。
 void MainWindow::movePieceImmediately()
 {
-    // エンジン同士の対局の場合
-    if ((m_playMode == EvenEngineVsEngine) || (m_playMode == HandicapEngineVsEngine)) {
-        // 現在の手番が先手あるいは下手の場合
-        if (m_gameController->currentPlayer() == ShogiGameController::Player1) {
-            // エンジン1に対してstopコマンドを送る。
-            m_usi1->sendStopCommand();
-        }
-        // 現在の手番が後手あるいは上手の場合
-        else {
-            // エンジン2に対してstopコマンドを送る。
-            m_usi2->sendStopCommand();
-        }
-    }
-    // それ以外の対局の場合
-    else {
-        // エンジン1に対してstopコマンドを送る。
-        m_usi1->sendStopCommand();
+    if (m_match) {
+        m_match->forceImmediateMove();
     }
 }
 
