@@ -50,6 +50,7 @@
 #include "recordpresenter.h"
 #include "tsumepositionutil.h"
 #include "timecontrolutil.h"
+#include "analysisflowcontroller.h"
 
 using KifuIoService::makeDefaultSaveFileName;
 using KifuIoService::writeKifuFile;
@@ -1045,118 +1046,26 @@ void MainWindow::startTsumiSearch()
 void MainWindow::analyzeGameRecord()
 {
     m_playMode = AnalysisMode;
-
     if (!m_analyzeGameRecordDialog) return;
-    if (!m_sfenRecord || m_sfenRecord->isEmpty()) {
-        displayErrorMessage(QStringLiteral("内部エラー: sfenRecord が未準備です。棋譜読み込み後に実行してください。"));
-        return;
+
+    if (!m_analysisFlow) {
+        m_analysisFlow = new AnalysisFlowController(this);
     }
 
-    // --- AnalysisCoordinator を用意（初回のみ生成）---
-    if (!m_anaCoord) {
-        AnalysisCoordinator::Deps d;
-        d.sfenRecord = m_sfenRecord;          // ★ ここを AC に渡す
-        m_anaCoord = new AnalysisCoordinator(d, this);
+    AnalysisFlowController::Deps d;
+    d.sfenRecord    = m_sfenRecord;
+    d.moveRecords   = m_moveRecords;
+    d.analysisModel = m_analysisModel;
+    d.analysisTab   = m_analysisTab;
+    d.usi           = m_usi1;
+    d.logModel      = m_lineEditModel1;     // ← 使うUSIに合わせて適切なログモデルを
+    d.activePly     = m_activePly;
 
-        // (A) AC → エンジン送信（USI生文字列）
-        // 既存の主エンジン（m_usi1）にブリッジ
-        connect(m_anaCoord, &AnalysisCoordinator::requestSendUsiCommand,
-                m_usi1,     &Usi::sendRaw, Qt::UniqueConnection);
+    // ラムダでもOKですが、方針に寄せるなら std::bind でも可
+    d.displayError  = std::bind(&MainWindow::displayErrorMessage, this, std::placeholders::_1);
 
-        // (B) エンジン標準出力 → AC への橋渡し
-        // Usi が生行を signal していないため、ログモデル経由で拾う（直近行のみ）
-        // もし Usi に「engineStdoutLine(QString)」のような signal を足せるなら、
-        // そちらを onEngineInfoLine/onEngineBestmoveReceived に直結する方が綺麗です。
-        if (m_lineEditModel1) {
-            connect(m_lineEditModel1, &UsiCommLogModel::usiCommLogChanged, this, [this]() {
-                if (!m_anaCoord) return;
-                const QString line = m_lineEditModel1->usiCommLog().trimmed();
-                if (line.startsWith(QStringLiteral("info "))) {
-                    m_anaCoord->onEngineInfoLine(line);
-                } else if (line.startsWith(QStringLiteral("bestmove "))) {
-                    m_anaCoord->onEngineBestmoveReceived(line);
-                }
-            });
-        }
-
-        // (C) 進捗を結果モデルへ投入（差分は簡易に直前値から算出）
-        connect(m_anaCoord, &AnalysisCoordinator::analysisProgress,
-                this, [this](int ply, int depth, int seldepth, int scoreCp, int mate,
-                       const QString& pv, const QString& raw) {
-                    if (!m_analysisModel) return;
-
-                    // 現手の表記（存在すれば棋譜モデルから）
-                    QString moveLabel;
-                    if (m_moveRecords && ply >= 0 && m_moveRecords->size() > ply) {
-                        moveLabel = m_moveRecords->at(ply)->currentMove();
-                    } else {
-                        moveLabel = QStringLiteral("ply %1").arg(ply);
-                    }
-
-                    // 評価値（詰みは便宜上大きな値表現 or そのまま "mate N" にしたければ文字列化）
-                    QString evalStr;
-                    static int prev = 0;
-                    if (mate != 0) {
-                        evalStr = QStringLiteral("mate %1").arg(mate);
-                    } else if (scoreCp != std::numeric_limits<int>::min()) {
-                        evalStr = QString::number(scoreCp);
-                    } else {
-                        evalStr = QStringLiteral("0");
-                    }
-                    const int curVal = (mate != 0) ? prev : (scoreCp == std::numeric_limits<int>::min() ? 0 : scoreCp);
-                    const QString diff = QString::number(curVal - prev);
-                    prev = curVal;
-
-                    m_analysisModel->appendItem(new KifuAnalysisResultsDisplay(
-                        moveLabel,              // 指し手
-                        evalStr,                // 評価値
-                        diff,                   // 差分
-                        pv                      // 読み筋（Kanji化は必要なら既存経路で）
-                        ));
-                });
-
-        // （任意）開始/終了イベントでUI側の状態を合わせたい場合
-        // connect(m_anaCoord, &AnalysisCoordinator::analysisStarted,  this, [](int s, int e, AnalysisCoordinator::Mode m){ /* ... */ });
-        // connect(m_anaCoord, &AnalysisCoordinator::analysisFinished, this, [](AnalysisCoordinator::Mode m){ /* ... */ });
-    }
-
-    // --- ダイアログ設定を Options に反映 ---
-    AnalysisCoordinator::Options opt;
-    {
-        // 1局面あたりの思考時間
-        opt.movetimeMs = m_analyzeGameRecordDialog->byoyomiSec() * 1000;
-
-        // 範囲（初手から/現在から）
-        const int startPlyRaw = m_analyzeGameRecordDialog->initPosition() ? 0 : qMax(0, m_activePly);
-        opt.startPly = qBound(0, startPlyRaw, m_sfenRecord->size() - 1);
-        opt.endPly   = m_sfenRecord->size() - 1;  // 末尾まで
-
-        // MultiPV（ダイアログに項目がなければ 1 固定）
-        // 例: if (m_analyzeGameRecordDialog->hasMultiPV()) opt.multiPV = m_analyzeGameRecordDialog->multiPV();
-        opt.multiPV     = 1;
-        opt.centerTree  = true;
-    }
-    m_anaCoord->setOptions(opt);
-
-    // --- エンジン起動（選択エンジンで USI 初期化）---
-    const int  engineIdx = m_analyzeGameRecordDialog->engineNumber();
-    const auto engines   = m_analyzeGameRecordDialog->engineList();
-    if (engineIdx < 0 || engineIdx >= engines.size()) {
-        displayErrorMessage(QStringLiteral("エンジン選択が不正です。"));
-        return;
-    }
-    if (!m_usi1) {
-        displayErrorMessage(QStringLiteral("内部エラー: Usi インスタンスが未初期化です。"));
-        return;
-    }
-    const QString enginePath = engines.at(engineIdx).path;
-    const QString engineName = m_analyzeGameRecordDialog->engineName();
-    m_usi1->startAndInitializeEngine(enginePath, engineName); // usi→usiok / setoption / isready→readyok
-
-    // --- 解析開始！（AC が position / go を投げ、結果を analysisProgress で通知）---
-    m_anaCoord->startAnalyzeRange();
+    m_analysisFlow->start(d, m_analyzeGameRecordDialog);
 }
-
 
 // 設定ファイルにGUI全体のウィンドウサイズを書き込む。
 // また、将棋盤のマスサイズも書き込む。
