@@ -661,3 +661,72 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
 
     delete dlg;
 }
+
+// ★追加：司令塔（MatchCoordinator）の生成と初期配線を一括で実施
+MatchCoordinator* GameStartCoordinator::createAndWireMatch(const MatchCoordinator::Deps& deps,
+                                                           QObject* parentForMatch)
+{
+    // 既存があれば破棄（親を MainWindow にぶら下げ直すため）
+    if (m_match) {
+        m_match->disconnect(this);
+        if (m_match->parent() == parentForMatch) {
+            delete m_match;
+        } else {
+            m_match->setParent(nullptr);
+            delete m_match;
+        }
+        m_match = nullptr;
+    }
+
+    // 生成
+    m_match = new MatchCoordinator(deps, parentForMatch);
+
+    // --- 司令塔→Coordinator へ受け、Coordinator から re-emit ---
+    // timeUpdated(p1ms, p2ms, p1turn, urgencyMs)
+    QObject::connect(
+        m_match,
+        static_cast<void (MatchCoordinator::*)(qint64,qint64,bool,qint64)>(&MatchCoordinator::timeUpdated),
+        this,
+        static_cast<void (GameStartCoordinator::*)(qint64,qint64,bool,qint64)>(&GameStartCoordinator::timeUpdated),
+        Qt::UniqueConnection
+        );
+
+    // requestAppendGameOverMove(const GameEndInfo&)
+    QObject::connect(
+        m_match, &MatchCoordinator::requestAppendGameOverMove,
+        this,    &GameStartCoordinator::requestAppendGameOverMove,
+        Qt::UniqueConnection
+        );
+
+    // boardFlipped(bool)
+    QObject::connect(
+        m_match, &MatchCoordinator::boardFlipped,
+        this,    &GameStartCoordinator::boardFlipped,
+        Qt::UniqueConnection
+        );
+
+    // gameOverStateChanged(const GameOverState&)
+    QObject::connect(
+        m_match, &MatchCoordinator::gameOverStateChanged,
+        this,    &GameStartCoordinator::gameOverStateChanged,
+        Qt::UniqueConnection
+        );
+
+    // gameEnded(const GameEndInfo&)
+    QObject::connect(
+        m_match,
+        static_cast<void (MatchCoordinator::*)(const MatchCoordinator::GameEndInfo&)>(&MatchCoordinator::gameEnded),
+        this,
+        static_cast<void (GameStartCoordinator::*)(const MatchCoordinator::GameEndInfo&)>(&GameStartCoordinator::matchGameEnded),
+        Qt::UniqueConnection
+        );
+
+    // USI ポインタの初期注入（nullptr 可）
+    m_match->updateUsiPtrs(deps.usi1, deps.usi2);
+
+    // デバッグ：シグナル存在確認（既存ログと同等）
+    qDebug() << "[DBG] signal index:"
+             << m_match->metaObject()->indexOfSignal("timeUpdated(long long,long long,bool,long long)");
+
+    return m_match;
+}

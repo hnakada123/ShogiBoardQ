@@ -118,6 +118,10 @@ public:
         const QString& startSfen
         );
 
+    // ★追加：司令塔の生成＆初期配線をまとめて実施（所有は parent にぶら下げます）
+    MatchCoordinator* createAndWireMatch(const MatchCoordinator::Deps& deps,
+                                         QObject* parentForMatch);
+
 signals:
     // （開始前フック）UI/状態を初期化してほしい
     void requestPreStartCleanup();
@@ -134,6 +138,13 @@ signals:
     void startFailed(const QString& reason);
 
     void requestUpdateTurnDisplay();
+
+    // ★追加：MatchCoordinator の主要シグナルを転送（re-emit）する
+    void timeUpdated(qint64 p1ms, qint64 p2ms, bool p1turn, qint64 urgencyMs);
+    void requestAppendGameOverMove(const MatchCoordinator::GameEndInfo& info);
+    void boardFlipped(bool nowFlipped);
+    void gameOverStateChanged(const MatchCoordinator::GameOverState& st);
+    void matchGameEnded(const MatchCoordinator::GameEndInfo& info);
 
 private:
     bool validate_(const StartParams& params, QString& whyNot) const;
