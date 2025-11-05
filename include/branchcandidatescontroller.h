@@ -10,6 +10,7 @@
 #include "kifuvariationengine.h"
 
 class KifuBranchListModel;
+class RecordPane;
 
 class BranchCandidatesController : public QObject
 {
@@ -32,6 +33,13 @@ public:
                                  bool /*includeMainline*/,
                                  const QString& /*prevSfen*/,
                                  const QSet<int>& /*restrictVarIds*/);
+
+    // RecordPane のシグナルを自身に配線（MainWindow から配線コードを追い出す）
+    void attachRecordPane(RecordPane* pane);
+
+public slots:
+    // RecordPane 側の「分岐セルが選ばれた」→ 自身の activateCandidate() へ
+    void onRecordPaneBranchActivated(const QModelIndex& index);
 
 signals:
     // 旧来イベント（必要なら残す）

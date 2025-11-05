@@ -9,6 +9,7 @@
 #include "boardinteractioncontroller.h"
 #include "startgamedialog.h"
 #include "kifurecordlistmodel.h"
+#include <limits>
 
 #include <limits>
 #include <QObject>
@@ -19,6 +20,12 @@
 #include <QTimer>
 #include <QMetaObject>
 #include <QMetaMethod>
+
+static inline int clampMsToIntLocal(qint64 v) {
+    if (v > std::numeric_limits<int>::max()) return std::numeric_limits<int>::max();
+    if (v < std::numeric_limits<int>::min()) return std::numeric_limits<int>::min();
+    return static_cast<int>(v);
+}
 
 using P = MatchCoordinator::Player;
 
@@ -96,13 +103,21 @@ void MatchCoordinator::handleResign() {
             m_hooks.sendRawToEngine(m_usi1, QStringLiteral("gameover win"));
             m_hooks.sendRawToEngine(m_usi1, QStringLiteral("quit")); // 再戦しないなら送る
         } else {
-            // EvE：勝者/敗者のエンジンをそれぞれに通知
-            Usi* winEng  = (winner     == P1) ? m_usi1 : m_usi2;
-            Usi* loseEng = (info.loser == P1) ? m_usi1 : m_usi2;
-            if (loseEng) m_hooks.sendRawToEngine(loseEng, QStringLiteral("gameover lose"));
-            if (winEng)  {
-                m_hooks.sendRawToEngine(winEng,  QStringLiteral("gameover win"));
-                m_hooks.sendRawToEngine(winEng,  QStringLiteral("quit"));
+            // ★ 追加：hooks 未指定でも最低限の通知を司令塔内で実施
+            if (m_usi1 && !m_usi2) {
+                // HvE：エンジンは m_usi1。人間が投了＝エンジン勝ち。
+                sendRawTo_(m_usi1, QStringLiteral("gameover win"));
+                sendRawTo_(m_usi1, QStringLiteral("quit"));
+            } else {
+                // EvE：勝者/敗者のエンジンそれぞれに通知
+                const Player winner = (m_cur == P1 ? P2 : P1);
+                Usi* winEng  = (winner     == P1) ? m_usi1 : m_usi2;
+                Usi* loseEng = (info.loser == P1) ? m_usi1 : m_usi2;
+                if (loseEng) sendRawTo_(loseEng, QStringLiteral("gameover lose"));
+                if (winEng)  {
+                    sendRawTo_(winEng,  QStringLiteral("gameover win"));
+                    sendRawTo_(winEng,  QStringLiteral("quit"));
+                }
             }
         }
     }
@@ -200,7 +215,10 @@ void MatchCoordinator::onTurnFinishedAndSwitch() {
     if (m_hooks.sendGoToEngine) {
         if (m_cur == P1 && m_usi1) m_hooks.sendGoToEngine(m_usi1, t);
         if (m_cur == P2 && m_usi2) m_hooks.sendGoToEngine(m_usi2, t);
+    } else {
+        sendGoToCurrentEngine_(t); // ★ 追加：hooks 未指定なら司令塔内で送る
     }
+
 }
 
 // ---- private helpers ----
@@ -237,6 +255,8 @@ void MatchCoordinator::stopClockAndSendStops_() {
     if (m_hooks.sendStopToEngine) {
         if (m_usi1) m_hooks.sendStopToEngine(m_usi1);
         if (m_usi2) m_hooks.sendStopToEngine(m_usi2);
+    } else {
+        sendStopAllEngines_(); // ★ 追加
     }
 }
 
@@ -2205,4 +2225,33 @@ void MatchCoordinator::forceImmediateMove()
             m_hooks.sendStopToEngine(eng);
         }
     }
+}
+
+void MatchCoordinator::sendGoToCurrentEngine_(const GoTimes& t)
+{
+    Usi* target = (m_cur == P1) ? m_usi1 : m_usi2;
+    if (!target) return;
+
+    const bool useByoyomi = (t.byoyomi > 0 && t.binc == 0 && t.winc == 0);
+
+    target->sendGoCommand(
+        clampMsToIntLocal(t.byoyomi),         // byoyomi(ms)
+        QString::number(t.btime),             // btime(ms)
+        QString::number(t.wtime),             // wtime(ms)
+        clampMsToIntLocal(t.binc),            // 先手inc(ms)
+        clampMsToIntLocal(t.winc),            // 後手inc(ms)
+        useByoyomi
+        );
+}
+
+void MatchCoordinator::sendStopAllEngines_()
+{
+    if (m_usi1) m_usi1->sendStopCommand();
+    if (m_usi2) m_usi2->sendStopCommand();
+}
+
+void MatchCoordinator::sendRawTo_(Usi* which, const QString& cmd)
+{
+    if (!which) return;
+    which->sendRaw(cmd);   // ← sendRawCommand ではなく sendRaw を呼ぶ
 }

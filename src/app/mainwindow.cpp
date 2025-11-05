@@ -2051,38 +2051,26 @@ void MainWindow::setupBranchCandidatesWiring_()
         return;
     }
 
-    qRegisterMetaType<KifDisplayItem>("KifDisplayItem");
-    qRegisterMetaType<QList<KifDisplayItem>>("QList<KifDisplayItem>");
-    qRegisterMetaType<QStringList>("QStringList");
-
     if (!m_branchCtl) {
         m_branchCtl = new BranchCandidatesController(
             m_varEngine.get(),
             m_kifuBranchModel,
             this
-        );
-        qDebug().nospace() << "[WIRE] BranchCandidatesController created ve="
-                           << (void*)m_varEngine.get()
-                           << " model=" << (void*)m_kifuBranchModel;
+            );
+        qDebug() << "[WIRE] BranchCandidatesController created ve=" << static_cast<void*>(m_varEngine.get())
+                 << " model=" << static_cast<void*>(m_kifuBranchModel);
     }
 
-    // Plan方式の配線（ラムダ無し）
-    {
-        const bool okA = connect(m_branchCtl,
-                                 &BranchCandidatesController::planActivated,
-                                 this,
-                                 &MainWindow::onBranchPlanActivated_,
-                                 Qt::UniqueConnection);
-        qDebug() << "[WIRE] connect planActivated -> onBranchPlanActivated_ :" << okA;
-    }
-    {
-        const bool okB = connect(m_recordPane,
-                                 &RecordPane::branchActivated,               // シグナル: (const QModelIndex&)
-                                 this,
-                                 &MainWindow::onRecordPaneBranchActivated_,   // スロット:  (const QModelIndex&)
-                                 Qt::UniqueConnection);
-        qDebug() << "[WIRE] connect RecordPane.branchActivated -> MainWindow.onRecordPaneBranchActivated_ :" << okB;
-    }
+    // Controller 自身に RecordPane→Controller の配線をやらせる
+    m_branchCtl->attachRecordPane(m_recordPane);
+
+    // 「Plan クリック → 行/手へジャンプ」は MainWindow 受けでOK（役割：画面遷移）
+    const bool okA = connect(m_branchCtl,
+                             &BranchCandidatesController::planActivated,
+                             this,
+                             &MainWindow::onBranchPlanActivated_,
+                             Qt::UniqueConnection);
+    qDebug() << "[WIRE] connect planActivated -> onBranchPlanActivated_ :" << okA;
 }
 
 void MainWindow::setupBranchView_()
