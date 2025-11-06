@@ -520,6 +520,11 @@ public:
     void sendGoTo(Usi* engine, const GoTimes& t);
     void sendStopTo(Usi* engine);
     void sendRawTo(Usi* engine, const QString& cmd);
+
+    // --- USI 送受の実体（UI 依存なし） ---
+    void sendGoToEngine(Usi* which, const GoTimes& t);
+    void sendStopToEngine(Usi* which);
+    void sendRawToEngine(Usi* which, const QString& cmd);
 };
 
 #endif // MATCHCOORDINATOR_H

@@ -12,10 +12,12 @@
 #include <functional>
 
 #include "mainwindow.h"
+#include "branchwiringcoordinator.h"
 #include "promotedialog.h"
 #include "shogigamecontroller.h"
 #include "shogiboard.h"
 #include "shogiview.h"
+#include "timedisplaypresenter.h"
 #include "ui_mainwindow.h"
 #include "engineregistrationdialog.h"
 #include "versiondialog.h"
@@ -51,6 +53,7 @@
 #include "tsumepositionutil.h"
 #include "timecontrolutil.h"
 #include "analysisflowcontroller.h"
+#include "sfenutils.h"
 
 using KifuIoService::makeDefaultSaveFileName;
 using KifuIoService::writeKifuFile;
@@ -84,6 +87,8 @@ MainWindow::MainWindow(QWidget *parent)
 
     // コア部品（GC, View, 盤モデル etc.）は既存関数で初期化
     initializeComponents();
+
+    if (!m_timePresenter) m_timePresenter = new TimeDisplayPresenter(m_shogiView, this);
 
     // 画面骨格（棋譜/分岐/レイアウト/タブ/中央表示）
     buildGamePanels_();
@@ -126,23 +131,43 @@ void MainWindow::configureToolBarFromUi_()
 
 void MainWindow::buildGamePanels_()
 {
+    // 1) 記録ペイン（RecordPane）など UI 部の初期化
     setupRecordPane();
 
-    // m_kifuBranchModel / m_varEngine の初期化が済んでいる前提で分岐配線
-    setupBranchCandidatesWiring_();
+    // 2) 分岐配線をコーディネータに集約（旧: setupBranchCandidatesWiring_()）
+    //    既存があれば入れ替え（多重接続を防ぐ）
+    if (m_branchWiring) {
+        m_branchWiring->deleteLater();
+        m_branchWiring = nullptr;
+    }
+    if (m_recordPane) {
+        BranchWiringCoordinator::Deps bw;
+        bw.recordPane      = m_recordPane;
+        bw.branchModel     = m_kifuBranchModel;          // 既に保持していれば渡す（null可）
+        bw.variationEngine = m_varEngine.get();          // unique_ptr想定
+        bw.kifuLoader      = m_kifuLoadCoordinator;      // 読み込み済みなら渡す（null可）
+        bw.parent          = this;
 
-    // 盤・駒台などの初期化（既存の newGame とは重なるが、従来の順序を維持）
+        m_branchWiring = new BranchWiringCoordinator(bw);
+        m_branchWiring->setupBranchView();
+        m_branchWiring->setupBranchCandidatesWiring();
+    } else {
+        qWarning() << "[UI] buildGamePanels_: RecordPane is null; skip branch wiring.";
+    }
+
+    // 3) 将棋盤・駒台の初期化（従来順序を維持）
     startNewShogiGame(m_startSfenStr);
 
-    // 盤＋各パネルの横並びレイアウト構築
+    // 4) 盤＋各パネルの横並びレイアウト構築
     setupHorizontalGameLayout();
 
-    // EngineAnalysisTab を作ってタブ（m_tab）を用意
+    // 5) エンジン解析タブの構築
     setupEngineAnalysisTab();
 
-    // m_tab を central に add する側を初期化
+    // 6) central へのタブ追加など表示側の初期化
     initializeCentralGameDisplay();
 }
+
 
 void MainWindow::restoreWindowAndSync_()
 {
@@ -271,13 +296,12 @@ void MainWindow::initializeComponents()
 
     // ───────────────── Board model 初期化 ─────────────────
     // m_startSfenStr が "startpos ..." の場合は必ず完全 SFEN に正規化してから newGame。
-    // 既存のユーティリティを使用（MainWindow::parseStartPositionToSfen）
     QString start = m_startSfenStr;
     if (start.isEmpty()) {
         // 既定：平手初期局面の完全SFEN
         start = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
     } else if (start.startsWith(QLatin1String("startpos"))) {
-        start = parseStartPositionToSfen(start);
+        start = SfenUtils::normalizeStart(start);
     }
 
     // 盤データを生成してビューへ接続（view->board() が常に有効になるように順序を固定）
@@ -366,60 +390,6 @@ void MainWindow::setEngineNamesBasedOnMode()
 
     if (m_lineEditModel1) m_lineEditModel1->setEngineName(e.model1);
     if (m_lineEditModel2) m_lineEditModel2->setEngineName(e.model2);
-}
-
-// "sfen 〜"で始まる文字列startpositionstrを入力して"sfen "を削除したSFEN文字列を
-// 返す。startposの場合は、
-// "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"を
-// 返す。
-// 例．
-//  0. 平手
-// "startpos",
-//  1. 香落ち
-// "sfen lnsgkgsn1/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1",
-//  2. 右香落ち"
-// "sfen 1nsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1",
-//  3. 角落ち
-// "sfen lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1",
-//  4. 飛車落ち
-// "sfen lnsgkgsnl/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1",
-//  5. 飛香落ち
-// "sfen lnsgkgsn1/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1",
-//  6. 二枚落ち
-// "sfen lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1",
-//  7. 三枚落ち
-// "sfen lnsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1",
-//  8. 四枚落ち
-// "sfen 1nsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1",
-//  9. 五枚落ち
-// "sfen 2sgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1",
-// 10. 左五枚落ち
-// "sfen 1nsgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1",
-// 11. 六枚落ち
-// "sfen 2sgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1",
-// 12. 八枚落ち
-// "sfen 3gkg3/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1",
-// 13. 十枚落ち
-// "sfen 4k4/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"
-QString MainWindow::parseStartPositionToSfen(QString startPositionStr)
-{
-    if (startPositionStr == "startpos") {
-        return "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1";
-    } else {
-        static QRegularExpression r("sfen ");
-        QRegularExpressionMatch match = r.match(startPositionStr);
-
-        // SFEN形式の文字列に誤りがある場合
-        if (!match.hasMatch()) {
-            // エラーメッセージを表示する。
-            const QString errorMessage = tr("An error occurred in MainWindow::getStartSfenStr. There is an error in the SFEN format string.");
-            displayErrorMessage(errorMessage);
-
-            return QString();
-        } else {
-            return startPositionStr.remove("sfen ");
-        }
-    }
 }
 
 // 対局者名と残り時間、将棋盤と棋譜、矢印ボタン、評価値グラフのグループを横に並べて表示する。
@@ -1636,10 +1606,10 @@ void MainWindow::initMatchCoordinator()
 
     // ---- ここは「コメントアウト」せず、関数バインドで割り当て ----
     d.hooks.appendEvalP1     = std::bind(&MainWindow::requestRedrawEngine1Eval_, this);
-    d.hooks.appendEvalP2     = std::bind(&MainWindow::requestRedrawEngine2Eval_, this);
-    d.hooks.sendGoToEngine   = std::bind(&MainWindow::sendGoToEngine_, this, _1, _2);
-    d.hooks.sendStopToEngine = std::bind(&MainWindow::sendStopToEngine_, this, _1);
-    d.hooks.sendRawToEngine  = std::bind(&MainWindow::sendRawToEngine_, this, _1, _2);
+    d.hooks.appendEvalP2     = std::bind(&MainWindow::requestRedrawEngine2Eval_, this); 
+    d.hooks.sendGoToEngine   = std::bind(&MatchCoordinator::sendGoToEngine,   m_match, _1, _2);
+    d.hooks.sendStopToEngine = std::bind(&MatchCoordinator::sendStopToEngine, m_match, _1);
+    d.hooks.sendRawToEngine  = std::bind(&MatchCoordinator::sendRawToEngine,  m_match, _1, _2);
     d.hooks.initializeNewGame= std::bind(&MainWindow::initializeNewGame_, this, _1);
     d.hooks.showMoveHighlights= std::bind(&MainWindow::showMoveHighlights_, this, _1, _2);
     d.hooks.appendKifuLine   = std::bind(&MainWindow::appendKifuLineHook_, this, _1, _2);
@@ -1660,8 +1630,7 @@ void MainWindow::initMatchCoordinator()
         m_timeConn = connect(
             m_gameStartCoordinator,
             static_cast<void (GameStartCoordinator::*)(qint64,qint64,bool,qint64)>(&GameStartCoordinator::timeUpdated),
-            this,
-            &MainWindow::onMatchTimeUpdated,
+            m_timePresenter, &TimeDisplayPresenter::onMatchTimeUpdated,
             Qt::UniqueConnection);
 
         // requestAppendGameOverMove
@@ -1791,7 +1760,7 @@ void MainWindow::wireMatchSignals_()
         (&MatchCoordinator::timeUpdated);
 
     m_timeConn = connect(m_match, sig,
-                         this, &MainWindow::onMatchTimeUpdated,
+                         m_timePresenter, &TimeDisplayPresenter::onMatchTimeUpdated,
                          Qt::UniqueConnection);
     Q_ASSERT(m_timeConn);
 
@@ -1804,21 +1773,6 @@ void MainWindow::onRequestAppendGameOverMove(const MatchCoordinator::GameEndInfo
 {
     const bool loserIsP1 = (info.loser == MatchCoordinator::P1);
     setGameOverMove(toUiCause(info.cause), loserIsP1);
-}
-
-void MainWindow::onMatchTimeUpdated(qint64 p1ms, qint64 p2ms, bool p1turn, qint64 /*urgencyMs*/)
-{
-    m_lastP1Turn = p1turn;
-    m_lastP1Ms   = p1ms;
-    m_lastP2Ms   = p2ms;
-
-    if (m_shogiView) {
-        m_shogiView->blackClockLabel()->setText(fmt_hhmmss(p1ms));
-        m_shogiView->whiteClockLabel()->setText(fmt_hhmmss(p2ms));
-        m_shogiView->setBlackTimeMs(p1ms);
-        m_shogiView->setWhiteTimeMs(p2ms);
-    }
-    applyTurnHighlights_(p1turn);
 }
 
 void MainWindow::setupBoardInteractionController()
@@ -2462,56 +2416,6 @@ void MainWindow::requestRedrawEngine1Eval_() {
 
 void MainWindow::requestRedrawEngine2Eval_() {
     QMetaObject::invokeMethod(this, &MainWindow::redrawEngine2EvaluationGraph, Qt::QueuedConnection);
-}
-
-// qint64 → int の安全な縮小（オーバーフロー防止）
-static inline int clampMsToInt(qint64 v) {
-    if (v > std::numeric_limits<int>::max()) return std::numeric_limits<int>::max();
-    if (v < std::numeric_limits<int>::min()) return std::numeric_limits<int>::min();
-    return static_cast<int>(v);
-}
-
-/*
-void MainWindow::sendGoToEngine_(Usi* u, const MatchCoordinator::GoTimes& t) {
-    if (!u) return;
-
-    // byoyomi と increment は通常どちらか一方を使う
-    const bool useByoyomi = (t.byoyomi > 0 && t.binc == 0 && t.winc == 0);
-
-    u->sendGoCommand(
-        clampMsToInt(t.byoyomi),        // byoyomi(ms)
-        QString::number(t.btime),       // btime(ms) → 文字列
-        QString::number(t.wtime),       // wtime(ms) → 文字列
-        clampMsToInt(t.binc),           // 先手inc(ms)
-        clampMsToInt(t.winc),           // 後手inc(ms)
-        useByoyomi
-        );
-}
-
-void MainWindow::sendStopToEngine_(Usi* u)
-{
-    if (!u) return;
-    u->sendStopCommand();
-}
-
-void MainWindow::sendRawToEngine_(Usi* u, const QString& cmd)
-{
-    if (u) u->sendRaw(cmd);
-}
-*/
-void MainWindow::sendGoToEngine_(Usi* u, const MatchCoordinator::GoTimes& t)
-{
-    if (m_match) m_match->sendGoTo(u, t);
-}
-
-void MainWindow::sendStopToEngine_(Usi* u)
-{
-    if (m_match) m_match->sendStopTo(u);
-}
-
-void MainWindow::sendRawToEngine_(Usi* u, const QString& cmd)
-{
-    if (m_match) m_match->sendRawTo(u, cmd);
 }
 
 void MainWindow::initializeNewGame_(const QString& s)

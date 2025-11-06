@@ -74,6 +74,8 @@ class AnalysisResultsPresenter;
 class GameStartCoordinator;
 class AnalysisCoordinator;
 class GameRecordPresenter;
+class BranchWiringCoordinator;
+class TimeDisplayPresenter;
 
 // ============================================================
 // MainWindow
@@ -228,7 +230,6 @@ private:
 
     // --- ゲーム開始/切替 ---
     void initializeNewGame(QString& startSfenStr);
-    QString parseStartPositionToSfen(QString startPositionStr);
     void startNewShogiGame(QString& startSfenStr);
     void setEngineNamesBasedOnMode();
 
@@ -336,7 +337,6 @@ private slots:
     void onReverseTriggered();
 
     // --- 司令塔（時計/進行）通知受け口 ---
-    void onMatchTimeUpdated(qint64 p1ms, qint64 p2ms, bool p1turn, qint64 urgencyMs);
     void onRequestAppendGameOverMove(const MatchCoordinator::GameEndInfo& info);
 
     // --- クリック/移動要求（コントローラ配線） ---
@@ -454,12 +454,13 @@ private:
     // hooks 用のメンバー関数（ラムダ不使用）
     void requestRedrawEngine1Eval_();
     void requestRedrawEngine2Eval_();
-    void sendGoToEngine_(Usi* u, const MatchCoordinator::GoTimes& t);
-    void sendStopToEngine_(Usi* u);
-    void sendRawToEngine_(Usi* u, const QString& cmd);
     void initializeNewGame_(const QString& s);
     void showMoveHighlights_(const QPoint& from, const QPoint& to);
     void appendKifuLineHook_(const QString& text, const QString& elapsed);
+
+    BranchWiringCoordinator* m_branchWiring = nullptr;
+
+    TimeDisplayPresenter* m_timePresenter = nullptr;
 
 private slots:
     void onRecordRowChangedByPresenter(int row, const QString& comment);

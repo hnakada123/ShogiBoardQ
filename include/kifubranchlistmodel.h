@@ -58,6 +58,11 @@ public:
         return m_hasBackToMainRow ? (rowCount() >= 2 ? 1 : -1) : 0;
     }
 
+    // --- 追加: カスタムロール ---
+    enum Roles {
+        DispCountRole = Qt::UserRole + 1,  // 行ごとの最大手数（0..N）
+    };
+
 private:  
     struct RowItem {
         QString label;
@@ -100,6 +105,12 @@ private:
     }
     void setActiveNode_(int nodeId);      // 低レベル切替
     bool graphFallbackToPly_(int targetPly, bool preferPrev);
+
+    // --- 追加: QML等でロール名が欲しい場合に備えて ---
+    QHash<int, QByteArray> roleNames() const override;
+
+    // --- 追加: 行の最大手数を算出するヘルパ ---
+    int rowMaxPly_(int row) const;
 };
 
 #endif // KIFUBRANCHLISTMODEL_H
