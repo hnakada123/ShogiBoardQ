@@ -2255,3 +2255,38 @@ void MatchCoordinator::sendRawTo_(Usi* which, const QString& cmd)
     if (!which) return;
     which->sendRaw(cmd);   // ← sendRawCommand ではなく sendRaw を呼ぶ
 }
+
+namespace {
+// qint64 → int の安全な縮小（オーバーフロー防止）
+inline int clampMsToInt(qint64 v) {
+    if (v > std::numeric_limits<int>::max()) return std::numeric_limits<int>::max();
+    if (v < std::numeric_limits<int>::min()) return std::numeric_limits<int>::min();
+    return static_cast<int>(v);
+}
+}
+
+void MatchCoordinator::sendGoTo(Usi* u, const GoTimes& t)
+{
+    if (!u) return;
+    const bool useByoyomi = (t.byoyomi > 0 && t.binc == 0 && t.winc == 0);
+    u->sendGoCommand(
+        clampMsToInt(t.byoyomi),
+        QString::number(t.btime),
+        QString::number(t.wtime),
+        clampMsToInt(t.binc),
+        clampMsToInt(t.winc),
+        useByoyomi
+        );
+}
+
+void MatchCoordinator::sendStopTo(Usi* u)
+{
+    if (!u) return;
+    u->sendStopCommand();
+}
+
+void MatchCoordinator::sendRawTo(Usi* u, const QString& cmd)
+{
+    if (!u) return;
+    u->sendRaw(cmd);
+}

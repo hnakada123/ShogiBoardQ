@@ -174,6 +174,12 @@ signals:
 private:
     // これを追加：SFENから手番('b' or 'w')を抽出
     static QChar turnFromSfen_(const QString& sfen);
+
+public:
+    // 再開 SFEN が指定されていれば盤へ適用し、必要なら即時描画まで行う軽量ユーティリティ
+    static void applyResumePositionIfAny(ShogiGameController* gc,
+                                         ShogiView* view,
+                                         const QString& resumeSfen);
 };
 
 Q_DECLARE_METATYPE(GameStartCoordinator::TimeControl)

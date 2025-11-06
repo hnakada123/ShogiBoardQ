@@ -730,3 +730,15 @@ MatchCoordinator* GameStartCoordinator::createAndWireMatch(const MatchCoordinato
 
     return m_match;
 }
+
+void GameStartCoordinator::applyResumePositionIfAny(ShogiGameController* gc,
+                                                    ShogiView* view,
+                                                    const QString& resumeSfen)
+{
+    if (!gc || resumeSfen.isEmpty()) return;
+
+    if (auto* b = gc->board()) {
+        b->setSfen(resumeSfen);
+        if (view) view->applyBoardAndRender(b);
+    }
+}

@@ -49,3 +49,44 @@ void TimekeepingService::finalizeTurnPresentation(ShogiClock* clock,
         }
     }
 }
+
+void TimekeepingService::updateTurnAndTimekeepingDisplay(
+    ShogiClock* clock,
+    MatchCoordinator* match,
+    ShogiGameController* gc,
+    bool isReplayMode,
+    const std::function<void(const QString&)>& appendElapsedLine,
+    const std::function<void(int)>& updateTurnStatus)
+{
+    // 1) KIF再生中は時計を動かさない（統一）
+    if (isReplayMode) {
+        if (clock) clock->stopClock();
+        if (match) match->pokeTimeUpdateNow();
+        return;
+    }
+
+    // 2) 終局後は時計を止めて整えるのみ
+    const bool gameOver = (match && match->gameOverState().isOver);
+    if (gameOver) {
+        if (clock) clock->stopClock();
+        if (match) match->pokeTimeUpdateNow();
+        return;
+    }
+
+    // 次に指すのは誰か（UIの次手番＝ now から見た next）
+    const bool nextIsP1 = (gc && gc->currentPlayer() == ShogiGameController::Player2);
+
+    // 3) 直前手の byoyomi/increment を適用し、消費/累計テキストを返す
+    const QString elapsed = TimekeepingService::applyByoyomiAndCollectElapsed(clock, nextIsP1);
+    if (!elapsed.isEmpty() && appendElapsedLine) {
+        appendElapsedLine(elapsed); // 「mm:ss/HH:MM:SS」を棋譜欄へ
+    }
+
+    // 4) UIの手番表示（1:先手, 2:後手）
+    if (updateTurnStatus) {
+        updateTurnStatus(nextIsP1 ? 1 : 2);
+    }
+
+    // 5) 時計/司令塔の後処理（poke, start, epoch 記録、人間タイマのアーム/解除）
+    TimekeepingService::finalizeTurnPresentation(clock, match, gc, nextIsP1, isReplayMode);
+}

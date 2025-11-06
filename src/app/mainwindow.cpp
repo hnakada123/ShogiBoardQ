@@ -327,20 +327,13 @@ void MainWindow::undoLastTwoMoves()
     }
 }
 
-// 新規対局の準備をする。
-// 将棋盤、駒台を初期化（何も駒がない）し、入力のSFEN文字列の配置に将棋盤、駒台の駒を
-// 配置し、対局結果を結果なし、現在の手番がどちらでもない状態に設定する。
 void MainWindow::initializeNewGame(QString& startSfenStr)
 {
-    m_gameController->newGame(startSfenStr);
-
-    if (!m_resumeSfenStr.isEmpty()) {
-        auto* b = m_gameController ? m_gameController->board() : nullptr;
-        if (b) {
-            b->setSfen(m_resumeSfenStr);
-            if (m_shogiView) m_shogiView->applyBoardAndRender(b);
-        }
+    if (m_gameController) {
+        m_gameController->newGame(startSfenStr);
     }
+    // ← ここは Coordinator に委譲
+    GameStartCoordinator::applyResumePositionIfAny(m_gameController, m_shogiView, m_resumeSfenStr);
 }
 
 // 対局モードに応じて将棋盤上部に表示される対局者名をセットする。
@@ -575,48 +568,18 @@ void MainWindow::updateTurnStatus(int currentPlayer)
     m_shogiView->setActiveSide(currentPlayer == 1);
 }
 
-// 手番に応じて将棋クロックの手番変更およびGUIの手番表示を更新する。
 void MainWindow::updateTurnAndTimekeepingDisplay()
 {
-    // KIF再生中は時計を動かさない（統一）
-    if (m_isReplayMode) {
-        if (m_shogiClock) m_shogiClock->stopClock();
-        if (m_match)      m_match->pokeTimeUpdateNow();
-        return;
-    }
-
-    // 終局後は何もしない（時計停止と整えのみ）
-    const bool gameOver = (m_match && m_match->gameOverState().isOver);
-    if (gameOver) {
-        if (m_shogiClock) m_shogiClock->stopClock();
-        if (m_match) {
-            m_match->pokeTimeUpdateNow();
-            m_match->disarmHumanTimerIfNeeded();
-        }
-        return;
-    }
-
-    // 1) まず停止して残時間を確定
-    if (m_shogiClock) m_shogiClock->stopClock();
-
-    // 2) 次手番を判定（= GC の currentPlayer がこれから指す側）
-    const bool nextIsP1 = (m_gameController &&
-                           m_gameController->currentPlayer() == ShogiGameController::Player1);
-
-    // 3) 直前手の byoyomi/increment 適用と経過テキストの取得（サービスへ）
-    const QString elapsed =
-        TimekeepingService::applyByoyomiAndCollectElapsed(m_shogiClock, nextIsP1);
-    if (!elapsed.isEmpty()) {
-        // 既存仕様どおり「この手」の消費/累計を1行追記
-        updateGameRecord(elapsed);
-    }
-
-    // 4) UIの手番表示
-    updateTurnStatus(nextIsP1 ? 1 : 2);
-
-    // 5) 時計・司令塔の後処理（poke, start, epoch 記録、人間タイマのアーム/解除）
-    TimekeepingService::finalizeTurnPresentation(m_shogiClock, m_match, m_gameController,
-                                                 nextIsP1, m_isReplayMode);
+    TimekeepingService::updateTurnAndTimekeepingDisplay(
+        m_shogiClock,
+        m_match,
+        m_gameController,
+        m_isReplayMode,
+        // appendElapsedLine:
+        [this](const QString& s){ updateGameRecord(s); },
+        // updateTurnStatus:
+        [this](int p){ updateTurnStatus(p); }
+        );
 }
 
 // GUIのバージョン情報を表示する。
@@ -2508,6 +2471,7 @@ static inline int clampMsToInt(qint64 v) {
     return static_cast<int>(v);
 }
 
+/*
 void MainWindow::sendGoToEngine_(Usi* u, const MatchCoordinator::GoTimes& t) {
     if (!u) return;
 
@@ -2533,6 +2497,21 @@ void MainWindow::sendStopToEngine_(Usi* u)
 void MainWindow::sendRawToEngine_(Usi* u, const QString& cmd)
 {
     if (u) u->sendRaw(cmd);
+}
+*/
+void MainWindow::sendGoToEngine_(Usi* u, const MatchCoordinator::GoTimes& t)
+{
+    if (m_match) m_match->sendGoTo(u, t);
+}
+
+void MainWindow::sendStopToEngine_(Usi* u)
+{
+    if (m_match) m_match->sendStopTo(u);
+}
+
+void MainWindow::sendRawToEngine_(Usi* u, const QString& cmd)
+{
+    if (m_match) m_match->sendRawTo(u, cmd);
 }
 
 void MainWindow::initializeNewGame_(const QString& s)
