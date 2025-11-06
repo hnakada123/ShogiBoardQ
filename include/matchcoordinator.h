@@ -514,6 +514,12 @@ private:
     void sendGoToCurrentEngine_(const GoTimes& t);
     void sendStopAllEngines_();
     void sendRawTo_(Usi* which, const QString& cmd);
+
+public:
+    // ・・・既存の public API の末尾あたりに追記・・・
+    void sendGoTo(Usi* engine, const GoTimes& t);
+    void sendStopTo(Usi* engine);
+    void sendRawTo(Usi* engine, const QString& cmd);
 };
 
 #endif // MATCHCOORDINATOR_H

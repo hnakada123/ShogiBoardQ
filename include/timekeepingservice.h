@@ -19,6 +19,16 @@ public:
                                          ShogiGameController* gc,
                                          bool nextIsP1,
                                          bool isReplayMode);
+
+    // 時計・司令塔・UI更新まで一括で実行する統合関数
+    static void updateTurnAndTimekeepingDisplay(
+        ShogiClock* clock,
+        MatchCoordinator* match,
+        ShogiGameController* gc,
+        bool isReplayMode,
+        const std::function<void(const QString&)>& appendElapsedLine, // 棋譜欄追記
+        const std::function<void(int)>& updateTurnStatus               // UI 手番表示 (1:先手 / 2:後手)
+        );
 };
 
 #endif // TIMEKEEPINGSERVICE_H
