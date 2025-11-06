@@ -13,11 +13,13 @@
 
 #include "mainwindow.h"
 #include "branchwiringcoordinator.h"
+#include "considerationflowcontroller.h"
 #include "promotedialog.h"
 #include "shogigamecontroller.h"
 #include "shogiboard.h"
 #include "shogiview.h"
 #include "timedisplaypresenter.h"
+#include "tsumesearchflowcontroller.h"
 #include "ui_mainwindow.h"
 #include "engineregistrationdialog.h"
 #include "versiondialog.h"
@@ -54,6 +56,7 @@
 #include "timecontrolutil.h"
 #include "analysisflowcontroller.h"
 #include "sfenutils.h"
+#include "turnsyncbridge.h"
 
 using KifuIoService::makeDefaultSaveFileName;
 using KifuIoService::writeKifuFile;
@@ -621,17 +624,29 @@ void MainWindow::displayAnalysisResults()
 // 検討ダイアログを表示する。
 void MainWindow::displayConsiderationDialog()
 {
-    // 検討ダイアログを生成する。
-    m_considerationDialog = new ConsiderationDialog(this);
+    // UI 側の状態保持（従来どおり）
+    m_playMode = ConsidarationMode;
 
-    // 検討ダイアログを表示後にユーザーがOKボタンを押した場合
-    if (m_considerationDialog->exec() == QDialog::Accepted) {
-        // 検討を開始する。
-        startConsidaration();
+    // 手番表示（従来ロジックの簡略版。必要なら詳細は従来コードを移植）
+    if (m_gameController && m_gameMoves.size() > 0 && m_currentMoveIndex >= 0 && m_currentMoveIndex < m_gameMoves.size()) {
+        if (m_gameMoves.at(m_currentMoveIndex).movingPiece.isUpper())
+            m_gameController->setCurrentPlayer(ShogiGameController::Player1);
+        else
+            m_gameController->setCurrentPlayer(ShogiGameController::Player2);
     }
 
-    // 検討ダイアログを削除する。
-    delete m_considerationDialog;
+    // 送信する position（既存の m_positionStrList を利用）
+    const QString position = (m_currentMoveIndex >= 0 && m_currentMoveIndex < m_positionStrList.size())
+                                 ? m_positionStrList.at(m_currentMoveIndex)
+                                 : QString();
+
+    // コントローラへ橋渡し
+    ConsiderationFlowController* flow = new ConsiderationFlowController(this);
+    ConsiderationFlowController::Deps d;
+    d.match   = m_match;
+    d.onError = [this](const QString& msg){ displayErrorMessage(msg); };
+
+    flow->runWithDialog(d, this, position);
 }
 
 // 詰み探索ダイアログを表示する。
@@ -898,80 +913,20 @@ void MainWindow::updateGameRecord(const QString& elapsedTime)
     m_lastMove.clear();
 }
 
-// 検討を開始する（司令塔へ依頼する形に集約）
-void MainWindow::startConsidaration()
-{
-    // 1) 対局モードを検討モードへ（UI の状態保持用）
-    m_playMode = ConsidarationMode;
-
-    // 2) 盤面の手番表示用に現在手番を更新（従来コードを踏襲）
-    //    ※ positionStr に手番情報は含まれるが、UI の手番表示は GameController にも反映しておく
-    if (m_gameMoves.at(m_currentMoveIndex).movingPiece.isUpper()) {
-        m_gameController->setCurrentPlayer(ShogiGameController::Player1);
-    } else {
-        m_gameController->setCurrentPlayer(ShogiGameController::Player2);
-    }
-
-    // 3) 送信用 position 構築（従来のリストをそのまま利用）
-    m_positionStr1 = m_positionStrList.at(m_currentMoveIndex);
-
-    // 4) ダイアログからエンジン/時間設定を取得
-    const int engineNumber = m_considerationDialog->getEngineNumber();
-    const auto engine      = m_considerationDialog->getEngineList().at(engineNumber);
-
-    int byoyomiMs = 0;
-    if (!m_considerationDialog->unlimitedTimeFlag()) {
-        byoyomiMs = m_considerationDialog->getByoyomiSec() * 1000; // 秒→ms
-    }
-
-    // 5) 司令塔に検討を依頼
-    if (m_match) {
-        MatchCoordinator::AnalysisOptions opt;
-        opt.enginePath  = engine.path;
-        opt.engineName  = m_considerationDialog->getEngineName();
-        opt.positionStr = m_positionStr1;
-        opt.byoyomiMs   = byoyomiMs;
-        opt.mode        = ConsidarationMode;
-
-        m_match->startAnalysis(opt);
-    }
-}
-
-// 関数差し替え
 void MainWindow::startTsumiSearch()
 {
     m_playMode = TsumiSearchMode;
-    if (!m_tsumeShogiSearchDialog) return;
 
-    // 局面の決定（ユーティリティへ委譲）
-    const QString pos = TsumePositionUtil::buildPositionForMate(
-        m_sfenRecord, m_startSfenStr, m_positionStrList, qMax(0, m_currentMoveIndex));
-    if (pos.isEmpty()) {
-        displayErrorMessage(u8"詰み探索用の局面（SFEN）が取得できません。棋譜を読み込むか局面を指定してください。");
-        return;
-    }
-    m_positionStr1 = pos; // 既存のフィールド互換
+    TsumeSearchFlowController* flow = new TsumeSearchFlowController(this);
+    TsumeSearchFlowController::Deps d;
+    d.match            = m_match;
+    d.sfenRecord       = m_sfenRecord;
+    d.startSfenStr     = m_startSfenStr;
+    d.positionStrList  = m_positionStrList;
+    d.currentMoveIndex = qMax(0, m_currentMoveIndex);
+    d.onError          = [this](const QString& msg){ displayErrorMessage(msg); };
 
-    // エンジンと byoyomi
-    const auto engines = m_tsumeShogiSearchDialog->getEngineList();
-    const int engineIndex = m_tsumeShogiSearchDialog->getEngineNumber();
-    if (engineIndex < 0 || engineIndex >= engines.size()) {
-        displayErrorMessage(u8"エンジン選択が不正です。");
-        return;
-    }
-    const auto engine   = engines.at(engineIndex);
-    const int  byoyomiMs = m_tsumeShogiSearchDialog->getByoyomiSec() * 1000;
-
-    // 司令塔へ（go mate）
-    if (m_match) {
-        MatchCoordinator::AnalysisOptions opt;
-        opt.enginePath  = engine.path;
-        opt.engineName  = m_tsumeShogiSearchDialog->getEngineName();
-        opt.positionStr = m_positionStr1;
-        opt.byoyomiMs   = byoyomiMs;
-        opt.mode        = TsumiSearchMode;
-        m_match->startAnalysis(opt);
-    }
+    flow->runWithDialog(d, this);
 }
 
 void MainWindow::analyzeGameRecord()
@@ -2253,24 +2208,11 @@ void MainWindow::handleBreakOffConsidaration()
 
 void MainWindow::ensureTurnSyncBridge_()
 {
-    // ShogiGameController と TurnManager を取得
-    auto* gc = m_gameController;                          // 既存メンバ想定
-    auto* tm = findChild<TurnManager*>("TurnManager");    // 既存オブジェクト名想定
-
+    auto* gc = m_gameController;
+    auto* tm = findChild<TurnManager*>("TurnManager");
     if (!gc || !tm) return;
 
-    // 1) GCの手番変更 → TurnManagerへミラー（重複接続は抑止）
-    QObject::connect(gc, &ShogiGameController::currentPlayerChanged,
-                     tm, &TurnManager::setFromGc,
-                     Qt::UniqueConnection);
-
-    // 2) TurnManagerの変更 → MainWindowのUI更新（未配線なら接続）
-    QObject::connect(tm, &TurnManager::changed,
-                     this, &MainWindow::onTurnManagerChanged,
-                     Qt::UniqueConnection);
-
-    // 3) 初期同期：現時点の手番を即時反映（時計/ラベルのズレ防止）
-    tm->setFromGc(gc->currentPlayer());
+    TurnSyncBridge::wire(gc, tm, this);
 }
 
 // 置き換え：makeDefaultSaveFileName()
@@ -2410,11 +2352,13 @@ void MainWindow::onRecordRowChangedByPresenter(int row, const QString& comment)
 }
 
 // UIスレッド安全のため queued 呼び出しにしています
-void MainWindow::requestRedrawEngine1Eval_() {
+void MainWindow::requestRedrawEngine1Eval_()
+{
     QMetaObject::invokeMethod(this, &MainWindow::redrawEngine1EvaluationGraph, Qt::QueuedConnection);
 }
 
-void MainWindow::requestRedrawEngine2Eval_() {
+void MainWindow::requestRedrawEngine2Eval_()
+{
     QMetaObject::invokeMethod(this, &MainWindow::redrawEngine2EvaluationGraph, Qt::QueuedConnection);
 }
 

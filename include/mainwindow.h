@@ -258,7 +258,6 @@ private:
     QChar glyphForPlayer(bool isPlayerOne) const;
     void appendKifuLine(const QString& text, const QString& elapsedTime);
     void analyzeGameRecord();      // 旧実装の呼び出しあり
-    void startConsidaration();     // 旧実装の呼び出しあり（綴りそのまま）
     void startTsumiSearch();       // 旧実装の呼び出しあり
 
     // コメントを両画面にブロードキャスト
