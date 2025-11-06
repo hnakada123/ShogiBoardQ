@@ -2290,3 +2290,33 @@ void MatchCoordinator::sendRawTo(Usi* u, const QString& cmd)
     if (!u) return;
     u->sendRaw(cmd);
 }
+
+void MatchCoordinator::sendGoToEngine(Usi* which, const GoTimes& t)
+{
+    if (!which) return;
+
+    // byoyomi と increment は通常どちらか。両方指定なら increment 優先など
+    // ポリシーは必要に応じて調整。ここでは「両方ゼロでないなら increment 優先」にします。
+    const bool useByoyomi = (t.byoyomi > 0 && t.binc == 0 && t.winc == 0);
+
+    which->sendGoCommand(
+        clampMsToInt(t.byoyomi),        // byoyomi(ms)
+        QString::number(t.btime),       // btime(ms)
+        QString::number(t.wtime),       // wtime(ms)
+        clampMsToInt(t.binc),           // 先手 increment(ms)
+        clampMsToInt(t.winc),           // 後手 increment(ms)
+        useByoyomi                      // byoyomi を使うか
+        );
+}
+
+void MatchCoordinator::sendStopToEngine(Usi* which)
+{
+    if (!which) return;
+    which->sendStopCommand();
+}
+
+void MatchCoordinator::sendRawToEngine(Usi* which, const QString& cmd)
+{
+    if (!which) return;
+    which->sendRaw(cmd);
+}

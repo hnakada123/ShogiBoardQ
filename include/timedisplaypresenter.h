@@ -1,0 +1,31 @@
+#ifndef TIMEDISPLAYPRESENTER_H
+#define TIMEDISPLAYPRESENTER_H
+
+#include <QObject>
+#include <QString>
+
+class ShogiView;
+
+class TimeDisplayPresenter : public QObject
+{
+    Q_OBJECT
+public:
+    explicit TimeDisplayPresenter(ShogiView* view, QObject* parent = nullptr);
+
+public slots:
+    // MatchCoordinator::timeUpdated から接続
+    void onMatchTimeUpdated(qint64 p1ms, qint64 p2ms, bool p1turn, qint64 urgencyMs);
+
+private:
+    void applyTurnHighlights_(bool p1turn);
+    void updateUrgencyStyles_(bool p1turn);
+
+    static inline QString fmt_hhmmss(qint64 ms);
+
+private:
+    ShogiView* m_view = nullptr;
+    qint64     m_lastP1Ms = 0;
+    qint64     m_lastP2Ms = 0;
+};
+
+#endif // TIMEDISPLAYPRESENTER_H

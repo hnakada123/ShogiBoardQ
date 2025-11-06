@@ -26,14 +26,19 @@ QVariant KifuBranchListModel::data(const QModelIndex &index, int role) const
 {
     if (!index.isValid()) return QVariant();
 
-    // 末尾の「本譜へ戻る」行か？
     const bool isBackRow = (m_hasBackToMainRow && index.row() == list.size());
+
+    // --- カスタムロール: この行(分岐)の最大手数 ---
+    if (role == DispCountRole) {
+        // 「本譜へ戻る」行は 0 を返しておく（呼び出し側でクランプされる前提）
+        if (isBackRow) return 0;
+        return rowMaxPly_(index.row());
+    }
 
     if (role == Qt::DisplayRole) {
         if (isBackRow) {
             return tr("本譜へ戻る");
         }
-        // 通常候補
         if (index.column() == 0) {
             if (index.row() >= 0 && index.row() < list.size() && list[index.row()]) {
                 return list[index.row()]->currentMove();
@@ -42,14 +47,12 @@ QVariant KifuBranchListModel::data(const QModelIndex &index, int role) const
         return QVariant();
     }
 
-    // ちょっと分かりやすくセンタリング＆太字（お好みで）
+    // 体裁（任意）
     if (role == Qt::TextAlignmentRole && isBackRow) {
         return Qt::AlignCenter;
     }
     if (role == Qt::FontRole && isBackRow) {
-        QFont f;
-        f.setBold(true);
-        return f;
+        QFont f; f.setBold(true); return f;
     }
 
     return QVariant();
@@ -180,4 +183,25 @@ bool KifuBranchListModel::graphFallbackToPly_(int targetPly, bool preferPrev)
         if (tryPrev()) return true;
     }
     return false;
+}
+
+QHash<int, QByteArray> KifuBranchListModel::roleNames() const
+{
+    QHash<int, QByteArray> r = QAbstractItemModel::roleNames();
+    r[DispCountRole] = "dispCount";
+    return r;
+}
+
+int KifuBranchListModel::rowMaxPly_(int row) const
+{
+    if (row < 0) return 0;
+
+    int maxPly = 0;
+    // m_nodes に { row, ply, ... } が入っている前提で、同 row の ply 最大値を求める
+    for (const auto& n : m_nodes) {
+        if (n.row == row && n.ply > maxPly) {
+            maxPly = n.ply;
+        }
+    }
+    return maxPly;
 }
