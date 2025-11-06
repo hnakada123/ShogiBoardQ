@@ -933,7 +933,6 @@ void MainWindow::rebuildGameMoves(const QString& initialSfen,
     m_gameMoves = SfenPositionTracer::buildGameMoves(initialSfen, usiMoves);
 }
 
-// MainWindow::displayGameRecord を置き換え
 void MainWindow::displayGameRecord(const QList<KifDisplayItem> disp)
 {
     if (!m_kifuRecordModel) return;
@@ -941,29 +940,13 @@ void MainWindow::displayGameRecord(const QList<KifDisplayItem> disp)
     ensureRecordPresenter_();
     if (!m_recordPresenter) return;
 
-    // 1) 棋譜の表示（従来どおり Presenter に任せる）
-    m_recordPresenter->presentGameRecord(disp);
-
-    // 2) コメントは Presenter 側で保持
     const int moveCount = disp.size();
     const int rowCount  = (m_sfenRecord && !m_sfenRecord->isEmpty())
                              ? m_sfenRecord->size()
                              : (moveCount + 1);
-    m_recordPresenter->setCommentsFromDisplayItems(disp, rowCount);
 
-    // 3) KifuView の選択変更は Presenter が受けて、MainWindow へ signal 転送
-    if (m_recordPane && m_recordPane->kifuView()) {
-        m_recordPresenter->bindKifuSelection(m_recordPane->kifuView());
-
-        // 二重接続を防ぐ
-        static QMetaObject::Connection s_conn;
-        if (s_conn) disconnect(s_conn);
-        s_conn = connect(
-            m_recordPresenter, &GameRecordPresenter::currentRowChanged,
-            this, &MainWindow::onRecordRowChangedByPresenter,
-            Qt::UniqueConnection
-            );
-    }
+    // ← まとめて Presenter 側に委譲
+    m_recordPresenter->displayAndWire(disp, rowCount, m_recordPane);
 }
 
 // 置き換え：1手追記も Presenter に一本化

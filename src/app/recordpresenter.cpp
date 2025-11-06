@@ -142,3 +142,19 @@ void GameRecordPresenter::bindKifuSelection(QTableView* kifuView)
         Qt::UniqueConnection
         );
 }
+
+void GameRecordPresenter::displayAndWire(const QList<KifDisplayItem>& disp,
+                                         int rowCount,
+                                         RecordPane* recordPane)
+{
+    // 1) モデルへ反映（既存のまとめ関数）
+    presentGameRecord(disp);
+
+    // 2) コメント配列を Presenter 側で構築（既存の補助関数）
+    setCommentsFromDisplayItems(disp, rowCount);
+
+    // 3) KifuView の currentRowChanged を Presenter が受けて MainWindow へ signal 転送
+    if (recordPane && recordPane->kifuView()) {
+        bindKifuSelection(recordPane->kifuView()); // ここで UniqueConnection 済み
+    }
+}

@@ -56,6 +56,11 @@ public:
     // 補助：行に対応するコメント取得
     QString commentForRow(int row) const;
 
+    // disp をモデルに反映し、コメントと行数を整えて、選択変更の配線までを一括実行
+    void displayAndWire(const QList<KifDisplayItem>& disp,
+                        int rowCount,
+                        RecordPane* recordPane);
+
 signals:
     // Presenter 経由で MainWindow に「現在行＋コメント」を通知
     void currentRowChanged(int row, const QString& comment);
