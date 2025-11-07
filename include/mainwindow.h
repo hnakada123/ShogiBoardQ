@@ -346,9 +346,6 @@ private slots:
     void connectBoardClicks_();
     void connectMoveRequested_();
 
-    // --- moveRequested 後の分岐ハンドラ（対局モード別） ---
-    void handleMove_HvE_(const QPoint& humanFrom, const QPoint& humanTo);
-
 private slots:
     void onBranchCandidateActivated(const QModelIndex& index); // QModelIndex 版に変更
     void onMoveCommitted(ShogiGameController::Player mover, int ply);
@@ -380,17 +377,12 @@ private:
     qint64 m_lastP2Ms   = 0;
 
     // 描画ヘルパ
-    void updateUrgencyStyles_(bool p1turn);
-    void applyTurnHighlights_(bool p1turn);   // 中で updateUrgencyStyles_ を呼ぶようにします
     void setupNameAndClockFonts_();           // フォント明示設定
 
 private slots:
-    void onBranchPlanActivated_(int row, int ply1);                // Plan選択 → 行/手へジャンプ
-    void onRecordPaneBranchActivated_(const QModelIndex& index);   // QModelIndex → row へアダプト
     void onBranchNodeActivated_(int row, int ply);
     void onGameOverStateChanged(const MatchCoordinator::GameOverState& st);
     void onTurnManagerChanged(ShogiGameController::Player now);
-    void setupBranchCandidatesWiring_();
 
 private:
     // いま下段が先手(P1)か？ true=先手が手前、false=後手が手前

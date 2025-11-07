@@ -863,8 +863,6 @@ void MainWindow::chooseAndLoadKifuFile()
             this, &MainWindow::syncBoardAndHighlightsAtRow, Qt::UniqueConnection);
     connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::enableArrowButtons,
             this, &MainWindow::enableArrowButtons, Qt::UniqueConnection);
-    connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::setupBranchCandidatesWiring_,
-            this, &MainWindow::setupBranchCandidatesWiring_, Qt::UniqueConnection);
 
     // --- 4) 読み込み実行（ロジックは Coordinator へ） ---
     m_kifuLoadCoordinator->loadKifuFromFile(filePath);
@@ -1796,9 +1794,6 @@ void MainWindow::onMoveRequested_(const QPoint& from, const QPoint& to)
         if (m_match) {
             qInfo() << "[UI] HvE: forwarding to MatchCoordinator::onHumanMove_HvE";
             m_match->onHumanMove_HvE(hFrom, hTo, m_lastMove);
-        } else {
-            qWarning() << "[UI][WARN] m_match is null; fallback to handleMove_HvE_ (legacy path)";
-            handleMove_HvE_(hFrom, hTo);
         }
         break;
 
@@ -1806,14 +1801,6 @@ void MainWindow::onMoveRequested_(const QPoint& from, const QPoint& to)
         qInfo() << "[UI] not a live play mode; skip post-handling";
         break;
     }
-}
-
-// 人間 vs エンジン：人間が指した直後の処理（棋譜追記＋1手返しを司令塔へ一本化）
-void MainWindow::handleMove_HvE_(const QPoint& humanFrom, const QPoint& humanTo)
-{
-    if (!m_match) return;
-    // validateAndMove() でセット済みの m_lastMove（「▲７六歩」等の整形文字列）を司令塔へ渡す
-    m_match->onHumanMove_HvE(humanFrom, humanTo, m_lastMove);
 }
 
 // 再生モードの切替を MainWindow 内で一元管理
@@ -1861,37 +1848,6 @@ void MainWindow::broadcastComment(const QString& text, bool asHtml)
     }
 }
 
-void MainWindow::setupBranchCandidatesWiring_()
-{
-    qDebug() << "[WIRE] setupBranchCandidatesWiring_ ENTER";
-
-    if (!m_recordPane) {
-        qWarning() << "[WIRE] no RecordPane; skip setupBranchCandidatesWiring_";
-        return;
-    }
-
-    if (!m_branchCtl) {
-        m_branchCtl = new BranchCandidatesController(
-            m_varEngine.get(),
-            m_kifuBranchModel,
-            this
-            );
-        qDebug() << "[WIRE] BranchCandidatesController created ve=" << static_cast<void*>(m_varEngine.get())
-                 << " model=" << static_cast<void*>(m_kifuBranchModel);
-    }
-
-    // Controller 自身に RecordPane→Controller の配線をやらせる
-    m_branchCtl->attachRecordPane(m_recordPane);
-
-    // 「Plan クリック → 行/手へジャンプ」は MainWindow 受けでOK（役割：画面遷移）
-    const bool okA = connect(m_branchCtl,
-                             &BranchCandidatesController::planActivated,
-                             this,
-                             &MainWindow::onBranchPlanActivated_,
-                             Qt::UniqueConnection);
-    qDebug() << "[WIRE] connect planActivated -> onBranchPlanActivated_ :" << okA;
-}
-
 void MainWindow::setupBranchView_()
 {
     if (!m_recordPane) return;
@@ -1912,19 +1868,6 @@ void MainWindow::setupBranchView_()
 
     // 初期は隠しておく（候補が入ったら populateBranchCandidates_ で制御）
     view->setVisible(false);
-}
-
-void MainWindow::onBranchPlanActivated_(int row, int ply1)
-{
-    qDebug() << "[BRANCH] planActivated -> applyResolvedRowAndSelect row=" << row << " ply=" << ply1;
-    applyResolvedRowAndSelect(row, ply1);
-}
-
-void MainWindow::onRecordPaneBranchActivated_(const QModelIndex& index)
-{
-    if (!index.isValid()) return;
-    if (!m_branchCtl)     return;
-    m_branchCtl->activateCandidate(index.row());
 }
 
 std::pair<int,int> MainWindow::resolveBranchHighlightTarget(int row, int ply) const
@@ -1988,47 +1931,20 @@ void MainWindow::flipBoardAndUpdatePlayerInfo()
     qDebug() << "[UI] flipBoardAndUpdatePlayerInfo ENTER";
     if (!m_shogiView) return;
 
-    // ★回転前にハイライトを消さない（removeHighlightAllData / clearTurnHighlight を呼ばない）
-    //   ハイライトは論理マス保持のまま、描画側が flipMode を見て追従させます。
-
-    // 盤の表示向きをトグル（UI反転）
+    // 盤の表示向きをトグル
     const bool flipped = !m_shogiView->getFlipMode();
     m_shogiView->setFlipMode(flipped);
-
-    // 駒画像セットは向きに合わせる
     if (flipped) m_shogiView->setPiecesFlip();
     else         m_shogiView->setPieces();
 
-    // ★手番ハイライト（名前・時計の強調）を回転直後に再適用
-    applyTurnHighlights_(m_lastP1Turn);
+    // ★ 手番強調/緊急度は Presenter に再適用してもらう
+    if (m_timePresenter) {
+        m_timePresenter->onMatchTimeUpdated(
+            m_lastP1Ms, m_lastP2Ms, m_lastP1Turn, /*urgencyMs(未使用)*/ 0);
+    }
 
     m_shogiView->update();
     qDebug() << "[UI] flipBoardAndUpdatePlayerInfo LEAVE";
-}
-
-void MainWindow::applyTurnHighlights_(bool p1turn)
-{
-    // ここでは「誰が手番か」だけ渡して、実際の見た目組み立ては下へ委譲
-    updateUrgencyStyles_(p1turn);
-}
-
-void MainWindow::updateUrgencyStyles_(bool p1turn)
-{
-    if (!m_shogiView) return;
-
-    // アクティブ側（先手=黒か）をビューへ通知
-    // ※ セッターが無ければ下の「補足：ShogiView側の追加」を実装してください
-    m_shogiView->setActiveIsBlack(p1turn);
-
-    // 残り時間から緊急度を決定
-    const qint64 ms = p1turn ? m_lastP1Ms : m_lastP2Ms;
-    ShogiView::Urgency u;
-    if (ms <= ShogiView::kWarn5Ms)        u = ShogiView::Urgency::Warn5;
-    else if (ms <= ShogiView::kWarn10Ms)  u = ShogiView::Urgency::Warn10;
-    else                                   u = ShogiView::Urgency::Normal;
-
-    // 見た目の適用は ShogiView に一元化
-    m_shogiView->setUrgencyVisuals(u);
 }
 
 void MainWindow::setupNameAndClockFonts_()
