@@ -364,12 +364,13 @@ void MainWindow::initializeNewGame(QString& startSfenStr)
 // 対局モードに応じて将棋盤上部に表示される対局者名をセットする。
 void MainWindow::setPlayersNamesForMode()
 {
-    const PlayerNameMapping names =
-        PlayerNameService::computePlayers(m_playMode, m_humanName1, m_humanName2, m_engineName1, m_engineName2);
-
-    // 対局者名をセットする。
-    m_shogiView->setBlackPlayerName(names.p1);
-    m_shogiView->setWhitePlayerName(names.p2);
+    if (!m_gameStart || !m_shogiView) return;
+    m_gameStart->applyPlayersNamesForMode(
+        m_shogiView,
+        m_playMode,
+        m_humanName1, m_humanName2,
+        m_engineName1, m_engineName2
+        );
 }
 
 // 駒台を含む将棋盤全体の画像をクリップボードにコピーする。
@@ -537,20 +538,6 @@ void MainWindow::updateTurnStatus(int currentPlayer)
 
     m_shogiClock->setCurrentPlayer(currentPlayer);
     m_shogiView->setActiveSide(currentPlayer == 1);
-}
-
-void MainWindow::updateTurnAndTimekeepingDisplay()
-{
-    TimekeepingService::updateTurnAndTimekeepingDisplay(
-        m_shogiClock,
-        m_match,
-        m_gameController,
-        m_isReplayMode,
-        // appendElapsedLine:
-        [this](const QString& s){ updateGameRecord(s); },
-        // updateTurnStatus:
-        [this](int p){ updateTurnStatus(p); }
-        );
 }
 
 // GUIのバージョン情報を表示する。
@@ -767,47 +754,8 @@ void MainWindow::saveSettingsAndClose()
 // GUIを初期画面表示に戻す。
 void MainWindow::resetToInitialState()
 {
-    // ハイライト消去はコントローラ経由に統一
-    if (m_boardController)
-        m_boardController->clearAllHighlights();
-
-    if (m_shogiView) {
-        m_shogiView->blackClockLabel()->setText("00:00:00");
-        m_shogiView->whiteClockLabel()->setText("00:00:00");
-    }
-
-    // 棋譜と評価値
-    if (m_kifuRecordModel) m_kifuRecordModel->clearAllItems();
-
-    // 評価値チャートは RecordPane が所有。毎回ゲッターで取得してクリア
-    if (auto* ec = (m_recordPane ? m_recordPane->evalChart() : nullptr)) {
-        ec->clearAll();
-    }
-
-    // 盤面リセット
-    startNewShogiGame(m_startSfenStr);
-
-    // 思考モデルはモデル側をクリア（ビューは EngineAnalysisTab 内）
-    if (m_modelThinking1) m_modelThinking1->clearAllItems();
-    if (m_modelThinking2) m_modelThinking2->clearAllItems();
-
-    // EngineInfoWidget に反映されるプロパティもモデル側で空に
-    auto resetInfo = [](UsiCommLogModel* m){
-        if (!m) return;
-        m->setEngineName(QString());
-        m->setPredictiveMove(QString());
-        m->setSearchedMove(QString());
-        m->setSearchDepth(QString());
-        m->setNodeCount(QString());
-        m->setNodesPerSecond(QString());
-        m->setHashUsage(QString());
-        // ※ USIログ表示だけを消したいなら EngineAnalysisTab に clearUsiLog() を追加するのが綺麗
-    };
-    resetInfo(m_lineEditModel1);
-    resetInfo(m_lineEditModel2);
-
-    // タブの選択を先頭へ戻す（任意）
-    if (m_tab) m_tab->setCurrentIndex(0);
+    // 既存呼び出し互換のため残し、内部は司令塔フックへ集約
+    onPreStartCleanupRequested_();
 }
 
 // 棋譜ファイルをダイアログから選択し、そのファイルを開く。
@@ -865,21 +813,6 @@ void MainWindow::chooseAndLoadKifuFile()
 
     // --- 4) 読み込み実行（ロジックは Coordinator へ） ---
     m_kifuLoadCoordinator->loadKifuFromFile(filePath);
-}
-
-void MainWindow::rebuildSfenRecord(const QString& initialSfen,
-                                   const QStringList& usiMoves,
-                                   bool hasTerminal)
-{
-    const QStringList list = SfenPositionTracer::buildSfenRecord(initialSfen, usiMoves, hasTerminal);
-    if (!m_sfenRecord) m_sfenRecord = new QStringList;
-    *m_sfenRecord = list; // COW
-}
-
-void MainWindow::rebuildGameMoves(const QString& initialSfen,
-                                  const QStringList& usiMoves)
-{
-    m_gameMoves = SfenPositionTracer::buildGameMoves(initialSfen, usiMoves);
 }
 
 void MainWindow::displayGameRecord(const QList<KifDisplayItem> disp)
@@ -1187,7 +1120,6 @@ void MainWindow::populateBranchListForPly(int ply)
     m_kifuLoadCoordinator->showBranchCandidates(row, safePly);
 }
 
-// MainWindow::syncBoardAndHighlightsAtRow を置き換え
 void MainWindow::syncBoardAndHighlightsAtRow(int ply)
 {
     // 位置編集モード中は従来どおりスキップ
@@ -1405,20 +1337,6 @@ void MainWindow::setupEngineAnalysisTab()
             this, &MainWindow::onBranchNodeActivated_, Qt::UniqueConnection);
 }
 
-void MainWindow::onKifuCurrentRowChanged(const QModelIndex& cur, const QModelIndex&)
-{
-    const int row = cur.isValid() ? cur.row() : 0;
-
-    // コメントは従来どおり
-    QString text;
-    if (row >= 0 && row < m_commentsByRow.size())
-        text = m_commentsByRow[row].trimmed();
-    broadcastComment(text.isEmpty() ? tr("コメントなし") : text, /*asHtml=*/true);
-
-    // ★ 分岐候補は SFEN 基準の自前インデックスで更新
-    populateBranchListForPly(row);
-}
-
 void MainWindow::initMatchCoordinator()
 {
     // 依存が揃っていない場合は何もしない
@@ -1509,8 +1427,6 @@ void MainWindow::initMatchCoordinator()
         connect(m_shogiClock, &ShogiClock::player2TimeOut,
                 this, &MainWindow::onPlayer2TimeOut, Qt::UniqueConnection);
     }
-
-    // ※ 旧：wireMatchSignals_() は Coordinator で転送するようにしたため不要です
 }
 
 void MainWindow::ensureClockReady_()
@@ -1553,57 +1469,9 @@ void MainWindow::onMatchGameEnded(const MatchCoordinator::GameEndInfo& info)
     qDebug() << "[UI] onMatchGameEnded LEAVE";
 }
 
-void MainWindow::setGameInProgressActions(bool inProgress)
-{
-    if (inProgress) {
-        // ここに旧 setGameInProgressActions() の本体をそのまま貼る
-        // 例）対局中メニューのON、操作の有効化/無効化 など
-        // 「投了」を表示する。
-        ui->actionResign->setVisible(true);
-
-        // 「待った」を表示する。
-        ui->actionUndoMove->setVisible(true);
-
-        // 「すぐ指させる」を表示する。
-        ui->actionMakeImmediateMove->setVisible(true);
-
-        // 「中断」を表示する。
-        ui->breakOffGame->setVisible(true);
-
-        // 「盤面の回転」の表示
-        ui->actionFlipBoard->setVisible(true);
-
-        // 「検討」を隠す。
-        ui->actionConsideration->setVisible(true);
-
-        // 「棋譜解析」を隠す。
-        ui->actionAnalyzeKifu->setVisible(true);
-    } else {
-        //hideGameActions(); // 既存の終了時UIへ戻す処理
-    }
-}
-
 void MainWindow::onActionFlipBoardTriggered(bool /*checked*/)
 {
     if (m_match) m_match->flipBoard();
-}
-
-void MainWindow::wireMatchSignals_()
-{
-    if (!m_match) return;
-    if (m_timeConn) { QObject::disconnect(m_timeConn); m_timeConn = {}; }
-
-    auto sig = static_cast<void (MatchCoordinator::*)(qint64,qint64,bool,qint64)>
-        (&MatchCoordinator::timeUpdated);
-
-    m_timeConn = connect(m_match, sig,
-                         m_timePresenter, &TimeDisplayPresenter::onMatchTimeUpdated,
-                         Qt::UniqueConnection);
-    Q_ASSERT(m_timeConn);
-
-    connect(m_match, &MatchCoordinator::requestAppendGameOverMove,
-            this, &MainWindow::onRequestAppendGameOverMove,
-            Qt::UniqueConnection);
 }
 
 void MainWindow::onRequestAppendGameOverMove(const MatchCoordinator::GameEndInfo& info)
@@ -2015,7 +1883,6 @@ void MainWindow::ensureTurnSyncBridge_()
     TurnSyncBridge::wire(gc, tm, this);
 }
 
-// 置き換え：makeDefaultSaveFileName()
 void MainWindow::makeDefaultSaveFileName()
 {
     defaultSaveFileName = KifuIoService::makeDefaultSaveFileName(
@@ -2027,7 +1894,6 @@ void MainWindow::makeDefaultSaveFileName()
     }
 }
 
-// 置き換え：saveKifuToFile()
 void MainWindow::saveKifuToFile()
 {
     QDir::setCurrent(QDir::homePath());
@@ -2047,7 +1913,6 @@ void MainWindow::saveKifuToFile()
     QDir::setCurrent(QApplication::applicationDirPath());
 }
 
-// 置き換え：overwriteKifuFile()
 void MainWindow::overwriteKifuFile()
 {
     if (kifuSaveFileName.isEmpty()) {
@@ -2106,15 +1971,60 @@ void MainWindow::ensureGameStartCoordinator_()
             this, &MainWindow::onApplyTimeControlRequested_);
 }
 
-// 対局開始前の UI/状態初期化（ハイライトや選択をクリア等）
 void MainWindow::onPreStartCleanupRequested_()
 {
-    if (m_boardController) m_boardController->clearAllHighlights();
-    // 棋譜欄や解析UIのリセット、各種フラグ初期化など
-    // setReplayMode(false); 等、既存処理をここへ集約
+    // ハイライト消去はコントローラ経由に統一
+    if (m_boardController)
+        m_boardController->clearAllHighlights();
+
+    if (m_shogiView) {
+        m_shogiView->blackClockLabel()->setText("00:00:00");
+        m_shogiView->whiteClockLabel()->setText("00:00:00");
+    }
+
+    // 棋譜と評価値
+    if (m_kifuRecordModel) m_kifuRecordModel->clearAllItems();
+
+    // 評価値チャートは RecordPane が所有。毎回ゲッターで取得してクリア
+    if (auto* ec = (m_recordPane ? m_recordPane->evalChart() : nullptr)) {
+        ec->clearAll();
+        ec->update();
+    }
+    m_scoreCp.clear();
+
+    // 変数類
+    m_currentMoveIndex = 0;
+    m_currentSelectedPly = 0;
+    m_activePly = 0;
+
+    // 分岐モデル
+    if (m_kifuBranchModel) {
+        m_kifuBranchModel->clear();
+    }
+    m_branchDisplayPlan.clear();
+
+    // コメント欄（Presenter管理でも、見た目は一度クリア）
+    broadcastComment(tr("コメントなし"), /*asHtml=*/true);
+
+    // 解析タブの情報リセット（ログ欄含む）
+    auto resetInfo = [](UsiCommLogModel* m){
+        if (!m) return;
+        m->clear();
+        m->setEngineName(QString());
+        m->setPredictiveMove(QString());
+        m->setSearchedMove(QString());
+        m->setSearchDepth(QString());
+        m->setNodeCount(QString());
+        m->setNodesPerSecond(QString());
+        m->setHashUsage(QString());
+    };
+    resetInfo(m_lineEditModel1);
+    resetInfo(m_lineEditModel2);
+
+    // タブの選択を先頭へ
+    if (m_tab) m_tab->setCurrentIndex(0);
 }
 
-// 関数差し替え
 void MainWindow::onApplyTimeControlRequested_(const GameStartCoordinator::TimeControl& tc)
 {
     TimeControlUtil::applyToClock(m_shogiClock, tc, m_startSfenStr, m_currentSfenStr);
@@ -2126,29 +2036,15 @@ void MainWindow::ensureRecordPresenter_()
     if (m_recordPresenter) return;
 
     GameRecordPresenter::Deps d;
-    d.model = m_kifuRecordModel; // 既存の棋譜リストモデル
-    d.recordPane = m_recordPane; // 既存のRecordPane（任意）
+    d.model      = m_kifuRecordModel;
+    d.recordPane = m_recordPane;
 
     m_recordPresenter = new GameRecordPresenter(d, this);
-}
 
-void MainWindow::onRecordRowChangedByPresenter(int row, const QString& comment)
-{
-    // 行番号ベースで従来処理を呼び出し
-    // 例：盤面とハイライトの同期、コメント欄の反映など
-    if (row >= 0) {
-        syncBoardAndHighlightsAtRow(row);
-    }
-
-    // コメントの表示（適宜 UI 側のラベルに反映）
-    if (m_recordPane) {
-        if (auto* info = m_recordPane->commentLabel()) { // 例: コメント表示の QLabel を持っている想定
-            info->setText(comment);
-        }
-    }
-
-    // 必要であれば他UI（矢印ボタン活性/非活性やゲーム情報）の更新もここで
-    enableArrowButtons();
+    // Presenter → MainWindow へ「現在行＋コメント」通知を接続（ラムダ不使用）
+    connect(m_recordPresenter, SIGNAL(currentRowChanged(int,QString)),
+            this, SLOT(onRecordRowChangedByPresenter(int,QString)),
+            Qt::UniqueConnection);
 }
 
 // UIスレッド安全のため queued 呼び出しにしています

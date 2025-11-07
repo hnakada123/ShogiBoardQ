@@ -211,9 +211,7 @@ private:
     // --- UI / 表示更新 ---
     void displayAnalysisResults();
     void updateGameRecord(const QString& elapsedTime);
-    void updateTurnAndTimekeepingDisplay();
     void updateTurnStatus(int currentPlayer);
-    void setGameInProgressActions(bool inProgress);
     void redrawEngine1EvaluationGraph();
     void redrawEngine2EvaluationGraph();
 
@@ -226,7 +224,6 @@ private:
     void setupRecordPane();
     void setupEngineAnalysisTab();
     void setupBoardInteractionController();
-    void wireMatchSignals_();
 
     // --- ゲーム開始/切替 ---
     void initializeNewGame(QString& startSfenStr);
@@ -244,10 +241,6 @@ private:
     // --- 分岐 / 変化 ---
     void applyResolvedRowAndSelect(int row, int selPly);
     void populateBranchListForPly(int ply);
-
-    // --- 取込 / 解析補助 ---
-    void rebuildSfenRecord(const QString& initialSfen, const QStringList& usiMoves, bool hasTerminal);
-    void rebuildGameMoves(const QString& initialSfen, const QStringList& usiMoves);
 
     // --- ユーティリティ ---
     void setPlayersNamesForMode();
@@ -322,9 +315,6 @@ private slots:
     // --- 追加：不足でエラーになっていた slots ---
     void toggleEngineAnalysisVisibility();
     void undoLastTwoMoves();
-
-    // --- 分岐 / 棋譜ナビゲーション ---
-    void onKifuCurrentRowChanged(const QModelIndex& cur, const QModelIndex& prev);
 
     // --- 盤面・反転 ---
     void onBoardFlipped(bool nowFlipped);
@@ -447,9 +437,6 @@ private:
     BranchWiringCoordinator* m_branchWiring = nullptr;
 
     TimeDisplayPresenter* m_timePresenter = nullptr;
-
-private slots:
-    void onRecordRowChangedByPresenter(int row, const QString& comment);
 };
 
 #endif // MAINWINDOW_H

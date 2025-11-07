@@ -128,3 +128,16 @@ void UsiCommLogModel::appendUsiCommLog(const QString& usiCommLog)
     m_usiCommLog = usiCommLog;
     emit usiCommLogChanged();
 }
+
+void UsiCommLogModel::clear()
+{
+    // それぞれ値が非空のときのみ変更＆シグナル発火
+    if (!m_engineName.isEmpty())       { m_engineName.clear();       emit engineNameChanged(); }
+    if (!m_predictiveMove.isEmpty())   { m_predictiveMove.clear();   emit predictiveMoveChanged(); }
+    if (!m_searchedMove.isEmpty())     { m_searchedMove.clear();     emit searchedMoveChanged(); }
+    if (!m_searchDepth.isEmpty())      { m_searchDepth.clear();      emit searchDepthChanged(); }
+    if (!m_nodeCount.isEmpty())        { m_nodeCount.clear();        emit nodeCountChanged(); }
+    if (!m_nodesPerSecond.isEmpty())   { m_nodesPerSecond.clear();   emit nodesPerSecondChanged(); }
+    if (!m_hashUsage.isEmpty())        { m_hashUsage.clear();        emit hashUsageChanged(); }
+    if (!m_usiCommLog.isEmpty())       { m_usiCommLog.clear();       emit usiCommLogChanged(); }
+}

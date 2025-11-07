@@ -205,3 +205,25 @@ int KifuBranchListModel::rowMaxPly_(int row) const
     }
     return maxPly;
 }
+
+void KifuBranchListModel::clear()
+{
+    // ビューに一括リセットを通知
+    beginResetModel();
+
+    // 候補行（所有権あり）を削除
+    qDeleteAll(list);
+    list.clear();
+
+    // 「本譜へ戻る」行フラグも初期化
+    m_hasBackToMainRow = false;
+
+    // 分岐グラフの状態を初期化
+    m_nodes.clear();
+    m_activeNodeId = -1;
+
+    endResetModel();
+
+    // アクティブノードの変更（無効化）を通知
+    emit activeNodeChanged(-1);
+}
