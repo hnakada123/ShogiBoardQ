@@ -170,3 +170,28 @@ void AnalysisFlowController::onAnalysisProgress_(int ply, int /*depth*/, int /*s
         pv
         ));
 }
+
+void AnalysisFlowController::runWithDialog(const Deps& d, QWidget* parent)
+{
+    // 依存の必須チェック（start(...) 側でも行いますが、早めに弾きます）
+    if (!d.sfenRecord || d.sfenRecord->isEmpty()) {
+        if (d.displayError) d.displayError(QStringLiteral("内部エラー: sfenRecord が未準備です。棋譜読み込み後に実行してください。"));
+        return;
+    }
+    if (!d.analysisModel) {
+        if (d.displayError) d.displayError(QStringLiteral("内部エラー: 解析モデルが未準備です。"));
+        return;
+    }
+    if (!d.usi) {
+        if (d.displayError) d.displayError(QStringLiteral("内部エラー: Usi インスタンスが未初期化です。"));
+        return;
+    }
+
+    // ダイアログを生成してユーザに選択してもらう
+    KifuAnalysisDialog dlg(parent);
+    const int result = dlg.exec();
+    if (result != QDialog::Accepted) return;
+
+    // 以降は既存の start(...) に委譲（Presenter への表示や接続も start 側で実施）
+    start(d, &dlg);
+}
