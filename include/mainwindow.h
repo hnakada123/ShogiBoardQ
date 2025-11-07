@@ -300,9 +300,6 @@ private slots:
     void beginPositionEditing();
     void finishPositionEditing();
     void flipBoardAndUpdatePlayerInfo();
-    void enlargeBoard();
-    void reduceBoardSize();
-    void endDrag();
 
     // --- 時計 / タイムアウト ---
     void onPlayer1TimeOut();
@@ -338,6 +335,7 @@ private slots:
     void onMoveCommitted(ShogiGameController::Player mover, int ply);
     void displayGameRecord(const QList<KifDisplayItem> disp);
     void syncBoardAndHighlightsAtRow(int ply1);
+    void onRecordRowChangedByPresenter(int row, const QString& comment);
 
 private:
     QVector<int> m_branchVarIds;   // 行→variationId の対応（末尾の「本譜へ戻る」は -1）

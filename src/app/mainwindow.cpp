@@ -191,14 +191,19 @@ void MainWindow::connectAllActions_()
     connect(ui->actionResign,               &QAction::triggered, this, &MainWindow::handleResignation);
     connect(ui->breakOffGame,               &QAction::triggered, this, &MainWindow::handleBreakOffGame);
 
-    // 盤操作・表示
-    connect(ui->actionFlipBoard,            &QAction::triggered, this, &MainWindow::onActionFlipBoardTriggered);
-    connect(ui->actionCopyBoardToClipboard, &QAction::triggered, this, &MainWindow::copyBoardToClipboard);
-    connect(ui->actionMakeImmediateMove,    &QAction::triggered, this, &MainWindow::movePieceImmediately);
-    connect(ui->actionEnlargeBoard,         &QAction::triggered, this, &MainWindow::enlargeBoard);
-    connect(ui->actionShrinkBoard,          &QAction::triggered, this, &MainWindow::reduceBoardSize);
-    connect(ui->actionUndoMove,             &QAction::triggered, this, &MainWindow::undoLastTwoMoves);
-    connect(ui->actionSaveBoardImage,       &QAction::triggered, this, &MainWindow::saveShogiBoardImage);
+    // 盤操作・表示（★ここを直結にする）
+    connect(ui->actionFlipBoard,            &QAction::triggered, this,        &MainWindow::onActionFlipBoardTriggered);
+    connect(ui->actionCopyBoardToClipboard, &QAction::triggered, this,        &MainWindow::copyBoardToClipboard);
+    connect(ui->actionMakeImmediateMove,    &QAction::triggered, this,        &MainWindow::movePieceImmediately);
+
+    // ▼ 直結：MainWindow 経由ではなく ShogiView のメソッドを直接呼ぶ
+    if (m_shogiView) {
+        connect(ui->actionEnlargeBoard,     &QAction::triggered, m_shogiView, &ShogiView::enlargeBoard);
+        connect(ui->actionShrinkBoard,      &QAction::triggered, m_shogiView, &ShogiView::reduceBoard);
+    }
+
+    connect(ui->actionUndoMove,             &QAction::triggered, this,        &MainWindow::undoLastTwoMoves);
+    connect(ui->actionSaveBoardImage,       &QAction::triggered, this,        &MainWindow::saveShogiBoardImage);
 
     // 解析/検討/詰み・エンジン設定
     connect(ui->actionToggleEngineAnalysis, &QAction::triggered, this, &MainWindow::toggleEngineAnalysisVisibility);
@@ -217,8 +222,10 @@ void MainWindow::connectCoreSignals_()
     if (m_gameController) {
         connect(m_gameController, &ShogiGameController::showPromotionDialog,
                 this, &MainWindow::displayPromotionDialog, Qt::UniqueConnection);
+
         connect(m_gameController, &ShogiGameController::endDragSignal,
-                this, &MainWindow::endDrag, Qt::UniqueConnection);
+                m_shogiView,      &ShogiView::endDrag, Qt::UniqueConnection);
+
         connect(m_gameController, &ShogiGameController::moveCommitted,
                 this, &MainWindow::onMoveCommitted, Qt::UniqueConnection);
     }
@@ -565,13 +572,6 @@ void MainWindow::displayPromotionDialog()
     if (!m_gameController) return;
     const bool promote = PromotionFlow::askPromote(this);
     m_gameController->setPromote(promote);
-}
-
-// ドラッグを終了する。駒を移動してカーソルを戻す。
-void MainWindow::endDrag()
-{
-    // ドラッグを終了する。
-    m_shogiView->endDrag();
 }
 
 // Webサイトをブラウザで表示する。
@@ -1022,18 +1022,6 @@ void MainWindow::finishPositionEditing()
              << (m_shogiView ? m_shogiView->positionEditMode() : false)
              << " guard=" << m_onMainRowGuard
              << " m_startSfenStr=" << m_startSfenStr;
-}
-
-// 盤面のサイズを拡大する。
-void MainWindow::enlargeBoard()
-{
-    m_shogiView->enlargeBoard();
-}
-
-// 盤面のサイズを縮小する。
-void MainWindow::reduceBoardSize()
-{
-    m_shogiView->reduceBoard();
 }
 
 // 「すぐ指させる」
@@ -1988,10 +1976,14 @@ void MainWindow::ensureRecordPresenter_()
 
     m_recordPresenter = new GameRecordPresenter(d, this);
 
-    // Presenter → MainWindow へ「現在行＋コメント」通知を接続（ラムダ不使用）
-    connect(m_recordPresenter, SIGNAL(currentRowChanged(int,QString)),
-            this, SLOT(onRecordRowChangedByPresenter(int,QString)),
-            Qt::UniqueConnection);
+    // Presenter → MainWindow：「現在行＋コメント」通知（新方式）
+    QObject::connect(
+        m_recordPresenter,
+        &GameRecordPresenter::currentRowChanged,          // シグナル
+        this,
+        &MainWindow::onRecordRowChangedByPresenter,       // スロット
+        Qt::UniqueConnection
+        );
 }
 
 // UIスレッド安全のため queued 呼び出しにしています
@@ -2019,4 +2011,21 @@ void MainWindow::showMoveHighlights_(const QPoint& from, const QPoint& to)
 void MainWindow::appendKifuLineHook_(const QString& text, const QString& elapsed)
 {
     appendKifuLine(text, elapsed);
+}
+
+void MainWindow::onRecordRowChangedByPresenter(int row, const QString& comment)
+{
+    // 盤面・ハイライト同期
+    if (row >= 0) {
+        syncBoardAndHighlightsAtRow(row);
+        // 分岐候補欄の更新（KifuLoadCoordinator へ委譲）
+        populateBranchListForPly(row);
+    }
+
+    // コメント表示は既存の一括関数に統一
+    const QString cmt = comment.trimmed();
+    broadcastComment(cmt.isEmpty() ? tr("コメントなし") : cmt, /*asHtml=*/true);
+
+    // 矢印ボタンなどの活性化
+    enableArrowButtons();
 }
