@@ -257,8 +257,6 @@ private:
     void setGameOverMove(MatchCoordinator::Cause cause, bool loserIsPlayerOne);
     QChar glyphForPlayer(bool isPlayerOne) const;
     void appendKifuLine(const QString& text, const QString& elapsedTime);
-    void analyzeGameRecord();      // 旧実装の呼び出しあり
-    void startTsumiSearch();       // 旧実装の呼び出しあり
 
     // コメントを両画面にブロードキャスト
     void broadcastComment(const QString& text, bool asHtml=false);
