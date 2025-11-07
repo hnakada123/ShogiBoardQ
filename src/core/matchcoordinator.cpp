@@ -1227,13 +1227,13 @@ void MatchCoordinator::handleBreakOff()
     disarmHumanTimerIfNeeded();
 
     // 司令塔として終局状態を確定（中断）
-    m_gameOver.isOver        = true;
-    m_gameOver.when          = QDateTime::currentDateTime();
-    m_gameOver.hasLast       = true;
-    m_gameOver.lastInfo.cause= Cause::BreakOff;   // ★ ここがポイント
+    m_gameOver.isOver         = true;
+    m_gameOver.when           = QDateTime::currentDateTime();
+    m_gameOver.hasLast        = true;
+    m_gameOver.lastInfo.cause = Cause::BreakOff;
 
-    // UIへ通知（UI側で「▲/△中断」追記やリプレイ移行を実施）
-    emit gameOverStateChanged(m_gameOver);
+    // ★ 中断行の生成＋KIF追記＋一度だけの追記ブロック確定（内部で emit 済み）
+    appendBreakOffLineAndMark();
 
     // 起動中エンジンに quit
     if (m_usi1) m_usi1->sendQuitCommand();
@@ -2319,4 +2319,52 @@ void MatchCoordinator::sendRawToEngine(Usi* which, const QString& cmd)
 {
     if (!which) return;
     which->sendRaw(cmd);
+}
+
+void MatchCoordinator::appendBreakOffLineAndMark()
+{
+    // 既に終局でなければ何もしない
+    if (!m_gameOver.isOver) return;
+
+    // すでに「中断」等が追記済みなら二重追記防止
+    if (m_gameOver.moveAppended) return;
+
+    // 現在手番（＝次に指す側）を GC から取得
+    const ShogiGameController::Player gcTurn =
+        (m_gc ? m_gc->currentPlayer() : ShogiGameController::NoPlayer);
+
+    // ▲/△は「絶対座席」を表記（P1=▲, P2=△）
+    const Player curP = (gcTurn == ShogiGameController::Player1) ? P1 : P2;
+    const QString line = (curP == P1) ? QStringLiteral("▲中断") : QStringLiteral("△中断");
+
+    // 「この手」の考慮時間を暫定確定（KIF用）
+    // MatchCoordinator 内の turnEpochFor(...) を利用して今の経過msを算出
+    if (m_clock) {
+        const qint64 now     = QDateTime::currentMSecsSinceEpoch();
+        const qint64 epochMs = turnEpochFor(curP);
+        qint64 considerMs    = (epochMs > 0) ? (now - epochMs) : 0;
+        if (considerMs < 0) considerMs = 0;
+
+        if (curP == P1) m_clock->setPlayer1ConsiderationTime(int(considerMs));
+        else            m_clock->setPlayer2ConsiderationTime(int(considerMs));
+    }
+
+    // "MM:SS/HH:MM:SS" を時計から取得
+    QString elapsed;
+    if (m_clock) {
+        elapsed = (curP == P1)
+        ? m_clock->getPlayer1ConsiderationAndTotalTime()
+        : m_clock->getPlayer2ConsiderationAndTotalTime();
+    }
+
+    // 棋譜欄に 1 回だけ即時追記（MainWindow::appendKifuLine につながる Hook）
+    if (m_hooks.appendKifuLine) {
+        m_hooks.appendKifuLine(line, elapsed);
+    }
+
+    // 人間用ストップウォッチ解除（HvE/HvHに備える既存パターン）
+    disarmHumanTimerIfNeeded();
+
+    // 二重追記ブロック確定（以降は UI 側からも重複しない）
+    markGameOverMoveAppended();
 }
