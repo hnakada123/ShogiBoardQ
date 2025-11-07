@@ -525,6 +525,9 @@ public:
     void sendGoToEngine(Usi* which, const GoTimes& t);
     void sendStopToEngine(Usi* which);
     void sendRawToEngine(Usi* which, const QString& cmd);
+
+    // BreakOff（中断）時の棋譜1行追記＋二重追記ブロック確定
+    void appendBreakOffLineAndMark();
 };
 
 #endif // MATCHCOORDINATOR_H

@@ -25,7 +25,6 @@
 #include "usi.h"
 #include "shogiclock.h"
 #include "apptooltipfilter.h"
-#include "sfenpositiontracer.h"
 #include "enginesettingsconstants.h"
 #include "navigationcontroller.h"
 #include "boardimageexporter.h"
@@ -1770,69 +1769,17 @@ void MainWindow::onBoardFlipped(bool /*flipped*/)
 
 void MainWindow::onGameOverStateChanged(const MatchCoordinator::GameOverState& st)
 {
+    // 司令塔が isOver / Cause / KIF一行追記 まで面倒を見る前提
     if (!st.isOver) return;
-    if (st.lastInfo.cause != MatchCoordinator::Cause::BreakOff) return;
-    if (!m_gameController || !m_shogiClock) return;
 
-    // 中断時の手番（これから指す側）
-    const bool curIsP1 =
-        (m_gameController->currentPlayer() == ShogiGameController::Player1);
-
-    // 「▲/△中断」
-    const QString line = curIsP1 ? QStringLiteral("▲中断")
-                                 : QStringLiteral("△中断");
-
-    // フォーマッタ
-    auto mmss = [](qint64 ms)->QString {
-        if (ms < 0) ms = 0;
-        const qint64 s = ms / 1000;
-        const int mm = int((s / 60) % 60);
-        const int ss = int(s % 60);
-        return QStringLiteral("%1:%2")
-               .arg(mm, 2, 10, QLatin1Char('0'))
-               .arg(ss, 2, 10, QLatin1Char('0'));
-    };
-    auto hhmmss = [](qint64 ms)->QString {
-        if (ms < 0) ms = 0;
-        const qint64 s = ms / 1000;
-        const int hh = int(s / 3600);
-        const int mm = int((s / 60) % 60);
-        const int ss = int(s % 60);
-        return QStringLiteral("%1:%2:%3")
-               .arg(hh, 2, 10, QLatin1Char('0'))
-               .arg(mm, 2, 10, QLatin1Char('0'))
-               .arg(ss, 2, 10, QLatin1Char('0'));
-    };
-
-    // この手の考慮時間：ターン開始エポックから算出
-    qint64 considerMs = 0;
-    if (m_match) {
-        const qint64 epoch = m_match->turnEpochFor(
-            curIsP1 ? MatchCoordinator::P1 : MatchCoordinator::P2);
-        const qint64 now = QDateTime::currentMSecsSinceEpoch();
-        if (epoch > 0 && now >= epoch) considerMs = now - epoch;
-    }
-
-    // 合計消費 = 初期持ち時間 - 現在残り時間（初期未設定なら0）
-    const qint64 remainMs = curIsP1
-        ? m_shogiClock->getPlayer1TimeIntMs()
-        : m_shogiClock->getPlayer2TimeIntMs();
-
-    const qint64 initMs = curIsP1 ? m_initialTimeP1Ms : m_initialTimeP2Ms;
-    const qint64 totalUsedMs = (initMs > 0) ? (initMs - remainMs) : 0;
-
-    const QString elapsed = QStringLiteral("%1/%2")
-                                .arg(mmss(considerMs),
-                                     hhmmss(totalUsedMs));
-
-    // 棋譜欄に「N 中断 (mm:ss/HH:MM:SS)」を一度だけ追記
-    appendKifuLine(line, elapsed);
-
-    // 閲覧（リプレイ）モードへ
+    // UI 遷移（閲覧モードへ）
     enableArrowButtons();
     setReplayMode(true);
 
-    m_shogiView->removeHighlightAllData();
+    // ハイライト消去
+    if (m_shogiView) {
+        m_shogiView->removeHighlightAllData();
+    }
 }
 
 void MainWindow::handleBreakOffGame()
