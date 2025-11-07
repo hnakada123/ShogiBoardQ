@@ -8,6 +8,7 @@
 #include "sfenpositiontracer.h"
 #include "startgamedialog.h"
 #include "kifudisplay.h"
+#include "playernameservice.h"
 
 #include <QPointer>
 #include <QDebug>
@@ -741,4 +742,18 @@ void GameStartCoordinator::applyResumePositionIfAny(ShogiGameController* gc,
         b->setSfen(resumeSfen);
         if (view) view->applyBoardAndRender(b);
     }
+}
+
+void GameStartCoordinator::applyPlayersNamesForMode(ShogiView* view,
+                                                    PlayMode mode,
+                                                    const QString& human1,
+                                                    const QString& human2,
+                                                    const QString& engine1,
+                                                    const QString& engine2) const
+{
+    if (!view) return;
+    const PlayerNameMapping names =
+        PlayerNameService::computePlayers(mode, human1, human2, engine1, engine2);
+    view->setBlackPlayerName(names.p1);
+    view->setWhitePlayerName(names.p2);
 }

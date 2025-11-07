@@ -63,6 +63,8 @@ public:
     // 将棋GUIと将棋エンジン間のUSIプロトコル通信コマンド行をセットし、GUIに追記する。
     void appendUsiCommLog(const QString& usiCommLog);
 
+    void clear();
+
 public slots:
     // 将棋エンジン名をセットし、GUIの表示を更新する。
     void setEngineName(const QString& engineName);

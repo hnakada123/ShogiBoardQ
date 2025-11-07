@@ -63,6 +63,9 @@ public:
         DispCountRole = Qt::UserRole + 1,  // 行ごとの最大手数（0..N）
     };
 
+    // 候補リスト＋分岐グラフの全消去
+    void clear();
+
 private:  
     struct RowItem {
         QString label;

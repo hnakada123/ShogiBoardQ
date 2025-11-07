@@ -122,6 +122,14 @@ public:
     MatchCoordinator* createAndWireMatch(const MatchCoordinator::Deps& deps,
                                          QObject* parentForMatch);
 
+    // GameStartCoordinator.h （public: セクションに追加）
+    void applyPlayersNamesForMode(ShogiView* view,
+                                  PlayMode mode,
+                                  const QString& human1,
+                                  const QString& human2,
+                                  const QString& engine1,
+                                  const QString& engine2) const;
+
 signals:
     // （開始前フック）UI/状態を初期化してほしい
     void requestPreStartCleanup();
