@@ -23,7 +23,6 @@
 #include "engineregistrationdialog.h"
 #include "versiondialog.h"
 #include "usi.h"
-#include "kifuanalysisdialog.h"
 #include "shogiclock.h"
 #include "apptooltipfilter.h"
 #include "sfenpositiontracer.h"
@@ -1125,13 +1124,6 @@ void MainWindow::onPlayer2TimeOut()
     if (m_match) m_match->notifyTimeout(MatchCoordinator::P2);
 }
 
-// 表示用の▲/△を返す（既存 setResignationMove の分岐をそのまま一般化）
-QChar MainWindow::glyphForPlayer(bool isPlayerOne) const
-{
-    // 棋譜用は絶対座席で固定（UIの flip は無視）
-    return isPlayerOne ? QChar(u'▲') : QChar(u'△');
-}
-
 void MainWindow::setGameOverMove(GameOverCause cause, bool loserIsPlayerOne)
 {
     if (!m_match || !m_match->gameOverState().isOver) return;
@@ -1179,38 +1171,6 @@ void MainWindow::ensureGameInfoTable()
     m_gameInfoTable->setShowGrid(false);
 }
 
-void MainWindow::onMainMoveRowChanged(int selPly)
-{
-    qDebug().noquote() << "[ROW] onMainMoveRowChanged selPly=" << selPly
-                       << " resolvedRows=" << m_resolvedRows.size()
-                       << " isLiveAppend=" << m_isLiveAppendMode;
-
-    // 再入防止（applyResolvedRowAndSelect 内で選択を動かすと再度シグナルが来るため）
-    if (m_onMainRowGuard) return;
-    m_onMainRowGuard = true;
-
-    const int safePly = qMax(0, selPly);
-
-    // ライブ中は常にライブ経路で同期（分岐再生を強制無効化）
-    if (m_isLiveAppendMode || m_resolvedRows.isEmpty()) {
-        // ← 投了後の矢印ナビはここに入る。局面＋ハイライトを一括同期
-        syncBoardAndHighlightsAtRow(safePly);
-        m_onMainRowGuard = false;
-        return;
-    }
-
-    // いまアクティブな“本譜 or 分岐”行
-    const int row = qBound(0, m_activeResolvedRow, m_resolvedRows.size() - 1);
-
-    // 行に対応する disp/sfen/gm を差し替え（Presenter更新は Coordinator 側で実施）
-    applyResolvedRowAndSelect(row, safePly);
-
-    // その手数の局面を反映し、最後の一手をハイライト
-    syncBoardAndHighlightsAtRow(safePly);
-
-    m_onMainRowGuard = false;
-}
-
 void MainWindow::populateBranchListForPly(int ply)
 {
     // Coordinator 主導へ一本化（表示のみ更新）
@@ -1245,40 +1205,6 @@ void MainWindow::syncBoardAndHighlightsAtRow(int ply)
     enableArrowButtons();
 }
 
-void MainWindow::onBranchCandidateActivated(const QModelIndex& index)
-{
-    if (!index.isValid()) return;
-    if (!m_kifuBranchModel) return;
-
-    // 末尾の「本譜へ戻る」行？
-    if (m_kifuBranchModel->isBackToMainRow(index.row())) {
-        // 本譜に戻す：既存スナップショットから再表示
-        displayGameRecord(m_dispMain);
-        rebuildSfenRecord(m_startSfenStr, m_usiMoves, /*hasTerminal=*/false);
-        rebuildGameMoves(m_startSfenStr, m_usiMoves);
-    } else {
-        // 行→variationId を引いて確定ラインを取得
-        if (index.row() < 0 || index.row() >= m_branchVarIds.size()) return;
-        const int variationId = m_branchVarIds.at(index.row());
-        if (!m_varEngine) return;
-
-        const auto line = m_varEngine->resolveAfterWins(variationId);
-
-        // 表示列の差し替え（既存関数）
-        displayGameRecord(line.disp);
-
-        // USI/SFEN は既存の安全経路で再構築
-        rebuildSfenRecord(m_startSfenStr, line.usi, /*hasTerminal=*/false);
-        rebuildGameMoves(m_startSfenStr, line.usi);
-    }
-
-    // 以後：ハイライト・分岐ツリー同期など既存処理へ（最小限）
-    enableArrowButtons();
-    if (m_analysisTab) {
-        m_analysisTab->highlightBranchTreeAt(/*row=*/0, /*ply=*/0, /*centerOn=*/true);
-    }
-}
-
 void MainWindow::applyResolvedRowAndSelect(int row, int selPly)
 {
     if (!m_kifuLoadCoordinator) return;
@@ -1304,20 +1230,19 @@ void MainWindow::BranchRowDelegate::paint(QPainter* painter, const QStyleOptionV
     QStyledItemDelegate::paint(painter, opt, index);
 }
 
-inline void pumpUi() {
-    QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents, 5); // 最大5ms程度
-}
-
 // --- INavigationContext の実装 ---
-bool MainWindow::hasResolvedRows() const {
+bool MainWindow::hasResolvedRows() const
+{
     return !m_resolvedRows.isEmpty();
 }
 
-int MainWindow::resolvedRowCount() const {
+int MainWindow::resolvedRowCount() const
+{
     return m_resolvedRows.size();
 }
 
-int MainWindow::activeResolvedRow() const {
+int MainWindow::activeResolvedRow() const
+{
     return m_activeResolvedRow;
 }
 
@@ -1406,13 +1331,8 @@ void MainWindow::setupRecordPane()
     if (!m_recordPane) {
         m_recordPane = new RecordPane(m_central);
 
-        // RecordPane → MainWindow 通知
         connect(m_recordPane, &RecordPane::mainRowChanged,
-                this, &MainWindow::onMainMoveRowChanged,
-                Qt::UniqueConnection);
-
-        connect(m_recordPane, &RecordPane::branchActivated,
-                this, &MainWindow::onBranchCandidateActivated,
+                m_kifuLoadCoordinator, &KifuLoadCoordinator::onMainMoveRowChanged,
                 Qt::UniqueConnection);
 
         // 旧: setupRecordAndEvaluationLayout() が返していた root の置き換え

@@ -77,6 +77,9 @@ public slots:
     //   （内部で showBranchCandidatesFromPlan を呼ぶラッパー）
     void showBranchCandidates(int row, int ply1);
 
+    // 棋譜テーブルの「本譜行」選択が変わったときに呼ぶ
+    void onMainMoveRowChanged(int selPly);
+
 signals:
     void errorOccurred(const QString& errorMessage);
     void setReplayMode(bool on);
