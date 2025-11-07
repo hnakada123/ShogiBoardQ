@@ -14,7 +14,6 @@
 #include "mainwindow.h"
 #include "branchwiringcoordinator.h"
 #include "considerationflowcontroller.h"
-#include "promotedialog.h"
 #include "shogigamecontroller.h"
 #include "shogiboard.h"
 #include "shogiview.h"
@@ -52,11 +51,11 @@
 #include "kifuanalysislistmodel.h"
 #include "analysiscoordinator.h"
 #include "recordpresenter.h"
-#include "tsumepositionutil.h"
 #include "timecontrolutil.h"
 #include "analysisflowcontroller.h"
 #include "sfenutils.h"
 #include "turnsyncbridge.h"
+#include "promotionflow.h"
 
 using KifuIoService::makeDefaultSaveFileName;
 using KifuIoService::writeKifuFile;
@@ -578,19 +577,9 @@ void MainWindow::displayEngineSettingsDialog()
 // 成る・不成の選択ダイアログを起動する。
 void MainWindow::displayPromotionDialog()
 {
-    // 成る・不成の選択ダイアログを作成する。
-    PromoteDialog dialog(this);
-
-    // 成る・不成の選択ダイアログを実行し、成るを選択した場合
-    if (dialog.exec() == QDialog::Accepted) {
-        // 成るのフラグをセットする。
-        m_gameController->setPromote(true);
-    }
-    // 不成を選択した場合
-    else {
-        // 不成のフラグをセットする。
-        m_gameController->setPromote(false);
-    }
+    if (!m_gameController) return;
+    const bool promote = PromotionFlow::askPromote(this);
+    m_gameController->setPromote(promote);
 }
 
 // ドラッグを終了する。駒を移動してカーソルを戻す。
@@ -652,17 +641,21 @@ void MainWindow::displayConsiderationDialog()
 // 詰み探索ダイアログを表示する。
 void MainWindow::displayTsumeShogiSearchDialog()
 {
-    // 詰み探索ダイアログを生成する。
-    m_tsumeShogiSearchDialog = new TsumeShogiSearchDialog(this);
+    // 解析モード切替
+    m_playMode = TsumiSearchMode;
 
-    // 詰み探索ダイアログを表示後にユーザーがOKボタンを押した場合
-    if (m_tsumeShogiSearchDialog->exec() == QDialog::Accepted) {
-        // 詰み探索を開始する。
-        startTsumiSearch();
-    }
+    // Flow に一任（ダイアログの生成・exec・司令塔への start まで）
+    TsumeSearchFlowController* flow = new TsumeSearchFlowController(this);
 
-    // 詰み探索ダイアログを削除する。
-    delete m_tsumeShogiSearchDialog;
+    TsumeSearchFlowController::Deps d;
+    d.match            = m_match;
+    d.sfenRecord       = m_sfenRecord;
+    d.startSfenStr     = m_startSfenStr;
+    d.positionStrList  = m_positionStrList;
+    d.currentMoveIndex = qMax(0, m_currentMoveIndex);
+    d.onError          = [this](const QString& msg){ displayErrorMessage(msg); };
+
+    flow->runWithDialog(d, this);
 }
 
 // 棋譜解析ダイアログを表示する。
@@ -922,46 +915,6 @@ void MainWindow::updateGameRecord(const QString& elapsedTime)
 
     // 二重追記防止（従来どおり）
     m_lastMove.clear();
-}
-
-void MainWindow::startTsumiSearch()
-{
-    m_playMode = TsumiSearchMode;
-
-    TsumeSearchFlowController* flow = new TsumeSearchFlowController(this);
-    TsumeSearchFlowController::Deps d;
-    d.match            = m_match;
-    d.sfenRecord       = m_sfenRecord;
-    d.startSfenStr     = m_startSfenStr;
-    d.positionStrList  = m_positionStrList;
-    d.currentMoveIndex = qMax(0, m_currentMoveIndex);
-    d.onError          = [this](const QString& msg){ displayErrorMessage(msg); };
-
-    flow->runWithDialog(d, this);
-}
-
-void MainWindow::analyzeGameRecord()
-{
-    m_playMode = AnalysisMode;
-    if (!m_analyzeGameRecordDialog) return;
-
-    if (!m_analysisFlow) {
-        m_analysisFlow = new AnalysisFlowController(this);
-    }
-
-    AnalysisFlowController::Deps d;
-    d.sfenRecord    = m_sfenRecord;
-    d.moveRecords   = m_moveRecords;
-    d.analysisModel = m_analysisModel;
-    d.analysisTab   = m_analysisTab;
-    d.usi           = m_usi1;
-    d.logModel      = m_lineEditModel1;     // ← 使うUSIに合わせて適切なログモデルを
-    d.activePly     = m_activePly;
-
-    // ラムダでもOKですが、方針に寄せるなら std::bind でも可
-    d.displayError  = std::bind(&MainWindow::displayErrorMessage, this, std::placeholders::_1);
-
-    m_analysisFlow->start(d, m_analyzeGameRecordDialog);
 }
 
 // 設定ファイルにGUI全体のウィンドウサイズを書き込む。
