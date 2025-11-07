@@ -255,7 +255,6 @@ private:
     void setCurrentTurn();
     void movePieceImmediately();
     void setGameOverMove(MatchCoordinator::Cause cause, bool loserIsPlayerOne);
-    QChar glyphForPlayer(bool isPlayerOne) const;
     void appendKifuLine(const QString& text, const QString& elapsedTime);
 
     // コメントを両画面にブロードキャスト
@@ -325,7 +324,6 @@ private slots:
     void undoLastTwoMoves();
 
     // --- 分岐 / 棋譜ナビゲーション ---
-    void onMainMoveRowChanged(int row);
     void onKifuCurrentRowChanged(const QModelIndex& cur, const QModelIndex& prev);
 
     // --- 盤面・反転 ---
@@ -347,7 +345,6 @@ private slots:
     void connectMoveRequested_();
 
 private slots:
-    void onBranchCandidateActivated(const QModelIndex& index); // QModelIndex 版に変更
     void onMoveCommitted(ShogiGameController::Player mover, int ply);
     void displayGameRecord(const QList<KifDisplayItem> disp);
     void syncBoardAndHighlightsAtRow(int ply1);

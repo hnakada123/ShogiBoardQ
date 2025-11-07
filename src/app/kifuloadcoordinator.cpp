@@ -1688,3 +1688,20 @@ void KifuLoadCoordinator::showBranchCandidates(int row, int ply)
     ensureNavigationPresenter_();
     m_navPresenter->updateAfterBranchListChanged(row, ply);
 }
+
+void KifuLoadCoordinator::onMainMoveRowChanged(int selPly)
+{
+    // selPly を安全化
+    const int safePly = qMax(0, selPly);
+
+    // 読み込み中はスキップ（再帰的な更新抑止）
+    if (m_loadingKifu) return;
+
+    // “いまアクティブな解決行” を安全化
+    const int row = (m_resolvedRows.isEmpty()
+                         ? 0
+                         : qBound(0, m_activeResolvedRow, m_resolvedRows.size() - 1));
+
+    // 盤/棋譜/ハイライトは Coordinator の既存ユーティリティに一任
+    applyResolvedRowAndSelect(row, safePly);
+}
