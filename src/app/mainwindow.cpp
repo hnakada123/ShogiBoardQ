@@ -668,19 +668,30 @@ void MainWindow::displayTsumeShogiSearchDialog()
 // 棋譜解析ダイアログを表示する。
 void MainWindow::displayKifuAnalysisDialog()
 {
-    m_analyzeGameRecordDialog = new KifuAnalysisDialog(this);
+    // 解析モードに遷移
+    m_playMode = AnalysisMode;
 
-    const int result = m_analyzeGameRecordDialog->exec();
-    if (result == QDialog::Accepted) {
-        // 解析結果の受け皿（モデル/ビュー）を準備
-        displayAnalysisResults();
+    // 解析結果の受け皿（モデル/ビュー）は従来どおりここで準備しておく
+    // （Flow 側でも Presenter に show しますが、model が null だと start 前提を満たせないため）
+    displayAnalysisResults();  // KifuAnalysisListModel を新規作成し Presenter に表示
 
-        // 実行（以降の“回し方／投入”は AnalysisCoordinator 側）
-        analyzeGameRecord();
+    // Flow の用意
+    if (!m_analysisFlow) {
+        m_analysisFlow = new AnalysisFlowController(this);
     }
 
-    delete m_analyzeGameRecordDialog;
-    m_analyzeGameRecordDialog = nullptr;
+    AnalysisFlowController::Deps d;
+    d.sfenRecord    = m_sfenRecord;
+    d.moveRecords   = m_moveRecords;
+    d.analysisModel = m_analysisModel;
+    d.analysisTab   = m_analysisTab;
+    d.usi           = m_usi1;
+    d.logModel      = m_lineEditModel1;  // 使用する USI に合わせて
+    d.activePly     = m_activePly;
+    d.displayError  = std::bind(&MainWindow::displayErrorMessage, this, std::placeholders::_1);
+
+    // ★ ダイアログ生成～exec～start までを Flow に一任
+    m_analysisFlow->runWithDialog(d, this);
 }
 
 // TurnManager::changed を受けて UI/Clock を更新（＋手番を GameController に同期）

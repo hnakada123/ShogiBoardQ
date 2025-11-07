@@ -13,6 +13,7 @@ class AnalysisResultsPresenter;
 class Usi;
 class UsiCommLogModel;
 class KifuDisplay;
+class QWidget;
 
 class AnalysisFlowController : public QObject
 {
@@ -31,6 +32,9 @@ public:
 
     explicit AnalysisFlowController(QObject* parent = nullptr);
     void start(const Deps& d, KifuAnalysisDialog* dlg);
+
+    // ダイアログの生成・exec も含めて丸ごと実行する入口
+    void runWithDialog(const Deps& d, QWidget* parent);
 
 private slots:
     void onUsiCommLogChanged_();
