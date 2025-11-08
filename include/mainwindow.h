@@ -76,6 +76,7 @@ class AnalysisCoordinator;
 class GameRecordPresenter;
 class BranchWiringCoordinator;
 class TimeDisplayPresenter;
+class AnalysisTabWiring;
 
 // ============================================================
 // MainWindow
@@ -272,6 +273,7 @@ private slots:
     void displayErrorMessage(const QString& message);
     void saveSettingsAndClose();
     void resetToInitialState();
+    void onFlowError_(const QString& msg);
 
     // --- ファイル I/O / 外部操作（★重複宣言禁止：ここだけに置く） ---
     void chooseAndLoadKifuFile();
@@ -431,6 +433,8 @@ private:
     BranchWiringCoordinator* m_branchWiring = nullptr;
 
     TimeDisplayPresenter* m_timePresenter = nullptr;
+
+    AnalysisTabWiring* m_analysisWiring = nullptr;
 };
 
 #endif // MAINWINDOW_H

@@ -55,6 +55,7 @@
 #include "settingsservice.h"
 #include "aboutcoordinator.h"
 #include "enginesettingscoordinator.h"
+#include "analysistabwiring.h"
 
 using KifuIoService::makeDefaultSaveFileName;
 using KifuIoService::writeKifuFile;
@@ -545,7 +546,7 @@ void MainWindow::displayConsiderationDialog()
     // UI 側の状態保持（従来どおり）
     m_playMode = ConsidarationMode;
 
-    // 手番表示（従来ロジックの簡略版。必要なら詳細は従来コードを移植）
+    // 手番表示（必要最小限）
     if (m_gameController && m_gameMoves.size() > 0 && m_currentMoveIndex >= 0 && m_currentMoveIndex < m_gameMoves.size()) {
         if (m_gameMoves.at(m_currentMoveIndex).movingPiece.isUpper())
             m_gameController->setCurrentPlayer(ShogiGameController::Player1);
@@ -558,11 +559,11 @@ void MainWindow::displayConsiderationDialog()
                                  ? m_positionStrList.at(m_currentMoveIndex)
                                  : QString();
 
-    // コントローラへ橋渡し
+    // Flow に一任（onError はラムダではなく専用スロットへバインド）
     ConsiderationFlowController* flow = new ConsiderationFlowController(this);
     ConsiderationFlowController::Deps d;
     d.match   = m_match;
-    d.onError = [this](const QString& msg){ displayErrorMessage(msg); };
+    d.onError = std::bind(&MainWindow::onFlowError_, this, std::placeholders::_1);
 
     flow->runWithDialog(d, this, position);
 }
@@ -573,7 +574,7 @@ void MainWindow::displayTsumeShogiSearchDialog()
     // 解析モード切替
     m_playMode = TsumiSearchMode;
 
-    // Flow に一任（ダイアログの生成・exec・司令塔への start まで）
+    // Flow に一任（ダイアログ生成～exec～司令塔連携）
     TsumeSearchFlowController* flow = new TsumeSearchFlowController(this);
 
     TsumeSearchFlowController::Deps d;
@@ -582,7 +583,7 @@ void MainWindow::displayTsumeShogiSearchDialog()
     d.startSfenStr     = m_startSfenStr;
     d.positionStrList  = m_positionStrList;
     d.currentMoveIndex = qMax(0, m_currentMoveIndex);
-    d.onError          = [this](const QString& msg){ displayErrorMessage(msg); };
+    d.onError          = std::bind(&MainWindow::onFlowError_, this, std::placeholders::_1);
 
     flow->runWithDialog(d, this);
 }
@@ -593,26 +594,26 @@ void MainWindow::displayKifuAnalysisDialog()
     // 解析モードに遷移
     m_playMode = AnalysisMode;
 
-    // Flow を用意
+    // Flow の用意
     if (!m_analysisFlow) {
         m_analysisFlow = new AnalysisFlowController(this);
     }
 
-    // 解析モデルが未生成ならここで作成（Presenter の生成/表示は Flow 側が面倒を見る）
+    // 解析モデルが未生成ならここで作成
     if (!m_analysisModel) {
         m_analysisModel = new KifuAnalysisListModel(this);
     }
 
-    // 依存を詰めて Flow へ一任
+    // 依存を詰めて Flow へ一任（displayError はスロットにバインド）
     AnalysisFlowController::Deps d;
     d.sfenRecord    = m_sfenRecord;
     d.moveRecords   = m_moveRecords;
     d.analysisModel = m_analysisModel;
     d.analysisTab   = m_analysisTab;
     d.usi           = m_usi1;
-    d.logModel      = m_lineEditModel1;  // info/bestmove の橋渡し用に必須
+    d.logModel      = m_lineEditModel1;  // info/bestmove の橋渡し用
     d.activePly     = m_activePly;
-    d.displayError  = [this](const QString& msg){ displayErrorMessage(msg); };
+    d.displayError  = std::bind(&MainWindow::onFlowError_, this, std::placeholders::_1);
 
     m_analysisFlow->runWithDialog(d, this);
 }
@@ -1180,38 +1181,30 @@ void MainWindow::setupRecordPane()
 
 void MainWindow::setupEngineAnalysisTab()
 {
-    // すでに作成済みなら、防御的に m_tab だけ拾って終了
-    if (m_analysisTab) {
-        if (!m_tab) {
-            if (auto* tw = m_analysisTab->tab()) m_tab = tw;  // ← EngineAnalysisTab 側の accessor を利用
-        }
-        return;
+    // 既に配線クラスがあれば再利用し、タブ取得だけを行う
+    if (!m_analysisWiring) {
+        AnalysisTabWiring::Deps d;
+        d.centralParent = m_central;         // 既存の central エリア
+        d.log1          = m_lineEditModel1;  // USIログ(先手)
+        d.log2          = m_lineEditModel2;  // USIログ(後手)
+
+        m_analysisWiring = new AnalysisTabWiring(d, this);
+        m_analysisWiring->buildUiAndWire();
     }
 
-    // EngineAnalysisTab を 1個だけ生成
-    m_analysisTab = new EngineAnalysisTab(m_central);
+    // 配線クラスから出来上がった部品を受け取る（MainWindow の既存フィールドへ反映）
+    m_analysisTab    = m_analysisWiring->analysisTab();
+    m_tab            = m_analysisWiring->tab();
+    m_modelThinking1 = m_analysisWiring->thinking1();
+    m_modelThinking2 = m_analysisWiring->thinking2();
 
-    // ★ 先に UI を構築して内部の m_tab / m_view1 / m_view2 を生成
-    m_analysisTab->buildUi();
+    Q_ASSERT(m_analysisTab && m_tab && m_modelThinking1 && m_modelThinking2);
 
-    // 例：MainWindow::MainWindow(...) の本体先頭あたり
-    m_modelThinking1 = new ShogiEngineThinkingModel(this);
-    m_modelThinking2 = new ShogiEngineThinkingModel(this);
-
-    // 生成後にモデルを渡す（UI ができてから）
-    m_analysisTab->setModels(m_modelThinking1, m_modelThinking2,
-                             m_lineEditModel1, m_lineEditModel2);
-
-    // 初期状態は単機表示（EvE 開始時に必要なら true にする）
-    m_analysisTab->setDualEngineVisible(false);
-
-    // ★ EngineAnalysisTab が作成した同じ QTabWidget を受け取って中央に貼る
-    m_tab = m_analysisTab->tab();
-    Q_ASSERT(m_tab);
-
-    // 分岐ツリークリック → MainWindow へ（重複接続防止）
-    connect(m_analysisTab, &EngineAnalysisTab::branchNodeActivated,
-            this, &MainWindow::onBranchNodeActivated_, Qt::UniqueConnection);
+    // 分岐ツリーのアクティベートを MainWindow スロットへ（ラムダ不使用）
+    QObject::connect(
+        m_analysisTab, &EngineAnalysisTab::branchNodeActivated,
+        this,          &MainWindow::onBranchNodeActivated_,
+        Qt::UniqueConnection);
 }
 
 void MainWindow::initMatchCoordinator()
@@ -1871,8 +1864,6 @@ void MainWindow::initializeNewGame_(const QString& s)
     // 表示名の更新（必要に応じて）
     setPlayersNamesForMode();
     setEngineNamesBasedOnMode();
-
-    // ※ ここで startNewShogiGame(...) を呼び返すと再帰するので禁止！
 }
 
 void MainWindow::showMoveHighlights_(const QPoint& from, const QPoint& to)
@@ -1906,4 +1897,10 @@ void MainWindow::onRecordRowChangedByPresenter(int row, const QString& comment)
 
     // 矢印ボタンなどの活性化
     enableArrowButtons();
+}
+
+void MainWindow::onFlowError_(const QString& msg)
+{
+    // 既存のエラー表示に委譲（UI 専用）
+    displayErrorMessage(msg);
 }
