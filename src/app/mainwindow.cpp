@@ -1241,7 +1241,6 @@ void MainWindow::setupEngineAnalysisTab()
         Qt::UniqueConnection);
 }
 
-// src/app/mainwindow.cpp
 void MainWindow::initMatchCoordinator()
 {
     // 依存が揃っていない場合は何もしない
@@ -1276,6 +1275,9 @@ void MainWindow::initMatchCoordinator()
     d.hooks.initializeNewGame = std::bind(&MainWindow::initializeNewGame_, this, _1);
     d.hooks.showMoveHighlights= std::bind(&MainWindow::showMoveHighlights_, this, _1, _2);
     d.hooks.appendKifuLine    = std::bind(&MainWindow::appendKifuLineHook_, this, _1, _2);
+
+    // ★ 追加（今回の肝）：結果ダイアログ表示フックを配線
+    d.hooks.showGameOverDialog = std::bind(&MainWindow::showGameOverMessageBox_, this, _1, _2);
 
     // ★★ 追加：時計から「残り/増加/秒読み」を司令塔へ提供するフックを配線
     d.hooks.remainingMsFor = std::bind(&MainWindow::getRemainingMsFor_, this, _1);
@@ -2041,4 +2043,10 @@ qint64 MainWindow::getByoyomiMs_() const
     const qint64 byo = m_shogiClock ? m_shogiClock->getCommonByoyomiMs() : 0;
     qDebug() << "[MW] getByoyomiMs_: ms=" << byo;
     return byo;
+}
+
+// 対局終了時のタイトルと本文を受け取り、情報ダイアログを表示するだけのヘルパ
+void MainWindow::showGameOverMessageBox_(const QString& title, const QString& message)
+{
+    QMessageBox::information(this, title, message);
 }

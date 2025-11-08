@@ -421,6 +421,8 @@ private:
     qint64 getIncrementMsFor_(MatchCoordinator::Player p) const;
     qint64 getByoyomiMs_() const;
 
+    void showGameOverMessageBox_(const QString& title, const QString& message);
+
 private slots:
     void onResignationTriggered();
 };
