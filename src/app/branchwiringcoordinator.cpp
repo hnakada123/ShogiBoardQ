@@ -3,7 +3,6 @@
 #include "recordpane.h"
 #include "kifubranchlistmodel.h"
 #include "branchcandidatescontroller.h"
-#include "kifuvariationengine.h"
 #include "kifuloadcoordinator.h"
 
 #include <QTableView>
@@ -34,25 +33,22 @@ void BranchWiringCoordinator::setupBranchView()
         view->setModel(m_branchModel);
         qDebug() << "[WIRE] branchView.setModel done model=" << m_branchModel;
     }
-    // 初期は隠しておく（候補が入ったら Controller 側から表示制御）
+
+    // 初期は隠しておく（候補が入ったら show にする）
     view->setVisible(false);
 }
 
 void BranchWiringCoordinator::setupBranchCandidatesWiring()
 {
-    qDebug() << "[WIRE] setupBranchCandidatesWiring ENTER";
+    if (!m_recordPane || !m_branchModel) return;
 
-    if (!m_recordPane) {
-        qWarning() << "[WIRE] no RecordPane; skip";
-        return;
-    }
     if (!m_branchCtl) {
         m_branchCtl = new BranchCandidatesController(m_varEngine, m_branchModel, this);
         qDebug() << "[WIRE] BranchCandidatesController created ve=" << static_cast<void*>(m_varEngine)
                  << " model=" << static_cast<void*>(m_branchModel);
     }
 
-    // RecordPane → Controller の配線（内部で必要シグナルを繋ぐ）
+    // RecordPane → Controller の配線
     m_branchCtl->attachRecordPane(m_recordPane);
 
     // Plan クリック → 本コーディネータ経由で「行/手ジャンプ」

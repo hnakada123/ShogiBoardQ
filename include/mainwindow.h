@@ -209,7 +209,6 @@ private:
     // ========================================================
 
     // --- UI / 表示更新 ---
-    void displayAnalysisResults();
     void updateGameRecord(const QString& elapsedTime);
     void updateTurnStatus(int currentPlayer);
     void redrawEngine1EvaluationGraph();
@@ -240,7 +239,6 @@ private:
 
     // --- 分岐 / 変化 ---
     void applyResolvedRowAndSelect(int row, int selPly);
-    void populateBranchListForPly(int ply);
 
     // --- ユーティリティ ---
     void setPlayersNamesForMode();
@@ -346,8 +344,6 @@ private:
     QVBoxLayout* m_centralLayout = nullptr;
 
     BranchCandidatesController* m_branchCtl = nullptr;
-
-    void setupBranchView_();
 
     // 行(row) → (ply → 表示計画) の保持
     // 例: m_branchDisplayPlan[row][ply]
