@@ -59,17 +59,53 @@ void GameStartCoordinator::start(const StartParams& params)
     // --- 1) 開始前フック（UI/状態初期化） ---
     emit requestPreStartCleanup();
 
-    // --- 2) 時計適用の依頼（具体的なセットは UI 層に任せる） ---
-    if (params.tc.enabled) {
-        emit requestApplyTimeControl(params.tc);
+    // --- 2) TimeControl を正規化して適用（enabled 補正 / byoyomi 優先で inc を落とす） ---
+    TimeControl tc = params.tc; // コピーして正規化
+
+    const bool hasAny =
+        (tc.p1.baseMs > 0) || (tc.p2.baseMs > 0) ||
+        (tc.p1.byoyomiMs > 0) || (tc.p2.byoyomiMs > 0) ||
+        (tc.p1.incrementMs > 0) || (tc.p2.incrementMs > 0);
+
+    const bool useByoyomi = (tc.p1.byoyomiMs > 0) || (tc.p2.byoyomiMs > 0);
+    if (useByoyomi) {
+        // 秒読み指定がある場合はフィッシャー増加は使わない（衝突回避）
+        tc.p1.incrementMs = 0;
+        tc.p2.incrementMs = 0;
+    }
+
+    // 値が一つでも入っているのに enabled=false だったケースを救済
+    if (!tc.enabled && hasAny) {
+        tc.enabled = true;
+    }
+
+    qDebug().noquote()
+        << "[GameStartCoordinator] normalized TimeControl:"
+        << " enabled=" << tc.enabled
+        << " P1{base=" << tc.p1.baseMs << " byo=" << tc.p1.byoyomiMs << " inc=" << tc.p1.incrementMs << "}"
+        << " P2{base=" << tc.p2.baseMs << " byo=" << tc.p2.byoyomiMs << " inc=" << tc.p2.incrementMs << "}";
+
+    // UI（時計）へ適用依頼：enabled か、もしくは何か値がある場合は必ず投げる
+    if (tc.enabled || hasAny) {
+        emit requestApplyTimeControl(tc);
         // 互換シグナル（どちらか一方だけ接続想定）
-        emit applyTimeControlRequested(params.tc);
+        emit applyTimeControlRequested(tc);
+    }
+
+    // 司令塔にも直に反映しておく（UIシグナルの非同期順序に影響されないように）
+    if (m_match) {
+        const bool loseOnTimeout = tc.enabled; // 持ち時間系が有効ならタイムアウト負け扱い
+        m_match->setTimeControlConfig(
+            useByoyomi,
+            tc.p1.byoyomiMs, tc.p2.byoyomiMs,
+            tc.p1.incrementMs, tc.p2.incrementMs,
+            loseOnTimeout
+            );
+        m_match->refreshGoTimes();
     }
 
     // --- 3) 対局をセットアップ & 開始 ---
     emit willStart(params.opt);
-
-    // 司令塔へ一任
     m_match->configureAndStart(params.opt);
 
     // --- 4) 初手がエンジン手番なら go を起動 ---
@@ -295,7 +331,6 @@ void GameStartCoordinator::setTimerAndStart(const Ctx& c)
             winc              = dlg->addEachMoveSec2();
             isLoseOnTimeout   = dlg->isLoseOnTimeout();
         } else {
-            // 互換: property 経由でも拾えるようにしておく
             auto getPropInt = [&](const char* name)->int {
                 bool ok=false; int v = c.startDlg->property(name).toInt(&ok); return ok ? v : 0;
             };
@@ -315,7 +350,7 @@ void GameStartCoordinator::setTimerAndStart(const Ctx& c)
         }
     }
 
-    // --- 2) 秒へ統一（内部は秒でセット、UI表示は ShogiClock 側でms等に変換） ---
+    // --- 2) 秒へ統一（内部は秒でセット、UI表示は Clock 側でms等に変換） ---
     const int remainingTime1 = basicTimeHour1 * 3600 + basicTimeMinutes1 * 60;
     const int remainingTime2 = basicTimeHour2 * 3600 + basicTimeMinutes2 * 60;
 
@@ -336,11 +371,21 @@ void GameStartCoordinator::setTimerAndStart(const Ctx& c)
     if (c.initialTimeP2MsOut) *c.initialTimeP2MsOut = c.clock->getPlayer2TimeIntMs();
 
     // --- 5) 表示更新＆起動制御 ---
-    emit requestUpdateTurnDisplay(); // MainWindow::updateTurnDisplay() に接続しておく
-
+    emit requestUpdateTurnDisplay();
     c.clock->updateClock();
     if (!c.isReplayMode) {
         c.clock->startClock();
+    }
+
+    // ★★ 追加：司令塔に TimeControl（秒読み/増加/負け扱い）を設定
+    if (m_match) {
+        const bool useByoyomi = (byoyomi1 > 0 || byoyomi2 > 0);
+        m_match->setTimeControlConfig(
+            useByoyomi,
+            byoyomi1 * 1000, byoyomi2 * 1000,
+            binc     * 1000, winc     * 1000,
+            isLoseOnTimeout
+            );
     }
 
     // --- 6) MatchCoordinator へ時計を配線（初期表示も即時反映） ---
@@ -585,15 +630,14 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
     req.startDialog = dlg;
     prepare(req);
 
-    // --- ダイアログから必要情報を取得（←ここがご要望のゲッター埋め込み） ---
-    const int  initPosNo = dlg->startingPositionNumber();  // ★ 正しいゲッター
-    const bool p1Human   = dlg->isHuman1();                 // ★ 正しいゲッター
-    const bool p2Human   = dlg->isHuman2();                 // ★ 正しいゲッター
+    // --- ダイアログから必要情報を取得 ---
+    const int  initPosNo = dlg->startingPositionNumber(); // 平手=1, 現局面=0 など
+    const bool p1Human   = dlg->isHuman1();
+    const bool p2Human   = dlg->isHuman2();
 
-    // --- 開始SFENの決定（既存ロジックを踏襲） ---
+    // --- 開始SFENの決定（既存ロジック踏襲） ---
     const int startingPosNumber = initPosNo;
 
-    // Ctx に startSfenStr が入っていれば優先
     QString startSfen;
     if (c.startSfenStr && !c.startSfenStr->isEmpty()) {
         startSfen = *(c.startSfenStr);
@@ -638,7 +682,7 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
         prepareInitialPosition(c2);
     }
 
-    // --- PlayMode を SFEN手番と整合させて最終決定（←推奨修正） ---
+    // --- PlayMode を SFEN手番と整合させて最終決定 ---
     PlayMode mode = determinePlayModeAlignedWithTurn(initPosNo, p1Human, p2Human, startSfen);
     qInfo() << "[GameStart] Final PlayMode =" << mode << "  startSfen=" << startSfen;
 
@@ -652,10 +696,57 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
 
     m_match->ensureHumanAtBottomIfApplicable(dlg, c.bottomIsP1);
 
+    // --- (追加) ダイアログから TimeControl を ms で構築 ---
+    auto hms_to_ms = [](int h, int m)->qint64 {
+        const qint64 hh = qMax(0, h);
+        const qint64 mm = qMax(0, m);
+        return (hh*3600 + mm*60) * 1000;
+    };
+    auto sec_to_ms = [](int s)->qint64 {
+        return qMax(0, s) * 1000ll;
+    };
+
+    const int h1   = dlg->basicTimeHour1();
+    const int m1   = dlg->basicTimeMinutes1();
+    const int h2   = dlg->basicTimeHour2();
+    const int m2   = dlg->basicTimeMinutes2();
+    const int byo1 = dlg->byoyomiSec1();
+    const int byo2 = dlg->byoyomiSec2();
+    const int inc1 = dlg->addEachMoveSec1();
+    const int inc2 = dlg->addEachMoveSec2();
+
+    TimeControl tc;
+    tc.p1.baseMs      = hms_to_ms(h1, m1);
+    tc.p2.baseMs      = hms_to_ms(h2, m2);
+    tc.p1.byoyomiMs   = sec_to_ms(byo1);
+    tc.p2.byoyomiMs   = sec_to_ms(byo2);
+    tc.p1.incrementMs = sec_to_ms(inc1);
+    tc.p2.incrementMs = sec_to_ms(inc2);
+
+    // byoyomi 優先（両立指定なら inc を 0 に）
+    const bool useByoyomi = (tc.p1.byoyomiMs > 0) || (tc.p2.byoyomiMs > 0);
+    if (useByoyomi) {
+        tc.p1.incrementMs = 0;
+        tc.p2.incrementMs = 0;
+    }
+
+    // どれか値が入っていれば enabled = true
+    const bool hasAny =
+        (tc.p1.baseMs > 0) || (tc.p2.baseMs > 0) ||
+        (tc.p1.byoyomiMs > 0) || (tc.p2.byoyomiMs > 0) ||
+        (tc.p1.incrementMs > 0) || (tc.p2.incrementMs > 0);
+    tc.enabled = hasAny;
+
+    qDebug().noquote()
+        << "[GSC] initializeGame tc:"
+        << " enabled=" << tc.enabled
+        << " P1{base=" << tc.p1.baseMs << " byo=" << tc.p1.byoyomiMs << " inc=" << tc.p1.incrementMs << "}"
+        << " P2{base=" << tc.p2.baseMs << " byo=" << tc.p2.byoyomiMs << " inc=" << tc.p2.incrementMs << "}";
+
     // --- 対局開始（時計設定 + 初手 go 実行フラグ） ---
     StartParams params;
     params.opt  = opt;
-    params.tc   = extractTimeControlFromDialog(dlg);
+    params.tc   = tc;           // ← ここで手組みした tc を使用（extractTimeControlFromDialog は使わない）
     params.autoStartEngineMove = true;
 
     start(params);
@@ -756,4 +847,79 @@ void GameStartCoordinator::applyPlayersNamesForMode(ShogiView* view,
         PlayerNameService::computePlayers(mode, human1, human2, engine1, engine2);
     view->setBlackPlayerName(names.p1);
     view->setWhitePlayerName(names.p2);
+}
+
+// src/app/gamestartcoordinator.cpp
+
+// ダイアログから TimeControl を組み立てるユーティリティ。
+// ※ StartGameDialog が無い場合でも QObject::property でフォールバックします。
+GameStartCoordinator::TimeControl
+GameStartCoordinator::buildTimeControlFromDialog_(QDialog* startDlg) const
+{
+    TimeControl tc; // すべて 0 で初期化される前提の構造体
+
+    int h1=0, m1=0, h2=0, m2=0;
+    int byo1=0, byo2=0;
+    int inc1=0, inc2=0;
+
+    auto propInt = [&](const char* name)->int {
+        if (!startDlg) return 0;
+        bool ok=false; const int v = startDlg->property(name).toInt(&ok);
+        return ok ? v : 0;
+    };
+
+    // StartGameDialog の型が使えるなら直接 getter を呼ぶ
+    if (auto dlg = qobject_cast<StartGameDialog*>(startDlg)) {
+        h1   = dlg->basicTimeHour1();
+        m1   = dlg->basicTimeMinutes1();
+        h2   = dlg->basicTimeHour2();
+        m2   = dlg->basicTimeMinutes2();
+        byo1 = dlg->byoyomiSec1();
+        byo2 = dlg->byoyomiSec2();
+        inc1 = dlg->addEachMoveSec1();
+        inc2 = dlg->addEachMoveSec2();
+    } else {
+        // フォールバック：プロパティ名で取得
+        h1   = propInt("basicTimeHour1");
+        m1   = propInt("basicTimeMinutes1");
+        h2   = propInt("basicTimeHour2");
+        m2   = propInt("basicTimeMinutes2");
+        byo1 = propInt("byoyomiSec1");
+        byo2 = propInt("byoyomiSec2");
+        inc1 = propInt("addEachMoveSec1");
+        inc2 = propInt("addEachMoveSec2");
+    }
+
+    // (時間, 分) → ms
+    const qint64 base1Ms = qMax<qint64>(0, (static_cast<qint64>(h1)*3600 + m1*60) * 1000);
+    const qint64 base2Ms = qMax<qint64>(0, (static_cast<qint64>(h2)*3600 + m2*60) * 1000);
+
+    const qint64 byo1Ms  = qMax<qint64>(0, static_cast<qint64>(byo1) * 1000);
+    const qint64 byo2Ms  = qMax<qint64>(0, static_cast<qint64>(byo2) * 1000);
+
+    const qint64 inc1Ms  = qMax<qint64>(0, static_cast<qint64>(inc1) * 1000);
+    const qint64 inc2Ms  = qMax<qint64>(0, static_cast<qint64>(inc2) * 1000);
+
+    // byoyomi と increment は排他運用（byoyomi 優先）。両方入っていたら inc は無視。
+    const bool useByoyomi = (byo1Ms > 0) || (byo2Ms > 0);
+
+    tc.p1.baseMs      = base1Ms;
+    tc.p2.baseMs      = base2Ms;
+    tc.p1.byoyomiMs   = useByoyomi ? byo1Ms : 0;
+    tc.p2.byoyomiMs   = useByoyomi ? byo2Ms : 0;
+    tc.p1.incrementMs = useByoyomi ? 0      : inc1Ms;
+    tc.p2.incrementMs = useByoyomi ? 0      : inc2Ms;
+
+    // どれか一つでも値が入っていれば enabled = true
+    tc.enabled = (tc.p1.baseMs > 0) || (tc.p2.baseMs > 0) ||
+                 (tc.p1.byoyomiMs > 0) || (tc.p2.byoyomiMs > 0) ||
+                 (tc.p1.incrementMs > 0) || (tc.p2.incrementMs > 0);
+
+    qDebug().noquote()
+        << "[GSC] buildTimeControlFromDialog_:"
+        << " enabled=" << tc.enabled
+        << " P1{base=" << tc.p1.baseMs << " byo=" << tc.p1.byoyomiMs << " inc=" << tc.p1.incrementMs << "}"
+        << " P2{base=" << tc.p2.baseMs << " byo=" << tc.p2.byoyomiMs << " inc=" << tc.p2.incrementMs << "}";
+
+    return tc;
 }
