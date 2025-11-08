@@ -143,9 +143,9 @@ void MainWindow::buildGamePanels_()
     if (m_recordPane) {
         BranchWiringCoordinator::Deps bw;
         bw.recordPane      = m_recordPane;
-        bw.branchModel     = m_kifuBranchModel;          // 既に保持していれば渡す（null可）
-        bw.variationEngine = m_varEngine.get();          // unique_ptr想定
-        bw.kifuLoader      = m_kifuLoadCoordinator;      // 読み込み済みなら渡す（null可）
+        bw.branchModel     = m_kifuBranchModel;     // 既に保持していれば渡す（null可）
+        bw.variationEngine = m_varEngine.get();     // unique_ptr想定
+        bw.kifuLoader      = m_kifuLoadCoordinator; // 読み込み済みなら渡す（null可）
         bw.parent          = this;
 
         m_branchWiring = new BranchWiringCoordinator(bw);
@@ -166,8 +166,25 @@ void MainWindow::buildGamePanels_()
 
     // 6) central へのタブ追加など表示側の初期化
     initializeCentralGameDisplay();
-}
 
+    // 7) ★安全策（保険）★
+    // setupRecordPane() を単体で呼んだ直後に分岐ビューが必要になるフローが残っていても、
+    // ここで確実に配線が成立するように保証する。
+    if (m_recordPane) {
+        if (!m_branchWiring) {
+            BranchWiringCoordinator::Deps bw;
+            bw.recordPane      = m_recordPane;
+            bw.branchModel     = m_kifuBranchModel;
+            bw.variationEngine = m_varEngine.get();
+            bw.kifuLoader      = m_kifuLoadCoordinator;
+            bw.parent          = this;
+            m_branchWiring = new BranchWiringCoordinator(bw);
+        }
+        // Idempotent 前提（内部は UniqueConnection で多重接続を回避）
+        m_branchWiring->setupBranchView();
+        m_branchWiring->setupBranchCandidatesWiring();
+    }
+}
 
 void MainWindow::restoreWindowAndSync_()
 {
@@ -580,21 +597,6 @@ void MainWindow::openWebsiteInExternalBrowser()
     QDesktopServices::openUrl(QUrl("https://github.com/hnakada123/ShogiBoardQ"));
 }
 
-void MainWindow::displayAnalysisResults()
-{
-    if (m_analysisModel) {
-        delete m_analysisModel;
-        m_analysisModel = nullptr;
-    }
-    m_analysisModel = new KifuAnalysisListModel(this);
-
-    ensureAnalysisPresenter_();
-    m_analysisPresenter->showWithModel(m_analysisModel);
-
-    // 互換性のために保持（スクロール追従等）
-    m_analysisResultsView = m_analysisPresenter->view();
-}
-
 // 検討ダイアログを表示する。
 void MainWindow::displayConsiderationDialog()
 {
@@ -649,26 +651,27 @@ void MainWindow::displayKifuAnalysisDialog()
     // 解析モードに遷移
     m_playMode = AnalysisMode;
 
-    // 解析結果の受け皿（モデル/ビュー）は従来どおりここで準備しておく
-    // （Flow 側でも Presenter に show しますが、model が null だと start 前提を満たせないため）
-    displayAnalysisResults();  // KifuAnalysisListModel を新規作成し Presenter に表示
-
-    // Flow の用意
+    // Flow を用意
     if (!m_analysisFlow) {
         m_analysisFlow = new AnalysisFlowController(this);
     }
 
+    // 解析モデルが未生成ならここで作成（Presenter の生成/表示は Flow 側が面倒を見る）
+    if (!m_analysisModel) {
+        m_analysisModel = new KifuAnalysisListModel(this);
+    }
+
+    // 依存を詰めて Flow へ一任
     AnalysisFlowController::Deps d;
     d.sfenRecord    = m_sfenRecord;
     d.moveRecords   = m_moveRecords;
     d.analysisModel = m_analysisModel;
     d.analysisTab   = m_analysisTab;
     d.usi           = m_usi1;
-    d.logModel      = m_lineEditModel1;  // 使用する USI に合わせて
+    d.logModel      = m_lineEditModel1;  // info/bestmove の橋渡し用に必須
     d.activePly     = m_activePly;
-    d.displayError  = std::bind(&MainWindow::displayErrorMessage, this, std::placeholders::_1);
+    d.displayError  = [this](const QString& msg){ displayErrorMessage(msg); };
 
-    // ★ ダイアログ生成～exec～start までを Flow に一任
     m_analysisFlow->runWithDialog(d, this);
 }
 
@@ -1091,22 +1094,6 @@ void MainWindow::ensureGameInfoTable()
     m_gameInfoTable->setShowGrid(false);
 }
 
-void MainWindow::populateBranchListForPly(int ply)
-{
-    // Coordinator 主導へ一本化（表示のみ更新）
-    if (!m_kifuLoadCoordinator) return;
-
-    // いまアクティブな行を安全化
-    const int row = (m_resolvedRows.isEmpty()
-                         ? 0
-                         : qBound(0, m_activeResolvedRow, m_resolvedRows.size() - 1));
-
-    const int safePly = qMax(0, ply);
-
-    // 分岐候補欄の更新は Coordinator へ委譲
-    m_kifuLoadCoordinator->showBranchCandidates(row, safePly);
-}
-
 void MainWindow::syncBoardAndHighlightsAtRow(int ply)
 {
     // 位置編集モード中は従来どおりスキップ
@@ -1284,8 +1271,6 @@ void MainWindow::setupRecordPane()
 
     // （初回のみで良い UI 調整があれば firstTime を使って分岐できます）
     Q_UNUSED(firstTime);
-
-    setupBranchView_();
 }
 
 void MainWindow::setupEngineAnalysisTab()
@@ -1621,28 +1606,6 @@ void MainWindow::broadcastComment(const QString& text, bool asHtml)
         if (m_analysisTab) m_analysisTab->setCommentText(text);
         if (m_recordPane)  m_recordPane->setBranchCommentText(text);
     }
-}
-
-void MainWindow::setupBranchView_()
-{
-    if (!m_recordPane) return;
-
-    // モデルがまだなら用意しておく
-    if (!m_kifuBranchModel) {
-        m_kifuBranchModel = new KifuBranchListModel(this);
-        qDebug() << "[WIRE] created KifuBranchListModel =" << m_kifuBranchModel;
-    }
-
-    QTableView* view = m_recordPane->branchView();
-    if (!view) return;
-
-    if (view->model() != m_kifuBranchModel) {
-        view->setModel(m_kifuBranchModel);
-        qDebug() << "[WIRE] branchView.setModel done model=" << m_kifuBranchModel;
-    }
-
-    // 初期は隠しておく（候補が入ったら populateBranchCandidates_ で制御）
-    view->setVisible(false);
 }
 
 std::pair<int,int> MainWindow::resolveBranchHighlightTarget(int row, int ply) const
@@ -2018,8 +1981,14 @@ void MainWindow::onRecordRowChangedByPresenter(int row, const QString& comment)
     // 盤面・ハイライト同期
     if (row >= 0) {
         syncBoardAndHighlightsAtRow(row);
-        // 分岐候補欄の更新（KifuLoadCoordinator へ委譲）
-        populateBranchListForPly(row);
+
+        // ▼ 分岐候補欄の更新は Coordinator へ直接委譲
+        if (m_kifuLoadCoordinator) {
+            const int rows       = m_resolvedRows.size();
+            const int resolvedRow = (rows <= 0) ? 0 : qBound(0, m_activeResolvedRow, rows - 1);
+            const int safePly     = (row < 0) ? 0 : row;
+            m_kifuLoadCoordinator->showBranchCandidates(resolvedRow, safePly);
+        }
     }
 
     // コメント表示は既存の一括関数に統一
