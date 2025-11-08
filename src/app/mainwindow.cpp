@@ -1183,6 +1183,32 @@ void MainWindow::setupRecordPane()
 
     m_nav = new NavigationController(btns, /*ctx=*/this, /*parent=*/this);
 
+    // 5) 起動直後に棋譜欄へ「=== 開始局面 ===」を用意（重複挿入を避ける）
+    {
+        if (m_kifuRecordModel) {
+            const int rows = m_kifuRecordModel->rowCount();
+            bool need = true;
+            if (rows > 0) {
+                const QModelIndex idx0 = m_kifuRecordModel->index(0, 0);
+                const QString head = m_kifuRecordModel->data(idx0, Qt::DisplayRole).toString();
+                if (head == QStringLiteral("=== 開始局面 ==="))
+                    need = false;
+            }
+            if (need) {
+                if (rows == 0) {
+                    m_kifuRecordModel->appendItem(
+                        new KifuDisplay(QStringLiteral("=== 開始局面 ==="),
+                                        QStringLiteral("（１手 / 合計）")));
+                } else {
+                    // 念のため既存行がある場合は先頭に差し込む
+                    m_kifuRecordModel->prependItem(
+                        new KifuDisplay(QStringLiteral("=== 開始局面 ==="),
+                                        QStringLiteral("（１手 / 合計）")));
+                }
+            }
+        }
+    }
+
     // （初回のみで良い UI 調整があれば firstTime を使って分岐できます）
     Q_UNUSED(firstTime);
 }
@@ -1788,14 +1814,23 @@ void MainWindow::onPreStartCleanupRequested_()
     // 棋譜と評価値
     if (m_kifuRecordModel) m_kifuRecordModel->clearAllItems();
 
+    // 対局開始時、最初の1手が入る前にヘッダを用意しておく
+    {
+        if (m_kifuRecordModel) {
+            m_kifuRecordModel->appendItem(
+                new KifuDisplay(QStringLiteral("=== 開始局面 ==="),
+                                QStringLiteral("（１手 / 合計）")));
+        }
+    }
+
     // 評価値チャートは RecordPane が所有。毎回ゲッターで取得してクリア
     if (auto* ec = (m_recordPane ? m_recordPane->evalChart() : nullptr)) {
         ec->clearAll();
-        ec->update();
+        ec->update(); // 念のため描画更新
     }
-    m_scoreCp.clear();
 
-    // 変数類
+    // 変数類の初期化など（既存処理）
+    m_scoreCp.clear();
     m_currentMoveIndex = 0;
     m_currentSelectedPly = 0;
     m_activePly = 0;
@@ -1807,10 +1842,10 @@ void MainWindow::onPreStartCleanupRequested_()
     m_branchDisplayPlan.clear();
 
     // コメント欄（Presenter管理でも、見た目は一度クリア）
-    broadcastComment(tr("コメントなし"), /*asHtml=*/true);
+    broadcastComment(QString(), /*asHtml=*/true);
 
-    // 解析タブの情報リセット（ログ欄含む）
-    auto resetInfo = [](UsiCommLogModel* m){
+    // USIログの初期化（既存処理）
+    auto resetInfo = [](UsiCommLogModel* m) {
         if (!m) return;
         m->clear();
         m->setEngineName(QString());
