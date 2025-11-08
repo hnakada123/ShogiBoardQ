@@ -9,6 +9,7 @@
 #include "startgamedialog.h"
 #include "kifudisplay.h"
 #include "playernameservice.h"
+#include "timecontrolutil.h"
 
 #include <QPointer>
 #include <QDebug>
@@ -124,20 +125,44 @@ void GameStartCoordinator::start(const StartParams& params)
 // ===================================================================
 void GameStartCoordinator::prepare(const Request& req)
 {
-    Q_UNUSED(req.mode);
-    Q_UNUSED(req.startSfen);
-    Q_UNUSED(req.bottomIsP1);
-    Q_UNUSED(req.clock);
-
-    // 1) UI/内部状態のプレクリアを要求
+    // --- 0) 前処理（UIのプレクリア） ---
     emit requestPreStartCleanup();
 
-    // 2) ダイアログ（QWidget）から時間設定を抽出して依頼
+    // --- 1) ダイアログから時間設定を抽出 ---
     const TimeControl tc = extractTimeControlFromDialog(req.startDialog);
 
-    // 片方のみ接続されることを前提に、互換のため両方 emit
+    // 互換のため従来のシグナルも両方飛ばす（他所で受けている場合がある）
     emit requestApplyTimeControl(tc);
     emit applyTimeControlRequested(tc);
+
+    qInfo().noquote()
+        << "[GameStartCoordinator] normalized TimeControl: "
+        << " enabled=" << tc.enabled
+        << " P1{base=" << tc.p1.baseMs << "  byo=" << tc.p1.byoyomiMs << "  inc=" << tc.p1.incrementMs << " }"
+        << " P2{base=" << tc.p2.baseMs << "  byo=" << tc.p2.byoyomiMs << "  inc=" << tc.p2.incrementMs << " }";
+
+    // --- 2) 時計の取得（req.clock が無ければ m_match->clock() を使用） ---
+    ShogiClock* clock = req.clock;
+    if (!clock && m_match) {
+        clock = m_match->clock();
+    }
+    if (!clock) {
+        qWarning() << "[GSC] prepare: no ShogiClock (req.clock is null and m_match has no clock)";
+        return;
+    }
+
+    // --- 3) 時間制御を適用（applyToClock は初期手番を 1/2 で設定する修正版を想定） ---
+    TimeControlUtil::applyToClock(clock, tc, req.startSfen, QString());
+
+    // 念のため SFEN から初期手番を明示（修正版が未適用でも安全）
+    const int initialPlayer = (req.startSfen.contains(QLatin1String(" w ")) ? 2 : 1);
+    clock->setCurrentPlayer(initialPlayer);
+
+    // --- 4) 司令塔へ配線 → 起動（順序が重要） ---
+    if (m_match) {
+        m_match->setClock(clock);  // 先に配線
+    }
+    clock->startClock();           // その後で起動
 }
 
 // ===================================================================
@@ -616,7 +641,7 @@ PlayMode GameStartCoordinator::determinePlayModeAlignedWithTurn(
 
 void GameStartCoordinator::initializeGame(const Ctx& c)
 {
-    // --- ダイアログ生成 ---
+    // --- 1) ダイアログ生成＆受付 ---
     StartGameDialog* dlg = new StartGameDialog;
     if (!dlg) return;
 
@@ -625,17 +650,12 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
         return;
     }
 
-    // --- 開始前の準備（時計/オプション適用などは既存の prepare() に委譲） ---
-    Request req;
-    req.startDialog = dlg;
-    prepare(req);
-
-    // --- ダイアログから必要情報を取得 ---
+    // --- 2) ダイアログから必要情報を先に取得（この後の準備で使う） ---
     const int  initPosNo = dlg->startingPositionNumber(); // 平手=1, 現局面=0 など
     const bool p1Human   = dlg->isHuman1();
     const bool p2Human   = dlg->isHuman2();
 
-    // --- 開始SFENの決定（既存ロジック踏襲） ---
+    // --- 3) 開始SFENの決定（既存ロジック踏襲） ---
     const int startingPosNumber = initPosNo;
 
     QString startSfen;
@@ -682,11 +702,11 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
         prepareInitialPosition(c2);
     }
 
-    // --- PlayMode を SFEN手番と整合させて最終決定 ---
+    // --- 4) PlayMode を SFEN手番と整合させて最終決定 ---
     PlayMode mode = determinePlayModeAlignedWithTurn(initPosNo, p1Human, p2Human, startSfen);
     qInfo() << "[GameStart] Final PlayMode =" << mode << "  startSfen=" << startSfen;
 
-    // --- StartOptions 構築 → 司令塔へ ---
+    // --- 5) StartOptions 構築（司令塔依存） ---
     if (!m_match) {
         delete dlg;
         return;
@@ -694,9 +714,10 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
     MatchCoordinator::StartOptions opt =
         m_match->buildStartOptions(mode, startSfen, c.sfenRecord, dlg);
 
+    // 人を手前に（必要時のみ反転）
     m_match->ensureHumanAtBottomIfApplicable(dlg, c.bottomIsP1);
 
-    // --- (追加) ダイアログから TimeControl を ms で構築 ---
+    // --- 6) TimeControl を ms で構築（ダイアログ値 → ミリ秒） ---
     auto hms_to_ms = [](int h, int m)->qint64 {
         const qint64 hh = qMax(0, h);
         const qint64 mm = qMax(0, m);
@@ -723,7 +744,7 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
     tc.p1.incrementMs = sec_to_ms(inc1);
     tc.p2.incrementMs = sec_to_ms(inc2);
 
-    // byoyomi 優先（両立指定なら inc を 0 に）
+    // byoyomi 優先（併用指定なら inc は 0 扱い）
     const bool useByoyomi = (tc.p1.byoyomiMs > 0) || (tc.p2.byoyomiMs > 0);
     if (useByoyomi) {
         tc.p1.incrementMs = 0;
@@ -743,13 +764,32 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
         << " P1{base=" << tc.p1.baseMs << " byo=" << tc.p1.byoyomiMs << " inc=" << tc.p1.incrementMs << "}"
         << " P2{base=" << tc.p2.baseMs << " byo=" << tc.p2.byoyomiMs << " inc=" << tc.p2.incrementMs << "}";
 
-    // --- 対局開始（時計設定 + 初手 go 実行フラグ） ---
+    // --- 7) 時計の準備と配線・起動は prepare(...) に委譲（★順序をここに移動） ---
+    Request req;
+    req.startDialog = dlg;
+    req.startSfen   = startSfen;                            // ★ 手番確定に使用
+    req.clock       = c.clock ? c.clock : m_match->clock(); // ★ ここで必ず渡す（null なら prepare 内で警告して return）
+
+    prepare(req); // requestPreStartCleanup / 時間適用シグナル発火 / setClock→startClock（修正版の想定）
+
+    // --- 8) 対局開始（時計設定 + 初手 go 設定） ---
     StartParams params;
     params.opt  = opt;
-    params.tc   = tc;           // ← ここで手組みした tc を使用（extractTimeControlFromDialog は使わない）
+    params.tc   = tc;                 // 司令塔側の go 計算にも使用
     params.autoStartEngineMove = true;
 
     start(params);
+
+    // --- 9) ★ここが今回の肝：時計を確実に起動（＆必要なら初手go） ---
+    // prepare()/start() 内で未起動だった場合の保険として、司令塔ユーティリティを呼ぶ
+    if (m_match) {
+        // 必要なら clock を明示的に再セット（配線の取りこぼし対策）
+        if (c.clock && m_match->clock() != c.clock) {
+            m_match->setClock(c.clock);
+        }
+        // 1回で十分：内部で多重起動/多重goを避ける実装（UniqueConnection/フラグ）を想定
+        m_match->startMatchTimingAndMaybeInitialGo();
+    }
 
     delete dlg;
 }

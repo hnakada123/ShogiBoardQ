@@ -2450,3 +2450,15 @@ void MatchCoordinator::appendBreakOffLineAndMark()
     // 二重追記ブロック確定（以降は UI 側からも重複しない）
     markGameOverMoveAppended();
 }
+
+ShogiClock* MatchCoordinator::clock()
+{
+    return m_clock;
+}
+
+const ShogiClock* MatchCoordinator::clock() const
+{
+    return m_clock;
+}
+
+// ...（既存）

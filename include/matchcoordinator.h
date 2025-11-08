@@ -528,6 +528,10 @@ public:
 
     // BreakOff（中断）時の棋譜1行追記＋二重追記ブロック確定
     void appendBreakOffLineAndMark();
+
+    // ShogiClock 取得アクセサ
+    ShogiClock*       clock();       // 非const版
+    const ShogiClock* clock() const; // const版
 };
 
 #endif // MATCHCOORDINATOR_H
