@@ -78,7 +78,6 @@ MainWindow::MainWindow(QWidget *parent)
     , m_lineEditModel2(new UsiCommLogModel(this))
     , m_gameController(nullptr)
     , m_analysisModel(nullptr)
-    , m_anaCoord(nullptr)
 {
     ui->setupUi(this);
 
@@ -150,6 +149,8 @@ void MainWindow::buildGamePanels_()
         bw.parent          = this;
 
         m_branchWiring = new BranchWiringCoordinator(bw);
+
+        // ★ 冪等なのでこの1回で十分
         m_branchWiring->setupBranchView();
         m_branchWiring->setupBranchCandidatesWiring();
     } else {
@@ -167,24 +168,6 @@ void MainWindow::buildGamePanels_()
 
     // 6) central へのタブ追加など表示側の初期化
     initializeCentralGameDisplay();
-
-    // 7) ★安全策（保険）★
-    // setupRecordPane() を単体で呼んだ直後に分岐ビューが必要になるフローが残っていても、
-    // ここで確実に配線が成立するように保証する。
-    if (m_recordPane) {
-        if (!m_branchWiring) {
-            BranchWiringCoordinator::Deps bw;
-            bw.recordPane      = m_recordPane;
-            bw.branchModel     = m_kifuBranchModel;
-            bw.variationEngine = m_varEngine.get();
-            bw.kifuLoader      = m_kifuLoadCoordinator;
-            bw.parent          = this;
-            m_branchWiring = new BranchWiringCoordinator(bw);
-        }
-        // Idempotent 前提（内部は UniqueConnection で多重接続を回避）
-        m_branchWiring->setupBranchView();
-        m_branchWiring->setupBranchCandidatesWiring();
-    }
 }
 
 void MainWindow::restoreWindowAndSync_()
@@ -743,6 +726,19 @@ void MainWindow::chooseAndLoadKifuFile()
         /* branchDisplayPlan   */ m_branchDisplayPlan,
         /* parent              */ this
         );
+
+    // ★ 追加 (1): BranchWiring に loader を後から注入
+    if (m_branchWiring) {
+        m_branchWiring->setKifuLoader(m_kifuLoadCoordinator);
+    }
+
+    // ★ 追加 (2): KifuLoadCoordinator 側が必要時に再配線させるためのトリガ
+    // （KifuLoadCoordinator::setupBranchCandidatesWiring_ シグナル → BranchWiring の配線処理）
+    if (m_branchWiring) {
+        connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::setupBranchCandidatesWiring_,
+                m_branchWiring,       &BranchWiringCoordinator::setupBranchCandidatesWiring,
+                Qt::UniqueConnection);
+    }
 
     // ★ MainWindow 側でやっていた branchNode 配線は setAnalysisTab() に委譲
     //   （内部で disconnect / connect を一貫管理）
@@ -1677,17 +1673,6 @@ void MainWindow::ensureTurnSyncBridge_()
     if (!gc || !tm) return;
 
     TurnSyncBridge::wire(gc, tm, this);
-}
-
-void MainWindow::makeDefaultSaveFileName()
-{
-    defaultSaveFileName = KifuIoService::makeDefaultSaveFileName(
-        m_playMode, m_humanName1, m_humanName2, m_engineName1, m_engineName2,
-        QDateTime::currentDateTime());
-
-    if (defaultSaveFileName == "_vs.kifu") {
-        defaultSaveFileName = "untitled.kifu";
-    }
 }
 
 void MainWindow::saveKifuToFile()

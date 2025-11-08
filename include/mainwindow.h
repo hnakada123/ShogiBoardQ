@@ -34,7 +34,6 @@
 #include "considerationdialog.h"
 #include "tsumeshogisearchdialog.h"
 #include "shogiclock.h"
-#include "kiftosfenconverter.h"
 #include "navigationcontext.h"
 #include "recordpane.h"
 #include "engineanalysistab.h"
@@ -233,7 +232,6 @@ private:
     // --- 入出力 / 設定 ---
     void saveWindowAndBoardSettings();
     void loadWindowSettings();
-    void makeDefaultSaveFileName();
 
     // --- KIF ヘッダ（対局情報）周り ---
     void ensureGameInfoTable();
@@ -243,7 +241,6 @@ private:
 
     // --- ユーティリティ ---
     void setPlayersNamesForMode();
-
     void setCurrentTurn();
     void movePieceImmediately();
     void setGameOverMove(MatchCoordinator::Cause cause, bool loserIsPlayerOne);
@@ -253,16 +250,6 @@ private:
     void broadcastComment(const QString& text, bool asHtml=false);
 
     std::unique_ptr<KifuVariationEngine> m_varEngine;
-
-    // --- 小さなフォーマッタ ---
-    static inline QString fmt_mmss(qint64 ms) {
-        if (ms < 0) ms = 0;
-        QTime t(0,0); return t.addMSecs(static_cast<int>(ms)).toString("mm:ss");
-    }
-    static inline QString fmt_hhmmss(qint64 ms) {
-        if (ms < 0) ms = 0;
-        QTime t(0,0); return t.addMSecs(static_cast<int>(ms)).toString("hh:mm:ss");
-    }
 
 private slots:
     // ========================================================
@@ -338,10 +325,6 @@ private slots:
     void onRecordRowChangedByPresenter(int row, const QString& comment);
 
 private:
-    QVector<int> m_branchVarIds;   // 行→variationId の対応（末尾の「本譜へ戻る」は -1）
-    int m_branchPlyContext = -1;   // どの ply の候補か（必要なら使用）
-
-    // --- MainWindow.h にメンバを追加 ---
     QWidget*     m_central = nullptr;
     QVBoxLayout* m_centralLayout = nullptr;
 
@@ -382,7 +365,7 @@ private:
 
     void ensureTurnSyncBridge_();
 
-    KifuLoadCoordinator *m_kifuLoadCoordinator = nullptr;
+    KifuLoadCoordinator* m_kifuLoadCoordinator = nullptr;
 
 private:
     PositionEditController* m_posEdit = nullptr;
@@ -414,8 +397,6 @@ private:
 
     GameStartCoordinator* m_gameStart = nullptr;
     void ensureGameStartCoordinator_();
-
-    AnalysisCoordinator* m_anaCoord { nullptr };  // 解析司令塔（AC）
 
     GameRecordPresenter* m_recordPresenter {nullptr};
     void ensureRecordPresenter_();
