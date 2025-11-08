@@ -290,7 +290,7 @@ void GameStartCoordinator::prepareInitialPosition(const Ctx& c)
     const int idx = qBound(1, startingPosNumber, 14) - 1;
     const QString startPositionStr = kStartingPositionStr[idx];
 
-    // 3) "startpos" / "sfen ..." → 純 SFEN へ正規化（MainWindow::parseStartPositionToSfen の移植）
+    // 3) "startpos" / "sfen ..." → 純 SFEN へ正規化
     auto toPureSfen = [](QString s) -> QString {
         if (s == QLatin1String("startpos")) {
             // 平手の完全 SFEN へ正規化
@@ -310,10 +310,27 @@ void GameStartCoordinator::prepareInitialPosition(const Ctx& c)
     if (c.startSfenStr)   *c.startSfenStr   = sfen;
     if (c.currentSfenStr) *c.currentSfenStr = sfen; // 同期しておくと後段の利用が楽
 
-    // 5) 棋譜欄に「=== 開始局面 ===」ヘッダを追加（存在時のみ）
+    // 5) 棋譜欄に「=== 開始局面 ===」ヘッダを追加（必要時のみ・重複防止）
     if (c.kifuModel) {
-        c.kifuModel->appendItem(new KifuDisplay(QStringLiteral("=== 開始局面 ==="),
-                                                QStringLiteral("（１手 / 合計）")));
+        const int rows = c.kifuModel->rowCount();
+        bool need = true;
+        if (rows > 0) {
+            const QModelIndex idx0 = c.kifuModel->index(0, 0);
+            const QString head = c.kifuModel->data(idx0, Qt::DisplayRole).toString();
+            if (head == QStringLiteral("=== 開始局面 ==="))
+                need = false;
+        }
+        if (need) {
+            if (rows == 0) {
+                c.kifuModel->appendItem(
+                    new KifuDisplay(QStringLiteral("=== 開始局面 ==="),
+                                    QStringLiteral("（１手 / 合計）")));
+            } else {
+                c.kifuModel->prependItem(
+                    new KifuDisplay(QStringLiteral("=== 開始局面 ==="),
+                                    QStringLiteral("（１手 / 合計）")));
+            }
+        }
     }
 
     // 6) SFEN 履歴に開始 SFEN を積む（存在時のみ）
