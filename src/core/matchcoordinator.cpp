@@ -1048,32 +1048,90 @@ void MatchCoordinator::disarmHumanTimerIfNeeded() {
 
 // ===== USI用 残時間算出 =====
 
+
 MatchCoordinator::GoTimes MatchCoordinator::computeGoTimes_() const {
     GoTimes t;
 
+    const bool hasRemainHook = static_cast<bool>(m_hooks.remainingMsFor);
+    const bool hasIncHook    = static_cast<bool>(m_hooks.incrementMsFor);
+    const bool hasByoHook    = static_cast<bool>(m_hooks.byoyomiMs);
+
     // 残り（ms）
-    const qint64 rawB = m_hooks.remainingMsFor ? qMax<qint64>(0, m_hooks.remainingMsFor(P1)) : 0;
-    const qint64 rawW = m_hooks.remainingMsFor ? qMax<qint64>(0, m_hooks.remainingMsFor(P2)) : 0;
+    const qint64 rawB = hasRemainHook ? qMax<qint64>(0, m_hooks.remainingMsFor(P1)) : 0;
+    const qint64 rawW = hasRemainHook ? qMax<qint64>(0, m_hooks.remainingMsFor(P2)) : 0;
+
+    // デバッグ（入力値）
+    qDebug().noquote()
+        << "[Match] computeGoTimes_: hooks{remain=" << hasRemainHook
+        << ", inc=" << hasIncHook
+        << ", byo=" << hasByoHook
+        << "} rawB=" << rawB << " rawW=" << rawW
+        << " useByoyomi=" << m_tc.useByoyomi;
 
     if (m_tc.useByoyomi) {
         // 秒読み：btime/wtime はメイン残のみ。秒読み“適用中”なら 0 を送る。
         const bool bApplied = m_clock ? m_clock->byoyomi1Applied() : false;
         const bool wApplied = m_clock ? m_clock->byoyomi2Applied() : false;
+
         t.btime = bApplied ? 0 : rawB;
         t.wtime = wApplied ? 0 : rawW;
-        t.byoyomi = (m_hooks.byoyomiMs ? m_hooks.byoyomiMs() : 0);
+        t.byoyomi = (hasByoHook ? m_hooks.byoyomiMs() : 0);
         t.binc = t.winc = 0;
+
+        qDebug().noquote()
+            << "[Match] computeGoTimes_: BYO"
+            << " bApplied=" << bApplied << " wApplied=" << wApplied
+            << " => btime=" << t.btime << " wtime=" << t.wtime
+            << " byoyomi=" << t.byoyomi;
     } else {
-        // フィッシャー：pre-add に正規化（内部はpost-addなので1回だけ引く）
+        // フィッシャー：btime/wtime は残り。inc は m_tc で保持。
         t.btime = rawB;
         t.wtime = rawW;
         t.byoyomi = 0;
         t.binc = m_tc.incMs1;
         t.winc = m_tc.incMs2;
+
+        // （ポリシー）送信直前に増加分を引いてから渡す
         if (t.binc > 0) t.btime = qMax<qint64>(0, t.btime - t.binc);
         if (t.winc > 0) t.wtime = qMax<qint64>(0, t.wtime - t.winc);
+
+        qDebug().noquote()
+            << "[Match] computeGoTimes_: FISCHER"
+            << " => btime=" << t.btime << " wtime=" << t.wtime
+            << " binc=" << t.binc << " winc=" << t.winc;
     }
+
     return t;
+}
+
+void MatchCoordinator::sendGoToCurrentEngine_(const GoTimes& t)
+{
+    Usi* target = (m_cur == P1) ? m_usi1 : m_usi2;
+    if (!target) {
+        qDebug() << "[Match] sendGoToCurrentEngine_: target null";
+        return;
+    }
+
+    const bool useByoyomi = (t.byoyomi > 0 && t.binc == 0 && t.winc == 0);
+
+    qDebug().noquote()
+        << "[Match] sendGoToCurrentEngine_:"
+        << "cur=" << (m_cur==P1?"P1":"P2")
+        << " btime=" << t.btime
+        << " wtime=" << t.wtime
+        << " byoyomi=" << t.byoyomi
+        << " binc=" << t.binc
+        << " winc=" << t.winc
+        << " useByoyomi=" << useByoyomi;
+
+    target->sendGoCommand(
+        clampMsToIntLocal(t.byoyomi),         // byoyomi(ms)
+        QString::number(t.btime),             // btime(ms)
+        QString::number(t.wtime),             // wtime(ms)
+        clampMsToIntLocal(t.binc),            // 先手inc(ms)
+        clampMsToIntLocal(t.winc),            // 後手inc(ms)
+        useByoyomi
+        );
 }
 
 void MatchCoordinator::computeGoTimesForUSI(qint64& outB, qint64& outW) const {
@@ -2266,23 +2324,6 @@ void MatchCoordinator::forceImmediateMove()
             m_hooks.sendStopToEngine(eng);
         }
     }
-}
-
-void MatchCoordinator::sendGoToCurrentEngine_(const GoTimes& t)
-{
-    Usi* target = (m_cur == P1) ? m_usi1 : m_usi2;
-    if (!target) return;
-
-    const bool useByoyomi = (t.byoyomi > 0 && t.binc == 0 && t.winc == 0);
-
-    target->sendGoCommand(
-        clampMsToIntLocal(t.byoyomi),         // byoyomi(ms)
-        QString::number(t.btime),             // btime(ms)
-        QString::number(t.wtime),             // wtime(ms)
-        clampMsToIntLocal(t.binc),            // 先手inc(ms)
-        clampMsToIntLocal(t.winc),            // 後手inc(ms)
-        useByoyomi
-        );
 }
 
 void MatchCoordinator::sendStopAllEngines_()

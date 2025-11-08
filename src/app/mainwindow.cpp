@@ -1215,6 +1215,7 @@ void MainWindow::setupEngineAnalysisTab()
         Qt::UniqueConnection);
 }
 
+// src/app/mainwindow.cpp
 void MainWindow::initMatchCoordinator()
 {
     // 依存が揃っていない場合は何もしない
@@ -1222,6 +1223,9 @@ void MainWindow::initMatchCoordinator()
 
     // まず時計を用意（nullでも可だが、あれば渡す）
     ensureClockReady_();
+
+    using std::placeholders::_1;
+    using std::placeholders::_2;
 
     // --- MatchCoordinator::Deps を構築（UI hooks は従来どおりここで設定） ---
     MatchCoordinator::Deps d;
@@ -1238,14 +1242,19 @@ void MainWindow::initMatchCoordinator()
     d.think2 = m_modelThinking2;
 
     // ---- ここは「コメントアウト」せず、関数バインドで割り当て ----
-    d.hooks.appendEvalP1     = std::bind(&MainWindow::requestRedrawEngine1Eval_, this);
-    d.hooks.appendEvalP2     = std::bind(&MainWindow::requestRedrawEngine2Eval_, this); 
-    d.hooks.sendGoToEngine   = std::bind(&MatchCoordinator::sendGoToEngine,   m_match, _1, _2);
-    d.hooks.sendStopToEngine = std::bind(&MatchCoordinator::sendStopToEngine, m_match, _1);
-    d.hooks.sendRawToEngine  = std::bind(&MatchCoordinator::sendRawToEngine,  m_match, _1, _2);
-    d.hooks.initializeNewGame= std::bind(&MainWindow::initializeNewGame_, this, _1);
+    d.hooks.appendEvalP1      = std::bind(&MainWindow::requestRedrawEngine1Eval_, this);
+    d.hooks.appendEvalP2      = std::bind(&MainWindow::requestRedrawEngine2Eval_, this);
+    d.hooks.sendGoToEngine    = std::bind(&MatchCoordinator::sendGoToEngine,   m_match, _1, _2);
+    d.hooks.sendStopToEngine  = std::bind(&MatchCoordinator::sendStopToEngine, m_match, _1);
+    d.hooks.sendRawToEngine   = std::bind(&MatchCoordinator::sendRawToEngine,  m_match, _1, _2);
+    d.hooks.initializeNewGame = std::bind(&MainWindow::initializeNewGame_, this, _1);
     d.hooks.showMoveHighlights= std::bind(&MainWindow::showMoveHighlights_, this, _1, _2);
-    d.hooks.appendKifuLine   = std::bind(&MainWindow::appendKifuLineHook_, this, _1, _2);
+    d.hooks.appendKifuLine    = std::bind(&MainWindow::appendKifuLineHook_, this, _1, _2);
+
+    // ★★ 追加：時計から「残り/増加/秒読み」を司令塔へ提供するフックを配線
+    d.hooks.remainingMsFor = std::bind(&MainWindow::getRemainingMsFor_, this, _1);
+    d.hooks.incrementMsFor = std::bind(&MainWindow::getIncrementMsFor_, this, _1);
+    d.hooks.byoyomiMs      = std::bind(&MainWindow::getByoyomiMs_, this);
 
     // --- GameStartCoordinator の確保（1 回だけ） ---
     if (!m_gameStartCoordinator) {
@@ -1304,7 +1313,19 @@ void MainWindow::initMatchCoordinator()
                 this, &MainWindow::onPlayer1TimeOut, Qt::UniqueConnection);
         connect(m_shogiClock, &ShogiClock::player2TimeOut,
                 this, &MainWindow::onPlayer2TimeOut, Qt::UniqueConnection);
+        connect(m_shogiClock, &ShogiClock::resignationTriggered,
+                this, &MainWindow::onResignationTriggered, Qt::UniqueConnection);
     }
+
+    // 盤クリックの配線
+    connectBoardClicks_();
+
+    // 人間操作 → 合法判定＆適用の配線
+    connectMoveRequested_();
+
+    // 既定モード（必要に応じて開始時に上書き）
+    if (m_boardController)
+        m_boardController->setMode(BoardInteractionController::Mode::HumanVsHuman);
 }
 
 void MainWindow::ensureClockReady_()
@@ -1809,8 +1830,51 @@ void MainWindow::onPreStartCleanupRequested_()
 
 void MainWindow::onApplyTimeControlRequested_(const GameStartCoordinator::TimeControl& tc)
 {
+    qDebug().noquote()
+    << "[MW] onApplyTimeControlRequested_:"
+    << " enabled=" << tc.enabled
+    << " P1{base=" << tc.p1.baseMs << " byoyomi=" << tc.p1.byoyomiMs << " inc=" << tc.p1.incrementMs << "}"
+    << " P2{base=" << tc.p2.baseMs << " byoyomi=" << tc.p2.byoyomiMs << " inc=" << tc.p2.incrementMs << "}";
+
+    // 1) まず時計に適用
     TimeControlUtil::applyToClock(m_shogiClock, tc, m_startSfenStr, m_currentSfenStr);
-    if (m_shogiView) m_shogiView->update(); // 任意
+
+    // 2) 司令塔へも必ず反映（これが無いと computeGoTimes_ が byoyomi を使いません）
+    if (m_match) {
+        const bool useByoyomi = (tc.p1.byoyomiMs > 0) || (tc.p2.byoyomiMs > 0);
+
+        // byoyomi を使う場合は inc は無視されます（司令塔側ロジックに合わせる）
+        const qint64 byo1 = tc.p1.byoyomiMs;
+        const qint64 byo2 = tc.p2.byoyomiMs;
+        const qint64 inc1 = tc.p1.incrementMs;
+        const qint64 inc2 = tc.p2.incrementMs;
+
+        // 負け扱い（秒読みのみ運用でも true 推奨）
+        const bool loseOnTimeout = true;
+
+        qDebug().noquote()
+            << "[MW] setTimeControlConfig to MatchCoordinator:"
+            << " useByoyomi=" << useByoyomi
+            << " byo1=" << byo1 << " byo2=" << byo2
+            << " inc1=" << inc1 << " inc2=" << inc2
+            << " loseOnTimeout=" << loseOnTimeout;
+
+        m_match->setTimeControlConfig(useByoyomi, byo1, byo2, inc1, inc2, loseOnTimeout);
+        // 反映直後に現在の go 用数値を再計算しておくと安全
+        m_match->refreshGoTimes();
+    }
+
+    // 3) 表示更新
+    if (m_shogiClock) {
+        qDebug() << "[MW] clock after apply:"
+                 << "P1=" << m_shogiClock->getPlayer1TimeIntMs()
+                 << "P2=" << m_shogiClock->getPlayer2TimeIntMs()
+                 << "byo=" << m_shogiClock->getCommonByoyomiMs()
+                 << "binc=" << m_shogiClock->getBincMs()
+                 << "winc=" << m_shogiClock->getWincMs();
+        m_shogiClock->updateClock();
+    }
+    if (m_shogiView) m_shogiView->update();
 }
 
 void MainWindow::ensureRecordPresenter_()
@@ -1900,4 +1964,46 @@ void MainWindow::onFlowError_(const QString& msg)
 {
     // 既存のエラー表示に委譲（UI 専用）
     displayErrorMessage(msg);
+}
+
+void MainWindow::onResignationTriggered()
+{
+    // 既存の投了処理に委譲（m_matchの有無は中で判定）
+    handleResignation();
+}
+
+// ★ まるごと置き換え
+qint64 MainWindow::getRemainingMsFor_(MatchCoordinator::Player p) const
+{
+    if (!m_shogiClock) {
+        qDebug() << "[MW] getRemainingMsFor_: clock=null";
+        return 0;
+    }
+    const qint64 p1 = m_shogiClock->getPlayer1TimeIntMs();
+    const qint64 p2 = m_shogiClock->getPlayer2TimeIntMs();
+    qDebug() << "[MW] getRemainingMsFor_: P1=" << p1 << " P2=" << p2
+             << " req=" << (p==MatchCoordinator::P1?"P1":"P2");
+    return (p == MatchCoordinator::P1) ? p1 : p2;
+}
+
+// ★ まるごと置き換え
+qint64 MainWindow::getIncrementMsFor_(MatchCoordinator::Player p) const
+{
+    if (!m_shogiClock) {
+        qDebug() << "[MW] getIncrementMsFor_: clock=null";
+        return 0;
+    }
+    const qint64 inc1 = m_shogiClock->getBincMs();
+    const qint64 inc2 = m_shogiClock->getWincMs();
+    qDebug() << "[MW] getIncrementMsFor_: binc=" << inc1 << " winc=" << inc2
+             << " req=" << (p==MatchCoordinator::P1?"P1":"P2");
+    return (p == MatchCoordinator::P1) ? inc1 : inc2;
+}
+
+// ★ まるごと置き換え
+qint64 MainWindow::getByoyomiMs_() const
+{
+    const qint64 byo = m_shogiClock ? m_shogiClock->getCommonByoyomiMs() : 0;
+    qDebug() << "[MW] getByoyomiMs_: ms=" << byo;
+    return byo;
 }

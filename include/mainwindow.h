@@ -416,6 +416,13 @@ private:
     TimeDisplayPresenter* m_timePresenter = nullptr;
 
     AnalysisTabWiring* m_analysisWiring = nullptr;
+
+    qint64 getRemainingMsFor_(MatchCoordinator::Player p) const;
+    qint64 getIncrementMsFor_(MatchCoordinator::Player p) const;
+    qint64 getByoyomiMs_() const;
+
+private slots:
+    void onResignationTriggered();
 };
 
 #endif // MAINWINDOW_H

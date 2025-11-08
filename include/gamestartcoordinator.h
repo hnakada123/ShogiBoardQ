@@ -188,6 +188,9 @@ public:
     static void applyResumePositionIfAny(ShogiGameController* gc,
                                          ShogiView* view,
                                          const QString& resumeSfen);
+
+private:
+    TimeControl buildTimeControlFromDialog_(QDialog* startDlg) const;
 };
 
 Q_DECLARE_METATYPE(GameStartCoordinator::TimeControl)
