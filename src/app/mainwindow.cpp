@@ -457,50 +457,20 @@ void MainWindow::startNewShogiGame(QString& startSfenStr)
         m_scoreCp.clear();
     }
 
-    // --- 司令塔を用意 ---
+    // 司令塔が未用意なら作る
     if (!m_match) {
-        initMatchCoordinator();    // m_match を生成・配線
+        initMatchCoordinator();
     }
-    ensureGameStartCoordinator_(); // m_gameStart を用意
-    if (!m_match || !m_gameStart) return;
+    if (!m_match) return;
 
-    // --- まず従来どおり UI 側で盤を即時初期化→描画（★ここが今回の表示不具合の核心） ---
-    // ※ 将来的には司令塔の UI フックへ移すが、現時点ではここで確実に盤を見せる
-    initializeNewGame(startSfenStr);
-
-    if (m_shogiView && m_gameController && m_gameController->board()) {
-        m_shogiView->applyBoardAndRender(m_gameController->board());
-        m_shogiView->configureFixedSizing();
-    }
-
-    // 対局者名・エンジン名も現時点では UI 層で更新しておく
-    setPlayersNamesForMode();
-    setEngineNamesBasedOnMode();
-
-    // --- 以降は司令塔へ ---
-    GameStartCoordinator::Request req;
-    req.mode        = static_cast<int>(m_playMode);
-    req.startSfen   = startSfenStr;
-    req.bottomIsP1  = m_bottomIsP1;
-    req.startDialog = m_startGameDialog;
-    req.clock       = m_shogiClock;
-    m_gameStart->prepare(req);
-
-    MatchCoordinator::StartOptions opt =
-        m_match->buildStartOptions(
-            m_playMode,
-            startSfenStr,
-            m_sfenRecord,
-            m_startGameDialog);
-
-    m_match->ensureHumanAtBottomIfApplicable(m_startGameDialog, m_bottomIsP1);
-
-    GameStartCoordinator::StartParams p;
-    p.opt                 = opt;
-    p.autoStartEngineMove = true;
-    m_gameStart->start(p);
-
-    // （将来）司令塔の UI フックが整ったら、上の initializeNewGame/描画/名前更新は外します
+    // ★ ここで一括：開始に必要な前処理～初手goまでを司令塔に丸投げ
+    m_match->prepareAndStartGame(
+        m_playMode,
+        startSfenStr,
+        m_sfenRecord,
+        m_startGameDialog,
+        m_bottomIsP1
+        );
 }
 
 // 棋譜欄の下の矢印ボタンを無効にする。
@@ -972,16 +942,14 @@ void MainWindow::movePieceImmediately()
     }
 }
 
-// 先手が時間切れ → 先手敗北
 void MainWindow::onPlayer1TimeOut()
 {
-    if (m_match) m_match->notifyTimeout(MatchCoordinator::P1);
+    if (m_match) m_match->handlePlayerTimeOut(1); // 1 = 先手
 }
 
-// 後手が時間切れ → 後手敗北
 void MainWindow::onPlayer2TimeOut()
 {
-    if (m_match) m_match->notifyTimeout(MatchCoordinator::P2);
+    if (m_match) m_match->handlePlayerTimeOut(2); // 2 = 後手
 }
 
 void MainWindow::setGameOverMove(GameOverCause cause, bool loserIsPlayerOne)
@@ -1888,8 +1856,23 @@ void MainWindow::requestRedrawEngine2Eval_()
 
 void MainWindow::initializeNewGame_(const QString& s)
 {
-    QString s2 = s;
-    startNewShogiGame(s2);
+    // --- 司令塔からのコールバック：UI側の初期化のみ行う ---
+    QString startSfenStr = s;              // initializeNewGame(QString&) が参照で受けるため可変にコピー
+
+    // 盤モデルの初期化（従来の UI 側初期化）
+    initializeNewGame(startSfenStr);
+
+    // 盤の再描画・サイズ調整
+    if (m_shogiView && m_gameController && m_gameController->board()) {
+        m_shogiView->applyBoardAndRender(m_gameController->board());
+        m_shogiView->configureFixedSizing();
+    }
+
+    // 表示名の更新（必要に応じて）
+    setPlayersNamesForMode();
+    setEngineNamesBasedOnMode();
+
+    // ※ ここで startNewShogiGame(...) を呼び返すと再帰するので禁止！
 }
 
 void MainWindow::showMoveHighlights_(const QPoint& from, const QPoint& to)
