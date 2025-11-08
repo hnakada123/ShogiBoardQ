@@ -370,13 +370,25 @@ void MainWindow::initializeNewGame(QString& startSfenStr)
 // 対局モードに応じて将棋盤上部に表示される対局者名をセットする。
 void MainWindow::setPlayersNamesForMode()
 {
-    if (!m_gameStart || !m_shogiView) return;
-    m_gameStart->applyPlayersNamesForMode(
-        m_shogiView,
-        m_playMode,
-        m_humanName1, m_humanName2,
-        m_engineName1, m_engineName2
-        );
+    // ShogiView が未生成なら何もしない
+    if (!m_shogiView) return;
+
+    // GameStartCoordinator がある（= 対局開始後の通常経路）の場合は従来どおり適用
+    if (m_gameStart) {
+        m_gameStart->applyPlayersNamesForMode(
+            m_shogiView,
+            m_playMode,
+            m_humanName1, m_humanName2,
+            m_engineName1, m_engineName2
+            );
+        return;
+    }
+
+    // ★ 起動直後（m_gameStart が未設定）のデフォルト表示を補う
+    //   「▲/▽」マークは ShogiView 側の refreshNameLabels() で自動付与されるため、
+    //   ここでは素の名前（先手/後手）のみを渡します。
+    m_shogiView->setBlackPlayerName(tr("先手"));
+    m_shogiView->setWhitePlayerName(tr("後手"));
 }
 
 // 駒台を含む将棋盤全体の画像をクリップボードにコピーする。
