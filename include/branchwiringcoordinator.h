@@ -30,6 +30,9 @@ public:
     // MainWindow::setupBranchCandidatesWiring_ 相当
     void setupBranchCandidatesWiring();
 
+    // ★ 追加：後から Loader を差し替えるための軽量 setter
+    void setKifuLoader(KifuLoadCoordinator* loader);
+
 public slots:
     // MainWindow::onRecordPaneBranchActivated_ 相当
     void onRecordPaneBranchActivated(const QModelIndex& index);

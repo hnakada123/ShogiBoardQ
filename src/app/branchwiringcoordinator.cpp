@@ -95,3 +95,8 @@ void BranchWiringCoordinator::applyResolvedRowAndSelect_(int row, int selPly)
     // KifuLoadCoordinator へ委譲（局面/棋譜/ビューの同期を一括で）
     m_loader->applyResolvedRowAndSelect(row, selPly);
 }
+
+void BranchWiringCoordinator::setKifuLoader(KifuLoadCoordinator* loader)
+{
+    m_loader = loader;
+}
