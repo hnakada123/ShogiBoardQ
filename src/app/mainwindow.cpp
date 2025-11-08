@@ -20,12 +20,8 @@
 #include "timedisplaypresenter.h"
 #include "tsumesearchflowcontroller.h"
 #include "ui_mainwindow.h"
-#include "engineregistrationdialog.h"
-#include "versiondialog.h"
-#include "usi.h"
 #include "shogiclock.h"
 #include "apptooltipfilter.h"
-#include "enginesettingsconstants.h"
 #include "navigationcontroller.h"
 #include "boardimageexporter.h"
 #include "engineinfowidget.h"
@@ -54,10 +50,14 @@
 #include "sfenutils.h"
 #include "turnsyncbridge.h"
 #include "promotionflow.h"
+#include "kifusavecoordinator.h"
+#include "evalgraphpresenter.h"
+#include "settingsservice.h"
+#include "aboutcoordinator.h"
+#include "enginesettingscoordinator.h"
 
 using KifuIoService::makeDefaultSaveFileName;
 using KifuIoService::writeKifuFile;
-using namespace EngineSettingsConstants;
 using GameOverCause = MatchCoordinator::Cause;
 using std::placeholders::_1;
 using std::placeholders::_2;
@@ -189,7 +189,6 @@ void MainWindow::buildGamePanels_()
 void MainWindow::restoreWindowAndSync_()
 {
     loadWindowSettings();
-    // ensureTurnSyncBridge_(); // ← initializeComponents() 内で済ませる方針のためここでは呼ばない
 }
 
 void MainWindow::connectAllActions_()
@@ -522,30 +521,14 @@ void MainWindow::handleResignation()
     if (m_match) m_match->handleResign();
 }
 
-// エンジン1の評価値グラフの再描画を行う。
 void MainWindow::redrawEngine1EvaluationGraph()
 {
-    // ★ 司令塔から主エンジンを取得（m_usi1 は使わない）
-    Usi* eng = (m_match ? m_match->primaryEngine() : nullptr);
-
-    // エンジンが未初期化でも落ちないようにガード
-    const int scoreCp = eng ? eng->lastScoreCp() : 0;
-
-    // 記録も更新（整合のためエンジン未初期化時は 0 を入れておく）
-    m_scoreCp.append(scoreCp);
+    EvalGraphPresenter::appendPrimaryScore(m_scoreCp, m_match);
 }
 
-// エンジン2の評価値グラフの再描画を行う。
 void MainWindow::redrawEngine2EvaluationGraph()
 {
-    // ★ 司令塔から 2nd エンジンを取得（m_usi2 は使わない）
-    Usi* eng2 = (m_match ? m_match->secondaryEngine() : nullptr);
-
-    // エンジン未初期化でも落ちないように 0 を既定値に
-    const int scoreCp = eng2 ? eng2->lastScoreCp() : 0;
-
-    // 既存仕様に合わせてそのまま記録（未初期化時は 0 を入れる）
-    m_scoreCp.append(scoreCp);
+    EvalGraphPresenter::appendSecondaryScore(m_scoreCp, m_match);
 }
 
 // 将棋クロックの手番を設定する。
@@ -563,24 +546,19 @@ void MainWindow::updateTurnStatus(int currentPlayer)
     m_shogiView->setActiveSide(currentPlayer == 1);
 }
 
-// GUIのバージョン情報を表示する。
 void MainWindow::displayVersionInformation()
 {
-    // バージョン情報ダイアログを作成する。
-    VersionDialog dialog(this);
-
-    // バージョン情報ダイアログを実行する。
-    dialog.exec();
+    AboutCoordinator::showVersionDialog(this);
 }
 
-// エンジン設定のダイアログを起動する。
+void MainWindow::openWebsiteInExternalBrowser()
+{
+    AboutCoordinator::openProjectWebsite();
+}
+
 void MainWindow::displayEngineSettingsDialog()
 {
-    // エンジン設定ダイアログを作成する。
-    EngineRegistrationDialog dialog(this);
-
-    // エンジン設定ダイアログを実行する。
-    dialog.exec();
+    EngineSettingsCoordinator::openDialog(this);
 }
 
 // 成る・不成の選択ダイアログを起動する。
@@ -589,12 +567,6 @@ void MainWindow::displayPromotionDialog()
     if (!m_gameController) return;
     const bool promote = PromotionFlow::askPromote(this);
     m_gameController->setPromote(promote);
-}
-
-// Webサイトをブラウザで表示する。
-void MainWindow::openWebsiteInExternalBrowser()
-{
-    QDesktopServices::openUrl(QUrl("https://github.com/hnakada123/ShogiBoardQ"));
 }
 
 // 検討ダイアログを表示する。
@@ -849,57 +821,22 @@ void MainWindow::updateGameRecord(const QString& elapsedTime)
     m_lastMove.clear();
 }
 
-// 設定ファイルにGUI全体のウィンドウサイズを書き込む。
-// また、将棋盤のマスサイズも書き込む。
-void MainWindow::saveWindowAndBoardSettings()
-{
-    // 実行パスをプログラムと同じディレクトリに設定する。
-    QDir::setCurrent(QApplication::applicationDirPath());
-
-    // 書き込む設定ファイルの指定
-    QSettings settings(SettingsFileName, QSettings::IniFormat);
-
-    // 書き込むグループをSizeRelatedに指定
-    settings.beginGroup("SizeRelated");
-
-    // ウィンドウサイズを書き込む。
-    settings.setValue("mainWindowSize", this->size());
-
-    // 将棋盤のマスサイズ
-    int squareSize = m_shogiView->squareSize();
-
-    // 将棋盤のマスサイズを書き込む。
-    settings.setValue("squareSize", squareSize);
-
-    // グループの終了
-    settings.endGroup();
-}
-
-// ウィンドウを閉じる処理を行う。
-void MainWindow::closeEvent(QCloseEvent* event)
-{
-    // 設定ファイルにGUI全体のウィンドウサイズを書き込む。
-    // また、将棋盤のマスサイズも書き込む。
-    saveWindowAndBoardSettings();
-
-    // ウィンドウを閉じる。
-    QMainWindow::closeEvent(event);
-}
-
-// GUI全体のウィンドウサイズを読み込む。
-// 前回起動したウィンドウサイズに設定する。
 void MainWindow::loadWindowSettings()
 {
-    // 実行パスをShogiBoardQと同じディレクトリに設定する。
-    QDir::setCurrent(QApplication::applicationDirPath());
-
-    // 設定ファイルShogiBoardQ.iniを指定する。
-    QSettings settings(SettingsFileName, QSettings::IniFormat);
-
-    // メインウィンドウのリサイズを行う。  
-    const QSize sz = settings.value("SizeRelated/mainWindowSize", QSize(1100, 720)).toSize();
-    if (sz.isValid() && sz.width() > 100 && sz.height() > 100) resize(sz);
+    SettingsService::loadWindowSize(this);
 }
+
+void MainWindow::saveWindowAndBoardSettings()
+{
+    SettingsService::saveWindowAndBoard(this, m_shogiView);
+}
+
+void MainWindow::closeEvent(QCloseEvent* e)
+{
+    saveWindowAndBoardSettings();
+    QMainWindow::closeEvent(e);
+}
+
 
 void MainWindow::onReverseTriggered()
 {
@@ -1794,33 +1731,22 @@ void MainWindow::makeDefaultSaveFileName()
 
 void MainWindow::saveKifuToFile()
 {
-    QDir::setCurrent(QDir::homePath());
-
-    makeDefaultSaveFileName();
-    if (defaultSaveFileName == "_vs.kifu") defaultSaveFileName = "untitled.kifu";
-
-    kifuSaveFileName = QFileDialog::getSaveFileName(
-        this, tr("Save File"), defaultSaveFileName, tr("Kif(*.kifu)"));
-
-    if (!kifuSaveFileName.isEmpty()) {
-        QString err;
-        if (!writeKifuFile(kifuSaveFileName, m_kifuDataList, &err)) {
-            displayErrorMessage(tr("An error occurred in MainWindow::saveKifuFile. %1").arg(err));
-        }
-    }
-    QDir::setCurrent(QApplication::applicationDirPath());
+    QString err;
+    const QString saved = KifuSaveCoordinator::saveViaDialog(
+        this, m_kifuDataList, m_playMode,
+        m_humanName1, m_humanName2, m_engineName1, m_engineName2, &err);
+    if (saved.isEmpty() && !err.isEmpty())
+        displayErrorMessage(tr("An error occurred in saveKifuToFile. %1").arg(err));
+    else if (!saved.isEmpty())
+        kifuSaveFileName = saved;
 }
 
 void MainWindow::overwriteKifuFile()
 {
-    if (kifuSaveFileName.isEmpty()) {
-        saveKifuToFile();
-        return;
-    }
+    if (kifuSaveFileName.isEmpty()) { saveKifuToFile(); return; }
     QString err;
-    if (!writeKifuFile(kifuSaveFileName, m_kifuDataList, &err)) {
-        displayErrorMessage(tr("An error occurred in MainWindow::overWriteKifuFile. %1").arg(err));
-    }
+    if (!KifuSaveCoordinator::overwriteExisting(kifuSaveFileName, m_kifuDataList, &err))
+        displayErrorMessage(tr("An error occurred in overwriteKifuFile. %1").arg(err));
 }
 
 void MainWindow::ensurePositionEditController_()
