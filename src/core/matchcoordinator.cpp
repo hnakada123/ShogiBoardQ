@@ -8,8 +8,8 @@
 #include "shogiboard.h"
 #include "boardinteractioncontroller.h"
 #include "startgamedialog.h"
+#include "enginesettingsconstants.h"
 #include "kifurecordlistmodel.h"
-#include <limits>
 
 #include <limits>
 #include <QObject>
@@ -20,6 +20,7 @@
 #include <QTimer>
 #include <QMetaObject>
 #include <QMetaMethod>
+#include <QSettings>
 
 static inline int clampMsToIntLocal(qint64 v) {
     if (v > std::numeric_limits<int>::max()) return std::numeric_limits<int>::max();
@@ -58,7 +59,6 @@ void MatchCoordinator::updateUsiPtrs(Usi* e1, Usi* e2) {
     m_usi2 = e2;
 }
 
-// MatchCoordinator.cpp
 void MatchCoordinator::startNewGame(const QString& sfenStart) {
     // 既存
     if (m_hooks.initializeNewGame) m_hooks.initializeNewGame(sfenStart);
@@ -94,7 +94,7 @@ void MatchCoordinator::handleResign() {
 
     // 投了は「現在手番側」が行う：GCの現在手番から判定
     info.loser = (m_gc && m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2;
-    const Player winner = (m_cur == P1 ? P2 : P1);
+    //const Player winner = (m_cur == P1 ? P2 : P1);
 
     // エンジンへの最終通知（HvE / EvE の両方に対応）
     if (m_hooks.sendRawToEngine) {
@@ -1971,16 +1971,16 @@ bool MatchCoordinator::tryRemoveLastItems_(QObject* model, int n) {
     return ok;
 }
 
-MatchCoordinator::StartOptions
-MatchCoordinator::buildStartOptions(PlayMode mode,
-                                    const QString& startSfenStr,
-                                    const QStringList* sfenRecord,
-                                    const StartGameDialog* dlg) const
+MatchCoordinator::StartOptions MatchCoordinator::buildStartOptions(
+    PlayMode mode,
+    const QString& startSfenStr,
+    const QStringList* sfenRecord,
+    const StartGameDialog* dlg) const
 {
     StartOptions opt;
     opt.mode = mode;
 
-    // --- 開始SFEN（空なら司令塔側で startpos を使用／従来互換）
+    // --- 開始SFEN（空なら既定=司令塔側で startpos 扱い）
     if (!startSfenStr.isEmpty()) {
         opt.sfenStart = startSfenStr;
     } else if (sfenRecord && !sfenRecord->isEmpty()) {
@@ -1989,34 +1989,75 @@ MatchCoordinator::buildStartOptions(PlayMode mode,
         opt.sfenStart.clear();
     }
 
-    // --- どちらがエンジン座席か（PlayMode から決定：従来ロジック踏襲）
+    // --- エンジン座席（PlayMode から）
     const bool engineIsP1 =
         (mode == PlayMode::EvenEngineVsHuman) ||
         (mode == PlayMode::HandicapEngineVsHuman);
     opt.engineIsP1 = engineIsP1;
     opt.engineIsP2 = !engineIsP1;
 
-    // --- 対局ダイアログの選択を反映（dlg==nullptr でも安全に）
-    if (!dlg) {
-        qWarning() << "[MatchCoordinator] buildStartOptions: dlg is null. Engine selections not applied.";
+    // --- 対局ダイアログあり：そのまま採用
+    if (dlg) {
+        const auto engines = dlg->getEngineList();
+
+        const int idx1 = dlg->engineNumber1();
+        if (idx1 >= 0 && idx1 < engines.size()) {
+            opt.engineName1 = dlg->engineName1();
+            opt.enginePath1 = engines.at(idx1).path;
+        }
+
+        const int idx2 = dlg->engineNumber2();
+        if (idx2 >= 0 && idx2 < engines.size()) {
+            opt.engineName2 = dlg->engineName2();
+            opt.enginePath2 = engines.at(idx2).path;
+        }
         return opt;
     }
 
-    const auto engines = dlg->getEngineList();
+    // --- 対局ダイアログなし：INI から直近選択を復元（StartGameDialog と同じ仕様）
+    {
+        using namespace EngineSettingsConstants;
 
-    const int idx1 = dlg->engineNumber1();
-    if (idx1 >= 0 && idx1 < engines.size()) {
-        opt.engineName1 = dlg->engineName1();
-        opt.enginePath1 = engines.at(idx1).path;
+        QSettings settings(SettingsFileName, QSettings::IniFormat);
+
+        // 1) エンジン一覧（name/path）の読み出し
+        struct Eng { QString name; QString path; };
+        QVector<Eng> list;
+        int count = settings.beginReadArray("Engines");
+        for (int i = 0; i < count; ++i) {
+            settings.setArrayIndex(i);
+            Eng e;
+            e.name = settings.value("name").toString();
+            e.path = settings.value("path").toString();
+            list.push_back(e);
+        }
+        settings.endArray();
+
+        auto pathForName = [&](const QString& nm) -> QString {
+            if (nm.isEmpty()) return {};
+            for (const auto& e : list) {
+                if (e.name == nm) return e.path;
+            }
+            return {};
+        };
+
+        // 2) 直近の対局設定（GameSettings）からエンジン名を取得
+        settings.beginGroup("GameSettings");
+        const QString name1 = settings.value("engineName1").toString();
+        const QString name2 = settings.value("engineName2").toString();
+        settings.endGroup();
+
+        if (!name1.isEmpty()) {
+            opt.engineName1 = name1;
+            opt.enginePath1 = pathForName(name1);
+        }
+        if (!name2.isEmpty()) {
+            opt.engineName2 = name2;
+            opt.enginePath2 = pathForName(name2);
+        }
+        // パスが空でもここでは許容（initializeAndStartEngineCommunication 内で失敗は通知）
+        return opt;
     }
-
-    const int idx2 = dlg->engineNumber2();
-    if (idx2 >= 0 && idx2 < engines.size()) {
-        opt.engineName2 = dlg->engineName2();
-        opt.enginePath2 = engines.at(idx2).path;
-    }
-
-    return opt;
 }
 
 void MatchCoordinator::ensureHumanAtBottomIfApplicable(const StartGameDialog* dlg, bool bottomIsP1)
