@@ -1050,52 +1050,101 @@ bool Usi::isResignMove() const
 // 「局面探索数」「ハッシュ使用率」「思考タブ」欄を更新する。
 void Usi::infoReceived(QString& line)
 {
-    if (m_shutdownState != ShutdownState::Running) return; // NEW
+    // 停止中は何もしない（従来互換）
+    if (m_shutdownState != ShutdownState::Running) return;
 
-    // エンジンによる現在の評価値
-    // 初期化する。
-    int scoreInt = 0;
+    // ──────────────────────────────────────────────────────────────
+    // バッファリング＆合成反映（最小改修：QObjectの動的プロパティを利用、ヘッダ変更なし）
+    //   - "_infoBuf"        : QVariantList に QString を詰める
+    //   - "_infoScheduled"  : bool フラグ（flush 予約済みか）
+    // 50ms ごとにまとめて UI 反映し、イベントループ占有を抑える
+    // ──────────────────────────────────────────────────────────────
 
-    // エンジンは、infoコマンドによって思考中の情報を返す。
-    // info行を解析するクラス
-    ShogiEngineInfoParser* info = new ShogiEngineInfoParser;
-
-    // 前回の指し手のマスの筋、段をセットする。
-    info->setPreviousFileTo(m_previousFileTo);
-    info->setPreviousRankTo(m_previousRankTo);
-
-    // 将棋エンジンから受信したinfo行の読み筋を日本語に変換する。info行であることは確約されている。
-    // 例．
-    // 「7g7h 2f2e 8e8f 2e2d 2c2d 8i7g 8f8g+」
-    // 「△７八馬(77)▲２五歩(26)△８六歩(85)▲２四歩(25)△同歩(23)▲７七桂(89)△８七歩成(86)」
-    info->parseEngineOutputAndUpdateState(line, m_gameController, m_clonedBoardData, m_isPonderEnabled);
-
-    // GUIの「探索手」欄を更新する。
-    updateSearchedHand(info);
-
-    // GUIの「深さ」欄を更新する。
-    updateDepth(info);
-
-    // GUIの「ノード数」欄を更新する。
-    updateNodes(info);
-
-    // GUIの「局面探索数」欄を更新する。
-    updateNps(info);
-
-    // GUIの「ハッシュ使用率」欄を更新する。
-    updateHashfull(info);
-
-    // 現在の評価値（scorecp）が存在するかどうかに基づき、詰み手数（scoremate）と最終評価値（lastScore）を更新する。
-    updateEvaluationInfo(info, scoreInt);
-
-    // 「時間」「深さ」「ノード数」「評価値」「読み筋」のうち、何かしらの情報が更新された場合
-    if (!info->time().isEmpty() || !info->depth().isEmpty() || !info->nodes().isEmpty() || !info->score().isEmpty() || !info->pvKanjiStr().isEmpty()) {
-        // GUIの思考タブの表に「時間」「深さ」「ノード数」「評価値」「読み筋」をセットして、思考タブのモデルにinfo情報を追加する。
-        m_modelThinking->prependItem(new ShogiInfoRecord(info->time(), info->depth(), info->nodes(), info->score(), info->pvKanjiStr()));
+    // 1) 行をバッファに積む
+    {
+        QVariantList buf = this->property("_infoBuf").toList();
+        buf.append(line); // コピーして保持
+        this->setProperty("_infoBuf", buf);
     }
 
-    // info行を解析するクラスのインスタンスを削除する。
-    delete info;
+    // 2) まだ flush が予約されていなければ予約する（50ms後に実行）
+    if (!this->property("_infoScheduled").toBool()) {
+        this->setProperty("_infoScheduled", true);
+
+        // この Usi インスタンスをコンテキストに、50ms 後まとめて処理
+        QTimer::singleShot(50, this, [this]() {
+            // 予約フラグを解除
+            this->setProperty("_infoScheduled", false);
+
+            // 状態が既に停止していたら捨てる
+            if (m_shutdownState != ShutdownState::Running) {
+                this->setProperty("_infoBuf", QVariantList());
+                return;
+            }
+
+            // 3) バッファを取り出してクリア（swap 的に）
+            QVariantList batch;
+            {
+                batch = this->property("_infoBuf").toList();
+                this->setProperty("_infoBuf", QVariantList());
+            }
+            if (batch.isEmpty()) return;
+
+            // 4) まとめて処理（元の per-line ロジックをそのままループ内で実行）
+            //    ※ ここで「UI更新を1行ずつ」行っても、readyRead 直列処理よりは
+            //       スライスされるためイベントループが回りやすくなります。
+            for (const QVariant& v : batch) {
+                if (m_shutdownState != ShutdownState::Running) break; // 途中停止安全弁
+                const QString ln = v.toString();
+                if (ln.isEmpty()) continue;
+
+                // ───────────── 以降、従来 infoReceived(line) の中身 ─────────────
+                int scoreInt = 0;
+
+                // info行を解析するクラス
+                ShogiEngineInfoParser* info = new ShogiEngineInfoParser;
+
+                // 前回の指し手の筋・段
+                info->setPreviousFileTo(m_previousFileTo);
+                info->setPreviousRankTo(m_previousRankTo);
+
+                // 読み筋を日本語に変換＋内部状態更新
+                info->parseEngineOutputAndUpdateState(
+                    const_cast<QString&>(ln), // 既存シグネチャ互換のため const_cast
+                    m_gameController,
+                    m_clonedBoardData,
+                    m_isPonderEnabled
+                    );
+
+                // 各種GUI項目の更新
+                updateSearchedHand(info);
+                updateDepth(info);
+                updateNodes(info);
+                updateNps(info);
+                updateHashfull(info);
+
+                // 評価値/詰み手数/最終評価値の更新
+                updateEvaluationInfo(info, scoreInt);
+
+                // 何かしら更新がある場合は思考タブへ追記
+                if (!info->time().isEmpty() || !info->depth().isEmpty() ||
+                    !info->nodes().isEmpty() || !info->score().isEmpty() ||
+                    !info->pvKanjiStr().isEmpty()) {
+                    if (m_modelThinking) {
+                        m_modelThinking->prependItem(
+                            new ShogiInfoRecord(info->time(),
+                                                info->depth(),
+                                                info->nodes(),
+                                                info->score(),
+                                                info->pvKanjiStr()));
+                    }
+                }
+
+                delete info;
+                // ───────────── ここまで従来ロジック ─────────────
+            }
+        });
+    }
 }
 
 void Usi::sendGameOverLoseAndQuitCommands()
@@ -1145,10 +1194,14 @@ void Usi::readFromEngine()
         return;
     }
 
-    while (m_process && m_process->canReadLine()) {
+    // 1回の呼び出しで処理する最大行数（イベントループ占有を避けるための上限）
+    static constexpr int kMaxLinesPerChunk = 64;
+    int processed = 0;
+
+    while (m_process && m_process->canReadLine() && processed < kMaxLinesPerChunk) {
         const QByteArray data = m_process->readLine();
         QString line = QString::fromUtf8(data).trimmed();
-        if (line.isEmpty()) continue;
+        if (line.isEmpty()) { ++processed; continue; }
 
         // 起動直後のみエンジン名を確定（ログ接頭辞に使う）
         if (line.startsWith(QStringLiteral("id name "))) {
@@ -1160,6 +1213,7 @@ void Usi::readFromEngine()
         // ---- 終局/終了後の遮断ロジック ---------------------------------------
         if (m_timeoutDeclared) {
             qDebug().nospace() << logPrefix() << " [drop-after-timeout] " << line;
+            ++processed;
             continue;
         }
         if (m_shutdownState == ShutdownState::IgnoreAllExceptInfoString) {
@@ -1176,10 +1230,12 @@ void Usi::readFromEngine()
             } else {
                 qDebug().nospace() << logPrefix() << " [drop-after-quit] " << line;
             }
+            ++processed;
             continue;
         }
         if (m_shutdownState == ShutdownState::IgnoreAll) {
             qDebug().nospace() << logPrefix() << " [drop-ignore-all] " << line;
+            ++processed;
             continue;
         }
         // ---------------------------------------------------------------------
@@ -1199,6 +1255,7 @@ void Usi::readFromEngine()
         // ───────── 詰将棋の最終結果は最優先で処理 ─────────
         if (line.startsWith(QStringLiteral("checkmate"))) {
             handleCheckmateLine(line);
+            ++processed;
             continue;
         }
 
@@ -1214,6 +1271,13 @@ void Usi::readFromEngine()
         } else if (line.contains(QStringLiteral("usiok"))) {
             m_usiOkSignalReceived = true;
         }
+
+        ++processed;
+    }
+
+    // まだ読み残しがある場合は、イベントループに返してから続きを処理
+    if (m_process && m_process->canReadLine()) {
+        QTimer::singleShot(0, this, &Usi::readFromEngine);
     }
 }
 
@@ -1691,33 +1755,44 @@ void Usi::sendGoCommandByAnalysys(int byoyomiMilliSec)
 // 将棋エンジンからbestmoveを受信するまで待つ。
 bool Usi::waitForBestMove(const int timeoutMilliseconds)
 {
-    // タイマーの作成
-    QElapsedTimer timer;
+    // GUIスレッドを止めない待機方式（msleepを使わない）
+    // - 10msごとのネストイベントループで通常イベント(QTimer/readyReadなど)を回す
+    // - ShogiClock等のタイマ遅延を起こしにくい
 
-    // タイマーを開始する。
-    timer.start();
+    if (m_bestMoveSignalReceived) return true;           // 既に届いていれば即完了
+    if (timeoutMilliseconds <= 0) return false;          // 無効なタイムアウト
 
-    // bestmoveを受信したかどうかのフラグをfalseにする。
     m_bestMoveSignalReceived = false;
 
-    // bestmoveを受信するまで繰り返す。
-    while (!m_bestMoveSignalReceived) {
-        // この関数を呼び出すことで、長い計算やタスクを行っている間でも、アプリケーションのGUIがフリーズすることなく、
-        // ユーザーからの入力を継続的に受け付けることができる。
-        // GUIのメニューが反応しなくなるのを防いでいる。
-        qApp->processEvents();
+    QElapsedTimer timer;
+    timer.start();
 
-        // タイムアウトした時
-        if (timer.elapsed() > timeoutMilliseconds) {
-            // bestmoveを受信しなかった。
+    static constexpr int kSliceMs = 10;                  // 1スライスの長さ
+
+    while (!m_bestMoveSignalReceived) {
+        // タイムアウト判定
+        if (timer.elapsed() >= timeoutMilliseconds) {
+            return false; // bestmoveを受信しなかった
+        }
+        // 停止中は待機を打ち切る（安全弁）
+        if (m_shutdownState != ShutdownState::Running) {
             return false;
         }
 
-        // CPUリソースの過度な使用を防ぐためにスリープ
-        QThread::msleep(10);
+        // 10msだけイベントを回す（readyRead / タイマ / 入力 など）
+        QEventLoop spin;
+        QTimer tick;
+        tick.setSingleShot(true);
+        tick.setInterval(kSliceMs);
+        QObject::connect(&tick, &QTimer::timeout, &spin, &QEventLoop::quit);
+        tick.start();
+
+        // ここで通常イベントが処理され、readyReadStandardOutput → readFromEngine() → bestmove処理
+        // が進む。bestmove受信中でも最大で kSliceMs 程度でループに戻る。
+        spin.exec(QEventLoop::AllEvents);
     }
 
-    // bestmoveを受信した。
+    // bestmoveを受信した
     return true;
 }
 
