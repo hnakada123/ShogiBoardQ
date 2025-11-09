@@ -1156,7 +1156,7 @@ void MainWindow::setupRecordPane()
         m_recordPane = new RecordPane(m_central);
 
         connect(m_recordPane, &RecordPane::mainRowChanged,
-                m_kifuLoadCoordinator, &KifuLoadCoordinator::onMainMoveRowChanged,
+                this, &MainWindow::onRecordPaneMainRowChanged_,
                 Qt::UniqueConnection);
 
         // 旧: setupRecordAndEvaluationLayout() が返していた root の置き換え
@@ -2061,4 +2061,23 @@ qint64 MainWindow::getByoyomiMs_() const
 void MainWindow::showGameOverMessageBox_(const QString& title, const QString& message)
 {
     QMessageBox::information(this, title, message);
+}
+
+// src/app/mainwindow.cpp
+
+void MainWindow::onRecordPaneMainRowChanged_(int row)
+{
+    // KifuLoadCoordinator が用意できていれば正式ルートへ委譲
+    if (m_kifuLoadCoordinator) {
+        m_kifuLoadCoordinator->onMainMoveRowChanged(row);
+        return;
+    }
+
+    // フォールバック：起動直後など Loader 未生成時でも UI が動くように最低限の同期を行う
+    if (row >= 0) {
+        syncBoardAndHighlightsAtRow(row);
+        m_currentSelectedPly = row;
+        m_currentMoveIndex   = row;
+    }
+    enableArrowButtons();
 }
