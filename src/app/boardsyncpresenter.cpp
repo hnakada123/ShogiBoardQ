@@ -100,22 +100,30 @@ void BoardSyncPresenter::syncBoardAndHighlightsAtRow(int ply) const
     // 1) 盤面の適用
     applySfenAtPly(safePly);
 
-    // 2) 最終手のハイライト（ply==0 は初期局面で手なし）
-    if (!m_bic || !m_gameMoves || safePly <= 0) return;
+    // 2) ハイライト
+    if (!m_bic || !m_gameMoves) return;
 
+    // 開始局面＝直前の指し手は存在しない → ハイライトは明示的に消す
+    if (safePly <= 0) {
+        m_bic->clearAllHighlights();
+        return;
+    }
+
+    // 直前の手（safePly - 1）をハイライト
     const int mvIdx = safePly - 1;
     if (mvIdx < 0 || mvIdx >= m_gameMoves->size()) return;
 
     const ShogiMove& last = m_gameMoves->at(mvIdx);
 
-    // ドロップ対策：from が無効座標なら「移動元ハイライト無し」
+    // 打ち駒（from 無し）対応。from が負値等の実装もあるので防御的に判定
     const bool hasFrom = (last.fromSquare.x() >= 0 && last.fromSquare.y() >= 0);
-    const QPoint to1   = toOne(last.toSquare);
 
+    const QPoint to1 = toOne(last.toSquare);
     if (hasFrom) {
         const QPoint from1 = toOne(last.fromSquare);
         m_bic->showMoveHighlights(from1, to1);
     } else {
+        // 打ち駒：移動元なし（to のみ強調）
         m_bic->showMoveHighlights(QPoint(), to1);
     }
 }

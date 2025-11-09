@@ -1987,9 +1987,14 @@ void MainWindow::onRecordRowChangedByPresenter(int row, const QString& comment)
     if (row >= 0) {
         syncBoardAndHighlightsAtRow(row);
 
+        // ▼ 現在手数トラッキングを更新（NavigationController::next/prev 用）
+        m_activePly          = row;                 // ← これが無いと currentPly() が 0 のまま
+        m_currentSelectedPly = row;
+        m_currentMoveIndex   = row;
+
         // ▼ 分岐候補欄の更新は Coordinator へ直接委譲
         if (m_kifuLoadCoordinator) {
-            const int rows       = m_resolvedRows.size();
+            const int rows        = m_resolvedRows.size();
             const int resolvedRow = (rows <= 0) ? 0 : qBound(0, m_activeResolvedRow, rows - 1);
             const int safePly     = (row < 0) ? 0 : row;
             m_kifuLoadCoordinator->showBranchCandidates(resolvedRow, safePly);
