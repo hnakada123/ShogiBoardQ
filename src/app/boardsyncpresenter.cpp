@@ -38,11 +38,24 @@ static inline void DBG_DUMP_SFEN_LIST(const QStringList* rec, const char* tag, i
 
 void BoardSyncPresenter::applySfenAtPly(int ply) const
 {
+    // 文字列プレビュー用
+    auto preview = [](const QString& s) -> QString {
+        return (s.size() > 200) ? (s.left(200) + QStringLiteral(" ...")) : s;
+    };
+
+    qInfo() << "[PRESENTER] applySfenAtPly enter"
+            << "reqPly=" << ply
+            << "rec*=" << static_cast<const void*>(m_sfenRecord)
+            << "gc=" << m_gc
+            << "board=" << (m_gc ? m_gc->board() : nullptr)
+            << "view=" << m_view;
+
+    // ガード＆早期リターン
     if (!m_sfenRecord || m_sfenRecord->isEmpty() || !m_gc || !m_gc->board()) {
-        qDebug() << "[PRESENTER] applySfenAtPly guard failed:"
-                 << "rec=" << static_cast<const void*>(m_sfenRecord)
-                 << "isEmpty?=" << (m_sfenRecord ? m_sfenRecord->isEmpty() : true)
-                 << "gc=" << m_gc << "board?=" << (m_gc ? m_gc->board() : nullptr);
+        qWarning() << "[PRESENTER] applySfenAtPly guard failed:"
+                   << "rec*=" << static_cast<const void*>(m_sfenRecord)
+                   << "isEmpty?=" << (m_sfenRecord ? m_sfenRecord->isEmpty() : true)
+                   << "gc=" << m_gc << "board?=" << (m_gc ? m_gc->board() : nullptr);
         return;
     }
 
@@ -50,41 +63,90 @@ void BoardSyncPresenter::applySfenAtPly(int ply) const
     const int idx  = qBound(0, ply, size - 1);
     const QString sfen = m_sfenRecord->at(idx);
 
-    qDebug().noquote() << "[PRESENTER] applySfenAtPly reqPly=" << ply
-                       << " idx=" << idx
-                       << " size=" << size
-                       << " rec*=" << static_cast<const void*>(m_sfenRecord);
+    qInfo().noquote() << QString("[PRESENTER] applySfenAtPly reqPly=%1 idx=%2 size=%3 rec*=%4")
+                             .arg(ply).arg(idx).arg(size)
+                             .arg(reinterpret_cast<quintptr>(m_sfenRecord), 0, 16);
 
     if (size > 0) {
-        qDebug().noquote() << "[PRESENTER] head[0]=" << m_sfenRecord->first();
-        qDebug().noquote() << "[PRESENTER] tail[last]=" << m_sfenRecord->last();
+        qInfo().noquote() << "[PRESENTER] head[0]= "   << preview(m_sfenRecord->first());
+        qInfo().noquote() << "[PRESENTER] tail[last]= "<< preview(m_sfenRecord->last());
     }
-    qDebug().noquote() << "[PRESENTER] pick[" << idx << "]=" << sfen;
+    qInfo().noquote() << "[PRESENTER] pick[" << idx << "]= " << preview(sfen);
 
-    // 4フィールド分解
+    // --- 追加: リスト全体に "position " 混入がないか軽くスキャン（最初の1件だけ報告） ---
+    {
+        int bad = -1;
+        for (int i = 0; i < size; ++i) {
+            if (m_sfenRecord->at(i).startsWith(QLatin1String("position "))) { bad = i; break; }
+        }
+        if (bad >= 0) {
+            qWarning().noquote() << "[PRESENTER] *** NON-SFEN DETECTED in m_sfenRecord at index "
+                                 << bad << ": " << preview(m_sfenRecord->at(bad));
+        }
+    }
+
+    // --- 追加: 周辺ダンプ（idx±3 だけ） ---
+    {
+        const int from = qMax(0, idx - 3);
+        const int to   = qMin(size - 1, idx + 3);
+        for (int i = from; i <= to; ++i) {
+            const QString p = m_sfenRecord->at(i);
+            qInfo().noquote() << QString("[PRESENTER] win[%1]= %2").arg(i).arg(preview(p));
+        }
+    }
+
+    // --- 追加: pick文字列の基本妥当性チェック ---
+    if (sfen.startsWith(QLatin1String("position "))) {
+        qWarning() << "[PRESENTER] *** NON-SFEN passed to presenter (starts with 'position ') at idx=" << idx;
+    }
+
     const QStringList parts = sfen.split(QLatin1Char(' '), Qt::KeepEmptyParts);
     if (parts.size() == 4) {
-        qDebug().noquote() << "[PRESENTER] fields board=" << parts[0]
-                           << " turn=" << parts[1]
-                           << " stand=" << parts[2]
-                           << " move=" << parts[3];
+        const QString& boardField = parts[0];
+        const QString& turnField  = parts[1];
+        const QString& standField = parts[2];
+        const QString& moveField  = parts[3];
+
+        qInfo().noquote() << "[PRESENTER] fields"
+                          << " board=" << boardField
+                          << " turn=" << turnField
+                          << " stand=" << standField
+                          << " move=" << moveField;
+
+        // 9段の盤 → スラッシュは8本のはず
+        const int slashCount = boardField.count(QLatin1Char('/'));
+        if (slashCount != 8) {
+            qWarning() << "[PRESENTER] suspicious board field: slashCount=" << slashCount << "(expected 8)";
+        }
+
+        if (turnField != QLatin1String("b") && turnField != QLatin1String("w")) {
+            qWarning() << "[PRESENTER] suspicious turn field:" << turnField;
+        }
+
+        bool moveOk = false;
+        const int moveNum = moveField.toInt(&moveOk);
+        if (!moveOk || moveNum <= 0) {
+            qWarning() << "[PRESENTER] suspicious move field:" << moveField;
+        }
 
         if (idx == 0) {
-            if (parts[3] != QLatin1String("1") ||
-                (parts[1] != QLatin1String("b") && parts[1] != QLatin1String("w"))) {
-                qDebug().noquote() << "[WARN][PRESENTER] head looks suspicious: " << m_sfenRecord->first();
-                // 必要ならダンプ：
-                // DBG_DUMP_SFEN_LIST(m_sfenRecord, "[PRESENTER] dump", 20);
+            if (moveField != QLatin1String("1")) {
+                qWarning() << "[PRESENTER] head move number is not 1:" << moveField;
             }
         }
     } else {
-        qDebug().noquote() << "[PRESENTER] fields malformed: " << sfen;
+        qWarning().noquote() << "[PRESENTER] fields malformed (need 4 parts) size="
+                             << parts.size() << " sfen=" << preview(sfen);
     }
 
-    // 実適用
+    // --- 実適用（前後でログ） ---
+    qInfo().noquote() << "[PRESENTER] setSfen() <= " << preview(sfen);
     m_gc->board()->setSfen(sfen);
+    qInfo() << "[PRESENTER] setSfen() applied";
+
     if (m_view) {
         m_view->applyBoardAndRender(m_gc->board());
+        qInfo() << "[PRESENTER] view->applyBoardAndRender() done";
     }
 }
 

@@ -1515,6 +1515,9 @@ void MatchCoordinator::initPositionStringsFromSfen_(const QString& sfenBase)
     m_positionStr1.clear();
     m_positionPonder1.clear();
 
+    // ★追加：USIのposition履歴はSFENと混ぜないため、開始ごとにクリア
+    m_positionStrHistory.clear();
+
     QString base = sfenBase;
     if (base.isEmpty()) {
         // フォールバックは startpos
@@ -1732,7 +1735,7 @@ void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& hu
         eFrom, eTo,
         byoyomiMs,
         bTime, wTime,
-        *m_sfenRecord,            // ★ 参照引数なので *m_sfenRecord に修正
+        m_positionStrHistory,
         tc.incMs1, tc.incMs2,
         tc.useByoyomi
         );

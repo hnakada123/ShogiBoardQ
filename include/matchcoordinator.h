@@ -519,6 +519,9 @@ private:
     void sendStopAllEngines_();
     void sendRawTo_(Usi* which, const QString& cmd);
 
+    // USI "position ... moves" の履歴（UNDO等で使う）。SFENとは混ぜないこと！
+    QStringList m_positionStrHistory;
+
 public:
     // ・・・既存の public API の末尾あたりに追記・・・
     void sendGoTo(Usi* engine, const GoTimes& t);

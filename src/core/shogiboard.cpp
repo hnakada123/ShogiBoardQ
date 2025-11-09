@@ -483,6 +483,16 @@ void ShogiBoard::validateSfenString(const QString& sfenStr, QString& sfenBoardSt
 // 入力は、将棋盤と駒台を含むSFEN文字列
 void ShogiBoard::setSfen(const QString& sfenStr)
 {
+    {
+        const QString preview = (sfenStr.size() > 200) ? sfenStr.left(200) + " ..." : sfenStr;
+        qInfo().noquote() << "[BOARD] setSfen: " << preview;
+        if (sfenStr.startsWith(QLatin1String("position "))) {
+            qWarning() << "[BOARD] *** NON-SFEN passed to setSfen (caller bug)";
+            // ここで return せず敢えて続行すると、後段で assert になる可能性あり
+            // 原因究明中はログ優先でOK。必要なら早期 return してクラッシュを防ぐのも手。
+        }
+    }
+
     // 例．
     // "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"の
     // "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL"の文字列

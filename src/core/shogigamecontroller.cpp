@@ -451,6 +451,19 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
                        << " head=" << (m_sfenRecord && !m_sfenRecord->isEmpty() ? m_sfenRecord->first() : QString())
                        << " tail=" << (m_sfenRecord && !m_sfenRecord->isEmpty() ? m_sfenRecord->last()  : QString());
 
+    // ←★ここにデバッグ挿入（そのままコピペでOK）
+    {
+        const int n = m_sfenRecord->size();
+        const QString last = (n > 0) ? m_sfenRecord->at(n - 1) : QString();
+        const QString preview = (last.size() > 200) ? last.left(200) + " ..." : last;
+        qInfo() << "[GC] validateAndMove: sfenRecord size =" << n
+                << " moveNumber =" << moveNumber;
+        qInfo().noquote() << "[GC] last sfen = " << preview;
+        if (last.startsWith(QLatin1String("position "))) {
+            qWarning() << "[GC] *** NON-SFEN stored into sfenRecord! (bug)";
+        }
+    }
+
     // 棋譜文字列
     QString kanjiPiece = getPieceKanji(movingPiece);
     // （getPieceKanji がエラー時は空を返すが、盤更新済みのためここでは通知済みとして続行）
