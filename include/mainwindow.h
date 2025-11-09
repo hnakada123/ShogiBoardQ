@@ -425,6 +425,9 @@ private:
 
 private slots:
     void onResignationTriggered();
+
+    void onRecordPaneMainRowChanged_(int row);
+
 };
 
 #endif // MAINWINDOW_H
