@@ -1068,10 +1068,14 @@ int MainWindow::activeResolvedRow() const
 
 int MainWindow::maxPlyAtRow(int row) const
 {
-    // 解決済み行が無い → 棋譜モデルの最終行を上限に使う
     if (m_resolvedRows.isEmpty()) {
+        // まず SFEN 履歴があればそれを優先（開始局面を含むので -1）
+        if (m_sfenRecord && !m_sfenRecord->isEmpty())
+            return m_sfenRecord->size() - 1;
+
+        // フォールバックとして KIF 行数
         const int rows = (m_kifuRecordModel ? m_kifuRecordModel->rowCount() : 0);
-        return (rows > 0) ? (rows - 1) : 0;  // 0=開始局面のみ
+        return (rows > 0) ? (rows - 1) : 0;
     }
 
     const int clamped = qBound(0, row, m_resolvedRows.size() - 1);
