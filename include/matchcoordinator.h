@@ -102,6 +102,7 @@ public:
         UsiCommLogModel*           comm2 = nullptr;
         ShogiEngineThinkingModel*  think2 = nullptr;
         Hooks                hooks;
+        QStringList* sfenRecord = nullptr;
     };
 
     explicit MatchCoordinator(const Deps& deps, QObject* parent=nullptr);
@@ -391,7 +392,10 @@ private:
 
     // 棋譜／SFEN 記録（ShogiGameController::validateAndMove の引数用）
     int m_currentMoveIndex = 0;
-    QStringList m_sfenRecord;
+
+    // ★変更：内部保持をやめ、共有ポインタに
+    QStringList* m_sfenRecord = nullptr;
+
     QVector<ShogiMove> m_gameMoves;
     // EvE 専用の棋譜保持（MainWindow から独立）
     QStringList        m_eveSfenRecord;

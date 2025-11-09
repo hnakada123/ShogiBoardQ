@@ -436,8 +436,20 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
     // 盤面更新
     board()->updateBoardAndPieceStand(movingPiece, capturedPiece, fileFrom, rankFrom, fileTo, rankTo, m_promote);
 
+
+    // 直前
+    qDebug().noquote() << "[GC][pre-add] nextTurn=" << nextPlayerColorSfen
+                       << " moveIndex=" << moveNumber
+                       << " rec*=" << static_cast<const void*>(m_sfenRecord)
+                       << " size(before)=" << (m_sfenRecord ? m_sfenRecord->size() : -1);
+
     // SFEN 保存
     board()->addSfenRecord(nextPlayerColorSfen, moveNumber, m_sfenRecord);
+
+    // 直後
+    qDebug().noquote() << "[GC][post-add] size(after)=" << (m_sfenRecord ? m_sfenRecord->size() : -1)
+                       << " head=" << (m_sfenRecord && !m_sfenRecord->isEmpty() ? m_sfenRecord->first() : QString())
+                       << " tail=" << (m_sfenRecord && !m_sfenRecord->isEmpty() ? m_sfenRecord->last()  : QString());
 
     // 棋譜文字列
     QString kanjiPiece = getPieceKanji(movingPiece);
