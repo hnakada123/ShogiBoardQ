@@ -614,26 +614,62 @@ QString ShogiBoard::convertStandToSfen() const
     return handPiece.isEmpty() ? "-" : handPiece;
 }
 
-// SFEN文字列への変換してリストに追加する。
+// src/core/shogiboard.cpp
+#include <QDebug>
+
 void ShogiBoard::addSfenRecord(const QString& nextTurn, int moveIndex, QStringList* sfenRecord)
 {
-    if (!sfenRecord) return;
+    if (!sfenRecord) {
+        qDebug() << "[SFEN][add] sfenRecord is null";
+        return;
+    }
 
     // moveIndex: 0 始まりの着手番号を想定
     //   通常記録     → +1 で手数フィールドへ
     //   特例(-1等)   → 1 を明示（開始直後など）
     const int moveCountField = (moveIndex < 0) ? 1 : (moveIndex + 1);
 
+    const int before = sfenRecord->size();
+    const QString boardSfen = convertBoardToSfen();
     QString stand = convertStandToSfen();
-    if (stand.isEmpty())
-        stand = QStringLiteral("-");
+    if (stand.isEmpty()) stand = QStringLiteral("-");
+
+    qDebug().noquote() << "[SFEN][add] BEFORE size=" << before
+                       << " rec*=" << static_cast<const void*>(sfenRecord)
+                       << " nextTurn=" << nextTurn
+                       << " moveIndex=" << moveIndex
+                       << " => field=" << moveCountField;
+    qDebug().noquote() << "[SFEN][add] board=" << boardSfen << " stand=" << stand;
 
     const QString sfen = QStringLiteral("%1 %2 %3 %4")
-                             .arg(convertBoardToSfen(),
-                                  nextTurn,
-                                  stand,
-                                  QString::number(moveCountField));
+                             .arg(boardSfen, nextTurn, stand, QString::number(moveCountField));
     sfenRecord->append(sfen);
+
+    qDebug().noquote() << "[SFEN][add] AFTER  size=" << sfenRecord->size()
+                       << " appended=" << sfen;
+
+    if (!sfenRecord->isEmpty()) {
+        // head / tail を直接出す（std::min は使わない）
+        qDebug().noquote() << "[SFEN][add] head[0]=" << sfenRecord->first();
+        qDebug().noquote() << "[SFEN][add] tail[last]=" << sfenRecord->last();
+    }
+
+    // 先頭が破壊されてないか簡易チェック
+    if (!sfenRecord->isEmpty()) {
+        const QStringList parts = sfenRecord->first().split(QLatin1Char(' '), Qt::KeepEmptyParts);
+        if (parts.size() == 4) {
+            const QString turn0 = parts[1];
+            const QString move0 = parts[3];
+            if (move0 != QLatin1String("1")) {
+                qDebug().noquote() << "[WARN][SFEN][add] head[0] moveCount != 1  head=" << sfenRecord->first();
+            }
+            if (turn0 != QLatin1String("b") && turn0 != QLatin1String("w")) {
+                qDebug().noquote() << "[WARN][SFEN][add] head[0] turn invalid  head=" << sfenRecord->first();
+            }
+        } else {
+            qDebug().noquote() << "[WARN][SFEN][add] head[0] malformed  head=" << sfenRecord->first();
+        }
+    }
 }
 
 // 局面編集中に右クリックで成駒/不成駒/先後を巡回変換する（禁置き段＋二歩をスキップ）。

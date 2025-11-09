@@ -1270,6 +1270,9 @@ void MainWindow::initMatchCoordinator()
     d.comm2  = m_lineEditModel2;
     d.think2 = m_modelThinking2;
 
+    // ★Presenterと同じリストを渡す（Single Source of Truth）
+    d.sfenRecord = m_sfenRecord;
+
     // ---- ここは「コメントアウト」せず、関数バインドで割り当て ----
     d.hooks.appendEvalP1      = std::bind(&MainWindow::requestRedrawEngine1Eval_, this);
     d.hooks.appendEvalP2      = std::bind(&MainWindow::requestRedrawEngine2Eval_, this);

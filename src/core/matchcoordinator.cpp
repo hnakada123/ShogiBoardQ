@@ -49,6 +49,19 @@ MatchCoordinator::MatchCoordinator(const Deps& d, QObject* parent)
     m_cur = P1;
     m_turnEpochP1Ms = m_turnEpochP2Ms = -1;
 
+    // ★共有SFENリストを受け取る
+    m_sfenRecord = d.sfenRecord;
+
+    // デバッグ：どのリストを使うか明示
+    qInfo().noquote()
+        << "[MC][init] shared sfenRecord*=" << static_cast<const void*>(m_sfenRecord)
+        << " eveSfenRecord@=" << static_cast<const void*>(&m_eveSfenRecord);
+
+    // 念のため NPE ガード（無いと困る設計なのでログだけ）
+    if (!m_sfenRecord) {
+        qWarning() << "[MC][init] sfenRecord is null! Presenterと同期できません。Deps.sfenRecordを渡してください。";
+    }
+
     wireClock_(); // ★CTOR でも配線
 }
 
@@ -1582,7 +1595,7 @@ void MatchCoordinator::startInitialEngineMoveFor_(Player engineSide)
     QString rec;
     const bool ok = m_gc->validateAndMove(
         eFrom, eTo, rec, m_playMode,
-        m_currentMoveIndex, &m_sfenRecord, m_gameMoves
+        m_currentMoveIndex, m_sfenRecord, m_gameMoves
         );
     if (!ok) return;
 
@@ -1628,95 +1641,6 @@ void MatchCoordinator::startInitialEngineMoveFor_(Player engineSide)
 // ---------------------------------------------
 // HvE: 人間が指した直後の 1手返しを司令塔で完結
 // ---------------------------------------------
-/*
-void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& humanTo)
-{
-    finishHumanTimerAndSetConsideration();
-
-    // “同○”ヒント（直前の人間手）をエンジンへ
-    if (Usi* eng = primaryEngine()) {
-        eng->setPreviousFileTo(humanTo.x());
-        eng->setPreviousRankTo(humanTo.y());
-    }
-
-    // go 時間を計算
-    qint64 bMs = 0, wMs = 0;
-    computeGoTimesForUSI(bMs, wMs);
-    const QString bTime = QString::number(bMs);
-    const QString wTime = QString::number(wMs);
-
-    // 直後の手番がエンジンなら 1手だけ指す
-    const bool engineIsP1 = (m_playMode == EvenEngineVsHuman) || (m_playMode == HandicapEngineVsHuman);
-    const bool humanNow   = (m_gc && m_gc->currentPlayer() == (engineIsP1 ? ShogiGameController::Player1
-                                                                        : ShogiGameController::Player2)) == false;
-
-    if (!humanNow) {
-        // エンジン go
-        Usi* eng = primaryEngine();
-        if (!eng || !m_gc) return;
-
-        if (m_positionStr1.isEmpty()) initPositionStringsFromSfen_(QString());
-        if (!m_positionStr1.startsWith(QLatin1String("position "))) {
-            m_positionStr1 = QStringLiteral("position startpos moves");
-        }
-
-        const auto tc = timeControl();
-        const int  byoyomiMs = engineIsP1 ? tc.byoyomiMs1 : tc.byoyomiMs2;
-
-        QPoint eFrom = humanFrom;
-        QPoint eTo   = humanTo;
-        m_gc->setPromote(false);
-
-        eng->handleHumanVsEngineCommunication(
-            m_positionStr1, m_positionPonder1,
-            eFrom, eTo,
-            byoyomiMs,
-            bTime, wTime,
-            m_sfenRecord,       // [in/out] 司令塔側の記録を使用
-            tc.incMs1, tc.incMs2,
-            tc.useByoyomi
-            );
-
-        // 受け取った bestmove を盤へ適用
-        QString rec;
-        const bool ok = m_gc->validateAndMove(
-            eFrom, eTo, rec, m_playMode,
-            m_currentMoveIndex, &m_sfenRecord, m_gameMoves
-            );
-        if (!ok) return;
-
-        if (m_hooks.showMoveHighlights) m_hooks.showMoveHighlights(eFrom, eTo);
-
-        // 思考時間を時計へ
-        const qint64 thinkMs = eng->lastBestmoveElapsedMs();
-        if (m_clock) {
-            if (m_gc->currentPlayer() == ShogiGameController::Player1) {
-                // 今はP1手番 = 直前はP2(エンジン)が指した
-                m_clock->setPlayer2ConsiderationTime(static_cast<int>(thinkMs));
-            } else {
-                m_clock->setPlayer1ConsiderationTime(static_cast<int>(thinkMs));
-            }
-        }
-
-        if (m_hooks.appendKifuLine && m_clock) {
-            const QString elapsed = (m_gc->currentPlayer() == ShogiGameController::Player1)
-            ? m_clock->getPlayer2ConsiderationAndTotalTime()
-            : m_clock->getPlayer1ConsiderationAndTotalTime();
-            m_hooks.appendKifuLine(rec, elapsed);
-        }
-
-        if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
-        m_cur = (m_gc->currentPlayer() == ShogiGameController::Player2) ? P2 : P1;
-        updateTurnDisplay_(m_cur);
-    }
-
-    // 終局でなければ人間タイマーを再武装
-    if (!gameOverState().isOver) {
-        armHumanTimerIfNeeded();
-    }
-}
-*/
-
 void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& humanTo)
 {
     qInfo() << "[HvE] entered onHumanMove_HvE"
@@ -1754,9 +1678,7 @@ void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& hu
             << "engineTurnNow=" << engineTurnNow;
 
     if (!engineTurnNow) {
-        // ここに来るなら「まだ人間手番」→ position/go は送らない
         qInfo() << "[HvE] skip engine move (human turn), no position/go";
-        // 終局でなければ人間タイマーを再武装
         if (!gameOverState().isOver) {
             armHumanTimerIfNeeded();
         }
@@ -1771,6 +1693,15 @@ void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& hu
         return;
     }
 
+    // ★ 共有SFENリスト必須（Presenter と同じもの）
+    if (!m_sfenRecord) {
+        qWarning() << "[HvE] sfenRecord is null; cannot record/apply engine move";
+        if (!gameOverState().isOver) armHumanTimerIfNeeded();
+        return;
+    }
+    qInfo().noquote() << "[HvE] using shared sfenRecord*=" << static_cast<const void*>(m_sfenRecord)
+                      << " size=" << m_sfenRecord->size();
+
     // position 文字列の準備（なければ startpos moves に初期化）
     if (m_positionStr1.isEmpty()) {
         qInfo() << "[HvE] m_positionStr1 empty -> initPositionStringsFromSfen_() with startpos";
@@ -1781,7 +1712,6 @@ void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& hu
         m_positionStr1 = QStringLiteral("position startpos moves");
     }
 
-    // 送る直前の position をログに（長過ぎるときは一部だけ）
     const QString preview = (m_positionStr1.size() > 200)
                                 ? (m_positionStr1.left(200) + QStringLiteral(" ..."))
                                 : m_positionStr1;
@@ -1792,8 +1722,6 @@ void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& hu
     const int byoyomiMs = engineIsP1 ? tc.byoyomiMs1 : tc.byoyomiMs2;
 
     // bestmove を受け取り、盤/棋譜反映まで（内部で position→go を送る）
-    // ※ ここが呼ばれているのに engine 側ログに " > position ..." が出ないなら
-    //    Usi 側の sendCommand が弾かれている（プロセス未起動/停止）可能性が高い
     QPoint eFrom = humanFrom;
     QPoint eTo   = humanTo;
     m_gc->setPromote(false);
@@ -1804,7 +1732,7 @@ void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& hu
         eFrom, eTo,
         byoyomiMs,
         bTime, wTime,
-        m_sfenRecord,
+        *m_sfenRecord,            // ★ 参照引数なので *m_sfenRecord に修正
         tc.incMs1, tc.incMs2,
         tc.useByoyomi
         );
@@ -1813,10 +1741,14 @@ void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& hu
     QString rec;
     const bool ok = m_gc->validateAndMove(
         eFrom, eTo, rec, m_playMode,
-        m_currentMoveIndex, &m_sfenRecord, m_gameMoves
+        m_currentMoveIndex,
+        m_sfenRecord,             // ★ ポインタ引数なので m_sfenRecord に修正（&を外す）
+        m_gameMoves
         );
-    qInfo() << "[HvE] validateAndMove(engine) result=" << ok
-            << " from=" << eFrom << " to=" << eTo;
+    qInfo().noquote() << "[HvE] validateAndMove(engine) result=" << ok
+                      << " from=" << eFrom << " to=" << eTo
+                      << " rec*=" << static_cast<const void*>(m_sfenRecord)
+                      << " curIdx=" << m_currentMoveIndex;
 
     if (!ok) {
         qWarning() << "[HvE] validateAndMove failed; engine move rejected";
@@ -1846,7 +1778,6 @@ void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& hu
     m_cur = (m_gc->currentPlayer() == ShogiGameController::Player2) ? P2 : P1;
     updateTurnDisplay_(m_cur);
 
-    // 終局でなければ人間タイマーを再武装
     if (!gameOverState().isOver) {
         armHumanTimerIfNeeded();
     }
@@ -1968,8 +1899,16 @@ bool MatchCoordinator::undoTwoPlies() {
     // SFEN レコード末尾2つ削除
     if (u_.sfenRecord) {
         if (u_.sfenRecord->size() >= 2) {
+            qDebug().noquote() << "[MC][undo] BEFORE size=" << u_.sfenRecord->size()
+            << " head=" << u_.sfenRecord->first()
+            << " tail=" << u_.sfenRecord->last();
+
             u_.sfenRecord->removeLast();
             u_.sfenRecord->removeLast();
+
+            qDebug().noquote() << "[MC][undo] AFTER  size=" << u_.sfenRecord->size()
+                               << " head=" << (u_.sfenRecord->isEmpty() ? QString() : u_.sfenRecord->first())
+                               << " tail=" << (u_.sfenRecord->isEmpty() ? QString() : u_.sfenRecord->last());
         } else {
             u_.sfenRecord->clear();
         }

@@ -306,6 +306,11 @@ void GameStartCoordinator::prepareInitialPosition(const Ctx& c)
 
     const QString sfen = toPureSfen(startPositionStr);
 
+    qDebug().noquote()
+        << "[GSC][prepareInitial] startingPosNumber=" << startingPosNumber
+        << " sfen=" << sfen
+        << " sfenRecord*=" << static_cast<const void*>(c.sfenRecord);
+
     // 4) 参照を通して MainWindow 側の文字列を更新
     if (c.startSfenStr)   *c.startSfenStr   = sfen;
     if (c.currentSfenStr) *c.currentSfenStr = sfen; // 同期しておくと後段の利用が楽
@@ -333,10 +338,20 @@ void GameStartCoordinator::prepareInitialPosition(const Ctx& c)
         }
     }
 
-    // 6) SFEN 履歴に開始 SFEN を積む（存在時のみ）
+    // 6) SFEN履歴に開始SFEN（0手目）を積む
     if (c.sfenRecord) {
+        const int before = c.sfenRecord->size();
+        qDebug().noquote() << "[GSC][prepareInitial] sfenRecord BEFORE size=" << before;
+
         c.sfenRecord->clear();
         c.sfenRecord->append(sfen);
+
+        qDebug().noquote() << "[GSC][prepareInitial] sfenRecord AFTER  size=" << c.sfenRecord->size();
+        if (!c.sfenRecord->isEmpty()) {
+            qDebug().noquote() << "[GSC][prepareInitial] head[0]=" << c.sfenRecord->first();
+        }
+    } else {
+        qDebug().noquote() << "[GSC][prepareInitial] sfenRecord is null";
     }
 
     // 7) 見た目のノイズを避けるため、開幕時のハイライトはクリアしておく（存在時のみ）
@@ -344,7 +359,9 @@ void GameStartCoordinator::prepareInitialPosition(const Ctx& c)
         c.view->removeHighlightAllData();
     }
 
-    qDebug().noquote() << "[GameStartCoordinator] prepareInitialPosition: sfen=" << sfen;
+    // 末尾ログ（既存ログに加筆）
+    qDebug().noquote() << "[GameStartCoordinator] prepareInitialPosition: sfen=" << sfen
+                       << " sfenRecord*=" << static_cast<const void*>(c.sfenRecord);
 }
 
 void GameStartCoordinator::setTimerAndStart(const Ctx& c)
@@ -720,9 +737,31 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
         prepareInitialPosition(c2);
     }
 
+    // --- 3.5) ★開始SFENを正規化して共有リストに seed ---
+    auto canonicalizeStart = [](const QString& sfen)->QString {
+        const QString t = sfen.trimmed();
+        if (t.isEmpty() || t == QLatin1String("startpos")) {
+            // 平手のフルSFENに正規化
+            return QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+        }
+        return t;
+    };
+    const QString seedSfen = canonicalizeStart(startSfen);
+
+    if (c.sfenRecord) {
+        c.sfenRecord->clear();
+        c.sfenRecord->append(seedSfen);
+        qInfo().noquote()
+            << "[GSC][seed] sfenRecord*=" << static_cast<const void*>(c.sfenRecord)
+            << " size=" << c.sfenRecord->size()
+            << " head=" << (c.sfenRecord->isEmpty() ? QString("<empty>") : c.sfenRecord->first());
+    } else {
+        qWarning() << "[GSC][seed] sfenRecord is null (cannot seed)";
+    }
+
     // --- 4) PlayMode を SFEN手番と整合させて最終決定 ---
-    PlayMode mode = determinePlayModeAlignedWithTurn(initPosNo, p1Human, p2Human, startSfen);
-    qInfo() << "[GameStart] Final PlayMode =" << mode << "  startSfen=" << startSfen;
+    PlayMode mode = determinePlayModeAlignedWithTurn(initPosNo, p1Human, p2Human, seedSfen);
+    qInfo() << "[GameStart] Final PlayMode =" << mode << "  startSfen=" << seedSfen;
 
     // --- 5) StartOptions 構築（司令塔依存） ---
     if (!m_match) {
@@ -730,7 +769,7 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
         return;
     }
     MatchCoordinator::StartOptions opt =
-        m_match->buildStartOptions(mode, startSfen, c.sfenRecord, dlg);
+        m_match->buildStartOptions(mode, seedSfen, c.sfenRecord, dlg);
 
     // 人を手前に（必要時のみ反転）
     m_match->ensureHumanAtBottomIfApplicable(dlg, c.bottomIsP1);
@@ -785,10 +824,10 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
     // --- 7) 時計の準備と配線・起動は prepare(...) に委譲（★順序をここに移動） ---
     Request req;
     req.startDialog = dlg;
-    req.startSfen   = startSfen;                            // ★ 手番確定に使用
-    req.clock       = c.clock ? c.clock : m_match->clock(); // ★ ここで必ず渡す（null なら prepare 内で警告して return）
+    req.startSfen   = seedSfen;                         // ★ 手番確定に使用（正規化済み）
+    req.clock       = c.clock ? c.clock : m_match->clock();
 
-    prepare(req); // requestPreStartCleanup / 時間適用シグナル発火 / setClock→startClock（修正版の想定）
+    prepare(req); // requestPreStartCleanup / 時間適用シグナル / setClock→startClock など
 
     // --- 8) 対局開始（時計設定 + 初手 go 設定） ---
     StartParams params;
@@ -798,14 +837,11 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
 
     start(params);
 
-    // --- 9) ★ここが今回の肝：時計を確実に起動（＆必要なら初手go） ---
-    // prepare()/start() 内で未起動だった場合の保険として、司令塔ユーティリティを呼ぶ
+    // --- 9) 保険：時計起動/初手go の取りこぼし防止 ---
     if (m_match) {
-        // 必要なら clock を明示的に再セット（配線の取りこぼし対策）
         if (c.clock && m_match->clock() != c.clock) {
             m_match->setClock(c.clock);
         }
-        // 1回で十分：内部で多重起動/多重goを避ける実装（UniqueConnection/フラグ）を想定
         m_match->startMatchTimingAndMaybeInitialGo();
     }
 

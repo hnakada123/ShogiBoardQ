@@ -16,19 +16,74 @@ BoardSyncPresenter::BoardSyncPresenter(const Deps& d, QObject* parent)
 {
 }
 
+// デバッグ用：SFENリストのダンプ（必要なら使う）
+// ※ std::min(int, qsizetype) の型衝突を避けるため、自前で件数を算出
+static inline void DBG_DUMP_SFEN_LIST(const QStringList* rec, const char* tag, int maxItems = 8) {
+    if (!rec) { qDebug().noquote() << tag << " (rec=null)"; return; }
+
+    const qsizetype sz = rec->size();
+    qDebug().noquote() << tag << " size=" << sz << " ptr=" << static_cast<const void*>(rec);
+
+    const int n = (sz > static_cast<qsizetype>(maxItems))
+                      ? maxItems
+                      : static_cast<int>(sz);
+
+    for (int i = 0; i < n; ++i) {
+        qDebug().noquote() << "  [" << i << "] " << rec->at(i);
+    }
+    if (sz > n) {
+        qDebug().noquote() << "  ... (+" << static_cast<int>(sz - n) << " more)";
+    }
+}
+
 void BoardSyncPresenter::applySfenAtPly(int ply) const
 {
-    if (!m_sfenRecord || m_sfenRecord->isEmpty() || !m_gc || !m_gc->board()) return;
+    if (!m_sfenRecord || m_sfenRecord->isEmpty() || !m_gc || !m_gc->board()) {
+        qDebug() << "[PRESENTER] applySfenAtPly guard failed:"
+                 << "rec=" << static_cast<const void*>(m_sfenRecord)
+                 << "isEmpty?=" << (m_sfenRecord ? m_sfenRecord->isEmpty() : true)
+                 << "gc=" << m_gc << "board?=" << (m_gc ? m_gc->board() : nullptr);
+        return;
+    }
 
-    const int idx = qBound(0, ply, m_sfenRecord->size() - 1);
+    const int size = static_cast<int>(m_sfenRecord->size());
+    const int idx  = qBound(0, ply, size - 1);
     const QString sfen = m_sfenRecord->at(idx);
 
-    qDebug().noquote() << "[PRESENTER] applySfenAtPly idx=" << idx << " sfen=" << sfen;
+    qDebug().noquote() << "[PRESENTER] applySfenAtPly reqPly=" << ply
+                       << " idx=" << idx
+                       << " size=" << size
+                       << " rec*=" << static_cast<const void*>(m_sfenRecord);
 
+    if (size > 0) {
+        qDebug().noquote() << "[PRESENTER] head[0]=" << m_sfenRecord->first();
+        qDebug().noquote() << "[PRESENTER] tail[last]=" << m_sfenRecord->last();
+    }
+    qDebug().noquote() << "[PRESENTER] pick[" << idx << "]=" << sfen;
+
+    // 4フィールド分解
+    const QStringList parts = sfen.split(QLatin1Char(' '), Qt::KeepEmptyParts);
+    if (parts.size() == 4) {
+        qDebug().noquote() << "[PRESENTER] fields board=" << parts[0]
+                           << " turn=" << parts[1]
+                           << " stand=" << parts[2]
+                           << " move=" << parts[3];
+
+        if (idx == 0) {
+            if (parts[3] != QLatin1String("1") ||
+                (parts[1] != QLatin1String("b") && parts[1] != QLatin1String("w"))) {
+                qDebug().noquote() << "[WARN][PRESENTER] head looks suspicious: " << m_sfenRecord->first();
+                // 必要ならダンプ：
+                // DBG_DUMP_SFEN_LIST(m_sfenRecord, "[PRESENTER] dump", 20);
+            }
+        }
+    } else {
+        qDebug().noquote() << "[PRESENTER] fields malformed: " << sfen;
+    }
+
+    // 実適用
     m_gc->board()->setSfen(sfen);
-
     if (m_view) {
-        // GC の board をそのまま適用→再描画
         m_view->applyBoardAndRender(m_gc->board());
     }
 }
