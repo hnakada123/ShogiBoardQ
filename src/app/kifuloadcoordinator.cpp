@@ -1671,11 +1671,53 @@ void KifuLoadCoordinator::ensureNavigationPresenter_()
 // 既存：disp/sfen/gm の差し替え・モデル更新などを行った後で Presenter を呼ぶ
 void KifuLoadCoordinator::applyResolvedRowAndSelect(int row, int selPly)
 {
-    // ...（既存処理：disp/sfen/gmを差し替え、選択/盤/棋譜を同期）...
+    //begin
+    qDebug() << "in KifuLoadCoordinator::applyResolvedRowAndSelect";
+    //end
 
-    // Presenter に“一括更新”を依頼（候補再構築 → ハイライト）
+    // ------- 安全化と早期リターン -------
+    if (m_resolvedRows.isEmpty()) {
+        // 解決行が未構築のケースでは、現在の disp を使って最低限の同期だけ行う
+        showRecordAtPly(m_dispCurrent, qMax(0, selPly));
+        ensureNavigationPresenter_();
+        m_navPresenter->refreshAll(/*row=*/0, qMax(0, selPly));
+        return;
+    }
+
+    const int safeRow = qBound(0, row, m_resolvedRows.size() - 1);
+    const int safePly = qMax(0, selPly);
+
+    // 再入防止（内部で displayGameRecord や selectionModel 更新を行うため）
+    if (m_loadingKifu) return;
+    m_loadingKifu = true;
+
+    // ------- 行の切替（disp / sfen / gm） -------
+    m_activeResolvedRow = safeRow;
+    const ResolvedRow& rr = m_resolvedRows[safeRow];
+
+    // 1..N の表示列
+    m_dispCurrent = rr.disp;
+
+    // 0..N の SFEN 列（共有実体を書き換え）
+    if (m_sfenRecord) {
+        *m_sfenRecord = rr.sfen; // COW（Qt の QStringList は暗黙共有）
+    }
+
+    // 1..N の USI ムーブ列（共有参照を書き換え）
+    m_gameMoves = rr.gm;
+
+    // ------- 棋譜テーブルへ反映 & 選択（safePly 行を選択） -------
+    showRecordAtPly(m_dispCurrent, safePly);   // 内部で displayGameRecord + selection + scroll + syncBoard...
+
+    // 「分岐あり」マーカーの再計算と描画更新（本譜/変化の切替に追随）
+    updateKifuBranchMarkersForActiveRow();
+
+    m_loadingKifu = false;
+
+    // ------- 分岐候補UIとツリーハイライトの更新 -------
+    // （候補の中身更新 → ハイライト同期 の順で一括）
     ensureNavigationPresenter_();
-    m_navPresenter->refreshAll(row, selPly);
+    m_navPresenter->refreshAll(safeRow, safePly);  // showBranchCandidates(...) 相当 → ツリー強調まで
 }
 
 // 既存：分岐候補モデルの構築・表示更新を担う関数
