@@ -335,6 +335,7 @@ void GameStartCoordinator::prepareInitialPosition(const Ctx& c)
 
     // 6) SFEN 履歴に開始 SFEN を積む（存在時のみ）
     if (c.sfenRecord) {
+        c.sfenRecord->clear();
         c.sfenRecord->append(sfen);
     }
 

@@ -615,12 +615,25 @@ QString ShogiBoard::convertStandToSfen() const
 }
 
 // SFEN文字列への変換してリストに追加する。
-void ShogiBoard::addSfenRecord(const QString& nextTurn, const int moveNumber, QStringList* m_sfenRecord)
+void ShogiBoard::addSfenRecord(const QString& nextTurn, int moveIndex, QStringList* sfenRecord)
 {
-    QString sfen = QString("%1 %2 %3 %4")
-                       .arg(convertBoardToSfen(), nextTurn, convertStandToSfen(), QString::number(moveNumber + 2));
+    if (!sfenRecord) return;
 
-    m_sfenRecord->append(sfen);
+    // moveIndex: 0 始まりの着手番号を想定
+    //   通常記録     → +1 で手数フィールドへ
+    //   特例(-1等)   → 1 を明示（開始直後など）
+    const int moveCountField = (moveIndex < 0) ? 1 : (moveIndex + 1);
+
+    QString stand = convertStandToSfen();
+    if (stand.isEmpty())
+        stand = QStringLiteral("-");
+
+    const QString sfen = QStringLiteral("%1 %2 %3 %4")
+                             .arg(convertBoardToSfen(),
+                                  nextTurn,
+                                  stand,
+                                  QString::number(moveCountField));
+    sfenRecord->append(sfen);
 }
 
 // 局面編集中に右クリックで成駒/不成駒/先後を巡回変換する（禁置き段＋二歩をスキップ）。
