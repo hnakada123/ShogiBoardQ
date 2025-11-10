@@ -158,3 +158,15 @@ void GameRecordPresenter::displayAndWire(const QList<KifDisplayItem>& disp,
         bindKifuSelection(recordPane->kifuView()); // ここで UniqueConnection 済み
     }
 }
+
+int GameRecordPresenter::currentRow() const
+{
+    // KifuView がバインド済みなら、その selectionModel の currentIndex を信頼
+    if (m_kifuView) {
+        if (auto* sel = m_kifuView->selectionModel()) {
+            const QModelIndex idx = sel->currentIndex();
+            if (idx.isValid()) return idx.row();
+        }
+    }
+    return -1; // 選択がまだ無い／未バインド
+}

@@ -2013,30 +2013,96 @@ void MainWindow::appendKifuLineHook_(const QString& text, const QString& elapsed
 
 void MainWindow::onRecordRowChangedByPresenter(int row, const QString& comment)
 {
+    const int modelRowsBefore =
+        (m_kifuRecordModel ? m_kifuRecordModel->rowCount() : -1);
+    const int presenterCurBefore =
+        (m_recordPresenter ? m_recordPresenter->currentRow() : -1);
+
+    qDebug().noquote()
+        << "[MW] onRecordRowChangedByPresenter ENTER"
+        << " row=" << row
+        << " comment.len=" << comment.size()
+        << " modelRows(before)=" << modelRowsBefore
+        << " presenter.cur(before)=" << presenterCurBefore
+        << " tracking.before{ activePly=" << m_activePly
+        << ", currentSelectedPly=" << m_currentSelectedPly
+        << ", currentMoveIndex=" << m_currentMoveIndex << " }";
+
     // 盤面・ハイライト同期
     if (row >= 0) {
+        qDebug().noquote() << "[MW] syncBoardAndHighlightsAtRow CALL row=" << row;
         syncBoardAndHighlightsAtRow(row);
+        qDebug().noquote() << "[MW] syncBoardAndHighlightsAtRow DONE row=" << row;
 
         // ▼ 現在手数トラッキングを更新（NavigationController::next/prev 用）
-        m_activePly          = row;                 // ← これが無いと currentPly() が 0 のまま
+        m_activePly          = row;   // ← これが無いと currentPly() が 0 のまま
         m_currentSelectedPly = row;
         m_currentMoveIndex   = row;
+
+        qDebug().noquote()
+            << "[MW] tracking UPDATED"
+            << " activePly=" << m_activePly
+            << " currentSelectedPly=" << m_currentSelectedPly
+            << " currentMoveIndex=" << m_currentMoveIndex;
 
         // ▼ 分岐候補欄の更新は Coordinator へ直接委譲
         if (m_kifuLoadCoordinator) {
             const int rows        = m_resolvedRows.size();
             const int resolvedRow = (rows <= 0) ? 0 : qBound(0, m_activeResolvedRow, rows - 1);
             const int safePly     = (row < 0) ? 0 : row;
+
+            qDebug().noquote()
+                << "[MW] showBranchCandidates CALL"
+                << " resolvedRows.size=" << rows
+                << " activeResolvedRow=" << m_activeResolvedRow
+                << " resolvedRow=" << resolvedRow
+                << " safePly=" << safePly;
+
             m_kifuLoadCoordinator->showBranchCandidates(resolvedRow, safePly);
+
+            qDebug().noquote() << "[MW] showBranchCandidates DONE";
+        } else {
+            qWarning().noquote() << "[MW] m_kifuLoadCoordinator is nullptr; skip showBranchCandidates";
         }
+    } else {
+        qWarning().noquote() << "[MW] row < 0; skip sync/tracking";
     }
 
     // コメント表示は既存の一括関数に統一
     const QString cmt = comment.trimmed();
+    qDebug().noquote()
+        << "[MW] broadcastComment"
+        << " empty?=" << cmt.isEmpty()
+        << " len=" << cmt.size();
     broadcastComment(cmt.isEmpty() ? tr("コメントなし") : cmt, /*asHtml=*/true);
 
-    // 矢印ボタンなどの活性化
+    // 矢印ボタンなどの活性化（直前の状態を可視化）
+    const int modelRowsAfter =
+        (m_kifuRecordModel ? m_kifuRecordModel->rowCount() : -1);
+    const int presenterCurAfter =
+        (m_recordPresenter ? m_recordPresenter->currentRow() : -1);
+    const bool canPrevComputed = (presenterCurAfter > 0);
+    const bool canNextComputed = (modelRowsAfter >= 0) ? (presenterCurAfter < modelRowsAfter - 1) : false;
+
+    qDebug().noquote()
+        << "[MW] enableArrowButtons BEFORE"
+        << " presenter.cur(after)=" << presenterCurAfter
+        << " modelRows(after)=" << modelRowsAfter
+        << " canPrev(computed)=" << canPrevComputed
+        << " canNext(computed)=" << canNextComputed
+        << " atLastRow?=" << (presenterCurAfter >= 0 && modelRowsAfter >= 0 && presenterCurAfter == modelRowsAfter - 1);
+
     enableArrowButtons();
+
+    // ここでは UI の有効/無効を直接読めないため、計算値を再掲
+    qDebug().noquote()
+        << "[MW] enableArrowButtons AFTER (restate)"
+        << " presenter.cur=" << presenterCurAfter
+        << " modelRows=" << modelRowsAfter
+        << " canPrev(computed)=" << canPrevComputed
+        << " canNext(computed)=" << canNextComputed;
+
+    qDebug().noquote() << "[MW] onRecordRowChangedByPresenter LEAVE";
 }
 
 void MainWindow::onFlowError_(const QString& msg)
