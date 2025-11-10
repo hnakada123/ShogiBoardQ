@@ -1069,15 +1069,21 @@ int MainWindow::activeResolvedRow() const
 int MainWindow::maxPlyAtRow(int row) const
 {
     if (m_resolvedRows.isEmpty()) {
-        // まず SFEN 履歴があればそれを優先（開始局面を含むので -1）
-        if (m_sfenRecord && !m_sfenRecord->isEmpty())
-            return m_sfenRecord->size() - 1;
-
-        // フォールバックとして KIF 行数
-        const int rows = (m_kifuRecordModel ? m_kifuRecordModel->rowCount() : 0);
-        return (rows > 0) ? (rows - 1) : 0;
+        // ライブ（解決済み行なし）のとき：
+        // - SFEN: 「開始局面 + 実手数」なので終局行（投了/時間切れ）は含まれない → size()-1
+        // - 棋譜欄: 「実手 + 終局行（あれば）」が入る → rowCount()-1
+        // 末尾へ進める上限は「どちらか大きい方」を採用する。
+        const int sfenMax = (m_sfenRecord && !m_sfenRecord->isEmpty())
+                                ? (m_sfenRecord->size() - 1)
+                                : 0;
+        const int kifuMax = (m_kifuRecordModel && m_kifuRecordModel->rowCount() > 0)
+                                ? (m_kifuRecordModel->rowCount() - 1)
+                                : 0;
+        return qMax(sfenMax, kifuMax);
     }
 
+    // 既に解決済み行がある（棋譜ファイル読み込み後など）のとき：
+    // その行に表示するエントリ数（disp.size()）が末尾。
     const int clamped = qBound(0, row, m_resolvedRows.size() - 1);
     return m_resolvedRows[clamped].disp.size();
 }
