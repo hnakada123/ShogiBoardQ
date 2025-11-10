@@ -1131,6 +1131,9 @@ void MainWindow::applySelect(int row, int ply)
 
                 // 盤・ハイライト即時同期（従来の onMainMoveRowChanged と同じ流れ）
                 syncBoardAndHighlightsAtRow(safe);
+
+                // ★ 修正点：currentPly() のベースになるトラッキングを更新
+                m_activePly          = safe;   // ← 追加
                 m_currentSelectedPly = safe;
                 m_currentMoveIndex   = safe;
             }
@@ -2098,6 +2101,9 @@ void MainWindow::onRecordPaneMainRowChanged_(int row)
     // フォールバック：起動直後など Loader 未生成時でも UI が動くように最低限の同期を行う
     if (row >= 0) {
         syncBoardAndHighlightsAtRow(row);
+
+        // ★ 修正点：currentPly() のベースになるトラッキングを更新
+        m_activePly          = row;  // ← 追加
         m_currentSelectedPly = row;
         m_currentMoveIndex   = row;
     }
