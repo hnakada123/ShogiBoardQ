@@ -1576,11 +1576,9 @@ void MatchCoordinator::startInitialEngineMoveFor_(Player engineSide)
     }
 
     const int mcCur = m_currentMoveIndex;
-    const int recSizeBefore = (m_sfenRecord ? m_sfenRecord->size() : -1);
+    const int recSizeBefore = m_sfenRecord ? m_sfenRecord->size() : -1;
     const QString recTailBefore = (m_sfenRecord && !m_sfenRecord->isEmpty()) ? m_sfenRecord->last() : QString();
-
-    qInfo().noquote() << "[IDX][Init] enter side=" << (engineSide==P1?"P1":"P2")
-                      << " mcCur=" << mcCur
+    qInfo().noquote() << "[IDX][HvE:init] enter  mcCur=" << mcCur
                       << " recSizeBefore=" << recSizeBefore
                       << " recTailBefore='" << recTailBefore << "'";
 
@@ -1614,25 +1612,20 @@ void MatchCoordinator::startInitialEngineMoveFor_(Player engineSide)
     const QString recTailAfter = (m_sfenRecord && !m_sfenRecord->isEmpty()) ? m_sfenRecord->last() : QString();
     const int recTailNum = recTailAfter.isEmpty() ? -1 : extractMoveNumber(recTailAfter);
 
-    qInfo().noquote() << "[IDX][Init] v&m=" << ok
-                      << " argMove(nextIdx)=" << nextIdx
-                      << " mcCur(before)=" << mcCur
+    qInfo().noquote() << "[IDX][HvE:init] v&m=" << ok
+                      << " nextIdx=" << nextIdx
                       << " recTailAfter='" << recTailAfter << "' num=" << recTailNum;
 
-    if (ok) {
-        m_currentMoveIndex = nextIdx;
-        qInfo().noquote() << "[IDX][Init] mcCur ->" << m_currentMoveIndex;
-    }
     if (!ok) return;
 
     const qint64 thinkMs = eng->lastBestmoveElapsedMs();
     if (m_clock) {
         if (engineSide == P1) {
             m_clock->setPlayer1ConsiderationTime(static_cast<int>(thinkMs));
-            if (tc.useByoyomi) m_clock->applyByoyomiAndResetConsideration1();
+            m_clock->applyByoyomiAndResetConsideration1(); // ← 条件を外して常に適用
         } else {
             m_clock->setPlayer2ConsiderationTime(static_cast<int>(thinkMs));
-            if (tc.useByoyomi) m_clock->applyByoyomiAndResetConsideration2();
+            m_clock->applyByoyomiAndResetConsideration2(); // ← 条件を外して常に適用
         }
     }
     if (m_hooks.appendKifuLine && m_clock) {
@@ -1683,6 +1676,7 @@ void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& hu
                       << " recTailBefore='" << recTailBefore << "'"
                       << " humanFrom=" << humanFrom << " humanTo=" << humanTo;
 
+    // 人間側のストップウォッチ締め＆考慮確定（既存）
     finishHumanTimerAndSetConsideration();
 
     if (Usi* eng = primaryEngine()) {
@@ -1690,6 +1684,7 @@ void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& hu
         eng->setPreviousRankTo(humanTo.y());
     }
 
+    // USIに渡す残り時間
     qint64 bMs = 0, wMs = 0;
     computeGoTimesForUSI(bMs, wMs);
     const QString bTime = QString::number(bMs);
@@ -1753,14 +1748,20 @@ void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& hu
 
     if (m_hooks.showMoveHighlights) m_hooks.showMoveHighlights(eFrom, eTo);
 
+    // ★ エンジンの考慮時間を“確定”してから棋譜に追記する（ここが不在だった）
     const qint64 thinkMs = eng->lastBestmoveElapsedMs();
     if (m_clock) {
         if (m_gc->currentPlayer() == ShogiGameController::Player1) {
+            // 直前に指したのは後手(P2)
             m_clock->setPlayer2ConsiderationTime(static_cast<int>(thinkMs));
+            m_clock->applyByoyomiAndResetConsideration2(); // ← 追加
         } else {
+            // 直前に指したのは先手(P1)
             m_clock->setPlayer1ConsiderationTime(static_cast<int>(thinkMs));
+            m_clock->applyByoyomiAndResetConsideration1(); // ← 追加
         }
     }
+
     if (m_hooks.appendKifuLine && m_clock) {
         const QString elapsed = (m_gc->currentPlayer() == ShogiGameController::Player1)
         ? m_clock->getPlayer2ConsiderationAndTotalTime()
