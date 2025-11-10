@@ -61,6 +61,9 @@ public:
                         int rowCount,
                         RecordPane* recordPane);
 
+    // 現在選択されている行インデックス（選択無しは -1）
+    int currentRow() const;
+
 signals:
     // Presenter 経由で MainWindow に「現在行＋コメント」を通知
     void currentRowChanged(int row, const QString& comment);

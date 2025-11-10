@@ -59,8 +59,33 @@ void BoardSyncPresenter::applySfenAtPly(int ply) const
         return;
     }
 
-    const int size = static_cast<int>(m_sfenRecord->size());
-    const int idx  = qBound(0, ply, size - 1);
+    const int size   = static_cast<int>(m_sfenRecord->size());
+    const int maxIdx = size - 1;
+
+    // ★ 終局（投了など）行の判定：SFEN は増えないため reqPly > maxIdx になる
+    const bool isTerminalRow = (ply > maxIdx);
+
+    // ★ 実際に適用するインデックスはクランプ（終局行なら常に末尾の SFEN を使う）
+    const int idx = qBound(0, ply, maxIdx);
+
+    qInfo().noquote()
+        << QString("[PRESENTER] applySfenAtPly params reqPly=%1 size=%2 maxIdx=%3 idx=%4 terminalRow=%5")
+               .arg(ply).arg(size).arg(maxIdx).arg(idx).arg(isTerminalRow);
+
+    if (isTerminalRow) {
+        // 例：開始局面 + 4手 + 投了 → size=5, reqPly=5, idx=4
+        qInfo().noquote()
+            << QString("[PRESENTER] TERMINAL-ROW: non-move row (e.g. resignation). Using last SFEN at idx=%1 (size-1).")
+                   .arg(idx);
+        if (ply == size) {
+            qInfo() << "[PRESENTER] TERMINAL-ROW detail: reqPly == size (expected for resignation right after last move).";
+        } else if (ply > size) {
+            qWarning().noquote()
+            << QString("[PRESENTER] TERMINAL-ROW anomaly: reqPly(%1) > size(%2). Upstream should not overshoot too much.")
+                    .arg(ply).arg(size);
+        }
+    }
+
     const QString sfen = m_sfenRecord->at(idx);
 
     qInfo().noquote() << QString("[PRESENTER] applySfenAtPly reqPly=%1 idx=%2 size=%3 rec*=%4")
@@ -134,6 +159,14 @@ void BoardSyncPresenter::applySfenAtPly(int ply) const
                 qWarning() << "[PRESENTER] head move number is not 1:" << moveField;
             }
         }
+
+        // ★ 終局行の場合、最後の SFEN の move 番号と reqPly の関係をメモ
+        if (isTerminalRow) {
+            qInfo().noquote()
+            << QString("[PRESENTER] terminal note: last SFEN's move=%1, reqPly=%2 (no new SFEN for resignation)")
+                    .arg(moveField).arg(ply);
+        }
+
     } else {
         qWarning().noquote() << "[PRESENTER] fields malformed (need 4 parts) size="
                              << parts.size() << " sfen=" << preview(sfen);
@@ -148,44 +181,82 @@ void BoardSyncPresenter::applySfenAtPly(int ply) const
         m_view->applyBoardAndRender(m_gc->board());
         qInfo() << "[PRESENTER] view->applyBoardAndRender() done";
     }
+
+    // ★ トレーラ：この関数は「盤面適用」担当。
+    // 投了など終局行のハイライト消去は syncBoardAndHighlightsAtRow() 側で行う想定。
+    qInfo().noquote() << "[PRESENTER] applySfenAtPly leave"
+                      << " reqPly=" << ply
+                      << " idx=" << idx
+                      << " terminalRow=" << isTerminalRow;
 }
 
+// 盤面・ハイライト同期（行 → 盤面）
 void BoardSyncPresenter::syncBoardAndHighlightsAtRow(int ply) const
 {
-    if (!m_sfenRecord || !m_gc || !m_gc->board()) return;
+    if (!m_sfenRecord || !m_gc || !m_gc->board()) {
+        qDebug().noquote() << "[PRESENTER] syncBoardAndHighlightsAtRow ABORT:"
+                           << "sfenRecord?" << (m_sfenRecord!=nullptr)
+                           << "gc?"        << (m_gc!=nullptr)
+                           << "board?"     << (m_gc? (m_gc->board()!=nullptr) : false)
+                           << " ply="      << ply;
+        return;
+    }
 
-    const int maxPly = m_sfenRecord->size() - 1;
-    if (maxPly < 0) return;
+    const int size   = static_cast<int>(m_sfenRecord->size());
+    const int maxIdx = size - 1;
+    if (maxIdx < 0) {
+        qDebug().noquote() << "[PRESENTER] syncBoardAndHighlightsAtRow: empty sfenRecord ply=" << ply;
+        return;
+    }
 
-    const int safePly = qBound(0, ply, maxPly);
+    const bool isTerminalRow = (ply > maxIdx);
+    const int  safePly       = qBound(0, ply, maxIdx);
 
-    // 1) 盤面の適用
-    applySfenAtPly(safePly);
+    qDebug().noquote()
+        << "[PRESENTER] syncBoardAndHighlightsAtRow enter"
+        << " reqPly=" << ply
+        << " safePly=" << safePly
+        << " size=" << size
+        << " maxIdx=" << maxIdx
+        << " isTerminalRow=" << isTerminalRow;
 
-    // 2) ハイライト
-    if (!m_bic || !m_gameMoves) return;
+    // 盤面適用：要求行 ply のまま。内部でクランプされる想定
+    applySfenAtPly(ply);
 
-    // 開始局面＝直前の指し手は存在しない → ハイライトは明示的に消す
-    if (safePly <= 0) {
+    if (!m_bic || !m_gameMoves) {
+        qDebug().noquote() << "[PRESENTER] syncBoardAndHighlightsAtRow: no BIC/GameMoves; skip highlights";
+        return;
+    }
+
+    if (safePly <= 0 || isTerminalRow) {
+        qDebug().noquote() << "[PRESENTER] syncBoardAndHighlightsAtRow: clear highlights"
+                           << " reason=" << (safePly<=0 ? "startpos" : "terminalRow");
         m_bic->clearAllHighlights();
         return;
     }
 
-    // 直前の手（safePly - 1）をハイライト
     const int mvIdx = safePly - 1;
-    if (mvIdx < 0 || mvIdx >= m_gameMoves->size()) return;
+    if (mvIdx < 0 || mvIdx >= m_gameMoves->size()) {
+        qDebug().noquote() << "[PRESENTER] syncBoardAndHighlightsAtRow: mvIdx out of range mvIdx=" << mvIdx
+                           << " gameMoves.size=" << m_gameMoves->size();
+        m_bic->clearAllHighlights();
+        return;
+    }
 
     const ShogiMove& last = m_gameMoves->at(mvIdx);
-
-    // 打ち駒（from 無し）対応。from が負値等の実装もあるので防御的に判定
     const bool hasFrom = (last.fromSquare.x() >= 0 && last.fromSquare.y() >= 0);
+
+    qDebug().noquote() << "[PRESENTER] highlight"
+                       << " mvIdx=" << mvIdx
+                       << " from=(" << last.fromSquare.x() << "," << last.fromSquare.y() << ")"
+                       << " to=("   << last.toSquare.x()   << "," << last.toSquare.y()   << ")"
+                       << " hasFrom=" << hasFrom;
 
     const QPoint to1 = toOne(last.toSquare);
     if (hasFrom) {
         const QPoint from1 = toOne(last.fromSquare);
         m_bic->showMoveHighlights(from1, to1);
     } else {
-        // 打ち駒：移動元なし（to のみ強調）
         m_bic->showMoveHighlights(QPoint(), to1);
     }
 }
