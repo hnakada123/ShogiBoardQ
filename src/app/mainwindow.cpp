@@ -2048,7 +2048,6 @@ void MainWindow::onResignationTriggered()
     handleResignation();
 }
 
-// ★ まるごと置き換え
 qint64 MainWindow::getRemainingMsFor_(MatchCoordinator::Player p) const
 {
     if (!m_shogiClock) {
@@ -2062,7 +2061,6 @@ qint64 MainWindow::getRemainingMsFor_(MatchCoordinator::Player p) const
     return (p == MatchCoordinator::P1) ? p1 : p2;
 }
 
-// ★ まるごと置き換え
 qint64 MainWindow::getIncrementMsFor_(MatchCoordinator::Player p) const
 {
     if (!m_shogiClock) {
@@ -2076,7 +2074,6 @@ qint64 MainWindow::getIncrementMsFor_(MatchCoordinator::Player p) const
     return (p == MatchCoordinator::P1) ? inc1 : inc2;
 }
 
-// ★ まるごと置き換え
 qint64 MainWindow::getByoyomiMs_() const
 {
     const qint64 byo = m_shogiClock ? m_shogiClock->getCommonByoyomiMs() : 0;
@@ -2089,8 +2086,6 @@ void MainWindow::showGameOverMessageBox_(const QString& title, const QString& me
 {
     QMessageBox::information(this, title, message);
 }
-
-// src/app/mainwindow.cpp
 
 void MainWindow::onRecordPaneMainRowChanged_(int row)
 {
