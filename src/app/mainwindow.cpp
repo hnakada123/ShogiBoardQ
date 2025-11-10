@@ -1491,21 +1491,13 @@ void MainWindow::onMoveRequested_(const QPoint& from, const QPoint& to)
     // validateAndMove は参照引数なのでローカルに退避
     QPoint hFrom = from, hTo = to;
 
-    // ★ここがポイント：次の着手番号は「記録サイズ」を信頼する
+    // ★ 次の着手番号は「記録サイズ」を信頼する（既存ロジックのまま）
     const int recSizeBefore = (m_sfenRecord ? m_sfenRecord->size() : 0);
-    int nextIdx = recSizeBefore; // ← moveNumber（0始まりの着手インデックスとして解釈）
+    const int nextIdx       = qMax(1, recSizeBefore);
 
-    qInfo().noquote()
-        << "[IDX][UI] onMoveRequested_ enter "
-        << " cur=" << m_currentMoveIndex
-        << " uiNext=" << (m_currentMoveIndex + 1)
-        << " recSizeBefore=" << recSizeBefore
-        << " recTailBefore='" << (m_sfenRecord && !m_sfenRecord->isEmpty() ? m_sfenRecord->back() : QString("N/A")) << "'"
-        << " from=" << from << " to=" << to << " m_playMode=" << int(m_playMode);
-
+    // ここで合法判定＆盤面反映。m_lastMove に「▲７六歩」のような整形済み文字列がセットされる
     const bool ok = m_gameController->validateAndMove(
-        hFrom, hTo, m_lastMove, modeNow,
-        nextIdx, m_sfenRecord, m_gameMoves);
+        hFrom, hTo, m_lastMove, modeNow, const_cast<int&>(nextIdx), m_sfenRecord, m_gameMoves);
 
     if (m_boardController) m_boardController->onMoveApplied(hFrom, hTo, ok);
     if (!ok) {
@@ -1515,26 +1507,34 @@ void MainWindow::onMoveRequested_(const QPoint& from, const QPoint& to)
 
     // UI 側の現在カーソルは、常に「記録サイズ」に同期させる
     if (m_sfenRecord) {
-        m_currentMoveIndex = m_sfenRecord->size() - 1; // 末尾（直近の局面）へ
-    } else {
-        m_currentMoveIndex = nextIdx; // フォールバック
+        m_currentMoveIndex = m_sfenRecord->size() - 1; // 末尾（直近の局面）
     }
-
-    qInfo().noquote()
-        << "[IDX][UI] onMoveRequested_ v&m=" << ok
-        << " argMove(nextIdx)=" << nextIdx
-        << " cur(now)=" << m_currentMoveIndex
-        << " recSizeAfter=" << (m_sfenRecord ? m_sfenRecord->size() : -1)
-        << " recTailAfter='" << (m_sfenRecord && !m_sfenRecord->isEmpty() ? m_sfenRecord->back() : QString("N/A")) << "'";
 
     // --- 対局モードごとの後処理 ---
     switch (modeNow) {
-    case HumanVsHuman:
+    case HumanVsHuman: {
         qInfo() << "[UI] HvH: delegate post-human-move to MatchCoordinator";
         if (m_match) {
+            // 直前手の考慮msを ShogiClock へ確定（MatchCoordinator 側で行う）
             m_match->onHumanMove_HvH(moverBefore);
         }
+
+        // ★ 追加：HvH でも「指し手＋考慮時間」を棋譜欄に追記する
+        // MatchCoordinator::onHumanMove_HvH() で直前手の考慮時間を ShogiClock に確定済み。
+        QString elapsed;
+        if (m_shogiClock) {
+            elapsed = (moverBefore == ShogiGameController::Player1)
+            ? m_shogiClock->getPlayer1ConsiderationAndTotalTime()
+            : m_shogiClock->getPlayer2ConsiderationAndTotalTime();
+        } else {
+            ensureClockReady_();
+            elapsed = QStringLiteral("00:00/00:00:00"); // フォールバック
+        }
+
+        // m_lastMove（validateAndMoveで得た表示用文字列）＋ elapsed を1行追記
+        updateGameRecord(elapsed);
         break;
+    }
 
     case EvenHumanVsEngine:
     case HandicapHumanVsEngine:
