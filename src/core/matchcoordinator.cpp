@@ -1562,12 +1562,27 @@ void MatchCoordinator::startInitialEngineMoveFor_(Player engineSide)
     Usi* eng = primaryEngine();
     if (!eng || !m_gc) return;
 
+    auto extractMoveNumber = [](const QString& sfen) -> int {
+        const QStringList tok = sfen.split(' ', Qt::SkipEmptyParts);
+        if (tok.size() >= 5) return tok.last().toInt();
+        return -1;
+    };
+
     if (m_positionStr1.isEmpty()) {
         initPositionStringsFromSfen_(QString()); // startpos moves
     }
     if (!m_positionStr1.startsWith(QLatin1String("position "))) {
         m_positionStr1 = QStringLiteral("position startpos moves");
     }
+
+    const int mcCur = m_currentMoveIndex;
+    const int recSizeBefore = (m_sfenRecord ? m_sfenRecord->size() : -1);
+    const QString recTailBefore = (m_sfenRecord && !m_sfenRecord->isEmpty()) ? m_sfenRecord->last() : QString();
+
+    qInfo().noquote() << "[IDX][Init] enter side=" << (engineSide==P1?"P1":"P2")
+                      << " mcCur=" << mcCur
+                      << " recSizeBefore=" << recSizeBefore
+                      << " recTailBefore='" << recTailBefore << "'";
 
     qint64 bMs = 0, wMs = 0;
     computeGoTimesForUSI(bMs, wMs);
@@ -1591,18 +1606,24 @@ void MatchCoordinator::startInitialEngineMoveFor_(Player engineSide)
         );
 
     QString rec;
-
-    // ★ 次の手を渡す
-    int nextIdx = m_currentMoveIndex + 1;
+    int nextIdx = mcCur + 1; // ★ 「次の手」
     const bool ok = m_gc->validateAndMove(
         eFrom, eTo, rec, m_playMode,
         nextIdx, m_sfenRecord, m_gameMoves);
+
+    const QString recTailAfter = (m_sfenRecord && !m_sfenRecord->isEmpty()) ? m_sfenRecord->last() : QString();
+    const int recTailNum = recTailAfter.isEmpty() ? -1 : extractMoveNumber(recTailAfter);
+
+    qInfo().noquote() << "[IDX][Init] v&m=" << ok
+                      << " argMove(nextIdx)=" << nextIdx
+                      << " mcCur(before)=" << mcCur
+                      << " recTailAfter='" << recTailAfter << "' num=" << recTailNum;
+
     if (ok) {
         m_currentMoveIndex = nextIdx;
+        qInfo().noquote() << "[IDX][Init] mcCur ->" << m_currentMoveIndex;
     }
     if (!ok) return;
-
-    if (m_hooks.showMoveHighlights) m_hooks.showMoveHighlights(eFrom, eTo);
 
     const qint64 thinkMs = eng->lastBestmoveElapsedMs();
     if (m_clock) {
@@ -1627,11 +1648,8 @@ void MatchCoordinator::startInitialEngineMoveFor_(Player engineSide)
 
     armHumanTimerIfNeeded();
 
-    if (engineSide == P1) {
-        if (m_hooks.appendEvalP1) m_hooks.appendEvalP1();
-    } else {
-        if (m_hooks.appendEvalP2) m_hooks.appendEvalP2();
-    }
+    if (engineSide == P1) { if (m_hooks.appendEvalP1) m_hooks.appendEvalP1(); }
+    else                  { if (m_hooks.appendEvalP2) m_hooks.appendEvalP2(); }
 }
 
 // ---------------------------------------------
@@ -1639,80 +1657,66 @@ void MatchCoordinator::startInitialEngineMoveFor_(Player engineSide)
 // ---------------------------------------------
 void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& humanTo)
 {
-    qInfo() << "[HvE] entered onHumanMove_HvE"
-            << "from=" << humanFrom << "to=" << humanTo
-            << "playMode=" << int(m_playMode);
+    auto extractMoveNumber = [](const QString& sfen) -> int {
+        const QStringList tok = sfen.split(' ', Qt::SkipEmptyParts);
+        // SFEN は <board> <turn> <hands> <move> の 4 トークン
+        if (tok.size() >= 4) return tok.last().toInt();
+        return -1;
+    };
+
+    // ★★★ ここで同期 ★★★
+    int mcCur = m_currentMoveIndex;
+    if (m_sfenRecord) {
+        const int fromRec = qMax(0, m_sfenRecord->size() - 1);
+        if (fromRec != mcCur) {
+            qInfo() << "[IDX][HvE] sync mcCur" << mcCur << "->" << fromRec
+                    << "(by recSize=" << m_sfenRecord->size() << ")";
+            mcCur = fromRec;
+            m_currentMoveIndex = fromRec;
+        }
+    }
+
+    const int recSizeBefore = m_sfenRecord ? m_sfenRecord->size() : -1;
+    const QString recTailBefore = (m_sfenRecord && !m_sfenRecord->isEmpty()) ? m_sfenRecord->last() : QString();
+    qInfo().noquote() << "[IDX][HvE] enter  mcCur=" << mcCur
+                      << " recSizeBefore=" << recSizeBefore
+                      << " recTailBefore='" << recTailBefore << "'"
+                      << " humanFrom=" << humanFrom << " humanTo=" << humanTo;
 
     finishHumanTimerAndSetConsideration();
 
     if (Usi* eng = primaryEngine()) {
         eng->setPreviousFileTo(humanTo.x());
         eng->setPreviousRankTo(humanTo.y());
-    } else {
-        qWarning() << "[HvE] primaryEngine() is null; cannot think";
     }
 
     qint64 bMs = 0, wMs = 0;
     computeGoTimesForUSI(bMs, wMs);
     const QString bTime = QString::number(bMs);
     const QString wTime = QString::number(wMs);
-    qInfo() << "[HvE] go-times bMs=" << bMs << " wMs=" << wMs
-            << " GC.currentPlayer=" << (m_gc ? int(m_gc->currentPlayer()) : -1);
 
-    const bool engineIsP1 = (m_playMode == EvenEngineVsHuman) || (m_playMode == HandicapEngineVsHuman);
+    const bool engineIsP1 =
+        (m_playMode == EvenEngineVsHuman) || (m_playMode == HandicapEngineVsHuman);
     const ShogiGameController::Player engineSeat =
         engineIsP1 ? ShogiGameController::Player1 : ShogiGameController::Player2;
 
-    const bool engineTurnNow =
-        (m_gc && (m_gc->currentPlayer() == engineSeat));
-
-    qInfo() << "[HvE] engineIsP1=" << engineIsP1
-            << "engineSeat=" << int(engineSeat)
-            << "engineTurnNow=" << engineTurnNow;
-
-    if (!engineTurnNow) {
-        qInfo() << "[HvE] skip engine move (human turn), no position/go";
-        if (!gameOverState().isOver) {
-            armHumanTimerIfNeeded();
-        }
-        return;
-    }
+    const bool engineTurnNow = (m_gc && (m_gc->currentPlayer() == engineSeat));
+    qInfo().noquote() << "[IDX][HvE] engineTurnNow=" << engineTurnNow
+                      << " engineSeat=" << int(engineSeat);
+    if (!engineTurnNow) { if (!gameOverState().isOver) armHumanTimerIfNeeded(); return; }
 
     Usi* eng = primaryEngine();
-    if (!eng || !m_gc) {
-        qWarning() << "[HvE] primaryEngine or GC is null; abort engine move";
-        if (!gameOverState().isOver) armHumanTimerIfNeeded();
-        return;
-    }
+    if (!eng || !m_gc || !m_sfenRecord) { if (!gameOverState().isOver) armHumanTimerIfNeeded(); return; }
 
-    if (!m_sfenRecord) {
-        qWarning() << "[HvE] sfenRecord is null; cannot record/apply engine move";
-        if (!gameOverState().isOver) armHumanTimerIfNeeded();
-        return;
-    }
-    qInfo().noquote() << "[HvE] using shared sfenRecord*=" << static_cast<const void*>(m_sfenRecord)
-                      << " size=" << m_sfenRecord->size();
-
-    if (m_positionStr1.isEmpty()) {
-        qInfo() << "[HvE] m_positionStr1 empty -> initPositionStringsFromSfen_() with startpos";
-        initPositionStringsFromSfen_(QString());
-    }
+    if (m_positionStr1.isEmpty()) { initPositionStringsFromSfen_(QString()); }
     if (!m_positionStr1.startsWith(QLatin1String("position "))) {
-        qWarning() << "[HvE] m_positionStr1 does not start with 'position ' -> fixing to startpos moves";
         m_positionStr1 = QStringLiteral("position startpos moves");
     }
-
-    const QString preview = (m_positionStr1.size() > 200)
-                                ? (m_positionStr1.left(200) + QStringLiteral(" ..."))
-                                : m_positionStr1;
-    qInfo() << "[HvE] call Usi::handleHumanVsEngineCommunication"
-            << "pos(constraint) =" << preview;
 
     const auto tc = timeControl();
     const int byoyomiMs = engineIsP1 ? tc.byoyomiMs1 : tc.byoyomiMs2;
 
-    QPoint eFrom = humanFrom;
-    QPoint eTo   = humanTo;
+    QPoint eFrom = humanFrom, eTo = humanTo;
     m_gc->setPromote(false);
 
     eng->handleHumanVsEngineCommunication(
@@ -1726,23 +1730,23 @@ void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& hu
         );
 
     QString rec;
-
-    // ★ 次の手を渡す
-    int nextIdx = m_currentMoveIndex + 1;
+    int nextIdx = mcCur + 1;              // ★ 同期後の mcCur から算出
     const bool ok = m_gc->validateAndMove(
         eFrom, eTo, rec, m_playMode,
         nextIdx, m_sfenRecord, m_gameMoves);
+
+    const QString recTailAfter = (m_sfenRecord && !m_sfenRecord->isEmpty()) ? m_sfenRecord->last() : QString();
+    const int recTailNum = recTailAfter.isEmpty() ? -1 : extractMoveNumber(recTailAfter);
+
+    qInfo().noquote() << "[IDX][HvE] v&m=" << ok
+                      << " argMove(nextIdx)=" << nextIdx
+                      << " mcCur(before sync calc)=" << mcCur
+                      << " recTailAfter='" << recTailAfter << "' num=" << recTailNum;
+
     if (ok) {
         m_currentMoveIndex = nextIdx;
-    }
-
-    qInfo().noquote() << "[HvE] validateAndMove(engine) result=" << ok
-                      << " from=" << eFrom << " to=" << eTo
-                      << " rec*=" << static_cast<const void*>(m_sfenRecord)
-                      << " curIdx=" << m_currentMoveIndex;
-
-    if (!ok) {
-        qWarning() << "[HvE] validateAndMove failed; engine move rejected";
+        qInfo().noquote() << "[IDX][HvE] mcCur ->" << m_currentMoveIndex;
+    } else {
         if (!gameOverState().isOver) armHumanTimerIfNeeded();
         return;
     }
@@ -1768,9 +1772,7 @@ void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& hu
     m_cur = (m_gc->currentPlayer() == ShogiGameController::Player2) ? P2 : P1;
     updateTurnDisplay_(m_cur);
 
-    if (!gameOverState().isOver) {
-        armHumanTimerIfNeeded();
-    }
+    if (!gameOverState().isOver) armHumanTimerIfNeeded();
 }
 
 // 人間手直後に「考慮時間確定 → byoyomi/inc 適用 → KIF追記 → 人間手ハイライト」を済ませ、
