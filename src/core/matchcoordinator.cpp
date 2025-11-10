@@ -2224,9 +2224,18 @@ void MatchCoordinator::onHumanMove_HvH(ShogiGameController::Player moverBefore)
     // 直前手の消費時間（consideration）を確定
     finishTurnTimerAndSetConsiderationFor(moverP);
 
+    // ★ 追加：HvH でも秒読み/インクリメントを適用し、総考慮へ加算して表示値を確定
+    if (m_clock) {
+        if (moverP == P1) {
+            m_clock->applyByoyomiAndResetConsideration1();
+        } else {
+            m_clock->applyByoyomiAndResetConsideration2();
+        }
+    }
+
     // 表示更新（時計ラベル等）
     if (m_hooks.log) m_hooks.log(QStringLiteral("[Match] HvH: finalize previous turn"));
-    if (m_clock)     handleTimeUpdated(); // 既存の UI 更新経路（uiUpdateTurnAndClock など）に寄せる
+    if (m_clock)     handleTimeUpdated(); // 既存の UI 更新経路
 
     // 次手番の計測と UI 準備
     armTurnTimerIfNeeded();
