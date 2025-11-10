@@ -1463,7 +1463,7 @@ void MainWindow::onMoveRequested_(const QPoint& from, const QPoint& to)
     qInfo() << "[UI] onMoveRequested_ from=" << from << " to=" << to
             << " m_playMode=" << int(m_playMode);
 
-    // 編集モードは Controller へ
+    // --- 編集モードは Controller へ丸投げ ---
     if (m_boardController && m_boardController->mode() == BoardInteractionController::Mode::Edit) {
         ensurePositionEditController_();
         if (!m_posEdit || !m_shogiView || !m_gameController) return;
@@ -1473,6 +1473,7 @@ void MainWindow::onMoveRequested_(const QPoint& from, const QPoint& to)
         return;
     }
 
+    // ▼▼▼ 通常対局 ▼▼▼
     if (!m_gameController) {
         qWarning() << "[UI][WARN] m_gameController is null";
         return;
@@ -1484,18 +1485,27 @@ void MainWindow::onMoveRequested_(const QPoint& from, const QPoint& to)
     qInfo() << "[UI] effective modeNow=" << int(modeNow)
             << "(ui m_playMode=" << int(m_playMode) << ", matchMode=" << int(matchMode) << ")";
 
+    // 着手前の手番（HvH/HvE 後処理で使用）
     const auto moverBefore = m_gameController->currentPlayer();
 
+    // validateAndMove は参照引数なのでローカルに退避
     QPoint hFrom = from, hTo = to;
 
-    // ★ ここが肝心：次の手を渡し、成功したら現在手数を更新
-    int nextIdx = m_currentMoveIndex + 1;
+    // ★ここがポイント：次の着手番号は「記録サイズ」を信頼する
+    const int recSizeBefore = (m_sfenRecord ? m_sfenRecord->size() : 0);
+    int nextIdx = recSizeBefore; // ← moveNumber（0始まりの着手インデックスとして解釈）
+
+    qInfo().noquote()
+        << "[IDX][UI] onMoveRequested_ enter "
+        << " cur=" << m_currentMoveIndex
+        << " uiNext=" << (m_currentMoveIndex + 1)
+        << " recSizeBefore=" << recSizeBefore
+        << " recTailBefore='" << (m_sfenRecord && !m_sfenRecord->isEmpty() ? m_sfenRecord->back() : QString("N/A")) << "'"
+        << " from=" << from << " to=" << to << " m_playMode=" << int(m_playMode);
+
     const bool ok = m_gameController->validateAndMove(
         hFrom, hTo, m_lastMove, modeNow,
         nextIdx, m_sfenRecord, m_gameMoves);
-    if (ok) {
-        m_currentMoveIndex = nextIdx;
-    }
 
     if (m_boardController) m_boardController->onMoveApplied(hFrom, hTo, ok);
     if (!ok) {
@@ -1503,6 +1513,21 @@ void MainWindow::onMoveRequested_(const QPoint& from, const QPoint& to)
         return;
     }
 
+    // UI 側の現在カーソルは、常に「記録サイズ」に同期させる
+    if (m_sfenRecord) {
+        m_currentMoveIndex = m_sfenRecord->size() - 1; // 末尾（直近の局面）へ
+    } else {
+        m_currentMoveIndex = nextIdx; // フォールバック
+    }
+
+    qInfo().noquote()
+        << "[IDX][UI] onMoveRequested_ v&m=" << ok
+        << " argMove(nextIdx)=" << nextIdx
+        << " cur(now)=" << m_currentMoveIndex
+        << " recSizeAfter=" << (m_sfenRecord ? m_sfenRecord->size() : -1)
+        << " recTailAfter='" << (m_sfenRecord && !m_sfenRecord->isEmpty() ? m_sfenRecord->back() : QString("N/A")) << "'";
+
+    // --- 対局モードごとの後処理 ---
     switch (modeNow) {
     case HumanVsHuman:
         qInfo() << "[UI] HvH: delegate post-human-move to MatchCoordinator";

@@ -363,6 +363,11 @@ MoveValidator::Turn ShogiGameController::getCurrentTurnForValidator(MoveValidato
 bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QString& record, PlayMode& playMode, int& moveNumber,
                                           QStringList* m_sfenRecord, QVector<ShogiMove>& gameMoves)
 {
+    // 関数冒頭（最初のreturn系ガードの前に）
+    qInfo().noquote() << "[IDX][VAL] enter argMove=" << moveNumber
+                      << " recPtr=" << static_cast<const void*>(m_sfenRecord)
+                      << " recSize(before)=" << (m_sfenRecord ? m_sfenRecord->size() : -1);
+
     // ★ 異常ガード：盤未設定
     if (!board()) {
         const QString errorMessage =
@@ -483,6 +488,18 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
 
     // 手番を変える（ここから先は次手番）
     setCurrentPlayer(currentPlayer() == Player1 ? Player2 : Player1);
+
+    // 関数末尾（trueを返す直前 or SFENをappendした直後の地点がベスト）
+    if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
+        const QString tail = m_sfenRecord->last();
+        qInfo().noquote() << "[IDX][VAL] exit  argMove=" << moveNumber
+                          << " recSize(after)=" << m_sfenRecord->size()
+                          << " tail='" << tail << "'";
+    } else {
+        qInfo().noquote() << "[IDX][VAL] exit  argMove=" << moveNumber
+                          << " recSize(after)=" << (m_sfenRecord ? m_sfenRecord->size() : -1)
+                          << " tail=<empty>";
+    }
 
     return true;
 }
