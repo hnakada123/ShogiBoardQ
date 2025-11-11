@@ -34,8 +34,9 @@ void BranchWiringCoordinator::setupBranchView()
         qDebug() << "[WIRE] branchView.setModel done model=" << m_branchModel;
     }
 
-    // 初期は隠しておく（候補が入ったら show にする）
-    view->setVisible(false);
+    // ★初期から表示しておく：候補が空でもコメント欄の上に常に見せる
+    view->setVisible(true);
+    view->setEnabled(false);
 }
 
 void BranchWiringCoordinator::setupBranchCandidatesWiring()
