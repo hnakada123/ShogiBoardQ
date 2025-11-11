@@ -41,28 +41,36 @@ void BranchWiringCoordinator::setupBranchView()
 
 void BranchWiringCoordinator::setupBranchCandidatesWiring()
 {
-    if (!m_recordPane || !m_branchModel) return;
+    if (!m_recordPane) return;
 
+    // モデル/ビューの配線は別関数 setupBranchView() で済ませ済み
+
+    // Controller を用意（1回だけ）
     if (!m_branchCtl) {
         m_branchCtl = new BranchCandidatesController(m_varEngine, m_branchModel, this);
         qDebug() << "[WIRE] BranchCandidatesController created ve=" << static_cast<void*>(m_varEngine)
                  << " model=" << static_cast<void*>(m_branchModel);
     }
 
-    // RecordPane → Controller の配線
+    // RecordPane 側と結線（クリック → activateCandidate）
     m_branchCtl->attachRecordPane(m_recordPane);
 
-    // Plan クリック → 本コーディネータ経由で「行/手ジャンプ」
+    // Plan クリック → 行/手ジャンプ
     const bool okA = connect(m_branchCtl, &BranchCandidatesController::planActivated,
                              this,         &BranchWiringCoordinator::onBranchPlanActivated,
                              Qt::UniqueConnection);
     qDebug() << "[WIRE] connect planActivated -> onBranchPlanActivated :" << okA;
 
-    // RecordPane の行アクティベート（→候補の有効化）
+    // RecordPane の行アクティベート → 候補の有効化
     const bool okB = connect(m_recordPane, &RecordPane::branchActivated,
                              this,         &BranchWiringCoordinator::onRecordPaneBranchActivated,
                              Qt::UniqueConnection);
     qDebug() << "[WIRE] connect RecordPane.branchActivated -> onRecordPaneBranchActivated :" << okB;
+
+    // ★★ ここが肝：Loader に Controller を教える（以降、Loader が候補を流し込める）
+    if (m_loader) {
+        m_loader->setBranchCandidatesController(m_branchCtl);
+    }
 }
 
 void BranchWiringCoordinator::onRecordPaneBranchActivated(const QModelIndex& index)

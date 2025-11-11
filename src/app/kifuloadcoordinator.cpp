@@ -648,85 +648,88 @@ void KifuLoadCoordinator::showRecordAtPly(const QList<KifDisplayItem>& disp, int
 
 void KifuLoadCoordinator::showBranchCandidatesFromPlan(int row, int ply1)
 {
-    if (!m_branchCtl || !m_kifuBranchModel) return;
+    // モデル/ビュー参照
+    QTableView* view = m_recordPane ? m_recordPane->branchView() : m_kifuBranchView;
 
-    // 0手目や行範囲外：分岐欄は「表示のまま無効化」
+    // 行・手の安全化
     if (ply1 <= 0 || row < 0 || row >= m_resolvedRows.size()) {
-        m_kifuBranchModel->clearBranchCandidates();
-        m_kifuBranchModel->setHasBackToMainRow(false);
-        if (QTableView* view = m_recordPane ? m_recordPane->branchView() : m_kifuBranchView) {
-            view->setVisible(true);
-            view->setEnabled(false);
+        if (m_kifuBranchModel) {
+            m_kifuBranchModel->clearBranchCandidates();
+            m_kifuBranchModel->setHasBackToMainRow(false);
         }
+        if (view) { view->setVisible(true); view->setEnabled(false); }
+        // 文脈保存
+        m_branchPlyContext  = qMax(0, ply1);
+        m_activeResolvedRow = qBound(0, row, m_resolvedRows.size() - 1);
         return;
     }
 
-    // Plan 参照
-    const auto itRow = m_branchDisplayPlan.constFind(row);
-    if (itRow == m_branchDisplayPlan.constEnd()) {
-        // Plan なし：表示のまま無効化
-        m_kifuBranchModel->clearBranchCandidates();
-        m_kifuBranchModel->setHasBackToMainRow(false);
-        if (QTableView* view = m_recordPane ? m_recordPane->branchView() : m_kifuBranchView) {
-            view->setVisible(true);
-            view->setEnabled(false);
+    // 行→(手→計画) テーブルから該当プランを取得
+    const auto rowIt = m_branchDisplayPlan.constFind(row);
+    if (rowIt == m_branchDisplayPlan.constEnd()) {
+        if (m_kifuBranchModel) {
+            m_kifuBranchModel->clearBranchCandidates();
+            m_kifuBranchModel->setHasBackToMainRow(false);
         }
+        if (view) { view->setVisible(true); view->setEnabled(false); }
+        m_branchPlyContext  = ply1;
+        m_activeResolvedRow = row;
         return;
     }
-    const auto& mp  = itRow.value();
-    const auto itP  = mp.constFind(ply1);
-    if (itP == mp.constEnd()) {
-        // Ply なし：表示のまま無効化
-        m_kifuBranchModel->clearBranchCandidates();
-        m_kifuBranchModel->setHasBackToMainRow(false);
-        if (QTableView* view = m_recordPane ? m_recordPane->branchView() : m_kifuBranchView) {
-            view->setVisible(true);
-            view->setEnabled(false);
+    const auto& byPly = rowIt.value();
+    const auto itP    = byPly.constFind(ply1);
+    if (itP == byPly.constEnd()) {
+        if (m_kifuBranchModel) {
+            m_kifuBranchModel->clearBranchCandidates();
+            m_kifuBranchModel->setHasBackToMainRow(false);
         }
+        if (view) { view->setVisible(true); view->setEnabled(false); }
+        m_branchPlyContext  = ply1;
+        m_activeResolvedRow = row;
         return;
     }
 
     const BranchCandidateDisplay& plan = itP.value();
 
-    // 「候補が1つ＆現在指し手と同じなら非表示」→「表示のまま無効化」に変更
-    const QString currentLbl = [&, this]{
+    // 「現在指し手」ラベル（同一1件のみのときは“表示はするが無効化”にするため比較に使う）
+    const QString currentLbl = [&]{
         const int li = ply1 - 1;
         const auto& disp = m_resolvedRows[row].disp;
         return (li >= 0 && li < disp.size()) ? pickLabelForDisp(disp.at(li)) : QString();
     }();
-    bool hide = false;
-    if (plan.items.size() == 1) {
-        const auto& only = plan.items.front();
-        if (!only.label.isEmpty() && only.label == currentLbl) hide = true;
-    }
-    if (hide || plan.items.isEmpty()) {
-        m_kifuBranchModel->clearBranchCandidates();
-        m_kifuBranchModel->setHasBackToMainRow(false);
-        if (QTableView* view = m_recordPane ? m_recordPane->branchView() : m_kifuBranchView) {
-            view->setVisible(true);
-            view->setEnabled(false);
-        }
-        return;
-    }
 
-    // 表示（Controller経由で Plan をそのまま流し込む）
-    QVector<BCDI> pubItems;
+    // Controller に渡す公開アイテムへ変換
+    QVector<BranchCandidateDisplayItem> pubItems;
     pubItems.reserve(plan.items.size());
     for (const auto& it : plan.items) {
-        BCDI x;
+        BranchCandidateDisplayItem x;
         x.row      = it.row;
         x.varN     = it.varN;
         x.lineName = it.lineName;
         x.label    = it.label;
         pubItems.push_back(std::move(x));
     }
-    m_branchCtl->refreshCandidatesFromPlan(ply1, pubItems, plan.baseLabel);
 
-    // ビューは常に表示。候補がある時のみ enable＋選択。
-    if (QTableView* view = m_recordPane ? m_recordPane->branchView() : m_kifuBranchView) {
+    // --- モデル更新 ---
+    if (m_branchCtl) {
+        m_branchCtl->refreshCandidatesFromPlan(ply1, pubItems, plan.baseLabel);
+    } else if (m_kifuBranchModel) {
+        // フォールバック：Controller が未注入でも最低限表示だけは行う
+        QList<KifDisplayItem> rows;
+        rows.reserve(plan.items.size());
+        for (const auto& it : plan.items) {
+            rows.push_back(KifDisplayItem(it.label, QString(), QString(), ply1));
+        }
+        m_kifuBranchModel->setHasBackToMainRow(false);
+        m_kifuBranchModel->setBranchCandidatesFromKif(rows);
+    }
+
+    // --- ビューの可視/選択状態 ---
+    if (view && m_kifuBranchModel) {
         const int rows = m_kifuBranchModel->rowCount();
         view->setVisible(true);
         view->setEnabled(rows > 0);
+
         if (rows > 0) {
             const QModelIndex idx0 = m_kifuBranchModel->index(0, 0);
             if (idx0.isValid() && view->selectionModel()) {
@@ -738,8 +741,8 @@ void KifuLoadCoordinator::showBranchCandidatesFromPlan(int row, int ply1)
     }
 
     // UI 状態
-    m_branchPlyContext   = ply1;
-    m_activeResolvedRow  = row;
+    m_branchPlyContext  = ply1;
+    m_activeResolvedRow = row;
 }
 
 // ====== アクティブ行に対する「分岐あり手」の再計算 → ビュー再描画 ======
@@ -1719,10 +1722,10 @@ void KifuLoadCoordinator::applyResolvedRowAndSelect(int row, int selPly)
 // 既存：分岐候補モデルの構築・表示更新を担う関数
 void KifuLoadCoordinator::showBranchCandidates(int row, int ply)
 {
-    // ...（既存処理：候補の生成、branchModel への詰め替え、RecordPane の表示更新 等）...
+    // Plan ベースの表示へ一本化
+    showBranchCandidatesFromPlan(row, ply);
 
-    // ※ ここで m_navPresenter->refreshBranchCandidates(...) を呼ぶと再帰になるので NG
-    //    代わりに「事後通知API」で“ハイライトと通知”だけ行う
+    // 表示更新後にツリーハイライトだけ通知（逆呼びになるため refreshAll は呼ばない）
     ensureNavigationPresenter_();
     m_navPresenter->updateAfterBranchListChanged(row, ply);
 }
@@ -1742,4 +1745,9 @@ void KifuLoadCoordinator::onMainMoveRowChanged(int selPly)
 
     // 盤/棋譜/ハイライトは Coordinator の既存ユーティリティに一任
     applyResolvedRowAndSelect(row, safePly);
+}
+
+void KifuLoadCoordinator::setBranchCandidatesController(BranchCandidatesController* ctl)
+{
+    m_branchCtl = ctl;
 }

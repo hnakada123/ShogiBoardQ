@@ -70,6 +70,8 @@ public:
 
     void setAnalysisTab(EngineAnalysisTab* tab);
 
+    void setBranchCandidatesController(BranchCandidatesController* ctl);
+
 public slots:
     void applyResolvedRowAndSelect(int row, int selPly);
 
