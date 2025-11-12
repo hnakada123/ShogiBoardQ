@@ -193,6 +193,7 @@ void BoardSyncPresenter::applySfenAtPly(int ply) const
 // 盤面・ハイライト同期（行 → 盤面）
 void BoardSyncPresenter::syncBoardAndHighlightsAtRow(int ply) const
 {
+    // 依存チェック
     if (!m_sfenRecord || !m_gc || !m_gc->board()) {
         qDebug().noquote() << "[PRESENTER] syncBoardAndHighlightsAtRow ABORT:"
                            << "sfenRecord?" << (m_sfenRecord!=nullptr)
@@ -220,14 +221,17 @@ void BoardSyncPresenter::syncBoardAndHighlightsAtRow(int ply) const
         << " maxIdx=" << maxIdx
         << " isTerminalRow=" << isTerminalRow;
 
-    // 盤面適用：要求行 ply のまま。内部でクランプされる想定
+    // ★重要：先に盤面を適用（元の実装と同じ順序を維持）
+    // applySfenAtPly 内でクランプされる想定のため reqPly のまま渡す
     applySfenAtPly(ply);
 
-    if (!m_bic || !m_gameMoves) {
-        qDebug().noquote() << "[PRESENTER] syncBoardAndHighlightsAtRow: no BIC/GameMoves; skip highlights";
+    // ハイライト器（BIC）が無ければここで終了（盤面だけは更新済み）
+    if (!m_bic) {
+        qDebug().noquote() << "[PRESENTER] syncBoardAndHighlightsAtRow: no BIC; skip highlights";
         return;
     }
 
+    // 開始局面（0手目）や終端行（投了等）の行はハイライト消去のみ
     if (safePly <= 0 || isTerminalRow) {
         qDebug().noquote() << "[PRESENTER] syncBoardAndHighlightsAtRow: clear highlights"
                            << " reason=" << (safePly<=0 ? "startpos" : "terminalRow");
@@ -235,26 +239,107 @@ void BoardSyncPresenter::syncBoardAndHighlightsAtRow(int ply) const
         return;
     }
 
-    const int mvIdx = safePly - 1;
-    if (mvIdx < 0 || mvIdx >= m_gameMoves->size()) {
-        qDebug().noquote() << "[PRESENTER] syncBoardAndHighlightsAtRow: mvIdx out of range mvIdx=" << mvIdx
-                           << " gameMoves.size=" << m_gameMoves->size();
-        m_bic->clearAllHighlights();
+    // ======== ここからハイライト推定（SFEN差分） ========
+    auto sfenAt = [&](int idx)->QString {
+        if (!m_sfenRecord || idx < 0 || idx >= m_sfenRecord->size()) return QString();
+        return m_sfenRecord->at(idx);
+    };
+    const QString prev = sfenAt(safePly - 1);
+    const QString curr = sfenAt(safePly);
+
+    // 1局面分の SFEN（盤面部）を 9x9 のトークングリッドへ展開
+    // ★FIX：段(y)は「後手側=上」を原点(0)にする → y = r
+    auto parseOneBoard = [](const QString& sfen, QString grid[9][9])->bool {
+        for (int y=0; y<9; ++y) for (int x=0; x<9; ++x) grid[y][x].clear();
+
+        if (sfen.isEmpty()) return false;
+        const QString boardField = sfen.split(QLatin1Char(' '), Qt::KeepEmptyParts).value(0);
+        const QStringList rows   = boardField.split(QLatin1Char('/'), Qt::KeepEmptyParts);
+        if (rows.size() != 9) return false;
+
+        for (int r = 0; r < 9; ++r) {
+            const QString& row = rows.at(r);
+            const int y = r;    // 上(後手側)=0, 下(先手側)=8
+            int x = 8;          // 筋は右(9筋)=8 → 左(1筋)=0 へ詰める
+
+            for (int i = 0; i < row.size(); ++i) {
+                const QChar ch = row.at(i);
+                if (ch.isDigit()) {
+                    x -= (ch.toLatin1() - '0'); // 連続空白
+                } else if (ch == QLatin1Char('+')) {
+                    if (i + 1 >= row.size() || x < 0) return false;
+                    grid[y][x] = QStringLiteral("+") + row.at(++i); // 成り駒
+                    --x;
+                } else {
+                    if (x < 0) return false;
+                    grid[y][x] = QString(ch); // 通常駒
+                    --x;
+                }
+            }
+            if (x != -1) return false; // 9マス分ちょうどで終わっていない
+        }
+        return true;
+    };
+
+    // prev/curr のグリッド差分から from/to を推定（駒打ちにも対応）
+    auto deduceByDiff = [&](const QString& a, const QString& b, QPoint& from, QPoint& to)->bool {
+        QString ga[9][9], gb[9][9];
+        if (!parseOneBoard(a, ga) || !parseOneBoard(b, gb)) return false;
+
+        bool foundFrom = false, foundTo = false;
+        for (int y = 0; y < 9; ++y) {
+            for (int x = 0; x < 9; ++x) {
+                if (ga[y][x] == gb[y][x]) continue;
+                if (!ga[y][x].isEmpty() && gb[y][x].isEmpty()) {
+                    from = QPoint(x, y); foundFrom = true;   // 元が空いた
+                } else {
+                    to   = QPoint(x, y); foundTo = true;     // 先が変化（駒打ち含む）
+                }
+            }
+        }
+        // 駒打ちは from 不在でも OK（to があればハイライト可能）
+        return foundTo;
+    };
+
+    QPoint from(-1,-1), to(-1,-1);
+    bool ok = deduceByDiff(prev, curr, from, to);
+
+    if (!ok) {
+        // フォールバック：対局中に積んだ m_gameMoves（HvH等）を参照
+        const int mvIdx = safePly - 1;
+        if (!m_gameMoves || mvIdx < 0 || mvIdx >= m_gameMoves->size()) {
+            m_bic->clearAllHighlights();
+            return;
+        }
+        const ShogiMove& last = m_gameMoves->at(mvIdx);
+        const bool hasFrom = (last.fromSquare.x() >= 0 && last.fromSquare.y() >= 0);
+
+        qDebug().noquote() << "[PRESENTER] highlight(fallback:gameMoves)"
+                           << " mvIdx=" << mvIdx
+                           << " from=(" << last.fromSquare.x() << "," << last.fromSquare.y() << ")"
+                           << " to=("   << last.toSquare.x()   << "," << last.toSquare.y()   << ")"
+                           << " hasFrom=" << hasFrom;
+
+        const QPoint to1 = toOne(last.toSquare);
+        if (hasFrom) {
+            const QPoint from1 = toOne(last.fromSquare);
+            m_bic->showMoveHighlights(from1, to1);
+        } else {
+            m_bic->showMoveHighlights(QPoint(), to1);
+        }
         return;
     }
 
-    const ShogiMove& last = m_gameMoves->at(mvIdx);
-    const bool hasFrom = (last.fromSquare.x() >= 0 && last.fromSquare.y() >= 0);
-
-    qDebug().noquote() << "[PRESENTER] highlight"
-                       << " mvIdx=" << mvIdx
-                       << " from=(" << last.fromSquare.x() << "," << last.fromSquare.y() << ")"
-                       << " to=("   << last.toSquare.x()   << "," << last.toSquare.y()   << ")"
+    const QPoint to1   = toOne(to);
+    const bool   hasFrom = (from.x() >= 0 && from.y() >= 0);
+    qDebug().noquote() << "[PRESENTER] highlight(by sfen-diff)"
+                       << " ply=" << safePly
+                       << " from=(" << from.x() << "," << from.y() << ")"
+                       << " to=("   << to.x()   << "," << to.y()   << ")"
                        << " hasFrom=" << hasFrom;
 
-    const QPoint to1 = toOne(last.toSquare);
     if (hasFrom) {
-        const QPoint from1 = toOne(last.fromSquare);
+        const QPoint from1 = toOne(from);
         m_bic->showMoveHighlights(from1, to1);
     } else {
         m_bic->showMoveHighlights(QPoint(), to1);
