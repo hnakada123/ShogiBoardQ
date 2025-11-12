@@ -41,6 +41,8 @@ public:
 
     CommentTextAdapter* commentLabel();
 
+    QPushButton* backToMainButton();
+
 signals:
     void mainRowChanged(int row);
     void branchActivated(const QModelIndex&);

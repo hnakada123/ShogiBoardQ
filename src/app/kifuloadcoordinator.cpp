@@ -651,13 +651,19 @@ void KifuLoadCoordinator::showBranchCandidatesFromPlan(int row, int ply1)
     // モデル/ビュー参照
     QTableView* view = m_recordPane ? m_recordPane->branchView() : m_kifuBranchView;
 
-    // 行・手の安全化
+    // 行・手の安全化（不正時はクリア＆ボタン非表示）
     if (ply1 <= 0 || row < 0 || row >= m_resolvedRows.size()) {
         if (m_kifuBranchModel) {
             m_kifuBranchModel->clearBranchCandidates();
             m_kifuBranchModel->setHasBackToMainRow(false);
         }
         if (view) { view->setVisible(true); view->setEnabled(false); }
+
+        // 「本譜に戻る」ボタンは隠す
+        if (m_recordPane) {
+            if (auto* btn = m_recordPane->backToMainButton()) btn->setVisible(false);
+        }
+
         // 文脈保存
         m_branchPlyContext  = qMax(0, ply1);
         m_activeResolvedRow = qBound(0, row, m_resolvedRows.size() - 1);
@@ -672,10 +678,17 @@ void KifuLoadCoordinator::showBranchCandidatesFromPlan(int row, int ply1)
             m_kifuBranchModel->setHasBackToMainRow(false);
         }
         if (view) { view->setVisible(true); view->setEnabled(false); }
+
+        // ボタン非表示
+        if (m_recordPane) {
+            if (auto* btn = m_recordPane->backToMainButton()) btn->setVisible(false);
+        }
+
         m_branchPlyContext  = ply1;
         m_activeResolvedRow = row;
         return;
     }
+
     const auto& byPly = rowIt.value();
     const auto itP    = byPly.constFind(ply1);
     if (itP == byPly.constEnd()) {
@@ -684,6 +697,12 @@ void KifuLoadCoordinator::showBranchCandidatesFromPlan(int row, int ply1)
             m_kifuBranchModel->setHasBackToMainRow(false);
         }
         if (view) { view->setVisible(true); view->setEnabled(false); }
+
+        // ボタン非表示
+        if (m_recordPane) {
+            if (auto* btn = m_recordPane->backToMainButton()) btn->setVisible(false);
+        }
+
         m_branchPlyContext  = ply1;
         m_activeResolvedRow = row;
         return;
@@ -691,30 +710,32 @@ void KifuLoadCoordinator::showBranchCandidatesFromPlan(int row, int ply1)
 
     const BranchCandidateDisplay& plan = itP.value();
 
-    // 「現在指し手」ラベル（同一1件のみのときは“表示はするが無効化”にするため比較に使う）
-    const QString currentLbl = [&]{
+    // （必要なら）現在指し手のラベルを取得しておく
+    // ※未使用でも将来の無効化判定等で使えるよう残しています
+    QString currentLbl;
+    {
         const int li = ply1 - 1;
         const auto& disp = m_resolvedRows[row].disp;
-        return (li >= 0 && li < disp.size()) ? pickLabelForDisp(disp.at(li)) : QString();
-    }();
-
-    // Controller に渡す公開アイテムへ変換
-    QVector<BranchCandidateDisplayItem> pubItems;
-    pubItems.reserve(plan.items.size());
-    for (const auto& it : plan.items) {
-        BranchCandidateDisplayItem x;
-        x.row      = it.row;
-        x.varN     = it.varN;
-        x.lineName = it.lineName;
-        x.label    = it.label;
-        pubItems.push_back(std::move(x));
+        if (li >= 0 && li < disp.size()) {
+            currentLbl = pickLabelForDisp(disp.at(li));
+        }
     }
 
-    // --- モデル更新 ---
+    // --- BranchCandidatesController 経由で候補を更新（クリック→局面反映の経路を保持） ---
     if (m_branchCtl) {
+        QVector<BranchCandidateDisplayItem> pubItems;
+        pubItems.reserve(plan.items.size());
+        for (const auto& it : plan.items) {
+            BranchCandidateDisplayItem x;
+            x.row      = it.row;
+            x.varN     = it.varN;
+            x.lineName = it.lineName;
+            x.label    = it.label;
+            pubItems.push_back(x);
+        }
         m_branchCtl->refreshCandidatesFromPlan(ply1, pubItems, plan.baseLabel);
     } else if (m_kifuBranchModel) {
-        // フォールバック：Controller が未注入でも最低限表示だけは行う
+        // フォールバック：Controller 未注入でも最低限の表示だけは行う（クリック遷移は不可）
         QList<KifDisplayItem> rows;
         rows.reserve(plan.items.size());
         for (const auto& it : plan.items) {
@@ -729,7 +750,6 @@ void KifuLoadCoordinator::showBranchCandidatesFromPlan(int row, int ply1)
         const int rows = m_kifuBranchModel->rowCount();
         view->setVisible(true);
         view->setEnabled(rows > 0);
-
         if (rows > 0) {
             const QModelIndex idx0 = m_kifuBranchModel->index(0, 0);
             if (idx0.isValid() && view->selectionModel()) {
@@ -740,9 +760,33 @@ void KifuLoadCoordinator::showBranchCandidatesFromPlan(int row, int ply1)
         }
     }
 
+    // --- 「本譜に戻る」ボタンの表示制御とスロット接続（ラムダ無し） ---
+    if (m_recordPane) {
+        if (auto* btn = m_recordPane->backToMainButton()) {
+            const bool hasRows = (m_kifuBranchModel && m_kifuBranchModel->rowCount() > 0);
+            btn->setVisible(hasRows);
+            if (hasRows) {
+                QObject::connect(btn, &QPushButton::clicked,
+                                 this, &KifuLoadCoordinator::onBackToMainButtonClicked_,
+                                 Qt::UniqueConnection);
+            }
+        }
+    }
+
     // UI 状態
     m_branchPlyContext  = ply1;
     m_activeResolvedRow = row;
+}
+
+void KifuLoadCoordinator::onBackToMainButtonClicked_()
+{
+    // varIndex == -1 の行が「本譜」
+    int mainRow = 0;
+    for (int i = 0; i < m_resolvedRows.size(); ++i) {
+        if (m_resolvedRows[i].varIndex < 0) { mainRow = i; break; }
+    }
+    const int safePly = qMax(0, m_branchPlyContext);
+    applyResolvedRowAndSelect(mainRow, safePly);
 }
 
 // ====== アクティブ行に対する「分岐あり手」の再計算 → ビュー再描画 ======

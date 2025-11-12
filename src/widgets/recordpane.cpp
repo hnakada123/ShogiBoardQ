@@ -151,27 +151,6 @@ void RecordPane::wireSignals()
     // 既存：
     connect(m_branch, &QTableView::activated, this, &RecordPane::branchActivated, Qt::UniqueConnection);
     connect(m_branch, &QTableView::clicked,    this, &RecordPane::branchActivated, Qt::UniqueConnection);
-
-    // 追加：矢印ボタンで棋譜表の選択行を移動
-    auto currentRow = [this]() -> int {
-        if (!m_kifu || !m_kifu->selectionModel()) return 0;
-        const QModelIndex cur = m_kifu->selectionModel()->currentIndex();
-        return cur.isValid() ? cur.row() : 0;
-    };
-
-    auto gotoRow = [this](int newRow) {
-        if (!m_kifu || !m_kifu->model()) return;
-        const int rows = m_kifu->model()->rowCount();
-        if (rows <= 0) return;
-
-        newRow = qBound(0, newRow, rows - 1);
-        const QModelIndex idx = m_kifu->model()->index(newRow, 0);
-        if (idx.isValid()) {
-            m_kifu->setCurrentIndex(idx);
-            m_kifu->scrollTo(idx, QAbstractItemView::PositionAtCenter);
-            // selectionModel の currentRowChanged → RecordPane::onKifuCurrentRowChanged → mainRowChanged(row) が飛ぶ
-        }
-    };
 }
 
 void RecordPane::setModels(KifuRecordListModel* recModel, KifuBranchListModel* brModel)
@@ -279,4 +258,26 @@ void RecordPane::setBranchCommentHtml(const QString& html)
 CommentTextAdapter* RecordPane::commentLabel()
 {
     return &m_commentAdapter;
+}
+
+// RecordPane に「本譜に戻る」ボタンを遅延生成して差し込む。
+// 右側の縦スプリッタ m_right の [分岐テーブル, ←このボタン, コメント欄] の順に挿入する。
+// 既に存在する場合はそれを返す。
+QPushButton* RecordPane::backToMainButton()
+{
+    if (!m_right) return nullptr;
+
+    // 既に作ってあればそれを返す
+    if (auto* existed = this->findChild<QPushButton*>("backToMainButton"))
+        return existed;
+
+    auto* btn = new QPushButton(tr("本譜に戻る"), this);
+    btn->setObjectName(QStringLiteral("backToMainButton"));
+    btn->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    btn->setVisible(false); // 初期は非表示
+    btn->setToolTip(tr("現在の手数で本譜（メインライン）に戻る"));
+
+    // m_right の 1 番目（分岐テーブルとコメントの間）に挿入
+    m_right->insertWidget(1, btn);
+    return btn;
 }
