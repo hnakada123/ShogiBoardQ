@@ -82,6 +82,9 @@ public slots:
     // 棋譜テーブルの「本譜行」選択が変わったときに呼ぶ
     void onMainMoveRowChanged(int selPly);
 
+private slots:
+    void onBackToMainButtonClicked_();
+
 signals:
     void errorOccurred(const QString& errorMessage);
     void setReplayMode(bool on);
