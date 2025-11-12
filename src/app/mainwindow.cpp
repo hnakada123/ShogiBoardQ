@@ -14,6 +14,7 @@
 #include "mainwindow.h"
 #include "branchwiringcoordinator.h"
 #include "considerationflowcontroller.h"
+#include "gamelayoutbuilder.h"
 #include "shogigamecontroller.h"
 #include "shogiboard.h"
 #include "shogiview.h"
@@ -56,6 +57,10 @@
 #include "aboutcoordinator.h"
 #include "enginesettingscoordinator.h"
 #include "analysistabwiring.h"
+#include "recordpanewiring.h"
+#include "navigationcontroller.h"
+#include "uiactionswiring.h"
+
 
 using KifuIoService::makeDefaultSaveFileName;
 using KifuIoService::writeKifuFile;
@@ -177,43 +182,15 @@ void MainWindow::restoreWindowAndSync_()
 
 void MainWindow::connectAllActions_()
 {
-    // ファイル/アプリ
-    connect(ui->actionQuit,                 &QAction::triggered, this, &MainWindow::saveSettingsAndClose);
-    connect(ui->actionSaveAs,               &QAction::triggered, this, &MainWindow::saveKifuToFile);
-    connect(ui->actionSave,                 &QAction::triggered, this, &MainWindow::overwriteKifuFile);
-    connect(ui->actionOpenKifuFile,         &QAction::triggered, this, &MainWindow::chooseAndLoadKifuFile);
-    connect(ui->actionVersionInfo,          &QAction::triggered, this, &MainWindow::displayVersionInformation);
-    connect(ui->actionOpenWebsite,          &QAction::triggered, this, &MainWindow::openWebsiteInExternalBrowser);
-
-    // 対局
-    connect(ui->actionNewGame,              &QAction::triggered, this, &MainWindow::resetToInitialState);
-    connect(ui->actionStartGame,            &QAction::triggered, this, &MainWindow::initializeGame);
-    connect(ui->actionResign,               &QAction::triggered, this, &MainWindow::handleResignation);
-    connect(ui->breakOffGame,               &QAction::triggered, this, &MainWindow::handleBreakOffGame);
-
-    // 盤操作・表示（★ここを直結にする）
-    connect(ui->actionFlipBoard,            &QAction::triggered, this,        &MainWindow::onActionFlipBoardTriggered);
-    connect(ui->actionCopyBoardToClipboard, &QAction::triggered, this,        &MainWindow::copyBoardToClipboard);
-    connect(ui->actionMakeImmediateMove,    &QAction::triggered, this,        &MainWindow::movePieceImmediately);
-
-    // ▼ 直結：MainWindow 経由ではなく ShogiView のメソッドを直接呼ぶ
-    if (m_shogiView) {
-        connect(ui->actionEnlargeBoard,     &QAction::triggered, m_shogiView, &ShogiView::enlargeBoard);
-        connect(ui->actionShrinkBoard,      &QAction::triggered, m_shogiView, &ShogiView::reduceBoard);
+    // 既存があれば使い回し
+    if (!m_actionsWiring) {
+        UiActionsWiring::Deps d;
+        d.ui        = ui;
+        d.shogiView = m_shogiView;
+        d.ctx       = this; // MainWindow のスロットに繋ぐ
+        m_actionsWiring = new UiActionsWiring(d, this);
     }
-
-    connect(ui->actionUndoMove,             &QAction::triggered, this,        &MainWindow::undoLastTwoMoves);
-    connect(ui->actionSaveBoardImage,       &QAction::triggered, this,        &MainWindow::saveShogiBoardImage);
-
-    // 解析/検討/詰み・エンジン設定
-    connect(ui->actionToggleEngineAnalysis, &QAction::triggered, this, &MainWindow::toggleEngineAnalysisVisibility);
-    connect(ui->actionEngineSettings,       &QAction::triggered, this, &MainWindow::displayEngineSettingsDialog);
-    connect(ui->actionConsideration,        &QAction::triggered, this, &MainWindow::displayConsiderationDialog);
-    connect(ui->actionAnalyzeKifu,          &QAction::triggered, this, &MainWindow::displayKifuAnalysisDialog);
-    connect(ui->actionStartEditPosition,    &QAction::triggered, this, &MainWindow::beginPositionEditing);
-    connect(ui->actionEndEditPosition,      &QAction::triggered, this, &MainWindow::finishPositionEditing);
-    connect(ui->actionTsumeShogiSearch,     &QAction::triggered, this, &MainWindow::displayTsumeShogiSearchDialog);
-    connect(ui->actionQuitEngine,           &QAction::triggered, this, &MainWindow::handleBreakOffConsidaration);
+    m_actionsWiring->wire();
 }
 
 void MainWindow::connectCoreSignals_()
@@ -415,10 +392,14 @@ void MainWindow::setEngineNamesBasedOnMode()
 // 対局者名と残り時間、将棋盤と棋譜、矢印ボタン、評価値グラフのグループを横に並べて表示する。
 void MainWindow::setupHorizontalGameLayout()
 {
-    m_hsplit = new QSplitter(Qt::Horizontal);
-
-    m_hsplit->addWidget(m_shogiView);
-    m_hsplit->addWidget(m_gameRecordLayoutWidget);
+    if (!m_layoutBuilder) {
+        GameLayoutBuilder::Deps d;
+        d.shogiView          = m_shogiView;
+        d.recordPaneOrWidget = m_gameRecordLayoutWidget;
+        d.analysisTabWidget  = m_tab; // 下段タブ
+        m_layoutBuilder = new GameLayoutBuilder(d, this);
+    }
+    m_hsplit = m_layoutBuilder->buildHorizontalSplit();
 }
 
 // --- レイアウトの中身だけ入れ替えるヘルパ ---
@@ -432,13 +413,48 @@ static void clearLayout(QLayout* lay) {
 void MainWindow::initializeCentralGameDisplay()
 {
     if (!m_centralLayout) return;
+
+    // レイアウトを空にする（既存のウィジェットはレイアウトから外すだけ）
     clearLayout(m_centralLayout);
 
-    Q_ASSERT(m_hsplit);
-    Q_ASSERT(m_tab);                // ここで早期に気づける
+    // 必須部品の存在チェック（無ければ何もしない）
+    if (!m_shogiView || !m_gameRecordLayoutWidget || !m_tab) {
+        qWarning().noquote()
+        << "[initializeCentralGameDisplay] missing widget(s)."
+        << " shogiView=" << (m_shogiView!=nullptr)
+        << " recordPaneOrWidget=" << (m_gameRecordLayoutWidget!=nullptr)
+        << " tab=" << (m_tab!=nullptr);
+        return;
+    }
 
-    if (m_hsplit) m_centralLayout->addWidget(m_hsplit);
-    if (m_tab)    m_centralLayout->addWidget(m_tab);
+    // ★ 重要：
+    // setupHorizontalGameLayout() は setupEngineAnalysisTab() より先に呼ばれるため、
+    // 起動順によっては m_tab 未設定のまま m_layoutBuilder が生成されている。
+    // ここで一度 Builder を作り直し、最新の依存を確実に反映させる。
+    if (m_layoutBuilder) {
+        m_layoutBuilder->deleteLater();
+        m_layoutBuilder = nullptr;
+    }
+    {
+        GameLayoutBuilder::Deps d;
+        d.shogiView          = m_shogiView;
+        d.recordPaneOrWidget = m_gameRecordLayoutWidget; // 右ペイン（RecordPane）
+        d.analysisTabWidget  = m_tab;                    // 下段タブ（EngineAnalysisTab を内包）
+        m_layoutBuilder = new GameLayoutBuilder(d, this);
+    }
+
+    // 左右スプリッタを生成して保持（以後も m_hsplit を参照する箇所があるため）
+    m_hsplit = m_layoutBuilder->buildHorizontalSplit();
+    Q_ASSERT(m_hsplit);
+    Q_ASSERT(m_tab);
+
+    // 中央レイアウトへ追加：上=スプリッタ、下=タブ
+    m_centralLayout->addWidget(m_hsplit);
+    m_centralLayout->addWidget(m_tab);
+
+    // 見た目調整：上を広く、下のタブは控えめ
+    m_centralLayout->setStretch(0, 1); // splitter
+    m_centralLayout->setStretch(1, 0); // analysis tab
 }
 
 void MainWindow::startNewShogiGame(QString& startSfenStr)
@@ -1153,77 +1169,31 @@ void MainWindow::applySelect(int row, int ply)
 
 void MainWindow::setupRecordPane()
 {
-    // 1) モデルが無ければ生成（既にあれば再利用）
-    if (!m_kifuRecordModel)
-        m_kifuRecordModel = new KifuRecordListModel(this);
-    if (!m_kifuBranchModel)
-        m_kifuBranchModel = new KifuBranchListModel(this);
+    // モデルの用意（従来どおり）
+    if (!m_kifuRecordModel) m_kifuRecordModel = new KifuRecordListModel(this);
+    if (!m_kifuBranchModel) m_kifuBranchModel = new KifuBranchListModel(this);
 
-    // 2) RecordPane 生成（既にあれば使い回し）
-    const bool firstTime = (m_recordPane == nullptr);
-    if (!m_recordPane) {
-        m_recordPane = new RecordPane(m_central);
+    // Wiring の生成
+    if (!m_recordPaneWiring) {
+        RecordPaneWiring::Deps d;
+        d.parent      = m_central;                               // 親ウィジェット
+        d.ctx         = this;                                    // RecordPane::mainRowChanged の受け先
+        d.navCtx      = dynamic_cast<INavigationContext*>(this); // NavigationController 用
+        d.recordModel = m_kifuRecordModel;
+        d.branchModel = m_kifuBranchModel;
 
-        connect(m_recordPane, &RecordPane::mainRowChanged,
-                this, &MainWindow::onRecordPaneMainRowChanged_,
-                Qt::UniqueConnection);
-
-        // 旧: setupRecordAndEvaluationLayout() が返していた root の置き換え
-        m_gameRecordLayoutWidget = m_recordPane;
+        m_recordPaneWiring = new RecordPaneWiring(d, this);
     }
 
-    // 3) モデルをビューにセット
-    m_recordPane->setModels(m_kifuRecordModel, m_kifuBranchModel);
+    // RecordPane の構築と配線
+    m_recordPaneWiring->buildUiAndWire();
 
-    // 4) NavigationController を RecordPane のボタンで構築（再実行に強いよう毎回作り直し）
-    if (m_nav) {
-        m_nav->deleteLater();
-        m_nav = nullptr;
-    }
+    // 生成物の取得
+    m_recordPane = m_recordPaneWiring->pane();
+    m_nav        = m_recordPaneWiring->nav(); // 既存コードで m_nav を使う場合に備えて保持
 
-    NavigationController::Buttons btns{
-        m_recordPane->firstButton(),
-        m_recordPane->back10Button(),
-        m_recordPane->prevButton(),
-        m_recordPane->nextButton(),
-        m_recordPane->fwd10Button(),
-        m_recordPane->lastButton(),
-    };
-
-    // すべてのボタンが存在する前提。デバッグ時に早期に気付けるようアサート
-    Q_ASSERT(btns.first && btns.back10 && btns.prev &&
-             btns.next && btns.fwd10 && btns.last);
-
-    m_nav = new NavigationController(btns, /*ctx=*/this, /*parent=*/this);
-
-    // 5) 起動直後に棋譜欄へ「=== 開始局面 ===」を用意（重複挿入を避ける）
-    {
-        if (m_kifuRecordModel) {
-            const int rows = m_kifuRecordModel->rowCount();
-            bool need = true;
-            if (rows > 0) {
-                const QModelIndex idx0 = m_kifuRecordModel->index(0, 0);
-                const QString head = m_kifuRecordModel->data(idx0, Qt::DisplayRole).toString();
-                if (head == QStringLiteral("=== 開始局面 ==="))
-                    need = false;
-            }
-            if (need) {
-                if (rows == 0) {
-                    m_kifuRecordModel->appendItem(
-                        new KifuDisplay(QStringLiteral("=== 開始局面 ==="),
-                                        QStringLiteral("（１手 / 合計）")));
-                } else {
-                    // 念のため既存行がある場合は先頭に差し込む
-                    m_kifuRecordModel->prependItem(
-                        new KifuDisplay(QStringLiteral("=== 開始局面 ==="),
-                                        QStringLiteral("（１手 / 合計）")));
-                }
-            }
-        }
-    }
-
-    // （初回のみで良い UI 調整があれば firstTime を使って分岐できます）
-    Q_UNUSED(firstTime);
+    // レイアウト用（右側ペインとして使用）
+    m_gameRecordLayoutWidget = m_recordPane;
 }
 
 void MainWindow::setupEngineAnalysisTab()

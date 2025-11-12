@@ -76,6 +76,10 @@ class GameRecordPresenter;
 class BranchWiringCoordinator;
 class TimeDisplayPresenter;
 class AnalysisTabWiring;
+class RecordPaneWiring;
+class UiActionsWiring;
+class GameLayoutBuilder;
+class INavigationContext;
 
 // ============================================================
 // MainWindow
@@ -242,7 +246,7 @@ private:
     // --- ユーティリティ ---
     void setPlayersNamesForMode();
     void setCurrentTurn();
-    void movePieceImmediately();
+
     void setGameOverMove(MatchCoordinator::Cause cause, bool loserIsPlayerOne);
     void appendKifuLine(const QString& text, const QString& elapsedTime);
 
@@ -251,24 +255,20 @@ private:
 
     std::unique_ptr<KifuVariationEngine> m_varEngine;
 
-private slots:
-    // ========================================================
-    // Private Slots（connect先になるものはすべてここ）
-    // ========================================================
+public slots:
+    // --- ファイル I/O / 外部操作（★重複宣言禁止：ここだけに置く） ---
+    void chooseAndLoadKifuFile();
+    void saveShogiBoardImage();
+    void copyBoardToClipboard();
+    void openWebsiteInExternalBrowser();
+    void saveKifuToFile();
+    void overwriteKifuFile();
 
     // --- エラー/一般UI ---
     void displayErrorMessage(const QString& message);
     void saveSettingsAndClose();
     void resetToInitialState();
     void onFlowError_(const QString& msg);
-
-    // --- ファイル I/O / 外部操作（★重複宣言禁止：ここだけに置く） ---
-    void chooseAndLoadKifuFile();
-    void saveShogiBoardImage();
-    void copyBoardToClipboard();
-    void openWebsiteInExternalBrowser();
-    void saveKifuToFile();        // ← slots のみに配置
-    void overwriteKifuFile();     // ← slots のみに配置
 
     // --- ダイアログ表示 ---
     void displayPromotionDialog();
@@ -278,14 +278,31 @@ private slots:
     void displayKifuAnalysisDialog();
     void displayTsumeShogiSearchDialog();
 
-    // --- ゲーム開始 / 終了 ---
-    void initializeGame();
-    void handleResignation();
-    void onMatchGameEnded(const MatchCoordinator::GameEndInfo& info);
+    // --- 追加：不足でエラーになっていた slots ---
+    void toggleEngineAnalysisVisibility();
+    void undoLastTwoMoves();
 
     // --- 盤編集 / 表示 ---
     void beginPositionEditing();
     void finishPositionEditing();
+
+    // --- ゲーム開始 / 終了 ---
+    void initializeGame();
+    void handleResignation();
+
+    void onActionFlipBoardTriggered(bool checked = false);
+
+    void handleBreakOffGame();
+
+    // 検討（ConsidarationMode）の手動終了（quit 送信）
+    void handleBreakOffConsidaration();
+
+    void movePieceImmediately();
+
+    void onRecordPaneMainRowChanged_(int row);
+
+private slots:
+    void onMatchGameEnded(const MatchCoordinator::GameEndInfo& info);
     void flipBoardAndUpdatePlayerInfo();
 
     // --- 時計 / タイムアウト ---
@@ -296,13 +313,9 @@ private slots:
     void disableArrowButtons();
     void enableArrowButtons();
 
-    // --- 追加：不足でエラーになっていた slots ---
-    void toggleEngineAnalysisVisibility();
-    void undoLastTwoMoves();
-
     // --- 盤面・反転 ---
     void onBoardFlipped(bool nowFlipped);
-    void onActionFlipBoardTriggered(bool checked = false);
+
     void onReverseTriggered();
 
     // --- 司令塔（時計/進行）通知受け口 ---
@@ -354,10 +367,7 @@ private:
     // いま下段が先手(P1)か？ true=先手が手前、false=後手が手前
     bool m_bottomIsP1 = true;
 
-    void handleBreakOffGame();
 
-    // 検討（ConsidarationMode）の手動終了（quit 送信）
-    void handleBreakOffConsidaration();
     bool m_isLiveAppendMode = false;
     void exitLiveAppendMode_();   // 終局で選択を元に戻す
 
@@ -426,8 +436,11 @@ private:
 private slots:
     void onResignationTriggered();
 
-    void onRecordPaneMainRowChanged_(int row);
-
+    // MainWindow の private メンバに追加
+private:
+    RecordPaneWiring*     m_recordPaneWiring = nullptr;
+    UiActionsWiring*      m_actionsWiring    = nullptr;   // 既に作っていればそのまま
+    GameLayoutBuilder*    m_layoutBuilder    = nullptr;   // 既に作っていればそのまま
 };
 
 #endif // MAINWINDOW_H
