@@ -72,6 +72,8 @@ public:
 
     void setBranchCandidatesController(BranchCandidatesController* ctl);
 
+    void updateBranchTreeFromLive(int currentPly);
+
 public slots:
     void applyResolvedRowAndSelect(int row, int selPly);
 
@@ -161,6 +163,9 @@ private:
     void dumpAllLinesGameMoves() const;
     void buildBranchCandidateDisplayPlan();
     void ensureNavigationPresenter_();
+
+    // 追加（private）
+    QList<KifDisplayItem> collectDispFromRecordModel_() const;
 };
 
 #endif // KIFULOADCOORDINATOR_H
