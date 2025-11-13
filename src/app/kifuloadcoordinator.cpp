@@ -1804,17 +1804,26 @@ QList<KifDisplayItem> KifuLoadCoordinator::collectDispFromRecordModel_() const
     if (!m_kifuRecordModel) return disp;
 
     const int rows = m_kifuRecordModel->rowCount();
-    if (rows <= 1) return disp; // 先頭は「=== 開始局面 ===」なのでスキップ
+    if (rows <= 1) return disp; // 0 行目は「=== 開始局面 ===」
 
-    // 先頭のヘッダ行を除き、列0=指し手, 列1=消費時間を取り出す
+    // 「ASCII数字(1..,23..)+空白任意+ (▲|△)」の時だけ、その数字部分を剥がす。
+    // 例: "1 ▲７六歩" / "1▲７六歩" / "23▲..." / "23 ▲..." は除去対象。
+    // 例: "▲７六歩" / "△７六歩" / "７六歩"（先頭が全角数字）は対象外。
+    static const QRegularExpression kDupMoveNoPattern(
+        QStringLiteral("^\\s*([0-9]+)\\s*(?=[▲△])")
+        );
+
     for (int r = 1; r < rows; ++r) {
         const QModelIndex idxMove = m_kifuRecordModel->index(r, 0);
         const QModelIndex idxTime = m_kifuRecordModel->index(r, 1);
 
-        const QString move = m_kifuRecordModel->data(idxMove, Qt::DisplayRole).toString();
+        QString move = m_kifuRecordModel->data(idxMove, Qt::DisplayRole).toString();
         const QString time = m_kifuRecordModel->data(idxTime, Qt::DisplayRole).toString();
 
-        const int ply = r; // ヘッダを除くので r がそのまま 1始まりの絶対手数
+        // ★ 重複付与検知時のみ、先頭の ASCII 手数を除去
+        move.remove(kDupMoveNoPattern);
+
+        const int ply = r; // ヘッダを除いた 1 始まりの絶対手数
         disp.push_back(KifDisplayItem(move, time, QString(), ply));
     }
 
