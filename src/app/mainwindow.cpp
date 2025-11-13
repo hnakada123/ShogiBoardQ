@@ -1982,9 +1982,14 @@ void MainWindow::showMoveHighlights_(const QPoint& from, const QPoint& to)
     if (m_boardController) m_boardController->showMoveHighlights(from, to);
 }
 
+// ===== MainWindow.cpp: appendKifuLineHook_（ライブ分岐ツリー更新を追加） =====
 void MainWindow::appendKifuLineHook_(const QString& text, const QString& elapsed)
 {
+    // 既存：棋譜欄へ 1手追記（Presenter がモデルへ反映）
     appendKifuLine(text, elapsed);
+
+    // ★追加：HvH/HvE の「1手指すごと」に分岐ツリーを更新
+    refreshBranchTreeLive_();
 }
 
 void MainWindow::onRecordRowChangedByPresenter(int row, const QString& comment)
@@ -2144,4 +2149,70 @@ void MainWindow::onRecordPaneMainRowChanged_(int row)
         m_currentMoveIndex   = row;
     }
     enableArrowButtons();
+}
+
+// ===== MainWindow.cpp: ライブ用の KifuLoadCoordinator を確保 =====
+void MainWindow::ensureKifuLoadCoordinatorForLive_()
+{
+    if (m_kifuLoadCoordinator) {
+        return; // 既に用意済み
+    }
+
+    // KIF読込時と同等の依存で生成（ロード自体はしない）
+    m_kifuLoadCoordinator = new KifuLoadCoordinator(
+        /* gameMoves           */ m_gameMoves,
+        /* resolvedRows        */ m_resolvedRows,
+        /* positionStrList     */ m_positionStrList,
+        /* activeResolvedRow   */ m_activeResolvedRow,
+        /* activePly           */ m_activePly,
+        /* currentSelectedPly  */ m_currentSelectedPly,
+        /* currentMoveIndex    */ m_currentMoveIndex,
+        /* sfenRecord          */ m_sfenRecord,
+        /* gameInfoTable       */ m_gameInfoTable,
+        /* gameInfoDock        */ m_gameInfoDock,
+        /* analysisTab         */ m_analysisTab,
+        /* tab                 */ m_tab,
+        /* shogiView           */ m_shogiView,
+        /* recordPane          */ m_recordPane,
+        /* kifuRecordModel     */ m_kifuRecordModel,
+        /* kifuBranchModel     */ m_kifuBranchModel,
+        /* branchCtl           */ m_branchCtl,
+        /* kifuBranchView      */ m_kifuBranchView,
+        /* branchDisplayPlan   */ m_branchDisplayPlan,
+        this);
+
+    // 分岐配線（既存のやり方に合わせる）
+    if (m_branchWiring) {
+        m_branchWiring->setKifuLoader(m_kifuLoadCoordinator);
+        connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::setupBranchCandidatesWiring_,
+                m_branchWiring,       &BranchWiringCoordinator::setupBranchCandidatesWiring,
+                Qt::UniqueConnection);
+    }
+
+    // Analysisタブとの配線
+    m_kifuLoadCoordinator->setAnalysisTab(m_analysisTab);
+
+    // UI更新通知（既存と同じ）
+    connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::displayGameRecord,
+            this, &MainWindow::displayGameRecord, Qt::UniqueConnection);
+    connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::syncBoardAndHighlightsAtRow,
+            this, &MainWindow::syncBoardAndHighlightsAtRow, Qt::UniqueConnection);
+    connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::enableArrowButtons,
+            this, &MainWindow::enableArrowButtons, Qt::UniqueConnection);
+}
+
+// ===== MainWindow.cpp: ライブ対局中に分岐ツリーを更新 =====
+void MainWindow::refreshBranchTreeLive_()
+{
+    ensureKifuLoadCoordinatorForLive_();
+    if (!m_kifuLoadCoordinator) return;
+
+    // 現在の絶対手数（棋譜モデルは先頭にヘッダ1行を持つため -1）
+    int ply = 0;
+    if (m_kifuRecordModel) {
+        ply = qMax(0, m_kifuRecordModel->rowCount() - 1);
+    }
+
+    // ライブ棋譜から分岐ツリーを再構成し、該当手をハイライト
+    m_kifuLoadCoordinator->updateBranchTreeFromLive(ply);
 }

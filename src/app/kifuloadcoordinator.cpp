@@ -1795,3 +1795,74 @@ void KifuLoadCoordinator::setBranchCandidatesController(BranchCandidatesControll
 {
     m_branchCtl = ctl;
 }
+
+// ===== KifuLoadCoordinator.cpp: ライブ対局から分岐ツリーを更新 =====
+QList<KifDisplayItem> KifuLoadCoordinator::collectDispFromRecordModel_() const
+{
+    QList<KifDisplayItem> disp;
+
+    if (!m_kifuRecordModel) return disp;
+
+    const int rows = m_kifuRecordModel->rowCount();
+    if (rows <= 1) return disp; // 先頭は「=== 開始局面 ===」なのでスキップ
+
+    // 先頭のヘッダ行を除き、列0=指し手, 列1=消費時間を取り出す
+    for (int r = 1; r < rows; ++r) {
+        const QModelIndex idxMove = m_kifuRecordModel->index(r, 0);
+        const QModelIndex idxTime = m_kifuRecordModel->index(r, 1);
+
+        const QString move = m_kifuRecordModel->data(idxMove, Qt::DisplayRole).toString();
+        const QString time = m_kifuRecordModel->data(idxTime, Qt::DisplayRole).toString();
+
+        const int ply = r; // ヘッダを除くので r がそのまま 1始まりの絶対手数
+        disp.push_back(KifDisplayItem(move, time, QString(), ply));
+    }
+
+    return disp;
+}
+
+// ライブ（HvH/HvE）対局の 1手追加ごとに分岐ツリーを更新するエントリポイント
+void KifuLoadCoordinator::updateBranchTreeFromLive(int currentPly)
+{
+    // 現在の棋譜モデルから disp を再構成
+    const QList<KifDisplayItem> disp = collectDispFromRecordModel_();
+
+    if (!m_analysisTab) return; // タブ未生成なら何もしない
+
+    // 最小構成（本譜のみ）で m_resolvedRows を同期
+    m_resolvedRows.clear();
+
+    ResolvedRow main;
+    main.startPly = 1;
+    main.parent   = -1;                // 本譜
+    main.disp     = disp;
+    main.sfen     = QStringList();     // ライブでは SFEN は未使用（描画は disp で十分）
+    main.gm       = QVector<ShogiMove>();
+    main.varIndex = -1;
+
+    m_resolvedRows.push_back(main);
+    m_activeResolvedRow = 0;
+
+    // 分岐候補表示は本譜のみなのでクリア
+    if (m_kifuBranchModel) {
+        m_kifuBranchModel->clearBranchCandidates();
+        m_kifuBranchModel->setHasBackToMainRow(false);
+    }
+
+    // EngineAnalysisTab へ供給
+    QVector<EngineAnalysisTab::ResolvedRowLite> rowsLite;
+    rowsLite.reserve(m_resolvedRows.size());
+    for (const auto& r : m_resolvedRows) {
+        EngineAnalysisTab::ResolvedRowLite x;
+        x.startPly = r.startPly;
+        x.disp     = r.disp;
+        x.sfen     = r.sfen;
+        rowsLite.push_back(std::move(x));
+    }
+    m_analysisTab->setBranchTreeRows(rowsLite);
+
+    // ハイライト：0=開始、1..N=各手
+    const int maxPly  = disp.size();
+    const int safePly = qBound(0, currentPly, maxPly);
+    m_analysisTab->highlightBranchTreeAt(/*row=*/0, /*ply=*/safePly, /*centerOn=*/true);
+}

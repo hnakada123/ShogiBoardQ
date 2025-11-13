@@ -441,6 +441,9 @@ private:
     RecordPaneWiring*     m_recordPaneWiring = nullptr;
     UiActionsWiring*      m_actionsWiring    = nullptr;   // 既に作っていればそのまま
     GameLayoutBuilder*    m_layoutBuilder    = nullptr;   // 既に作っていればそのまま
+
+    void ensureKifuLoadCoordinatorForLive_();
+    void refreshBranchTreeLive_();
 };
 
 #endif // MAINWINDOW_H
