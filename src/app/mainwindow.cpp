@@ -1618,17 +1618,23 @@ void MainWindow::onBranchNodeActivated_(int row, int ply)
     applyResolvedRowAndSelect(row, selPly);
 }
 
+// 毎手の着手確定時：ライブ分岐ツリー更新をイベントループ後段に遅延
 void MainWindow::onMoveCommitted(ShogiGameController::Player mover, int /*ply*/)
 {
+    // 1) いまは即時呼び出しを行わず、0ms 遅延で呼ぶ
+    QTimer::singleShot(0, this, &MainWindow::refreshBranchTreeLive_);
+
+    // 2) （従来通り）EvE の評価グラフだけは維持
     const bool isEvE =
         (m_playMode == EvenEngineVsEngine) ||
         (m_playMode == HandicapEngineVsEngine);
-    if (!isEvE) return;
 
-    if (mover == ShogiGameController::Player1) {
-        redrawEngine1EvaluationGraph();
-    } else if (mover == ShogiGameController::Player2) {
-        redrawEngine2EvaluationGraph();
+    if (isEvE) {
+        if (mover == ShogiGameController::Player1) {
+            redrawEngine1EvaluationGraph();
+        } else if (mover == ShogiGameController::Player2) {
+            redrawEngine2EvaluationGraph();
+        }
     }
 }
 
