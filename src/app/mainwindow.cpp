@@ -864,7 +864,7 @@ void MainWindow::displayGameRecord(const QList<KifDisplayItem> disp)
     m_recordPresenter->displayAndWire(disp, rowCount, m_recordPane);
 }
 
-// 置き換え：1手追記も Presenter に一本化
+// 置き換え：1手追記も Presenter に一本化＋KIF保存用にライブ蓄積
 void MainWindow::updateGameRecord(const QString& elapsedTime)
 {
     const bool gameOverAppended =
@@ -876,9 +876,26 @@ void MainWindow::updateGameRecord(const QString& elapsedTime)
         m_recordPresenter->appendMoveLine(m_lastMove, elapsedTime);
     }
 
+    // ★ KIF保存用にライブのディスプレイ項目も蓄積
+    if (!m_lastMove.isEmpty()) {
+        appendLiveKifItem_(m_lastMove, elapsedTime);
+    }
+
     // 二重追記防止（従来どおり）
     m_lastMove.clear();
 }
+
+
+void MainWindow::appendLiveKifItem_(const QString& prettyMove, const QString& elapsedTime)
+{
+    KifDisplayItem item;
+    item.prettyMove = prettyMove;                                       // 例: "▲７六歩(77)"
+    item.timeText   = elapsedTime.isEmpty() ? QStringLiteral("00:00/00:00:00")
+                                          : elapsedTime;              // 例: "0:05/00:10:20"
+    // item.comment は編集 UI 実装時に更新予定（現状は空）
+    m_liveDisp.push_back(item);
+}
+
 
 void MainWindow::loadWindowSettings()
 {
@@ -1824,22 +1841,208 @@ void MainWindow::ensureTurnSyncBridge_()
 
 void MainWindow::saveKifuToFile()
 {
-    QString err;
-    const QString saved = KifuSaveCoordinator::saveViaDialog(
-        this, m_kifuDataList, m_playMode,
-        m_humanName1, m_humanName2, m_engineName1, m_engineName2, &err);
-    if (saved.isEmpty() && !err.isEmpty())
-        displayErrorMessage(tr("An error occurred in saveKifuToFile. %1").arg(err));
-    else if (!saved.isEmpty())
-        kifuSaveFileName = saved;
+    // ★ その都度最新状態から KIF 行を構築
+    m_kifuDataList = buildKifuDataList_();
+
+    const QString path = KifuSaveCoordinator::saveViaDialog(
+        this,
+        m_kifuDataList,
+        m_playMode,
+        m_humanName1, m_humanName2,
+        m_engineName1, m_engineName2);
+
+    if (!path.isEmpty()) {
+        // 成功時は「上書き保存」用のパスとして保持（既存）
+        kifuSaveFileName = path;
+    }
 }
 
 void MainWindow::overwriteKifuFile()
 {
-    if (kifuSaveFileName.isEmpty()) { saveKifuToFile(); return; }
-    QString err;
-    if (!KifuSaveCoordinator::overwriteExisting(kifuSaveFileName, m_kifuDataList, &err))
-        displayErrorMessage(tr("An error occurred in overwriteKifuFile. %1").arg(err));
+    if (kifuSaveFileName.isEmpty()) {
+        saveKifuToFile(); // 既定パスが無ければ通常の保存へ
+        return;
+    }
+
+    // ★ その都度最新状態から KIF 行を構築
+    m_kifuDataList = buildKifuDataList_();
+
+    QString error;
+    const bool ok = KifuSaveCoordinator::overwriteExisting(kifuSaveFileName, m_kifuDataList, &error);
+    if (!ok) {
+        QMessageBox::warning(this, tr("KIF Save Error"), error);
+    }
+}
+
+static inline QString fwColonLine(const QString& key, const QString& val)
+{
+    // 全角コロン「：」で連結（読込側がこの形を期待）
+    return QStringLiteral("%1：%2").arg(key, val);
+}
+
+QStringList MainWindow::buildKifuDataList_() const
+{
+    QStringList out;
+
+    // 1) ヘッダ（既存の GameInfo 表があれば「そのまま」復元。無ければ最小限を自動生成）
+    const QList<KifGameInfoItem> header = collectGameInfoItems_();
+    for (const auto& it : header) {
+        if (!it.key.trimmed().isEmpty())
+            out << fwColonLine(it.key.trimmed(), it.value.trimmed());
+    }
+    if (!out.isEmpty()) out << QString(); // 空行
+
+    // 2) 「手数----指手---------消費時間--」行（互換のため固定）
+    out << QStringLiteral("手数----指手---------消費時間--");
+
+    // 3) 本譜（コメントは指し手行の直前に * を付けて複数行出力）
+    const QList<KifDisplayItem> disp = collectMainlineDisp_();
+
+    int moveNo = 1;
+    for (const auto& it : disp) {
+        const QString cmt = it.comment.trimmed();
+        if (!cmt.isEmpty()) {
+            const QStringList lines = cmt.split(QRegularExpression(QStringLiteral("\r?\n")),
+                                                Qt::KeepEmptyParts);
+            for (const QString& raw : lines) {
+                const QString t = raw.trimmed();
+                if (t.isEmpty()) continue;
+                // 先頭に * が無ければ付与（保存は KIF の慣習に合わせて * から始める）
+                if (t.startsWith(QLatin1Char('*'))) out << t;
+                else                                out << (QStringLiteral("*") + t);
+            }
+        }
+        const QString time = it.timeText.isEmpty()
+                                 ? QStringLiteral("00:00/00:00:00")
+                                 : it.timeText;
+        // 例: "1 ▲７六歩(77) 0:05/00:00:05"
+        out << QStringLiteral("%1 %2 %3")
+                   .arg(QString::number(moveNo), it.prettyMove, time);
+        ++moveNo;
+    }
+
+    // 4) 終了行（まずは「まで◯手」のみ。勝敗文言などは今後拡張）
+    out << QString();
+    out << QStringLiteral("まで%1手").arg(QString::number(qMax(0, disp.size())));
+
+    return out;
+}
+
+QList<KifGameInfoItem> MainWindow::collectGameInfoItems_() const
+{
+    QList<KifGameInfoItem> items;
+
+    // a) 既存の「対局情報」ドックがあれば、その内容をそのまま採用
+    if (m_gameInfoTable && m_gameInfoTable->rowCount() > 0) {
+        const int rows = m_gameInfoTable->rowCount();
+        for (int r = 0; r < rows; ++r) {
+            const QTableWidgetItem* keyItem   = m_gameInfoTable->item(r, 0);
+            const QTableWidgetItem* valueItem = m_gameInfoTable->item(r, 1);
+            if (!keyItem)   continue;
+            const QString key = keyItem->text().trimmed();
+            const QString val = valueItem ? valueItem->text().trimmed() : QString();
+            if (!key.isEmpty()) items.push_back({key, val});
+        }
+        return items;
+    }
+
+    // b) 読み込み由来のヘッダが無い（＝対局中/直後の保存など） → 最小限を自動生成
+    QString black, white;
+    resolvePlayerNamesForHeader_(black, white);
+
+    items.push_back({ QStringLiteral("開始日時"),
+                     QDateTime::currentDateTime().toString(QStringLiteral("yyyy/MM/dd HH:mm")) });
+    items.push_back({ QStringLiteral("先手"), black });
+    items.push_back({ QStringLiteral("後手"), white });
+
+    // 手合割は簡易推定：初期配置と違えば「その他」、同じなら「平手」
+    const QString sfen = m_startSfenStr.trimmed();
+    const QString initPP = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL");
+    QString teai = QStringLiteral("平手");
+    if (!sfen.isEmpty()) {
+        const QString pp = sfen.section(QLatin1Char(' '), 0, 0); // 盤面部分のみ
+        if (!pp.isEmpty() && pp != initPP) teai = QStringLiteral("その他");
+    }
+    items.push_back({ QStringLiteral("手合割"), teai });
+
+    return items;
+}
+
+QList<KifDisplayItem> MainWindow::collectMainlineDisp_() const
+{
+    // 優先: 解析結果（KIF 読込時に構築済み）
+    if (!m_resolvedRows.isEmpty()) {
+        // parent==-1 を本譜として優先。無ければ先頭を採用。
+        int mainRow = -1;
+        for (int i = 0; i < m_resolvedRows.size(); ++i) {
+            if (m_resolvedRows.at(i).parent < 0) { mainRow = i; break; }
+        }
+        if (mainRow < 0) mainRow = 0;
+        return m_resolvedRows.at(mainRow).disp;
+    }
+
+    // 次点: 対局中に蓄積したライブ表示
+    if (!m_liveDisp.isEmpty()) return m_liveDisp;
+
+    // 最終フォールバック: 棋譜表モデルから拾う（先頭の「=== 開始局面 ===」は除外）
+    QList<KifDisplayItem> out;
+    if (m_kifuRecordModel) {
+        const int rows = m_kifuRecordModel->rowCount();
+        for (int r = 0; r < rows; ++r) {
+            const QString move = m_kifuRecordModel
+                                     ->data(m_kifuRecordModel->index(r, 0), Qt::DisplayRole).toString();
+            const QString time = m_kifuRecordModel
+                                     ->data(m_kifuRecordModel->index(r, 1), Qt::DisplayRole).toString();
+            const QString t = move.trimmed();
+            if (t.isEmpty()) continue;
+            if (t.startsWith(QLatin1Char('='))) continue; // "=== 開始局面 ===" をスキップ
+            KifDisplayItem it;
+            it.prettyMove = t;
+            it.timeText   = time.isEmpty() ? QStringLiteral("00:00/00:00:00") : time;
+            out.push_back(it);
+        }
+    }
+    return out;
+}
+
+void MainWindow::resolvePlayerNamesForHeader_(QString& outBlack, QString& outWhite) const
+{
+    switch (m_playMode) {
+    case HumanVsHuman:
+        outBlack = m_humanName1.isEmpty() ? tr("先手") : m_humanName1;
+        outWhite = m_humanName2.isEmpty() ? tr("後手") : m_humanName2;
+        break;
+
+    case EvenHumanVsEngine:
+        outBlack = m_humanName1.isEmpty()  ? tr("先手")   : m_humanName1;
+        outWhite = m_engineName2.isEmpty() ? tr("Engine") : m_engineName2;
+        break;
+
+    case EvenEngineVsHuman:
+        outBlack = m_engineName1.isEmpty() ? tr("Engine") : m_engineName1;
+        outWhite = m_humanName2.isEmpty()  ? tr("後手")   : m_humanName2;
+        break;
+
+    case EvenEngineVsEngine:
+        outBlack = m_engineName1.isEmpty() ? tr("Engine1"): m_engineName1;
+        outWhite = m_engineName2.isEmpty() ? tr("Engine2"): m_engineName2;
+        break;
+
+    case HandicapEngineVsHuman:
+        outBlack = m_engineName1.isEmpty() ? tr("Engine") : m_engineName1;
+        outWhite = m_humanName2.isEmpty()  ? tr("後手")   : m_humanName2;
+        break;
+
+    case HandicapHumanVsEngine:
+        outBlack = m_humanName1.isEmpty()  ? tr("先手")   : m_humanName1;
+        outWhite = m_engineName2.isEmpty() ? tr("Engine") : m_engineName2;
+        break;
+
+    default:
+        outBlack = tr("先手");
+        outWhite = tr("後手");
+        break;
+    }
 }
 
 void MainWindow::ensurePositionEditController_()
