@@ -1305,6 +1305,7 @@ void MainWindow::setupEngineAnalysisTab()
         Qt::UniqueConnection);
 }
 
+// src/app/mainwindow.cpp
 void MainWindow::initMatchCoordinator()
 {
     // 依存が揃っていない場合は何もしない
@@ -1334,14 +1335,14 @@ void MainWindow::initMatchCoordinator()
     d.sfenRecord = m_sfenRecord;
 
     // ---- ここは「コメントアウト」せず、関数バインドで割り当て ----
-    d.hooks.appendEvalP1      = std::bind(&MainWindow::requestRedrawEngine1Eval_, this);
-    d.hooks.appendEvalP2      = std::bind(&MainWindow::requestRedrawEngine2Eval_, this);
-    d.hooks.sendGoToEngine    = std::bind(&MatchCoordinator::sendGoToEngine,   m_match, _1, _2);
-    d.hooks.sendStopToEngine  = std::bind(&MatchCoordinator::sendStopToEngine, m_match, _1);
-    d.hooks.sendRawToEngine   = std::bind(&MatchCoordinator::sendRawToEngine,  m_match, _1, _2);
-    d.hooks.initializeNewGame = std::bind(&MainWindow::initializeNewGame_, this, _1);
-    d.hooks.showMoveHighlights= std::bind(&MainWindow::showMoveHighlights_, this, _1, _2);
-    d.hooks.appendKifuLine    = std::bind(&MainWindow::appendKifuLineHook_, this, _1, _2);
+    d.hooks.appendEvalP1       = std::bind(&MainWindow::requestRedrawEngine1Eval_, this);
+    d.hooks.appendEvalP2       = std::bind(&MainWindow::requestRedrawEngine2Eval_, this);
+    d.hooks.sendGoToEngine     = std::bind(&MatchCoordinator::sendGoToEngine,   m_match, _1, _2);
+    d.hooks.sendStopToEngine   = std::bind(&MatchCoordinator::sendStopToEngine, m_match, _1);
+    d.hooks.sendRawToEngine    = std::bind(&MatchCoordinator::sendRawToEngine,  m_match, _1, _2);
+    d.hooks.initializeNewGame  = std::bind(&MainWindow::initializeNewGame_, this, _1);
+    d.hooks.showMoveHighlights = std::bind(&MainWindow::showMoveHighlights_, this, _1, _2);
+    d.hooks.appendKifuLine     = std::bind(&MainWindow::appendKifuLineHook_, this, _1, _2);
 
     // ★ 追加（今回の肝）：結果ダイアログ表示フックを配線
     d.hooks.showGameOverDialog = std::bind(&MainWindow::showGameOverMessageBox_, this, _1, _2);
@@ -1400,6 +1401,32 @@ void MainWindow::initMatchCoordinator()
     // PlayMode を司令塔へ伝達（従来どおり）
     if (m_match) {
         m_match->setPlayMode(m_playMode);
+    }
+
+    // ★★ UNDO 用バインディング（今回の修正点）★★
+    if (m_match) {
+        MatchCoordinator::UndoRefs u;
+        u.recordModel      = m_kifuRecordModel;      // 棋譜テーブルのモデル
+        u.gameMoves        = &m_gameMoves;           // 内部の着手配列
+        u.positionStrList  = &m_positionStrList;     // "position ..." 履歴（あれば）
+        u.sfenRecord       = m_sfenRecord;           // SFEN の履歴（Presenterと同一）
+        u.currentMoveIndex = &m_currentMoveIndex;    // 現在手数（0起点）
+        u.gc               = m_gameController;       // 盤ロジック
+        u.boardCtl         = m_boardController;      // ハイライト消去など（null可）
+        u.clock            = m_shogiClock;           // 時計（null可）
+        u.view             = m_shogiView;            // クリック可否の切替
+
+        MatchCoordinator::UndoHooks h;
+        h.getMainRowGuard                 = std::bind(&MainWindow::getMainRowGuard_, this);
+        h.setMainRowGuard                 = std::bind(&MainWindow::setMainRowGuard_, this, _1);
+        h.updateHighlightsForPly          = std::bind(&MainWindow::syncBoardAndHighlightsAtRow, this, _1);
+        h.updateTurnAndTimekeepingDisplay = std::bind(&MainWindow::updateTurnAndTimekeepingDisplay_, this);
+        // 評価値などの巻戻しが必要なら将来ここに追加：
+        // h.handleUndoMove               = std::bind(&MainWindow::onUndoMove_, this, _1);
+        h.isHumanSide                     = std::bind(&MainWindow::isHumanSide_, this, _1);
+        h.isHvH                           = std::bind(&MainWindow::isHvH_, this);
+
+        m_match->setUndoBindings(u, h);
     }
 
     // Clock → MainWindow のタイムアウト系は従来どおり UI 側で受ける
@@ -2491,4 +2518,57 @@ void MainWindow::refreshBranchTreeLive_()
 
     // ライブ棋譜から分岐ツリーを再構成し、該当手をハイライト
     m_kifuLoadCoordinator->updateBranchTreeFromLive(ply);
+}
+
+// ========== UNDO用：MainWindow 補助関数 ==========
+
+bool MainWindow::getMainRowGuard_() const
+{
+    return m_onMainRowGuard;
+}
+
+void MainWindow::setMainRowGuard_(bool on)
+{
+    m_onMainRowGuard = on;
+}
+
+bool MainWindow::isHvH_() const
+{
+    return (m_playMode == HumanVsHuman);
+}
+
+bool MainWindow::isHumanSide_(ShogiGameController::Player p) const
+{
+    // 「どちら側が人間か」を PlayMode から判定
+    switch (m_playMode) {
+    case HumanVsHuman:
+        return true; // 両方人間
+    case EvenHumanVsEngine:
+    case HandicapHumanVsEngine:
+        return (p == ShogiGameController::Player1); // 先手＝人
+    case EvenEngineVsHuman:
+    case HandicapEngineVsHuman:
+        return (p == ShogiGameController::Player2); // 後手＝人
+    case EvenEngineVsEngine:
+    case HandicapEngineVsEngine:
+        return false;
+    default:
+        // 未開始/検討系は人が操作主体という前提
+        return true;
+    }
+}
+
+void MainWindow::updateTurnAndTimekeepingDisplay_()
+{
+    // 手番ラベルなど
+    setCurrentTurn();
+
+    // 時計の再描画（Presenterに現在値を流し直し）
+    if (m_timePresenter && m_shogiClock) {
+        const qint64 p1 = m_shogiClock->getPlayer1TimeIntMs();
+        const qint64 p2 = m_shogiClock->getPlayer2TimeIntMs();
+        const bool p1turn =
+            (m_gameController ? (m_gameController->currentPlayer() == ShogiGameController::Player1) : true);
+        m_timePresenter->onMatchTimeUpdated(p1, p2, p1turn, /*urgencyMs*/ 0);
+    }
 }
