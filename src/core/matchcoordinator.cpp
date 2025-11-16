@@ -2010,9 +2010,17 @@ void MatchCoordinator::armTimerAfterUndo_() {
 
 bool MatchCoordinator::tryRemoveLastItems_(QObject* model, int n) {
     if (!model) return false;
+
+    // まずは直接呼び出し（ダウンキャスト）
+    if (auto* km = qobject_cast<KifuRecordListModel*>(model)) {
+        return km->removeLastItems(n);
+    }
+
+    // フォールバック：メタ呼び出し（Q_INVOKABLE/slot を拾える）
     const QMetaObject* mo = model->metaObject();
     const int idx = mo->indexOfMethod("removeLastItems(int)");
     if (idx < 0) return false;
+
     bool ok = QMetaObject::invokeMethod(model, "removeLastItems", Q_ARG(int, n));
     return ok;
 }

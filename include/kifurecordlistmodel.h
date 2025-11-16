@@ -17,13 +17,11 @@ public:
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
     QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
 
-    // ★ 追加：末尾の1手（=1行）を削除。成功したら true
-    bool removeLastItem();
-
-    // ★ 追加（任意だが推奨）：末尾から n 手（=n行）を一括削除。成功したら true
-    bool removeLastItems(int n);
-
     bool prependItem(KifuDisplay* item);
+
+    // KifuRecordListModel クラス内（public セクション）にある宣言を以下に差し替え
+    Q_INVOKABLE bool removeLastItem();
+    Q_INVOKABLE bool removeLastItems(int n);
 };
 
 #endif // KIFURECORDLISTMODEL_H

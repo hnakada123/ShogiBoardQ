@@ -39,7 +39,16 @@ QVariant KifuRecordListModel::headerData(int section, Qt::Orientation orientatio
     }
 }
 
-// ----------★ ここから追加実装 ----------
+// 先頭に1件追加
+bool KifuRecordListModel::prependItem(KifuDisplay* item)
+{
+    if (!item) return false;
+
+    beginInsertRows(QModelIndex(), 0, 0);
+    list.insert(0, item);      // 先頭へ
+    endInsertRows();
+    return true;
+}
 
 // 末尾の1手（=1行）を削除
 bool KifuRecordListModel::removeLastItem()
@@ -49,16 +58,11 @@ bool KifuRecordListModel::removeLastItem()
     const int last = list.size() - 1;
     beginRemoveRows(QModelIndex(), last, last);
 
-    // AbstractListModel<T> が保持している list の型に合わせて消す。
-    // 多くの実装では QList<T*> か QList<QSharedPointer<T>> のどちらかです。
-    // 1) 生ポインタ（T*）所有の場合：takeLast() して delete
-    // 2) QSharedPointer の場合：takeLast() だけ（参照が切れれば自動で delete）
-    // ここでは 1) を例示。QSharedPointer の場合は delete を外してください。
+    // 所有モデルで生ポインタ管理の場合
     auto *ptr = list.takeLast();
     endRemoveRows();
 
-    // 所有権がモデル側にある前提なら delete
-    delete ptr;
+    delete ptr; // 所有権がモデル側にある前提
 
     return true;
 }
@@ -74,24 +78,11 @@ bool KifuRecordListModel::removeLastItems(int n)
 
     beginRemoveRows(QModelIndex(), first, last);
 
-    // まとめて takeLast() して破棄
     for (int i = 0; i < toRemove; ++i) {
         auto *ptr = list.takeLast();
-        // 所有権がモデル側にある前提なら delete
-        delete ptr;
+        delete ptr; // 所有権がモデル側にある前提
     }
 
     endRemoveRows();
-    return true;
-}
-
-// 先頭に1件追加
-bool KifuRecordListModel::prependItem(KifuDisplay* item)
-{
-    if (!item) return false;
-
-    beginInsertRows(QModelIndex(), 0, 0);
-    list.insert(0, item);      // 先頭へ
-    endInsertRows();
     return true;
 }
