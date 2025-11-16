@@ -454,6 +454,13 @@ private:
     // 対局中のライブ KIF 表示蓄積
     void                  appendLiveKifItem_(const QString& prettyMove, const QString& elapsedTime);
     QList<KifDisplayItem> m_liveDisp;
+
+private:
+    bool getMainRowGuard_() const;
+    void setMainRowGuard_(bool on);
+    bool isHvH_() const;
+    bool isHumanSide_(ShogiGameController::Player p) const;
+    void updateTurnAndTimekeepingDisplay_();
 };
 
 #endif // MAINWINDOW_H

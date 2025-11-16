@@ -1826,114 +1826,67 @@ void MatchCoordinator::setUndoBindings(const UndoRefs& refs, const UndoHooks& ho
     h_ = hooks;
 }
 
-bool MatchCoordinator::undoTwoPlies() {
-    // 依存チェック
-    if (!u_.gameMoves || !u_.currentMoveIndex || !u_.gc) return false;
+bool MatchCoordinator::undoTwoPlies()
+{
+    if (!u_.gc) return false;
 
-    // UNDO フラグ ON
-    m_isUndoInProgress = true;
+    // --- 現在の SFEN 添字を「真実」として決定する ---
+    // sfenRecord: [0]=初期局面, [n]=n手後 の規約
+    QStringList* srec = u_.sfenRecord ? u_.sfenRecord : m_sfenRecord;
+    int curSfenIdx = -1;
 
-    // 進行中の人間用タイマーは止める
-    disarmHumanTimerIfNeeded();
-    // H2H の共有タイマーを使っている場合は、実装があるならこちらも
-    // disarmTurnTimerIfNeeded();
-
-    // 2手戻すには現在インデックスが2以上必要
-    if (*u_.currentMoveIndex < 2) {
-        m_isUndoInProgress = false;
-        return false;
+    if (srec && !srec->isEmpty()) {
+        // 盤面の真実は SFEN の末尾
+        curSfenIdx = srec->size() - 1;
+    } else if (u_.currentMoveIndex) {
+        // 棋譜の行インデックス(0始まり) → SFEN 添字は +1
+        curSfenIdx = *u_.currentMoveIndex + 1;
+    } else if (u_.gameMoves) {
+        // 開始局面を0として、着手数がそのまま SFEN 添字
+        curSfenIdx = u_.gameMoves->size();
     }
 
-    const int moveNumber = *u_.currentMoveIndex - 2;
+    // 2手戻すには、現在が 2 以上（= 初期局面0から少なくとも2手進んでいる）必要
+    if (curSfenIdx < 2) return false;
 
-    // ガード保存＆ON
-    bool prevGuard = false;
-    if (h_.getMainRowGuard) prevGuard = h_.getMainRowGuard();
-    if (h_.setMainRowGuard) h_.setMainRowGuard(true);
+    const int targetSfenIdx = curSfenIdx - 2;      // ★ ここが要点：SFEN基準で2手戻す
+    const int targetMoveRow = qMax(0, targetSfenIdx - 1); // 棋譜行(0始まり)は「SFEN-1」
 
-    // 棋譜モデルの2手削除（メタ呼び出しで removeLastItems(int) があれば優先）
-    if (u_.recordModel) {
-        if (!tryRemoveLastItems_(u_.recordModel, 2)) {
-            // フォールバック：removeLastItem() を 2 回呼ぶ（あれば）
-            QMetaObject::invokeMethod(u_.recordModel, "removeLastItem");
-            QMetaObject::invokeMethod(u_.recordModel, "removeLastItem");
-        }
-    }
-
-    // 指し手配列を安全に2つ削除
-    if (u_.gameMoves->size() >= 2) {
-        u_.gameMoves->removeLast();
-        u_.gameMoves->removeLast();
-    } else {
-        u_.gameMoves->clear();
-    }
-
-    // 評価値や内部集計の巻き戻し（先に position 復元を想定）
-    if (h_.handleUndoMove) h_.handleUndoMove(moveNumber);
-
-    // position 文字列も2つ削除
-    if (u_.positionStrList) {
-        if (u_.positionStrList->size() >= 2) {
-            u_.positionStrList->removeLast();
-            u_.positionStrList->removeLast();
-        } else {
-            u_.positionStrList->clear();
-        }
-    }
-
-    // 盤面（SFEN）を2手前へ（この時点で currentMoveIndex は旧値）
-    if (u_.sfenRecord && moveNumber >= 0 && moveNumber < u_.sfenRecord->size()) {
-        const QString sfen = u_.sfenRecord->at(moveNumber);
+    // --- 局面を戻す ---
+    if (srec && targetSfenIdx >= 0 && targetSfenIdx < srec->size()) {
+        const QString sfen = srec->at(targetSfenIdx);
         if (u_.gc->board()) {
             u_.gc->board()->setSfen(sfen);
         }
-    }
-
-    // SFEN レコード末尾2つ削除
-    if (u_.sfenRecord) {
-        if (u_.sfenRecord->size() >= 2) {
-            qDebug().noquote() << "[MC][undo] BEFORE size=" << u_.sfenRecord->size()
-            << " head=" << u_.sfenRecord->first()
-            << " tail=" << u_.sfenRecord->last();
-
-            u_.sfenRecord->removeLast();
-            u_.sfenRecord->removeLast();
-
-            qDebug().noquote() << "[MC][undo] AFTER  size=" << u_.sfenRecord->size()
-                               << " head=" << (u_.sfenRecord->isEmpty() ? QString() : u_.sfenRecord->first())
-                               << " tail=" << (u_.sfenRecord->isEmpty() ? QString() : u_.sfenRecord->last());
-        } else {
-            u_.sfenRecord->clear();
+        // SFEN履歴の末尾2件を削除（開始局面を含む配列前提）
+        if (srec->size() >= 2) {
+            srec->remove(srec->size() - 2, 2);
         }
     }
 
-    // 現在手数を更新
-    *u_.currentMoveIndex = moveNumber;
+    // --- 内部配列などの末尾2件を削る（存在すれば） ---
+    if (u_.gameMoves && u_.gameMoves->size() >= 2) {
+        u_.gameMoves->remove(u_.gameMoves->size() - 2, 2);
+    }
+    if (u_.positionStrList && u_.positionStrList->size() >= 2) {
+        u_.positionStrList->remove(u_.positionStrList->size() - 2, 2);
+    }
 
-    // ハイライトのクリア → 復元
+    // 現在行（棋譜の0始まり行）を 2手戻し後に一致させる
+    if (u_.currentMoveIndex) {
+        *u_.currentMoveIndex = targetMoveRow;
+    }
+
+    // ハイライトと表示の同期
     if (u_.boardCtl) u_.boardCtl->clearAllHighlights();
-    if (h_.updateHighlightsForPly) h_.updateHighlightsForPly(*u_.currentMoveIndex);
-
-    // ガード復元
-    if (h_.setMainRowGuard) h_.setMainRowGuard(prevGuard);
-
-    // 時計を2手前へ
-    if (u_.clock) u_.clock->undo();
-
-    // 表示の整合を更新
+    if (h_.updateHighlightsForPly) h_.updateHighlightsForPly(targetSfenIdx);
     if (h_.updateTurnAndTimekeepingDisplay) h_.updateTurnAndTimekeepingDisplay();
 
-    // いまの手番が人間ならクリック可否＆計測再アーム
-    const auto sideToMove = u_.gc ? u_.gc->currentPlayer() : ShogiGameController::NoPlayer;
-    const bool humanNow   = h_.isHumanSide ? h_.isHumanSide(sideToMove) : false;
-
+    // いまの手番が人間なら盤のクリックを許可
+    const auto stm = u_.gc ? u_.gc->currentPlayer() : ShogiGameController::NoPlayer;
+    const bool humanNow = h_.isHumanSide ? h_.isHumanSide(stm) : false;
     if (u_.view) u_.view->setMouseClickMode(humanNow);
 
-    // タイマ再アームはイベントキューで
-    QMetaObject::invokeMethod(this, "armTimerAfterUndo_", Qt::QueuedConnection);
-
-    // UNDO フラグ OFF（最後に必ず解除）
-    m_isUndoInProgress = false;
     return true;
 }
 
