@@ -28,6 +28,71 @@ static inline int clampMsToIntLocal(qint64 v) {
     return static_cast<int>(v);
 }
 
+// 平手初期SFENの簡易判定（必要なら厳密化可）
+static bool isStandardStartposSfen_(const QString& sfen)
+{
+    const QString canon = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+    return (!sfen.isEmpty() && sfen.trimmed() == canon);
+}
+
+// 直前のフル position 文字列から、先頭 handCount 手だけ残したベースを作る。
+// 例）prev="position startpos moves 7g7f 3c3d 2g2f 8c8d", handCount=2
+//   → "position startpos moves 7g7f 3c3d"
+static QString buildBasePositionUpToHands_(const QString& prevFull, int handCount, const QString& startSfenHint)
+{
+    QString head;  // "position startpos" or "position sfen <...>"
+    QStringList moves;
+
+    // prevFull を優先して head/moves を抽出
+    if (!prevFull.isEmpty()) {
+        const QString trimmed = prevFull.trimmed();
+
+        if (trimmed.startsWith(QStringLiteral("position startpos"))) {
+            head = QStringLiteral("position startpos");
+        } else if (trimmed.startsWith(QStringLiteral("position sfen "))) {
+            // "position sfen " 以降の SFEN 先頭トークンまでを head として採用（末尾の moves 部は除外）
+            // 単純に " moves " の前までを head とする
+            const int idxMoves = trimmed.indexOf(QStringLiteral(" moves "));
+            head = (idxMoves >= 0) ? trimmed.left(idxMoves) : trimmed; // moves 無ければ全文
+        }
+
+        // moves の抽出
+        const int idxMoves = trimmed.indexOf(QStringLiteral(" moves "));
+        if (idxMoves >= 0) {
+            const QString after = trimmed.mid(idxMoves + 7); // 7 = strlen(" moves ")
+            const QStringList toks = after.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+            for (const QString& t : toks) {
+                if (!t.isEmpty()) moves.append(t);
+            }
+        }
+    }
+
+    // prevFull から head が取れなかった場合：SFENヒントで head を決める
+    if (head.isEmpty()) {
+        if (isStandardStartposSfen_(startSfenHint)) {
+            head = QStringLiteral("position startpos");
+        } else if (!startSfenHint.isEmpty()) {
+            head = QStringLiteral("position sfen %1").arg(startSfenHint);
+        } else {
+            head = QStringLiteral("position startpos"); // フォールバック
+        }
+    }
+
+    // handCount でトリミング
+    if (handCount <= 0) {
+        return head; // moves なし
+    }
+
+    // moves が prevFull 由来で空（または prevFull が空）の場合は、そのまま head のみを返す
+    if (moves.isEmpty()) {
+        return head;
+    }
+
+    const int take = qMin(handCount, moves.size());
+    QStringList headMoves = moves.mid(0, take);
+    return QStringLiteral("%1 moves %2").arg(head, headMoves.join(QLatin1Char(' ')));
+}
+
 using P = MatchCoordinator::Player;
 
 static inline P toP(int gcPlayer) { return (gcPlayer == 1) ? MatchCoordinator::P1 : MatchCoordinator::P2; }
@@ -1830,59 +1895,97 @@ bool MatchCoordinator::undoTwoPlies()
 {
     if (!u_.gc) return false;
 
-    // --- 現在の SFEN 添字を「真実」として決定する ---
-    // sfenRecord: [0]=初期局面, [n]=n手後 の規約
+    // --- ロールバック前のフル position を退避（今回の肝） ---
+    QString prevFullPosition;
+    if (u_.positionStrList && !u_.positionStrList->isEmpty()) {
+        prevFullPosition = u_.positionStrList->last();
+    } else if (!m_positionStrHistory.isEmpty()) {
+        prevFullPosition = m_positionStrHistory.constLast();
+    }
+
+    // --- SFEN履歴の現在位置を把握 ---
     QStringList* srec = u_.sfenRecord ? u_.sfenRecord : m_sfenRecord;
     int curSfenIdx = -1;
 
     if (srec && !srec->isEmpty()) {
-        // 盤面の真実は SFEN の末尾
-        curSfenIdx = srec->size() - 1;
+        curSfenIdx = srec->size() - 1; // 末尾が現局面
     } else if (u_.currentMoveIndex) {
-        // 棋譜の行インデックス(0始まり) → SFEN 添字は +1
-        curSfenIdx = *u_.currentMoveIndex + 1;
+        curSfenIdx = *u_.currentMoveIndex + 1; // 行0始まり → SFENは開始局面含むので+1
     } else if (u_.gameMoves) {
-        // 開始局面を0として、着手数がそのまま SFEN 添字
-        curSfenIdx = u_.gameMoves->size();
+        curSfenIdx = u_.gameMoves->size() + 1;
+    } else {
+        return false;
     }
 
-    // 2手戻すには、現在が 2 以上（= 初期局面0から少なくとも2手進んでいる）必要
-    if (curSfenIdx < 2) return false;
+    // 2手戻し後の SFEN 添字（= 残すべき手数）
+    const int targetSfenIdx = qMax(0, curSfenIdx - 2);   // 0 = 開始局面
+    const int remainHands   = qMax(0, targetSfenIdx);    // 残すべき手数（開始=0→手数=N）
 
-    const int targetSfenIdx = curSfenIdx - 2;      // ★ ここが要点：SFEN基準で2手戻す
-    const int targetMoveRow = qMax(0, targetSfenIdx - 1); // 棋譜行(0始まり)は「SFEN-1」
-
-    // --- 局面を戻す ---
-    if (srec && targetSfenIdx >= 0 && targetSfenIdx < srec->size()) {
+    // --- 盤面を targetSfenIdx に復元 ---
+    if (u_.gc && srec && targetSfenIdx < srec->size()) {
         const QString sfen = srec->at(targetSfenIdx);
         if (u_.gc->board()) {
             u_.gc->board()->setSfen(sfen);
         }
-        // SFEN履歴の末尾2件を削除（開始局面を含む配列前提）
-        if (srec->size() >= 2) {
-            srec->remove(srec->size() - 2, 2);
-        }
+        const bool sideToMoveIsBlack = sfen.contains(QStringLiteral(" b "));
+        u_.gc->setCurrentPlayer(sideToMoveIsBlack ? ShogiGameController::Player1
+                                                  : ShogiGameController::Player2);
     }
 
-    // --- 内部配列などの末尾2件を削る（存在すれば） ---
+    // --- 棋譜/モデル/履歴を末尾2件ずつ削除 ---
+    if (u_.recordModel)              tryRemoveLastItems_(u_.recordModel, 2);
     if (u_.gameMoves && u_.gameMoves->size() >= 2) {
         u_.gameMoves->remove(u_.gameMoves->size() - 2, 2);
     }
     if (u_.positionStrList && u_.positionStrList->size() >= 2) {
         u_.positionStrList->remove(u_.positionStrList->size() - 2, 2);
     }
+    if (srec && srec->size() >= 2) {
+        srec->remove(srec->size() - 2, 2);
+    }
 
-    // 現在行（棋譜の0始まり行）を 2手戻し後に一致させる
+    // --- USI用 position 履歴も2手ぶん巻き戻す ---
+    if (m_positionStrHistory.size() >= 2) {
+        m_positionStrHistory.remove(m_positionStrHistory.size() - 2, 2);
+    } else {
+        m_positionStrHistory.clear();
+    }
+
+    // --- ★ 巻き戻し後の “現在ベース” を厳密に再構成（prev を 先頭 remainHands 手にトリム） ---
+    const QString startSfen0 = (srec && !srec->isEmpty()) ? srec->first() : QString();
+    const QString nextBase   = buildBasePositionUpToHands_(prevFullPosition, remainHands, startSfen0);
+
+    // 現在値と履歴に反映
+    m_positionStr1    = nextBase;
+    m_positionPonder1 = nextBase;
+
+    if (u_.positionStrList) {
+        // GUI側履歴の末尾を nextBase に整合（末尾が無い/異なる場合は置き換え）
+        if (u_.positionStrList->isEmpty()) {
+            u_.positionStrList->append(nextBase);
+        } else {
+            // 末尾を差し替え（「待った」直後の基底を明示的に保持）
+            (*u_.positionStrList)[u_.positionStrList->size() - 1] = nextBase;
+        }
+    }
+
+    if (m_positionStrHistory.isEmpty() || m_positionStrHistory.constLast() != nextBase) {
+        m_positionStrHistory.clear();
+        m_positionStrHistory.append(nextBase);
+    }
+
+    // --- 現在行（0始まり）を同期 ---
+    const int targetMoveRow = qMax(0, targetSfenIdx - 1);
     if (u_.currentMoveIndex) {
         *u_.currentMoveIndex = targetMoveRow;
     }
 
-    // ハイライトと表示の同期
+    // --- 表示/ハイライトの同期 ---
     if (u_.boardCtl) u_.boardCtl->clearAllHighlights();
     if (h_.updateHighlightsForPly) h_.updateHighlightsForPly(targetSfenIdx);
     if (h_.updateTurnAndTimekeepingDisplay) h_.updateTurnAndTimekeepingDisplay();
 
-    // いまの手番が人間なら盤のクリックを許可
+    // --- 入力許可（人間手番なら盤クリックOK） ---
     const auto stm = u_.gc ? u_.gc->currentPlayer() : ShogiGameController::NoPlayer;
     const bool humanNow = h_.isHumanSide ? h_.isHumanSide(stm) : false;
     if (u_.view) u_.view->setMouseClickMode(humanNow);
