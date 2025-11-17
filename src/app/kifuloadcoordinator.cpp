@@ -1906,7 +1906,8 @@ void KifuLoadCoordinator::updateBranchTreeFromLive(int currentPly)
     // EngineAnalysisTab へ供給
     QVector<EngineAnalysisTab::ResolvedRowLite> rowsLite;
     rowsLite.reserve(m_resolvedRows.size());
-    for (const auto& r : m_resolvedRows) {
+    const auto& rowsConst = std::as_const(m_resolvedRows);
+    for (const ResolvedRow& r : rowsConst) {
         EngineAnalysisTab::ResolvedRowLite x;
         x.startPly = r.startPly;
         x.disp     = r.disp;
