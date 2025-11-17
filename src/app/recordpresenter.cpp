@@ -52,23 +52,52 @@ void GameRecordPresenter::presentGameRecord(const QList<KifDisplayItem>& disp) {
     }
 }
 
-void GameRecordPresenter::appendMoveLine(const QString& prettyMove, const QString& elapsedTime) {
+void GameRecordPresenter::appendMoveLine(const QString& prettyMove, const QString& elapsedTime)
+{
     const QString last = prettyMove.trimmed();
     if (last.isEmpty()) {
         qDebug() << "[RecordPresenter] skip empty move line";
         return;
     }
 
+    // --- 手数の算出 ---
+    // 基本は「モデルの現在行数」だが、先頭に「開始局面」「平手」「startpos」などの見出し行が
+    // 1行入っている構成のため、これを手数計算から除外する。
+    int moveRows = 0;
+    if (m_d.model) {
+        moveRows = m_d.model->rowCount();
+
+        if (moveRows > 0) {
+            const QModelIndex headIdx = m_d.model->index(0, 0);
+            const QString headText = m_d.model->data(headIdx, Qt::DisplayRole).toString();
+
+            // 見出し行の代表的な文言を検出して 1 行分を差し引く
+            // （必要に応じて追加： "開始局面", "平手", "Handicap", "startpos" 等）
+            if (headText.contains(QStringLiteral("開始局面"))
+                || headText.contains(QStringLiteral("平手"))
+                || headText.contains(QStringLiteral("startpos"), Qt::CaseInsensitive)) {
+                moveRows -= 1;
+                if (moveRows < 0) moveRows = 0;
+            }
+        }
+    }
+
+    // 次に付与すべき手数（1始まり）
+    const int nextMoveNumber = moveRows + 1;
+
+    // 内部の現在手数インデックスも同期（独自カウンタに依存しない）
+    m_currentMoveIndex = nextMoveNumber;
+
     // 「   n ▲７六歩」形式（左寄せ4桁）
-    const QString moveNumberStr = QString::number(++m_currentMoveIndex);
+    const QString moveNumberStr = QString::number(m_currentMoveIndex);
     const QString spaces = QString(qMax(0, 4 - moveNumberStr.length()), QLatin1Char(' '));
     const QString recordLine = spaces + moveNumberStr + QLatin1Char(' ') + last;
 
-    // KIF出力用（先後記号は除去）
+    // KIF 出力用（先後記号は除去）
     QString kifuLine = recordLine + QStringLiteral(" ( ") + elapsedTime + QLatin1String(" )");
     kifuLine.remove(QStringLiteral("▲"));
     kifuLine.remove(QStringLiteral("△"));
-    m_kifuDataList.append(kifuLine); // 必要なければ放置でOK
+    m_kifuDataList.append(kifuLine); // 必要なければそのままでOK
 
     if (m_d.model) {
         m_d.model->appendItem(new KifuDisplay(recordLine, elapsedTime));
