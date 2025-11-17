@@ -710,8 +710,7 @@ void KifuLoadCoordinator::showBranchCandidatesFromPlan(int row, int ply1)
 
     const BranchCandidateDisplay& plan = itP.value();
 
-    // （必要なら）現在指し手のラベルを取得しておく
-    // ※未使用でも将来の無効化判定等で使えるよう残しています
+    // （必要なら）現在指し手のラベルを取得しておく（候補リスト選択合わせ用）
     QString currentLbl;
     {
         const int li = ply1 - 1;
@@ -745,18 +744,50 @@ void KifuLoadCoordinator::showBranchCandidatesFromPlan(int row, int ply1)
         m_kifuBranchModel->setBranchCandidatesFromKif(rows);
     }
 
-    // --- ビューの可視/選択状態 ---
+    // --- ビューの可視/有効状態だけ先に反映（既定選択はここでは行わない） ---
     if (view && m_kifuBranchModel) {
         const int rows = m_kifuBranchModel->rowCount();
         view->setVisible(true);
         view->setEnabled(rows > 0);
-        if (rows > 0) {
-            const QModelIndex idx0 = m_kifuBranchModel->index(0, 0);
-            if (idx0.isValid() && view->selectionModel()) {
-                view->selectionModel()->setCurrentIndex(
-                    idx0, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+    }
+
+    // --- ここがポイント：描画後に「現在の手」と一致する候補行を探して選択し直す ---
+    if (view && m_kifuBranchModel && view->model() && view->selectionModel()) {
+        // 先頭の手数（"3 " 等）を剥がして比較する
+        // （ラムダ禁止のため簡易に都度 remove で対応）
+        QString wantKey = currentLbl;
+        {
+            // ^\s*\d+\s* を削除
+            QRegularExpression re(QStringLiteral(R"(^\s*\d+\s*)"));
+            wantKey.remove(re);
+        }
+
+        int foundRow = -1;
+        const int rcount = m_kifuBranchModel->rowCount();
+        int r = 0;
+        while (r < rcount) {
+            const QModelIndex idx = m_kifuBranchModel->index(r, 0);
+            QString cell = m_kifuBranchModel->data(idx, Qt::DisplayRole).toString();
+            // こちらも先頭の手数を剥がして比較
+            {
+                QRegularExpression re(QStringLiteral(R"(^\s*\d+\s*)"));
+                cell.remove(re);
             }
-            view->scrollToTop();
+            if (cell == wantKey && !wantKey.isEmpty()) {
+                foundRow = r;
+                break;
+            }
+            ++r;
+        }
+
+        QItemSelectionModel* sel = view->selectionModel();
+        if (foundRow >= 0) {
+            const QModelIndex pick = m_kifuBranchModel->index(foundRow, 0);
+            sel->setCurrentIndex(pick, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+            view->scrollTo(pick, QAbstractItemView::PositionAtCenter);
+        } else {
+            // 見つからない場合は勝手に先頭を選ばず、選択をクリアしておく
+            sel->clearSelection();
         }
     }
 
@@ -1711,8 +1742,6 @@ void KifuLoadCoordinator::ensureNavigationPresenter_()
     //         this, &KifuLoadCoordinator::onBranchUiUpdated); // ※スロット用意時
 }
 
-// src/app/kifuloadcoordinator.cpp
-
 void KifuLoadCoordinator::applyResolvedRowAndSelect(int row, int selPly)
 {
     // デバッグ：入口
@@ -1735,16 +1764,20 @@ void KifuLoadCoordinator::applyResolvedRowAndSelect(int row, int selPly)
     const int safeRow = qBound(0, row, m_resolvedRows.size() - 1);
     const int safePly = qMax(0, selPly);
 
+    // ★★★★★ これが肝：ここで “現在の解決行/手” を更新してから後段の処理へ ★★★★★
+    m_activeResolvedRow = safeRow;
+    m_activePly         = safePly;
+
+    // 以降は既存ロジック（表示列/局面列の切り替え、モデル反映、選択、盤同期 など）
     const ResolvedRow& rr = m_resolvedRows[safeRow];
 
     // 1..N の表示列
     m_dispCurrent = rr.disp;
 
     // 0..N の SFEN 列（共有実体を書き換え）
-    // ライブ対局直後など rr.sfen が空のときに既存の共有SFENを破壊しないように保護する
     if (m_sfenRecord) {
         if (!rr.sfen.isEmpty()) {
-            *m_sfenRecord = rr.sfen; // COW（Qt の QStringList は暗黙共有）
+            *m_sfenRecord = rr.sfen; // COW
             qDebug().noquote() << "[KLC] SFEN overwritten from resolvedRows  size="
                                << m_sfenRecord->size();
         } else {
@@ -1753,7 +1786,7 @@ void KifuLoadCoordinator::applyResolvedRowAndSelect(int row, int selPly)
         }
     }
 
-    // 1..N の USI ムーブ列（共有参照を書き換え）
+    // 1..N の USI ムーブ列
     m_gameMoves = rr.gm;
 
     // ------- 棋譜テーブルへ反映 & 選択（safePly 行を選択） -------
