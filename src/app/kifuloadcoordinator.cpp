@@ -814,10 +814,17 @@ void KifuLoadCoordinator::onBackToMainButtonClicked_()
 {
     // varIndex == -1 の行が「本譜」
     int mainRow = 0;
-    for (int i = 0; i < m_resolvedRows.size(); ++i) {
-        if (m_resolvedRows[i].varIndex < 0) { mainRow = i; break; }
+    const int n = m_resolvedRows.size();
+    for (int i = 0; i < n; ++i) {
+        if (m_resolvedRows.at(i).varIndex < 0) { mainRow = i; break; }
     }
-    const int safePly = qMax(0, m_branchPlyContext);
+
+    const int safePly = (m_branchPlyContext < 0) ? 0 : m_branchPlyContext;
+
+    // ★ Sticky の自動保持を一度だけ無効化するため、
+    //   「直前の行」を本譜(=0行)として扱わせる
+    m_activeResolvedRow = mainRow;
+
     applyResolvedRowAndSelect(mainRow, safePly);
 }
 
@@ -1756,29 +1763,58 @@ void KifuLoadCoordinator::applyResolvedRowAndSelect(int row, int selPly)
     // ------- 安全化と早期リターン -------
     if (m_resolvedRows.isEmpty()) {
         // 解決行が未構築のケースでは、現在の disp を使って最低限の同期だけ行う
-        showRecordAtPly(m_dispCurrent, qMax(0, selPly));
+        const int pick = (selPly < 0) ? 0 : selPly;
+        showRecordAtPly(m_dispCurrent, pick);
         ensureNavigationPresenter_();
-        m_navPresenter->refreshAll(/*row=*/0, qMax(0, selPly));
+        m_navPresenter->refreshAll(/*row=*/0, pick);
+        qDebug() << "[KLC] applyResolvedRowAndSelect leave (no resolved rows)";
         return;
     }
 
-    const int safeRow = qBound(0, row, m_resolvedRows.size() - 1);
-    const int safePly = qMax(0, selPly);
+    // 呼び出し引数の一旦安全化
+    const int nRows   = m_resolvedRows.size();
+    int       safeRow = (row < 0) ? 0 : ((row >= nRows) ? (nRows - 1) : row);
+    int       safePly = (selPly < 0) ? 0 : selPly;
 
-    // ★★★★★ これが肝：ここで “現在の解決行/手” を更新してから後段の処理へ ★★★★★
+    // ======== Sticky 分岐ロジック ========
+    // 直前に Var 行を表示していた場合、ツリーで「分岐前」のノードを押しても
+    // その Var 行を維持する（= 本譜へ勝手に戻さない）
+    // 条件:
+    //   1) 今回要求 row が本譜(=0)
+    //   2) 直前のアクティブ行が Var 行 (varIndex >= 0)
+    //   3) 今回の手数 safePly が、その Var 行の startPly より前
+    const int prevRow = (m_activeResolvedRow < 0)
+                            ? 0
+                            : ((m_activeResolvedRow >= nRows) ? (nRows - 1) : m_activeResolvedRow);
+
+    if (safeRow == 0 && prevRow >= 0 && prevRow < nRows) {
+        const ResolvedRow& prev = m_resolvedRows.at(prevRow);
+        if (prev.varIndex >= 0) {
+            const int varStart = (prev.startPly <= 0) ? 1 : prev.startPly;
+            if (safePly < varStart) {
+                qDebug() << "[KLC][sticky] keep variation row instead of main:"
+                         << "prevRow=" << prevRow << "varStart=" << varStart
+                         << "requested ply=" << safePly;
+                safeRow = prevRow; // ← 本譜に戻さず Var 行を維持
+            }
+        }
+    }
+    // ======== Sticky 分岐ここまで ========
+
+    // ★★★★★ 現在の解決行/手をまず更新（以降の処理はこの状態を前提） ★★★★★
     m_activeResolvedRow = safeRow;
     m_activePly         = safePly;
 
-    // 以降は既存ロジック（表示列/局面列の切り替え、モデル反映、選択、盤同期 など）
-    const ResolvedRow& rr = m_resolvedRows[safeRow];
+    // 以降：表示列/局面列/USIムーブ列を、この safeRow の行に切り替え
+    const ResolvedRow& rr = m_resolvedRows.at(safeRow);
 
     // 1..N の表示列
     m_dispCurrent = rr.disp;
 
-    // 0..N の SFEN 列（共有実体を書き換え）
+    // 0..N の SFEN 列（共有実体を書き換え/COW）
     if (m_sfenRecord) {
         if (!rr.sfen.isEmpty()) {
-            *m_sfenRecord = rr.sfen; // COW
+            *m_sfenRecord = rr.sfen;
             qDebug().noquote() << "[KLC] SFEN overwritten from resolvedRows  size="
                                << m_sfenRecord->size();
         } else {
@@ -1791,7 +1827,6 @@ void KifuLoadCoordinator::applyResolvedRowAndSelect(int row, int selPly)
     m_gameMoves = rr.gm;
 
     // ------- 棋譜テーブルへ反映 & 選択（safePly 行を選択） -------
-    // 内部で displayGameRecord + selection + scroll + syncBoard... を行う
     showRecordAtPly(m_dispCurrent, safePly);
 
     // 「分岐あり」マーカーの再計算と描画更新（本譜/変化の切替に追随）
@@ -1799,7 +1834,7 @@ void KifuLoadCoordinator::applyResolvedRowAndSelect(int row, int selPly)
 
     m_loadingKifu = false;
 
-    // ------- 分岐候補（Plan 方式）とツリーのハイライトまで一括更新 -------
+    // ------- 分岐候補（Plan 方式）とツリーハイライトまで一括更新 -------
     ensureNavigationPresenter_();
     m_navPresenter->refreshAll(safeRow, safePly);
 
