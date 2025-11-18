@@ -59,19 +59,6 @@
      <addaction name="Sfen"/>
      <addaction name="BOD"/>
     </widget>
-    <widget class="QMenu" name="copyURLWebPhaseDiagramClipboard">
-     <property name="title">
-      <string>&amp;Web局面図のURLをクリップボードにコピー</string>
-     </property>
-     <addaction name="withoutImgTag"/>
-     <addaction name="withImgTag"/>
-    </widget>
-    <addaction name="undo"/>
-    <addaction name="redo"/>
-    <addaction name="separator"/>
-    <addaction name="unprompted"/>
-    <addaction name="pass"/>
-    <addaction name="separator"/>
     <addaction name="copyGameRecord"/>
     <addaction name="pasteGameRecord"/>
     <addaction name="shogiPositionCopy"/>
@@ -79,12 +66,14 @@
     <addaction name="actionCopyBoardToClipboard"/>
     <addaction name="copyImageEvaluatedValueClipboard"/>
     <addaction name="separator"/>
-    <addaction name="copyURLWebPhaseDiagramClipboard"/>
-    <addaction name="viewPlayBrowser"/>
-    <addaction name="kyokumenPedia"/>
+    <addaction name="actionStartEditPosition"/>
+    <addaction name="actionEndEditPosition"/>
+    <addaction name="flatHandInitialPosition"/>
+    <addaction name="shogiProblemInitialPosition"/>
+    <addaction name="returnAllPiecesOnStand"/>
     <addaction name="separator"/>
-    <addaction name="bookmark"/>
-    <addaction name="bookmarkRegistration"/>
+    <addaction name="reversal"/>
+    <addaction name="turnaround"/>
    </widget>
    <widget class="QMenu" name="Display">
     <property name="title">
@@ -142,20 +131,6 @@
     <addaction name="standardMoveManagement"/>
     <addaction name="evaluationValueInformation"/>
    </widget>
-   <widget class="QMenu" name="positionEdit">
-    <property name="title">
-     <string>局面編集(P)</string>
-    </property>
-    <addaction name="actionStartEditPosition"/>
-    <addaction name="actionEndEditPosition"/>
-    <addaction name="separator"/>
-    <addaction name="flatHandInitialPosition"/>
-    <addaction name="shogiProblemInitialPosition"/>
-    <addaction name="returnAllPiecesOnStand"/>
-    <addaction name="separator"/>
-    <addaction name="reversal"/>
-    <addaction name="turnaround"/>
-   </widget>
    <widget class="QMenu" name="Tool">
     <property name="title">
      <string>ツール(T)</string>
@@ -186,7 +161,6 @@
    <addaction name="Display"/>
    <addaction name="Game"/>
    <addaction name="standardMove"/>
-   <addaction name="positionEdit"/>
    <addaction name="Tool"/>
    <addaction name="Help"/>
   </widget>
