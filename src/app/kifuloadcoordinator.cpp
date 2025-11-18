@@ -421,6 +421,9 @@ void KifuLoadCoordinator::loadKifuFromFile(const QString& filePath)
     buildBranchCandidateDisplayPlan();
     dumpBranchCandidateDisplayPlan();
 
+    // ★ 追加：読み込み直後に “+付与 & 行着色” をまとめて反映（Main 行が表示中）
+    applyBranchMarksForCurrentLine_();
+
     // 12) 分岐ツリーへ供給（黄色ハイライトは applyResolvedRowAndSelect 内で同期）
     if (m_analysisTab) {
         QVector<EngineAnalysisTab::ResolvedRowLite> rows;
@@ -616,6 +619,9 @@ void KifuLoadCoordinator::showRecordAtPly(const QList<KifDisplayItem>& disp, int
     // その過程で m_currentMoveIndex が 0 に戻る実装になっている
     displayGameRecord(disp);
 
+    // ★ 追加：現在表示中の行に対する「分岐あり手」マーキングをモデルへ反映
+    applyBranchMarksForCurrentLine_();
+
     // ★ RecordPane 内のビューを使う
     QTableView* view = (m_recordPane ? m_recordPane->kifuView() : nullptr);
     if (!view || !view->model()) return;
@@ -624,25 +630,20 @@ void KifuLoadCoordinator::showRecordAtPly(const QList<KifDisplayItem>& disp, int
     const int rc  = view->model()->rowCount();
     const int row = qBound(0, selectPly, rc > 0 ? rc - 1 : 0);
 
-    // 対象行を選択
+    // 0列目インデックス（選択は行単位）
     const QModelIndex idx = view->model()->index(row, 0);
-    if (!idx.isValid()) return;
-
     if (auto* sel = view->selectionModel()) {
-        sel->setCurrentIndex(idx,
-                             QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+        sel->setCurrentIndex(idx, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
     } else {
         view->setCurrentIndex(idx);
     }
     view->scrollTo(idx, QAbstractItemView::PositionAtCenter);
 
-    // ＝＝＝＝＝＝＝＝＝＝＝＝ ここが肝 ＝＝＝＝＝＝＝＝＝＝＝＝
-    // displayGameRecord() が 0 に戻した “現在の手数” を、選択行へ復元する。
-    // （row は 0=開始局面, 1..N=それぞれの手。よって「次の追記」は row+1 手目になる）
+    // displayGameRecord() が 0 に戻した “現在の手数” を、選択行へ復元
     m_currentSelectedPly = row;
     m_currentMoveIndex   = row;
 
-    // 盤面・ハイライトも現在手に同期（applySfenAtCurrentPly は m_currentSelectedPly を参照）
+    // 盤面・ハイライトも現在手に同期
     emit syncBoardAndHighlightsAtRow(row);
 }
 
@@ -1920,4 +1921,25 @@ void KifuLoadCoordinator::updateBranchTreeFromLive(int currentPly)
     const int maxPly  = disp.size();
     const int safePly = qBound(0, currentPly, maxPly);
     m_analysisTab->highlightBranchTreeAt(/*row=*/0, /*ply=*/safePly, /*centerOn=*/true);
+}
+
+void KifuLoadCoordinator::applyBranchMarksForCurrentLine_()
+{
+    if (!m_kifuRecordModel) return;
+
+    QSet<int> marks; // ply1=1..N（モデルの行番号と一致。0は開始局面なので除外）
+
+    const auto itRow = m_branchDisplayPlan.constFind(m_activeResolvedRow);
+    if (itRow != m_branchDisplayPlan.cend()) {
+        // byPly: QMap<int (ply1), BranchCandidateDisplay>
+        const QMap<int, BranchCandidateDisplay>& byPly = itRow.value();
+
+        const QList<int> keys = byPly.keys(); // QMap → 安全に昇順
+        for (int i = 0; i < keys.size(); ++i) {
+            const int ply1 = keys.at(i);
+            if (ply1 > 0) marks.insert(ply1);
+        }
+    }
+
+    m_kifuRecordModel->setBranchPlyMarks(marks);
 }

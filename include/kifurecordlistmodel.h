@@ -2,14 +2,13 @@
 #define KIFURECORDLISTMODEL_H
 
 #include <QVariant>
+#include <QSet>                    // ★ 追加
 #include "abstractlistmodel.h"
 #include "kifudisplay.h"
 
-// 棋譜欄を表示するクラス
 class KifuRecordListModel : public AbstractListModel<KifuDisplay>
 {
     Q_OBJECT
-
 public:
     explicit KifuRecordListModel(QObject *parent = nullptr);
 
@@ -18,10 +17,16 @@ public:
     QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
 
     bool prependItem(KifuDisplay* item);
-
-    // KifuRecordListModel クラス内（public セクション）にある宣言を以下に差し替え
     Q_INVOKABLE bool removeLastItem();
     Q_INVOKABLE bool removeLastItems(int n);
+
+    // ★ 追加：分岐のある手（ply1=1..N）集合をセット
+    void setBranchPlyMarks(const QSet<int>& ply1Set);
+    QSet<int> branchPlyMarks() const { return m_branchPlySet; }
+
+private:
+    // ★ 追加：分岐あり手の集合（モデルの行番号＝ply1と一致。0は「開始局面」で除外）
+    QSet<int> m_branchPlySet;
 };
 
 #endif // KIFURECORDLISTMODEL_H
