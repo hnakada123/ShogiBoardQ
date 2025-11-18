@@ -150,7 +150,10 @@ void RecordPane::wireSignals()
 {
     // 既存：
     connect(m_branch, &QTableView::activated, this, &RecordPane::branchActivated, Qt::UniqueConnection);
-    connect(m_branch, &QTableView::clicked,    this, &RecordPane::branchActivated, Qt::UniqueConnection);
+    connect(m_branch, &QTableView::clicked, this, &RecordPane::branchActivated, Qt::UniqueConnection);
+
+    // ★ 追加：棋譜表の選択ハイライトを黄色に
+    setupKifuSelectionAppearance();
 }
 
 void RecordPane::setModels(KifuRecordListModel* recModel, KifuBranchListModel* brModel)
@@ -280,4 +283,22 @@ QPushButton* RecordPane::backToMainButton()
     // m_right の 1 番目（分岐テーブルとコメントの間）に挿入
     m_right->insertWidget(1, btn);
     return btn;
+}
+
+void RecordPane::setupKifuSelectionAppearance()
+{
+    if (!m_kifu) return;
+
+    // 行選択（行全体を黄色でハイライトするために必須）
+    m_kifu->setSelectionBehavior(QAbstractItemView::SelectRows);
+    m_kifu->setSelectionMode(QAbstractItemView::SingleSelection);
+
+    // 選択ハイライト色を黄色に（フォーカスあり/なし両方に適用）
+    QPalette pal = m_kifu->palette();
+    const QColor kSelYellow(255, 255, 0); // 明るい黄色
+    pal.setColor(QPalette::Active,   QPalette::Highlight,       kSelYellow);
+    pal.setColor(QPalette::Inactive, QPalette::Highlight,       kSelYellow);
+    pal.setColor(QPalette::Active,   QPalette::HighlightedText, Qt::black);
+    pal.setColor(QPalette::Inactive, QPalette::HighlightedText, Qt::black);
+    m_kifu->setPalette(pal);
 }
