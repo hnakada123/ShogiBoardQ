@@ -44,6 +44,7 @@ public:
     QPushButton* backToMainButton();
 
     void setupKifuSelectionAppearance();
+    void setupBranchViewSelectionAppearance();
 
 signals:
     void mainRowChanged(int row);
