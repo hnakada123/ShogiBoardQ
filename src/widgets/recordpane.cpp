@@ -154,6 +154,9 @@ void RecordPane::wireSignals()
 
     // ★ 追加：棋譜表の選択ハイライトを黄色に
     setupKifuSelectionAppearance();
+
+    // ★ 追加：分岐候補欄の選択ハイライトを黄色に
+    setupBranchViewSelectionAppearance();
 }
 
 void RecordPane::setModels(KifuRecordListModel* recModel, KifuBranchListModel* brModel)
@@ -295,10 +298,28 @@ void RecordPane::setupKifuSelectionAppearance()
 
     // 選択ハイライト色を黄色に（フォーカスあり/なし両方に適用）
     QPalette pal = m_kifu->palette();
-    const QColor kSelYellow(255, 255, 0); // 明るい黄色
+    const QColor kSelYellow(255, 255, 0); // 黄色
     pal.setColor(QPalette::Active,   QPalette::Highlight,       kSelYellow);
     pal.setColor(QPalette::Inactive, QPalette::Highlight,       kSelYellow);
     pal.setColor(QPalette::Active,   QPalette::HighlightedText, Qt::black);
     pal.setColor(QPalette::Inactive, QPalette::HighlightedText, Qt::black);
     m_kifu->setPalette(pal);
+}
+
+void RecordPane::setupBranchViewSelectionAppearance()
+{
+    if (!m_branch) return;
+
+    // 行単位選択（行全体を黄色でハイライト）
+    m_branch->setSelectionBehavior(QAbstractItemView::SelectRows);
+    m_branch->setSelectionMode(QAbstractItemView::SingleSelection);
+
+    // フォーカスの有無に関係なく黄色でハイライト
+    QPalette pal = m_branch->palette();
+    const QColor kSelYellow(255, 255, 0); // 黄色
+    pal.setColor(QPalette::Active,   QPalette::Highlight,       kSelYellow);
+    pal.setColor(QPalette::Inactive, QPalette::Highlight,       kSelYellow);
+    pal.setColor(QPalette::Active,   QPalette::HighlightedText, Qt::black);
+    pal.setColor(QPalette::Inactive, QPalette::HighlightedText, Qt::black);
+    m_branch->setPalette(pal);
 }
