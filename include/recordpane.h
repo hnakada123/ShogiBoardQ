@@ -43,6 +43,8 @@ public:
 
     QPushButton* backToMainButton();
 
+    void setupKifuSelectionAppearance();
+
 signals:
     void mainRowChanged(int row);
     void branchActivated(const QModelIndex&);
