@@ -166,6 +166,9 @@ private:
 
     // 追加（private）
     QList<KifDisplayItem> collectDispFromRecordModel_() const;
+
+    // ★ 追加：現在表示中の行（m_activeResolvedRow）の分岐手をモデルへ反映
+    void applyBranchMarksForCurrentLine_();
 };
 
 #endif // KIFULOADCOORDINATOR_H

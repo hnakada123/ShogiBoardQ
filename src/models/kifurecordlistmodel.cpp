@@ -1,5 +1,7 @@
 #include "kifurecordlistmodel.h"
 #include <QDebug> // 必要なら
+#include <QColor>
+#include <QBrush>
 
 KifuRecordListModel::KifuRecordListModel(QObject *parent)
     : AbstractListModel<KifuDisplay>(parent)
@@ -15,12 +17,36 @@ int KifuRecordListModel::columnCount(const QModelIndex &parent) const
 
 QVariant KifuRecordListModel::data(const QModelIndex &index, int role) const
 {
-    if (!index.isValid() || role != Qt::DisplayRole) return QVariant();
+    if (!index.isValid()) return QVariant();
 
-    switch (index.column()) {
-    case 0:  return list[index.row()]->currentMove(); // 指し手
-    case 1:  return list[index.row()]->timeSpent();   // 消費時間
-    default: return QVariant();
+    const int row = index.row();
+    const int col = index.column();
+
+    // 背景色：分岐ありの手は行全体をオレンジ系で強調
+    if (role == Qt::BackgroundRole) {
+        if (row > 0 && m_branchPlySet.contains(row)) {
+            static const QBrush kOrangeBg(QColor(255, 224, 178));
+            return kOrangeBg;
+        }
+        return QVariant();
+    }
+
+    if (role != Qt::DisplayRole) return QVariant();
+
+    switch (col) {
+    case 0: {
+        // 指し手列：分岐ありなら末尾に '+' を付与（表示上のみ）
+        QString s = list[row]->currentMove();
+        if (row > 0 && m_branchPlySet.contains(row) && !s.endsWith(QLatin1Char('+'))) {
+            s.append(QLatin1Char('+'));
+        }
+        return s;
+    }
+    case 1:
+        // 消費時間列
+        return list[row]->timeSpent();
+    default:
+        return QVariant();
     }
 }
 
@@ -85,4 +111,17 @@ bool KifuRecordListModel::removeLastItems(int n)
 
     endRemoveRows();
     return true;
+}
+
+// 分岐あり手の集合をセットし、表示更新
+void KifuRecordListModel::setBranchPlyMarks(const QSet<int>& ply1Set)
+{
+    m_branchPlySet = ply1Set;
+
+    if (rowCount() > 0) {
+        const QModelIndex tl = index(0, 0);
+        const QModelIndex br = index(rowCount() - 1, 1);
+        // 指し手の ‘+’ 付与と背景色の両方を更新
+        emit dataChanged(tl, br, { Qt::DisplayRole, Qt::BackgroundRole });
+    }
 }
