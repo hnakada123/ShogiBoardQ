@@ -82,7 +82,7 @@ void PositionEditController::beginPositionEditing(const BeginEditContext& c)
     if (!c.view || !c.gc) return;
     if (!c.view->board()) return;
 
-    // ★ 追加: 編集セッションの参照を保持（アクション用スロットで利用）
+    // 編集セッションの参照を保持
     m_view = c.view;
     m_gc   = c.gc;
     m_bic  = c.bic;
@@ -96,11 +96,9 @@ void PositionEditController::beginPositionEditing(const BeginEditContext& c)
 
     // 1) 編集開始SFENの決定（record / current / resume / 盤 から）
     QString baseSfen;
-
     if (c.sfenRecord && !c.sfenRecord->isEmpty()) {
         const int lastIdx = c.sfenRecord->size() - 1;
         int idx = -1;
-
         if (c.gameOver) {
             idx = lastIdx;
         } else if (c.selectedPly >= 0 && c.selectedPly <= lastIdx) {
@@ -112,7 +110,6 @@ void PositionEditController::beginPositionEditing(const BeginEditContext& c)
         }
         if (idx >= 0 && idx <= lastIdx) baseSfen = c.sfenRecord->at(idx);
     }
-
     if (baseSfen.isEmpty()) {
         if (c.currentSfenStr && !c.currentSfenStr->isEmpty()) {
             baseSfen = *c.currentSfenStr;
@@ -128,10 +125,8 @@ void PositionEditController::beginPositionEditing(const BeginEditContext& c)
         }
     }
 
-    // ★ ここが今回の修正ポイント：
-    //    startpos / sfen ... / 既に最小SFEN のいずれでも最小SFENに正規化してから
-    //    手番と手数を強制上書きする
-    const QString minimal = toMinimalSfen(baseSfen);
+    // 2) 最小SFENへ正規化し、手番/手数を強制上書き
+    const QString minimal  = toMinimalSfen(baseSfen);
     const QString adjusted = forceTurnAndPly(minimal, desiredTurn, /*ply*/1);
 
     // 3) 盤へ適用し、編集モードへ
@@ -139,6 +134,9 @@ void PositionEditController::beginPositionEditing(const BeginEditContext& c)
     c.view->setPositionEditMode(true);
     c.view->setMouseClickMode(true);
     c.view->update();
+
+    // ★ 3.5) メニュー切替（MainWindow へ通知）
+    if (c.onEnterEditMenu) c.onEnterEditMenu();
 
     // 4) ハイライト等の初期化
     if (c.bic) {
@@ -150,7 +148,7 @@ void PositionEditController::beginPositionEditing(const BeginEditContext& c)
     const QString bw = board->currentPlayer();
     c.gc->setCurrentPlayer(fromBW(bw));
 
-    // 6) UI: 「編集終了」ボタン表示
+    // 6) 「編集終了」ボタン表示
     if (c.onShowEditExitButton) c.onShowEditExitButton();
 
     // 7) 任意: startSfenStr にも記録（必要なら）
