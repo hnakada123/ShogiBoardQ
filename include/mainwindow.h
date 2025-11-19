@@ -461,6 +461,9 @@ private:
     bool isHvH_() const;
     bool isHumanSide_(ShogiGameController::Player p) const;
     void updateTurnAndTimekeepingDisplay_();
+
+    void initializeEditMenuForStartup();
+    void applyEditMenuEditingState(bool editing);
 };
 
 #endif // MAINWINDOW_H
