@@ -742,23 +742,61 @@ void MainWindow::setCurrentTurn()
     }
 }
 
+QString MainWindow::resolveCurrentSfenForGameStart_() const
+{
+    // 1) 棋譜SFENリストの「選択手」から取得（最優先）
+    if (m_sfenRecord) {
+        const int size = m_sfenRecord->size();
+        // m_currentSelectedPly が [0..size-1] のインデックスである前提（本プロジェクトの慣習）
+        // 1始まりの場合はプロジェクト実装に合わせて +0 / -1 調整してください。
+        int idx = m_currentSelectedPly;
+        if (idx < 0) {
+            // 0手目（開始局面）などのとき
+            idx = 0;
+        }
+        if (idx >= 0 && idx < size) {
+            const QString s = m_sfenRecord->at(idx).trimmed();
+            if (!s.isEmpty()) return s;
+        }
+    }
+
+    // 2) フォールバックなし（司令塔側が安全に処理）
+    return QString();
+}
+
 // 対局を開始する。
 void MainWindow::initializeGame()
 {
     ensureGameStartCoordinator_();
 
+    // ★ 平手SFENが優先されてしまう問題の根本対策：
+    //    ダイアログ確定直後に司令塔へ渡す前に、startSfen を明示クリアし、
+    //    currentSfen を「選択中の手のSFEN（最優先）→それがなければ空」の順で決定しておく。
+    m_startSfenStr.clear();
+
+    // 現在の局面SFEN（棋譜レコードから最優先で取得）
+    {
+        const QString sfen = resolveCurrentSfenForGameStart_().trimmed();
+        if (!sfen.isEmpty()) {
+            m_currentSfenStr = sfen;
+        } else {
+            // 何も取れないケースは珍しいが、空のままでも司令塔側で安全にフォールバックされる。
+            // ここでは何もしない（ログのみ）
+            qDebug().noquote() << "[INIT] resolveCurrentSfenForGameStart_: empty. delegate to coordinator.";
+        }
+    }
+
     GameStartCoordinator::Ctx c;
     c.view            = m_shogiView;
     c.gc              = m_gameController;
     c.clock           = m_shogiClock;
-    c.sfenRecord      = m_sfenRecord;           // QStringList*
-    c.currentSfenStr  = &m_currentSfenStr;       // 現局面の SFEN
-    c.startSfenStr    = &m_startSfenStr;         // 既定開始 SFEN（空でも可）
-    c.selectedPly     = m_currentSelectedPly;   // 必要なら GameStart 側で利用
+    c.sfenRecord      = m_sfenRecord;          // QStringList*
+    c.currentSfenStr  = &m_currentSfenStr;     // 現局面の SFEN（ここで事前決定済み）
+    c.startSfenStr    = &m_startSfenStr;       // 開始SFENは明示的に空（優先度を逆転）
+    c.selectedPly     = m_currentSelectedPly;  // 1始まり/0始まりはプロジェクト規約に準拠
     c.isReplayMode    = m_isReplayMode;
-    c.bottomIsP1 = m_bottomIsP1;
+    c.bottomIsP1      = m_bottomIsP1;
 
-    // 実処理は GameStartCoordinator 側で完結
     m_gameStart->initializeGame(c);
 }
 

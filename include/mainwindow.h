@@ -464,6 +464,8 @@ private:
 
     void initializeEditMenuForStartup();
     void applyEditMenuEditingState(bool editing);
+
+    QString resolveCurrentSfenForGameStart_() const;
 };
 
 #endif // MAINWINDOW_H
