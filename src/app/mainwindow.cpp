@@ -938,7 +938,7 @@ void MainWindow::applyEditMenuEditingState(bool editing)
         return;
     }
 
-    // 未編集状態では「編集局面開始」を表示、それ以外は非表示
+    // 未編集状態では「局面編集開始」を表示、それ以外は非表示
     ui->actionStartEditPosition->setVisible(!editing);
 
     // 編集モード関連アクションは editing のときのみ表示
@@ -948,6 +948,11 @@ void MainWindow::applyEditMenuEditingState(bool editing)
     ui->returnAllPiecesOnStand->setVisible(editing);
     ui->reversal->setVisible(editing);
     ui->turnaround->setVisible(editing);
+
+    // ※ QMenu名は .ui 上で "Edit"（= ui->Edit）です。必要なら再描画。
+    if (ui->Edit) {
+        ui->Edit->update();
+    }
 }
 
 void MainWindow::beginPositionEditing()
