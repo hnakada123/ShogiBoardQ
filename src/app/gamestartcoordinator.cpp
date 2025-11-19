@@ -178,62 +178,44 @@ void GameStartCoordinator::prepareDataCurrentPosition(const Ctx& c)
     }
 
     // --- 0) 開始前クリーンアップを UI 層へ依頼（ハイライト/選択/解析UI などの掃除） ---
-    // MainWindow では onPreStartCleanupRequested_() に接続済み
     emit requestPreStartCleanup();
 
-    // --- 1) ベースSFENの決定（優先：開始SFEN → 現在SFEN） ---
-    // もともとの MainWindow 実装では m_sfenRecord の有無で分岐していましたが、
-    // Ctx では start/current の文字列を参照で受ける設計になっているため、
-    // 実用上「開始SFENがあればそれを優先、無ければ現在SFEN」を使います。
-    QString sfen;
-    if (c.startSfenStr && !c.startSfenStr->isEmpty()) {
-        sfen = *c.startSfenStr;
-    } else if (c.currentSfenStr && !c.currentSfenStr->isEmpty()) {
-        sfen = *c.currentSfenStr;
+    // --- 1) ベースSFENの決定（★優先: 現在SFEN → 開始SFEN → 平手） ---
+    QString baseSfen;
+    if (c.currentSfenStr && !c.currentSfenStr->isEmpty()) {
+        baseSfen = *(c.currentSfenStr);
+    } else if (c.startSfenStr && !c.startSfenStr->isEmpty()) {
+        baseSfen = *(c.startSfenStr);
+    } else {
+        baseSfen = QStringLiteral("startpos");
     }
 
-    // --- 2) SFEN 妥当性チェック（無効なら平手初期へフォールバック） ---
-    if (!sfen.isEmpty()) {
-        SfenPositionTracer tracer;
-        if (tracer.setFromSfen(sfen)) {
-            // --- 2a) 妥当な SFEN：盤モデルへ適用し、ハイライトはクリアのまま ---
-            if (c.gc && c.gc->board()) {
-                c.gc->board()->setSfen(sfen);
-            } else if (c.view && c.view->board()) {
-                c.view->board()->setSfen(sfen);
-            }
-            // 現在SFENの参照が来ていれば、最新の適用値を反映しておく
-            if (c.currentSfenStr) *c.currentSfenStr = sfen;
-
-            qDebug().noquote() << "[GameStartCoordinator] resume-from-current: SFEN applied.";
-        } else {
-            qWarning().noquote() << "[GameStartCoordinator] Invalid SFEN. Fallback to even (flat) start.";
-            c.view->initializeToFlatStartingPosition();
-            // start/current のどちらかが参照で来ていれば、妥当な既定値へ寄せておく
-            if (c.startSfenStr && c.startSfenStr->isEmpty())
-                *c.startSfenStr = QStringLiteral("startpos");
-            if (c.currentSfenStr)
-                *c.currentSfenStr = QStringLiteral("startpos");
-        }
-    } else {
-        // --- 2b) SFEN が空：平手初期へフォールバック ---
+    // --- 2) ベースSFENの適用 ---
+    //    ・"startpos" なら既定初期配置に
+    //    ・それ以外の SFEN 文字列ならその局面を盤へセット
+    if (baseSfen == QLatin1String("startpos")) {
         c.view->initializeToFlatStartingPosition();
         if (c.startSfenStr && c.startSfenStr->isEmpty())
             *c.startSfenStr = QStringLiteral("startpos");
         if (c.currentSfenStr)
             *c.currentSfenStr = QStringLiteral("startpos");
-        qDebug().noquote() << "[GameStartCoordinator] no SFEN provided. Initialized to flat start.";
+    } else {
+        // 既存の「SFENを盤へ反映する」系ユーティリティを使用
+        // ※ applyResumePositionIfAny は空でなければ SFEN を即適用し描画も反映
+        GameStartCoordinator::applyResumePositionIfAny(c.gc, c.view, baseSfen);
+
+        // 共有文字列の同期（GUI側の補助）
+        if (c.currentSfenStr) *c.currentSfenStr = baseSfen;
+        if (c.startSfenStr   && c.startSfenStr->isEmpty())
+            *c.startSfenStr = QString(); // 「現在局面」開始の意図を保つ
     }
 
-    // --- 3) 直前の終局状態を必ずクリア（元実装の resetGameFlags() 相当のうち「終局フラグ掃除」） ---
-    // 司令塔が保持する GameOverState をリセット（MainWindow::resetGameFlags の一部移行）
+    // --- 3) 直前の終局状態を必ずクリア ---
     m_match->clearGameOverState();
 
-    // --- 4) ハイライトを確実に空へ（MainWindow::prepareDataCurrentPosition 内の clear→復元のうち clear 部分）
-    // 復元（選択手番に応じた from/to ハイライト）は、GUI層（行選択変更ハンドラ）で行う設計に寄せます。
+    // --- 4) ハイライトを確実に空へ ---
     c.view->removeHighlightAllData();
 
-    // （任意）ログ
     qDebug().noquote() << "[GameStartCoordinator] prepareDataCurrentPosition: done.";
 }
 
