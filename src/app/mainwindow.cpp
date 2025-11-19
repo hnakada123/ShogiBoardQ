@@ -176,6 +176,9 @@ MainWindow::MainWindow(QWidget *parent)
 
     // 司令塔やUIフォント/位置編集コントローラの最終初期化
     finalizeCoordinators_();
+
+    // 起動時用：編集メニューを“編集前（未編集）”の初期状態にする
+    initializeEditMenuForStartup();
 }
 
 void MainWindow::setupCentralWidgetContainer_()
@@ -919,6 +922,34 @@ void MainWindow::onReverseTriggered()
     if (m_match) m_match->flipBoard();
 }
 
+// 起動時用：編集メニューを“編集前（未編集）”の初期状態にする
+void MainWindow::initializeEditMenuForStartup()
+{
+    // 未編集状態（＝編集モードではない）でメニューを整える
+    applyEditMenuEditingState(false);
+}
+
+// 共通ユーティリティ：編集モードかどうかで可視/不可視を一括切り替え
+// editing == true  : 編集モード中 → 「局面編集終了」などを表示／「編集局面開始」は隠す
+// editing == false : 未編集（通常）→ 「編集局面開始」を表示／それ以外を隠す
+void MainWindow::applyEditMenuEditingState(bool editing)
+{
+    if (!ui) {
+        return;
+    }
+
+    // 未編集状態では「編集局面開始」を表示、それ以外は非表示
+    ui->actionStartEditPosition->setVisible(!editing);
+
+    // 編集モード関連アクションは editing のときのみ表示
+    ui->actionEndEditPosition->setVisible(editing);
+    ui->flatHandInitialPosition->setVisible(editing);
+    ui->shogiProblemInitialPosition->setVisible(editing);
+    ui->returnAllPiecesOnStand->setVisible(editing);
+    ui->reversal->setVisible(editing);
+    ui->turnaround->setVisible(editing);
+}
+
 void MainWindow::beginPositionEditing()
 {
     ensurePositionEditController_();
@@ -938,19 +969,12 @@ void MainWindow::beginPositionEditing()
     ctx.currentSfenStr  = &m_currentSfenStr;
     ctx.resumeSfenStr   = &m_resumeSfenStr;
 
-    // メニュー表示（Controller → callback）
+    // ── メニュー表示（Controller → callback）: 共通ヘルパで編集メニューに遷移 ──
     ctx.onEnterEditMenu = [this]() {
-        if (!ui) return;
-        ui->actionStartEditPosition->setVisible(false);
-        ui->actionEndEditPosition->setVisible(true);
-        ui->flatHandInitialPosition->setVisible(true);
-        ui->returnAllPiecesOnStand->setVisible(true);
-        ui->reversal->setVisible(true);
-        ui->shogiProblemInitialPosition->setVisible(true);
-        ui->turnaround->setVisible(true);
+        applyEditMenuEditingState(true);
     };
 
-    // 「編集終了」ボタン表示（Controller API 経由）
+    // ── 「編集終了」ボタン表示（Controller API 経由） ──
     ctx.onShowEditExitButton = [this]() {
         if (m_posEdit && m_shogiView) {
             m_posEdit->showEditExitButtonOnBoard(m_shogiView, this, SLOT(finishPositionEditing()));
@@ -962,7 +986,7 @@ void MainWindow::beginPositionEditing()
 
     // ── 編集用アクション配線（ラムダ無し・重複防止） ─────────────
     if (ui) {
-        // ★ Controller のスロットに接続するよう変更（MainWindow側の同名スロットは削除）
+        // Controller のスロットへ直接接続
         connect(ui->returnAllPiecesOnStand,      &QAction::triggered,
                 m_posEdit, &PositionEditController::onReturnAllPiecesOnStandTriggered,
                 Qt::UniqueConnection);
@@ -1004,7 +1028,7 @@ void MainWindow::finishPositionEditing()
     ctx.gc         = m_gameController;
     ctx.bic        = m_boardController;
     ctx.sfenRecord = m_sfenRecord ? m_sfenRecord : nullptr;
-    ctx.startSfenStr       = &m_startSfenStr;
+    ctx.startSfenStr        = &m_startSfenStr;
     ctx.isResumeFromCurrent = &m_isResumeFromCurrent;
 
     // 「編集終了」ボタンの後片付け（Controller → callback）
@@ -1014,22 +1038,13 @@ void MainWindow::finishPositionEditing()
         }
     };
 
-    // メニューを元に戻す（Controller → callback）
+    // メニューを元に戻す（Controller → callback）: 共通ヘルパで通常メニューに復帰
     ctx.onLeaveEditMenu = [this]() {
-        if (!ui) return;
-        ui->actionStartEditPosition->setVisible(true);
-        ui->actionEndEditPosition->setVisible(false);
-        ui->flatHandInitialPosition->setVisible(false);
-        ui->shogiProblemInitialPosition->setVisible(false);
-        ui->returnAllPiecesOnStand->setVisible(false);
-        ui->reversal->setVisible(false);
-        ui->turnaround->setVisible(false);
+        applyEditMenuEditingState(false);
     };
 
     // 実行
     m_posEdit->finishPositionEditing(ctx);
-
-    // ★ 冗長な編集モード解除は Controller 側で完了済みなので、ここでは行わない
 
     // --- D) 自動同期を再開 ---
     m_onMainRowGuard = prevGuard;
