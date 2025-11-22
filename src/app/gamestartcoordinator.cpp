@@ -731,12 +731,38 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
     const QString seedSfen = canonicalizeStart(startSfen);
 
     if (c.sfenRecord) {
-        c.sfenRecord->clear();
-        c.sfenRecord->append(seedSfen);
-        qInfo().noquote()
-            << "[GSC][seed] sfenRecord*=" << static_cast<const void*>(c.sfenRecord)
-            << " size=" << c.sfenRecord->size()
-            << " head=" << (c.sfenRecord->isEmpty() ? QString("<empty>") : c.sfenRecord->first());
+        // ★ 修正点：現在局面から開始（startingPosNumber==0）の場合は
+        // 0..selectedPly を保全し、末尾（選択行）だけ seedSfen に置換してから入れ直す。
+        if (startingPosNumber == 0 && !c.sfenRecord->isEmpty() && c.selectedPly >= 0) {
+            const int keepIdx = qBound(0, c.selectedPly, c.sfenRecord->size() - 1);
+            const int takeLen = keepIdx + 1;
+
+            QStringList preserved;
+            preserved.reserve(takeLen);
+            // 0..keepIdx を手動コピー（detach回避のため明示ループは使わず、push_back等も避ける）
+            for (int i = 0; i < takeLen; ++i) {
+                preserved.append(c.sfenRecord->at(i));
+            }
+            if (!preserved.isEmpty()) {
+                preserved[preserved.size() - 1] = seedSfen; // 末尾だけ正規化した現在局面で置換
+            }
+
+            c.sfenRecord->clear();
+            c.sfenRecord->append(preserved);
+
+            qInfo().noquote()
+                << "[GSC][seed-resume] kept(0.." << keepIdx << ") size=" << c.sfenRecord->size()
+                << " head=" << (c.sfenRecord->isEmpty() ? QString("<empty>") : c.sfenRecord->first());
+        } else {
+            // 新規開始や保全対象なし：従来どおり seed のみ
+            c.sfenRecord->clear();
+            c.sfenRecord->append(seedSfen);
+
+            qInfo().noquote()
+                << "[GSC][seed] sfenRecord*=" << static_cast<const void*>(c.sfenRecord)
+                << " size=" << c.sfenRecord->size()
+                << " head=" << (c.sfenRecord->isEmpty() ? QString("<empty>") : c.sfenRecord->first());
+        }
     } else {
         qWarning() << "[GSC][seed] sfenRecord is null (cannot seed)";
     }
@@ -803,7 +829,7 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
         << " P1{base=" << tc.p1.baseMs << " byo=" << tc.p1.byoyomiMs << " inc=" << tc.p1.incrementMs << "}"
         << " P2{base=" << tc.p2.baseMs << " byo=" << tc.p2.byoyomiMs << " inc=" << tc.p2.incrementMs << "}";
 
-    // --- 7) 時計の準備と配線・起動は prepare(...) に委譲（★順序をここに移動） ---
+    // --- 7) 時計の準備と配線・起動は prepare(...) に委譲 ---
     Request req;
     req.startDialog = dlg;
     req.startSfen   = seedSfen;                         // ★ 手番確定に使用（正規化済み）
