@@ -2178,49 +2178,77 @@ void MainWindow::ensureGameStartCoordinator_()
 
 void MainWindow::onPreStartCleanupRequested_()
 {
-    // ハイライト消去はコントローラ経由に統一
-    if (m_boardController)
+    // --- 盤/ハイライト等のビジュアル初期化 ---
+    if (m_boardController) {
         m_boardController->clearAllHighlights();
-
+    }
     if (m_shogiView) {
-        m_shogiView->blackClockLabel()->setText("00:00:00");
-        m_shogiView->whiteClockLabel()->setText("00:00:00");
+        m_shogiView->blackClockLabel()->setText(QStringLiteral("00:00:00"));
+        m_shogiView->whiteClockLabel()->setText(QStringLiteral("00:00:00"));
     }
 
-    // 棋譜と評価値
-    if (m_kifuRecordModel) m_kifuRecordModel->clearAllItems();
+    // --- 「現在の局面」から開始かどうかを判定 ---
+    // 既存実装では 2局目開始直前に m_startSfenStr を明示クリア、
+    // m_currentSfenStr に選択行の SFEN を入れているため、
+    // これをトリガとして判定する。
+    const bool startFromCurrentPos =
+        m_startSfenStr.trimmed().isEmpty() && !m_currentSfenStr.trimmed().isEmpty();
 
-    // 対局開始時、最初の1手が入る前にヘッダを用意しておく
-    {
-        if (m_kifuRecordModel) {
+    // 安全な keepRow（保持したい最終行＝選択中の行）を算出
+    int keepRow = qMax(0, m_currentSelectedPly);
+
+    // --- 棋譜モデルの扱い（ここが今回の修正ポイント） ---
+    if (m_kifuRecordModel) {
+        if (startFromCurrentPos) {
+            // 1) 1局目の途中までを残して、末尾だけを削除
+            const int rows = m_kifuRecordModel->rowCount();
+            if (rows <= 0) {
+                // 空なら見出しだけ用意
+                m_kifuRecordModel->appendItem(
+                    new KifuDisplay(QStringLiteral("=== 開始局面 ==="),
+                                    QStringLiteral("（１手 / 合計）")));
+                keepRow = 0;
+            } else {
+                // keepRow をモデル範囲にクランプし、末尾の余剰行を一括削除
+                if (keepRow > rows - 1) keepRow = rows - 1;
+                const int toRemove = rows - (keepRow + 1);
+                if (toRemove > 0) {
+                    // QList の detach を避けつつ末尾からまとめて削除できる既存APIを使用
+                    m_kifuRecordModel->removeLastItems(toRemove);
+                }
+            }
+        } else {
+            // 2) 平手/手合割など「新規初期局面から開始」のときは従来通り全消去
+            m_kifuRecordModel->clearAllItems();
+            // 見出し行を重複なく先頭へ
             m_kifuRecordModel->appendItem(
                 new KifuDisplay(QStringLiteral("=== 開始局面 ==="),
                                 QStringLiteral("（１手 / 合計）")));
+            keepRow = 0;
         }
     }
 
-    // 評価値チャートは RecordPane が所有。毎回ゲッターで取得してクリア
-    if (auto* ec = (m_recordPane ? m_recordPane->evalChart() : nullptr)) {
-        ec->clearAll();
-        ec->update(); // 念のため描画更新
+    // --- 手数トラッキングの更新 ---
+    if (startFromCurrentPos) {
+        m_activePly          = keepRow;
+        m_currentSelectedPly = keepRow;
+        m_currentMoveIndex   = keepRow;
+    } else {
+        m_activePly          = 0;
+        m_currentSelectedPly = 0;
+        m_currentMoveIndex   = 0;
     }
 
-    // 変数類の初期化など（既存処理）
-    m_scoreCp.clear();
-    m_currentMoveIndex = 0;
-    m_currentSelectedPly = 0;
-    m_activePly = 0;
-
-    // 分岐モデル
+    // --- 分岐モデルは新規対局としてクリア ---
     if (m_kifuBranchModel) {
         m_kifuBranchModel->clear();
     }
     m_branchDisplayPlan.clear();
 
-    // コメント欄（Presenter管理でも、見た目は一度クリア）
+    // --- コメント欄は見た目リセット（Presenter管理でも表示は空に）
     broadcastComment(QString(), /*asHtml=*/true);
 
-    // USIログの初期化（既存処理）
+    // --- USI ログの初期化（既存内容を踏襲） ---
     auto resetInfo = [](UsiCommLogModel* m) {
         if (!m) return;
         m->clear();
@@ -2235,8 +2263,16 @@ void MainWindow::onPreStartCleanupRequested_()
     resetInfo(m_lineEditModel1);
     resetInfo(m_lineEditModel2);
 
-    // タブの選択を先頭へ
-    if (m_tab) m_tab->setCurrentIndex(0);
+    // --- タブ選択は先頭へ戻す（棋譜タブへ） ---
+    if (m_tab) {
+        m_tab->setCurrentIndex(0);
+    }
+
+    // デバッグログ
+    qDebug().noquote()
+        << "[MW] onPreStartCleanupRequested_: startFromCurrentPos=" << startFromCurrentPos
+        << " keepRow=" << keepRow
+        << " rows(after)=" << (m_kifuRecordModel ? m_kifuRecordModel->rowCount() : -1);
 }
 
 void MainWindow::onApplyTimeControlRequested_(const GameStartCoordinator::TimeControl& tc)
