@@ -2011,6 +2011,19 @@ void KifuLoadCoordinator::updateBranchTreeFromLive(int currentPly)
                                  startPly - 1 + (liveConst.size() - suffixStart));
     }
 
+    // ★★★ 修正箇所：現在の行に対して、最新の SFEN と GameMoves を保存する ★★★
+    // これを行わないと、別の分岐から戻ってきたときに盤面を復元できません。
+    if (highlightRow >= 0 && highlightRow < m_resolvedRows.size()) {
+        // 現在アクティブな行（＝今指している行）であれば、対局データを信頼してコピーする
+        if (m_activeResolvedRow == highlightRow) {
+            if (m_sfenRecord) {
+                m_resolvedRows[highlightRow].sfen = *m_sfenRecord;
+            }
+            m_resolvedRows[highlightRow].gm = m_gameMoves;
+        }
+    }
+    // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+
     // 5) EngineAnalysisTab へ供給
     QVector<EngineAnalysisTab::ResolvedRowLite> rowsLite;
     rowsLite.reserve(m_resolvedRows.size());
