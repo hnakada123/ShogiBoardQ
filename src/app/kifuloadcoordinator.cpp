@@ -1914,32 +1914,104 @@ QList<KifDisplayItem> KifuLoadCoordinator::collectDispFromRecordModel_() const
 // ライブ（HvH/HvE）対局の 1手追加ごとに分岐ツリーを更新するエントリポイント
 void KifuLoadCoordinator::updateBranchTreeFromLive(int currentPly)
 {
-    // 現在の棋譜モデルから disp を再構成
-    const QList<KifDisplayItem> disp = collectDispFromRecordModel_();
-
+    // 1) 現在の棋譜モデルから disp を再構成（「=== 開始局面 ===」行は含まない）
+    const QList<KifDisplayItem> dispLive = collectDispFromRecordModel_();
     if (!m_analysisTab) return; // タブ未生成なら何もしない
 
-    // 最小構成（本譜のみ）で m_resolvedRows を同期
-    m_resolvedRows.clear();
-
-    ResolvedRow main;
-    main.startPly = 1;
-    main.parent   = -1;                // 本譜
-    main.disp     = disp;
-    main.sfen     = QStringList();     // ライブでは SFEN は未使用（描画は disp で十分）
-    main.gm       = QVector<ShogiMove>();
-    main.varIndex = -1;
-
-    m_resolvedRows.push_back(main);
-    m_activeResolvedRow = 0;
-
-    // 分岐候補表示は本譜のみなのでクリア
-    if (m_kifuBranchModel) {
-        m_kifuBranchModel->clearBranchCandidates();
-        m_kifuBranchModel->setHasBackToMainRow(false);
+    // 2) 本譜行（row=0 相当：parent==-1）を特定（なければ作成）
+    int mainRow = -1;
+    {
+        const int n = m_resolvedRows.size();
+        for (int i = 0; i < n; ++i) {
+            if (m_resolvedRows.at(i).parent < 0) { mainRow = i; break; } // parent==-1 が本譜
+        }
+        if (mainRow < 0) {
+            ResolvedRow main;
+            main.startPly = 1;
+            main.parent   = -1;
+            main.disp     = dispLive;
+            main.sfen     = QStringList();
+            main.gm       = QVector<ShogiMove>();
+            main.varIndex = -1; // 本譜識別
+            m_resolvedRows.push_back(main);
+            mainRow = m_resolvedRows.size() - 1;
+            m_activeResolvedRow = mainRow;
+        }
     }
 
-    // EngineAnalysisTab へ供給
+    // 3) アンカー手（「現在の局面から開始」）の決定
+    const int anchorPly = (m_branchPlyContext >= 0)
+                              ? m_branchPlyContext
+                              : qMax(0, m_currentSelectedPly);
+    const bool startFromCurrentPos = (anchorPly > 0);
+
+    // 4) 行の更新
+    int highlightRow = mainRow;
+    int highlightAbsPly = qBound(0, currentPly, dispLive.size());
+
+    if (!startFromCurrentPos) {
+        // 4-a) 通常の新規対局：本譜をそのまま置換（既存分岐は保持）
+        m_resolvedRows[mainRow].disp = dispLive;
+
+        highlightRow    = mainRow;
+        highlightAbsPly = qBound(0, currentPly, m_resolvedRows.at(mainRow).disp.size());
+    } else {
+        // 4-b) 「現在の局面」からの 2局目：別ラインとして追加/更新
+        //      親＝本譜行(mainRow)、分岐開始は (anchorPly) の直後
+        const int startPly = anchorPly + 1;        // 分岐開始の絶対手
+        const int suffixStart = qBound(0, anchorPly, dispLive.size()); // ここからが“新たに指した手”
+
+        // 親（=本譜）の prefix（1..startPly-1）を切り出す
+        QList<KifDisplayItem> merged = m_resolvedRows.at(mainRow).disp;
+        if (merged.size() > startPly - 1) merged.resize(startPly - 1);
+
+        // ★FIX: 2局目の全手を連結せず、anchorPly 以降の “新規手” だけを連結
+        const auto& liveConst = std::as_const(dispLive);
+        for (int i = suffixStart; i < liveConst.size(); ++i) {
+            merged.push_back(liveConst.at(i));
+        }
+
+        // 既存の同一 startPly のライブ枝（varIndex <= -2）を探す
+        int liveRowIdx = -1;
+        {
+            const int n = m_resolvedRows.size();
+            for (int i = 0; i < n; ++i) {
+                const ResolvedRow& r = m_resolvedRows.at(i);
+                if (r.parent == mainRow && r.startPly == startPly && r.varIndex <= -2) {
+                    liveRowIdx = i;
+                    break;
+                }
+            }
+        }
+
+        if (liveRowIdx < 0) {
+            ResolvedRow br;
+            br.startPly = startPly;
+            br.parent   = mainRow;
+            br.disp     = merged;
+            br.sfen     = QStringList();
+            br.gm       = QVector<ShogiMove>();
+            br.varIndex = -2; // ライブ分岐識別（本譜=-1、KIF由来>=0）
+            m_resolvedRows.push_back(br);
+            liveRowIdx = m_resolvedRows.size() - 1;
+        } else {
+            m_resolvedRows[liveRowIdx].disp = merged;
+        }
+
+        m_activeResolvedRow = liveRowIdx;
+
+        // ★FIX: ハイライトは「分岐開始の直前」+「アンカー以降に実際に指した手数」
+        // currentPly は“絶対手数”想定なので、アンカーからの相対手数を使う
+        const int relPlayed = qMax(0, currentPly - anchorPly);
+        highlightRow    = liveRowIdx;
+        highlightAbsPly = (startPly - 1) + relPlayed;
+        // 範囲ガード
+        highlightAbsPly = qBound(startPly - 1,
+                                 highlightAbsPly,
+                                 startPly - 1 + (liveConst.size() - suffixStart));
+    }
+
+    // 5) EngineAnalysisTab へ供給
     QVector<EngineAnalysisTab::ResolvedRowLite> rowsLite;
     rowsLite.reserve(m_resolvedRows.size());
     const auto& rowsConst = std::as_const(m_resolvedRows);
@@ -1952,10 +2024,8 @@ void KifuLoadCoordinator::updateBranchTreeFromLive(int currentPly)
     }
     m_analysisTab->setBranchTreeRows(rowsLite);
 
-    // ハイライト：0=開始、1..N=各手
-    const int maxPly  = disp.size();
-    const int safePly = qBound(0, currentPly, maxPly);
-    m_analysisTab->highlightBranchTreeAt(/*row=*/0, /*ply=*/safePly, /*centerOn=*/true);
+    // 6) 該当ノードをハイライト（中心スクロールあり）
+    m_analysisTab->highlightBranchTreeAt(highlightRow, highlightAbsPly, /*centerOn=*/true);
 }
 
 void KifuLoadCoordinator::applyBranchMarksForCurrentLine_()
