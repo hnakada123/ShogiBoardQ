@@ -296,13 +296,18 @@ void EngineAnalysisTab::addEdge(QGraphicsPathItem* from, QGraphicsPathItem* to)
 int EngineAnalysisTab::resolveParentRowForVariation_(int row) const
 {
     Q_ASSERT(row >= 1 && row < m_rows.size());
-    const int b = m_rows.at(row).startPly;   // この変化の開始手数（1-origin）
 
-    for (int prev = row - 1; prev >= 1; --prev) {
-        const int a = m_rows.at(prev).startPly;
-        if (b > a) return prev;              // 見つけたらその変化行を親に
+    // ★ 修正: 以前は startPly の前後関係から親を「推測」していたが、
+    //    データとして渡された parent を正しく使うように変更しました。
+    //    これにより、2局目の後に1局目の途中から分岐した3局目（row=2）が来た場合でも、
+    //    parent=0（1局目）を正しく参照できるようになります。
+
+    const int p = m_rows.at(row).parent;
+    if (p >= 0 && p < m_rows.size()) {
+        return p;
     }
-    return 0;                                 // どれにも入らなければ本譜
+
+    return 0; // フォールバック：本譜
 }
 
 // ===================== シーン再構築 =====================
