@@ -98,6 +98,9 @@ void EngineAnalysisTab::buildUi()
             vp->setProperty("branchFilterInstalled", true);
         }
     }
+
+    // ★ 追加：起動直後でも「開始局面」だけは描く
+    rebuildBranchTree();
 }
 
 void EngineAnalysisTab::reapplyViewTuning_(QTableView* v, QAbstractItemModel* m)
@@ -322,6 +325,7 @@ void EngineAnalysisTab::rebuildBranchTree()
     clearBranchGraph();
     m_prevSelected = nullptr;
 
+    // レイアウト定数（既存と同値）
     static constexpr qreal STEP_X   = 110.0;
     static constexpr qreal BASE_X   = 40.0;
     static constexpr qreal SHIFT_X  = 40.0;   // addNode() と同じ
@@ -329,57 +333,55 @@ void EngineAnalysisTab::rebuildBranchTree()
     static constexpr qreal STEP_Y   = 56.0;
     static constexpr qreal RADIUS   = 8.0;
     static const    QFont LABEL_FONT(QStringLiteral("Noto Sans JP"), 10);
+    static const    QFont MOVE_NO_FONT(QStringLiteral("Noto Sans JP"), 9);
 
+    // ===== まず「開始局面」を必ず描画（m_rows が空でも表示） =====
     QGraphicsPathItem* startNode = nullptr;
+    {
+        const qreal x = BASE_X + SHIFT_X;
+        const qreal y = BASE_Y + 0 * STEP_Y;
+        const QString label = QStringLiteral("開始局面");
 
-    // ===== 本譜 row=0 =====
+        const QFontMetrics fm(LABEL_FONT);
+        const int  wText = fm.horizontalAdvance(label);
+        const int  hText = fm.height();
+        const qreal padX = 14.0, padY = 8.0;
+        const qreal rectW = qMax<qreal>(84.0, wText + padX * 2);
+        const qreal rectH = qMax<qreal>(26.0, hText + padY * 2);
+
+        QPainterPath path;
+        const QRectF rect(x - rectW / 2.0, y - rectH / 2.0, rectW, rectH);
+        path.addRoundedRect(rect, RADIUS, RADIUS);
+
+        startNode = m_scene->addPath(path, QPen(Qt::black, 1.4));
+        startNode->setBrush(QColor(235, 235, 235));
+        startNode->setZValue(10);
+
+        startNode->setData(ROLE_ROW, 0);
+        startNode->setData(ROLE_PLY, 0);
+        startNode->setData(BR_ROLE_KIND, BNK_Start);
+        startNode->setData(ROLE_ORIGINAL_BRUSH, startNode->brush().color().rgba());
+        m_nodeIndex.insert(qMakePair(0, 0), startNode);
+
+        auto* t = m_scene->addSimpleText(label, LABEL_FONT);
+        const QRectF br = t->boundingRect();
+        t->setParentItem(startNode);
+        t->setPos(rect.center().x() - br.width() / 2.0,
+                  rect.center().y() - br.height() / 2.0);
+
+        const int nid = registerNode(/*vid*/0, /*row*/0, /*ply*/0, startNode);
+        startNode->setData(ROLE_NODE_ID, nid);
+    }
+
+    // ===== 本譜 row=0（手札） =====
     if (!m_rows.isEmpty()) {
         const auto& main = m_rows.at(0);
 
-        // 「開始局面」（ply=0）
-        {
-            const qreal x = BASE_X + SHIFT_X;
-            const qreal y = BASE_Y + 0 * STEP_Y;
-            const QString label = QStringLiteral("開始局面");
-
-            const QFontMetrics fm(LABEL_FONT);
-            const int  wText = fm.horizontalAdvance(label);
-            const int  hText = fm.height();
-            const qreal padX = 14.0, padY = 8.0;
-            const qreal rectW = qMax<qreal>(84.0, wText + padX * 2);
-            const qreal rectH = qMax<qreal>(26.0, hText + padY * 2);
-
-            QPainterPath path;
-            const QRectF rect(x - rectW / 2.0, y - rectH / 2.0, rectW, rectH);
-            path.addRoundedRect(rect, RADIUS, RADIUS);
-
-            startNode = m_scene->addPath(path, QPen(Qt::black, 1.4));
-            startNode->setBrush(QColor(235, 235, 235));
-            startNode->setZValue(10);
-
-            startNode->setData(ROLE_ROW, 0);
-            startNode->setData(ROLE_PLY, 0);
-            startNode->setData(BR_ROLE_KIND, BNK_Start);
-            startNode->setData(ROLE_ORIGINAL_BRUSH, startNode->brush().color().rgba());
-            m_nodeIndex.insert(qMakePair(0, 0), startNode);
-
-            auto* t = m_scene->addSimpleText(label, LABEL_FONT);
-            const QRectF br = t->boundingRect();
-            t->setParentItem(startNode);
-            t->setPos(rect.center().x() - br.width() / 2.0,
-                      rect.center().y() - br.height() / 2.0);
-
-            // ★ 開始局面もノード登録
-            const int nid = registerNode(/*vid*/0, /*row*/0, /*ply*/0, startNode);
-            startNode->setData(ROLE_NODE_ID, nid);
-        }
-
-        // 本譜のノード（ply=1..）
         QGraphicsPathItem* prev = startNode;
         int ply = 0;
         for (const auto& it : main.disp) {
             ++ply;
-            auto* node = addNode(0, ply, it.prettyMove);
+            QGraphicsPathItem* node = addNode(0, ply, it.prettyMove);
             if (prev) addEdge(prev, node);
             prev = node;
         }
@@ -403,30 +405,67 @@ void EngineAnalysisTab::rebuildBranchTree()
                                                 m_nodeIndex.value(qMakePair(0, 0), nullptr)));
 
         // 3) 分岐の手リストを「開始手以降だけ」にスライス
-        const int cut = qMax(0, startPly - 1);              // 0-origin index
+        const int cut   = qMax(0, startPly - 1);              // 0-origin index
         const int total = rv.disp.size();
-        const int take = (cut < total) ? (total - cut) : 0;
-        if (take <= 0) continue;                            // 描くもの無し
+        const int take  = (cut < total) ? (total - cut) : 0;
+        if (take <= 0) continue;                              // 描くもの無し
 
         // 4) 切り出した手だけを絶対手数で並べる（absPly = startPly + i）
         for (int i = 0; i < take; ++i) {
             const auto& it = rv.disp.at(cut + i);
             const int absPly = startPly + i;
 
-            auto* node = addNode(row, absPly, it.prettyMove);
+            QGraphicsPathItem* node = addNode(row, absPly, it.prettyMove);
 
             // クリック用メタ
             node->setData(BR_ROLE_STARTPLY, startPly);
-            node->setData(BR_ROLE_BUCKET,    row - 1);
+            node->setData(BR_ROLE_BUCKET,   row - 1);
 
             if (prev) addEdge(prev, node);
             prev = node;
         }
     }
 
-    // シーン境界
+    // ===== “一番上”の手数ラベルを最大手数まで補完表示 =====
+    // 本譜ノード（row=0）が無い手（=本譜手数を超える手）についても、上段に「n手目」を表示する
+    int maxAbsPly = 0;
+    {
+        // 既に描いた全ノードから最大 ply を求める
+        const auto keys = m_nodeIndex.keys();
+        for (const auto& k : keys) {
+            const int ply = k.second; // QPair<int,int> の second が ply
+            if (ply > maxAbsPly) maxAbsPly = ply;
+        }
+    }
+
+    if (maxAbsPly > 0) {
+        const QFontMetrics fmLabel(LABEL_FONT);
+        const QFontMetrics fmMoveNo(MOVE_NO_FONT);
+        const int hText = fmLabel.height();
+        const qreal padY = 6.0; // addNode() と同じ
+        const qreal rectH = qMax<qreal>(24.0, hText + padY * 2);
+        const qreal gap   = 4.0;
+        const qreal baselineY = BASE_Y + 0 * STEP_Y;
+        const qreal topY = (baselineY - rectH / 2.0) - gap; // 「n手目」テキストの下辺基準
+
+        for (int ply = 1; ply <= maxAbsPly; ++ply) {
+            // すでに本譜ノードがある手（row=0, ply）は addNode() 側でラベルを付け済み
+            if (m_nodeIndex.contains(qMakePair(0, ply))) continue;
+
+            const QString moveNo = QString::number(ply) + QStringLiteral("手目");
+            auto* noItem = m_scene->addSimpleText(moveNo, MOVE_NO_FONT);
+            const QRectF nbr = noItem->boundingRect();
+
+            const qreal x = BASE_X + SHIFT_X + ply * STEP_X;
+            noItem->setZValue(15); // 札より少し前面
+            noItem->setPos(x - nbr.width() / 2.0, topY - nbr.height());
+        }
+    }
+
+    // ===== シーン境界 =====
     const int mainLen = m_rows.isEmpty() ? 0 : m_rows.at(0).disp.size();
-    const qreal width  = (BASE_X + SHIFT_X) + STEP_X * qMax(40, mainLen + 6) + 40.0;
+    const int spanLen = qMax(mainLen, maxAbsPly);
+    const qreal width  = (BASE_X + SHIFT_X) + STEP_X * qMax(40, spanLen + 6) + 40.0;
     const qreal height = 30 + STEP_Y * qMax(2, m_rows.size() + 1);
     m_scene->setSceneRect(QRectF(0, 0, width, height));
 }
