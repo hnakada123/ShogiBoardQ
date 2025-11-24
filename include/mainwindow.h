@@ -445,14 +445,6 @@ private:
     void ensureKifuLoadCoordinatorForLive_();
     void refreshBranchTreeLive_();
 
-    // KIF 保存組み立て
-    QStringList           buildKifuDataList_() const;
-    QList<KifDisplayItem> collectMainlineDisp_() const;
-    QList<KifGameInfoItem> collectGameInfoItems_() const;
-    void                  resolvePlayerNamesForHeader_(QString& outBlack, QString& outWhite) const;
-
-    // 対局中のライブ KIF 表示蓄積
-    void                  appendLiveKifItem_(const QString& prettyMove, const QString& elapsedTime);
     QList<KifDisplayItem> m_liveDisp;
 
 private:

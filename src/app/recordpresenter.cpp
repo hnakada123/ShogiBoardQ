@@ -215,3 +215,11 @@ int GameRecordPresenter::currentRow() const
     }
     return -1; // 選択がまだ無い／未バインド
 }
+
+void GameRecordPresenter::addLiveKifItem(const QString& prettyMove, const QString& elapsedTime)
+{
+    KifDisplayItem item;
+    item.prettyMove = prettyMove;
+    item.timeText   = elapsedTime.isEmpty() ? QStringLiteral("00:00/00:00:00") : elapsedTime;
+    m_liveDisp.push_back(item);
+}
