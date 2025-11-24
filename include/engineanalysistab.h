@@ -44,6 +44,7 @@ public:
     // --- 分岐ツリー：MainWindow から供給する軽量行データ ---
     struct ResolvedRowLite {
         int startPly = 1;                  // 行の開始手（本譜は常に1）
+        int parent   = -1;                 // ★ 追加: 親行のインデックス（-1=なし/本譜）
         QList<KifDisplayItem> disp;        // 表示テキスト列（「▲７六歩(77)」など）
         QStringList sfen;                  // 0..N の局面列（未使用でもOK）
     };
