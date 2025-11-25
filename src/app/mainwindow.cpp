@@ -2374,14 +2374,16 @@ void MainWindow::refreshBranchTreeLive_()
     ensureKifuLoadCoordinatorForLive_();
     if (!m_kifuLoadCoordinator) return;
 
-    // 現在の絶対手数（棋譜モデルは先頭にヘッダ1行を持つため -1）
     int ply = 0;
     if (m_kifuRecordModel) {
         ply = qMax(0, m_kifuRecordModel->rowCount() - 1);
     }
 
-    // ライブ棋譜から分岐ツリーを再構成し、該当手をハイライト
+    // ツリーの再構築（既存）
     m_kifuLoadCoordinator->updateBranchTreeFromLive(ply);
+
+    // ★ 文脈を固定したまま、＋/オレンジ/候補欄を更新
+    m_kifuLoadCoordinator->rebuildBranchPlanAndMarksForLive(ply);
 }
 
 // ========== UNDO用：MainWindow 補助関数 ==========

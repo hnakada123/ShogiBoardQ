@@ -74,6 +74,9 @@ public:
 
     void updateBranchTreeFromLive(int currentPly);
 
+    // ライブ対局用：分岐Plan・＋/オレンジ強調・候補欄を一括更新
+    void rebuildBranchPlanAndMarksForLive(int currentPly);
+
 public slots:
     void applyResolvedRowAndSelect(int row, int selPly);
 
@@ -169,6 +172,8 @@ private:
 
     // ★ 追加：現在表示中の行（m_activeResolvedRow）の分岐手をモデルへ反映
     void applyBranchMarksForCurrentLine_();
+
+    void refreshBranchCandidatesUIOnly_(int row, int ply1); // 文脈を変えずUIだけ更新
 };
 
 #endif // KIFULOADCOORDINATOR_H
