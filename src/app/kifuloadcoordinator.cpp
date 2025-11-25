@@ -2140,3 +2140,127 @@ void KifuLoadCoordinator::applyBranchMarksForCurrentLine_()
 
     m_kifuRecordModel->setBranchPlyMarks(marks);
 }
+
+void KifuLoadCoordinator::rebuildBranchPlanAndMarksForLive(int /*currentPly*/)
+{
+    // --- セーフティ ---
+    if (m_resolvedRows.isEmpty()) {
+        if (m_kifuRecordModel) {
+            const QSet<int> empty;
+            m_kifuRecordModel->setBranchPlyMarks(empty);
+        }
+        if (m_kifuBranchModel) {
+            m_kifuBranchModel->clearBranchCandidates();
+            m_kifuBranchModel->setHasBackToMainRow(false);
+        }
+        return;
+    }
+
+    // 1) 分岐候補Planの再構築（m_branchDisplayPlan を更新）
+    buildBranchCandidateDisplayPlan();
+
+    // 2) 「現在の局面から開始」のアンカー手（= 1局目の途中で選択した手）を固定取得
+    const int anchorPly = (m_branchPlyContext >= 0)
+                              ? m_branchPlyContext
+                              : qMax(0, m_currentSelectedPly);
+
+    // 3) ＋/オレンジの付与対象となる「アンカー行」を求める
+    //    updateBranchTreeFromLive() 実行直後は m_activeResolvedRow が
+    //    ライブ枝（varIndex<=-2）になるので、その親がアンカー行。
+    int anchorRow = 0; // 本譜を既定
+    if (m_activeResolvedRow >= 0 && m_activeResolvedRow < m_resolvedRows.size()) {
+        if (m_resolvedRows[m_activeResolvedRow].varIndex <= -2) {
+            anchorRow = qMax(0, m_resolvedRows[m_activeResolvedRow].parent);
+        } else {
+            anchorRow = m_activeResolvedRow;
+        }
+    }
+
+    // 4) デリゲート用マーカー／モデルの '+' は「一時的に」anchorRow を
+    //    アクティブとして再計算してから元に戻す（文脈は動かさない）
+    const int oldActive = m_activeResolvedRow;
+    m_activeResolvedRow = anchorRow;
+    updateKifuBranchMarkersForActiveRow();   // 行背景（オレンジ）の再計算
+    applyBranchMarksForCurrentLine_();       // 行末の '+' 再付与
+    m_activeResolvedRow = oldActive;
+
+    // 5) 分岐候補欄は UI のみ更新（★ m_branchPlyContext を変更しない）
+    refreshBranchCandidatesUIOnly_(anchorRow, anchorPly);
+}
+
+void KifuLoadCoordinator::refreshBranchCandidatesUIOnly_(int row, int ply1)
+{
+    QTableView* view = m_recordPane ? m_recordPane->branchView() : m_kifuBranchView;
+
+    // 安全化
+    if (ply1 <= 0 || row < 0 || row >= m_resolvedRows.size()) {
+        if (m_kifuBranchModel) {
+            m_kifuBranchModel->clearBranchCandidates();
+            m_kifuBranchModel->setHasBackToMainRow(false);
+        }
+        if (view) { view->setVisible(true); view->setEnabled(false); }
+        if (m_recordPane) {
+            if (auto* btn = m_recordPane->backToMainButton()) btn->setVisible(false);
+        }
+        return;
+    }
+
+    const auto itRow = m_branchDisplayPlan.constFind(row);
+    if (itRow == m_branchDisplayPlan.constEnd()) {
+        if (m_kifuBranchModel) {
+            m_kifuBranchModel->clearBranchCandidates();
+            m_kifuBranchModel->setHasBackToMainRow(false);
+        }
+        if (view) { view->setVisible(true); view->setEnabled(false); }
+        if (m_recordPane) {
+            if (auto* btn = m_recordPane->backToMainButton()) btn->setVisible(false);
+        }
+        return;
+    }
+
+    const QMap<int, BranchCandidateDisplay>& byPly = itRow.value();
+    const auto itP = byPly.constFind(ply1);
+    if (itP == byPly.constEnd()) {
+        if (m_kifuBranchModel) {
+            m_kifuBranchModel->clearBranchCandidates();
+            m_kifuBranchModel->setHasBackToMainRow(false);
+        }
+        if (view) { view->setVisible(true); view->setEnabled(false); }
+        if (m_recordPane) {
+            if (auto* btn = m_recordPane->backToMainButton()) btn->setVisible(false);
+        }
+        return;
+    }
+
+    const BranchCandidateDisplay& plan = itP.value();
+
+    // Controller 経由で候補を流し込む（クリック遷移は従来どおり生きる）
+    if (m_branchCtl) {
+        QVector<BranchCandidateDisplayItem> pubItems;
+        pubItems.reserve(plan.items.size());
+        for (const auto& it : plan.items) {
+            BranchCandidateDisplayItem x;
+            x.row      = it.row;
+            x.varN     = it.varN;
+            x.lineName = it.lineName;
+            x.label    = it.label;
+            pubItems.push_back(x);
+        }
+        m_branchCtl->refreshCandidatesFromPlan(ply1, pubItems, plan.baseLabel);
+    } else if (m_kifuBranchModel) {
+        QList<KifDisplayItem> rows;
+        rows.reserve(plan.items.size());
+        for (const auto& it : plan.items) {
+            rows.push_back(KifDisplayItem(it.label, QString(), QString(), ply1));
+        }
+        m_kifuBranchModel->setHasBackToMainRow(false);
+        m_kifuBranchModel->setBranchCandidatesFromKif(rows);
+    }
+
+    if (view && m_kifuBranchModel) {
+        const int rc = m_kifuBranchModel->rowCount();
+        view->setVisible(true);
+        view->setEnabled(rc > 0);
+        if (rc > 0) view->selectRow(0);
+    }
+}
