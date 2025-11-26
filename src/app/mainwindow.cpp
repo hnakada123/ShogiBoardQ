@@ -2354,6 +2354,9 @@ void MainWindow::ensureKifuLoadCoordinatorForLive_()
         connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::setupBranchCandidatesWiring_,
                 m_branchWiring,       &BranchWiringCoordinator::setupBranchCandidatesWiring,
                 Qt::UniqueConnection);
+
+        // ★追加修正: 生成した Loader に Controller を確実に注入するため、配線を即時実行する
+        m_branchWiring->setupBranchCandidatesWiring();
     }
 
     // Analysisタブとの配線
