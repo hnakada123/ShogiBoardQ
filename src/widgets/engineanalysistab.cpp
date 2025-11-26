@@ -213,6 +213,13 @@ QGraphicsPathItem* EngineAnalysisTab::addNode(int row, int ply, const QString& r
     labelText.replace(kDropHeadNumber, QString());
     labelText = labelText.trimmed();
 
+    // 棋譜欄では分岐ありを示すため末尾に '+' を付けているが、
+    // 分岐ツリーでは装飾を表示しないのでここで取り除く
+    if (labelText.endsWith(QLatin1Char('+'))) {
+        labelText.chop(1);
+        labelText = labelText.trimmed();
+    }
+
     const bool odd = (ply % 2) == 1; // 奇数=先手、偶数=後手
 
     // ★ 分岐も本譜と同じ配色に統一
