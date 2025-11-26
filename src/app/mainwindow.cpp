@@ -398,7 +398,11 @@ void MainWindow::toggleEngineAnalysisVisibility()
 void MainWindow::undoLastTwoMoves()
 {
     if (m_match) {
-        m_match->undoTwoPlies();
+        // 2手戻しを実行し、成功した場合は分岐ツリーを更新する
+        if (m_match->undoTwoPlies()) {
+            // 短くなった棋譜データに基づいて分岐ツリー（長方形と罫線）を再描画・同期する
+            refreshBranchTreeLive_();
+        }
     }
 }
 
