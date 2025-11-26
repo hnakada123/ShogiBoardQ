@@ -35,24 +35,36 @@ QVariant KifuBranchListModel::data(const QModelIndex &index, int role) const
         return rowMaxPly_(index.row());
     }
 
+    // --- 表示テキスト ---
     if (role == Qt::DisplayRole) {
         if (isBackRow) {
             return tr("本譜へ戻る");
         }
         if (index.column() == 0) {
             if (index.row() >= 0 && index.row() < list.size() && list[index.row()]) {
-                return list[index.row()]->currentMove();
+                QString text = list[index.row()]->currentMove();
+
+                // 棋譜欄では分岐ありを示すため末尾に '+' を付与しているが、
+                // 分岐候補欄では '+' を表示しないようにする
+                if (text.endsWith(QLatin1Char('+'))) {
+                    text.chop(1);          // 末尾の '+' を削除
+                    text = text.trimmed(); // 念のため前後の空白を除去
+                }
+
+                return text;
             }
         }
         return QVariant();
     }
 
-    // 体裁（任意）
+    // --- 体裁（任意） ---
     if (role == Qt::TextAlignmentRole && isBackRow) {
         return Qt::AlignCenter;
     }
     if (role == Qt::FontRole && isBackRow) {
-        QFont f; f.setBold(true); return f;
+        QFont f;
+        f.setBold(true);
+        return f;
     }
 
     return QVariant();
