@@ -622,34 +622,41 @@ PlayMode GameStartCoordinator::determinePlayModeAlignedWithTurn(
     const bool eve = (!isPlayer1Human && !isPlayer2Human);
     const bool oneVsEngine = !hvh && !eve;
 
-    // 「turn はどちらの座席が指すか」を表すだけなので、
-    // 実際にその座席(P1 or P2)が Human か Engine かで HvE/EvH を決定する。
     if (isEven) {
+        // 平手
         if (hvh) return HumanVsHuman;
         if (eve) return EvenEngineVsEngine;
         if (oneVsEngine) {
             if (turn == QLatin1Char('b')) {
-                // 先手＝P1 の座席
+                // 先手＝P1が指し番
                 return isPlayer1Human ? EvenHumanVsEngine : EvenEngineVsHuman;
             }
             if (turn == QLatin1Char('w')) {
-                // 後手＝P2 の座席
-                return isPlayer2Human ? EvenHumanVsEngine : EvenEngineVsHuman;
+                // 後手＝P2が指し番
+                // ※FIX: ここが逆だった -> P2がHumanなら「エンジンはP1」= EvenEngineVsHuman,
+                //                     P2がEngineなら「エンジンはP2」= EvenHumanVsEngine
+                return isPlayer2Human ? EvenEngineVsHuman : EvenHumanVsEngine;
             }
-            // turn が取れない場合は座席だけで決める
+            // 手番が取れない場合は座席だけで決定
             return (isPlayer1Human && !isPlayer2Human) ? EvenHumanVsEngine : EvenEngineVsHuman;
         }
         return NotStarted;
     } else {
+        // 駒落ち
         if (hvh) return HumanVsHuman;
         if (eve) return HandicapEngineVsEngine;
         if (oneVsEngine) {
             if (turn == QLatin1Char('b')) {
+                // 先手＝P1が指し番（下手）
                 return isPlayer1Human ? HandicapHumanVsEngine : HandicapEngineVsHuman;
             }
             if (turn == QLatin1Char('w')) {
-                return isPlayer2Human ? HandicapHumanVsEngine : HandicapEngineVsHuman;
+                // 後手＝P2が指し番（上手）
+                // ※FIX: ここが逆だった -> P2がHumanなら「エンジンはP1」= HandicapEngineVsHuman,
+                //                     P2がEngineなら「エンジンはP2」= HandicapHumanVsEngine
+                return isPlayer2Human ? HandicapEngineVsHuman : HandicapHumanVsEngine;
             }
+            // 手番が取れない場合は座席だけで決定
             return (isPlayer1Human && !isPlayer2Human) ? HandicapHumanVsEngine : HandicapEngineVsHuman;
         }
         return NotStarted;
