@@ -1764,7 +1764,14 @@ void MatchCoordinator::initPositionStringsFromSfen_(const QString& sfenBase)
     if (base.startsWith(QLatin1String("position "))) {
         m_positionStr1    = base;
         m_positionPonder1 = base;
-    } else {
+    }
+    // ▼▼▼【ここに追加】平手初期局面のSFENと一致する場合は startpos に戻す ▼▼▼
+    else if (isStandardStartposSfen_(base)) {
+        m_positionStr1    = QStringLiteral("position startpos");
+        m_positionPonder1 = m_positionStr1;
+    }
+    // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+    else {
         m_positionStr1    = QStringLiteral("position sfen %1").arg(base);
         m_positionPonder1 = m_positionStr1;
     }
