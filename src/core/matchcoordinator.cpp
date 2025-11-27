@@ -679,7 +679,21 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
         allGameHistories.append(m_positionStrHistory);
     }
 
-    // 蓄積された過去の全対局の履歴を出力 (例: 3局目開始時ならGame1, Game2を表示)
+    // --- 探索対象SFENを正規化 ---
+    QString targetSfen = opt.sfenStart.trimmed();
+    if (targetSfen == QLatin1String("startpos")) {
+        // 比較のため「平手初期SFEN」に正規化
+        targetSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+    } else if (targetSfen.startsWith(QLatin1String("position sfen "))) {
+        targetSfen = targetSfen.mid(14).trimmed();
+    }
+
+    // --- 過去対局のどれをベースに切り詰めるかを探索 ---
+    //     （最初に一致したゲームを優先＝例のログでは [Game 1] が選ばれる）
+    int      bestGameIdx  = -1;
+    QString  bestBaseFull;                // これをヘッダ保持のまま moves だけトリムして使う
+    int      bestMatchPly = -1;           // 見つかった手数（デバッグ用）
+
     if (!allGameHistories.isEmpty()) {
         qDebug() << "=== Accumulated Game Histories (Count:" << allGameHistories.size() << ") ===";
         for (int i = 0; i < allGameHistories.size(); ++i) {
@@ -690,54 +704,55 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
             }
         }
         qDebug() << "=======================================================";
-
-        // ★ 追加: 今回の開始局面が、過去のどの対局の何手目と一致するかを探索して出力
         qDebug() << "--- Searching for start position in previous games ---";
-
-        // ターゲットとなる開始局面のSFENを用意
-        QString targetSfen = opt.sfenStart.trimmed();
-        // "startpos" だけの場合は完全なSFENに正規化（比較のため）
-        if (targetSfen == "startpos") {
-            targetSfen = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1";
-        } else if (targetSfen.startsWith("position sfen ")) {
-            targetSfen = targetSfen.mid(14).trimmed();
-        }
 
         for (int i = 0; i < allGameHistories.size(); ++i) {
             const QStringList& hist = allGameHistories.at(i);
             if (hist.isEmpty()) continue;
 
-            // その対局の「最終的な指し手列」を取得して、初手から順に局面を再現・比較する
-            const QString fullCmd = hist.last(); // 例: "position startpos moves 7g7f 3c3d..."
-
+            const QString fullCmd = hist.last(); // 例: "position startpos moves 7g7f 3c3d ..."
             SfenPositionTracer tracer;
             QStringList moves;
 
-            // 1. 初期局面のセットアップ
-            if (fullCmd.startsWith("position startpos")) {
+            // 1) 初期局面セットアップ
+            if (fullCmd.startsWith(QLatin1String("position startpos"))) {
                 tracer.resetToStartpos();
-                if (fullCmd.contains(" moves ")) {
-                    moves = fullCmd.section(" moves ", 1).split(' ', Qt::SkipEmptyParts);
+                if (fullCmd.contains(QLatin1String(" moves "))) {
+                    moves = fullCmd.section(QLatin1String(" moves "), 1)
+                    .split(QLatin1Char(' '), Qt::SkipEmptyParts);
                 }
-            } else if (fullCmd.startsWith("position sfen ")) {
-                int mIdx = fullCmd.indexOf(" moves ");
-                QString sfenPart = (mIdx == -1) ? fullCmd.mid(14) : fullCmd.mid(14, mIdx - 14);
+            } else if (fullCmd.startsWith(QLatin1String("position sfen "))) {
+                const int mIdx = fullCmd.indexOf(QLatin1String(" moves "));
+                const QString sfenPart = (mIdx == -1) ? fullCmd.mid(14)
+                                                      : fullCmd.mid(14, mIdx - 14);
                 tracer.setFromSfen(sfenPart);
                 if (mIdx != -1) {
-                    moves = fullCmd.mid(mIdx + 7).split(' ', Qt::SkipEmptyParts);
+                    moves = fullCmd.mid(mIdx + 7).split(QLatin1Char(' '), Qt::SkipEmptyParts);
                 }
             }
 
-            // 2. 0手目（開始局面）の比較
+            // 2) 0手目（開始局面）の比較
             if (tracer.toSfenString() == targetSfen) {
-                qDebug().noquote() << QString(" -> MATCH FOUND: [Game %1] Start Position (Move 0)").arg(i + 1);
+                qDebug().noquote()
+                << QString(" -> MATCH FOUND: [Game %1] Start Position (Move 0)").arg(i + 1);
+                if (bestGameIdx == -1) { // 最初の一致を採用
+                    bestGameIdx  = i;
+                    bestBaseFull = fullCmd;
+                    bestMatchPly = 0;
+                }
             }
 
-            // 3. 1手ずつ進めて比較
+            // 3) 1手ずつ進めて比較
             for (int m = 0; m < moves.size(); ++m) {
                 tracer.applyUsiMove(moves[m]);
                 if (tracer.toSfenString() == targetSfen) {
-                    qDebug().noquote() << QString(" -> MATCH FOUND: [Game %1] Move %2").arg(i + 1).arg(m + 1);
+                    qDebug().noquote()
+                    << QString(" -> MATCH FOUND: [Game %1] Move %2").arg(i + 1).arg(m + 1);
+                    if (bestGameIdx == -1) { // 最初の一致を採用
+                        bestGameIdx  = i;
+                        bestBaseFull = fullCmd;
+                        bestMatchPly = m + 1;
+                    }
                 }
             }
         }
@@ -756,18 +771,14 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
     auto decideStartSideFromSfen = [](const QString& sfen) -> ShogiGameController::Player {
         ShogiGameController::Player start = ShogiGameController::Player1;
         if (sfen.isEmpty()) return start;
-
-        const QStringList tok = sfen.split(' ', Qt::SkipEmptyParts);
+        const QStringList tok = sfen.split(QLatin1Char(' '), Qt::SkipEmptyParts);
         if (tok.size() < 2) return start;
 
         int sideIdx = -1;
-        // 形式1: "position sfen <board> <side> <..." → side は index=3
         if (tok.size() >= 4 && tok[0] == QLatin1String("position") && tok[1] == QLatin1String("sfen")) {
-            sideIdx = 3;
-        }
-        // 形式2: "<board> <side> <..." → side は index=1
-        else if (tok.size() >= 2) {
-            sideIdx = 1;
+            sideIdx = 3; // "position sfen <board> <side> ..."
+        } else if (tok.size() >= 2) {
+            sideIdx = 1; // "<board> <side> ..."
         }
 
         if (sideIdx >= 0 && sideIdx < tok.size()) {
@@ -782,12 +793,7 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
     };
 
     const ShogiGameController::Player startSide = decideStartSideFromSfen(opt.sfenStart);
-
-    // ★ GC へ開始手番を反映（無ければ先手既定）
-    if (m_gc) {
-        m_gc->setCurrentPlayer(startSide);
-    }
-    // ★ 盤描画は「手番反映のあと」に行う
+    if (m_gc) m_gc->setCurrentPlayer(startSide);
     if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
 
     // EvE 用の内部棋譜コンテナを初期化
@@ -795,21 +801,19 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
     m_eveGameMoves.clear();
     m_eveMoveIndex = 0;
 
-    // HvE/HvH 用の共通安全策
+    // HvE/HvH 共通の安全策
     m_currentMoveIndex = 0;
 
-    // 司令塔の内部手番も GC に同期（既存コードとの互換維持）
+    // 司令塔の内部手番も GC に同期（既存互換）
     m_cur = (startSide == ShogiGameController::Player2) ? P2 : P1;
     updateTurnDisplay_(m_cur);
 
     // ------------------------------------------------------------
-    // ★★ m_positionStrHistory をベースに「moves だけ」トリムする ★★
+    // ★★ 「探索で見つけたゲームのヘッダ」をベースに moves だけをトリム ★★
     //     ・ヘッダ（"position startpos" / "position sfen ..."）は絶対に書き換えない
     //     ・opt.sfenStart 末尾の手数(N) → 残す手数 = N-1
     // ------------------------------------------------------------
     auto parseKeepMovesFromSfen = [](const QString& sfenLike) -> int {
-        // "position sfen <board> <side> <stand> <move>"
-        // もしくは "<board> <side> <stand> <move>"
         QString s = sfenLike.trimmed();
         if (s.startsWith(QLatin1String("position sfen "))) {
             s = s.mid(QStringLiteral("position sfen ").size()).trimmed();
@@ -817,82 +821,54 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
         const QStringList tok = s.split(QLatin1Char(' '), Qt::SkipEmptyParts);
         if (tok.size() >= 4) {
             bool ok = false;
-            const int mv = tok.last().toInt(&ok);
-            if (ok) {
-                const int keep = qMax(0, mv - 1); // "b - 1" → 0手, "b - 3" → 2手
-                return keep;
-            }
+            const int mv = tok.last().toInt(&ok); // SFENの第4フィールド
+            if (ok) return qMax(0, mv - 1);       // " ... b - 1" → 0手, " ... b - 3" → 2手
         }
-        return -1; // 不明
+        return -1;
     };
-
-    // ★ 平手初期局面（startpos相当）かを判定
-    auto isStandardStartposSfen = [](const QString& sfenLike) -> bool {
-        // 「position sfen …」が付いていても切り落とす
-        QString s = sfenLike.trimmed();
-        if (s.startsWith(QLatin1String("position sfen "))) {
-            s = s.mid(QStringLiteral("position sfen ").size()).trimmed();
-        }
-        // board turn hand move
-        const QStringList tok = s.split(QLatin1Char(' '), Qt::SkipEmptyParts);
-        if (tok.size() < 4) return false;
-
-        const QString board = tok[0];
-        const QString turn  = tok[1];
-        const QString hand  = tok[2];
-        const QString move  = tok[3];
-
-        // 平手初期の盤面
-        static const QString kStartBoard =
-            QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL");
-
-        if (board != kStartBoard) return false;
-        if (turn.compare(QLatin1String("b"), Qt::CaseInsensitive) != 0) return false;
-        if (hand != QLatin1String("-")) return false;
-
-        bool ok = false;
-        const int mv = move.toInt(&ok);
-        if (!ok) return false;
-        return (mv == 1);
-    };
-
-    const int keepMoves = parseKeepMovesFromSfen(opt.sfenStart);
-    qDebug().noquote() << "[MC][configureAndStart] keepMoves(from sfenStart)=" << keepMoves;
 
     auto trimMovesPreserveHeader = [](const QString& full, int keep) -> QString {
-        // full: "position startpos moves 7g7f 3c3d 2g2f" など
         const QString movesKey = QStringLiteral(" moves ");
         const int pos = full.indexOf(movesKey);
         QString head = full.trimmed();
         QString tail;
-
         if (pos >= 0) {
-            head = full.left(pos).trimmed();                  // 例: "position startpos" / "position sfen <...>"
-            tail = full.mid(pos + movesKey.size()).trimmed(); // 例: "7g7f 3c3d 2g2f"
+            head = full.left(pos).trimmed();                  // "position startpos" / "position sfen <...>"
+            tail = full.mid(pos + movesKey.size()).trimmed(); // "7g7f 3c3d ..."
         }
-
-        if (keep <= 0 || tail.isEmpty()) {
-            return head; // ヘッダのみ（startpos/sfen は“そのまま”）
-        }
-
+        if (keep <= 0 || tail.isEmpty()) return head;
         QStringList mv = tail.split(QLatin1Char(' '), Qt::SkipEmptyParts);
         if (keep < mv.size()) mv = mv.mid(0, keep);
         if (mv.isEmpty()) return head;
         return head + movesKey + mv.join(QLatin1Char(' '));
     };
 
+    const int keepMoves = parseKeepMovesFromSfen(opt.sfenStart);
+    qDebug().noquote() << "[MC][configureAndStart] keepMoves(from sfenStart)=" << keepMoves;
+
+    // --- ベース候補：探索一致ゲーム > 直前ゲーム履歴 の順で採用
+    QString candidateBase;
+    if (!bestBaseFull.isEmpty()) {
+        candidateBase = bestBaseFull;
+        qDebug().noquote()
+            << "[MC][configureAndStart] base=matched game"
+            << "gameIdx=" << (bestGameIdx + 1) << "matchPly=" << bestMatchPly
+            << "full=" << candidateBase;
+    } else if (!m_positionStrHistory.isEmpty()) {
+        candidateBase = m_positionStrHistory.constLast();
+        qDebug().noquote()
+            << "[MC][configureAndStart] base=last history (fallback)"
+            << "full=" << candidateBase;
+    }
+
     bool applied = false;
+    if (!candidateBase.isEmpty() && keepMoves >= 0) {
+        if (candidateBase.startsWith(QLatin1String("position "))) {
+            const QString trimmed = trimMovesPreserveHeader(candidateBase, keepMoves);
+            qDebug().noquote() << "[MC][configureAndStart] trimmed(base, keep=" << keepMoves << ")=" << trimmed;
 
-    // ---- 履歴があれば、moves だけをトリムして流用（ヘッダは維持）
-    if (!m_positionStrHistory.isEmpty() && keepMoves >= 0) {
-        const QString prevFull = m_positionStrHistory.constLast();
-        if (prevFull.startsWith(QLatin1String("position "))) {
-            const QString trimmed = trimMovesPreserveHeader(prevFull, keepMoves);
-            qDebug().noquote() << "[MC][configureAndStart] prevFull(from hist)=" << prevFull;
-            qDebug().noquote() << "[MC][configureAndStart] trimmed(from hist, keep=" << keepMoves << ")=" << trimmed;
-
-            m_positionStr1    = trimmed;
-            m_positionPonder1 = trimmed;
+            m_positionStr1     = trimmed;
+            m_positionPonder1  = trimmed;
 
             // 履歴はベースを差し替えて 1 件から再スタート（UNDO用）
             m_positionStrHistory.clear();
@@ -900,32 +876,38 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
 
             applied = true;
         } else {
-            qWarning().noquote() << "[MC][configureAndStart] history.last is not 'position ...' :" << prevFull;
+            qWarning().noquote()
+            << "[MC][configureAndStart] candidateBase is not 'position ...' :" << candidateBase;
         }
     }
 
-    // ---- 履歴が使えないときのフォールバック
+    // ---- 履歴／一致ベースが使えないときのフォールバック
     if (!applied) {
-        // まず従来初期化
+        // 従来の初期化（position sfen <sfen> ... をそのまま使う）
         initializePositionStringsForStart(opt.sfenStart);
-        qDebug().noquote() << "[MC][configureAndStart] fallback init. m_positionStr1(before-startpos-fix)=" << m_positionStr1;
 
-        // ★★★ 平手初期局面なら "position startpos" に強制上書き（movesなしの純ヘッダ）
-        if (isStandardStartposSfen(opt.sfenStart)) {
-            m_positionStr1    = QStringLiteral("position startpos");
-            m_positionPonder1 = m_positionStr1;
-            qDebug().noquote() << "[MC][configureAndStart] startpos header override ->" << m_positionStr1;
+        // さらに、平手startposかつ明示のkeepMoves>0 なら、startpos形式で再構築
+        auto isStandardStartposSfen = [](const QString& sfenLike) -> bool {
+            QString s = sfenLike.trimmed();
+            if (s.startsWith(QLatin1String("position sfen "))) {
+                s = s.mid(QStringLiteral("position sfen ").size()).trimmed();
+            }
+            const QStringList tok = s.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+            if (tok.size() < 4) return false;
+            static const QString kStartBoard =
+                QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL");
+            const QString board = tok[0], turn = tok[1], hand = tok[2];
+            return (board == kStartBoard && turn == QLatin1String("b") && hand == QLatin1String("-"));
+        };
+
+        if (isStandardStartposSfen(opt.sfenStart) && keepMoves > 0) {
+            // 「position startpos moves ...」の体裁でリセット
+            m_positionStr1     = QStringLiteral("position startpos");
+            m_positionPonder1  = m_positionStr1;
+            m_positionStrHistory.clear();
+            m_positionStrHistory.append(m_positionStr1);
         }
-
-        // 履歴も同期
-        m_positionStrHistory.clear();
-        if (!m_positionStr1.isEmpty()) m_positionStrHistory.append(m_positionStr1);
     }
-
-    // ===== デバッグ: 現在のベース position を記録 =====
-    qDebug().noquote() << "[MC][configureAndStart] m_positionStr1(current)=" << m_positionStr1
-                       << "hist.size=" << m_positionStrHistory.size()
-                       << "hist.last=" << (m_positionStrHistory.isEmpty() ? QString("<empty>") : m_positionStrHistory.constLast());
 
     // ---- モード別の起動ルート
     switch (m_playMode) {
@@ -940,12 +922,6 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
     case EvenHumanVsEngine:
     case HandicapHumanVsEngine: {
         const bool engineIsP1 = opt.engineIsP1;
-        startHumanVsEngine_(opt, engineIsP1);
-        break;
-    }
-    case EvenEngineVsHuman:
-    case HandicapEngineVsHuman: {
-        const bool engineIsP1 = true; // 先手エンジン
         startHumanVsEngine_(opt, engineIsP1);
         break;
     }
