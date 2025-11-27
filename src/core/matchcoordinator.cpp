@@ -10,6 +10,7 @@
 #include "startgamedialog.h"
 #include "enginesettingsconstants.h"
 #include "kifurecordlistmodel.h"
+#include "sfenpositiontracer.h"
 
 #include <limits>
 #include <QObject>
@@ -669,12 +670,79 @@ void MatchCoordinator::sendGameOverWinAndQuit()
 
 void MatchCoordinator::configureAndStart(const StartOptions& opt)
 {
-    // ===== デバッグ: 入口で現状の m_positionStr1 / 履歴を記録 =====
-    qDebug().noquote() << "[MC][configureAndStart] ENTER"
-                       << "opt.sfenStart=" << opt.sfenStart
-                       << "m_positionStr1(before)=" << m_positionStr1
-                       << "hist.size=" << m_positionStrHistory.size()
-                       << "hist.last=" << (m_positionStrHistory.isEmpty() ? QString("<empty>") : m_positionStrHistory.constLast());
+    // ★ デバッグ: 起動からの対局履歴を蓄積して出力
+    static QVector<QStringList> allGameHistories;
+
+    // 直前の対局履歴が残っていれば、それを確定した過去の対局として蓄積
+    // (m_positionStrHistory はこの後クリアされるため、その前に保存)
+    if (!m_positionStrHistory.isEmpty()) {
+        allGameHistories.append(m_positionStrHistory);
+    }
+
+    // 蓄積された過去の全対局の履歴を出力 (例: 3局目開始時ならGame1, Game2を表示)
+    if (!allGameHistories.isEmpty()) {
+        qDebug() << "=== Accumulated Game Histories (Count:" << allGameHistories.size() << ") ===";
+        for (int i = 0; i < allGameHistories.size(); ++i) {
+            qDebug() << " [Game" << (i + 1) << "]";
+            const QStringList& rec = allGameHistories.at(i);
+            for (const QString& pos : rec) {
+                qDebug().noquote() << "  " << pos;
+            }
+        }
+        qDebug() << "=======================================================";
+
+        // ★ 追加: 今回の開始局面が、過去のどの対局の何手目と一致するかを探索して出力
+        qDebug() << "--- Searching for start position in previous games ---";
+
+        // ターゲットとなる開始局面のSFENを用意
+        QString targetSfen = opt.sfenStart.trimmed();
+        // "startpos" だけの場合は完全なSFENに正規化（比較のため）
+        if (targetSfen == "startpos") {
+            targetSfen = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1";
+        } else if (targetSfen.startsWith("position sfen ")) {
+            targetSfen = targetSfen.mid(14).trimmed();
+        }
+
+        for (int i = 0; i < allGameHistories.size(); ++i) {
+            const QStringList& hist = allGameHistories.at(i);
+            if (hist.isEmpty()) continue;
+
+            // その対局の「最終的な指し手列」を取得して、初手から順に局面を再現・比較する
+            const QString fullCmd = hist.last(); // 例: "position startpos moves 7g7f 3c3d..."
+
+            SfenPositionTracer tracer;
+            QStringList moves;
+
+            // 1. 初期局面のセットアップ
+            if (fullCmd.startsWith("position startpos")) {
+                tracer.resetToStartpos();
+                if (fullCmd.contains(" moves ")) {
+                    moves = fullCmd.section(" moves ", 1).split(' ', Qt::SkipEmptyParts);
+                }
+            } else if (fullCmd.startsWith("position sfen ")) {
+                int mIdx = fullCmd.indexOf(" moves ");
+                QString sfenPart = (mIdx == -1) ? fullCmd.mid(14) : fullCmd.mid(14, mIdx - 14);
+                tracer.setFromSfen(sfenPart);
+                if (mIdx != -1) {
+                    moves = fullCmd.mid(mIdx + 7).split(' ', Qt::SkipEmptyParts);
+                }
+            }
+
+            // 2. 0手目（開始局面）の比較
+            if (tracer.toSfenString() == targetSfen) {
+                qDebug().noquote() << QString(" -> MATCH FOUND: [Game %1] Start Position (Move 0)").arg(i + 1);
+            }
+
+            // 3. 1手ずつ進めて比較
+            for (int m = 0; m < moves.size(); ++m) {
+                tracer.applyUsiMove(moves[m]);
+                if (tracer.toSfenString() == targetSfen) {
+                    qDebug().noquote() << QString(" -> MATCH FOUND: [Game %1] Move %2").arg(i + 1).arg(m + 1);
+                }
+            }
+        }
+        qDebug() << "----------------------------------------------------";
+    }
 
     m_playMode = opt.mode;
 
