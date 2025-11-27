@@ -475,6 +475,11 @@ void EngineAnalysisTab::rebuildBranchTree()
     const qreal width  = (BASE_X + SHIFT_X) + STEP_X * qMax(40, spanLen + 6) + 40.0;
     const qreal height = 30 + STEP_Y * qMax(2, m_rows.size() + 1);
     m_scene->setSceneRect(QRectF(0, 0, width, height));
+
+    // 【追加】初期状態で「開始局面」（row=0, ply=0）をハイライト（黄色）にする
+    // これにより m_prevSelected が「開始局面」に設定され、
+    // 次の手がハイライトされる際に「開始局面」は自動的に元の色に戻されます。
+    highlightBranchTreeAt(0, 0, /*centerOn=*/false);
 }
 
 // ===================== ハイライト（フォールバック対応） =====================
