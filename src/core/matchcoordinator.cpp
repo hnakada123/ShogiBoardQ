@@ -913,22 +913,46 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
     switch (m_playMode) {
     case EvenEngineVsEngine:
     case HandicapEngineVsEngine: {
+        // エンジン同士は両方起動してから開始
         initEnginesForEvE(opt.engineName1, opt.engineName2);
         initializeAndStartEngineFor(P1, opt.enginePath1, opt.engineName1);
         initializeAndStartEngineFor(P2, opt.enginePath2, opt.engineName2);
         startEngineVsEngine_(opt);
         break;
     }
-    case EvenHumanVsEngine:
-    case HandicapHumanVsEngine: {
-        const bool engineIsP1 = opt.engineIsP1;
-        startHumanVsEngine_(opt, engineIsP1);
+
+    // ★平手：先手エンジン（P1エンジン固定）
+    case EvenEngineVsHuman: {
+        startHumanVsEngine_(opt, /*engineIsP1=*/true);
         break;
     }
+
+    // ★平手：後手エンジン（P2エンジン固定）
+    case EvenHumanVsEngine: {
+        startHumanVsEngine_(opt, /*engineIsP1=*/false);
+        break;
+    }
+
+    // ★駒落ち：先手エンジン（下手＝P1エンジン固定）
+    case HandicapEngineVsHuman: {
+        startHumanVsEngine_(opt, /*engineIsP1=*/true);
+        break;
+    }
+
+    // ★駒落ち：後手エンジン（上手＝P2エンジン固定）
+    case HandicapHumanVsEngine: {
+        startHumanVsEngine_(opt, /*engineIsP1=*/false);
+        break;
+    }
+
     case HumanVsHuman:
         startHumanVsHuman_(opt);
         break;
+
     default:
+        qWarning().noquote()
+            << "[Match] configureAndStart: unexpected playMode="
+            << static_cast<int>(m_playMode);
         break;
     }
 

@@ -613,50 +613,49 @@ QChar GameStartCoordinator::turnFromSfen_(const QString& sfen)
     return QChar();
 }
 
+// src/app/gamestartcoordinator.cpp
+
 PlayMode GameStartCoordinator::determinePlayModeAlignedWithTurn(
     int initPositionNumber, bool isPlayer1Human, bool isPlayer2Human, const QString& startSfen)
 {
-    const QChar turn = turnFromSfen_(startSfen); // 'b' / 'w' / null
+    const QChar turn = turnFromSfen_(startSfen); // 'b' or 'w'
     const bool isEven = (initPositionNumber == 1);
     const bool hvh = (isPlayer1Human && isPlayer2Human);
     const bool eve = (!isPlayer1Human && !isPlayer2Human);
     const bool oneVsEngine = !hvh && !eve;
 
     if (isEven) {
-        // 平手
+        // --- 平手 ---
         if (hvh) return HumanVsHuman;
         if (eve) return EvenEngineVsEngine;
         if (oneVsEngine) {
             if (turn == QLatin1Char('b')) {
-                // 先手＝P1が指し番
+                // 先手＝P1手番
+                // P1がHumanなら「Human(先手) vs Engine(後手)」
+                // P1がEngineなら「Engine(先手) vs Human(後手)」
                 return isPlayer1Human ? EvenHumanVsEngine : EvenEngineVsHuman;
             }
             if (turn == QLatin1Char('w')) {
-                // 後手＝P2が指し番
-                // ※FIX: ここが逆だった -> P2がHumanなら「エンジンはP1」= EvenEngineVsHuman,
-                //                     P2がEngineなら「エンジンはP2」= EvenHumanVsEngine
+                // 後手＝P2手番
+                // P2がHumanなら「Engine(先手) vs Human(後手)」
+                // P2がEngineなら「Human(先手) vs Engine(後手)」
                 return isPlayer2Human ? EvenEngineVsHuman : EvenHumanVsEngine;
             }
-            // 手番が取れない場合は座席だけで決定
+            // turnが取れない場合は座席で決定
             return (isPlayer1Human && !isPlayer2Human) ? EvenHumanVsEngine : EvenEngineVsHuman;
         }
         return NotStarted;
     } else {
-        // 駒落ち
+        // --- 駒落ち（参考：前回と同じロジック） ---
         if (hvh) return HumanVsHuman;
         if (eve) return HandicapEngineVsEngine;
         if (oneVsEngine) {
             if (turn == QLatin1Char('b')) {
-                // 先手＝P1が指し番（下手）
                 return isPlayer1Human ? HandicapHumanVsEngine : HandicapEngineVsHuman;
             }
             if (turn == QLatin1Char('w')) {
-                // 後手＝P2が指し番（上手）
-                // ※FIX: ここが逆だった -> P2がHumanなら「エンジンはP1」= HandicapEngineVsHuman,
-                //                     P2がEngineなら「エンジンはP2」= HandicapHumanVsEngine
                 return isPlayer2Human ? HandicapEngineVsHuman : HandicapHumanVsEngine;
             }
-            // 手番が取れない場合は座席だけで決定
             return (isPlayer1Human && !isPlayer2Human) ? HandicapHumanVsEngine : HandicapEngineVsHuman;
         }
         return NotStarted;
