@@ -280,6 +280,19 @@ KifuLoadCoordinator::KifuLoadCoordinator(QVector<ShogiMove>& gameMoves,
     // ここで初期同期が必要ならシグナル発火や内部初期化を追加してください。
 }
 
+void KifuLoadCoordinator::loadCsaFromFile(const QString& filePath)
+{
+    // --- IN ログ ---
+    qDebug().noquote() << "[MAIN] loadCsaFromFile IN file=" << filePath;
+
+    // ★ ロード中フラグ（applyResolvedRowAndSelect 等の分岐更新を抑止）
+    m_loadingKifu = true;
+
+    // 1) 初期局面（手合割）を決定
+    QString teaiLabel;
+    const QString initialSfen = prepareInitialSfen(filePath, teaiLabel);
+}
+
 void KifuLoadCoordinator::loadKifuFromFile(const QString& filePath)
 {
     // --- IN ログ ---
@@ -296,6 +309,30 @@ void KifuLoadCoordinator::loadKifuFromFile(const QString& filePath)
     KifParseResult res;
     QString parseWarn;
     KifToSfenConverter::parseWithVariations(filePath, res, &parseWarn);
+
+    //begin
+    // resをデバッグ出力
+    if (kGM_VERBOSE) {
+        qDebug().noquote() << "[GM] KifParseResult dump:";
+        qDebug().noquote() << "  Mainline:";
+        qDebug().noquote() << "    baseSfen: " << res.mainline.baseSfen;
+        qDebug().noquote() << "    usiMoves: " << res.mainline.usiMoves;
+        qDebug().noquote() << "    disp:";
+        for (const auto& d : std::as_const(res.mainline.disp)) {
+            qDebug().noquote() << "      prettyMove: " << d.prettyMove;
+        }
+        qDebug().noquote() << "  Variations:";
+        for (const KifVariation& var : std::as_const(res.variations)) {
+            qDebug().noquote() << "startPly: " << var.startPly;
+            qDebug().noquote() << "  baseSfen: " << var.line.baseSfen;
+            qDebug().noquote() << "  usiMoves: " << var.line.usiMoves;
+            qDebug().noquote() << "  disp:";
+            for (const auto& d : std::as_const(var.line.disp)) {
+                qDebug().noquote() << "      prettyMove: " << d.prettyMove;
+            }
+        }
+    }
+    //end
 
     // 先手/後手名などヘッダ反映
     {

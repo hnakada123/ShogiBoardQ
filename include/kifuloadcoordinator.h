@@ -68,6 +68,8 @@ public:
 
     void loadKifuFromFile(const QString& filePath);
 
+    void loadCsaFromFile(const QString& filePath);
+
     void setAnalysisTab(EngineAnalysisTab* tab);
 
     void setBranchCandidatesController(BranchCandidatesController* ctl);

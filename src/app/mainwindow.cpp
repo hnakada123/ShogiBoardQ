@@ -831,8 +831,11 @@ void MainWindow::resetToInitialState()
 void MainWindow::chooseAndLoadKifuFile()
 {
     // --- 1) ファイル選択（UI層に残す） ---
-    const QString filePath =
-        QFileDialog::getOpenFileName(this, tr("KIFファイルを開く"), QString(), tr("KIF Files (*.kif *.kifu)"));
+    const QString filePath = QFileDialog::getOpenFileName(
+        this, tr("棋譜ファイルを開く"), QString(),
+        tr("Kifu Files (*.kif *.kifu *.csa);;KIF Files (*.kif *.kifu);;CSA Files (*.csa)")
+        );
+
     if (filePath.isEmpty()) return;
 
     setReplayMode(true);
@@ -894,7 +897,14 @@ void MainWindow::chooseAndLoadKifuFile()
             this, &MainWindow::enableArrowButtons, Qt::UniqueConnection);
 
     // --- 4) 読み込み実行（ロジックは Coordinator へ） ---
-    m_kifuLoadCoordinator->loadKifuFromFile(filePath);
+    // 拡張子判定
+    if (filePath.endsWith(QLatin1String(".csa"), Qt::CaseInsensitive)) {
+        // CSA読み込み
+        m_kifuLoadCoordinator->loadCsaFromFile(filePath);
+    } else {
+        // KIF読み込み (既存)
+        m_kifuLoadCoordinator->loadKifuFromFile(filePath);
+    }
 }
 
 void MainWindow::displayGameRecord(const QList<KifDisplayItem> disp)
