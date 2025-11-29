@@ -17,6 +17,9 @@ public:
     // 成功: true / 失敗: false（warn に警告や理由を入れる）
     static bool parse(const QString& filePath, KifParseResult& out, QString* warn);
 
+    // 追加: CSAファイルからヘッダー情報（対局者名、棋戦名など）を抽出する
+    static QList<KifGameInfoItem> extractGameInfo(const QString& filePath);
+
 private:
     // ---- 低レベルユーティリティ ----
     static bool readAllLinesDetectEncoding_(const QString& path, QStringList& outLines, QString* warn);
