@@ -1,8 +1,42 @@
 #include "csatosfenconverter.h"
 #include "kifdisplayitem.h"
+#include "shogimove.h"
 
 #include <QStringDecoder>
-#include "shogimove.h"
+
+// --- file-scope helper: CSAコメント1行を「表示用テキスト」へ正規化 ---
+// 返り値：
+//   null QString  …  この行は完全に無視（Kifu for Windowsバナーや '**' 評価系）
+//   ""              …  段落区切り（空行）として扱う
+//   その他文字列    …  先頭の"'"や装飾 '*' を取り除いた本文
+static QString normalizeCsaCommentLine_(const QString& line)
+{
+    if (line.isEmpty() || line.at(0) != QLatin1Char('\'')) return QString();
+
+    // 先頭の "'" を除去。続く半角スペースを1個だけ落とす（原文の字下げは尊重）
+    QString t = line.mid(1);
+    if (!t.isEmpty() && t.at(0).isSpace()) t.remove(0, 1);
+
+    // 既知の生成ツールのバナーは捨てる
+    if (t.startsWith(QLatin1String("---- Kifu for Windows"))) return QString();
+
+    // Floodgate/CSA v3系の評価・読み筋（"** ..."）は本文コメントには載せない
+    const QString trimmed = t.trimmed();
+    if (trimmed.startsWith(QLatin1String("**"))) return QString();
+
+    // 「'*' だけ」の行は空行（段落区切り）として残す
+    if (trimmed == QLatin1String("*")) return QString("");
+
+    // 先頭に '*' がある場合は装飾とみなし1個だけ除去し、続くスペースも1個除去
+    if (!t.isEmpty() && t.at(0) == QLatin1Char('*')) {
+        t.remove(0, 1);
+        if (!t.isEmpty() && t.at(0).isSpace()) t.remove(0, 1);
+    }
+
+    // CRLF→LF 正規化（既に読み込み側で置換済みなら実害なし）
+    t.replace("\r\n", "\n");
+    return t;
+}
 
 // ---- Board: 平手初期配置 ----
 void CsaToSfenConverter::Board::setHirate()
@@ -382,70 +416,87 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
     out.variations.clear(); // CSAは分岐を持たない
 
     // 開始局面と手番
-    int idx = 0;
-    Color stm = Black;
+    int   idx  = 0;
+    Color stm  = Black;
     Board board; board.setHirate();
     if (!parseStartPos_(lines, idx, out.mainline.baseSfen, stm, board)) {
         if (warn) *warn += QStringLiteral("Failed to parse start position.\n");
         return false;
     }
 
-    // 直前の着手位置（初期値は盤外）
-    int prevTx = -1;
-    int prevTy = -1;
+    // 直前の着手先座標（連続移動の"同"判定用などで既に使っている想定）
+    int prevTx = -1, prevTy = -1;
+
+    // コメントの一時バッファ（最初の指し手が出るまで蓄積）
+    QStringList pendingComments;
 
     // 指し手を読む
     Color turn = stm;
     for (int i = idx; i < lines.size(); ++i) {
-        QString s = lines.at(i).trimmed();
-        if (s.isEmpty() || isMetaLine_(s) || isCommentLine_(s)) continue;
+        QString s = lines.at(i);
+        if (s.isEmpty()) continue;
+        s.replace("\r\n", "\n");
+        s = s.trimmed();
+        if (s.isEmpty()) continue;
 
+        // ---- コメント行（先頭が'）は「本文コメント」として扱う ----
+        if (isCommentLine_(s)) {
+            const QString norm = normalizeCsaCommentLine_(s);
+            if (!norm.isNull()) { // null=完全無視
+                if (out.mainline.disp.isEmpty()) {
+                    // まだ1手も出ていない → 最初の指し手へ付与するため一旦貯める
+                    pendingComments.append(norm);
+                } else {
+                    // すでに本譜が始まっている → 直前の指し手に追記
+                    QString &dst = out.mainline.disp.last().comment;
+                    if (!dst.isEmpty() && !norm.isEmpty())
+                        dst += QLatin1Char('\n');
+                    dst += norm; // normが空文字なら「空行（段落）」として改行効果のみ
+                }
+            }
+            continue;
+        }
+
+        // メタ行（V/$/N）はスキップ
+        if (isMetaLine_(s)) continue;
+
+        // 単独の "+" / "-" は手番指示
         if (s.size() == 1 && (s[0] == QLatin1Char('+') || s[0] == QLatin1Char('-'))) {
             turn = (s[0] == QLatin1Char('+')) ? Black : White;
             continue;
         }
 
+        // 終局コード
         if (isResultLine_(s)) {
             const QString sideMark = (turn == Black) ? QStringLiteral("▲") : QStringLiteral("△");
             QString label;
-
-            // CSAの終局コードを日本語に変換
-            if (s.startsWith(QLatin1String("%TORYO")))       label = QStringLiteral("投了");
-            else if (s.startsWith(QLatin1String("%CHUDAN"))) label = QStringLiteral("中断");
-            else if (s.startsWith(QLatin1String("%SENNICHITE"))) label = QStringLiteral("千日手");
-            else if (s.startsWith(QLatin1String("%JISHOGI"))) label = QStringLiteral("持将棋");
-            else if (s.startsWith(QLatin1String("%TIME_UP"))) label = QStringLiteral("切れ負け");
-            else if (s.startsWith(QLatin1String("%ILLEGAL_MOVE"))) label = QStringLiteral("反則負け");
+            if      (s.startsWith(QLatin1String("%TORYO")))           label = QStringLiteral("投了");
+            else if (s.startsWith(QLatin1String("%CHUDAN")))          label = QStringLiteral("中断");
+            else if (s.startsWith(QLatin1String("%SENNICHITE")))      label = QStringLiteral("千日手");
+            else if (s.startsWith(QLatin1String("%JISHOGI")))         label = QStringLiteral("持将棋");
+            else if (s.startsWith(QLatin1String("%TIME_UP")))         label = QStringLiteral("切れ負け");
+            else if (s.startsWith(QLatin1String("%ILLEGAL_MOVE")))    label = QStringLiteral("反則負け");
             else if (s.startsWith(QLatin1String("%+ILLEGAL_ACTION"))) label = QStringLiteral("反則負け");
             else if (s.startsWith(QLatin1String("%-ILLEGAL_ACTION"))) label = QStringLiteral("反則負け");
-            else if (s.startsWith(QLatin1String("%KACHI")))   label = QStringLiteral("入玉勝ち");
-            else if (s.startsWith(QLatin1String("%TSUMI")))   label = QStringLiteral("詰み");
-            else if (s.startsWith(QLatin1String("%FUZUMI")))  label = QStringLiteral("不詰");
-            else if (s.startsWith(QLatin1String("%MATTA")))   label = QStringLiteral("待った");
-            else {
-                 // 未知のコードやその他の文字列は % を除いてそのまま表示
-                 label = s.mid(1);
-                 // カンマ以降（時間等）があれば除去
-                 const int comma = label.indexOf(QLatin1Char(','));
-                 if (comma >= 0) label = label.left(comma);
+            else if (s.startsWith(QLatin1String("%KACHI")))           label = QStringLiteral("入玉勝ち");
+            else if (s.startsWith(QLatin1String("%TSUMI")))           label = QStringLiteral("詰み");
+            else if (s.startsWith(QLatin1String("%FUZUMI")))          label = QStringLiteral("不詰");
+            else if (s.startsWith(QLatin1String("%MATTA")))           label = QStringLiteral("待った");
+            else                                                      label = s; // 不明コードはそのまま
+
+            KifDisplayItem di;
+            di.prettyMove = sideMark + label;
+            if (!pendingComments.isEmpty()) {
+                di.comment = pendingComments.join(QStringLiteral("\n"));
+                pendingComments.clear();
             }
-
-            QString pretty = sideMark + label;
-
-            // isTerminalWord によるチェック（導入した関数を使用）
-            // ※変換済みラベルが終局用語かどうかの確認（必要に応じて）
-            // isTerminalWord(label);
-
-            {
-                KifDisplayItem di;
-                di.prettyMove = pretty;
-                out.mainline.disp.append(di);
-            }
-            break;
+            out.mainline.disp.append(di);
+            break; // 以降は読まない
         }
 
+        // 通常の指し手
         if (isMoveLine_(s)) {
-            const QChar head = s.at(0);
+            const QChar head  = s.at(0);
             const Color mover = (head == QLatin1Char('+')) ? Black : White;
 
             QString usi, pretty;
@@ -455,15 +506,20 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
             }
             out.mainline.usiMoves.append(usi);
 
-            {
-                KifDisplayItem di;
-                di.prettyMove = pretty;
-                out.mainline.disp.append(di);
+            KifDisplayItem di;
+            di.prettyMove = pretty;
+            if (!pendingComments.isEmpty()) {
+                di.comment = pendingComments.join(QStringLiteral("\n"));
+                pendingComments.clear();
             }
+            out.mainline.disp.append(di);
 
+            // 次手番へ
             turn = (mover == Black) ? White : Black;
             continue;
         }
+
+        // ここまでに該当しない行は読み飛ばし
     }
 
     return true;
