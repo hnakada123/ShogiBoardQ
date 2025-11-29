@@ -468,3 +468,64 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
 
     return true;
 }
+
+// CSAファイルからヘッダー情報を抽出する
+QList<KifGameInfoItem> CsaToSfenConverter::extractGameInfo(const QString& filePath)
+{
+    QList<KifGameInfoItem> items;
+    QStringList lines;
+    QString warn;
+
+    // 既存のエンコーディング自動判定付き読み込み関数を利用
+    if (!readAllLinesDetectEncoding_(filePath, lines, &warn)) {
+        return items;
+    }
+
+    for (const QString& raw : lines) {
+        const QString line = raw.trimmed();
+        if (line.isEmpty()) continue;
+
+        // 指し手が始まったらヘッダー終了とみなして打ち切り
+        // (isMoveLine_ は行頭が +, - かどうかを判定する既存関数)
+        if (isMoveLine_(line)) break;
+
+        // 盤面定義行 (PI, P1, P+ 等) が始まったらヘッダー終了
+        if (line.startsWith(QLatin1Char('P'))) break;
+
+        // --- CSAヘッダー解析 ---
+
+        // "N+": 先手名
+        if (line.startsWith(QLatin1String("N+"))) {
+            items.append({ QStringLiteral("先手"), line.mid(2).trimmed() });
+        }
+        // "N-": 後手名
+        else if (line.startsWith(QLatin1String("N-"))) {
+            items.append({ QStringLiteral("後手"), line.mid(2).trimmed() });
+        }
+        // "$KEY:VALUE" 形式（棋戦名、場所、時間など）
+        else if (line.startsWith(QLatin1Char('$'))) {
+            const int colon = line.indexOf(QLatin1Char(':'));
+            if (colon > 0) {
+                QString key = line.mid(1, colon - 1);
+                const QString val = line.mid(colon + 1).trimmed();
+
+                // 一般的なキーを日本語表記にマップ（KIF形式の表示名と合わせる）
+                if (key == QLatin1String("EVENT"))      key = QStringLiteral("棋戦");
+                else if (key == QLatin1String("SITE"))       key = QStringLiteral("場所");
+                else if (key == QLatin1String("START_TIME")) key = QStringLiteral("開始日時");
+                else if (key == QLatin1String("END_TIME"))   key = QStringLiteral("終了日時");
+                else if (key == QLatin1String("TIME_LIMIT")) key = QStringLiteral("持ち時間");
+                else if (key == QLatin1String("OPENING"))    key = QStringLiteral("戦型");
+
+                items.append({ key, val });
+            }
+        }
+        // "V": バージョン情報 (例: V2.2) - 必要であれば追加
+        else if (line.startsWith(QLatin1Char('V'))) {
+            items.append({ QStringLiteral("バージョン"), line });
+        }
+        // コメント行 "'" は無視して続行
+    }
+
+    return items;
+}

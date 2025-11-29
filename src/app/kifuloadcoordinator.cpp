@@ -296,29 +296,216 @@ void KifuLoadCoordinator::loadCsaFromFile(const QString& filePath)
     // 既存の関数の中、KIF分岐の直前/直後あたりに追記してください。
     bool isCsa = filePath.endsWith(".csa", Qt::CaseInsensitive);
 
-    if (isCsa) {
-        KifParseResult res;
-        QString parseWarn;
-        if (!CsaToSfenConverter::parse(filePath, res, &parseWarn)) {
-            qWarning().noquote() << "[GM] CSA parse failed:" << filePath << parseWarn;
-            return;
-        }
-        if (!parseWarn.isEmpty()) {
-            qWarning().noquote() << "[GM] CSA parse warn:" << parseWarn;
-        }
+    KifParseResult res;
+    QString parseWarn;
+    if (!CsaToSfenConverter::parse(filePath, res, &parseWarn)) {
+        qWarning().noquote() << "[GM] CSA parse failed:" << filePath << parseWarn;
+        return;
+    }
+    if (!parseWarn.isEmpty()) {
+        qWarning().noquote() << "[GM] CSA parse warn:" << parseWarn;
+    }
 
-        if (kGM_VERBOSE) {
-            qDebug().noquote() << "[GM] KifParseResult dump:";
-            qDebug().noquote() << "  Mainline:";
-            qDebug().noquote() << "    baseSfen: " << res.mainline.baseSfen;
-            qDebug().noquote() << "    usiMoves: " << res.mainline.usiMoves;
-            qDebug().noquote() << "    disp:";
-            const auto& disp = res.mainline.disp;
-            for (int i = 0; i < disp.size(); ++i) {
-                qDebug().noquote() << "      prettyMove: " << disp.at(i).prettyMove;
-            }
+    if (kGM_VERBOSE) {
+        qDebug().noquote() << "[GM] KifParseResult dump:";
+        qDebug().noquote() << "  Mainline:";
+        qDebug().noquote() << "    baseSfen: " << res.mainline.baseSfen;
+        qDebug().noquote() << "    usiMoves: " << res.mainline.usiMoves;
+        qDebug().noquote() << "    disp:";
+        const auto& disp = res.mainline.disp;
+        for (int i = 0; i < disp.size(); ++i) {
+            qDebug().noquote() << "      prettyMove: " << disp.at(i).prettyMove;
         }
     }
+
+    // 先手/後手名などヘッダ反映
+    {
+        const QList<KifGameInfoItem> infoItems = CsaToSfenConverter::extractGameInfo(filePath);
+        populateGameInfo(infoItems);
+        applyPlayersFromGameInfo(infoItems);
+    }
+
+    // 本譜（表示／USI）
+    const QList<KifDisplayItem>& disp = res.mainline.disp;
+    m_usiMoves = res.mainline.usiMoves;
+
+    // 終局/中断判定（見た目文字列で簡易判定）
+    static const QStringList kTerminalKeywords = {
+        QStringLiteral("投了"), QStringLiteral("中断"), QStringLiteral("持将棋"),
+        QStringLiteral("千日手"), QStringLiteral("切れ負け"),
+        QStringLiteral("反則勝ち"), QStringLiteral("反則負け"),
+        QStringLiteral("入玉勝ち"), QStringLiteral("不戦勝"),
+        QStringLiteral("不戦敗"), QStringLiteral("詰み"), QStringLiteral("不詰"),
+    };
+    auto isTerminalPretty = [&](const QString& s)->bool {
+        for (const auto& kw : kTerminalKeywords) if (s.contains(kw)) return true;
+        return false;
+    };
+    const bool hasTerminal = (!disp.isEmpty() && isTerminalPretty(disp.back().prettyMove));
+
+    if (m_usiMoves.isEmpty() && !hasTerminal && disp.isEmpty()) {
+        const QString errorMessage = tr("読み込み失敗 %1 から指し手を取得できませんでした。").arg(filePath);
+        emit errorOccurred(errorMessage);
+        qDebug().noquote() << "[MAIN] loadKifuFromFile OUT (no moves)";
+        m_loadingKifu = false; // 早期return時も必ず解除
+        return;
+    }
+
+    // 3) 本譜の SFEN 列と m_gameMoves を再構築
+    rebuildSfenRecord(initialSfen, m_usiMoves, hasTerminal);
+    rebuildGameMoves(initialSfen, m_usiMoves);
+
+    // 3.5) USI position コマンド列を構築（0..N）
+    //     initialSfen は prepareInitialSfen() が返す手合い込みの SFEN
+    //     m_usiMoves は 1..N の USI 文字列（"7g7f" 等）
+    m_positionStrList.clear();
+    m_positionStrList.reserve(m_usiMoves.size() + 1);
+
+    const QString base = QStringLiteral("position sfen %1").arg(initialSfen);
+    m_positionStrList.push_back(base);  // 0手目：moves なし
+
+    QStringList acc; // 先頭からの累積
+    acc.reserve(m_usiMoves.size());
+    for (int i = 0; i < m_usiMoves.size(); ++i) {
+        acc.push_back(m_usiMoves.at(i));
+        // i+1 手目：先頭から i+1 個の moves を連結
+        m_positionStrList.push_back(base + QStringLiteral(" moves ") + acc.join(' '));
+    }
+
+    // （任意）ログで確認
+    qDebug().noquote() << "[USI] position list built. count=" << m_positionStrList.size();
+    if (!m_positionStrList.isEmpty()) {
+        qDebug().noquote() << "[USI] pos[0]=" << m_positionStrList.first();
+        if (m_positionStrList.size() > 1)
+            qDebug().noquote() << "[USI] pos[1]=" << m_positionStrList.at(1);
+    }
+
+    // 4) 棋譜表示へ反映（本譜）
+    emit displayGameRecord(disp);
+
+    // 5) 本譜スナップショットを保持（以降の解決・描画に使用）
+    m_dispMain = disp;          // 表示列（1..N）
+    m_sfenMain = *m_sfenRecord; // 0..N の局面列
+    m_gmMain   = m_gameMoves;   // 1..N のUSIムーブ
+
+    // 6) 変化を取りまとめ（必要に応じて保持：Plan生成やツリー表示では m_resolvedRows を主に使用）
+    m_variationsByPly.clear();
+    m_variationsSeq.clear();
+    for (const KifVariation& kv : std::as_const(res.variations)) {
+        KifLine L = kv.line;
+        L.startPly = kv.startPly;         // “その変化が始まる絶対手数（1-origin）”
+        if (L.disp.isEmpty()) continue;
+        m_variationsByPly[L.startPly].push_back(L);
+        m_variationsSeq.push_back(L);     // 入力順（KIF出現順）を保持
+    }
+
+    // 7) 棋譜テーブルの初期選択（開始局面を選択）
+    if (m_recordPane && m_recordPane->kifuView()) {
+        QTableView* view = m_recordPane->kifuView();
+        if (view->model() && view->model()->rowCount() > 0) {
+            const QModelIndex idx0 = view->model()->index(0, 0);
+            if (view->selectionModel()) {
+                view->selectionModel()->setCurrentIndex(
+                    idx0, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+            }
+            view->scrollTo(idx0, QAbstractItemView::PositionAtTop);
+        }
+    }
+
+    // 8) 解決行を1本（本譜のみ）作成 → 0手適用
+    m_resolvedRows.clear();
+
+    ResolvedRow r;
+    r.startPly = 1;
+    r.parent   = -1;           // ★本譜
+    r.disp     = disp;          // 1..N
+    r.sfen     = *m_sfenRecord; // 0..N
+    r.gm       = m_gameMoves;   // 1..N
+    r.varIndex = -1;            // 本譜
+
+    m_resolvedRows.push_back(r);
+    m_activeResolvedRow = 0;
+    m_activePly         = 0;
+
+    // apply 内では m_loadingKifu を見て分岐候補の更新を抑止
+    applyResolvedRowAndSelect(/*row=*/0, /*selPly=*/0);
+
+    // 9) UIの整合
+    emit enableArrowButtons();
+    logImportSummary(filePath, m_usiMoves, disp, teaiLabel, parseWarn, QString());
+
+    // 10) 解決済み行を構築（親探索規則で親子関係を決定）
+    buildResolvedLinesAfterLoad();
+
+    // 11) 分岐レポート → Plan 構築（Plan方式の基礎データ）
+    dumpBranchSplitReport();
+    buildBranchCandidateDisplayPlan();
+    dumpBranchCandidateDisplayPlan();
+
+    // ★ 追加：読み込み直後に “+付与 & 行着色” をまとめて反映（Main 行が表示中）
+    applyBranchMarksForCurrentLine_();
+
+    // 12) 分岐ツリーへ供給（黄色ハイライトは applyResolvedRowAndSelect 内で同期）
+    if (m_analysisTab) {
+        QVector<EngineAnalysisTab::ResolvedRowLite> rows;
+        rows.reserve(m_resolvedRows.size());
+
+        // ★ detach 回避：QList を const 化して range-for
+        for (const auto& r : std::as_const(m_resolvedRows)) {
+            EngineAnalysisTab::ResolvedRowLite x;
+            x.startPly = r.startPly;
+            x.disp     = r.disp;
+            x.sfen     = r.sfen;
+            x.parent   = r.parent;      // ★ 追加: 親インデックスをコピー
+            rows.push_back(std::move(x));
+        }
+
+        m_analysisTab->setBranchTreeRows(rows);
+        m_analysisTab->highlightBranchTreeAt(/*row=*/0, /*ply=*/0, /*centerOn=*/true);
+    }
+
+    // 13) VariationEngine への投入（他機能で必要な可能性があるため保持）
+    if (!m_varEngine) m_varEngine = std::make_unique<KifuVariationEngine>();
+    {
+        QVector<UsiMove> usiMain;
+        usiMain.reserve(m_usiMoves.size());
+        for (const auto& u : std::as_const(m_usiMoves)) usiMain.push_back(UsiMove(u));
+        m_varEngine->ingest(res, m_sfenMain, usiMain, m_dispMain);
+    }
+
+    // ←ここで SFEN を各行に流し込む
+    ensureResolvedRowsHaveFullSfen();
+    // ←そして表を出す
+    dumpAllRowsSfenTable();
+
+    ensureResolvedRowsHaveFullGameMoves();
+
+    dumpAllLinesGameMoves();
+
+    // 14) （Plan方式化に伴い）WL 構築や従来の候補再計算は廃止
+    // 15) ブランチ候補ワイヤリング（planActivated -> applyResolvedRowAndSelect）
+    if (!m_branchCtl) {
+        emit setupBranchCandidatesWiring_(); // 内部で planActivated の connect を済ませる
+    }
+
+    if (m_kifuBranchModel) {
+        // 起動直後は候補を出さない（0手目）：モデルクリア＆ビュー非表示
+        m_kifuBranchModel->clearBranchCandidates();
+        m_kifuBranchModel->setHasBackToMainRow(false);
+        if (QTableView* view = m_recordPane ? m_recordPane->branchView() : m_kifuBranchView) {
+            view->setVisible(true);
+            view->setEnabled(false);
+        }
+    }
+
+    // ★ ロード完了 → 抑止解除
+    m_loadingKifu = false;
+
+    // 16) ツリーは読み込み後ロック（ユーザ操作で枝を生やさない）
+    m_branchTreeLocked = true;
+    qDebug() << "[BRANCH] tree locked after load";
+
+    qDebug().noquote() << "[MAIN] loadCsaFromFile OUT";
 }
 
 void KifuLoadCoordinator::loadKifuFromFile(const QString& filePath)
