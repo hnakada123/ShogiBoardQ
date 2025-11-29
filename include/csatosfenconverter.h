@@ -44,7 +44,10 @@ private:
     };
 
     static bool parseStartPos_(const QStringList& lines, int& idx, QString& baseSfen, Color& stm, Board& board);
+
+    // 【修正】直前の着手位置 (prevTx, prevTy) を参照渡しで受け取るように変更
     static bool parseMoveLine_(const QString& line, Color mover, Board& b,
+                               int& prevTx, int& prevTy,
                                QString& usiMoveOut, QString& prettyOut, QString* warn);
 
     // ---- 変換ユーティリティ ----
