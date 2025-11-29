@@ -303,15 +303,26 @@ void KifuLoadCoordinator::loadCsaFromFile(const QString& filePath)
         qWarning().noquote() << "[GM] CSA parse warn:" << parseWarn;
     }
 
+    // resをデバッグ出力
     if (kGM_VERBOSE) {
         qDebug().noquote() << "[GM] KifParseResult dump:";
+        if (!parseWarn.isEmpty()) {
+            qDebug().noquote() << "  [parseWarn]" << parseWarn;
+        }
+
         qDebug().noquote() << "  Mainline:";
         qDebug().noquote() << "    baseSfen: " << res.mainline.baseSfen;
         qDebug().noquote() << "    usiMoves: " << res.mainline.usiMoves;
         qDebug().noquote() << "    disp:";
-        const auto& disp = res.mainline.disp;
-        for (int i = 0; i < disp.size(); ++i) {
-            qDebug().noquote() << "      prettyMove: " << disp.at(i).prettyMove;
+        int mainIdx = 0;
+        for (const auto& d : std::as_const(res.mainline.disp)) {
+            qDebug().noquote() << "      [" << mainIdx << "] prettyMove: " << d.prettyMove;
+            if (!d.comment.isEmpty()) {
+                qDebug().noquote() << "           comment: " << d.comment;
+            } else {
+                qDebug().noquote() << "           comment: <none>";
+            }
+            ++mainIdx;
         }
     }
 
@@ -526,22 +537,44 @@ void KifuLoadCoordinator::loadKifuFromFile(const QString& filePath)
     // resをデバッグ出力
     if (kGM_VERBOSE) {
         qDebug().noquote() << "[GM] KifParseResult dump:";
+        if (!parseWarn.isEmpty()) {
+            qDebug().noquote() << "  [parseWarn]" << parseWarn;
+        }
+
         qDebug().noquote() << "  Mainline:";
         qDebug().noquote() << "    baseSfen: " << res.mainline.baseSfen;
         qDebug().noquote() << "    usiMoves: " << res.mainline.usiMoves;
         qDebug().noquote() << "    disp:";
+        int mainIdx = 0;
         for (const auto& d : std::as_const(res.mainline.disp)) {
-            qDebug().noquote() << "      prettyMove: " << d.prettyMove;
-        }
-        qDebug().noquote() << "  Variations:";
-        for (const KifVariation& var : std::as_const(res.variations)) {
-            qDebug().noquote() << "startPly: " << var.startPly;
-            qDebug().noquote() << "  baseSfen: " << var.line.baseSfen;
-            qDebug().noquote() << "  usiMoves: " << var.line.usiMoves;
-            qDebug().noquote() << "  disp:";
-            for (const auto& d : std::as_const(var.line.disp)) {
-                qDebug().noquote() << "      prettyMove: " << d.prettyMove;
+            qDebug().noquote() << "      [" << mainIdx << "] prettyMove: " << d.prettyMove;
+            if (!d.comment.isEmpty()) {
+                qDebug().noquote() << "           comment: " << d.comment;
+            } else {
+                qDebug().noquote() << "           comment: <none>";
             }
+            ++mainIdx;
+        }
+
+        qDebug().noquote() << "  Variations:";
+        int varNo = 0;
+        for (const KifVariation& var : std::as_const(res.variations)) {
+            qDebug().noquote() << "  [Var " << varNo << "]";
+            qDebug().noquote() << "    startPly: " << var.startPly;
+            qDebug().noquote() << "    baseSfen: " << var.line.baseSfen;
+            qDebug().noquote() << "    usiMoves: " << var.line.usiMoves;
+            qDebug().noquote() << "    disp:";
+            int dispIdx = 0;
+            for (const auto& d : std::as_const(var.line.disp)) {
+                qDebug().noquote() << "      [" << dispIdx << "] prettyMove: " << d.prettyMove;
+                if (!d.comment.isEmpty()) {
+                    qDebug().noquote() << "           comment: " << d.comment;
+                } else {
+                    qDebug().noquote() << "           comment: <none>";
+                }
+                ++dispIdx;
+            }
+            ++varNo;
         }
     }
     //end
