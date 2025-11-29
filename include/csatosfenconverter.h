@@ -1,0 +1,62 @@
+#ifndef CSATOSFENCONVERTER_H
+#define CSATOSFENCONVERTER_H
+
+#include "kifparsetypes.h"
+
+#include <QString>
+#include <QStringList>
+#include <QVector>
+#include <QFile>
+#include <QTextStream>
+#include <QChar>
+
+class CsaToSfenConverter
+{
+public:
+    // CSAを読み込み、KifParseResult を埋める。
+    // 成功: true / 失敗: false（warn に警告や理由を入れる）
+    static bool parse(const QString& filePath, KifParseResult& out, QString* warn);
+
+private:
+    // ---- 低レベルユーティリティ ----
+    static bool readAllLinesDetectEncoding_(const QString& path, QStringList& outLines, QString* warn);
+    static bool isMoveLine_(const QString& s);
+    static bool isResultLine_(const QString& s);
+    static bool isMetaLine_(const QString& s);
+    static bool isCommentLine_(const QString& s);
+
+    // ---- 盤／指し手処理 ----
+    enum Color { Black, White, None };
+    enum Piece {
+        NO_P, FU, KY, KE, GI, KI, KA, HI, OU,
+        TO, NY, NK, NG, UM, RY
+    };
+    struct Cell {
+        Piece  p = NO_P;
+        Color  c = None;
+    };
+
+    struct Board {
+        // 1..9 を有効とする9x9（インデックスは [1..9] で扱う）
+        Cell sq[10][10]; // [x][y]
+        // 平手初期配置へ。
+        void setHirate();
+    };
+
+    static bool parseStartPos_(const QStringList& lines, int& idx, QString& baseSfen, Color& stm, Board& board);
+    static bool parseMoveLine_(const QString& line, Color mover, Board& b,
+                               QString& usiMoveOut, QString& prettyOut, QString* warn);
+
+    // ---- 変換ユーティリティ ----
+    static bool parseCsaMoveToken_(const QString& token, int& fx, int& fy, int& tx, int& ty, Piece& afterPiece);
+    static QChar usiRankLetter_(int y);      // 1->'a' ... 9->'i'
+    static QString toUsiSquare_(int x, int y);
+    static bool   isPromotedPiece_(Piece p);
+    static Piece  basePieceOf_(Piece p);
+    static QString pieceKanji_(Piece p);     // 歩,香,桂,銀,金,角,飛,玉, と/馬/龍/成香/成桂/成銀
+    static QString zenkakuDigit_(int d);     // 1..9 -> １..９
+    static QString kanjiRank_(int y);        // 1..9 -> 一..九
+    static bool   inside_(int v);
+};
+
+#endif // CSATOSFENCONVERTER_H
