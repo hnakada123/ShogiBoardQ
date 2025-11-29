@@ -7,6 +7,7 @@
 #include "branchdisplayplan.h"
 #include "navigationpresenter.h"
 #include "engineanalysistab.h"
+#include "csatosfenconverter.h"
 
 #include <QDebug>
 #include <QStyledItemDelegate>
@@ -291,6 +292,33 @@ void KifuLoadCoordinator::loadCsaFromFile(const QString& filePath)
     // 1) 初期局面（手合割）を決定
     QString teaiLabel;
     const QString initialSfen = prepareInitialSfen(filePath, teaiLabel);
+
+    // 既存の関数の中、KIF分岐の直前/直後あたりに追記してください。
+    bool isCsa = filePath.endsWith(".csa", Qt::CaseInsensitive);
+
+    if (isCsa) {
+        KifParseResult res;
+        QString parseWarn;
+        if (!CsaToSfenConverter::parse(filePath, res, &parseWarn)) {
+            qWarning().noquote() << "[GM] CSA parse failed:" << filePath << parseWarn;
+            return;
+        }
+        if (!parseWarn.isEmpty()) {
+            qWarning().noquote() << "[GM] CSA parse warn:" << parseWarn;
+        }
+
+        if (kGM_VERBOSE) {
+            qDebug().noquote() << "[GM] KifParseResult dump:";
+            qDebug().noquote() << "  Mainline:";
+            qDebug().noquote() << "    baseSfen: " << res.mainline.baseSfen;
+            qDebug().noquote() << "    usiMoves: " << res.mainline.usiMoves;
+            qDebug().noquote() << "    disp:";
+            const auto& disp = res.mainline.disp;
+            for (int i = 0; i < disp.size(); ++i) {
+                qDebug().noquote() << "      prettyMove: " << disp.at(i).prettyMove;
+            }
+        }
+    }
 }
 
 void KifuLoadCoordinator::loadKifuFromFile(const QString& filePath)
