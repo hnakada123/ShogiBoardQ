@@ -293,9 +293,6 @@ void KifuLoadCoordinator::loadCsaFromFile(const QString& filePath)
     QString teaiLabel;
     const QString initialSfen = prepareInitialSfen(filePath, teaiLabel);
 
-    // 既存の関数の中、KIF分岐の直前/直後あたりに追記してください。
-    bool isCsa = filePath.endsWith(".csa", Qt::CaseInsensitive);
-
     KifParseResult res;
     QString parseWarn;
     if (!CsaToSfenConverter::parse(filePath, res, &parseWarn)) {
