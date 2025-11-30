@@ -553,6 +553,7 @@ void KifuLoadCoordinator::loadKifuFromFile(const QString& filePath)
             } else {
                 qDebug().noquote() << "           comment: <none>";
             }
+            qDebug().noquote() << "           timeText: " << d.timeText;
             ++mainIdx;
         }
 
@@ -572,6 +573,7 @@ void KifuLoadCoordinator::loadKifuFromFile(const QString& filePath)
                 } else {
                     qDebug().noquote() << "           comment: <none>";
                 }
+                qDebug().noquote() << "           timeText: " << d.timeText;
                 ++dispIdx;
             }
             ++varNo;
