@@ -38,6 +38,39 @@ static QString normalizeCsaCommentLine_(const QString& line)
     return t;
 }
 
+// --- file-scope helper: 初手の直前に連続して並ぶ "'*" コメント群を pending へ取り込む ---
+// lines       : ファイル全行
+// firstMoveIx : 1手目（最初に現れる + / - で始まる指し手行）の行インデックス
+// outPending  : 正規化済みコメント行（順序は元ファイルどおり）
+static void collectPreMoveCommentBlock_(const QStringList& lines, int firstMoveIx, QStringList& outPending)
+{
+    outPending.clear();
+    if (firstMoveIx <= 0) return;
+
+    // 1手目の直前から上方向へ "'..." が連続するかぎり拾う（空行はスキップし、最初の非コメント行で停止）
+    QStringList buf;  // 逆順で溜めて最後に反転
+    for (int j = firstMoveIx - 1; j >= 0; --j) {
+        QString s = lines.at(j);
+        if (s.isEmpty()) continue;
+        s.replace("\r\n", "\n");
+        s = s.trimmed();
+        if (s.isEmpty()) continue;
+
+        if (s.startsWith(QLatin1Char('\''))) {
+            const QString norm = normalizeCsaCommentLine_(s);
+            if (!norm.isNull()) buf.append(norm); // いまは逆順で push
+            continue;
+        }
+        // 直近のコメント塊だけ欲しいので非コメントが出たら終了
+        break;
+    }
+
+    // 元の順序に戻す
+    for (int k = buf.size() - 1; k >= 0; --k) {
+        outPending.append(buf.at(k));
+    }
+}
+
 // ---- Board: 平手初期配置 ----
 void CsaToSfenConverter::Board::setHirate()
 {
@@ -401,9 +434,7 @@ QString CsaToSfenConverter::kanjiRank_(int y)
     if (y >= 1 && y <= 9) return QString(map[y]);
     return QString(QChar(u'？'));
 }
-bool CsaToSfenConverter::inside_(int v) { return v >= 1 && v <= 9; }
 
-// ---- エントリポイント ----
 bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QString* warn)
 {
     QStringList lines;
@@ -424,11 +455,12 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
         return false;
     }
 
-    // 直前の着手先座標（連続移動の"同"判定用などで既に使っている想定）
-    int prevTx = -1, prevTy = -1;
-
-    // コメントの一時バッファ（最初の指し手が出るまで蓄積）
+    // 「開始局面のあと〜初手の前」に連続する "'*" コメントを初手へ付けるために先取り
     QStringList pendingComments;
+    collectPreMoveCommentBlock_(lines, idx, pendingComments);
+
+    // 直前の着手先座標（"同" 表記用）
+    int prevTx = -1, prevTy = -1;
 
     // 指し手を読む
     Color turn = stm;
@@ -439,20 +471,12 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
         s = s.trimmed();
         if (s.isEmpty()) continue;
 
-        // ---- コメント行（先頭が'）は「本文コメント」として扱う ----
+        // ---- コメント行（先頭が'）は「次の指し手のコメント」としてバッファへ貯める ----
         if (isCommentLine_(s)) {
             const QString norm = normalizeCsaCommentLine_(s);
-            if (!norm.isNull()) { // null=完全無視
-                if (out.mainline.disp.isEmpty()) {
-                    // まだ1手も出ていない → 最初の指し手へ付与するため一旦貯める
-                    pendingComments.append(norm);
-                } else {
-                    // すでに本譜が始まっている → 直前の指し手に追記
-                    QString &dst = out.mainline.disp.last().comment;
-                    if (!dst.isEmpty() && !norm.isEmpty())
-                        dst += QLatin1Char('\n');
-                    dst += norm; // normが空文字なら「空行（段落）」として改行効果のみ
-                }
+            if (!norm.isNull()) {
+                // ★ここが変更点：直前の手に追記せず、つねに pending に積む
+                pendingComments.append(norm);
             }
             continue;
         }
@@ -466,7 +490,7 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
             continue;
         }
 
-        // 終局コード
+        // 終局コード（%...）
         if (isResultLine_(s)) {
             const QString sideMark = (turn == Black) ? QStringLiteral("▲") : QStringLiteral("△");
             QString label;
@@ -486,15 +510,18 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
 
             KifDisplayItem di;
             di.prettyMove = sideMark + label;
+
+            // ★ここが変更点：pending をこの「行（終局）」へ付与
             if (!pendingComments.isEmpty()) {
                 di.comment = pendingComments.join(QStringLiteral("\n"));
                 pendingComments.clear();
             }
+
             out.mainline.disp.append(di);
             break; // 以降は読まない
         }
 
-        // 通常の指し手
+        // 通常の指し手（行頭 + / -）
         if (isMoveLine_(s)) {
             const QChar head  = s.at(0);
             const Color mover = (head == QLatin1Char('+')) ? Black : White;
@@ -508,10 +535,13 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
 
             KifDisplayItem di;
             di.prettyMove = pretty;
+
+            // ★ここが変更点：pending を「この手（＝次の手として扱う）」へ付与
             if (!pendingComments.isEmpty()) {
                 di.comment = pendingComments.join(QStringLiteral("\n"));
                 pendingComments.clear();
             }
+
             out.mainline.disp.append(di);
 
             // 次手番へ
@@ -537,7 +567,7 @@ QList<KifGameInfoItem> CsaToSfenConverter::extractGameInfo(const QString& filePa
         return items;
     }
 
-    for (const QString& raw : lines) {
+    for (const QString& raw : std::as_const(lines)) {
         const QString line = raw.trimmed();
         if (line.isEmpty()) continue;
 
@@ -584,4 +614,10 @@ QList<KifGameInfoItem> CsaToSfenConverter::extractGameInfo(const QString& filePa
     }
 
     return items;
+}
+
+// CSAの筋/段は 1..9 が有効範囲
+bool CsaToSfenConverter::inside_(int v)
+{
+    return (v >= 1) && (v <= 9);
 }
