@@ -232,9 +232,10 @@ bool CsaToSfenConverter::parseMoveLine_(const QString& line, Color mover, Board&
 
     // 盤上の元の駒
     Piece beforePiece = NO_P;
+    const bool srcInside = (!isDrop && inside_(fx) && inside_(fy));
     bool  beforeProm  = false;
     if (!isDrop) {
-        if (!inside_(fx) || !inside_(fy)) {
+        if (!srcInside) {
             if (warn) *warn += QStringLiteral("Source out of range: %1\n").arg(token);
             return false;
         }
@@ -243,7 +244,7 @@ bool CsaToSfenConverter::parseMoveLine_(const QString& line, Color mover, Board&
         beforeProm  = isPromotedPiece_(from.p);
     }
 
-    // 成り判定
+    // 成り判定（USIの + 付与用）
     bool promote = false;
     if (!isDrop) {
         if (isPromotedPiece_(after)) {
@@ -254,7 +255,7 @@ bool CsaToSfenConverter::parseMoveLine_(const QString& line, Color mover, Board&
         }
     }
 
-    // USI生成
+    // --- USI 生成 ---
     const QString toSq = toUsiSquare_(tx, ty);
     QString usi;
     if (isDrop) {
@@ -276,17 +277,26 @@ bool CsaToSfenConverter::parseMoveLine_(const QString& line, Color mover, Board&
     }
     usiMoveOut = usi;
 
-    // pretty生成
+    // --- pretty 生成 ---
     const QString sideMark = (mover == Black) ? QStringLiteral("▲") : QStringLiteral("△");
 
     if (isDrop) {
+        // 打ちは元マスが無いので (..) は付けない
         const QString pj = pieceKanji_(after);
         const QString dest = zenkakuDigit_(tx) + kanjiRank_(ty);
         prettyOut = sideMark + dest + pj + QStringLiteral("打");
     } else {
-        const QString pj = pieceKanji_(basePieceOf_(beforePiece));
+        // 駒名は「移動後の駒種」を優先（成りが起きた/既に成っている → 馬/龍/と 等を表示）
+        QString pj;
+        if (promote) {
+            pj = pieceKanji_(after);            // 角→馬、飛→龍 など
+        } else if (beforeProm) {
+            pj = pieceKanji_(beforePiece);      // 既成成駒の移動（from が UM/RY 等）
+        } else {
+            pj = pieceKanji_(beforePiece);      // 通常駒の移動
+        }
 
-        // 同一座標チェック
+        // 目的地（同マス対応）
         QString dest;
         if (tx == prevTx && ty == prevTy) {
             dest = QStringLiteral("同　");
@@ -294,18 +304,16 @@ bool CsaToSfenConverter::parseMoveLine_(const QString& line, Color mover, Board&
             dest = zenkakuDigit_(tx) + kanjiRank_(ty);
         }
 
-        prettyOut = sideMark + dest + pj;
+        // 元マスを ASCII 数字で (fxfy) 表示（例: (44)）
+        const QString origin = QStringLiteral("(")
+                               + QString::number(fx)
+                               + QString::number(fy)
+                               + QStringLiteral(")");
 
-        // 成りの場合に「成」を付与
-        if (promote) {
-            prettyOut += QStringLiteral("成");
-        }
-
-        prettyOut += QStringLiteral("(")
-                    + QString::number(fx) + QString::number(fy) + QStringLiteral(")");
+        prettyOut = sideMark + dest + pj + origin;
     }
 
-    // 盤更新
+    // --- 盤更新 ---
     if (!isDrop) {
         b.sq[tx][ty] = { after, mover };
         b.sq[fx][fy] = Cell{};
@@ -313,7 +321,7 @@ bool CsaToSfenConverter::parseMoveLine_(const QString& line, Color mover, Board&
         b.sq[tx][ty] = { after, mover };
     }
 
-    // 直前の着手位置を更新
+    // 「同」判定用の直前着手先を更新
     prevTx = tx;
     prevTy = ty;
 
