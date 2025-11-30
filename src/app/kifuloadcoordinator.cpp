@@ -322,6 +322,7 @@ void KifuLoadCoordinator::loadCsaFromFile(const QString& filePath)
             } else {
                 qDebug().noquote() << "           comment: <none>";
             }
+            qDebug().noquote() << "           timeText: " << d.timeText;
             ++mainIdx;
         }
     }
