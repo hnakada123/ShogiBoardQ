@@ -536,8 +536,23 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
     // 直前に指した側（T の帰属用）: 0=先手,1=後手, なし=-1
     int lastMover = -1;
 
-    // 指し手を読む
+    // 直近で「結果行（%…）」を追加したかどうかと、その index/側
+    bool lastDispIsResult = false;
+    int  lastResultDispIndex = -1;
+    int  lastResultSideIdx   = -1; // 0 or 1
+
+    // 指し手を読む（次に指す側）
     Color turn = stm;
+
+    // ユーティリティ：pending を di.comment に吸収
+    auto attachPendingTo_ = [](QStringList& src, QString& dst) {
+        if (src.isEmpty()) return;
+        const QString joined = src.join(QStringLiteral("\n"));
+        if (!dst.isEmpty()) dst += QLatin1Char('\n');
+        dst += joined;
+        src.clear();
+    };
+
     for (int i = idx; i < lines.size(); ++i) {
         QString s = lines.at(i);
         if (s.isEmpty()) continue;
@@ -545,204 +560,245 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
         s = s.trimmed();
         if (s.isEmpty()) continue;
 
-        // 行内にカンマが無い通常ケースは従来ロジック＋T行対応
-        if (!s.contains(QLatin1Char(','))) {
-            // ---- コメント行（先頭が'）は「次の指し手のコメント」としてバッファへ貯める ----
-            if (isCommentLine_(s)) {
-                const QString norm = normalizeCsaCommentLine_(s);
-                if (!norm.isNull()) {
-                    pendingComments.append(norm);
-                }
-                continue;
-            }
+        // ---- 1) カンマを含む場合はトークン列として処理 ----
+        if (s.contains(QLatin1Char(','))) {
+            const QStringList toks = s.split(QLatin1Char(','), Qt::KeepEmptyParts);
+            for (int t = 0; t < toks.size(); ++t) {
+                const QString token = toks.at(t).trimmed();
+                if (token.isEmpty()) continue;
 
-            // メタ行（V/$/N）はスキップ
-            if (isMetaLine_(s)) continue;
-
-            // 単独の "+" / "-" は手番指示
-            if (s.size() == 1 && (s[0] == QLatin1Char('+') || s[0] == QLatin1Char('-'))) {
-                turn = (s[0] == QLatin1Char('+')) ? Black : White;
-                continue;
-            }
-
-            // 終局コード（%...）
-            if (isResultLine_(s)) {
-                const QString sideMark = (turn == Black) ? QStringLiteral("▲") : QStringLiteral("△");
-                QString label;
-                if      (s.startsWith(QLatin1String("%TORYO")))           label = QStringLiteral("投了");
-                else if (s.startsWith(QLatin1String("%CHUDAN")))          label = QStringLiteral("中断");
-                else if (s.startsWith(QLatin1String("%SENNICHITE")))      label = QStringLiteral("千日手");
-                else if (s.startsWith(QLatin1String("%JISHOGI")))         label = QStringLiteral("持将棋");
-                else if (s.startsWith(QLatin1String("%TIME_UP")))         label = QStringLiteral("切れ負け");
-                else if (s.startsWith(QLatin1String("%ILLEGAL_MOVE")))    label = QStringLiteral("反則負け");
-                else if (s.startsWith(QLatin1String("%+ILLEGAL_ACTION"))) label = QStringLiteral("反則負け");
-                else if (s.startsWith(QLatin1String("%-ILLEGAL_ACTION"))) label = QStringLiteral("反則負け");
-                else if (s.startsWith(QLatin1String("%KACHI")))           label = QStringLiteral("入玉勝ち");
-                else if (s.startsWith(QLatin1String("%TSUMI")))           label = QStringLiteral("詰み");
-                else if (s.startsWith(QLatin1String("%FUZUMI")))          label = QStringLiteral("不詰");
-                else if (s.startsWith(QLatin1String("%MATTA")))           label = QStringLiteral("待った");
-                else                                                      label = s; // 不明コードはそのまま
-
-                KifDisplayItem di;
-                di.prettyMove = sideMark + label;
-
-                // pending をこの「行（終局）」へ付与
-                if (!pendingComments.isEmpty()) {
-                    di.comment = pendingComments.join(QStringLiteral("\n"));
-                    pendingComments.clear();
-                }
-
-                out.mainline.disp.append(di);
-                break; // 以降は読まない
-            }
-
-            // 時間トークン単独行 "T..."
-            if (s.startsWith(QLatin1Char('T'))) {
-                if (!out.mainline.disp.isEmpty() && lastMover >= 0) {
-                    qint64 moveMs = 0;
-                    if (parseTimeTokenMs_(s, moveMs)) {
-                        cumMs[lastMover] += moveMs;
-                        out.mainline.disp.last().timeText = composeTimeText_(moveMs, cumMs[lastMover]);
-                    } else {
-                        if (warn) *warn += QStringLiteral("Failed to parse time token: %1\n").arg(s);
+                // コメント（'...）: 直前が結果行なら結果行に付ける。そうでなければ pending に積む
+                if (token.startsWith(QLatin1Char('\''))) {
+                    const QString norm = normalizeCsaCommentLine_(token);
+                    if (!norm.isNull()) {
+                        if (lastDispIsResult && lastResultDispIndex >= 0 &&
+                            lastResultDispIndex < out.mainline.disp.size())
+                        {
+                            QString& dst = out.mainline.disp[lastResultDispIndex].comment;
+                            if (!dst.isEmpty()) dst += QLatin1Char('\n');
+                            dst += norm;
+                        } else {
+                            pendingComments.append(norm);
+                        }
                     }
-                }
-                continue;
-            }
-
-            // 通常の指し手（行頭 + / -）
-            if (isMoveLine_(s)) {
-                const QChar head  = s.at(0);
-                const Color mover = (head == QLatin1Char('+')) ? Black : White;
-
-                QString usi, pretty;
-                if (!parseMoveLine_(s, mover, board, prevTx, prevTy, usi, pretty, warn)) {
-                    if (warn) *warn += QStringLiteral("Failed to parse move line: %1\n").arg(s);
-                    return false;
-                }
-                out.mainline.usiMoves.append(usi);
-
-                KifDisplayItem di;
-                di.prettyMove = pretty;
-
-                // pending を「この手（＝次の手として扱う）」へ付与
-                if (!pendingComments.isEmpty()) {
-                    di.comment = pendingComments.join(QStringLiteral("\n"));
-                    pendingComments.clear();
+                    continue;
                 }
 
-                out.mainline.disp.append(di);
-
-                // 直前の手を更新（T の帰属先）
-                lastMover = (mover == Black) ? 0 : 1;
-
-                // 次手番へ
-                turn = (mover == Black) ? White : Black;
-                continue;
-            }
-
-            // ここまでに該当しない行は読み飛ばし
-            continue;
-        }
-
-        // ここからは「1行内に複数トークン（,区切り）」を順に処理
-        const QStringList toks = s.split(QLatin1Char(','), Qt::KeepEmptyParts);
-        for (int t = 0; t < toks.size(); ++t) {
-            const QString token = toks.at(t).trimmed();
-            if (token.isEmpty()) continue;
-
-            // コメントトークン（'...）→ pending に積む
-            if (token.startsWith(QLatin1Char('\''))) {
-                const QString norm = normalizeCsaCommentLine_(token);
-                if (!norm.isNull()) {
-                    pendingComments.append(norm);
+                // 手番指示
+                if (token.size() == 1 && (token[0] == QLatin1Char('+') || token[0] == QLatin1Char('-'))) {
+                    turn = (token[0] == QLatin1Char('+')) ? Black : White;
+                    // 結果行コンテキストは終了
+                    lastDispIsResult = false; lastResultDispIndex = -1; lastResultSideIdx = -1;
+                    continue;
                 }
-                continue;
-            }
 
-            // 単独の "+" / "-" は手番指示
-            if (token.size() == 1 && (token[0] == QLatin1Char('+') || token[0] == QLatin1Char('-'))) {
-                turn = (token[0] == QLatin1Char('+')) ? Black : White;
-                continue;
-            }
+                // 結果コード
+                if (token.startsWith(QLatin1Char('%'))) {
+                    const QString sideMark = (turn == Black) ? QStringLiteral("▲") : QStringLiteral("△");
+                    QString label;
+                    if      (token.startsWith(QLatin1String("%TORYO")))           label = QStringLiteral("投了");
+                    else if (token.startsWith(QLatin1String("%CHUDAN")))          label = QStringLiteral("中断");
+                    else if (token.startsWith(QLatin1String("%SENNICHITE")))      label = QStringLiteral("千日手");
+                    else if (token.startsWith(QLatin1String("%JISHOGI")))         label = QStringLiteral("持将棋");
+                    else if (token.startsWith(QLatin1String("%TIME_UP")))         label = QStringLiteral("切れ負け");
+                    else if (token.startsWith(QLatin1String("%ILLEGAL_MOVE")))    label = QStringLiteral("反則負け");
+                    else if (token.startsWith(QLatin1String("%+ILLEGAL_ACTION"))) label = QStringLiteral("反則負け");
+                    else if (token.startsWith(QLatin1String("%-ILLEGAL_ACTION"))) label = QStringLiteral("反則負け");
+                    else if (token.startsWith(QLatin1String("%KACHI")))           label = QStringLiteral("入玉勝ち");
+                    else if (token.startsWith(QLatin1String("%HIKIWAKE")))        label = QStringLiteral("引き分け");
+                    else if (token.startsWith(QLatin1String("%MAX_MOVES")))       label = QStringLiteral("最大手数到達");
+                    else if (token.startsWith(QLatin1String("%TSUMI")))           label = QStringLiteral("詰み");
+                    else if (token.startsWith(QLatin1String("%FUZUMI")))          label = QStringLiteral("不詰");
+                    else if (token.startsWith(QLatin1String("%ERROR")))           label = QStringLiteral("エラー");
+                    else                                                          label = token;
 
-            // 終局コード
-            if (token.startsWith(QLatin1Char('%'))) {
-                const QString sideMark = (turn == Black) ? QStringLiteral("▲") : QStringLiteral("△");
-                QString label;
-                if      (token.startsWith(QLatin1String("%TORYO")))           label = QStringLiteral("投了");
-                else if (token.startsWith(QLatin1String("%CHUDAN")))          label = QStringLiteral("中断");
-                else if (token.startsWith(QLatin1String("%SENNICHITE")))      label = QStringLiteral("千日手");
-                else if (token.startsWith(QLatin1String("%JISHOGI")))         label = QStringLiteral("持将棋");
-                else if (token.startsWith(QLatin1String("%TIME_UP")))         label = QStringLiteral("切れ負け");
-                else if (token.startsWith(QLatin1String("%ILLEGAL_MOVE")))    label = QStringLiteral("反則負け");
-                else if (token.startsWith(QLatin1String("%+ILLEGAL_ACTION"))) label = QStringLiteral("反則負け");
-                else if (token.startsWith(QLatin1String("%-ILLEGAL_ACTION"))) label = QStringLiteral("反則負け");
-                else if (token.startsWith(QLatin1String("%KACHI")))           label = QStringLiteral("入玉勝ち");
-                else if (token.startsWith(QLatin1String("%TSUMI")))           label = QStringLiteral("詰み");
-                else if (token.startsWith(QLatin1String("%FUZUMI")))          label = QStringLiteral("不詰");
-                else if (token.startsWith(QLatin1String("%MATTA")))           label = QStringLiteral("待った");
-                else                                                          label = token;
+                    KifDisplayItem di;
+                    di.prettyMove = sideMark + label;
+                    attachPendingTo_(pendingComments, di.comment);
+                    out.mainline.disp.append(di);
 
-                KifDisplayItem di;
-                di.prettyMove = sideMark + label;
-                if (!pendingComments.isEmpty()) {
-                    di.comment = pendingComments.join(QStringLiteral("\n"));
-                    pendingComments.clear();
+                    // 以降のトークン（同一行中）で T があればこの「結果行アイテム」に紐付ける
+                    lastDispIsResult   = true;
+                    lastResultDispIndex = out.mainline.disp.size() - 1;
+                    lastResultSideIdx   = (turn == Black) ? 0 : 1;
+                    continue;
                 }
-                out.mainline.disp.append(di);
-                // 終局が来たらこの行以降は無視
-                t = toks.size();
-                break;
-            }
 
-            // 時間トークン
-            if (token.startsWith(QLatin1Char('T'))) {
-                if (!out.mainline.disp.isEmpty() && lastMover >= 0) {
+                // 時間トークン
+                if (token.startsWith(QLatin1Char('T'))) {
                     qint64 moveMs = 0;
                     if (parseTimeTokenMs_(token, moveMs)) {
-                        cumMs[lastMover] += moveMs;
-                        out.mainline.disp.last().timeText = composeTimeText_(moveMs, cumMs[lastMover]);
+                        if (lastDispIsResult && lastResultDispIndex >= 0 &&
+                            lastResultDispIndex < out.mainline.disp.size())
+                        {
+                            // 結果行に timeText を載せる。累計はその手番側に加算
+                            if (lastResultSideIdx >= 0) {
+                                cumMs[lastResultSideIdx] += moveMs;
+                                out.mainline.disp[lastResultDispIndex].timeText =
+                                    composeTimeText_(moveMs, cumMs[lastResultSideIdx]);
+                            } else {
+                                // 念のため side 不明時は timeText のみ設定（累計は不変）
+                                out.mainline.disp[lastResultDispIndex].timeText =
+                                    composeTimeText_(moveMs, 0);
+                            }
+                        } else if (!out.mainline.disp.isEmpty() && lastMover >= 0) {
+                            // 直前の通常手に付与
+                            cumMs[lastMover] += moveMs;
+                            out.mainline.disp.last().timeText =
+                                composeTimeText_(moveMs, cumMs[lastMover]);
+                        } // それ以外は無視
                     } else {
                         if (warn) *warn += QStringLiteral("Failed to parse time token: %1\n").arg(token);
                     }
+                    continue;
                 }
-                continue;
+
+                // 指し手（+... / -...）
+                if (token.startsWith(QLatin1Char('+')) || token.startsWith(QLatin1Char('-'))) {
+                    const QChar head  = token.at(0);
+                    const Color mover = (head == QLatin1Char('+')) ? Black : White;
+
+                    QString usi, pretty;
+                    if (!parseMoveLine_(token, mover, board, prevTx, prevTy, usi, pretty, warn)) {
+                        if (warn) *warn += QStringLiteral("Failed to parse move token: %1\n").arg(token);
+                        return false;
+                    }
+                    out.mainline.usiMoves.append(usi);
+
+                    KifDisplayItem di;
+                    di.prettyMove = pretty;
+                    attachPendingTo_(pendingComments, di.comment);
+                    out.mainline.disp.append(di);
+
+                    // この手を直前手として記録（T の帰属先）
+                    lastMover = (mover == Black) ? 0 : 1;
+
+                    // 結果行コンテキストは終了
+                    lastDispIsResult = false; lastResultDispIndex = -1; lastResultSideIdx = -1;
+
+                    // 次手番へ
+                    turn = (mover == Black) ? White : Black;
+                    continue;
+                }
+
+                // メタ等は無視
             }
 
-            // 指し手トークン（+... / -...）
-            if (token.startsWith(QLatin1Char('+')) || token.startsWith(QLatin1Char('-'))) {
-                const QChar head  = token.at(0);
-                const Color mover = (head == QLatin1Char('+')) ? Black : White;
-
-                QString usi, pretty;
-                if (!parseMoveLine_(token, mover, board, prevTx, prevTy, usi, pretty, warn)) {
-                    if (warn) *warn += QStringLiteral("Failed to parse move token: %1\n").arg(token);
-                    return false;
-                }
-                out.mainline.usiMoves.append(usi);
-
-                KifDisplayItem di;
-                di.prettyMove = pretty;
-
-                if (!pendingComments.isEmpty()) {
-                    di.comment = pendingComments.join(QStringLiteral("\n"));
-                    pendingComments.clear();
-                }
-
-                out.mainline.disp.append(di);
-
-                // 直前の手を更新（T の帰属先）
-                lastMover = (mover == Black) ? 0 : 1;
-
-                // 次手番へ
-                turn = (mover == Black) ? White : Black;
-                continue;
-            }
-
-            // メタ等はスキップ
-            // （N/V/$ などはカンマ連結の想定が薄いので無視）
+            // 次行へ
+            continue;
         }
+
+        // ---- 2) カンマを含まない通常行 ----
+
+        // コメント行（先頭が'）: 次の指し手用に pending へ
+        if (isCommentLine_(s)) {
+            const QString norm = normalizeCsaCommentLine_(s);
+            if (!norm.isNull()) pendingComments.append(norm);
+            continue;
+        }
+
+        // メタ行（V/$/N）はスキップ
+        if (isMetaLine_(s)) continue;
+
+        // 手番指示
+        if (s.size() == 1 && (s[0] == QLatin1Char('+') || s[0] == QLatin1Char('-'))) {
+            turn = (s[0] == QLatin1Char('+')) ? Black : White;
+            // 結果行コンテキストは終了
+            lastDispIsResult = false; lastResultDispIndex = -1; lastResultSideIdx = -1;
+            continue;
+        }
+
+        // 結果コード（%...）
+        if (isResultLine_(s)) {
+            const QString sideMark = (turn == Black) ? QStringLiteral("▲") : QStringLiteral("△");
+            QString label;
+            if      (s.startsWith(QLatin1String("%TORYO")))           label = QStringLiteral("投了");
+            else if (s.startsWith(QLatin1String("%CHUDAN")))          label = QStringLiteral("中断");
+            else if (s.startsWith(QLatin1String("%SENNICHITE")))      label = QStringLiteral("千日手");
+            else if (s.startsWith(QLatin1String("%JISHOGI")))         label = QStringLiteral("持将棋");
+            else if (s.startsWith(QLatin1String("%TIME_UP")))         label = QStringLiteral("切れ負け");
+            else if (s.startsWith(QLatin1String("%ILLEGAL_MOVE")))    label = QStringLiteral("反則負け");
+            else if (s.startsWith(QLatin1String("%+ILLEGAL_ACTION"))) label = QStringLiteral("反則負け");
+            else if (s.startsWith(QLatin1String("%-ILLEGAL_ACTION"))) label = QStringLiteral("反則負け");
+            else if (s.startsWith(QLatin1String("%KACHI")))           label = QStringLiteral("入玉勝ち");
+            else if (s.startsWith(QLatin1String("%HIKIWAKE")))        label = QStringLiteral("引き分け");
+            else if (s.startsWith(QLatin1String("%MAX_MOVES")))       label = QStringLiteral("最大手数到達");
+            else if (s.startsWith(QLatin1String("%TSUMI")))           label = QStringLiteral("詰み");
+            else if (s.startsWith(QLatin1String("%FUZUMI")))          label = QStringLiteral("不詰");
+            else if (s.startsWith(QLatin1String("%ERROR")))           label = QStringLiteral("エラー");
+            else                                                      label = s; // 不明コードはそのまま
+
+            KifDisplayItem di;
+            di.prettyMove = sideMark + label;
+            attachPendingTo_(pendingComments, di.comment);
+            out.mainline.disp.append(di);
+
+            // 次行に単独 "T..." が来る場合に備え、結果行コンテキストを維持
+            lastDispIsResult   = true;
+            lastResultDispIndex = out.mainline.disp.size() - 1;
+            lastResultSideIdx   = (turn == Black) ? 0 : 1;
+
+            // 以降も読む（この行はここで終了）
+            continue;
+        }
+
+        // 時間トークン単独行 "T..."
+        if (s.startsWith(QLatin1Char('T'))) {
+            qint64 moveMs = 0;
+            if (parseTimeTokenMs_(s, moveMs)) {
+                if (lastDispIsResult && lastResultDispIndex >= 0 &&
+                    lastResultDispIndex < out.mainline.disp.size())
+                {
+                    // 結果行に timeText を載せる。累計はその手番側に加算
+                    if (lastResultSideIdx >= 0) {
+                        cumMs[lastResultSideIdx] += moveMs;
+                        out.mainline.disp[lastResultDispIndex].timeText =
+                            composeTimeText_(moveMs, cumMs[lastResultSideIdx]);
+                    } else {
+                        out.mainline.disp[lastResultDispIndex].timeText =
+                            composeTimeText_(moveMs, 0);
+                    }
+                } else if (!out.mainline.disp.isEmpty() && lastMover >= 0) {
+                    // 直前の通常手に付与
+                    cumMs[lastMover] += moveMs;
+                    out.mainline.disp.last().timeText =
+                        composeTimeText_(moveMs, cumMs[lastMover]);
+                }
+            } else {
+                if (warn) *warn += QStringLiteral("Failed to parse time token: %1\n").arg(s);
+            }
+            continue;
+        }
+
+        // 通常の指し手（行頭 + / -）
+        if (isMoveLine_(s)) {
+            const QChar head  = s.at(0);
+            const Color mover = (head == QLatin1Char('+')) ? Black : White;
+
+            QString usi, pretty;
+            if (!parseMoveLine_(s, mover, board, prevTx, prevTy, usi, pretty, warn)) {
+                if (warn) *warn += QStringLiteral("Failed to parse move line: %1\n").arg(s);
+                return false;
+            }
+            out.mainline.usiMoves.append(usi);
+
+            KifDisplayItem di;
+            di.prettyMove = pretty;
+            attachPendingTo_(pendingComments, di.comment);
+            out.mainline.disp.append(di);
+
+            // 直前の手を更新（T の帰属先）
+            lastMover = (mover == Black) ? 0 : 1;
+
+            // 結果行コンテキストは終了
+            lastDispIsResult = false; lastResultDispIndex = -1; lastResultSideIdx = -1;
+
+            // 次手番へ
+            turn = (mover == Black) ? White : Black;
+            continue;
+        }
+
+        // ここまでに該当しない行は読み飛ばし
     }
 
     return true;
