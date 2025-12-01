@@ -176,6 +176,10 @@ private:
     void applyBranchMarksForCurrentLine_();
 
     void refreshBranchCandidatesUIOnly_(int row, int ply1); // 文脈を変えずUIだけ更新
+
+    void applyParsedResultCommon_(const QString& filePath, const QString& initialSfen,
+                                  const QString& teaiLabel, const KifParseResult& res,
+                                  const QString& parseWarn, const char* callerTag);
 };
 
 #endif // KIFULOADCOORDINATOR_H
