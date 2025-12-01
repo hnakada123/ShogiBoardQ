@@ -20,20 +20,13 @@ public:
     // 追加: CSAファイルからヘッダー情報（対局者名、棋戦名など）を抽出する
     static QList<KifGameInfoItem> extractGameInfo(const QString& filePath);
 
-private:
-    // ---- 低レベルユーティリティ ----
-    static bool readAllLinesDetectEncoding_(const QString& path, QStringList& outLines, QString* warn);
-    static bool isMoveLine_(const QString& s);
-    static bool isResultLine_(const QString& s);
-    static bool isMetaLine_(const QString& s);
-    static bool isCommentLine_(const QString& s);
-
     // ---- 盤／指し手処理 ----
     enum Color { Black, White, None };
     enum Piece {
         NO_P, FU, KY, KE, GI, KI, KA, HI, OU,
         TO, NY, NK, NG, UM, RY
     };
+
     struct Cell {
         Piece  p = NO_P;
         Color  c = None;
@@ -45,6 +38,14 @@ private:
         // 平手初期配置へ。
         void setHirate();
     };
+
+private:
+    // ---- 低レベルユーティリティ ----
+    static bool readAllLinesDetectEncoding_(const QString& path, QStringList& outLines, QString* warn);
+    static bool isMoveLine_(const QString& s);
+    static bool isResultLine_(const QString& s);
+    static bool isMetaLine_(const QString& s);
+    static bool isCommentLine_(const QString& s);
 
     static bool parseStartPos_(const QStringList& lines, int& idx, QString& baseSfen, Color& stm, Board& board);
 
