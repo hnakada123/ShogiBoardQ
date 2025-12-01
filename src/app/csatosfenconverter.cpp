@@ -798,6 +798,9 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
     }
 
     QStringList pendingComments;
+    // ★ 追加：初手直前の "'*" コメント群を pending へ先取り（v3仕様）
+    collectPreMoveCommentBlock_(lines, idx, pendingComments);
+
     int prevTx = -1, prevTy = -1;
 
     qint64 cumMs[2] = {0, 0};
