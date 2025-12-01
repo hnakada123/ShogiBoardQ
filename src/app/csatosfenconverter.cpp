@@ -4,6 +4,247 @@
 
 #include <QStringDecoder>
 
+// ====== NEW: CSA P 行（初期局面）と SFEN 補助 ======
+namespace {
+using Piece = CsaToSfenConverter::Piece;
+using Color = CsaToSfenConverter::Color;
+
+// CSA 2文字→駒列挙
+static Piece pieceFromCsa2_(const QString& two)
+{
+    if (two.size() != 2) return CsaToSfenConverter::NO_P;
+    const QString t = two.toUpper();
+    if      (t == QLatin1String("FU")) return CsaToSfenConverter::FU;
+    else if (t == QLatin1String("KY")) return CsaToSfenConverter::KY;
+    else if (t == QLatin1String("KE")) return CsaToSfenConverter::KE;
+    else if (t == QLatin1String("GI")) return CsaToSfenConverter::GI;
+    else if (t == QLatin1String("KI")) return CsaToSfenConverter::KI;
+    else if (t == QLatin1String("KA")) return CsaToSfenConverter::KA;
+    else if (t == QLatin1String("HI")) return CsaToSfenConverter::HI;
+    else if (t == QLatin1String("OU")) return CsaToSfenConverter::OU;
+    else if (t == QLatin1String("TO")) return CsaToSfenConverter::TO;
+    else if (t == QLatin1String("NY")) return CsaToSfenConverter::NY;
+    else if (t == QLatin1String("NK")) return CsaToSfenConverter::NK;
+    else if (t == QLatin1String("NG")) return CsaToSfenConverter::NG;
+    else if (t == QLatin1String("UM")) return CsaToSfenConverter::UM;
+    else if (t == QLatin1String("RY")) return CsaToSfenConverter::RY;
+    return CsaToSfenConverter::NO_P;
+}
+
+// 成り→生駒
+static Piece basePieceOfLocal_(Piece p)
+{
+    using C = CsaToSfenConverter;
+    switch (p) {
+    case C::TO: return C::FU;
+    case C::NY: return C::KY;
+    case C::NK: return C::KE;
+    case C::NG: return C::GI;
+    case C::UM: return C::KA;
+    case C::RY: return C::HI;
+    default:    return p;
+    }
+}
+
+static bool isPromotedLocal_(Piece p)
+{
+    using C = CsaToSfenConverter;
+    return (p == C::TO || p == C::NY || p == C::NK || p == C::NG || p == C::UM || p == C::RY);
+}
+
+// 盤→SFEN（盤面フィールドのみ）
+static QString toSfenBoard_(const CsaToSfenConverter::Board& b)
+{
+    QString s;
+    s.reserve(81);
+    for (int y = 1; y <= 9; ++y) {
+        int empty = 0;
+        for (int x = 9; x >= 1; --x) { // 左→右（9→1）
+            const auto& cell = b.sq[x][y];
+            if (cell.p == CsaToSfenConverter::NO_P) {
+                ++empty;
+            } else {
+                if (empty > 0) { s += QString::number(empty); empty = 0; }
+                const Piece base = basePieceOfLocal_(cell.p);
+                QChar ch;
+                switch (base) {
+                case CsaToSfenConverter::FU: ch = QLatin1Char('P'); break;
+                case CsaToSfenConverter::KY: ch = QLatin1Char('L'); break;
+                case CsaToSfenConverter::KE: ch = QLatin1Char('N'); break;
+                case CsaToSfenConverter::GI: ch = QLatin1Char('S'); break;
+                case CsaToSfenConverter::KI: ch = QLatin1Char('G'); break;
+                case CsaToSfenConverter::KA: ch = QLatin1Char('B'); break;
+                case CsaToSfenConverter::HI: ch = QLatin1Char('R'); break;
+                case CsaToSfenConverter::OU: ch = QLatin1Char('K'); break;
+                default: ch = QLatin1Char('?'); break;
+                }
+                if (cell.c == CsaToSfenConverter::White) ch = ch.toLower();
+                if (isPromotedLocal_(cell.p)) s += QLatin1Char('+');
+                s += ch;
+            }
+        }
+        if (empty > 0) s += QString::number(empty);
+        if (y != 9) s += QLatin1Char('/');
+    }
+    return s;
+}
+
+// 手駒（R,B,G,S,N,L,P の順）→SFEN
+static QString handsToSfen_(const int bH[7], const int wH[7])
+{
+    auto append = [](QString& out, int n, QChar ch) {
+        if (n <= 0) return;
+        if (n >= 2) out += QString::number(n);
+        out += ch;
+    };
+    QString s;
+    // 先手
+    append(s, bH[0], QLatin1Char('R'));
+    append(s, bH[1], QLatin1Char('B'));
+    append(s, bH[2], QLatin1Char('G'));
+    append(s, bH[3], QLatin1Char('S'));
+    append(s, bH[4], QLatin1Char('N'));
+    append(s, bH[5], QLatin1Char('L'));
+    append(s, bH[6], QLatin1Char('P'));
+    // 後手
+    append(s, wH[0], QLatin1Char('r'));
+    append(s, wH[1], QLatin1Char('b'));
+    append(s, wH[2], QLatin1Char('g'));
+    append(s, wH[3], QLatin1Char('s'));
+    append(s, wH[4], QLatin1Char('n'));
+    append(s, wH[5], QLatin1Char('l'));
+    append(s, wH[6], QLatin1Char('p'));
+    if (s.isEmpty()) return QStringLiteral("-");
+    return s;
+}
+
+// "P[1-9] ..."（行配置）を盤に適用 （Qt6対応: midRef非使用）
+static bool applyPRowLine_(const QString& raw, CsaToSfenConverter::Board& b)
+{
+    if (raw.size() < 2 || raw.at(0) != QLatin1Char('P')) return false;
+
+    // 2文字目が行番号（'1'～'9'）
+    const int row = (raw.size() >= 2 && raw.at(1).isDigit()) ? raw.at(1).digitValue() : -1;
+    if (row < 1 || row > 9) return false;
+
+    QString rest = raw.mid(2).trimmed();
+    rest.replace(QLatin1Char('\t'), QLatin1Char(' '));
+
+    // + / - / * の直前に空白を入れて分割
+    QString norm; norm.reserve(rest.size() * 2);
+    for (int i = 0; i < rest.size(); ++i) {
+        const QChar c = rest.at(i);
+        if (c == QLatin1Char('+') || c == QLatin1Char('-') || c == QLatin1Char('*')) {
+            norm += QLatin1Char(' ');
+            norm += c;
+        } else {
+            norm += c;
+        }
+    }
+    QStringList toks = norm.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+
+    if (toks.size() != 9) {
+        // スペース無しのケースにフォールバック（手動走査）
+        QStringList ts; ts.reserve(9);
+        for (int j = 0; j < rest.size(); ++j) {
+            const QChar c = rest.at(j);
+            if (c == QLatin1Char('*')) {
+                ts.append(QStringLiteral("*"));
+            } else if (c == QLatin1Char('+') || c == QLatin1Char('-')) {
+                if (j + 2 < rest.size()) {
+                    const QString t = QString(c) + rest.at(j + 1) + rest.at(j + 2);
+                    ts.append(t);
+                    j += 2;
+                }
+            }
+        }
+        if (ts.size() != 9) return false;
+        toks = ts;
+    }
+
+    // 左から右の 9 トークン：x=9 → x=1
+    for (int i = 0; i < 9; ++i) {
+        const QString t = toks.at(i);
+        const int x = 9 - i;
+        if (t == QLatin1String("*")) {
+            b.sq[x][row].p = CsaToSfenConverter::NO_P;
+            b.sq[x][row].c = CsaToSfenConverter::Black;
+            continue;
+        }
+        if (t.size() != 3) return false;
+        const CsaToSfenConverter::Color side =
+            (t.at(0) == QLatin1Char('+')) ? CsaToSfenConverter::Black
+                                          : CsaToSfenConverter::White;
+        const CsaToSfenConverter::Piece pc = pieceFromCsa2_(t.mid(1, 2));
+        b.sq[x][row] = { pc, side };
+    }
+    return true;
+}
+
+// "P+ ..." / "P- ..."（盤配置・手駒定義＋00AL対応）を適用 （Qt6対応: midRef非使用）
+static bool applyPPlusMinusLine_(const QString& raw, CsaToSfenConverter::Board& b,
+                                 int bH[7], int wH[7],
+                                 bool& alBlack, bool& alWhite)
+{
+    if (raw.size() < 2 || raw.at(0) != QLatin1Char('P')) return false;
+    const QChar sign = raw.at(1);
+    if (sign != QLatin1Char('+') && sign != QLatin1Char('-')) return false;
+
+    const CsaToSfenConverter::Color side =
+        (sign == QLatin1Char('+')) ? CsaToSfenConverter::Black : CsaToSfenConverter::White;
+
+    QString rest = raw.mid(2).trimmed();
+    QString noSpace = rest; noSpace.remove(QLatin1Char(' '));
+
+    int matched = 0;
+    for (int pos = 0; pos + 3 < noSpace.size(); pos += 4) {
+        const QString tok = noSpace.mid(pos, 4); // 2桁座標 + 2桁駒
+        ++matched;
+
+        // 座標（'0'～'9'）を1桁ずつ読む
+        const int file = (tok.size() >= 1 && tok.at(0).isDigit()) ? tok.at(0).digitValue() : -1;
+        const int rank = (tok.size() >= 2 && tok.at(1).isDigit()) ? tok.at(1).digitValue() : -1;
+
+        const QString pc2 = tok.mid(2, 2).toUpper();
+
+        // --- 00AL（残り全部の駒を手駒へ）---
+        if (file == 0 && rank == 0 && pc2 == QLatin1String("AL")) {
+            if (side == CsaToSfenConverter::Black) alBlack = true;
+            else                                    alWhite = true;
+            // 実際の加算は parseStartPos_ の読了後にまとめて行う
+            continue;
+        }
+
+        const CsaToSfenConverter::Piece pc = pieceFromCsa2_(pc2);
+
+        if (file == 0 && rank == 0) {
+            // 手駒（00XY）
+            const CsaToSfenConverter::Piece base = basePieceOfLocal_(pc);
+            int idx = -1;
+            switch (base) {
+            case CsaToSfenConverter::HI: idx = 0; break; // R
+            case CsaToSfenConverter::KA: idx = 1; break; // B
+            case CsaToSfenConverter::KI: idx = 2; break; // G
+            case CsaToSfenConverter::GI: idx = 3; break; // S
+            case CsaToSfenConverter::KE: idx = 4; break; // N
+            case CsaToSfenConverter::KY: idx = 5; break; // L
+            case CsaToSfenConverter::FU: idx = 6; break; // P
+            default: idx = -1; break;
+            }
+            if (idx >= 0) {
+                if (side == CsaToSfenConverter::Black) ++bH[idx];
+                else ++wH[idx];
+            }
+        } else {
+            // 盤上配置
+            if (file < 1 || file > 9 || rank < 1 || rank > 9) continue;
+            b.sq[file][rank] = { pc, side };
+        }
+    }
+    return matched > 0;
+}
+} // namespace
+
 // 秒または 秒.ミリ(最大3桁) をミリ秒に
 static bool parseTimeTokenMs_(const QString& token, qint64& msOut)
 {
@@ -81,9 +322,14 @@ static QString normalizeCsaCommentLine_(const QString& line)
     // 既知の生成ツールのバナーは捨てる
     if (t.startsWith(QLatin1String("---- Kifu for Windows"))) return QString();
 
-    // Floodgate/CSA v3系の評価・読み筋（"** ..."）は本文コメントには載せない
     const QString trimmed = t.trimmed();
-    if (trimmed.startsWith(QLatin1String("**"))) return QString();
+
+    // ★ 追加: Floodgate/CSA v3 系の評価・読み筋をコメントとして残す
+    // 例: '** 30 +7776FU -9394FU +7968GI #1234'
+    if (trimmed.startsWith(QLatin1String("**"))) {
+        const QString body = trimmed.mid(2).trimmed();
+        return QStringLiteral("評価/読み筋: ") + body;
+    }
 
     // 「'*' だけ」の行は空行（段落区切り）として残す
     if (trimmed == QLatin1String("*")) return QString("");
@@ -167,20 +413,34 @@ bool CsaToSfenConverter::readAllLinesDetectEncoding_(const QString& path, QStrin
     }
 
     const QByteArray raw = f.readAll();
-    const bool utf8Header = raw.left(128).contains("CSA encoding=UTF-8");
+    const QByteArray head = raw.left(128);
+    const bool utf8Header  = head.contains("CSA encoding=UTF-8");
+    const bool sjisHeader  = head.contains("CSA encoding=SHIFT_JIS") || head.contains("CSA encoding=Shift_JIS");
 
     QString text;
 
     if (utf8Header) {
         QStringDecoder dec(QStringDecoder::Utf8);
         text = dec(raw);
+    } else if (sjisHeader) {
+        QStringDecoder decSjis("CP932"); // Windows 実用上 CP932 優先
+        if (!decSjis.isValid())
+            decSjis = QStringDecoder("Shift-JIS");
+        if (decSjis.isValid()) {
+            text = decSjis(raw);
+        } else {
+            // 念のためのフォールバック
+            QStringDecoder decSys(QStringDecoder::System);
+            text = decSys(raw);
+        }
     } else {
+        // ヘッダが無い場合は UTF-8 を試し、ダメなら CP932/Shift-JIS → System の順
         QStringDecoder decUtf8(QStringDecoder::Utf8);
         text = decUtf8(raw);
         if (decUtf8.hasError()) {
-            QStringDecoder decSjis("Shift-JIS");
+            QStringDecoder decSjis("CP932");
             if (!decSjis.isValid())
-                decSjis = QStringDecoder("CP932");
+                decSjis = QStringDecoder("Shift-JIS");
             if (decSjis.isValid()) {
                 text = decSjis(raw);
             } else {
@@ -218,54 +478,143 @@ bool CsaToSfenConverter::isCommentLine_(const QString& s)
     return (s.startsWith('\''));
 }
 
-// ---- 開始局面解析 ----
+// ---- 開始局面解析（CSA v3: PI / P1..P9 / P+ / P- / + or - 対応）----
 bool CsaToSfenConverter::parseStartPos_(const QStringList& lines, int& idx,
                                         QString& baseSfen, Color& stm, Board& board)
 {
+    // 既定は平手・先手番
     board.setHirate();
     stm = Black;
 
-    auto sfenOfSide = [](Color c)->QString {
-        return c == Black ? QStringLiteral(" b - 1")
-                          : QStringLiteral(" w - 1");
+    // 手駒（R,B,G,S,N,L,P）
+    int bH[7] = {0,0,0,0,0,0,0};
+    int wH[7] = {0,0,0,0,0,0,0};
+
+    // 00AL 対応フラグ（最後に未使用駒を手駒へ）
+    bool alBlack = false;
+    bool alWhite = false;
+
+    // 盤クリア関数（ラムダは使わず直書き）
+    auto clearBoardNoLambda = [&board]() {
+        for (int x = 1; x <= 9; ++x) {
+            for (int y = 1; y <= 9; ++y) {
+                board.sq[x][y].p = NO_P;
+                board.sq[x][y].c = Black;
+            }
+        }
     };
-    const QString boardSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL");
 
     bool sawPI = false;
-    for (int i = idx; i < lines.size(); ++i) {
-        const QString raw = lines.at(i).trimmed();
+    bool sawAnyP = false;
+
+    int i = idx;
+    for (; i < lines.size(); ++i) {
+        QString raw = lines.at(i).trimmed();
         if (raw.isEmpty()) continue;
         if (isMetaLine_(raw) || isCommentLine_(raw)) continue;
 
-        if (raw == QLatin1String("PI")) { // 平手
-            sawPI = true;
-            ++i;
-            if (i < lines.size()) {
-                const QString nxt = lines.at(i).trimmed();
-                if (nxt == QLatin1String("+")) { stm = Black; }
-                else if (nxt == QLatin1String("-")) { stm = White; }
-                else { --i; }
-            }
-            idx = i + 1;
-            break;
-        } else if (raw == QLatin1String("+")) {
-            stm = Black;
-            idx = i + 1;
-            break;
-        } else if (raw == QLatin1String("-")) {
-            stm = White;
-            idx = i + 1;
-            break;
-        } else if (isMoveLine_(raw) || isResultLine_(raw)) {
-            idx = i;
-            break;
-        } else {
+        if (raw == QLatin1String("PI")) {
+            board.setHirate();
+            for (int k = 0; k < 7; ++k) { bH[k] = 0; wH[k] = 0; }
+            sawPI = true; sawAnyP = true;
             continue;
+        }
+
+        if (raw.size() >= 2 && raw.at(0) == QLatin1Char('P')) {
+            if (!sawPI && !sawAnyP) {
+                // P 行が最初に現れたら「明示配置モード」：盤を空に
+                clearBoardNoLambda();
+            }
+            if (raw.at(1).isDigit()) {
+                if (applyPRowLine_(raw, board)) sawAnyP = true;
+                continue;
+            } else if (raw.at(1) == QLatin1Char('+') || raw.at(1) == QLatin1Char('-')) {
+                if (applyPPlusMinusLine_(raw, board, bH, wH, alBlack, alWhite)) sawAnyP = true;
+                continue;
+            }
+        }
+
+        if (raw == QLatin1String("+")) {
+            // 明示手番：先手
+            stm = Black;
+            ++i; // 次行から指し手を読む
+            break;
+        }
+        if (raw == QLatin1String("-")) {
+            // 明示手番：後手
+            stm = White;
+            ++i; // 次行から指し手を読む
+            break;
+        }
+
+        if (isMoveLine_(raw) || isResultLine_(raw)) {
+            // 手番行が無い場合は最初の指し手から推定
+            if (raw.startsWith(QLatin1Char('+')))      stm = Black;
+            else if (raw.startsWith(QLatin1Char('-'))) stm = White;
+            // この行自体が最初の手/終局なので、ここから読む
+            break;
+        }
+
+        // 未知行は読み飛ばし
+    }
+    idx = i;
+
+    // --- 00AL 指定があれば未使用駒を手駒に補充 ---
+    if (alBlack || alWhite) {
+        // 総数（R,B,G,S,N,L,P）: 2,2,4,4,4,4,18 （玉は手駒にできないため対象外）
+        const int TOTAL[7] = {2,2,4,4,4,4,18};
+        int used[7] = {0,0,0,0,0,0,0};
+
+        // 盤上の駒を集計（成駒は元の駒に戻す）
+        for (int x = 1; x <= 9; ++x) {
+            for (int y = 1; y <= 9; ++y) {
+                const Piece pc = basePieceOfLocal_(board.sq[x][y].p);
+                int idx2 = -1;
+                switch (pc) {
+                case HI: idx2 = 0; break; // R
+                case KA: idx2 = 1; break; // B
+                case KI: idx2 = 2; break; // G
+                case GI: idx2 = 3; break; // S
+                case KE: idx2 = 4; break; // N
+                case KY: idx2 = 5; break; // L
+                case FU: idx2 = 6; break; // P
+                default: idx2 = -1; break; // 玉など
+                }
+                if (idx2 >= 0) ++used[idx2];
+            }
+        }
+        // 既に手駒にある分を加算
+        for (int k = 0; k < 7; ++k) {
+            used[k] += bH[k] + wH[k];
+        }
+        // 残り（未使用）を計算
+        int rem[7] = {0,0,0,0,0,0,0};
+        for (int k = 0; k < 7; ++k) {
+            rem[k] = TOTAL[k] - used[k];
+            if (rem[k] < 0) rem[k] = 0;
+        }
+        // 指定側に全て付与
+        if (alBlack) {
+            for (int k = 0; k < 7; ++k) bH[k] += rem[k];
+        }
+        if (alWhite) {
+            for (int k = 0; k < 7; ++k) wH[k] += rem[k];
         }
     }
 
-    baseSfen = boardSfen + sfenOfSide(stm);
-    Q_UNUSED(sawPI);
+    // base SFEN を構築
+    QString boardField, handsField;
+    if (sawAnyP || sawPI) {
+        boardField = toSfenBoard_(board);
+        handsField = handsToSfen_(bH, wH);
+    } else {
+        // 盤面定義が無ければ平手デフォルト
+        boardField = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL");
+        handsField = QStringLiteral("-");
+    }
+    baseSfen = boardField
+               + (stm == Black ? QStringLiteral(" b ") : QStringLiteral(" w "))
+               + handsField + QStringLiteral(" 1");
     return true;
 }
 
@@ -509,11 +858,11 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
     QStringList lines;
     if (!readAllLinesDetectEncoding_(filePath, lines, warn)) return false;
 
-    // out を毎回初期化
+    // out を初期化
     out.mainline.baseSfen.clear();
     out.mainline.usiMoves.clear();
     out.mainline.disp.clear();
-    out.variations.clear(); // CSAは分岐を持たない
+    out.variations.clear(); // CSA は分岐なし
 
     // 開始局面と手番
     int   idx  = 0;
@@ -524,34 +873,33 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
         return false;
     }
 
-    // 「開始局面のあと〜初手の前」に連続する "'*" コメントを初手へ付けるために先取り
+    // 初手直前の "'*" コメント塊を初手へ付けるため先取り
     QStringList pendingComments;
     collectPreMoveCommentBlock_(lines, idx, pendingComments);
 
-    // 直前の着手先座標（"同" 表記用）
+    // 「同」表示用の直前着手先
     int prevTx = -1, prevTy = -1;
 
-    // 消費時間の累計（先手=0, 後手=1）: ms
+    // 消費時間累計（ms）
     qint64 cumMs[2] = {0, 0};
-    // 直前に指した側（T の帰属用）: 0=先手,1=後手, なし=-1
-    int lastMover = -1;
+    int    lastMover = -1;
 
-    // 直近で「結果行（%…）」を追加したかどうかと、その index/側
+    // 直近の結果行コンテキスト
     bool lastDispIsResult = false;
     int  lastResultDispIndex = -1;
-    int  lastResultSideIdx   = -1; // 0 or 1
+    int  lastResultSideIdx   = -1;
 
-    // 指し手を読む（次に指す側）
-    Color turn = stm;
-
-    // ユーティリティ：pending を di.comment に吸収
-    auto attachPendingTo_ = [](QStringList& src, QString& dst) {
+    // pending を di.comment に丸ごと移す小ヘルパ
+    auto attachPendingTo_ = [](QStringList& src, QString& dst){
         if (src.isEmpty()) return;
         const QString joined = src.join(QStringLiteral("\n"));
         if (!dst.isEmpty()) dst += QLatin1Char('\n');
         dst += joined;
         src.clear();
     };
+
+    // 次に指す側
+    Color turn = stm;
 
     for (int i = idx; i < lines.size(); ++i) {
         QString s = lines.at(i);
@@ -560,14 +908,14 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
         s = s.trimmed();
         if (s.isEmpty()) continue;
 
-        // ---- 1) カンマを含む場合はトークン列として処理 ----
+        // ---- 1) カンマ区切り（同一行に複数トークン）の場合 ----
         if (s.contains(QLatin1Char(','))) {
-            const QStringList toks = s.split(QLatin1Char(','), Qt::KeepEmptyParts);
-            for (int t = 0; t < toks.size(); ++t) {
-                const QString token = toks.at(t).trimmed();
+            const QStringList tokens = s.split(QLatin1Char(','), Qt::SkipEmptyParts);
+            for (const QString& tokenRaw : tokens) {
+                const QString token = tokenRaw.trimmed();
                 if (token.isEmpty()) continue;
 
-                // コメント（'...）: 直前が結果行なら結果行に付ける。そうでなければ pending に積む
+                // コメント（'...）
                 if (token.startsWith(QLatin1Char('\''))) {
                     const QString norm = normalizeCsaCommentLine_(token);
                     if (!norm.isNull()) {
@@ -584,96 +932,90 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
                     continue;
                 }
 
-                // 手番指示
+                // 手番明示 (+ / -)
                 if (token.size() == 1 && (token[0] == QLatin1Char('+') || token[0] == QLatin1Char('-'))) {
                     turn = (token[0] == QLatin1Char('+')) ? Black : White;
-                    // 結果行コンテキストは終了
                     lastDispIsResult = false; lastResultDispIndex = -1; lastResultSideIdx = -1;
                     continue;
                 }
 
-                // 結果コード
+                // ★ 結果コード（%...）
                 if (token.startsWith(QLatin1Char('%'))) {
                     const QString sideMark = (turn == Black) ? QStringLiteral("▲") : QStringLiteral("△");
                     QString label;
-                    if      (token.startsWith(QLatin1String("%TORYO")))           label = QStringLiteral("投了");
-                    else if (token.startsWith(QLatin1String("%CHUDAN")))          label = QStringLiteral("中断");
-                    else if (token.startsWith(QLatin1String("%SENNICHITE")))      label = QStringLiteral("千日手");
-                    else if (token.startsWith(QLatin1String("%JISHOGI")))         label = QStringLiteral("持将棋");
-                    else if (token.startsWith(QLatin1String("%TIME_UP")))         label = QStringLiteral("切れ負け");
-                    else if (token.startsWith(QLatin1String("%ILLEGAL_MOVE")))    label = QStringLiteral("反則負け");
-                    else if (token.startsWith(QLatin1String("%+ILLEGAL_ACTION"))) label = QStringLiteral("反則負け");
-                    else if (token.startsWith(QLatin1String("%-ILLEGAL_ACTION"))) label = QStringLiteral("反則負け");
-                    else if (token.startsWith(QLatin1String("%KACHI")))           label = QStringLiteral("入玉勝ち");
-                    else if (token.startsWith(QLatin1String("%HIKIWAKE")))        label = QStringLiteral("引き分け");
-                    else if (token.startsWith(QLatin1String("%MAX_MOVES")))       label = QStringLiteral("最大手数到達");
-                    else if (token.startsWith(QLatin1String("%TSUMI")))           label = QStringLiteral("詰み");
-                    else if (token.startsWith(QLatin1String("%FUZUMI")))          label = QStringLiteral("不詰");
-                    else if (token.startsWith(QLatin1String("%ERROR")))           label = QStringLiteral("エラー");
-                    else                                                          label = token;
+                    if      (token.startsWith(QLatin1String("%TORYO")))            label = QStringLiteral("投了");
+                    else if (token.startsWith(QLatin1String("%CHUDAN")))           label = QStringLiteral("中断");
+                    else if (token.startsWith(QLatin1String("%SENNICHITE")))       label = QStringLiteral("千日手");
+                    else if (token.startsWith(QLatin1String("%OUTE_SENNICHITE")))  label = QStringLiteral("王手千日手"); // ★追加
+                    else if (token.startsWith(QLatin1String("%JISHOGI")))          label = QStringLiteral("持将棋");
+                    else if (token.startsWith(QLatin1String("%TIME_UP")))          label = QStringLiteral("切れ負け");
+                    else if (token.startsWith(QLatin1String("%ILLEGAL_MOVE")))     label = QStringLiteral("反則負け");
+                    else if (token.startsWith(QLatin1String("%+ILLEGAL_ACTION")))  label = QStringLiteral("反則負け");
+                    else if (token.startsWith(QLatin1String("%-ILLEGAL_ACTION")))  label = QStringLiteral("反則負け");
+                    else if (token.startsWith(QLatin1String("%KACHI")))            label = QStringLiteral("入玉勝ち");
+                    else if (token.startsWith(QLatin1String("%HIKIWAKE")))         label = QStringLiteral("引き分け");
+                    else if (token.startsWith(QLatin1String("%MAX_MOVES")))        label = QStringLiteral("最大手数到達");
+                    else if (token.startsWith(QLatin1String("%TSUMI")))            label = QStringLiteral("詰み");
+                    else if (token.startsWith(QLatin1String("%FUZUMI")))           label = QStringLiteral("不詰");
+                    else if (token.startsWith(QLatin1String("%ERROR")))            label = QStringLiteral("エラー");
+                    else                                                           label = token;
 
                     KifDisplayItem di;
                     di.prettyMove = sideMark + label;
                     attachPendingTo_(pendingComments, di.comment);
                     out.mainline.disp.append(di);
 
-                    // 以降のトークン（同一行中）で T があればこの「結果行アイテム」に紐付ける
                     lastDispIsResult   = true;
                     lastResultDispIndex = out.mainline.disp.size() - 1;
                     lastResultSideIdx   = (turn == Black) ? 0 : 1;
+
                     continue;
                 }
 
-                // 時間トークン
+                // 時間（T...）
                 if (token.startsWith(QLatin1Char('T'))) {
                     qint64 moveMs = 0;
                     if (parseTimeTokenMs_(token, moveMs)) {
                         if (lastDispIsResult && lastResultDispIndex >= 0 &&
                             lastResultDispIndex < out.mainline.disp.size())
                         {
-                            // 結果行に timeText を載せる。累計はその手番側に加算
                             if (lastResultSideIdx >= 0) {
                                 cumMs[lastResultSideIdx] += moveMs;
                                 out.mainline.disp[lastResultDispIndex].timeText =
                                     composeTimeText_(moveMs, cumMs[lastResultSideIdx]);
                             } else {
-                                // 念のため side 不明時は timeText のみ設定（累計は不変）
                                 out.mainline.disp[lastResultDispIndex].timeText =
                                     composeTimeText_(moveMs, 0);
                             }
                         } else if (!out.mainline.disp.isEmpty() && lastMover >= 0) {
-                            // 直前の通常手に付与
                             cumMs[lastMover] += moveMs;
-                            out.mainline.disp.last().timeText =
-                                composeTimeText_(moveMs, cumMs[lastMover]);
-                        } // それ以外は無視
-                    } else {
-                        if (warn) *warn += QStringLiteral("Failed to parse time token: %1\n").arg(token);
+                            out.mainline.disp.last().timeText = composeTimeText_(moveMs, cumMs[lastMover]);
+                        }
+                    } else if (warn) {
+                        *warn += QStringLiteral("Failed to parse time token: %1\n").arg(token);
                     }
                     continue;
                 }
 
-                // 指し手（+... / -...）
-                if (token.startsWith(QLatin1Char('+')) || token.startsWith(QLatin1Char('-'))) {
+                // 通常の指し手（+7776FU 等）
+                if (isMoveLine_(token)) {
                     const QChar head  = token.at(0);
                     const Color mover = (head == QLatin1Char('+')) ? Black : White;
 
                     QString usi, pretty;
                     if (!parseMoveLine_(token, mover, board, prevTx, prevTy, usi, pretty, warn)) {
-                        if (warn) *warn += QStringLiteral("Failed to parse move token: %1\n").arg(token);
-                        return false;
+                        if (warn) *warn += QStringLiteral("Failed to parse move: %1\n").arg(token);
+                        continue;
                     }
-                    out.mainline.usiMoves.append(usi);
 
+                    // 出力
+                    out.mainline.usiMoves.append(usi);
                     KifDisplayItem di;
                     di.prettyMove = pretty;
                     attachPendingTo_(pendingComments, di.comment);
                     out.mainline.disp.append(di);
 
-                    // この手を直前手として記録（T の帰属先）
                     lastMover = (mover == Black) ? 0 : 1;
-
-                    // 結果行コンテキストは終了
                     lastDispIsResult = false; lastResultDispIndex = -1; lastResultSideIdx = -1;
 
                     // 次手番へ
@@ -681,116 +1023,81 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
                     continue;
                 }
 
-                // メタ等は無視
+                // その他は無視
             }
 
-            // 次行へ
-            continue;
+            continue; // 次行へ
         }
 
         // ---- 2) カンマを含まない通常行 ----
 
-        // コメント行（先頭が'）: 次の指し手用に pending へ
+        // コメント行
         if (isCommentLine_(s)) {
             const QString norm = normalizeCsaCommentLine_(s);
             if (!norm.isNull()) pendingComments.append(norm);
             continue;
         }
 
-        // メタ行（V/$/N）はスキップ
+        // メタ（V/N/$ 等）
         if (isMetaLine_(s)) continue;
 
-        // 手番指示
+        // 手番明示
         if (s.size() == 1 && (s[0] == QLatin1Char('+') || s[0] == QLatin1Char('-'))) {
             turn = (s[0] == QLatin1Char('+')) ? Black : White;
-            // 結果行コンテキストは終了
             lastDispIsResult = false; lastResultDispIndex = -1; lastResultSideIdx = -1;
             continue;
         }
 
-        // 結果コード（%...）
+        // 結果コード（単独行）
         if (isResultLine_(s)) {
             const QString sideMark = (turn == Black) ? QStringLiteral("▲") : QStringLiteral("△");
             QString label;
-            if      (s.startsWith(QLatin1String("%TORYO")))           label = QStringLiteral("投了");
-            else if (s.startsWith(QLatin1String("%CHUDAN")))          label = QStringLiteral("中断");
-            else if (s.startsWith(QLatin1String("%SENNICHITE")))      label = QStringLiteral("千日手");
-            else if (s.startsWith(QLatin1String("%JISHOGI")))         label = QStringLiteral("持将棋");
-            else if (s.startsWith(QLatin1String("%TIME_UP")))         label = QStringLiteral("切れ負け");
-            else if (s.startsWith(QLatin1String("%ILLEGAL_MOVE")))    label = QStringLiteral("反則負け");
-            else if (s.startsWith(QLatin1String("%+ILLEGAL_ACTION"))) label = QStringLiteral("反則負け");
-            else if (s.startsWith(QLatin1String("%-ILLEGAL_ACTION"))) label = QStringLiteral("反則負け");
-            else if (s.startsWith(QLatin1String("%KACHI")))           label = QStringLiteral("入玉勝ち");
-            else if (s.startsWith(QLatin1String("%HIKIWAKE")))        label = QStringLiteral("引き分け");
-            else if (s.startsWith(QLatin1String("%MAX_MOVES")))       label = QStringLiteral("最大手数到達");
-            else if (s.startsWith(QLatin1String("%TSUMI")))           label = QStringLiteral("詰み");
-            else if (s.startsWith(QLatin1String("%FUZUMI")))          label = QStringLiteral("不詰");
-            else if (s.startsWith(QLatin1String("%ERROR")))           label = QStringLiteral("エラー");
-            else                                                      label = s; // 不明コードはそのまま
+            if      (s.startsWith(QLatin1String("%TORYO")))            label = QStringLiteral("投了");
+            else if (s.startsWith(QLatin1String("%CHUDAN")))           label = QStringLiteral("中断");
+            else if (s.startsWith(QLatin1String("%SENNICHITE")))       label = QStringLiteral("千日手");
+            else if (s.startsWith(QLatin1String("%OUTE_SENNICHITE")))  label = QStringLiteral("王手千日手"); // ★追加
+            else if (s.startsWith(QLatin1String("%JISHOGI")))          label = QStringLiteral("持将棋");
+            else if (s.startsWith(QLatin1String("%TIME_UP")))          label = QStringLiteral("切れ負け");
+            else if (s.startsWith(QLatin1String("%ILLEGAL_MOVE")))     label = QStringLiteral("反則負け");
+            else if (s.startsWith(QLatin1String("%+ILLEGAL_ACTION")))  label = QStringLiteral("反則負け");
+            else if (s.startsWith(QLatin1String("%-ILLEGAL_ACTION")))  label = QStringLiteral("反則負け");
+            else if (s.startsWith(QLatin1String("%KACHI")))            label = QStringLiteral("入玉勝ち");
+            else if (s.startsWith(QLatin1String("%HIKIWAKE")))         label = QStringLiteral("引き分け");
+            else if (s.startsWith(QLatin1String("%MAX_MOVES")))        label = QStringLiteral("最大手数到達");
+            else if (s.startsWith(QLatin1String("%TSUMI")))            label = QStringLiteral("詰み");
+            else if (s.startsWith(QLatin1String("%FUZUMI")))           label = QStringLiteral("不詰");
+            else if (s.startsWith(QLatin1String("%ERROR")))            label = QStringLiteral("エラー");
+            else                                                       label = s;
 
             KifDisplayItem di;
             di.prettyMove = sideMark + label;
             attachPendingTo_(pendingComments, di.comment);
             out.mainline.disp.append(di);
 
-            // 次行に単独 "T..." が来る場合に備え、結果行コンテキストを維持
             lastDispIsResult   = true;
             lastResultDispIndex = out.mainline.disp.size() - 1;
             lastResultSideIdx   = (turn == Black) ? 0 : 1;
-
-            // 以降も読む（この行はここで終了）
             continue;
         }
 
-        // 時間トークン単独行 "T..."
-        if (s.startsWith(QLatin1Char('T'))) {
-            qint64 moveMs = 0;
-            if (parseTimeTokenMs_(s, moveMs)) {
-                if (lastDispIsResult && lastResultDispIndex >= 0 &&
-                    lastResultDispIndex < out.mainline.disp.size())
-                {
-                    // 結果行に timeText を載せる。累計はその手番側に加算
-                    if (lastResultSideIdx >= 0) {
-                        cumMs[lastResultSideIdx] += moveMs;
-                        out.mainline.disp[lastResultDispIndex].timeText =
-                            composeTimeText_(moveMs, cumMs[lastResultSideIdx]);
-                    } else {
-                        out.mainline.disp[lastResultDispIndex].timeText =
-                            composeTimeText_(moveMs, 0);
-                    }
-                } else if (!out.mainline.disp.isEmpty() && lastMover >= 0) {
-                    // 直前の通常手に付与
-                    cumMs[lastMover] += moveMs;
-                    out.mainline.disp.last().timeText =
-                        composeTimeText_(moveMs, cumMs[lastMover]);
-                }
-            } else {
-                if (warn) *warn += QStringLiteral("Failed to parse time token: %1\n").arg(s);
-            }
-            continue;
-        }
-
-        // 通常の指し手（行頭 + / -）
+        // 通常の指し手
         if (isMoveLine_(s)) {
             const QChar head  = s.at(0);
             const Color mover = (head == QLatin1Char('+')) ? Black : White;
 
             QString usi, pretty;
             if (!parseMoveLine_(s, mover, board, prevTx, prevTy, usi, pretty, warn)) {
-                if (warn) *warn += QStringLiteral("Failed to parse move line: %1\n").arg(s);
-                return false;
+                if (warn) *warn += QStringLiteral("Failed to parse move: %1\n").arg(s);
+                continue;
             }
-            out.mainline.usiMoves.append(usi);
 
+            out.mainline.usiMoves.append(usi);
             KifDisplayItem di;
             di.prettyMove = pretty;
             attachPendingTo_(pendingComments, di.comment);
             out.mainline.disp.append(di);
 
-            // 直前の手を更新（T の帰属先）
             lastMover = (mover == Black) ? 0 : 1;
-
-            // 結果行コンテキストは終了
             lastDispIsResult = false; lastResultDispIndex = -1; lastResultSideIdx = -1;
 
             // 次手番へ
@@ -798,7 +1105,7 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
             continue;
         }
 
-        // ここまでに該当しない行は読み飛ばし
+        // その他は無視
     }
 
     return true;
@@ -811,7 +1118,6 @@ QList<KifGameInfoItem> CsaToSfenConverter::extractGameInfo(const QString& filePa
     QStringList lines;
     QString warn;
 
-    // 既存のエンコーディング自動判定付き読み込み関数を利用
     if (!readAllLinesDetectEncoding_(filePath, lines, &warn)) {
         return items;
     }
@@ -820,46 +1126,51 @@ QList<KifGameInfoItem> CsaToSfenConverter::extractGameInfo(const QString& filePa
         const QString line = raw.trimmed();
         if (line.isEmpty()) continue;
 
-        // 指し手が始まったらヘッダー終了とみなして打ち切り
-        // (isMoveLine_ は行頭が +, - かどうかを判定する既存関数)
+        // 指し手や盤定義が始まったらヘッダ終了
         if (isMoveLine_(line)) break;
-
-        // 盤面定義行 (PI, P1, P+ 等) が始まったらヘッダー終了
         if (line.startsWith(QLatin1Char('P'))) break;
 
-        // --- CSAヘッダー解析 ---
-
-        // "N+": 先手名
+        // "N+": 先手名 / "N-": 後手名
         if (line.startsWith(QLatin1String("N+"))) {
             items.append({ QStringLiteral("先手"), line.mid(2).trimmed() });
         }
-        // "N-": 後手名
         else if (line.startsWith(QLatin1String("N-"))) {
             items.append({ QStringLiteral("後手"), line.mid(2).trimmed() });
         }
-        // "$KEY:VALUE" 形式（棋戦名、場所、時間など）
+        // "$KEY:VALUE"
         else if (line.startsWith(QLatin1Char('$'))) {
             const int colon = line.indexOf(QLatin1Char(':'));
             if (colon > 0) {
-                QString key = line.mid(1, colon - 1);
+                QString key = line.mid(1, colon - 1).trimmed();
                 const QString val = line.mid(colon + 1).trimmed();
 
-                // 一般的なキーを日本語表記にマップ（KIF形式の表示名と合わせる）
-                if (key == QLatin1String("EVENT"))      key = QStringLiteral("棋戦");
+                // KIF 側の表示に合わせた日本語ラベルへ
+                if (key == QLatin1String("EVENT"))          key = QStringLiteral("棋戦");
                 else if (key == QLatin1String("SITE"))       key = QStringLiteral("場所");
                 else if (key == QLatin1String("START_TIME")) key = QStringLiteral("開始日時");
                 else if (key == QLatin1String("END_TIME"))   key = QStringLiteral("終了日時");
-                else if (key == QLatin1String("TIME_LIMIT")) key = QStringLiteral("持ち時間");
+                else if (key == QLatin1String("TIME_LIMIT")) key = QStringLiteral("持ち時間");        // 旧 (V2.2)
+                // ★ 追加: V3 の時間表記
+                else if (key == QLatin1String("TIME"))       key = QStringLiteral("持ち時間(秒/加算)");
+                else if (key == QLatin1String("TIME+"))      key = QStringLiteral("先手:持ち時間(秒/加算)");
+                else if (key == QLatin1String("TIME-"))      key = QStringLiteral("後手:持ち時間(秒/加算)");
+                // ★ 追加: 最大手数
+                else if (key == QLatin1String("MAX_MOVES") || key == QLatin1String("SMAX_MOVES"))
+                    key = QStringLiteral("最大手数");
+                // ★ 追加: 持将棋点数（呼称ゆれを広く許容）
+                else if (key == QLatin1String("JISHOGI_POINTS")
+                         || key == QLatin1String("JISHOGI_POINT")
+                         || key == QLatin1String("JISHOGI"))
+                    key = QStringLiteral("持将棋点数");
                 else if (key == QLatin1String("OPENING"))    key = QStringLiteral("戦型");
 
                 items.append({ key, val });
             }
         }
-        // "V": バージョン情報 (例: V2.2) - 必要であれば追加
         else if (line.startsWith(QLatin1Char('V'))) {
             items.append({ QStringLiteral("バージョン"), line });
         }
-        // コメント行 "'" は無視して続行
+        // コメント行 "'" は無視
     }
 
     return items;
