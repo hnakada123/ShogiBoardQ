@@ -63,6 +63,11 @@ private:
 
     // Promoted表記が含まれているか（"成" かつ "不成" でない）
     static bool isPromotionMoveText(const QString& line);
+
+    // 追加API：初手前（開始局面）のコメント／しおりをまとめて取得
+    // - 初手より前にある '*' コメント行と '&しおり' を収集し、改行で連結して返す
+    // - 取得対象は「最初の指し手行」まで（BODや各種ヘッダは自動スキップ）
+    static QString extractOpeningComment(const QString& filePath);
 };
 
 #endif // KIFTOSFENCONVERTER_H
