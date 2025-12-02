@@ -8,6 +8,7 @@
 #include "navigationpresenter.h"
 #include "engineanalysistab.h"
 #include "csatosfenconverter.h"
+#include "ki2tosfenconverter.h"
 
 #include <QDebug>
 #include <QStyledItemDelegate>
@@ -279,6 +280,54 @@ KifuLoadCoordinator::KifuLoadCoordinator(QVector<ShogiMove>& gameMoves,
     // 必要ならデバッグ時にチェック
     // Q_ASSERT(m_sfenRecord && "sfenRecord must not be null");
     // ここで初期同期が必要ならシグナル発火や内部初期化を追加してください。
+}
+
+void KifuLoadCoordinator::loadKi2FromFile(const QString& filePath)
+{
+    // --- IN ログ ---
+    qDebug().noquote() << "[MAIN] loadKi2FromFile IN file=" << filePath;
+
+    // ★ ロード中フラグ（applyResolvedRowAndSelect 等の分岐更新を抑止）
+    m_loadingKifu = true;
+
+    // 1) 初期局面（手合割）を決定
+    QString teaiLabel;
+    const QString initialSfen = prepareInitialSfen(filePath, teaiLabel);
+
+    KifParseResult res;
+    QString parseWarn;
+    if (!Ki2ToSfenConverter::parse(filePath, res, &parseWarn)) {
+        qWarning().noquote() << "[GM] CSA parse failed:" << filePath << parseWarn;
+        m_loadingKifu = false;  // ★ 失敗時もフラグ解除しておく
+        return;
+    }
+    if (!parseWarn.isEmpty()) {
+        qWarning().noquote() << "[GM] CSA parse warn:" << parseWarn;
+    }
+
+    // resをデバッグ出力
+    if (kGM_VERBOSE) {
+        qDebug().noquote() << "[GM] KifParseResult dump:";
+        if (!parseWarn.isEmpty()) {
+            qDebug().noquote() << "  [parseWarn]" << parseWarn;
+        }
+
+        qDebug().noquote() << "  Mainline:";
+        qDebug().noquote() << "    baseSfen: " << res.mainline.baseSfen;
+        qDebug().noquote() << "    usiMoves: " << res.mainline.usiMoves;
+        qDebug().noquote() << "    disp:";
+        int mainIdx = 0;
+        for (const auto& d : std::as_const(res.mainline.disp)) {
+            qDebug().noquote() << "      [" << mainIdx << "] prettyMove: " << d.prettyMove;
+            if (!d.comment.isEmpty()) {
+                qDebug().noquote() << "           comment: " << d.comment;
+            } else {
+                qDebug().noquote() << "           comment: <none>";
+            }
+            qDebug().noquote() << "           timeText: " << d.timeText;
+            ++mainIdx;
+        }
+    }
 }
 
 void KifuLoadCoordinator::loadCsaFromFile(const QString& filePath)

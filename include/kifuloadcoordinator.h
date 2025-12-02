@@ -70,6 +70,8 @@ public:
 
     void loadCsaFromFile(const QString& filePath);
 
+    void loadKi2FromFile(const QString& filePath);
+
     void setAnalysisTab(EngineAnalysisTab* tab);
 
     void setBranchCandidatesController(BranchCandidatesController* ctl);
