@@ -8,7 +8,7 @@
 #include "navigationpresenter.h"
 #include "engineanalysistab.h"
 #include "csatosfenconverter.h"
-//#include "ki2tosfenconverter.h"
+#include "ki2tosfenconverter.h"
 
 #include <QDebug>
 #include <QStyledItemDelegate>
@@ -282,7 +282,6 @@ KifuLoadCoordinator::KifuLoadCoordinator(QVector<ShogiMove>& gameMoves,
     // ここで初期同期が必要ならシグナル発火や内部初期化を追加してください。
 }
 
-/*
 void KifuLoadCoordinator::loadKi2FromFile(const QString& filePath)
 {
     // --- IN ログ ---
@@ -297,7 +296,7 @@ void KifuLoadCoordinator::loadKi2FromFile(const QString& filePath)
 
     KifParseResult res;
     QString parseWarn;
-    if (!Ki2ToSfenConverter::parse(filePath, res, &parseWarn)) {
+    if (!Ki2ToSfenConverter::parseWithVariations(filePath, res, &parseWarn)) {
         qWarning().noquote() << "[GM] CSA parse failed:" << filePath << parseWarn;
         m_loadingKifu = false;  // ★ 失敗時もフラグ解除しておく
         return;
@@ -329,8 +328,18 @@ void KifuLoadCoordinator::loadKi2FromFile(const QString& filePath)
             ++mainIdx;
         }
     }
+
+    // 先手/後手名などヘッダ反映
+    {
+        const QList<KifGameInfoItem> infoItems = CsaToSfenConverter::extractGameInfo(filePath);
+        populateGameInfo(infoItems);
+        applyPlayersFromGameInfo(infoItems);
+    }
+
+    // KIF/CSA 共通の後処理に委譲
+    applyParsedResultCommon_(filePath, initialSfen, teaiLabel,
+                             res, parseWarn, "loadKi2FromFile");
 }
-*/
 
 void KifuLoadCoordinator::loadCsaFromFile(const QString& filePath)
 {

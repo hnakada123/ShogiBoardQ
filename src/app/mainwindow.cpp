@@ -903,7 +903,7 @@ void MainWindow::chooseAndLoadKifuFile()
         m_kifuLoadCoordinator->loadCsaFromFile(filePath);
     } else if (filePath.endsWith(QLatin1String(".ki2"), Qt::CaseInsensitive)) {
         // Ki2読み込み
-        //m_kifuLoadCoordinator->loadKi2FromFile(filePath);
+        m_kifuLoadCoordinator->loadKi2FromFile(filePath);
     } else {
         // KIF読み込み (既存)
         m_kifuLoadCoordinator->loadKifuFromFile(filePath);
