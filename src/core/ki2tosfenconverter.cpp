@@ -71,6 +71,94 @@ static inline bool isTerminalWord_(const QString& s, QString* normalized)
     return false;
 }
 
+// --- 「まで○手で...」行を解析して終局語と手番を取得 ---
+// 例: "まで2手で後手の勝ち" → terminalWord="投了", moveCount=2, blackWon=false
+// 例: "まで96手で千日手" → terminalWord="千日手", moveCount=96
+// 例: "まで2手で中断" → terminalWord="中断", moveCount=2
+// 例: "まで2手で詰" → terminalWord="詰み", moveCount=2
+// blackToMove: 終局語の手番を決める（奇数手目なら先手番）
+static bool parseResultLine_(const QString& line, QString& terminalWord, int& moveCount)
+{
+    static const QRegularExpression kResultPattern(
+        QStringLiteral("^\\s*まで([0-9０-９]+)手")
+    );
+    
+    const QRegularExpressionMatch m = kResultPattern.match(line);
+    if (!m.hasMatch()) return false;
+    
+    // 手数を抽出
+    moveCount = flexDigitsToInt_NoDetach_(m.captured(1));
+    
+    // 終局語を判定
+    // 「○手で後手の勝ち」→ 投了
+    // 「○手で先手の勝ち」→ 投了
+    // 「○手で千日手」→ 千日手
+    // 「○手で中断」→ 中断
+    // 「○手で詰」または「○手で詰み」→ 詰み
+    // 「○手で持将棋」→ 持将棋
+    
+    if (line.contains(QStringLiteral("千日手"))) {
+        terminalWord = QStringLiteral("千日手");
+        return true;
+    }
+    if (line.contains(QStringLiteral("持将棋"))) {
+        terminalWord = QStringLiteral("持将棋");
+        return true;
+    }
+    if (line.contains(QStringLiteral("中断"))) {
+        terminalWord = QStringLiteral("中断");
+        return true;
+    }
+    if (line.contains(QStringLiteral("切れ負け"))) {
+        terminalWord = QStringLiteral("切れ負け");
+        return true;
+    }
+    if (line.contains(QStringLiteral("反則勝ち"))) {
+        terminalWord = QStringLiteral("反則勝ち");
+        return true;
+    }
+    if (line.contains(QStringLiteral("反則負け"))) {
+        terminalWord = QStringLiteral("反則負け");
+        return true;
+    }
+    if (line.contains(QStringLiteral("入玉勝ち"))) {
+        terminalWord = QStringLiteral("入玉勝ち");
+        return true;
+    }
+    if (line.contains(QStringLiteral("不戦勝"))) {
+        terminalWord = QStringLiteral("不戦勝");
+        return true;
+    }
+    if (line.contains(QStringLiteral("不戦敗"))) {
+        terminalWord = QStringLiteral("不戦敗");
+        return true;
+    }
+    if (line.contains(QStringLiteral("詰み")) || line.contains(QStringLiteral("詰"))) {
+        terminalWord = QStringLiteral("詰み");
+        return true;
+    }
+    if (line.contains(QStringLiteral("不詰"))) {
+        terminalWord = QStringLiteral("不詰");
+        return true;
+    }
+    // 「○手で後手の勝ち」「○手で先手の勝ち」→ 投了
+    if (line.contains(QStringLiteral("勝ち")) || line.contains(QStringLiteral("勝"))) {
+        terminalWord = QStringLiteral("投了");
+        return true;
+    }
+    
+    return false;
+}
+
+// --- 終局行かどうか判定 ---
+static inline bool isResultLine_(const QString& line)
+{
+    static const QRegularExpression kResultPattern(
+        QStringLiteral("^\\s*まで[0-9０-９]+手")
+    );
+    return kResultPattern.match(line).hasMatch();
+}
+
 // 駒の漢字 → (USI基底文字, 成りフラグ)
 static inline bool mapKanjiPiece(const QString& s, QChar& base, bool& promoted)
 {
@@ -232,8 +320,8 @@ bool Ki2ToSfenConverter::isSkippableLine(const QString& line)
 
     if (line.startsWith(QLatin1Char('&'))) return true;
 
-    static const QRegularExpression s_made(QStringLiteral("^\\s*まで[0-9０-９]+手"));
-    if (s_made.match(line).hasMatch()) return true;
+    // 「まで○手で...」は終局行として処理するのでスキップしない
+    // （この判定を削除）
 
     return false;
 }
@@ -1124,11 +1212,20 @@ QStringList Ki2ToSfenConverter::convertFile(const QString& ki2Path, QString* err
     }
 
     int prevToFile = 0, prevToRank = 0;
+    bool gameEnded = false;
 
     for (const QString& raw : std::as_const(lines)) {
         const QString lineStr = raw.trimmed();
+        
+        if (gameEnded) break;
 
         if (isCommentLine(lineStr) || isBookmarkLine(lineStr)) continue;
+        
+        // 「まで○手で...」行で終了
+        if (isResultLine_(lineStr)) {
+            break;
+        }
+        
         if (lineStr.isEmpty() || isSkippableLine(lineStr) || isBoardHeaderOrFrame(lineStr)) continue;
         if (!isKi2MoveLine(lineStr)) continue;
 
@@ -1142,6 +1239,7 @@ QStringList Ki2ToSfenConverter::convertFile(const QString& ki2Path, QString* err
             // 終局語判定
             QString term;
             if (isTerminalWord_(move, &term)) {
+                gameEnded = true;
                 break;
             }
 
@@ -1199,9 +1297,12 @@ QList<KifDisplayItem> Ki2ToSfenConverter::extractMovesWithTimes(const QString& k
     QString commentBuf;
     int moveIndex = blackToMove ? 0 : 1;
     int prevToFile = 0, prevToRank = 0;
+    bool gameEnded = false;
 
     for (const QString& raw : std::as_const(lines)) {
         const QString lineStr = raw.trimmed();
+        
+        if (gameEnded) break;
 
         // コメント行
         if (isCommentLine(lineStr)) {
@@ -1226,6 +1327,30 @@ QList<KifDisplayItem> Ki2ToSfenConverter::extractMovesWithTimes(const QString& k
             continue;
         }
 
+        // 「まで○手で...」行の処理
+        if (isResultLine_(lineStr)) {
+            QString terminalWord;
+            int resultMoveCount = 0;
+            if (parseResultLine_(lineStr, terminalWord, resultMoveCount)) {
+                // 終局語の手番を決定
+                // 手数が奇数なら先手の手番後に終了（次の手番は後手）
+                // 投了は「指した側が負け」なので、相手側の手番で終局語を表示
+                // 千日手、持将棋などは両者に関わる
+                ++moveIndex;
+                const QString teban = (moveIndex % 2 != 0) ? QStringLiteral("▲") : QStringLiteral("△");
+
+                KifDisplayItem item;
+                item.prettyMove = teban + terminalWord;
+                item.timeText = QStringLiteral("00:00/00:00:00");
+                item.comment = commentBuf;
+                commentBuf.clear();
+
+                out.push_back(item);
+                gameEnded = true;
+            }
+            continue;
+        }
+
         if (lineStr.isEmpty() || isSkippableLine(lineStr) || isBoardHeaderOrFrame(lineStr)) continue;
         if (!isKi2MoveLine(lineStr)) continue;
 
@@ -1246,6 +1371,7 @@ QList<KifDisplayItem> Ki2ToSfenConverter::extractMovesWithTimes(const QString& k
                 commentBuf.clear();
 
                 out.push_back(item);
+                gameEnded = true;
                 break;
             }
 
