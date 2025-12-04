@@ -8,7 +8,7 @@
 #include "navigationpresenter.h"
 #include "engineanalysistab.h"
 #include "csatosfenconverter.h"
-#include "ki2tosfenconverter.h"
+//#include "ki2tosfenconverter.h"
 
 #include <QDebug>
 #include <QStyledItemDelegate>
@@ -282,6 +282,7 @@ KifuLoadCoordinator::KifuLoadCoordinator(QVector<ShogiMove>& gameMoves,
     // ここで初期同期が必要ならシグナル発火や内部初期化を追加してください。
 }
 
+/*
 void KifuLoadCoordinator::loadKi2FromFile(const QString& filePath)
 {
     // --- IN ログ ---
@@ -329,6 +330,7 @@ void KifuLoadCoordinator::loadKi2FromFile(const QString& filePath)
         }
     }
 }
+*/
 
 void KifuLoadCoordinator::loadCsaFromFile(const QString& filePath)
 {
