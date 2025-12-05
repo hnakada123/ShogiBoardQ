@@ -281,19 +281,103 @@ void BoardSyncPresenter::syncBoardAndHighlightsAtRow(int ply) const
         return true;
     };
 
-    // prev/curr のグリッド差分から from/to を推定（駒打ちにも対応）
-    auto deduceByDiff = [&](const QString& a, const QString& b, QPoint& from, QPoint& to)->bool {
+    // SFENから駒台情報を抽出（例: "P2L" → {{'P',1},{'L',1}}、枚数指定対応）
+    auto parseStand = [](const QString& sfen, bool isBlack) -> QMap<QChar, int> {
+        QMap<QChar, int> result;
+        if (sfen.isEmpty()) return result;
+
+        const QStringList parts = sfen.split(QLatin1Char(' '), Qt::KeepEmptyParts);
+        if (parts.size() < 3) return result;
+        const QString standField = parts.at(2);
+        if (standField == QLatin1String("-")) return result;
+
+        int count = 0;
+        for (int i = 0; i < standField.size(); ++i) {
+            const QChar ch = standField.at(i);
+            if (ch.isDigit()) {
+                count = count * 10 + (ch.toLatin1() - '0');
+            } else {
+                // 大文字=先手、小文字=後手
+                const bool pieceIsBlack = ch.isUpper();
+                if (pieceIsBlack == isBlack) {
+                    result[ch] += (count > 0 ? count : 1);
+                }
+                count = 0;
+            }
+        }
+        return result;
+    };
+
+    // 駒種から駒台の疑似座標を取得（先手: file=10, 後手: file=11）
+    // 駒種（大文字=先手, 小文字=後手）→ 疑似座標を返す
+    auto pieceToStandCoord = [](QChar piece) -> QPoint {
+        // 先手（大文字）の場合: file=10
+        // 後手（小文字）の場合: file=11
+        const bool isBlack = piece.isUpper();
+        const int file = isBlack ? 10 : 11;
+        const QChar upper = piece.toUpper();
+
+        // 駒種→rank のマッピング（shogiview.cpp の standPseudoToBase の逆引き）
+        // 先手駒台（file=10）:
+        //   右列(baseFile=1): K→8, B→6, S→4, L→2
+        //   左列(baseFile=2): R→7, G→5, N→3, P→1
+        // 後手駒台（file=11）:
+        //   左列(baseFile=1): r→3, g→5, n→7, p→9
+        //   右列(baseFile=2): k→2, b→4, s→6, l→8
+        int rank = -1;
+        if (isBlack) {
+            // 先手駒台
+            switch (upper.toLatin1()) {
+            case 'K': rank = 8; break;  // 玉
+            case 'R': rank = 7; break;  // 飛
+            case 'B': rank = 6; break;  // 角
+            case 'G': rank = 5; break;  // 金
+            case 'S': rank = 4; break;  // 銀
+            case 'N': rank = 3; break;  // 桂
+            case 'L': rank = 2; break;  // 香
+            case 'P': rank = 1; break;  // 歩
+            default: break;
+            }
+        } else {
+            // 後手駒台
+            switch (upper.toLatin1()) {
+            case 'K': rank = 2; break;  // 玉
+            case 'R': rank = 3; break;  // 飛
+            case 'B': rank = 4; break;  // 角
+            case 'G': rank = 5; break;  // 金
+            case 'S': rank = 6; break;  // 銀
+            case 'N': rank = 7; break;  // 桂
+            case 'L': rank = 8; break;  // 香
+            case 'P': rank = 9; break;  // 歩
+            default: break;
+            }
+        }
+
+        if (rank < 0) return QPoint(-1, -1);
+        return QPoint(file, rank);
+    };
+
+    // prev/curr のグリッド差分から from/to を推定
+    // 駒打ちの場合は droppedPiece に打った駒種を設定
+    auto deduceByDiff = [&](const QString& a, const QString& b,
+                            QPoint& from, QPoint& to, QChar& droppedPiece)->bool {
         QString ga[9][9], gb[9][9];
         if (!parseOneBoard(a, ga) || !parseOneBoard(b, gb)) return false;
 
         bool foundFrom = false, foundTo = false;
+        droppedPiece = QChar();
+
         for (int y = 0; y < 9; ++y) {
             for (int x = 0; x < 9; ++x) {
                 if (ga[y][x] == gb[y][x]) continue;
                 if (!ga[y][x].isEmpty() && gb[y][x].isEmpty()) {
                     from = QPoint(x, y); foundFrom = true;   // 元が空いた
+                } else if (ga[y][x].isEmpty() && !gb[y][x].isEmpty()) {
+                    to = QPoint(x, y); foundTo = true;       // 駒打ち：空→駒
+                    // 打った駒種を記録（成駒は打てないので先頭文字）
+                    droppedPiece = gb[y][x].at(0);
                 } else {
-                    to   = QPoint(x, y); foundTo = true;     // 先が変化（駒打ち含む）
+                    to = QPoint(x, y); foundTo = true;       // 駒移動または駒取り
                 }
             }
         }
@@ -302,7 +386,8 @@ void BoardSyncPresenter::syncBoardAndHighlightsAtRow(int ply) const
     };
 
     QPoint from(-1,-1), to(-1,-1);
-    bool ok = deduceByDiff(prev, curr, from, to);
+    QChar droppedPiece;
+    bool ok = deduceByDiff(prev, curr, from, to, droppedPiece);
 
     if (!ok) {
         // フォールバック：対局中に積んだ m_gameMoves（HvH等）を参照
@@ -325,7 +410,9 @@ void BoardSyncPresenter::syncBoardAndHighlightsAtRow(int ply) const
             const QPoint from1 = toOne(last.fromSquare);
             m_bic->showMoveHighlights(from1, to1);
         } else {
-            m_bic->showMoveHighlights(QPoint(), to1);
+            // 駒打ち：movingPieceから駒台座標を取得
+            const QPoint standCoord = pieceToStandCoord(last.movingPiece);
+            m_bic->showMoveHighlights(standCoord, to1);
         }
         return;
     }
@@ -336,13 +423,21 @@ void BoardSyncPresenter::syncBoardAndHighlightsAtRow(int ply) const
                        << " ply=" << safePly
                        << " from=(" << from.x() << "," << from.y() << ")"
                        << " to=("   << to.x()   << "," << to.y()   << ")"
-                       << " hasFrom=" << hasFrom;
+                       << " hasFrom=" << hasFrom
+                       << " droppedPiece=" << droppedPiece;
 
     if (hasFrom) {
         const QPoint from1 = toOne(from);
         m_bic->showMoveHighlights(from1, to1);
+    } else if (!droppedPiece.isNull()) {
+        // 駒打ち：打った駒種から駒台の疑似座標を取得
+        const QPoint standCoord = pieceToStandCoord(droppedPiece);
+        qDebug().noquote() << "[PRESENTER] drop highlight: piece=" << droppedPiece
+                           << " standCoord=(" << standCoord.x() << "," << standCoord.y() << ")";
+        m_bic->showMoveHighlights(standCoord, to1);
     } else {
-        m_bic->showMoveHighlights(QPoint(), to1);
+        // 駒打ちだが駒種不明（通常は到達しない）
+        m_bic->showMoveHighlights(QPoint(-1, -1), to1);
     }
 }
 

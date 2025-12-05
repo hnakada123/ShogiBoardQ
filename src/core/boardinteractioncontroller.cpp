@@ -100,8 +100,15 @@ void BoardInteractionController::onMoveApplied(const QPoint& from, const QPoint&
 void BoardInteractionController::showMoveHighlights(const QPoint& from, const QPoint& to)
 {
     // 局面移動で「この手」を強調したいとき
-    updateHighlight(m_selectedField2, from, QColor(255, 0, 0, 50));
-    updateHighlight(m_movedField,     to,   Qt::yellow);
+    // from が有効な座標かチェック（盤上: 1-9, 駒台: 10-11）
+    const bool validFrom = (from.x() >= 1 && from.x() <= 11 && from.y() >= 1 && from.y() <= 9);
+    if (validFrom) {
+        updateHighlight(m_selectedField2, from, QColor(255, 0, 0, 50));
+    } else {
+        // 無効な座標の場合（駒打ちで座標が取得できなかった場合など）は移動元ハイライトを削除
+        deleteHighlight(m_selectedField2);
+    }
+    updateHighlight(m_movedField, to, Qt::yellow);
 }
 
 void BoardInteractionController::clearAllHighlights()
