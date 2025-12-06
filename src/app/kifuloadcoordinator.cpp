@@ -9,6 +9,7 @@
 #include "engineanalysistab.h"
 #include "csatosfenconverter.h"
 #include "ki2tosfenconverter.h"
+#include "jkftosfenconverter.h"
 
 #include <QDebug>
 #include <QStyledItemDelegate>
@@ -408,9 +409,13 @@ void KifuLoadCoordinator::loadJkfFromFile(const QString& filePath)
     // ★ ロード中フラグ（applyResolvedRowAndSelect 等の分岐更新を抑止）
     m_loadingKifu = true;
 
-    // 1) 初期局面（手合割）を決定
+    // 1) 初期局面（手合割）を決定 - JKF用のコンバータを使用
     QString teaiLabel;
-    const QString initialSfen = prepareInitialSfen(filePath, teaiLabel);
+    QString initialSfen = JkfToSfenConverter::detectInitialSfenFromFile(filePath, &teaiLabel);
+    if (initialSfen.isEmpty()) {
+        initialSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+        teaiLabel = QStringLiteral("平手(既定)");
+    }
 
     // 2) 解析（本譜＋分岐＋コメント）を一括取得
     KifParseResult res;
@@ -472,7 +477,7 @@ void KifuLoadCoordinator::loadJkfFromFile(const QString& filePath)
 
     // KIF/CSA 共通の後処理に委譲
     applyParsedResultCommon_(filePath, initialSfen, teaiLabel,
-                             res, parseWarn, "loadKifuFromFile");
+                             res, parseWarn, "loadJkfFromFile");
 }
 
 void KifuLoadCoordinator::loadKifuFromFile(const QString& filePath)
