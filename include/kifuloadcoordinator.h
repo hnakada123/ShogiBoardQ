@@ -68,6 +68,8 @@ public:
 
     void loadKifuFromFile(const QString& filePath);
 
+    void loadJkfFromFile(const QString& filePath);
+
     void loadCsaFromFile(const QString& filePath);
 
     void loadKi2FromFile(const QString& filePath);
