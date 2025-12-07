@@ -798,17 +798,18 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
     }
 
     QStringList pendingComments;
-    // ★ 追加：初手直前の "'*" コメント群を pending へ先取り（v3仕様）
-    collectPreMoveCommentBlock_(lines, idx, pendingComments);
+    // 注意: CSA形式では「+」の後、初手の前にコメントが来る
+    // collectPreMoveCommentBlock_ は「+」の前を探すため使えない
+    // 代わりに、メインループで初手が見つかるまでコメントを蓄積する
 
-    // ★ 開始局面エントリを追加
+    // 開始局面エントリ（コメントは後で設定）
     KifDisplayItem openingItem;
     openingItem.prettyMove = QString();  // 開始局面は空
     openingItem.timeText   = QStringLiteral("00:00/00:00:00");
-    openingItem.comment    = pendingComments.isEmpty() ? QString() : pendingComments.join(QStringLiteral("\n"));
     openingItem.ply        = 0;
-    out.mainline.disp.append(openingItem);
-    pendingComments.clear();  // 開始局面のコメントとして使用したのでクリア
+    // openingItem.comment は初手が見つかったときに設定
+
+    bool firstMoveFound = false;  // 初手が見つかったか
 
     int prevTx = -1, prevTy = -1;
 
@@ -861,6 +862,22 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
 
                 // 結果コード（%...）
                 if (token.startsWith(QLatin1Char('%'))) {
+                    // 結果コードが来たが、まだ初手が見つかっていない場合
+                    if (!firstMoveFound) {
+                        firstMoveFound = true;
+                        openingItem.comment = pendingComments.isEmpty() ? QString() : pendingComments.join(QStringLiteral("\n"));
+                        out.mainline.disp.append(openingItem);
+                        pendingComments.clear();
+                    } else {
+                        // 直前の指し手に pending コメントを付与
+                        if (!pendingComments.isEmpty() && out.mainline.disp.size() > 1) {
+                            QString& dst = out.mainline.disp.last().comment;
+                            if (!dst.isEmpty()) dst += QLatin1Char('\n');
+                            dst += pendingComments.join(QStringLiteral("\n"));
+                            pendingComments.clear();
+                        }
+                    }
+
                     const QString sideMark = (turn == Black) ? QStringLiteral("▲") : QStringLiteral("△");
                     QString label;
                     if      (token.startsWith(QLatin1String("%TORYO")))            label = QStringLiteral("投了");
@@ -882,12 +899,7 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
 
                     KifDisplayItem di;
                     di.prettyMove = sideMark + label;
-                    // 直前まで溜めたコメントを結果行に移す
-                    if (!pendingComments.isEmpty()) {
-                        const QString joined = pendingComments.join(QStringLiteral("\n"));
-                        di.comment = joined;
-                        pendingComments.clear();
-                    }
+                    di.comment = QString();  // 結果コードのコメントは後で付与される
                     out.mainline.disp.append(di);
 
                     lastDispIsResult   = true;
@@ -931,15 +943,26 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
                         continue;
                     }
 
+                    // 初手が見つかった時に開始局面エントリを追加
+                    if (!firstMoveFound) {
+                        firstMoveFound = true;
+                        openingItem.comment = pendingComments.isEmpty() ? QString() : pendingComments.join(QStringLiteral("\n"));
+                        out.mainline.disp.append(openingItem);
+                        pendingComments.clear();
+                    } else {
+                        // 直前の指し手に pending コメントを付与
+                        if (!pendingComments.isEmpty() && out.mainline.disp.size() > 1) {
+                            QString& dst = out.mainline.disp.last().comment;
+                            if (!dst.isEmpty()) dst += QLatin1Char('\n');
+                            dst += pendingComments.join(QStringLiteral("\n"));
+                            pendingComments.clear();
+                        }
+                    }
+
                     out.mainline.usiMoves.append(usi);
                     KifDisplayItem di;
                     di.prettyMove = pretty;
-                    // ここで pending コメントを移す（1手目のコメント落ち対策）
-                    if (!pendingComments.isEmpty()) {
-                        const QString joined = pendingComments.join(QStringLiteral("\n"));
-                        di.comment = joined;
-                        pendingComments.clear();
-                    }
+                    di.comment = QString();  // コメントは後で付与
                     out.mainline.disp.append(di);
 
                     lastMover = (mover == Black) ? 0 : 1;
@@ -968,6 +991,22 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
 
         // 単独行・結果コード
         if (isResultLine_(s)) {
+            // 結果コードが来たが、まだ初手が見つかっていない場合
+            if (!firstMoveFound) {
+                firstMoveFound = true;
+                openingItem.comment = pendingComments.isEmpty() ? QString() : pendingComments.join(QStringLiteral("\n"));
+                out.mainline.disp.append(openingItem);
+                pendingComments.clear();
+            } else {
+                // 直前の指し手に pending コメントを付与
+                if (!pendingComments.isEmpty() && out.mainline.disp.size() > 1) {
+                    QString& dst = out.mainline.disp.last().comment;
+                    if (!dst.isEmpty()) dst += QLatin1Char('\n');
+                    dst += pendingComments.join(QStringLiteral("\n"));
+                    pendingComments.clear();
+                }
+            }
+
             const QString sideMark = (turn == Black) ? QStringLiteral("▲") : QStringLiteral("△");
             QString label;
             if      (s.startsWith(QLatin1String("%TORYO")))            label = QStringLiteral("投了");
@@ -989,11 +1028,7 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
 
             KifDisplayItem di;
             di.prettyMove = sideMark + label;
-            if (!pendingComments.isEmpty()) {
-                const QString joined = pendingComments.join(QStringLiteral("\n"));
-                di.comment = joined;
-                pendingComments.clear();
-            }
+            di.comment = QString();  // 結果コードのコメントは後で付与される
             out.mainline.disp.append(di);
 
             lastDispIsResult   = true;
@@ -1013,14 +1048,26 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
                 continue;
             }
 
+            // 初手が見つかった時に開始局面エントリを追加
+            if (!firstMoveFound) {
+                firstMoveFound = true;
+                openingItem.comment = pendingComments.isEmpty() ? QString() : pendingComments.join(QStringLiteral("\n"));
+                out.mainline.disp.append(openingItem);
+                pendingComments.clear();
+            } else {
+                // 直前の指し手に pending コメントを付与
+                if (!pendingComments.isEmpty() && out.mainline.disp.size() > 1) {
+                    QString& dst = out.mainline.disp.last().comment;
+                    if (!dst.isEmpty()) dst += QLatin1Char('\n');
+                    dst += pendingComments.join(QStringLiteral("\n"));
+                    pendingComments.clear();
+                }
+            }
+
             out.mainline.usiMoves.append(usi);
             KifDisplayItem di;
             di.prettyMove = pretty;
-            if (!pendingComments.isEmpty()) {
-                const QString joined = pendingComments.join(QStringLiteral("\n"));
-                di.comment = joined;
-                pendingComments.clear();
-            }
+            di.comment = QString();  // コメントは後で付与
             out.mainline.disp.append(di);
 
             lastMover = (mover == Black) ? 0 : 1;
@@ -1031,6 +1078,20 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
         }
 
         // その他は無視
+    }
+
+    // 指し手が一つも見つからなかった場合でも開始局面エントリを追加
+    if (!firstMoveFound) {
+        openingItem.comment = pendingComments.isEmpty() ? QString() : pendingComments.join(QStringLiteral("\n"));
+        out.mainline.disp.append(openingItem);
+        pendingComments.clear();
+    }
+
+    // 最後の指し手の後に残っているコメントを付与
+    if (!pendingComments.isEmpty() && !out.mainline.disp.isEmpty()) {
+        QString& dst = out.mainline.disp.last().comment;
+        if (!dst.isEmpty()) dst += QLatin1Char('\n');
+        dst += pendingComments.join(QStringLiteral("\n"));
     }
 
     return true;
