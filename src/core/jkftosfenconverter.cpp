@@ -563,26 +563,30 @@ void JkfToSfenConverter::parseMovesArray(const QJsonArray& movesArray,
     int plyNumber = 0;
     qint64 cumSec[2] = {0, 0}; // [0]=先手, [1]=後手
 
-    // moves[0] は初期局面のコメント用
+    // JKF仕様:
+    // - moves[0] は初期局面用（moveフィールドなし、commentsのみ）
+    // - moves[i] (i>=1) の comments は、moves[i] の指し手に対するコメント
+    // つまり moves[i].comments は moves[i].move についてのコメント
+
     for (int i = 0; i < movesArray.size(); ++i) {
         const QJsonObject moveObj = movesArray[i].toObject();
-
-        // コメントを取得
-        QString comment;
-        if (moveObj.contains(QStringLiteral("comments"))) {
-            const QJsonArray comments = moveObj[QStringLiteral("comments")].toArray();
-            QStringList cmtList;
-            for (const auto& c : comments) {
-                cmtList.append(c.toString());
-            }
-            comment = cmtList.join(QLatin1Char('\n'));
-        }
 
         // 終局語
         if (moveObj.contains(QStringLiteral("special"))) {
             const QString special = moveObj[QStringLiteral("special")].toString();
             const QString label = specialToJapaneseImpl(special);
             const QString teban = ((plyNumber + 1) % 2 != 0) ? QStringLiteral("▲") : QStringLiteral("△");
+
+            // 終局語のコメントはその要素自身から取得
+            QString comment;
+            if (moveObj.contains(QStringLiteral("comments"))) {
+                const QJsonArray comments = moveObj[QStringLiteral("comments")].toArray();
+                QStringList cmtList;
+                for (const auto& c : comments) {
+                    cmtList.append(c.toString());
+                }
+                comment = cmtList.join(QLatin1Char('\n'));
+            }
 
             KifDisplayItem item;
             item.prettyMove = teban + label;
@@ -617,6 +621,17 @@ void JkfToSfenConverter::parseMovesArray(const QJsonArray& movesArray,
                 timeText = formatTimeText(timeObj, cumSec[color]);
             }
 
+            // コメントは同じ要素から取得 (moves[i].comments は moves[i].move のコメント)
+            QString comment;
+            if (moveObj.contains(QStringLiteral("comments"))) {
+                const QJsonArray comments = moveObj[QStringLiteral("comments")].toArray();
+                QStringList cmtList;
+                for (const auto& c : comments) {
+                    cmtList.append(c.toString());
+                }
+                comment = cmtList.join(QLatin1Char('\n'));
+            }
+
             KifDisplayItem item;
             item.prettyMove = pretty;
             item.timeText = timeText;
@@ -647,21 +662,22 @@ void JkfToSfenConverter::parseMovesArray(const QJsonArray& movesArray,
                 for (int j = 0; j < forkMoves.size(); ++j) {
                     const QJsonObject forkMoveObj = forkMoves[j].toObject();
 
-                    QString forkComment;
-                    if (forkMoveObj.contains(QStringLiteral("comments"))) {
-                        const QJsonArray forkComments = forkMoveObj[QStringLiteral("comments")].toArray();
-                        QStringList cmtList;
-                        for (const auto& c : forkComments) {
-                            cmtList.append(c.toString());
-                        }
-                        forkComment = cmtList.join(QLatin1Char('\n'));
-                    }
-
                     // 終局語
                     if (forkMoveObj.contains(QStringLiteral("special"))) {
                         const QString special = forkMoveObj[QStringLiteral("special")].toString();
                         const QString label = specialToJapaneseImpl(special);
                         const QString teban = ((forkPlyNumber + 1) % 2 != 0) ? QStringLiteral("▲") : QStringLiteral("△");
+
+                        // 終局語のコメントはその要素自身から取得
+                        QString forkComment;
+                        if (forkMoveObj.contains(QStringLiteral("comments"))) {
+                            const QJsonArray forkComments = forkMoveObj[QStringLiteral("comments")].toArray();
+                            QStringList cmtList;
+                            for (const auto& c : forkComments) {
+                                cmtList.append(c.toString());
+                            }
+                            forkComment = cmtList.join(QLatin1Char('\n'));
+                        }
 
                         KifDisplayItem item;
                         item.prettyMove = teban + label;
@@ -690,6 +706,17 @@ void JkfToSfenConverter::parseMovesArray(const QJsonArray& movesArray,
                             const QJsonObject timeObj = forkMoveObj[QStringLiteral("time")].toObject();
                             const int color = forkMv[QStringLiteral("color")].toInt();
                             forkTimeText = formatTimeText(timeObj, forkCumSec[color]);
+                        }
+
+                        // コメントは同じ要素から取得
+                        QString forkComment;
+                        if (forkMoveObj.contains(QStringLiteral("comments"))) {
+                            const QJsonArray forkComments = forkMoveObj[QStringLiteral("comments")].toArray();
+                            QStringList cmtList;
+                            for (const auto& c : forkComments) {
+                                cmtList.append(c.toString());
+                            }
+                            forkComment = cmtList.join(QLatin1Char('\n'));
                         }
 
                         KifDisplayItem item;
@@ -786,10 +813,19 @@ QString JkfToSfenConverter::convertMoveToPretty(const QJsonObject& move, int ply
     const QString piece = move[QStringLiteral("piece")].toString();
     result += pieceKindToKanjiImpl(piece);
 
-    // relative (相対情報)
+    // relative (相対情報) - 「打」は relative に "H" として含まれる
+    bool isDrop = false;
     if (move.contains(QStringLiteral("relative"))) {
         const QString relative = move[QStringLiteral("relative")].toString();
+        if (relative.contains(QLatin1Char('H'))) {
+            isDrop = true;
+        }
         result += relativeToModifierImpl(relative);
+    }
+
+    // 打ち判定: from がなければ打ち（relative に H がない場合も対応）
+    if (!move.contains(QStringLiteral("from")) && !isDrop) {
+        result += QStringLiteral("打");
     }
 
     // 成り/不成
