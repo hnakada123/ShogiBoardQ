@@ -252,9 +252,10 @@ QList<KifDisplayItem> KifToSfenConverter::extractMovesWithTimes(const QString& k
         return out;
     }
 
-    QString commentBuf;
-    QString openingBookmarkBuf; // 初手前の & を一時保持（開始局面コメントAPI側で拾う想定）
-    int moveIndex = 0; // 手数管理
+    QString openingCommentBuf;   // 開始局面用コメント（最初の指し手の前）
+    QString commentBuf;          // 指し手後のコメント（次の指し手まで蓄積）
+    int moveIndex = 0;           // 手数管理
+    bool firstMoveFound = false; // 最初の指し手が見つかったか
 
     // --- ヘッダ走査（手番/手合割の確認） ---
     for (const QString& raw : std::as_const(lines)) {
@@ -279,23 +280,32 @@ QList<KifDisplayItem> KifToSfenConverter::extractMovesWithTimes(const QString& k
         if (isCommentLine(lineStr)) {
             QString c = lineStr.mid(1).trimmed();
             if (!c.isEmpty()) {
-                if (!commentBuf.isEmpty()) commentBuf += QLatin1Char('\n');
-                commentBuf += c;
+                if (!firstMoveFound) {
+                    // 最初の指し手の前のコメント → 開始局面用
+                    if (!openingCommentBuf.isEmpty()) openingCommentBuf += QLatin1Char('\n');
+                    openingCommentBuf += c;
+                } else {
+                    // 指し手後のコメント → 直前の指し手用
+                    if (!commentBuf.isEmpty()) commentBuf += QLatin1Char('\n');
+                    commentBuf += c;
+                }
             }
             continue;
         }
 
-        // ★ しおり：直前の手（out.back()）に付与。初手前は openingBookmarkBuf に退避。
+        // ★ しおり：直前の手（out.back()）に付与。初手前は openingCommentBuf に退避。
         if (isBookmarkLine(lineStr)) {
             const QString name = lineStr.mid(1).trimmed();
             if (!name.isEmpty()) {
-                if (!out.isEmpty()) {
+                if (firstMoveFound && out.size() > 1) {
+                    // 最初の指し手より後：直前の指し手に付与（out[0]は開始局面なのでout.size()>1でチェック）
                     QString& dst = out.last().comment;
                     if (!dst.isEmpty()) dst += QLatin1Char('\n');
                     dst += QStringLiteral("【しおり】") + name;
                 } else {
-                    if (!openingBookmarkBuf.isEmpty()) openingBookmarkBuf += QLatin1Char('\n');
-                    openingBookmarkBuf += QStringLiteral("【しおり】") + name;
+                    // 最初の指し手の前：開始局面用
+                    if (!openingCommentBuf.isEmpty()) openingCommentBuf += QLatin1Char('\n');
+                    openingCommentBuf += QStringLiteral("【しおり】") + name;
                 }
             }
             continue;
@@ -340,6 +350,7 @@ QList<KifDisplayItem> KifToSfenConverter::extractMovesWithTimes(const QString& k
             if (commentIdx >= 0) {
                 QString inlineC = rest.mid(commentIdx + 1).trimmed();
                 if (!inlineC.isEmpty()) {
+                    // インラインコメントは指し手後として蓄積（指し手処理後に直前の手に付与）
                     if (!commentBuf.isEmpty()) commentBuf += QLatin1Char('\n');
                     commentBuf += inlineC;
                 }
@@ -364,9 +375,28 @@ QList<KifDisplayItem> KifToSfenConverter::extractMovesWithTimes(const QString& k
                 lineStr.clear();
             }
 
+            // 最初の指し手が見つかった時に開始局面エントリを挿入
+            if (!firstMoveFound) {
+                firstMoveFound = true;
+                KifDisplayItem openingItem;
+                openingItem.prettyMove = QString();  // 開始局面は空
+                openingItem.timeText   = QStringLiteral("00:00/00:00:00");
+                openingItem.comment    = openingCommentBuf;
+                openingItem.ply        = 0;
+                out.push_back(openingItem);
+            }
+
             // 終局語?
             QString term;
             if (isTerminalWord_(rest, &term)) {
+                // 直前の指し手に commentBuf を付与
+                if (!commentBuf.isEmpty() && out.size() > 1) {
+                    QString& dst = out.last().comment;
+                    if (!dst.isEmpty()) dst += QLatin1Char('\n');
+                    dst += commentBuf;
+                    commentBuf.clear();
+                }
+
                 ++moveIndex;
                 const QString teban = (moveIndex % 2 != 0) ? QStringLiteral("▲") : QStringLiteral("△");
 
@@ -385,13 +415,13 @@ QList<KifDisplayItem> KifToSfenConverter::extractMovesWithTimes(const QString& k
 
                 KifDisplayItem item;
                 item.prettyMove = teban + term;
+                item.ply = moveIndex;
                 if (term == QStringLiteral("千日手")) {
                     item.timeText = QStringLiteral("00:00/") + cum;
                 } else {
                     item.timeText = timeText.isEmpty() ? (QStringLiteral("00:00/") + cum) : timeText;
                 }
-                item.comment = commentBuf;
-                commentBuf.clear();
+                item.comment = QString();  // 終局語のコメントは次の行で蓄積される
 
                 out.push_back(item);
                 lineStr.clear();
@@ -400,18 +430,43 @@ QList<KifDisplayItem> KifToSfenConverter::extractMovesWithTimes(const QString& k
 
             // 通常手
             if (!rest.isEmpty()) {
+                // 直前の指し手に commentBuf を付与（最初の指し手の場合は開始局面に対するコメントなので付与しない）
+                if (!commentBuf.isEmpty() && out.size() > 1) {
+                    QString& dst = out.last().comment;
+                    if (!dst.isEmpty()) dst += QLatin1Char('\n');
+                    dst += commentBuf;
+                    commentBuf.clear();
+                }
+
                 ++moveIndex;
                 const QString teban = (moveIndex % 2 != 0) ? QStringLiteral("▲") : QStringLiteral("△");
 
                 KifDisplayItem item;
                 item.prettyMove = teban + rest;
                 item.timeText   = timeText.isEmpty() ? QStringLiteral("00:00/00:00:00") : timeText;
-                item.comment    = commentBuf;
-                commentBuf.clear();
+                item.comment    = QString();  // コメントは後から付与される
+                item.ply        = moveIndex;
 
                 out.push_back(item);
             }
         }
+    }
+
+    // 最後の指し手の後に残っているコメントを付与
+    if (!commentBuf.isEmpty() && !out.isEmpty()) {
+        QString& dst = out.last().comment;
+        if (!dst.isEmpty()) dst += QLatin1Char('\n');
+        dst += commentBuf;
+    }
+
+    // 指し手が一つもなかった場合でも開始局面エントリを追加
+    if (out.isEmpty()) {
+        KifDisplayItem openingItem;
+        openingItem.prettyMove = QString();
+        openingItem.timeText   = QStringLiteral("00:00/00:00:00");
+        openingItem.comment    = openingCommentBuf;
+        openingItem.ply        = 0;
+        out.push_back(openingItem);
     }
 
     return out;
@@ -552,6 +607,7 @@ bool KifToSfenConverter::parseWithVariations(const QString& kifPath,
             int prevToFile = 0, prevToRank = 0;
             int moveIndex = var.startPly - 1;
             QString commentBuf;
+            bool firstVarMoveFound = false;
 
             for (const QString& raw : std::as_const(block)) {
                 QString lineStr = raw;
@@ -618,6 +674,14 @@ bool KifToSfenConverter::parseWithVariations(const QString& kifPath,
                     bool isTerm = isTerminalWord_(rest, &term);
 
                     if (isTerm) {
+                        // 直前の指し手にコメントを付与
+                        if (!commentBuf.isEmpty() && !var.line.disp.isEmpty()) {
+                            QString& dst = var.line.disp.last().comment;
+                            if (!dst.isEmpty()) dst += QLatin1Char('\n');
+                            dst += commentBuf;
+                            commentBuf.clear();
+                        }
+
                         ++moveIndex;
                         const QString teban = (moveIndex % 2 != 0) ? QStringLiteral("▲") : QStringLiteral("△");
 
@@ -636,12 +700,13 @@ bool KifToSfenConverter::parseWithVariations(const QString& kifPath,
 
                         KifDisplayItem item;
                         item.prettyMove = teban + term;
+                        item.ply = moveIndex;
                         if (term == QStringLiteral("千日手")) {
                             item.timeText = QStringLiteral("00:00/") + cum;
                         } else {
                             item.timeText = timeText.isEmpty() ? QStringLiteral("00:00/00:00:00") : timeText;
                         }
-                        item.comment    = commentBuf; commentBuf.clear();
+                        item.comment = QString();
                         var.line.disp.push_back(item);
 
                         lineStr.clear();
@@ -649,12 +714,25 @@ bool KifToSfenConverter::parseWithVariations(const QString& kifPath,
                     }
 
                     // 通常手
+                    // 直前の指し手にコメントを付与（ただし変化の最初の指し手の前のコメントは無視）
+                    if (!commentBuf.isEmpty() && firstVarMoveFound && !var.line.disp.isEmpty()) {
+                        QString& dst = var.line.disp.last().comment;
+                        if (!dst.isEmpty()) dst += QLatin1Char('\n');
+                        dst += commentBuf;
+                        commentBuf.clear();
+                    } else if (firstVarMoveFound) {
+                        commentBuf.clear(); // 変化ブロック先頭のコメントは捨てる（本譜由来のため）
+                    }
+
+                    firstVarMoveFound = true;
+
                     ++moveIndex;
                     const QString teban = (moveIndex % 2 != 0) ? QStringLiteral("▲") : QStringLiteral("△");
                     KifDisplayItem item;
                     item.prettyMove = teban + rest;
                     item.timeText   = timeText.isEmpty() ? QStringLiteral("00:00/00:00:00") : timeText;
-                    item.comment    = commentBuf; commentBuf.clear();
+                    item.comment    = QString();
+                    item.ply        = moveIndex;
                     var.line.disp.push_back(item);
 
                     // USI
@@ -674,6 +752,13 @@ bool KifToSfenConverter::parseWithVariations(const QString& kifPath,
                         else lineStr.clear();
                     }
                 }
+            }
+
+            // 最後の指し手の後に残っているコメントを付与
+            if (!commentBuf.isEmpty() && !var.line.disp.isEmpty()) {
+                QString& dst = var.line.disp.last().comment;
+                if (!dst.isEmpty()) dst += QLatin1Char('\n');
+                dst += commentBuf;
             }
         }
         vars.push_back(var);
