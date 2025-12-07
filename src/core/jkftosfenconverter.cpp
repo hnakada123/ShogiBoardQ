@@ -266,6 +266,13 @@ QList<KifDisplayItem> JkfToSfenConverter::extractMovesWithTimes(const QString& j
     int prevToX = 0, prevToY = 0;
     int plyNumber = 0;
     qint64 cumSec[2] = {0, 0}; // [0]=先手, [1]=後手
+    QString pendingComment;  // 次の指し手に付与するコメント
+
+    // 開始局面エントリを追加
+    KifDisplayItem openingItem;
+    openingItem.prettyMove = QString();
+    openingItem.timeText = QStringLiteral("00:00/00:00:00");
+    openingItem.ply = 0;
 
     for (int i = 0; i < moves.size(); ++i) {
         const QJsonObject moveObj = moves[i].toObject();
@@ -283,6 +290,18 @@ QList<KifDisplayItem> JkfToSfenConverter::extractMovesWithTimes(const QString& j
 
         // 終局語
         if (moveObj.contains(QStringLiteral("special"))) {
+            // 開始局面エントリがまだ追加されていない場合は追加
+            if (out.isEmpty()) {
+                openingItem.comment = pendingComment;
+                out.append(openingItem);
+            } else if (!pendingComment.isEmpty() && out.size() > 1) {
+                // 直前の指し手にペンディングコメントを付与
+                QString& dst = out.last().comment;
+                if (!dst.isEmpty()) dst += QLatin1Char('\n');
+                dst += pendingComment;
+            }
+            pendingComment.clear();
+
             const QString special = moveObj[QStringLiteral("special")].toString();
             const QString label = specialToJapaneseImpl(special);
             const QString teban = ((plyNumber + 1) % 2 != 0) ? QStringLiteral("▲") : QStringLiteral("△");
@@ -298,6 +317,19 @@ QList<KifDisplayItem> JkfToSfenConverter::extractMovesWithTimes(const QString& j
 
         // move フィールドがあれば処理
         if (moveObj.contains(QStringLiteral("move"))) {
+            // 開始局面エントリがまだ追加されていない場合は追加
+            if (out.isEmpty()) {
+                openingItem.comment = pendingComment;
+                out.append(openingItem);
+                pendingComment.clear();
+            } else if (!pendingComment.isEmpty()) {
+                // 直前の指し手にペンディングコメントを付与
+                QString& dst = out.last().comment;
+                if (!dst.isEmpty()) dst += QLatin1Char('\n');
+                dst += pendingComment;
+                pendingComment.clear();
+            }
+
             ++plyNumber;
 
             const QJsonObject mv = moveObj[QStringLiteral("move")].toObject();
@@ -314,18 +346,29 @@ QList<KifDisplayItem> JkfToSfenConverter::extractMovesWithTimes(const QString& j
             KifDisplayItem item;
             item.prettyMove = pretty;
             item.timeText = timeText;
-            item.comment = comment;
+            item.comment = comment;  // JKFでは各指し手の直後にコメントがあるので、そのまま付与
             item.ply = plyNumber;
             out.append(item);
         } else {
-            // move がない（開始局面のコメントなど）場合はスキップ
-            // ただしコメントがあれば次の手に付与するか、最初のエントリとして扱う
+            // move がない（開始局面のコメントなど）場合
             // JKF仕様では moves[0] は初期局面のコメント用
-            if (!comment.isEmpty() && out.isEmpty()) {
-                // 初期局面コメントは最初の指し手に付与するか無視
-                // ここでは無視（GUIで別途処理）
+            if (!comment.isEmpty()) {
+                if (out.isEmpty()) {
+                    // 開始局面のコメントとして保持
+                    openingItem.comment = comment;
+                } else {
+                    // 次の指し手に付与するためペンディング
+                    if (!pendingComment.isEmpty()) pendingComment += QLatin1Char('\n');
+                    pendingComment += comment;
+                }
             }
         }
+    }
+
+    // 開始局面エントリがまだ追加されていない場合は追加
+    if (out.isEmpty()) {
+        openingItem.comment = pendingComment;
+        out.append(openingItem);
     }
 
     return out;
@@ -562,17 +605,30 @@ void JkfToSfenConverter::parseMovesArray(const QJsonArray& movesArray,
     int prevToX = 0, prevToY = 0;
     int plyNumber = 0;
     qint64 cumSec[2] = {0, 0}; // [0]=先手, [1]=後手
+    bool openingEntryAdded = false;
 
     // JKF仕様:
     // - moves[0] は初期局面用（moveフィールドなし、commentsのみ）
     // - moves[i] (i>=1) の comments は、moves[i] の指し手に対するコメント
     // つまり moves[i].comments は moves[i].move についてのコメント
 
+    // 開始局面エントリを先に準備
+    KifDisplayItem openingItem;
+    openingItem.prettyMove = QString();
+    openingItem.timeText = QStringLiteral("00:00/00:00:00");
+    openingItem.ply = 0;
+
     for (int i = 0; i < movesArray.size(); ++i) {
         const QJsonObject moveObj = movesArray[i].toObject();
 
         // 終局語
         if (moveObj.contains(QStringLiteral("special"))) {
+            // 開始局面エントリがまだ追加されていない場合は追加
+            if (!openingEntryAdded) {
+                mainline.disp.append(openingItem);
+                openingEntryAdded = true;
+            }
+
             const QString special = moveObj[QStringLiteral("special")].toString();
             const QString label = specialToJapaneseImpl(special);
             const QString teban = ((plyNumber + 1) % 2 != 0) ? QStringLiteral("▲") : QStringLiteral("△");
@@ -600,6 +656,12 @@ void JkfToSfenConverter::parseMovesArray(const QJsonArray& movesArray,
 
         // move フィールドがあれば処理
         if (moveObj.contains(QStringLiteral("move"))) {
+            // 開始局面エントリがまだ追加されていない場合は追加
+            if (!openingEntryAdded) {
+                mainline.disp.append(openingItem);
+                openingEntryAdded = true;
+            }
+
             ++plyNumber;
 
             const QJsonObject mv = moveObj[QStringLiteral("move")].toObject();
@@ -638,6 +700,16 @@ void JkfToSfenConverter::parseMovesArray(const QJsonArray& movesArray,
             item.comment = comment;
             item.ply = plyNumber;
             mainline.disp.append(item);
+        } else if (i == 0) {
+            // moves[0] は初期局面用 - コメントがあれば開始局面エントリに設定
+            if (moveObj.contains(QStringLiteral("comments"))) {
+                const QJsonArray comments = moveObj[QStringLiteral("comments")].toArray();
+                QStringList cmtList;
+                for (const auto& c : comments) {
+                    cmtList.append(c.toString());
+                }
+                openingItem.comment = cmtList.join(QLatin1Char('\n'));
+            }
         }
 
         // 分岐 (forks) を処理
@@ -731,6 +803,11 @@ void JkfToSfenConverter::parseMovesArray(const QJsonArray& movesArray,
                 variations.append(var);
             }
         }
+    }
+
+    // 開始局面エントリがまだ追加されていない場合は追加
+    if (!openingEntryAdded) {
+        mainline.disp.prepend(openingItem);
     }
 }
 

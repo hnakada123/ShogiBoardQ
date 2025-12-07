@@ -37,8 +37,9 @@ void GameRecordPresenter::presentGameRecord(const QList<KifDisplayItem>& disp) {
         QStringLiteral("（1手 / 合計）")
         ));
 
-    // 各手を追加
-    for (const auto& it : disp) {
+    // 各手を追加（dispの先頭は開始局面エントリなのでスキップ）
+    for (int i = 1; i < disp.size(); ++i) {
+        const auto& it = disp.at(i);
         appendMoveLine(it.prettyMove, it.timeText);
     }
 
@@ -121,25 +122,18 @@ void GameRecordPresenter::setCommentsFromDisplayItems(const QList<KifDisplayItem
         return;
     }
 
-    // --- 行0（開始局面）のコメント ---
-    // KifToSfenConverter は「先頭の * コメント」を disp[0].comment に入れる仕様。
-    // よって開始局面には disp[0].comment をそのまま割り当てる。
-    if (moveCount > 0) {
-        m_commentsByRow[0] = disp[0].comment;
-    } else {
-        m_commentsByRow[0].clear();
-    }
+    // --- 新しいデータ構造 ---
+    // disp[0] = 開始局面エントリ（prettyMove が空、comment に開始局面コメント）
+    // disp[1] = 1手目（prettyMove に指し手、comment に1手目のコメント）
+    // disp[2] = 2手目（prettyMove に指し手、comment に2手目のコメント）
+    // ...
+    // つまり、disp[i].comment は i 手目のコメントに対応
+    // m_commentsByRow[i] にも disp[i].comment をそのまま割り当てる
 
-    // --- 行1..（各手のコメント）---
-    // これまで「行(i+1) ← disp[i].comment」としていたため 1手前が表示されていた。
-    // 「コメントは“次手にひも付け”」という抽出仕様に合わせ、
-    // 行r(=1..)…には disp[r].comment を割り当てる（= 1つ先を見る）。
-    // 末尾行などインデックス外は安全に空文字を入れる。
     const int rows = m_commentsByRow.size();
-    for (int r = 1; r < rows; ++r) {
-        const int idx = r; // 1つ先へシフト
-        if (idx >= 0 && idx < moveCount) {
-            m_commentsByRow[r] = disp[idx].comment;
+    for (int r = 0; r < rows; ++r) {
+        if (r < moveCount) {
+            m_commentsByRow[r] = disp[r].comment;
         } else {
             m_commentsByRow[r].clear();
         }

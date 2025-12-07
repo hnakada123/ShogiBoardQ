@@ -801,6 +801,15 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
     // ★ 追加：初手直前の "'*" コメント群を pending へ先取り（v3仕様）
     collectPreMoveCommentBlock_(lines, idx, pendingComments);
 
+    // ★ 開始局面エントリを追加
+    KifDisplayItem openingItem;
+    openingItem.prettyMove = QString();  // 開始局面は空
+    openingItem.timeText   = QStringLiteral("00:00/00:00:00");
+    openingItem.comment    = pendingComments.isEmpty() ? QString() : pendingComments.join(QStringLiteral("\n"));
+    openingItem.ply        = 0;
+    out.mainline.disp.append(openingItem);
+    pendingComments.clear();  // 開始局面のコメントとして使用したのでクリア
+
     int prevTx = -1, prevTy = -1;
 
     qint64 cumMs[2] = {0, 0};

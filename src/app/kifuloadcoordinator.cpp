@@ -583,7 +583,8 @@ void KifuLoadCoordinator::applyParsedResultCommon_(
     };
     const bool hasTerminal = (!disp.isEmpty() && isTerminalPretty(disp.back().prettyMove));
 
-    if (m_usiMoves.isEmpty() && !hasTerminal && disp.isEmpty()) {
+    // disp[0]は開始局面エントリなので、指し手が1つもない場合は disp.size() <= 1
+    if (m_usiMoves.isEmpty() && !hasTerminal && disp.size() <= 1) {
         const QString errorMessage =
             tr("読み込み失敗 %1 から指し手を取得できませんでした。").arg(filePath);
         emit errorOccurred(errorMessage);
