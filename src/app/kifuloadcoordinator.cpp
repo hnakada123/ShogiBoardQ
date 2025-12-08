@@ -1295,9 +1295,11 @@ void KifuLoadCoordinator::buildResolvedLinesAfterLoad()
         const int parentRow = resolveParentRowIndex(vi);
         const ResolvedRow& base = m_resolvedRows.at(parentRow);
 
-        // 1) プレフィクス（1..start-1）を“親行”から切り出し、足りない分は本譜で補完
+        // 1) プレフィクス（0..start-1手目）を"親行"から切り出し、足りない分は本譜で補完
+        // 新データ構造: disp[0]=開始局面エントリ, disp[i]=i手目 (i>=1)
+        // start手目から分岐なら、プレフィックスは disp[0]..disp[start-1] (計start個)
         QList<KifDisplayItem> prefixDisp = base.disp;
-        if (prefixDisp.size() > start - 1) prefixDisp.resize(start - 1);
+        if (prefixDisp.size() > start) prefixDisp.resize(start);
 
         QVector<ShogiMove> prefixGm = base.gm;
         if (prefixGm.size() > start - 1) prefixGm.resize(start - 1);
@@ -1306,8 +1308,8 @@ void KifuLoadCoordinator::buildResolvedLinesAfterLoad()
         if (prefixSfen.size() > start) prefixSfen.resize(start);
 
         // 親行が短い場合は本譜で延長（disp/gm/sfen を一致させる）
-        while (prefixDisp.size() < start - 1 && prefixDisp.size() < m_dispMain.size()) {
-            const int idx = prefixDisp.size(); // 0.. → 手数は idx+1
+        while (prefixDisp.size() < start && prefixDisp.size() < m_dispMain.size()) {
+            const int idx = prefixDisp.size(); // disp[idx] = idx手目
             prefixDisp.append(m_dispMain.at(idx));
         }
         while (prefixGm.size() < start - 1 && prefixGm.size() < m_gmMain.size()) {

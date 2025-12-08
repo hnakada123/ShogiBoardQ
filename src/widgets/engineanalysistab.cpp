@@ -385,9 +385,11 @@ void EngineAnalysisTab::rebuildBranchTree()
         const auto& main = m_rows.at(0);
 
         QGraphicsPathItem* prev = startNode;
-        int ply = 0;
-        for (const auto& it : main.disp) {
-            ++ply;
+        // disp[0]は開始局面エントリ（prettyMoveが空）なのでスキップ
+        // disp[1]から処理し、ply=1から開始
+        for (int i = 1; i < main.disp.size(); ++i) {
+            const auto& it = main.disp.at(i);
+            const int ply = i;  // disp[i]はi手目
             QGraphicsPathItem* node = addNode(0, ply, it.prettyMove);
             if (prev) addEdge(prev, node);
             prev = node;
@@ -412,7 +414,9 @@ void EngineAnalysisTab::rebuildBranchTree()
                                                 m_nodeIndex.value(qMakePair(0, 0), nullptr)));
 
         // 3) 分岐の手リストを「開始手以降だけ」にスライス
-        const int cut   = qMax(0, startPly - 1);              // 0-origin index
+        // 新データ構造: disp[0]=開始局面エントリ, disp[i]=i手目 (i>=1)
+        // startPly手目から描画するので、disp[startPly]から開始
+        const int cut   = startPly;                       // disp[startPly]がstartPly手目
         const int total = rv.disp.size();
         const int take  = (cut < total) ? (total - cut) : 0;
         if (take <= 0) continue;                              // 描くもの無し
@@ -470,7 +474,8 @@ void EngineAnalysisTab::rebuildBranchTree()
     }
 
     // ===== シーン境界 =====
-    const int mainLen = m_rows.isEmpty() ? 0 : m_rows.at(0).disp.size();
+    // disp[0]は開始局面エントリなので、指し手数は disp.size() - 1
+    const int mainLen = m_rows.isEmpty() ? 0 : qMax(0, m_rows.at(0).disp.size() - 1);
     const int spanLen = qMax(mainLen, maxAbsPly);
     const qreal width  = (BASE_X + SHIFT_X) + STEP_X * qMax(40, spanLen + 6) + 40.0;
     const qreal height = 30 + STEP_Y * qMax(2, m_rows.size() + 1);
