@@ -2244,7 +2244,9 @@ void KifuLoadCoordinator::updateBranchTreeFromLive(int currentPly)
         if (parentRow < 0 || parentRow >= m_resolvedRows.size()) parentRow = mainRow;
 
         QList<KifDisplayItem> merged = m_resolvedRows.at(parentRow).disp;
-        if (merged.size() > startPly - 1) merged.resize(startPly - 1);
+        // ★修正：新データ構造（disp[0]=開始局面, disp[i]=i手目）に合わせて、
+        // startPly手目の直前まで（つまり disp[0..startPly-1] = startPly個）を保持する
+        if (merged.size() > startPly) merged.resize(startPly);
 
         const auto& liveConst = std::as_const(dispLive);
         for (int i = suffixStart; i < liveConst.size(); ++i) {
