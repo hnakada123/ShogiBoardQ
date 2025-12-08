@@ -1390,9 +1390,9 @@ QString KifuLoadCoordinator::rowNameFor_(int row) const
 // 1始まり hand-ply のラベル（無ければ ""）
 QString KifuLoadCoordinator::labelAt_(const ResolvedRow& rr, int ply) const
 {
-    const int li = ply - 1;
-    if (li < 0 || li >= rr.disp.size()) return QString();
-    return pickLabelForDisp(rr.disp.at(li));
+    // 新データ構造: disp[ply] が ply 手目
+    if (ply < 0 || ply >= rr.disp.size()) return QString();
+    return pickLabelForDisp(rr.disp.at(ply));
 }
 
 // 1..p までの完全一致（両方に手が存在し、かつ全ラベル一致）なら true
@@ -1420,7 +1420,9 @@ void KifuLoadCoordinator::dumpBranchSplitReport() const
         const QString header = rowNameFor_(r);
         qDebug().noquote() << header;
 
-        const int maxPly = rr.disp.size();
+        // 新データ構造: disp[0]=開始局面, disp[1..N]=指し手
+        // p = 1 から disp.size() - 1 まで（p手目はdisp[p]）
+        const int maxPly = rr.disp.size() - 1;
         for (int p = 1; p <= maxPly; ++p) {
             const QString curLbl = labelAt_(rr, p);
             // この行と「1..p まで完全一致」する仲間を抽出
@@ -1477,10 +1479,9 @@ void KifuLoadCoordinator::dumpBranchCandidateDisplayPlan() const
     if (m_resolvedRows.isEmpty()) return;
 
     auto labelAt = [&](int row, int ply1)->QString {
-        // ply1 は 1-based
-        const int li = ply1 - 1;
+        // 新データ構造: disp[ply1] が ply1 手目
         const auto& disp = m_resolvedRows[row].disp;
-        return (li >= 0 && li < disp.size()) ? pickLabelForDisp(disp.at(li)) : QString();
+        return (ply1 >= 0 && ply1 < disp.size()) ? pickLabelForDisp(disp.at(ply1)) : QString();
     };
 
     // 行ごとに
@@ -1490,7 +1491,8 @@ void KifuLoadCoordinator::dumpBranchCandidateDisplayPlan() const
         const int len = m_resolvedRows[r].disp.size();
         const auto itRow = m_branchDisplayPlan.constFind(r);
 
-        for (int ply1 = 1; ply1 <= len; ++ply1) {
+        // ply1 = 1 から len - 1 まで（disp[1]..disp[len-1]）
+        for (int ply1 = 1; ply1 < len; ++ply1) {
             const QString base = labelAt(r, ply1);
             bool has = false;
             QVector<BranchCandidateDisplayItem> items;
@@ -1555,7 +1557,10 @@ void KifuLoadCoordinator::ensureResolvedRowsHaveFullSfen()
     for (int r = 0; r < rowCount; ++r) {
         auto& rr = m_resolvedRows[r];
 
-        const int need = rr.disp.size() + 1;     // 0..N
+        // 新データ構造: disp[0]=開始局面, disp[1..N]=指し手（計disp.size()個）
+        // sfen[0..N] を作りたい（局面数 = 指し手数 + 1）
+        // 指し手数 = disp.size() - 1、局面数 = disp.size()
+        const int need = rr.disp.size();              // 0..N-1 (N個)
         const int s    = qMax(1, rr.startPly);   // 1-origin
         const int base = s - 1;                  // 直前局面の添字
 
@@ -1672,9 +1677,9 @@ void KifuLoadCoordinator::dumpAllRowsSfenTable() const
     if (m_resolvedRows.isEmpty()) return;
 
     auto labelAt = [&](int row, int ply1)->QString {
-        const int li = ply1 - 1;
+        // 新データ構造: disp[ply1] が ply1 手目
         const auto& disp = m_resolvedRows[row].disp;
-        return (li >= 0 && li < disp.size()) ? pickLabelForDisp(disp.at(li)) : QString();
+        return (ply1 >= 0 && ply1 < disp.size()) ? pickLabelForDisp(disp.at(ply1)) : QString();
     };
 
     for (int r = 0; r < m_resolvedRows.size(); ++r) {
@@ -1685,8 +1690,8 @@ void KifuLoadCoordinator::dumpAllRowsSfenTable() const
         const QString s0 = (!rr.sfen.isEmpty() ? rr.sfen.first() : QStringLiteral("<SFEN MISSING>"));
         qDebug().noquote() << QStringLiteral("0 開始局面 %1").arg(s0);
 
-        // 1..N
-        for (int ply1 = 1; ply1 <= rr.disp.size(); ++ply1) {
+        // 1..N (disp[1]..disp[N]がN手目まで)
+        for (int ply1 = 1; ply1 < rr.disp.size(); ++ply1) {
             const QString lbl  = labelAt(r, ply1);
             QString sfen = (ply1 >= 0 && ply1 < rr.sfen.size()) ? rr.sfen.at(ply1) : QString();
             if (sfen.isEmpty()) sfen = QStringLiteral("<SFEN MISSING>");
@@ -1709,9 +1714,9 @@ void KifuLoadCoordinator::ensureResolvedRowsHaveFullGameMoves()
         auto& r = m_resolvedRows[i];
 
         const int nsfen = r.sfen.size();     // 0..N
-        const int ndisp = r.disp.size();     // 1..N
-        // resign など「盤が変わらない終端」は 1 手として数えないので、基本は min(ndisp, nsfen-1)
-        const int want  = qMax(0, qMin(ndisp, nsfen - 1));
+        const int ndisp = r.disp.size();     // 0..N (disp[0]=開始局面, disp[1..N]=指し手)
+        // resign など「盤が変わらない終端」は 1 手として数えないので、基本は min(ndisp-1, nsfen-1)
+        const int want  = qMax(0, qMin(ndisp - 1, nsfen - 1));
 
         const QString label = (i == 0)
                                   ? QStringLiteral("Main")
@@ -1735,7 +1740,7 @@ void KifuLoadCoordinator::ensureResolvedRowsHaveFullGameMoves()
         for (int ply1 = 1; ply1 <= want; ++ply1) {
             const QString prev = r.sfen.at(ply1 - 1);
             const QString next = r.sfen.at(ply1);
-            const QString pretty = r.disp.at(ply1 - 1).prettyMove;
+            const QString pretty = r.disp.at(ply1).prettyMove;
 
             ShogiMove mv;
             const bool ok = deriveMoveFromSfenPair(prev, next, &mv); // ★ 内部で FLIP（USI向き）を採用
@@ -1873,23 +1878,26 @@ void KifuLoadCoordinator::buildBranchCandidateDisplayPlan()
     };
 
     auto prefixEquals = [&](int r1, int r2, int uptoLi)->bool {
-        // li=0 のときは「初手より前の共通部分」は空なので常に一致とみなす
-        for (int i = 0; i < uptoLi; ++i) {
+        // uptoLi より前（1手目から uptoLi-1 手目まで）が一致するか
+        // disp[1]..disp[uptoLi-1] を比較（disp[0]は開始局面エントリ）
+        for (int i = 1; i < uptoLi; ++i) {
             if (labelAt(r1, i) != labelAt(r2, i)) return false;
         }
         return true;
     };
 
-    // 各行 r の各ローカル添字 li（0-based）について、
-    // 「初手から li-1 まで完全一致する行」をグループ化し、
+    // 各行 r の各手数 li（1手目から）について、
+    // 「1手目から li-1 手目まで完全一致する行」をグループ化し、
     // その li 手目に 2 種類以上の指し手があれば分岐とみなす。
-    // ★ 表示は “その手（li）” に出す（＝1手先に送らない）
+    // ★ 表示は "その手（li）" に出す（＝1手先に送らない）
+    // 新データ構造: disp[0]=開始局面エントリ, disp[li]=li手目 (li>=1)
     for (int r = 0; r < R; ++r) {
         const int len = m_resolvedRows[r].disp.size();
-        if (len == 0) continue;
+        if (len <= 1) continue;  // 開始局面エントリのみ
 
-        for (int li = 0; li < len; ++li) {
-            // この行 r と「初手から li-1 まで一致」する行
+        // li = 1 から開始（disp[0]は開始局面エントリ）
+        for (int li = 1; li < len; ++li) {
+            // この行 r と「1手目から li-1 手目まで一致」する行
             QVector<int> group;
             group.reserve(R);
             for (int g = 0; g < R; ++g) {
@@ -1907,9 +1915,9 @@ void KifuLoadCoordinator::buildBranchCandidateDisplayPlan()
             }
             if (labelToRows.size() <= 1) continue; // 全員同じ指し手 → 分岐ではない
 
-            // 表示先 ply（1-based）。li は 0-based
-            const int targetPly = li + 1;
-            if (targetPly > m_resolvedRows[r].disp.size()) continue;
+            // 表示先 ply。新データ構造では disp[li] が li 手目なので targetPly = li
+            const int targetPly = li;
+            if (targetPly > m_resolvedRows[r].disp.size() - 1) continue;
 
             // 見出し（この行 r の li 手目）
             const QString baseForDisplay = labelAt(r, li);
