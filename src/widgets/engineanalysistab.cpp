@@ -408,10 +408,55 @@ void EngineAnalysisTab::rebuildBranchTree()
         const int joinPly = startPly - 1;
 
         // 親の joinPly ノードを取得。無ければ本譜→開始局面へフォールバック。
-        QGraphicsPathItem* prev =
-            m_nodeIndex.value(qMakePair(parentRow, joinPly),
-                              m_nodeIndex.value(qMakePair(0, joinPly),
-                                                m_nodeIndex.value(qMakePair(0, 0), nullptr)));
+        // ★修正: ターミナルノード（投了など）への接続は避ける
+        static const QStringList kTerminalKeywords = {
+            QStringLiteral("投了"), QStringLiteral("中断"), QStringLiteral("持将棋"),
+            QStringLiteral("千日手"), QStringLiteral("切れ負け"),
+            QStringLiteral("反則勝ち"), QStringLiteral("反則負け"),
+            QStringLiteral("入玉勝ち"), QStringLiteral("不戦勝"),
+            QStringLiteral("不戦敗"), QStringLiteral("詰み"), QStringLiteral("不詰"),
+        };
+        auto isTerminalPly = [&](int targetRow, int ply) -> bool {
+            if (targetRow < 0 || targetRow >= m_rows.size()) return false;
+            const auto& rowData = m_rows.at(targetRow);
+            if (ply < 0 || ply >= rowData.disp.size()) return false;
+            const QString& text = rowData.disp.at(ply).prettyMove;
+            for (const auto& kw : kTerminalKeywords) {
+                if (text.contains(kw)) return true;
+            }
+            return false;
+        };
+
+        QGraphicsPathItem* prev = nullptr;
+
+        // 1. 親行のjoinPly手目を試す（ターミナルでなければ）
+        if (!isTerminalPly(parentRow, joinPly)) {
+            prev = m_nodeIndex.value(qMakePair(parentRow, joinPly), nullptr);
+        }
+
+        // 2. なければ本譜のjoinPly手目を試す（ターミナルでなければ）
+        if (!prev && !isTerminalPly(0, joinPly)) {
+            prev = m_nodeIndex.value(qMakePair(0, joinPly), nullptr);
+        }
+
+        // 3. それでもなければ、親行のjoinPlyより前の最後の非ターミナルノードを探す
+        if (!prev) {
+            for (int p = joinPly - 1; p >= 0; --p) {
+                if (!isTerminalPly(parentRow, p)) {
+                    prev = m_nodeIndex.value(qMakePair(parentRow, p), nullptr);
+                    if (prev) break;
+                }
+                if (!prev && !isTerminalPly(0, p)) {
+                    prev = m_nodeIndex.value(qMakePair(0, p), nullptr);
+                    if (prev) break;
+                }
+            }
+        }
+
+        // 4. 最終フォールバック: 開始局面
+        if (!prev) {
+            prev = m_nodeIndex.value(qMakePair(0, 0), nullptr);
+        }
 
         // 3) 分岐の手リストを「開始手以降だけ」にスライス
         // 新データ構造: disp[0]=開始局面エントリ, disp[i]=i手目 (i>=1)
