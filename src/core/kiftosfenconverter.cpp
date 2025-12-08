@@ -313,6 +313,12 @@ QList<KifDisplayItem> KifToSfenConverter::extractMovesWithTimes(const QString& k
 
         if (lineStr.isEmpty() || isSkippableLine(lineStr) || isBoardHeaderOrFrame(lineStr)) continue;
 
+        // ★ 変化行に到達したら本譜の抽出を終了
+        static const QRegularExpression sVarHead(QStringLiteral("^\\s*変化[:：]\\s*[0-9０-９]+\\s*手"));
+        if (sVarHead.match(lineStr).hasMatch()) {
+            break;  // 変化以降は本譜ではない
+        }
+
         // --- 1行に含まれる指し手をループ処理 ---
         while (!lineStr.isEmpty()) {
             int digits = 0;
@@ -501,6 +507,12 @@ QStringList KifToSfenConverter::convertFile(const QString& kifPath, QString* err
 
         if (isCommentLine(lineStr) || isBookmarkLine(lineStr)) continue;
         if (lineStr.isEmpty() || isSkippableLine(lineStr) || isBoardHeaderOrFrame(lineStr)) continue;
+
+        // ★ 変化行に到達したら本譜の抽出を終了
+        static const QRegularExpression sVarHead(QStringLiteral("^\\s*変化[:：]\\s*[0-9０-９]+\\s*手"));
+        if (sVarHead.match(lineStr).hasMatch()) {
+            break;  // 変化以降は本譜ではない
+        }
 
         if (containsAnyTerminal(lineStr)) break;
 
