@@ -833,7 +833,7 @@ void MainWindow::chooseAndLoadKifuFile()
     // --- 1) ファイル選択（UI層に残す） ---
     const QString filePath = QFileDialog::getOpenFileName(
         this, tr("棋譜ファイルを開く"), QString(),
-        tr("Kifu Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USEN Files (*.usen)")
+        tr("Kifu Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)")
         );
 
     if (filePath.isEmpty()) return;
@@ -910,6 +910,9 @@ void MainWindow::chooseAndLoadKifuFile()
     } else if (filePath.endsWith(QLatin1String(".usen"), Qt::CaseInsensitive)) {
         // USEN読み込み
         m_kifuLoadCoordinator->loadUsenFromFile(filePath);
+    } else if (filePath.endsWith(QLatin1String(".usi"), Qt::CaseInsensitive)) {
+        // USI読み込み
+        m_kifuLoadCoordinator->loadUsiFromFile(filePath);
     } else {
         // KIF読み込み (既存)
         m_kifuLoadCoordinator->loadKifuFromFile(filePath);
