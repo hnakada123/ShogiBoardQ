@@ -76,6 +76,8 @@ public:
 
     void loadUsenFromFile(const QString& filePath);
 
+    void loadUsiFromFile(const QString& filePath);
+
     void setAnalysisTab(EngineAnalysisTab* tab);
 
     void setBranchCandidatesController(BranchCandidatesController* ctl);

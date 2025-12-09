@@ -11,6 +11,7 @@
 #include "ki2tosfenconverter.h"
 #include "jkftosfenconverter.h"
 #include "usentosfenconverter.h"
+#include "usitosfenconverter.h"
 
 #include <QDebug>
 #include <QStyledItemDelegate>
@@ -629,6 +630,52 @@ void KifuLoadCoordinator::loadUsenFromFile(const QString& filePath)
     // KIF/CSA 共通の後処理に委譲
     applyParsedResultCommon_(filePath, initialSfen, teaiLabel,
                              res, parseWarn, "loadUsenFromFile");
+}
+
+void KifuLoadCoordinator::loadUsiFromFile(const QString& filePath)
+{
+    // --- IN ログ ---
+    qDebug().noquote() << "[MAIN] loadUsiFromFile IN file=" << filePath;
+
+    // ★ ロード中フラグ（applyResolvedRowAndSelect 等の分岐更新を抑止）
+    m_loadingKifu = true;
+
+    // 1) 初期局面（手合割）を決定
+    QString teaiLabel;
+    const QString initialSfen = prepareInitialSfen(filePath, teaiLabel);
+
+    // 2) 解析（本譜＋分岐＋コメント）を一括取得
+    KifParseResult res;
+    QString parseWarn;
+    UsiToSfenConverter::parseWithVariations(filePath, res, &parseWarn);
+
+    // resをデバッグ出力
+    if (kGM_VERBOSE) {
+        qDebug().noquote() << "[GM] KifParseResult dump:";
+        if (!parseWarn.isEmpty()) {
+            qDebug().noquote() << "  [parseWarn]" << parseWarn;
+        }
+
+        qDebug().noquote() << "  Mainline:";
+        qDebug().noquote() << "    baseSfen: " << res.mainline.baseSfen;
+        qDebug().noquote() << "    usiMoves: " << res.mainline.usiMoves;
+        qDebug().noquote() << "    disp:";
+        int mainIdx = 0;
+        for (const auto& d : std::as_const(res.mainline.disp)) {
+            qDebug().noquote() << "      [" << mainIdx << "] prettyMove: " << d.prettyMove;
+            if (!d.comment.isEmpty()) {
+                qDebug().noquote() << "           comment: " << d.comment;
+            } else {
+                qDebug().noquote() << "           comment: <none>";
+            }
+            qDebug().noquote() << "           timeText: " << d.timeText;
+            ++mainIdx;
+        }
+    }
+
+    // KIF/CSA 共通の後処理に委譲
+    applyParsedResultCommon_(filePath, initialSfen, teaiLabel,
+                             res, parseWarn, "loadKifuFromFile");
 }
 
 void KifuLoadCoordinator::applyParsedResultCommon_(
