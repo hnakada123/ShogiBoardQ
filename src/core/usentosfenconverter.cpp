@@ -547,13 +547,15 @@ bool UsenToSfenConverter::parseUsenString(const QString& usen,
             }
             foundMainline = true;
         } else {
-            // 分岐: prefix は分岐開始位置
+            // 分岐: prefix は分岐開始位置（0-indexed）
+            // USENのオフセットは「何手目の後から分岐するか」を示す
+            // 例: オフセット2 = 2手目の後から分岐 = 3手目から分岐
+            // したがって startPly = offset + 1
             bool ok;
-            int startPly = prefix.toInt(&ok);
-            if (ok && startPly >= 0) {
+            int offset = prefix.toInt(&ok);
+            if (ok && offset >= 0) {
+                int startPly = offset + 1;  // 1-indexed に変換
                 // 分岐の指し手部分を抽出
-                // 注意: 分岐は本譜の指定手数から分岐するので、
-                // startPlyはその分岐点の手数を示す
                 QString varUsen = QStringLiteral("~0.") + moves;
                 if (!terminal.isEmpty()) {
                     varUsen += QStringLiteral(".") + terminal;
