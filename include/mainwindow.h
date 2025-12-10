@@ -175,9 +175,6 @@ private:
     QTableWidget* m_gameInfoTable = nullptr;
 
     // --- 棋譜表示／分岐操作・表示関連 ---
-    QTableView* m_kifuBranchView        = nullptr; // 旧UI互換の受け皿
-    QTableView* m_analysisResultsView   = nullptr; // 解析結果テーブル
-    QList<KifDisplayItem> m_dispMain;
     QSet<int> m_branchablePlySet;
     QVector<QString> m_commentsByRow;
     int m_activePly          = 0;
@@ -340,8 +337,6 @@ private slots:
 private:
     QWidget*     m_central = nullptr;
     QVBoxLayout* m_centralLayout = nullptr;
-
-    BranchCandidatesController* m_branchCtl = nullptr;
 
     // 行(row) → (ply → 表示計画) の保持
     // 例: m_branchDisplayPlan[row][ply]

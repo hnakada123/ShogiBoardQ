@@ -250,14 +250,10 @@ KifuLoadCoordinator::KifuLoadCoordinator(QVector<ShogiMove>& gameMoves,
                                          QStringList* sfenRecord,
                                          QTableWidget* gameInfoTable,
                                          QDockWidget* gameInfoDock,
-                                         EngineAnalysisTab* analysisTab,
                                          QTabWidget* tab,
-                                         ShogiView* shogiView,
                                          RecordPane* recordPane,
                                          KifuRecordListModel* kifuRecordModel,
                                          KifuBranchListModel* kifuBranchModel,
-                                         BranchCandidatesController* branchCtl,
-                                         QTableView* kifuBranchView,
                                          QHash<int, QMap<int, ::BranchCandidateDisplay>>& branchDisplayPlan,
                                          QObject* parent)
     : QObject(parent)
@@ -271,19 +267,17 @@ KifuLoadCoordinator::KifuLoadCoordinator(QVector<ShogiMove>& gameMoves,
     , m_sfenRecord(sfenRecord)
     , m_gameInfoTable(gameInfoTable)
     , m_gameInfoDock(gameInfoDock)
-    , m_analysisTab(analysisTab)
     , m_tab(tab)
-    , m_shogiView(shogiView)
     , m_recordPane(recordPane)
     , m_kifuRecordModel(kifuRecordModel)
     , m_kifuBranchModel(kifuBranchModel)
-    , m_branchCtl(branchCtl)
-    , m_kifuBranchView(kifuBranchView)
     , m_branchDisplayPlan(branchDisplayPlan)
 {
     // 必要ならデバッグ時にチェック
     // Q_ASSERT(m_sfenRecord && "sfenRecord must not be null");
-    // ここで初期同期が必要ならシグナル発火や内部初期化を追加してください。
+    // m_analysisTab は setAnalysisTab() 経由で後から設定される
+    // m_shogiView は setShogiView() 経由で後から設定される
+    // m_branchCtl は setBranchCandidatesController() 経由で後から設定される
 }
 
 // ============================================================
@@ -715,7 +709,7 @@ void KifuLoadCoordinator::applyParsedResultCommon_(
         m_kifuBranchModel->clearBranchCandidates();
         m_kifuBranchModel->setHasBackToMainRow(false);
         if (QTableView* view =
-            m_recordPane ? m_recordPane->branchView() : m_kifuBranchView) {
+            m_recordPane ? m_recordPane->branchView() : nullptr) {
             view->setVisible(true);
             view->setEnabled(false);
         }
@@ -895,7 +889,7 @@ void KifuLoadCoordinator::showRecordAtPly(const QList<KifDisplayItem>& disp, int
 void KifuLoadCoordinator::showBranchCandidatesFromPlan(int row, int ply1)
 {
     // モデル/ビュー参照
-    QTableView* view = m_recordPane ? m_recordPane->branchView() : m_kifuBranchView;
+    QTableView* view = m_recordPane ? m_recordPane->branchView() : nullptr;
 
     // 行・手の安全化（不正時はクリア＆ボタン非表示）
     if (ply1 <= 0 || row < 0 || row >= m_resolvedRows.size()) {
@@ -2446,7 +2440,7 @@ void KifuLoadCoordinator::rebuildBranchPlanAndMarksForLive(int /*currentPly*/)
 
 void KifuLoadCoordinator::refreshBranchCandidatesUIOnly_(int row, int ply1)
 {
-    QTableView* view = m_recordPane ? m_recordPane->branchView() : m_kifuBranchView;
+    QTableView* view = m_recordPane ? m_recordPane->branchView() : nullptr;
 
     // 安全化
     if (ply1 <= 0 || row < 0 || row >= m_resolvedRows.size()) {

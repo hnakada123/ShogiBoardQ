@@ -859,14 +859,10 @@ void MainWindow::chooseAndLoadKifuFile()
         /* sfenRecord          */ m_sfenRecord,
         /* gameInfoTable       */ m_gameInfoTable,
         /* gameInfoDock        */ m_gameInfoDock,
-        /* analysisTab         */ m_analysisTab,
         /* tab                 */ m_tab,
-        /* shogiView           */ m_shogiView,
         /* recordPane          */ m_recordPane,
         /* kifuRecordModel     */ m_kifuRecordModel,
         /* kifuBranchModel     */ m_kifuBranchModel,
-        /* branchCtl           */ m_branchCtl,
-        /* kifuBranchView      */ m_kifuBranchView,
         /* branchDisplayPlan   */ m_branchDisplayPlan,
         /* parent              */ this
         );
@@ -887,6 +883,7 @@ void MainWindow::chooseAndLoadKifuFile()
     // ★ MainWindow 側でやっていた branchNode 配線は setAnalysisTab() に委譲
     //   （内部で disconnect / connect を一貫管理）
     m_kifuLoadCoordinator->setAnalysisTab(m_analysisTab);
+    m_kifuLoadCoordinator->setShogiView(m_shogiView);
 
     // --- 3) Coordinator -> MainWindow の通知（UI更新）は従来どおり受ける ---
     connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::displayGameRecord,
@@ -2363,18 +2360,16 @@ void MainWindow::ensureKifuLoadCoordinatorForLive_()
         /* sfenRecord          */ m_sfenRecord,
         /* gameInfoTable       */ m_gameInfoTable,
         /* gameInfoDock        */ m_gameInfoDock,
-        /* analysisTab         */ m_analysisTab,
         /* tab                 */ m_tab,
-        /* shogiView           */ m_shogiView,
         /* recordPane          */ m_recordPane,
         /* kifuRecordModel     */ m_kifuRecordModel,
         /* kifuBranchModel     */ m_kifuBranchModel,
-        /* branchCtl           */ m_branchCtl,
-        /* kifuBranchView      */ m_kifuBranchView,
         /* branchDisplayPlan   */ m_branchDisplayPlan,
         this);
 
     // 分岐配線（既存のやり方に合わせる）
+    // BranchCandidatesController は BranchWiringCoordinator が生成し、
+    // setBranchCandidatesController() 経由で注入される
     if (m_branchWiring) {
         m_branchWiring->setKifuLoader(m_kifuLoadCoordinator);
         connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::setupBranchCandidatesWiring_,
@@ -2385,8 +2380,9 @@ void MainWindow::ensureKifuLoadCoordinatorForLive_()
         m_branchWiring->setupBranchCandidatesWiring();
     }
 
-    // Analysisタブとの配線
+    // Analysisタブ・ShogiViewとの配線
     m_kifuLoadCoordinator->setAnalysisTab(m_analysisTab);
+    m_kifuLoadCoordinator->setShogiView(m_shogiView);
 
     // UI更新通知（既存と同じ）
     connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::displayGameRecord,
