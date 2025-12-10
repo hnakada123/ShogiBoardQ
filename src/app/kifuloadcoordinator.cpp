@@ -22,6 +22,7 @@
 #include <QTableWidget>
 #include <QPainter>
 #include <QFileInfo>
+#include <functional>
 
 // デバッグのオン/オフ（必要に応じて false に）
 static bool kGM_VERBOSE = true;
@@ -285,397 +286,248 @@ KifuLoadCoordinator::KifuLoadCoordinator(QVector<ShogiMove>& gameMoves,
     // ここで初期同期が必要ならシグナル発火や内部初期化を追加してください。
 }
 
-void KifuLoadCoordinator::loadKi2FromFile(const QString& filePath)
+// ============================================================
+// デバッグ出力ヘルパー関数（ファイルスコープ内でのみ使用）
+// ============================================================
+
+// 本譜（メインライン）のデバッグダンプ
+static void dumpMainline_(const KifParseResult& res, const QString& parseWarn)
+{
+    if (!kGM_VERBOSE) return;
+
+    qDebug().noquote() << "[GM] KifParseResult dump:";
+    if (!parseWarn.isEmpty()) {
+        qDebug().noquote() << "  [parseWarn]" << parseWarn;
+    }
+
+    qDebug().noquote() << "  Mainline:";
+    qDebug().noquote() << "    baseSfen: " << res.mainline.baseSfen;
+    qDebug().noquote() << "    usiMoves: " << res.mainline.usiMoves;
+    qDebug().noquote() << "    disp:";
+    int mainIdx = 0;
+    for (const auto& d : std::as_const(res.mainline.disp)) {
+        qDebug().noquote() << "      [" << mainIdx << "] prettyMove: " << d.prettyMove;
+        qDebug().noquote() << "           comment: " << (d.comment.isEmpty() ? "<none>" : d.comment);
+        qDebug().noquote() << "           timeText: " << d.timeText;
+        ++mainIdx;
+    }
+}
+
+// 変化（バリエーション）のデバッグダンプ
+static void dumpVariations_(const KifParseResult& res)
+{
+    if (!kGM_VERBOSE) return;
+
+    qDebug().noquote() << "  Variations:";
+    int varNo = 0;
+    for (const KifVariation& var : std::as_const(res.variations)) {
+        qDebug().noquote() << "  [Var " << varNo << "]";
+        qDebug().noquote() << "    startPly: " << var.startPly;
+        qDebug().noquote() << "    baseSfen: " << var.line.baseSfen;
+        qDebug().noquote() << "    usiMoves: " << var.line.usiMoves;
+        qDebug().noquote() << "    disp:";
+        int dispIdx = 0;
+        for (const auto& d : std::as_const(var.line.disp)) {
+            qDebug().noquote() << "      [" << dispIdx << "] prettyMove: " << d.prettyMove;
+            qDebug().noquote() << "           comment: " << (d.comment.isEmpty() ? "<none>" : d.comment);
+            qDebug().noquote() << "           timeText: " << d.timeText;
+            ++dispIdx;
+        }
+        ++varNo;
+    }
+}
+
+// ============================================================
+// 棋譜読み込み共通処理
+// ============================================================
+
+// 棋譜読み込みの共通ロジック
+// parseFunc: 解析関数（必須）
+// detectSfenFunc: 初期SFEN検出関数（空の場合はprepareInitialSfenを使用）
+// extractGameInfoFunc: ゲーム情報抽出関数（空の場合はスキップ）
+// dumpVariations: 変化のデバッグ出力を行うかどうか
+void KifuLoadCoordinator::loadKifuCommon_(
+    const QString& filePath,
+    const char* funcName,
+    const KifuParseFunc& parseFunc,
+    const KifuDetectSfenFunc& detectSfenFunc,
+    const KifuExtractGameInfoFunc& extractGameInfoFunc,
+    bool dumpVariations)
 {
     // --- IN ログ ---
-    qDebug().noquote() << "[MAIN] loadKi2FromFile IN file=" << filePath;
+    qDebug().noquote() << "[MAIN]" << funcName << "IN file=" << filePath;
 
     // ★ ロード中フラグ（applyResolvedRowAndSelect 等の分岐更新を抑止）
     m_loadingKifu = true;
 
     // 1) 初期局面（手合割）を決定
     QString teaiLabel;
-    const QString initialSfen = prepareInitialSfen(filePath, teaiLabel);
+    QString initialSfen;
+    if (detectSfenFunc) {
+        initialSfen = detectSfenFunc(filePath, &teaiLabel);
+        if (initialSfen.isEmpty()) {
+            initialSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+            teaiLabel = QStringLiteral("平手(既定)");
+        }
+    } else {
+        initialSfen = prepareInitialSfen(filePath, teaiLabel);
+    }
 
+    // 2) 解析（本譜＋分岐＋コメント）を一括取得
     KifParseResult res;
     QString parseWarn;
-    if (!Ki2ToSfenConverter::parseWithVariations(filePath, res, &parseWarn)) {
-        qWarning().noquote() << "[GM] CSA parse failed:" << filePath << parseWarn;
-        m_loadingKifu = false;  // ★ 失敗時もフラグ解除しておく
+    if (!parseFunc(filePath, res, &parseWarn)) {
+        qWarning().noquote() << "[GM] parse failed:" << filePath << parseWarn;
+        m_loadingKifu = false;
         return;
     }
     if (!parseWarn.isEmpty()) {
-        qWarning().noquote() << "[GM] CSA parse warn:" << parseWarn;
+        qWarning().noquote() << "[GM] parse warn:" << parseWarn;
     }
 
-    // resをデバッグ出力
-    if (kGM_VERBOSE) {
-        qDebug().noquote() << "[GM] KifParseResult dump:";
-        if (!parseWarn.isEmpty()) {
-            qDebug().noquote() << "  [parseWarn]" << parseWarn;
-        }
-
-        qDebug().noquote() << "  Mainline:";
-        qDebug().noquote() << "    baseSfen: " << res.mainline.baseSfen;
-        qDebug().noquote() << "    usiMoves: " << res.mainline.usiMoves;
-        qDebug().noquote() << "    disp:";
-        int mainIdx = 0;
-        for (const auto& d : std::as_const(res.mainline.disp)) {
-            qDebug().noquote() << "      [" << mainIdx << "] prettyMove: " << d.prettyMove;
-            if (!d.comment.isEmpty()) {
-                qDebug().noquote() << "           comment: " << d.comment;
-            } else {
-                qDebug().noquote() << "           comment: <none>";
-            }
-            qDebug().noquote() << "           timeText: " << d.timeText;
-            ++mainIdx;
-        }
+    // 3) デバッグ出力
+    dumpMainline_(res, parseWarn);
+    if (dumpVariations) {
+        dumpVariations_(res);
     }
 
-    // 先手/後手名などヘッダ反映
-    {
-        const QList<KifGameInfoItem> infoItems = CsaToSfenConverter::extractGameInfo(filePath);
+    // 4) 先手/後手名などヘッダ反映
+    if (extractGameInfoFunc) {
+        const QList<KifGameInfoItem> infoItems = extractGameInfoFunc(filePath);
         populateGameInfo(infoItems);
         applyPlayersFromGameInfo(infoItems);
     }
 
-    // KIF/CSA 共通の後処理に委譲
-    applyParsedResultCommon_(filePath, initialSfen, teaiLabel,
-                             res, parseWarn, "loadKi2FromFile");
+    // 5) 共通の後処理に委譲
+    applyParsedResultCommon_(filePath, initialSfen, teaiLabel, res, parseWarn, funcName);
+}
+
+// ============================================================
+// 各フォーマット用の公開関数
+// ============================================================
+
+void KifuLoadCoordinator::loadKi2FromFile(const QString& filePath)
+{
+    loadKifuCommon_(
+        filePath,
+        "loadKi2FromFile",
+        // 解析関数
+        [](const QString& path, KifParseResult& res, QString* warn) {
+            return Ki2ToSfenConverter::parseWithVariations(path, res, warn);
+        },
+        // 初期SFEN検出（デフォルト使用）
+        KifuDetectSfenFunc(),
+        // ゲーム情報抽出
+        [](const QString& path) {
+            return CsaToSfenConverter::extractGameInfo(path);
+        },
+        // 変化のデバッグ出力なし
+        false
+    );
 }
 
 void KifuLoadCoordinator::loadCsaFromFile(const QString& filePath)
 {
-    // --- IN ログ ---
-    qDebug().noquote() << "[MAIN] loadCsaFromFile IN file=" << filePath;
-
-    // ★ ロード中フラグ（applyResolvedRowAndSelect 等の分岐更新を抑止）
-    m_loadingKifu = true;
-
-    // 1) 初期局面（手合割）を決定
-    QString teaiLabel;
-    const QString initialSfen = prepareInitialSfen(filePath, teaiLabel);
-
-    KifParseResult res;
-    QString parseWarn;
-    if (!CsaToSfenConverter::parse(filePath, res, &parseWarn)) {
-        qWarning().noquote() << "[GM] CSA parse failed:" << filePath << parseWarn;
-        m_loadingKifu = false;  // ★ 失敗時もフラグ解除しておく
-        return;
-    }
-    if (!parseWarn.isEmpty()) {
-        qWarning().noquote() << "[GM] CSA parse warn:" << parseWarn;
-    }
-
-    // resをデバッグ出力
-    if (kGM_VERBOSE) {
-        qDebug().noquote() << "[GM] KifParseResult dump:";
-        if (!parseWarn.isEmpty()) {
-            qDebug().noquote() << "  [parseWarn]" << parseWarn;
-        }
-
-        qDebug().noquote() << "  Mainline:";
-        qDebug().noquote() << "    baseSfen: " << res.mainline.baseSfen;
-        qDebug().noquote() << "    usiMoves: " << res.mainline.usiMoves;
-        qDebug().noquote() << "    disp:";
-        int mainIdx = 0;
-        for (const auto& d : std::as_const(res.mainline.disp)) {
-            qDebug().noquote() << "      [" << mainIdx << "] prettyMove: " << d.prettyMove;
-            if (!d.comment.isEmpty()) {
-                qDebug().noquote() << "           comment: " << d.comment;
-            } else {
-                qDebug().noquote() << "           comment: <none>";
-            }
-            qDebug().noquote() << "           timeText: " << d.timeText;
-            ++mainIdx;
-        }
-    }
-
-    // 先手/後手名などヘッダ反映
-    {
-        const QList<KifGameInfoItem> infoItems = CsaToSfenConverter::extractGameInfo(filePath);
-        populateGameInfo(infoItems);
-        applyPlayersFromGameInfo(infoItems);
-    }
-
-    // KIF/CSA 共通の後処理に委譲
-    applyParsedResultCommon_(filePath, initialSfen, teaiLabel,
-                             res, parseWarn, "loadCsaFromFile");
+    loadKifuCommon_(
+        filePath,
+        "loadCsaFromFile",
+        // 解析関数
+        [](const QString& path, KifParseResult& res, QString* warn) {
+            return CsaToSfenConverter::parse(path, res, warn);
+        },
+        // 初期SFEN検出（デフォルト使用）
+        KifuDetectSfenFunc(),
+        // ゲーム情報抽出
+        [](const QString& path) {
+            return CsaToSfenConverter::extractGameInfo(path);
+        },
+        // 変化のデバッグ出力なし
+        false
+    );
 }
 
 void KifuLoadCoordinator::loadJkfFromFile(const QString& filePath)
 {
-    // --- IN ログ ---
-    qDebug().noquote() << "[MAIN] loadJkfFromFile IN file=" << filePath;
-
-    // ★ ロード中フラグ（applyResolvedRowAndSelect 等の分岐更新を抑止）
-    m_loadingKifu = true;
-
-    // 1) 初期局面（手合割）を決定 - JKF用のコンバータを使用
-    QString teaiLabel;
-    QString initialSfen = JkfToSfenConverter::detectInitialSfenFromFile(filePath, &teaiLabel);
-    if (initialSfen.isEmpty()) {
-        initialSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
-        teaiLabel = QStringLiteral("平手(既定)");
-    }
-
-    // 2) 解析（本譜＋分岐＋コメント）を一括取得
-    KifParseResult res;
-    QString parseWarn;
-    JkfToSfenConverter::parseWithVariations(filePath, res, &parseWarn);
-
-    // resをデバッグ出力
-    if (kGM_VERBOSE) {
-        qDebug().noquote() << "[GM] KifParseResult dump:";
-        if (!parseWarn.isEmpty()) {
-            qDebug().noquote() << "  [parseWarn]" << parseWarn;
-        }
-
-        qDebug().noquote() << "  Mainline:";
-        qDebug().noquote() << "    baseSfen: " << res.mainline.baseSfen;
-        qDebug().noquote() << "    usiMoves: " << res.mainline.usiMoves;
-        qDebug().noquote() << "    disp:";
-        int mainIdx = 0;
-        for (const auto& d : std::as_const(res.mainline.disp)) {
-            qDebug().noquote() << "      [" << mainIdx << "] prettyMove: " << d.prettyMove;
-            if (!d.comment.isEmpty()) {
-                qDebug().noquote() << "           comment: " << d.comment;
-            } else {
-                qDebug().noquote() << "           comment: <none>";
-            }
-            qDebug().noquote() << "           timeText: " << d.timeText;
-            ++mainIdx;
-        }
-
-        qDebug().noquote() << "  Variations:";
-        int varNo = 0;
-        for (const KifVariation& var : std::as_const(res.variations)) {
-            qDebug().noquote() << "  [Var " << varNo << "]";
-            qDebug().noquote() << "    startPly: " << var.startPly;
-            qDebug().noquote() << "    baseSfen: " << var.line.baseSfen;
-            qDebug().noquote() << "    usiMoves: " << var.line.usiMoves;
-            qDebug().noquote() << "    disp:";
-            int dispIdx = 0;
-            for (const auto& d : std::as_const(var.line.disp)) {
-                qDebug().noquote() << "      [" << dispIdx << "] prettyMove: " << d.prettyMove;
-                if (!d.comment.isEmpty()) {
-                    qDebug().noquote() << "           comment: " << d.comment;
-                } else {
-                    qDebug().noquote() << "           comment: <none>";
-                }
-                qDebug().noquote() << "           timeText: " << d.timeText;
-                ++dispIdx;
-            }
-            ++varNo;
-        }
-    }
-
-    // 先手/後手名などヘッダ反映
-    {
-        const QList<KifGameInfoItem> infoItems = JkfToSfenConverter::extractGameInfo(filePath);
-        populateGameInfo(infoItems);
-        applyPlayersFromGameInfo(infoItems);
-    }
-
-    // KIF/CSA 共通の後処理に委譲
-    applyParsedResultCommon_(filePath, initialSfen, teaiLabel,
-                             res, parseWarn, "loadJkfFromFile");
+    loadKifuCommon_(
+        filePath,
+        "loadJkfFromFile",
+        // 解析関数
+        [](const QString& path, KifParseResult& res, QString* warn) {
+            JkfToSfenConverter::parseWithVariations(path, res, warn);
+            return true;  // JKFは戻り値がvoidなので常にtrue
+        },
+        // 初期SFEN検出（JKF専用）
+        [](const QString& path, QString* label) {
+            return JkfToSfenConverter::detectInitialSfenFromFile(path, label);
+        },
+        // ゲーム情報抽出
+        [](const QString& path) {
+            return JkfToSfenConverter::extractGameInfo(path);
+        },
+        // 変化のデバッグ出力あり
+        true
+    );
 }
 
 void KifuLoadCoordinator::loadKifuFromFile(const QString& filePath)
 {
-    // --- IN ログ ---
-    qDebug().noquote() << "[MAIN] loadKifuFromFile IN file=" << filePath;
-
-    // ★ ロード中フラグ（applyResolvedRowAndSelect 等の分岐更新を抑止）
-    m_loadingKifu = true;
-
-    // 1) 初期局面（手合割）を決定
-    QString teaiLabel;
-    const QString initialSfen = prepareInitialSfen(filePath, teaiLabel);
-
-    // 2) 解析（本譜＋分岐＋コメント）を一括取得
-    KifParseResult res;
-    QString parseWarn;
-    KifToSfenConverter::parseWithVariations(filePath, res, &parseWarn);
-
-    // resをデバッグ出力
-    if (kGM_VERBOSE) {
-        qDebug().noquote() << "[GM] KifParseResult dump:";
-        if (!parseWarn.isEmpty()) {
-            qDebug().noquote() << "  [parseWarn]" << parseWarn;
-        }
-
-        qDebug().noquote() << "  Mainline:";
-        qDebug().noquote() << "    baseSfen: " << res.mainline.baseSfen;
-        qDebug().noquote() << "    usiMoves: " << res.mainline.usiMoves;
-        qDebug().noquote() << "    disp:";
-        int mainIdx = 0;
-        for (const auto& d : std::as_const(res.mainline.disp)) {
-            qDebug().noquote() << "      [" << mainIdx << "] prettyMove: " << d.prettyMove;
-            if (!d.comment.isEmpty()) {
-                qDebug().noquote() << "           comment: " << d.comment;
-            } else {
-                qDebug().noquote() << "           comment: <none>";
-            }
-            qDebug().noquote() << "           timeText: " << d.timeText;
-            ++mainIdx;
-        }
-
-        qDebug().noquote() << "  Variations:";
-        int varNo = 0;
-        for (const KifVariation& var : std::as_const(res.variations)) {
-            qDebug().noquote() << "  [Var " << varNo << "]";
-            qDebug().noquote() << "    startPly: " << var.startPly;
-            qDebug().noquote() << "    baseSfen: " << var.line.baseSfen;
-            qDebug().noquote() << "    usiMoves: " << var.line.usiMoves;
-            qDebug().noquote() << "    disp:";
-            int dispIdx = 0;
-            for (const auto& d : std::as_const(var.line.disp)) {
-                qDebug().noquote() << "      [" << dispIdx << "] prettyMove: " << d.prettyMove;
-                if (!d.comment.isEmpty()) {
-                    qDebug().noquote() << "           comment: " << d.comment;
-                } else {
-                    qDebug().noquote() << "           comment: <none>";
-                }
-                qDebug().noquote() << "           timeText: " << d.timeText;
-                ++dispIdx;
-            }
-            ++varNo;
-        }
-    }
-
-    // 先手/後手名などヘッダ反映
-    {
-        const QList<KifGameInfoItem> infoItems = KifToSfenConverter::extractGameInfo(filePath);
-        populateGameInfo(infoItems);
-        applyPlayersFromGameInfo(infoItems);
-    }
-
-    // KIF/CSA 共通の後処理に委譲
-    applyParsedResultCommon_(filePath, initialSfen, teaiLabel,
-                             res, parseWarn, "loadKifuFromFile");
+    loadKifuCommon_(
+        filePath,
+        "loadKifuFromFile",
+        // 解析関数
+        [](const QString& path, KifParseResult& res, QString* warn) {
+            KifToSfenConverter::parseWithVariations(path, res, warn);
+            return true;  // KIFは戻り値がvoidなので常にtrue
+        },
+        // 初期SFEN検出（デフォルト使用）
+        KifuDetectSfenFunc(),
+        // ゲーム情報抽出
+        [](const QString& path) {
+            return KifToSfenConverter::extractGameInfo(path);
+        },
+        // 変化のデバッグ出力あり
+        true
+    );
 }
 
 void KifuLoadCoordinator::loadUsenFromFile(const QString& filePath)
 {
-    // --- IN ログ ---
-    qDebug().noquote() << "[MAIN] loadUsenFromFile IN file=" << filePath;
-
-    // ★ ロード中フラグ（applyResolvedRowAndSelect 等の分岐更新を抑止）
-    m_loadingKifu = true;
-
-    // 1) 初期局面（手合割）を決定
-    QString teaiLabel;
-    const QString initialSfen = prepareInitialSfen(filePath, teaiLabel);
-
-    // 2) 解析（本譜＋分岐＋コメント）を一括取得
-    KifParseResult res;
-    QString parseWarn;
-    UsenToSfenConverter::parseWithVariations(filePath, res, &parseWarn);
-
-    // resをデバッグ出力
-    if (kGM_VERBOSE) {
-        qDebug().noquote() << "[GM] KifParseResult dump:";
-        if (!parseWarn.isEmpty()) {
-            qDebug().noquote() << "  [parseWarn]" << parseWarn;
-        }
-
-        qDebug().noquote() << "  Mainline:";
-        qDebug().noquote() << "    baseSfen: " << res.mainline.baseSfen;
-        qDebug().noquote() << "    usiMoves: " << res.mainline.usiMoves;
-        qDebug().noquote() << "    disp:";
-        int mainIdx = 0;
-        for (const auto& d : std::as_const(res.mainline.disp)) {
-            qDebug().noquote() << "      [" << mainIdx << "] prettyMove: " << d.prettyMove;
-            if (!d.comment.isEmpty()) {
-                qDebug().noquote() << "           comment: " << d.comment;
-            } else {
-                qDebug().noquote() << "           comment: <none>";
-            }
-            qDebug().noquote() << "           timeText: " << d.timeText;
-            ++mainIdx;
-        }
-
-        qDebug().noquote() << "  Variations:";
-        int varNo = 0;
-        for (const KifVariation& var : std::as_const(res.variations)) {
-            qDebug().noquote() << "  [Var " << varNo << "]";
-            qDebug().noquote() << "    startPly: " << var.startPly;
-            qDebug().noquote() << "    baseSfen: " << var.line.baseSfen;
-            qDebug().noquote() << "    usiMoves: " << var.line.usiMoves;
-            qDebug().noquote() << "    disp:";
-            int dispIdx = 0;
-            for (const auto& d : std::as_const(var.line.disp)) {
-                qDebug().noquote() << "      [" << dispIdx << "] prettyMove: " << d.prettyMove;
-                if (!d.comment.isEmpty()) {
-                    qDebug().noquote() << "           comment: " << d.comment;
-                } else {
-                    qDebug().noquote() << "           comment: <none>";
-                }
-                qDebug().noquote() << "           timeText: " << d.timeText;
-                ++dispIdx;
-            }
-            ++varNo;
-        }
-    }
-
-    // 先手/後手名などヘッダ反映
-    {
-        const QList<KifGameInfoItem> infoItems = KifToSfenConverter::extractGameInfo(filePath);
-        populateGameInfo(infoItems);
-        applyPlayersFromGameInfo(infoItems);
-    }
-
-    // KIF/CSA 共通の後処理に委譲
-    applyParsedResultCommon_(filePath, initialSfen, teaiLabel,
-                             res, parseWarn, "loadUsenFromFile");
+    loadKifuCommon_(
+        filePath,
+        "loadUsenFromFile",
+        // 解析関数
+        [](const QString& path, KifParseResult& res, QString* warn) {
+            UsenToSfenConverter::parseWithVariations(path, res, warn);
+            return true;  // USENは戻り値がvoidなので常にtrue
+        },
+        // 初期SFEN検出（デフォルト使用）
+        KifuDetectSfenFunc(),
+        // ゲーム情報抽出（USENはゲーム情報が限定的だが、専用メソッドを使用）
+        [](const QString& path) {
+            return UsenToSfenConverter::extractGameInfo(path);
+        },
+        // 変化のデバッグ出力あり
+        true
+    );
 }
 
 void KifuLoadCoordinator::loadUsiFromFile(const QString& filePath)
 {
-    // --- IN ログ ---
-    qDebug().noquote() << "[MAIN] loadUsiFromFile IN file=" << filePath;
-
-    // ★ ロード中フラグ（applyResolvedRowAndSelect 等の分岐更新を抑止）
-    m_loadingKifu = true;
-
-    // 1) 初期局面（手合割）を決定
-    QString teaiLabel;
-    const QString initialSfen = prepareInitialSfen(filePath, teaiLabel);
-
-    // 2) 解析（本譜＋分岐＋コメント）を一括取得
-    KifParseResult res;
-    QString parseWarn;
-    UsiToSfenConverter::parseWithVariations(filePath, res, &parseWarn);
-
-    // resをデバッグ出力
-    if (kGM_VERBOSE) {
-        qDebug().noquote() << "[GM] KifParseResult dump:";
-        if (!parseWarn.isEmpty()) {
-            qDebug().noquote() << "  [parseWarn]" << parseWarn;
-        }
-
-        qDebug().noquote() << "  Mainline:";
-        qDebug().noquote() << "    baseSfen: " << res.mainline.baseSfen;
-        qDebug().noquote() << "    usiMoves: " << res.mainline.usiMoves;
-        qDebug().noquote() << "    disp:";
-        int mainIdx = 0;
-        for (const auto& d : std::as_const(res.mainline.disp)) {
-            qDebug().noquote() << "      [" << mainIdx << "] prettyMove: " << d.prettyMove;
-            if (!d.comment.isEmpty()) {
-                qDebug().noquote() << "           comment: " << d.comment;
-            } else {
-                qDebug().noquote() << "           comment: <none>";
-            }
-            qDebug().noquote() << "           timeText: " << d.timeText;
-            ++mainIdx;
-        }
-    }
-
-    // KIF/CSA 共通の後処理に委譲
-    applyParsedResultCommon_(filePath, initialSfen, teaiLabel,
-                             res, parseWarn, "loadKifuFromFile");
+    loadKifuCommon_(
+        filePath,
+        "loadUsiFromFile",
+        // 解析関数
+        [](const QString& path, KifParseResult& res, QString* warn) {
+            UsiToSfenConverter::parseWithVariations(path, res, warn);
+            return true;  // USIは戻り値がvoidなので常にtrue
+        },
+        // 初期SFEN検出（デフォルト使用）
+        KifuDetectSfenFunc(),
+        // ゲーム情報抽出（USIはゲーム情報を持たないため空）
+        KifuExtractGameInfoFunc(),
+        // 変化のデバッグ出力なし
+        false
+    );
 }
 
 void KifuLoadCoordinator::applyParsedResultCommon_(
