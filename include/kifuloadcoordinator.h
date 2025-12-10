@@ -5,6 +5,7 @@
 #include <QTableWidget>
 #include <QDockWidget>
 #include <QStyledItemDelegate>
+#include <functional>
 
 #include "kiftosfenconverter.h"
 #include "engineanalysistab.h"
@@ -188,6 +189,18 @@ private:
     void applyParsedResultCommon_(const QString& filePath, const QString& initialSfen,
                                   const QString& teaiLabel, const KifParseResult& res,
                                   const QString& parseWarn, const char* callerTag);
+
+    // 棋譜読み込み用の関数型定義
+    using KifuParseFunc = std::function<bool(const QString&, KifParseResult&, QString*)>;
+    using KifuDetectSfenFunc = std::function<QString(const QString&, QString*)>;
+    using KifuExtractGameInfoFunc = std::function<QList<KifGameInfoItem>(const QString&)>;
+
+    // 棋譜読み込み共通ロジック
+    void loadKifuCommon_(const QString& filePath, const char* funcName,
+                         const KifuParseFunc& parseFunc,
+                         const KifuDetectSfenFunc& detectSfenFunc,
+                         const KifuExtractGameInfoFunc& extractGameInfoFunc,
+                         bool dumpVariations);
 };
 
 #endif // KIFULOADCOORDINATOR_H
