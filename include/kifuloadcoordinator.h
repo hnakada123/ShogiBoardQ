@@ -35,14 +35,10 @@ public:
                         QStringList* sfenRecord,
                         QTableWidget* gameInfoTable,
                         QDockWidget* gameInfoDock,
-                        EngineAnalysisTab* analysisTab,
                         QTabWidget* tab,
-                        ShogiView* shogiView,
                         RecordPane* recordPane,
                         KifuRecordListModel* kifuRecordModel,
                         KifuBranchListModel* kifuBranchModel,
-                        BranchCandidatesController* branchCtl,
-                        QTableView* kifuBranchView,
                         QHash<int, QMap<int, ::BranchCandidateDisplay>>& branchDisplayPlan,
                         QObject* parent=nullptr);
 
@@ -81,6 +77,8 @@ public:
 
     void setAnalysisTab(EngineAnalysisTab* tab);
 
+    void setShogiView(ShogiView* view) { m_shogiView = view; }
+
     void setBranchCandidatesController(BranchCandidatesController* ctl);
 
     void updateBranchTreeFromLive(int currentPly);
@@ -114,9 +112,9 @@ private:
     bool m_loadingKifu = false;
     QTableWidget* m_gameInfoTable;
     QDockWidget*  m_gameInfoDock;
-    EngineAnalysisTab* m_analysisTab;
+    EngineAnalysisTab* m_analysisTab = nullptr;  // setAnalysisTab() 経由で設定
     QTabWidget* m_tab;
-    ShogiView* m_shogiView;
+    ShogiView* m_shogiView = nullptr;            // setShogiView() 経由で設定
     QStringList m_usiMoves;
     QStringList* m_sfenRecord;
     QVector<ShogiMove>& m_gameMoves;
@@ -136,7 +134,6 @@ private:
     KifuRecordListModel* m_kifuRecordModel;
     KifuBranchListModel* m_kifuBranchModel;
     BranchCandidatesController* m_branchCtl;
-    QTableView* m_kifuBranchView;
     int m_branchPlyContext = -1;
     QSet<int> m_branchablePlySet;
     QHash<int, QHash<QString, QList<BranchCandidate>>> m_branchIndex;
