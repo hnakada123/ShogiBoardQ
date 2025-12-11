@@ -6,6 +6,7 @@
 #include <QHBoxLayout>
 #include <QPlainTextEdit>
 #include <QTextBrowser>
+#include <QTextEdit>
 #include <QGraphicsView>
 #include <QGraphicsScene>
 #include <QGraphicsPathItem>
@@ -19,6 +20,10 @@
 #include <QRegularExpression>
 #include <QQueue>
 #include <QSet>
+#include <QToolButton>
+#include <QPushButton>
+#include <QDesktopServices>
+#include <QUrl>
 
 #include "numeric_right_align_comma_delegate.h"
 #include "engineinfowidget.h"
@@ -70,9 +75,23 @@ void EngineAnalysisTab::buildUi()
     m_tab->addTab(m_usiLog, tr("USI通信ログ"));
 
     // --- 棋譜コメント ---
-    m_comment = new QTextBrowser(m_tab);
-    m_comment->setOpenExternalLinks(true);
-    m_tab->addTab(m_comment, tr("棋譜コメント"));
+    // コメント欄とツールバーを含むコンテナ
+    QWidget* commentContainer = new QWidget(m_tab);
+    QVBoxLayout* commentLayout = new QVBoxLayout(commentContainer);
+    commentLayout->setContentsMargins(4, 4, 4, 4);
+    commentLayout->setSpacing(2);
+
+    // ツールバーを構築
+    buildCommentToolbar();
+    commentLayout->addWidget(m_commentToolbar);
+
+    m_comment = new QTextEdit(commentContainer);
+    m_comment->setReadOnly(false);  // 編集可能にする
+    m_comment->setAcceptRichText(true);
+    m_comment->setPlaceholderText(tr("コメントを表示・編集"));
+    commentLayout->addWidget(m_comment);
+
+    m_tab->addTab(commentContainer, tr("棋譜コメント"));
 
     // --- 分岐ツリー ---
     m_branchTree = new QGraphicsView(m_tab);
@@ -178,7 +197,10 @@ void EngineAnalysisTab::setAnalysisVisible(bool on)
 
 void EngineAnalysisTab::setCommentHtml(const QString& html)
 {
-    if (m_comment) m_comment->setHtml(html);
+    if (m_comment) {
+        QString processedHtml = convertUrlsToLinks(html);
+        m_comment->setHtml(processedHtml);
+    }
 }
 
 // ===================== 分岐ツリー・データ設定 =====================
@@ -632,8 +654,11 @@ void EngineAnalysisTab::setEngine2ThinkingModel(ShogiEngineThinkingModel* m)
 
 void EngineAnalysisTab::setCommentText(const QString& text)
 {
-    // 旧コード互換：プレーンテキストで設定（HTML解釈させたくない想定）
-    if (m_comment) m_comment->setPlainText(text);
+    // 旧コード互換：プレーンテキストで設定（URLをリンクに変換）
+    if (m_comment) {
+        QString htmlText = convertUrlsToLinks(text);
+        m_comment->setHtml(htmlText);
+    }
 }
 
 // ===================== グラフAPI 実装 =====================
@@ -821,4 +846,129 @@ void EngineAnalysisTab::applyNumericFormattingTo_(QTableView* view, QAbstractIte
             view->setItemDelegateForColumn(col, delegate);
         }
     }
+}
+
+// ★ 追加: コメントツールバーを構築
+void EngineAnalysisTab::buildCommentToolbar()
+{
+    m_commentToolbar = new QWidget(this);
+    QHBoxLayout* toolbarLayout = new QHBoxLayout(m_commentToolbar);
+    toolbarLayout->setContentsMargins(2, 2, 2, 2);
+    toolbarLayout->setSpacing(4);
+
+    // フォントサイズ減少ボタン
+    m_btnFontDecrease = new QToolButton(m_commentToolbar);
+    m_btnFontDecrease->setText(QStringLiteral("A-"));
+    m_btnFontDecrease->setToolTip(tr("フォントサイズを小さくする"));
+    m_btnFontDecrease->setFixedSize(28, 24);
+    connect(m_btnFontDecrease, &QToolButton::clicked, this, &EngineAnalysisTab::onFontDecrease);
+
+    // フォントサイズ増加ボタン
+    m_btnFontIncrease = new QToolButton(m_commentToolbar);
+    m_btnFontIncrease->setText(QStringLiteral("A+"));
+    m_btnFontIncrease->setToolTip(tr("フォントサイズを大きくする"));
+    m_btnFontIncrease->setFixedSize(28, 24);
+    connect(m_btnFontIncrease, &QToolButton::clicked, this, &EngineAnalysisTab::onFontIncrease);
+
+    // コメント更新ボタン
+    m_btnUpdateComment = new QPushButton(tr("コメント更新"), m_commentToolbar);
+    m_btnUpdateComment->setToolTip(tr("編集したコメントを棋譜に反映する"));
+    m_btnUpdateComment->setFixedHeight(24);
+    connect(m_btnUpdateComment, &QPushButton::clicked, this, &EngineAnalysisTab::onUpdateCommentClicked);
+
+    toolbarLayout->addWidget(m_btnFontDecrease);
+    toolbarLayout->addWidget(m_btnFontIncrease);
+    toolbarLayout->addStretch();
+    toolbarLayout->addWidget(m_btnUpdateComment);
+
+    m_commentToolbar->setLayout(toolbarLayout);
+}
+
+// ★ 追加: フォントサイズ更新
+void EngineAnalysisTab::updateCommentFontSize(int delta)
+{
+    m_currentFontSize += delta;
+    if (m_currentFontSize < 8) m_currentFontSize = 8;
+    if (m_currentFontSize > 24) m_currentFontSize = 24;
+
+    if (m_comment) {
+        QFont font = m_comment->font();
+        font.setPointSize(m_currentFontSize);
+        m_comment->setFont(font);
+    }
+}
+
+// ★ 追加: URLをHTMLリンクに変換
+QString EngineAnalysisTab::convertUrlsToLinks(const QString& text)
+{
+    QString result = text;
+    
+    // URLパターン（http, https, ftp）
+    static const QRegularExpression urlPattern(
+        QStringLiteral(R"((https?://|ftp://)[^\s<>"']+)"),
+        QRegularExpression::CaseInsensitiveOption
+    );
+    
+    // すでにリンクになっているか確認するための正規表現
+    static const QRegularExpression existingLinkPattern(
+        QStringLiteral(R"(<a\s+[^>]*href=)"),
+        QRegularExpression::CaseInsensitiveOption
+    );
+    
+    // すでにHTMLにリンクが含まれている場合はそのまま返す
+    if (existingLinkPattern.match(result).hasMatch()) {
+        return result;
+    }
+    
+    // 改行を<br>に変換
+    result.replace(QStringLiteral("\n"), QStringLiteral("<br>"));
+    
+    // URLをリンクに変換
+    QRegularExpressionMatchIterator i = urlPattern.globalMatch(result);
+    QVector<QPair<int, int>> matches;
+    while (i.hasNext()) {
+        QRegularExpressionMatch match = i.next();
+        matches.append(qMakePair(match.capturedStart(), match.capturedLength()));
+    }
+    
+    // 後ろから置換して位置がずれないようにする
+    for (int j = matches.size() - 1; j >= 0; --j) {
+        int start = matches[j].first;
+        int length = matches[j].second;
+        QString url = result.mid(start, length);
+        QString link = QStringLiteral("<a href=\"%1\" style=\"color: blue; text-decoration: underline;\">%1</a>").arg(url);
+        result.replace(start, length, link);
+    }
+    
+    return result;
+}
+
+// ★ 追加: フォントサイズ増加スロット
+void EngineAnalysisTab::onFontIncrease()
+{
+    updateCommentFontSize(1);
+}
+
+// ★ 追加: フォントサイズ減少スロット
+void EngineAnalysisTab::onFontDecrease()
+{
+    updateCommentFontSize(-1);
+}
+
+// ★ 追加: コメント更新ボタンクリック時のスロット
+void EngineAnalysisTab::onUpdateCommentClicked()
+{
+    if (!m_comment) return;
+    
+    // HTMLからプレーンテキストを取得
+    QString newComment = m_comment->toPlainText();
+    
+    // シグナルを発行
+    emit commentUpdated(m_currentMoveIndex, newComment);
+}
+
+// ★ 追加: 現在の手数インデックスを設定
+void EngineAnalysisTab::setCurrentMoveIndex(int index)
+{
+    m_currentMoveIndex = index;
 }
