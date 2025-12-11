@@ -3,6 +3,7 @@
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QToolButton>
 #include <QWidgetAction>
 #include <QMetaType>
@@ -831,12 +832,19 @@ void MainWindow::resetToInitialState()
 void MainWindow::chooseAndLoadKifuFile()
 {
     // --- 1) ファイル選択（UI層に残す） ---
+    // 以前開いたディレクトリを取得
+    const QString lastDir = SettingsService::lastKifuDirectory();
+    
     const QString filePath = QFileDialog::getOpenFileName(
-        this, tr("棋譜ファイルを開く"), QString(),
+        this, tr("棋譜ファイルを開く"), lastDir,
         tr("Kifu Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)")
         );
 
     if (filePath.isEmpty()) return;
+
+    // 選択したファイルのディレクトリを保存
+    QFileInfo fileInfo(filePath);
+    SettingsService::setLastKifuDirectory(fileInfo.absolutePath());
 
     setReplayMode(true);
     ensureGameInfoTable();

@@ -29,4 +29,18 @@ void saveWindowAndBoard(QWidget* mainWindow, ShogiView* view)
     s.endGroup();
 }
 
+QString lastKifuDirectory()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("General/lastKifuDirectory", QString()).toString();
+}
+
+void setLastKifuDirectory(const QString& dir)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("General/lastKifuDirectory", dir);
+}
+
 } // namespace SettingsService

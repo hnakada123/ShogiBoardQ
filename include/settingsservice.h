@@ -1,6 +1,8 @@
 #ifndef SETTINGSSERVICE_H
 #define SETTINGSSERVICE_H
 
+#include <QString>
+
 class QWidget;
 class ShogiView;
 
@@ -15,6 +17,13 @@ void loadWindowSize(QWidget* mainWindow);
 // - mainWindow: 対象となる QMainWindow（や QWidget）
 // - view      : 盤ビュー（nullptr の場合は何もしません）
 void saveWindowAndBoard(QWidget* mainWindow, ShogiView* view);
+
+// 最後に開いた棋譜ファイルのディレクトリを取得します。
+// 未設定の場合は空文字列を返します。
+QString lastKifuDirectory();
+
+// 最後に開いた棋譜ファイルのディレクトリを保存します。
+void setLastKifuDirectory(const QString& dir);
 
 } // namespace SettingsService
 
