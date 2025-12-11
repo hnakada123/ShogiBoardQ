@@ -1362,6 +1362,12 @@ void MainWindow::setupEngineAnalysisTab()
         m_analysisTab, &EngineAnalysisTab::branchNodeActivated,
         this,          &MainWindow::onBranchNodeActivated_,
         Qt::UniqueConnection);
+
+    // ★ 追加: コメント更新シグナルの接続
+    QObject::connect(
+        m_analysisTab, &EngineAnalysisTab::commentUpdated,
+        this,          &MainWindow::onCommentUpdated,
+        Qt::UniqueConnection);
 }
 
 // src/app/mainwindow.cpp
@@ -1734,6 +1740,9 @@ void MainWindow::setReplayMode(bool on)
 
 void MainWindow::broadcastComment(const QString& text, bool asHtml)
 {
+    // ★ 追加: 現在の手数インデックスをEngineAnalysisTabに設定
+    if (m_analysisTab) m_analysisTab->setCurrentMoveIndex(m_currentMoveIndex);
+
     if (asHtml) {
         // ★ 「*の手前で改行」＋「URLリンク化」付きのHTMLに整形して配信
         const QString html = toRichHtmlWithStarBreaksAndLinks(text);
@@ -2556,4 +2565,42 @@ void MainWindow::overwriteKifuFile()
     if (!ok) {
         QMessageBox::warning(this, tr("KIF Save Error"), error);
     }
+}
+
+// ★ 追加: コメント更新スロットの実装
+void MainWindow::onCommentUpdated(int moveIndex, const QString& newComment)
+{
+    qDebug().noquote()
+        << "[MW] onCommentUpdated"
+        << " moveIndex=" << moveIndex
+        << " newComment.len=" << newComment.size();
+
+    // 有効な手数インデックスかチェック
+    if (moveIndex < 0) {
+        qWarning().noquote() << "[MW] onCommentUpdated: invalid moveIndex";
+        return;
+    }
+
+    // m_commentsByRow を拡張して新しいコメントを保存
+    while (m_commentsByRow.size() <= moveIndex) {
+        m_commentsByRow.append(QString());
+    }
+    m_commentsByRow[moveIndex] = newComment;
+
+    // m_resolvedRows の本譜行（row=0）のコメントも更新
+    if (!m_resolvedRows.isEmpty() && m_activeResolvedRow >= 0 && m_activeResolvedRow < m_resolvedRows.size()) {
+        ResolvedRow& rr = m_resolvedRows[m_activeResolvedRow];
+        // ResolvedRow にコメントを保存（もしあれば）
+        while (rr.comments.size() <= moveIndex) {
+            rr.comments.append(QString());
+        }
+        rr.comments[moveIndex] = newComment;
+    }
+
+    // 現在表示中のコメントを更新（両方のコメント欄に反映）
+    const QString displayComment = newComment.trimmed().isEmpty() ? tr("コメントなし") : newComment;
+    broadcastComment(displayComment, /*asHtml=*/true);
+
+    // ステータスバーに通知
+    ui->statusbar->showMessage(tr("コメントを更新しました（手数: %1）").arg(moveIndex), 3000);
 }

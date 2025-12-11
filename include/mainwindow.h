@@ -333,6 +333,7 @@ private slots:
     void displayGameRecord(const QList<KifDisplayItem> disp);
     void syncBoardAndHighlightsAtRow(int ply1);
     void onRecordRowChangedByPresenter(int row, const QString& comment);
+    void onCommentUpdated(int moveIndex, const QString& newComment);  // ★ 追加: コメント更新スロット
 
 private:
     QWidget*     m_central = nullptr;

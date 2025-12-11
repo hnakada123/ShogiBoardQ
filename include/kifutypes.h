@@ -14,6 +14,7 @@ struct ResolvedRow {
     QStringList sfen;
     QVector<ShogiMove> gm;
     int varIndex = -1;                 // 本譜 = -1
+    QStringList comments;              // ★追加：各手のコメント
 };
 
 #endif // KIFUTYPES_H

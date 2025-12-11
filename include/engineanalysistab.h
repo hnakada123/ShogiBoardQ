@@ -14,11 +14,14 @@
 class QTabWidget;
 class QTableView;
 class QTextBrowser;
+class QTextEdit;
 class QPlainTextEdit;
 class QGraphicsView;
 class QGraphicsScene;
 class QGraphicsPathItem;
 class QHeaderView;
+class QToolButton;
+class QPushButton;
 
 class EngineInfoWidget;
 class ShogiEngineThinkingModel;
@@ -106,6 +109,14 @@ public:
 public slots:
     void setAnalysisVisible(bool on);
     void setCommentHtml(const QString& html);
+    // ★ 追加: 現在の手数インデックスを設定
+    void setCurrentMoveIndex(int index);
+
+private slots:
+    // ★ 追加: コメント編集用スロット
+    void onFontIncrease();
+    void onFontDecrease();
+    void onUpdateCommentClicked();
 
 signals:
     // ツリー上のノード（行row, 手ply）がクリックされた
@@ -114,6 +125,9 @@ signals:
     // MainWindow に「何を適用したいか」を伝える
     void requestApplyStart();                         // 開始局面へ
     void requestApplyMainAtPly(int ply);             // 本譜の ply 手へ
+
+    // ★ 追加: コメント更新シグナル
+    void commentUpdated(int moveIndex, const QString& newComment);
 
 private:
     // --- 内部：ツリー描画 ---
@@ -130,9 +144,21 @@ private:
     EngineInfoWidget *m_info1=nullptr, *m_info2=nullptr;
     QTableView *m_view1=nullptr, *m_view2=nullptr;
     QPlainTextEdit* m_usiLog=nullptr;
-    QTextBrowser* m_comment=nullptr;
+    QTextEdit* m_comment=nullptr;
     QGraphicsView* m_branchTree=nullptr;
     QGraphicsScene* m_scene=nullptr;
+
+    // ★ 追加: コメント編集用UI
+    QWidget* m_commentToolbar=nullptr;
+    QToolButton* m_btnFontIncrease=nullptr;
+    QToolButton* m_btnFontDecrease=nullptr;
+    QPushButton* m_btnUpdateComment=nullptr;
+    int m_currentFontSize=10;
+    int m_currentMoveIndex=-1;
+
+    void buildCommentToolbar();
+    void updateCommentFontSize(int delta);
+    QString convertUrlsToLinks(const QString& text);
 
     // --- モデル参照（所有しない） ---
     ShogiEngineThinkingModel* m_model1=nullptr;
