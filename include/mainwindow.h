@@ -80,6 +80,7 @@ class RecordPaneWiring;
 class UiActionsWiring;
 class GameLayoutBuilder;
 class INavigationContext;
+class GameRecordModel;  // ★ 追加: 棋譜データ中央管理
 
 // ============================================================
 // MainWindow
@@ -176,11 +177,14 @@ private:
 
     // --- 棋譜表示／分岐操作・表示関連 ---
     QSet<int> m_branchablePlySet;
-    QVector<QString> m_commentsByRow;
+    QVector<QString> m_commentsByRow;  // ★ 互換性のため残す（GameRecordModelと同期）
     int m_activePly          = 0;
     int m_currentSelectedPly = 0;
     QMetaObject::Connection m_connKifuRowChanged;
     bool m_onMainRowGuard = false; // 再入防止
+
+    // --- ★ 追加: 棋譜データ中央管理 ---
+    GameRecordModel* m_gameRecord = nullptr;
 
     // --- 装飾（棋譜テーブル マーカー描画） ---
     class BranchRowDelegate : public QStyledItemDelegate {
@@ -454,6 +458,9 @@ private:
     void applyEditMenuEditingState(bool editing);
 
     QString resolveCurrentSfenForGameStart_() const;
+
+    // ★ 追加: GameRecordModel 初期化
+    void ensureGameRecordModel_();
 };
 
 #endif // MAINWINDOW_H
