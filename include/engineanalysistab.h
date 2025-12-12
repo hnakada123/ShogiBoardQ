@@ -22,6 +22,7 @@ class QGraphicsPathItem;
 class QHeaderView;
 class QToolButton;
 class QPushButton;
+class QLabel;  // ★ 追加
 
 class EngineInfoWidget;
 class ShogiEngineThinkingModel;
@@ -109,8 +110,9 @@ public:
 public slots:
     void setAnalysisVisible(bool on);
     void setCommentHtml(const QString& html);
-    // ★ 追加: 現在の手数インデックスを設定
+    // ★ 追加: 現在の手数インデックスを設定/取得
     void setCurrentMoveIndex(int index);
+    int currentMoveIndex() const { return m_currentMoveIndex; }
 
 private slots:
     // ★ 追加: コメント編集用スロット
@@ -153,12 +155,27 @@ private:
     QToolButton* m_btnFontIncrease=nullptr;
     QToolButton* m_btnFontDecrease=nullptr;
     QPushButton* m_btnUpdateComment=nullptr;
+    QLabel* m_editingLabel=nullptr;  // ★ 追加: 「修正中」ラベル
     int m_currentFontSize=10;
     int m_currentMoveIndex=-1;
+    QString m_originalComment;       // ★ 追加: 元のコメント（変更検知用）
+    bool m_isCommentDirty=false;     // ★ 追加: コメントが変更されたか
 
     void buildCommentToolbar();
     void updateCommentFontSize(int delta);
     QString convertUrlsToLinks(const QString& text);
+    void updateEditingIndicator();   // ★ 追加: 「修正中」表示の更新
+    void onCommentTextChanged();     // ★ 追加: コメント変更時の処理
+
+public:
+    // ★ 追加: 未保存の編集があるかチェック
+    bool hasUnsavedComment() const { return m_isCommentDirty; }
+    
+    // ★ 追加: 未保存編集の警告ダイアログを表示（移動を続けるならtrue）
+    bool confirmDiscardUnsavedComment();
+    
+    // ★ 追加: 編集状態をクリア（コメント更新後に呼ぶ）
+    void clearCommentDirty();
 
     // --- モデル参照（所有しない） ---
     ShogiEngineThinkingModel* m_model1=nullptr;

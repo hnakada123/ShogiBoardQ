@@ -10,6 +10,7 @@
 #include <QDebug>
 #include <QScrollBar>
 #include <QPushButton>
+#include <QSignalBlocker>  // ★ 追加
 #include <functional>
 
 #include "mainwindow.h"
@@ -2231,6 +2232,47 @@ void MainWindow::onRecordRowChangedByPresenter(int row, const QString& comment)
         << ", currentSelectedPly=" << m_currentSelectedPly
         << ", currentMoveIndex=" << m_currentMoveIndex << " }";
 
+    // ★ デバッグ: 未保存コメント警告チェックの状態を出力
+    // EngineAnalysisTab::m_currentMoveIndexが正しい「編集中の行」を保持している
+    const int editingRow = (m_analysisTab ? m_analysisTab->currentMoveIndex() : -1);
+    qDebug().noquote()
+        << "[MW] UNSAVED_COMMENT_CHECK:"
+        << " m_analysisTab=" << (m_analysisTab ? "valid" : "null")
+        << " hasUnsavedComment=" << (m_analysisTab ? m_analysisTab->hasUnsavedComment() : false)
+        << " row=" << row
+        << " editingRow(from EngineAnalysisTab)=" << editingRow
+        << " m_currentMoveIndex(MainWindow)=" << m_currentMoveIndex
+        << " rowDiffers=" << (row != editingRow);
+
+    // ★ 追加: 未保存のコメント編集がある場合、警告を表示
+    if (m_analysisTab && m_analysisTab->hasUnsavedComment()) {
+        qDebug().noquote() << "[MW] UNSAVED_COMMENT_CHECK: hasUnsavedComment=TRUE, checking row difference...";
+        // 同じ行への「移動」は無視（初期化時など）
+        // ★ 修正: MainWindow::m_currentMoveIndexではなくEngineAnalysisTab::currentMoveIndex()を使用
+        if (row != editingRow) {
+            qDebug().noquote() << "[MW] UNSAVED_COMMENT_CHECK: row differs, showing confirm dialog...";
+            if (!m_analysisTab->confirmDiscardUnsavedComment()) {
+                // キャンセルされた場合、元の行に戻す
+                qDebug().noquote() << "[MW] User cancelled row change, reverting to row=" << editingRow;
+                if (m_recordPane && m_recordPane->kifuView()) {
+                    QTableView* kifuView = m_recordPane->kifuView();
+                    if (kifuView->model() && editingRow >= 0 && editingRow < kifuView->model()->rowCount()) {
+                        // シグナルをブロックして元の行に戻す
+                        QSignalBlocker blocker(kifuView->selectionModel());
+                        kifuView->setCurrentIndex(kifuView->model()->index(editingRow, 0));
+                    }
+                }
+                return;  // 処理を中断
+            } else {
+                qDebug().noquote() << "[MW] UNSAVED_COMMENT_CHECK: User confirmed discard, proceeding...";
+            }
+        } else {
+            qDebug().noquote() << "[MW] UNSAVED_COMMENT_CHECK: same row, skipping confirm dialog";
+        }
+    } else {
+        qDebug().noquote() << "[MW] UNSAVED_COMMENT_CHECK: no unsaved comment or analysisTab is null";
+    }
+
     // 盤面・ハイライト同期
     if (row >= 0) {
         qDebug().noquote() << "[MW] syncBoardAndHighlightsAtRow CALL row=" << row;
@@ -2238,15 +2280,19 @@ void MainWindow::onRecordRowChangedByPresenter(int row, const QString& comment)
         qDebug().noquote() << "[MW] syncBoardAndHighlightsAtRow DONE row=" << row;
 
         // ▼ 現在手数トラッキングを更新（NavigationController::next/prev 用）
+        int oldActivePly = m_activePly;
+        int oldCurrentSelectedPly = m_currentSelectedPly;
+        int oldCurrentMoveIndex = m_currentMoveIndex;
+        
         m_activePly          = row;   // ← これが無いと currentPly() が 0 のまま
         m_currentSelectedPly = row;
         m_currentMoveIndex   = row;
 
         qDebug().noquote()
             << "[MW] tracking UPDATED"
-            << " activePly=" << m_activePly
-            << " currentSelectedPly=" << m_currentSelectedPly
-            << " currentMoveIndex=" << m_currentMoveIndex;
+            << " activePly=" << oldActivePly << "->" << m_activePly
+            << " currentSelectedPly=" << oldCurrentSelectedPly << "->" << m_currentSelectedPly
+            << " currentMoveIndex=" << oldCurrentMoveIndex << "->" << m_currentMoveIndex;
 
         // ▼ 分岐候補欄の更新は Coordinator へ直接委譲
         if (m_kifuLoadCoordinator) {

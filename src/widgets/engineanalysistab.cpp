@@ -24,6 +24,8 @@
 #include <QPushButton>
 #include <QDesktopServices>
 #include <QUrl>
+#include <QLabel>       // ★ 追加
+#include <QMessageBox>  // ★ 追加
 
 #include "numeric_right_align_comma_delegate.h"
 #include "engineinfowidget.h"
@@ -90,6 +92,10 @@ void EngineAnalysisTab::buildUi()
     m_comment->setAcceptRichText(true);
     m_comment->setPlaceholderText(tr("コメントを表示・編集"));
     commentLayout->addWidget(m_comment);
+
+    // ★ 追加: コメント変更時の検知
+    connect(m_comment, &QTextEdit::textChanged,
+            this, &EngineAnalysisTab::onCommentTextChanged);
 
     m_tab->addTab(commentContainer, tr("棋譜コメント"));
 
@@ -198,8 +204,28 @@ void EngineAnalysisTab::setAnalysisVisible(bool on)
 void EngineAnalysisTab::setCommentHtml(const QString& html)
 {
     if (m_comment) {
+        qDebug().noquote()
+            << "[EngineAnalysisTab] setCommentHtml ENTER:"
+            << " html.len=" << html.size()
+            << " m_isCommentDirty(before)=" << m_isCommentDirty;
+        
+        // ★ 元のコメントを保存（変更検知用）
+        // HTMLからプレーンテキストを取得して保存
         QString processedHtml = convertUrlsToLinks(html);
         m_comment->setHtml(processedHtml);
+        m_originalComment = m_comment->toPlainText();
+        
+        qDebug().noquote()
+            << "[EngineAnalysisTab] setCommentHtml:"
+            << " m_originalComment.len=" << m_originalComment.size();
+        
+        // ★ 編集状態をリセット
+        m_isCommentDirty = false;
+        updateEditingIndicator();
+        
+        qDebug().noquote()
+            << "[EngineAnalysisTab] setCommentHtml LEAVE:"
+            << " m_isCommentDirty=" << m_isCommentDirty;
     }
 }
 
@@ -870,6 +896,11 @@ void EngineAnalysisTab::buildCommentToolbar()
     m_btnFontIncrease->setFixedSize(28, 24);
     connect(m_btnFontIncrease, &QToolButton::clicked, this, &EngineAnalysisTab::onFontIncrease);
 
+    // ★ 追加: 「修正中」ラベル（赤字）
+    m_editingLabel = new QLabel(tr("修正中"), m_commentToolbar);
+    m_editingLabel->setStyleSheet(QStringLiteral("QLabel { color: red; font-weight: bold; }"));
+    m_editingLabel->setVisible(false);  // 初期状態は非表示
+
     // コメント更新ボタン
     m_btnUpdateComment = new QPushButton(tr("コメント更新"), m_commentToolbar);
     m_btnUpdateComment->setToolTip(tr("編集したコメントを棋譜に反映する"));
@@ -878,6 +909,7 @@ void EngineAnalysisTab::buildCommentToolbar()
 
     toolbarLayout->addWidget(m_btnFontDecrease);
     toolbarLayout->addWidget(m_btnFontIncrease);
+    toolbarLayout->addWidget(m_editingLabel);  // ★ 追加
     toolbarLayout->addStretch();
     toolbarLayout->addWidget(m_btnUpdateComment);
 
@@ -965,10 +997,99 @@ void EngineAnalysisTab::onUpdateCommentClicked()
     
     // シグナルを発行
     emit commentUpdated(m_currentMoveIndex, newComment);
+    
+    // ★ 編集状態をクリア
+    m_originalComment = newComment;
+    m_isCommentDirty = false;
+    updateEditingIndicator();
 }
 
 // ★ 追加: 現在の手数インデックスを設定
 void EngineAnalysisTab::setCurrentMoveIndex(int index)
 {
+    qDebug().noquote()
+        << "[EngineAnalysisTab] setCurrentMoveIndex:"
+        << " old=" << m_currentMoveIndex
+        << " new=" << index;
     m_currentMoveIndex = index;
+}
+
+// ★ 追加: コメントテキスト変更時のスロット
+void EngineAnalysisTab::onCommentTextChanged()
+{
+    if (!m_comment) return;
+    
+    // 現在のテキストと元のテキストを比較
+    QString currentText = m_comment->toPlainText();
+    bool isDirty = (currentText != m_originalComment);
+    
+    // ★ デバッグ出力
+    qDebug().noquote()
+        << "[EngineAnalysisTab] onCommentTextChanged:"
+        << " currentText.len=" << currentText.size()
+        << " originalComment.len=" << m_originalComment.size()
+        << " isDirty=" << isDirty
+        << " m_isCommentDirty(before)=" << m_isCommentDirty;
+    
+    if (m_isCommentDirty != isDirty) {
+        m_isCommentDirty = isDirty;
+        updateEditingIndicator();
+        qDebug().noquote() << "[EngineAnalysisTab] m_isCommentDirty changed to:" << m_isCommentDirty;
+    }
+}
+
+// ★ 追加: 「修正中」表示の更新
+void EngineAnalysisTab::updateEditingIndicator()
+{
+    if (m_editingLabel) {
+        m_editingLabel->setVisible(m_isCommentDirty);
+        qDebug().noquote() << "[EngineAnalysisTab] updateEditingIndicator: visible=" << m_isCommentDirty;
+    }
+}
+
+// ★ 追加: 未保存編集の警告ダイアログ
+bool EngineAnalysisTab::confirmDiscardUnsavedComment()
+{
+    qDebug().noquote()
+        << "[EngineAnalysisTab] confirmDiscardUnsavedComment ENTER:"
+        << " m_isCommentDirty=" << m_isCommentDirty;
+    
+    if (!m_isCommentDirty) {
+        qDebug().noquote() << "[EngineAnalysisTab] confirmDiscardUnsavedComment: not dirty, returning true";
+        return true;  // 変更がなければそのまま移動OK
+    }
+    
+    qDebug().noquote() << "[EngineAnalysisTab] confirmDiscardUnsavedComment: showing QMessageBox...";
+    
+    QMessageBox::StandardButton reply = QMessageBox::warning(
+        this,
+        tr("未保存のコメント"),
+        tr("コメントが編集されていますが、まだ更新されていません。\n"
+           "変更を破棄して移動しますか？"),
+        QMessageBox::Yes | QMessageBox::No,
+        QMessageBox::No
+    );
+    
+    qDebug().noquote() << "[EngineAnalysisTab] confirmDiscardUnsavedComment: reply=" << reply;
+    
+    if (reply == QMessageBox::Yes) {
+        // 変更を破棄
+        m_isCommentDirty = false;
+        updateEditingIndicator();
+        qDebug().noquote() << "[EngineAnalysisTab] confirmDiscardUnsavedComment: user chose Yes, returning true";
+        return true;
+    }
+    
+    qDebug().noquote() << "[EngineAnalysisTab] confirmDiscardUnsavedComment: user chose No, returning false";
+    return false;  // 移動をキャンセル
+}
+
+// ★ 追加: 編集状態をクリア
+void EngineAnalysisTab::clearCommentDirty()
+{
+    if (m_comment) {
+        m_originalComment = m_comment->toPlainText();
+    }
+    m_isCommentDirty = false;
+    updateEditingIndicator();
 }
