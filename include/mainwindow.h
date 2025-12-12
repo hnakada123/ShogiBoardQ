@@ -183,6 +183,7 @@ private:
     QWidget*      m_gameInfoToolbar = nullptr;
     QToolButton*  m_btnGameInfoFontIncrease = nullptr;
     QToolButton*  m_btnGameInfoFontDecrease = nullptr;
+    QToolButton*  m_btnGameInfoUndo = nullptr;     // ★ 追加: undoボタン
     QLabel*       m_gameInfoEditingLabel = nullptr;
     QPushButton*  m_btnGameInfoUpdate = nullptr;
     int           m_gameInfoFontSize = 10;
@@ -261,6 +262,7 @@ private:
     void updateGameInfoEditingIndicator();
     void onGameInfoFontIncrease();
     void onGameInfoFontDecrease();
+    void onGameInfoUndo();  // ★ 追加: undoボタン
     void onGameInfoUpdateClicked();
     void onGameInfoCellChanged(int row, int column);
     void setOriginalGameInfo(const QList<KifGameInfoItem>& items);

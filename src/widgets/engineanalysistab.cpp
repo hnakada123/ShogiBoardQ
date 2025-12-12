@@ -896,6 +896,13 @@ void EngineAnalysisTab::buildCommentToolbar()
     m_btnFontIncrease->setFixedSize(28, 24);
     connect(m_btnFontIncrease, &QToolButton::clicked, this, &EngineAnalysisTab::onFontIncrease);
 
+    // ★ 追加: undoボタン
+    m_btnCommentUndo = new QToolButton(m_commentToolbar);
+    m_btnCommentUndo->setText(QStringLiteral("↩"));
+    m_btnCommentUndo->setToolTip(tr("編集を元に戻す"));
+    m_btnCommentUndo->setFixedSize(28, 24);
+    connect(m_btnCommentUndo, &QToolButton::clicked, this, &EngineAnalysisTab::onCommentUndo);
+
     // ★ 追加: 「修正中」ラベル（赤字）
     m_editingLabel = new QLabel(tr("修正中"), m_commentToolbar);
     m_editingLabel->setStyleSheet(QStringLiteral("QLabel { color: red; font-weight: bold; }"));
@@ -909,6 +916,7 @@ void EngineAnalysisTab::buildCommentToolbar()
 
     toolbarLayout->addWidget(m_btnFontDecrease);
     toolbarLayout->addWidget(m_btnFontIncrease);
+    toolbarLayout->addWidget(m_btnCommentUndo);  // ★ 追加
     toolbarLayout->addWidget(m_editingLabel);  // ★ 追加
     toolbarLayout->addStretch();
     toolbarLayout->addWidget(m_btnUpdateComment);
@@ -928,6 +936,27 @@ void EngineAnalysisTab::updateCommentFontSize(int delta)
         font.setPointSize(m_currentFontSize);
         m_comment->setFont(font);
     }
+}
+
+// ★ 追加: コメントのundo（元のコメントに戻す）
+void EngineAnalysisTab::onCommentUndo()
+{
+    if (!m_comment) return;
+    
+    // シグナルを一時的にブロック
+    m_comment->blockSignals(true);
+    
+    // 元のコメントに戻す
+    m_comment->setPlainText(m_originalComment);
+    
+    // シグナルを再開
+    m_comment->blockSignals(false);
+    
+    // dirtyフラグをリセット
+    m_isCommentDirty = false;
+    updateEditingIndicator();
+    
+    qDebug().noquote() << "[EngineAnalysisTab] onCommentUndo: Reverted to original comment";
 }
 
 // ★ 追加: URLをHTMLリンクに変換

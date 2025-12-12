@@ -1226,6 +1226,14 @@ void MainWindow::buildGameInfoToolbar()
     connect(m_btnGameInfoFontIncrease, &QToolButton::clicked,
             this, &MainWindow::onGameInfoFontIncrease);
 
+    // ★ 追加: undoボタン
+    m_btnGameInfoUndo = new QToolButton(m_gameInfoToolbar);
+    m_btnGameInfoUndo->setText(QStringLiteral("↩"));
+    m_btnGameInfoUndo->setToolTip(tr("編集を元に戻す"));
+    m_btnGameInfoUndo->setFixedSize(28, 24);
+    connect(m_btnGameInfoUndo, &QToolButton::clicked,
+            this, &MainWindow::onGameInfoUndo);
+
     // 「修正中」ラベル（赤字）
     m_gameInfoEditingLabel = new QLabel(tr("修正中"), m_gameInfoToolbar);
     m_gameInfoEditingLabel->setStyleSheet(QStringLiteral("QLabel { color: red; font-weight: bold; }"));
@@ -1240,6 +1248,7 @@ void MainWindow::buildGameInfoToolbar()
 
     toolbarLayout->addWidget(m_btnGameInfoFontDecrease);
     toolbarLayout->addWidget(m_btnGameInfoFontIncrease);
+    toolbarLayout->addWidget(m_btnGameInfoUndo);  // ★ 追加
     toolbarLayout->addWidget(m_gameInfoEditingLabel);
     toolbarLayout->addStretch();
     toolbarLayout->addWidget(m_btnGameInfoUpdate);
@@ -1270,6 +1279,40 @@ void MainWindow::onGameInfoFontIncrease()
 void MainWindow::onGameInfoFontDecrease()
 {
     updateGameInfoFontSize(-1);
+}
+
+// ★ 追加: 対局情報のundo（元の内容に戻す）
+void MainWindow::onGameInfoUndo()
+{
+    if (!m_gameInfoTable) return;
+    
+    // シグナルを一時的にブロック
+    m_gameInfoTable->blockSignals(true);
+    
+    // 元の対局情報に戻す
+    m_gameInfoTable->clearContents();
+    m_gameInfoTable->setRowCount(m_originalGameInfo.size());
+    
+    for (int row = 0; row < m_originalGameInfo.size(); ++row) {
+        const auto& it = m_originalGameInfo.at(row);
+        auto *keyItem   = new QTableWidgetItem(it.key);
+        auto *valueItem = new QTableWidgetItem(it.value);
+        // 項目名は編集不可、内容は編集可能
+        keyItem->setFlags(keyItem->flags() & ~Qt::ItemIsEditable);
+        m_gameInfoTable->setItem(row, 0, keyItem);
+        m_gameInfoTable->setItem(row, 1, valueItem);
+    }
+    
+    m_gameInfoTable->resizeColumnToContents(0);
+    
+    // シグナルを再開
+    m_gameInfoTable->blockSignals(false);
+    
+    // dirtyフラグをリセット
+    m_gameInfoDirty = false;
+    updateGameInfoEditingIndicator();
+    
+    qDebug().noquote() << "[MW] onGameInfoUndo: Reverted to original game info";
 }
 
 // ★ 追加: 「修正中」表示の更新
