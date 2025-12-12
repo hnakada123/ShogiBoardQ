@@ -62,6 +62,7 @@
 #include "navigationcontroller.h"
 #include "uiactionswiring.h"
 #include "kifucontentbuilder.h"
+#include "gamerecordmodel.h"  // ★ 追加
 
 using KifuIoService::makeDefaultSaveFileName;
 using KifuIoService::writeKifuFile;
@@ -936,13 +937,19 @@ void MainWindow::displayGameRecord(const QList<KifDisplayItem> disp)
                              ? m_sfenRecord->size()
                              : (moveCount + 1);
 
-    // ★ m_commentsByRow を disp から初期化（棋譜読み込み時）
+    // ★ GameRecordModel を初期化
+    ensureGameRecordModel_();
+    if (m_gameRecord) {
+        m_gameRecord->initializeFromDisplayItems(disp, rowCount);
+    }
+
+    // ★ m_commentsByRow も同期（互換性のため）
     m_commentsByRow.clear();
     m_commentsByRow.resize(rowCount);
     for (int i = 0; i < disp.size() && i < rowCount; ++i) {
         m_commentsByRow[i] = disp[i].comment;
     }
-    qDebug().noquote() << "[MW] displayGameRecord: initialized m_commentsByRow with" << m_commentsByRow.size() << "entries";
+    qDebug().noquote() << "[MW] displayGameRecord: initialized with" << rowCount << "entries";
 
     // ← まとめて Presenter 側に委譲
     m_recordPresenter->displayAndWire(disp, rowCount, m_recordPane);
@@ -2511,30 +2518,46 @@ void MainWindow::updateGameRecord(const QString& elapsedTime)
 // 新しい保存関数
 void MainWindow::saveKifuToFile()
 {
-    // ★ Context を作成して Builder に渡す
-    KifuExportContext ctx;
-    ctx.gameInfoTable = m_gameInfoTable;
-    ctx.recordModel   = m_kifuRecordModel;
-    ctx.resolvedRows  = &m_resolvedRows;
-    if (m_recordPresenter) {
-        ctx.liveDisp = &m_recordPresenter->liveDisp();
+    // ★ GameRecordModel を使って KIF 形式を生成
+    ensureGameRecordModel_();
+
+    if (m_gameRecord) {
+        // ExportContext を構築
+        GameRecordModel::ExportContext ctx;
+        ctx.gameInfoTable = m_gameInfoTable;
+        ctx.recordModel   = m_kifuRecordModel;
+        ctx.startSfen     = m_startSfenStr;
+        ctx.playMode      = m_playMode;
+        ctx.human1        = m_humanName1;
+        ctx.human2        = m_humanName2;
+        ctx.engine1       = m_engineName1;
+        ctx.engine2       = m_engineName2;
+
+        // GameRecordModel から KIF 形式の行リストを生成
+        m_kifuDataList = m_gameRecord->toKifLines(ctx);
+
+        qDebug().noquote() << "[MW] saveKifuToFile: generated" << m_kifuDataList.size() << "lines via GameRecordModel";
+    } else {
+        // フォールバック: 従来の KifuContentBuilder を使用
+        KifuExportContext ctx;
+        ctx.gameInfoTable = m_gameInfoTable;
+        ctx.recordModel   = m_kifuRecordModel;
+        ctx.resolvedRows  = &m_resolvedRows;
+        if (m_recordPresenter) {
+            ctx.liveDisp = &m_recordPresenter->liveDisp();
+        }
+        ctx.commentsByRow = &m_commentsByRow;
+        ctx.activeResolvedRow = m_activeResolvedRow;
+        ctx.startSfen = m_startSfenStr;
+        ctx.playMode  = m_playMode;
+        ctx.human1    = m_humanName1;
+        ctx.human2    = m_humanName2;
+        ctx.engine1   = m_engineName1;
+        ctx.engine2   = m_engineName2;
+
+        m_kifuDataList = KifuContentBuilder::buildKifuDataList(ctx);
+        qDebug().noquote() << "[MW] saveKifuToFile: generated" << m_kifuDataList.size() << "lines via KifuContentBuilder (fallback)";
     }
-
-    // ★ 編集済みコメント配列を渡す
-    ctx.commentsByRow = &m_commentsByRow;
-    ctx.activeResolvedRow = m_activeResolvedRow;
-
-    ctx.startSfen = m_startSfenStr;
-    ctx.playMode  = m_playMode;
-    ctx.human1    = m_humanName1;
-    ctx.human2    = m_humanName2;
-    ctx.engine1   = m_engineName1;
-    ctx.engine2   = m_engineName2;
-
-    // Builder でリスト生成
-    m_kifuDataList = KifuContentBuilder::buildKifuDataList(ctx);
-
-    qDebug().noquote() << "[MW] saveKifuToFile: generated" << m_kifuDataList.size() << "lines";
 
     const QString path = KifuSaveCoordinator::saveViaDialog(
         this,
@@ -2545,6 +2568,9 @@ void MainWindow::saveKifuToFile()
 
     if (!path.isEmpty()) {
         kifuSaveFileName = path;
+        if (m_gameRecord) {
+            m_gameRecord->clearDirty();  // 保存完了で変更フラグをクリア
+        }
         ui->statusbar->showMessage(tr("棋譜を保存しました: %1").arg(path), 5000);
     }
 }
@@ -2556,34 +2582,53 @@ void MainWindow::overwriteKifuFile()
         return;
     }
 
-    // ★ Context を作成して Builder に渡す
-    KifuExportContext ctx;
-    ctx.gameInfoTable = m_gameInfoTable;
-    ctx.recordModel   = m_kifuRecordModel;
-    ctx.resolvedRows  = &m_resolvedRows;
-    if (m_recordPresenter) {
-        ctx.liveDisp = &m_recordPresenter->liveDisp();
+    // ★ GameRecordModel を使って KIF 形式を生成
+    ensureGameRecordModel_();
+
+    if (m_gameRecord) {
+        // ExportContext を構築
+        GameRecordModel::ExportContext ctx;
+        ctx.gameInfoTable = m_gameInfoTable;
+        ctx.recordModel   = m_kifuRecordModel;
+        ctx.startSfen     = m_startSfenStr;
+        ctx.playMode      = m_playMode;
+        ctx.human1        = m_humanName1;
+        ctx.human2        = m_humanName2;
+        ctx.engine1       = m_engineName1;
+        ctx.engine2       = m_engineName2;
+
+        // GameRecordModel から KIF 形式の行リストを生成
+        m_kifuDataList = m_gameRecord->toKifLines(ctx);
+
+        qDebug().noquote() << "[MW] overwriteKifuFile: generated" << m_kifuDataList.size() << "lines via GameRecordModel";
+    } else {
+        // フォールバック: 従来の KifuContentBuilder を使用
+        KifuExportContext ctx;
+        ctx.gameInfoTable = m_gameInfoTable;
+        ctx.recordModel   = m_kifuRecordModel;
+        ctx.resolvedRows  = &m_resolvedRows;
+        if (m_recordPresenter) {
+            ctx.liveDisp = &m_recordPresenter->liveDisp();
+        }
+        ctx.commentsByRow = &m_commentsByRow;
+        ctx.activeResolvedRow = m_activeResolvedRow;
+        ctx.startSfen = m_startSfenStr;
+        ctx.playMode  = m_playMode;
+        ctx.human1    = m_humanName1;
+        ctx.human2    = m_humanName2;
+        ctx.engine1   = m_engineName1;
+        ctx.engine2   = m_engineName2;
+
+        m_kifuDataList = KifuContentBuilder::buildKifuDataList(ctx);
+        qDebug().noquote() << "[MW] overwriteKifuFile: generated" << m_kifuDataList.size() << "lines via KifuContentBuilder (fallback)";
     }
-
-    // ★ 編集済みコメント配列を渡す
-    ctx.commentsByRow = &m_commentsByRow;
-    ctx.activeResolvedRow = m_activeResolvedRow;
-
-    ctx.startSfen = m_startSfenStr;
-    ctx.playMode  = m_playMode;
-    ctx.human1    = m_humanName1;
-    ctx.human2    = m_humanName2;
-    ctx.engine1   = m_engineName1;
-    ctx.engine2   = m_engineName2;
-
-    // Builder でリスト生成
-    m_kifuDataList = KifuContentBuilder::buildKifuDataList(ctx);
-
-    qDebug().noquote() << "[MW] overwriteKifuFile: generated" << m_kifuDataList.size() << "lines";
 
     QString error;
     const bool ok = KifuSaveCoordinator::overwriteExisting(kifuSaveFileName, m_kifuDataList, &error);
     if (ok) {
+        if (m_gameRecord) {
+            m_gameRecord->clearDirty();  // 保存完了で変更フラグをクリア
+        }
         ui->statusbar->showMessage(tr("棋譜を上書き保存しました: %1").arg(kifuSaveFileName), 5000);
     } else {
         QMessageBox::warning(this, tr("KIF Save Error"), error);
@@ -2604,49 +2649,58 @@ void MainWindow::onCommentUpdated(int moveIndex, const QString& newComment)
         return;
     }
 
-    // 1) m_commentsByRow を拡張して新しいコメントを保存
+    // ★ GameRecordModel を使ってコメントを一括更新
+    ensureGameRecordModel_();
+    if (m_gameRecord) {
+        m_gameRecord->setComment(moveIndex, newComment);
+    }
+
+    // ★ m_commentsByRow も同期（互換性・RecordPresenterへの供給用）
     while (m_commentsByRow.size() <= moveIndex) {
         m_commentsByRow.append(QString());
     }
     m_commentsByRow[moveIndex] = newComment;
 
-    // 2) m_resolvedRows のアクティブ行のコメントを更新
-    if (!m_resolvedRows.isEmpty() && m_activeResolvedRow >= 0 && m_activeResolvedRow < m_resolvedRows.size()) {
-        ResolvedRow& rr = m_resolvedRows[m_activeResolvedRow];
-
-        // ResolvedRow::comments を拡張して保存
-        while (rr.comments.size() <= moveIndex) {
-            rr.comments.append(QString());
-        }
-        rr.comments[moveIndex] = newComment;
-
-        // ★ 重要: ResolvedRow::disp[moveIndex].comment も更新（保存時に使用される）
-        if (moveIndex >= 0 && moveIndex < rr.disp.size()) {
-            rr.disp[moveIndex].comment = newComment;
-            qDebug().noquote() << "[MW] Updated rr.disp[" << moveIndex << "].comment";
-        }
-    }
-
-    // 3) RecordPresenter のコメント配列も更新（行選択時に正しいコメントを表示するため）
+    // RecordPresenter のコメント配列も更新（行選択時に正しいコメントを表示するため）
     if (m_recordPresenter) {
-        QStringList updatedComments = m_commentsByRow;
+        QStringList updatedComments;
+        updatedComments.reserve(m_commentsByRow.size());
+        for (const auto& c : m_commentsByRow) {
+            updatedComments.append(c);
+        }
         m_recordPresenter->setCommentsByRow(updatedComments);
         qDebug().noquote() << "[MW] Updated RecordPresenter commentsByRow";
     }
 
-    // 4) ライブ記録（m_liveDisp）のコメントも更新
-    if (m_recordPresenter) {
-        QList<KifDisplayItem>& liveDisp = const_cast<QList<KifDisplayItem>&>(m_recordPresenter->liveDisp());
-        if (moveIndex >= 0 && moveIndex < liveDisp.size()) {
-            liveDisp[moveIndex].comment = newComment;
-            qDebug().noquote() << "[MW] Updated liveDisp[" << moveIndex << "].comment";
-        }
-    }
-
-    // 5) 現在表示中のコメントを更新（両方のコメント欄に反映）
+    // 現在表示中のコメントを更新（両方のコメント欄に反映）
     const QString displayComment = newComment.trimmed().isEmpty() ? tr("コメントなし") : newComment;
     broadcastComment(displayComment, /*asHtml=*/true);
 
     // ステータスバーに通知
     ui->statusbar->showMessage(tr("コメントを更新しました（手数: %1）").arg(moveIndex), 3000);
+}
+
+// ★ 追加: GameRecordModel の遅延初期化
+void MainWindow::ensureGameRecordModel_()
+{
+    if (m_gameRecord) return;
+
+    m_gameRecord = new GameRecordModel(this);
+
+    // 外部データストアをバインド
+    QList<KifDisplayItem>* liveDispPtr = nullptr;
+    if (m_recordPresenter) {
+        // const_cast は GameRecordModel 内部での同期更新に必要
+        liveDispPtr = const_cast<QList<KifDisplayItem>*>(&m_recordPresenter->liveDisp());
+    }
+
+    m_gameRecord->bind(&m_resolvedRows, &m_activeResolvedRow, liveDispPtr);
+
+    // commentChanged シグナルを接続（将来の拡張用）
+    connect(m_gameRecord, &GameRecordModel::commentChanged,
+            this, [this](int ply, const QString& /*comment*/) {
+                qDebug().noquote() << "[MW] GameRecordModel::commentChanged ply=" << ply;
+            });
+
+    qDebug().noquote() << "[MW] ensureGameRecordModel_: created and bound";
 }
