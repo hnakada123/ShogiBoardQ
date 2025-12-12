@@ -106,6 +106,7 @@ signals:
     void syncBoardAndHighlightsAtRow(int ply1);
     void enableArrowButtons();
     void setupBranchCandidatesWiring_();
+    void gameInfoPopulated(const QList<KifGameInfoItem>& items);  // ★ 追加
 
 
 private:

@@ -735,6 +735,9 @@ QString KifuLoadCoordinator::prepareInitialSfen(const QString& filePath, QString
 
 void KifuLoadCoordinator::populateGameInfo(const QList<KifGameInfoItem>& items)
 {
+    // ★ セル変更シグナルを一時的にブロック
+    m_gameInfoTable->blockSignals(true);
+    
     m_gameInfoTable->clearContents();
     m_gameInfoTable->setRowCount(items.size());
 
@@ -742,16 +745,23 @@ void KifuLoadCoordinator::populateGameInfo(const QList<KifGameInfoItem>& items)
         const auto& it = items.at(row);
         auto *keyItem   = new QTableWidgetItem(it.key);
         auto *valueItem = new QTableWidgetItem(it.value);
+        // ★ 修正: 項目名は編集不可、内容は編集可能
         keyItem->setFlags(keyItem->flags() & ~Qt::ItemIsEditable);
-        valueItem->setFlags(valueItem->flags() & ~Qt::ItemIsEditable);
+        // valueItemはデフォルトで編集可能（フラグを変更しない）
         m_gameInfoTable->setItem(row, 0, keyItem);
         m_gameInfoTable->setItem(row, 1, valueItem);
     }
 
     m_gameInfoTable->resizeColumnToContents(0);
+    
+    // ★ シグナルを再開
+    m_gameInfoTable->blockSignals(false);
 
     // まだタブに載ってなければ、このタイミングで追加しておくと確実
     addGameInfoTabIfMissing();
+    
+    // ★ 追加: 元の対局情報を保存するためのシグナルを発行
+    emit gameInfoPopulated(items);
 }
 
 void KifuLoadCoordinator::addGameInfoTabIfMissing()
@@ -765,8 +775,19 @@ void KifuLoadCoordinator::addGameInfoTabIfMissing()
         m_gameInfoDock = nullptr;
     }
 
+    // ★ 修正: テーブルの親ウィジェット（コンテナ）を取得
+    // MainWindowで m_gameInfoContainer に m_gameInfoTable が配置されている
+    QWidget* widgetToAdd = m_gameInfoTable;
+    if (m_gameInfoTable && m_gameInfoTable->parentWidget()) {
+        QWidget* parent = m_gameInfoTable->parentWidget();
+        // 親がQTabWidgetでなければ、それがコンテナ
+        if (!qobject_cast<QTabWidget*>(parent)) {
+            widgetToAdd = parent;
+        }
+    }
+
     // まだタブに無ければ追加
-    if (m_tab->indexOf(m_gameInfoTable) == -1) {
+    if (m_tab->indexOf(widgetToAdd) == -1) {
         int anchorIdx = -1;
 
         // 1) EngineAnalysisTab（検討タブ）の直後に入れる
@@ -785,7 +806,7 @@ void KifuLoadCoordinator::addGameInfoTabIfMissing()
         }
 
         const int insertPos = (anchorIdx >= 0) ? anchorIdx + 1 : m_tab->count();
-        m_tab->insertTab(insertPos, m_gameInfoTable, tr("対局情報"));
+        m_tab->insertTab(insertPos, widgetToAdd, tr("対局情報"));
     }
 }
 
