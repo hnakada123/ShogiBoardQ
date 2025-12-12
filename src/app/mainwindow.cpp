@@ -936,6 +936,14 @@ void MainWindow::displayGameRecord(const QList<KifDisplayItem> disp)
                              ? m_sfenRecord->size()
                              : (moveCount + 1);
 
+    // ★ m_commentsByRow を disp から初期化（棋譜読み込み時）
+    m_commentsByRow.clear();
+    m_commentsByRow.resize(rowCount);
+    for (int i = 0; i < disp.size() && i < rowCount; ++i) {
+        m_commentsByRow[i] = disp[i].comment;
+    }
+    qDebug().noquote() << "[MW] displayGameRecord: initialized m_commentsByRow with" << m_commentsByRow.size() << "entries";
+
     // ← まとめて Presenter 側に委譲
     m_recordPresenter->displayAndWire(disp, rowCount, m_recordPane);
 }
@@ -2512,6 +2520,10 @@ void MainWindow::saveKifuToFile()
         ctx.liveDisp = &m_recordPresenter->liveDisp();
     }
 
+    // ★ 編集済みコメント配列を渡す
+    ctx.commentsByRow = &m_commentsByRow;
+    ctx.activeResolvedRow = m_activeResolvedRow;
+
     ctx.startSfen = m_startSfenStr;
     ctx.playMode  = m_playMode;
     ctx.human1    = m_humanName1;
@@ -2522,6 +2534,8 @@ void MainWindow::saveKifuToFile()
     // Builder でリスト生成
     m_kifuDataList = KifuContentBuilder::buildKifuDataList(ctx);
 
+    qDebug().noquote() << "[MW] saveKifuToFile: generated" << m_kifuDataList.size() << "lines";
+
     const QString path = KifuSaveCoordinator::saveViaDialog(
         this,
         m_kifuDataList,
@@ -2531,6 +2545,7 @@ void MainWindow::saveKifuToFile()
 
     if (!path.isEmpty()) {
         kifuSaveFileName = path;
+        ui->statusbar->showMessage(tr("棋譜を保存しました: %1").arg(path), 5000);
     }
 }
 
@@ -2550,6 +2565,10 @@ void MainWindow::overwriteKifuFile()
         ctx.liveDisp = &m_recordPresenter->liveDisp();
     }
 
+    // ★ 編集済みコメント配列を渡す
+    ctx.commentsByRow = &m_commentsByRow;
+    ctx.activeResolvedRow = m_activeResolvedRow;
+
     ctx.startSfen = m_startSfenStr;
     ctx.playMode  = m_playMode;
     ctx.human1    = m_humanName1;
@@ -2560,9 +2579,13 @@ void MainWindow::overwriteKifuFile()
     // Builder でリスト生成
     m_kifuDataList = KifuContentBuilder::buildKifuDataList(ctx);
 
+    qDebug().noquote() << "[MW] overwriteKifuFile: generated" << m_kifuDataList.size() << "lines";
+
     QString error;
     const bool ok = KifuSaveCoordinator::overwriteExisting(kifuSaveFileName, m_kifuDataList, &error);
-    if (!ok) {
+    if (ok) {
+        ui->statusbar->showMessage(tr("棋譜を上書き保存しました: %1").arg(kifuSaveFileName), 5000);
+    } else {
         QMessageBox::warning(this, tr("KIF Save Error"), error);
     }
 }
@@ -2581,23 +2604,46 @@ void MainWindow::onCommentUpdated(int moveIndex, const QString& newComment)
         return;
     }
 
-    // m_commentsByRow を拡張して新しいコメントを保存
+    // 1) m_commentsByRow を拡張して新しいコメントを保存
     while (m_commentsByRow.size() <= moveIndex) {
         m_commentsByRow.append(QString());
     }
     m_commentsByRow[moveIndex] = newComment;
 
-    // m_resolvedRows の本譜行（row=0）のコメントも更新
+    // 2) m_resolvedRows のアクティブ行のコメントを更新
     if (!m_resolvedRows.isEmpty() && m_activeResolvedRow >= 0 && m_activeResolvedRow < m_resolvedRows.size()) {
         ResolvedRow& rr = m_resolvedRows[m_activeResolvedRow];
-        // ResolvedRow にコメントを保存（もしあれば）
+
+        // ResolvedRow::comments を拡張して保存
         while (rr.comments.size() <= moveIndex) {
             rr.comments.append(QString());
         }
         rr.comments[moveIndex] = newComment;
+
+        // ★ 重要: ResolvedRow::disp[moveIndex].comment も更新（保存時に使用される）
+        if (moveIndex >= 0 && moveIndex < rr.disp.size()) {
+            rr.disp[moveIndex].comment = newComment;
+            qDebug().noquote() << "[MW] Updated rr.disp[" << moveIndex << "].comment";
+        }
     }
 
-    // 現在表示中のコメントを更新（両方のコメント欄に反映）
+    // 3) RecordPresenter のコメント配列も更新（行選択時に正しいコメントを表示するため）
+    if (m_recordPresenter) {
+        QStringList updatedComments = m_commentsByRow;
+        m_recordPresenter->setCommentsByRow(updatedComments);
+        qDebug().noquote() << "[MW] Updated RecordPresenter commentsByRow";
+    }
+
+    // 4) ライブ記録（m_liveDisp）のコメントも更新
+    if (m_recordPresenter) {
+        QList<KifDisplayItem>& liveDisp = const_cast<QList<KifDisplayItem>&>(m_recordPresenter->liveDisp());
+        if (moveIndex >= 0 && moveIndex < liveDisp.size()) {
+            liveDisp[moveIndex].comment = newComment;
+            qDebug().noquote() << "[MW] Updated liveDisp[" << moveIndex << "].comment";
+        }
+    }
+
+    // 5) 現在表示中のコメントを更新（両方のコメント欄に反映）
     const QString displayComment = newComment.trimmed().isEmpty() ? tr("コメントなし") : newComment;
     broadcastComment(displayComment, /*asHtml=*/true);
 
