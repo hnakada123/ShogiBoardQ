@@ -11,6 +11,7 @@
 #include <QScrollBar>
 #include <QPushButton>
 #include <QSignalBlocker>  // ★ 追加
+#include <QLabel>          // ★ 追加
 #include <functional>
 
 #include "mainwindow.h"
@@ -902,6 +903,9 @@ void MainWindow::chooseAndLoadKifuFile()
             this, &MainWindow::syncBoardAndHighlightsAtRow, Qt::UniqueConnection);
     connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::enableArrowButtons,
             this, &MainWindow::enableArrowButtons, Qt::UniqueConnection);
+    // ★ 追加: 対局情報の元データを保存
+    connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::gameInfoPopulated,
+            this, &MainWindow::setOriginalGameInfo, Qt::UniqueConnection);
 
     // --- 4) 読み込み実行（ロジックは Coordinator へ） ---
     // 拡張子判定
@@ -1169,15 +1173,208 @@ void MainWindow::ensureGameInfoTable()
 {
     if (m_gameInfoTable) return;
 
-    m_gameInfoTable = new QTableWidget(m_central);
+    // コンテナウィジェットを作成
+    m_gameInfoContainer = new QWidget(m_central);
+    QVBoxLayout* containerLayout = new QVBoxLayout(m_gameInfoContainer);
+    containerLayout->setContentsMargins(4, 4, 4, 4);
+    containerLayout->setSpacing(2);
+
+    // ツールバーを構築
+    buildGameInfoToolbar();
+    containerLayout->addWidget(m_gameInfoToolbar);
+
+    // テーブルを作成
+    m_gameInfoTable = new QTableWidget(m_gameInfoContainer);
     m_gameInfoTable->setColumnCount(2);
     m_gameInfoTable->setHorizontalHeaderLabels({ tr("項目"), tr("内容") });
     m_gameInfoTable->horizontalHeader()->setStretchLastSection(true);
     m_gameInfoTable->verticalHeader()->setVisible(false);
-    m_gameInfoTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    m_gameInfoTable->setSelectionMode(QAbstractItemView::NoSelection);
+    // ★ 編集可能にする（ダブルクリックで編集）
+    m_gameInfoTable->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed);
+    m_gameInfoTable->setSelectionMode(QAbstractItemView::SingleSelection);
     m_gameInfoTable->setWordWrap(true);
-    m_gameInfoTable->setShowGrid(false);
+    m_gameInfoTable->setShowGrid(true);
+    
+    containerLayout->addWidget(m_gameInfoTable);
+
+    // セル変更時のシグナル接続
+    connect(m_gameInfoTable, &QTableWidget::cellChanged,
+            this, &MainWindow::onGameInfoCellChanged);
+}
+
+// ★ 追加: 対局情報ツールバーの構築
+void MainWindow::buildGameInfoToolbar()
+{
+    m_gameInfoToolbar = new QWidget(m_gameInfoContainer);
+    QHBoxLayout* toolbarLayout = new QHBoxLayout(m_gameInfoToolbar);
+    toolbarLayout->setContentsMargins(2, 2, 2, 2);
+    toolbarLayout->setSpacing(4);
+
+    // フォントサイズ減少ボタン
+    m_btnGameInfoFontDecrease = new QToolButton(m_gameInfoToolbar);
+    m_btnGameInfoFontDecrease->setText(QStringLiteral("A-"));
+    m_btnGameInfoFontDecrease->setToolTip(tr("フォントサイズを小さくする"));
+    m_btnGameInfoFontDecrease->setFixedSize(28, 24);
+    connect(m_btnGameInfoFontDecrease, &QToolButton::clicked,
+            this, &MainWindow::onGameInfoFontDecrease);
+
+    // フォントサイズ増加ボタン
+    m_btnGameInfoFontIncrease = new QToolButton(m_gameInfoToolbar);
+    m_btnGameInfoFontIncrease->setText(QStringLiteral("A+"));
+    m_btnGameInfoFontIncrease->setToolTip(tr("フォントサイズを大きくする"));
+    m_btnGameInfoFontIncrease->setFixedSize(28, 24);
+    connect(m_btnGameInfoFontIncrease, &QToolButton::clicked,
+            this, &MainWindow::onGameInfoFontIncrease);
+
+    // 「修正中」ラベル（赤字）
+    m_gameInfoEditingLabel = new QLabel(tr("修正中"), m_gameInfoToolbar);
+    m_gameInfoEditingLabel->setStyleSheet(QStringLiteral("QLabel { color: red; font-weight: bold; }"));
+    m_gameInfoEditingLabel->setVisible(false);  // 初期状態は非表示
+
+    // 対局情報更新ボタン
+    m_btnGameInfoUpdate = new QPushButton(tr("対局情報更新"), m_gameInfoToolbar);
+    m_btnGameInfoUpdate->setToolTip(tr("編集した対局情報を棋譜に反映する"));
+    m_btnGameInfoUpdate->setFixedHeight(24);
+    connect(m_btnGameInfoUpdate, &QPushButton::clicked,
+            this, &MainWindow::onGameInfoUpdateClicked);
+
+    toolbarLayout->addWidget(m_btnGameInfoFontDecrease);
+    toolbarLayout->addWidget(m_btnGameInfoFontIncrease);
+    toolbarLayout->addWidget(m_gameInfoEditingLabel);
+    toolbarLayout->addStretch();
+    toolbarLayout->addWidget(m_btnGameInfoUpdate);
+
+    m_gameInfoToolbar->setLayout(toolbarLayout);
+}
+
+// ★ 追加: フォントサイズ変更
+void MainWindow::updateGameInfoFontSize(int delta)
+{
+    m_gameInfoFontSize += delta;
+    if (m_gameInfoFontSize < 8) m_gameInfoFontSize = 8;
+    if (m_gameInfoFontSize > 24) m_gameInfoFontSize = 24;
+
+    if (m_gameInfoTable) {
+        QFont font = m_gameInfoTable->font();
+        font.setPointSize(m_gameInfoFontSize);
+        m_gameInfoTable->setFont(font);
+        m_gameInfoTable->resizeRowsToContents();
+    }
+}
+
+void MainWindow::onGameInfoFontIncrease()
+{
+    updateGameInfoFontSize(1);
+}
+
+void MainWindow::onGameInfoFontDecrease()
+{
+    updateGameInfoFontSize(-1);
+}
+
+// ★ 追加: 「修正中」表示の更新
+void MainWindow::updateGameInfoEditingIndicator()
+{
+    if (m_gameInfoEditingLabel) {
+        m_gameInfoEditingLabel->setVisible(m_gameInfoDirty);
+    }
+}
+
+// ★ 追加: セル変更時の処理
+void MainWindow::onGameInfoCellChanged(int row, int column)
+{
+    Q_UNUSED(row);
+    Q_UNUSED(column);
+    
+    if (!m_gameInfoTable) return;
+    
+    // 現在のテーブル内容と元の内容を比較
+    bool isDirty = false;
+    const int rowCount = m_gameInfoTable->rowCount();
+    
+    if (rowCount != m_originalGameInfo.size()) {
+        isDirty = true;
+    } else {
+        for (int r = 0; r < rowCount; ++r) {
+            QTableWidgetItem* keyItem = m_gameInfoTable->item(r, 0);
+            QTableWidgetItem* valueItem = m_gameInfoTable->item(r, 1);
+            
+            QString currentKey = keyItem ? keyItem->text() : QString();
+            QString currentValue = valueItem ? valueItem->text() : QString();
+            
+            if (r < m_originalGameInfo.size()) {
+                if (currentKey != m_originalGameInfo[r].key ||
+                    currentValue != m_originalGameInfo[r].value) {
+                    isDirty = true;
+                    break;
+                }
+            }
+        }
+    }
+    
+    if (m_gameInfoDirty != isDirty) {
+        m_gameInfoDirty = isDirty;
+        updateGameInfoEditingIndicator();
+    }
+}
+
+// ★ 追加: 元の対局情報を保存
+void MainWindow::setOriginalGameInfo(const QList<KifGameInfoItem>& items)
+{
+    m_originalGameInfo = items;
+    m_gameInfoDirty = false;
+    updateGameInfoEditingIndicator();
+}
+
+// ★ 追加: 対局情報更新ボタンクリック時
+void MainWindow::onGameInfoUpdateClicked()
+{
+    if (!m_gameInfoTable) return;
+    
+    // 現在のテーブル内容を m_originalGameInfo に反映
+    m_originalGameInfo.clear();
+    const int rowCount = m_gameInfoTable->rowCount();
+    
+    for (int r = 0; r < rowCount; ++r) {
+        QTableWidgetItem* keyItem = m_gameInfoTable->item(r, 0);
+        QTableWidgetItem* valueItem = m_gameInfoTable->item(r, 1);
+        
+        KifGameInfoItem item;
+        item.key = keyItem ? keyItem->text() : QString();
+        item.value = valueItem ? valueItem->text() : QString();
+        m_originalGameInfo.append(item);
+    }
+    
+    m_gameInfoDirty = false;
+    updateGameInfoEditingIndicator();
+    
+    qDebug().noquote() << "[MW] onGameInfoUpdateClicked: Game info updated, items=" << m_originalGameInfo.size();
+}
+
+// ★ 追加: 未保存の対局情報編集がある場合の警告ダイアログ
+bool MainWindow::confirmDiscardUnsavedGameInfo()
+{
+    if (!m_gameInfoDirty) {
+        return true;  // 変更がなければそのまま続行OK
+    }
+    
+    QMessageBox::StandardButton reply = QMessageBox::warning(
+        this,
+        tr("未保存の対局情報"),
+        tr("対局情報が編集されていますが、まだ更新されていません。\n"
+           "変更を破棄して続行しますか？"),
+        QMessageBox::Yes | QMessageBox::No,
+        QMessageBox::No
+    );
+    
+    if (reply == QMessageBox::Yes) {
+        // 変更を破棄
+        m_gameInfoDirty = false;
+        updateGameInfoEditingIndicator();
+        return true;
+    }
+    
+    return false;  // 操作をキャンセル
 }
 
 void MainWindow::syncBoardAndHighlightsAtRow(int ply)
@@ -2486,6 +2683,9 @@ void MainWindow::ensureKifuLoadCoordinatorForLive_()
             this, &MainWindow::syncBoardAndHighlightsAtRow, Qt::UniqueConnection);
     connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::enableArrowButtons,
             this, &MainWindow::enableArrowButtons, Qt::UniqueConnection);
+    // ★ 追加: 対局情報の元データを保存
+    connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::gameInfoPopulated,
+            this, &MainWindow::setOriginalGameInfo, Qt::UniqueConnection);
 }
 
 // ===== MainWindow.cpp: ライブ対局中に分岐ツリーを更新 =====

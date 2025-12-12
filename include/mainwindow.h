@@ -67,6 +67,9 @@ class QGraphicsView;
 class QGraphicsPathItem;
 class QTableView;
 class QEvent;
+class QLabel;           // ★ 追加
+class QToolButton;      // ★ 追加
+class QPushButton;      // ★ 追加
 class ShogiView;
 class BoardSyncPresenter;
 class AnalysisResultsPresenter;
@@ -174,6 +177,17 @@ private:
     // --- KIFヘッダ（対局情報）タブ ---
     QDockWidget*  m_gameInfoDock  = nullptr;
     QTableWidget* m_gameInfoTable = nullptr;
+    
+    // ★ 追加: 対局情報編集用UI
+    QWidget*      m_gameInfoContainer = nullptr;   // テーブル＋ツールバーのコンテナ
+    QWidget*      m_gameInfoToolbar = nullptr;
+    QToolButton*  m_btnGameInfoFontIncrease = nullptr;
+    QToolButton*  m_btnGameInfoFontDecrease = nullptr;
+    QLabel*       m_gameInfoEditingLabel = nullptr;
+    QPushButton*  m_btnGameInfoUpdate = nullptr;
+    int           m_gameInfoFontSize = 10;
+    bool          m_gameInfoDirty = false;
+    QList<KifGameInfoItem> m_originalGameInfo;  // 元の対局情報（変更検知用）
 
     // --- 棋譜表示／分岐操作・表示関連 ---
     QSet<int> m_branchablePlySet;
@@ -240,6 +254,18 @@ private:
 
     // --- KIF ヘッダ（対局情報）周り ---
     void ensureGameInfoTable();
+    
+    // ★ 追加: 対局情報編集用メソッド
+    void buildGameInfoToolbar();
+    void updateGameInfoFontSize(int delta);
+    void updateGameInfoEditingIndicator();
+    void onGameInfoFontIncrease();
+    void onGameInfoFontDecrease();
+    void onGameInfoUpdateClicked();
+    void onGameInfoCellChanged(int row, int column);
+    void setOriginalGameInfo(const QList<KifGameInfoItem>& items);
+    bool hasUnsavedGameInfo() const { return m_gameInfoDirty; }
+    bool confirmDiscardUnsavedGameInfo();
 
     // --- 分岐 / 変化 ---
     void applyResolvedRowAndSelect(int row, int selPly);
