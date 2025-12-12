@@ -154,6 +154,7 @@ private:
     QWidget* m_commentToolbar=nullptr;
     QToolButton* m_btnFontIncrease=nullptr;
     QToolButton* m_btnFontDecrease=nullptr;
+    QToolButton* m_btnCommentUndo=nullptr;  // ★ 追加: undoボタン
     QPushButton* m_btnUpdateComment=nullptr;
     QLabel* m_editingLabel=nullptr;  // ★ 追加: 「修正中」ラベル
     int m_currentFontSize=10;
@@ -166,6 +167,7 @@ private:
     QString convertUrlsToLinks(const QString& text);
     void updateEditingIndicator();   // ★ 追加: 「修正中」表示の更新
     void onCommentTextChanged();     // ★ 追加: コメント変更時の処理
+    void onCommentUndo();            // ★ 追加: コメントのundo
 
 public:
     // ★ 追加: 未保存の編集があるかチェック
