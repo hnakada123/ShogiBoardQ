@@ -1288,6 +1288,23 @@ int MainWindow::currentPly() const
 
 void MainWindow::applySelect(int row, int ply)
 {
+    // ★ 追加: 未保存のコメント編集がある場合、警告を表示
+    if (m_analysisTab && m_analysisTab->hasUnsavedComment()) {
+        const int editingRow = m_analysisTab->currentMoveIndex();
+        // 同じ行への移動でなければ警告
+        if (ply != editingRow) {
+            qDebug().noquote()
+                << "[MW] applySelect: UNSAVED_COMMENT_CHECK"
+                << " targetPly=" << ply
+                << " editingRow=" << editingRow
+                << " hasUnsavedComment=true";
+            if (!m_analysisTab->confirmDiscardUnsavedComment()) {
+                qDebug().noquote() << "[MW] applySelect: User cancelled, aborting navigation";
+                return;  // ナビゲーションを中断
+            }
+        }
+    }
+
     // ライブ append 中 or 解決済み行が未構築のときは
     // → 表の選択を直接動かして局面・ハイライトを同期
     if (m_isLiveAppendMode || m_resolvedRows.isEmpty()) {
