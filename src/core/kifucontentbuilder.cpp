@@ -92,21 +92,62 @@ QList<KifGameInfoItem> KifuContentBuilder::collectGameInfo(const KifuExportConte
 
 QList<KifDisplayItem> KifuContentBuilder::collectMainline(const KifuExportContext& ctx)
 {
-    // 優先: 解析済みデータ
+    QList<KifDisplayItem> result;
+
+    // 優先: 解析済みデータ（ResolvedRows）
     if (ctx.resolvedRows && !ctx.resolvedRows->isEmpty()) {
-        int mainRow = -1;
-        for (int i = 0; i < ctx.resolvedRows->size(); ++i) {
-            if (ctx.resolvedRows->at(i).parent < 0) { mainRow = i; break; }
+        // アクティブ行を優先、なければparent<0の本譜行を探す
+        int targetRow = ctx.activeResolvedRow;
+        if (targetRow < 0 || targetRow >= ctx.resolvedRows->size()) {
+            targetRow = -1;
+            for (int i = 0; i < ctx.resolvedRows->size(); ++i) {
+                if (ctx.resolvedRows->at(i).parent < 0) {
+                    targetRow = i;
+                    break;
+                }
+            }
+            if (targetRow < 0) targetRow = 0;
         }
-        if (mainRow < 0) mainRow = 0;
-        return ctx.resolvedRows->at(mainRow).disp;
+
+        const ResolvedRow& rr = ctx.resolvedRows->at(targetRow);
+        result = rr.disp;
+
+        // ★ ResolvedRow::comments から編集済みコメントをマージ
+        for (int i = 0; i < result.size() && i < rr.comments.size(); ++i) {
+            if (!rr.comments[i].isEmpty()) {
+                result[i].comment = rr.comments[i];
+            }
+        }
+
+        // ★ さらに ctx.commentsByRow から最新のコメントをマージ（優先度最高）
+        if (ctx.commentsByRow) {
+            for (int i = 0; i < result.size() && i < ctx.commentsByRow->size(); ++i) {
+                if (!ctx.commentsByRow->at(i).isEmpty()) {
+                    result[i].comment = ctx.commentsByRow->at(i);
+                }
+            }
+        }
+
+        return result;
     }
 
     // 次点: ライブ記録
-    if (ctx.liveDisp && !ctx.liveDisp->isEmpty()) return *ctx.liveDisp;
+    if (ctx.liveDisp && !ctx.liveDisp->isEmpty()) {
+        result = *ctx.liveDisp;
+
+        // ★ ctx.commentsByRow からコメントをマージ
+        if (ctx.commentsByRow) {
+            for (int i = 0; i < result.size() && i < ctx.commentsByRow->size(); ++i) {
+                if (!ctx.commentsByRow->at(i).isEmpty()) {
+                    result[i].comment = ctx.commentsByRow->at(i);
+                }
+            }
+        }
+
+        return result;
+    }
 
     // 最終手段: モデルから抽出
-    QList<KifDisplayItem> out;
     if (ctx.recordModel) {
         const int rows = ctx.recordModel->rowCount();
         for (int r = 0; r < rows; ++r) {
@@ -118,10 +159,18 @@ QList<KifDisplayItem> KifuContentBuilder::collectMainline(const KifuExportContex
             KifDisplayItem it;
             it.prettyMove = t;
             it.timeText   = time.isEmpty() ? QStringLiteral("00:00/00:00:00") : time;
-            out.push_back(it);
+
+            // ★ ctx.commentsByRow からコメントを取得
+            const int idx = result.size();
+            if (ctx.commentsByRow && idx < ctx.commentsByRow->size()) {
+                it.comment = ctx.commentsByRow->at(idx);
+            }
+
+            result.push_back(it);
         }
     }
-    return out;
+
+    return result;
 }
 
 void KifuContentBuilder::resolvePlayerNames(const KifuExportContext& ctx, QString& outBlack, QString& outWhite)

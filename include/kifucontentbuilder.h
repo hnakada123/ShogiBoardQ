@@ -21,6 +21,12 @@ struct KifuExportContext {
     const QVector<ResolvedRow>* resolvedRows = nullptr;
     const QList<KifDisplayItem>* liveDisp = nullptr;
 
+    // ★ 追加: 編集されたコメント配列（MainWindow::m_commentsByRow）
+    const QVector<QString>* commentsByRow = nullptr;
+
+    // アクティブな行インデックス（分岐選択時に使用）
+    int activeResolvedRow = 0;
+
     // ゲーム状態
     QString startSfen;
     PlayMode playMode = NotStarted;
