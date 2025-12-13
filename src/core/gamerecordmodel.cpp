@@ -16,6 +16,82 @@ static inline QString fwColonLine(const QString& key, const QString& val)
     return QStringLiteral("%1：%2").arg(key, val);
 }
 
+// ヘルパ関数: 指し手から手番記号（▲△）を除去
+static QString removeTurnMarker(const QString& move)
+{
+    QString result = move;
+    if (result.startsWith(QStringLiteral("▲")) || result.startsWith(QStringLiteral("△"))) {
+        result = result.mid(1);
+    }
+    return result;
+}
+
+// ヘルパ関数: KIF形式の時間文字列にフォーマット（括弧付き）
+// 仕様: ( m:ss/HH:MM:SS) 形式
+static QString formatKifTime(const QString& timeText)
+{
+    // 既に括弧付きならそのまま返す
+    if (timeText.startsWith(QLatin1Char('('))) return timeText;
+    // 空なら既定値
+    if (timeText.isEmpty()) return QStringLiteral("( 0:00/00:00:00)");
+    
+    // mm:ss/HH:MM:SS 形式を解析して ( m:ss/HH:MM:SS) 形式に変換
+    const QStringList parts = timeText.split(QLatin1Char('/'));
+    if (parts.size() == 2) {
+        QString moveTime = parts[0];  // mm:ss
+        QString totalTime = parts[1]; // HH:MM:SS
+        
+        // 分の先頭ゼロを除去（例: "00:00" → " 0:00", "01:30" → " 1:30"）
+        if (moveTime.length() >= 2 && moveTime.at(0) == QLatin1Char('0')) {
+            moveTime = QStringLiteral(" %1").arg(moveTime.mid(1));
+        }
+        
+        return QStringLiteral("(%1/%2)").arg(moveTime, totalTime);
+    }
+    
+    // 解析できない場合はそのまま括弧で囲む
+    return QStringLiteral("( %1)").arg(timeText);
+}
+
+// ヘルパ関数: 終局語を判定
+static bool isTerminalMove(const QString& move)
+{
+    static const QStringList terminals = {
+        QStringLiteral("投了"),
+        QStringLiteral("中断"),
+        QStringLiteral("持将棋"),
+        QStringLiteral("千日手"),
+        QStringLiteral("切れ負け"),
+        QStringLiteral("反則勝ち"),
+        QStringLiteral("反則負け"),
+        QStringLiteral("入玉勝ち"),
+        QStringLiteral("不戦勝"),
+        QStringLiteral("不戦敗"),
+        QStringLiteral("詰み"),
+        QStringLiteral("不詰")
+    };
+    const QString stripped = removeTurnMarker(move);
+    for (const QString& t : terminals) {
+        if (stripped.contains(t)) return true;
+    }
+    return false;
+}
+
+// ヘルパ関数: 終局結果文字列を生成
+static QString buildEndingLine(int lastActualMoveNo, const QString& terminalMove)
+{
+    const QString stripped = removeTurnMarker(terminalMove);
+    // 投了なら直前の手番が勝者
+    if (stripped.contains(QStringLiteral("投了"))) {
+        // lastActualMoveNo が奇数なら先手の手、偶数なら後手の手が最後
+        const bool senteWin = (lastActualMoveNo % 2 != 0);
+        return QStringLiteral("まで%1手で%2の勝ち")
+            .arg(QString::number(lastActualMoveNo), senteWin ? QStringLiteral("先手") : QStringLiteral("後手"));
+    }
+    // その他の終局は単純に手数のみ
+    return QStringLiteral("まで%1手").arg(QString::number(lastActualMoveNo));
+}
+
 // ========================================
 // コンストラクタ・デストラクタ
 // ========================================
@@ -185,10 +261,55 @@ QStringList GameRecordModel::toKifLines(const ExportContext& ctx) const
     // 3) 本譜の指し手を収集
     const QList<KifDisplayItem> disp = collectMainlineForExport_();
 
-    // 4) 各指し手を出力
+    // 4) 開始局面の処理（prettyMoveが空のエントリ）
+    int startIdx = 0;
+    if (!disp.isEmpty() && disp[0].prettyMove.trimmed().isEmpty()) {
+        // 開始局面のコメントを先に出力
+        const QString cmt = disp[0].comment.trimmed();
+        if (!cmt.isEmpty()) {
+            const QStringList lines = cmt.split(QRegularExpression(QStringLiteral("\r?\n")), Qt::KeepEmptyParts);
+            for (const QString& raw : lines) {
+                const QString t = raw.trimmed();
+                if (t.isEmpty()) continue;
+                if (t.startsWith(QLatin1Char('*'))) {
+                    out << t;
+                } else {
+                    out << (QStringLiteral("*") + t);
+                }
+            }
+        }
+        startIdx = 1; // 実際の指し手は次から
+    }
+
+    // 5) 各指し手を出力
     int moveNo = 1;
-    for (const auto& it : disp) {
-        // コメント行（*で始まる）
+    int lastActualMoveNo = 0;
+    QString terminalMove;
+    
+    for (int i = startIdx; i < disp.size(); ++i) {
+        const auto& it = disp[i];
+        const QString moveText = it.prettyMove.trimmed();
+        
+        // 空の指し手はスキップ
+        if (moveText.isEmpty()) continue;
+        
+        // 終局語の判定
+        const bool isTerminal = isTerminalMove(moveText);
+        
+        // 手番記号を除去してKIF形式に変換
+        const QString kifMove = removeTurnMarker(moveText);
+        
+        // 時間フォーマット（括弧付き）
+        const QString time = formatKifTime(it.timeText);
+        
+        // KIF形式で出力: "   手数 指し手   (時間)"
+        const QString moveNoStr = QStringLiteral("%1").arg(moveNo, 4);
+        out << QStringLiteral("%1 %2   %3")
+                   .arg(moveNoStr)
+                   .arg(kifMove, -12)  // 左詰め12文字
+                   .arg(time);
+        
+        // コメント出力（指し手の後に）
         const QString cmt = it.comment.trimmed();
         if (!cmt.isEmpty()) {
             const QStringList lines = cmt.split(QRegularExpression(QStringLiteral("\r?\n")), Qt::KeepEmptyParts);
@@ -202,20 +323,22 @@ QStringList GameRecordModel::toKifLines(const ExportContext& ctx) const
                 }
             }
         }
-
-        // 指し手行
-        const QString time = it.timeText.isEmpty() ? QStringLiteral("00:00/00:00:00") : it.timeText;
-        out << QStringLiteral("%1 %2 %3").arg(QString::number(moveNo), it.prettyMove, time);
+        
+        if (isTerminal) {
+            terminalMove = moveText;
+        } else {
+            lastActualMoveNo = moveNo;
+        }
         ++moveNo;
     }
 
-    // 5) 終了行
+    // 6) 終了行
     out << QString();
-    out << QStringLiteral("まで%1手").arg(QString::number(qMax(0, disp.size())));
+    out << buildEndingLine(lastActualMoveNo, terminalMove);
 
-    qDebug().noquote() << "[GameRecordModel] toKifLines: generated"
+    qDebug().noquote() << "[GameRecordModel] toKifLines (MODIFIED): generated"
                        << out.size() << "lines,"
-                       << disp.size() << "moves";
+                       << (moveNo - 1) << "moves, lastActualMoveNo=" << lastActualMoveNo;
 
     return out;
 }
