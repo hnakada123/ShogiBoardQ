@@ -183,12 +183,17 @@ private:
     QWidget*      m_gameInfoToolbar = nullptr;
     QToolButton*  m_btnGameInfoFontIncrease = nullptr;
     QToolButton*  m_btnGameInfoFontDecrease = nullptr;
-    QToolButton*  m_btnGameInfoUndo = nullptr;     // ★ 追加: undoボタン
+    QToolButton*  m_btnGameInfoUndo = nullptr;     // undoボタン
+    QToolButton*  m_btnGameInfoRedo = nullptr;     // ★ 追加: redoボタン
+    QToolButton*  m_btnGameInfoCut = nullptr;      // ★ 追加: 切り取りボタン
+    QToolButton*  m_btnGameInfoCopy = nullptr;     // ★ 追加: コピーボタン
+    QToolButton*  m_btnGameInfoPaste = nullptr;    // ★ 追加: 貼り付けボタン
     QLabel*       m_gameInfoEditingLabel = nullptr;
     QPushButton*  m_btnGameInfoUpdate = nullptr;
     int           m_gameInfoFontSize = 10;
     bool          m_gameInfoDirty = false;
     QList<KifGameInfoItem> m_originalGameInfo;  // 元の対局情報（変更検知用）
+    QString       m_gameInfoClipboard;  // ★ 追加: 対局情報用の内部クリップボード
 
     // --- 棋譜表示／分岐操作・表示関連 ---
     QSet<int> m_branchablePlySet;
@@ -262,7 +267,11 @@ private:
     void updateGameInfoEditingIndicator();
     void onGameInfoFontIncrease();
     void onGameInfoFontDecrease();
-    void onGameInfoUndo();  // ★ 追加: undoボタン
+    void onGameInfoUndo();   // undoボタン
+    void onGameInfoRedo();   // ★ 追加: redoボタン
+    void onGameInfoCut();    // ★ 追加: 切り取り
+    void onGameInfoCopy();   // ★ 追加: コピー
+    void onGameInfoPaste();  // ★ 追加: 貼り付け
     void onGameInfoUpdateClicked();
     void onGameInfoCellChanged(int row, int column);
     void setOriginalGameInfo(const QList<KifGameInfoItem>& items);

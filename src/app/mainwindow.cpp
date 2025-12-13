@@ -12,6 +12,9 @@
 #include <QPushButton>
 #include <QSignalBlocker>  // ★ 追加
 #include <QLabel>          // ★ 追加
+#include <QApplication>    // ★ 追加
+#include <QClipboard>      // ★ 追加
+#include <QLineEdit>       // ★ 追加
 #include <functional>
 
 #include "mainwindow.h"
@@ -1226,13 +1229,45 @@ void MainWindow::buildGameInfoToolbar()
     connect(m_btnGameInfoFontIncrease, &QToolButton::clicked,
             this, &MainWindow::onGameInfoFontIncrease);
 
-    // ★ 追加: undoボタン
+    // undoボタン（元に戻す）
     m_btnGameInfoUndo = new QToolButton(m_gameInfoToolbar);
     m_btnGameInfoUndo->setText(QStringLiteral("↩"));
-    m_btnGameInfoUndo->setToolTip(tr("編集を元に戻す"));
+    m_btnGameInfoUndo->setToolTip(tr("元に戻す (Ctrl+Z)"));
     m_btnGameInfoUndo->setFixedSize(28, 24);
     connect(m_btnGameInfoUndo, &QToolButton::clicked,
             this, &MainWindow::onGameInfoUndo);
+
+    // ★ 追加: redoボタン（やり直す）
+    m_btnGameInfoRedo = new QToolButton(m_gameInfoToolbar);
+    m_btnGameInfoRedo->setText(QStringLiteral("↪"));
+    m_btnGameInfoRedo->setToolTip(tr("やり直す (Ctrl+Y)"));
+    m_btnGameInfoRedo->setFixedSize(28, 24);
+    connect(m_btnGameInfoRedo, &QToolButton::clicked,
+            this, &MainWindow::onGameInfoRedo);
+
+    // ★ 追加: 切り取りボタン
+    m_btnGameInfoCut = new QToolButton(m_gameInfoToolbar);
+    m_btnGameInfoCut->setText(QStringLiteral("✂"));
+    m_btnGameInfoCut->setToolTip(tr("切り取り (Ctrl+X)"));
+    m_btnGameInfoCut->setFixedSize(28, 24);
+    connect(m_btnGameInfoCut, &QToolButton::clicked,
+            this, &MainWindow::onGameInfoCut);
+
+    // ★ 追加: コピーボタン
+    m_btnGameInfoCopy = new QToolButton(m_gameInfoToolbar);
+    m_btnGameInfoCopy->setText(QStringLiteral("📋"));
+    m_btnGameInfoCopy->setToolTip(tr("コピー (Ctrl+C)"));
+    m_btnGameInfoCopy->setFixedSize(28, 24);
+    connect(m_btnGameInfoCopy, &QToolButton::clicked,
+            this, &MainWindow::onGameInfoCopy);
+
+    // ★ 追加: 貼り付けボタン
+    m_btnGameInfoPaste = new QToolButton(m_gameInfoToolbar);
+    m_btnGameInfoPaste->setText(QStringLiteral("📄"));
+    m_btnGameInfoPaste->setToolTip(tr("貼り付け (Ctrl+V)"));
+    m_btnGameInfoPaste->setFixedSize(28, 24);
+    connect(m_btnGameInfoPaste, &QToolButton::clicked,
+            this, &MainWindow::onGameInfoPaste);
 
     // 「修正中」ラベル（赤字）
     m_gameInfoEditingLabel = new QLabel(tr("修正中"), m_gameInfoToolbar);
@@ -1248,7 +1283,11 @@ void MainWindow::buildGameInfoToolbar()
 
     toolbarLayout->addWidget(m_btnGameInfoFontDecrease);
     toolbarLayout->addWidget(m_btnGameInfoFontIncrease);
-    toolbarLayout->addWidget(m_btnGameInfoUndo);  // ★ 追加
+    toolbarLayout->addWidget(m_btnGameInfoUndo);
+    toolbarLayout->addWidget(m_btnGameInfoRedo);   // ★ 追加
+    toolbarLayout->addWidget(m_btnGameInfoCut);    // ★ 追加
+    toolbarLayout->addWidget(m_btnGameInfoCopy);   // ★ 追加
+    toolbarLayout->addWidget(m_btnGameInfoPaste);  // ★ 追加
     toolbarLayout->addWidget(m_gameInfoEditingLabel);
     toolbarLayout->addStretch();
     toolbarLayout->addWidget(m_btnGameInfoUpdate);
@@ -1313,6 +1352,58 @@ void MainWindow::onGameInfoUndo()
     updateGameInfoEditingIndicator();
     
     qDebug().noquote() << "[MW] onGameInfoUndo: Reverted to original game info";
+}
+
+// ★ 追加: 対局情報のredo（QTableWidgetにはredo機能がないため、現在は何もしない）
+void MainWindow::onGameInfoRedo()
+{
+    // QTableWidgetには内蔵のredo機能がないため、
+    // 現在編集中のセルがあればそのエディタのredoを呼ぶ
+    if (!m_gameInfoTable) return;
+    
+    // 編集中のセルのエディタを取得
+    QWidget* editor = m_gameInfoTable->cellWidget(m_gameInfoTable->currentRow(), 
+                                                   m_gameInfoTable->currentColumn());
+    if (QLineEdit* lineEdit = qobject_cast<QLineEdit*>(editor)) {
+        lineEdit->redo();
+    }
+}
+
+// ★ 追加: 対局情報の切り取り
+void MainWindow::onGameInfoCut()
+{
+    if (!m_gameInfoTable) return;
+    
+    QTableWidgetItem* item = m_gameInfoTable->currentItem();
+    if (item && (item->flags() & Qt::ItemIsEditable)) {
+        // クリップボードにコピー
+        QApplication::clipboard()->setText(item->text());
+        // セルをクリア
+        item->setText(QString());
+    }
+}
+
+// ★ 追加: 対局情報のコピー
+void MainWindow::onGameInfoCopy()
+{
+    if (!m_gameInfoTable) return;
+    
+    QTableWidgetItem* item = m_gameInfoTable->currentItem();
+    if (item) {
+        QApplication::clipboard()->setText(item->text());
+    }
+}
+
+// ★ 追加: 対局情報の貼り付け
+void MainWindow::onGameInfoPaste()
+{
+    if (!m_gameInfoTable) return;
+    
+    QTableWidgetItem* item = m_gameInfoTable->currentItem();
+    if (item && (item->flags() & Qt::ItemIsEditable)) {
+        QString text = QApplication::clipboard()->text();
+        item->setText(text);
+    }
 }
 
 // ★ 追加: 「修正中」表示の更新
