@@ -1198,6 +1198,12 @@ void MainWindow::ensureGameInfoTable()
     m_gameInfoTable->setWordWrap(true);
     m_gameInfoTable->setShowGrid(true);
     
+    // ★ 追加: 設定ファイルからフォントサイズを読み込んで適用
+    m_gameInfoFontSize = SettingsService::gameInfoFontSize();
+    QFont font = m_gameInfoTable->font();
+    font.setPointSize(m_gameInfoFontSize);
+    m_gameInfoTable->setFont(font);
+    
     containerLayout->addWidget(m_gameInfoTable);
 
     // セル変更時のシグナル接続
@@ -1308,6 +1314,9 @@ void MainWindow::updateGameInfoFontSize(int delta)
         m_gameInfoTable->setFont(font);
         m_gameInfoTable->resizeRowsToContents();
     }
+    
+    // ★ 追加: 設定ファイルに保存
+    SettingsService::setGameInfoFontSize(m_gameInfoFontSize);
 }
 
 void MainWindow::onGameInfoFontIncrease()
