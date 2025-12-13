@@ -154,20 +154,28 @@ private:
     QWidget* m_commentToolbar=nullptr;
     QToolButton* m_btnFontIncrease=nullptr;
     QToolButton* m_btnFontDecrease=nullptr;
-    QToolButton* m_btnCommentUndo=nullptr;  // ★ 追加: undoボタン
+    QToolButton* m_btnCommentUndo=nullptr;   // undoボタン
+    QToolButton* m_btnCommentRedo=nullptr;   // ★ 追加: redoボタン
+    QToolButton* m_btnCommentCut=nullptr;    // ★ 追加: 切り取りボタン
+    QToolButton* m_btnCommentCopy=nullptr;   // ★ 追加: コピーボタン
+    QToolButton* m_btnCommentPaste=nullptr;  // ★ 追加: 貼り付けボタン
     QPushButton* m_btnUpdateComment=nullptr;
-    QLabel* m_editingLabel=nullptr;  // ★ 追加: 「修正中」ラベル
+    QLabel* m_editingLabel=nullptr;  // 「修正中」ラベル
     int m_currentFontSize=10;
     int m_currentMoveIndex=-1;
-    QString m_originalComment;       // ★ 追加: 元のコメント（変更検知用）
-    bool m_isCommentDirty=false;     // ★ 追加: コメントが変更されたか
+    QString m_originalComment;       // 元のコメント（変更検知用）
+    bool m_isCommentDirty=false;     // コメントが変更されたか
 
     void buildCommentToolbar();
     void updateCommentFontSize(int delta);
     QString convertUrlsToLinks(const QString& text);
-    void updateEditingIndicator();   // ★ 追加: 「修正中」表示の更新
-    void onCommentTextChanged();     // ★ 追加: コメント変更時の処理
-    void onCommentUndo();            // ★ 追加: コメントのundo
+    void updateEditingIndicator();   // 「修正中」表示の更新
+    void onCommentTextChanged();     // コメント変更時の処理
+    void onCommentUndo();            // コメントのundo
+    void onCommentRedo();            // ★ 追加: コメントのredo
+    void onCommentCut();             // ★ 追加: 切り取り
+    void onCommentCopy();            // ★ 追加: コピー
+    void onCommentPaste();           // ★ 追加: 貼り付け
 
 public:
     // ★ 追加: 未保存の編集があるかチェック

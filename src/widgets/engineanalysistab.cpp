@@ -896,14 +896,42 @@ void EngineAnalysisTab::buildCommentToolbar()
     m_btnFontIncrease->setFixedSize(28, 24);
     connect(m_btnFontIncrease, &QToolButton::clicked, this, &EngineAnalysisTab::onFontIncrease);
 
-    // ★ 追加: undoボタン
+    // undoボタン（元に戻す）
     m_btnCommentUndo = new QToolButton(m_commentToolbar);
     m_btnCommentUndo->setText(QStringLiteral("↩"));
-    m_btnCommentUndo->setToolTip(tr("編集を元に戻す"));
+    m_btnCommentUndo->setToolTip(tr("元に戻す (Ctrl+Z)"));
     m_btnCommentUndo->setFixedSize(28, 24);
     connect(m_btnCommentUndo, &QToolButton::clicked, this, &EngineAnalysisTab::onCommentUndo);
 
-    // ★ 追加: 「修正中」ラベル（赤字）
+    // ★ 追加: redoボタン（やり直す）
+    m_btnCommentRedo = new QToolButton(m_commentToolbar);
+    m_btnCommentRedo->setText(QStringLiteral("↪"));
+    m_btnCommentRedo->setToolTip(tr("やり直す (Ctrl+Y)"));
+    m_btnCommentRedo->setFixedSize(28, 24);
+    connect(m_btnCommentRedo, &QToolButton::clicked, this, &EngineAnalysisTab::onCommentRedo);
+
+    // ★ 追加: 切り取りボタン
+    m_btnCommentCut = new QToolButton(m_commentToolbar);
+    m_btnCommentCut->setText(QStringLiteral("✂"));
+    m_btnCommentCut->setToolTip(tr("切り取り (Ctrl+X)"));
+    m_btnCommentCut->setFixedSize(28, 24);
+    connect(m_btnCommentCut, &QToolButton::clicked, this, &EngineAnalysisTab::onCommentCut);
+
+    // ★ 追加: コピーボタン
+    m_btnCommentCopy = new QToolButton(m_commentToolbar);
+    m_btnCommentCopy->setText(QStringLiteral("📋"));
+    m_btnCommentCopy->setToolTip(tr("コピー (Ctrl+C)"));
+    m_btnCommentCopy->setFixedSize(28, 24);
+    connect(m_btnCommentCopy, &QToolButton::clicked, this, &EngineAnalysisTab::onCommentCopy);
+
+    // ★ 追加: 貼り付けボタン
+    m_btnCommentPaste = new QToolButton(m_commentToolbar);
+    m_btnCommentPaste->setText(QStringLiteral("📄"));
+    m_btnCommentPaste->setToolTip(tr("貼り付け (Ctrl+V)"));
+    m_btnCommentPaste->setFixedSize(28, 24);
+    connect(m_btnCommentPaste, &QToolButton::clicked, this, &EngineAnalysisTab::onCommentPaste);
+
+    // 「修正中」ラベル（赤字）
     m_editingLabel = new QLabel(tr("修正中"), m_commentToolbar);
     m_editingLabel->setStyleSheet(QStringLiteral("QLabel { color: red; font-weight: bold; }"));
     m_editingLabel->setVisible(false);  // 初期状態は非表示
@@ -916,8 +944,12 @@ void EngineAnalysisTab::buildCommentToolbar()
 
     toolbarLayout->addWidget(m_btnFontDecrease);
     toolbarLayout->addWidget(m_btnFontIncrease);
-    toolbarLayout->addWidget(m_btnCommentUndo);  // ★ 追加
-    toolbarLayout->addWidget(m_editingLabel);  // ★ 追加
+    toolbarLayout->addWidget(m_btnCommentUndo);
+    toolbarLayout->addWidget(m_btnCommentRedo);   // ★ 追加
+    toolbarLayout->addWidget(m_btnCommentCut);    // ★ 追加
+    toolbarLayout->addWidget(m_btnCommentCopy);   // ★ 追加
+    toolbarLayout->addWidget(m_btnCommentPaste);  // ★ 追加
+    toolbarLayout->addWidget(m_editingLabel);
     toolbarLayout->addStretch();
     toolbarLayout->addWidget(m_btnUpdateComment);
 
@@ -938,25 +970,39 @@ void EngineAnalysisTab::updateCommentFontSize(int delta)
     }
 }
 
-// ★ 追加: コメントのundo（元のコメントに戻す）
+// ★ 追加: コメントのundo（QTextEditのundo機能を使用）
 void EngineAnalysisTab::onCommentUndo()
 {
     if (!m_comment) return;
-    
-    // シグナルを一時的にブロック
-    m_comment->blockSignals(true);
-    
-    // 元のコメントに戻す
-    m_comment->setPlainText(m_originalComment);
-    
-    // シグナルを再開
-    m_comment->blockSignals(false);
-    
-    // dirtyフラグをリセット
-    m_isCommentDirty = false;
-    updateEditingIndicator();
-    
-    qDebug().noquote() << "[EngineAnalysisTab] onCommentUndo: Reverted to original comment";
+    m_comment->undo();
+}
+
+// ★ 追加: コメントのredo（やり直す）
+void EngineAnalysisTab::onCommentRedo()
+{
+    if (!m_comment) return;
+    m_comment->redo();
+}
+
+// ★ 追加: コメントの切り取り
+void EngineAnalysisTab::onCommentCut()
+{
+    if (!m_comment) return;
+    m_comment->cut();
+}
+
+// ★ 追加: コメントのコピー
+void EngineAnalysisTab::onCommentCopy()
+{
+    if (!m_comment) return;
+    m_comment->copy();
+}
+
+// ★ 追加: コメントの貼り付け
+void EngineAnalysisTab::onCommentPaste()
+{
+    if (!m_comment) return;
+    m_comment->paste();
 }
 
 // ★ 追加: URLをHTMLリンクに変換
