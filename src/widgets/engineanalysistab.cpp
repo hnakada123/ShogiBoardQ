@@ -27,6 +27,7 @@
 #include <QLabel>       // ★ 追加
 #include <QMessageBox>  // ★ 追加
 
+#include "settingsservice.h"  // ★ 追加: フォントサイズ保存用
 #include "numeric_right_align_comma_delegate.h"
 #include "engineinfowidget.h"
 #include "shogienginethinkingmodel.h"
@@ -72,9 +73,21 @@ void EngineAnalysisTab::buildUi()
     m_tab->addTab(page, tr("思考"));
 
     // --- USI通信ログ ---
-    m_usiLog = new QPlainTextEdit(m_tab);
+    // ★ 修正: ツールバー付きコンテナに変更
+    m_usiLogContainer = new QWidget(m_tab);
+    QVBoxLayout* usiLogLayout = new QVBoxLayout(m_usiLogContainer);
+    usiLogLayout->setContentsMargins(4, 4, 4, 4);
+    usiLogLayout->setSpacing(2);
+
+    // ツールバーを構築
+    buildUsiLogToolbar();
+    usiLogLayout->addWidget(m_usiLogToolbar);
+
+    m_usiLog = new QPlainTextEdit(m_usiLogContainer);
     m_usiLog->setReadOnly(true);
-    m_tab->addTab(m_usiLog, tr("USI通信ログ"));
+    usiLogLayout->addWidget(m_usiLog);
+
+    m_tab->addTab(m_usiLogContainer, tr("USI通信ログ"));
 
     // --- 棋譜コメント ---
     // コメント欄とツールバーを含むコンテナ
@@ -122,6 +135,21 @@ void EngineAnalysisTab::buildUi()
             vp->installEventFilter(this);
             vp->setProperty("branchFilterInstalled", true);
         }
+    }
+
+    // ★ 追加: 設定ファイルからフォントサイズを読み込んで適用
+    m_usiLogFontSize = SettingsService::usiLogFontSize();
+    if (m_usiLog) {
+        QFont font = m_usiLog->font();
+        font.setPointSize(m_usiLogFontSize);
+        m_usiLog->setFont(font);
+    }
+    
+    m_currentFontSize = SettingsService::commentFontSize();
+    if (m_comment) {
+        QFont font = m_comment->font();
+        font.setPointSize(m_currentFontSize);
+        m_comment->setFont(font);
     }
 
     // ★ 追加：起動直後でも「開始局面」だけは描く
@@ -874,6 +902,62 @@ void EngineAnalysisTab::applyNumericFormattingTo_(QTableView* view, QAbstractIte
     }
 }
 
+// ★ 追加: USI通信ログツールバーを構築
+void EngineAnalysisTab::buildUsiLogToolbar()
+{
+    m_usiLogToolbar = new QWidget(m_usiLogContainer);
+    QHBoxLayout* toolbarLayout = new QHBoxLayout(m_usiLogToolbar);
+    toolbarLayout->setContentsMargins(2, 2, 2, 2);
+    toolbarLayout->setSpacing(4);
+
+    // フォントサイズ減少ボタン
+    m_btnUsiLogFontDecrease = new QToolButton(m_usiLogToolbar);
+    m_btnUsiLogFontDecrease->setText(QStringLiteral("A-"));
+    m_btnUsiLogFontDecrease->setToolTip(tr("フォントサイズを小さくする"));
+    m_btnUsiLogFontDecrease->setFixedSize(28, 24);
+    connect(m_btnUsiLogFontDecrease, &QToolButton::clicked, this, &EngineAnalysisTab::onUsiLogFontDecrease);
+
+    // フォントサイズ増加ボタン
+    m_btnUsiLogFontIncrease = new QToolButton(m_usiLogToolbar);
+    m_btnUsiLogFontIncrease->setText(QStringLiteral("A+"));
+    m_btnUsiLogFontIncrease->setToolTip(tr("フォントサイズを大きくする"));
+    m_btnUsiLogFontIncrease->setFixedSize(28, 24);
+    connect(m_btnUsiLogFontIncrease, &QToolButton::clicked, this, &EngineAnalysisTab::onUsiLogFontIncrease);
+
+    toolbarLayout->addWidget(m_btnUsiLogFontDecrease);
+    toolbarLayout->addWidget(m_btnUsiLogFontIncrease);
+    toolbarLayout->addStretch();
+
+    m_usiLogToolbar->setLayout(toolbarLayout);
+}
+
+// ★ 追加: USI通信ログフォントサイズ変更
+void EngineAnalysisTab::updateUsiLogFontSize(int delta)
+{
+    m_usiLogFontSize += delta;
+    if (m_usiLogFontSize < 8) m_usiLogFontSize = 8;
+    if (m_usiLogFontSize > 24) m_usiLogFontSize = 24;
+
+    if (m_usiLog) {
+        QFont font = m_usiLog->font();
+        font.setPointSize(m_usiLogFontSize);
+        m_usiLog->setFont(font);
+    }
+    
+    // ★ 追加: 設定ファイルに保存
+    SettingsService::setUsiLogFontSize(m_usiLogFontSize);
+}
+
+void EngineAnalysisTab::onUsiLogFontIncrease()
+{
+    updateUsiLogFontSize(1);
+}
+
+void EngineAnalysisTab::onUsiLogFontDecrease()
+{
+    updateUsiLogFontSize(-1);
+}
+
 // ★ 追加: コメントツールバーを構築
 void EngineAnalysisTab::buildCommentToolbar()
 {
@@ -968,6 +1052,9 @@ void EngineAnalysisTab::updateCommentFontSize(int delta)
         font.setPointSize(m_currentFontSize);
         m_comment->setFont(font);
     }
+    
+    // ★ 追加: 設定ファイルに保存
+    SettingsService::setCommentFontSize(m_currentFontSize);
 }
 
 // ★ 追加: コメントのundo（QTextEditのundo機能を使用）

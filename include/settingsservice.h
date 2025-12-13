@@ -25,6 +25,22 @@ QString lastKifuDirectory();
 // 最後に開いた棋譜ファイルのディレクトリを保存します。
 void setLastKifuDirectory(const QString& dir);
 
+// ★ 追加: フォントサイズ関連
+// USI通信ログタブのフォントサイズを取得（デフォルト: 10）
+int usiLogFontSize();
+// USI通信ログタブのフォントサイズを保存
+void setUsiLogFontSize(int size);
+
+// 棋譜コメントタブのフォントサイズを取得（デフォルト: 10）
+int commentFontSize();
+// 棋譜コメントタブのフォントサイズを保存
+void setCommentFontSize(int size);
+
+// 対局情報タブのフォントサイズを取得（デフォルト: 10）
+int gameInfoFontSize();
+// 対局情報タブのフォントサイズを保存
+void setGameInfoFontSize(int size);
+
 } // namespace SettingsService
 
 #endif // SETTINGSSERVICE_H
