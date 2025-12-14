@@ -733,35 +733,6 @@ void Usi::executeEngineCommunication(QString& positionStr, QString& positionPond
 }
 
 // 人間対将棋エンジンの対局で将棋エンジンとUSIプロトコル通信を行う。
-/*
-void Usi::handleHumanVsEngineCommunication(QString& positionStr, QString& positionPonderStr, QPoint& outFrom, QPoint& outTo,
-                                          int byoyomiMilliSec, const QString& btime, const QString& wtime, QStringList& positionStrList,
-                                          int addEachMoveMilliSec1, int addEachMoveMilliSec2, bool useByoyomi)
-{
-    //begin
-    qDebug() << "in Usi::handleHumanVsEngineCommunication";
-    qDebug() << "byoyomiMilliSec: " << byoyomiMilliSec;
-    qDebug() << "btime: " << btime;
-    qDebug() << "wtime: " << wtime;
-    //end
-
-    // bestmove文字列の作成
-    m_bestMove = convertHumanMoveToUsiFormat(outFrom, outTo, m_gameController->promote());
-
-    ensureMovesKeyword(positionStr);
-
-    // position文字列にbestmoveの文字列を追加する。
-    positionStr += " " + m_bestMove;
-
-    // position文字列をリストに追加する。
-    positionStrList.append(positionStr);
-
-    // 共通のエンジン通信処理を実行する。
-    executeEngineCommunication(positionStr, positionPonderStr, outFrom, outTo, byoyomiMilliSec, btime, wtime,
-                               addEachMoveMilliSec1, addEachMoveMilliSec2, useByoyomi);
-}
-*/
-
 void Usi::handleHumanVsEngineCommunication(QString& positionStr, QString& positionPonderStr,
                                            QPoint& outFrom, QPoint& outTo,
                                            int byoyomiMilliSec, const QString& btime, const QString& wtime,
