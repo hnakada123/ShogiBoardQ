@@ -677,3 +677,246 @@ void GameRecordModel::outputVariationsRecursively_(int parentRowIndex, QStringLi
         outputVariation_(rowIndex, out);
     }
 }
+
+// ========================================
+// KI2形式出力
+// ========================================
+
+QStringList GameRecordModel::toKi2Lines(const ExportContext& ctx) const
+{
+    QStringList out;
+
+    // 1) ヘッダ
+    const QList<KifGameInfoItem> header = collectGameInfo_(ctx);
+    for (const auto& it : header) {
+        if (!it.key.trimmed().isEmpty()) {
+            // 消費時間は KI2 では省略
+            if (it.key.trimmed() == QStringLiteral("消費時間")) continue;
+            out << fwColonLine(it.key.trimmed(), it.value.trimmed());
+        }
+    }
+
+    // 2) 本譜の指し手を収集
+    const QList<KifDisplayItem> disp = collectMainlineForExport_();
+
+    // 3) 開始局面のコメントを先に出力
+    int startIdx = 0;
+    if (!disp.isEmpty() && disp[0].prettyMove.trimmed().isEmpty()) {
+        // 開始局面のコメントを先に出力
+        const QString cmt = disp[0].comment.trimmed();
+        if (!cmt.isEmpty()) {
+            if (!out.isEmpty()) {
+                out << QString();  // 空行を入れる
+            }
+            const QStringList lines = cmt.split(QRegularExpression(QStringLiteral("\r?\n")), Qt::KeepEmptyParts);
+            for (const QString& raw : lines) {
+                const QString t = raw.trimmed();
+                if (t.isEmpty()) continue;
+                if (t.startsWith(QLatin1Char('*'))) {
+                    out << t;
+                } else {
+                    out << (QStringLiteral("*") + t);
+                }
+            }
+        }
+        startIdx = 1; // 実際の指し手は次から
+    }
+
+    // 4) 各指し手を出力（KI2形式）
+    int moveNo = 1;
+    int lastActualMoveNo = 0;
+    QString terminalMove;
+    QStringList movesOnLine;  // 現在の行に蓄積する指し手
+    bool lastMoveHadComment = false;
+    
+    for (int i = startIdx; i < disp.size(); ++i) {
+        const auto& it = disp[i];
+        const QString moveText = it.prettyMove.trimmed();
+        
+        // 空の指し手はスキップ
+        if (moveText.isEmpty()) continue;
+        
+        // 終局語の判定
+        const bool isTerminal = isTerminalMove(moveText);
+        
+        // KI2形式: 手番記号は維持、(xx)の移動元は削除
+        QString ki2Move = moveText;
+        // 移動元情報 (xx) を削除
+        static const QRegularExpression fromPosPattern(QStringLiteral("\\([0-9０-９]+[0-9０-９]+\\)$"));
+        ki2Move.remove(fromPosPattern);
+        
+        const QString cmt = it.comment.trimmed();
+        const bool hasComment = !cmt.isEmpty();
+        
+        if (hasComment || lastMoveHadComment || isTerminal) {
+            // コメントがある場合、または前の手にコメントがあった場合は、
+            // 溜まっている指し手を吐き出してから、この指し手を単独行で出力
+            if (!movesOnLine.isEmpty()) {
+                out << movesOnLine.join(QStringLiteral("    "));
+                movesOnLine.clear();
+            }
+            out << ki2Move;
+            
+            // コメント出力
+            if (hasComment) {
+                const QStringList cmtLines = cmt.split(QRegularExpression(QStringLiteral("\r?\n")), Qt::KeepEmptyParts);
+                for (const QString& raw : cmtLines) {
+                    const QString t = raw.trimmed();
+                    if (t.isEmpty()) continue;
+                    if (t.startsWith(QLatin1Char('*'))) {
+                        out << t;
+                    } else {
+                        out << (QStringLiteral("*") + t);
+                    }
+                }
+            }
+            lastMoveHadComment = hasComment;
+        } else {
+            // コメントがない場合は指し手を蓄積
+            movesOnLine.append(ki2Move);
+            lastMoveHadComment = false;
+        }
+        
+        if (isTerminal) {
+            terminalMove = moveText;
+        } else {
+            lastActualMoveNo = moveNo;
+        }
+        ++moveNo;
+    }
+    
+    // 残りの指し手を出力
+    if (!movesOnLine.isEmpty()) {
+        out << movesOnLine.join(QStringLiteral("    "));
+    }
+
+    // 5) 終了行
+    out << buildEndingLine(lastActualMoveNo, terminalMove);
+
+    // 6) 変化（分岐）を出力
+    if (m_resolvedRows && m_resolvedRows->size() > 1) {
+        // 本譜（parent < 0）の行インデックスを探す
+        int mainRowIndex = -1;
+        for (int i = 0; i < m_resolvedRows->size(); ++i) {
+            if (m_resolvedRows->at(i).parent < 0) {
+                mainRowIndex = i;
+                break;
+            }
+        }
+        
+        if (mainRowIndex >= 0) {
+            QSet<int> visitedRows;
+            visitedRows.insert(mainRowIndex); // 本譜は既に出力済み
+            outputKi2VariationsRecursively_(mainRowIndex, out, visitedRows);
+        }
+    }
+
+    qDebug().noquote() << "[GameRecordModel] toKi2Lines: generated"
+                       << out.size() << "lines,"
+                       << lastActualMoveNo << "moves";
+
+    return out;
+}
+
+void GameRecordModel::outputKi2Variation_(int rowIndex, QStringList& out) const
+{
+    if (!m_resolvedRows || rowIndex < 0 || rowIndex >= m_resolvedRows->size()) {
+        return;
+    }
+    
+    const ResolvedRow& row = m_resolvedRows->at(rowIndex);
+    
+    // 変化ヘッダを出力
+    out << QString();
+    out << QStringLiteral("変化：%1手").arg(row.startPly);
+    
+    // 変化の指し手を出力
+    const QList<KifDisplayItem>& disp = row.disp;
+    
+    QStringList movesOnLine;
+    bool lastMoveHadComment = false;
+    
+    // dispのstartPly番目の要素から出力
+    for (int i = row.startPly; i < disp.size(); ++i) {
+        const auto& it = disp[i];
+        const QString moveText = it.prettyMove.trimmed();
+        
+        // 空の指し手はスキップ
+        if (moveText.isEmpty()) continue;
+        
+        // KI2形式: 手番記号は維持、(xx)の移動元は削除
+        QString ki2Move = moveText;
+        static const QRegularExpression fromPosPattern(QStringLiteral("\\([0-9０-９]+[0-9０-９]+\\)$"));
+        ki2Move.remove(fromPosPattern);
+        
+        const QString cmt = it.comment.trimmed();
+        const bool hasComment = !cmt.isEmpty();
+        const bool isTerminal = isTerminalMove(moveText);
+        
+        if (hasComment || lastMoveHadComment || isTerminal) {
+            if (!movesOnLine.isEmpty()) {
+                out << movesOnLine.join(QStringLiteral("    "));
+                movesOnLine.clear();
+            }
+            out << ki2Move;
+            
+            if (hasComment) {
+                const QStringList cmtLines = cmt.split(QRegularExpression(QStringLiteral("\r?\n")), Qt::KeepEmptyParts);
+                for (const QString& raw : cmtLines) {
+                    const QString t = raw.trimmed();
+                    if (t.isEmpty()) continue;
+                    if (t.startsWith(QLatin1Char('*'))) {
+                        out << t;
+                    } else {
+                        out << (QStringLiteral("*") + t);
+                    }
+                }
+            }
+            lastMoveHadComment = hasComment;
+        } else {
+            movesOnLine.append(ki2Move);
+            lastMoveHadComment = false;
+        }
+    }
+    
+    // 残りの指し手を出力
+    if (!movesOnLine.isEmpty()) {
+        out << movesOnLine.join(QStringLiteral("    "));
+    }
+}
+
+void GameRecordModel::outputKi2VariationsRecursively_(int parentRowIndex, QStringList& out, QSet<int>& visitedRows) const
+{
+    Q_UNUSED(parentRowIndex);
+    
+    if (!m_resolvedRows) {
+        return;
+    }
+    
+    // varIndexの順序で出力する
+    QVector<QPair<int, int>> variations; // (varIndex, rowIndex)
+    
+    for (int i = 0; i < m_resolvedRows->size(); ++i) {
+        const ResolvedRow& row = m_resolvedRows->at(i);
+        if (row.parent < 0 || visitedRows.contains(i)) {
+            continue;
+        }
+        int sortKey = (row.varIndex >= 0) ? row.varIndex : (1000 + i);
+        variations.append(qMakePair(sortKey, i));
+    }
+    
+    std::sort(variations.begin(), variations.end(), [](const QPair<int, int>& a, const QPair<int, int>& b) {
+        return a.first < b.first;
+    });
+    
+    for (const auto& var : variations) {
+        const int rowIndex = var.second;
+        
+        if (visitedRows.contains(rowIndex)) {
+            continue;
+        }
+        visitedRows.insert(rowIndex);
+        
+        outputKi2Variation_(rowIndex, out);
+    }
+}
