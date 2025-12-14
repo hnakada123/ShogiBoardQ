@@ -117,6 +117,16 @@ public:
      */
     QStringList toKifLines(const ExportContext& ctx) const;
 
+    /**
+     * @brief KI2形式の行リストを生成
+     * @param ctx 出力コンテキスト（ヘッダ情報等）
+     * @return KI2形式の行リスト
+     * 
+     * KI2形式は消費時間を含まず、指し手は手番記号（▲△）付きで出力されます。
+     * 分岐の指し手もサポートされます。
+     */
+    QStringList toKi2Lines(const ExportContext& ctx) const;
+
     // ========================================
     // ライブ対局用
     // ========================================
@@ -196,6 +206,22 @@ private:
      * @param visitedRows 訪問済み行のセット（無限ループ防止）
      */
     void outputVariationsRecursively_(int parentRowIndex, QStringList& out, QSet<int>& visitedRows) const;
+
+    // === KI2形式出力用ヘルパ ===
+    /**
+     * @brief KI2形式で指定した行の変化を出力
+     * @param rowIndex ResolvedRow のインデックス
+     * @param out 出力先
+     */
+    void outputKi2Variation_(int rowIndex, QStringList& out) const;
+
+    /**
+     * @brief KI2形式で再帰的に変化を出力
+     * @param parentRowIndex 親行のインデックス
+     * @param out 出力先
+     * @param visitedRows 訪問済み行のセット（無限ループ防止）
+     */
+    void outputKi2VariationsRecursively_(int parentRowIndex, QStringList& out, QSet<int>& visitedRows) const;
 };
 
 #endif // GAMERECORDMODEL_H

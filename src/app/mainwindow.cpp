@@ -2924,8 +2924,11 @@ void MainWindow::updateGameRecord(const QString& elapsedTime)
 // 新しい保存関数
 void MainWindow::saveKifuToFile()
 {
-    // ★ GameRecordModel を使って KIF 形式を生成
+    // ★ GameRecordModel を使って KIF/KI2 形式を生成
     ensureGameRecordModel_();
+
+    QStringList kifLines;
+    QStringList ki2Lines;
 
     if (m_gameRecord) {
         // ExportContext を構築
@@ -2939,12 +2942,14 @@ void MainWindow::saveKifuToFile()
         ctx.engine1       = m_engineName1;
         ctx.engine2       = m_engineName2;
 
-        // GameRecordModel から KIF 形式の行リストを生成
-        m_kifuDataList = m_gameRecord->toKifLines(ctx);
+        // GameRecordModel から KIF/KI2 形式の行リストを生成
+        kifLines = m_gameRecord->toKifLines(ctx);
+        ki2Lines = m_gameRecord->toKi2Lines(ctx);
 
-        qDebug().noquote() << "[MW] saveKifuToFile: generated" << m_kifuDataList.size() << "lines via GameRecordModel";
+        qDebug().noquote() << "[MW] saveKifuToFile: generated" << kifLines.size() << "KIF lines,"
+                           << ki2Lines.size() << "KI2 lines via GameRecordModel";
     } else {
-        // フォールバック: 従来の KifuContentBuilder を使用
+        // フォールバック: 従来の KifuContentBuilder を使用（KIF形式のみ）
         KifuExportContext ctx;
         ctx.gameInfoTable = m_gameInfoTable;
         ctx.recordModel   = m_kifuRecordModel;
@@ -2961,13 +2966,17 @@ void MainWindow::saveKifuToFile()
         ctx.engine1   = m_engineName1;
         ctx.engine2   = m_engineName2;
 
-        m_kifuDataList = KifuContentBuilder::buildKifuDataList(ctx);
-        qDebug().noquote() << "[MW] saveKifuToFile: generated" << m_kifuDataList.size() << "lines via KifuContentBuilder (fallback)";
+        kifLines = KifuContentBuilder::buildKifuDataList(ctx);
+        qDebug().noquote() << "[MW] saveKifuToFile: generated" << kifLines.size() << "lines via KifuContentBuilder (fallback)";
     }
 
-    const QString path = KifuSaveCoordinator::saveViaDialog(
+    m_kifuDataList = kifLines;
+
+    // KI2形式も利用可能な場合は新しいダイアログを使用
+    const QString path = KifuSaveCoordinator::saveViaDialogWithKi2(
         this,
-        m_kifuDataList,
+        kifLines,
+        ki2Lines,
         m_playMode,
         m_humanName1, m_humanName2,
         m_engineName1, m_engineName2);
