@@ -6,6 +6,8 @@
 #include <QDateTime>
 #include <QRegularExpression>
 #include <QDebug>
+#include <QPair>
+#include <algorithm>
 
 // ========================================
 // ヘルパ関数
@@ -261,7 +263,10 @@ QStringList GameRecordModel::toKifLines(const ExportContext& ctx) const
     // 3) 本譜の指し手を収集
     const QList<KifDisplayItem> disp = collectMainlineForExport_();
 
-    // 4) 開始局面の処理（prettyMoveが空のエントリ）
+    // 4) 分岐ポイントを収集（本譜のどの手に分岐があるか）
+    const QSet<int> branchPoints = collectBranchPoints_();
+
+    // 5) 開始局面の処理（prettyMoveが空のエントリ）
     int startIdx = 0;
     if (!disp.isEmpty() && disp[0].prettyMove.trimmed().isEmpty()) {
         // 開始局面のコメントを先に出力
@@ -281,7 +286,7 @@ QStringList GameRecordModel::toKifLines(const ExportContext& ctx) const
         startIdx = 1; // 実際の指し手は次から
     }
 
-    // 5) 各指し手を出力
+    // 6) 各指し手を出力
     int moveNo = 1;
     int lastActualMoveNo = 0;
     QString terminalMove;
@@ -302,12 +307,16 @@ QStringList GameRecordModel::toKifLines(const ExportContext& ctx) const
         // 時間フォーマット（括弧付き）
         const QString time = formatKifTime(it.timeText);
         
-        // KIF形式で出力: "   手数 指し手   (時間)"
+        // 分岐マークの判定（この手に分岐があるか）
+        const QString branchMark = branchPoints.contains(moveNo) ? QStringLiteral("+") : QString();
+        
+        // KIF形式で出力: "   手数 指し手   (時間)+"
         const QString moveNoStr = QStringLiteral("%1").arg(moveNo, 4);
-        out << QStringLiteral("%1 %2   %3")
+        out << QStringLiteral("%1 %2   %3%4")
                    .arg(moveNoStr)
                    .arg(kifMove, -12)  // 左詰め12文字
-                   .arg(time);
+                   .arg(time)
+                   .arg(branchMark);
         
         // コメント出力（指し手の後に）
         const QString cmt = it.comment.trimmed();
@@ -332,13 +341,32 @@ QStringList GameRecordModel::toKifLines(const ExportContext& ctx) const
         ++moveNo;
     }
 
-    // 6) 終了行
+    // 7) 終了行（本譜のみ）
     out << QString();
     out << buildEndingLine(lastActualMoveNo, terminalMove);
 
-    qDebug().noquote() << "[GameRecordModel] toKifLines (MODIFIED): generated"
+    // 8) 変化（分岐）を出力
+    if (m_resolvedRows && m_resolvedRows->size() > 1) {
+        // 本譜（parent < 0）の行インデックスを探す
+        int mainRowIndex = -1;
+        for (int i = 0; i < m_resolvedRows->size(); ++i) {
+            if (m_resolvedRows->at(i).parent < 0) {
+                mainRowIndex = i;
+                break;
+            }
+        }
+        
+        if (mainRowIndex >= 0) {
+            QSet<int> visitedRows;
+            visitedRows.insert(mainRowIndex); // 本譜は既に出力済み
+            outputVariationsRecursively_(mainRowIndex, out, visitedRows);
+        }
+    }
+
+    qDebug().noquote() << "[GameRecordModel] toKifLines (WITH VARIATIONS): generated"
                        << out.size() << "lines,"
-                       << (moveNo - 1) << "moves, lastActualMoveNo=" << lastActualMoveNo;
+                       << (moveNo - 1) << "moves, lastActualMoveNo=" << lastActualMoveNo
+                       << "branchPoints=" << branchPoints.size();
 
     return out;
 }
@@ -465,5 +493,187 @@ void GameRecordModel::resolvePlayerNames_(const ExportContext& ctx, QString& out
         outBlack = QObject::tr("先手");
         outWhite = QObject::tr("後手");
         break;
+    }
+}
+
+// ========================================
+// 分岐出力用ヘルパ
+// ========================================
+
+QSet<int> GameRecordModel::collectBranchPoints_() const
+{
+    QSet<int> result;
+    
+    if (!m_resolvedRows || m_resolvedRows->isEmpty()) {
+        return result;
+    }
+    
+    // 本譜（parent == -1 の行）を探す
+    int mainRowIndex = -1;
+    for (int i = 0; i < m_resolvedRows->size(); ++i) {
+        if (m_resolvedRows->at(i).parent < 0) {
+            mainRowIndex = i;
+            break;
+        }
+    }
+    
+    if (mainRowIndex < 0) {
+        return result;
+    }
+    
+    // 本譜の子（直接の分岐）と、すべての変化の子を調べる
+    // 各変化のstartPlyを記録
+    for (int i = 0; i < m_resolvedRows->size(); ++i) {
+        const ResolvedRow& row = m_resolvedRows->at(i);
+        
+        // 本譜はスキップ
+        if (row.parent < 0) continue;
+        
+        // この変化が本譜から直接分岐している場合
+        if (row.parent == mainRowIndex) {
+            result.insert(row.startPly);
+        }
+    }
+    
+    // さらに、本譜の各手について、その手から分岐する変化があるかを確認
+    // （上記で既に取得済みだが、親子関係が複雑な場合の補助）
+    
+    return result;
+}
+
+void GameRecordModel::outputVariation_(int rowIndex, QStringList& out) const
+{
+    if (!m_resolvedRows || rowIndex < 0 || rowIndex >= m_resolvedRows->size()) {
+        return;
+    }
+    
+    const ResolvedRow& row = m_resolvedRows->at(rowIndex);
+    
+    // 変化ヘッダを出力
+    out << QString();
+    out << QStringLiteral("変化：%1手").arg(row.startPly);
+    
+    // この変化から分岐する子変化のstartPlyを収集
+    QSet<int> childBranchPoints;
+    for (int i = 0; i < m_resolvedRows->size(); ++i) {
+        if (m_resolvedRows->at(i).parent == rowIndex) {
+            childBranchPoints.insert(m_resolvedRows->at(i).startPly);
+        }
+    }
+    
+    // 同じ親・同じstartPlyを持ち、varIndexが自分より大きい兄弟変化があるかチェック
+    // （この変化の最初の手に+マークを付けるため - 後に来る変化がある場合のみ）
+    bool hasSiblingAfterThis = false;
+    const int myVarIndex = row.varIndex;
+    for (int i = 0; i < m_resolvedRows->size(); ++i) {
+        if (i == rowIndex) continue; // 自分自身はスキップ
+        const ResolvedRow& other = m_resolvedRows->at(i);
+        if (other.parent == row.parent && other.startPly == row.startPly) {
+            // 同じ親・同じstartPlyの兄弟変化
+            // varIndexが自分より大きい（= 後に出力される）場合のみ+マーク
+            if (other.varIndex > myVarIndex) {
+                hasSiblingAfterThis = true;
+                break;
+            }
+        }
+    }
+    
+    // 変化の指し手を出力
+    // disp[0]=開始局面, disp[i]=i手目 なので、startPly手目から出力開始
+    const QList<KifDisplayItem>& disp = row.disp;
+    
+    int moveNo = row.startPly;
+    bool isFirstMove = true;
+    
+    // dispのstartPly番目の要素から出力（disp[startPly]がstartPly手目）
+    for (int i = row.startPly; i < disp.size(); ++i) {
+        const auto& it = disp[i];
+        const QString moveText = it.prettyMove.trimmed();
+        
+        // 空の指し手はスキップ
+        if (moveText.isEmpty()) continue;
+        
+        // 手番記号を除去してKIF形式に変換
+        const QString kifMove = removeTurnMarker(moveText);
+        
+        // 時間フォーマット（括弧付き）
+        const QString time = formatKifTime(it.timeText);
+        
+        // 分岐マークの判定
+        // 1. この手に子分岐があるか
+        // 2. 最初の手で、後に来る兄弟変化があるか
+        bool hasBranch = childBranchPoints.contains(moveNo);
+        if (isFirstMove && hasSiblingAfterThis) {
+            hasBranch = true;
+        }
+        const QString branchMark = hasBranch ? QStringLiteral("+") : QString();
+        
+        // KIF形式で出力
+        const QString moveNoStr = QStringLiteral("%1").arg(moveNo, 4);
+        out << QStringLiteral("%1 %2   %3%4")
+                   .arg(moveNoStr)
+                   .arg(kifMove, -12)
+                   .arg(time)
+                   .arg(branchMark);
+        
+        // コメント出力
+        const QString cmt = it.comment.trimmed();
+        if (!cmt.isEmpty()) {
+            const QStringList lines = cmt.split(QRegularExpression(QStringLiteral("\r?\n")), Qt::KeepEmptyParts);
+            for (const QString& raw : lines) {
+                const QString t = raw.trimmed();
+                if (t.isEmpty()) continue;
+                if (t.startsWith(QLatin1Char('*'))) {
+                    out << t;
+                } else {
+                    out << (QStringLiteral("*") + t);
+                }
+            }
+        }
+        
+        ++moveNo;
+        isFirstMove = false;
+    }
+}
+
+void GameRecordModel::outputVariationsRecursively_(int parentRowIndex, QStringList& out, QSet<int>& visitedRows) const
+{
+    Q_UNUSED(parentRowIndex);
+    
+    if (!m_resolvedRows) {
+        return;
+    }
+    
+    // 元のKIFファイルの順序を維持するため、varIndexの順序で出力する
+    // varIndex >= 0 の行を varIndex の昇順で収集
+    QVector<QPair<int, int>> variations; // (varIndex, rowIndex)
+    
+    for (int i = 0; i < m_resolvedRows->size(); ++i) {
+        const ResolvedRow& row = m_resolvedRows->at(i);
+        // 本譜（parent < 0）はスキップ、既に訪問済みもスキップ
+        if (row.parent < 0 || visitedRows.contains(i)) {
+            continue;
+        }
+        // varIndex が有効な場合はそれを使用、無効な場合は行インデックスを使用
+        int sortKey = (row.varIndex >= 0) ? row.varIndex : (1000 + i);
+        variations.append(qMakePair(sortKey, i));
+    }
+    
+    // varIndex（または代替キー）でソート（昇順）
+    std::sort(variations.begin(), variations.end(), [](const QPair<int, int>& a, const QPair<int, int>& b) {
+        return a.first < b.first;
+    });
+    
+    // 各変化を順番に出力
+    for (const auto& var : variations) {
+        const int rowIndex = var.second;
+        
+        if (visitedRows.contains(rowIndex)) {
+            continue;
+        }
+        visitedRows.insert(rowIndex);
+        
+        // この変化を出力
+        outputVariation_(rowIndex, out);
     }
 }

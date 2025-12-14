@@ -6,6 +6,7 @@
 #include <QStringList>
 #include <QVector>
 #include <QList>
+#include <QSet>
 
 #include "kifdisplayitem.h"
 #include "kifparsetypes.h"
@@ -173,6 +174,28 @@ private:
     QList<KifDisplayItem> collectMainlineForExport_() const;
     static QList<KifGameInfoItem> collectGameInfo_(const ExportContext& ctx);
     static void resolvePlayerNames_(const ExportContext& ctx, QString& outBlack, QString& outWhite);
+
+    // === 分岐出力用ヘルパ ===
+    /**
+     * @brief 分岐が存在する手数のセットを収集
+     * @return 分岐開始手数のセット（本譜基準）
+     */
+    QSet<int> collectBranchPoints_() const;
+
+    /**
+     * @brief 指定した行の変化をKIF形式で出力
+     * @param rowIndex ResolvedRow のインデックス
+     * @param out 出力先
+     */
+    void outputVariation_(int rowIndex, QStringList& out) const;
+
+    /**
+     * @brief 再帰的に変化を出力（子の変化を含む）
+     * @param parentRowIndex 親行のインデックス
+     * @param out 出力先
+     * @param visitedRows 訪問済み行のセット（無限ループ防止）
+     */
+    void outputVariationsRecursively_(int parentRowIndex, QStringList& out, QSet<int>& visitedRows) const;
 };
 
 #endif // GAMERECORDMODEL_H
