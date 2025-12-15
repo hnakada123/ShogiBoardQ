@@ -285,6 +285,14 @@ private:
      * @param mainRowIndex 本譜の行インデックス
      */
     void addJkfForks_(QJsonArray& movesArray, int mainRowIndex) const;
+
+    /**
+     * @brief 分岐の指し手配列を再帰的に構築（深い分岐対応）
+     * @param rowIndex 分岐行のインデックス
+     * @param visitedRows 訪問済み行のセット（無限ループ防止）
+     * @return QJsonArray 形式の分岐指し手配列
+     */
+    QJsonArray buildJkfForkMovesRecursive_(int rowIndex, QSet<int>& visitedRows) const;
 };
 
 #endif // GAMERECORDMODEL_H

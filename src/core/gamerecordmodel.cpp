@@ -1680,9 +1680,160 @@ static QString sfenToJkfPreset(const QString& sfen)
         return QStringLiteral("HIRATE");
     }
     
-    // 各種駒落ちの判定
-    // TODO: より詳細な駒落ち判定を実装
-    return QString();
+    // 各種駒落ちの判定（後手番から開始）
+    struct PresetDef { const char* preset; const char* pos; };
+    static const PresetDef presets[] = {
+        {"KY",    "lnsgkgsn1/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL"},   // 香落ち
+        {"KY_R",  "1nsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL"},   // 右香落ち
+        {"KA",    "lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL"},     // 角落ち
+        {"HI",    "lnsgkgsnl/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL"},     // 飛車落ち
+        {"HIKY",  "lnsgkgsn1/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL"},     // 飛香落ち
+        {"2",     "lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL"},       // 二枚落ち
+        {"3",     "lnsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL"},       // 三枚落ち
+        {"4",     "1nsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL"},       // 四枚落ち
+        {"5",     "2sgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL"},        // 五枚落ち
+        {"5_L",   "1nsgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL"},        // 左五枚落ち
+        {"6",     "2sgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL"},         // 六枚落ち
+        {"7_L",   "2sgkg3/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL"},          // 左七枚落ち
+        {"7_R",   "3gkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL"},          // 右七枚落ち
+        {"8",     "3gkg3/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL"},           // 八枚落ち
+        {"10",    "4k4/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL"},             // 十枚落ち
+    };
+    
+    const QString boardPart = sfen.section(QLatin1Char(' '), 0, 0);
+    for (const auto& p : presets) {
+        if (boardPart == QString::fromUtf8(p.pos)) {
+            return QString::fromUtf8(p.preset);
+        }
+    }
+    
+    return QString(); // カスタム局面
+}
+
+// ヘルパ関数: SFEN駒文字からCSA駒種に変換
+static QString sfenPieceToJkfKind(QChar c, bool promoted)
+{
+    QChar upper = c.toUpper();
+    QString base;
+    if (upper == QLatin1Char('P')) base = QStringLiteral("FU");
+    else if (upper == QLatin1Char('L')) base = QStringLiteral("KY");
+    else if (upper == QLatin1Char('N')) base = QStringLiteral("KE");
+    else if (upper == QLatin1Char('S')) base = QStringLiteral("GI");
+    else if (upper == QLatin1Char('G')) base = QStringLiteral("KI");
+    else if (upper == QLatin1Char('B')) base = QStringLiteral("KA");
+    else if (upper == QLatin1Char('R')) base = QStringLiteral("HI");
+    else if (upper == QLatin1Char('K')) base = QStringLiteral("OU");
+    else return QString();
+    
+    if (promoted) {
+        if (base == QStringLiteral("FU")) return QStringLiteral("TO");
+        if (base == QStringLiteral("KY")) return QStringLiteral("NY");
+        if (base == QStringLiteral("KE")) return QStringLiteral("NK");
+        if (base == QStringLiteral("GI")) return QStringLiteral("NG");
+        if (base == QStringLiteral("KA")) return QStringLiteral("UM");
+        if (base == QStringLiteral("HI")) return QStringLiteral("RY");
+    }
+    return base;
+}
+
+// ヘルパ関数: SFENからJKFのdataオブジェクトを構築
+static QJsonObject sfenToJkfData(const QString& sfen)
+{
+    QJsonObject data;
+    
+    if (sfen.isEmpty()) return data;
+    
+    const QStringList parts = sfen.split(QLatin1Char(' '));
+    if (parts.size() < 3) return data;
+    
+    const QString boardStr = parts[0];
+    const QString turnStr = parts[1];
+    const QString handsStr = parts[2];
+    
+    // 手番 (0=先手, 1=後手)
+    data[QStringLiteral("color")] = (turnStr == QStringLiteral("b")) ? 0 : 1;
+    
+    // 盤面を解析
+    // SFEN: 9筋から1筋へ、1段から9段へ
+    // JKF board: board[x-1][y-1] が (x,y) のマス
+    // board[0] は1筋, board[0][0] は (1,1)
+    QJsonArray board;
+    for (int x = 0; x < 9; ++x) {
+        QJsonArray col;
+        for (int y = 0; y < 9; ++y) {
+            col.append(QJsonObject()); // 空マス
+        }
+        board.append(col);
+    }
+    
+    const QStringList rows = boardStr.split(QLatin1Char('/'));
+    for (int y = 0; y < qMin(9, rows.size()); ++y) {
+        const QString& rowStr = rows[y];
+        int x = 8; // SFEN は9筋から開始
+        bool promoted = false;
+        
+        for (int i = 0; i < rowStr.size() && x >= 0; ++i) {
+            QChar c = rowStr.at(i);
+            
+            if (c == QLatin1Char('+')) {
+                promoted = true;
+                continue;
+            }
+            
+            if (c.isDigit()) {
+                x -= c.digitValue();
+                promoted = false;
+            } else {
+                // 駒
+                QJsonObject piece;
+                piece[QStringLiteral("color")] = c.isUpper() ? 0 : 1;
+                piece[QStringLiteral("kind")] = sfenPieceToJkfKind(c, promoted);
+                
+                // board[x] の y 位置に設定
+                QJsonArray col = board[x].toArray();
+                col[y] = piece;
+                board[x] = col;
+                
+                --x;
+                promoted = false;
+            }
+        }
+    }
+    data[QStringLiteral("board")] = board;
+    
+    // 持駒を解析
+    // SFEN hands: 先手の駒（大文字）と後手の駒（小文字）が混在
+    // JKF hands: hands[0]=先手, hands[1]=後手
+    QJsonObject blackHands;
+    QJsonObject whiteHands;
+    
+    if (handsStr != QStringLiteral("-")) {
+        int count = 0;
+        for (int i = 0; i < handsStr.size(); ++i) {
+            QChar c = handsStr.at(i);
+            if (c.isDigit()) {
+                count = count * 10 + c.digitValue();
+            } else {
+                if (count == 0) count = 1;
+                QString kind = sfenPieceToJkfKind(c, false);
+                if (!kind.isEmpty()) {
+                    if (c.isUpper()) {
+                        blackHands[kind] = blackHands[kind].toInt() + count;
+                    } else {
+                        whiteHands[kind] = whiteHands[kind].toInt() + count;
+                    }
+                }
+                count = 0;
+            }
+        }
+    }
+    
+    QJsonArray hands;
+    hands.append(blackHands);
+    hands.append(whiteHands);
+    data[QStringLiteral("hands")] = hands;
+    
+    return data;
 }
 
 QJsonObject GameRecordModel::buildJkfHeader_(const ExportContext& ctx) const
@@ -1710,8 +1861,13 @@ QJsonObject GameRecordModel::buildJkfInitial_(const ExportContext& ctx) const
         initial[QStringLiteral("preset")] = preset;
     } else {
         // カスタム初期局面の場合
-        // TODO: SFEN から data オブジェクトを構築
         initial[QStringLiteral("preset")] = QStringLiteral("OTHER");
+        
+        // SFEN から data オブジェクトを構築
+        const QJsonObject data = sfenToJkfData(ctx.startSfen);
+        if (!data.isEmpty()) {
+            initial[QStringLiteral("data")] = data;
+        }
     }
     
     return initial;
@@ -1971,31 +2127,15 @@ void GameRecordModel::addJkfForks_(QJsonArray& movesArray, int mainRowIndex) con
                 forks = moveObj[QStringLiteral("forks")].toArray();
             }
             
-            // 各分岐を forks 配列に追加
+            // 各分岐を forks 配列に追加（深い分岐も再帰的に処理）
             for (int rowIndex : rowIndices) {
-                const ResolvedRow& row = m_resolvedRows->at(rowIndex);
-                const QList<KifDisplayItem>& dispItems = row.disp;
+                QSet<int> visitedRows;
+                visitedRows.insert(mainRowIndex); // 本譜は既に処理済み
                 
-                QJsonArray forkMoves;
-                int forkPrevToX = 0, forkPrevToY = 0;
-                
-                // startPly 手目以降の指し手を追加
-                for (int j = row.startPly; j < dispItems.size(); ++j) {
-                    const auto& item = dispItems[j];
-                    if (item.prettyMove.trimmed().isEmpty()) continue;
-                    
-                    const QJsonObject forkMoveObj = convertMoveToJkf_(item, forkPrevToX, forkPrevToY, j);
-                    if (!forkMoveObj.isEmpty()) {
-                        forkMoves.append(forkMoveObj);
-                    }
-                }
-                
+                const QJsonArray forkMoves = buildJkfForkMovesRecursive_(rowIndex, visitedRows);
                 if (!forkMoves.isEmpty()) {
                     forks.append(forkMoves);
                 }
-                
-                // 再帰的に子分岐を処理
-                // TODO: 深い分岐の対応
             }
             
             if (!forks.isEmpty()) {
@@ -2004,6 +2144,65 @@ void GameRecordModel::addJkfForks_(QJsonArray& movesArray, int mainRowIndex) con
             }
         }
     }
+}
+
+QJsonArray GameRecordModel::buildJkfForkMovesRecursive_(int rowIndex, QSet<int>& visitedRows) const
+{
+    QJsonArray forkMoves;
+    
+    if (!m_resolvedRows || rowIndex < 0 || rowIndex >= m_resolvedRows->size()) {
+        return forkMoves;
+    }
+    
+    // 無限ループ防止
+    if (visitedRows.contains(rowIndex)) {
+        return forkMoves;
+    }
+    visitedRows.insert(rowIndex);
+    
+    const ResolvedRow& row = m_resolvedRows->at(rowIndex);
+    const QList<KifDisplayItem>& dispItems = row.disp;
+    
+    int forkPrevToX = 0, forkPrevToY = 0;
+    
+    // この分岐の子分岐を収集（手数でグループ化）
+    QMap<int, QVector<int>> childForksByPly;
+    for (int i = 0; i < m_resolvedRows->size(); ++i) {
+        const ResolvedRow& childRow = m_resolvedRows->at(i);
+        if (childRow.parent == rowIndex && !visitedRows.contains(i)) {
+            childForksByPly[childRow.startPly].append(i);
+        }
+    }
+    
+    // startPly 手目以降の指し手を追加
+    for (int j = row.startPly; j < dispItems.size(); ++j) {
+        const auto& item = dispItems[j];
+        if (item.prettyMove.trimmed().isEmpty()) continue;
+        
+        QJsonObject forkMoveObj = convertMoveToJkf_(item, forkPrevToX, forkPrevToY, j);
+        if (forkMoveObj.isEmpty()) continue;
+        
+        // この手数に子分岐があれば追加
+        if (childForksByPly.contains(j)) {
+            QJsonArray childForks;
+            const QVector<int>& childRowIndices = childForksByPly[j];
+            
+            for (int childRowIndex : childRowIndices) {
+                const QJsonArray childForkMoves = buildJkfForkMovesRecursive_(childRowIndex, visitedRows);
+                if (!childForkMoves.isEmpty()) {
+                    childForks.append(childForkMoves);
+                }
+            }
+            
+            if (!childForks.isEmpty()) {
+                forkMoveObj[QStringLiteral("forks")] = childForks;
+            }
+        }
+        
+        forkMoves.append(forkMoveObj);
+    }
+    
+    return forkMoves;
 }
 
 QStringList GameRecordModel::toJkfLines(const ExportContext& ctx) const
