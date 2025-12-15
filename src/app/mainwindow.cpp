@@ -2924,11 +2924,27 @@ void MainWindow::updateGameRecord(const QString& elapsedTime)
 // 新しい保存関数
 void MainWindow::saveKifuToFile()
 {
-    // ★ GameRecordModel を使って KIF/KI2 形式を生成
+    // ★ GameRecordModel を使って KIF/KI2/CSA 形式を生成
     ensureGameRecordModel_();
 
     QStringList kifLines;
     QStringList ki2Lines;
+    QStringList csaLines;
+
+    // CSA出力用のUSI指し手リストを取得
+    // m_usiMovesが空の場合はKifuLoadCoordinatorから取得
+    QStringList usiMovesForCsa = m_usiMoves;
+    if (usiMovesForCsa.isEmpty() && m_kifuLoadCoordinator) {
+        usiMovesForCsa = m_kifuLoadCoordinator->usiMoves();
+        qDebug().noquote() << "[MW] saveKifuToFile: usiMoves obtained from KifuLoadCoordinator, size =" << usiMovesForCsa.size();
+    }
+
+    // ★★★ デバッグ: usiMovesForCsa の状態を確認 ★★★
+    qDebug().noquote() << "[MW] saveKifuToFile: usiMovesForCsa.size() =" << usiMovesForCsa.size();
+    if (!usiMovesForCsa.isEmpty()) {
+        qDebug().noquote() << "[MW] saveKifuToFile: usiMovesForCsa[0..min(5,size)] ="
+                           << usiMovesForCsa.mid(0, qMin(5, usiMovesForCsa.size()));
+    }
 
     if (m_gameRecord) {
         // ExportContext を構築
@@ -2942,12 +2958,14 @@ void MainWindow::saveKifuToFile()
         ctx.engine1       = m_engineName1;
         ctx.engine2       = m_engineName2;
 
-        // GameRecordModel から KIF/KI2 形式の行リストを生成
+        // GameRecordModel から KIF/KI2/CSA 形式の行リストを生成
         kifLines = m_gameRecord->toKifLines(ctx);
         ki2Lines = m_gameRecord->toKi2Lines(ctx);
+        csaLines = m_gameRecord->toCsaLines(ctx, usiMovesForCsa);
 
         qDebug().noquote() << "[MW] saveKifuToFile: generated" << kifLines.size() << "KIF lines,"
-                           << ki2Lines.size() << "KI2 lines via GameRecordModel";
+                           << ki2Lines.size() << "KI2 lines,"
+                           << csaLines.size() << "CSA lines via GameRecordModel";
     } else {
         // フォールバック: 従来の KifuContentBuilder を使用（KIF形式のみ）
         KifuExportContext ctx;
@@ -2972,11 +2990,12 @@ void MainWindow::saveKifuToFile()
 
     m_kifuDataList = kifLines;
 
-    // KI2形式も利用可能な場合は新しいダイアログを使用
-    const QString path = KifuSaveCoordinator::saveViaDialogWithKi2(
+    // KIF/KI2/CSA形式が利用可能な場合は新しいダイアログを使用
+    const QString path = KifuSaveCoordinator::saveViaDialogWithAllFormats(
         this,
         kifLines,
         ki2Lines,
+        csaLines,
         m_playMode,
         m_humanName1, m_humanName2,
         m_engineName1, m_engineName2);

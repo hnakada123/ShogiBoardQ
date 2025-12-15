@@ -127,6 +127,17 @@ public:
      */
     QStringList toKi2Lines(const ExportContext& ctx) const;
 
+    /**
+     * @brief CSA形式の行リストを生成
+     * @param ctx 出力コンテキスト（ヘッダ情報等）
+     * @param usiMoves USI形式の指し手リスト
+     * @return CSA形式の行リスト
+     * 
+     * CSA形式はコンピュータ将棋協会の標準棋譜ファイル形式です。
+     * 分岐の指し手には対応していません（本譜のみ出力）。
+     */
+    QStringList toCsaLines(const ExportContext& ctx, const QStringList& usiMoves) const;
+
     // ========================================
     // ライブ対局用
     // ========================================

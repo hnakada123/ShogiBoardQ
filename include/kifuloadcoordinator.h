@@ -81,6 +81,9 @@ public:
 
     void setBranchCandidatesController(BranchCandidatesController* ctl);
 
+    // USI指し手リストを取得（CSA出力用）
+    const QStringList& usiMoves() const { return m_usiMoves; }
+
     void updateBranchTreeFromLive(int currentPly);
 
     // ライブ対局用：分岐Plan・＋/オレンジ強調・候補欄を一括更新
