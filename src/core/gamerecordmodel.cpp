@@ -1275,9 +1275,28 @@ QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringL
     // 2) バージョン
     out << QStringLiteral("V3.0");
     
-    // 3) 対局者名
+    // 3) 棋譜情報を先に収集（対局者名もここから取得）
+    const QList<KifGameInfoItem> header = collectGameInfo_(ctx);
+    
+    // 4) 対局者名
+    // まず棋譜情報から対局者名を探す（CSAファイル読み込み時はここに保存される）
     QString blackPlayer, whitePlayer;
-    resolvePlayerNames_(ctx, blackPlayer, whitePlayer);
+    for (const auto& it : header) {
+        const QString key = it.key.trimmed();
+        const QString val = it.value.trimmed();
+        if (key == QStringLiteral("先手") && !val.isEmpty()) {
+            blackPlayer = val;
+        } else if (key == QStringLiteral("後手") && !val.isEmpty()) {
+            whitePlayer = val;
+        }
+    }
+    // 棋譜情報になければresolvePlayerNames_から取得
+    if (blackPlayer.isEmpty() || whitePlayer.isEmpty()) {
+        QString resolvedBlack, resolvedWhite;
+        resolvePlayerNames_(ctx, resolvedBlack, resolvedWhite);
+        if (blackPlayer.isEmpty()) blackPlayer = resolvedBlack;
+        if (whitePlayer.isEmpty()) whitePlayer = resolvedWhite;
+    }
     if (!blackPlayer.isEmpty()) {
         out << QStringLiteral("N+%1").arg(blackPlayer);
     }
@@ -1285,12 +1304,16 @@ QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringL
         out << QStringLiteral("N-%1").arg(whitePlayer);
     }
     
-    // 4) 棋譜情報
-    const QList<KifGameInfoItem> header = collectGameInfo_(ctx);
+    // 5) 棋譜情報（対局者名以外）
     for (const auto& it : header) {
         const QString key = it.key.trimmed();
         const QString val = it.value.trimmed();
         if (key.isEmpty() || val.isEmpty()) continue;
+        
+        // 対局者名は既に出力済みなのでスキップ
+        if (key == QStringLiteral("先手") || key == QStringLiteral("後手")) {
+            continue;
+        }
         
         if (key == QStringLiteral("棋戦")) {
             out << QStringLiteral("$EVENT:%1").arg(val);
@@ -1324,7 +1347,7 @@ QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringL
         }
     }
     
-    // 5) 開始局面
+    // 6) 開始局面
     // startSfenがデフォルト（平手）かどうかを判定
     const QString defaultSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
     const bool isHirate = ctx.startSfen.isEmpty() || ctx.startSfen == defaultSfen 
@@ -1349,7 +1372,7 @@ QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringL
         out << QStringLiteral("+");
     }
     
-    // 6) 本譜の指し手を収集
+    // 7) 本譜の指し手を収集
     const QList<KifDisplayItem> disp = collectMainlineForExport_();
     
     // ★★★ デバッグ: disp の確認 ★★★
