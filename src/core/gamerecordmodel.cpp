@@ -7,6 +7,9 @@
 #include <QRegularExpression>
 #include <QDebug>
 #include <QPair>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
 #include <algorithm>
 
 // ========================================
@@ -1562,6 +1565,488 @@ QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringL
     qDebug().noquote() << "[GameRecordModel] toCsaLines: generated"
                        << out.size() << "lines,"
                        << (moveNo - 1) << "moves";
+    
+    return out;
+}
+
+// ========================================
+// JKF形式出力
+// ========================================
+
+// ヘルパ関数: 日本語駒名からCSA形式駒種に変換
+static QString kanjiToCsaPiece(const QString& kanji)
+{
+    if (kanji.contains(QStringLiteral("歩"))) return QStringLiteral("FU");
+    if (kanji.contains(QStringLiteral("香"))) return QStringLiteral("KY");
+    if (kanji.contains(QStringLiteral("桂"))) return QStringLiteral("KE");
+    if (kanji.contains(QStringLiteral("銀"))) return QStringLiteral("GI");
+    if (kanji.contains(QStringLiteral("金"))) return QStringLiteral("KI");
+    if (kanji.contains(QStringLiteral("角"))) return QStringLiteral("KA");
+    if (kanji.contains(QStringLiteral("飛"))) return QStringLiteral("HI");
+    if (kanji.contains(QStringLiteral("玉")) || kanji.contains(QStringLiteral("王"))) return QStringLiteral("OU");
+    if (kanji.contains(QStringLiteral("と"))) return QStringLiteral("TO");
+    if (kanji.contains(QStringLiteral("成香"))) return QStringLiteral("NY");
+    if (kanji.contains(QStringLiteral("成桂"))) return QStringLiteral("NK");
+    if (kanji.contains(QStringLiteral("成銀"))) return QStringLiteral("NG");
+    if (kanji.contains(QStringLiteral("馬"))) return QStringLiteral("UM");
+    if (kanji.contains(QStringLiteral("龍")) || kanji.contains(QStringLiteral("竜"))) return QStringLiteral("RY");
+    return QString();
+}
+
+// ヘルパ関数: 全角数字を半角数字に変換
+static int zenkakuToNumber(QChar c)
+{
+    static const QString zenkaku = QStringLiteral("０１２３４５６７８９");
+    int idx = zenkaku.indexOf(c);
+    if (idx >= 0) return idx;
+    if (c >= QLatin1Char('0') && c <= QLatin1Char('9')) return c.toLatin1() - '0';
+    return -1;
+}
+
+// ヘルパ関数: 漢数字を半角数字に変換
+static int kanjiToNumber(QChar c)
+{
+    static const QString kanji = QStringLiteral("〇一二三四五六七八九");
+    int idx = kanji.indexOf(c);
+    if (idx >= 0) return idx;
+    if (c >= QLatin1Char('1') && c <= QLatin1Char('9')) return c.toLatin1() - '0';
+    return -1;
+}
+
+// ヘルパ関数: 終局語から JKF special 文字列に変換
+static QString japaneseToJkfSpecial(const QString& japanese)
+{
+    if (japanese.contains(QStringLiteral("投了"))) return QStringLiteral("TORYO");
+    if (japanese.contains(QStringLiteral("中断"))) return QStringLiteral("CHUDAN");
+    if (japanese.contains(QStringLiteral("王手千日手"))) return QStringLiteral("OUTE_SENNICHITE");
+    if (japanese.contains(QStringLiteral("千日手"))) return QStringLiteral("SENNICHITE");
+    if (japanese.contains(QStringLiteral("持将棋"))) return QStringLiteral("JISHOGI");
+    if (japanese.contains(QStringLiteral("切れ負け"))) return QStringLiteral("TIME_UP");
+    if (japanese.contains(QStringLiteral("反則負け")) || japanese.contains(QStringLiteral("反則勝ち"))) return QStringLiteral("ILLEGAL_ACTION");
+    if (japanese.contains(QStringLiteral("入玉勝ち"))) return QStringLiteral("KACHI");
+    if (japanese.contains(QStringLiteral("引き分け"))) return QStringLiteral("HIKIWAKE");
+    if (japanese.contains(QStringLiteral("詰み"))) return QStringLiteral("TSUMI");
+    if (japanese.contains(QStringLiteral("不詰"))) return QStringLiteral("FUZUMI");
+    return QString();
+}
+
+// ヘルパ関数: time文字列（mm:ss/HH:MM:SS）をJKFの time オブジェクトに変換
+static QJsonObject parseTimeToJkf(const QString& timeText)
+{
+    QJsonObject result;
+    
+    if (timeText.isEmpty()) return result;
+    
+    // mm:ss/HH:MM:SS 形式をパース
+    QString text = timeText;
+    // 括弧を除去
+    text.remove(QLatin1Char('('));
+    text.remove(QLatin1Char(')'));
+    text = text.trimmed();
+    
+    const QStringList parts = text.split(QLatin1Char('/'));
+    if (parts.size() >= 1) {
+        // 1手の消費時間
+        const QStringList nowParts = parts[0].split(QLatin1Char(':'));
+        if (nowParts.size() >= 2) {
+            QJsonObject now;
+            now[QStringLiteral("m")] = nowParts[0].trimmed().toInt();
+            now[QStringLiteral("s")] = nowParts[1].trimmed().toInt();
+            result[QStringLiteral("now")] = now;
+        }
+    }
+    if (parts.size() >= 2) {
+        // 累計消費時間
+        const QStringList totalParts = parts[1].split(QLatin1Char(':'));
+        if (totalParts.size() >= 3) {
+            QJsonObject total;
+            total[QStringLiteral("h")] = totalParts[0].trimmed().toInt();
+            total[QStringLiteral("m")] = totalParts[1].trimmed().toInt();
+            total[QStringLiteral("s")] = totalParts[2].trimmed().toInt();
+            result[QStringLiteral("total")] = total;
+        }
+    }
+    
+    return result;
+}
+
+// ヘルパ関数: preset名からSFEN文字列を判定
+static QString sfenToJkfPreset(const QString& sfen)
+{
+    const QString defaultSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+    const QString hiratePos = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL");
+    
+    if (sfen.isEmpty() || sfen == defaultSfen || sfen.startsWith(hiratePos)) {
+        return QStringLiteral("HIRATE");
+    }
+    
+    // 各種駒落ちの判定
+    // TODO: より詳細な駒落ち判定を実装
+    return QString();
+}
+
+QJsonObject GameRecordModel::buildJkfHeader_(const ExportContext& ctx) const
+{
+    QJsonObject header;
+    
+    const QList<KifGameInfoItem> items = collectGameInfo_(ctx);
+    for (const auto& item : items) {
+        const QString key = item.key.trimmed();
+        const QString val = item.value.trimmed();
+        if (!key.isEmpty()) {
+            header[key] = val;
+        }
+    }
+    
+    return header;
+}
+
+QJsonObject GameRecordModel::buildJkfInitial_(const ExportContext& ctx) const
+{
+    QJsonObject initial;
+    
+    const QString preset = sfenToJkfPreset(ctx.startSfen);
+    if (!preset.isEmpty()) {
+        initial[QStringLiteral("preset")] = preset;
+    } else {
+        // カスタム初期局面の場合
+        // TODO: SFEN から data オブジェクトを構築
+        initial[QStringLiteral("preset")] = QStringLiteral("OTHER");
+    }
+    
+    return initial;
+}
+
+QJsonObject GameRecordModel::convertMoveToJkf_(const KifDisplayItem& disp, int& prevToX, int& prevToY, int ply) const
+{
+    QJsonObject result;
+    
+    QString moveText = disp.prettyMove.trimmed();
+    if (moveText.isEmpty()) return result;
+    
+    // 手番記号を除去して判定
+    const bool isSente = moveText.startsWith(QStringLiteral("▲"));
+    if (moveText.startsWith(QStringLiteral("▲")) || moveText.startsWith(QStringLiteral("△"))) {
+        moveText = moveText.mid(1);
+    }
+    
+    // 終局語の判定
+    const QString special = japaneseToJkfSpecial(moveText);
+    if (!special.isEmpty()) {
+        result[QStringLiteral("special")] = special;
+        return result;
+    }
+    
+    // move オブジェクトを構築
+    QJsonObject move;
+    move[QStringLiteral("color")] = isSente ? 0 : 1;
+    
+    // 移動先の解析
+    int toX = 0, toY = 0;
+    bool isSame = false;
+    int parsePos = 0;
+    
+    if (moveText.startsWith(QStringLiteral("同"))) {
+        isSame = true;
+        toX = prevToX;
+        toY = prevToY;
+        parsePos = 1;
+        // 「同　」のような全角スペースをスキップ
+        while (parsePos < moveText.size() && (moveText.at(parsePos).isSpace() || moveText.at(parsePos) == QChar(0x3000))) {
+            ++parsePos;
+        }
+    } else {
+        // 全角数字＋漢数字
+        if (moveText.size() >= 2) {
+            toX = zenkakuToNumber(moveText.at(0));
+            toY = kanjiToNumber(moveText.at(1));
+            parsePos = 2;
+        }
+    }
+    
+    if (toX > 0 && toY > 0) {
+        QJsonObject to;
+        to[QStringLiteral("x")] = toX;
+        to[QStringLiteral("y")] = toY;
+        move[QStringLiteral("to")] = to;
+        
+        if (isSame) {
+            move[QStringLiteral("same")] = true;
+        }
+        
+        prevToX = toX;
+        prevToY = toY;
+    }
+    
+    // 駒種の解析
+    QString remaining = moveText.mid(parsePos);
+    QString pieceStr;
+    
+    // 駒名を抽出（成香、成桂、成銀は2文字）
+    if (remaining.startsWith(QStringLiteral("成香")) || 
+        remaining.startsWith(QStringLiteral("成桂")) ||
+        remaining.startsWith(QStringLiteral("成銀"))) {
+        pieceStr = remaining.left(2);
+        remaining = remaining.mid(2);
+    } else if (!remaining.isEmpty()) {
+        pieceStr = remaining.left(1);
+        remaining = remaining.mid(1);
+    }
+    
+    const QString csaPiece = kanjiToCsaPiece(pieceStr);
+    if (!csaPiece.isEmpty()) {
+        move[QStringLiteral("piece")] = csaPiece;
+    }
+    
+    // 修飾語と移動元の解析
+    QString relative;
+    bool isDrop = false;
+    bool isPromote = false;
+    bool isNonPromote = false;
+    int fromX = 0, fromY = 0;
+    
+    // 修飾語（左右上引寄直打）
+    while (!remaining.isEmpty()) {
+        QChar c = remaining.at(0);
+        if (c == QChar(0x5DE6)) { // 左
+            relative += QLatin1Char('L');
+            remaining = remaining.mid(1);
+        } else if (c == QChar(0x53F3)) { // 右
+            relative += QLatin1Char('R');
+            remaining = remaining.mid(1);
+        } else if (c == QChar(0x4E0A)) { // 上
+            relative += QLatin1Char('U');
+            remaining = remaining.mid(1);
+        } else if (c == QChar(0x5F15)) { // 引
+            relative += QLatin1Char('D');
+            remaining = remaining.mid(1);
+        } else if (c == QChar(0x5BC4)) { // 寄
+            relative += QLatin1Char('M');
+            remaining = remaining.mid(1);
+        } else if (c == QChar(0x76F4)) { // 直
+            relative += QLatin1Char('C');
+            remaining = remaining.mid(1);
+        } else if (c == QChar(0x6253)) { // 打
+            isDrop = true;
+            relative += QLatin1Char('H');
+            remaining = remaining.mid(1);
+        } else if (remaining.startsWith(QStringLiteral("成"))) {
+            isPromote = true;
+            remaining = remaining.mid(1);
+        } else if (remaining.startsWith(QStringLiteral("不成"))) {
+            isNonPromote = true;
+            remaining = remaining.mid(2);
+        } else if (c == QLatin1Char('(')) {
+            // 移動元 (xy) を解析
+            const int closePos = remaining.indexOf(QLatin1Char(')'));
+            if (closePos > 1) {
+                const QString fromStr = remaining.mid(1, closePos - 1);
+                if (fromStr.size() >= 2) {
+                    fromX = fromStr.at(0).digitValue();
+                    if (fromX < 0) fromX = zenkakuToNumber(fromStr.at(0));
+                    fromY = fromStr.at(1).digitValue();
+                    if (fromY < 0) fromY = zenkakuToNumber(fromStr.at(1));
+                }
+            }
+            break;
+        } else {
+            break;
+        }
+    }
+    
+    if (!relative.isEmpty()) {
+        move[QStringLiteral("relative")] = relative;
+    }
+    
+    if (fromX > 0 && fromY > 0 && !isDrop) {
+        QJsonObject from;
+        from[QStringLiteral("x")] = fromX;
+        from[QStringLiteral("y")] = fromY;
+        move[QStringLiteral("from")] = from;
+    }
+    
+    if (isPromote) {
+        move[QStringLiteral("promote")] = true;
+    } else if (isNonPromote) {
+        move[QStringLiteral("promote")] = false;
+    }
+    
+    result[QStringLiteral("move")] = move;
+    
+    // 時間情報
+    const QJsonObject timeObj = parseTimeToJkf(disp.timeText);
+    if (!timeObj.isEmpty()) {
+        result[QStringLiteral("time")] = timeObj;
+    }
+    
+    // コメント
+    if (!disp.comment.isEmpty()) {
+        QJsonArray comments;
+        const QStringList lines = disp.comment.split(QRegularExpression(QStringLiteral("\r?\n")));
+        for (const QString& line : lines) {
+            const QString trimmed = line.trimmed();
+            // KIF形式の*プレフィックスを除去
+            if (trimmed.startsWith(QLatin1Char('*'))) {
+                comments.append(trimmed.mid(1));
+            } else if (!trimmed.isEmpty()) {
+                comments.append(trimmed);
+            }
+        }
+        if (!comments.isEmpty()) {
+            result[QStringLiteral("comments")] = comments;
+        }
+    }
+    
+    return result;
+}
+
+QJsonArray GameRecordModel::buildJkfMoves_(const QList<KifDisplayItem>& disp) const
+{
+    QJsonArray moves;
+    
+    int prevToX = 0, prevToY = 0;
+    
+    for (int i = 0; i < disp.size(); ++i) {
+        const auto& item = disp[i];
+        
+        if (i == 0 && item.prettyMove.trimmed().isEmpty()) {
+            // 開始局面のコメント
+            QJsonObject openingMove;
+            if (!item.comment.isEmpty()) {
+                QJsonArray comments;
+                const QStringList lines = item.comment.split(QRegularExpression(QStringLiteral("\r?\n")));
+                for (const QString& line : lines) {
+                    const QString trimmed = line.trimmed();
+                    if (trimmed.startsWith(QLatin1Char('*'))) {
+                        comments.append(trimmed.mid(1));
+                    } else if (!trimmed.isEmpty()) {
+                        comments.append(trimmed);
+                    }
+                }
+                if (!comments.isEmpty()) {
+                    openingMove[QStringLiteral("comments")] = comments;
+                }
+            }
+            moves.append(openingMove);
+        } else {
+            const QJsonObject moveObj = convertMoveToJkf_(item, prevToX, prevToY, i);
+            if (!moveObj.isEmpty()) {
+                moves.append(moveObj);
+            }
+        }
+    }
+    
+    return moves;
+}
+
+void GameRecordModel::addJkfForks_(QJsonArray& movesArray, int mainRowIndex) const
+{
+    if (!m_resolvedRows || m_resolvedRows->size() <= 1) {
+        return;
+    }
+    
+    // 分岐を収集（startPlyでグループ化）
+    QMap<int, QVector<int>> forksByPly; // startPly -> rowIndex のリスト
+    
+    for (int i = 0; i < m_resolvedRows->size(); ++i) {
+        const ResolvedRow& row = m_resolvedRows->at(i);
+        if (row.parent == mainRowIndex) {
+            forksByPly[row.startPly].append(i);
+        }
+    }
+    
+    // 各分岐を movesArray の適切な位置に追加
+    for (auto it = forksByPly.begin(); it != forksByPly.end(); ++it) {
+        const int startPly = it.key();
+        const QVector<int>& rowIndices = it.value();
+        
+        // movesArray 内の対応する位置を探す
+        // startPly 手目の指し手は movesArray[startPly] にある
+        // （moves[0]=開始局面, moves[1]=1手目, ...）
+        if (startPly < movesArray.size()) {
+            QJsonObject moveObj = movesArray[startPly].toObject();
+            
+            QJsonArray forks;
+            if (moveObj.contains(QStringLiteral("forks"))) {
+                forks = moveObj[QStringLiteral("forks")].toArray();
+            }
+            
+            // 各分岐を forks 配列に追加
+            for (int rowIndex : rowIndices) {
+                const ResolvedRow& row = m_resolvedRows->at(rowIndex);
+                const QList<KifDisplayItem>& dispItems = row.disp;
+                
+                QJsonArray forkMoves;
+                int forkPrevToX = 0, forkPrevToY = 0;
+                
+                // startPly 手目以降の指し手を追加
+                for (int j = row.startPly; j < dispItems.size(); ++j) {
+                    const auto& item = dispItems[j];
+                    if (item.prettyMove.trimmed().isEmpty()) continue;
+                    
+                    const QJsonObject forkMoveObj = convertMoveToJkf_(item, forkPrevToX, forkPrevToY, j);
+                    if (!forkMoveObj.isEmpty()) {
+                        forkMoves.append(forkMoveObj);
+                    }
+                }
+                
+                if (!forkMoves.isEmpty()) {
+                    forks.append(forkMoves);
+                }
+                
+                // 再帰的に子分岐を処理
+                // TODO: 深い分岐の対応
+            }
+            
+            if (!forks.isEmpty()) {
+                moveObj[QStringLiteral("forks")] = forks;
+                movesArray[startPly] = moveObj;
+            }
+        }
+    }
+}
+
+QStringList GameRecordModel::toJkfLines(const ExportContext& ctx) const
+{
+    QStringList out;
+    
+    // JKF のルートオブジェクトを構築
+    QJsonObject root;
+    
+    // 1) header
+    root[QStringLiteral("header")] = buildJkfHeader_(ctx);
+    
+    // 2) initial
+    root[QStringLiteral("initial")] = buildJkfInitial_(ctx);
+    
+    // 3) moves（本譜）
+    const QList<KifDisplayItem> disp = collectMainlineForExport_();
+    QJsonArray movesArray = buildJkfMoves_(disp);
+    
+    // 4) 分岐を追加
+    if (m_resolvedRows && m_resolvedRows->size() > 1) {
+        // 本譜の行インデックスを探す
+        int mainRowIndex = -1;
+        for (int i = 0; i < m_resolvedRows->size(); ++i) {
+            if (m_resolvedRows->at(i).parent < 0) {
+                mainRowIndex = i;
+                break;
+            }
+        }
+        
+        if (mainRowIndex >= 0) {
+            addJkfForks_(movesArray, mainRowIndex);
+        }
+    }
+    
+    root[QStringLiteral("moves")] = movesArray;
+    
+    // JSON を文字列に変換
+    const QJsonDocument doc(root);
+    out << QString::fromUtf8(doc.toJson(QJsonDocument::Compact));
+    
+    qDebug().noquote() << "[GameRecordModel] toJkfLines: generated JKF with"
+                       << movesArray.size() << "moves";
     
     return out;
 }

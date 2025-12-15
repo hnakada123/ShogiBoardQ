@@ -2958,14 +2958,37 @@ void MainWindow::saveKifuToFile()
         ctx.engine1       = m_engineName1;
         ctx.engine2       = m_engineName2;
 
-        // GameRecordModel から KIF/KI2/CSA 形式の行リストを生成
+        // GameRecordModel から KIF/KI2/CSA/JKF 形式の行リストを生成
         kifLines = m_gameRecord->toKifLines(ctx);
         ki2Lines = m_gameRecord->toKi2Lines(ctx);
         csaLines = m_gameRecord->toCsaLines(ctx, usiMovesForCsa);
+        QStringList jkfLines = m_gameRecord->toJkfLines(ctx);
 
         qDebug().noquote() << "[MW] saveKifuToFile: generated" << kifLines.size() << "KIF lines,"
                            << ki2Lines.size() << "KI2 lines,"
-                           << csaLines.size() << "CSA lines via GameRecordModel";
+                           << csaLines.size() << "CSA lines,"
+                           << jkfLines.size() << "JKF lines via GameRecordModel";
+
+        m_kifuDataList = kifLines;
+
+        // KIF/KI2/CSA/JKF形式が利用可能な場合は新しいダイアログを使用
+        const QString path = KifuSaveCoordinator::saveViaDialogWithJkf(
+            this,
+            kifLines,
+            ki2Lines,
+            csaLines,
+            jkfLines,
+            m_playMode,
+            m_humanName1, m_humanName2,
+            m_engineName1, m_engineName2);
+
+        if (!path.isEmpty()) {
+            kifuSaveFileName = path;
+            if (m_gameRecord) {
+                m_gameRecord->clearDirty();  // 保存完了で変更フラグをクリア
+            }
+            ui->statusbar->showMessage(tr("棋譜を保存しました: %1").arg(path), 5000);
+        }
     } else {
         // フォールバック: 従来の KifuContentBuilder を使用（KIF形式のみ）
         KifuExportContext ctx;
@@ -2986,26 +3009,26 @@ void MainWindow::saveKifuToFile()
 
         kifLines = KifuContentBuilder::buildKifuDataList(ctx);
         qDebug().noquote() << "[MW] saveKifuToFile: generated" << kifLines.size() << "lines via KifuContentBuilder (fallback)";
-    }
 
-    m_kifuDataList = kifLines;
+        m_kifuDataList = kifLines;
 
-    // KIF/KI2/CSA形式が利用可能な場合は新しいダイアログを使用
-    const QString path = KifuSaveCoordinator::saveViaDialogWithAllFormats(
-        this,
-        kifLines,
-        ki2Lines,
-        csaLines,
-        m_playMode,
-        m_humanName1, m_humanName2,
-        m_engineName1, m_engineName2);
+        // KIF/KI2/CSA形式のダイアログを使用（JKF未対応）
+        const QString path = KifuSaveCoordinator::saveViaDialogWithAllFormats(
+            this,
+            kifLines,
+            ki2Lines,
+            csaLines,
+            m_playMode,
+            m_humanName1, m_humanName2,
+            m_engineName1, m_engineName2);
 
-    if (!path.isEmpty()) {
-        kifuSaveFileName = path;
-        if (m_gameRecord) {
-            m_gameRecord->clearDirty();  // 保存完了で変更フラグをクリア
+        if (!path.isEmpty()) {
+            kifuSaveFileName = path;
+            if (m_gameRecord) {
+                m_gameRecord->clearDirty();  // 保存完了で変更フラグをクリア
+            }
+            ui->statusbar->showMessage(tr("棋譜を保存しました: %1").arg(path), 5000);
         }
-        ui->statusbar->showMessage(tr("棋譜を保存しました: %1").arg(path), 5000);
     }
 }
 
