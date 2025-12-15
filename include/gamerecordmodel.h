@@ -7,6 +7,8 @@
 #include <QVector>
 #include <QList>
 #include <QSet>
+#include <QJsonObject>
+#include <QJsonArray>
 
 #include "kifdisplayitem.h"
 #include "kifparsetypes.h"
@@ -138,6 +140,17 @@ public:
      */
     QStringList toCsaLines(const ExportContext& ctx, const QStringList& usiMoves) const;
 
+    /**
+     * @brief JKF形式（JSON棋譜フォーマット）の行リストを生成
+     * @param ctx 出力コンテキスト（ヘッダ情報等）
+     * @return JKF形式の行リスト（1要素のJSONテキスト）
+     * 
+     * JKF形式はJSON形式の棋譜フォーマットです。
+     * 分岐の指し手にも対応しています。
+     * https://github.com/na2hiro/Kifu-for-JS/tree/master/packages/json-kifu-format
+     */
+    QStringList toJkfLines(const ExportContext& ctx) const;
+
     // ========================================
     // ライブ対局用
     // ========================================
@@ -233,6 +246,45 @@ private:
      * @param visitedRows 訪問済み行のセット（無限ループ防止）
      */
     void outputKi2VariationsRecursively_(int parentRowIndex, QStringList& out, QSet<int>& visitedRows) const;
+
+    // === JKF形式出力用ヘルパ ===
+    /**
+     * @brief JKF形式のヘッダ部分を構築
+     * @param ctx 出力コンテキスト
+     * @return QJsonObject 形式のヘッダ
+     */
+    QJsonObject buildJkfHeader_(const ExportContext& ctx) const;
+
+    /**
+     * @brief JKF形式の初期局面部分を構築
+     * @param ctx 出力コンテキスト
+     * @return QJsonObject 形式の初期局面
+     */
+    QJsonObject buildJkfInitial_(const ExportContext& ctx) const;
+
+    /**
+     * @brief 指し手をJKF形式の move オブジェクトに変換
+     * @param disp 表示用指し手データ
+     * @param prevToX 前回の移動先X座標（"同〜"判定用）
+     * @param prevToY 前回の移動先Y座標（"同〜"判定用）
+     * @param ply 手数
+     * @return QJsonObject 形式の指し手
+     */
+    QJsonObject convertMoveToJkf_(const KifDisplayItem& disp, int& prevToX, int& prevToY, int ply) const;
+
+    /**
+     * @brief JKF形式の moves 配列を構築（本譜）
+     * @param disp 表示用指し手データリスト
+     * @return QJsonArray 形式の指し手配列
+     */
+    QJsonArray buildJkfMoves_(const QList<KifDisplayItem>& disp) const;
+
+    /**
+     * @brief JKF形式の moves 配列に分岐を追加
+     * @param movesArray 本譜の指し手配列
+     * @param mainRowIndex 本譜の行インデックス
+     */
+    void addJkfForks_(QJsonArray& movesArray, int mainRowIndex) const;
 };
 
 #endif // GAMERECORDMODEL_H
