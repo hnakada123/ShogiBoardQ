@@ -151,6 +151,18 @@ public:
      */
     QStringList toJkfLines(const ExportContext& ctx) const;
 
+    /**
+     * @brief USEN形式（Url Safe sfen-Extended Notation）の行リストを生成
+     * @param ctx 出力コンテキスト（ヘッダ情報等）
+     * @param usiMoves USI形式の指し手リスト（本譜用）
+     * @return USEN形式の行リスト（1要素のUSEN文字列）
+     * 
+     * USEN形式はURLセーフな短い文字列で棋譜を表現するフォーマットです。
+     * 分岐の指し手にも対応しています。
+     * https://www.slideshare.net/slideshow/scalajs-web/92707205#15
+     */
+    QStringList toUsenLines(const ExportContext& ctx, const QStringList& usiMoves) const;
+
     // ========================================
     // ライブ対局用
     // ========================================
@@ -293,6 +305,52 @@ private:
      * @return QJsonArray 形式の分岐指し手配列
      */
     QJsonArray buildJkfForkMovesRecursive_(int rowIndex, QSet<int>& visitedRows) const;
+
+    // === USEN形式出力用ヘルパ ===
+    /**
+     * @brief SFENをUSEN形式に変換
+     * @param sfen SFEN形式の局面文字列
+     * @return USEN形式の局面文字列（平手の場合は空文字列）
+     */
+    static QString sfenToUsenPosition_(const QString& sfen);
+
+    /**
+     * @brief USI形式の指し手をUSEN形式にエンコード
+     * @param usiMove USI形式の指し手（例: "7g7f", "P*5e", "2h3g+"）
+     * @return USEN形式（3文字のbase36）
+     */
+    static QString encodeUsiMoveToUsen_(const QString& usiMove);
+
+    /**
+     * @brief 指し手番号をbase36（3文字）にエンコード
+     * @param moveCode 指し手コード（0-46655）
+     * @return 3文字のbase36文字列
+     */
+    static QString intToBase36_(int moveCode);
+
+    /**
+     * @brief 終局語からUSEN終局コードを取得
+     * @param terminalMove 終局語（例: "▲投了"）
+     * @return USENの終局コード（例: "r"）、該当なしは空文字列
+     */
+    static QString getUsenTerminalCode_(const QString& terminalMove);
+
+    /**
+     * @brief 分岐のUSEN文字列を構築
+     * @param rowIndex 分岐行のインデックス
+     * @param visitedRows 訪問済み行のセット
+     * @return USEN形式の分岐文字列（~offset.moves の形式）
+     */
+    QString buildUsenVariation_(int rowIndex, QSet<int>& visitedRows) const;
+
+    /**
+     * @brief 2つのSFEN間の差分からUSI形式の指し手を推測
+     * @param sfenBefore 指し手前のSFEN
+     * @param sfenAfter 指し手後のSFEN
+     * @param isSente 先手番かどうか
+     * @return USI形式の指し手（推測できない場合は空文字列）
+     */
+    static QString inferUsiFromSfenDiff_(const QString& sfenBefore, const QString& sfenAfter, bool isSente);
 };
 
 #endif // GAMERECORDMODEL_H
