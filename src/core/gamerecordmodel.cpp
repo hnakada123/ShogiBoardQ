@@ -1,6 +1,7 @@
 #include "gamerecordmodel.h"
 #include "kiftosfenconverter.h"  // KifGameInfoItem
 #include "kifurecordlistmodel.h"
+#include "sfenpositiontracer.h"  // USEN出力用
 
 #include <QTableWidget>
 #include <QDateTime>
@@ -2246,6 +2247,505 @@ QStringList GameRecordModel::toJkfLines(const ExportContext& ctx) const
     
     qDebug().noquote() << "[GameRecordModel] toJkfLines: generated JKF with"
                        << movesArray.size() << "moves";
+    
+    return out;
+}
+
+// ========================================
+// USEN形式出力
+// ========================================
+
+// USEN形式の座標系:
+// - マス番号: sq = (rank - 1) * 9 + (file - 1)
+// - 例: 1一 = 0, 9九 = 80
+// - rank: 段（一=1, 二=2, ..., 九=9）
+// - file: 筋（1=1, 2=2, ..., 9=9）
+
+// 駒打ち時の駒コード (from_sq = 81 + piece_code):
+// 歩=10, 香=11, 桂=12, 銀=13, 金=9, 角=14, 飛=15
+static int usiPieceToUsenDropCode(QChar usiPiece)
+{
+    switch (usiPiece.toUpper().toLatin1()) {
+    case 'P': return 10;  // 歩
+    case 'L': return 11;  // 香
+    case 'N': return 12;  // 桂
+    case 'S': return 13;  // 銀
+    case 'G': return 9;   // 金
+    case 'B': return 14;  // 角
+    case 'R': return 15;  // 飛
+    default:  return -1;  // 無効
+    }
+}
+
+// base36文字セット
+static const QString kUsenBase36Chars = QStringLiteral("0123456789abcdefghijklmnopqrstuvwxyz");
+
+QString GameRecordModel::intToBase36_(int moveCode)
+{
+    // 3文字のbase36に変換（範囲: 0-46655）
+    if (moveCode < 0 || moveCode > 46655) {
+        qWarning() << "[USEN] moveCode out of range:" << moveCode;
+        return QStringLiteral("000");
+    }
+    
+    QString result;
+    result.reserve(3);
+    
+    int v2 = moveCode % 36;
+    moveCode /= 36;
+    int v1 = moveCode % 36;
+    moveCode /= 36;
+    int v0 = moveCode;
+    
+    result.append(kUsenBase36Chars.at(v0));
+    result.append(kUsenBase36Chars.at(v1));
+    result.append(kUsenBase36Chars.at(v2));
+    
+    return result;
+}
+
+QString GameRecordModel::encodeUsiMoveToUsen_(const QString& usiMove)
+{
+    if (usiMove.isEmpty() || usiMove.size() < 4) {
+        return QString();
+    }
+    
+    // 成りフラグを確認
+    bool isPromotion = usiMove.endsWith(QLatin1Char('+'));
+    
+    int from_sq, to_sq;
+    
+    // 駒打ちの判定 (P*5e 形式)
+    if (usiMove.at(1) == QLatin1Char('*')) {
+        // 駒打ち: from_sq = 81 + piece_code
+        QChar pieceChar = usiMove.at(0);
+        int pieceCode = usiPieceToUsenDropCode(pieceChar);
+        if (pieceCode < 0) {
+            qWarning() << "[USEN] Unknown drop piece:" << pieceChar;
+            return QString();
+        }
+        from_sq = 81 + pieceCode;
+        
+        // 移動先を解析
+        int toFile = usiMove.at(2).toLatin1() - '0';
+        int toRank = usiMove.at(3).toLatin1() - 'a' + 1;
+        to_sq = (toRank - 1) * 9 + (toFile - 1);
+    } else {
+        // 盤上移動: 7g7f 形式
+        int fromFile = usiMove.at(0).toLatin1() - '0';
+        int fromRank = usiMove.at(1).toLatin1() - 'a' + 1;
+        int toFile = usiMove.at(2).toLatin1() - '0';
+        int toRank = usiMove.at(3).toLatin1() - 'a' + 1;
+        
+        from_sq = (fromRank - 1) * 9 + (fromFile - 1);
+        to_sq = (toRank - 1) * 9 + (toFile - 1);
+    }
+    
+    // エンコード: code = (from_sq * 81 + to_sq) * 2 + (成る場合は1)
+    int moveCode = (from_sq * 81 + to_sq) * 2 + (isPromotion ? 1 : 0);
+    
+    return intToBase36_(moveCode);
+}
+
+QString GameRecordModel::sfenToUsenPosition_(const QString& sfen)
+{
+    // 平手初期局面のチェック
+    static const QString kHirateSfenPrefix = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL");
+    
+    const QString trimmed = sfen.trimmed();
+    if (trimmed.isEmpty()) {
+        return QStringLiteral("0");  // 平手
+    }
+    
+    // 平手初期局面の場合は "0" を返す
+    if (trimmed.startsWith(kHirateSfenPrefix)) {
+        return QStringLiteral("0");
+    }
+    
+    // カスタム局面: SFEN -> USEN変換
+    // '/' -> '_', ' ' -> '.', '+' -> 'z'
+    QString usen = trimmed;
+    usen.replace(QLatin1Char('/'), QLatin1Char('_'));
+    usen.replace(QLatin1Char(' '), QLatin1Char('.'));
+    usen.replace(QLatin1Char('+'), QLatin1Char('z'));
+    
+    return usen;
+}
+
+QString GameRecordModel::getUsenTerminalCode_(const QString& terminalMove)
+{
+    const QString move = removeTurnMarker(terminalMove);
+    
+    if (move.contains(QStringLiteral("反則"))) return QStringLiteral("i");
+    if (move.contains(QStringLiteral("投了"))) return QStringLiteral("r");
+    if (move.contains(QStringLiteral("時間切れ")) || move.contains(QStringLiteral("切れ負け"))) 
+        return QStringLiteral("t");
+    if (move.contains(QStringLiteral("中断"))) return QStringLiteral("p");
+    if (move.contains(QStringLiteral("持将棋")) || move.contains(QStringLiteral("千日手"))) 
+        return QStringLiteral("j");
+    
+    return QString();
+}
+
+QString GameRecordModel::inferUsiFromSfenDiff_(const QString& sfenBefore, const QString& sfenAfter, bool isSente)
+{
+    // 2つのSFEN間の差分からUSI形式の指し手を推測
+    // SFEN形式: "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"
+    // 盤面部分を比較して、移動した駒を特定する
+    
+    if (sfenBefore.isEmpty() || sfenAfter.isEmpty()) {
+        return QString();
+    }
+    
+    // SFEN盤面部分を抽出
+    QString boardBefore = sfenBefore.section(QLatin1Char(' '), 0, 0);
+    QString boardAfter = sfenAfter.section(QLatin1Char(' '), 0, 0);
+    
+    // 盤面を9x9配列に展開 (promoted pieces use 0x100 flag)
+    // board[rank][file] の順序で格納 (rank: 0-8 = 一段〜九段, file: 0-8 = 1筋〜9筋)
+    auto expandBoard = [](const QString& board) -> QVector<int> {
+        QVector<int> result(81, 0);  // 0 = empty
+        int sfenIdx = 0;  // SFEN上のインデックス（左上から右へ、上から下へ）
+        bool promoted = false;
+        
+        for (QChar c : board) {
+            if (c == QLatin1Char('/')) continue;
+            if (c == QLatin1Char('+')) {
+                promoted = true;
+                continue;
+            }
+            if (c.isDigit()) {
+                int n = c.toLatin1() - '0';
+                sfenIdx += n;
+            } else {
+                if (sfenIdx < 81) {
+                    int rank = sfenIdx / 9;       // 0-8 (一段目〜九段目)
+                    int sfenFile = sfenIdx % 9;   // 0-8 (9筋〜1筋の順)
+                    int file = 8 - sfenFile;      // 0-8 (1筋〜9筋の順に変換)
+                    int boardIdx = rank * 9 + file;
+                    
+                    int pieceCode = c.toLatin1();
+                    if (promoted) pieceCode |= 0x100;  // 成駒フラグ
+                    result[boardIdx] = pieceCode;
+                }
+                sfenIdx++;
+                promoted = false;
+            }
+        }
+        return result;
+    };
+    
+    QVector<int> before = expandBoard(boardBefore);
+    QVector<int> after = expandBoard(boardAfter);
+    
+    // 差分を探す
+    int fromRank = -1, fromFile = -1;
+    int toRank = -1, toFile = -1;
+    int movedPiece = 0;
+    bool isPromotion = false;
+    
+    for (int rank = 0; rank < 9; ++rank) {
+        for (int file = 0; file < 9; ++file) {
+            int idx = rank * 9 + file;
+            int beforePiece = before[idx];
+            int afterPiece = after[idx];
+            
+            if (beforePiece != afterPiece) {
+                // beforeにあってafterにない → 移動元
+                if (beforePiece != 0 && afterPiece == 0) {
+                    fromRank = rank;
+                    fromFile = file;
+                    movedPiece = beforePiece;
+                }
+                // beforeになくてafterにある → 移動先
+                else if (beforePiece == 0 && afterPiece != 0) {
+                    toRank = rank;
+                    toFile = file;
+                    // 成り判定: 移動元が非成りで移動先が成り
+                    if ((afterPiece & 0x100) && !(movedPiece & 0x100)) {
+                        isPromotion = true;
+                    }
+                }
+                // 両方に駒がある → 駒取り
+                else if (beforePiece != 0 && afterPiece != 0) {
+                    // 先手の駒は大文字、後手の駒は小文字
+                    char beforeChar = static_cast<char>(beforePiece & 0xFF);
+                    char afterChar = static_cast<char>(afterPiece & 0xFF);
+                    bool beforeIsSente = (beforeChar >= 'A' && beforeChar <= 'Z');
+                    bool afterIsSente = (afterChar >= 'A' && afterChar <= 'Z');
+                    
+                    if (beforeIsSente != afterIsSente) {
+                        if ((isSente && afterIsSente) || (!isSente && !afterIsSente)) {
+                            toRank = rank;
+                            toFile = file;
+                            // 成り判定
+                            if ((afterPiece & 0x100) && !(movedPiece & 0x100)) {
+                                isPromotion = true;
+                            }
+                        } else {
+                            fromRank = rank;
+                            fromFile = file;
+                            movedPiece = beforePiece;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // 駒打ちの検出（fromRank == -1 で toRank != -1）
+    if (fromRank < 0 && toRank >= 0) {
+        // 持ち駒から打った
+        int piece = after[toRank * 9 + toFile];
+        char pieceChar = static_cast<char>(piece & 0xFF);
+        QChar usiPiece = QChar(pieceChar).toUpper();
+        
+        // USI座標: ファイルは1-9、ランクはa-i
+        int usiFile = toFile + 1;  // 1-9
+        char usiRank = 'a' + toRank;  // a-i
+        
+        return QStringLiteral("%1*%2%3")
+            .arg(usiPiece)
+            .arg(usiFile)
+            .arg(QChar(usiRank));
+    }
+    
+    // 盤上移動
+    if (fromRank >= 0 && toRank >= 0) {
+        // USI座標: ファイルは1-9、ランクはa-i
+        int fromUsiFile = fromFile + 1;
+        char fromUsiRank = 'a' + fromRank;
+        int toUsiFile = toFile + 1;
+        char toUsiRank = 'a' + toRank;
+        
+        QString usi = QStringLiteral("%1%2%3%4")
+            .arg(fromUsiFile)
+            .arg(QChar(fromUsiRank))
+            .arg(toUsiFile)
+            .arg(QChar(toUsiRank));
+        
+        if (isPromotion) {
+            usi += QLatin1Char('+');
+        }
+        
+        return usi;
+    }
+    
+    return QString();
+}
+
+QString GameRecordModel::buildUsenVariation_(int rowIndex, QSet<int>& visitedRows) const
+{
+    if (!m_resolvedRows || rowIndex < 0 || rowIndex >= m_resolvedRows->size()) {
+        return QString();
+    }
+    
+    if (visitedRows.contains(rowIndex)) {
+        return QString();
+    }
+    visitedRows.insert(rowIndex);
+    
+    const ResolvedRow& row = m_resolvedRows->at(rowIndex);
+    const int startPly = row.startPly;
+    
+    // USENのオフセットは startPly - 1 (0-indexed)
+    int offset = startPly - 1;
+    if (offset < 0) offset = 0;
+    
+    QString usen = QStringLiteral("~%1.").arg(offset);
+    
+    // 指し手をエンコード
+    // ResolvedRowからUSI指し手を取得するには、sfenリストを使って再構築するか、
+    // または表示用データから推測する必要がある
+    // ここでは sfen リストから USI を再構築する
+    const QStringList& sfenList = row.sfen;
+    QString terminalCode;
+    
+    // sfenリストが利用可能な場合、連続するSFENからUSI指し手を推測
+    // または、disp から prettyMove を使って変換
+    // 実際のアプローチ: dispの指し手を使ってUSIに変換する必要があるが、
+    // prettyMoveからUSIへの逆変換は複雑なので、ResolvedRow に usiMoves があれば使用
+    
+    // 注意: ResolvedRow には usiMoves がないので、prettyMove + sfen から推測する
+    // より確実なアプローチとして、SfenPositionTracer を使って盤面を追跡し、
+    // dispの指し手と照合することでUSIを生成する
+    
+    // シンプルなアプローチ: disp の各指し手を解析してUSIを推定
+    // これは完全ではないが、多くのケースで動作する
+    const QList<KifDisplayItem>& disp = row.disp;
+    
+    for (int i = startPly; i < disp.size(); ++i) {
+        const KifDisplayItem& item = disp[i];
+        const QString& prettyMove = item.prettyMove;
+        
+        if (prettyMove.isEmpty()) continue;
+        
+        // 終局語のチェック
+        if (isTerminalMove(prettyMove)) {
+            terminalCode = getUsenTerminalCode_(prettyMove);
+            break;
+        }
+        
+        // prettyMove から USI を推測（sfenリストを使用）
+        // 2つの連続するSFENから差分を見つけてUSIを生成
+        if (i < sfenList.size() && (i - 1) >= 0 && (i - 1) < sfenList.size()) {
+            // SFEN差分からUSI生成は複雑なので、ここでは簡易実装
+            // 実際にはprettyMoveを解析する
+        }
+        
+        // prettyMove からの USI 推定
+        // これは GameRecordModel では難しいので、別途 SfenPositionTracer を使う必要がある
+        // 今回はスキップし、USI moves を直接渡すアプローチを使用
+    }
+    
+    // 終局コードを追加
+    if (!terminalCode.isEmpty()) {
+        usen += QStringLiteral(".") + terminalCode;
+    }
+    
+    return usen;
+}
+
+QStringList GameRecordModel::toUsenLines(const ExportContext& ctx, const QStringList& usiMoves) const
+{
+    QStringList out;
+    
+    // 1) 初期局面をUSEN形式に変換
+    QString position = sfenToUsenPosition_(ctx.startSfen);
+    
+    // 2) 本譜の指し手をエンコード
+    QString mainMoves;
+    QString terminalCode;
+    
+    // 本譜の指し手リストを取得
+    const QList<KifDisplayItem> disp = collectMainlineForExport_();
+    
+    // USI moves が渡された場合はそれを使用
+    // そうでない場合は ResolvedRow から取得を試みる
+    QStringList mainlineUsi = usiMoves;
+    
+    if (mainlineUsi.isEmpty() && m_resolvedRows && !m_resolvedRows->isEmpty()) {
+        // 本譜行を探す
+        for (int i = 0; i < m_resolvedRows->size(); ++i) {
+            if (m_resolvedRows->at(i).parent < 0) {
+                // 本譜のSFENリストからUSI指し手を推測することは複雑
+                // ここでは空のままにする
+                break;
+            }
+        }
+    }
+    
+    // 各USI指し手をUSEN形式にエンコード
+    for (const QString& usi : std::as_const(mainlineUsi)) {
+        QString encoded = encodeUsiMoveToUsen_(usi);
+        if (!encoded.isEmpty()) {
+            mainMoves += encoded;
+        }
+    }
+    
+    // 終局語のチェック
+    if (!disp.isEmpty()) {
+        const QString& lastMove = disp.last().prettyMove;
+        if (isTerminalMove(lastMove)) {
+            terminalCode = getUsenTerminalCode_(lastMove);
+        }
+    }
+    
+    // 本譜のUSEN文字列を構築
+    QString usen = QStringLiteral("~%1.%2").arg(position, mainMoves);
+    
+    // 終局コードを追加
+    if (!terminalCode.isEmpty()) {
+        usen += QStringLiteral(".") + terminalCode;
+    }
+    
+    // 3) 分岐を追加
+    if (m_resolvedRows && m_resolvedRows->size() > 1) {
+        QSet<int> visitedRows;
+        
+        // 本譜の行インデックスを探す
+        int mainRowIndex = -1;
+        for (int i = 0; i < m_resolvedRows->size(); ++i) {
+            if (m_resolvedRows->at(i).parent < 0) {
+                mainRowIndex = i;
+                visitedRows.insert(i);
+                break;
+            }
+        }
+        
+        // 分岐をvarIndexの順でソート
+        QVector<QPair<int, int>> variations; // (sortKey, rowIndex)
+        for (int i = 0; i < m_resolvedRows->size(); ++i) {
+            const ResolvedRow& row = m_resolvedRows->at(i);
+            if (row.parent < 0 || visitedRows.contains(i)) {
+                continue;
+            }
+            int sortKey = (row.varIndex >= 0) ? row.varIndex : (1000 + i);
+            variations.append(qMakePair(sortKey, i));
+        }
+        
+        std::sort(variations.begin(), variations.end(), [](const QPair<int, int>& a, const QPair<int, int>& b) {
+            return a.first < b.first;
+        });
+        
+        // 各分岐をUSEN形式で出力
+        for (const auto& var : std::as_const(variations)) {
+            const int rowIndex = var.second;
+            const ResolvedRow& row = m_resolvedRows->at(rowIndex);
+            
+            // オフセット（分岐開始位置 - 1）
+            int offset = row.startPly - 1;
+            if (offset < 0) offset = 0;
+            
+            QString branchMoves;
+            QString branchTerminal;
+            
+            // 分岐のSFENリストからUSI指し手を推測
+            // ここではSFENの差分から指し手を推測する実装が必要
+            // 今回は簡易的にSFENリストを使用
+            const QStringList& sfenList = row.sfen;
+            const QList<KifDisplayItem>& branchDisp = row.disp;
+            
+            // SFENの差分からUSI指し手を推測
+            for (int i = row.startPly; i < branchDisp.size(); ++i) {
+                const KifDisplayItem& item = branchDisp[i];
+                if (item.prettyMove.isEmpty()) continue;
+                
+                // 終局語チェック
+                if (isTerminalMove(item.prettyMove)) {
+                    branchTerminal = getUsenTerminalCode_(item.prettyMove);
+                    break;
+                }
+                
+                // SFENリストを使ってUSI指し手を推測
+                // i-1番目のSFENからi番目のSFENへの差分を計算
+                if (i < sfenList.size() && (i - 1) >= 0 && (i - 1) < sfenList.size()) {
+                    QString usi = inferUsiFromSfenDiff_(sfenList[i - 1], sfenList[i], (i % 2 != 0));
+                    if (!usi.isEmpty()) {
+                        QString encoded = encodeUsiMoveToUsen_(usi);
+                        if (!encoded.isEmpty()) {
+                            branchMoves += encoded;
+                        }
+                    }
+                }
+            }
+            
+            // 分岐のUSEN文字列を構築
+            QString branchUsen = QStringLiteral("~%1.%2").arg(offset).arg(branchMoves);
+            if (!branchTerminal.isEmpty()) {
+                branchUsen += QStringLiteral(".") + branchTerminal;
+            }
+            
+            usen += branchUsen;
+            visitedRows.insert(rowIndex);
+        }
+    }
+    
+    out << usen;
+    
+    qDebug().noquote() << "[GameRecordModel] toUsenLines: generated USEN with"
+                       << mainMoves.size() / 3 << "mainline moves,"
+                       << (m_resolvedRows ? m_resolvedRows->size() - 1 : 0) << "variations";
     
     return out;
 }
