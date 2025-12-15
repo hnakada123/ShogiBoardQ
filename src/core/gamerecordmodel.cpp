@@ -920,3 +920,625 @@ void GameRecordModel::outputKi2VariationsRecursively_(int parentRowIndex, QStrin
         outputKi2Variation_(rowIndex, out);
     }
 }
+
+// ========================================
+// CSA形式出力
+// ========================================
+
+// ヘルパ関数: USI指し手をCSA指し手に変換
+static QString usiToCsaMove(const QString& usiMove, bool isSente)
+{
+    // USI形式: "7g7f" (盤上移動), "7g7f+" (盤上移動成り), "P*5e" (駒打ち)
+    // CSA形式: "+7776FU" (盤上移動), "+0055FU" (駒打ち)
+    
+    const QString sign = isSente ? QStringLiteral("+") : QStringLiteral("-");
+    
+    if (usiMove.size() < 4) return QString();
+    
+    // 駒打ちの場合
+    if (usiMove.at(1) == QLatin1Char('*')) {
+        // P*5e → +0055FU
+        const QChar pieceChar = usiMove.at(0).toUpper();
+        const QString toSquare = usiMove.mid(2, 2);
+        
+        // USI座標をCSA座標に変換
+        const int toFile = toSquare.at(0).toLatin1() - '0';
+        const int toRank = toSquare.at(1).toLatin1() - 'a' + 1;
+        
+        // USI駒文字をCSA駒文字に変換
+        QString csaPiece;
+        switch (pieceChar.toLatin1()) {
+            case 'P': csaPiece = QStringLiteral("FU"); break;
+            case 'L': csaPiece = QStringLiteral("KY"); break;
+            case 'N': csaPiece = QStringLiteral("KE"); break;
+            case 'S': csaPiece = QStringLiteral("GI"); break;
+            case 'G': csaPiece = QStringLiteral("KI"); break;
+            case 'B': csaPiece = QStringLiteral("KA"); break;
+            case 'R': csaPiece = QStringLiteral("HI"); break;
+            default: return QString();
+        }
+        
+        return QStringLiteral("%1%2%3%4%5")
+            .arg(sign)
+            .arg(QStringLiteral("00"))  // 駒台
+            .arg(QString::number(toFile))
+            .arg(QString::number(toRank))
+            .arg(csaPiece);
+    }
+    
+    // 盤上移動の場合
+    const QString fromSquare = usiMove.left(2);
+    const QString toSquare = usiMove.mid(2, 2);
+    const bool isPromotion = usiMove.endsWith(QLatin1Char('+'));
+    
+    // USI座標をCSA座標に変換
+    const int fromFile = fromSquare.at(0).toLatin1() - '0';
+    const int fromRank = fromSquare.at(1).toLatin1() - 'a' + 1;
+    const int toFile = toSquare.at(0).toLatin1() - '0';
+    const int toRank = toSquare.at(1).toLatin1() - 'a' + 1;
+    
+    Q_UNUSED(isPromotion);
+    
+    return QStringLiteral("%1%2%3%4%5")
+        .arg(sign)
+        .arg(QString::number(fromFile))
+        .arg(QString::number(fromRank))
+        .arg(QString::number(toFile))
+        .arg(QString::number(toRank));
+    // 注: 駒の種類は後で追加する必要がある（prettyMoveから取得）
+}
+
+// ヘルパ関数: 指し手表記から駒種を抽出してCSA形式に変換
+static QString extractCsaPiece(const QString& prettyMove, bool isPromotion)
+{
+    // prettyMove: "▲７六歩", "△同銀成", "▲５五角不成" など
+    QString move = prettyMove;
+    
+    // 手番記号を除去
+    if (move.startsWith(QStringLiteral("▲")) || move.startsWith(QStringLiteral("△"))) {
+        move = move.mid(1);
+    }
+    
+    // 「不成」「成」を除去
+    if (move.endsWith(QStringLiteral("不成"))) {
+        move.chop(2);
+    }
+    
+    // 駒種を取得（末尾の文字）
+    QString piece;
+    if (move.endsWith(QStringLiteral("成香"))) { return QStringLiteral("NY"); }
+    if (move.endsWith(QStringLiteral("成桂"))) { return QStringLiteral("NK"); }
+    if (move.endsWith(QStringLiteral("成銀"))) { return QStringLiteral("NG"); }
+    
+    const QString lastChar = move.right(1);
+    
+    if (lastChar == QStringLiteral("歩")) {
+        return isPromotion ? QStringLiteral("TO") : QStringLiteral("FU");
+    } else if (lastChar == QStringLiteral("香")) {
+        return isPromotion ? QStringLiteral("NY") : QStringLiteral("KY");
+    } else if (lastChar == QStringLiteral("桂")) {
+        return isPromotion ? QStringLiteral("NK") : QStringLiteral("KE");
+    } else if (lastChar == QStringLiteral("銀")) {
+        return isPromotion ? QStringLiteral("NG") : QStringLiteral("GI");
+    } else if (lastChar == QStringLiteral("金")) {
+        return QStringLiteral("KI");
+    } else if (lastChar == QStringLiteral("角")) {
+        return isPromotion ? QStringLiteral("UM") : QStringLiteral("KA");
+    } else if (lastChar == QStringLiteral("飛")) {
+        return isPromotion ? QStringLiteral("RY") : QStringLiteral("HI");
+    } else if (lastChar == QStringLiteral("玉") || lastChar == QStringLiteral("王")) {
+        return QStringLiteral("OU");
+    } else if (lastChar == QStringLiteral("と")) {
+        return QStringLiteral("TO");
+    } else if (lastChar == QStringLiteral("馬")) {
+        return QStringLiteral("UM");
+    } else if (lastChar == QStringLiteral("龍") || lastChar == QStringLiteral("竜")) {
+        return QStringLiteral("RY");
+    } else if (move.contains(QStringLiteral("打"))) {
+        // 駒打ちの場合、「打」の直前の文字が駒種
+        const int idx = move.indexOf(QStringLiteral("打"));
+        if (idx > 0) {
+            return extractCsaPiece(move.left(idx), false);
+        }
+    }
+    
+    return QString();
+}
+
+// ヘルパ関数: prettyMoveが成りの指し手かどうかを判定
+static bool isCsaPromotion(const QString& prettyMove, const QString& usiMove)
+{
+    // USI形式で+がある場合は成り
+    if (usiMove.endsWith(QLatin1Char('+'))) {
+        return true;
+    }
+    // prettyMoveで「成」があり「不成」でない場合
+    if (prettyMove.endsWith(QStringLiteral("成")) && !prettyMove.endsWith(QStringLiteral("不成"))) {
+        return true;
+    }
+    return false;
+}
+
+// ヘルパ関数: 時間テキストからCSA形式の消費時間（秒）を抽出
+static int extractCsaTimeSeconds(const QString& timeText)
+{
+    // timeText: "mm:ss/HH:MM:SS" または "(mm:ss/HH:MM:SS)"
+    QString text = timeText.trimmed();
+    
+    // 括弧を除去
+    if (text.startsWith(QLatin1Char('('))) text = text.mid(1);
+    if (text.endsWith(QLatin1Char(')'))) text.chop(1);
+    
+    // "mm:ss/..." の部分を取得
+    const int slashIdx = text.indexOf(QLatin1Char('/'));
+    if (slashIdx < 0) return 0;
+    
+    const QString moveTime = text.left(slashIdx).trimmed();
+    const QStringList parts = moveTime.split(QLatin1Char(':'));
+    if (parts.size() != 2) return 0;
+    
+    bool ok1, ok2;
+    const int minutes = parts[0].toInt(&ok1);
+    const int seconds = parts[1].toInt(&ok2);
+    if (!ok1 || !ok2) return 0;
+    
+    return minutes * 60 + seconds;
+}
+
+// ヘルパ関数: CSA形式の終局コードを取得
+static QString getCsaResultCode(const QString& terminalMove)
+{
+    const QString move = removeTurnMarker(terminalMove);
+    
+    if (move.contains(QStringLiteral("投了"))) return QStringLiteral("%TORYO");
+    if (move.contains(QStringLiteral("中断"))) return QStringLiteral("%CHUDAN");
+    if (move.contains(QStringLiteral("千日手"))) return QStringLiteral("%SENNICHITE");
+    if (move.contains(QStringLiteral("持将棋"))) return QStringLiteral("%JISHOGI");
+    if (move.contains(QStringLiteral("切れ負け")) || move.contains(QStringLiteral("時間切れ"))) 
+        return QStringLiteral("%TIME_UP");
+    if (move.contains(QStringLiteral("反則負け"))) return QStringLiteral("%ILLEGAL_MOVE");
+    // V3.0: 反則行為（手番側の勝ちを表現）
+    if (move.contains(QStringLiteral("先手の反則"))) return QStringLiteral("%+ILLEGAL_ACTION");
+    if (move.contains(QStringLiteral("後手の反則"))) return QStringLiteral("%-ILLEGAL_ACTION");
+    if (move.contains(QStringLiteral("反則"))) return QStringLiteral("%ILLEGAL_MOVE");
+    if (move.contains(QStringLiteral("入玉勝ち")) || move.contains(QStringLiteral("宣言勝ち"))) 
+        return QStringLiteral("%KACHI");
+    if (move.contains(QStringLiteral("引き分け"))) return QStringLiteral("%HIKIWAKE");
+    // V3.0で追加: 最大手数
+    if (move.contains(QStringLiteral("最大手数"))) return QStringLiteral("%MAX_MOVES");
+    if (move.contains(QStringLiteral("詰み"))) return QStringLiteral("%TSUMI");
+    if (move.contains(QStringLiteral("不詰"))) return QStringLiteral("%FUZUMI");
+    if (move.contains(QStringLiteral("エラー"))) return QStringLiteral("%ERROR");
+    
+    return QString();
+}
+
+// CSA出力用の盤面追跡クラス
+class CsaBoardTracker {
+public:
+    // 駒の種類（CSA形式）
+    enum PieceType {
+        EMPTY = 0,
+        FU, KY, KE, GI, KI, KA, HI, OU,  // 基本駒
+        TO, NY, NK, NG, UM, RY           // 成駒
+    };
+    
+    struct Square {
+        PieceType piece = EMPTY;
+        bool isSente = true;
+    };
+    
+    Square board[9][9];  // board[file-1][rank-1], 1-indexed access via at()
+    
+    CsaBoardTracker() {
+        initHirate();
+    }
+    
+    void initHirate() {
+        // 盤面クリア
+        for (int f = 0; f < 9; ++f) {
+            for (int r = 0; r < 9; ++r) {
+                board[f][r] = {EMPTY, true};
+            }
+        }
+        // 後手の駒（1段目）
+        board[0][0] = {KY, false}; board[1][0] = {KE, false}; board[2][0] = {GI, false};
+        board[3][0] = {KI, false}; board[4][0] = {OU, false}; board[5][0] = {KI, false};
+        board[6][0] = {GI, false}; board[7][0] = {KE, false}; board[8][0] = {KY, false};
+        // 後手の飛車・角（2段目）: 飛車は8筋(file=8)、角は2筋(file=2)
+        board[7][1] = {HI, false}; board[1][1] = {KA, false};
+        // 後手の歩（3段目）
+        for (int f = 0; f < 9; ++f) board[f][2] = {FU, false};
+        // 先手の歩（7段目）
+        for (int f = 0; f < 9; ++f) board[f][6] = {FU, true};
+        // 先手の飛車・角（8段目）: 飛車は2筋(file=2)、角は8筋(file=8)
+        board[1][7] = {HI, true}; board[7][7] = {KA, true};
+        // 先手の駒（9段目）
+        board[0][8] = {KY, true}; board[1][8] = {KE, true}; board[2][8] = {GI, true};
+        board[3][8] = {KI, true}; board[4][8] = {OU, true}; board[5][8] = {KI, true};
+        board[6][8] = {GI, true}; board[7][8] = {KE, true}; board[8][8] = {KY, true};
+    }
+    
+    Square& at(int file, int rank) {
+        return board[file - 1][rank - 1];
+    }
+    
+    const Square& at(int file, int rank) const {
+        return board[file - 1][rank - 1];
+    }
+    
+    static QString pieceToCSA(PieceType p) {
+        switch (p) {
+            case FU: return QStringLiteral("FU");
+            case KY: return QStringLiteral("KY");
+            case KE: return QStringLiteral("KE");
+            case GI: return QStringLiteral("GI");
+            case KI: return QStringLiteral("KI");
+            case KA: return QStringLiteral("KA");
+            case HI: return QStringLiteral("HI");
+            case OU: return QStringLiteral("OU");
+            case TO: return QStringLiteral("TO");
+            case NY: return QStringLiteral("NY");
+            case NK: return QStringLiteral("NK");
+            case NG: return QStringLiteral("NG");
+            case UM: return QStringLiteral("UM");
+            case RY: return QStringLiteral("RY");
+            default: return QString();
+        }
+    }
+    
+    static PieceType charToPiece(QChar c) {
+        switch (c.toUpper().toLatin1()) {
+            case 'P': return FU;
+            case 'L': return KY;
+            case 'N': return KE;
+            case 'S': return GI;
+            case 'G': return KI;
+            case 'B': return KA;
+            case 'R': return HI;
+            case 'K': return OU;
+            default: return EMPTY;
+        }
+    }
+    
+    static PieceType promote(PieceType p) {
+        switch (p) {
+            case FU: return TO;
+            case KY: return NY;
+            case KE: return NK;
+            case GI: return NG;
+            case KA: return UM;
+            case HI: return RY;
+            default: return p;
+        }
+    }
+    
+    // USI形式の指し手を適用し、CSA形式の駒種を返す
+    QString applyMove(const QString& usiMove, bool isSente) {
+        if (usiMove.size() < 4) return QString();
+        
+        // 駒打ちの場合
+        if (usiMove.at(1) == QLatin1Char('*')) {
+            PieceType piece = charToPiece(usiMove.at(0));
+            int toFile = usiMove.at(2).toLatin1() - '0';
+            int toRank = usiMove.at(3).toLatin1() - 'a' + 1;
+            
+            if (toFile >= 1 && toFile <= 9 && toRank >= 1 && toRank <= 9) {
+                at(toFile, toRank) = {piece, isSente};
+            }
+            return pieceToCSA(piece);
+        }
+        
+        // 盤上移動の場合
+        int fromFile = usiMove.at(0).toLatin1() - '0';
+        int fromRank = usiMove.at(1).toLatin1() - 'a' + 1;
+        int toFile = usiMove.at(2).toLatin1() - '0';
+        int toRank = usiMove.at(3).toLatin1() - 'a' + 1;
+        bool isPromo = usiMove.endsWith(QLatin1Char('+'));
+        
+        if (fromFile < 1 || fromFile > 9 || fromRank < 1 || fromRank > 9 ||
+            toFile < 1 || toFile > 9 || toRank < 1 || toRank > 9) {
+            return QString();
+        }
+        
+        PieceType piece = at(fromFile, fromRank).piece;
+        if (isPromo) {
+            piece = promote(piece);
+        }
+        
+        // 盤面を更新
+        at(toFile, toRank) = {piece, isSente};
+        at(fromFile, fromRank) = {EMPTY, true};
+        
+        return pieceToCSA(piece);
+    }
+};
+
+QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringList& usiMoves) const
+{
+    QStringList out;
+    
+    // ★★★ デバッグ: 入力データの確認 ★★★
+    qDebug().noquote() << "[toCsaLines] ========== CSA出力開始 ==========";
+    qDebug().noquote() << "[toCsaLines] usiMoves.size() =" << usiMoves.size();
+    if (!usiMoves.isEmpty()) {
+        qDebug().noquote() << "[toCsaLines] usiMoves[0..min(5,size)] ="
+                           << usiMoves.mid(0, qMin(5, usiMoves.size()));
+    }
+    
+    // 盤面追跡用オブジェクト
+    CsaBoardTracker boardTracker;
+    
+    // 1) 文字コード宣言 (V3.0で追加)
+    out << QStringLiteral("'CSA encoding=UTF-8");
+    
+    // 2) バージョン
+    out << QStringLiteral("V3.0");
+    
+    // 3) 対局者名
+    QString blackPlayer, whitePlayer;
+    resolvePlayerNames_(ctx, blackPlayer, whitePlayer);
+    if (!blackPlayer.isEmpty()) {
+        out << QStringLiteral("N+%1").arg(blackPlayer);
+    }
+    if (!whitePlayer.isEmpty()) {
+        out << QStringLiteral("N-%1").arg(whitePlayer);
+    }
+    
+    // 4) 棋譜情報
+    const QList<KifGameInfoItem> header = collectGameInfo_(ctx);
+    for (const auto& it : header) {
+        const QString key = it.key.trimmed();
+        const QString val = it.value.trimmed();
+        if (key.isEmpty() || val.isEmpty()) continue;
+        
+        if (key == QStringLiteral("棋戦")) {
+            out << QStringLiteral("$EVENT:%1").arg(val);
+        } else if (key == QStringLiteral("場所")) {
+            out << QStringLiteral("$SITE:%1").arg(val);
+        } else if (key == QStringLiteral("開始日時")) {
+            out << QStringLiteral("$START_TIME:%1").arg(val);
+        } else if (key == QStringLiteral("終了日時")) {
+            out << QStringLiteral("$END_TIME:%1").arg(val);
+        } else if (key == QStringLiteral("持ち時間")) {
+            // V3.0形式: $TIME:秒+秒読み+フィッシャー
+            // V2.2形式: $TIME_LIMIT:HH:MM+SS
+            // 入力値の形式を判定して適切な形式で出力
+            // 現状はV2.2形式の入力が多いため、$TIME_LIMITとして出力
+            // （V3.0リーダーは両方読めることが期待される）
+            out << QStringLiteral("$TIME_LIMIT:%1").arg(val);
+        } else if (key == QStringLiteral("戦型")) {
+            out << QStringLiteral("$OPENING:%1").arg(val);
+        } else if (key == QStringLiteral("最大手数")) {
+            // V3.0で追加
+            out << QStringLiteral("$MAX_MOVES:%1").arg(val);
+        } else if (key == QStringLiteral("持将棋")) {
+            // V3.0で追加
+            out << QStringLiteral("$JISHOGI:%1").arg(val);
+        } else if (key == QStringLiteral("備考")) {
+            // V3.0で追加: \は\\に、改行は\nに変換
+            QString noteVal = val;
+            noteVal.replace(QStringLiteral("\\"), QStringLiteral("\\\\"));  // 先に\をエスケープ
+            noteVal.replace(QStringLiteral("\n"), QStringLiteral("\\n"));   // 次に改行を変換
+            out << QStringLiteral("$NOTE:%1").arg(noteVal);
+        }
+    }
+    
+    // 5) 開始局面
+    // startSfenがデフォルト（平手）かどうかを判定
+    const QString defaultSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+    const bool isHirate = ctx.startSfen.isEmpty() || ctx.startSfen == defaultSfen 
+                          || ctx.startSfen.startsWith(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL"));
+    
+    if (isHirate) {
+        // 平手初期配置
+        out << QStringLiteral("P1-KY-KE-GI-KI-OU-KI-GI-KE-KY");
+        out << QStringLiteral("P2 * -HI *  *  *  *  * -KA * ");
+        out << QStringLiteral("P3-FU-FU-FU-FU-FU-FU-FU-FU-FU");
+        out << QStringLiteral("P4 *  *  *  *  *  *  *  *  * ");
+        out << QStringLiteral("P5 *  *  *  *  *  *  *  *  * ");
+        out << QStringLiteral("P6 *  *  *  *  *  *  *  *  * ");
+        out << QStringLiteral("P7+FU+FU+FU+FU+FU+FU+FU+FU+FU");
+        out << QStringLiteral("P8 * +KA *  *  *  *  * +HI * ");
+        out << QStringLiteral("P9+KY+KE+GI+KI+OU+KI+GI+KE+KY");
+        out << QStringLiteral("+");  // 先手番
+    } else {
+        // 任意の開始局面（SFEN形式から変換）
+        // TODO: SFEN→CSA局面変換の実装（複雑なため省略、平手のみ対応）
+        out << QStringLiteral("PI");  // フォールバック: 平手
+        out << QStringLiteral("+");
+    }
+    
+    // 6) 本譜の指し手を収集
+    const QList<KifDisplayItem> disp = collectMainlineForExport_();
+    
+    // ★★★ デバッグ: disp の確認 ★★★
+    qDebug().noquote() << "[toCsaLines] disp.size() =" << disp.size();
+    for (int dbgIdx = 0; dbgIdx < qMin(10, disp.size()); ++dbgIdx) {
+        qDebug().noquote() << "[toCsaLines] disp[" << dbgIdx << "].prettyMove ="
+                           << disp[dbgIdx].prettyMove;
+    }
+    
+    // 開始局面のコメントを出力
+    int startIdx = 0;
+    if (!disp.isEmpty() && disp[0].prettyMove.trimmed().isEmpty()) {
+        const QString cmt = disp[0].comment.trimmed();
+        if (!cmt.isEmpty()) {
+            const QStringList lines = cmt.split(QRegularExpression(QStringLiteral("\r?\n")), Qt::KeepEmptyParts);
+            for (const QString& raw : lines) {
+                QString t = raw.trimmed();
+                if (t.isEmpty()) continue;
+                // CSA読み込み時にnormalizeCsaCommentLine_で付加された「• 」を除去
+                // （内部表示用の箇条書き記号をCSA出力時には元の形式に戻す）
+                if (t.startsWith(QStringLiteral("• "))) {
+                    t = t.mid(2);
+                }
+                if (t.startsWith(QLatin1Char('\''))) {
+                    out << t;
+                } else {
+                    out << (QStringLiteral("'*") + t);
+                }
+            }
+        }
+        startIdx = 1;
+        qDebug().noquote() << "[toCsaLines] 開始局面エントリあり、startIdx = 1";
+    }
+    
+    // ★★★ デバッグ: ループ開始前 ★★★
+    qDebug().noquote() << "[toCsaLines] startIdx =" << startIdx
+                       << ", disp.size() =" << disp.size()
+                       << ", ループ回数予定 =" << (disp.size() - startIdx);
+    
+    // 6) 各指し手を出力
+    int moveNo = 1;
+    bool isSente = true;  // 先手から開始
+    QString terminalMove;
+    int processedMoves = 0;
+    int skippedEmpty = 0;
+    int skippedNoUsi = 0;
+    
+    for (int i = startIdx; i < disp.size(); ++i) {
+        const auto& it = disp[i];
+        const QString moveText = it.prettyMove.trimmed();
+        
+        if (moveText.isEmpty()) {
+            ++skippedEmpty;
+            continue;
+        }
+        
+        // 終局語の判定
+        if (isTerminalMove(moveText)) {
+            qDebug().noquote() << "[toCsaLines] 終局語検出: moveText =" << moveText;
+            terminalMove = moveText;
+            const QString resultCode = getCsaResultCode(moveText);
+            if (!resultCode.isEmpty()) {
+                // 消費時間を追加
+                const int timeSec = extractCsaTimeSeconds(it.timeText);
+                if (timeSec > 0) {
+                    out << QStringLiteral("%1,T%2").arg(resultCode).arg(timeSec);
+                } else {
+                    out << resultCode;
+                }
+            }
+            break;
+        }
+        
+        // USI指し手を取得（インデックスは moveNo-1）
+        QString usiMove;
+        if (moveNo - 1 < usiMoves.size()) {
+            usiMove = usiMoves.at(moveNo - 1);
+        }
+        
+        // ★★★ デバッグ: 各指し手の詳細 ★★★
+        if (processedMoves < 5 || usiMove.isEmpty()) {
+            qDebug().noquote() << "[toCsaLines] i=" << i
+                               << " moveNo=" << moveNo
+                               << " moveText=" << moveText
+                               << " usiMove=" << usiMove
+                               << " (usiMoves.size=" << usiMoves.size() << ")";
+        }
+        
+        // CSA形式の指し手を構築
+        QString csaMove;
+        const QString sign = isSente ? QStringLiteral("+") : QStringLiteral("-");
+        
+        if (!usiMove.isEmpty()) {
+            // 駒打ちの場合
+            if (usiMove.size() >= 4 && usiMove.at(1) == QLatin1Char('*')) {
+                const QChar pieceChar = usiMove.at(0).toUpper();
+                const QString toSquare = usiMove.mid(2, 2);
+                
+                const int toFile = toSquare.at(0).toLatin1() - '0';
+                const int toRank = toSquare.at(1).toLatin1() - 'a' + 1;
+                
+                // 盤面追跡で駒種を取得（盤面も更新される）
+                const QString csaPiece = boardTracker.applyMove(usiMove, isSente);
+                
+                if (!csaPiece.isEmpty()) {
+                    csaMove = QStringLiteral("%1%2%3%4%5")
+                        .arg(sign)
+                        .arg(QStringLiteral("00"))
+                        .arg(QString::number(toFile))
+                        .arg(QString::number(toRank))
+                        .arg(csaPiece);
+                }
+            } else if (usiMove.size() >= 4) {
+                // 盤上移動の場合
+                const QString fromSquare = usiMove.left(2);
+                const QString toSquare = usiMove.mid(2, 2);
+                
+                const int fromFile = fromSquare.at(0).toLatin1() - '0';
+                const int fromRank = fromSquare.at(1).toLatin1() - 'a' + 1;
+                const int toFile = toSquare.at(0).toLatin1() - '0';
+                const int toRank = toSquare.at(1).toLatin1() - 'a' + 1;
+                
+                // 盤面追跡で駒種を取得（成りも考慮、盤面も更新される）
+                const QString csaPiece = boardTracker.applyMove(usiMove, isSente);
+                
+                if (!csaPiece.isEmpty()) {
+                    csaMove = QStringLiteral("%1%2%3%4%5%6")
+                        .arg(sign)
+                        .arg(QString::number(fromFile))
+                        .arg(QString::number(fromRank))
+                        .arg(QString::number(toFile))
+                        .arg(QString::number(toRank))
+                        .arg(csaPiece);
+                }
+            }
+        }
+        
+        if (csaMove.isEmpty()) {
+            // USI指し手がない場合はスキップ
+            ++skippedNoUsi;
+            if (skippedNoUsi <= 5) {
+                qDebug().noquote() << "[toCsaLines] スキップ(USIなし): i=" << i
+                                   << " moveNo=" << moveNo
+                                   << " moveText=" << moveText;
+            }
+            ++moveNo;
+            isSente = !isSente;
+            continue;
+        }
+        
+        // 消費時間を追加（常に出力、0秒でもT0を付加）
+        const int timeSec = extractCsaTimeSeconds(it.timeText);
+        csaMove += QStringLiteral(",T%1").arg(timeSec);
+        
+        out << csaMove;
+        ++processedMoves;
+        
+        // コメント出力
+        const QString cmt = it.comment.trimmed();
+        if (!cmt.isEmpty()) {
+            const QStringList lines = cmt.split(QRegularExpression(QStringLiteral("\r?\n")), Qt::KeepEmptyParts);
+            for (const QString& raw : lines) {
+                QString t = raw.trimmed();
+                if (t.isEmpty()) continue;
+                // CSA読み込み時にnormalizeCsaCommentLine_で付加された「• 」を除去
+                // （内部表示用の箇条書き記号をCSA出力時には元の形式に戻す）
+                if (t.startsWith(QStringLiteral("• "))) {
+                    t = t.mid(2);
+                }
+                if (t.startsWith(QLatin1Char('\''))) {
+                    out << t;
+                } else {
+                    out << (QStringLiteral("'*") + t);
+                }
+            }
+        }
+        
+        ++moveNo;
+        isSente = !isSente;
+    }
+    
+    // ★★★ デバッグ: 結果サマリ ★★★
+    qDebug().noquote() << "[toCsaLines] ========== CSA出力終了 ==========";
+    qDebug().noquote() << "[toCsaLines] processedMoves =" << processedMoves
+                       << ", skippedEmpty =" << skippedEmpty
+                       << ", skippedNoUsi =" << skippedNoUsi;
+    qDebug().noquote() << "[GameRecordModel] toCsaLines: generated"
+                       << out.size() << "lines,"
+                       << (moveNo - 1) << "moves";
+    
+    return out;
+}
