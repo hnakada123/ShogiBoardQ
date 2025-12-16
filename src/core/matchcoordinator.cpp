@@ -22,6 +22,7 @@
 #include <QMetaObject>
 #include <QMetaMethod>
 #include <QSettings>
+#include <QThread>
 
 static inline int clampMsToIntLocal(qint64 v) {
     if (v > std::numeric_limits<int>::max()) return std::numeric_limits<int>::max();
