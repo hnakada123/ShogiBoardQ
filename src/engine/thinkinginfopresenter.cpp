@@ -1,14 +1,14 @@
 /**
  * @file thinkinginfopresenter.cpp
  * @brief 思考情報GUI表示Presenterクラスの実装
+ *
+ * View層（モデル）への直接依存を排除し、
+ * 全ての更新をシグナル経由で行う疎結合な設計。
  */
 
 #include "thinkinginfopresenter.h"
-#include "usicommlogmodel.h"
-#include "shogienginethinkingmodel.h"
 #include "shogiengineinfoparser.h"
 #include "shogigamecontroller.h"
-#include "shogiinforecord.h"
 
 #include <QTimer>
 #include <QDebug>
@@ -20,17 +20,7 @@ ThinkingInfoPresenter::ThinkingInfoPresenter(QObject* parent)
 {
 }
 
-// === モデル設定 ===
-
-void ThinkingInfoPresenter::setCommLogModel(UsiCommLogModel* model)
-{
-    m_commLogModel = model;
-}
-
-void ThinkingInfoPresenter::setThinkingModel(ShogiEngineThinkingModel* model)
-{
-    m_thinkingModel = model;
-}
+// === 依存関係設定 ===
 
 void ThinkingInfoPresenter::setGameController(ShogiGameController* controller)
 {
@@ -110,114 +100,95 @@ void ThinkingInfoPresenter::processInfoLineInternal(const QString& line)
         m_ponderEnabled
     );
 
-    // GUI項目の更新
-    updateSearchedHand(info.get());
-    updateDepth(info.get());
-    updateNodes(info.get());
-    updateNps(info.get());
-    updateHashfull(info.get());
+    // シグナル経由でGUI項目を更新
+    emitSearchedHand(info.get());
+    emitDepth(info.get());
+    emitNodes(info.get());
+    emitNps(info.get());
+    emitHashfull(info.get());
 
     // 評価値/詰み手数の更新
     updateEvaluationInfo(info.get(), scoreInt);
 
-    // 思考タブへ追記
+    // 思考タブへ追記するシグナルを発行
     if (!info->time().isEmpty() || !info->depth().isEmpty() ||
         !info->nodes().isEmpty() || !info->score().isEmpty() ||
         !info->pvKanjiStr().isEmpty()) {
 
-        if (m_thinkingModel) {
-            m_thinkingModel->prependItem(
-                new ShogiInfoRecord(info->time(),
-                                    info->depth(),
-                                    info->nodes(),
-                                    info->score(),
-                                    info->pvKanjiStr()));
-        }
-
-        // シグナルを発行
         emit thinkingInfoUpdated(info->time(), info->depth(),
                                  info->nodes(), info->score(),
                                  info->pvKanjiStr());
     }
 }
 
-void ThinkingInfoPresenter::clearThinkingInfo()
+void ThinkingInfoPresenter::requestClearThinkingInfo()
 {
-    // QPointerがnullになっていれば、モデルは既に破棄されている
-    if (m_thinkingModel) {
-        m_thinkingModel->clearAllItems();
-    }
     m_infoBuffer.clear();
+    emit clearThinkingInfoRequested();
 }
 
 // === 通信ログ ===
 
 void ThinkingInfoPresenter::logSentCommand(const QString& prefix, const QString& command)
 {
-    if (m_commLogModel) {
-        m_commLogModel->appendUsiCommLog(prefix + " > " + command);
-    }
+    emit commLogAppended(prefix + " > " + command);
 }
 
 void ThinkingInfoPresenter::logReceivedData(const QString& prefix, const QString& data)
 {
-    if (m_commLogModel) {
-        m_commLogModel->appendUsiCommLog(prefix + " < " + data);
-    }
+    emit commLogAppended(prefix + " < " + data);
 }
 
 void ThinkingInfoPresenter::logStderrData(const QString& prefix, const QString& data)
 {
-    if (m_commLogModel) {
-        m_commLogModel->appendUsiCommLog(prefix + " <stderr> " + data);
+    emit commLogAppended(prefix + " <stderr> " + data);
+}
+
+// === シグナル発行ヘルパメソッド ===
+
+void ThinkingInfoPresenter::emitSearchedHand(const ShogiEngineInfoParser* info)
+{
+    if (!info->searchedHand().isEmpty()) {
+        emit searchedMoveUpdated(info->searchedHand());
     }
 }
 
-// === GUI更新ヘルパメソッド ===
-
-void ThinkingInfoPresenter::updateSearchedHand(const ShogiEngineInfoParser* info)
+void ThinkingInfoPresenter::emitDepth(const ShogiEngineInfoParser* info)
 {
-    if (m_commLogModel) {
-        m_commLogModel->setSearchedMove(info->searchedHand());
-    }
-}
+    if (info->depth().isEmpty()) return;
 
-void ThinkingInfoPresenter::updateDepth(const ShogiEngineInfoParser* info)
-{
-    if (!m_commLogModel) return;
-
+    QString depthStr;
     if (info->seldepth().isEmpty()) {
-        m_commLogModel->setSearchDepth(info->depth());
+        depthStr = info->depth();
     } else {
-        m_commLogModel->setSearchDepth(info->depth() + "/" + info->seldepth());
+        depthStr = info->depth() + "/" + info->seldepth();
     }
+    emit searchDepthUpdated(depthStr);
 }
 
-void ThinkingInfoPresenter::updateNodes(const ShogiEngineInfoParser* info)
+void ThinkingInfoPresenter::emitNodes(const ShogiEngineInfoParser* info)
 {
-    if (!m_commLogModel) return;
+    if (info->nodes().isEmpty()) return;
 
     unsigned long long nodes = info->nodes().toULongLong();
-    m_commLogModel->setNodeCount(m_locale.toString(nodes));
+    emit nodeCountUpdated(m_locale.toString(nodes));
 }
 
-void ThinkingInfoPresenter::updateNps(const ShogiEngineInfoParser* info)
+void ThinkingInfoPresenter::emitNps(const ShogiEngineInfoParser* info)
 {
-    if (!m_commLogModel) return;
+    if (info->nps().isEmpty()) return;
 
     unsigned long long nps = info->nps().toULongLong();
-    m_commLogModel->setNodesPerSecond(m_locale.toString(nps));
+    emit npsUpdated(m_locale.toString(nps));
 }
 
-void ThinkingInfoPresenter::updateHashfull(const ShogiEngineInfoParser* info)
+void ThinkingInfoPresenter::emitHashfull(const ShogiEngineInfoParser* info)
 {
-    if (!m_commLogModel) return;
-
     if (info->hashfull().isEmpty()) {
-        m_commLogModel->setHashUsage("");
+        emit hashUsageUpdated("");
     } else {
         unsigned long long hash = info->hashfull().toULongLong() / 10;
-        m_commLogModel->setHashUsage(QString::number(hash) + "%");
+        emit hashUsageUpdated(QString::number(hash) + "%");
     }
 }
 
