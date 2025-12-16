@@ -16,6 +16,8 @@
 #include <QClipboard>      // ★ 追加
 #include <QLineEdit>       // ★ 追加
 #include <functional>
+#include <QPainter>
+#include <QFontDatabase>
 
 #include "mainwindow.h"
 #include "branchwiringcoordinator.h"

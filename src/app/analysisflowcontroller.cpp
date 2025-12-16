@@ -14,6 +14,7 @@
 #include <QString>
 #include <QObject>
 #include <QtGlobal>
+#include <QPointer>
 
 AnalysisFlowController::AnalysisFlowController(QObject* parent)
     : QObject(parent)
