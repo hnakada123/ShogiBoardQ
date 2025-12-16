@@ -163,6 +163,18 @@ public:
      */
     QStringList toUsenLines(const ExportContext& ctx, const QStringList& usiMoves) const;
 
+    /**
+     * @brief USIプロトコル形式（position コマンド文字列）の行リストを生成
+     * @param ctx 出力コンテキスト（ヘッダ情報等）
+     * @param usiMoves USI形式の指し手リスト（本譜用）
+     * @return USI形式の行リスト（1要素のposition コマンド文字列）
+     * 
+     * USI形式は将棋GUIとエンジン間の通信プロトコルで使用される棋譜フォーマットです。
+     * 分岐の指し手には対応していません（本譜のみ出力）。
+     * https://shogidokoro2.stars.ne.jp/usi.html
+     */
+    QStringList toUsiLines(const ExportContext& ctx, const QStringList& usiMoves) const;
+
     // ========================================
     // ライブ対局用
     // ========================================
@@ -351,6 +363,14 @@ private:
      * @return USI形式の指し手（推測できない場合は空文字列）
      */
     static QString inferUsiFromSfenDiff_(const QString& sfenBefore, const QString& sfenAfter, bool isSente);
+
+    // === USI（position コマンド）形式出力用ヘルパ ===
+    /**
+     * @brief 終局語からUSI終局コードを取得
+     * @param terminalMove 終局語（例: "▲投了"、"千日手"）
+     * @return USIの終局コード（例: "resign", "rep_draw"）、該当なしは空文字列
+     */
+    static QString getUsiTerminalCode_(const QString& terminalMove);
 };
 
 #endif // GAMERECORDMODEL_H
