@@ -2924,7 +2924,7 @@ void MainWindow::updateGameRecord(const QString& elapsedTime)
 // 新しい保存関数
 void MainWindow::saveKifuToFile()
 {
-    // ★ GameRecordModel を使って KIF/KI2/CSA/JKF/USEN 形式を生成
+    // ★ GameRecordModel を使って KIF/KI2/CSA/JKF/USEN/USI 形式を生成
     ensureGameRecordModel_();
 
     QStringList kifLines;
@@ -2958,29 +2958,32 @@ void MainWindow::saveKifuToFile()
         ctx.engine1       = m_engineName1;
         ctx.engine2       = m_engineName2;
 
-        // GameRecordModel から KIF/KI2/CSA/JKF/USEN 形式の行リストを生成
+        // GameRecordModel から KIF/KI2/CSA/JKF/USEN/USI 形式の行リストを生成
         kifLines = m_gameRecord->toKifLines(ctx);
         ki2Lines = m_gameRecord->toKi2Lines(ctx);
         csaLines = m_gameRecord->toCsaLines(ctx, usiMovesForCsa);
         QStringList jkfLines = m_gameRecord->toJkfLines(ctx);
         QStringList usenLines = m_gameRecord->toUsenLines(ctx, usiMovesForCsa);
+        QStringList usiLines = m_gameRecord->toUsiLines(ctx, usiMovesForCsa);
 
         qDebug().noquote() << "[MW] saveKifuToFile: generated" << kifLines.size() << "KIF lines,"
                            << ki2Lines.size() << "KI2 lines,"
                            << csaLines.size() << "CSA lines,"
                            << jkfLines.size() << "JKF lines,"
-                           << usenLines.size() << "USEN lines via GameRecordModel";
+                           << usenLines.size() << "USEN lines,"
+                           << usiLines.size() << "USI lines via GameRecordModel";
 
         m_kifuDataList = kifLines;
 
-        // KIF/KI2/CSA/JKF/USEN形式が利用可能な場合は新しいダイアログを使用
-        const QString path = KifuSaveCoordinator::saveViaDialogWithUsen(
+        // KIF/KI2/CSA/JKF/USEN/USI形式が利用可能な場合は新しいダイアログを使用
+        const QString path = KifuSaveCoordinator::saveViaDialogWithUsi(
             this,
             kifLines,
             ki2Lines,
             csaLines,
             jkfLines,
             usenLines,
+            usiLines,
             m_playMode,
             m_humanName1, m_humanName2,
             m_engineName1, m_engineName2);
