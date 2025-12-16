@@ -7,6 +7,7 @@
 #include <QStringList>
 #include <QVector>
 #include <QThread>
+#include <QPointer>
 #include <memory>
 
 #include "engineprocessmanager.h"
@@ -159,10 +160,10 @@ private:
     std::unique_ptr<UsiProtocolHandler> m_protocolHandler;
     std::unique_ptr<ThinkingInfoPresenter> m_presenter;
 
-    // === 外部参照 ===
+    // === 外部参照（QPointerで生存を追跡）===
     
-    UsiCommLogModel* m_commLogModel = nullptr;
-    ShogiEngineThinkingModel* m_thinkingModel = nullptr;
+    QPointer<UsiCommLogModel> m_commLogModel;
+    QPointer<ShogiEngineThinkingModel> m_thinkingModel;
     ShogiGameController* m_gameController = nullptr;
     PlayMode& m_playMode;
 
@@ -210,6 +211,18 @@ private slots:
     void onCommandSent(const QString& command);
     void onDataReceived(const QString& line);
     void onStderrReceived(const QString& line);
+    
+    // === モデル更新スロット（シグナル経由で更新）===
+    void onSearchedMoveUpdated(const QString& move);
+    void onSearchDepthUpdated(const QString& depth);
+    void onNodeCountUpdated(const QString& nodes);
+    void onNpsUpdated(const QString& nps);
+    void onHashUsageUpdated(const QString& hashUsage);
+    void onCommLogAppended(const QString& log);
+    void onClearThinkingInfoRequested();
+    void onThinkingInfoUpdated(const QString& time, const QString& depth,
+                               const QString& nodes, const QString& score,
+                               const QString& pvKanjiStr);
 };
 
 #endif // USI_H

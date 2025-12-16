@@ -11,6 +11,7 @@
 #include "usi.h"
 #include "shogiboard.h"
 #include "shogiengineinfoparser.h"
+#include "shogiinforecord.h"
 
 #include <QFileInfo>
 #include <QDir>
@@ -43,8 +44,7 @@ Usi::Usi(UsiCommLogModel* model, ShogiEngineThinkingModel* modelThinking,
 {
     setupConnections();
     
-    m_presenter->setCommLogModel(model);
-    m_presenter->setThinkingModel(modelThinking);
+    // Presenterにゲームコントローラのみを設定（モデルへの直接依存を排除）
     m_presenter->setGameController(gameController);
     
     m_protocolHandler->setProcessManager(m_processManager.get());
@@ -56,7 +56,7 @@ Usi::~Usi()
 {
     // デストラクタ時はモデルクリアをスキップ（モデルが既に破棄されている可能性があるため）
     m_processManager->stopProcess();
-    // m_presenter->clearThinkingInfo() は呼ばない
+    // m_presenter->requestClearThinkingInfo() は呼ばない
 }
 
 void Usi::setupConnections()
@@ -93,9 +93,23 @@ void Usi::setupConnections()
     connect(m_protocolHandler.get(), &UsiProtocolHandler::checkmateUnknown,
             this, &Usi::checkmateUnknown);
 
-    // Presenterからのシグナル
+    // Presenterからのシグナル（View層への間接的な更新）
     connect(m_presenter.get(), &ThinkingInfoPresenter::thinkingInfoUpdated,
-            this, &Usi::thinkingInfoUpdated);
+            this, &Usi::onThinkingInfoUpdated);
+    connect(m_presenter.get(), &ThinkingInfoPresenter::searchedMoveUpdated,
+            this, &Usi::onSearchedMoveUpdated);
+    connect(m_presenter.get(), &ThinkingInfoPresenter::searchDepthUpdated,
+            this, &Usi::onSearchDepthUpdated);
+    connect(m_presenter.get(), &ThinkingInfoPresenter::nodeCountUpdated,
+            this, &Usi::onNodeCountUpdated);
+    connect(m_presenter.get(), &ThinkingInfoPresenter::npsUpdated,
+            this, &Usi::onNpsUpdated);
+    connect(m_presenter.get(), &ThinkingInfoPresenter::hashUsageUpdated,
+            this, &Usi::onHashUsageUpdated);
+    connect(m_presenter.get(), &ThinkingInfoPresenter::commLogAppended,
+            this, &Usi::onCommLogAppended);
+    connect(m_presenter.get(), &ThinkingInfoPresenter::clearThinkingInfoRequested,
+            this, &Usi::onClearThinkingInfoRequested);
 }
 
 // === スロット実装 ===
@@ -121,6 +135,71 @@ void Usi::onDataReceived(const QString& line)
 void Usi::onStderrReceived(const QString& line)
 {
     m_presenter->logStderrData(m_processManager->logPrefix(), line);
+}
+
+// === モデル更新スロット実装（シグナル経由で更新）===
+
+void Usi::onSearchedMoveUpdated(const QString& move)
+{
+    if (m_commLogModel) {
+        m_commLogModel->setSearchedMove(move);
+    }
+}
+
+void Usi::onSearchDepthUpdated(const QString& depth)
+{
+    if (m_commLogModel) {
+        m_commLogModel->setSearchDepth(depth);
+    }
+}
+
+void Usi::onNodeCountUpdated(const QString& nodes)
+{
+    if (m_commLogModel) {
+        m_commLogModel->setNodeCount(nodes);
+    }
+}
+
+void Usi::onNpsUpdated(const QString& nps)
+{
+    if (m_commLogModel) {
+        m_commLogModel->setNodesPerSecond(nps);
+    }
+}
+
+void Usi::onHashUsageUpdated(const QString& hashUsage)
+{
+    if (m_commLogModel) {
+        m_commLogModel->setHashUsage(hashUsage);
+    }
+}
+
+void Usi::onCommLogAppended(const QString& log)
+{
+    if (m_commLogModel) {
+        m_commLogModel->appendUsiCommLog(log);
+    }
+}
+
+void Usi::onClearThinkingInfoRequested()
+{
+    if (m_thinkingModel) {
+        m_thinkingModel->clearAllItems();
+    }
+}
+
+void Usi::onThinkingInfoUpdated(const QString& time, const QString& depth,
+                                const QString& nodes, const QString& score,
+                                const QString& pvKanjiStr)
+{
+    // 思考タブへ追記
+    if (m_thinkingModel) {
+        m_thinkingModel->prependItem(
+            new ShogiInfoRecord(time, depth, nodes, score, pvKanjiStr));
+    }
+    
+    // 外部への通知
+    emit thinkingInfoUpdated(time, depth, nodes, score, pvKanjiStr);
 }
 
 // === 公開インターフェース実装 ===
@@ -223,13 +302,13 @@ bool Usi::isIgnoring() const
 void Usi::setThinkingModel(ShogiEngineThinkingModel* m)
 {
     m_thinkingModel = m;
-    m_presenter->setThinkingModel(m);
+    // Presenterはシグナル経由で更新するため、モデル参照は不要
 }
 
 void Usi::setLogModel(UsiCommLogModel* m)
 {
     m_commLogModel = m;
-    m_presenter->setCommLogModel(m);
+    // Presenterはシグナル経由で更新するため、モデル参照は不要
 }
 
 #ifdef QT_DEBUG
@@ -297,7 +376,7 @@ void Usi::startAndInitializeEngine(const QString& engineFile, const QString& eng
 void Usi::cleanupEngineProcessAndThread()
 {
     m_processManager->stopProcess();
-    m_presenter->clearThinkingInfo();
+    m_presenter->requestClearThinkingInfo();
 }
 
 // === コマンド送信 ===
@@ -575,7 +654,7 @@ void Usi::executeAnalysisCommunication(QString& positionStr, int byoyomiMilliSec
     cloneCurrentBoardData();
     m_protocolHandler->sendPosition(positionStr);
     
-    m_presenter->clearThinkingInfo();
+    m_presenter->requestClearThinkingInfo();
     m_protocolHandler->sendRaw("go infinite");
 
     if (byoyomiMilliSec <= 0) {

@@ -8,8 +8,6 @@
 #include <QPointer>
 #include <memory>
 
-class UsiCommLogModel;
-class ShogiEngineThinkingModel;
 class ShogiEngineInfoParser;
 class ShogiGameController;
 
@@ -17,13 +15,15 @@ class ShogiGameController;
  * @brief 思考情報のGUI表示を管理するPresenterクラス
  *
  * 責務:
- * - info行の解析結果をGUIモデルに反映
+ * - info行の解析結果をシグナルで通知
  * - 評価値の計算と更新
- * - 思考タブへの情報追加
- * - USI通信ログの表示
+ * - 思考情報の通知
+ * - USI通信ログの通知
  *
- * 単一責任原則（SRP）に基づき、GUI表示の更新のみを担当する。
- * USIプロトコルの解釈やプロセス管理は他のクラスに委譲する。
+ * 設計方針:
+ * - View層（モデル）への直接依存を排除
+ * - 全ての更新をシグナル経由で行う
+ * - 疎結合な設計によりテスタビリティを向上
  */
 class ThinkingInfoPresenter : public QObject
 {
@@ -33,13 +33,7 @@ public:
     explicit ThinkingInfoPresenter(QObject* parent = nullptr);
     ~ThinkingInfoPresenter() = default;
 
-    // === モデル設定 ===
-    
-    /// USI通信ログモデルを設定
-    void setCommLogModel(UsiCommLogModel* model);
-    
-    /// 思考情報モデルを設定
-    void setThinkingModel(ShogiEngineThinkingModel* model);
+    // === 依存関係設定 ===
     
     /// ゲームコントローラを設定
     void setGameController(ShogiGameController* controller);
@@ -60,24 +54,24 @@ public:
 
     // === info処理 ===
     
-    /// info行を処理してGUIを更新
+    /// info行を処理してシグナルを発行
     void processInfoLine(const QString& line);
     
-    /// 思考情報をクリア
-    void clearThinkingInfo();
+    /// 思考情報のクリアをリクエスト
+    void requestClearThinkingInfo();
     
     /// バッファリングされたinfo行をフラッシュ
     void flushInfoBuffer();
 
     // === 通信ログ ===
     
-    /// 送信コマンドをログに追加
+    /// 送信コマンドをログに通知
     void logSentCommand(const QString& prefix, const QString& command);
     
-    /// 受信データをログに追加
+    /// 受信データをログに通知
     void logReceivedData(const QString& prefix, const QString& data);
     
-    /// 標準エラーデータをログに追加
+    /// 標準エラーデータをログに通知
     void logStderrData(const QString& prefix, const QString& data);
 
     // === 評価値取得 ===
@@ -96,24 +90,53 @@ public slots:
     void onInfoReceived(const QString& line);
 
 signals:
-    /// 思考情報更新シグナル
+    // === 思考情報関連シグナル ===
+    
+    /// 思考情報更新シグナル（思考タブへの追加用）
     void thinkingInfoUpdated(const QString& time, const QString& depth,
                              const QString& nodes, const QString& score,
                              const QString& pvKanjiStr);
     
+    /// 思考情報クリアリクエストシグナル
+    void clearThinkingInfoRequested();
+    
+    // === 評価値関連シグナル ===
+    
     /// 評価値更新シグナル
     void scoreUpdated(int scoreCp, const QString& scoreStr);
+    
+    // === エンジン情報関連シグナル ===
+    
+    /// 探索手更新シグナル
+    void searchedMoveUpdated(const QString& move);
+    
+    /// 探索深さ更新シグナル
+    void searchDepthUpdated(const QString& depth);
+    
+    /// ノード数更新シグナル
+    void nodeCountUpdated(const QString& nodes);
+    
+    /// NPS更新シグナル
+    void npsUpdated(const QString& nps);
+    
+    /// ハッシュ使用率更新シグナル
+    void hashUsageUpdated(const QString& hashUsage);
+    
+    // === 通信ログ関連シグナル ===
+    
+    /// 通信ログ追加シグナル
+    void commLogAppended(const QString& log);
 
 private:
     /// info行を処理する内部メソッド
     void processInfoLineInternal(const QString& line);
 
-    /// GUI更新ヘルパメソッド
-    void updateSearchedHand(const ShogiEngineInfoParser* info);
-    void updateDepth(const ShogiEngineInfoParser* info);
-    void updateNodes(const ShogiEngineInfoParser* info);
-    void updateNps(const ShogiEngineInfoParser* info);
-    void updateHashfull(const ShogiEngineInfoParser* info);
+    /// シグナル発行ヘルパメソッド
+    void emitSearchedHand(const ShogiEngineInfoParser* info);
+    void emitDepth(const ShogiEngineInfoParser* info);
+    void emitNodes(const ShogiEngineInfoParser* info);
+    void emitNps(const ShogiEngineInfoParser* info);
+    void emitHashfull(const ShogiEngineInfoParser* info);
 
     /// 評価値計算
     int calculateScoreInt(const ShogiEngineInfoParser* info) const;
@@ -123,9 +146,7 @@ private:
     void updateEvaluationInfo(ShogiEngineInfoParser* info, int& scoreInt);
 
 private:
-    /// モデル参照（QPointerで生存を追跡）
-    QPointer<UsiCommLogModel> m_commLogModel;
-    QPointer<ShogiEngineThinkingModel> m_thinkingModel;
+    /// ゲームコントローラ参照
     ShogiGameController* m_gameController = nullptr;
 
     /// 状態

@@ -173,7 +173,7 @@ void UsiProtocolHandler::sendGo(int byoyomiMs, const QString& btime, const QStri
                                 int bincMs, int wincMs, bool useByoyomi)
 {
     if (m_presenter) {
-        m_presenter->clearThinkingInfo();
+        m_presenter->requestClearThinkingInfo();
     }
 
     QString command;
@@ -196,7 +196,7 @@ void UsiProtocolHandler::sendGo(int byoyomiMs, const QString& btime, const QStri
 void UsiProtocolHandler::sendGoPonder()
 {
     if (m_presenter) {
-        m_presenter->clearThinkingInfo();
+        m_presenter->requestClearThinkingInfo();
     }
 
     m_phase = SearchPhase::Ponder;
