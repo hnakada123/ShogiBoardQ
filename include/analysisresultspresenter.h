@@ -3,10 +3,9 @@
 
 #include <QObject>
 #include <QPointer>
-
-class QDialog;
-class QTableView;
-class QHeaderView;
+#include <QDialog>
+#include <QTableView>
+#include <QHeaderView>
 class QAbstractItemModel;
 class QTimer;
 class KifuAnalysisListModel;
