@@ -41,6 +41,11 @@ int gameInfoFontSize();
 // 対局情報タブのフォントサイズを保存
 void setGameInfoFontSize(int size);
 
+// 思考タブのフォントサイズを取得（デフォルト: 10）
+int thinkingFontSize();
+// 思考タブのフォントサイズを保存
+void setThinkingFontSize(int size);
+
 } // namespace SettingsService
 
 #endif // SETTINGSSERVICE_H
