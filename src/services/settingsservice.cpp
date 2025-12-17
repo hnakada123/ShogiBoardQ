@@ -91,4 +91,20 @@ void setGameInfoFontSize(int size)
     s.setValue("FontSize/gameInfo", size);
 }
 
+// ★ 追加: 思考タブのフォントサイズを取得
+int thinkingFontSize()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("FontSize/thinking", 10).toInt();
+}
+
+// ★ 追加: 思考タブのフォントサイズを保存
+void setThinkingFontSize(int size)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("FontSize/thinking", size);
+}
+
 } // namespace SettingsService

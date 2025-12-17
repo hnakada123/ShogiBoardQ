@@ -157,6 +157,9 @@ private:
     QToolButton* m_btnUsiLogFontDecrease=nullptr;
     int m_usiLogFontSize=10;
 
+    // ★ 追加: 思考タブフォントサイズ
+    int m_thinkingFontSize=10;
+
     // ★ 追加: コメント編集用UI
     QWidget* m_commentToolbar=nullptr;
     QToolButton* m_btnFontIncrease=nullptr;
@@ -177,6 +180,9 @@ private:
     void updateUsiLogFontSize(int delta);  // ★ 追加: USI通信ログフォントサイズ変更
     void onUsiLogFontIncrease();     // ★ 追加
     void onUsiLogFontDecrease();     // ★ 追加
+    void updateThinkingFontSize(int delta);  // ★ 追加: 思考タブフォントサイズ変更
+    void onThinkingFontIncrease();   // ★ 追加
+    void onThinkingFontDecrease();   // ★ 追加
     void buildCommentToolbar();
     void updateCommentFontSize(int delta);
     QString convertUrlsToLinks(const QString& text);

@@ -56,10 +56,17 @@ void EngineAnalysisTab::buildUi()
     v->setContentsMargins(4,4,4,4);
     v->setSpacing(4);
 
-    m_info1 = new EngineInfoWidget(page);
+    // ★ 変更: 最初のEngineInfoWidgetにフォントサイズボタンを表示
+    m_info1 = new EngineInfoWidget(page, true);  // showFontButtons=true
     m_view1 = new QTableView(page);
-    m_info2 = new EngineInfoWidget(page);
+    m_info2 = new EngineInfoWidget(page, false); // showFontButtons=false
     m_view2 = new QTableView(page);
+    
+    // ★ 追加: フォントサイズ変更シグナルを接続
+    connect(m_info1, &EngineInfoWidget::fontSizeIncreaseRequested,
+            this, &EngineAnalysisTab::onThinkingFontIncrease);
+    connect(m_info1, &EngineInfoWidget::fontSizeDecreaseRequested,
+            this, &EngineAnalysisTab::onThinkingFontDecrease);
 
     // ヘッダのリサイズポリシー（PV 列を広く等）
     tuneColumnsForThinkingView_(m_view1);
@@ -150,6 +157,19 @@ void EngineAnalysisTab::buildUi()
         QFont font = m_comment->font();
         font.setPointSize(m_currentFontSize);
         m_comment->setFont(font);
+    }
+    
+    // ★ 追加: 思考タブのフォントサイズを読み込んで適用
+    m_thinkingFontSize = SettingsService::thinkingFontSize();
+    if (m_thinkingFontSize != 10) {  // デフォルト以外の場合のみ適用
+        QFont font;
+        font.setPointSize(m_thinkingFontSize);
+        // 上段（EngineInfoWidget）
+        if (m_info1) m_info1->setFontSize(m_thinkingFontSize);
+        if (m_info2) m_info2->setFontSize(m_thinkingFontSize);
+        // 下段（TableView）
+        if (m_view1) m_view1->setFont(font);
+        if (m_view2) m_view2->setFont(font);
     }
 
     // ★ 追加：起動直後でも「開始局面」だけは描く
@@ -956,6 +976,38 @@ void EngineAnalysisTab::onUsiLogFontIncrease()
 void EngineAnalysisTab::onUsiLogFontDecrease()
 {
     updateUsiLogFontSize(-1);
+}
+
+// ★ 追加: 思考タブフォントサイズ変更
+void EngineAnalysisTab::updateThinkingFontSize(int delta)
+{
+    m_thinkingFontSize += delta;
+    if (m_thinkingFontSize < 8) m_thinkingFontSize = 8;
+    if (m_thinkingFontSize > 24) m_thinkingFontSize = 24;
+
+    QFont font;
+    font.setPointSize(m_thinkingFontSize);
+
+    // 上段（EngineInfoWidget）のフォントサイズ変更
+    if (m_info1) m_info1->setFontSize(m_thinkingFontSize);
+    if (m_info2) m_info2->setFontSize(m_thinkingFontSize);
+    
+    // 下段（TableView）のフォントサイズ変更
+    if (m_view1) m_view1->setFont(font);
+    if (m_view2) m_view2->setFont(font);
+    
+    // ★ 追加: 設定ファイルに保存
+    SettingsService::setThinkingFontSize(m_thinkingFontSize);
+}
+
+void EngineAnalysisTab::onThinkingFontIncrease()
+{
+    updateThinkingFontSize(1);
+}
+
+void EngineAnalysisTab::onThinkingFontDecrease()
+{
+    updateThinkingFontSize(-1);
 }
 
 // ★ 追加: コメントツールバーを構築
