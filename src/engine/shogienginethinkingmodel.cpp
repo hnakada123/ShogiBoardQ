@@ -59,19 +59,19 @@ QVariant ShogiEngineThinkingModel::headerData(int section, Qt::Orientation orien
         switch (section) {
         case 0:
             // 時間
-            return "Time";
+            return tr("時間");
         case 1:
             // 深さ
-            return "Depth";
+            return tr("深さ");
         case 2:
             // ノード数
-            return "Nodes";
+            return tr("ノード数");
         case 3:
             // 評価値
-            return "Score";
+            return tr("評価値");
         case 4:
             // 読み筋
-            return "PV";
+            return tr("読み筋");
         default:
             // それ以外の場合は空のQVariantを返す。
             return QVariant();
