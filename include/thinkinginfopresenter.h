@@ -52,6 +52,12 @@ public:
     /// ponderモード有効フラグを設定
     void setPonderEnabled(bool enabled);
 
+    /// 思考開始時の局面SFENを設定
+    void setBaseSfen(const QString& sfen);
+    
+    /// 思考開始時の局面SFENを取得
+    QString baseSfen() const;
+
     // === info処理 ===
     
     /// info行を処理してシグナルを発行
@@ -95,9 +101,11 @@ signals:
     /// 思考情報更新シグナル（思考タブへの追加用）
     /// pvKanjiStr: 漢字表記の読み筋
     /// usiPv: USI形式の読み筋（スペース区切り）
+    /// baseSfen: 思考開始時の局面SFEN
     void thinkingInfoUpdated(const QString& time, const QString& depth,
                              const QString& nodes, const QString& score,
-                             const QString& pvKanjiStr, const QString& usiPv);
+                             const QString& pvKanjiStr, const QString& usiPv,
+                             const QString& baseSfen);
     
     /// 思考情報クリアリクエストシグナル
     void clearThinkingInfoRequested();
@@ -156,6 +164,9 @@ private:
     int m_previousFileTo = 0;
     int m_previousRankTo = 0;
     bool m_ponderEnabled = false;
+    
+    /// 思考開始時の局面SFEN
+    QString m_baseSfen;
     
     /// クローンした盤面データ
     QVector<QChar> m_clonedBoardData;

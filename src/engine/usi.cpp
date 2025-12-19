@@ -190,17 +190,19 @@ void Usi::onClearThinkingInfoRequested()
 
 void Usi::onThinkingInfoUpdated(const QString& time, const QString& depth,
                                 const QString& nodes, const QString& score,
-                                const QString& pvKanjiStr, const QString& usiPv)
+                                const QString& pvKanjiStr, const QString& usiPv,
+                                const QString& baseSfen)
 {
-    // 思考タブへ追記（USI PVも保存）
+    // 思考タブへ追記（USI PVとbaseSfenも保存）
     if (m_thinkingModel) {
         ShogiInfoRecord* record = new ShogiInfoRecord(time, depth, nodes, score, pvKanjiStr);
         record->setUsiPv(usiPv);
+        record->setBaseSfen(baseSfen);
         m_thinkingModel->prependItem(record);
     }
     
     // 外部への通知
-    emit thinkingInfoUpdated(time, depth, nodes, score, pvKanjiStr, usiPv);
+    emit thinkingInfoUpdated(time, depth, nodes, score, pvKanjiStr, usiPv, baseSfen);
 }
 
 // === 公開インターフェース実装 ===
@@ -595,6 +597,16 @@ void Usi::sendCommandsAndProcess(int byoyomiMilliSec, QString& positionStr,
                                  QString& positionPonderStr, int addEachMoveMilliSec1,
                                  int addEachMoveMilliSec2, bool useByoyomi)
 {
+    // 思考開始時の局面SFENを保存（読み筋表示用）
+    if (m_gameController && m_gameController->board()) {
+        ShogiBoard* board = m_gameController->board();
+        QString turn = (m_gameController->currentPlayer() == ShogiGameController::Player1) 
+                       ? QStringLiteral("b") : QStringLiteral("w");
+        QString baseSfen = board->convertBoardToSfen() + QStringLiteral(" ") + turn +
+                          QStringLiteral(" ") + board->convertStandToSfen() + QStringLiteral(" 1");
+        m_presenter->setBaseSfen(baseSfen);
+    }
+    
     m_protocolHandler->sendPosition(positionStr);
     cloneCurrentBoardData();
     m_protocolHandler->sendGo(byoyomiMilliSec, btime, wtime,
@@ -652,6 +664,16 @@ void Usi::appendBestMoveAndStartPondering(QString& positionStr, QString& positio
 
 void Usi::executeAnalysisCommunication(QString& positionStr, int byoyomiMilliSec)
 {
+    // 思考開始時の局面SFENを保存（読み筋表示用）
+    if (m_gameController && m_gameController->board()) {
+        ShogiBoard* board = m_gameController->board();
+        QString turn = (m_gameController->currentPlayer() == ShogiGameController::Player1) 
+                       ? QStringLiteral("b") : QStringLiteral("w");
+        QString baseSfen = board->convertBoardToSfen() + QStringLiteral(" ") + turn +
+                          QStringLiteral(" ") + board->convertStandToSfen() + QStringLiteral(" 1");
+        m_presenter->setBaseSfen(baseSfen);
+    }
+    
     cloneCurrentBoardData();
     m_protocolHandler->sendPosition(positionStr);
     
