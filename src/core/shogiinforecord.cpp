@@ -19,6 +19,15 @@ ShogiInfoRecord::ShogiInfoRecord(const QString& time, const QString& depth, cons
     m_pv = pv;
 }
 
+// コンストラクタ（USI形式のPV付き）
+ShogiInfoRecord::ShogiInfoRecord(const QString& time, const QString& depth, const QString& nodes,
+                                const QString& score, const QString& pv, const QString& usiPv,
+                                QObject* parent)
+    : ShogiInfoRecord(time, depth, nodes, score, pv, parent)
+{
+    m_usiPv = usiPv;
+}
+
 // 思考時間を取得する。
 QString ShogiInfoRecord::time() const
 {
@@ -47,4 +56,16 @@ QString ShogiInfoRecord::score() const
 QString ShogiInfoRecord::pv() const
 {
     return m_pv;
+}
+
+// USI形式の読み筋を取得する。
+QString ShogiInfoRecord::usiPv() const
+{
+    return m_usiPv;
+}
+
+// USI形式の読み筋を設定する。
+void ShogiInfoRecord::setUsiPv(const QString& usiPv)
+{
+    m_usiPv = usiPv;
 }

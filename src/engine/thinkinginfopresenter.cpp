@@ -117,7 +117,7 @@ void ThinkingInfoPresenter::processInfoLineInternal(const QString& line)
 
         emit thinkingInfoUpdated(info->time(), info->depth(),
                                  info->nodes(), info->score(),
-                                 info->pvKanjiStr());
+                                 info->pvKanjiStr(), info->pvUsiStr());
     }
 }
 

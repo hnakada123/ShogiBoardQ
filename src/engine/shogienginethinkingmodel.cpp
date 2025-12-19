@@ -81,3 +81,21 @@ QVariant ShogiEngineThinkingModel::headerData(int section, Qt::Orientation orien
         return QVariant(section + 1);
     }
 }
+
+// ★ 追加: 指定行のUSI形式の読み筋を取得
+QString ShogiEngineThinkingModel::usiPvAt(int row) const
+{
+    if (row < 0 || row >= list.size()) {
+        return QString();
+    }
+    return list.at(row)->usiPv();
+}
+
+// ★ 追加: 指定行のShogiInfoRecordを取得（読み取り専用）
+const ShogiInfoRecord* ShogiEngineThinkingModel::recordAt(int row) const
+{
+    if (row < 0 || row >= list.size()) {
+        return nullptr;
+    }
+    return list.at(row);
+}

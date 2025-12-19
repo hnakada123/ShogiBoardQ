@@ -119,6 +119,9 @@ private slots:
     void onFontIncrease();
     void onFontDecrease();
     void onUpdateCommentClicked();
+    // ★ 追加: 読み筋テーブルのクリック処理
+    void onView1Clicked(const QModelIndex& index);
+    void onView2Clicked(const QModelIndex& index);
 
 signals:
     // ツリー上のノード（行row, 手ply）がクリックされた
@@ -130,6 +133,11 @@ signals:
 
     // ★ 追加: コメント更新シグナル
     void commentUpdated(int moveIndex, const QString& newComment);
+
+    // ★ 追加: 読み筋がクリックされた時のシグナル
+    // engineIndex: 0=エンジン1, 1=エンジン2
+    // row: クリックされた行のインデックス
+    void pvRowClicked(int engineIndex, int row);
 
 private:
     // --- 内部：ツリー描画 ---

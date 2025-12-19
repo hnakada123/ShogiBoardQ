@@ -45,6 +45,7 @@
 #include "positioneditcontroller.h"
 #include "gamestartcoordinator.h"
 #include "analysisflowcontroller.h"
+#include "pvboarddialog.h"
 
 // ==============================
 // Macros / aliases
@@ -375,6 +376,7 @@ private slots:
     void syncBoardAndHighlightsAtRow(int ply1);
     void onRecordRowChangedByPresenter(int row, const QString& comment);
     void onCommentUpdated(int moveIndex, const QString& newComment);  // ★ 追加: コメント更新スロット
+    void onPvRowClicked(int engineIndex, int row);  // ★ 追加: 読み筋クリック処理
 
 private:
     QWidget*     m_central = nullptr;

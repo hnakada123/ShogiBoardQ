@@ -87,6 +87,9 @@ public:
     // 現在の読み筋を漢字表示で表した文字列を取得する。
     QString pvKanjiStr() const;
 
+    // USI形式の読み筋を取得する。
+    QString pvUsiStr() const;
+
     // 現在思考中の手（思考開始局面から最初に指す手）を取得する。
     QString currmove() const;
 
@@ -151,6 +154,9 @@ private:
 
     // 現在の読み筋を漢字表示で表した文字列
     QString m_pvKanjiStr;
+
+    // 現在の読み筋（USI形式、スペース区切り）
+    QString m_pvUsiStr;
 
     // エンジンが現在使用しているハッシュの使用率
     QString m_hashfull;

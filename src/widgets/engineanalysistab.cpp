@@ -72,6 +72,12 @@ void EngineAnalysisTab::buildUi()
     tuneColumnsForThinkingView_(m_view1);
     tuneColumnsForThinkingView_(m_view2);
 
+    // ★ 追加: 読み筋テーブルのクリックシグナルを接続
+    connect(m_view1, &QTableView::clicked,
+            this, &EngineAnalysisTab::onView1Clicked);
+    connect(m_view2, &QTableView::clicked,
+            this, &EngineAnalysisTab::onView2Clicked);
+
     v->addWidget(m_info1);
     v->addWidget(m_view1, 1);
     v->addWidget(m_info2);
@@ -1306,4 +1312,20 @@ void EngineAnalysisTab::clearCommentDirty()
     }
     m_isCommentDirty = false;
     updateEditingIndicator();
+}
+
+// ★ 追加: エンジン1の読み筋テーブルクリック処理
+void EngineAnalysisTab::onView1Clicked(const QModelIndex& index)
+{
+    if (!index.isValid()) return;
+    qDebug() << "[EngineAnalysisTab] onView1Clicked: row=" << index.row();
+    emit pvRowClicked(0, index.row());
+}
+
+// ★ 追加: エンジン2の読み筋テーブルクリック処理
+void EngineAnalysisTab::onView2Clicked(const QModelIndex& index)
+{
+    if (!index.isValid()) return;
+    qDebug() << "[EngineAnalysisTab] onView2Clicked: row=" << index.row();
+    emit pvRowClicked(1, index.row());
 }

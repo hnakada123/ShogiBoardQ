@@ -190,16 +190,17 @@ void Usi::onClearThinkingInfoRequested()
 
 void Usi::onThinkingInfoUpdated(const QString& time, const QString& depth,
                                 const QString& nodes, const QString& score,
-                                const QString& pvKanjiStr)
+                                const QString& pvKanjiStr, const QString& usiPv)
 {
-    // 思考タブへ追記
+    // 思考タブへ追記（USI PVも保存）
     if (m_thinkingModel) {
-        m_thinkingModel->prependItem(
-            new ShogiInfoRecord(time, depth, nodes, score, pvKanjiStr));
+        ShogiInfoRecord* record = new ShogiInfoRecord(time, depth, nodes, score, pvKanjiStr);
+        record->setUsiPv(usiPv);
+        m_thinkingModel->prependItem(record);
     }
     
     // 外部への通知
-    emit thinkingInfoUpdated(time, depth, nodes, score, pvKanjiStr);
+    emit thinkingInfoUpdated(time, depth, nodes, score, pvKanjiStr, usiPv);
 }
 
 // === 公開インターフェース実装 ===

@@ -93,9 +93,11 @@ signals:
     // === 思考情報関連シグナル ===
     
     /// 思考情報更新シグナル（思考タブへの追加用）
+    /// pvKanjiStr: 漢字表記の読み筋
+    /// usiPv: USI形式の読み筋（スペース区切り）
     void thinkingInfoUpdated(const QString& time, const QString& depth,
                              const QString& nodes, const QString& score,
-                             const QString& pvKanjiStr);
+                             const QString& pvKanjiStr, const QString& usiPv);
     
     /// 思考情報クリアリクエストシグナル
     void clearThinkingInfoRequested();
