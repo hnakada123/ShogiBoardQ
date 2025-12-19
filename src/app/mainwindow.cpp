@@ -70,6 +70,7 @@
 #include "uiactionswiring.h"
 #include "kifucontentbuilder.h"
 #include "gamerecordmodel.h"  // ★ 追加
+#include "pvboarddialog.h"    // ★ 追加: 読み筋表示ダイアログ
 
 using KifuIoService::makeDefaultSaveFileName;
 using KifuIoService::writeKifuFile;
@@ -1743,6 +1744,12 @@ void MainWindow::setupEngineAnalysisTab()
         m_analysisTab, &EngineAnalysisTab::commentUpdated,
         this,          &MainWindow::onCommentUpdated,
         Qt::UniqueConnection);
+
+    // ★ 追加: 読み筋クリックシグナルの接続
+    QObject::connect(
+        m_analysisTab, &EngineAnalysisTab::pvRowClicked,
+        this,          &MainWindow::onPvRowClicked,
+        Qt::UniqueConnection);
 }
 
 // src/app/mainwindow.cpp
@@ -3168,4 +3175,89 @@ void MainWindow::ensureGameRecordModel_()
             });
 
     qDebug().noquote() << "[MW] ensureGameRecordModel_: created and bound";
+}
+
+// ★ 追加: 読み筋クリック処理
+void MainWindow::onPvRowClicked(int engineIndex, int row)
+{
+    qDebug() << "[MainWindow] onPvRowClicked: engineIndex=" << engineIndex << " row=" << row;
+
+    // 対象のモデルを取得
+    ShogiEngineThinkingModel* model = (engineIndex == 0) ? m_modelThinking1 : m_modelThinking2;
+    if (!model) {
+        qDebug() << "[MainWindow] onPvRowClicked: model is null";
+        return;
+    }
+
+    // モデルの行数をチェック
+    if (row < 0 || row >= model->rowCount()) {
+        qDebug() << "[MainWindow] onPvRowClicked: row out of range";
+        return;
+    }
+
+    // ShogiInfoRecord を取得
+    const ShogiInfoRecord* record = model->recordAt(row);
+    if (!record) {
+        qDebug() << "[MainWindow] onPvRowClicked: record is null";
+        return;
+    }
+
+    // 読み筋（漢字表記）を取得
+    QString kanjiPv = record->pv();
+    qDebug() << "[MainWindow] onPvRowClicked: kanjiPv=" << kanjiPv;
+
+    if (kanjiPv.isEmpty()) {
+        qDebug() << "[MainWindow] onPvRowClicked: kanjiPv is empty";
+        return;
+    }
+
+    // USI形式の読み筋を取得
+    QString usiPvStr = record->usiPv();
+    QStringList usiMoves;
+    if (!usiPvStr.isEmpty()) {
+        usiMoves = usiPvStr.split(' ', Qt::SkipEmptyParts);
+        qDebug() << "[MainWindow] onPvRowClicked: usiMoves from record:" << usiMoves;
+    }
+
+    // USI moves が空の場合、UsiCommLogModel から検索を試みる
+    if (usiMoves.isEmpty()) {
+        UsiCommLogModel* logModel = (engineIndex == 0) ? m_lineEditModel1 : m_lineEditModel2;
+        if (logModel) {
+            QString fullLog = logModel->usiCommLog();
+            QStringList lines = fullLog.split('\n');
+
+            // 後ろから検索して、該当する深さの info pv を探す
+            for (int i = lines.size() - 1; i >= 0; --i) {
+                const QString& line = lines.at(i);
+                if (line.contains(QStringLiteral("info ")) && line.contains(QStringLiteral(" pv "))) {
+                    int pvPos = line.indexOf(QStringLiteral(" pv "));
+                    if (pvPos >= 0) {
+                        QString pvPart = line.mid(pvPos + 4).trimmed();
+                        usiMoves = pvPart.split(' ', Qt::SkipEmptyParts);
+                        if (!usiMoves.isEmpty()) {
+                            qDebug() << "[MainWindow] onPvRowClicked: found usiMoves from log:" << usiMoves;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 現在の局面SFENを取得
+    QString currentSfen = m_currentSfenStr;
+    if (currentSfen.isEmpty()) {
+        currentSfen = m_startSfenStr;
+    }
+    if (currentSfen.isEmpty()) {
+        currentSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+    }
+
+    qDebug() << "[MainWindow] onPvRowClicked: currentSfen=" << currentSfen;
+
+    // PvBoardDialog を表示
+    PvBoardDialog* dlg = new PvBoardDialog(currentSfen, usiMoves, this);
+    dlg->setKanjiPv(kanjiPv);
+    dlg->setAttribute(Qt::WA_DeleteOnClose);
+    dlg->show();
 }

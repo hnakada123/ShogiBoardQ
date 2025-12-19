@@ -53,6 +53,12 @@ QString ShogiEngineInfoParser::pvKanjiStr() const
     return m_pvKanjiStr;
 }
 
+// USI形式の読み筋を取得する。
+QString ShogiEngineInfoParser::pvUsiStr() const
+{
+    return m_pvUsiStr;
+}
+
 // エンジンが詰みを発見した場合の詰み手数を取得する。
 QString ShogiEngineInfoParser::scoreMate() const
 {
@@ -526,6 +532,7 @@ int ShogiEngineInfoParser::parsePvAndSimulateMoves(const QStringList& pvTokens, 
     bool promote = false;
 
     m_pvKanjiStr.clear();
+    m_pvUsiStr = pvTokens.join(QStringLiteral(" "));  // ★ 追加: USI形式のPVを保存
 
     for (int i = 0; i < pvTokens.size(); ++i) {
         const QString token = pvTokens.at(i).trimmed();

@@ -22,6 +22,12 @@ public:
 
     // ヘッダーを返す。
     QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
+
+    // ★ 追加: 指定行のUSI形式の読み筋を取得
+    QString usiPvAt(int row) const;
+
+    // ★ 追加: 指定行のShogiInfoRecordを取得（読み取り専用）
+    const ShogiInfoRecord* recordAt(int row) const;
 };
 
 #endif // SHOGIENGINETHINKINGMODEL_H

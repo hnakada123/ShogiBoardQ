@@ -17,6 +17,11 @@ public:
     ShogiInfoRecord(const QString &time, const QString &depth, const QString &nodes,
                const QString &score, const QString &pv, QObject *parent = nullptr);
 
+    // コンストラクタ（USI形式のPV付き）
+    ShogiInfoRecord(const QString &time, const QString &depth, const QString &nodes,
+               const QString &score, const QString &pv, const QString &usiPv,
+               QObject *parent = nullptr);
+
 
     // 思考時間を取得する。
     QString time() const;
@@ -33,6 +38,12 @@ public:
     // 現在の読み筋を取得する。
     QString pv() const;
 
+    // USI形式の読み筋を取得する。
+    QString usiPv() const;
+
+    // USI形式の読み筋を設定する。
+    void setUsiPv(const QString& usiPv);
+
 private:
     // 思考時間
     QString m_time;
@@ -46,8 +57,11 @@ private:
     // エンジンによる現在の評価値
     QString m_score;
 
-    // 現在の読み筋
+    // 現在の読み筋（漢字表記）
     QString m_pv;
+
+    // 現在の読み筋（USI形式）
+    QString m_usiPv;
 };
 
 #endif // SHOGIINFORECORD_H
