@@ -38,6 +38,13 @@ public:
      */
     void setKanjiPv(const QString& kanjiPv);
 
+    /**
+     * @brief 対局者名を設定
+     * @param blackName 先手の名前
+     * @param whiteName 後手の名前
+     */
+    void setPlayerNames(const QString& blackName, const QString& whiteName);
+
 private slots:
     /// 最初に戻る
     void onGoFirst();
@@ -47,6 +54,10 @@ private slots:
     void onGoForward();
     /// 最後まで進む
     void onGoLast();
+    /// 将棋盤を拡大
+    void onEnlargeBoard();
+    /// 将棋盤を縮小
+    void onReduceBoard();
 
 private:
     /// UIを構築
@@ -55,6 +66,8 @@ private:
     void updateButtonStates();
     /// 盤面を現在の手数で更新
     void updateBoardDisplay();
+    /// 時計ラベルを非表示にする
+    void hideClockLabels();
     /// SFEN形式の手を盤面に適用
     void applyMove(const QString& usiMove);
     /// 手番を取得（"b" or "w"）
@@ -77,6 +90,8 @@ private:
     QPushButton* m_btnBack = nullptr;
     QPushButton* m_btnForward = nullptr;
     QPushButton* m_btnLast = nullptr;
+    QPushButton* m_btnEnlarge = nullptr;  ///< 将棋盤拡大ボタン
+    QPushButton* m_btnReduce = nullptr;   ///< 将棋盤縮小ボタン
     QLabel* m_plyLabel = nullptr;
     QLabel* m_pvLabel = nullptr;
 };
