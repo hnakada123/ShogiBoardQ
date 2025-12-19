@@ -20,57 +20,57 @@ PvBoardDialog::PvBoardDialog(const QString& baseSfen,
     , m_pvMoves(pvMoves)
     , m_currentPly(0)
 {
-    qDebug() << "[PvBoardDialog] Constructor called";
-    qDebug() << "[PvBoardDialog] baseSfen:" << baseSfen;
-    qDebug() << "[PvBoardDialog] pvMoves:" << pvMoves;
-    
     setWindowTitle(tr("読み筋表示"));
-    setMinimumSize(620, 680);
-    resize(650, 720);
+    // ダイアログのサイズは可変に（将棋盤のサイズ変更に対応）
+    setMinimumSize(400, 500);
+    resize(620, 720);
 
     // 初期盤面を履歴に追加
     m_sfenHistory.clear();
     m_sfenHistory.append(m_baseSfen);
-    qDebug() << "[PvBoardDialog] Initial SFEN added to history";
+
+    // 開始局面の手番を取得（"b"=先手、"w"=後手）
+    bool blackToMove = !m_baseSfen.contains(QStringLiteral(" w "));
 
     // 各手を適用してSFEN履歴を構築
     ShogiBoard tempBoard;
     tempBoard.setSfen(m_baseSfen);
-    qDebug() << "[PvBoardDialog] tempBoard setSfen done";
 
     for (int i = 0; i < m_pvMoves.size(); ++i) {
         const QString& move = m_pvMoves.at(i);
-        qDebug() << "[PvBoardDialog] Applying move" << i << ":" << move;
         applyUsiMoveToBoard(&tempBoard, move);
-        // 手番を切り替え
-        QString nextTurn = (i % 2 == 0) ? QStringLiteral("w") : QStringLiteral("b");
-        if (m_baseSfen.contains(QStringLiteral(" w "))) {
-            nextTurn = (i % 2 == 0) ? QStringLiteral("b") : QStringLiteral("w");
-        }
+        
+        // 手番を切り替え（指し手を指した後なので手番が変わる）
+        blackToMove = !blackToMove;
+        QString nextTurn = blackToMove ? QStringLiteral("b") : QStringLiteral("w");
+        
         QString nextSfen = tempBoard.convertBoardToSfen() + QStringLiteral(" ") +
                           nextTurn + QStringLiteral(" ") +
                           tempBoard.convertStandToSfen() + QStringLiteral(" 1");
         m_sfenHistory.append(nextSfen);
-        qDebug() << "[PvBoardDialog] Generated SFEN" << (i+1) << ":" << nextSfen;
     }
-
-    qDebug() << "[PvBoardDialog] SFEN history size:" << m_sfenHistory.size();
 
     // UIを構築（この中でm_boardが作られる）
     buildUi();
-    qDebug() << "[PvBoardDialog] buildUi done";
 
     // 初期盤面を設定
     if (!m_sfenHistory.isEmpty()) {
-        qDebug() << "[PvBoardDialog] Setting initial SFEN to m_board:" << m_sfenHistory.at(0);
         m_board->setSfen(m_sfenHistory.at(0));
-        qDebug() << "[PvBoardDialog] m_board setSfen done";
     }
+    
+    // ShogiViewの初期サイズを強制的に設定してレイアウトを確定
+    // （ダイアログ内で新規作成されたShogiViewはサイズが不確定のためエラーになる）
+    m_shogiView->updateBoardSize();
+    
+    // updateBoardSize()が時計ラベルを再表示するため、再度非表示にする
+    hideClockLabels();
     
     // 初期表示
     updateBoardDisplay();
     updateButtonStates();
-    qDebug() << "[PvBoardDialog] Constructor finished";
+    
+    // ダイアログサイズを内容に合わせて自動調整
+    adjustSize();
 }
 
 PvBoardDialog::~PvBoardDialog()
@@ -86,10 +86,22 @@ void PvBoardDialog::setKanjiPv(const QString& kanjiPv)
     }
 }
 
+void PvBoardDialog::setPlayerNames(const QString& blackName, const QString& whiteName)
+{
+    if (m_shogiView) {
+        if (m_shogiView->blackNameLabel()) {
+            QString name = blackName.isEmpty() ? tr("先手") : blackName;
+            m_shogiView->blackNameLabel()->setText(name);
+        }
+        if (m_shogiView->whiteNameLabel()) {
+            QString name = whiteName.isEmpty() ? tr("後手") : whiteName;
+            m_shogiView->whiteNameLabel()->setText(name);
+        }
+    }
+}
+
 void PvBoardDialog::buildUi()
 {
-    qDebug() << "[PvBoardDialog::buildUi] Start";
-    
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(8, 8, 8, 8);
     mainLayout->setSpacing(8);
@@ -103,57 +115,44 @@ void PvBoardDialog::buildUi()
     m_pvLabel->setMinimumHeight(60);
     m_pvLabel->setMaximumHeight(100);
     mainLayout->addWidget(m_pvLabel);
-    qDebug() << "[PvBoardDialog::buildUi] pvLabel created";
+
+    // 将棋盤拡大・縮小ボタン（将棋盤の上に配置）
+    QHBoxLayout* zoomLayout = new QHBoxLayout();
+    zoomLayout->setSpacing(4);
+    
+    m_btnReduce = new QPushButton(QStringLiteral("将棋盤縮小 ➖"), this);
+    m_btnReduce->setToolTip(tr("将棋盤を縮小する"));
+    connect(m_btnReduce, &QPushButton::clicked, this, &PvBoardDialog::onReduceBoard);
+    zoomLayout->addWidget(m_btnReduce);
+    
+    m_btnEnlarge = new QPushButton(QStringLiteral("将棋盤拡大 ➕"), this);
+    m_btnEnlarge->setToolTip(tr("将棋盤を拡大する"));
+    connect(m_btnEnlarge, &QPushButton::clicked, this, &PvBoardDialog::onEnlargeBoard);
+    zoomLayout->addWidget(m_btnEnlarge);
+    
+    zoomLayout->addStretch();
+    mainLayout->addLayout(zoomLayout);
 
     // 将棋盤
     m_board = new ShogiBoard(9, 9, this);
-    qDebug() << "[PvBoardDialog::buildUi] ShogiBoard created, m_board=" << m_board;
-    
     m_shogiView = new ShogiView(this);
-    qDebug() << "[PvBoardDialog::buildUi] ShogiView created, m_shogiView=" << m_shogiView;
-    
     m_shogiView->setMouseClickMode(false);  // クリック操作は無効
     
-    // 明示的にサイズを設定（フォント計算のエラーを防ぐ）
-    // 駒台も含めた全体が表示されるよう十分な幅を確保
-    m_shogiView->setFieldSize(QSize(40, 40));  // 1マスのサイズを少し小さく
-    m_shogiView->setMinimumSize(580, 500);
-    m_shogiView->setFixedSize(580, 500);  // 固定サイズを設定
-    
     // 駒画像を読み込んでから盤を設定
-    qDebug() << "[PvBoardDialog::buildUi] Calling setPieces()...";
     m_shogiView->setPieces();
-    qDebug() << "[PvBoardDialog::buildUi] setPieces() done";
-    
-    qDebug() << "[PvBoardDialog::buildUi] Calling setBoard()...";
     m_shogiView->setBoard(m_board);
-    qDebug() << "[PvBoardDialog::buildUi] setBoard() done, view->board()=" << m_shogiView->board();
     
-    // 時計・名前ラベルを非表示にする
-    qDebug() << "[PvBoardDialog::buildUi] blackClockLabel=" << m_shogiView->blackClockLabel();
-    qDebug() << "[PvBoardDialog::buildUi] whiteClockLabel=" << m_shogiView->whiteClockLabel();
-    qDebug() << "[PvBoardDialog::buildUi] blackNameLabel=" << m_shogiView->blackNameLabel();
-    qDebug() << "[PvBoardDialog::buildUi] whiteNameLabel=" << m_shogiView->whiteNameLabel();
-    
-    if (m_shogiView->blackClockLabel()) {
-        m_shogiView->blackClockLabel()->hide();
-        qDebug() << "[PvBoardDialog::buildUi] blackClockLabel hidden";
-    }
-    if (m_shogiView->whiteClockLabel()) {
-        m_shogiView->whiteClockLabel()->hide();
-        qDebug() << "[PvBoardDialog::buildUi] whiteClockLabel hidden";
-    }
+    // 時計ラベルは後でhideClockLabels()で非表示にする
+    // 対局者名ラベルはデフォルトで「先手」「後手」を設定
     if (m_shogiView->blackNameLabel()) {
-        m_shogiView->blackNameLabel()->hide();
-        qDebug() << "[PvBoardDialog::buildUi] blackNameLabel hidden";
+        m_shogiView->blackNameLabel()->setText(tr("先手"));
     }
     if (m_shogiView->whiteNameLabel()) {
-        m_shogiView->whiteNameLabel()->hide();
-        qDebug() << "[PvBoardDialog::buildUi] whiteNameLabel hidden";
+        m_shogiView->whiteNameLabel()->setText(tr("後手"));
     }
     
+    // ShogiViewをレイアウトに追加（サイズはShogiView自身のsizeHintに任せる）
     mainLayout->addWidget(m_shogiView, 1);
-    qDebug() << "[PvBoardDialog::buildUi] shogiView added to layout";
 
     // 手数ラベル
     m_plyLabel = new QLabel(this);
@@ -215,30 +214,14 @@ void PvBoardDialog::updateButtonStates()
 
 void PvBoardDialog::updateBoardDisplay()
 {
-    qDebug() << "[PvBoardDialog::updateBoardDisplay] currentPly=" << m_currentPly 
-             << ", historySize=" << m_sfenHistory.size();
-    
     if (m_currentPly < 0 || m_currentPly >= m_sfenHistory.size()) {
-        qDebug() << "[PvBoardDialog::updateBoardDisplay] Out of range, returning";
         return;
     }
 
     // 現在の局面SFENを取得して盤面を更新
     const QString& sfen = m_sfenHistory.at(m_currentPly);
-    qDebug() << "[PvBoardDialog::updateBoardDisplay] SFEN to set:" << sfen;
-    qDebug() << "[PvBoardDialog::updateBoardDisplay] m_board=" << m_board;
-    qDebug() << "[PvBoardDialog::updateBoardDisplay] m_shogiView=" << m_shogiView;
-    qDebug() << "[PvBoardDialog::updateBoardDisplay] m_shogiView->board()=" << m_shogiView->board();
-    
     m_board->setSfen(sfen);
-    qDebug() << "[PvBoardDialog::updateBoardDisplay] setSfen done";
-    
-    // 盤面データの確認
-    qDebug() << "[PvBoardDialog::updateBoardDisplay] Board data after setSfen:";
-    qDebug() << "  files=" << m_board->files() << ", ranks=" << m_board->ranks();
-    
     m_shogiView->update();
-    qDebug() << "[PvBoardDialog::updateBoardDisplay] view update() called";
 
     // 手数ラベルを更新
     const int totalMoves = m_pvMoves.size();
@@ -282,6 +265,38 @@ void PvBoardDialog::onGoLast()
     m_currentPly = m_pvMoves.size();
     updateBoardDisplay();
     updateButtonStates();
+}
+
+void PvBoardDialog::onEnlargeBoard()
+{
+    if (m_shogiView) {
+        // ShogiView::enlargeBoard()を使用（m_squareSizeを変更してレイアウト再計算）
+        m_shogiView->enlargeBoard();
+        // 時計ラベルが再表示されるため、再度非表示にする
+        hideClockLabels();
+        // ダイアログのサイズも調整（sizeHintを参考に）
+        adjustSize();
+    }
+}
+
+void PvBoardDialog::onReduceBoard()
+{
+    if (m_shogiView) {
+        // ShogiView::reduceBoard()を使用（m_squareSizeを変更してレイアウト再計算）
+        m_shogiView->reduceBoard();
+        // 時計ラベルが再表示されるため、再度非表示にする
+        hideClockLabels();
+        // ダイアログのサイズも調整
+        adjustSize();
+    }
+}
+
+void PvBoardDialog::hideClockLabels()
+{
+    if (m_shogiView) {
+        // 時計表示を無効にする（ShogiViewのフラグを使用）
+        m_shogiView->setClockEnabled(false);
+    }
 }
 
 // SFENからUSI形式の手を盤面に適用する静的ヘルパー

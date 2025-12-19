@@ -983,6 +983,20 @@ ElideLabel* ShogiView::blackNameLabel() const { return m_blackNameLabel; }
 // 備考：所有権は本ビュー側。呼び出し側で delete 等は不要。
 QLabel* ShogiView::blackClockLabel() const { return m_blackClockLabel; }
 
+// 時計表示の有効/無効を設定する。
+// falseにすると時計ラベルが非表示になり、名前ラベルのみ表示される。
+void ShogiView::setClockEnabled(bool enabled)
+{
+    m_clockEnabled = enabled;
+    if (!enabled) {
+        if (m_blackClockLabel) m_blackClockLabel->hide();
+        if (m_whiteClockLabel) m_whiteClockLabel->hide();
+    }
+    // 有効に戻した場合は次のジオメトリ更新時に表示される
+}
+
+bool ShogiView::isClockEnabled() const { return m_clockEnabled; }
+
 // 後手（白）側の名前ラベル（ElideLabel）を返すゲッター。
 // 役割：長い名前の省略表示（エリプシス）、ホバー時スライド、手動パン等の制御に利用。
 ElideLabel* ShogiView::whiteNameLabel() const { return m_whiteNameLabel; }
@@ -2072,9 +2086,15 @@ void ShogiView::updateBlackClockLabelGeometry()
 
     // 前面に出して表示
     m_blackNameLabel->raise();
-    m_blackClockLabel->raise();
     m_blackNameLabel->show();
-    m_blackClockLabel->show();
+    
+    // 時計は有効な場合のみ表示
+    if (m_clockEnabled) {
+        m_blackClockLabel->raise();
+        m_blackClockLabel->show();
+    } else {
+        m_blackClockLabel->hide();
+    }
 }
 
 // 後手（白）側：名前・時計ラベルの位置とサイズを更新する。
@@ -2140,9 +2160,15 @@ void ShogiView::updateWhiteClockLabelGeometry()
 
     // 前面に出して表示
     m_whiteNameLabel->raise();
-    m_whiteClockLabel->raise();
     m_whiteNameLabel->show();
-    m_whiteClockLabel->show();
+    
+    // 時計は有効な場合のみ表示
+    if (m_clockEnabled) {
+        m_whiteClockLabel->raise();
+        m_whiteClockLabel->show();
+    } else {
+        m_whiteClockLabel->hide();
+    }
 }
 
 // ラベルの表示矩形（rect）にテキスト（text）が収まるよう、フォントサイズを自動調整する。

@@ -3244,8 +3244,16 @@ void MainWindow::onPvRowClicked(int engineIndex, int row)
         }
     }
 
-    // 現在の局面SFENを取得
-    QString currentSfen = m_currentSfenStr;
+    // 現在の局面SFENを取得（エンジンの思考時点の局面）
+    // m_sfenRecordの最後の要素が現在の局面
+    QString currentSfen;
+    if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
+        currentSfen = m_sfenRecord->last().trimmed();
+        qDebug() << "[MainWindow] onPvRowClicked: using sfenRecord last:" << currentSfen;
+    }
+    if (currentSfen.isEmpty()) {
+        currentSfen = m_currentSfenStr;
+    }
     if (currentSfen.isEmpty()) {
         currentSfen = m_startSfenStr;
     }
@@ -3258,6 +3266,12 @@ void MainWindow::onPvRowClicked(int engineIndex, int row)
     // PvBoardDialog を表示
     PvBoardDialog* dlg = new PvBoardDialog(currentSfen, usiMoves, this);
     dlg->setKanjiPv(kanjiPv);
+    
+    // 対局者名を設定
+    QString blackName = m_humanName1.isEmpty() ? m_engineName1 : m_humanName1;
+    QString whiteName = m_humanName2.isEmpty() ? m_engineName2 : m_humanName2;
+    dlg->setPlayerNames(blackName, whiteName);
+    
     dlg->setAttribute(Qt::WA_DeleteOnClose);
     dlg->show();
 }

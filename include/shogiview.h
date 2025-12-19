@@ -129,6 +129,10 @@ public:
     void setWhiteClockText(const QString& text);
     QLabel *blackClockLabel() const;
     QLabel *whiteClockLabel() const;
+    
+    // 時計表示の有効/無効
+    void setClockEnabled(bool enabled);
+    bool isClockEnabled() const;
 
     // プレイヤー名
     void setBlackPlayerName(const QString& name);
@@ -307,6 +311,7 @@ private:
     QLabel*     m_whiteClockLabel { nullptr };
     ElideLabel* m_blackNameLabel  { nullptr };
     ElideLabel* m_whiteNameLabel  { nullptr };
+    bool        m_clockEnabled    { true };    // 時計表示の有効/無効
 
     // プレイヤー名（装飾抜きの素の文字列）
     QString m_blackNameBase;
