@@ -69,3 +69,15 @@ void ShogiInfoRecord::setUsiPv(const QString& usiPv)
 {
     m_usiPv = usiPv;
 }
+
+// 読み筋の開始局面SFENを取得する。
+QString ShogiInfoRecord::baseSfen() const
+{
+    return m_baseSfen;
+}
+
+// 読み筋の開始局面SFENを設定する。
+void ShogiInfoRecord::setBaseSfen(const QString& sfen)
+{
+    m_baseSfen = sfen;
+}

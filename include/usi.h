@@ -151,7 +151,8 @@ signals:
     void bestMoveReceived();
     void thinkingInfoUpdated(const QString& time, const QString& depth,
                              const QString& nodes, const QString& score,
-                             const QString& pvKanjiStr, const QString& usiPv);
+                             const QString& pvKanjiStr, const QString& usiPv,
+                             const QString& baseSfen);
 
 private:
     // === 内部コンポーネント ===
@@ -222,7 +223,8 @@ private slots:
     void onClearThinkingInfoRequested();
     void onThinkingInfoUpdated(const QString& time, const QString& depth,
                                const QString& nodes, const QString& score,
-                               const QString& pvKanjiStr, const QString& usiPv);
+                               const QString& pvKanjiStr, const QString& usiPv,
+                               const QString& baseSfen);
 };
 
 #endif // USI_H

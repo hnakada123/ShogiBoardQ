@@ -10,7 +10,7 @@
 #include <QRegularExpression>
 
 // 前方宣言: SFENからUSI形式の手を盤面に適用する静的ヘルパー
-static void applyUsiMoveToBoard(ShogiBoard* board, const QString& usiMove);
+static void applyUsiMoveToBoard(ShogiBoard* board, const QString& usiMove, bool isBlackToMove);
 
 PvBoardDialog::PvBoardDialog(const QString& baseSfen,
                              const QStringList& pvMoves,
@@ -38,7 +38,8 @@ PvBoardDialog::PvBoardDialog(const QString& baseSfen,
 
     for (int i = 0; i < m_pvMoves.size(); ++i) {
         const QString& move = m_pvMoves.at(i);
-        applyUsiMoveToBoard(&tempBoard, move);
+        // 手を指す前の手番を渡す（blackToMoveは現在の手番）
+        applyUsiMoveToBoard(&tempBoard, move, blackToMove);
         
         // 手番を切り替え（指し手を指した後なので手番が変わる）
         blackToMove = !blackToMove;
@@ -300,7 +301,8 @@ void PvBoardDialog::hideClockLabels()
 }
 
 // SFENからUSI形式の手を盤面に適用する静的ヘルパー
-static void applyUsiMoveToBoard(ShogiBoard* board, const QString& usiMove)
+// isBlackToMove: trueなら先手の手、falseなら後手の手
+static void applyUsiMoveToBoard(ShogiBoard* board, const QString& usiMove, bool isBlackToMove)
 {
     if (!board || usiMove.isEmpty()) return;
 
@@ -315,9 +317,8 @@ static void applyUsiMoveToBoard(ShogiBoard* board, const QString& usiMove)
         int toFile = usiMove.at(2).toLatin1() - '0';  // '5' -> 5
         int toRank = usiMove.at(3).toLatin1() - 'a' + 1;  // 'e' -> 5
 
-        // 手番に応じて駒文字を調整
-        QString turn = board->currentPlayer();
-        if (turn == QStringLiteral("w")) {
+        // 手番に応じて駒文字を調整（後手なら小文字に）
+        if (!isBlackToMove) {
             pieceChar = pieceChar.toLower();
         }
 
@@ -380,5 +381,6 @@ QString PvBoardDialog::currentTurn() const
 
 void PvBoardDialog::applyMove(const QString& usiMove)
 {
-    applyUsiMoveToBoard(m_board, usiMove);
+    bool isBlackToMove = (currentTurn() == QStringLiteral("b"));
+    applyUsiMoveToBoard(m_board, usiMove, isBlackToMove);
 }

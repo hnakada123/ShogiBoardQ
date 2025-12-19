@@ -3244,12 +3244,19 @@ void MainWindow::onPvRowClicked(int engineIndex, int row)
         }
     }
 
-    // 現在の局面SFENを取得（エンジンの思考時点の局面）
-    // m_sfenRecordの最後の要素が現在の局面
-    QString currentSfen;
-    if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
-        currentSfen = m_sfenRecord->last().trimmed();
-        qDebug() << "[MainWindow] onPvRowClicked: using sfenRecord last:" << currentSfen;
+    // 現在の局面SFENを取得（ShogiInfoRecordに保存されているbaseSfenを使用）
+    QString currentSfen = record->baseSfen();
+    qDebug() << "[MainWindow] onPvRowClicked: baseSfen from record:" << currentSfen;
+    
+    // baseSfenが空の場合のフォールバック
+    if (currentSfen.isEmpty() && m_sfenRecord && m_sfenRecord->size() >= 2) {
+        // エンジンの思考開始時の局面（position送信時の局面）
+        currentSfen = m_sfenRecord->at(m_sfenRecord->size() - 2).trimmed();
+        qDebug() << "[MainWindow] onPvRowClicked: fallback to sfenRecord[size-2]:" << currentSfen;
+    } else if (currentSfen.isEmpty() && m_sfenRecord && !m_sfenRecord->isEmpty()) {
+        // レコードが1つしかない場合はそれを使用
+        currentSfen = m_sfenRecord->first().trimmed();
+        qDebug() << "[MainWindow] onPvRowClicked: fallback to sfenRecord first:" << currentSfen;
     }
     if (currentSfen.isEmpty()) {
         currentSfen = m_currentSfenStr;

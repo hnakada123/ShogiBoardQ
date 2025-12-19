@@ -50,6 +50,16 @@ void ThinkingInfoPresenter::setPonderEnabled(bool enabled)
     m_ponderEnabled = enabled;
 }
 
+void ThinkingInfoPresenter::setBaseSfen(const QString& sfen)
+{
+    m_baseSfen = sfen;
+}
+
+QString ThinkingInfoPresenter::baseSfen() const
+{
+    return m_baseSfen;
+}
+
 // === info処理 ===
 
 void ThinkingInfoPresenter::onInfoReceived(const QString& line)
@@ -117,7 +127,8 @@ void ThinkingInfoPresenter::processInfoLineInternal(const QString& line)
 
         emit thinkingInfoUpdated(info->time(), info->depth(),
                                  info->nodes(), info->score(),
-                                 info->pvKanjiStr(), info->pvUsiStr());
+                                 info->pvKanjiStr(), info->pvUsiStr(),
+                                 m_baseSfen);
     }
 }
 

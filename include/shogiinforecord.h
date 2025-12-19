@@ -44,6 +44,12 @@ public:
     // USI形式の読み筋を設定する。
     void setUsiPv(const QString& usiPv);
 
+    // 読み筋の開始局面SFENを取得する。
+    QString baseSfen() const;
+
+    // 読み筋の開始局面SFENを設定する。
+    void setBaseSfen(const QString& sfen);
+
 private:
     // 思考時間
     QString m_time;
@@ -62,6 +68,9 @@ private:
 
     // 現在の読み筋（USI形式）
     QString m_usiPv;
+
+    // 読み筋の開始局面SFEN
+    QString m_baseSfen;
 };
 
 #endif // SHOGIINFORECORD_H
