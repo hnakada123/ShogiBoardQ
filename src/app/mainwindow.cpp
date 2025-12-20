@@ -1214,6 +1214,81 @@ void MainWindow::ensureGameInfoTable()
             this, &MainWindow::onGameInfoCellChanged);
 }
 
+// ★ 追加: 起動時に対局情報タブを追加
+void MainWindow::addGameInfoTabAtStartup_()
+{
+    if (!m_tab) return;
+
+    // 対局情報テーブルを確保
+    ensureGameInfoTable();
+
+    if (!m_gameInfoContainer || !m_gameInfoTable) return;
+
+    // 既に「対局情報」タブがあるか確認
+    for (int i = 0; i < m_tab->count(); ++i) {
+        if (m_tab->tabText(i) == tr("対局情報")) {
+            // 既存タブを更新（コンテナを再設定）
+            m_tab->removeTab(i);
+            break;
+        }
+    }
+
+    // ★ 追加: 初期データを設定
+    populateDefaultGameInfo_();
+
+    // タブを最初（インデックス0）に挿入
+    m_tab->insertTab(0, m_gameInfoContainer, tr("対局情報"));
+
+    // 対局情報タブを選択状態にする
+    m_tab->setCurrentIndex(0);
+}
+
+// ★ 追加: 対局情報テーブルにデフォルト値を設定
+void MainWindow::populateDefaultGameInfo_()
+{
+    if (!m_gameInfoTable) return;
+
+    // セル変更シグナルを一時的にブロック
+    m_gameInfoTable->blockSignals(true);
+
+    m_gameInfoTable->clearContents();
+    m_gameInfoTable->setRowCount(3);
+
+    // 先手
+    QTableWidgetItem* key1 = new QTableWidgetItem(tr("先手"));
+    QTableWidgetItem* val1 = new QTableWidgetItem(tr("先手"));
+    key1->setFlags(key1->flags() & ~Qt::ItemIsEditable);
+    m_gameInfoTable->setItem(0, 0, key1);
+    m_gameInfoTable->setItem(0, 1, val1);
+
+    // 後手
+    QTableWidgetItem* key2 = new QTableWidgetItem(tr("後手"));
+    QTableWidgetItem* val2 = new QTableWidgetItem(tr("後手"));
+    key2->setFlags(key2->flags() & ~Qt::ItemIsEditable);
+    m_gameInfoTable->setItem(1, 0, key2);
+    m_gameInfoTable->setItem(1, 1, val2);
+
+    // 手合割
+    QTableWidgetItem* key3 = new QTableWidgetItem(tr("手合割"));
+    QTableWidgetItem* val3 = new QTableWidgetItem(tr("平手"));
+    key3->setFlags(key3->flags() & ~Qt::ItemIsEditable);
+    m_gameInfoTable->setItem(2, 0, key3);
+    m_gameInfoTable->setItem(2, 1, val3);
+
+    m_gameInfoTable->resizeColumnToContents(0);
+
+    // シグナルを再開
+    m_gameInfoTable->blockSignals(false);
+
+    // 元の対局情報を保存（変更検知用）
+    m_originalGameInfo.clear();
+    m_originalGameInfo.append({tr("先手"), tr("先手")});
+    m_originalGameInfo.append({tr("後手"), tr("後手")});
+    m_originalGameInfo.append({tr("手合割"), tr("平手")});
+    m_gameInfoDirty = false;
+    updateGameInfoEditingIndicator();
+}
+
 // ★ 追加: 対局情報ツールバーの構築
 void MainWindow::buildGameInfoToolbar()
 {
@@ -1750,6 +1825,9 @@ void MainWindow::setupEngineAnalysisTab()
         m_analysisTab, &EngineAnalysisTab::pvRowClicked,
         this,          &MainWindow::onPvRowClicked,
         Qt::UniqueConnection);
+
+    // ★ 追加: 起動時に対局情報タブを追加
+    addGameInfoTabAtStartup_();
 }
 
 // src/app/mainwindow.cpp

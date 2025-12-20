@@ -261,6 +261,8 @@ private:
 
     // --- KIF ヘッダ（対局情報）周り ---
     void ensureGameInfoTable();
+    void addGameInfoTabAtStartup_();      // ★ 追加: 起動時に対局情報タブを追加
+    void populateDefaultGameInfo_();      // ★ 追加: デフォルトの対局情報を設定
     
     // ★ 追加: 対局情報編集用メソッド
     void buildGameInfoToolbar();
