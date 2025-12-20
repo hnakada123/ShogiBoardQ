@@ -1886,6 +1886,9 @@ void MainWindow::applySelect(int row, int ply)
                     view->scrollTo(idx, QAbstractItemView::PositionAtCenter);
                 }
 
+                // ★ 追加：棋譜欄のハイライト行を更新
+                m_kifuRecordModel->setCurrentHighlightRow(safe);
+
                 // 盤・ハイライト即時同期（従来の onMainMoveRowChanged と同じ流れ）
                 syncBoardAndHighlightsAtRow(safe);
 
@@ -2483,6 +2486,38 @@ void MainWindow::onGameOverStateChanged(const MatchCoordinator::GameOverState& s
 {
     // 司令塔が isOver / Cause / KIF一行追記 まで面倒を見る前提
     if (!st.isOver) return;
+
+    // ★ 重要：投了行がまだ追加されていない場合は何もしない
+    // 投了行追加後に再度このシグナルが発火するので、その時に処理する
+    if (!st.moveAppended) {
+        return;
+    }
+
+    // ★ 追加：ライブ追記モードを終了
+    exitLiveAppendMode_();
+
+    // ★ 追加：分岐コンテキストをリセット（分岐として処理されないように）
+    if (m_kifuLoadCoordinator) {
+        m_kifuLoadCoordinator->resetBranchContext();
+    }
+
+    // ★ 追加：m_currentSelectedPlyを先にリセット（refreshBranchTreeLive_で使われるため）
+    m_currentSelectedPly = 0;
+
+    // ★ 追加：対局終了時にresolvedRowsを構築（ナビゲーション用）
+    refreshBranchTreeLive_();
+
+    // ★ 追加：対局終了時に現在の手数（最終手）を正しく設定
+    // これにより、終了直後のナビゲーションボタン操作が正常に動作する
+    if (m_kifuRecordModel) {
+        const int rows = m_kifuRecordModel->rowCount();
+        if (rows > 0) {
+            const int lastRow = rows - 1;  // 最終手の行（0始まり）
+            m_activePly          = lastRow;
+            m_currentSelectedPly = lastRow;
+            m_currentMoveIndex   = lastRow;
+        }
+    }
 
     // UI 遷移（閲覧モードへ）
     enableArrowButtons();

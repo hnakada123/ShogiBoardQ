@@ -89,6 +89,9 @@ public:
     // ライブ対局用：分岐Plan・＋/オレンジ強調・候補欄を一括更新
     void rebuildBranchPlanAndMarksForLive(int currentPly);
 
+    // ★ 追加：分岐コンテキストをリセット（対局終了時に使用）
+    void resetBranchContext();
+
 public slots:
     void applyResolvedRowAndSelect(int row, int selPly);
 

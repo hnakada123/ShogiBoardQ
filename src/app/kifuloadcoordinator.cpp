@@ -914,6 +914,11 @@ void KifuLoadCoordinator::showRecordAtPly(const QList<KifDisplayItem>& disp, int
     }
     view->scrollTo(idx, QAbstractItemView::PositionAtCenter);
 
+    // ★ 追加：棋譜欄のハイライト行を更新
+    if (m_kifuRecordModel) {
+        m_kifuRecordModel->setCurrentHighlightRow(row);
+    }
+
     // displayGameRecord() が 0 に戻した “現在の手数” を、選択行へ復元
     m_currentSelectedPly = row;
     m_currentMoveIndex   = row;
@@ -2553,4 +2558,11 @@ void KifuLoadCoordinator::refreshBranchCandidatesUIOnly_(int row, int ply1)
         view->setEnabled(rc > 0);
         if (rc > 0) view->selectRow(0);
     }
+}
+
+// ★ 追加：分岐コンテキストをリセット（対局終了時に使用）
+void KifuLoadCoordinator::resetBranchContext()
+{
+    m_branchPlyContext = -1;
+    m_activeResolvedRow = 0;  // 本譜行に戻す
 }
