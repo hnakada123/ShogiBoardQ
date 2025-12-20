@@ -37,6 +37,9 @@ void GameRecordPresenter::presentGameRecord(const QList<KifDisplayItem>& disp) {
         QStringLiteral("（1手 / 合計）")
         ));
 
+    // ★ 追加：開始局面（行0）をハイライト
+    m_d.model->setCurrentHighlightRow(0);
+
     // 各手を追加（dispの先頭は開始局面エントリなのでスキップ）
     for (int i = 1; i < disp.size(); ++i) {
         const auto& it = disp.at(i);
@@ -102,6 +105,10 @@ void GameRecordPresenter::appendMoveLine(const QString& prettyMove, const QStrin
 
     if (m_d.model) {
         m_d.model->appendItem(new KifuDisplay(recordLine, elapsedTime));
+
+        // ★ 追加：新しく追加した行（最後の行）を黄色でハイライト
+        const int newRow = m_d.model->rowCount() - 1;
+        m_d.model->setCurrentHighlightRow(newRow);
     }
 }
 
@@ -151,6 +158,12 @@ void GameRecordPresenter::onKifuCurrentRowChanged_(const QModelIndex& current,
                                                    const QModelIndex& /*previous*/)
 {
     const int row = current.isValid() ? current.row() : -1;
+
+    // ★ 追加：選択行が変わったらモデルのハイライト行も更新
+    if (m_d.model && row >= 0) {
+        m_d.model->setCurrentHighlightRow(row);
+    }
+
     const QString cmt = commentForRow(row);
     emit currentRowChanged(row, cmt);
 }

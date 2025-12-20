@@ -2172,6 +2172,10 @@ QList<KifDisplayItem> KifuLoadCoordinator::collectDispFromRecordModel_() const
     const int rows = m_kifuRecordModel->rowCount();
     if (rows <= 1) return disp; // 0 行目は「=== 開始局面 ===」
 
+    // ★ 修正: 開始局面エントリを先頭に追加（rebuildBranchTree が disp[0] をスキップするため）
+    // disp[0] = 開始局面（prettyMoveが空）、disp[1] = 1手目、disp[2] = 2手目...
+    disp.push_back(KifDisplayItem(QString(), QString(), QString(), 0));
+
     // 「ASCII数字(1..,23..)+空白任意+ (▲|△)」の時だけ、その数字部分を剥がす。
     // 例: "1 ▲７六歩" / "1▲７六歩" / "23▲..." / "23 ▲..." は除去対象。
     // 例: "▲７六歩" / "△７六歩" / "７六歩"（先頭が全角数字）は対象外。
