@@ -786,28 +786,43 @@ void KifuLoadCoordinator::addGameInfoTabIfMissing()
         }
     }
 
-    // まだタブに無ければ追加
-    if (m_tab->indexOf(widgetToAdd) == -1) {
-        int anchorIdx = -1;
+    // ★ 修正: 既に「対局情報」タブがあるか、同じウィジェットがタブに含まれているか確認
+    // ウィジェットで検索
+    if (m_tab->indexOf(widgetToAdd) != -1) {
+        // 既にタブに含まれている場合は何もしない
+        return;
+    }
 
-        // 1) EngineAnalysisTab（検討タブ）の直後に入れる
-        if (m_analysisTab)
-            anchorIdx = m_tab->indexOf(m_analysisTab);
+    // タブタイトルで「対局情報」を検索
+    for (int i = 0; i < m_tab->count(); ++i) {
+        if (m_tab->tabText(i) == tr("対局情報")) {
+            // 既存タブを削除してwidgetToAddで置き換え
+            m_tab->removeTab(i);
+            m_tab->insertTab(i, widgetToAdd, tr("対局情報"));
+            return;
+        }
+    }
 
-        // 2) 念のため、タブタイトルで「コメント/Comments」を探してその直後に入れるフォールバック
-        if (anchorIdx < 0) {
-            for (int i = 0; i < m_tab->count(); ++i) {
-                const QString t = m_tab->tabText(i);
-                if (t.contains(tr("コメント")) || t.contains("Comments", Qt::CaseInsensitive)) {
-                    anchorIdx = i;
-                    break;
-                }
+    // タブがない場合のみ追加
+    int anchorIdx = -1;
+
+    // 1) EngineAnalysisTab（検討タブ）の直後に入れる
+    if (m_analysisTab)
+        anchorIdx = m_tab->indexOf(m_analysisTab);
+
+    // 2) 念のため、タブタイトルで「コメント/Comments」を探してその直後に入れるフォールバック
+    if (anchorIdx < 0) {
+        for (int i = 0; i < m_tab->count(); ++i) {
+            const QString t = m_tab->tabText(i);
+            if (t.contains(tr("コメント")) || t.contains("Comments", Qt::CaseInsensitive)) {
+                anchorIdx = i;
+                break;
             }
         }
-
-        const int insertPos = (anchorIdx >= 0) ? anchorIdx + 1 : m_tab->count();
-        m_tab->insertTab(insertPos, widgetToAdd, tr("対局情報"));
     }
+
+    // ★ 対局情報タブは最初（インデックス0）に挿入する
+    m_tab->insertTab(0, widgetToAdd, tr("対局情報"));
 }
 
 QString KifuLoadCoordinator::findGameInfoValue(const QList<KifGameInfoItem>& items,
