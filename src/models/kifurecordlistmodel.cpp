@@ -5,6 +5,7 @@
 
 KifuRecordListModel::KifuRecordListModel(QObject *parent)
     : AbstractListModel<KifuDisplay>(parent)
+    , m_currentHighlightRow(0)  // ★ 起動時は開始局面（行0）をハイライト
 {
 }
 
@@ -22,8 +23,14 @@ QVariant KifuRecordListModel::data(const QModelIndex &index, int role) const
     const int row = index.row();
     const int col = index.column();
 
-    // 背景色：分岐ありの手は行全体をオレンジ系で強調
+    // 背景色：現在行は黄色、分岐ありの手はオレンジ系で強調
     if (role == Qt::BackgroundRole) {
+        // ★ 現在行（黄色ハイライト）を優先
+        if (row == m_currentHighlightRow) {
+            static const QBrush kYellowBg(QColor(255, 255, 0));  // 濃い黄色
+            return kYellowBg;
+        }
+        // 分岐ありの手はオレンジ系
         if (row > 0 && m_branchPlySet.contains(row)) {
             static const QBrush kOrangeBg(QColor(255, 224, 178));
             return kOrangeBg;
@@ -121,7 +128,28 @@ void KifuRecordListModel::setBranchPlyMarks(const QSet<int>& ply1Set)
     if (rowCount() > 0) {
         const QModelIndex tl = index(0, 0);
         const QModelIndex br = index(rowCount() - 1, 1);
-        // 指し手の ‘+’ 付与と背景色の両方を更新
+        // 指し手の '+' 付与と背景色の両方を更新
         emit dataChanged(tl, br, { Qt::DisplayRole, Qt::BackgroundRole });
+    }
+}
+
+// ★ 追加：現在の行（黄色ハイライト）を設定
+void KifuRecordListModel::setCurrentHighlightRow(int row)
+{
+    if (m_currentHighlightRow == row) return;
+
+    const int oldRow = m_currentHighlightRow;
+    m_currentHighlightRow = row;
+
+    // 旧行と新行の背景色を更新
+    if (oldRow >= 0 && oldRow < rowCount()) {
+        const QModelIndex tl = index(oldRow, 0);
+        const QModelIndex br = index(oldRow, 1);
+        emit dataChanged(tl, br, { Qt::BackgroundRole });
+    }
+    if (row >= 0 && row < rowCount()) {
+        const QModelIndex tl = index(row, 0);
+        const QModelIndex br = index(row, 1);
+        emit dataChanged(tl, br, { Qt::BackgroundRole });
     }
 }

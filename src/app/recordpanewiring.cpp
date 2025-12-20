@@ -72,5 +72,8 @@ void RecordPaneWiring::buildUiAndWire()
                 m_d.recordModel->prependItem(item);
             }
         }
+
+        // ★ 追加：開始局面（行0）をハイライト
+        m_d.recordModel->setCurrentHighlightRow(0);
     }
 }

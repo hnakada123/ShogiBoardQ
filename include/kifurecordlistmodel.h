@@ -24,9 +24,16 @@ public:
     void setBranchPlyMarks(const QSet<int>& ply1Set);
     QSet<int> branchPlyMarks() const { return m_branchPlySet; }
 
+    // ★ 追加：現在の行（黄色ハイライト）を設定
+    void setCurrentHighlightRow(int row);
+    int currentHighlightRow() const { return m_currentHighlightRow; }
+
 private:
     // ★ 追加：分岐あり手の集合（モデルの行番号＝ply1と一致。0は「開始局面」で除外）
     QSet<int> m_branchPlySet;
+
+    // ★ 追加：現在ハイライトする行（-1 = ハイライトなし）
+    int m_currentHighlightRow = 0;  // 起動時は開始局面（行0）をハイライト
 };
 
 #endif // KIFURECORDLISTMODEL_H
