@@ -147,6 +147,11 @@ signals:
 
     void requestUpdateTurnDisplay();
 
+    // ★追加：対局者名が確定した時に発行（human1/2, engine1/2, playMode）
+    void playerNamesResolved(const QString& human1, const QString& human2,
+                             const QString& engine1, const QString& engine2,
+                             int playMode);
+
     // ★追加：MatchCoordinator の主要シグナルを転送（re-emit）する
     void timeUpdated(qint64 p1ms, qint64 p2ms, bool p1turn, qint64 urgencyMs);
     void requestAppendGameOverMove(const MatchCoordinator::GameEndInfo& info);

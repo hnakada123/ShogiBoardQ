@@ -263,6 +263,10 @@ private:
     void ensureGameInfoTable();
     void addGameInfoTabAtStartup_();      // ★ 追加: 起動時に対局情報タブを追加
     void populateDefaultGameInfo_();      // ★ 追加: デフォルトの対局情報を設定
+    void onSetPlayersNames_(const QString& p1, const QString& p2);   // ★ 追加: 対局者名フック
+    void onSetEngineNames_(const QString& e1, const QString& e2);    // ★ 追加: エンジン名フック
+    void updateGameInfoPlayerNames_(const QString& blackName, const QString& whiteName);  // ★ 追加
+    void updateGameInfoForCurrentMatch_();  // ★ 追加: 現在の対局に基づいて更新
     
     // ★ 追加: 対局情報編集用メソッド
     void buildGameInfoToolbar();
@@ -330,6 +334,11 @@ public slots:
     // --- ゲーム開始 / 終了 ---
     void initializeGame();
     void handleResignation();
+
+    // ★ 追加: 対局者名確定時のスロット
+    void onPlayerNamesResolved_(const QString& human1, const QString& human2,
+                                const QString& engine1, const QString& engine2,
+                                int playMode);
 
     void onActionFlipBoardTriggered(bool checked = false);
 

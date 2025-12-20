@@ -1289,6 +1289,150 @@ void MainWindow::populateDefaultGameInfo_()
     updateGameInfoEditingIndicator();
 }
 
+// ★ 追加: 対局者名設定フック（将棋盤ラベル更新）
+void MainWindow::onSetPlayersNames_(const QString& p1, const QString& p2)
+{
+    qDebug().noquote() << "[MW] onSetPlayersNames_: p1=" << p1 << " p2=" << p2;
+
+    // 将棋盤の対局者名ラベルを更新
+    if (m_shogiView) {
+        m_shogiView->setBlackPlayerName(p1);
+        m_shogiView->setWhitePlayerName(p2);
+    }
+
+    // 対局情報タブの先手・後手を更新
+    updateGameInfoPlayerNames_(p1, p2);
+}
+
+// ★ 追加: エンジン名設定フック
+void MainWindow::onSetEngineNames_(const QString& e1, const QString& e2)
+{
+    qDebug().noquote() << "[MW] onSetEngineNames_: e1=" << e1 << " e2=" << e2;
+
+    // メンバ変数に保存
+    m_engineName1 = e1;
+    m_engineName2 = e2;
+
+    // ログモデル名を更新
+    setEngineNamesBasedOnMode();
+
+    // 将棋盤の対局者名ラベルを更新（PlayModeに応じて）
+    setPlayersNamesForMode();
+
+    // 対局情報タブも更新
+    updateGameInfoForCurrentMatch_();
+}
+
+// ★ 追加: 対局情報タブの先手・後手名を更新
+void MainWindow::updateGameInfoPlayerNames_(const QString& blackName, const QString& whiteName)
+{
+    if (!m_gameInfoTable) return;
+
+    m_gameInfoTable->blockSignals(true);
+
+    // 先手の行を検索して更新
+    for (int row = 0; row < m_gameInfoTable->rowCount(); ++row) {
+        QTableWidgetItem* keyItem = m_gameInfoTable->item(row, 0);
+        if (keyItem && keyItem->text() == tr("先手")) {
+            QTableWidgetItem* valItem = m_gameInfoTable->item(row, 1);
+            if (valItem) {
+                valItem->setText(blackName);
+            }
+            break;
+        }
+    }
+
+    // 後手の行を検索して更新
+    for (int row = 0; row < m_gameInfoTable->rowCount(); ++row) {
+        QTableWidgetItem* keyItem = m_gameInfoTable->item(row, 0);
+        if (keyItem && keyItem->text() == tr("後手")) {
+            QTableWidgetItem* valItem = m_gameInfoTable->item(row, 1);
+            if (valItem) {
+                valItem->setText(whiteName);
+            }
+            break;
+        }
+    }
+
+    m_gameInfoTable->blockSignals(false);
+
+    // 元データも更新
+    for (int i = 0; i < m_originalGameInfo.size(); ++i) {
+        if (m_originalGameInfo[i].key == tr("先手")) {
+            m_originalGameInfo[i].value = blackName;
+        } else if (m_originalGameInfo[i].key == tr("後手")) {
+            m_originalGameInfo[i].value = whiteName;
+        }
+    }
+}
+
+// ★ 追加: 現在の対局に基づいて対局情報タブを更新
+void MainWindow::updateGameInfoForCurrentMatch_()
+{
+    if (!m_gameInfoTable) return;
+
+    // 現在のPlayModeと対局者名に基づいて先手・後手を決定
+    QString blackName;
+    QString whiteName;
+
+    switch (m_playMode) {
+    case EvenHumanVsEngine:
+    case HandicapHumanVsEngine:
+        blackName = m_humanName1.isEmpty() ? tr("先手") : m_humanName1;
+        whiteName = m_engineName2.isEmpty() ? tr("後手") : m_engineName2;
+        break;
+    case EvenEngineVsHuman:
+    case HandicapEngineVsHuman:
+        blackName = m_engineName1.isEmpty() ? tr("先手") : m_engineName1;
+        whiteName = m_humanName2.isEmpty() ? tr("後手") : m_humanName2;
+        break;
+    case EvenEngineVsEngine:
+    case HandicapEngineVsEngine:
+        blackName = m_engineName1.isEmpty() ? tr("先手") : m_engineName1;
+        whiteName = m_engineName2.isEmpty() ? tr("後手") : m_engineName2;
+        break;
+    case HumanVsHuman:
+        blackName = m_humanName1.isEmpty() ? tr("先手") : m_humanName1;
+        whiteName = m_humanName2.isEmpty() ? tr("後手") : m_humanName2;
+        break;
+    default:
+        blackName = tr("先手");
+        whiteName = tr("後手");
+        break;
+    }
+
+    updateGameInfoPlayerNames_(blackName, whiteName);
+}
+
+// ★ 追加: 対局者名確定時のスロット
+void MainWindow::onPlayerNamesResolved_(const QString& human1, const QString& human2,
+                                        const QString& engine1, const QString& engine2,
+                                        int playMode)
+{
+    qDebug().noquote() << "[MW] onPlayerNamesResolved_:"
+                       << " human1=" << human1
+                       << " human2=" << human2
+                       << " engine1=" << engine1
+                       << " engine2=" << engine2
+                       << " playMode=" << playMode;
+
+    // メンバ変数に保存
+    m_humanName1 = human1;
+    m_humanName2 = human2;
+    m_engineName1 = engine1;
+    m_engineName2 = engine2;
+    m_playMode = static_cast<PlayMode>(playMode);
+
+    // 将棋盤の対局者名ラベルを更新
+    setPlayersNamesForMode();
+
+    // エンジン名をログモデルに反映
+    setEngineNamesBasedOnMode();
+
+    // 対局情報タブを更新
+    updateGameInfoForCurrentMatch_();
+}
+
 // ★ 追加: 対局情報ツールバーの構築
 void MainWindow::buildGameInfoToolbar()
 {
@@ -1877,6 +2021,10 @@ void MainWindow::initMatchCoordinator()
     d.hooks.incrementMsFor = std::bind(&MainWindow::getIncrementMsFor_, this, _1);
     d.hooks.byoyomiMs      = std::bind(&MainWindow::getByoyomiMs_, this);
 
+    // ★ 追加：対局者名の更新フック（将棋盤ラベルと対局情報タブ）
+    d.hooks.setPlayersNames = std::bind(&MainWindow::onSetPlayersNames_, this, _1, _2);
+    d.hooks.setEngineNames  = std::bind(&MainWindow::onSetEngineNames_, this, _1, _2);
+
     // --- GameStartCoordinator の確保（1 回だけ） ---
     if (!m_gameStartCoordinator) {
         GameStartCoordinator::Deps gd;
@@ -2444,6 +2592,10 @@ void MainWindow::ensureGameStartCoordinator_()
 
     connect(m_gameStart, &GameStartCoordinator::requestApplyTimeControl,
             this, &MainWindow::onApplyTimeControlRequested_);
+
+    // ★ 追加: 対局者名確定シグナルを接続
+    connect(m_gameStart, &GameStartCoordinator::playerNamesResolved,
+            this, &MainWindow::onPlayerNamesResolved_);
 }
 
 void MainWindow::onPreStartCleanupRequested_()
