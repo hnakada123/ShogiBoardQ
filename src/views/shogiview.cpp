@@ -427,28 +427,66 @@ void ShogiView::drawFiles(QPainter* painter)
     }
 }
 
+// E1: 背景にグラデーションを描画する。
+// 役割：ウィジェット全体に落ち着いた和風のグラデーション背景を描画し、
+//       将棋盤の雰囲気を高める。
+// 方針：左上から右下への斜めグラデーションで、畳や木目を連想させる色調を使用。
+void ShogiView::drawBackground(QPainter* painter)
+{
+    painter->save();
+
+    // ウィジェット全体の矩形
+    const QRect bgRect = rect();
+
+    // 和風の落ち着いたグラデーション（畳・木目調）
+    // 左上：やや明るい生成り色 → 右下：落ち着いた黄土色
+    QLinearGradient gradient(bgRect.topLeft(), bgRect.bottomRight());
+    gradient.setColorAt(0.0, QColor(245, 240, 220));   // 明るい生成り色
+    gradient.setColorAt(0.3, QColor(235, 225, 195));   // 中間色1
+    gradient.setColorAt(0.7, QColor(220, 205, 170));   // 中間色2
+    gradient.setColorAt(1.0, QColor(205, 185, 145));   // 落ち着いた黄土色
+
+    painter->fillRect(bgRect, gradient);
+
+    painter->restore();
+}
+
+// 駒台セル（1マス）の描画矩形を算出するユーティリティ。
+// 役割：盤上の基準マス矩形（fieldRect）から、先手/後手の駒台側に水平オフセットした矩形を返す。
+static inline QRect makeStandCellRect(bool flip, int param, int offsetX, int offsetY, const QRect& fieldRect, bool leftSide)
+{
+    QRect adjustedRect;
+
+    if (flip) {
+        // 【反転時】先手は左、後手は右に配置。
+        adjustedRect.setRect(fieldRect.left() + (leftSide ? -param : +param) + offsetX,
+                             fieldRect.top()  + offsetY,
+                             fieldRect.width(),
+                             fieldRect.height());
+    } else {
+        // 【通常時】先手は右、後手は左に配置。
+        adjustedRect.setRect(fieldRect.left() + (leftSide ? +param : -param) + offsetX,
+                             fieldRect.top()  + offsetY,
+                             fieldRect.width(),
+                             fieldRect.height());
+    }
+
+    return adjustedRect;
+}
+
 // 盤の各マス（field）を描画するエントリポイント。
 // 最適化方針を適用：セルごとの save()/restore() を撤去し、共通状態は外側で一度だけ設定。
-// 前提：drawField() は QPainter の永続状態（ペン/ブラシ/変換/クリップ等）を汚さないこと。
-// 　　（もし一時的に変更する必要がある場合は、drawField() 内でその箇所だけ局所的に save()/restore() を行う）
 void ShogiView::drawBoardFields(QPainter* painter)
 {
     // 【安全弁】盤が未設定なら何もしない
     if (!m_board) return;
 
     // 【共通状態の一括設定】
-    // 例：マスの境界線などで使うペン色を一度だけセットして、以降は drawField() が恒久変更しない前提にする。
-    // ※ 個々のマスでブラシ（塗り）を切り替える場合、ブラシは drawField() 内で一時的に設定する。
     painter->setPen(palette().color(QPalette::Dark));
-    // 必要に応じて他の共通設定もここで行う：
-    // painter->setRenderHint(QPainter::Antialiasing, false);
-    // painter->setBrush(Qt::NoBrush);
 
     // 【描画ループ】段（r）× 筋（c）で全マスを走査し、個々の描画は drawField() に委譲
     for (int r = 1; r <= m_board->ranks(); ++r) {
         for (int c = 1; c <= m_board->files(); ++c) {
-            // セルごとの save/restore は行わない（コスト削減）。
-            // drawField() 側は必要箇所のみ局所 save/restore で自己完結させる契約。
             drawField(painter, c, r);
         }
     }
@@ -457,7 +495,6 @@ void ShogiView::drawBoardFields(QPainter* painter)
 void ShogiView::drawBlackNormalModeStand(QPainter* painter)
 {
     painter->setPen(palette().color(QPalette::Dark));
-    // ★ r=3..9 → r=6..9（4行）に短縮
     for (int r = 6; r <= 9; ++r) {
         for (int c = 1; c <= 2; ++c) {
             drawBlackStandField(painter, c, r);
@@ -468,7 +505,6 @@ void ShogiView::drawBlackNormalModeStand(QPainter* painter)
 void ShogiView::drawWhiteNormalModeStand(QPainter* painter)
 {
     painter->setPen(palette().color(QPalette::Dark));
-    // ★ r=1..7 → r=1..4（4行）に短縮
     for (int r = 1; r <= 4; ++r) {
         for (int c = 1; c <= 2; ++c) {
             drawWhiteStandField(painter, c, r);
@@ -478,10 +514,6 @@ void ShogiView::drawWhiteNormalModeStand(QPainter* painter)
 
 // 通常対局モードにおける「駒台」描画の統括エントリポイント。
 // 役割：先手（黒）→ 後手（白）の順に、通常モード用の駒台マスを描画する関数へ委譲する。
-// 方針：共通の描画状態（ペン/ブラシ等）の設定は各サブ関数側で一括設定済みとし、ここでは状態を変更しない。
-// 前提：drawBlackNormalModeStand()/drawWhiteNormalModeStand() は QPainter の永続状態を汚さない
-//      （必要箇所のみ局所 save()/restore() を用いる契約）。
-// 備考：描画順は重なり順（zオーダ）や視覚効果に影響し得るため、UI要件に応じて入れ替え可能。
 void ShogiView::drawNormalModeStand(QPainter* painter)
 {
     // 先手（黒）側の通常モード駒台を描画
@@ -583,6 +615,9 @@ void ShogiView::paintEvent(QPaintEvent *)
     painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
 
     // 【描画順序：背面 → 前面】
+    // 0) E1: 背景グラデーション（最背面）
+    drawBackground(&painter);
+
     // 1) 盤面（マスの背景・枠など）
     drawBoardFields(&painter);
 
@@ -640,19 +675,20 @@ void ShogiView::drawDraggingPiece(QPainter* painter)
 // 役割：盤面上の 4 箇所に小さな点（塗りつぶし円）を打ち、視覚的な基準点を提供する。
 // 座標系：各星の中心は「マスサイズ×(3 or 6) ＋ オフセット(m_offsetX/Y)」で求める。
 // 改善点：
-//  - B2: 星（目印）の点を大きくする（半径を4→6に、色も濃く）
+//  - B2: 星（目印）の点を適切なサイズに（実際の将棋盤に近いサイズ）
 void ShogiView::drawFourStars(QPainter* painter)
 {
     // 【状態の局所保護】このブロックでのみ描画状態を変更し、外へ影響させない
     painter->save();
 
-    // 【描画スタイル】星は塗りつぶし円で表現（より濃い色で視認性向上）
+    // 【描画スタイル】星は塗りつぶし円で表現（濃い茶色で視認性確保）
     painter->setBrush(QColor(50, 30, 10));  // 濃い茶色
     painter->setPen(Qt::NoPen);  // 縁取りなし
 
     // 【サイズ/基準点】
-    // B2: 星の半径を大きく（4→6px）
-    const int starRadius = 6;
+    // B2: 星の半径を実際の将棋盤に近いサイズに調整（3px）
+    // 実際の将棋盤では星は直径2〜3mm程度、マス約35mmに対して約6〜8%
+    const int starRadius = 3;
     const int basePoint3 = m_squareSize * 3; // 3マス分
     const int basePoint6 = m_squareSize * 6; // 6マス分
 
@@ -683,14 +719,7 @@ int ShogiView::boardRightPx() const {
 
 
 // 指定された (file, rank) のマス（1 マス分の矩形）を描画する。
-// 最適化方針：本関数内でのみペン/ブラシ状態を一時変更するため、局所的に save()/restore() を行う。
-// 役割：
-//  - 盤の反転状態も考慮したマス矩形を算出（calculateSquareRectangleBasedOnBoardState）
-//  - 盤の描画原点シフト（m_offsetX/m_offsetY）を加味して実座標へ変換
-//  - 木目風の塗り色と枠線色で 1 マスを描画
-// 改善点：
-//  - B1: マス目の線を濃くする（色を濃く）
-//  - B4: 盤面の色のコントラストを強くする（やや明るめの木目色）
+// 役割：盤の反転状態も考慮したマス矩形を算出し、木目風の塗り色と枠線色で1マスを描画
 void ShogiView::drawField(QPainter* painter, const int file, const int rank) const
 {
     // 【盤座標 → ウィジェット座標】
@@ -700,120 +729,49 @@ void ShogiView::drawField(QPainter* painter, const int file, const int rank) con
                        fieldRect.width(),
                        fieldRect.height());
 
-    // 【状態の局所保護】このマスの描画で変更するペン/ブラシを外に漏らさない
     painter->save();
 
-    // 【描画スタイル】
-    // B4: マスの塗り（落ち着いた木目色、元の色より少しだけ明るく）
-    const QColor fillColor(228, 203, 115, 255);  // 落ち着いた木目色
+    // マスの塗り（落ち着いた木目色）
+    const QColor fillColor(228, 203, 115, 255);
     painter->setBrush(fillColor);
 
-    // B1: マスの枠線色（濃い茶色で視認性向上）、線幅は1pxに
-    QPen gridPen(QColor(80, 60, 30));  // 濃い茶色
-    gridPen.setWidth(1);               // 線幅を1pxに
+    // マスの枠線色（濃い茶色）
+    QPen gridPen(QColor(80, 60, 30));
+    gridPen.setWidth(1);
     painter->setPen(gridPen);
 
-    // 【描画本体】
     painter->drawRect(adjustedRect);
 
-    // 【状態復元】以降の描画に影響を残さない
     painter->restore();
 }
 
-// 駒台セル（1マス）の描画矩形を算出するユーティリティ。
-// 役割：
-//  - 盤上の基準マス矩形（fieldRect）から、先手/後手の駒台側に水平オフセットした矩形を返す。
-//  - 盤の反転状態（flip）と、どちら側の駒台か（leftSide）に応じて、左右どちらへ寄せるかを切り替える。
-// 引数：
-//  - flip    : 盤の反転状態。true=反転（上下左右が入れ替わる前提）、false=通常。
-//  - param   : 駒台セルを盤の基準矩形からどれだけ水平方向にずらすか（px, 正値）。
-//  - offsetX : 盤全体のX方向オフセット（描画原点シフト）。
-//  - offsetY : 盤全体のY方向オフセット（描画原点シフト）。
-//  - fieldRect : 盤の基準マス矩形（この左上・サイズを基準に駒台セルを配置する）。
-//  - leftSide  : 「左側の駒台か」を示すフラグ。true=左側、false=右側。
-// 戻り値：調整後（オフセット適用後）の駒台セル矩形。
-// 視点：
-//  - flip==true のとき「先手は左／後手は右」へ寄せる（左右関係が反転）
-//  - flip==false のとき「先手は右／後手は左」へ寄せる（通常の左右関係）
-static inline QRect makeStandCellRect(bool flip, int param, int offsetX, int offsetY, const QRect& fieldRect, bool leftSide)
-{
-    QRect adjustedRect;
-
-    if (flip) {
-        // 【反転時】先手は左、後手は右に配置。
-        // leftSide==true（左側の駒台）のときは基準から -param、右側は +param 側へシフト。
-        adjustedRect.setRect(fieldRect.left() + (leftSide ? -param : +param) + offsetX,
-                             fieldRect.top()  + offsetY,
-                             fieldRect.width(),
-                             fieldRect.height());
-    } else {
-        // 【通常時】先手は右、後手は左に配置。
-        // leftSide==true（左側の駒台）のときは基準から +param、右側は -param 側へシフト。
-        adjustedRect.setRect(fieldRect.left() + (leftSide ? +param : -param) + offsetX,
-                             fieldRect.top()  + offsetY,
-                             fieldRect.width(),
-                             fieldRect.height());
-    }
-
-    return adjustedRect;
-}
-
 // 先手（黒）側の駒台セル（1マス）を描画する。
-// 最適化方針：この関数内のみでペン/ブラシを一時変更するため、局所的に save()/restore() を行う。
-// 手順：
-//  1) 盤の(file, rank)に対応する基準マス矩形を取得（反転含む）
-//  2) 基準マスから「左側の駒台」方向へ水平シフトして駒台セル矩形を算出
-//  3) 木目系の塗り色で矩形を描画（枠線も同色で目立たせない）
 void ShogiView::drawBlackStandField(QPainter* painter, const int file, const int rank) const
 {
-    // (1) 盤座標→基準マス矩形
     const QRect fieldRect = calculateSquareRectangleBasedOnBoardState(file, rank);
-
-    // (2) 先手は「左側の駒台」へ寄せる想定。m_param1 は水平シフト量（px）。
     QRect adjustedRect = makeStandCellRect(
-        m_flipMode,               // 反転有無
-        m_param1,                 // 水平方向の寄せ量（先手用パラメータ）
-        m_offsetX, m_offsetY,     // 盤全体の原点シフト
-        fieldRect,
-        /*leftSide=*/true         // 左側の駒台へ配置
-        );
+        m_flipMode, m_param1, m_offsetX, m_offsetY, fieldRect, true);
 
-    // (3) 状態の局所保護と描画
     painter->save();
-
-    const QColor fillColor(228, 167, 46, 255); // 駒台の塗り（木目系）
-    painter->setPen(fillColor);                // 枠線も同色にして目立たせない
+    const QColor fillColor(228, 167, 46, 255);  // 駒台の塗り（木目系）
+    painter->setPen(fillColor);
     painter->setBrush(fillColor);
     painter->drawRect(adjustedRect);
-
     painter->restore();
 }
 
 // 後手（白）側の駒台セル（1マス）を描画する。
-// 最適化方針：本関数内のみで状態を変更し、終了時に元へ戻す（局所 save()/restore()）。
-// 手順：基準マス→「右側の駒台」方向へ水平シフト→木目系の塗りで矩形描画。
 void ShogiView::drawWhiteStandField(QPainter* painter, const int file, const int rank) const
 {
-    // 盤座標→基準マス矩形
     const QRect fieldRect = calculateSquareRectangleBasedOnBoardState(file, rank);
-
-    // 後手は「右側の駒台」へ寄せる想定。m_param2 は後手用の水平シフト量（px）。
     QRect adjustedRect = makeStandCellRect(
-        m_flipMode,               // 反転有無
-        m_param2,                 // 水平方向の寄せ量（後手用パラメータ）
-        m_offsetX, m_offsetY,     // 盤全体の原点シフト
-        fieldRect,
-        /*leftSide=*/false        // 右側の駒台へ配置
-        );
+        m_flipMode, m_param2, m_offsetX, m_offsetY, fieldRect, false);
 
-    // 状態の局所保護と描画
     painter->save();
-
-    const QColor fillColor(228, 167, 46, 255); // 駒台の塗り（木目系）
-    painter->setPen(fillColor);                // 枠線も同色に
+    const QColor fillColor(228, 167, 46, 255);  // 駒台の塗り（木目系）
+    painter->setPen(fillColor);
     painter->setBrush(fillColor);
     painter->drawRect(adjustedRect);
-
     painter->restore();
 }
 
