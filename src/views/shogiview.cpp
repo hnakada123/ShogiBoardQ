@@ -427,10 +427,8 @@ void ShogiView::drawFiles(QPainter* painter)
     }
 }
 
-// E1: 背景にグラデーションを描画する。
-// 役割：ウィジェット全体に落ち着いた和風のグラデーション背景を描画し、
-//       将棋盤の雰囲気を高める。
-// 方針：左上から右下への斜めグラデーションで、畳や木目を連想させる色調を使用。
+// E1: 背景を描画する。
+// 役割：ウィジェット全体に背景色を描画し、将棋盤や駒台とのコントラストを明確にする。
 void ShogiView::drawBackground(QPainter* painter)
 {
     painter->save();
@@ -438,15 +436,9 @@ void ShogiView::drawBackground(QPainter* painter)
     // ウィジェット全体の矩形
     const QRect bgRect = rect();
 
-    // 和風の落ち着いたグラデーション（畳・木目調）
-    // 左上：やや明るい生成り色 → 右下：落ち着いた黄土色
-    QLinearGradient gradient(bgRect.topLeft(), bgRect.bottomRight());
-    gradient.setColorAt(0.0, QColor(245, 240, 220));   // 明るい生成り色
-    gradient.setColorAt(0.3, QColor(235, 225, 195));   // 中間色1
-    gradient.setColorAt(0.7, QColor(220, 205, 170));   // 中間色2
-    gradient.setColorAt(1.0, QColor(205, 185, 145));   // 落ち着いた黄土色
-
-    painter->fillRect(bgRect, gradient);
+    // 白っぽい薄いグレー（将棋盤・駒台とのコントラストを明確にする）
+    const QColor bgColor(245, 245, 240);  // オフホワイト
+    painter->fillRect(bgRect, bgColor);
 
     painter->restore();
 }
@@ -1109,13 +1101,6 @@ void ShogiView::drawHighlights(QPainter* painter)
                      base.width(), base.height());
     };
 
-    // B3: 移動元と移動先を区別するための色判定
-    // ハイライトの色が赤系（移動元）か黄色系（移動先）かを判定
-    const auto isFromSquareColor = [](const QColor& color) -> bool {
-        // 赤系の色（移動元）: 赤成分が大きく、緑/青成分が小さい
-        return color.red() > 200 && color.green() < 100 && color.alpha() < 100;
-    };
-
     // 描画
     painter->save();
     for (int i = 0; i < highlightCount(); ++i) {
@@ -1128,27 +1113,18 @@ void ShogiView::drawHighlights(QPainter* painter)
 
         const QColor originalColor = fhl->color();
 
-        // B3: 移動元と移動先で異なるスタイルを適用
-        if (isFromSquareColor(originalColor)) {
-            // 移動元: 薄い緑色の背景 + 破線の枠
-            painter->fillRect(rect, QColor(144, 238, 144, 80));  // 薄い緑（半透明）
-
-            QPen fromPen(QColor(60, 120, 60));  // 緑の枠線
-            fromPen.setWidth(2);
-            fromPen.setStyle(Qt::DashLine);  // 破線
-            painter->setPen(fromPen);
-            painter->setBrush(Qt::NoBrush);
-            painter->drawRect(rect.adjusted(1, 1, -1, -1));
+        // ハイライト色を統一
+        // 移動元（赤系）: 先手・後手で色が異なる場合があるので統一
+        // 移動先（黄色系）: そのまま使用
+        if (originalColor.red() > 200 && originalColor.green() < 150 && originalColor.blue() < 150) {
+            // 赤系（移動元）→ 統一した薄い赤色、マス全体に描画
+            const QColor fillColor(255, 100, 100, 80);  // 薄い赤（半透明）
+            painter->fillRect(rect, fillColor);
         } else {
-            // 移動先: より鮮やかな黄色/オレンジの背景 + 実線の太い枠
-            painter->fillRect(rect, QColor(255, 200, 50, 120));  // 鮮やかな黄色（半透明）
-
-            QPen toPen(QColor(200, 120, 0));  // オレンジ色の枠線
-            toPen.setWidth(3);
-            toPen.setStyle(Qt::SolidLine);  // 実線
-            painter->setPen(toPen);
-            painter->setBrush(Qt::NoBrush);
-            painter->drawRect(rect.adjusted(1, 1, -2, -2));
+            // 黄色系（移動先）→ 統一した黄色、罫線を残すため1px内側に描画
+            const QColor fillColor(255, 255, 100, 120);  // 黄色（半透明）
+            const QRect innerRect = rect.adjusted(1, 1, -1, -1);
+            painter->fillRect(innerRect, fillColor);
         }
     }
     painter->restore();
