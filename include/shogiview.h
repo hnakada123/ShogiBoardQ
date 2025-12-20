@@ -217,6 +217,7 @@ private:
     void drawRanks(QPainter* painter);                         // 全段ラベル
     void drawRank(QPainter* painter, int rank) const;          // 段ラベル 1 本
 
+    void drawBackground(QPainter* painter);                    // E1: 背景グラデーション
     void drawBoardFields(QPainter* painter);                   // 盤の全マス
     void drawField(QPainter* painter, int file, int rank) const;
 
