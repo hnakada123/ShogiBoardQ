@@ -859,6 +859,13 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
         m_match->startMatchTimingAndMaybeInitialGo();
     }
 
+    // --- 10) ★追加: 対局者名をMainWindowに通知 ---
+    const QString human1 = dlg->humanName1();
+    const QString human2 = dlg->humanName2();
+    const QString engine1 = opt.engineName1;
+    const QString engine2 = opt.engineName2;
+    emit playerNamesResolved(human1, human2, engine1, engine2, static_cast<int>(mode));
+
     delete dlg;
 }
 
