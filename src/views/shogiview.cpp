@@ -639,18 +639,20 @@ void ShogiView::drawDraggingPiece(QPainter* painter)
 // 最適化方針：この関数内でのみブラシ/ペン等の状態を一時変更し、終了時に必ず元へ戻す（局所 save/restore）。
 // 役割：盤面上の 4 箇所に小さな点（塗りつぶし円）を打ち、視覚的な基準点を提供する。
 // 座標系：各星の中心は「マスサイズ×(3 or 6) ＋ オフセット(m_offsetX/Y)」で求める。
+// 改善点：
+//  - B2: 星（目印）の点を大きくする（半径を4→6に、色も濃く）
 void ShogiView::drawFourStars(QPainter* painter)
 {
     // 【状態の局所保護】このブロックでのみ描画状態を変更し、外へ影響させない
     painter->save();
 
-    // 【描画スタイル】星は塗りつぶし円で表現（縁取り色は現状維持：必要なら NoPen を設定）
-    painter->setBrush(palette().color(QPalette::Dark));
-    // 例：縁取りを消したい場合は以下を有効化
-    // painter->setPen(Qt::NoPen);
+    // 【描画スタイル】星は塗りつぶし円で表現（より濃い色で視認性向上）
+    painter->setBrush(QColor(50, 30, 10));  // 濃い茶色
+    painter->setPen(Qt::NoPen);  // 縁取りなし
 
     // 【サイズ/基準点】
-    const int starRadius = 4;             // 星（点）の半径（px）。必要に応じてマス比率に連動させてもよい。
+    // B2: 星の半径を大きく（4→6px）
+    const int starRadius = 6;
     const int basePoint3 = m_squareSize * 3; // 3マス分
     const int basePoint6 = m_squareSize * 6; // 6マス分
 
@@ -686,6 +688,9 @@ int ShogiView::boardRightPx() const {
 //  - 盤の反転状態も考慮したマス矩形を算出（calculateSquareRectangleBasedOnBoardState）
 //  - 盤の描画原点シフト（m_offsetX/m_offsetY）を加味して実座標へ変換
 //  - 木目風の塗り色と枠線色で 1 マスを描画
+// 改善点：
+//  - B1: マス目の線を濃くする（色を濃く）
+//  - B4: 盤面の色のコントラストを強くする（やや明るめの木目色）
 void ShogiView::drawField(QPainter* painter, const int file, const int rank) const
 {
     // 【盤座標 → ウィジェット座標】
@@ -699,12 +704,14 @@ void ShogiView::drawField(QPainter* painter, const int file, const int rank) con
     painter->save();
 
     // 【描画スタイル】
-    // マスの塗り（木目系の色味）。必要に応じてパレット依存や明度調整に置き換え可。
-    const QColor fillColor(222, 196, 99, 255);
+    // B4: マスの塗り（落ち着いた木目色、元の色より少しだけ明るく）
+    const QColor fillColor(228, 203, 115, 255);  // 落ち着いた木目色
     painter->setBrush(fillColor);
 
-    // マスの枠線色（やや暗いグレー）。デザインポリシーに合わせて QPalette::Dark も可。
-    painter->setPen(QColor(30, 30, 30));
+    // B1: マスの枠線色（濃い茶色で視認性向上）、線幅は1pxに
+    QPen gridPen(QColor(80, 60, 30));  // 濃い茶色
+    gridPen.setWidth(1);               // 線幅を1pxに
+    painter->setPen(gridPen);
 
     // 【描画本体】
     painter->drawRect(adjustedRect);
@@ -1144,17 +1151,49 @@ void ShogiView::drawHighlights(QPainter* painter)
                      base.width(), base.height());
     };
 
+    // B3: 移動元と移動先を区別するための色判定
+    // ハイライトの色が赤系（移動元）か黄色系（移動先）かを判定
+    const auto isFromSquareColor = [](const QColor& color) -> bool {
+        // 赤系の色（移動元）: 赤成分が大きく、緑/青成分が小さい
+        return color.red() > 200 && color.green() < 100 && color.alpha() < 100;
+    };
+
     // 描画
+    painter->save();
     for (int i = 0; i < highlightCount(); ++i) {
         Highlight* hl = highlight(i);
         if (!hl || hl->type() != FieldHighlight::Type) continue;
 
         const auto* fhl = static_cast<FieldHighlight*>(hl);
         const QRect rect = makeHighlightRect(fhl);
-        if (!rect.isNull()) {
-            painter->fillRect(rect, fhl->color());
+        if (rect.isNull()) continue;
+
+        const QColor originalColor = fhl->color();
+
+        // B3: 移動元と移動先で異なるスタイルを適用
+        if (isFromSquareColor(originalColor)) {
+            // 移動元: 薄い緑色の背景 + 破線の枠
+            painter->fillRect(rect, QColor(144, 238, 144, 80));  // 薄い緑（半透明）
+
+            QPen fromPen(QColor(60, 120, 60));  // 緑の枠線
+            fromPen.setWidth(2);
+            fromPen.setStyle(Qt::DashLine);  // 破線
+            painter->setPen(fromPen);
+            painter->setBrush(Qt::NoBrush);
+            painter->drawRect(rect.adjusted(1, 1, -1, -1));
+        } else {
+            // 移動先: より鮮やかな黄色/オレンジの背景 + 実線の太い枠
+            painter->fillRect(rect, QColor(255, 200, 50, 120));  // 鮮やかな黄色（半透明）
+
+            QPen toPen(QColor(200, 120, 0));  // オレンジ色の枠線
+            toPen.setWidth(3);
+            toPen.setStyle(Qt::SolidLine);  // 実線
+            painter->setPen(toPen);
+            painter->setBrush(Qt::NoBrush);
+            painter->drawRect(rect.adjusted(1, 1, -2, -2));
         }
     }
+    painter->restore();
 }
 
 // クリック位置（ウィジェット座標）から、盤上のマス座標（file=x, rank=y）を求めるエントリポイント。
@@ -2416,6 +2455,8 @@ void ShogiView::recalcLayoutParams()
 //  4) ラベル帯の幅 w は m_labelBandPx を基本に、利用可能な隙間（gapPx）内に収まるようクリップ
 //  5) フォントサイズを m_labelFontPt × m_rankFontScale を基準に、セル高さの 90% を上限に調整
 //  6) rank（1..9）に対応する漢数字を中央揃えで描画
+// 改善点：
+//  - B5: 段・筋の文字サイズを大きく/太くする
 void ShogiView::drawRank(QPainter* painter, const int rank) const
 {
     if (!m_board) return;
@@ -2446,10 +2487,15 @@ void ShogiView::drawRank(QPainter* painter, const int rank) const
     // (5) フォントを段ラベル用に調整（局所的に保存/復元）
     painter->save();
     QFont f = painter->font();
-    double pt = m_labelFontPt * m_rankFontScale;
-    pt = std::min(pt, h * 0.9);   // セル高さの 90% を上限に
+    // B5: フォントサイズを1.3倍に拡大
+    double pt = m_labelFontPt * m_rankFontScale * 1.3;
+    pt = std::min(pt, h * 0.95);   // セル高さの 95% を上限に（元は90%）
     f.setPointSizeF(pt);
+    // B5: 太字に設定
+    f.setBold(true);
     painter->setFont(f);
+    // B5: より濃い文字色
+    painter->setPen(QColor(40, 30, 20));
 
     // (6) 1..9 段に対応する漢数字を中央揃えで描画
     static const QStringList rankTexts = { "一","二","三","四","五","六","七","八","九" };
@@ -2471,6 +2517,8 @@ void ShogiView::drawRank(QPainter* painter, const int rank) const
 //     利用可能な空き高さ avail を求め、ラベル帯高さ h を m_labelBandPx を上限に調整
 //  3) フォントサイズは m_labelFontPt を基準に、帯高さの 75% を上限に設定
 //  4) file（1..9）に対応する全角数字を中央揃えで描画
+// 改善点：
+//  - B5: 段・筋の文字サイズを大きく/太くする
 void ShogiView::drawFile(QPainter* painter, const int file) const
 {
     if (!m_board) return;
@@ -2504,8 +2552,13 @@ void ShogiView::drawFile(QPainter* painter, const int file) const
     // (3) フォント調整（局所保護）
     painter->save();
     QFont f = painter->font();
-    f.setPointSizeF(std::min(m_labelFontPt, h * 0.75));  // 帯高さの 75% を上限に
+    // B5: フォントサイズを1.3倍に拡大、上限も緩和（75%→85%）
+    f.setPointSizeF(std::min(m_labelFontPt * 1.3, h * 0.85));
+    // B5: 太字に設定
+    f.setBold(true);
     painter->setFont(f);
+    // B5: より濃い文字色
+    painter->setPen(QColor(40, 30, 20));
 
     // (4) 全角数字 １..９ を中央描画
     static const QStringList fileTexts = { "１","２","３","４","５","６","７","８","９" };
