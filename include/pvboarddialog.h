@@ -4,8 +4,8 @@
 #include <QDialog>
 #include <QStringList>
 #include <QVector>
+#include "shogiview.h"
 
-class ShogiView;
 class ShogiBoard;
 class QPushButton;
 class QLabel;
@@ -72,6 +72,10 @@ private:
     void applyMove(const QString& usiMove);
     /// 手番を取得（"b" or "w"）
     QString currentTurn() const;
+    /// 現在の手のハイライトを更新
+    void updateMoveHighlights();
+    /// ハイライトをクリア
+    void clearMoveHighlights();
 
 private:
     ShogiView* m_shogiView = nullptr;
@@ -80,6 +84,8 @@ private:
     QString m_baseSfen;           ///< 開始局面のSFEN
     QStringList m_pvMoves;        ///< USI形式の読み筋手
     QString m_kanjiPv;            ///< 漢字表記の読み筋
+    QString m_blackPlayerName;    ///< 先手の対局者名
+    QString m_whitePlayerName;    ///< 後手の対局者名
 
     QVector<QString> m_sfenHistory; ///< 各手数での局面SFEN履歴
 
@@ -94,6 +100,10 @@ private:
     QPushButton* m_btnReduce = nullptr;   ///< 将棋盤縮小ボタン
     QLabel* m_plyLabel = nullptr;
     QLabel* m_pvLabel = nullptr;
+
+    // ハイライト用
+    ShogiView::FieldHighlight* m_fromHighlight = nullptr;  ///< 移動元ハイライト
+    ShogiView::FieldHighlight* m_toHighlight = nullptr;    ///< 移動先ハイライト
 };
 
 #endif // PVBOARDDIALOG_H
