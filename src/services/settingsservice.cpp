@@ -107,4 +107,20 @@ void setThinkingFontSize(int size)
     s.setValue("FontSize/thinking", size);
 }
 
+// ★ 追加: 最後に選択されたタブインデックスを取得
+int lastSelectedTabIndex()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("UI/lastSelectedTabIndex", 0).toInt();
+}
+
+// ★ 追加: 最後に選択されたタブインデックスを保存
+void setLastSelectedTabIndex(int index)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("UI/lastSelectedTabIndex", index);
+}
+
 } // namespace SettingsService

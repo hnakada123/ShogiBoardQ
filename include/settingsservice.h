@@ -46,6 +46,11 @@ int thinkingFontSize();
 // 思考タブのフォントサイズを保存
 void setThinkingFontSize(int size);
 
+// ★ 追加: 最後に選択されたタブインデックスを取得（デフォルト: 0＝対局情報）
+int lastSelectedTabIndex();
+// ★ 追加: 最後に選択されたタブインデックスを保存
+void setLastSelectedTabIndex(int index);
+
 } // namespace SettingsService
 
 #endif // SETTINGSSERVICE_H
