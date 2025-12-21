@@ -169,6 +169,11 @@ MainWindow::MainWindow(QWidget *parent)
 
     if (!m_timePresenter) m_timePresenter = new TimeDisplayPresenter(m_shogiView, this);
 
+    // m_shogiClockが既に作成されていれば、TimeDisplayPresenterに設定
+    if (m_timePresenter && m_shogiClock) {
+        m_timePresenter->setClock(m_shogiClock);
+    }
+
     // 画面骨格（棋譜/分岐/レイアウト/タブ/中央表示）
     buildGamePanels_();
 
@@ -2148,6 +2153,11 @@ void MainWindow::ensureClockReady_()
     if (m_shogiClock) return;
 
     m_shogiClock = new ShogiClock(this);
+
+    // TimeDisplayPresenter に Clock を設定（秒読み状態の判定に使用）
+    if (m_timePresenter) {
+        m_timePresenter->setClock(m_shogiClock);
+    }
 
     // ★ ここでは timeUpdated を m_match に接続しない
     //    （接続は wireMatchSignals_() に一本化）
