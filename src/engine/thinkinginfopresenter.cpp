@@ -53,6 +53,15 @@ void ThinkingInfoPresenter::setPonderEnabled(bool enabled)
 void ThinkingInfoPresenter::setBaseSfen(const QString& sfen)
 {
     m_baseSfen = sfen;
+    
+    // SFENから手番を抽出（形式: "盤面 手番 駒台 手数"）
+    // 例: "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"
+    const QStringList parts = sfen.split(QLatin1Char(' '));
+    if (parts.size() >= 2) {
+        const QString turn = parts.at(1);
+        // b=先手(Player1), w=後手(Player2)
+        m_thinkingStartPlayerIsP1 = (turn == QStringLiteral("b"));
+    }
 }
 
 QString ThinkingInfoPresenter::baseSfen() const
@@ -100,6 +109,12 @@ void ThinkingInfoPresenter::processInfoLineInternal(const QString& line)
 
     info->setPreviousFileTo(m_previousFileTo);
     info->setPreviousRankTo(m_previousRankTo);
+    
+    // 思考開始時の手番を設定（bestmove後の局面更新の影響を受けないようにする）
+    ShogiGameController::Player startPlayer = m_thinkingStartPlayerIsP1 
+        ? ShogiGameController::Player1 
+        : ShogiGameController::Player2;
+    info->setThinkingStartPlayer(startPlayer);
 
     // const_castを避けるためlineをコピー
     QString lineCopy = line;

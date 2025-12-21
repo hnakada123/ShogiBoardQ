@@ -168,6 +168,9 @@ private:
     /// 思考開始時の局面SFEN
     QString m_baseSfen;
     
+    /// 思考開始時の手番（true=先手(Player1), false=後手(Player2)）
+    bool m_thinkingStartPlayerIsP1 = true;
+    
     /// クローンした盤面データ
     QVector<QChar> m_clonedBoardData;
 
