@@ -2637,6 +2637,11 @@ void ShogiView::setUrgencyVisuals(Urgency u)
     QLabel* inactName  = m_blackActive ? m_whiteNameLabel  : m_blackNameLabel;
     QLabel* inactClock = m_blackActive ? m_whiteClockLabel : m_blackClockLabel;
 
+    // 「次の手番」ラベルを取得
+    QLabel* actTurnLabel   = m_blackActive
+                             ? this->findChild<QLabel*>(QStringLiteral("turnLabelBlack"))
+                             : this->findChild<QLabel*>(QStringLiteral("turnLabelWhite"));
+
     // 非手番は font-weight=400 固定
     auto setInactive = [&](QLabel* name, QLabel* clock){
         const QColor inactiveFg(51, 51, 51);
@@ -2647,25 +2652,36 @@ void ShogiView::setUrgencyVisuals(Urgency u)
 
     switch (u) {
     case Urgency::Normal:
-        // 旧仕様：手番は黄背景＋青文字、枠なし、太字
+        // 秒読み前：手番は黄背景＋青文字、枠なし、太字
         setLabelStyle(actName,  kTurnFg,   kTurnBg,   0, QColor(0,0,0,0), /*bold=*/true);
         setLabelStyle(actClock, kTurnFg,   kTurnBg,   0, QColor(0,0,0,0), /*bold=*/true);
+        // 「次の手番」ラベルにも同じスタイルを適用
+        if (actTurnLabel) {
+            setLabelStyle(actTurnLabel, kTurnFg, kTurnBg, 0, QColor(0,0,0,0), /*bold=*/true);
+        }
         setInactive(inactName, inactClock);
         break;
 
     case Urgency::Warn10:
-        // 旧仕様：10秒以下は黄色地＋枠無し＋太字
+        // Warn10 は Warn5 と同様に扱う（要件上、秒読みに入ったら赤文字）
         // ※ kWarn10Border を青 (0,0,255) にしておくこと
         setLabelStyle(actName,  kWarn10Fg, kWarn10Bg, 0, kWarn10Border, /*bold=*/true);
         setLabelStyle(actClock, kWarn10Fg, kWarn10Bg, 0, kWarn10Border, /*bold=*/true);
+        if (actTurnLabel) {
+            setLabelStyle(actTurnLabel, kWarn10Fg, kWarn10Bg, 0, kWarn10Border, /*bold=*/true);
+        }
         setInactive(inactName, inactClock);
         break;
 
     case Urgency::Warn5:
-        // 旧仕様：5秒以下は黄色地＋枠無し＋太字
+        // 秒読み中：黄色地＋赤文字、枠無し、太字
         // ※ kWarn5Border を赤 (255,0,0) にしておくこと
         setLabelStyle(actName,  kWarn5Fg,  kWarn5Bg,  0, kWarn5Border,  /*bold=*/true);
         setLabelStyle(actClock, kWarn5Fg,  kWarn5Bg,  0, kWarn5Border,  /*bold=*/true);
+        // 「次の手番」ラベルにも同じスタイルを適用
+        if (actTurnLabel) {
+            setLabelStyle(actTurnLabel, kWarn5Fg, kWarn5Bg, 0, kWarn5Border, /*bold=*/true);
+        }
         setInactive(inactName, inactClock);
         break;
     }
