@@ -355,6 +355,9 @@ private slots:
     void onMatchGameEnded(const MatchCoordinator::GameEndInfo& info);
     void flipBoardAndUpdatePlayerInfo();
 
+    // ★ 追加: タブ選択変更時のスロット
+    void onTabCurrentChanged(int index);
+
     // --- 時計 / タイムアウト ---
     void onPlayer1TimeOut();
     void onPlayer2TimeOut();

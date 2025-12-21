@@ -1239,8 +1239,19 @@ void MainWindow::addGameInfoTabAtStartup_()
     // タブを最初（インデックス0）に挿入
     m_tab->insertTab(0, m_gameInfoContainer, tr("対局情報"));
 
-    // 対局情報タブを選択状態にする
-    m_tab->setCurrentIndex(0);
+    // ★ 修正: 保存されたタブインデックスを復元（設定ファイルから読み込み）
+    int savedIndex = SettingsService::lastSelectedTabIndex();
+    if (savedIndex >= 0 && savedIndex < m_tab->count()) {
+        m_tab->setCurrentIndex(savedIndex);
+    } else {
+        // 無効なインデックスの場合はデフォルト（対局情報タブ）を選択
+        m_tab->setCurrentIndex(0);
+    }
+
+    // ★ 追加: タブ変更時にインデックスを保存するシグナルを接続
+    QObject::connect(m_tab, &QTabWidget::currentChanged,
+                     this, &MainWindow::onTabCurrentChanged,
+                     Qt::UniqueConnection);
 }
 
 // ★ 追加: 対局情報テーブルにデフォルト値を設定
@@ -2726,10 +2737,11 @@ void MainWindow::onPreStartCleanupRequested_()
     resetInfo(m_lineEditModel1);
     resetInfo(m_lineEditModel2);
 
-    // --- タブ選択は先頭へ戻す（棋譜タブへ） ---
-    if (m_tab) {
-        m_tab->setCurrentIndex(0);
-    }
+    // ★ 修正: タブ選択は変更しない（ユーザーの選択を保持）
+    // 以前は先頭（対局情報タブ）へ戻していたが、ユーザーの選択を尊重する
+    // if (m_tab) {
+    //     m_tab->setCurrentIndex(0);
+    // }
 
     // デバッグログ
     qDebug().noquote()
@@ -3555,4 +3567,12 @@ void MainWindow::onPvRowClicked(int engineIndex, int row)
     
     dlg->setAttribute(Qt::WA_DeleteOnClose);
     dlg->show();
+}
+
+// ★ 追加: タブ選択変更時のスロット（インデックスを設定ファイルに保存）
+void MainWindow::onTabCurrentChanged(int index)
+{
+    // タブインデックスを設定ファイルに保存
+    SettingsService::setLastSelectedTabIndex(index);
+    qDebug().noquote() << "[MW] onTabCurrentChanged: saved tab index =" << index;
 }
