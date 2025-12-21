@@ -2889,15 +2889,17 @@ void ShogiView::relayoutTurnLabels_()
     const int WX = standWhite.left();
 
     // 各高さ（turn は sizeHint/既存geometry を尊重）
+    // 時計が無効の場合は時計ラベルの高さを0にして間隔を詰める
     const int HnBlack = hLab(bn, fs.height());
-    const int HcBlack = hLab(bc, fs.height());
+    const int HcBlack = m_clockEnabled ? hLab(bc, fs.height()) : 0;
     const int HtBlack = hLab(tlBlack, fs.height());
 
     const int HnWhite = hLab(wn, fs.height());
-    const int HcWhite = hLab(wc, fs.height());
+    const int HcWhite = m_clockEnabled ? hLab(wc, fs.height()) : 0;
     const int HtWhite = hLab(tlWhite, fs.height());
 
     // 直下に縦積み（駒台の下）: [lab1][lab2][lab3]
+    // 時計が無効の場合はlab2（時計）をスキップして[lab1][lab3]のみ配置
     auto stackBelowStand = [&](const QRect& stand, int X, int W,
                                QLabel* lab1, int H1,
                                QLabel* lab2, int H2,
@@ -2905,8 +2907,17 @@ void ShogiView::relayoutTurnLabels_()
     {
         int y = stand.bottom() + 1 + marginOuter;
         QRect r1(X, y, W, H1);
-        QRect r2(X, r1.bottom() + marginInner, W, H2);
-        QRect r3(X, r2.bottom() + marginInner, W, H3);
+        QRect r2, r3;
+        
+        if (H2 > 0) {
+            // 時計が有効: [lab1][lab2][lab3]
+            r2 = QRect(X, r1.bottom() + marginInner, W, H2);
+            r3 = QRect(X, r2.bottom() + marginInner, W, H3);
+        } else {
+            // 時計が無効: lab2をスキップして[lab1][lab3]
+            r2 = QRect(X, r1.bottom(), W, 0); // 高さ0で配置
+            r3 = QRect(X, r1.bottom() + marginInner, W, H3);
+        }
 
         // 画面下オーバー分は上に押し上げる（順序は保持）
         int overflow = (r3.bottom() + marginOuter) - height();
@@ -2916,32 +2927,46 @@ void ShogiView::relayoutTurnLabels_()
         lab2->setGeometry(r2);
         lab3->setGeometry(r3);
 
-        // 時計は枠にフィット
-        if (lab2 == m_blackClockLabel || lab2 == m_whiteClockLabel) {
+        // 時計は枠にフィット（有効時のみ）
+        if (H2 > 0 && (lab2 == m_blackClockLabel || lab2 == m_whiteClockLabel)) {
             fitLabelFontToRect(lab2, lab2->text(), r2, 2);
         }
     };
 
     // 直上に縦積み（駒台の上）: 上から [lab1][lab2][lab3]
+    // 時計が無効の場合はlab3（時計）をスキップして[lab1][lab2]のみ配置
     auto stackAboveStand = [&](const QRect& stand, int X, int W,
                                QLabel* lab1, int H1,
                                QLabel* lab2, int H2,
                                QLabel* lab3, int H3)
     {
-        const int totalH = H1 + marginInner + H2 + marginInner + H3;
+        int totalH;
+        if (H3 > 0) {
+            // 時計が有効
+            totalH = H1 + marginInner + H2 + marginInner + H3;
+        } else {
+            // 時計が無効: lab3をスキップ
+            totalH = H1 + marginInner + H2;
+        }
         int yTop = stand.top() - 1 - marginOuter - totalH;
         if (yTop < 0) yTop = 0;
 
         QRect r1(X, yTop, W, H1);
         QRect r2(X, r1.bottom() + marginInner, W, H2);
-        QRect r3(X, r2.bottom() + marginInner, W, H3);
+        QRect r3;
+        
+        if (H3 > 0) {
+            r3 = QRect(X, r2.bottom() + marginInner, W, H3);
+        } else {
+            r3 = QRect(X, r2.bottom(), W, 0); // 高さ0で配置
+        }
 
         lab1->setGeometry(r1);
         lab2->setGeometry(r2);
         lab3->setGeometry(r3);
 
-        // 時計は枠にフィット
-        if (lab3 == m_blackClockLabel || lab3 == m_whiteClockLabel) {
+        // 時計は枠にフィット（有効時のみ）
+        if (H3 > 0 && (lab3 == m_blackClockLabel || lab3 == m_whiteClockLabel)) {
             fitLabelFontToRect(lab3, lab3->text(), r3, 2);
         }
     };
