@@ -1765,6 +1765,9 @@ void MainWindow::applyResolvedRowAndSelect(int row, int selPly)
 
     // 状態の差し替え（disp/sfen/gm）と Presenter 更新は Coordinator 側の責務
     m_kifuLoadCoordinator->applyResolvedRowAndSelect(row, selPly);
+
+    // ★ 追加：盤面適用後に手番表示を更新
+    setCurrentTurn();
 }
 
 void MainWindow::BranchRowDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const
@@ -1896,6 +1899,9 @@ void MainWindow::applySelect(int row, int ply)
                 m_activePly          = safe;   // ← 追加
                 m_currentSelectedPly = safe;
                 m_currentMoveIndex   = safe;
+
+                // ★ 追加：盤面適用後に手番表示を更新
+                setCurrentTurn();
             }
         }
         return;
@@ -3046,6 +3052,9 @@ void MainWindow::onRecordPaneMainRowChanged_(int row)
         m_activePly          = row;  // ← 追加
         m_currentSelectedPly = row;
         m_currentMoveIndex   = row;
+
+        // ★ 追加：盤面適用後に手番表示を更新
+        setCurrentTurn();
     }
     enableArrowButtons();
 }

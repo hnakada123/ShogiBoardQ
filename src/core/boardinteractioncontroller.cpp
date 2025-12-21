@@ -91,7 +91,7 @@ void BoardInteractionController::onMoveApplied(const QPoint& from, const QPoint&
     if (m_selectedField2) deleteHighlight(m_selectedField2);
     addNewHighlight(m_selectedField2, from, QColor(255, 0, 0, 50)); // 赤
 
-    updateHighlight(m_movedField, to, Qt::yellow);                  // 黄
+    updateHighlight(m_movedField, to, QColor(255, 255, 0));           // 黄
 
     // クリック状態のリセット（次の手の入力へ）
     resetSelectionAndHighlight(); // ← 選択（オレンジ）は消すが、直前手の赤/黄は残す
@@ -108,7 +108,7 @@ void BoardInteractionController::showMoveHighlights(const QPoint& from, const QP
         // 無効な座標の場合（駒打ちで座標が取得できなかった場合など）は移動元ハイライトを削除
         deleteHighlight(m_selectedField2);
     }
-    updateHighlight(m_movedField, to, Qt::yellow);
+    updateHighlight(m_movedField, to, QColor(255, 255, 0));
 }
 
 void BoardInteractionController::clearAllHighlights()
