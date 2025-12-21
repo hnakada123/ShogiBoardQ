@@ -2834,15 +2834,6 @@ void ShogiView::relayoutTurnLabels_()
     const QSize fs = fieldSize().isValid() ? fieldSize()
                                            : QSize(m_squareSize, m_squareSize);
 
-    // ラベル高さの安全取得
-    auto hLab = [&](QLabel* lab, int fallbackPx)->int {
-        if (!lab) return fallbackPx;
-        int h = lab->geometry().height();
-        if (h <= 0) h = lab->sizeHint().height();
-        if (h <= 0) h = fallbackPx;
-        return h;
-    };
-
     // 名前ラベルのフォントを（双方）同一スケールで調整
     {
         QFont f = bn->font();
@@ -2851,9 +2842,17 @@ void ShogiView::relayoutTurnLabels_()
         wn->setFont(f);
     }
 
-    // 外側余白は維持、ラベル間の余白は 0 にする（実際は +1px の微小スペース）
+    // ラベル高さの安全取得（フォントメトリクスベースで最小限に）
+    auto hLab = [&](QLabel* lab, int /*fallbackPx*/)->int {
+        if (!lab) return static_cast<int>(fs.height() * 0.5);
+        QFontMetrics fm(lab->font());
+        // フォントの高さ + 上下に2pxずつのパディング
+        return fm.height() + 4;
+    };
+
+    // 外側余白は維持、ラベル間の余白は 0 にする
     const int marginOuter = 2; // 駒台と最上段/最下段ラベルの外側余白
-    const int marginInner = 0; // ラベル間の余白ゼロ（+1は境界線的に残す）
+    const int marginInner = 1; // ラベル間の余白（1pxで密接に）
 
     // 駒台外接矩形
     const QRect standBlack = blackStandBoundingRect();
@@ -2882,8 +2881,8 @@ void ShogiView::relayoutTurnLabels_()
     {
         int y = stand.bottom() + 1 + marginOuter;
         QRect r1(X, y, W, H1);
-        QRect r2(X, r1.bottom() + 1 + marginInner, W, H2);
-        QRect r3(X, r2.bottom() + 1 + marginInner, W, H3);
+        QRect r2(X, r1.bottom() + marginInner, W, H2);
+        QRect r3(X, r2.bottom() + marginInner, W, H3);
 
         // 画面下オーバー分は上に押し上げる（順序は保持）
         int overflow = (r3.bottom() + marginOuter) - height();
@@ -2910,8 +2909,8 @@ void ShogiView::relayoutTurnLabels_()
         if (yTop < 0) yTop = 0;
 
         QRect r1(X, yTop, W, H1);
-        QRect r2(X, r1.bottom() + 1 + marginInner, W, H2);
-        QRect r3(X, r2.bottom() + 1 + marginInner, W, H3);
+        QRect r2(X, r1.bottom() + marginInner, W, H2);
+        QRect r3(X, r2.bottom() + marginInner, W, H3);
 
         lab1->setGeometry(r1);
         lab2->setGeometry(r2);
