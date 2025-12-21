@@ -171,6 +171,10 @@ public:
 
     void setActiveIsBlack(bool activeIsBlack);
 
+    // 対局終了時のスタイル維持（trueの間はclearTurnHighlightを無視）
+    void setGameOverStyleLock(bool locked);
+    bool gameOverStyleLock() const { return m_gameOverStyleLock; }
+
     // ── 状態管理
     // 既存 enum に 0秒用の状態を追加
     enum class Urgency { Normal, Warn10, Warn5 };
@@ -379,6 +383,7 @@ private:
     qint64 m_lastLoggedWhiteMs = -2;
 
     bool m_uiMuted = false;
+    bool m_gameOverStyleLock = false;  // 対局終了時のスタイル維持
 
     void ensureTurnLabels_();
     void relayoutTurnLabels_();

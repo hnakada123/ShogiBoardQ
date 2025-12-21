@@ -2758,6 +2758,9 @@ void ShogiView::applyClockUrgency(qint64 activeRemainMs)
 
 void ShogiView::clearTurnHighlight()
 {
+    // 対局終了時のスタイル維持中はクリアしない
+    if (m_gameOverStyleLock) return;
+
     // 非手番配色（薄いグレー背景/通常フォント）を両陣営へ適用
     const QColor fg(51, 51, 51);
     const QColor bg(239, 240, 241);
@@ -2768,6 +2771,11 @@ void ShogiView::clearTurnHighlight()
 
     // 内部状態も「通常」に戻す（念のため）
     m_urgency = Urgency::Normal;
+}
+
+void ShogiView::setGameOverStyleLock(bool locked)
+{
+    m_gameOverStyleLock = locked;
 }
 
 void ShogiView::setUiMuted(bool on) {

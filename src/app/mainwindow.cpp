@@ -547,6 +547,9 @@ void MainWindow::startNewShogiGame(QString& startSfenStr)
 {
     const bool resume = m_isResumeFromCurrent;
 
+    // 対局終了時のスタイルロックを解除
+    if (m_shogiView) m_shogiView->setGameOverStyleLock(false);
+
     // 評価値グラフ等の初期化
     if (auto ec = m_recordPane ? m_recordPane->evalChart() : nullptr) {
         if (!resume) ec->clearAll();
@@ -2174,6 +2177,9 @@ void MainWindow::onMatchGameEnded(const MatchCoordinator::GameEndInfo& info)
     << "[UI] onMatchGameEnded ENTER cause="
     << ((info.cause==MatchCoordinator::Cause::Timeout)?"Timeout":"Resign")
     << " loser=" << ((info.loser==MatchCoordinator::P1)?"P1":"P2");
+
+    // 対局終了時のスタイル維持を有効化（ダイアログ表示中もスタイルを維持）
+    if (m_shogiView) m_shogiView->setGameOverStyleLock(true);
 
     // --- UI 後始末（UI層に残す） ---
     if (m_match)      m_match->disarmHumanTimerIfNeeded();
