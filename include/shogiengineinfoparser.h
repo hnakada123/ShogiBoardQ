@@ -60,6 +60,12 @@ public:
     void parseEngineOutputAndUpdateState(QString& line, const ShogiGameController* algorithm,  QVector<QChar>& clonedBoardData,
                                          const bool isPondering);
 
+    // 思考開始時の手番を設定する
+    void setThinkingStartPlayer(ShogiGameController::Player player);
+
+    // 思考開始時の手番を取得する
+    ShogiGameController::Player thinkingStartPlayer() const;
+
     // 現在思考中の手の探索深さを取得する。
     QString depth() const;
 
@@ -184,6 +190,9 @@ private:
 
     // フラグの変数名
     EvaluationBound m_evaluationBound;
+
+    // 思考開始時の手番（info処理時に使用し、局面更新による影響を受けない）
+    ShogiGameController::Player m_thinkingStartPlayer = ShogiGameController::Player1;
 
     // 指し手文字列の三角マークを返す。
     // 例．「△７八馬(77)▲２五歩(26)△８六歩(85)▲２四歩(25)△同歩(23)▲７七桂(89)△８七歩成(86)」

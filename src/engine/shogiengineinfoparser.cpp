@@ -111,18 +111,27 @@ QString ShogiEngineInfoParser::depth() const
 // 例．「△７八馬(77)▲２五歩(26)△８六歩(85)▲２四歩(25)△同歩(23)▲７七桂(89)△８七歩成(86)」
 QString ShogiEngineInfoParser::getMoveSymbol(const int moveIndex, const ShogiGameController* algorithm, const bool isPondering) const
 {
+    Q_UNUSED(algorithm)  // 現在のcurrentPlayer()は使用しない（局面更新の影響を避けるため）
+    
     QString symbol;
 
-    bool currentPlayerIsPlayer1 = (algorithm->currentPlayer() == algorithm->Player1);
+    // 思考開始時の手番を使用（bestmove後の局面更新の影響を受けない）
+    bool thinkingPlayerIsPlayer1 = (m_thinkingStartPlayer == ShogiGameController::Player1);
 
     // moveIndex:      0 1 2 3 4 5 6 7 8 9
     // moveIndex & 1:  0 1 0 1 0 1 0 1 0 1
-    // 偶数の時
+    // isPondering=false の場合:
+    //   moveIndex=0（偶数）: (0 & 1) ^ 0 = 0 → 思考側の手
+    //   moveIndex=1（奇数）: (1 & 1) ^ 0 = 1 → 相手側の手
+    // isPondering=true の場合:
+    //   moveIndex=0（偶数）: (0 & 1) ^ 1 = 1 → 相手側の手（ponderは相手の予想手から始まる）
+    //   moveIndex=1（奇数）: (1 & 1) ^ 1 = 0 → 思考側の手
     if ((moveIndex & 1) ^ isPondering) {
-        symbol = currentPlayerIsPlayer1 ? "△" : "▲";
-    // 奇数の時
+        // 奇数（または ponder時の偶数）: 相手側の手
+        symbol = thinkingPlayerIsPlayer1 ? "△" : "▲";
     } else {
-        symbol = currentPlayerIsPlayer1 ? "▲" : "△";
+        // 偶数（または ponder時の奇数）: 思考側の手
+        symbol = thinkingPlayerIsPlayer1 ? "▲" : "△";
     }
 
     return symbol;
@@ -325,6 +334,18 @@ int ShogiEngineInfoParser::previousRankTo() const
 void ShogiEngineInfoParser::setPreviousRankTo(int newPreviousRankTo)
 {
     m_previousRankTo = newPreviousRankTo;
+}
+
+// 思考開始時の手番を設定する
+void ShogiEngineInfoParser::setThinkingStartPlayer(ShogiGameController::Player player)
+{
+    m_thinkingStartPlayer = player;
+}
+
+// 思考開始時の手番を取得する
+ShogiGameController::Player ShogiEngineInfoParser::thinkingStartPlayer() const
+{
+    return m_thinkingStartPlayer;
 }
 
 // 駒文字から漢字の駒を返す。
