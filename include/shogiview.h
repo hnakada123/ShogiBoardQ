@@ -342,7 +342,7 @@ private:
     QColor m_urgencyFgWarn5  = QColor(255, 255, 255); // 白
 
     // ── 色（数値指定で clazy 回避）
-    const QColor kTurnBg   = QColor(255, 249, 196); // 通常背景（黄系）
+    const QColor kTurnBg   = QColor(255, 255,   0); // 通常背景（黄）
     const QColor kTurnFg   = QColor(  0,  64, 255);  // 通常文字（青）
 
     const QColor kWarn10Bg = QColor(255, 255,   0); // 10秒 背景（黄）

@@ -491,7 +491,7 @@ void PvBoardDialog::updateMoveHighlights()
         }
 
         // 移動先（盤上）を黄色でハイライト
-        m_toHighlight = new ShogiView::FieldHighlight(toFile, toRank, Qt::yellow);
+        m_toHighlight = new ShogiView::FieldHighlight(toFile, toRank, QColor(255, 255, 0));
         m_shogiView->addHighlight(m_toHighlight);
     } else {
         // 通常の移動（例: "7g7f" または "7g7f+"）
@@ -505,7 +505,7 @@ void PvBoardDialog::updateMoveHighlights()
         m_shogiView->addHighlight(m_fromHighlight);
 
         // 移動先（黄色）
-        m_toHighlight = new ShogiView::FieldHighlight(toFile, toRank, Qt::yellow);
+        m_toHighlight = new ShogiView::FieldHighlight(toFile, toRank, QColor(255, 255, 0));
         m_shogiView->addHighlight(m_toHighlight);
     }
 
