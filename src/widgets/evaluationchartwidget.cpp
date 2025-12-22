@@ -133,7 +133,8 @@ EvaluationChartWidget::EvaluationChartWidget(QWidget* parent)
     mainLayout->addWidget(m_chartView, 1);
     setLayout(mainLayout);
 
-    setMinimumHeight(200);
+    setMinimumHeight(150);
+    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);  // 縦横とも伸縮可能
 }
 
 EvaluationChartWidget::~EvaluationChartWidget()

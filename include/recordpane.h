@@ -62,6 +62,7 @@ private:
     QWidget *m_arrows=nullptr;
     QPushButton *m_btn1=nullptr,*m_btn2=nullptr,*m_btn3=nullptr,*m_btn4=nullptr,*m_btn5=nullptr,*m_btn6=nullptr;
     QTextBrowser* m_branchText=nullptr;
+    QSplitter *m_mainSplitter=nullptr;  // 上下分割用メインスプリッター
     QSplitter *m_lr=nullptr, *m_right=nullptr;
     QScrollArea* m_scroll=nullptr;
     EvaluationChartWidget* m_eval=nullptr;
