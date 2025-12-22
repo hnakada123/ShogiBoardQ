@@ -45,6 +45,14 @@ public:
      */
     void setPlayerNames(const QString& blackName, const QString& whiteName);
 
+    /**
+     * @brief 起動時の局面に至った最後の手を設定（USI形式）
+     * @param lastMove USI形式の手（例: "7g7f"）
+     * 
+     * この手が設定されている場合、開始局面（手数0）でもハイライトが表示される。
+     */
+    void setLastMove(const QString& lastMove);
+
 private slots:
     /// 最初に戻る
     void onGoFirst();
@@ -76,6 +84,14 @@ private:
     void updateMoveHighlights();
     /// ハイライトをクリア
     void clearMoveHighlights();
+    /// 漢字表記の読み筋を個々の手に分割
+    void parseKanjiMoves();
+    /// ウィンドウサイズを保存
+    void saveWindowSize();
+
+protected:
+    /// ウィンドウを閉じる際にサイズを保存
+    void closeEvent(QCloseEvent* event) override;
 
 private:
     ShogiView* m_shogiView = nullptr;
@@ -83,9 +99,11 @@ private:
 
     QString m_baseSfen;           ///< 開始局面のSFEN
     QStringList m_pvMoves;        ///< USI形式の読み筋手
+    QStringList m_kanjiMoves;     ///< 漢字表記の各手のリスト
     QString m_kanjiPv;            ///< 漢字表記の読み筋
     QString m_blackPlayerName;    ///< 先手の対局者名
     QString m_whitePlayerName;    ///< 後手の対局者名
+    QString m_lastMove;           ///< 起動時の局面に至った最後の手（USI形式）
 
     QVector<QString> m_sfenHistory; ///< 各手数での局面SFEN履歴
 

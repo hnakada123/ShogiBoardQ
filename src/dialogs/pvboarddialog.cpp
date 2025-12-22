@@ -2,6 +2,7 @@
 #include "shogiview.h"
 #include "shogiboard.h"
 #include "shogigamecontroller.h"
+#include "settingsservice.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -9,6 +10,7 @@
 #include <QLabel>
 #include <QDebug>
 #include <QRegularExpression>
+#include <QCloseEvent>
 
 // 前方宣言: SFENからUSI形式の手を盤面に適用する静的ヘルパー
 static void applyUsiMoveToBoard(ShogiBoard* board, const QString& usiMove, bool isBlackToMove);
@@ -24,7 +26,14 @@ PvBoardDialog::PvBoardDialog(const QString& baseSfen,
     setWindowTitle(tr("読み筋表示"));
     // ダイアログのサイズは可変に（将棋盤のサイズ変更に対応）
     setMinimumSize(400, 500);
-    resize(620, 720);
+    
+    // 前回保存されたウィンドウサイズを読み込む
+    QSize savedSize = SettingsService::pvBoardDialogSize();
+    if (savedSize.isValid() && savedSize.width() > 100 && savedSize.height() > 100) {
+        resize(savedSize);
+    } else {
+        resize(620, 720);
+    }
 
     // 初期盤面を履歴に追加
     m_sfenHistory.clear();
@@ -88,6 +97,8 @@ void PvBoardDialog::setKanjiPv(const QString& kanjiPv)
     if (m_pvLabel) {
         m_pvLabel->setText(m_kanjiPv);
     }
+    // 漢字表記を個々の手に分割
+    parseKanjiMoves();
 }
 
 void PvBoardDialog::setPlayerNames(const QString& blackName, const QString& whiteName)
@@ -100,6 +111,18 @@ void PvBoardDialog::setPlayerNames(const QString& blackName, const QString& whit
         // これにより「▲」「▽」などのマークも自動で付与される
         m_shogiView->setBlackPlayerName(m_blackPlayerName);
         m_shogiView->setWhitePlayerName(m_whitePlayerName);
+    }
+}
+
+void PvBoardDialog::setLastMove(const QString& lastMove)
+{
+    m_lastMove = lastMove;
+    qDebug() << "[PvBoardDialog] setLastMove: lastMove=" << lastMove 
+             << " m_currentPly=" << m_currentPly;
+    // 現在が開始局面（手数0）であれば、ハイライトを更新
+    if (m_currentPly == 0) {
+        qDebug() << "[PvBoardDialog] setLastMove: calling updateMoveHighlights()";
+        updateMoveHighlights();
     }
 }
 
@@ -237,8 +260,14 @@ void PvBoardDialog::updateBoardDisplay()
     if (m_currentPly == 0) {
         plyText += tr(" (開始局面)");
     } else if (m_currentPly <= m_pvMoves.size()) {
-        // 現在の手を表示
-        plyText += QStringLiteral(" [%1]").arg(m_pvMoves.at(m_currentPly - 1));
+        // 現在の手を表示（漢字表記があればそれを使用、なければUSI形式）
+        QString moveText;
+        if (m_currentPly - 1 < m_kanjiMoves.size() && !m_kanjiMoves.at(m_currentPly - 1).isEmpty()) {
+            moveText = m_kanjiMoves.at(m_currentPly - 1);
+        } else {
+            moveText = m_pvMoves.at(m_currentPly - 1);
+        }
+        plyText += QStringLiteral(" [%1]").arg(moveText);
     }
     m_plyLabel->setText(plyText);
 }
@@ -450,19 +479,44 @@ static QPoint getStandPseudoCoord(QChar pieceChar, bool isBlack)
 
 void PvBoardDialog::updateMoveHighlights()
 {
+    qDebug() << "[PvBoardDialog] updateMoveHighlights: m_currentPly=" << m_currentPly
+             << " m_lastMove=" << m_lastMove
+             << " m_pvMoves.size()=" << m_pvMoves.size();
+    
     // 既存のハイライトをクリア
     clearMoveHighlights();
 
-    if (!m_shogiView) return;
-
-    // 開始局面（手数0）の場合はハイライトなし
-    if (m_currentPly == 0 || m_currentPly > m_pvMoves.size()) {
+    if (!m_shogiView) {
+        qDebug() << "[PvBoardDialog] updateMoveHighlights: m_shogiView is null!";
         return;
     }
 
-    // 現在表示している局面に至った手を取得
-    const QString& usiMove = m_pvMoves.at(m_currentPly - 1);
-    if (usiMove.length() < 4) return;
+    QString usiMove;
+    bool isBasePosition = false;  // 開始局面（手数0）かどうか
+
+    // 開始局面（手数0）の場合
+    if (m_currentPly == 0) {
+        // m_lastMoveが設定されていればそれを使用
+        if (m_lastMove.isEmpty() || m_lastMove.length() < 4) {
+            qDebug() << "[PvBoardDialog] updateMoveHighlights: m_lastMove is empty or too short, no highlight";
+            return;  // ハイライトなし
+        }
+        usiMove = m_lastMove;
+        isBasePosition = true;
+        qDebug() << "[PvBoardDialog] updateMoveHighlights: using m_lastMove=" << usiMove;
+    } else if (m_currentPly > m_pvMoves.size()) {
+        qDebug() << "[PvBoardDialog] updateMoveHighlights: m_currentPly > m_pvMoves.size(), no highlight";
+        return;
+    } else {
+        // 現在表示している局面に至った手を取得
+        usiMove = m_pvMoves.at(m_currentPly - 1);
+        qDebug() << "[PvBoardDialog] updateMoveHighlights: using pvMove=" << usiMove;
+    }
+
+    if (usiMove.length() < 4) {
+        qDebug() << "[PvBoardDialog] updateMoveHighlights: usiMove too short:" << usiMove;
+        return;
+    }
 
     int toFile = 0, toRank = 0;
 
@@ -471,11 +525,16 @@ void PvBoardDialog::updateMoveHighlights()
         QChar pieceChar = usiMove.at(0);
         toFile = usiMove.at(2).toLatin1() - '0';
         toRank = usiMove.at(3).toLatin1() - 'a' + 1;
+        qDebug() << "[PvBoardDialog] updateMoveHighlights: drop move, pieceChar=" << pieceChar
+                 << " toFile=" << toFile << " toRank=" << toRank;
 
-        // 手番を取得（1つ前の局面の手番 = この手を指したプレイヤー）
-        // m_currentPly - 1 の局面の手番を見る
+        // 手番を取得
         bool isBlackMove = true;
-        if (m_currentPly >= 1 && m_currentPly <= m_sfenHistory.size()) {
+        if (isBasePosition) {
+            // 開始局面の場合、baseSfenの手番の「逆」がm_lastMoveを指したプレイヤー
+            // （baseSfenは指した後の局面なので、手番は相手に移っている）
+            isBlackMove = m_baseSfen.contains(QStringLiteral(" w "));  // 後手番なら先手が指した
+        } else if (m_currentPly >= 1 && m_currentPly <= m_sfenHistory.size()) {
             // m_currentPly - 1 番目の局面（指す前）の手番を確認
             const QString& prevSfen = m_sfenHistory.at(m_currentPly - 1);
             isBlackMove = !prevSfen.contains(QStringLiteral(" w "));
@@ -493,12 +552,15 @@ void PvBoardDialog::updateMoveHighlights()
         // 移動先（盤上）を黄色でハイライト
         m_toHighlight = new ShogiView::FieldHighlight(toFile, toRank, QColor(255, 255, 0));
         m_shogiView->addHighlight(m_toHighlight);
+        qDebug() << "[PvBoardDialog] updateMoveHighlights: added drop highlights";
     } else {
         // 通常の移動（例: "7g7f" または "7g7f+"）
         int fromFile = usiMove.at(0).toLatin1() - '0';
         int fromRank = usiMove.at(1).toLatin1() - 'a' + 1;
         toFile = usiMove.at(2).toLatin1() - '0';
         toRank = usiMove.at(3).toLatin1() - 'a' + 1;
+        qDebug() << "[PvBoardDialog] updateMoveHighlights: normal move, fromFile=" << fromFile
+                 << " fromRank=" << fromRank << " toFile=" << toFile << " toRank=" << toRank;
 
         // 移動元（薄いピンク/赤）
         m_fromHighlight = new ShogiView::FieldHighlight(fromFile, fromRank, QColor(255, 0, 0, 50));
@@ -507,7 +569,46 @@ void PvBoardDialog::updateMoveHighlights()
         // 移動先（黄色）
         m_toHighlight = new ShogiView::FieldHighlight(toFile, toRank, QColor(255, 255, 0));
         m_shogiView->addHighlight(m_toHighlight);
+        qDebug() << "[PvBoardDialog] updateMoveHighlights: added normal move highlights";
     }
 
     m_shogiView->update();
+    qDebug() << "[PvBoardDialog] updateMoveHighlights: done, called m_shogiView->update()";
+}
+
+void PvBoardDialog::parseKanjiMoves()
+{
+    m_kanjiMoves.clear();
+    
+    if (m_kanjiPv.isEmpty()) {
+        return;
+    }
+    
+    // 漢字表記の読み筋を個々の手に分割
+    // 例: "△３四歩(33)▲２六歩(27)△８四歩(83)" → ["△３四歩(33)", "▲２六歩(27)", "△８四歩(83)"]
+    // ▲ または △ で始まる各手を抽出
+    QRegularExpression re(QStringLiteral("([▲△][^▲△]+)"));
+    QRegularExpressionMatchIterator it = re.globalMatch(m_kanjiPv);
+    
+    while (it.hasNext()) {
+        QRegularExpressionMatch match = it.next();
+        QString move = match.captured(1).trimmed();
+        if (!move.isEmpty()) {
+            m_kanjiMoves.append(move);
+        }
+    }
+    
+    qDebug() << "[PvBoardDialog] parseKanjiMoves: parsed" << m_kanjiMoves.size() << "moves from kanjiPv";
+}
+
+void PvBoardDialog::saveWindowSize()
+{
+    SettingsService::setPvBoardDialogSize(size());
+}
+
+void PvBoardDialog::closeEvent(QCloseEvent* event)
+{
+    // ウィンドウサイズを保存
+    saveWindowSize();
+    QDialog::closeEvent(event);
 }
