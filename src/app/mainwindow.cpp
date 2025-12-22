@@ -3576,9 +3576,36 @@ void MainWindow::onPvRowClicked(int engineIndex, int row)
     PvBoardDialog* dlg = new PvBoardDialog(currentSfen, usiMoves, this);
     dlg->setKanjiPv(kanjiPv);
     
-    // 対局者名を設定
-    QString blackName = m_humanName1.isEmpty() ? m_engineName1 : m_humanName1;
-    QString whiteName = m_humanName2.isEmpty() ? m_engineName2 : m_humanName2;
+    // 対局者名を設定（PlayModeに応じて適切な名前を選択）
+    QString blackName;
+    QString whiteName;
+    switch (m_playMode) {
+    case EvenHumanVsEngine:
+    case HandicapHumanVsEngine:
+        blackName = m_humanName1.isEmpty() ? tr("先手") : m_humanName1;
+        whiteName = m_engineName2.isEmpty() ? tr("後手") : m_engineName2;
+        break;
+    case EvenEngineVsHuman:
+    case HandicapEngineVsHuman:
+        blackName = m_engineName1.isEmpty() ? tr("先手") : m_engineName1;
+        whiteName = m_humanName2.isEmpty() ? tr("後手") : m_humanName2;
+        break;
+    case EvenEngineVsEngine:
+    case HandicapEngineVsEngine:
+        blackName = m_engineName1.isEmpty() ? tr("先手") : m_engineName1;
+        whiteName = m_engineName2.isEmpty() ? tr("後手") : m_engineName2;
+        break;
+    case HumanVsHuman:
+        blackName = m_humanName1.isEmpty() ? tr("先手") : m_humanName1;
+        whiteName = m_humanName2.isEmpty() ? tr("後手") : m_humanName2;
+        break;
+    default:
+        blackName = m_humanName1.isEmpty() ? m_engineName1 : m_humanName1;
+        whiteName = m_humanName2.isEmpty() ? m_engineName2 : m_humanName2;
+        if (blackName.isEmpty()) blackName = tr("先手");
+        if (whiteName.isEmpty()) whiteName = tr("後手");
+        break;
+    }
     dlg->setPlayerNames(blackName, whiteName);
     
     // 起動時の局面に至った最後の手を設定（USI形式）
