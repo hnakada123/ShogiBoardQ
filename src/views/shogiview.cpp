@@ -272,14 +272,21 @@ QSize ShogiView::fieldSize() const
 // 役割：値の変化検知 → シグナル発行 → レイアウト再計算/再配置 → 付随UI（時計ラベル）のジオメトリ更新
 void ShogiView::setFieldSize(QSize fieldSize)
 {
+    qDebug() << "[SHOGIVIEW] setFieldSize called, fieldSize=" << fieldSize << "m_fieldSize=" << m_fieldSize;
+
     // 【無駄な再計算回避】 同一サイズなら何もしない。
-    if (m_fieldSize == fieldSize) return;
+    if (m_fieldSize == fieldSize) {
+        qDebug() << "[SHOGIVIEW] setFieldSize: same size, returning early";
+        return;
+    }
 
     // 内部状態を更新。
     m_fieldSize = fieldSize;
 
     // この変更を関心のある外部へ通知（例えばスライダー連動のUIなど）。
+    qDebug() << "[SHOGIVIEW] emitting fieldSizeChanged" << fieldSize;
     emit fieldSizeChanged(fieldSize);
+    qDebug() << "[SHOGIVIEW] fieldSizeChanged emitted";
 
     // sizeHint() の変化を親レイアウトに伝え、必要ならば再レイアウトを促す。
     updateGeometry();
@@ -1577,9 +1584,12 @@ int ShogiView::squareSize() const
 // 注意：極端に大きくし過ぎないように上限クリップを設けると安全（TODO）。
 void ShogiView::enlargeBoard()
 {
+    qDebug() << "[SHOGIVIEW] enlargeBoard called, m_squareSize before=" << m_squareSize;
     m_squareSize++;                                    // (1) 1px 拡大
+    qDebug() << "[SHOGIVIEW] enlargeBoard m_squareSize after=" << m_squareSize;
     recalcLayoutParams();                              // (2) レイアウト関連の再計算
     setFieldSize(QSize(m_squareSize, m_squareSize));   // (3) マスサイズ更新（シグナル/再レイアウト含む）
+    qDebug() << "[SHOGIVIEW] enlargeBoard setFieldSize called with" << QSize(m_squareSize, m_squareSize);
 
     // (4) 冗長だが安全側の再配置（setFieldSize 内でも呼ばれている想定）
     updateBlackClockLabelGeometry();
@@ -1593,6 +1603,7 @@ void ShogiView::enlargeBoard()
 // 注意：0 以下や小さ過ぎる値を避けるため、下限クリップ（例：最小 8〜16px 程度）を入れると安全（TODO）。
 void ShogiView::reduceBoard()
 {
+    qDebug() << "[SHOGIVIEW] reduceBoard called, m_squareSize before=" << m_squareSize;
     m_squareSize--;                                    // 1px 縮小
     recalcLayoutParams();                              // レイアウト関連の再計算
     setFieldSize(QSize(m_squareSize, m_squareSize));   // マスサイズ更新（シグナル/再レイアウト含む）
