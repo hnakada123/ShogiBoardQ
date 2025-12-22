@@ -123,4 +123,20 @@ void setLastSelectedTabIndex(int index)
     s.setValue("UI/lastSelectedTabIndex", index);
 }
 
+// ★ 追加: 読み筋表示ウィンドウのサイズを取得
+QSize pvBoardDialogSize()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("SizeRelated/pvBoardDialogSize", QSize(620, 720)).toSize();
+}
+
+// ★ 追加: 読み筋表示ウィンドウのサイズを保存
+void setPvBoardDialogSize(const QSize& size)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("SizeRelated/pvBoardDialogSize", size);
+}
+
 } // namespace SettingsService

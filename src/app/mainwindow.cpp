@@ -3581,6 +3581,54 @@ void MainWindow::onPvRowClicked(int engineIndex, int row)
     QString whiteName = m_humanName2.isEmpty() ? m_engineName2 : m_humanName2;
     dlg->setPlayerNames(blackName, whiteName);
     
+    // 起動時の局面に至った最後の手を設定（USI形式）
+    // m_usiMovesが空の場合はm_gameMovesから生成
+    QString lastUsiMove;
+    qDebug() << "[MainWindow] onPvRowClicked: m_usiMoves.size()=" << m_usiMoves.size()
+             << " m_gameMoves.size()=" << m_gameMoves.size();
+    
+    if (!m_usiMoves.isEmpty()) {
+        lastUsiMove = m_usiMoves.last();
+        qDebug() << "[MainWindow] onPvRowClicked: using m_usiMoves.last():" << lastUsiMove;
+    } else if (!m_gameMoves.isEmpty()) {
+        // m_gameMovesから最後の手をUSI形式に変換
+        // m_gameMovesの座標は0始まりなので+1してUSI形式（1始まり）に変換
+        const ShogiMove& lastMove = m_gameMoves.last();
+        int fromFile = lastMove.fromSquare.x() + 1;  // 0始まり→1始まり
+        int fromRank = lastMove.fromSquare.y() + 1;  // 0始まり→1始まり
+        int toFile = lastMove.toSquare.x() + 1;      // 0始まり→1始まり
+        int toRank = lastMove.toSquare.y() + 1;      // 0始まり→1始まり
+        
+        qDebug() << "[MainWindow] onPvRowClicked: lastMove from m_gameMoves (after +1):"
+                 << " fromFile=" << fromFile << " fromRank=" << fromRank
+                 << " toFile=" << toFile << " toRank=" << toRank
+                 << " isPromotion=" << lastMove.isPromotion;
+        
+        if (lastMove.fromSquare.x() == 0 && lastMove.fromSquare.y() == 0) {
+            // 駒打ちの場合: P*5e 形式（元の座標が(0,0)かどうかで判定）
+            // movingPieceは大文字/小文字で先手/後手を区別
+            QChar pieceChar = lastMove.movingPiece.toUpper();
+            QChar rankChar = QChar('a' + toRank - 1);  // 1段目='a'
+            lastUsiMove = QString("%1*%2%3").arg(pieceChar).arg(toFile).arg(rankChar);
+        } else {
+            // 通常の移動: 7g7f 形式
+            QChar fromRankChar = QChar('a' + fromRank - 1);  // 1段目='a'
+            QChar toRankChar = QChar('a' + toRank - 1);      // 1段目='a'
+            lastUsiMove = QString("%1%2%3%4").arg(fromFile).arg(fromRankChar).arg(toFile).arg(toRankChar);
+            if (lastMove.isPromotion) {
+                lastUsiMove += '+';
+            }
+        }
+        qDebug() << "[MainWindow] onPvRowClicked: generated USI move:" << lastUsiMove;
+    } else {
+        qDebug() << "[MainWindow] onPvRowClicked: both m_usiMoves and m_gameMoves are empty";
+    }
+    
+    if (!lastUsiMove.isEmpty()) {
+        qDebug() << "[MainWindow] onPvRowClicked: calling setLastMove with:" << lastUsiMove;
+        dlg->setLastMove(lastUsiMove);
+    }
+    
     dlg->setAttribute(Qt::WA_DeleteOnClose);
     dlg->show();
 }

@@ -2,6 +2,7 @@
 #define SETTINGSSERVICE_H
 
 #include <QString>
+#include <QSize>
 
 class QWidget;
 class ShogiView;
@@ -50,6 +51,11 @@ void setThinkingFontSize(int size);
 int lastSelectedTabIndex();
 // ★ 追加: 最後に選択されたタブインデックスを保存
 void setLastSelectedTabIndex(int index);
+
+// ★ 追加: 読み筋表示ウィンドウのサイズを取得（デフォルト: 620x720）
+QSize pvBoardDialogSize();
+// ★ 追加: 読み筋表示ウィンドウのサイズを保存
+void setPvBoardDialogSize(const QSize& size);
 
 } // namespace SettingsService
 
