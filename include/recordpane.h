@@ -46,6 +46,10 @@ public:
     void setupKifuSelectionAppearance();
     void setupBranchViewSelectionAppearance();
 
+    // 評価値グラフエリアの高さを設定
+    void setEvalChartHeight(int height);
+    int evalChartHeight() const;
+
 signals:
     void mainRowChanged(int row);
     void branchActivated(const QModelIndex&);
@@ -61,6 +65,7 @@ private:
     QSplitter *m_lr=nullptr, *m_right=nullptr;
     QScrollArea* m_scroll=nullptr;
     EvaluationChartWidget* m_eval=nullptr;
+    QWidget* m_evalWrap=nullptr;  // 評価値グラフのラッパーウィジェット
     QMetaObject::Connection m_connKifuCurrentRow;
 
 private slots:

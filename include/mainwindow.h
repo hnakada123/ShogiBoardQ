@@ -368,6 +368,7 @@ private slots:
 
     // --- 盤面・反転 ---
     void onBoardFlipped(bool nowFlipped);
+    void onBoardSizeChanged(QSize fieldSize);  // 将棋盤サイズ変更時
 
     void onReverseTriggered();
 

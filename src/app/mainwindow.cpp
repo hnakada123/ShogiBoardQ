@@ -66,6 +66,7 @@
 #include "enginesettingscoordinator.h"
 #include "analysistabwiring.h"
 #include "recordpanewiring.h"
+#include "recordpane.h"
 #include "navigationcontroller.h"
 #include "uiactionswiring.h"
 #include "kifucontentbuilder.h"
@@ -277,6 +278,8 @@ void MainWindow::connectAllActions_()
 
 void MainWindow::connectCoreSignals_()
 {
+    qDebug() << "[CONNECT] connectCoreSignals_ called";
+
     // 将棋盤表示・昇格・ドラッグ終了・指し手確定
     if (m_gameController) {
         connect(m_gameController, &ShogiGameController::showPromotionDialog,
@@ -291,6 +294,12 @@ void MainWindow::connectCoreSignals_()
     if (m_shogiView) {
         connect(m_shogiView, &ShogiView::errorOccurred,
                 this, &MainWindow::displayErrorMessage, Qt::UniqueConnection);
+        bool connected = connect(m_shogiView, &ShogiView::fieldSizeChanged,
+                this, &MainWindow::onBoardSizeChanged, Qt::UniqueConnection);
+        qDebug() << "[CONNECT] fieldSizeChanged -> onBoardSizeChanged connected:" << connected
+                 << "m_shogiView=" << m_shogiView;
+    } else {
+        qDebug() << "[CONNECT] m_shogiView is NULL, cannot connect fieldSizeChanged";
     }
 
     // ErrorBus はラムダを使わず専用スロットへ
@@ -598,12 +607,68 @@ void MainWindow::handleResignation()
 
 void MainWindow::redrawEngine1EvaluationGraph()
 {
+    qDebug() << "[EVAL_GRAPH] redrawEngine1EvaluationGraph() called";
+
+    // 実際の手数を取得（sfenRecordのサイズ - 1 が現在の手数）
+    // 例: sfenRecord = [開始局面, 1手目, 2手目] なら size=3, 手数=2
+    const int ply = m_sfenRecord ? qMax(0, m_sfenRecord->size() - 1) : 0;
+    qDebug() << "[EVAL_GRAPH] P1: actual ply (from sfenRecord) =" << ply
+             << ", sfenRecord size =" << (m_sfenRecord ? m_sfenRecord->size() : -1);
+
     EvalGraphPresenter::appendPrimaryScore(m_scoreCp, m_match);
+
+    const int cpAfter = m_scoreCp.isEmpty() ? 0 : m_scoreCp.last();
+    qDebug() << "[EVAL_GRAPH] P1: after appendPrimaryScore, m_scoreCp.size() =" << m_scoreCp.size()
+             << ", last cp =" << cpAfter;
+
+    // 実際のチャートウィジェットにも描画
+    if (!m_recordPane) {
+        qDebug() << "[EVAL_GRAPH] P1: m_recordPane is NULL!";
+        return;
+    }
+
+    EvaluationChartWidget* ec = m_recordPane->evalChart();
+    if (!ec) {
+        qDebug() << "[EVAL_GRAPH] P1: evalChart() returned NULL!";
+        return;
+    }
+
+    qDebug() << "[EVAL_GRAPH] P1: calling ec->appendScoreP1(" << ply << "," << cpAfter << ", false)";
+    ec->appendScoreP1(ply, cpAfter, false);
+    qDebug() << "[EVAL_GRAPH] P1: appendScoreP1 done, chart countP1 =" << ec->countP1();
 }
 
 void MainWindow::redrawEngine2EvaluationGraph()
 {
+    qDebug() << "[EVAL_GRAPH] redrawEngine2EvaluationGraph() called";
+
+    // 実際の手数を取得（sfenRecordのサイズ - 1 が現在の手数）
+    // 例: sfenRecord = [開始局面, 1手目, 2手目] なら size=3, 手数=2
+    const int ply = m_sfenRecord ? qMax(0, m_sfenRecord->size() - 1) : 0;
+    qDebug() << "[EVAL_GRAPH] P2: actual ply (from sfenRecord) =" << ply
+             << ", sfenRecord size =" << (m_sfenRecord ? m_sfenRecord->size() : -1);
+
     EvalGraphPresenter::appendSecondaryScore(m_scoreCp, m_match);
+
+    const int cpAfter = m_scoreCp.isEmpty() ? 0 : m_scoreCp.last();
+    qDebug() << "[EVAL_GRAPH] P2: after appendSecondaryScore, m_scoreCp.size() =" << m_scoreCp.size()
+             << ", last cp =" << cpAfter;
+
+    // 実際のチャートウィジェットにも描画
+    if (!m_recordPane) {
+        qDebug() << "[EVAL_GRAPH] P2: m_recordPane is NULL!";
+        return;
+    }
+
+    EvaluationChartWidget* ec = m_recordPane->evalChart();
+    if (!ec) {
+        qDebug() << "[EVAL_GRAPH] P2: evalChart() returned NULL!";
+        return;
+    }
+
+    qDebug() << "[EVAL_GRAPH] P2: calling ec->appendScoreP2(" << ply << "," << cpAfter << ", false)";
+    ec->appendScoreP2(ply, cpAfter, false);
+    qDebug() << "[EVAL_GRAPH] P2: appendScoreP2 done, chart countP2 =" << ec->countP2();
 }
 
 // 将棋クロックの手番を設定する。
@@ -2515,6 +2580,39 @@ void MainWindow::onBoardFlipped(bool /*flipped*/)
     flipBoardAndUpdatePlayerInfo();
 }
 
+void MainWindow::onBoardSizeChanged(QSize fieldSize)
+{
+    // 将棋盤のマスサイズに連動して評価値グラフの高さを調整
+    // fieldSizeは1マスのサイズなので、盤全体の高さは fieldSize.height() * 9
+    // 評価値グラフは盤の高さの約1/3程度が見やすい
+
+    qDebug() << "[BOARD_SIZE] onBoardSizeChanged called, fieldSize=" << fieldSize;
+
+    if (!m_recordPane) {
+        qDebug() << "[BOARD_SIZE] m_recordPane is NULL, returning";
+        return;
+    }
+
+    const int squareSize = fieldSize.height();
+    // 基準高さ250に対して、マスサイズの変化に応じてスケール
+    // デフォルトのマスサイズを40として計算
+    const int baseHeight = 250;
+    const int baseSquareSize = 40;
+    const int newHeight = baseHeight * squareSize / baseSquareSize;
+
+    // 最小220、最大500に制限
+    const int clampedHeight = qBound(220, newHeight, 500);
+
+    qDebug() << "[BOARD_SIZE] squareSize=" << squareSize
+             << "baseHeight=" << baseHeight
+             << "baseSquareSize=" << baseSquareSize
+             << "newHeight=" << newHeight
+             << "clampedHeight=" << clampedHeight;
+
+    m_recordPane->setEvalChartHeight(clampedHeight);
+    qDebug() << "[BOARD_SIZE] setEvalChartHeight called with" << clampedHeight;
+}
+
 void MainWindow::onGameOverStateChanged(const MatchCoordinator::GameOverState& st)
 {
     // 司令塔が isOver / Cause / KIF一行追記 まで面倒を見る前提
@@ -2838,11 +2936,13 @@ void MainWindow::ensureRecordPresenter_()
 // UIスレッド安全のため queued 呼び出しにしています
 void MainWindow::requestRedrawEngine1Eval_()
 {
+    qDebug() << "[EVAL_GRAPH] requestRedrawEngine1Eval_() hook called - invoking redrawEngine1EvaluationGraph";
     QMetaObject::invokeMethod(this, &MainWindow::redrawEngine1EvaluationGraph, Qt::QueuedConnection);
 }
 
 void MainWindow::requestRedrawEngine2Eval_()
 {
+    qDebug() << "[EVAL_GRAPH] requestRedrawEngine2Eval_() hook called - invoking redrawEngine2EvaluationGraph";
     QMetaObject::invokeMethod(this, &MainWindow::redrawEngine2EvaluationGraph, Qt::QueuedConnection);
 }
 

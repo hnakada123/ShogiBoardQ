@@ -1906,8 +1906,14 @@ void MatchCoordinator::startInitialEngineMoveFor_(Player engineSide)
 
     armHumanTimerIfNeeded();
 
-    if (engineSide == P1) { if (m_hooks.appendEvalP1) m_hooks.appendEvalP1(); }
-    else                  { if (m_hooks.appendEvalP2) m_hooks.appendEvalP2(); }
+    qDebug() << "[HvE] about to call appendEval, engineSide=" << (engineSide == P1 ? "P1" : "P2");
+    if (engineSide == P1) {
+        qDebug() << "[HvE] calling appendEvalP1, hook set=" << (m_hooks.appendEvalP1 ? "YES" : "NO");
+        if (m_hooks.appendEvalP1) m_hooks.appendEvalP1();
+    } else {
+        qDebug() << "[HvE] calling appendEvalP2, hook set=" << (m_hooks.appendEvalP2 ? "YES" : "NO");
+        if (m_hooks.appendEvalP2) m_hooks.appendEvalP2();
+    }
 }
 
 // ---------------------------------------------
@@ -2037,6 +2043,18 @@ void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& hu
     if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
     m_cur = (m_gc->currentPlayer() == ShogiGameController::Player2) ? P2 : P1;
     updateTurnDisplay_(m_cur);
+
+    // ★★★ エンジン着手後の評価値追加 ★★★
+    // engineIsP1: エンジンがP1（先手）の場合 → appendEvalP1
+    //             エンジンがP2（後手）の場合 → appendEvalP2
+    qDebug() << "[HvE][onHumanMove] about to call appendEval, engineIsP1=" << engineIsP1;
+    if (engineIsP1) {
+        qDebug() << "[HvE][onHumanMove] calling appendEvalP1, hook set=" << (m_hooks.appendEvalP1 ? "YES" : "NO");
+        if (m_hooks.appendEvalP1) m_hooks.appendEvalP1();
+    } else {
+        qDebug() << "[HvE][onHumanMove] calling appendEvalP2, hook set=" << (m_hooks.appendEvalP2 ? "YES" : "NO");
+        if (m_hooks.appendEvalP2) m_hooks.appendEvalP2();
+    }
 
     if (!gameOverState().isOver) armHumanTimerIfNeeded();
 }

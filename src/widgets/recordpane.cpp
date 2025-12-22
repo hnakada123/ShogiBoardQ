@@ -122,20 +122,22 @@ void RecordPane::buildUi()
 
     // --- 評価値グラフ（スクロール） ---
     m_eval = new EvaluationChartWidget(this);
-    m_eval->setMinimumHeight(170);
+    m_eval->setMinimumHeight(220);
     m_eval->setFixedWidth(10000); // 横方向に長くしてスクロール
 
     auto* evalWrapLay = new QHBoxLayout;
     evalWrapLay->setContentsMargins(0,0,0,0);
     evalWrapLay->addWidget(m_eval);
 
-    QWidget* evalWrap = new QWidget(this);
-    evalWrap->setLayout(evalWrapLay);
+    m_evalWrap = new QWidget(this);
+    m_evalWrap->setLayout(evalWrapLay);
+    m_evalWrap->setMinimumHeight(220);
 
     m_scroll = new QScrollArea(this);
-    m_scroll->setFixedHeight(200);
+    m_scroll->setFixedHeight(250);  // コントロールパネル(28) + グラフ(200) + 余裕
     m_scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
-    m_scroll->setWidget(evalWrap);
+    m_scroll->setWidgetResizable(false);  // 明示的にfalseに設定
+    m_scroll->setWidget(m_evalWrap);
 
     // --- ルート（上下積み：上=左右スプリッタ、下=評価スクロール） ---
     auto* root = new QVBoxLayout(this);
@@ -322,4 +324,50 @@ void RecordPane::setupBranchViewSelectionAppearance()
     pal.setColor(QPalette::Active,   QPalette::HighlightedText, Qt::black);
     pal.setColor(QPalette::Inactive, QPalette::HighlightedText, Qt::black);
     m_branch->setPalette(pal);
+}
+
+void RecordPane::setEvalChartHeight(int height)
+{
+    qDebug() << "[EVAL_HEIGHT] setEvalChartHeight called, height=" << height;
+
+    // スクロールバー分（約20px）を引いた高さをグラフに設定
+    const int evalHeight = qMax(height - 20, 200);
+
+    if (m_eval) {
+        qDebug() << "[EVAL_HEIGHT] m_eval: evalHeight=" << evalHeight
+                 << "current minimumHeight=" << m_eval->minimumHeight()
+                 << "current height=" << m_eval->height();
+        m_eval->setMinimumHeight(evalHeight);
+        m_eval->setMaximumHeight(evalHeight);
+        m_eval->setFixedHeight(evalHeight);  // 明示的に高さを固定
+        qDebug() << "[EVAL_HEIGHT] m_eval: after set, height=" << m_eval->height();
+    } else {
+        qDebug() << "[EVAL_HEIGHT] m_eval is NULL!";
+    }
+
+    if (m_evalWrap) {
+        qDebug() << "[EVAL_HEIGHT] m_evalWrap: setting height=" << evalHeight;
+        m_evalWrap->setMinimumHeight(evalHeight);
+        m_evalWrap->setFixedHeight(evalHeight);
+        m_evalWrap->resize(m_evalWrap->width(), evalHeight);
+        qDebug() << "[EVAL_HEIGHT] m_evalWrap: after set, height=" << m_evalWrap->height();
+    }
+
+    if (m_scroll) {
+        // 最小高さを確保（コントロールパネル28px + グラフ最小170px + スクロールバー20px）
+        const int minHeight = 220;
+        const int actualHeight = qMax(height, minHeight);
+        qDebug() << "[EVAL_HEIGHT] m_scroll: minHeight=" << minHeight
+                 << "actualHeight=" << actualHeight
+                 << "current height=" << m_scroll->height();
+        m_scroll->setFixedHeight(actualHeight);
+        qDebug() << "[EVAL_HEIGHT] m_scroll: after setFixedHeight, height=" << m_scroll->height();
+    } else {
+        qDebug() << "[EVAL_HEIGHT] m_scroll is NULL!";
+    }
+}
+
+int RecordPane::evalChartHeight() const
+{
+    return m_scroll ? m_scroll->height() : 200;
 }
