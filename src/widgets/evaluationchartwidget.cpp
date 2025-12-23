@@ -27,14 +27,14 @@ const QList<int> EvaluationChartWidget::s_availableYIntervals = {
     100, 250, 500, 1000, 2000, 5000
 };
 
-// 利用可能な上限値のリスト（X軸）
+// 利用可能な上限値のリスト（X軸：手数上限）
 const QList<int> EvaluationChartWidget::s_availableXLimits = {
-    50, 100, 150, 200, 300, 500
+    500, 600, 700, 800, 900, 1000
 };
 
-// 利用可能な間隔値のリスト（X軸）
+// 利用可能な間隔値のリスト（X軸：手数間隔）
 const QList<int> EvaluationChartWidget::s_availableXIntervals = {
-    10, 20, 25, 50, 100
+    1, 5, 10, 20, 25, 50, 100
 };
 
 // 利用可能なフォントサイズのリスト
@@ -192,10 +192,11 @@ void EvaluationChartWidget::setupControlPanel()
         "QPushButton:pressed { background-color: #c0c0c0; }"
     );
 
-    const QString labelStyle = QStringLiteral("QLabel { color: #333; font-size: 11px; }");
+    // ラベルスタイル（GUIメニューと同じフォントサイズ）
+    const QString labelStyle = QStringLiteral("QLabel { color: #333; font-size: 9pt; }");
 
-    // Y軸上限ボタン
-    auto* lblYLimit = new QLabel(QStringLiteral("Y上限:"), m_controlPanel);
+    // 評価値上限ボタン
+    auto* lblYLimit = new QLabel(QStringLiteral("評価値上限:"), m_controlPanel);
     lblYLimit->setStyleSheet(labelStyle);
     m_btnYLimitDown = new QPushButton(QStringLiteral("▼"), m_controlPanel);
     m_btnYLimitUp = new QPushButton(QStringLiteral("▲"), m_controlPanel);
@@ -203,11 +204,11 @@ void EvaluationChartWidget::setupControlPanel()
     m_btnYLimitUp->setFixedSize(24, 24);
     m_btnYLimitDown->setStyleSheet(btnStyle);
     m_btnYLimitUp->setStyleSheet(btnStyle);
-    m_btnYLimitDown->setToolTip(tr("Y軸上限を縮小"));
-    m_btnYLimitUp->setToolTip(tr("Y軸上限を拡大"));
+    m_btnYLimitDown->setToolTip(tr("評価値上限を縮小"));
+    m_btnYLimitUp->setToolTip(tr("評価値上限を拡大"));
 
-    // Y軸間隔ボタン
-    auto* lblYInterval = new QLabel(QStringLiteral("Y間隔:"), m_controlPanel);
+    // 評価値間隔ボタン
+    auto* lblYInterval = new QLabel(QStringLiteral("評価値間隔:"), m_controlPanel);
     lblYInterval->setStyleSheet(labelStyle);
     m_btnYIntervalDown = new QPushButton(QStringLiteral("－"), m_controlPanel);
     m_btnYIntervalUp = new QPushButton(QStringLiteral("＋"), m_controlPanel);
@@ -215,11 +216,11 @@ void EvaluationChartWidget::setupControlPanel()
     m_btnYIntervalUp->setFixedSize(24, 24);
     m_btnYIntervalDown->setStyleSheet(btnStyle);
     m_btnYIntervalUp->setStyleSheet(btnStyle);
-    m_btnYIntervalDown->setToolTip(tr("Y軸目盛り間隔を縮小"));
-    m_btnYIntervalUp->setToolTip(tr("Y軸目盛り間隔を拡大"));
+    m_btnYIntervalDown->setToolTip(tr("評価値目盛り間隔を縮小"));
+    m_btnYIntervalUp->setToolTip(tr("評価値目盛り間隔を拡大"));
 
-    // X軸上限ボタン
-    auto* lblXLimit = new QLabel(QStringLiteral("X上限:"), m_controlPanel);
+    // 手数上限ボタン
+    auto* lblXLimit = new QLabel(QStringLiteral("手数上限:"), m_controlPanel);
     lblXLimit->setStyleSheet(labelStyle);
     m_btnXLimitDown = new QPushButton(QStringLiteral("▼"), m_controlPanel);
     m_btnXLimitUp = new QPushButton(QStringLiteral("▲"), m_controlPanel);
@@ -227,11 +228,11 @@ void EvaluationChartWidget::setupControlPanel()
     m_btnXLimitUp->setFixedSize(24, 24);
     m_btnXLimitDown->setStyleSheet(btnStyle);
     m_btnXLimitUp->setStyleSheet(btnStyle);
-    m_btnXLimitDown->setToolTip(tr("X軸上限を縮小"));
-    m_btnXLimitUp->setToolTip(tr("X軸上限を拡大"));
+    m_btnXLimitDown->setToolTip(tr("手数上限を縮小"));
+    m_btnXLimitUp->setToolTip(tr("手数上限を拡大"));
 
-    // X軸間隔ボタン
-    auto* lblXInterval = new QLabel(QStringLiteral("X間隔:"), m_controlPanel);
+    // 手数間隔ボタン
+    auto* lblXInterval = new QLabel(QStringLiteral("手数間隔:"), m_controlPanel);
     lblXInterval->setStyleSheet(labelStyle);
     m_btnXIntervalDown = new QPushButton(QStringLiteral("－"), m_controlPanel);
     m_btnXIntervalUp = new QPushButton(QStringLiteral("＋"), m_controlPanel);
@@ -239,8 +240,8 @@ void EvaluationChartWidget::setupControlPanel()
     m_btnXIntervalUp->setFixedSize(24, 24);
     m_btnXIntervalDown->setStyleSheet(btnStyle);
     m_btnXIntervalUp->setStyleSheet(btnStyle);
-    m_btnXIntervalDown->setToolTip(tr("X軸目盛り間隔を縮小"));
-    m_btnXIntervalUp->setToolTip(tr("X軸目盛り間隔を拡大"));
+    m_btnXIntervalDown->setToolTip(tr("手数目盛り間隔を縮小"));
+    m_btnXIntervalUp->setToolTip(tr("手数目盛り間隔を拡大"));
 
     // フォントサイズボタン（USI通信ログと同じサイズ 28x24）
     m_btnFontDown = new QPushButton(QStringLiteral("A-"), m_controlPanel);
@@ -320,15 +321,15 @@ void EvaluationChartWidget::loadSettings()
     QSettings settings("ShogiBoardQ", "EvaluationChart");
     m_yLimit = settings.value("yLimit", 2000).toInt();
     m_yInterval = settings.value("yInterval", 1000).toInt();
-    m_xLimit = settings.value("xLimit", 100).toInt();
-    m_xInterval = settings.value("xInterval", 20).toInt();
+    m_xLimit = settings.value("xLimit", 500).toInt();
+    m_xInterval = settings.value("xInterval", 10).toInt();
     m_labelFontSize = settings.value("labelFontSize", 7).toInt();
 
     // 範囲チェック
     if (!s_availableYLimits.contains(m_yLimit)) m_yLimit = 2000;
     if (!s_availableYIntervals.contains(m_yInterval)) m_yInterval = 1000;
-    if (!s_availableXLimits.contains(m_xLimit)) m_xLimit = 100;
-    if (!s_availableXIntervals.contains(m_xInterval)) m_xInterval = 20;
+    if (!s_availableXLimits.contains(m_xLimit)) m_xLimit = 500;
+    if (!s_availableXIntervals.contains(m_xInterval)) m_xInterval = 10;
     if (!s_availableFontSizes.contains(m_labelFontSize)) m_labelFontSize = 7;
 
     // 間隔が上限を超えないように調整
