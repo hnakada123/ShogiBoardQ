@@ -15,14 +15,19 @@
 #include <QThread>
 #include <QLabel>
 #include <QPushButton>
+#include <QComboBox>
 #include <QSettings>
 
-// 利用可能な上限値のリスト（Y軸）
+// 利用可能な上限値のリスト（Y軸：評価値上限）
+// 100から1000まで100刻み、1000から30000まで1000刻み
 const QList<int> EvaluationChartWidget::s_availableYLimits = {
-    500, 1000, 2000, 3000, 5000, 10000, 20000
+    100, 200, 300, 400, 500, 600, 700, 800, 900, 1000,
+    2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000,
+    11000, 12000, 13000, 14000, 15000, 16000, 17000, 18000, 19000, 20000,
+    21000, 22000, 23000, 24000, 25000, 26000, 27000, 28000, 29000, 30000
 };
 
-// 利用可能な間隔値のリスト（Y軸）
+// 利用可能な間隔値のリスト（Y軸：評価値間隔）
 const QList<int> EvaluationChartWidget::s_availableYIntervals = {
     100, 250, 500, 1000, 2000, 5000
 };
@@ -34,7 +39,7 @@ const QList<int> EvaluationChartWidget::s_availableXLimits = {
 
 // 利用可能な間隔値のリスト（X軸：手数間隔）
 const QList<int> EvaluationChartWidget::s_availableXIntervals = {
-    1, 5, 10, 20, 25, 50, 100
+    2, 5, 10, 20, 25, 50, 100
 };
 
 // 利用可能なフォントサイズのリスト
@@ -173,13 +178,39 @@ void EvaluationChartWidget::updateZeroLine()
 void EvaluationChartWidget::setupControlPanel()
 {
     m_controlPanel = new QWidget(this);
-    m_controlPanel->setFixedHeight(28);
+    m_controlPanel->setFixedHeight(32);
 
     auto* layout = new QHBoxLayout(m_controlPanel);
     layout->setContentsMargins(4, 2, 4, 2);
-    layout->setSpacing(2);
+    layout->setSpacing(4);
 
-    // ボタンスタイル（USI通信ログタブと同じサイズ）
+    // ラベルスタイル（GUIメニューと同じフォントサイズ）
+    const QString labelStyle = QStringLiteral("QLabel { color: #333; font-size: 9pt; }");
+
+    // ComboBoxスタイル
+    const QString comboStyle = QStringLiteral(
+        "QComboBox { "
+        "  background-color: #f0f0f0; "
+        "  border: 1px solid #999; "
+        "  border-radius: 2px; "
+        "  padding: 2px 4px; "
+        "  font-size: 9pt; "
+        "  min-width: 60px; "
+        "} "
+        "QComboBox:hover { background-color: #e8e8e8; } "
+        "QComboBox::drop-down { "
+        "  border: none; "
+        "  width: 16px; "
+        "} "
+        "QComboBox::down-arrow { "
+        "  image: none; "
+        "  border-left: 4px solid transparent; "
+        "  border-right: 4px solid transparent; "
+        "  border-top: 5px solid #666; "
+        "}"
+    );
+
+    // ボタンスタイル（フォントサイズ用）
     const QString btnStyle = QStringLiteral(
         "QPushButton { "
         "  background-color: #e0e0e0; "
@@ -192,56 +223,45 @@ void EvaluationChartWidget::setupControlPanel()
         "QPushButton:pressed { background-color: #c0c0c0; }"
     );
 
-    // ラベルスタイル（GUIメニューと同じフォントサイズ）
-    const QString labelStyle = QStringLiteral("QLabel { color: #333; font-size: 9pt; }");
-
-    // 評価値上限ボタン
+    // 評価値上限ComboBox
     auto* lblYLimit = new QLabel(QStringLiteral("評価値上限:"), m_controlPanel);
     lblYLimit->setStyleSheet(labelStyle);
-    m_btnYLimitDown = new QPushButton(QStringLiteral("▼"), m_controlPanel);
-    m_btnYLimitUp = new QPushButton(QStringLiteral("▲"), m_controlPanel);
-    m_btnYLimitDown->setFixedSize(24, 24);
-    m_btnYLimitUp->setFixedSize(24, 24);
-    m_btnYLimitDown->setStyleSheet(btnStyle);
-    m_btnYLimitUp->setStyleSheet(btnStyle);
-    m_btnYLimitDown->setToolTip(tr("評価値上限を縮小"));
-    m_btnYLimitUp->setToolTip(tr("評価値上限を拡大"));
+    m_comboYLimit = new QComboBox(m_controlPanel);
+    m_comboYLimit->setStyleSheet(comboStyle);
+    m_comboYLimit->setToolTip(tr("評価値の表示上限を選択"));
+    for (int val : s_availableYLimits) {
+        m_comboYLimit->addItem(QString::number(val), val);
+    }
 
-    // 評価値間隔ボタン
+    // 評価値間隔ComboBox
     auto* lblYInterval = new QLabel(QStringLiteral("評価値間隔:"), m_controlPanel);
     lblYInterval->setStyleSheet(labelStyle);
-    m_btnYIntervalDown = new QPushButton(QStringLiteral("－"), m_controlPanel);
-    m_btnYIntervalUp = new QPushButton(QStringLiteral("＋"), m_controlPanel);
-    m_btnYIntervalDown->setFixedSize(24, 24);
-    m_btnYIntervalUp->setFixedSize(24, 24);
-    m_btnYIntervalDown->setStyleSheet(btnStyle);
-    m_btnYIntervalUp->setStyleSheet(btnStyle);
-    m_btnYIntervalDown->setToolTip(tr("評価値目盛り間隔を縮小"));
-    m_btnYIntervalUp->setToolTip(tr("評価値目盛り間隔を拡大"));
+    m_comboYInterval = new QComboBox(m_controlPanel);
+    m_comboYInterval->setStyleSheet(comboStyle);
+    m_comboYInterval->setToolTip(tr("評価値の目盛り間隔を選択"));
+    for (int val : s_availableYIntervals) {
+        m_comboYInterval->addItem(QString::number(val), val);
+    }
 
-    // 手数上限ボタン
+    // 手数上限ComboBox
     auto* lblXLimit = new QLabel(QStringLiteral("手数上限:"), m_controlPanel);
     lblXLimit->setStyleSheet(labelStyle);
-    m_btnXLimitDown = new QPushButton(QStringLiteral("▼"), m_controlPanel);
-    m_btnXLimitUp = new QPushButton(QStringLiteral("▲"), m_controlPanel);
-    m_btnXLimitDown->setFixedSize(24, 24);
-    m_btnXLimitUp->setFixedSize(24, 24);
-    m_btnXLimitDown->setStyleSheet(btnStyle);
-    m_btnXLimitUp->setStyleSheet(btnStyle);
-    m_btnXLimitDown->setToolTip(tr("手数上限を縮小"));
-    m_btnXLimitUp->setToolTip(tr("手数上限を拡大"));
+    m_comboXLimit = new QComboBox(m_controlPanel);
+    m_comboXLimit->setStyleSheet(comboStyle);
+    m_comboXLimit->setToolTip(tr("手数の表示上限を選択"));
+    for (int val : s_availableXLimits) {
+        m_comboXLimit->addItem(QString::number(val), val);
+    }
 
-    // 手数間隔ボタン
+    // 手数間隔ComboBox
     auto* lblXInterval = new QLabel(QStringLiteral("手数間隔:"), m_controlPanel);
     lblXInterval->setStyleSheet(labelStyle);
-    m_btnXIntervalDown = new QPushButton(QStringLiteral("－"), m_controlPanel);
-    m_btnXIntervalUp = new QPushButton(QStringLiteral("＋"), m_controlPanel);
-    m_btnXIntervalDown->setFixedSize(24, 24);
-    m_btnXIntervalUp->setFixedSize(24, 24);
-    m_btnXIntervalDown->setStyleSheet(btnStyle);
-    m_btnXIntervalUp->setStyleSheet(btnStyle);
-    m_btnXIntervalDown->setToolTip(tr("手数目盛り間隔を縮小"));
-    m_btnXIntervalUp->setToolTip(tr("手数目盛り間隔を拡大"));
+    m_comboXInterval = new QComboBox(m_controlPanel);
+    m_comboXInterval->setStyleSheet(comboStyle);
+    m_comboXInterval->setToolTip(tr("手数の目盛り間隔を選択"));
+    for (int val : s_availableXIntervals) {
+        m_comboXInterval->addItem(QString::number(val), val);
+    }
 
     // フォントサイズボタン（USI通信ログと同じサイズ 28x24）
     m_btnFontDown = new QPushButton(QStringLiteral("A-"), m_controlPanel);
@@ -255,23 +275,19 @@ void EvaluationChartWidget::setupControlPanel()
 
     // レイアウトに追加（左端から配置）
     layout->addWidget(lblYLimit);
-    layout->addWidget(m_btnYLimitDown);
-    layout->addWidget(m_btnYLimitUp);
+    layout->addWidget(m_comboYLimit);
     layout->addSpacing(8);
 
     layout->addWidget(lblYInterval);
-    layout->addWidget(m_btnYIntervalDown);
-    layout->addWidget(m_btnYIntervalUp);
+    layout->addWidget(m_comboYInterval);
     layout->addSpacing(8);
 
     layout->addWidget(lblXLimit);
-    layout->addWidget(m_btnXLimitDown);
-    layout->addWidget(m_btnXLimitUp);
+    layout->addWidget(m_comboXLimit);
     layout->addSpacing(8);
 
     layout->addWidget(lblXInterval);
-    layout->addWidget(m_btnXIntervalDown);
-    layout->addWidget(m_btnXIntervalUp);
+    layout->addWidget(m_comboXInterval);
     layout->addSpacing(8);
 
     layout->addWidget(m_btnFontDown);
@@ -281,24 +297,18 @@ void EvaluationChartWidget::setupControlPanel()
 
     m_controlPanel->setLayout(layout);
 
-    // シグナル接続（ラムダ不使用）
-    connect(m_btnYLimitUp, &QPushButton::clicked,
-            this, &EvaluationChartWidget::onIncreaseYLimitClicked);
-    connect(m_btnYLimitDown, &QPushButton::clicked,
-            this, &EvaluationChartWidget::onDecreaseYLimitClicked);
-    connect(m_btnYIntervalUp, &QPushButton::clicked,
-            this, &EvaluationChartWidget::onIncreaseYIntervalClicked);
-    connect(m_btnYIntervalDown, &QPushButton::clicked,
-            this, &EvaluationChartWidget::onDecreaseYIntervalClicked);
+    // 現在の値でComboBoxを初期化
+    updateComboBoxSelections();
 
-    connect(m_btnXLimitUp, &QPushButton::clicked,
-            this, &EvaluationChartWidget::onIncreaseXLimitClicked);
-    connect(m_btnXLimitDown, &QPushButton::clicked,
-            this, &EvaluationChartWidget::onDecreaseXLimitClicked);
-    connect(m_btnXIntervalUp, &QPushButton::clicked,
-            this, &EvaluationChartWidget::onIncreaseXIntervalClicked);
-    connect(m_btnXIntervalDown, &QPushButton::clicked,
-            this, &EvaluationChartWidget::onDecreaseXIntervalClicked);
+    // シグナル接続（ラムダ不使用）
+    connect(m_comboYLimit, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &EvaluationChartWidget::onYLimitChanged);
+    connect(m_comboYInterval, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &EvaluationChartWidget::onYIntervalChanged);
+    connect(m_comboXLimit, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &EvaluationChartWidget::onXLimitChanged);
+    connect(m_comboXInterval, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &EvaluationChartWidget::onXIntervalChanged);
 
     connect(m_btnFontUp, &QPushButton::clicked,
             this, &EvaluationChartWidget::onIncreaseFontSizeClicked);
@@ -400,6 +410,19 @@ void EvaluationChartWidget::setYAxisLimit(int limit)
             m_yInterval = m_yLimit;
         }
         updateYAxis();
+        // ComboBoxの選択を更新
+        if (m_comboYLimit) {
+            m_comboYLimit->blockSignals(true);
+            int idx = s_availableYLimits.indexOf(m_yLimit);
+            if (idx >= 0) m_comboYLimit->setCurrentIndex(idx);
+            m_comboYLimit->blockSignals(false);
+        }
+        if (m_comboYInterval) {
+            m_comboYInterval->blockSignals(true);
+            int idx = s_availableYIntervals.indexOf(m_yInterval);
+            if (idx >= 0) m_comboYInterval->setCurrentIndex(idx);
+            m_comboYInterval->blockSignals(false);
+        }
     }
 }
 
@@ -408,6 +431,13 @@ void EvaluationChartWidget::setYAxisInterval(int interval)
     if (interval > 0 && interval <= m_yLimit && interval != m_yInterval) {
         m_yInterval = interval;
         updateYAxis();
+        // ComboBoxの選択を更新
+        if (m_comboYInterval) {
+            m_comboYInterval->blockSignals(true);
+            int idx = s_availableYIntervals.indexOf(m_yInterval);
+            if (idx >= 0) m_comboYInterval->setCurrentIndex(idx);
+            m_comboYInterval->blockSignals(false);
+        }
     }
 }
 
@@ -420,6 +450,19 @@ void EvaluationChartWidget::setXAxisLimit(int limit)
             m_xInterval = m_xLimit;
         }
         updateXAxis();
+        // ComboBoxの選択を更新
+        if (m_comboXLimit) {
+            m_comboXLimit->blockSignals(true);
+            int idx = s_availableXLimits.indexOf(m_xLimit);
+            if (idx >= 0) m_comboXLimit->setCurrentIndex(idx);
+            m_comboXLimit->blockSignals(false);
+        }
+        if (m_comboXInterval) {
+            m_comboXInterval->blockSignals(true);
+            int idx = s_availableXIntervals.indexOf(m_xInterval);
+            if (idx >= 0) m_comboXInterval->setCurrentIndex(idx);
+            m_comboXInterval->blockSignals(false);
+        }
     }
 }
 
@@ -428,6 +471,13 @@ void EvaluationChartWidget::setXAxisInterval(int interval)
     if (interval > 0 && interval <= m_xLimit && interval != m_xInterval) {
         m_xInterval = interval;
         updateXAxis();
+        // ComboBoxの選択を更新
+        if (m_comboXInterval) {
+            m_comboXInterval->blockSignals(true);
+            int idx = s_availableXIntervals.indexOf(m_xInterval);
+            if (idx >= 0) m_comboXInterval->setCurrentIndex(idx);
+            m_comboXInterval->blockSignals(false);
+        }
     }
 }
 
@@ -439,98 +489,38 @@ void EvaluationChartWidget::setLabelFontSize(int size)
     }
 }
 
-void EvaluationChartWidget::onIncreaseYLimitClicked()
+void EvaluationChartWidget::onYLimitChanged(int index)
 {
-    for (int limit : s_availableYLimits) {
-        if (limit > m_yLimit) {
-            setYAxisLimit(limit);
-            return;
-        }
-    }
-}
-
-void EvaluationChartWidget::onDecreaseYLimitClicked()
-{
-    int newLimit = s_availableYLimits.first();
-    for (int limit : s_availableYLimits) {
-        if (limit >= m_yLimit) {
-            break;
-        }
-        newLimit = limit;
-    }
-    if (newLimit < m_yLimit) {
+    if (index < 0 || index >= s_availableYLimits.size()) return;
+    int newLimit = s_availableYLimits.at(index);
+    if (newLimit != m_yLimit) {
         setYAxisLimit(newLimit);
     }
 }
 
-void EvaluationChartWidget::onIncreaseYIntervalClicked()
+void EvaluationChartWidget::onYIntervalChanged(int index)
 {
-    for (int interval : s_availableYIntervals) {
-        if (interval > m_yInterval && interval <= m_yLimit) {
-            setYAxisInterval(interval);
-            return;
-        }
-    }
-}
-
-void EvaluationChartWidget::onDecreaseYIntervalClicked()
-{
-    int newInterval = s_availableYIntervals.first();
-    for (int interval : s_availableYIntervals) {
-        if (interval >= m_yInterval) {
-            break;
-        }
-        newInterval = interval;
-    }
-    if (newInterval < m_yInterval) {
+    if (index < 0 || index >= s_availableYIntervals.size()) return;
+    int newInterval = s_availableYIntervals.at(index);
+    if (newInterval != m_yInterval && newInterval <= m_yLimit) {
         setYAxisInterval(newInterval);
     }
 }
 
-void EvaluationChartWidget::onIncreaseXLimitClicked()
+void EvaluationChartWidget::onXLimitChanged(int index)
 {
-    for (int limit : s_availableXLimits) {
-        if (limit > m_xLimit) {
-            setXAxisLimit(limit);
-            return;
-        }
-    }
-}
-
-void EvaluationChartWidget::onDecreaseXLimitClicked()
-{
-    int newLimit = s_availableXLimits.first();
-    for (int limit : s_availableXLimits) {
-        if (limit >= m_xLimit) {
-            break;
-        }
-        newLimit = limit;
-    }
-    if (newLimit < m_xLimit) {
+    if (index < 0 || index >= s_availableXLimits.size()) return;
+    int newLimit = s_availableXLimits.at(index);
+    if (newLimit != m_xLimit) {
         setXAxisLimit(newLimit);
     }
 }
 
-void EvaluationChartWidget::onIncreaseXIntervalClicked()
+void EvaluationChartWidget::onXIntervalChanged(int index)
 {
-    for (int interval : s_availableXIntervals) {
-        if (interval > m_xInterval && interval <= m_xLimit) {
-            setXAxisInterval(interval);
-            return;
-        }
-    }
-}
-
-void EvaluationChartWidget::onDecreaseXIntervalClicked()
-{
-    int newInterval = s_availableXIntervals.first();
-    for (int interval : s_availableXIntervals) {
-        if (interval >= m_xInterval) {
-            break;
-        }
-        newInterval = interval;
-    }
-    if (newInterval < m_xInterval) {
+    if (index < 0 || index >= s_availableXIntervals.size()) return;
+    int newInterval = s_availableXIntervals.at(index);
+    if (newInterval != m_xInterval && newInterval <= m_xLimit) {
         setXAxisInterval(newInterval);
     }
 }
@@ -556,6 +546,38 @@ void EvaluationChartWidget::onDecreaseFontSizeClicked()
     }
     if (newSize < m_labelFontSize) {
         setLabelFontSize(newSize);
+    }
+}
+
+void EvaluationChartWidget::updateComboBoxSelections()
+{
+    // シグナルを一時的にブロックして無限ループを防ぐ
+    if (m_comboYLimit) {
+        m_comboYLimit->blockSignals(true);
+        int idx = s_availableYLimits.indexOf(m_yLimit);
+        if (idx >= 0) m_comboYLimit->setCurrentIndex(idx);
+        m_comboYLimit->blockSignals(false);
+    }
+
+    if (m_comboYInterval) {
+        m_comboYInterval->blockSignals(true);
+        int idx = s_availableYIntervals.indexOf(m_yInterval);
+        if (idx >= 0) m_comboYInterval->setCurrentIndex(idx);
+        m_comboYInterval->blockSignals(false);
+    }
+
+    if (m_comboXLimit) {
+        m_comboXLimit->blockSignals(true);
+        int idx = s_availableXLimits.indexOf(m_xLimit);
+        if (idx >= 0) m_comboXLimit->setCurrentIndex(idx);
+        m_comboXLimit->blockSignals(false);
+    }
+
+    if (m_comboXInterval) {
+        m_comboXInterval->blockSignals(true);
+        int idx = s_availableXIntervals.indexOf(m_xInterval);
+        if (idx >= 0) m_comboXInterval->setCurrentIndex(idx);
+        m_comboXInterval->blockSignals(false);
     }
 }
 
