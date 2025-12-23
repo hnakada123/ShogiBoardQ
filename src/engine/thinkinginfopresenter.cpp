@@ -300,6 +300,14 @@ void ThinkingInfoPresenter::updateLastScore(int scoreInt)
 
 void ThinkingInfoPresenter::updateEvaluationInfo(ShogiEngineInfoParser* info, int& scoreInt)
 {
+    // multipv 1（1行目）の場合のみ評価値を更新
+    // multipvが空の場合も更新（単一PVモードの場合）
+    const QString multipv = info->multipv();
+    if (!multipv.isEmpty() && multipv != "1") {
+        // multipv 2以降は評価値を更新しない
+        return;
+    }
+
     if (info->scoreCp().isEmpty()) {
         updateScoreMateAndLastScore(info, scoreInt);
     } else {
