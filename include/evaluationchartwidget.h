@@ -37,7 +37,6 @@ public:
 
     // Y軸設定の変更
     void setYAxisLimit(int limit);
-    void setYAxisInterval(int interval);
 
     // X軸設定の取得
     int xAxisLimit() const { return m_xLimit; }
@@ -66,7 +65,6 @@ signals:
 private slots:
     // ComboBox選択変更時のスロット
     void onYLimitChanged(int index);
-    void onYIntervalChanged(int index);
     void onXLimitChanged(int index);
     void onXIntervalChanged(int index);
 
@@ -82,11 +80,14 @@ private:
     void autoExpandYAxisIfNeeded(int cp);
     void autoExpandXAxisIfNeeded(int ply);
 
-    // 評価値上限に応じた適切な間隔を計算
+    // 評価値上限に応じた適切な間隔を計算（上限の半分）
     int calculateAppropriateYInterval(int yLimit) const;
 
     // ComboBoxの選択を更新（値からインデックスを探して設定）
     void updateComboBoxSelections();
+
+    // 評価値上限のComboBox選択肢を更新
+    void updateYLimitComboItems();
 
     // エンジン情報ラベルの更新
     void updateEngineInfoLabel();
@@ -113,7 +114,6 @@ private:
 
     // ComboBox
     QComboBox* m_comboYLimit = nullptr;
-    QComboBox* m_comboYInterval = nullptr;
     QComboBox* m_comboXLimit = nullptr;
     QComboBox* m_comboXInterval = nullptr;
 
@@ -134,7 +134,7 @@ private:
 
     // Y軸設定
     int m_yLimit = 2000;      // Y軸の上限（下限は -m_yLimit）
-    int m_yInterval = 1000;   // Y軸の目盛り間隔
+    int m_yInterval = 1000;   // Y軸の目盛り間隔（上限の半分）
 
     // X軸設定
     int m_xLimit = 500;       // X軸の上限
@@ -145,8 +145,6 @@ private:
 
     // 利用可能な上限値のリスト（Y軸）
     static const QList<int> s_availableYLimits;
-    // 利用可能な間隔値のリスト（Y軸）
-    static const QList<int> s_availableYIntervals;
     // 利用可能な上限値のリスト（X軸）
     static const QList<int> s_availableXLimits;
     // 利用可能な間隔値のリスト（X軸）
