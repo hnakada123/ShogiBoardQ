@@ -29,7 +29,7 @@ const QList<int> EvaluationChartWidget::s_availableYLimits = {
 
 // 利用可能な間隔値のリスト（Y軸：評価値間隔）
 const QList<int> EvaluationChartWidget::s_availableYIntervals = {
-    100, 250, 500, 1000, 2000, 5000
+    100, 250, 500, 1000, 2000, 5000, 10000
 };
 
 // 利用可能な上限値のリスト（X軸：手数上限）
@@ -273,6 +273,13 @@ void EvaluationChartWidget::setupControlPanel()
     m_btnFontDown->setToolTip(tr("目盛りの文字を小さく"));
     m_btnFontUp->setToolTip(tr("目盛りの文字を大きく"));
 
+    // エンジン情報ラベル
+    m_lblEngineInfo = new QLabel(m_controlPanel);
+    m_lblEngineInfo->setStyleSheet(labelStyle);
+    m_lblEngineInfo->setMinimumWidth(300);
+    m_lblEngineInfo->setText(QStringLiteral("(エンジン情報)"));  // デバッグ用初期テキスト
+    qDebug() << "[EVAL_CHART] m_lblEngineInfo created:" << m_lblEngineInfo;
+
     // レイアウトに追加（左端から配置）
     layout->addWidget(lblYLimit);
     layout->addWidget(m_comboYLimit);
@@ -292,6 +299,9 @@ void EvaluationChartWidget::setupControlPanel()
 
     layout->addWidget(m_btnFontDown);
     layout->addWidget(m_btnFontUp);
+    layout->addSpacing(16);
+
+    layout->addWidget(m_lblEngineInfo);
 
     layout->addStretch();  // 残りのスペースを右側に
 
@@ -405,10 +415,13 @@ void EvaluationChartWidget::setYAxisLimit(int limit)
 {
     if (limit > 0 && limit != m_yLimit) {
         m_yLimit = limit;
-        // 間隔が上限を超えないように調整
-        if (m_yInterval > m_yLimit) {
-            m_yInterval = m_yLimit;
+        
+        // 評価値上限に応じて適切な間隔を自動設定
+        int appropriateInterval = calculateAppropriateYInterval(m_yLimit);
+        if (appropriateInterval != m_yInterval) {
+            m_yInterval = appropriateInterval;
         }
+        
         updateYAxis();
         // ComboBoxの選択を更新
         if (m_comboYLimit) {
@@ -424,6 +437,26 @@ void EvaluationChartWidget::setYAxisLimit(int limit)
             m_comboYInterval->blockSignals(false);
         }
     }
+}
+
+// 評価値上限に応じた適切な間隔を計算
+// 目盛り数が最大5個になるように間隔を選択
+int EvaluationChartWidget::calculateAppropriateYInterval(int yLimit) const
+{
+    // 目盛り数 = (yLimit * 2) / interval + 1
+    // 目盛り数を最大5個にしたい場合: interval >= yLimit * 2 / 4 = yLimit / 2
+    // つまり interval >= yLimit / 2 であれば目盛りは5個以下
+    
+    // 利用可能な間隔の中から、目盛り数が5個以下になる最小の間隔を選択
+    for (int interval : s_availableYIntervals) {
+        int tickCount = (yLimit * 2) / interval + 1;
+        if (tickCount <= 5) {
+            return interval;
+        }
+    }
+    
+    // 見つからない場合は最大間隔を返す
+    return s_availableYIntervals.last();
 }
 
 void EvaluationChartWidget::setYAxisInterval(int interval)
@@ -637,6 +670,12 @@ void EvaluationChartWidget::appendScoreP1(int ply, int cp, bool invert)
 
     m_s1->append(ply, y);
 
+    // エンジン情報を更新
+    m_engine1Ply = ply;
+    m_engine1Cp = invert ? -cp : cp;
+    qDebug() << "[CHART][P1] updating engine info: ply=" << m_engine1Ply << "cp=" << m_engine1Cp << "name=" << m_engine1Name;
+    updateEngineInfoLabel();
+
     const int after = m_s1->count();
     QPointF lastPt;
     if (after > 0) lastPt = m_s1->at(after - 1);
@@ -677,6 +716,12 @@ void EvaluationChartWidget::appendScoreP2(int ply, int cp, bool invert)
     autoExpandXAxisIfNeeded(ply);
 
     m_s2->append(ply, y);
+
+    // エンジン情報を更新
+    m_engine2Ply = ply;
+    m_engine2Cp = invert ? -cp : cp;
+    qDebug() << "[CHART][P2] updating engine info: ply=" << m_engine2Ply << "cp=" << m_engine2Cp << "name=" << m_engine2Name;
+    updateEngineInfoLabel();
 
     const int after = m_s2->count();
     QPointF lastPt;
@@ -724,3 +769,106 @@ void EvaluationChartWidget::removeLastP2()
 
 int EvaluationChartWidget::countP1() const { return m_s1 ? m_s1->count() : 0; }
 int EvaluationChartWidget::countP2() const { return m_s2 ? m_s2->count() : 0; }
+
+void EvaluationChartWidget::setEngine1Info(const QString& name, int ply, int cp)
+{
+    qDebug() << "[ENGINE_INFO] setEngine1Info called: name=" << name << "ply=" << ply << "cp=" << cp;
+    m_engine1Name = name;
+    m_engine1Ply = ply;
+    m_engine1Cp = cp;
+    updateEngineInfoLabel();
+}
+
+void EvaluationChartWidget::setEngine2Info(const QString& name, int ply, int cp)
+{
+    qDebug() << "[ENGINE_INFO] setEngine2Info called: name=" << name << "ply=" << ply << "cp=" << cp;
+    m_engine2Name = name;
+    m_engine2Ply = ply;
+    m_engine2Cp = cp;
+    updateEngineInfoLabel();
+}
+
+void EvaluationChartWidget::setEngine1Name(const QString& name)
+{
+    qDebug() << "[ENGINE_INFO] setEngine1Name called: name=" << name;
+    m_engine1Name = name;
+    updateEngineInfoLabel();
+}
+
+void EvaluationChartWidget::setEngine2Name(const QString& name)
+{
+    qDebug() << "[ENGINE_INFO] setEngine2Name called: name=" << name;
+    m_engine2Name = name;
+    updateEngineInfoLabel();
+}
+
+void EvaluationChartWidget::updateEngineInfoLabel()
+{
+    qDebug() << "[ENGINE_INFO] updateEngineInfoLabel called";
+    qDebug() << "[ENGINE_INFO] m_lblEngineInfo:" << m_lblEngineInfo;
+    qDebug() << "[ENGINE_INFO] m_engine1Name:" << m_engine1Name << "m_engine1Ply:" << m_engine1Ply << "m_engine1Cp:" << m_engine1Cp;
+    qDebug() << "[ENGINE_INFO] m_engine2Name:" << m_engine2Name << "m_engine2Ply:" << m_engine2Ply << "m_engine2Cp:" << m_engine2Cp;
+
+    if (!m_lblEngineInfo) {
+        qDebug() << "[ENGINE_INFO] m_lblEngineInfo is NULL!";
+        return;
+    }
+
+    QString text;
+
+    // エンジン1の情報（先手・▲）
+    if (!m_engine1Name.isEmpty() && m_engine1Ply > 0) {
+        QString status;
+        if (m_engine1Cp > 100) {
+            status = QStringLiteral("有利");
+        } else if (m_engine1Cp < -100) {
+            status = QStringLiteral("不利");
+        } else {
+            status = QStringLiteral("互角");
+        }
+
+        QString cpStr;
+        if (m_engine1Cp >= 0) {
+            cpStr = QStringLiteral("+%1").arg(m_engine1Cp);
+        } else {
+            cpStr = QString::number(m_engine1Cp);
+        }
+
+        text += QStringLiteral("▲%1 %2 %3手目 評価値 %4")
+                    .arg(m_engine1Name, status)
+                    .arg(m_engine1Ply)
+                    .arg(cpStr);
+    }
+
+    // エンジン2の情報（後手・▽）
+    if (!m_engine2Name.isEmpty() && m_engine2Ply > 0) {
+        if (!text.isEmpty()) {
+            text += QStringLiteral("  ");  // 区切りスペース
+        }
+
+        QString status;
+        // 後手の評価値は反転（後手から見た有利不利）
+        if (m_engine2Cp < -100) {
+            status = QStringLiteral("有利");
+        } else if (m_engine2Cp > 100) {
+            status = QStringLiteral("不利");
+        } else {
+            status = QStringLiteral("互角");
+        }
+
+        QString cpStr;
+        if (m_engine2Cp >= 0) {
+            cpStr = QStringLiteral("+%1").arg(m_engine2Cp);
+        } else {
+            cpStr = QString::number(m_engine2Cp);
+        }
+
+        text += QStringLiteral("▽%1 %2 %3手目 評価値 %4")
+                    .arg(m_engine2Name, status)
+                    .arg(m_engine2Ply)
+                    .arg(cpStr);
+    }
+
+    qDebug() << "[ENGINE_INFO] final text:" << text;
+    m_lblEngineInfo->setText(text);
+}

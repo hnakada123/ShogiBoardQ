@@ -286,10 +286,11 @@ void ThinkingInfoPresenter::updateAnalysisModeAndScore(const ShogiEngineInfoPars
 
 void ThinkingInfoPresenter::updateLastScore(int scoreInt)
 {
-    if (scoreInt > 2000) {
-        m_lastScoreCp = 2000;
-    } else if (scoreInt < -2000) {
-        m_lastScoreCp = -2000;
+    // 評価値グラフの表示上限に合わせて±30000でクリッピング
+    if (scoreInt > 30000) {
+        m_lastScoreCp = 30000;
+    } else if (scoreInt < -30000) {
+        m_lastScoreCp = -30000;
     } else {
         m_lastScoreCp = scoreInt;
     }

@@ -633,6 +633,9 @@ void MainWindow::redrawEngine1EvaluationGraph()
         return;
     }
 
+    // エンジン名を設定
+    ec->setEngine1Name(m_engineName1);
+
     qDebug() << "[EVAL_GRAPH] P1: calling ec->appendScoreP1(" << ply << "," << cpAfter << ", false)";
     ec->appendScoreP1(ply, cpAfter, false);
     qDebug() << "[EVAL_GRAPH] P1: appendScoreP1 done, chart countP1 =" << ec->countP1();
@@ -665,6 +668,9 @@ void MainWindow::redrawEngine2EvaluationGraph()
         qDebug() << "[EVAL_GRAPH] P2: evalChart() returned NULL!";
         return;
     }
+
+    // エンジン名を設定
+    ec->setEngine2Name(m_engineName2.isEmpty() ? m_engineName1 : m_engineName2);
 
     qDebug() << "[EVAL_GRAPH] P2: calling ec->appendScoreP2(" << ply << "," << cpAfter << ", false)";
     ec->appendScoreP2(ply, cpAfter, false);

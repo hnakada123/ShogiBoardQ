@@ -51,6 +51,12 @@ public:
     int labelFontSize() const { return m_labelFontSize; }
     void setLabelFontSize(int size);
 
+    // エンジン情報の設定
+    void setEngine1Info(const QString& name, int ply, int cp);
+    void setEngine2Info(const QString& name, int ply, int cp);
+    void setEngine1Name(const QString& name);
+    void setEngine2Name(const QString& name);
+
 signals:
     // Y軸設定が変更されたときに発行
     void yAxisSettingsChanged(int limit, int interval);
@@ -76,8 +82,14 @@ private:
     void autoExpandYAxisIfNeeded(int cp);
     void autoExpandXAxisIfNeeded(int ply);
 
+    // 評価値上限に応じた適切な間隔を計算
+    int calculateAppropriateYInterval(int yLimit) const;
+
     // ComboBoxの選択を更新（値からインデックスを探して設定）
     void updateComboBoxSelections();
+
+    // エンジン情報ラベルの更新
+    void updateEngineInfoLabel();
 
     // 設定の保存・復元
     void saveSettings();
@@ -108,6 +120,17 @@ private:
     // フォントサイズボタン
     QPushButton* m_btnFontUp = nullptr;
     QPushButton* m_btnFontDown = nullptr;
+
+    // エンジン情報ラベル
+    QLabel* m_lblEngineInfo = nullptr;
+
+    // エンジン情報
+    QString m_engine1Name;
+    QString m_engine2Name;
+    int m_engine1Ply = 0;
+    int m_engine2Ply = 0;
+    int m_engine1Cp = 0;
+    int m_engine2Cp = 0;
 
     // Y軸設定
     int m_yLimit = 2000;      // Y軸の上限（下限は -m_yLimit）
