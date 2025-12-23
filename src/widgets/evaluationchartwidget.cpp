@@ -782,9 +782,9 @@ void EvaluationChartWidget::updateEngineInfoLabel()
     if (!m_engine1Name.isEmpty() && m_engine1Ply > 0) {
         QString status;
         if (m_engine1Cp > 100) {
-            status = QStringLiteral("有利");
+            status = QStringLiteral("優勢");
         } else if (m_engine1Cp < -100) {
-            status = QStringLiteral("不利");
+            status = QStringLiteral("劣勢");
         } else {
             status = QStringLiteral("互角");
         }
@@ -809,11 +809,12 @@ void EvaluationChartWidget::updateEngineInfoLabel()
         }
 
         QString status;
-        // 後手の評価値は反転（後手から見た有利不利）
-        if (m_engine2Cp < -100) {
-            status = QStringLiteral("有利");
-        } else if (m_engine2Cp > 100) {
-            status = QStringLiteral("不利");
+        // エンジンが返す評価値は自分から見た値
+        // 正の値 = 自分（後手）が優勢、負の値 = 自分（後手）が劣勢
+        if (m_engine2Cp > 100) {
+            status = QStringLiteral("優勢");
+        } else if (m_engine2Cp < -100) {
+            status = QStringLiteral("劣勢");
         } else {
             status = QStringLiteral("互角");
         }
