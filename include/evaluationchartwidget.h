@@ -10,6 +10,7 @@ class QValueAxis;
 class QChartView;
 class QLabel;
 class QPushButton;
+class QComboBox;
 class QHBoxLayout;
 class QSettings;
 
@@ -57,21 +58,11 @@ signals:
     void xAxisSettingsChanged(int limit, int interval);
 
 private slots:
-    // Y軸上限の増減
-    void onIncreaseYLimitClicked();
-    void onDecreaseYLimitClicked();
-
-    // Y軸間隔の増減
-    void onIncreaseYIntervalClicked();
-    void onDecreaseYIntervalClicked();
-
-    // X軸上限の増減
-    void onIncreaseXLimitClicked();
-    void onDecreaseXLimitClicked();
-
-    // X軸間隔の増減
-    void onIncreaseXIntervalClicked();
-    void onDecreaseXIntervalClicked();
+    // ComboBox選択変更時のスロット
+    void onYLimitChanged(int index);
+    void onYIntervalChanged(int index);
+    void onXLimitChanged(int index);
+    void onXIntervalChanged(int index);
 
     // フォントサイズの増減
     void onIncreaseFontSizeClicked();
@@ -84,6 +75,9 @@ private:
     void updateLabelFonts();
     void autoExpandYAxisIfNeeded(int cp);
     void autoExpandXAxisIfNeeded(int ply);
+
+    // ComboBoxの選択を更新（値からインデックスを探して設定）
+    void updateComboBoxSelections();
 
     // 設定の保存・復元
     void saveSettings();
@@ -105,17 +99,11 @@ private:
     // コントロールパネル
     QWidget*     m_controlPanel = nullptr;
 
-    // Y軸ボタン
-    QPushButton* m_btnYLimitUp = nullptr;
-    QPushButton* m_btnYLimitDown = nullptr;
-    QPushButton* m_btnYIntervalUp = nullptr;
-    QPushButton* m_btnYIntervalDown = nullptr;
-
-    // X軸ボタン
-    QPushButton* m_btnXLimitUp = nullptr;
-    QPushButton* m_btnXLimitDown = nullptr;
-    QPushButton* m_btnXIntervalUp = nullptr;
-    QPushButton* m_btnXIntervalDown = nullptr;
+    // ComboBox
+    QComboBox* m_comboYLimit = nullptr;
+    QComboBox* m_comboYInterval = nullptr;
+    QComboBox* m_comboXLimit = nullptr;
+    QComboBox* m_comboXInterval = nullptr;
 
     // フォントサイズボタン
     QPushButton* m_btnFontUp = nullptr;
@@ -126,8 +114,8 @@ private:
     int m_yInterval = 1000;   // Y軸の目盛り間隔
 
     // X軸設定
-    int m_xLimit = 100;       // X軸の上限
-    int m_xInterval = 20;     // X軸の目盛り間隔
+    int m_xLimit = 500;       // X軸の上限
+    int m_xInterval = 10;     // X軸の目盛り間隔
 
     // フォントサイズ
     int m_labelFontSize = 7;
