@@ -286,6 +286,8 @@ void ThinkingInfoPresenter::updateAnalysisModeAndScore(const ShogiEngineInfoPars
 
 void ThinkingInfoPresenter::updateLastScore(int scoreInt)
 {
+    qDebug() << "[TIP] updateLastScore: scoreInt=" << scoreInt << "m_lastScoreCp(before)=" << m_lastScoreCp;
+    
     // 評価値グラフの表示上限に合わせて±30000でクリッピング
     if (scoreInt > 30000) {
         m_lastScoreCp = 30000;
@@ -295,6 +297,7 @@ void ThinkingInfoPresenter::updateLastScore(int scoreInt)
         m_lastScoreCp = scoreInt;
     }
     
+    qDebug() << "[TIP] updateLastScore: m_lastScoreCp(after)=" << m_lastScoreCp;
     emit scoreUpdated(m_lastScoreCp, m_scoreStr);
 }
 
@@ -303,8 +306,15 @@ void ThinkingInfoPresenter::updateEvaluationInfo(ShogiEngineInfoParser* info, in
     // multipv 1（1行目）の場合のみ評価値を更新
     // multipvが空の場合も更新（単一PVモードの場合）
     const QString multipv = info->multipv();
+    const QString scoreCp = info->scoreCp();
+    
+    qDebug() << "[TIP] updateEvaluationInfo: multipv=" << multipv 
+             << "scoreCp=" << scoreCp 
+             << "m_lastScoreCp(before)=" << m_lastScoreCp;
+    
     if (!multipv.isEmpty() && multipv != "1") {
         // multipv 2以降は評価値を更新しない
+        qDebug() << "[TIP] SKIPPING multipv=" << multipv << "(not 1)";
         return;
     }
 
@@ -314,6 +324,9 @@ void ThinkingInfoPresenter::updateEvaluationInfo(ShogiEngineInfoParser* info, in
         updateAnalysisModeAndScore(info, scoreInt);
         info->setScore(m_scoreStr);
         m_pvKanjiStr = info->pvKanjiStr();
+        qDebug() << "[TIP] UPDATING score: scoreInt=" << scoreInt << "m_scoreStr=" << m_scoreStr;
         updateLastScore(scoreInt);
     }
+    
+    qDebug() << "[TIP] updateEvaluationInfo done: m_lastScoreCp(after)=" << m_lastScoreCp;
 }

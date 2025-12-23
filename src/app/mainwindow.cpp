@@ -609,6 +609,14 @@ void MainWindow::redrawEngine1EvaluationGraph()
 {
     qDebug() << "[EVAL_GRAPH] redrawEngine1EvaluationGraph() called";
 
+    // bestmoveと同時に受信したinfo行の処理が完了するのを待つため、遅延させる
+    QTimer::singleShot(50, this, SLOT(doRedrawEngine1EvaluationGraph()));
+}
+
+void MainWindow::doRedrawEngine1EvaluationGraph()
+{
+    qDebug() << "[EVAL_GRAPH] doRedrawEngine1EvaluationGraph() delayed execution";
+
     // 実際の手数を取得（sfenRecordのサイズ - 1 が現在の手数）
     // 例: sfenRecord = [開始局面, 1手目, 2手目] なら size=3, 手数=2
     const int ply = m_sfenRecord ? qMax(0, m_sfenRecord->size() - 1) : 0;
@@ -644,6 +652,14 @@ void MainWindow::redrawEngine1EvaluationGraph()
 void MainWindow::redrawEngine2EvaluationGraph()
 {
     qDebug() << "[EVAL_GRAPH] redrawEngine2EvaluationGraph() called";
+
+    // bestmoveと同時に受信したinfo行の処理が完了するのを待つため、遅延させる
+    QTimer::singleShot(50, this, SLOT(doRedrawEngine2EvaluationGraph()));
+}
+
+void MainWindow::doRedrawEngine2EvaluationGraph()
+{
+    qDebug() << "[EVAL_GRAPH] doRedrawEngine2EvaluationGraph() delayed execution";
 
     // 実際の手数を取得（sfenRecordのサイズ - 1 が現在の手数）
     // 例: sfenRecord = [開始局面, 1手目, 2手目] なら size=3, 手数=2
