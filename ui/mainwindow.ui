@@ -51,6 +51,9 @@
      <addaction name="ki2Format"/>
      <addaction name="usiFormat"/>
      <addaction name="universal"/>
+     <addaction name="actionUSI"/>
+     <addaction name="actionJSON"/>
+     <addaction name="actionUSEN"/>
     </widget>
     <widget class="QMenu" name="shogiPositionCopy">
      <property name="title">
@@ -605,22 +608,22 @@
   </action>
   <action name="kifFormat">
    <property name="text">
-    <string>&amp;KIF形式</string>
+    <string>KIF形式</string>
    </property>
   </action>
   <action name="ki2Format">
    <property name="text">
-    <string>K&amp;I2形式</string>
+    <string>KI2形式</string>
    </property>
   </action>
   <action name="usiFormat">
    <property name="text">
-    <string>&amp;USI</string>
+    <string>CSA形式</string>
    </property>
   </action>
   <action name="universal">
    <property name="text">
-    <string>ユニバーサル</string>
+    <string>USI形式（現在の指し手まで）</string>
    </property>
   </action>
   <action name="Sfen">
@@ -735,6 +738,21 @@
    </property>
    <property name="visible">
     <bool>true</bool>
+   </property>
+  </action>
+  <action name="actionUSI">
+   <property name="text">
+    <string>USI形式（全て）</string>
+   </property>
+  </action>
+  <action name="actionJSON">
+   <property name="text">
+    <string>JSON棋譜フォーマット</string>
+   </property>
+  </action>
+  <action name="actionUSEN">
+   <property name="text">
+    <string>USEN</string>
    </property>
   </action>
  </widget>
