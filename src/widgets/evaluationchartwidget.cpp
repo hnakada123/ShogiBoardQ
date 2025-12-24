@@ -1,4 +1,5 @@
 #include "evaluationchartwidget.h"
+#include "settingsservice.h"
 
 #include <QtCharts/QChartView>
 #include <QtCharts/QChart>
@@ -16,7 +17,6 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QComboBox>
-#include <QSettings>
 
 // 利用可能な上限値のリスト（Y軸：評価値上限）
 // 100から1000まで100刻み、1000から30000まで1000刻み
@@ -310,21 +310,19 @@ void EvaluationChartWidget::setupControlPanel()
 
 void EvaluationChartWidget::saveSettings()
 {
-    QSettings settings("ShogiBoardQ", "EvaluationChart");
-    settings.setValue("yLimit", m_yLimit);
+    SettingsService::setEvalChartYLimit(m_yLimit);
     // yIntervalは保存しない（上限の半分に固定）
-    settings.setValue("xLimit", m_xLimit);
-    settings.setValue("xInterval", m_xInterval);
-    settings.setValue("labelFontSize", m_labelFontSize);
+    SettingsService::setEvalChartXLimit(m_xLimit);
+    SettingsService::setEvalChartXInterval(m_xInterval);
+    SettingsService::setEvalChartLabelFontSize(m_labelFontSize);
 }
 
 void EvaluationChartWidget::loadSettings()
 {
-    QSettings settings("ShogiBoardQ", "EvaluationChart");
-    m_yLimit = settings.value("yLimit", 2000).toInt();
-    m_xLimit = settings.value("xLimit", 500).toInt();
-    m_xInterval = settings.value("xInterval", 10).toInt();
-    m_labelFontSize = settings.value("labelFontSize", 7).toInt();
+    m_yLimit = SettingsService::evalChartYLimit();
+    m_xLimit = SettingsService::evalChartXLimit();
+    m_xInterval = SettingsService::evalChartXInterval();
+    m_labelFontSize = SettingsService::evalChartLabelFontSize();
 
     // 範囲チェック
     if (!s_availableYLimits.contains(m_yLimit)) m_yLimit = 2000;
