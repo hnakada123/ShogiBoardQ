@@ -139,4 +139,61 @@ void setPvBoardDialogSize(const QSize& size)
     s.setValue("SizeRelated/pvBoardDialogSize", size);
 }
 
+// ★ 追加: 評価値グラフの設定
+int evalChartYLimit()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("EvalChart/yLimit", 2000).toInt();
+}
+
+void setEvalChartYLimit(int limit)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("EvalChart/yLimit", limit);
+}
+
+int evalChartXLimit()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("EvalChart/xLimit", 500).toInt();
+}
+
+void setEvalChartXLimit(int limit)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("EvalChart/xLimit", limit);
+}
+
+int evalChartXInterval()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("EvalChart/xInterval", 10).toInt();
+}
+
+void setEvalChartXInterval(int interval)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("EvalChart/xInterval", interval);
+}
+
+int evalChartLabelFontSize()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("EvalChart/labelFontSize", 7).toInt();
+}
+
+void setEvalChartLabelFontSize(int size)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("EvalChart/labelFontSize", size);
+}
+
 } // namespace SettingsService

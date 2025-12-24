@@ -57,6 +57,27 @@ QSize pvBoardDialogSize();
 // ★ 追加: 読み筋表示ウィンドウのサイズを保存
 void setPvBoardDialogSize(const QSize& size);
 
+// ★ 追加: 評価値グラフの設定
+// 評価値上限を取得（デフォルト: 2000）
+int evalChartYLimit();
+// 評価値上限を保存
+void setEvalChartYLimit(int limit);
+
+// 手数上限を取得（デフォルト: 500）
+int evalChartXLimit();
+// 手数上限を保存
+void setEvalChartXLimit(int limit);
+
+// 手数間隔を取得（デフォルト: 10）
+int evalChartXInterval();
+// 手数間隔を保存
+void setEvalChartXInterval(int interval);
+
+// 軸ラベルフォントサイズを取得（デフォルト: 7）
+int evalChartLabelFontSize();
+// 軸ラベルフォントサイズを保存
+void setEvalChartLabelFontSize(int size);
+
 } // namespace SettingsService
 
 #endif // SETTINGSSERVICE_H
