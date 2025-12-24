@@ -43,4 +43,13 @@ void UiActionsWiring::wire()
     QObject::connect(ui->actionEndEditPosition,      &QAction::triggered, mw, &MainWindow::finishPositionEditing,          Qt::UniqueConnection);
     QObject::connect(ui->actionTsumeShogiSearch,     &QAction::triggered, mw, &MainWindow::displayTsumeShogiSearchDialog,  Qt::UniqueConnection);
     QObject::connect(ui->actionQuitEngine,           &QAction::triggered, mw, &MainWindow::handleBreakOffConsidaration,    Qt::UniqueConnection);
+
+    // 棋譜コピー (編集メニュー)
+    QObject::connect(ui->kifFormat,                  &QAction::triggered, mw, &MainWindow::copyKifToClipboard,             Qt::UniqueConnection);
+    QObject::connect(ui->ki2Format,                  &QAction::triggered, mw, &MainWindow::copyKi2ToClipboard,             Qt::UniqueConnection);
+    QObject::connect(ui->usiFormat,                  &QAction::triggered, mw, &MainWindow::copyCsaToClipboard,             Qt::UniqueConnection);  // CSA形式
+    QObject::connect(ui->universal,                  &QAction::triggered, mw, &MainWindow::copyUsiCurrentToClipboard,      Qt::UniqueConnection);  // USI形式（現在の指し手まで）
+    QObject::connect(ui->actionUSI,                  &QAction::triggered, mw, &MainWindow::copyUsiToClipboard,             Qt::UniqueConnection);  // USI形式（全て）
+    QObject::connect(ui->actionJSON,                 &QAction::triggered, mw, &MainWindow::copyJkfToClipboard,             Qt::UniqueConnection);  // JKF形式
+    QObject::connect(ui->actionUSEN,                 &QAction::triggered, mw, &MainWindow::copyUsenToClipboard,            Qt::UniqueConnection);  // USEN形式
 }
