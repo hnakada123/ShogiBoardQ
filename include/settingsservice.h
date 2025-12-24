@@ -78,6 +78,13 @@ int evalChartLabelFontSize();
 // 軸ラベルフォントサイズを保存
 void setEvalChartLabelFontSize(int size);
 
+// ★ 追加: エンジン情報ウィジェットの列幅を取得
+// widgetIndex: 0=上段(エンジン1), 1=下段(エンジン2)
+// 戻り値: 各列の幅のリスト（空の場合はデフォルト値を使用）
+QList<int> engineInfoColumnWidths(int widgetIndex);
+// ★ 追加: エンジン情報ウィジェットの列幅を保存
+void setEngineInfoColumnWidths(int widgetIndex, const QList<int>& widths);
+
 } // namespace SettingsService
 
 #endif // SETTINGSSERVICE_H

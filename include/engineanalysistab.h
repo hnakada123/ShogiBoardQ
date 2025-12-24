@@ -201,6 +201,7 @@ private:
     void onCommentCut();             // 切り取り
     void onCommentCopy();            // コピー
     void onCommentPaste();           // 貼り付け
+    void onEngineInfoColumnWidthChanged();  // ★ 追加: 列幅変更時の保存
 
 public:
     // ★ 追加: 未保存の編集があるかチェック
