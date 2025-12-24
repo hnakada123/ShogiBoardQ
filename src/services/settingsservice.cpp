@@ -232,4 +232,40 @@ void setEngineInfoColumnWidths(int widgetIndex, const QList<int>& widths)
     s.sync();
 }
 
+// ★ 追加: 思考タブ下段（読み筋テーブル）の列幅を取得
+QList<int> thinkingViewColumnWidths(int viewIndex)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    QString key = QString("ThinkingView/columnWidths%1").arg(viewIndex);
+    QList<int> widths;
+    
+    int size = s.beginReadArray(key);
+    for (int i = 0; i < size; ++i) {
+        s.setArrayIndex(i);
+        widths.append(s.value("width", 0).toInt());
+    }
+    s.endArray();
+    
+    return widths;
+}
+
+// ★ 追加: 思考タブ下段（読み筋テーブル）の列幅を保存
+void setThinkingViewColumnWidths(int viewIndex, const QList<int>& widths)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    QString key = QString("ThinkingView/columnWidths%1").arg(viewIndex);
+    
+    s.beginWriteArray(key);
+    for (int i = 0; i < widths.size(); ++i) {
+        s.setArrayIndex(i);
+        s.setValue("width", widths.at(i));
+    }
+    s.endArray();
+    
+    // 即座に書き込み
+    s.sync();
+}
+
 } // namespace SettingsService

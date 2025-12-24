@@ -26,6 +26,7 @@
 #include <QUrl>
 #include <QLabel>       // ★ 追加
 #include <QMessageBox>  // ★ 追加
+#include <QTimer>       // ★ 追加: 列幅設定の遅延用
 
 #include "settingsservice.h"  // ★ 追加: フォントサイズ保存用
 #include "numeric_right_align_comma_delegate.h"
@@ -86,9 +87,15 @@ void EngineAnalysisTab::buildUi()
         m_info2->setColumnWidths(widths1);
     }
 
-    // ヘッダのリサイズポリシー（PV 列を広く等）
-    tuneColumnsForThinkingView_(m_view1);
-    tuneColumnsForThinkingView_(m_view2);
+    // ★ ヘッダの基本設定のみ（列幅はsetModels後に適用）
+    setupThinkingViewHeader_(m_view1);
+    setupThinkingViewHeader_(m_view2);
+    
+    // ★ 追加: 列幅変更シグナルを接続
+    connect(m_view1->horizontalHeader(), &QHeaderView::sectionResized,
+            this, &EngineAnalysisTab::onView1SectionResized);
+    connect(m_view2->horizontalHeader(), &QHeaderView::sectionResized,
+            this, &EngineAnalysisTab::onView2SectionResized);
 
     // ★ 追加: 読み筋テーブルのクリックシグナルを接続
     connect(m_view1, &QTableView::clicked,
@@ -203,9 +210,7 @@ void EngineAnalysisTab::buildUi()
 void EngineAnalysisTab::reapplyViewTuning_(QTableView* v, QAbstractItemModel* m)
 {
     if (!v) return;
-    // 列幅チューニング（PVを広く等）
-    tuneColumnsForThinkingView_(v);
-    // 数値列（Time/Depth/Nodes/Score）の右寄せ＆3桁カンマ
+    // 数値列（時間/深さ/ノード数/評価値）の右寄せ＆3桁カンマ
     if (m) applyNumericFormattingTo_(v, m);
 }
 
@@ -241,7 +246,11 @@ void EngineAnalysisTab::setModels(ShogiEngineThinkingModel* m1, ShogiEngineThink
     if (m_info1) m_info1->setModel(log1);
     if (m_info2) m_info2->setModel(log2);
 
-    // モデル設定直後に再適用
+    // ★ モデル設定後に列幅を適用（モデルがないと列幅が適用されない）
+    applyThinkingViewColumnWidths_(m_view1, 0);
+    applyThinkingViewColumnWidths_(m_view2, 1);
+
+    // モデル設定直後に数値フォーマットを適用
     reapplyViewTuning_(m_view1, m_model1);
     reapplyViewTuning_(m_view2, m_model2);
 
@@ -882,36 +891,73 @@ int EngineAnalysisTab::graphFallbackToPly_(int row, int targetPly) const
     return -1;
 }
 
-void EngineAnalysisTab::tuneColumnsForThinkingView_(QTableView* v)
+// ★ ヘッダの基本設定（モデル設定前でもOK）
+void EngineAnalysisTab::setupThinkingViewHeader_(QTableView* v)
 {
     if (!v) return;
     auto* h = v->horizontalHeader();
     if (!h) return;
 
-    // ★ PV 列のインデックス（必要なら変更）
-    constexpr int kPvCol = 4;
+    // ★ 全ての列をInteractive（ユーザーがリサイズ可能）に設定
+    h->setDefaultSectionSize(100);
+    h->setMinimumSectionSize(24);
+    h->setStretchLastSection(true);
+}
 
-    // 数値系の列は固定幅にして横幅を食い過ぎないようにする
-    struct ColW { int col; int w; };
-    const ColW fixedCols[] = {
-        {0, 48},   // depth
-        {1, 56},   // seldepth
-        {2, 88},   // nodes
-        {3, 110},  // nps
-        // 必要なら他の列もここに追加
-    };
-    for (const auto& cw : fixedCols) {
-        if (cw.col >= 0) {
-            h->setSectionResizeMode(cw.col, QHeaderView::Fixed);
-            v->setColumnWidth(cw.col, cw.w);
-        }
+// ★ 列幅の適用（モデル設定後に呼ぶ）
+void EngineAnalysisTab::applyThinkingViewColumnWidths_(QTableView* v, int viewIndex)
+{
+    if (!v || !v->model()) return;
+    auto* h = v->horizontalHeader();
+    if (!h) return;
+
+    constexpr int kColCount = 5;
+
+    // 全ての列をInteractive（ユーザーがリサイズ可能）に設定
+    for (int col = 0; col < kColCount; ++col) {
+        h->setSectionResizeMode(col, QHeaderView::Interactive);
     }
 
-    // PV 列は残りを広く使う
-    h->setSectionResizeMode(kPvCol, QHeaderView::Stretch);
-    h->setStretchLastSection(true);       // PV が最後の列なら有効
-    h->setMinimumSectionSize(24);         // 変に潰れないように最低幅
-    h->resizeSection(kPvCol, 380);        // 初期表示でしっかり広い（お好みで調整）
+    // ★ 設定ファイルから列幅を読み込む
+    QList<int> savedWidths = SettingsService::thinkingViewColumnWidths(viewIndex);
+    
+    if (savedWidths.size() == kColCount) {
+        // 保存された列幅を適用
+        h->blockSignals(true);
+        for (int col = 0; col < kColCount; ++col) {
+            if (savedWidths.at(col) > 0) {
+                v->setColumnWidth(col, savedWidths.at(col));
+            }
+        }
+        h->blockSignals(false);
+        
+        // ★ 列幅読み込み済みフラグを遅延で設定
+        QTimer::singleShot(500, this, [this, viewIndex]() {
+            if (viewIndex == 0) {
+                m_thinkingView1WidthsLoaded = true;
+            } else {
+                m_thinkingView2WidthsLoaded = true;
+            }
+        });
+    } else {
+        // デフォルトの列幅を設定
+        // 「時間」「深さ」「ノード数」「評価値」「読み筋」
+        const int defaultWidths[] = {60, 50, 100, 80, 380};
+        h->blockSignals(true);
+        for (int col = 0; col < kColCount; ++col) {
+            v->setColumnWidth(col, defaultWidths[col]);
+        }
+        h->blockSignals(false);
+        
+        // デフォルト幅の場合も、初期化後に保存を有効にする
+        QTimer::singleShot(500, this, [this, viewIndex]() {
+            if (viewIndex == 0) {
+                m_thinkingView1WidthsLoaded = true;
+            } else {
+                m_thinkingView2WidthsLoaded = true;
+            }
+        });
+    }
 }
 
 // 追加：ヘッダー名で列を探す（大文字小文字は無視）
@@ -937,7 +983,11 @@ void EngineAnalysisTab::applyNumericFormattingTo_(QTableView* view, QAbstractIte
     // 同じデリゲートを複数列に使い回す。親を view にしてメモリ管理を任せる
     auto* delegate = new NumericRightAlignCommaDelegate(view);
 
-    const QStringList targets = { "Time", "Depth", "Nodes", "Score" };
+    // 日本語と英語の両方のヘッダー名に対応
+    const QStringList targets = { 
+        "Time", "Depth", "Nodes", "Score",
+        "時間", "深さ", "ノード数", "評価値"
+    };
     for (const QString& t : targets) {
         const int col = findColumnByHeader_(model, t);
         if (col >= 0) {
@@ -1359,4 +1409,47 @@ void EngineAnalysisTab::onEngineInfoColumnWidthChanged()
     
     // 設定ファイルに保存
     SettingsService::setEngineInfoColumnWidths(widgetIndex, widths);
+}
+
+// ★ 追加: 思考タブ下段（読み筋テーブル）の列幅変更時の保存
+void EngineAnalysisTab::onThinkingViewColumnWidthChanged(int viewIndex)
+{
+    QTableView* view = (viewIndex == 0) ? m_view1 : m_view2;
+    if (!view) return;
+    
+    QList<int> widths;
+    const int colCount = view->horizontalHeader()->count();
+    for (int col = 0; col < colCount; ++col) {
+        widths.append(view->columnWidth(col));
+    }
+    
+    // 設定ファイルに保存
+    SettingsService::setThinkingViewColumnWidths(viewIndex, widths);
+}
+
+// ★ 追加: view1の列幅変更スロット
+void EngineAnalysisTab::onView1SectionResized(int logicalIndex, int oldSize, int newSize)
+{
+    Q_UNUSED(logicalIndex)
+    Q_UNUSED(oldSize)
+    Q_UNUSED(newSize)
+    
+    // 設定ファイルから読み込み済みの場合、初期化時のリサイズイベントは無視しない
+    // ただし、初期表示の自動調整による保存は避ける必要がある
+    // m_thinkingView1WidthsLoadedがtrueの場合のみ、ユーザー操作とみなして保存
+    if (m_thinkingView1WidthsLoaded) {
+        onThinkingViewColumnWidthChanged(0);
+    }
+}
+
+// ★ 追加: view2の列幅変更スロット
+void EngineAnalysisTab::onView2SectionResized(int logicalIndex, int oldSize, int newSize)
+{
+    Q_UNUSED(logicalIndex)
+    Q_UNUSED(oldSize)
+    Q_UNUSED(newSize)
+    
+    if (m_thinkingView2WidthsLoaded) {
+        onThinkingViewColumnWidthChanged(1);
+    }
 }

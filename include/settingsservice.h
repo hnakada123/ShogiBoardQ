@@ -85,6 +85,12 @@ QList<int> engineInfoColumnWidths(int widgetIndex);
 // ★ 追加: エンジン情報ウィジェットの列幅を保存
 void setEngineInfoColumnWidths(int widgetIndex, const QList<int>& widths);
 
+// ★ 追加: 思考タブ下段（読み筋テーブル）の列幅を取得
+// viewIndex: 0=エンジン1のテーブル, 1=エンジン2のテーブル
+QList<int> thinkingViewColumnWidths(int viewIndex);
+// ★ 追加: 思考タブ下段（読み筋テーブル）の列幅を保存
+void setThinkingViewColumnWidths(int viewIndex, const QList<int>& widths);
+
 } // namespace SettingsService
 
 #endif // SETTINGSSERVICE_H

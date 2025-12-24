@@ -202,6 +202,7 @@ private:
     void onCommentCopy();            // コピー
     void onCommentPaste();           // 貼り付け
     void onEngineInfoColumnWidthChanged();  // ★ 追加: 列幅変更時の保存
+    void onThinkingViewColumnWidthChanged(int viewIndex);  // ★ 追加: 思考タブ下段の列幅変更時の保存
 
 public:
     // ★ 追加: 未保存の編集があるかチェック
@@ -247,6 +248,10 @@ public:
     int m_nextNodeId = 1;
     // 直前に黄色にした item
     QGraphicsPathItem* m_prevSelected = nullptr;
+    
+    // ★ 追加: 思考タブ下段の列幅が設定から読み込まれたか
+    bool m_thinkingView1WidthsLoaded = false;
+    bool m_thinkingView2WidthsLoaded = false;
 
     // ツリークリック検出
     bool eventFilter(QObject* obj, QEvent* ev) override;
@@ -259,13 +264,16 @@ private slots:
     void onModel2Reset_();
     void onLog1Changed_();
     void onLog2Changed_();
+    void onView1SectionResized(int logicalIndex, int oldSize, int newSize);  // ★ 追加
+    void onView2SectionResized(int logicalIndex, int oldSize, int newSize);  // ★ 追加
 
 private:
     void reapplyViewTuning_(QTableView* v, QAbstractItemModel* m);
 
     // 既に導入済みのヘルパ（前回案）
 private:
-    void tuneColumnsForThinkingView_(QTableView* v);
+    void setupThinkingViewHeader_(QTableView* v);  // ★ 変更: ヘッダ基本設定
+    void applyThinkingViewColumnWidths_(QTableView* v, int viewIndex);  // ★ 追加: 列幅適用
     void applyNumericFormattingTo_(QTableView* view, QAbstractItemModel* model);
     static int findColumnByHeader_(QAbstractItemModel* model, const QString& title);
 };
