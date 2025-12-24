@@ -308,6 +308,13 @@ public slots:
     void openWebsiteInExternalBrowser();
     void saveKifuToFile();
     void overwriteKifuFile();
+    void copyKifToClipboard();   // ★ 追加: KIF形式で棋譜をクリップボードにコピー
+    void copyKi2ToClipboard();   // ★ 追加: KI2形式で棋譜をクリップボードにコピー
+    void copyCsaToClipboard();   // ★ 追加: CSA形式で棋譜をクリップボードにコピー
+    void copyUsiToClipboard();   // ★ 追加: USI形式（全て）で棋譜をクリップボードにコピー
+    void copyUsiCurrentToClipboard();  // ★ 追加: USI形式（現在の指し手まで）で棋譜をクリップボードにコピー
+    void copyJkfToClipboard();   // ★ 追加: JKF形式で棋譜をクリップボードにコピー
+    void copyUsenToClipboard();  // ★ 追加: USEN形式で棋譜をクリップボードにコピー
 
     // --- エラー/一般UI ---
     void displayErrorMessage(const QString& message);

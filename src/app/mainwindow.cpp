@@ -3471,6 +3471,337 @@ void MainWindow::saveKifuToFile()
     }
 }
 
+// ★ 追加: KIF形式で棋譜をクリップボードにコピー
+void MainWindow::copyKifToClipboard()
+{
+    // GameRecordModel を使って KIF 形式を生成
+    ensureGameRecordModel_();
+
+    QStringList kifLines;
+
+    if (m_gameRecord) {
+        // ExportContext を構築
+        GameRecordModel::ExportContext ctx;
+        ctx.gameInfoTable = m_gameInfoTable;
+        ctx.recordModel   = m_kifuRecordModel;
+        ctx.startSfen     = m_startSfenStr;
+        ctx.playMode      = m_playMode;
+        ctx.human1        = m_humanName1;
+        ctx.human2        = m_humanName2;
+        ctx.engine1       = m_engineName1;
+        ctx.engine2       = m_engineName2;
+
+        // GameRecordModel から KIF 形式の行リストを生成
+        kifLines = m_gameRecord->toKifLines(ctx);
+        qDebug().noquote() << "[MW] copyKifToClipboard: generated" << kifLines.size() << "KIF lines via GameRecordModel";
+    } else {
+        // フォールバック: 従来の KifuContentBuilder を使用
+        KifuExportContext ctx;
+        ctx.gameInfoTable = m_gameInfoTable;
+        ctx.recordModel   = m_kifuRecordModel;
+        ctx.resolvedRows  = &m_resolvedRows;
+        if (m_recordPresenter) {
+            ctx.liveDisp = &m_recordPresenter->liveDisp();
+        }
+        ctx.commentsByRow = &m_commentsByRow;
+        ctx.activeResolvedRow = m_activeResolvedRow;
+        ctx.startSfen = m_startSfenStr;
+        ctx.playMode  = m_playMode;
+        ctx.human1    = m_humanName1;
+        ctx.human2    = m_humanName2;
+        ctx.engine1   = m_engineName1;
+        ctx.engine2   = m_engineName2;
+
+        kifLines = KifuContentBuilder::buildKifuDataList(ctx);
+        qDebug().noquote() << "[MW] copyKifToClipboard: generated" << kifLines.size() << "KIF lines via KifuContentBuilder (fallback)";
+    }
+
+    // 行リストを改行で結合してクリップボードにコピー
+    const QString kifText = kifLines.join(QStringLiteral("\n"));
+
+    QClipboard* clipboard = QApplication::clipboard();
+    if (clipboard) {
+        clipboard->setText(kifText);
+        ui->statusbar->showMessage(tr("KIF形式の棋譜をクリップボードにコピーしました"), 3000);
+        qDebug().noquote() << "[MW] copyKifToClipboard: copied to clipboard," << kifText.size() << "chars";
+    } else {
+        qWarning() << "[MW] copyKifToClipboard: clipboard is not available";
+        ui->statusbar->showMessage(tr("クリップボードへのコピーに失敗しました"), 3000);
+    }
+}
+
+// ★ 追加: KI2形式で棋譜をクリップボードにコピー
+void MainWindow::copyKi2ToClipboard()
+{
+    ensureGameRecordModel_();
+
+    QStringList ki2Lines;
+
+    if (m_gameRecord) {
+        GameRecordModel::ExportContext ctx;
+        ctx.gameInfoTable = m_gameInfoTable;
+        ctx.recordModel   = m_kifuRecordModel;
+        ctx.startSfen     = m_startSfenStr;
+        ctx.playMode      = m_playMode;
+        ctx.human1        = m_humanName1;
+        ctx.human2        = m_humanName2;
+        ctx.engine1       = m_engineName1;
+        ctx.engine2       = m_engineName2;
+
+        ki2Lines = m_gameRecord->toKi2Lines(ctx);
+        qDebug().noquote() << "[MW] copyKi2ToClipboard: generated" << ki2Lines.size() << "KI2 lines via GameRecordModel";
+    }
+
+    if (ki2Lines.isEmpty()) {
+        ui->statusbar->showMessage(tr("KI2形式の棋譜データがありません"), 3000);
+        return;
+    }
+
+    const QString ki2Text = ki2Lines.join(QStringLiteral("\n"));
+
+    QClipboard* clipboard = QApplication::clipboard();
+    if (clipboard) {
+        clipboard->setText(ki2Text);
+        ui->statusbar->showMessage(tr("KI2形式の棋譜をクリップボードにコピーしました"), 3000);
+        qDebug().noquote() << "[MW] copyKi2ToClipboard: copied to clipboard," << ki2Text.size() << "chars";
+    } else {
+        qWarning() << "[MW] copyKi2ToClipboard: clipboard is not available";
+        ui->statusbar->showMessage(tr("クリップボードへのコピーに失敗しました"), 3000);
+    }
+}
+
+// ★ 追加: CSA形式で棋譜をクリップボードにコピー
+void MainWindow::copyCsaToClipboard()
+{
+    ensureGameRecordModel_();
+
+    // CSA出力用のUSI指し手リストを取得
+    QStringList usiMovesForCsa = m_usiMoves;
+    if (usiMovesForCsa.isEmpty() && m_kifuLoadCoordinator) {
+        usiMovesForCsa = m_kifuLoadCoordinator->usiMoves();
+    }
+
+    QStringList csaLines;
+
+    if (m_gameRecord) {
+        GameRecordModel::ExportContext ctx;
+        ctx.gameInfoTable = m_gameInfoTable;
+        ctx.recordModel   = m_kifuRecordModel;
+        ctx.startSfen     = m_startSfenStr;
+        ctx.playMode      = m_playMode;
+        ctx.human1        = m_humanName1;
+        ctx.human2        = m_humanName2;
+        ctx.engine1       = m_engineName1;
+        ctx.engine2       = m_engineName2;
+
+        csaLines = m_gameRecord->toCsaLines(ctx, usiMovesForCsa);
+        qDebug().noquote() << "[MW] copyCsaToClipboard: generated" << csaLines.size() << "CSA lines via GameRecordModel";
+    }
+
+    if (csaLines.isEmpty()) {
+        ui->statusbar->showMessage(tr("CSA形式の棋譜データがありません"), 3000);
+        return;
+    }
+
+    const QString csaText = csaLines.join(QStringLiteral("\n"));
+
+    QClipboard* clipboard = QApplication::clipboard();
+    if (clipboard) {
+        clipboard->setText(csaText);
+        ui->statusbar->showMessage(tr("CSA形式の棋譜をクリップボードにコピーしました"), 3000);
+        qDebug().noquote() << "[MW] copyCsaToClipboard: copied to clipboard," << csaText.size() << "chars";
+    } else {
+        qWarning() << "[MW] copyCsaToClipboard: clipboard is not available";
+        ui->statusbar->showMessage(tr("クリップボードへのコピーに失敗しました"), 3000);
+    }
+}
+
+// ★ 追加: USI形式（全て）で棋譜をクリップボードにコピー
+void MainWindow::copyUsiToClipboard()
+{
+    ensureGameRecordModel_();
+
+    // USI出力用の指し手リストを取得
+    QStringList usiMovesForOutput = m_usiMoves;
+    if (usiMovesForOutput.isEmpty() && m_kifuLoadCoordinator) {
+        usiMovesForOutput = m_kifuLoadCoordinator->usiMoves();
+    }
+
+    QStringList usiLines;
+
+    if (m_gameRecord) {
+        GameRecordModel::ExportContext ctx;
+        ctx.gameInfoTable = m_gameInfoTable;
+        ctx.recordModel   = m_kifuRecordModel;
+        ctx.startSfen     = m_startSfenStr;
+        ctx.playMode      = m_playMode;
+        ctx.human1        = m_humanName1;
+        ctx.human2        = m_humanName2;
+        ctx.engine1       = m_engineName1;
+        ctx.engine2       = m_engineName2;
+
+        usiLines = m_gameRecord->toUsiLines(ctx, usiMovesForOutput);
+        qDebug().noquote() << "[MW] copyUsiToClipboard: generated" << usiLines.size() << "USI lines via GameRecordModel";
+    }
+
+    if (usiLines.isEmpty()) {
+        ui->statusbar->showMessage(tr("USI形式の棋譜データがありません"), 3000);
+        return;
+    }
+
+    const QString usiText = usiLines.join(QStringLiteral("\n"));
+
+    QClipboard* clipboard = QApplication::clipboard();
+    if (clipboard) {
+        clipboard->setText(usiText);
+        ui->statusbar->showMessage(tr("USI形式の棋譜をクリップボードにコピーしました"), 3000);
+        qDebug().noquote() << "[MW] copyUsiToClipboard: copied to clipboard," << usiText.size() << "chars";
+    } else {
+        qWarning() << "[MW] copyUsiToClipboard: clipboard is not available";
+        ui->statusbar->showMessage(tr("クリップボードへのコピーに失敗しました"), 3000);
+    }
+}
+
+// ★ 追加: USI形式（現在の指し手まで）で棋譜をクリップボードにコピー
+void MainWindow::copyUsiCurrentToClipboard()
+{
+    ensureGameRecordModel_();
+
+    // 現在の指し手までのUSI指し手リストを取得
+    QStringList usiMovesForOutput = m_usiMoves;
+    if (usiMovesForOutput.isEmpty() && m_kifuLoadCoordinator) {
+        usiMovesForOutput = m_kifuLoadCoordinator->usiMoves();
+    }
+
+    // 現在の手数（m_currentMoveIndex）までに制限
+    // m_currentMoveIndex は 0始まりの手数インデックス
+    const int currentPlyLimit = m_currentMoveIndex;
+    if (currentPlyLimit >= 0 && currentPlyLimit < usiMovesForOutput.size()) {
+        usiMovesForOutput = usiMovesForOutput.mid(0, currentPlyLimit);
+        qDebug().noquote() << "[MW] copyUsiCurrentToClipboard: limited to" << currentPlyLimit << "moves";
+    }
+
+    QStringList usiLines;
+
+    if (m_gameRecord) {
+        GameRecordModel::ExportContext ctx;
+        ctx.gameInfoTable = m_gameInfoTable;
+        ctx.recordModel   = m_kifuRecordModel;
+        ctx.startSfen     = m_startSfenStr;
+        ctx.playMode      = m_playMode;
+        ctx.human1        = m_humanName1;
+        ctx.human2        = m_humanName2;
+        ctx.engine1       = m_engineName1;
+        ctx.engine2       = m_engineName2;
+
+        usiLines = m_gameRecord->toUsiLines(ctx, usiMovesForOutput);
+        qDebug().noquote() << "[MW] copyUsiCurrentToClipboard: generated" << usiLines.size() << "USI lines via GameRecordModel";
+    }
+
+    if (usiLines.isEmpty()) {
+        ui->statusbar->showMessage(tr("USI形式の棋譜データがありません"), 3000);
+        return;
+    }
+
+    const QString usiText = usiLines.join(QStringLiteral("\n"));
+
+    QClipboard* clipboard = QApplication::clipboard();
+    if (clipboard) {
+        clipboard->setText(usiText);
+        ui->statusbar->showMessage(tr("USI形式（現在の指し手まで）の棋譜をクリップボードにコピーしました"), 3000);
+        qDebug().noquote() << "[MW] copyUsiCurrentToClipboard: copied to clipboard," << usiText.size() << "chars";
+    } else {
+        qWarning() << "[MW] copyUsiCurrentToClipboard: clipboard is not available";
+        ui->statusbar->showMessage(tr("クリップボードへのコピーに失敗しました"), 3000);
+    }
+}
+
+// ★ 追加: JKF形式で棋譜をクリップボードにコピー
+void MainWindow::copyJkfToClipboard()
+{
+    ensureGameRecordModel_();
+
+    QStringList jkfLines;
+
+    if (m_gameRecord) {
+        GameRecordModel::ExportContext ctx;
+        ctx.gameInfoTable = m_gameInfoTable;
+        ctx.recordModel   = m_kifuRecordModel;
+        ctx.startSfen     = m_startSfenStr;
+        ctx.playMode      = m_playMode;
+        ctx.human1        = m_humanName1;
+        ctx.human2        = m_humanName2;
+        ctx.engine1       = m_engineName1;
+        ctx.engine2       = m_engineName2;
+
+        jkfLines = m_gameRecord->toJkfLines(ctx);
+        qDebug().noquote() << "[MW] copyJkfToClipboard: generated" << jkfLines.size() << "JKF lines via GameRecordModel";
+    }
+
+    if (jkfLines.isEmpty()) {
+        ui->statusbar->showMessage(tr("JKF形式の棋譜データがありません"), 3000);
+        return;
+    }
+
+    const QString jkfText = jkfLines.join(QStringLiteral("\n"));
+
+    QClipboard* clipboard = QApplication::clipboard();
+    if (clipboard) {
+        clipboard->setText(jkfText);
+        ui->statusbar->showMessage(tr("JKF形式の棋譜をクリップボードにコピーしました"), 3000);
+        qDebug().noquote() << "[MW] copyJkfToClipboard: copied to clipboard," << jkfText.size() << "chars";
+    } else {
+        qWarning() << "[MW] copyJkfToClipboard: clipboard is not available";
+        ui->statusbar->showMessage(tr("クリップボードへのコピーに失敗しました"), 3000);
+    }
+}
+
+// ★ 追加: USEN形式で棋譜をクリップボードにコピー
+void MainWindow::copyUsenToClipboard()
+{
+    ensureGameRecordModel_();
+
+    // USEN出力用のUSI指し手リストを取得
+    QStringList usiMovesForOutput = m_usiMoves;
+    if (usiMovesForOutput.isEmpty() && m_kifuLoadCoordinator) {
+        usiMovesForOutput = m_kifuLoadCoordinator->usiMoves();
+    }
+
+    QStringList usenLines;
+
+    if (m_gameRecord) {
+        GameRecordModel::ExportContext ctx;
+        ctx.gameInfoTable = m_gameInfoTable;
+        ctx.recordModel   = m_kifuRecordModel;
+        ctx.startSfen     = m_startSfenStr;
+        ctx.playMode      = m_playMode;
+        ctx.human1        = m_humanName1;
+        ctx.human2        = m_humanName2;
+        ctx.engine1       = m_engineName1;
+        ctx.engine2       = m_engineName2;
+
+        usenLines = m_gameRecord->toUsenLines(ctx, usiMovesForOutput);
+        qDebug().noquote() << "[MW] copyUsenToClipboard: generated" << usenLines.size() << "USEN lines via GameRecordModel";
+    }
+
+    if (usenLines.isEmpty()) {
+        ui->statusbar->showMessage(tr("USEN形式の棋譜データがありません"), 3000);
+        return;
+    }
+
+    const QString usenText = usenLines.join(QStringLiteral("\n"));
+
+    QClipboard* clipboard = QApplication::clipboard();
+    if (clipboard) {
+        clipboard->setText(usenText);
+        ui->statusbar->showMessage(tr("USEN形式の棋譜をクリップボードにコピーしました"), 3000);
+        qDebug().noquote() << "[MW] copyUsenToClipboard: copied to clipboard," << usenText.size() << "chars";
+    } else {
+        qWarning() << "[MW] copyUsenToClipboard: clipboard is not available";
+        ui->statusbar->showMessage(tr("クリップボードへのコピーに失敗しました"), 3000);
+    }
+}
+
 void MainWindow::overwriteKifuFile()
 {
     if (kifuSaveFileName.isEmpty()) {
