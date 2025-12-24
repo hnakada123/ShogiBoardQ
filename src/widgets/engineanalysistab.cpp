@@ -58,8 +58,10 @@ void EngineAnalysisTab::buildUi()
 
     // ★ 変更: 最初のEngineInfoWidgetにフォントサイズボタンを表示
     m_info1 = new EngineInfoWidget(page, true);  // showFontButtons=true
+    m_info1->setWidgetIndex(0);  // ★ 追加: インデックス設定
     m_view1 = new QTableView(page);
     m_info2 = new EngineInfoWidget(page, false); // showFontButtons=false
+    m_info2->setWidgetIndex(1);  // ★ 追加: インデックス設定
     m_view2 = new QTableView(page);
     
     // ★ 追加: フォントサイズ変更シグナルを接続
@@ -67,6 +69,22 @@ void EngineAnalysisTab::buildUi()
             this, &EngineAnalysisTab::onThinkingFontIncrease);
     connect(m_info1, &EngineInfoWidget::fontSizeDecreaseRequested,
             this, &EngineAnalysisTab::onThinkingFontDecrease);
+    
+    // ★ 追加: 列幅変更シグナルを接続
+    connect(m_info1, &EngineInfoWidget::columnWidthChanged,
+            this, &EngineAnalysisTab::onEngineInfoColumnWidthChanged);
+    connect(m_info2, &EngineInfoWidget::columnWidthChanged,
+            this, &EngineAnalysisTab::onEngineInfoColumnWidthChanged);
+    
+    // ★ 追加: 設定ファイルから列幅を読み込んで適用
+    QList<int> widths0 = SettingsService::engineInfoColumnWidths(0);
+    if (!widths0.isEmpty() && widths0.size() == m_info1->columnCount()) {
+        m_info1->setColumnWidths(widths0);
+    }
+    QList<int> widths1 = SettingsService::engineInfoColumnWidths(1);
+    if (!widths1.isEmpty() && widths1.size() == m_info2->columnCount()) {
+        m_info2->setColumnWidths(widths1);
+    }
 
     // ヘッダのリサイズポリシー（PV 列を広く等）
     tuneColumnsForThinkingView_(m_view1);
@@ -1328,4 +1346,17 @@ void EngineAnalysisTab::onView2Clicked(const QModelIndex& index)
     if (!index.isValid()) return;
     qDebug() << "[EngineAnalysisTab] onView2Clicked: row=" << index.row();
     emit pvRowClicked(1, index.row());
+}
+
+// ★ 追加: エンジン情報ウィジェットの列幅変更時の保存
+void EngineAnalysisTab::onEngineInfoColumnWidthChanged()
+{
+    EngineInfoWidget* sender = qobject_cast<EngineInfoWidget*>(QObject::sender());
+    if (!sender) return;
+    
+    int widgetIndex = sender->widgetIndex();
+    QList<int> widths = sender->columnWidths();
+    
+    // 設定ファイルに保存
+    SettingsService::setEngineInfoColumnWidths(widgetIndex, widths);
 }
