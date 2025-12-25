@@ -396,6 +396,7 @@ void MainWindow::initializeComponents()
     // setPlayersNamesForMode / setEngineNamesBasedOnMode がサービスへ移設済みでも呼び出し名は同じ
     setPlayersNamesForMode();
     setEngineNamesBasedOnMode();
+    updateSecondEngineVisibility();  // ★ 追加: EvE対局時に2番目エンジン情報を表示
 }
 
 // エラーメッセージを表示する。
@@ -482,6 +483,19 @@ void MainWindow::setEngineNamesBasedOnMode()
 
     if (m_lineEditModel1) m_lineEditModel1->setEngineName(e.model1);
     if (m_lineEditModel2) m_lineEditModel2->setEngineName(e.model2);
+}
+
+// ★ 追加: EvE対局時に2番目のエンジン情報を表示する
+void MainWindow::updateSecondEngineVisibility()
+{
+    if (!m_analysisTab) return;
+
+    // EvE対局の場合のみ2番目のエンジン情報を表示
+    const bool isEvE =
+        (m_playMode == EvenEngineVsEngine) ||
+        (m_playMode == HandicapEngineVsEngine);
+
+    m_analysisTab->setSecondEngineVisible(isEvE);
 }
 
 // 対局者名と残り時間、将棋盤と棋譜、矢印ボタン、評価値グラフのグループを横に並べて表示する。
@@ -605,9 +619,12 @@ void MainWindow::handleResignation()
     if (m_match) m_match->handleResign();
 }
 
-void MainWindow::redrawEngine1EvaluationGraph()
+void MainWindow::redrawEngine1EvaluationGraph(int ply)
 {
-    qDebug() << "[EVAL_GRAPH] redrawEngine1EvaluationGraph() called";
+    qDebug() << "[EVAL_GRAPH] redrawEngine1EvaluationGraph() called with ply=" << ply;
+
+    // EvEモードでplyが渡された場合は保存しておく
+    m_pendingPlyForEngine1 = ply;
 
     // bestmoveと同時に受信したinfo行の処理が完了するのを待つため、遅延させる
     QTimer::singleShot(50, this, SLOT(doRedrawEngine1EvaluationGraph()));
@@ -617,11 +634,19 @@ void MainWindow::doRedrawEngine1EvaluationGraph()
 {
     qDebug() << "[EVAL_GRAPH] doRedrawEngine1EvaluationGraph() delayed execution";
 
-    // 実際の手数を取得（sfenRecordのサイズ - 1 が現在の手数）
-    // 例: sfenRecord = [開始局面, 1手目, 2手目] なら size=3, 手数=2
-    const int ply = m_sfenRecord ? qMax(0, m_sfenRecord->size() - 1) : 0;
-    qDebug() << "[EVAL_GRAPH] P1: actual ply (from sfenRecord) =" << ply
-             << ", sfenRecord size =" << (m_sfenRecord ? m_sfenRecord->size() : -1);
+    // 手数を取得：EvEモードでplyが渡された場合はそれを使用、それ以外はsfenRecordから計算
+    int ply;
+    if (m_pendingPlyForEngine1 >= 0) {
+        // EvEモードで渡されたplyを使用
+        ply = m_pendingPlyForEngine1;
+        m_pendingPlyForEngine1 = -1;  // 使用後リセット
+        qDebug() << "[EVAL_GRAPH] P1: using pending ply =" << ply;
+    } else {
+        // sfenRecordから計算（従来の動作）
+        ply = m_sfenRecord ? qMax(0, m_sfenRecord->size() - 1) : 0;
+        qDebug() << "[EVAL_GRAPH] P1: actual ply (from sfenRecord) =" << ply
+                 << ", sfenRecord size =" << (m_sfenRecord ? m_sfenRecord->size() : -1);
+    }
 
     EvalGraphPresenter::appendPrimaryScore(m_scoreCp, m_match);
 
@@ -649,9 +674,12 @@ void MainWindow::doRedrawEngine1EvaluationGraph()
     qDebug() << "[EVAL_GRAPH] P1: appendScoreP1 done, chart countP1 =" << ec->countP1();
 }
 
-void MainWindow::redrawEngine2EvaluationGraph()
+void MainWindow::redrawEngine2EvaluationGraph(int ply)
 {
-    qDebug() << "[EVAL_GRAPH] redrawEngine2EvaluationGraph() called";
+    qDebug() << "[EVAL_GRAPH] redrawEngine2EvaluationGraph() called with ply=" << ply;
+
+    // EvEモードでplyが渡された場合は保存しておく
+    m_pendingPlyForEngine2 = ply;
 
     // bestmoveと同時に受信したinfo行の処理が完了するのを待つため、遅延させる
     QTimer::singleShot(50, this, SLOT(doRedrawEngine2EvaluationGraph()));
@@ -661,11 +689,19 @@ void MainWindow::doRedrawEngine2EvaluationGraph()
 {
     qDebug() << "[EVAL_GRAPH] doRedrawEngine2EvaluationGraph() delayed execution";
 
-    // 実際の手数を取得（sfenRecordのサイズ - 1 が現在の手数）
-    // 例: sfenRecord = [開始局面, 1手目, 2手目] なら size=3, 手数=2
-    const int ply = m_sfenRecord ? qMax(0, m_sfenRecord->size() - 1) : 0;
-    qDebug() << "[EVAL_GRAPH] P2: actual ply (from sfenRecord) =" << ply
-             << ", sfenRecord size =" << (m_sfenRecord ? m_sfenRecord->size() : -1);
+    // 手数を取得：EvEモードでplyが渡された場合はそれを使用、それ以外はsfenRecordから計算
+    int ply;
+    if (m_pendingPlyForEngine2 >= 0) {
+        // EvEモードで渡されたplyを使用
+        ply = m_pendingPlyForEngine2;
+        m_pendingPlyForEngine2 = -1;  // 使用後リセット
+        qDebug() << "[EVAL_GRAPH] P2: using pending ply =" << ply;
+    } else {
+        // sfenRecordから計算（従来の動作）
+        ply = m_sfenRecord ? qMax(0, m_sfenRecord->size() - 1) : 0;
+        qDebug() << "[EVAL_GRAPH] P2: actual ply (from sfenRecord) =" << ply
+                 << ", sfenRecord size =" << (m_sfenRecord ? m_sfenRecord->size() : -1);
+    }
 
     EvalGraphPresenter::appendSecondaryScore(m_scoreCp, m_match);
 
@@ -1422,6 +1458,9 @@ void MainWindow::onSetEngineNames_(const QString& e1, const QString& e2)
     // ログモデル名を更新
     setEngineNamesBasedOnMode();
 
+    // ★ 追加: EvE対局時に2番目のエンジン情報を表示
+    updateSecondEngineVisibility();
+
     // 将棋盤の対局者名ラベルを更新（PlayModeに応じて）
     setPlayersNamesForMode();
 
@@ -1534,6 +1573,9 @@ void MainWindow::onPlayerNamesResolved_(const QString& human1, const QString& hu
 
     // エンジン名をログモデルに反映
     setEngineNamesBasedOnMode();
+
+    // ★ 追加: EvE対局時に2番目のエンジン情報を表示
+    updateSecondEngineVisibility();
 
     // 対局情報タブを更新
     updateGameInfoForCurrentMatch_();
@@ -2529,7 +2571,7 @@ void MainWindow::onBranchNodeActivated_(int row, int ply)
 }
 
 // 毎手の着手確定時：ライブ分岐ツリー更新をイベントループ後段に遅延
-void MainWindow::onMoveCommitted(ShogiGameController::Player mover, int /*ply*/)
+void MainWindow::onMoveCommitted(ShogiGameController::Player mover, int ply)
 {
     // 1) いまは即時呼び出しを行わず、0ms 遅延で呼ぶ
     QTimer::singleShot(0, this, &MainWindow::refreshBranchTreeLive_);
@@ -2541,9 +2583,9 @@ void MainWindow::onMoveCommitted(ShogiGameController::Player mover, int /*ply*/)
 
     if (isEvE) {
         if (mover == ShogiGameController::Player1) {
-            redrawEngine1EvaluationGraph();
+            redrawEngine1EvaluationGraph(ply);
         } else if (mover == ShogiGameController::Player2) {
-            redrawEngine2EvaluationGraph();
+            redrawEngine2EvaluationGraph(ply);
         }
     }
 }
@@ -2714,6 +2756,7 @@ void MainWindow::handleBreakOffConsidaration()
 
     // 盤下のエンジン名表示などを通常状態へ（関数がある場合）
     setEngineNamesBasedOnMode();
+    updateSecondEngineVisibility();  // ★ 追加: 検討終了時も2番目エンジン表示を更新
 
     // ここでは UI の大規模リセットは行わず、検討終了の状態だけ示す
     if (statusBar()) {
@@ -2959,13 +3002,15 @@ void MainWindow::ensureRecordPresenter_()
 void MainWindow::requestRedrawEngine1Eval_()
 {
     qDebug() << "[EVAL_GRAPH] requestRedrawEngine1Eval_() hook called - invoking redrawEngine1EvaluationGraph";
-    QMetaObject::invokeMethod(this, &MainWindow::redrawEngine1EvaluationGraph, Qt::QueuedConnection);
+    // デフォルトパラメータ -1 で呼び出し（HvEでは sfenRecord から計算）
+    redrawEngine1EvaluationGraph(-1);
 }
 
 void MainWindow::requestRedrawEngine2Eval_()
 {
     qDebug() << "[EVAL_GRAPH] requestRedrawEngine2Eval_() hook called - invoking redrawEngine2EvaluationGraph";
-    QMetaObject::invokeMethod(this, &MainWindow::redrawEngine2EvaluationGraph, Qt::QueuedConnection);
+    // デフォルトパラメータ -1 で呼び出し（HvEでは sfenRecord から計算）
+    redrawEngine2EvaluationGraph(-1);
 }
 
 void MainWindow::initializeNewGame_(const QString& s)
@@ -2985,6 +3030,7 @@ void MainWindow::initializeNewGame_(const QString& s)
     // 表示名の更新（必要に応じて）
     setPlayersNamesForMode();
     setEngineNamesBasedOnMode();
+    updateSecondEngineVisibility();  // ★ 追加: 棋譜読み込み後も2番目エンジン表示を更新
 }
 
 void MainWindow::showMoveHighlights_(const QPoint& from, const QPoint& to)

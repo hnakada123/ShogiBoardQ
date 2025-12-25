@@ -843,7 +843,14 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
 
     prepare(req); // requestPreStartCleanup / 時間適用シグナル / setClock→startClock など
 
-    // --- 8) 対局開始（時計設定 + 初手 go 設定） ---
+    // --- 8) ★ 対局者名をMainWindowに通知（startの前に！EvE初手で評価値グラフが動くため） ---
+    const QString human1 = dlg->humanName1();
+    const QString human2 = dlg->humanName2();
+    const QString engine1 = opt.engineName1;
+    const QString engine2 = opt.engineName2;
+    emit playerNamesResolved(human1, human2, engine1, engine2, static_cast<int>(mode));
+
+    // --- 9) 対局開始（時計設定 + 初手 go 設定） ---
     StartParams params;
     params.opt  = opt;
     params.tc   = tc;                 // 司令塔側の go 計算にも使用
@@ -851,20 +858,13 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
 
     start(params);
 
-    // --- 9) 保険：時計起動/初手go の取りこぼし防止 ---
+    // --- 10) 保険：時計起動/初手go の取りこぼし防止 ---
     if (m_match) {
         if (c.clock && m_match->clock() != c.clock) {
             m_match->setClock(c.clock);
         }
         m_match->startMatchTimingAndMaybeInitialGo();
     }
-
-    // --- 10) ★追加: 対局者名をMainWindowに通知 ---
-    const QString human1 = dlg->humanName1();
-    const QString human2 = dlg->humanName2();
-    const QString engine1 = opt.engineName1;
-    const QString engine2 = opt.engineName2;
-    emit playerNamesResolved(human1, human2, engine1, engine2, static_cast<int>(mode));
 
     delete dlg;
 }

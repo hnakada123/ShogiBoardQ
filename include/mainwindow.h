@@ -158,6 +158,8 @@ private:
 
     // --- 記録 / 評価 / 表示用データ ---
     QList<int>        m_scoreCp;
+    int               m_pendingPlyForEngine1 = -1;  // EvE用: Engine1評価値グラフの手数
+    int               m_pendingPlyForEngine2 = -1;  // EvE用: Engine2評価値グラフの手数
     QString           m_humanName1, m_humanName2;
     QString           m_engineName1, m_engineName2;
     QStringList*      m_sfenRecord   = nullptr;
@@ -237,8 +239,8 @@ private:
     // --- UI / 表示更新 ---
     void updateGameRecord(const QString& elapsedTime);
     void updateTurnStatus(int currentPlayer);
-    void redrawEngine1EvaluationGraph();
-    void redrawEngine2EvaluationGraph();
+    void redrawEngine1EvaluationGraph(int ply = -1);
+    void redrawEngine2EvaluationGraph(int ply = -1);
 
     // --- 初期化 / セットアップ ---
     void initializeComponents();
@@ -254,6 +256,7 @@ private:
     void initializeNewGame(QString& startSfenStr);
     void startNewShogiGame(QString& startSfenStr);
     void setEngineNamesBasedOnMode();
+    void updateSecondEngineVisibility();  // ★ 追加: EvE対局時に2番目エンジン情報を表示
 
     // --- 入出力 / 設定 ---
     void saveWindowAndBoardSettings();
