@@ -92,22 +92,22 @@ EvaluationChartWidget::EvaluationChartWidget(QWidget* parent)
     setupZeroLine();
 
     // シリーズ
-    m_s1 = new QLineSeries(this); // 先手側（白線）
-    m_s2 = new QLineSeries(this); // 後手側（黒線）
+    m_s1 = new QLineSeries(this); // 先手側（黒線）
+    m_s2 = new QLineSeries(this); // 後手側（白線）
 
     {
         QPen p = m_s1->pen();
         p.setWidth(2);
         m_s1->setPen(p);
         m_s1->setPointsVisible(true);
-        m_s1->setColor(Qt::white);
+        m_s1->setColor(Qt::black);
     }
     {
         QPen p = m_s2->pen();
         p.setWidth(2);
         m_s2->setPen(p);
         m_s2->setPointsVisible(true);
-        m_s2->setColor(Qt::black);
+        m_s2->setColor(Qt::white);
     }
 
     m_chart->addSeries(m_s1);
