@@ -1358,16 +1358,8 @@ QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringL
                           || ctx.startSfen.startsWith(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL"));
     
     if (isHirate) {
-        // 平手初期配置
-        out << QStringLiteral("P1-KY-KE-GI-KI-OU-KI-GI-KE-KY");
-        out << QStringLiteral("P2 * -HI *  *  *  *  * -KA * ");
-        out << QStringLiteral("P3-FU-FU-FU-FU-FU-FU-FU-FU-FU");
-        out << QStringLiteral("P4 *  *  *  *  *  *  *  *  * ");
-        out << QStringLiteral("P5 *  *  *  *  *  *  *  *  * ");
-        out << QStringLiteral("P6 *  *  *  *  *  *  *  *  * ");
-        out << QStringLiteral("P7+FU+FU+FU+FU+FU+FU+FU+FU+FU");
-        out << QStringLiteral("P8 * +KA *  *  *  *  * +HI * ");
-        out << QStringLiteral("P9+KY+KE+GI+KI+OU+KI+GI+KE+KY");
+        // 平手初期配置（簡易表記）
+        out << QStringLiteral("PI");
         out << QStringLiteral("+");  // 先手番
     } else {
         // 任意の開始局面（SFEN形式から変換）
@@ -1439,13 +1431,11 @@ QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringL
             terminalMove = moveText;
             const QString resultCode = getCsaResultCode(moveText);
             if (!resultCode.isEmpty()) {
-                // 消費時間を追加
+                // 終局コードを出力
+                out << resultCode;
+                // 消費時間を別行で出力
                 const int timeSec = extractCsaTimeSeconds(it.timeText);
-                if (timeSec > 0) {
-                    out << QStringLiteral("%1,T%2").arg(resultCode).arg(timeSec);
-                } else {
-                    out << resultCode;
-                }
+                out << QStringLiteral("T%1").arg(timeSec);
             }
             break;
         }
@@ -1527,11 +1517,11 @@ QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringL
             continue;
         }
         
-        // 消費時間を追加（常に出力、0秒でもT0を付加）
-        const int timeSec = extractCsaTimeSeconds(it.timeText);
-        csaMove += QStringLiteral(",T%1").arg(timeSec);
-        
+        // 指し手を出力
         out << csaMove;
+        // 消費時間を別行で出力（常に出力、0秒でもT0を付加）
+        const int timeSec = extractCsaTimeSeconds(it.timeText);
+        out << QStringLiteral("T%1").arg(timeSec);
         ++processedMoves;
         
         // コメント出力
