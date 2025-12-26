@@ -325,6 +325,8 @@ public slots:
     void copyUsiCurrentToClipboard();  // ★ 追加: USI形式（現在の指し手まで）で棋譜をクリップボードにコピー
     void copyJkfToClipboard();   // ★ 追加: JKF形式で棋譜をクリップボードにコピー
     void copyUsenToClipboard();  // ★ 追加: USEN形式で棋譜をクリップボードにコピー
+    void copySfenToClipboard();  // ★ 追加: SFEN形式で局面をクリップボードにコピー
+    void copyBodToClipboard();   // ★ 追加: BOD形式で局面をクリップボードにコピー
 
     // --- エラー/一般UI ---
     void displayErrorMessage(const QString& message);

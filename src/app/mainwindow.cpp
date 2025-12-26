@@ -3944,6 +3944,382 @@ void MainWindow::copyUsenToClipboard()
     }
 }
 
+// ★ 追加: SFEN形式で局面をクリップボードにコピー
+void MainWindow::copySfenToClipboard()
+{
+    QString sfenStr;
+
+    // デバッグ: 各種状態を出力
+    qDebug().noquote() << "[MW] copySfenToClipboard: ========== DEBUG START ==========";
+    qDebug().noquote() << "[MW] copySfenToClipboard: m_currentMoveIndex =" << m_currentMoveIndex;
+    qDebug().noquote() << "[MW] copySfenToClipboard: m_activePly =" << m_activePly;
+    qDebug().noquote() << "[MW] copySfenToClipboard: m_currentSelectedPly =" << m_currentSelectedPly;
+    qDebug().noquote() << "[MW] copySfenToClipboard: m_isLiveAppendMode =" << m_isLiveAppendMode;
+    qDebug().noquote() << "[MW] copySfenToClipboard: currentPly() =" << currentPly();
+    qDebug().noquote() << "[MW] copySfenToClipboard: m_playMode =" << m_playMode;
+    qDebug().noquote() << "[MW] copySfenToClipboard: m_sfenRecord =" << (m_sfenRecord ? "valid" : "nullptr");
+    if (m_sfenRecord) {
+        qDebug().noquote() << "[MW] copySfenToClipboard: m_sfenRecord->size() =" << m_sfenRecord->size();
+        for (int i = 0; i < m_sfenRecord->size(); ++i) {
+            qDebug().noquote() << "[MW] copySfenToClipboard: m_sfenRecord[" << i << "] =" << m_sfenRecord->at(i);
+        }
+    }
+    
+    // RecordPane の現在選択行を確認
+    if (m_recordPane) {
+        const QTableView* view = m_recordPane->kifuView();
+        if (view) {
+            const QModelIndex cur = view->currentIndex();
+            qDebug().noquote() << "[MW] copySfenToClipboard: kifuView currentIndex valid =" << cur.isValid()
+                               << ", row =" << cur.row();
+        } else {
+            qDebug().noquote() << "[MW] copySfenToClipboard: kifuView is nullptr";
+        }
+    } else {
+        qDebug().noquote() << "[MW] copySfenToClipboard: m_recordPane is nullptr";
+    }
+
+    // 現在選択されている手数に対応するSFEN文字列を取得
+    if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
+        int idx = -1;
+        
+        // 対局中かどうかを判定
+        // m_playMode が対局モードで、かつゲームが終了していない場合のみ「対局中」とみなす
+        const bool isPlayingMode = (m_playMode == EvenHumanVsEngine || 
+                                    m_playMode == EvenEngineVsHuman || 
+                                    m_playMode == EvenEngineVsEngine ||
+                                    m_playMode == HandicapEngineVsHuman ||
+                                    m_playMode == HandicapHumanVsEngine ||
+                                    m_playMode == HandicapEngineVsEngine ||
+                                    m_playMode == HumanVsHuman);
+        
+        // ゲームが終了しているかどうかをチェック
+        const bool isGameOver = (m_match && m_match->gameOverState().isOver);
+        
+        // 対局中（対局モードかつ終了していない）の場合のみ最新局面を使用
+        const bool isPlaying = isPlayingMode && !isGameOver;
+        
+        qDebug().noquote() << "[MW] copySfenToClipboard: isPlayingMode =" << isPlayingMode
+                           << ", isGameOver =" << isGameOver
+                           << ", isPlaying =" << isPlaying;
+        
+        if (isPlaying) {
+            // 対局中は最新局面を使用
+            idx = m_sfenRecord->size() - 1;
+            qDebug().noquote() << "[MW] copySfenToClipboard: playing mode, using latest sfenRecord idx =" << idx;
+        } else {
+            // リプレイ/観戦モード、または対局終了後は選択されている手を使用
+            idx = currentPly();
+            qDebug().noquote() << "[MW] copySfenToClipboard: replay/finished mode, using currentPly() idx =" << idx;
+        }
+        
+        // 範囲チェック
+        if (idx < 0) {
+            idx = 0;
+            qDebug().noquote() << "[MW] copySfenToClipboard: idx adjusted to 0 (was negative)";
+        } else if (idx >= m_sfenRecord->size()) {
+            idx = m_sfenRecord->size() - 1;
+            qDebug().noquote() << "[MW] copySfenToClipboard: idx adjusted to" << idx << "(was >= size)";
+        }
+        sfenStr = m_sfenRecord->at(idx);
+        qDebug().noquote() << "[MW] copySfenToClipboard: final idx =" << idx
+                           << ", sfenStr =" << sfenStr;
+    } else if (m_gameController && m_gameController->board()) {
+        qDebug().noquote() << "[MW] copySfenToClipboard: using board fallback (no sfenRecord)";
+        // sfenRecordがない場合は、現在のボード状態からSFENを生成
+        ShogiBoard* board = m_gameController->board();
+        const QString boardSfen = board->convertBoardToSfen();
+        QString standSfen = board->convertStandToSfen();
+        if (standSfen.isEmpty()) {
+            standSfen = QStringLiteral("-");
+        }
+        const QString turn = board->currentPlayer();
+        // 手数は currentPly() + 1（SFEN形式では1始まり）
+        const int moveNum = qMax(1, currentPly() + 1);
+        sfenStr = QStringLiteral("%1 %2 %3 %4").arg(boardSfen, turn, standSfen, QString::number(moveNum));
+        qDebug().noquote() << "[MW] copySfenToClipboard: generated from board =" << sfenStr;
+    }
+
+    qDebug().noquote() << "[MW] copySfenToClipboard: ========== DEBUG END ==========";
+
+    if (sfenStr.isEmpty()) {
+        ui->statusbar->showMessage(tr("SFEN形式の局面データがありません"), 3000);
+        return;
+    }
+
+    QClipboard* clipboard = QApplication::clipboard();
+    if (clipboard) {
+        clipboard->setText(sfenStr);
+        ui->statusbar->showMessage(tr("SFEN形式の局面をクリップボードにコピーしました"), 3000);
+        qDebug().noquote() << "[MW] copySfenToClipboard: copied to clipboard," << sfenStr.size() << "chars";
+    } else {
+        qWarning() << "[MW] copySfenToClipboard: clipboard is not available";
+        ui->statusbar->showMessage(tr("クリップボードへのコピーに失敗しました"), 3000);
+    }
+}
+
+// ★ 追加: BOD形式で局面をクリップボードにコピー
+void MainWindow::copyBodToClipboard()
+{
+    // SFEN文字列を取得（copySfenToClipboard と同じロジック）
+    QString sfenStr;
+    int moveIndex = 0;  // 手数表示用
+    QString lastMoveStr;  // 最終手表示用
+    
+    if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
+        int idx = -1;
+        
+        const bool isPlayingMode = (m_playMode == EvenHumanVsEngine || 
+                                    m_playMode == EvenEngineVsHuman || 
+                                    m_playMode == EvenEngineVsEngine ||
+                                    m_playMode == HandicapEngineVsHuman ||
+                                    m_playMode == HandicapHumanVsEngine ||
+                                    m_playMode == HandicapEngineVsEngine ||
+                                    m_playMode == HumanVsHuman);
+        
+        const bool isGameOver = (m_match && m_match->gameOverState().isOver);
+        const bool isPlaying = isPlayingMode && !isGameOver;
+        
+        if (isPlaying) {
+            idx = m_sfenRecord->size() - 1;
+        } else {
+            idx = currentPly();
+        }
+        
+        if (idx < 0) idx = 0;
+        else if (idx >= m_sfenRecord->size()) idx = m_sfenRecord->size() - 1;
+        
+        sfenStr = m_sfenRecord->at(idx);
+        moveIndex = idx;  // 手数（0始まり、初期局面=0、1手目=1）
+        
+        // 最終手の情報を取得（棋譜モデルから）
+        if (idx > 0 && m_kifuRecordModel && idx < m_kifuRecordModel->rowCount()) {
+            QModelIndex modelIdx = m_kifuRecordModel->index(idx, 0);
+            lastMoveStr = m_kifuRecordModel->data(modelIdx, Qt::DisplayRole).toString();
+        }
+    } else if (m_gameController && m_gameController->board()) {
+        ShogiBoard* board = m_gameController->board();
+        const QString boardSfen = board->convertBoardToSfen();
+        QString standSfen = board->convertStandToSfen();
+        if (standSfen.isEmpty()) standSfen = QStringLiteral("-");
+        const QString turn = board->currentPlayer();
+        const int moveNum = qMax(1, currentPly() + 1);
+        sfenStr = QStringLiteral("%1 %2 %3 %4").arg(boardSfen, turn, standSfen, QString::number(moveNum));
+        moveIndex = currentPly();
+    }
+    
+    if (sfenStr.isEmpty()) {
+        ui->statusbar->showMessage(tr("BOD形式の局面データがありません"), 3000);
+        return;
+    }
+    
+    // SFEN文字列を解析
+    const QStringList parts = sfenStr.split(QLatin1Char(' '));
+    if (parts.size() < 4) {
+        ui->statusbar->showMessage(tr("SFEN形式の解析に失敗しました"), 3000);
+        return;
+    }
+    
+    const QString boardSfen = parts[0];
+    const QString turnSfen = parts[1];
+    const QString handSfen = parts[2];
+    const int sfenMoveNum = parts[3].toInt();
+    
+    // 持ち駒を解析してマップに格納
+    // 先手: 大文字 (P, L, N, S, G, B, R)
+    // 後手: 小文字 (p, l, n, s, g, b, r)
+    QMap<QChar, int> senteHand;
+    QMap<QChar, int> goteHand;
+    
+    if (handSfen != QStringLiteral("-")) {
+        int count = 0;
+        for (int i = 0; i < handSfen.size(); ++i) {
+            const QChar c = handSfen.at(i);
+            if (c.isDigit()) {
+                count = count * 10 + c.digitValue();
+            } else {
+                if (count == 0) count = 1;
+                if (c.isUpper()) {
+                    senteHand[c] += count;
+                } else {
+                    goteHand[c.toUpper()] += count;
+                }
+                count = 0;
+            }
+        }
+    }
+    
+    // 持ち駒を日本語文字列に変換
+    auto handToString = [](const QMap<QChar, int>& hand) -> QString {
+        if (hand.isEmpty()) {
+            return QStringLiteral("なし");
+        }
+        
+        // 駒の順番: 飛、角、金、銀、桂、香、歩
+        const QString order = QStringLiteral("RBGSNLP");
+        const QMap<QChar, QString> pieceNames = {
+            {QLatin1Char('R'), QStringLiteral("飛")},
+            {QLatin1Char('B'), QStringLiteral("角")},
+            {QLatin1Char('G'), QStringLiteral("金")},
+            {QLatin1Char('S'), QStringLiteral("銀")},
+            {QLatin1Char('N'), QStringLiteral("桂")},
+            {QLatin1Char('L'), QStringLiteral("香")},
+            {QLatin1Char('P'), QStringLiteral("歩")}
+        };
+        const QMap<int, QString> kanjiNumbers = {
+            {2, QStringLiteral("二")},
+            {3, QStringLiteral("三")},
+            {4, QStringLiteral("四")},
+            {5, QStringLiteral("五")},
+            {6, QStringLiteral("六")},
+            {7, QStringLiteral("七")},
+            {8, QStringLiteral("八")},
+            {9, QStringLiteral("九")},
+            {10, QStringLiteral("十")},
+            {11, QStringLiteral("十一")},
+            {12, QStringLiteral("十二")},
+            {13, QStringLiteral("十三")},
+            {14, QStringLiteral("十四")},
+            {15, QStringLiteral("十五")},
+            {16, QStringLiteral("十六")},
+            {17, QStringLiteral("十七")},
+            {18, QStringLiteral("十八")}
+        };
+        
+        QString result;
+        for (int i = 0; i < order.size(); ++i) {
+            const QChar piece = order.at(i);
+            if (hand.contains(piece) && hand[piece] > 0) {
+                result += pieceNames[piece];
+                if (hand[piece] > 1) {
+                    result += kanjiNumbers.value(hand[piece], QString::number(hand[piece]));
+                }
+                result += QStringLiteral("　");
+            }
+        }
+        
+        if (result.isEmpty()) {
+            return QStringLiteral("なし");
+        }
+        return result.trimmed();
+    };
+    
+    // 盤面を9x9配列に展開
+    QVector<QVector<QString>> board(9, QVector<QString>(9));
+    const QStringList ranks = boardSfen.split(QLatin1Char('/'));
+    for (int rank = 0; rank < qMin(ranks.size(), 9); ++rank) {
+        const QString& rankStr = ranks[rank];
+        int file = 0;
+        bool promoted = false;
+        for (int k = 0; k < rankStr.size() && file < 9; ++k) {
+            const QChar c = rankStr.at(k);
+            if (c == QLatin1Char('+')) {
+                promoted = true;
+            } else if (c.isDigit()) {
+                const int skip = c.toLatin1() - '0';
+                for (int s = 0; s < skip && file < 9; ++s) {
+                    board[rank][file++] = QStringLiteral(" ・");
+                }
+                promoted = false;
+            } else {
+                QString piece;
+                if (c.isUpper()) {
+                    // 先手の駒
+                    piece = QStringLiteral(" ");
+                } else {
+                    // 後手の駒
+                    piece = QStringLiteral("v");
+                }
+                
+                const QChar upperC = c.toUpper();
+                const QMap<QChar, QString> pieceChars = {
+                    {QLatin1Char('P'), promoted ? QStringLiteral("と") : QStringLiteral("歩")},
+                    {QLatin1Char('L'), promoted ? QStringLiteral("杏") : QStringLiteral("香")},
+                    {QLatin1Char('N'), promoted ? QStringLiteral("圭") : QStringLiteral("桂")},
+                    {QLatin1Char('S'), promoted ? QStringLiteral("全") : QStringLiteral("銀")},
+                    {QLatin1Char('G'), QStringLiteral("金")},
+                    {QLatin1Char('B'), promoted ? QStringLiteral("馬") : QStringLiteral("角")},
+                    {QLatin1Char('R'), promoted ? QStringLiteral("龍") : QStringLiteral("飛")},
+                    {QLatin1Char('K'), QStringLiteral("玉")}
+                };
+                
+                piece += pieceChars.value(upperC, QStringLiteral("？"));
+                board[rank][file++] = piece;
+                promoted = false;
+            }
+        }
+        // 残りのマスを空白で埋める
+        while (file < 9) {
+            board[rank][file++] = QStringLiteral(" ・");
+        }
+    }
+    
+    // BOD形式の文字列を生成
+    QStringList bodLines;
+    
+    // 後手の持駒
+    bodLines << QStringLiteral("後手の持駒：%1").arg(handToString(goteHand));
+    
+    // 筋の番号行
+    bodLines << QStringLiteral("  ９ ８ ７ ６ ５ ４ ３ ２ １");
+    
+    // 上端の罫線
+    bodLines << QStringLiteral("+---------------------------+");
+    
+    // 段名
+    const QStringList rankNames = {
+        QStringLiteral("一"), QStringLiteral("二"), QStringLiteral("三"),
+        QStringLiteral("四"), QStringLiteral("五"), QStringLiteral("六"),
+        QStringLiteral("七"), QStringLiteral("八"), QStringLiteral("九")
+    };
+    
+    // 盤面の各段
+    for (int rank = 0; rank < 9; ++rank) {
+        QString line = QStringLiteral("|");
+        for (int file = 0; file < 9; ++file) {
+            line += board[rank][file];
+        }
+        line += QStringLiteral("|") + rankNames[rank];
+        bodLines << line;
+    }
+    
+    // 下端の罫線
+    bodLines << QStringLiteral("+---------------------------+");
+    
+    // 先手の持駒
+    bodLines << QStringLiteral("先手の持駒：%1").arg(handToString(senteHand));
+    
+    // 手番
+    if (turnSfen == QStringLiteral("b")) {
+        bodLines << QStringLiteral("先手番");
+    } else {
+        bodLines << QStringLiteral("後手番");
+    }
+    
+    // 手数と最終手
+    if (moveIndex > 0) {
+        // sfenMoveNum は次の手番の手数なので、表示は sfenMoveNum - 1
+        const int displayMoveNum = sfenMoveNum - 1;
+        if (!lastMoveStr.isEmpty()) {
+            bodLines << QStringLiteral("手数＝%1  %2  まで").arg(displayMoveNum).arg(lastMoveStr);
+        } else {
+            bodLines << QStringLiteral("手数＝%1  まで").arg(displayMoveNum);
+        }
+    }
+    
+    const QString bodText = bodLines.join(QStringLiteral("\n"));
+    
+    QClipboard* clipboard = QApplication::clipboard();
+    if (clipboard) {
+        clipboard->setText(bodText);
+        ui->statusbar->showMessage(tr("BOD形式の局面をクリップボードにコピーしました"), 3000);
+        qDebug().noquote() << "[MW] copyBodToClipboard: copied to clipboard," << bodText.size() << "chars";
+    } else {
+        qWarning() << "[MW] copyBodToClipboard: clipboard is not available";
+        ui->statusbar->showMessage(tr("クリップボードへのコピーに失敗しました"), 3000);
+    }
+}
+
 void MainWindow::overwriteKifuFile()
 {
     if (kifuSaveFileName.isEmpty()) {
