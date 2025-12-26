@@ -63,8 +63,8 @@
      <addaction name="BOD"/>
     </widget>
     <addaction name="copyGameRecord"/>
-    <addaction name="pasteGameRecord"/>
     <addaction name="shogiPositionCopy"/>
+    <addaction name="pasteGameRecord"/>
     <addaction name="separator"/>
     <addaction name="actionCopyBoardToClipboard"/>
     <addaction name="copyImageEvaluatedValueClipboard"/>
@@ -628,12 +628,12 @@
   </action>
   <action name="Sfen">
    <property name="text">
-    <string>&amp;Sfen</string>
+    <string>SFEN形式</string>
    </property>
   </action>
   <action name="BOD">
    <property name="text">
-    <string>&amp;BOD</string>
+    <string>BOD形式</string>
    </property>
   </action>
   <action name="withoutImgTag">
