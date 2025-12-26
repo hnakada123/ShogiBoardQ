@@ -3417,10 +3417,10 @@ void MainWindow::saveKifuToFile()
         usiMovesForCsa = m_kifuLoadCoordinator->usiMoves();
         qDebug().noquote() << "[MW] saveKifuToFile: usiMoves obtained from KifuLoadCoordinator, size =" << usiMovesForCsa.size();
     }
-    // ★ 追加: KifuLoadCoordinatorからも取得できない場合は、m_gameMovesから生成
-    if (usiMovesForCsa.isEmpty() && !m_gameMoves.isEmpty()) {
-        usiMovesForCsa = gameMovesToUsiMoves_();
-        qDebug().noquote() << "[MW] saveKifuToFile: usiMoves generated from m_gameMoves, size =" << usiMovesForCsa.size();
+    // ★ 修正: SFENレコードからUSI指し手を生成
+    if (usiMovesForCsa.isEmpty() && m_sfenRecord && m_sfenRecord->size() > 1) {
+        usiMovesForCsa = sfenRecordToUsiMoves_();
+        qDebug().noquote() << "[MW] saveKifuToFile: usiMoves generated from sfenRecord, size =" << usiMovesForCsa.size();
     }
 
     // ★★★ デバッグ: usiMovesForCsa の状態を確認 ★★★
@@ -3626,15 +3626,37 @@ void MainWindow::copyCsaToClipboard()
 {
     ensureGameRecordModel_();
 
+    // ★★★ デバッグ: 各ソースの状態を確認 ★★★
+    qDebug().noquote() << "[MW][CSA-DEBUG] ========== copyCsaToClipboard START ==========";
+    qDebug().noquote() << "[MW][CSA-DEBUG] m_usiMoves.size() =" << m_usiMoves.size();
+    qDebug().noquote() << "[MW][CSA-DEBUG] m_kifuLoadCoordinator =" << (m_kifuLoadCoordinator ? "valid" : "nullptr");
+    if (m_kifuLoadCoordinator) {
+        qDebug().noquote() << "[MW][CSA-DEBUG] m_kifuLoadCoordinator->usiMoves().size() =" << m_kifuLoadCoordinator->usiMoves().size();
+    }
+    qDebug().noquote() << "[MW][CSA-DEBUG] m_sfenRecord =" << (m_sfenRecord ? "valid" : "nullptr");
+    if (m_sfenRecord) {
+        qDebug().noquote() << "[MW][CSA-DEBUG] m_sfenRecord->size() =" << m_sfenRecord->size();
+    }
+
     // CSA出力用のUSI指し手リストを取得
     QStringList usiMovesForCsa = m_usiMoves;
+    qDebug().noquote() << "[MW][CSA-DEBUG] After m_usiMoves: usiMovesForCsa.size() =" << usiMovesForCsa.size();
+    
     if (usiMovesForCsa.isEmpty() && m_kifuLoadCoordinator) {
         usiMovesForCsa = m_kifuLoadCoordinator->usiMoves();
+        qDebug().noquote() << "[MW][CSA-DEBUG] After KifuLoadCoordinator: usiMovesForCsa.size() =" << usiMovesForCsa.size();
     }
-    // ★ 追加: KifuLoadCoordinatorからも取得できない場合は、m_gameMovesから生成
-    if (usiMovesForCsa.isEmpty() && !m_gameMoves.isEmpty()) {
-        usiMovesForCsa = gameMovesToUsiMoves_();
-        qDebug().noquote() << "[MW] copyCsaToClipboard: generated" << usiMovesForCsa.size() << "USI moves from m_gameMoves";
+    // ★ 修正: SFENレコードからUSI指し手を生成（対局中/終了後の完全なデータ）
+    if (usiMovesForCsa.isEmpty() && m_sfenRecord && m_sfenRecord->size() > 1) {
+        usiMovesForCsa = sfenRecordToUsiMoves_();
+        qDebug().noquote() << "[MW][CSA-DEBUG] After sfenRecordToUsiMoves_: usiMovesForCsa.size() =" << usiMovesForCsa.size();
+        qDebug().noquote() << "[MW] copyCsaToClipboard: generated" << usiMovesForCsa.size() << "USI moves from sfenRecord";
+    }
+
+    // ★★★ デバッグ: 最終的なUSI指し手リストを出力 ★★★
+    qDebug().noquote() << "[MW][CSA-DEBUG] Final usiMovesForCsa.size() =" << usiMovesForCsa.size();
+    for (int i = 0; i < qMin(usiMovesForCsa.size(), 25); ++i) {
+        qDebug().noquote() << "[MW][CSA-DEBUG]   usiMovesForCsa[" << i << "] =" << usiMovesForCsa[i];
     }
 
     QStringList csaLines;
@@ -3670,6 +3692,7 @@ void MainWindow::copyCsaToClipboard()
         qWarning() << "[MW] copyCsaToClipboard: clipboard is not available";
         ui->statusbar->showMessage(tr("クリップボードへのコピーに失敗しました"), 3000);
     }
+    qDebug().noquote() << "[MW][CSA-DEBUG] ========== copyCsaToClipboard END ==========";
 }
 
 // ★ 追加: USI形式（全て）で棋譜をクリップボードにコピー
@@ -3682,10 +3705,10 @@ void MainWindow::copyUsiToClipboard()
     if (usiMovesForOutput.isEmpty() && m_kifuLoadCoordinator) {
         usiMovesForOutput = m_kifuLoadCoordinator->usiMoves();
     }
-    // ★ 追加: KifuLoadCoordinatorからも取得できない場合は、m_gameMovesから生成
-    if (usiMovesForOutput.isEmpty() && !m_gameMoves.isEmpty()) {
-        usiMovesForOutput = gameMovesToUsiMoves_();
-        qDebug().noquote() << "[MW] copyUsiToClipboard: generated" << usiMovesForOutput.size() << "USI moves from m_gameMoves";
+    // ★ 修正: SFENレコードからUSI指し手を生成
+    if (usiMovesForOutput.isEmpty() && m_sfenRecord && m_sfenRecord->size() > 1) {
+        usiMovesForOutput = sfenRecordToUsiMoves_();
+        qDebug().noquote() << "[MW] copyUsiToClipboard: generated" << usiMovesForOutput.size() << "USI moves from sfenRecord";
     }
 
     QStringList usiLines;
@@ -3733,10 +3756,10 @@ void MainWindow::copyUsiCurrentToClipboard()
     if (usiMovesForOutput.isEmpty() && m_kifuLoadCoordinator) {
         usiMovesForOutput = m_kifuLoadCoordinator->usiMoves();
     }
-    // ★ 追加: KifuLoadCoordinatorからも取得できない場合は、m_gameMovesから生成
-    if (usiMovesForOutput.isEmpty() && !m_gameMoves.isEmpty()) {
-        usiMovesForOutput = gameMovesToUsiMoves_();
-        qDebug().noquote() << "[MW] copyUsiCurrentToClipboard: generated" << usiMovesForOutput.size() << "USI moves from m_gameMoves";
+    // ★ 修正: SFENレコードからUSI指し手を生成
+    if (usiMovesForOutput.isEmpty() && m_sfenRecord && m_sfenRecord->size() > 1) {
+        usiMovesForOutput = sfenRecordToUsiMoves_();
+        qDebug().noquote() << "[MW] copyUsiCurrentToClipboard: generated" << usiMovesForOutput.size() << "USI moves from sfenRecord";
     }
 
     // 現在の手数（m_currentMoveIndex）までに制限
@@ -3832,10 +3855,10 @@ void MainWindow::copyUsenToClipboard()
     if (usiMovesForOutput.isEmpty() && m_kifuLoadCoordinator) {
         usiMovesForOutput = m_kifuLoadCoordinator->usiMoves();
     }
-    // ★ 追加: KifuLoadCoordinatorからも取得できない場合は、m_gameMovesから生成
-    if (usiMovesForOutput.isEmpty() && !m_gameMoves.isEmpty()) {
-        usiMovesForOutput = gameMovesToUsiMoves_();
-        qDebug().noquote() << "[MW] copyUsenToClipboard: generated" << usiMovesForOutput.size() << "USI moves from m_gameMoves";
+    // ★ 修正: SFENレコードからUSI指し手を生成
+    if (usiMovesForOutput.isEmpty() && m_sfenRecord && m_sfenRecord->size() > 1) {
+        usiMovesForOutput = sfenRecordToUsiMoves_();
+        qDebug().noquote() << "[MW] copyUsenToClipboard: generated" << usiMovesForOutput.size() << "USI moves from sfenRecord";
     }
 
     QStringList usenLines;
@@ -4192,13 +4215,13 @@ void MainWindow::onTabCurrentChanged(int index)
     qDebug().noquote() << "[MW] onTabCurrentChanged: saved tab index =" << index;
 }
 
-// ★ 追加: m_gameMovesからUSI形式の指し手リストを生成
-QStringList MainWindow::gameMovesToUsiMoves_() const
+// ★ 追加: ShogiMoveリストからUSI形式の指し手リストを生成
+QStringList MainWindow::gameMovesToUsiMoves_(const QVector<ShogiMove>& moves) const
 {
     QStringList usiMoves;
-    usiMoves.reserve(m_gameMoves.size());
+    usiMoves.reserve(moves.size());
 
-    for (const ShogiMove& mv : m_gameMoves) {
+    for (const ShogiMove& mv : moves) {
         QString usiMove;
 
         // 駒打ちの判定: SfenPositionTracer::dropFromSquareの仕様では先手=9, 後手=10
@@ -4227,5 +4250,150 @@ QStringList MainWindow::gameMovesToUsiMoves_() const
         usiMoves.append(usiMove);
     }
 
+    return usiMoves;
+}
+
+// ★ 追加: SFENレコードからUSI形式の指し手リストを生成
+// SFEN文字列の差分を解析して各手のUSI指し手を逆算する
+QStringList MainWindow::sfenRecordToUsiMoves_() const
+{
+    QStringList usiMoves;
+    
+    if (!m_sfenRecord || m_sfenRecord->size() < 2) {
+        qDebug().noquote() << "[MW] sfenRecordToUsiMoves_: sfenRecord is empty or too small";
+        return usiMoves;
+    }
+    
+    qDebug().noquote() << "[MW] sfenRecordToUsiMoves_: sfenRecord size =" << m_sfenRecord->size();
+    
+    // 連続するSFEN文字列から指し手を解析
+    for (int i = 1; i < m_sfenRecord->size(); ++i) {
+        const QString& prevSfen = m_sfenRecord->at(i - 1);
+        const QString& currSfen = m_sfenRecord->at(i);
+        
+        // SFEN文字列を解析: "board turn hand moveNo"
+        const QStringList prevParts = prevSfen.split(QLatin1Char(' '));
+        const QStringList currParts = currSfen.split(QLatin1Char(' '));
+        
+        if (prevParts.size() < 3 || currParts.size() < 3) {
+            qDebug().noquote() << "[MW] sfenRecordToUsiMoves_: invalid SFEN at index" << i;
+            usiMoves.append(QString());
+            continue;
+        }
+        
+        const QString prevBoard = prevParts[0];
+        const QString currBoard = currParts[0];
+        
+        // 盤面を9x9配列に展開
+        // board[rank][file] where rank=0 is 1段目, file=0 is 9筋
+        auto expandBoard = [](const QString& boardStr) -> QVector<QVector<QString>> {
+            QVector<QVector<QString>> board(9, QVector<QString>(9));
+            const QStringList ranks = boardStr.split(QLatin1Char('/'));
+            for (int rank = 0; rank < qMin(ranks.size(), 9); ++rank) {
+                const QString& rankStr = ranks[rank];
+                int file = 0;
+                bool promoted = false;
+                for (int k = 0; k < rankStr.size() && file < 9; ++k) {
+                    QChar c = rankStr[k];
+                    if (c == QLatin1Char('+')) {
+                        promoted = true;
+                    } else if (c.isDigit()) {
+                        int skip = c.toLatin1() - '0';
+                        for (int s = 0; s < skip && file < 9; ++s) {
+                            board[rank][file++] = QString();
+                        }
+                        promoted = false;
+                    } else {
+                        QString piece = promoted ? QStringLiteral("+") + QString(c) : QString(c);
+                        board[rank][file++] = piece;
+                        promoted = false;
+                    }
+                }
+            }
+            return board;
+        };
+        
+        QVector<QVector<QString>> prevBoardArr = expandBoard(prevBoard);
+        QVector<QVector<QString>> currBoardArr = expandBoard(currBoard);
+        
+        // 変化した位置を検出
+        QPoint fromPos(-1, -1);
+        QPoint toPos(-1, -1);
+        QString movedPiece;
+        bool isDrop = false;
+        bool isPromotion = false;
+        
+        // 駒がなくなった位置（from）と駒が現れた/変わった位置（to）を検索
+        // 2パス方式: まず全ての変化を収集してから判断
+        QVector<QPoint> emptyPositions;  // 駒がなくなった位置
+        QVector<QPoint> filledPositions; // 駒が現れた/変わった位置
+        
+        for (int rank = 0; rank < 9; ++rank) {
+            for (int file = 0; file < 9; ++file) {
+                const QString& prev = prevBoardArr[rank][file];
+                const QString& curr = currBoardArr[rank][file];
+                
+                if (prev != curr) {
+                    if (!prev.isEmpty() && curr.isEmpty()) {
+                        // 駒がなくなった位置 → from候補
+                        emptyPositions.append(QPoint(file, rank));
+                    } else if (!curr.isEmpty()) {
+                        // 駒が現れた/変わった位置 → to候補
+                        filledPositions.append(QPoint(file, rank));
+                    }
+                }
+            }
+        }
+        
+        // 通常移動: 1つの位置が空になり、1つの位置に駒が現れる/変わる
+        if (emptyPositions.size() == 1 && filledPositions.size() == 1) {
+            fromPos = emptyPositions[0];
+            toPos = filledPositions[0];
+            movedPiece = prevBoardArr[fromPos.y()][fromPos.x()];
+            
+            // 成りの判定
+            const QString& movedPieceFinal = currBoardArr[toPos.y()][toPos.x()];
+            QString baseFrom = movedPiece.startsWith(QLatin1Char('+')) ? movedPiece.mid(1) : movedPiece;
+            QString baseTo = movedPieceFinal.startsWith(QLatin1Char('+')) ? movedPieceFinal.mid(1) : movedPieceFinal;
+            if (baseFrom.toUpper() == baseTo.toUpper() && 
+                movedPieceFinal.startsWith(QLatin1Char('+')) && !movedPiece.startsWith(QLatin1Char('+'))) {
+                isPromotion = true;
+            }
+        }
+        // 駒打ち: 駒が空から現れる（持ち駒から）
+        else if (emptyPositions.isEmpty() && filledPositions.size() == 1) {
+            isDrop = true;
+            toPos = filledPositions[0];
+        }
+        // 取る手: 2つの位置が変化（移動元が空になり、移動先の駒が変わる）
+        // emptyPositions.size() == 1 && filledPositions.size() == 1 でカバー済み
+        
+        // USI形式の指し手を生成
+        QString usiMove;
+        if (isDrop && toPos.x() >= 0) {
+            // 駒打ち: "P*5e" 形式
+            QString droppedPiece = currBoardArr[toPos.y()][toPos.x()];
+            QChar pieceChar = droppedPiece.isEmpty() ? QLatin1Char('P') : droppedPiece[0].toUpper();
+            int toFileNum = 9 - toPos.x();  // file=0は9筋、file=8は1筋
+            QChar toRankChar = QChar('a' + toPos.y());
+            usiMove = QStringLiteral("%1*%2%3").arg(pieceChar).arg(toFileNum).arg(toRankChar);
+        } else if (fromPos.x() >= 0 && toPos.x() >= 0) {
+            // 通常移動: "7g7f" 形式
+            int fromFileNum = 9 - fromPos.x();  // file=0は9筋、file=8は1筋
+            int toFileNum = 9 - toPos.x();
+            QChar fromRankChar = QChar('a' + fromPos.y());
+            QChar toRankChar = QChar('a' + toPos.y());
+            usiMove = QStringLiteral("%1%2%3%4").arg(fromFileNum).arg(fromRankChar).arg(toFileNum).arg(toRankChar);
+            if (isPromotion) {
+                usiMove += QLatin1Char('+');
+            }
+        }
+        
+        qDebug().noquote() << "[MW] sfenRecordToUsiMoves_: move" << i << "=" << usiMove
+                           << "(from=" << fromPos << "to=" << toPos << "drop=" << isDrop << "promo=" << isPromotion << ")";
+        
+        usiMoves.append(usiMove);
+    }
+    
     return usiMoves;
 }

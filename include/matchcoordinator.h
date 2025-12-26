@@ -118,6 +118,9 @@ public:
     void updateUsiPtrs(Usi* e1, Usi* e2);// エンジン再生成時などに差し替え
     void handleBreakOff();               // ★ 中断（UI→司令塔）
 
+    // ★ 追加: 対局中の指し手リストを取得（CSA出力等で使用）
+    const QVector<ShogiMove>& gameMoves() const { return m_gameMoves; }
+
     // === 時間管理（MainWindowから移譲） ===
     struct TimeControl {
         bool useByoyomi    = false;
