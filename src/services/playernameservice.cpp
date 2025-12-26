@@ -1,4 +1,5 @@
 #include "playernameservice.h"
+#include <QDebug>
 
 PlayerNameMapping PlayerNameService::computePlayers(PlayMode mode,
                                                     const QString& human1,
@@ -6,6 +7,10 @@ PlayerNameMapping PlayerNameService::computePlayers(PlayMode mode,
                                                     const QString& engine1,
                                                     const QString& engine2)
 {
+    qDebug().noquote() << "[PlayerNameService] ★ computePlayers: mode=" << static_cast<int>(mode)
+                       << " human1=" << human1 << " human2=" << human2
+                       << " engine1=" << engine1 << " engine2=" << engine2;
+    
     PlayerNameMapping out;
 
     switch (mode) {
@@ -56,6 +61,7 @@ PlayerNameMapping PlayerNameService::computePlayers(PlayMode mode,
         break;
     }
 
+    qDebug().noquote() << "[PlayerNameService] ★ computePlayers: result p1=" << out.p1 << " p2=" << out.p2;
     return out;
 }
 

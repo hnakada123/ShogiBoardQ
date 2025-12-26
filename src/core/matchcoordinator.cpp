@@ -763,10 +763,19 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
     m_playMode = opt.mode;
 
     // 盤・名前などの初期化（GUI側へ委譲）
+    qDebug().noquote() << "[MC] ★★★ configureAndStart: calling hooks ★★★";
+    qDebug().noquote() << "[MC] configureAndStart: opt.engineName1=" << opt.engineName1 << " opt.engineName2=" << opt.engineName2;
     if (m_hooks.initializeNewGame) m_hooks.initializeNewGame(opt.sfenStart);
-    if (m_hooks.setPlayersNames)   m_hooks.setPlayersNames(QString(), QString());
-    if (m_hooks.setEngineNames)    m_hooks.setEngineNames(opt.engineName1, opt.engineName2);
+    if (m_hooks.setPlayersNames) {
+        qDebug().noquote() << "[MC] configureAndStart: calling setPlayersNames(\"\", \"\")";
+        m_hooks.setPlayersNames(QString(), QString());
+    }
+    if (m_hooks.setEngineNames) {
+        qDebug().noquote() << "[MC] configureAndStart: calling setEngineNames(" << opt.engineName1 << "," << opt.engineName2 << ")";
+        m_hooks.setEngineNames(opt.engineName1, opt.engineName2);
+    }
     if (m_hooks.setGameActions)    m_hooks.setGameActions(true);
+    qDebug().noquote() << "[MC] ★★★ configureAndStart: hooks done ★★★";
 
     // ---- 開始手番の決定（SFEN 解析：position sfen ... / 素のSFEN の両対応）
     auto decideStartSideFromSfen = [](const QString& sfen) -> ShogiGameController::Player {
@@ -1018,8 +1027,9 @@ void MatchCoordinator::startHumanVsEngine_(const StartOptions& opt, bool engineI
     // ★★★ ここが肝心：USI エンジンを起動（path/name 必須） ★★★
     initializeAndStartEngineFor(P1, opt.enginePath1, opt.engineName1);
 
-    // UI 側にエンジン名を通知（必要時）
-    if (m_hooks.setEngineNames) m_hooks.setEngineNames(opt.engineName1, QString());
+    // ★ 修正: configureAndStart()で既にエンジン名が正しく設定されているため、
+    //         ここでの setEngineNames 呼び出しは不要（e2を空で上書きしてしまう問題があった）
+    // if (m_hooks.setEngineNames) m_hooks.setEngineNames(opt.engineName1, QString());
 
     // --- 手番の単一ソースを確立：GC → m_cur → 表示 ---
     ShogiGameController::Player side =

@@ -110,6 +110,13 @@ public:
         QString human2;
         QString engine1;
         QString engine2;
+        
+        // ★ 追加: 時間制御情報（CSA出力用）
+        bool hasTimeControl = false;           // 時間制御が有効かどうか
+        int initialTimeMs = 0;                 // 初期持ち時間（ミリ秒）
+        int byoyomiMs = 0;                     // 秒読み（ミリ秒）
+        int fischerIncrementMs = 0;            // フィッシャー加算（ミリ秒）
+        QDateTime gameStartDateTime;           // 対局開始日時
     };
 
     /**

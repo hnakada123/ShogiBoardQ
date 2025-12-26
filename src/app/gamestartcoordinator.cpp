@@ -57,8 +57,9 @@ void GameStartCoordinator::start(const StartParams& params)
         return;
     }
 
-    // --- 1) 開始前フック（UI/状態初期化） ---
-    emit requestPreStartCleanup();
+    // ★ 修正: prepare()で既にクリーンアップ済みなので、ここでは呼ばない
+    // （重複呼び出しにより、playerNamesResolvedで設定された名前が消えてしまう問題を修正）
+    // emit requestPreStartCleanup();
 
     // --- 2) TimeControl を正規化して適用（enabled 補正 / byoyomi 優先で inc を落とす） ---
     TimeControl tc = params.tc; // コピーして正規化
@@ -848,7 +849,10 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
     const QString human2 = dlg->humanName2();
     const QString engine1 = opt.engineName1;
     const QString engine2 = opt.engineName2;
+    qDebug().noquote() << "[GSC] ★★★ startGameAfterDialog: BEFORE playerNamesResolved ★★★";
+    qDebug().noquote() << "[GSC] human1=" << human1 << " human2=" << human2 << " engine1=" << engine1 << " engine2=" << engine2;
     emit playerNamesResolved(human1, human2, engine1, engine2, static_cast<int>(mode));
+    qDebug().noquote() << "[GSC] ★★★ startGameAfterDialog: AFTER playerNamesResolved, BEFORE start() ★★★";
 
     // --- 9) 対局開始（時計設定 + 初手 go 設定） ---
     StartParams params;
@@ -857,6 +861,7 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
     params.autoStartEngineMove = true;
 
     start(params);
+    qDebug().noquote() << "[GSC] ★★★ startGameAfterDialog: AFTER start() ★★★";
 
     // --- 10) 保険：時計起動/初手go の取りこぼし防止 ---
     if (m_match) {

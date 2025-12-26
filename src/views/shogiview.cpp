@@ -2271,6 +2271,7 @@ QString ShogiView::stripMarks(const QString& s)
 //  - 表示用ラベル（向き/手番/反転などに依存）を refreshNameLabels() で更新
 void ShogiView::setBlackPlayerName(const QString& name)
 {
+    qDebug().noquote() << "[ShogiView] ★ setBlackPlayerName: name=" << name;
     m_blackNameBase = stripMarks(name);  // 装飾を除いた素の名前を保存
     refreshNameLabels();                 // ラベル表示を更新（向き/手番表示などは内部で決定）
 }
@@ -2279,6 +2280,7 @@ void ShogiView::setBlackPlayerName(const QString& name)
 // 役割は黒側と同様：装飾マークを除去して m_whiteNameBase に保存し、表示を更新。
 void ShogiView::setWhitePlayerName(const QString& name)
 {
+    qDebug().noquote() << "[ShogiView] ★ setWhitePlayerName: name=" << name;
     m_whiteNameBase = stripMarks(name);
     refreshNameLabels();
 }
