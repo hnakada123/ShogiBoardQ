@@ -52,4 +52,8 @@ void UiActionsWiring::wire()
     QObject::connect(ui->actionUSI,                  &QAction::triggered, mw, &MainWindow::copyUsiToClipboard,             Qt::UniqueConnection);  // USI形式（全て）
     QObject::connect(ui->actionJSON,                 &QAction::triggered, mw, &MainWindow::copyJkfToClipboard,             Qt::UniqueConnection);  // JKF形式
     QObject::connect(ui->actionUSEN,                 &QAction::triggered, mw, &MainWindow::copyUsenToClipboard,            Qt::UniqueConnection);  // USEN形式
+
+    // 局面コピー (編集メニュー)
+    QObject::connect(ui->Sfen,                       &QAction::triggered, mw, &MainWindow::copySfenToClipboard,            Qt::UniqueConnection);  // SFEN形式
+    QObject::connect(ui->BOD,                        &QAction::triggered, mw, &MainWindow::copyBodToClipboard,             Qt::UniqueConnection);  // BOD形式
 }
