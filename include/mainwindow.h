@@ -529,6 +529,9 @@ private:
 
     // ★ 追加: GameRecordModel 初期化
     void ensureGameRecordModel_();
+
+    // ★ 追加: m_gameMovesからUSI形式の指し手リストを生成
+    QStringList gameMovesToUsiMoves_() const;
 };
 
 #endif // MAINWINDOW_H

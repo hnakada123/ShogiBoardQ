@@ -3417,6 +3417,11 @@ void MainWindow::saveKifuToFile()
         usiMovesForCsa = m_kifuLoadCoordinator->usiMoves();
         qDebug().noquote() << "[MW] saveKifuToFile: usiMoves obtained from KifuLoadCoordinator, size =" << usiMovesForCsa.size();
     }
+    // ★ 追加: KifuLoadCoordinatorからも取得できない場合は、m_gameMovesから生成
+    if (usiMovesForCsa.isEmpty() && !m_gameMoves.isEmpty()) {
+        usiMovesForCsa = gameMovesToUsiMoves_();
+        qDebug().noquote() << "[MW] saveKifuToFile: usiMoves generated from m_gameMoves, size =" << usiMovesForCsa.size();
+    }
 
     // ★★★ デバッグ: usiMovesForCsa の状態を確認 ★★★
     qDebug().noquote() << "[MW] saveKifuToFile: usiMovesForCsa.size() =" << usiMovesForCsa.size();
@@ -3626,6 +3631,11 @@ void MainWindow::copyCsaToClipboard()
     if (usiMovesForCsa.isEmpty() && m_kifuLoadCoordinator) {
         usiMovesForCsa = m_kifuLoadCoordinator->usiMoves();
     }
+    // ★ 追加: KifuLoadCoordinatorからも取得できない場合は、m_gameMovesから生成
+    if (usiMovesForCsa.isEmpty() && !m_gameMoves.isEmpty()) {
+        usiMovesForCsa = gameMovesToUsiMoves_();
+        qDebug().noquote() << "[MW] copyCsaToClipboard: generated" << usiMovesForCsa.size() << "USI moves from m_gameMoves";
+    }
 
     QStringList csaLines;
 
@@ -3672,6 +3682,11 @@ void MainWindow::copyUsiToClipboard()
     if (usiMovesForOutput.isEmpty() && m_kifuLoadCoordinator) {
         usiMovesForOutput = m_kifuLoadCoordinator->usiMoves();
     }
+    // ★ 追加: KifuLoadCoordinatorからも取得できない場合は、m_gameMovesから生成
+    if (usiMovesForOutput.isEmpty() && !m_gameMoves.isEmpty()) {
+        usiMovesForOutput = gameMovesToUsiMoves_();
+        qDebug().noquote() << "[MW] copyUsiToClipboard: generated" << usiMovesForOutput.size() << "USI moves from m_gameMoves";
+    }
 
     QStringList usiLines;
 
@@ -3717,6 +3732,11 @@ void MainWindow::copyUsiCurrentToClipboard()
     QStringList usiMovesForOutput = m_usiMoves;
     if (usiMovesForOutput.isEmpty() && m_kifuLoadCoordinator) {
         usiMovesForOutput = m_kifuLoadCoordinator->usiMoves();
+    }
+    // ★ 追加: KifuLoadCoordinatorからも取得できない場合は、m_gameMovesから生成
+    if (usiMovesForOutput.isEmpty() && !m_gameMoves.isEmpty()) {
+        usiMovesForOutput = gameMovesToUsiMoves_();
+        qDebug().noquote() << "[MW] copyUsiCurrentToClipboard: generated" << usiMovesForOutput.size() << "USI moves from m_gameMoves";
     }
 
     // 現在の手数（m_currentMoveIndex）までに制限
@@ -3811,6 +3831,11 @@ void MainWindow::copyUsenToClipboard()
     QStringList usiMovesForOutput = m_usiMoves;
     if (usiMovesForOutput.isEmpty() && m_kifuLoadCoordinator) {
         usiMovesForOutput = m_kifuLoadCoordinator->usiMoves();
+    }
+    // ★ 追加: KifuLoadCoordinatorからも取得できない場合は、m_gameMovesから生成
+    if (usiMovesForOutput.isEmpty() && !m_gameMoves.isEmpty()) {
+        usiMovesForOutput = gameMovesToUsiMoves_();
+        qDebug().noquote() << "[MW] copyUsenToClipboard: generated" << usiMovesForOutput.size() << "USI moves from m_gameMoves";
     }
 
     QStringList usenLines;
@@ -4165,4 +4190,42 @@ void MainWindow::onTabCurrentChanged(int index)
     // タブインデックスを設定ファイルに保存
     SettingsService::setLastSelectedTabIndex(index);
     qDebug().noquote() << "[MW] onTabCurrentChanged: saved tab index =" << index;
+}
+
+// ★ 追加: m_gameMovesからUSI形式の指し手リストを生成
+QStringList MainWindow::gameMovesToUsiMoves_() const
+{
+    QStringList usiMoves;
+    usiMoves.reserve(m_gameMoves.size());
+
+    for (const ShogiMove& mv : m_gameMoves) {
+        QString usiMove;
+
+        // 駒打ちの判定: SfenPositionTracer::dropFromSquareの仕様では先手=9, 後手=10
+        // 従って x >= 9 は駒打ちを示す
+        if (mv.fromSquare.x() >= 9) {
+            // 駒打ちの場合: "P*5e" 形式
+            QChar pieceChar = mv.movingPiece.toUpper();
+            int toFile = mv.toSquare.x() + 1;         // 0始まり → 1始まり
+            int toRank = mv.toSquare.y() + 1;         // 0始まり → 1始まり
+            QChar toRankChar = QChar('a' + toRank - 1);  // 1段目 = 'a'
+            usiMove = QStringLiteral("%1*%2%3").arg(pieceChar).arg(toFile).arg(toRankChar);
+        } else {
+            // 通常移動の場合: "7g7f" 形式
+            int fromFile = mv.fromSquare.x() + 1;     // 0始まり → 1始まり
+            int fromRank = mv.fromSquare.y() + 1;     // 0始まり → 1始まり
+            int toFile = mv.toSquare.x() + 1;         // 0始まり → 1始まり
+            int toRank = mv.toSquare.y() + 1;         // 0始まり → 1始まり
+            QChar fromRankChar = QChar('a' + fromRank - 1);  // 1段目 = 'a'
+            QChar toRankChar = QChar('a' + toRank - 1);      // 1段目 = 'a'
+            usiMove = QStringLiteral("%1%2%3%4").arg(fromFile).arg(fromRankChar).arg(toFile).arg(toRankChar);
+            if (mv.isPromotion) {
+                usiMove += QLatin1Char('+');
+            }
+        }
+
+        usiMoves.append(usiMove);
+    }
+
+    return usiMoves;
 }
