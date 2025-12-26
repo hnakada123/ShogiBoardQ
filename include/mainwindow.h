@@ -530,8 +530,11 @@ private:
     // ★ 追加: GameRecordModel 初期化
     void ensureGameRecordModel_();
 
-    // ★ 追加: m_gameMovesからUSI形式の指し手リストを生成
-    QStringList gameMovesToUsiMoves_() const;
+    // ★ 追加: ShogiMoveリストからUSI形式の指し手リストを生成
+    QStringList gameMovesToUsiMoves_(const QVector<ShogiMove>& moves) const;
+
+    // ★ 追加: SFENレコードからUSI形式の指し手リストを生成
+    QStringList sfenRecordToUsiMoves_() const;
 };
 
 #endif // MAINWINDOW_H

@@ -1403,10 +1403,23 @@ QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringL
         qDebug().noquote() << "[toCsaLines] 開始局面エントリあり、startIdx = 1";
     }
     
-    // ★★★ デバッグ: ループ開始前 ★★★
+    // ★★★ デバッグ: ループ開始前（詳細版） ★★★
+    qDebug().noquote() << "[toCsaLines] ========== CSA変換ループ開始 ==========";
     qDebug().noquote() << "[toCsaLines] startIdx =" << startIdx
                        << ", disp.size() =" << disp.size()
+                       << ", usiMoves.size() =" << usiMoves.size()
                        << ", ループ回数予定 =" << (disp.size() - startIdx);
+    
+    // dispの内容を出力
+    for (int dbg = 0; dbg < qMin(disp.size(), 25); ++dbg) {
+        qDebug().noquote() << "[toCsaLines] disp[" << dbg << "].prettyMove =" << disp[dbg].prettyMove.trimmed()
+                           << ", timeText =" << disp[dbg].timeText;
+    }
+    
+    // usiMovesの内容を出力
+    for (int dbg = 0; dbg < qMin(usiMoves.size(), 25); ++dbg) {
+        qDebug().noquote() << "[toCsaLines] usiMoves[" << dbg << "] =" << usiMoves[dbg];
+    }
     
     // 6) 各指し手を出力
     int moveNo = 1;
@@ -1446,14 +1459,13 @@ QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringL
             usiMove = usiMoves.at(moveNo - 1);
         }
         
-        // ★★★ デバッグ: 各指し手の詳細 ★★★
-        if (processedMoves < 5 || usiMove.isEmpty()) {
-            qDebug().noquote() << "[toCsaLines] i=" << i
-                               << " moveNo=" << moveNo
-                               << " moveText=" << moveText
-                               << " usiMove=" << usiMove
-                               << " (usiMoves.size=" << usiMoves.size() << ")";
-        }
+        // ★★★ デバッグ: 各指し手の詳細（全ての手を出力） ★★★
+        qDebug().noquote() << "[toCsaLines] LOOP: i=" << i
+                           << " moveNo=" << moveNo
+                           << " isSente=" << isSente
+                           << " moveText='" << moveText << "'"
+                           << " usiMove='" << usiMove << "'"
+                           << " (usiMoves.size=" << usiMoves.size() << ")";
         
         // CSA形式の指し手を構築
         QString csaMove;
