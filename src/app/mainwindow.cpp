@@ -478,11 +478,22 @@ void MainWindow::saveShogiBoardImage()
 // 対局モードに応じて将棋盤下部に表示されるエンジン名をセットする。
 void MainWindow::setEngineNamesBasedOnMode()
 {
+    qDebug().noquote() << "[MW] ★ setEngineNamesBasedOnMode: m_playMode=" << static_cast<int>(m_playMode)
+                       << " m_engineName1=" << m_engineName1 << " m_engineName2=" << m_engineName2;
+    
     const EngineNameMapping e =
         PlayerNameService::computeEngineModels(m_playMode, m_engineName1, m_engineName2);
 
-    if (m_lineEditModel1) m_lineEditModel1->setEngineName(e.model1);
-    if (m_lineEditModel2) m_lineEditModel2->setEngineName(e.model2);
+    qDebug().noquote() << "[MW] ★ setEngineNamesBasedOnMode: computed model1=" << e.model1 << " model2=" << e.model2;
+
+    if (m_lineEditModel1) {
+        qDebug().noquote() << "[MW] ★ setEngineNamesBasedOnMode: setting m_lineEditModel1 to" << e.model1;
+        m_lineEditModel1->setEngineName(e.model1);
+    }
+    if (m_lineEditModel2) {
+        qDebug().noquote() << "[MW] ★ setEngineNamesBasedOnMode: setting m_lineEditModel2 to" << e.model2;
+        m_lineEditModel2->setEngineName(e.model2);
+    }
 }
 
 // ★ 追加: EvE対局時に2番目のエンジン情報を表示する
@@ -1449,11 +1460,16 @@ void MainWindow::onSetPlayersNames_(const QString& p1, const QString& p2)
 // ★ 追加: エンジン名設定フック
 void MainWindow::onSetEngineNames_(const QString& e1, const QString& e2)
 {
+    qDebug().noquote() << "[MW] ★★★ onSetEngineNames_ CALLED ★★★";
     qDebug().noquote() << "[MW] onSetEngineNames_: e1=" << e1 << " e2=" << e2;
+    qDebug().noquote() << "[MW] onSetEngineNames_: current m_engineName1=" << m_engineName1 << " m_engineName2=" << m_engineName2;
+    qDebug().noquote() << "[MW] onSetEngineNames_: current m_playMode=" << static_cast<int>(m_playMode);
 
     // メンバ変数に保存
     m_engineName1 = e1;
     m_engineName2 = e2;
+
+    qDebug().noquote() << "[MW] onSetEngineNames_: after save m_engineName1=" << m_engineName1 << " m_engineName2=" << m_engineName2;
 
     // ログモデル名を更新
     setEngineNamesBasedOnMode();
@@ -1466,6 +1482,8 @@ void MainWindow::onSetEngineNames_(const QString& e1, const QString& e2)
 
     // 対局情報タブも更新
     updateGameInfoForCurrentMatch_();
+    
+    qDebug().noquote() << "[MW] ★★★ onSetEngineNames_ END ★★★";
 }
 
 // ★ 追加: 対局情報タブの先手・後手名を更新
@@ -2902,6 +2920,7 @@ void MainWindow::onPreStartCleanupRequested_()
     broadcastComment(QString(), /*asHtml=*/true);
 
     // --- USI ログの初期化（既存内容を踏襲） ---
+    qDebug().noquote() << "[MW] ★★★ onPreStartCleanupRequested_: RESETTING ENGINE NAMES ★★★";
     auto resetInfo = [](UsiCommLogModel* m) {
         if (!m) return;
         m->clear();
@@ -2915,12 +2934,16 @@ void MainWindow::onPreStartCleanupRequested_()
     };
     resetInfo(m_lineEditModel1);
     resetInfo(m_lineEditModel2);
+    qDebug().noquote() << "[MW] ★★★ onPreStartCleanupRequested_: ENGINE NAMES RESET DONE ★★★";
 
     // ★ 修正: タブ選択は変更しない（ユーザーの選択を保持）
     // 以前は先頭（対局情報タブ）へ戻していたが、ユーザーの選択を尊重する
     // if (m_tab) {
     //     m_tab->setCurrentIndex(0);
     // }
+    
+    // ★ 追加: 新しい対局開始に備えて開始時刻をリセット
+    m_gameStartDateTime = QDateTime();
 
     // デバッグログ
     qDebug().noquote()
@@ -2936,6 +2959,17 @@ void MainWindow::onApplyTimeControlRequested_(const GameStartCoordinator::TimeCo
     << " enabled=" << tc.enabled
     << " P1{base=" << tc.p1.baseMs << " byoyomi=" << tc.p1.byoyomiMs << " inc=" << tc.p1.incrementMs << "}"
     << " P2{base=" << tc.p2.baseMs << " byoyomi=" << tc.p2.byoyomiMs << " inc=" << tc.p2.incrementMs << "}";
+
+    // ★ 追加: CSA出力用に時間制御情報を保存（P1の設定を使用）
+    m_hasTimeControl = tc.enabled;
+    m_timeControlBaseMs = tc.p1.baseMs;
+    m_timeControlByoyomiMs = tc.p1.byoyomiMs;
+    m_timeControlIncrementMs = tc.p1.incrementMs;
+    
+    // ★ 追加: 対局開始時刻を記録（まだ記録されていない場合のみ）
+    if (!m_gameStartDateTime.isValid()) {
+        m_gameStartDateTime = QDateTime::currentDateTime();
+    }
 
     // 1) まず時計に適用
     TimeControlUtil::applyToClock(m_shogiClock, tc, m_startSfenStr, m_currentSfenStr);
@@ -3441,6 +3475,13 @@ void MainWindow::saveKifuToFile()
         ctx.human2        = m_humanName2;
         ctx.engine1       = m_engineName1;
         ctx.engine2       = m_engineName2;
+        
+        // ★ 追加: 時間制御情報を設定
+        ctx.hasTimeControl = m_hasTimeControl;
+        ctx.initialTimeMs = static_cast<int>(m_timeControlBaseMs);
+        ctx.byoyomiMs = static_cast<int>(m_timeControlByoyomiMs);
+        ctx.fischerIncrementMs = static_cast<int>(m_timeControlIncrementMs);
+        ctx.gameStartDateTime = m_gameStartDateTime;
 
         // GameRecordModel から KIF/KI2/CSA/JKF/USEN/USI 形式の行リストを生成
         kifLines = m_gameRecord->toKifLines(ctx);
@@ -3671,6 +3712,13 @@ void MainWindow::copyCsaToClipboard()
         ctx.human2        = m_humanName2;
         ctx.engine1       = m_engineName1;
         ctx.engine2       = m_engineName2;
+        
+        // ★ 追加: 時間制御情報を設定
+        ctx.hasTimeControl = m_hasTimeControl;
+        ctx.initialTimeMs = static_cast<int>(m_timeControlBaseMs);
+        ctx.byoyomiMs = static_cast<int>(m_timeControlByoyomiMs);
+        ctx.fischerIncrementMs = static_cast<int>(m_timeControlIncrementMs);
+        ctx.gameStartDateTime = m_gameStartDateTime;
 
         csaLines = m_gameRecord->toCsaLines(ctx, usiMovesForCsa);
         qDebug().noquote() << "[MW] copyCsaToClipboard: generated" << csaLines.size() << "CSA lines via GameRecordModel";

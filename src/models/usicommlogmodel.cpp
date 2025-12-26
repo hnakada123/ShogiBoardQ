@@ -1,4 +1,5 @@
 #include "usicommlogmodel.h"
+#include <QDebug>
 
 // エンジン名、予想手、探索手、深さ、ノード数、局面探索数、ハッシュ使用率の更新に関するクラス
 // コンストラクタ
@@ -55,10 +56,12 @@ QString UsiCommLogModel::usiCommLog() const
 // 将棋エンジン名をセットし、GUIの表示を更新する。
 void UsiCommLogModel::setEngineName(const QString& engineName)
 {
+    qDebug().noquote() << "[UsiCommLogModel] ★ setEngineName: old=" << m_engineName << " new=" << engineName;
     if (m_engineName != engineName)
     {
         m_engineName = engineName;
         emit engineNameChanged();
+        qDebug().noquote() << "[UsiCommLogModel] ★ setEngineName: emitted engineNameChanged()";
     }
 }
 

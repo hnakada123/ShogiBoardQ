@@ -173,6 +173,13 @@ private:
     ShogiClock* m_shogiClock = nullptr;
     qint64      m_initialTimeP1Ms = 0;
     qint64      m_initialTimeP2Ms = 0;
+    
+    // ★ 追加: CSA出力用の時間制御情報
+    bool        m_hasTimeControl = false;
+    qint64      m_timeControlBaseMs = 0;       // 初期持ち時間（ミリ秒）
+    qint64      m_timeControlByoyomiMs = 0;    // 秒読み（ミリ秒）
+    qint64      m_timeControlIncrementMs = 0;  // フィッシャー加算（ミリ秒）
+    QDateTime   m_gameStartDateTime;           // 対局開始日時
 
     QVector<ResolvedRow> m_resolvedRows;
     int m_activeResolvedRow = 0;

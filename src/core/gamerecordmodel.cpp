@@ -1258,6 +1258,120 @@ public:
     }
 };
 
+// ヘルパー関数: 日時文字列をCSA V3.0形式 (YYYY/MM/DD HH:MM:SS) に変換
+static QString convertToCsaDateTime_(const QString& dateTimeStr)
+{
+    // 既にCSA形式の場合はそのまま返す
+    if (dateTimeStr.contains(QLatin1Char('/')) && 
+        (dateTimeStr.length() == 10 || dateTimeStr.length() == 19)) {
+        return dateTimeStr;
+    }
+    
+    // KIF形式: "2024年05月05日 15時05分40秒" や "2024/05/05 15:05:40"
+    // 様々な形式を試みる
+    QDateTime dt;
+    
+    // KIF形式1: "2024年05月05日（月）15時05分40秒"
+    static const QRegularExpression reKif1(
+        QStringLiteral("(\\d{4})年(\\d{1,2})月(\\d{1,2})日[^\\d]*(\\d{1,2})時(\\d{1,2})分(\\d{1,2})秒"));
+    QRegularExpressionMatch m1 = reKif1.match(dateTimeStr);
+    if (m1.hasMatch()) {
+        return QStringLiteral("%1/%2/%3 %4:%5:%6")
+            .arg(m1.captured(1))
+            .arg(m1.captured(2).rightJustified(2, QLatin1Char('0')))
+            .arg(m1.captured(3).rightJustified(2, QLatin1Char('0')))
+            .arg(m1.captured(4).rightJustified(2, QLatin1Char('0')))
+            .arg(m1.captured(5).rightJustified(2, QLatin1Char('0')))
+            .arg(m1.captured(6).rightJustified(2, QLatin1Char('0')));
+    }
+    
+    // KIF形式2: "2024年05月05日" (時刻なし)
+    static const QRegularExpression reKif2(
+        QStringLiteral("(\\d{4})年(\\d{1,2})月(\\d{1,2})日"));
+    QRegularExpressionMatch m2 = reKif2.match(dateTimeStr);
+    if (m2.hasMatch()) {
+        return QStringLiteral("%1/%2/%3")
+            .arg(m2.captured(1))
+            .arg(m2.captured(2).rightJustified(2, QLatin1Char('0')))
+            .arg(m2.captured(3).rightJustified(2, QLatin1Char('0')));
+    }
+    
+    // ISO形式: "2024-05-05T15:05:40" や "2024-05-05 15:05:40"
+    static const QRegularExpression reIso(
+        QStringLiteral("(\\d{4})-(\\d{2})-(\\d{2})[T ](\\d{2}):(\\d{2}):(\\d{2})"));
+    QRegularExpressionMatch m3 = reIso.match(dateTimeStr);
+    if (m3.hasMatch()) {
+        return QStringLiteral("%1/%2/%3 %4:%5:%6")
+            .arg(m3.captured(1))
+            .arg(m3.captured(2))
+            .arg(m3.captured(3))
+            .arg(m3.captured(4))
+            .arg(m3.captured(5))
+            .arg(m3.captured(6));
+    }
+    
+    // ISO形式（日付のみ）: "2024-05-05"
+    static const QRegularExpression reIsoDate(
+        QStringLiteral("(\\d{4})-(\\d{2})-(\\d{2})"));
+    QRegularExpressionMatch m4 = reIsoDate.match(dateTimeStr);
+    if (m4.hasMatch()) {
+        return QStringLiteral("%1/%2/%3")
+            .arg(m4.captured(1))
+            .arg(m4.captured(2))
+            .arg(m4.captured(3));
+    }
+    
+    // 変換できなかった場合はそのまま返す
+    return dateTimeStr;
+}
+
+// ヘルパー関数: 持ち時間文字列をCSA V3.0形式 ($TIME:秒+秒読み+フィッシャー) に変換
+static QString convertToCsaTime_(const QString& timeStr)
+{
+    // V2.2形式: "HH:MM+SS" → V3.0形式: "$TIME:秒+秒読み+0"
+    static const QRegularExpression reV22(
+        QStringLiteral("(\\d+):(\\d{2})\\+(\\d+)"));
+    QRegularExpressionMatch m = reV22.match(timeStr);
+    if (m.hasMatch()) {
+        int hours = m.captured(1).toInt();
+        int minutes = m.captured(2).toInt();
+        int byoyomi = m.captured(3).toInt();
+        int totalSeconds = hours * 3600 + minutes * 60;
+        return QStringLiteral("$TIME:%1+%2+0").arg(totalSeconds).arg(byoyomi);
+    }
+    
+    // 既にV3.0形式: "秒+秒読み+フィッシャー"
+    static const QRegularExpression reV30(
+        QStringLiteral("^(\\d+(?:\\.\\d+)?)\\+(\\d+(?:\\.\\d+)?)\\+(\\d+(?:\\.\\d+)?)$"));
+    QRegularExpressionMatch m2 = reV30.match(timeStr);
+    if (m2.hasMatch()) {
+        return QStringLiteral("$TIME:%1").arg(timeStr);
+    }
+    
+    // "○分" や "○秒" 形式
+    static const QRegularExpression reMinSec(
+        QStringLiteral("(\\d+)分(?:(\\d+)秒)?"));
+    QRegularExpressionMatch m3 = reMinSec.match(timeStr);
+    if (m3.hasMatch()) {
+        int minutes = m3.captured(1).toInt();
+        int seconds = m3.captured(2).isEmpty() ? 0 : m3.captured(2).toInt();
+        int totalSeconds = minutes * 60 + seconds;
+        return QStringLiteral("$TIME:%1+0+0").arg(totalSeconds);
+    }
+    
+    // 秒読み形式: "○秒"
+    static const QRegularExpression reSec(QStringLiteral("(\\d+)秒"));
+    QRegularExpressionMatch m4 = reSec.match(timeStr);
+    if (m4.hasMatch()) {
+        int seconds = m4.captured(1).toInt();
+        // 秒読みのみの場合
+        return QStringLiteral("$TIME:0+%1+0").arg(seconds);
+    }
+    
+    // 変換できなかった場合は旧形式で出力
+    return QStringLiteral("$TIME_LIMIT:%1").arg(timeStr);
+}
+
 QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringList& usiMoves) const
 {
     QStringList out;
@@ -1309,6 +1423,16 @@ QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringL
     }
     
     // 5) 棋譜情報（対局者名以外）
+    // 既に出力済みの項目を追跡
+    bool hasEvent = false;
+    bool hasSite = false;
+    bool hasStartTime = false;
+    bool hasEndTime = false;
+    bool hasTime = false;
+    bool hasOpening = false;
+    bool hasMaxMoves = false;
+    bool hasJishogi = false;
+    
     for (const auto& it : header) {
         const QString key = it.key.trimmed();
         const QString val = it.value.trimmed();
@@ -1321,27 +1445,36 @@ QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringL
         
         if (key == QStringLiteral("棋戦")) {
             out << QStringLiteral("$EVENT:%1").arg(val);
+            hasEvent = true;
         } else if (key == QStringLiteral("場所")) {
             out << QStringLiteral("$SITE:%1").arg(val);
+            hasSite = true;
         } else if (key == QStringLiteral("開始日時")) {
-            out << QStringLiteral("$START_TIME:%1").arg(val);
+            // 日時形式を CSA V3.0 形式に変換
+            QString csaDateTime = convertToCsaDateTime_(val);
+            out << QStringLiteral("$START_TIME:%1").arg(csaDateTime);
+            hasStartTime = true;
         } else if (key == QStringLiteral("終了日時")) {
-            out << QStringLiteral("$END_TIME:%1").arg(val);
+            QString csaDateTime = convertToCsaDateTime_(val);
+            out << QStringLiteral("$END_TIME:%1").arg(csaDateTime);
+            hasEndTime = true;
         } else if (key == QStringLiteral("持ち時間")) {
             // V3.0形式: $TIME:秒+秒読み+フィッシャー
-            // V2.2形式: $TIME_LIMIT:HH:MM+SS
             // 入力値の形式を判定して適切な形式で出力
-            // 現状はV2.2形式の入力が多いため、$TIME_LIMITとして出力
-            // （V3.0リーダーは両方読めることが期待される）
-            out << QStringLiteral("$TIME_LIMIT:%1").arg(val);
+            QString timeVal = convertToCsaTime_(val);
+            out << timeVal;
+            hasTime = true;
         } else if (key == QStringLiteral("戦型")) {
             out << QStringLiteral("$OPENING:%1").arg(val);
+            hasOpening = true;
         } else if (key == QStringLiteral("最大手数")) {
             // V3.0で追加
             out << QStringLiteral("$MAX_MOVES:%1").arg(val);
+            hasMaxMoves = true;
         } else if (key == QStringLiteral("持将棋")) {
             // V3.0で追加
             out << QStringLiteral("$JISHOGI:%1").arg(val);
+            hasJishogi = true;
         } else if (key == QStringLiteral("備考")) {
             // V3.0で追加: \は\\に、改行は\nに変換
             QString noteVal = val;
@@ -1349,6 +1482,33 @@ QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringL
             noteVal.replace(QStringLiteral("\n"), QStringLiteral("\\n"));   // 次に改行を変換
             out << QStringLiteral("$NOTE:%1").arg(noteVal);
         }
+    }
+    
+    // 5-2) 棋譜情報がない場合のデフォルト生成
+    // 開始日時がなければctxから取得、なければ現在日時を使用
+    if (!hasStartTime) {
+        QString startTimeStr;
+        if (ctx.gameStartDateTime.isValid()) {
+            startTimeStr = ctx.gameStartDateTime.toString(QStringLiteral("yyyy/MM/dd HH:mm:ss"));
+        } else {
+            startTimeStr = QDateTime::currentDateTime().toString(QStringLiteral("yyyy/MM/dd HH:mm:ss"));
+        }
+        out << QStringLiteral("$START_TIME:%1").arg(startTimeStr);
+    }
+    
+    // 終了日時がなければ現在日時を使用（棋譜コピー時点で対局は終了しているはず）
+    if (!hasEndTime) {
+        const QString nowStr = QDateTime::currentDateTime().toString(QStringLiteral("yyyy/MM/dd HH:mm:ss"));
+        out << QStringLiteral("$END_TIME:%1").arg(nowStr);
+    }
+    
+    // 持ち時間情報がなければctxから生成
+    if (!hasTime && ctx.hasTimeControl) {
+        // ミリ秒から秒に変換（小数点以下は切り捨て）
+        int initialSec = ctx.initialTimeMs / 1000;
+        int byoyomiSec = ctx.byoyomiMs / 1000;
+        int fischerSec = ctx.fischerIncrementMs / 1000;
+        out << QStringLiteral("$TIME:%1+%2+%3").arg(initialSec).arg(byoyomiSec).arg(fischerSec);
     }
     
     // 6) 開始局面
