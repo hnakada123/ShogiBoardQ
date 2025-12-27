@@ -47,7 +47,7 @@ public:
     enum class SearchPhase { Idle, Main, Ponder };
 
     explicit UsiProtocolHandler(QObject* parent = nullptr);
-    ~UsiProtocolHandler();
+    ~UsiProtocolHandler() override;
 
     // === 依存関係設定 ===
     
@@ -204,11 +204,11 @@ private:
     QPointer<QObject> m_opCtx { nullptr };
     quint64 m_seq { 0 };
 
-    /// 駒変換マップ
-    static const QMap<int, QString> s_firstPlayerPieceMap;
-    static const QMap<int, QString> s_secondPlayerPieceMap;
-    static const QMap<QChar, int> s_pieceRankWhite;
-    static const QMap<QChar, int> s_pieceRankBlack;
+    /// 駒変換マップ（関数でアクセス）
+    static const QMap<int, QString>& firstPlayerPieceMap();
+    static const QMap<int, QString>& secondPlayerPieceMap();
+    static const QMap<QChar, int>& pieceRankWhite();
+    static const QMap<QChar, int>& pieceRankBlack();
 };
 
 #endif // USIPROTOCOLHANDLER_H

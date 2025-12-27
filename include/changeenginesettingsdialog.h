@@ -34,7 +34,7 @@ public:
     explicit ChangeEngineSettingsDialog(QWidget *parent = nullptr);
 
     // デストラクタ
-    ~ChangeEngineSettingsDialog();
+    ~ChangeEngineSettingsDialog() override;
 
     // 将棋エンジン番号のsetter
     void setEngineNumber(const int &engineNumber);
@@ -103,7 +103,7 @@ private:
     void createOptionWidgets();
 
     // イベントフィルター関数。QObject型のobjとQEvent型のeを引数に取る。
-    bool eventFilter(QObject *obj, QEvent *e);
+    bool eventFilter(QObject *obj, QEvent *e) override;
 
     // ボタンが押された場合、ボタンの色を変える。
     void changeStatusColorTypeButton();

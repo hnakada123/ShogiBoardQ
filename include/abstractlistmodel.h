@@ -16,7 +16,7 @@ public:
     }
 
     // デストラクタ
-    ~AbstractListModel()
+    ~AbstractListModel() override
     {
         // リストの全項目を削除する（QtのqDeleteAll関数を使用する）。
         qDeleteAll(list);
@@ -29,14 +29,15 @@ public:
         Q_UNUSED(parent)
 
         // リストの項目数を返す。
-        return list.count();
+        return static_cast<int>(list.count());
     }
 
     // リストに項目を追加する。
     void appendItem(T *item)
     {
         // リストに項目を追加する前にモデルの状態を変更することを通知する。
-        beginInsertRows(QModelIndex(), list.count(), list.count());
+        const int count = static_cast<int>(list.count());
+        beginInsertRows(QModelIndex(), count, count);
 
         // リストに項目を追加する。
         list.append(item);

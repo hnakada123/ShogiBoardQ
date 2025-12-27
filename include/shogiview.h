@@ -51,7 +51,7 @@ public:
     {
     public:
         Highlight() {}
-        virtual ~Highlight() {}
+        virtual ~Highlight();
         virtual int type() const { return 0; }  // 型識別子
     };
 
@@ -61,6 +61,7 @@ public:
     public:
         enum { Type = 1 };
         FieldHighlight(int file, int rank, QColor color) : m_field(file, rank), m_color(color) {}
+        ~FieldHighlight() override;
         inline int file()        const { return m_field.x(); }
         inline int rank()        const { return m_field.y(); }
         inline QColor color()    const { return m_color; }
@@ -102,7 +103,7 @@ public:
     void removeHighlight(Highlight *hl);         // 1件削除
     void removeHighlightAllData();               // 全削除
     inline Highlight *highlight(int index) const { return m_highlights.at(index); }
-    inline int highlightCount() const { return m_highlights.size(); }
+    inline int highlightCount() const { return static_cast<int>(m_highlights.size()); }
 
     // ───────────────────────────── 操作/状態切替 ────────────────────────────
     void setMouseClickMode(bool mouseClickMode); // クリック操作フラグ

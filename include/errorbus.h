@@ -7,10 +7,7 @@
 class ErrorBus final : public QObject {
     Q_OBJECT
 public:
-    static ErrorBus& instance() {
-        static ErrorBus inst;
-        return inst;
-    }
+    static ErrorBus& instance();
 
 signals:
     void errorOccurred(const QString& message);

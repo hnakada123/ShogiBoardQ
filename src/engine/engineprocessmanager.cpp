@@ -307,6 +307,7 @@ void EngineProcessManager::onProcessError(QProcess::ProcessError error)
     case QProcess::ReadError:
         errorMessage = tr("An error occurred while reading data.");
         break;
+    case QProcess::UnknownError:
     default:
         errorMessage = tr("An unknown error occurred.");
         break;

@@ -24,6 +24,9 @@ public:
     // 役割：基本スタイルと内部レイアウト（QLabel）を構築。
     explicit GlobalToolTip(QWidget* parent = nullptr);
 
+    // デストラクタ
+    ~GlobalToolTip() override;
+
     // ツールチップを表示
     // 役割：スクリーン座標 globalPos の少し右下に、plainText をプレーン表示する。
     // 注意：plainText は実装側で toHtmlEscaped() され、HTML は無効化される。

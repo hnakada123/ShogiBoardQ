@@ -1,3 +1,4 @@
+#include "evalgraphpresenter.h"
 #include "matchcoordinator.h"
 #include "usi.h"
 #include <QList>

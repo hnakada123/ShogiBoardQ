@@ -46,6 +46,12 @@ Q_LOGGING_CATEGORY(ClockLog, "clock")
 
 using namespace EngineSettingsConstants;
 
+// Highlight基底クラスのデストラクタ（out-of-line定義でweak-vtables警告を回避）
+ShogiView::Highlight::~Highlight() {}
+
+// FieldHighlightクラスのデストラクタ
+ShogiView::FieldHighlight::~FieldHighlight() {}
+
 // コンストラクタ
 // ・描画/レイアウトに関わる初期値をメンバ初期化子で明示
 // ・設定ファイルからマス（square）サイズを読み込み
@@ -2696,6 +2702,8 @@ void ShogiView::setUrgencyVisuals(Urgency u)
             setLabelStyle(actTurnLabel, kWarn5Fg, kWarn5Bg, 0, kWarn5Border, /*bold=*/true);
         }
         setInactive(inactName, inactClock);
+        break;
+    default:
         break;
     }
 }

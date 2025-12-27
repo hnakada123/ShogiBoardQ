@@ -76,6 +76,9 @@ void LongLongSpinBox::keyPressEvent(QKeyEvent* event)
         // スピンボックスに入力した値を確定させ、その値が有効であれば内部の値に反映させる。
         // 入力した値が無効な場合、現在の値を再設定して入力内容をリセットする。
         finalizeEditing();
+        break;
+    default:
+        break;
     }
 
     // 親クラスのイベントハンドラを呼び出す。

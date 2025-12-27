@@ -33,7 +33,7 @@ public:
     };
 
     explicit EngineProcessManager(QObject* parent = nullptr);
-    ~EngineProcessManager();
+    ~EngineProcessManager() override;
 
     // === プロセス管理 ===
     

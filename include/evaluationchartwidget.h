@@ -19,7 +19,7 @@ class EvaluationChartWidget : public QWidget
     Q_OBJECT
 public:
     explicit EvaluationChartWidget(QWidget* parent = nullptr);
-    ~EvaluationChartWidget();
+    ~EvaluationChartWidget() override;
 
     void appendScoreP1(int ply, int cp, bool invert = false);
     void appendScoreP2(int ply, int cp, bool invert = false);

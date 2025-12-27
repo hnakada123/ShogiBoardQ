@@ -13,28 +13,28 @@ public:
     // 数値は 3桁区切り（,）に整形。非数値はそのまま。
     QString displayText(const QVariant& value, const QLocale& locale) const override
     {
-        Q_UNUSED(locale);
+        (void)locale;
         if (!value.isValid()) return {};
+
+        // QLocaleを毎回生成することでexit-time-destructorを回避
+        const QLocale enUS(QLocale::English, QLocale::UnitedStates);
 
         // まず整数を優先
         bool ok = false;
         qlonglong iv = value.toLongLong(&ok);
         if (ok) {
-            static const QLocale enUS(QLocale::English, QLocale::UnitedStates);
             return enUS.toString(iv); // 3桁区切りに , を使う
         }
 
         // 次に符号なし整数
         qulonglong uiv = value.toULongLong(&ok);
         if (ok) {
-            static const QLocale enUS(QLocale::English, QLocale::UnitedStates);
             return enUS.toString(uiv);
         }
 
         // 必要なら double も（整数に丸められてしまうのを避ける）
         double dv = value.toDouble(&ok);
         if (ok) {
-            static const QLocale enUS(QLocale::English, QLocale::UnitedStates);
             // 桁区切り＋既定精度。必要なら 'f' と桁数を指定してもOK
             return enUS.toString(dv);
         }

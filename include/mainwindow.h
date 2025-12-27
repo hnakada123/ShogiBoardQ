@@ -95,7 +95,7 @@ class MainWindow : public QMainWindow, public INavigationContext
     Q_OBJECT
 
 public:
-    explicit MainWindow(QWidget* parent = 0);
+    explicit MainWindow(QWidget* parent = nullptr);
 
     // -------- INavigationContext (public) --------
     bool hasResolvedRows() const override;

@@ -124,7 +124,7 @@ void GameRecordPresenter::setCommentsFromDisplayItems(const QList<KifDisplayItem
     m_commentsByRow.clear();
     m_commentsByRow.resize(qMax(0, rowCount));
 
-    const int moveCount = disp.size();
+    const int moveCount = static_cast<int>(disp.size());
     if (m_commentsByRow.isEmpty()) {
         return;
     }
@@ -137,7 +137,7 @@ void GameRecordPresenter::setCommentsFromDisplayItems(const QList<KifDisplayItem
     // つまり、disp[i].comment は i 手目のコメントに対応
     // m_commentsByRow[i] にも disp[i].comment をそのまま割り当てる
 
-    const int rows = m_commentsByRow.size();
+    const int rows = static_cast<int>(m_commentsByRow.size());
     for (int r = 0; r < rows; ++r) {
         if (r < moveCount) {
             m_commentsByRow[r] = disp[r].comment;

@@ -22,26 +22,57 @@ using namespace EngineSettingsConstants;
 
 // === 静的メンバ変数の定義 ===
 
-const QMap<int, QString> UsiProtocolHandler::s_firstPlayerPieceMap = {
-    {1, "P*"}, {2, "L*"}, {3, "N*"}, {4, "S*"}, {5, "G*"}, {6, "B*"}, {7, "R*"}
-};
+const QMap<int, QString>& UsiProtocolHandler::firstPlayerPieceMap()
+{
+    static const auto& m = *[]() {
+        static const QMap<int, QString> map = {
+            {1, "P*"}, {2, "L*"}, {3, "N*"}, {4, "S*"}, {5, "G*"}, {6, "B*"}, {7, "R*"}
+        };
+        return &map;
+    }();
+    return m;
+}
 
-const QMap<int, QString> UsiProtocolHandler::s_secondPlayerPieceMap = {
-    {3, "R*"}, {4, "B*"}, {5, "G*"}, {6, "S*"}, {7, "N*"}, {8, "L*"}, {9, "P*"}
-};
+const QMap<int, QString>& UsiProtocolHandler::secondPlayerPieceMap()
+{
+    static const auto& m = *[]() {
+        static const QMap<int, QString> map = {
+            {3, "R*"}, {4, "B*"}, {5, "G*"}, {6, "S*"}, {7, "N*"}, {8, "L*"}, {9, "P*"}
+        };
+        return &map;
+    }();
+    return m;
+}
 
-const QMap<QChar, int> UsiProtocolHandler::s_pieceRankWhite = {
-    {'P', 9}, {'L', 8}, {'N', 7}, {'S', 6}, {'G', 5}, {'B', 4}, {'R', 3}
-};
+const QMap<QChar, int>& UsiProtocolHandler::pieceRankWhite()
+{
+    static const auto& m = *[]() {
+        static const QMap<QChar, int> map = {
+            {'P', 9}, {'L', 8}, {'N', 7}, {'S', 6}, {'G', 5}, {'B', 4}, {'R', 3}
+        };
+        return &map;
+    }();
+    return m;
+}
 
-const QMap<QChar, int> UsiProtocolHandler::s_pieceRankBlack = {
-    {'P', 1}, {'L', 2}, {'N', 3}, {'S', 4}, {'G', 5}, {'B', 6}, {'R', 7}
-};
+const QMap<QChar, int>& UsiProtocolHandler::pieceRankBlack()
+{
+    static const auto& m = *[]() {
+        static const QMap<QChar, int> map = {
+            {'P', 1}, {'L', 2}, {'N', 3}, {'S', 4}, {'G', 5}, {'B', 6}, {'R', 7}
+        };
+        return &map;
+    }();
+    return m;
+}
 
 namespace {
 const QRegularExpression& whitespaceRe()
 {
-    static const QRegularExpression re(QStringLiteral("\\s+"));
+    static const auto& re = *[]() {
+        static const QRegularExpression r(QStringLiteral("\\s+"));
+        return &r;
+    }();
     return re;
 }
 } // anonymous namespace
@@ -455,7 +486,7 @@ void UsiProtocolHandler::handleBestMoveLine(const QString& line)
     const quint64 observedId = m_seq;
 
     const QStringList tokens = line.split(whitespaceRe(), Qt::SkipEmptyParts);
-    const int bestMoveIndex = tokens.indexOf(QStringLiteral("bestmove"));
+    const int bestMoveIndex = static_cast<int>(tokens.indexOf(QStringLiteral("bestmove")));
 
     if (bestMoveIndex == -1 || bestMoveIndex + 1 >= tokens.size()) {
         emit errorOccurred(tr("Invalid bestmove format: %1").arg(line));
@@ -487,7 +518,7 @@ void UsiProtocolHandler::handleBestMoveLine(const QString& line)
     }
 
     // ponder手の取得
-    const int ponderIdx = tokens.indexOf(QStringLiteral("ponder"));
+    const int ponderIdx = static_cast<int>(tokens.indexOf(QStringLiteral("ponder")));
     if (ponderIdx != -1 && ponderIdx + 1 < tokens.size()) {
         m_predictedOpponentMove = tokens.at(ponderIdx + 1);
     } else {
@@ -631,22 +662,22 @@ int UsiProtocolHandler::alphabetToRank(QChar c)
 
 QString UsiProtocolHandler::convertFirstPlayerPieceSymbol(int rankFrom) const
 {
-    return s_firstPlayerPieceMap.value(rankFrom, QString());
+    return firstPlayerPieceMap().value(rankFrom, QString());
 }
 
 QString UsiProtocolHandler::convertSecondPlayerPieceSymbol(int rankFrom) const
 {
-    return s_secondPlayerPieceMap.value(rankFrom, QString());
+    return secondPlayerPieceMap().value(rankFrom, QString());
 }
 
 int UsiProtocolHandler::pieceToRankWhite(QChar c)
 {
-    return s_pieceRankWhite.value(c, 0);
+    return pieceRankWhite().value(c, 0);
 }
 
 int UsiProtocolHandler::pieceToRankBlack(QChar c)
 {
-    return s_pieceRankBlack.value(c, 0);
+    return pieceRankBlack().value(c, 0);
 }
 
 // === オペレーションコンテキスト ===

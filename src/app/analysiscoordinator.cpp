@@ -3,7 +3,15 @@
 
 #include <QDebug>
 #include <QRegularExpression>
+#include <QGlobalStatic>
 #include <limits>
+
+// Q_GLOBAL_STATICを使用してexit-time-destructorを回避
+Q_GLOBAL_STATIC_WITH_ARGS(QRegularExpression, reDepth, (QStringLiteral(R"((?:^|\s)depth\s+(\d+))")))
+Q_GLOBAL_STATIC_WITH_ARGS(QRegularExpression, reSel, (QStringLiteral(R"((?:^|\s)seldepth\s+(\d+))")))
+Q_GLOBAL_STATIC_WITH_ARGS(QRegularExpression, reScoreCp, (QStringLiteral(R"((?:^|\s)score\s+cp\s+(-?\d+))")))
+Q_GLOBAL_STATIC_WITH_ARGS(QRegularExpression, reScoreMate, (QStringLiteral(R"((?:^|\s)score\s+mate\s+(-?\d+))")))
+Q_GLOBAL_STATIC_WITH_ARGS(QRegularExpression, rePv, (QStringLiteral(R"((?:^|\s)pv\s+(.+)$)")))
 
 AnalysisCoordinator::AnalysisCoordinator(const Deps& d, QObject* parent)
     : QObject(parent)
@@ -38,7 +46,7 @@ void AnalysisCoordinator::startAnalyzeRange()
     m_running = true;
 
     // endPly 未指定なら末尾まで
-    const int last = m_deps.sfenRecord->size() - 1;
+    const int last = static_cast<int>(m_deps.sfenRecord->size()) - 1;
     if (m_opt.endPly < 0 || m_opt.endPly > last) {
         m_opt.endPly = last;
     }
@@ -200,22 +208,18 @@ bool AnalysisCoordinator::parseInfoUSI_(const QString& line, ParsedInfo* out)
 
     // depth
     {
-        static const QRegularExpression reDepth(QStringLiteral(R"(?:^|\s)depth\s+(\d+))"));
-        auto m = reDepth.match(line);
+        auto m = reDepth->match(line);
         if (m.hasMatch()) depth = m.captured(1).toInt();
     }
     // seldepth
     {
-        static const QRegularExpression reSel(QStringLiteral(R"(?:^|\s)seldepth\s+(\d+))"));
-        auto m = reSel.match(line);
+        auto m = reSel->match(line);
         if (m.hasMatch()) seldepth = m.captured(1).toInt();
     }
     // score
     {
-        static const QRegularExpression reScoreCp(QStringLiteral(R"(?:^|\s)score\s+cp\s+(-?\d+))"));
-        static const QRegularExpression reScoreMate(QStringLiteral(R"(?:^|\s)score\s+mate\s+(-?\d+))"));
-        auto mCp   = reScoreCp.match(line);
-        auto mMate = reScoreMate.match(line);
+        auto mCp   = reScoreCp->match(line);
+        auto mMate = reScoreMate->match(line);
         if (mCp.hasMatch()) {
             scoreCp = mCp.captured(1).toInt();
         } else if (mMate.hasMatch()) {
@@ -224,8 +228,7 @@ bool AnalysisCoordinator::parseInfoUSI_(const QString& line, ParsedInfo* out)
     }
     // pv
     {
-        static const QRegularExpression rePv(QStringLiteral(R"(?:^|\s)pv\s+(.+)$)"));
-        auto m = rePv.match(line);
+        auto m = rePv->match(line);
         if (m.hasMatch()) pv = m.captured(1).trimmed();
     }
 

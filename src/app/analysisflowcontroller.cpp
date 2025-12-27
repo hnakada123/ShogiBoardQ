@@ -108,8 +108,9 @@ void AnalysisFlowController::applyDialogOptions_(KifuAnalysisDialog* dlg)
     opt.movetimeMs = dlg->byoyomiSec() * 1000;
 
     const int startRaw = dlg->initPosition() ? 0 : qMax(0, m_activePly);
-    opt.startPly = qBound(0, startRaw, m_sfenRecord->size() - 1);
-    opt.endPly   = m_sfenRecord->size() - 1;
+    const int sfenSize = static_cast<int>(m_sfenRecord->size());
+    opt.startPly = qBound(0, startRaw, sfenSize - 1);
+    opt.endPly   = sfenSize - 1;
 
     opt.multiPV    = 1;    // ダイアログ未対応なら 1 固定
     opt.centerTree = true;

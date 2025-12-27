@@ -55,7 +55,7 @@ public:
     explicit Usi(UsiCommLogModel* model, ShogiEngineThinkingModel* modelThinking,
                  ShogiGameController* algorithm, PlayMode& playMode, 
                  QObject* parent = nullptr);
-    ~Usi();
+    ~Usi() override;
 
     // === 公開インターフェース（後方互換性のため維持）===
     

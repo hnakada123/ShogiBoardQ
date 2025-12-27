@@ -21,38 +21,20 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
         -Wall
         -Wextra
         -Wpedantic
-        -Wshadow                    # 変数のシャドウイング
-        -Wconversion                # 暗黙の型変換
-        -Wsign-conversion           # 符号付き/符号なしの変換
-        -Wnon-virtual-dtor          # 仮想デストラクタがない
-        -Wold-style-cast            # Cスタイルキャスト
-        -Wcast-align                # アライメントを増加させるキャスト
-        -Woverloaded-virtual        # 仮想関数の隠蔽
-        -Wnull-dereference          # nullポインタ参照の可能性
-        -Wdouble-promotion          # floatからdoubleへの暗黙変換
-        -Wformat=2                  # printf系のフォーマット文字列チェック
-        -Wimplicit-fallthrough      # switch文のフォールスルー
+        -Wshadow
+        -Wconversion
+        -Wsign-conversion
+        -Wnon-virtual-dtor
+        -Woverloaded-virtual
+        -Wnull-dereference
+        -Wformat=2
+        -Wimplicit-fallthrough
+        # 未使用系
+        -Wunused
+        -Wunused-function
+        -Wunused-variable
+        -Wunused-parameter
     )
-
-    # GCC固有
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-        add_compile_options(
-            -Wduplicated-cond       # 重複した条件
-            -Wduplicated-branches   # 重複した分岐
-            -Wlogical-op            # 論理演算の誤り
-            -Wuseless-cast          # 不要なキャスト
-        )
-    endif()
-
-    # Clang固有
-    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        add_compile_options(
-            -Weverything            # 全ての警告（非常に厳格）
-            -Wno-c++98-compat       # C++98互換性警告を除外
-            -Wno-c++98-compat-pedantic
-            -Wno-padded             # パディング警告を除外（うるさい）
-        )
-    endif()
 endif()
 
 # ==== Qt packages ====

@@ -17,7 +17,7 @@ public:
     explicit VersionDialog(QWidget *parent = nullptr);
 
     // デストラクタ
-    ~VersionDialog();
+    ~VersionDialog() override;
 
 private:
     Ui::VersionDialog *ui;

@@ -17,7 +17,7 @@ public:
     explicit ConsiderationDialog(QWidget *parent = nullptr);
 
     // デストラクタ
-    ~ConsiderationDialog();
+    ~ConsiderationDialog() override;
 
     // 1手あたりの思考時間（秒数）を取得する。
      int getByoyomiSec() const;

@@ -31,7 +31,7 @@ class ThinkingInfoPresenter : public QObject
 
 public:
     explicit ThinkingInfoPresenter(QObject* parent = nullptr);
-    ~ThinkingInfoPresenter() = default;
+    ~ThinkingInfoPresenter() override = default;
 
     // === 依存関係設定 ===
     

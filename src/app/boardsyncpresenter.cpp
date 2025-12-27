@@ -119,7 +119,7 @@ void BoardSyncPresenter::applySfenAtPly(int ply) const
                           << " move=" << moveField;
 
         // 9段の盤 → スラッシュは8本のはず
-        const int slashCount = boardField.count(QLatin1Char('/'));
+        const int slashCount = static_cast<int>(boardField.count(QLatin1Char('/')));
         if (slashCount != 8) {
             qWarning() << "[PRESENTER] suspicious board field: slashCount=" << slashCount << "(expected 8)";
         }
