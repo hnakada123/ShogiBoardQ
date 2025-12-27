@@ -85,6 +85,7 @@ class UiActionsWiring;
 class GameLayoutBuilder;
 class INavigationContext;
 class GameRecordModel;  // ★ 追加: 棋譜データ中央管理
+class KifuPasteDialog;  // ★ 追加: 棋譜貼り付けダイアログ
 
 // ============================================================
 // MainWindow
@@ -327,6 +328,7 @@ public slots:
     void copyUsenToClipboard();  // ★ 追加: USEN形式で棋譜をクリップボードにコピー
     void copySfenToClipboard();  // ★ 追加: SFEN形式で局面をクリップボードにコピー
     void copyBodToClipboard();   // ★ 追加: BOD形式で局面をクリップボードにコピー
+    void pasteKifuFromClipboard();  // ★ 追加: クリップボードから棋譜を貼り付け
 
     // --- エラー/一般UI ---
     void displayErrorMessage(const QString& message);
@@ -411,6 +413,7 @@ private slots:
     void onRecordRowChangedByPresenter(int row, const QString& comment);
     void onCommentUpdated(int moveIndex, const QString& newComment);  // ★ 追加: コメント更新スロット
     void onPvRowClicked(int engineIndex, int row);  // ★ 追加: 読み筋クリック処理
+    void onKifuPasteImportRequested_(const QString& content);  // ★ 追加: 棋譜貼り付け処理
 
     // 評価値グラフ更新の遅延実行用スロット
     void doRedrawEngine1EvaluationGraph();

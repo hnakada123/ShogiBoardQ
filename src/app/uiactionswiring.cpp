@@ -56,4 +56,7 @@ void UiActionsWiring::wire()
     // 局面コピー (編集メニュー)
     QObject::connect(ui->Sfen,                       &QAction::triggered, mw, &MainWindow::copySfenToClipboard,            Qt::UniqueConnection);  // SFEN形式
     QObject::connect(ui->BOD,                        &QAction::triggered, mw, &MainWindow::copyBodToClipboard,             Qt::UniqueConnection);  // BOD形式
+
+    // 棋譜貼り付け (編集メニュー)
+    QObject::connect(ui->pasteGameRecord,            &QAction::triggered, mw, &MainWindow::pasteKifuFromClipboard,         Qt::UniqueConnection);
 }

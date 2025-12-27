@@ -22,6 +22,8 @@
 #include <QTableWidget>
 #include <QPainter>
 #include <QFileInfo>
+#include <QDir>
+#include <QRegularExpression>
 #include <functional>
 
 // デバッグのオン/オフ（必要に応じて false に）
@@ -522,6 +524,264 @@ void KifuLoadCoordinator::loadUsiFromFile(const QString& filePath)
         // 変化のデバッグ出力なし
         false
     );
+}
+
+// ★ 追加: 文字列から棋譜を読み込む（棋譜貼り付け機能用）
+bool KifuLoadCoordinator::loadKifuFromString(const QString& content)
+{
+    if (content.trimmed().isEmpty()) {
+        emit errorOccurred(tr("貼り付けるテキストが空です。"));
+        return false;
+    }
+
+    qDebug().noquote() << "[PASTE] loadKifuFromString: content length =" << content.size();
+
+    // 形式を自動判定
+    // 判定基準:
+    // - SFEN: 盤面/手番/持駒/手数 の形式 (例: "lnsgkgsnl/1r5b1/... b - 1")
+    // - BOD: "後手の持駒" や "+---" で始まる局面図
+    // - KIF: "手数----指手" や "   1 ７六歩" のような行がある
+    // - KI2: "▲７六歩" や "△３四歩" で始まる行がある（手数行なし）
+    // - CSA: "+" や "-" で始まる指し手行、または "V2" ヘッダ
+    // - USI: "position" で始まる
+    // - JKF: "{" で始まるJSON
+    // - USEN: "~" を含む（USENエンコード）
+
+    enum KifuFormat { FMT_UNKNOWN, FMT_KIF, FMT_KI2, FMT_CSA, FMT_USI, FMT_JKF, FMT_USEN, FMT_SFEN, FMT_BOD };
+    KifuFormat fmt = FMT_UNKNOWN;
+
+    const QString trimmed = content.trimmed();
+
+    // SFEN判定（盤面パターン: 小文字/大文字の駒文字と数字、スラッシュ区切り）
+    // 例: "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"
+    // または "sfen lnsgkgsnl/..." の形式
+    static const QRegularExpression sfenPattern(
+        QStringLiteral("^(sfen\\s+)?[lnsgkrpbLNSGKRPB1-9+]+(/[lnsgkrpbLNSGKRPB1-9+]+){8}\\s+[bw]\\s+[-\\w]+\\s+\\d+")
+    );
+    if (sfenPattern.match(trimmed).hasMatch()) {
+        fmt = FMT_SFEN;
+        qDebug().noquote() << "[PASTE] detected format: SFEN";
+    }
+    // BOD判定（局面図: "後手の持駒" や "+--" で始まる罫線）
+    else if (trimmed.contains(QStringLiteral("後手の持駒")) ||
+             trimmed.contains(QStringLiteral("先手の持駒")) ||
+             trimmed.contains(QRegularExpression(QStringLiteral("^\\+[-─]+\\+"), QRegularExpression::MultilineOption)) ||
+             trimmed.contains(QStringLiteral("|v")) ||
+             trimmed.contains(QStringLiteral("| ・"))) {
+        fmt = FMT_BOD;
+        qDebug().noquote() << "[PASTE] detected format: BOD";
+    }
+    // JSON判定（JKF）
+    else if (trimmed.startsWith(QLatin1Char('{'))) {
+        fmt = FMT_JKF;
+        qDebug().noquote() << "[PASTE] detected format: JKF (JSON)";
+    }
+    // USI判定
+    else if (trimmed.startsWith(QLatin1String("position"))) {
+        fmt = FMT_USI;
+        qDebug().noquote() << "[PASTE] detected format: USI";
+    }
+    // USEN判定（チルダを含む）
+    else if (trimmed.contains(QLatin1Char('~'))) {
+        fmt = FMT_USEN;
+        qDebug().noquote() << "[PASTE] detected format: USEN";
+    }
+    // CSA判定（V2ヘッダまたは +/- で始まる指し手行）
+    else if (trimmed.startsWith(QLatin1String("V2")) ||
+             trimmed.startsWith(QLatin1String("'")) ||
+             QRegularExpression(QStringLiteral("^[+-][0-9]")).match(trimmed).hasMatch() ||
+             content.contains(QRegularExpression(QStringLiteral("\\n[+-][0-9]")))) {
+        fmt = FMT_CSA;
+        qDebug().noquote() << "[PASTE] detected format: CSA";
+    }
+    // KIF判定（"手数----" ヘッダまたは数字で始まる行）
+    else if (content.contains(QStringLiteral("手数----")) ||
+             content.contains(QRegularExpression(QStringLiteral("^\\s*\\d+\\s+[０-９一二三四五六七八九同]")))) {
+        fmt = FMT_KIF;
+        qDebug().noquote() << "[PASTE] detected format: KIF";
+    }
+    // KI2判定（▲△で始まる指し手）
+    else if (content.contains(QRegularExpression(QStringLiteral("[▲△][０-９一二三四五六七八九同]")))) {
+        fmt = FMT_KI2;
+        qDebug().noquote() << "[PASTE] detected format: KI2";
+    }
+
+    if (fmt == FMT_UNKNOWN) {
+        // 最後にKIFとして試す
+        fmt = FMT_KIF;
+        qDebug().noquote() << "[PASTE] format unknown, trying KIF";
+    }
+
+    // SFEN形式の場合は直接処理
+    if (fmt == FMT_SFEN) {
+        return loadPositionFromSfen(trimmed);
+    }
+
+    // BOD形式の場合は直接処理
+    if (fmt == FMT_BOD) {
+        return loadPositionFromBod(content);
+    }
+
+    // 一時ファイルを作成して読み込み
+    QString tempFilePath = QDir::tempPath() + QStringLiteral("/shogi_paste_temp");
+    switch (fmt) {
+        case FMT_KIF:  tempFilePath += QStringLiteral(".kif"); break;
+        case FMT_KI2:  tempFilePath += QStringLiteral(".ki2"); break;
+        case FMT_CSA:  tempFilePath += QStringLiteral(".csa"); break;
+        case FMT_USI:  tempFilePath += QStringLiteral(".usi"); break;
+        case FMT_JKF:  tempFilePath += QStringLiteral(".jkf"); break;
+        case FMT_USEN: tempFilePath += QStringLiteral(".usen"); break;
+        default:       tempFilePath += QStringLiteral(".kif"); break;
+    }
+
+    // 一時ファイルに書き込み
+    QFile tempFile(tempFilePath);
+    if (!tempFile.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        emit errorOccurred(tr("一時ファイルの作成に失敗しました。"));
+        return false;
+    }
+    QTextStream out(&tempFile);
+    out.setEncoding(QStringConverter::Utf8);
+    out << content;
+    tempFile.close();
+
+    qDebug().noquote() << "[PASTE] created temp file:" << tempFilePath;
+
+    // 形式に応じた読み込み関数を呼び出し
+    switch (fmt) {
+        case FMT_KIF:
+            loadKifuFromFile(tempFilePath);
+            break;
+        case FMT_KI2:
+            loadKi2FromFile(tempFilePath);
+            break;
+        case FMT_CSA:
+            loadCsaFromFile(tempFilePath);
+            break;
+        case FMT_USI:
+            loadUsiFromFile(tempFilePath);
+            break;
+        case FMT_JKF:
+            loadJkfFromFile(tempFilePath);
+            break;
+        case FMT_USEN:
+            loadUsenFromFile(tempFilePath);
+            break;
+        default:
+            loadKifuFromFile(tempFilePath);
+            break;
+    }
+
+    // 一時ファイルを削除
+    QFile::remove(tempFilePath);
+    qDebug().noquote() << "[PASTE] removed temp file:" << tempFilePath;
+
+    return true;
+}
+
+// ★ 追加: SFEN形式の局面を読み込む
+bool KifuLoadCoordinator::loadPositionFromSfen(const QString& sfenStr)
+{
+    qDebug().noquote() << "[PASTE] loadPositionFromSfen:" << sfenStr;
+
+    QString sfen = sfenStr.trimmed();
+    
+    // "sfen " プレフィックスがあれば除去
+    if (sfen.startsWith(QStringLiteral("sfen "), Qt::CaseInsensitive)) {
+        sfen = sfen.mid(5).trimmed();
+    }
+
+    // SFEN文字列の検証（最低限4つの部分が必要）
+    const QStringList parts = sfen.split(QLatin1Char(' '));
+    if (parts.size() < 4) {
+        emit errorOccurred(tr("無効なSFEN形式です。"));
+        return false;
+    }
+
+    // 局面をセットアップ
+    m_loadingKifu = true;
+
+    // sfenRecordをクリアして初期局面をセット
+    if (m_sfenRecord) {
+        m_sfenRecord->clear();
+        m_sfenRecord->append(sfen);
+    }
+
+    // 表示用データを作成
+    QList<KifDisplayItem> disp;
+    KifDisplayItem startItem;
+    startItem.ply = 0;
+    startItem.prettyMove = QStringLiteral("=== 開始局面 ===");
+    startItem.comment = QString();
+    disp.append(startItem);
+
+    // resolvedRowsをセットアップ
+    m_resolvedRows.clear();
+    ResolvedRow mainRow;
+    mainRow.sfen.append(sfen);
+    m_resolvedRows.append(mainRow);
+
+    // 各種インデックスをリセット
+    m_activeResolvedRow = 0;
+    m_activePly = 0;
+    m_currentSelectedPly = 0;
+    m_currentMoveIndex = 0;
+
+    // ゲーム情報をクリア
+    if (m_gameInfoTable) {
+        m_gameInfoTable->clearContents();
+        m_gameInfoTable->setRowCount(0);
+    }
+
+    // シグナルを発行（displayGameRecordでモデルが更新される）
+    emit setReplayMode(true);
+    emit displayGameRecord(disp);
+    emit syncBoardAndHighlightsAtRow(0);
+    emit enableArrowButtons();
+
+    m_loadingKifu = false;
+
+    qDebug().noquote() << "[PASTE] loadPositionFromSfen: completed";
+    return true;
+}
+
+// ★ 追加: BOD形式の局面を読み込む
+bool KifuLoadCoordinator::loadPositionFromBod(const QString& bodStr)
+{
+    qDebug().noquote() << "[PASTE] loadPositionFromBod: length =" << bodStr.size();
+
+    // BOD形式をSFEN形式に変換
+    QString sfen;
+    QString detectedLabel;
+    QString warn;
+
+    const QStringList lines = bodStr.split(QLatin1Char('\n'));
+    
+    if (!KifToSfenConverter::buildInitialSfenFromBod(lines, sfen, &detectedLabel, &warn)) {
+        emit errorOccurred(tr("BOD形式の解析に失敗しました。%1").arg(warn));
+        return false;
+    }
+
+    if (sfen.isEmpty()) {
+        emit errorOccurred(tr("BOD形式から局面を取得できませんでした。"));
+        return false;
+    }
+
+    qDebug().noquote() << "[PASTE] loadPositionFromBod: converted SFEN =" << sfen;
+
+    // 手番情報を追加（BODから取得できなかった場合のデフォルト）
+    // buildInitialSfenFromBodは盤面部分のみを返すので、手番と手数を補完
+    if (!sfen.contains(QLatin1Char(' '))) {
+        // 手番がない場合、BODテキストから判定
+        QString turn = QStringLiteral("b");  // デフォルトは先手
+        if (bodStr.contains(QStringLiteral("後手番"))) {
+            turn = QStringLiteral("w");
+        }
+        sfen = QStringLiteral("%1 %2 - 1").arg(sfen, turn);
+    }
+
+    // SFEN読み込み処理に委譲
+    return loadPositionFromSfen(sfen);
 }
 
 void KifuLoadCoordinator::applyParsedResultCommon_(
