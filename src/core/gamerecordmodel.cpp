@@ -929,140 +929,6 @@ void GameRecordModel::outputKi2VariationsRecursively_(int parentRowIndex, QStrin
 // CSA形式出力
 // ========================================
 
-// ヘルパ関数: USI指し手をCSA指し手に変換
-static QString usiToCsaMove(const QString& usiMove, bool isSente)
-{
-    // USI形式: "7g7f" (盤上移動), "7g7f+" (盤上移動成り), "P*5e" (駒打ち)
-    // CSA形式: "+7776FU" (盤上移動), "+0055FU" (駒打ち)
-    
-    const QString sign = isSente ? QStringLiteral("+") : QStringLiteral("-");
-    
-    if (usiMove.size() < 4) return QString();
-    
-    // 駒打ちの場合
-    if (usiMove.at(1) == QLatin1Char('*')) {
-        // P*5e → +0055FU
-        const QChar pieceChar = usiMove.at(0).toUpper();
-        const QString toSquare = usiMove.mid(2, 2);
-        
-        // USI座標をCSA座標に変換
-        const int toFile = toSquare.at(0).toLatin1() - '0';
-        const int toRank = toSquare.at(1).toLatin1() - 'a' + 1;
-        
-        // USI駒文字をCSA駒文字に変換
-        QString csaPiece;
-        switch (pieceChar.toLatin1()) {
-            case 'P': csaPiece = QStringLiteral("FU"); break;
-            case 'L': csaPiece = QStringLiteral("KY"); break;
-            case 'N': csaPiece = QStringLiteral("KE"); break;
-            case 'S': csaPiece = QStringLiteral("GI"); break;
-            case 'G': csaPiece = QStringLiteral("KI"); break;
-            case 'B': csaPiece = QStringLiteral("KA"); break;
-            case 'R': csaPiece = QStringLiteral("HI"); break;
-            default: return QString();
-        }
-        
-        return QStringLiteral("%1%2%3%4%5")
-            .arg(sign)
-            .arg(QStringLiteral("00"))  // 駒台
-            .arg(QString::number(toFile))
-            .arg(QString::number(toRank))
-            .arg(csaPiece);
-    }
-    
-    // 盤上移動の場合
-    const QString fromSquare = usiMove.left(2);
-    const QString toSquare = usiMove.mid(2, 2);
-    const bool isPromotion = usiMove.endsWith(QLatin1Char('+'));
-    
-    // USI座標をCSA座標に変換
-    const int fromFile = fromSquare.at(0).toLatin1() - '0';
-    const int fromRank = fromSquare.at(1).toLatin1() - 'a' + 1;
-    const int toFile = toSquare.at(0).toLatin1() - '0';
-    const int toRank = toSquare.at(1).toLatin1() - 'a' + 1;
-    
-    Q_UNUSED(isPromotion);
-    
-    return QStringLiteral("%1%2%3%4%5")
-        .arg(sign)
-        .arg(QString::number(fromFile))
-        .arg(QString::number(fromRank))
-        .arg(QString::number(toFile))
-        .arg(QString::number(toRank));
-    // 注: 駒の種類は後で追加する必要がある（prettyMoveから取得）
-}
-
-// ヘルパ関数: 指し手表記から駒種を抽出してCSA形式に変換
-static QString extractCsaPiece(const QString& prettyMove, bool isPromotion)
-{
-    // prettyMove: "▲７六歩", "△同銀成", "▲５五角不成" など
-    QString move = prettyMove;
-    
-    // 手番記号を除去
-    if (move.startsWith(QStringLiteral("▲")) || move.startsWith(QStringLiteral("△"))) {
-        move = move.mid(1);
-    }
-    
-    // 「不成」「成」を除去
-    if (move.endsWith(QStringLiteral("不成"))) {
-        move.chop(2);
-    }
-    
-    // 駒種を取得（末尾の文字）
-    QString piece;
-    if (move.endsWith(QStringLiteral("成香"))) { return QStringLiteral("NY"); }
-    if (move.endsWith(QStringLiteral("成桂"))) { return QStringLiteral("NK"); }
-    if (move.endsWith(QStringLiteral("成銀"))) { return QStringLiteral("NG"); }
-    
-    const QString lastChar = move.right(1);
-    
-    if (lastChar == QStringLiteral("歩")) {
-        return isPromotion ? QStringLiteral("TO") : QStringLiteral("FU");
-    } else if (lastChar == QStringLiteral("香")) {
-        return isPromotion ? QStringLiteral("NY") : QStringLiteral("KY");
-    } else if (lastChar == QStringLiteral("桂")) {
-        return isPromotion ? QStringLiteral("NK") : QStringLiteral("KE");
-    } else if (lastChar == QStringLiteral("銀")) {
-        return isPromotion ? QStringLiteral("NG") : QStringLiteral("GI");
-    } else if (lastChar == QStringLiteral("金")) {
-        return QStringLiteral("KI");
-    } else if (lastChar == QStringLiteral("角")) {
-        return isPromotion ? QStringLiteral("UM") : QStringLiteral("KA");
-    } else if (lastChar == QStringLiteral("飛")) {
-        return isPromotion ? QStringLiteral("RY") : QStringLiteral("HI");
-    } else if (lastChar == QStringLiteral("玉") || lastChar == QStringLiteral("王")) {
-        return QStringLiteral("OU");
-    } else if (lastChar == QStringLiteral("と")) {
-        return QStringLiteral("TO");
-    } else if (lastChar == QStringLiteral("馬")) {
-        return QStringLiteral("UM");
-    } else if (lastChar == QStringLiteral("龍") || lastChar == QStringLiteral("竜")) {
-        return QStringLiteral("RY");
-    } else if (move.contains(QStringLiteral("打"))) {
-        // 駒打ちの場合、「打」の直前の文字が駒種
-        const int idx = move.indexOf(QStringLiteral("打"));
-        if (idx > 0) {
-            return extractCsaPiece(move.left(idx), false);
-        }
-    }
-    
-    return QString();
-}
-
-// ヘルパ関数: prettyMoveが成りの指し手かどうかを判定
-static bool isCsaPromotion(const QString& prettyMove, const QString& usiMove)
-{
-    // USI形式で+がある場合は成り
-    if (usiMove.endsWith(QLatin1Char('+'))) {
-        return true;
-    }
-    // prettyMoveで「成」があり「不成」でない場合
-    if (prettyMove.endsWith(QStringLiteral("成")) && !prettyMove.endsWith(QStringLiteral("不成"))) {
-        return true;
-    }
-    return false;
-}
-
 // ヘルパ関数: 時間テキストからCSA形式の消費時間（秒）を抽出
 static int extractCsaTimeSeconds(const QString& timeText)
 {
@@ -1424,14 +1290,12 @@ QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringL
     
     // 5) 棋譜情報（対局者名以外）
     // 既に出力済みの項目を追跡
-    bool hasEvent = false;
-    bool hasSite = false;
     bool hasStartTime = false;
+    Q_UNUSED(hasStartTime);  // 現在未使用だが将来の拡張用に残す
     bool hasEndTime = false;
+    Q_UNUSED(hasEndTime);
     bool hasTime = false;
-    bool hasOpening = false;
-    bool hasMaxMoves = false;
-    bool hasJishogi = false;
+    Q_UNUSED(hasTime);
     
     for (const auto& it : header) {
         const QString key = it.key.trimmed();
@@ -1445,10 +1309,8 @@ QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringL
         
         if (key == QStringLiteral("棋戦")) {
             out << QStringLiteral("$EVENT:%1").arg(val);
-            hasEvent = true;
         } else if (key == QStringLiteral("場所")) {
             out << QStringLiteral("$SITE:%1").arg(val);
-            hasSite = true;
         } else if (key == QStringLiteral("開始日時")) {
             // 日時形式を CSA V3.0 形式に変換
             QString csaDateTime = convertToCsaDateTime_(val);
@@ -1466,15 +1328,12 @@ QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringL
             hasTime = true;
         } else if (key == QStringLiteral("戦型")) {
             out << QStringLiteral("$OPENING:%1").arg(val);
-            hasOpening = true;
         } else if (key == QStringLiteral("最大手数")) {
             // V3.0で追加
             out << QStringLiteral("$MAX_MOVES:%1").arg(val);
-            hasMaxMoves = true;
         } else if (key == QStringLiteral("持将棋")) {
             // V3.0で追加
             out << QStringLiteral("$JISHOGI:%1").arg(val);
-            hasJishogi = true;
         } else if (key == QStringLiteral("備考")) {
             // V3.0で追加: \は\\に、改行は\nに変換
             QString noteVal = val;
@@ -1634,7 +1493,6 @@ QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringL
         if (!usiMove.isEmpty()) {
             // 駒打ちの場合
             if (usiMove.size() >= 4 && usiMove.at(1) == QLatin1Char('*')) {
-                const QChar pieceChar = usiMove.at(0).toUpper();
                 const QString toSquare = usiMove.mid(2, 2);
                 
                 const int toFile = toSquare.at(0).toLatin1() - '0';
@@ -2036,7 +1894,7 @@ QJsonObject GameRecordModel::buildJkfInitial_(const ExportContext& ctx) const
     return initial;
 }
 
-QJsonObject GameRecordModel::convertMoveToJkf_(const KifDisplayItem& disp, int& prevToX, int& prevToY, int ply) const
+QJsonObject GameRecordModel::convertMoveToJkf_(const KifDisplayItem& disp, int& prevToX, int& prevToY, int /*ply*/) const
 {
     QJsonObject result;
     
@@ -2826,10 +2684,8 @@ QStringList GameRecordModel::toUsenLines(const ExportContext& ctx, const QString
         QSet<int> visitedRows;
         
         // 本譜の行インデックスを探す
-        int mainRowIndex = -1;
         for (int i = 0; i < m_resolvedRows->size(); ++i) {
             if (m_resolvedRows->at(i).parent < 0) {
-                mainRowIndex = i;
                 visitedRows.insert(i);
                 break;
             }

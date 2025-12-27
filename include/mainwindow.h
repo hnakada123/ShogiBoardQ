@@ -414,6 +414,7 @@ private slots:
     void onCommentUpdated(int moveIndex, const QString& newComment);  // ★ 追加: コメント更新スロット
     void onPvRowClicked(int engineIndex, int row);  // ★ 追加: 読み筋クリック処理
     void onKifuPasteImportRequested_(const QString& content);  // ★ 追加: 棋譜貼り付け処理
+    void onGameRecordCommentChanged(int ply, const QString& comment);  // ★ 追加: コメント変更通知
 
     // 評価値グラフ更新の遅延実行用スロット
     void doRedrawEngine1EvaluationGraph();

@@ -259,18 +259,18 @@ KifuLoadCoordinator::KifuLoadCoordinator(QVector<ShogiMove>& gameMoves,
                                          QHash<int, QMap<int, ::BranchCandidateDisplay>>& branchDisplayPlan,
                                          QObject* parent)
     : QObject(parent)
+    , m_gameInfoTable(gameInfoTable)
+    , m_gameInfoDock(gameInfoDock)
+    , m_tab(tab)
+    , m_sfenRecord(sfenRecord)
     , m_gameMoves(gameMoves)                // ← 参照メンバに束縛（同一実体を共有）
-    , m_resolvedRows(resolvedRows)          // ← 同上
     , m_positionStrList(positionStrList)    // ← 同上
+    , m_recordPane(recordPane)
+    , m_resolvedRows(resolvedRows)          // ← 同上
     , m_activeResolvedRow(activeResolvedRow)
     , m_activePly(activePly)
     , m_currentSelectedPly(currentSelectedPly)
     , m_currentMoveIndex(currentMoveIndex)
-    , m_sfenRecord(sfenRecord)
-    , m_gameInfoTable(gameInfoTable)
-    , m_gameInfoDock(gameInfoDock)
-    , m_tab(tab)
-    , m_recordPane(recordPane)
     , m_kifuRecordModel(kifuRecordModel)
     , m_kifuBranchModel(kifuBranchModel)
     , m_branchDisplayPlan(branchDisplayPlan)

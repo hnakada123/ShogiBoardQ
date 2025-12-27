@@ -143,7 +143,7 @@ void LongLongSpinBox::stepBy(int steps)
 }
 
 // 入力された値を検証する。
-QValidator::State LongLongSpinBox::validate(QString &input, int &pos) const
+QValidator::State LongLongSpinBox::validate(QString &input, int &/*pos*/) const
 {
     // まず数値として解釈を試みる
     bool ok;

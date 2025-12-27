@@ -16,26 +16,6 @@ BoardSyncPresenter::BoardSyncPresenter(const Deps& d, QObject* parent)
 {
 }
 
-// デバッグ用：SFENリストのダンプ（必要なら使う）
-// ※ std::min(int, qsizetype) の型衝突を避けるため、自前で件数を算出
-static inline void DBG_DUMP_SFEN_LIST(const QStringList* rec, const char* tag, int maxItems = 8) {
-    if (!rec) { qDebug().noquote() << tag << " (rec=null)"; return; }
-
-    const qsizetype sz = rec->size();
-    qDebug().noquote() << tag << " size=" << sz << " ptr=" << static_cast<const void*>(rec);
-
-    const int n = (sz > static_cast<qsizetype>(maxItems))
-                      ? maxItems
-                      : static_cast<int>(sz);
-
-    for (int i = 0; i < n; ++i) {
-        qDebug().noquote() << "  [" << i << "] " << rec->at(i);
-    }
-    if (sz > n) {
-        qDebug().noquote() << "  ... (+" << static_cast<int>(sz - n) << " more)";
-    }
-}
-
 void BoardSyncPresenter::applySfenAtPly(int ply) const
 {
     // 文字列プレビュー用
@@ -281,33 +261,6 @@ void BoardSyncPresenter::syncBoardAndHighlightsAtRow(int ply) const
         return true;
     };
 
-    // SFENから駒台情報を抽出（例: "P2L" → {{'P',1},{'L',1}}、枚数指定対応）
-    auto parseStand = [](const QString& sfen, bool isBlack) -> QMap<QChar, int> {
-        QMap<QChar, int> result;
-        if (sfen.isEmpty()) return result;
-
-        const QStringList parts = sfen.split(QLatin1Char(' '), Qt::KeepEmptyParts);
-        if (parts.size() < 3) return result;
-        const QString standField = parts.at(2);
-        if (standField == QLatin1String("-")) return result;
-
-        int count = 0;
-        for (int i = 0; i < standField.size(); ++i) {
-            const QChar ch = standField.at(i);
-            if (ch.isDigit()) {
-                count = count * 10 + (ch.toLatin1() - '0');
-            } else {
-                // 大文字=先手、小文字=後手
-                const bool pieceIsBlack = ch.isUpper();
-                if (pieceIsBlack == isBlack) {
-                    result[ch] += (count > 0 ? count : 1);
-                }
-                count = 0;
-            }
-        }
-        return result;
-    };
-
     // 駒種から駒台の疑似座標を取得（先手: file=10, 後手: file=11）
     // 駒種（大文字=先手, 小文字=後手）→ 疑似座標を返す
     auto pieceToStandCoord = [](QChar piece) -> QPoint {
@@ -364,14 +317,14 @@ void BoardSyncPresenter::syncBoardAndHighlightsAtRow(int ply) const
         QString ga[9][9], gb[9][9];
         if (!parseOneBoard(a, ga) || !parseOneBoard(b, gb)) return false;
 
-        bool foundFrom = false, foundTo = false;
+        bool foundTo = false;
         droppedPiece = QChar();
 
         for (int y = 0; y < 9; ++y) {
             for (int x = 0; x < 9; ++x) {
                 if (ga[y][x] == gb[y][x]) continue;
                 if (!ga[y][x].isEmpty() && gb[y][x].isEmpty()) {
-                    from = QPoint(x, y); foundFrom = true;   // 元が空いた
+                    from = QPoint(x, y);   // 元が空いた
                 } else if (ga[y][x].isEmpty() && !gb[y][x].isEmpty()) {
                     to = QPoint(x, y); foundTo = true;       // 駒打ち：空→駒
                     // 打った駒種を記録（成駒は打てないので先頭文字）

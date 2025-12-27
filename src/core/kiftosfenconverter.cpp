@@ -1134,7 +1134,7 @@ QMap<QString, QString> KifToSfenConverter::extractGameInfoMap(const QString& fil
 bool KifToSfenConverter::buildInitialSfenFromBod(const QStringList& lines,
                                                  QString& outSfen,
                                                  QString* detectedLabel,
-                                                 QString* warn)
+                                                 QString* /*warn*/)
 {
     // 1) ── ヘルパ群（この関数内のみで使用） ───────────────────────────────
     auto isSpaceLike = [](QChar ch)->bool {

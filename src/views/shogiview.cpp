@@ -53,8 +53,8 @@ using namespace EngineSettingsConstants;
 ShogiView::ShogiView(QWidget *parent)
     // 親ウィジェットを基底クラスに渡す（Qt のオブジェクト階層に参加させる）
     : QWidget(parent),
-    // 直前の処理でエラーが発生したかどうかのフラグ（初期状態はエラーなし）
-    m_errorOccurred(false),
+    // 将棋盤データ（ボード）へのポインタ（まだ未接続のため nullptr）
+    m_board(nullptr),
     // 盤面の反転モード。0=通常、1=反転 など（初期値は通常）
     m_flipMode(0),
     // マウスの操作モード。クリック選択を有効化
@@ -63,10 +63,10 @@ ShogiView::ShogiView(QWidget *parent)
     m_positionEditMode(false),
     // ドラッグ中かどうかのフラグ（初期は未ドラッグ）
     m_dragging(false),
-    // 将棋盤データ（ボード）へのポインタ（まだ未接続のため nullptr）
-    m_board(nullptr),
     // 「駒台からつまんだドラッグ」かどうかのフラグ（初期は盤上から想定）
-    m_dragFromStand(false)
+    m_dragFromStand(false),
+    // 直前の処理でエラーが発生したかどうかのフラグ（初期状態はエラーなし）
+    m_errorOccurred(false)
 {
     // 【入出力の基準パスを明確化】
     // 実行中のアプリケーションのディレクトリをカレントディレクトリに設定。

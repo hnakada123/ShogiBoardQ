@@ -12,6 +12,28 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# ==== compile_commands.json 生成 (clang-tidy, cppcheck 用) ====
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# ==== コンパイラ警告オプション ====
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    add_compile_options(
+        -Wall
+        -Wextra
+        -Wunused                    # 未使用全般
+        -Wunused-function           # 未使用の関数
+        -Wunused-variable           # 未使用の変数
+        -Wunused-parameter          # 未使用の引数
+        -Wunused-but-set-variable   # 代入されたが使われていない変数
+    )
+    # Clang 固有
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        add_compile_options(
+            -Wunused-private-field  # 未使用のプライベートメンバ
+        )
+    endif()
+endif()
+
 # ==== Qt packages ====
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets LinguistTools Charts)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets LinguistTools Charts)

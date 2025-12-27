@@ -8,7 +8,7 @@
 
 class KifuRecordListModel;
 class RecordPane;
-class KifDisplayItem;
+struct KifDisplayItem;
 class QTableView;
 class QItemSelectionModel;
 

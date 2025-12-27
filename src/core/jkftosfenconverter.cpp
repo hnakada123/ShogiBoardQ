@@ -597,10 +597,10 @@ QString JkfToSfenConverter::buildSfenFromInitialData(const QJsonObject& data, in
 }
 
 void JkfToSfenConverter::parseMovesArray(const QJsonArray& movesArray,
-                                          const QString& baseSfen,
+                                          const QString& /*baseSfen*/,
                                           KifLine& mainline,
                                           QVector<KifVariation>& variations,
-                                          QString* warn)
+                                          QString* /*warn*/)
 {
     int prevToX = 0, prevToY = 0;
     int plyNumber = 0;
