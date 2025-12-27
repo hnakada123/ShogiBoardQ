@@ -74,8 +74,6 @@
 #include "pvboarddialog.h"    // ★ 追加: 読み筋表示ダイアログ
 #include "kifupastedialog.h"  // ★ 追加: 棋譜貼り付けダイアログ
 
-using KifuIoService::makeDefaultSaveFileName;
-using KifuIoService::writeKifuFile;
 using GameOverCause = MatchCoordinator::Cause;
 using std::placeholders::_1;
 using std::placeholders::_2;

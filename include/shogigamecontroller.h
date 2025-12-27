@@ -33,10 +33,10 @@ public:
     ShogiBoard* board() const;
 
     // 対局結果を返す。
-    inline Result result() const { return m_result; }
+    Result result() const { return m_result; }
 
     // 現在の手番を返す。
-    inline Player currentPlayer() const { return m_currentPlayer; }
+    Player currentPlayer() const { return m_currentPlayer; }
 
     // 現在の対局者を設定する。
     void setCurrentPlayer(const Player);

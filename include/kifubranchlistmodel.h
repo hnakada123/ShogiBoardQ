@@ -103,7 +103,7 @@ private:
     QHash<quint64, int> m_key2node;       // key=(vid<<32)|ply  -> nodeId
 
 private:
-    static inline quint64 vpKey(int vid, int ply) {
+    static quint64 vpKey(int vid, int ply) {
         return (quint64(uint32_t(vid)) << 32) | uint32_t(ply);
     }
     void setActiveNode_(int nodeId);      // 低レベル切替

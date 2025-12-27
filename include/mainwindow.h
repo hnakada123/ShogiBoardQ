@@ -237,7 +237,7 @@ private:
 
     // --- 試合進行（司令塔） ---
     MatchCoordinator* m_match = nullptr;
-    QMetaObject::Connection m_timeConn{};
+    QMetaObject::Connection m_timeConn;
     bool m_isReplayMode = false;
 
     // ========================================================

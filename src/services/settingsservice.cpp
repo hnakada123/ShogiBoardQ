@@ -223,7 +223,7 @@ void setEngineInfoColumnWidths(int widgetIndex, const QList<int>& widths)
     
     s.beginWriteArray(key);
     for (qsizetype i = 0; i < widths.size(); ++i) {
-        s.setArrayIndex(i);
+        s.setArrayIndex(static_cast<int>(i));
         s.setValue("width", widths.at(i));
     }
     s.endArray();
@@ -259,7 +259,7 @@ void setThinkingViewColumnWidths(int viewIndex, const QList<int>& widths)
     
     s.beginWriteArray(key);
     for (qsizetype i = 0; i < widths.size(); ++i) {
-        s.setArrayIndex(i);
+        s.setArrayIndex(static_cast<int>(i));
         s.setValue("width", widths.at(i));
     }
     s.endArray();
