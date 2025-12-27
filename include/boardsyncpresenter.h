@@ -9,7 +9,7 @@
 class ShogiGameController;
 class ShogiView;
 class BoardInteractionController;
-class ShogiMove;
+struct ShogiMove;
 
 class BoardSyncPresenter : public QObject
 {

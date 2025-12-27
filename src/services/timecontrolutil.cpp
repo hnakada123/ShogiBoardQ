@@ -5,8 +5,6 @@
 
 namespace TimeControlUtil {
 
-static inline int msToSecFloor(qint64 ms) { return (ms <= 0) ? 0 : int(ms / 1000); }
-
 void applyToClock(
     ShogiClock* clock,
     const GameStartCoordinator::TimeControl& tc,

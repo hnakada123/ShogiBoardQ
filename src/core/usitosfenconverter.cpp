@@ -421,11 +421,9 @@ bool UsiToSfenConverter::parseUsiPositionString(const QString& usiStr,
     }
     
     // startpos または sfen で始まるか判定
-    bool isStartpos = false;
     int sfenEndIndex = 0;
     
     if (str.startsWith(QStringLiteral("startpos"), Qt::CaseInsensitive)) {
-        isStartpos = true;
         baseSfen = QString::fromLatin1(kHirateSfen);
         sfenEndIndex = 8;  // "startpos" の長さ
     } else if (str.startsWith(QStringLiteral("sfen"), Qt::CaseInsensitive)) {

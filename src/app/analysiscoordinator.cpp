@@ -179,7 +179,7 @@ void AnalysisCoordinator::onEngineInfoLine(const QString& line)
                           p.scoreCp, p.mate, p.pv, line);
 }
 
-void AnalysisCoordinator::onEngineBestmoveReceived(const QString& line)
+void AnalysisCoordinator::onEngineBestmoveReceived(const QString& /*line*/)
 {
     if (!m_running) return;
 

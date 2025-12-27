@@ -252,39 +252,6 @@ static QString normalizeCsaCommentLine_(const QString& line)
     return t;
 }
 
-// --- file-scope helper: 初手の直前に連続して並ぶ "'*" コメント群を pending へ取り込む ---
-// lines       : ファイル全行
-// firstMoveIx : 1手目（最初に現れる + / - で始まる指し手行）の行インデックス
-// outPending  : 正規化済みコメント行（順序は元ファイルどおり）
-static void collectPreMoveCommentBlock_(const QStringList& lines, int firstMoveIx, QStringList& outPending)
-{
-    outPending.clear();
-    if (firstMoveIx <= 0) return;
-
-    // 1手目の直前から上方向へ "'..." が連続するかぎり拾う（空行はスキップし、最初の非コメント行で停止）
-    QStringList buf;  // 逆順で溜めて最後に反転
-    for (int j = firstMoveIx - 1; j >= 0; --j) {
-        QString s = lines.at(j);
-        if (s.isEmpty()) continue;
-        s.replace("\r\n", "\n");
-        s = s.trimmed();
-        if (s.isEmpty()) continue;
-
-        if (s.startsWith(QLatin1Char('\''))) {
-            const QString norm = normalizeCsaCommentLine_(s);
-            if (!norm.isNull()) buf.append(norm); // いまは逆順で push
-            continue;
-        }
-        // 直近のコメント塊だけ欲しいので非コメントが出たら終了
-        break;
-    }
-
-    // 元の順序に戻す
-    for (int k = buf.size() - 1; k >= 0; --k) {
-        outPending.append(buf.at(k));
-    }
-}
-
 // ---- Board: 平手初期配置 ----
 void CsaToSfenConverter::Board::setHirate()
 {

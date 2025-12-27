@@ -152,13 +152,13 @@ MainWindow::MainWindow(QWidget *parent)
     , m_startSfenStr(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"))
     , m_currentSfenStr(QStringLiteral("startpos"))
     , m_errorOccurred(false)
+    , m_playMode(NotStarted)
+    , m_gameController(nullptr)
     , m_usi1(nullptr)
     , m_usi2(nullptr)
-    , m_playMode(NotStarted)
+    , m_analysisModel(nullptr)
     , m_lineEditModel1(new UsiCommLogModel(this))
     , m_lineEditModel2(new UsiCommLogModel(this))
-    , m_gameController(nullptr)
-    , m_analysisModel(nullptr)
 {
     ui->setupUi(this);
 
@@ -2792,12 +2792,6 @@ void MainWindow::ensureTurnSyncBridge_()
     TurnSyncBridge::wire(gc, tm, this);
 }
 
-static inline QString fwColonLine(const QString& key, const QString& val)
-{
-    // 全角コロン「：」で連結（読込側がこの形を期待）
-    return QStringLiteral("%1：%2").arg(key, val);
-}
-
 void MainWindow::ensurePositionEditController_()
 {
     if (m_posEdit) return;
@@ -4483,11 +4477,15 @@ void MainWindow::ensureGameRecordModel_()
 
     // commentChanged シグナルを接続（将来の拡張用）
     connect(m_gameRecord, &GameRecordModel::commentChanged,
-            this, [this](int ply, const QString& /*comment*/) {
-                qDebug().noquote() << "[MW] GameRecordModel::commentChanged ply=" << ply;
-            });
+            this, &MainWindow::onGameRecordCommentChanged);
 
     qDebug().noquote() << "[MW] ensureGameRecordModel_: created and bound";
+}
+
+// ★ 追加: GameRecordModel::commentChanged スロット
+void MainWindow::onGameRecordCommentChanged(int ply, const QString& /*comment*/)
+{
+    qDebug().noquote() << "[MW] GameRecordModel::commentChanged ply=" << ply;
 }
 
 // ★ 追加: 読み筋クリック処理

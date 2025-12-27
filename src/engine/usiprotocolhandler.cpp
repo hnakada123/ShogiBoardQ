@@ -82,7 +82,7 @@ void UsiProtocolHandler::setGameController(ShogiGameController* controller)
 
 // === 初期化 ===
 
-bool UsiProtocolHandler::initializeEngine(const QString& engineName)
+bool UsiProtocolHandler::initializeEngine(const QString& /*engineName*/)
 {
     // usi -> usiok
     sendUsi();

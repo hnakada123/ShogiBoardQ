@@ -219,9 +219,6 @@ ResolvedLine KifuVariationEngine::resolveAfterWins(int variationId) const
 #include <QElapsedTimer>
 #include <algorithm>
 
-// 先後（奇数手=先手、偶数手=後手）
-static inline bool isBlackOnPly(int ply) { return (ply % 2) == 1; }
-
 // idからVariation参照を取る小ヘルパ
 const KifuVariationEngine::Variation* findVarById(const QList<KifuVariationEngine::Variation>& vars, int vid) {
     for (const auto& v : vars) if (v.id == vid) return &v;

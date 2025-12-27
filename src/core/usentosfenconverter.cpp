@@ -61,24 +61,9 @@ static const TerminalInfo kTerminalCodes[] = {
 static const QString kZenkakuDigits = QStringLiteral("０１２３４５６７８９");
 static const QString kKanjiRanks = QStringLiteral("〇一二三四五六七八九");
 
-// 筋番号から列文字へ (1-9 -> '1'-'9')
-inline QChar fileToChar(int f) {
-    return QChar('0' + f);
-}
-
 // 段番号から行文字へ (1-9 -> 'a'-'i')
 inline QChar rankToChar(int r) {
     return QChar('a' + r - 1);
-}
-
-// 列文字から筋番号へ ('1'-'9' -> 1-9)
-inline int charToFile(QChar c) {
-    return c.toLatin1() - '0';
-}
-
-// 行文字から段番号へ ('a'-'i' -> 1-9)
-inline int charToRank(QChar c) {
-    return c.toLatin1() - 'a' + 1;
 }
 
 // マス番号 (0-80) から筋・段を取得
@@ -87,11 +72,6 @@ inline int charToRank(QChar c) {
 inline void squareToFileRank(int sq, int& file, int& rank) {
     rank = sq / 9 + 1;  // 1-9
     file = sq % 9 + 1;  // 1-9
-}
-
-// 筋・段からマス番号を取得
-inline int fileRankToSquare(int file, int rank) {
-    return (rank - 1) * 9 + (file - 1);
 }
 
 // 駒種コード (駒打ち用)

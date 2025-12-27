@@ -97,8 +97,6 @@ static QString buildBasePositionUpToHands_(const QString& prevFull, int handCoun
 
 using P = MatchCoordinator::Player;
 
-static inline P toP(int gcPlayer) { return (gcPlayer == 1) ? MatchCoordinator::P1 : MatchCoordinator::P2; }
-
 MatchCoordinator::MatchCoordinator(const Deps& d, QObject* parent)
     : QObject(parent) 
     , m_gc(d.gc)
