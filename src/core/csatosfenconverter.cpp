@@ -61,7 +61,7 @@ static bool applyPRowLine_(const QString& raw, CsaToSfenConverter::Board& b)
     rest.replace(QLatin1Char('\t'), QLatin1Char(' '));
 
     QString norm; norm.reserve(rest.size() * 2);
-    for (int i = 0; i < rest.size(); ++i) {
+    for (qsizetype i = 0; i < rest.size(); ++i) {
         const QChar c = rest.at(i);
         if (c == QLatin1Char('+') || c == QLatin1Char('-') || c == QLatin1Char('*')) {
             norm += QLatin1Char(' ');
@@ -80,7 +80,7 @@ static bool applyPRowLine_(const QString& raw, CsaToSfenConverter::Board& b)
 
     if (toks.size() != 9) {
         QStringList ts; ts.reserve(9);
-        for (int j = 0; j < rest.size(); ++j) {
+        for (qsizetype j = 0; j < rest.size(); ++j) {
             const QChar c = rest.at(j);
             if (c == QLatin1Char('*')) {
                 ts.append(QStringLiteral("*"));
@@ -129,7 +129,7 @@ static bool applyPPlusMinusLine_(const QString& raw, CsaToSfenConverter::Board& 
     QString noSpace = rest; noSpace.remove(QLatin1Char(' '));
 
     int matched = 0;
-    for (int pos = 0; pos + 3 < noSpace.size(); pos += 4) {
+    for (qsizetype pos = 0; pos + 3 < noSpace.size(); pos += 4) {
         const int file = noSpace.at(pos + 0).digitValue();
         const int rank = noSpace.at(pos + 1).digitValue();
         const QString pc2 = noSpace.mid(pos + 2, 2);
@@ -450,7 +450,7 @@ bool CsaToSfenConverter::parseMoveLine_(const QString& line, Color mover, Board&
                                         int& prevTx, int& prevTy,
                                         QString& usiMoveOut, QString& prettyOut, QString* warn)
 {
-    const int comma = line.indexOf(QLatin1Char(','));
+    const qsizetype comma = line.indexOf(QLatin1Char(','));
     const QString token = (comma >= 0) ? line.left(comma) : line;
 
     int fx=0, fy=0, tx=0, ty=0;
@@ -654,7 +654,7 @@ QList<KifGameInfoItem> CsaToSfenConverter::extractGameInfo(const QString& filePa
 
     if (!readAllLinesDetectEncoding_(filePath, lines, &warn)) return items;
 
-    for (int i = 0; i < lines.size(); ++i) {
+    for (qsizetype i = 0; i < lines.size(); ++i) {
         const QString line = lines.at(i).trimmed();
         if (line.isEmpty()) continue;
 
@@ -667,7 +667,7 @@ QList<KifGameInfoItem> CsaToSfenConverter::extractGameInfo(const QString& filePa
         } else if (line.startsWith(QLatin1String("N-"))) {
             items.append({ QStringLiteral("後手"), line.mid(2).trimmed() });
         } else if (line.startsWith(QLatin1Char('$'))) {
-            const int colon = line.indexOf(QLatin1Char(':'));
+            const qsizetype colon = line.indexOf(QLatin1Char(':'));
             if (colon > 0) {
                 QString key = line.mid(1, colon - 1).trimmed();
                 const QString val = line.mid(colon + 1).trimmed();
@@ -705,7 +705,7 @@ static bool parseTimeTokenMs_(const QString& token, qint64& msOut)
     const QString t = token.mid(1).trimmed();
     if (t.isEmpty()) return false;
 
-    const int dot = t.indexOf(QLatin1Char('.'));
+    const qsizetype dot = t.indexOf(QLatin1Char('.'));
     if (dot < 0) {
         bool ok = false; const qint64 sec = t.toLongLong(&ok); if (!ok) return false;
         msOut = sec * 1000; return true;
@@ -790,7 +790,7 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
     // 次に指す側
     Color turn = stm;
 
-    for (int i = idx; i < lines.size(); ++i) {
+    for (qsizetype i = idx; i < lines.size(); ++i) {
         QString s = lines.at(i);
         if (s.isEmpty()) continue;
         s.replace("\r\n", "\n");
@@ -870,7 +870,7 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
                     out.mainline.disp.append(di);
 
                     lastDispIsResult   = true;
-                    lastResultDispIndex = out.mainline.disp.size() - 1;
+                    lastResultDispIndex = static_cast<int>(out.mainline.disp.size() - 1);
                     lastResultSideIdx   = (turn == Black) ? 0 : 1;
                     continue;
                 }
@@ -999,7 +999,7 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
             out.mainline.disp.append(di);
 
             lastDispIsResult   = true;
-            lastResultDispIndex = out.mainline.disp.size() - 1;
+            lastResultDispIndex = static_cast<int>(out.mainline.disp.size() - 1);
             lastResultSideIdx   = (turn == Black) ? 0 : 1;
             continue;
         }

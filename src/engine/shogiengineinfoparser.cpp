@@ -555,7 +555,7 @@ int ShogiEngineInfoParser::parsePvAndSimulateMoves(const QStringList& pvTokens, 
     m_pvKanjiStr.clear();
     m_pvUsiStr = pvTokens.join(QStringLiteral(" "));  // ★ 追加: USI形式のPVを保存
 
-    for (int i = 0; i < pvTokens.size(); ++i) {
+    for (qsizetype i = 0; i < pvTokens.size(); ++i) {
         const QString token = pvTokens.at(i).trimmed();
 
         const int rc = parseMoveString(token, fileFrom, rankFrom, fileTo, rankTo, promote);
@@ -580,7 +580,7 @@ int ShogiEngineInfoParser::parsePvAndSimulateMoves(const QStringList& pvTokens, 
         }
 
         const QString shogiStr = convertMoveToShogiString(kanjiMovePiece, fileFrom, rankFrom, fileTo, rankTo, promote,
-                                                          algorithm, i, isPondering);
+                                                          algorithm, static_cast<int>(i), isPondering);
 
         setPreviousFileTo(fileTo);
         setPreviousRankTo(rankTo);

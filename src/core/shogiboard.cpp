@@ -174,7 +174,7 @@ QString ShogiBoard::validateAndConvertSfenBoardStr(QString initialSfenStr)
     const QString replacements = "QMOTCUqmotcu";
 
     // SFEN文字列中の成り駒を1文字に変換する。
-    for (int i = 0; i < promotions.size(); ++i) {
+    for (qsizetype i = 0; i < promotions.size(); ++i) {
         initialSfenStr.replace(promotions[i], replacements[i]);
     }
 
@@ -639,7 +639,7 @@ void ShogiBoard::addSfenRecord(const QString& nextTurn, int moveIndex, QStringLi
     //   特例(-1等)   → 1 を明示（開始直後など）
     const int moveCountField = (moveIndex < 0) ? 1 : (moveIndex + 1);
 
-    const int before = sfenRecord->size();
+    const qsizetype before = sfenRecord->size();
     const QString boardSfen = convertBoardToSfen();
     QString stand = convertStandToSfen();
     if (stand.isEmpty()) stand = QStringLiteral("-");
@@ -686,7 +686,7 @@ void ShogiBoard::addSfenRecord(const QString& nextTurn, int moveIndex, QStringLi
 void ShogiBoard::promoteOrDemotePiece(const int fileFrom, const int rankFrom)
 {
     auto nextInCycle = [](const QVector<QChar>& cyc, QChar cur)->QChar {
-        int idx = cyc.indexOf(cur);
+        qsizetype idx = cyc.indexOf(cur);
         if (idx < 0) return cur;
         return cyc[(idx + 1) % cyc.size()];
     };
@@ -756,13 +756,13 @@ void ShogiBoard::promoteOrDemotePiece(const int fileFrom, const int rankFrom)
     QChar next = cur;
     if (filtered.indexOf(cur) < 0) {
         QChar probe = cur;
-        for (int i = 0; i < base.size(); ++i) {
+        for (qsizetype i = 0; i < base.size(); ++i) {
             probe = nextInCycle(base, probe);
             if (filtered.indexOf(probe) >= 0) { next = probe; break; }
         }
     } else {
         // 通常：filtered 内で次へ
-        int idx = filtered.indexOf(cur);
+        qsizetype idx = filtered.indexOf(cur);
         next = filtered[(idx + 1) % filtered.size()];
     }
 

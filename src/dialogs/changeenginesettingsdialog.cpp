@@ -92,7 +92,7 @@ void ChangeEngineSettingsDialog::setupEngineOptionsDialog()
 void ChangeEngineSettingsDialog::changeStatusColorTypeButton()
 {
     // オプション数までループする。
-    for (int i = 0; i < m_engineOptionWidgetsList.size(); i++) {
+    for (qsizetype i = 0; i < m_engineOptionWidgetsList.size(); i++) {
         // オプションタイプが"button"の場合
         if (m_optionList.at(i).type == "button") {
             m_engineOptionWidgetsList.at(i).selectionButton->setProperty("index", i);
@@ -407,7 +407,7 @@ void ChangeEngineSettingsDialog::openFile()
 // エンジンオプションを既定値に戻す。
 void ChangeEngineSettingsDialog::restoreDefaultOptions() {
     // エンジンオプションの数だけ繰り返し、各オプションウィジェットに既定値を設定する
-    for (int i = 0; i < m_optionList.size(); ++i) {
+    for (qsizetype i = 0; i < m_optionList.size(); ++i) {
         const auto& option = m_optionList[i]; // 現在のオプションを参照
         auto& widget = m_engineOptionWidgetsList[i]; // 対応するウィジェットを参照
 
@@ -473,7 +473,7 @@ void ChangeEngineSettingsDialog::saveOptionsToSettings()
 void ChangeEngineSettingsDialog::writeEngineOptions()
 {
     // エンジンオプションの数だけ繰り返す。
-    for (int i = 0; i < m_optionList.size(); i++) {
+    for (qsizetype i = 0; i < m_optionList.size(); i++) {
         EngineOption option = m_optionList.at(i);
 
         if (option.type == "filename" || option.type == "string") {

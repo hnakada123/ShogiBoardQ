@@ -52,7 +52,7 @@ void KifuVariationEngine::ingest(const KifParseResult& res,
         if (!tr.setFromSfen(base)) return {};
         out.reserve(usis.size() + 1);
         out.push_back(tr.toSfenString());      // [0] = 基準（直前局面）
-        for (int i = 0; i < usis.size(); ++i) {
+        for (qsizetype i = 0; i < usis.size(); ++i) {
             tr.applyUsiMove(usis.at(i));
             out.push_back(tr.toSfenString());  // [1..] 各手後
         }
@@ -61,17 +61,17 @@ void KifuVariationEngine::ingest(const KifParseResult& res,
 
     // 1) 変化群（id は 1 始まり）
     int nextId = 1;
-    for (int i = 0; i < res.variations.size(); ++i) {
+    for (qsizetype i = 0; i < res.variations.size(); ++i) {
         const auto& kv = res.variations[i];
 
         Variation v;
         v.id          = nextId++;
-        v.fileOrder   = i + 1;
+        v.fileOrder   = static_cast<int>(i + 1);
         v.isMainline  = false;
         v.startPly    = kv.startPly;         // グローバル手数での開始
         v.disp        = kv.line.disp;
         v.usi         = kv.line.usiMoves;
-        v.sourceIndex = i;
+        v.sourceIndex = static_cast<int>(i);
 
         // --- 変化の SFEN を用意 ---
         if (!kv.line.sfenList.isEmpty()) {
@@ -85,7 +85,7 @@ void KifuVariationEngine::ingest(const KifParseResult& res,
             int baseIdx     = -1;
 
             // 既に構築済みの行（本譜=先頭, 変化=その後）を「逆順」に走査して最深を選ぶ
-            for (int p = m_vars.size() - 1; p >= 0; --p) {
+            for (qsizetype p = m_vars.size() - 1; p >= 0; --p) {
                 const auto& par = m_vars[p];
                 if (par.isMainline) {
                     // 本譜は sfen[globalPrev] がそのまま「直前局面」
@@ -130,7 +130,7 @@ void KifuVariationEngine::ingest(const KifParseResult& res,
             }
         }
 
-        m_sourceToId.insert(i, v.id);
+        m_sourceToId.insert(static_cast<int>(i), v.id);
         m_vars.push_back(v);
 
         qDebug() << "[VE] var id=" << v.id
@@ -148,16 +148,16 @@ void KifuVariationEngine::ingest(const KifParseResult& res,
     // 本譜（id=0）：ply = li + 1
     if (!m_vars.isEmpty()) {
         const auto& main = m_vars[0];
-        for (int li = 0; li < main.disp.size(); ++li) {
-            addIndex(li + 1, 0, li);
+        for (qsizetype li = 0; li < main.disp.size(); ++li) {
+            addIndex(static_cast<int>(li + 1), 0, static_cast<int>(li));
         }
     }
 
     // 変化：ply = startPly + li
-    for (int vpos = 1; vpos < m_vars.size(); ++vpos) {
+    for (qsizetype vpos = 1; vpos < m_vars.size(); ++vpos) {
         const auto& v = m_vars[vpos];
-        for (int li = 0; li < v.disp.size(); ++li) {
-            addIndex(v.startPly + li, v.id, li);
+        for (qsizetype li = 0; li < v.disp.size(); ++li) {
+            addIndex(v.startPly + static_cast<int>(li), v.id, static_cast<int>(li));
         }
     }
 
@@ -196,15 +196,15 @@ ResolvedLine KifuVariationEngine::resolveAfterWins(int variationId) const
     const int base = qMax(0, v.startPly - 1);   // 上書き開始位置（0-based）
 
     // 表示（disp）を後勝ちで上書き／追記
-    for (int li = 0; li < v.disp.size(); ++li) {
-        const int idx = base + li;
+    for (qsizetype li = 0; li < v.disp.size(); ++li) {
+        const qsizetype idx = base + li;
         if (idx < rl.disp.size()) rl.disp[idx] = v.disp.at(li);
         else                      rl.disp.push_back(v.disp.at(li));
     }
 
     // USI も同様に上書き／追記
-    for (int li = 0; li < v.usi.size(); ++li) {
-        const int idx = base + li;
+    for (qsizetype li = 0; li < v.usi.size(); ++li) {
+        const qsizetype idx = base + li;
         if (idx < rl.usi.size()) rl.usi[idx] = v.usi.at(li);
         else                     rl.usi.push_back(v.usi.at(li));
     }
@@ -253,7 +253,7 @@ KifuVariationEngine::branchCandidatesForPly(int ply,
     const auto& pairs = it.value();
     QSet<QString> seen;
 
-    for (int i = 0; i < pairs.size(); ++i) {
+    for (qsizetype i = 0; i < pairs.size(); ++i) {
         const int vid = pairs[i].first;
         const int li  = pairs[i].second;
 

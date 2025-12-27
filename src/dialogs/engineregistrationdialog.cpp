@@ -147,7 +147,7 @@ void EngineRegistrationDialog::loadEnginesFromSettings()
     ui->engineListWidget->clear();
 
     for (int i = 0; i < engineCount; ++i) {
-        settings.setArrayIndex(i);
+        settings.setArrayIndex(static_cast<int>(i));
 
         // 設定ファイルからエンジン名と絶対パス付きの実行ファイル名を読み込む。
         Engine engine = readEngineFromSettings(settings);
@@ -306,7 +306,7 @@ void EngineRegistrationDialog::processIdName(const QString& line)
     m_engineIdName.remove(QString(IdNamePrefix) + " ");
 
     // 登録エンジンの重複チェック
-    for (int j = 0; j < m_engineList.size(); j++) {
+    for (qsizetype j = 0; j < m_engineList.size(); j++) {
         if (m_engineIdName == m_engineList.at(j).name) {
             // 登録したいエンジンが既に登録されている場合、重複エラーのメッセージを表示する。
             duplicateEngine();
@@ -476,9 +476,9 @@ void EngineRegistrationDialog::saveEnginesToSettingsFile() const
     settings.beginWriteArray(EnginesGroupName);
 
     // 登録エンジンの数だけ繰り返す。
-    for (int i = 0; i < m_engineList.size(); i++) {
+    for (qsizetype i = 0; i < m_engineList.size(); i++) {
         // 設定ファイルの[Engines]グループの配列のi番目の要素に移動する。
-        settings.setArrayIndex(i);
+        settings.setArrayIndex(static_cast<int>(i));
 
         // 設定ファイルの[Engines]グループの配列のi番目の要素にエンジン名と絶対パス付きの実行ファイル名を書き込む。
         saveEngineToSettings(settings, m_engineList.at(i));
@@ -508,9 +508,9 @@ void EngineRegistrationDialog::saveEngineOptionsToSettings() const
     settings.beginWriteArray(m_engineIdName);
 
     // エンジンオプションの数だけ繰り返す。
-    for (int i = 0; i < m_engineOptions.size(); i++) {
+    for (qsizetype i = 0; i < m_engineOptions.size(); i++) {
         // 設定ファイルのエンジン名のグループの配列のi番目の要素に移動する。
-        settings.setArrayIndex(i);
+        settings.setArrayIndex(static_cast<int>(i));
 
         // 設定ファイルのエンジン名のグループの配列のi番目の要素にエンジンオプションを書き込む。
         settings.setValue(EngineOptionNameKey, m_engineOptions.at(i).name);
@@ -608,7 +608,7 @@ EngineRegistrationDialog::ValidationResult EngineRegistrationDialog::checkOption
         QStringList tokens = remaining.split(whitespaceRegex);
         QStringList allowedKeywords = {"default", "min", "max", "var"};
 
-        for (int i = 0; i < tokens.size(); ++i) {
+        for (qsizetype i = 0; i < tokens.size(); ++i) {
             if (allowedKeywords.contains(tokens[i])) {
                 if (tokens[i] == "default") {
                     // "type" が "string" であれば、値がなくてもOK。
@@ -700,7 +700,7 @@ void EngineRegistrationDialog::parseOptionLine(const QString& line)
 
     // デバッグ用に既存のオプションを出力
     qDebug() << "現在のエンジンオプション:";
-    for (int i = 0; i < m_engineOptions.size(); ++i) {
+    for (qsizetype i = 0; i < m_engineOptions.size(); ++i) {
         const EngineOption& option = m_engineOptions[i];
         qDebug() << "Name:" << option.name << "Type:" << option.type;
     }

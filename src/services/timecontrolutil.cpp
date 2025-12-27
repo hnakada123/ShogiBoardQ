@@ -54,8 +54,8 @@ void applyToClock(
     // --- 初期手番を SFEN から 1/2 で渡す（bool は渡さない！） ---
     auto sideFromSfen = [](const QString& sfen)->int {
         // " b " → 先手(1) / " w " → 後手(2)
-        const int b = sfen.indexOf(QLatin1String(" b "));
-        const int w = sfen.indexOf(QLatin1String(" w "));
+        const qsizetype b = sfen.indexOf(QLatin1String(" b "));
+        const qsizetype w = sfen.indexOf(QLatin1String(" w "));
         if (b >= 0 && w < 0) return 1;
         if (w >= 0 && b < 0) return 2;
         return 1; // fallback は先手

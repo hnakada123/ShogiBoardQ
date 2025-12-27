@@ -131,7 +131,7 @@ void GameRecordModel::initializeFromDisplayItems(const QList<KifDisplayItem>& di
     m_comments.resize(qMax(0, rowCount));
 
     // disp からコメントを抽出
-    for (int i = 0; i < disp.size() && i < rowCount; ++i) {
+    for (qsizetype i = 0; i < disp.size() && i < rowCount; ++i) {
         m_comments[i] = disp[i].comment;
     }
 
@@ -295,7 +295,7 @@ QStringList GameRecordModel::toKifLines(const ExportContext& ctx) const
     int lastActualMoveNo = 0;
     QString terminalMove;
     
-    for (int i = startIdx; i < disp.size(); ++i) {
+    for (qsizetype i = startIdx; i < disp.size(); ++i) {
         const auto& it = disp[i];
         const QString moveText = it.prettyMove.trimmed();
         
@@ -399,7 +399,7 @@ QList<KifDisplayItem> GameRecordModel::collectMainlineForExport_() const
         result = rr.disp;
 
         // ResolvedRow::comments からコメントをマージ
-        for (int i = 0; i < result.size() && i < rr.comments.size(); ++i) {
+        for (qsizetype i = 0; i < result.size() && i < rr.comments.size(); ++i) {
             if (!rr.comments[i].isEmpty()) {
                 result[i].comment = rr.comments[i];
             }
@@ -412,7 +412,7 @@ QList<KifDisplayItem> GameRecordModel::collectMainlineForExport_() const
 
     // 最終: 内部コメント配列 (m_comments) から最新コメントをマージ
     // （これが Single Source of Truth）
-    for (int i = 0; i < result.size() && i < m_comments.size(); ++i) {
+    for (qsizetype i = 0; i < result.size() && i < m_comments.size(); ++i) {
         if (!m_comments[i].isEmpty()) {
             result[i].comment = m_comments[i];
         }
@@ -590,7 +590,7 @@ void GameRecordModel::outputVariation_(int rowIndex, QStringList& out) const
     bool isFirstMove = true;
     
     // dispのstartPly番目の要素から出力（disp[startPly]がstartPly手目）
-    for (int i = row.startPly; i < disp.size(); ++i) {
+    for (qsizetype i = row.startPly; i < disp.size(); ++i) {
         const auto& it = disp[i];
         const QString moveText = it.prettyMove.trimmed();
         
@@ -733,7 +733,7 @@ QStringList GameRecordModel::toKi2Lines(const ExportContext& ctx) const
     QStringList movesOnLine;  // 現在の行に蓄積する指し手
     bool lastMoveHadComment = false;
     
-    for (int i = startIdx; i < disp.size(); ++i) {
+    for (qsizetype i = startIdx; i < disp.size(); ++i) {
         const auto& it = disp[i];
         const QString moveText = it.prettyMove.trimmed();
         
@@ -841,7 +841,7 @@ void GameRecordModel::outputKi2Variation_(int rowIndex, QStringList& out) const
     bool lastMoveHadComment = false;
     
     // dispのstartPly番目の要素から出力
-    for (int i = row.startPly; i < disp.size(); ++i) {
+    for (qsizetype i = row.startPly; i < disp.size(); ++i) {
         const auto& it = disp[i];
         const QString moveText = it.prettyMove.trimmed();
         
@@ -940,7 +940,7 @@ static int extractCsaTimeSeconds(const QString& timeText)
     if (text.endsWith(QLatin1Char(')'))) text.chop(1);
     
     // "mm:ss/..." の部分を取得
-    const int slashIdx = text.indexOf(QLatin1Char('/'));
+    const qsizetype slashIdx = text.indexOf(QLatin1Char('/'));
     if (slashIdx < 0) return 0;
     
     const QString moveTime = text.left(slashIdx).trimmed();
@@ -1392,7 +1392,7 @@ QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringL
     
     // ★★★ デバッグ: disp の確認 ★★★
     qDebug().noquote() << "[toCsaLines] disp.size() =" << disp.size();
-    for (int dbgIdx = 0; dbgIdx < qMin(10, disp.size()); ++dbgIdx) {
+    for (qsizetype dbgIdx = 0; dbgIdx < qMin(qsizetype(10), disp.size()); ++dbgIdx) {
         qDebug().noquote() << "[toCsaLines] disp[" << dbgIdx << "].prettyMove ="
                            << disp[dbgIdx].prettyMove;
     }
@@ -1430,13 +1430,13 @@ QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringL
                        << ", ループ回数予定 =" << (disp.size() - startIdx);
     
     // dispの内容を出力
-    for (int dbg = 0; dbg < qMin(disp.size(), 25); ++dbg) {
+    for (qsizetype dbg = 0; dbg < qMin(disp.size(), qsizetype(25)); ++dbg) {
         qDebug().noquote() << "[toCsaLines] disp[" << dbg << "].prettyMove =" << disp[dbg].prettyMove.trimmed()
                            << ", timeText =" << disp[dbg].timeText;
     }
     
     // usiMovesの内容を出力
-    for (int dbg = 0; dbg < qMin(usiMoves.size(), 25); ++dbg) {
+    for (qsizetype dbg = 0; dbg < qMin(usiMoves.size(), qsizetype(25)); ++dbg) {
         qDebug().noquote() << "[toCsaLines] usiMoves[" << dbg << "] =" << usiMoves[dbg];
     }
     
@@ -1448,7 +1448,7 @@ QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringL
     int skippedEmpty = 0;
     int skippedNoUsi = 0;
     
-    for (int i = startIdx; i < disp.size(); ++i) {
+    for (qsizetype i = startIdx; i < disp.size(); ++i) {
         const auto& it = disp[i];
         const QString moveText = it.prettyMove.trimmed();
         
@@ -1618,8 +1618,8 @@ static QString kanjiToCsaPiece(const QString& kanji)
 static int zenkakuToNumber(QChar c)
 {
     static const QString zenkaku = QStringLiteral("０１２３４５６７８９");
-    int idx = zenkaku.indexOf(c);
-    if (idx >= 0) return idx;
+    qsizetype idx = zenkaku.indexOf(c);
+    if (idx >= 0) return static_cast<int>(idx);
     if (c >= QLatin1Char('0') && c <= QLatin1Char('9')) return c.toLatin1() - '0';
     return -1;
 }
@@ -1628,8 +1628,8 @@ static int zenkakuToNumber(QChar c)
 static int kanjiToNumber(QChar c)
 {
     static const QString kanji = QStringLiteral("〇一二三四五六七八九");
-    int idx = kanji.indexOf(c);
-    if (idx >= 0) return idx;
+    qsizetype idx = kanji.indexOf(c);
+    if (idx >= 0) return static_cast<int>(idx);
     if (c >= QLatin1Char('1') && c <= QLatin1Char('9')) return c.toLatin1() - '0';
     return -1;
 }
@@ -1788,12 +1788,12 @@ static QJsonObject sfenToJkfData(const QString& sfen)
     }
     
     const QStringList rows = boardStr.split(QLatin1Char('/'));
-    for (int y = 0; y < qMin(9, rows.size()); ++y) {
+    for (qsizetype y = 0; y < qMin(qsizetype(9), rows.size()); ++y) {
         const QString& rowStr = rows[y];
         int x = 8; // SFEN は9筋から開始
         bool promoted = false;
         
-        for (int i = 0; i < rowStr.size() && x >= 0; ++i) {
+        for (qsizetype i = 0; i < rowStr.size() && x >= 0; ++i) {
             QChar c = rowStr.at(i);
             
             if (c == QLatin1Char('+')) {
@@ -1830,7 +1830,7 @@ static QJsonObject sfenToJkfData(const QString& sfen)
     
     if (handsStr != QStringLiteral("-")) {
         int count = 0;
-        for (int i = 0; i < handsStr.size(); ++i) {
+        for (qsizetype i = 0; i < handsStr.size(); ++i) {
             QChar c = handsStr.at(i);
             if (c.isDigit()) {
                 count = count * 10 + c.digitValue();
@@ -2015,7 +2015,7 @@ QJsonObject GameRecordModel::convertMoveToJkf_(const KifDisplayItem& disp, int& 
             remaining = remaining.mid(2);
         } else if (c == QLatin1Char('(')) {
             // 移動元 (xy) を解析
-            const int closePos = remaining.indexOf(QLatin1Char(')'));
+            const qsizetype closePos = remaining.indexOf(QLatin1Char(')'));
             if (closePos > 1) {
                 const QString fromStr = remaining.mid(1, closePos - 1);
                 if (fromStr.size() >= 2) {
@@ -2083,7 +2083,7 @@ QJsonArray GameRecordModel::buildJkfMoves_(const QList<KifDisplayItem>& disp) co
     
     int prevToX = 0, prevToY = 0;
     
-    for (int i = 0; i < disp.size(); ++i) {
+    for (qsizetype i = 0; i < disp.size(); ++i) {
         const auto& item = disp[i];
         
         if (i == 0 && item.prettyMove.trimmed().isEmpty()) {
@@ -2106,7 +2106,7 @@ QJsonArray GameRecordModel::buildJkfMoves_(const QList<KifDisplayItem>& disp) co
             }
             moves.append(openingMove);
         } else {
-            const QJsonObject moveObj = convertMoveToJkf_(item, prevToX, prevToY, i);
+            const QJsonObject moveObj = convertMoveToJkf_(item, prevToX, prevToY, static_cast<int>(i));
             if (!moveObj.isEmpty()) {
                 moves.append(moveObj);
             }
@@ -2196,17 +2196,17 @@ QJsonArray GameRecordModel::buildJkfForkMovesRecursive_(int rowIndex, QSet<int>&
     }
     
     // startPly 手目以降の指し手を追加
-    for (int j = row.startPly; j < dispItems.size(); ++j) {
+    for (qsizetype j = row.startPly; j < dispItems.size(); ++j) {
         const auto& item = dispItems[j];
         if (item.prettyMove.trimmed().isEmpty()) continue;
         
-        QJsonObject forkMoveObj = convertMoveToJkf_(item, forkPrevToX, forkPrevToY, j);
+        QJsonObject forkMoveObj = convertMoveToJkf_(item, forkPrevToX, forkPrevToY, static_cast<int>(j));
         if (forkMoveObj.isEmpty()) continue;
         
         // この手数に子分岐があれば追加
-        if (childForksByPly.contains(j)) {
+        if (childForksByPly.contains(static_cast<int>(j))) {
             QJsonArray childForks;
-            const QVector<int>& childRowIndices = childForksByPly[j];
+            const QVector<int>& childRowIndices = childForksByPly[static_cast<int>(j)];
             
             for (int childRowIndex : childRowIndices) {
                 const QJsonArray childForkMoves = buildJkfForkMovesRecursive_(childRowIndex, visitedRows);
@@ -2522,7 +2522,7 @@ QString GameRecordModel::inferUsiFromSfenDiff_(const QString& sfenBefore, const 
         
         // USI座標: ファイルは1-9、ランクはa-i
         int usiFile = toFile + 1;  // 1-9
-        char usiRank = 'a' + toRank;  // a-i
+        char usiRank = static_cast<char>('a' + toRank);  // a-i
         
         return QStringLiteral("%1*%2%3")
             .arg(usiPiece)
@@ -2534,9 +2534,9 @@ QString GameRecordModel::inferUsiFromSfenDiff_(const QString& sfenBefore, const 
     if (fromRank >= 0 && toRank >= 0) {
         // USI座標: ファイルは1-9、ランクはa-i
         int fromUsiFile = fromFile + 1;
-        char fromUsiRank = 'a' + fromRank;
+        char fromUsiRank = static_cast<char>('a' + fromRank);
         int toUsiFile = toFile + 1;
-        char toUsiRank = 'a' + toRank;
+        char toUsiRank = static_cast<char>('a' + toRank);
         
         QString usi = QStringLiteral("%1%2%3%4")
             .arg(fromUsiFile)
@@ -2594,7 +2594,7 @@ QString GameRecordModel::buildUsenVariation_(int rowIndex, QSet<int>& visitedRow
     // これは完全ではないが、多くのケースで動作する
     const QList<KifDisplayItem>& disp = row.disp;
     
-    for (int i = startPly; i < disp.size(); ++i) {
+    for (qsizetype i = startPly; i < disp.size(); ++i) {
         const KifDisplayItem& item = disp[i];
         const QString& prettyMove = item.prettyMove;
         
@@ -2725,7 +2725,7 @@ QStringList GameRecordModel::toUsenLines(const ExportContext& ctx, const QString
             const QList<KifDisplayItem>& branchDisp = row.disp;
             
             // SFENの差分からUSI指し手を推測
-            for (int i = row.startPly; i < branchDisp.size(); ++i) {
+            for (qsizetype i = row.startPly; i < branchDisp.size(); ++i) {
                 const KifDisplayItem& item = branchDisp[i];
                 if (item.prettyMove.isEmpty()) continue;
                 
@@ -2828,7 +2828,7 @@ QStringList GameRecordModel::toUsiLines(const ExportContext& ctx, const QStringL
     } else {
         // SFENの手数部分（最後のスペースと数字）を除いて比較
         QString sfenWithoutMoveNum = ctx.startSfen;
-        const int lastSpace = ctx.startSfen.lastIndexOf(QLatin1Char(' '));
+        const qsizetype lastSpace = ctx.startSfen.lastIndexOf(QLatin1Char(' '));
         if (lastSpace > 0) {
             const QString lastPart = ctx.startSfen.mid(lastSpace + 1);
             bool isNumber = false;

@@ -19,8 +19,8 @@ static inline int asciiDigitToInt_(QChar c) {
 
 static inline int zenkakuDigitToInt_(QChar c) {
     static const QString z = QStringLiteral("０１２３４５６７８９");
-    const int idx = z.indexOf(c);
-    return (idx >= 0) ? idx : 0;
+    const qsizetype idx = z.indexOf(c);
+    return (idx >= 0) ? static_cast<int>(idx) : 0;
 }
 
 // 1桁（半角/全角）→ int
@@ -35,8 +35,8 @@ static inline int flexDigitToInt_NoDetach_(QChar c)
 static int flexDigitsToInt_NoDetach_(const QString& t)
 {
     int v = 0;
-    const int n = t.size();
-    for (int i = 0; i < n; ++i) {
+    const qsizetype n = t.size();
+    for (qsizetype i = 0; i < n; ++i) {
         const QChar ch = t.at(i);
         int d = asciiDigitToInt_(ch);
         if (!d) d = zenkakuDigitToInt_(ch);
@@ -290,7 +290,7 @@ int Ki2ToSfenConverter::kanjiDigitToInt(QChar c)
 QChar Ki2ToSfenConverter::rankNumToLetter(int r)
 {
     if (r < 1 || r > 9) return QChar();
-    return QChar(QLatin1Char('a' + (r - 1)));
+    return QChar(QLatin1Char(static_cast<char>('a' + (r - 1))));
 }
 
 // ----------------------------------------------------------------------------
@@ -342,7 +342,7 @@ bool Ki2ToSfenConverter::isBoardHeaderOrFrame(const QString& line)
     {
         int digitCount = 0;
         bool onlyDigitsAndSpace = true;
-        for (int i = 0; i < line.size(); ++i) {
+        for (qsizetype i = 0; i < line.size(); ++i) {
             const QChar ch = line.at(i);
             if (ch.isSpace()) continue;
             const ushort u = ch.unicode();
@@ -362,8 +362,8 @@ bool Ki2ToSfenConverter::isBoardHeaderOrFrame(const QString& line)
             return true;
         }
         int boxCount = 0;
-        for (int i = 0; i < s.size(); ++i) if (kBoxChars.contains(s.at(i))) ++boxCount;
-        if (boxCount >= qMax(3, s.size() / 2)) return true;
+        for (qsizetype i = 0; i < s.size(); ++i) if (kBoxChars.contains(s.at(i))) ++boxCount;
+        if (boxCount >= qMax(3, static_cast<int>(s.size()) / 2)) return true;
     }
 
     // 持駒見出し
@@ -376,7 +376,7 @@ bool Ki2ToSfenConverter::isBoardHeaderOrFrame(const QString& line)
         const QString t = line.trimmed();
         if (!t.isEmpty()) {
             bool ok = true; int kanjiCount = 0;
-            for (int i = 0; i < t.size(); ++i) {
+            for (qsizetype i = 0; i < t.size(); ++i) {
                 const QChar ch = t.at(i);
                 if (kKanjiRow.contains(ch)) { ++kanjiCount; continue; }
                 if (ch.isSpace()) continue;
@@ -479,7 +479,7 @@ bool Ki2ToSfenConverter::isPromotionMoveText(const QString& moveText)
     if (moveText.contains(QStringLiteral("不成"))) return false;
 
     QString head = moveText;
-    int u = head.indexOf(QChar(u'打'));
+    qsizetype u = head.indexOf(QChar(u'打'));
     if (u >= 0) head = head.left(u);
 
     head.remove(QRegularExpression(QStringLiteral("[右左上下引寄直行]+")));
@@ -533,7 +533,7 @@ QStringList Ki2ToSfenConverter::extractMovesFromLine(const QString& line)
         QRegularExpressionMatch m = it.next();
         QString move = m.captured(1).trimmed();
         // コメント部分を除去
-        int commentIdx = move.indexOf(QChar(u'*'));
+        qsizetype commentIdx = move.indexOf(QChar(u'*'));
         if (commentIdx < 0) commentIdx = move.indexOf(QChar(u'＊'));
         if (commentIdx >= 0) {
             move = move.left(commentIdx).trimmed();
@@ -585,10 +585,10 @@ void Ki2ToSfenConverter::initBoardFromSfen(const QString& sfen,
     const QString board = parts[0];
     const QStringList ranks = board.split(QLatin1Char('/'));
     
-    for (int r = 0; r < qMin(9, ranks.size()); ++r) {
+    for (qsizetype r = 0; r < qMin(qsizetype(9), ranks.size()); ++r) {
         const QString& row = ranks[r];
         int f = 0; // file index (0 = 9筋, 8 = 1筋)
-        for (int i = 0; i < row.size() && f < 9; ++i) {
+        for (qsizetype i = 0; i < row.size() && f < 9; ++i) {
             const QChar ch = row.at(i);
             if (ch.isDigit()) {
                 int n = ch.digitValue();
@@ -609,7 +609,7 @@ void Ki2ToSfenConverter::initBoardFromSfen(const QString& sfen,
         const QString hands = parts[2];
         if (hands != QStringLiteral("-")) {
             int num = 0;
-            for (int i = 0; i < hands.size(); ++i) {
+            for (qsizetype i = 0; i < hands.size(); ++i) {
                 const QChar ch = hands.at(i);
                 if (ch.isDigit()) {
                     num = num * 10 + ch.digitValue();
@@ -642,7 +642,7 @@ void Ki2ToSfenConverter::applyMoveToBoard(const QString& usi,
 
     // 駒打ち: "P*5e"
     if (usi.contains(QLatin1Char('*'))) {
-        const int star = usi.indexOf('*');
+        const qsizetype star = usi.indexOf('*');
         if (star != 1 || usi.size() < 4) return;
         
         const QChar up = usi.at(0).toUpper();

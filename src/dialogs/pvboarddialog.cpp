@@ -46,7 +46,7 @@ PvBoardDialog::PvBoardDialog(const QString& baseSfen,
     ShogiBoard tempBoard;
     tempBoard.setSfen(m_baseSfen);
 
-    for (int i = 0; i < m_pvMoves.size(); ++i) {
+    for (qsizetype i = 0; i < m_pvMoves.size(); ++i) {
         const QString& move = m_pvMoves.at(i);
         // 手を指す前の手番を渡す（blackToMoveは現在の手番）
         applyUsiMoveToBoard(&tempBoard, move, blackToMove);
@@ -226,7 +226,7 @@ void PvBoardDialog::buildUi()
 
 void PvBoardDialog::updateButtonStates()
 {
-    const int maxPly = m_pvMoves.size();
+    const qsizetype maxPly = m_pvMoves.size();
 
     m_btnFirst->setEnabled(m_currentPly > 0);
     m_btnBack->setEnabled(m_currentPly > 0);
@@ -255,7 +255,7 @@ void PvBoardDialog::updateBoardDisplay()
                                                   : ShogiGameController::Player2);
 
     // 手数ラベルを更新
-    const int totalMoves = m_pvMoves.size();
+    const qsizetype totalMoves = m_pvMoves.size();
     QString plyText = tr("手数: %1 / %2").arg(m_currentPly).arg(totalMoves);
     if (m_currentPly == 0) {
         plyText += tr(" (開始局面)");
@@ -299,7 +299,7 @@ void PvBoardDialog::onGoForward()
 
 void PvBoardDialog::onGoLast()
 {
-    m_currentPly = m_pvMoves.size();
+    m_currentPly = static_cast<int>(m_pvMoves.size());
     updateBoardDisplay();
     updateButtonStates();
 }

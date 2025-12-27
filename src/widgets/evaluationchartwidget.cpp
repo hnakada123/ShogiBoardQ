@@ -403,8 +403,8 @@ void EvaluationChartWidget::setYAxisLimit(int limit)
         // ComboBoxの選択を更新
         if (m_comboYLimit) {
             m_comboYLimit->blockSignals(true);
-            int idx = s_availableYLimits.indexOf(m_yLimit);
-            if (idx >= 0) m_comboYLimit->setCurrentIndex(idx);
+            qsizetype idx = s_availableYLimits.indexOf(m_yLimit);
+            if (idx >= 0) m_comboYLimit->setCurrentIndex(static_cast<int>(idx));
             m_comboYLimit->blockSignals(false);
         }
     }
@@ -431,14 +431,14 @@ void EvaluationChartWidget::setXAxisLimit(int limit)
         // ComboBoxの選択を更新
         if (m_comboXLimit) {
             m_comboXLimit->blockSignals(true);
-            int idx = s_availableXLimits.indexOf(m_xLimit);
-            if (idx >= 0) m_comboXLimit->setCurrentIndex(idx);
+            qsizetype idx = s_availableXLimits.indexOf(m_xLimit);
+            if (idx >= 0) m_comboXLimit->setCurrentIndex(static_cast<int>(idx));
             m_comboXLimit->blockSignals(false);
         }
         if (m_comboXInterval) {
             m_comboXInterval->blockSignals(true);
-            int idx = s_availableXIntervals.indexOf(m_xInterval);
-            if (idx >= 0) m_comboXInterval->setCurrentIndex(idx);
+            qsizetype idx = s_availableXIntervals.indexOf(m_xInterval);
+            if (idx >= 0) m_comboXInterval->setCurrentIndex(static_cast<int>(idx));
             m_comboXInterval->blockSignals(false);
         }
     }
@@ -452,8 +452,8 @@ void EvaluationChartWidget::setXAxisInterval(int interval)
         // ComboBoxの選択を更新
         if (m_comboXInterval) {
             m_comboXInterval->blockSignals(true);
-            int idx = s_availableXIntervals.indexOf(m_xInterval);
-            if (idx >= 0) m_comboXInterval->setCurrentIndex(idx);
+            qsizetype idx = s_availableXIntervals.indexOf(m_xInterval);
+            if (idx >= 0) m_comboXInterval->setCurrentIndex(static_cast<int>(idx));
             m_comboXInterval->blockSignals(false);
         }
     }
@@ -523,22 +523,22 @@ void EvaluationChartWidget::updateComboBoxSelections()
     // シグナルを一時的にブロックして無限ループを防ぐ
     if (m_comboYLimit) {
         m_comboYLimit->blockSignals(true);
-        int idx = s_availableYLimits.indexOf(m_yLimit);
-        if (idx >= 0) m_comboYLimit->setCurrentIndex(idx);
+        qsizetype idx = s_availableYLimits.indexOf(m_yLimit);
+        if (idx >= 0) m_comboYLimit->setCurrentIndex(static_cast<int>(idx));
         m_comboYLimit->blockSignals(false);
     }
 
     if (m_comboXLimit) {
         m_comboXLimit->blockSignals(true);
-        int idx = s_availableXLimits.indexOf(m_xLimit);
-        if (idx >= 0) m_comboXLimit->setCurrentIndex(idx);
+        qsizetype idx = s_availableXLimits.indexOf(m_xLimit);
+        if (idx >= 0) m_comboXLimit->setCurrentIndex(static_cast<int>(idx));
         m_comboXLimit->blockSignals(false);
     }
 
     if (m_comboXInterval) {
         m_comboXInterval->blockSignals(true);
-        int idx = s_availableXIntervals.indexOf(m_xInterval);
-        if (idx >= 0) m_comboXInterval->setCurrentIndex(idx);
+        qsizetype idx = s_availableXIntervals.indexOf(m_xInterval);
+        if (idx >= 0) m_comboXInterval->setCurrentIndex(static_cast<int>(idx));
         m_comboXInterval->blockSignals(false);
     }
 }

@@ -242,7 +242,7 @@ void BoardSyncPresenter::syncBoardAndHighlightsAtRow(int ply) const
             const int y = r;    // 上(後手側)=0, 下(先手側)=8
             int x = 8;          // 筋は右(9筋)=8 → 左(1筋)=0 へ詰める
 
-            for (int i = 0; i < row.size(); ++i) {
+            for (qsizetype i = 0; i < row.size(); ++i) {
                 const QChar ch = row.at(i);
                 if (ch.isDigit()) {
                     x -= (ch.toLatin1() - '0'); // 連続空白

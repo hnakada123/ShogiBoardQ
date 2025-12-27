@@ -100,9 +100,9 @@ QList<KifDisplayItem> KifuContentBuilder::collectMainline(const KifuExportContex
         int targetRow = ctx.activeResolvedRow;
         if (targetRow < 0 || targetRow >= ctx.resolvedRows->size()) {
             targetRow = -1;
-            for (int i = 0; i < ctx.resolvedRows->size(); ++i) {
+            for (qsizetype i = 0; i < ctx.resolvedRows->size(); ++i) {
                 if (ctx.resolvedRows->at(i).parent < 0) {
-                    targetRow = i;
+                    targetRow = static_cast<int>(i);
                     break;
                 }
             }
@@ -113,7 +113,7 @@ QList<KifDisplayItem> KifuContentBuilder::collectMainline(const KifuExportContex
         result = rr.disp;
 
         // ★ ResolvedRow::comments から編集済みコメントをマージ
-        for (int i = 0; i < result.size() && i < rr.comments.size(); ++i) {
+        for (qsizetype i = 0; i < result.size() && i < rr.comments.size(); ++i) {
             if (!rr.comments[i].isEmpty()) {
                 result[i].comment = rr.comments[i];
             }
@@ -121,7 +121,7 @@ QList<KifDisplayItem> KifuContentBuilder::collectMainline(const KifuExportContex
 
         // ★ さらに ctx.commentsByRow から最新のコメントをマージ（優先度最高）
         if (ctx.commentsByRow) {
-            for (int i = 0; i < result.size() && i < ctx.commentsByRow->size(); ++i) {
+            for (qsizetype i = 0; i < result.size() && i < ctx.commentsByRow->size(); ++i) {
                 if (!ctx.commentsByRow->at(i).isEmpty()) {
                     result[i].comment = ctx.commentsByRow->at(i);
                 }
@@ -137,7 +137,7 @@ QList<KifDisplayItem> KifuContentBuilder::collectMainline(const KifuExportContex
 
         // ★ ctx.commentsByRow からコメントをマージ
         if (ctx.commentsByRow) {
-            for (int i = 0; i < result.size() && i < ctx.commentsByRow->size(); ++i) {
+            for (qsizetype i = 0; i < result.size() && i < ctx.commentsByRow->size(); ++i) {
                 if (!ctx.commentsByRow->at(i).isEmpty()) {
                     result[i].comment = ctx.commentsByRow->at(i);
                 }
@@ -161,7 +161,7 @@ QList<KifDisplayItem> KifuContentBuilder::collectMainline(const KifuExportContex
             it.timeText   = time.isEmpty() ? QStringLiteral("00:00/00:00:00") : time;
 
             // ★ ctx.commentsByRow からコメントを取得
-            const int idx = result.size();
+            const qsizetype idx = result.size();
             if (ctx.commentsByRow && idx < ctx.commentsByRow->size()) {
                 it.comment = ctx.commentsByRow->at(idx);
             }

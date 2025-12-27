@@ -97,8 +97,8 @@ void PositionEditController::beginPositionEditing(const BeginEditContext& c)
     // 1) 編集開始SFENの決定（record / current / resume / 盤 から）
     QString baseSfen;
     if (c.sfenRecord && !c.sfenRecord->isEmpty()) {
-        const int lastIdx = c.sfenRecord->size() - 1;
-        int idx = -1;
+        const qsizetype lastIdx = c.sfenRecord->size() - 1;
+        qsizetype idx = -1;
         if (c.gameOver) {
             idx = lastIdx;
         } else if (c.selectedPly >= 0 && c.selectedPly <= lastIdx) {

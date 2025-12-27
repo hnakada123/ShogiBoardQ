@@ -30,7 +30,7 @@ bool SfenPositionTracer::applyUsiMove(const QString& usiIn) {
 
     // Drop: "P*5e"
     if (usi.contains(QLatin1Char('*'))) {
-        const int star = usi.indexOf('*');
+        const qsizetype star = usi.indexOf('*');
         if (star != 1 || usi.size() < 4) return false;
         const QChar up = usi.at(0).toUpper();
         const int col = fileToCol(usi.at(2).toLatin1() - '0');
@@ -243,7 +243,7 @@ bool SfenPositionTracer::setFromSfen(const QString& sfen) {
     for (int r = 0; r < 9; ++r) {
         const QString& row = ranks[r];
         int c = 0;
-        for (int i = 0; i < row.size() && c < 9; ++i) {
+        for (qsizetype i = 0; i < row.size() && c < 9; ++i) {
             const QChar ch = row.at(i);
             if (ch.isDigit()) {
                 int n = ch.digitValue();
