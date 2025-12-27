@@ -3284,6 +3284,11 @@ void MainWindow::onRecordPaneMainRowChanged_(int row)
         m_currentSelectedPly = row;
         m_currentMoveIndex   = row;
 
+        // ★ 追加：棋譜欄のハイライト行を更新（対局終了後のナビゲーション対応）
+        if (m_kifuRecordModel) {
+            m_kifuRecordModel->setCurrentHighlightRow(row);
+        }
+
         // ★ 追加：盤面適用後に手番表示を更新
         setCurrentTurn();
     }
