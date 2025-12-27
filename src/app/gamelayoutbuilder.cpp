@@ -18,11 +18,3 @@ QSplitter* GameLayoutBuilder::buildHorizontalSplit()
     }
     return m_splitter;
 }
-
-void GameLayoutBuilder::attachToCentralLayout(QVBoxLayout* vbox)
-{
-    if (!vbox) return;
-    // 既存中身クリアは MainWindow 側の責務のままでOK（clearLayout等）
-    if (m_splitter) vbox->addWidget(m_splitter);
-    if (m_d.analysisTabWidget) vbox->addWidget(m_d.analysisTabWidget);
-}

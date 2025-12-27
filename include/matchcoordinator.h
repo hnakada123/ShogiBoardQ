@@ -109,12 +109,9 @@ public:
     ~MatchCoordinator() override;
 
     // 外部 API
-    void startNewGame(const QString& sfenStart);
     void handleResign();                 // 人間の投了
     void handleEngineResign(int idx);    // エンジン投了通知(1 or 2)
-    void notifyTimeout(Player loser);    // ★ 時間切れ通知（UI→司令塔）
     void flipBoard();                    // 盤反転 + 表示更新
-    void onTurnFinishedAndSwitch();      // 手番切替時（時計/UI更新 + go送信）
     void updateUsiPtrs(Usi* e1, Usi* e2);// エンジン再生成時などに差し替え
     void handleBreakOff();               // ★ 中断（UI→司令塔）
 
@@ -140,7 +137,6 @@ public:
     // HvH/HvE: 1手の開始エポック管理（KIF表示用）
     void   markTurnEpochNowFor(Player side, qint64 nowMs = -1);
     qint64 turnEpochFor(Player side) const;
-    void   resetTurnEpochs();
 
     // HvH: ターン計測
     void armTurnTimerIfNeeded();
@@ -154,7 +150,6 @@ public:
     // USI時間
     void computeGoTimesForUSI(qint64& outB, qint64& outW) const;
     void refreshGoTimes();
-    int  computeMoveBudgetMsForCurrentTurn() const;
 
     // --- public: Main からの委譲で呼ばれるAPIを追加 ---
 public:
@@ -203,9 +198,6 @@ public:
     // ← これが MainWindow::undoLastTwoMoves の移行先
     bool undoTwoPlies();
 
-private slots:
-    void armTimerAfterUndo_();
-
 private:
     bool tryRemoveLastItems_(QObject* model, int n);
     bool m_isUndoInProgress = false;
@@ -244,17 +236,13 @@ private:
 
 private:
     // Main から段階的に移す関数群
-    void setPlayersNamesForMode_();
-    void setEngineNamesBasedOnMode_();
     void setGameInProgressActions_(bool inProgress);
-    void renderShogiBoard_();
     void updateTurnDisplay_(Player p);
 
     // 時計/USI 時間計算
     GoTimes computeGoTimes_() const;
 
     // 終局処理
-    void stopClockAndSendStops_();
     void displayResultsAndUpdateGui_(const GameEndInfo& info);
 
 public:
@@ -264,25 +252,13 @@ public:
                                      const QString& enginePathIn,
                                      const QString& engineNameIn);
 
-    // resign シグナルの配線（司令塔→自分の onXxx に直結）
-    void wireResignSignals();
-
-    // ゲームオーバー（win+quit）を一方のエンジンに送る
-    void sendGameOverWinAndQuitTo(int idx); // idx: 1 or 2
-
     // エンジン破棄（片方 or 両方）
     void destroyEngine(int idx);   // idx: 1 or 2
     void destroyEngines();
 
-    // （移行ステップ用）ポインタ参照が必要な場合に備えたアクセサ
-    Usi* enginePtr(int idx) const; // 1 or 2 → Usi*
-
 private:
     // resign 配線の実装（内部ユーティリティ）
     void wireResignToArbiter_(Usi* engine, bool asP1);
-
-    // 保有エンジンから index を求める（1/2/0）
-    int indexForEngine_(const Usi* p) const;
 
     // 共通ロジック：時計と手番を読んで timeUpdated(...) を発火
     void emitTimeUpdateFromClock_();
@@ -292,9 +268,6 @@ private slots:
     void onEngine2Resign();
     void kickNextEvETurn_();  // EvE を1手ずつ進める
     void onClockTick_();
-
-    void onUsiBestmoveDuringTsume_(const QString& bestmove);
-
     void onUsiError_(const QString& msg);
 
 public slots:
@@ -322,15 +295,6 @@ public:
                         bool /*useSelectedField2*/,
                         int engineIndex,
                         QPoint* outTo);
-
-    bool playOneEngineTurn(Usi* mover,
-                           Usi* receiver,
-                           QString& positionStr,
-                           QString& ponderStr,
-                           int engineIndex);
-
-    // ↓↓↓ 追加（PlayMode に応じた WIN+QUIT 通知を内包）
-    void sendGameOverWinAndQuit();
 
 private:
     PlayMode                 m_playMode = NotStarted;
@@ -370,12 +334,6 @@ public:
 
     // ==== 追加：検討API ====
     void startAnalysis(const AnalysisOptions& opt);
-    void stopAnalysis();
-    bool isAnalysisActive() const;
-
-    // ==== 追加：棋譜解析 継続API ====
-    // 既に startAnalysis() 済みの単発エンジンを使い回し、次の position を送って解析を継続する（途中では quit しない）
-    void continueAnalysis(const QString& positionStr, int byoyomiMs);
 
 public:
     Usi* primaryEngine() const;   // HvE/EvH で司令塔が使う主エンジン（これまで m_usi1 に相当）
@@ -449,9 +407,6 @@ private:
     // ...（既存）
     GameOverState m_gameOver;
 
-    void startTsumeSearch(const QString& sfen, int timeMs, bool infinite);
-    void stopTsumeSearch();
-
 public:
     // ==== 追加：検討の強制終了（quit送信→エンジン破棄） ====
     void handleBreakOffConsidaration();
@@ -480,9 +435,7 @@ public:
     // ★ 今回追加：時間/手番・終局の処理（MainWindowから移管）
     void handleTimeUpdated();
     void handlePlayerTimeOut(int player); // 1 or 2
-    void handleResignationRequest();
     void handleGameEnded();
-    void handleGameOverStateChanged();
 
     // ★ 開始直後のタイマー起動や初手 go 判定を1本化
     void startMatchTimingAndMaybeInitialGo();
@@ -518,19 +471,12 @@ public:
     void forceImmediateMove();
 
 private:
-    void sendGoToCurrentEngine_(const GoTimes& t);
-    void sendStopAllEngines_();
     void sendRawTo_(Usi* which, const QString& cmd);
 
     // USI "position ... moves" の履歴（UNDO等で使う）。SFENとは混ぜないこと！
     QStringList m_positionStrHistory;
 
 public:
-    // ・・・既存の public API の末尾あたりに追記・・・
-    void sendGoTo(Usi* engine, const GoTimes& t);
-    void sendStopTo(Usi* engine);
-    void sendRawTo(Usi* engine, const QString& cmd);
-
     // --- USI 送受の実体（UI 依存なし） ---
     void sendGoToEngine(Usi* which, const GoTimes& t);
     void sendStopToEngine(Usi* which);

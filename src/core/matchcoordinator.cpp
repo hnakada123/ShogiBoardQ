@@ -137,34 +137,6 @@ void MatchCoordinator::updateUsiPtrs(Usi* e1, Usi* e2) {
     m_usi2 = e2;
 }
 
-void MatchCoordinator::startNewGame(const QString& sfenStart) {
-    // 既存
-    if (m_hooks.initializeNewGame) m_hooks.initializeNewGame(sfenStart);
-    setPlayersNamesForMode_();
-    setEngineNamesBasedOnMode_();
-    setGameInProgressActions_(true);
-    renderShogiBoard_();
-
-    // ★ GC の手番を SFEN から決定（無ければ先手）
-    ShogiGameController::Player start = ShogiGameController::Player1;
-    if (!sfenStart.isEmpty()) {
-        const auto parts = sfenStart.split(' ', Qt::SkipEmptyParts);
-        if (parts.size() >= 2 && (parts[1] == QLatin1String("w") || parts[1] == QLatin1String("W"))) {
-            start = ShogiGameController::Player2;
-        }
-    }
-
-    // GC に反映（currentPlayerChanged → TurnManager は恒常接続で自動伝播）
-    if (m_gc) m_gc->setCurrentPlayer(start);
-
-    // 司令塔の手番も同期（既存のまま）
-    m_cur = (m_gc && m_gc->currentPlayer() == ShogiGameController::Player2) ? P2 : P1;
-    updateTurnDisplay_(m_cur);
-
-    if (m_hooks.log) m_hooks.log(QStringLiteral("MatchCoordinator: startNewGame done"));
-    emit gameStarted();
-}
-
 // 1) 人間側の投了
 void MatchCoordinator::handleResign() {
     GameEndInfo info;
@@ -237,105 +209,19 @@ void MatchCoordinator::handleEngineResign(int idx) {
     displayResultsAndUpdateGui_(info);
 }
 
-void MatchCoordinator::notifyTimeout(Player loser) {
-    // 1) 時計停止（以降の進行を止める）
-    if (m_clock) m_clock->stopClock();
-
-    const Player winner = (loser == P1 ? P2 : P1);
-
-    // 2) HvE の人間側判定（あれば利用）：人間が時間切れならエンジン勝ち
-    Player humanSide = P1;
-    const bool hasHumanSide = static_cast<bool>(m_hooks.humanPlayerSide);
-    if (hasHumanSide) {
-        humanSide = m_hooks.humanPlayerSide();
-    }
-
-    // 3) エンジンへ最終通知
-    if (m_usi1 && !m_usi2) {
-        // 片側エンジン（HvE）
-        if (!hasHumanSide || loser == humanSide) {
-            // 人間が時間切れ → エンジン勝ち
-            m_usi1->sendGameOverWinAndQuitCommands();
-        } else {
-            // 例外的：エンジンが時間切れ（ほぼ無いが一応）
-            m_usi1->sendGameOverLoseAndQuitCommands();
-        }
-        m_usi1->setSquelchResignLogging(true);
-    } else {
-        // EvE：両エンジンが居る
-        Usi* loserEng  = (loser  == P1) ? m_usi1 : m_usi2;
-        Usi* winnerEng = (winner == P1) ? m_usi1 : m_usi2;
-        if (loserEng)  { loserEng->sendGameOverLoseAndQuitCommands();  loserEng->setSquelchResignLogging(true); }
-        if (winnerEng) { winnerEng->sendGameOverWinAndQuitCommands();  winnerEng->setSquelchResignLogging(true); }
-    }
-
-    // 4) UI へ終局通知
-    GameEndInfo info; info.cause = Cause::Timeout; info.loser = loser;
-    setGameOver(info, /*loserIsP1=*/(loser == P1), /*appendMoveOnce=*/true);
-    displayResultsAndUpdateGui_(info);
-}
-
 void MatchCoordinator::flipBoard() {
     // 実際の反転は GUI 側で実施（レイアウト/ラベル入替等を考慮）
     if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
     emit boardFlipped(true);
 }
 
-void MatchCoordinator::onTurnFinishedAndSwitch() {
-    // 1) 現在の時間を読み、次手の go を計算
-    const GoTimes t = computeGoTimes_();
-
-    // 2) 手番を入れ替え
-    m_cur = (m_cur == P1 ? P2 : P1);
-    updateTurnDisplay_(m_cur);
-
-    // 3) 次に指す側のエンジンへ go 送信（対人/対エンジン/エンジンvsエンジンは上位で制御可）
-    if (m_hooks.sendGoToEngine) {
-        if (m_cur == P1 && m_usi1) m_hooks.sendGoToEngine(m_usi1, t);
-        if (m_cur == P2 && m_usi2) m_hooks.sendGoToEngine(m_usi2, t);
-    } else {
-        sendGoToCurrentEngine_(t); // ★ 追加：hooks 未指定なら司令塔内で送る
-    }
-
-}
-
-// ---- private helpers ----
-
-void MatchCoordinator::setPlayersNamesForMode_() {
-    if (m_hooks.setPlayersNames) {
-        // TODO: 実際の名前決定ロジックを移設
-        m_hooks.setPlayersNames(QStringLiteral("Player1"), QStringLiteral("Player2"));
-    }
-}
-
-void MatchCoordinator::setEngineNamesBasedOnMode_() {
-    if (m_hooks.setEngineNames) {
-        // TODO: 実際のエンジン名取得ロジックを移設（Usi から取得など）
-        m_hooks.setEngineNames(QStringLiteral("Engine#1"), QStringLiteral("Engine#2"));
-    }
-}
-
 void MatchCoordinator::setGameInProgressActions_(bool inProgress) {
     if (m_hooks.setGameActions) m_hooks.setGameActions(inProgress);
-}
-
-void MatchCoordinator::renderShogiBoard_() {
-    if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
 }
 
 void MatchCoordinator::updateTurnDisplay_(Player p) {
     m_cur = p; // ★ 同期
     if (m_hooks.updateTurnDisplay) m_hooks.updateTurnDisplay(p);
-}
-
-void MatchCoordinator::stopClockAndSendStops_() {
-    if (m_clock) m_clock->stopClock();
-    if (m_hooks.sendStopToEngine) {
-        if (m_usi1) m_hooks.sendStopToEngine(m_usi1);
-        if (m_usi2) m_hooks.sendStopToEngine(m_usi2);
-    } else {
-        sendStopAllEngines_(); // ★ 追加
-    }
 }
 
 void MatchCoordinator::displayResultsAndUpdateGui_(const GameEndInfo& info) {
@@ -404,12 +290,6 @@ void MatchCoordinator::initializeAndStartEngineFor(Player side,
     wireResignToArbiter_(eng, (eng == m_usi1));
 }
 
-void MatchCoordinator::wireResignSignals()
-{
-    if (m_usi1) wireResignToArbiter_(m_usi1, /*asP1=*/true);
-    if (m_usi2) wireResignToArbiter_(m_usi2, /*asP1=*/false);
-}
-
 void MatchCoordinator::wireResignToArbiter_(Usi* engine, bool asP1)
 {
     if (!engine) return;
@@ -453,19 +333,6 @@ void MatchCoordinator::destroyEngines()
 {
     destroyEngine(1);
     destroyEngine(2);
-}
-
-Usi* MatchCoordinator::enginePtr(int idx) const
-{
-    return (idx == 1 ? m_usi1 : (idx == 2 ? m_usi2 : nullptr));
-}
-
-int MatchCoordinator::indexForEngine_(const Usi* p) const
-{
-    if (!p) return 0;
-    if (p == m_usi1) return 1;
-    if (p == m_usi2) return 2;
-    return 0;
 }
 
 void MatchCoordinator::setPlayMode(PlayMode m)
@@ -611,60 +478,6 @@ bool MatchCoordinator::engineMoveOnce(Usi* eng,
 
     if (outTo) *outTo = to;
     return true;
-}
-
-bool MatchCoordinator::playOneEngineTurn(Usi* mover,
-                                         Usi* receiver,
-                                         QString& positionStr,
-                                         QString& ponderStr,
-                                         int engineIndex)
-{
-    QPoint to;
-    if (!engineMoveOnce(mover, positionStr, ponderStr,
-                        /*useSelectedField2=*/false,
-                        engineIndex, &to)) {
-        return false;
-    }
-
-    // 次手ヒントを相手エンジンへ
-    if (receiver) {
-        receiver->setPreviousFileTo(to.x());
-        receiver->setPreviousRankTo(to.y());
-    }
-
-    // ここでの終局判定は未定義メンバ m_gameIsOver を参照せず、
-    // 司令塔の gameEnded() 発火側に委譲します。
-    return true;
-}
-
-void MatchCoordinator::sendGameOverWinAndQuit()
-{
-    switch (m_playMode) {
-    case HumanVsHuman:
-        // 送信不要
-        break;
-
-    case EvenHumanVsEngine:
-    case HandicapHumanVsEngine:
-        // ★ 単発は常に m_usi1 を使う
-        if (m_usi1) m_usi1->sendGameOverWinAndQuitCommands();
-        break;
-
-    case EvenEngineVsHuman:
-    case HandicapEngineVsHuman:
-        // 単発は常に m_usi1
-        if (m_usi1) m_usi1->sendGameOverWinAndQuitCommands();
-        break;
-
-    case EvenEngineVsEngine:
-    case HandicapEngineVsEngine:
-        if (m_usi1) m_usi1->sendGameOverWinAndQuitCommands();
-        if (m_usi2) m_usi2->sendGameOverWinAndQuitCommands();
-        break;
-
-    default:
-        break;
-    }
 }
 
 void MatchCoordinator::configureAndStart(const StartOptions& opt)
@@ -1270,10 +1083,6 @@ qint64 MatchCoordinator::turnEpochFor(Player side) const {
     return (side == P1) ? m_turnEpochP1Ms : m_turnEpochP2Ms;
 }
 
-void MatchCoordinator::resetTurnEpochs() {
-    m_turnEpochP1Ms = m_turnEpochP2Ms = -1;
-}
-
 // ===== ターン計測（HvH用の簡易ストップウォッチ） =====
 
 void MatchCoordinator::armTurnTimerIfNeeded() {
@@ -1383,36 +1192,6 @@ MatchCoordinator::GoTimes MatchCoordinator::computeGoTimes_() const {
     return t;
 }
 
-void MatchCoordinator::sendGoToCurrentEngine_(const GoTimes& t)
-{
-    Usi* target = (m_cur == P1) ? m_usi1 : m_usi2;
-    if (!target) {
-        qDebug() << "[Match] sendGoToCurrentEngine_: target null";
-        return;
-    }
-
-    const bool useByoyomi = (t.byoyomi > 0 && t.binc == 0 && t.winc == 0);
-
-    qDebug().noquote()
-        << "[Match] sendGoToCurrentEngine_:"
-        << "cur=" << (m_cur==P1?"P1":"P2")
-        << " btime=" << t.btime
-        << " wtime=" << t.wtime
-        << " byoyomi=" << t.byoyomi
-        << " binc=" << t.binc
-        << " winc=" << t.winc
-        << " useByoyomi=" << useByoyomi;
-
-    target->sendGoCommand(
-        clampMsToIntLocal(t.byoyomi),         // byoyomi(ms)
-        QString::number(t.btime),             // btime(ms)
-        QString::number(t.wtime),             // wtime(ms)
-        clampMsToIntLocal(t.binc),            // 先手inc(ms)
-        clampMsToIntLocal(t.winc),            // 後手inc(ms)
-        useByoyomi
-        );
-}
-
 void MatchCoordinator::computeGoTimesForUSI(qint64& outB, qint64& outW) const {
     const GoTimes t = computeGoTimes_();
     outB = t.btime;
@@ -1425,13 +1204,6 @@ void MatchCoordinator::refreshGoTimes() {
     m_bTimeStr = QString::number(b);
     m_wTimeStr = QString::number(w);
     emit timesForUSIUpdated(b, w);
-}
-
-int MatchCoordinator::computeMoveBudgetMsForCurrentTurn() const {
-    const bool p1turn = (m_gc && m_gc->currentPlayer() == ShogiGameController::Player1);
-    const int  mainMs = p1turn ? m_bTimeStr.toInt() : m_wTimeStr.toInt();
-    const int  byoMs  = m_tc.useByoyomi ? (p1turn ? m_tc.byoyomiMs1 : m_tc.byoyomiMs2) : 0;
-    return mainMs + byoMs;
 }
 
 void MatchCoordinator::setClock(ShogiClock* clock)
@@ -1543,15 +1315,6 @@ void MatchCoordinator::markGameOverMoveAppended()
     m_gameOver.moveAppended = true;
     emit gameOverStateChanged(m_gameOver);
     qDebug() << "[Match] markGameOverMoveAppended()";
-}
-
-void MatchCoordinator::sendGameOverWinAndQuitTo(int idx)
-{
-    Usi* target = (idx == 1 ? m_usi1 : m_usi2);
-    if (!target) return;
-
-    // HvE のときは opponent が nullptr の可能性があるが、WIN 側だけ送れば良い。
-    target->sendGameOverWinAndQuitCommands();
 }
 
 // 投了と同様に“対局の実体”として中断を一元処理
@@ -1670,22 +1433,6 @@ void MatchCoordinator::onCheckmateUnknown_()
     }
 }
 
-// 検討の停止（stop コマンド送信のみ。プロセス終了は destroyEngines() に委譲）
-void MatchCoordinator::stopAnalysis()
-{
-    if (m_playMode != ConsidarationMode) return;
-    if (m_usi1) {
-        m_usi1->sendStopCommand();
-        // 必要なら：m_usi1->waitForStopOrPonderhitCommand();
-    }
-}
-
-// 検討中かを返す（モードと m_usi1 の有無で判定）
-bool MatchCoordinator::isAnalysisActive() const
-{
-    return (m_playMode == ConsidarationMode) && (m_usi1 != nullptr);
-}
-
 // 検討モードを手動終了する（quit送信→エンジン破棄）
 //  - ConsidarationMode 以外では何もしない
 //  - Usi::sendQuitCommand() は終了時のログ抑止などの安全策込み
@@ -1716,46 +1463,6 @@ void MatchCoordinator::handleBreakOffConsidaration()
 
     // 手番表示などの軽い再描画（必要なければ削ってOK）
     updateTurnDisplay_(m_cur);
-}
-
-void MatchCoordinator::continueAnalysis(const QString& positionStr, int byoyomiMs)
-{
-    // 検討モードで単発エンジン m_usi1 が起動済みであることが前提
-    if (m_playMode != ConsidarationMode || !m_usi1) {
-        if (m_hooks.log) m_hooks.log(QStringLiteral("[Analysis] continueAnalysis skipped (no active engine)"));
-        return;
-    }
-
-    // Usi::executeAnalysisCommunication は非常参照引数なのでコピーを渡す
-    QString pos = positionStr;
-    m_usi1->executeAnalysisCommunication(pos, byoyomiMs);
-}
-
-void MatchCoordinator::startTsumeSearch(const QString& sfen, int timeMs, bool infinite)
-{
-    Usi* eng = primaryEngine();
-    if (!eng) return;
-
-    // ここでは接続や未宣言シグナルのemitは行わない
-    // （先にビルドを通すための最小実装。結果処理は後続で接続可能）
-    eng->sendPositionAndGoMate(sfen, timeMs, infinite);
-}
-
-void MatchCoordinator::stopTsumeSearch()
-{
-    Usi* eng = primaryEngine();
-    if (!eng) return;
-
-    // 詰み探索の停止
-    eng->sendStopForMate();
-}
-
-// 【新規/任意】詰み探索中にbestmoveが来た場合の保険
-void MatchCoordinator::onUsiBestmoveDuringTsume_(const QString& bestmove)
-{
-    Q_UNUSED(bestmove);
-    // 多くの場合は無視で良い。ログだけ残す。
-    qInfo() << "[Tsume] bestmove during mate-search:" << bestmove;
 }
 
 void MatchCoordinator::onUsiError_(const QString& msg)
@@ -2219,21 +1926,6 @@ bool MatchCoordinator::undoTwoPlies()
     return true;
 }
 
-void MatchCoordinator::armTimerAfterUndo_() {
-    if (!u_.gc || !u_.clock || !h_.isHumanSide || !h_.isHvH) return;
-
-    const auto sideToMove = u_.gc->currentPlayer();
-    if (!h_.isHumanSide(sideToMove)) return;
-
-    if (h_.isHvH()) {
-        // 人対人：共有ターンタイマ
-        armTurnTimerIfNeeded();
-    } else {
-        // 人対エンジン系：人間用タイマ
-        armHumanTimerIfNeeded();
-    }
-}
-
 bool MatchCoordinator::tryRemoveLastItems_(QObject* model, int n) {
     if (!model) return false;
 
@@ -2411,26 +2103,11 @@ void MatchCoordinator::handlePlayerTimeOut(int player)
     handleGameEnded();
 }
 
-void MatchCoordinator::handleResignationRequest()
-{
-    if (!m_gc) return;
-    m_gc->applyResignationOfCurrentSide();
-    emit uiNotifyResign();
-    handleGameEnded();
-}
-
 void MatchCoordinator::handleGameEnded()
 {
     if (!m_gc) return;
     m_gc->finalizeGameResult();
     emit uiNotifyGameEnded();
-}
-
-void MatchCoordinator::handleGameOverStateChanged()
-{
-    // 元 MainWindow::onGameOverStateChanged のロジックをここへ
-    // 例：go/stopの扱い・UI有効/無効トグルの司令塔視点の判断などを集約
-    // 必要に応じて追加のUI信号を定義して通知
 }
 
 // これに置き換え（該当関数のみ）
@@ -2557,12 +2234,6 @@ void MatchCoordinator::forceImmediateMove()
     }
 }
 
-void MatchCoordinator::sendStopAllEngines_()
-{
-    if (m_usi1) m_usi1->sendStopCommand();
-    if (m_usi2) m_usi2->sendStopCommand();
-}
-
 void MatchCoordinator::sendRawTo_(Usi* which, const QString& cmd)
 {
     if (!which) return;
@@ -2576,32 +2247,6 @@ inline int clampMsToInt(qint64 v) {
     if (v < std::numeric_limits<int>::min()) return std::numeric_limits<int>::min();
     return static_cast<int>(v);
 }
-}
-
-void MatchCoordinator::sendGoTo(Usi* u, const GoTimes& t)
-{
-    if (!u) return;
-    const bool useByoyomi = (t.byoyomi > 0 && t.binc == 0 && t.winc == 0);
-    u->sendGoCommand(
-        clampMsToInt(t.byoyomi),
-        QString::number(t.btime),
-        QString::number(t.wtime),
-        clampMsToInt(t.binc),
-        clampMsToInt(t.winc),
-        useByoyomi
-        );
-}
-
-void MatchCoordinator::sendStopTo(Usi* u)
-{
-    if (!u) return;
-    u->sendStopCommand();
-}
-
-void MatchCoordinator::sendRawTo(Usi* u, const QString& cmd)
-{
-    if (!u) return;
-    u->sendRaw(cmd);
 }
 
 void MatchCoordinator::sendGoToEngine(Usi* which, const GoTimes& t)
