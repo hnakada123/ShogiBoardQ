@@ -67,7 +67,6 @@
     <addaction name="pasteGameRecord"/>
     <addaction name="separator"/>
     <addaction name="actionCopyBoardToClipboard"/>
-    <addaction name="copyImageEvaluatedValueClipboard"/>
     <addaction name="separator"/>
     <addaction name="actionStartEditPosition"/>
     <addaction name="actionEndEditPosition"/>
@@ -271,7 +270,7 @@
   </action>
   <action name="actionCopyBoardToClipboard">
    <property name="text">
-    <string>将棋盤の画像をクリップボードにコピー</string>
+    <string>将棋盤画像コピー</string>
    </property>
   </action>
   <action name="copyImageEvaluatedValueClipboard">
