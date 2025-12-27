@@ -999,9 +999,9 @@ void KifuLoadCoordinator::populateGameInfo(const QList<KifGameInfoItem>& items)
     m_gameInfoTable->blockSignals(true);
     
     m_gameInfoTable->clearContents();
-    m_gameInfoTable->setRowCount(items.size());
+    m_gameInfoTable->setRowCount(static_cast<int>(items.size()));
 
-    for (int row = 0; row < items.size(); ++row) {
+    for (int row = 0; row < static_cast<int>(items.size()); ++row) {
         const auto& it = items.at(row);
         auto *keyItem   = new QTableWidgetItem(it.key);
         auto *valueItem = new QTableWidgetItem(it.value);

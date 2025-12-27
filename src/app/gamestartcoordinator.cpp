@@ -18,6 +18,8 @@
 #include <QVariant>
 #include <QMetaType>
 #include <QtGlobal>
+#include <QGlobalStatic>
+#include <array>
 
 GameStartCoordinator::GameStartCoordinator(const Deps& d, QObject* parent)
     : QObject(parent)
@@ -99,8 +101,8 @@ void GameStartCoordinator::start(const StartParams& params)
         const bool loseOnTimeout = tc.enabled; // 持ち時間系が有効ならタイムアウト負け扱い
         m_match->setTimeControlConfig(
             useByoyomi,
-            tc.p1.byoyomiMs, tc.p2.byoyomiMs,
-            tc.p1.incrementMs, tc.p2.incrementMs,
+            static_cast<int>(tc.p1.byoyomiMs), static_cast<int>(tc.p2.byoyomiMs),
+            static_cast<int>(tc.p1.incrementMs), static_cast<int>(tc.p2.incrementMs),
             loseOnTimeout
             );
         m_match->refreshGoTimes();
@@ -238,40 +240,44 @@ void GameStartCoordinator::prepareInitialPosition(const Ctx& c)
     if (startingPosNumber <= 0) startingPosNumber = 1;
 
     // 2) 手合割 → 文字列テーブル（MainWindow 実装と同値を保持）
-    static const QString kStartingPositionStr[14] = {
-        //  1: 平手（元コードの配列は [0]=平手 でしたが、ここでは可読のため 1 起点の説明）
-        QStringLiteral("startpos"),
-        //  2: 香落ち
-        QStringLiteral("sfen lnsgkgsn1/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-        //  3: 右香落ち
-        QStringLiteral("sfen 1nsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-        //  4: 角落ち
-        QStringLiteral("sfen lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-        //  5: 飛車落ち
-        QStringLiteral("sfen lnsgkgsnl/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-        //  6: 飛香落ち
-        QStringLiteral("sfen lnsgkgsn1/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-        //  7: 二枚落ち
-        QStringLiteral("sfen lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-        //  8: 三枚落ち
-        QStringLiteral("sfen lnsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-        //  9: 四枚落ち
-        QStringLiteral("sfen 1nsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-        // 10: 五枚落ち
-        QStringLiteral("sfen 2sgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-        // 11: 左五枚落ち
-        QStringLiteral("sfen 1nsgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-        // 12: 六枚落ち
-        QStringLiteral("sfen 2sgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-        // 13: 八枚落ち
-        QStringLiteral("sfen 3gkg3/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-        // 14: 十枚落ち
-        QStringLiteral("sfen 4k4/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1")
-    };
+    // exit-time destructor回避のためローカル静的配列はstd::arrayを使用
+    static const auto& kStartingPositionStr = *[]() {
+        static const std::array<QString, 14> arr = {{
+            //  1: 平手
+            QStringLiteral("startpos"),
+            //  2: 香落ち
+            QStringLiteral("sfen lnsgkgsn1/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
+            //  3: 右香落ち
+            QStringLiteral("sfen 1nsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
+            //  4: 角落ち
+            QStringLiteral("sfen lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
+            //  5: 飛車落ち
+            QStringLiteral("sfen lnsgkgsnl/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
+            //  6: 飛香落ち
+            QStringLiteral("sfen lnsgkgsn1/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
+            //  7: 二枚落ち
+            QStringLiteral("sfen lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
+            //  8: 三枚落ち
+            QStringLiteral("sfen lnsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
+            //  9: 四枚落ち
+            QStringLiteral("sfen 1nsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
+            // 10: 五枚落ち
+            QStringLiteral("sfen 2sgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
+            // 11: 左五枚落ち
+            QStringLiteral("sfen 1nsgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
+            // 12: 六枚落ち
+            QStringLiteral("sfen 2sgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
+            // 13: 八枚落ち
+            QStringLiteral("sfen 3gkg3/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
+            // 14: 十枚落ち
+            QStringLiteral("sfen 4k4/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1")
+        }};
+        return &arr;
+    }();
 
     // 範囲ガード（1..14 を想定）
     const int idx = qBound(1, startingPosNumber, 14) - 1;
-    const QString startPositionStr = kStartingPositionStr[idx];
+    const QString startPositionStr = kStartingPositionStr[static_cast<size_t>(idx)];
 
     // 3) "startpos" / "sfen ..." → 純 SFEN へ正規化
     auto toPureSfen = [](QString s) -> QString {
@@ -323,7 +329,7 @@ void GameStartCoordinator::prepareInitialPosition(const Ctx& c)
 
     // 6) SFEN履歴に開始SFEN（0手目）を積む
     if (c.sfenRecord) {
-        const int before = c.sfenRecord->size();
+        const int before = static_cast<int>(c.sfenRecord->size());
         qDebug().noquote() << "[GSC][prepareInitial] sfenRecord BEFORE size=" << before;
 
         c.sfenRecord->clear();
@@ -699,27 +705,30 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
         }
     } else if (startSfen.isEmpty()) {
         // 平手/駒落ちプリセット
-        static const QVector<QString> presets = {
-            QString(), // 0: 未使用（現在局面）
-            QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"), // 1: 平手
-            QStringLiteral("lnsgkgsn1/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"), // 2: 香落ち
-            QStringLiteral("1nsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"), // 3: 右香落ち
-            QStringLiteral("lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),   // 4: 角落ち
-            QStringLiteral("lnsgkgsnl/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),   // 5: 飛車落ち
-            QStringLiteral("lnsgkgsn1/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),   // 6: 飛香落ち
-            QStringLiteral("lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),     // 7: 二枚落ち
-            QStringLiteral("lnsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),     // 8: 三枚落ち
-            QStringLiteral("1nsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),     // 9: 四枚落ち
-            QStringLiteral("2sgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),      // 10: 五枚落ち
-            QStringLiteral("1nsgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),      // 11: 左五枚落ち
-            QStringLiteral("2sgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),       // 12: 六枚落ち
-            QStringLiteral("3gkg3/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),         // 13: 八枚落ち
-            QStringLiteral("4k4/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1")            // 14: 十枚落ち
-        };
+        static const auto& presets = *[]() {
+            static const std::array<QString, 15> arr = {{
+                QString(), // 0: 未使用（現在局面）
+                QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"), // 1: 平手
+                QStringLiteral("lnsgkgsn1/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"), // 2: 香落ち
+                QStringLiteral("1nsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"), // 3: 右香落ち
+                QStringLiteral("lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),   // 4: 角落ち
+                QStringLiteral("lnsgkgsnl/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),   // 5: 飛車落ち
+                QStringLiteral("lnsgkgsn1/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),   // 6: 飛香落ち
+                QStringLiteral("lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),     // 7: 二枚落ち
+                QStringLiteral("lnsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),     // 8: 三枚落ち
+                QStringLiteral("1nsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),     // 9: 四枚落ち
+                QStringLiteral("2sgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),      // 10: 五枚落ち
+                QStringLiteral("1nsgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),      // 11: 左五枚落ち
+                QStringLiteral("2sgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),       // 12: 六枚落ち
+                QStringLiteral("3gkg3/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),         // 13: 八枚落ち
+                QStringLiteral("4k4/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1")            // 14: 十枚落ち
+            }};
+            return &arr;
+        }();
         int idx = startingPosNumber;
         if (idx < 1) idx = 1;
-        if (idx >= presets.size()) idx = presets.size() - 1;
-        startSfen = presets.at(idx);
+        if (idx >= static_cast<int>(presets.size())) idx = static_cast<int>(presets.size()) - 1;
+        startSfen = presets[static_cast<size_t>(idx)];
 
         // 駒落ち開始の内部状態整備（既存メソッド）
         Ctx c2 = c; c2.startDlg = dlg;
@@ -741,7 +750,7 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
         // ★ 修正点：現在局面から開始（startingPosNumber==0）の場合は
         // 0..selectedPly を保全し、末尾（選択行）だけ seedSfen に置換してから入れ直す。
         if (startingPosNumber == 0 && !c.sfenRecord->isEmpty() && c.selectedPly >= 0) {
-            const int keepIdx = qBound(0, c.selectedPly, c.sfenRecord->size() - 1);
+            const int keepIdx = static_cast<int>(qBound(qsizetype(0), qsizetype(c.selectedPly), c.sfenRecord->size() - 1));
             const int takeLen = keepIdx + 1;
 
             QStringList preserved;

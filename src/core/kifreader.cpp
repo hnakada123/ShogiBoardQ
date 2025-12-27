@@ -42,20 +42,20 @@ static inline QString decodeWith(const QByteArray& bytes, const char* codecName,
 static bool decodeByBom(const QByteArray& bytes, QString& out, QString* usedEncoding)
 {
     const auto sz = bytes.size();
-    const auto data = bytes.constData();
+    const auto data = reinterpret_cast<const unsigned char*>(bytes.constData());
 
     if (sz >= 3 &&
-        (unsigned char)data[0] == 0xEF &&
-        (unsigned char)data[1] == 0xBB &&
-        (unsigned char)data[2] == 0xBF) {
+        data[0] == 0xEF &&
+        data[1] == 0xBB &&
+        data[2] == 0xBF) {
         bool ok = true;
         out = decodeWith(bytes.mid(3), "UTF-8", ok);
         if (usedEncoding) *usedEncoding = QStringLiteral("utf-8(bom)");
         return true;
     }
     if (sz >= 2 &&
-        (unsigned char)data[0] == 0xFF &&
-        (unsigned char)data[1] == 0xFE) {
+        data[0] == 0xFF &&
+        data[1] == 0xFE) {
         // UTF-16LE
         QStringDecoder dec("UTF-16LE");
         out = dec.decode(bytes.mid(2));
@@ -63,8 +63,8 @@ static bool decodeByBom(const QByteArray& bytes, QString& out, QString* usedEnco
         return true;
     }
     if (sz >= 2 &&
-        (unsigned char)data[0] == 0xFE &&
-        (unsigned char)data[1] == 0xFF) {
+        data[0] == 0xFE &&
+        data[1] == 0xFF) {
         // UTF-16BE
         QStringDecoder dec("UTF-16BE");
         out = dec.decode(bytes.mid(2));
@@ -72,10 +72,10 @@ static bool decodeByBom(const QByteArray& bytes, QString& out, QString* usedEnco
         return true;
     }
     if (sz >= 4 &&
-        (unsigned char)data[0] == 0xFF &&
-        (unsigned char)data[1] == 0xFE &&
-        (unsigned char)data[2] == 0x00 &&
-        (unsigned char)data[3] == 0x00) {
+        data[0] == 0xFF &&
+        data[1] == 0xFE &&
+        data[2] == 0x00 &&
+        data[3] == 0x00) {
         // UTF-32LE
         QStringDecoder dec("UTF-32LE");
         out = dec.decode(bytes.mid(4));
@@ -83,10 +83,10 @@ static bool decodeByBom(const QByteArray& bytes, QString& out, QString* usedEnco
         return true;
     }
     if (sz >= 4 &&
-        (unsigned char)data[0] == 0x00 &&
-        (unsigned char)data[1] == 0x00 &&
-        (unsigned char)data[2] == 0xFE &&
-        (unsigned char)data[3] == 0xFF) {
+        data[0] == 0x00 &&
+        data[1] == 0x00 &&
+        data[2] == 0xFE &&
+        data[3] == 0xFF) {
         // UTF-32BE
         QStringDecoder dec("UTF-32BE");
         out = dec.decode(bytes.mid(4));

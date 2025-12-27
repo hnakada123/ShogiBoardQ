@@ -18,7 +18,7 @@ public:
     explicit StartGameDialog(QWidget *parent = nullptr);
 
     // デストラクタ
-    ~StartGameDialog();
+    ~StartGameDialog() override;
 
     // 先手／下手が人間であるかを示すフラグを取得する。
     bool isHuman1() const;

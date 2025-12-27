@@ -12,7 +12,7 @@ class ShogiBoard : public QObject
 
 public:
     // コンストラクタ
-    explicit ShogiBoard(int ranks = 9, int files = 9, QObject *parent = 0);
+    explicit ShogiBoard(int ranks = 9, int files = 9, QObject *parent = nullptr);
 
     // 持ち駒の駒文字と枚数を格納するマップ
     QMap<QChar, int> m_pieceStand;

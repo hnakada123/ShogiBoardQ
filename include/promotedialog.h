@@ -17,7 +17,7 @@ public:
     explicit PromoteDialog(QWidget* parent = nullptr);
 
     // デストラクタ
-    ~PromoteDialog();
+    ~PromoteDialog() override;
 
 private:
     Ui::PromoteDialog* ui;

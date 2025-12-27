@@ -1,5 +1,6 @@
 #include <QDesktopServices>
 #include <QUrl>
+#include "aboutcoordinator.h"
 #include "versiondialog.h"
 
 namespace AboutCoordinator {

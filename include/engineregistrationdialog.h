@@ -30,7 +30,7 @@ public:
     explicit EngineRegistrationDialog(QWidget *parent = nullptr);
 
     // デストラクタ
-    ~EngineRegistrationDialog();
+    ~EngineRegistrationDialog() override;
 
 private slots:
     // 追加ボタンが押されたときに呼び出されるスロット

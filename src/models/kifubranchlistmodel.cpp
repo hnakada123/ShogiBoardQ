@@ -19,7 +19,7 @@ int KifuBranchListModel::rowCount(const QModelIndex &parent) const
 {
     if (parent.isValid()) return 0;
     // 通常候補数 + 末尾の「本譜へ戻る」1行（有効時）
-    return list.size() + (m_hasBackToMainRow ? 1 : 0);
+    return static_cast<int>(list.size()) + (m_hasBackToMainRow ? 1 : 0);
 }
 
 QVariant KifuBranchListModel::data(const QModelIndex &index, int role) const
@@ -106,8 +106,11 @@ void KifuBranchListModel::setBranchCandidatesFromKif(const QList<KifDisplayItem>
     list.clear();
 
     // 先頭に「手数（半角/全角）+空白」が付いていたら落とす
-    static const QRegularExpression kDropHeadNumber(
-        QStringLiteral(R"(^\s*[0-9０-９]+\s*)"));
+    static const auto& kDropHeadNumber = *[]() {
+        static const QRegularExpression r(
+            QStringLiteral(R"(^\s*[0-9０-９]+\s*)"));
+        return &r;
+    }();
 
     list.reserve(rows.size());
     for (const auto& k : rows) {
@@ -138,12 +141,12 @@ bool KifuBranchListModel::hasBackToMainRow() const
 
 bool KifuBranchListModel::isBackToMainRow(int row) const
 {
-    return m_hasBackToMainRow && (row == list.size());
+    return m_hasBackToMainRow && (row == static_cast<int>(list.size()));
 }
 
 int KifuBranchListModel::backToMainRowIndex() const
 {
-    return m_hasBackToMainRow ? list.size() : -1;
+    return m_hasBackToMainRow ? static_cast<int>(list.size()) : -1;
 }
 
 void KifuBranchListModel::setActiveNode_(int nodeId)

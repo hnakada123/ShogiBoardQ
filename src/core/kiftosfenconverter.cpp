@@ -4,6 +4,16 @@
 #include <QRegularExpression>
 #include <QDebug>
 #include <QMap>
+#include <array>
+
+// 全角数字文字列（exit-time destructor回避）
+static const QString& zenkakuDigitsStr_() {
+    static const auto& s = *[]() {
+        static const QString str = QStringLiteral("０１２３４５６７８９");
+        return &str;
+    }();
+    return s;
+}
 
 // 半角/全角の数字1桁 → int（0..9）。クラス外から使える軽量ラッパ
 static inline int asciiDigitToInt_(QChar c) {
@@ -11,8 +21,7 @@ static inline int asciiDigitToInt_(QChar c) {
     return (u >= '0' && u <= '9') ? int(u - '0') : 0;
 }
 static inline int zenkakuDigitToInt_(QChar c) {
-    static const QString z = QStringLiteral("０１２３４５６７８９");
-    const int idx = z.indexOf(c);
+    const int idx = static_cast<int>(zenkakuDigitsStr_().indexOf(c));
     return (idx >= 0) ? idx : 0;
 }
 
@@ -29,7 +38,7 @@ static inline int flexDigitToInt_NoDetach_(QChar c)
 static int flexDigitsToInt_NoDetach_(const QString& t)
 {
     int v = 0;
-    const int n = t.size();
+    const int n = static_cast<int>(t.size());
     for (int i = 0; i < n; ++i) {
         const QChar ch = t.at(i);
         int d = asciiDigitToInt_(ch);
@@ -60,9 +69,12 @@ static inline bool isBookmarkLine(const QString& s)
 // 時間正規表現: ( m:ss / H+:MM:SS ) の半角/全角コロン・スラッシュを許容
 static const QRegularExpression& kifTimeRe()
 {
-    static const QRegularExpression re(
-        QStringLiteral("\\(\\s*([0-9０-９]{1,2})[:：]([0-9０-９]{2})(?:\\s*[／/]\\s*([0-9０-９]{1,3})[:：]([0-9０-９]{2})[:：]([0-9０-９]{2}))?\\s*\\)")
-        );
+    static const auto& re = *[]() {
+        static const QRegularExpression r(
+            QStringLiteral("\\(\\s*([0-9０-９]{1,2})[:：]([0-9０-９]{2})(?:\\s*[／/]\\s*([0-9０-９]{1,3})[:：]([0-9０-９]{2})[:：]([0-9０-９]{2}))?\\s*\\)")
+            );
+        return &r;
+    }();
     return re;
 }
 
@@ -85,20 +97,23 @@ static inline QString normalizeTimeMatch_(const QRegularExpressionMatch& m)
 // 該当すれば normalized に表記をそのまま返す（例: "千日手"）
 static inline bool isTerminalWord_(const QString& s, QString* normalized)
 {
-    static const QStringList kTerminals = {
-        QStringLiteral("中断"),
-        QStringLiteral("投了"),
-        QStringLiteral("持将棋"),
-        QStringLiteral("千日手"),
-        QStringLiteral("切れ負け"),
-        QStringLiteral("反則勝ち"),
-        QStringLiteral("反則負け"),
-        QStringLiteral("入玉勝ち"),
-        QStringLiteral("不戦勝"),
-        QStringLiteral("不戦敗"),
-        QStringLiteral("詰み"),
-        QStringLiteral("不詰")
-    };
+    static const auto& kTerminals = *[]() {
+        static const std::array<QString, 12> arr = {{
+            QStringLiteral("中断"),
+            QStringLiteral("投了"),
+            QStringLiteral("持将棋"),
+            QStringLiteral("千日手"),
+            QStringLiteral("切れ負け"),
+            QStringLiteral("反則勝ち"),
+            QStringLiteral("反則負け"),
+            QStringLiteral("入玉勝ち"),
+            QStringLiteral("不戦勝"),
+            QStringLiteral("不戦敗"),
+            QStringLiteral("詰み"),
+            QStringLiteral("不詰")
+        }};
+        return &arr;
+    }();
     const QString t = s.trimmed();
     for (const QString& w : kTerminals) {
         if (t == w) { if (normalized) *normalized = w; return true; }
@@ -337,13 +352,16 @@ QList<KifDisplayItem> KifToSfenConverter::extractMovesWithTimes(const QString& k
 
             if (tm.hasMatch()) {
                 timeText = normalizeTimeMatch_(tm);
-                nextMoveStartIdx = tm.capturedEnd(0);
+                nextMoveStartIdx = static_cast<int>(tm.capturedEnd(0));
                 rest = rest.left(tm.capturedStart(0)).trimmed();
             } else {
-                static const QRegularExpression s_nextNum(QStringLiteral("\\s+[0-9０-９]"));
+                static const auto& s_nextNum = *[]() {
+                    static const QRegularExpression r(QStringLiteral("\\s+[0-9０-９]"));
+                    return &r;
+                }();
                 QRegularExpressionMatch nextM = s_nextNum.match(rest);
                 if (nextM.hasMatch()) {
-                    nextMoveStartIdx = nextM.capturedStart();
+                    nextMoveStartIdx = static_cast<int>(nextM.capturedStart());
                     rest = rest.left(nextMoveStartIdx).trimmed();
                 } else {
                     nextMoveStartIdx = -1;
@@ -351,8 +369,8 @@ QList<KifDisplayItem> KifToSfenConverter::extractMovesWithTimes(const QString& k
             }
 
             // インラインコメント除去
-            int commentIdx = rest.indexOf(QChar(u'*'));
-            if (commentIdx < 0) commentIdx = rest.indexOf(QChar(u'＊'));
+            int commentIdx = static_cast<int>(rest.indexOf(QChar(u'*')));
+            if (commentIdx < 0) commentIdx = static_cast<int>(rest.indexOf(QChar(u'＊')));
             if (commentIdx >= 0) {
                 QString inlineC = rest.mid(commentIdx + 1).trimmed();
                 if (!inlineC.isEmpty()) {
@@ -366,10 +384,13 @@ QList<KifDisplayItem> KifToSfenConverter::extractMovesWithTimes(const QString& k
             // 処理済み部分を進める
             if (nextMoveStartIdx != -1) {
                 if (tm.hasMatch()) {
-                    int consumed = i + tm.capturedEnd(0);
+                    int consumed = i + static_cast<int>(tm.capturedEnd(0));
                     lineStr = lineStr.mid(consumed).trimmed();
                 } else {
-                    static const QRegularExpression s_next(QStringLiteral("\\s+[0-9０-９]"));
+                    static const auto& s_next = *[]() {
+                        static const QRegularExpression r(QStringLiteral("\\s+[0-9０-９]"));
+                        return &r;
+                    }();
                     QRegularExpressionMatch nm = s_next.match(lineStr, i);
                     if (nm.hasMatch()) {
                         lineStr = lineStr.mid(nm.capturedStart()).trimmed();
@@ -532,7 +553,10 @@ QStringList KifToSfenConverter::convertFile(const QString& kifPath, QString* err
             if (tm.hasMatch()) {
                 rest = rest.left(tm.capturedStart(0)).trimmed();
             } else {
-                static const QRegularExpression s_nextNum(QStringLiteral("\\s+[0-9０-９]"));
+                static const auto& s_nextNum = *[]() {
+                    static const QRegularExpression r(QStringLiteral("\\s+[0-9０-９]"));
+                    return &r;
+                }();
                 QRegularExpressionMatch nm = s_nextNum.match(rest);
                 if (nm.hasMatch()) {
                     rest = rest.left(nm.capturedStart()).trimmed();
@@ -540,8 +564,8 @@ QStringList KifToSfenConverter::convertFile(const QString& kifPath, QString* err
             }
 
             // インラインコメント除去
-            int cIdx = rest.indexOf(QChar(u'*'));
-            if (cIdx < 0) cIdx = rest.indexOf(QChar(u'＊'));
+            int cIdx = static_cast<int>(rest.indexOf(QChar(u'*')));
+            if (cIdx < 0) cIdx = static_cast<int>(rest.indexOf(QChar(u'＊')));
             if (cIdx >= 0) {
                 rest = rest.left(cIdx).trimmed();
             }
@@ -557,10 +581,13 @@ QStringList KifToSfenConverter::convertFile(const QString& kifPath, QString* err
 
             // lineStrを進める
             if (tm.hasMatch()) {
-                int consumed = i + tm.capturedEnd(0);
+                int consumed = i + static_cast<int>(tm.capturedEnd(0));
                 lineStr = lineStr.mid(consumed).trimmed();
             } else {
-                static const QRegularExpression s_next(QStringLiteral("\\s+[0-9０-９]"));
+                static const auto& s_next = *[]() {
+                    static const QRegularExpression r(QStringLiteral("\\s+[0-9０-９]"));
+                    return &r;
+                }();
                 QRegularExpressionMatch nm = s_next.match(lineStr, i);
                 if (nm.hasMatch()) lineStr = lineStr.mid(nm.capturedStart()).trimmed();
                 else lineStr.clear();
@@ -664,14 +691,17 @@ bool KifToSfenConverter::parseWithVariations(const QString& kifPath,
                         timeText = normalizeTimeMatch_(tm);
                         rest = rest.left(tm.capturedStart(0)).trimmed();
                     } else {
-                        static const QRegularExpression s_nextNum(QStringLiteral("\\s+[0-9０-９]"));
+                        static const auto& s_nextNum = *[]() {
+                            static const QRegularExpression r(QStringLiteral("\\s+[0-9０-９]"));
+                            return &r;
+                        }();
                         QRegularExpressionMatch nm = s_nextNum.match(rest);
                         if (nm.hasMatch()) rest = rest.left(nm.capturedStart()).trimmed();
                     }
 
                     // インラインコメント除去
-                    int cIdx = rest.indexOf(QChar(u'*'));
-                    if (cIdx < 0) cIdx = rest.indexOf(QChar(u'＊'));
+                    int cIdx = static_cast<int>(rest.indexOf(QChar(u'*')));
+                    if (cIdx < 0) cIdx = static_cast<int>(rest.indexOf(QChar(u'＊')));
                     if (cIdx >= 0) {
                         QString ic = rest.mid(cIdx+1).trimmed();
                         if (!ic.isEmpty()) {
@@ -755,10 +785,13 @@ bool KifToSfenConverter::parseWithVariations(const QString& kifPath,
 
                     // 続行
                     if (tm.hasMatch()) {
-                        int consumed = j + tm.capturedEnd(0);
+                        int consumed = j + static_cast<int>(tm.capturedEnd(0));
                         lineStr = lineStr.mid(consumed).trimmed();
                     } else {
-                        static const QRegularExpression s_next(QStringLiteral("\\s+[0-9０-９]"));
+                        static const auto& s_next = *[]() {
+                            static const QRegularExpression r(QStringLiteral("\\s+[0-9０-９]"));
+                            return &r;
+                        }();
                         QRegularExpressionMatch nm = s_next.match(lineStr, j);
                         if (nm.hasMatch()) lineStr = lineStr.mid(nm.capturedStart()).trimmed();
                         else lineStr.clear();
@@ -914,7 +947,7 @@ int KifToSfenConverter::kanjiDigitToInt(QChar c)
 QChar KifToSfenConverter::rankNumToLetter(int r)
 {
     if (r < 1 || r > 9) return QChar();
-    return QChar(QLatin1Char('a' + (r - 1)));
+    return QChar(QLatin1Char(static_cast<char>('a' + (r - 1))));
 }
 
 bool KifToSfenConverter::findDestination(const QString& line, int& toFile, int& toRank, bool& isSameAsPrev)
@@ -927,12 +960,21 @@ bool KifToSfenConverter::findDestination(const QString& line, int& toFile, int& 
         return true;
     }
 
-    static const QRegularExpression s_paren(QStringLiteral("[\\(（]"));
-    const int paren = line.indexOf(s_paren);
+    static const auto& s_paren = *[]() {
+        static const QRegularExpression r(QStringLiteral("[\\(（]"));
+        return &r;
+    }();
+    const int paren = static_cast<int>(line.indexOf(s_paren));
     const QString head = (paren >= 0) ? line.left(paren) : line;
 
-    static const QRegularExpression s_digitKanji(QStringLiteral("([1-9１-９])([一二三四五六七八九])"));
-    static const QRegularExpression s_digitDigit(QStringLiteral("([1-9１-９])([1-9１-９])"));
+    static const auto& s_digitKanji = *[]() {
+        static const QRegularExpression r(QStringLiteral("([1-9１-９])([一二三四五六七八九])"));
+        return &r;
+    }();
+    static const auto& s_digitDigit = *[]() {
+        static const QRegularExpression r(QStringLiteral("([1-9１-９])([1-9１-９])"));
+        return &r;
+    }();
 
     QRegularExpressionMatch m = s_digitKanji.match(head);
     if (!m.hasMatch()) m = s_digitDigit.match(head);
@@ -967,19 +1009,30 @@ bool KifToSfenConverter::isPromotionMoveText(const QString& line)
 
     // 判定対象は「座標や(77)、打の手前」までのヘッドを取り出す
     QString head = line;
-    int p = head.indexOf(QRegularExpression(QStringLiteral("[\\(（]")));
+    static const auto& kParenRe = *[]() {
+        static const QRegularExpression r(QStringLiteral("[\\(（]"));
+        return &r;
+    }();
+    int p = static_cast<int>(head.indexOf(kParenRe));
     if (p >= 0) head = head.left(p);
-    int u = head.indexOf(QChar(u'打'));
+    int u = static_cast<int>(head.indexOf(QChar(u'打')));
     if (u >= 0) head = head.left(u);
 
     // 装飾語を除去（右/左/上/引/寄/直/行）
-    head.remove(QRegularExpression(QStringLiteral("[右左上下引寄直行]+")));
+    static const auto& kModsRe = *[]() {
+        static const QRegularExpression r(QStringLiteral("[右左上下引寄直行]+"));
+        return &r;
+    }();
+    head.remove(kModsRe);
     head.remove(QChar(u'▲'));
     head.remove(QChar(u'△'));
     head = head.trimmed();
 
     // 「歩/香/桂/銀/角/飛 + 成」で終わっていればプロモーション
-    static const QRegularExpression kPromoteSuffix(QStringLiteral("(歩|香|桂|銀|角|飛)成$"));
+    static const auto& kPromoteSuffix = *[]() {
+        static const QRegularExpression r(QStringLiteral("(歩|香|桂|銀|角|飛)成$"));
+        return &r;
+    }();
     return kPromoteSuffix.match(head).hasMatch();
 }
 
@@ -994,7 +1047,10 @@ bool KifToSfenConverter::convertMoveLine(const QString& moveText,
     }
 
     // 装飾語を除去
-    static const QRegularExpression kMods(QStringLiteral("[右左上下引寄直行]+"));
+    static const auto& kMods = *[]() {
+        static const QRegularExpression r(QStringLiteral("[右左上下引寄直行]+"));
+        return &r;
+    }();
     QString line = moveText;
     line.remove(kMods);
     line = line.trimmed();
@@ -1012,8 +1068,14 @@ bool KifToSfenConverter::convertMoveLine(const QString& moveText,
     // from は "(xy)"（半角/全角）から読む（なければ 0）
     int fromF = 0, fromR = 0;
     {
-        static const QRegularExpression kParenAscii(QStringLiteral("\\(([0-9０-９])([0-9０-９])\\)"));
-        static const QRegularExpression kParenZenkaku(QStringLiteral("（([0-9０-９])([0-9０-９])）"));
+        static const auto& kParenAscii = *[]() {
+            static const QRegularExpression r(QStringLiteral("\\(([0-9０-９])([0-9０-９])\\)"));
+            return &r;
+        }();
+        static const auto& kParenZenkaku = *[]() {
+            static const QRegularExpression r(QStringLiteral("（([0-9０-９])([0-9０-９])）"));
+            return &r;
+        }();
         QRegularExpressionMatch m = kParenAscii.match(line);
         if (!m.hasMatch()) m = kParenZenkaku.match(line);
         if (m.hasMatch() && m.lastCapturedIndex() >= 2) {

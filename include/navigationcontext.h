@@ -5,7 +5,7 @@
 
 class INavigationContext {
 public:
-    virtual ~INavigationContext() = default;
+    virtual ~INavigationContext();
 
     // 状態取得
     virtual bool hasResolvedRows() const = 0;

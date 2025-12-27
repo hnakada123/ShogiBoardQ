@@ -42,6 +42,8 @@ GlobalToolTip::GlobalToolTip(QWidget* parent)
     setPointSizeF(14.0);
 }
 
+GlobalToolTip::~GlobalToolTip() = default;
+
 // フォントサイズ（pt）を設定するセッター。
 // 役割：ラベルのフォントサイズを更新し、ウィジェットのサイズも内容に合わせて調整する。
 // 注意：一部スタイル環境でフォントが上書きされる可能性があるため、StyleSheet でもサイズを明示。

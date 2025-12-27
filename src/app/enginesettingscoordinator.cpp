@@ -1,3 +1,4 @@
+#include "enginesettingscoordinator.h"
 #include "engineregistrationdialog.h"
 
 namespace EngineSettingsCoordinator {

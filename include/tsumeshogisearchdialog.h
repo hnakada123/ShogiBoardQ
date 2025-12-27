@@ -17,7 +17,7 @@ public:
     explicit TsumeShogiSearchDialog(QWidget *parent = nullptr);
 
     // デストラクタ
-    ~TsumeShogiSearchDialog();
+    ~TsumeShogiSearchDialog() override;
 };
 
 #endif // TSUMESHOGISEARCHDIALOG_H

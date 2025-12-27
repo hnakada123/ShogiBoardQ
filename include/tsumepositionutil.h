@@ -16,16 +16,16 @@ public:
         QString baseSfen;
 
         if (sfenRecord && !sfenRecord->isEmpty()) {
-            const int safe = qBound(0, sel, sfenRecord->size() - 1);
+            const int safe = static_cast<int>(qBound(qsizetype(0), qsizetype(sel), sfenRecord->size() - 1));
             baseSfen = sfenRecord->at(safe);
         } else if (!startSfenStr.isEmpty()) {
             baseSfen = startSfenStr;
         } else if (!positionStrList.isEmpty()) {
-            const int safe = qBound(0, sel, positionStrList.size() - 1);
+            const int safe = static_cast<int>(qBound(qsizetype(0), qsizetype(sel), positionStrList.size() - 1));
             const QString pos = positionStrList.at(safe).trimmed();
             if (pos.startsWith(QStringLiteral("position sfen"))) {
                 QString t = pos.mid(14).trimmed(); // "position sfen" を剥がす
-                const int m = t.indexOf(QStringLiteral(" moves "));
+                const int m = static_cast<int>(t.indexOf(QStringLiteral(" moves ")));
                 baseSfen = (m >= 0) ? t.left(m).trimmed() : t;
             }
         }

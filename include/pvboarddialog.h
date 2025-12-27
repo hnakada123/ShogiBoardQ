@@ -30,7 +30,7 @@ public:
     explicit PvBoardDialog(const QString& baseSfen,
                            const QStringList& pvMoves,
                            QWidget* parent = nullptr);
-    ~PvBoardDialog();
+    ~PvBoardDialog() override;
 
     /**
      * @brief 漢字表記の読み筋を設定

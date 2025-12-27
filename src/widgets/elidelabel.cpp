@@ -276,7 +276,7 @@ void ElideLabel::paintEvent(QPaintEvent*)
     } else {
         // ── 通常描画（非スクロール） ──
         // 収まる：m_fullText、収まらない：m_elidedText（alignment は QLabel 設定を流用）
-        p.drawText(cr, alignment() | Qt::AlignVCenter,
+        p.drawText(cr, static_cast<int>(alignment()) | Qt::AlignVCenter,
                    overflow ? m_elidedText : m_fullText);
     }
 

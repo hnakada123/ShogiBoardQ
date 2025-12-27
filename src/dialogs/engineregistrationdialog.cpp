@@ -111,6 +111,7 @@ void EngineRegistrationDialog::onProcessError(QProcess::ProcessError error)
     case QProcess::ReadError:
         errorMessage = tr("An error occurred in EngineRegistrationDialog::onProcessError. An issue occurred while reading data.");
         break;
+    case QProcess::UnknownError:
     default:
         errorMessage = tr("An error occurred in EngineRegistrationDialog::onProcessError. An unknown error occurred.");
         break;
@@ -672,7 +673,7 @@ void EngineRegistrationDialog::parseOptionLine(const QString& line)
     QString currentValue = "";
     QStringList valueList;
 
-    int defaultIndex = parts.indexOf(EngineOptionDefaultKey);
+    int defaultIndex = static_cast<int>(parts.indexOf(EngineOptionDefaultKey));
 
     // `defaultIndex + 1 < parts.size()`を追加して、`"default"`の後に値があるかどうかをチェックする。
     if (defaultIndex != -1 && defaultIndex + 1 < parts.size()) {
@@ -681,13 +682,13 @@ void EngineRegistrationDialog::parseOptionLine(const QString& line)
     }
 
     if (type == "spin") {
-        int minIndex = parts.indexOf("min");
-        int maxIndex = parts.indexOf("max");
+        int minIndex = static_cast<int>(parts.indexOf("min"));
+        int maxIndex = static_cast<int>(parts.indexOf("max"));
         if (minIndex != -1 && parts.size() > minIndex) min = parts.at(minIndex + 1);
         if (maxIndex != -1 && parts.size() > maxIndex) max = parts.at(maxIndex + 1);
     } else if (type == "combo") {
         int varIndex = 0;
-        while ((varIndex = parts.indexOf("var", varIndex + 1)) != -1) {
+        while ((varIndex = static_cast<int>(parts.indexOf("var", varIndex + 1))) != -1) {
             if (parts.size() > varIndex) valueList.append(parts.at(varIndex + 1));
         }
     }

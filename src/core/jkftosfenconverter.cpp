@@ -92,7 +92,7 @@ static QChar pieceToSfenChar(int kind, bool isBlack)
     if (!isBlack) c = c.toLower();
 
     // 成駒は '+' を付けるが、ここでは1文字だけ返すので呼び出し側で処理
-    Q_UNUSED(promoted);
+    (void)promoted;
     return c;
 }
 
@@ -119,7 +119,10 @@ static QString pieceKindToKanjiImpl(const QString& kind)
 // 全角数字
 static QString zenkakuDigit(int d)
 {
-    static const QString digits = QStringLiteral("０１２３４５６７８９");
+    static const auto& digits = *[]() {
+        static const QString s = QStringLiteral("０１２３４５６７８９");
+        return &s;
+    }();
     if (d >= 0 && d <= 9) return QString(digits.at(d));
     return QString::number(d);
 }
@@ -127,7 +130,10 @@ static QString zenkakuDigit(int d)
 // 漢数字
 static QString kanjiRank(int y)
 {
-    static const QString ranks = QStringLiteral("〇一二三四五六七八九");
+    static const auto& ranks = *[]() {
+        static const QString s = QStringLiteral("〇一二三四五六七八九");
+        return &s;
+    }();
     if (y >= 1 && y <= 9) return QString(ranks.at(y));
     return QString::number(y);
 }
@@ -282,7 +288,7 @@ QList<KifDisplayItem> JkfToSfenConverter::extractMovesWithTimes(const QString& j
         if (moveObj.contains(QStringLiteral("comments"))) {
             const QJsonArray comments = moveObj[QStringLiteral("comments")].toArray();
             QStringList cmtList;
-            for (const auto& c : comments) {
+            for (const QJsonValueConstRef c : comments) {
                 cmtList.append(c.toString());
             }
             comment = cmtList.join(QLatin1Char('\n'));
@@ -638,7 +644,7 @@ void JkfToSfenConverter::parseMovesArray(const QJsonArray& movesArray,
             if (moveObj.contains(QStringLiteral("comments"))) {
                 const QJsonArray comments = moveObj[QStringLiteral("comments")].toArray();
                 QStringList cmtList;
-                for (const auto& c : comments) {
+                for (const QJsonValueConstRef c : comments) {
                     cmtList.append(c.toString());
                 }
                 comment = cmtList.join(QLatin1Char('\n'));
@@ -688,7 +694,7 @@ void JkfToSfenConverter::parseMovesArray(const QJsonArray& movesArray,
             if (moveObj.contains(QStringLiteral("comments"))) {
                 const QJsonArray comments = moveObj[QStringLiteral("comments")].toArray();
                 QStringList cmtList;
-                for (const auto& c : comments) {
+                for (const QJsonValueConstRef c : comments) {
                     cmtList.append(c.toString());
                 }
                 comment = cmtList.join(QLatin1Char('\n'));
@@ -705,7 +711,7 @@ void JkfToSfenConverter::parseMovesArray(const QJsonArray& movesArray,
             if (moveObj.contains(QStringLiteral("comments"))) {
                 const QJsonArray comments = moveObj[QStringLiteral("comments")].toArray();
                 QStringList cmtList;
-                for (const auto& c : comments) {
+                for (const QJsonValueConstRef c : comments) {
                     cmtList.append(c.toString());
                 }
                 openingItem.comment = cmtList.join(QLatin1Char('\n'));
@@ -745,7 +751,7 @@ void JkfToSfenConverter::parseMovesArray(const QJsonArray& movesArray,
                         if (forkMoveObj.contains(QStringLiteral("comments"))) {
                             const QJsonArray forkComments = forkMoveObj[QStringLiteral("comments")].toArray();
                             QStringList cmtList;
-                            for (const auto& c : forkComments) {
+                            for (const QJsonValueConstRef c : forkComments) {
                                 cmtList.append(c.toString());
                             }
                             forkComment = cmtList.join(QLatin1Char('\n'));
@@ -785,7 +791,7 @@ void JkfToSfenConverter::parseMovesArray(const QJsonArray& movesArray,
                         if (forkMoveObj.contains(QStringLiteral("comments"))) {
                             const QJsonArray forkComments = forkMoveObj[QStringLiteral("comments")].toArray();
                             QStringList cmtList;
-                            for (const auto& c : forkComments) {
+                            for (const QJsonValueConstRef c : forkComments) {
                                 cmtList.append(c.toString());
                             }
                             forkComment = cmtList.join(QLatin1Char('\n'));
