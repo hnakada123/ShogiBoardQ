@@ -54,14 +54,14 @@ static QString buildBasePositionUpToHands_(const QString& prevFull, int handCoun
         } else if (trimmed.startsWith(QStringLiteral("position sfen "))) {
             // "position sfen " 以降の SFEN 先頭トークンまでを head として採用（末尾の moves 部は除外）
             // 単純に " moves " の前までを head とする
-            const int idxMoves = trimmed.indexOf(QStringLiteral(" moves "));
+            const qsizetype idxMoves = trimmed.indexOf(QStringLiteral(" moves "));
             head = (idxMoves >= 0) ? trimmed.left(idxMoves) : trimmed; // moves 無ければ全文
         }
 
         // moves の抽出
-        const int idxMoves = trimmed.indexOf(QStringLiteral(" moves "));
-        if (idxMoves >= 0) {
-            const QString after = trimmed.mid(idxMoves + 7); // 7 = strlen(" moves ")
+        const qsizetype idxMoves2 = trimmed.indexOf(QStringLiteral(" moves "));
+        if (idxMoves2 >= 0) {
+            const QString after = trimmed.mid(idxMoves2 + 7); // 7 = strlen(" moves ")
             const QStringList toks = after.split(QLatin1Char(' '), Qt::SkipEmptyParts);
             for (const QString& t : toks) {
                 if (!t.isEmpty()) moves.append(t);
@@ -90,7 +90,7 @@ static QString buildBasePositionUpToHands_(const QString& prevFull, int handCoun
         return head;
     }
 
-    const int take = qMin(handCount, moves.size());
+    const qsizetype take = qMin(qsizetype(handCount), moves.size());
     QStringList headMoves = moves.mid(0, take);
     return QStringLiteral("%1 moves %2").arg(head, headMoves.join(QLatin1Char(' ')));
 }
@@ -695,7 +695,7 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
 
     if (!allGameHistories.isEmpty()) {
         qDebug() << "=== Accumulated Game Histories (Count:" << allGameHistories.size() << ") ===";
-        for (int i = 0; i < allGameHistories.size(); ++i) {
+        for (qsizetype i = 0; i < allGameHistories.size(); ++i) {
             qDebug() << " [Game" << (i + 1) << "]";
             const QStringList& rec = allGameHistories.at(i);
             for (const QString& pos : rec) {
@@ -705,7 +705,7 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
         qDebug() << "=======================================================";
         qDebug() << "--- Searching for start position in previous games ---";
 
-        for (int i = 0; i < allGameHistories.size(); ++i) {
+        for (qsizetype i = 0; i < allGameHistories.size(); ++i) {
             const QStringList& hist = allGameHistories.at(i);
             if (hist.isEmpty()) continue;
 
@@ -721,7 +721,7 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
                     .split(QLatin1Char(' '), Qt::SkipEmptyParts);
                 }
             } else if (fullCmd.startsWith(QLatin1String("position sfen "))) {
-                const int mIdx = fullCmd.indexOf(QLatin1String(" moves "));
+                const qsizetype mIdx = fullCmd.indexOf(QLatin1String(" moves "));
                 const QString sfenPart = (mIdx == -1) ? fullCmd.mid(14)
                                                       : fullCmd.mid(14, mIdx - 14);
                 tracer.setFromSfen(sfenPart);
@@ -735,22 +735,22 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
                 qDebug().noquote()
                 << QString(" -> MATCH FOUND: [Game %1] Start Position (Move 0)").arg(i + 1);
                 if (bestGameIdx == -1) { // 最初の一致を採用
-                    bestGameIdx  = i;
+                    bestGameIdx  = static_cast<int>(i);
                     bestBaseFull = fullCmd;
                     bestMatchPly = 0;
                 }
             }
 
             // 3) 1手ずつ進めて比較
-            for (int m = 0; m < moves.size(); ++m) {
+            for (qsizetype m = 0; m < moves.size(); ++m) {
                 tracer.applyUsiMove(moves[m]);
                 if (tracer.toSfenString() == targetSfen) {
                     qDebug().noquote()
                     << QString(" -> MATCH FOUND: [Game %1] Move %2").arg(i + 1).arg(m + 1);
                     if (bestGameIdx == -1) { // 最初の一致を採用
-                        bestGameIdx  = i;
+                        bestGameIdx  = static_cast<int>(i);
                         bestBaseFull = fullCmd;
-                        bestMatchPly = m + 1;
+                        bestMatchPly = static_cast<int>(m + 1);
                     }
                 }
             }
@@ -837,7 +837,7 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
 
     auto trimMovesPreserveHeader = [](const QString& full, int keep) -> QString {
         const QString movesKey = QStringLiteral(" moves ");
-        const int pos = full.indexOf(movesKey);
+        const qsizetype pos = full.indexOf(movesKey);
         QString head = full.trimmed();
         QString tail;
         if (pos >= 0) {
@@ -1849,7 +1849,7 @@ void MatchCoordinator::startInitialEngineMoveFor_(Player engineSide)
     }
 
     const int mcCur = m_currentMoveIndex;
-    const int recSizeBefore = m_sfenRecord ? m_sfenRecord->size() : -1;
+    const qsizetype recSizeBefore = m_sfenRecord ? m_sfenRecord->size() : -1;
     const QString recTailBefore = (m_sfenRecord && !m_sfenRecord->isEmpty()) ? m_sfenRecord->last() : QString();
     qInfo().noquote() << "[IDX][HvE:init] enter  mcCur=" << mcCur
                       << " recSizeBefore=" << recSizeBefore
@@ -1939,7 +1939,7 @@ void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& hu
     // ★★★ ここで同期 ★★★
     int mcCur = m_currentMoveIndex;
     if (m_sfenRecord) {
-        const int fromRec = qMax(0, m_sfenRecord->size() - 1);
+        const int fromRec = static_cast<int>(qMax(qsizetype(0), m_sfenRecord->size() - 1));
         if (fromRec != mcCur) {
             qInfo() << "[IDX][HvE] sync mcCur" << mcCur << "->" << fromRec
                     << "(by recSize=" << m_sfenRecord->size() << ")";
@@ -1948,7 +1948,7 @@ void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& hu
         }
     }
 
-    const int recSizeBefore = m_sfenRecord ? m_sfenRecord->size() : -1;
+    const qsizetype recSizeBefore = m_sfenRecord ? m_sfenRecord->size() : -1;
     const QString recTailBefore = (m_sfenRecord && !m_sfenRecord->isEmpty()) ? m_sfenRecord->last() : QString();
     qInfo().noquote() << "[IDX][HvE] enter  mcCur=" << mcCur
                       << " recSizeBefore=" << recSizeBefore
@@ -2134,11 +2134,11 @@ bool MatchCoordinator::undoTwoPlies()
     int curSfenIdx = -1;
 
     if (srec && !srec->isEmpty()) {
-        curSfenIdx = srec->size() - 1; // 末尾が現局面
+        curSfenIdx = static_cast<int>(srec->size() - 1); // 末尾が現局面
     } else if (u_.currentMoveIndex) {
         curSfenIdx = *u_.currentMoveIndex + 1; // 行0始まり → SFENは開始局面含むので+1
     } else if (u_.gameMoves) {
-        curSfenIdx = u_.gameMoves->size() + 1;
+        curSfenIdx = static_cast<int>(u_.gameMoves->size() + 1);
     } else {
         return false;
     }

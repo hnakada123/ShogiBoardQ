@@ -97,7 +97,7 @@ void KifuBranchListModel::setBranchCandidatesFromKif(const QList<KifDisplayItem>
 {
 #ifdef SHOGIBOARDQ_DEBUG_KIF
     QStringList s; s.reserve(rows.size());
-    for (int i=0;i<rows.size();++i) s << rows[i].prettyMove;
+    for (qsizetype i=0;i<rows.size();++i) s << rows[i].prettyMove;
     qDebug().noquote() << "[BRANCH-MODEL] set" << rows.size() << ":" << s.join(", ");
 #endif
 

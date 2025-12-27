@@ -516,7 +516,7 @@ void EngineAnalysisTab::rebuildBranchTree()
         QGraphicsPathItem* prev = startNode;
         // disp[0]は開始局面エントリ（prettyMoveが空）なのでスキップ
         // disp[1]から処理し、ply=1から開始
-        for (int i = 1; i < main.disp.size(); ++i) {
+        for (qsizetype i = 1; i < main.disp.size(); ++i) {
             const auto& it = main.disp.at(i);
             const int ply = i;  // disp[i]はi手目
             QGraphicsPathItem* node = addNode(0, ply, it.prettyMove);
@@ -526,7 +526,7 @@ void EngineAnalysisTab::rebuildBranchTree()
     }
 
     // ===== 分岐 row=1.. =====
-    for (int row = 1; row < m_rows.size(); ++row) {
+    for (qsizetype row = 1; row < m_rows.size(); ++row) {
         const auto& rv = m_rows.at(row);
         const int startPly = qMax(1, rv.startPly);      // 1-origin
 
@@ -591,7 +591,7 @@ void EngineAnalysisTab::rebuildBranchTree()
         // 新データ構造: disp[0]=開始局面エントリ, disp[i]=i手目 (i>=1)
         // startPly手目から描画するので、disp[startPly]から開始
         const int cut   = startPly;                       // disp[startPly]がstartPly手目
-        const int total = rv.disp.size();
+        const qsizetype total = rv.disp.size();
         const int take  = (cut < total) ? (total - cut) : 0;
         if (take <= 0) continue;                              // 描くもの無し
 
@@ -649,10 +649,10 @@ void EngineAnalysisTab::rebuildBranchTree()
 
     // ===== シーン境界 =====
     // disp[0]は開始局面エントリなので、指し手数は disp.size() - 1
-    const int mainLen = m_rows.isEmpty() ? 0 : qMax(0, m_rows.at(0).disp.size() - 1);
+    const int mainLen = m_rows.isEmpty() ? 0 : static_cast<int>(qMax(qsizetype(0), m_rows.at(0).disp.size() - 1));
     const int spanLen = qMax(mainLen, maxAbsPly);
     const qreal width  = (BASE_X + SHIFT_X) + STEP_X * qMax(40, spanLen + 6) + 40.0;
-    const qreal height = 30 + STEP_Y * qMax(2, m_rows.size() + 1);
+    const qreal height = 30 + STEP_Y * static_cast<qreal>(qMax(qsizetype(2), m_rows.size() + 1));
     m_scene->setSceneRect(QRectF(0, 0, width, height));
 
     // 【追加】初期状態で「開始局面」（row=0, ply=0）をハイライト（黄色）にする
@@ -1252,7 +1252,7 @@ QString EngineAnalysisTab::convertUrlsToLinks(const QString& text)
     }
     
     // 後ろから置換して位置がずれないようにする
-    for (int j = matches.size() - 1; j >= 0; --j) {
+    for (qsizetype j = matches.size() - 1; j >= 0; --j) {
         int start = matches[j].first;
         int length = matches[j].second;
         QString url = result.mid(start, length);

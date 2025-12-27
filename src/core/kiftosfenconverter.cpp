@@ -861,7 +861,7 @@ bool KifToSfenConverter::isBoardHeaderOrFrame(const QString& line)
     {
         int digitCount = 0;
         bool onlyDigitsAndSpace = true;
-        for (int i = 0; i < line.size(); ++i) {
+        for (qsizetype i = 0; i < line.size(); ++i) {
             const QChar ch = line.at(i);
             if (ch.isSpace()) continue;
             const ushort u = ch.unicode();
@@ -881,7 +881,7 @@ bool KifToSfenConverter::isBoardHeaderOrFrame(const QString& line)
             return true;
         }
         int boxCount = 0;
-        for (int i = 0; i < s.size(); ++i) if (kBoxChars.contains(s.at(i))) ++boxCount;
+        for (qsizetype i = 0; i < s.size(); ++i) if (kBoxChars.contains(s.at(i))) ++boxCount;
         if (boxCount >= qMax(3, s.size() / 2)) return true; // 行の半分以上が罫線
     }
 
@@ -895,7 +895,7 @@ bool KifToSfenConverter::isBoardHeaderOrFrame(const QString& line)
         const QString t = line.trimmed();
         if (!t.isEmpty()) {
             bool ok = true; int kanjiCount = 0;
-            for (int i = 0; i < t.size(); ++i) {
+            for (qsizetype i = 0; i < t.size(); ++i) {
                 const QChar ch = t.at(i);
                 if (kKanjiRow.contains(ch)) { ++kanjiCount; continue; }
                 if (ch.isSpace()) continue;
@@ -1225,7 +1225,7 @@ bool KifToSfenConverter::buildInitialSfenFromBod(const QStringList& lines,
         const QString promotedSingles = QStringLiteral("と杏圭全馬龍竜");
         const QString baseSingles = QStringLiteral("歩香桂銀金角飛玉王") + promotedSingles;
 
-        int i = 0, n = inner.size();
+        qsizetype i = 0, n = inner.size();
         while (i < n && outTokens.size() < 9) {
             while (i < n && isSpaceLike(inner.at(i))) ++i;
             if (i >= n) break;
@@ -1324,7 +1324,7 @@ bool KifToSfenConverter::buildInitialSfenFromBod(const QStringList& lines,
     };
     auto parseKanjiNumberString = [&](const QString& s)->int {
         if (s.isEmpty()) return -1;
-        int idx = s.indexOf(QChar(u'十'));
+        qsizetype idx = s.indexOf(QChar(u'十'));
         if (idx >= 0) {
             int tens = 1;
             if (idx > 0) {
@@ -1366,7 +1366,7 @@ bool KifToSfenConverter::buildInitialSfenFromBod(const QStringList& lines,
         const bool sideBlack = t.startsWith(prefixB);
         if (sideBlack != isBlack) return;
 
-        int idx = t.indexOf(QChar(u'：')); if (idx < 0) idx = t.indexOf(QLatin1Char(':'));
+        qsizetype idx = t.indexOf(QChar(u'：')); if (idx < 0) idx = t.indexOf(QLatin1Char(':'));
         if (idx < 0) return;
 
         QString rhs = t.mid(idx+1).trimmed();
@@ -1410,9 +1410,9 @@ bool KifToSfenConverter::buildInitialSfenFromBod(const QStringList& lines,
 
     auto zenk2ascii = [](QString s)->QString{
         static const QString z = QStringLiteral("０１２３４５６７８９");
-        for (int i=0;i<s.size();++i) {
-            int idx = z.indexOf(s.at(i));
-            if (idx >= 0) s[i] = QChar('0' + idx);
+        for (qsizetype i=0;i<s.size();++i) {
+            qsizetype idx = z.indexOf(s.at(i));
+            if (idx >= 0) s[i] = QChar('0' + static_cast<int>(idx));
         }
         return s;
     };
@@ -1423,10 +1423,10 @@ bool KifToSfenConverter::buildInitialSfenFromBod(const QStringList& lines,
     bool foundPlacementHeader = false;
     int placementStartLineIndex = -1;
 
-    for (int i = 0; i < lines.size(); ++i) {
+    for (qsizetype i = 0; i < lines.size(); ++i) {
         if (lines.at(i).contains(QStringLiteral("配置：")) || lines.at(i).contains(QStringLiteral("配置:"))) {
             foundPlacementHeader = true;
-            placementStartLineIndex = i;
+            placementStartLineIndex = static_cast<int>(i);
             break;
         }
     }
@@ -1437,7 +1437,7 @@ bool KifToSfenConverter::buildInitialSfenFromBod(const QStringList& lines,
         static const QChar ranks_1to9[9] = {u'一',u'二',u'三',u'四',u'五',u'六',u'七',u'八',u'九'};
         int currentRankIdx = 0;
 
-        for (int i = placementStartLineIndex + 1; i < lines.size() && currentRankIdx < 9; ++i) {
+        for (qsizetype i = placementStartLineIndex + 1; i < lines.size() && currentRankIdx < 9; ++i) {
             const QString& raw = lines.at(i);
             if (raw.trimmed().isEmpty()) continue; // 空行スキップ
 

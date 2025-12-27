@@ -128,7 +128,7 @@ QString UsenToSfenConverter::detectInitialSfenFromFile(const QString& usenPath, 
     }
 
     // ~. で始まる場合は平手
-    int firstDot = content.indexOf(QChar('.'));
+    qsizetype firstDot = content.indexOf(QChar('.'));
     if (firstDot < 0) {
         if (detectedLabel) *detectedLabel = QStringLiteral("平手(既定)");
         return QString::fromLatin1(kHirateSfen);
@@ -354,7 +354,7 @@ bool UsenToSfenConverter::parseWithVariations(const QString& usenPath,
             varTracer.resetToStartpos();
         }
         // 本譜のstartPly-1手目まで適用
-        for (int i = 0; i < startPly - 1 && i < mainUsiMoves.size(); ++i) {
+        for (qsizetype i = 0; i < startPly - 1 && i < mainUsiMoves.size(); ++i) {
             varTracer.applyUsiMove(mainUsiMoves[i]);
         }
 
@@ -484,10 +484,10 @@ bool UsenToSfenConverter::parseUsenString(const QString& usen,
 
     bool foundMainline = false;
 
-    for (int partIdx = 0; partIdx < parts.size(); ++partIdx) {
+    for (qsizetype partIdx = 0; partIdx < parts.size(); ++partIdx) {
         const QString& part = parts[partIdx];
         
-        int dotPos = part.indexOf(QChar('.'));
+        qsizetype dotPos = part.indexOf(QChar('.'));
         if (dotPos < 0) continue;
 
         QString prefix = part.left(dotPos);
@@ -498,7 +498,7 @@ bool UsenToSfenConverter::parseUsenString(const QString& usen,
         QString terminal;
         
         // 末尾から終局コードを探す
-        int lastDot = movesAndTerminal.lastIndexOf(QChar('.'));
+        qsizetype lastDot = movesAndTerminal.lastIndexOf(QChar('.'));
         if (lastDot >= 0 && lastDot < movesAndTerminal.size() - 1) {
             QString possibleTerminal = movesAndTerminal.mid(lastDot + 1);
             // 1文字の終局コードかチェック
@@ -562,7 +562,7 @@ QStringList UsenToSfenConverter::decodeUsenMoves(const QString& usenStr, QString
     // ~X. プレフィックスを除去
     // 平手の場合: ~0. または ~.
     if (movesStr.startsWith(QStringLiteral("~"))) {
-        int dotPos = movesStr.indexOf(QChar('.'));
+        qsizetype dotPos = movesStr.indexOf(QChar('.'));
         if (dotPos >= 0) {
             movesStr = movesStr.mid(dotPos + 1);
         }
@@ -570,7 +570,7 @@ QStringList UsenToSfenConverter::decodeUsenMoves(const QString& usenStr, QString
 
     // 終局コードを除去
     if (terminalOut) terminalOut->clear();
-    int lastDot = movesStr.lastIndexOf(QChar('.'));
+    qsizetype lastDot = movesStr.lastIndexOf(QChar('.'));
     if (lastDot >= 0 && lastDot < movesStr.size() - 1) {
         QString possibleTerminal = movesStr.mid(lastDot + 1);
         if (possibleTerminal.size() == 1) {
@@ -614,8 +614,8 @@ QStringList UsenToSfenConverter::decodeUsenMoves(const QString& usenStr, QString
 
 int UsenToSfenConverter::base36CharToInt(QChar c)
 {
-    int idx = kBase36Chars.indexOf(c.toLower());
-    return idx;  // 見つからなければ -1
+    qsizetype idx = kBase36Chars.indexOf(c.toLower());
+    return static_cast<int>(idx);  // 見つからなければ -1
 }
 
 int UsenToSfenConverter::base36ToMoveIndex(const QString& threeChars)
@@ -784,9 +784,7 @@ QString UsenToSfenConverter::usiToPrettyMove(const QString& usi, int plyNumber,
 
         QString kanji = pieceToKanji(pieceChar);
 
-        // 全角数字と漢数字
-        static const QString kZenkakuDigits = QStringLiteral("０１２３４５６７８９");
-        static const QString kKanjiRanks = QStringLiteral("〇一二三四五六七八九");
+        // グローバルの kZenkakuDigits と kKanjiRanks を使用
 
         QString result = teban;
         if (toFile >= 1 && toFile <= 9) result += kZenkakuDigits.at(toFile);
@@ -813,9 +811,7 @@ QString UsenToSfenConverter::usiToPrettyMove(const QString& usi, int plyNumber,
             return teban + QStringLiteral("?");
         }
 
-        // 全角数字と漢数字
-        static const QString kZenkakuDigits = QStringLiteral("０１２３４５６７８９");
-        static const QString kKanjiRanks = QStringLiteral("〇一二三四五六七八九");
+        // グローバルの kZenkakuDigits と kKanjiRanks を使用
 
         QString result = teban;
 

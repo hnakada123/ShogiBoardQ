@@ -20,13 +20,9 @@ void ShogiClock::setPlayerTimes(int player1Seconds, int player2Seconds,
                                 int bincSeconds, int wincSeconds,
                                 bool isLimitedTime)
 {
-    qCDebug(lcShogiClock) << "setPlayerTimes p1=" << player1Seconds
-                          << "p2=" << player2Seconds
-                          << "byo1=" << byoyomi1Seconds
-                          << "byo2=" << byoyomi2Seconds
-                          << "inc1=" << bincSeconds
-                          << "inc2=" << wincSeconds
-                          << "limited=" << isLimitedTime;
+    qCDebug(lcShogiClock, "setPlayerTimes p1=%d p2=%d byo1=%d byo2=%d inc1=%d inc2=%d limited=%d",
+            player1Seconds, player2Seconds, byoyomi1Seconds, byoyomi2Seconds,
+            bincSeconds, wincSeconds, isLimitedTime ? 1 : 0);
 
     // byoyomi と increment は排他扱い
     if (byoyomi1Seconds > 0 || byoyomi2Seconds > 0) {
@@ -342,18 +338,13 @@ QString ShogiClock::getPlayer2ConsiderationAndTotalTime() const
 // ---- undo用 ----
 void ShogiClock::saveState()
 {
-    qCDebug(lcShogiClock) << "saveState p1=" << m_player1TimeMs
-                          << "p2=" << m_player2TimeMs
-                          << "c1=" << m_player1ConsiderationTimeMs
-                          << "c2=" << m_player2ConsiderationTimeMs
-                          << "t1=" << m_player1TotalConsiderationTimeMs
-                          << "t2=" << m_player2TotalConsiderationTimeMs
-                          << "byo1Applied=" << m_byoyomi1Applied
-                          << "byo2Applied=" << m_byoyomi2Applied
-                          << "p1PrevShownTot=" << m_p1PrevShownTotalSec
-                          << "p2PrevShownTot=" << m_p2PrevShownTotalSec
-                          << "p1Last=" << m_p1LastMoveShownSec
-                          << "p2Last=" << m_p2LastMoveShownSec;
+    qCDebug(lcShogiClock, "saveState p1=%lld p2=%lld c1=%lld c2=%lld t1=%lld t2=%lld byo1Applied=%d byo2Applied=%d p1PrevShownTot=%d p2PrevShownTot=%d p1Last=%d p2Last=%d",
+            m_player1TimeMs, m_player2TimeMs,
+            m_player1ConsiderationTimeMs, m_player2ConsiderationTimeMs,
+            m_player1TotalConsiderationTimeMs, m_player2TotalConsiderationTimeMs,
+            m_byoyomi1Applied ? 1 : 0, m_byoyomi2Applied ? 1 : 0,
+            m_p1PrevShownTotalSec, m_p2PrevShownTotalSec,
+            m_p1LastMoveShownSec, m_p2LastMoveShownSec);
 
     m_player1TimeHistory.push(m_player1TimeMs);
     m_player2TimeHistory.push(m_player2TimeMs);

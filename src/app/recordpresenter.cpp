@@ -41,7 +41,7 @@ void GameRecordPresenter::presentGameRecord(const QList<KifDisplayItem>& disp) {
     m_d.model->setCurrentHighlightRow(0);
 
     // 各手を追加（dispの先頭は開始局面エントリなのでスキップ）
-    for (int i = 1; i < disp.size(); ++i) {
+    for (qsizetype i = 1; i < disp.size(); ++i) {
         const auto& it = disp.at(i);
         appendMoveLine(it.prettyMove, it.timeText);
     }

@@ -233,7 +233,7 @@ QStringList JkfToSfenConverter::convertFile(const QString& jkfPath, QString* err
     const QJsonArray moves = root[QStringLiteral("moves")].toArray();
     int prevToX = 0, prevToY = 0;
 
-    for (int i = 0; i < moves.size(); ++i) {
+    for (qsizetype i = 0; i < moves.size(); ++i) {
         const QJsonObject moveObj = moves[i].toObject();
 
         // 終局判定
@@ -280,7 +280,7 @@ QList<KifDisplayItem> JkfToSfenConverter::extractMovesWithTimes(const QString& j
     openingItem.timeText = QStringLiteral("00:00/00:00:00");
     openingItem.ply = 0;
 
-    for (int i = 0; i < moves.size(); ++i) {
+    for (qsizetype i = 0; i < moves.size(); ++i) {
         const QJsonObject moveObj = moves[i].toObject();
 
         // コメントを取得
@@ -624,7 +624,7 @@ void JkfToSfenConverter::parseMovesArray(const QJsonArray& movesArray,
     openingItem.timeText = QStringLiteral("00:00/00:00:00");
     openingItem.ply = 0;
 
-    for (int i = 0; i < movesArray.size(); ++i) {
+    for (qsizetype i = 0; i < movesArray.size(); ++i) {
         const QJsonObject moveObj = movesArray[i].toObject();
 
         // 終局語
@@ -722,7 +722,7 @@ void JkfToSfenConverter::parseMovesArray(const QJsonArray& movesArray,
         if (moveObj.contains(QStringLiteral("forks"))) {
             const QJsonArray forks = moveObj[QStringLiteral("forks")].toArray();
 
-            for (int f = 0; f < forks.size(); ++f) {
+            for (qsizetype f = 0; f < forks.size(); ++f) {
                 const QJsonArray forkMoves = forks[f].toArray();
 
                 KifVariation var;
@@ -737,7 +737,7 @@ void JkfToSfenConverter::parseMovesArray(const QJsonArray& movesArray,
                 int forkPlyNumber = plyNumber - 1;
                 qint64 forkCumSec[2] = {cumSec[0], cumSec[1]}; // 分岐開始時の消費時間を継承
 
-                for (int j = 0; j < forkMoves.size(); ++j) {
+                for (qsizetype j = 0; j < forkMoves.size(); ++j) {
                     const QJsonObject forkMoveObj = forkMoves[j].toObject();
 
                     // 終局語
@@ -983,7 +983,7 @@ QString JkfToSfenConverter::pieceKindToKanji(const QString& kind)
 QChar JkfToSfenConverter::rankNumToLetter(int r)
 {
     if (r < 1 || r > 9) return QChar();
-    return QChar(QLatin1Char('a' + (r - 1)));
+    return QChar(QLatin1Char(static_cast<char>('a' + (r - 1))));
 }
 
 QString JkfToSfenConverter::relativeToModifier(const QString& relative)

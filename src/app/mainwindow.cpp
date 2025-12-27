@@ -97,7 +97,7 @@ static QString toRichHtmlWithStarBreaksAndLinks(const QString& raw)
     // '*' が行頭でない場合、その直前に改行を入れる（直前の余分な空白は削る）
     QString withBreaks;
     withBreaks.reserve(s.size() + 16);
-    for (int i = 0; i < s.size(); ++i) {
+    for (qsizetype i = 0; i < s.size(); ++i) {
         const QChar ch = s.at(i);
         if (ch == QLatin1Char('*') && i > 0 && s.at(i - 1) != QLatin1Char('\n')) {
             while (!withBreaks.isEmpty()) {
@@ -123,8 +123,8 @@ static QString toRichHtmlWithStarBreaksAndLinks(const QString& raw)
     QRegularExpressionMatchIterator it = urlRe.globalMatch(withBreaks);
     while (it.hasNext()) {
         const QRegularExpressionMatch m = it.next();
-        const int start = m.capturedStart();
-        const int end   = m.capturedEnd();
+        const qsizetype start = m.capturedStart();
+        const qsizetype end   = m.capturedEnd();
 
         // 非URL部分をエスケープして追加
         html += QString(withBreaks.mid(last, start - last)).toHtmlEscaped();
@@ -135,7 +135,7 @@ static QString toRichHtmlWithStarBreaksAndLinks(const QString& raw)
         const QString label = url.toHtmlEscaped();   // 表示用
         html += QStringLiteral("<a href=\"%1\">%2</a>").arg(href, label);
 
-        last = end;
+        last = static_cast<int>(end);
     }
     // 末尾の非URL部分
     html += QString(withBreaks.mid(last)).toHtmlEscaped();
@@ -655,7 +655,7 @@ void MainWindow::doRedrawEngine1EvaluationGraph()
         qDebug() << "[EVAL_GRAPH] P1: using pending ply =" << ply;
     } else {
         // sfenRecordから計算（従来の動作）
-        ply = m_sfenRecord ? qMax(0, m_sfenRecord->size() - 1) : 0;
+        ply = m_sfenRecord ? qMax(0, static_cast<int>(m_sfenRecord->size() - 1)) : 0;
         qDebug() << "[EVAL_GRAPH] P1: actual ply (from sfenRecord) =" << ply
                  << ", sfenRecord size =" << (m_sfenRecord ? m_sfenRecord->size() : -1);
     }
@@ -710,7 +710,7 @@ void MainWindow::doRedrawEngine2EvaluationGraph()
         qDebug() << "[EVAL_GRAPH] P2: using pending ply =" << ply;
     } else {
         // sfenRecordから計算（従来の動作）
-        ply = m_sfenRecord ? qMax(0, m_sfenRecord->size() - 1) : 0;
+        ply = m_sfenRecord ? qMax(0, static_cast<int>(m_sfenRecord->size() - 1)) : 0;
         qDebug() << "[EVAL_GRAPH] P2: actual ply (from sfenRecord) =" << ply
                  << ", sfenRecord size =" << (m_sfenRecord ? m_sfenRecord->size() : -1);
     }
@@ -907,7 +907,7 @@ QString MainWindow::resolveCurrentSfenForGameStart_() const
 {
     // 1) 棋譜SFENリストの「選択手」から取得（最優先）
     if (m_sfenRecord) {
-        const int size = m_sfenRecord->size();
+        const qsizetype size = m_sfenRecord->size();
         // m_currentSelectedPly が [0..size-1] のインデックスである前提（本プロジェクトの慣習）
         // 1始まりの場合はプロジェクト実装に合わせて +0 / -1 調整してください。
         int idx = m_currentSelectedPly;
@@ -1086,10 +1086,10 @@ void MainWindow::displayGameRecord(const QList<KifDisplayItem> disp)
     ensureRecordPresenter_();
     if (!m_recordPresenter) return;
 
-    const int moveCount = disp.size();
+    const qsizetype moveCount = disp.size();
     const int rowCount  = (m_sfenRecord && !m_sfenRecord->isEmpty())
-                             ? m_sfenRecord->size()
-                             : (moveCount + 1);
+                             ? static_cast<int>(m_sfenRecord->size())
+                             : static_cast<int>(moveCount + 1);
 
     // ★ GameRecordModel を初期化
     ensureGameRecordModel_();
@@ -1100,7 +1100,7 @@ void MainWindow::displayGameRecord(const QList<KifDisplayItem> disp)
     // ★ m_commentsByRow も同期（互換性のため）
     m_commentsByRow.clear();
     m_commentsByRow.resize(rowCount);
-    for (int i = 0; i < disp.size() && i < rowCount; ++i) {
+    for (qsizetype i = 0; i < disp.size() && i < rowCount; ++i) {
         m_commentsByRow[i] = disp[i].comment;
     }
     qDebug().noquote() << "[MW] displayGameRecord: initialized with" << rowCount << "entries";
@@ -1521,7 +1521,7 @@ void MainWindow::updateGameInfoPlayerNames_(const QString& blackName, const QStr
     m_gameInfoTable->blockSignals(false);
 
     // 元データも更新
-    for (int i = 0; i < m_originalGameInfo.size(); ++i) {
+    for (qsizetype i = 0; i < m_originalGameInfo.size(); ++i) {
         if (m_originalGameInfo[i].key == tr("先手")) {
             m_originalGameInfo[i].value = blackName;
         } else if (m_originalGameInfo[i].key == tr("後手")) {
@@ -1728,16 +1728,16 @@ void MainWindow::onGameInfoUndo()
     
     // 元の対局情報に戻す
     m_gameInfoTable->clearContents();
-    m_gameInfoTable->setRowCount(m_originalGameInfo.size());
+    m_gameInfoTable->setRowCount(static_cast<int>(m_originalGameInfo.size()));
     
-    for (int row = 0; row < m_originalGameInfo.size(); ++row) {
+    for (qsizetype row = 0; row < m_originalGameInfo.size(); ++row) {
         const auto& it = m_originalGameInfo.at(row);
         auto *keyItem   = new QTableWidgetItem(it.key);
         auto *valueItem = new QTableWidgetItem(it.value);
         // 項目名は編集不可、内容は編集可能
         keyItem->setFlags(keyItem->flags() & ~Qt::ItemIsEditable);
-        m_gameInfoTable->setItem(row, 0, keyItem);
-        m_gameInfoTable->setItem(row, 1, valueItem);
+        m_gameInfoTable->setItem(static_cast<int>(row), 0, keyItem);
+        m_gameInfoTable->setItem(static_cast<int>(row), 1, valueItem);
     }
     
     m_gameInfoTable->resizeColumnToContents(0);
@@ -1962,7 +1962,7 @@ bool MainWindow::hasResolvedRows() const
 
 int MainWindow::resolvedRowCount() const
 {
-    return m_resolvedRows.size();
+    return static_cast<int>(m_resolvedRows.size());
 }
 
 int MainWindow::activeResolvedRow() const
@@ -1978,7 +1978,7 @@ int MainWindow::maxPlyAtRow(int row) const
         // - 棋譜欄: 「実手 + 終局行（あれば）」が入る → rowCount()-1
         // 末尾へ進める上限は「どちらか大きい方」を採用する。
         const int sfenMax = (m_sfenRecord && !m_sfenRecord->isEmpty())
-                                ? (m_sfenRecord->size() - 1)
+                                ? static_cast<int>(m_sfenRecord->size() - 1)
                                 : 0;
         const int kifuMax = (m_kifuRecordModel && m_kifuRecordModel->rowCount() > 0)
                                 ? (m_kifuRecordModel->rowCount() - 1)
@@ -1988,8 +1988,8 @@ int MainWindow::maxPlyAtRow(int row) const
 
     // 既に解決済み行がある（棋譜ファイル読み込み後など）のとき：
     // その行に表示するエントリ数（disp.size()）が末尾。
-    const int clamped = qBound(0, row, m_resolvedRows.size() - 1);
-    return m_resolvedRows[clamped].disp.size();
+    const int clamped = static_cast<int>(qBound(qsizetype(0), qsizetype(row), m_resolvedRows.size() - 1));
+    return static_cast<int>(m_resolvedRows[clamped].disp.size());
 }
 
 int MainWindow::currentPly() const
@@ -2436,7 +2436,7 @@ void MainWindow::onMoveRequested_(const QPoint& from, const QPoint& to)
     QPoint hFrom = from, hTo = to;
 
     // ★ 次の着手番号は「記録サイズ」を信頼する（既存ロジックのまま）
-    const int recSizeBefore = (m_sfenRecord ? m_sfenRecord->size() : 0);
+    const int recSizeBefore = (m_sfenRecord ? static_cast<int>(m_sfenRecord->size()) : 0);
     const int nextIdx       = qMax(1, recSizeBefore);
 
     // ここで合法判定＆盤面反映。m_lastMove に「▲７六歩」のような整形済み文字列がセットされる
@@ -2451,7 +2451,7 @@ void MainWindow::onMoveRequested_(const QPoint& from, const QPoint& to)
 
     // UI 側の現在カーソルは、常に「記録サイズ」に同期させる
     if (m_sfenRecord) {
-        m_currentMoveIndex = m_sfenRecord->size() - 1; // 末尾（直近の局面）
+        m_currentMoveIndex = static_cast<int>(m_sfenRecord->size() - 1); // 末尾（直近の局面）
     }
 
     // --- 対局モードごとの後処理 ---
@@ -2582,8 +2582,8 @@ void MainWindow::onBranchNodeActivated_(int row, int ply)
     if (row < 0 || row >= m_resolvedRows.size()) return;
 
     // その行の手数内にクランプ（0=開始局面, 1..N）
-    const int maxPly = m_resolvedRows[row].disp.size();
-    const int selPly = qBound(0, ply, maxPly);
+    const qsizetype maxPly = m_resolvedRows[row].disp.size();
+    const int selPly = static_cast<int>(qBound(qsizetype(0), qsizetype(ply), maxPly));
 
     // これだけで：局面更新 / 棋譜欄差し替え＆選択 / 分岐候補欄更新 / ツリーハイライト同期
     applyResolvedRowAndSelect(row, selPly);
@@ -2989,7 +2989,10 @@ void MainWindow::onApplyTimeControlRequested_(const GameStartCoordinator::TimeCo
             << " inc1=" << inc1 << " inc2=" << inc2
             << " loseOnTimeout=" << loseOnTimeout;
 
-        m_match->setTimeControlConfig(useByoyomi, byo1, byo2, inc1, inc2, loseOnTimeout);
+        m_match->setTimeControlConfig(useByoyomi,
+                                       static_cast<int>(byo1), static_cast<int>(byo2),
+                                       static_cast<int>(inc1), static_cast<int>(inc2),
+                                       loseOnTimeout);
         // 反映直後に現在の go 用数値を再計算しておくと安全
         m_match->refreshGoTimes();
     }
@@ -3158,8 +3161,8 @@ void MainWindow::onRecordRowChangedByPresenter(int row, const QString& comment)
 
         // ▼ 分岐候補欄の更新は Coordinator へ直接委譲
         if (m_kifuLoadCoordinator) {
-            const int rows        = m_resolvedRows.size();
-            const int resolvedRow = (rows <= 0) ? 0 : qBound(0, m_activeResolvedRow, rows - 1);
+            const qsizetype rows        = m_resolvedRows.size();
+            const int resolvedRow = (rows <= 0) ? 0 : static_cast<int>(qBound(qsizetype(0), qsizetype(m_activeResolvedRow), rows - 1));
             const int safePly     = (row < 0) ? 0 : row;
 
             qDebug().noquote()
@@ -3696,7 +3699,7 @@ void MainWindow::copyCsaToClipboard()
 
     // ★★★ デバッグ: 最終的なUSI指し手リストを出力 ★★★
     qDebug().noquote() << "[MW][CSA-DEBUG] Final usiMovesForCsa.size() =" << usiMovesForCsa.size();
-    for (int i = 0; i < qMin(usiMovesForCsa.size(), 25); ++i) {
+    for (qsizetype i = 0; i < qMin(usiMovesForCsa.size(), qsizetype(25)); ++i) {
         qDebug().noquote() << "[MW][CSA-DEBUG]   usiMovesForCsa[" << i << "] =" << usiMovesForCsa[i];
     }
 
@@ -4005,7 +4008,7 @@ void MainWindow::copySfenToClipboard()
         
         if (isPlaying) {
             // 対局中は最新局面を使用
-            idx = m_sfenRecord->size() - 1;
+            idx = static_cast<int>(m_sfenRecord->size() - 1);
             qDebug().noquote() << "[MW] copySfenToClipboard: playing mode, using latest sfenRecord idx =" << idx;
         } else {
             // リプレイ/観戦モード、または対局終了後は選択されている手を使用
@@ -4018,7 +4021,7 @@ void MainWindow::copySfenToClipboard()
             idx = 0;
             qDebug().noquote() << "[MW] copySfenToClipboard: idx adjusted to 0 (was negative)";
         } else if (idx >= m_sfenRecord->size()) {
-            idx = m_sfenRecord->size() - 1;
+            idx = static_cast<int>(m_sfenRecord->size() - 1);
             qDebug().noquote() << "[MW] copySfenToClipboard: idx adjusted to" << idx << "(was >= size)";
         }
         sfenStr = m_sfenRecord->at(idx);
@@ -4081,13 +4084,13 @@ void MainWindow::copyBodToClipboard()
         const bool isPlaying = isPlayingMode && !isGameOver;
         
         if (isPlaying) {
-            idx = m_sfenRecord->size() - 1;
+            idx = static_cast<int>(m_sfenRecord->size() - 1);
         } else {
             idx = currentPly();
         }
         
         if (idx < 0) idx = 0;
-        else if (idx >= m_sfenRecord->size()) idx = m_sfenRecord->size() - 1;
+        else if (idx >= m_sfenRecord->size()) idx = static_cast<int>(m_sfenRecord->size() - 1);
         
         sfenStr = m_sfenRecord->at(idx);
         moveIndex = idx;  // 手数（0始まり、初期局面=0、1手目=1）
@@ -4133,7 +4136,7 @@ void MainWindow::copyBodToClipboard()
     
     if (handSfen != QStringLiteral("-")) {
         int count = 0;
-        for (int i = 0; i < handSfen.size(); ++i) {
+        for (qsizetype i = 0; i < handSfen.size(); ++i) {
             const QChar c = handSfen.at(i);
             if (c.isDigit()) {
                 count = count * 10 + c.digitValue();
@@ -4187,7 +4190,7 @@ void MainWindow::copyBodToClipboard()
         };
         
         QString result;
-        for (int i = 0; i < order.size(); ++i) {
+        for (qsizetype i = 0; i < order.size(); ++i) {
             const QChar piece = order.at(i);
             if (hand.contains(piece) && hand[piece] > 0) {
                 result += pieceNames[piece];
@@ -4207,11 +4210,11 @@ void MainWindow::copyBodToClipboard()
     // 盤面を9x9配列に展開
     QVector<QVector<QString>> board(9, QVector<QString>(9));
     const QStringList ranks = boardSfen.split(QLatin1Char('/'));
-    for (int rank = 0; rank < qMin(ranks.size(), 9); ++rank) {
+    for (qsizetype rank = 0; rank < qMin(ranks.size(), qsizetype(9)); ++rank) {
         const QString& rankStr = ranks[rank];
         int file = 0;
         bool promoted = false;
-        for (int k = 0; k < rankStr.size() && file < 9; ++k) {
+        for (qsizetype k = 0; k < rankStr.size() && file < 9; ++k) {
             const QChar c = rankStr.at(k);
             if (c == QLatin1Char('+')) {
                 promoted = true;
@@ -4538,10 +4541,10 @@ void MainWindow::onPvRowClicked(int engineIndex, int row)
             QStringList lines = fullLog.split('\n');
 
             // 後ろから検索して、該当する深さの info pv を探す
-            for (int i = lines.size() - 1; i >= 0; --i) {
+            for (qsizetype i = lines.size() - 1; i >= 0; --i) {
                 const QString& line = lines.at(i);
                 if (line.contains(QStringLiteral("info ")) && line.contains(QStringLiteral(" pv "))) {
-                    int pvPos = line.indexOf(QStringLiteral(" pv "));
+                    qsizetype pvPos = line.indexOf(QStringLiteral(" pv "));
                     if (pvPos >= 0) {
                         QString pvPart = line.mid(pvPos + 4).trimmed();
                         usiMoves = pvPart.split(' ', Qt::SkipEmptyParts);
@@ -4751,11 +4754,11 @@ QStringList MainWindow::sfenRecordToUsiMoves_() const
         auto expandBoard = [](const QString& boardStr) -> QVector<QVector<QString>> {
             QVector<QVector<QString>> board(9, QVector<QString>(9));
             const QStringList ranks = boardStr.split(QLatin1Char('/'));
-            for (int rank = 0; rank < qMin(ranks.size(), 9); ++rank) {
+            for (qsizetype rank = 0; rank < qMin(ranks.size(), qsizetype(9)); ++rank) {
                 const QString& rankStr = ranks[rank];
                 int file = 0;
                 bool promoted = false;
-                for (int k = 0; k < rankStr.size() && file < 9; ++k) {
+                for (qsizetype k = 0; k < rankStr.size() && file < 9; ++k) {
                     QChar c = rankStr[k];
                     if (c == QLatin1Char('+')) {
                         promoted = true;

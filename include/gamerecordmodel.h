@@ -92,7 +92,7 @@ public:
     /**
      * @brief コメント配列のサイズ
      */
-    int commentCount() const { return m_comments.size(); }
+    int commentCount() const { return static_cast<int>(m_comments.size()); }
 
     // ========================================
     // 棋譜出力

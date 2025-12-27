@@ -458,7 +458,7 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
 
     // ←★ここにデバッグ挿入（そのままコピペでOK）
     {
-        const int n = m_sfenRecord->size();
+        const qsizetype n = m_sfenRecord->size();
         const QString last = (n > 0) ? m_sfenRecord->at(n - 1) : QString();
         const QString preview = (last.size() > 200) ? last.left(200) + " ..." : last;
         qInfo() << "[GC] validateAndMove: sfenRecord size =" << n
@@ -481,7 +481,7 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
 
     // ---- ★ 着手確定シグナル：手番切替の「前」に出す！ ----
     const Player moverBefore   = currentPlayer();     // 着手者（切替前）
-    const int confirmedPly     = gameMoves.size();    // 確定後の手数（1始まり）
+    const int confirmedPly     = static_cast<int>(gameMoves.size());    // 確定後の手数（1始まり）
     qDebug() << "[GC] emit moveCommitted mover=" << moverBefore << "ply=" << confirmedPly;
     emit moveCommitted(moverBefore, confirmedPly);
     // ------------------------------------------------------

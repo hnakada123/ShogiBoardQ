@@ -316,23 +316,23 @@ void StartGameDialog::swapSides()
     // 「後手／上手に異なる時間を設定」にチェックが入っている場合
     if (ui->groupBoxSecondPlayerTimeSettings->isChecked()) {
         // 持ち時間を入れ替える。
-        int temp = ui->basicTimeHour1->value();
+        int tempInt = ui->basicTimeHour1->value();
         ui->basicTimeHour1->setValue(ui->basicTimeHour2->value());
-        ui->basicTimeHour2->setValue(temp);
+        ui->basicTimeHour2->setValue(tempInt);
 
-        temp = ui->basicTimeMinutes1->value();
+        tempInt = ui->basicTimeMinutes1->value();
         ui->basicTimeMinutes1->setValue(ui->basicTimeMinutes2->value());
-        ui->basicTimeMinutes2->setValue(temp);
+        ui->basicTimeMinutes2->setValue(tempInt);
 
         // 秒読み時間を入れ替える。
-        temp = ui->byoyomiSec1->value();
+        tempInt = ui->byoyomiSec1->value();
         ui->byoyomiSec1->setValue(ui->byoyomiSec2->value());
-        ui->byoyomiSec2->setValue(temp);
+        ui->byoyomiSec2->setValue(tempInt);
 
         // 1手ごとの時間加算を入れ替える。
-        temp = ui->addEachMoveSec1->value();
+        tempInt = ui->addEachMoveSec1->value();
         ui->addEachMoveSec1->setValue(ui->addEachMoveSec2->value());
-        ui->addEachMoveSec2->setValue(temp);
+        ui->addEachMoveSec2->setValue(tempInt);
     }
 }
 

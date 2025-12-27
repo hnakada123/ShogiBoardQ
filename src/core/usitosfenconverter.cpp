@@ -432,16 +432,16 @@ bool UsiToSfenConverter::parseUsiPositionString(const QString& usiStr,
         QString rest = str.mid(5).trimmed();
         
         // "moves" キーワードの位置を探す
-        int movesIdx = rest.indexOf(QStringLiteral(" moves "), Qt::CaseInsensitive);
+        qsizetype movesIdx = rest.indexOf(QStringLiteral(" moves "), Qt::CaseInsensitive);
         
         if (movesIdx >= 0) {
             // "moves" より前がSFEN
             baseSfen = rest.left(movesIdx).trimmed();
-            sfenEndIndex = 5 + movesIdx;  // "sfen " + SFEN部分
+            sfenEndIndex = static_cast<int>(5 + movesIdx);  // "sfen " + SFEN部分
         } else {
             // "moves" がない場合、全体がSFEN（指し手なし）
             baseSfen = rest;
-            sfenEndIndex = str.size();
+            sfenEndIndex = static_cast<int>(str.size());
         }
     } else {
         // 不明な形式 → デフォルトで平手初期局面
@@ -449,9 +449,9 @@ bool UsiToSfenConverter::parseUsiPositionString(const QString& usiStr,
         baseSfen = QString::fromLatin1(kHirateSfen);
         
         // "moves" があるか確認
-        int movesIdx = str.indexOf(QStringLiteral("moves"), Qt::CaseInsensitive);
+        qsizetype movesIdx = str.indexOf(QStringLiteral("moves"), Qt::CaseInsensitive);
         if (movesIdx >= 0) {
-            sfenEndIndex = movesIdx;
+            sfenEndIndex = static_cast<int>(movesIdx);
         } else {
             sfenEndIndex = 0;
         }

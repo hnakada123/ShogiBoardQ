@@ -106,12 +106,12 @@ void MoveValidator::checkKingPresence(const QVector<QChar>& boardData, const QMa
 void MoveValidator::checkCorrectPosition(const QVector<QChar>& boardData)
 {
     // 将棋盤のマスの数だけ繰り返す。
-    for (int i = 0; i < boardData.size(); ++i) {
+    for (qsizetype i = 0; i < boardData.size(); ++i) {
         // 各マスの駒文字を取得する。
         QChar piece = boardData[i];
 
         // マスのインデックスから段番号を計算する。
-        int rank = i / BOARD_SIZE + 1;
+        int rank = static_cast<int>(i) / BOARD_SIZE + 1;
 
         // 以下のルールを適用する。
         // - 先手の歩('P')と香車('L')は1段目に存在できない。
@@ -808,7 +808,7 @@ int MoveValidator::generateLegalMoves(const Turn& turn, const QVector<QChar>& bo
             // qDebug() << "全指し手リスト";
             // printShogiMoveList(legalMovesList);
             //end
-            return legalMovesList.size();
+            return static_cast<int>(legalMovesList.size());
         }
 
         // 駒台から駒を打てるマスは玉と王手を掛けている駒のマスを除いた攻撃範囲のマスのみ
@@ -838,7 +838,7 @@ int MoveValidator::generateLegalMoves(const Turn& turn, const QVector<QChar>& bo
     // printShogiMoveList(legalMovesList);
     //end
 
-    return legalMovesList.size();
+    return static_cast<int>(legalMovesList.size());
 }
 
 // 駒が置かれていないマスを表すemptySquareBitboardと歩が無い筋を1で表すemptyFilePawnBitboardをAND演算した
@@ -864,7 +864,7 @@ void MoveValidator::generateBitboardForEmptyFiles(const Turn& turn, const QVecto
         for (int file = BOARD_SIZE - 1; file >= 0; --file) {
             int index = rank * BOARD_SIZE + file;
             if(boardData[index] == pawn) {
-                fileContainsPawn[file] = true;
+                fileContainsPawn[static_cast<size_t>(file)] = true;
             }
         }
     }
@@ -872,7 +872,7 @@ void MoveValidator::generateBitboardForEmptyFiles(const Turn& turn, const QVecto
     for (int rank = 0; rank < BOARD_SIZE; ++rank) {
         for (int file = BOARD_SIZE - 1; file >= 0; --file) {
             int index = rank * BOARD_SIZE + file;
-            emptyFilePawnBitboard[index] = fileContainsPawn[file] ? 0 : 1;
+            emptyFilePawnBitboard[static_cast<size_t>(index)] = fileContainsPawn[static_cast<size_t>(file)] ? 0 : 1;
         }
     }
 
@@ -886,7 +886,7 @@ void MoveValidator::generateBitboardForEmptyFiles(const Turn& turn, const QVecto
 // の合計28種類の駒が存在するマスを表すbitboardを作成する。
 void MoveValidator::generateBitboard(const QVector<QChar>& boardData, BoardStateArray& piecePlacedBitboard) const
 {
-    for (int i = 0; i < boardData.size(); ++i) {
+    for (qsizetype i = 0; i < boardData.size(); ++i) {
         QChar piece = boardData.at(i);
         Turn turnPiece = piece.isUpper() ? BLACK : WHITE;
         piece = piece.toUpper();
@@ -894,59 +894,59 @@ void MoveValidator::generateBitboard(const QVector<QChar>& boardData, BoardState
         switch (piece.unicode()) {
         // 歩
         case 'P':
-            piecePlacedBitboard[turnPiece][PAWN].set(i, true);
+            piecePlacedBitboard[turnPiece][PAWN].set(static_cast<size_t>(i), true);
             break;
         // 香車
         case 'L':
-            piecePlacedBitboard[turnPiece][LANCE].set(i, true);
+            piecePlacedBitboard[turnPiece][LANCE].set(static_cast<size_t>(i), true);
             break;
         // 桂馬
         case 'N':
-            piecePlacedBitboard[turnPiece][KNIGHT].set(i, true);
+            piecePlacedBitboard[turnPiece][KNIGHT].set(static_cast<size_t>(i), true);
             break;
         // 銀
         case 'S':
-            piecePlacedBitboard[turnPiece][SILVER].set(i, true);
+            piecePlacedBitboard[turnPiece][SILVER].set(static_cast<size_t>(i), true);
             break;
         // 金
         case 'G':
-            piecePlacedBitboard[turnPiece][GOLD].set(i, true);
+            piecePlacedBitboard[turnPiece][GOLD].set(static_cast<size_t>(i), true);
             break;
         // 角
         case 'B':
-            piecePlacedBitboard[turnPiece][BISHOP].set(i, true);
+            piecePlacedBitboard[turnPiece][BISHOP].set(static_cast<size_t>(i), true);
             break;
         // 飛車
         case 'R':
-            piecePlacedBitboard[turnPiece][ROOK].set(i, true);
+            piecePlacedBitboard[turnPiece][ROOK].set(static_cast<size_t>(i), true);
             break;
         // 玉
         case 'K':
-            piecePlacedBitboard[turnPiece][KING].set(i, true);
+            piecePlacedBitboard[turnPiece][KING].set(static_cast<size_t>(i), true);
             break;
         // と金
         case 'Q':
-            piecePlacedBitboard[turnPiece][PROMOTED_PAWN].set(i, true);
+            piecePlacedBitboard[turnPiece][PROMOTED_PAWN].set(static_cast<size_t>(i), true);
             break;
         // 成香
         case 'M':
-            piecePlacedBitboard[turnPiece][PROMOTED_LANCE].set(i, true);
+            piecePlacedBitboard[turnPiece][PROMOTED_LANCE].set(static_cast<size_t>(i), true);
             break;
         // 成桂
         case 'O':
-            piecePlacedBitboard[turnPiece][PROMOTED_KNIGHT].set(i, true);
+            piecePlacedBitboard[turnPiece][PROMOTED_KNIGHT].set(static_cast<size_t>(i), true);
             break;
         // 成銀
         case 'T':
-            piecePlacedBitboard[turnPiece][PROMOTED_SILVER].set(i, true);
+            piecePlacedBitboard[turnPiece][PROMOTED_SILVER].set(static_cast<size_t>(i), true);
             break;
         // 馬
         case 'C':
-            piecePlacedBitboard[turnPiece][HORSE].set(i, true);
+            piecePlacedBitboard[turnPiece][HORSE].set(static_cast<size_t>(i), true);
             break;
         // 龍
         case 'U':
-            piecePlacedBitboard[turnPiece][DRAGON].set(i, true);
+            piecePlacedBitboard[turnPiece][DRAGON].set(static_cast<size_t>(i), true);
             break;
         }
     }
@@ -962,7 +962,7 @@ void MoveValidator::printBitboards(const BoardStateArray& piecePlacedBitboard) c
         for (int pieceType = 0; pieceType < NUM_PIECE_TYPES; ++pieceType) {
             qDebug() << (turnNumber == 0 ? "先手:" : "後手:");
             qDebug() << "Piece type" << pieceName.at(pieceType) << ":";
-            const std::bitset<NUM_BOARD_SQUARES>& bitboard = piecePlacedBitboard[turnNumber][pieceType];
+            const std::bitset<NUM_BOARD_SQUARES>& bitboard = piecePlacedBitboard[static_cast<size_t>(turnNumber)][static_cast<size_t>(pieceType)];
             QString bitboardRow;
             for (int rank = 0; rank < BOARD_SIZE; ++rank) {
                 bitboardRow.clear();
@@ -972,11 +972,11 @@ void MoveValidator::printBitboards(const BoardStateArray& piecePlacedBitboard) c
                     // std::bitsetのtest()メンバ関数は、指定されたインデックスのビットが1(true)であるか、
                     // 0(false)であるかをチェックするために使用される。test()関数は、指定されたインデックスに
                     // あるビットがセットされている場合に true を返し、そうでない場合に false を返す。
-                    // このコードにおいて、QString::number(bitboard.test(index)) + ' ')は、
+                    // このコードにおいて、QString::number(bitboard.test(static_cast<size_t>(index))) + ' ')は、
                     // bitboardのindex位置にあるビットがセットされているかどうかを出力する。
                     // セットされていれば1が出力され、セットされていなければ0が出力される。
                     // これにより、駒のあるマスと無いマスを1と0で表示することができる。
-                    bitboardRow.append(QString::number(bitboard.test(index)) + ' ');
+                    bitboardRow.append(QString::number(bitboard.test(static_cast<size_t>(index))) + ' ');
                 }
                 qDebug() << bitboardRow;
             }
@@ -989,7 +989,7 @@ void MoveValidator::printBitboards(const BoardStateArray& piecePlacedBitboard) c
 bool MoveValidator::isPieceOnSquare(int& index, const std::array<std::bitset<NUM_BOARD_SQUARES>, NUM_PIECE_TYPES>& turnBitboards) const
 {
     for (int pieceType = 0; pieceType < NUM_PIECE_TYPES; ++pieceType) {
-        if (turnBitboards[pieceType].test(index)) {
+        if (turnBitboards[static_cast<size_t>(pieceType)].test(static_cast<size_t>(index))) {
             return true;
         }
     }
@@ -1002,13 +1002,13 @@ QVector<std::bitset<MoveValidator::NUM_BOARD_SQUARES>> MoveValidator::generateIn
 {
     QVector<std::bitset<NUM_BOARD_SQUARES>> individualPieceBitboards;
 
-    for (int i = 0; i < boardData.size(); ++i) {
+    for (qsizetype i = 0; i < boardData.size(); ++i) {
         QChar piece = boardData.at(i);
 
         if (piece == targetPiece) {
             std::bitset<NUM_BOARD_SQUARES> pieceBitboard;
 
-            pieceBitboard.set(i, true);
+            pieceBitboard.set(static_cast<size_t>(i), true);
 
             individualPieceBitboards.append(pieceBitboard);
         }
@@ -1036,7 +1036,7 @@ void MoveValidator::generateAllPieceBitboards(QVector<QVector<std::bitset<NUM_BO
 {
     allPieceBitboards.clear();
 
-    for (int i = 0; i < m_allPieces.size(); ++i) {
+    for (qsizetype i = 0; i < m_allPieces.size(); ++i) {
         const QChar& targetPiece = m_allPieces.at(i);
         allPieceBitboards.append(generateIndividualPieceBitboards(boardData, targetPiece));
     }
@@ -1057,7 +1057,7 @@ void MoveValidator::generateAllPieceBitboards(QVector<QVector<std::bitset<NUM_BO
 // 0 0 0 0 0 0 0 0 0
 void MoveValidator::printAllPieceBitboards(const QVector<QVector<std::bitset<NUM_BOARD_SQUARES>>>& allPieceBitboards) const
 {
-    for (int i = 0; i < allPieceBitboards.size(); ++i) {
+    for (qsizetype i = 0; i < allPieceBitboards.size(); ++i) {
         qDebug() << "Piece:" << m_allPieces.at(i);
         const auto& currentBitboards = allPieceBitboards.at(i);
         for (const auto& bitboard : currentBitboards) {
@@ -1065,7 +1065,7 @@ void MoveValidator::printAllPieceBitboards(const QVector<QVector<std::bitset<NUM
             for (int rank = 0; rank < BOARD_SIZE; ++rank) {
                 for (int file = BOARD_SIZE - 1; file >= 0; --file) {
                     int index = rank * BOARD_SIZE + file;
-                    bitboardString.append(bitboard.test(index) ? '1' : '0').append(' ');
+                    bitboardString.append(bitboard.test(static_cast<size_t>(index)) ? '1' : '0').append(' ');
                 }
                 bitboardString.append('\n');
             }
@@ -1094,12 +1094,12 @@ void MoveValidator::generateAllIndividualPieceAttackBitboards(const QVector<QVec
 {
     allPieceAttackBitboards.resize(allPieceBitboards.size());
 
-    for (int i = 0; i < allPieceBitboards.size(); ++i) {
+    for (qsizetype i = 0; i < allPieceBitboards.size(); ++i) {
         allPieceAttackBitboards[i].clear();
         QChar piece = m_allPieces.at(i);
         Turn turnPiece = piece.isUpper() ? BLACK : WHITE;
         piece = piece.toUpper();
-        for (int j = 0; j < allPieceBitboards[i].size(); ++j) {
+        for (qsizetype j = 0; j < allPieceBitboards[i].size(); ++j) {
             std::bitset<MoveValidator::NUM_BOARD_SQUARES> attackBitboard;
 
             generateSinglePieceAttackBitboard(attackBitboard, allPieceBitboards[i].at(j), turnPiece, piece, piecePlacedBitboard);
@@ -1126,7 +1126,7 @@ void MoveValidator::generateAllIndividualPieceAttackBitboards(const QVector<QVec
 void MoveValidator::printIndividualPieceAttackBitboards(const QVector<QVector<std::bitset<NUM_BOARD_SQUARES>>>& allPieceBitboards,
                                                         const QVector<QVector<std::bitset<NUM_BOARD_SQUARES>>>& allPieceAttackBitboards) const
 {
-    for (int i = 0; i < allPieceBitboards.size(); ++i) {
+    for (qsizetype i = 0; i < allPieceBitboards.size(); ++i) {
         //begin
         // QChar piece = allPieces.at(i);
         // Turn turnPiece = piece.isUpper() ? BLACK : WHITE;
@@ -1141,7 +1141,7 @@ void MoveValidator::printIndividualPieceAttackBitboards(const QVector<QVector<st
                 bitboardRow.clear();
                 for (int file = BOARD_SIZE - 1; file >= 0; --file) {
                     int index = rank * BOARD_SIZE + file;
-                    bitboardRow.append(QString::number(bitboard.test(index)) + ' ');
+                    bitboardRow.append(QString::number(bitboard.test(static_cast<size_t>(index))) + ' ');
                 }
                 qDebug() << bitboardRow;
             }
@@ -1166,7 +1166,7 @@ void MoveValidator::printSingleBitboard(const std::bitset<NUM_BOARD_SQUARES>& bi
         QString bitboardRow;
         for (int file = BOARD_SIZE - 1; file >= 0; --file) {
             int index = rank * BOARD_SIZE + file;
-            bitboardRow.append(QString::number(bitboard.test(index)) + ' ');
+            bitboardRow.append(QString::number(bitboard.test(static_cast<size_t>(index))) + ' ');
         }
         qDebug() << bitboardRow;
     }
@@ -1199,7 +1199,7 @@ void MoveValidator::generateShogiMoveFromBitboards(const Turn& turn, const QVect
         // printBitboardContent(allPieceBitboards[i]);
         //end
 
-        for (int j = 0; j < allPieceBitboards[i].size(); ++j) {
+        for (qsizetype j = 0; j < allPieceBitboards[i].size(); ++j) {
             auto& bitboard = allPieceBitboards[i].at(j);
             auto& attackBitboard = allPieceAttackBitboards[i].at(j);
             ShogiMove move;
@@ -1207,7 +1207,7 @@ void MoveValidator::generateShogiMoveFromBitboards(const Turn& turn, const QVect
             for (int rank = 0; rank < BOARD_SIZE; ++rank) {
                 for (int file = BOARD_SIZE - 1; file >= 0; --file) {
                     int index = rank * BOARD_SIZE + file;
-                    if (bitboard.test(index)) {
+                    if (bitboard.test(static_cast<size_t>(index))) {
                         move.movingPiece = piece;
                         move.fromSquare = QPoint(file, rank);
                     }
@@ -1217,7 +1217,7 @@ void MoveValidator::generateShogiMoveFromBitboards(const Turn& turn, const QVect
             for (int rank = 0; rank < BOARD_SIZE; ++rank) {
                 for (int file = BOARD_SIZE - 1; file >= 0; --file) {
                     int index = rank * BOARD_SIZE + file;
-                    if (attackBitboard.test(index)) {
+                    if (attackBitboard.test(static_cast<size_t>(index))) {
                         move.toSquare = QPoint(file, rank);
                         move.capturedPiece = boardData.at(index);
 
@@ -1254,7 +1254,7 @@ void MoveValidator::generateSinglePieceAttackBitboard(std::bitset<MoveValidator:
 {
     // singlePieceBitboardの全てのビットを反復処理する。
     for (int index = 0; index < NUM_BOARD_SQUARES; ++index) {
-        if (singlePieceBitboard.test(index)) {
+        if (singlePieceBitboard.test(static_cast<size_t>(index))) {
             switch (pieceType.toUpper().toLatin1()) {
             case 'P':
                 // 歩が存在するマスを表すbitboardから歩が移動可能なマスを表すbitboardを生成する。
@@ -1342,7 +1342,7 @@ void MoveValidator::generateAttackBitboard(std::bitset<NUM_BOARD_SQUARES>& attac
             int index = rank * BOARD_SIZE + file;
 
             // 特定の種類の駒がそのマスに存在するかどうかをチェックする。
-            if (pieceBitboard.test(index)) {
+            if (pieceBitboard.test(static_cast<size_t>(index))) {
                 // 駒が移動可能な全ての方向について確認する。
                 for (const auto& direction : directions) {
                     int currentRank = rank;
@@ -1365,10 +1365,10 @@ void MoveValidator::generateAttackBitboard(std::bitset<NUM_BOARD_SQUARES>& attac
                             }
 
                             // 空きマスか相手の駒がある場所に移動する。
-                            attackBitboard.set(targetIndex, true);
+                            attackBitboard.set(static_cast<size_t>(targetIndex), true);
 
                             // 対戦相手の駒がある場合はその駒を取ることができるが、その先には進めないためループを抜ける。
-                            if (isPieceOnSquare(targetIndex, piecePlacedBitboard[opponent])) {
+                            if (isPieceOnSquare(targetIndex, piecePlacedBitboard[static_cast<size_t>(opponent)])) {
                                 if (enemyOccupiedStop) break;
                             }
 
@@ -1411,7 +1411,7 @@ void MoveValidator::filterMovesThatBlockThreat(const Turn& turn, const QVector<S
 
         // そのマスがビットボードで1になっているかどうかを確認します。
         // また、動かす駒が玉の場合も手を追加します。
-        if (necessaryMovesBitboard[squareIndex] || move.movingPiece == kingPiece) {
+        if (necessaryMovesBitboard[static_cast<size_t>(squareIndex)] || move.movingPiece == kingPiece) {
             kingBlockingMovesList.append(move);
         }
     }
@@ -1434,10 +1434,10 @@ int MoveValidator::isKingInCheck(const Turn& turn, const QVector<QVector<std::bi
     const std::bitset<NUM_BOARD_SQUARES>& kingBitboard = allPieceBitboards[kingIndex][0];
     int numChecks = 0;
 
-    for (int i = 0; i < allPieceBitboards.size(); ++i) {
+    for (qsizetype i = 0; i < allPieceBitboards.size(); ++i) {
         if (i == kingIndex) continue;
 
-        for (int j = 0; j < allPieceBitboards[i].size(); ++j) {
+        for (qsizetype j = 0; j < allPieceBitboards[i].size(); ++j) {
             const auto& attackBitboard = allPieceAttackBitboards[i][j];
             if ((kingBitboard & attackBitboard).any()) {
                 //begin
@@ -1560,7 +1560,7 @@ void MoveValidator::generateEmptySquareBitboard(const QVector<QChar>& boardData,
             int index = rank * BOARD_SIZE + file;
             // 駒が置かれていないマスを１とする
             if (boardData[index] == ' ') {
-                emptySquareBitboard.set(index);
+                emptySquareBitboard.set(static_cast<size_t>(index));
             }
         }
     }
@@ -1583,7 +1583,7 @@ void MoveValidator::generateDropMoveForPiece(QVector<ShogiMove>& allMovesList, c
                 int index = rank * BOARD_SIZE + file;
 
                 // そのマスが空いている場合
-                if (emptySquareBitboard.test(index)) {
+                if (emptySquareBitboard.test(static_cast<size_t>(index))) {
                     // 駒の種類とランクによる制限を考慮して、その駒を打つ手を生成する。
                     bool canDrop = true;
 
@@ -1634,7 +1634,7 @@ void MoveValidator::generateDropPawnMoves(QVector<ShogiMove>& allMovesList, cons
                 int index = rank * BOARD_SIZE + file;
 
                 // そのマスが空いている場合
-                if (emptySquaresNoPawnsFilesBitboard.test(index)) {
+                if (emptySquaresNoPawnsFilesBitboard.test(static_cast<size_t>(index))) {
                     // 駒の種類とランクによる制限を考慮して、その駒を打つ手を生成する。
                     bool canDrop = true;
                     if (pawn == 'P' && rank == 0) canDrop = false;
@@ -1684,7 +1684,7 @@ void MoveValidator::generateShogiMoveFromBitboard(const QChar piece, const std::
     for (int rank = 0; rank < BOARD_SIZE; ++rank) {
         for (int file = BOARD_SIZE - 1; file >= 0; --file) {
             int index = rank * BOARD_SIZE + file;
-            if (bitboard.test(index)) {
+            if (bitboard.test(static_cast<size_t>(index))) {
                 move.movingPiece = piece;
                 move.fromSquare = QPoint(file, rank);
             }
@@ -1694,7 +1694,7 @@ void MoveValidator::generateShogiMoveFromBitboard(const QChar piece, const std::
     for (int rank = 0; rank < BOARD_SIZE; ++rank) {
         for (int file = BOARD_SIZE - 1; file >= 0; --file) {
             int index = rank * BOARD_SIZE + file;
-            if (attackBitboard.test(index)) {
+            if (attackBitboard.test(static_cast<size_t>(index))) {
                 move.toSquare = QPoint(file, rank);
                 move.capturedPiece = boardData.at(index);
 
@@ -1958,7 +1958,7 @@ LegalMoveStatus MoveValidator::generateBitboardAndValidateMove(const int& numChe
 
     // 指し手のマスの位置を示すbitboardの生成
     std::bitset<NUM_BOARD_SQUARES> pieceBitboard;
-    pieceBitboard.set(fromIndex, true);
+    pieceBitboard.set(static_cast<size_t>(fromIndex), true);
 
     // 駒が移動できるマスを表すbitboard
     std::bitset<NUM_BOARD_SQUARES> attackBitboard;

@@ -88,7 +88,7 @@ bool KifuRecordListModel::removeLastItem()
 {
     if (list.isEmpty()) return false;
 
-    const int last = list.size() - 1;
+    const int last = static_cast<int>(list.size() - 1);
     beginRemoveRows(QModelIndex(), last, last);
 
     // 所有モデルで生ポインタ管理の場合
@@ -105,9 +105,9 @@ bool KifuRecordListModel::removeLastItems(int n)
 {
     if (n <= 0 || list.isEmpty()) return false;
 
-    const int toRemove = qMin(n, list.size());
-    const int first = list.size() - toRemove;
-    const int last  = list.size() - 1;
+    const int toRemove = static_cast<int>(qMin(qsizetype(n), list.size()));
+    const int first = static_cast<int>(list.size()) - toRemove;
+    const int last  = static_cast<int>(list.size() - 1);
 
     beginRemoveRows(QModelIndex(), first, last);
 

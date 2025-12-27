@@ -1243,8 +1243,8 @@ QPoint ShogiView::getClickedSquareInDefaultState(const QPoint& pos) const
     // 4) （1stクリック）従来の駒台セル判定はそのまま
     {
         // 先手（右側＝m_param2 側） rank 5..8
-        float tempFile = (pos.x() - m_param2 - m_offsetX) / float(w);
-        float tempRank = (pos.y() - m_offsetY) / float(h);
+        float tempFile = static_cast<float>(pos.x() - m_param2 - m_offsetX) / static_cast<float>(w);
+        float tempRank = static_cast<float>(pos.y() - m_offsetY) / static_cast<float>(h);
         int   file     = static_cast<int>(tempFile);
         int   rank     = static_cast<int>(tempRank);
 
@@ -1262,8 +1262,8 @@ QPoint ShogiView::getClickedSquareInDefaultState(const QPoint& pos) const
     }
     {
         // 後手（左側＝m_param1 側） rank 0..3
-        float tempFile = (pos.x() + m_param1 - m_offsetX) / float(w);
-        float tempRank = (pos.y() - m_offsetY) / float(h);
+        float tempFile = static_cast<float>(pos.x() + m_param1 - m_offsetX) / static_cast<float>(w);
+        float tempRank = static_cast<float>(pos.y() - m_offsetY) / static_cast<float>(h);
         int   file     = static_cast<int>(tempFile);
         int   rank     = static_cast<int>(tempRank);
 
@@ -1362,8 +1362,8 @@ QPoint ShogiView::getClickedSquareInFlippedState(const QPoint& pos) const
     // 4) （1stクリック）従来の駒台セル判定はそのまま
     {
         // ここは元の実装方針に合わせています（必要なら後で一体化可能）
-        float tempFile = (pos.x() - m_param2 - m_offsetX) / float(w);
-        float tempRank = (pos.y() - m_offsetY) / float(h);
+        float tempFile = static_cast<float>(pos.x() - m_param2 - m_offsetX) / static_cast<float>(w);
+        float tempRank = static_cast<float>(pos.y() - m_offsetY) / static_cast<float>(h);
         int   file     = static_cast<int>(tempFile);
         int   rank     = static_cast<int>(tempRank);
 
@@ -1380,8 +1380,8 @@ QPoint ShogiView::getClickedSquareInFlippedState(const QPoint& pos) const
         }
     }
     {
-        float tempFile = (pos.x() + m_param1 - m_offsetX) / float(w);
-        float tempRank = (pos.y() - m_offsetY) / float(h);
+        float tempFile = static_cast<float>(pos.x() + m_param1 - m_offsetX) / static_cast<float>(w);
+        float tempRank = static_cast<float>(pos.y() - m_offsetY) / static_cast<float>(h);
         int   file     = static_cast<int>(tempFile);
         int   rank     = static_cast<int>(tempRank);
 
