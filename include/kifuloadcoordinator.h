@@ -75,6 +75,15 @@ public:
 
     void loadUsiFromFile(const QString& filePath);
 
+    // ★ 追加: 文字列から棋譜を読み込む（棋譜貼り付け機能用）
+    bool loadKifuFromString(const QString& content);
+
+    // ★ 追加: SFEN形式の局面を読み込む
+    bool loadPositionFromSfen(const QString& sfenStr);
+
+    // ★ 追加: BOD形式の局面を読み込む
+    bool loadPositionFromBod(const QString& bodStr);
+
     void setAnalysisTab(EngineAnalysisTab* tab);
 
     void setShogiView(ShogiView* view) { m_shogiView = view; }

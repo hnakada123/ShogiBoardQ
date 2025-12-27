@@ -72,6 +72,7 @@
 #include "kifucontentbuilder.h"
 #include "gamerecordmodel.h"  // ★ 追加
 #include "pvboarddialog.h"    // ★ 追加: 読み筋表示ダイアログ
+#include "kifupastedialog.h"  // ★ 追加: 棋譜貼り付けダイアログ
 
 using KifuIoService::makeDefaultSaveFileName;
 using KifuIoService::writeKifuFile;
@@ -4317,6 +4318,40 @@ void MainWindow::copyBodToClipboard()
     } else {
         qWarning() << "[MW] copyBodToClipboard: clipboard is not available";
         ui->statusbar->showMessage(tr("クリップボードへのコピーに失敗しました"), 3000);
+    }
+}
+
+// ★ 追加: クリップボードから棋譜を貼り付け
+void MainWindow::pasteKifuFromClipboard()
+{
+    KifuPasteDialog* dlg = new KifuPasteDialog(this);
+    dlg->setAttribute(Qt::WA_DeleteOnClose);
+
+    // ダイアログの「取り込む」シグナルをKifuLoadCoordinatorに接続
+    connect(dlg, &KifuPasteDialog::importRequested,
+            this, &MainWindow::onKifuPasteImportRequested_);
+
+    dlg->show();
+}
+
+void MainWindow::onKifuPasteImportRequested_(const QString& content)
+{
+    qDebug().noquote() << "[MW] onKifuPasteImportRequested_: content length =" << content.size();
+
+    // KifuLoadCoordinator を確保
+    ensureKifuLoadCoordinatorForLive_();
+
+    if (m_kifuLoadCoordinator) {
+        // 文字列から棋譜を読み込み
+        const bool success = m_kifuLoadCoordinator->loadKifuFromString(content);
+        if (success) {
+            ui->statusbar->showMessage(tr("棋譜を取り込みました"), 3000);
+        } else {
+            ui->statusbar->showMessage(tr("棋譜の取り込みに失敗しました"), 3000);
+        }
+    } else {
+        qWarning() << "[MW] onKifuPasteImportRequested_: m_kifuLoadCoordinator is null";
+        ui->statusbar->showMessage(tr("棋譜の取り込みに失敗しました（内部エラー）"), 3000);
     }
 }
 
