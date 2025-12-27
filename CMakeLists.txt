@@ -32,6 +32,30 @@ if(ENABLE_CLANG_TIDY)
     endif()
 endif()
 
+# ==== cppcheck 設定（未使用関数検出用） ====
+option(ENABLE_CPPCHECK "Enable cppcheck static analysis" OFF)
+
+if(ENABLE_CPPCHECK)
+    find_program(CPPCHECK_EXE NAMES "cppcheck")
+    if(CPPCHECK_EXE)
+        message(STATUS "cppcheck found: ${CPPCHECK_EXE}")
+        set(CMAKE_CXX_CPPCHECK
+            ${CPPCHECK_EXE};
+            --enable=warning,unusedFunction;
+            --inconclusive;
+            --inline-suppr;
+            --suppress=missingIncludeSystem;
+            --suppress=unmatchedSuppression;
+            --suppress=unknownMacro;
+            --suppress=syntaxError:*elidelabel.h;
+            --suppress=syntaxError:*_autogen/*;
+            --quiet
+        )
+    else()
+        message(WARNING "cppcheck not found, static analysis disabled")
+    endif()
+endif()
+
 # ==== コンパイラ警告オプション ====
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     add_compile_options(
