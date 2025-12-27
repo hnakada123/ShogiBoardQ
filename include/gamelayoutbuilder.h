@@ -20,9 +20,6 @@ public:
     explicit GameLayoutBuilder(const Deps& d, QObject* parent=nullptr);
 
     QSplitter* buildHorizontalSplit();                   // 左右分割を作る
-    void       attachToCentralLayout(QVBoxLayout* vbox); // 中央レイアウトへ貼る
-
-    QSplitter* splitter() const { return m_splitter; }
 
 private:
     Deps       m_d;
