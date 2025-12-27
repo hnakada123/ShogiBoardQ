@@ -147,7 +147,7 @@ void EngineRegistrationDialog::loadEnginesFromSettings()
     ui->engineListWidget->clear();
 
     for (int i = 0; i < engineCount; ++i) {
-        settings.setArrayIndex(static_cast<int>(i));
+        settings.setArrayIndex(i);
 
         // 設定ファイルからエンジン名と絶対パス付きの実行ファイル名を読み込む。
         Engine engine = readEngineFromSettings(settings);

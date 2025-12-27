@@ -518,7 +518,7 @@ void EngineAnalysisTab::rebuildBranchTree()
         // disp[1]から処理し、ply=1から開始
         for (qsizetype i = 1; i < main.disp.size(); ++i) {
             const auto& it = main.disp.at(i);
-            const int ply = i;  // disp[i]はi手目
+            const int ply = static_cast<int>(i);  // disp[i]はi手目
             QGraphicsPathItem* node = addNode(0, ply, it.prettyMove);
             if (prev) addEdge(prev, node);
             prev = node;
@@ -531,7 +531,7 @@ void EngineAnalysisTab::rebuildBranchTree()
         const int startPly = qMax(1, rv.startPly);      // 1-origin
 
         // 1) 親行を決定
-        const int parentRow = resolveParentRowForVariation_(row);
+        const int parentRow = resolveParentRowForVariation_(static_cast<int>(row));
 
         // 2) 親と繋ぐ“合流手”は (startPly - 1) 手目のノード
         const int joinPly = startPly - 1;
@@ -592,7 +592,7 @@ void EngineAnalysisTab::rebuildBranchTree()
         // startPly手目から描画するので、disp[startPly]から開始
         const int cut   = startPly;                       // disp[startPly]がstartPly手目
         const qsizetype total = rv.disp.size();
-        const int take  = (cut < total) ? (total - cut) : 0;
+        const int take  = (cut < total) ? static_cast<int>(total - cut) : 0;
         if (take <= 0) continue;                              // 描くもの無し
 
         // 4) 切り出した手だけを絶対手数で並べる（absPly = startPly + i）
@@ -600,7 +600,7 @@ void EngineAnalysisTab::rebuildBranchTree()
             const auto& it = rv.disp.at(cut + i);
             const int absPly = startPly + i;
 
-            QGraphicsPathItem* node = addNode(row, absPly, it.prettyMove);
+            QGraphicsPathItem* node = addNode(static_cast<int>(row), absPly, it.prettyMove);
 
             // クリック用メタ
             node->setData(BR_ROLE_STARTPLY, startPly);

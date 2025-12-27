@@ -658,9 +658,6 @@ void ShogiEngineInfoParser::parseEngineOutputAndUpdateState(QString& line, const
 
     // pvの情報を解析し、それに基づいて盤面を更新する。
     parsePvAndSimulateMoves(pvTokens, algorithm, clonedBoardData, isPondering);
-
-    // pvを含むinfo行だった。
-    return;
 }
 
 // 将棋エンジンから受信した対局相手の予想手を漢字の指し手文字列に変換する。

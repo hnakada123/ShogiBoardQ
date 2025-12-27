@@ -62,9 +62,9 @@ public:
         enum { Type = 1 };
         FieldHighlight(int file, int rank, QColor color) : m_field(file, rank), m_color(color) {}
         ~FieldHighlight() override;
-        inline int file()        const { return m_field.x(); }
-        inline int rank()        const { return m_field.y(); }
-        inline QColor color()    const { return m_color; }
+        int file()        const { return m_field.x(); }
+        int rank()        const { return m_field.y(); }
+        QColor color()    const { return m_color; }
         int type() const override { return Type; }
     private:
         QPoint m_field;  // (file, rank)
@@ -102,8 +102,8 @@ public:
     void addHighlight(Highlight *hl);            // 追加（所有権ポリシーは呼び出し側設計に依存）
     void removeHighlight(Highlight *hl);         // 1件削除
     void removeHighlightAllData();               // 全削除
-    inline Highlight *highlight(int index) const { return m_highlights.at(index); }
-    inline int highlightCount() const { return static_cast<int>(m_highlights.size()); }
+    Highlight *highlight(int index) const { return m_highlights.at(index); }
+    int highlightCount() const { return static_cast<int>(m_highlights.size()); }
 
     // ───────────────────────────── 操作/状態切替 ────────────────────────────
     void setMouseClickMode(bool mouseClickMode); // クリック操作フラグ

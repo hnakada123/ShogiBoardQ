@@ -1075,7 +1075,7 @@ void KifuLoadCoordinator::addGameInfoTabIfMissing()
         for (int i = 0; i < m_tab->count(); ++i) {
             const QString t = m_tab->tabText(i);
             if (t.contains(tr("コメント")) || t.contains("Comments", Qt::CaseInsensitive)) {
-                anchorIdx = i;
+                anchorIdx = i;  // NOLINT(clang-analyzer-deadcode.DeadStores) - 将来の拡張用
                 break;
             }
         }
@@ -2500,8 +2500,8 @@ void KifuLoadCoordinator::updateBranchTreeFromLive(int currentPly)
     const bool startFromCurrentPos = (anchorPly > 0);
 
     // 4) 行の更新（または新規追加）
-    int highlightRow = mainRow;
-    int highlightAbsPly = static_cast<int>(qBound(qsizetype(0), qsizetype(currentPly), dispLive.size()));
+    int highlightRow = mainRow;                          // NOLINT(clang-analyzer-deadcode.DeadStores)
+    int highlightAbsPly = static_cast<int>(qBound(qsizetype(0), qsizetype(currentPly), dispLive.size()));  // NOLINT(clang-analyzer-deadcode.DeadStores)
 
     if (!startFromCurrentPos) {
         // 4-a) 通常の新規対局：本譜をそのまま置換

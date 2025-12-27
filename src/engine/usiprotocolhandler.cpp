@@ -657,7 +657,7 @@ QChar UsiProtocolHandler::rankToAlphabet(int rank)
 
 int UsiProtocolHandler::alphabetToRank(QChar c)
 {
-    return int(c.toLatin1() - 'a' + 1);
+    return c.toLatin1() - 'a' + 1;
 }
 
 QString UsiProtocolHandler::convertFirstPlayerPieceSymbol(int rankFrom) const

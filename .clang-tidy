@@ -1,0 +1,22 @@
+---
+# Qt6プロジェクト用 clang-tidy 設定
+#
+# readability-redundant-access-specifiers は Qt の slots マクロを使う際に
+# 誤検出されるため、無効化しています。
+# （例: public: の後に public slots: が続く場合など）
+
+Checks: >
+  -*,
+  clang-diagnostic-unused-*,
+  misc-unused-*,
+  clang-analyzer-deadcode.*,
+  readability-redundant-*,
+  -readability-redundant-access-specifiers
+
+WarningsAsErrors: ''
+
+HeaderFilterRegex: '.*'
+
+CheckOptions:
+  - key: misc-unused-parameters.StrictMode
+    value: false

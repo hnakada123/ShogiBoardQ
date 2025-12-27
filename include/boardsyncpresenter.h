@@ -35,7 +35,7 @@ public:
     void clearHighlights() const;
 
 private:
-    static inline QPoint toOne(const QPoint& z) { return QPoint(z.x() + 1, z.y() + 1); }
+    static QPoint toOne(const QPoint& z) { return QPoint(z.x() + 1, z.y() + 1); }
 
     ShogiGameController* m_gc;
     ShogiView* m_view;
