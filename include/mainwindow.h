@@ -92,6 +92,7 @@ class EvaluationGraphController;
 class TimeControlController;
 class ReplayController;
 class DialogCoordinator;
+class KifuExportController;
 
 // ============================================================
 // MainWindow
@@ -393,6 +394,9 @@ private:
     // ダイアログ管理
     DialogCoordinator*        m_dialogCoordinator = nullptr;
 
+    // 棋譜エクスポート管理
+    KifuExportController*     m_kifuExportController = nullptr;
+
     // 変化エンジン
     std::unique_ptr<KifuVariationEngine> m_varEngine;
 
@@ -439,10 +443,6 @@ private:
     void updateGameInfoPlayerNames_(const QString& blackName, const QString& whiteName);
     void setOriginalGameInfo(const QList<KifGameInfoItem>& items);
 
-    // ★ USI指し手変換（クリップボード操作で使用）
-    QStringList gameMovesToUsiMoves_(const QVector<ShogiMove>& moves) const;
-    QStringList sfenRecordToUsiMoves_() const;
-
     // 分岐 / 変化
     void applyResolvedRowAndSelect(int row, int selPly);
     std::pair<int,int> resolveBranchHighlightTarget(int row, int ply) const;
@@ -470,6 +470,8 @@ private:
     void ensureKifuLoadCoordinatorForLive_();
     void ensureGameRecordModel_();
     void ensureDialogCoordinator_();
+    void ensureKifuExportController_();
+    void updateKifuExportDependencies_();
 
     // ctor の分割先
     void setupCentralWidgetContainer_();
@@ -514,10 +516,6 @@ private:
 
     // 開始局面解決
     QString resolveCurrentSfenForGameStart_() const;
-
-    // ★ クリップボード操作用コンテキスト構築
-    KifuClipboardService::ExportContext buildClipboardContext_() const;
-    bool isCurrentlyPlaying_() const;
 };
 
 #endif // MAINWINDOW_H
