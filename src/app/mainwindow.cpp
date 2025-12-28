@@ -77,6 +77,8 @@
 #include "kifuclipboardservice.h"    // ★ 追加: 棋譜クリップボード操作
 #include "evaluationgraphcontroller.h"  // ★ 追加: 評価値グラフ管理
 #include "timecontrolcontroller.h"   // ★ 追加: 時間制御管理
+#include "replaycontroller.h"        // ★ 追加: リプレイモード管理
+#include "dialogcoordinator.h"       // ★ 追加: ダイアログ管理
 
 using GameOverCause = MatchCoordinator::Cause;
 using std::placeholders::_1;
@@ -583,7 +585,8 @@ void MainWindow::initializeCentralGameDisplay()
 
 void MainWindow::startNewShogiGame(QString& startSfenStr)
 {
-    const bool resume = m_isResumeFromCurrent;
+    ensureReplayController_();
+    const bool resume = m_replayController ? m_replayController->isResumeFromCurrent() : false;
 
     // 対局終了時のスタイルロックを解除
     if (m_shogiView) m_shogiView->setGameOverStyleLock(false);
@@ -684,25 +687,37 @@ void MainWindow::updateTurnStatus(int currentPlayer)
 
 void MainWindow::displayVersionInformation()
 {
-    AboutCoordinator::showVersionDialog(this);
+    ensureDialogCoordinator_();
+    if (m_dialogCoordinator) {
+        m_dialogCoordinator->showVersionInformation();
+    }
 }
 
 void MainWindow::openWebsiteInExternalBrowser()
 {
-    AboutCoordinator::openProjectWebsite();
+    ensureDialogCoordinator_();
+    if (m_dialogCoordinator) {
+        m_dialogCoordinator->openProjectWebsite();
+    }
 }
 
 void MainWindow::displayEngineSettingsDialog()
 {
-    EngineSettingsCoordinator::openDialog(this);
+    ensureDialogCoordinator_();
+    if (m_dialogCoordinator) {
+        m_dialogCoordinator->showEngineSettingsDialog();
+    }
 }
 
 // 成る・不成の選択ダイアログを起動する。
 void MainWindow::displayPromotionDialog()
 {
     if (!m_gameController) return;
-    const bool promote = PromotionFlow::askPromote(this);
-    m_gameController->setPromote(promote);
+    ensureDialogCoordinator_();
+    if (m_dialogCoordinator) {
+        const bool promote = m_dialogCoordinator->showPromotionDialog();
+        m_gameController->setPromote(promote);
+    }
 }
 
 // 検討ダイアログを表示する。
@@ -724,13 +739,12 @@ void MainWindow::displayConsiderationDialog()
                                  ? m_positionStrList.at(m_currentMoveIndex)
                                  : QString();
 
-    // Flow に一任（onError はラムダではなく専用スロットへバインド）
-    ConsiderationFlowController* flow = new ConsiderationFlowController(this);
-    ConsiderationFlowController::Deps d;
-    d.match   = m_match;
-    d.onError = std::bind(&MainWindow::onFlowError_, this, std::placeholders::_1);
-
-    flow->runWithDialog(d, this, position);
+    ensureDialogCoordinator_();
+    if (m_dialogCoordinator) {
+        DialogCoordinator::ConsiderationParams params;
+        params.position = position;
+        m_dialogCoordinator->showConsiderationDialog(params);
+    }
 }
 
 // 詰み探索ダイアログを表示する。
@@ -739,18 +753,15 @@ void MainWindow::displayTsumeShogiSearchDialog()
     // 解析モード切替
     m_playMode = TsumiSearchMode;
 
-    // Flow に一任（ダイアログ生成～exec～司令塔連携）
-    TsumeSearchFlowController* flow = new TsumeSearchFlowController(this);
-
-    TsumeSearchFlowController::Deps d;
-    d.match            = m_match;
-    d.sfenRecord       = m_sfenRecord;
-    d.startSfenStr     = m_startSfenStr;
-    d.positionStrList  = m_positionStrList;
-    d.currentMoveIndex = qMax(0, m_currentMoveIndex);
-    d.onError          = std::bind(&MainWindow::onFlowError_, this, std::placeholders::_1);
-
-    flow->runWithDialog(d, this);
+    ensureDialogCoordinator_();
+    if (m_dialogCoordinator) {
+        DialogCoordinator::TsumeSearchParams params;
+        params.sfenRecord = m_sfenRecord;
+        params.startSfenStr = m_startSfenStr;
+        params.positionStrList = m_positionStrList;
+        params.currentMoveIndex = qMax(0, m_currentMoveIndex);
+        m_dialogCoordinator->showTsumeSearchDialog(params);
+    }
 }
 
 // 棋譜解析ダイアログを表示する。
@@ -759,28 +770,25 @@ void MainWindow::displayKifuAnalysisDialog()
     // 解析モードに遷移
     m_playMode = AnalysisMode;
 
-    // Flow の用意
-    if (!m_analysisFlow) {
-        m_analysisFlow = new AnalysisFlowController(this);
-    }
-
     // 解析モデルが未生成ならここで作成
     if (!m_analysisModel) {
         m_analysisModel = new KifuAnalysisListModel(this);
     }
 
-    // 依存を詰めて Flow へ一任（displayError はスロットにバインド）
-    AnalysisFlowController::Deps d;
-    d.sfenRecord    = m_sfenRecord;
-    d.moveRecords   = m_moveRecords;
-    d.analysisModel = m_analysisModel;
-    d.analysisTab   = m_analysisTab;
-    d.usi           = m_usi1;
-    d.logModel      = m_lineEditModel1;  // info/bestmove の橋渡し用
-    d.activePly     = m_activePly;
-    d.displayError  = std::bind(&MainWindow::onFlowError_, this, std::placeholders::_1);
+    ensureDialogCoordinator_();
+    if (m_dialogCoordinator) {
+        // 解析モデルとタブを設定
+        m_dialogCoordinator->setAnalysisModel(m_analysisModel);
+        m_dialogCoordinator->setAnalysisTab(m_analysisTab);
+        m_dialogCoordinator->setUsiEngine(m_usi1);
+        m_dialogCoordinator->setLogModel(m_lineEditModel1);
 
-    m_analysisFlow->runWithDialog(d, this);
+        DialogCoordinator::KifuAnalysisParams params;
+        params.sfenRecord = m_sfenRecord;
+        params.moveRecords = m_moveRecords;
+        params.activePly = m_activePly;
+        m_dialogCoordinator->showKifuAnalysisDialog(params);
+    }
 }
 
 // TurnManager::changed を受けて UI/Clock を更新（＋手番を GameController に同期）
@@ -881,7 +889,7 @@ void MainWindow::initializeGame()
     c.currentSfenStr  = &m_currentSfenStr;     // 現局面の SFEN（ここで事前決定済み）
     c.startSfenStr    = &m_startSfenStr;       // 開始SFENは明示的に空（優先度を逆転）
     c.selectedPly     = m_currentSelectedPly;  // 1始まり/0始まりはプロジェクト規約に準拠
-    c.isReplayMode    = m_isReplayMode;
+    c.isReplayMode    = m_replayController ? m_replayController->isReplayMode() : false;
     c.bottomIsP1      = m_bottomIsP1;
 
     m_gameStart->initializeGame(c);
@@ -1168,12 +1176,17 @@ void MainWindow::finishPositionEditing()
     ctx.bic        = m_boardController;
     ctx.sfenRecord = m_sfenRecord ? m_sfenRecord : nullptr;
     ctx.startSfenStr        = &m_startSfenStr;
-    ctx.isResumeFromCurrent = &m_isResumeFromCurrent;
+    // isResumeFromCurrentはReplayController経由で設定するためnullptrを渡す
+    ctx.isResumeFromCurrent = nullptr;
 
     // 「編集終了」ボタンの後片付け（Controller → callback）
     ctx.onHideEditExitButton = [this]() {
         if (m_posEdit && m_shogiView) {
             m_posEdit->hideEditExitButtonOnBoard(m_shogiView);
+        }
+        // ★ ReplayControllerのresumeFromCurrentをfalseに設定
+        if (m_replayController) {
+            m_replayController->setResumeFromCurrent(false);
         }
     };
 
@@ -1219,7 +1232,9 @@ void MainWindow::setGameOverMove(GameOverCause cause, bool loserIsPlayerOne)
         }
     }
     setReplayMode(true);
-    exitLiveAppendMode_();
+    if (m_replayController) {
+        m_replayController->exitLiveAppendMode();
+    }
 }
 
 void MainWindow::appendKifuLine(const QString& text, const QString& elapsedTime)
@@ -1528,7 +1543,8 @@ int MainWindow::maxPlyAtRow(int row) const
 int MainWindow::currentPly() const
 {
     // ★ リプレイ／再開（ライブ追記）中は UI 側のトラッキング値を優先
-    if (m_isLiveAppendMode) {
+    const bool liveAppend = m_replayController ? m_replayController->isLiveAppendMode() : false;
+    if (liveAppend) {
         if (m_currentSelectedPly >= 0) return m_currentSelectedPly;
 
         // 念のためビューの currentIndex もフォールバックに
@@ -1572,7 +1588,8 @@ void MainWindow::applySelect(int row, int ply)
 
     // ライブ append 中 or 解決済み行が未構築のときは
     // → 表の選択を直接動かして局面・ハイライトを同期
-    if (m_isLiveAppendMode || m_resolvedRows.isEmpty()) {
+    const bool liveAppendMode = m_replayController ? m_replayController->isLiveAppendMode() : false;
+    if (liveAppendMode || m_resolvedRows.isEmpty()) {
         if (m_recordPane && m_kifuRecordModel) {
             if (QTableView* view = m_recordPane->kifuView()) {
                 const int rows = m_kifuRecordModel->rowCount();
@@ -2028,38 +2045,12 @@ void MainWindow::onMoveRequested_(const QPoint& from, const QPoint& to)
     }
 }
 
-// 再生モードの切替を MainWindow 内で一元管理
+// 再生モードの切替を ReplayController へ委譲
 void MainWindow::setReplayMode(bool on)
 {
-    m_isReplayMode = on;
-
-    // 再生中は時計を止め、表示だけ整える
-    ShogiClock* clk = m_timeController ? m_timeController->clock() : nullptr;
-    if (clk) {
-        clk->stopClock();
-        clk->updateClock(); // 表示だけは最新化
-    }
-    if (m_match) {
-        m_match->pokeTimeUpdateNow(); // 残時間ラベル等の静的更新だけ反映
-    }
-
-    // ★ 再生モードの入/出でハイライト方針を切替
-    if (m_shogiView) {
-        m_shogiView->setUiMuted(on);
-        if (on) {
-            m_shogiView->clearTurnHighlight();   // 中立に
-        } else {
-            // 対局に戻る: 現手番・残時間から再適用
-            const bool p1turn = (m_gameController &&
-                                 m_gameController->currentPlayer() == ShogiGameController::Player1);
-            // ★ enum ではなく bool を渡す（true = 先手手番）
-            m_shogiView->setActiveSide(p1turn);  // or setBlackActive(p1turn); ※ヘッダに合わせて
-
-            // ★ Urgency は時計側の更新イベントで再適用させる
-            if (clk) {
-                clk->updateClock();   // timeUpdated が飛び、既存の結線で applyClockUrgency が呼ばれる想定
-            }
-        }
+    ensureReplayController_();
+    if (m_replayController) {
+        m_replayController->setReplayMode(on);
     }
 }
 
@@ -2240,8 +2231,10 @@ void MainWindow::onGameOverStateChanged(const MatchCoordinator::GameOverState& s
         return;
     }
 
-    // ★ 追加：ライブ追記モードを終了
-    exitLiveAppendMode_();
+    // ★ ライブ追記モードを終了
+    if (m_replayController) {
+        m_replayController->exitLiveAppendMode();
+    };
 
     // ★ 追加：分岐コンテキストをリセット（分岐として処理されないように）
     if (m_kifuLoadCoordinator) {
@@ -2282,14 +2275,25 @@ void MainWindow::handleBreakOffGame()
     m_match->handleBreakOff();
 }
 
-void MainWindow::exitLiveAppendMode_()
+void MainWindow::ensureReplayController_()
 {
-    m_isLiveAppendMode = false;
-    if (!m_recordPane) return;
-    if (auto* view = m_recordPane->kifuView()) {
-        view->setSelectionMode(QAbstractItemView::SingleSelection);
-        view->setFocusPolicy(Qt::StrongFocus);
-    }
+    if (m_replayController) return;
+
+    m_replayController = new ReplayController(this);
+    m_replayController->setClock(m_timeController ? m_timeController->clock() : nullptr);
+    m_replayController->setShogiView(m_shogiView);
+    m_replayController->setGameController(m_gameController);
+    m_replayController->setMatchCoordinator(m_match);
+    m_replayController->setRecordPane(m_recordPane);
+}
+
+void MainWindow::ensureDialogCoordinator_()
+{
+    if (m_dialogCoordinator) return;
+
+    m_dialogCoordinator = new DialogCoordinator(this, this);
+    m_dialogCoordinator->setMatchCoordinator(m_match);
+    m_dialogCoordinator->setGameController(m_gameController);
 }
 
 // 「検討を終了」アクション用：エンジンに quit を送り検討セッションを終了
@@ -2794,7 +2798,10 @@ qint64 MainWindow::getByoyomiMs_() const
 // 対局終了時のタイトルと本文を受け取り、情報ダイアログを表示するだけのヘルパ
 void MainWindow::showGameOverMessageBox_(const QString& title, const QString& message)
 {
-    QMessageBox::information(this, title, message);
+    ensureDialogCoordinator_();
+    if (m_dialogCoordinator) {
+        m_dialogCoordinator->showGameOverMessage(title, message);
+    }
 }
 
 void MainWindow::onRecordPaneMainRowChanged_(int row)
@@ -3414,11 +3421,12 @@ void MainWindow::copySfenToClipboard()
     QString sfenStr;
 
     // デバッグ: 各種状態を出力
+    const bool liveAppend = m_replayController ? m_replayController->isLiveAppendMode() : false;
     qDebug().noquote() << "[MW] copySfenToClipboard: ========== DEBUG START ==========";
     qDebug().noquote() << "[MW] copySfenToClipboard: m_currentMoveIndex =" << m_currentMoveIndex;
     qDebug().noquote() << "[MW] copySfenToClipboard: m_activePly =" << m_activePly;
     qDebug().noquote() << "[MW] copySfenToClipboard: m_currentSelectedPly =" << m_currentSelectedPly;
-    qDebug().noquote() << "[MW] copySfenToClipboard: m_isLiveAppendMode =" << m_isLiveAppendMode;
+    qDebug().noquote() << "[MW] copySfenToClipboard: isLiveAppendMode =" << liveAppend;
     qDebug().noquote() << "[MW] copySfenToClipboard: currentPly() =" << currentPly();
     qDebug().noquote() << "[MW] copySfenToClipboard: m_playMode =" << m_playMode;
     qDebug().noquote() << "[MW] copySfenToClipboard: m_sfenRecord =" << (m_sfenRecord ? "valid" : "nullptr");
