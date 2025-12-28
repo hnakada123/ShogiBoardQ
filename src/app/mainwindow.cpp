@@ -70,9 +70,13 @@
 #include "navigationcontroller.h"
 #include "uiactionswiring.h"
 #include "kifucontentbuilder.h"
-#include "gamerecordmodel.h"  // ★ 追加
-#include "pvboarddialog.h"    // ★ 追加: 読み筋表示ダイアログ
-#include "kifupastedialog.h"  // ★ 追加: 棋譜貼り付けダイアログ
+#include "gamerecordmodel.h"
+#include "pvboarddialog.h"
+#include "kifupastedialog.h"
+#include "gameinfopanecontroller.h"  // ★ 追加: 対局情報タブ管理
+#include "kifuclipboardservice.h"    // ★ 追加: 棋譜クリップボード操作
+#include "evaluationgraphcontroller.h"  // ★ 追加: 評価値グラフ管理
+#include "timecontrolcontroller.h"   // ★ 追加: 時間制御管理
 
 using GameOverCause = MatchCoordinator::Cause;
 using std::placeholders::_1;
@@ -169,9 +173,10 @@ MainWindow::MainWindow(QWidget *parent)
 
     if (!m_timePresenter) m_timePresenter = new TimeDisplayPresenter(m_shogiView, this);
 
-    // m_shogiClockが既に作成されていれば、TimeDisplayPresenterに設定
-    if (m_timePresenter && m_shogiClock) {
-        m_timePresenter->setClock(m_shogiClock);
+    // TimeControlControllerを初期化してTimeDisplayPresenterに設定
+    ensureTimeController_();
+    if (m_timePresenter && m_timeController) {
+        m_timePresenter->setClock(m_timeController->clock());
     }
 
     // 画面骨格（棋譜/分岐/レイアウト/タブ/中央表示）
@@ -588,7 +593,10 @@ void MainWindow::startNewShogiGame(QString& startSfenStr)
         if (!resume) ec->clearAll();
     }
     if (!resume) {
-        m_scoreCp.clear();
+        ensureEvaluationGraphController_();
+        if (m_evalGraphController) {
+            m_evalGraphController->clearScores();
+        }
         // ★ ライブ記録のクリアも Presenter に依頼
         if (m_recordPresenter) {
             m_recordPresenter->clearLiveDisp();
@@ -631,112 +639,31 @@ void MainWindow::handleResignation()
 
 void MainWindow::redrawEngine1EvaluationGraph(int ply)
 {
-    qDebug() << "[EVAL_GRAPH] redrawEngine1EvaluationGraph() called with ply=" << ply;
-
-    // EvEモードでplyが渡された場合は保存しておく
-    m_pendingPlyForEngine1 = ply;
-
-    // bestmoveと同時に受信したinfo行の処理が完了するのを待つため、遅延させる
-    QTimer::singleShot(50, this, SLOT(doRedrawEngine1EvaluationGraph()));
-}
-
-void MainWindow::doRedrawEngine1EvaluationGraph()
-{
-    qDebug() << "[EVAL_GRAPH] doRedrawEngine1EvaluationGraph() delayed execution";
-
-    // 手数を取得：EvEモードでplyが渡された場合はそれを使用、それ以外はsfenRecordから計算
-    int ply;
-    if (m_pendingPlyForEngine1 >= 0) {
-        // EvEモードで渡されたplyを使用
-        ply = m_pendingPlyForEngine1;
-        m_pendingPlyForEngine1 = -1;  // 使用後リセット
-        qDebug() << "[EVAL_GRAPH] P1: using pending ply =" << ply;
-    } else {
-        // sfenRecordから計算（従来の動作）
-        ply = m_sfenRecord ? qMax(0, static_cast<int>(m_sfenRecord->size() - 1)) : 0;
-        qDebug() << "[EVAL_GRAPH] P1: actual ply (from sfenRecord) =" << ply
-                 << ", sfenRecord size =" << (m_sfenRecord ? m_sfenRecord->size() : -1);
+    ensureEvaluationGraphController_();
+    if (m_evalGraphController) {
+        m_evalGraphController->redrawEngine1Graph(ply);
     }
-
-    EvalGraphPresenter::appendPrimaryScore(m_scoreCp, m_match);
-
-    const int cpAfter = m_scoreCp.isEmpty() ? 0 : m_scoreCp.last();
-    qDebug() << "[EVAL_GRAPH] P1: after appendPrimaryScore, m_scoreCp.size() =" << m_scoreCp.size()
-             << ", last cp =" << cpAfter;
-
-    // 実際のチャートウィジェットにも描画
-    if (!m_recordPane) {
-        qDebug() << "[EVAL_GRAPH] P1: m_recordPane is NULL!";
-        return;
-    }
-
-    EvaluationChartWidget* ec = m_recordPane->evalChart();
-    if (!ec) {
-        qDebug() << "[EVAL_GRAPH] P1: evalChart() returned NULL!";
-        return;
-    }
-
-    // エンジン名を設定
-    ec->setEngine1Name(m_engineName1);
-
-    qDebug() << "[EVAL_GRAPH] P1: calling ec->appendScoreP1(" << ply << "," << cpAfter << ", false)";
-    ec->appendScoreP1(ply, cpAfter, false);
-    qDebug() << "[EVAL_GRAPH] P1: appendScoreP1 done, chart countP1 =" << ec->countP1();
 }
 
 void MainWindow::redrawEngine2EvaluationGraph(int ply)
 {
-    qDebug() << "[EVAL_GRAPH] redrawEngine2EvaluationGraph() called with ply=" << ply;
-
-    // EvEモードでplyが渡された場合は保存しておく
-    m_pendingPlyForEngine2 = ply;
-
-    // bestmoveと同時に受信したinfo行の処理が完了するのを待つため、遅延させる
-    QTimer::singleShot(50, this, SLOT(doRedrawEngine2EvaluationGraph()));
+    ensureEvaluationGraphController_();
+    if (m_evalGraphController) {
+        m_evalGraphController->redrawEngine2Graph(ply);
+    }
 }
 
-void MainWindow::doRedrawEngine2EvaluationGraph()
+// ★ 追加: EvaluationGraphControllerの初期化
+void MainWindow::ensureEvaluationGraphController_()
 {
-    qDebug() << "[EVAL_GRAPH] doRedrawEngine2EvaluationGraph() delayed execution";
+    if (m_evalGraphController) return;
 
-    // 手数を取得：EvEモードでplyが渡された場合はそれを使用、それ以外はsfenRecordから計算
-    int ply;
-    if (m_pendingPlyForEngine2 >= 0) {
-        // EvEモードで渡されたplyを使用
-        ply = m_pendingPlyForEngine2;
-        m_pendingPlyForEngine2 = -1;  // 使用後リセット
-        qDebug() << "[EVAL_GRAPH] P2: using pending ply =" << ply;
-    } else {
-        // sfenRecordから計算（従来の動作）
-        ply = m_sfenRecord ? qMax(0, static_cast<int>(m_sfenRecord->size() - 1)) : 0;
-        qDebug() << "[EVAL_GRAPH] P2: actual ply (from sfenRecord) =" << ply
-                 << ", sfenRecord size =" << (m_sfenRecord ? m_sfenRecord->size() : -1);
-    }
-
-    EvalGraphPresenter::appendSecondaryScore(m_scoreCp, m_match);
-
-    const int cpAfter = m_scoreCp.isEmpty() ? 0 : m_scoreCp.last();
-    qDebug() << "[EVAL_GRAPH] P2: after appendSecondaryScore, m_scoreCp.size() =" << m_scoreCp.size()
-             << ", last cp =" << cpAfter;
-
-    // 実際のチャートウィジェットにも描画
-    if (!m_recordPane) {
-        qDebug() << "[EVAL_GRAPH] P2: m_recordPane is NULL!";
-        return;
-    }
-
-    EvaluationChartWidget* ec = m_recordPane->evalChart();
-    if (!ec) {
-        qDebug() << "[EVAL_GRAPH] P2: evalChart() returned NULL!";
-        return;
-    }
-
-    // エンジン名を設定
-    ec->setEngine2Name(m_engineName2.isEmpty() ? m_engineName1 : m_engineName2);
-
-    qDebug() << "[EVAL_GRAPH] P2: calling ec->appendScoreP2(" << ply << "," << cpAfter << ", false)";
-    ec->appendScoreP2(ply, cpAfter, false);
-    qDebug() << "[EVAL_GRAPH] P2: appendScoreP2 done, chart countP2 =" << ec->countP2();
+    m_evalGraphController = new EvaluationGraphController(this);
+    m_evalGraphController->setRecordPane(m_recordPane);
+    m_evalGraphController->setMatchCoordinator(m_match);
+    m_evalGraphController->setSfenRecord(m_sfenRecord);
+    m_evalGraphController->setEngine1Name(m_engineName1);
+    m_evalGraphController->setEngine2Name(m_engineName2);
 }
 
 // 将棋クロックの手番を設定する。
@@ -744,13 +671,14 @@ void MainWindow::updateTurnStatus(int currentPlayer)
 {
     if (!m_shogiView) return;
 
-    if (!m_shogiClock) { // 保険
+    ensureTimeController_();
+    ShogiClock* clock = m_timeController ? m_timeController->clock() : nullptr;
+    if (!clock) {
         qWarning() << "ShogiClock not ready yet";
-        ensureClockReady_();
-        if (!m_shogiClock) return;
+        return;
     }
 
-    m_shogiClock->setCurrentPlayer(currentPlayer);
+    clock->setCurrentPlayer(currentPlayer);
     m_shogiView->setActiveSide(currentPlayer == 1);
 }
 
@@ -948,7 +876,7 @@ void MainWindow::initializeGame()
     GameStartCoordinator::Ctx c;
     c.view            = m_shogiView;
     c.gc              = m_gameController;
-    c.clock           = m_shogiClock;
+    c.clock           = m_timeController ? m_timeController->clock() : nullptr;
     c.sfenRecord      = m_sfenRecord;          // QStringList*
     c.currentSfenStr  = &m_currentSfenStr;     // 現局面の SFEN（ここで事前決定済み）
     c.startSfenStr    = &m_startSfenStr;       // 開始SFENは明示的に空（優先度を逆転）
@@ -997,7 +925,7 @@ void MainWindow::chooseAndLoadKifuFile()
     SettingsService::setLastKifuDirectory(fileInfo.absolutePath());
 
     setReplayMode(true);
-    ensureGameInfoTable();
+    ensureGameInfoController_();
 
     // 既存があれば破棄予約（多重生成対策）
     if (m_kifuLoadCoordinator) {
@@ -1015,8 +943,8 @@ void MainWindow::chooseAndLoadKifuFile()
         /* currentSelectedPly  */ m_currentSelectedPly,
         /* currentMoveIndex    */ m_currentMoveIndex,
         /* sfenRecord          */ m_sfenRecord,
-        /* gameInfoTable       */ m_gameInfoTable,
-        /* gameInfoDock        */ m_gameInfoDock,
+        /* gameInfoTable       */ m_gameInfoController ? m_gameInfoController->tableWidget() : nullptr,
+        /* gameInfoDock        */ nullptr,  // GameInfoPaneControllerに移行済み
         /* tab                 */ m_tab,
         /* recordPane          */ m_recordPane,
         /* kifuRecordModel     */ m_kifuRecordModel,
@@ -1274,16 +1202,6 @@ void MainWindow::movePieceImmediately()
     }
 }
 
-void MainWindow::onPlayer1TimeOut()
-{
-    if (m_match) m_match->handlePlayerTimeOut(1); // 1 = 先手
-}
-
-void MainWindow::onPlayer2TimeOut()
-{
-    if (m_match) m_match->handlePlayerTimeOut(2); // 2 = 後手
-}
-
 void MainWindow::setGameOverMove(GameOverCause cause, bool loserIsPlayerOne)
 {
     if (!m_match || !m_match->gameOverState().isOver) return;
@@ -1316,43 +1234,16 @@ void MainWindow::appendKifuLine(const QString& text, const QString& elapsedTime)
     m_lastMove.clear();
 }
 
-void MainWindow::ensureGameInfoTable()
+// ★ 新規: GameInfoPaneControllerの初期化
+void MainWindow::ensureGameInfoController_()
 {
-    if (m_gameInfoTable) return;
+    if (m_gameInfoController) return;
 
-    // コンテナウィジェットを作成
-    m_gameInfoContainer = new QWidget(m_central);
-    QVBoxLayout* containerLayout = new QVBoxLayout(m_gameInfoContainer);
-    containerLayout->setContentsMargins(4, 4, 4, 4);
-    containerLayout->setSpacing(2);
+    m_gameInfoController = new GameInfoPaneController(this);
 
-    // ツールバーを構築
-    buildGameInfoToolbar();
-    containerLayout->addWidget(m_gameInfoToolbar);
-
-    // テーブルを作成
-    m_gameInfoTable = new QTableWidget(m_gameInfoContainer);
-    m_gameInfoTable->setColumnCount(2);
-    m_gameInfoTable->setHorizontalHeaderLabels({ tr("項目"), tr("内容") });
-    m_gameInfoTable->horizontalHeader()->setStretchLastSection(true);
-    m_gameInfoTable->verticalHeader()->setVisible(false);
-    // ★ 編集可能にする（ダブルクリックで編集）
-    m_gameInfoTable->setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::EditKeyPressed);
-    m_gameInfoTable->setSelectionMode(QAbstractItemView::SingleSelection);
-    m_gameInfoTable->setWordWrap(true);
-    m_gameInfoTable->setShowGrid(true);
-    
-    // ★ 追加: 設定ファイルからフォントサイズを読み込んで適用
-    m_gameInfoFontSize = SettingsService::gameInfoFontSize();
-    QFont font = m_gameInfoTable->font();
-    font.setPointSize(m_gameInfoFontSize);
-    m_gameInfoTable->setFont(font);
-    
-    containerLayout->addWidget(m_gameInfoTable);
-
-    // セル変更時のシグナル接続
-    connect(m_gameInfoTable, &QTableWidget::cellChanged,
-            this, &MainWindow::onGameInfoCellChanged);
+    // 対局情報更新時のシグナル接続
+    connect(m_gameInfoController, &GameInfoPaneController::gameInfoUpdated,
+            this, &MainWindow::onGameInfoUpdated_);
 }
 
 // ★ 追加: 起動時に対局情報タブを追加
@@ -1360,85 +1251,51 @@ void MainWindow::addGameInfoTabAtStartup_()
 {
     if (!m_tab) return;
 
-    // 対局情報テーブルを確保
-    ensureGameInfoTable();
+    // GameInfoPaneControllerを確保
+    ensureGameInfoController_();
 
-    if (!m_gameInfoContainer || !m_gameInfoTable) return;
+    if (!m_gameInfoController) return;
 
     // 既に「対局情報」タブがあるか確認
     for (int i = 0; i < m_tab->count(); ++i) {
         if (m_tab->tabText(i) == tr("対局情報")) {
-            // 既存タブを更新（コンテナを再設定）
             m_tab->removeTab(i);
             break;
         }
     }
 
-    // ★ 追加: 初期データを設定
+    // 初期データを設定
     populateDefaultGameInfo_();
 
     // タブを最初（インデックス0）に挿入
-    m_tab->insertTab(0, m_gameInfoContainer, tr("対局情報"));
+    m_tab->insertTab(0, m_gameInfoController->containerWidget(), tr("対局情報"));
 
-    // ★ 修正: 保存されたタブインデックスを復元（設定ファイルから読み込み）
+    // 保存されたタブインデックスを復元
     int savedIndex = SettingsService::lastSelectedTabIndex();
     if (savedIndex >= 0 && savedIndex < m_tab->count()) {
         m_tab->setCurrentIndex(savedIndex);
     } else {
-        // 無効なインデックスの場合はデフォルト（対局情報タブ）を選択
         m_tab->setCurrentIndex(0);
     }
 
-    // ★ 追加: タブ変更時にインデックスを保存するシグナルを接続
-    QObject::connect(m_tab, &QTabWidget::currentChanged,
-                     this, &MainWindow::onTabCurrentChanged,
-                     Qt::UniqueConnection);
+    // タブ変更時にインデックスを保存するシグナルを接続
+    connect(m_tab, &QTabWidget::currentChanged,
+            this, &MainWindow::onTabCurrentChanged,
+            Qt::UniqueConnection);
 }
 
 // ★ 追加: 対局情報テーブルにデフォルト値を設定
 void MainWindow::populateDefaultGameInfo_()
 {
-    if (!m_gameInfoTable) return;
+    if (!m_gameInfoController) return;
 
-    // セル変更シグナルを一時的にブロック
-    m_gameInfoTable->blockSignals(true);
+    // デフォルトの対局情報を設定
+    QList<KifGameInfoItem> defaultItems;
+    defaultItems.append({tr("先手"), tr("先手")});
+    defaultItems.append({tr("後手"), tr("後手")});
+    defaultItems.append({tr("手合割"), tr("平手")});
 
-    m_gameInfoTable->clearContents();
-    m_gameInfoTable->setRowCount(3);
-
-    // 先手
-    QTableWidgetItem* key1 = new QTableWidgetItem(tr("先手"));
-    QTableWidgetItem* val1 = new QTableWidgetItem(tr("先手"));
-    key1->setFlags(key1->flags() & ~Qt::ItemIsEditable);
-    m_gameInfoTable->setItem(0, 0, key1);
-    m_gameInfoTable->setItem(0, 1, val1);
-
-    // 後手
-    QTableWidgetItem* key2 = new QTableWidgetItem(tr("後手"));
-    QTableWidgetItem* val2 = new QTableWidgetItem(tr("後手"));
-    key2->setFlags(key2->flags() & ~Qt::ItemIsEditable);
-    m_gameInfoTable->setItem(1, 0, key2);
-    m_gameInfoTable->setItem(1, 1, val2);
-
-    // 手合割
-    QTableWidgetItem* key3 = new QTableWidgetItem(tr("手合割"));
-    QTableWidgetItem* val3 = new QTableWidgetItem(tr("平手"));
-    key3->setFlags(key3->flags() & ~Qt::ItemIsEditable);
-    m_gameInfoTable->setItem(2, 0, key3);
-    m_gameInfoTable->setItem(2, 1, val3);
-
-    m_gameInfoTable->resizeColumnToContents(0);
-
-    // シグナルを再開
-    m_gameInfoTable->blockSignals(false);
-
-    // 元の対局情報を保存（変更検知用）
-    m_originalGameInfo.clear();
-    m_originalGameInfo.append({tr("先手"), tr("先手")});
-    m_originalGameInfo.append({tr("後手"), tr("後手")});
-    m_originalGameInfo.append({tr("手合割"), tr("平手")});
-    m_gameInfoDirty = false;
-    updateGameInfoEditingIndicator();
+    m_gameInfoController->setGameInfo(defaultItems);
 }
 
 // ★ 追加: 対局者名設定フック（将棋盤ラベル更新）
@@ -1482,56 +1339,35 @@ void MainWindow::onSetEngineNames_(const QString& e1, const QString& e2)
     // 対局情報タブも更新
     updateGameInfoForCurrentMatch_();
     
+    // ★ 追加: 評価値グラフコントローラにもエンジン名を設定
+    if (m_evalGraphController) {
+        m_evalGraphController->setEngine1Name(m_engineName1);
+        m_evalGraphController->setEngine2Name(m_engineName2);
+    }
+    
     qDebug().noquote() << "[MW] ★★★ onSetEngineNames_ END ★★★";
 }
 
 // ★ 追加: 対局情報タブの先手・後手名を更新
 void MainWindow::updateGameInfoPlayerNames_(const QString& blackName, const QString& whiteName)
 {
-    if (!m_gameInfoTable) return;
-
-    m_gameInfoTable->blockSignals(true);
-
-    // 先手の行を検索して更新
-    for (int row = 0; row < m_gameInfoTable->rowCount(); ++row) {
-        QTableWidgetItem* keyItem = m_gameInfoTable->item(row, 0);
-        if (keyItem && keyItem->text() == tr("先手")) {
-            QTableWidgetItem* valItem = m_gameInfoTable->item(row, 1);
-            if (valItem) {
-                valItem->setText(blackName);
-            }
-            break;
-        }
+    if (m_gameInfoController) {
+        m_gameInfoController->updatePlayerNames(blackName, whiteName);
     }
+}
 
-    // 後手の行を検索して更新
-    for (int row = 0; row < m_gameInfoTable->rowCount(); ++row) {
-        QTableWidgetItem* keyItem = m_gameInfoTable->item(row, 0);
-        if (keyItem && keyItem->text() == tr("後手")) {
-            QTableWidgetItem* valItem = m_gameInfoTable->item(row, 1);
-            if (valItem) {
-                valItem->setText(whiteName);
-            }
-            break;
-        }
-    }
-
-    m_gameInfoTable->blockSignals(false);
-
-    // 元データも更新
-    for (qsizetype i = 0; i < m_originalGameInfo.size(); ++i) {
-        if (m_originalGameInfo[i].key == tr("先手")) {
-            m_originalGameInfo[i].value = blackName;
-        } else if (m_originalGameInfo[i].key == tr("後手")) {
-            m_originalGameInfo[i].value = whiteName;
-        }
+// ★ 追加: 元の対局情報を保存（棋譜読み込み時に呼ばれる）
+void MainWindow::setOriginalGameInfo(const QList<KifGameInfoItem>& items)
+{
+    if (m_gameInfoController) {
+        m_gameInfoController->setGameInfo(items);
     }
 }
 
 // ★ 追加: 現在の対局に基づいて対局情報タブを更新
 void MainWindow::updateGameInfoForCurrentMatch_()
 {
-    if (!m_gameInfoTable) return;
+    if (!m_gameInfoController) return;
 
     // 現在のPlayModeと対局者名に基づいて先手・後手を決定
     QString blackName;
@@ -1598,313 +1434,12 @@ void MainWindow::onPlayerNamesResolved_(const QString& human1, const QString& hu
     updateGameInfoForCurrentMatch_();
 }
 
-// ★ 追加: 対局情報ツールバーの構築
-void MainWindow::buildGameInfoToolbar()
+// ★ 追加: GameInfoPaneControllerからの更新通知
+void MainWindow::onGameInfoUpdated_(const QList<KifGameInfoItem>& items)
 {
-    m_gameInfoToolbar = new QWidget(m_gameInfoContainer);
-    QHBoxLayout* toolbarLayout = new QHBoxLayout(m_gameInfoToolbar);
-    toolbarLayout->setContentsMargins(2, 2, 2, 2);
-    toolbarLayout->setSpacing(4);
-
-    // フォントサイズ減少ボタン
-    m_btnGameInfoFontDecrease = new QToolButton(m_gameInfoToolbar);
-    m_btnGameInfoFontDecrease->setText(QStringLiteral("A-"));
-    m_btnGameInfoFontDecrease->setToolTip(tr("フォントサイズを小さくする"));
-    m_btnGameInfoFontDecrease->setFixedSize(28, 24);
-    connect(m_btnGameInfoFontDecrease, &QToolButton::clicked,
-            this, &MainWindow::onGameInfoFontDecrease);
-
-    // フォントサイズ増加ボタン
-    m_btnGameInfoFontIncrease = new QToolButton(m_gameInfoToolbar);
-    m_btnGameInfoFontIncrease->setText(QStringLiteral("A+"));
-    m_btnGameInfoFontIncrease->setToolTip(tr("フォントサイズを大きくする"));
-    m_btnGameInfoFontIncrease->setFixedSize(28, 24);
-    connect(m_btnGameInfoFontIncrease, &QToolButton::clicked,
-            this, &MainWindow::onGameInfoFontIncrease);
-
-    // undoボタン（元に戻す）
-    m_btnGameInfoUndo = new QToolButton(m_gameInfoToolbar);
-    m_btnGameInfoUndo->setText(QStringLiteral("↩"));
-    m_btnGameInfoUndo->setToolTip(tr("元に戻す (Ctrl+Z)"));
-    m_btnGameInfoUndo->setFixedSize(28, 24);
-    connect(m_btnGameInfoUndo, &QToolButton::clicked,
-            this, &MainWindow::onGameInfoUndo);
-
-    // ★ 追加: redoボタン（やり直す）
-    m_btnGameInfoRedo = new QToolButton(m_gameInfoToolbar);
-    m_btnGameInfoRedo->setText(QStringLiteral("↪"));
-    m_btnGameInfoRedo->setToolTip(tr("やり直す (Ctrl+Y)"));
-    m_btnGameInfoRedo->setFixedSize(28, 24);
-    connect(m_btnGameInfoRedo, &QToolButton::clicked,
-            this, &MainWindow::onGameInfoRedo);
-
-    // ★ 追加: 切り取りボタン
-    m_btnGameInfoCut = new QToolButton(m_gameInfoToolbar);
-    m_btnGameInfoCut->setText(QStringLiteral("✂"));
-    m_btnGameInfoCut->setToolTip(tr("切り取り (Ctrl+X)"));
-    m_btnGameInfoCut->setFixedSize(28, 24);
-    connect(m_btnGameInfoCut, &QToolButton::clicked,
-            this, &MainWindow::onGameInfoCut);
-
-    // ★ 追加: コピーボタン
-    m_btnGameInfoCopy = new QToolButton(m_gameInfoToolbar);
-    m_btnGameInfoCopy->setText(QStringLiteral("📋"));
-    m_btnGameInfoCopy->setToolTip(tr("コピー (Ctrl+C)"));
-    m_btnGameInfoCopy->setFixedSize(28, 24);
-    connect(m_btnGameInfoCopy, &QToolButton::clicked,
-            this, &MainWindow::onGameInfoCopy);
-
-    // ★ 追加: 貼り付けボタン
-    m_btnGameInfoPaste = new QToolButton(m_gameInfoToolbar);
-    m_btnGameInfoPaste->setText(QStringLiteral("📄"));
-    m_btnGameInfoPaste->setToolTip(tr("貼り付け (Ctrl+V)"));
-    m_btnGameInfoPaste->setFixedSize(28, 24);
-    connect(m_btnGameInfoPaste, &QToolButton::clicked,
-            this, &MainWindow::onGameInfoPaste);
-
-    // 「修正中」ラベル（赤字）
-    m_gameInfoEditingLabel = new QLabel(tr("修正中"), m_gameInfoToolbar);
-    m_gameInfoEditingLabel->setStyleSheet(QStringLiteral("QLabel { color: red; font-weight: bold; }"));
-    m_gameInfoEditingLabel->setVisible(false);  // 初期状態は非表示
-
-    // 対局情報更新ボタン
-    m_btnGameInfoUpdate = new QPushButton(tr("対局情報更新"), m_gameInfoToolbar);
-    m_btnGameInfoUpdate->setToolTip(tr("編集した対局情報を棋譜に反映する"));
-    m_btnGameInfoUpdate->setFixedHeight(24);
-    connect(m_btnGameInfoUpdate, &QPushButton::clicked,
-            this, &MainWindow::onGameInfoUpdateClicked);
-
-    toolbarLayout->addWidget(m_btnGameInfoFontDecrease);
-    toolbarLayout->addWidget(m_btnGameInfoFontIncrease);
-    toolbarLayout->addWidget(m_btnGameInfoUndo);
-    toolbarLayout->addWidget(m_btnGameInfoRedo);   // ★ 追加
-    toolbarLayout->addWidget(m_btnGameInfoCut);    // ★ 追加
-    toolbarLayout->addWidget(m_btnGameInfoCopy);   // ★ 追加
-    toolbarLayout->addWidget(m_btnGameInfoPaste);  // ★ 追加
-    toolbarLayout->addWidget(m_gameInfoEditingLabel);
-    toolbarLayout->addStretch();
-    toolbarLayout->addWidget(m_btnGameInfoUpdate);
-
-    m_gameInfoToolbar->setLayout(toolbarLayout);
-}
-
-// ★ 追加: フォントサイズ変更
-void MainWindow::updateGameInfoFontSize(int delta)
-{
-    m_gameInfoFontSize += delta;
-    if (m_gameInfoFontSize < 8) m_gameInfoFontSize = 8;
-    if (m_gameInfoFontSize > 24) m_gameInfoFontSize = 24;
-
-    if (m_gameInfoTable) {
-        QFont font = m_gameInfoTable->font();
-        font.setPointSize(m_gameInfoFontSize);
-        m_gameInfoTable->setFont(font);
-        m_gameInfoTable->resizeRowsToContents();
-    }
-    
-    // ★ 追加: 設定ファイルに保存
-    SettingsService::setGameInfoFontSize(m_gameInfoFontSize);
-}
-
-void MainWindow::onGameInfoFontIncrease()
-{
-    updateGameInfoFontSize(1);
-}
-
-void MainWindow::onGameInfoFontDecrease()
-{
-    updateGameInfoFontSize(-1);
-}
-
-// ★ 追加: 対局情報のundo（元の内容に戻す）
-void MainWindow::onGameInfoUndo()
-{
-    if (!m_gameInfoTable) return;
-    
-    // シグナルを一時的にブロック
-    m_gameInfoTable->blockSignals(true);
-    
-    // 元の対局情報に戻す
-    m_gameInfoTable->clearContents();
-    m_gameInfoTable->setRowCount(static_cast<int>(m_originalGameInfo.size()));
-    
-    for (qsizetype row = 0; row < m_originalGameInfo.size(); ++row) {
-        const auto& it = m_originalGameInfo.at(row);
-        auto *keyItem   = new QTableWidgetItem(it.key);
-        auto *valueItem = new QTableWidgetItem(it.value);
-        // 項目名は編集不可、内容は編集可能
-        keyItem->setFlags(keyItem->flags() & ~Qt::ItemIsEditable);
-        m_gameInfoTable->setItem(static_cast<int>(row), 0, keyItem);
-        m_gameInfoTable->setItem(static_cast<int>(row), 1, valueItem);
-    }
-    
-    m_gameInfoTable->resizeColumnToContents(0);
-    
-    // シグナルを再開
-    m_gameInfoTable->blockSignals(false);
-    
-    // dirtyフラグをリセット
-    m_gameInfoDirty = false;
-    updateGameInfoEditingIndicator();
-    
-    qDebug().noquote() << "[MW] onGameInfoUndo: Reverted to original game info";
-}
-
-// ★ 追加: 対局情報のredo（QTableWidgetにはredo機能がないため、現在は何もしない）
-void MainWindow::onGameInfoRedo()
-{
-    // QTableWidgetには内蔵のredo機能がないため、
-    // 現在編集中のセルがあればそのエディタのredoを呼ぶ
-    if (!m_gameInfoTable) return;
-    
-    // 編集中のセルのエディタを取得
-    QWidget* editor = m_gameInfoTable->cellWidget(m_gameInfoTable->currentRow(), 
-                                                   m_gameInfoTable->currentColumn());
-    if (QLineEdit* lineEdit = qobject_cast<QLineEdit*>(editor)) {
-        lineEdit->redo();
-    }
-}
-
-// ★ 追加: 対局情報の切り取り
-void MainWindow::onGameInfoCut()
-{
-    if (!m_gameInfoTable) return;
-    
-    QTableWidgetItem* item = m_gameInfoTable->currentItem();
-    if (item && (item->flags() & Qt::ItemIsEditable)) {
-        // クリップボードにコピー
-        QApplication::clipboard()->setText(item->text());
-        // セルをクリア
-        item->setText(QString());
-    }
-}
-
-// ★ 追加: 対局情報のコピー
-void MainWindow::onGameInfoCopy()
-{
-    if (!m_gameInfoTable) return;
-    
-    QTableWidgetItem* item = m_gameInfoTable->currentItem();
-    if (item) {
-        QApplication::clipboard()->setText(item->text());
-    }
-}
-
-// ★ 追加: 対局情報の貼り付け
-void MainWindow::onGameInfoPaste()
-{
-    if (!m_gameInfoTable) return;
-    
-    QTableWidgetItem* item = m_gameInfoTable->currentItem();
-    if (item && (item->flags() & Qt::ItemIsEditable)) {
-        QString text = QApplication::clipboard()->text();
-        item->setText(text);
-    }
-}
-
-// ★ 追加: 「修正中」表示の更新
-void MainWindow::updateGameInfoEditingIndicator()
-{
-    if (m_gameInfoEditingLabel) {
-        m_gameInfoEditingLabel->setVisible(m_gameInfoDirty);
-    }
-}
-
-// ★ 追加: セル変更時の処理
-void MainWindow::onGameInfoCellChanged(int row, int column)
-{
-    Q_UNUSED(row);
-    Q_UNUSED(column);
-    
-    if (!m_gameInfoTable) return;
-    
-    // 現在のテーブル内容と元の内容を比較
-    bool isDirty = false;
-    const int rowCount = m_gameInfoTable->rowCount();
-    
-    if (rowCount != m_originalGameInfo.size()) {
-        isDirty = true;
-    } else {
-        for (int r = 0; r < rowCount; ++r) {
-            QTableWidgetItem* keyItem = m_gameInfoTable->item(r, 0);
-            QTableWidgetItem* valueItem = m_gameInfoTable->item(r, 1);
-            
-            QString currentKey = keyItem ? keyItem->text() : QString();
-            QString currentValue = valueItem ? valueItem->text() : QString();
-            
-            if (r < m_originalGameInfo.size()) {
-                if (currentKey != m_originalGameInfo[r].key ||
-                    currentValue != m_originalGameInfo[r].value) {
-                    isDirty = true;
-                    break;
-                }
-            }
-        }
-    }
-    
-    if (m_gameInfoDirty != isDirty) {
-        m_gameInfoDirty = isDirty;
-        updateGameInfoEditingIndicator();
-    }
-}
-
-// ★ 追加: 元の対局情報を保存
-void MainWindow::setOriginalGameInfo(const QList<KifGameInfoItem>& items)
-{
-    m_originalGameInfo = items;
-    m_gameInfoDirty = false;
-    updateGameInfoEditingIndicator();
-}
-
-// ★ 追加: 対局情報更新ボタンクリック時
-void MainWindow::onGameInfoUpdateClicked()
-{
-    if (!m_gameInfoTable) return;
-    
-    // 現在のテーブル内容を m_originalGameInfo に反映
-    m_originalGameInfo.clear();
-    const int rowCount = m_gameInfoTable->rowCount();
-    
-    for (int r = 0; r < rowCount; ++r) {
-        QTableWidgetItem* keyItem = m_gameInfoTable->item(r, 0);
-        QTableWidgetItem* valueItem = m_gameInfoTable->item(r, 1);
-        
-        KifGameInfoItem item;
-        item.key = keyItem ? keyItem->text() : QString();
-        item.value = valueItem ? valueItem->text() : QString();
-        m_originalGameInfo.append(item);
-    }
-    
-    m_gameInfoDirty = false;
-    updateGameInfoEditingIndicator();
-    
-    qDebug().noquote() << "[MW] onGameInfoUpdateClicked: Game info updated, items=" << m_originalGameInfo.size();
-}
-
-// ★ 追加: 未保存の対局情報編集がある場合の警告ダイアログ
-bool MainWindow::confirmDiscardUnsavedGameInfo()
-{
-    if (!m_gameInfoDirty) {
-        return true;  // 変更がなければそのまま続行OK
-    }
-    
-    QMessageBox::StandardButton reply = QMessageBox::warning(
-        this,
-        tr("未保存の対局情報"),
-        tr("対局情報が編集されていますが、まだ更新されていません。\n"
-           "変更を破棄して続行しますか？"),
-        QMessageBox::Yes | QMessageBox::No,
-        QMessageBox::No
-    );
-    
-    if (reply == QMessageBox::Yes) {
-        // 変更を破棄
-        m_gameInfoDirty = false;
-        updateGameInfoEditingIndicator();
-        return true;
-    }
-    
-    return false;  // 操作をキャンセル
+    Q_UNUSED(items);
+    qDebug().noquote() << "[MW] onGameInfoUpdated_: Game info updated, items=" << items.size();
+    // 必要に応じて他のコンポーネントに通知
 }
 
 void MainWindow::syncBoardAndHighlightsAtRow(int ply)
@@ -2155,7 +1690,7 @@ void MainWindow::initMatchCoordinator()
     if (!m_gameController || !m_shogiView) return;
 
     // まず時計を用意（nullでも可だが、あれば渡す）
-    ensureClockReady_();
+    ensureTimeController_();
 
     using std::placeholders::_1;
     using std::placeholders::_2;
@@ -2163,7 +1698,7 @@ void MainWindow::initMatchCoordinator()
     // --- MatchCoordinator::Deps を構築（UI hooks は従来どおりここで設定） ---
     MatchCoordinator::Deps d;
     d.gc    = m_gameController;
-    d.clock = m_shogiClock;
+    d.clock = m_timeController ? m_timeController->clock() : nullptr;
     d.view  = m_shogiView;
     d.usi1  = m_usi1;
     d.usi2  = m_usi2;
@@ -2203,7 +1738,7 @@ void MainWindow::initMatchCoordinator()
     if (!m_gameStartCoordinator) {
         GameStartCoordinator::Deps gd;
         gd.match = nullptr;
-        gd.clock = m_shogiClock;
+        gd.clock = m_timeController ? m_timeController->clock() : nullptr;
         gd.gc    = m_gameController;
         gd.view  = m_shogiView;
 
@@ -2250,6 +1785,11 @@ void MainWindow::initMatchCoordinator()
         m_match->setPlayMode(m_playMode);
     }
 
+    // ★ 追加: EvaluationGraphControllerにMatchCoordinatorを設定
+    if (m_evalGraphController) {
+        m_evalGraphController->setMatchCoordinator(m_match);
+    }
+
     // ★★ UNDO 用バインディング（今回の修正点）★★
     if (m_match) {
         MatchCoordinator::UndoRefs u;
@@ -2260,7 +1800,7 @@ void MainWindow::initMatchCoordinator()
         u.currentMoveIndex = &m_currentMoveIndex;    // 現在手数（0起点）
         u.gc               = m_gameController;       // 盤ロジック
         u.boardCtl         = m_boardController;      // ハイライト消去など（null可）
-        u.clock            = m_shogiClock;           // 時計（null可）
+        u.clock            = m_timeController ? m_timeController->clock() : nullptr;  // 時計（null可）
         u.view             = m_shogiView;            // クリック可否の切替
 
         MatchCoordinator::UndoHooks h;
@@ -2276,13 +1816,15 @@ void MainWindow::initMatchCoordinator()
         m_match->setUndoBindings(u, h);
     }
 
-    // Clock → MainWindow のタイムアウト系は従来どおり UI 側で受ける
-    if (m_shogiClock) {
-        connect(m_shogiClock, &ShogiClock::player1TimeOut,
-                this, &MainWindow::onPlayer1TimeOut, Qt::UniqueConnection);
-        connect(m_shogiClock, &ShogiClock::player2TimeOut,
-                this, &MainWindow::onPlayer2TimeOut, Qt::UniqueConnection);
-        connect(m_shogiClock, &ShogiClock::resignationTriggered,
+    // ★ TimeControlControllerにMatchCoordinatorを設定（タイムアウト処理用）
+    if (m_timeController) {
+        m_timeController->setMatchCoordinator(m_match);
+    }
+
+    // Clock → MainWindow の投了シグナルは従来どおり UI 側で受ける
+    ShogiClock* clock = m_timeController ? m_timeController->clock() : nullptr;
+    if (clock) {
+        connect(clock, &ShogiClock::resignationTriggered,
                 this, &MainWindow::onResignationTriggered, Qt::UniqueConnection);
     }
 
@@ -2297,24 +1839,13 @@ void MainWindow::initMatchCoordinator()
         m_boardController->setMode(BoardInteractionController::Mode::HumanVsHuman);
 }
 
-void MainWindow::ensureClockReady_()
+void MainWindow::ensureTimeController_()
 {
-    if (m_shogiClock) return;
+    if (m_timeController) return;
 
-    m_shogiClock = new ShogiClock(this);
-
-    // TimeDisplayPresenter に Clock を設定（秒読み状態の判定に使用）
-    if (m_timePresenter) {
-        m_timePresenter->setClock(m_shogiClock);
-    }
-
-    // ★ ここでは timeUpdated を m_match に接続しない
-    //    （接続は wireMatchSignals_() に一本化）
-
-    connect(m_shogiClock, &ShogiClock::player1TimeOut,
-            this, &MainWindow::onPlayer1TimeOut, Qt::UniqueConnection);
-    connect(m_shogiClock, &ShogiClock::player2TimeOut,
-            this, &MainWindow::onPlayer2TimeOut, Qt::UniqueConnection);
+    m_timeController = new TimeControlController(this);
+    m_timeController->setTimeDisplayPresenter(m_timePresenter);
+    m_timeController->ensureClock();
 }
 
 void MainWindow::onMatchGameEnded(const MatchCoordinator::GameEndInfo& info)
@@ -2329,7 +1860,9 @@ void MainWindow::onMatchGameEnded(const MatchCoordinator::GameEndInfo& info)
 
     // --- UI 後始末（UI層に残す） ---
     if (m_match)      m_match->disarmHumanTimerIfNeeded();
-    if (m_shogiClock) m_shogiClock->stopClock();
+    if (ShogiClock* clk = m_timeController ? m_timeController->clock() : nullptr) {
+        clk->stopClock();
+    }
     if (m_shogiView)  m_shogiView->setMouseClickMode(false);
 
     // --- 棋譜追記＋時間確定は司令塔へ一括委譲 ---
@@ -2464,12 +1997,13 @@ void MainWindow::onMoveRequested_(const QPoint& from, const QPoint& to)
         // ★ 追加：HvH でも「指し手＋考慮時間」を棋譜欄に追記する
         // MatchCoordinator::onHumanMove_HvH() で直前手の考慮時間を ShogiClock に確定済み。
         QString elapsed;
-        if (m_shogiClock) {
+        ShogiClock* clk = m_timeController ? m_timeController->clock() : nullptr;
+        if (clk) {
             elapsed = (moverBefore == ShogiGameController::Player1)
-            ? m_shogiClock->getPlayer1ConsiderationAndTotalTime()
-            : m_shogiClock->getPlayer2ConsiderationAndTotalTime();
+                ? clk->getPlayer1ConsiderationAndTotalTime()
+                : clk->getPlayer2ConsiderationAndTotalTime();
         } else {
-            ensureClockReady_();
+            ensureTimeController_();
             elapsed = QStringLiteral("00:00/00:00:00"); // フォールバック
         }
 
@@ -2500,9 +2034,10 @@ void MainWindow::setReplayMode(bool on)
     m_isReplayMode = on;
 
     // 再生中は時計を止め、表示だけ整える
-    if (m_shogiClock) {
-        m_shogiClock->stopClock();
-        m_shogiClock->updateClock(); // 表示だけは最新化
+    ShogiClock* clk = m_timeController ? m_timeController->clock() : nullptr;
+    if (clk) {
+        clk->stopClock();
+        clk->updateClock(); // 表示だけは最新化
     }
     if (m_match) {
         m_match->pokeTimeUpdateNow(); // 残時間ラベル等の静的更新だけ反映
@@ -2521,8 +2056,8 @@ void MainWindow::setReplayMode(bool on)
             m_shogiView->setActiveSide(p1turn);  // or setBlackActive(p1turn); ※ヘッダに合わせて
 
             // ★ Urgency は時計側の更新イベントで再適用させる
-            if (m_shogiClock) {
-                m_shogiClock->updateClock();   // timeUpdated が飛び、既存の結線で applyClockUrgency が呼ばれる想定
+            if (clk) {
+                clk->updateClock();   // timeUpdated が飛び、既存の結線で applyClockUrgency が呼ばれる想定
             }
         }
     }
@@ -2822,7 +2357,7 @@ void MainWindow::ensureGameStartCoordinator_()
 
     GameStartCoordinator::Deps d;
     d.match = m_match;
-    d.clock = m_shogiClock;
+    d.clock = m_timeController ? m_timeController->clock() : nullptr;
     d.gc    = m_gameController;
     d.view  = m_shogiView;
 
@@ -2936,7 +2471,9 @@ void MainWindow::onPreStartCleanupRequested_()
     // }
     
     // ★ 追加: 新しい対局開始に備えて開始時刻をリセット
-    m_gameStartDateTime = QDateTime();
+    if (m_timeController) {
+        m_timeController->clearGameStartTime();
+    }
 
     // デバッグログ
     qDebug().noquote()
@@ -2953,19 +2490,15 @@ void MainWindow::onApplyTimeControlRequested_(const GameStartCoordinator::TimeCo
     << " P1{base=" << tc.p1.baseMs << " byoyomi=" << tc.p1.byoyomiMs << " inc=" << tc.p1.incrementMs << "}"
     << " P2{base=" << tc.p2.baseMs << " byoyomi=" << tc.p2.byoyomiMs << " inc=" << tc.p2.incrementMs << "}";
 
-    // ★ 追加: CSA出力用に時間制御情報を保存（P1の設定を使用）
-    m_hasTimeControl = tc.enabled;
-    m_timeControlBaseMs = tc.p1.baseMs;
-    m_timeControlByoyomiMs = tc.p1.byoyomiMs;
-    m_timeControlIncrementMs = tc.p1.incrementMs;
-    
-    // ★ 追加: 対局開始時刻を記録（まだ記録されていない場合のみ）
-    if (!m_gameStartDateTime.isValid()) {
-        m_gameStartDateTime = QDateTime::currentDateTime();
+    // ★ TimeControlControllerに時間制御情報を保存
+    if (m_timeController) {
+        m_timeController->saveTimeControlSettings(tc.enabled, tc.p1.baseMs, tc.p1.byoyomiMs, tc.p1.incrementMs);
+        m_timeController->recordGameStartTime();
     }
 
     // 1) まず時計に適用
-    TimeControlUtil::applyToClock(m_shogiClock, tc, m_startSfenStr, m_currentSfenStr);
+    ShogiClock* clk = m_timeController ? m_timeController->clock() : nullptr;
+    TimeControlUtil::applyToClock(clk, tc, m_startSfenStr, m_currentSfenStr);
 
     // 2) 司令塔へも必ず反映（これが無いと computeGoTimes_ が byoyomi を使いません）
     if (m_match) {
@@ -2996,14 +2529,14 @@ void MainWindow::onApplyTimeControlRequested_(const GameStartCoordinator::TimeCo
     }
 
     // 3) 表示更新
-    if (m_shogiClock) {
+    if (clk) {
         qDebug() << "[MW] clock after apply:"
-                 << "P1=" << m_shogiClock->getPlayer1TimeIntMs()
-                 << "P2=" << m_shogiClock->getPlayer2TimeIntMs()
-                 << "byo=" << m_shogiClock->getCommonByoyomiMs()
-                 << "binc=" << m_shogiClock->getBincMs()
-                 << "winc=" << m_shogiClock->getWincMs();
-        m_shogiClock->updateClock();
+                 << "P1=" << clk->getPlayer1TimeIntMs()
+                 << "P2=" << clk->getPlayer2TimeIntMs()
+                 << "byo=" << clk->getCommonByoyomiMs()
+                 << "binc=" << clk->getBincMs()
+                 << "winc=" << clk->getWincMs();
+        clk->updateClock();
     }
     if (m_shogiView) m_shogiView->update();
 }
@@ -3231,35 +2764,31 @@ void MainWindow::onResignationTriggered()
 
 qint64 MainWindow::getRemainingMsFor_(MatchCoordinator::Player p) const
 {
-    if (!m_shogiClock) {
-        qDebug() << "[MW] getRemainingMsFor_: clock=null";
+    if (!m_timeController) {
+        qDebug() << "[MW] getRemainingMsFor_: timeController=null";
         return 0;
     }
-    const qint64 p1 = m_shogiClock->getPlayer1TimeIntMs();
-    const qint64 p2 = m_shogiClock->getPlayer2TimeIntMs();
-    qDebug() << "[MW] getRemainingMsFor_: P1=" << p1 << " P2=" << p2
-             << " req=" << (p==MatchCoordinator::P1?"P1":"P2");
-    return (p == MatchCoordinator::P1) ? p1 : p2;
+    const int player = (p == MatchCoordinator::P1) ? 1 : 2;
+    return m_timeController->getRemainingMs(player);
 }
 
 qint64 MainWindow::getIncrementMsFor_(MatchCoordinator::Player p) const
 {
-    if (!m_shogiClock) {
-        qDebug() << "[MW] getIncrementMsFor_: clock=null";
+    if (!m_timeController) {
+        qDebug() << "[MW] getIncrementMsFor_: timeController=null";
         return 0;
     }
-    const qint64 inc1 = m_shogiClock->getBincMs();
-    const qint64 inc2 = m_shogiClock->getWincMs();
-    qDebug() << "[MW] getIncrementMsFor_: binc=" << inc1 << " winc=" << inc2
-             << " req=" << (p==MatchCoordinator::P1?"P1":"P2");
-    return (p == MatchCoordinator::P1) ? inc1 : inc2;
+    const int player = (p == MatchCoordinator::P1) ? 1 : 2;
+    return m_timeController->getIncrementMs(player);
 }
 
 qint64 MainWindow::getByoyomiMs_() const
 {
-    const qint64 byo = m_shogiClock ? m_shogiClock->getCommonByoyomiMs() : 0;
-    qDebug() << "[MW] getByoyomiMs_: ms=" << byo;
-    return byo;
+    if (!m_timeController) {
+        qDebug() << "[MW] getByoyomiMs_: timeController=null";
+        return 0;
+    }
+    return m_timeController->getByoyomiMs();
 }
 
 // 対局終了時のタイトルと本文を受け取り、情報ダイアログを表示するだけのヘルパ
@@ -3307,8 +2836,8 @@ void MainWindow::ensureKifuLoadCoordinatorForLive_()
         /* currentSelectedPly  */ m_currentSelectedPly,
         /* currentMoveIndex    */ m_currentMoveIndex,
         /* sfenRecord          */ m_sfenRecord,
-        /* gameInfoTable       */ m_gameInfoTable,
-        /* gameInfoDock        */ m_gameInfoDock,
+        /* gameInfoTable       */ m_gameInfoController ? m_gameInfoController->tableWidget() : nullptr,
+        /* gameInfoDock        */ nullptr,  // GameInfoPaneControllerに移行済み
         /* tab                 */ m_tab,
         /* recordPane          */ m_recordPane,
         /* kifuRecordModel     */ m_kifuRecordModel,
@@ -3407,9 +2936,10 @@ void MainWindow::updateTurnAndTimekeepingDisplay_()
     setCurrentTurn();
 
     // 時計の再描画（Presenterに現在値を流し直し）
-    if (m_timePresenter && m_shogiClock) {
-        const qint64 p1 = m_shogiClock->getPlayer1TimeIntMs();
-        const qint64 p2 = m_shogiClock->getPlayer2TimeIntMs();
+    ShogiClock* clk = m_timeController ? m_timeController->clock() : nullptr;
+    if (m_timePresenter && clk) {
+        const qint64 p1 = clk->getPlayer1TimeIntMs();
+        const qint64 p2 = clk->getPlayer2TimeIntMs();
         const bool p1turn =
             (m_gameController ? (m_gameController->currentPlayer() == ShogiGameController::Player1) : true);
         m_timePresenter->onMatchTimeUpdated(p1, p2, p1turn, /*urgencyMs*/ 0);
@@ -3468,7 +2998,7 @@ void MainWindow::saveKifuToFile()
     if (m_gameRecord) {
         // ExportContext を構築
         GameRecordModel::ExportContext ctx;
-        ctx.gameInfoTable = m_gameInfoTable;
+        ctx.gameInfoTable = m_gameInfoController ? m_gameInfoController->tableWidget() : nullptr;
         ctx.recordModel   = m_kifuRecordModel;
         ctx.startSfen     = m_startSfenStr;
         ctx.playMode      = m_playMode;
@@ -3477,12 +3007,14 @@ void MainWindow::saveKifuToFile()
         ctx.engine1       = m_engineName1;
         ctx.engine2       = m_engineName2;
         
-        // ★ 追加: 時間制御情報を設定
-        ctx.hasTimeControl = m_hasTimeControl;
-        ctx.initialTimeMs = static_cast<int>(m_timeControlBaseMs);
-        ctx.byoyomiMs = static_cast<int>(m_timeControlByoyomiMs);
-        ctx.fischerIncrementMs = static_cast<int>(m_timeControlIncrementMs);
-        ctx.gameStartDateTime = m_gameStartDateTime;
+        // ★ 時間制御情報をTimeControlControllerから取得
+        if (m_timeController) {
+            ctx.hasTimeControl = m_timeController->hasTimeControl();
+            ctx.initialTimeMs = static_cast<int>(m_timeController->baseTimeMs());
+            ctx.byoyomiMs = static_cast<int>(m_timeController->byoyomiMs());
+            ctx.fischerIncrementMs = static_cast<int>(m_timeController->incrementMs());
+            ctx.gameStartDateTime = m_timeController->gameStartDateTime();
+        }
 
         // GameRecordModel から KIF/KI2/CSA/JKF/USEN/USI 形式の行リストを生成
         kifLines = m_gameRecord->toKifLines(ctx);
@@ -3524,7 +3056,7 @@ void MainWindow::saveKifuToFile()
     } else {
         // フォールバック: 従来の KifuContentBuilder を使用（KIF形式のみ）
         KifuExportContext ctx;
-        ctx.gameInfoTable = m_gameInfoTable;
+        ctx.gameInfoTable = m_gameInfoController ? m_gameInfoController->tableWidget() : nullptr;
         ctx.recordModel   = m_kifuRecordModel;
         ctx.resolvedRows  = &m_resolvedRows;
         if (m_recordPresenter) {
@@ -3567,59 +3099,14 @@ void MainWindow::saveKifuToFile()
 // ★ 追加: KIF形式で棋譜をクリップボードにコピー
 void MainWindow::copyKifToClipboard()
 {
-    // GameRecordModel を使って KIF 形式を生成
     ensureGameRecordModel_();
 
-    QStringList kifLines;
+    KifuClipboardService::ExportContext ctx = buildClipboardContext_();
 
-    if (m_gameRecord) {
-        // ExportContext を構築
-        GameRecordModel::ExportContext ctx;
-        ctx.gameInfoTable = m_gameInfoTable;
-        ctx.recordModel   = m_kifuRecordModel;
-        ctx.startSfen     = m_startSfenStr;
-        ctx.playMode      = m_playMode;
-        ctx.human1        = m_humanName1;
-        ctx.human2        = m_humanName2;
-        ctx.engine1       = m_engineName1;
-        ctx.engine2       = m_engineName2;
-
-        // GameRecordModel から KIF 形式の行リストを生成
-        kifLines = m_gameRecord->toKifLines(ctx);
-        qDebug().noquote() << "[MW] copyKifToClipboard: generated" << kifLines.size() << "KIF lines via GameRecordModel";
-    } else {
-        // フォールバック: 従来の KifuContentBuilder を使用
-        KifuExportContext ctx;
-        ctx.gameInfoTable = m_gameInfoTable;
-        ctx.recordModel   = m_kifuRecordModel;
-        ctx.resolvedRows  = &m_resolvedRows;
-        if (m_recordPresenter) {
-            ctx.liveDisp = &m_recordPresenter->liveDisp();
-        }
-        ctx.commentsByRow = &m_commentsByRow;
-        ctx.activeResolvedRow = m_activeResolvedRow;
-        ctx.startSfen = m_startSfenStr;
-        ctx.playMode  = m_playMode;
-        ctx.human1    = m_humanName1;
-        ctx.human2    = m_humanName2;
-        ctx.engine1   = m_engineName1;
-        ctx.engine2   = m_engineName2;
-
-        kifLines = KifuContentBuilder::buildKifuDataList(ctx);
-        qDebug().noquote() << "[MW] copyKifToClipboard: generated" << kifLines.size() << "KIF lines via KifuContentBuilder (fallback)";
-    }
-
-    // 行リストを改行で結合してクリップボードにコピー
-    const QString kifText = kifLines.join(QStringLiteral("\n"));
-
-    QClipboard* clipboard = QApplication::clipboard();
-    if (clipboard) {
-        clipboard->setText(kifText);
+    if (KifuClipboardService::copyKif(ctx)) {
         ui->statusbar->showMessage(tr("KIF形式の棋譜をクリップボードにコピーしました"), 3000);
-        qDebug().noquote() << "[MW] copyKifToClipboard: copied to clipboard," << kifText.size() << "chars";
     } else {
-        qWarning() << "[MW] copyKifToClipboard: clipboard is not available";
-        ui->statusbar->showMessage(tr("クリップボードへのコピーに失敗しました"), 3000);
+        ui->statusbar->showMessage(tr("KIF形式の棋譜データがありません"), 3000);
     }
 }
 
@@ -3628,38 +3115,12 @@ void MainWindow::copyKi2ToClipboard()
 {
     ensureGameRecordModel_();
 
-    QStringList ki2Lines;
+    KifuClipboardService::ExportContext ctx = buildClipboardContext_();
 
-    if (m_gameRecord) {
-        GameRecordModel::ExportContext ctx;
-        ctx.gameInfoTable = m_gameInfoTable;
-        ctx.recordModel   = m_kifuRecordModel;
-        ctx.startSfen     = m_startSfenStr;
-        ctx.playMode      = m_playMode;
-        ctx.human1        = m_humanName1;
-        ctx.human2        = m_humanName2;
-        ctx.engine1       = m_engineName1;
-        ctx.engine2       = m_engineName2;
-
-        ki2Lines = m_gameRecord->toKi2Lines(ctx);
-        qDebug().noquote() << "[MW] copyKi2ToClipboard: generated" << ki2Lines.size() << "KI2 lines via GameRecordModel";
-    }
-
-    if (ki2Lines.isEmpty()) {
-        ui->statusbar->showMessage(tr("KI2形式の棋譜データがありません"), 3000);
-        return;
-    }
-
-    const QString ki2Text = ki2Lines.join(QStringLiteral("\n"));
-
-    QClipboard* clipboard = QApplication::clipboard();
-    if (clipboard) {
-        clipboard->setText(ki2Text);
+    if (KifuClipboardService::copyKi2(ctx)) {
         ui->statusbar->showMessage(tr("KI2形式の棋譜をクリップボードにコピーしました"), 3000);
-        qDebug().noquote() << "[MW] copyKi2ToClipboard: copied to clipboard," << ki2Text.size() << "chars";
     } else {
-        qWarning() << "[MW] copyKi2ToClipboard: clipboard is not available";
-        ui->statusbar->showMessage(tr("クリップボードへのコピーに失敗しました"), 3000);
+        ui->statusbar->showMessage(tr("KI2形式の棋譜データがありません"), 3000);
     }
 }
 
@@ -3705,7 +3166,7 @@ void MainWindow::copyCsaToClipboard()
 
     if (m_gameRecord) {
         GameRecordModel::ExportContext ctx;
-        ctx.gameInfoTable = m_gameInfoTable;
+        ctx.gameInfoTable = m_gameInfoController ? m_gameInfoController->tableWidget() : nullptr;
         ctx.recordModel   = m_kifuRecordModel;
         ctx.startSfen     = m_startSfenStr;
         ctx.playMode      = m_playMode;
@@ -3714,12 +3175,14 @@ void MainWindow::copyCsaToClipboard()
         ctx.engine1       = m_engineName1;
         ctx.engine2       = m_engineName2;
         
-        // ★ 追加: 時間制御情報を設定
-        ctx.hasTimeControl = m_hasTimeControl;
-        ctx.initialTimeMs = static_cast<int>(m_timeControlBaseMs);
-        ctx.byoyomiMs = static_cast<int>(m_timeControlByoyomiMs);
-        ctx.fischerIncrementMs = static_cast<int>(m_timeControlIncrementMs);
-        ctx.gameStartDateTime = m_gameStartDateTime;
+        // ★ 時間制御情報をTimeControlControllerから取得
+        if (m_timeController) {
+            ctx.hasTimeControl = m_timeController->hasTimeControl();
+            ctx.initialTimeMs = static_cast<int>(m_timeController->baseTimeMs());
+            ctx.byoyomiMs = static_cast<int>(m_timeController->byoyomiMs());
+            ctx.fischerIncrementMs = static_cast<int>(m_timeController->incrementMs());
+            ctx.gameStartDateTime = m_timeController->gameStartDateTime();
+        }
 
         csaLines = m_gameRecord->toCsaLines(ctx, usiMovesForCsa);
         qDebug().noquote() << "[MW] copyCsaToClipboard: generated" << csaLines.size() << "CSA lines via GameRecordModel";
@@ -3764,7 +3227,7 @@ void MainWindow::copyUsiToClipboard()
 
     if (m_gameRecord) {
         GameRecordModel::ExportContext ctx;
-        ctx.gameInfoTable = m_gameInfoTable;
+        ctx.gameInfoTable = m_gameInfoController ? m_gameInfoController->tableWidget() : nullptr;
         ctx.recordModel   = m_kifuRecordModel;
         ctx.startSfen     = m_startSfenStr;
         ctx.playMode      = m_playMode;
@@ -3823,7 +3286,7 @@ void MainWindow::copyUsiCurrentToClipboard()
 
     if (m_gameRecord) {
         GameRecordModel::ExportContext ctx;
-        ctx.gameInfoTable = m_gameInfoTable;
+        ctx.gameInfoTable = m_gameInfoController ? m_gameInfoController->tableWidget() : nullptr;
         ctx.recordModel   = m_kifuRecordModel;
         ctx.startSfen     = m_startSfenStr;
         ctx.playMode      = m_playMode;
@@ -3863,7 +3326,7 @@ void MainWindow::copyJkfToClipboard()
 
     if (m_gameRecord) {
         GameRecordModel::ExportContext ctx;
-        ctx.gameInfoTable = m_gameInfoTable;
+        ctx.gameInfoTable = m_gameInfoController ? m_gameInfoController->tableWidget() : nullptr;
         ctx.recordModel   = m_kifuRecordModel;
         ctx.startSfen     = m_startSfenStr;
         ctx.playMode      = m_playMode;
@@ -3914,7 +3377,7 @@ void MainWindow::copyUsenToClipboard()
 
     if (m_gameRecord) {
         GameRecordModel::ExportContext ctx;
-        ctx.gameInfoTable = m_gameInfoTable;
+        ctx.gameInfoTable = m_gameInfoController ? m_gameInfoController->tableWidget() : nullptr;
         ctx.recordModel   = m_kifuRecordModel;
         ctx.startSfen     = m_startSfenStr;
         ctx.playMode      = m_playMode;
@@ -4368,7 +3831,7 @@ void MainWindow::overwriteKifuFile()
     if (m_gameRecord) {
         // ExportContext を構築
         GameRecordModel::ExportContext ctx;
-        ctx.gameInfoTable = m_gameInfoTable;
+        ctx.gameInfoTable = m_gameInfoController ? m_gameInfoController->tableWidget() : nullptr;
         ctx.recordModel   = m_kifuRecordModel;
         ctx.startSfen     = m_startSfenStr;
         ctx.playMode      = m_playMode;
@@ -4384,7 +3847,7 @@ void MainWindow::overwriteKifuFile()
     } else {
         // フォールバック: 従来の KifuContentBuilder を使用
         KifuExportContext ctx;
-        ctx.gameInfoTable = m_gameInfoTable;
+        ctx.gameInfoTable = m_gameInfoController ? m_gameInfoController->tableWidget() : nullptr;
         ctx.recordModel   = m_kifuRecordModel;
         ctx.resolvedRows  = &m_resolvedRows;
         if (m_recordPresenter) {
@@ -4859,4 +4322,38 @@ QStringList MainWindow::sfenRecordToUsiMoves_() const
     }
     
     return usiMoves;
+}
+
+// ★ 追加: クリップボード操作用コンテキスト構築
+KifuClipboardService::ExportContext MainWindow::buildClipboardContext_() const
+{
+    KifuClipboardService::ExportContext ctx;
+    ctx.gameInfoTable = m_gameInfoController ? m_gameInfoController->tableWidget() : nullptr;
+    ctx.recordModel   = m_kifuRecordModel;
+    ctx.gameRecord    = m_gameRecord;
+    ctx.startSfen     = m_startSfenStr;
+    ctx.playMode      = m_playMode;
+    ctx.human1        = m_humanName1;
+    ctx.human2        = m_humanName2;
+    ctx.engine1       = m_engineName1;
+    ctx.engine2       = m_engineName2;
+    ctx.usiMoves      = m_usiMoves;
+    ctx.sfenRecord    = m_sfenRecord;
+    ctx.currentPly    = currentPly();
+    ctx.isPlaying     = isCurrentlyPlaying_();
+    return ctx;
+}
+
+// ★ 追加: 対局中かどうかを判定
+bool MainWindow::isCurrentlyPlaying_() const
+{
+    const bool isPlayingMode = (m_playMode == EvenHumanVsEngine ||
+                                m_playMode == EvenEngineVsHuman ||
+                                m_playMode == EvenEngineVsEngine ||
+                                m_playMode == HandicapEngineVsHuman ||
+                                m_playMode == HandicapHumanVsEngine ||
+                                m_playMode == HandicapEngineVsEngine ||
+                                m_playMode == HumanVsHuman);
+    const bool isGameOver = (m_match && m_match->gameOverState().isOver);
+    return isPlayingMode && !isGameOver;
 }

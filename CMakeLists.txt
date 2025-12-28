@@ -104,6 +104,7 @@ set(UI_FILES
 # 将来的には明示列挙に切り替えてOKです。
 file(GLOB_RECURSE SRC_APP      CONFIGURE_DEPENDS src/app/*.cpp)
 file(GLOB_RECURSE SRC_CORE     CONFIGURE_DEPENDS src/core/*.cpp)
+file(GLOB_RECURSE SRC_CONTROLLERS     CONFIGURE_DEPENDS src/controllers/*.cpp)
 file(GLOB_RECURSE SRC_VIEWS    CONFIGURE_DEPENDS src/views/*.cpp)
 file(GLOB_RECURSE SRC_ENGINE   CONFIGURE_DEPENDS src/engine/*.cpp)
 file(GLOB_RECURSE SRC_MODELS   CONFIGURE_DEPENDS src/models/*.cpp)
@@ -120,6 +121,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         MANUAL_FINALIZATION
         ${SRC_APP}
         ${SRC_CORE}
+        ${SRC_CONTROLLERS}
         ${SRC_VIEWS}
         ${SRC_ENGINE}
         ${SRC_MODELS}
@@ -138,6 +140,7 @@ else()
     add_executable(ShogiBoardQ
         ${SRC_APP}
         ${SRC_CORE}
+        ${SRC_CONTROLLERS}
         ${SRC_VIEWS}
         ${SRC_ENGINE}
         ${SRC_MODELS}
