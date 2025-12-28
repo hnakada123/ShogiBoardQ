@@ -80,12 +80,15 @@
 #include "replaycontroller.h"        // ★ 追加: リプレイモード管理
 #include "dialogcoordinator.h"       // ★ 追加: ダイアログ管理
 #include "kifuexportcontroller.h"    // ★ 追加: 棋譜エクスポート管理
+#include "gamestatecontroller.h"     // ★ 追加: ゲーム状態管理
+#include "playerinfocontroller.h"    // ★ 追加: 対局者情報管理
+#include "boardsetupcontroller.h"    // ★ 追加: 盤面操作配線管理
+#include "pvclickcontroller.h"       // ★ 追加: 読み筋クリック処理
+#include "recordnavigationcontroller.h" // ★ 追加: 棋譜ナビゲーション管理
+#include "positioneditcoordinator.h"    // ★ 追加: 局面編集調整
 
-using GameOverCause = MatchCoordinator::Cause;
 using std::placeholders::_1;
 using std::placeholders::_2;
-
-static inline GameOverCause toUiCause(MatchCoordinator::Cause c) { return c; }
 
 // ★ コメント整形ヘルパ：
 //   1) '*' の直前で改行
@@ -450,25 +453,13 @@ void MainWindow::initializeNewGame(QString& startSfenStr)
 // 対局モードに応じて将棋盤上部に表示される対局者名をセットする。
 void MainWindow::setPlayersNamesForMode()
 {
-    // ShogiView が未生成なら何もしない
-    if (!m_shogiView) return;
-
-    // GameStartCoordinator がある（= 対局開始後の通常経路）の場合は従来どおり適用
-    if (m_gameStart) {
-        m_gameStart->applyPlayersNamesForMode(
-            m_shogiView,
-            m_playMode,
-            m_humanName1, m_humanName2,
-            m_engineName1, m_engineName2
-            );
-        return;
+    ensurePlayerInfoController_();
+    if (m_playerInfoController) {
+        m_playerInfoController->setPlayMode(m_playMode);
+        m_playerInfoController->setHumanNames(m_humanName1, m_humanName2);
+        m_playerInfoController->setEngineNames(m_engineName1, m_engineName2);
+        m_playerInfoController->applyPlayersNamesForMode();
     }
-
-    // ★ 起動直後（m_gameStart が未設定）のデフォルト表示を補う
-    //   「▲/▽」マークは ShogiView 側の refreshNameLabels() で自動付与されるため、
-    //   ここでは素の名前（先手/後手）のみを渡します。
-    m_shogiView->setBlackPlayerName(tr("先手"));
-    m_shogiView->setWhitePlayerName(tr("後手"));
 }
 
 // 駒台を含む将棋盤全体の画像をクリップボードにコピーする。
@@ -485,35 +476,22 @@ void MainWindow::saveShogiBoardImage()
 // 対局モードに応じて将棋盤下部に表示されるエンジン名をセットする。
 void MainWindow::setEngineNamesBasedOnMode()
 {
-    qDebug().noquote() << "[MW] ★ setEngineNamesBasedOnMode: m_playMode=" << static_cast<int>(m_playMode)
-                       << " m_engineName1=" << m_engineName1 << " m_engineName2=" << m_engineName2;
-    
-    const EngineNameMapping e =
-        PlayerNameService::computeEngineModels(m_playMode, m_engineName1, m_engineName2);
-
-    qDebug().noquote() << "[MW] ★ setEngineNamesBasedOnMode: computed model1=" << e.model1 << " model2=" << e.model2;
-
-    if (m_lineEditModel1) {
-        qDebug().noquote() << "[MW] ★ setEngineNamesBasedOnMode: setting m_lineEditModel1 to" << e.model1;
-        m_lineEditModel1->setEngineName(e.model1);
-    }
-    if (m_lineEditModel2) {
-        qDebug().noquote() << "[MW] ★ setEngineNamesBasedOnMode: setting m_lineEditModel2 to" << e.model2;
-        m_lineEditModel2->setEngineName(e.model2);
+    ensurePlayerInfoController_();
+    if (m_playerInfoController) {
+        m_playerInfoController->setPlayMode(m_playMode);
+        m_playerInfoController->setEngineNames(m_engineName1, m_engineName2);
+        m_playerInfoController->applyEngineNamesToLogModels();
     }
 }
 
 // ★ 追加: EvE対局時に2番目のエンジン情報を表示する
 void MainWindow::updateSecondEngineVisibility()
 {
-    if (!m_analysisTab) return;
-
-    // EvE対局の場合のみ2番目のエンジン情報を表示
-    const bool isEvE =
-        (m_playMode == EvenEngineVsEngine) ||
-        (m_playMode == HandicapEngineVsEngine);
-
-    m_analysisTab->setSecondEngineVisible(isEvE);
+    ensurePlayerInfoController_();
+    if (m_playerInfoController) {
+        m_playerInfoController->setPlayMode(m_playMode);
+        m_playerInfoController->updateSecondEngineVisibility();
+    }
 }
 
 // 対局者名と残り時間、将棋盤と棋譜、矢印ボタン、評価値グラフのグループを横に並べて表示する。
@@ -638,7 +616,10 @@ void MainWindow::enableArrowButtons()
 // メニューで「投了」をクリックした場合の処理を行う。
 void MainWindow::handleResignation()
 {
-    if (m_match) m_match->handleResign();
+    ensureGameStateController_();
+    if (m_gameStateController) {
+        m_gameStateController->handleResignation();
+    }
 }
 
 void MainWindow::redrawEngine1EvaluationGraph(int ply)
@@ -1100,112 +1081,25 @@ void MainWindow::applyEditMenuEditingState(bool editing)
 
 void MainWindow::beginPositionEditing()
 {
-    ensurePositionEditController_();
-    if (!m_posEdit || !m_shogiView || !m_gameController) return;
-
-    PositionEditController::BeginEditContext ctx;
-    ctx.view       = m_shogiView;
-    ctx.gc         = m_gameController;
-    ctx.bic        = m_boardController;
-    ctx.sfenRecord = m_sfenRecord ? m_sfenRecord : nullptr;
-
-    ctx.selectedPly = m_currentSelectedPly;
-    ctx.activePly   = m_activePly;
-    ctx.gameOver    = (m_match ? m_match->gameOverState().isOver : false);
-
-    ctx.startSfenStr    = &m_startSfenStr;
-    ctx.currentSfenStr  = &m_currentSfenStr;
-    ctx.resumeSfenStr   = &m_resumeSfenStr;
-
-    // ── メニュー表示（Controller → callback）: 共通ヘルパで編集メニューに遷移 ──
-    ctx.onEnterEditMenu = [this]() {
-        applyEditMenuEditingState(true);
-    };
-
-    // ── 「編集終了」ボタン表示（Controller API 経由） ──
-    ctx.onShowEditExitButton = [this]() {
-        if (m_posEdit && m_shogiView) {
-            m_posEdit->showEditExitButtonOnBoard(m_shogiView, this, SLOT(finishPositionEditing()));
-        }
-    };
-
-    // 実行（盤と文字列状態の同期等は Controller が担当）
-    m_posEdit->beginPositionEditing(ctx);
-
-    // ── 編集用アクション配線（ラムダ無し・重複防止） ─────────────
-    if (ui) {
-        // Controller のスロットへ直接接続
-        connect(ui->returnAllPiecesOnStand,      &QAction::triggered,
-                m_posEdit, &PositionEditController::onReturnAllPiecesOnStandTriggered,
-                Qt::UniqueConnection);
-
-        connect(ui->flatHandInitialPosition,     &QAction::triggered,
-                m_posEdit, &PositionEditController::onFlatHandInitialPositionTriggered,
-                Qt::UniqueConnection);
-
-        connect(ui->shogiProblemInitialPosition, &QAction::triggered,
-                m_posEdit, &PositionEditController::onShogiProblemInitialPositionTriggered,
-                Qt::UniqueConnection);
-
-        connect(ui->turnaround,                  &QAction::triggered,
-                m_posEdit, &PositionEditController::onToggleSideToMoveTriggered,
-                Qt::UniqueConnection);
-
-        // 先後反転は司令塔の責務のまま（MatchCoordinator操作）
-        connect(ui->reversal,                    &QAction::triggered,
-                this,     &MainWindow::onReverseTriggered,
-                Qt::UniqueConnection);
+    ensurePositionEditCoordinator_();
+    if (m_posEditCoordinator) {
+        // 最新の依存オブジェクトを同期
+        m_posEditCoordinator->setPositionEditController(m_posEdit);
+        m_posEditCoordinator->setBoardController(m_boardController);
+        m_posEditCoordinator->setMatchCoordinator(m_match);
+        m_posEditCoordinator->beginPositionEditing();
     }
 }
 
 void MainWindow::finishPositionEditing()
 {
-    // --- A) 自動同期を一時停止（ここが肝） ---
-    const bool prevGuard = m_onMainRowGuard;
-    m_onMainRowGuard = true;
-
-    ensurePositionEditController_();
-    if (!m_posEdit || !m_shogiView || !m_gameController) {
-        m_onMainRowGuard = prevGuard;
-        return;
+    ensurePositionEditCoordinator_();
+    if (m_posEditCoordinator) {
+        // 最新の依存オブジェクトを同期
+        m_posEditCoordinator->setPositionEditController(m_posEdit);
+        m_posEditCoordinator->setBoardController(m_boardController);
+        m_posEditCoordinator->finishPositionEditing();
     }
-
-    // Controller に委譲して SFEN の確定・sfenRecord/開始SFEN 更新・UI 後片付けを実施
-    PositionEditController::FinishEditContext ctx;
-    ctx.view       = m_shogiView;
-    ctx.gc         = m_gameController;
-    ctx.bic        = m_boardController;
-    ctx.sfenRecord = m_sfenRecord ? m_sfenRecord : nullptr;
-    ctx.startSfenStr        = &m_startSfenStr;
-    // isResumeFromCurrentはReplayController経由で設定するためnullptrを渡す
-    ctx.isResumeFromCurrent = nullptr;
-
-    // 「編集終了」ボタンの後片付け（Controller → callback）
-    ctx.onHideEditExitButton = [this]() {
-        if (m_posEdit && m_shogiView) {
-            m_posEdit->hideEditExitButtonOnBoard(m_shogiView);
-        }
-        // ★ ReplayControllerのresumeFromCurrentをfalseに設定
-        if (m_replayController) {
-            m_replayController->setResumeFromCurrent(false);
-        }
-    };
-
-    // メニューを元に戻す（Controller → callback）: 共通ヘルパで通常メニューに復帰
-    ctx.onLeaveEditMenu = [this]() {
-        applyEditMenuEditingState(false);
-    };
-
-    // 実行
-    m_posEdit->finishPositionEditing(ctx);
-
-    // --- D) 自動同期を再開 ---
-    m_onMainRowGuard = prevGuard;
-
-    qDebug() << "[EDIT-END] flags: editMode="
-             << (m_shogiView ? m_shogiView->positionEditMode() : false)
-             << " guard=" << m_onMainRowGuard
-             << " m_startSfenStr=" << m_startSfenStr;
 }
 
 // 「すぐ指させる」
@@ -1216,25 +1110,11 @@ void MainWindow::movePieceImmediately()
     }
 }
 
-void MainWindow::setGameOverMove(GameOverCause cause, bool loserIsPlayerOne)
+void MainWindow::setGameOverMove(MatchCoordinator::Cause cause, bool loserIsPlayerOne)
 {
-    if (!m_match || !m_match->gameOverState().isOver) return;
-
-    m_match->appendGameOverLineAndMark(
-        (cause == GameOverCause::Resignation) ? MatchCoordinator::Cause::Resignation
-                                              : MatchCoordinator::Cause::Timeout,
-        loserIsPlayerOne ? MatchCoordinator::P1 : MatchCoordinator::P2);
-
-    // UI 後処理は従来通り
-    if (m_shogiView) m_shogiView->update();
-    if (m_recordPane) {
-        if (auto* view = m_recordPane->kifuView()) {
-            view->setSelectionMode(QAbstractItemView::SingleSelection);
-        }
-    }
-    setReplayMode(true);
-    if (m_replayController) {
-        m_replayController->exitLiveAppendMode();
+    ensureGameStateController_();
+    if (m_gameStateController) {
+        m_gameStateController->setGameOverMove(cause, loserIsPlayerOne);
     }
 }
 
@@ -1317,105 +1197,53 @@ void MainWindow::populateDefaultGameInfo_()
 // ★ 追加: 対局者名設定フック（将棋盤ラベル更新）
 void MainWindow::onSetPlayersNames_(const QString& p1, const QString& p2)
 {
-    qDebug().noquote() << "[MW] onSetPlayersNames_: p1=" << p1 << " p2=" << p2;
-
-    // 将棋盤の対局者名ラベルを更新
-    if (m_shogiView) {
-        m_shogiView->setBlackPlayerName(p1);
-        m_shogiView->setWhitePlayerName(p2);
+    ensurePlayerInfoController_();
+    if (m_playerInfoController) {
+        m_playerInfoController->onSetPlayersNames(p1, p2);
     }
-
-    // 対局情報タブの先手・後手を更新
-    updateGameInfoPlayerNames_(p1, p2);
 }
 
 // ★ 追加: エンジン名設定フック
 void MainWindow::onSetEngineNames_(const QString& e1, const QString& e2)
 {
-    qDebug().noquote() << "[MW] ★★★ onSetEngineNames_ CALLED ★★★";
-    qDebug().noquote() << "[MW] onSetEngineNames_: e1=" << e1 << " e2=" << e2;
-    qDebug().noquote() << "[MW] onSetEngineNames_: current m_engineName1=" << m_engineName1 << " m_engineName2=" << m_engineName2;
-    qDebug().noquote() << "[MW] onSetEngineNames_: current m_playMode=" << static_cast<int>(m_playMode);
-
-    // メンバ変数に保存
-    m_engineName1 = e1;
-    m_engineName2 = e2;
-
-    qDebug().noquote() << "[MW] onSetEngineNames_: after save m_engineName1=" << m_engineName1 << " m_engineName2=" << m_engineName2;
-
-    // ログモデル名を更新
-    setEngineNamesBasedOnMode();
-
-    // ★ 追加: EvE対局時に2番目のエンジン情報を表示
-    updateSecondEngineVisibility();
-
-    // 将棋盤の対局者名ラベルを更新（PlayModeに応じて）
-    setPlayersNamesForMode();
-
-    // 対局情報タブも更新
-    updateGameInfoForCurrentMatch_();
-    
-    // ★ 追加: 評価値グラフコントローラにもエンジン名を設定
-    if (m_evalGraphController) {
-        m_evalGraphController->setEngine1Name(m_engineName1);
-        m_evalGraphController->setEngine2Name(m_engineName2);
+    ensurePlayerInfoController_();
+    if (m_playerInfoController) {
+        m_playerInfoController->setPlayMode(m_playMode);
+        m_playerInfoController->onSetEngineNames(e1, e2);
+        // MainWindow側のメンバ変数も同期
+        m_engineName1 = m_playerInfoController->engineName1();
+        m_engineName2 = m_playerInfoController->engineName2();
     }
-    
-    qDebug().noquote() << "[MW] ★★★ onSetEngineNames_ END ★★★";
 }
 
 // ★ 追加: 対局情報タブの先手・後手名を更新
 void MainWindow::updateGameInfoPlayerNames_(const QString& blackName, const QString& whiteName)
 {
-    if (m_gameInfoController) {
-        m_gameInfoController->updatePlayerNames(blackName, whiteName);
+    ensurePlayerInfoController_();
+    if (m_playerInfoController) {
+        m_playerInfoController->updateGameInfoPlayerNames(blackName, whiteName);
     }
 }
 
 // ★ 追加: 元の対局情報を保存（棋譜読み込み時に呼ばれる）
 void MainWindow::setOriginalGameInfo(const QList<KifGameInfoItem>& items)
 {
-    if (m_gameInfoController) {
-        m_gameInfoController->setGameInfo(items);
+    ensurePlayerInfoController_();
+    if (m_playerInfoController) {
+        m_playerInfoController->setOriginalGameInfo(items);
     }
 }
 
 // ★ 追加: 現在の対局に基づいて対局情報タブを更新
 void MainWindow::updateGameInfoForCurrentMatch_()
 {
-    if (!m_gameInfoController) return;
-
-    // 現在のPlayModeと対局者名に基づいて先手・後手を決定
-    QString blackName;
-    QString whiteName;
-
-    switch (m_playMode) {
-    case EvenHumanVsEngine:
-    case HandicapHumanVsEngine:
-        blackName = m_humanName1.isEmpty() ? tr("先手") : m_humanName1;
-        whiteName = m_engineName2.isEmpty() ? tr("後手") : m_engineName2;
-        break;
-    case EvenEngineVsHuman:
-    case HandicapEngineVsHuman:
-        blackName = m_engineName1.isEmpty() ? tr("先手") : m_engineName1;
-        whiteName = m_humanName2.isEmpty() ? tr("後手") : m_humanName2;
-        break;
-    case EvenEngineVsEngine:
-    case HandicapEngineVsEngine:
-        blackName = m_engineName1.isEmpty() ? tr("先手") : m_engineName1;
-        whiteName = m_engineName2.isEmpty() ? tr("後手") : m_engineName2;
-        break;
-    case HumanVsHuman:
-        blackName = m_humanName1.isEmpty() ? tr("先手") : m_humanName1;
-        whiteName = m_humanName2.isEmpty() ? tr("後手") : m_humanName2;
-        break;
-    default:
-        blackName = tr("先手");
-        whiteName = tr("後手");
-        break;
+    ensurePlayerInfoController_();
+    if (m_playerInfoController) {
+        m_playerInfoController->setPlayMode(m_playMode);
+        m_playerInfoController->setHumanNames(m_humanName1, m_humanName2);
+        m_playerInfoController->setEngineNames(m_engineName1, m_engineName2);
+        m_playerInfoController->updateGameInfoForCurrentMatch();
     }
-
-    updateGameInfoPlayerNames_(blackName, whiteName);
 }
 
 // ★ 追加: 対局者名確定時のスロット
@@ -1423,12 +1251,7 @@ void MainWindow::onPlayerNamesResolved_(const QString& human1, const QString& hu
                                         const QString& engine1, const QString& engine2,
                                         int playMode)
 {
-    qDebug().noquote() << "[MW] onPlayerNamesResolved_:"
-                       << " human1=" << human1
-                       << " human2=" << human2
-                       << " engine1=" << engine1
-                       << " engine2=" << engine2
-                       << " playMode=" << playMode;
+    qDebug().noquote() << "[MW] onPlayerNamesResolved_: playMode=" << playMode;
 
     // メンバ変数に保存
     m_humanName1 = human1;
@@ -1437,17 +1260,10 @@ void MainWindow::onPlayerNamesResolved_(const QString& human1, const QString& hu
     m_engineName2 = engine2;
     m_playMode = static_cast<PlayMode>(playMode);
 
-    // 将棋盤の対局者名ラベルを更新
-    setPlayersNamesForMode();
-
-    // エンジン名をログモデルに反映
-    setEngineNamesBasedOnMode();
-
-    // ★ 追加: EvE対局時に2番目のエンジン情報を表示
-    updateSecondEngineVisibility();
-
-    // 対局情報タブを更新
-    updateGameInfoForCurrentMatch_();
+    ensurePlayerInfoController_();
+    if (m_playerInfoController) {
+        m_playerInfoController->onPlayerNamesResolved(human1, human2, engine1, engine2, playMode);
+    }
 }
 
 // ★ 追加: GameInfoPaneControllerからの更新通知
@@ -1460,19 +1276,10 @@ void MainWindow::onGameInfoUpdated_(const QList<KifGameInfoItem>& items)
 
 void MainWindow::syncBoardAndHighlightsAtRow(int ply)
 {
-    // 位置編集モード中は従来どおりスキップ
-    if (m_shogiView && m_shogiView->positionEditMode()) {
-        qDebug() << "[UI] syncBoardAndHighlightsAtRow skipped (edit-mode). ply=" << ply;
-        return;
+    ensureRecordNavigationController_();
+    if (m_recordNavController) {
+        m_recordNavController->syncBoardAndHighlightsAtRow(ply);
     }
-
-    ensureBoardSyncPresenter_();
-    if (m_boardSync) {
-        m_boardSync->syncBoardAndHighlightsAtRow(ply);
-    }
-
-    // 旧コードが行っていた「矢印ボタンの活性化」等の軽いUIは残す
-    enableArrowButtons();
 }
 
 void MainWindow::applyResolvedRowAndSelect(int row, int selPly)
@@ -1570,63 +1377,10 @@ int MainWindow::currentPly() const
 
 void MainWindow::applySelect(int row, int ply)
 {
-    // ★ 追加: 未保存のコメント編集がある場合、警告を表示
-    if (m_analysisTab && m_analysisTab->hasUnsavedComment()) {
-        const int editingRow = m_analysisTab->currentMoveIndex();
-        // 同じ行への移動でなければ警告
-        if (ply != editingRow) {
-            qDebug().noquote()
-                << "[MW] applySelect: UNSAVED_COMMENT_CHECK"
-                << " targetPly=" << ply
-                << " editingRow=" << editingRow
-                << " hasUnsavedComment=true";
-            if (!m_analysisTab->confirmDiscardUnsavedComment()) {
-                qDebug().noquote() << "[MW] applySelect: User cancelled, aborting navigation";
-                return;  // ナビゲーションを中断
-            }
-        }
+    ensureRecordNavigationController_();
+    if (m_recordNavController) {
+        m_recordNavController->applySelect(row, ply);
     }
-
-    // ライブ append 中 or 解決済み行が未構築のときは
-    // → 表の選択を直接動かして局面・ハイライトを同期
-    const bool liveAppendMode = m_replayController ? m_replayController->isLiveAppendMode() : false;
-    if (liveAppendMode || m_resolvedRows.isEmpty()) {
-        if (m_recordPane && m_kifuRecordModel) {
-            if (QTableView* view = m_recordPane->kifuView()) {
-                const int rows = m_kifuRecordModel->rowCount();
-                const int safe = (rows > 0) ? qBound(0, ply, rows - 1) : 0;
-
-                const QModelIndex idx = m_kifuRecordModel->index(safe, 0);
-                if (idx.isValid()) {
-                    if (auto* sel = view->selectionModel()) {
-                        sel->setCurrentIndex(
-                            idx, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
-                    } else {
-                        view->setCurrentIndex(idx);
-                    }
-                    view->scrollTo(idx, QAbstractItemView::PositionAtCenter);
-                }
-
-                // ★ 追加：棋譜欄のハイライト行を更新
-                m_kifuRecordModel->setCurrentHighlightRow(safe);
-
-                // 盤・ハイライト即時同期（従来の onMainMoveRowChanged と同じ流れ）
-                syncBoardAndHighlightsAtRow(safe);
-
-                // ★ 修正点：currentPly() のベースになるトラッキングを更新
-                m_activePly          = safe;   // ← 追加
-                m_currentSelectedPly = safe;
-                m_currentMoveIndex   = safe;
-
-                // ★ 追加：盤面適用後に手番表示を更新
-                setCurrentTurn();
-            }
-        }
-        return;
-    }
-
-    // 通常（KIF再生/分岐再生）ルート
-    applyResolvedRowAndSelect(row, ply);
 }
 
 void MainWindow::setupRecordPane()
@@ -1868,32 +1622,10 @@ void MainWindow::ensureTimeController_()
 
 void MainWindow::onMatchGameEnded(const MatchCoordinator::GameEndInfo& info)
 {
-    qDebug().nospace()
-    << "[UI] onMatchGameEnded ENTER cause="
-    << ((info.cause==MatchCoordinator::Cause::Timeout)?"Timeout":"Resign")
-    << " loser=" << ((info.loser==MatchCoordinator::P1)?"P1":"P2");
-
-    // 対局終了時のスタイル維持を有効化（ダイアログ表示中もスタイルを維持）
-    if (m_shogiView) m_shogiView->setGameOverStyleLock(true);
-
-    // --- UI 後始末（UI層に残す） ---
-    if (m_match)      m_match->disarmHumanTimerIfNeeded();
-    if (ShogiClock* clk = m_timeController ? m_timeController->clock() : nullptr) {
-        clk->stopClock();
+    ensureGameStateController_();
+    if (m_gameStateController) {
+        m_gameStateController->onMatchGameEnded(info);
     }
-    if (m_shogiView)  m_shogiView->setMouseClickMode(false);
-
-    // --- 棋譜追記＋時間確定は司令塔へ一括委譲 ---
-    const bool loserIsP1 = (info.loser == MatchCoordinator::P1);
-    setGameOverMove(toUiCause(info.cause), /*loserIsPlayerOne=*/loserIsP1);
-
-    // --- UIの後処理（矢印ボタン・選択モード整え） ---
-    enableArrowButtons();
-    if (m_recordPane && m_recordPane->kifuView()) {
-        m_recordPane->kifuView()->setSelectionMode(QAbstractItemView::SingleSelection);
-    }
-
-    qDebug() << "[UI] onMatchGameEnded LEAVE";
 }
 
 void MainWindow::onActionFlipBoardTriggered(bool /*checked*/)
@@ -1903,146 +1635,55 @@ void MainWindow::onActionFlipBoardTriggered(bool /*checked*/)
 
 void MainWindow::onRequestAppendGameOverMove(const MatchCoordinator::GameEndInfo& info)
 {
-    const bool loserIsP1 = (info.loser == MatchCoordinator::P1);
-    setGameOverMove(toUiCause(info.cause), loserIsP1);
+    ensureGameStateController_();
+    if (m_gameStateController) {
+        m_gameStateController->onRequestAppendGameOverMove(info);
+    }
 }
 
 void MainWindow::setupBoardInteractionController()
 {
-    // 既存があれば入れ替え
-    if (m_boardController) {
-        m_boardController->deleteLater();
-        m_boardController = nullptr;
+    ensureBoardSetupController_();
+    if (m_boardSetupController) {
+        m_boardSetupController->setupBoardInteractionController();
+        m_boardController = m_boardSetupController->boardController();
     }
-
-    // コントローラ生成
-    m_boardController = new BoardInteractionController(m_shogiView, m_gameController, this);
-
-    // 盤クリックの配線
-    connectBoardClicks_();
-
-    // 人間操作 → 合法判定＆適用の配線
-    connectMoveRequested_();
-
-    // 既定モード（必要に応じて開始時に上書き）
-    m_boardController->setMode(BoardInteractionController::Mode::HumanVsHuman);
 }
 
 void MainWindow::connectBoardClicks_()
 {
-    Q_ASSERT(m_shogiView && m_boardController);
-
-    QObject::connect(m_shogiView, &ShogiView::clicked,
-                     m_boardController, &BoardInteractionController::onLeftClick,
-                     Qt::UniqueConnection);
-
-    QObject::connect(m_shogiView, &ShogiView::rightClicked,
-                     m_boardController, &BoardInteractionController::onRightClick,
-                     Qt::UniqueConnection);
+    ensureBoardSetupController_();
+    if (m_boardSetupController) {
+        m_boardSetupController->connectBoardClicks();
+    }
 }
 
 void MainWindow::connectMoveRequested_()
 {
-    Q_ASSERT(m_boardController && m_gameController);
-
-    QObject::connect(
-        m_boardController, &BoardInteractionController::moveRequested,
-        this,              &MainWindow::onMoveRequested_,
-        Qt::UniqueConnection);
+    // BoardInteractionControllerからのシグナルをMainWindow経由で処理
+    if (m_boardController) {
+        QObject::connect(
+            m_boardController, &BoardInteractionController::moveRequested,
+            this,              &MainWindow::onMoveRequested_,
+            Qt::UniqueConnection);
+    }
 }
 
 void MainWindow::onMoveRequested_(const QPoint& from, const QPoint& to)
 {
-    qInfo() << "[UI] onMoveRequested_ from=" << from << " to=" << to
-            << " m_playMode=" << int(m_playMode);
-
-    // --- 編集モードは Controller へ丸投げ ---
-    if (m_boardController && m_boardController->mode() == BoardInteractionController::Mode::Edit) {
-        ensurePositionEditController_();
-        if (!m_posEdit || !m_shogiView || !m_gameController) return;
-
-        const bool ok = m_posEdit->applyEditMove(from, to, m_shogiView, m_gameController, m_boardController);
-        if (!ok) qInfo() << "[UI] editPosition failed (edit-mode move rejected)";
-        return;
-    }
-
-    // ▼▼▼ 通常対局 ▼▼▼
-    if (!m_gameController) {
-        qWarning() << "[UI][WARN] m_gameController is null";
-        return;
-    }
-
-    PlayMode matchMode = (m_match ? m_match->playMode() : NotStarted);
-    PlayMode modeNow   = (m_playMode != NotStarted) ? m_playMode : matchMode;
-
-    qInfo() << "[UI] effective modeNow=" << int(modeNow)
-            << "(ui m_playMode=" << int(m_playMode) << ", matchMode=" << int(matchMode) << ")";
-
-    // 着手前の手番（HvH/HvE 後処理で使用）
-    const auto moverBefore = m_gameController->currentPlayer();
-
-    // validateAndMove は参照引数なのでローカルに退避
-    QPoint hFrom = from, hTo = to;
-
-    // ★ 次の着手番号は「記録サイズ」を信頼する（既存ロジックのまま）
-    const int recSizeBefore = (m_sfenRecord ? static_cast<int>(m_sfenRecord->size()) : 0);
-    const int nextIdx       = qMax(1, recSizeBefore);
-
-    // ここで合法判定＆盤面反映。m_lastMove に「▲７六歩」のような整形済み文字列がセットされる
-    const bool ok = m_gameController->validateAndMove(
-        hFrom, hTo, m_lastMove, modeNow, const_cast<int&>(nextIdx), m_sfenRecord, m_gameMoves);
-
-    if (m_boardController) m_boardController->onMoveApplied(hFrom, hTo, ok);
-    if (!ok) {
-        qInfo() << "[UI] validateAndMove failed (human move rejected)";
-        return;
-    }
-
-    // UI 側の現在カーソルは、常に「記録サイズ」に同期させる
-    if (m_sfenRecord) {
-        m_currentMoveIndex = static_cast<int>(m_sfenRecord->size() - 1); // 末尾（直近の局面）
-    }
-
-    // --- 対局モードごとの後処理 ---
-    switch (modeNow) {
-    case HumanVsHuman: {
-        qInfo() << "[UI] HvH: delegate post-human-move to MatchCoordinator";
-        if (m_match) {
-            // 直前手の考慮msを ShogiClock へ確定（MatchCoordinator 側で行う）
-            m_match->onHumanMove_HvH(moverBefore);
-        }
-
-        // ★ 追加：HvH でも「指し手＋考慮時間」を棋譜欄に追記する
-        // MatchCoordinator::onHumanMove_HvH() で直前手の考慮時間を ShogiClock に確定済み。
-        QString elapsed;
-        ShogiClock* clk = m_timeController ? m_timeController->clock() : nullptr;
-        if (clk) {
-            elapsed = (moverBefore == ShogiGameController::Player1)
-                ? clk->getPlayer1ConsiderationAndTotalTime()
-                : clk->getPlayer2ConsiderationAndTotalTime();
-        } else {
-            ensureTimeController_();
-            elapsed = QStringLiteral("00:00/00:00:00"); // フォールバック
-        }
-
-        // m_lastMove（validateAndMoveで得た表示用文字列）＋ elapsed を1行追記
-        updateGameRecord(elapsed);
-        break;
-    }
-
-    case EvenHumanVsEngine:
-    case HandicapHumanVsEngine:
-    case EvenEngineVsHuman:
-    case HandicapEngineVsHuman:
-        if (m_match) {
-            qInfo() << "[UI] HvE: forwarding to MatchCoordinator::onHumanMove_HvE";
-            m_match->onHumanMove_HvE(hFrom, hTo, m_lastMove);
-        }
-        break;
-
-    default:
-        qInfo() << "[UI] not a live play mode; skip post-handling";
-        break;
+    qDebug().noquote() << "[MW] onMoveRequested_: from=" << from << " to=" << to
+                       << " m_playMode=" << static_cast<int>(m_playMode)
+                       << " m_match=" << (m_match ? "valid" : "null")
+                       << " matchMode=" << (m_match ? static_cast<int>(m_match->playMode()) : -1);
+    
+    ensureBoardSetupController_();
+    if (m_boardSetupController) {
+        // 最新の状態を同期
+        m_boardSetupController->setPlayMode(m_playMode);
+        m_boardSetupController->setMatchCoordinator(m_match);
+        m_boardSetupController->setPositionEditController(m_posEdit);
+        m_boardSetupController->setTimeController(m_timeController);
+        m_boardSetupController->onMoveRequested(from, to);
     }
 }
 
@@ -2117,20 +1758,10 @@ void MainWindow::onBranchNodeActivated_(int row, int ply)
 // 毎手の着手確定時：ライブ分岐ツリー更新をイベントループ後段に遅延
 void MainWindow::onMoveCommitted(ShogiGameController::Player mover, int ply)
 {
-    // 1) いまは即時呼び出しを行わず、0ms 遅延で呼ぶ
-    QTimer::singleShot(0, this, &MainWindow::refreshBranchTreeLive_);
-
-    // 2) （従来通り）EvE の評価グラフだけは維持
-    const bool isEvE =
-        (m_playMode == EvenEngineVsEngine) ||
-        (m_playMode == HandicapEngineVsEngine);
-
-    if (isEvE) {
-        if (mover == ShogiGameController::Player1) {
-            redrawEngine1EvaluationGraph(ply);
-        } else if (mover == ShogiGameController::Player2) {
-            redrawEngine2EvaluationGraph(ply);
-        }
+    ensureBoardSetupController_();
+    if (m_boardSetupController) {
+        m_boardSetupController->setPlayMode(m_playMode);
+        m_boardSetupController->onMoveCommitted(mover, ply);
     }
 }
 
@@ -2223,57 +1854,18 @@ void MainWindow::onBoardSizeChanged(QSize fieldSize)
 
 void MainWindow::onGameOverStateChanged(const MatchCoordinator::GameOverState& st)
 {
-    // 司令塔が isOver / Cause / KIF一行追記 まで面倒を見る前提
-    if (!st.isOver) return;
-
-    // ★ 重要：投了行がまだ追加されていない場合は何もしない
-    // 投了行追加後に再度このシグナルが発火するので、その時に処理する
-    if (!st.moveAppended) {
-        return;
-    }
-
-    // ★ ライブ追記モードを終了
-    if (m_replayController) {
-        m_replayController->exitLiveAppendMode();
-    };
-
-    // ★ 追加：分岐コンテキストをリセット（分岐として処理されないように）
-    if (m_kifuLoadCoordinator) {
-        m_kifuLoadCoordinator->resetBranchContext();
-    }
-
-    // ★ 追加：m_currentSelectedPlyを先にリセット（refreshBranchTreeLive_で使われるため）
-    m_currentSelectedPly = 0;
-
-    // ★ 追加：対局終了時にresolvedRowsを構築（ナビゲーション用）
-    refreshBranchTreeLive_();
-
-    // ★ 追加：対局終了時に現在の手数（最終手）を正しく設定
-    // これにより、終了直後のナビゲーションボタン操作が正常に動作する
-    if (m_kifuRecordModel) {
-        const int rows = m_kifuRecordModel->rowCount();
-        if (rows > 0) {
-            const int lastRow = rows - 1;  // 最終手の行（0始まり）
-            m_activePly          = lastRow;
-            m_currentSelectedPly = lastRow;
-            m_currentMoveIndex   = lastRow;
-        }
-    }
-
-    // UI 遷移（閲覧モードへ）
-    enableArrowButtons();
-    setReplayMode(true);
-
-    // ハイライト消去
-    if (m_shogiView) {
-        m_shogiView->removeHighlightAllData();
+    ensureGameStateController_();
+    if (m_gameStateController) {
+        m_gameStateController->onGameOverStateChanged(st);
     }
 }
 
 void MainWindow::handleBreakOffGame()
 {
-    if (!m_match || m_match->gameOverState().isOver) return;
-    m_match->handleBreakOff();
+    ensureGameStateController_();
+    if (m_gameStateController) {
+        m_gameStateController->handleBreakOffGame();
+    }
 }
 
 void MainWindow::ensureReplayController_()
@@ -2344,6 +1936,200 @@ void MainWindow::updateKifuExportDependencies_()
     deps.currentSelectedPly = m_currentSelectedPly;
 
     m_kifuExportController->setDependencies(deps);
+}
+
+void MainWindow::ensureGameStateController_()
+{
+    if (m_gameStateController) return;
+
+    m_gameStateController = new GameStateController(this);
+
+    // 依存オブジェクトの設定
+    m_gameStateController->setMatchCoordinator(m_match);
+    m_gameStateController->setShogiView(m_shogiView);
+    m_gameStateController->setRecordPane(m_recordPane);
+    m_gameStateController->setReplayController(m_replayController);
+    m_gameStateController->setTimeController(m_timeController);
+    m_gameStateController->setKifuLoadCoordinator(m_kifuLoadCoordinator);
+    m_gameStateController->setKifuRecordModel(m_kifuRecordModel);
+    m_gameStateController->setPlayMode(m_playMode);
+
+    // コールバックの設定
+    m_gameStateController->setEnableArrowButtonsCallback([this]() {
+        enableArrowButtons();
+    });
+    m_gameStateController->setSetReplayModeCallback([this](bool on) {
+        setReplayMode(on);
+    });
+    m_gameStateController->setRefreshBranchTreeCallback([this]() {
+        m_currentSelectedPly = 0;  // リセット
+        refreshBranchTreeLive_();
+    });
+    m_gameStateController->setUpdatePlyStateCallback([this](int activePly, int selectedPly, int moveIndex) {
+        m_activePly = activePly;
+        m_currentSelectedPly = selectedPly;
+        m_currentMoveIndex = moveIndex;
+    });
+}
+
+void MainWindow::ensurePlayerInfoController_()
+{
+    if (m_playerInfoController) return;
+
+    m_playerInfoController = new PlayerInfoController(this);
+
+    // 依存オブジェクトの設定
+    m_playerInfoController->setShogiView(m_shogiView);
+    m_playerInfoController->setGameInfoController(m_gameInfoController);
+    m_playerInfoController->setEvalGraphController(m_evalGraphController);
+    m_playerInfoController->setLogModels(m_lineEditModel1, m_lineEditModel2);
+    m_playerInfoController->setAnalysisTab(m_analysisTab);
+}
+
+void MainWindow::ensureBoardSetupController_()
+{
+    if (m_boardSetupController) return;
+
+    m_boardSetupController = new BoardSetupController(this);
+
+    // 依存オブジェクトの設定
+    m_boardSetupController->setShogiView(m_shogiView);
+    m_boardSetupController->setGameController(m_gameController);
+    m_boardSetupController->setMatchCoordinator(m_match);
+    m_boardSetupController->setTimeController(m_timeController);
+    m_boardSetupController->setSfenRecord(m_sfenRecord);
+    m_boardSetupController->setGameMoves(&m_gameMoves);
+    m_boardSetupController->setCurrentMoveIndex(&m_currentMoveIndex);
+
+    // コールバックの設定
+    m_boardSetupController->setEnsurePositionEditCallback([this]() {
+        ensurePositionEditController_();
+    });
+    m_boardSetupController->setEnsureTimeControllerCallback([this]() {
+        ensureTimeController_();
+    });
+    m_boardSetupController->setUpdateGameRecordCallback([this](const QString& elapsed) {
+        updateGameRecord(elapsed);
+    });
+    m_boardSetupController->setRedrawEngine1GraphCallback([this](int ply) {
+        redrawEngine1EvaluationGraph(ply);
+    });
+    m_boardSetupController->setRedrawEngine2GraphCallback([this](int ply) {
+        redrawEngine2EvaluationGraph(ply);
+    });
+    m_boardSetupController->setRefreshBranchTreeCallback([this]() {
+        refreshBranchTreeLive_();
+    });
+}
+
+void MainWindow::ensurePvClickController_()
+{
+    if (m_pvClickController) return;
+
+    m_pvClickController = new PvClickController(this);
+
+    // 依存オブジェクトの設定
+    m_pvClickController->setThinkingModels(m_modelThinking1, m_modelThinking2);
+    m_pvClickController->setLogModels(m_lineEditModel1, m_lineEditModel2);
+    m_pvClickController->setSfenRecord(m_sfenRecord);
+    m_pvClickController->setGameMoves(&m_gameMoves);
+    m_pvClickController->setUsiMoves(&m_usiMoves);
+}
+
+void MainWindow::ensureRecordNavigationController_()
+{
+    if (m_recordNavController) return;
+
+    m_recordNavController = new RecordNavigationController(this);
+
+    // 依存オブジェクトの設定
+    m_recordNavController->setShogiView(m_shogiView);
+    m_recordNavController->setBoardSyncPresenter(m_boardSync);
+    m_recordNavController->setKifuRecordModel(m_kifuRecordModel);
+    m_recordNavController->setKifuLoadCoordinator(m_kifuLoadCoordinator);
+    m_recordNavController->setReplayController(m_replayController);
+    m_recordNavController->setAnalysisTab(m_analysisTab);
+    m_recordNavController->setRecordPane(m_recordPane);
+    m_recordNavController->setRecordPresenter(m_recordPresenter);
+
+    // 状態参照の設定
+    m_recordNavController->setResolvedRows(&m_resolvedRows);
+    m_recordNavController->setActiveResolvedRow(&m_activeResolvedRow);
+
+    // コールバックの設定
+    m_recordNavController->setEnsureBoardSyncCallback([this]() {
+        ensureBoardSyncPresenter_();
+        if (m_recordNavController) {
+            m_recordNavController->setBoardSyncPresenter(m_boardSync);
+        }
+    });
+    m_recordNavController->setEnableArrowButtonsCallback([this]() {
+        enableArrowButtons();
+    });
+    m_recordNavController->setSetCurrentTurnCallback([this]() {
+        setCurrentTurn();
+    });
+    m_recordNavController->setBroadcastCommentCallback([this](const QString& text, bool asHtml) {
+        broadcastComment(text, asHtml);
+    });
+    m_recordNavController->setApplyResolvedRowAndSelectCallback([this](int row, int ply) {
+        applyResolvedRowAndSelect(row, ply);
+    });
+    m_recordNavController->setUpdatePlyStateCallback([this](int activePly, int selectedPly, int moveIndex) {
+        m_activePly = activePly;
+        m_currentSelectedPly = selectedPly;
+        m_currentMoveIndex = moveIndex;
+    });
+}
+
+void MainWindow::ensurePositionEditCoordinator_()
+{
+    if (m_posEditCoordinator) return;
+
+    m_posEditCoordinator = new PositionEditCoordinator(this);
+
+    // 依存オブジェクトの設定
+    m_posEditCoordinator->setShogiView(m_shogiView);
+    m_posEditCoordinator->setGameController(m_gameController);
+    m_posEditCoordinator->setBoardController(m_boardController);
+    m_posEditCoordinator->setPositionEditController(m_posEdit);
+    m_posEditCoordinator->setMatchCoordinator(m_match);
+    m_posEditCoordinator->setReplayController(m_replayController);
+    m_posEditCoordinator->setSfenRecord(m_sfenRecord);
+
+    // 状態参照の設定
+    m_posEditCoordinator->setCurrentSelectedPly(&m_currentSelectedPly);
+    m_posEditCoordinator->setActivePly(&m_activePly);
+    m_posEditCoordinator->setStartSfenStr(&m_startSfenStr);
+    m_posEditCoordinator->setCurrentSfenStr(&m_currentSfenStr);
+    m_posEditCoordinator->setResumeSfenStr(&m_resumeSfenStr);
+    m_posEditCoordinator->setOnMainRowGuard(&m_onMainRowGuard);
+
+    // コールバックの設定
+    m_posEditCoordinator->setApplyEditMenuStateCallback([this](bool editing) {
+        applyEditMenuEditingState(editing);
+    });
+    m_posEditCoordinator->setEnsurePositionEditCallback([this]() {
+        ensurePositionEditController_();
+        if (m_posEditCoordinator) {
+            m_posEditCoordinator->setPositionEditController(m_posEdit);
+        }
+    });
+
+    // 編集用アクションの設定
+    if (ui) {
+        PositionEditCoordinator::EditActions actions;
+        actions.returnAllPiecesOnStand = ui->returnAllPiecesOnStand;
+        actions.flatHandInitialPosition = ui->flatHandInitialPosition;
+        actions.shogiProblemInitialPosition = ui->shogiProblemInitialPosition;
+        actions.turnaround = ui->turnaround;
+        actions.reversal = ui->reversal;
+        m_posEditCoordinator->setEditActions(actions);
+    }
+
+    // 先後反転シグナルの接続
+    connect(m_posEditCoordinator, &PositionEditCoordinator::reversalTriggered,
+            this, &MainWindow::onReverseTriggered, Qt::UniqueConnection);
 }
 
 // 「検討を終了」アクション用：エンジンに quit を送り検討セッションを終了
@@ -2667,141 +2453,10 @@ void MainWindow::appendKifuLineHook_(const QString& text, const QString& elapsed
 
 void MainWindow::onRecordRowChangedByPresenter(int row, const QString& comment)
 {
-    const int modelRowsBefore =
-        (m_kifuRecordModel ? m_kifuRecordModel->rowCount() : -1);
-    const int presenterCurBefore =
-        (m_recordPresenter ? m_recordPresenter->currentRow() : -1);
-
-    qDebug().noquote()
-        << "[MW] onRecordRowChangedByPresenter ENTER"
-        << " row=" << row
-        << " comment.len=" << comment.size()
-        << " modelRows(before)=" << modelRowsBefore
-        << " presenter.cur(before)=" << presenterCurBefore
-        << " tracking.before{ activePly=" << m_activePly
-        << ", currentSelectedPly=" << m_currentSelectedPly
-        << ", currentMoveIndex=" << m_currentMoveIndex << " }";
-
-    // ★ デバッグ: 未保存コメント警告チェックの状態を出力
-    // EngineAnalysisTab::m_currentMoveIndexが正しい「編集中の行」を保持している
-    const int editingRow = (m_analysisTab ? m_analysisTab->currentMoveIndex() : -1);
-    qDebug().noquote()
-        << "[MW] UNSAVED_COMMENT_CHECK:"
-        << " m_analysisTab=" << (m_analysisTab ? "valid" : "null")
-        << " hasUnsavedComment=" << (m_analysisTab ? m_analysisTab->hasUnsavedComment() : false)
-        << " row=" << row
-        << " editingRow(from EngineAnalysisTab)=" << editingRow
-        << " m_currentMoveIndex(MainWindow)=" << m_currentMoveIndex
-        << " rowDiffers=" << (row != editingRow);
-
-    // ★ 追加: 未保存のコメント編集がある場合、警告を表示
-    if (m_analysisTab && m_analysisTab->hasUnsavedComment()) {
-        qDebug().noquote() << "[MW] UNSAVED_COMMENT_CHECK: hasUnsavedComment=TRUE, checking row difference...";
-        // 同じ行への「移動」は無視（初期化時など）
-        // ★ 修正: MainWindow::m_currentMoveIndexではなくEngineAnalysisTab::currentMoveIndex()を使用
-        if (row != editingRow) {
-            qDebug().noquote() << "[MW] UNSAVED_COMMENT_CHECK: row differs, showing confirm dialog...";
-            if (!m_analysisTab->confirmDiscardUnsavedComment()) {
-                // キャンセルされた場合、元の行に戻す
-                qDebug().noquote() << "[MW] User cancelled row change, reverting to row=" << editingRow;
-                if (m_recordPane && m_recordPane->kifuView()) {
-                    QTableView* kifuView = m_recordPane->kifuView();
-                    if (kifuView->model() && editingRow >= 0 && editingRow < kifuView->model()->rowCount()) {
-                        // シグナルをブロックして元の行に戻す
-                        QSignalBlocker blocker(kifuView->selectionModel());
-                        kifuView->setCurrentIndex(kifuView->model()->index(editingRow, 0));
-                    }
-                }
-                return;  // 処理を中断
-            } else {
-                qDebug().noquote() << "[MW] UNSAVED_COMMENT_CHECK: User confirmed discard, proceeding...";
-            }
-        } else {
-            qDebug().noquote() << "[MW] UNSAVED_COMMENT_CHECK: same row, skipping confirm dialog";
-        }
-    } else {
-        qDebug().noquote() << "[MW] UNSAVED_COMMENT_CHECK: no unsaved comment or analysisTab is null";
+    ensureRecordNavigationController_();
+    if (m_recordNavController) {
+        m_recordNavController->onRecordRowChangedByPresenter(row, comment);
     }
-
-    // 盤面・ハイライト同期
-    if (row >= 0) {
-        qDebug().noquote() << "[MW] syncBoardAndHighlightsAtRow CALL row=" << row;
-        syncBoardAndHighlightsAtRow(row);
-        qDebug().noquote() << "[MW] syncBoardAndHighlightsAtRow DONE row=" << row;
-
-        // ▼ 現在手数トラッキングを更新（NavigationController::next/prev 用）
-        int oldActivePly = m_activePly;
-        int oldCurrentSelectedPly = m_currentSelectedPly;
-        int oldCurrentMoveIndex = m_currentMoveIndex;
-        
-        m_activePly          = row;   // ← これが無いと currentPly() が 0 のまま
-        m_currentSelectedPly = row;
-        m_currentMoveIndex   = row;
-
-        qDebug().noquote()
-            << "[MW] tracking UPDATED"
-            << " activePly=" << oldActivePly << "->" << m_activePly
-            << " currentSelectedPly=" << oldCurrentSelectedPly << "->" << m_currentSelectedPly
-            << " currentMoveIndex=" << oldCurrentMoveIndex << "->" << m_currentMoveIndex;
-
-        // ▼ 分岐候補欄の更新は Coordinator へ直接委譲
-        if (m_kifuLoadCoordinator) {
-            const qsizetype rows        = m_resolvedRows.size();
-            const int resolvedRow = (rows <= 0) ? 0 : static_cast<int>(qBound(qsizetype(0), qsizetype(m_activeResolvedRow), rows - 1));
-            const int safePly     = (row < 0) ? 0 : row;
-
-            qDebug().noquote()
-                << "[MW] showBranchCandidates CALL"
-                << " resolvedRows.size=" << rows
-                << " activeResolvedRow=" << m_activeResolvedRow
-                << " resolvedRow=" << resolvedRow
-                << " safePly=" << safePly;
-
-            m_kifuLoadCoordinator->showBranchCandidates(resolvedRow, safePly);
-
-            qDebug().noquote() << "[MW] showBranchCandidates DONE";
-        } else {
-            qWarning().noquote() << "[MW] m_kifuLoadCoordinator is nullptr; skip showBranchCandidates";
-        }
-    } else {
-        qWarning().noquote() << "[MW] row < 0; skip sync/tracking";
-    }
-
-    // コメント表示は既存の一括関数に統一
-    const QString cmt = comment.trimmed();
-    qDebug().noquote()
-        << "[MW] broadcastComment"
-        << " empty?=" << cmt.isEmpty()
-        << " len=" << cmt.size();
-    broadcastComment(cmt.isEmpty() ? tr("コメントなし") : cmt, /*asHtml=*/true);
-
-    // 矢印ボタンなどの活性化（直前の状態を可視化）
-    const int modelRowsAfter =
-        (m_kifuRecordModel ? m_kifuRecordModel->rowCount() : -1);
-    const int presenterCurAfter =
-        (m_recordPresenter ? m_recordPresenter->currentRow() : -1);
-    const bool canPrevComputed = (presenterCurAfter > 0);
-    const bool canNextComputed = (modelRowsAfter >= 0) ? (presenterCurAfter < modelRowsAfter - 1) : false;
-
-    qDebug().noquote()
-        << "[MW] enableArrowButtons BEFORE"
-        << " presenter.cur(after)=" << presenterCurAfter
-        << " modelRows(after)=" << modelRowsAfter
-        << " canPrev(computed)=" << canPrevComputed
-        << " canNext(computed)=" << canNextComputed
-        << " atLastRow?=" << (presenterCurAfter >= 0 && modelRowsAfter >= 0 && presenterCurAfter == modelRowsAfter - 1);
-
-    enableArrowButtons();
-
-    // ここでは UI の有効/無効を直接読めないため、計算値を再掲
-    qDebug().noquote()
-        << "[MW] enableArrowButtons AFTER (restate)"
-        << " presenter.cur=" << presenterCurAfter
-        << " modelRows=" << modelRowsAfter
-        << " canPrev(computed)=" << canPrevComputed
-        << " canNext(computed)=" << canNextComputed;
-
-    qDebug().noquote() << "[MW] onRecordRowChangedByPresenter LEAVE";
 }
 
 void MainWindow::onFlowError_(const QString& msg)
@@ -2963,26 +2618,31 @@ void MainWindow::setMainRowGuard_(bool on)
 
 bool MainWindow::isHvH_() const
 {
+    if (m_gameStateController) {
+        return m_gameStateController->isHvH();
+    }
     return (m_playMode == HumanVsHuman);
 }
 
 bool MainWindow::isHumanSide_(ShogiGameController::Player p) const
 {
-    // 「どちら側が人間か」を PlayMode から判定
+    if (m_gameStateController) {
+        return m_gameStateController->isHumanSide(p);
+    }
+    // フォールバック
     switch (m_playMode) {
     case HumanVsHuman:
-        return true; // 両方人間
+        return true;
     case EvenHumanVsEngine:
     case HandicapHumanVsEngine:
-        return (p == ShogiGameController::Player1); // 先手＝人
+        return (p == ShogiGameController::Player1);
     case EvenEngineVsHuman:
     case HandicapEngineVsHuman:
-        return (p == ShogiGameController::Player2); // 後手＝人
+        return (p == ShogiGameController::Player2);
     case EvenEngineVsEngine:
     case HandicapEngineVsEngine:
         return false;
     default:
-        // 未開始/検討系は人が操作主体という前提
         return true;
     }
 }
@@ -3241,182 +2901,15 @@ void MainWindow::onGameRecordCommentChanged(int ply, const QString& /*comment*/)
 // ★ 追加: 読み筋クリック処理
 void MainWindow::onPvRowClicked(int engineIndex, int row)
 {
-    qDebug() << "[MainWindow] onPvRowClicked: engineIndex=" << engineIndex << " row=" << row;
-
-    // 対象のモデルを取得
-    ShogiEngineThinkingModel* model = (engineIndex == 0) ? m_modelThinking1 : m_modelThinking2;
-    if (!model) {
-        qDebug() << "[MainWindow] onPvRowClicked: model is null";
-        return;
+    ensurePvClickController_();
+    if (m_pvClickController) {
+        // 状態を同期
+        m_pvClickController->setPlayMode(m_playMode);
+        m_pvClickController->setPlayerNames(m_humanName1, m_humanName2, m_engineName1, m_engineName2);
+        m_pvClickController->setCurrentSfen(m_currentSfenStr);
+        m_pvClickController->setStartSfen(m_startSfenStr);
+        m_pvClickController->onPvRowClicked(engineIndex, row);
     }
-
-    // モデルの行数をチェック
-    if (row < 0 || row >= model->rowCount()) {
-        qDebug() << "[MainWindow] onPvRowClicked: row out of range";
-        return;
-    }
-
-    // ShogiInfoRecord を取得
-    const ShogiInfoRecord* record = model->recordAt(row);
-    if (!record) {
-        qDebug() << "[MainWindow] onPvRowClicked: record is null";
-        return;
-    }
-
-    // 読み筋（漢字表記）を取得
-    QString kanjiPv = record->pv();
-    qDebug() << "[MainWindow] onPvRowClicked: kanjiPv=" << kanjiPv;
-
-    if (kanjiPv.isEmpty()) {
-        qDebug() << "[MainWindow] onPvRowClicked: kanjiPv is empty";
-        return;
-    }
-
-    // USI形式の読み筋を取得
-    QString usiPvStr = record->usiPv();
-    QStringList usiMoves;
-    if (!usiPvStr.isEmpty()) {
-        usiMoves = usiPvStr.split(' ', Qt::SkipEmptyParts);
-        qDebug() << "[MainWindow] onPvRowClicked: usiMoves from record:" << usiMoves;
-    }
-
-    // USI moves が空の場合、UsiCommLogModel から検索を試みる
-    if (usiMoves.isEmpty()) {
-        UsiCommLogModel* logModel = (engineIndex == 0) ? m_lineEditModel1 : m_lineEditModel2;
-        if (logModel) {
-            QString fullLog = logModel->usiCommLog();
-            QStringList lines = fullLog.split('\n');
-
-            // 後ろから検索して、該当する深さの info pv を探す
-            for (qsizetype i = lines.size() - 1; i >= 0; --i) {
-                const QString& line = lines.at(i);
-                if (line.contains(QStringLiteral("info ")) && line.contains(QStringLiteral(" pv "))) {
-                    qsizetype pvPos = line.indexOf(QStringLiteral(" pv "));
-                    if (pvPos >= 0) {
-                        QString pvPart = line.mid(pvPos + 4).trimmed();
-                        usiMoves = pvPart.split(' ', Qt::SkipEmptyParts);
-                        if (!usiMoves.isEmpty()) {
-                            qDebug() << "[MainWindow] onPvRowClicked: found usiMoves from log:" << usiMoves;
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // 現在の局面SFENを取得（ShogiInfoRecordに保存されているbaseSfenを使用）
-    QString currentSfen = record->baseSfen();
-    qDebug() << "[MainWindow] onPvRowClicked: baseSfen from record:" << currentSfen;
-    
-    // baseSfenが空の場合のフォールバック
-    if (currentSfen.isEmpty() && m_sfenRecord && m_sfenRecord->size() >= 2) {
-        // エンジンの思考開始時の局面（position送信時の局面）
-        currentSfen = m_sfenRecord->at(m_sfenRecord->size() - 2).trimmed();
-        qDebug() << "[MainWindow] onPvRowClicked: fallback to sfenRecord[size-2]:" << currentSfen;
-    } else if (currentSfen.isEmpty() && m_sfenRecord && !m_sfenRecord->isEmpty()) {
-        // レコードが1つしかない場合はそれを使用
-        currentSfen = m_sfenRecord->first().trimmed();
-        qDebug() << "[MainWindow] onPvRowClicked: fallback to sfenRecord first:" << currentSfen;
-    }
-    if (currentSfen.isEmpty()) {
-        currentSfen = m_currentSfenStr;
-    }
-    if (currentSfen.isEmpty()) {
-        currentSfen = m_startSfenStr;
-    }
-    if (currentSfen.isEmpty()) {
-        currentSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
-    }
-
-    qDebug() << "[MainWindow] onPvRowClicked: currentSfen=" << currentSfen;
-
-    // PvBoardDialog を表示
-    PvBoardDialog* dlg = new PvBoardDialog(currentSfen, usiMoves, this);
-    dlg->setKanjiPv(kanjiPv);
-    
-    // 対局者名を設定（PlayModeに応じて適切な名前を選択）
-    QString blackName;
-    QString whiteName;
-    switch (m_playMode) {
-    case EvenHumanVsEngine:
-    case HandicapHumanVsEngine:
-        blackName = m_humanName1.isEmpty() ? tr("先手") : m_humanName1;
-        whiteName = m_engineName2.isEmpty() ? tr("後手") : m_engineName2;
-        break;
-    case EvenEngineVsHuman:
-    case HandicapEngineVsHuman:
-        blackName = m_engineName1.isEmpty() ? tr("先手") : m_engineName1;
-        whiteName = m_humanName2.isEmpty() ? tr("後手") : m_humanName2;
-        break;
-    case EvenEngineVsEngine:
-    case HandicapEngineVsEngine:
-        blackName = m_engineName1.isEmpty() ? tr("先手") : m_engineName1;
-        whiteName = m_engineName2.isEmpty() ? tr("後手") : m_engineName2;
-        break;
-    case HumanVsHuman:
-        blackName = m_humanName1.isEmpty() ? tr("先手") : m_humanName1;
-        whiteName = m_humanName2.isEmpty() ? tr("後手") : m_humanName2;
-        break;
-    default:
-        blackName = m_humanName1.isEmpty() ? m_engineName1 : m_humanName1;
-        whiteName = m_humanName2.isEmpty() ? m_engineName2 : m_humanName2;
-        if (blackName.isEmpty()) blackName = tr("先手");
-        if (whiteName.isEmpty()) whiteName = tr("後手");
-        break;
-    }
-    dlg->setPlayerNames(blackName, whiteName);
-    
-    // 起動時の局面に至った最後の手を設定（USI形式）
-    // m_usiMovesが空の場合はm_gameMovesから生成
-    QString lastUsiMove;
-    qDebug() << "[MainWindow] onPvRowClicked: m_usiMoves.size()=" << m_usiMoves.size()
-             << " m_gameMoves.size()=" << m_gameMoves.size();
-    
-    if (!m_usiMoves.isEmpty()) {
-        lastUsiMove = m_usiMoves.last();
-        qDebug() << "[MainWindow] onPvRowClicked: using m_usiMoves.last():" << lastUsiMove;
-    } else if (!m_gameMoves.isEmpty()) {
-        // m_gameMovesから最後の手をUSI形式に変換
-        // m_gameMovesの座標は0始まりなので+1してUSI形式（1始まり）に変換
-        const ShogiMove& lastMove = m_gameMoves.last();
-        int fromFile = lastMove.fromSquare.x() + 1;  // 0始まり→1始まり
-        int fromRank = lastMove.fromSquare.y() + 1;  // 0始まり→1始まり
-        int toFile = lastMove.toSquare.x() + 1;      // 0始まり→1始まり
-        int toRank = lastMove.toSquare.y() + 1;      // 0始まり→1始まり
-        
-        qDebug() << "[MainWindow] onPvRowClicked: lastMove from m_gameMoves (after +1):"
-                 << " fromFile=" << fromFile << " fromRank=" << fromRank
-                 << " toFile=" << toFile << " toRank=" << toRank
-                 << " isPromotion=" << lastMove.isPromotion;
-        
-        if (lastMove.fromSquare.x() == 0 && lastMove.fromSquare.y() == 0) {
-            // 駒打ちの場合: P*5e 形式（元の座標が(0,0)かどうかで判定）
-            // movingPieceは大文字/小文字で先手/後手を区別
-            QChar pieceChar = lastMove.movingPiece.toUpper();
-            QChar rankChar = QChar('a' + toRank - 1);  // 1段目='a'
-            lastUsiMove = QString("%1*%2%3").arg(pieceChar).arg(toFile).arg(rankChar);
-        } else {
-            // 通常の移動: 7g7f 形式
-            QChar fromRankChar = QChar('a' + fromRank - 1);  // 1段目='a'
-            QChar toRankChar = QChar('a' + toRank - 1);      // 1段目='a'
-            lastUsiMove = QString("%1%2%3%4").arg(fromFile).arg(fromRankChar).arg(toFile).arg(toRankChar);
-            if (lastMove.isPromotion) {
-                lastUsiMove += '+';
-            }
-        }
-        qDebug() << "[MainWindow] onPvRowClicked: generated USI move:" << lastUsiMove;
-    } else {
-        qDebug() << "[MainWindow] onPvRowClicked: both m_usiMoves and m_gameMoves are empty";
-    }
-    
-    if (!lastUsiMove.isEmpty()) {
-        qDebug() << "[MainWindow] onPvRowClicked: calling setLastMove with:" << lastUsiMove;
-        dlg->setLastMove(lastUsiMove);
-    }
-    
-    dlg->setAttribute(Qt::WA_DeleteOnClose);
-    dlg->show();
 }
 
 // ★ 追加: タブ選択変更時のスロット（インデックスを設定ファイルに保存）
