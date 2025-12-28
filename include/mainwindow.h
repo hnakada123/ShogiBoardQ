@@ -90,6 +90,8 @@ class KifuPasteDialog;
 class GameInfoPaneController;
 class EvaluationGraphController;
 class TimeControlController;
+class ReplayController;
+class DialogCoordinator;
 
 // ============================================================
 // MainWindow
@@ -358,7 +360,9 @@ private:
     // 試合進行（司令塔）
     MatchCoordinator* m_match = nullptr;
     QMetaObject::Connection m_timeConn;
-    bool m_isReplayMode = false;
+
+    // リプレイ制御（ReplayControllerへ移行）
+    ReplayController* m_replayController = nullptr;
 
     // 分岐表示計画
     QHash<int, QMap<int, BranchCandidateDisplay>> m_branchDisplayPlan;
@@ -371,10 +375,6 @@ private:
     // 手番方向
     bool m_bottomIsP1 = true;
 
-    // ライブ追記モード
-    bool m_isLiveAppendMode = false;
-    bool m_isResumeFromCurrent = false;
-
     // 各種コーディネータ / プレゼンタ
     KifuLoadCoordinator*      m_kifuLoadCoordinator = nullptr;
     PositionEditController*   m_posEdit = nullptr;
@@ -383,13 +383,15 @@ private:
     GameStartCoordinator*     m_gameStart = nullptr;
     GameStartCoordinator*     m_gameStartCoordinator = nullptr;
     GameRecordPresenter*      m_recordPresenter = nullptr;
-    QPointer<AnalysisFlowController> m_analysisFlow;
     BranchWiringCoordinator*  m_branchWiring = nullptr;
     TimeDisplayPresenter*     m_timePresenter = nullptr;
     AnalysisTabWiring*        m_analysisWiring = nullptr;
     RecordPaneWiring*         m_recordPaneWiring = nullptr;
     UiActionsWiring*          m_actionsWiring    = nullptr;
     GameLayoutBuilder*        m_layoutBuilder    = nullptr;
+
+    // ダイアログ管理
+    DialogCoordinator*        m_dialogCoordinator = nullptr;
 
     // 変化エンジン
     std::unique_ptr<KifuVariationEngine> m_varEngine;
@@ -455,8 +457,8 @@ private:
     // フォント/描画ヘルパ
     void setupNameAndClockFonts_();
 
-    // ライブ追記モード
-    void exitLiveAppendMode_();
+    // リプレイ制御
+    void ensureReplayController_();
     void ensureTurnSyncBridge_();
 
     // 各種 ensure メソッド
@@ -467,6 +469,7 @@ private:
     void ensureRecordPresenter_();
     void ensureKifuLoadCoordinatorForLive_();
     void ensureGameRecordModel_();
+    void ensureDialogCoordinator_();
 
     // ctor の分割先
     void setupCentralWidgetContainer_();
