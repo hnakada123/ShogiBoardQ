@@ -24,12 +24,6 @@
 #include <QSettings>
 #include <QThread>
 
-static inline int clampMsToIntLocal(qint64 v) {
-    if (v > std::numeric_limits<int>::max()) return std::numeric_limits<int>::max();
-    if (v < std::numeric_limits<int>::min()) return std::numeric_limits<int>::min();
-    return static_cast<int>(v);
-}
-
 // 平手初期SFENの簡易判定（必要なら厳密化可）
 static bool isStandardStartposSfen_(const QString& sfen)
 {

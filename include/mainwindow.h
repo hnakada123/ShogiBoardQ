@@ -13,13 +13,13 @@
 #include <QVBoxLayout>
 
 // ==============================
-// Project includes (types used by value ＝前方宣言できないもの優先)
+// Project includes (types used by value)
 // ==============================
-#include "playmode.h"                 // PlayMode を値で使用
-#include "shogimove.h"                // QVector<ShogiMove> をメンバで保持
-#include "matchcoordinator.h"         // MatchCoordinator::GameEndInfo を値で使用
-#include "kifurecordlistmodel.h"      // KifDisplayItem を値で使用（disp 等）
-#include "kifuanalysislistmodel.h"    // KifGameInfoItem を値で使用
+#include "playmode.h"
+#include "shogimove.h"
+#include "matchcoordinator.h"
+#include "kifurecordlistmodel.h"
+#include "kifuanalysislistmodel.h"
 
 // ==============================
 // Project includes（依存の強いモジュール）
@@ -46,19 +46,20 @@
 #include "gamestartcoordinator.h"
 #include "analysisflowcontroller.h"
 #include "pvboarddialog.h"
+#include "kifuclipboardservice.h"
+#include "gameinfopanecontroller.h"  // KifGameInfoItem
 
 // ==============================
 // Macros / aliases
 // ==============================
-#define SHOGIBOARDQ_DEBUG_KIF 1   // 0にすればログは一切出ません
-
+#define SHOGIBOARDQ_DEBUG_KIF 1
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
 
 // ==============================
-// Forward declarations（ポインタ/参照のみ使用する型）
+// Forward declarations
 // ==============================
 class QPainter;
 class QStyleOptionViewItem;
@@ -68,9 +69,9 @@ class QGraphicsView;
 class QGraphicsPathItem;
 class QTableView;
 class QEvent;
-class QLabel;           // ★ 追加
-class QToolButton;      // ★ 追加
-class QPushButton;      // ★ 追加
+class QLabel;
+class QToolButton;
+class QPushButton;
 class ShogiView;
 class BoardSyncPresenter;
 class AnalysisResultsPresenter;
@@ -84,140 +85,41 @@ class RecordPaneWiring;
 class UiActionsWiring;
 class GameLayoutBuilder;
 class INavigationContext;
-class GameRecordModel;  // ★ 追加: 棋譜データ中央管理
-class KifuPasteDialog;  // ★ 追加: 棋譜貼り付けダイアログ
+class GameRecordModel;
+class KifuPasteDialog;
+class GameInfoPaneController;
+class EvaluationGraphController;
+class TimeControlController;
 
 // ============================================================
 // MainWindow
 // ============================================================
+/**
+ * @brief メインウィンドウクラス
+ *
+ * 責務:
+ * - UIレイアウトの構築と管理
+ * - 各コーディネータ/コントローラの統括
+ * - メニュー/アクションのハンドリング
+ * - ウィンドウ設定の保存/復元
+ *
+ * 分離済みの責務:
+ * - GameInfoPaneController: 対局情報タブの管理
+ * - KifuClipboardService: 棋譜のクリップボード操作
+ * - KifuSaveCoordinator: 棋譜ファイルの保存
+ * - GameStartCoordinator: 対局開始処理
+ * - BoardSyncPresenter: 盤面同期
+ * - AnalysisResultsPresenter: 解析結果表示
+ * - BranchWiringCoordinator: 分岐配線
+ */
 class MainWindow : public QMainWindow, public INavigationContext
 {
     Q_OBJECT
 
-public:
-    explicit MainWindow(QWidget* parent = nullptr);
-
-    // -------- INavigationContext (public) --------
-    bool hasResolvedRows() const override;
-    int  resolvedRowCount() const override;
-    int  activeResolvedRow() const override;
-    int  maxPlyAtRow(int row) const override;
-    int  currentPly() const override;
-    void applySelect(int row, int ply) override;
-
-protected:
-    Ui::MainWindow* ui = nullptr;
-
-    // QMainWindow
-    void closeEvent(QCloseEvent* event) override;
-
+    // ========================================================
+    // Nested classes
+    // ========================================================
 private:
-    // ========================================================
-    // Private Data Members（用途別にグルーピング）
-    // ========================================================
-
-    // --- 基本状態 / ゲーム状態 ---
-    QString  m_startSfenStr;
-    QString  m_currentSfenStr;
-    QString  m_resumeSfenStr; // 再開用
-    bool     m_errorOccurred = false;
-    int      m_currentMoveIndex = 0;
-    QString  m_lastMove;
-    PlayMode m_playMode = NotStarted;
-
-    // --- 将棋盤 / コントローラ類 ---
-    ShogiView*                   m_shogiView = nullptr;
-    ShogiGameController*         m_gameController = nullptr;
-    BoardInteractionController*  m_boardController = nullptr;
-
-    // --- USI / エンジン連携 ---
-    Usi*        m_usi1 = nullptr;
-    Usi*        m_usi2 = nullptr;
-    QString     m_positionStr1;
-    QStringList m_positionStrList;
-    QStringList m_usiMoves;
-
-    // --- UI 構成 ---
-    QTabWidget* m_tab = nullptr; // EngineAnalysisTab 内部の QTabWidget を流用
-    QWidget*    m_gameRecordLayoutWidget = nullptr; // 右側（RecordPane）
-    QSplitter*  m_hsplit = nullptr;
-
-    // --- ダイアログ / 補助ウィンドウ ---
-    StartGameDialog*         m_startGameDialog = nullptr;
-    ConsiderationDialog*     m_considerationDialog = nullptr;
-    TsumeShogiSearchDialog*  m_tsumeShogiSearchDialog = nullptr;
-    KifuAnalysisDialog*      m_analyzeGameRecordDialog = nullptr;
-
-    // --- モデル群 ---
-    KifuRecordListModel*       m_kifuRecordModel  = nullptr;
-    KifuBranchListModel*       m_kifuBranchModel  = nullptr;
-    ShogiEngineThinkingModel*  m_modelThinking1   = nullptr;
-    ShogiEngineThinkingModel*  m_modelThinking2   = nullptr;
-    KifuAnalysisListModel*     m_analysisModel    = nullptr;
-    UsiCommLogModel*           m_lineEditModel1   = nullptr; // Engine 1 info
-    UsiCommLogModel*           m_lineEditModel2   = nullptr; // Engine 2 info
-
-    // --- 記録 / 評価 / 表示用データ ---
-    QList<int>        m_scoreCp;
-    int               m_pendingPlyForEngine1 = -1;  // EvE用: Engine1評価値グラフの手数
-    int               m_pendingPlyForEngine2 = -1;  // EvE用: Engine2評価値グラフの手数
-    QString           m_humanName1, m_humanName2;
-    QString           m_engineName1, m_engineName2;
-    QStringList*      m_sfenRecord   = nullptr;
-    QList<KifuDisplay *>* m_moveRecords = nullptr;
-    QStringList       m_kifuDataList;
-    QString           defaultSaveFileName;
-    QString           kifuSaveFileName;
-    QVector<ShogiMove> m_gameMoves;
-
-    // --- 時計 / 時刻管理 ---
-    ShogiClock* m_shogiClock = nullptr;
-    qint64      m_initialTimeP1Ms = 0;
-    qint64      m_initialTimeP2Ms = 0;
-    
-    // ★ 追加: CSA出力用の時間制御情報
-    bool        m_hasTimeControl = false;
-    qint64      m_timeControlBaseMs = 0;       // 初期持ち時間（ミリ秒）
-    qint64      m_timeControlByoyomiMs = 0;    // 秒読み（ミリ秒）
-    qint64      m_timeControlIncrementMs = 0;  // フィッシャー加算（ミリ秒）
-    QDateTime   m_gameStartDateTime;           // 対局開始日時
-
-    QVector<ResolvedRow> m_resolvedRows;
-    int m_activeResolvedRow = 0;
-
-    // --- KIFヘッダ（対局情報）タブ ---
-    QDockWidget*  m_gameInfoDock  = nullptr;
-    QTableWidget* m_gameInfoTable = nullptr;
-    
-    // ★ 追加: 対局情報編集用UI
-    QWidget*      m_gameInfoContainer = nullptr;   // テーブル＋ツールバーのコンテナ
-    QWidget*      m_gameInfoToolbar = nullptr;
-    QToolButton*  m_btnGameInfoFontIncrease = nullptr;
-    QToolButton*  m_btnGameInfoFontDecrease = nullptr;
-    QToolButton*  m_btnGameInfoUndo = nullptr;     // undoボタン
-    QToolButton*  m_btnGameInfoRedo = nullptr;     // ★ 追加: redoボタン
-    QToolButton*  m_btnGameInfoCut = nullptr;      // ★ 追加: 切り取りボタン
-    QToolButton*  m_btnGameInfoCopy = nullptr;     // ★ 追加: コピーボタン
-    QToolButton*  m_btnGameInfoPaste = nullptr;    // ★ 追加: 貼り付けボタン
-    QLabel*       m_gameInfoEditingLabel = nullptr;
-    QPushButton*  m_btnGameInfoUpdate = nullptr;
-    int           m_gameInfoFontSize = 10;
-    bool          m_gameInfoDirty = false;
-    QList<KifGameInfoItem> m_originalGameInfo;  // 元の対局情報（変更検知用）
-    QString       m_gameInfoClipboard;  // ★ 追加: 対局情報用の内部クリップボード
-
-    // --- 棋譜表示／分岐操作・表示関連 ---
-    QSet<int> m_branchablePlySet;
-    QVector<QString> m_commentsByRow;  // ★ 互換性のため残す（GameRecordModelと同期）
-    int m_activePly          = 0;
-    int m_currentSelectedPly = 0;
-    QMetaObject::Connection m_connKifuRowChanged;
-    bool m_onMainRowGuard = false; // 再入防止
-
-    // --- ★ 追加: 棋譜データ中央管理 ---
-    GameRecordModel* m_gameRecord = nullptr;
-
-    // --- 装飾（棋譜テーブル マーカー描画） ---
     class BranchRowDelegate : public QStyledItemDelegate {
     public:
         explicit BranchRowDelegate(QObject* parent = nullptr)
@@ -230,113 +132,51 @@ private:
         const QSet<int>* m_marks = nullptr;
     };
 
-    // --- 新UI部品 / ナビゲーション ---
-    RecordPane*           m_recordPane = nullptr;
-    NavigationController* m_nav = nullptr;
-    EngineAnalysisTab*    m_analysisTab = nullptr;
+    // ========================================================
+    // public
+    // ========================================================
+public:
+    explicit MainWindow(QWidget* parent = nullptr);
 
-    // --- 試合進行（司令塔） ---
-    MatchCoordinator* m_match = nullptr;
-    QMetaObject::Connection m_timeConn;
-    bool m_isReplayMode = false;
+    // INavigationContext override
+    bool hasResolvedRows() const override;
+    int  resolvedRowCount() const override;
+    int  activeResolvedRow() const override;
+    int  maxPlyAtRow(int row) const override;
+    int  currentPly() const override;
+    void applySelect(int row, int ply) override;
 
     // ========================================================
-    // Private Methods（用途別）
+    // public slots
     // ========================================================
-
-    // --- UI / 表示更新 ---
-    void updateGameRecord(const QString& elapsedTime);
-    void updateTurnStatus(int currentPlayer);
-    void redrawEngine1EvaluationGraph(int ply = -1);
-    void redrawEngine2EvaluationGraph(int ply = -1);
-
-    // --- 初期化 / セットアップ ---
-    void initializeComponents();
-    void setupHorizontalGameLayout();
-    void initializeCentralGameDisplay();
-    void ensureClockReady_();
-    void initMatchCoordinator();
-    void setupRecordPane();
-    void setupEngineAnalysisTab();
-    void setupBoardInteractionController();
-
-    // --- ゲーム開始/切替 ---
-    void initializeNewGame(QString& startSfenStr);
-    void startNewShogiGame(QString& startSfenStr);
-    void setEngineNamesBasedOnMode();
-    void updateSecondEngineVisibility();  // ★ 追加: EvE対局時に2番目エンジン情報を表示
-
-    // --- 入出力 / 設定 ---
-    void saveWindowAndBoardSettings();
-    void loadWindowSettings();
-
-    // --- KIF ヘッダ（対局情報）周り ---
-    void ensureGameInfoTable();
-    void addGameInfoTabAtStartup_();      // ★ 追加: 起動時に対局情報タブを追加
-    void populateDefaultGameInfo_();      // ★ 追加: デフォルトの対局情報を設定
-    void onSetPlayersNames_(const QString& p1, const QString& p2);   // ★ 追加: 対局者名フック
-    void onSetEngineNames_(const QString& e1, const QString& e2);    // ★ 追加: エンジン名フック
-    void updateGameInfoPlayerNames_(const QString& blackName, const QString& whiteName);  // ★ 追加
-    void updateGameInfoForCurrentMatch_();  // ★ 追加: 現在の対局に基づいて更新
-    
-    // ★ 追加: 対局情報編集用メソッド
-    void buildGameInfoToolbar();
-    void updateGameInfoFontSize(int delta);
-    void updateGameInfoEditingIndicator();
-    void onGameInfoFontIncrease();
-    void onGameInfoFontDecrease();
-    void onGameInfoUndo();   // undoボタン
-    void onGameInfoRedo();   // ★ 追加: redoボタン
-    void onGameInfoCut();    // ★ 追加: 切り取り
-    void onGameInfoCopy();   // ★ 追加: コピー
-    void onGameInfoPaste();  // ★ 追加: 貼り付け
-    void onGameInfoUpdateClicked();
-    void onGameInfoCellChanged(int row, int column);
-    void setOriginalGameInfo(const QList<KifGameInfoItem>& items);
-    bool hasUnsavedGameInfo() const { return m_gameInfoDirty; }
-    bool confirmDiscardUnsavedGameInfo();
-
-    // --- 分岐 / 変化 ---
-    void applyResolvedRowAndSelect(int row, int selPly);
-
-    // --- ユーティリティ ---
-    void setPlayersNamesForMode();
-    void setCurrentTurn();
-
-    void setGameOverMove(MatchCoordinator::Cause cause, bool loserIsPlayerOne);
-    void appendKifuLine(const QString& text, const QString& elapsedTime);
-
-    // コメントを両画面にブロードキャスト
-    void broadcastComment(const QString& text, bool asHtml=false);
-
-    std::unique_ptr<KifuVariationEngine> m_varEngine;
-
 public slots:
-    // --- ファイル I/O / 外部操作（★重複宣言禁止：ここだけに置く） ---
+    // ファイル I/O
     void chooseAndLoadKifuFile();
     void saveShogiBoardImage();
     void copyBoardToClipboard();
     void openWebsiteInExternalBrowser();
     void saveKifuToFile();
     void overwriteKifuFile();
-    void copyKifToClipboard();   // ★ 追加: KIF形式で棋譜をクリップボードにコピー
-    void copyKi2ToClipboard();   // ★ 追加: KI2形式で棋譜をクリップボードにコピー
-    void copyCsaToClipboard();   // ★ 追加: CSA形式で棋譜をクリップボードにコピー
-    void copyUsiToClipboard();   // ★ 追加: USI形式（全て）で棋譜をクリップボードにコピー
-    void copyUsiCurrentToClipboard();  // ★ 追加: USI形式（現在の指し手まで）で棋譜をクリップボードにコピー
-    void copyJkfToClipboard();   // ★ 追加: JKF形式で棋譜をクリップボードにコピー
-    void copyUsenToClipboard();  // ★ 追加: USEN形式で棋譜をクリップボードにコピー
-    void copySfenToClipboard();  // ★ 追加: SFEN形式で局面をクリップボードにコピー
-    void copyBodToClipboard();   // ★ 追加: BOD形式で局面をクリップボードにコピー
-    void pasteKifuFromClipboard();  // ★ 追加: クリップボードから棋譜を貼り付け
 
-    // --- エラー/一般UI ---
+    // クリップボード操作（KifuClipboardServiceへ委譲）
+    void copyKifToClipboard();
+    void copyKi2ToClipboard();
+    void copyCsaToClipboard();
+    void copyUsiToClipboard();
+    void copyUsiCurrentToClipboard();
+    void copyJkfToClipboard();
+    void copyUsenToClipboard();
+    void copySfenToClipboard();
+    void copyBodToClipboard();
+    void pasteKifuFromClipboard();
+
+    // エラー/一般UI
     void displayErrorMessage(const QString& message);
     void saveSettingsAndClose();
     void resetToInitialState();
     void onFlowError_(const QString& msg);
 
-    // --- ダイアログ表示 ---
+    // ダイアログ表示
     void displayPromotionDialog();
     void displayEngineSettingsDialog();
     void displayVersionInformation();
@@ -344,210 +184,337 @@ public slots:
     void displayKifuAnalysisDialog();
     void displayTsumeShogiSearchDialog();
 
-    // --- 追加：不足でエラーになっていた slots ---
+    // その他操作
     void toggleEngineAnalysisVisibility();
     void undoLastTwoMoves();
-
-    // --- 盤編集 / 表示 ---
     void beginPositionEditing();
     void finishPositionEditing();
-
-    // --- ゲーム開始 / 終了 ---
     void initializeGame();
     void handleResignation();
-
-    // ★ 追加: 対局者名確定時のスロット
     void onPlayerNamesResolved_(const QString& human1, const QString& human2,
                                 const QString& engine1, const QString& engine2,
                                 int playMode);
-
     void onActionFlipBoardTriggered(bool checked = false);
-
     void handleBreakOffGame();
-
-    // 検討（ConsidarationMode）の手動終了（quit 送信）
     void handleBreakOffConsidaration();
-
     void movePieceImmediately();
-
     void onRecordPaneMainRowChanged_(int row);
 
+    // ========================================================
+    // protected
+    // ========================================================
+protected:
+    Ui::MainWindow* ui = nullptr;
+    void closeEvent(QCloseEvent* event) override;
+
+    // ========================================================
+    // private slots
+    // ========================================================
 private slots:
+    // 対局終了 / 状態変化
     void onMatchGameEnded(const MatchCoordinator::GameEndInfo& info);
+    void onGameOverStateChanged(const MatchCoordinator::GameOverState& st);
+    void onTurnManagerChanged(ShogiGameController::Player now);
     void flipBoardAndUpdatePlayerInfo();
 
-    // ★ 追加: タブ選択変更時のスロット
+    // タブ選択変更
     void onTabCurrentChanged(int index);
 
-    // --- 時計 / タイムアウト ---
-    void onPlayer1TimeOut();
-    void onPlayer2TimeOut();
-
-    // --- ボタン有効/無効 ---
+    // ボタン有効/無効
     void disableArrowButtons();
     void enableArrowButtons();
 
-    // --- 盤面・反転 ---
+    // 盤面・反転
     void onBoardFlipped(bool nowFlipped);
-    void onBoardSizeChanged(QSize fieldSize);  // 将棋盤サイズ変更時
-
+    void onBoardSizeChanged(QSize fieldSize);
     void onReverseTriggered();
 
-    // --- 司令塔（時計/進行）通知受け口 ---
+    // 司令塔通知
     void onRequestAppendGameOverMove(const MatchCoordinator::GameEndInfo& info);
 
-    // --- クリック/移動要求（コントローラ配線） ---
+    // 移動要求
     void onMoveRequested_(const QPoint& from, const QPoint& to);
 
-    // --- リプレイ（UI 側単一ソース管理） ---
+    // リプレイ
     void setReplayMode(bool on);
 
-    // --- 内部配線 ---
+    // 内部配線
     void connectBoardClicks_();
     void connectMoveRequested_();
 
-private slots:
+    // 棋譜表示 / 同期
     void onMoveCommitted(ShogiGameController::Player mover, int ply);
     void displayGameRecord(const QList<KifDisplayItem> disp);
     void syncBoardAndHighlightsAtRow(int ply1);
     void onRecordRowChangedByPresenter(int row, const QString& comment);
-    void onCommentUpdated(int moveIndex, const QString& newComment);  // ★ 追加: コメント更新スロット
-    void onPvRowClicked(int engineIndex, int row);  // ★ 追加: 読み筋クリック処理
-    void onKifuPasteImportRequested_(const QString& content);  // ★ 追加: 棋譜貼り付け処理
-    void onGameRecordCommentChanged(int ply, const QString& comment);  // ★ 追加: コメント変更通知
+    void onCommentUpdated(int moveIndex, const QString& newComment);
+    void onPvRowClicked(int engineIndex, int row);
+    void onKifuPasteImportRequested_(const QString& content);
+    void onGameRecordCommentChanged(int ply, const QString& comment);
 
-    // 評価値グラフ更新の遅延実行用スロット
-    void doRedrawEngine1EvaluationGraph();
-    void doRedrawEngine2EvaluationGraph();
-
-private:
-    QWidget*     m_central = nullptr;
-    QVBoxLayout* m_centralLayout = nullptr;
-
-    // 行(row) → (ply → 表示計画) の保持
-    // 例: m_branchDisplayPlan[row][ply]
-    QHash<int, QMap<int, BranchCandidateDisplay>> m_branchDisplayPlan;
-
-    // 選択（行row, 手数ply）から、ハイライトすべき(variation id, ply)を解決
-    std::pair<int,int> resolveBranchHighlightTarget(int row, int ply) const;
-
-    // 直近の手番と残時間（回転直後の復元に使う）
-    bool   m_lastP1Turn = true;
-    qint64 m_lastP1Ms   = 0;
-    qint64 m_lastP2Ms   = 0;
-
-    // 描画ヘルパ
-    void setupNameAndClockFonts_();           // フォント明示設定
-
-private slots:
+    // 分岐ノード活性化
     void onBranchNodeActivated_(int row, int ply);
-    void onGameOverStateChanged(const MatchCoordinator::GameOverState& st);
-    void onTurnManagerChanged(ShogiGameController::Player now);
 
-private:
-    // いま下段が先手(P1)か？ true=先手が手前、false=後手が手前
-    bool m_bottomIsP1 = true;
-
-
-    bool m_isLiveAppendMode = false;
-    void exitLiveAppendMode_();   // 終局で選択を元に戻す
-
-    bool m_isResumeFromCurrent = false;
-
-    void ensureTurnSyncBridge_();
-
-    KifuLoadCoordinator* m_kifuLoadCoordinator = nullptr;
-
-private:
-    PositionEditController* m_posEdit = nullptr;
-
-    void ensurePositionEditController_();
-
-private slots:
+    // エラー / 前準備
     void onErrorBusOccurred(const QString& msg);
     void onPreStartCleanupRequested_();
     void onApplyTimeControlRequested_(const GameStartCoordinator::TimeControl& tc);
 
-private:
-    // --- ctorの分割先 ---
-    void setupCentralWidgetContainer_();   // centralWidget と QVBoxLayout を一度だけ構築
-    void configureToolBarFromUi_();        // ツールバーのアイコン/スタイル初期化
-    void buildGamePanels_();               // 棋譜ペイン/分岐配線/レイアウト/タブなどUI骨格
-    void restoreWindowAndSync_();          // ウィンドウ設定の復元（同期は initializeComponents 内で実施）
-    void connectAllActions_();             // メニュー/アクション群のconnect
-    void connectCoreSignals_();            // GC/ビュー/エラーバス等のconnect
-    void installAppToolTips_();            // コンパクトツールチップのインストール
-    void finalizeCoordinators_();          // 司令塔やフォント/位置編集コントローラの最終初期化
+    // 投了
+    void onResignationTriggered();
 
+    // ★ 新規: GameInfoPaneControllerからの通知
+    void onGameInfoUpdated_(const QList<KifGameInfoItem>& items);
+
+    // ========================================================
+    // private
+    // ========================================================
 private:
-    BoardSyncPresenter* m_boardSync = nullptr;
+    // --------------------------------------------------------
+    // Private Data Members
+    // --------------------------------------------------------
+
+    // 基本状態 / ゲーム状態
+    QString  m_startSfenStr;
+    QString  m_currentSfenStr;
+    QString  m_resumeSfenStr;
+    bool     m_errorOccurred = false;
+    int      m_currentMoveIndex = 0;
+    QString  m_lastMove;
+    PlayMode m_playMode = NotStarted;
+
+    // 将棋盤 / コントローラ類
+    ShogiView*                   m_shogiView = nullptr;
+    ShogiGameController*         m_gameController = nullptr;
+    BoardInteractionController*  m_boardController = nullptr;
+
+    // USI / エンジン連携
+    Usi*        m_usi1 = nullptr;
+    Usi*        m_usi2 = nullptr;
+    QString     m_positionStr1;
+    QStringList m_positionStrList;
+    QStringList m_usiMoves;
+
+    // UI 構成
+    QTabWidget* m_tab = nullptr;
+    QWidget*    m_gameRecordLayoutWidget = nullptr;
+    QSplitter*  m_hsplit = nullptr;
+    QWidget*    m_central = nullptr;
+    QVBoxLayout* m_centralLayout = nullptr;
+
+    // ダイアログ / 補助ウィンドウ
+    StartGameDialog*         m_startGameDialog = nullptr;
+    ConsiderationDialog*     m_considerationDialog = nullptr;
+    TsumeShogiSearchDialog*  m_tsumeShogiSearchDialog = nullptr;
+    KifuAnalysisDialog*      m_analyzeGameRecordDialog = nullptr;
+
+    // モデル群
+    KifuRecordListModel*       m_kifuRecordModel  = nullptr;
+    KifuBranchListModel*       m_kifuBranchModel  = nullptr;
+    ShogiEngineThinkingModel*  m_modelThinking1   = nullptr;
+    ShogiEngineThinkingModel*  m_modelThinking2   = nullptr;
+    KifuAnalysisListModel*     m_analysisModel    = nullptr;
+    UsiCommLogModel*           m_lineEditModel1   = nullptr;
+    UsiCommLogModel*           m_lineEditModel2   = nullptr;
+
+    // 記録 / 評価 / 表示用データ
+    EvaluationGraphController* m_evalGraphController = nullptr;  // ★ 評価値グラフ管理
+    QString           m_humanName1, m_humanName2;
+    QString           m_engineName1, m_engineName2;
+    QStringList*      m_sfenRecord   = nullptr;
+    QList<KifuDisplay *>* m_moveRecords = nullptr;
+    QStringList       m_kifuDataList;
+    QString           defaultSaveFileName;
+    QString           kifuSaveFileName;
+    QVector<ShogiMove> m_gameMoves;
+    QList<KifDisplayItem> m_liveDisp;
+
+    // 時計 / 時刻管理（TimeControlControllerへ移行）
+    TimeControlController* m_timeController = nullptr;
+
+    // 行解決 / 選択状態
+    QVector<ResolvedRow> m_resolvedRows;
+    int m_activeResolvedRow = 0;
+
+    // ★ 対局情報タブ（GameInfoPaneControllerへ移行）
+    GameInfoPaneController* m_gameInfoController = nullptr;
+
+    // 棋譜表示／分岐操作・表示関連
+    QSet<int> m_branchablePlySet;
+    QVector<QString> m_commentsByRow;
+    int m_activePly          = 0;
+    int m_currentSelectedPly = 0;
+    QMetaObject::Connection m_connKifuRowChanged;
+    bool m_onMainRowGuard = false;
+
+    // 棋譜データ中央管理
+    GameRecordModel* m_gameRecord = nullptr;
+
+    // 新UI部品 / ナビゲーション
+    RecordPane*           m_recordPane = nullptr;
+    NavigationController* m_nav = nullptr;
+    EngineAnalysisTab*    m_analysisTab = nullptr;
+
+    // 試合進行（司令塔）
+    MatchCoordinator* m_match = nullptr;
+    QMetaObject::Connection m_timeConn;
+    bool m_isReplayMode = false;
+
+    // 分岐表示計画
+    QHash<int, QMap<int, BranchCandidateDisplay>> m_branchDisplayPlan;
+
+    // 直近の手番と残時間
+    bool   m_lastP1Turn = true;
+    qint64 m_lastP1Ms   = 0;
+    qint64 m_lastP2Ms   = 0;
+
+    // 手番方向
+    bool m_bottomIsP1 = true;
+
+    // ライブ追記モード
+    bool m_isLiveAppendMode = false;
+    bool m_isResumeFromCurrent = false;
+
+    // 各種コーディネータ / プレゼンタ
+    KifuLoadCoordinator*      m_kifuLoadCoordinator = nullptr;
+    PositionEditController*   m_posEdit = nullptr;
+    BoardSyncPresenter*       m_boardSync = nullptr;
     AnalysisResultsPresenter* m_analysisPresenter = nullptr;
+    GameStartCoordinator*     m_gameStart = nullptr;
+    GameStartCoordinator*     m_gameStartCoordinator = nullptr;
+    GameRecordPresenter*      m_recordPresenter = nullptr;
+    QPointer<AnalysisFlowController> m_analysisFlow;
+    BranchWiringCoordinator*  m_branchWiring = nullptr;
+    TimeDisplayPresenter*     m_timePresenter = nullptr;
+    AnalysisTabWiring*        m_analysisWiring = nullptr;
+    RecordPaneWiring*         m_recordPaneWiring = nullptr;
+    UiActionsWiring*          m_actionsWiring    = nullptr;
+    GameLayoutBuilder*        m_layoutBuilder    = nullptr;
 
+    // 変化エンジン
+    std::unique_ptr<KifuVariationEngine> m_varEngine;
+
+    // --------------------------------------------------------
+    // Private Methods
+    // --------------------------------------------------------
+
+    // UI / 表示更新
+    void updateGameRecord(const QString& elapsedTime);
+    void updateTurnStatus(int currentPlayer);
+    void redrawEngine1EvaluationGraph(int ply = -1);  // EvaluationGraphControllerへ委譲
+    void redrawEngine2EvaluationGraph(int ply = -1);  // EvaluationGraphControllerへ委譲
+    void ensureEvaluationGraphController_();          // ★ 追加
+
+    // 初期化 / セットアップ
+    void initializeComponents();
+    void setupHorizontalGameLayout();
+    void initializeCentralGameDisplay();
+    void ensureTimeController_();  // ★ TimeControlControllerへ移行
+    void initMatchCoordinator();
+    void setupRecordPane();
+    void setupEngineAnalysisTab();
+    void setupBoardInteractionController();
+
+    // ゲーム開始/切替
+    void initializeNewGame(QString& startSfenStr);
+    void startNewShogiGame(QString& startSfenStr);
+    void setEngineNamesBasedOnMode();
+    void updateSecondEngineVisibility();
+
+    // 入出力 / 設定
+    void saveWindowAndBoardSettings();
+    void loadWindowSettings();
+
+    // ★ 対局情報関連（GameInfoPaneControllerへ委譲）
+    void ensureGameInfoController_();
+    void addGameInfoTabAtStartup_();
+    void populateDefaultGameInfo_();
+    void updateGameInfoForCurrentMatch_();
+
+    // ★ 互換性のため残す古い関数（GameStartCoordinatorのhooksで使用）
+    void onSetPlayersNames_(const QString& p1, const QString& p2);
+    void onSetEngineNames_(const QString& e1, const QString& e2);
+    void updateGameInfoPlayerNames_(const QString& blackName, const QString& whiteName);
+    void setOriginalGameInfo(const QList<KifGameInfoItem>& items);
+
+    // ★ USI指し手変換（クリップボード操作で使用）
+    QStringList gameMovesToUsiMoves_(const QVector<ShogiMove>& moves) const;
+    QStringList sfenRecordToUsiMoves_() const;
+
+    // 分岐 / 変化
+    void applyResolvedRowAndSelect(int row, int selPly);
+    std::pair<int,int> resolveBranchHighlightTarget(int row, int ply) const;
+
+    // ユーティリティ
+    void setPlayersNamesForMode();
+    void setCurrentTurn();
+    void setGameOverMove(MatchCoordinator::Cause cause, bool loserIsPlayerOne);
+    void appendKifuLine(const QString& text, const QString& elapsedTime);
+    void broadcastComment(const QString& text, bool asHtml=false);
+
+    // フォント/描画ヘルパ
+    void setupNameAndClockFonts_();
+
+    // ライブ追記モード
+    void exitLiveAppendMode_();
+    void ensureTurnSyncBridge_();
+
+    // 各種 ensure メソッド
+    void ensurePositionEditController_();
     void ensureBoardSyncPresenter_();
     void ensureAnalysisPresenter_();
-
-    GameStartCoordinator* m_gameStart = nullptr;
     void ensureGameStartCoordinator_();
-
-    GameRecordPresenter* m_recordPresenter {nullptr};
     void ensureRecordPresenter_();
-    QPointer<AnalysisFlowController> m_analysisFlow;
+    void ensureKifuLoadCoordinatorForLive_();
+    void ensureGameRecordModel_();
 
-    GameStartCoordinator* m_gameStartCoordinator = nullptr;
+    // ctor の分割先
+    void setupCentralWidgetContainer_();
+    void configureToolBarFromUi_();
+    void buildGamePanels_();
+    void restoreWindowAndSync_();
+    void connectAllActions_();
+    void connectCoreSignals_();
+    void installAppToolTips_();
+    void finalizeCoordinators_();
 
-    // hooks 用のメンバー関数（ラムダ不使用）
+    // hooks 用メンバー関数
     void requestRedrawEngine1Eval_();
     void requestRedrawEngine2Eval_();
     void initializeNewGame_(const QString& s);
     void showMoveHighlights_(const QPoint& from, const QPoint& to);
     void appendKifuLineHook_(const QString& text, const QString& elapsed);
 
-    BranchWiringCoordinator* m_branchWiring = nullptr;
-
-    TimeDisplayPresenter* m_timePresenter = nullptr;
-
-    AnalysisTabWiring* m_analysisWiring = nullptr;
-
+    // 時間取得ヘルパ
     qint64 getRemainingMsFor_(MatchCoordinator::Player p) const;
     qint64 getIncrementMsFor_(MatchCoordinator::Player p) const;
     qint64 getByoyomiMs_() const;
 
+    // ゲームオーバー関連
     void showGameOverMessageBox_(const QString& title, const QString& message);
 
-private slots:
-    void onResignationTriggered();
-
-    // MainWindow の private メンバに追加
-private:
-    RecordPaneWiring*     m_recordPaneWiring = nullptr;
-    UiActionsWiring*      m_actionsWiring    = nullptr;   // 既に作っていればそのまま
-    GameLayoutBuilder*    m_layoutBuilder    = nullptr;   // 既に作っていればそのまま
-
-    void ensureKifuLoadCoordinatorForLive_();
+    // 分岐ツリー更新
     void refreshBranchTreeLive_();
 
-    QList<KifDisplayItem> m_liveDisp;
-
-private:
+    // ガード / 判定ヘルパ
     bool getMainRowGuard_() const;
     void setMainRowGuard_(bool on);
     bool isHvH_() const;
     bool isHumanSide_(ShogiGameController::Player p) const;
+
+    // 表示更新
     void updateTurnAndTimekeepingDisplay_();
 
+    // 編集メニュー
     void initializeEditMenuForStartup();
     void applyEditMenuEditingState(bool editing);
 
+    // 開始局面解決
     QString resolveCurrentSfenForGameStart_() const;
 
-    // ★ 追加: GameRecordModel 初期化
-    void ensureGameRecordModel_();
-
-    // ★ 追加: ShogiMoveリストからUSI形式の指し手リストを生成
-    QStringList gameMovesToUsiMoves_(const QVector<ShogiMove>& moves) const;
-
-    // ★ 追加: SFENレコードからUSI形式の指し手リストを生成
-    QStringList sfenRecordToUsiMoves_() const;
+    // ★ クリップボード操作用コンテキスト構築
+    KifuClipboardService::ExportContext buildClipboardContext_() const;
+    bool isCurrentlyPlaying_() const;
 };
 
 #endif // MAINWINDOW_H
