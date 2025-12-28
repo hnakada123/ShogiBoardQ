@@ -93,6 +93,12 @@ class TimeControlController;
 class ReplayController;
 class DialogCoordinator;
 class KifuExportController;
+class GameStateController;
+class PlayerInfoController;
+class BoardSetupController;
+class PvClickController;
+class RecordNavigationController;
+class PositionEditCoordinator;
 
 // ============================================================
 // MainWindow
@@ -397,6 +403,24 @@ private:
     // 棋譜エクスポート管理
     KifuExportController*     m_kifuExportController = nullptr;
 
+    // ゲーム状態管理
+    GameStateController*      m_gameStateController = nullptr;
+
+    // 対局者情報管理
+    PlayerInfoController*     m_playerInfoController = nullptr;
+
+    // 盤面操作配線管理
+    BoardSetupController*     m_boardSetupController = nullptr;
+
+    // 読み筋クリック処理
+    PvClickController*        m_pvClickController = nullptr;
+
+    // 棋譜ナビゲーション管理
+    RecordNavigationController* m_recordNavController = nullptr;
+
+    // 局面編集調整
+    PositionEditCoordinator*  m_posEditCoordinator = nullptr;
+
     // 変化エンジン
     std::unique_ptr<KifuVariationEngine> m_varEngine;
 
@@ -472,6 +496,12 @@ private:
     void ensureDialogCoordinator_();
     void ensureKifuExportController_();
     void updateKifuExportDependencies_();
+    void ensureGameStateController_();
+    void ensurePlayerInfoController_();
+    void ensureBoardSetupController_();
+    void ensurePvClickController_();
+    void ensureRecordNavigationController_();
+    void ensurePositionEditCoordinator_();
 
     // ctor の分割先
     void setupCentralWidgetContainer_();
