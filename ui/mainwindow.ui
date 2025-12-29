@@ -94,6 +94,7 @@
      <string>対局(G)</string>
     </property>
     <addaction name="actionStartGame"/>
+    <addaction name="action_CSA"/>
     <addaction name="actionConsideration"/>
     <addaction name="separator"/>
     <addaction name="actionResign"/>
@@ -752,6 +753,11 @@
   <action name="actionUSEN">
    <property name="text">
     <string>USEN</string>
+   </property>
+  </action>
+  <action name="action_CSA">
+   <property name="text">
+    <string>通信対局（CSA）</string>
    </property>
   </action>
  </widget>
