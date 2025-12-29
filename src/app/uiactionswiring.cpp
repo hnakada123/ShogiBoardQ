@@ -20,6 +20,7 @@ void UiActionsWiring::wire()
     // 対局
     QObject::connect(ui->actionNewGame,     &QAction::triggered, mw, &MainWindow::resetToInitialState, Qt::UniqueConnection);
     QObject::connect(ui->actionStartGame,   &QAction::triggered, mw, &MainWindow::initializeGame,      Qt::UniqueConnection);
+    QObject::connect(ui->action_CSA,        &QAction::triggered, mw, &MainWindow::displayCsaGameDialog, Qt::UniqueConnection);
     QObject::connect(ui->actionResign,      &QAction::triggered, mw, &MainWindow::handleResignation,   Qt::UniqueConnection);
     QObject::connect(ui->breakOffGame,      &QAction::triggered, mw, &MainWindow::handleBreakOffGame,  Qt::UniqueConnection);
 

@@ -86,6 +86,7 @@
 #include "pvclickcontroller.h"       // ★ 追加: 読み筋クリック処理
 #include "recordnavigationcontroller.h" // ★ 追加: 棋譜ナビゲーション管理
 #include "positioneditcoordinator.h"    // ★ 追加: 局面編集調整
+#include "csagamedialog.h"              // ★ 追加: CSA通信対局ダイアログ
 
 using std::placeholders::_1;
 using std::placeholders::_2;
@@ -730,6 +731,30 @@ void MainWindow::displayConsiderationDialog()
 }
 
 // 詰み探索ダイアログを表示する。
+// CSA通信対局ダイアログを表示する。
+void MainWindow::displayCsaGameDialog()
+{
+    // ダイアログが未作成の場合は作成する
+    if (!m_csaGameDialog) {
+        m_csaGameDialog = new CsaGameDialog(this);
+    }
+
+    // ダイアログを表示する
+    if (m_csaGameDialog->exec() == QDialog::Accepted) {
+        // TODO: CSA通信対局の開始処理を実装
+        // 現時点ではダイアログの表示と設定保存のみ
+        QString message = tr("CSA通信対局機能は現在実装中です。\n\n"
+                             "接続先: %1:%2\n"
+                             "ID: %3\n"
+                             "対局者: %4")
+                              .arg(m_csaGameDialog->host())
+                              .arg(m_csaGameDialog->port())
+                              .arg(m_csaGameDialog->loginId())
+                              .arg(m_csaGameDialog->isHuman() ? tr("人間") : m_csaGameDialog->engineName());
+        QMessageBox::information(this, tr("CSA通信対局"), message);
+    }
+}
+
 void MainWindow::displayTsumeShogiSearchDialog()
 {
     // 解析モード切替

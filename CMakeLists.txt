@@ -92,6 +92,7 @@ set(UI_FILES
     ui/mainwindow.ui
     ui/changeenginesettingsdialog.ui
     ui/considerationdialog.ui
+    ui/csagamedialog.ui
     ui/engineregistrationdialog.ui
     ui/kifuanalysisdialog.ui
     ui/promotedialog.ui
