@@ -99,6 +99,7 @@ class BoardSetupController;
 class PvClickController;
 class RecordNavigationController;
 class PositionEditCoordinator;
+class CsaGameDialog;
 
 // ============================================================
 // MainWindow
@@ -192,6 +193,7 @@ public slots:
     void displayConsiderationDialog();
     void displayKifuAnalysisDialog();
     void displayTsumeShogiSearchDialog();
+    void displayCsaGameDialog();
 
     // その他操作
     void toggleEngineAnalysisVisibility();
@@ -316,6 +318,7 @@ private:
     ConsiderationDialog*     m_considerationDialog = nullptr;
     TsumeShogiSearchDialog*  m_tsumeShogiSearchDialog = nullptr;
     KifuAnalysisDialog*      m_analyzeGameRecordDialog = nullptr;
+    CsaGameDialog*           m_csaGameDialog = nullptr;
 
     // モデル群
     KifuRecordListModel*       m_kifuRecordModel  = nullptr;
