@@ -87,6 +87,7 @@
 #include "recordnavigationcontroller.h" // ★ 追加: 棋譜ナビゲーション管理
 #include "positioneditcoordinator.h"    // ★ 追加: 局面編集調整
 #include "csagamedialog.h"              // ★ 追加: CSA通信対局ダイアログ
+#include "csagamecoordinator.h"         // ★ 追加: CSA通信対局コーディネータ
 
 using std::placeholders::_1;
 using std::placeholders::_2;
@@ -741,17 +742,69 @@ void MainWindow::displayCsaGameDialog()
 
     // ダイアログを表示する
     if (m_csaGameDialog->exec() == QDialog::Accepted) {
-        // TODO: CSA通信対局の開始処理を実装
-        // 現時点ではダイアログの表示と設定保存のみ
-        QString message = tr("CSA通信対局機能は現在実装中です。\n\n"
-                             "接続先: %1:%2\n"
-                             "ID: %3\n"
-                             "対局者: %4")
-                              .arg(m_csaGameDialog->host())
-                              .arg(m_csaGameDialog->port())
-                              .arg(m_csaGameDialog->loginId())
-                              .arg(m_csaGameDialog->isHuman() ? tr("人間") : m_csaGameDialog->engineName());
-        QMessageBox::information(this, tr("CSA通信対局"), message);
+        // CSA通信対局コーディネータが未作成の場合は作成する
+        if (!m_csaGameCoordinator) {
+            m_csaGameCoordinator = new CsaGameCoordinator(this);
+
+            // 依存オブジェクトを設定
+            CsaGameCoordinator::Dependencies deps;
+            deps.gameController = m_gameController;
+            deps.view = m_shogiView;
+            deps.clock = m_timeController ? m_timeController->clock() : nullptr;
+            deps.boardController = m_boardController;
+            deps.recordModel = m_kifuRecordModel;
+            m_csaGameCoordinator->setDependencies(deps);
+
+            // シグナル接続
+            connect(m_csaGameCoordinator, &CsaGameCoordinator::errorOccurred,
+                    this, &MainWindow::displayErrorMessage);
+            connect(m_csaGameCoordinator, &CsaGameCoordinator::gameStarted,
+                    this, &MainWindow::onCsaGameStarted_);
+            connect(m_csaGameCoordinator, &CsaGameCoordinator::gameEnded,
+                    this, &MainWindow::onCsaGameEnded_);
+            connect(m_csaGameCoordinator, &CsaGameCoordinator::moveMade,
+                    this, &MainWindow::onCsaMoveMade_);
+            connect(m_csaGameCoordinator, &CsaGameCoordinator::turnChanged,
+                    this, &MainWindow::onCsaTurnChanged_);
+            connect(m_csaGameCoordinator, &CsaGameCoordinator::logMessage,
+                    this, &MainWindow::onCsaLogMessage_);
+
+            // BoardSetupControllerからの指し手をCsaGameCoordinatorに転送
+            ensureBoardSetupController_();
+            if (m_boardSetupController) {
+                connect(m_boardSetupController, &BoardSetupController::csaMoveRequested,
+                        m_csaGameCoordinator, &CsaGameCoordinator::onHumanMove);
+            }
+        }
+
+        // 対局開始オプションを設定
+        CsaGameCoordinator::StartOptions options;
+        options.host = m_csaGameDialog->host();
+        options.port = m_csaGameDialog->port();
+        options.username = m_csaGameDialog->loginId();
+        options.password = m_csaGameDialog->password();
+        options.csaVersion = m_csaGameDialog->csaVersion();
+
+        if (m_csaGameDialog->isHuman()) {
+            options.playerType = CsaGameCoordinator::PlayerType::Human;
+        } else {
+            options.playerType = CsaGameCoordinator::PlayerType::Engine;
+            options.engineName = m_csaGameDialog->engineName();
+            options.engineNumber = m_csaGameDialog->engineNumber();
+            // エンジンパスは設定から取得
+            if (!m_csaGameDialog->engineList().isEmpty()) {
+                int idx = m_csaGameDialog->engineNumber();
+                if (idx >= 0 && idx < m_csaGameDialog->engineList().size()) {
+                    options.enginePath = m_csaGameDialog->engineList().at(idx).path;
+                }
+            }
+        }
+
+        // プレイモードをCSA通信対局に設定
+        m_playMode = CsaNetworkMode;
+
+        // 対局を開始
+        m_csaGameCoordinator->startGame(options);
     }
 }
 
@@ -2943,4 +2996,105 @@ void MainWindow::onTabCurrentChanged(int index)
     // タブインデックスを設定ファイルに保存
     SettingsService::setLastSelectedTabIndex(index);
     qDebug().noquote() << "[MW] onTabCurrentChanged: saved tab index =" << index;
+}
+
+// ========================================================
+// CSA通信対局関連のスロット
+// ========================================================
+
+// CSA対局開始時の処理
+void MainWindow::onCsaGameStarted_(const QString& blackName, const QString& whiteName)
+{
+    qInfo().noquote() << "[MW] CSA game started:" << blackName << "vs" << whiteName;
+
+    // 対局者名を設定
+    m_humanName1 = blackName;
+    m_humanName2 = whiteName;
+
+    // 盤面を初期化（平手初期局面のSFEN）
+    if (m_gameController && m_gameController->board()) {
+        const QString hiratePosition = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+        m_gameController->board()->setSfen(hiratePosition);
+    }
+    if (m_shogiView) {
+        m_shogiView->update();
+    }
+
+    // ステータスバーに表示
+    ui->statusbar->showMessage(tr("CSA通信対局開始: %1 vs %2").arg(blackName, whiteName), 5000);
+}
+
+// CSA対局終了時の処理
+void MainWindow::onCsaGameEnded_(const QString& result, const QString& cause)
+{
+    qInfo().noquote() << "[MW] CSA game ended:" << result << "(" << cause << ")";
+
+    // 対局終了ダイアログを表示
+    QString message = tr("対局が終了しました。\n\n結果: %1\n原因: %2").arg(result, cause);
+    QMessageBox::information(this, tr("対局終了"), message);
+
+    // プレイモードをリセット
+    m_playMode = NotStarted;
+
+    // ステータスバーに表示
+    ui->statusbar->showMessage(tr("対局終了: %1 (%2)").arg(result, cause), 5000);
+}
+
+// CSA指し手確定時の処理
+void MainWindow::onCsaMoveMade_(const QString& csaMove, const QString& usiMove,
+                                const QString& prettyMove, int consumedTimeMs)
+{
+    Q_UNUSED(csaMove)
+    Q_UNUSED(consumedTimeMs)
+
+    qDebug().noquote() << "[MW] CSA move made:" << prettyMove << "(" << usiMove << ")";
+
+    // 棋譜に追加
+    QString elapsedStr = QString("%1:%2")
+                             .arg(consumedTimeMs / 60000, 2, 10, QLatin1Char('0'))
+                             .arg((consumedTimeMs / 1000) % 60, 2, 10, QLatin1Char('0'));
+
+    // 棋譜表示更新（KifuRecordListModelがあれば）
+    if (m_kifuRecordModel) {
+        KifDisplayItem item;
+        item.prettyMove = prettyMove;
+        item.timeText = elapsedStr;
+        // m_kifuRecordModel->append(item); // 実際の実装ではモデルへの追加が必要
+    }
+
+    // 盤面を更新
+    if (m_shogiView) {
+        m_shogiView->update();
+    }
+}
+
+// CSA手番変更時の処理
+void MainWindow::onCsaTurnChanged_(bool isMyTurn)
+{
+    qDebug().noquote() << "[MW] CSA turn changed: myTurn =" << isMyTurn;
+
+    // 手番表示の更新（ステータスバーで表示）
+    if (m_csaGameCoordinator) {
+        bool isBlackTurn = m_csaGameCoordinator->isBlackSide() ? isMyTurn : !isMyTurn;
+        QString turnText = isBlackTurn ? tr("先手番") : tr("後手番");
+        ui->statusbar->showMessage(turnText, 2000);
+    }
+
+    // 入力モードの切り替え
+    // Note: BoardInteractionControllerにはsetInputEnabledがないため、
+    // 現状は手番表示のみ。将来的にはモード切替等で制御可能。
+    Q_UNUSED(isMyTurn)
+}
+
+// CSAログメッセージ受信時の処理
+void MainWindow::onCsaLogMessage_(const QString& message, bool isError)
+{
+    if (isError) {
+        qWarning().noquote() << "[CSA]" << message;
+    } else {
+        qInfo().noquote() << "[CSA]" << message;
+    }
+
+    // ステータスバーに簡易表示
+    ui->statusbar->showMessage(message, 3000);
 }

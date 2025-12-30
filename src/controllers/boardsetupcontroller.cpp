@@ -257,6 +257,18 @@ void BoardSetupController::onMoveRequested(const QPoint& from, const QPoint& to)
         }
         break;
 
+    case CsaNetworkMode: {
+        qInfo() << "[BoardSetup] CsaNetworkMode: emitting csaMoveRequested";
+        qDebug() << "[CSA-DEBUG] BoardSetup: hFrom=" << hFrom << "hTo=" << hTo;
+        // 成り判定（移動先が敵陣であれば成りダイアログを表示すべきだが、
+        // ここでは簡易的にfalseを送信。実際には成り確認ダイアログが必要）
+        bool promote = m_gameController ? m_gameController->promote() : false;
+        qDebug() << "[CSA-DEBUG] BoardSetup: promote=" << promote;
+        Q_EMIT csaMoveRequested(hFrom, hTo, promote);
+        qDebug() << "[CSA-DEBUG] BoardSetup: csaMoveRequested emitted";
+        break;
+    }
+
     default:
         qInfo() << "[BoardSetup] not a live play mode; skip post-handling";
         break;
