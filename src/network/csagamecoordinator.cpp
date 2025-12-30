@@ -271,6 +271,23 @@ void CsaGameCoordinator::onMoveReceived(const QString& move, int consumedTimeMs)
 {
     emit logMessage(tr("相手の指し手: %1 (消費時間: %2ms)").arg(move).arg(consumedTimeMs));
 
+    // CSA形式から座標を抽出（ハイライト用）
+    QPoint from, to;
+    if (move.length() >= 5) {
+        int fromFile = move[1].digitValue();
+        int fromRank = move[2].digitValue();
+        int toFile = move[3].digitValue();
+        int toRank = move[4].digitValue();
+
+        if (fromFile == 0 && fromRank == 0) {
+            // 駒打ちの場合、移動元は無効
+            from = QPoint(-1, -1);
+        } else {
+            from = QPoint(fromFile, fromRank);
+        }
+        to = QPoint(toFile, toRank);
+    }
+
     if (!applyMoveToBoard(move)) {
         emit logMessage(tr("指し手の適用に失敗しました: %1").arg(move), true);
         return;
@@ -279,6 +296,9 @@ void CsaGameCoordinator::onMoveReceived(const QString& move, int consumedTimeMs)
     m_moveCount++;
     m_isMyTurn = true;
     emit turnChanged(true);
+
+    // ハイライト更新を要求
+    emit moveHighlightRequested(from, to);
 
     QString usiMove = csaToUsi(move);
     QString prettyMove = csaToPretty(move);
@@ -303,9 +323,29 @@ void CsaGameCoordinator::onMoveConfirmed(const QString& move, int consumedTimeMs
         m_usiMoves.append(usiMove);
     }
 
+    // CSA形式から座標を抽出（ハイライト用）
+    QPoint from, to;
+    if (move.length() >= 5) {
+        int fromFile = move[1].digitValue();
+        int fromRank = move[2].digitValue();
+        int toFile = move[3].digitValue();
+        int toRank = move[4].digitValue();
+
+        if (fromFile == 0 && fromRank == 0) {
+            // 駒打ちの場合、移動元は無効
+            from = QPoint(-1, -1);
+        } else {
+            from = QPoint(fromFile, fromRank);
+        }
+        to = QPoint(toFile, toRank);
+    }
+
     m_moveCount++;
     m_isMyTurn = false;
     emit turnChanged(false);
+
+    // ハイライト更新を要求（自分の指し手でも確認後に再度更新）
+    emit moveHighlightRequested(from, to);
 
     QString prettyMove = csaToPretty(move);
 
