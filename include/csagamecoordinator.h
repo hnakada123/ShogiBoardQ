@@ -187,6 +187,13 @@ signals:
     void turnChanged(bool isMyTurn);
 
     /**
+     * @brief 指し手のハイライト表示を要求
+     * @param from 移動元座標
+     * @param to 移動先座標
+     */
+    void moveHighlightRequested(const QPoint& from, const QPoint& to);
+
+    /**
      * @brief 対局情報を受信した時に発行
      * @param summary 対局情報
      */

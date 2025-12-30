@@ -768,6 +768,8 @@ void MainWindow::displayCsaGameDialog()
                     this, &MainWindow::onCsaTurnChanged_);
             connect(m_csaGameCoordinator, &CsaGameCoordinator::logMessage,
                     this, &MainWindow::onCsaLogMessage_);
+            connect(m_csaGameCoordinator, &CsaGameCoordinator::moveHighlightRequested,
+                    this, &MainWindow::onCsaMoveHighlightRequested_);
 
             // BoardSetupControllerからの指し手をCsaGameCoordinatorに転送
             ensureBoardSetupController_();
@@ -3097,4 +3099,14 @@ void MainWindow::onCsaLogMessage_(const QString& message, bool isError)
 
     // ステータスバーに簡易表示
     ui->statusbar->showMessage(message, 3000);
+}
+
+// CSA指し手のハイライト表示要求
+void MainWindow::onCsaMoveHighlightRequested_(const QPoint& from, const QPoint& to)
+{
+    qDebug().noquote() << "[MW] CSA move highlight requested: from=" << from << "to=" << to;
+
+    if (m_boardController) {
+        m_boardController->showMoveHighlights(from, to);
+    }
 }

@@ -257,6 +257,7 @@ private slots:
                         const QString& prettyMove, int consumedTimeMs);
     void onCsaTurnChanged_(bool isMyTurn);
     void onCsaLogMessage_(const QString& message, bool isError);
+    void onCsaMoveHighlightRequested_(const QPoint& from, const QPoint& to);
 
     // 内部配線
     void connectBoardClicks_();
