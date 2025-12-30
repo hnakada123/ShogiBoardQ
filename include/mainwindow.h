@@ -100,6 +100,7 @@ class PvClickController;
 class RecordNavigationController;
 class PositionEditCoordinator;
 class CsaGameDialog;
+class CsaGameCoordinator;
 
 // ============================================================
 // MainWindow
@@ -249,6 +250,14 @@ private slots:
     // リプレイ
     void setReplayMode(bool on);
 
+    // CSA通信対局関連
+    void onCsaGameStarted_(const QString& blackName, const QString& whiteName);
+    void onCsaGameEnded_(const QString& result, const QString& cause);
+    void onCsaMoveMade_(const QString& csaMove, const QString& usiMove,
+                        const QString& prettyMove, int consumedTimeMs);
+    void onCsaTurnChanged_(bool isMyTurn);
+    void onCsaLogMessage_(const QString& message, bool isError);
+
     // 内部配線
     void connectBoardClicks_();
     void connectMoveRequested_();
@@ -319,6 +328,9 @@ private:
     TsumeShogiSearchDialog*  m_tsumeShogiSearchDialog = nullptr;
     KifuAnalysisDialog*      m_analyzeGameRecordDialog = nullptr;
     CsaGameDialog*           m_csaGameDialog = nullptr;
+
+    // CSA通信対局コーディネータ
+    CsaGameCoordinator*      m_csaGameCoordinator = nullptr;
 
     // モデル群
     KifuRecordListModel*       m_kifuRecordModel  = nullptr;

@@ -13,6 +13,7 @@ enum PlayMode {
     AnalysisMode,      // 棋譜解析モード
     ConsidarationMode, // 検討モード
     TsumiSearchMode,   // 詰将棋探索モード
+    CsaNetworkMode,    // CSA通信対局モード
     PlayModeError  // エラーコード
 };
 

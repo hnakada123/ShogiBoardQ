@@ -1,0 +1,678 @@
+#include "csaclient.h"
+#include <QDebug>
+
+// GameSummaryコンストラクタ
+CsaClient::GameSummary::GameSummary()
+{
+    clear();
+}
+
+// GameSummary初期化
+void CsaClient::GameSummary::clear()
+{
+    protocolVersion.clear();
+    protocolMode = QStringLiteral("Server");
+    format.clear();
+    declaration.clear();
+    gameId.clear();
+    blackName.clear();
+    whiteName.clear();
+    myTurn.clear();
+    toMove = QStringLiteral("+");
+    rematchOnDraw = false;
+    maxMoves = 0;
+
+    timeUnit = QStringLiteral("1sec");
+    totalTime = 0;
+    byoyomi = 0;
+    leastTimePerMove = 0;
+    increment = 0;
+    delay = 0;
+    timeRoundup = false;
+
+    positionLines.clear();
+    moves.clear();
+
+    hasIndividualTime = false;
+    totalTimeBlack = 0;
+    totalTimeWhite = 0;
+    byoyomiBlack = 0;
+    byoyomiWhite = 0;
+}
+
+// 時間単位をミリ秒に変換
+int CsaClient::GameSummary::timeUnitMs() const
+{
+    if (timeUnit == QStringLiteral("1msec") || timeUnit == QStringLiteral("msec")) {
+        return 1;
+    } else if (timeUnit == QStringLiteral("1min") || timeUnit == QStringLiteral("min")) {
+        return 60000;
+    }
+    // デフォルトは秒
+    return 1000;
+}
+
+// コンストラクタ
+CsaClient::CsaClient(QObject* parent)
+    : QObject(parent)
+    , m_socket(new QTcpSocket(this))
+    , m_connectionTimer(new QTimer(this))
+    , m_connectionState(ConnectionState::Disconnected)
+    , m_isMyTurn(false)
+    , m_inGameSummary(false)
+    , m_inTimeSection(false)
+    , m_inPositionSection(false)
+    , m_moveCount(0)
+{
+    // ソケットのシグナル接続
+    connect(m_socket, &QTcpSocket::connected,
+            this, &CsaClient::onSocketConnected);
+    connect(m_socket, &QTcpSocket::disconnected,
+            this, &CsaClient::onSocketDisconnected);
+    connect(m_socket, &QTcpSocket::errorOccurred,
+            this, &CsaClient::onSocketError);
+    connect(m_socket, &QTcpSocket::readyRead,
+            this, &CsaClient::onReadyRead);
+
+    // タイムアウトタイマー設定
+    m_connectionTimer->setSingleShot(true);
+    connect(m_connectionTimer, &QTimer::timeout,
+            this, &CsaClient::onConnectionTimeout);
+}
+
+// デストラクタ
+CsaClient::~CsaClient()
+{
+    if (m_socket->state() != QAbstractSocket::UnconnectedState) {
+        m_socket->abort();
+    }
+}
+
+// サーバーに接続
+void CsaClient::connectToServer(const QString& host, int port)
+{
+    if (m_connectionState != ConnectionState::Disconnected) {
+        emit errorOccurred(tr("既に接続中です"));
+        return;
+    }
+
+    qInfo().noquote() << "[CSA] Connecting to" << host << ":" << port;
+
+    setConnectionState(ConnectionState::Connecting);
+    m_receiveBuffer.clear();
+
+    m_connectionTimer->start(kConnectionTimeoutMs);
+    m_socket->connectToHost(host, static_cast<quint16>(port));
+}
+
+// サーバーから切断
+void CsaClient::disconnectFromServer()
+{
+    m_connectionTimer->stop();
+
+    if (m_connectionState == ConnectionState::LoggedIn ||
+        m_connectionState == ConnectionState::WaitingForGame) {
+        // ログアウトコマンドを送信
+        logout();
+    }
+
+    if (m_socket->state() != QAbstractSocket::UnconnectedState) {
+        m_socket->disconnectFromHost();
+    }
+}
+
+// 接続中かどうか
+bool CsaClient::isConnected() const
+{
+    return m_socket->state() == QAbstractSocket::ConnectedState;
+}
+
+// ログイン
+void CsaClient::login(const QString& username, const QString& password)
+{
+    if (m_connectionState != ConnectionState::Connected) {
+        emit errorOccurred(tr("サーバーに接続されていません"));
+        return;
+    }
+
+    m_username = username;
+    QString loginCmd = QStringLiteral("LOGIN %1 %2").arg(username, password);
+    sendMessage(loginCmd);
+}
+
+// ログアウト
+void CsaClient::logout()
+{
+    if (m_connectionState != ConnectionState::LoggedIn &&
+        m_connectionState != ConnectionState::WaitingForGame) {
+        return;
+    }
+
+    sendMessage(QStringLiteral("LOGOUT"));
+}
+
+// 対局条件に同意
+void CsaClient::agree(const QString& gameId)
+{
+    if (m_connectionState != ConnectionState::GameReady) {
+        emit errorOccurred(tr("対局条件を受信していません"));
+        return;
+    }
+
+    QString cmd = QStringLiteral("AGREE");
+    if (!gameId.isEmpty()) {
+        cmd += QStringLiteral(" ") + gameId;
+    }
+    sendMessage(cmd);
+}
+
+// 対局条件を拒否
+void CsaClient::reject(const QString& gameId)
+{
+    if (m_connectionState != ConnectionState::GameReady) {
+        return;
+    }
+
+    QString cmd = QStringLiteral("REJECT");
+    if (!gameId.isEmpty()) {
+        cmd += QStringLiteral(" ") + gameId;
+    }
+    sendMessage(cmd);
+}
+
+// 指し手を送信
+void CsaClient::sendMove(const QString& move)
+{
+    qDebug() << "[CSA-DEBUG] CsaClient::sendMove called with:" << move;
+    qDebug() << "[CSA-DEBUG] connectionState=" << static_cast<int>(m_connectionState)
+             << "isMyTurn=" << m_isMyTurn;
+
+    if (m_connectionState != ConnectionState::InGame) {
+        qDebug() << "[CSA-DEBUG] Not in game, rejecting move";
+        emit errorOccurred(tr("対局中ではありません"));
+        return;
+    }
+
+    if (!m_isMyTurn) {
+        qDebug() << "[CSA-DEBUG] Not my turn, rejecting move";
+        emit errorOccurred(tr("自分の手番ではありません"));
+        return;
+    }
+
+    qDebug() << "[CSA-DEBUG] Sending move to server:" << move;
+    sendMessage(move);
+}
+
+// 投了
+void CsaClient::resign()
+{
+    if (m_connectionState != ConnectionState::InGame) {
+        return;
+    }
+
+    sendMessage(QStringLiteral("%TORYO"));
+}
+
+// 勝利宣言
+void CsaClient::declareWin()
+{
+    if (m_connectionState != ConnectionState::InGame) {
+        return;
+    }
+
+    sendMessage(QStringLiteral("%KACHI"));
+}
+
+// 中断要請
+void CsaClient::requestChudan()
+{
+    if (m_connectionState != ConnectionState::InGame) {
+        return;
+    }
+
+    sendMessage(QStringLiteral("%CHUDAN"));
+}
+
+// ソケット接続時
+void CsaClient::onSocketConnected()
+{
+    m_connectionTimer->stop();
+    qInfo().noquote() << "[CSA] Connected to server";
+    setConnectionState(ConnectionState::Connected);
+}
+
+// ソケット切断時
+void CsaClient::onSocketDisconnected()
+{
+    m_connectionTimer->stop();
+    qInfo().noquote() << "[CSA] Disconnected from server";
+    setConnectionState(ConnectionState::Disconnected);
+}
+
+// ソケットエラー時
+void CsaClient::onSocketError(QAbstractSocket::SocketError error)
+{
+    Q_UNUSED(error)
+    m_connectionTimer->stop();
+
+    QString errorMessage = m_socket->errorString();
+    qWarning().noquote() << "[CSA] Socket error:" << errorMessage;
+
+    emit errorOccurred(errorMessage);
+    setConnectionState(ConnectionState::Disconnected);
+}
+
+// データ受信時
+void CsaClient::onReadyRead()
+{
+    // 受信データをバッファに追加
+    m_receiveBuffer += QString::fromUtf8(m_socket->readAll());
+
+    // 行単位で処理
+    qsizetype newlineIndex;
+    while ((newlineIndex = m_receiveBuffer.indexOf(QLatin1Char('\n'))) != -1) {
+        QString line = m_receiveBuffer.left(static_cast<int>(newlineIndex));
+        m_receiveBuffer = m_receiveBuffer.mid(static_cast<int>(newlineIndex) + 1);
+
+        // CRを除去
+        if (line.endsWith(QLatin1Char('\r'))) {
+            line.chop(1);
+        }
+
+        if (!line.isEmpty()) {
+            emit rawMessageReceived(line);
+            processLine(line);
+        }
+    }
+}
+
+// 接続タイムアウト時
+void CsaClient::onConnectionTimeout()
+{
+    qWarning().noquote() << "[CSA] Connection timeout";
+    m_socket->abort();
+    emit errorOccurred(tr("接続がタイムアウトしました"));
+    setConnectionState(ConnectionState::Disconnected);
+}
+
+// メッセージ送信
+void CsaClient::sendMessage(const QString& message)
+{
+    if (!isConnected()) {
+        return;
+    }
+
+    QString msg = message + QStringLiteral("\n");
+    m_socket->write(msg.toUtf8());
+    m_socket->flush();
+
+    emit rawMessageSent(message);
+    qDebug().noquote() << "[CSA] Sent:" << message;
+}
+
+// 受信行を処理
+void CsaClient::processLine(const QString& line)
+{
+    qDebug().noquote() << "[CSA] Recv:" << line;
+
+    // Game_Summary解析中
+    if (m_inGameSummary) {
+        processGameSummary(line);
+        return;
+    }
+
+    // 状態に応じた処理
+    switch (m_connectionState) {
+    case ConnectionState::Connected:
+        processLoginResponse(line);
+        break;
+    case ConnectionState::LoggedIn:
+    case ConnectionState::WaitingForGame:
+        // Game_Summary開始を待つ
+        if (line == QStringLiteral("BEGIN Game_Summary")) {
+            m_inGameSummary = true;
+            m_gameSummary.clear();
+        } else if (line.startsWith(QStringLiteral("LOGOUT:"))) {
+            emit logoutCompleted();
+        }
+        break;
+    case ConnectionState::GameReady:
+        if (line.startsWith(QStringLiteral("START:"))) {
+            // 対局開始
+            QString gameId = line.mid(6);
+            setConnectionState(ConnectionState::InGame);
+            m_isMyTurn = (m_gameSummary.myTurn == m_gameSummary.toMove);
+            m_moveCount = 0;
+            emit gameStarted(gameId);
+        } else if (line.startsWith(QStringLiteral("REJECT:"))) {
+            // 対局拒否
+            // REJECT:<GameID> by <rejector>
+            qsizetype byIndex = line.indexOf(QStringLiteral(" by "));
+            QString gameId = line.mid(7, static_cast<int>(byIndex) - 7);
+            QString rejector = line.mid(static_cast<int>(byIndex) + 4);
+            setConnectionState(ConnectionState::WaitingForGame);
+            emit gameRejected(gameId, rejector);
+        }
+        break;
+    case ConnectionState::InGame:
+        processGameMessage(line);
+        break;
+    default:
+        break;
+    }
+}
+
+// ログイン応答処理
+void CsaClient::processLoginResponse(const QString& line)
+{
+    if (line.startsWith(QStringLiteral("LOGIN:"))) {
+        if (line.contains(QStringLiteral(" OK"))) {
+            // ログイン成功
+            qInfo().noquote() << "[CSA] Login successful";
+            setConnectionState(ConnectionState::LoggedIn);
+            emit loginSucceeded();
+        } else if (line.contains(QStringLiteral("incorrect"))) {
+            // ログイン失敗
+            qWarning().noquote() << "[CSA] Login failed";
+            emit loginFailed(tr("ユーザー名またはパスワードが正しくありません"));
+        }
+    }
+}
+
+// Game_Summary処理
+void CsaClient::processGameSummary(const QString& line)
+{
+    // セクション終了チェック
+    if (line == QStringLiteral("END Game_Summary")) {
+        m_inGameSummary = false;
+        m_inTimeSection = false;
+        m_inPositionSection = false;
+        setConnectionState(ConnectionState::GameReady);
+        emit gameSummaryReceived(m_gameSummary);
+        return;
+    }
+
+    if (line == QStringLiteral("END Time") ||
+        line == QStringLiteral("END Time+") ||
+        line == QStringLiteral("END Time-")) {
+        m_inTimeSection = false;
+        return;
+    }
+
+    if (line == QStringLiteral("END Position")) {
+        m_inPositionSection = false;
+        return;
+    }
+
+    // セクション開始チェック
+    if (line == QStringLiteral("BEGIN Time")) {
+        m_inTimeSection = true;
+        m_currentTimeSection = QStringLiteral("Time");
+        return;
+    }
+    if (line == QStringLiteral("BEGIN Time+")) {
+        m_inTimeSection = true;
+        m_currentTimeSection = QStringLiteral("Time+");
+        m_gameSummary.hasIndividualTime = true;
+        return;
+    }
+    if (line == QStringLiteral("BEGIN Time-")) {
+        m_inTimeSection = true;
+        m_currentTimeSection = QStringLiteral("Time-");
+        m_gameSummary.hasIndividualTime = true;
+        return;
+    }
+    if (line == QStringLiteral("BEGIN Position")) {
+        m_inPositionSection = true;
+        return;
+    }
+
+    // 時間セクション内の処理
+    if (m_inTimeSection) {
+        qsizetype colonPos = line.indexOf(QLatin1Char(':'));
+        if (colonPos > 0) {
+            QString key = line.left(static_cast<int>(colonPos));
+            QString value = line.mid(static_cast<int>(colonPos) + 1);
+
+            if (key == QStringLiteral("Time_Unit")) {
+                m_gameSummary.timeUnit = value;
+            } else if (key == QStringLiteral("Total_Time")) {
+                int time = value.toInt();
+                if (m_currentTimeSection == QStringLiteral("Time+")) {
+                    m_gameSummary.totalTimeBlack = time;
+                } else if (m_currentTimeSection == QStringLiteral("Time-")) {
+                    m_gameSummary.totalTimeWhite = time;
+                } else {
+                    m_gameSummary.totalTime = time;
+                }
+            } else if (key == QStringLiteral("Byoyomi")) {
+                int time = value.toInt();
+                if (m_currentTimeSection == QStringLiteral("Time+")) {
+                    m_gameSummary.byoyomiBlack = time;
+                } else if (m_currentTimeSection == QStringLiteral("Time-")) {
+                    m_gameSummary.byoyomiWhite = time;
+                } else {
+                    m_gameSummary.byoyomi = time;
+                }
+            } else if (key == QStringLiteral("Least_Time_Per_Move")) {
+                m_gameSummary.leastTimePerMove = value.toInt();
+            } else if (key == QStringLiteral("Increment")) {
+                m_gameSummary.increment = value.toInt();
+            } else if (key == QStringLiteral("Delay")) {
+                m_gameSummary.delay = value.toInt();
+            } else if (key == QStringLiteral("Time_Roundup")) {
+                m_gameSummary.timeRoundup = (value == QStringLiteral("YES"));
+            }
+        }
+        return;
+    }
+
+    // 局面セクション内の処理
+    if (m_inPositionSection) {
+        // P1-P9, P+, P-, +, - で始まる行は局面情報
+        if (line.startsWith(QLatin1Char('P')) ||
+            line == QStringLiteral("+") ||
+            line == QStringLiteral("-")) {
+            m_gameSummary.positionLines.append(line);
+        }
+        // 指し手行（+7776FU,T12 形式）
+        else if ((line.startsWith(QLatin1Char('+')) || line.startsWith(QLatin1Char('-'))) &&
+                 line.length() > 1) {
+            // 消費時間を除去して指し手のみ保存
+            qsizetype commaPos = line.indexOf(QLatin1Char(','));
+            QString move = (commaPos > 0) ? line.left(static_cast<int>(commaPos)) : line;
+            m_gameSummary.moves.append(move);
+        }
+        return;
+    }
+
+    // 一般情報の処理
+    qsizetype colonPos = line.indexOf(QLatin1Char(':'));
+    if (colonPos > 0) {
+        QString key = line.left(static_cast<int>(colonPos));
+        QString value = line.mid(static_cast<int>(colonPos) + 1);
+
+        if (key == QStringLiteral("Protocol_Version")) {
+            m_gameSummary.protocolVersion = value;
+        } else if (key == QStringLiteral("Protocol_Mode")) {
+            m_gameSummary.protocolMode = value;
+        } else if (key == QStringLiteral("Format")) {
+            m_gameSummary.format = value;
+        } else if (key == QStringLiteral("Declaration")) {
+            m_gameSummary.declaration = value;
+        } else if (key == QStringLiteral("Game_ID")) {
+            m_gameSummary.gameId = value;
+        } else if (key == QStringLiteral("Name+")) {
+            m_gameSummary.blackName = value;
+        } else if (key == QStringLiteral("Name-")) {
+            m_gameSummary.whiteName = value;
+        } else if (key == QStringLiteral("Your_Turn")) {
+            m_gameSummary.myTurn = value;
+        } else if (key == QStringLiteral("To_Move")) {
+            m_gameSummary.toMove = value;
+        } else if (key == QStringLiteral("Rematch_On_Draw")) {
+            m_gameSummary.rematchOnDraw = (value == QStringLiteral("YES"));
+        } else if (key == QStringLiteral("Max_Moves")) {
+            m_gameSummary.maxMoves = value.toInt();
+        }
+    }
+}
+
+// 対局中メッセージ処理
+void CsaClient::processGameMessage(const QString& line)
+{
+    qDebug() << "[CSA-DEBUG] processGameMessage:" << line;
+
+    // #で始まる行は結果行
+    if (line.startsWith(QLatin1Char('#'))) {
+        qDebug() << "[CSA-DEBUG] Result line detected";
+        processResultLine(line);
+        return;
+    }
+
+    // %で始まる行は特殊コマンド（投了、勝利宣言など）の確認
+    if (line.startsWith(QLatin1Char('%'))) {
+        qDebug() << "[CSA-DEBUG] Special command line detected";
+        // %TORYO,T4 形式
+        qsizetype commaPos = line.indexOf(QLatin1Char(','));
+        QString cmd = (commaPos > 0) ? line.left(static_cast<int>(commaPos)) : line;
+        int consumedTime = 0;
+        if (commaPos > 0 && line.mid(static_cast<int>(commaPos) + 1).startsWith(QLatin1Char('T'))) {
+            consumedTime = parseConsumedTime(line.mid(static_cast<int>(commaPos) + 2));
+        }
+
+        // 投了や勝利宣言の確認として処理
+        // 結果行が続くのでここでは特に何もしない
+        Q_UNUSED(cmd)
+        Q_UNUSED(consumedTime)
+        return;
+    }
+
+    // 指し手行の処理
+    if ((line.startsWith(QLatin1Char('+')) || line.startsWith(QLatin1Char('-'))) &&
+        line.length() > 1) {
+        qDebug() << "[CSA-DEBUG] Move line detected, calling processMoveLine";
+        processMoveLine(line);
+    }
+}
+
+// 結果行処理
+void CsaClient::processResultLine(const QString& line)
+{
+    qDebug() << "[CSA-DEBUG] processResultLine:" << line;
+
+    // 結果行は2行連続で来る
+    // 1行目: 事象（#RESIGN, #SENNICHITE, #TIME_UP など）
+    // 2行目: 結果（#WIN, #LOSE, #DRAW など）
+
+    if (m_pendingFirstResultLine.isEmpty()) {
+        // 最初の結果行を保存
+        qDebug() << "[CSA-DEBUG] First result line, saving:" << line;
+        m_pendingFirstResultLine = line;
+        return;
+    }
+
+    // 2行目を受信
+    QString firstLine = m_pendingFirstResultLine;
+    QString secondLine = line;
+    m_pendingFirstResultLine.clear();
+
+    qDebug() << "[CSA-DEBUG] Processing result: cause=" << firstLine << "result=" << secondLine;
+
+    GameResult result = GameResult::Unknown;
+    GameEndCause cause = GameEndCause::Unknown;
+
+    // 結果判定
+    if (secondLine == QStringLiteral("#WIN")) {
+        result = GameResult::Win;
+    } else if (secondLine == QStringLiteral("#LOSE")) {
+        result = GameResult::Lose;
+    } else if (secondLine == QStringLiteral("#DRAW")) {
+        result = GameResult::Draw;
+    } else if (secondLine == QStringLiteral("#CENSORED")) {
+        result = GameResult::Censored;
+    }
+
+    // 原因判定
+    if (firstLine == QStringLiteral("#RESIGN")) {
+        cause = GameEndCause::Resign;
+    } else if (firstLine == QStringLiteral("#TIME_UP")) {
+        cause = GameEndCause::TimeUp;
+    } else if (firstLine == QStringLiteral("#ILLEGAL_MOVE")) {
+        cause = GameEndCause::IllegalMove;
+    } else if (firstLine == QStringLiteral("#SENNICHITE")) {
+        cause = GameEndCause::Sennichite;
+    } else if (firstLine == QStringLiteral("#OUTE_SENNICHITE")) {
+        cause = GameEndCause::OuteSennichite;
+    } else if (firstLine == QStringLiteral("#JISHOGI")) {
+        cause = GameEndCause::Jishogi;
+    } else if (firstLine == QStringLiteral("#MAX_MOVES")) {
+        cause = GameEndCause::MaxMoves;
+    } else if (firstLine == QStringLiteral("#CHUDAN")) {
+        cause = GameEndCause::Chudan;
+        emit gameInterrupted();
+    } else if (firstLine == QStringLiteral("#ILLEGAL_ACTION")) {
+        cause = GameEndCause::IllegalAction;
+    }
+
+    qDebug() << "[CSA-DEBUG] Game ended with result=" << static_cast<int>(result)
+             << "cause=" << static_cast<int>(cause);
+
+    setConnectionState(ConnectionState::GameOver);
+    emit gameEnded(result, cause);
+
+    // 対局待ち状態に戻る
+    setConnectionState(ConnectionState::WaitingForGame);
+}
+
+// 指し手行処理
+void CsaClient::processMoveLine(const QString& line)
+{
+    // 形式: +7776FU,T12
+    qsizetype commaPos = line.indexOf(QLatin1Char(','));
+    QString move = (commaPos > 0) ? line.left(static_cast<int>(commaPos)) : line;
+    int consumedTime = 0;
+
+    if (commaPos > 0 && line.mid(static_cast<int>(commaPos) + 1).startsWith(QLatin1Char('T'))) {
+        consumedTime = parseConsumedTime(line.mid(static_cast<int>(commaPos) + 2));
+    }
+
+    // 消費時間をミリ秒に変換
+    int consumedTimeMs = consumedTime * m_gameSummary.timeUnitMs();
+
+    m_moveCount++;
+
+    // 手番を判定（指し手の先頭文字で判定）
+    bool isBlackMove = move.startsWith(QLatin1Char('+'));
+    bool wasMyTurn = m_isMyTurn;
+
+    // 手番を更新（相手が指したら自分の手番に）
+    if (isBlackMove) {
+        m_isMyTurn = (m_gameSummary.myTurn == QStringLiteral("-"));
+    } else {
+        m_isMyTurn = (m_gameSummary.myTurn == QStringLiteral("+"));
+    }
+
+    if (wasMyTurn) {
+        // 自分の指し手の確認
+        emit moveConfirmed(move, consumedTimeMs);
+    } else {
+        // 相手の指し手
+        emit moveReceived(move, consumedTimeMs);
+    }
+}
+
+// 接続状態設定
+void CsaClient::setConnectionState(ConnectionState state)
+{
+    if (m_connectionState != state) {
+        m_connectionState = state;
+        emit connectionStateChanged(state);
+    }
+}
+
+// 消費時間解析
+int CsaClient::parseConsumedTime(const QString& timeStr) const
+{
+    return timeStr.toInt();
+}
