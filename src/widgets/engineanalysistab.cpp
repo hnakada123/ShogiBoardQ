@@ -127,6 +127,22 @@ void EngineAnalysisTab::buildUi()
 
     m_tab->addTab(m_usiLogContainer, tr("USI通信ログ"));
 
+    // --- CSA通信ログ ---
+    m_csaLogContainer = new QWidget(m_tab);
+    QVBoxLayout* csaLogLayout = new QVBoxLayout(m_csaLogContainer);
+    csaLogLayout->setContentsMargins(4, 4, 4, 4);
+    csaLogLayout->setSpacing(2);
+
+    // ツールバーを構築
+    buildCsaLogToolbar();
+    csaLogLayout->addWidget(m_csaLogToolbar);
+
+    m_csaLog = new QPlainTextEdit(m_csaLogContainer);
+    m_csaLog->setReadOnly(true);
+    csaLogLayout->addWidget(m_csaLog);
+
+    m_tab->addTab(m_csaLogContainer, tr("CSA通信ログ"));
+
     // --- 棋譜コメント ---
     // コメント欄とツールバーを含むコンテナ
     QWidget* commentContainer = new QWidget(m_tab);
@@ -1451,5 +1467,78 @@ void EngineAnalysisTab::onView2SectionResized(int logicalIndex, int oldSize, int
     
     if (m_thinkingView2WidthsLoaded) {
         onThinkingViewColumnWidthChanged(1);
+    }
+}
+
+// ★ 追加: CSA通信ログツールバーを構築
+void EngineAnalysisTab::buildCsaLogToolbar()
+{
+    m_csaLogToolbar = new QWidget(m_csaLogContainer);
+    QHBoxLayout* toolbarLayout = new QHBoxLayout(m_csaLogToolbar);
+    toolbarLayout->setContentsMargins(2, 2, 2, 2);
+    toolbarLayout->setSpacing(4);
+
+    // フォントサイズ減少ボタン
+    m_btnCsaLogFontDecrease = new QToolButton(m_csaLogToolbar);
+    m_btnCsaLogFontDecrease->setText(QStringLiteral("A-"));
+    m_btnCsaLogFontDecrease->setToolTip(tr("フォントサイズを小さくする"));
+    m_btnCsaLogFontDecrease->setFixedSize(28, 24);
+    connect(m_btnCsaLogFontDecrease, &QToolButton::clicked, this, &EngineAnalysisTab::onCsaLogFontDecrease);
+
+    // フォントサイズ増加ボタン
+    m_btnCsaLogFontIncrease = new QToolButton(m_csaLogToolbar);
+    m_btnCsaLogFontIncrease->setText(QStringLiteral("A+"));
+    m_btnCsaLogFontIncrease->setToolTip(tr("フォントサイズを大きくする"));
+    m_btnCsaLogFontIncrease->setFixedSize(28, 24);
+    connect(m_btnCsaLogFontIncrease, &QToolButton::clicked, this, &EngineAnalysisTab::onCsaLogFontIncrease);
+
+    toolbarLayout->addWidget(m_btnCsaLogFontDecrease);
+    toolbarLayout->addWidget(m_btnCsaLogFontIncrease);
+    toolbarLayout->addStretch();
+
+    m_csaLogToolbar->setLayout(toolbarLayout);
+}
+
+// ★ 追加: CSA通信ログフォントサイズ変更
+void EngineAnalysisTab::updateCsaLogFontSize(int delta)
+{
+    m_csaLogFontSize += delta;
+    if (m_csaLogFontSize < 8) m_csaLogFontSize = 8;
+    if (m_csaLogFontSize > 24) m_csaLogFontSize = 24;
+
+    if (m_csaLog) {
+        QFont font = m_csaLog->font();
+        font.setPointSize(m_csaLogFontSize);
+        m_csaLog->setFont(font);
+    }
+}
+
+void EngineAnalysisTab::onCsaLogFontIncrease()
+{
+    updateCsaLogFontSize(1);
+}
+
+void EngineAnalysisTab::onCsaLogFontDecrease()
+{
+    updateCsaLogFontSize(-1);
+}
+
+// ★ 追加: CSA通信ログ追記
+void EngineAnalysisTab::appendCsaLog(const QString& line)
+{
+    if (m_csaLog) {
+        m_csaLog->appendPlainText(line);
+        // 自動スクロール
+        QTextCursor cursor = m_csaLog->textCursor();
+        cursor.movePosition(QTextCursor::End);
+        m_csaLog->setTextCursor(cursor);
+    }
+}
+
+// ★ 追加: CSA通信ログクリア
+void EngineAnalysisTab::clearCsaLog()
+{
+    if (m_csaLog) {
+        m_csaLog->clear();
     }
 }

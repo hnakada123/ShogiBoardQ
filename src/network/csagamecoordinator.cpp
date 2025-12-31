@@ -87,6 +87,10 @@ void CsaGameCoordinator::startGame(const StartOptions& options)
     m_options = options;
     m_playerType = options.playerType;
     m_moveCount = 0;
+    m_blackTotalTimeMs = 0;
+    m_whiteTotalTimeMs = 0;
+    m_prevToFile = 0;
+    m_prevToRank = 0;
     m_usiMoves.clear();
     m_sfenRecord.clear();
     m_gameMoves.clear();
@@ -271,13 +275,24 @@ void CsaGameCoordinator::onMoveReceived(const QString& move, int consumedTimeMs)
 {
     emit logMessage(tr("相手の指し手: %1 (消費時間: %2ms)").arg(move).arg(consumedTimeMs));
 
+    // CSA形式から手番を判定（+なら先手、-なら後手）
+    bool isBlackMove = (move.length() > 0 && move[0] == QLatin1Char('+'));
+
+    // 累計消費時間を更新
+    if (isBlackMove) {
+        m_blackTotalTimeMs += consumedTimeMs;
+    } else {
+        m_whiteTotalTimeMs += consumedTimeMs;
+    }
+
     // CSA形式から座標を抽出（ハイライト用）
     QPoint from, to;
+    int toFile = 0, toRank = 0;
     if (move.length() >= 5) {
         int fromFile = move[1].digitValue();
         int fromRank = move[2].digitValue();
-        int toFile = move[3].digitValue();
-        int toRank = move[4].digitValue();
+        toFile = move[3].digitValue();
+        toRank = move[4].digitValue();
 
         if (fromFile == 0 && fromRank == 0) {
             // 駒打ちの場合、移動元は無効
@@ -303,6 +318,10 @@ void CsaGameCoordinator::onMoveReceived(const QString& move, int consumedTimeMs)
     QString usiMove = csaToUsi(move);
     QString prettyMove = csaToPretty(move);
 
+    // 前の移動先を更新（「同」判定用）
+    m_prevToFile = toFile;
+    m_prevToRank = toRank;
+
     emit moveMade(move, usiMove, prettyMove, consumedTimeMs);
 
     if (m_playerType == PlayerType::Engine) {
@@ -315,6 +334,16 @@ void CsaGameCoordinator::onMoveConfirmed(const QString& move, int consumedTimeMs
 {
     emit logMessage(tr("指し手確認: %1 (消費時間: %2ms)").arg(move).arg(consumedTimeMs));
 
+    // CSA形式から手番を判定（+なら先手、-なら後手）
+    bool isBlackMove = (move.length() > 0 && move[0] == QLatin1Char('+'));
+
+    // 累計消費時間を更新
+    if (isBlackMove) {
+        m_blackTotalTimeMs += consumedTimeMs;
+    } else {
+        m_whiteTotalTimeMs += consumedTimeMs;
+    }
+
     // 自分の指し手は既にGUI側でvalidateAndMoveにより盤面が更新されているので、
     // applyMoveToBoardは呼ばない。
     // ただし、USI指し手リストとSFEN記録は更新する必要がある。
@@ -325,11 +354,12 @@ void CsaGameCoordinator::onMoveConfirmed(const QString& move, int consumedTimeMs
 
     // CSA形式から座標を抽出（ハイライト用）
     QPoint from, to;
+    int toFile = 0, toRank = 0;
     if (move.length() >= 5) {
         int fromFile = move[1].digitValue();
         int fromRank = move[2].digitValue();
-        int toFile = move[3].digitValue();
-        int toRank = move[4].digitValue();
+        toFile = move[3].digitValue();
+        toRank = move[4].digitValue();
 
         if (fromFile == 0 && fromRank == 0) {
             // 駒打ちの場合、移動元は無効
@@ -348,6 +378,10 @@ void CsaGameCoordinator::onMoveConfirmed(const QString& move, int consumedTimeMs
     emit moveHighlightRequested(from, to);
 
     QString prettyMove = csaToPretty(move);
+
+    // 前の移動先を更新（「同」判定用）
+    m_prevToFile = toFile;
+    m_prevToRank = toRank;
 
     emit moveMade(move, usiMove, prettyMove, consumedTimeMs);
 }
@@ -431,12 +465,24 @@ void CsaGameCoordinator::onGameInterrupted()
 void CsaGameCoordinator::onRawMessageReceived(const QString& message)
 {
     emit logMessage(tr("[RECV] %1").arg(message));
+    // CSA通信ログに追記（受信は ◀ で表示）
+    emit csaCommLogAppended(QStringLiteral("◀ ") + message);
 }
 
 // 生メッセージ送信ハンドラ
 void CsaGameCoordinator::onRawMessageSent(const QString& message)
 {
     emit logMessage(tr("[SEND] %1").arg(message));
+    // CSA通信ログに追記（送信は ▶ で表示、パスワードはマスク）
+    QString displayMsg = message;
+    if (displayMsg.startsWith(QStringLiteral("LOGIN "))) {
+        // パスワード部分をマスク（"LOGIN username password" 形式）
+        int commaPos = displayMsg.indexOf(QLatin1Char(','));
+        if (commaPos > 0) {
+            displayMsg = displayMsg.left(commaPos + 1) + QStringLiteral("*****");
+        }
+    }
+    emit csaCommLogAppended(QStringLiteral("▶ ") + displayMsg);
 }
 
 // エンジンのbestmoveハンドラ
@@ -700,6 +746,8 @@ QString CsaGameCoordinator::csaToPretty(const QString& csaMove) const
     QChar turnSign = csaMove[0];
     QString turnMark = (turnSign == QLatin1Char('+')) ? QStringLiteral("▲") : QStringLiteral("△");
 
+    int fromFile = csaMove[1].digitValue();
+    int fromRank = csaMove[2].digitValue();
     int toFile = csaMove[3].digitValue();
     int toRank = csaMove[4].digitValue();
     QString piece = csaMove.mid(5, 2);
@@ -717,11 +765,24 @@ QString CsaGameCoordinator::csaToPretty(const QString& csaMove) const
 
     QString pieceKanji = csaPieceToKanji(piece);
 
-    return QString("%1%2%3%4")
-        .arg(turnMark)
-        .arg(zenFile[toFile])
-        .arg(kanjiRank[toRank])
-        .arg(pieceKanji);
+    QString moveStr = turnMark;
+
+    // 「同」の判定（前の指し手の移動先と同じ場合）
+    if (toFile == m_prevToFile && toRank == m_prevToRank && m_moveCount > 0) {
+        moveStr += QStringLiteral("同　") + pieceKanji;
+    } else {
+        moveStr += zenFile[toFile] + kanjiRank[toRank] + pieceKanji;
+    }
+
+    // 駒打ちの場合
+    if (fromFile == 0 && fromRank == 0) {
+        moveStr += QStringLiteral("打");
+    } else {
+        // 移動元座標を追加
+        moveStr += QStringLiteral("(") + QString::number(fromFile) + QString::number(fromRank) + QStringLiteral(")");
+    }
+
+    return moveStr;
 }
 
 // 初期局面セットアップ

@@ -72,6 +72,11 @@ public:
     // 旧API（プレーンテキストでコメントを設定）
     void setCommentText(const QString& text);
 
+    // ★ 追加: CSA通信ログ追記
+    void appendCsaLog(const QString& line);
+    // ★ 追加: CSA通信ログクリア
+    void clearCsaLog();
+
     // 分岐ツリー用の種類とロール
     enum BranchNodeKind { BNK_Start = 1, BNK_Main = 2, BNK_Var = 3 };
     static constexpr int BR_ROLE_KIND     = 0x200;
@@ -165,6 +170,14 @@ private:
     QToolButton* m_btnUsiLogFontDecrease=nullptr;
     int m_usiLogFontSize=10;
 
+    // ★ 追加: CSA通信ログ用UI
+    QWidget* m_csaLogContainer=nullptr;
+    QWidget* m_csaLogToolbar=nullptr;
+    QPlainTextEdit* m_csaLog=nullptr;
+    QToolButton* m_btnCsaLogFontIncrease=nullptr;
+    QToolButton* m_btnCsaLogFontDecrease=nullptr;
+    int m_csaLogFontSize=10;
+
     // ★ 追加: 思考タブフォントサイズ
     int m_thinkingFontSize=10;
 
@@ -188,6 +201,10 @@ private:
     void updateUsiLogFontSize(int delta);  // ★ 追加: USI通信ログフォントサイズ変更
     void onUsiLogFontIncrease();     // ★ 追加
     void onUsiLogFontDecrease();     // ★ 追加
+    void buildCsaLogToolbar();       // ★ 追加: CSA通信ログツールバー構築
+    void updateCsaLogFontSize(int delta);  // ★ 追加: CSA通信ログフォントサイズ変更
+    void onCsaLogFontIncrease();     // ★ 追加
+    void onCsaLogFontDecrease();     // ★ 追加
     void updateThinkingFontSize(int delta);  // ★ 追加: 思考タブフォントサイズ変更
     void onThinkingFontIncrease();   // ★ 追加
     void onThinkingFontDecrease();   // ★ 追加
