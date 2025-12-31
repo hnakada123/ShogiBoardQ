@@ -74,6 +74,8 @@ public:
         ShogiClock* clock = nullptr;
         BoardInteractionController* boardController = nullptr;
         KifuRecordListModel* recordModel = nullptr;
+        QStringList* sfenRecord = nullptr;           ///< SFEN記録（MainWindowと共有）
+        QVector<ShogiMove>* gameMoves = nullptr;     ///< 指し手記録（MainWindowと共有）
     };
 
     /**
@@ -410,10 +412,10 @@ private:
     QString m_positionStr;      ///< "position sfen ... moves ..."形式
     QStringList m_usiMoves;     ///< USI形式の指し手リスト
 
-    // SFEN/棋譜記録
+    // SFEN/棋譜記録（外部から渡されたポインタを使用）
     QString m_startSfen;        ///< 開始局面SFEN
-    QStringList m_sfenRecord;   ///< 局面SFEN記録
-    QVector<ShogiMove> m_gameMoves; ///< 指し手記録
+    QStringList* m_sfenRecord = nullptr;   ///< 局面SFEN記録（MainWindowと共有）
+    QVector<ShogiMove>* m_gameMoves = nullptr; ///< 指し手記録（MainWindowと共有）
 
     // 定数
     static constexpr int kDefaultPort = 4081;
