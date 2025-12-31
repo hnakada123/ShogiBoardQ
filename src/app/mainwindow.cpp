@@ -771,9 +771,9 @@ void MainWindow::displayCsaGameDialog()
             connect(m_csaGameCoordinator, &CsaGameCoordinator::moveHighlightRequested,
                     this, &MainWindow::onCsaMoveHighlightRequested_);
             // CSA通信ログをEngineAnalysisTabに転送
-            if (m_engineTab) {
+            if (m_analysisTab) {
                 connect(m_csaGameCoordinator, &CsaGameCoordinator::csaCommLogAppended,
-                        m_engineTab, &EngineAnalysisTab::appendCsaLog);
+                        m_analysisTab, &EngineAnalysisTab::appendCsaLog);
             }
 
             // BoardSetupControllerからの指し手をCsaGameCoordinatorに転送
