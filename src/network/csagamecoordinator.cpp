@@ -477,7 +477,7 @@ void CsaGameCoordinator::onRawMessageSent(const QString& message)
     QString displayMsg = message;
     if (displayMsg.startsWith(QStringLiteral("LOGIN "))) {
         // パスワード部分をマスク（"LOGIN username password" 形式）
-        int commaPos = displayMsg.indexOf(QLatin1Char(','));
+        qsizetype commaPos = displayMsg.indexOf(QLatin1Char(','));
         if (commaPos > 0) {
             displayMsg = displayMsg.left(commaPos + 1) + QStringLiteral("*****");
         }
