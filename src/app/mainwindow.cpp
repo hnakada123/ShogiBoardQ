@@ -3053,6 +3053,40 @@ void MainWindow::onCsaGameEnded_(const QString& result, const QString& cause)
 {
     qInfo().noquote() << "[MW] CSA game ended:" << result << "(" << cause << ")";
 
+    // 棋譜欄に終局を追加
+    if (m_csaGameCoordinator) {
+        // 敗者の判定：自分が負けた場合は自分の手番記号、勝った場合は相手の手番記号
+        bool iAmLoser = (result == tr("負け"));
+        bool isBlackSide = m_csaGameCoordinator->isBlackSide();
+
+        // 敗者が先手か後手かを判定
+        bool loserIsBlack = (iAmLoser == isBlackSide);
+        QString mark = loserIsBlack ? QStringLiteral("▲") : QStringLiteral("△");
+
+        // 終局原因に応じた文字列を作成
+        QString endLine;
+        if (cause == tr("投了")) {
+            endLine = mark + tr("投了");
+        } else if (cause == tr("時間切れ")) {
+            endLine = mark + tr("時間切れ");
+        } else if (cause == tr("反則")) {
+            endLine = mark + tr("反則負け");
+        } else if (cause == tr("千日手")) {
+            endLine = tr("千日手");
+        } else if (cause == tr("連続王手の千日手")) {
+            endLine = mark + tr("反則負け（連続王手）");
+        } else if (cause == tr("入玉宣言")) {
+            endLine = tr("入玉宣言");
+        } else if (cause == tr("中断")) {
+            endLine = tr("中断");
+        } else {
+            endLine = cause;
+        }
+
+        // 棋譜欄に追加
+        appendKifuLine(endLine, QStringLiteral("00:00/00:00:00"));
+    }
+
     // 対局終了ダイアログを表示
     QString message = tr("対局が終了しました。\n\n結果: %1\n原因: %2").arg(result, cause);
     QMessageBox::information(this, tr("対局終了"), message);
