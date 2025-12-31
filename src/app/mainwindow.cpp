@@ -770,6 +770,8 @@ void MainWindow::displayCsaGameDialog()
             deps.clock = m_timeController ? m_timeController->clock() : nullptr;
             deps.boardController = m_boardController;
             deps.recordModel = m_kifuRecordModel;
+            deps.sfenRecord = m_sfenRecord;
+            deps.gameMoves = &m_gameMoves;
             m_csaGameCoordinator->setDependencies(deps);
 
             // シグナル接続

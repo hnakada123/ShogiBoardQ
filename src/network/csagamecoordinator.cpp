@@ -74,6 +74,8 @@ void CsaGameCoordinator::setDependencies(const Dependencies& deps)
     m_clock = deps.clock;
     m_boardController = deps.boardController;
     m_recordModel = deps.recordModel;
+    m_sfenRecord = deps.sfenRecord;
+    m_gameMoves = deps.gameMoves;
 }
 
 // 対局開始
@@ -92,8 +94,8 @@ void CsaGameCoordinator::startGame(const StartOptions& options)
     m_prevToFile = 0;
     m_prevToRank = 0;
     m_usiMoves.clear();
-    m_sfenRecord.clear();
-    m_gameMoves.clear();
+    if (m_sfenRecord) m_sfenRecord->clear();
+    if (m_gameMoves) m_gameMoves->clear();
 
     // CSAバージョン設定
     m_client->setCsaVersion(options.csaVersion);
@@ -838,8 +840,10 @@ void CsaGameCoordinator::setupInitialPosition()
     QString currentPlayer = m_gameController->board()->currentPlayer();
     m_startSfen = QString("%1 %2 %3 1").arg(boardSfen, currentPlayer, standSfen);
 
-    m_sfenRecord.clear();
-    m_sfenRecord.append(m_startSfen);
+    if (m_sfenRecord) {
+        m_sfenRecord->clear();
+        m_sfenRecord->append(m_startSfen);
+    }
 
     m_positionStr = QStringLiteral("position startpos");
     m_usiMoves.clear();
@@ -1021,7 +1025,9 @@ bool CsaGameCoordinator::applyMoveToBoard(const QString& csaMove)
     QString fullSfen = QString("%1 %2 %3 %4")
                            .arg(boardSfen, currentPlayer, standSfen)
                            .arg(m_moveCount + 1);
-    m_sfenRecord.append(fullSfen);
+    if (m_sfenRecord) {
+        m_sfenRecord->append(fullSfen);
+    }
 
     return true;
 }
