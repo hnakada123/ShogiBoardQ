@@ -1224,11 +1224,17 @@ void MainWindow::setGameOverMove(MatchCoordinator::Cause cause, bool loserIsPlay
 
 void MainWindow::appendKifuLine(const QString& text, const QString& elapsedTime)
 {
+    qDebug().noquote() << "[MW-DEBUG] appendKifuLine ENTER: text=" << text
+                       << "elapsedTime=" << elapsedTime;
+
     // KIF 追記の既存フローに合わせて m_lastMove を経由し、updateGameRecord() を1回だけ呼ぶ
     m_lastMove = text;
 
     // ここで棋譜へ 1 行追加（手数インクリメントやモデル反映は updateGameRecord が面倒を見る）
     updateGameRecord(elapsedTime);
+
+    qDebug().noquote() << "[MW-DEBUG] appendKifuLine AFTER updateGameRecord:"
+                       << "kifuModel.rowCount=" << (m_kifuRecordModel ? m_kifuRecordModel->rowCount() : -1);
 
     // 二重追記防止のためクリア
     m_lastMove.clear();
@@ -1443,39 +1449,67 @@ int MainWindow::maxPlyAtRow(int row) const
         const int kifuMax = (m_kifuRecordModel && m_kifuRecordModel->rowCount() > 0)
                                 ? (m_kifuRecordModel->rowCount() - 1)
                                 : 0;
-        return qMax(sfenMax, kifuMax);
+        const int result = qMax(sfenMax, kifuMax);
+        qDebug().noquote() << "[MW-DEBUG] maxPlyAtRow (live): row=" << row
+                           << "sfenMax=" << sfenMax << "kifuMax=" << kifuMax
+                           << "result=" << result;
+        return result;
     }
 
     // 既に解決済み行がある（棋譜ファイル読み込み後など）のとき：
     // その行に表示するエントリ数（disp.size()）が末尾。
     const int clamped = static_cast<int>(qBound(qsizetype(0), qsizetype(row), m_resolvedRows.size() - 1));
-    return static_cast<int>(m_resolvedRows[clamped].disp.size());
+    const int result = static_cast<int>(m_resolvedRows[clamped].disp.size());
+    qDebug().noquote() << "[MW-DEBUG] maxPlyAtRow (resolved): row=" << row
+                       << "clamped=" << clamped << "result=" << result;
+    return result;
 }
 
 int MainWindow::currentPly() const
 {
     // ★ リプレイ／再開（ライブ追記）中は UI 側のトラッキング値を優先
     const bool liveAppend = m_replayController ? m_replayController->isLiveAppendMode() : false;
+
+    qDebug().noquote() << "[MW-DEBUG] currentPly(): liveAppend=" << liveAppend
+                       << "m_currentSelectedPly=" << m_currentSelectedPly
+                       << "m_activePly=" << m_activePly;
+
     if (liveAppend) {
-        if (m_currentSelectedPly >= 0) return m_currentSelectedPly;
+        if (m_currentSelectedPly >= 0) {
+            qDebug().noquote() << "[MW-DEBUG] currentPly() returning m_currentSelectedPly=" << m_currentSelectedPly;
+            return m_currentSelectedPly;
+        }
 
         // 念のためビューの currentIndex もフォールバックに
         const QTableView* view = (m_recordPane ? m_recordPane->kifuView() : nullptr);
         if (view) {
             const QModelIndex cur = view->currentIndex();
-            if (cur.isValid()) return qMax(0, cur.row());
+            if (cur.isValid()) {
+                int result = qMax(0, cur.row());
+                qDebug().noquote() << "[MW-DEBUG] currentPly() (liveAppend) returning view.currentIndex.row=" << result;
+                return result;
+            }
         }
+        qDebug().noquote() << "[MW-DEBUG] currentPly() (liveAppend) returning 0 (fallback)";
         return 0;
     }
 
     // 通常時は従来通り m_activePly を優先
-    if (m_activePly >= 0) return m_activePly;
+    if (m_activePly >= 0) {
+        qDebug().noquote() << "[MW-DEBUG] currentPly() returning m_activePly=" << m_activePly;
+        return m_activePly;
+    }
 
     const QTableView* view = (m_recordPane ? m_recordPane->kifuView() : nullptr);
     if (view) {
         const QModelIndex cur = view->currentIndex();
-        if (cur.isValid()) return qMax(0, cur.row());
+        if (cur.isValid()) {
+            int result = qMax(0, cur.row());
+            qDebug().noquote() << "[MW-DEBUG] currentPly() returning view.currentIndex.row=" << result;
+            return result;
+        }
     }
+    qDebug().noquote() << "[MW-DEBUG] currentPly() returning 0 (final fallback)";
     return 0;
 }
 
@@ -3055,6 +3089,11 @@ void MainWindow::onCsaGameEnded_(const QString& result, const QString& cause)
 {
     qInfo().noquote() << "[MW] CSA game ended:" << result << "(" << cause << ")";
 
+    // デバッグ: 終局処理前の状態
+    qDebug().noquote() << "[MW-DEBUG] onCsaGameEnded_ BEFORE:"
+                       << "sfenRecord.size=" << (m_sfenRecord ? m_sfenRecord->size() : -1)
+                       << "kifuModel.rowCount=" << (m_kifuRecordModel ? m_kifuRecordModel->rowCount() : -1);
+
     // 棋譜欄に終局を追加
     if (m_csaGameCoordinator) {
         // 敗者の判定：自分が負けた場合は自分の手番記号、勝った場合は相手の手番記号
@@ -3085,9 +3124,37 @@ void MainWindow::onCsaGameEnded_(const QString& result, const QString& cause)
             endLine = cause;
         }
 
+        qDebug().noquote() << "[MW-DEBUG] onCsaGameEnded_ endLine=" << endLine;
+
         // 棋譜欄に追加
         appendKifuLine(endLine, QStringLiteral("00:00/00:00:00"));
+
+        // m_sfenRecordにも終局行用のダミーエントリを追加
+        // （最後の局面のSFENをコピーして、棋譜再生時に終局行まで移動できるようにする）
+        if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
+            qDebug().noquote() << "[MW-DEBUG] onCsaGameEnded_ appending last SFEN to sfenRecord";
+            m_sfenRecord->append(m_sfenRecord->last());
+        }
+
+        // 現在の手数を更新（投了行を含む）
+        if (m_kifuRecordModel) {
+            int currentRow = m_kifuRecordModel->rowCount() - 1;
+            m_activePly = currentRow;
+            m_currentSelectedPly = currentRow;
+            qDebug().noquote() << "[MW-DEBUG] onCsaGameEnded_: updated m_activePly=" << m_activePly
+                               << "m_currentSelectedPly=" << m_currentSelectedPly;
+        }
+
+        // デバッグ: 終局処理後の状態
+        qDebug().noquote() << "[MW-DEBUG] onCsaGameEnded_ AFTER:"
+                           << "sfenRecord.size=" << (m_sfenRecord ? m_sfenRecord->size() : -1)
+                           << "kifuModel.rowCount=" << (m_kifuRecordModel ? m_kifuRecordModel->rowCount() : -1);
     }
+
+    // ★重要: m_resolvedRowsをクリアしてライブモードを維持
+    // （resolvedRowsが残っていると棋譜再生時に古いデータで上書きされてしまう）
+    qDebug().noquote() << "[MW-DEBUG] onCsaGameEnded_ clearing resolvedRows (was size=" << m_resolvedRows.size() << ")";
+    m_resolvedRows.clear();
 
     // 対局終了ダイアログを表示
     QString message = tr("対局が終了しました。\n\n結果: %1\n原因: %2").arg(result, cause);
@@ -3137,6 +3204,15 @@ void MainWindow::onCsaMoveMade_(const QString& csaMove, const QString& usiMove,
 
     // 棋譜欄に追記
     appendKifuLine(prettyMove, elapsedStr);
+
+    // 現在の手数を更新（棋譜再生時に正しい位置から戻れるようにする）
+    if (m_kifuRecordModel) {
+        int currentRow = m_kifuRecordModel->rowCount() - 1;
+        m_activePly = currentRow;
+        m_currentSelectedPly = currentRow;
+        qDebug().noquote() << "[MW-DEBUG] onCsaMoveMade_: updated m_activePly=" << m_activePly
+                           << "m_currentSelectedPly=" << m_currentSelectedPly;
+    }
 
     // 盤面を更新
     if (m_shogiView) {

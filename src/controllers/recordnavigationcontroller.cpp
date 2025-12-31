@@ -271,13 +271,24 @@ bool RecordNavigationController::checkUnsavedComment(int targetRow)
 
 void RecordNavigationController::navigateKifuViewToRow(int ply)
 {
-    if (!m_recordPane || !m_kifuRecordModel) return;
+    qDebug().noquote() << "[RecordNav-DEBUG] navigateKifuViewToRow ENTER ply=" << ply;
+
+    if (!m_recordPane || !m_kifuRecordModel) {
+        qDebug().noquote() << "[RecordNav-DEBUG] navigateKifuViewToRow ABORT: recordPane or kifuRecordModel is null";
+        return;
+    }
 
     QTableView* view = m_recordPane->kifuView();
-    if (!view) return;
+    if (!view) {
+        qDebug().noquote() << "[RecordNav-DEBUG] navigateKifuViewToRow ABORT: kifuView is null";
+        return;
+    }
 
     const int rows = m_kifuRecordModel->rowCount();
     const int safe = (rows > 0) ? qBound(0, ply, rows - 1) : 0;
+
+    qDebug().noquote() << "[RecordNav-DEBUG] navigateKifuViewToRow: ply=" << ply
+                       << "rows=" << rows << "safe=" << safe;
 
     const QModelIndex idx = m_kifuRecordModel->index(safe, 0);
     if (idx.isValid()) {
@@ -305,4 +316,6 @@ void RecordNavigationController::navigateKifuViewToRow(int ply)
     if (m_setCurrentTurn) {
         m_setCurrentTurn();
     }
+
+    qDebug().noquote() << "[RecordNav-DEBUG] navigateKifuViewToRow LEAVE";
 }
