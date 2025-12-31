@@ -287,10 +287,11 @@ void CsaGameCoordinator::onMoveReceived(const QString& move, int consumedTimeMs)
 
     // CSA形式から座標を抽出（ハイライト用）
     QPoint from, to;
+    int fromFile = 0, fromRank = 0;
     int toFile = 0, toRank = 0;
     if (move.length() >= 5) {
-        int fromFile = move[1].digitValue();
-        int fromRank = move[2].digitValue();
+        fromFile = move[1].digitValue();
+        fromRank = move[2].digitValue();
         toFile = move[3].digitValue();
         toRank = move[4].digitValue();
 
@@ -301,6 +302,28 @@ void CsaGameCoordinator::onMoveReceived(const QString& move, int consumedTimeMs)
             from = QPoint(fromFile, fromRank);
         }
         to = QPoint(toFile, toRank);
+    }
+
+    // 成り判定（盤面更新前に行う）
+    bool isPromotion = false;
+    if (move.length() >= 7 && fromFile != 0 && fromRank != 0) {
+        QString destPiece = move.mid(5, 2);
+        // 成り駒で指し手が来た場合、移動元の駒を確認
+        static const QStringList promotedPieces = {
+            QStringLiteral("TO"), QStringLiteral("NY"), QStringLiteral("NK"),
+            QStringLiteral("NG"), QStringLiteral("UM"), QStringLiteral("RY")
+        };
+        if (promotedPieces.contains(destPiece)) {
+            // 盤面から移動元の駒を取得して、未成駒かどうか確認
+            if (m_gameController && m_gameController->board()) {
+                QChar srcPieceChar = m_gameController->board()->getPieceCharacter(fromFile, fromRank);
+                // 未成駒の文字（大文字小文字両方）
+                static const QString unpromoted = QStringLiteral("PLNSBRplnsbr");
+                if (unpromoted.contains(srcPieceChar)) {
+                    isPromotion = true;
+                }
+            }
+        }
     }
 
     if (!applyMoveToBoard(move)) {
@@ -316,7 +339,7 @@ void CsaGameCoordinator::onMoveReceived(const QString& move, int consumedTimeMs)
     emit moveHighlightRequested(from, to);
 
     QString usiMove = csaToUsi(move);
-    QString prettyMove = csaToPretty(move);
+    QString prettyMove = csaToPretty(move, isPromotion);
 
     // 前の移動先を更新（「同」判定用）
     m_prevToFile = toFile;
@@ -377,7 +400,9 @@ void CsaGameCoordinator::onMoveConfirmed(const QString& move, int consumedTimeMs
     // ハイライト更新を要求（自分の指し手でも確認後に再度更新）
     emit moveHighlightRequested(from, to);
 
-    QString prettyMove = csaToPretty(move);
+    // 自分の指し手の成りフラグはGameControllerから取得
+    bool isPromotion = m_gameController ? m_gameController->promote() : false;
+    QString prettyMove = csaToPretty(move, isPromotion);
 
     // 前の移動先を更新（「同」判定用）
     m_prevToFile = toFile;
@@ -737,7 +762,7 @@ QString CsaGameCoordinator::pieceCharToCsa(QChar pieceChar, bool promote) const
 }
 
 // CSA→表示用変換
-QString CsaGameCoordinator::csaToPretty(const QString& csaMove) const
+QString CsaGameCoordinator::csaToPretty(const QString& csaMove, bool isPromotion) const
 {
     if (csaMove.length() < 7) {
         return csaMove;
@@ -772,6 +797,11 @@ QString CsaGameCoordinator::csaToPretty(const QString& csaMove) const
         moveStr += QStringLiteral("同　") + pieceKanji;
     } else {
         moveStr += zenFile[toFile] + kanjiRank[toRank] + pieceKanji;
+    }
+
+    // 成る手の場合は「成」を追加
+    if (isPromotion) {
+        moveStr += QStringLiteral("成");
     }
 
     // 駒打ちの場合

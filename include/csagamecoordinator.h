@@ -301,9 +301,10 @@ private:
     /**
      * @brief CSA形式の指し手を表示用文字列に変換する
      * @param csaMove CSA形式の指し手
+     * @param isPromotion 成る手かどうか（デフォルトはfalse）
      * @return 表示用文字列（例: "▲７六歩"）
      */
-    QString csaToPretty(const QString& csaMove) const;
+    QString csaToPretty(const QString& csaMove, bool isPromotion = false) const;
 
     /**
      * @brief 初期局面をセットアップする

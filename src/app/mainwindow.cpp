@@ -618,6 +618,23 @@ void MainWindow::enableArrowButtons()
 // メニューで「投了」をクリックした場合の処理を行う。
 void MainWindow::handleResignation()
 {
+    // CSA通信対局モードの場合
+    if (m_playMode == CsaNetworkMode && m_csaGameCoordinator) {
+        // 投了確認ダイアログ
+        QMessageBox::StandardButton reply = QMessageBox::question(
+            this,
+            tr("投了確認"),
+            tr("本当に投了しますか？"),
+            QMessageBox::Yes | QMessageBox::No,
+            QMessageBox::No);
+
+        if (reply == QMessageBox::Yes) {
+            m_csaGameCoordinator->onResign();
+        }
+        return;
+    }
+
+    // 通常対局モードの場合
     ensureGameStateController_();
     if (m_gameStateController) {
         m_gameStateController->handleResignation();
