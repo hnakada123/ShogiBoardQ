@@ -46,6 +46,11 @@ void NavigationController::prev() {
     const int cur    = qBound(0, m_ctx->currentPly(), maxPly);
     const int target = qMax(0, cur - 1);
 
+    qDebug().noquote() << "[NavCtrl-DEBUG] prev(): hasResolvedRows=" << has
+                       << "row=" << row << "maxPly=" << maxPly
+                       << "currentPly=" << m_ctx->currentPly() << "cur=" << cur
+                       << "target=" << target;
+
     m_ctx->applySelect(row, target);
 }
 
