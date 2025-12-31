@@ -2432,10 +2432,18 @@ QList<KifDisplayItem> KifuLoadCoordinator::collectDispFromRecordModel_() const
 {
     QList<KifDisplayItem> disp;
 
-    if (!m_kifuRecordModel) return disp;
+    if (!m_kifuRecordModel) {
+        qDebug().noquote() << "[KLC-DEBUG] collectDispFromRecordModel_: m_kifuRecordModel is null";
+        return disp;
+    }
 
     const int rows = m_kifuRecordModel->rowCount();
-    if (rows <= 1) return disp; // 0 行目は「=== 開始局面 ===」
+    qDebug().noquote() << "[KLC-DEBUG] collectDispFromRecordModel_: rows=" << rows;
+
+    if (rows <= 1) {
+        qDebug().noquote() << "[KLC-DEBUG] collectDispFromRecordModel_: rows<=1, returning empty";
+        return disp; // 0 行目は「=== 開始局面 ===」
+    }
 
     // ★ 修正: 開始局面エントリを先頭に追加（rebuildBranchTree が disp[0] をスキップするため）
     // disp[0] = 開始局面（prettyMoveが空）、disp[1] = 1手目、disp[2] = 2手目...
@@ -2455,6 +2463,8 @@ QList<KifDisplayItem> KifuLoadCoordinator::collectDispFromRecordModel_() const
         QString move = m_kifuRecordModel->data(idxMove, Qt::DisplayRole).toString();
         const QString time = m_kifuRecordModel->data(idxTime, Qt::DisplayRole).toString();
 
+        qDebug().noquote() << "[KLC-DEBUG] collectDispFromRecordModel_: r=" << r << "move=" << move;
+
         // ★ 重複付与検知時のみ、先頭の ASCII 手数を除去
         move.remove(kDupMoveNoPattern);
 
@@ -2462,24 +2472,38 @@ QList<KifDisplayItem> KifuLoadCoordinator::collectDispFromRecordModel_() const
         disp.push_back(KifDisplayItem(move, time, QString(), ply));
     }
 
+    qDebug().noquote() << "[KLC-DEBUG] collectDispFromRecordModel_: final disp.size=" << disp.size();
     return disp;
 }
 
 // ライブ（HvH/HvE）対局の 1手追加ごとに分岐ツリーを更新するエントリポイント
 void KifuLoadCoordinator::updateBranchTreeFromLive(int currentPly)
 {
+    qDebug().noquote() << "[KLC-DEBUG] updateBranchTreeFromLive ENTER: currentPly=" << currentPly;
+
     // 1) 現在の棋譜モデルから disp を再構成
     const QList<KifDisplayItem> dispLive = collectDispFromRecordModel_();
-    if (!m_analysisTab) return;
+
+    qDebug().noquote() << "[KLC-DEBUG] updateBranchTreeFromLive: dispLive.size=" << dispLive.size();
+    for (int i = 0; i < qMin(10, static_cast<int>(dispLive.size())); ++i) {
+        qDebug().noquote() << "[KLC-DEBUG]   dispLive[" << i << "]=" << dispLive.at(i).prettyMove;
+    }
+
+    if (!m_analysisTab) {
+        qDebug().noquote() << "[KLC-DEBUG] updateBranchTreeFromLive: m_analysisTab is null, returning";
+        return;
+    }
 
     // 2) 本譜行（row=0 相当：parent==-1）を特定（なければ作成）
     int mainRow = -1;
     {
         const qsizetype n = m_resolvedRows.size();
+        qDebug().noquote() << "[KLC-DEBUG] updateBranchTreeFromLive: m_resolvedRows.size=" << n;
         for (qsizetype i = 0; i < n; ++i) {
             if (m_resolvedRows.at(i).parent < 0) { mainRow = static_cast<int>(i); break; }
         }
         if (mainRow < 0) {
+            qDebug().noquote() << "[KLC-DEBUG] updateBranchTreeFromLive: creating new mainRow";
             ResolvedRow main;
             main.startPly = 1;
             main.parent   = -1;
@@ -2491,13 +2515,28 @@ void KifuLoadCoordinator::updateBranchTreeFromLive(int currentPly)
             mainRow = static_cast<int>(m_resolvedRows.size() - 1);
             m_activeResolvedRow = mainRow;
         }
+        qDebug().noquote() << "[KLC-DEBUG] updateBranchTreeFromLive: mainRow=" << mainRow;
     }
 
     // 3) アンカー手（「現在の局面から開始」）の決定
-    const int anchorPly = (m_branchPlyContext >= 0)
-                              ? m_branchPlyContext
-                              : qMax(0, m_currentSelectedPly);
-    const bool startFromCurrentPos = (anchorPly > 0);
+    // ★修正: m_resolvedRowsが1行（本譜のみ）の場合は、常に startFromCurrentPos = false
+    // これにより、CSA通信対局や新規対局で分岐が誤って作成されることを防ぐ
+    bool startFromCurrentPos = false;
+    int anchorPly = 0;
+
+    if (m_resolvedRows.size() > 1) {
+        // 分岐がある場合のみ、「現在の局面から開始」モードを考慮
+        anchorPly = (m_branchPlyContext >= 0)
+                        ? m_branchPlyContext
+                        : qMax(0, m_currentSelectedPly);
+        startFromCurrentPos = (anchorPly > 0);
+    }
+
+    qDebug().noquote() << "[KLC-DEBUG] updateBranchTreeFromLive: m_branchPlyContext=" << m_branchPlyContext
+                       << "m_currentSelectedPly=" << m_currentSelectedPly
+                       << "anchorPly=" << anchorPly
+                       << "startFromCurrentPos=" << startFromCurrentPos
+                       << "m_resolvedRows.size=" << m_resolvedRows.size();
 
     // 4) 行の更新（または新規追加）
     int highlightRow = mainRow;                          // NOLINT(clang-analyzer-deadcode.DeadStores)

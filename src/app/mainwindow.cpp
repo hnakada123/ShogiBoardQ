@@ -2727,19 +2727,29 @@ void MainWindow::ensureKifuLoadCoordinatorForLive_()
 // ===== MainWindow.cpp: ライブ対局中に分岐ツリーを更新 =====
 void MainWindow::refreshBranchTreeLive_()
 {
+    qDebug().noquote() << "[MW-DEBUG] refreshBranchTreeLive_() ENTER";
+
     ensureKifuLoadCoordinatorForLive_();
-    if (!m_kifuLoadCoordinator) return;
+    if (!m_kifuLoadCoordinator) {
+        qDebug().noquote() << "[MW-DEBUG] refreshBranchTreeLive_(): m_kifuLoadCoordinator is null";
+        return;
+    }
 
     int ply = 0;
     if (m_kifuRecordModel) {
         ply = qMax(0, m_kifuRecordModel->rowCount() - 1);
     }
 
+    qDebug().noquote() << "[MW-DEBUG] refreshBranchTreeLive_(): ply=" << ply
+                       << "kifuModel.rowCount=" << (m_kifuRecordModel ? m_kifuRecordModel->rowCount() : -1);
+
     // ツリーの再構築（既存）
     m_kifuLoadCoordinator->updateBranchTreeFromLive(ply);
 
     // ★ 文脈を固定したまま、＋/オレンジ/候補欄を更新
     m_kifuLoadCoordinator->rebuildBranchPlanAndMarksForLive(ply);
+
+    qDebug().noquote() << "[MW-DEBUG] refreshBranchTreeLive_() LEAVE";
 }
 
 // ========== UNDO用：MainWindow 補助関数 ==========
@@ -3071,9 +3081,38 @@ void MainWindow::onCsaGameStarted_(const QString& blackName, const QString& whit
     m_humanName1 = blackName;
     m_humanName2 = whiteName;
 
+    // 棋譜モデルをクリア
+    if (m_kifuRecordModel) {
+        m_kifuRecordModel->clearAllItems();
+        // 見出し行を追加
+        m_kifuRecordModel->appendItem(
+            new KifuDisplay(QStringLiteral("=== 開始局面 ==="),
+                            QStringLiteral("（１手 / 合計）")));
+    }
+
+    // m_sfenRecordをクリアし、開始局面を追加
+    const QString hiratePosition = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+    if (m_sfenRecord) {
+        m_sfenRecord->clear();
+        m_sfenRecord->append(hiratePosition);  // 開始局面を追加
+    }
+
+    // m_resolvedRowsをクリア（ライブモードを維持）
+    m_resolvedRows.clear();
+
+    // 手数カウンタをリセット
+    m_activePly = 0;
+    m_currentSelectedPly = 0;
+    m_currentMoveIndex = 0;
+
+    // KifuLoadCoordinatorをリセット（m_branchPlyContextなどを初期化するため）
+    if (m_kifuLoadCoordinator) {
+        delete m_kifuLoadCoordinator;
+        m_kifuLoadCoordinator = nullptr;
+    }
+
     // 盤面を初期化（平手初期局面のSFEN）
     if (m_gameController && m_gameController->board()) {
-        const QString hiratePosition = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
         m_gameController->board()->setSfen(hiratePosition);
     }
     if (m_shogiView) {
@@ -3136,6 +3175,10 @@ void MainWindow::onCsaGameEnded_(const QString& result, const QString& cause)
             m_sfenRecord->append(m_sfenRecord->last());
         }
 
+        // 分岐ツリーを更新（投了行を含める）
+        qDebug().noquote() << "[MW-DEBUG] onCsaGameEnded_: calling refreshBranchTreeLive_()";
+        refreshBranchTreeLive_();
+
         // 現在の手数を更新（投了行を含む）
         if (m_kifuRecordModel) {
             int currentRow = m_kifuRecordModel->rowCount() - 1;
@@ -3143,6 +3186,13 @@ void MainWindow::onCsaGameEnded_(const QString& result, const QString& cause)
             m_currentSelectedPly = currentRow;
             qDebug().noquote() << "[MW-DEBUG] onCsaGameEnded_: updated m_activePly=" << m_activePly
                                << "m_currentSelectedPly=" << m_currentSelectedPly;
+
+            // 棋譜欄で終局行を選択状態にする
+            if (m_recordPane && m_recordPane->kifuView()) {
+                QModelIndex idx = m_kifuRecordModel->index(currentRow, 0);
+                m_recordPane->kifuView()->setCurrentIndex(idx);
+                m_recordPane->kifuView()->scrollTo(idx);
+            }
         }
 
         // デバッグ: 終局処理後の状態
@@ -3150,11 +3200,6 @@ void MainWindow::onCsaGameEnded_(const QString& result, const QString& cause)
                            << "sfenRecord.size=" << (m_sfenRecord ? m_sfenRecord->size() : -1)
                            << "kifuModel.rowCount=" << (m_kifuRecordModel ? m_kifuRecordModel->rowCount() : -1);
     }
-
-    // ★重要: m_resolvedRowsをクリアしてライブモードを維持
-    // （resolvedRowsが残っていると棋譜再生時に古いデータで上書きされてしまう）
-    qDebug().noquote() << "[MW-DEBUG] onCsaGameEnded_ clearing resolvedRows (was size=" << m_resolvedRows.size() << ")";
-    m_resolvedRows.clear();
 
     // 対局終了ダイアログを表示
     QString message = tr("対局が終了しました。\n\n結果: %1\n原因: %2").arg(result, cause);
@@ -3205,7 +3250,12 @@ void MainWindow::onCsaMoveMade_(const QString& csaMove, const QString& usiMove,
     // 棋譜欄に追記
     appendKifuLine(prettyMove, elapsedStr);
 
+    // 分岐ツリーを更新（手数更新の前に呼ぶことで startFromCurrentPos = false を維持）
+    qDebug().noquote() << "[MW-DEBUG] onCsaMoveMade_: calling refreshBranchTreeLive_()";
+    refreshBranchTreeLive_();
+
     // 現在の手数を更新（棋譜再生時に正しい位置から戻れるようにする）
+    // ★注意: refreshBranchTreeLive_() の後で更新する
     if (m_kifuRecordModel) {
         int currentRow = m_kifuRecordModel->rowCount() - 1;
         m_activePly = currentRow;
