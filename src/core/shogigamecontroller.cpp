@@ -258,7 +258,10 @@ bool ShogiGameController::isCurrentPlayerHumanControlled(PlayMode& playMode)
            || (player == Player1 && playMode == HandicapHumanVsEngine)
 
            // あるいは、手番が後手あるいは上手であり、かつ駒落ちでエンジン対人間の場合
-           || (player == Player2 && playMode == HandicapEngineVsHuman);
+           || (player == Player2 && playMode == HandicapEngineVsHuman)
+
+           // あるいは、CSA通信対局モードの場合（人間操作）
+           || (playMode == CsaNetworkMode);
 }
 
 // ダイアログを表示して対局者に成るかどうかを選択させる。

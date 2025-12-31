@@ -252,10 +252,18 @@ void CsaClient::onSocketDisconnected()
 // ソケットエラー時
 void CsaClient::onSocketError(QAbstractSocket::SocketError error)
 {
-    Q_UNUSED(error)
     m_connectionTimer->stop();
 
     QString errorMessage = m_socket->errorString();
+
+    // 対局終了後のリモートホスト切断は正常動作として扱う
+    if (m_connectionState == ConnectionState::GameOver &&
+        error == QAbstractSocket::RemoteHostClosedError) {
+        qInfo().noquote() << "[CSA] Connection closed by server after game end (normal)";
+        setConnectionState(ConnectionState::Disconnected);
+        return;
+    }
+
     qWarning().noquote() << "[CSA] Socket error:" << errorMessage;
 
     emit errorOccurred(errorMessage);
