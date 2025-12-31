@@ -143,6 +143,18 @@ public:
      */
     bool isHumanPlayer() const { return m_playerType == PlayerType::Human; }
 
+    /**
+     * @brief 先手の累計消費時間を取得
+     * @return 累計消費時間（ミリ秒）
+     */
+    int blackTotalTimeMs() const { return m_blackTotalTimeMs; }
+
+    /**
+     * @brief 後手の累計消費時間を取得
+     * @return 累計消費時間（ミリ秒）
+     */
+    int whiteTotalTimeMs() const { return m_whiteTotalTimeMs; }
+
 signals:
     /**
      * @brief 対局状態が変化した時に発行
@@ -205,6 +217,12 @@ signals:
      * @param isError エラーかどうか
      */
     void logMessage(const QString& message, bool isError = false);
+
+    /**
+     * @brief CSA通信ログを発行（送受信両方）
+     * @param line ログ行（"▶ " または "◀ " で始まる）
+     */
+    void csaCommLogAppended(const QString& line);
 
 public slots:
     /**
@@ -382,6 +400,10 @@ private:
     bool m_isBlackSide;         ///< 先手側かどうか
     bool m_isMyTurn;            ///< 自分の手番かどうか
     int m_moveCount;            ///< 指し手数
+    int m_blackTotalTimeMs;     ///< 先手累計消費時間（ミリ秒）
+    int m_whiteTotalTimeMs;     ///< 後手累計消費時間（ミリ秒）
+    int m_prevToFile;           ///< 前の指し手の移動先筋（「同」判定用）
+    int m_prevToRank;           ///< 前の指し手の移動先段（「同」判定用）
 
     // USIポジション文字列
     QString m_positionStr;      ///< "position sfen ... moves ..."形式

@@ -770,6 +770,11 @@ void MainWindow::displayCsaGameDialog()
                     this, &MainWindow::onCsaLogMessage_);
             connect(m_csaGameCoordinator, &CsaGameCoordinator::moveHighlightRequested,
                     this, &MainWindow::onCsaMoveHighlightRequested_);
+            // CSA通信ログをEngineAnalysisTabに転送
+            if (m_engineTab) {
+                connect(m_csaGameCoordinator, &CsaGameCoordinator::csaCommLogAppended,
+                        m_engineTab, &EngineAnalysisTab::appendCsaLog);
+            }
 
             // BoardSetupControllerからの指し手をCsaGameCoordinatorに転送
             ensureBoardSetupController_();
@@ -3046,23 +3051,39 @@ void MainWindow::onCsaGameEnded_(const QString& result, const QString& cause)
 void MainWindow::onCsaMoveMade_(const QString& csaMove, const QString& usiMove,
                                 const QString& prettyMove, int consumedTimeMs)
 {
-    Q_UNUSED(csaMove)
-    Q_UNUSED(consumedTimeMs)
+    Q_UNUSED(usiMove)
 
     qDebug().noquote() << "[MW] CSA move made:" << prettyMove << "(" << usiMove << ")";
 
-    // 棋譜に追加
-    QString elapsedStr = QString("%1:%2")
-                             .arg(consumedTimeMs / 60000, 2, 10, QLatin1Char('0'))
-                             .arg((consumedTimeMs / 1000) % 60, 2, 10, QLatin1Char('0'));
+    // CSA形式から手番を判定（+なら先手、-なら後手）
+    bool isBlackMove = (csaMove.length() > 0 && csaMove[0] == QLatin1Char('+'));
 
-    // 棋譜表示更新（KifuRecordListModelがあれば）
-    if (m_kifuRecordModel) {
-        KifDisplayItem item;
-        item.prettyMove = prettyMove;
-        item.timeText = elapsedStr;
-        // m_kifuRecordModel->append(item); // 実際の実装ではモデルへの追加が必要
+    // 消費時間を "MM:SS/HH:MM:SS" 形式に変換
+    int consumedSec = consumedTimeMs / 1000;
+    int consumedMin = consumedSec / 60;
+    int consumedSecRem = consumedSec % 60;
+
+    // 累計消費時間を取得
+    int totalMs = 0;
+    if (m_csaGameCoordinator) {
+        totalMs = isBlackMove ? m_csaGameCoordinator->blackTotalTimeMs()
+                              : m_csaGameCoordinator->whiteTotalTimeMs();
     }
+    int totalSec = totalMs / 1000;
+    int totalHour = totalSec / 3600;
+    int totalMin = (totalSec % 3600) / 60;
+    int totalSecRem = totalSec % 60;
+
+    // フォーマット: "MM:SS/HH:MM:SS"
+    QString elapsedStr = QString("%1:%2/%3:%4:%5")
+                             .arg(consumedMin, 2, 10, QLatin1Char('0'))
+                             .arg(consumedSecRem, 2, 10, QLatin1Char('0'))
+                             .arg(totalHour, 2, 10, QLatin1Char('0'))
+                             .arg(totalMin, 2, 10, QLatin1Char('0'))
+                             .arg(totalSecRem, 2, 10, QLatin1Char('0'));
+
+    // 棋譜欄に追記
+    appendKifuLine(prettyMove, elapsedStr);
 
     // 盤面を更新
     if (m_shogiView) {
