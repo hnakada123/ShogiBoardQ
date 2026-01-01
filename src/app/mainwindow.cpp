@@ -2677,6 +2677,7 @@ void MainWindow::onRecordPaneMainRowChanged_(int row)
     
     // フォールバック：起動直後など Loader 未生成時でも UI が動くように最低限の同期を行う
     if (row >= 0) {
+        qDebug() << "[MW-DEBUG] onRecordPaneMainRowChanged_: calling syncBoardAndHighlightsAtRow(" << row << ")";
         syncBoardAndHighlightsAtRow(row);
 
         // ★ 修正点：currentPly() のベースになるトラッキングを更新
@@ -2690,9 +2691,28 @@ void MainWindow::onRecordPaneMainRowChanged_(int row)
         }
 
         // ★ 追加：盤面適用後に手番表示を更新
+        qDebug() << "[MW-DEBUG] onRecordPaneMainRowChanged_: calling setCurrentTurn()";
         setCurrentTurn();
+        
+        // ★ 追加：手番表示を強制的にUIに反映（TurnManagerが同じ手番でシグナルを発火しない場合の対策）
+        if (m_shogiView && m_shogiView->board()) {
+            const QString bw = m_shogiView->board()->currentPlayer();
+            const bool isBlackTurn = (bw != QStringLiteral("w"));
+            qDebug() << "[MW-DEBUG] onRecordPaneMainRowChanged_: bw=" << bw 
+                     << "isBlackTurn=" << isBlackTurn
+                     << "calling setActiveSide and updateTurnIndicator";
+            m_shogiView->setActiveSide(isBlackTurn);
+            
+            // 次の手番ラベルも更新
+            const auto player = isBlackTurn ? ShogiGameController::Player1 : ShogiGameController::Player2;
+            m_shogiView->updateTurnIndicator(player);
+        } else {
+            qDebug() << "[MW-DEBUG] onRecordPaneMainRowChanged_: m_shogiView=" << m_shogiView 
+                     << "board=" << (m_shogiView ? m_shogiView->board() : nullptr);
+        }
     }
     enableArrowButtons();
+    qDebug() << "[MW-DEBUG] onRecordPaneMainRowChanged_ LEAVE";
 }
 
 // ===== MainWindow.cpp: ライブ用の KifuLoadCoordinator を確保 =====

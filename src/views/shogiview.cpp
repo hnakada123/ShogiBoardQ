@@ -2585,6 +2585,9 @@ void ShogiView::setRankFontScale(double scale)
 
 void ShogiView::applyTurnHighlight(bool blackIsActive)
 {
+    qDebug() << "[SHOGIVIEW-DEBUG] applyTurnHighlight ENTER: blackIsActive=" << blackIsActive
+             << "m_blackActive(before)=" << m_blackActive;
+    
     // 手番を更新
     m_blackActive = blackIsActive;
 
@@ -2593,15 +2596,19 @@ void ShogiView::applyTurnHighlight(bool blackIsActive)
     m_urgency = Urgency::Normal;
 
     // setUrgencyVisuals() 内で手番側を通常配色に、非手番側を font-weight=400 に統一
+    qDebug() << "[SHOGIVIEW-DEBUG] applyTurnHighlight: calling setUrgencyVisuals(Normal)";
     setUrgencyVisuals(Urgency::Normal);
+    qDebug() << "[SHOGIVIEW-DEBUG] applyTurnHighlight LEAVE";
 }
 
 // 手番（アクティブサイド）を設定するセッター。
 // 役割：内部フラグを更新し、名前/時計ラベルに手番ハイライトを反映。
 void ShogiView::setActiveSide(bool blackTurn)
 {
+    qDebug() << "[SHOGIVIEW-DEBUG] setActiveSide ENTER: blackTurn=" << blackTurn;
     m_blackActive = blackTurn;              // 先手が手番なら true
     applyTurnHighlight(m_blackActive);      // 背景/前景色を手番に合わせて適用
+    qDebug() << "[SHOGIVIEW-DEBUG] setActiveSide LEAVE";
 }
 
 // 手番ハイライトの配色スタイルを設定する。
@@ -2661,15 +2668,26 @@ void ShogiView::setLabelStyle(QLabel* lbl,
 
 void ShogiView::setUrgencyVisuals(Urgency u)
 {
+    qDebug() << "[SHOGIVIEW-DEBUG] setUrgencyVisuals ENTER: urgency=" << static_cast<int>(u)
+             << "m_blackActive=" << m_blackActive;
+    
     QLabel* actName    = m_blackActive ? m_blackNameLabel  : m_whiteNameLabel;
     QLabel* actClock   = m_blackActive ? m_blackClockLabel : m_whiteClockLabel;
     QLabel* inactName  = m_blackActive ? m_whiteNameLabel  : m_blackNameLabel;
     QLabel* inactClock = m_blackActive ? m_whiteClockLabel : m_blackClockLabel;
 
+    qDebug() << "[SHOGIVIEW-DEBUG] setUrgencyVisuals: actName=" << actName
+             << "actClock=" << actClock
+             << "inactName=" << inactName
+             << "inactClock=" << inactClock;
+
     // 「次の手番」ラベルを取得
     QLabel* actTurnLabel   = m_blackActive
                              ? this->findChild<QLabel*>(QStringLiteral("turnLabelBlack"))
                              : this->findChild<QLabel*>(QStringLiteral("turnLabelWhite"));
+
+    qDebug() << "[SHOGIVIEW-DEBUG] setUrgencyVisuals: actTurnLabel=" << actTurnLabel
+             << "(looking for" << (m_blackActive ? "turnLabelBlack" : "turnLabelWhite") << ")";
 
     // 非手番は font-weight=400 固定
     auto setInactive = [&](QLabel* name, QLabel* clock){
@@ -2681,6 +2699,7 @@ void ShogiView::setUrgencyVisuals(Urgency u)
 
     switch (u) {
     case Urgency::Normal:
+        qDebug() << "[SHOGIVIEW-DEBUG] setUrgencyVisuals: applying Normal style";
         // 秒読み前：手番は黄背景＋青文字、枠なし、太字
         setLabelStyle(actName,  kTurnFg,   kTurnBg,   0, QColor(0,0,0,0), /*bold=*/true);
         setLabelStyle(actClock, kTurnFg,   kTurnBg,   0, QColor(0,0,0,0), /*bold=*/true);
@@ -2716,6 +2735,7 @@ void ShogiView::setUrgencyVisuals(Urgency u)
     default:
         break;
     }
+    qDebug() << "[SHOGIVIEW-DEBUG] setUrgencyVisuals LEAVE";
 }
 
 void ShogiView::applyStartupTypography()
