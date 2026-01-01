@@ -411,6 +411,11 @@ private:
     int m_whiteTotalTimeMs;     ///< 後手累計消費時間（ミリ秒）
     int m_prevToFile;           ///< 前の指し手の移動先筋（「同」判定用）
     int m_prevToRank;           ///< 前の指し手の移動先段（「同」判定用）
+    
+    // 残り時間追跡（CSA通信対局用）
+    int m_initialTimeMs;        ///< 初期持ち時間（ミリ秒）
+    int m_blackRemainingMs;     ///< 先手残り時間（ミリ秒）
+    int m_whiteRemainingMs;     ///< 後手残り時間（ミリ秒）
 
     // USIポジション文字列
     QString m_positionStr;      ///< "position sfen ... moves ..."形式

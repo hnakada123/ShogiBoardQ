@@ -30,6 +30,13 @@ CsaGameCoordinator::CsaGameCoordinator(QObject* parent)
     , m_isBlackSide(true)
     , m_isMyTurn(false)
     , m_moveCount(0)
+    , m_blackTotalTimeMs(0)
+    , m_whiteTotalTimeMs(0)
+    , m_prevToFile(0)
+    , m_prevToRank(0)
+    , m_initialTimeMs(0)
+    , m_blackRemainingMs(0)
+    , m_whiteRemainingMs(0)
 {
     // CSAクライアントのシグナル接続
     connect(m_client, &CsaClient::connectionStateChanged,
@@ -267,9 +274,11 @@ void CsaGameCoordinator::onGameStarted(const QString& gameId)
     setGameState(GameState::InGame);
 
     setupInitialPosition();
-    setupClock();
-
+    
+    // ★ setupClock()の前にm_isMyTurnを設定
     m_isMyTurn = (m_gameSummary.myTurn == m_gameSummary.toMove);
+    
+    setupClock();
 
     emit gameStarted(m_gameSummary.blackName, m_gameSummary.whiteName);
     emit turnChanged(m_isMyTurn);
@@ -297,8 +306,30 @@ void CsaGameCoordinator::onMoveReceived(const QString& move, int consumedTimeMs)
     // 累計消費時間を更新
     if (isBlackMove) {
         m_blackTotalTimeMs += consumedTimeMs;
+        m_blackRemainingMs -= consumedTimeMs;
+        if (m_blackRemainingMs < 0) m_blackRemainingMs = 0;
     } else {
         m_whiteTotalTimeMs += consumedTimeMs;
+        m_whiteRemainingMs -= consumedTimeMs;
+        if (m_whiteRemainingMs < 0) m_whiteRemainingMs = 0;
+    }
+    
+    // ★ 相手の指し手を受信したので、時計の残り時間を更新し、自分の手番として時計を開始
+    if (m_clock) {
+        // 残り時間を更新（ミリ秒→秒）
+        int blackRemainSec = m_blackRemainingMs / 1000;
+        int whiteRemainSec = m_whiteRemainingMs / 1000;
+        int byoyomiSec = m_gameSummary.byoyomi * m_gameSummary.timeUnitMs() / 1000;
+        int incrementSec = m_gameSummary.increment * m_gameSummary.timeUnitMs() / 1000;
+        
+        m_clock->setPlayerTimes(blackRemainSec, whiteRemainSec,
+                                byoyomiSec, byoyomiSec,
+                                incrementSec, incrementSec,
+                                true);
+        
+        // 次は自分の手番なので、自分側の時計を開始
+        m_clock->setCurrentPlayer(m_isBlackSide ? 1 : 2);
+        m_clock->startClock();
     }
 
     // CSA形式から座標を抽出（ハイライト用）
@@ -379,8 +410,31 @@ void CsaGameCoordinator::onMoveConfirmed(const QString& move, int consumedTimeMs
     // 累計消費時間を更新
     if (isBlackMove) {
         m_blackTotalTimeMs += consumedTimeMs;
+        m_blackRemainingMs -= consumedTimeMs;
+        if (m_blackRemainingMs < 0) m_blackRemainingMs = 0;
     } else {
         m_whiteTotalTimeMs += consumedTimeMs;
+        m_whiteRemainingMs -= consumedTimeMs;
+        if (m_whiteRemainingMs < 0) m_whiteRemainingMs = 0;
+    }
+    
+    // ★ 自分の指し手が確認されたので、残り時間を更新し、相手側の時計を開始
+    if (m_clock) {
+        // 残り時間を更新（ミリ秒→秒）
+        int blackRemainSec = m_blackRemainingMs / 1000;
+        int whiteRemainSec = m_whiteRemainingMs / 1000;
+        int byoyomiSec = m_gameSummary.byoyomi * m_gameSummary.timeUnitMs() / 1000;
+        int incrementSec = m_gameSummary.increment * m_gameSummary.timeUnitMs() / 1000;
+        
+        m_clock->setPlayerTimes(blackRemainSec, whiteRemainSec,
+                                byoyomiSec, byoyomiSec,
+                                incrementSec, incrementSec,
+                                true);
+        
+        // 次は相手の手番なので、相手側の時計を開始
+        // （相手の時間もGUI上でカウントダウン表示する）
+        m_clock->setCurrentPlayer(m_isBlackSide ? 2 : 1);
+        m_clock->startClock();
     }
 
     // 自分の指し手は既にGUI側またはstartEngineThinkingで盤面が更新されているので、
@@ -920,7 +974,18 @@ void CsaGameCoordinator::setupClock()
                             byoyomiSec, byoyomiSec,
                             incrementSec, incrementSec,
                             true);
-    m_clock->stopClock();
+    
+    // 初期残り時間を記録（ミリ秒）
+    m_initialTimeMs = totalTimeSec * 1000;
+    m_blackRemainingMs = m_initialTimeMs;
+    m_whiteRemainingMs = m_initialTimeMs;
+    
+    // CSA通信対局では toMove で最初の手番が決まる（通常は先手"+"から）
+    // 最初の手番を設定して時計を開始
+    // （自分/相手どちらの手番でもGUI上でカウントダウン表示する）
+    bool blackToMove = (m_gameSummary.toMove == QStringLiteral("+"));
+    m_clock->setCurrentPlayer(blackToMove ? 1 : 2);
+    m_clock->startClock();
 }
 
 // エンジン初期化
