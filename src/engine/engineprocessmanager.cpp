@@ -6,6 +6,7 @@
 #include "engineprocessmanager.h"
 #include <QDebug>
 #include <QFile>
+#include <QFileInfo>
 #include <QTimer>
 
 EngineProcessManager::EngineProcessManager(QObject* parent)
@@ -36,6 +37,11 @@ bool EngineProcessManager::startProcess(const QString& engineFile)
 
     // 新規プロセス作成
     m_process = new QProcess(this);
+    
+    // エンジンファイルのディレクトリを作業ディレクトリに設定
+    // （エンジンが相対パスで定跡ファイルや評価関数ファイルを読み込むため）
+    QFileInfo engineFileInfo(engineFile);
+    m_process->setWorkingDirectory(engineFileInfo.absolutePath());
     
     // シグナル接続
     connect(m_process, &QProcess::readyReadStandardOutput,

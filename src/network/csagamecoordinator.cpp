@@ -23,6 +23,8 @@ CsaGameCoordinator::CsaGameCoordinator(QObject* parent)
     , m_engine(nullptr)
     , m_engineCommLog(nullptr)
     , m_engineThinking(nullptr)
+    , m_ownsCommLog(false)
+    , m_ownsThinking(false)
     , m_gameState(GameState::Idle)
     , m_playerType(PlayerType::Human)
     , m_isBlackSide(true)
@@ -76,6 +78,18 @@ void CsaGameCoordinator::setDependencies(const Dependencies& deps)
     m_recordModel = deps.recordModel;
     m_sfenRecord = deps.sfenRecord;
     m_gameMoves = deps.gameMoves;
+    
+    // 外部から渡されたUSI通信ログモデルを使用
+    if (deps.usiCommLog) {
+        m_engineCommLog = deps.usiCommLog;
+        m_ownsCommLog = false;  // 外部所有
+    }
+    
+    // 外部から渡されたエンジン思考モデルを使用
+    if (deps.engineThinking) {
+        m_engineThinking = deps.engineThinking;
+        m_ownsThinking = false;  // 外部所有
+    }
 }
 
 // 対局開始
@@ -369,12 +383,23 @@ void CsaGameCoordinator::onMoveConfirmed(const QString& move, int consumedTimeMs
         m_whiteTotalTimeMs += consumedTimeMs;
     }
 
-    // 自分の指し手は既にGUI側でvalidateAndMoveにより盤面が更新されているので、
+    // 自分の指し手は既にGUI側またはstartEngineThinkingで盤面が更新されているので、
     // applyMoveToBoardは呼ばない。
-    // ただし、USI指し手リストとSFEN記録は更新する必要がある。
+    // USI指し手リストとSFEN記録は更新する必要がある。
     QString usiMove = csaToUsi(move);
     if (!usiMove.isEmpty()) {
         m_usiMoves.append(usiMove);
+    }
+
+    // SFEN記録を更新
+    if (m_gameController && m_gameController->board() && m_sfenRecord) {
+        QString boardSfen = m_gameController->board()->convertBoardToSfen();
+        QString standSfen = m_gameController->board()->convertStandToSfen();
+        QString currentPlayer = m_gameController->board()->currentPlayer();
+        QString fullSfen = QString("%1 %2 %3 %4")
+                               .arg(boardSfen, currentPlayer, standSfen)
+                               .arg(m_moveCount + 1);
+        m_sfenRecord->append(fullSfen);
     }
 
     // CSA形式から座標を抽出（ハイライト用）
@@ -513,22 +538,22 @@ void CsaGameCoordinator::onRawMessageSent(const QString& message)
 }
 
 // エンジンのbestmoveハンドラ
+// 注意: handleEngineVsHumanOrEngineMatchCommunicationがブロッキングで処理するため、
+// このスロットは startEngineThinking() が完了した後に呼ばれる。
+// 主に非同期で使う場合のためのスタブとして残す。
 void CsaGameCoordinator::onEngineBestMoveReceived_()
 {
-    if (m_gameState != GameState::InGame || !m_isMyTurn) {
-        return;
-    }
-
-    // TODO: エンジンからbestmoveを取得してCSA形式に変換
-    // 現在の実装ではUSIプロトコルハンドラからbestmoveを取得する必要がある
-    // 簡略化のため、ここではログのみ出力
-    emit logMessage(tr("エンジンが指し手を決定しました"));
+    // handleEngineVsHumanOrEngineMatchCommunication がブロッキングで処理するため、
+    // このスロットが呼ばれる時点では既に startEngineThinking() 内で処理済み。
+    // ここでは追加のログのみ出力
+    qDebug() << "[CSA-DEBUG] onEngineBestMoveReceived_ called (handled in startEngineThinking)";
 }
 
 // エンジン投了ハンドラ
 void CsaGameCoordinator::onEngineResign()
 {
     if (m_gameState == GameState::InGame) {
+        emit logMessage(tr("エンジンが投了を選択しました"));
         m_client->resign();
     }
 }
@@ -905,8 +930,17 @@ void CsaGameCoordinator::initializeEngine()
         return;
     }
 
-    m_engineCommLog = new UsiCommLogModel(this);
-    m_engineThinking = new ShogiEngineThinkingModel(this);
+    // USI通信ログモデル：外部から渡されていなければ内部で作成
+    if (!m_engineCommLog) {
+        m_engineCommLog = new UsiCommLogModel(this);
+        m_ownsCommLog = true;
+    }
+    
+    // エンジン思考モデル：外部から渡されていなければ内部で作成
+    if (!m_engineThinking) {
+        m_engineThinking = new ShogiEngineThinkingModel(this);
+        m_ownsThinking = true;
+    }
 
     // PlayModeを取得するためにstaticなダミーを使用
     static PlayMode dummyPlayMode = CsaNetworkMode;
@@ -921,6 +955,10 @@ void CsaGameCoordinator::initializeEngine()
 
     QString engineFile = enginePath;
     QString engineName = m_options.engineName;
+    
+    // ログ識別子を設定（[E1/CSA]形式で表示される）
+    m_engine->setLogIdentity(QStringLiteral("[E1]"), QStringLiteral("CSA"), engineName);
+    
     m_engine->startAndInitializeEngine(engineFile, engineName);
 
     emit logMessage(tr("エンジン %1 を起動しました").arg(m_options.engineName));
@@ -939,9 +977,127 @@ void CsaGameCoordinator::startEngineThinking()
     }
 
     int byoyomiMs = m_gameSummary.byoyomi * m_gameSummary.timeUnitMs();
+    int totalTimeMs = m_gameSummary.totalTime * m_gameSummary.timeUnitMs();
 
-    // 検討モードで思考を開始
-    m_engine->executeAnalysisCommunication(positionCmd, byoyomiMs);
+    // 残り時間を計算
+    int blackRemainMs = totalTimeMs - m_blackTotalTimeMs;
+    int whiteRemainMs = totalTimeMs - m_whiteTotalTimeMs;
+    if (blackRemainMs < 0) blackRemainMs = 0;
+    if (whiteRemainMs < 0) whiteRemainMs = 0;
+
+    QString btimeStr = QString::number(blackRemainMs);
+    QString wtimeStr = QString::number(whiteRemainMs);
+
+    // 増加時間
+    int incMs = m_gameSummary.increment * m_gameSummary.timeUnitMs();
+
+    // ponderの文字列（現在はダミー）
+    QString ponderStr;
+
+    // 思考に使う情報
+    QPoint from, to;
+    m_gameController->setPromote(false);
+
+    emit logMessage(tr("エンジンが思考中..."));
+
+    // handleEngineVsHumanOrEngineMatchCommunicationを使用してエンジンに思考させる
+    m_engine->handleEngineVsHumanOrEngineMatchCommunication(
+        positionCmd,        // position文字列
+        ponderStr,          // ponder用文字列
+        from, to,           // 出力：移動元、移動先
+        byoyomiMs,          // 秒読み時間
+        btimeStr,           // 先手残り時間
+        wtimeStr,           // 後手残り時間
+        incMs,              // 先手増加時間
+        incMs,              // 後手増加時間
+        (byoyomiMs > 0)     // 秒読み使用フラグ
+    );
+
+    // 投了チェック
+    if (m_engine->isResignMove()) {
+        emit logMessage(tr("エンジンが投了しました"));
+        onEngineResign();
+        return;
+    }
+
+    // 有効な指し手かチェック
+    bool isValidMove = (to.x() >= 1 && to.x() <= 9 && to.y() >= 1 && to.y() <= 9);
+    if (!isValidMove) {
+        emit logMessage(tr("エンジンが有効な指し手を返しませんでした"), true);
+        return;
+    }
+
+    // 成りフラグを取得
+    bool promote = m_gameController->promote();
+
+    emit logMessage(tr("エンジンの指し手: from=(%1,%2) to=(%3,%4) promote=%5")
+                        .arg(from.x()).arg(from.y())
+                        .arg(to.x()).arg(to.y())
+                        .arg(promote ? "true" : "false"));
+
+    // 盤面を更新（validateAndMoveの代わりに直接盤面操作）
+    // from.x() が10以上の場合は駒台からの打ち駒
+    ShogiBoard* board = m_gameController->board();
+    if (!board) {
+        emit logMessage(tr("盤面が取得できませんでした"), true);
+        return;
+    }
+
+    // 盤面更新前に駒情報を取得してCSA形式の指し手を生成
+    int fromFile = from.x();
+    int fromRank = from.y();
+    int toFile = to.x();
+    int toRank = to.y();
+    
+    QChar turnSign = m_isBlackSide ? QLatin1Char('+') : QLatin1Char('-');
+    QString csaPiece;
+    
+    bool isDrop = (fromFile >= 10);
+    if (isDrop) {
+        // 駒打ちの場合: fromFile=10(先手駒台) or 11(後手駒台)
+        // fromRank は駒種インデックス
+        QChar pieceChar = board->getPieceCharacter(fromFile, fromRank);
+        csaPiece = pieceCharToCsa(pieceChar, false);
+        // CSA駒打ちは fromFile=0, fromRank=0
+        fromFile = 0;
+        fromRank = 0;
+    } else {
+        // 通常移動: 盤面更新前なので移動元から駒を取得
+        QChar pieceChar = board->getPieceCharacter(fromFile, fromRank);
+        csaPiece = pieceCharToCsa(pieceChar, promote);
+    }
+    
+    QString csaMove = QString("%1%2%3%4%5%6")
+        .arg(turnSign)
+        .arg(fromFile)
+        .arg(fromRank)
+        .arg(toFile)
+        .arg(toRank)
+        .arg(csaPiece);
+    
+    emit logMessage(tr("CSA形式の指し手: %1").arg(csaMove));
+
+    // 盤面を更新（movePieceToSquareを使用）
+    if (!isDrop) {
+        // 盤上の駒を移動
+        QChar pieceChar = board->getPieceCharacter(from.x(), from.y());
+        board->movePieceToSquare(pieceChar, from.x(), from.y(), toFile, toRank, promote);
+    } else {
+        // 駒打ち
+        QChar pieceChar = board->getPieceCharacter(from.x(), from.y());
+        board->movePieceToSquare(pieceChar, 0, 0, toFile, toRank, false);
+    }
+
+    // 手番を変更
+    m_gameController->changeCurrentPlayer();
+
+    // ビューを更新
+    if (m_view) {
+        m_view->update();
+    }
+
+    // サーバーに送信
+    m_client->sendMove(csaMove);
 }
 
 // 指し手を盤面に適用
@@ -1144,12 +1300,13 @@ void CsaGameCoordinator::cleanup()
         m_engine = nullptr;
     }
 
-    if (m_engineCommLog) {
+    // 内部で作成したモデルのみ削除
+    if (m_engineCommLog && m_ownsCommLog) {
         m_engineCommLog->deleteLater();
         m_engineCommLog = nullptr;
     }
 
-    if (m_engineThinking) {
+    if (m_engineThinking && m_ownsThinking) {
         m_engineThinking->deleteLater();
         m_engineThinking = nullptr;
     }

@@ -29,9 +29,16 @@ ShogiBoard* ShogiGameController::board() const
 // 配置し、対局結果を結果なし、現在の手番がどちらでもない状態に設定する。
 void ShogiGameController::newGame(QString& initialSfenString)
 {
+    // デバッグログ：新規対局の開始を追跡
+    qDebug() << "[DEBUG] ShogiGameController::newGame called";
+    qDebug() << "[DEBUG]   Initial SFEN:" << initialSfenString;
+    qDebug() << "[DEBUG]   Current board ptr:" << m_board;
+    
     // 将棋盤を示すポインタm_boardの作成
     // 将棋盤の81マスに空白を代入し、駒台の駒を0にする。
     setupBoard();
+    
+    qDebug() << "[DEBUG]   New board ptr after setupBoard:" << m_board;
 
     // 将棋盤と駒台を含むSFEN文字列で将棋盤全体を更新する場合、この関数を使う。
     // 将棋盤に入力で渡されるsfen形式の文字列に文法的に誤りが無いかチェックする。

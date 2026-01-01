@@ -772,6 +772,8 @@ void MainWindow::displayCsaGameDialog()
             deps.recordModel = m_kifuRecordModel;
             deps.sfenRecord = m_sfenRecord;
             deps.gameMoves = &m_gameMoves;
+            deps.usiCommLog = m_lineEditModel1;      // USI通信ログモデルを共有
+            deps.engineThinking = m_modelThinking1;  // エンジン思考モデルを共有
             m_csaGameCoordinator->setDependencies(deps);
 
             // シグナル接続
@@ -1386,10 +1388,12 @@ void MainWindow::onGameInfoUpdated_(const QList<KifGameInfoItem>& items)
 
 void MainWindow::syncBoardAndHighlightsAtRow(int ply)
 {
+    qDebug() << "[MW-DEBUG] syncBoardAndHighlightsAtRow ENTER ply=" << ply;
     ensureRecordNavigationController_();
     if (m_recordNavController) {
         m_recordNavController->syncBoardAndHighlightsAtRow(ply);
     }
+    qDebug() << "[MW-DEBUG] syncBoardAndHighlightsAtRow LEAVE";
 }
 
 void MainWindow::applyResolvedRowAndSelect(int row, int selPly)
@@ -2556,6 +2560,11 @@ void MainWindow::requestRedrawEngine2Eval_()
 
 void MainWindow::initializeNewGame_(const QString& s)
 {
+    // --- デバッグ：誰がこの関数を呼び出したか追跡 ---
+    qDebug() << "[DEBUG] MainWindow::initializeNewGame_ called with sfen:" << s;
+    qDebug() << "[DEBUG]   PlayMode:" << m_playMode;
+    qDebug() << "[DEBUG]   Call stack trace requested";
+    
     // --- 司令塔からのコールバック：UI側の初期化のみ行う ---
     QString startSfenStr = s;              // initializeNewGame(QString&) が参照で受けるため可変にコピー
 
@@ -2591,6 +2600,10 @@ void MainWindow::appendKifuLineHook_(const QString& text, const QString& elapsed
 
 void MainWindow::onRecordRowChangedByPresenter(int row, const QString& comment)
 {
+    qDebug() << "[MW-DEBUG] onRecordRowChangedByPresenter called: row=" << row
+             << "comment=" << comment.left(30) << "..."
+             << "playMode=" << m_playMode;
+    
     ensureRecordNavigationController_();
     if (m_recordNavController) {
         m_recordNavController->onRecordRowChangedByPresenter(row, comment);
@@ -2649,6 +2662,16 @@ void MainWindow::showGameOverMessageBox_(const QString& title, const QString& me
 
 void MainWindow::onRecordPaneMainRowChanged_(int row)
 {
+    qDebug() << "[MW-DEBUG] onRecordPaneMainRowChanged_ ENTER row=" << row
+             << "m_csaGameCoordinator=" << (m_csaGameCoordinator != nullptr);
+    
+    // CSA対局中は棋譜リストの選択変更による盤面同期をスキップ
+    // （CSA対局では CsaGameCoordinator が盤面を管理するため）
+    if (m_csaGameCoordinator) {
+        qDebug() << "[MW-DEBUG] onRecordPaneMainRowChanged_ SKIP: CSA game in progress";
+        return;
+    }
+    
     // フォールバック：起動直後など Loader 未生成時でも UI が動くように最低限の同期を行う
     if (row >= 0) {
         syncBoardAndHighlightsAtRow(row);

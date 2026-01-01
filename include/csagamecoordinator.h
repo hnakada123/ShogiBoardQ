@@ -76,6 +76,8 @@ public:
         KifuRecordListModel* recordModel = nullptr;
         QStringList* sfenRecord = nullptr;           ///< SFEN記録（MainWindowと共有）
         QVector<ShogiMove>* gameMoves = nullptr;     ///< 指し手記録（MainWindowと共有）
+        UsiCommLogModel* usiCommLog = nullptr;       ///< USI通信ログモデル（MainWindowと共有）
+        ShogiEngineThinkingModel* engineThinking = nullptr; ///< エンジン思考モデル（MainWindowと共有）
     };
 
     /**
@@ -390,8 +392,10 @@ private:
 
     // エンジン関連
     Usi* m_engine;
-    UsiCommLogModel* m_engineCommLog;
-    ShogiEngineThinkingModel* m_engineThinking;
+    UsiCommLogModel* m_engineCommLog;           ///< USI通信ログモデル（外部から渡されるか内部で作成）
+    ShogiEngineThinkingModel* m_engineThinking; ///< 思考モデル（外部から渡されるか内部で作成）
+    bool m_ownsCommLog;      ///< m_engineCommLogの所有権フラグ
+    bool m_ownsThinking;     ///< m_engineThinkingの所有権フラグ
 
     // 状態
     GameState m_gameState;

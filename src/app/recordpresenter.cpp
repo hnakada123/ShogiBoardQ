@@ -155,9 +155,13 @@ QString GameRecordPresenter::commentForRow(int row) const
 }
 
 void GameRecordPresenter::onKifuCurrentRowChanged_(const QModelIndex& current,
-                                                   const QModelIndex& /*previous*/)
+                                                   const QModelIndex& previous)
 {
     const int row = current.isValid() ? current.row() : -1;
+    const int prevRow = previous.isValid() ? previous.row() : -1;
+    
+    qDebug() << "[PRESENTER-DEBUG] onKifuCurrentRowChanged_ called:"
+             << "row=" << row << "prevRow=" << prevRow;
 
     // ★ 追加：選択行が変わったらモデルのハイライト行も更新
     if (m_d.model && row >= 0) {
