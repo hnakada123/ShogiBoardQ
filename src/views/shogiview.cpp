@@ -189,9 +189,17 @@ ShogiView::ShogiView(QWidget *parent)
 //  - sizeHint 等が変わる可能性に備え、updateGeometry() で親レイアウトに再配置を要求
 void ShogiView::setBoard(ShogiBoard* board)
 {
+    // デバッグログ：board設定の追跡
+    qDebug() << "[DEBUG] ShogiView::setBoard called";
+    qDebug() << "[DEBUG]   Old board:" << m_board;
+    qDebug() << "[DEBUG]   New board:" << board;
+    
     // 【無駄な再設定の回避】
     // すでに同じ ShogiBoard を保持しているなら処理不要。
-    if (m_board == board) return;
+    if (m_board == board) {
+        qDebug() << "[DEBUG]   Same board, skipping";
+        return;
+    }
 
     // 【旧接続のクリーンアップ】
     // 以前のボードが存在する場合、そのボード -> このビュー への全接続を解除。
@@ -218,6 +226,8 @@ void ShogiView::setBoard(ShogiBoard* board)
     // sizeHint() の結果がボードの状態に依存する場合に備え、ジオメトリ更新を通知。
     // 親レイアウトに再レイアウトを促し、必要ならば再配置/再サイズを行う。
     updateGeometry();
+    
+    qDebug() << "[DEBUG]   setBoard complete, m_board now:" << m_board;
 }
 
 // イベントフィルタ

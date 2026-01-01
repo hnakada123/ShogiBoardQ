@@ -736,6 +736,7 @@ bool KifuLoadCoordinator::loadPositionFromSfen(const QString& sfenStr)
     // シグナルを発行（displayGameRecordでモデルが更新される）
     emit setReplayMode(true);
     emit displayGameRecord(disp);
+    qDebug() << "[KLC-DEBUG] emitting syncBoardAndHighlightsAtRow(0) from loadPositionFromSfen";
     emit syncBoardAndHighlightsAtRow(0);
     emit enableArrowButtons();
 
@@ -1184,6 +1185,7 @@ void KifuLoadCoordinator::showRecordAtPly(const QList<KifDisplayItem>& disp, int
     m_currentMoveIndex   = row;
 
     // 盤面・ハイライトも現在手に同期
+    qDebug() << "[KLC-DEBUG] emitting syncBoardAndHighlightsAtRow(" << row << ") from applyResolvedRowAndSelect";
     emit syncBoardAndHighlightsAtRow(row);
 }
 

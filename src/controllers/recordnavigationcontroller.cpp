@@ -120,6 +120,8 @@ void RecordNavigationController::setUpdatePlyStateCallback(UpdatePlyStateCallbac
 
 void RecordNavigationController::syncBoardAndHighlightsAtRow(int ply)
 {
+    qDebug() << "[RecordNav-DEBUG] syncBoardAndHighlightsAtRow ENTER ply=" << ply;
+    
     // 位置編集モード中はスキップ
     if (m_shogiView && m_shogiView->positionEditMode()) {
         qDebug() << "[RecordNav] syncBoardAndHighlightsAtRow skipped (edit-mode). ply=" << ply;
@@ -131,6 +133,7 @@ void RecordNavigationController::syncBoardAndHighlightsAtRow(int ply)
     }
 
     if (m_boardSync) {
+        qDebug() << "[RecordNav-DEBUG] calling m_boardSync->syncBoardAndHighlightsAtRow(" << ply << ")";
         m_boardSync->syncBoardAndHighlightsAtRow(ply);
     }
 
@@ -138,6 +141,8 @@ void RecordNavigationController::syncBoardAndHighlightsAtRow(int ply)
     if (m_enableArrowButtons) {
         m_enableArrowButtons();
     }
+    
+    qDebug() << "[RecordNav-DEBUG] syncBoardAndHighlightsAtRow LEAVE";
 }
 
 void RecordNavigationController::applySelect(int row, int ply)
