@@ -504,6 +504,23 @@ void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClie
     if (m_clock) {
         m_clock->stopClock();
     }
+    
+    // エンジンにgameoverとquitコマンドを送信
+    if (m_engine) {
+        switch (result) {
+        case CsaClient::GameResult::Win:
+            m_engine->sendGameOverWinAndQuitCommands();
+            break;
+        case CsaClient::GameResult::Lose:
+            m_engine->sendGameOverLoseAndQuitCommands();
+            break;
+        case CsaClient::GameResult::Draw:
+        default:
+            // 引き分け・中断等の場合はquitのみ送信
+            m_engine->sendQuitCommand();
+            break;
+        }
+    }
 }
 
 // 中断ハンドラ
