@@ -629,8 +629,8 @@ void CsaClient::processResultLine(const QString& line)
     setConnectionState(ConnectionState::GameOver);
     emit gameEnded(result, cause);
 
-    // 対局待ち状態に戻る
-    setConnectionState(ConnectionState::WaitingForGame);
+    // 対局終了後はGameOver状態を維持（サーバーからの切断を正常終了として扱うため）
+    // 再接続や次の対局開始時に適切な状態に遷移する
 }
 
 // 指し手行処理
