@@ -80,6 +80,13 @@ void ShogiClock::startClock()
     // 残り時間の秒表示キャッシュをセットして一旦描画
     m_prevShownSecP1 = remainingDisplaySecP1();
     m_prevShownSecP2 = remainingDisplaySecP2();
+    
+    // デバッグ: 開始時の状態を記録
+    qCDebug(lcShogiClock, "[DEBUG] startClock: p1Ms=%lld (%d sec), p2Ms=%lld (%d sec), currentPlayer=%d",
+            m_player1TimeMs, m_prevShownSecP1,
+            m_player2TimeMs, m_prevShownSecP2,
+            m_currentPlayer);
+    
     emit timeUpdated();
 
     m_timer->start();
@@ -203,6 +210,11 @@ void ShogiClock::updateClock()
     if (elapsed <= 0) return;
     m_lastTickMs = now;
 
+    // デバッグ: タイマー精度を確認（50ms想定だが実際の経過時間を表示）
+    if (elapsed > 60) { // 60ms以上経過した場合（異常）
+        qCWarning(lcShogiClock, "[DEBUG] updateClock elapsed=%lldms (expected ~50ms) - Timer delayed!", elapsed);
+    }
+
     if (m_timeLimitSet) {
         auto step = [&](int player)->bool {
             qint64& remMs      = (player == 1) ? m_player1TimeMs : m_player2TimeMs;
@@ -273,6 +285,15 @@ void ShogiClock::updateClock()
     const int sec1 = remainingDisplaySecP1();
     const int sec2 = remainingDisplaySecP2();
     if (sec1 != m_prevShownSecP1 || sec2 != m_prevShownSecP2) {
+        // デバッグ: 秒表示の変化を詳細に記録
+        const int diff1 = m_prevShownSecP1 - sec1;
+        const int diff2 = m_prevShownSecP2 - sec2;
+        if (diff1 > 1 || diff2 > 1) {
+            qCWarning(lcShogiClock, "[DEBUG] Display jump detected! P1: %d->%d (diff=%d), P2: %d->%d (diff=%d), currentPlayer=%d, p1Ms=%lld, p2Ms=%lld",
+                      m_prevShownSecP1, sec1, diff1,
+                      m_prevShownSecP2, sec2, diff2,
+                      m_currentPlayer, m_player1TimeMs, m_player2TimeMs);
+        }
         m_prevShownSecP1 = sec1;
         m_prevShownSecP2 = sec2;
         emit timeUpdated();

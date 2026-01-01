@@ -16,11 +16,26 @@ void TimeDisplayPresenter::setClock(ShogiClock* clock)
 inline QString TimeDisplayPresenter::fmt_hhmmss(qint64 ms)
 {
     if (ms < 0) ms = 0;
-    QTime t(0,0); return t.addMSecs(static_cast<int>(ms)).toString("hh:mm:ss");
+    // ShogiClockと同じ切り上げ方式で秒を計算
+    // これにより、ShogiClockのtimeUpdatedタイミングと表示が一致する
+    const qint64 totalSec = (ms + 999) / 1000;  // 切り上げ
+    const int h = static_cast<int>(totalSec / 3600);
+    const int m = static_cast<int>((totalSec % 3600) / 60);
+    const int s = static_cast<int>(totalSec % 60);
+    return QString::asprintf("%02d:%02d:%02d", h, m, s);
 }
 
 void TimeDisplayPresenter::onMatchTimeUpdated(qint64 p1ms, qint64 p2ms, bool p1turn, qint64 /*urgencyMs*/)
 {
+    // デバッグ: 前回値との差分を確認
+    const qint64 diffP1 = m_lastP1Ms - p1ms;
+    const qint64 diffP2 = m_lastP2Ms - p2ms;
+    if ((diffP1 > 1500 && m_lastP1Ms > 0) || (diffP2 > 1500 && m_lastP2Ms > 0)) {
+        qDebug() << "[TimeDisplay] Large time jump detected!"
+                 << "P1:" << m_lastP1Ms << "->" << p1ms << "(diff=" << diffP1 << "ms)"
+                 << "P2:" << m_lastP2Ms << "->" << p2ms << "(diff=" << diffP2 << "ms)";
+    }
+    
     m_lastP1Ms = p1ms;
     m_lastP2Ms = p2ms;
 
