@@ -2156,13 +2156,31 @@ void MatchCoordinator::appendGameOverLineAndMark(Cause cause, Player loser)
                              ? QStringLiteral("%1投了").arg(mark)
                              : QStringLiteral("%1時間切れ").arg(mark);
 
-    // 「この手」の思考時間を暫定的に反映（KIF 表示のため）
-    const qint64 now     = QDateTime::currentMSecsSinceEpoch();
+    // 「この手」の思考時間を確定（KIF 表示のため）
+    // エポックが設定されている場合はそれを使用、未設定の場合はShogiClock内部の考慮時間を使用
     const qint64 epochMs = turnEpochFor(loser);
-    qint64 considerMs    = (epochMs > 0) ? (now - epochMs) : 0;
-    if (considerMs < 0) considerMs = 0;
+    qint64 considerMs = 0;
+    
+    if (epochMs > 0) {
+        // エポックが設定されている場合：経過時間を計算
+        const qint64 now = QDateTime::currentMSecsSinceEpoch();
+        considerMs = now - epochMs;
+        if (considerMs < 0) considerMs = 0;
+    } else {
+        // エポックが未設定の場合：ShogiClock内部で累積された考慮時間を使用
+        considerMs = (loser == P1) ? m_clock->player1ConsiderationMs()
+                                   : m_clock->player2ConsiderationMs();
+    }
+    
     if (loser == P1) m_clock->setPlayer1ConsiderationTime(int(considerMs));
     else             m_clock->setPlayer2ConsiderationTime(int(considerMs));
+
+    // 秒読み適用と総考慮時間への加算を行い、表示用文字列を取得
+    if (loser == P1) {
+        m_clock->applyByoyomiAndResetConsideration1();
+    } else {
+        m_clock->applyByoyomiAndResetConsideration2();
+    }
 
     const QString elapsed = (loser == P1)
                                 ? m_clock->getPlayer1ConsiderationAndTotalTime()
@@ -2289,16 +2307,34 @@ void MatchCoordinator::appendBreakOffLineAndMark()
     const Player curP = (gcTurn == ShogiGameController::Player1) ? P1 : P2;
     const QString line = (curP == P1) ? QStringLiteral("▲中断") : QStringLiteral("△中断");
 
-    // 「この手」の考慮時間を暫定確定（KIF用）
-    // MatchCoordinator 内の turnEpochFor(...) を利用して今の経過msを算出
+    // 「この手」の考慮時間を確定（KIF用）
     if (m_clock) {
-        const qint64 now     = QDateTime::currentMSecsSinceEpoch();
+        // 残り時間を固定
+        m_clock->stopClock();
+        
         const qint64 epochMs = turnEpochFor(curP);
-        qint64 considerMs    = (epochMs > 0) ? (now - epochMs) : 0;
-        if (considerMs < 0) considerMs = 0;
+        qint64 considerMs = 0;
+        
+        if (epochMs > 0) {
+            // エポックが設定されている場合：経過時間を計算
+            const qint64 now = QDateTime::currentMSecsSinceEpoch();
+            considerMs = now - epochMs;
+            if (considerMs < 0) considerMs = 0;
+        } else {
+            // エポックが未設定の場合：ShogiClock内部で累積された考慮時間を使用
+            considerMs = (curP == P1) ? m_clock->player1ConsiderationMs()
+                                      : m_clock->player2ConsiderationMs();
+        }
 
         if (curP == P1) m_clock->setPlayer1ConsiderationTime(int(considerMs));
         else            m_clock->setPlayer2ConsiderationTime(int(considerMs));
+        
+        // 秒読み適用と総考慮時間への加算
+        if (curP == P1) {
+            m_clock->applyByoyomiAndResetConsideration1();
+        } else {
+            m_clock->applyByoyomiAndResetConsideration2();
+        }
     }
 
     // "MM:SS/HH:MM:SS" を時計から取得
