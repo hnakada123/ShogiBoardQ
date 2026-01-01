@@ -2662,12 +2662,15 @@ void MainWindow::showGameOverMessageBox_(const QString& title, const QString& me
 
 void MainWindow::onRecordPaneMainRowChanged_(int row)
 {
-    qDebug() << "[MW-DEBUG] onRecordPaneMainRowChanged_ ENTER row=" << row
-             << "m_csaGameCoordinator=" << (m_csaGameCoordinator != nullptr);
+    // CSA対局が進行中の場合のみ棋譜リストの選択変更による盤面同期をスキップ
+    // （対局終了後は棋譜ナビゲーションを許可）
+    const bool csaGameInProgress = m_csaGameCoordinator && 
+        (m_csaGameCoordinator->gameState() == CsaGameCoordinator::GameState::InGame);
     
-    // CSA対局中は棋譜リストの選択変更による盤面同期をスキップ
-    // （CSA対局では CsaGameCoordinator が盤面を管理するため）
-    if (m_csaGameCoordinator) {
+    qDebug() << "[MW-DEBUG] onRecordPaneMainRowChanged_ ENTER row=" << row
+             << "csaGameInProgress=" << csaGameInProgress;
+    
+    if (csaGameInProgress) {
         qDebug() << "[MW-DEBUG] onRecordPaneMainRowChanged_ SKIP: CSA game in progress";
         return;
     }
@@ -3103,6 +3106,13 @@ void MainWindow::onCsaGameStarted_(const QString& blackName, const QString& whit
     // 対局者名を設定
     m_humanName1 = blackName;
     m_humanName2 = whiteName;
+    
+    // 将棋盤横のプレイヤー名ラベルを更新
+    if (m_shogiView) {
+        // CSA通信では Name+: が先手、Name-: が後手
+        m_shogiView->setBlackPlayerName(QStringLiteral("▲") + blackName);
+        m_shogiView->setWhitePlayerName(QStringLiteral("▽") + whiteName);
+    }
 
     // 棋譜モデルをクリア
     if (m_kifuRecordModel) {
