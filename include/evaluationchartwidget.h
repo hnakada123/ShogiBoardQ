@@ -76,6 +76,9 @@ private slots:
     void onIncreaseFontSizeClicked();
     void onDecreaseFontSizeClicked();
 
+    // プロットホバー時のツールチップ表示
+    void onSeriesHovered(const QPointF& point, bool state);
+
 private:
     void setupControlPanel();
     void updateYAxis();
@@ -108,6 +111,9 @@ private:
     void setupCursorLine();
     void updateCursorLine();
 
+    // ツールチップ（付箋）のセットアップ
+    void setupTooltip();
+
     // チャート関連
     QChart*      m_chart = nullptr;
     QLineSeries* m_s1    = nullptr;
@@ -132,6 +138,9 @@ private:
 
     // エンジン情報ラベル
     QLabel* m_lblEngineInfo = nullptr;
+
+    // ツールチップ（付箋）ラベル
+    QLabel* m_tooltip = nullptr;
 
     // エンジン情報
     QString m_engine1Name;

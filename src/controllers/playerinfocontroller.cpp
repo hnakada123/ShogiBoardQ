@@ -244,8 +244,11 @@ void PlayerInfoController::onSetEngineNames(const QString& e1, const QString& e2
 
     // 評価値グラフコントローラにもエンジン名を設定
     if (m_evalGraphController) {
+        qDebug().noquote() << "[PlayerInfo] onSetEngineNames: m_evalGraphController is valid, calling setEngine1Name/setEngine2Name";
         m_evalGraphController->setEngine1Name(m_engineName1);
         m_evalGraphController->setEngine2Name(m_engineName2);
+    } else {
+        qDebug().noquote() << "[PlayerInfo] onSetEngineNames: m_evalGraphController is NULL!";
     }
 
     Q_EMIT engineNamesUpdated(e1, e2);
