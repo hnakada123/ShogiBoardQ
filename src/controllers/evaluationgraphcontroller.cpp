@@ -184,3 +184,59 @@ void EvaluationGraphController::doRedrawEngine2Graph()
     ec->appendScoreP2(ply, cpAfter, false);
     qDebug() << "[EVAL_GRAPH] P2: appendScoreP2 done, chart countP2 =" << ec->countP2();
 }
+
+// --------------------------------------------------------
+// 評価値プロットの削除（待った機能用）
+// --------------------------------------------------------
+
+void EvaluationGraphController::removeLastP1Score()
+{
+    qDebug() << "[EVAL_GRAPH] removeLastP1Score() called";
+
+    // 内部スコアリストから削除
+    if (!m_scoreCp.isEmpty()) {
+        m_scoreCp.removeLast();
+        qDebug() << "[EVAL_GRAPH] m_scoreCp removed last, new size =" << m_scoreCp.size();
+    }
+
+    // チャートウィジェットから削除
+    if (!m_recordPane) {
+        qDebug() << "[EVAL_GRAPH] removeLastP1Score: m_recordPane is NULL!";
+        return;
+    }
+
+    EvaluationChartWidget* ec = m_recordPane->evalChart();
+    if (!ec) {
+        qDebug() << "[EVAL_GRAPH] removeLastP1Score: evalChart() returned NULL!";
+        return;
+    }
+
+    ec->removeLastP1();
+    qDebug() << "[EVAL_GRAPH] removeLastP1Score done, chart countP1 =" << ec->countP1();
+}
+
+void EvaluationGraphController::removeLastP2Score()
+{
+    qDebug() << "[EVAL_GRAPH] removeLastP2Score() called";
+
+    // 内部スコアリストから削除
+    if (!m_scoreCp.isEmpty()) {
+        m_scoreCp.removeLast();
+        qDebug() << "[EVAL_GRAPH] m_scoreCp removed last, new size =" << m_scoreCp.size();
+    }
+
+    // チャートウィジェットから削除
+    if (!m_recordPane) {
+        qDebug() << "[EVAL_GRAPH] removeLastP2Score: m_recordPane is NULL!";
+        return;
+    }
+
+    EvaluationChartWidget* ec = m_recordPane->evalChart();
+    if (!ec) {
+        qDebug() << "[EVAL_GRAPH] removeLastP2Score: evalChart() returned NULL!";
+        return;
+    }
+
+    ec->removeLastP2();
+    qDebug() << "[EVAL_GRAPH] removeLastP2Score done, chart countP2 =" << ec->countP2();
+}

@@ -439,6 +439,28 @@ void MainWindow::undoLastTwoMoves()
         if (m_match->undoTwoPlies()) {
             // 短くなった棋譜データに基づいて分岐ツリー（長方形と罫線）を再描画・同期する
             refreshBranchTreeLive_();
+
+            // 評価値グラフのプロットを1つ削除（2手で1プロット）
+            // ※EvEモードでは「待った」は使用しない想定
+            if (m_evalGraphController) {
+                // HvE: 先手(Human) vs 後手(Engine) → P2（後手エンジン）のグラフを使用
+                // EvH: 先手(Engine) vs 後手(Human) → P1（先手エンジン）のグラフを使用
+                switch (m_playMode) {
+                case EvenHumanVsEngine:
+                case HandicapHumanVsEngine:
+                    // 後手がエンジン → P2を削除
+                    m_evalGraphController->removeLastP2Score();
+                    break;
+                case EvenEngineVsHuman:
+                case HandicapEngineVsHuman:
+                    // 先手がエンジン → P1を削除
+                    m_evalGraphController->removeLastP1Score();
+                    break;
+                default:
+                    // その他のモード（EvE、HvH、解析モード等）では何もしない
+                    break;
+                }
+            }
         }
     }
 }
