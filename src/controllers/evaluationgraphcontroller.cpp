@@ -40,12 +40,40 @@ void EvaluationGraphController::setSfenRecord(QStringList* sfenRecord)
 
 void EvaluationGraphController::setEngine1Name(const QString& name)
 {
+    qDebug() << "[EVAL_GRAPH_CTRL] setEngine1Name called: name=" << name;
     m_engine1Name = name;
+    
+    // EvaluationChartWidgetにも即座に設定
+    if (m_recordPane) {
+        EvaluationChartWidget* ec = m_recordPane->evalChart();
+        if (ec) {
+            qDebug() << "[EVAL_GRAPH_CTRL] setEngine1Name: forwarding to EvaluationChartWidget";
+            ec->setEngine1Name(name);
+        } else {
+            qDebug() << "[EVAL_GRAPH_CTRL] setEngine1Name: evalChart() returned NULL!";
+        }
+    } else {
+        qDebug() << "[EVAL_GRAPH_CTRL] setEngine1Name: m_recordPane is NULL!";
+    }
 }
 
 void EvaluationGraphController::setEngine2Name(const QString& name)
 {
+    qDebug() << "[EVAL_GRAPH_CTRL] setEngine2Name called: name=" << name;
     m_engine2Name = name;
+    
+    // EvaluationChartWidgetにも即座に設定
+    if (m_recordPane) {
+        EvaluationChartWidget* ec = m_recordPane->evalChart();
+        if (ec) {
+            qDebug() << "[EVAL_GRAPH_CTRL] setEngine2Name: forwarding to EvaluationChartWidget";
+            ec->setEngine2Name(name);
+        } else {
+            qDebug() << "[EVAL_GRAPH_CTRL] setEngine2Name: evalChart() returned NULL!";
+        }
+    } else {
+        qDebug() << "[EVAL_GRAPH_CTRL] setEngine2Name: m_recordPane is NULL!";
+    }
 }
 
 // --------------------------------------------------------

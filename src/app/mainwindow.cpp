@@ -699,6 +699,11 @@ void MainWindow::ensureEvaluationGraphController_()
     m_evalGraphController->setSfenRecord(m_sfenRecord);
     m_evalGraphController->setEngine1Name(m_engineName1);
     m_evalGraphController->setEngine2Name(m_engineName2);
+
+    // PlayerInfoControllerが既に存在する場合は、EvalGraphControllerを設定
+    if (m_playerInfoController) {
+        m_playerInfoController->setEvalGraphController(m_evalGraphController);
+    }
 }
 
 // 将棋クロックの手番を設定する。
