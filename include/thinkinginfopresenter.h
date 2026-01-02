@@ -150,7 +150,6 @@ private:
 
     /// 評価値計算
     int calculateScoreInt(const ShogiEngineInfoParser* info) const;
-    void updateScoreMateAndLastScore(ShogiEngineInfoParser* info, int& scoreInt);
     void updateAnalysisModeAndScore(const ShogiEngineInfoParser* info, int& scoreInt);
     void updateLastScore(int scoreInt);
     void updateEvaluationInfo(ShogiEngineInfoParser* info, int& scoreInt);

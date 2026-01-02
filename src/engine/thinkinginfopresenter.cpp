@@ -240,29 +240,6 @@ int ThinkingInfoPresenter::calculateScoreInt(const ShogiEngineInfoParser* info) 
     return scoreInt;
 }
 
-void ThinkingInfoPresenter::updateScoreMateAndLastScore(ShogiEngineInfoParser* info, int& scoreInt)
-{
-    if (info->scoreMate().isEmpty()) {
-        m_lastScoreCp = 0;
-    } else {
-        scoreInt = calculateScoreInt(info);
-
-        QString scoreMate = info->scoreMate();
-
-        if ((scoreMate == "+") || (scoreMate == "-")) {
-            scoreMate = "詰";
-        } else {
-            scoreMate += "手詰";
-        }
-
-        info->setScore(scoreMate);
-        m_scoreStr = info->scoreMate();
-        m_lastScoreCp = scoreInt;
-        
-        emit scoreUpdated(m_lastScoreCp, m_scoreStr);
-    }
-}
-
 void ThinkingInfoPresenter::updateAnalysisModeAndScore(const ShogiEngineInfoParser* info, int& scoreInt)
 {
     if (!m_gameController) {
@@ -313,7 +290,7 @@ void ThinkingInfoPresenter::updateLastScore(int scoreInt)
 
 void ThinkingInfoPresenter::updateEvaluationInfo(ShogiEngineInfoParser* info, int& scoreInt)
 {
-    // multipv 1（1行目）の場合のみ評価値を更新
+    // multipv 1（1行目）の場合のみ評価値グラフを更新
     // multipvが空の場合も更新（単一PVモードの場合）
     const QString multipv = info->multipv();
     const QString scoreCp = info->scoreCp();
@@ -322,20 +299,47 @@ void ThinkingInfoPresenter::updateEvaluationInfo(ShogiEngineInfoParser* info, in
              << "scoreCp=" << scoreCp 
              << "m_lastScoreCp(before)=" << m_lastScoreCp;
     
-    if (!multipv.isEmpty() && multipv != "1") {
-        // multipv 2以降は評価値を更新しない
-        qDebug() << "[TIP] SKIPPING multipv=" << multipv << "(not 1)";
-        return;
-    }
-
+    // multipv 2以降の場合は、思考タブの表示用にscoreをセットするが、
+    // 評価値グラフ（m_lastScoreCp）は更新しない
+    const bool isMultipv1 = multipv.isEmpty() || multipv == "1";
+    
     if (info->scoreCp().isEmpty()) {
-        updateScoreMateAndLastScore(info, scoreInt);
+        // score mate の場合
+        if (info->scoreMate().isEmpty()) {
+            // スコア情報がない場合は何もしない
+            return;
+        }
+        
+        scoreInt = calculateScoreInt(info);
+        
+        QString scoreMate = info->scoreMate();
+        if ((scoreMate == "+") || (scoreMate == "-")) {
+            scoreMate = "詰";
+        } else {
+            scoreMate += "手詰";
+        }
+        
+        info->setScore(scoreMate);
+        
+        // multipv 1 の場合のみ評価値グラフを更新
+        if (isMultipv1) {
+            m_scoreStr = info->scoreMate();
+            m_lastScoreCp = scoreInt;
+            emit scoreUpdated(m_lastScoreCp, m_scoreStr);
+        }
     } else {
+        // score cp の場合
         updateAnalysisModeAndScore(info, scoreInt);
         info->setScore(m_scoreStr);
-        m_pvKanjiStr = info->pvKanjiStr();
-        qDebug() << "[TIP] UPDATING score: scoreInt=" << scoreInt << "m_scoreStr=" << m_scoreStr;
-        updateLastScore(scoreInt);
+        
+        // multipv 1 の場合のみ評価値グラフを更新
+        if (isMultipv1) {
+            m_pvKanjiStr = info->pvKanjiStr();
+            qDebug() << "[TIP] UPDATING score: scoreInt=" << scoreInt << "m_scoreStr=" << m_scoreStr;
+            updateLastScore(scoreInt);
+        } else {
+            qDebug() << "[TIP] SKIPPING graph update for multipv=" << multipv << "(score set for display only)";
+        }
     }
     
     qDebug() << "[TIP] updateEvaluationInfo done: m_lastScoreCp(after)=" << m_lastScoreCp;
