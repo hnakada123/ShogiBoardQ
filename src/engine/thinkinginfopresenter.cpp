@@ -220,14 +220,21 @@ void ThinkingInfoPresenter::emitHashfull(const ShogiEngineInfoParser* info)
 
 // === 評価値計算 ===
 
+// やねうら王系エンジンの優等局面スコア（VALUE_SUPERIOR）に合わせた詰み評価値
+// VALUE_SUPERIOR == 28000, PawnValue == 90, centi-pawn換算で100/90倍 → 約31111
+static constexpr int SCORE_MATE_VALUE = 31111;
+
 int ThinkingInfoPresenter::calculateScoreInt(const ShogiEngineInfoParser* info) const
 {
     int scoreInt = 0;
 
+    // score mate の値がプラス（勝ち）または "+" の場合
     if ((info->scoreMate().toLongLong() > 0) || (info->scoreMate() == "+")) {
-        scoreInt = 2000;
-    } else if ((info->scoreMate().toLongLong() < 0) || (info->scoreMate() == "-")) {
-        scoreInt = -2000;
+        scoreInt = SCORE_MATE_VALUE;
+    }
+    // score mate の値がマイナス（負け）または "-" の場合
+    else if ((info->scoreMate().toLongLong() < 0) || (info->scoreMate() == "-")) {
+        scoreInt = -SCORE_MATE_VALUE;
     }
 
     return scoreInt;
@@ -288,11 +295,14 @@ void ThinkingInfoPresenter::updateLastScore(int scoreInt)
 {
     qDebug() << "[TIP] updateLastScore: scoreInt=" << scoreInt << "m_lastScoreCp(before)=" << m_lastScoreCp;
     
-    // 評価値グラフの表示上限に合わせて±30000でクリッピング
-    if (scoreInt > 30000) {
-        m_lastScoreCp = 30000;
-    } else if (scoreInt < -30000) {
-        m_lastScoreCp = -30000;
+    // 評価値グラフの表示上限に合わせてクリッピング
+    // 詰み評価値（±31111）を考慮した上限を設定
+    static constexpr int SCORE_CLIP_MAX = 32000;
+    
+    if (scoreInt > SCORE_CLIP_MAX) {
+        m_lastScoreCp = SCORE_CLIP_MAX;
+    } else if (scoreInt < -SCORE_CLIP_MAX) {
+        m_lastScoreCp = -SCORE_CLIP_MAX;
     } else {
         m_lastScoreCp = scoreInt;
     }
