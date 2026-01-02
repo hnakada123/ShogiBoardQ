@@ -69,6 +69,16 @@ public:
      */
     QList<int>& scoresRef();
 
+    /**
+     * @brief 最後のP1評価値プロットを削除（待った機能用）
+     */
+    void removeLastP1Score();
+
+    /**
+     * @brief 最後のP2評価値プロットを削除（待った機能用）
+     */
+    void removeLastP2Score();
+
 public Q_SLOTS:
     // --------------------------------------------------------
     // グラフ更新スロット
