@@ -494,6 +494,9 @@ private:
     void appendKifuLine(const QString& text, const QString& elapsedTime);
     void broadcastComment(const QString& text, bool asHtml=false);
 
+    // 手番チェックヘルパー
+    bool isHumanTurnNow_() const;
+
     // フォント/描画ヘルパ
     void setupNameAndClockFonts_();
 
