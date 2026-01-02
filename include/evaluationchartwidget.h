@@ -56,6 +56,10 @@ public:
     void setEngine1Name(const QString& name);
     void setEngine2Name(const QString& name);
 
+    // 現在の手数を示す縦線の設定
+    void setCurrentPly(int ply);
+    int currentPly() const { return m_currentPly; }
+
 signals:
     // Y軸設定が変更されたときに発行
     void yAxisSettingsChanged(int limit, int interval);
@@ -100,11 +104,16 @@ private:
     void setupZeroLine();
     void updateZeroLine();
 
+    // 現在手数を示す縦線（カーソルライン）
+    void setupCursorLine();
+    void updateCursorLine();
+
     // チャート関連
     QChart*      m_chart = nullptr;
     QLineSeries* m_s1    = nullptr;
     QLineSeries* m_s2    = nullptr;
     QLineSeries* m_zeroLine = nullptr;  // ゼロライン
+    QLineSeries* m_cursorLine = nullptr;  // 現在手数を示す縦線
     QValueAxis*  m_axX   = nullptr;
     QValueAxis*  m_axY   = nullptr;
     QChartView*  m_chartView = nullptr;
@@ -142,6 +151,9 @@ private:
 
     // フォントサイズ
     int m_labelFontSize = 7;
+
+    // 現在の手数（縦線表示用）
+    int m_currentPly = 0;
 
     // 利用可能な上限値のリスト（Y軸）
     static const QList<int> s_availableYLimits;
