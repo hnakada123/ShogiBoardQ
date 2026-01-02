@@ -890,7 +890,22 @@ QString CsaGameCoordinator::csaToPretty(const QString& csaMove, bool isPromotion
         QStringLiteral("七"), QStringLiteral("八"), QStringLiteral("九")
     };
 
-    QString pieceKanji = csaPieceToKanji(piece);
+    // 成りの場合は成る前の駒名に変換
+    QString displayPiece = piece;
+    if (isPromotion) {
+        // 成り駒→元の駒への変換マップ
+        static const QHash<QString, QString> unpromoteMap = {
+            {QStringLiteral("TO"), QStringLiteral("FU")},  // と→歩
+            {QStringLiteral("NY"), QStringLiteral("KY")},  // 成香→香
+            {QStringLiteral("NK"), QStringLiteral("KE")},  // 成桂→桂
+            {QStringLiteral("NG"), QStringLiteral("GI")},  // 成銀→銀
+            {QStringLiteral("UM"), QStringLiteral("KA")},  // 馬→角
+            {QStringLiteral("RY"), QStringLiteral("HI")}   // 龍→飛
+        };
+        displayPiece = unpromoteMap.value(piece, piece);
+    }
+
+    QString pieceKanji = csaPieceToKanji(displayPiece);
 
     QString moveStr = turnMark;
 
