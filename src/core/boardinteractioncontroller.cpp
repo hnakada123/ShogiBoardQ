@@ -20,8 +20,16 @@ BoardInteractionController::BoardInteractionController(ShogiView* view,
 
 // ===================== public slots =====================
 
+
 void BoardInteractionController::onLeftClick(const QPoint& pt)
 {
+    // --- 0) 編集モード以外では、人間の手番かどうかをチェック ---
+    // コールバックが設定されていて、falseを返す場合は相手の手番なのでクリックを無視
+    if (m_mode != Mode::Edit && m_isHumanTurnCb && !m_isHumanTurnCb()) {
+        qDebug() << "[BoardInteraction] onLeftClick ignored: not human's turn";
+        return;
+    }
+
     // --- 1) “ドラッグ開始/終了”の 2クリック制御（元 onShogiViewClicked） ---
     // 駒台クリック時：枚数0を弾く（1stクリックのときのみ）
     if (!m_waitingSecondClick && (pt.x() == kBlackStandFile || pt.x() == kWhiteStandFile)) {

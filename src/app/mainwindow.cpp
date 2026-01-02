@@ -1242,6 +1242,44 @@ void MainWindow::appendKifuLine(const QString& text, const QString& elapsedTime)
     m_lastMove.clear();
 }
 
+// 人間の手番かどうかを判定するヘルパー
+// 対局中で、現在手番が人間なら true を返す
+bool MainWindow::isHumanTurnNow_() const
+{
+    // 対局中でなければ常に true（編集等では制限しない）
+    switch (m_playMode) {
+    case HumanVsHuman:
+        // HvH では両者人間なので常に true
+        return true;
+
+    case EvenHumanVsEngine:
+    case HandicapHumanVsEngine:
+        // 人間が先手（Player1）の場合、Player1の手番なら true
+        return (m_gameController && m_gameController->currentPlayer() == ShogiGameController::Player1);
+
+    case EvenEngineVsHuman:
+    case HandicapEngineVsHuman:
+        // 人間が後手（Player2）の場合、Player2の手番なら true
+        return (m_gameController && m_gameController->currentPlayer() == ShogiGameController::Player2);
+
+    case CsaNetworkMode:
+        // CSA通信対局では CsaGameCoordinator の isMyTurn() を使用
+        if (m_csaGameCoordinator) {
+            return m_csaGameCoordinator->isMyTurn();
+        }
+        return false;
+
+    case EvenEngineVsEngine:
+    case HandicapEngineVsEngine:
+        // EvE では人間は操作しない
+        return false;
+
+    default:
+        // NotStarted, AnalysisMode, ConsidarationMode, TsumiSearchMode 等は制限なし
+        return true;
+    }
+}
+
 // ★ 新規: GameInfoPaneControllerの初期化
 void MainWindow::ensureGameInfoController_()
 {
@@ -1789,6 +1827,13 @@ void MainWindow::setupBoardInteractionController()
     if (m_boardSetupController) {
         m_boardSetupController->setupBoardInteractionController();
         m_boardController = m_boardSetupController->boardController();
+
+        // 人間の手番かどうかを判定するコールバックを設定
+        if (m_boardController) {
+            m_boardController->setIsHumanTurnCallback([this]() -> bool {
+                return isHumanTurnNow_();
+            });
+        }
     }
 }
 

@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QPoint>
 #include <QColor>          // ← QColor をヘッダで使うので追加
+#include <functional>      // ← std::function 用に追加
 #include "shogiview.h"     // ← ShogiView::FieldHighlight を使うために必須
 
 class ShogiGameController;
@@ -20,6 +21,11 @@ public:
 
     void setMode(Mode m) { m_mode = m; }
     Mode mode() const { return m_mode; }
+
+    // 人間の手番かどうかを判定するコールバック設定
+    // コールバックがtrueを返すと人間の手番、falseなら相手の手番
+    using IsHumanTurnCallback = std::function<bool()>;
+    void setIsHumanTurnCallback(IsHumanTurnCallback cb) { m_isHumanTurnCb = std::move(cb); }
 
     // 選択中（オレンジ）のみを消し、直前手の赤/黄は残す
     void clearSelectionHighlight();
@@ -57,6 +63,7 @@ private:
     ShogiGameController* m_gc = nullptr;
 
     Mode m_mode = Mode::HumanVsHuman;
+    IsHumanTurnCallback m_isHumanTurnCb;  // 人間の手番判定コールバック
 
     // クリック状態
     QPoint m_clickPoint;
