@@ -93,6 +93,9 @@ EvaluationChartWidget::EvaluationChartWidget(QWidget* parent)
     // ゼロラインをセットアップ
     setupZeroLine();
 
+    // カーソルライン（現在手数を示す縦線）をセットアップ
+    setupCursorLine();
+
     // シリーズ
     m_s1 = new QLineSeries(this); // 先手側（黒線）
     m_s2 = new QLineSeries(this); // 後手側（白線）
@@ -170,6 +173,57 @@ void EvaluationChartWidget::updateZeroLine()
     m_zeroLine->clear();
     m_zeroLine->append(0, 0);
     m_zeroLine->append(m_xLimit, 0);
+}
+
+void EvaluationChartWidget::setupCursorLine()
+{
+    qDebug() << "[CHART] setupCursorLine called: m_currentPly=" << m_currentPly << "m_yLimit=" << m_yLimit;
+    
+    m_cursorLine = new QLineSeries(this);
+
+    // カーソルラインのスタイル（オレンジ色の縦線）
+    QPen cursorPen(QColor(255, 165, 0, 220));  // オレンジ、やや透明
+    cursorPen.setWidth(2);
+    m_cursorLine->setPen(cursorPen);
+    m_cursorLine->setPointsVisible(false);
+
+    // 初期状態では手数0の位置に縦線を描画
+    m_cursorLine->append(m_currentPly, -m_yLimit);
+    m_cursorLine->append(m_currentPly, m_yLimit);
+
+    m_chart->addSeries(m_cursorLine);
+    m_cursorLine->attachAxis(m_axX);
+    m_cursorLine->attachAxis(m_axY);
+    
+    qDebug() << "[CHART] setupCursorLine done";
+}
+
+void EvaluationChartWidget::updateCursorLine()
+{
+    if (!m_cursorLine) return;
+
+    m_cursorLine->clear();
+    m_cursorLine->append(m_currentPly, -m_yLimit);
+    m_cursorLine->append(m_currentPly, m_yLimit);
+}
+
+void EvaluationChartWidget::setCurrentPly(int ply)
+{
+    qDebug() << "[CHART] setCurrentPly called: ply=" << ply << "m_currentPly(before)=" << m_currentPly;
+    
+    if (m_currentPly == ply) {
+        qDebug() << "[CHART] setCurrentPly: same value, skipping";
+        return;
+    }
+
+    m_currentPly = ply;
+    updateCursorLine();
+
+    if (m_chartView) {
+        m_chartView->update();
+    }
+    
+    qDebug() << "[CHART] setCurrentPly done: m_currentPly(after)=" << m_currentPly;
 }
 
 void EvaluationChartWidget::setupControlPanel()
@@ -345,6 +399,9 @@ void EvaluationChartWidget::updateYAxis()
 
     m_axY->setRange(-m_yLimit, m_yLimit);
     m_axY->setTickInterval(m_yInterval);
+
+    // カーソルラインもY軸範囲に合わせて更新
+    updateCursorLine();
 
     if (m_chartView) {
         m_chartView->update();
@@ -638,6 +695,9 @@ void EvaluationChartWidget::appendScoreP1(int ply, int cp, bool invert)
     qDebug() << "[CHART][P1] updating engine info: ply=" << m_engine1Ply << "cp=" << m_engine1Cp << "name=" << m_engine1Name;
     updateEngineInfoLabel();
 
+    // 対局中は最新のプロット位置に縦線を更新
+    setCurrentPly(ply);
+
     const int after = m_s1->count();
     QPointF lastPt;
     if (after > 0) lastPt = m_s1->at(after - 1);
@@ -685,6 +745,9 @@ void EvaluationChartWidget::appendScoreP2(int ply, int cp, bool invert)
     qDebug() << "[CHART][P2] updating engine info: ply=" << m_engine2Ply << "cp=" << m_engine2Cp << "name=" << m_engine2Name;
     updateEngineInfoLabel();
 
+    // 対局中は最新のプロット位置に縦線を更新
+    setCurrentPly(ply);
+
     const int after = m_s2->count();
     QPointF lastPt;
     if (after > 0) lastPt = m_s2->at(after - 1);
@@ -705,6 +768,10 @@ void EvaluationChartWidget::clearAll()
 {
     if (m_s1) m_s1->clear();
     if (m_s2) m_s2->clear();
+
+    // 縦線を初期位置（0手目）にリセット
+    m_currentPly = 0;
+    updateCursorLine();
 
     // 設定はリセットしない（ユーザーの好みを維持）
     updateXAxis();

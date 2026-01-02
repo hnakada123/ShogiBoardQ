@@ -240,3 +240,25 @@ void EvaluationGraphController::removeLastP2Score()
     ec->removeLastP2();
     qDebug() << "[EVAL_GRAPH] removeLastP2Score done, chart countP2 =" << ec->countP2();
 }
+
+// --------------------------------------------------------
+// 現在手数の設定（縦線表示用）
+// --------------------------------------------------------
+
+void EvaluationGraphController::setCurrentPly(int ply)
+{
+    qDebug() << "[EVAL_GRAPH] setCurrentPly() called with ply =" << ply;
+
+    if (!m_recordPane) {
+        qDebug() << "[EVAL_GRAPH] setCurrentPly: m_recordPane is NULL!";
+        return;
+    }
+
+    EvaluationChartWidget* ec = m_recordPane->evalChart();
+    if (!ec) {
+        qDebug() << "[EVAL_GRAPH] setCurrentPly: evalChart() returned NULL!";
+        return;
+    }
+
+    ec->setCurrentPly(ply);
+}

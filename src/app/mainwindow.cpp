@@ -460,6 +460,15 @@ void MainWindow::undoLastTwoMoves()
                     // その他のモード（EvE、HvH、解析モード等）では何もしない
                     break;
                 }
+
+                // 縦線（カーソルライン）を現在の手数位置に更新
+                // sfenRecordのサイズ - 1 が現在の手数（ply）
+                // sfenRecord: [開局SFEN, 1手目後SFEN, 2手目後SFEN, ...]
+                // size=1 → ply=0（開局）, size=2 → ply=1, size=3 → ply=2, ...
+                const int currentPly = m_sfenRecord 
+                    ? static_cast<int>(qMax(static_cast<qsizetype>(0), m_sfenRecord->size() - 1)) 
+                    : 0;
+                m_evalGraphController->setCurrentPly(currentPly);
             }
         }
     }
@@ -2776,6 +2785,15 @@ void MainWindow::onRecordPaneMainRowChanged_(int row)
         } else {
             qDebug() << "[MW-DEBUG] onRecordPaneMainRowChanged_: m_shogiView=" << m_shogiView 
                      << "board=" << (m_shogiView ? m_shogiView->board() : nullptr);
+        }
+
+        // ★ 追加：評価値グラフの縦線（カーソルライン）を更新
+        if (m_evalGraphController) {
+            // rowは棋譜欄の行番号（0始まり）
+            // row=0: 開始局面（0手目）, row=1: 1手目, row=2: 2手目, ...
+            // 評価値グラフのX軸も0始まりの手数なので、rowをそのまま使用
+            qDebug() << "[MW-DEBUG] onRecordPaneMainRowChanged_: updating cursor line, row=" << row;
+            m_evalGraphController->setCurrentPly(row);
         }
     }
     enableArrowButtons();

@@ -79,6 +79,12 @@ public:
      */
     void removeLastP2Score();
 
+    /**
+     * @brief 現在の手数を設定（縦線表示用）
+     * @param ply 手数
+     */
+    void setCurrentPly(int ply);
+
 public Q_SLOTS:
     // --------------------------------------------------------
     // グラフ更新スロット
