@@ -6,10 +6,14 @@
 #include <QStyleFactory>
 #include <QGuiApplication>
 #include <QToolTip>
+#include <QIcon>
 
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
+
+    // アプリケーションアイコンを設定
+    a.setWindowIcon(QIcon(":/shogiboardq.png"));
 
     QTranslator translator;
 

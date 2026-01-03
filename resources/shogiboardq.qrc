@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/">
+        <file>shogiboardq.png</file>
         <file>images/icons/bold.png</file>
         <file>images/icons/copy.png</file>
         <file>images/icons/create.png</file>

@@ -118,6 +118,20 @@ file(GLOB_RECURSE SRC_NETWORK  CONFIGURE_DEPENDS src/network/*.cpp)
 # ==== Headers (for AUTOMOC) ====
 file(GLOB_RECURSE HDRS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h)
 
+# ==== Application Icon ====
+# Windows用リソースファイル
+if(WIN32)
+    set(APP_ICON_RESOURCE_WINDOWS "${CMAKE_CURRENT_SOURCE_DIR}/resources/app.rc")
+endif()
+
+# macOS用アイコン
+if(APPLE)
+    set(MACOSX_BUNDLE_ICON_FILE shogiboardq.icns)
+    set(APP_ICON_MACOS "${CMAKE_CURRENT_SOURCE_DIR}/resources/shogiboardq.icns")
+    set_source_files_properties(${APP_ICON_MACOS} PROPERTIES
+        MACOSX_PACKAGE_LOCATION "Resources")
+endif()
+
 # ==== Executable ====
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(ShogiBoardQ
@@ -135,7 +149,9 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         ${SRC_NETWORK}
         ${UI_FILES}
         ${HDRS}
-        resources/shogiboardq.qrc   # ← QRC を 1 行だけ。画像を個別列挙する必要はありません
+        resources/shogiboardq.qrc
+        ${APP_ICON_RESOURCE_WINDOWS}
+        ${APP_ICON_MACOS}
     )
 
     # .qm 生成（出力はビルド側に）
@@ -156,6 +172,8 @@ else()
         ${SRC_NETWORK}
         ${UI_FILES}
         resources/shogiboardq.qrc
+        ${APP_ICON_RESOURCE_WINDOWS}
+        ${APP_ICON_MACOS}
     )
     qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 endif()
