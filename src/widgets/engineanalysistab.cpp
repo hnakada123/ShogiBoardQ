@@ -29,10 +29,75 @@
 #include <QTimer>       // ★ 追加: 列幅設定の遅延用
 
 #include "settingsservice.h"  // ★ 追加: フォントサイズ保存用
+#include <QFontDatabase>      // ★ 追加: フォント検索用
+#include <QFontInfo>          // ★ 追加: フォントデバッグ用
+#include <QDebug>             // ★ 追加: デバッグ出力用
 #include "numeric_right_align_comma_delegate.h"
 #include "engineinfowidget.h"
 #include "shogienginethinkingmodel.h"
 #include "usicommlogmodel.h"
+
+// ===================== ヘルパー関数 =====================
+
+// クロスプラットフォーム対応の日本語フォントを取得
+static QString getJapaneseFontFamily()
+{
+    // 優先順位付きフォントリスト（OS別に最適なフォントを優先）
+#ifdef Q_OS_WIN
+    // Windows: 標準フォントを優先（アンチエイリアスが安定）
+    static const QStringList candidates = {
+        QStringLiteral("Yu Gothic UI"),      // Windows 10/11
+        QStringLiteral("Meiryo UI"),         // Windows Vista以降
+        QStringLiteral("Meiryo"),            // Windows Vista以降
+        QStringLiteral("MS UI Gothic"),      // Windows XP以降
+        QStringLiteral("Noto Sans JP"),      // インストールされている場合
+        QStringLiteral("MS Gothic"),         // フォールバック
+    };
+#elif defined(Q_OS_MAC)
+    // macOS
+    static const QStringList candidates = {
+        QStringLiteral("Hiragino Sans"),
+        QStringLiteral("Hiragino Kaku Gothic ProN"),
+        QStringLiteral("Noto Sans JP"),
+    };
+#else
+    // Linux
+    static const QStringList candidates = {
+        QStringLiteral("Noto Sans CJK JP"),
+        QStringLiteral("Noto Sans JP"),
+        QStringLiteral("IPAGothic"),
+    };
+#endif
+
+    const QStringList availableFamilies = QFontDatabase::families();
+    
+    // デバッグ: 利用可能なフォント数を出力
+    qDebug() << "[FontDebug] Available font families count:" << availableFamilies.size();
+    
+    for (const QString &candidate : candidates) {
+        if (availableFamilies.contains(candidate)) {
+            qDebug() << "[FontDebug] Selected font:" << candidate;
+            return candidate;
+        }
+    }
+
+    // 見つからない場合はシステムデフォルト
+    qDebug() << "[FontDebug] No Japanese font found, using system default";
+    return QString();
+}
+
+// フォント情報をデバッグ出力するヘルパー
+static void debugFontInfo(const QFont &font, const QString &context)
+{
+    QFontInfo info(font);
+    qDebug() << "[FontDebug]" << context;
+    qDebug() << "  Requested family:" << font.family();
+    qDebug() << "  Actual family:" << info.family();
+    qDebug() << "  Point size:" << info.pointSize();
+    qDebug() << "  Pixel size:" << info.pixelSize();
+    qDebug() << "  Style hint:" << font.styleHint();
+    qDebug() << "  Exact match:" << info.exactMatch();
+}
 
 // ===================== コンストラクタ/UI =====================
 
@@ -169,9 +234,16 @@ void EngineAnalysisTab::buildUi()
     // --- 分岐ツリー ---
     m_branchTree = new QGraphicsView(m_tab);
     m_branchTree->setRenderHint(QPainter::Antialiasing, true);
+    m_branchTree->setRenderHint(QPainter::TextAntialiasing, true);  // ★ テキストのアンチエイリアス
+    m_branchTree->setRenderHint(QPainter::SmoothPixmapTransform, true);  // ★ 滑らかな変換
     m_branchTree->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     m_branchTree->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     m_branchTree->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+
+    // デバッグ: レンダリングヒントを出力
+    qDebug() << "[FontDebug] QGraphicsView render hints:"
+             << "Antialiasing=" << m_branchTree->renderHints().testFlag(QPainter::Antialiasing)
+             << "TextAntialiasing=" << m_branchTree->renderHints().testFlag(QPainter::TextAntialiasing);
 
     m_scene = new QGraphicsScene(m_branchTree);
     m_branchTree->setScene(m_scene);
@@ -346,8 +418,16 @@ QGraphicsPathItem* EngineAnalysisTab::addNode(int row, int ply, const QString& r
     static constexpr qreal BASE_Y   = 40.0;
     static constexpr qreal STEP_Y   = 56.0;
     static constexpr qreal RADIUS   = 8.0;
-    static const    QFont LABEL_FONT(QStringLiteral("Noto Sans JP"), 10);
-    static const    QFont MOVE_NO_FONT(QStringLiteral("Noto Sans JP"), 9);
+    static const    QFont LABEL_FONT(getJapaneseFontFamily(), 10);
+    static const    QFont MOVE_NO_FONT(getJapaneseFontFamily(), 9);
+
+    // デバッグ: 初回のみフォント情報を出力
+    static bool fontDebugDone = false;
+    if (!fontDebugDone) {
+        debugFontInfo(LABEL_FONT, "addNode LABEL_FONT");
+        debugFontInfo(MOVE_NO_FONT, "addNode MOVE_NO_FONT");
+        fontDebugDone = true;
+    }
 
     const qreal x = BASE_X + SHIFT_X + ply * STEP_X;
     const qreal y = BASE_Y + row * STEP_Y;
@@ -484,8 +564,16 @@ void EngineAnalysisTab::rebuildBranchTree()
     static constexpr qreal BASE_Y   = 40.0;
     static constexpr qreal STEP_Y   = 56.0;
     static constexpr qreal RADIUS   = 8.0;
-    static const    QFont LABEL_FONT(QStringLiteral("Noto Sans JP"), 10);
-    static const    QFont MOVE_NO_FONT(QStringLiteral("Noto Sans JP"), 9);
+    static const    QFont LABEL_FONT(getJapaneseFontFamily(), 10);
+    static const    QFont MOVE_NO_FONT(getJapaneseFontFamily(), 9);
+
+    // デバッグ: 初回のみフォント情報を出力
+    static bool fontDebugDone2 = false;
+    if (!fontDebugDone2) {
+        debugFontInfo(LABEL_FONT, "rebuildBranchGraph LABEL_FONT");
+        debugFontInfo(MOVE_NO_FONT, "rebuildBranchGraph MOVE_NO_FONT");
+        fontDebugDone2 = true;
+    }
 
     // ===== まず「開始局面」を必ず描画（m_rows が空でも表示） =====
     QGraphicsPathItem* startNode = nullptr;
