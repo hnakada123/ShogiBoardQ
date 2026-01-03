@@ -1,6 +1,7 @@
 #include "recordpane.h"
 #include "kifurecordlistmodel.h"
 #include "kifubranchlistmodel.h"
+#include "settingsservice.h"
 
 #include <QTextBrowser>
 #include <QTableView>
@@ -20,12 +21,14 @@
 #include <QItemSelectionModel>
 #include <QHeaderView>
 #include <QTimer>
+#include <QFont>
 
 #include "evaluationchartwidget.h"
 // KifuRecordListModel / KifuBranchListModel は前方宣言で十分（ここでは include 不要）
 
 RecordPane::RecordPane(QWidget* parent)
     : QWidget(parent)
+    , m_fontSize(SettingsService::kifuPaneFontSize())
 {
     buildUi();
     wireSignals(); // モデルに依存しないシグナルだけ先に配線
@@ -33,13 +36,45 @@ RecordPane::RecordPane(QWidget* parent)
 
 void RecordPane::buildUi()
 {
-    // --- 棋譜テーブル（左上） ---
+    // --- 棋譜テーブル（左側） ---
     m_kifu = new QTableView(this);
     m_kifu->setSelectionMode(QAbstractItemView::SingleSelection);
     m_kifu->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_kifu->verticalHeader()->setVisible(false);
 
-    // --- 矢印ボタン群（左下） ---
+    // --- 文字サイズ変更ボタン ---
+    m_btnFontUp = new QPushButton(this);
+    m_btnFontDown = new QPushButton(this);
+    m_btnFontUp->setText(QStringLiteral("A+"));
+    m_btnFontDown->setText(QStringLiteral("A-"));
+    m_btnFontUp->setToolTip(tr("文字を大きくする"));
+    m_btnFontDown->setToolTip(tr("文字を小さくする"));
+
+    // 文字サイズボタンのスタイル設定（青系の背景色）
+    const QString fontBtnStyle = QStringLiteral(
+        "QPushButton {"
+        "  background-color: #4A6FA5;"
+        "  color: white;"
+        "  border: 1px solid #3d5a80;"
+        "  border-radius: 3px;"
+        "  padding: 2px 4px;"
+        "  font-weight: bold;"
+        "  min-width: 28px;"
+        "  max-width: 36px;"
+        "}"
+        "QPushButton:hover {"
+        "  background-color: #5a82b8;"
+        "}"
+        "QPushButton:pressed {"
+        "  background-color: #3d5a80;"
+        "}"
+    );
+    m_btnFontUp->setStyleSheet(fontBtnStyle);
+    m_btnFontDown->setStyleSheet(fontBtnStyle);
+    m_btnFontUp->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+    m_btnFontDown->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+
+    // --- ナビゲーションボタン群（中央に縦配置） ---
     m_btn1 = new QPushButton(this);
     m_btn2 = new QPushButton(this);
     m_btn3 = new QPushButton(this);
@@ -47,50 +82,67 @@ void RecordPane::buildUi()
     m_btn5 = new QPushButton(this);
     m_btn6 = new QPushButton(this);
 
-    // 既存実装と同じ配色（緑）
-    {
-        QPalette pal;
-        pal.setColor(QPalette::Button, QColor(79, 146, 114));
-        for (QPushButton* b : {m_btn1,m_btn2,m_btn3,m_btn4,m_btn5,m_btn6})
-            b->setPalette(pal);
+    // 簡易なテキストボタンに変更（画像アイコン不使用）
+    m_btn1->setText(tr("▲|"));
+    m_btn2->setText(tr("▲▲"));
+    m_btn3->setText(tr("▲"));
+    m_btn4->setText(tr("▼"));
+    m_btn5->setText(tr("▼▼"));
+    m_btn6->setText(tr("▼|"));
+
+    // ツールチップを設定
+    m_btn1->setToolTip(tr("最初に戻る"));
+    m_btn2->setToolTip(tr("10手戻る"));
+    m_btn3->setToolTip(tr("1手戻る"));
+    m_btn4->setToolTip(tr("1手進む"));
+    m_btn5->setToolTip(tr("10手進む"));
+    m_btn6->setToolTip(tr("最後に進む"));
+
+    // ボタンのスタイル設定（緑系の背景色、幅を狭く）
+    const QString btnStyle = QStringLiteral(
+        "QPushButton {"
+        "  background-color: #4F9272;"
+        "  color: white;"
+        "  border: 1px solid #3d7259;"
+        "  border-radius: 3px;"
+        "  padding: 3px 4px;"
+        "  font-weight: bold;"
+        "  min-width: 28px;"
+        "  max-width: 36px;"
+        "}"
+        "QPushButton:hover {"
+        "  background-color: #5ba583;"
+        "}"
+        "QPushButton:pressed {"
+        "  background-color: #3d7259;"
+        "}"
+    );
+
+    const QList<QPushButton*> allBtns = {m_btn1, m_btn2, m_btn3, m_btn4, m_btn5, m_btn6};
+    for (QPushButton* const b : allBtns) {
+        b->setStyleSheet(btnStyle);
+        b->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
     }
 
-    // アイコンとサイズ（既存のリソース名を流用）
-    m_btn1->setIcon(QIcon(":/icons/gtk-media-next-rtl.png"));
-    m_btn2->setIcon(QIcon(":/icons/gtk-media-forward-rtl.png"));
-    m_btn3->setIcon(QIcon(":/icons/gtk-media-play-rtr.png"));
-    m_btn4->setIcon(QIcon(":/icons/gtk-media-play-ltr.png"));
-    m_btn5->setIcon(QIcon(":/icons/gtk-media-forward-ltr.png"));
-    m_btn6->setIcon(QIcon(":/icons/gtk-media-next-ltr.png"));
+    // ナビゲーションボタンを縦に配置（文字サイズボタンも縦並びで上に追加）
+    auto* navLay = new QVBoxLayout;
+    navLay->setContentsMargins(2, 4, 2, 4);
+    navLay->setSpacing(3);
+    navLay->addWidget(m_btnFontUp, 0, Qt::AlignHCenter);
+    navLay->addWidget(m_btnFontDown, 0, Qt::AlignHCenter);
+    navLay->addStretch();
+    navLay->addWidget(m_btn1, 0, Qt::AlignHCenter);
+    navLay->addWidget(m_btn2, 0, Qt::AlignHCenter);
+    navLay->addWidget(m_btn3, 0, Qt::AlignHCenter);
+    navLay->addWidget(m_btn4, 0, Qt::AlignHCenter);
+    navLay->addWidget(m_btn5, 0, Qt::AlignHCenter);
+    navLay->addWidget(m_btn6, 0, Qt::AlignHCenter);
+    navLay->addStretch();
 
-    for (QPushButton* b : {m_btn1,m_btn2,m_btn3,m_btn4,m_btn5,m_btn6})
-        b->setIconSize(QSize(32,32));
-
-    auto* arrowsLay = new QHBoxLayout;
-    arrowsLay->setContentsMargins(0,0,0,0);
-    arrowsLay->setSpacing(6);
-    arrowsLay->addWidget(m_btn1);
-    arrowsLay->addWidget(m_btn2);
-    arrowsLay->addWidget(m_btn3);
-    arrowsLay->addWidget(m_btn4);
-    arrowsLay->addWidget(m_btn5);
-    arrowsLay->addWidget(m_btn6);
-
-    m_arrows = new QWidget(this);
-    m_arrows->setLayout(arrowsLay);
-    m_arrows->setFixedHeight(50);
-    m_arrows->setMinimumWidth(600);
-
-    // 左側：棋譜 + 矢印 を縦積み
-    auto* leftLay = new QVBoxLayout;
-    leftLay->setContentsMargins(0,0,0,0);
-    leftLay->setSpacing(6);
-    leftLay->addWidget(m_kifu);
-    leftLay->addWidget(m_arrows);
-
-    QWidget* left = new QWidget(this);
-    left->setLayout(leftLay);
-    left->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    m_navButtons = new QWidget(this);
+    m_navButtons->setLayout(navLay);
+    m_navButtons->setFixedWidth(50);
+    m_navButtons->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
 
     // --- 右側：分岐 + コメント（縦分割） ---
     m_branch = new QTableView(this);
@@ -113,12 +165,13 @@ void RecordPane::buildUi()
     m_right->setChildrenCollapsible(false);
     m_right->setSizes({300, 200});
 
-    // --- 左右分割 ---
+    // --- 左右分割（棋譜 | ナビボタン | 分岐+コメント） ---
     m_lr = new QSplitter(Qt::Horizontal, this);
-    m_lr->addWidget(left);
+    m_lr->addWidget(m_kifu);
+    m_lr->addWidget(m_navButtons);
     m_lr->addWidget(m_right);
     m_lr->setChildrenCollapsible(false);
-    m_lr->setSizes({600, 400});
+    m_lr->setSizes({500, 50, 400});
 
     // --- 評価値グラフ（スクロール） ---
     m_eval = new EvaluationChartWidget(this);
@@ -168,11 +221,18 @@ void RecordPane::wireSignals()
     connect(m_branch, &QTableView::activated, this, &RecordPane::branchActivated, Qt::UniqueConnection);
     connect(m_branch, &QTableView::clicked, this, &RecordPane::branchActivated, Qt::UniqueConnection);
 
+    // ★ 追加：文字サイズ変更ボタンの接続
+    connect(m_btnFontUp, &QPushButton::clicked, this, &RecordPane::onFontIncrease);
+    connect(m_btnFontDown, &QPushButton::clicked, this, &RecordPane::onFontDecrease);
+
     // ★ 追加：棋譜表の選択ハイライトを黄色に
     setupKifuSelectionAppearance();
 
     // ★ 追加：分岐候補欄の選択ハイライトを黄色に
     setupBranchViewSelectionAppearance();
+
+    // ★ 追加：初期フォントサイズを適用
+    applyFontSize(m_fontSize);
 }
 
 void RecordPane::setModels(KifuRecordListModel* recModel, KifuBranchListModel* brModel)
@@ -367,4 +427,43 @@ void RecordPane::setEvalChartHeight(int height)
 int RecordPane::evalChartHeight() const
 {
     return m_scroll ? m_scroll->height() : 200;
+}
+
+void RecordPane::onFontIncrease(bool /*checked*/)
+{
+    if (m_fontSize < 24) {
+        m_fontSize += 1;
+        applyFontSize(m_fontSize);
+        SettingsService::setKifuPaneFontSize(m_fontSize);
+    }
+}
+
+void RecordPane::onFontDecrease(bool /*checked*/)
+{
+    if (m_fontSize > 8) {
+        m_fontSize -= 1;
+        applyFontSize(m_fontSize);
+        SettingsService::setKifuPaneFontSize(m_fontSize);
+    }
+}
+
+void RecordPane::applyFontSize(int size)
+{
+    QFont font;
+    font.setPointSize(size);
+
+    // 棋譜欄にフォントサイズを適用
+    if (m_kifu) {
+        m_kifu->setFont(font);
+    }
+
+    // 分岐候補欄にフォントサイズを適用
+    if (m_branch) {
+        m_branch->setFont(font);
+    }
+
+    // コメント欄にもフォントサイズを適用
+    if (m_branchText) {
+        m_branchText->setFont(font);
+    }
 }

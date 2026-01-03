@@ -39,6 +39,9 @@ public:
     QPushButton* fwd10Button()  const { return m_btn5; }
     QPushButton* lastButton()   const { return m_btn6; }
 
+    QPushButton* fontIncreaseButton() const { return m_btnFontUp; }
+    QPushButton* fontDecreaseButton() const { return m_btnFontDown; }
+
     CommentTextAdapter* commentLabel();
 
     QPushButton* backToMainButton();
@@ -59,8 +62,10 @@ private:
     void wireSignals();
 
     QTableView *m_kifu=nullptr, *m_branch=nullptr;
-    QWidget *m_arrows=nullptr;
+    QWidget *m_navButtons=nullptr;  // ナビゲーションボタン群（棋譜と分岐の間に縦配置）
     QPushButton *m_btn1=nullptr,*m_btn2=nullptr,*m_btn3=nullptr,*m_btn4=nullptr,*m_btn5=nullptr,*m_btn6=nullptr;
+    QPushButton *m_btnFontUp=nullptr, *m_btnFontDown=nullptr;  // 文字サイズ変更ボタン
+    int m_fontSize = 10;  // 現在のフォントサイズ
     QTextBrowser* m_branchText=nullptr;
     QSplitter *m_mainSplitter=nullptr;  // 上下分割用メインスプリッター
     QSplitter *m_lr=nullptr, *m_right=nullptr;
@@ -86,6 +91,13 @@ public slots:
 
     // HTMLで分岐コメント欄に反映（将来HTML対応したくなった時用）
     void setBranchCommentHtml(const QString& html);
+
+    // 文字サイズ変更スロット
+    void onFontIncrease(bool checked = false);
+    void onFontDecrease(bool checked = false);
+
+private:
+    void applyFontSize(int size);
 };
 
 #endif // RECORDPANE_H
