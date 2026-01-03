@@ -23,12 +23,12 @@ public:
                          QObject* parent = nullptr);
 
 public slots:
-    void toFirst();
-    void back10();
-    void prev();
-    void next();
-    void fwd10();
-    void toLast();
+    void toFirst(bool checked = false);
+    void back10(bool checked = false);
+    void prev(bool checked = false);
+    void next(bool checked = false);
+    void fwd10(bool checked = false);
+    void toLast(bool checked = false);
 
 private:
     INavigationContext* m_ctx; // MainWindow の寿命 > Controller を前提（親子関係で担保）

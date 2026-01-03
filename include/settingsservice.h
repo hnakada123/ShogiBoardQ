@@ -91,6 +91,11 @@ QList<int> thinkingViewColumnWidths(int viewIndex);
 // ★ 追加: 思考タブ下段（読み筋テーブル）の列幅を保存
 void setThinkingViewColumnWidths(int viewIndex, const QList<int>& widths);
 
+// ★ 追加: 棋譜欄・分岐候補欄のフォントサイズを取得（デフォルト: 10）
+int kifuPaneFontSize();
+// ★ 追加: 棋譜欄・分岐候補欄のフォントサイズを保存
+void setKifuPaneFontSize(int size);
+
 } // namespace SettingsService
 
 #endif // SETTINGSSERVICE_H

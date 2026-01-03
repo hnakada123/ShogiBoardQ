@@ -268,4 +268,20 @@ void setThinkingViewColumnWidths(int viewIndex, const QList<int>& widths)
     s.sync();
 }
 
+// ★ 追加: 棋譜欄・分岐候補欄のフォントサイズを取得
+int kifuPaneFontSize()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("FontSize/kifuPane", 10).toInt();
+}
+
+// ★ 追加: 棋譜欄・分岐候補欄のフォントサイズを保存
+void setKifuPaneFontSize(int size)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("FontSize/kifuPane", size);
+}
+
 } // namespace SettingsService
