@@ -100,11 +100,6 @@ ShogiView::ShogiView(QWidget *parent)
     // 視認性（詰まり感の緩和）とレイアウトの均整をとる目的。
     setStandGapCols(0.5);
 
-    // 【盤面の縦位置調整】
-    // m_offsetY は recalcLayoutParams() で筋番号帯の高さに合わせて動的に計算される。
-    // ここでは初期値のみ設定（recalcLayoutParams() 呼び出し前の安全弁）。
-    m_offsetY = 20;
-
     // 【マウストラッキング】
     // ボタン未押下でも mouseMoveEvent を受け取れるようにする。
     // ホバー中のハイライトやドラッグ中の追従描画に必要。
