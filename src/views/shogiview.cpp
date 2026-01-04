@@ -466,6 +466,96 @@ void ShogiView::drawBackground(QPainter* painter)
     painter->restore();
 }
 
+// 将棋盤の影を描画する（立体感を出すため）。
+// 役割：将棋盤が畳の上に置かれているような立体感を表現する。
+void ShogiView::drawBoardShadow(QPainter* painter)
+{
+    if (!m_board) return;
+
+    painter->save();
+    painter->setRenderHint(QPainter::Antialiasing, true);
+
+    // 9×9マス部分 + 余白を含めた将棋盤全体の矩形
+    const int boardWidth  = m_squareSize * m_board->files();
+    const int boardHeight = m_squareSize * m_board->ranks();
+    const int boardLeft   = m_offsetX - m_boardMarginPx;
+    const int boardTop    = m_offsetY - m_boardMarginPx;
+    const int totalWidth  = boardWidth  + m_boardMarginPx * 2;
+    const int totalHeight = boardHeight + m_boardMarginPx * 2;
+
+    // 影のオフセットとぼかし幅
+    const int shadowOffsetX = 4;
+    const int shadowOffsetY = 4;
+    const int shadowBlur = 5;
+
+    // 複数の半透明レイヤーで影のぼかし効果を表現（効果を弱めに）
+    for (int i = shadowBlur; i >= 0; --i) {
+        const int alpha = 15 - (i * 2);  // 外側ほど薄く（効果弱め）
+        if (alpha <= 0) continue;
+
+        QColor shadowColor(0, 0, 0, alpha);
+        painter->setPen(Qt::NoPen);
+        painter->setBrush(shadowColor);
+
+        QRect shadowRect(
+            boardLeft + shadowOffsetX - i,
+            boardTop + shadowOffsetY - i,
+            totalWidth + i * 2,
+            totalHeight + i * 2
+        );
+        painter->drawRect(shadowRect);
+    }
+
+    painter->restore();
+}
+
+// 駒台の影を描画する（立体感を出すため）。
+// 役割：駒台が畳の上に置かれているような立体感を表現する。
+void ShogiView::drawStandShadow(QPainter* painter)
+{
+    if (!m_board) return;
+
+    painter->save();
+    painter->setRenderHint(QPainter::Antialiasing, true);
+
+    // 影のオフセットとぼかし幅
+    const int shadowOffsetX = 3;
+    const int shadowOffsetY = 3;
+    const int shadowBlur = 4;
+
+    // 先手（黒）側駒台の矩形を取得
+    const QRect blackStand = blackStandBoundingRect();
+    // 後手（白）側駒台の矩形を取得
+    const QRect whiteStand = whiteStandBoundingRect();
+
+    // 駒台の影を描画するラムダ（効果弱め）
+    auto drawShadow = [&](const QRect& standRect) {
+        if (!standRect.isValid()) return;
+
+        for (int i = shadowBlur; i >= 0; --i) {
+            const int alpha = 12 - (i * 2);  // 外側ほど薄く（効果弱め）
+            if (alpha <= 0) continue;
+
+            QColor shadowColor(0, 0, 0, alpha);
+            painter->setPen(Qt::NoPen);
+            painter->setBrush(shadowColor);
+
+            QRect shadowRect(
+                standRect.left() + shadowOffsetX - i,
+                standRect.top() + shadowOffsetY - i,
+                standRect.width() + i * 2,
+                standRect.height() + i * 2
+            );
+            painter->drawRect(shadowRect);
+        }
+    };
+
+    drawShadow(blackStand);
+    drawShadow(whiteStand);
+
+    painter->restore();
+}
+
 // 将棋盤の余白部分（9×9マスの外側の枠）を描画する。
 // 役割：実際の将棋盤に近い見た目にするため、盤の周囲に余白を追加する。
 // 実際の将棋盤: 縦36.4cm×横33.3cm, 余白各約0.8cm（比率約2.4%）
@@ -489,7 +579,6 @@ void ShogiView::drawBoardMargin(QPainter* painter)
     const int marginLeft   = boardLeft   - m_boardMarginPx;
     const int marginTop    = boardTop    - m_boardMarginPx;
     const int marginWidth  = boardWidth  + m_boardMarginPx * 2;
-    const int marginHeight = boardHeight + m_boardMarginPx * 2;
 
     // 余白部分を塗りつぶす（4辺）
     painter->setPen(Qt::NoPen);
@@ -673,6 +762,10 @@ void ShogiView::paintEvent(QPaintEvent *)
     // 【描画順序：背面 → 前面】
     // 0) E1: 背景グラデーション（最背面）
     drawBackground(&painter);
+
+    // 0.3) 将棋盤と駒台の影（立体感）を描画
+    drawBoardShadow(&painter);
+    drawStandShadow(&painter);
 
     // 0.5) 将棋盤の余白部分（9×9マスの外側）を描画
     drawBoardMargin(&painter);
@@ -2506,7 +2599,7 @@ void ShogiView::drawRank(QPainter* painter, const int rank) const
     // B5: 太字に設定
     f.setBold(true);
     painter->setFont(f);
-    // B5: より濃い文字色
+    // フォント色を濃い茶色に設定
     painter->setPen(QColor(40, 30, 20));
 
     // (6) 1..9 段に対応する漢数字を中央揃えで描画
@@ -2569,7 +2662,7 @@ void ShogiView::drawFile(QPainter* painter, const int file) const
     // B5: 太字に設定
     f.setBold(true);
     painter->setFont(f);
-    // B5: より濃い文字色
+    // フォント色を濃い茶色に設定
     painter->setPen(QColor(40, 30, 20));
 
     // (4) 全角数字 １..９ を中央描画
