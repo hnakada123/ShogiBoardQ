@@ -506,8 +506,6 @@ void ShogiView::drawBackground(QPainter* painter)
 
     // 駒台の幅（2マス分）
     const int standWidth = fs.width() * 2;
-    // 駒台の高さ（4マス分）
-    const int standHeight = fs.height() * 4;
 
     // 畳領域の計算（将棋盤 + 駒台 + ギャップ + 余白）
     // 左端: 後手駒台の左端
@@ -1058,11 +1056,12 @@ void ShogiView::drawStandPieceIcon(QPainter* painter, const QRect& adjustedRect,
 
     const QIcon icon = piece(value);
 
-    // === 等倍（セルいっぱい） ===
+    // === 駒画像は正方形のアスペクト比を維持 ===
+    // セルの幅を基準にして、正方形の駒画像を描画
+    // （将棋盤上と同じ幅で、高さも同じにする）
     const int cellW = adjustedRect.width();
-    const int cellH = adjustedRect.height();
     const int iconW = cellW;
-    const int iconH = cellH;
+    const int iconH = cellW;  // 幅と同じにして正方形を維持
 
     // ▼ここで“見せる重なり段数”と“最大表示枚数”をハードキャップ
     const int maxOverlapSteps = 2;                 // 最大重なり段数（= 左への段差は2段まで）
