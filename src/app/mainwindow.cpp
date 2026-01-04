@@ -2655,7 +2655,8 @@ void MainWindow::initializeNewGame_(const QString& s)
     // 盤の再描画・サイズ調整
     if (m_shogiView && m_gameController && m_gameController->board()) {
         m_shogiView->applyBoardAndRender(m_gameController->board());
-        m_shogiView->configureFixedSizing();
+        // configureFixedSizing()は削除：Splitterでのリサイズを有効にするため
+        // SizePolicyはPreferred（デフォルト）のままにして、resizeEventで自動調整する
     }
 
     // 表示名の更新（必要に応じて）

@@ -693,6 +693,9 @@
    <property name="text">
     <string>将棋盤の拡大</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl++</string>
+   </property>
   </action>
   <action name="actionShrinkBoard">
    <property name="icon">
@@ -701,6 +704,9 @@
    </property>
    <property name="text">
     <string>将棋盤の縮小</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+-</string>
    </property>
   </action>
   <action name="actionEndEditPosition">
