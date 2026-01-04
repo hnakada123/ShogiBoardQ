@@ -451,7 +451,7 @@ void ShogiView::drawFiles(QPainter* painter)
 }
 
 // E1: 背景を描画する。
-// 役割：ウィジェット全体に背景色を描画し、将棋盤や駒台とのコントラストを明確にする。
+// 役割：ウィジェット全体に畳をイメージした背景色を描画し、将棋盤や駒台との調和を図る。
 void ShogiView::drawBackground(QPainter* painter)
 {
     painter->save();
@@ -459,9 +459,9 @@ void ShogiView::drawBackground(QPainter* painter)
     // ウィジェット全体の矩形
     const QRect bgRect = rect();
 
-    // 白っぽい薄いグレー（将棋盤・駒台とのコントラストを明確にする）
-    const QColor bgColor(245, 245, 240);  // オフホワイト
-    painter->fillRect(bgRect, bgColor);
+    // 畳の基本色（薄い黄緑〜緑がかったベージュ）
+    const QColor tatamiBase(200, 190, 130);
+    painter->fillRect(bgRect, tatamiBase);
 
     painter->restore();
 }
@@ -478,8 +478,6 @@ void ShogiView::drawBoardMargin(QPainter* painter)
 
     // 将棋盤の木目色（盤のマスと同じ色）
     const QColor boardColor(228, 203, 115, 255);
-    // 余白の外枠線色（濃い茶色）
-    const QColor borderColor(80, 60, 30);
 
     // 9×9マス部分の矩形
     const int boardWidth  = m_squareSize * m_board->files();
@@ -492,10 +490,6 @@ void ShogiView::drawBoardMargin(QPainter* painter)
     const int marginTop    = boardTop    - m_boardMarginPx;
     const int marginWidth  = boardWidth  + m_boardMarginPx * 2;
     const int marginHeight = boardHeight + m_boardMarginPx * 2;
-    const QRect outerRect(marginLeft, marginTop, marginWidth, marginHeight);
-
-    // 9×9マス部分の矩形（余白の内側）
-    const QRect innerRect(boardLeft, boardTop, boardWidth, boardHeight);
 
     // 余白部分を塗りつぶす（4辺）
     painter->setPen(Qt::NoPen);
@@ -509,13 +503,6 @@ void ShogiView::drawBoardMargin(QPainter* painter)
     painter->drawRect(QRect(marginLeft, boardTop, m_boardMarginPx, boardHeight));
     // 右辺の余白
     painter->drawRect(QRect(boardLeft + boardWidth, boardTop, m_boardMarginPx, boardHeight));
-
-    // 外枠線を描画
-    QPen borderPen(borderColor);
-    borderPen.setWidth(1);
-    painter->setPen(borderPen);
-    painter->setBrush(Qt::NoBrush);
-    painter->drawRect(outerRect);
 
     painter->restore();
 }
@@ -2751,10 +2738,10 @@ void ShogiView::setUrgencyVisuals(Urgency u)
     qDebug() << "[SHOGIVIEW-DEBUG] setUrgencyVisuals: actTurnLabel=" << actTurnLabel
              << "(looking for" << (m_blackActive ? "turnLabelBlack" : "turnLabelWhite") << ")";
 
-    // 非手番は font-weight=400 固定
+    // 非手番は font-weight=400 固定、背景は畳色
     auto setInactive = [&](QLabel* name, QLabel* clock){
         const QColor inactiveFg(51, 51, 51);
-        const QColor inactiveBg(239, 240, 241);
+        const QColor inactiveBg(200, 190, 130);  // 畳の基本色
         setLabelStyle(name,  inactiveFg, inactiveBg, 0, QColor(0,0,0,0), /*bold=*/false);
         setLabelStyle(clock, inactiveFg, inactiveBg, 0, QColor(0,0,0,0), /*bold=*/false);
     };
@@ -2804,9 +2791,9 @@ void ShogiView::applyStartupTypography()
 {
     m_urgency = Urgency::Normal;
 
-    // 両側を「非手番スタイル（font-weight:400）」で統一
+    // 両側を「非手番スタイル（font-weight:400）」で統一、背景は畳色
     const QColor inactiveFg(51, 51, 51);
-    const QColor inactiveBg(239, 240, 241);
+    const QColor inactiveBg(200, 190, 130);  // 畳の基本色
     auto setInactive = [&](QLabel* name, QLabel* clock){
         setLabelStyle(name,  inactiveFg, inactiveBg, /*borderPx=*/0, QColor(0,0,0,0), /*bold=*/false); // 400
         setLabelStyle(clock, inactiveFg, inactiveBg, /*borderPx=*/0, QColor(0,0,0,0), /*bold=*/false); // 400
