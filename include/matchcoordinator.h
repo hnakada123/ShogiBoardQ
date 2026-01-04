@@ -223,10 +223,6 @@ signals:
     // urgencyMs: 盤の緊急カラー用 ms（非緊急なら std::numeric_limits<qint64>::max()）
     void timeUpdated(qint64 p1ms, qint64 p2ms, bool p1turn, qint64 urgencyMs);
 
-    // ★ 追加: 思考タブのエンジン表示スロットを入れ替えるリクエスト
-    //    swapToEngine2: true=エンジン2をスロット1に表示、false=通常に戻す
-    void requestSwapEngineSlots(bool swapToEngine2);
-
 private:
     // NOTE: QPointer は使わず raw ポインタ（寿命は Main 側で管理）
     ShogiGameController* m_gc   = nullptr;

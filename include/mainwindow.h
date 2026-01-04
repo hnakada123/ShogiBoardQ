@@ -244,9 +244,6 @@ private slots:
     // 司令塔通知
     void onRequestAppendGameOverMove(const MatchCoordinator::GameEndInfo& info);
 
-    // ★ 追加: 思考タブのエンジン表示スロット入れ替え
-    void onSwapEngineSlotsRequested(bool swapToEngine2);
-
     // 移動要求
     void onMoveRequested_(const QPoint& from, const QPoint& to);
 
