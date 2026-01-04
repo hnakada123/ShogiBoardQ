@@ -466,6 +466,60 @@ void ShogiView::drawBackground(QPainter* painter)
     painter->restore();
 }
 
+// 将棋盤の余白部分（9×9マスの外側の枠）を描画する。
+// 役割：実際の将棋盤に近い見た目にするため、盤の周囲に余白を追加する。
+// 実際の将棋盤: 縦36.4cm×横33.3cm, 余白各約0.8cm（比率約2.4%）
+void ShogiView::drawBoardMargin(QPainter* painter)
+{
+    if (!m_board) return;
+    if (m_boardMarginPx <= 0) return;
+
+    painter->save();
+
+    // 将棋盤の木目色（盤のマスと同じ色）
+    const QColor boardColor(228, 203, 115, 255);
+    // 余白の外枠線色（濃い茶色）
+    const QColor borderColor(80, 60, 30);
+
+    // 9×9マス部分の矩形
+    const int boardWidth  = m_squareSize * m_board->files();
+    const int boardHeight = m_squareSize * m_board->ranks();
+    const int boardLeft   = m_offsetX;
+    const int boardTop    = m_offsetY;
+
+    // 余白を含めた将棋盤全体の矩形
+    const int marginLeft   = boardLeft   - m_boardMarginPx;
+    const int marginTop    = boardTop    - m_boardMarginPx;
+    const int marginWidth  = boardWidth  + m_boardMarginPx * 2;
+    const int marginHeight = boardHeight + m_boardMarginPx * 2;
+    const QRect outerRect(marginLeft, marginTop, marginWidth, marginHeight);
+
+    // 9×9マス部分の矩形（余白の内側）
+    const QRect innerRect(boardLeft, boardTop, boardWidth, boardHeight);
+
+    // 余白部分を塗りつぶす（4辺）
+    painter->setPen(Qt::NoPen);
+    painter->setBrush(boardColor);
+
+    // 上辺の余白
+    painter->drawRect(QRect(marginLeft, marginTop, marginWidth, m_boardMarginPx));
+    // 下辺の余白
+    painter->drawRect(QRect(marginLeft, boardTop + boardHeight, marginWidth, m_boardMarginPx));
+    // 左辺の余白
+    painter->drawRect(QRect(marginLeft, boardTop, m_boardMarginPx, boardHeight));
+    // 右辺の余白
+    painter->drawRect(QRect(boardLeft + boardWidth, boardTop, m_boardMarginPx, boardHeight));
+
+    // 外枠線を描画
+    QPen borderPen(borderColor);
+    borderPen.setWidth(1);
+    painter->setPen(borderPen);
+    painter->setBrush(Qt::NoBrush);
+    painter->drawRect(outerRect);
+
+    painter->restore();
+}
+
 // 駒台セル（1マス）の描画矩形を算出するユーティリティ。
 // 役割：盤上の基準マス矩形（fieldRect）から、先手/後手の駒台側に水平オフセットした矩形を返す。
 static inline QRect makeStandCellRect(bool flip, int param, int offsetX, int offsetY, const QRect& fieldRect, bool leftSide)
@@ -632,6 +686,9 @@ void ShogiView::paintEvent(QPaintEvent *)
     // 【描画順序：背面 → 前面】
     // 0) E1: 背景グラデーション（最背面）
     drawBackground(&painter);
+
+    // 0.5) 将棋盤の余白部分（9×9マスの外側）を描画
+    drawBoardMargin(&painter);
 
     // 1) 盤面（マスの背景・枠など）
     drawBoardFields(&painter);
@@ -2370,6 +2427,11 @@ void ShogiView::recalcLayoutParams()
 {
     // 【微調整係数】現状0。必要に応じて±1〜2px程度の補正に使う想定。
     constexpr int tweak = 0;
+
+    // 【将棋盤余白の計算】
+    // 実際の将棋盤: 横33.3cm, 余白各0.8cm → 余白比率 0.8/33.3 ≈ 2.4%
+    // 余白比率を約2.4%として計算（マスサイズの約22%に相当）
+    m_boardMarginPx = qMax(2, qRound(m_squareSize * 0.22));
 
     // 【ラベル関連の基本サイズ】マスサイズに比例し、下限/上限を設けて視認性を担保
     m_labelBandPx = std::max(10, int(m_squareSize * 0.68));     // ラベル帯の高さ（px）

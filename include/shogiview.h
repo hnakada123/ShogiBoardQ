@@ -223,6 +223,7 @@ private:
     void drawRank(QPainter* painter, int rank) const;          // 段ラベル 1 本
 
     void drawBackground(QPainter* painter);                    // E1: 背景グラデーション
+    void drawBoardMargin(QPainter* painter);                   // 将棋盤の余白部分を描画
     void drawBoardFields(QPainter* painter);                   // 盤の全マス
     void drawField(QPainter* painter, int file, int rank) const;
 
@@ -290,6 +291,11 @@ private:
     // 描画寸法・配置
     int   m_squareSize { 50 };          // 1マスの基準ピクセル（正方）
     QSize m_fieldSize;                  // 1マスの QSize（正方前提だが将来拡張可）
+
+    // 将棋盤の余白（実際の将棋盤に近い比率）
+    // 実際の将棋盤: 縦36.4cm×横33.3cm, 余白各約0.8cm
+    // 余白比率: 横 0.8/33.3 ≈ 2.4%, 縦 0.8/36.4 ≈ 2.2%
+    int   m_boardMarginPx { 0 };        // 将棋盤余白のピクセル数
 
     int   m_param1 { 0 };               // 先手側スタンドの水平寄せ量（px）
     int   m_param2 { 0 };               // 後手側スタンドの水平寄せ量（px）
