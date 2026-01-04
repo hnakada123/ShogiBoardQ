@@ -101,8 +101,8 @@ ShogiView::ShogiView(QWidget *parent)
     setStandGapCols(0.5);
 
     // 【盤面の縦位置調整】
-    // ウィジェット上で盤の描画原点を下方向に 20px オフセット。
-    // 上部に時計/名前ラベルの「視覚的な呼吸（余白）」を確保する。
+    // m_offsetY は recalcLayoutParams() で筋番号帯の高さに合わせて動的に計算される。
+    // ここでは初期値のみ設定（recalcLayoutParams() 呼び出し前の安全弁）。
     m_offsetY = 20;
 
     // 【マウストラッキング】
@@ -507,15 +507,18 @@ void ShogiView::drawBackground(QPainter* painter)
     // 駒台の幅（2マス分）
     const int standWidth = fs.width() * 2;
 
-    // 畳領域の計算（将棋盤 + 駒台 + ギャップ + 余白）
+    // 筋番号の帯の高さ
+    const int fileLabelHeight = std::max(8, int(m_squareSize * 0.35));
+
+    // 畳領域の計算（将棋盤 + 駒台 + ギャップ + 余白 + 筋番号領域）
     // 左端: 後手駒台の左端
     const int tatamiLeft = m_offsetX - m_standGapPx - standWidth - m_boardMarginPx;
     // 右端: 先手駒台の右端
     const int tatamiRight = m_offsetX + boardWidth + m_boardMarginPx + m_standGapPx + standWidth;
-    // 上端: 盤の上端 - 余白
-    const int tatamiTop = m_offsetY - m_boardMarginPx;
-    // 下端: 盤の下端 + 余白
-    const int tatamiBottom = m_offsetY + boardHeight + m_boardMarginPx;
+    // 上端: 筋番号の領域を含める（盤の上端 - 余白 - 筋番号帯）
+    const int tatamiTop = m_offsetY - m_boardMarginPx - fileLabelHeight;
+    // 下端: 盤の下端 + 余白 + 筋番号帯（反転時用）
+    const int tatamiBottom = m_offsetY + boardHeight + m_boardMarginPx + fileLabelHeight;
 
     // 畳領域の矩形
     const QRect tatamiRect(tatamiLeft, tatamiTop,
@@ -2601,6 +2604,7 @@ void ShogiView::refreshNameLabels()
 //  - m_param1      : 先手側（黒）駒台列の水平基準オフセット（px）
 //  - m_param2      : 後手側（白）駒台列の水平基準オフセット（px）
 //  - m_offsetX     : 盤の左端X（boardLeftPx）に相当する水平オフセット（px）
+//  - m_offsetY     : 盤の上端Y（筋番号帯を確保するための縦オフセット）（px）
 //  - m_standGapPx  : 実効的な駒台ギャップ（px）
 // メモ：tweak は微調整用の定数（将来的に 1px のズレ補正等を行いたい場合に使用）。
 void ShogiView::recalcLayoutParams()
@@ -2623,6 +2627,13 @@ void ShogiView::recalcLayoutParams()
     m_labelBandPx = std::max(10, int(m_squareSize * 0.68));     // ラベル帯の高さ（px）
     m_labelFontPt = std::clamp(m_squareSize * 0.26, 5.0, 18.0); // ラベルフォントのポイントサイズ
     m_labelGapPx  = std::max(2,  int(m_squareSize * 0.12));     // 盤とラベルのすき間（px）
+
+    // 【筋番号帯の高さ】drawFileと同じ計算式
+    const int fileLabelHeight = std::max(8, int(m_squareSize * 0.35));
+
+    // 【縦方向オフセットの計算】
+    // 筋番号帯の高さ + 余白を確保して、回転時も筋番号が見えるようにする
+    m_offsetY = fileLabelHeight + m_boardMarginPx;
 
     // 【駒台の実効ギャップ算出】
     // ユーザー指定の列数（m_standGapCols：0.0〜2.0）を px に換算
@@ -2725,11 +2736,8 @@ void ShogiView::drawRank(QPainter* painter, const int rank) const
 //  2) 反転状態に応じて、ラベル帯の配置先を決定
 //      * 非反転：盤の「上側」空き領域に配置
 //      * 反転　：盤の「下側」空き領域に配置
-//     利用可能な空き高さ avail を求め、ラベル帯高さ h を m_labelBandPx を上限に調整
-//  3) フォントサイズは m_labelFontPt を基準に、帯高さの 75% を上限に設定
+//  3) フォントサイズは段番号と同様に m_labelFontPt を基準にマス幅の95%を上限
 //  4) file（1..9）に対応する全角数字を中央揃えで描画
-// 改善点：
-//  - B5: 段・筋の文字サイズを大きく/太くする
 void ShogiView::drawFile(QPainter* painter, const int file) const
 {
     if (!m_board) return;
@@ -2739,34 +2747,30 @@ void ShogiView::drawFile(QPainter* painter, const int file) const
     const int x = cell.left() + m_offsetX;
     const int w = cell.width();
 
-    // ラベル帯の初期高さ（必要に応じて後でクリップ）
-    int h = m_labelBandPx;
+    // ラベル帯の高さはマスサイズに比例させる
+    const int h = std::max(8, int(m_squareSize * 0.35));
     int y = 0;
 
     // (2) 配置先の決定（反転時は下側、非反転時は上側）
     if (m_flipMode) {
         const QSize fs = fieldSize();
         const int boardBottom = m_offsetY + fs.height() * m_board->ranks(); // 盤の下端Y
-        int avail = height() - boardBottom - 2;                              // 下側の空き
-        if (avail <= 0) return;                                              // 余白なし
-        h = std::min(h, std::max(8, avail - m_labelGapPx));                  // ギャップ分を差し引いて高さ確保
         y = boardBottom + m_labelGapPx;                                      // 盤下からギャップ分だけ離す
-        if (y + h > height() - 1) y = height() - 1 - h;                      // 最下端を越えないよう補正
     } else {
-        int avail = m_offsetY - 2;                                           // 上側の空き
-        if (avail <= 0) return;
-        h = std::min(h, std::max(8, avail - m_labelGapPx));                  // ギャップ分を差し引いて高さ確保
-        y = m_offsetY - m_labelGapPx - h;                                    // 盤上からギャップ分だけ上へ
+        // 盤の上に配置（盤からギャップ分だけ離す）
+        y = m_offsetY - m_labelGapPx - h;
+        if (y < 0) y = 0;
     }
 
     const QRect fileRect(x, y, w, h);
 
-    // (3) フォント調整（局所保護）
+    // (3) フォント調整（局所保護）- 段番号と同じ計算方式
     painter->save();
     QFont f = painter->font();
-    // B5: フォントサイズを1.3倍に拡大、上限も緩和（75%→85%）
-    f.setPointSizeF(std::min(m_labelFontPt * 1.3, h * 0.85));
-    // B5: 太字に設定
+    // 段番号と同様: m_labelFontPt * m_rankFontScale * 1.3 を基準に、マス幅の95%を上限
+    double pt = m_labelFontPt * m_rankFontScale * 1.3;
+    pt = std::min(pt, w * 0.95);   // マス幅の 95% を上限に
+    f.setPointSizeF(pt);
     f.setBold(true);
     painter->setFont(f);
     // フォント色を濃い茶色に設定
