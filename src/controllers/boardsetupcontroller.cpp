@@ -242,7 +242,7 @@ void BoardSetupController::onMoveRequested(const QPoint& from, const QPoint& to)
         }
 
         if (m_updateGameRecord) {
-            m_updateGameRecord(elapsed);
+            m_updateGameRecord(m_lastMove, elapsed);
         }
         break;
     }
