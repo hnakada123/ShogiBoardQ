@@ -863,6 +863,25 @@ void EngineAnalysisTab::setEngine2ThinkingModel(ShogiEngineThinkingModel* m)
         m_view2->horizontalHeader()->setSectionResizeMode(4, QHeaderView::Stretch);
 }
 
+void EngineAnalysisTab::swapEngine2ToSlot1()
+{
+    // 人間対エンジンでエンジン2のみ使用時：
+    // エンジン1の表示欄を非表示にし、エンジン2の表示欄を表示する
+    if (m_info1) m_info1->setVisible(false);
+    if (m_view1) m_view1->setVisible(false);
+    if (m_info2) m_info2->setVisible(true);
+    if (m_view2) m_view2->setVisible(true);
+}
+
+void EngineAnalysisTab::restoreOriginalSlots()
+{
+    // 通常の表示に戻す：エンジン1を表示、エンジン2は非表示
+    if (m_info1) m_info1->setVisible(true);
+    if (m_view1) m_view1->setVisible(true);
+    if (m_info2) m_info2->setVisible(false);
+    if (m_view2) m_view2->setVisible(false);
+}
+
 void EngineAnalysisTab::setCommentText(const QString& text)
 {
     // 旧コード互換：プレーンテキストで設定（URLをリンクに変換）
