@@ -2248,7 +2248,8 @@ void MainWindow::ensureBoardSetupController_()
     m_boardSetupController->setEnsureTimeControllerCallback([this]() {
         ensureTimeController_();
     });
-    m_boardSetupController->setUpdateGameRecordCallback([this](const QString& elapsed) {
+    m_boardSetupController->setUpdateGameRecordCallback([this](const QString& moveText, const QString& elapsed) {
+        m_lastMove = moveText;
         updateGameRecord(elapsed);
     });
     m_boardSetupController->setRedrawEngine1GraphCallback([this](int ply) {

@@ -80,7 +80,7 @@ public:
     // --------------------------------------------------------
     using EnsurePositionEditCallback = std::function<void()>;
     using EnsureTimeControllerCallback = std::function<void()>;
-    using UpdateGameRecordCallback = std::function<void(const QString& elapsed)>;
+    using UpdateGameRecordCallback = std::function<void(const QString& moveText, const QString& elapsed)>;
     using RedrawEngine1GraphCallback = std::function<void(int ply)>;
     using RedrawEngine2GraphCallback = std::function<void(int ply)>;
     using RefreshBranchTreeCallback = std::function<void()>;
