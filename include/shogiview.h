@@ -80,7 +80,8 @@ public:
 
     // ───────────────────────────── 盤サイズ系 ────────────────────────────────
     QSize fieldSize() const;            // 1マスの QSize（正方形推奨）
-    QSize sizeHint() const override;    // レイアウト用の推奨サイズ
+    QSize sizeHint() const override;        // レイアウト用の推奨サイズ
+    QSize minimumSizeHint() const override;  // 最小サイズ
     void updateBoardSize();             // m_squareSize を反映して再配置（ユーティリティ）
 
     // 盤/ラベル座標計算（反転考慮）
@@ -213,9 +214,13 @@ protected:
     void mouseMoveEvent(QMouseEvent* event) override;
     void mouseReleaseEvent(QMouseEvent* event) override;
     void resizeEvent(QResizeEvent* e) override;
+    void wheelEvent(QWheelEvent* e) override;  // Ctrl+ホイールで拡大縮小
     bool eventFilter(QObject* obj, QEvent* ev) override;
 
 private:
+    // ───────────────────────────── サイズ自動調整 ────────────────────────────
+    void fitBoardToWidget();  // ウィジェットサイズに合わせて将棋盤を自動調整
+
     // ───────────────────────────── 描画ヘルパ（盤/駒/ラベル） ────────────────
     void drawFiles(QPainter* painter);                         // 全筋ラベル
     void drawFile(QPainter* painter, int file) const;          // 筋ラベル 1 本
@@ -291,8 +296,13 @@ private:
     QPointer<ShogiBoard> m_board;       // 局面。寿命は外部管理（QPointerで安全）
 
     // 描画寸法・配置
-    int   m_squareSize { 50 };          // 1マスの基準ピクセル（正方）
-    QSize m_fieldSize;                  // 1マスの QSize（正方前提だが将来拡張可）
+    int   m_squareSize { 50 };          // 1マスの基準ピクセル（横幅基準）
+    QSize m_fieldSize;                  // 1マスの QSize（縦長の実比率）
+
+    // 将棋盤の実際の比率
+    // 9×9マス部分: 縦 34.8cm × 横 31.7cm
+    // 1マス: 縦 3.867cm × 横 3.522cm → 比率 縦/横 ≈ 1.098
+    static constexpr double kSquareAspectRatio = 34.8 / 31.7;  // ≈ 1.098
 
     // 将棋盤の余白（実際の将棋盤に近い比率）
     // 実際の将棋盤: 縦36.4cm×横33.3cm, 余白各約0.8cm

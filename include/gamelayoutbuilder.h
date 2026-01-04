@@ -19,11 +19,11 @@ public:
 
     explicit GameLayoutBuilder(const Deps& d, QObject* parent=nullptr);
 
-    QSplitter* buildHorizontalSplit();                   // 左右分割を作る
+    QSplitter* buildHorizontalSplit();  // 左右分割を作る（将棋盤 + 棋譜欄）
 
 private:
     Deps       m_d;
-    QSplitter* m_splitter = nullptr;
+    QSplitter* m_splitter = nullptr;    // 水平Splitter
 };
 
 #endif // GAMELAYOUTBUILDER_H

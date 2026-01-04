@@ -7,6 +7,7 @@
 
 #include <QColor>
 #include <QMouseEvent>
+#include <QWheelEvent>
 #include <QPainter>
 #include <QSettings>
 #include <QDir>
@@ -79,6 +80,11 @@ ShogiView::ShogiView(QWidget *parent)
     // 相対パスでの画像/設定ファイル読み込みを安定させるため。
     QDir::setCurrent(QApplication::applicationDirPath());
 
+    // 【SizePolicyの設定】
+    // Fixed: sizeHint()で返すサイズを厳守し、空白を作らない
+    // 拡大縮小はenlargeBoard/reduceBoardで行い、updateGeometry()で親レイアウトに通知
+    setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+
     // 【UIスケールの取得】
     // 設定ファイル（INI）からマス（square）のピクセルサイズを読み込む。
     // キー "SizeRelated/squareSize" が無い場合は既定値 50 を採用。
@@ -87,7 +93,9 @@ ShogiView::ShogiView(QWidget *parent)
 
     // 【レイアウト算出】
     // 盤や駒台など、表示に必要な各種寸法/座標を m_squareSize に基づいて再計算する。
+    // recalcLayoutParams() 内で m_fieldSize も縦横比率を反映して設定される。
     recalcLayoutParams();
+
     // 先後の駒台と盤のあいだの水平ギャップを「0.5マスぶん」に設定。
     // 視認性（詰まり感の緩和）とレイアウトの均整をとる目的。
     setStandGapCols(0.5);
@@ -288,11 +296,8 @@ QSize ShogiView::fieldSize() const
 // 役割：値の変化検知 → シグナル発行 → レイアウト再計算/再配置 → 付随UI（時計ラベル）のジオメトリ更新
 void ShogiView::setFieldSize(QSize fieldSize)
 {
-    qDebug() << "[SHOGIVIEW] setFieldSize called, fieldSize=" << fieldSize << "m_fieldSize=" << m_fieldSize;
-
     // 【無駄な再計算回避】 同一サイズなら何もしない。
     if (m_fieldSize == fieldSize) {
-        qDebug() << "[SHOGIVIEW] setFieldSize: same size, returning early";
         return;
     }
 
@@ -300,9 +305,7 @@ void ShogiView::setFieldSize(QSize fieldSize)
     m_fieldSize = fieldSize;
 
     // この変更を関心のある外部へ通知（例えばスライダー連動のUIなど）。
-    qDebug() << "[SHOGIVIEW] emitting fieldSizeChanged" << fieldSize;
     emit fieldSizeChanged(fieldSize);
-    qDebug() << "[SHOGIVIEW] fieldSizeChanged emitted";
 
     // sizeHint() の変化を親レイアウトに伝え、必要ならば再レイアウトを促す。
     updateGeometry();
@@ -315,21 +318,53 @@ void ShogiView::setFieldSize(QSize fieldSize)
 // レイアウト計算に用いられる推奨サイズ（sizeHint）を返す。
 // 親レイアウトがこの値を参考にウィジェットを配置する。
 // 盤未設定の場合は最低限の保険値（100x100）を返す。
+// 駒台、ラベル、余白を含めた全体のサイズを計算する。
 QSize ShogiView::sizeHint() const
 {
     if (!m_board) {
         return QSize(100, 100);
     }
 
-    // 1マスのサイズ
-    const QSize squareSize = fieldSize();
+    // 1マスのサイズ（縦横比率を反映）
+    const QSize fs = fieldSize().isValid() ? fieldSize()
+                                           : QSize(m_squareSize, qRound(m_squareSize * kSquareAspectRatio));
 
-    // 全マス分の幅・高さに、左右/上下のオフセット（余白）を加算。
-    // m_offsetX, m_offsetY は盤の見た目の「呼吸（余白）」や上部ラベル分の調整に使用。
-    int totalWidth  = squareSize.width()  * m_board->files() + m_offsetX * 2;
-    int totalHeight = squareSize.height() * m_board->ranks() + m_offsetY * 2;
+    // 盤の幅・高さ
+    const int boardWidth  = fs.width()  * m_board->files();
+    const int boardHeight = fs.height() * m_board->ranks();
+
+    // 駒台の幅（2マス分）
+    const int standWidth = fs.width() * 2;
+
+    // 全体の幅 = 左駒台 + ギャップ + 盤 + ギャップ + 右駒台
+    const int totalWidth = standWidth + m_standGapPx + boardWidth + m_standGapPx + standWidth;
+
+    // 全体の高さ = 上部ラベル + 盤 + 下部余白
+    // 駒台は盤の中に収まるので、盤の高さ + 上下のオフセットで十分
+    const int totalHeight = boardHeight + m_offsetY * 2;
 
     return QSize(totalWidth, totalHeight);
+}
+
+// 最小サイズを返す。
+// QSplitter内での最小サイズを指定するが、自動調整があるため小さめに設定。
+QSize ShogiView::minimumSizeHint() const
+{
+    // 最小サイズ: 20pxのマスで計算
+    const int minSquare = 20;
+    const int minSquareH = qRound(minSquare * kSquareAspectRatio);
+    const int files = m_board ? m_board->files() : 9;
+    const int ranks = m_board ? m_board->ranks() : 9;
+
+    const int minBoardWidth = minSquare * files;
+    const int minBoardHeight = minSquareH * ranks;
+    const int minStandWidth = minSquare * 2;
+    const int minGap = qRound(minSquare * 0.5);
+
+    const int minWidth = minStandWidth + minGap + minBoardWidth + minGap + minStandWidth;
+    const int minHeight = minBoardHeight + m_offsetY * 2;
+
+    return QSize(minWidth, minHeight);
 }
 
 // 盤状態（反転の有無・段筋数）に基づき、指定された(file, rank)のマスの矩形領域を算出。
@@ -454,14 +489,41 @@ void ShogiView::drawFiles(QPainter* painter)
 // 役割：ウィジェット全体に畳をイメージした背景色を描画し、将棋盤や駒台との調和を図る。
 void ShogiView::drawBackground(QPainter* painter)
 {
+    if (!m_board) return;
+
     painter->save();
 
-    // ウィジェット全体の矩形
-    const QRect bgRect = rect();
+    // まずウィジェット全体をデフォルトの背景色でクリア
+    painter->fillRect(rect(), palette().color(QPalette::Window));
 
     // 畳の基本色（薄い黄緑〜緑がかったベージュ）
     const QColor tatamiBase(200, 190, 130);
-    painter->fillRect(bgRect, tatamiBase);
+
+    // 将棋盤と駒台を含む領域のみを畳色で描画
+    const QSize fs = fieldSize();
+    const int boardWidth  = fs.width()  * m_board->files();
+    const int boardHeight = fs.height() * m_board->ranks();
+
+    // 駒台の幅（2マス分）
+    const int standWidth = fs.width() * 2;
+    // 駒台の高さ（4マス分）
+    const int standHeight = fs.height() * 4;
+
+    // 畳領域の計算（将棋盤 + 駒台 + ギャップ + 余白）
+    // 左端: 後手駒台の左端
+    const int tatamiLeft = m_offsetX - m_standGapPx - standWidth - m_boardMarginPx;
+    // 右端: 先手駒台の右端
+    const int tatamiRight = m_offsetX + boardWidth + m_boardMarginPx + m_standGapPx + standWidth;
+    // 上端: 盤の上端 - 余白
+    const int tatamiTop = m_offsetY - m_boardMarginPx;
+    // 下端: 盤の下端 + 余白
+    const int tatamiBottom = m_offsetY + boardHeight + m_boardMarginPx;
+
+    // 畳領域の矩形
+    const QRect tatamiRect(tatamiLeft, tatamiTop,
+                           tatamiRight - tatamiLeft, tatamiBottom - tatamiTop);
+
+    painter->fillRect(tatamiRect, tatamiBase);
 
     painter->restore();
 }
@@ -476,8 +538,9 @@ void ShogiView::drawBoardShadow(QPainter* painter)
     painter->setRenderHint(QPainter::Antialiasing, true);
 
     // 9×9マス部分 + 余白を含めた将棋盤全体の矩形
-    const int boardWidth  = m_squareSize * m_board->files();
-    const int boardHeight = m_squareSize * m_board->ranks();
+    const QSize fs = fieldSize();
+    const int boardWidth  = fs.width()  * m_board->files();
+    const int boardHeight = fs.height() * m_board->ranks();
     const int boardLeft   = m_offsetX - m_boardMarginPx;
     const int boardTop    = m_offsetY - m_boardMarginPx;
     const int totalWidth  = boardWidth  + m_boardMarginPx * 2;
@@ -570,8 +633,9 @@ void ShogiView::drawBoardMargin(QPainter* painter)
     const QColor boardColor(228, 203, 115, 255);
 
     // 9×9マス部分の矩形
-    const int boardWidth  = m_squareSize * m_board->files();
-    const int boardHeight = m_squareSize * m_board->ranks();
+    const QSize fs = fieldSize();
+    const int boardWidth  = fs.width()  * m_board->files();
+    const int boardHeight = fs.height() * m_board->ranks();
     const int boardLeft   = m_offsetX;
     const int boardTop    = m_offsetY;
 
@@ -804,7 +868,7 @@ void ShogiView::paintEvent(QPaintEvent *)
 // 【ドラッグ中の駒を描画】（最適化適用版）
 // 方針：paintEvent で開始済みの QPainter を使い回すため、ここで新たに QPainter を生成しない。
 // 前提：本関数は QPainter の永続状態（ペン/ブラシ/変換/クリップ等）を汚さない。
-// 備考：ドラッグ位置 m_dragPos の中心に、1マス分（squareSize）でアイコンを描画する。
+// 備考：ドラッグ位置 m_dragPos の中心に、1マス分でアイコンを描画する。
 void ShogiView::drawDraggingPiece(QPainter* painter)
 {
     // 【前提確認】ドラッグ中でなければ何もしない／駒種が空白なら描かない
@@ -814,9 +878,10 @@ void ShogiView::drawDraggingPiece(QPainter* painter)
     const QIcon icon = piece(QChar(m_dragPiece));
     if (icon.isNull()) return;
 
-    // 【描画矩形算出】ドラッグ座標を矩形の中心に据える（正方形：1マス）
-    const int s = squareSize();
-    const QRect r(m_dragPos.x() - s / 2, m_dragPos.y() - s / 2, s, s);
+    // 【描画矩形算出】ドラッグ座標を矩形の中心に据える（縦長マス）
+    const QSize fs = fieldSize();
+    const QRect r(m_dragPos.x() - fs.width() / 2, m_dragPos.y() - fs.height() / 2,
+                  fs.width(), fs.height());
 
     // 【描画】既存の painter を用いて中央揃えでペイント（状態は汚さない）
     icon.paint(painter, r, Qt::AlignCenter);
@@ -841,14 +906,17 @@ void ShogiView::drawFourStars(QPainter* painter)
     // B2: 星の半径を実際の将棋盤に近いサイズに調整（3px）
     // 実際の将棋盤では星は直径2〜3mm程度、マス約35mmに対して約6〜8%
     const int starRadius = 3;
-    const int basePoint3 = m_squareSize * 3; // 3マス分
-    const int basePoint6 = m_squareSize * 6; // 6マス分
+    const QSize fs = fieldSize();
+    const int basePointX3 = fs.width()  * 3; // 横方向3マス分
+    const int basePointX6 = fs.width()  * 6; // 横方向6マス分
+    const int basePointY3 = fs.height() * 3; // 縦方向3マス分
+    const int basePointY6 = fs.height() * 6; // 縦方向6マス分
 
     // 【描画】（x, y）はウィジェット座標。盤の原点シフトに m_offsetX/Y を加味。
-    painter->drawEllipse(QPoint(basePoint3 + m_offsetX, basePoint3 + m_offsetY), starRadius, starRadius);
-    painter->drawEllipse(QPoint(basePoint6 + m_offsetX, basePoint3 + m_offsetY), starRadius, starRadius);
-    painter->drawEllipse(QPoint(basePoint3 + m_offsetX, basePoint6 + m_offsetY), starRadius, starRadius);
-    painter->drawEllipse(QPoint(basePoint6 + m_offsetX, basePoint6 + m_offsetY), starRadius, starRadius);
+    painter->drawEllipse(QPoint(basePointX3 + m_offsetX, basePointY3 + m_offsetY), starRadius, starRadius);
+    painter->drawEllipse(QPoint(basePointX6 + m_offsetX, basePointY3 + m_offsetY), starRadius, starRadius);
+    painter->drawEllipse(QPoint(basePointX3 + m_offsetX, basePointY6 + m_offsetY), starRadius, starRadius);
+    painter->drawEllipse(QPoint(basePointX6 + m_offsetX, basePointY6 + m_offsetY), starRadius, starRadius);
 
     // 【状態復元】外側の描画に影響を残さない
     painter->restore();
@@ -866,7 +934,8 @@ int ShogiView::boardLeftPx() const { return m_offsetX; }
 //    ヒットテスト等で矩形幅を計算する際に扱いやすい表現。
 int ShogiView::boardRightPx() const {
     const int files = m_board ? m_board->files() : 9;                 // 未設定時は 9×9 を前提
-    return m_offsetX + m_squareSize * files;                           // 左端 + 盤の総幅
+    const QSize fs = fieldSize();
+    return m_offsetX + fs.width() * files;                            // 左端 + 盤の総幅
 }
 
 
@@ -1324,7 +1393,7 @@ QPoint ShogiView::getClickedSquareInDefaultState(const QPoint& pos) const
     if (!m_board) return QPoint();
 
     const QSize fs = fieldSize().isValid() ? fieldSize()
-                                           : QSize(m_squareSize, m_squareSize);
+                                           : QSize(m_squareSize, qRound(m_squareSize * kSquareAspectRatio));
     const int w = fs.width();
     const int h = fs.height();
 
@@ -1446,7 +1515,7 @@ QPoint ShogiView::getClickedSquareInFlippedState(const QPoint& pos) const
     if (!m_board) return QPoint();
 
     const QSize fs = fieldSize().isValid() ? fieldSize()
-                                           : QSize(m_squareSize, m_squareSize);
+                                           : QSize(m_squareSize, qRound(m_squareSize * kSquareAspectRatio));
     const int w = fs.width();
     const int h = fs.height();
 
@@ -1728,44 +1797,47 @@ int ShogiView::squareSize() const
 }
 
 // 盤の表示スケールを 1px 分だけ拡大する。
-// 手順：
-//  1) m_squareSize をインクリメント（1マスの基準サイズを +1）
-//  2) 依存しているレイアウトパラメータを再計算（recalcLayoutParams）
-//  3) fieldSize を更新（setFieldSize）→ シグナル発行／updateGeometry／時計ラベル位置再計算（※内部で実施）
-//  4) 念のため時計ラベルのジオメトリを再更新（※ setFieldSize 内で既に行っているため重複だが無害）
-//  5) 再描画要求（update）
-// 注意：極端に大きくし過ぎないように上限クリップを設けると安全（TODO）。
+// メニュー、キーボードショートカット、Ctrl+ホイールから呼ばれる。
+// 最大サイズ（150px）を超える拡大は行わない。
 void ShogiView::enlargeBoard()
 {
-    qDebug() << "[SHOGIVIEW] enlargeBoard called, m_squareSize before=" << m_squareSize;
-    m_squareSize++;                                    // (1) 1px 拡大
-    qDebug() << "[SHOGIVIEW] enlargeBoard m_squareSize after=" << m_squareSize;
-    recalcLayoutParams();                              // (2) レイアウト関連の再計算
-    setFieldSize(QSize(m_squareSize, m_squareSize));   // (3) マスサイズ更新（シグナル/再レイアウト含む）
-    qDebug() << "[SHOGIVIEW] enlargeBoard setFieldSize called with" << QSize(m_squareSize, m_squareSize);
-
-    // (4) 冗長だが安全側の再配置（setFieldSize 内でも呼ばれている想定）
+    // 最大サイズのチェック
+    if (m_squareSize >= 150) {
+        return;
+    }
+    
+    m_squareSize++;
+    recalcLayoutParams();
+    setFieldSize(m_fieldSize);
     updateBlackClockLabelGeometry();
     updateWhiteClockLabelGeometry();
-
-    update();                                          // (5) 再描画
+    
+    // 親レイアウト（Splitter等）にサイズ変更を通知
+    updateGeometry();
+    
+    update();
 }
 
 // 盤の表示スケールを 1px 分だけ縮小する。
-// 手順は enlargeBoard と同じだが、サイズをデクリメントする点のみ異なる。
-// 注意：0 以下や小さ過ぎる値を避けるため、下限クリップ（例：最小 8〜16px 程度）を入れると安全（TODO）。
+// メニュー、キーボードショートカット、Ctrl+ホイールから呼ばれる。
+// 最小サイズ（20px）より小さくはならない。
 void ShogiView::reduceBoard()
 {
-    qDebug() << "[SHOGIVIEW] reduceBoard called, m_squareSize before=" << m_squareSize;
-    m_squareSize--;                                    // 1px 縮小
-    recalcLayoutParams();                              // レイアウト関連の再計算
-    setFieldSize(QSize(m_squareSize, m_squareSize));   // マスサイズ更新（シグナル/再レイアウト含む）
-
-    // 冗長だが安全側の再配置
+    // 最小サイズのチェック
+    if (m_squareSize <= 20) {
+        return;
+    }
+    
+    m_squareSize--;
+    recalcLayoutParams();
+    setFieldSize(m_fieldSize);
     updateBlackClockLabelGeometry();
     updateWhiteClockLabelGeometry();
-
-    update();                                          // 再描画
+    
+    // 親レイアウト（Splitter等）にサイズ変更を通知
+    updateGeometry();
+    
+    update();
 }
 
 // エラーフラグのセッター。
@@ -2082,6 +2154,35 @@ void ShogiView::resizeEvent(QResizeEvent* e)
     relayoutTurnLabels_();
 }
 
+// fitBoardToWidget は Splitter連動時に使用していたが、
+// Fixed SizePolicy方式では不要なため、空実装として残す（将来の拡張用）
+void ShogiView::fitBoardToWidget()
+{
+    // Fixed SizePolicy方式では使用しない
+}
+
+// Ctrl+マウスホイールで将棋盤を拡大・縮小する。
+// トラックパッドの2本指スクロールでも動作する。
+void ShogiView::wheelEvent(QWheelEvent* e)
+{
+    // Ctrlキーが押されている場合のみ拡大縮小
+    if (e->modifiers() & Qt::ControlModifier) {
+        const int delta = e->angleDelta().y();
+        if (delta > 0) {
+            // 上方向スクロール → 拡大
+            enlargeBoard();
+        } else if (delta < 0) {
+            // 下方向スクロール → 縮小
+            reduceBoard();
+        }
+        e->accept();
+        return;
+    }
+    
+    // Ctrlキーなしの場合は通常のスクロール処理
+    QWidget::wheelEvent(e);
+}
+
 // 先手（黒）側の駒台全体を覆う境界矩形（バウンディングボックス）を算出して返す。
 // 用途：ヒットテスト、再描画領域の最小化、ドラッグ中の当たり判定など。
 // 仕様：
@@ -2095,7 +2196,7 @@ QRect ShogiView::blackStandBoundingRect() const
 
     // マスサイズ（無効時は m_squareSize で補完）
     const QSize fs = fieldSize().isValid() ? fieldSize()
-                                           : QSize(m_squareSize, m_squareSize);
+                                           : QSize(m_squareSize, qRound(m_squareSize * kSquareAspectRatio));
 
     // 行数はモードで変化
     const int rows     = 4;
@@ -2129,7 +2230,7 @@ QRect ShogiView::whiteStandBoundingRect() const
 
     // マスサイズ（無効時は m_squareSize で補完）
     const QSize fs = fieldSize().isValid() ? fieldSize()
-                                           : QSize(m_squareSize, m_squareSize);
+                                           : QSize(m_squareSize, qRound(m_squareSize * kSquareAspectRatio));
 
     // 行数はモードで変化
     const int rows    = 4;
@@ -2177,7 +2278,7 @@ void ShogiView::updateBlackClockLabelGeometry()
 
     // マス寸法（無効時はフォールバック）
     const QSize fs = fieldSize().isValid() ? fieldSize()
-                                           : QSize(m_squareSize, m_squareSize);
+                                           : QSize(m_squareSize, qRound(m_squareSize * kSquareAspectRatio));
 
     // 配置用パラメータ
     const int marginOuter = 4;  // 駒台との外側マージン
@@ -2252,7 +2353,7 @@ void ShogiView::updateWhiteClockLabelGeometry()
 
     // マス寸法（無効時はフォールバック）
     const QSize fs = fieldSize().isValid() ? fieldSize()
-                                           : QSize(m_squareSize, m_squareSize);
+                                           : QSize(m_squareSize, qRound(m_squareSize * kSquareAspectRatio));
 
     // 配置用パラメータ
     const int marginOuter = 4;
@@ -2508,6 +2609,12 @@ void ShogiView::recalcLayoutParams()
     // 【微調整係数】現状0。必要に応じて±1〜2px程度の補正に使う想定。
     constexpr int tweak = 0;
 
+    // 【マスサイズの計算（実際の将棋盤の縦横比率を反映）】
+    // m_squareSize は横幅の基準。縦は kSquareAspectRatio 倍にする。
+    const int squareWidth  = m_squareSize;
+    const int squareHeight = qRound(m_squareSize * kSquareAspectRatio);
+    m_fieldSize = QSize(squareWidth, squareHeight);
+
     // 【将棋盤余白の計算】
     // 実際の将棋盤: 横33.3cm, 余白各0.8cm → 余白比率 0.8/33.3 ≈ 2.4%
     // 余白比率を約2.4%として計算（マスサイズの約22%に相当）
@@ -2639,7 +2746,8 @@ void ShogiView::drawFile(QPainter* painter, const int file) const
 
     // (2) 配置先の決定（反転時は下側、非反転時は上側）
     if (m_flipMode) {
-        const int boardBottom = m_offsetY + m_squareSize * m_board->ranks(); // 盤の下端Y
+        const QSize fs = fieldSize();
+        const int boardBottom = m_offsetY + fs.height() * m_board->ranks(); // 盤の下端Y
         int avail = height() - boardBottom - 2;                              // 下側の空き
         if (avail <= 0) return;                                              // 余白なし
         h = std::min(h, std::max(8, avail - m_labelGapPx));                  // ギャップ分を差し引いて高さ確保
@@ -2770,7 +2878,7 @@ void ShogiView::setHighlightStyle(const QColor& bgOn, const QColor& fgOn, const 
 //       ここでの updateGeometry() は冗長だが無害（将来的に削除検討可）。
 void ShogiView::updateBoardSize()
 {
-    setFieldSize(QSize(m_squareSize, m_squareSize)); // 1 マスのサイズを更新（内部で再レイアウトも行う）
+    setFieldSize(QSize(m_squareSize, qRound(m_squareSize * kSquareAspectRatio))); // 1 マスのサイズを更新（内部で再レイアウトも行う）
     updateGeometry();                                // 冗長だが安全側の再通知
 
     // ★ 盤マスサイズ変更に伴い、手番ラベルの位置/フォントも追従
@@ -2922,8 +3030,8 @@ void ShogiView::applyBoardAndRender(ShogiBoard* board)
     // 2) 盤データの適用
     setBoard(board);
 
-    // 3) マスサイズの再適用（必要なら）
-    setFieldSize(QSize(squareSize(), squareSize()));
+    // 3) マスサイズの再適用（縦横比率を反映）
+    setFieldSize(QSize(squareSize(), qRound(squareSize() * kSquareAspectRatio)));
 
     // 4) 再描画
     update();
@@ -2933,7 +3041,7 @@ void ShogiView::configureFixedSizing(int squarePx)
 {
     setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
     const int s = (squarePx > 0) ? squarePx : squareSize();
-    setFieldSize(QSize(s, s));
+    setFieldSize(QSize(s, qRound(s * kSquareAspectRatio)));
     update();
 }
 
@@ -3049,7 +3157,7 @@ void ShogiView::relayoutTurnLabels_()
 
     // 1マス寸法（fallbackあり）
     const QSize fs = fieldSize().isValid() ? fieldSize()
-                                           : QSize(m_squareSize, m_squareSize);
+                                           : QSize(m_squareSize, qRound(m_squareSize * kSquareAspectRatio));
 
     // 名前ラベルのフォントを（双方）同一スケールで調整
     {
@@ -3280,7 +3388,7 @@ void ShogiView::ensureAndPlaceEditExitButton_()
     } else {
         if (m_board) {
             const QSize fs = fieldSize().isValid() ? fieldSize()
-                                                   : QSize(m_squareSize, m_squareSize);
+                                                   : QSize(m_squareSize, qRound(m_squareSize * kSquareAspectRatio));
             const QRect boardRect(m_offsetX, m_offsetY,
                                   fs.width() * m_board->files(),
                                   fs.height() * m_board->ranks());
@@ -3306,7 +3414,7 @@ void ShogiView::ensureAndPlaceEditExitButton_()
 
     if (m_board) {
         const QSize fs = fieldSize().isValid() ? fieldSize()
-                                               : QSize(m_squareSize, m_squareSize);
+                                               : QSize(m_squareSize, qRound(m_squareSize * kSquareAspectRatio));
         const QRect boardRect(m_offsetX, m_offsetY,
                               fs.width() * m_board->files(),
                               fs.height() * m_board->ranks());
