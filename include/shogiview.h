@@ -223,7 +223,9 @@ private:
     void drawRank(QPainter* painter, int rank) const;          // 段ラベル 1 本
 
     void drawBackground(QPainter* painter);                    // E1: 背景グラデーション
+    void drawBoardShadow(QPainter* painter);                   // 将棋盤の影（立体感）
     void drawBoardMargin(QPainter* painter);                   // 将棋盤の余白部分を描画
+    void drawStandShadow(QPainter* painter);                   // 駒台の影（立体感）
     void drawBoardFields(QPainter* painter);                   // 盤の全マス
     void drawField(QPainter* painter, int file, int rank) const;
 
