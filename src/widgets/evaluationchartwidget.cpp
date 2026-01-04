@@ -984,7 +984,7 @@ void EvaluationChartWidget::updateEngineInfoLabel()
                     .arg(cpStr);
     }
 
-    // エンジン2の情報（後手・▽）
+    // エンジン2の情報（後手・△）
     if (!m_engine2Name.isEmpty() && m_engine2Ply > 0) {
         if (!text.isEmpty()) {
             text += QStringLiteral("  ");  // 区切りスペース
@@ -1008,7 +1008,7 @@ void EvaluationChartWidget::updateEngineInfoLabel()
             cpStr = QString::number(m_engine2Cp);
         }
 
-        text += QStringLiteral("▽%1 %2 %3手目 評価値 %4")
+        text += QStringLiteral("△%1 %2 %3手目 評価値 %4")
                     .arg(m_engine2Name, status)
                     .arg(m_engine2Ply)
                     .arg(cpStr);
