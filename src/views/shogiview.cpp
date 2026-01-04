@@ -484,13 +484,13 @@ void ShogiView::drawBoardShadow(QPainter* painter)
     const int totalHeight = boardHeight + m_boardMarginPx * 2;
 
     // 影のオフセットとぼかし幅
-    const int shadowOffsetX = 4;
-    const int shadowOffsetY = 4;
-    const int shadowBlur = 5;
+    const int shadowOffsetX = 3;
+    const int shadowOffsetY = 3;
+    const int shadowBlur = 3;
 
-    // 複数の半透明レイヤーで影のぼかし効果を表現（効果を弱めに）
+    // 複数の半透明レイヤーで影のぼかし効果を表現（効果控えめ）
     for (int i = shadowBlur; i >= 0; --i) {
-        const int alpha = 15 - (i * 2);  // 外側ほど薄く（効果弱め）
+        const int alpha = 8 - (i * 2);  // 外側ほど薄く（効果控えめ）
         if (alpha <= 0) continue;
 
         QColor shadowColor(0, 0, 0, alpha);
@@ -519,21 +519,21 @@ void ShogiView::drawStandShadow(QPainter* painter)
     painter->setRenderHint(QPainter::Antialiasing, true);
 
     // 影のオフセットとぼかし幅
-    const int shadowOffsetX = 3;
-    const int shadowOffsetY = 3;
-    const int shadowBlur = 4;
+    const int shadowOffsetX = 2;
+    const int shadowOffsetY = 2;
+    const int shadowBlur = 3;
 
     // 先手（黒）側駒台の矩形を取得
     const QRect blackStand = blackStandBoundingRect();
     // 後手（白）側駒台の矩形を取得
     const QRect whiteStand = whiteStandBoundingRect();
 
-    // 駒台の影を描画するラムダ（効果弱め）
+    // 駒台の影を描画するラムダ（効果控えめ）
     auto drawShadow = [&](const QRect& standRect) {
         if (!standRect.isValid()) return;
 
         for (int i = shadowBlur; i >= 0; --i) {
-            const int alpha = 12 - (i * 2);  // 外側ほど薄く（効果弱め）
+            const int alpha = 6 - (i * 2);  // 外側ほど薄く（効果控えめ）
             if (alpha <= 0) continue;
 
             QColor shadowColor(0, 0, 0, alpha);
