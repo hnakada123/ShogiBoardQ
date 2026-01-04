@@ -1667,6 +1667,12 @@ void MainWindow::setupEngineAnalysisTab()
         this,          &MainWindow::onPvRowClicked,
         Qt::UniqueConnection);
 
+    // ★ 追加: PlayerInfoControllerにもm_analysisTabを設定
+    //    （ensurePlayerInfoController_がこれより先に呼ばれた場合への対応）
+    if (m_playerInfoController) {
+        m_playerInfoController->setAnalysisTab(m_analysisTab);
+    }
+
     // ★ 追加: 起動時に対局情報タブを追加
     addGameInfoTabAtStartup_();
 }
@@ -1771,11 +1777,6 @@ void MainWindow::initMatchCoordinator()
     // PlayMode を司令塔へ伝達（従来どおり）
     if (m_match) {
         m_match->setPlayMode(m_playMode);
-
-        // ★ 追加: 思考タブのエンジン表示スロット入れ替えシグナルを接続
-        QObject::connect(m_match, &MatchCoordinator::requestSwapEngineSlots,
-                         this,    &MainWindow::onSwapEngineSlotsRequested,
-                         Qt::UniqueConnection);
     }
 
     // ★ 追加: EvaluationGraphControllerにMatchCoordinatorを設定
@@ -1859,18 +1860,6 @@ void MainWindow::onRequestAppendGameOverMove(const MatchCoordinator::GameEndInfo
     ensureGameStateController_();
     if (m_gameStateController) {
         m_gameStateController->onRequestAppendGameOverMove(info);
-    }
-}
-
-void MainWindow::onSwapEngineSlotsRequested(bool swapToEngine2)
-{
-    // 人間対エンジンの場合、思考タブのエンジン1表示欄にエンジン2の内容を表示
-    if (m_analysisTab) {
-        if (swapToEngine2) {
-            m_analysisTab->swapEngine2ToSlot1();
-        } else {
-            m_analysisTab->restoreOriginalSlots();
-        }
     }
 }
 

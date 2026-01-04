@@ -74,14 +74,14 @@ EngineNameMapping PlayerNameService::computeEngineModels(PlayMode mode,
     switch (mode) {
     case EvenHumanVsEngine:
     case HandicapHumanVsEngine:
-        // P2 がエンジン。モデル2側にエンジン名を設定（m_info2/m_view2に表示）
-        out.model1.clear();
-        out.model2 = engine2;
+        // P2 がエンジン。モデル1側に「使うエンジン」を表示（既存のMainWindow実装に合わせる）
+        out.model1 = engine2;
+        out.model2.clear();
         break;
 
     case EvenEngineVsHuman:
     case HandicapEngineVsHuman:
-        // P1 がエンジン。モデル1側にエンジン名を設定（m_info1/m_view1に表示）
+        // P1 がエンジン
         out.model1 = engine1;
         out.model2.clear();
         break;

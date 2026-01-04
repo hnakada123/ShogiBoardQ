@@ -843,8 +843,17 @@ bool EngineAnalysisTab::eventFilter(QObject* obj, QEvent* ev)
 // ===== 互換API 実装 =====
 void EngineAnalysisTab::setSecondEngineVisible(bool on)
 {
-    if (m_info2)  m_info2->setVisible(on);
-    if (m_view2)  m_view2->setVisible(on);
+    qDebug().noquote() << "[EngineAnalysisTab] ★ setSecondEngineVisible called with on=" << on;
+    qDebug().noquote() << "[EngineAnalysisTab] m_info2=" << (m_info2 ? "valid" : "NULL")
+                       << " m_view2=" << (m_view2 ? "valid" : "NULL");
+    if (m_info2)  {
+        qDebug().noquote() << "[EngineAnalysisTab] ★ setting m_info2 visible=" << on;
+        m_info2->setVisible(on);
+    }
+    if (m_view2)  {
+        qDebug().noquote() << "[EngineAnalysisTab] ★ setting m_view2 visible=" << on;
+        m_view2->setVisible(on);
+    }
 }
 
 void EngineAnalysisTab::setEngine1ThinkingModel(ShogiEngineThinkingModel* m)
@@ -861,25 +870,6 @@ void EngineAnalysisTab::setEngine2ThinkingModel(ShogiEngineThinkingModel* m)
     if (m_view2) m_view2->setModel(m);
     if (m_view2 && m_view2->horizontalHeader())
         m_view2->horizontalHeader()->setSectionResizeMode(4, QHeaderView::Stretch);
-}
-
-void EngineAnalysisTab::swapEngine2ToSlot1()
-{
-    // 人間対エンジンでエンジン2のみ使用時：
-    // エンジン1の表示欄を非表示にし、エンジン2の表示欄を表示する
-    if (m_info1) m_info1->setVisible(false);
-    if (m_view1) m_view1->setVisible(false);
-    if (m_info2) m_info2->setVisible(true);
-    if (m_view2) m_view2->setVisible(true);
-}
-
-void EngineAnalysisTab::restoreOriginalSlots()
-{
-    // 通常の表示に戻す：エンジン1を表示、エンジン2は非表示
-    if (m_info1) m_info1->setVisible(true);
-    if (m_view1) m_view1->setVisible(true);
-    if (m_info2) m_info2->setVisible(false);
-    if (m_view2) m_view2->setVisible(false);
 }
 
 void EngineAnalysisTab::setCommentText(const QString& text)

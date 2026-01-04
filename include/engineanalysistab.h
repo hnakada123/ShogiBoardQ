@@ -69,12 +69,6 @@ public:
     void setEngine1ThinkingModel(ShogiEngineThinkingModel* m);
     void setEngine2ThinkingModel(ShogiEngineThinkingModel* m);
 
-    // ★ 追加: 人間対エンジン用の表示切り替え
-    //    エンジン1表示欄を非表示にし、エンジン2表示欄を表示する
-    void swapEngine2ToSlot1();
-    // ★ 追加: 通常表示に戻す（エンジン1を表示、エンジン2は非表示）
-    void restoreOriginalSlots();
-
     // 旧API（プレーンテキストでコメントを設定）
     void setCommentText(const QString& text);
 

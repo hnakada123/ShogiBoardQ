@@ -141,15 +141,14 @@ void MatchCoordinator::handleResign() {
     //const Player winner = (m_cur == P1 ? P2 : P1);
 
     // エンジンへの最終通知（HvE / EvE の両方に対応）
-    // ★ 修正: HvE は「m_usi1のみ」または「m_usi2のみ」のいずれか
-    const bool isHvE = (m_usi1 && !m_usi2) || (!m_usi1 && m_usi2);
-    Usi* hveEngine = m_usi1 ? m_usi1 : m_usi2;
+    // HvE は「m_usi1のみ」の状態
+    const bool isHvE = (m_usi1 && !m_usi2);
 
     if (m_hooks.sendRawToEngine) {
-        if (isHvE && hveEngine) {
+        if (isHvE) {
             // HvE：人間が投了＝エンジン勝ち。
-            m_hooks.sendRawToEngine(hveEngine, QStringLiteral("gameover win"));
-            m_hooks.sendRawToEngine(hveEngine, QStringLiteral("quit")); // 再戦しないなら送る
+            m_hooks.sendRawToEngine(m_usi1, QStringLiteral("gameover win"));
+            m_hooks.sendRawToEngine(m_usi1, QStringLiteral("quit")); // 再戦しないなら送る
         } else {
             // EvE：勝者/敗者のエンジンそれぞれに通知
             const Player winner = (m_cur == P1 ? P2 : P1);
@@ -163,10 +162,10 @@ void MatchCoordinator::handleResign() {
         }
     } else {
         // ★ hooks 未指定でも最低限の通知を司令塔内で実施
-        if (isHvE && hveEngine) {
+        if (isHvE) {
             // HvE：人間が投了＝エンジン勝ち。
-            sendRawTo_(hveEngine, QStringLiteral("gameover win"));
-            sendRawTo_(hveEngine, QStringLiteral("quit"));
+            sendRawTo_(m_usi1, QStringLiteral("gameover win"));
+            sendRawTo_(m_usi1, QStringLiteral("quit"));
         } else {
             // EvE：勝者/敗者のエンジンそれぞれに通知
             const Player winner = (m_cur == P1 ? P2 : P1);
@@ -278,19 +277,10 @@ void MatchCoordinator::initializeAndStartEngineFor(Player side,
     Usi*& eng = (side == P1 ? m_usi1 : m_usi2);
 
     if (!eng) {
-        // ★ 修正: HvE のフォールバック
-        //    - 人間対エンジン（m_usi2のみ）の場合は m_usi2 を使う
-        //    - エンジン対人間（m_usi1のみ）の場合は m_usi1 を使う
-        if (side == P1 && m_usi1) {
-            eng = m_usi1;
-        } else if (side == P2 && m_usi2) {
-            eng = m_usi2;
-        } else if (m_usi1 && !m_usi2) {
+        // フォールバック: HvE のように m_usi1 のみの場合
+        if (m_usi1 && !m_usi2) {
             if (m_hooks.log) m_hooks.log(QStringLiteral("[Match] fallback to m_usi1 for HvE"));
             eng = m_usi1;
-        } else if (m_usi2 && !m_usi1) {
-            if (m_hooks.log) m_hooks.log(QStringLiteral("[Match] fallback to m_usi2 for HvE"));
-            eng = m_usi2;
         } else {
             if (m_hooks.log) m_hooks.log(QStringLiteral("[Match] engine ptr is null (side=%1)").arg(side == P1 ? "P1" : "P2"));
             return;
@@ -360,6 +350,12 @@ void MatchCoordinator::setPlayMode(PlayMode m)
 void MatchCoordinator::initEnginesForEvE(const QString& engineName1,
                                          const QString& engineName2)
 {
+    qDebug().noquote() << "[MC] ★ initEnginesForEvE called";
+    qDebug().noquote() << "[MC] m_comm1=" << (m_comm1 ? "valid" : "NULL")
+                       << " m_think1=" << (m_think1 ? "valid" : "NULL");
+    qDebug().noquote() << "[MC] m_comm2=" << (m_comm2 ? "valid" : "NULL")
+                       << " m_think2=" << (m_think2 ? "valid" : "NULL");
+
     // 既存エンジンの破棄
     destroyEngines();
 
@@ -374,9 +370,13 @@ void MatchCoordinator::initEnginesForEvE(const QString& engineName1,
     if (!m_comm2)  { m_comm2  = comm2;  qWarning() << "[EvE] comm2 fallback created"; }
     if (!m_think2) { m_think2 = think2; qWarning() << "[EvE] think2 fallback created"; }
 
+    qDebug().noquote() << "[MC] ★ After fallback check: m_think2=" << m_think2;
+
     // USI を生成（この時点ではプロセス未起動）
     m_usi1 = new Usi(comm1, think1, m_gc, m_playMode, this);
     m_usi2 = new Usi(comm2, think2, m_gc, m_playMode, this);
+
+    qDebug().noquote() << "[MC] ★ Created m_usi1 and m_usi2";
 
     // 状態初期化
     m_usi1->resetResignNotified(); m_usi1->clearHardTimeout();
@@ -831,59 +831,37 @@ void MatchCoordinator::startHumanVsEngine_(const StartOptions& opt, bool engineI
     // 以前のエンジンは破棄（安全化）
     destroyEngines();
 
-    // ★ 修正: engineIsP1 に応じて適切なスロットとエンジン情報を使用
-    //    - engineIsP1=true（エンジン対人間）: エンジン1の情報を使い、m_comm1/m_think1 に流す
-    //    - engineIsP1=false（人間対エンジン）: エンジン2の情報を使い、m_comm2/m_think2 に流す
+    // ★ 修正: engineIsP1 に応じて適切なエンジン情報を使用
+    //    - engineIsP1=true（エンジン対人間）: エンジン1の情報を使う
+    //    - engineIsP1=false（人間対エンジン）: エンジン2の情報を使う
+    //    ただし、思考モデルは常にエンジン1スロット（m_comm1/m_think1）を使用
     const QString& enginePath = engineIsP1 ? opt.enginePath1 : opt.enginePath2;
     const QString& engineName = engineIsP1 ? opt.engineName1 : opt.engineName2;
 
-    UsiCommLogModel*          comm  = nullptr;
-    ShogiEngineThinkingModel* think = nullptr;
-
-    if (engineIsP1) {
-        // エンジン対人間：エンジン1スロット使用
-        comm  = m_comm1;
-        think = m_think1;
-        if (!comm)  { comm  = new UsiCommLogModel(this);          m_comm1  = comm;  }
-        if (!think) { think = new ShogiEngineThinkingModel(this); m_think1 = think; }
-    } else {
-        // 人間対エンジン：エンジン2スロット使用
-        comm  = m_comm2;
-        think = m_think2;
-        if (!comm)  { comm  = new UsiCommLogModel(this);          m_comm2  = comm;  }
-        if (!think) { think = new ShogiEngineThinkingModel(this); m_think2 = think; }
-    }
+    // HvEでは思考モデルは常にエンジン1スロット（m_comm1/m_think1）を使用
+    UsiCommLogModel*          comm  = m_comm1;
+    ShogiEngineThinkingModel* think = m_think1;
+    if (!comm)  { comm  = new UsiCommLogModel(this);          m_comm1  = comm;  }
+    if (!think) { think = new ShogiEngineThinkingModel(this); m_think1 = think; }
 
     // USI を生成（この時点ではプロセス未起動）
-    // ★ 修正: 人間対エンジンの場合は m_usi2 を使用
-    if (engineIsP1) {
-        m_usi1 = new Usi(comm, think, m_gc, m_playMode, this);
-        m_usi2 = nullptr;
-    } else {
-        m_usi1 = nullptr;
-        m_usi2 = new Usi(comm, think, m_gc, m_playMode, this);
-    }
-
-    Usi* activeEngine = engineIsP1 ? m_usi1 : m_usi2;
+    // HvEでは常に m_usi1 を使用
+    m_usi1 = new Usi(comm, think, m_gc, m_playMode, this);
+    m_usi2 = nullptr;
 
     // 投了配線
-    wireResignToArbiter_(activeEngine, /*asP1=*/engineIsP1);
+    wireResignToArbiter_(m_usi1, /*asP1=*/engineIsP1);
 
     // ログ識別（UI 表示用）
-    if (activeEngine) {
+    if (m_usi1) {
         const QString dispName = engineName.isEmpty() ? QStringLiteral("Engine") : engineName;
-        const QString slotLabel = engineIsP1 ? QStringLiteral("[E1]") : QStringLiteral("[E2]");
-        const QString playerLabel = engineIsP1 ? QStringLiteral("P1") : QStringLiteral("P2");
-        activeEngine->setLogIdentity(slotLabel, playerLabel, dispName);
-        activeEngine->setSquelchResignLogging(false);
+        m_usi1->setLogIdentity(QStringLiteral("[E1]"), QStringLiteral("P1"), dispName);
+        m_usi1->setSquelchResignLogging(false);
     }
 
     // ★★★ ここが肝心：USI エンジンを起動（path/name 必須） ★★★
     const Player engineSide = engineIsP1 ? P1 : P2;
     initializeAndStartEngineFor(engineSide, enginePath, engineName);
-
-    // ★ 追加: 人間対エンジンの場合、思考タブのエンジン1表示欄にエンジン2の内容を表示するよう通知
-    emit requestSwapEngineSlots(!engineIsP1);
 
     // ★ 修正: configureAndStart()で既にエンジン名が正しく設定されているため、
     //         ここでの setEngineNames 呼び出しは不要（e2を空で上書きしてしまう問題があった）
@@ -1021,16 +999,6 @@ void MatchCoordinator::startEngineVsEngine_(const StartOptions& /*opt*/)
 
 Usi* MatchCoordinator::primaryEngine() const
 {
-    // ★ 修正: HvE の場合、エンジンが後手側（m_usi2）に格納される場合がある
-    //    - EvenHumanVsEngine / HandicapHumanVsEngine: m_usi2 を使用
-    //    - EvenEngineVsHuman / HandicapEngineVsHuman: m_usi1 を使用
-    const bool humanVsEngine =
-        (m_playMode == PlayMode::EvenHumanVsEngine) ||
-        (m_playMode == PlayMode::HandicapHumanVsEngine);
-
-    if (humanVsEngine) {
-        return m_usi2;
-    }
     return m_usi1;
 }
 
