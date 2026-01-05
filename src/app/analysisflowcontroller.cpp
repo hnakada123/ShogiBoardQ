@@ -134,7 +134,34 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
     m_usi->prepareBoardDataForAnalysis();
 
     // 解析開始
+    m_running = true;
     m_coord->startAnalyzeRange();
+}
+
+void AnalysisFlowController::stop()
+{
+    qDebug().noquote() << "[AnalysisFlowController::stop] called, m_running=" << m_running;
+    
+    if (!m_running) {
+        return;
+    }
+    
+    m_running = false;
+    
+    // AnalysisCoordinatorを停止
+    if (m_coord) {
+        m_coord->stop();
+    }
+    
+    // Usiにquitコマンドを送信してエンジンを停止
+    if (m_usi) {
+        m_usi->sendQuitCommand();
+    }
+    
+    // 停止シグナルを発行
+    Q_EMIT analysisStopped();
+    
+    qDebug().noquote() << "[AnalysisFlowController::stop] analysis stopped";
 }
 
 void AnalysisFlowController::applyDialogOptions_(KifuAnalysisDialog* dlg)
@@ -438,19 +465,25 @@ void AnalysisFlowController::runWithDialog(const Deps& d, QWidget* parent)
             logModelToUse = m_ownedLogModel;
         }
         
-        // ThinkingModelは常に生成（解析専用）
-        if (!m_ownedThinkingModel) {
-            m_ownedThinkingModel = new ShogiEngineThinkingModel(this);
+        // ThinkingModel: 渡されたものがあればそれを使用、なければ生成
+        ShogiEngineThinkingModel* thinkingModelToUse = d.thinkingModel;
+        if (!thinkingModelToUse) {
+            if (!m_ownedThinkingModel) {
+                m_ownedThinkingModel = new ShogiEngineThinkingModel(this);
+            }
+            thinkingModelToUse = m_ownedThinkingModel;
         }
 
         // Usiインスタンスを生成（GameControllerを渡して盤面情報を取得可能にする）
-        m_usi = new Usi(logModelToUse, m_ownedThinkingModel, m_gameController, m_playModeForAnalysis, this);
+        m_usi = new Usi(logModelToUse, thinkingModelToUse, m_gameController, m_playModeForAnalysis, this);
         m_ownsUsi = true;
 
         actualDeps.usi = m_usi;
         actualDeps.logModel = logModelToUse;
+        actualDeps.thinkingModel = thinkingModelToUse;
         qDebug().noquote() << "[AnalysisFlowController::runWithDialog] Internal Usi created:" << m_usi;
         qDebug().noquote() << "[AnalysisFlowController::runWithDialog] Using logModel:" << logModelToUse;
+        qDebug().noquote() << "[AnalysisFlowController::runWithDialog] Using thinkingModel:" << thinkingModelToUse;
     }
 
     // 以降は既存の start(...) に委譲（Presenter への表示や接続も start 側で実施）

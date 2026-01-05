@@ -16,6 +16,7 @@
 #include "engineanalysistab.h"
 #include "usi.h"
 #include "usicommlogmodel.h"
+#include "shogienginethinkingmodel.h"
 
 DialogCoordinator::DialogCoordinator(QWidget* parentWidget, QObject* parent)
     : QObject(parent)
@@ -47,6 +48,11 @@ void DialogCoordinator::setUsiEngine(Usi* usi)
 void DialogCoordinator::setLogModel(UsiCommLogModel* logModel)
 {
     m_logModel = logModel;
+}
+
+void DialogCoordinator::setThinkingModel(ShogiEngineThinkingModel* thinkingModel)
+{
+    m_thinkingModel = thinkingModel;
 }
 
 void DialogCoordinator::setAnalysisModel(KifuAnalysisListModel* model)
@@ -151,11 +157,25 @@ void DialogCoordinator::showKifuAnalysisDialog(const KifuAnalysisParams& params)
     d.analysisTab = m_analysisTab;
     d.usi = m_usi;
     d.logModel = m_logModel;
+    d.thinkingModel = m_thinkingModel;
     d.gameController = params.gameController;  // 盤面情報取得用
     d.activePly = params.activePly;
     d.displayError = [this](const QString& msg) { showFlowError(msg); };
 
     m_analysisFlow->runWithDialog(d, m_parentWidget);
+}
+
+void DialogCoordinator::stopKifuAnalysis()
+{
+    qDebug().noquote() << "[DialogCoord] stopKifuAnalysis called";
+    if (m_analysisFlow) {
+        m_analysisFlow->stop();
+    }
+}
+
+bool DialogCoordinator::isKifuAnalysisRunning() const
+{
+    return m_analysisFlow && m_analysisFlow->isRunning();
 }
 
 // --------------------------------------------------------

@@ -33,6 +33,7 @@ public:
         EngineAnalysisTab*           analysisTab = nullptr;  // optional
         Usi*                         usi = nullptr;          // optional（無ければ内部生成）
         UsiCommLogModel*             logModel = nullptr;     // optional（info/bestmove 橋渡し）
+        ShogiEngineThinkingModel*    thinkingModel = nullptr;// optional（思考情報表示用）
         ShogiGameController*         gameController = nullptr; // optional（Usi内部生成時に必要）
         int                          activePly = 0;
         std::function<void(const QString&)> displayError;    // required
@@ -43,6 +44,16 @@ public:
 
     // ダイアログの生成・exec も含めて丸ごと実行する入口
     void runWithDialog(const Deps& d, QWidget* parent);
+
+    // 解析中止
+    void stop();
+
+    // 解析中かどうか
+    bool isRunning() const { return m_running; }
+
+Q_SIGNALS:
+    // 解析が停止した（中止または完了）
+    void analysisStopped();
 
 private slots:
     void onUsiCommLogChanged_();
@@ -88,6 +99,7 @@ private:
 
     // 内部で生成したUsi関連リソース（所有権を持つ）
     bool m_ownsUsi = false;
+    bool m_running = false;  // 解析中フラグ
     UsiCommLogModel* m_ownedLogModel = nullptr;
     ShogiEngineThinkingModel* m_ownedThinkingModel = nullptr;
     ShogiGameController* m_gameController = nullptr;

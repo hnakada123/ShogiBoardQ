@@ -104,6 +104,7 @@
     <addaction name="actionQuitEngine"/>
     <addaction name="separator"/>
     <addaction name="actionAnalyzeKifu"/>
+    <addaction name="actionCacelAnalyzeKifu"/>
     <addaction name="separator"/>
     <addaction name="actionTsumeShogiSearch"/>
     <addaction name="separator"/>
@@ -746,6 +747,11 @@
   <action name="action_CSA">
    <property name="text">
     <string>通信対局（CSA）</string>
+   </property>
+  </action>
+  <action name="actionCacelAnalyzeKifu">
+   <property name="text">
+    <string>棋譜解析中止</string>
    </property>
   </action>
  </widget>

@@ -10,6 +10,7 @@ class QWidget;
 class MatchCoordinator;
 class Usi;
 class UsiCommLogModel;
+class ShogiEngineThinkingModel;
 class KifuAnalysisListModel;
 class KifuRecordListModel;
 class EngineAnalysisTab;
@@ -64,6 +65,11 @@ public:
      * @brief ログモデルを設定（解析用）
      */
     void setLogModel(UsiCommLogModel* logModel);
+
+    /**
+     * @brief 思考モデルを設定（解析用）
+     */
+    void setThinkingModel(ShogiEngineThinkingModel* thinkingModel);
 
     /**
      * @brief 解析モデルを設定
@@ -156,6 +162,16 @@ public:
      */
     void showKifuAnalysisDialog(const KifuAnalysisParams& params);
 
+    /**
+     * @brief 棋譜解析を中止
+     */
+    void stopKifuAnalysis();
+
+    /**
+     * @brief 棋譜解析中かどうか
+     */
+    bool isKifuAnalysisRunning() const;
+
     // --------------------------------------------------------
     // エラー表示
     // --------------------------------------------------------
@@ -192,6 +208,7 @@ private:
     ShogiGameController* m_gc = nullptr;
     Usi* m_usi = nullptr;
     UsiCommLogModel* m_logModel = nullptr;
+    ShogiEngineThinkingModel* m_thinkingModel = nullptr;
     KifuAnalysisListModel* m_analysisModel = nullptr;
     EngineAnalysisTab* m_analysisTab = nullptr;
 
