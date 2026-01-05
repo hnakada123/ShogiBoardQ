@@ -53,11 +53,8 @@ void PlayerInfoController::setAnalysisTab(EngineAnalysisTab* tab)
 
 void PlayerInfoController::setPlayMode(PlayMode mode)
 {
-    qDebug().noquote() << "[PlayerInfo] ★ setPlayMode called: old=" << static_cast<int>(m_playMode)
-                       << " new=" << static_cast<int>(mode);
     if (m_playMode != mode) {
         m_playMode = mode;
-        qDebug().noquote() << "[PlayerInfo] ★ playMode changed, emitting signal";
         Q_EMIT playModeChanged(mode);
     }
 }
@@ -140,21 +137,13 @@ void PlayerInfoController::applyEngineNamesToLogModels()
 
 void PlayerInfoController::updateSecondEngineVisibility()
 {
-    qDebug().noquote() << "[PlayerInfo] ★ updateSecondEngineVisibility called";
-    qDebug().noquote() << "[PlayerInfo] m_analysisTab=" << (m_analysisTab ? "valid" : "NULL");
-    qDebug().noquote() << "[PlayerInfo] m_playMode=" << static_cast<int>(m_playMode);
-
-    if (!m_analysisTab) {
-        qDebug().noquote() << "[PlayerInfo] ★ m_analysisTab is NULL, returning early";
-        return;
-    }
+    if (!m_analysisTab) return;
 
     // EvE対局の場合のみ2番目のエンジン情報を表示
     const bool isEvE =
         (m_playMode == EvenEngineVsEngine) ||
         (m_playMode == HandicapEngineVsEngine);
 
-    qDebug().noquote() << "[PlayerInfo] ★ isEvE=" << isEvE << ", calling setSecondEngineVisible(" << isEvE << ")";
     m_analysisTab->setSecondEngineVisible(isEvE);
 }
 

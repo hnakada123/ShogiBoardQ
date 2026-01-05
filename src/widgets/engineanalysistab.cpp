@@ -843,17 +843,8 @@ bool EngineAnalysisTab::eventFilter(QObject* obj, QEvent* ev)
 // ===== 互換API 実装 =====
 void EngineAnalysisTab::setSecondEngineVisible(bool on)
 {
-    qDebug().noquote() << "[EngineAnalysisTab] ★ setSecondEngineVisible called with on=" << on;
-    qDebug().noquote() << "[EngineAnalysisTab] m_info2=" << (m_info2 ? "valid" : "NULL")
-                       << " m_view2=" << (m_view2 ? "valid" : "NULL");
-    if (m_info2)  {
-        qDebug().noquote() << "[EngineAnalysisTab] ★ setting m_info2 visible=" << on;
-        m_info2->setVisible(on);
-    }
-    if (m_view2)  {
-        qDebug().noquote() << "[EngineAnalysisTab] ★ setting m_view2 visible=" << on;
-        m_view2->setVisible(on);
-    }
+    if (m_info2)  m_info2->setVisible(on);
+    if (m_view2)  m_view2->setVisible(on);
 }
 
 void EngineAnalysisTab::setEngine1ThinkingModel(ShogiEngineThinkingModel* m)
