@@ -133,6 +133,7 @@ signals:
     void bestMoveResignReceived();
     void stopOrPonderhitSent();
     void errorOccurred(const QString& message);
+    void infoLineReceived(const QString& line);  // info行受信通知
     
     /// 詰将棋結果シグナル
     void checkmateSolved(const QStringList& pvMoves);

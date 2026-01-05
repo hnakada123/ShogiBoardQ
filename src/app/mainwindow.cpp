@@ -891,6 +891,19 @@ void MainWindow::displayTsumeShogiSearchDialog()
 // 棋譜解析ダイアログを表示する。
 void MainWindow::displayKifuAnalysisDialog()
 {
+    qDebug().noquote() << "[MainWindow::displayKifuAnalysisDialog] START";
+    qDebug().noquote() << "[MainWindow::displayKifuAnalysisDialog] m_gameController=" << m_gameController;
+    if (m_gameController) {
+        qDebug().noquote() << "[MainWindow::displayKifuAnalysisDialog] m_gameController->board()=" << m_gameController->board();
+        if (m_gameController->board()) {
+            qDebug().noquote() << "[MainWindow::displayKifuAnalysisDialog] boardData.size()=" << m_gameController->board()->boardData().size();
+        }
+    }
+    qDebug().noquote() << "[MainWindow::displayKifuAnalysisDialog] m_sfenRecord=" << m_sfenRecord;
+    if (m_sfenRecord) {
+        qDebug().noquote() << "[MainWindow::displayKifuAnalysisDialog] m_sfenRecord->size()=" << m_sfenRecord->size();
+    }
+    
     // 解析モードに遷移
     m_playMode = AnalysisMode;
 
@@ -910,7 +923,9 @@ void MainWindow::displayKifuAnalysisDialog()
         DialogCoordinator::KifuAnalysisParams params;
         params.sfenRecord = m_sfenRecord;
         params.moveRecords = m_moveRecords;
+        params.recordModel = m_kifuRecordModel;
         params.activePly = m_activePly;
+        params.gameController = m_gameController;  // 盤面情報取得用
         m_dialogCoordinator->showKifuAnalysisDialog(params);
     }
 }
