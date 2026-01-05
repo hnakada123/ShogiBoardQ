@@ -350,12 +350,6 @@ void MatchCoordinator::setPlayMode(PlayMode m)
 void MatchCoordinator::initEnginesForEvE(const QString& engineName1,
                                          const QString& engineName2)
 {
-    qDebug().noquote() << "[MC] ★ initEnginesForEvE called";
-    qDebug().noquote() << "[MC] m_comm1=" << (m_comm1 ? "valid" : "NULL")
-                       << " m_think1=" << (m_think1 ? "valid" : "NULL");
-    qDebug().noquote() << "[MC] m_comm2=" << (m_comm2 ? "valid" : "NULL")
-                       << " m_think2=" << (m_think2 ? "valid" : "NULL");
-
     // 既存エンジンの破棄
     destroyEngines();
 
@@ -370,13 +364,9 @@ void MatchCoordinator::initEnginesForEvE(const QString& engineName1,
     if (!m_comm2)  { m_comm2  = comm2;  qWarning() << "[EvE] comm2 fallback created"; }
     if (!m_think2) { m_think2 = think2; qWarning() << "[EvE] think2 fallback created"; }
 
-    qDebug().noquote() << "[MC] ★ After fallback check: m_think2=" << m_think2;
-
     // USI を生成（この時点ではプロセス未起動）
     m_usi1 = new Usi(comm1, think1, m_gc, m_playMode, this);
     m_usi2 = new Usi(comm2, think2, m_gc, m_playMode, this);
-
-    qDebug().noquote() << "[MC] ★ Created m_usi1 and m_usi2";
 
     // 状態初期化
     m_usi1->resetResignNotified(); m_usi1->clearHardTimeout();
@@ -883,18 +873,37 @@ void MatchCoordinator::startHumanVsEngine_(const StartOptions& opt, bool engineI
 }
 
 // EvE の初手を開始する（起動・初期化済み前提）
-void MatchCoordinator::startEngineVsEngine_(const StartOptions& /*opt*/)
+void MatchCoordinator::startEngineVsEngine_(const StartOptions& opt)
 {
     if (!m_usi1 || !m_usi2 || !m_gc) return;
 
+    // 駒落ちの場合、SFENで手番が「w」（後手番）になっている
+    // GCの currentPlayer() がその手番を持っているはず
     if (m_gc->currentPlayer() == ShogiGameController::NoPlayer) {
+        // 平手なら先手から、駒落ちならSFENに従う
         m_gc->setCurrentPlayer(ShogiGameController::Player1);
     }
     m_cur = (m_gc->currentPlayer() == ShogiGameController::Player2) ? P2 : P1;
     updateTurnDisplay_(m_cur);
 
-    initPositionStringsForEvE_();
+    initPositionStringsForEvE_(opt.sfenStart);
 
+    // ★ 駒落ちの場合は後手（上手）から開始
+    const bool isHandicap = (m_playMode == HandicapEngineVsEngine);
+    const bool whiteToMove = (m_gc->currentPlayer() == ShogiGameController::Player2);
+
+    if (isHandicap && whiteToMove) {
+        // 駒落ち：後手（上手 = m_usi2）が初手を指す
+        startEvEFirstMoveByWhite_();
+    } else {
+        // 平手：先手（下手 = m_usi1）が初手を指す
+        startEvEFirstMoveByBlack_();
+    }
+}
+
+// 平手EvE：先手から開始
+void MatchCoordinator::startEvEFirstMoveByBlack_()
+{
     const GoTimes t1 = computeGoTimes_();
     const QString btimeStr1 = QString::number(t1.btime);
     const QString wtimeStr1 = QString::number(t1.wtime);
@@ -997,6 +1006,113 @@ void MatchCoordinator::startEngineVsEngine_(const StartOptions& /*opt*/)
     QTimer::singleShot(std::chrono::milliseconds(0), this, &MatchCoordinator::kickNextEvETurn_);
 }
 
+// 駒落ちEvE：後手（上手）から開始
+void MatchCoordinator::startEvEFirstMoveByWhite_()
+{
+    // 後手（上手 = m_usi2）が初手を指す
+    const GoTimes t2 = computeGoTimes_();
+    const QString btimeStr2 = QString::number(t2.btime);
+    const QString wtimeStr2 = QString::number(t2.wtime);
+
+    QPoint p2From(-1, -1), p2To(-1, -1);
+    m_gc->setPromote(false);
+
+    m_usi2->handleEngineVsHumanOrEngineMatchCommunication(
+        m_positionStr2, m_positionPonder2,
+        p2From, p2To,
+        static_cast<int>(t2.byoyomi),
+        btimeStr2, wtimeStr2,
+        static_cast<int>(t2.binc), static_cast<int>(t2.winc),
+        (t2.byoyomi > 0)
+        );
+
+    QString rec2;
+    PlayMode pm = m_playMode;
+
+    // ★ 後手（上手）1手目
+    int nextEve = m_eveMoveIndex + 1;
+    if (!m_gc->validateAndMove(
+            p2From, p2To, rec2,
+            pm,
+            nextEve,
+            &m_eveSfenRecord,
+            m_eveGameMoves
+            )) {
+        return;
+    } else {
+        m_eveMoveIndex = nextEve;
+    }
+
+    if (m_clock) {
+        const qint64 thinkMs = m_usi2 ? m_usi2->lastBestmoveElapsedMs() : 0;
+        m_clock->setPlayer2ConsiderationTime(static_cast<int>(thinkMs));
+        m_clock->applyByoyomiAndResetConsideration2();
+    }
+    if (m_hooks.appendKifuLine && m_clock) {
+        m_hooks.appendKifuLine(rec2, m_clock->getPlayer2ConsiderationAndTotalTime());
+    }
+
+    if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
+    if (m_hooks.showMoveHighlights) m_hooks.showMoveHighlights(p2From, p2To);
+    updateTurnDisplay_((m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2);
+
+    if (m_usi1) {
+        m_usi1->setPreviousFileTo(p2To.x());
+        m_usi1->setPreviousRankTo(p2To.y());
+    }
+
+    m_positionStr1     = m_positionStr2;
+    m_positionPonder1.clear();
+
+    // 先手（下手 = m_usi1）が2手目を指す
+    const GoTimes t1 = computeGoTimes_();
+    const QString btimeStr1 = QString::number(t1.btime);
+    const QString wtimeStr1 = QString::number(t1.wtime);
+
+    QPoint p1From(-1, -1), p1To(-1, -1);
+    m_gc->setPromote(false);
+
+    m_usi1->handleEngineVsHumanOrEngineMatchCommunication(
+        m_positionStr1, m_positionPonder1,
+        p1From, p1To,
+        static_cast<int>(t1.byoyomi),
+        btimeStr1, wtimeStr1,
+        static_cast<int>(t1.binc), static_cast<int>(t1.winc),
+        (t1.byoyomi > 0)
+        );
+
+    QString rec1;
+
+    // ★ 先手（下手）2手目
+    nextEve = m_eveMoveIndex + 1;
+    if (!m_gc->validateAndMove(
+            p1From, p1To, rec1,
+            pm,
+            nextEve,
+            &m_eveSfenRecord,
+            m_eveGameMoves
+            )) {
+        return;
+    } else {
+        m_eveMoveIndex = nextEve;
+    }
+
+    if (m_clock) {
+        const qint64 thinkMs = m_usi1 ? m_usi1->lastBestmoveElapsedMs() : 0;
+        m_clock->setPlayer1ConsiderationTime(static_cast<int>(thinkMs));
+        m_clock->applyByoyomiAndResetConsideration1();
+    }
+    if (m_hooks.appendKifuLine && m_clock) {
+        m_hooks.appendKifuLine(rec1, m_clock->getPlayer1ConsiderationAndTotalTime());
+    }
+
+    if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
+    if (m_hooks.showMoveHighlights) m_hooks.showMoveHighlights(p1From, p1To);
+    updateTurnDisplay_((m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2);
+
+    QTimer::singleShot(std::chrono::milliseconds(0), this, &MatchCoordinator::kickNextEvETurn_);
+}
+
 Usi* MatchCoordinator::primaryEngine() const
 {
     return m_usi1;
@@ -1007,14 +1123,44 @@ Usi* MatchCoordinator::secondaryEngine() const
     return m_usi2;
 }
 
-void MatchCoordinator::initPositionStringsForEvE_()
+void MatchCoordinator::initPositionStringsForEvE_(const QString& sfenStart)
 {
     m_positionStr1.clear();
     m_positionPonder1.clear();
     m_positionStr2.clear();
     m_positionPonder2.clear();
 
-    const QString base = QStringLiteral("position startpos moves");
+    // 平手の場合は startpos を使用、駒落ちの場合は sfen を使用
+    static const QString kStartBoard =
+        QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL");
+
+    QString base;
+    if (m_playMode == HandicapEngineVsEngine && !sfenStart.isEmpty()) {
+        // SFENから盤面部分を抽出して平手かどうか判定
+        QString checkSfen = sfenStart;
+        if (checkSfen.startsWith(QLatin1String("position sfen "))) {
+            checkSfen = checkSfen.mid(QStringLiteral("position sfen ").size()).trimmed();
+        }
+        const QStringList tok = checkSfen.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+        const bool isStandardStart = (!tok.isEmpty() && tok[0] == kStartBoard);
+
+        if (!isStandardStart) {
+            // 駒落ち：position sfen <sfen> moves の形式を使用
+            if (sfenStart.startsWith(QLatin1String("position "))) {
+                base = sfenStart;
+                // 末尾に " moves" がなければ追加
+                if (!base.contains(QLatin1String(" moves"))) {
+                    base += QStringLiteral(" moves");
+                }
+            } else {
+                base = QStringLiteral("position sfen ") + sfenStart + QStringLiteral(" moves");
+            }
+        } else {
+            base = QStringLiteral("position startpos moves");
+        }
+    } else {
+        base = QStringLiteral("position startpos moves");
+    }
     m_positionStr1 = base;
     m_positionStr2 = base;
 }

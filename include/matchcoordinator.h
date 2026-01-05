@@ -343,8 +343,10 @@ private:
     // 内部ヘルパ
     void startHumanVsHuman_(const StartOptions& opt);
     void startHumanVsEngine_(const StartOptions& opt, bool engineIsP1);
-    void initPositionStringsForEvE_();        // ← 新規ヘルパ
-    void startEngineVsEngine_(const StartOptions& /*opt*/);
+    void initPositionStringsForEvE_(const QString& sfenStart);  // ← 新規ヘルパ
+    void startEngineVsEngine_(const StartOptions& opt);
+    void startEvEFirstMoveByBlack_();         // 平手EvE：先手から開始
+    void startEvEFirstMoveByWhite_();         // 駒落ちEvE：後手（上手）から開始
 
 private:
     // USI "position ... moves" の作業用バッファ
