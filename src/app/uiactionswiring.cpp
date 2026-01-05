@@ -40,6 +40,7 @@ void UiActionsWiring::wire()
     QObject::connect(ui->actionEngineSettings,       &QAction::triggered, mw, &MainWindow::displayEngineSettingsDialog,    Qt::UniqueConnection);
     QObject::connect(ui->actionConsideration,        &QAction::triggered, mw, &MainWindow::displayConsiderationDialog,     Qt::UniqueConnection);
     QObject::connect(ui->actionAnalyzeKifu,          &QAction::triggered, mw, &MainWindow::displayKifuAnalysisDialog,      Qt::UniqueConnection);
+    QObject::connect(ui->actionCacelAnalyzeKifu,     &QAction::triggered, mw, &MainWindow::cancelKifuAnalysis,             Qt::UniqueConnection);
     QObject::connect(ui->actionStartEditPosition,    &QAction::triggered, mw, &MainWindow::beginPositionEditing,           Qt::UniqueConnection);
     QObject::connect(ui->actionEndEditPosition,      &QAction::triggered, mw, &MainWindow::finishPositionEditing,          Qt::UniqueConnection);
     QObject::connect(ui->actionTsumeShogiSearch,     &QAction::triggered, mw, &MainWindow::displayTsumeShogiSearchDialog,  Qt::UniqueConnection);

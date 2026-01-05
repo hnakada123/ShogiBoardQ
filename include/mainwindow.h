@@ -193,6 +193,7 @@ public slots:
     void displayVersionInformation();
     void displayConsiderationDialog();
     void displayKifuAnalysisDialog();
+    void cancelKifuAnalysis();  // 棋譜解析中止
     void displayTsumeShogiSearchDialog();
     void displayCsaGameDialog();
 

@@ -919,6 +919,7 @@ void MainWindow::displayKifuAnalysisDialog()
         m_dialogCoordinator->setAnalysisTab(m_analysisTab);
         m_dialogCoordinator->setUsiEngine(m_usi1);
         m_dialogCoordinator->setLogModel(m_lineEditModel1);
+        m_dialogCoordinator->setThinkingModel(m_modelThinking1);
 
         DialogCoordinator::KifuAnalysisParams params;
         params.sfenRecord = m_sfenRecord;
@@ -927,6 +928,25 @@ void MainWindow::displayKifuAnalysisDialog()
         params.activePly = m_activePly;
         params.gameController = m_gameController;  // 盤面情報取得用
         m_dialogCoordinator->showKifuAnalysisDialog(params);
+    }
+}
+
+void MainWindow::cancelKifuAnalysis()
+{
+    qDebug().noquote() << "[MainWindow::cancelKifuAnalysis] called";
+    
+    ensureDialogCoordinator_();
+    if (m_dialogCoordinator) {
+        if (m_dialogCoordinator->isKifuAnalysisRunning()) {
+            m_dialogCoordinator->stopKifuAnalysis();
+            
+            // 解析前のモードに戻す
+            m_playMode = NotStarted;
+            
+            qDebug().noquote() << "[MainWindow::cancelKifuAnalysis] analysis cancelled";
+        } else {
+            qDebug().noquote() << "[MainWindow::cancelKifuAnalysis] no analysis running";
+        }
     }
 }
 
