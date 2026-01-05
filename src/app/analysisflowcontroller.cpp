@@ -428,21 +428,29 @@ void AnalysisFlowController::runWithDialog(const Deps& d, QWidget* parent)
     Deps actualDeps = d;
     if (!actualDeps.usi) {
         qDebug().noquote() << "[AnalysisFlowController::runWithDialog] Creating internal Usi instance...";
-        // 解析用のログモデルとThinkingModelを生成（まだ無い場合）
-        if (!m_ownedLogModel) {
-            m_ownedLogModel = new UsiCommLogModel(this);
+        
+        // ログモデル: 渡されたものがあればそれを使用、なければ生成
+        UsiCommLogModel* logModelToUse = d.logModel;
+        if (!logModelToUse) {
+            if (!m_ownedLogModel) {
+                m_ownedLogModel = new UsiCommLogModel(this);
+            }
+            logModelToUse = m_ownedLogModel;
         }
+        
+        // ThinkingModelは常に生成（解析専用）
         if (!m_ownedThinkingModel) {
             m_ownedThinkingModel = new ShogiEngineThinkingModel(this);
         }
 
         // Usiインスタンスを生成（GameControllerを渡して盤面情報を取得可能にする）
-        m_usi = new Usi(m_ownedLogModel, m_ownedThinkingModel, m_gameController, m_playModeForAnalysis, this);
+        m_usi = new Usi(logModelToUse, m_ownedThinkingModel, m_gameController, m_playModeForAnalysis, this);
         m_ownsUsi = true;
 
         actualDeps.usi = m_usi;
-        actualDeps.logModel = m_ownedLogModel;
+        actualDeps.logModel = logModelToUse;
         qDebug().noquote() << "[AnalysisFlowController::runWithDialog] Internal Usi created:" << m_usi;
+        qDebug().noquote() << "[AnalysisFlowController::runWithDialog] Using logModel:" << logModelToUse;
     }
 
     // 以降は既存の start(...) に委譲（Presenter への表示や接続も start 側で実施）
