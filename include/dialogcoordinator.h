@@ -11,6 +11,7 @@ class MatchCoordinator;
 class Usi;
 class UsiCommLogModel;
 class KifuAnalysisListModel;
+class KifuRecordListModel;
 class EngineAnalysisTab;
 class ShogiGameController;
 class ConsiderationFlowController;
@@ -145,7 +146,9 @@ public:
     struct KifuAnalysisParams {
         QStringList* sfenRecord = nullptr;
         QList<KifuDisplay*>* moveRecords = nullptr;
+        KifuRecordListModel* recordModel = nullptr;  // 棋譜モデル（指し手ラベル取得用）
         int activePly = 0;
+        ShogiGameController* gameController = nullptr;  // 盤面情報取得用
     };
 
     /**

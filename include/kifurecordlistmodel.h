@@ -28,6 +28,12 @@ public:
     void setCurrentHighlightRow(int row);
     int currentHighlightRow() const { return m_currentHighlightRow; }
 
+    // ★ 追加：指定インデックスの項目を取得
+    KifuDisplay* item(int index) const {
+        if (index < 0 || index >= list.size()) return nullptr;
+        return list.at(index);
+    }
+
 private:
     // ★ 追加：分岐あり手の集合（モデルの行番号＝ply1と一致。0は「開始局面」で除外）
     QSet<int> m_branchPlySet;

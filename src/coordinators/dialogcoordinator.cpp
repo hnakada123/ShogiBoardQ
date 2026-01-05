@@ -146,10 +146,12 @@ void DialogCoordinator::showKifuAnalysisDialog(const KifuAnalysisParams& params)
     AnalysisFlowController::Deps d;
     d.sfenRecord = params.sfenRecord;
     d.moveRecords = params.moveRecords;
+    d.recordModel = params.recordModel;
     d.analysisModel = m_analysisModel;
     d.analysisTab = m_analysisTab;
     d.usi = m_usi;
     d.logModel = m_logModel;
+    d.gameController = params.gameController;  // 盤面情報取得用
     d.activePly = params.activePly;
     d.displayError = [this](const QString& msg) { showFlowError(msg); };
 

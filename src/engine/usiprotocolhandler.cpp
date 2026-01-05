@@ -460,6 +460,8 @@ void UsiProtocolHandler::onDataReceived(const QString& line)
 
     // info行
     if (line.startsWith(QStringLiteral("info"))) {
+        qDebug().noquote() << "[UsiProtocolHandler] emitting infoLineReceived:" << line.left(60);
+        emit infoLineReceived(line);  // シグナル発行
         if (m_presenter) {
             m_presenter->onInfoReceived(line);
         }

@@ -74,6 +74,9 @@ public slots:
     // エンジン側の "bestmove ..." を接続してください
     void onEngineBestmoveReceived(const QString& line);
 
+    // 現在解析中のply（定跡処理用）
+    int currentPly() const { return m_currentPly; }
+
 private:
     struct ParsedInfo {
         int depth    = -1;

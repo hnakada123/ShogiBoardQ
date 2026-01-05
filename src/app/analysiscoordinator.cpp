@@ -148,26 +148,33 @@ void AnalysisCoordinator::sendAnalyzeForPly_(int ply)
         return;
     }
 
-    const QString pos = m_deps.sfenRecord->at(ply);
-    emit positionPrepared(ply, pos);
+    const QString sfen = m_deps.sfenRecord->at(ply);
+    emit positionPrepared(ply, sfen);
 
-    // 1) position
-    send_(pos);
+    // 1) position sfen ... の形式でコマンドを送信
+    //    startpos の場合はそのまま、それ以外は "position sfen ..." で送る
+    QString posCmd;
+    if (sfen == QStringLiteral("startpos") || sfen.startsWith(QStringLiteral("position "))) {
+        posCmd = sfen;
+    } else {
+        posCmd = QStringLiteral("position sfen %1").arg(sfen);
+    }
+    qDebug().noquote() << "[ANA] sendAnalyzeForPly_: ply=" << ply << "posCmd=" << posCmd;
+    send_(posCmd);
 
     // 2) go movetime X
-    //    （byoyomi / btime/wtime 等でも可。ここでは単純に movetime を採用）
     send_(QStringLiteral("go movetime %1").arg(m_opt.movetimeMs));
 
     // 分析進行に応じたツリーハイライトなどが必要ならここで
     if (m_analysisTab && m_opt.centerTree) {
-        // “row” の概念がある場合は呼び出し側で解決してください。
-        // ここでは ply のセンタリングだけ例示（必要なら setRow まで渡す）
         m_analysisTab->highlightBranchTreeAt(/*row=*/0, ply, /*centerOn=*/true);
     }
 }
 
+
 void AnalysisCoordinator::onEngineInfoLine(const QString& line)
 {
+    qDebug().noquote() << "[ANA::onEngineInfoLine] m_running=" << m_running << "m_currentPly=" << m_currentPly;
     if (!m_running) return;
     if (m_currentPly < 0) return;
 
@@ -177,12 +184,14 @@ void AnalysisCoordinator::onEngineInfoLine(const QString& line)
     ParsedInfo p;
     if (!parseInfoUSI_(line, &p)) {
         // パース不能でも raw を進捗として流しておくと UI 側で全文表示に使える
+        qDebug().noquote() << "[ANA::onEngineInfoLine] parse failed, emitting raw";
         emit analysisProgress(m_currentPly, -1, -1,
                               std::numeric_limits<int>::min(), 0,
                               QString(), line);
         return;
     }
 
+    qDebug().noquote() << "[ANA::onEngineInfoLine] emitting analysisProgress: ply=" << m_currentPly << "scoreCp=" << p.scoreCp << "pv=" << p.pv.left(30);
     emit analysisProgress(m_currentPly, p.depth, p.seldepth,
                           p.scoreCp, p.mate, p.pv, line);
 }
@@ -191,6 +200,12 @@ void AnalysisCoordinator::onEngineBestmoveReceived(const QString& /*line*/)
 {
     if (!m_running) return;
 
+    // 定跡の場合（info行なしでbestmoveが来た場合）でも結果を通知
+    // m_currentPly は sendAnalyzeForPly_ で設定済み
+    // 通常の解析では onEngineInfoLine でanalysisProgressが発行済みだが、
+    // 定跡の場合は発行されていないので、空の結果を通知
+    // （AnalysisFlowController側で定跡かどうかを判断できるようにする）
+    
     // "bestmove ..." を受けたら次へ
     nextPlyOrFinish_();
 }

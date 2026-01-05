@@ -121,6 +121,22 @@ public:
     void setThinkingModel(ShogiEngineThinkingModel* m);
     void setLogModel(UsiCommLogModel* m);
 
+    /**
+     * @brief 解析用の盤面データを初期化する
+     * 
+     * 棋譜解析モードで、エンジンに position + go コマンドを送る前に呼び出す。
+     * ShogiGameControllerから現在の盤面データをクローンし、
+     * ThinkingInfoPresenterに設定する。
+     */
+    void prepareBoardDataForAnalysis();
+
+    /**
+     * @brief 盤面データを直接設定する
+     * 
+     * 棋譜解析で各局面ごとに盤面データを更新するために使用。
+     */
+    void setClonedBoardData(const QVector<QChar>& boardData);
+
     void cleanupEngineProcessAndThread();
 
     void sendPositionAndGoMate(const QString& sfen, int timeMs, bool infinite);
@@ -149,6 +165,7 @@ signals:
     void usiOkReceived();
     void readyOkReceived();
     void bestMoveReceived();
+    void infoLineReceived(const QString& line);  // info行受信通知
     void thinkingInfoUpdated(const QString& time, const QString& depth,
                              const QString& nodes, const QString& score,
                              const QString& pvKanjiStr, const QString& usiPv,

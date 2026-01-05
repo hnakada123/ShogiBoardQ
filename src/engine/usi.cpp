@@ -84,6 +84,8 @@ void Usi::setupConnections()
             this, &Usi::stopOrPonderhitCommandSent);
     connect(m_protocolHandler.get(), &UsiProtocolHandler::errorOccurred,
             this, &Usi::errorOccurred);
+    connect(m_protocolHandler.get(), &UsiProtocolHandler::infoLineReceived,
+            this, &Usi::infoLineReceived);
     connect(m_protocolHandler.get(), &UsiProtocolHandler::checkmateSolved,
             this, &Usi::checkmateSolved);
     connect(m_protocolHandler.get(), &UsiProtocolHandler::checkmateNoMate,
@@ -412,6 +414,26 @@ void Usi::sendRaw(const QString& command) const
     m_protocolHandler->sendRaw(command);
 }
 
+void Usi::prepareBoardDataForAnalysis()
+{
+    qDebug().noquote() << "[Usi::prepareBoardDataForAnalysis] called";
+    if (m_gameController && m_gameController->board()) {
+        m_clonedBoardData = m_gameController->board()->boardData();
+        qDebug().noquote() << "[Usi::prepareBoardDataForAnalysis] m_clonedBoardData.size()=" << m_clonedBoardData.size();
+        m_presenter->setClonedBoardData(m_clonedBoardData);
+    } else {
+        qWarning().noquote() << "[Usi::prepareBoardDataForAnalysis] ERROR: gameController or board is null!";
+    }
+}
+
+void Usi::setClonedBoardData(const QVector<QChar>& boardData)
+{
+    m_clonedBoardData = boardData;
+    if (m_presenter) {
+        m_presenter->setClonedBoardData(m_clonedBoardData);
+    }
+}
+
 void Usi::sendGameOverLoseAndQuitCommands()
 {
     if (!m_processManager->isRunning()) return;
@@ -477,7 +499,18 @@ void Usi::sendPositionAndGoMateCommands(int mateLimitMilliSec, QString& position
 
 void Usi::cloneCurrentBoardData()
 {
+    qDebug().noquote() << "[Usi::cloneCurrentBoardData] m_gameController=" << m_gameController;
+    if (!m_gameController) {
+        qWarning().noquote() << "[Usi::cloneCurrentBoardData] ERROR: m_gameController is nullptr!";
+        return;
+    }
+    qDebug().noquote() << "[Usi::cloneCurrentBoardData] m_gameController->board()=" << m_gameController->board();
+    if (!m_gameController->board()) {
+        qWarning().noquote() << "[Usi::cloneCurrentBoardData] ERROR: m_gameController->board() is nullptr!";
+        return;
+    }
     m_clonedBoardData = m_gameController->board()->boardData();
+    qDebug().noquote() << "[Usi::cloneCurrentBoardData] m_clonedBoardData.size()=" << m_clonedBoardData.size();
     m_presenter->setClonedBoardData(m_clonedBoardData);
 }
 
