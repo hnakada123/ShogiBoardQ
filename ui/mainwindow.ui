@@ -112,27 +112,9 @@
     <property name="title">
      <string>定跡(M)</string>
     </property>
-    <addaction name="openDefaultTrail"/>
-    <addaction name="openStandardMove"/>
-    <addaction name="separator"/>
-    <addaction name="createNew"/>
     <addaction name="openFile"/>
     <addaction name="saveFile"/>
     <addaction name="saveFileAsNamedStandardMove"/>
-    <addaction name="closeFile"/>
-    <addaction name="exportFile"/>
-    <addaction name="separator"/>
-    <addaction name="addMoveStandard"/>
-    <addaction name="addFromFile"/>
-    <addaction name="addFromClipboard"/>
-    <addaction name="separator"/>
-    <addaction name="evaluationValueDisplay"/>
-    <addaction name="commentaryStandard"/>
-    <addaction name="treeStandardMove"/>
-    <addaction name="evaluationValueStandard"/>
-    <addaction name="separator"/>
-    <addaction name="standardMoveManagement"/>
-    <addaction name="evaluationValueInformation"/>
    </widget>
    <widget class="QMenu" name="Tool">
     <property name="title">

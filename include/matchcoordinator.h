@@ -360,10 +360,14 @@ private:
     QStringList* m_sfenRecord = nullptr;
 
     QVector<ShogiMove> m_gameMoves;
-    // EvE 専用の棋譜保持（MainWindow から独立）
+    // EvE 専用の棋譜保持（MainWindow から独立）- フォールバック用
     QStringList        m_eveSfenRecord;
     QVector<ShogiMove> m_eveGameMoves;
     int                m_eveMoveIndex = 0;
+
+    // ★ EvE用：共有sfenRecordが設定されていればそれを使い、なければローカルを使う
+    QStringList* sfenRecordForEvE_() { return m_sfenRecord ? m_sfenRecord : &m_eveSfenRecord; }
+    QVector<ShogiMove>& gameMovesForEvE_() { return m_sfenRecord ? m_gameMoves : m_eveGameMoves; }
 
 private:
     // 「その手の開始」エポック（KIFの消費時間計算に使用）
