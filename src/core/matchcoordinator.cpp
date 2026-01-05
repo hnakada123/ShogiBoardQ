@@ -929,8 +929,8 @@ void MatchCoordinator::startEvEFirstMoveByBlack_()
             p1From, p1To, rec1,
             pm,
             nextEve,
-            &m_eveSfenRecord,
-            m_eveGameMoves
+            sfenRecordForEvE_(),
+            gameMovesForEvE_()
             )) {
         return;
     } else {
@@ -982,8 +982,8 @@ void MatchCoordinator::startEvEFirstMoveByBlack_()
             p2From, p2To, rec2,
             pm,
             nextEve,
-            &m_eveSfenRecord,
-            m_eveGameMoves
+            sfenRecordForEvE_(),
+            gameMovesForEvE_()
             )) {
         return;
     } else {
@@ -1035,8 +1035,8 @@ void MatchCoordinator::startEvEFirstMoveByWhite_()
             p2From, p2To, rec2,
             pm,
             nextEve,
-            &m_eveSfenRecord,
-            m_eveGameMoves
+            sfenRecordForEvE_(),
+            gameMovesForEvE_()
             )) {
         return;
     } else {
@@ -1089,8 +1089,8 @@ void MatchCoordinator::startEvEFirstMoveByWhite_()
             p1From, p1To, rec1,
             pm,
             nextEve,
-            &m_eveSfenRecord,
-            m_eveGameMoves
+            sfenRecordForEvE_(),
+            gameMovesForEvE_()
             )) {
         return;
     } else {
@@ -1187,7 +1187,7 @@ void MatchCoordinator::kickNextEvETurn_()
     // ★ 次の手を渡す
     int nextEve = m_eveMoveIndex + 1;
     if (!m_gc->validateAndMove(from, to, rec, m_playMode,
-                               nextEve, &m_eveSfenRecord, m_eveGameMoves)) {
+                               nextEve, sfenRecordForEvE_(), gameMovesForEvE_())) {
         return;
     } else {
         m_eveMoveIndex = nextEve;
