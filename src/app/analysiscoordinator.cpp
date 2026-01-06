@@ -149,25 +149,38 @@ void AnalysisCoordinator::sendAnalyzeForPly_(int ply)
     }
 
     const QString sfen = m_deps.sfenRecord->at(ply);
-    emit positionPrepared(ply, sfen);
-
-    // 1) position sfen ... の形式でコマンドを送信
+    
+    // 1) position sfen ... の形式でコマンドを準備
     //    startpos の場合はそのまま、それ以外は "position sfen ..." で送る
-    QString posCmd;
     if (sfen == QStringLiteral("startpos") || sfen.startsWith(QStringLiteral("position "))) {
-        posCmd = sfen;
+        m_pendingPosCmd = sfen;
     } else {
-        posCmd = QStringLiteral("position sfen %1").arg(sfen);
+        m_pendingPosCmd = QStringLiteral("position sfen %1").arg(sfen);
     }
-    qDebug().noquote() << "[ANA] sendAnalyzeForPly_: ply=" << ply << "posCmd=" << posCmd;
-    send_(posCmd);
+    qDebug().noquote() << "[ANA] sendAnalyzeForPly_: ply=" << ply << "posCmd=" << m_pendingPosCmd;
+    
+    // 2) positionPreparedシグナルを発行（GUI更新用）
+    //    sendGoCommand()が呼ばれるまでgoコマンドは送信しない
+    emit positionPrepared(ply, sfen);
+}
 
-    // 2) go movetime X
+void AnalysisCoordinator::sendGoCommand()
+{
+    if (!m_running) return;
+    if (m_pendingPosCmd.isEmpty()) return;
+    
+    qDebug().noquote() << "[ANA] sendGoCommand: sending position and go commands";
+    
+    // positionコマンドを送信
+    send_(m_pendingPosCmd);
+    m_pendingPosCmd.clear();
+    
+    // goコマンドを送信
     send_(QStringLiteral("go movetime %1").arg(m_opt.movetimeMs));
 
     // 分析進行に応じたツリーハイライトなどが必要ならここで
     if (m_analysisTab && m_opt.centerTree) {
-        m_analysisTab->highlightBranchTreeAt(/*row=*/0, ply, /*centerOn=*/true);
+        m_analysisTab->highlightBranchTreeAt(/*row=*/0, m_currentPly, /*centerOn=*/true);
     }
 }
 

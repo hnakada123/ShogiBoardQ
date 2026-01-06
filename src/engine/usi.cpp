@@ -434,6 +434,22 @@ void Usi::setClonedBoardData(const QVector<QChar>& boardData)
     }
 }
 
+void Usi::setBaseSfen(const QString& sfen)
+{
+    qDebug().noquote() << "[Usi::setBaseSfen] sfen=" << sfen.left(50);
+    if (m_presenter) {
+        m_presenter->setBaseSfen(sfen);
+    }
+}
+
+void Usi::flushThinkingInfoBuffer()
+{
+    qDebug().noquote() << "[Usi::flushThinkingInfoBuffer] called";
+    if (m_presenter) {
+        m_presenter->flushInfoBuffer();
+    }
+}
+
 void Usi::sendGameOverLoseAndQuitCommands()
 {
     if (!m_processManager->isRunning()) return;

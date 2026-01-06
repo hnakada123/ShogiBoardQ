@@ -146,6 +146,9 @@ void DialogCoordinator::showKifuAnalysisDialog(const KifuAnalysisParams& params)
     // Flow の用意（遅延生成）
     if (!m_analysisFlow) {
         m_analysisFlow = new AnalysisFlowController(this);
+        // シグナル中継（Flow → DialogCoordinator → MainWindow）
+        QObject::connect(m_analysisFlow, &AnalysisFlowController::analysisProgressReported,
+                         this, &DialogCoordinator::analysisProgressReported, Qt::UniqueConnection);
     }
 
     // 依存を詰めて Flow へ一任

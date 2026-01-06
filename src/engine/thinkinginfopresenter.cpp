@@ -61,6 +61,10 @@ void ThinkingInfoPresenter::setBaseSfen(const QString& sfen)
         const QString turn = parts.at(1);
         // b=先手(Player1), w=後手(Player2)
         m_thinkingStartPlayerIsP1 = (turn == QStringLiteral("b"));
+        qDebug().noquote() << "[ThinkingInfoPresenter::setBaseSfen] turn=" << turn 
+                           << "m_thinkingStartPlayerIsP1=" << m_thinkingStartPlayerIsP1;
+    } else {
+        qDebug().noquote() << "[ThinkingInfoPresenter::setBaseSfen] WARNING: could not parse turn from sfen=" << sfen.left(50);
     }
 }
 
@@ -104,6 +108,7 @@ void ThinkingInfoPresenter::processInfoLineInternal(const QString& line)
 {
     qDebug().noquote() << "[ThinkingInfoPresenter::processInfoLineInternal] m_clonedBoardData.size()=" << m_clonedBoardData.size();
     qDebug().noquote() << "[ThinkingInfoPresenter::processInfoLineInternal] m_gameController=" << m_gameController;
+    qDebug().noquote() << "[ThinkingInfoPresenter::processInfoLineInternal] m_thinkingStartPlayerIsP1=" << m_thinkingStartPlayerIsP1;
     
     int scoreInt = 0;
 
@@ -118,6 +123,8 @@ void ThinkingInfoPresenter::processInfoLineInternal(const QString& line)
         ? ShogiGameController::Player1 
         : ShogiGameController::Player2;
     info->setThinkingStartPlayer(startPlayer);
+    qDebug().noquote() << "[ThinkingInfoPresenter::processInfoLineInternal] startPlayer=" 
+                       << (m_thinkingStartPlayerIsP1 ? "P1(sente)" : "P2(gote)");
 
     // const_castを避けるためlineをコピー
     QString lineCopy = line;

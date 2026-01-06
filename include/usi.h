@@ -137,6 +137,20 @@ public:
      */
     void setClonedBoardData(const QVector<QChar>& boardData);
 
+    /**
+     * @brief 基準SFENを設定する（ThinkingInfoPresenterの手番設定用）
+     * 
+     * 棋譜解析で各局面ごとにThinkingInfoPresenterの手番を正しく設定するために使用。
+     */
+    void setBaseSfen(const QString& sfen);
+
+    /**
+     * @brief ThinkingInfoPresenterのバッファをフラッシュする
+     * 
+     * 棋譜解析でbestmove受信前に漢字PVを確定させるために使用。
+     */
+    void flushThinkingInfoBuffer();
+
     void cleanupEngineProcessAndThread();
 
     void sendPositionAndGoMate(const QString& sfen, int timeMs, bool infinite);

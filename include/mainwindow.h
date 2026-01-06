@@ -194,6 +194,7 @@ public slots:
     void displayConsiderationDialog();
     void displayKifuAnalysisDialog();
     void cancelKifuAnalysis();  // 棋譜解析中止
+    void onKifuAnalysisProgress(int ply, int scoreCp);  // 棋譜解析進捗
     void displayTsumeShogiSearchDialog();
     void displayCsaGameDialog();
 

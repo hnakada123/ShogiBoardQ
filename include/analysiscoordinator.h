@@ -74,6 +74,9 @@ public slots:
     // エンジン側の "bestmove ..." を接続してください
     void onEngineBestmoveReceived(const QString& line);
 
+    // GUI更新完了後にgoコマンドを送信する（棋譜解析用）
+    void sendGoCommand();
+
     // 現在解析中のply（定跡処理用）
     int currentPly() const { return m_currentPly; }
 
@@ -92,6 +95,7 @@ private:
     Mode m_mode = Idle;
     bool m_running = false;
     int  m_currentPly = -1;
+    QString m_pendingPosCmd;  // sendGoCommand()で使用するpositionコマンド
 
     QPointer<EngineAnalysisTab> m_analysisTab; // 任意
 

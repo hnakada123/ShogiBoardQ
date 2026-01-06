@@ -920,6 +920,10 @@ void MainWindow::displayKifuAnalysisDialog()
         m_dialogCoordinator->setUsiEngine(m_usi1);
         m_dialogCoordinator->setLogModel(m_lineEditModel1);
         m_dialogCoordinator->setThinkingModel(m_modelThinking1);
+        
+        // 解析進捗シグナルを接続
+        QObject::connect(m_dialogCoordinator, &DialogCoordinator::analysisProgressReported,
+                         this, &MainWindow::onKifuAnalysisProgress, Qt::UniqueConnection);
 
         DialogCoordinator::KifuAnalysisParams params;
         params.sfenRecord = m_sfenRecord;
@@ -947,6 +951,33 @@ void MainWindow::cancelKifuAnalysis()
         } else {
             qDebug().noquote() << "[MainWindow::cancelKifuAnalysis] no analysis running";
         }
+    }
+}
+
+void MainWindow::onKifuAnalysisProgress(int ply, int scoreCp)
+{
+    qDebug().noquote() << "[MainWindow::onKifuAnalysisProgress] ply=" << ply << "scoreCp=" << scoreCp;
+    
+    // 1) 棋譜欄の該当行をハイライトし、盤面を更新
+    ensureRecordNavigationController_();
+    if (m_recordNavController) {
+        qDebug().noquote() << "[MainWindow::onKifuAnalysisProgress] calling navigateKifuViewToRow(" << ply << ")";
+        m_recordNavController->navigateKifuViewToRow(ply);
+    } else {
+        qDebug().noquote() << "[MainWindow::onKifuAnalysisProgress] m_recordNavController is null!";
+    }
+    
+    // 2) 評価値グラフに評価値をプロット
+    if (m_recordPane) {
+        EvaluationChartWidget* ec = m_recordPane->evalChart();
+        if (ec) {
+            ec->appendScoreP1(ply, scoreCp, false);
+            qDebug().noquote() << "[MainWindow::onKifuAnalysisProgress] appended score to chart";
+        } else {
+            qDebug().noquote() << "[MainWindow::onKifuAnalysisProgress] evalChart is null!";
+        }
+    } else {
+        qDebug().noquote() << "[MainWindow::onKifuAnalysisProgress] m_recordPane is null!";
     }
 }
 
