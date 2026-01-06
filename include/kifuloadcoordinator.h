@@ -92,6 +92,9 @@ public:
 
     // USI指し手リストを取得（CSA出力用）
     const QStringList& usiMoves() const { return m_usiMoves; }
+    
+    // USI指し手リストへのポインタを取得（棋譜解析用）
+    QStringList* usiMovesPtr() { return &m_usiMoves; }
 
     void updateBranchTreeFromLive(int currentPly);
 

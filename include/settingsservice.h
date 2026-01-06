@@ -96,6 +96,37 @@ int kifuPaneFontSize();
 // ★ 追加: 棋譜欄・分岐候補欄のフォントサイズを保存
 void setKifuPaneFontSize(int size);
 
+// ★ 追加: 棋譜解析ダイアログの設定
+// フォントサイズを取得（デフォルト: 10）
+int kifuAnalysisFontSize();
+// フォントサイズを保存
+void setKifuAnalysisFontSize(int size);
+
+// 1手あたりの思考時間（秒）を取得（デフォルト: 3）
+int kifuAnalysisByoyomiSec();
+// 1手あたりの思考時間（秒）を保存
+void setKifuAnalysisByoyomiSec(int sec);
+
+// 最後に選択したエンジン番号を取得（デフォルト: 0）
+int kifuAnalysisEngineIndex();
+// 最後に選択したエンジン番号を保存
+void setKifuAnalysisEngineIndex(int index);
+
+// 解析範囲: 全局面解析かどうかを取得（デフォルト: true）
+bool kifuAnalysisFullRange();
+// 解析範囲: 全局面解析かどうかを保存
+void setKifuAnalysisFullRange(bool fullRange);
+
+// 解析範囲: 開始手数を取得（デフォルト: 0）
+int kifuAnalysisStartPly();
+// 解析範囲: 開始手数を保存
+void setKifuAnalysisStartPly(int ply);
+
+// 解析範囲: 終了手数を取得（デフォルト: 0）
+int kifuAnalysisEndPly();
+// 解析範囲: 終了手数を保存
+void setKifuAnalysisEndPly(int ply);
+
 } // namespace SettingsService
 
 #endif // SETTINGSSERVICE_H
