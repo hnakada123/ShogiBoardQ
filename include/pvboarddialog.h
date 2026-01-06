@@ -92,6 +92,8 @@ private:
 protected:
     /// ウィンドウを閉じる際にサイズを保存
     void closeEvent(QCloseEvent* event) override;
+    /// ShogiViewのCtrl+ホイールイベントを横取りして処理
+    bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
     ShogiView* m_shogiView = nullptr;

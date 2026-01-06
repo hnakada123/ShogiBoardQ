@@ -1798,19 +1798,20 @@ int ShogiView::squareSize() const
 // 最大サイズ（150px）を超える拡大は行わない。
 void ShogiView::enlargeBoard()
 {
-    // 最大サイズのチェック
     if (m_squareSize >= 150) {
         return;
     }
     
     m_squareSize++;
     recalcLayoutParams();
-    setFieldSize(m_fieldSize);
-    updateBlackClockLabelGeometry();
-    updateWhiteClockLabelGeometry();
     
     // 親レイアウト（Splitter等）にサイズ変更を通知
     updateGeometry();
+    updateBlackClockLabelGeometry();
+    updateWhiteClockLabelGeometry();
+    
+    // シグナルを発火（recalcLayoutParams()でm_fieldSizeが更新済み）
+    emit fieldSizeChanged(m_fieldSize);
     
     update();
 }
@@ -1820,19 +1821,20 @@ void ShogiView::enlargeBoard()
 // 最小サイズ（20px）より小さくはならない。
 void ShogiView::reduceBoard()
 {
-    // 最小サイズのチェック
     if (m_squareSize <= 20) {
         return;
     }
     
     m_squareSize--;
     recalcLayoutParams();
-    setFieldSize(m_fieldSize);
-    updateBlackClockLabelGeometry();
-    updateWhiteClockLabelGeometry();
     
     // 親レイアウト（Splitter等）にサイズ変更を通知
     updateGeometry();
+    updateBlackClockLabelGeometry();
+    updateWhiteClockLabelGeometry();
+    
+    // シグナルを発火（recalcLayoutParams()でm_fieldSizeが更新済み）
+    emit fieldSizeChanged(m_fieldSize);
     
     update();
 }
