@@ -85,6 +85,11 @@ public:
      */
     void applySelect(int row, int ply);
 
+    /**
+     * @brief 棋譜欄を指定行に移動（行選択と盤面同期）
+     */
+    void navigateKifuViewToRow(int row);
+
 public Q_SLOTS:
     /**
      * @brief Presenterからの行変更通知を処理
@@ -97,11 +102,6 @@ private:
      * @return true: 続行, false: キャンセル
      */
     bool checkUnsavedComment(int targetRow);
-
-    /**
-     * @brief 棋譜欄を指定行に移動
-     */
-    void navigateKifuViewToRow(int row);
 
 private:
     ShogiView* m_shogiView = nullptr;

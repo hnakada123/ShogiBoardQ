@@ -7,12 +7,12 @@
 #include <functional>
 
 #include "playmode.h"
+#include "analysiscoordinator.h"
 
 class KifuAnalysisDialog;
 class EngineAnalysisTab;
 class KifuAnalysisListModel;
 class KifuRecordListModel;
-class AnalysisCoordinator;
 class AnalysisResultsPresenter;
 class Usi;
 class UsiCommLogModel;
@@ -54,6 +54,9 @@ public:
 Q_SIGNALS:
     // 解析が停止した（中止または完了）
     void analysisStopped();
+    
+    // 解析進捗を通知（ply: 手数, scoreCp: 評価値）
+    void analysisProgressReported(int ply, int scoreCp);
 
 private slots:
     void onUsiCommLogChanged_();
@@ -67,6 +70,7 @@ private slots:
     void onAnalysisProgress_(int ply, int depth, int seldepth,
                              int scoreCp, int mate,
                              const QString& pv, const QString& raw);
+    void onAnalysisFinished_(AnalysisCoordinator::Mode mode);
 
 private:
     QPointer<AnalysisCoordinator>      m_coord;
@@ -90,6 +94,10 @@ private:
     int m_pendingMate = 0;
     QString m_pendingPv;
     QString m_pendingPvKanji;  // 漢字変換されたPV
+
+    // 最後に確定した結果（GUI更新用）
+    int m_lastCommittedPly = -1;
+    int m_lastCommittedScoreCp = 0;
 
     void applyDialogOptions_(KifuAnalysisDialog* dlg);
     void commitPendingResult_();  // bestmove受信時に結果を確定

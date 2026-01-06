@@ -202,6 +202,11 @@ Q_SIGNALS:
      */
     void analysisModeStarted();
 
+    /**
+     * @brief 棋譜解析進捗を通知
+     */
+    void analysisProgressReported(int ply, int scoreCp);
+
 private:
     QWidget* m_parentWidget = nullptr;
     MatchCoordinator* m_match = nullptr;

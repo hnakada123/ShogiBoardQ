@@ -12,7 +12,6 @@
 #include "shogienginethinkingmodel.h"
 #include "kifuanalysisresultsdisplay.h"
 #include "shogiboard.h"
-#include "shogiengineinfoparser.h"
 #include "shogigamecontroller.h"
 
 #include <limits>
@@ -54,6 +53,7 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
     m_err           = d.displayError;
     m_prevEvalCp    = 0; // 差分用の前回値をリセット
     m_pendingPly    = -1; // 一時結果をリセット
+    m_lastCommittedPly = -1; // GUI更新用の結果をリセット
 
     // Coordinator（初回のみ作成、シグナル接続は毎回）
     if (!m_coord) {
@@ -75,6 +75,14 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
     QObject::connect(
         m_coord, &AnalysisCoordinator::positionPrepared,
         this,    &AnalysisFlowController::onPositionPrepared_,
+        Qt::UniqueConnection
+        );
+
+    // (C-3) 解析完了時に最後の結果を発行
+    QObject::disconnect(m_coord, &AnalysisCoordinator::analysisFinished, nullptr, nullptr);
+    QObject::connect(
+        m_coord, &AnalysisCoordinator::analysisFinished,
+        this,    &AnalysisFlowController::onAnalysisFinished_,
         Qt::UniqueConnection
         );
 
@@ -199,6 +207,11 @@ void AnalysisFlowController::onBestMoveReceived_()
 {
     qDebug().noquote() << "[AnalysisFlowController::onBestMoveReceived_] called, pendingPly=" << m_pendingPly;
     
+    // ThinkingInfoPresenterのバッファをフラッシュして、最新の漢字PVを取得
+    if (m_usi) {
+        m_usi->flushThinkingInfoBuffer();
+    }
+    
     // 一時保存した結果を確定
     commitPendingResult_();
     
@@ -208,82 +221,12 @@ void AnalysisFlowController::onBestMoveReceived_()
 
 void AnalysisFlowController::onInfoLineReceived_(const QString& line)
 {
+    // info行を受け取り、AnalysisCoordinatorに転送
+    // 漢字PV変換はThinkingInfoPresenterが行い、onThinkingInfoUpdated_で受け取る
     qDebug().noquote() << "[AnalysisFlowController::onInfoLineReceived_] line=" << line.left(80);
     if (!m_coord) {
         qDebug().noquote() << "[AnalysisFlowController::onInfoLineReceived_] m_coord is null!";
         return;
-    }
-    
-    // info行から漢字PVを生成（ThinkingInfoPresenterのバッファリングを回避）
-    if (line.startsWith(QStringLiteral("info ")) && line.contains(QStringLiteral(" pv "))) {
-        // 現在解析中のplyのSFENから盤面データを生成
-        const int currentPly = m_coord->currentPly();
-        
-        if (m_sfenRecord && currentPly >= 0 && currentPly < m_sfenRecord->size()) {
-            QString sfen = m_sfenRecord->at(currentPly);
-            qDebug().noquote() << "[AnalysisFlowController::onInfoLineReceived_] ply=" << currentPly << "sfen from record=" << sfen.left(60);
-            
-            // "position sfen ..."形式の場合は除去
-            if (sfen.startsWith(QStringLiteral("position sfen "))) {
-                sfen = sfen.mid(14);
-            } else if (sfen.startsWith(QStringLiteral("position "))) {
-                sfen = sfen.mid(9);
-            }
-            
-            // SFENから手番を取得（" b " = 先手、" w " = 後手）
-            ShogiGameController::Player sideToMove = ShogiGameController::Player1;  // デフォルトは先手
-            if (sfen.contains(QStringLiteral(" w "))) {
-                sideToMove = ShogiGameController::Player2;
-            }
-            
-            // SFENから盤面データを生成
-            ShogiBoard tempBoard;
-            tempBoard.setSfen(sfen);
-            QVector<QChar> boardData = tempBoard.boardData();
-            
-            // デバッグ: 盤面データを表示（9段分）
-            QString boardDebug;
-            for (int r = 0; r < 9; ++r) {
-                boardDebug += QString("[rank%1: ").arg(r + 1);
-                for (int f = 0; f < 9; ++f) {
-                    int idx = r * 9 + f;
-                    if (idx < boardData.size()) {
-                        QChar c = boardData[idx];
-                        boardDebug += (c == QChar(' ')) ? QChar('.') : c;
-                    }
-                }
-                boardDebug += "] ";
-            }
-            qDebug().noquote() << "[AnalysisFlowController::onInfoLineReceived_] ply=" << currentPly << "board=" << boardDebug;
-            
-            if (boardData.size() == 81) {
-                ShogiEngineInfoParser parser;
-                parser.setThinkingStartPlayer(sideToMove);  // 手番を設定
-                QString lineCopy = line;
-                parser.parseEngineOutputAndUpdateState(
-                    lineCopy,
-                    nullptr,  // gameControllerは使わない
-                    boardData,
-                    false  // ponder disabled
-                );
-                QString kanjiPv = parser.pvKanjiStr();
-                QString usiPv = parser.pvUsiStr();
-                
-                if (!kanjiPv.isEmpty()) {
-                    m_pendingPvKanji = kanjiPv;
-                    qDebug().noquote() << "[AnalysisFlowController::onInfoLineReceived_] ply=" << currentPly 
-                                       << "side=" << (sideToMove == ShogiGameController::Player1 ? "b" : "w")
-                                       << "kanjiPv=" << kanjiPv.left(50);
-                } else {
-                    qDebug().noquote() << "[AnalysisFlowController::onInfoLineReceived_] ply=" << currentPly 
-                                       << "kanjiPv is EMPTY, usiPv=" << usiPv.left(30);
-                }
-            } else {
-                qDebug().noquote() << "[AnalysisFlowController::onInfoLineReceived_] ply=" << currentPly << "boardData size=" << boardData.size() << "(invalid)";
-            }
-        } else {
-            qDebug().noquote() << "[AnalysisFlowController::onInfoLineReceived_] sfenRecord not available or ply out of range: ply=" << currentPly;
-        }
     }
     
     m_coord->onEngineInfoLine(line);
@@ -294,17 +237,16 @@ void AnalysisFlowController::onThinkingInfoUpdated_(const QString& /*time*/, con
                                                     const QString& pvKanjiStr, const QString& /*usiPv*/,
                                                     const QString& /*baseSfen*/)
 {
-    // デバッグログのみ出力
-    // 注意: onInfoLineReceived_で正しい手番の漢字PVを生成しているため、
-    //       ThinkingInfoPresenterからの漢字PVは使用しない（バッファリング遅延で手番がずれる可能性があるため）
-    qDebug().noquote() << "[AnalysisFlowController::onThinkingInfoUpdated_] pvKanjiStr=" << pvKanjiStr.left(50);
-    // m_pendingPvKanjiはonInfoLineReceived_で設定済みなので、ここでは上書きしない
+    // ThinkingInfoPresenterからの漢字PVを保存（思考タブと同じ内容を棋譜解析結果に使用）
+    if (!pvKanjiStr.isEmpty()) {
+        m_pendingPvKanji = pvKanjiStr;
+        qDebug().noquote() << "[AnalysisFlowController::onThinkingInfoUpdated_] saved pvKanjiStr=" << pvKanjiStr.left(50);
+    }
 }
 
 void AnalysisFlowController::onPositionPrepared_(int ply, const QString& sfen)
 {
     // 各局面の解析開始時のログ
-    // 実際の盤面データはonInfoLineReceived_でSFENから都度生成する
     qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] ply=" << ply << "sfen=" << sfen.left(50);
     
     // Usiにも設定（ThinkingInfoPresenter経由での変換用）
@@ -323,6 +265,49 @@ void AnalysisFlowController::onPositionPrepared_(int ply, const QString& sfen)
         if (boardData.size() == 81) {
             m_usi->setClonedBoardData(boardData);
         }
+        
+        // ThinkingInfoPresenterに基準SFENを設定（手番情報用）
+        m_usi->setBaseSfen(pureSfen);
+        qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] called setBaseSfen with pureSfen=" << pureSfen.left(50);
+        
+        // SFENから手番を抽出してGameControllerに設定
+        // 形式: "盤面 手番 駒台 手数" 例: "lnsgkgsnl/... b - 1"
+        if (m_gameController) {
+            // " b " または " w " を探す
+            bool isPlayer1Turn = pureSfen.contains(QStringLiteral(" b "));
+            ShogiGameController::Player player = isPlayer1Turn 
+                ? ShogiGameController::Player1 
+                : ShogiGameController::Player2;
+            m_gameController->setCurrentPlayer(player);
+            qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] set player=" 
+                               << (isPlayer1Turn ? "P1(sente)" : "P2(gote)");
+        } else {
+            qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] m_gameController is null!";
+        }
+    } else {
+        qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] m_usi is null!";
+    }
+    
+    // ★ 通常対局と同じ流れ：
+    // 1. 局面と指し手を確定（上記で完了）
+    // 2. GUI更新（棋譜欄ハイライト、将棋盤更新）
+    // 3. エンジンにコマンド送信
+    // 4. 思考タブ更新（info行受信時）
+    
+    // 前の手の評価値を取得（最初の手は0）
+    int scoreCp = (m_lastCommittedPly >= 0) ? m_lastCommittedScoreCp : 0;
+    
+    qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] emitting analysisProgressReported: ply=" 
+                       << ply << ", scoreCp=" << scoreCp;
+    Q_EMIT analysisProgressReported(ply, scoreCp);
+    
+    // リセット
+    m_lastCommittedPly = -1;
+    
+    // ★ GUI更新後にgoコマンドを送信
+    if (m_coord) {
+        qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] calling sendGoCommand";
+        m_coord->sendGoCommand();
     }
 }
 
@@ -421,6 +406,27 @@ void AnalysisFlowController::commitPendingResult_()
         diff,
         pv
         ));
+    
+    // ★ GUI更新用に結果を保存（次のonPositionPrepared_でシグナルを発行）
+    m_lastCommittedPly = ply;
+    m_lastCommittedScoreCp = curVal;
+}
+
+void AnalysisFlowController::onAnalysisFinished_(AnalysisCoordinator::Mode /*mode*/)
+{
+    qDebug().noquote() << "[AnalysisFlowController::onAnalysisFinished_] called";
+    
+    // 最後の結果をGUIに反映
+    if (m_lastCommittedPly >= 0) {
+        qDebug().noquote() << "[AnalysisFlowController::onAnalysisFinished_] emitting analysisProgressReported for final ply=" 
+                           << m_lastCommittedPly << "scoreCp=" << m_lastCommittedScoreCp;
+        Q_EMIT analysisProgressReported(m_lastCommittedPly, m_lastCommittedScoreCp);
+        m_lastCommittedPly = -1;
+    }
+    
+    // 解析中フラグをリセット
+    m_running = false;
+    Q_EMIT analysisStopped();
 }
 
 void AnalysisFlowController::runWithDialog(const Deps& d, QWidget* parent)
