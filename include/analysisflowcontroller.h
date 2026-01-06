@@ -36,6 +36,9 @@ public:
         ShogiEngineThinkingModel*    thinkingModel = nullptr;// optional（思考情報表示用）
         ShogiGameController*         gameController = nullptr; // optional（Usi内部生成時に必要）
         int                          activePly = 0;
+        QString                      blackPlayerName;        // optional（先手対局者名）
+        QString                      whitePlayerName;        // optional（後手対局者名）
+        QStringList*                 usiMoves = nullptr;     // optional（USI形式の指し手リスト）
         std::function<void(const QString&)> displayError;    // required
     };
 
@@ -71,6 +74,7 @@ private slots:
                              int scoreCp, int mate,
                              const QString& pv, const QString& raw);
     void onAnalysisFinished_(AnalysisCoordinator::Mode mode);
+    void onResultRowDoubleClicked_(int row);
 
 private:
     QPointer<AnalysisCoordinator>      m_coord;
@@ -86,6 +90,9 @@ private:
     UsiCommLogModel*       m_logModel = nullptr;
     int                    m_activePly = 0;
     int                    m_prevEvalCp = 0;  // 前回評価値（差分算出用）
+    QString                m_blackPlayerName;  // 先手対局者名
+    QString                m_whitePlayerName;  // 後手対局者名
+    QStringList*           m_usiMoves = nullptr; // USI形式の指し手リスト
     std::function<void(const QString&)> m_err;
 
     // 現在解析中の局面の一時結果（bestmove時に確定）
@@ -108,6 +115,7 @@ private:
     // 内部で生成したUsi関連リソース（所有権を持つ）
     bool m_ownsUsi = false;
     bool m_running = false;  // 解析中フラグ
+    bool m_stoppedByUser = false;  // ユーザーによる中止フラグ
     UsiCommLogModel* m_ownedLogModel = nullptr;
     ShogiEngineThinkingModel* m_ownedThinkingModel = nullptr;
     ShogiGameController* m_gameController = nullptr;

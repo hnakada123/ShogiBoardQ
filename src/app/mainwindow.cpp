@@ -911,6 +911,15 @@ void MainWindow::displayKifuAnalysisDialog()
     if (!m_analysisModel) {
         m_analysisModel = new KifuAnalysisListModel(this);
     }
+    
+    // 評価値グラフをクリア（対局時のグラフが残らないようにする）
+    if (m_recordPane) {
+        EvaluationChartWidget* ec = m_recordPane->evalChart();
+        if (ec) {
+            ec->clearAll();
+            qDebug().noquote() << "[MainWindow::displayKifuAnalysisDialog] evaluation chart cleared";
+        }
+    }
 
     ensureDialogCoordinator_();
     if (m_dialogCoordinator) {
@@ -931,6 +940,26 @@ void MainWindow::displayKifuAnalysisDialog()
         params.recordModel = m_kifuRecordModel;
         params.activePly = m_activePly;
         params.gameController = m_gameController;  // 盤面情報取得用
+        
+        // USI形式の指し手リストを取得（KifuLoadCoordinatorから）
+        if (m_kifuLoadCoordinator) {
+            params.usiMoves = m_kifuLoadCoordinator->usiMovesPtr();
+        }
+        
+        // 対局者名を取得（GameInfoPaneControllerから）
+        if (m_gameInfoController) {
+            const QList<KifGameInfoItem> items = m_gameInfoController->gameInfo();
+            for (const KifGameInfoItem& item : items) {
+                if (item.key == QStringLiteral("先手") || item.key == QStringLiteral("下手")) {
+                    params.blackPlayerName = item.value;
+                } else if (item.key == QStringLiteral("後手") || item.key == QStringLiteral("上手")) {
+                    params.whitePlayerName = item.value;
+                }
+            }
+        }
+        qDebug().noquote() << "[MainWindow::displayKifuAnalysisDialog] blackPlayerName=" << params.blackPlayerName
+                           << "whitePlayerName=" << params.whitePlayerName;
+        
         m_dialogCoordinator->showKifuAnalysisDialog(params);
     }
 }
@@ -968,11 +997,13 @@ void MainWindow::onKifuAnalysisProgress(int ply, int scoreCp)
     }
     
     // 2) 評価値グラフに評価値をプロット
+    //    ※AnalysisFlowControllerで既に先手視点に変換済み（後手番は符号反転済み）
     if (m_recordPane) {
         EvaluationChartWidget* ec = m_recordPane->evalChart();
         if (ec) {
             ec->appendScoreP1(ply, scoreCp, false);
-            qDebug().noquote() << "[MainWindow::onKifuAnalysisProgress] appended score to chart";
+            qDebug().noquote() << "[MainWindow::onKifuAnalysisProgress] appended score to chart: ply=" << ply 
+                               << "scoreCp=" << scoreCp;
         } else {
             qDebug().noquote() << "[MainWindow::onKifuAnalysisProgress] evalChart is null!";
         }

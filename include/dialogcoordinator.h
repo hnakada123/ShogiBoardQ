@@ -155,6 +155,9 @@ public:
         KifuRecordListModel* recordModel = nullptr;  // 棋譜モデル（指し手ラベル取得用）
         int activePly = 0;
         ShogiGameController* gameController = nullptr;  // 盤面情報取得用
+        QString blackPlayerName;   // 先手対局者名
+        QString whitePlayerName;   // 後手対局者名
+        QStringList* usiMoves = nullptr;  // USI形式の指し手リスト
     };
 
     /**

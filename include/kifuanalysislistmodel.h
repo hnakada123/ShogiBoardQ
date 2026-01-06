@@ -22,6 +22,13 @@ public:
 
     // ヘッダを返すメソッド
     QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
+
+    // 指定行のアイテムを取得
+    KifuAnalysisResultsDisplay* item(int row) const
+    {
+        if (row < 0 || row >= list.size()) return nullptr;
+        return list.at(row);
+    }
 };
 
 #endif // KIFUANALYSISLISTMODEL_H

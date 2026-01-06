@@ -58,17 +58,13 @@ QVariant KifuAnalysisListModel::headerData(int section, Qt::Orientation orientat
     if (orientation == Qt::Horizontal) {
         switch (section) {
         case 0:
-            // 指し手
-            return tr("Move");
+            return QStringLiteral("指し手");
         case 1:
-            // 評価値
-            return tr("Evaluation Value");
+            return QStringLiteral("評価値");
         case 2:
-            // 差
-            return tr("Difference");
+            return QStringLiteral("差");
         case 3:
-            // 読み筋
-            return tr("Principal Variation");
+            return QStringLiteral("読み筋");
         default:
             // それ以外の場合、空のQVariantを返す。
             return QVariant();

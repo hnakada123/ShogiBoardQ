@@ -284,4 +284,100 @@ void setKifuPaneFontSize(int size)
     s.setValue("FontSize/kifuPane", size);
 }
 
+// ★ 追加: 棋譜解析ダイアログのフォントサイズを取得
+int kifuAnalysisFontSize()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("KifuAnalysis/fontSize", 10).toInt();
+}
+
+// ★ 追加: 棋譜解析ダイアログのフォントサイズを保存
+void setKifuAnalysisFontSize(int size)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("KifuAnalysis/fontSize", size);
+}
+
+// ★ 追加: 棋譜解析ダイアログの1手あたりの思考時間（秒）を取得
+int kifuAnalysisByoyomiSec()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("KifuAnalysis/byoyomiSec", 3).toInt();
+}
+
+// ★ 追加: 棋譜解析ダイアログの1手あたりの思考時間（秒）を保存
+void setKifuAnalysisByoyomiSec(int sec)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("KifuAnalysis/byoyomiSec", sec);
+}
+
+// ★ 追加: 棋譜解析ダイアログの最後に選択したエンジン番号を取得
+int kifuAnalysisEngineIndex()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("KifuAnalysis/engineIndex", 0).toInt();
+}
+
+// ★ 追加: 棋譜解析ダイアログの最後に選択したエンジン番号を保存
+void setKifuAnalysisEngineIndex(int index)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("KifuAnalysis/engineIndex", index);
+}
+
+// ★ 追加: 棋譜解析ダイアログの解析範囲（全局面解析かどうか）を取得
+bool kifuAnalysisFullRange()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("KifuAnalysis/fullRange", true).toBool();
+}
+
+// ★ 追加: 棋譜解析ダイアログの解析範囲（全局面解析かどうか）を保存
+void setKifuAnalysisFullRange(bool fullRange)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("KifuAnalysis/fullRange", fullRange);
+}
+
+// ★ 追加: 棋譜解析ダイアログの解析範囲（開始手数）を取得
+int kifuAnalysisStartPly()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("KifuAnalysis/startPly", 0).toInt();
+}
+
+// ★ 追加: 棋譜解析ダイアログの解析範囲（開始手数）を保存
+void setKifuAnalysisStartPly(int ply)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("KifuAnalysis/startPly", ply);
+}
+
+// ★ 追加: 棋譜解析ダイアログの解析範囲（終了手数）を取得
+int kifuAnalysisEndPly()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("KifuAnalysis/endPly", 0).toInt();
+}
+
+// ★ 追加: 棋譜解析ダイアログの解析範囲（終了手数）を保存
+void setKifuAnalysisEndPly(int ply)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("KifuAnalysis/endPly", ply);
+}
+
 } // namespace SettingsService

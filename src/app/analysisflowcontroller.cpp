@@ -13,6 +13,7 @@
 #include "kifuanalysisresultsdisplay.h"
 #include "shogiboard.h"
 #include "shogigamecontroller.h"
+#include "pvboarddialog.h"
 
 #include <limits>
 #include <QString>
@@ -50,10 +51,14 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
     m_usi           = d.usi;
     m_logModel      = d.logModel;
     m_activePly     = d.activePly;
+    m_blackPlayerName = d.blackPlayerName;
+    m_whitePlayerName = d.whitePlayerName;
+    m_usiMoves      = d.usiMoves;
     m_err           = d.displayError;
     m_prevEvalCp    = 0; // 差分用の前回値をリセット
     m_pendingPly    = -1; // 一時結果をリセット
     m_lastCommittedPly = -1; // GUI更新用の結果をリセット
+    m_stoppedByUser = false; // 中止フラグをリセット
 
     // Coordinator（初回のみ作成、シグナル接続は毎回）
     if (!m_coord) {
@@ -121,8 +126,21 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
     // 結果ビュー（Presenter）— 既存APIは showWithModel(...)
     if (!m_presenter) {
         m_presenter = new AnalysisResultsPresenter(this);
+        // 中止ボタンのシグナルを接続
+        QObject::connect(
+            m_presenter, &AnalysisResultsPresenter::stopRequested,
+            this,        &AnalysisFlowController::stop,
+            Qt::UniqueConnection
+            );
+        // 行ダブルクリックのシグナルを接続（読み筋表示用）
+        QObject::connect(
+            m_presenter, &AnalysisResultsPresenter::rowDoubleClicked,
+            this,        &AnalysisFlowController::onResultRowDoubleClicked_,
+            Qt::UniqueConnection
+            );
     }
     m_presenter->showWithModel(m_analysisModel);
+    m_presenter->setStopButtonEnabled(true);  // 解析開始時は有効
 
     // ダイアログ設定を AC オプションへ反映
     applyDialogOptions_(dlg);
@@ -136,6 +154,12 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
     }
     const QString enginePath = engines.at(engineIdx).path;
     const QString engineName = dlg->engineName();
+    
+    // 思考タブのエンジン名を設定
+    if (m_logModel) {
+        m_logModel->setEngineName(engineName);
+    }
+    
     m_usi->startAndInitializeEngine(enginePath, engineName); // usi→usiok/setoption/isready→readyok
 
     // ★ 解析用の盤面データを初期化（info行のPV解析に必要）
@@ -155,6 +179,7 @@ void AnalysisFlowController::stop()
     }
     
     m_running = false;
+    m_stoppedByUser = true;  // ユーザーによる中止を記録
     
     // AnalysisCoordinatorを停止
     if (m_coord) {
@@ -164,6 +189,11 @@ void AnalysisFlowController::stop()
     // Usiにquitコマンドを送信してエンジンを停止
     if (m_usi) {
         m_usi->sendQuitCommand();
+    }
+    
+    // 中止ボタンを無効化
+    if (m_presenter) {
+        m_presenter->setStopButtonEnabled(false);
     }
     
     // 停止シグナルを発行
@@ -177,10 +207,49 @@ void AnalysisFlowController::applyDialogOptions_(KifuAnalysisDialog* dlg)
     AnalysisCoordinator::Options opt;
     opt.movetimeMs = dlg->byoyomiSec() * 1000;
 
-    const int startRaw = dlg->initPosition() ? 0 : qMax(0, m_activePly);
     const int sfenSize = static_cast<int>(m_sfenRecord->size());
-    opt.startPly = qBound(0, startRaw, sfenSize - 1);
-    opt.endPly   = sfenSize - 1;
+    
+    // 終局を示す指し手（投了、中断など）を検出して最大手数を調整
+    int maxEndPly = sfenSize - 1;
+    if (m_recordModel && maxEndPly > 0) {
+        // 終局を示す文字列リスト
+        static const QStringList terminalKeywords = {
+            QStringLiteral("投了"), QStringLiteral("中断"), QStringLiteral("持将棋"),
+            QStringLiteral("千日手"), QStringLiteral("切れ負け"),
+            QStringLiteral("反則勝ち"), QStringLiteral("反則負け"),
+            QStringLiteral("不戦勝"), QStringLiteral("不戦敗"),
+            QStringLiteral("詰み"), QStringLiteral("不詰"),
+            QStringLiteral("入玉勝ち"), QStringLiteral("時間切れ")
+        };
+        
+        // 最終行が終局指し手かどうか確認
+        KifuDisplay* lastDisp = m_recordModel->item(m_recordModel->rowCount() - 1);
+        if (lastDisp) {
+            QString lastMove = lastDisp->currentMove();
+            for (const QString& keyword : terminalKeywords) {
+                if (lastMove.contains(keyword)) {
+                    maxEndPly = sfenSize - 2;  // 終局指し手の前で終了
+                    qDebug().noquote() << "[AnalysisFlowController::applyDialogOptions_] terminal move detected:"
+                                       << lastMove << "-> maxEndPly adjusted to" << maxEndPly;
+                    break;
+                }
+            }
+        }
+    }
+    
+    // ダイアログの設定に基づいて範囲を決定
+    if (dlg->initPosition()) {
+        // "開始局面から最終手まで"が選択された場合
+        opt.startPly = 0;
+        opt.endPly = qMax(0, maxEndPly);
+    } else {
+        // 範囲指定が選択された場合
+        opt.startPly = qBound(0, dlg->startPly(), maxEndPly);
+        opt.endPly = qBound(opt.startPly, dlg->endPly(), maxEndPly);
+    }
+    
+    qDebug().noquote() << "[AnalysisFlowController::applyDialogOptions_] startPly=" << opt.startPly
+                       << "endPly=" << opt.endPly << "maxEndPly=" << maxEndPly;
 
     opt.multiPV    = 1;    // ダイアログ未対応なら 1 固定
     opt.centerTree = true;
@@ -294,15 +363,15 @@ void AnalysisFlowController::onPositionPrepared_(int ply, const QString& sfen)
     // 3. エンジンにコマンド送信
     // 4. 思考タブ更新（info行受信時）
     
-    // 前の手の評価値を取得（最初の手は0）
-    int scoreCp = (m_lastCommittedPly >= 0) ? m_lastCommittedScoreCp : 0;
-    
-    qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] emitting analysisProgressReported: ply=" 
-                       << ply << ", scoreCp=" << scoreCp;
-    Q_EMIT analysisProgressReported(ply, scoreCp);
-    
-    // リセット
-    m_lastCommittedPly = -1;
+    // 前の手の評価値をGUIに反映（m_lastCommittedPlyが確定した手数）
+    if (m_lastCommittedPly >= 0) {
+        qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] emitting analysisProgressReported: ply=" 
+                           << m_lastCommittedPly << ", scoreCp=" << m_lastCommittedScoreCp;
+        Q_EMIT analysisProgressReported(m_lastCommittedPly, m_lastCommittedScoreCp);
+        
+        // リセット
+        m_lastCommittedPly = -1;
+    }
     
     // ★ GUI更新後にgoコマンドを送信
     if (m_coord) {
@@ -379,17 +448,25 @@ void AnalysisFlowController::commitPendingResult_()
     }
 
     // 評価値 / 差分（定跡の場合は0）
+    // エンジンの評価値は「手番側から見た評価値」なので、
+    // 先手視点で統一するために後手番（奇数ply）の場合は符号を反転
+    bool isGoteTurn = (ply % 2 == 1);  // 奇数plyは後手番
+    
     QString evalStr;
     int curVal = 0;
     if (isBook) {
         evalStr = QStringLiteral("-");
         curVal = m_prevEvalCp;  // 差分0
     } else if (mate != 0) {
-        evalStr = QStringLiteral("mate %1").arg(mate);
+        // 詰み表示も後手番なら反転
+        int adjustedMate = isGoteTurn ? -mate : mate;
+        evalStr = QStringLiteral("mate %1").arg(adjustedMate);
         curVal  = m_prevEvalCp; // 詰みは差分0扱い（前回値維持）
     } else if (scoreCp != std::numeric_limits<int>::min()) {
-        evalStr = QString::number(scoreCp);
-        curVal  = scoreCp;
+        // 後手番なら評価値を反転
+        int adjustedScore = isGoteTurn ? -scoreCp : scoreCp;
+        evalStr = QString::number(adjustedScore);
+        curVal  = adjustedScore;
     } else {
         evalStr = QStringLiteral("0");
         curVal  = 0;
@@ -400,12 +477,47 @@ void AnalysisFlowController::commitPendingResult_()
     qDebug().noquote() << "[AnalysisFlowController::commitPendingResult_] ply=" << ply << "moveLabel=" << moveLabel << "evalStr=" << evalStr << "pv=" << pv.left(30);
     
     // ★ KifuAnalysisResultsDisplay は (Move, Eval, Diff, PV) の4引数
-    m_analysisModel->appendItem(new KifuAnalysisResultsDisplay(
+    KifuAnalysisResultsDisplay* resultItem = new KifuAnalysisResultsDisplay(
         moveLabel,
         evalStr,
         diff,
         pv
-        ));
+        );
+    
+    // USI形式PVを設定（括弧で囲まれた確率情報を除去）
+    QString usiPv = m_pendingPv;
+    // 末尾の括弧部分（例: "(100.00%)"）を除去
+    qsizetype parenPos = usiPv.indexOf('(');
+    if (parenPos > 0) {
+        usiPv = usiPv.left(parenPos).trimmed();
+    }
+    resultItem->setUsiPv(usiPv);
+    
+    // 局面SFENを設定
+    if (m_sfenRecord && ply >= 0 && ply < m_sfenRecord->size()) {
+        QString sfen = m_sfenRecord->at(ply);
+        // "position sfen ..."形式の場合は除去
+        if (sfen.startsWith(QStringLiteral("position sfen "))) {
+            sfen = sfen.mid(14);
+        } else if (sfen.startsWith(QStringLiteral("position "))) {
+            sfen = sfen.mid(9);
+        }
+        resultItem->setSfen(sfen);
+    }
+    
+    // 最後の指し手（USI形式）を設定（読み筋表示ウィンドウのハイライト用）
+    // ply=0 は開始局面なので指し手なし、ply>=1 は usiMoves[ply-1] が最後の指し手
+    if (m_usiMoves && ply > 0 && ply <= m_usiMoves->size()) {
+        QString lastMove = m_usiMoves->at(ply - 1);
+        resultItem->setLastUsiMove(lastMove);
+        qDebug().noquote() << "[AnalysisFlowController::commitPendingResult_] setLastUsiMove: ply=" << ply << "lastMove=" << lastMove;
+    } else {
+        qDebug().noquote() << "[AnalysisFlowController::commitPendingResult_] no lastUsiMove: m_usiMoves=" << m_usiMoves 
+                           << "ply=" << ply 
+                           << "usiMoves.size=" << (m_usiMoves ? m_usiMoves->size() : -1);
+    }
+    
+    m_analysisModel->appendItem(resultItem);
     
     // ★ GUI更新用に結果を保存（次のonPositionPrepared_でシグナルを発行）
     m_lastCommittedPly = ply;
@@ -414,7 +526,7 @@ void AnalysisFlowController::commitPendingResult_()
 
 void AnalysisFlowController::onAnalysisFinished_(AnalysisCoordinator::Mode /*mode*/)
 {
-    qDebug().noquote() << "[AnalysisFlowController::onAnalysisFinished_] called";
+    qDebug().noquote() << "[AnalysisFlowController::onAnalysisFinished_] called, m_stoppedByUser=" << m_stoppedByUser;
     
     // 最後の結果をGUIに反映
     if (m_lastCommittedPly >= 0) {
@@ -426,6 +538,18 @@ void AnalysisFlowController::onAnalysisFinished_(AnalysisCoordinator::Mode /*mod
     
     // 解析中フラグをリセット
     m_running = false;
+    
+    // 中止ボタンを無効化
+    if (m_presenter) {
+        m_presenter->setStopButtonEnabled(false);
+    }
+    
+    // ユーザーによる中止でなければ（正常完了なら）完了メッセージを表示
+    if (!m_stoppedByUser && m_presenter && m_analysisModel) {
+        int totalMoves = m_analysisModel->rowCount();
+        m_presenter->showAnalysisComplete(totalMoves);
+    }
+    
     Q_EMIT analysisStopped();
 }
 
@@ -447,6 +571,36 @@ void AnalysisFlowController::runWithDialog(const Deps& d, QWidget* parent)
 
     // ダイアログを生成してユーザに選択してもらう
     KifuAnalysisDialog dlg(parent);
+    
+    // 最大手数を設定（終局指し手を除外）
+    int maxPly = static_cast<int>(d.sfenRecord->size()) - 1;
+    if (d.recordModel && maxPly > 0) {
+        // 終局を示す文字列リスト
+        static const QStringList terminalKeywords = {
+            QStringLiteral("投了"), QStringLiteral("中断"), QStringLiteral("持将棋"),
+            QStringLiteral("千日手"), QStringLiteral("切れ負け"),
+            QStringLiteral("反則勝ち"), QStringLiteral("反則負け"),
+            QStringLiteral("不戦勝"), QStringLiteral("不戦敗"),
+            QStringLiteral("詰み"), QStringLiteral("不詰"),
+            QStringLiteral("入玉勝ち"), QStringLiteral("時間切れ")
+        };
+        
+        // 最終行が終局指し手かどうか確認
+        KifuDisplay* lastDisp = d.recordModel->item(d.recordModel->rowCount() - 1);
+        if (lastDisp) {
+            QString lastMove = lastDisp->currentMove();
+            for (const QString& keyword : terminalKeywords) {
+                if (lastMove.contains(keyword)) {
+                    maxPly = static_cast<int>(d.sfenRecord->size()) - 2;
+                    qDebug().noquote() << "[AnalysisFlowController::runWithDialog] terminal move detected:"
+                                       << lastMove << "-> maxPly adjusted to" << maxPly;
+                    break;
+                }
+            }
+        }
+    }
+    dlg.setMaxPly(qMax(0, maxPly));
+    
     const int result = dlg.exec();
     if (result != QDialog::Accepted) return;
 
@@ -494,4 +648,85 @@ void AnalysisFlowController::runWithDialog(const Deps& d, QWidget* parent)
 
     // 以降は既存の start(...) に委譲（Presenter への表示や接続も start 側で実施）
     start(actualDeps, &dlg);
+}
+
+void AnalysisFlowController::onResultRowDoubleClicked_(int row)
+{
+    qDebug().noquote() << "[AnalysisFlowController::onResultRowDoubleClicked_] row=" << row;
+    
+    if (!m_analysisModel) {
+        qDebug().noquote() << "[AnalysisFlowController::onResultRowDoubleClicked_] m_analysisModel is null";
+        return;
+    }
+    
+    if (row < 0 || row >= m_analysisModel->rowCount()) {
+        qDebug().noquote() << "[AnalysisFlowController::onResultRowDoubleClicked_] row out of range";
+        return;
+    }
+    
+    // KifuAnalysisResultsDisplayから読み筋を取得
+    KifuAnalysisResultsDisplay* item = m_analysisModel->item(row);
+    if (!item) {
+        qDebug().noquote() << "[AnalysisFlowController::onResultRowDoubleClicked_] item is null";
+        return;
+    }
+    
+    QString kanjiPv = item->principalVariation();
+    qDebug().noquote() << "[AnalysisFlowController::onResultRowDoubleClicked_] kanjiPv=" << kanjiPv.left(50);
+    
+    if (kanjiPv.isEmpty()) {
+        qDebug().noquote() << "[AnalysisFlowController::onResultRowDoubleClicked_] kanjiPv is empty";
+        return;
+    }
+    
+    // 局面SFENを取得（itemから）
+    QString baseSfen = item->sfen();
+    if (baseSfen.isEmpty()) {
+        // フォールバック: m_sfenRecordから取得
+        if (m_sfenRecord && row < m_sfenRecord->size()) {
+            baseSfen = m_sfenRecord->at(row);
+            // "position sfen ..."形式の場合は除去
+            if (baseSfen.startsWith(QStringLiteral("position sfen "))) {
+                baseSfen = baseSfen.mid(14);
+            } else if (baseSfen.startsWith(QStringLiteral("position "))) {
+                baseSfen = baseSfen.mid(9);
+            }
+        }
+    }
+    if (baseSfen.isEmpty()) {
+        baseSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+    }
+    qDebug().noquote() << "[AnalysisFlowController::onResultRowDoubleClicked_] baseSfen=" << baseSfen.left(50);
+    
+    // USI形式の読み筋を取得（itemから）
+    QString usiPvStr = item->usiPv();
+    QStringList usiMoves;
+    if (!usiPvStr.isEmpty()) {
+        usiMoves = usiPvStr.split(' ', Qt::SkipEmptyParts);
+        qDebug().noquote() << "[AnalysisFlowController::onResultRowDoubleClicked_] usiMoves from item:" << usiMoves;
+    }
+    
+    // PvBoardDialogを表示
+    QWidget* parentWidget = nullptr;
+    if (m_presenter && m_presenter->dialog()) {
+        parentWidget = m_presenter->dialog();
+    }
+    
+    PvBoardDialog* dlg = new PvBoardDialog(baseSfen, usiMoves, parentWidget);
+    dlg->setKanjiPv(kanjiPv);
+    
+    // 対局者名を設定（Depsから取得した名前を使用）
+    QString blackName = m_blackPlayerName.isEmpty() ? tr("先手") : m_blackPlayerName;
+    QString whiteName = m_whitePlayerName.isEmpty() ? tr("後手") : m_whitePlayerName;
+    dlg->setPlayerNames(blackName, whiteName);
+    
+    // 最後の指し手を設定（初期局面のハイライト用）
+    QString lastMove = item->lastUsiMove();
+    if (!lastMove.isEmpty()) {
+        qDebug().noquote() << "[AnalysisFlowController::onResultRowDoubleClicked_] setting lastMove:" << lastMove;
+        dlg->setLastMove(lastMove);
+    }
+    
+    dlg->setAttribute(Qt::WA_DeleteOnClose);
+    dlg->show();
 }

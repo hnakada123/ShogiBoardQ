@@ -163,6 +163,9 @@ void DialogCoordinator::showKifuAnalysisDialog(const KifuAnalysisParams& params)
     d.thinkingModel = m_thinkingModel;
     d.gameController = params.gameController;  // 盤面情報取得用
     d.activePly = params.activePly;
+    d.blackPlayerName = params.blackPlayerName;
+    d.whitePlayerName = params.whitePlayerName;
+    d.usiMoves = params.usiMoves;
     d.displayError = [this](const QString& msg) { showFlowError(msg); };
 
     m_analysisFlow->runWithDialog(d, m_parentWidget);
