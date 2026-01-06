@@ -11,6 +11,7 @@
 #include <QDebug>
 #include <QRegularExpression>
 #include <QCloseEvent>
+#include <QWheelEvent>
 
 // 前方宣言: SFENからUSI形式の手を盤面に適用する静的ヘルパー
 static void applyUsiMoveToBoard(ShogiBoard* board, const QString& usiMove, bool isBlackToMove);
@@ -163,10 +164,15 @@ void PvBoardDialog::buildUi()
     m_board = new ShogiBoard(9, 9, this);
     m_shogiView = new ShogiView(this);
     m_shogiView->setMouseClickMode(false);  // クリック操作は無効
+    m_shogiView->setNameFontScale(0.30);    // GUI本体と同じフォントスケールを設定
     
     // 駒画像を読み込んでから盤を設定
     m_shogiView->setPieces();
     m_shogiView->setBoard(m_board);
+    
+    // ShogiViewのCtrl+ホイールイベントを横取りして、ダイアログ側で処理する
+    // これにより、盤サイズ変更とダイアログサイズ調整を同期的に行える
+    m_shogiView->installEventFilter(this);
     
     // 時計ラベルは後でhideClockLabels()で非表示にする
     // 対局者名はShogiViewのメソッドを使用（マーク付き表示）
@@ -326,6 +332,26 @@ void PvBoardDialog::onReduceBoard()
         // ダイアログのサイズも調整
         adjustSize();
     }
+}
+
+bool PvBoardDialog::eventFilter(QObject* watched, QEvent* event)
+{
+    // ShogiViewのCtrl+ホイールイベントを横取りして処理
+    if (watched == m_shogiView && event->type() == QEvent::Wheel) {
+        QWheelEvent* wheelEvent = static_cast<QWheelEvent*>(event);
+        if (wheelEvent->modifiers() & Qt::ControlModifier) {
+            const int delta = wheelEvent->angleDelta().y();
+            if (delta > 0) {
+                // 上方向スクロール → 拡大
+                onEnlargeBoard();
+            } else if (delta < 0) {
+                // 下方向スクロール → 縮小
+                onReduceBoard();
+            }
+            return true;  // イベントを消費（ShogiViewには渡さない）
+        }
+    }
+    return QDialog::eventFilter(watched, event);
 }
 
 void PvBoardDialog::hideClockLabels()
