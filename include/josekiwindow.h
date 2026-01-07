@@ -59,6 +59,13 @@ public:
      */
     void setHumanCanPlay(bool canPlay);
 
+signals:
+    /**
+     * @brief 定跡手が選択されたときに発行されるシグナル
+     * @param usiMove USI形式の指し手（例："7g7f", "P*5e"）
+     */
+    void josekiMoveSelected(const QString &usiMove);
+
 public slots:
     /**
      * @brief 「開く」ボタンがクリックされたときのスロット
@@ -74,6 +81,12 @@ public slots:
      * @brief フォントサイズを縮小する
      */
     void onFontSizeDecrease();
+
+private slots:
+    /**
+     * @brief 「着手」ボタンがクリックされたときのスロット
+     */
+    void onPlayButtonClicked();
 
 protected:
     /**
@@ -161,6 +174,9 @@ private:
     QString       m_currentSfen;       ///< 現在の局面のSFEN
     int           m_fontSize;          ///< 現在のフォントサイズ
     bool          m_humanCanPlay;      ///< 人間が着手可能かどうか
+    
+    /// 現在表示中の定跡手リスト（着手ボタンから参照）
+    QVector<JosekiMove> m_currentMoves;
 
     /// 定跡データ（SFEN → エントリリスト）
     QMap<QString, QVector<JosekiMove>> m_josekiData;

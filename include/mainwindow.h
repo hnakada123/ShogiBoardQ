@@ -255,6 +255,9 @@ private slots:
 
     // 移動要求
     void onMoveRequested_(const QPoint& from, const QPoint& to);
+    
+    // 定跡手着手
+    void onJosekiMoveSelected(const QString& usiMove);
 
     // リプレイ
     void setReplayMode(bool on);
