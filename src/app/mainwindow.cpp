@@ -89,6 +89,7 @@
 #include "positioneditcoordinator.h"    // ★ 追加: 局面編集調整
 #include "csagamedialog.h"              // ★ 追加: CSA通信対局ダイアログ
 #include "csagamecoordinator.h"         // ★ 追加: CSA通信対局コーディネータ
+#include "josekiwindow.h"               // ★ 追加: 定跡ウィンドウ
 
 using std::placeholders::_1;
 using std::placeholders::_2;
@@ -796,6 +797,39 @@ void MainWindow::displayConsiderationDialog()
 
 // 詰み探索ダイアログを表示する。
 // CSA通信対局ダイアログを表示する。
+void MainWindow::displayJosekiWindow()
+{
+    // 定跡ウィンドウが未作成の場合は作成する
+    if (!m_josekiWindow) {
+        m_josekiWindow = new JosekiWindow(this);
+    }
+
+    // ウィンドウを表示する（独立ウィンドウとして）
+    m_josekiWindow->show();
+    m_josekiWindow->raise();
+    m_josekiWindow->activateWindow();
+    
+    // 現在の局面のSFENを設定（show後に呼ぶ）
+    m_josekiWindow->setCurrentSfen(m_currentSfenStr);
+}
+
+void MainWindow::updateJosekiWindow()
+{
+    qDebug() << "[JosekiWindow] updateJosekiWindow() called, m_josekiWindow=" << m_josekiWindow;
+    
+    // 定跡ウィンドウが存在し、表示されている場合のみ更新
+    if (!m_josekiWindow || !m_josekiWindow->isVisible()) {
+        qDebug() << "[JosekiWindow] updateJosekiWindow: window not visible, skipping";
+        return;
+    }
+
+    qDebug() << "[JosekiWindow] updateJosekiWindow: updating with SFEN=" << m_currentSfenStr;
+    
+    // 現在の局面のSFENを定跡ウィンドウに設定
+    // m_currentSfenStrはGUIで保持している現在の局面のSFEN文字列
+    m_josekiWindow->setCurrentSfen(m_currentSfenStr);
+}
+
 void MainWindow::displayCsaGameDialog()
 {
     // ダイアログが未作成の場合は作成する
@@ -1610,6 +1644,15 @@ void MainWindow::applyResolvedRowAndSelect(int row, int selPly)
 
     // ★ 追加：盤面適用後に手番表示を更新
     setCurrentTurn();
+    
+    // m_currentSfenStrを選択した局面に更新
+    if (m_sfenRecord && selPly >= 0 && selPly < m_sfenRecord->size()) {
+        m_currentSfenStr = m_sfenRecord->at(selPly);
+        qDebug() << "[JosekiWindow] applyResolvedRowAndSelect: row=" << row << "selPly=" << selPly << "sfen=" << m_currentSfenStr;
+    }
+    
+    // 定跡ウィンドウを更新
+    updateJosekiWindow();
 }
 
 void MainWindow::BranchRowDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const
@@ -1728,6 +1771,15 @@ void MainWindow::applySelect(int row, int ply)
     if (m_recordNavController) {
         m_recordNavController->applySelect(row, ply);
     }
+    
+    // m_currentSfenStrを選択した局面に更新
+    if (m_sfenRecord && ply >= 0 && ply < m_sfenRecord->size()) {
+        m_currentSfenStr = m_sfenRecord->at(ply);
+        qDebug() << "[JosekiWindow] applySelect: row=" << row << "ply=" << ply << "sfen=" << m_currentSfenStr;
+    }
+    
+    // 定跡ウィンドウを更新
+    updateJosekiWindow();
 }
 
 void MainWindow::setupRecordPane()
@@ -2123,6 +2175,19 @@ void MainWindow::onMoveCommitted(ShogiGameController::Player mover, int ply)
         m_boardSetupController->setPlayMode(m_playMode);
         m_boardSetupController->onMoveCommitted(mover, ply);
     }
+    
+    // m_currentSfenStrを現在の局面に更新
+    // m_sfenRecordの最新のSFENを取得（plyはタイミングの問題で信頼できない）
+    if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
+        // 最新のSFENを取得
+        m_currentSfenStr = m_sfenRecord->last();
+        qDebug() << "[JosekiWindow] onMoveCommitted: ply=" << ply 
+                 << "sfenRecord.size()=" << m_sfenRecord->size()
+                 << "using last sfen=" << m_currentSfenStr;
+    }
+    
+    // 定跡ウィンドウを更新
+    updateJosekiWindow();
 }
 
 void MainWindow::flipBoardAndUpdatePlayerInfo()

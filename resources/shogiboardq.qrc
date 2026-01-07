@@ -63,5 +63,6 @@
         <file>translations/ShogiBoardQ_ja_JP.ts</file>
         <file>images/icons/owari.png</file>
         <file>images/icons/tsuu.png</file>
+        <file>images/icons/jyoseki.png</file>
     </qresource>
 </RCC>

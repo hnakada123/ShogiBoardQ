@@ -102,6 +102,7 @@ class RecordNavigationController;
 class PositionEditCoordinator;
 class CsaGameDialog;
 class CsaGameCoordinator;
+class JosekiWindow;
 
 // ============================================================
 // MainWindow
@@ -198,6 +199,8 @@ public slots:
     void onKifuAnalysisProgress(int ply, int scoreCp);  // 棋譜解析進捗
     void displayTsumeShogiSearchDialog();
     void displayCsaGameDialog();
+    void displayJosekiWindow();
+    void updateJosekiWindow();  // 定跡ウィンドウの更新
 
     // その他操作
     void toggleEngineAnalysisVisibility();
@@ -335,6 +338,7 @@ private:
     TsumeShogiSearchDialog*  m_tsumeShogiSearchDialog = nullptr;
     KifuAnalysisDialog*      m_analyzeGameRecordDialog = nullptr;
     CsaGameDialog*           m_csaGameDialog = nullptr;
+    JosekiWindow*            m_josekiWindow = nullptr;
 
     // CSA通信対局コーディネータ
     CsaGameCoordinator*      m_csaGameCoordinator = nullptr;

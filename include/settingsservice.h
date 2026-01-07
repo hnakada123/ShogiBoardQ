@@ -127,6 +127,22 @@ int kifuAnalysisEndPly();
 // 解析範囲: 終了手数を保存
 void setKifuAnalysisEndPly(int ply);
 
+// ★ 追加: 定跡ウィンドウの設定
+// 定跡ウィンドウのフォントサイズを取得（デフォルト: 10）
+int josekiWindowFontSize();
+// 定跡ウィンドウのフォントサイズを保存
+void setJosekiWindowFontSize(int size);
+
+// 定跡ウィンドウの最後に開いた定跡ファイルパスを取得
+QString josekiWindowLastFilePath();
+// 定跡ウィンドウの最後に開いた定跡ファイルパスを保存
+void setJosekiWindowLastFilePath(const QString& path);
+
+// 定跡ウィンドウのサイズを取得（デフォルト: 800x500）
+QSize josekiWindowSize();
+// 定跡ウィンドウのサイズを保存
+void setJosekiWindowSize(const QSize& size);
+
 } // namespace SettingsService
 
 #endif // SETTINGSSERVICE_H
