@@ -368,10 +368,14 @@ void JosekiWindow::updateJosekiDisplay()
     if (!m_josekiData.contains(normalizedSfen)) {
         // 一致する定跡がない場合は空のテーブルを表示
         qDebug() << "[JosekiWindow] No match found for current position";
+        m_currentMoves.clear();
         return;
     }
     
     const QVector<JosekiMove> &moves = m_josekiData[normalizedSfen];
+    
+    // 現在表示中の定跡手リストを保存
+    m_currentMoves = moves;
     
     qDebug() << "[JosekiWindow] Found" << moves.size() << "moves for this position";
     
@@ -417,6 +421,7 @@ void JosekiWindow::updateJosekiDisplay()
                 "  background-color: #2a5f8f;"
                 "}"
             ));
+            connect(playButton, &QPushButton::clicked, this, &JosekiWindow::onPlayButtonClicked);
             m_tableWidget->setCellWidget(i, 1, playButton);
         }
         // m_humanCanPlayがfalseの場合、セルは空のまま
@@ -510,6 +515,33 @@ void JosekiWindow::updateJosekiDisplay()
 void JosekiWindow::clearTable()
 {
     m_tableWidget->setRowCount(0);
+    m_currentMoves.clear();
+}
+
+void JosekiWindow::onPlayButtonClicked()
+{
+    // クリックされたボタンを取得
+    QPushButton *button = qobject_cast<QPushButton*>(sender());
+    if (!button) {
+        qDebug() << "[JosekiWindow] onPlayButtonClicked: sender is not a QPushButton";
+        return;
+    }
+    
+    // ボタンに設定された行番号を取得
+    bool ok;
+    int row = button->property("row").toInt(&ok);
+    if (!ok || row < 0 || row >= m_currentMoves.size()) {
+        qDebug() << "[JosekiWindow] onPlayButtonClicked: invalid row" << row;
+        return;
+    }
+    
+    // 該当する定跡手を取得
+    const JosekiMove &move = m_currentMoves[row];
+    
+    qDebug() << "[JosekiWindow] onPlayButtonClicked: row=" << row << "usiMove=" << move.move;
+    
+    // シグナルを発行して指し手をMainWindowに通知
+    emit josekiMoveSelected(move.move);
 }
 
 // 全角数字と漢数字のテーブル

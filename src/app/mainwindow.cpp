@@ -802,6 +802,10 @@ void MainWindow::displayJosekiWindow()
     // 定跡ウィンドウが未作成の場合は作成する
     if (!m_josekiWindow) {
         m_josekiWindow = new JosekiWindow(this);
+        
+        // 定跡手選択シグナルを接続
+        connect(m_josekiWindow, &JosekiWindow::josekiMoveSelected,
+                this, &MainWindow::onJosekiMoveSelected);
     }
 
     // ウィンドウを表示する（独立ウィンドウとして）
@@ -2147,6 +2151,79 @@ void MainWindow::onMoveRequested_(const QPoint& from, const QPoint& to)
         m_boardSetupController->setTimeController(m_timeController);
         m_boardSetupController->onMoveRequested(from, to);
     }
+}
+
+void MainWindow::onJosekiMoveSelected(const QString& usiMove)
+{
+    qDebug() << "[JosekiWindow] onJosekiMoveSelected: usiMove=" << usiMove;
+    
+    if (usiMove.isEmpty()) {
+        qDebug() << "[JosekiWindow] onJosekiMoveSelected: empty move";
+        return;
+    }
+    
+    // USI形式の指し手をfrom/toのQPointに変換
+    QPoint from, to;
+    bool promote = false;
+    
+    // 駒打ちのパターン: P*5e（駒種*筋段）
+    if (usiMove.size() >= 4 && usiMove.at(1) == QChar('*')) {
+        QChar pieceChar = usiMove.at(0);
+        int toFile = usiMove.at(2).toLatin1() - '0';
+        int toRank = usiMove.at(3).toLatin1() - 'a' + 1;
+        
+        // 駒打ちの場合、fromは駒台を表す特別な座標
+        // ShogiViewでは駒台はfile=0で、駒種に応じたrankを使用
+        // 先手の駒台は上側、後手は下側だが、ここでは手番に関わらず適切な処理が必要
+        // SfenPositionTracer::dropFromSquare を参照
+        
+        // 簡易的に、先手の駒台を表す座標を使用（実際の実装はShogiViewに依存）
+        // 駒台の座標体系を確認する必要があるが、まずは盤面のファイル/ランクを使用
+        
+        // 駒打ちはfromのx座標を0にして駒種を表す
+        // 駒種: P=1, L=2, N=3, S=4, G=5, B=6, R=7
+        int pieceType = 0;
+        switch (pieceChar.toUpper().toLatin1()) {
+        case 'P': pieceType = 1; break;
+        case 'L': pieceType = 2; break;
+        case 'N': pieceType = 3; break;
+        case 'S': pieceType = 4; break;
+        case 'G': pieceType = 5; break;
+        case 'B': pieceType = 6; break;
+        case 'R': pieceType = 7; break;
+        default: pieceType = 0; break;
+        }
+        
+        // 駒打ちの場合、fromは駒台（x=0, y=駒種）
+        from = QPoint(0, pieceType);
+        to = QPoint(toFile, toRank);
+        
+        qDebug() << "[JosekiWindow] Drop move: piece=" << pieceChar << "to=" << to;
+    }
+    // 通常移動のパターン: 7g7f または 7g7f+
+    else if (usiMove.size() >= 4) {
+        int fromFile = usiMove.at(0).toLatin1() - '0';
+        int fromRank = usiMove.at(1).toLatin1() - 'a' + 1;
+        int toFile = usiMove.at(2).toLatin1() - '0';
+        int toRank = usiMove.at(3).toLatin1() - 'a' + 1;
+        promote = (usiMove.size() >= 5 && usiMove.at(4) == QChar('+'));
+        
+        from = QPoint(fromFile, fromRank);
+        to = QPoint(toFile, toRank);
+        
+        qDebug() << "[JosekiWindow] Normal move: from=" << from << "to=" << to << "promote=" << promote;
+    }
+    else {
+        qDebug() << "[JosekiWindow] onJosekiMoveSelected: invalid move format";
+        return;
+    }
+    
+    // 成りの場合は別途処理が必要（onMoveRequested_では成りの判定がされるが、
+    // 強制的に成りを指定する場合は追加の処理が必要かもしれない）
+    // TODO: 成りの強制指定が必要な場合は、m_boardSetupController経由で設定する
+    
+    // 指し手を実行
+    onMoveRequested_(from, to);
 }
 
 // 再生モードの切替を ReplayController へ委譲
