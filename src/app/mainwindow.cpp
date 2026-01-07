@@ -825,6 +825,56 @@ void MainWindow::updateJosekiWindow()
 
     qDebug() << "[JosekiWindow] updateJosekiWindow: updating with SFEN=" << m_currentSfenStr;
     
+    // 人間が着手可能かどうかを判定
+    bool humanCanPlay = true;  // デフォルトは着手可能
+    
+    // SFENから手番を取得（b=先手、w=後手）
+    bool isBlackTurn = true;  // デフォルト先手
+    const QStringList sfenParts = m_currentSfenStr.split(QChar(' '));
+    if (sfenParts.size() >= 2) {
+        isBlackTurn = (sfenParts.at(1) == QStringLiteral("b"));
+    }
+    
+    // PlayModeに応じて人間の手番かどうかを判定
+    switch (m_playMode) {
+    case HumanVsHuman:
+        // 人間同士は常に着手可能
+        humanCanPlay = true;
+        break;
+    case EvenHumanVsEngine:
+    case HandicapHumanVsEngine:
+        // 先手が人間、後手がエンジン → 先手番のとき着手可能
+        humanCanPlay = isBlackTurn;
+        break;
+    case EvenEngineVsHuman:
+    case HandicapEngineVsHuman:
+        // 先手がエンジン、後手が人間 → 後手番のとき着手可能
+        humanCanPlay = !isBlackTurn;
+        break;
+    case EvenEngineVsEngine:
+    case HandicapEngineVsEngine:
+        // エンジン同士は着手不可
+        humanCanPlay = false;
+        break;
+    case NotStarted:
+    case AnalysisMode:
+    case ConsidarationMode:
+    case TsumiSearchMode:
+        // 対局中でない場合は着手可能（検討モード等で使用）
+        humanCanPlay = true;
+        break;
+    case CsaNetworkMode:
+        // CSA通信対局は状況に応じて判定が必要だが、とりあえず着手不可
+        humanCanPlay = false;
+        break;
+    default:
+        humanCanPlay = true;
+        break;
+    }
+    
+    // 定跡ウィンドウに設定
+    m_josekiWindow->setHumanCanPlay(humanCanPlay);
+    
     // 現在の局面のSFENを定跡ウィンドウに設定
     // m_currentSfenStrはGUIで保持している現在の局面のSFEN文字列
     m_josekiWindow->setCurrentSfen(m_currentSfenStr);

@@ -1,5 +1,6 @@
 #include "josekiwindow.h"
 #include "settingsservice.h"
+#include "sfenpositiontracer.h"
 
 #include <QFileDialog>
 #include <QHBoxLayout>
@@ -20,6 +21,7 @@ JosekiWindow::JosekiWindow(QWidget *parent)
     , m_fontDecreaseBtn(nullptr)
     , m_tableWidget(nullptr)
     , m_fontSize(10)
+    , m_humanCanPlay(true)  // デフォルトは着手可能
 {
     setupUi();
     loadSettings();
@@ -336,6 +338,15 @@ void JosekiWindow::setCurrentSfen(const QString &sfen)
     updateJosekiDisplay();
 }
 
+void JosekiWindow::setHumanCanPlay(bool canPlay)
+{
+    if (m_humanCanPlay != canPlay) {
+        m_humanCanPlay = canPlay;
+        // 表示を更新して着手ボタンの表示/非表示を反映
+        updateJosekiDisplay();
+    }
+}
+
 void JosekiWindow::updateJosekiDisplay()
 {
     qDebug() << "[JosekiWindow] updateJosekiDisplay() called";
@@ -364,6 +375,19 @@ void JosekiWindow::updateJosekiDisplay()
     
     qDebug() << "[JosekiWindow] Found" << moves.size() << "moves for this position";
     
+    // SFENから手数を取得（手番の次の手が何手目か）
+    int plyNumber = 1;  // デフォルト
+    const QStringList sfenParts = m_currentSfen.split(QChar(' '));
+    if (sfenParts.size() >= 4) {
+        bool ok;
+        plyNumber = sfenParts.at(3).toInt(&ok);
+        if (!ok) plyNumber = 1;
+    }
+    
+    // SfenPositionTracerを初期化して現在の局面をセット
+    SfenPositionTracer tracer;
+    tracer.setFromSfen(m_currentSfen);
+    
     m_tableWidget->setRowCount(static_cast<int>(moves.size()));
     
     for (int i = 0; i < moves.size(); ++i) {
@@ -374,33 +398,43 @@ void JosekiWindow::updateJosekiDisplay()
         noItem->setTextAlignment(Qt::AlignCenter);
         m_tableWidget->setItem(i, 0, noItem);
         
-        // 着手ボタン（青系の配色）
-        QPushButton *playButton = new QPushButton(tr("着手"), this);
-        playButton->setProperty("row", i);
-        playButton->setStyleSheet(QStringLiteral(
-            "QPushButton {"
-            "  background-color: #4a90d9;"
-            "  color: white;"
-            "  border: none;"
-            "  border-radius: 3px;"
-            "  padding: 2px 8px;"
-            "}"
-            "QPushButton:hover {"
-            "  background-color: #357abd;"
-            "}"
-            "QPushButton:pressed {"
-            "  background-color: #2a5f8f;"
-            "}"
-        ));
-        m_tableWidget->setCellWidget(i, 1, playButton);
+        // 着手ボタン（青系の配色）- 人間の手番の時のみ表示
+        if (m_humanCanPlay) {
+            QPushButton *playButton = new QPushButton(tr("着手"), this);
+            playButton->setProperty("row", i);
+            playButton->setStyleSheet(QStringLiteral(
+                "QPushButton {"
+                "  background-color: #4a90d9;"
+                "  color: white;"
+                "  border: none;"
+                "  border-radius: 3px;"
+                "  padding: 2px 8px;"
+                "}"
+                "QPushButton:hover {"
+                "  background-color: #357abd;"
+                "}"
+                "QPushButton:pressed {"
+                "  background-color: #2a5f8f;"
+                "}"
+            ));
+            m_tableWidget->setCellWidget(i, 1, playButton);
+        }
+        // m_humanCanPlayがfalseの場合、セルは空のまま
         
-        // 定跡手
-        QTableWidgetItem *moveItem = new QTableWidgetItem(move.move);
+        // 定跡手（日本語表記に変換）
+        // tracerは現在局面をセットしているので、そのまま使用
+        QString moveJapanese = usiMoveToJapanese(move.move, plyNumber, tracer);
+        QTableWidgetItem *moveItem = new QTableWidgetItem(moveJapanese);
         moveItem->setTextAlignment(Qt::AlignCenter);
         m_tableWidget->setItem(i, 2, moveItem);
         
-        // 予想応手（次の指し手）
-        QTableWidgetItem *nextMoveItem = new QTableWidgetItem(move.nextMove);
+        // 予想応手（次の指し手）を日本語表記に変換
+        // 予想応手は定跡手を指した後の局面から変換する必要がある
+        SfenPositionTracer nextTracer;
+        nextTracer.setFromSfen(m_currentSfen);
+        nextTracer.applyUsiMove(move.move);  // 定跡手を適用
+        QString nextMoveJapanese = usiMoveToJapanese(move.nextMove, plyNumber + 1, nextTracer);
+        QTableWidgetItem *nextMoveItem = new QTableWidgetItem(nextMoveJapanese);
         nextMoveItem->setTextAlignment(Qt::AlignCenter);
         m_tableWidget->setItem(i, 3, nextMoveItem);
         
@@ -476,4 +510,90 @@ void JosekiWindow::updateJosekiDisplay()
 void JosekiWindow::clearTable()
 {
     m_tableWidget->setRowCount(0);
+}
+
+// 全角数字と漢数字のテーブル
+static const QString kZenkakuDigits = QStringLiteral(" １２３４５６７８９");  // インデックス1-9
+static const QString kKanjiRanks = QStringLiteral(" 一二三四五六七八九");    // インデックス1-9
+
+QString JosekiWindow::pieceToKanji(QChar pieceChar, bool promoted)
+{
+    switch (pieceChar.toUpper().toLatin1()) {
+    case 'P': return promoted ? QStringLiteral("と") : QStringLiteral("歩");
+    case 'L': return promoted ? QStringLiteral("杏") : QStringLiteral("香");
+    case 'N': return promoted ? QStringLiteral("圭") : QStringLiteral("桂");
+    case 'S': return promoted ? QStringLiteral("全") : QStringLiteral("銀");
+    case 'G': return QStringLiteral("金");
+    case 'B': return promoted ? QStringLiteral("馬") : QStringLiteral("角");
+    case 'R': return promoted ? QStringLiteral("龍") : QStringLiteral("飛");
+    case 'K': return QStringLiteral("玉");
+    default: return QStringLiteral("?");
+    }
+}
+
+QString JosekiWindow::usiMoveToJapanese(const QString &usiMove, int plyNumber, SfenPositionTracer &tracer) const
+{
+    if (usiMove.isEmpty()) return QString();
+
+    // 手番記号（奇数手=先手▲、偶数手=後手△）
+    QString teban = (plyNumber % 2 != 0) ? QStringLiteral("▲") : QStringLiteral("△");
+
+    // 駒打ちのパターン: P*7f
+    if (usiMove.size() >= 4 && usiMove.at(1) == QChar('*')) {
+        QChar pieceChar = usiMove.at(0);
+        int toFile = usiMove.at(2).toLatin1() - '0';
+        int toRank = usiMove.at(3).toLatin1() - 'a' + 1;
+
+        QString kanji = pieceToKanji(pieceChar);
+
+        QString result = teban;
+        if (toFile >= 1 && toFile <= 9) result += kZenkakuDigits.at(toFile);
+        if (toRank >= 1 && toRank <= 9) result += kKanjiRanks.at(toRank);
+        result += kanji + QStringLiteral("打");
+
+        return result;
+    }
+
+    // 通常移動のパターン: 7g7f, 7g7f+
+    if (usiMove.size() >= 4) {
+        int fromFile = usiMove.at(0).toLatin1() - '0';
+        QChar fromRankLetter = usiMove.at(1);
+        int fromRank = fromRankLetter.toLatin1() - 'a' + 1;
+        int toFile = usiMove.at(2).toLatin1() - '0';
+        int toRank = usiMove.at(3).toLatin1() - 'a' + 1;
+        bool promotes = (usiMove.size() >= 5 && usiMove.at(4) == QChar('+'));
+
+        // 範囲チェック
+        if (fromFile < 1 || fromFile > 9 || fromRank < 1 || fromRank > 9 ||
+            toFile < 1 || toFile > 9 || toRank < 1 || toRank > 9) {
+            return teban + usiMove;  // 変換できない場合はそのまま
+        }
+
+        // 移動元の駒を取得
+        QString pieceToken = tracer.tokenAtFileRank(fromFile, fromRankLetter);
+        bool isPromoted = pieceToken.startsWith(QChar('+'));
+        QChar pieceChar = isPromoted ? pieceToken.at(1) : (pieceToken.isEmpty() ? QChar('?') : pieceToken.at(0));
+
+        QString result = teban;
+
+        // 移動先
+        if (toFile >= 1 && toFile <= 9) result += kZenkakuDigits.at(toFile);
+        if (toRank >= 1 && toRank <= 9) result += kKanjiRanks.at(toRank);
+
+        // 駒種
+        QString kanji = pieceToKanji(pieceChar, isPromoted);
+        result += kanji;
+
+        // 成り
+        if (promotes) {
+            result += QStringLiteral("成");
+        }
+
+        // 移動元
+        result += QStringLiteral("(") + QString::number(fromFile) + QString::number(fromRank) + QStringLiteral(")");
+
+        return result;
+    }
+
+    return teban + usiMove;  // 変換できない場合はそのまま
 }
