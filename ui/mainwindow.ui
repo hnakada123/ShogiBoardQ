@@ -85,16 +85,14 @@
     <addaction name="actionEnlargeBoard"/>
     <addaction name="actionShrinkBoard"/>
     <addaction name="separator"/>
-    <addaction name="actionToggleEngineAnalysis"/>
-    <addaction name="usiProtocolCommunicationLog"/>
-    <addaction name="separator"/>
+    <addaction name="actionStandardMove"/>
    </widget>
    <widget class="QMenu" name="Game">
     <property name="title">
      <string>対局(G)</string>
     </property>
     <addaction name="actionStartGame"/>
-    <addaction name="action_CSA"/>
+    <addaction name="actionCSA"/>
     <addaction name="actionConsideration"/>
     <addaction name="separator"/>
     <addaction name="actionResign"/>
@@ -108,14 +106,6 @@
     <addaction name="separator"/>
     <addaction name="actionTsumeShogiSearch"/>
     <addaction name="separator"/>
-   </widget>
-   <widget class="QMenu" name="standardMove">
-    <property name="title">
-     <string>定跡(M)</string>
-    </property>
-    <addaction name="openFile"/>
-    <addaction name="saveFile"/>
-    <addaction name="saveFileAsNamedStandardMove"/>
    </widget>
    <widget class="QMenu" name="Tool">
     <property name="title">
@@ -146,7 +136,6 @@
    <addaction name="Edit"/>
    <addaction name="Display"/>
    <addaction name="Game"/>
-   <addaction name="standardMove"/>
    <addaction name="Tool"/>
    <addaction name="Help"/>
   </widget>
@@ -175,6 +164,7 @@
    <addaction name="actionFlipBoard"/>
    <addaction name="actionEnlargeBoard"/>
    <addaction name="actionShrinkBoard"/>
+   <addaction name="actionCSA"/>
   </widget>
   <action name="actionSave">
    <property name="icon">
@@ -744,7 +734,11 @@
     <string>USEN</string>
    </property>
   </action>
-  <action name="action_CSA">
+  <action name="actionCSA">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/tsuu.png</normaloff>:/images/icons/tsuu.png</iconset>
+   </property>
    <property name="text">
     <string>通信対局（CSA）</string>
    </property>
@@ -752,6 +746,11 @@
   <action name="actionCacelAnalyzeKifu">
    <property name="text">
     <string>棋譜解析中止</string>
+   </property>
+  </action>
+  <action name="actionStandardMove">
+   <property name="text">
+    <string>定跡ウィンドウ</string>
    </property>
   </action>
  </widget>

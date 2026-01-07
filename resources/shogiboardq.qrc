@@ -58,19 +58,10 @@
         <file>images/icons/taikyoku.png</file>
         <file>images/icons/touryou.png</file>
         <file>images/icons/tsumi.png</file>
-        <file alias="icons/gtk-media-play-ltr.png">images/icons/gtk-media-play-ltr.png</file>
-        <file alias="icons/gtk-media-next-ltr.png">images/icons/gtk-media-next-ltr.png</file>
-        <file alias="icons/gtk-media-forward-ltr.png">images/icons/gtk-media-forward-ltr.png</file>
-        <file alias="icons/gtk-media-forward-rtl.png">images/icons/gtk-media-forward-rtl.png</file>
-        <file alias="icons/gtk-media-next-rtl.png">images/icons/gtk-media-next-rtl.png</file>
-        <file alias="icons/gtk-media-pause.png">images/icons/gtk-media-pause.png</file>
-        <file alias="icons/gtk-media-previous-ltr.png">images/icons/gtk-media-previous-ltr.png</file>
-        <file alias="icons/gtk-media-previous-rtl.png">images/icons/gtk-media-previous-rtl.png</file>
-        <file alias="icons/gtk-media-stop.png">images/icons/gtk-media-stop.png</file>
-        <file alias="icons/gtk-media-play-rtr.png">images/icons/gtk-media-play-rtr.png</file>
         <file>images/icons/shou.png</file>
         <file>images/icons/dai.png</file>
         <file>translations/ShogiBoardQ_ja_JP.ts</file>
         <file>images/icons/owari.png</file>
+        <file>images/icons/tsuu.png</file>
     </qresource>
 </RCC>
