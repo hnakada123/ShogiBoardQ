@@ -380,4 +380,52 @@ void setKifuAnalysisEndPly(int ply)
     s.setValue("KifuAnalysis/endPly", ply);
 }
 
+// ★ 追加: 定跡ウィンドウのフォントサイズを取得
+int josekiWindowFontSize()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("JosekiWindow/fontSize", 10).toInt();
+}
+
+// ★ 追加: 定跡ウィンドウのフォントサイズを保存
+void setJosekiWindowFontSize(int size)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("JosekiWindow/fontSize", size);
+}
+
+// ★ 追加: 定跡ウィンドウの最後に開いた定跡ファイルパスを取得
+QString josekiWindowLastFilePath()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("JosekiWindow/lastFilePath", QString()).toString();
+}
+
+// ★ 追加: 定跡ウィンドウの最後に開いた定跡ファイルパスを保存
+void setJosekiWindowLastFilePath(const QString& path)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("JosekiWindow/lastFilePath", path);
+}
+
+// ★ 追加: 定跡ウィンドウのサイズを取得
+QSize josekiWindowSize()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("JosekiWindow/size", QSize(800, 500)).toSize();
+}
+
+// ★ 追加: 定跡ウィンドウのサイズを保存
+void setJosekiWindowSize(const QSize& size)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("JosekiWindow/size", size);
+}
+
 } // namespace SettingsService

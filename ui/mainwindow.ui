@@ -165,6 +165,7 @@
    <addaction name="actionEnlargeBoard"/>
    <addaction name="actionShrinkBoard"/>
    <addaction name="actionCSA"/>
+   <addaction name="actionStandardMove"/>
   </widget>
   <action name="actionSave">
    <property name="icon">
@@ -192,7 +193,7 @@
   </action>
   <action name="importRecordWeb">
    <property name="text">
-    <string>&amp;Webから棋譜を取り込み</string>
+    <string>Webから棋譜を取り込み</string>
    </property>
   </action>
   <action name="actionSaveBoardImage">
@@ -295,7 +296,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>&amp;USIプロトコル通信ログ</string>
+    <string>USIプロトコル通信ログ</string>
    </property>
   </action>
   <action name="action_33">
@@ -749,6 +750,10 @@
    </property>
   </action>
   <action name="actionStandardMove">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/jyoseki.png</normaloff>:/images/icons/jyoseki.png</iconset>
+   </property>
    <property name="text">
     <string>定跡ウィンドウ</string>
    </property>
