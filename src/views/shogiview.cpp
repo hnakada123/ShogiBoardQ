@@ -1799,7 +1799,6 @@ int ShogiView::squareSize() const
 // emitSignal=falseの場合、fieldSizeChangedシグナルを発火しない
 void ShogiView::enlargeBoard(bool emitSignal)
 {
-    qDebug() << "[DEBUG] ShogiView::enlargeBoard called, emitSignal=" << emitSignal;
     if (m_squareSize >= 150) {
         return;
     }
@@ -1814,7 +1813,6 @@ void ShogiView::enlargeBoard(bool emitSignal)
     
     // シグナルを発火（recalcLayoutParams()でm_fieldSizeが更新済み）
     if (emitSignal) {
-        qDebug() << "[DEBUG] ShogiView::enlargeBoard - emitting fieldSizeChanged";
         emit fieldSizeChanged(m_fieldSize);
     }
     
@@ -1827,7 +1825,6 @@ void ShogiView::enlargeBoard(bool emitSignal)
 // emitSignal=falseの場合、fieldSizeChangedシグナルを発火しない
 void ShogiView::reduceBoard(bool emitSignal)
 {
-    qDebug() << "[DEBUG] ShogiView::reduceBoard called, emitSignal=" << emitSignal;
     if (m_squareSize <= 20) {
         return;
     }
@@ -1842,7 +1839,6 @@ void ShogiView::reduceBoard(bool emitSignal)
     
     // シグナルを発火（recalcLayoutParams()でm_fieldSizeが更新済み）
     if (emitSignal) {
-        qDebug() << "[DEBUG] ShogiView::reduceBoard - emitting fieldSizeChanged";
         emit fieldSizeChanged(m_fieldSize);
     }
     
@@ -2176,7 +2172,6 @@ void ShogiView::wheelEvent(QWheelEvent* e)
 {
     // Ctrlキーが押されている場合のみ拡大縮小
     if (e->modifiers() & Qt::ControlModifier) {
-        qDebug() << "[DEBUG] ShogiView::wheelEvent - Ctrl+Wheel received (should NOT appear if eventFilter works)";
         const int delta = e->angleDelta().y();
         if (delta > 0) {
             // 上方向スクロール → 拡大

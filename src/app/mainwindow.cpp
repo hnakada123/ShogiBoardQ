@@ -1297,23 +1297,17 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event)
     if (watched == m_shogiView && event->type() == QEvent::Wheel) {
         QWheelEvent* wheelEvent = static_cast<QWheelEvent*>(event);
         if (wheelEvent->modifiers() & Qt::ControlModifier) {
-            qDebug() << "[DEBUG] MainWindow::eventFilter - Ctrl+Wheel captured";
             const int delta = wheelEvent->angleDelta().y();
             if (delta > 0) {
                 // 上方向スクロール → 拡大
                 // シグナル発火を抑制して同期的に処理
-                qDebug() << "[DEBUG] MainWindow::eventFilter - calling enlargeBoard(false)";
                 m_shogiView->enlargeBoard(false);
             } else if (delta < 0) {
                 // 下方向スクロール → 縮小
                 // シグナル発火を抑制して同期的に処理
-                qDebug() << "[DEBUG] MainWindow::eventFilter - calling reduceBoard(false)";
                 m_shogiView->reduceBoard(false);
             }
-            // 評価値グラフの高さ調整は一時的に無効化（ちらつきテスト用）
-            // if (m_evalChartResizeTimer) {
-            //     m_evalChartResizeTimer->start(100);  // 100ms後に実行
-            // }
+            // 評価値グラフの高さ自動調整は無効（QSplitterのリサイズがちらつきの原因となるため）
             return true;  // イベントを消費（ShogiViewには渡さない）
         }
     }
