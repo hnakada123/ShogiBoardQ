@@ -157,13 +157,17 @@ void UsiProtocolHandler::loadEngineOptions(const QString& engineName)
         QString value = settings.value("value").toString();
         QString type = settings.value("type").toString();
 
-        if (type == "button" && value == "on") {
-            m_setOptionCommands.append("setoption name " + name);
+        if (type == QLatin1String("button")) {
+            // buttonタイプは"on"の場合のみvalueなしで送信
+            if (value == QLatin1String("on")) {
+                m_setOptionCommands.append("setoption name " + name);
+            }
+            // "on"でない場合はコマンドを送信しない
         } else {
             m_setOptionCommands.append("setoption name " + name + " value " + value);
 
-            if (name == "USI_Ponder") {
-                m_isPonderEnabled = (value == "true");
+            if (name == QLatin1String("USI_Ponder")) {
+                m_isPonderEnabled = (value == QLatin1String("true"));
             }
         }
     }
