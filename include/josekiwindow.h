@@ -10,6 +10,9 @@
 #include <QVector>
 #include <QCloseEvent>
 
+// 前方宣言
+class SfenPositionTracer;
+
 /**
  * @brief 定跡エントリの指し手情報
  */
@@ -49,6 +52,12 @@ public:
      * @param sfen 局面のSFEN文字列
      */
     void setCurrentSfen(const QString &sfen);
+    
+    /**
+     * @brief 人間が着手可能かどうかを設定する
+     * @param canPlay true=人間の手番で着手可能、false=エンジンの手番で着手不可
+     */
+    void setHumanCanPlay(bool canPlay);
 
 public slots:
     /**
@@ -124,6 +133,23 @@ private:
      * @brief 設定を保存する
      */
     void saveSettings();
+    
+    /**
+     * @brief USI形式の指し手を日本語表記に変換する
+     * @param usiMove USI形式の指し手（例："7g7f"）
+     * @param plyNumber 手数（奇数=先手、偶数=後手）
+     * @param tracer 現在局面をセットしたSfenPositionTracer
+     * @return 日本語表記（例："▲７六歩(77)"）
+     */
+    QString usiMoveToJapanese(const QString &usiMove, int plyNumber, SfenPositionTracer &tracer) const;
+    
+    /**
+     * @brief 駒の日本語名を取得
+     * @param pieceChar 駒文字（P, L, N, S, G, B, R, K）
+     * @param promoted 成駒かどうか
+     * @return 日本語名（歩, 香, 桂, 銀, 金, 角, 飛, 玉, と, 杏, 圭, 全, 馬, 龍）
+     */
+    static QString pieceToKanji(QChar pieceChar, bool promoted = false);
 
     QPushButton  *m_openButton;        ///< 「開く」ボタン
     QLabel       *m_filePathLabel;     ///< 選択されたファイルパスを表示するラベル
@@ -134,6 +160,7 @@ private:
     QString       m_currentFilePath;   ///< 現在選択されているファイルパス
     QString       m_currentSfen;       ///< 現在の局面のSFEN
     int           m_fontSize;          ///< 現在のフォントサイズ
+    bool          m_humanCanPlay;      ///< 人間が着手可能かどうか
 
     /// 定跡データ（SFEN → エントリリスト）
     QMap<QString, QVector<JosekiMove>> m_josekiData;
