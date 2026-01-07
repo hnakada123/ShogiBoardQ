@@ -314,7 +314,8 @@ void PvBoardDialog::onEnlargeBoard()
 {
     if (m_shogiView) {
         // ShogiView::enlargeBoard()を使用（m_squareSizeを変更してレイアウト再計算）
-        m_shogiView->enlargeBoard();
+        // シグナル発火を抑制して同期的に処理
+        m_shogiView->enlargeBoard(false);
         // 時計ラベルが再表示されるため、再度非表示にする
         hideClockLabels();
         // ダイアログのサイズも調整（sizeHintを参考に）
@@ -326,7 +327,8 @@ void PvBoardDialog::onReduceBoard()
 {
     if (m_shogiView) {
         // ShogiView::reduceBoard()を使用（m_squareSizeを変更してレイアウト再計算）
-        m_shogiView->reduceBoard();
+        // シグナル発火を抑制して同期的に処理
+        m_shogiView->reduceBoard(false);
         // 時計ラベルが再表示されるため、再度非表示にする
         hideClockLabels();
         // ダイアログのサイズも調整

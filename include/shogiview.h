@@ -196,8 +196,10 @@ public slots:
     // Q_PROPERTY 用 setter（レイアウト更新・ラベル再配置を含む）
     void setFieldSize(QSize fieldSize);
     // 盤拡大/縮小（m_squareSize を ±1）
-    void enlargeBoard();
-    void reduceBoard();
+    // emitSignal=falseの場合、fieldSizeChangedシグナルを発火しない
+    // （イベントフィルターで処理する場合に使用）
+    void enlargeBoard(bool emitSignal = true);
+    void reduceBoard(bool emitSignal = true);
 
     // 手番側の残り時間に応じて“名前/時計”の配色を切り替える
     void applyClockUrgency(qint64 activeRemainMs);

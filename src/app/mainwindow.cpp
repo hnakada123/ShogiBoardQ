@@ -15,6 +15,7 @@
 #include <QApplication>    // ★ 追加
 #include <QClipboard>      // ★ 追加
 #include <QLineEdit>       // ★ 追加
+#include <QWheelEvent>     // ★ 追加: Ctrl+ホイール処理用
 #include <functional>
 #include <QPainter>
 #include <QFontDatabase>
@@ -207,6 +208,12 @@ MainWindow::MainWindow(QWidget *parent)
 
     // 起動時用：編集メニューを“編集前（未編集）”の初期状態にする
     initializeEditMenuForStartup();
+    
+    // 評価値グラフ高さ調整用タイマーを初期化（デバウンス処理用）
+    m_evalChartResizeTimer = new QTimer(this);
+    m_evalChartResizeTimer->setSingleShot(true);
+    connect(m_evalChartResizeTimer, &QTimer::timeout,
+            this, &MainWindow::performDeferredEvalChartResize);
 }
 
 void MainWindow::setupCentralWidgetContainer_()
@@ -372,6 +379,9 @@ void MainWindow::initializeComponents()
     if (!m_shogiView) {
         m_shogiView = new ShogiView(this);     // 親をMainWindowに
         m_shogiView->setNameFontScale(0.30);   // 好みの倍率（表示前に設定）
+        // Ctrl+ホイールイベントを横取りして、MainWindow側で同期的に処理する
+        // これにより盤サイズ変更時のちらつきを防止
+        m_shogiView->installEventFilter(this);
     } else {
         // 再初期化時も念のためパラメータを揃える
         m_shogiView->setParent(this);
@@ -1280,6 +1290,36 @@ void MainWindow::closeEvent(QCloseEvent* e)
     QMainWindow::closeEvent(e);
 }
 
+bool MainWindow::eventFilter(QObject* watched, QEvent* event)
+{
+    // ShogiViewのCtrl+ホイールイベントを横取りして処理
+    // これにより盤サイズ変更とラベル更新を同期的に行い、ちらつきを防止
+    if (watched == m_shogiView && event->type() == QEvent::Wheel) {
+        QWheelEvent* wheelEvent = static_cast<QWheelEvent*>(event);
+        if (wheelEvent->modifiers() & Qt::ControlModifier) {
+            qDebug() << "[DEBUG] MainWindow::eventFilter - Ctrl+Wheel captured";
+            const int delta = wheelEvent->angleDelta().y();
+            if (delta > 0) {
+                // 上方向スクロール → 拡大
+                // シグナル発火を抑制して同期的に処理
+                qDebug() << "[DEBUG] MainWindow::eventFilter - calling enlargeBoard(false)";
+                m_shogiView->enlargeBoard(false);
+            } else if (delta < 0) {
+                // 下方向スクロール → 縮小
+                // シグナル発火を抑制して同期的に処理
+                qDebug() << "[DEBUG] MainWindow::eventFilter - calling reduceBoard(false)";
+                m_shogiView->reduceBoard(false);
+            }
+            // 評価値グラフの高さ調整は一時的に無効化（ちらつきテスト用）
+            // if (m_evalChartResizeTimer) {
+            //     m_evalChartResizeTimer->start(100);  // 100ms後に実行
+            // }
+            return true;  // イベントを消費（ShogiViewには渡さない）
+        }
+    }
+    return QMainWindow::eventFilter(watched, event);
+}
+
 void MainWindow::onReverseTriggered()
 {
     if (m_match) m_match->flipBoard();
@@ -2176,6 +2216,15 @@ void MainWindow::onBoardSizeChanged(QSize fieldSize)
 
     m_recordPane->setEvalChartHeight(clampedHeight);
     qDebug() << "[BOARD_SIZE] setEvalChartHeight called with" << clampedHeight;
+}
+
+void MainWindow::performDeferredEvalChartResize()
+{
+    // デバウンス後の評価値グラフ高さ調整
+    // Ctrl+ホイールによる連続したサイズ変更が完了した後に一度だけ実行される
+    if (m_shogiView) {
+        onBoardSizeChanged(m_shogiView->fieldSize());
+    }
 }
 
 void MainWindow::onGameOverStateChanged(const MatchCoordinator::GameOverState& st)
