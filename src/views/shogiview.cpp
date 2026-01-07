@@ -1796,8 +1796,10 @@ int ShogiView::squareSize() const
 // 盤の表示スケールを 1px 分だけ拡大する。
 // メニュー、キーボードショートカット、Ctrl+ホイールから呼ばれる。
 // 最大サイズ（150px）を超える拡大は行わない。
-void ShogiView::enlargeBoard()
+// emitSignal=falseの場合、fieldSizeChangedシグナルを発火しない
+void ShogiView::enlargeBoard(bool emitSignal)
 {
+    qDebug() << "[DEBUG] ShogiView::enlargeBoard called, emitSignal=" << emitSignal;
     if (m_squareSize >= 150) {
         return;
     }
@@ -1811,7 +1813,10 @@ void ShogiView::enlargeBoard()
     updateWhiteClockLabelGeometry();
     
     // シグナルを発火（recalcLayoutParams()でm_fieldSizeが更新済み）
-    emit fieldSizeChanged(m_fieldSize);
+    if (emitSignal) {
+        qDebug() << "[DEBUG] ShogiView::enlargeBoard - emitting fieldSizeChanged";
+        emit fieldSizeChanged(m_fieldSize);
+    }
     
     update();
 }
@@ -1819,8 +1824,10 @@ void ShogiView::enlargeBoard()
 // 盤の表示スケールを 1px 分だけ縮小する。
 // メニュー、キーボードショートカット、Ctrl+ホイールから呼ばれる。
 // 最小サイズ（20px）より小さくはならない。
-void ShogiView::reduceBoard()
+// emitSignal=falseの場合、fieldSizeChangedシグナルを発火しない
+void ShogiView::reduceBoard(bool emitSignal)
 {
+    qDebug() << "[DEBUG] ShogiView::reduceBoard called, emitSignal=" << emitSignal;
     if (m_squareSize <= 20) {
         return;
     }
@@ -1834,7 +1841,10 @@ void ShogiView::reduceBoard()
     updateWhiteClockLabelGeometry();
     
     // シグナルを発火（recalcLayoutParams()でm_fieldSizeが更新済み）
-    emit fieldSizeChanged(m_fieldSize);
+    if (emitSignal) {
+        qDebug() << "[DEBUG] ShogiView::reduceBoard - emitting fieldSizeChanged";
+        emit fieldSizeChanged(m_fieldSize);
+    }
     
     update();
 }
@@ -2166,6 +2176,7 @@ void ShogiView::wheelEvent(QWheelEvent* e)
 {
     // Ctrlキーが押されている場合のみ拡大縮小
     if (e->modifiers() & Qt::ControlModifier) {
+        qDebug() << "[DEBUG] ShogiView::wheelEvent - Ctrl+Wheel received (should NOT appear if eventFilter works)";
         const int delta = e->angleDelta().y();
         if (delta > 0) {
             // 上方向スクロール → 拡大

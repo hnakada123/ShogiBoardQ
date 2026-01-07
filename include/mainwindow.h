@@ -10,6 +10,7 @@
 #include <QStyledItemDelegate>
 #include <QTableWidget>
 #include <QTime>
+#include <QTimer>
 #include <QVBoxLayout>
 
 // ==============================
@@ -220,6 +221,8 @@ public slots:
 protected:
     Ui::MainWindow* ui = nullptr;
     void closeEvent(QCloseEvent* event) override;
+    /// ShogiViewのCtrl+ホイールイベントを横取りして処理
+    bool eventFilter(QObject* watched, QEvent* event) override;
 
     // ========================================================
     // private slots
@@ -242,6 +245,7 @@ private slots:
     void onBoardFlipped(bool nowFlipped);
     void onBoardSizeChanged(QSize fieldSize);
     void onReverseTriggered();
+    void performDeferredEvalChartResize();  // 評価値グラフ高さ調整（デバウンス用）
 
     // 司令塔通知
     void onRequestAppendGameOverMove(const MatchCoordinator::GameEndInfo& info);
@@ -399,6 +403,9 @@ private:
 
     // 手番方向
     bool m_bottomIsP1 = true;
+
+    // 評価値グラフ高さ調整用タイマー（デバウンス処理）
+    QTimer* m_evalChartResizeTimer = nullptr;
 
     // 各種コーディネータ / プレゼンタ
     KifuLoadCoordinator*      m_kifuLoadCoordinator = nullptr;
