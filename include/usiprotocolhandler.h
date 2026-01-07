@@ -78,6 +78,7 @@ public:
     void sendGameOver(const QString& result);
     void sendQuit();
     void sendSetOption(const QString& name, const QString& value);
+    void sendSetOption(const QString& name, const QString& value, const QString& type);
     void sendRaw(const QString& command);
 
     // === 待機メソッド ===
