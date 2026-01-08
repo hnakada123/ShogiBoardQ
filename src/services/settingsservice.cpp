@@ -396,6 +396,22 @@ void setJosekiWindowFontSize(int size)
     s.setValue("JosekiWindow/fontSize", size);
 }
 
+// ★ 追加: 定跡ウィンドウのSFEN表示フォントサイズを取得
+int josekiWindowSfenFontSize()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("JosekiWindow/sfenFontSize", 9).toInt();
+}
+
+// ★ 追加: 定跡ウィンドウのSFEN表示フォントサイズを保存
+void setJosekiWindowSfenFontSize(int size)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("JosekiWindow/sfenFontSize", size);
+}
+
 // ★ 追加: 定跡ウィンドウの最後に開いた定跡ファイルパスを取得
 QString josekiWindowLastFilePath()
 {
@@ -442,6 +458,22 @@ void setJosekiWindowAutoLoadEnabled(bool enabled)
     QDir::setCurrent(QApplication::applicationDirPath());
     QSettings s(kIniName, QSettings::IniFormat);
     s.setValue("JosekiWindow/autoLoadEnabled", enabled);
+}
+
+// ★ 追加: 定跡ウィンドウの最近使ったファイルリストを取得
+QStringList josekiWindowRecentFiles()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("JosekiWindow/recentFiles", QStringList()).toStringList();
+}
+
+// ★ 追加: 定跡ウィンドウの最近使ったファイルリストを保存
+void setJosekiWindowRecentFiles(const QStringList& files)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("JosekiWindow/recentFiles", files);
 }
 
 } // namespace SettingsService
