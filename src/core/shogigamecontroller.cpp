@@ -13,6 +13,8 @@
 // コンストラクタ
 ShogiGameController::ShogiGameController(QObject* parent)
     : QObject(parent), m_board(nullptr), m_result(NoResult), m_currentPlayer(NoPlayer), m_promote(false)
+    , m_forcedPromotionMode(false)
+    , m_forcedPromotionValue(false)
     , previousFileTo(0)     // 追加：未着手時は 0 に初期化
     , previousRankTo(0)     // 追加：未着手時は 0 に初期化
 {
@@ -115,6 +117,21 @@ void ShogiGameController::setPromote(bool newPromote)
     m_promote = newPromote;
 }
 
+// 強制成りモードを設定する（定跡手からの着手時に使用）
+void ShogiGameController::setForcedPromotion(bool force, bool promote)
+{
+    m_forcedPromotionMode = force;
+    m_forcedPromotionValue = promote;
+    qDebug() << "[GC] setForcedPromotion: force=" << force << "promote=" << promote;
+}
+
+// 強制成りモードをクリアする
+void ShogiGameController::clearForcedPromotion()
+{
+    m_forcedPromotionMode = false;
+    m_forcedPromotionValue = false;
+}
+
 // 現在の手番を設定する。
 void ShogiGameController::setCurrentPlayer(const Player player)
 {
@@ -214,6 +231,17 @@ bool ShogiGameController::decidePromotion(PlayMode& playMode, MoveValidator& val
             if (canMoveWithoutPromotion) {
                 // 駒台上ではなく盤上の指し手である場合、対局者に成るかどうかを選択させる。
                 if (fileFrom <= 9) {
+                    // 強制成りモードの場合はダイアログをスキップ
+                    if (m_forcedPromotionMode) {
+                        qDebug() << "[GC] decidePromotion: using forced promotion value=" << m_forcedPromotionValue;
+                        m_promote = m_forcedPromotionValue;
+                        currentMove.isPromotion = m_forcedPromotionValue;
+                        // 強制モードは1回使用したらクリア
+                        m_forcedPromotionMode = false;
+                        m_forcedPromotionValue = false;
+                        return true;
+                    }
+                    
                     // ダイアログを表示して対局者に成るかどうかを選択させる。
                     decidePromotionByDialog(piece, rankFrom, rankTo);
 

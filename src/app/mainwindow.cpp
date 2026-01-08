@@ -2173,32 +2173,54 @@ void MainWindow::onJosekiMoveSelected(const QString& usiMove)
         int toRank = usiMove.at(3).toLatin1() - 'a' + 1;
         
         // 駒打ちの場合、fromは駒台を表す特別な座標
-        // ShogiViewでは駒台はfile=0で、駒種に応じたrankを使用
-        // 先手の駒台は上側、後手は下側だが、ここでは手番に関わらず適切な処理が必要
-        // SfenPositionTracer::dropFromSquare を参照
+        // 駒台のファイル番号: 先手=10, 後手=11
+        // 駒台のランク（駒種）: 先手は1〜7「歩、香、桂、銀、金、角、飛」
+        //                      後手は3〜9「飛、角、金、銀、桂、香、歩」
         
-        // 簡易的に、先手の駒台を表す座標を使用（実際の実装はShogiViewに依存）
-        // 駒台の座標体系を確認する必要があるが、まずは盤面のファイル/ランクを使用
-        
-        // 駒打ちはfromのx座標を0にして駒種を表す
-        // 駒種: P=1, L=2, N=3, S=4, G=5, B=6, R=7
-        int pieceType = 0;
-        switch (pieceChar.toUpper().toLatin1()) {
-        case 'P': pieceType = 1; break;
-        case 'L': pieceType = 2; break;
-        case 'N': pieceType = 3; break;
-        case 'S': pieceType = 4; break;
-        case 'G': pieceType = 5; break;
-        case 'B': pieceType = 6; break;
-        case 'R': pieceType = 7; break;
-        default: pieceType = 0; break;
+        // 現在の手番を取得
+        bool isBlackTurn = true;
+        if (m_gameController) {
+            isBlackTurn = (m_gameController->currentPlayer() == ShogiGameController::Player1);
         }
         
-        // 駒打ちの場合、fromは駒台（x=0, y=駒種）
-        from = QPoint(0, pieceType);
+        // 駒台のファイル番号（先手=10, 後手=11）
+        int standFile = isBlackTurn ? 10 : 11;
+        
+        // 駒台のランク（駒種番号）
+        // 先手: P=1, L=2, N=3, S=4, G=5, B=6, R=7
+        // 後手: R=3, B=4, G=5, S=6, N=7, L=8, P=9
+        int pieceRank = 0;
+        if (isBlackTurn) {
+            switch (pieceChar.toUpper().toLatin1()) {
+            case 'P': pieceRank = 1; break;
+            case 'L': pieceRank = 2; break;
+            case 'N': pieceRank = 3; break;
+            case 'S': pieceRank = 4; break;
+            case 'G': pieceRank = 5; break;
+            case 'B': pieceRank = 6; break;
+            case 'R': pieceRank = 7; break;
+            default: pieceRank = 0; break;
+            }
+        } else {
+            switch (pieceChar.toUpper().toLatin1()) {
+            case 'R': pieceRank = 3; break;
+            case 'B': pieceRank = 4; break;
+            case 'G': pieceRank = 5; break;
+            case 'S': pieceRank = 6; break;
+            case 'N': pieceRank = 7; break;
+            case 'L': pieceRank = 8; break;
+            case 'P': pieceRank = 9; break;
+            default: pieceRank = 0; break;
+            }
+        }
+        
+        // 駒打ちの場合、fromは駒台（x=駒台ファイル, y=駒種ランク）
+        from = QPoint(standFile, pieceRank);
         to = QPoint(toFile, toRank);
         
-        qDebug() << "[JosekiWindow] Drop move: piece=" << pieceChar << "to=" << to;
+        qDebug() << "[JosekiWindow] Drop move: piece=" << pieceChar 
+                 << "isBlackTurn=" << isBlackTurn
+                 << "from=" << from << "to=" << to;
     }
     // 通常移動のパターン: 7g7f または 7g7f+
     else if (usiMove.size() >= 4) {
@@ -2215,15 +2237,36 @@ void MainWindow::onJosekiMoveSelected(const QString& usiMove)
     }
     else {
         qDebug() << "[JosekiWindow] onJosekiMoveSelected: invalid move format";
+        // 定跡ウィンドウにエラーを通知
+        if (m_josekiWindow) {
+            m_josekiWindow->onMoveResult(false, usiMove);
+        }
         return;
     }
     
-    // 成りの場合は別途処理が必要（onMoveRequested_では成りの判定がされるが、
-    // 強制的に成りを指定する場合は追加の処理が必要かもしれない）
-    // TODO: 成りの強制指定が必要な場合は、m_boardSetupController経由で設定する
+    // 定跡手からの着手の場合、成り/不成が決まっているので強制成りモードを設定
+    // これにより「成る・不成」ダイアログが表示されなくなる
+    if (m_gameController) {
+        m_gameController->setForcedPromotion(true, promote);
+    }
+    
+    // 着手前の棋譜サイズを記録
+    qsizetype sfenSizeBefore = m_sfenRecord ? m_sfenRecord->size() : 0;
     
     // 指し手を実行
     onMoveRequested_(from, to);
+    
+    // 着手後の棋譜サイズを確認して成功/失敗を判定
+    qsizetype sfenSizeAfter = m_sfenRecord ? m_sfenRecord->size() : 0;
+    bool moveSuccess = (sfenSizeAfter > sfenSizeBefore);
+    
+    qDebug() << "[JosekiWindow] Move result: sfenSizeBefore=" << sfenSizeBefore 
+             << "sfenSizeAfter=" << sfenSizeAfter << "success=" << moveSuccess;
+    
+    // 定跡ウィンドウに結果を通知
+    if (m_josekiWindow && !moveSuccess) {
+        m_josekiWindow->onMoveResult(false, usiMove);
+    }
 }
 
 // 再生モードの切替を ReplayController へ委譲

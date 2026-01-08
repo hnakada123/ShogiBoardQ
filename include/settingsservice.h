@@ -143,6 +143,11 @@ QSize josekiWindowSize();
 // 定跡ウィンドウのサイズを保存
 void setJosekiWindowSize(const QSize& size);
 
+// 定跡ファイル自動読込が有効かどうかを取得（デフォルト: true）
+bool josekiWindowAutoLoadEnabled();
+// 定跡ファイル自動読込が有効かどうかを保存
+void setJosekiWindowAutoLoadEnabled(bool enabled);
+
 } // namespace SettingsService
 
 #endif // SETTINGSSERVICE_H
