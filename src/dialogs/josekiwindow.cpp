@@ -19,9 +19,14 @@ JosekiWindow::JosekiWindow(QWidget *parent)
     , m_currentSfenLabel(nullptr)
     , m_fontIncreaseBtn(nullptr)
     , m_fontDecreaseBtn(nullptr)
+    , m_autoLoadCheckBox(nullptr)
+    , m_stopButton(nullptr)
+    , m_closeButton(nullptr)
     , m_tableWidget(nullptr)
     , m_fontSize(10)
     , m_humanCanPlay(true)  // デフォルトは着手可能
+    , m_autoLoadEnabled(true)
+    , m_displayEnabled(true)
 {
     setupUi();
     loadSettings();
@@ -31,7 +36,7 @@ void JosekiWindow::setupUi()
 {
     // ウィンドウタイトルとサイズの設定
     setWindowTitle(tr("定跡ウィンドウ"));
-    resize(800, 500);
+    resize(900, 500);
 
     // メインレイアウト
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
@@ -49,6 +54,12 @@ void JosekiWindow::setupUi()
     m_filePathLabel->setStyleSheet(QStringLiteral("color: gray;"));
     toolbarLayout->addWidget(m_filePathLabel, 1);  // ストレッチファクター1で残りの領域を使用
 
+    // 自動読込チェックボックス
+    m_autoLoadCheckBox = new QCheckBox(tr("自動読込"), this);
+    m_autoLoadCheckBox->setToolTip(tr("定跡ウィンドウ表示時に前回のファイルを自動で読み込む"));
+    m_autoLoadCheckBox->setChecked(true);
+    toolbarLayout->addWidget(m_autoLoadCheckBox);
+
     toolbarLayout->addStretch();
     
     // フォントサイズ調整ボタン
@@ -61,6 +72,17 @@ void JosekiWindow::setupUi()
     m_fontIncreaseBtn->setToolTip(tr("フォントサイズを拡大"));
     m_fontIncreaseBtn->setFixedWidth(40);
     toolbarLayout->addWidget(m_fontIncreaseBtn);
+    
+    // 停止ボタン
+    m_stopButton = new QPushButton(tr("停止"), this);
+    m_stopButton->setToolTip(tr("定跡表示を停止/再開"));
+    m_stopButton->setCheckable(true);
+    toolbarLayout->addWidget(m_stopButton);
+    
+    // 閉じるボタン
+    m_closeButton = new QPushButton(tr("閉じる"), this);
+    m_closeButton->setToolTip(tr("定跡ウィンドウを閉じる"));
+    toolbarLayout->addWidget(m_closeButton);
 
     mainLayout->addLayout(toolbarLayout);
 
@@ -93,16 +115,16 @@ void JosekiWindow::setupUi()
     m_tableWidget->setAlternatingRowColors(true);
     m_tableWidget->verticalHeader()->setVisible(false);
     
-    // カラム幅の設定
+    // カラム幅の設定（定跡手・予想応手の幅を拡大）
     m_tableWidget->setColumnWidth(0, 40);   // No.
     m_tableWidget->setColumnWidth(1, 50);   // 着手ボタン
-    m_tableWidget->setColumnWidth(2, 80);   // 定跡手
-    m_tableWidget->setColumnWidth(3, 80);   // 予想応手
+    m_tableWidget->setColumnWidth(2, 120);  // 定跡手（拡大）
+    m_tableWidget->setColumnWidth(3, 120);  // 予想応手（拡大）
     m_tableWidget->setColumnWidth(4, 50);   // 編集
     m_tableWidget->setColumnWidth(5, 50);   // 削除
     m_tableWidget->setColumnWidth(6, 70);   // 評価値
     m_tableWidget->setColumnWidth(7, 50);   // 深さ
-    m_tableWidget->setColumnWidth(8, 70);   // 出現頻度
+    m_tableWidget->setColumnWidth(8, 80);   // 出現頻度
     m_tableWidget->horizontalHeader()->setStretchLastSection(true);  // コメント列を伸縮
     
     mainLayout->addWidget(m_tableWidget, 1);
@@ -114,6 +136,12 @@ void JosekiWindow::setupUi()
             this, &JosekiWindow::onFontSizeIncrease);
     connect(m_fontDecreaseBtn, &QPushButton::clicked,
             this, &JosekiWindow::onFontSizeDecrease);
+    connect(m_autoLoadCheckBox, &QCheckBox::checkStateChanged,
+            this, &JosekiWindow::onAutoLoadCheckBoxChanged);
+    connect(m_stopButton, &QPushButton::clicked,
+            this, &JosekiWindow::onStopButtonClicked);
+    connect(m_closeButton, &QPushButton::clicked,
+            this, &JosekiWindow::onCloseButtonClicked);
 }
 
 void JosekiWindow::loadSettings()
@@ -128,13 +156,19 @@ void JosekiWindow::loadSettings()
         resize(savedSize);
     }
     
-    // 最後に開いた定跡ファイルを読み込み
-    QString lastFilePath = SettingsService::josekiWindowLastFilePath();
-    if (!lastFilePath.isEmpty() && QFileInfo::exists(lastFilePath)) {
-        if (loadJosekiFile(lastFilePath)) {
-            m_currentFilePath = lastFilePath;
-            m_filePathLabel->setText(lastFilePath);
-            m_filePathLabel->setStyleSheet(QString());
+    // 自動読込設定を読み込み
+    m_autoLoadEnabled = SettingsService::josekiWindowAutoLoadEnabled();
+    m_autoLoadCheckBox->setChecked(m_autoLoadEnabled);
+    
+    // 最後に開いた定跡ファイルを読み込み（自動読込が有効な場合のみ）
+    if (m_autoLoadEnabled) {
+        QString lastFilePath = SettingsService::josekiWindowLastFilePath();
+        if (!lastFilePath.isEmpty() && QFileInfo::exists(lastFilePath)) {
+            if (loadJosekiFile(lastFilePath)) {
+                m_currentFilePath = lastFilePath;
+                m_filePathLabel->setText(lastFilePath);
+                m_filePathLabel->setStyleSheet(QString());
+            }
         }
     }
 }
@@ -149,6 +183,9 @@ void JosekiWindow::saveSettings()
     
     // 最後に開いた定跡ファイルを保存
     SettingsService::setJosekiWindowLastFilePath(m_currentFilePath);
+    
+    // 自動読込設定を保存
+    SettingsService::setJosekiWindowAutoLoadEnabled(m_autoLoadEnabled);
 }
 
 void JosekiWindow::closeEvent(QCloseEvent *event)
@@ -236,9 +273,17 @@ bool JosekiWindow::loadJosekiFile(const QString &filePath)
     QString line;
     QString currentSfen;
     QString normalizedSfen;
+    
+    // フォーマット検証用フラグ
+    bool hasValidHeader = false;
+    bool hasSfenLine = false;
+    bool hasMoveLine = false;
+    int lineNumber = 0;
+    int invalidMoveLineCount = 0;
 
     while (!in.atEnd()) {
         line = in.readLine().trimmed();
+        lineNumber++;
         
         // Windows改行コード(\r)を除去
         line.remove(QLatin1Char('\r'));
@@ -248,8 +293,13 @@ bool JosekiWindow::loadJosekiFile(const QString &filePath)
             continue;
         }
         
-        // ヘッダー行（#YANEURAOU-DB2016など）をスキップ
+        // ヘッダー行（#YANEURAOU-DB2016など）をチェック
         if (line.startsWith(QLatin1Char('#'))) {
+            // やねうら王定跡フォーマットのヘッダーを確認
+            if (line.contains(QStringLiteral("YANEURAOU")) || 
+                line.contains(QStringLiteral("yaneuraou"))) {
+                hasValidHeader = true;
+            }
             continue;
         }
         
@@ -258,6 +308,7 @@ bool JosekiWindow::loadJosekiFile(const QString &filePath)
             currentSfen = line.mid(5).trimmed();
             currentSfen.remove(QLatin1Char('\r'));  // 念のため再度除去
             normalizedSfen = normalizeSfen(currentSfen);
+            hasSfenLine = true;
             continue;
         }
         
@@ -266,6 +317,34 @@ bool JosekiWindow::loadJosekiFile(const QString &filePath)
             // 指し手行をパース
             const QStringList parts = line.split(QLatin1Char(' '), Qt::SkipEmptyParts);
             if (parts.size() >= 5) {
+                // 指し手の形式を簡易チェック（USI形式: 例 7g7f, P*5e, 8h2b+）
+                const QString &moveStr = parts[0];
+                bool validMove = false;
+                
+                // 駒打ち形式: X*YZ (例: P*5e)
+                if (moveStr.size() >= 4 && moveStr.at(1) == QLatin1Char('*')) {
+                    QChar piece = moveStr.at(0).toUpper();
+                    if (QString("PLNSGBR").contains(piece)) {
+                        validMove = true;
+                    }
+                }
+                // 通常移動形式: XYZW または XYZW+ (例: 7g7f, 8h2b+)
+                else if (moveStr.size() >= 4) {
+                    bool validFormat = true;
+                    // 筋は1-9の数字
+                    if (moveStr.at(0) < QLatin1Char('1') || moveStr.at(0) > QLatin1Char('9')) validFormat = false;
+                    // 段はa-iのアルファベット
+                    if (moveStr.at(1) < QLatin1Char('a') || moveStr.at(1) > QLatin1Char('i')) validFormat = false;
+                    if (moveStr.at(2) < QLatin1Char('1') || moveStr.at(2) > QLatin1Char('9')) validFormat = false;
+                    if (moveStr.at(3) < QLatin1Char('a') || moveStr.at(3) > QLatin1Char('i')) validFormat = false;
+                    validMove = validFormat;
+                }
+                
+                if (!validMove) {
+                    invalidMoveLineCount++;
+                    qDebug() << "[JosekiWindow] Invalid move format at line" << lineNumber << ":" << moveStr;
+                }
+                
                 JosekiMove move;
                 move.move = parts[0];           // 指し手
                 move.nextMove = parts[1];       // 次の指し手
@@ -284,13 +363,51 @@ bool JosekiWindow::loadJosekiFile(const QString &filePath)
                 
                 // 同じ局面のエントリに追加
                 m_josekiData[normalizedSfen].append(move);
+                hasMoveLine = true;
+            } else if (parts.size() > 0) {
+                // 5フィールド未満の行は不正
+                invalidMoveLineCount++;
+                qDebug() << "[JosekiWindow] Invalid line format at line" << lineNumber 
+                         << ": expected 5+ fields, got" << parts.size();
             }
         }
     }
 
     file.close();
     
+    // フォーマット検証
+    if (!hasValidHeader) {
+        QMessageBox::warning(this, tr("フォーマットエラー"), 
+            tr("このファイルはやねうら王定跡フォーマット(YANEURAOU-DB2016)ではありません。\n"
+               "ヘッダー行（#YANEURAOU-DB2016 等）が見つかりませんでした。\n\n"
+               "ファイル: %1").arg(filePath));
+        m_josekiData.clear();
+        return false;
+    }
+    
+    if (!hasSfenLine) {
+        QMessageBox::warning(this, tr("フォーマットエラー"), 
+            tr("定跡ファイルにSFEN行が見つかりませんでした。\n\n"
+               "やねうら王定跡フォーマットでは「sfen 」で始まる局面行が必要です。\n\n"
+               "ファイル: %1").arg(filePath));
+        m_josekiData.clear();
+        return false;
+    }
+    
+    if (!hasMoveLine) {
+        QMessageBox::warning(this, tr("フォーマットエラー"), 
+            tr("定跡ファイルに有効な指し手行が見つかりませんでした。\n\n"
+               "やねうら王定跡フォーマットでは指し手行に少なくとも5つのフィールド\n"
+               "（指し手 予想応手 評価値 深さ 出現頻度）が必要です。\n\n"
+               "ファイル: %1").arg(filePath));
+        m_josekiData.clear();
+        return false;
+    }
+    
     qDebug() << "[JosekiWindow] Loaded" << m_josekiData.size() << "positions from" << filePath;
+    if (invalidMoveLineCount > 0) {
+        qDebug() << "[JosekiWindow] Warning:" << invalidMoveLineCount << "lines had invalid format";
+    }
     
     // デバッグ：平手初期局面があるか確認
     QString hirate = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b -");
@@ -352,6 +469,12 @@ void JosekiWindow::updateJosekiDisplay()
     qDebug() << "[JosekiWindow] updateJosekiDisplay() called";
     
     clearTable();
+    
+    // 表示が停止中の場合は何もしない
+    if (!m_displayEnabled) {
+        qDebug() << "[JosekiWindow] updateJosekiDisplay: display is disabled";
+        return;
+    }
     
     if (m_currentSfen.isEmpty()) {
         qDebug() << "[JosekiWindow] updateJosekiDisplay: currentSfen is empty";
@@ -492,11 +615,11 @@ void JosekiWindow::updateJosekiDisplay()
         valueItem->setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
         m_tableWidget->setItem(i, 6, valueItem);
         
-        // 深さ（3桁区切り）
+        // 深さ（3桁区切り、右寄せ）
         QString depthStr = locale.toString(move.depth);
         qDebug() << "[JosekiWindow] depth:" << move.depth << "-> formatted:" << depthStr;
         QTableWidgetItem *depthItem = new QTableWidgetItem(depthStr);
-        depthItem->setTextAlignment(Qt::AlignCenter);
+        depthItem->setTextAlignment(Qt::AlignRight | Qt::AlignVCenter);
         m_tableWidget->setItem(i, 7, depthItem);
         
         // 出現頻度（3桁区切り）
@@ -542,6 +665,44 @@ void JosekiWindow::onPlayButtonClicked()
     
     // シグナルを発行して指し手をMainWindowに通知
     emit josekiMoveSelected(move.move);
+}
+
+void JosekiWindow::onAutoLoadCheckBoxChanged(Qt::CheckState state)
+{
+    m_autoLoadEnabled = (state == Qt::Checked);
+    qDebug() << "[JosekiWindow] Auto load enabled:" << m_autoLoadEnabled;
+}
+
+void JosekiWindow::onStopButtonClicked()
+{
+    m_displayEnabled = !m_stopButton->isChecked();
+    
+    if (m_displayEnabled) {
+        m_stopButton->setText(tr("停止"));
+        // 表示を再開した場合は現在の局面を再表示
+        updateJosekiDisplay();
+    } else {
+        m_stopButton->setText(tr("再開"));
+        // 停止した場合はテーブルをクリア
+        clearTable();
+    }
+    
+    qDebug() << "[JosekiWindow] Display enabled:" << m_displayEnabled;
+}
+
+void JosekiWindow::onCloseButtonClicked()
+{
+    close();
+}
+
+void JosekiWindow::onMoveResult(bool success, const QString &usiMove)
+{
+    if (!success) {
+        QMessageBox::warning(this, tr("着手エラー"), 
+            tr("定跡手「%1」を指すことができませんでした。\n\n"
+               "この定跡手は現在の局面では合法手ではない可能性があります。\n"
+               "定跡ファイルのデータに誤りがある可能性があります。").arg(usiMove));
+    }
 }
 
 // 全角数字と漢数字のテーブル

@@ -428,4 +428,20 @@ void setJosekiWindowSize(const QSize& size)
     s.setValue("JosekiWindow/size", size);
 }
 
+// ★ 追加: 定跡ファイル自動読込が有効かどうかを取得
+bool josekiWindowAutoLoadEnabled()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("JosekiWindow/autoLoadEnabled", true).toBool();
+}
+
+// ★ 追加: 定跡ファイル自動読込が有効かどうかを保存
+void setJosekiWindowAutoLoadEnabled(bool enabled)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("JosekiWindow/autoLoadEnabled", enabled);
+}
+
 } // namespace SettingsService

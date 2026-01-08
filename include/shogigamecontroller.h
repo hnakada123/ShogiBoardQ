@@ -92,6 +92,18 @@ public:
 
     // 成り・不成のフラグを返す。
     bool promote() const;
+    
+    /**
+     * @brief 強制成りモードを設定する（定跡手からの着手時に使用）
+     * @param force true=強制モード有効、false=無効（通常のダイアログ表示）
+     * @param promote 強制モード時の成り/不成（true=成り、false=不成）
+     */
+    void setForcedPromotion(bool force, bool promote = false);
+    
+    /**
+     * @brief 強制成りモードをクリアする
+     */
+    void clearForcedPromotion();
 
     QPoint lastMoveTo() const;  // 直前着手の移動先（筋, 段）を返す
 
@@ -139,6 +151,10 @@ private:
 
     // 成るかどうかのフラグ
     bool m_promote;
+    
+    // 強制成りモード（定跡手からの着手時に使用）
+    bool m_forcedPromotionMode;      // 強制モードが有効かどうか
+    bool m_forcedPromotionValue;     // 強制モード時の成り/不成の値
 
     // 1手前に指した手の移動先の筋
     int previousFileTo;

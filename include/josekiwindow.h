@@ -3,6 +3,7 @@
 
 #include <QWidget>
 #include <QPushButton>
+#include <QCheckBox>
 #include <QVBoxLayout>
 #include <QLabel>
 #include <QTableWidget>
@@ -81,12 +82,34 @@ public slots:
      * @brief フォントサイズを縮小する
      */
     void onFontSizeDecrease();
+    
+    /**
+     * @brief 定跡手の着手結果を受け取るスロット
+     * @param success 着手が成功したかどうか
+     * @param usiMove 着手しようとした指し手
+     */
+    void onMoveResult(bool success, const QString &usiMove);
 
 private slots:
     /**
      * @brief 「着手」ボタンがクリックされたときのスロット
      */
     void onPlayButtonClicked();
+    
+    /**
+     * @brief 自動読込チェックボックスの状態が変更されたときのスロット
+     */
+    void onAutoLoadCheckBoxChanged(Qt::CheckState state);
+    
+    /**
+     * @brief 「停止」ボタンがクリックされたときのスロット
+     */
+    void onStopButtonClicked();
+    
+    /**
+     * @brief 「閉じる」ボタンがクリックされたときのスロット
+     */
+    void onCloseButtonClicked();
 
 protected:
     /**
@@ -169,11 +192,16 @@ private:
     QLabel       *m_currentSfenLabel;  ///< 現在の局面のSFEN表示用ラベル（デバッグ用）
     QPushButton  *m_fontIncreaseBtn;   ///< フォント拡大ボタン
     QPushButton  *m_fontDecreaseBtn;   ///< フォント縮小ボタン
+    QCheckBox    *m_autoLoadCheckBox;  ///< 自動読込チェックボックス
+    QPushButton  *m_stopButton;        ///< 定跡表示停止ボタン
+    QPushButton  *m_closeButton;       ///< 閉じるボタン
     QTableWidget *m_tableWidget;       ///< 定跡表示用テーブル
     QString       m_currentFilePath;   ///< 現在選択されているファイルパス
     QString       m_currentSfen;       ///< 現在の局面のSFEN
     int           m_fontSize;          ///< 現在のフォントサイズ
     bool          m_humanCanPlay;      ///< 人間が着手可能かどうか
+    bool          m_autoLoadEnabled;   ///< 定跡ファイル自動読込が有効かどうか
+    bool          m_displayEnabled;    ///< 定跡表示が有効かどうか
     
     /// 現在表示中の定跡手リスト（着手ボタンから参照）
     QVector<JosekiMove> m_currentMoves;
