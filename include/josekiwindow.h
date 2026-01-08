@@ -5,6 +5,7 @@
 #include <QPushButton>
 #include <QCheckBox>
 #include <QVBoxLayout>
+#include <QGroupBox>
 #include <QLabel>
 #include <QTableWidget>
 #include <QMap>
@@ -107,6 +108,11 @@ private slots:
     void onStopButtonClicked();
     
     /**
+     * @brief 「更新」ボタンがクリックされたときのスロット
+     */
+    void onRefreshButtonClicked();
+    
+    /**
      * @brief 「閉じる」ボタンがクリックされたときのスロット
      */
     void onCloseButtonClicked();
@@ -186,16 +192,35 @@ private:
      * @return 日本語名（歩, 香, 桂, 銀, 金, 角, 飛, 玉, と, 杏, 圭, 全, 馬, 龍）
      */
     static QString pieceToKanji(QChar pieceChar, bool promoted = false);
+    
+    /**
+     * @brief ステータス表示を更新
+     */
+    void updateStatusDisplay();
 
+    // === ファイルグループ ===
     QPushButton  *m_openButton;        ///< 「開く」ボタン
     QLabel       *m_filePathLabel;     ///< 選択されたファイルパスを表示するラベル
-    QLabel       *m_currentSfenLabel;  ///< 現在の局面のSFEN表示用ラベル（デバッグ用）
+    QLabel       *m_fileStatusLabel;   ///< ファイル読込状態ラベル（✓読込済 / ✗未読込）
+    
+    // === 表示設定グループ ===
     QPushButton  *m_fontIncreaseBtn;   ///< フォント拡大ボタン
     QPushButton  *m_fontDecreaseBtn;   ///< フォント縮小ボタン
     QCheckBox    *m_autoLoadCheckBox;  ///< 自動読込チェックボックス
+    
+    // === 操作グループ ===
     QPushButton  *m_stopButton;        ///< 定跡表示停止ボタン
+    QPushButton  *m_refreshButton;     ///< 更新ボタン
     QPushButton  *m_closeButton;       ///< 閉じるボタン
+    
+    // === 状態表示 ===
+    QLabel       *m_currentSfenLabel;  ///< 現在の局面のSFEN表示用ラベル
+    QLabel       *m_statusLabel;       ///< 状態ラベル（●表示中 / ○停止中）
+    
+    // === テーブル ===
     QTableWidget *m_tableWidget;       ///< 定跡表示用テーブル
+    
+    // === データ ===
     QString       m_currentFilePath;   ///< 現在選択されているファイルパス
     QString       m_currentSfen;       ///< 現在の局面のSFEN
     int           m_fontSize;          ///< 現在のフォントサイズ
