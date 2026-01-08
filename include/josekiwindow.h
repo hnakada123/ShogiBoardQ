@@ -11,6 +11,8 @@
 #include <QMap>
 #include <QVector>
 #include <QCloseEvent>
+#include <QMenu>
+#include <QStringList>
 
 // 前方宣言
 class SfenPositionTracer;
@@ -75,6 +77,26 @@ public slots:
     void onOpenButtonClicked();
     
     /**
+     * @brief 「新規作成」ボタンがクリックされたときのスロット
+     */
+    void onNewButtonClicked();
+    
+    /**
+     * @brief 「上書保存」ボタンがクリックされたときのスロット
+     */
+    void onSaveButtonClicked();
+    
+    /**
+     * @brief 「名前を付けて保存」ボタンがクリックされたときのスロット
+     */
+    void onSaveAsButtonClicked();
+    
+    /**
+     * @brief 「定跡手追加」ボタンがクリックされたときのスロット
+     */
+    void onAddMoveButtonClicked();
+    
+    /**
      * @brief フォントサイズを拡大する
      */
     void onFontSizeIncrease();
@@ -83,6 +105,16 @@ public slots:
      * @brief フォントサイズを縮小する
      */
     void onFontSizeDecrease();
+    
+    /**
+     * @brief SFEN表示のフォントサイズを拡大する
+     */
+    void onSfenFontSizeIncrease();
+    
+    /**
+     * @brief SFEN表示のフォントサイズを縮小する
+     */
+    void onSfenFontSizeDecrease();
     
     /**
      * @brief 定跡手の着手結果を受け取るスロット
@@ -108,14 +140,14 @@ private slots:
     void onStopButtonClicked();
     
     /**
-     * @brief 「更新」ボタンがクリックされたときのスロット
-     */
-    void onRefreshButtonClicked();
-    
-    /**
      * @brief 「閉じる」ボタンがクリックされたときのスロット
      */
     void onCloseButtonClicked();
+    
+    /**
+     * @brief 最近使ったファイルメニューの項目がクリックされたときのスロット
+     */
+    void onRecentFileClicked();
 
 protected:
     /**
@@ -167,6 +199,11 @@ private:
     void applyFontSize();
     
     /**
+     * @brief SFEN表示のフォントサイズを適用する
+     */
+    void applySfenFontSize();
+    
+    /**
      * @brief 設定を読み込む
      */
     void loadSettings();
@@ -197,9 +234,49 @@ private:
      * @brief ステータス表示を更新
      */
     void updateStatusDisplay();
+    
+    /**
+     * @brief 定跡データをファイルに保存する
+     * @param filePath 保存先ファイルパス
+     * @return 保存成功時true
+     */
+    bool saveJosekiFile(const QString &filePath);
+    
+    /**
+     * @brief 編集状態が変更された時にウィンドウタイトルを更新
+     */
+    void updateWindowTitle();
+    
+    /**
+     * @brief 編集状態をセット
+     * @param modified true=変更あり, false=変更なし
+     */
+    void setModified(bool modified);
+    
+    /**
+     * @brief 未保存の変更がある場合に保存確認ダイアログを表示
+     * @return true=続行可能, false=キャンセル
+     */
+    bool confirmDiscardChanges();
+    
+    /**
+     * @brief 最近使ったファイルリストを更新
+     * @param filePath 新たに開いた/保存したファイルパス
+     */
+    void addToRecentFiles(const QString &filePath);
+    
+    /**
+     * @brief 最近使ったファイルメニューを更新
+     */
+    void updateRecentFilesMenu();
 
     // === ファイルグループ ===
     QPushButton  *m_openButton;        ///< 「開く」ボタン
+    QPushButton  *m_newButton;         ///< 「新規作成」ボタン
+    QPushButton  *m_saveButton;        ///< 「上書保存」ボタン
+    QPushButton  *m_saveAsButton;      ///< 「名前を付けて保存」ボタン
+    QPushButton  *m_recentButton;      ///< 「最近使ったファイル」ボタン
+    QMenu        *m_recentFilesMenu;   ///< 最近使ったファイルメニュー
     QLabel       *m_filePathLabel;     ///< 選択されたファイルパスを表示するラベル
     QLabel       *m_fileStatusLabel;   ///< ファイル読込状態ラベル（✓読込済 / ✗未読込）
     
@@ -210,11 +287,14 @@ private:
     
     // === 操作グループ ===
     QPushButton  *m_stopButton;        ///< 定跡表示停止ボタン
-    QPushButton  *m_refreshButton;     ///< 更新ボタン
+    QPushButton  *m_addMoveButton;     ///< 定跡手追加ボタン
     QPushButton  *m_closeButton;       ///< 閉じるボタン
     
     // === 状態表示 ===
     QLabel       *m_currentSfenLabel;  ///< 現在の局面のSFEN表示用ラベル
+    QLabel       *m_sfenLineLabel;     ///< 定跡ファイルのSFEN行表示用ラベル
+    QPushButton  *m_sfenFontIncBtn;    ///< SFEN表示フォント拡大ボタン
+    QPushButton  *m_sfenFontDecBtn;    ///< SFEN表示フォント縮小ボタン
     QLabel       *m_statusLabel;       ///< 状態ラベル（●表示中 / ○停止中）
     
     // === テーブル ===
@@ -223,16 +303,24 @@ private:
     // === データ ===
     QString       m_currentFilePath;   ///< 現在選択されているファイルパス
     QString       m_currentSfen;       ///< 現在の局面のSFEN
-    int           m_fontSize;          ///< 現在のフォントサイズ
+    int           m_fontSize;          ///< テーブルのフォントサイズ
+    int           m_sfenFontSize;      ///< SFEN表示のフォントサイズ
     bool          m_humanCanPlay;      ///< 人間が着手可能かどうか
     bool          m_autoLoadEnabled;   ///< 定跡ファイル自動読込が有効かどうか
     bool          m_displayEnabled;    ///< 定跡表示が有効かどうか
+    bool          m_modified;          ///< 編集状態（変更があるか）
+    
+    /// 最近使ったファイルリスト（最大5件）
+    QStringList   m_recentFiles;
     
     /// 現在表示中の定跡手リスト（着手ボタンから参照）
     QVector<JosekiMove> m_currentMoves;
 
-    /// 定跡データ（SFEN → エントリリスト）
+    /// 定跡データ（正規化SFEN → 指し手リスト）
     QMap<QString, QVector<JosekiMove>> m_josekiData;
+    
+    /// 元のSFEN（手数付き）を保持（正規化SFEN → 元のSFEN）
+    QMap<QString, QString> m_sfenWithPlyMap;
 };
 
 #endif // JOSEKIWINDOW_H

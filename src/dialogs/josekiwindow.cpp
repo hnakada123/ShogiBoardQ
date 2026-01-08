@@ -1,4 +1,5 @@
 #include "josekiwindow.h"
+#include "josekimovedialog.h"
 #include "settingsservice.h"
 #include "sfenpositiontracer.h"
 
@@ -15,21 +16,31 @@
 JosekiWindow::JosekiWindow(QWidget *parent)
     : QWidget(parent, Qt::Window)  // Qt::Window フラグで独立ウィンドウとして表示
     , m_openButton(nullptr)
+    , m_newButton(nullptr)
+    , m_saveButton(nullptr)
+    , m_saveAsButton(nullptr)
+    , m_recentButton(nullptr)
+    , m_recentFilesMenu(nullptr)
     , m_filePathLabel(nullptr)
     , m_fileStatusLabel(nullptr)
     , m_fontIncreaseBtn(nullptr)
     , m_fontDecreaseBtn(nullptr)
     , m_autoLoadCheckBox(nullptr)
     , m_stopButton(nullptr)
-    , m_refreshButton(nullptr)
+    , m_addMoveButton(nullptr)
     , m_closeButton(nullptr)
     , m_currentSfenLabel(nullptr)
+    , m_sfenLineLabel(nullptr)
+    , m_sfenFontIncBtn(nullptr)
+    , m_sfenFontDecBtn(nullptr)
     , m_statusLabel(nullptr)
     , m_tableWidget(nullptr)
     , m_fontSize(10)
+    , m_sfenFontSize(9)
     , m_humanCanPlay(true)  // デフォルトは着手可能
     , m_autoLoadEnabled(true)
     , m_displayEnabled(true)
+    , m_modified(false)
 {
     setupUi();
     loadSettings();
@@ -55,10 +66,36 @@ void JosekiWindow::setupUi()
     
     // ファイル操作ボタン行
     QHBoxLayout *fileButtonLayout = new QHBoxLayout();
+    
+    m_newButton = new QPushButton(tr("新規作成"), this);
+    m_newButton->setToolTip(tr("新しい空の定跡ファイルを作成"));
+    m_newButton->setIcon(style()->standardIcon(QStyle::SP_FileIcon));
+    fileButtonLayout->addWidget(m_newButton);
+    
     m_openButton = new QPushButton(tr("開く"), this);
     m_openButton->setToolTip(tr("定跡ファイル(.db)を開く"));
     m_openButton->setIcon(style()->standardIcon(QStyle::SP_DialogOpenButton));
     fileButtonLayout->addWidget(m_openButton);
+    
+    m_saveButton = new QPushButton(tr("上書保存"), this);
+    m_saveButton->setToolTip(tr("現在のファイルに上書き保存"));
+    m_saveButton->setIcon(style()->standardIcon(QStyle::SP_DialogSaveButton));
+    m_saveButton->setEnabled(false);  // 初期状態は無効
+    fileButtonLayout->addWidget(m_saveButton);
+    
+    m_saveAsButton = new QPushButton(tr("名前を付けて保存"), this);
+    m_saveAsButton->setToolTip(tr("別の名前で保存"));
+    m_saveAsButton->setIcon(style()->standardIcon(QStyle::SP_DialogSaveButton));
+    fileButtonLayout->addWidget(m_saveAsButton);
+    
+    fileButtonLayout->addSpacing(10);
+    
+    m_recentButton = new QPushButton(tr("履歴"), this);
+    m_recentButton->setToolTip(tr("最近使ったファイルを開く"));
+    m_recentFilesMenu = new QMenu(this);
+    m_recentButton->setMenu(m_recentFilesMenu);
+    fileButtonLayout->addWidget(m_recentButton);
+    
     fileButtonLayout->addStretch();
     fileGroupLayout->addLayout(fileButtonLayout);
     
@@ -110,16 +147,16 @@ void JosekiWindow::setupUi()
     QHBoxLayout *operationGroupLayout = new QHBoxLayout(operationGroup);
     operationGroupLayout->setContentsMargins(8, 4, 8, 4);
     
+    m_addMoveButton = new QPushButton(tr("＋追加"), this);
+    m_addMoveButton->setToolTip(tr("現在の局面に定跡手を追加"));
+    m_addMoveButton->setFixedWidth(70);
+    operationGroupLayout->addWidget(m_addMoveButton);
+    
     m_stopButton = new QPushButton(tr("⏸停止"), this);
     m_stopButton->setToolTip(tr("定跡表示を停止/再開"));
     m_stopButton->setCheckable(true);
     m_stopButton->setFixedWidth(70);
     operationGroupLayout->addWidget(m_stopButton);
-    
-    m_refreshButton = new QPushButton(tr("🔄更新"), this);
-    m_refreshButton->setToolTip(tr("現在の局面で定跡を再検索"));
-    m_refreshButton->setFixedWidth(70);
-    operationGroupLayout->addWidget(m_refreshButton);
     
     m_closeButton = new QPushButton(tr("閉じる"), this);
     m_closeButton->setToolTip(tr("定跡ウィンドウを閉じる"));
@@ -135,26 +172,56 @@ void JosekiWindow::setupUi()
     // ============================================================
     // 状態表示行
     // ============================================================
-    QHBoxLayout *statusLayout = new QHBoxLayout();
+    QVBoxLayout *sfenAreaLayout = new QVBoxLayout();
+    sfenAreaLayout->setSpacing(4);
     
-    // 現在の局面のSFEN表示
+    // --- 現在の局面行 ---
+    QHBoxLayout *currentSfenLayout = new QHBoxLayout();
+    
     QLabel *sfenTitleLabel = new QLabel(tr("現在の局面:"), this);
-    statusLayout->addWidget(sfenTitleLabel);
+    currentSfenLayout->addWidget(sfenTitleLabel);
     
     m_currentSfenLabel = new QLabel(tr("(未設定)"), this);
-    m_currentSfenLabel->setStyleSheet(QStringLiteral("color: blue; font-family: monospace; font-size: 9pt;"));
+    m_currentSfenLabel->setStyleSheet(QStringLiteral("color: blue; font-family: monospace;"));
     m_currentSfenLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
     m_currentSfenLabel->setWordWrap(false);
-    statusLayout->addWidget(m_currentSfenLabel, 1);
+    currentSfenLayout->addWidget(m_currentSfenLabel, 1);
     
-    statusLayout->addSpacing(20);
+    sfenAreaLayout->addLayout(currentSfenLayout);
+    
+    // --- 定跡ファイルのSFEN行 ---
+    QHBoxLayout *sfenLineLayout = new QHBoxLayout();
+    
+    QLabel *sfenLineTitleLabel = new QLabel(tr("定跡SFEN:"), this);
+    sfenLineLayout->addWidget(sfenLineTitleLabel);
+    
+    m_sfenLineLabel = new QLabel(tr("(定跡なし)"), this);
+    m_sfenLineLabel->setStyleSheet(QStringLiteral("color: green; font-family: monospace;"));
+    m_sfenLineLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    m_sfenLineLabel->setWordWrap(false);
+    sfenLineLayout->addWidget(m_sfenLineLabel, 1);
+    
+    // SFEN表示のフォントサイズ変更ボタン
+    m_sfenFontDecBtn = new QPushButton(tr("A-"), this);
+    m_sfenFontDecBtn->setToolTip(tr("SFEN表示のフォントサイズを縮小"));
+    m_sfenFontDecBtn->setFixedWidth(32);
+    sfenLineLayout->addWidget(m_sfenFontDecBtn);
+    
+    m_sfenFontIncBtn = new QPushButton(tr("A+"), this);
+    m_sfenFontIncBtn->setToolTip(tr("SFEN表示のフォントサイズを拡大"));
+    m_sfenFontIncBtn->setFixedWidth(32);
+    sfenLineLayout->addWidget(m_sfenFontIncBtn);
+    
+    sfenLineLayout->addSpacing(10);
     
     // 状態ラベル
     m_statusLabel = new QLabel(this);
     m_statusLabel->setFixedWidth(150);
-    statusLayout->addWidget(m_statusLabel);
+    sfenLineLayout->addWidget(m_statusLabel);
     
-    mainLayout->addLayout(statusLayout);
+    sfenAreaLayout->addLayout(sfenLineLayout);
+    
+    mainLayout->addLayout(sfenAreaLayout);
 
     // ============================================================
     // 定跡表示用テーブル
@@ -191,23 +258,34 @@ void JosekiWindow::setupUi()
     // ============================================================
     // シグナル・スロット接続
     // ============================================================
+    connect(m_newButton, &QPushButton::clicked,
+            this, &JosekiWindow::onNewButtonClicked);
     connect(m_openButton, &QPushButton::clicked,
             this, &JosekiWindow::onOpenButtonClicked);
+    connect(m_saveButton, &QPushButton::clicked,
+            this, &JosekiWindow::onSaveButtonClicked);
+    connect(m_saveAsButton, &QPushButton::clicked,
+            this, &JosekiWindow::onSaveAsButtonClicked);
+    connect(m_addMoveButton, &QPushButton::clicked,
+            this, &JosekiWindow::onAddMoveButtonClicked);
     connect(m_fontIncreaseBtn, &QPushButton::clicked,
             this, &JosekiWindow::onFontSizeIncrease);
     connect(m_fontDecreaseBtn, &QPushButton::clicked,
             this, &JosekiWindow::onFontSizeDecrease);
+    connect(m_sfenFontIncBtn, &QPushButton::clicked,
+            this, &JosekiWindow::onSfenFontSizeIncrease);
+    connect(m_sfenFontDecBtn, &QPushButton::clicked,
+            this, &JosekiWindow::onSfenFontSizeDecrease);
     connect(m_autoLoadCheckBox, &QCheckBox::checkStateChanged,
             this, &JosekiWindow::onAutoLoadCheckBoxChanged);
     connect(m_stopButton, &QPushButton::clicked,
             this, &JosekiWindow::onStopButtonClicked);
-    connect(m_refreshButton, &QPushButton::clicked,
-            this, &JosekiWindow::onRefreshButtonClicked);
     connect(m_closeButton, &QPushButton::clicked,
             this, &JosekiWindow::onCloseButtonClicked);
     
     // 初期状態表示を更新
     updateStatusDisplay();
+    updateWindowTitle();
 }
 
 void JosekiWindow::loadSettings()
@@ -215,6 +293,10 @@ void JosekiWindow::loadSettings()
     // フォントサイズを読み込み
     m_fontSize = SettingsService::josekiWindowFontSize();
     applyFontSize();
+    
+    // SFENフォントサイズを読み込み
+    m_sfenFontSize = SettingsService::josekiWindowSfenFontSize();
+    applySfenFontSize();
     
     // ウィンドウサイズを読み込み
     QSize savedSize = SettingsService::josekiWindowSize();
@@ -226,6 +308,10 @@ void JosekiWindow::loadSettings()
     m_autoLoadEnabled = SettingsService::josekiWindowAutoLoadEnabled();
     m_autoLoadCheckBox->setChecked(m_autoLoadEnabled);
     
+    // 最近使ったファイルリストを読み込み
+    m_recentFiles = SettingsService::josekiWindowRecentFiles();
+    updateRecentFilesMenu();
+    
     // 最後に開いた定跡ファイルを読み込み（自動読込が有効な場合のみ）
     if (m_autoLoadEnabled) {
         QString lastFilePath = SettingsService::josekiWindowLastFilePath();
@@ -234,6 +320,7 @@ void JosekiWindow::loadSettings()
                 m_currentFilePath = lastFilePath;
                 m_filePathLabel->setText(lastFilePath);
                 m_filePathLabel->setStyleSheet(QString());
+                setModified(false);
             }
         }
     }
@@ -244,6 +331,9 @@ void JosekiWindow::saveSettings()
     // フォントサイズを保存
     SettingsService::setJosekiWindowFontSize(m_fontSize);
     
+    // SFENフォントサイズを保存
+    SettingsService::setJosekiWindowSfenFontSize(m_sfenFontSize);
+    
     // ウィンドウサイズを保存
     SettingsService::setJosekiWindowSize(size());
     
@@ -252,10 +342,19 @@ void JosekiWindow::saveSettings()
     
     // 自動読込設定を保存
     SettingsService::setJosekiWindowAutoLoadEnabled(m_autoLoadEnabled);
+    
+    // 最近使ったファイルリストを保存
+    SettingsService::setJosekiWindowRecentFiles(m_recentFiles);
 }
 
 void JosekiWindow::closeEvent(QCloseEvent *event)
 {
+    // 未保存の変更がある場合は確認
+    if (!confirmDiscardChanges()) {
+        event->ignore();
+        return;
+    }
+    
     saveSettings();
     QWidget::closeEvent(event);
 }
@@ -276,6 +375,16 @@ void JosekiWindow::applyFontSize()
     updateJosekiDisplay();
 }
 
+void JosekiWindow::applySfenFontSize()
+{
+    // SFEN表示ラベルのフォントサイズを更新
+    QString styleSheet = QStringLiteral("color: blue; font-family: monospace; font-size: %1pt;").arg(m_sfenFontSize);
+    m_currentSfenLabel->setStyleSheet(styleSheet);
+    
+    styleSheet = QStringLiteral("color: green; font-family: monospace; font-size: %1pt;").arg(m_sfenFontSize);
+    m_sfenLineLabel->setStyleSheet(styleSheet);
+}
+
 void JosekiWindow::onFontSizeIncrease()
 {
     if (m_fontSize < 24) {
@@ -292,8 +401,29 @@ void JosekiWindow::onFontSizeDecrease()
     }
 }
 
+void JosekiWindow::onSfenFontSizeIncrease()
+{
+    if (m_sfenFontSize < 18) {
+        m_sfenFontSize++;
+        applySfenFontSize();
+    }
+}
+
+void JosekiWindow::onSfenFontSizeDecrease()
+{
+    if (m_sfenFontSize > 6) {
+        m_sfenFontSize--;
+        applySfenFontSize();
+    }
+}
+
 void JosekiWindow::onOpenButtonClicked()
 {
+    // 未保存の変更がある場合は確認
+    if (!confirmDiscardChanges()) {
+        return;
+    }
+    
     // 最後に開いたディレクトリを取得
     QString startDir;
     if (!m_currentFilePath.isEmpty()) {
@@ -314,6 +444,10 @@ void JosekiWindow::onOpenButtonClicked()
             m_currentFilePath = filePath;
             m_filePathLabel->setText(filePath);
             m_filePathLabel->setStyleSheet(QString());  // デフォルトスタイルに戻す
+            setModified(false);
+            
+            // 最近使ったファイルリストに追加
+            addToRecentFiles(filePath);
             
             // 設定を保存
             saveSettings();
@@ -334,6 +468,7 @@ bool JosekiWindow::loadJosekiFile(const QString &filePath)
     }
 
     m_josekiData.clear();
+    m_sfenWithPlyMap.clear();
 
     QTextStream in(&file);
     QString line;
@@ -374,6 +509,10 @@ bool JosekiWindow::loadJosekiFile(const QString &filePath)
             currentSfen = line.mid(5).trimmed();
             currentSfen.remove(QLatin1Char('\r'));  // 念のため再度除去
             normalizedSfen = normalizeSfen(currentSfen);
+            // 元のSFEN（手数付き）を保持
+            if (!m_sfenWithPlyMap.contains(normalizedSfen)) {
+                m_sfenWithPlyMap[normalizedSfen] = currentSfen;
+            }
             hasSfenLine = true;
             continue;
         }
@@ -561,6 +700,7 @@ void JosekiWindow::updateJosekiDisplay()
         // 一致する定跡がない場合は空のテーブルを表示
         qDebug() << "[JosekiWindow] No match found for current position";
         m_currentMoves.clear();
+        m_sfenLineLabel->setText(tr("(定跡なし)"));
         updateStatusDisplay();
         return;
     }
@@ -569,6 +709,13 @@ void JosekiWindow::updateJosekiDisplay()
     
     // 現在表示中の定跡手リストを保存
     m_currentMoves = moves;
+    
+    // 定跡ファイルのSFEN行を表示
+    if (m_sfenWithPlyMap.contains(normalizedSfen)) {
+        m_sfenLineLabel->setText(QStringLiteral("sfen ") + m_sfenWithPlyMap[normalizedSfen]);
+    } else {
+        m_sfenLineLabel->setText(QStringLiteral("sfen ") + normalizedSfen);
+    }
     
     qDebug() << "[JosekiWindow] Found" << moves.size() << "moves for this position";
     
@@ -765,13 +912,6 @@ void JosekiWindow::onStopButtonClicked()
     qDebug() << "[JosekiWindow] Display enabled:" << m_displayEnabled;
 }
 
-void JosekiWindow::onRefreshButtonClicked()
-{
-    // 現在の局面で定跡を再検索
-    updateJosekiDisplay();
-    qDebug() << "[JosekiWindow] Refreshed joseki display";
-}
-
 void JosekiWindow::onCloseButtonClicked()
 {
     close();
@@ -904,4 +1044,368 @@ QString JosekiWindow::usiMoveToJapanese(const QString &usiMove, int plyNumber, S
     }
 
     return teban + usiMove;  // 変換できない場合はそのまま
+}
+
+void JosekiWindow::onNewButtonClicked()
+{
+    // 未保存の変更がある場合は確認
+    if (!confirmDiscardChanges()) {
+        return;
+    }
+    
+    // 定跡データをクリア
+    m_josekiData.clear();
+    m_sfenWithPlyMap.clear();
+    m_currentFilePath.clear();
+    m_filePathLabel->setText(tr("新規ファイル（未保存）"));
+    m_filePathLabel->setStyleSheet(QStringLiteral("color: blue;"));
+    
+    setModified(false);
+    updateStatusDisplay();
+    updateJosekiDisplay();
+    
+    qDebug() << "[JosekiWindow] Created new empty joseki file";
+}
+
+void JosekiWindow::onSaveButtonClicked()
+{
+    if (m_currentFilePath.isEmpty()) {
+        // ファイルパスがない場合は「名前を付けて保存」を呼び出す
+        onSaveAsButtonClicked();
+        return;
+    }
+    
+    if (saveJosekiFile(m_currentFilePath)) {
+        setModified(false);
+        qDebug() << "[JosekiWindow] Saved to" << m_currentFilePath;
+    }
+}
+
+void JosekiWindow::onSaveAsButtonClicked()
+{
+    // 保存先ディレクトリを決定
+    QString startDir;
+    if (!m_currentFilePath.isEmpty()) {
+        QFileInfo fi(m_currentFilePath);
+        startDir = fi.absolutePath();
+    }
+    
+    // ファイル保存ダイアログを表示
+    QString filePath = QFileDialog::getSaveFileName(
+        this,
+        tr("定跡ファイルを保存"),
+        startDir,
+        tr("定跡ファイル (*.db);;すべてのファイル (*)")
+    );
+    
+    if (filePath.isEmpty()) {
+        return;
+    }
+    
+    // 拡張子がない場合は.dbを追加
+    if (!filePath.endsWith(QStringLiteral(".db"), Qt::CaseInsensitive)) {
+        filePath += QStringLiteral(".db");
+    }
+    
+    if (saveJosekiFile(filePath)) {
+        m_currentFilePath = filePath;
+        m_filePathLabel->setText(filePath);
+        m_filePathLabel->setStyleSheet(QString());
+        setModified(false);
+        
+        // 最近使ったファイルリストに追加
+        addToRecentFiles(filePath);
+        
+        // 設定を保存
+        saveSettings();
+        
+        qDebug() << "[JosekiWindow] Saved as" << filePath;
+    }
+}
+
+bool JosekiWindow::saveJosekiFile(const QString &filePath)
+{
+    QFile file(filePath);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::warning(this, tr("エラー"),
+                             tr("ファイルを保存できませんでした: %1").arg(filePath));
+        return false;
+    }
+    
+    QTextStream out(&file);
+    
+    // ヘッダーを書き込み
+    out << QStringLiteral("#YANEURAOU-DB2016 1.00\n");
+    
+    // 各局面と定跡手を書き込み
+    QMapIterator<QString, QVector<JosekiMove>> it(m_josekiData);
+    while (it.hasNext()) {
+        it.next();
+        const QString &normalizedSfen = it.key();
+        const QVector<JosekiMove> &moves = it.value();
+        
+        // 元のSFEN（手数付き）を取得、なければ正規化SFENを使用
+        QString sfenToWrite;
+        if (m_sfenWithPlyMap.contains(normalizedSfen)) {
+            sfenToWrite = m_sfenWithPlyMap[normalizedSfen];
+        } else {
+            sfenToWrite = normalizedSfen;
+        }
+        
+        // 手数が含まれているか確認し、なければデフォルト値1を追加
+        const QStringList parts = sfenToWrite.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+        if (parts.size() == 3) {
+            // 手数が含まれていない場合はデフォルト値1を追加
+            sfenToWrite += QStringLiteral(" 1");
+        }
+        
+        // SFEN行を書き込み
+        out << QStringLiteral("sfen ") << sfenToWrite << QStringLiteral("\n");
+        
+        // 各指し手を書き込み
+        for (const JosekiMove &move : moves) {
+            out << move.move << QStringLiteral(" ")
+                << move.nextMove << QStringLiteral(" ")
+                << move.value << QStringLiteral(" ")
+                << move.depth << QStringLiteral(" ")
+                << move.frequency;
+            
+            // コメントがあれば追加
+            if (!move.comment.isEmpty()) {
+                out << QStringLiteral(" ") << move.comment;
+            }
+            out << QStringLiteral("\n");
+        }
+    }
+    
+    file.close();
+    return true;
+}
+
+void JosekiWindow::updateWindowTitle()
+{
+    QString title = tr("定跡ウィンドウ");
+    
+    if (!m_currentFilePath.isEmpty()) {
+        QFileInfo fi(m_currentFilePath);
+        title = fi.fileName() + QStringLiteral(" - ") + title;
+    }
+    
+    if (m_modified) {
+        title = QStringLiteral("* ") + title;
+    }
+    
+    setWindowTitle(title);
+}
+
+void JosekiWindow::setModified(bool modified)
+{
+    m_modified = modified;
+    // 上書保存ボタン: ファイルパスがあり、変更がある場合のみ有効
+    m_saveButton->setEnabled(!m_currentFilePath.isEmpty() && modified);
+    updateWindowTitle();
+}
+
+bool JosekiWindow::confirmDiscardChanges()
+{
+    if (!m_modified) {
+        return true;  // 変更がなければそのまま続行
+    }
+    
+    QMessageBox::StandardButton result = QMessageBox::question(
+        this,
+        tr("確認"),
+        tr("定跡データに未保存の変更があります。\n変更を破棄しますか？"),
+        QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel,
+        QMessageBox::Save
+    );
+    
+    if (result == QMessageBox::Save) {
+        onSaveButtonClicked();
+        return !m_modified;  // 保存が成功したら続行
+    } else if (result == QMessageBox::Discard) {
+        return true;  // 変更を破棄して続行
+    } else {
+        return false;  // キャンセル
+    }
+}
+
+void JosekiWindow::addToRecentFiles(const QString &filePath)
+{
+    // 既に存在する場合は削除（先頭に移動するため）
+    m_recentFiles.removeAll(filePath);
+    
+    // 先頭に追加
+    m_recentFiles.prepend(filePath);
+    
+    // 最大5件に制限
+    while (m_recentFiles.size() > 5) {
+        m_recentFiles.removeLast();
+    }
+    
+    // メニューを更新
+    updateRecentFilesMenu();
+}
+
+void JosekiWindow::updateRecentFilesMenu()
+{
+    m_recentFilesMenu->clear();
+    
+    if (m_recentFiles.isEmpty()) {
+        QAction *emptyAction = m_recentFilesMenu->addAction(tr("（履歴なし）"));
+        emptyAction->setEnabled(false);
+        return;
+    }
+    
+    for (const QString &filePath : std::as_const(m_recentFiles)) {
+        QFileInfo fi(filePath);
+        QString displayName = fi.fileName();
+        
+        QAction *action = m_recentFilesMenu->addAction(displayName);
+        action->setData(filePath);
+        action->setToolTip(filePath);
+        connect(action, &QAction::triggered, this, &JosekiWindow::onRecentFileClicked);
+    }
+    
+    m_recentFilesMenu->addSeparator();
+    
+    // 履歴をクリアするアクション
+    QAction *clearAction = m_recentFilesMenu->addAction(tr("履歴をクリア"));
+    connect(clearAction, &QAction::triggered, this, [this]() {
+        m_recentFiles.clear();
+        updateRecentFilesMenu();
+        saveSettings();
+    });
+}
+
+void JosekiWindow::onRecentFileClicked()
+{
+    QAction *action = qobject_cast<QAction*>(sender());
+    if (!action) {
+        return;
+    }
+    
+    QString filePath = action->data().toString();
+    if (filePath.isEmpty()) {
+        return;
+    }
+    
+    // 未保存の変更がある場合は確認
+    if (!confirmDiscardChanges()) {
+        return;
+    }
+    
+    // ファイルが存在するか確認
+    if (!QFileInfo::exists(filePath)) {
+        QMessageBox::warning(this, tr("エラー"),
+                             tr("ファイルが見つかりません: %1").arg(filePath));
+        // リストから削除
+        m_recentFiles.removeAll(filePath);
+        updateRecentFilesMenu();
+        return;
+    }
+    
+    // ファイルを開く
+    if (loadJosekiFile(filePath)) {
+        m_currentFilePath = filePath;
+        m_filePathLabel->setText(filePath);
+        m_filePathLabel->setStyleSheet(QString());
+        setModified(false);
+        
+        // 先頭に移動
+        addToRecentFiles(filePath);
+        
+        // 設定を保存
+        saveSettings();
+        
+        // 現在の局面で定跡を検索・表示
+        updateJosekiDisplay();
+    }
+}
+
+void JosekiWindow::onAddMoveButtonClicked()
+{
+    // 現在の局面が設定されているか確認
+    if (m_currentSfen.isEmpty()) {
+        QMessageBox::warning(this, tr("定跡手追加"),
+                             tr("局面が設定されていません。\n"
+                                "将棋盤で局面を表示してから定跡手を追加してください。"));
+        return;
+    }
+    
+    // 定跡手追加ダイアログを表示
+    JosekiMoveDialog dialog(this, false);
+    
+    if (dialog.exec() != QDialog::Accepted) {
+        return;
+    }
+    
+    // 入力された定跡手を取得
+    JosekiMove newMove;
+    newMove.move = dialog.move();
+    newMove.nextMove = dialog.nextMove();
+    newMove.value = dialog.value();
+    newMove.depth = dialog.depth();
+    newMove.frequency = dialog.frequency();
+    newMove.comment = dialog.comment();
+    
+    // 正規化されたSFENを取得
+    QString normalizedSfen = normalizeSfen(m_currentSfen);
+    
+    // 元のSFEN（手数付き）を保持（まだ登録されていない場合）
+    if (!m_sfenWithPlyMap.contains(normalizedSfen)) {
+        // m_currentSfenに手数が含まれているか確認
+        const QStringList parts = m_currentSfen.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+        if (parts.size() >= 4) {
+            // 手数が含まれている場合はそのまま使用
+            m_sfenWithPlyMap[normalizedSfen] = m_currentSfen;
+        } else if (parts.size() == 3) {
+            // 手数が含まれていない場合はデフォルト値1を追加
+            m_sfenWithPlyMap[normalizedSfen] = m_currentSfen + QStringLiteral(" 1");
+        } else {
+            // それ以外の場合はそのまま使用
+            m_sfenWithPlyMap[normalizedSfen] = m_currentSfen;
+        }
+    }
+    
+    // 同じ指し手が既に登録されていないかチェック
+    if (m_josekiData.contains(normalizedSfen)) {
+        const QVector<JosekiMove> &existingMoves = m_josekiData[normalizedSfen];
+        for (const JosekiMove &move : existingMoves) {
+            if (move.move == newMove.move) {
+                QMessageBox::StandardButton result = QMessageBox::question(
+                    this, tr("確認"),
+                    tr("指し手「%1」は既に登録されています。\n上書きしますか？").arg(newMove.move),
+                    QMessageBox::Yes | QMessageBox::No,
+                    QMessageBox::No
+                );
+                
+                if (result == QMessageBox::No) {
+                    return;
+                }
+                
+                // 既存の指し手を削除
+                QVector<JosekiMove> &moves = m_josekiData[normalizedSfen];
+                for (int i = 0; i < moves.size(); ++i) {
+                    if (moves[i].move == newMove.move) {
+                        moves.removeAt(i);
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+    }
+    
+    // 定跡データに追加
+    m_josekiData[normalizedSfen].append(newMove);
+    
+    // 編集状態を更新
+    setModified(true);
+    
+    // 表示を更新
+    updateJosekiDisplay();
+    
+    qDebug() << "[JosekiWindow] Added joseki move:" << newMove.move 
+             << "to position:" << normalizedSfen;
 }

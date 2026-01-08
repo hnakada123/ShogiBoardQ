@@ -133,6 +133,11 @@ int josekiWindowFontSize();
 // 定跡ウィンドウのフォントサイズを保存
 void setJosekiWindowFontSize(int size);
 
+// 定跡ウィンドウのSFEN表示フォントサイズを取得（デフォルト: 9）
+int josekiWindowSfenFontSize();
+// 定跡ウィンドウのSFEN表示フォントサイズを保存
+void setJosekiWindowSfenFontSize(int size);
+
 // 定跡ウィンドウの最後に開いた定跡ファイルパスを取得
 QString josekiWindowLastFilePath();
 // 定跡ウィンドウの最後に開いた定跡ファイルパスを保存
@@ -147,6 +152,11 @@ void setJosekiWindowSize(const QSize& size);
 bool josekiWindowAutoLoadEnabled();
 // 定跡ファイル自動読込が有効かどうかを保存
 void setJosekiWindowAutoLoadEnabled(bool enabled);
+
+// 定跡ウィンドウの最近使ったファイルリストを取得（最大5件）
+QStringList josekiWindowRecentFiles();
+// 定跡ウィンドウの最近使ったファイルリストを保存
+void setJosekiWindowRecentFiles(const QStringList& files);
 
 } // namespace SettingsService
 
