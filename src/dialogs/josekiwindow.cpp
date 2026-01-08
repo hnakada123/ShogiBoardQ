@@ -16,12 +16,15 @@ JosekiWindow::JosekiWindow(QWidget *parent)
     : QWidget(parent, Qt::Window)  // Qt::Window フラグで独立ウィンドウとして表示
     , m_openButton(nullptr)
     , m_filePathLabel(nullptr)
-    , m_currentSfenLabel(nullptr)
+    , m_fileStatusLabel(nullptr)
     , m_fontIncreaseBtn(nullptr)
     , m_fontDecreaseBtn(nullptr)
     , m_autoLoadCheckBox(nullptr)
     , m_stopButton(nullptr)
+    , m_refreshButton(nullptr)
     , m_closeButton(nullptr)
+    , m_currentSfenLabel(nullptr)
+    , m_statusLabel(nullptr)
     , m_tableWidget(nullptr)
     , m_fontSize(10)
     , m_humanCanPlay(true)  // デフォルトは着手可能
@@ -36,70 +39,126 @@ void JosekiWindow::setupUi()
 {
     // ウィンドウタイトルとサイズの設定
     setWindowTitle(tr("定跡ウィンドウ"));
-    resize(900, 500);
+    resize(950, 550);
 
     // メインレイアウト
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
+    mainLayout->setSpacing(6);
 
-    // 上部ツールバー用の水平レイアウト
-    QHBoxLayout *toolbarLayout = new QHBoxLayout();
-
-    // 「開く」ボタン
+    // ============================================================
+    // ツールバー行1: ファイルグループ
+    // ============================================================
+    QGroupBox *fileGroup = new QGroupBox(tr("ファイル"), this);
+    QVBoxLayout *fileGroupLayout = new QVBoxLayout(fileGroup);
+    fileGroupLayout->setContentsMargins(8, 4, 8, 4);
+    fileGroupLayout->setSpacing(4);
+    
+    // ファイル操作ボタン行
+    QHBoxLayout *fileButtonLayout = new QHBoxLayout();
     m_openButton = new QPushButton(tr("開く"), this);
     m_openButton->setToolTip(tr("定跡ファイル(.db)を開く"));
-    toolbarLayout->addWidget(m_openButton);
-
-    // ファイルパス表示ラベル
+    m_openButton->setIcon(style()->standardIcon(QStyle::SP_DialogOpenButton));
+    fileButtonLayout->addWidget(m_openButton);
+    fileButtonLayout->addStretch();
+    fileGroupLayout->addLayout(fileButtonLayout);
+    
+    // ファイルパスと状態表示行
+    QHBoxLayout *fileInfoLayout = new QHBoxLayout();
     m_filePathLabel = new QLabel(tr("ファイル未選択"), this);
     m_filePathLabel->setStyleSheet(QStringLiteral("color: gray;"));
-    toolbarLayout->addWidget(m_filePathLabel, 1);  // ストレッチファクター1で残りの領域を使用
-
-    // 自動読込チェックボックス
-    m_autoLoadCheckBox = new QCheckBox(tr("自動読込"), this);
-    m_autoLoadCheckBox->setToolTip(tr("定跡ウィンドウ表示時に前回のファイルを自動で読み込む"));
-    m_autoLoadCheckBox->setChecked(true);
-    toolbarLayout->addWidget(m_autoLoadCheckBox);
-
-    toolbarLayout->addStretch();
+    m_filePathLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    fileInfoLayout->addWidget(m_filePathLabel, 1);
     
-    // フォントサイズ調整ボタン
+    m_fileStatusLabel = new QLabel(this);
+    m_fileStatusLabel->setFixedWidth(80);
+    fileInfoLayout->addWidget(m_fileStatusLabel);
+    fileGroupLayout->addLayout(fileInfoLayout);
+
+    // ============================================================
+    // ツールバー行2: 表示設定グループ + 操作グループ
+    // ============================================================
+    QHBoxLayout *toolbarRow2 = new QHBoxLayout();
+    
+    // --- 表示設定グループ ---
+    QGroupBox *displayGroup = new QGroupBox(tr("表示設定"), this);
+    QHBoxLayout *displayGroupLayout = new QHBoxLayout(displayGroup);
+    displayGroupLayout->setContentsMargins(8, 4, 8, 4);
+    
     m_fontDecreaseBtn = new QPushButton(tr("A-"), this);
     m_fontDecreaseBtn->setToolTip(tr("フォントサイズを縮小"));
-    m_fontDecreaseBtn->setFixedWidth(40);
-    toolbarLayout->addWidget(m_fontDecreaseBtn);
+    m_fontDecreaseBtn->setFixedWidth(36);
+    displayGroupLayout->addWidget(m_fontDecreaseBtn);
     
     m_fontIncreaseBtn = new QPushButton(tr("A+"), this);
     m_fontIncreaseBtn->setToolTip(tr("フォントサイズを拡大"));
-    m_fontIncreaseBtn->setFixedWidth(40);
-    toolbarLayout->addWidget(m_fontIncreaseBtn);
+    m_fontIncreaseBtn->setFixedWidth(36);
+    displayGroupLayout->addWidget(m_fontIncreaseBtn);
     
-    // 停止ボタン
-    m_stopButton = new QPushButton(tr("停止"), this);
+    displayGroupLayout->addSpacing(10);
+    
+    m_autoLoadCheckBox = new QCheckBox(tr("自動読込"), this);
+    m_autoLoadCheckBox->setToolTip(tr("定跡ウィンドウ表示時に前回のファイルを自動で読み込む"));
+    m_autoLoadCheckBox->setChecked(true);
+    displayGroupLayout->addWidget(m_autoLoadCheckBox);
+    
+    toolbarRow2->addWidget(displayGroup);
+    
+    toolbarRow2->addStretch();
+    
+    // --- 操作グループ ---
+    QGroupBox *operationGroup = new QGroupBox(tr("操作"), this);
+    QHBoxLayout *operationGroupLayout = new QHBoxLayout(operationGroup);
+    operationGroupLayout->setContentsMargins(8, 4, 8, 4);
+    
+    m_stopButton = new QPushButton(tr("⏸停止"), this);
     m_stopButton->setToolTip(tr("定跡表示を停止/再開"));
     m_stopButton->setCheckable(true);
-    toolbarLayout->addWidget(m_stopButton);
+    m_stopButton->setFixedWidth(70);
+    operationGroupLayout->addWidget(m_stopButton);
     
-    // 閉じるボタン
+    m_refreshButton = new QPushButton(tr("🔄更新"), this);
+    m_refreshButton->setToolTip(tr("現在の局面で定跡を再検索"));
+    m_refreshButton->setFixedWidth(70);
+    operationGroupLayout->addWidget(m_refreshButton);
+    
     m_closeButton = new QPushButton(tr("閉じる"), this);
     m_closeButton->setToolTip(tr("定跡ウィンドウを閉じる"));
-    toolbarLayout->addWidget(m_closeButton);
+    m_closeButton->setIcon(style()->standardIcon(QStyle::SP_DialogCloseButton));
+    operationGroupLayout->addWidget(m_closeButton);
+    
+    toolbarRow2->addWidget(operationGroup);
 
-    mainLayout->addLayout(toolbarLayout);
+    // レイアウトに追加
+    mainLayout->addWidget(fileGroup);
+    mainLayout->addLayout(toolbarRow2);
 
-    // デバッグ用：現在の局面のSFEN表示
-    QHBoxLayout *sfenLayout = new QHBoxLayout();
-    QLabel *sfenTitleLabel = new QLabel(tr("現在の局面(SFEN):"), this);
-    sfenLayout->addWidget(sfenTitleLabel);
+    // ============================================================
+    // 状態表示行
+    // ============================================================
+    QHBoxLayout *statusLayout = new QHBoxLayout();
+    
+    // 現在の局面のSFEN表示
+    QLabel *sfenTitleLabel = new QLabel(tr("現在の局面:"), this);
+    statusLayout->addWidget(sfenTitleLabel);
     
     m_currentSfenLabel = new QLabel(tr("(未設定)"), this);
-    m_currentSfenLabel->setStyleSheet(QStringLiteral("color: blue; font-family: monospace;"));
-    m_currentSfenLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);  // テキスト選択可能に
-    m_currentSfenLabel->setWordWrap(true);
-    sfenLayout->addWidget(m_currentSfenLabel, 1);
+    m_currentSfenLabel->setStyleSheet(QStringLiteral("color: blue; font-family: monospace; font-size: 9pt;"));
+    m_currentSfenLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    m_currentSfenLabel->setWordWrap(false);
+    statusLayout->addWidget(m_currentSfenLabel, 1);
     
-    mainLayout->addLayout(sfenLayout);
+    statusLayout->addSpacing(20);
+    
+    // 状態ラベル
+    m_statusLabel = new QLabel(this);
+    m_statusLabel->setFixedWidth(150);
+    statusLayout->addWidget(m_statusLabel);
+    
+    mainLayout->addLayout(statusLayout);
 
+    // ============================================================
     // 定跡表示用テーブル
+    // ============================================================
     m_tableWidget = new QTableWidget(this);
     m_tableWidget->setColumnCount(10);
     
@@ -115,11 +174,11 @@ void JosekiWindow::setupUi()
     m_tableWidget->setAlternatingRowColors(true);
     m_tableWidget->verticalHeader()->setVisible(false);
     
-    // カラム幅の設定（定跡手・予想応手の幅を拡大）
+    // カラム幅の設定
     m_tableWidget->setColumnWidth(0, 40);   // No.
     m_tableWidget->setColumnWidth(1, 50);   // 着手ボタン
-    m_tableWidget->setColumnWidth(2, 120);  // 定跡手（拡大）
-    m_tableWidget->setColumnWidth(3, 120);  // 予想応手（拡大）
+    m_tableWidget->setColumnWidth(2, 120);  // 定跡手
+    m_tableWidget->setColumnWidth(3, 120);  // 予想応手
     m_tableWidget->setColumnWidth(4, 50);   // 編集
     m_tableWidget->setColumnWidth(5, 50);   // 削除
     m_tableWidget->setColumnWidth(6, 70);   // 評価値
@@ -129,7 +188,9 @@ void JosekiWindow::setupUi()
     
     mainLayout->addWidget(m_tableWidget, 1);
 
+    // ============================================================
     // シグナル・スロット接続
+    // ============================================================
     connect(m_openButton, &QPushButton::clicked,
             this, &JosekiWindow::onOpenButtonClicked);
     connect(m_fontIncreaseBtn, &QPushButton::clicked,
@@ -140,8 +201,13 @@ void JosekiWindow::setupUi()
             this, &JosekiWindow::onAutoLoadCheckBoxChanged);
     connect(m_stopButton, &QPushButton::clicked,
             this, &JosekiWindow::onStopButtonClicked);
+    connect(m_refreshButton, &QPushButton::clicked,
+            this, &JosekiWindow::onRefreshButtonClicked);
     connect(m_closeButton, &QPushButton::clicked,
             this, &JosekiWindow::onCloseButtonClicked);
+    
+    // 初期状態表示を更新
+    updateStatusDisplay();
 }
 
 void JosekiWindow::loadSettings()
@@ -415,6 +481,9 @@ bool JosekiWindow::loadJosekiFile(const QString &filePath)
         qDebug() << "[JosekiWindow] Hirate position has" << m_josekiData[hirate].size() << "moves";
     }
     
+    // ステータス表示を更新
+    updateStatusDisplay();
+    
     return true;
 }
 
@@ -492,6 +561,7 @@ void JosekiWindow::updateJosekiDisplay()
         // 一致する定跡がない場合は空のテーブルを表示
         qDebug() << "[JosekiWindow] No match found for current position";
         m_currentMoves.clear();
+        updateStatusDisplay();
         return;
     }
     
@@ -633,12 +703,16 @@ void JosekiWindow::updateJosekiDisplay()
         QTableWidgetItem *commentItem = new QTableWidgetItem(move.comment);
         m_tableWidget->setItem(i, 9, commentItem);
     }
+    
+    // ステータス表示を更新
+    updateStatusDisplay();
 }
 
 void JosekiWindow::clearTable()
 {
     m_tableWidget->setRowCount(0);
     m_currentMoves.clear();
+    updateStatusDisplay();
 }
 
 void JosekiWindow::onPlayButtonClicked()
@@ -678,21 +752,62 @@ void JosekiWindow::onStopButtonClicked()
     m_displayEnabled = !m_stopButton->isChecked();
     
     if (m_displayEnabled) {
-        m_stopButton->setText(tr("停止"));
+        m_stopButton->setText(tr("⏸停止"));
         // 表示を再開した場合は現在の局面を再表示
         updateJosekiDisplay();
     } else {
-        m_stopButton->setText(tr("再開"));
+        m_stopButton->setText(tr("▶再開"));
         // 停止した場合はテーブルをクリア
         clearTable();
     }
     
+    updateStatusDisplay();
     qDebug() << "[JosekiWindow] Display enabled:" << m_displayEnabled;
+}
+
+void JosekiWindow::onRefreshButtonClicked()
+{
+    // 現在の局面で定跡を再検索
+    updateJosekiDisplay();
+    qDebug() << "[JosekiWindow] Refreshed joseki display";
 }
 
 void JosekiWindow::onCloseButtonClicked()
 {
     close();
+}
+
+void JosekiWindow::updateStatusDisplay()
+{
+    // ファイル読込状態を更新
+    if (m_fileStatusLabel) {
+        if (!m_josekiData.isEmpty()) {
+            m_fileStatusLabel->setText(tr("✓読込済"));
+            m_fileStatusLabel->setStyleSheet(QStringLiteral("color: green; font-weight: bold;"));
+        } else {
+            m_fileStatusLabel->setText(tr("✗未読込"));
+            m_fileStatusLabel->setStyleSheet(QStringLiteral("color: gray;"));
+        }
+    }
+    
+    // 表示状態を更新
+    if (m_statusLabel) {
+        if (!m_displayEnabled) {
+            m_statusLabel->setText(tr("○停止中"));
+            m_statusLabel->setStyleSheet(QStringLiteral("color: orange; font-weight: bold;"));
+        } else if (m_currentMoves.isEmpty()) {
+            if (m_currentSfen.isEmpty()) {
+                m_statusLabel->setText(tr("―局面未設定"));
+                m_statusLabel->setStyleSheet(QStringLiteral("color: gray;"));
+            } else {
+                m_statusLabel->setText(tr("―定跡なし"));
+                m_statusLabel->setStyleSheet(QStringLiteral("color: gray;"));
+            }
+        } else {
+            m_statusLabel->setText(tr("●表示中 (%1件)").arg(m_currentMoves.size()));
+            m_statusLabel->setStyleSheet(QStringLiteral("color: green; font-weight: bold;"));
+        }
+    }
 }
 
 void JosekiWindow::onMoveResult(bool success, const QString &usiMove)
