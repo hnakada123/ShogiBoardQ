@@ -3,6 +3,7 @@
 
 #include <QWidget>
 #include <QPushButton>
+#include <QToolButton>
 #include <QCheckBox>
 #include <QVBoxLayout>
 #include <QGroupBox>
@@ -148,6 +149,16 @@ private slots:
      * @brief 最近使ったファイルメニューの項目がクリックされたときのスロット
      */
     void onRecentFileClicked();
+    
+    /**
+     * @brief 現在の棋譜から定跡をマージする
+     */
+    void onMergeFromCurrentKifu();
+    
+    /**
+     * @brief 棋譜ファイルから定跡をマージする
+     */
+    void onMergeFromKifuFile();
 
 protected:
     /**
@@ -283,6 +294,8 @@ private:
     // === 操作グループ ===
     QPushButton  *m_stopButton;        ///< 定跡表示停止ボタン
     QPushButton  *m_addMoveButton;     ///< 定跡手追加ボタン
+    QToolButton  *m_mergeButton;       ///< マージボタン（ドロップダウンメニュー付き）
+    QMenu        *m_mergeMenu;         ///< マージメニュー
     QPushButton  *m_closeButton;       ///< 閉じるボタン
     
     // === 状態表示 ===

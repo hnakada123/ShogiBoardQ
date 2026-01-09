@@ -12,6 +12,7 @@
 #include <QDebug>
 #include <QFileInfo>
 #include <QLocale>
+#include <QToolButton>
 
 JosekiWindow::JosekiWindow(QWidget *parent)
     : QWidget(parent, Qt::Window)  // Qt::Window フラグで独立ウィンドウとして表示
@@ -28,6 +29,8 @@ JosekiWindow::JosekiWindow(QWidget *parent)
     , m_autoLoadCheckBox(nullptr)
     , m_stopButton(nullptr)
     , m_addMoveButton(nullptr)
+    , m_mergeButton(nullptr)
+    , m_mergeMenu(nullptr)
     , m_closeButton(nullptr)
     , m_currentSfenLabel(nullptr)
     , m_sfenLineLabel(nullptr)
@@ -143,6 +146,19 @@ void JosekiWindow::setupUi()
     m_addMoveButton->setToolTip(tr("現在の局面に定跡手を追加"));
     m_addMoveButton->setFixedWidth(70);
     operationGroupLayout->addWidget(m_addMoveButton);
+    
+    // マージボタン（ドロップダウンメニュー付き）
+    m_mergeButton = new QToolButton(this);
+    m_mergeButton->setText(tr("📥マージ"));
+    m_mergeButton->setToolTip(tr("棋譜から定跡をマージ"));
+    m_mergeButton->setPopupMode(QToolButton::InstantPopup);
+    m_mergeButton->setFixedWidth(90);
+    
+    m_mergeMenu = new QMenu(this);
+    m_mergeMenu->addAction(tr("現在の棋譜から"), this, &JosekiWindow::onMergeFromCurrentKifu);
+    m_mergeMenu->addAction(tr("棋譜ファイルから"), this, &JosekiWindow::onMergeFromKifuFile);
+    m_mergeButton->setMenu(m_mergeMenu);
+    operationGroupLayout->addWidget(m_mergeButton);
     
     m_stopButton = new QPushButton(tr("⏸停止"), this);
     m_stopButton->setToolTip(tr("定跡表示を停止/再開"));
@@ -1528,4 +1544,22 @@ void JosekiWindow::onDeleteButtonClicked()
     
     // 表示を更新
     updateJosekiDisplay();
+}
+
+void JosekiWindow::onMergeFromCurrentKifu()
+{
+    // TODO: 現在の棋譜から定跡をマージする機能を実装
+    QMessageBox::information(this, tr("マージ機能"),
+        tr("「現在の棋譜からマージ」機能は今後実装予定です。\n\n"
+           "この機能では、メインウィンドウで開いている棋譜の全ての指し手を\n"
+           "現在の定跡ファイルにマージします。"));
+}
+
+void JosekiWindow::onMergeFromKifuFile()
+{
+    // TODO: 棋譜ファイルから定跡をマージする機能を実装
+    QMessageBox::information(this, tr("マージ機能"),
+        tr("「棋譜ファイルからマージ」機能は今後実装予定です。\n\n"
+           "この機能では、指定した棋譜ファイル(.kif, .kifu, .csa等)を読み込み、\n"
+           "その指し手を現在の定跡ファイルにマージします。"));
 }
