@@ -104,6 +104,12 @@ public:
      * @param comment コメント
      */
     void setComment(const QString &comment);
+    
+    /**
+     * @brief 編集対象の定跡手を日本語で表示（編集モード用）
+     * @param japaneseMove 日本語表記の定跡手（例：▲７六歩(77)）
+     */
+    void setEditMoveDisplay(const QString &japaneseMove);
 
 private slots:
     /**
@@ -221,6 +227,8 @@ private:
     QComboBox *m_moveToFileCombo;        ///< 移動先筋
     QComboBox *m_moveToRankCombo;        ///< 移動先段
     QComboBox *m_moveDropPieceCombo;     ///< 打つ駒種
+    QComboBox *m_moveDropToFileCombo;    ///< 駒打ち先筋
+    QComboBox *m_moveDropToRankCombo;    ///< 駒打ち先段
     QComboBox *m_movePromoteCombo;       ///< 成り/不成
     
     QLabel *m_movePreviewLabel;          ///< 指し手プレビュー（日本語）
@@ -240,6 +248,8 @@ private:
     QComboBox *m_nextMoveToFileCombo;    ///< 移動先筋
     QComboBox *m_nextMoveToRankCombo;    ///< 移動先段
     QComboBox *m_nextMoveDropPieceCombo; ///< 打つ駒種
+    QComboBox *m_nextMoveDropToFileCombo;///< 駒打ち先筋
+    QComboBox *m_nextMoveDropToRankCombo;///< 駒打ち先段
     QComboBox *m_nextMovePromoteCombo;   ///< 成り/不成
     
     QLabel *m_nextMovePreviewLabel;      ///< 予想応手プレビュー（日本語）
@@ -248,6 +258,9 @@ private:
     QWidget *m_nextMoveBoardWidget;      ///< 盤上移動用ウィジェット
     QWidget *m_nextMoveDropWidget;       ///< 駒打ち用ウィジェット
     QWidget *m_nextMoveInputWidget;      ///< 予想応手入力エリア全体
+    
+    // === 編集モード用 ===
+    QLabel    *m_editMoveLabel;          ///< 編集対象の定跡手表示ラベル
     
     // === 評価情報 ===
     QSpinBox  *m_valueSpinBox;           ///< 評価値入力欄

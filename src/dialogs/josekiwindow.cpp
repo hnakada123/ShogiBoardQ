@@ -31,12 +31,9 @@ JosekiWindow::JosekiWindow(QWidget *parent)
     , m_closeButton(nullptr)
     , m_currentSfenLabel(nullptr)
     , m_sfenLineLabel(nullptr)
-    , m_sfenFontIncBtn(nullptr)
-    , m_sfenFontDecBtn(nullptr)
     , m_statusLabel(nullptr)
     , m_tableWidget(nullptr)
     , m_fontSize(10)
-    , m_sfenFontSize(9)
     , m_humanCanPlay(true)  // デフォルトは着手可能
     , m_autoLoadEnabled(true)
     , m_displayEnabled(true)
@@ -66,6 +63,19 @@ void JosekiWindow::setupUi()
     
     // ファイル操作ボタン行
     QHBoxLayout *fileButtonLayout = new QHBoxLayout();
+    
+    // フォントサイズ変更ボタン（新規作成ボタンの左に配置）
+    m_fontIncreaseBtn = new QPushButton(tr("A+"), this);
+    m_fontIncreaseBtn->setToolTip(tr("フォントサイズを拡大"));
+    m_fontIncreaseBtn->setFixedWidth(36);
+    fileButtonLayout->addWidget(m_fontIncreaseBtn);
+    
+    m_fontDecreaseBtn = new QPushButton(tr("A-"), this);
+    m_fontDecreaseBtn->setToolTip(tr("フォントサイズを縮小"));
+    m_fontDecreaseBtn->setFixedWidth(36);
+    fileButtonLayout->addWidget(m_fontDecreaseBtn);
+    
+    fileButtonLayout->addSpacing(10);
     
     m_newButton = new QPushButton(tr("新規作成"), this);
     m_newButton->setToolTip(tr("新しい空の定跡ファイルを作成"));
@@ -112,33 +122,15 @@ void JosekiWindow::setupUi()
     fileGroupLayout->addLayout(fileInfoLayout);
 
     // ============================================================
-    // ツールバー行2: 表示設定グループ + 操作グループ
+    // ツールバー行2: 自動読込チェックボックス + 操作グループ
     // ============================================================
     QHBoxLayout *toolbarRow2 = new QHBoxLayout();
     
-    // --- 表示設定グループ ---
-    QGroupBox *displayGroup = new QGroupBox(tr("表示設定"), this);
-    QHBoxLayout *displayGroupLayout = new QHBoxLayout(displayGroup);
-    displayGroupLayout->setContentsMargins(8, 4, 8, 4);
-    
-    m_fontDecreaseBtn = new QPushButton(tr("A-"), this);
-    m_fontDecreaseBtn->setToolTip(tr("フォントサイズを縮小"));
-    m_fontDecreaseBtn->setFixedWidth(36);
-    displayGroupLayout->addWidget(m_fontDecreaseBtn);
-    
-    m_fontIncreaseBtn = new QPushButton(tr("A+"), this);
-    m_fontIncreaseBtn->setToolTip(tr("フォントサイズを拡大"));
-    m_fontIncreaseBtn->setFixedWidth(36);
-    displayGroupLayout->addWidget(m_fontIncreaseBtn);
-    
-    displayGroupLayout->addSpacing(10);
-    
+    // --- 自動読込チェックボックス ---
     m_autoLoadCheckBox = new QCheckBox(tr("自動読込"), this);
     m_autoLoadCheckBox->setToolTip(tr("定跡ウィンドウ表示時に前回のファイルを自動で読み込む"));
     m_autoLoadCheckBox->setChecked(true);
-    displayGroupLayout->addWidget(m_autoLoadCheckBox);
-    
-    toolbarRow2->addWidget(displayGroup);
+    toolbarRow2->addWidget(m_autoLoadCheckBox);
     
     toolbarRow2->addStretch();
     
@@ -170,56 +162,45 @@ void JosekiWindow::setupUi()
     mainLayout->addLayout(toolbarRow2);
 
     // ============================================================
-    // 状態表示行
+    // 状態表示行（表形式で揃える）
     // ============================================================
-    QVBoxLayout *sfenAreaLayout = new QVBoxLayout();
-    sfenAreaLayout->setSpacing(4);
+    QHBoxLayout *sfenAreaLayout = new QHBoxLayout();
     
-    // --- 現在の局面行 ---
-    QHBoxLayout *currentSfenLayout = new QHBoxLayout();
+    // グリッドレイアウトで表形式に
+    QGridLayout *sfenGridLayout = new QGridLayout();
+    sfenGridLayout->setSpacing(4);
     
+    // --- 1行目: 現在の局面 ---
     QLabel *sfenTitleLabel = new QLabel(tr("現在の局面:"), this);
-    currentSfenLayout->addWidget(sfenTitleLabel);
+    sfenGridLayout->addWidget(sfenTitleLabel, 0, 0, Qt::AlignLeft);
     
     m_currentSfenLabel = new QLabel(tr("(未設定)"), this);
     m_currentSfenLabel->setStyleSheet(QStringLiteral("color: blue; font-family: monospace;"));
     m_currentSfenLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
     m_currentSfenLabel->setWordWrap(false);
-    currentSfenLayout->addWidget(m_currentSfenLabel, 1);
+    sfenGridLayout->addWidget(m_currentSfenLabel, 0, 1, Qt::AlignLeft);
     
-    sfenAreaLayout->addLayout(currentSfenLayout);
-    
-    // --- 定跡ファイルのSFEN行 ---
-    QHBoxLayout *sfenLineLayout = new QHBoxLayout();
-    
-    QLabel *sfenLineTitleLabel = new QLabel(tr("定跡SFEN:"), this);
-    sfenLineLayout->addWidget(sfenLineTitleLabel);
+    // --- 2行目: 定跡 ---
+    QLabel *sfenLineTitleLabel = new QLabel(tr("定跡:"), this);
+    sfenGridLayout->addWidget(sfenLineTitleLabel, 1, 0, Qt::AlignLeft);
     
     m_sfenLineLabel = new QLabel(tr("(定跡なし)"), this);
     m_sfenLineLabel->setStyleSheet(QStringLiteral("color: green; font-family: monospace;"));
     m_sfenLineLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
     m_sfenLineLabel->setWordWrap(false);
-    sfenLineLayout->addWidget(m_sfenLineLabel, 1);
+    sfenGridLayout->addWidget(m_sfenLineLabel, 1, 1, Qt::AlignLeft);
     
-    // SFEN表示のフォントサイズ変更ボタン
-    m_sfenFontDecBtn = new QPushButton(tr("A-"), this);
-    m_sfenFontDecBtn->setToolTip(tr("SFEN表示のフォントサイズを縮小"));
-    m_sfenFontDecBtn->setFixedWidth(32);
-    sfenLineLayout->addWidget(m_sfenFontDecBtn);
+    // 2列目を伸縮可能に
+    sfenGridLayout->setColumnStretch(1, 1);
     
-    m_sfenFontIncBtn = new QPushButton(tr("A+"), this);
-    m_sfenFontIncBtn->setToolTip(tr("SFEN表示のフォントサイズを拡大"));
-    m_sfenFontIncBtn->setFixedWidth(32);
-    sfenLineLayout->addWidget(m_sfenFontIncBtn);
+    sfenAreaLayout->addLayout(sfenGridLayout, 1);
     
-    sfenLineLayout->addSpacing(10);
+    sfenAreaLayout->addSpacing(10);
     
-    // 状態ラベル
+    // 状態ラベル（右端に配置）
     m_statusLabel = new QLabel(this);
     m_statusLabel->setFixedWidth(150);
-    sfenLineLayout->addWidget(m_statusLabel);
-    
-    sfenAreaLayout->addLayout(sfenLineLayout);
+    sfenAreaLayout->addWidget(m_statusLabel);
     
     mainLayout->addLayout(sfenAreaLayout);
 
@@ -272,10 +253,6 @@ void JosekiWindow::setupUi()
             this, &JosekiWindow::onFontSizeIncrease);
     connect(m_fontDecreaseBtn, &QPushButton::clicked,
             this, &JosekiWindow::onFontSizeDecrease);
-    connect(m_sfenFontIncBtn, &QPushButton::clicked,
-            this, &JosekiWindow::onSfenFontSizeIncrease);
-    connect(m_sfenFontDecBtn, &QPushButton::clicked,
-            this, &JosekiWindow::onSfenFontSizeDecrease);
     connect(m_autoLoadCheckBox, &QCheckBox::checkStateChanged,
             this, &JosekiWindow::onAutoLoadCheckBoxChanged);
     connect(m_stopButton, &QPushButton::clicked,
@@ -293,10 +270,6 @@ void JosekiWindow::loadSettings()
     // フォントサイズを読み込み
     m_fontSize = SettingsService::josekiWindowFontSize();
     applyFontSize();
-    
-    // SFENフォントサイズを読み込み
-    m_sfenFontSize = SettingsService::josekiWindowSfenFontSize();
-    applySfenFontSize();
     
     // ウィンドウサイズを読み込み
     QSize savedSize = SettingsService::josekiWindowSize();
@@ -331,9 +304,6 @@ void JosekiWindow::saveSettings()
     // フォントサイズを保存
     SettingsService::setJosekiWindowFontSize(m_fontSize);
     
-    // SFENフォントサイズを保存
-    SettingsService::setJosekiWindowSfenFontSize(m_sfenFontSize);
-    
     // ウィンドウサイズを保存
     SettingsService::setJosekiWindowSize(size());
     
@@ -361,8 +331,12 @@ void JosekiWindow::closeEvent(QCloseEvent *event)
 
 void JosekiWindow::applyFontSize()
 {
-    QFont font = m_tableWidget->font();
+    // ウィンドウ全体のフォントサイズを更新
+    QFont font = this->font();
     font.setPointSize(m_fontSize);
+    setFont(font);
+    
+    // テーブルのフォントも更新
     m_tableWidget->setFont(font);
     
     // ヘッダーのフォントも更新
@@ -371,18 +345,15 @@ void JosekiWindow::applyFontSize()
     // 行の高さを調整
     m_tableWidget->verticalHeader()->setDefaultSectionSize(m_fontSize + 16);
     
+    // SFEN表示ラベルのフォントサイズも更新（monospace維持）
+    QString blueStyleSheet = QStringLiteral("color: blue; font-family: monospace; font-size: %1pt;").arg(m_fontSize);
+    m_currentSfenLabel->setStyleSheet(blueStyleSheet);
+    
+    QString greenStyleSheet = QStringLiteral("color: green; font-family: monospace; font-size: %1pt;").arg(m_fontSize);
+    m_sfenLineLabel->setStyleSheet(greenStyleSheet);
+    
     // 表示を更新
     updateJosekiDisplay();
-}
-
-void JosekiWindow::applySfenFontSize()
-{
-    // SFEN表示ラベルのフォントサイズを更新
-    QString styleSheet = QStringLiteral("color: blue; font-family: monospace; font-size: %1pt;").arg(m_sfenFontSize);
-    m_currentSfenLabel->setStyleSheet(styleSheet);
-    
-    styleSheet = QStringLiteral("color: green; font-family: monospace; font-size: %1pt;").arg(m_sfenFontSize);
-    m_sfenLineLabel->setStyleSheet(styleSheet);
 }
 
 void JosekiWindow::onFontSizeIncrease()
@@ -398,22 +369,6 @@ void JosekiWindow::onFontSizeDecrease()
     if (m_fontSize > 6) {
         m_fontSize--;
         applyFontSize();
-    }
-}
-
-void JosekiWindow::onSfenFontSizeIncrease()
-{
-    if (m_sfenFontSize < 18) {
-        m_sfenFontSize++;
-        applySfenFontSize();
-    }
-}
-
-void JosekiWindow::onSfenFontSizeDecrease()
-{
-    if (m_sfenFontSize > 6) {
-        m_sfenFontSize--;
-        applySfenFontSize();
     }
 }
 
@@ -494,12 +449,28 @@ bool JosekiWindow::loadJosekiFile(const QString &filePath)
             continue;
         }
         
-        // ヘッダー行（#YANEURAOU-DB2016など）をチェック
+        // コメント行（#で始まる行）の処理
         if (line.startsWith(QLatin1Char('#'))) {
             // やねうら王定跡フォーマットのヘッダーを確認
             if (line.contains(QStringLiteral("YANEURAOU")) || 
                 line.contains(QStringLiteral("yaneuraou"))) {
                 hasValidHeader = true;
+                continue;
+            }
+            
+            // ヘッダー以外の#行は直前の指し手のコメントとして扱う
+            if (!normalizedSfen.isEmpty() && m_josekiData.contains(normalizedSfen)) {
+                QVector<JosekiMove> &moves = m_josekiData[normalizedSfen];
+                if (!moves.isEmpty()) {
+                    // #を除いた部分をコメントとして追加
+                    QString commentText = line.mid(1);  // #を除去
+                    if (!moves.last().comment.isEmpty()) {
+                        // 既にコメントがある場合は追加
+                        moves.last().comment += QStringLiteral(" ") + commentText;
+                    } else {
+                        moves.last().comment = commentText;
+                    }
+                }
             }
             continue;
         }
@@ -648,7 +619,7 @@ void JosekiWindow::setCurrentSfen(const QString &sfen)
         m_currentSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
     }
     
-    // デバッグ用：SFENラベルを更新
+    // SFENラベルを更新（手数を含めた元のSFENを表示）
     if (m_currentSfenLabel) {
         if (m_currentSfen.isEmpty()) {
             m_currentSfenLabel->setText(tr("(未設定)"));
@@ -710,11 +681,11 @@ void JosekiWindow::updateJosekiDisplay()
     // 現在表示中の定跡手リストを保存
     m_currentMoves = moves;
     
-    // 定跡ファイルのSFEN行を表示
+    // 定跡ファイルのSFEN行を表示（「sfen 」はラベル側に含まれているので省略）
     if (m_sfenWithPlyMap.contains(normalizedSfen)) {
-        m_sfenLineLabel->setText(QStringLiteral("sfen ") + m_sfenWithPlyMap[normalizedSfen]);
+        m_sfenLineLabel->setText(m_sfenWithPlyMap[normalizedSfen]);
     } else {
-        m_sfenLineLabel->setText(QStringLiteral("sfen ") + normalizedSfen);
+        m_sfenLineLabel->setText(normalizedSfen);
     }
     
     qDebug() << "[JosekiWindow] Found" << moves.size() << "moves for this position";
@@ -801,6 +772,7 @@ void JosekiWindow::updateJosekiDisplay()
             "  background-color: #398439;"
             "}"
         ));
+        connect(editButton, &QPushButton::clicked, this, &JosekiWindow::onEditButtonClicked);
         m_tableWidget->setCellWidget(i, 4, editButton);
         
         // 削除ボタン（赤系の配色）
@@ -821,6 +793,7 @@ void JosekiWindow::updateJosekiDisplay()
             "  background-color: #ac2925;"
             "}"
         ));
+        connect(deleteButton, &QPushButton::clicked, this, &JosekiWindow::onDeleteButtonClicked);
         m_tableWidget->setCellWidget(i, 5, deleteButton);
         
         // 評価値（3桁区切り）
@@ -1168,13 +1141,13 @@ bool JosekiWindow::saveJosekiFile(const QString &filePath)
                 << move.nextMove << QStringLiteral(" ")
                 << move.value << QStringLiteral(" ")
                 << move.depth << QStringLiteral(" ")
-                << move.frequency;
+                << move.frequency
+                << QStringLiteral("\n");
             
-            // コメントがあれば追加
+            // コメントがあれば次の行に#プレフィックス付きで追加
             if (!move.comment.isEmpty()) {
-                out << QStringLiteral(" ") << move.comment;
+                out << QStringLiteral("#") << move.comment << QStringLiteral("\n");
             }
-            out << QStringLiteral("\n");
         }
     }
     
@@ -1408,4 +1381,151 @@ void JosekiWindow::onAddMoveButtonClicked()
     
     qDebug() << "[JosekiWindow] Added joseki move:" << newMove.move 
              << "to position:" << normalizedSfen;
+}
+
+void JosekiWindow::onEditButtonClicked()
+{
+    // クリックされたボタンを取得
+    QPushButton *button = qobject_cast<QPushButton*>(sender());
+    if (!button) {
+        qDebug() << "[JosekiWindow] onEditButtonClicked: sender is not a QPushButton";
+        return;
+    }
+    
+    // ボタンに設定された行番号を取得
+    bool ok;
+    int row = button->property("row").toInt(&ok);
+    if (!ok || row < 0 || row >= m_currentMoves.size()) {
+        qDebug() << "[JosekiWindow] onEditButtonClicked: invalid row" << row;
+        return;
+    }
+    
+    // 現在の定跡手を取得
+    const JosekiMove &currentMove = m_currentMoves.at(row);
+    
+    // 定跡手の日本語表記を生成
+    int plyNumber = 1;
+    const QStringList sfenParts = m_currentSfen.split(QChar(' '));
+    if (sfenParts.size() >= 4) {
+        bool okPly;
+        plyNumber = sfenParts.at(3).toInt(&okPly);
+        if (!okPly) plyNumber = 1;
+    }
+    SfenPositionTracer tracer;
+    tracer.setFromSfen(m_currentSfen);
+    QString japaneseMoveStr = usiMoveToJapanese(currentMove.move, plyNumber, tracer);
+    
+    // 編集ダイアログを表示（編集モード）
+    JosekiMoveDialog dialog(this, true);
+    
+    // 現在の値をダイアログに設定（指し手は設定しない＝編集不可）
+    dialog.setValue(currentMove.value);
+    dialog.setDepth(currentMove.depth);
+    dialog.setFrequency(currentMove.frequency);
+    dialog.setComment(currentMove.comment);
+    
+    // 日本語表記の定跡手を表示
+    dialog.setEditMoveDisplay(japaneseMoveStr);
+    
+    if (dialog.exec() != QDialog::Accepted) {
+        return;
+    }
+    
+    // 正規化されたSFENを取得
+    QString normalizedSfen = normalizeSfen(m_currentSfen);
+    
+    // 定跡データを更新
+    if (m_josekiData.contains(normalizedSfen)) {
+        QVector<JosekiMove> &moves = m_josekiData[normalizedSfen];
+        for (int i = 0; i < moves.size(); ++i) {
+            if (moves[i].move == currentMove.move) {
+                moves[i].value = dialog.value();
+                moves[i].depth = dialog.depth();
+                moves[i].frequency = dialog.frequency();
+                moves[i].comment = dialog.comment();
+                
+                qDebug() << "[JosekiWindow] Updated joseki move:" << currentMove.move;
+                break;
+            }
+        }
+    }
+    
+    // 編集状態を更新
+    setModified(true);
+    
+    // 表示を更新
+    updateJosekiDisplay();
+}
+
+void JosekiWindow::onDeleteButtonClicked()
+{
+    // クリックされたボタンを取得
+    QPushButton *button = qobject_cast<QPushButton*>(sender());
+    if (!button) {
+        qDebug() << "[JosekiWindow] onDeleteButtonClicked: sender is not a QPushButton";
+        return;
+    }
+    
+    // ボタンに設定された行番号を取得
+    bool ok;
+    int row = button->property("row").toInt(&ok);
+    if (!ok || row < 0 || row >= m_currentMoves.size()) {
+        qDebug() << "[JosekiWindow] onDeleteButtonClicked: invalid row" << row;
+        return;
+    }
+    
+    // 現在の定跡手を取得
+    const JosekiMove &currentMove = m_currentMoves.at(row);
+    
+    // 定跡手の日本語表記を生成
+    int plyNumber = 1;
+    const QStringList sfenParts = m_currentSfen.split(QChar(' '));
+    if (sfenParts.size() >= 4) {
+        bool okPly;
+        plyNumber = sfenParts.at(3).toInt(&okPly);
+        if (!okPly) plyNumber = 1;
+    }
+    SfenPositionTracer tracer;
+    tracer.setFromSfen(m_currentSfen);
+    QString japaneseMoveStr = usiMoveToJapanese(currentMove.move, plyNumber, tracer);
+    
+    // 削除確認ダイアログ
+    QMessageBox::StandardButton result = QMessageBox::question(
+        this, tr("削除確認"),
+        tr("定跡手「%1」を削除しますか？").arg(japaneseMoveStr),
+        QMessageBox::Yes | QMessageBox::No,
+        QMessageBox::No
+    );
+    
+    if (result != QMessageBox::Yes) {
+        return;
+    }
+    
+    // 正規化されたSFENを取得
+    QString normalizedSfen = normalizeSfen(m_currentSfen);
+    
+    // 定跡データから削除
+    if (m_josekiData.contains(normalizedSfen)) {
+        QVector<JosekiMove> &moves = m_josekiData[normalizedSfen];
+        for (int i = 0; i < moves.size(); ++i) {
+            if (moves[i].move == currentMove.move) {
+                moves.removeAt(i);
+                qDebug() << "[JosekiWindow] Deleted joseki move:" << currentMove.move;
+                
+                // この局面の定跡手がなくなった場合はエントリも削除
+                if (moves.isEmpty()) {
+                    m_josekiData.remove(normalizedSfen);
+                    m_sfenWithPlyMap.remove(normalizedSfen);
+                    qDebug() << "[JosekiWindow] Removed empty position:" << normalizedSfen;
+                }
+                break;
+            }
+        }
+    }
+    
+    // 編集状態を更新
+    setModified(true);
+    
+    // 表示を更新
+    updateJosekiDisplay();
 }

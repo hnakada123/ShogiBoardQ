@@ -1686,6 +1686,16 @@ void MainWindow::syncBoardAndHighlightsAtRow(int ply)
     if (m_recordNavController) {
         m_recordNavController->syncBoardAndHighlightsAtRow(ply);
     }
+    
+    // m_currentSfenStrを現在の局面に更新
+    if (m_sfenRecord && ply >= 0 && ply < m_sfenRecord->size()) {
+        m_currentSfenStr = m_sfenRecord->at(ply);
+        qDebug() << "[MW-DEBUG] syncBoardAndHighlightsAtRow: updated m_currentSfenStr=" << m_currentSfenStr;
+    }
+    
+    // 定跡ウィンドウを更新
+    updateJosekiWindow();
+    
     qDebug() << "[MW-DEBUG] syncBoardAndHighlightsAtRow LEAVE";
 }
 

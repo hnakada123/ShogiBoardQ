@@ -107,16 +107,6 @@ public slots:
     void onFontSizeDecrease();
     
     /**
-     * @brief SFEN表示のフォントサイズを拡大する
-     */
-    void onSfenFontSizeIncrease();
-    
-    /**
-     * @brief SFEN表示のフォントサイズを縮小する
-     */
-    void onSfenFontSizeDecrease();
-    
-    /**
      * @brief 定跡手の着手結果を受け取るスロット
      * @param success 着手が成功したかどうか
      * @param usiMove 着手しようとした指し手
@@ -128,6 +118,16 @@ private slots:
      * @brief 「着手」ボタンがクリックされたときのスロット
      */
     void onPlayButtonClicked();
+    
+    /**
+     * @brief 「編集」ボタンがクリックされたときのスロット
+     */
+    void onEditButtonClicked();
+    
+    /**
+     * @brief 「削除」ボタンがクリックされたときのスロット
+     */
+    void onDeleteButtonClicked();
     
     /**
      * @brief 自動読込チェックボックスの状態が変更されたときのスロット
@@ -197,11 +197,6 @@ private:
      * @brief フォントサイズを適用する
      */
     void applyFontSize();
-    
-    /**
-     * @brief SFEN表示のフォントサイズを適用する
-     */
-    void applySfenFontSize();
     
     /**
      * @brief 設定を読み込む
@@ -293,8 +288,6 @@ private:
     // === 状態表示 ===
     QLabel       *m_currentSfenLabel;  ///< 現在の局面のSFEN表示用ラベル
     QLabel       *m_sfenLineLabel;     ///< 定跡ファイルのSFEN行表示用ラベル
-    QPushButton  *m_sfenFontIncBtn;    ///< SFEN表示フォント拡大ボタン
-    QPushButton  *m_sfenFontDecBtn;    ///< SFEN表示フォント縮小ボタン
     QLabel       *m_statusLabel;       ///< 状態ラベル（●表示中 / ○停止中）
     
     // === テーブル ===
@@ -303,8 +296,7 @@ private:
     // === データ ===
     QString       m_currentFilePath;   ///< 現在選択されているファイルパス
     QString       m_currentSfen;       ///< 現在の局面のSFEN
-    int           m_fontSize;          ///< テーブルのフォントサイズ
-    int           m_sfenFontSize;      ///< SFEN表示のフォントサイズ
+    int           m_fontSize;          ///< フォントサイズ
     bool          m_humanCanPlay;      ///< 人間が着手可能かどうか
     bool          m_autoLoadEnabled;   ///< 定跡ファイル自動読込が有効かどうか
     bool          m_displayEnabled;    ///< 定跡表示が有効かどうか

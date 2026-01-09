@@ -1,4 +1,5 @@
 #include "josekimovedialog.h"
+#include "settingsservice.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -45,6 +46,8 @@ JosekiMoveDialog::JosekiMoveDialog(QWidget *parent, bool isEdit)
     , m_moveToFileCombo(nullptr)
     , m_moveToRankCombo(nullptr)
     , m_moveDropPieceCombo(nullptr)
+    , m_moveDropToFileCombo(nullptr)
+    , m_moveDropToRankCombo(nullptr)
     , m_movePromoteCombo(nullptr)
     , m_movePreviewLabel(nullptr)
     , m_moveUsiLabel(nullptr)
@@ -59,19 +62,22 @@ JosekiMoveDialog::JosekiMoveDialog(QWidget *parent, bool isEdit)
     , m_nextMoveToFileCombo(nullptr)
     , m_nextMoveToRankCombo(nullptr)
     , m_nextMoveDropPieceCombo(nullptr)
+    , m_nextMoveDropToFileCombo(nullptr)
+    , m_nextMoveDropToRankCombo(nullptr)
     , m_nextMovePromoteCombo(nullptr)
     , m_nextMovePreviewLabel(nullptr)
     , m_nextMoveUsiLabel(nullptr)
     , m_nextMoveBoardWidget(nullptr)
     , m_nextMoveDropWidget(nullptr)
     , m_nextMoveInputWidget(nullptr)
+    , m_editMoveLabel(nullptr)
     , m_valueSpinBox(nullptr)
     , m_depthSpinBox(nullptr)
     , m_frequencySpinBox(nullptr)
     , m_commentEdit(nullptr)
     , m_fontIncreaseBtn(nullptr)
     , m_fontDecreaseBtn(nullptr)
-    , m_fontSize(10)
+    , m_fontSize(SettingsService::josekiMoveDialogFontSize())
     , m_moveErrorLabel(nullptr)
     , m_buttonBox(nullptr)
 {
@@ -85,13 +91,55 @@ void JosekiMoveDialog::setupUi(bool isEdit)
     
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
     
-    // === 指し手入力グループ ===
+    // === フォントサイズ変更ボタン（左上に配置） ===
+    QHBoxLayout *fontLayout = new QHBoxLayout();
+    
+    m_fontDecreaseBtn = new QPushButton(tr("A-"), this);
+    m_fontDecreaseBtn->setToolTip(tr("フォントサイズを縮小"));
+    m_fontDecreaseBtn->setFixedWidth(36);
+    fontLayout->addWidget(m_fontDecreaseBtn);
+    
+    m_fontIncreaseBtn = new QPushButton(tr("A+"), this);
+    m_fontIncreaseBtn->setToolTip(tr("フォントサイズを拡大"));
+    m_fontIncreaseBtn->setFixedWidth(36);
+    fontLayout->addWidget(m_fontIncreaseBtn);
+    
+    fontLayout->addStretch();
+    mainLayout->addLayout(fontLayout);
+    
+    // === 指し手入力グループ ===（編集モードでは非表示）
     QGroupBox *moveGroup = createMoveInputWidget(this, false);
+    if (isEdit) {
+        moveGroup->hide();
+    }
     mainLayout->addWidget(moveGroup);
     
-    // === 予想応手入力グループ ===
+    // === 予想応手入力グループ ===（編集モードでは非表示）
     QGroupBox *nextMoveGroup = createMoveInputWidget(this, true);
+    if (isEdit) {
+        nextMoveGroup->hide();
+    }
     mainLayout->addWidget(nextMoveGroup);
+    
+    // === 編集対象の定跡手表示 ===（編集モードのみ）
+    m_editMoveLabel = new QLabel(this);
+    m_editMoveLabel->setStyleSheet(QStringLiteral(
+        "QLabel {"
+        "  font-size: 14pt;"
+        "  font-weight: bold;"
+        "  color: #333;"
+        "  padding: 8px;"
+        "  background-color: #f0f0f0;"
+        "  border: 1px solid #ccc;"
+        "  border-radius: 4px;"
+        "}"
+    ));
+    m_editMoveLabel->setAlignment(Qt::AlignCenter);
+    if (isEdit) {
+        mainLayout->addWidget(m_editMoveLabel);
+    } else {
+        m_editMoveLabel->hide();
+    }
     
     // === 評価情報グループ ===
     QGroupBox *evalGroup = new QGroupBox(tr("評価情報"), this);
@@ -148,24 +196,8 @@ void JosekiMoveDialog::setupUi(bool isEdit)
     commentLayout->addWidget(m_commentEdit);
     mainLayout->addWidget(commentGroup);
     
-    // === フォントサイズ・エラー表示行 ===
+    // === エラー表示行 ===
     QHBoxLayout *bottomLayout = new QHBoxLayout();
-    
-    // フォントサイズ変更ボタン
-    QLabel *fontLabel = new QLabel(tr("文字サイズ:"), this);
-    bottomLayout->addWidget(fontLabel);
-    
-    m_fontDecreaseBtn = new QPushButton(tr("A-"), this);
-    m_fontDecreaseBtn->setToolTip(tr("フォントサイズを縮小"));
-    m_fontDecreaseBtn->setFixedWidth(36);
-    bottomLayout->addWidget(m_fontDecreaseBtn);
-    
-    m_fontIncreaseBtn = new QPushButton(tr("A+"), this);
-    m_fontIncreaseBtn->setToolTip(tr("フォントサイズを拡大"));
-    m_fontIncreaseBtn->setFixedWidth(36);
-    bottomLayout->addWidget(m_fontIncreaseBtn);
-    
-    bottomLayout->addSpacing(20);
     
     // エラー表示
     m_moveErrorLabel = new QLabel(this);
@@ -347,17 +379,14 @@ QGroupBox* JosekiMoveDialog::createMoveInputWidget(QWidget *parent, bool isNextM
         m_nextMoveToFileCombo = toFileCombo;
         m_nextMoveToRankCombo = toRankCombo;
         m_nextMoveDropPieceCombo = pieceCombo;
+        m_nextMoveDropToFileCombo = dropToFileCombo;
+        m_nextMoveDropToRankCombo = dropToRankCombo;
         m_nextMovePromoteCombo = promoteCombo;
         m_nextMovePreviewLabel = previewLabel;
         m_nextMoveUsiLabel = usiLabel;
         m_nextMoveBoardWidget = boardWidget;
         m_nextMoveDropWidget = dropWidget;
         m_nextMoveInputWidget = inputWidget;
-        
-        // 駒打ちの移動先コンボボックスを再利用（予想応手用）
-        // dropToFileComboとdropToRankComboは盤上移動のtoFileCombo/toRankComboと同じものを使う
-        // 実際にはdropWidgetに新しいコンボボックスを作っているので、
-        // 駒打ち時はdropWidget内のコンボボックスを使用
         
         connect(typeGroup, &QButtonGroup::idClicked, this, &JosekiMoveDialog::onNextMoveInputModeChanged);
         connect(fromFileCombo, &QComboBox::currentIndexChanged, this, &JosekiMoveDialog::onNextMoveComboChanged);
@@ -377,6 +406,8 @@ QGroupBox* JosekiMoveDialog::createMoveInputWidget(QWidget *parent, bool isNextM
         m_moveToFileCombo = toFileCombo;
         m_moveToRankCombo = toRankCombo;
         m_moveDropPieceCombo = pieceCombo;
+        m_moveDropToFileCombo = dropToFileCombo;
+        m_moveDropToRankCombo = dropToRankCombo;
         m_movePromoteCombo = promoteCombo;
         m_movePreviewLabel = previewLabel;
         m_moveUsiLabel = usiLabel;
@@ -533,13 +564,9 @@ void JosekiMoveDialog::updateMovePreview()
     int id = m_moveTypeGroup->checkedId();
     bool isDrop = (id == 1);
     
-    // 駒打ち用のコンボボックスを取得
-    QComboBox *toFileCombo = isDrop ? 
-        qobject_cast<QComboBox*>(m_moveDropWidget->layout()->itemAt(3)->widget()) : 
-        m_moveToFileCombo;
-    QComboBox *toRankCombo = isDrop ? 
-        qobject_cast<QComboBox*>(m_moveDropWidget->layout()->itemAt(4)->widget()) : 
-        m_moveToRankCombo;
+    // 駒打ち用のコンボボックスを取得（メンバ変数を使用）
+    QComboBox *toFileCombo = isDrop ? m_moveDropToFileCombo : m_moveToFileCombo;
+    QComboBox *toRankCombo = isDrop ? m_moveDropToRankCombo : m_moveToRankCombo;
     
     QString usi = generateUsiMove(isDrop, 
                                    m_moveDropPieceCombo,
@@ -566,13 +593,9 @@ void JosekiMoveDialog::updateNextMovePreview()
     
     bool isDrop = (id == 1);
     
-    // 駒打ち用のコンボボックスを取得
-    QComboBox *toFileCombo = isDrop ? 
-        qobject_cast<QComboBox*>(m_nextMoveDropWidget->layout()->itemAt(3)->widget()) : 
-        m_nextMoveToFileCombo;
-    QComboBox *toRankCombo = isDrop ? 
-        qobject_cast<QComboBox*>(m_nextMoveDropWidget->layout()->itemAt(4)->widget()) : 
-        m_nextMoveToRankCombo;
+    // 駒打ち用のコンボボックスを取得（メンバ変数を使用）
+    QComboBox *toFileCombo = isDrop ? m_nextMoveDropToFileCombo : m_nextMoveToFileCombo;
+    QComboBox *toRankCombo = isDrop ? m_nextMoveDropToRankCombo : m_nextMoveToRankCombo;
     
     QString usi = generateUsiMove(isDrop,
                                    m_nextMoveDropPieceCombo,
@@ -800,6 +823,7 @@ void JosekiMoveDialog::onFontSizeIncrease()
     if (m_fontSize < 18) {
         m_fontSize++;
         applyFontSize();
+        SettingsService::setJosekiMoveDialogFontSize(m_fontSize);
     }
 }
 
@@ -808,6 +832,7 @@ void JosekiMoveDialog::onFontSizeDecrease()
     if (m_fontSize > 8) {
         m_fontSize--;
         applyFontSize();
+        SettingsService::setJosekiMoveDialogFontSize(m_fontSize);
     }
 }
 
@@ -825,4 +850,19 @@ void JosekiMoveDialog::applyFontSize()
     previewFont.setBold(true);
     m_movePreviewLabel->setFont(previewFont);
     m_nextMovePreviewLabel->setFont(previewFont);
+    
+    // 編集対象の定跡手ラベルも更新
+    if (m_editMoveLabel && m_editMoveLabel->isVisible()) {
+        QFont editFont = font;
+        editFont.setPointSize(m_fontSize + 4);
+        editFont.setBold(true);
+        m_editMoveLabel->setFont(editFont);
+    }
+}
+
+void JosekiMoveDialog::setEditMoveDisplay(const QString &japaneseMove)
+{
+    if (m_editMoveLabel) {
+        m_editMoveLabel->setText(tr("定跡手: %1").arg(japaneseMove));
+    }
 }

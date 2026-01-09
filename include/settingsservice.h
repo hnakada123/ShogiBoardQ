@@ -158,6 +158,11 @@ QStringList josekiWindowRecentFiles();
 // 定跡ウィンドウの最近使ったファイルリストを保存
 void setJosekiWindowRecentFiles(const QStringList& files);
 
+// 定跡手編集ダイアログのフォントサイズを取得（デフォルト: 10）
+int josekiMoveDialogFontSize();
+// 定跡手編集ダイアログのフォントサイズを保存
+void setJosekiMoveDialogFontSize(int size);
+
 } // namespace SettingsService
 
 #endif // SETTINGSSERVICE_H
