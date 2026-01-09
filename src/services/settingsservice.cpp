@@ -476,4 +476,20 @@ void setJosekiWindowRecentFiles(const QStringList& files)
     s.setValue("JosekiWindow/recentFiles", files);
 }
 
+// ★ 追加: 定跡手編集ダイアログのフォントサイズを取得
+int josekiMoveDialogFontSize()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("JosekiWindow/moveDialogFontSize", 10).toInt();
+}
+
+// ★ 追加: 定跡手編集ダイアログのフォントサイズを保存
+void setJosekiMoveDialogFontSize(int size)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("JosekiWindow/moveDialogFontSize", size);
+}
+
 } // namespace SettingsService
