@@ -258,6 +258,9 @@ private slots:
     
     // 定跡手着手
     void onJosekiMoveSelected(const QString& usiMove);
+    
+    // 定跡マージ用棋譜データ要求
+    void onRequestKifuDataForMerge();
 
     // リプレイ
     void setReplayMode(bool on);

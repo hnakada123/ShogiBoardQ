@@ -806,6 +806,10 @@ void MainWindow::displayJosekiWindow()
         // 定跡手選択シグナルを接続
         connect(m_josekiWindow, &JosekiWindow::josekiMoveSelected,
                 this, &MainWindow::onJosekiMoveSelected);
+        
+        // 棋譜データ要求シグナルを接続
+        connect(m_josekiWindow, &JosekiWindow::requestKifuDataForMerge,
+                this, &MainWindow::onRequestKifuDataForMerge);
     }
 
     // ウィンドウを表示する（独立ウィンドウとして）
@@ -2277,6 +2281,185 @@ void MainWindow::onJosekiMoveSelected(const QString& usiMove)
     if (m_josekiWindow && !moveSuccess) {
         m_josekiWindow->onMoveResult(false, usiMove);
     }
+}
+
+void MainWindow::onRequestKifuDataForMerge()
+{
+    qDebug() << "[MainWindow] onRequestKifuDataForMerge called";
+    
+    if (!m_josekiWindow) {
+        qWarning() << "[MainWindow] onRequestKifuDataForMerge: m_josekiWindow is null";
+        return;
+    }
+    
+    // 棋譜データを収集
+    QStringList sfenList;
+    QStringList moveList;
+    QStringList japaneseMoveList;
+    int currentPly = 0;
+    
+    // デバッグ: 各データソースの状態を出力
+    qDebug() << "[MainWindow] onRequestKifuDataForMerge: m_sfenRecord=" << m_sfenRecord
+             << "m_sfenRecord->size()=" << (m_sfenRecord ? m_sfenRecord->size() : -1);
+    qDebug() << "[MainWindow] onRequestKifuDataForMerge: m_kifuRecordModel=" << m_kifuRecordModel
+             << "rowCount=" << (m_kifuRecordModel ? m_kifuRecordModel->rowCount() : -1);
+    qDebug() << "[MainWindow] onRequestKifuDataForMerge: m_currentMoveIndex=" << m_currentMoveIndex
+             << "m_currentSelectedPly=" << m_currentSelectedPly;
+    
+    // SFENレコードから局面リストを取得
+    if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
+        for (int i = 0; i < m_sfenRecord->size(); ++i) {
+            sfenList.append(m_sfenRecord->at(i));
+        }
+        qDebug() << "[MainWindow] onRequestKifuDataForMerge: sfenList from m_sfenRecord, size=" << sfenList.size();
+    } else {
+        qDebug() << "[MainWindow] onRequestKifuDataForMerge: m_sfenRecord is null or empty";
+    }
+    
+    // 棋譜表示モデルから指し手リストを取得
+    if (m_kifuRecordModel && m_kifuRecordModel->rowCount() > 0) {
+        for (int i = 0; i < m_kifuRecordModel->rowCount(); ++i) {
+            // 日本語表記の指し手を取得（DisplayRole）
+            QModelIndex index = m_kifuRecordModel->index(i, 0);
+            QString japaneseMove = m_kifuRecordModel->data(index, Qt::DisplayRole).toString();
+            japaneseMoveList.append(japaneseMove);
+        }
+        qDebug() << "[MainWindow] onRequestKifuDataForMerge: japaneseMoveList from m_kifuRecordModel, size=" << japaneseMoveList.size();
+    } else {
+        qDebug() << "[MainWindow] onRequestKifuDataForMerge: m_kifuRecordModel is null or empty";
+    }
+    
+    // USI形式の指し手リストを取得
+    // まずm_usiMovesを試し、空ならSFEN差分から生成
+    if (!m_usiMoves.isEmpty()) {
+        for (const QString &move : std::as_const(m_usiMoves)) {
+            moveList.append(move);
+        }
+        qDebug() << "[MainWindow] onRequestKifuDataForMerge: moveList from m_usiMoves, size=" << moveList.size();
+    } else if (m_sfenRecord && m_sfenRecord->size() > 1) {
+        // SFEN差分からUSI形式を生成（KifuExportController::sfenRecordToUsiMovesと同等のロジック）
+        auto expandBoard = [](const QString& boardStr) -> QVector<QVector<QString>> {
+            QVector<QVector<QString>> board(9, QVector<QString>(9));
+            const QStringList ranks = boardStr.split(QLatin1Char('/'));
+            for (qsizetype rank = 0; rank < qMin(ranks.size(), qsizetype(9)); ++rank) {
+                const QString& rankStr = ranks[rank];
+                int file = 0;
+                bool promoted = false;
+                for (qsizetype k = 0; k < rankStr.size() && file < 9; ++k) {
+                    QChar c = rankStr[k];
+                    if (c == QLatin1Char('+')) {
+                        promoted = true;
+                    } else if (c.isDigit()) {
+                        int skip = c.toLatin1() - '0';
+                        for (int s = 0; s < skip && file < 9; ++s) {
+                            board[rank][file++] = QString();
+                        }
+                        promoted = false;
+                    } else {
+                        QString piece = promoted ? QStringLiteral("+") + QString(c) : QString(c);
+                        board[rank][file++] = piece;
+                        promoted = false;
+                    }
+                }
+            }
+            return board;
+        };
+        
+        for (int i = 1; i < m_sfenRecord->size(); ++i) {
+            const QString& prevSfen = m_sfenRecord->at(i - 1);
+            const QString& currSfen = m_sfenRecord->at(i);
+            
+            const QStringList prevParts = prevSfen.split(QLatin1Char(' '));
+            const QStringList currParts = currSfen.split(QLatin1Char(' '));
+            
+            if (prevParts.size() < 3 || currParts.size() < 3) {
+                moveList.append(QString());
+                continue;
+            }
+            
+            QVector<QVector<QString>> prevBoardArr = expandBoard(prevParts[0]);
+            QVector<QVector<QString>> currBoardArr = expandBoard(currParts[0]);
+            
+            QPoint fromPos(-1, -1);
+            QPoint toPos(-1, -1);
+            bool isDrop = false;
+            bool isPromotion = false;
+            
+            QVector<QPoint> emptyPositions;
+            QVector<QPoint> filledPositions;
+            
+            for (int rank = 0; rank < 9; ++rank) {
+                for (int file = 0; file < 9; ++file) {
+                    const QString& prev = prevBoardArr[rank][file];
+                    const QString& curr = currBoardArr[rank][file];
+                    
+                    if (prev != curr) {
+                        if (!prev.isEmpty() && curr.isEmpty()) {
+                            emptyPositions.append(QPoint(file, rank));
+                        } else if (!curr.isEmpty()) {
+                            filledPositions.append(QPoint(file, rank));
+                        }
+                    }
+                }
+            }
+            
+            QString movedPiece;
+            if (emptyPositions.size() == 1 && filledPositions.size() == 1) {
+                fromPos = emptyPositions[0];
+                toPos = filledPositions[0];
+                movedPiece = prevBoardArr[fromPos.y()][fromPos.x()];
+                
+                const QString& movedPieceFinal = currBoardArr[toPos.y()][toPos.x()];
+                QString baseFrom = movedPiece.startsWith(QLatin1Char('+')) ? movedPiece.mid(1) : movedPiece;
+                QString baseTo = movedPieceFinal.startsWith(QLatin1Char('+')) ? movedPieceFinal.mid(1) : movedPieceFinal;
+                if (baseFrom.toUpper() == baseTo.toUpper() &&
+                    movedPieceFinal.startsWith(QLatin1Char('+')) && !movedPiece.startsWith(QLatin1Char('+'))) {
+                    isPromotion = true;
+                }
+            } else if (emptyPositions.isEmpty() && filledPositions.size() == 1) {
+                isDrop = true;
+                toPos = filledPositions[0];
+            }
+            
+            QString usiMove;
+            if (isDrop && toPos.x() >= 0) {
+                QString droppedPiece = currBoardArr[toPos.y()][toPos.x()];
+                QChar pieceChar = droppedPiece.isEmpty() ? QLatin1Char('P') : droppedPiece[0].toUpper();
+                int toFileNum = 9 - toPos.x();
+                QChar toRankChar = QChar('a' + toPos.y());
+                usiMove = QStringLiteral("%1*%2%3").arg(pieceChar).arg(toFileNum).arg(toRankChar);
+            } else if (fromPos.x() >= 0 && toPos.x() >= 0) {
+                int fromFileNum = 9 - fromPos.x();
+                int toFileNum = 9 - toPos.x();
+                QChar fromRankChar = QChar('a' + fromPos.y());
+                QChar toRankChar = QChar('a' + toPos.y());
+                usiMove = QStringLiteral("%1%2%3%4").arg(fromFileNum).arg(fromRankChar).arg(toFileNum).arg(toRankChar);
+                if (isPromotion) {
+                    usiMove += QLatin1Char('+');
+                }
+            }
+            
+            moveList.append(usiMove);
+        }
+        qDebug() << "[MainWindow] onRequestKifuDataForMerge: moveList from sfenRecord, size=" << moveList.size();
+    } else {
+        qDebug() << "[MainWindow] onRequestKifuDataForMerge: no source for USI moves";
+    }
+    
+    // 現在選択中の手数を取得
+    currentPly = m_currentMoveIndex;
+    if (currentPly <= 0 && m_currentSelectedPly > 0) {
+        currentPly = m_currentSelectedPly;
+    }
+    
+    qDebug() << "[MainWindow] onRequestKifuDataForMerge: FINAL RESULT"
+             << "sfenList.size=" << sfenList.size()
+             << "moveList.size=" << moveList.size()
+             << "japaneseMoveList.size=" << japaneseMoveList.size()
+             << "currentPly=" << currentPly;
+    
+    // 定跡ウィンドウにデータを送信
+    m_josekiWindow->setKifuDataForMerge(sfenList, moveList, japaneseMoveList, currentPly);
 }
 
 // 再生モードの切替を ReplayController へ委譲

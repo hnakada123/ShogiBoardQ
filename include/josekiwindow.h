@@ -70,6 +70,13 @@ signals:
      * @param usiMove USI形式の指し手（例："7g7f", "P*5e"）
      */
     void josekiMoveSelected(const QString &usiMove);
+    
+    /**
+     * @brief 棋譜データを要求するシグナル
+     * 
+     * MainWindowがこのシグナルを受け取り、setKifuDataForMerge()で応答する
+     */
+    void requestKifuDataForMerge();
 
 public slots:
     /**
@@ -96,6 +103,18 @@ public slots:
      * @brief 「定跡手追加」ボタンがクリックされたときのスロット
      */
     void onAddMoveButtonClicked();
+    
+    /**
+     * @brief 棋譜データを受け取るスロット（MainWindowから呼ばれる）
+     * @param sfenList 各手番のSFEN文字列リスト
+     * @param moveList 各手のUSI形式指し手リスト
+     * @param japaneseMoveList 各手の日本語表記リスト
+     * @param currentPly 現在選択中の手数
+     */
+    void setKifuDataForMerge(const QStringList &sfenList, 
+                             const QStringList &moveList,
+                             const QStringList &japaneseMoveList,
+                             int currentPly);
     
     /**
      * @brief フォントサイズを拡大する
@@ -275,6 +294,14 @@ private:
      * @brief 最近使ったファイルメニューを更新
      */
     void updateRecentFilesMenu();
+    
+    /**
+     * @brief マージダイアログからの登録要求を処理
+     * @param sfen 正規化されたSFEN
+     * @param sfenWithPly 手数付きSFEN
+     * @param usiMove USI形式の指し手
+     */
+    void onMergeRegisterMove(const QString &sfen, const QString &sfenWithPly, const QString &usiMove);
 
     // === ファイルグループ ===
     QPushButton  *m_openButton;        ///< 「開く」ボタン
