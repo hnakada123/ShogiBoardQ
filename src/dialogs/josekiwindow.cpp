@@ -1,7 +1,10 @@
 #include "josekiwindow.h"
 #include "josekimovedialog.h"
+#include "josekimergedialog.h"
 #include "settingsservice.h"
 #include "sfenpositiontracer.h"
+#include "kiftosfenconverter.h"
+#include "kifdisplayitem.h"
 
 #include <QFileDialog>
 #include <QHBoxLayout>
@@ -11,6 +14,7 @@
 #include <QMessageBox>
 #include <QDebug>
 #include <QFileInfo>
+#include <QDir>
 #include <QLocale>
 #include <QToolButton>
 
@@ -1201,18 +1205,22 @@ bool JosekiWindow::confirmDiscardChanges()
         return true;  // 変更がなければそのまま続行
     }
     
-    QMessageBox::StandardButton result = QMessageBox::question(
-        this,
-        tr("確認"),
-        tr("定跡データに未保存の変更があります。\n変更を破棄しますか？"),
-        QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel,
-        QMessageBox::Save
-    );
+    QMessageBox msgBox(this);
+    msgBox.setWindowTitle(tr("確認"));
+    msgBox.setText(tr("定跡データに未保存の変更があります。\n変更を破棄しますか？"));
+    msgBox.setIcon(QMessageBox::Question);
     
-    if (result == QMessageBox::Save) {
+    QPushButton *saveButton = msgBox.addButton(tr("保存"), QMessageBox::AcceptRole);
+    QPushButton *discardButton = msgBox.addButton(tr("破棄"), QMessageBox::DestructiveRole);
+    msgBox.addButton(tr("キャンセル"), QMessageBox::RejectRole);
+    
+    msgBox.setDefaultButton(saveButton);
+    msgBox.exec();
+    
+    if (msgBox.clickedButton() == saveButton) {
         onSaveButtonClicked();
         return !m_modified;  // 保存が成功したら続行
-    } else if (result == QMessageBox::Discard) {
+    } else if (msgBox.clickedButton() == discardButton) {
         return true;  // 変更を破棄して続行
     } else {
         return false;  // キャンセル
@@ -1548,18 +1556,337 @@ void JosekiWindow::onDeleteButtonClicked()
 
 void JosekiWindow::onMergeFromCurrentKifu()
 {
-    // TODO: 現在の棋譜から定跡をマージする機能を実装
-    QMessageBox::information(this, tr("マージ機能"),
-        tr("「現在の棋譜からマージ」機能は今後実装予定です。\n\n"
-           "この機能では、メインウィンドウで開いている棋譜の全ての指し手を\n"
-           "現在の定跡ファイルにマージします。"));
+    // ファイルパスが未設定の場合は先に保存先を決定
+    if (m_currentFilePath.isEmpty()) {
+        QMessageBox::StandardButton result = QMessageBox::question(
+            this,
+            tr("保存先の指定"),
+            tr("定跡ファイルの保存先が設定されていません。\n"
+               "OKを選択すると保存先が指定できます。"),
+            QMessageBox::Ok | QMessageBox::Cancel,
+            QMessageBox::Ok
+        );
+        
+        if (result != QMessageBox::Ok) {
+            return;
+        }
+        
+        // 名前を付けて保存ダイアログを表示
+        QString filePath = QFileDialog::getSaveFileName(
+            this,
+            tr("定跡ファイルの保存先を指定"),
+            QDir::homePath(),
+            tr("定跡ファイル (*.db);;すべてのファイル (*)")
+        );
+        
+        if (filePath.isEmpty()) {
+            return;  // キャンセルされた
+        }
+        
+        // 拡張子がなければ追加
+        if (!filePath.endsWith(QStringLiteral(".db"), Qt::CaseInsensitive)) {
+            filePath += QStringLiteral(".db");
+        }
+        
+        // ファイルパスを設定
+        m_currentFilePath = filePath;
+        QFileInfo fi(filePath);
+        m_filePathLabel->setText(filePath);
+        m_filePathLabel->setStyleSheet(QString());
+        
+        // 空のファイルとして保存
+        if (!saveJosekiFile(m_currentFilePath)) {
+            QMessageBox::warning(this, tr("エラー"),
+                tr("ファイルの保存に失敗しました。"));
+            m_currentFilePath.clear();
+            m_filePathLabel->setText(tr("新規ファイル（未保存）"));
+            m_filePathLabel->setStyleSheet(QStringLiteral("color: blue;"));
+            return;
+        }
+        
+        addToRecentFiles(m_currentFilePath);
+        updateStatusDisplay();
+    }
+    
+    // MainWindowに棋譜データを要求
+    emit requestKifuDataForMerge();
+}
+
+void JosekiWindow::setKifuDataForMerge(const QStringList &sfenList, 
+                                        const QStringList &moveList,
+                                        const QStringList &japaneseMoveList,
+                                        int currentPly)
+{
+    qDebug() << "[JosekiWindow] setKifuDataForMerge: sfenList.size=" << sfenList.size()
+             << "moveList.size=" << moveList.size()
+             << "japaneseMoveList.size=" << japaneseMoveList.size()
+             << "currentPly=" << currentPly;
+    
+    // 棋譜データが空の場合
+    if (moveList.isEmpty()) {
+        QMessageBox::information(this, tr("情報"),
+            tr("棋譜に指し手がありません。"));
+        return;
+    }
+    
+    // マージエントリを作成（指し手のみ、開始局面は除外）
+    QVector<KifuMergeEntry> entries;
+    
+    // データ構造:
+    // sfenList[0] = 初期局面（1手目を指す前）
+    // sfenList[1] = 1手目後の局面
+    // moveList[0] = 1手目のUSI指し手
+    // moveList[1] = 2手目のUSI指し手
+    // japaneseMoveList[0] = "=== 開始局面 ===" （除外対象）
+    // japaneseMoveList[1] = "1 ▲７六歩(77)" （1手目）
+    // japaneseMoveList[2] = "2 △３四歩(33)" （2手目）
+    // currentPly: 0=開始局面、1=1手目、2=2手目...（0起点）
+    
+    for (int i = 0; i < moveList.size(); ++i) {
+        if (i >= sfenList.size()) break;
+        
+        // USI指し手が空の場合はスキップ（終局記号など）
+        if (moveList[i].isEmpty()) continue;
+        
+        KifuMergeEntry entry;
+        entry.ply = i + 1;  // 1手目から（表示用、1起点）
+        entry.sfen = sfenList[i];  // この手を指す前の局面
+        entry.usiMove = moveList[i];
+        
+        // 日本語表記を取得（japaneseMoveListの先頭は「=== 開始局面 ===」なので+1）
+        if (i + 1 < japaneseMoveList.size()) {
+            entry.japaneseMove = japaneseMoveList[i + 1];
+        } else {
+            // フォールバック：USI形式をそのまま使用
+            entry.japaneseMove = moveList[i];
+        }
+        
+        // 現在の指し手かどうか（currentPlyは0起点なので、i+1と比較）
+        entry.isCurrentMove = (i + 1 == currentPly);
+        
+        entries.append(entry);
+    }
+    
+    if (entries.isEmpty()) {
+        QMessageBox::information(this, tr("情報"),
+            tr("登録可能な指し手がありません。"));
+        return;
+    }
+    
+    // マージダイアログを表示
+    JosekiMergeDialog *dialog = new JosekiMergeDialog(this);
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    
+    // マージ先の定跡ファイル名を設定
+    dialog->setTargetJosekiFile(m_currentFilePath);
+    
+    // シグナル接続
+    connect(dialog, &JosekiMergeDialog::registerMove,
+            this, &JosekiWindow::onMergeRegisterMove);
+    
+    dialog->setKifuData(entries, currentPly);
+    dialog->show();
+}
+
+void JosekiWindow::onMergeRegisterMove(const QString &sfen, const QString &sfenWithPly, const QString &usiMove)
+{
+    qDebug() << "[JosekiWindow] onMergeRegisterMove: sfen=" << sfen
+             << "usiMove=" << usiMove;
+    
+    // 既存の定跡手があるか確認
+    if (m_josekiData.contains(sfen)) {
+        QVector<JosekiMove> &moves = m_josekiData[sfen];
+        
+        // 同じ指し手が既にあるか確認
+        for (int i = 0; i < moves.size(); ++i) {
+            if (moves[i].move == usiMove) {
+                // 既に登録済みの場合は出現頻度を増やす
+                moves[i].frequency += 1;
+                qDebug() << "[JosekiWindow] Updated frequency for existing move:" << usiMove;
+                updateJosekiDisplay();
+                // 自動保存
+                if (!m_currentFilePath.isEmpty()) {
+                    if (saveJosekiFile(m_currentFilePath)) {
+                        setModified(false);
+                    }
+                }
+                return;
+            }
+        }
+        
+        // 新しい指し手として追加
+        JosekiMove newMove;
+        newMove.move = usiMove;
+        newMove.nextMove = QStringLiteral("none");
+        newMove.value = 0;
+        newMove.depth = 0;
+        newMove.frequency = 1;
+        moves.append(newMove);
+        qDebug() << "[JosekiWindow] Added new move to existing position:" << usiMove;
+    } else {
+        // 新しい局面として追加
+        JosekiMove newMove;
+        newMove.move = usiMove;
+        newMove.nextMove = QStringLiteral("none");
+        newMove.value = 0;
+        newMove.depth = 0;
+        newMove.frequency = 1;
+        
+        QVector<JosekiMove> moves;
+        moves.append(newMove);
+        m_josekiData[sfen] = moves;
+        
+        // 手数付きSFENも保存
+        if (!m_sfenWithPlyMap.contains(sfen)) {
+            m_sfenWithPlyMap[sfen] = sfenWithPly;
+        }
+        
+        qDebug() << "[JosekiWindow] Added new position with move:" << usiMove;
+    }
+    
+    updateJosekiDisplay();
+    // 自動保存
+    if (!m_currentFilePath.isEmpty()) {
+        if (saveJosekiFile(m_currentFilePath)) {
+            setModified(false);
+        }
+    }
 }
 
 void JosekiWindow::onMergeFromKifuFile()
 {
-    // TODO: 棋譜ファイルから定跡をマージする機能を実装
-    QMessageBox::information(this, tr("マージ機能"),
-        tr("「棋譜ファイルからマージ」機能は今後実装予定です。\n\n"
-           "この機能では、指定した棋譜ファイル(.kif, .kifu, .csa等)を読み込み、\n"
-           "その指し手を現在の定跡ファイルにマージします。"));
+    // ファイルパスが未設定の場合は先に保存先を決定
+    if (m_currentFilePath.isEmpty()) {
+        QMessageBox::StandardButton result = QMessageBox::question(
+            this,
+            tr("保存先の指定"),
+            tr("定跡ファイルの保存先が設定されていません。\n"
+               "OKを選択すると保存先が指定できます。"),
+            QMessageBox::Ok | QMessageBox::Cancel,
+            QMessageBox::Ok
+        );
+        
+        if (result != QMessageBox::Ok) {
+            return;
+        }
+        
+        // 名前を付けて保存ダイアログを表示
+        QString filePath = QFileDialog::getSaveFileName(
+            this,
+            tr("定跡ファイルの保存先を指定"),
+            QDir::homePath(),
+            tr("定跡ファイル (*.db);;すべてのファイル (*)")
+        );
+        
+        if (filePath.isEmpty()) {
+            return;  // キャンセルされた
+        }
+        
+        // 拡張子がなければ追加
+        if (!filePath.endsWith(QStringLiteral(".db"), Qt::CaseInsensitive)) {
+            filePath += QStringLiteral(".db");
+        }
+        
+        // ファイルパスを設定
+        m_currentFilePath = filePath;
+        m_filePathLabel->setText(filePath);
+        m_filePathLabel->setStyleSheet(QString());
+        
+        // 空のファイルとして保存
+        if (!saveJosekiFile(m_currentFilePath)) {
+            QMessageBox::warning(this, tr("エラー"),
+                tr("ファイルの保存に失敗しました。"));
+            m_currentFilePath.clear();
+            m_filePathLabel->setText(tr("新規ファイル（未保存）"));
+            m_filePathLabel->setStyleSheet(QStringLiteral("color: blue;"));
+            return;
+        }
+        
+        addToRecentFiles(m_currentFilePath);
+        updateStatusDisplay();
+    }
+    
+    // 棋譜ファイルを選択
+    QString kifFilePath = QFileDialog::getOpenFileName(
+        this,
+        tr("棋譜ファイルを選択"),
+        QDir::homePath(),
+        tr("KIF形式 (*.kif *.kifu);;すべてのファイル (*)")
+    );
+    
+    if (kifFilePath.isEmpty()) {
+        return;  // キャンセルされた
+    }
+    
+    // KIFファイルを解析
+    KifParseResult parseResult;
+    QString errorMessage;
+    
+    if (!KifToSfenConverter::parseWithVariations(kifFilePath, parseResult, &errorMessage)) {
+        QMessageBox::warning(this, tr("エラー"),
+            tr("棋譜ファイルの読み込みに失敗しました。\n%1").arg(errorMessage));
+        return;
+    }
+    
+    // 本譜からエントリを作成
+    const KifLine &mainline = parseResult.mainline;
+    
+    if (mainline.usiMoves.isEmpty()) {
+        QMessageBox::information(this, tr("情報"),
+            tr("棋譜に指し手がありません。"));
+        return;
+    }
+    
+    // マージエントリを作成
+    QVector<KifuMergeEntry> entries;
+    
+    // sfenList[0] = 初期局面、sfenList[i] = i手目後の局面
+    // usiMoves[i] = i+1手目のUSI指し手
+    // disp[i] = i+1手目の表示情報
+    for (int i = 0; i < mainline.usiMoves.size(); ++i) {
+        if (i >= mainline.sfenList.size()) break;
+        
+        // USI指し手が空の場合はスキップ
+        if (mainline.usiMoves[i].isEmpty()) continue;
+        
+        KifuMergeEntry entry;
+        entry.ply = i + 1;  // 1手目から
+        entry.sfen = mainline.sfenList[i];  // この手を指す前の局面
+        entry.usiMove = mainline.usiMoves[i];
+        
+        // 日本語表記を取得
+        if (i < mainline.disp.size()) {
+            entry.japaneseMove = mainline.disp[i].prettyMove;
+        } else {
+            entry.japaneseMove = mainline.usiMoves[i];
+        }
+        
+        entry.isCurrentMove = false;  // ファイルからの読み込みなので現在位置はなし
+        
+        entries.append(entry);
+    }
+    
+    if (entries.isEmpty()) {
+        QMessageBox::information(this, tr("情報"),
+            tr("登録可能な指し手がありません。"));
+        return;
+    }
+    
+    // マージダイアログを表示
+    JosekiMergeDialog *dialog = new JosekiMergeDialog(this);
+    dialog->setAttribute(Qt::WA_DeleteOnClose);
+    
+    // マージ先の定跡ファイル名を設定
+    dialog->setTargetJosekiFile(m_currentFilePath);
+    
+    // ダイアログタイトルに読み込んだファイル名を追加
+    QFileInfo fi(kifFilePath);
+    dialog->setWindowTitle(tr("棋譜から定跡にマージ - %1").arg(fi.fileName()));
+    
+    // シグナル接続
+    connect(dialog, &JosekiMergeDialog::registerMove,
+            this, &JosekiWindow::onMergeRegisterMove);
+    
+    dialog->setKifuData(entries, -1);  // currentPlyは-1（選択なし）
+    dialog->show();
 }
