@@ -14,6 +14,8 @@
 #include <QCloseEvent>
 #include <QMenu>
 #include <QStringList>
+#include <QAction>
+#include <QFrame>
 
 // 前方宣言
 class SfenPositionTracer;
@@ -178,6 +180,36 @@ private slots:
      * @brief 棋譜ファイルから定跡をマージする
      */
     void onMergeFromKifuFile();
+    
+    /**
+     * @brief テーブルがダブルクリックされた時のスロット
+     */
+    void onTableDoubleClicked(int row, int column);
+    
+    /**
+     * @brief テーブルのコンテキストメニュー表示
+     */
+    void onTableContextMenu(const QPoint &pos);
+    
+    /**
+     * @brief コンテキストメニュー: 着手
+     */
+    void onContextMenuPlay();
+    
+    /**
+     * @brief コンテキストメニュー: 編集
+     */
+    void onContextMenuEdit();
+    
+    /**
+     * @brief コンテキストメニュー: 削除
+     */
+    void onContextMenuDelete();
+    
+    /**
+     * @brief コンテキストメニュー: 指し手をコピー
+     */
+    void onContextMenuCopyMove();
 
 protected:
     /**
@@ -261,6 +293,11 @@ private:
     void updateStatusDisplay();
     
     /**
+     * @brief 局面サマリー表示を更新
+     */
+    void updatePositionSummary();
+    
+    /**
      * @brief 定跡データをファイルに保存する
      * @param filePath 保存先ファイルパス
      * @return 保存成功時true
@@ -328,7 +365,18 @@ private:
     // === 状態表示 ===
     QLabel       *m_currentSfenLabel;  ///< 現在の局面のSFEN表示用ラベル
     QLabel       *m_sfenLineLabel;     ///< 定跡ファイルのSFEN行表示用ラベル
-    QLabel       *m_statusLabel;       ///< 状態ラベル（●表示中 / ○停止中）
+    QLabel       *m_statusLabel;       ///< ステータスバーラベル
+    QLabel       *m_positionSummaryLabel; ///< 局面サマリー表示ラベル
+    QLabel       *m_emptyGuideLabel;   ///< 空状態ガイダンスラベル
+    QPushButton  *m_showSfenDetailBtn; ///< SFEN詳細表示ボタン
+    QWidget      *m_sfenDetailWidget;  ///< SFEN詳細表示ウィジェット
+    
+    // === コンテキストメニュー ===
+    QMenu        *m_tableContextMenu;  ///< テーブルコンテキストメニュー
+    QAction      *m_actionPlay;        ///< 着手アクション
+    QAction      *m_actionEdit;        ///< 編集アクション
+    QAction      *m_actionDelete;      ///< 削除アクション
+    QAction      *m_actionCopyMove;    ///< 指し手コピーアクション
     
     // === テーブル ===
     QTableWidget *m_tableWidget;       ///< 定跡表示用テーブル
