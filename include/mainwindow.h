@@ -102,6 +102,7 @@ class RecordNavigationController;
 class PositionEditCoordinator;
 class CsaGameDialog;
 class CsaGameCoordinator;
+class CsaWaitingDialog;
 class JosekiWindow;
 
 // ============================================================
@@ -273,6 +274,7 @@ private slots:
     void onCsaTurnChanged_(bool isMyTurn);
     void onCsaLogMessage_(const QString& message, bool isError);
     void onCsaMoveHighlightRequested_(const QPoint& from, const QPoint& to);
+    void onCsaWaitingCancelled_();
 
     // 内部配線
     void connectBoardClicks_();
@@ -344,6 +346,7 @@ private:
     TsumeShogiSearchDialog*  m_tsumeShogiSearchDialog = nullptr;
     KifuAnalysisDialog*      m_analyzeGameRecordDialog = nullptr;
     CsaGameDialog*           m_csaGameDialog = nullptr;
+    CsaWaitingDialog*        m_csaWaitingDialog = nullptr;
     JosekiWindow*            m_josekiWindow = nullptr;
 
     // CSA通信対局コーディネータ

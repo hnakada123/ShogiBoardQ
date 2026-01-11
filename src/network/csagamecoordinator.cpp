@@ -1418,3 +1418,23 @@ void CsaGameCoordinator::cleanup()
 
     m_client->disconnectFromServer();
 }
+
+// GUI側からCSAサーバーへコマンドを送信
+void CsaGameCoordinator::sendRawCommand(const QString& command)
+{
+    if (!m_client) {
+        qWarning() << "[CSA] sendRawCommand: client is null";
+        return;
+    }
+
+    qInfo().noquote() << "[CSA] Sending raw command:" << command;
+    m_client->sendRawCommand(command);
+}
+
+// CSAサーバーからの受信をシミュレート（デバッグ用）
+void CsaGameCoordinator::simulateServerMessage(const QString& message)
+{
+    qInfo().noquote() << "[CSA] Simulating server message:" << message;
+    // CSA通信ログに追記（受信は ◀ で表示）
+    emit csaCommLogAppended(QStringLiteral("◀ [SIM] ") + message);
+}
