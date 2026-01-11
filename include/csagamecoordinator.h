@@ -159,6 +159,24 @@ public:
      */
     int whiteTotalTimeMs() const { return m_whiteTotalTimeMs; }
 
+    /**
+     * @brief GUI側からCSAサーバーへコマンドを送信する
+     * @param command 送信するコマンド
+     */
+    void sendRawCommand(const QString& command);
+
+    /**
+     * @brief CSAサーバーからの受信をシミュレートする（デバッグ用）
+     * @param message シミュレートするメッセージ
+     */
+    void simulateServerMessage(const QString& message);
+
+    /**
+     * @brief ユーザー名（GUI側の対局者名）を取得
+     * @return ユーザー名
+     */
+    QString username() const { return m_options.username; }
+
 signals:
     /**
      * @brief 対局状態が変化した時に発行

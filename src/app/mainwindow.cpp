@@ -89,6 +89,7 @@
 #include "positioneditcoordinator.h"    // ★ 追加: 局面編集調整
 #include "csagamedialog.h"              // ★ 追加: CSA通信対局ダイアログ
 #include "csagamecoordinator.h"         // ★ 追加: CSA通信対局コーディネータ
+#include "csawaitingdialog.h"           // ★ 追加: CSA通信対局待機ダイアログ
 #include "josekiwindow.h"               // ★ 追加: 定跡ウィンドウ
 
 using std::placeholders::_1;
@@ -969,8 +970,37 @@ void MainWindow::displayCsaGameDialog()
         // プレイモードをCSA通信対局に設定
         m_playMode = CsaNetworkMode;
 
-        // 対局を開始
+        qDebug() << "[MW] displayCsaGameDialog: About to start game and create waiting dialog";
+
+        // 待機ダイアログを作成（startGameより先に作成してシグナルを受け取れるようにする）
+        // 以前のダイアログがあれば削除
+        if (m_csaWaitingDialog) {
+            delete m_csaWaitingDialog;
+            m_csaWaitingDialog = nullptr;
+        }
+
+        qDebug() << "[MW] displayCsaGameDialog: Creating CsaWaitingDialog...";
+        m_csaWaitingDialog = new CsaWaitingDialog(m_csaGameCoordinator, this);
+
+        // キャンセル要求時の処理を接続
+        connect(m_csaWaitingDialog, &CsaWaitingDialog::cancelRequested,
+                this, &MainWindow::onCsaWaitingCancelled_);
+
+        qDebug() << "[MW] displayCsaGameDialog: CsaWaitingDialog created, now starting game...";
+
+        // 対局を開始（シグナルがCsaWaitingDialogに届くようになった後に開始）
         m_csaGameCoordinator->startGame(options);
+
+        qDebug() << "[MW] displayCsaGameDialog: Game started, showing waiting dialog...";
+
+        // 待機ダイアログを表示（対局開始またはエラーまでブロック）
+        m_csaWaitingDialog->exec();
+
+        qDebug() << "[MW] displayCsaGameDialog: Waiting dialog closed";
+
+        // ダイアログ終了後のクリーンアップ
+        delete m_csaWaitingDialog;
+        m_csaWaitingDialog = nullptr;
     }
 }
 
@@ -4028,4 +4058,21 @@ void MainWindow::onCsaMoveHighlightRequested_(const QPoint& from, const QPoint& 
     if (m_boardController) {
         m_boardController->showMoveHighlights(from, to);
     }
+}
+
+// CSA待機ダイアログでキャンセルが押された時の処理
+void MainWindow::onCsaWaitingCancelled_()
+{
+    qInfo().noquote() << "[MW] CSA waiting cancelled by user";
+
+    // コーディネータの対局を停止
+    if (m_csaGameCoordinator) {
+        m_csaGameCoordinator->stopGame();
+    }
+
+    // プレイモードを未開始状態に戻す
+    m_playMode = NotStarted;
+
+    // ステータスバーに通知
+    ui->statusbar->showMessage(tr("通信対局をキャンセルしました"), 3000);
 }

@@ -185,6 +185,12 @@ public:
     void sendMove(const QString& move);
 
     /**
+     * @brief 生のコマンドを送信する（デバッグ/テスト用）
+     * @param command 送信するコマンド
+     */
+    void sendRawCommand(const QString& command);
+
+    /**
      * @brief 投了する
      */
     void resign();

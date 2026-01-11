@@ -203,6 +203,12 @@ void CsaClient::sendMove(const QString& move)
     sendMessage(move);
 }
 
+// 生のコマンドを送信（デバッグ/テスト用）
+void CsaClient::sendRawCommand(const QString& command)
+{
+    sendMessage(command);
+}
+
 // 投了
 void CsaClient::resign()
 {
