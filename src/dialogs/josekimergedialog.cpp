@@ -15,6 +15,7 @@ JosekiMergeDialog::JosekiMergeDialog(QWidget *parent)
     , m_fontDecreaseBtn(nullptr)
     , m_statusLabel(nullptr)
     , m_targetFileLabel(nullptr)
+    , m_autoSaveLabel(nullptr)
     , m_currentPly(-1)
     , m_fontSize(10)
 {
@@ -60,6 +61,11 @@ void JosekiMergeDialog::setupUi()
     QLabel *descLabel = new QLabel(tr("棋譜の指し手を定跡に登録します。「登録」ボタンで個別に、「全て登録」で一括登録できます。"), this);
     descLabel->setWordWrap(true);
     mainLayout->addWidget(descLabel);
+    
+    // === 自動保存説明ラベル ===
+    m_autoSaveLabel = new QLabel(tr("※ 登録時に定跡ファイルへ自動保存されます"), this);
+    m_autoSaveLabel->setStyleSheet(QStringLiteral("QLabel { color: #228b22; font-weight: bold; }"));
+    mainLayout->addWidget(m_autoSaveLabel);
     
     // === テーブル ===
     m_tableWidget = new QTableWidget(this);
@@ -118,6 +124,11 @@ void JosekiMergeDialog::setKifuData(const QVector<KifuMergeEntry> &entries, int 
     updateTable();
 }
 
+void JosekiMergeDialog::setRegisteredMoves(const QSet<QString> &registeredMoves)
+{
+    m_registeredMoves = registeredMoves;
+}
+
 void JosekiMergeDialog::setTargetJosekiFile(const QString &filePath)
 {
     if (filePath.isEmpty()) {
@@ -144,23 +155,51 @@ void JosekiMergeDialog::updateTable()
         plyItem->setTextAlignment(Qt::AlignCenter);
         m_tableWidget->setItem(i, 0, plyItem);
         
-        // 指し手（現在の指し手はマーク付き）
+        // 指し手（「現在の指し手」の文字列は表示しない）
         QString moveText = entry.japaneseMove;
-        if (entry.isCurrentMove) {
-            moveText += tr(" （現在の指し手）");
-        }
         QTableWidgetItem *moveItem = new QTableWidgetItem(moveText);
         m_tableWidget->setItem(i, 1, moveItem);
         
-        // 登録ボタン
-        QPushButton *registerBtn = new QPushButton(tr("登録"), this);
+        // 登録済みかどうかをチェック
+        bool alreadyRegistered = isRegistered(entry.sfen, entry.usiMove);
+        
+        // 登録ボタン（青系の配色）
+        QPushButton *registerBtn = new QPushButton(alreadyRegistered ? tr("登録済") : tr("登録"), this);
         registerBtn->setProperty("row", i);
-        connect(registerBtn, &QPushButton::clicked, this, &JosekiMergeDialog::onRegisterButtonClicked);
+        registerBtn->setStyleSheet(QStringLiteral(
+            "QPushButton {"
+            "  background-color: #4a90d9;"
+            "  color: white;"
+            "  border: none;"
+            "  border-radius: 3px;"
+            "  padding: 4px 12px;"
+            "}"
+            "QPushButton:hover {"
+            "  background-color: #357abd;"
+            "}"
+            "QPushButton:pressed {"
+            "  background-color: #2a5f8f;"
+            "}"
+            "QPushButton:disabled {"
+            "  background-color: #aaa;"
+            "  color: #666;"
+            "}"
+        ));
+        
+        if (alreadyRegistered) {
+            registerBtn->setEnabled(false);
+        } else {
+            connect(registerBtn, &QPushButton::clicked, this, &JosekiMergeDialog::onRegisterButtonClicked);
+        }
         m_tableWidget->setCellWidget(i, 2, registerBtn);
         
-        // 状態（初期状態は空）
+        // 状態
         QTableWidgetItem *statusItem = new QTableWidgetItem();
         statusItem->setTextAlignment(Qt::AlignCenter);
+        if (alreadyRegistered) {
+            statusItem->setText(tr("✓登録済"));
+            statusItem->setForeground(QColor(0, 128, 0));  // 緑色
+        }
         m_tableWidget->setItem(i, 3, statusItem);
         
         // 現在の指し手の行をハイライト
@@ -278,4 +317,11 @@ QString JosekiMergeDialog::normalizeSfen(const QString &sfen) const
         return parts[0] + QLatin1Char(' ') + parts[1] + QLatin1Char(' ') + parts[2];
     }
     return sfen;
+}
+
+bool JosekiMergeDialog::isRegistered(const QString &sfen, const QString &usiMove) const
+{
+    QString normalizedSfen = normalizeSfen(sfen);
+    QString key = normalizedSfen + QStringLiteral(":") + usiMove;
+    return m_registeredMoves.contains(key);
 }

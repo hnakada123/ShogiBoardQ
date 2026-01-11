@@ -16,6 +16,7 @@
 #include <QStringList>
 #include <QAction>
 #include <QFrame>
+#include <QSet>
 
 // 前方宣言
 class SfenPositionTracer;
@@ -368,6 +369,7 @@ private:
     QLabel       *m_statusLabel;       ///< ステータスバーラベル
     QLabel       *m_positionSummaryLabel; ///< 局面サマリー表示ラベル
     QLabel       *m_emptyGuideLabel;   ///< 空状態ガイダンスラベル
+    QLabel       *m_noticeLabel;       ///< 注意書きラベル
     QPushButton  *m_showSfenDetailBtn; ///< SFEN詳細表示ボタン
     QWidget      *m_sfenDetailWidget;  ///< SFEN詳細表示ウィジェット
     
@@ -401,6 +403,9 @@ private:
     
     /// 元のSFEN（手数付き）を保持（正規化SFEN → 元のSFEN）
     QMap<QString, QString> m_sfenWithPlyMap;
+    
+    /// マージダイアログで登録済みの指し手セット（「正規化SFEN:USI指し手」形式）
+    QSet<QString> m_mergeRegisteredMoves;
 };
 
 #endif // JOSEKIWINDOW_H
