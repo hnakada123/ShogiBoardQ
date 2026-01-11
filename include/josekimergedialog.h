@@ -9,6 +9,7 @@
 #include <QVBoxLayout>
 #include <QVector>
 #include <QString>
+#include <QSet>
 
 /**
  * @brief 棋譜からの定跡マージ用エントリ
@@ -50,6 +51,12 @@ public:
      * @param filePath 定跡ファイルのパス
      */
     void setTargetJosekiFile(const QString &filePath);
+    
+    /**
+     * @brief 登録済みの指し手セットを設定する
+     * @param registeredMoves 登録済みの「正規化SFEN:USI指し手」のセット
+     */
+    void setRegisteredMoves(const QSet<QString> &registeredMoves);
 
 signals:
     /**
@@ -109,6 +116,14 @@ private:
      * @return 正規化されたSFEN
      */
     QString normalizeSfen(const QString &sfen) const;
+    
+    /**
+     * @brief 登録済みかどうかを確認する
+     * @param sfen 局面SFEN
+     * @param usiMove USI形式の指し手
+     * @return 登録済みならtrue
+     */
+    bool isRegistered(const QString &sfen, const QString &usiMove) const;
 
     QTableWidget *m_tableWidget;       ///< 棋譜表示テーブル
     QPushButton *m_registerAllButton;  ///< 全て登録ボタン
@@ -117,8 +132,10 @@ private:
     QPushButton *m_fontDecreaseBtn;    ///< フォント縮小ボタン
     QLabel *m_statusLabel;             ///< 状態ラベル
     QLabel *m_targetFileLabel;         ///< マージ先ファイルラベル
+    QLabel *m_autoSaveLabel;           ///< 自動保存説明ラベル
     
     QVector<KifuMergeEntry> m_entries; ///< 棋譜エントリ
+    QSet<QString> m_registeredMoves;   ///< 登録済みの指し手セット（「正規化SFEN:USI指し手」形式）
     int m_currentPly;                  ///< 現在選択中の手数
     int m_fontSize;                    ///< フォントサイズ
 };

@@ -44,6 +44,7 @@ JosekiWindow::JosekiWindow(QWidget *parent)
     , m_statusLabel(nullptr)
     , m_positionSummaryLabel(nullptr)
     , m_emptyGuideLabel(nullptr)
+    , m_noticeLabel(nullptr)
     , m_showSfenDetailBtn(nullptr)
     , m_sfenDetailWidget(nullptr)
     , m_tableContextMenu(nullptr)
@@ -301,6 +302,14 @@ void JosekiWindow::setupUi()
     statusLayout->addWidget(m_statusLabel, 1);
     
     mainLayout->addWidget(statusFrame);
+    
+    // ============================================================
+    // 注意書きラベル
+    // ============================================================
+    m_noticeLabel = new QLabel(this);
+    m_noticeLabel->setText(tr("※ 編集・削除後は「保存」ボタンで定跡ファイルに保存してください"));
+    m_noticeLabel->setStyleSheet(QStringLiteral("color: #cc6600; font-size: 9pt;"));
+    mainLayout->addWidget(m_noticeLabel);
 
     // ============================================================
     // コンテキストメニュー作成
@@ -480,6 +489,12 @@ void JosekiWindow::applyFontSize()
         m_emptyGuideLabel->setFont(guideFont);
     }
     
+    // 注意書きラベルのフォントサイズを更新
+    if (m_noticeLabel) {
+        int noticeFontSize = qMax(m_fontSize - 1, 6);
+        m_noticeLabel->setStyleSheet(QStringLiteral("color: #cc6600; font-size: %1pt;").arg(noticeFontSize));
+    }
+    
     // マージメニューのフォントサイズを更新
     if (m_mergeMenu) {
         QFont menuFont = m_mergeMenu->font();
@@ -588,6 +603,7 @@ bool JosekiWindow::loadJosekiFile(const QString &filePath)
 
     m_josekiData.clear();
     m_sfenWithPlyMap.clear();
+    m_mergeRegisteredMoves.clear();  // マージ登録済みセットもクリア
 
     QTextStream in(&file);
     QString line;
@@ -1211,6 +1227,7 @@ void JosekiWindow::onNewButtonClicked()
     // 定跡データをクリア
     m_josekiData.clear();
     m_sfenWithPlyMap.clear();
+    m_mergeRegisteredMoves.clear();  // マージ登録済みセットもクリア
     m_currentFilePath.clear();
     m_filePathLabel->setText(tr("新規ファイル（未保存）"));
     m_filePathLabel->setStyleSheet(QStringLiteral("color: blue;"));
@@ -1842,6 +1859,9 @@ void JosekiWindow::setKifuDataForMerge(const QStringList &sfenList,
     // マージ先の定跡ファイル名を設定
     dialog->setTargetJosekiFile(m_currentFilePath);
     
+    // 登録済みの指し手セットを設定
+    dialog->setRegisteredMoves(m_mergeRegisteredMoves);
+    
     // シグナル接続
     connect(dialog, &JosekiMergeDialog::registerMove,
             this, &JosekiWindow::onMergeRegisterMove);
@@ -1854,6 +1874,10 @@ void JosekiWindow::onMergeRegisterMove(const QString &sfen, const QString &sfenW
 {
     qDebug() << "[JosekiWindow] onMergeRegisterMove: sfen=" << sfen
              << "usiMove=" << usiMove;
+    
+    // 登録済みセットに追加
+    QString key = sfen + QStringLiteral(":") + usiMove;
+    m_mergeRegisteredMoves.insert(key);
     
     // 既存の定跡手があるか確認
     if (m_josekiData.contains(sfen)) {
@@ -2093,6 +2117,9 @@ void JosekiWindow::onMergeFromKifuFile()
     
     // マージ先の定跡ファイル名を設定
     dialog->setTargetJosekiFile(m_currentFilePath);
+    
+    // 登録済みの指し手セットを設定
+    dialog->setRegisteredMoves(m_mergeRegisteredMoves);
     
     // ダイアログタイトルに読み込んだファイル名を追加
     QFileInfo fi(kifFilePath);
