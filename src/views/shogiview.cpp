@@ -1531,11 +1531,13 @@ QPoint ShogiView::getClickedSquareInFlippedState(const QPoint& pos) const
         return QPoint(file, rank);
     }
 
-    // 2) 駒台の外接矩形（デフォルト向きと同じ帯で判定）
-    const QRect senteStandRect(m_offsetX + static_cast<int>(m_param2),
-                               m_offsetY + 5 * h, 2 * w, 4 * h); // 先手（右・下帯）
-    const QRect goteStandRect (m_offsetX - static_cast<int>(m_param1),
-                              m_offsetY + 0 * h, 2 * w, 4 * h); // 後手（左・上帯）
+    // 2) 駒台の外接矩形（反転時は先手が左側、後手が右側）
+    //   先手（file=10）：左側 m_param1 基準、上帯 rank 0..3
+    const QRect senteStandRect(m_offsetX - static_cast<int>(m_param1),
+                               m_offsetY + 0 * h, 2 * w, 4 * h);
+    //   後手（file=11）：右側 m_param2 基準、下帯 rank 5..8
+    const QRect goteStandRect (m_offsetX + static_cast<int>(m_param2),
+                               m_offsetY + 5 * h, 2 * w, 4 * h);
 
     // 3) ドラッグ中の駒台ドロップ
     if (m_positionEditMode && m_dragging) {
@@ -1572,42 +1574,44 @@ QPoint ShogiView::getClickedSquareInFlippedState(const QPoint& pos) const
         return QPoint();
     }
 
-    // 4) （1stクリック）従来の駒台セル判定はそのまま
+    // 4) （1stクリック）反転時の駒台セル判定
+    //    反転時は先手駒台が左側（m_param1使用）、後手駒台が右側（m_param2使用）
     {
-        // ここは元の実装方針に合わせています（必要なら後で一体化可能）
-        float tempFile = static_cast<float>(pos.x() - m_param2 - m_offsetX) / static_cast<float>(w);
-        float tempRank = static_cast<float>(pos.y() - m_offsetY) / static_cast<float>(h);
-        int   file     = static_cast<int>(tempFile);
-        int   rank     = static_cast<int>(tempRank);
-
-        if (file == 0) {
-            if (rank == 8) return QPoint(10, 1);
-            if (rank == 7) return QPoint(10, 3);
-            if (rank == 6) return QPoint(10, 5);
-            if (rank == 5) return QPoint(10, 7);
-        } else if (file == 1) {
-            if (rank == 8) return QPoint(10, 2);
-            if (rank == 7) return QPoint(10, 4);
-            if (rank == 6) return QPoint(10, 6);
-            if (rank == 5) return QPoint(10, 8);
-        }
-    }
-    {
+        // 先手駒台（左側＝m_param1 側） rank 0..3
         float tempFile = static_cast<float>(pos.x() + m_param1 - m_offsetX) / static_cast<float>(w);
         float tempRank = static_cast<float>(pos.y() - m_offsetY) / static_cast<float>(h);
         int   file     = static_cast<int>(tempFile);
         int   rank     = static_cast<int>(tempRank);
 
         if (file == 1) {
-            if (rank == 0) return QPoint(11, 9);
-            if (rank == 1) return QPoint(11, 7);
-            if (rank == 2) return QPoint(11, 5);
-            if (rank == 3) return QPoint(11, 3);
+            if (rank == 0) return QPoint(10, 1); // 歩 P
+            if (rank == 1) return QPoint(10, 3); // 桂 N
+            if (rank == 2) return QPoint(10, 5); // 金 G
+            if (rank == 3) return QPoint(10, 7); // 飛 R
         } else if (file == 0) {
-            if (rank == 0) return QPoint(11, 8);
-            if (rank == 1) return QPoint(11, 6);
-            if (rank == 2) return QPoint(11, 4);
-            if (rank == 3) return QPoint(11, 2);
+            if (rank == 0) return QPoint(10, 2); // 香 L
+            if (rank == 1) return QPoint(10, 4); // 銀 S
+            if (rank == 2) return QPoint(10, 6); // 角 B
+            if (rank == 3) return QPoint(10, 8); // 玉 K
+        }
+    }
+    {
+        // 後手駒台（右側＝m_param2 側） rank 5..8
+        float tempFile = static_cast<float>(pos.x() - m_param2 - m_offsetX) / static_cast<float>(w);
+        float tempRank = static_cast<float>(pos.y() - m_offsetY) / static_cast<float>(h);
+        int   file     = static_cast<int>(tempFile);
+        int   rank     = static_cast<int>(tempRank);
+
+        if (file == 0) {
+            if (rank == 8) return QPoint(11, 9); // 歩 p
+            if (rank == 7) return QPoint(11, 7); // 桂 n
+            if (rank == 6) return QPoint(11, 5); // 金 g
+            if (rank == 5) return QPoint(11, 3); // 飛 r
+        } else if (file == 1) {
+            if (rank == 8) return QPoint(11, 8); // 香 l
+            if (rank == 7) return QPoint(11, 6); // 銀 s
+            if (rank == 6) return QPoint(11, 4); // 角 b
+            if (rank == 5) return QPoint(11, 2); // 玉 k
         }
     }
 
