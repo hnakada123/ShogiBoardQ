@@ -23,6 +23,7 @@ class QHeaderView;
 class QToolButton;
 class QPushButton;
 class QLabel;  // ★ 追加
+class QLineEdit;      // ★ 追加
 
 class EngineInfoWidget;
 class ShogiEngineThinkingModel;
@@ -144,6 +145,9 @@ signals:
     // row: クリックされた行のインデックス
     void pvRowClicked(int engineIndex, int row);
 
+    // ★ 追加: CSAコマンド送信シグナル
+    void csaRawCommandRequested(const QString& command);
+
 private:
     // --- 内部：ツリー描画 ---
     void rebuildBranchTree();
@@ -178,6 +182,11 @@ private:
     QToolButton* m_btnCsaLogFontDecrease=nullptr;
     int m_csaLogFontSize=10;
 
+    // ★ 追加: CSA通信ログコマンド入力UI
+    QWidget* m_csaCommandBar=nullptr;
+    QPushButton* m_btnCsaSendToServer=nullptr;
+    QLineEdit* m_csaCommandInput=nullptr;
+
     // ★ 追加: 思考タブフォントサイズ
     int m_thinkingFontSize=10;
 
@@ -205,6 +214,8 @@ private:
     void updateCsaLogFontSize(int delta);  // ★ 追加: CSA通信ログフォントサイズ変更
     void onCsaLogFontIncrease();     // ★ 追加
     void onCsaLogFontDecrease();     // ★ 追加
+    void buildCsaCommandBar();       // ★ 追加: CSAコマンド入力バー構築
+    void onCsaCommandEntered();      // ★ 追加: CSAコマンド入力処理
     void updateThinkingFontSize(int delta);  // ★ 追加: 思考タブフォントサイズ変更
     void onThinkingFontIncrease();   // ★ 追加
     void onThinkingFontDecrease();   // ★ 追加

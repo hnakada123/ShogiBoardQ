@@ -166,12 +166,6 @@ public:
     void sendRawCommand(const QString& command);
 
     /**
-     * @brief CSAサーバーからの受信をシミュレートする（デバッグ用）
-     * @param message シミュレートするメッセージ
-     */
-    void simulateServerMessage(const QString& message);
-
-    /**
      * @brief ユーザー名（GUI側の対局者名）を取得
      * @return ユーザー名
      */
@@ -201,8 +195,9 @@ signals:
      * @brief 対局が終了した時に発行
      * @param result 結果（"勝ち", "負け", "引き分け"など）
      * @param cause 終了原因
+     * @param consumedTimeMs 終局手の消費時間（ミリ秒）
      */
-    void gameEnded(const QString& result, const QString& cause);
+    void gameEnded(const QString& result, const QString& cause, int consumedTimeMs);
 
     /**
      * @brief 指し手が確定した時に発行
@@ -272,7 +267,7 @@ private slots:
     void onGameRejected(const QString& gameId, const QString& rejector);
     void onMoveReceived(const QString& move, int consumedTimeMs);
     void onMoveConfirmed(const QString& move, int consumedTimeMs);
-    void onClientGameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause);
+    void onClientGameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause, int consumedTimeMs);
     void onGameInterrupted();
     void onRawMessageReceived(const QString& message);
     void onRawMessageSent(const QString& message);
@@ -434,6 +429,7 @@ private:
     int m_initialTimeMs;        ///< 初期持ち時間（ミリ秒）
     int m_blackRemainingMs;     ///< 先手残り時間（ミリ秒）
     int m_whiteRemainingMs;     ///< 後手残り時間（ミリ秒）
+    int m_resignConsumedTimeMs; ///< 投了時の消費時間（ミリ秒）
 
     // USIポジション文字列
     QString m_positionStr;      ///< "position sfen ... moves ..."形式

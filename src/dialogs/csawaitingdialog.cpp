@@ -2,14 +2,16 @@
 
 #include <QLabel>
 #include <QPushButton>
+#include <QToolButton>
 #include <QProgressBar>
 #include <QPlainTextEdit>
 #include <QLineEdit>
-#include <QButtonGroup>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QTextCursor>
 #include <QDebug>
+
+#include "settingsservice.h"  // ★ 追加: フォントサイズ保存用
 
 // コンストラクタ
 CsaWaitingDialog::CsaWaitingDialog(CsaGameCoordinator* coordinator, QWidget* parent)
@@ -22,9 +24,10 @@ CsaWaitingDialog::CsaWaitingDialog(CsaGameCoordinator* coordinator, QWidget* par
     , m_showLogButton(nullptr)
     , m_logWindow(nullptr)
     , m_logTextEdit(nullptr)
-    , m_senderButtonGroup(nullptr)
-    , m_btnSenderServer(nullptr)
-    , m_btnSenderClient(nullptr)
+    , m_btnLogFontIncrease(nullptr)
+    , m_btnLogFontDecrease(nullptr)
+    , m_logFontSize(SettingsService::csaLogFontSize())  // SettingsServiceから読み込み
+    , m_btnSendToServer(nullptr)
     , m_commandInput(nullptr)
 {
     qDebug() << "[CsaWaitingDialog] Constructor called, coordinator=" << coordinator;
@@ -70,7 +73,7 @@ void CsaWaitingDialog::setupUi()
     m_statusLabel = new QLabel(tr("対局相手を待機中..."), this);
     m_statusLabel->setAlignment(Qt::AlignCenter);
     QFont statusFont = m_statusLabel->font();
-    statusFont.setPointSize(statusFont.pointSize() + 2);
+    statusFont.setPointSize(12);
     statusFont.setBold(true);
     m_statusLabel->setFont(statusFont);
     mainLayout->addWidget(m_statusLabel);
@@ -197,34 +200,51 @@ void CsaWaitingDialog::createLogWindow()
 
     QVBoxLayout* layout = new QVBoxLayout(m_logWindow);
 
+    // === フォントサイズ調整ボタン ===
+    QHBoxLayout* fontLayout = new QHBoxLayout();
+    fontLayout->addStretch();
+
+    m_btnLogFontDecrease = new QToolButton(m_logWindow);
+    m_btnLogFontDecrease->setText(QStringLiteral("A-"));
+    m_btnLogFontDecrease->setToolTip(tr("フォントサイズを小さくする"));
+    m_btnLogFontDecrease->setFixedSize(28, 24);
+    connect(m_btnLogFontDecrease, &QToolButton::clicked,
+            this, &CsaWaitingDialog::onLogFontDecrease);
+    fontLayout->addWidget(m_btnLogFontDecrease);
+
+    m_btnLogFontIncrease = new QToolButton(m_logWindow);
+    m_btnLogFontIncrease->setText(QStringLiteral("A+"));
+    m_btnLogFontIncrease->setToolTip(tr("フォントサイズを大きくする"));
+    m_btnLogFontIncrease->setFixedSize(28, 24);
+    connect(m_btnLogFontIncrease, &QToolButton::clicked,
+            this, &CsaWaitingDialog::onLogFontIncrease);
+    fontLayout->addWidget(m_btnLogFontIncrease);
+
+    layout->addLayout(fontLayout);
+
     // === コマンド入力エリア ===
     QHBoxLayout* commandLayout = new QHBoxLayout();
 
-    // 送信元選択ボタングループ
-    m_senderButtonGroup = new QButtonGroup(m_logWindow);
+    // CSAサーバーへ送信ボタン（ラベル表示用）
+    m_btnSendToServer = new QPushButton(tr("CSAサーバーへ送信"), m_logWindow);
+    m_btnSendToServer->setEnabled(false);  // クリック不可（ラベルとして表示）
+    m_btnSendToServer->setFlat(true);      // フラットスタイル
+    m_btnSendToServer->setMinimumWidth(130);
 
-    // CSAサーバーボタン
-    m_btnSenderServer = new QPushButton(tr("▶ CSAサーバー"), m_logWindow);
-    m_btnSenderServer->setCheckable(true);
-    m_btnSenderServer->setMinimumWidth(100);
-    m_senderButtonGroup->addButton(m_btnSenderServer, 0);
-
-    // GUI（クライアント）ボタン - ユーザー名を表示
-    QString clientName = tr("◀ %1").arg(
-        m_coordinator ? m_coordinator->username() : tr("GUI"));
-    m_btnSenderClient = new QPushButton(clientName, m_logWindow);
-    m_btnSenderClient->setCheckable(true);
-    m_btnSenderClient->setChecked(true);  // デフォルトでGUI側を選択
-    m_btnSenderClient->setMinimumWidth(100);
-    m_senderButtonGroup->addButton(m_btnSenderClient, 1);
-
-    commandLayout->addWidget(m_btnSenderServer);
-    commandLayout->addWidget(m_btnSenderClient);
+    commandLayout->addWidget(m_btnSendToServer);
 
     // コマンド入力欄
     m_commandInput = new QLineEdit(m_logWindow);
     m_commandInput->setPlaceholderText(tr("コマンドを入力してEnter"));
     commandLayout->addWidget(m_commandInput, 1);  // stretchで伸縮
+
+    // コマンド入力部分のフォントサイズを設定
+    {
+        QFont cmdFont;
+        cmdFont.setPointSize(m_logFontSize);
+        m_btnSendToServer->setFont(cmdFont);
+        m_commandInput->setFont(cmdFont);
+    }
 
     layout->addLayout(commandLayout);
 
@@ -237,6 +257,7 @@ void CsaWaitingDialog::createLogWindow()
     QFont font = m_logTextEdit->font();
     font.setFamily(QStringLiteral("monospace"));
     font.setStyleHint(QFont::Monospace);
+    font.setPointSize(m_logFontSize);
     m_logTextEdit->setFont(font);
 
     layout->addWidget(m_logTextEdit);
@@ -245,6 +266,9 @@ void CsaWaitingDialog::createLogWindow()
     QHBoxLayout* buttonLayout = new QHBoxLayout();
     buttonLayout->addStretch();
     QPushButton* closeButton = new QPushButton(tr("閉じる"), m_logWindow);
+    closeButton->setAutoDefault(false);  // Enterキーで反応しないように
+    closeButton->setDefault(false);
+    closeButton->setFocusPolicy(Qt::NoFocus);  // フォーカスを受けないように
     connect(closeButton, &QPushButton::clicked,
             m_logWindow, &QDialog::close);
     buttonLayout->addWidget(closeButton);
@@ -256,6 +280,37 @@ void CsaWaitingDialog::createLogWindow()
     // コマンド入力のEnterキー処理を接続
     connect(m_commandInput, &QLineEdit::returnPressed,
             this, &CsaWaitingDialog::onCommandEntered);
+}
+
+// ログウィンドウのフォントサイズを更新
+void CsaWaitingDialog::updateLogFontSize(int delta)
+{
+    m_logFontSize += delta;
+    if (m_logFontSize < 8) m_logFontSize = 8;
+    if (m_logFontSize > 24) m_logFontSize = 24;
+
+    // ログ表示エリア
+    if (m_logTextEdit) {
+        QFont font = m_logTextEdit->font();
+        font.setPointSize(m_logFontSize);
+        m_logTextEdit->setFont(font);
+    }
+
+    // コマンド入力部分も同じフォントサイズに
+    if (m_btnSendToServer) {
+        QFont font = m_btnSendToServer->font();
+        font.setPointSize(m_logFontSize);
+        m_btnSendToServer->setFont(font);
+    }
+
+    if (m_commandInput) {
+        QFont font = m_commandInput->font();
+        font.setPointSize(m_logFontSize);
+        m_commandInput->setFont(font);
+    }
+
+    // SettingsServiceに保存
+    SettingsService::setCsaLogFontSize(m_logFontSize);
 }
 
 // 対局状態変化時の処理
@@ -354,17 +409,21 @@ void CsaWaitingDialog::onCommandEntered()
         return;
     }
 
-    // 送信元に応じて処理を分岐
-    int senderId = m_senderButtonGroup->checkedId();
-
-    if (senderId == 0) {
-        // CSAサーバーからの受信をシミュレート
-        m_coordinator->simulateServerMessage(command);
-    } else {
-        // GUI側からサーバーへ送信
-        m_coordinator->sendRawCommand(command);
-    }
+    // CSAサーバーへ送信
+    m_coordinator->sendRawCommand(command);
 
     // 入力欄をクリア
     m_commandInput->clear();
+}
+
+// ログウィンドウのフォントサイズを大きくする
+void CsaWaitingDialog::onLogFontIncrease()
+{
+    updateLogFontSize(1);
+}
+
+// ログウィンドウのフォントサイズを小さくする
+void CsaWaitingDialog::onLogFontDecrease()
+{
+    updateLogFontSize(-1);
 }

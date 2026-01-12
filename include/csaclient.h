@@ -289,8 +289,9 @@ signals:
      * @brief 対局が終了した時に発行
      * @param result 対局結果
      * @param cause 終了原因
+     * @param consumedTimeMs 終局手の消費時間（ミリ秒）
      */
-    void gameEnded(GameResult result, GameEndCause cause);
+    void gameEnded(GameResult result, GameEndCause cause, int consumedTimeMs);
 
     /**
      * @brief 中断が通知された時に発行
@@ -410,6 +411,7 @@ private:
 
     QString m_pendingFirstResultLine;   ///< 最初の結果行（#で始まる行）を保持
     int m_moveCount;                    ///< 指し手カウント
+    int m_endMoveConsumedTimeMs;        ///< 終局手の消費時間（ミリ秒）
 
     static constexpr int kConnectionTimeoutMs = 10000; ///< 接続タイムアウト（10秒）
 };

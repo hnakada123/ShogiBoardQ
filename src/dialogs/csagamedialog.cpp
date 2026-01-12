@@ -2,6 +2,7 @@
 #include "ui_csagamedialog.h"
 #include "changeenginesettingsdialog.h"
 #include "enginesettingsconstants.h"
+#include "settingsservice.h"
 #include <QSettings>
 #include <QMessageBox>
 #include <QDir>
@@ -12,12 +13,16 @@ using namespace EngineSettingsConstants;
 CsaGameDialog::CsaGameDialog(QWidget *parent)
     : QDialog(parent)
     , ui(new Ui::CsaGameDialog)
+    , m_fontSize(SettingsService::csaGameDialogFontSize())
     , m_isHuman(true)
     , m_isEngine(false)
     , m_engineNumber(0)
     , m_port(4081)
 {
     ui->setupUi(this);
+
+    // フォントサイズを適用
+    applyFontSize();
 
     // 設定ファイルからエンジン情報を読み込む
     loadEngineConfigurations();
@@ -66,6 +71,12 @@ void CsaGameDialog::connectSignalsAndSlots()
     // パスワード表示チェックボックス
     connect(ui->checkBoxShowPassword, &QCheckBox::toggled,
             this, &CsaGameDialog::onShowPasswordToggled);
+
+    // フォントサイズボタン
+    connect(ui->toolButtonFontIncrease, &QToolButton::clicked,
+            this, &CsaGameDialog::onFontIncrease);
+    connect(ui->toolButtonFontDecrease, &QToolButton::clicked,
+            this, &CsaGameDialog::onFontDecrease);
 }
 
 // 設定ファイルからエンジン情報を読み込む
@@ -413,4 +424,37 @@ int CsaGameDialog::engineNumber() const
 const QList<CsaGameDialog::Engine>& CsaGameDialog::engineList() const
 {
     return m_engineList;
+}
+
+// フォントサイズを大きくする
+void CsaGameDialog::onFontIncrease()
+{
+    updateFontSize(1);
+}
+
+// フォントサイズを小さくする
+void CsaGameDialog::onFontDecrease()
+{
+    updateFontSize(-1);
+}
+
+// フォントサイズを更新する
+void CsaGameDialog::updateFontSize(int delta)
+{
+    m_fontSize += delta;
+    if (m_fontSize < 8) m_fontSize = 8;
+    if (m_fontSize > 24) m_fontSize = 24;
+
+    applyFontSize();
+
+    // SettingsServiceに保存
+    SettingsService::setCsaGameDialogFontSize(m_fontSize);
+}
+
+// ダイアログ全体にフォントサイズを適用する
+void CsaGameDialog::applyFontSize()
+{
+    QFont font = this->font();
+    font.setPointSize(m_fontSize);
+    this->setFont(font);
 }

@@ -492,4 +492,52 @@ void setJosekiMoveDialogFontSize(int size)
     s.setValue("JosekiWindow/moveDialogFontSize", size);
 }
 
+// ★ 追加: CSA通信ログのフォントサイズを取得
+int csaLogFontSize()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("FontSize/csaLog", 10).toInt();
+}
+
+// ★ 追加: CSA通信ログのフォントサイズを保存
+void setCsaLogFontSize(int size)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("FontSize/csaLog", size);
+}
+
+// ★ 追加: CSA待機ダイアログのフォントサイズを取得
+int csaWaitingDialogFontSize()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("FontSize/csaWaitingDialog", 10).toInt();
+}
+
+// ★ 追加: CSA待機ダイアログのフォントサイズを保存
+void setCsaWaitingDialogFontSize(int size)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("FontSize/csaWaitingDialog", size);
+}
+
+// ★ 追加: CSA通信対局ダイアログのフォントサイズを取得
+int csaGameDialogFontSize()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("FontSize/csaGameDialog", 10).toInt();
+}
+
+// ★ 追加: CSA通信対局ダイアログのフォントサイズを保存
+void setCsaGameDialogFontSize(int size)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("FontSize/csaGameDialog", size);
+}
+
 } // namespace SettingsService

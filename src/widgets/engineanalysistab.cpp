@@ -27,6 +27,7 @@
 #include <QLabel>       // ★ 追加
 #include <QMessageBox>  // ★ 追加
 #include <QTimer>       // ★ 追加: 列幅設定の遅延用
+#include <QLineEdit>    // ★ 追加: CSAコマンド入力用
 
 #include "settingsservice.h"  // ★ 追加: フォントサイズ保存用
 #include <QFontDatabase>      // ★ 追加: フォント検索用
@@ -193,6 +194,9 @@ void EngineAnalysisTab::buildUi()
     m_tab->addTab(m_usiLogContainer, tr("USI通信ログ"));
 
     // --- CSA通信ログ ---
+    // SettingsServiceからフォントサイズを読み込み
+    m_csaLogFontSize = SettingsService::csaLogFontSize();
+
     m_csaLogContainer = new QWidget(m_tab);
     QVBoxLayout* csaLogLayout = new QVBoxLayout(m_csaLogContainer);
     csaLogLayout->setContentsMargins(4, 4, 4, 4);
@@ -202,8 +206,18 @@ void EngineAnalysisTab::buildUi()
     buildCsaLogToolbar();
     csaLogLayout->addWidget(m_csaLogToolbar);
 
+    // コマンド入力バーを構築
+    buildCsaCommandBar();
+    csaLogLayout->addWidget(m_csaCommandBar);
+
     m_csaLog = new QPlainTextEdit(m_csaLogContainer);
     m_csaLog->setReadOnly(true);
+    // 保存されたフォントサイズを適用
+    {
+        QFont font = m_csaLog->font();
+        font.setPointSize(m_csaLogFontSize);
+        m_csaLog->setFont(font);
+    }
     csaLogLayout->addWidget(m_csaLog);
 
     m_tab->addTab(m_csaLogContainer, tr("CSA通信ログ"));
@@ -1594,11 +1608,28 @@ void EngineAnalysisTab::updateCsaLogFontSize(int delta)
     if (m_csaLogFontSize < 8) m_csaLogFontSize = 8;
     if (m_csaLogFontSize > 24) m_csaLogFontSize = 24;
 
+    // ログ表示エリア
     if (m_csaLog) {
         QFont font = m_csaLog->font();
         font.setPointSize(m_csaLogFontSize);
         m_csaLog->setFont(font);
     }
+
+    // コマンド入力部分も同じフォントサイズに
+    if (m_btnCsaSendToServer) {
+        QFont font = m_btnCsaSendToServer->font();
+        font.setPointSize(m_csaLogFontSize);
+        m_btnCsaSendToServer->setFont(font);
+    }
+
+    if (m_csaCommandInput) {
+        QFont font = m_csaCommandInput->font();
+        font.setPointSize(m_csaLogFontSize);
+        m_csaCommandInput->setFont(font);
+    }
+
+    // SettingsServiceに保存
+    SettingsService::setCsaLogFontSize(m_csaLogFontSize);
 }
 
 void EngineAnalysisTab::onCsaLogFontIncrease()
@@ -1630,3 +1661,59 @@ void EngineAnalysisTab::clearCsaLog()
         m_csaLog->clear();
     }
 }
+
+// ★ 追加: CSAコマンド入力バーを構築
+void EngineAnalysisTab::buildCsaCommandBar()
+{
+    m_csaCommandBar = new QWidget(m_csaLogContainer);
+    QHBoxLayout* layout = new QHBoxLayout(m_csaCommandBar);
+    layout->setContentsMargins(0, 0, 0, 0);
+    layout->setSpacing(4);
+
+    // CSAサーバーへ送信ボタン（ラベル表示用）
+    m_btnCsaSendToServer = new QPushButton(tr("CSAサーバーへ送信"), m_csaCommandBar);
+    m_btnCsaSendToServer->setEnabled(false);  // クリック不可（ラベルとして表示）
+    m_btnCsaSendToServer->setFlat(true);      // フラットスタイル
+    m_btnCsaSendToServer->setMinimumWidth(130);
+
+    layout->addWidget(m_btnCsaSendToServer);
+
+    // コマンド入力欄
+    m_csaCommandInput = new QLineEdit(m_csaCommandBar);
+    m_csaCommandInput->setPlaceholderText(tr("コマンドを入力してEnter"));
+    layout->addWidget(m_csaCommandInput, 1);  // stretchで伸縮
+
+    // コマンド入力部分のフォントサイズを設定
+    {
+        QFont cmdFont;
+        cmdFont.setPointSize(m_csaLogFontSize);
+        m_btnCsaSendToServer->setFont(cmdFont);
+        m_csaCommandInput->setFont(cmdFont);
+    }
+
+    m_csaCommandBar->setLayout(layout);
+
+    // コマンド入力のEnterキー処理を接続
+    connect(m_csaCommandInput, &QLineEdit::returnPressed,
+            this, &EngineAnalysisTab::onCsaCommandEntered);
+}
+
+// ★ 追加: CSAコマンド入力処理
+void EngineAnalysisTab::onCsaCommandEntered()
+{
+    if (!m_csaCommandInput) {
+        return;
+    }
+
+    QString command = m_csaCommandInput->text().trimmed();
+    if (command.isEmpty()) {
+        return;
+    }
+
+    // CSAサーバーへ送信シグナルを発行
+    emit csaRawCommandRequested(command);
+
+    // 入力欄をクリア
+    m_csaCommandInput->clear();
+}
+

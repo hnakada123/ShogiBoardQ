@@ -7,10 +7,10 @@
 QT_BEGIN_NAMESPACE
 class QLabel;
 class QPushButton;
+class QToolButton;
 class QProgressBar;
 class QPlainTextEdit;
 class QLineEdit;
-class QButtonGroup;
 QT_END_NAMESPACE
 
 /**
@@ -86,6 +86,16 @@ private slots:
      */
     void onCommandEntered();
 
+    /**
+     * @brief ログウィンドウのフォントサイズを大きくする
+     */
+    void onLogFontIncrease();
+
+    /**
+     * @brief ログウィンドウのフォントサイズを小さくする
+     */
+    void onLogFontDecrease();
+
 private:
     /**
      * @brief UIを初期化する
@@ -109,6 +119,12 @@ private:
      */
     void createLogWindow();
 
+    /**
+     * @brief ログウィンドウのフォントサイズを更新する
+     * @param delta 変更量（+1または-1）
+     */
+    void updateLogFontSize(int delta);
+
 private:
     CsaGameCoordinator* m_coordinator;  ///< CSA通信対局コーディネータ
     QLabel* m_statusLabel;              ///< 状態表示ラベル
@@ -121,10 +137,13 @@ private:
     QDialog* m_logWindow;               ///< 通信ログウィンドウ
     QPlainTextEdit* m_logTextEdit;      ///< 通信ログテキスト表示
 
+    // フォントサイズ調整ボタン（ログウィンドウ）
+    QToolButton* m_btnLogFontIncrease;  ///< ログA+ボタン
+    QToolButton* m_btnLogFontDecrease;  ///< ログA-ボタン
+    int m_logFontSize;                   ///< ログウィンドウのフォントサイズ
+
     // コマンド入力UI
-    QButtonGroup* m_senderButtonGroup;  ///< 送信元選択ボタングループ
-    QPushButton* m_btnSenderServer;     ///< CSAサーバー送信元ボタン
-    QPushButton* m_btnSenderClient;     ///< GUI送信元ボタン
+    QPushButton* m_btnSendToServer;     ///< CSAサーバーへ送信ボタン
     QLineEdit* m_commandInput;          ///< コマンド入力欄
 };
 

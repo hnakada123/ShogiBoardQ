@@ -63,6 +63,7 @@ CsaClient::CsaClient(QObject* parent)
     , m_inTimeSection(false)
     , m_inPositionSection(false)
     , m_moveCount(0)
+    , m_endMoveConsumedTimeMs(0)
 {
     // ソケットのシグナル接続
     connect(m_socket, &QTcpSocket::connected,
@@ -357,6 +358,7 @@ void CsaClient::processLine(const QString& line)
             setConnectionState(ConnectionState::InGame);
             m_isMyTurn = (m_gameSummary.myTurn == m_gameSummary.toMove);
             m_moveCount = 0;
+            m_endMoveConsumedTimeMs = 0;  // 終局時消費時間をリセット
             emit gameStarted(gameId);
         } else if (line.startsWith(QStringLiteral("REJECT:"))) {
             // 対局拒否
@@ -555,10 +557,11 @@ void CsaClient::processGameMessage(const QString& line)
             consumedTime = parseConsumedTime(line.mid(static_cast<int>(commaPos) + 2));
         }
 
-        // 投了や勝利宣言の確認として処理
-        // 結果行が続くのでここでは特に何もしない
+        // 終局手の消費時間を保存（ミリ秒に変換）
+        m_endMoveConsumedTimeMs = consumedTime * m_gameSummary.timeUnitMs();
+        qDebug() << "[CSA-DEBUG] End move consumed time:" << m_endMoveConsumedTimeMs << "ms";
+
         Q_UNUSED(cmd)
-        Q_UNUSED(consumedTime)
         return;
     }
 
@@ -630,10 +633,11 @@ void CsaClient::processResultLine(const QString& line)
     }
 
     qDebug() << "[CSA-DEBUG] Game ended with result=" << static_cast<int>(result)
-             << "cause=" << static_cast<int>(cause);
+             << "cause=" << static_cast<int>(cause)
+             << "consumedTimeMs=" << m_endMoveConsumedTimeMs;
 
     setConnectionState(ConnectionState::GameOver);
-    emit gameEnded(result, cause);
+    emit gameEnded(result, cause, m_endMoveConsumedTimeMs);
 
     // 対局終了後はGameOver状態を維持（サーバーからの切断を正常終了として扱うため）
     // 再接続や次の対局開始時に適切な状態に遷移する

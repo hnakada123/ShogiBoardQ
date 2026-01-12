@@ -141,6 +141,16 @@ private slots:
      */
     void onShowPasswordToggled(bool checked);
 
+    /**
+     * @brief フォントサイズを大きくする
+     */
+    void onFontIncrease();
+
+    /**
+     * @brief フォントサイズを小さくする
+     */
+    void onFontDecrease();
+
 private:
     /**
      * @brief シグナル・スロットの接続を行う
@@ -195,10 +205,22 @@ private:
      */
     void showEngineSettingsDialog(QComboBox* comboBox);
 
+    /**
+     * @brief フォントサイズを更新する
+     * @param delta 変更量（+1または-1）
+     */
+    void updateFontSize(int delta);
+
+    /**
+     * @brief ダイアログ全体にフォントサイズを適用する
+     */
+    void applyFontSize();
+
 private:
     Ui::CsaGameDialog* ui;              ///< UIオブジェクト
     QList<Engine> m_engineList;         ///< エンジンリスト
     QList<ServerHistory> m_serverHistory; ///< サーバー接続履歴
+    int m_fontSize;                     ///< フォントサイズ
 
     // 設定値のキャッシュ
     bool m_isHuman;         ///< こちら側が人間かどうか
