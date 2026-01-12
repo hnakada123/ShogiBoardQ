@@ -312,8 +312,52 @@ EvaluationChartWidget* RecordPane::evalChart() const { return m_eval; }
 
 void RecordPane::setArrowButtonsEnabled(bool on)
 {
-    for (QPushButton* b : {m_btn1,m_btn2,m_btn3,m_btn4,m_btn5,m_btn6})
+    const QList<QPushButton*> btns = {m_btn1, m_btn2, m_btn3, m_btn4, m_btn5, m_btn6};
+    for (QPushButton* const b : btns)
         if (b) b->setEnabled(on);
+}
+
+void RecordPane::setKifuViewEnabled(bool on)
+{
+    if (m_kifu) {
+        m_navigationDisabled = !on;
+
+        // setEnabled(false) を使うとテキストがグレーアウトされるため、
+        // 代わりにマウスイベントを透過させてクリックを無効化する
+        m_kifu->setAttribute(Qt::WA_TransparentForMouseEvents, !on);
+        m_kifu->viewport()->setAttribute(Qt::WA_TransparentForMouseEvents, !on);
+
+        if (!on) {
+            // フォーカスを無効にする
+            m_kifu->setFocusPolicy(Qt::NoFocus);
+            m_kifu->clearFocus();
+
+            // スタイルシートでcurrentIndex（フォーカスセル）のハイライトを無効化
+            m_kifu->setStyleSheet(QStringLiteral(
+                "QTableView::item:focus { background-color: transparent; }"
+                "QTableView::item:selected:focus { background-color: transparent; }"
+            ));
+
+            // 選択をクリア
+            if (QItemSelectionModel* sel = m_kifu->selectionModel()) {
+                sel->clearSelection();
+                sel->setCurrentIndex(QModelIndex(), QItemSelectionModel::Clear);
+            }
+
+            m_kifu->viewport()->update();
+        } else {
+            // 有効化時はフォーカスを受け付けるように戻す
+            m_kifu->setFocusPolicy(Qt::StrongFocus);
+            // スタイルシートをクリア（デフォルトに戻す）
+            m_kifu->setStyleSheet(QString());
+        }
+    }
+}
+
+void RecordPane::setNavigationEnabled(bool on)
+{
+    setArrowButtonsEnabled(on);
+    setKifuViewEnabled(on);
 }
 
 void RecordPane::onKifuRowsInserted(const QModelIndex&, int, int)

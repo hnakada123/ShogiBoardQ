@@ -47,6 +47,13 @@ void BoardInteractionController::onLeftClick(const QPoint& pt)
 
         // 選択ハイライトを更新
         selectPieceAndHighlight(pt);
+
+        // 空白マス等で m_clickPoint が設定されなかった場合はドラッグをキャンセル
+        if (m_clickPoint.isNull() || m_clickPoint != pt) {
+            finalizeDrag();
+            return;
+        }
+
         emit selectionChanged(pt);
         return;
     }
@@ -149,6 +156,7 @@ void BoardInteractionController::selectPieceAndHighlight(const QPoint& field)
         const bool isMyStand = ( (p1Turn && file == kBlackStandFile) ||
                                 (!p1Turn && file == kWhiteStandFile) );
         if ((file >= kBlackStandFile) && !isMyStand) {
+            m_clickPoint = QPoint();  // 無効な選択をリセット
             finalizeDrag();
             return; // 相手の駒台は無視
         }
@@ -156,10 +164,16 @@ void BoardInteractionController::selectPieceAndHighlight(const QPoint& field)
 
     // 駒台：枚数0は無視
     const bool isStand = (file == kBlackStandFile || file == kWhiteStandFile);
-    if (isStand && board->getPieceStand().value(value) <= 0) return;
+    if (isStand && board->getPieceStand().value(value) <= 0) {
+        m_clickPoint = QPoint();  // 無効な選択をリセット
+        return;
+    }
 
     // 盤上の空白は選択しない
-    if (value == QChar(' ')) return;
+    if (value == QChar(' ')) {
+        m_clickPoint = QPoint();  // 無効な選択をリセット
+        return;
+    }
 
     // 選択状態を保持＆ハイライト（オレンジ）
     m_clickPoint = field;

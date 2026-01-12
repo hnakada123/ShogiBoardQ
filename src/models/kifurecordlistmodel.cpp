@@ -25,9 +25,9 @@ QVariant KifuRecordListModel::data(const QModelIndex &index, int role) const
 
     // 背景色：現在行は黄色、分岐ありの手はオレンジ系で強調
     if (role == Qt::BackgroundRole) {
-        // ★ 現在行（黄色ハイライト）を優先
+        // 現在行（黄色ハイライト）を優先
         if (row == m_currentHighlightRow) {
-            static const QBrush kYellowBg(QColor(255, 255, 0));  // 濃い黄色
+            static const QBrush kYellowBg(QColor(255, 255, 0));
             return kYellowBg;
         }
         // 分岐ありの手はオレンジ系
@@ -133,7 +133,7 @@ void KifuRecordListModel::setBranchPlyMarks(const QSet<int>& ply1Set)
     }
 }
 
-// ★ 追加：現在の行（黄色ハイライト）を設定
+// 現在の行（黄色ハイライト）を設定
 void KifuRecordListModel::setCurrentHighlightRow(int row)
 {
     if (m_currentHighlightRow == row) return;
