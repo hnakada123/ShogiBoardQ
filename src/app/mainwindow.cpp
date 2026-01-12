@@ -658,6 +658,24 @@ void MainWindow::enableArrowButtons()
     if (m_recordPane) m_recordPane->setArrowButtonsEnabled(true);
 }
 
+// 棋譜欄と矢印ボタンの有効/無効を設定する。
+void MainWindow::setNavigationEnabled(bool on)
+{
+    if (m_recordPane) m_recordPane->setNavigationEnabled(on);
+}
+
+// 対局中にナビゲーション（棋譜欄と矢印ボタン）を無効にする。
+void MainWindow::disableNavigationForGame()
+{
+    setNavigationEnabled(false);
+}
+
+// 対局終了後にナビゲーション（棋譜欄と矢印ボタン）を有効にする。
+void MainWindow::enableNavigationAfterGame()
+{
+    setNavigationEnabled(true);
+}
+
 // メニューで「投了」をクリックした場合の処理を行う。
 void MainWindow::handleResignation()
 {
@@ -2785,12 +2803,11 @@ void MainWindow::ensureGameStateController_()
     m_gameStateController->setPlayMode(m_playMode);
 
     // コールバックの設定
-    m_gameStateController->setEnableArrowButtonsCallback([this]() {
-        enableArrowButtons();
-    });
-    m_gameStateController->setSetReplayModeCallback([this](bool on) {
-        setReplayMode(on);
-    });
+    // ★ 修正: 対局終了後に棋譜欄と矢印ボタンを有効化
+    m_gameStateController->setEnableArrowButtonsCallback(
+        std::bind(&MainWindow::enableNavigationAfterGame, this));
+    m_gameStateController->setSetReplayModeCallback(
+        std::bind(&MainWindow::setReplayMode, this, std::placeholders::_1));
     m_gameStateController->setRefreshBranchTreeCallback([this]() {
         m_currentSelectedPly = 0;  // リセット
         refreshBranchTreeLive_();
@@ -3044,6 +3061,10 @@ void MainWindow::ensureGameStartCoordinator_()
     // ★ 追加: 対局者名確定シグナルを接続
     connect(m_gameStart, &GameStartCoordinator::playerNamesResolved,
             this, &MainWindow::onPlayerNamesResolved_);
+
+    // ★ 追加: 対局開始時にナビゲーション（棋譜欄と矢印ボタン）を無効化
+    connect(m_gameStart, &GameStartCoordinator::started,
+            this, &MainWindow::disableNavigationForGame);
 }
 
 void MainWindow::onPreStartCleanupRequested_()
@@ -3822,6 +3843,9 @@ void MainWindow::onCsaGameStarted_(const QString& blackName, const QString& whit
 {
     qInfo().noquote() << "[MW] CSA game started:" << blackName << "vs" << whiteName;
 
+    // ★ 対局中はナビゲーション（棋譜欄と矢印ボタン）を無効化
+    disableNavigationForGame();
+
     // 対局者名を設定
     m_humanName1 = blackName;
     m_humanName2 = whiteName;
@@ -3984,6 +4008,9 @@ void MainWindow::onCsaGameEnded_(const QString& result, const QString& cause, in
 
     // プレイモードをリセット
     m_playMode = NotStarted;
+
+    // ★ 対局終了後にナビゲーション（棋譜欄と矢印ボタン）を有効化
+    enableNavigationAfterGame();
 
     // ステータスバーに表示
     ui->statusbar->showMessage(tr("対局終了: %1 (%2)").arg(result, cause), 5000);

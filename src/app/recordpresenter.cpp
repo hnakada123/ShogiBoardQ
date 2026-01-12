@@ -47,11 +47,14 @@ void GameRecordPresenter::presentGameRecord(const QList<KifDisplayItem>& disp) {
     }
 
     // 初期選択位置は先頭に寄せる（任意）
+    // ただし、対局中（ナビゲーション無効化中）はsetCurrentIndexを呼ばない
     if (m_d.recordPane) {
-        if (auto* view = m_d.recordPane->kifuView()) {
-            const QModelIndex top = m_d.model->index(0, 0);
-            view->setCurrentIndex(top);
-            view->scrollTo(top, QAbstractItemView::PositionAtCenter);
+        if (!m_d.recordPane->isNavigationDisabled()) {
+            if (auto* view = m_d.recordPane->kifuView()) {
+                const QModelIndex top = m_d.model->index(0, 0);
+                view->setCurrentIndex(top);
+                view->scrollTo(top, QAbstractItemView::PositionAtCenter);
+            }
         }
     }
 }
@@ -106,7 +109,7 @@ void GameRecordPresenter::appendMoveLine(const QString& prettyMove, const QStrin
     if (m_d.model) {
         m_d.model->appendItem(new KifuDisplay(recordLine, elapsedTime));
 
-        // ★ 追加：新しく追加した行（最後の行）を黄色でハイライト
+        // 新しく追加した行（最後の行）を黄色でハイライト
         const int newRow = m_d.model->rowCount() - 1;
         m_d.model->setCurrentHighlightRow(newRow);
     }

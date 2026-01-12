@@ -31,6 +31,9 @@ public:
     EvaluationChartWidget* evalChart() const;
 
     void setArrowButtonsEnabled(bool on);
+    void setKifuViewEnabled(bool on);
+    void setNavigationEnabled(bool on);
+    bool isNavigationDisabled() const { return m_navigationDisabled; }
 
     QPushButton* firstButton()  const { return m_btn1; }
     QPushButton* back10Button() const { return m_btn2; }
@@ -98,6 +101,9 @@ public slots:
 
 private:
     void applyFontSize(int size);
+
+    // 対局中フラグ（ナビゲーション無効化時にtrue）
+    bool m_navigationDisabled = false;
 };
 
 #endif // RECORDPANE_H

@@ -170,8 +170,24 @@ void MoveValidator::validateMovingPiece(const ShogiMove& currentMove, const QVec
 {
     // 指し手が将棋盤上の駒を動かす場合
     if (currentMove.fromSquare.x() < BOARD_SIZE) {
+        // Y座標の境界チェック
+        if (currentMove.fromSquare.y() < 0 || currentMove.fromSquare.y() >= BOARD_SIZE) {
+            const QString errorMessage = tr("An error occurred in MoveValidator::validateMovingPiece. Validation Error: The rank value of the move is out of bounds.");
+            qDebug() << "Move rank value: " << currentMove.fromSquare.y();
+            emit errorOccurred(errorMessage);
+            return;
+        }
+
         // 指し手のマスのインデックスを計算する。
         int fromIndex = currentMove.fromSquare.y() * BOARD_SIZE + currentMove.fromSquare.x();
+
+        // 盤面データのサイズチェック
+        if (fromIndex < 0 || fromIndex >= boardData.size()) {
+            const QString errorMessage = tr("An error occurred in MoveValidator::validateMovingPiece. Validation Error: The board index is out of bounds.");
+            qDebug() << "Board index: " << fromIndex << ", Board data size: " << boardData.size();
+            emit errorOccurred(errorMessage);
+            return;
+        }
 
         // 指し手の駒と盤面の駒が一致しない場合はエラーとする。
         if (currentMove.movingPiece != boardData[fromIndex]) {

@@ -244,6 +244,9 @@ private slots:
     // ボタン有効/無効
     void disableArrowButtons();
     void enableArrowButtons();
+    void setNavigationEnabled(bool on);
+    void disableNavigationForGame();
+    void enableNavigationAfterGame();
 
     // 盤面・反転
     void onBoardFlipped(bool nowFlipped);
