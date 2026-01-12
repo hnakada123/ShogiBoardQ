@@ -934,6 +934,9 @@ void MainWindow::displayCsaGameDialog()
             if (m_analysisTab) {
                 connect(m_csaGameCoordinator, &CsaGameCoordinator::csaCommLogAppended,
                         m_analysisTab, &EngineAnalysisTab::appendCsaLog);
+                // EngineAnalysisTabからのCSAコマンド送信シグナルを接続
+                connect(m_analysisTab, &EngineAnalysisTab::csaRawCommandRequested,
+                        m_csaGameCoordinator, &CsaGameCoordinator::sendRawCommand);
             }
 
             // BoardSetupControllerからの指し手をCsaGameCoordinatorに転送
@@ -3873,9 +3876,10 @@ void MainWindow::onCsaGameStarted_(const QString& blackName, const QString& whit
 }
 
 // CSA対局終了時の処理
-void MainWindow::onCsaGameEnded_(const QString& result, const QString& cause)
+void MainWindow::onCsaGameEnded_(const QString& result, const QString& cause, int consumedTimeMs)
 {
-    qInfo().noquote() << "[MW] CSA game ended:" << result << "(" << cause << ")";
+    qInfo().noquote() << "[MW] CSA game ended:" << result << "(" << cause << ")"
+                      << "consumedTimeMs=" << consumedTimeMs;
 
     // デバッグ: 終局処理前の状態
     qDebug().noquote() << "[MW-DEBUG] onCsaGameEnded_ BEFORE:"
@@ -3914,8 +3918,32 @@ void MainWindow::onCsaGameEnded_(const QString& result, const QString& cause)
 
         qDebug().noquote() << "[MW-DEBUG] onCsaGameEnded_ endLine=" << endLine;
 
+        // 消費時間を "MM:SS/HH:MM:SS" 形式に変換
+        int consumedSec = consumedTimeMs / 1000;
+        int consumedMin = consumedSec / 60;
+        int consumedSecRem = consumedSec % 60;
+
+        // 敗者の累計消費時間を取得
+        int totalMs = loserIsBlack ? m_csaGameCoordinator->blackTotalTimeMs()
+                                   : m_csaGameCoordinator->whiteTotalTimeMs();
+        // 終局手の消費時間を累計に加算（まだ加算されていない場合）
+        totalMs += consumedTimeMs;
+
+        int totalSec = totalMs / 1000;
+        int totalHour = totalSec / 3600;
+        int totalMin = (totalSec % 3600) / 60;
+        int totalSecRem = totalSec % 60;
+
+        // フォーマット: "MM:SS/HH:MM:SS"
+        QString elapsedStr = QString("%1:%2/%3:%4:%5")
+                                 .arg(consumedMin, 2, 10, QLatin1Char('0'))
+                                 .arg(consumedSecRem, 2, 10, QLatin1Char('0'))
+                                 .arg(totalHour, 2, 10, QLatin1Char('0'))
+                                 .arg(totalMin, 2, 10, QLatin1Char('0'))
+                                 .arg(totalSecRem, 2, 10, QLatin1Char('0'));
+
         // 棋譜欄に追加
-        appendKifuLine(endLine, QStringLiteral("00:00/00:00:00"));
+        appendKifuLine(endLine, elapsedStr);
 
         // m_sfenRecordにも終局行用のダミーエントリを追加
         // （最後の局面のSFENをコピーして、棋譜再生時に終局行まで移動できるようにする）

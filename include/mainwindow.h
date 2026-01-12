@@ -268,7 +268,7 @@ private slots:
 
     // CSA通信対局関連
     void onCsaGameStarted_(const QString& blackName, const QString& whiteName);
-    void onCsaGameEnded_(const QString& result, const QString& cause);
+    void onCsaGameEnded_(const QString& result, const QString& cause, int consumedTimeMs);
     void onCsaMoveMade_(const QString& csaMove, const QString& usiMove,
                         const QString& prettyMove, int consumedTimeMs);
     void onCsaTurnChanged_(bool isMyTurn);

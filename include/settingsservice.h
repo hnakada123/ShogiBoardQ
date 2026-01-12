@@ -163,6 +163,21 @@ int josekiMoveDialogFontSize();
 // 定跡手編集ダイアログのフォントサイズを保存
 void setJosekiMoveDialogFontSize(int size);
 
+// ★ 追加: CSA通信ログのフォントサイズを取得（デフォルト: 10）
+int csaLogFontSize();
+// ★ 追加: CSA通信ログのフォントサイズを保存
+void setCsaLogFontSize(int size);
+
+// ★ 追加: CSA待機ダイアログのフォントサイズを取得（デフォルト: 10）
+int csaWaitingDialogFontSize();
+// ★ 追加: CSA待機ダイアログのフォントサイズを保存
+void setCsaWaitingDialogFontSize(int size);
+
+// ★ 追加: CSA通信対局ダイアログのフォントサイズを取得（デフォルト: 10）
+int csaGameDialogFontSize();
+// ★ 追加: CSA通信対局ダイアログのフォントサイズを保存
+void setCsaGameDialogFontSize(int size);
+
 } // namespace SettingsService
 
 #endif // SETTINGSSERVICE_H

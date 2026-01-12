@@ -37,6 +37,7 @@ CsaGameCoordinator::CsaGameCoordinator(QObject* parent)
     , m_initialTimeMs(0)
     , m_blackRemainingMs(0)
     , m_whiteRemainingMs(0)
+    , m_resignConsumedTimeMs(0)
 {
     // CSAクライアントのシグナル接続
     connect(m_client, &CsaClient::connectionStateChanged,
@@ -114,6 +115,7 @@ void CsaGameCoordinator::startGame(const StartOptions& options)
     m_whiteTotalTimeMs = 0;
     m_prevToFile = 0;
     m_prevToRank = 0;
+    m_resignConsumedTimeMs = 0;  // 投了時消費時間をリセット
     m_usiMoves.clear();
     if (m_sfenRecord) m_sfenRecord->clear();
     if (m_gameMoves) m_gameMoves->clear();
@@ -131,6 +133,15 @@ void CsaGameCoordinator::startGame(const StartOptions& options)
 void CsaGameCoordinator::stopGame()
 {
     if (m_gameState == GameState::InGame) {
+        // 投了送信前に時計を停止して経過時間を取得
+        if (m_clock) {
+            m_clock->stopClock();
+            // 自分の手番の経過時間を保存
+            m_resignConsumedTimeMs = m_isBlackSide
+                ? m_clock->getPlayer1ConsiderationTimeMs()
+                : m_clock->getPlayer2ConsiderationTimeMs();
+            qDebug() << "[CSA] StopGame consumed time from clock:" << m_resignConsumedTimeMs << "ms";
+        }
         m_client->resign();
     }
 
@@ -186,6 +197,15 @@ void CsaGameCoordinator::onHumanMove(const QPoint& from, const QPoint& to, bool 
 void CsaGameCoordinator::onResign()
 {
     if (m_gameState == GameState::InGame) {
+        // 投了送信前に時計を停止して経過時間を取得
+        if (m_clock) {
+            m_clock->stopClock();
+            // 自分の手番の経過時間を保存
+            m_resignConsumedTimeMs = m_isBlackSide
+                ? m_clock->getPlayer1ConsiderationTimeMs()
+                : m_clock->getPlayer2ConsiderationTimeMs();
+            qDebug() << "[CSA] Resign consumed time from clock:" << m_resignConsumedTimeMs << "ms";
+        }
         m_client->resign();
     }
 }
@@ -497,8 +517,16 @@ void CsaGameCoordinator::onMoveConfirmed(const QString& move, int consumedTimeMs
 }
 
 // 対局終了ハンドラ
-void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause)
+void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause, int consumedTimeMs)
 {
+    // サーバーからの消費時間が0で、自分が投了した場合は、保存した経過時間を使う
+    int actualConsumedTimeMs = consumedTimeMs;
+    if (consumedTimeMs == 0 && cause == CsaClient::GameEndCause::Resign && 
+        result == CsaClient::GameResult::Lose && m_resignConsumedTimeMs > 0) {
+        actualConsumedTimeMs = m_resignConsumedTimeMs;
+        qDebug() << "[CSA] Using saved resign consumed time:" << actualConsumedTimeMs << "ms";
+    }
+
     QString resultStr;
     switch (result) {
     case CsaClient::GameResult::Win:
@@ -557,7 +585,7 @@ void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClie
 
     emit logMessage(tr("対局終了: %1 (%2)").arg(resultStr, causeStr));
     setGameState(GameState::GameOver);
-    emit gameEnded(resultStr, causeStr);
+    emit gameEnded(resultStr, causeStr, actualConsumedTimeMs);
 
     if (m_clock) {
         m_clock->stopClock();
@@ -592,15 +620,15 @@ void CsaGameCoordinator::onGameInterrupted()
 void CsaGameCoordinator::onRawMessageReceived(const QString& message)
 {
     emit logMessage(tr("[RECV] %1").arg(message));
-    // CSA通信ログに追記（受信は ◀ で表示）
-    emit csaCommLogAppended(QStringLiteral("◀ ") + message);
+    // CSA通信ログに追記（受信は ▶ で表示：サーバーからGUIへ）
+    emit csaCommLogAppended(QStringLiteral("▶ ") + message);
 }
 
 // 生メッセージ送信ハンドラ
 void CsaGameCoordinator::onRawMessageSent(const QString& message)
 {
     emit logMessage(tr("[SEND] %1").arg(message));
-    // CSA通信ログに追記（送信は ▶ で表示、パスワードはマスク）
+    // CSA通信ログに追記（送信は ◀ で表示、パスワードはマスク：GUIからサーバーへ）
     QString displayMsg = message;
     if (displayMsg.startsWith(QStringLiteral("LOGIN "))) {
         // パスワード部分をマスク（"LOGIN username password" 形式）
@@ -609,7 +637,7 @@ void CsaGameCoordinator::onRawMessageSent(const QString& message)
             displayMsg = displayMsg.left(commaPos + 1) + QStringLiteral("*****");
         }
     }
-    emit csaCommLogAppended(QStringLiteral("▶ ") + displayMsg);
+    emit csaCommLogAppended(QStringLiteral("◀ ") + displayMsg);
 }
 
 // エンジンのbestmoveハンドラ
@@ -629,6 +657,15 @@ void CsaGameCoordinator::onEngineResign()
 {
     if (m_gameState == GameState::InGame) {
         emit logMessage(tr("エンジンが投了を選択しました"));
+        // 投了送信前に時計を停止して経過時間を取得
+        if (m_clock) {
+            m_clock->stopClock();
+            // 自分の手番の経過時間を保存
+            m_resignConsumedTimeMs = m_isBlackSide
+                ? m_clock->getPlayer1ConsiderationTimeMs()
+                : m_clock->getPlayer2ConsiderationTimeMs();
+            qDebug() << "[CSA] Engine resign consumed time from clock:" << m_resignConsumedTimeMs << "ms";
+        }
         m_client->resign();
     }
 }
@@ -1429,12 +1466,4 @@ void CsaGameCoordinator::sendRawCommand(const QString& command)
 
     qInfo().noquote() << "[CSA] Sending raw command:" << command;
     m_client->sendRawCommand(command);
-}
-
-// CSAサーバーからの受信をシミュレート（デバッグ用）
-void CsaGameCoordinator::simulateServerMessage(const QString& message)
-{
-    qInfo().noquote() << "[CSA] Simulating server message:" << message;
-    // CSA通信ログに追記（受信は ◀ で表示）
-    emit csaCommLogAppended(QStringLiteral("◀ [SIM] ") + message);
 }
