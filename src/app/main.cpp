@@ -15,9 +15,9 @@
 // デバッグメッセージをファイルに出力するハンドラ
 static QFile *logFile = nullptr;
 
-void messageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg)
+static void messageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
-    Q_UNUSED(context);
+    Q_UNUSED(context)
     if (!logFile) return;
 
     QTextStream out(logFile);

@@ -93,9 +93,6 @@
 #include "playerinfowiring.h"           // ★ 追加: 対局情報UI配線
 #include "prestartcleanuphandler.h"     // ★ 追加: 対局開始前クリーンアップ
 
-using std::placeholders::_1;
-using std::placeholders::_2;
-
 // ★ コメント整形ヘルパ：KifuContentBuilderへ委譲
 namespace {
 static QString toRichHtmlWithStarBreaksAndLinks(const QString& raw)
@@ -1436,7 +1433,6 @@ void MainWindow::onPlayerNamesResolved_(const QString& human1, const QString& hu
 // ★ 追加: GameInfoPaneControllerからの更新通知
 void MainWindow::onGameInfoUpdated_(const QList<KifGameInfoItem>& items)
 {
-    Q_UNUSED(items);
     qDebug().noquote() << "[MW] onGameInfoUpdated_: Game info updated, items=" << items.size();
 }
 
@@ -1733,8 +1729,7 @@ void MainWindow::initMatchCoordinator()
         // timeUpdated
         if (m_timeConn) { QObject::disconnect(m_timeConn); m_timeConn = {}; }
         m_timeConn = connect(
-            m_gameStartCoordinator,
-            static_cast<void (GameStartCoordinator::*)(qint64,qint64,bool,qint64)>(&GameStartCoordinator::timeUpdated),
+            m_gameStartCoordinator, &GameStartCoordinator::timeUpdated,
             m_timePresenter, &TimeDisplayPresenter::onMatchTimeUpdated,
             Qt::UniqueConnection);
 
@@ -1755,10 +1750,8 @@ void MainWindow::initMatchCoordinator()
 
         // gameEnded → onMatchGameEnded
         connect(
-            m_gameStartCoordinator,
-            static_cast<void (GameStartCoordinator::*)(const MatchCoordinator::GameEndInfo&)>(&GameStartCoordinator::matchGameEnded),
-            this,
-            static_cast<void (MainWindow::*)(const MatchCoordinator::GameEndInfo&)>(&MainWindow::onMatchGameEnded),
+            m_gameStartCoordinator, &GameStartCoordinator::matchGameEnded,
+            this, &MainWindow::onMatchGameEnded,
             Qt::UniqueConnection);
     }
 

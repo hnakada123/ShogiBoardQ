@@ -104,10 +104,10 @@ bool JosekiWindowWiring::determineHumanCanPlay() const
     case TsumiSearchMode:
         return true;
     case CsaNetworkMode:
+    case PlayModeError:
         return false;
-    default:
-        return true;
     }
+    return true; // 到達しないが、コンパイラ警告を抑制
 }
 
 void JosekiWindowWiring::onJosekiMoveSelected(const QString& usiMove)
