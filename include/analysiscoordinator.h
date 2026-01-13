@@ -5,6 +5,7 @@
 #include <QPointer>
 #include <QStringList>
 #include <QVector>
+#include <QTimer>
 
 class EngineAnalysisTab; // 任意。ツリーハイライト等に使うなら setter で渡す
 
@@ -98,6 +99,7 @@ private:
     QString m_pendingPosCmd;  // sendGoCommand()で使用するpositionコマンド
 
     QPointer<EngineAnalysisTab> m_analysisTab; // 任意
+    QTimer m_stopTimer;  // go infinite後にstopを送信するためのタイマー
 
     // 内部
     void startRange_();
@@ -108,6 +110,10 @@ private:
 
     // USI 便利
     void send_(const QString& line); // requestSendUsiCommand をまとめる
+
+private slots:
+    // stopタイマーのタイムアウト処理
+    void onStopTimerTimeout_();
 };
 
 #endif // ANALYSISCOORDINATOR_H

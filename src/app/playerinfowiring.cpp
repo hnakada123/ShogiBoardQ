@@ -34,6 +34,11 @@ void PlayerInfoWiring::ensureGameInfoController()
     qDebug().noquote() << "[PlayerInfoWiring] GameInfoPaneController created";
 }
 
+void PlayerInfoWiring::setTabWidget(QTabWidget* tabWidget)
+{
+    m_tabWidget = tabWidget;
+}
+
 void PlayerInfoWiring::ensurePlayerInfoController()
 {
     if (m_playerInfoController) return;
