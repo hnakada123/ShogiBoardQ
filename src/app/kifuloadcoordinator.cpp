@@ -1004,6 +1004,14 @@ QString KifuLoadCoordinator::prepareInitialSfen(const QString& filePath, QString
 
 void KifuLoadCoordinator::populateGameInfo(const QList<KifGameInfoItem>& items)
 {
+    // ★ nullチェック: m_gameInfoTableがnullptrの場合は処理をスキップ
+    if (!m_gameInfoTable) {
+        qWarning().noquote() << "[KifuLoadCoordinator] populateGameInfo: m_gameInfoTable is null, skipping table update";
+        // ★ 追加: 元の対局情報を保存するためのシグナルは発行する
+        emit gameInfoPopulated(items);
+        return;
+    }
+
     // ★ セル変更シグナルを一時的にブロック
     m_gameInfoTable->blockSignals(true);
     
@@ -1036,6 +1044,12 @@ void KifuLoadCoordinator::populateGameInfo(const QList<KifGameInfoItem>& items)
 void KifuLoadCoordinator::addGameInfoTabIfMissing()
 {
     if (!m_tab) return;
+    
+    // ★ 追加: m_gameInfoTableがnullの場合は処理をスキップ
+    if (!m_gameInfoTable) {
+        qDebug().noquote() << "[KifuLoadCoordinator] addGameInfoTabIfMissing: m_gameInfoTable is null, skipping";
+        return;
+    }
 
     // Dock で表示していたら解除
     if (m_gameInfoDock && m_gameInfoDock->widget() == m_gameInfoTable) {

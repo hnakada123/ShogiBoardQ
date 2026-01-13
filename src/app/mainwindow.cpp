@@ -1343,6 +1343,8 @@ void MainWindow::ensureGameInfoController_()
 {
     ensurePlayerInfoWiring_();
     if (m_playerInfoWiring && !m_gameInfoController) {
+        // ★ 追加: PlayerInfoWiring側でGameInfoPaneControllerを確実に生成
+        m_playerInfoWiring->ensureGameInfoController();
         m_gameInfoController = m_playerInfoWiring->gameInfoController();
     }
 }
@@ -1352,6 +1354,10 @@ void MainWindow::addGameInfoTabAtStartup_()
 {
     ensurePlayerInfoWiring_();
     if (m_playerInfoWiring) {
+        // ★ 追加: m_tabが設定されている場合はPlayerInfoWiringにも設定
+        if (m_tab) {
+            m_playerInfoWiring->setTabWidget(m_tab);
+        }
         m_playerInfoWiring->addGameInfoTabAtStartup();
         // MainWindowのメンバ変数も同期
         m_gameInfoController = m_playerInfoWiring->gameInfoController();

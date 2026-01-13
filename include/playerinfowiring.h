@@ -91,6 +91,17 @@ public:
      */
     PlayerInfoController* playerInfoController() const { return m_playerInfoController; }
 
+    /**
+     * @brief GameInfoPaneControllerを確保する（外部から呼び出し可能）
+     */
+    void ensureGameInfoController();
+
+    /**
+     * @brief タブウィジェットを設定する（遅延初期化用）
+     * @param tabWidget タブウィジェット
+     */
+    void setTabWidget(QTabWidget* tabWidget);
+
 public slots:
     /**
      * @brief 対局者名設定フック（将棋盤ラベル更新）
@@ -158,11 +169,6 @@ private slots:
     void onGameInfoUpdated(const QList<KifGameInfoItem>& items);
 
 private:
-    /**
-     * @brief GameInfoPaneControllerを確保する
-     */
-    void ensureGameInfoController();
-
     /**
      * @brief PlayerInfoControllerを確保する
      */

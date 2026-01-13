@@ -17,6 +17,10 @@ AnalysisCoordinator::AnalysisCoordinator(const Deps& d, QObject* parent)
     : QObject(parent)
     , m_deps(d)
 {
+    // stopタイマーの設定（シングルショット）
+    m_stopTimer.setSingleShot(true);
+    connect(&m_stopTimer, &QTimer::timeout,
+            this, &AnalysisCoordinator::onStopTimerTimeout_);
 }
 
 void AnalysisCoordinator::setDeps(const Deps& d)
@@ -89,6 +93,10 @@ void AnalysisCoordinator::startAnalyzeSingle(int ply)
 void AnalysisCoordinator::stop()
 {
     if (!m_running) return;
+    
+    // タイマーを停止
+    m_stopTimer.stop();
+    
     // USI の明示停止
     send_(QStringLiteral("stop"));
 
@@ -169,14 +177,17 @@ void AnalysisCoordinator::sendGoCommand()
     if (!m_running) return;
     if (m_pendingPosCmd.isEmpty()) return;
     
-    qDebug().noquote() << "[ANA] sendGoCommand: sending position and go commands";
+    qDebug().noquote() << "[ANA] sendGoCommand: sending position and go infinite commands";
     
     // positionコマンドを送信
     send_(m_pendingPosCmd);
     m_pendingPosCmd.clear();
     
-    // goコマンドを送信
-    send_(QStringLiteral("go movetime %1").arg(m_opt.movetimeMs));
+    // go infiniteコマンドを送信（USIプロトコル準拠）
+    send_(QStringLiteral("go infinite"));
+    
+    // 設定された思考時間後にstopを送信するタイマーを開始
+    m_stopTimer.start(m_opt.movetimeMs);
 
     // 分析進行に応じたツリーハイライトなどが必要ならここで
     if (m_analysisTab && m_opt.centerTree) {
@@ -274,4 +285,15 @@ bool AnalysisCoordinator::parseInfoUSI_(const QString& line, ParsedInfo* out)
 void AnalysisCoordinator::send_(const QString& line)
 {
     emit requestSendUsiCommand(line);
+}
+
+void AnalysisCoordinator::onStopTimerTimeout_()
+{
+    if (!m_running) return;
+    
+    qDebug().noquote() << "[ANA] onStopTimerTimeout_: sending stop command after"
+                       << m_opt.movetimeMs << "ms";
+    
+    // stopコマンドを送信（bestmoveが返ってきたらonEngineBestmoveReceived_で処理される）
+    send_(QStringLiteral("stop"));
 }
