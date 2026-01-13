@@ -84,22 +84,22 @@ void PlayerInfoController::applyPlayersNamesForMode()
     QString whiteName;
 
     switch (m_playMode) {
-    case EvenHumanVsEngine:
-    case HandicapHumanVsEngine:
+    case PlayMode::EvenHumanVsEngine:
+    case PlayMode::HandicapHumanVsEngine:
         blackName = m_humanName1.isEmpty() ? tr("先手") : m_humanName1;
         whiteName = m_engineName2.isEmpty() ? tr("後手") : m_engineName2;
         break;
-    case EvenEngineVsHuman:
-    case HandicapEngineVsHuman:
+    case PlayMode::EvenEngineVsHuman:
+    case PlayMode::HandicapEngineVsHuman:
         blackName = m_engineName1.isEmpty() ? tr("先手") : m_engineName1;
         whiteName = m_humanName2.isEmpty() ? tr("後手") : m_humanName2;
         break;
-    case EvenEngineVsEngine:
-    case HandicapEngineVsEngine:
+    case PlayMode::EvenEngineVsEngine:
+    case PlayMode::HandicapEngineVsEngine:
         blackName = m_engineName1.isEmpty() ? tr("先手") : m_engineName1;
         whiteName = m_engineName2.isEmpty() ? tr("後手") : m_engineName2;
         break;
-    case HumanVsHuman:
+    case PlayMode::HumanVsHuman:
         blackName = m_humanName1.isEmpty() ? tr("先手") : m_humanName1;
         whiteName = m_humanName2.isEmpty() ? tr("後手") : m_humanName2;
         break;
@@ -141,8 +141,8 @@ void PlayerInfoController::updateSecondEngineVisibility()
 
     // EvE対局の場合のみ2番目のエンジン情報を表示
     const bool isEvE =
-        (m_playMode == EvenEngineVsEngine) ||
-        (m_playMode == HandicapEngineVsEngine);
+        (m_playMode == PlayMode::EvenEngineVsEngine) ||
+        (m_playMode == PlayMode::HandicapEngineVsEngine);
 
     m_analysisTab->setSecondEngineVisible(isEvE);
 }
@@ -162,22 +162,22 @@ void PlayerInfoController::updateGameInfoForCurrentMatch()
     QString whiteName;
 
     switch (m_playMode) {
-    case EvenHumanVsEngine:
-    case HandicapHumanVsEngine:
+    case PlayMode::EvenHumanVsEngine:
+    case PlayMode::HandicapHumanVsEngine:
         blackName = m_humanName1.isEmpty() ? tr("先手") : m_humanName1;
         whiteName = m_engineName2.isEmpty() ? tr("後手") : m_engineName2;
         break;
-    case EvenEngineVsHuman:
-    case HandicapEngineVsHuman:
+    case PlayMode::EvenEngineVsHuman:
+    case PlayMode::HandicapEngineVsHuman:
         blackName = m_engineName1.isEmpty() ? tr("先手") : m_engineName1;
         whiteName = m_humanName2.isEmpty() ? tr("後手") : m_humanName2;
         break;
-    case EvenEngineVsEngine:
-    case HandicapEngineVsEngine:
+    case PlayMode::EvenEngineVsEngine:
+    case PlayMode::HandicapEngineVsEngine:
         blackName = m_engineName1.isEmpty() ? tr("先手") : m_engineName1;
         whiteName = m_engineName2.isEmpty() ? tr("後手") : m_engineName2;
         break;
-    case HumanVsHuman:
+    case PlayMode::HumanVsHuman:
         blackName = m_humanName1.isEmpty() ? tr("先手") : m_humanName1;
         whiteName = m_humanName2.isEmpty() ? tr("後手") : m_humanName2;
         break;

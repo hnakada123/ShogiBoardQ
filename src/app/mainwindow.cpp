@@ -107,7 +107,7 @@ MainWindow::MainWindow(QWidget *parent)
     , m_startSfenStr(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"))
     , m_currentSfenStr(QStringLiteral("startpos"))
     , m_errorOccurred(false)
-    , m_playMode(NotStarted)
+    , m_playMode(PlayMode::NotStarted)
     , m_gameController(nullptr)
     , m_usi1(nullptr)
     , m_usi2(nullptr)
@@ -400,13 +400,13 @@ void MainWindow::undoLastTwoMoves()
                 // HvE: 先手(Human) vs 後手(Engine) → P2（後手エンジン）のグラフを使用
                 // EvH: 先手(Engine) vs 後手(Human) → P1（先手エンジン）のグラフを使用
                 switch (m_playMode) {
-                case EvenHumanVsEngine:
-                case HandicapHumanVsEngine:
+                case PlayMode::EvenHumanVsEngine:
+                case PlayMode::HandicapHumanVsEngine:
                     // 後手がエンジン → P2を削除
                     m_evalGraphController->removeLastP2Score();
                     break;
-                case EvenEngineVsHuman:
-                case HandicapEngineVsHuman:
+                case PlayMode::EvenEngineVsHuman:
+                case PlayMode::HandicapEngineVsHuman:
                     // 先手がエンジン → P1を削除
                     m_evalGraphController->removeLastP1Score();
                     break;
@@ -622,7 +622,7 @@ void MainWindow::enableNavigationAfterGame()
 void MainWindow::handleResignation()
 {
     // CSA通信対局モードの場合
-    if (m_playMode == CsaNetworkMode && m_csaGameCoordinator) {
+    if (m_playMode == PlayMode::CsaNetworkMode && m_csaGameCoordinator) {
         // 投了確認ダイアログ
         QMessageBox::StandardButton reply = QMessageBox::question(
             this,
@@ -733,7 +733,7 @@ void MainWindow::displayPromotionDialog()
 void MainWindow::displayConsiderationDialog()
 {
     // UI 側の状態保持（従来どおり）
-    m_playMode = ConsidarationMode;
+    m_playMode = PlayMode::ConsiderationMode;
 
     // 手番表示（必要最小限）
     if (m_gameController && m_gameMoves.size() > 0 && m_currentMoveIndex >= 0 && m_currentMoveIndex < m_gameMoves.size()) {
@@ -795,7 +795,7 @@ void MainWindow::displayCsaGameDialog()
         m_csaGameWiring->setAnalysisTab(m_analysisTab);
 
         // プレイモードをCSA通信対局に設定
-        m_playMode = CsaNetworkMode;
+        m_playMode = PlayMode::CsaNetworkMode;
 
         // CSA対局を開始（ロジックはCsaGameWiringに委譲）
         m_csaGameWiring->startCsaGame(m_csaGameDialog, this);
@@ -808,7 +808,7 @@ void MainWindow::displayCsaGameDialog()
 void MainWindow::displayTsumeShogiSearchDialog()
 {
     // 解析モード切替
-    m_playMode = TsumiSearchMode;
+    m_playMode = PlayMode::TsumiSearchMode;
 
     ensureDialogCoordinator_();
     if (m_dialogCoordinator) {
@@ -827,7 +827,7 @@ void MainWindow::displayKifuAnalysisDialog()
     qDebug().noquote() << "[MainWindow::displayKifuAnalysisDialog] START";
 
     // 解析モードに遷移
-    m_playMode = AnalysisMode;
+    m_playMode = PlayMode::AnalysisMode;
 
     // 解析モデルが未生成ならここで作成
     if (!m_analysisModel) {
@@ -875,7 +875,7 @@ void MainWindow::cancelKifuAnalysis()
             m_dialogCoordinator->stopKifuAnalysis();
             
             // 解析前のモードに戻す
-            m_playMode = NotStarted;
+            m_playMode = PlayMode::NotStarted;
             
             qDebug().noquote() << "[MainWindow::cancelKifuAnalysis] analysis cancelled";
         } else {
@@ -1306,34 +1306,34 @@ bool MainWindow::isHumanTurnNow_() const
 {
     // 対局中でなければ常に true（編集等では制限しない）
     switch (m_playMode) {
-    case HumanVsHuman:
+    case PlayMode::HumanVsHuman:
         // HvH では両者人間なので常に true
         return true;
 
-    case EvenHumanVsEngine:
-    case HandicapHumanVsEngine:
+    case PlayMode::EvenHumanVsEngine:
+    case PlayMode::HandicapHumanVsEngine:
         // 人間が先手（Player1）の場合、Player1の手番なら true
         return (m_gameController && m_gameController->currentPlayer() == ShogiGameController::Player1);
 
-    case EvenEngineVsHuman:
-    case HandicapEngineVsHuman:
+    case PlayMode::EvenEngineVsHuman:
+    case PlayMode::HandicapEngineVsHuman:
         // 人間が後手（Player2）の場合、Player2の手番なら true
         return (m_gameController && m_gameController->currentPlayer() == ShogiGameController::Player2);
 
-    case CsaNetworkMode:
+    case PlayMode::CsaNetworkMode:
         // CSA通信対局では CsaGameCoordinator の isMyTurn() を使用
         if (m_csaGameCoordinator) {
             return m_csaGameCoordinator->isMyTurn();
         }
         return false;
 
-    case EvenEngineVsEngine:
-    case HandicapEngineVsEngine:
+    case PlayMode::EvenEngineVsEngine:
+    case PlayMode::HandicapEngineVsEngine:
         // EvE では人間は操作しない
         return false;
 
     default:
-        // NotStarted, AnalysisMode, ConsidarationMode, TsumiSearchMode 等は制限なし
+        // PlayMode::NotStarted, PlayMode::AnalysisMode, PlayMode::ConsiderationMode, PlayMode::TsumiSearchMode 等は制限なし
         return true;
     }
 }
@@ -2509,14 +2509,14 @@ void MainWindow::handleBreakOffConsidaration()
 {
     if (!m_match) return;
 
-    // 司令塔に依頼（内部で quit 送信→プロセス/Usi 破棄→モード NotStarted）
+    // 司令塔に依頼（内部で quit 送信→プロセス/Usi 破棄→モード PlayMode::NotStarted）
     m_match->handleBreakOffConsidaration();
 
     // UI の後始末（任意）——検討のハイライトなどをクリアしておく
     if (m_shogiView) m_shogiView->removeHighlightAllData();
 
     // MainWindow 側のモードも念のため合わせる（UI 表示に依存がある場合）
-    m_playMode = NotStarted;
+    m_playMode = PlayMode::NotStarted;
 
     // 盤下のエンジン名表示などを通常状態へ（関数がある場合）
     setEngineNamesBasedOnMode();
@@ -2697,7 +2697,7 @@ void MainWindow::initializeNewGame_(const QString& s)
 {
     // --- デバッグ：誰がこの関数を呼び出したか追跡 ---
     qDebug() << "[DEBUG] MainWindow::initializeNewGame_ called with sfen:" << s;
-    qDebug() << "[DEBUG]   PlayMode:" << m_playMode;
+    qDebug() << "[DEBUG]   PlayMode:" << static_cast<int>(m_playMode);
     qDebug() << "[DEBUG]   Call stack trace requested";
     
     // --- 司令塔からのコールバック：UI側の初期化のみ行う ---
@@ -2738,7 +2738,7 @@ void MainWindow::onRecordRowChangedByPresenter(int row, const QString& comment)
 {
     qDebug() << "[MW-DEBUG] onRecordRowChangedByPresenter called: row=" << row
              << "comment=" << comment.left(30) << "..."
-             << "playMode=" << m_playMode;
+             << "playMode=" << static_cast<int>(m_playMode);
     
     ensureRecordNavigationController_();
     if (m_recordNavController) {
@@ -2921,7 +2921,7 @@ bool MainWindow::isHvH_() const
     if (m_gameStateController) {
         return m_gameStateController->isHvH();
     }
-    return (m_playMode == HumanVsHuman);
+    return (m_playMode == PlayMode::HumanVsHuman);
 }
 
 bool MainWindow::isHumanSide_(ShogiGameController::Player p) const
@@ -2931,16 +2931,16 @@ bool MainWindow::isHumanSide_(ShogiGameController::Player p) const
     }
     // フォールバック
     switch (m_playMode) {
-    case HumanVsHuman:
+    case PlayMode::HumanVsHuman:
         return true;
-    case EvenHumanVsEngine:
-    case HandicapHumanVsEngine:
+    case PlayMode::EvenHumanVsEngine:
+    case PlayMode::HandicapHumanVsEngine:
         return (p == ShogiGameController::Player1);
-    case EvenEngineVsHuman:
-    case HandicapEngineVsHuman:
+    case PlayMode::EvenEngineVsHuman:
+    case PlayMode::HandicapEngineVsHuman:
         return (p == ShogiGameController::Player2);
-    case EvenEngineVsEngine:
-    case HandicapEngineVsEngine:
+    case PlayMode::EvenEngineVsEngine:
+    case PlayMode::HandicapEngineVsEngine:
         return false;
     default:
         return true;

@@ -38,9 +38,9 @@ bool GameStartCoordinator::validate_(const StartParams& p, QString& whyNot) cons
         whyNot = QStringLiteral("MatchCoordinator が未設定です。");
         return false;
     }
-    // ★ StartOptions::mode は PlayMode。NotStarted を弾く
+    // ★ StartOptions::mode は PlayMode。PlayMode::NotStarted を弾く
     if (p.opt.mode == PlayMode::NotStarted) {
-        whyNot = QStringLiteral("対局モードが NotStarted のままです。");
+        whyNot = QStringLiteral("対局モードが PlayMode::NotStarted のままです。");
         return false;
     }
     return true;
@@ -538,18 +538,18 @@ PlayMode GameStartCoordinator::determinePlayMode(const int initPositionNumber,
     const bool isEven = (initPositionNumber == 1);
 
     if (isEven) {
-        if (isPlayer1Human && isPlayer2Human)  return HumanVsHuman;
-        if (isPlayer1Human && !isPlayer2Human) return EvenHumanVsEngine;
-        if (!isPlayer1Human && isPlayer2Human) return EvenEngineVsHuman;
-        if (!isPlayer1Human && !isPlayer2Human) return EvenEngineVsEngine;
+        if (isPlayer1Human && isPlayer2Human)  return PlayMode::HumanVsHuman;
+        if (isPlayer1Human && !isPlayer2Human) return PlayMode::EvenHumanVsEngine;
+        if (!isPlayer1Human && isPlayer2Human) return PlayMode::EvenEngineVsHuman;
+        if (!isPlayer1Human && !isPlayer2Human) return PlayMode::EvenEngineVsEngine;
     } else {
-        if (isPlayer1Human && isPlayer2Human)  return HumanVsHuman;
-        if (isPlayer1Human && !isPlayer2Human) return HandicapHumanVsEngine;
-        if (!isPlayer1Human && isPlayer2Human) return HandicapEngineVsHuman;
-        if (!isPlayer1Human && !isPlayer2Human) return HandicapEngineVsEngine;
+        if (isPlayer1Human && isPlayer2Human)  return PlayMode::HumanVsHuman;
+        if (isPlayer1Human && !isPlayer2Human) return PlayMode::HandicapHumanVsEngine;
+        if (!isPlayer1Human && isPlayer2Human) return PlayMode::HandicapEngineVsHuman;
+        if (!isPlayer1Human && !isPlayer2Human) return PlayMode::HandicapEngineVsEngine;
     }
 
-    return PlayModeError;
+    return PlayMode::PlayModeError;
 }
 
 PlayMode GameStartCoordinator::setPlayMode(const Ctx& c) const
@@ -586,11 +586,11 @@ PlayMode GameStartCoordinator::setPlayMode(const Ctx& c) const
 
     const PlayMode mode = determinePlayMode(initPositionNumber, p1Human, p2Human);
 
-    if (mode == PlayModeError) {
+    if (mode == PlayMode::PlayModeError) {
         // 元のメッセージに近い文面で、UI へ委譲（MainWindow::displayErrorMessage 相当）
         emit requestDisplayError(tr("An error occurred in GameStartCoordinator::determinePlayMode. "
                                     "There is a mistake in the game options."));
-        qWarning().noquote() << "[GameStartCoordinator] setPlayMode: PlayModeError"
+        qWarning().noquote() << "[GameStartCoordinator] setPlayMode: PlayMode::PlayModeError"
                              << "initPos=" << initPositionNumber
                              << " p1Human=" << p1Human << " p2Human=" << p2Human
                              << " (raw human/engine: "
@@ -632,39 +632,39 @@ PlayMode GameStartCoordinator::determinePlayModeAlignedWithTurn(
 
     if (isEven) {
         // --- 平手 ---
-        if (hvh) return HumanVsHuman;
-        if (eve) return EvenEngineVsEngine;
+        if (hvh) return PlayMode::HumanVsHuman;
+        if (eve) return PlayMode::EvenEngineVsEngine;
         if (oneVsEngine) {
             if (turn == QLatin1Char('b')) {
                 // 先手＝P1手番
                 // P1がHumanなら「Human(先手) vs Engine(後手)」
                 // P1がEngineなら「Engine(先手) vs Human(後手)」
-                return isPlayer1Human ? EvenHumanVsEngine : EvenEngineVsHuman;
+                return isPlayer1Human ? PlayMode::EvenHumanVsEngine : PlayMode::EvenEngineVsHuman;
             }
             if (turn == QLatin1Char('w')) {
                 // 後手＝P2手番
                 // P2がHumanなら「Engine(先手) vs Human(後手)」
                 // P2がEngineなら「Human(先手) vs Engine(後手)」
-                return isPlayer2Human ? EvenEngineVsHuman : EvenHumanVsEngine;
+                return isPlayer2Human ? PlayMode::EvenEngineVsHuman : PlayMode::EvenHumanVsEngine;
             }
             // turnが取れない場合は座席で決定
-            return (isPlayer1Human && !isPlayer2Human) ? EvenHumanVsEngine : EvenEngineVsHuman;
+            return (isPlayer1Human && !isPlayer2Human) ? PlayMode::EvenHumanVsEngine : PlayMode::EvenEngineVsHuman;
         }
-        return NotStarted;
+        return PlayMode::NotStarted;
     } else {
         // --- 駒落ち（参考：前回と同じロジック） ---
-        if (hvh) return HumanVsHuman;
-        if (eve) return HandicapEngineVsEngine;
+        if (hvh) return PlayMode::HumanVsHuman;
+        if (eve) return PlayMode::HandicapEngineVsEngine;
         if (oneVsEngine) {
             if (turn == QLatin1Char('b')) {
-                return isPlayer1Human ? HandicapHumanVsEngine : HandicapEngineVsHuman;
+                return isPlayer1Human ? PlayMode::HandicapHumanVsEngine : PlayMode::HandicapEngineVsHuman;
             }
             if (turn == QLatin1Char('w')) {
-                return isPlayer2Human ? HandicapEngineVsHuman : HandicapHumanVsEngine;
+                return isPlayer2Human ? PlayMode::HandicapEngineVsHuman : PlayMode::HandicapHumanVsEngine;
             }
-            return (isPlayer1Human && !isPlayer2Human) ? HandicapHumanVsEngine : HandicapEngineVsHuman;
+            return (isPlayer1Human && !isPlayer2Human) ? PlayMode::HandicapHumanVsEngine : PlayMode::HandicapEngineVsHuman;
         }
-        return NotStarted;
+        return PlayMode::NotStarted;
     }
 }
 
@@ -784,7 +784,7 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
 
     // --- 4) PlayMode を SFEN手番と整合させて最終決定 ---
     PlayMode mode = determinePlayModeAlignedWithTurn(initPosNo, p1Human, p2Human, seedSfen);
-    qInfo() << "[GameStart] Final PlayMode =" << mode << "  startSfen=" << seedSfen;
+    qInfo() << "[GameStart] Final PlayMode =" << static_cast<int>(mode) << "  startSfen=" << seedSfen;
 
     // --- 5) StartOptions 構築（司令塔依存） ---
     if (!m_match) {

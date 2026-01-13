@@ -739,8 +739,8 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
 
     // ---- モード別の起動ルート
     switch (m_playMode) {
-    case EvenEngineVsEngine:
-    case HandicapEngineVsEngine: {
+    case PlayMode::EvenEngineVsEngine:
+    case PlayMode::HandicapEngineVsEngine: {
         // エンジン同士は両方起動してから開始
         initEnginesForEvE(opt.engineName1, opt.engineName2);
         initializeAndStartEngineFor(P1, opt.enginePath1, opt.engineName1);
@@ -750,30 +750,30 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
     }
 
     // ★平手：先手エンジン（P1エンジン固定）
-    case EvenEngineVsHuman: {
+    case PlayMode::EvenEngineVsHuman: {
         startHumanVsEngine_(opt, /*engineIsP1=*/true);
         break;
     }
 
     // ★平手：後手エンジン（P2エンジン固定）
-    case EvenHumanVsEngine: {
+    case PlayMode::EvenHumanVsEngine: {
         startHumanVsEngine_(opt, /*engineIsP1=*/false);
         break;
     }
 
     // ★駒落ち：先手エンジン（下手＝P1エンジン固定）
-    case HandicapEngineVsHuman: {
+    case PlayMode::HandicapEngineVsHuman: {
         startHumanVsEngine_(opt, /*engineIsP1=*/true);
         break;
     }
 
     // ★駒落ち：後手エンジン（上手＝P2エンジン固定）
-    case HandicapHumanVsEngine: {
+    case PlayMode::HandicapHumanVsEngine: {
         startHumanVsEngine_(opt, /*engineIsP1=*/false);
         break;
     }
 
-    case HumanVsHuman:
+    case PlayMode::HumanVsHuman:
         startHumanVsHuman_(opt);
         break;
 
@@ -889,7 +889,7 @@ void MatchCoordinator::startEngineVsEngine_(const StartOptions& opt)
     initPositionStringsForEvE_(opt.sfenStart);
 
     // ★ 駒落ちの場合は後手（上手）から開始
-    const bool isHandicap = (m_playMode == HandicapEngineVsEngine);
+    const bool isHandicap = (m_playMode == PlayMode::HandicapEngineVsEngine);
     const bool whiteToMove = (m_gc->currentPlayer() == ShogiGameController::Player2);
 
     if (isHandicap && whiteToMove) {
@@ -1135,7 +1135,7 @@ void MatchCoordinator::initPositionStringsForEvE_(const QString& sfenStart)
         QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL");
 
     QString base;
-    if (m_playMode == HandicapEngineVsEngine && !sfenStart.isEmpty()) {
+    if (m_playMode == PlayMode::HandicapEngineVsEngine && !sfenStart.isEmpty()) {
         // SFENから盤面部分を抽出して平手かどうか判定
         QString checkSfen = sfenStart;
         if (checkSfen.startsWith(QLatin1String("position sfen "))) {
@@ -1167,7 +1167,7 @@ void MatchCoordinator::initPositionStringsForEvE_(const QString& sfenStart)
 
 void MatchCoordinator::kickNextEvETurn_()
 {
-    if (m_playMode != EvenEngineVsEngine && m_playMode != HandicapEngineVsEngine) return;
+    if (m_playMode != PlayMode::EvenEngineVsEngine && m_playMode != PlayMode::HandicapEngineVsEngine) return;
     if (!m_usi1 || !m_usi2 || !m_gc) return;
 
     const bool p1ToMove = (m_gc->currentPlayer() == ShogiGameController::Player1);
@@ -1518,7 +1518,7 @@ void MatchCoordinator::handleBreakOff()
 void MatchCoordinator::startAnalysis(const AnalysisOptions& opt)
 {
     // 1) モード設定（検討 / 詰み探索）
-    setPlayMode(opt.mode); // ConsidarationMode or TsumiSearchMode
+    setPlayMode(opt.mode); // PlayMode::ConsiderationMode or PlayMode::TsumiSearchMode
 
     // 2) 以前の単発エンジンは破棄
     destroyEngines();
@@ -1551,7 +1551,7 @@ void MatchCoordinator::startAnalysis(const AnalysisOptions& opt)
     if (m_hooks.setEngineNames) m_hooks.setEngineNames(opt.engineName, QString());
 
     // 9) 詰み探索の配線（TsumiSearchMode のときのみ）
-    if (opt.mode == TsumiSearchMode && m_usi1) {
+    if (opt.mode == PlayMode::TsumiSearchMode && m_usi1) {
         connect(m_usi1, &Usi::checkmateSolved,
                 this,  &MatchCoordinator::onCheckmateSolved_,
                 Qt::UniqueConnection);
@@ -1568,7 +1568,7 @@ void MatchCoordinator::startAnalysis(const AnalysisOptions& opt)
 
     // 10) 解析/詰み探索の実行
     QString pos = opt.positionStr; // "position sfen <...>"
-    if (opt.mode == TsumiSearchMode) {
+    if (opt.mode == PlayMode::TsumiSearchMode) {
         m_usi1->executeTsumeCommunication(pos, opt.byoyomiMs);
     } else {
         m_usi1->executeAnalysisCommunication(pos, opt.byoyomiMs);
@@ -1605,13 +1605,13 @@ void MatchCoordinator::onCheckmateUnknown_()
 }
 
 // 検討モードを手動終了する（quit送信→エンジン破棄）
-//  - ConsidarationMode 以外では何もしない
+//  - PlayMode::ConsiderationMode 以外では何もしない
 //  - Usi::sendQuitCommand() は終了時のログ抑止などの安全策込み
 //  - 送信後にプロセス/スレッドを片付け、Usi オブジェクトも破棄
-//  - モードは NotStarted に戻す（isAnalysisActive() が偽になる）
+//  - モードは PlayMode::NotStarted に戻す（isAnalysisActive() が偽になる）
 void MatchCoordinator::handleBreakOffConsidaration()
 {
-    if (m_playMode != ConsidarationMode)
+    if (m_playMode != PlayMode::ConsiderationMode)
         return;
 
     // 単発検討は m_usi1 を利用している前提（存在すれば確実に止める）
@@ -1627,7 +1627,7 @@ void MatchCoordinator::handleBreakOffConsidaration()
     }
 
     // モードを通常状態へ戻す（以降 isAnalysisActive()==false）
-    setPlayMode(NotStarted);
+    setPlayMode(PlayMode::NotStarted);
 
     // UI 側のボタン等を「対局中でない」状態へ（フック未設定なら何もしない）
     setGameInProgressActions_(false);
@@ -1695,8 +1695,8 @@ void MatchCoordinator::startInitialEngineMoveIfNeeded()
 {
     if (!m_gc) return;
 
-    const bool engineIsP1 = (m_playMode == EvenEngineVsHuman) || (m_playMode == HandicapEngineVsHuman);
-    const bool engineIsP2 = (m_playMode == EvenHumanVsEngine) || (m_playMode == HandicapHumanVsEngine);
+    const bool engineIsP1 = (m_playMode == PlayMode::EvenEngineVsHuman) || (m_playMode == PlayMode::HandicapEngineVsHuman);
+    const bool engineIsP2 = (m_playMode == PlayMode::EvenHumanVsEngine) || (m_playMode == PlayMode::HandicapHumanVsEngine);
 
     const auto sideToMove = m_gc->currentPlayer();
 
@@ -1848,7 +1848,7 @@ void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& hu
     const QString wTime = QString::number(wMs);
 
     const bool engineIsP1 =
-        (m_playMode == EvenEngineVsHuman) || (m_playMode == HandicapEngineVsHuman);
+        (m_playMode == PlayMode::EvenEngineVsHuman) || (m_playMode == PlayMode::HandicapEngineVsHuman);
     const ShogiGameController::Player engineSeat =
         engineIsP1 ? ShogiGameController::Player1 : ShogiGameController::Player2;
 
@@ -1957,7 +1957,7 @@ void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& hu
     // 1) 人間側の考慮時間を確定 → byoyomi/inc を適用 → KIF 追記
     if (m_clock) {
         const bool humanIsP1 =
-            (m_playMode == EvenHumanVsEngine) || (m_playMode == HandicapHumanVsEngine);
+            (m_playMode == PlayMode::EvenHumanVsEngine) || (m_playMode == PlayMode::HandicapHumanVsEngine);
 
         if (humanIsP1) {
             const qint64 ms = m_clock->player1ConsiderationMs();
@@ -2402,7 +2402,7 @@ void MatchCoordinator::forceImmediateMove()
     if (!m_gc) return;
 
     const bool isEvE =
-        (m_playMode == EvenEngineVsEngine) || (m_playMode == HandicapEngineVsEngine);
+        (m_playMode == PlayMode::EvenEngineVsEngine) || (m_playMode == PlayMode::HandicapEngineVsEngine);
 
     if (isEvE) {
         // 現在手番のエンジンへ stop

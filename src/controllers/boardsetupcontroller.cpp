@@ -186,8 +186,8 @@ void BoardSetupController::onMoveRequested(const QPoint& from, const QPoint& to)
         return;
     }
 
-    PlayMode matchMode = (m_match ? m_match->playMode() : NotStarted);
-    PlayMode modeNow   = (m_playMode != NotStarted) ? m_playMode : matchMode;
+    PlayMode matchMode = (m_match ? m_match->playMode() : PlayMode::NotStarted);
+    PlayMode modeNow   = (m_playMode != PlayMode::NotStarted) ? m_playMode : matchMode;
 
     qInfo() << "[BoardSetup] effective modeNow=" << int(modeNow)
             << "(ui m_playMode=" << int(m_playMode) << ", matchMode=" << int(matchMode) << ")";
@@ -221,7 +221,7 @@ void BoardSetupController::onMoveRequested(const QPoint& from, const QPoint& to)
 
     // --- 対局モードごとの後処理 ---
     switch (modeNow) {
-    case HumanVsHuman: {
+    case PlayMode::HumanVsHuman: {
         qInfo() << "[BoardSetup] HvH: delegate post-human-move to MatchCoordinator";
         if (m_match) {
             m_match->onHumanMove_HvH(moverBefore);
@@ -247,17 +247,17 @@ void BoardSetupController::onMoveRequested(const QPoint& from, const QPoint& to)
         break;
     }
 
-    case EvenHumanVsEngine:
-    case HandicapHumanVsEngine:
-    case EvenEngineVsHuman:
-    case HandicapEngineVsHuman:
+    case PlayMode::EvenHumanVsEngine:
+    case PlayMode::HandicapHumanVsEngine:
+    case PlayMode::EvenEngineVsHuman:
+    case PlayMode::HandicapEngineVsHuman:
         if (m_match) {
             qInfo() << "[BoardSetup] HvE: forwarding to MatchCoordinator::onHumanMove_HvE";
             m_match->onHumanMove_HvE(hFrom, hTo, m_lastMove);
         }
         break;
 
-    case CsaNetworkMode: {
+    case PlayMode::CsaNetworkMode: {
         qInfo() << "[BoardSetup] CsaNetworkMode: emitting csaMoveRequested";
         qDebug() << "[CSA-DEBUG] BoardSetup: hFrom=" << hFrom << "hTo=" << hTo;
         // 成り判定（移動先が敵陣であれば成りダイアログを表示すべきだが、
@@ -288,8 +288,8 @@ void BoardSetupController::onMoveCommitted(ShogiGameController::Player mover, in
 
     // EvE の評価グラフ更新
     const bool isEvE =
-        (m_playMode == EvenEngineVsEngine) ||
-        (m_playMode == HandicapEngineVsEngine);
+        (m_playMode == PlayMode::EvenEngineVsEngine) ||
+        (m_playMode == PlayMode::HandicapEngineVsEngine);
 
     if (isEvE) {
         if (mover == ShogiGameController::Player1) {

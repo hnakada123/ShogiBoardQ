@@ -138,7 +138,7 @@ private:
     KifuLoadCoordinator* m_kifuLoadCoordinator = nullptr;
     KifuRecordListModel* m_kifuRecordModel = nullptr;
 
-    PlayMode m_playMode = NotStarted;
+    PlayMode m_playMode = PlayMode::NotStarted;
 
     // コールバック
     EnableArrowButtonsCallback m_enableArrowButtons;

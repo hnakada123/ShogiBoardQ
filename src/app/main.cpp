@@ -75,5 +75,15 @@ int main(int argc, char *argv[])
 
     w.show();
 
-    return a.exec();
+    int result = a.exec();
+
+    // ログファイルのクリーンアップ
+    if (logFile) {
+        qInstallMessageHandler(nullptr);  // デフォルトハンドラに戻す
+        logFile->close();
+        delete logFile;
+        logFile = nullptr;
+    }
+
+    return result;
 }

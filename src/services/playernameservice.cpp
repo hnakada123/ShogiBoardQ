@@ -14,47 +14,47 @@ PlayerNameMapping PlayerNameService::computePlayers(PlayMode mode,
     PlayerNameMapping out;
 
     switch (mode) {
-    case HumanVsHuman:
+    case PlayMode::HumanVsHuman:
         out.p1 = human1;
         out.p2 = human2;
         break;
 
-    case EvenHumanVsEngine:
+    case PlayMode::EvenHumanVsEngine:
         out.p1 = human1;
         out.p2 = engine2;
         break;
 
-    case EvenEngineVsHuman:
+    case PlayMode::EvenEngineVsHuman:
         out.p1 = engine1;
         out.p2 = human2;
         break;
 
-    case EvenEngineVsEngine:
+    case PlayMode::EvenEngineVsEngine:
         out.p1 = engine1;
         out.p2 = engine2;
         break;
 
-    case HandicapHumanVsEngine: // 下手=Human(P1), 上手=Engine(P2)
+    case PlayMode::HandicapHumanVsEngine: // 下手=Human(P1), 上手=Engine(P2)
         out.p1 = human1;
         out.p2 = engine2;
         break;
 
-    case HandicapEngineVsHuman: // 下手=Engine(P1), 上手=Human(P2)
+    case PlayMode::HandicapEngineVsHuman: // 下手=Engine(P1), 上手=Human(P2)
         out.p1 = engine1;
         out.p2 = human2;
         break;
 
-    case HandicapEngineVsEngine: // 下手=Engine(P1), 上手=Engine(P2)
+    case PlayMode::HandicapEngineVsEngine: // 下手=Engine(P1), 上手=Engine(P2)
         out.p1 = engine1;
         out.p2 = engine2;
         break;
 
     // 解析/検討/詰み探索などは既存実装と同じくデフォルトラベル
-    case AnalysisMode:
-    case ConsidarationMode:
-    case TsumiSearchMode:
-    case NotStarted:
-    case PlayModeError:
+    case PlayMode::AnalysisMode:
+    case PlayMode::ConsiderationMode:
+    case PlayMode::TsumiSearchMode:
+    case PlayMode::NotStarted:
+    case PlayMode::PlayModeError:
     default:
         out.p1 = QStringLiteral("先手");
         out.p2 = QStringLiteral("後手");
@@ -72,26 +72,26 @@ EngineNameMapping PlayerNameService::computeEngineModels(PlayMode mode,
     EngineNameMapping out;
 
     switch (mode) {
-    case EvenHumanVsEngine:
-    case HandicapHumanVsEngine:
+    case PlayMode::EvenHumanVsEngine:
+    case PlayMode::HandicapHumanVsEngine:
         // P2 がエンジン。モデル1側に「使うエンジン」を表示（既存のMainWindow実装に合わせる）
         out.model1 = engine2;
         out.model2.clear();
         break;
 
-    case EvenEngineVsHuman:
-    case HandicapEngineVsHuman:
+    case PlayMode::EvenEngineVsHuman:
+    case PlayMode::HandicapEngineVsHuman:
         // P1 がエンジン
         out.model1 = engine1;
         out.model2.clear();
         break;
 
-    case EvenEngineVsEngine:
+    case PlayMode::EvenEngineVsEngine:
         out.model1 = engine1;
         out.model2 = engine2;
         break;
 
-    case HandicapEngineVsEngine:
+    case PlayMode::HandicapEngineVsEngine:
         // 既存実装は入れ替え（model1=engine2, model2=engine1）
         out.model1 = engine2;
         out.model2 = engine1;

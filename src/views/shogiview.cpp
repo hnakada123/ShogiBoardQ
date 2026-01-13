@@ -219,9 +219,9 @@ void ShogiView::setBoard(ShogiBoard* board)
     // 新しいボードが有効なら、表示に影響するイベントで再描画を依頼する。
     if (board) {
         // 盤データが変更されたら、次のイベントループで再描画（update は非同期・差分指向）
-        connect(board, &ShogiBoard::dataChanged, this, [this]{ update(); });
+        connect(board, &ShogiBoard::dataChanged, this, qOverload<>(&ShogiView::update));
         // 盤がリセットされたら、全体を再描画
-        connect(board, &ShogiBoard::boardReset,  this, [this]{ update(); });
+        connect(board, &ShogiBoard::boardReset,  this, qOverload<>(&ShogiView::update));
         // ※ 第3引数に this を渡しているため、このビュー破棄時に自動で接続解除される。
     }
 

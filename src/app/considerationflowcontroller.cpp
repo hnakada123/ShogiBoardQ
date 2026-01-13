@@ -55,7 +55,7 @@ void ConsiderationFlowController::startAnalysis_(MatchCoordinator* match,
     opt.engineName  = engineName;
     opt.positionStr = positionStr;
     opt.byoyomiMs   = byoyomiMs;
-    opt.mode        = ConsidarationMode;  // 既存の PlayMode
+    opt.mode        = PlayMode::ConsiderationMode;  // 既存の PlayMode
 
     match->startAnalysis(opt);
 }

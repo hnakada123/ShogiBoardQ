@@ -91,6 +91,12 @@ void ChangeEngineSettingsDialog::setupEngineOptionsDialog()
 // 各ボタンが押されているかどうかを確認し、ボタンの色を設定する。
 void ChangeEngineSettingsDialog::changeStatusColorTypeButton()
 {
+    // 並列配列のサイズ整合性を確認
+    if (m_optionList.size() != m_engineOptionWidgetsList.size()) {
+        qWarning() << "changeStatusColorTypeButton: リストサイズ不一致";
+        return;
+    }
+
     // オプション数までループする。
     for (qsizetype i = 0; i < m_engineOptionWidgetsList.size(); i++) {
         // オプションタイプが"button"の場合
@@ -108,9 +114,19 @@ void ChangeEngineSettingsDialog::changeColorTypeButton()
 {
     // イベントを送信したオブジェクト（ボタン）へのポインタを取得し、QPushButton型にキャストする。
     QPushButton* pButton = qobject_cast<QPushButton *>(sender());
+    if (!pButton) {
+        qWarning() << "changeColorTypeButton: sender is not a QPushButton";
+        return;
+    }
 
     // ボタンのプロパティから、どのボタンがクリックされたのかを識別するためのインデックスを取得する。
     int index = qvariant_cast<int>(pButton->property("index"));
+
+    // インデックスの範囲チェック
+    if (index < 0 || index >= m_engineOptionWidgetsList.size()) {
+        qWarning() << "changeColorTypeButton: invalid index" << index;
+        return;
+    }
 
     // ボタンが押された状態の場合
     if (m_engineOptionWidgetsList.at(index).selectionButton->isChecked()) {
@@ -472,6 +488,14 @@ void ChangeEngineSettingsDialog::saveOptionsToSettings()
 // 設定ファイルに追加エンジンのオプションを書き込む。
 void ChangeEngineSettingsDialog::writeEngineOptions()
 {
+    // 並列配列のサイズ整合性を確認
+    if (m_optionList.size() != m_engineOptionWidgetsList.size()) {
+        qWarning() << "writeEngineOptions: リストサイズ不一致 - "
+                   << "m_optionList:" << m_optionList.size()
+                   << "m_engineOptionWidgetsList:" << m_engineOptionWidgetsList.size();
+        return;
+    }
+
     // エンジンオプションの数だけ繰り返す。
     for (qsizetype i = 0; i < m_optionList.size(); i++) {
         EngineOption option = m_optionList.at(i);

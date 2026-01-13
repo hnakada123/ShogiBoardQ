@@ -87,24 +87,24 @@ bool JosekiWindowWiring::determineHumanCanPlay() const
 
     // PlayModeに応じて人間の手番かどうかを判定
     switch (*m_playMode) {
-    case HumanVsHuman:
+    case PlayMode::HumanVsHuman:
         return true;
-    case EvenHumanVsEngine:
-    case HandicapHumanVsEngine:
+    case PlayMode::EvenHumanVsEngine:
+    case PlayMode::HandicapHumanVsEngine:
         return isBlackTurn;
-    case EvenEngineVsHuman:
-    case HandicapEngineVsHuman:
+    case PlayMode::EvenEngineVsHuman:
+    case PlayMode::HandicapEngineVsHuman:
         return !isBlackTurn;
-    case EvenEngineVsEngine:
-    case HandicapEngineVsEngine:
+    case PlayMode::EvenEngineVsEngine:
+    case PlayMode::HandicapEngineVsEngine:
         return false;
-    case NotStarted:
-    case AnalysisMode:
-    case ConsidarationMode:
-    case TsumiSearchMode:
+    case PlayMode::NotStarted:
+    case PlayMode::AnalysisMode:
+    case PlayMode::ConsiderationMode:
+    case PlayMode::TsumiSearchMode:
         return true;
-    case CsaNetworkMode:
-    case PlayModeError:
+    case PlayMode::CsaNetworkMode:
+    case PlayMode::PlayModeError:
         return false;
     }
     return true; // 到達しないが、コンパイラ警告を抑制

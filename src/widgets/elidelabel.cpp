@@ -21,10 +21,7 @@ ElideLabel::ElideLabel(QWidget* parent)
     // 自動スクロール用タイマーのハンドラを設定。
     // 役割：一定間隔ごとに表示オフセット m_offset を増分し、update() で再描画を促す。
     // 注意：実際の開始/停止は startSlideIfNeeded()/stopSlide() が受け持つ（常時スクロールしない）。
-    connect(&m_timer, &QTimer::timeout, this, [this]{
-        m_offset += m_pxPerTick; // 1ティックあたりの移動量
-        update();                // 再描画要求（paintEvent でオフセットが反映される）
-    });
+    connect(&m_timer, &QTimer::timeout, this, &ElideLabel::onTimerTimeout);
 }
 
 // フルテキストを設定するセッター。
@@ -137,6 +134,14 @@ bool ElideLabel::isOverflowing() const
 {
     QFontMetrics fm(font());
     return fm.horizontalAdvance(m_fullText) > contentsRect().width();
+}
+
+// 自動スクロール用タイマーのタイムアウトハンドラ。
+// 役割：一定間隔ごとに表示オフセット m_offset を増分し、update() で再描画を促す。
+void ElideLabel::onTimerTimeout()
+{
+    m_offset += m_pxPerTick; // 1ティックあたりの移動量
+    update();                // 再描画要求（paintEvent でオフセットが反映される）
 }
 
 // 自動スクロール開始条件の判定と開始処理。

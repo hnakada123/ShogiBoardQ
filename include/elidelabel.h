@@ -80,6 +80,10 @@ protected:
     // 手動パン：解放で終了し、必要なら自動スクロールを再開。
     void mouseReleaseEvent(QMouseEvent*) override;
 
+private slots:
+    // 自動スクロール用タイマーのタイムアウトハンドラ
+    void onTimerTimeout();
+
 private:
     // 省略文字列を最新化。
     // 役割：contentsRect().width() に基づいて elidedText を作り直し、必要ならスクロール開始判定。

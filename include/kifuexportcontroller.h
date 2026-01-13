@@ -69,7 +69,7 @@ public:
 
         // 状態値
         QString startSfenStr;
-        PlayMode playMode = NotStarted;
+        PlayMode playMode = PlayMode::NotStarted;
         QString humanName1;
         QString humanName2;
         QString engineName1;

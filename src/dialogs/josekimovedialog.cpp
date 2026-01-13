@@ -649,15 +649,17 @@ QString JosekiMoveDialog::move() const
 {
     int id = m_moveTypeGroup->checkedId();
     bool isDrop = (id == 1);
-    
-    // 駒打ち用のコンボボックスを取得
-    QComboBox *toFileCombo = isDrop ? 
-        qobject_cast<QComboBox*>(m_moveDropWidget->layout()->itemAt(3)->widget()) : 
-        m_moveToFileCombo;
-    QComboBox *toRankCombo = isDrop ? 
-        qobject_cast<QComboBox*>(m_moveDropWidget->layout()->itemAt(4)->widget()) : 
-        m_moveToRankCombo;
-    
+
+    // 駒打ち用のコンボボックスを取得（メンバ変数を直接使用）
+    QComboBox *toFileCombo = isDrop ? m_moveDropToFileCombo : m_moveToFileCombo;
+    QComboBox *toRankCombo = isDrop ? m_moveDropToRankCombo : m_moveToRankCombo;
+
+    // nullチェック
+    if (!toFileCombo || !toRankCombo) {
+        qWarning() << "JosekiMoveDialog::move() - コンボボックス取得失敗";
+        return QString();
+    }
+
     return generateUsiMove(isDrop,
                            m_moveDropPieceCombo,
                            m_moveFromFileCombo,
@@ -675,20 +677,23 @@ void JosekiMoveDialog::setMove(const QString &move)
 QString JosekiMoveDialog::nextMove() const
 {
     int id = m_nextMoveTypeGroup->checkedId();
-    
+
     if (id == 2) {
         return QStringLiteral("none");
     }
-    
+
     bool isDrop = (id == 1);
-    
-    QComboBox *toFileCombo = isDrop ? 
-        qobject_cast<QComboBox*>(m_nextMoveDropWidget->layout()->itemAt(3)->widget()) : 
-        m_nextMoveToFileCombo;
-    QComboBox *toRankCombo = isDrop ? 
-        qobject_cast<QComboBox*>(m_nextMoveDropWidget->layout()->itemAt(4)->widget()) : 
-        m_nextMoveToRankCombo;
-    
+
+    // 駒打ち用のコンボボックスを取得（メンバ変数を直接使用）
+    QComboBox *toFileCombo = isDrop ? m_nextMoveDropToFileCombo : m_nextMoveToFileCombo;
+    QComboBox *toRankCombo = isDrop ? m_nextMoveDropToRankCombo : m_nextMoveToRankCombo;
+
+    // nullチェック
+    if (!toFileCombo || !toRankCombo) {
+        qWarning() << "JosekiMoveDialog::nextMove() - コンボボックス取得失敗";
+        return QStringLiteral("none");
+    }
+
     return generateUsiMove(isDrop,
                            m_nextMoveDropPieceCombo,
                            m_nextMoveFromFileCombo,
@@ -722,7 +727,6 @@ void JosekiMoveDialog::setComboFromUsi(const QString &usiMove, bool isNextMove)
     QComboBox *toRankCombo = isNextMove ? m_nextMoveToRankCombo : m_moveToRankCombo;
     QComboBox *pieceCombo = isNextMove ? m_nextMoveDropPieceCombo : m_moveDropPieceCombo;
     QComboBox *promoteCombo = isNextMove ? m_nextMovePromoteCombo : m_movePromoteCombo;
-    QWidget *dropWidget = isNextMove ? m_nextMoveDropWidget : m_moveDropWidget;
     
     // 駒打ちパターン: P*5e
     if (usiMove.size() >= 4 && usiMove.at(1) == QChar('*')) {
@@ -738,9 +742,9 @@ void JosekiMoveDialog::setComboFromUsi(const QString &usiMove, bool isNextMove)
             pieceCombo->setCurrentIndex(static_cast<int>(pieceIdx));
         }
         
-        // 打ち先のコンボボックスを取得して設定
-        QComboBox *dropToFileCombo = qobject_cast<QComboBox*>(dropWidget->layout()->itemAt(3)->widget());
-        QComboBox *dropToRankCombo = qobject_cast<QComboBox*>(dropWidget->layout()->itemAt(4)->widget());
+        // 打ち先のコンボボックスを取得して設定（メンバ変数を直接使用）
+        QComboBox *dropToFileCombo = isNextMove ? m_nextMoveDropToFileCombo : m_moveDropToFileCombo;
+        QComboBox *dropToRankCombo = isNextMove ? m_nextMoveDropToRankCombo : m_moveDropToRankCombo;
         if (dropToFileCombo && dropToRankCombo) {
             dropToFileCombo->setCurrentIndex(toFile - 1);
             dropToRankCombo->setCurrentIndex(toRank);

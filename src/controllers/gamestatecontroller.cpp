@@ -138,22 +138,22 @@ void GameStateController::setGameOverMove(MatchCoordinator::Cause cause, bool lo
 
 bool GameStateController::isHvH() const
 {
-    return (m_playMode == HumanVsHuman);
+    return (m_playMode == PlayMode::HumanVsHuman);
 }
 
 bool GameStateController::isHumanSide(ShogiGameController::Player p) const
 {
     switch (m_playMode) {
-    case HumanVsHuman:
+    case PlayMode::HumanVsHuman:
         return true;
-    case EvenHumanVsEngine:
-    case HandicapHumanVsEngine:
+    case PlayMode::EvenHumanVsEngine:
+    case PlayMode::HandicapHumanVsEngine:
         return (p == ShogiGameController::Player1);
-    case EvenEngineVsHuman:
-    case HandicapEngineVsHuman:
+    case PlayMode::EvenEngineVsHuman:
+    case PlayMode::HandicapEngineVsHuman:
         return (p == ShogiGameController::Player2);
-    case EvenEngineVsEngine:
-    case HandicapEngineVsEngine:
+    case PlayMode::EvenEngineVsEngine:
+    case PlayMode::HandicapEngineVsEngine:
         return false;
     default:
         return true;

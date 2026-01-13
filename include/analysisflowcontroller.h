@@ -110,7 +110,7 @@ private:
     void commitPendingResult_();  // bestmove受信時に結果を確定
 
     // 自動生成したUsi用のPlayMode（インスタンス保持）
-    PlayMode m_playModeForAnalysis = AnalysisMode;
+    PlayMode m_playModeForAnalysis = PlayMode::AnalysisMode;
 
     // 内部で生成したUsi関連リソース（所有権を持つ）
     bool m_ownsUsi = false;

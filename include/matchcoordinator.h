@@ -297,7 +297,7 @@ public:
                         QPoint* outTo);
 
 private:
-    PlayMode                 m_playMode = NotStarted;
+    PlayMode                 m_playMode = PlayMode::NotStarted;
     UsiCommLogModel*         m_comm1    = nullptr;
     ShogiEngineThinkingModel*m_think1   = nullptr;
     UsiCommLogModel*         m_comm2    = nullptr;
@@ -306,7 +306,7 @@ private:
 public:
     // 対局開始のためのオプション
     struct StartOptions {
-        PlayMode mode = NotStarted;
+        PlayMode mode = PlayMode::NotStarted;
         QString  sfenStart;
 
         // エンジン情報（必要なら空でもOK）
@@ -329,7 +329,7 @@ public:
         QString  engineName;   // 表示用エンジン名
         QString  positionStr;  // "position sfen ... [moves ...]" の完全文字列
         int      byoyomiMs = 0;           // 0=無制限、>0=秒→ms
-        PlayMode mode      = ConsidarationMode; // 既定で検討モード
+        PlayMode mode      = PlayMode::ConsiderationMode; // 既定で検討モード
     };
 
     // ==== 追加：検討API ====

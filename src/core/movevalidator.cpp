@@ -89,7 +89,7 @@ void MoveValidator::checkKingPresence(const QVector<QChar>& boardData, const QMa
     int kingCountBlack = pieceStand['k'];
 
     // 盤面上の先手と後手の玉の数をカウントする。
-    for (const auto& piece : boardData) {
+    for (const auto& piece : std::as_const(boardData)) {
         if (piece == 'K') ++kingCountWhite;
         if (piece == 'k') ++kingCountBlack;
     }
@@ -1076,7 +1076,7 @@ void MoveValidator::printAllPieceBitboards(const QVector<QVector<std::bitset<NUM
     for (qsizetype i = 0; i < allPieceBitboards.size(); ++i) {
         qDebug() << "Piece:" << m_allPieces.at(i);
         const auto& currentBitboards = allPieceBitboards.at(i);
-        for (const auto& bitboard : currentBitboards) {
+        for (const auto& bitboard : std::as_const(currentBitboards)) {
             QString bitboardString;
             for (int rank = 0; rank < BOARD_SIZE; ++rank) {
                 for (int file = BOARD_SIZE - 1; file >= 0; --file) {
@@ -1151,7 +1151,7 @@ void MoveValidator::printIndividualPieceAttackBitboards(const QVector<QVector<st
         // qDebug() << (turnPiece == 0 ? "先手:" : "後手:");
         //end
         const auto& currentAttackBitboards = allPieceAttackBitboards.at(i);
-        for (const auto& bitboard : currentAttackBitboards) {
+        for (const auto& bitboard : std::as_const(currentAttackBitboards)) {
             QString bitboardRow;
             for (int rank = 0; rank < BOARD_SIZE; ++rank) {
                 bitboardRow.clear();
@@ -1169,7 +1169,7 @@ void MoveValidator::printIndividualPieceAttackBitboards(const QVector<QVector<st
 // bitboardリストから各bitboardを取り出し、そのbitboardの内容を標準出力する。
 void MoveValidator::printBitboardContent(const QVector<std::bitset<NUM_BOARD_SQUARES>>& bitboards) const
 {
-    for (const auto& bitboard : bitboards) {
+    for (const auto& bitboard : std::as_const(bitboards)) {
         printSingleBitboard(bitboard);
     }
 }
@@ -1193,7 +1193,7 @@ void MoveValidator::printSingleBitboard(const std::bitset<NUM_BOARD_SQUARES>& bi
 void MoveValidator::printShogiMoveList(const QVector<ShogiMove>& moveList) const
 {
     int i = 0;
-    for (const auto& move : moveList) {
+    for (const auto& move : std::as_const(moveList)) {
         std::cout << std::setw(3) << std::setfill(' ') << ++i << " Shogi move: " << move << std::endl;
     }
 }
@@ -1360,7 +1360,7 @@ void MoveValidator::generateAttackBitboard(std::bitset<NUM_BOARD_SQUARES>& attac
             // 特定の種類の駒がそのマスに存在するかどうかをチェックする。
             if (pieceBitboard.test(static_cast<size_t>(index))) {
                 // 駒が移動可能な全ての方向について確認する。
-                for (const auto& direction : directions) {
+                for (const auto& direction : std::as_const(directions)) {
                     int currentRank = rank;
                     int currentFile = file;
                     int opponent = 1 - turn;
@@ -1503,7 +1503,7 @@ void MoveValidator::filterLegalMovesList(const Turn& turn, const QVector<ShogiMo
     QVector<QVector<std::bitset<NUM_BOARD_SQUARES>>> allPieceAttackBitboards;
 
     // 指し手リストのループ
-    for (const auto& move : moveList) {
+    for (const auto& move : std::as_const(moveList)) {
         // 1手指した後の局面データを用意する。
         applyMovesToBoard(move, boardData, boardDataAfterMove);
 
@@ -1743,7 +1743,7 @@ void MoveValidator::generateShogiMoveFromBitboard(const QChar piece, const std::
 // 合法手に一致すればtrueを返し、無ければfalseを返す。
 bool MoveValidator::isMoveInList(const ShogiMove& currentMove, const QVector<ShogiMove>& movesList) const
 {
-    for (const auto& move : movesList) {
+    for (const auto& move : std::as_const(movesList)) {
         if (currentMove == move) {
             return true;
         }
@@ -1789,7 +1789,7 @@ void MoveValidator::printBoardAndPieces(const QVector<QChar>& boardData, const Q
 
     // 先に後手の持ち駒を表示します。
     QString gotePieces = "持ち駒：";
-    for (const auto& piece : pieceOrder) {
+    for (const auto& piece : std::as_const(pieceOrder)) {
         if (piece.isLower()) {
             gotePieces += pieceKanjiNames[piece] + " " + QString::number(pieceStand[piece]) + " ";
         }
@@ -1814,7 +1814,7 @@ void MoveValidator::printBoardAndPieces(const QVector<QChar>& boardData, const Q
 
     // 最後に先手の持ち駒を表示します。
     QString sentePieces = "持ち駒：";
-    for (const auto& piece : pieceOrder) {
+    for (const auto& piece : std::as_const(pieceOrder)) {
         if (piece.isUpper()) {
             sentePieces += pieceKanjiNames[piece] + " " + QString::number(pieceStand[piece]) + " ";
         }
