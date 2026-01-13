@@ -5,7 +5,6 @@
 #include "matchcoordinator.h"
 #include "shogiclock.h"
 #include "shogigamecontroller.h"
-#include "sfenpositiontracer.h"
 #include "startgamedialog.h"
 #include "kifudisplay.h"
 #include "playernameservice.h"

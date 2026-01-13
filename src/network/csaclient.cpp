@@ -553,7 +553,7 @@ void CsaClient::processGameMessage(const QString& line)
         qsizetype commaPos = line.indexOf(QLatin1Char(','));
         QString cmd = (commaPos > 0) ? line.left(static_cast<int>(commaPos)) : line;
         int consumedTime = 0;
-        if (commaPos > 0 && line.mid(static_cast<int>(commaPos) + 1).startsWith(QLatin1Char('T'))) {
+        if (commaPos > 0 && QStringView(line).mid(commaPos + 1).startsWith(QLatin1Char('T'))) {
             consumedTime = parseConsumedTime(line.mid(static_cast<int>(commaPos) + 2));
         }
 
@@ -651,7 +651,7 @@ void CsaClient::processMoveLine(const QString& line)
     QString move = (commaPos > 0) ? line.left(static_cast<int>(commaPos)) : line;
     int consumedTime = 0;
 
-    if (commaPos > 0 && line.mid(static_cast<int>(commaPos) + 1).startsWith(QLatin1Char('T'))) {
+    if (commaPos > 0 && QStringView(line).mid(commaPos + 1).startsWith(QLatin1Char('T'))) {
         consumedTime = parseConsumedTime(line.mid(static_cast<int>(commaPos) + 2));
     }
 

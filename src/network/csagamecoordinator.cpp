@@ -4,7 +4,6 @@
 #include "shogiclock.h"
 #include "shogiboard.h"
 #include "boardinteractioncontroller.h"
-#include "kifurecordlistmodel.h"
 #include "usi.h"
 #include "usicommlogmodel.h"
 #include "shogienginethinkingmodel.h"

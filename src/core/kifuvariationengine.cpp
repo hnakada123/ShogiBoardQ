@@ -213,12 +213,6 @@ ResolvedLine KifuVariationEngine::resolveAfterWins(int variationId) const
     return rl;
 }
 
-// kifuvariationengine.cpp
-#include "kifuvariationengine.h"
-#include "sfenpositiontracer.h"
-#include <QElapsedTimer>
-#include <algorithm>
-
 // idからVariation参照を取る小ヘルパ
 const KifuVariationEngine::Variation* findVarById(const QList<KifuVariationEngine::Variation>& vars, int vid) {
     for (const auto& v : vars) if (v.id == vid) return &v;

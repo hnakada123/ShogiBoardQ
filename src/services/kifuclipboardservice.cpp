@@ -1,6 +1,5 @@
 #include "kifuclipboardservice.h"
 #include "gamerecordmodel.h"
-#include "kifurecordlistmodel.h"
 #include "shogimove.h"
 
 #include <QApplication>

@@ -19,7 +19,6 @@
 #include "engineanalysistab.h"
 #include "boardsetupcontroller.h"
 #include "timecontrolcontroller.h"
-#include "shogiclock.h"
 
 CsaGameWiring::CsaGameWiring(const Dependencies& deps, QObject* parent)
     : QObject(parent)

@@ -44,9 +44,7 @@
 #include "kifuloadcoordinator.h"
 #include "evaluationchartwidget.h"
 #include "timekeepingservice.h"
-#include "kifuioservice.h"
 #include "positioneditcontroller.h"
-#include "playernameservice.h"
 #include "analysisresultspresenter.h"
 #include "boardsyncpresenter.h"
 #include "gamestartcoordinator.h"
@@ -90,12 +88,10 @@
 #include "csagamedialog.h"              // ★ 追加: CSA通信対局ダイアログ
 #include "csagamecoordinator.h"         // ★ 追加: CSA通信対局コーディネータ
 #include "csawaitingdialog.h"           // ★ 追加: CSA通信対局待機ダイアログ
-#include "josekiwindow.h"               // ★ 追加: 定跡ウィンドウ
 #include "josekiwindowwiring.h"          // ★ 追加: 定跡ウィンドウUI配線
 #include "csagamewiring.h"              // ★ 追加: CSA通信対局UI配線
 #include "playerinfowiring.h"           // ★ 追加: 対局情報UI配線
 #include "prestartcleanuphandler.h"     // ★ 追加: 対局開始前クリーンアップ
-#include "branchrowdelegate.h"          // ★ 追加: 分岐行デリゲート
 
 using std::placeholders::_1;
 using std::placeholders::_2;
@@ -3210,7 +3206,7 @@ void MainWindow::onCommentUpdateCallback_(int ply, const QString& comment)
     if (m_recordPresenter) {
         QStringList updatedComments;
         updatedComments.reserve(m_commentsByRow.size());
-        for (const QString& c : m_commentsByRow) {
+        for (const QString& c : std::as_const(m_commentsByRow)) {
             updatedComments.append(c);
         }
         m_recordPresenter->setCommentsByRow(updatedComments);

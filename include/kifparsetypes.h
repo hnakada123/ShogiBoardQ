@@ -6,10 +6,11 @@
 #include <QList>
 #include <QVector>
 
-// ここでは前方宣言に留めます。
-// 実体定義を使う翻訳単位（.cpp）側で、それぞれのヘッダを include してください。
+#include "shogimove.h"
+
+// KifDisplayItem は前方宣言に留めます。
+// 実体定義を使う翻訳単位（.cpp）側でヘッダを include してください。
 struct KifDisplayItem;
-struct ShogiMove;
 
 // KIFの「(キーワード)：(内容)」行を表すペア
 struct KifGameInfoItem {
