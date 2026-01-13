@@ -207,3 +207,61 @@ void KifuContentBuilder::resolvePlayerNames(const KifuExportContext& ctx, QStrin
         break;
     }
 }
+
+QString KifuContentBuilder::toRichHtmlWithStarBreaksAndLinks(const QString& raw)
+{
+    // 改行正規化
+    QString s = raw;
+    s.replace(QStringLiteral("\r\n"), QStringLiteral("\n"));
+    s.replace(QChar('\r'), QChar('\n'));
+
+    // '*' が行頭でない場合、その直前に改行を入れる（直前の余分な空白は削る）
+    QString withBreaks;
+    withBreaks.reserve(s.size() + 16);
+    for (qsizetype i = 0; i < s.size(); ++i) {
+        const QChar ch = s.at(i);
+        if (ch == QLatin1Char('*') && i > 0 && s.at(i - 1) != QLatin1Char('\n')) {
+            while (!withBreaks.isEmpty()) {
+                const QChar tail = withBreaks.at(withBreaks.size() - 1);
+                if (tail == QLatin1Char('\n')) break;
+                if (!tail.isSpace()) break;
+                withBreaks.chop(1);
+            }
+            withBreaks.append(QLatin1Char('\n'));
+        }
+        withBreaks.append(ch);
+    }
+
+    // URL をリンク化（非URL部分は都度エスケープ）
+    static const QRegularExpression urlRe(
+        QStringLiteral(R"((https?://[^\s<>"']+))"),
+        QRegularExpression::CaseInsensitiveOption);
+
+    QString html;
+    html.reserve(withBreaks.size() + 64);
+
+    int last = 0;
+    QRegularExpressionMatchIterator it = urlRe.globalMatch(withBreaks);
+    while (it.hasNext()) {
+        const QRegularExpressionMatch m = it.next();
+        const qsizetype start = m.capturedStart();
+        const qsizetype end   = m.capturedEnd();
+
+        // 非URL部分をエスケープして追加
+        html += QString(withBreaks.mid(last, start - last)).toHtmlEscaped();
+
+        // URL部分を <a href="...">...</a>
+        const QString url   = m.captured(0);
+        const QString href  = url.toHtmlEscaped();   // 属性用の最低限エスケープ
+        const QString label = url.toHtmlEscaped();   // 表示用
+        html += QStringLiteral("<a href=\"%1\">%2</a>").arg(href, label);
+
+        last = static_cast<int>(end);
+    }
+    // 末尾の非URL部分
+    html += QString(withBreaks.mid(last)).toHtmlEscaped();
+
+    // 改行 → <br/>
+    html.replace(QChar('\n'), QStringLiteral("<br/>"));
+    return html;
+}

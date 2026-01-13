@@ -104,6 +104,8 @@ class CsaGameDialog;
 class CsaGameCoordinator;
 class CsaWaitingDialog;
 class JosekiWindow;
+class CsaGameWiring;
+class BranchRowDelegate;
 
 // ============================================================
 // MainWindow
@@ -125,26 +127,12 @@ class JosekiWindow;
  * - BoardSyncPresenter: 盤面同期
  * - AnalysisResultsPresenter: 解析結果表示
  * - BranchWiringCoordinator: 分岐配線
+ * - CsaGameWiring: CSA通信対局のUI配線
+ * - BranchRowDelegate: 分岐行の描画カスタマイズ
  */
 class MainWindow : public QMainWindow, public INavigationContext
 {
     Q_OBJECT
-
-    // ========================================================
-    // Nested classes
-    // ========================================================
-private:
-    class BranchRowDelegate : public QStyledItemDelegate {
-    public:
-        explicit BranchRowDelegate(QObject* parent = nullptr)
-            : QStyledItemDelegate(parent) {}
-        void setMarkers(const QSet<int>* marks) { m_marks = marks; }
-        void paint(QPainter* painter,
-                   const QStyleOptionViewItem& option,
-                   const QModelIndex& index) const override;
-    private:
-        const QSet<int>* m_marks = nullptr;
-    };
 
     // ========================================================
     // public
@@ -462,6 +450,9 @@ private:
     // 局面編集調整
     PositionEditCoordinator*  m_posEditCoordinator = nullptr;
 
+    // CSA通信対局UI配線
+    CsaGameWiring*            m_csaGameWiring = nullptr;
+
     // 変化エンジン
     std::unique_ptr<KifuVariationEngine> m_varEngine;
 
@@ -546,6 +537,7 @@ private:
     void ensurePvClickController_();
     void ensureRecordNavigationController_();
     void ensurePositionEditCoordinator_();
+    void ensureCsaGameWiring_();
 
     // ctor の分割先
     void setupCentralWidgetContainer_();

@@ -91,71 +91,17 @@
 #include "csagamecoordinator.h"         // ★ 追加: CSA通信対局コーディネータ
 #include "csawaitingdialog.h"           // ★ 追加: CSA通信対局待機ダイアログ
 #include "josekiwindow.h"               // ★ 追加: 定跡ウィンドウ
+#include "csagamewiring.h"              // ★ 追加: CSA通信対局UI配線
+#include "branchrowdelegate.h"          // ★ 追加: 分岐行デリゲート
 
 using std::placeholders::_1;
 using std::placeholders::_2;
 
-// ★ コメント整形ヘルパ：
-//   1) '*' の直前で改行
-//   2) URL( http(s)://... ) を <a href="...">...</a> にリンク化
-//   3) 改行を <br/> に変換（安全のため非URL部は HTML エスケープ）
+// ★ コメント整形ヘルパ：KifuContentBuilderへ委譲
 namespace {
 static QString toRichHtmlWithStarBreaksAndLinks(const QString& raw)
 {
-    // 改行正規化
-    QString s = raw;
-    s.replace(QStringLiteral("\r\n"), QStringLiteral("\n"));
-    s.replace(QChar('\r'), QChar('\n'));
-
-    // '*' が行頭でない場合、その直前に改行を入れる（直前の余分な空白は削る）
-    QString withBreaks;
-    withBreaks.reserve(s.size() + 16);
-    for (qsizetype i = 0; i < s.size(); ++i) {
-        const QChar ch = s.at(i);
-        if (ch == QLatin1Char('*') && i > 0 && s.at(i - 1) != QLatin1Char('\n')) {
-            while (!withBreaks.isEmpty()) {
-                const QChar tail = withBreaks.at(withBreaks.size() - 1);
-                if (tail == QLatin1Char('\n')) break;
-                if (!tail.isSpace()) break;
-                withBreaks.chop(1);
-            }
-            withBreaks.append(QLatin1Char('\n'));
-        }
-        withBreaks.append(ch);
-    }
-
-    // URL をリンク化（非URL部分は都度エスケープ）
-    static const QRegularExpression urlRe(
-        QStringLiteral(R"((https?://[^\s<>"']+))"),
-        QRegularExpression::CaseInsensitiveOption);
-
-    QString html;
-    html.reserve(withBreaks.size() + 64);
-
-    int last = 0;
-    QRegularExpressionMatchIterator it = urlRe.globalMatch(withBreaks);
-    while (it.hasNext()) {
-        const QRegularExpressionMatch m = it.next();
-        const qsizetype start = m.capturedStart();
-        const qsizetype end   = m.capturedEnd();
-
-        // 非URL部分をエスケープして追加
-        html += QString(withBreaks.mid(last, start - last)).toHtmlEscaped();
-
-        // URL部分を <a href="...">...</a>
-        const QString url   = m.captured(0);
-        const QString href  = url.toHtmlEscaped();   // 属性用の最低限エスケープ
-        const QString label = url.toHtmlEscaped();   // 表示用
-        html += QStringLiteral("<a href=\"%1\">%2</a>").arg(href, label);
-
-        last = static_cast<int>(end);
-    }
-    // 末尾の非URL部分
-    html += QString(withBreaks.mid(last)).toHtmlEscaped();
-
-    // 改行 → <br/>
-    html.replace(QChar('\n'), QStringLiteral("<br/>"));
-    return html;
+    return KifuContentBuilder::toRichHtmlWithStarBreaksAndLinks(raw);
 }
 } // anonymous namespace
 
@@ -1774,23 +1720,6 @@ void MainWindow::applyResolvedRowAndSelect(int row, int selPly)
     updateJosekiWindow();
 }
 
-void MainWindow::BranchRowDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const
-{
-    QStyleOptionViewItem opt(option);
-    QStyledItemDelegate::initStyleOption(&opt, index);
-
-    const bool isBranchable = (m_marks && m_marks->contains(index.row()));
-
-    // 選択時のハイライトと衝突しないように、未選択時のみオレンジ背景
-    if (isBranchable && !(opt.state & QStyle::State_Selected)) {
-        painter->save();
-        painter->fillRect(opt.rect, QColor(255, 220, 160));
-        painter->restore();
-    }
-
-    QStyledItemDelegate::paint(painter, opt, index);
-}
-
 // --- INavigationContext の実装 ---
 bool MainWindow::hasResolvedRows() const
 {
@@ -2978,6 +2907,41 @@ void MainWindow::ensurePositionEditCoordinator_()
     // 先後反転シグナルの接続
     connect(m_posEditCoordinator, &PositionEditCoordinator::reversalTriggered,
             this, &MainWindow::onReverseTriggered, Qt::UniqueConnection);
+}
+
+void MainWindow::ensureCsaGameWiring_()
+{
+    if (m_csaGameWiring) return;
+
+    CsaGameWiring::Dependencies deps;
+    deps.coordinator = m_csaGameCoordinator;
+    deps.gameController = m_gameController;
+    deps.shogiView = m_shogiView;
+    deps.kifuRecordModel = m_kifuRecordModel;
+    deps.recordPane = m_recordPane;
+    deps.boardController = m_boardController;
+    deps.statusBar = ui ? ui->statusbar : nullptr;
+    deps.sfenRecord = m_sfenRecord;
+
+    m_csaGameWiring = new CsaGameWiring(deps, this);
+
+    // CsaGameWiringからのシグナルをMainWindowに接続
+    connect(m_csaGameWiring, &CsaGameWiring::disableNavigationRequested,
+            this, &MainWindow::disableNavigationForGame);
+    connect(m_csaGameWiring, &CsaGameWiring::enableNavigationRequested,
+            this, &MainWindow::enableNavigationAfterGame);
+    connect(m_csaGameWiring, &CsaGameWiring::appendKifuLineRequested,
+            this, &MainWindow::appendKifuLine);
+    connect(m_csaGameWiring, &CsaGameWiring::refreshBranchTreeRequested,
+            this, &MainWindow::refreshBranchTreeLive_);
+    connect(m_csaGameWiring, &CsaGameWiring::playModeChanged,
+            this, [this](int mode) { m_playMode = static_cast<PlayMode>(mode); });
+    connect(m_csaGameWiring, &CsaGameWiring::showGameEndDialogRequested,
+            this, [this](const QString& title, const QString& message) {
+                QMessageBox::information(this, title, message);
+            });
+
+    qDebug().noquote() << "[MW] ensureCsaGameWiring_: created and connected";
 }
 
 // 「検討を終了」アクション用：エンジンに quit を送り検討セッションを終了
