@@ -247,7 +247,7 @@ QString KifuContentBuilder::toRichHtmlWithStarBreaksAndLinks(const QString& raw)
         const qsizetype end   = m.capturedEnd();
 
         // 非URL部分をエスケープして追加
-        html += QString(withBreaks.mid(last, start - last)).toHtmlEscaped();
+        html += withBreaks.mid(last, start - last).toHtmlEscaped();
 
         // URL部分を <a href="...">...</a>
         const QString url   = m.captured(0);
@@ -258,7 +258,7 @@ QString KifuContentBuilder::toRichHtmlWithStarBreaksAndLinks(const QString& raw)
         last = static_cast<int>(end);
     }
     // 末尾の非URL部分
-    html += QString(withBreaks.mid(last)).toHtmlEscaped();
+    html += withBreaks.mid(last).toHtmlEscaped();
 
     // 改行 → <br/>
     html.replace(QChar('\n'), QStringLiteral("<br/>"));

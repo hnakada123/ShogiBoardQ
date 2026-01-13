@@ -976,14 +976,9 @@ void CsaGameCoordinator::setupInitialPosition()
     }
 
     // 平手初期局面のSFEN
+    // TODO: CSA局面行からのSFEN変換（現在は平手固定）
     const QString hiratePosition = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
-
-    if (m_gameSummary.positionLines.isEmpty()) {
-        m_gameController->board()->setSfen(hiratePosition);
-    } else {
-        // TODO: CSA局面行からのSFEN変換
-        m_gameController->board()->setSfen(hiratePosition);
-    }
+    m_gameController->board()->setSfen(hiratePosition);
 
     // SFENを生成（盤面 + 持ち駒 + 手番）
     QString boardSfen = m_gameController->board()->convertBoardToSfen();

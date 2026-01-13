@@ -36,7 +36,7 @@ static inline QString pickLabelForDisp(const KifDisplayItem& d)
 
 inline int rankLetterToNum(QChar r) { // 'a'..'i' -> 1..9
     ushort u = r.toLower().unicode();
-    return (u < 'a' || u > 'i') ? -1 : int(u - 'a') + 1;
+    return (u < 'a' || u > 'i') ? -1 : (u - 'a') + 1;
 }
 
 inline QChar dropLetterWithSide(QChar upper, bool black) {
@@ -1869,7 +1869,7 @@ void KifuLoadCoordinator::ensureResolvedRowsHaveFullSfen()
         }
 
         // デバッグ（境界確認）
-        auto hashS = [](const QString& s){ return qHash(s); };
+        auto hashS = [](const QString& str){ return qHash(str); };
         auto safeAt = [&](const QStringList& a, int i)->QString{
             return (0<=i && i<a.size() ? a.at(i) : QString());
         };

@@ -98,7 +98,7 @@ int SfenPositionTracer::fileToCol(int file) { // 1..9 -> 0..8 (9筋が左端)
 int SfenPositionTracer::rankLetterToRow(QChar r) { // a..i -> 0..8
     const ushort u = r.toLower().unicode();
     if (u < 'a' || u > 'i') return -1;
-    return int(u - 'a');
+    return u - 'a';
 }
 
 QChar SfenPositionTracer::kindToLetter(Kind k) {
@@ -381,7 +381,7 @@ QVector<ShogiMove> SfenPositionTracer::buildGameMoves(const QString& initialSfen
 
 int SfenPositionTracer::rankLetterToNum(QChar r) { // 'a'..'i' -> 1..9
     const ushort u = r.toLower().unicode();
-    return (u < 'a' || u > 'i') ? -1 : int(u - 'a') + 1;
+    return (u < 'a' || u > 'i') ? -1 : (u - 'a') + 1;
 }
 
 QPoint SfenPositionTracer::dropFromSquare(QChar dropUpper, bool black) {

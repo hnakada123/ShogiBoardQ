@@ -14,7 +14,7 @@ namespace {
 // 半角/全角の数字1桁 → int（0..9）
 static inline int asciiDigitToInt_(QChar c) {
     const ushort u = c.unicode();
-    return (u >= '0' && u <= '9') ? int(u - '0') : 0;
+    return (u >= '0' && u <= '9') ? (u - '0') : 0;
 }
 
 static inline int zenkakuDigitToInt_(QChar c) {

@@ -904,10 +904,8 @@ MatchCoordinator* GameStartCoordinator::createAndWireMatch(const MatchCoordinato
     // --- 司令塔→Coordinator へ受け、Coordinator から re-emit ---
     // timeUpdated(p1ms, p2ms, p1turn, urgencyMs)
     QObject::connect(
-        m_match,
-        static_cast<void (MatchCoordinator::*)(qint64,qint64,bool,qint64)>(&MatchCoordinator::timeUpdated),
-        this,
-        static_cast<void (GameStartCoordinator::*)(qint64,qint64,bool,qint64)>(&GameStartCoordinator::timeUpdated),
+        m_match, &MatchCoordinator::timeUpdated,
+        this, &GameStartCoordinator::timeUpdated,
         Qt::UniqueConnection
         );
 
@@ -934,10 +932,8 @@ MatchCoordinator* GameStartCoordinator::createAndWireMatch(const MatchCoordinato
 
     // gameEnded(const GameEndInfo&)
     QObject::connect(
-        m_match,
-        static_cast<void (MatchCoordinator::*)(const MatchCoordinator::GameEndInfo&)>(&MatchCoordinator::gameEnded),
-        this,
-        static_cast<void (GameStartCoordinator::*)(const MatchCoordinator::GameEndInfo&)>(&GameStartCoordinator::matchGameEnded),
+        m_match, &MatchCoordinator::gameEnded,
+        this, &GameStartCoordinator::matchGameEnded,
         Qt::UniqueConnection
         );
 

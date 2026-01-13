@@ -11,10 +11,10 @@ TurnManager::Side TurnManager::side() const {
 }
 
 void TurnManager::set(Side s) {
-    const Side norm =
-        (s == ShogiGameController::Player2) ? ShogiGameController::Player2 :
-            (s == ShogiGameController::Player1) ? ShogiGameController::Player1 :
-            ShogiGameController::Player1;
+    // Player2 以外は Player1 として正規化
+    const Side norm = (s == ShogiGameController::Player2)
+                          ? ShogiGameController::Player2
+                          : ShogiGameController::Player1;
 
     if (m_side == norm) return;
     m_side = norm;
