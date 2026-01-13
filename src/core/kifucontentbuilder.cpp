@@ -1,5 +1,4 @@
 #include "kifucontentbuilder.h"
-#include "kiftosfenconverter.h" // KifGameInfoItem
 #include "kifurecordlistmodel.h"
 #include <QTableWidget>
 #include <QDateTime>

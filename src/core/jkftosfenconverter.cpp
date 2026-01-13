@@ -1,5 +1,4 @@
 #include "jkftosfenconverter.h"
-#include "shogimove.h"
 
 #include <QFile>
 #include <QJsonDocument>

@@ -1,7 +1,4 @@
 #include "gamerecordmodel.h"
-#include "kiftosfenconverter.h"  // KifGameInfoItem
-#include "kifurecordlistmodel.h"
-#include "sfenpositiontracer.h"  // USEN出力用
 
 #include <QTableWidget>
 #include <QDateTime>
@@ -327,10 +324,7 @@ QStringList GameRecordModel::toKifLines(const ExportContext& ctx) const
         // KIF形式で出力: "   手数 指し手   (時間)+"
         const QString moveNoStr = QStringLiteral("%1").arg(moveNo, 4);
         out << QStringLiteral("%1 %2   %3%4")
-                   .arg(moveNoStr)
-                   .arg(kifMove, -12)  // 左詰め12文字
-                   .arg(time)
-                   .arg(branchMark);
+                   .arg(moveNoStr, kifMove.leftJustified(12), time, branchMark);
         
         // コメント出力（指し手の後に）
         const QString cmt = it.comment.trimmed();
@@ -625,10 +619,7 @@ void GameRecordModel::outputVariation_(int rowIndex, QStringList& out) const
         // KIF形式で出力
         const QString moveNoStr = QStringLiteral("%1").arg(moveNo, 4);
         out << QStringLiteral("%1 %2   %3%4")
-                   .arg(moveNoStr)
-                   .arg(kifMove, -12)
-                   .arg(time)
-                   .arg(branchMark);
+                   .arg(moveNoStr, kifMove.leftJustified(12), time, branchMark);
         
         // コメント出力
         const QString cmt = it.comment.trimmed();
@@ -1153,12 +1144,12 @@ static QString convertToCsaDateTime_(const QString& dateTimeStr)
     QRegularExpressionMatch m1 = reKif1.match(dateTimeStr);
     if (m1.hasMatch()) {
         return QStringLiteral("%1/%2/%3 %4:%5:%6")
-            .arg(m1.captured(1))
-            .arg(m1.captured(2).rightJustified(2, QLatin1Char('0')))
-            .arg(m1.captured(3).rightJustified(2, QLatin1Char('0')))
-            .arg(m1.captured(4).rightJustified(2, QLatin1Char('0')))
-            .arg(m1.captured(5).rightJustified(2, QLatin1Char('0')))
-            .arg(m1.captured(6).rightJustified(2, QLatin1Char('0')));
+            .arg(m1.captured(1),
+                 m1.captured(2).rightJustified(2, QLatin1Char('0')),
+                 m1.captured(3).rightJustified(2, QLatin1Char('0')),
+                 m1.captured(4).rightJustified(2, QLatin1Char('0')),
+                 m1.captured(5).rightJustified(2, QLatin1Char('0')),
+                 m1.captured(6).rightJustified(2, QLatin1Char('0')));
     }
     
     // KIF形式2: "2024年05月05日" (時刻なし)
@@ -1167,9 +1158,9 @@ static QString convertToCsaDateTime_(const QString& dateTimeStr)
     QRegularExpressionMatch m2 = reKif2.match(dateTimeStr);
     if (m2.hasMatch()) {
         return QStringLiteral("%1/%2/%3")
-            .arg(m2.captured(1))
-            .arg(m2.captured(2).rightJustified(2, QLatin1Char('0')))
-            .arg(m2.captured(3).rightJustified(2, QLatin1Char('0')));
+            .arg(m2.captured(1),
+                 m2.captured(2).rightJustified(2, QLatin1Char('0')),
+                 m2.captured(3).rightJustified(2, QLatin1Char('0')));
     }
     
     // ISO形式: "2024-05-05T15:05:40" や "2024-05-05 15:05:40"
@@ -1178,12 +1169,8 @@ static QString convertToCsaDateTime_(const QString& dateTimeStr)
     QRegularExpressionMatch m3 = reIso.match(dateTimeStr);
     if (m3.hasMatch()) {
         return QStringLiteral("%1/%2/%3 %4:%5:%6")
-            .arg(m3.captured(1))
-            .arg(m3.captured(2))
-            .arg(m3.captured(3))
-            .arg(m3.captured(4))
-            .arg(m3.captured(5))
-            .arg(m3.captured(6));
+            .arg(m3.captured(1), m3.captured(2), m3.captured(3),
+                 m3.captured(4), m3.captured(5), m3.captured(6));
     }
     
     // ISO形式（日付のみ）: "2024-05-05"
@@ -1192,9 +1179,7 @@ static QString convertToCsaDateTime_(const QString& dateTimeStr)
     QRegularExpressionMatch m4 = reIsoDate.match(dateTimeStr);
     if (m4.hasMatch()) {
         return QStringLiteral("%1/%2/%3")
-            .arg(m4.captured(1))
-            .arg(m4.captured(2))
-            .arg(m4.captured(3));
+            .arg(m4.captured(1), m4.captured(2), m4.captured(3));
     }
     
     // 変換できなかった場合はそのまま返す
@@ -1513,11 +1498,8 @@ QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringL
                 
                 if (!csaPiece.isEmpty()) {
                     csaMove = QStringLiteral("%1%2%3%4%5")
-                        .arg(sign)
-                        .arg(QStringLiteral("00"))
-                        .arg(QString::number(toFile))
-                        .arg(QString::number(toRank))
-                        .arg(csaPiece);
+                        .arg(sign, QStringLiteral("00"), QString::number(toFile),
+                             QString::number(toRank), csaPiece);
                 }
             } else if (usiMove.size() >= 4) {
                 // 盤上移動の場合
@@ -1534,12 +1516,8 @@ QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringL
                 
                 if (!csaPiece.isEmpty()) {
                     csaMove = QStringLiteral("%1%2%3%4%5%6")
-                        .arg(sign)
-                        .arg(QString::number(fromFile))
-                        .arg(QString::number(fromRank))
-                        .arg(QString::number(toFile))
-                        .arg(QString::number(toRank))
-                        .arg(csaPiece);
+                        .arg(sign, QString::number(fromFile), QString::number(fromRank),
+                             QString::number(toFile), QString::number(toRank), csaPiece);
                 }
             }
         }

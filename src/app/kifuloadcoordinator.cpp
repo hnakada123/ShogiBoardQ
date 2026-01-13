@@ -2670,7 +2670,7 @@ void KifuLoadCoordinator::updateBranchTreeFromLive(int currentPly)
             QVector<ResolvedRow> newRows;
             newRows.reserve(m_resolvedRows.size());
 
-            for (int oldIdx : sortedIndices) {
+            for (int oldIdx : std::as_const(sortedIndices)) {
                 ResolvedRow row = m_resolvedRows[oldIdx];
                 // 親インデックスを新しい番号に更新
                 if (row.parent >= 0) {

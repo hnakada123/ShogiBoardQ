@@ -2,7 +2,6 @@
 
 #include "engineanalysistab.h"
 #include "shogienginethinkingmodel.h"
-#include "usicommlogmodel.h"
 
 #include <QTabWidget>
 #include <QDebug>

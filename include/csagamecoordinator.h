@@ -9,6 +9,7 @@
 
 #include "csaclient.h"
 #include "shogimove.h"
+#include "kifurecordlistmodel.h"
 
 class ShogiGameController;
 class ShogiView;
@@ -17,7 +18,6 @@ class Usi;
 class UsiCommLogModel;
 class ShogiEngineThinkingModel;
 class BoardInteractionController;
-class KifuRecordListModel;
 
 /**
  * @brief CSA通信対局コーディネータクラス

@@ -747,7 +747,7 @@ void ShogiBoard::promoteOrDemotePiece(const int fileFrom, const int rankFrom)
     // 禁止形は巡回列から除外（= 自動スキップ）
     QVector<QChar> filtered;
     filtered.reserve(base.size());
-    for (QChar p : base) {
+    for (QChar p : std::as_const(base)) {
         if (!isDisallowed(p)) filtered.push_back(p);
     }
     if (filtered.isEmpty()) return;
