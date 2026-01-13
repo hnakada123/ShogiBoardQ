@@ -42,6 +42,19 @@ public:
     // メインの構築関数
     static QStringList buildKifuDataList(const KifuExportContext& ctx);
 
+    /**
+     * @brief コメント文字列をリッチHTMLに変換する
+     *
+     * 以下の変換を行う:
+     * 1. '*' の直前で改行（行頭以外の場合）
+     * 2. URL（http(s)://...）を <a href="...">...</a> にリンク化
+     * 3. 改行を <br/> に変換（非URL部分はHTMLエスケープ）
+     *
+     * @param raw 元のコメント文字列
+     * @return リッチHTML文字列
+     */
+    static QString toRichHtmlWithStarBreaksAndLinks(const QString& raw);
+
 private:
     // 内部ヘルパ
     static QList<KifGameInfoItem> collectGameInfo(const KifuExportContext& ctx);
