@@ -4,14 +4,24 @@
 #include <QObject>
 #include <QString>
 #include <QPoint>
+#include <QVector>
 
-class CsaGameCoordinator;
+#include "csagamecoordinator.h"
+#include "shogimove.h"
+
 class ShogiGameController;
 class ShogiView;
 class KifuRecordListModel;
 class RecordPane;
 class BoardInteractionController;
 class QStatusBar;
+class CsaGameDialog;
+class CsaWaitingDialog;
+class EngineAnalysisTab;
+class BoardSetupController;
+class UsiCommLogModel;
+class ShogiEngineThinkingModel;
+class TimeControlController;
 
 /**
  * @brief CSA通信対局とMainWindowの間のUI配線を担当するクラス
@@ -41,6 +51,13 @@ public:
         BoardInteractionController* boardController = nullptr;
         QStatusBar* statusBar = nullptr;
         QStringList* sfenRecord = nullptr;
+        // 以下はCSA対局開始用の追加依存オブジェクト
+        EngineAnalysisTab* analysisTab = nullptr;
+        BoardSetupController* boardSetupController = nullptr;
+        UsiCommLogModel* usiCommLog = nullptr;
+        ShogiEngineThinkingModel* engineThinking = nullptr;
+        TimeControlController* timeController = nullptr;
+        QVector<ShogiMove>* gameMoves = nullptr;
     };
 
     /**
@@ -72,6 +89,38 @@ public:
      * @param coordinator CSA通信対局コーディネータ
      */
     void setCoordinator(CsaGameCoordinator* coordinator);
+
+    /**
+     * @brief CSA対局を開始する
+     * @param dialog 設定済みのCsaGameDialog
+     * @param parent 親ウィンドウ（待機ダイアログ用）
+     * @return 対局開始が成功したらtrue
+     *
+     * この関数は以下を行う:
+     * - CsaGameCoordinatorの初期化（未作成の場合）
+     * - シグナル配線
+     * - 対局開始オプションの設定
+     * - 待機ダイアログの表示
+     */
+    bool startCsaGame(CsaGameDialog* dialog, QWidget* parent);
+
+    /**
+     * @brief CsaGameCoordinatorを取得
+     * @return CsaGameCoordinator*
+     */
+    CsaGameCoordinator* coordinator() const { return m_coordinator; }
+
+    /**
+     * @brief EngineAnalysisTabを設定
+     * @param tab EngineAnalysisTab
+     */
+    void setAnalysisTab(EngineAnalysisTab* tab);
+
+    /**
+     * @brief BoardSetupControllerを設定
+     * @param controller BoardSetupController
+     */
+    void setBoardSetupController(BoardSetupController* controller);
 
 signals:
     /**
@@ -193,10 +242,18 @@ private:
     BoardInteractionController* m_boardController = nullptr;
     QStatusBar* m_statusBar = nullptr;
     QStringList* m_sfenRecord = nullptr;
+    // CSA対局開始用の追加依存オブジェクト
+    EngineAnalysisTab* m_analysisTab = nullptr;
+    BoardSetupController* m_boardSetupController = nullptr;
+    UsiCommLogModel* m_usiCommLog = nullptr;
+    ShogiEngineThinkingModel* m_engineThinking = nullptr;
+    TimeControlController* m_timeController = nullptr;
+    QVector<ShogiMove>* m_gameMoves = nullptr;
 
     // 内部状態
     int m_activePly = 0;
     int m_currentSelectedPly = 0;
+    bool m_coordinatorOwnedByThis = false;  // コーディネータの所有権フラグ
 };
 
 #endif // CSAGAMEWIRING_H

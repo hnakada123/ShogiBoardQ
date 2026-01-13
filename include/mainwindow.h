@@ -274,6 +274,7 @@ private slots:
     void onPvRowClicked(int engineIndex, int row);
     void onKifuPasteImportRequested_(const QString& content);
     void onGameRecordCommentChanged(int ply, const QString& comment);
+    void onCommentUpdateCallback_(int ply, const QString& comment);
 
     // 分岐ノード活性化
     void onBranchNodeActivated_(int row, int ply);

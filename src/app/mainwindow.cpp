@@ -789,106 +789,26 @@ void MainWindow::displayCsaGameDialog()
 
     // ダイアログを表示する
     if (m_csaGameDialog->exec() == QDialog::Accepted) {
-        // CSA通信対局コーディネータが未作成の場合は作成する
-        if (!m_csaGameCoordinator) {
-            m_csaGameCoordinator = new CsaGameCoordinator(this);
-
-            // 依存オブジェクトを設定
-            CsaGameCoordinator::Dependencies deps;
-            deps.gameController = m_gameController;
-            deps.view = m_shogiView;
-            deps.clock = m_timeController ? m_timeController->clock() : nullptr;
-            deps.boardController = m_boardController;
-            deps.recordModel = m_kifuRecordModel;
-            deps.sfenRecord = m_sfenRecord;
-            deps.gameMoves = &m_gameMoves;
-            deps.usiCommLog = m_lineEditModel1;      // USI通信ログモデルを共有
-            deps.engineThinking = m_modelThinking1;  // エンジン思考モデルを共有
-            m_csaGameCoordinator->setDependencies(deps);
-
-            // CsaGameWiringを確保してシグナル接続
-            ensureCsaGameWiring_();
-            if (m_csaGameWiring) {
-                m_csaGameWiring->setCoordinator(m_csaGameCoordinator);
-                m_csaGameWiring->wire();
-            }
-
-            // CSA通信ログをEngineAnalysisTabに転送
-            if (m_analysisTab) {
-                connect(m_csaGameCoordinator, &CsaGameCoordinator::csaCommLogAppended,
-                        m_analysisTab, &EngineAnalysisTab::appendCsaLog);
-                // EngineAnalysisTabからのCSAコマンド送信シグナルを接続
-                connect(m_analysisTab, &EngineAnalysisTab::csaRawCommandRequested,
-                        m_csaGameCoordinator, &CsaGameCoordinator::sendRawCommand);
-            }
-
-            // BoardSetupControllerからの指し手をCsaGameCoordinatorに転送
-            ensureBoardSetupController_();
-            if (m_boardSetupController) {
-                connect(m_boardSetupController, &BoardSetupController::csaMoveRequested,
-                        m_csaGameCoordinator, &CsaGameCoordinator::onHumanMove);
-            }
+        // CsaGameWiringを確保
+        ensureCsaGameWiring_();
+        if (!m_csaGameWiring) {
+            qWarning().noquote() << "[MainWindow] displayCsaGameDialog: CsaGameWiring is null";
+            return;
         }
 
-        // 対局開始オプションを設定
-        CsaGameCoordinator::StartOptions options;
-        options.host = m_csaGameDialog->host();
-        options.port = m_csaGameDialog->port();
-        options.username = m_csaGameDialog->loginId();
-        options.password = m_csaGameDialog->password();
-        options.csaVersion = m_csaGameDialog->csaVersion();
-
-        if (m_csaGameDialog->isHuman()) {
-            options.playerType = CsaGameCoordinator::PlayerType::Human;
-        } else {
-            options.playerType = CsaGameCoordinator::PlayerType::Engine;
-            options.engineName = m_csaGameDialog->engineName();
-            options.engineNumber = m_csaGameDialog->engineNumber();
-            // エンジンパスは設定から取得
-            if (!m_csaGameDialog->engineList().isEmpty()) {
-                int idx = m_csaGameDialog->engineNumber();
-                if (idx >= 0 && idx < m_csaGameDialog->engineList().size()) {
-                    options.enginePath = m_csaGameDialog->engineList().at(idx).path;
-                }
-            }
-        }
+        // BoardSetupControllerを確保して設定
+        ensureBoardSetupController_();
+        m_csaGameWiring->setBoardSetupController(m_boardSetupController);
+        m_csaGameWiring->setAnalysisTab(m_analysisTab);
 
         // プレイモードをCSA通信対局に設定
         m_playMode = CsaNetworkMode;
 
-        qDebug() << "[MW] displayCsaGameDialog: About to start game and create waiting dialog";
+        // CSA対局を開始（ロジックはCsaGameWiringに委譲）
+        m_csaGameWiring->startCsaGame(m_csaGameDialog, this);
 
-        // 待機ダイアログを作成（startGameより先に作成してシグナルを受け取れるようにする）
-        // 以前のダイアログがあれば削除
-        if (m_csaWaitingDialog) {
-            delete m_csaWaitingDialog;
-            m_csaWaitingDialog = nullptr;
-        }
-
-        qDebug() << "[MW] displayCsaGameDialog: Creating CsaWaitingDialog...";
-        m_csaWaitingDialog = new CsaWaitingDialog(m_csaGameCoordinator, this);
-
-        // キャンセル要求時の処理をCsaGameWiringに接続
-        if (m_csaGameWiring) {
-            connect(m_csaWaitingDialog, &CsaWaitingDialog::cancelRequested,
-                    m_csaGameWiring, &CsaGameWiring::onWaitingCancelled);
-        }
-
-        qDebug() << "[MW] displayCsaGameDialog: CsaWaitingDialog created, now starting game...";
-
-        // 対局を開始（シグナルがCsaWaitingDialogに届くようになった後に開始）
-        m_csaGameCoordinator->startGame(options);
-
-        qDebug() << "[MW] displayCsaGameDialog: Game started, showing waiting dialog...";
-
-        // 待機ダイアログを表示（対局開始またはエラーまでブロック）
-        m_csaWaitingDialog->exec();
-
-        qDebug() << "[MW] displayCsaGameDialog: Waiting dialog closed";
-
-        // ダイアログ終了後のクリーンアップ
-        delete m_csaWaitingDialog;
-        m_csaWaitingDialog = nullptr;
+        // CsaGameCoordinatorの参照を保持（他のコードとの互換性のため）
+        m_csaGameCoordinator = m_csaGameWiring->coordinator();
     }
 }
 
@@ -912,18 +832,7 @@ void MainWindow::displayTsumeShogiSearchDialog()
 void MainWindow::displayKifuAnalysisDialog()
 {
     qDebug().noquote() << "[MainWindow::displayKifuAnalysisDialog] START";
-    qDebug().noquote() << "[MainWindow::displayKifuAnalysisDialog] m_gameController=" << m_gameController;
-    if (m_gameController) {
-        qDebug().noquote() << "[MainWindow::displayKifuAnalysisDialog] m_gameController->board()=" << m_gameController->board();
-        if (m_gameController->board()) {
-            qDebug().noquote() << "[MainWindow::displayKifuAnalysisDialog] boardData.size()=" << m_gameController->board()->boardData().size();
-        }
-    }
-    qDebug().noquote() << "[MainWindow::displayKifuAnalysisDialog] m_sfenRecord=" << m_sfenRecord;
-    if (m_sfenRecord) {
-        qDebug().noquote() << "[MainWindow::displayKifuAnalysisDialog] m_sfenRecord->size()=" << m_sfenRecord->size();
-    }
-    
+
     // 解析モードに遷移
     m_playMode = AnalysisMode;
 
@@ -931,57 +840,36 @@ void MainWindow::displayKifuAnalysisDialog()
     if (!m_analysisModel) {
         m_analysisModel = new KifuAnalysisListModel(this);
     }
-    
-    // 評価値グラフをクリア（対局時のグラフが残らないようにする）
-    if (m_recordPane) {
-        EvaluationChartWidget* ec = m_recordPane->evalChart();
-        if (ec) {
-            ec->clearAll();
-            qDebug().noquote() << "[MainWindow::displayKifuAnalysisDialog] evaluation chart cleared";
-        }
-    }
 
     ensureDialogCoordinator_();
-    if (m_dialogCoordinator) {
-        // 解析モデルとタブを設定
-        m_dialogCoordinator->setAnalysisModel(m_analysisModel);
-        m_dialogCoordinator->setAnalysisTab(m_analysisTab);
-        m_dialogCoordinator->setUsiEngine(m_usi1);
-        m_dialogCoordinator->setLogModel(m_lineEditModel1);
-        m_dialogCoordinator->setThinkingModel(m_modelThinking1);
-        
-        // 解析進捗シグナルを接続
-        QObject::connect(m_dialogCoordinator, &DialogCoordinator::analysisProgressReported,
-                         this, &MainWindow::onKifuAnalysisProgress, Qt::UniqueConnection);
+    if (!m_dialogCoordinator) return;
 
-        DialogCoordinator::KifuAnalysisParams params;
-        params.sfenRecord = m_sfenRecord;
-        params.moveRecords = m_moveRecords;
-        params.recordModel = m_kifuRecordModel;
-        params.activePly = m_activePly;
-        params.gameController = m_gameController;  // 盤面情報取得用
-        
-        // USI形式の指し手リストを取得（KifuLoadCoordinatorから）
-        if (m_kifuLoadCoordinator) {
-            params.usiMoves = m_kifuLoadCoordinator->usiMovesPtr();
-        }
-        
-        // 対局者名を取得（GameInfoPaneControllerから）
-        if (m_gameInfoController) {
-            const QList<KifGameInfoItem> items = m_gameInfoController->gameInfo();
-            for (const KifGameInfoItem& item : items) {
-                if (item.key == QStringLiteral("先手") || item.key == QStringLiteral("下手")) {
-                    params.blackPlayerName = item.value;
-                } else if (item.key == QStringLiteral("後手") || item.key == QStringLiteral("上手")) {
-                    params.whitePlayerName = item.value;
-                }
-            }
-        }
-        qDebug().noquote() << "[MainWindow::displayKifuAnalysisDialog] blackPlayerName=" << params.blackPlayerName
-                           << "whitePlayerName=" << params.whitePlayerName;
-        
-        m_dialogCoordinator->showKifuAnalysisDialog(params);
-    }
+    // 解析モデルとタブを設定
+    m_dialogCoordinator->setAnalysisModel(m_analysisModel);
+    m_dialogCoordinator->setAnalysisTab(m_analysisTab);
+    m_dialogCoordinator->setUsiEngine(m_usi1);
+    m_dialogCoordinator->setLogModel(m_lineEditModel1);
+    m_dialogCoordinator->setThinkingModel(m_modelThinking1);
+
+    // 解析進捗シグナルを接続
+    QObject::connect(m_dialogCoordinator, &DialogCoordinator::analysisProgressReported,
+                     this, &MainWindow::onKifuAnalysisProgress, Qt::UniqueConnection);
+
+    // コンテキストを設定
+    ensureGameInfoController_();
+    DialogCoordinator::KifuAnalysisContext ctx;
+    ctx.sfenRecord = m_sfenRecord;
+    ctx.moveRecords = m_moveRecords;
+    ctx.recordModel = m_kifuRecordModel;
+    ctx.activePly = &m_activePly;
+    ctx.gameController = m_gameController;
+    ctx.gameInfoController = m_gameInfoController;
+    ctx.kifuLoadCoordinator = m_kifuLoadCoordinator;
+    ctx.recordPane = m_recordPane;
+    m_dialogCoordinator->setKifuAnalysisContext(ctx);
+
+    // コンテキストから自動パラメータ構築してダイアログを表示
+    m_dialogCoordinator->showKifuAnalysisDialogFromContext();
 }
 
 void MainWindow::cancelKifuAnalysis()
@@ -2413,6 +2301,8 @@ void MainWindow::ensureRecordNavigationController_()
     m_recordNavController->setAnalysisTab(m_analysisTab);
     m_recordNavController->setRecordPane(m_recordPane);
     m_recordNavController->setRecordPresenter(m_recordPresenter);
+    m_recordNavController->setCsaGameCoordinator(m_csaGameCoordinator);
+    m_recordNavController->setEvalGraphController(m_evalGraphController);
 
     // 状態参照の設定
     m_recordNavController->setResolvedRows(&m_resolvedRows);
@@ -2441,6 +2331,11 @@ void MainWindow::ensureRecordNavigationController_()
         m_activePly = activePly;
         m_currentSelectedPly = selectedPly;
         m_currentMoveIndex = moveIndex;
+    });
+    m_recordNavController->setUpdateTurnIndicatorCallback([this](ShogiGameController::Player player) {
+        if (m_shogiView) {
+            m_shogiView->updateTurnIndicator(player);
+        }
     });
 }
 
@@ -2507,6 +2402,13 @@ void MainWindow::ensureCsaGameWiring_()
     deps.boardController = m_boardController;
     deps.statusBar = ui ? ui->statusbar : nullptr;
     deps.sfenRecord = m_sfenRecord;
+    // CSA対局開始用の追加依存オブジェクト
+    deps.analysisTab = m_analysisTab;
+    deps.boardSetupController = m_boardSetupController;
+    deps.usiCommLog = m_lineEditModel1;
+    deps.engineThinking = m_modelThinking1;
+    deps.timeController = m_timeController;
+    deps.gameMoves = &m_gameMoves;
 
     m_csaGameWiring = new CsaGameWiring(deps, this);
 
@@ -2907,65 +2809,26 @@ void MainWindow::showGameOverMessageBox_(const QString& title, const QString& me
 
 void MainWindow::onRecordPaneMainRowChanged_(int row)
 {
-    // CSA対局が進行中の場合のみ棋譜リストの選択変更による盤面同期をスキップ
-    // （対局終了後は棋譜ナビゲーションを許可）
-    const bool csaGameInProgress = m_csaGameCoordinator && 
-        (m_csaGameCoordinator->gameState() == CsaGameCoordinator::GameState::InGame);
-    
-    qDebug() << "[MW-DEBUG] onRecordPaneMainRowChanged_ ENTER row=" << row
-             << "csaGameInProgress=" << csaGameInProgress;
-    
-    if (csaGameInProgress) {
-        qDebug() << "[MW-DEBUG] onRecordPaneMainRowChanged_ SKIP: CSA game in progress";
-        return;
+    qDebug() << "[MW-DEBUG] onRecordPaneMainRowChanged_ ENTER row=" << row;
+
+    // RecordNavigationControllerに委譲
+    ensureRecordNavigationController_();
+    if (m_recordNavController) {
+        // 最新の依存を同期
+        m_recordNavController->setCsaGameCoordinator(m_csaGameCoordinator);
+        m_recordNavController->setEvalGraphController(m_evalGraphController);
+        m_recordNavController->onMainRowChanged(row);
     }
-    
-    // フォールバック：起動直後など Loader 未生成時でも UI が動くように最低限の同期を行う
-    if (row >= 0) {
-        qDebug() << "[MW-DEBUG] onRecordPaneMainRowChanged_: calling syncBoardAndHighlightsAtRow(" << row << ")";
-        syncBoardAndHighlightsAtRow(row);
 
-        // ★ 修正点：currentPly() のベースになるトラッキングを更新
-        m_activePly          = row;  // ← 追加
-        m_currentSelectedPly = row;
-        m_currentMoveIndex   = row;
-
-        // ★ 追加：棋譜欄のハイライト行を更新（対局終了後のナビゲーション対応）
-        if (m_kifuRecordModel) {
-            m_kifuRecordModel->setCurrentHighlightRow(row);
-        }
-
-        // ★ 追加：盤面適用後に手番表示を更新
-        qDebug() << "[MW-DEBUG] onRecordPaneMainRowChanged_: calling setCurrentTurn()";
-        setCurrentTurn();
-        
-        // ★ 追加：手番表示を強制的にUIに反映（TurnManagerが同じ手番でシグナルを発火しない場合の対策）
-        if (m_shogiView && m_shogiView->board()) {
-            const QString bw = m_shogiView->board()->currentPlayer();
-            const bool isBlackTurn = (bw != QStringLiteral("w"));
-            qDebug() << "[MW-DEBUG] onRecordPaneMainRowChanged_: bw=" << bw 
-                     << "isBlackTurn=" << isBlackTurn
-                     << "calling setActiveSide and updateTurnIndicator";
-            m_shogiView->setActiveSide(isBlackTurn);
-            
-            // 次の手番ラベルも更新
-            const auto player = isBlackTurn ? ShogiGameController::Player1 : ShogiGameController::Player2;
-            m_shogiView->updateTurnIndicator(player);
-        } else {
-            qDebug() << "[MW-DEBUG] onRecordPaneMainRowChanged_: m_shogiView=" << m_shogiView 
-                     << "board=" << (m_shogiView ? m_shogiView->board() : nullptr);
-        }
-
-        // ★ 追加：評価値グラフの縦線（カーソルライン）を更新
-        if (m_evalGraphController) {
-            // rowは棋譜欄の行番号（0始まり）
-            // row=0: 開始局面（0手目）, row=1: 1手目, row=2: 2手目, ...
-            // 評価値グラフのX軸も0始まりの手数なので、rowをそのまま使用
-            qDebug() << "[MW-DEBUG] onRecordPaneMainRowChanged_: updating cursor line, row=" << row;
-            m_evalGraphController->setCurrentPly(row);
-        }
+    // m_currentSfenStrを現在の局面に更新
+    if (row >= 0 && m_sfenRecord && row < m_sfenRecord->size()) {
+        m_currentSfenStr = m_sfenRecord->at(row);
+        qDebug() << "[MW-DEBUG] onRecordPaneMainRowChanged_: updated m_currentSfenStr=" << m_currentSfenStr;
     }
-    enableArrowButtons();
+
+    // 定跡ウィンドウを更新
+    updateJosekiWindow();
+
     qDebug() << "[MW-DEBUG] onRecordPaneMainRowChanged_ LEAVE";
 }
 
@@ -3286,32 +3149,12 @@ void MainWindow::onCommentUpdated(int moveIndex, const QString& newComment)
         return;
     }
 
-    // ★ GameRecordModel を使ってコメントを一括更新
+    // GameRecordModel を使ってコメントを更新
+    // （通知処理はコールバック経由で自動実行される）
     ensureGameRecordModel_();
     if (m_gameRecord) {
         m_gameRecord->setComment(moveIndex, newComment);
     }
-
-    // ★ m_commentsByRow も同期（互換性・RecordPresenterへの供給用）
-    while (m_commentsByRow.size() <= moveIndex) {
-        m_commentsByRow.append(QString());
-    }
-    m_commentsByRow[moveIndex] = newComment;
-
-    // RecordPresenter のコメント配列も更新（行選択時に正しいコメントを表示するため）
-    if (m_recordPresenter) {
-        QStringList updatedComments;
-        updatedComments.reserve(m_commentsByRow.size());
-        for (const auto& c : m_commentsByRow) {
-            updatedComments.append(c);
-        }
-        m_recordPresenter->setCommentsByRow(updatedComments);
-        qDebug().noquote() << "[MW] Updated RecordPresenter commentsByRow";
-    }
-
-    // 現在表示中のコメントを更新（両方のコメント欄に反映）
-    const QString displayComment = newComment.trimmed().isEmpty() ? tr("コメントなし") : newComment;
-    broadcastComment(displayComment, /*asHtml=*/true);
 
     // ステータスバーに通知
     ui->statusbar->showMessage(tr("コメントを更新しました（手数: %1）").arg(moveIndex), 3000);
@@ -3337,6 +3180,12 @@ void MainWindow::ensureGameRecordModel_()
     connect(m_gameRecord, &GameRecordModel::commentChanged,
             this, &MainWindow::onGameRecordCommentChanged);
 
+    // コメント更新時のコールバックを設定
+    // m_commentsByRow 同期、RecordPresenter通知、UI更新を自動実行
+    m_gameRecord->setCommentUpdateCallback(
+        std::bind(&MainWindow::onCommentUpdateCallback_, this,
+                  std::placeholders::_1, std::placeholders::_2));
+
     qDebug().noquote() << "[MW] ensureGameRecordModel_: created and bound";
 }
 
@@ -3344,6 +3193,33 @@ void MainWindow::ensureGameRecordModel_()
 void MainWindow::onGameRecordCommentChanged(int ply, const QString& /*comment*/)
 {
     qDebug().noquote() << "[MW] GameRecordModel::commentChanged ply=" << ply;
+}
+
+// コメント更新コールバック（GameRecordModel から呼ばれる）
+void MainWindow::onCommentUpdateCallback_(int ply, const QString& comment)
+{
+    qDebug().noquote() << "[MW] onCommentUpdateCallback_ ply=" << ply;
+
+    // m_commentsByRow への同期（互換性・RecordPresenterへの供給用）
+    while (m_commentsByRow.size() <= ply) {
+        m_commentsByRow.append(QString());
+    }
+    m_commentsByRow[ply] = comment;
+
+    // RecordPresenter のコメント配列も更新（行選択時に正しいコメントを表示するため）
+    if (m_recordPresenter) {
+        QStringList updatedComments;
+        updatedComments.reserve(m_commentsByRow.size());
+        for (const QString& c : m_commentsByRow) {
+            updatedComments.append(c);
+        }
+        m_recordPresenter->setCommentsByRow(updatedComments);
+        qDebug().noquote() << "[MW] Updated RecordPresenter commentsByRow";
+    }
+
+    // 現在表示中のコメントを更新（両方のコメント欄に反映）
+    const QString displayComment = comment.trimmed().isEmpty() ? tr("コメントなし") : comment;
+    broadcastComment(displayComment, /*asHtml=*/true);
 }
 
 // ★ 追加: 読み筋クリック処理

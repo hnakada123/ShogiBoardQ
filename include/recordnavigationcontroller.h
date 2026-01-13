@@ -7,6 +7,7 @@
 #include <functional>
 
 #include "kifutypes.h"  // ResolvedRow
+#include "shogigamecontroller.h"  // ShogiGameController::Player
 
 class ShogiView;
 class BoardSyncPresenter;
@@ -17,6 +18,8 @@ class EngineAnalysisTab;
 class RecordPane;
 class GameRecordPresenter;
 class QTableView;
+class CsaGameCoordinator;
+class EvaluationGraphController;
 
 /**
  * @brief RecordNavigationController - 棋譜ナビゲーション管理クラス
@@ -47,6 +50,8 @@ public:
     void setAnalysisTab(EngineAnalysisTab* analysisTab);
     void setRecordPane(RecordPane* recordPane);
     void setRecordPresenter(GameRecordPresenter* presenter);
+    void setCsaGameCoordinator(CsaGameCoordinator* coordinator);
+    void setEvalGraphController(EvaluationGraphController* controller);
 
     // --------------------------------------------------------
     // 状態参照の設定（ポインタ経由）
@@ -63,6 +68,7 @@ public:
     using BroadcastCommentCallback = std::function<void(const QString&, bool)>;
     using ApplyResolvedRowAndSelectCallback = std::function<void(int, int)>;
     using UpdatePlyStateCallback = std::function<void(int, int, int)>;
+    using UpdateTurnIndicatorCallback = std::function<void(ShogiGameController::Player)>;
 
     void setEnsureBoardSyncCallback(EnsureBoardSyncCallback cb);
     void setEnableArrowButtonsCallback(EnableArrowButtonsCallback cb);
@@ -70,6 +76,7 @@ public:
     void setBroadcastCommentCallback(BroadcastCommentCallback cb);
     void setApplyResolvedRowAndSelectCallback(ApplyResolvedRowAndSelectCallback cb);
     void setUpdatePlyStateCallback(UpdatePlyStateCallback cb);
+    void setUpdateTurnIndicatorCallback(UpdateTurnIndicatorCallback cb);
 
     // --------------------------------------------------------
     // ナビゲーション処理
@@ -96,6 +103,12 @@ public Q_SLOTS:
      */
     void onRecordRowChangedByPresenter(int row, const QString& comment);
 
+    /**
+     * @brief RecordPaneからの行変更通知を処理（MainWindowから移管）
+     * @param row 選択された行番号
+     */
+    void onMainRowChanged(int row);
+
 private:
     /**
      * @brief 未保存コメントの確認ダイアログを表示
@@ -112,6 +125,8 @@ private:
     EngineAnalysisTab* m_analysisTab = nullptr;
     RecordPane* m_recordPane = nullptr;
     GameRecordPresenter* m_recordPresenter = nullptr;
+    CsaGameCoordinator* m_csaGameCoordinator = nullptr;
+    EvaluationGraphController* m_evalGraphController = nullptr;
 
     const QVector<ResolvedRow>* m_resolvedRows = nullptr;
     const int* m_activeResolvedRow = nullptr;
@@ -123,6 +138,7 @@ private:
     BroadcastCommentCallback m_broadcastComment;
     ApplyResolvedRowAndSelectCallback m_applyResolvedRowAndSelect;
     UpdatePlyStateCallback m_updatePlyState;
+    UpdateTurnIndicatorCallback m_updateTurnIndicator;
 };
 
 #endif // RECORDNAVIGATIONCONTROLLER_H
