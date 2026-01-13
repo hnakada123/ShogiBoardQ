@@ -111,7 +111,7 @@ void EngineAnalysisTab::buildUi()
 {
     // --- QTabWidget 準備 ---
     if (!m_tab) {
-        m_tab = new QTabWidget(nullptr);
+        m_tab = new QTabWidget(this);  // 親をthisに指定（メモリリーク防止）
         m_tab->setObjectName(QStringLiteral("analysisTabs"));
     } else {
         m_tab->clear();

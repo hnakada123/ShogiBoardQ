@@ -305,7 +305,7 @@ private:
     bool     m_errorOccurred = false;
     int      m_currentMoveIndex = 0;
     QString  m_lastMove;
-    PlayMode m_playMode = NotStarted;
+    PlayMode m_playMode = PlayMode::NotStarted;
 
     // 将棋盤 / コントローラ類
     ShogiView*                   m_shogiView = nullptr;

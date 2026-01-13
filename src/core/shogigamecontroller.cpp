@@ -282,21 +282,21 @@ bool ShogiGameController::isCurrentPlayerHumanControlled(PlayMode& playMode)
     auto player = currentPlayer();
 
     // 対局者が人間同士であるか
-    return (playMode == HumanVsHuman)
+    return (playMode == PlayMode::HumanVsHuman)
            // あるいは、手番が先手あるいは下手であり、かつ平手で人間対エンジンの場合
-           || (player == Player1 && playMode == EvenHumanVsEngine)
+           || (player == Player1 && playMode == PlayMode::EvenHumanVsEngine)
 
            // あるいは、手番が後手あるいは上手であり、かつ平手でエンジン対人間の場合
-           || (player == Player2 && playMode == EvenEngineVsHuman)
+           || (player == Player2 && playMode == PlayMode::EvenEngineVsHuman)
 
            // あるいは、手番が先手あるいは下手であり、かつ駒落ちで人間対エンジンの場合
-           || (player == Player1 && playMode == HandicapHumanVsEngine)
+           || (player == Player1 && playMode == PlayMode::HandicapHumanVsEngine)
 
            // あるいは、手番が後手あるいは上手であり、かつ駒落ちでエンジン対人間の場合
-           || (player == Player2 && playMode == HandicapEngineVsHuman)
+           || (player == Player2 && playMode == PlayMode::HandicapEngineVsHuman)
 
            // あるいは、CSA通信対局モードの場合（人間操作）
-           || (playMode == CsaNetworkMode);
+           || (playMode == PlayMode::CsaNetworkMode);
 }
 
 // ダイアログを表示して対局者に成るかどうかを選択させる。
@@ -423,7 +423,7 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
 
     //begin debug
     qDebug() << "in ShogiGameController::validateAndMove";
-    qDebug() << "playMode = " << playMode;
+    qDebug() << "playMode = " << static_cast<int>(playMode);
     qDebug() << "promote = " << m_promote;
     qDebug() << "fileFrom = " << fileFrom;
     qDebug() << "rankFrom = " << rankFrom;

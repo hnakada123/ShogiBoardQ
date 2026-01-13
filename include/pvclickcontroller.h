@@ -85,7 +85,7 @@ private:
     const QVector<ShogiMove>* m_gameMoves = nullptr;
     const QStringList* m_usiMoves = nullptr;
 
-    PlayMode m_playMode = NotStarted;
+    PlayMode m_playMode = PlayMode::NotStarted;
     QString m_humanName1;
     QString m_humanName2;
     QString m_engineName1;

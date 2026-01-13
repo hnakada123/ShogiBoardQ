@@ -643,6 +643,14 @@ bool KifuLoadCoordinator::loadKifuFromString(const QString& content)
     QTextStream out(&tempFile);
     out.setEncoding(QStringConverter::Utf8);
     out << content;
+
+    // 書き込みステータスを確認
+    out.flush();
+    if (out.status() != QTextStream::Ok) {
+        emit errorOccurred(tr("一時ファイルへの書き込みに失敗しました。"));
+        tempFile.close();
+        return false;
+    }
     tempFile.close();
 
     qDebug().noquote() << "[PASTE] created temp file:" << tempFilePath;

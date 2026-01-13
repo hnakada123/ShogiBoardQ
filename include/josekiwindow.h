@@ -138,6 +138,11 @@ public slots:
 
 private slots:
     /**
+     * @brief 最近使ったファイル履歴をクリアするスロット
+     */
+    void onClearRecentFilesClicked();
+
+    /**
      * @brief 「着手」ボタンがクリックされたときのスロット
      */
     void onPlayButtonClicked();

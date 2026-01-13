@@ -109,13 +109,13 @@ GameRecordModel::ExportContext KifuExportController::buildExportContext() const
 
 bool KifuExportController::isCurrentlyPlaying() const
 {
-    const bool isPlayingMode = (m_deps.playMode == EvenHumanVsEngine ||
-                                m_deps.playMode == EvenEngineVsHuman ||
-                                m_deps.playMode == EvenEngineVsEngine ||
-                                m_deps.playMode == HandicapEngineVsHuman ||
-                                m_deps.playMode == HandicapHumanVsEngine ||
-                                m_deps.playMode == HandicapEngineVsEngine ||
-                                m_deps.playMode == HumanVsHuman);
+    const bool isPlayingMode = (m_deps.playMode == PlayMode::EvenHumanVsEngine ||
+                                m_deps.playMode == PlayMode::EvenEngineVsHuman ||
+                                m_deps.playMode == PlayMode::EvenEngineVsEngine ||
+                                m_deps.playMode == PlayMode::HandicapEngineVsHuman ||
+                                m_deps.playMode == PlayMode::HandicapHumanVsEngine ||
+                                m_deps.playMode == PlayMode::HandicapEngineVsEngine ||
+                                m_deps.playMode == PlayMode::HumanVsHuman);
     
     const bool isGameOver = (m_deps.match && m_deps.match->gameOverState().isOver);
     

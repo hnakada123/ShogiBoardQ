@@ -1075,7 +1075,7 @@ void CsaGameCoordinator::initializeEngine()
     }
 
     // PlayModeを取得するためにstaticなダミーを使用
-    static PlayMode dummyPlayMode = CsaNetworkMode;
+    static PlayMode dummyPlayMode = PlayMode::CsaNetworkMode;
 
     m_engine = new Usi(m_engineCommLog, m_engineThinking,
                        m_gameController.data(), dummyPlayMode, this);

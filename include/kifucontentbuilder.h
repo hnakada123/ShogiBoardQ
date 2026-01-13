@@ -29,7 +29,7 @@ struct KifuExportContext {
 
     // ゲーム状態
     QString startSfen;
-    PlayMode playMode = NotStarted;
+    PlayMode playMode = PlayMode::NotStarted;
     QString human1;
     QString human2;
     QString engine1;

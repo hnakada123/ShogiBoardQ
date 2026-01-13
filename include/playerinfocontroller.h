@@ -131,7 +131,7 @@ private:
     UsiCommLogModel* m_lineEditModel2 = nullptr;
     EngineAnalysisTab* m_analysisTab = nullptr;
 
-    PlayMode m_playMode = NotStarted;
+    PlayMode m_playMode = PlayMode::NotStarted;
     QString m_humanName1;
     QString m_humanName2;
     QString m_engineName1;

@@ -501,6 +501,14 @@ void EngineRegistrationDialog::saveEngineToSettings(QSettings& settings, const E
 // 設定ファイルに追加エンジンのオプションを書き込む。
 void EngineRegistrationDialog::saveEngineOptionsToSettings() const
 {
+    // 並列配列のサイズ整合性を確認
+    if (m_engineOptions.size() != m_concatenatedOptionValuesList.size()) {
+        qWarning() << "saveEngineOptionsToSettings: リストサイズ不一致 - "
+                   << "m_engineOptions:" << m_engineOptions.size()
+                   << "m_concatenatedOptionValuesList:" << m_concatenatedOptionValuesList.size();
+        return;
+    }
+
     // 設定ファイルを指定する。
     QSettings settings(SettingsFileName, QSettings::IniFormat);
 

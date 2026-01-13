@@ -63,7 +63,7 @@ void TsumeSearchFlowController::startAnalysis_(MatchCoordinator* match,
     opt.engineName  = engineName;
     opt.positionStr = positionStr;
     opt.byoyomiMs   = byoyomiMs;
-    opt.mode        = TsumiSearchMode;
+    opt.mode        = PlayMode::TsumiSearchMode;
 
     match->startAnalysis(opt);
 }

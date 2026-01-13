@@ -125,7 +125,7 @@ private:
     TimeControlController* m_timeController = nullptr;
     PositionEditController* m_posEdit = nullptr;
 
-    PlayMode m_playMode = NotStarted;
+    PlayMode m_playMode = PlayMode::NotStarted;
     QStringList* m_sfenRecord = nullptr;
     QVector<ShogiMove>* m_gameMoves = nullptr;
     int* m_currentMoveIndex = nullptr;

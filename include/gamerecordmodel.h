@@ -122,7 +122,7 @@ public:
         const QTableWidget* gameInfoTable = nullptr;
         const KifuRecordListModel* recordModel = nullptr;
         QString startSfen;
-        PlayMode playMode = NotStarted;
+        PlayMode playMode = PlayMode::NotStarted;
         QString human1;
         QString human2;
         QString engine1;

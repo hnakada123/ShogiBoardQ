@@ -207,22 +207,22 @@ QString PvClickController::resolveCurrentSfen(const QString& baseSfen) const
 void PvClickController::resolvePlayerNames(QString& blackName, QString& whiteName) const
 {
     switch (m_playMode) {
-    case EvenHumanVsEngine:
-    case HandicapHumanVsEngine:
+    case PlayMode::EvenHumanVsEngine:
+    case PlayMode::HandicapHumanVsEngine:
         blackName = m_humanName1.isEmpty() ? tr("先手") : m_humanName1;
         whiteName = m_engineName2.isEmpty() ? tr("後手") : m_engineName2;
         break;
-    case EvenEngineVsHuman:
-    case HandicapEngineVsHuman:
+    case PlayMode::EvenEngineVsHuman:
+    case PlayMode::HandicapEngineVsHuman:
         blackName = m_engineName1.isEmpty() ? tr("先手") : m_engineName1;
         whiteName = m_humanName2.isEmpty() ? tr("後手") : m_humanName2;
         break;
-    case EvenEngineVsEngine:
-    case HandicapEngineVsEngine:
+    case PlayMode::EvenEngineVsEngine:
+    case PlayMode::HandicapEngineVsEngine:
         blackName = m_engineName1.isEmpty() ? tr("先手") : m_engineName1;
         whiteName = m_engineName2.isEmpty() ? tr("後手") : m_engineName2;
         break;
-    case HumanVsHuman:
+    case PlayMode::HumanVsHuman:
         blackName = m_humanName1.isEmpty() ? tr("先手") : m_humanName1;
         whiteName = m_humanName2.isEmpty() ? tr("後手") : m_humanName2;
         break;

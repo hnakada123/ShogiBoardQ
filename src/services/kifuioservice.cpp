@@ -41,28 +41,28 @@ QString KifuIoService::makeDefaultSaveFileName(PlayMode mode,
     };
 
     switch (mode) {
-    case HumanVsHuman:
+    case PlayMode::HumanVsHuman:
         return mk(human1, human2, QStringLiteral("HvH"));
-    case EvenHumanVsEngine:      // 平手 P1: Human, P2: Engine
+    case PlayMode::EvenHumanVsEngine:      // 平手 P1: Human, P2: Engine
         return mk(human1, engine2, QStringLiteral("HvE"));
-    case EvenEngineVsHuman:      // 平手 P1: Engine, P2: Human
+    case PlayMode::EvenEngineVsHuman:      // 平手 P1: Engine, P2: Human
         return mk(engine1, human2, QStringLiteral("EvH"));
-    case EvenEngineVsEngine:     // 平手/駒落ち P1: Engine, P2: Engine
+    case PlayMode::EvenEngineVsEngine:     // 平手/駒落ち P1: Engine, P2: Engine
         return mk(engine1, engine2, QStringLiteral("EvE"));
-    case HandicapEngineVsHuman:  // 駒落ち P1: Engine(下手), P2: Human(上手)
+    case PlayMode::HandicapEngineVsHuman:  // 駒落ち P1: Engine(下手), P2: Human(上手)
         return mk(engine1, human2, QStringLiteral("Handi_EvH"));
-    case HandicapHumanVsEngine:  // 駒落ち P1: Human(下手), P2: Engine(上手)
+    case PlayMode::HandicapHumanVsEngine:  // 駒落ち P1: Human(下手), P2: Engine(上手)
         return mk(human1, engine2, QStringLiteral("Handi_HvE"));
-    case HandicapEngineVsEngine: // 駒落ち P1: Engine(下手), P2: Engine(上手)
+    case PlayMode::HandicapEngineVsEngine: // 駒落ち P1: Engine(下手), P2: Engine(上手)
         return mk(engine1, engine2, QStringLiteral("Handi_EvE"));
-    case AnalysisMode:
+    case PlayMode::AnalysisMode:
         return QStringLiteral("%1_Analysis.kifu").arg(stamp);
-    case ConsidarationMode:
+    case PlayMode::ConsiderationMode:
         return QStringLiteral("%1_Consideration.kifu").arg(stamp);
-    case TsumiSearchMode:
+    case PlayMode::TsumiSearchMode:
         return QStringLiteral("%1_TsumiSearch.kifu").arg(stamp);
-    case NotStarted:
-    case PlayModeError:
+    case PlayMode::NotStarted:
+    case PlayMode::PlayModeError:
     default:
         return QStringLiteral("%1_Session.kifu").arg(stamp);
     }

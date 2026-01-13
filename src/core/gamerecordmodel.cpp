@@ -473,27 +473,27 @@ QList<KifGameInfoItem> GameRecordModel::collectGameInfo_(const ExportContext& ct
 void GameRecordModel::resolvePlayerNames_(const ExportContext& ctx, QString& outBlack, QString& outWhite)
 {
     switch (ctx.playMode) {
-    case HumanVsHuman:
+    case PlayMode::HumanVsHuman:
         outBlack = ctx.human1.isEmpty() ? QObject::tr("先手") : ctx.human1;
         outWhite = ctx.human2.isEmpty() ? QObject::tr("後手") : ctx.human2;
         break;
-    case EvenHumanVsEngine:
+    case PlayMode::EvenHumanVsEngine:
         outBlack = ctx.human1.isEmpty()  ? QObject::tr("先手")   : ctx.human1;
         outWhite = ctx.engine2.isEmpty() ? QObject::tr("Engine") : ctx.engine2;
         break;
-    case EvenEngineVsHuman:
+    case PlayMode::EvenEngineVsHuman:
         outBlack = ctx.engine1.isEmpty() ? QObject::tr("Engine") : ctx.engine1;
         outWhite = ctx.human2.isEmpty()  ? QObject::tr("後手")   : ctx.human2;
         break;
-    case EvenEngineVsEngine:
+    case PlayMode::EvenEngineVsEngine:
         outBlack = ctx.engine1.isEmpty() ? QObject::tr("Engine1") : ctx.engine1;
         outWhite = ctx.engine2.isEmpty() ? QObject::tr("Engine2") : ctx.engine2;
         break;
-    case HandicapEngineVsHuman:
+    case PlayMode::HandicapEngineVsHuman:
         outBlack = ctx.engine1.isEmpty() ? QObject::tr("Engine") : ctx.engine1;
         outWhite = ctx.human2.isEmpty()  ? QObject::tr("後手")   : ctx.human2;
         break;
-    case HandicapHumanVsEngine:
+    case PlayMode::HandicapHumanVsEngine:
         outBlack = ctx.human1.isEmpty()  ? QObject::tr("先手")   : ctx.human1;
         outWhite = ctx.engine2.isEmpty() ? QObject::tr("Engine") : ctx.engine2;
         break;

@@ -1349,7 +1349,16 @@ bool JosekiWindow::saveJosekiFile(const QString &filePath)
             }
         }
     }
-    
+
+    // 書き込みステータスを確認
+    out.flush();
+    if (out.status() != QTextStream::Ok) {
+        QMessageBox::warning(this, tr("エラー"),
+                             tr("ファイル書き込み中にエラーが発生しました: %1").arg(filePath));
+        file.close();
+        return false;
+    }
+
     file.close();
     return true;
 }
@@ -1447,11 +1456,14 @@ void JosekiWindow::updateRecentFilesMenu()
     
     // 履歴をクリアするアクション
     QAction *clearAction = m_recentFilesMenu->addAction(tr("履歴をクリア"));
-    connect(clearAction, &QAction::triggered, this, [this]() {
-        m_recentFiles.clear();
-        updateRecentFilesMenu();
-        saveSettings();
-    });
+    connect(clearAction, &QAction::triggered, this, &JosekiWindow::onClearRecentFilesClicked);
+}
+
+void JosekiWindow::onClearRecentFilesClicked()
+{
+    m_recentFiles.clear();
+    updateRecentFilesMenu();
+    saveSettings();
 }
 
 void JosekiWindow::onRecentFileClicked()
