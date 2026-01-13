@@ -4,7 +4,10 @@
 #include <QObject>
 #include <QString>
 #include <QStringList>
+#include <QList>
 #include <functional>
+
+#include "kifparsetypes.h"
 
 class QWidget;
 class MatchCoordinator;
@@ -19,6 +22,9 @@ class ConsiderationFlowController;
 class TsumeSearchFlowController;
 class AnalysisFlowController;
 class KifuDisplay;
+class GameInfoPaneController;
+class KifuLoadCoordinator;
+class RecordPane;
 
 /**
  * @brief DialogCoordinator - ダイアログ表示の管理クラス
@@ -161,9 +167,39 @@ public:
     };
 
     /**
+     * @brief 棋譜解析ダイアログの依存コンテキスト
+     * 
+     * MainWindowから一度設定することで、パラメータ収集を自動化します。
+     */
+    struct KifuAnalysisContext {
+        QStringList* sfenRecord = nullptr;
+        QList<KifuDisplay*>* moveRecords = nullptr;
+        KifuRecordListModel* recordModel = nullptr;
+        int* activePly = nullptr;
+        ShogiGameController* gameController = nullptr;
+        GameInfoPaneController* gameInfoController = nullptr;
+        KifuLoadCoordinator* kifuLoadCoordinator = nullptr;
+        RecordPane* recordPane = nullptr;
+    };
+
+    /**
+     * @brief 棋譜解析コンテキストを設定
+     * @param ctx 棋譜解析に必要な依存オブジェクト群
+     */
+    void setKifuAnalysisContext(const KifuAnalysisContext& ctx);
+
+    /**
      * @brief 棋譜解析ダイアログを表示
      */
     void showKifuAnalysisDialog(const KifuAnalysisParams& params);
+
+    /**
+     * @brief 棋譜解析ダイアログを表示（コンテキストから自動パラメータ構築）
+     * 
+     * setKifuAnalysisContext で設定した依存オブジェクトから
+     * 自動的にパラメータを構築してダイアログを表示します。
+     */
+    void showKifuAnalysisDialogFromContext();
 
     /**
      * @brief 棋譜解析を中止
@@ -222,6 +258,13 @@ private:
 
     // Flow コントローラ（遅延生成）
     AnalysisFlowController* m_analysisFlow = nullptr;
+
+    // 棋譜解析コンテキスト
+    KifuAnalysisContext m_kifuAnalysisCtx;
+
+    // ヘルパー: 対局情報から対局者名を取得
+    static void extractPlayerNames(const QList<KifGameInfoItem>& gameInfo,
+                                   QString& outBlackName, QString& outWhiteName);
 };
 
 #endif // DIALOGCOORDINATOR_H

@@ -9,6 +9,7 @@
 #include <QSet>
 #include <QJsonObject>
 #include <QJsonArray>
+#include <functional>
 
 #include "kifdisplayitem.h"
 #include "kifparsetypes.h"
@@ -76,6 +77,22 @@ public:
      * - liveDisp[ply].comment
      */
     void setComment(int ply, const QString& comment);
+
+    /**
+     * @brief コメント更新時の外部通知コールバック型
+     * @param ply 更新された手数
+     * @param comment 新しいコメント
+     */
+    using CommentUpdateCallback = std::function<void(int ply, const QString& comment)>;
+
+    /**
+     * @brief コメント更新時の通知コールバックを設定
+     * @param callback コールバック関数
+     * 
+     * このコールバックは setComment でコメントが変更された後に呼ばれます。
+     * RecordPresenterへの通知やUI更新に使用します。
+     */
+    void setCommentUpdateCallback(const CommentUpdateCallback& callback);
 
     /**
      * @brief 指定手数のコメントを取得
@@ -233,6 +250,9 @@ private:
     QVector<ResolvedRow>* m_resolvedRows = nullptr;
     int* m_activeResolvedRow = nullptr;
     QList<KifDisplayItem>* m_liveDisp = nullptr;
+
+    // === コールバック ===
+    CommentUpdateCallback m_commentUpdateCallback;  ///< コメント更新時の通知コールバック
 
     // === 内部ヘルパ ===
     void syncToExternalStores_(int ply, const QString& comment);

@@ -175,12 +175,22 @@ void GameRecordModel::setComment(int ply, const QString& comment)
         m_isDirty = true;
         emit commentChanged(ply, comment);
         emit dataChanged();
+
+        // 4) コールバックを呼び出し（RecordPresenterへの通知など）
+        if (m_commentUpdateCallback) {
+            m_commentUpdateCallback(ply, comment);
+        }
     }
 
     qDebug().noquote() << "[GameRecordModel] setComment:"
                        << " ply=" << ply
                        << " comment.len=" << comment.size()
                        << " isDirty=" << m_isDirty;
+}
+
+void GameRecordModel::setCommentUpdateCallback(const CommentUpdateCallback& callback)
+{
+    m_commentUpdateCallback = callback;
 }
 
 QString GameRecordModel::comment(int ply) const

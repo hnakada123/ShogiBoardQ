@@ -17,6 +17,10 @@
 #include "usi.h"
 #include "usicommlogmodel.h"
 #include "shogienginethinkingmodel.h"
+#include "gameinfopanecontroller.h"
+#include "kifuloadcoordinator.h"
+#include "recordpane.h"
+#include "evaluationchartwidget.h"
 
 DialogCoordinator::DialogCoordinator(QWidget* parentWidget, QObject* parent)
     : QObject(parent)
@@ -169,6 +173,62 @@ void DialogCoordinator::showKifuAnalysisDialog(const KifuAnalysisParams& params)
     d.displayError = [this](const QString& msg) { showFlowError(msg); };
 
     m_analysisFlow->runWithDialog(d, m_parentWidget);
+}
+
+void DialogCoordinator::setKifuAnalysisContext(const KifuAnalysisContext& ctx)
+{
+    m_kifuAnalysisCtx = ctx;
+}
+
+void DialogCoordinator::showKifuAnalysisDialogFromContext()
+{
+    qDebug().noquote() << "[DialogCoord] showKifuAnalysisDialogFromContext";
+
+    // 評価値グラフをクリア（対局時のグラフが残らないようにする）
+    if (m_kifuAnalysisCtx.recordPane) {
+        EvaluationChartWidget* ec = m_kifuAnalysisCtx.recordPane->evalChart();
+        if (ec) {
+            ec->clearAll();
+            qDebug().noquote() << "[DialogCoord] evaluation chart cleared";
+        }
+    }
+
+    // パラメータを構築
+    KifuAnalysisParams params;
+    params.sfenRecord = m_kifuAnalysisCtx.sfenRecord;
+    params.moveRecords = m_kifuAnalysisCtx.moveRecords;
+    params.recordModel = m_kifuAnalysisCtx.recordModel;
+    params.activePly = m_kifuAnalysisCtx.activePly ? *m_kifuAnalysisCtx.activePly : 0;
+    params.gameController = m_kifuAnalysisCtx.gameController;
+
+    // USI形式の指し手リストを取得（KifuLoadCoordinatorから）
+    if (m_kifuAnalysisCtx.kifuLoadCoordinator) {
+        params.usiMoves = m_kifuAnalysisCtx.kifuLoadCoordinator->usiMovesPtr();
+    }
+
+    // 対局者名を取得（GameInfoPaneControllerから）
+    if (m_kifuAnalysisCtx.gameInfoController) {
+        const QList<KifGameInfoItem> items = m_kifuAnalysisCtx.gameInfoController->gameInfo();
+        extractPlayerNames(items, params.blackPlayerName, params.whitePlayerName);
+    }
+
+    qDebug().noquote() << "[DialogCoord] showKifuAnalysisDialogFromContext:"
+                       << "blackPlayerName=" << params.blackPlayerName
+                       << "whitePlayerName=" << params.whitePlayerName;
+
+    showKifuAnalysisDialog(params);
+}
+
+void DialogCoordinator::extractPlayerNames(const QList<KifGameInfoItem>& gameInfo,
+                                           QString& outBlackName, QString& outWhiteName)
+{
+    for (const KifGameInfoItem& item : gameInfo) {
+        if (item.key == QStringLiteral("先手") || item.key == QStringLiteral("下手")) {
+            outBlackName = item.value;
+        } else if (item.key == QStringLiteral("後手") || item.key == QStringLiteral("上手")) {
+            outWhiteName = item.value;
+        }
+    }
 }
 
 void DialogCoordinator::stopKifuAnalysis()

@@ -4,8 +4,11 @@
 #include <QStatusBar>
 #include <QModelIndex>
 #include <QTableView>
+#include <QWidget>
 
 #include "csagamecoordinator.h"
+#include "csagamedialog.h"
+#include "csawaitingdialog.h"
 #include "shogigamecontroller.h"
 #include "shogiboard.h"
 #include "shogiview.h"
@@ -13,6 +16,10 @@
 #include "recordpane.h"
 #include "boardinteractioncontroller.h"
 #include "kifudisplay.h"
+#include "engineanalysistab.h"
+#include "boardsetupcontroller.h"
+#include "timecontrolcontroller.h"
+#include "shogiclock.h"
 
 CsaGameWiring::CsaGameWiring(const Dependencies& deps, QObject* parent)
     : QObject(parent)
@@ -24,6 +31,12 @@ CsaGameWiring::CsaGameWiring(const Dependencies& deps, QObject* parent)
     , m_boardController(deps.boardController)
     , m_statusBar(deps.statusBar)
     , m_sfenRecord(deps.sfenRecord)
+    , m_analysisTab(deps.analysisTab)
+    , m_boardSetupController(deps.boardSetupController)
+    , m_usiCommLog(deps.usiCommLog)
+    , m_engineThinking(deps.engineThinking)
+    , m_timeController(deps.timeController)
+    , m_gameMoves(deps.gameMoves)
 {
 }
 
@@ -316,4 +329,111 @@ void CsaGameWiring::onWaitingCancelled()
     if (m_statusBar) {
         m_statusBar->showMessage(tr("通信対局をキャンセルしました"), 3000);
     }
+}
+
+void CsaGameWiring::setAnalysisTab(EngineAnalysisTab* tab)
+{
+    m_analysisTab = tab;
+}
+
+void CsaGameWiring::setBoardSetupController(BoardSetupController* controller)
+{
+    m_boardSetupController = controller;
+}
+
+bool CsaGameWiring::startCsaGame(CsaGameDialog* dialog, QWidget* parent)
+{
+    if (!dialog) {
+        qWarning().noquote() << "[CsaGameWiring] startCsaGame: dialog is null";
+        return false;
+    }
+
+    qDebug() << "[CsaGameWiring] startCsaGame: starting CSA game setup";
+
+    // CSA通信対局コーディネータが未作成の場合は作成する
+    if (!m_coordinator) {
+        m_coordinator = new CsaGameCoordinator(this);
+        m_coordinatorOwnedByThis = true;
+
+        // 依存オブジェクトを設定
+        CsaGameCoordinator::Dependencies deps;
+        deps.gameController = m_gameController;
+        deps.view = m_shogiView;
+        deps.clock = m_timeController ? m_timeController->clock() : nullptr;
+        deps.boardController = m_boardController;
+        deps.recordModel = m_kifuRecordModel;
+        deps.sfenRecord = m_sfenRecord;
+        deps.gameMoves = m_gameMoves;
+        deps.usiCommLog = m_usiCommLog;
+        deps.engineThinking = m_engineThinking;
+        m_coordinator->setDependencies(deps);
+
+        // シグナル配線
+        wire();
+
+        // CSA通信ログをEngineAnalysisTabに転送
+        if (m_analysisTab) {
+            connect(m_coordinator, &CsaGameCoordinator::csaCommLogAppended,
+                    m_analysisTab, &EngineAnalysisTab::appendCsaLog);
+            // EngineAnalysisTabからのCSAコマンド送信シグナルを接続
+            connect(m_analysisTab, &EngineAnalysisTab::csaRawCommandRequested,
+                    m_coordinator, &CsaGameCoordinator::sendRawCommand);
+        }
+
+        // BoardSetupControllerからの指し手をCsaGameCoordinatorに転送
+        if (m_boardSetupController) {
+            connect(m_boardSetupController, &BoardSetupController::csaMoveRequested,
+                    m_coordinator, &CsaGameCoordinator::onHumanMove);
+        }
+    }
+
+    // 対局開始オプションを設定
+    CsaGameCoordinator::StartOptions options;
+    options.host = dialog->host();
+    options.port = dialog->port();
+    options.username = dialog->loginId();
+    options.password = dialog->password();
+    options.csaVersion = dialog->csaVersion();
+
+    if (dialog->isHuman()) {
+        options.playerType = CsaGameCoordinator::PlayerType::Human;
+    } else {
+        options.playerType = CsaGameCoordinator::PlayerType::Engine;
+        options.engineName = dialog->engineName();
+        options.engineNumber = dialog->engineNumber();
+        // エンジンパスは設定から取得
+        const QList<CsaGameDialog::Engine>& engineList = dialog->engineList();
+        if (!engineList.isEmpty()) {
+            int idx = dialog->engineNumber();
+            if (idx >= 0 && idx < engineList.size()) {
+                options.enginePath = engineList.at(idx).path;
+            }
+        }
+    }
+
+    // プレイモード変更を通知
+    Q_EMIT playModeChanged(7);  // CsaNetworkMode
+
+    qDebug() << "[CsaGameWiring] startCsaGame: About to start game and create waiting dialog";
+
+    // 待機ダイアログを作成
+    CsaWaitingDialog waitingDialog(m_coordinator, parent);
+
+    // キャンセル要求時の処理を接続
+    connect(&waitingDialog, &CsaWaitingDialog::cancelRequested,
+            this, &CsaGameWiring::onWaitingCancelled);
+
+    qDebug() << "[CsaGameWiring] startCsaGame: CsaWaitingDialog created, now starting game...";
+
+    // 対局を開始（シグナルがCsaWaitingDialogに届くようになった後に開始）
+    m_coordinator->startGame(options);
+
+    qDebug() << "[CsaGameWiring] startCsaGame: Game started, showing waiting dialog...";
+
+    // 待機ダイアログを表示（対局開始またはエラーまでブロック）
+    waitingDialog.exec();
+
+    qDebug() << "[CsaGameWiring] startCsaGame: Waiting dialog closed";
+
+    return true;
 }

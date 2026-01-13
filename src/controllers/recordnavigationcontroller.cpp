@@ -14,6 +14,9 @@
 #include "engineanalysistab.h"
 #include "recordpane.h"
 #include "recordpresenter.h"
+#include "csagamecoordinator.h"
+#include "evaluationgraphcontroller.h"
+#include "shogiboard.h"
 
 RecordNavigationController::RecordNavigationController(QObject* parent)
     : QObject(parent)
@@ -66,6 +69,16 @@ void RecordNavigationController::setRecordPresenter(GameRecordPresenter* present
     m_recordPresenter = presenter;
 }
 
+void RecordNavigationController::setCsaGameCoordinator(CsaGameCoordinator* coordinator)
+{
+    m_csaGameCoordinator = coordinator;
+}
+
+void RecordNavigationController::setEvalGraphController(EvaluationGraphController* controller)
+{
+    m_evalGraphController = controller;
+}
+
 // --------------------------------------------------------
 // 状態参照の設定
 // --------------------------------------------------------
@@ -112,6 +125,11 @@ void RecordNavigationController::setApplyResolvedRowAndSelectCallback(ApplyResol
 void RecordNavigationController::setUpdatePlyStateCallback(UpdatePlyStateCallback cb)
 {
     m_updatePlyState = std::move(cb);
+}
+
+void RecordNavigationController::setUpdateTurnIndicatorCallback(UpdateTurnIndicatorCallback cb)
+{
+    m_updateTurnIndicator = std::move(cb);
 }
 
 // --------------------------------------------------------
@@ -323,4 +341,77 @@ void RecordNavigationController::navigateKifuViewToRow(int ply)
     }
 
     qDebug().noquote() << "[RecordNav-DEBUG] navigateKifuViewToRow LEAVE";
+}
+
+void RecordNavigationController::onMainRowChanged(int row)
+{
+    qDebug() << "[RecordNav-DEBUG] onMainRowChanged ENTER row=" << row;
+
+    // CSA対局が進行中の場合のみ棋譜リストの選択変更による盤面同期をスキップ
+    // （対局終了後は棋譜ナビゲーションを許可）
+    bool csaGameInProgress = false;
+    if (m_csaGameCoordinator) {
+        csaGameInProgress = (m_csaGameCoordinator->gameState() == CsaGameCoordinator::GameState::InGame);
+    }
+
+    qDebug() << "[RecordNav-DEBUG] onMainRowChanged: csaGameInProgress=" << csaGameInProgress;
+
+    if (csaGameInProgress) {
+        qDebug() << "[RecordNav-DEBUG] onMainRowChanged SKIP: CSA game in progress";
+        return;
+    }
+
+    // フォールバック：起動直後など Loader 未生成時でも UI が動くように最低限の同期を行う
+    if (row >= 0) {
+        qDebug() << "[RecordNav-DEBUG] onMainRowChanged: calling syncBoardAndHighlightsAtRow(" << row << ")";
+        syncBoardAndHighlightsAtRow(row);
+
+        // 現在手数トラッキングを更新
+        if (m_updatePlyState) {
+            m_updatePlyState(row, row, row);
+        }
+
+        // 棋譜欄のハイライト行を更新
+        if (m_kifuRecordModel) {
+            m_kifuRecordModel->setCurrentHighlightRow(row);
+        }
+
+        // 手番表示を更新
+        qDebug() << "[RecordNav-DEBUG] onMainRowChanged: calling setCurrentTurn()";
+        if (m_setCurrentTurn) {
+            m_setCurrentTurn();
+        }
+
+        // 盤面の手番ラベルを更新（TurnManagerが同じ手番でシグナルを発火しない場合の対策）
+        if (m_shogiView && m_shogiView->board()) {
+            const QString bw = m_shogiView->board()->currentPlayer();
+            const bool isBlackTurn = (bw != QStringLiteral("w"));
+            qDebug() << "[RecordNav-DEBUG] onMainRowChanged: bw=" << bw
+                     << "isBlackTurn=" << isBlackTurn
+                     << "calling setActiveSide and updateTurnIndicator";
+            m_shogiView->setActiveSide(isBlackTurn);
+
+            // 次の手番ラベルも更新
+            const auto player = isBlackTurn ? ShogiGameController::Player1 : ShogiGameController::Player2;
+            if (m_updateTurnIndicator) {
+                m_updateTurnIndicator(player);
+            }
+        } else {
+            qDebug() << "[RecordNav-DEBUG] onMainRowChanged: m_shogiView=" << m_shogiView
+                     << "board=" << (m_shogiView ? m_shogiView->board() : nullptr);
+        }
+
+        // 評価値グラフの縦線（カーソルライン）を更新
+        if (m_evalGraphController) {
+            qDebug() << "[RecordNav-DEBUG] onMainRowChanged: updating cursor line, row=" << row;
+            m_evalGraphController->setCurrentPly(row);
+        }
+    }
+
+    // 矢印ボタンを有効化
+    if (m_enableArrowButtons) {
+        m_enableArrowButtons();
+    }
+
+    qDebug() << "[RecordNav-DEBUG] onMainRowChanged LEAVE";
 }
