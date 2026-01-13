@@ -54,6 +54,8 @@ void CsaGameWiring::wire()
             this, &CsaGameWiring::onLogMessage);
     connect(m_coordinator, &CsaGameCoordinator::moveHighlightRequested,
             this, &CsaGameWiring::onMoveHighlightRequested);
+    connect(m_coordinator, &CsaGameCoordinator::errorOccurred,
+            this, &CsaGameWiring::errorMessageRequested);
 
     qDebug().noquote() << "[CsaGameWiring] wire: connected all signals";
 }
@@ -296,4 +298,22 @@ QString CsaGameWiring::buildEndLineText(const QString& cause, bool loserIsBlack)
         return tr("中断");
     }
     return cause;
+}
+
+void CsaGameWiring::onWaitingCancelled()
+{
+    qInfo().noquote() << "[CsaGameWiring] onWaitingCancelled: cancelled by user";
+
+    // コーディネータの対局を停止
+    if (m_coordinator) {
+        m_coordinator->stopGame();
+    }
+
+    // プレイモードを未開始状態に戻す
+    Q_EMIT playModeChanged(0);  // NotStarted
+
+    // ステータスバーに通知
+    if (m_statusBar) {
+        m_statusBar->showMessage(tr("通信対局をキャンセルしました"), 3000);
+    }
 }

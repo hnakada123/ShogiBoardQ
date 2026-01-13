@@ -91,7 +91,10 @@
 #include "csagamecoordinator.h"         // ★ 追加: CSA通信対局コーディネータ
 #include "csawaitingdialog.h"           // ★ 追加: CSA通信対局待機ダイアログ
 #include "josekiwindow.h"               // ★ 追加: 定跡ウィンドウ
+#include "josekiwindowwiring.h"          // ★ 追加: 定跡ウィンドウUI配線
 #include "csagamewiring.h"              // ★ 追加: CSA通信対局UI配線
+#include "playerinfowiring.h"           // ★ 追加: 対局情報UI配線
+#include "prestartcleanuphandler.h"     // ★ 追加: 対局開始前クリーンアップ
 #include "branchrowdelegate.h"          // ★ 追加: 分岐行デリゲート
 
 using std::placeholders::_1;
@@ -764,93 +767,17 @@ void MainWindow::displayConsiderationDialog()
 // CSA通信対局ダイアログを表示する。
 void MainWindow::displayJosekiWindow()
 {
-    // 定跡ウィンドウが未作成の場合は作成する
-    if (!m_josekiWindow) {
-        m_josekiWindow = new JosekiWindow(this);
-        
-        // 定跡手選択シグナルを接続
-        connect(m_josekiWindow, &JosekiWindow::josekiMoveSelected,
-                this, &MainWindow::onJosekiMoveSelected);
-        
-        // 棋譜データ要求シグナルを接続
-        connect(m_josekiWindow, &JosekiWindow::requestKifuDataForMerge,
-                this, &MainWindow::onRequestKifuDataForMerge);
+    ensureJosekiWiring_();
+    if (m_josekiWiring) {
+        m_josekiWiring->displayJosekiWindow();
     }
-
-    // ウィンドウを表示する（独立ウィンドウとして）
-    m_josekiWindow->show();
-    m_josekiWindow->raise();
-    m_josekiWindow->activateWindow();
-    
-    // 現在の局面のSFENを設定（show後に呼ぶ）
-    m_josekiWindow->setCurrentSfen(m_currentSfenStr);
 }
 
 void MainWindow::updateJosekiWindow()
 {
-    qDebug() << "[JosekiWindow] updateJosekiWindow() called, m_josekiWindow=" << m_josekiWindow;
-    
-    // 定跡ウィンドウが存在し、表示されている場合のみ更新
-    if (!m_josekiWindow || !m_josekiWindow->isVisible()) {
-        qDebug() << "[JosekiWindow] updateJosekiWindow: window not visible, skipping";
-        return;
+    if (m_josekiWiring) {
+        m_josekiWiring->updateJosekiWindow();
     }
-
-    qDebug() << "[JosekiWindow] updateJosekiWindow: updating with SFEN=" << m_currentSfenStr;
-    
-    // 人間が着手可能かどうかを判定
-    bool humanCanPlay = true;  // デフォルトは着手可能
-    
-    // SFENから手番を取得（b=先手、w=後手）
-    bool isBlackTurn = true;  // デフォルト先手
-    const QStringList sfenParts = m_currentSfenStr.split(QChar(' '));
-    if (sfenParts.size() >= 2) {
-        isBlackTurn = (sfenParts.at(1) == QStringLiteral("b"));
-    }
-    
-    // PlayModeに応じて人間の手番かどうかを判定
-    switch (m_playMode) {
-    case HumanVsHuman:
-        // 人間同士は常に着手可能
-        humanCanPlay = true;
-        break;
-    case EvenHumanVsEngine:
-    case HandicapHumanVsEngine:
-        // 先手が人間、後手がエンジン → 先手番のとき着手可能
-        humanCanPlay = isBlackTurn;
-        break;
-    case EvenEngineVsHuman:
-    case HandicapEngineVsHuman:
-        // 先手がエンジン、後手が人間 → 後手番のとき着手可能
-        humanCanPlay = !isBlackTurn;
-        break;
-    case EvenEngineVsEngine:
-    case HandicapEngineVsEngine:
-        // エンジン同士は着手不可
-        humanCanPlay = false;
-        break;
-    case NotStarted:
-    case AnalysisMode:
-    case ConsidarationMode:
-    case TsumiSearchMode:
-        // 対局中でない場合は着手可能（検討モード等で使用）
-        humanCanPlay = true;
-        break;
-    case CsaNetworkMode:
-        // CSA通信対局は状況に応じて判定が必要だが、とりあえず着手不可
-        humanCanPlay = false;
-        break;
-    default:
-        humanCanPlay = true;
-        break;
-    }
-    
-    // 定跡ウィンドウに設定
-    m_josekiWindow->setHumanCanPlay(humanCanPlay);
-    
-    // 現在の局面のSFENを定跡ウィンドウに設定
-    // m_currentSfenStrはGUIで保持している現在の局面のSFEN文字列
-    m_josekiWindow->setCurrentSfen(m_currentSfenStr);
 }
 
 void MainWindow::displayCsaGameDialog()
@@ -879,21 +806,13 @@ void MainWindow::displayCsaGameDialog()
             deps.engineThinking = m_modelThinking1;  // エンジン思考モデルを共有
             m_csaGameCoordinator->setDependencies(deps);
 
-            // シグナル接続
-            connect(m_csaGameCoordinator, &CsaGameCoordinator::errorOccurred,
-                    this, &MainWindow::displayErrorMessage);
-            connect(m_csaGameCoordinator, &CsaGameCoordinator::gameStarted,
-                    this, &MainWindow::onCsaGameStarted_);
-            connect(m_csaGameCoordinator, &CsaGameCoordinator::gameEnded,
-                    this, &MainWindow::onCsaGameEnded_);
-            connect(m_csaGameCoordinator, &CsaGameCoordinator::moveMade,
-                    this, &MainWindow::onCsaMoveMade_);
-            connect(m_csaGameCoordinator, &CsaGameCoordinator::turnChanged,
-                    this, &MainWindow::onCsaTurnChanged_);
-            connect(m_csaGameCoordinator, &CsaGameCoordinator::logMessage,
-                    this, &MainWindow::onCsaLogMessage_);
-            connect(m_csaGameCoordinator, &CsaGameCoordinator::moveHighlightRequested,
-                    this, &MainWindow::onCsaMoveHighlightRequested_);
+            // CsaGameWiringを確保してシグナル接続
+            ensureCsaGameWiring_();
+            if (m_csaGameWiring) {
+                m_csaGameWiring->setCoordinator(m_csaGameCoordinator);
+                m_csaGameWiring->wire();
+            }
+
             // CSA通信ログをEngineAnalysisTabに転送
             if (m_analysisTab) {
                 connect(m_csaGameCoordinator, &CsaGameCoordinator::csaCommLogAppended,
@@ -949,9 +868,11 @@ void MainWindow::displayCsaGameDialog()
         qDebug() << "[MW] displayCsaGameDialog: Creating CsaWaitingDialog...";
         m_csaWaitingDialog = new CsaWaitingDialog(m_csaGameCoordinator, this);
 
-        // キャンセル要求時の処理を接続
-        connect(m_csaWaitingDialog, &CsaWaitingDialog::cancelRequested,
-                this, &MainWindow::onCsaWaitingCancelled_);
+        // キャンセル要求時の処理をCsaGameWiringに接続
+        if (m_csaGameWiring) {
+            connect(m_csaWaitingDialog, &CsaWaitingDialog::cancelRequested,
+                    m_csaGameWiring, &CsaGameWiring::onWaitingCancelled);
+        }
 
         qDebug() << "[MW] displayCsaGameDialog: CsaWaitingDialog created, now starting game...";
 
@@ -1536,139 +1457,95 @@ bool MainWindow::isHumanTurnNow_() const
     }
 }
 
-// ★ 新規: GameInfoPaneControllerの初期化
+// ★ 新規: GameInfoPaneControllerの初期化（PlayerInfoWiring経由）
 void MainWindow::ensureGameInfoController_()
 {
-    if (m_gameInfoController) return;
-
-    m_gameInfoController = new GameInfoPaneController(this);
-
-    // 対局情報更新時のシグナル接続
-    connect(m_gameInfoController, &GameInfoPaneController::gameInfoUpdated,
-            this, &MainWindow::onGameInfoUpdated_);
+    ensurePlayerInfoWiring_();
+    if (m_playerInfoWiring && !m_gameInfoController) {
+        m_gameInfoController = m_playerInfoWiring->gameInfoController();
+    }
 }
 
-// ★ 追加: 起動時に対局情報タブを追加
+// ★ 追加: 起動時に対局情報タブを追加（PlayerInfoWiring経由）
 void MainWindow::addGameInfoTabAtStartup_()
 {
-    if (!m_tab) return;
-
-    // GameInfoPaneControllerを確保
-    ensureGameInfoController_();
-
-    if (!m_gameInfoController) return;
-
-    // 既に「対局情報」タブがあるか確認
-    for (int i = 0; i < m_tab->count(); ++i) {
-        if (m_tab->tabText(i) == tr("対局情報")) {
-            m_tab->removeTab(i);
-            break;
-        }
+    ensurePlayerInfoWiring_();
+    if (m_playerInfoWiring) {
+        m_playerInfoWiring->addGameInfoTabAtStartup();
+        // MainWindowのメンバ変数も同期
+        m_gameInfoController = m_playerInfoWiring->gameInfoController();
     }
-
-    // 初期データを設定
-    populateDefaultGameInfo_();
-
-    // タブを最初（インデックス0）に挿入
-    m_tab->insertTab(0, m_gameInfoController->containerWidget(), tr("対局情報"));
-
-    // 保存されたタブインデックスを復元
-    int savedIndex = SettingsService::lastSelectedTabIndex();
-    if (savedIndex >= 0 && savedIndex < m_tab->count()) {
-        m_tab->setCurrentIndex(savedIndex);
-    } else {
-        m_tab->setCurrentIndex(0);
-    }
-
-    // タブ変更時にインデックスを保存するシグナルを接続
-    connect(m_tab, &QTabWidget::currentChanged,
-            this, &MainWindow::onTabCurrentChanged,
-            Qt::UniqueConnection);
 }
 
-// ★ 追加: 対局情報テーブルにデフォルト値を設定
+// ★ 追加: 対局情報テーブルにデフォルト値を設定（PlayerInfoWiring内部で実行）
 void MainWindow::populateDefaultGameInfo_()
 {
-    if (!m_gameInfoController) return;
-
-    // デフォルトの対局情報を設定
-    QList<KifGameInfoItem> defaultItems;
-    defaultItems.append({tr("先手"), tr("先手")});
-    defaultItems.append({tr("後手"), tr("後手")});
-    defaultItems.append({tr("手合割"), tr("平手")});
-
-    m_gameInfoController->setGameInfo(defaultItems);
+    // PlayerInfoWiring::addGameInfoTabAtStartup()内で呼ばれるため、
+    // 直接呼ぶ必要がある場合のみ実行
+    if (m_gameInfoController) {
+        QList<KifGameInfoItem> defaultItems;
+        defaultItems.append({tr("先手"), tr("先手")});
+        defaultItems.append({tr("後手"), tr("後手")});
+        defaultItems.append({tr("手合割"), tr("平手")});
+        m_gameInfoController->setGameInfo(defaultItems);
+    }
 }
 
-// ★ 追加: 対局者名設定フック（将棋盤ラベル更新）
+// ★ 追加: 対局者名設定フック（PlayerInfoWiring経由）
 void MainWindow::onSetPlayersNames_(const QString& p1, const QString& p2)
 {
-    ensurePlayerInfoController_();
-    if (m_playerInfoController) {
-        m_playerInfoController->onSetPlayersNames(p1, p2);
+    ensurePlayerInfoWiring_();
+    if (m_playerInfoWiring) {
+        m_playerInfoWiring->onSetPlayersNames(p1, p2);
     }
 }
 
-// ★ 追加: エンジン名設定フック
+// ★ 追加: エンジン名設定フック（PlayerInfoWiring経由）
 void MainWindow::onSetEngineNames_(const QString& e1, const QString& e2)
 {
-    ensurePlayerInfoController_();
-    if (m_playerInfoController) {
-        m_playerInfoController->setPlayMode(m_playMode);
-        m_playerInfoController->onSetEngineNames(e1, e2);
-        // MainWindow側のメンバ変数も同期
-        m_engineName1 = m_playerInfoController->engineName1();
-        m_engineName2 = m_playerInfoController->engineName2();
+    ensurePlayerInfoWiring_();
+    if (m_playerInfoWiring) {
+        m_playerInfoWiring->onSetEngineNames(e1, e2);
     }
 }
 
-// ★ 追加: 対局情報タブの先手・後手名を更新
+// ★ 追加: 対局情報タブの先手・後手名を更新（PlayerInfoWiring経由）
 void MainWindow::updateGameInfoPlayerNames_(const QString& blackName, const QString& whiteName)
 {
-    ensurePlayerInfoController_();
-    if (m_playerInfoController) {
-        m_playerInfoController->updateGameInfoPlayerNames(blackName, whiteName);
+    ensurePlayerInfoWiring_();
+    if (m_playerInfoWiring) {
+        m_playerInfoWiring->updateGameInfoPlayerNames(blackName, whiteName);
     }
 }
 
-// ★ 追加: 元の対局情報を保存（棋譜読み込み時に呼ばれる）
+// ★ 追加: 元の対局情報を保存（PlayerInfoWiring経由）
 void MainWindow::setOriginalGameInfo(const QList<KifGameInfoItem>& items)
 {
-    ensurePlayerInfoController_();
-    if (m_playerInfoController) {
-        m_playerInfoController->setOriginalGameInfo(items);
+    ensurePlayerInfoWiring_();
+    if (m_playerInfoWiring) {
+        m_playerInfoWiring->setOriginalGameInfo(items);
     }
 }
 
-// ★ 追加: 現在の対局に基づいて対局情報タブを更新
+// ★ 追加: 現在の対局に基づいて対局情報タブを更新（PlayerInfoWiring経由）
 void MainWindow::updateGameInfoForCurrentMatch_()
 {
-    ensurePlayerInfoController_();
-    if (m_playerInfoController) {
-        m_playerInfoController->setPlayMode(m_playMode);
-        m_playerInfoController->setHumanNames(m_humanName1, m_humanName2);
-        m_playerInfoController->setEngineNames(m_engineName1, m_engineName2);
-        m_playerInfoController->updateGameInfoForCurrentMatch();
+    ensurePlayerInfoWiring_();
+    if (m_playerInfoWiring) {
+        m_playerInfoWiring->updateGameInfoForCurrentMatch();
     }
 }
 
-// ★ 追加: 対局者名確定時のスロット
+// ★ 追加: 対局者名確定時のスロット（PlayerInfoWiring経由）
 void MainWindow::onPlayerNamesResolved_(const QString& human1, const QString& human2,
                                         const QString& engine1, const QString& engine2,
                                         int playMode)
 {
     qDebug().noquote() << "[MW] onPlayerNamesResolved_: playMode=" << playMode;
 
-    // メンバ変数に保存
-    m_humanName1 = human1;
-    m_humanName2 = human2;
-    m_engineName1 = engine1;
-    m_engineName2 = engine2;
-    m_playMode = static_cast<PlayMode>(playMode);
-
-    ensurePlayerInfoController_();
-    if (m_playerInfoController) {
-        m_playerInfoController->onPlayerNamesResolved(human1, human2, engine1, engine2, playMode);
+    ensurePlayerInfoWiring_();
+    if (m_playerInfoWiring) {
+        m_playerInfoWiring->onPlayerNamesResolved(human1, human2, engine1, engine2, playMode);
     }
 }
 
@@ -1677,7 +1554,6 @@ void MainWindow::onGameInfoUpdated_(const QList<KifGameInfoItem>& items)
 {
     Q_UNUSED(items);
     qDebug().noquote() << "[MW] onGameInfoUpdated_: Game info updated, items=" << items.size();
-    // 必要に応じて他のコンポーネントに通知
 }
 
 void MainWindow::syncBoardAndHighlightsAtRow(int ply)
@@ -2147,301 +2023,6 @@ void MainWindow::onMoveRequested_(const QPoint& from, const QPoint& to)
     }
 }
 
-void MainWindow::onJosekiMoveSelected(const QString& usiMove)
-{
-    qDebug() << "[JosekiWindow] onJosekiMoveSelected: usiMove=" << usiMove;
-    
-    if (usiMove.isEmpty()) {
-        qDebug() << "[JosekiWindow] onJosekiMoveSelected: empty move";
-        return;
-    }
-    
-    // USI形式の指し手をfrom/toのQPointに変換
-    QPoint from, to;
-    bool promote = false;
-    
-    // 駒打ちのパターン: P*5e（駒種*筋段）
-    if (usiMove.size() >= 4 && usiMove.at(1) == QChar('*')) {
-        QChar pieceChar = usiMove.at(0);
-        int toFile = usiMove.at(2).toLatin1() - '0';
-        int toRank = usiMove.at(3).toLatin1() - 'a' + 1;
-        
-        // 駒打ちの場合、fromは駒台を表す特別な座標
-        // 駒台のファイル番号: 先手=10, 後手=11
-        // 駒台のランク（駒種）: 先手は1〜7「歩、香、桂、銀、金、角、飛」
-        //                      後手は3〜9「飛、角、金、銀、桂、香、歩」
-        
-        // 現在の手番を取得
-        bool isBlackTurn = true;
-        if (m_gameController) {
-            isBlackTurn = (m_gameController->currentPlayer() == ShogiGameController::Player1);
-        }
-        
-        // 駒台のファイル番号（先手=10, 後手=11）
-        int standFile = isBlackTurn ? 10 : 11;
-        
-        // 駒台のランク（駒種番号）
-        // 先手: P=1, L=2, N=3, S=4, G=5, B=6, R=7
-        // 後手: R=3, B=4, G=5, S=6, N=7, L=8, P=9
-        int pieceRank = 0;
-        if (isBlackTurn) {
-            switch (pieceChar.toUpper().toLatin1()) {
-            case 'P': pieceRank = 1; break;
-            case 'L': pieceRank = 2; break;
-            case 'N': pieceRank = 3; break;
-            case 'S': pieceRank = 4; break;
-            case 'G': pieceRank = 5; break;
-            case 'B': pieceRank = 6; break;
-            case 'R': pieceRank = 7; break;
-            default: pieceRank = 0; break;
-            }
-        } else {
-            switch (pieceChar.toUpper().toLatin1()) {
-            case 'R': pieceRank = 3; break;
-            case 'B': pieceRank = 4; break;
-            case 'G': pieceRank = 5; break;
-            case 'S': pieceRank = 6; break;
-            case 'N': pieceRank = 7; break;
-            case 'L': pieceRank = 8; break;
-            case 'P': pieceRank = 9; break;
-            default: pieceRank = 0; break;
-            }
-        }
-        
-        // 駒打ちの場合、fromは駒台（x=駒台ファイル, y=駒種ランク）
-        from = QPoint(standFile, pieceRank);
-        to = QPoint(toFile, toRank);
-        
-        qDebug() << "[JosekiWindow] Drop move: piece=" << pieceChar 
-                 << "isBlackTurn=" << isBlackTurn
-                 << "from=" << from << "to=" << to;
-    }
-    // 通常移動のパターン: 7g7f または 7g7f+
-    else if (usiMove.size() >= 4) {
-        int fromFile = usiMove.at(0).toLatin1() - '0';
-        int fromRank = usiMove.at(1).toLatin1() - 'a' + 1;
-        int toFile = usiMove.at(2).toLatin1() - '0';
-        int toRank = usiMove.at(3).toLatin1() - 'a' + 1;
-        promote = (usiMove.size() >= 5 && usiMove.at(4) == QChar('+'));
-        
-        from = QPoint(fromFile, fromRank);
-        to = QPoint(toFile, toRank);
-        
-        qDebug() << "[JosekiWindow] Normal move: from=" << from << "to=" << to << "promote=" << promote;
-    }
-    else {
-        qDebug() << "[JosekiWindow] onJosekiMoveSelected: invalid move format";
-        // 定跡ウィンドウにエラーを通知
-        if (m_josekiWindow) {
-            m_josekiWindow->onMoveResult(false, usiMove);
-        }
-        return;
-    }
-    
-    // 定跡手からの着手の場合、成り/不成が決まっているので強制成りモードを設定
-    // これにより「成る・不成」ダイアログが表示されなくなる
-    if (m_gameController) {
-        m_gameController->setForcedPromotion(true, promote);
-    }
-    
-    // 着手前の棋譜サイズを記録
-    qsizetype sfenSizeBefore = m_sfenRecord ? m_sfenRecord->size() : 0;
-    
-    // 指し手を実行
-    onMoveRequested_(from, to);
-    
-    // 着手後の棋譜サイズを確認して成功/失敗を判定
-    qsizetype sfenSizeAfter = m_sfenRecord ? m_sfenRecord->size() : 0;
-    bool moveSuccess = (sfenSizeAfter > sfenSizeBefore);
-    
-    qDebug() << "[JosekiWindow] Move result: sfenSizeBefore=" << sfenSizeBefore 
-             << "sfenSizeAfter=" << sfenSizeAfter << "success=" << moveSuccess;
-    
-    // 定跡ウィンドウに結果を通知
-    if (m_josekiWindow && !moveSuccess) {
-        m_josekiWindow->onMoveResult(false, usiMove);
-    }
-}
-
-void MainWindow::onRequestKifuDataForMerge()
-{
-    qDebug() << "[MainWindow] onRequestKifuDataForMerge called";
-    
-    if (!m_josekiWindow) {
-        qWarning() << "[MainWindow] onRequestKifuDataForMerge: m_josekiWindow is null";
-        return;
-    }
-    
-    // 棋譜データを収集
-    QStringList sfenList;
-    QStringList moveList;
-    QStringList japaneseMoveList;
-    int currentPly = 0;
-    
-    // デバッグ: 各データソースの状態を出力
-    qDebug() << "[MainWindow] onRequestKifuDataForMerge: m_sfenRecord=" << m_sfenRecord
-             << "m_sfenRecord->size()=" << (m_sfenRecord ? m_sfenRecord->size() : -1);
-    qDebug() << "[MainWindow] onRequestKifuDataForMerge: m_kifuRecordModel=" << m_kifuRecordModel
-             << "rowCount=" << (m_kifuRecordModel ? m_kifuRecordModel->rowCount() : -1);
-    qDebug() << "[MainWindow] onRequestKifuDataForMerge: m_currentMoveIndex=" << m_currentMoveIndex
-             << "m_currentSelectedPly=" << m_currentSelectedPly;
-    
-    // SFENレコードから局面リストを取得
-    if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
-        for (int i = 0; i < m_sfenRecord->size(); ++i) {
-            sfenList.append(m_sfenRecord->at(i));
-        }
-        qDebug() << "[MainWindow] onRequestKifuDataForMerge: sfenList from m_sfenRecord, size=" << sfenList.size();
-    } else {
-        qDebug() << "[MainWindow] onRequestKifuDataForMerge: m_sfenRecord is null or empty";
-    }
-    
-    // 棋譜表示モデルから指し手リストを取得
-    if (m_kifuRecordModel && m_kifuRecordModel->rowCount() > 0) {
-        for (int i = 0; i < m_kifuRecordModel->rowCount(); ++i) {
-            // 日本語表記の指し手を取得（DisplayRole）
-            QModelIndex index = m_kifuRecordModel->index(i, 0);
-            QString japaneseMove = m_kifuRecordModel->data(index, Qt::DisplayRole).toString();
-            japaneseMoveList.append(japaneseMove);
-        }
-        qDebug() << "[MainWindow] onRequestKifuDataForMerge: japaneseMoveList from m_kifuRecordModel, size=" << japaneseMoveList.size();
-    } else {
-        qDebug() << "[MainWindow] onRequestKifuDataForMerge: m_kifuRecordModel is null or empty";
-    }
-    
-    // USI形式の指し手リストを取得
-    // まずm_usiMovesを試し、空ならSFEN差分から生成
-    if (!m_usiMoves.isEmpty()) {
-        for (const QString &move : std::as_const(m_usiMoves)) {
-            moveList.append(move);
-        }
-        qDebug() << "[MainWindow] onRequestKifuDataForMerge: moveList from m_usiMoves, size=" << moveList.size();
-    } else if (m_sfenRecord && m_sfenRecord->size() > 1) {
-        // SFEN差分からUSI形式を生成（KifuExportController::sfenRecordToUsiMovesと同等のロジック）
-        auto expandBoard = [](const QString& boardStr) -> QVector<QVector<QString>> {
-            QVector<QVector<QString>> board(9, QVector<QString>(9));
-            const QStringList ranks = boardStr.split(QLatin1Char('/'));
-            for (qsizetype rank = 0; rank < qMin(ranks.size(), qsizetype(9)); ++rank) {
-                const QString& rankStr = ranks[rank];
-                int file = 0;
-                bool promoted = false;
-                for (qsizetype k = 0; k < rankStr.size() && file < 9; ++k) {
-                    QChar c = rankStr[k];
-                    if (c == QLatin1Char('+')) {
-                        promoted = true;
-                    } else if (c.isDigit()) {
-                        int skip = c.toLatin1() - '0';
-                        for (int s = 0; s < skip && file < 9; ++s) {
-                            board[rank][file++] = QString();
-                        }
-                        promoted = false;
-                    } else {
-                        QString piece = promoted ? QStringLiteral("+") + QString(c) : QString(c);
-                        board[rank][file++] = piece;
-                        promoted = false;
-                    }
-                }
-            }
-            return board;
-        };
-        
-        for (int i = 1; i < m_sfenRecord->size(); ++i) {
-            const QString& prevSfen = m_sfenRecord->at(i - 1);
-            const QString& currSfen = m_sfenRecord->at(i);
-            
-            const QStringList prevParts = prevSfen.split(QLatin1Char(' '));
-            const QStringList currParts = currSfen.split(QLatin1Char(' '));
-            
-            if (prevParts.size() < 3 || currParts.size() < 3) {
-                moveList.append(QString());
-                continue;
-            }
-            
-            QVector<QVector<QString>> prevBoardArr = expandBoard(prevParts[0]);
-            QVector<QVector<QString>> currBoardArr = expandBoard(currParts[0]);
-            
-            QPoint fromPos(-1, -1);
-            QPoint toPos(-1, -1);
-            bool isDrop = false;
-            bool isPromotion = false;
-            
-            QVector<QPoint> emptyPositions;
-            QVector<QPoint> filledPositions;
-            
-            for (int rank = 0; rank < 9; ++rank) {
-                for (int file = 0; file < 9; ++file) {
-                    const QString& prev = prevBoardArr[rank][file];
-                    const QString& curr = currBoardArr[rank][file];
-                    
-                    if (prev != curr) {
-                        if (!prev.isEmpty() && curr.isEmpty()) {
-                            emptyPositions.append(QPoint(file, rank));
-                        } else if (!curr.isEmpty()) {
-                            filledPositions.append(QPoint(file, rank));
-                        }
-                    }
-                }
-            }
-            
-            QString movedPiece;
-            if (emptyPositions.size() == 1 && filledPositions.size() == 1) {
-                fromPos = emptyPositions[0];
-                toPos = filledPositions[0];
-                movedPiece = prevBoardArr[fromPos.y()][fromPos.x()];
-                
-                const QString& movedPieceFinal = currBoardArr[toPos.y()][toPos.x()];
-                QString baseFrom = movedPiece.startsWith(QLatin1Char('+')) ? movedPiece.mid(1) : movedPiece;
-                QString baseTo = movedPieceFinal.startsWith(QLatin1Char('+')) ? movedPieceFinal.mid(1) : movedPieceFinal;
-                if (baseFrom.toUpper() == baseTo.toUpper() &&
-                    movedPieceFinal.startsWith(QLatin1Char('+')) && !movedPiece.startsWith(QLatin1Char('+'))) {
-                    isPromotion = true;
-                }
-            } else if (emptyPositions.isEmpty() && filledPositions.size() == 1) {
-                isDrop = true;
-                toPos = filledPositions[0];
-            }
-            
-            QString usiMove;
-            if (isDrop && toPos.x() >= 0) {
-                QString droppedPiece = currBoardArr[toPos.y()][toPos.x()];
-                QChar pieceChar = droppedPiece.isEmpty() ? QLatin1Char('P') : droppedPiece[0].toUpper();
-                int toFileNum = 9 - toPos.x();
-                QChar toRankChar = QChar('a' + toPos.y());
-                usiMove = QStringLiteral("%1*%2%3").arg(pieceChar).arg(toFileNum).arg(toRankChar);
-            } else if (fromPos.x() >= 0 && toPos.x() >= 0) {
-                int fromFileNum = 9 - fromPos.x();
-                int toFileNum = 9 - toPos.x();
-                QChar fromRankChar = QChar('a' + fromPos.y());
-                QChar toRankChar = QChar('a' + toPos.y());
-                usiMove = QStringLiteral("%1%2%3%4").arg(fromFileNum).arg(fromRankChar).arg(toFileNum).arg(toRankChar);
-                if (isPromotion) {
-                    usiMove += QLatin1Char('+');
-                }
-            }
-            
-            moveList.append(usiMove);
-        }
-        qDebug() << "[MainWindow] onRequestKifuDataForMerge: moveList from sfenRecord, size=" << moveList.size();
-    } else {
-        qDebug() << "[MainWindow] onRequestKifuDataForMerge: no source for USI moves";
-    }
-    
-    // 現在選択中の手数を取得
-    currentPly = m_currentMoveIndex;
-    if (currentPly <= 0 && m_currentSelectedPly > 0) {
-        currentPly = m_currentSelectedPly;
-    }
-    
-    qDebug() << "[MainWindow] onRequestKifuDataForMerge: FINAL RESULT"
-             << "sfenList.size=" << sfenList.size()
-             << "moveList.size=" << moveList.size()
-             << "japaneseMoveList.size=" << japaneseMoveList.size()
-             << "currentPly=" << currentPly;
-    
-    // 定跡ウィンドウにデータを送信
-    m_josekiWindow->setKifuDataForMerge(sfenList, moveList, japaneseMoveList, currentPly);
-}
-
 // 再生モードの切替を ReplayController へ委譲
 void MainWindow::setReplayMode(bool on)
 {
@@ -2752,14 +2333,18 @@ void MainWindow::ensurePlayerInfoController_()
 {
     if (m_playerInfoController) return;
 
-    m_playerInfoController = new PlayerInfoController(this);
+    // PlayerInfoWiring経由でPlayerInfoControllerを取得
+    ensurePlayerInfoWiring_();
+    if (m_playerInfoWiring) {
+        m_playerInfoController = m_playerInfoWiring->playerInfoController();
+    }
 
-    // 依存オブジェクトの設定
-    m_playerInfoController->setShogiView(m_shogiView);
-    m_playerInfoController->setGameInfoController(m_gameInfoController);
-    m_playerInfoController->setEvalGraphController(m_evalGraphController);
-    m_playerInfoController->setLogModels(m_lineEditModel1, m_lineEditModel2);
-    m_playerInfoController->setAnalysisTab(m_analysisTab);
+    // PlayerInfoControllerが取得できた場合、追加の依存オブジェクトを設定
+    if (m_playerInfoController) {
+        m_playerInfoController->setEvalGraphController(m_evalGraphController);
+        m_playerInfoController->setLogModels(m_lineEditModel1, m_lineEditModel2);
+        m_playerInfoController->setAnalysisTab(m_analysisTab);
+    }
 }
 
 void MainWindow::ensureBoardSetupController_()
@@ -2935,13 +2520,97 @@ void MainWindow::ensureCsaGameWiring_()
     connect(m_csaGameWiring, &CsaGameWiring::refreshBranchTreeRequested,
             this, &MainWindow::refreshBranchTreeLive_);
     connect(m_csaGameWiring, &CsaGameWiring::playModeChanged,
-            this, [this](int mode) { m_playMode = static_cast<PlayMode>(mode); });
+            this, &MainWindow::onCsaPlayModeChanged_);
     connect(m_csaGameWiring, &CsaGameWiring::showGameEndDialogRequested,
-            this, [this](const QString& title, const QString& message) {
-                QMessageBox::information(this, title, message);
-            });
+            this, &MainWindow::onCsaShowGameEndDialog_);
+    connect(m_csaGameWiring, &CsaGameWiring::errorMessageRequested,
+            this, &MainWindow::displayErrorMessage);
 
     qDebug().noquote() << "[MW] ensureCsaGameWiring_: created and connected";
+}
+
+void MainWindow::ensureJosekiWiring_()
+{
+    if (m_josekiWiring) return;
+
+    JosekiWindowWiring::Dependencies deps;
+    deps.parentWidget = this;
+    deps.gameController = m_gameController;
+    deps.kifuRecordModel = m_kifuRecordModel;
+    deps.sfenRecord = m_sfenRecord;
+    deps.usiMoves = &m_usiMoves;
+    deps.currentSfenStr = &m_currentSfenStr;
+    deps.currentMoveIndex = &m_currentMoveIndex;
+    deps.currentSelectedPly = &m_currentSelectedPly;
+    deps.playMode = &m_playMode;
+
+    m_josekiWiring = new JosekiWindowWiring(deps, this);
+
+    // JosekiWindowWiringからのシグナルをMainWindowに接続
+    connect(m_josekiWiring, &JosekiWindowWiring::moveRequested,
+            this, &MainWindow::onMoveRequested_);
+    connect(m_josekiWiring, &JosekiWindowWiring::forcedPromotionRequested,
+            this, &MainWindow::onJosekiForcedPromotion_);
+
+    qDebug().noquote() << "[MW] ensureJosekiWiring_: created and connected";
+}
+
+void MainWindow::ensurePlayerInfoWiring_()
+{
+    if (m_playerInfoWiring) return;
+
+    PlayerInfoWiring::Dependencies deps;
+    deps.parentWidget = this;
+    deps.tabWidget = m_tab;
+    deps.shogiView = m_shogiView;
+    deps.playMode = &m_playMode;
+    deps.humanName1 = &m_humanName1;
+    deps.humanName2 = &m_humanName2;
+    deps.engineName1 = &m_engineName1;
+    deps.engineName2 = &m_engineName2;
+
+    m_playerInfoWiring = new PlayerInfoWiring(deps, this);
+
+    // PlayerInfoWiringからのシグナルをMainWindowに接続
+    connect(m_playerInfoWiring, &PlayerInfoWiring::gameInfoUpdated,
+            this, &MainWindow::onGameInfoUpdated_);
+    connect(m_playerInfoWiring, &PlayerInfoWiring::tabCurrentChanged,
+            this, &MainWindow::onTabCurrentChanged);
+
+    // PlayerInfoControllerも同期
+    m_playerInfoController = m_playerInfoWiring->playerInfoController();
+
+    qDebug().noquote() << "[MW] ensurePlayerInfoWiring_: created and connected";
+}
+
+void MainWindow::ensurePreStartCleanupHandler_()
+{
+    if (m_preStartCleanupHandler) return;
+
+    PreStartCleanupHandler::Dependencies deps;
+    deps.boardController = m_boardController;
+    deps.shogiView = m_shogiView;
+    deps.kifuRecordModel = m_kifuRecordModel;
+    deps.kifuBranchModel = m_kifuBranchModel;
+    deps.lineEditModel1 = m_lineEditModel1;
+    deps.lineEditModel2 = m_lineEditModel2;
+    deps.timeController = m_timeController;
+    deps.startSfenStr = &m_startSfenStr;
+    deps.currentSfenStr = &m_currentSfenStr;
+    deps.activePly = &m_activePly;
+    deps.currentSelectedPly = &m_currentSelectedPly;
+    deps.currentMoveIndex = &m_currentMoveIndex;
+
+    m_preStartCleanupHandler = new PreStartCleanupHandler(deps, this);
+
+    // 分岐表示プランへの参照を設定
+    m_preStartCleanupHandler->setBranchDisplayPlan(&m_branchDisplayPlan);
+
+    // PreStartCleanupHandlerからのシグナルをMainWindowに接続
+    connect(m_preStartCleanupHandler, &PreStartCleanupHandler::broadcastCommentRequested,
+            this, &MainWindow::broadcastComment);
+
+    qDebug().noquote() << "[MW] ensurePreStartCleanupHandler_: created and connected";
 }
 
 // 「検討を終了」アクション用：エンジンに quit を送り検討セッションを終了
@@ -3033,109 +2702,10 @@ void MainWindow::ensureGameStartCoordinator_()
 
 void MainWindow::onPreStartCleanupRequested_()
 {
-    // --- 盤/ハイライト等のビジュアル初期化 ---
-    if (m_boardController) {
-        m_boardController->clearAllHighlights();
+    ensurePreStartCleanupHandler_();
+    if (m_preStartCleanupHandler) {
+        m_preStartCleanupHandler->performCleanup();
     }
-    if (m_shogiView) {
-        m_shogiView->blackClockLabel()->setText(QStringLiteral("00:00:00"));
-        m_shogiView->whiteClockLabel()->setText(QStringLiteral("00:00:00"));
-    }
-
-    // --- 「現在の局面」から開始かどうかを判定 ---
-    // 既存実装では 2局目開始直前に m_startSfenStr を明示クリア、
-    // m_currentSfenStr に選択行の SFEN を入れているため、
-    // これをトリガとして判定する。
-    const bool startFromCurrentPos =
-        m_startSfenStr.trimmed().isEmpty() && !m_currentSfenStr.trimmed().isEmpty();
-
-    // 安全な keepRow（保持したい最終行＝選択中の行）を算出
-    int keepRow = qMax(0, m_currentSelectedPly);
-
-    // --- 棋譜モデルの扱い（ここが今回の修正ポイント） ---
-    if (m_kifuRecordModel) {
-        if (startFromCurrentPos) {
-            // 1) 1局目の途中までを残して、末尾だけを削除
-            const int rows = m_kifuRecordModel->rowCount();
-            if (rows <= 0) {
-                // 空なら見出しだけ用意
-                m_kifuRecordModel->appendItem(
-                    new KifuDisplay(QStringLiteral("=== 開始局面 ==="),
-                                    QStringLiteral("（１手 / 合計）")));
-                keepRow = 0;
-            } else {
-                // keepRow をモデル範囲にクランプし、末尾の余剰行を一括削除
-                if (keepRow > rows - 1) keepRow = rows - 1;
-                const int toRemove = rows - (keepRow + 1);
-                if (toRemove > 0) {
-                    // QList の detach を避けつつ末尾からまとめて削除できる既存APIを使用
-                    m_kifuRecordModel->removeLastItems(toRemove);
-                }
-            }
-        } else {
-            // 2) 平手/手合割など「新規初期局面から開始」のときは従来通り全消去
-            m_kifuRecordModel->clearAllItems();
-            // 見出し行を重複なく先頭へ
-            m_kifuRecordModel->appendItem(
-                new KifuDisplay(QStringLiteral("=== 開始局面 ==="),
-                                QStringLiteral("（１手 / 合計）")));
-            keepRow = 0;
-        }
-    }
-
-    // --- 手数トラッキングの更新 ---
-    if (startFromCurrentPos) {
-        m_activePly          = keepRow;
-        m_currentSelectedPly = keepRow;
-        m_currentMoveIndex   = keepRow;
-    } else {
-        m_activePly          = 0;
-        m_currentSelectedPly = 0;
-        m_currentMoveIndex   = 0;
-    }
-
-    // --- 分岐モデルは新規対局としてクリア ---
-    if (m_kifuBranchModel) {
-        m_kifuBranchModel->clear();
-    }
-    m_branchDisplayPlan.clear();
-
-    // --- コメント欄は見た目リセット（Presenter管理でも表示は空に）
-    broadcastComment(QString(), /*asHtml=*/true);
-
-    // --- USI ログの初期化（既存内容を踏襲） ---
-    qDebug().noquote() << "[MW] ★★★ onPreStartCleanupRequested_: RESETTING ENGINE NAMES ★★★";
-    auto resetInfo = [](UsiCommLogModel* m) {
-        if (!m) return;
-        m->clear();
-        m->setEngineName(QString());
-        m->setPredictiveMove(QString());
-        m->setSearchedMove(QString());
-        m->setSearchDepth(QString());
-        m->setNodeCount(QString());
-        m->setNodesPerSecond(QString());
-        m->setHashUsage(QString());
-    };
-    resetInfo(m_lineEditModel1);
-    resetInfo(m_lineEditModel2);
-    qDebug().noquote() << "[MW] ★★★ onPreStartCleanupRequested_: ENGINE NAMES RESET DONE ★★★";
-
-    // ★ 修正: タブ選択は変更しない（ユーザーの選択を保持）
-    // 以前は先頭（対局情報タブ）へ戻していたが、ユーザーの選択を尊重する
-    // if (m_tab) {
-    //     m_tab->setCurrentIndex(0);
-    // }
-    
-    // ★ 追加: 新しい対局開始に備えて開始時刻をリセット
-    if (m_timeController) {
-        m_timeController->clearGameStartTime();
-    }
-
-    // デバッグログ
-    qDebug().noquote()
-        << "[MW] onPreStartCleanupRequested_: startFromCurrentPos=" << startFromCurrentPos
-        << " keepRow=" << keepRow
-        << " rows(after)=" << (m_kifuRecordModel ? m_kifuRecordModel->rowCount() : -1);
 }
 
 void MainWindow::onApplyTimeControlRequested_(const GameStartCoordinator::TimeControl& tc)
@@ -3799,299 +3369,23 @@ void MainWindow::onTabCurrentChanged(int index)
 }
 
 // ========================================================
-// CSA通信対局関連のスロット
+// CSA通信対局関連のスロット（CsaGameWiring経由）
 // ========================================================
 
-// CSA対局開始時の処理
-void MainWindow::onCsaGameStarted_(const QString& blackName, const QString& whiteName)
+void MainWindow::onCsaPlayModeChanged_(int mode)
 {
-    qInfo().noquote() << "[MW] CSA game started:" << blackName << "vs" << whiteName;
-
-    // ★ 対局中はナビゲーション（棋譜欄と矢印ボタン）を無効化
-    disableNavigationForGame();
-
-    // 対局者名を設定
-    m_humanName1 = blackName;
-    m_humanName2 = whiteName;
-    
-    // 将棋盤横のプレイヤー名ラベルを更新
-    if (m_shogiView) {
-        // CSA通信では Name+: が先手、Name-: が後手
-        m_shogiView->setBlackPlayerName(QStringLiteral("▲") + blackName);
-        m_shogiView->setWhitePlayerName(QStringLiteral("▽") + whiteName);
-    }
-
-    // 棋譜モデルをクリア
-    if (m_kifuRecordModel) {
-        m_kifuRecordModel->clearAllItems();
-        // 見出し行を追加
-        m_kifuRecordModel->appendItem(
-            new KifuDisplay(QStringLiteral("=== 開始局面 ==="),
-                            QStringLiteral("（１手 / 合計）")));
-    }
-
-    // m_sfenRecordをクリアし、開始局面を追加
-    const QString hiratePosition = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
-    if (m_sfenRecord) {
-        m_sfenRecord->clear();
-        m_sfenRecord->append(hiratePosition);  // 開始局面を追加
-    }
-
-    // m_resolvedRowsをクリア（ライブモードを維持）
-    m_resolvedRows.clear();
-
-    // 手数カウンタをリセット
-    m_activePly = 0;
-    m_currentSelectedPly = 0;
-    m_currentMoveIndex = 0;
-
-    // KifuLoadCoordinatorをリセット（m_branchPlyContextなどを初期化するため）
-    if (m_kifuLoadCoordinator) {
-        delete m_kifuLoadCoordinator;
-        m_kifuLoadCoordinator = nullptr;
-    }
-
-    // 盤面を初期化（平手初期局面のSFEN）
-    if (m_gameController && m_gameController->board()) {
-        m_gameController->board()->setSfen(hiratePosition);
-    }
-    if (m_shogiView) {
-        m_shogiView->update();
-    }
-
-    // ステータスバーに表示
-    ui->statusbar->showMessage(tr("CSA通信対局開始: %1 vs %2").arg(blackName, whiteName), 5000);
+    m_playMode = static_cast<PlayMode>(mode);
+    qDebug().noquote() << "[MW] onCsaPlayModeChanged_: mode=" << mode;
 }
 
-// CSA対局終了時の処理
-void MainWindow::onCsaGameEnded_(const QString& result, const QString& cause, int consumedTimeMs)
+void MainWindow::onCsaShowGameEndDialog_(const QString& title, const QString& message)
 {
-    qInfo().noquote() << "[MW] CSA game ended:" << result << "(" << cause << ")"
-                      << "consumedTimeMs=" << consumedTimeMs;
-
-    // デバッグ: 終局処理前の状態
-    qDebug().noquote() << "[MW-DEBUG] onCsaGameEnded_ BEFORE:"
-                       << "sfenRecord.size=" << (m_sfenRecord ? m_sfenRecord->size() : -1)
-                       << "kifuModel.rowCount=" << (m_kifuRecordModel ? m_kifuRecordModel->rowCount() : -1);
-
-    // 棋譜欄に終局を追加
-    if (m_csaGameCoordinator) {
-        // 敗者の判定：自分が負けた場合は自分の手番記号、勝った場合は相手の手番記号
-        bool iAmLoser = (result == tr("負け"));
-        bool isBlackSide = m_csaGameCoordinator->isBlackSide();
-
-        // 敗者が先手か後手かを判定
-        bool loserIsBlack = (iAmLoser == isBlackSide);
-        QString mark = loserIsBlack ? QStringLiteral("▲") : QStringLiteral("△");
-
-        // 終局原因に応じた文字列を作成
-        QString endLine;
-        if (cause == tr("投了")) {
-            endLine = mark + tr("投了");
-        } else if (cause == tr("時間切れ")) {
-            endLine = mark + tr("時間切れ");
-        } else if (cause == tr("反則")) {
-            endLine = mark + tr("反則負け");
-        } else if (cause == tr("千日手")) {
-            endLine = tr("千日手");
-        } else if (cause == tr("連続王手の千日手")) {
-            endLine = mark + tr("反則負け（連続王手）");
-        } else if (cause == tr("入玉宣言")) {
-            endLine = tr("入玉宣言");
-        } else if (cause == tr("中断")) {
-            endLine = tr("中断");
-        } else {
-            endLine = cause;
-        }
-
-        qDebug().noquote() << "[MW-DEBUG] onCsaGameEnded_ endLine=" << endLine;
-
-        // 消費時間を "MM:SS/HH:MM:SS" 形式に変換
-        int consumedSec = consumedTimeMs / 1000;
-        int consumedMin = consumedSec / 60;
-        int consumedSecRem = consumedSec % 60;
-
-        // 敗者の累計消費時間を取得
-        int totalMs = loserIsBlack ? m_csaGameCoordinator->blackTotalTimeMs()
-                                   : m_csaGameCoordinator->whiteTotalTimeMs();
-        // 終局手の消費時間を累計に加算（まだ加算されていない場合）
-        totalMs += consumedTimeMs;
-
-        int totalSec = totalMs / 1000;
-        int totalHour = totalSec / 3600;
-        int totalMin = (totalSec % 3600) / 60;
-        int totalSecRem = totalSec % 60;
-
-        // フォーマット: "MM:SS/HH:MM:SS"
-        QString elapsedStr = QString("%1:%2/%3:%4:%5")
-                                 .arg(consumedMin, 2, 10, QLatin1Char('0'))
-                                 .arg(consumedSecRem, 2, 10, QLatin1Char('0'))
-                                 .arg(totalHour, 2, 10, QLatin1Char('0'))
-                                 .arg(totalMin, 2, 10, QLatin1Char('0'))
-                                 .arg(totalSecRem, 2, 10, QLatin1Char('0'));
-
-        // 棋譜欄に追加
-        appendKifuLine(endLine, elapsedStr);
-
-        // m_sfenRecordにも終局行用のダミーエントリを追加
-        // （最後の局面のSFENをコピーして、棋譜再生時に終局行まで移動できるようにする）
-        if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
-            qDebug().noquote() << "[MW-DEBUG] onCsaGameEnded_ appending last SFEN to sfenRecord";
-            m_sfenRecord->append(m_sfenRecord->last());
-        }
-
-        // 分岐ツリーを更新（投了行を含める）
-        qDebug().noquote() << "[MW-DEBUG] onCsaGameEnded_: calling refreshBranchTreeLive_()";
-        refreshBranchTreeLive_();
-
-        // 現在の手数を更新（投了行を含む）
-        if (m_kifuRecordModel) {
-            int currentRow = m_kifuRecordModel->rowCount() - 1;
-            m_activePly = currentRow;
-            m_currentSelectedPly = currentRow;
-            qDebug().noquote() << "[MW-DEBUG] onCsaGameEnded_: updated m_activePly=" << m_activePly
-                               << "m_currentSelectedPly=" << m_currentSelectedPly;
-
-            // 棋譜欄で終局行を選択状態にする
-            if (m_recordPane && m_recordPane->kifuView()) {
-                QModelIndex idx = m_kifuRecordModel->index(currentRow, 0);
-                m_recordPane->kifuView()->setCurrentIndex(idx);
-                m_recordPane->kifuView()->scrollTo(idx);
-            }
-        }
-
-        // デバッグ: 終局処理後の状態
-        qDebug().noquote() << "[MW-DEBUG] onCsaGameEnded_ AFTER:"
-                           << "sfenRecord.size=" << (m_sfenRecord ? m_sfenRecord->size() : -1)
-                           << "kifuModel.rowCount=" << (m_kifuRecordModel ? m_kifuRecordModel->rowCount() : -1);
-    }
-
-    // 対局終了ダイアログを表示
-    QString message = tr("対局が終了しました。\n\n結果: %1\n原因: %2").arg(result, cause);
-    QMessageBox::information(this, tr("対局終了"), message);
-
-    // プレイモードをリセット
-    m_playMode = NotStarted;
-
-    // ★ 対局終了後にナビゲーション（棋譜欄と矢印ボタン）を有効化
-    enableNavigationAfterGame();
-
-    // ステータスバーに表示
-    ui->statusbar->showMessage(tr("対局終了: %1 (%2)").arg(result, cause), 5000);
+    QMessageBox::information(this, title, message);
 }
 
-// CSA指し手確定時の処理
-void MainWindow::onCsaMoveMade_(const QString& csaMove, const QString& usiMove,
-                                const QString& prettyMove, int consumedTimeMs)
+void MainWindow::onJosekiForcedPromotion_(bool forced, bool promote)
 {
-    Q_UNUSED(usiMove)
-
-    qDebug().noquote() << "[MW] CSA move made:" << prettyMove << "(" << usiMove << ")";
-
-    // CSA形式から手番を判定（+なら先手、-なら後手）
-    bool isBlackMove = (csaMove.length() > 0 && csaMove[0] == QLatin1Char('+'));
-
-    // 消費時間を "MM:SS/HH:MM:SS" 形式に変換
-    int consumedSec = consumedTimeMs / 1000;
-    int consumedMin = consumedSec / 60;
-    int consumedSecRem = consumedSec % 60;
-
-    // 累計消費時間を取得
-    int totalMs = 0;
-    if (m_csaGameCoordinator) {
-        totalMs = isBlackMove ? m_csaGameCoordinator->blackTotalTimeMs()
-                              : m_csaGameCoordinator->whiteTotalTimeMs();
+    if (m_gameController) {
+        m_gameController->setForcedPromotion(forced, promote);
     }
-    int totalSec = totalMs / 1000;
-    int totalHour = totalSec / 3600;
-    int totalMin = (totalSec % 3600) / 60;
-    int totalSecRem = totalSec % 60;
-
-    // フォーマット: "MM:SS/HH:MM:SS"
-    QString elapsedStr = QString("%1:%2/%3:%4:%5")
-                             .arg(consumedMin, 2, 10, QLatin1Char('0'))
-                             .arg(consumedSecRem, 2, 10, QLatin1Char('0'))
-                             .arg(totalHour, 2, 10, QLatin1Char('0'))
-                             .arg(totalMin, 2, 10, QLatin1Char('0'))
-                             .arg(totalSecRem, 2, 10, QLatin1Char('0'));
-
-    // 棋譜欄に追記
-    appendKifuLine(prettyMove, elapsedStr);
-
-    // 分岐ツリーを更新（手数更新の前に呼ぶことで startFromCurrentPos = false を維持）
-    qDebug().noquote() << "[MW-DEBUG] onCsaMoveMade_: calling refreshBranchTreeLive_()";
-    refreshBranchTreeLive_();
-
-    // 現在の手数を更新（棋譜再生時に正しい位置から戻れるようにする）
-    // ★注意: refreshBranchTreeLive_() の後で更新する
-    if (m_kifuRecordModel) {
-        int currentRow = m_kifuRecordModel->rowCount() - 1;
-        m_activePly = currentRow;
-        m_currentSelectedPly = currentRow;
-        qDebug().noquote() << "[MW-DEBUG] onCsaMoveMade_: updated m_activePly=" << m_activePly
-                           << "m_currentSelectedPly=" << m_currentSelectedPly;
-    }
-
-    // 盤面を更新
-    if (m_shogiView) {
-        m_shogiView->update();
-    }
-}
-
-// CSA手番変更時の処理
-void MainWindow::onCsaTurnChanged_(bool isMyTurn)
-{
-    qDebug().noquote() << "[MW] CSA turn changed: myTurn =" << isMyTurn;
-
-    // 手番表示の更新（ステータスバーで表示）
-    if (m_csaGameCoordinator) {
-        bool isBlackTurn = m_csaGameCoordinator->isBlackSide() ? isMyTurn : !isMyTurn;
-        QString turnText = isBlackTurn ? tr("先手番") : tr("後手番");
-        ui->statusbar->showMessage(turnText, 2000);
-    }
-
-    // 入力モードの切り替え
-    // Note: BoardInteractionControllerにはsetInputEnabledがないため、
-    // 現状は手番表示のみ。将来的にはモード切替等で制御可能。
-    Q_UNUSED(isMyTurn)
-}
-
-// CSAログメッセージ受信時の処理
-void MainWindow::onCsaLogMessage_(const QString& message, bool isError)
-{
-    if (isError) {
-        qWarning().noquote() << "[CSA]" << message;
-    } else {
-        qInfo().noquote() << "[CSA]" << message;
-    }
-
-    // ステータスバーに簡易表示
-    ui->statusbar->showMessage(message, 3000);
-}
-
-// CSA指し手のハイライト表示要求
-void MainWindow::onCsaMoveHighlightRequested_(const QPoint& from, const QPoint& to)
-{
-    qDebug().noquote() << "[MW] CSA move highlight requested: from=" << from << "to=" << to;
-
-    if (m_boardController) {
-        m_boardController->showMoveHighlights(from, to);
-    }
-}
-
-// CSA待機ダイアログでキャンセルが押された時の処理
-void MainWindow::onCsaWaitingCancelled_()
-{
-    qInfo().noquote() << "[MW] CSA waiting cancelled by user";
-
-    // コーディネータの対局を停止
-    if (m_csaGameCoordinator) {
-        m_csaGameCoordinator->stopGame();
-    }
-
-    // プレイモードを未開始状態に戻す
-    m_playMode = NotStarted;
-
-    // ステータスバーに通知
-    ui->statusbar->showMessage(tr("通信対局をキャンセルしました"), 3000);
 }

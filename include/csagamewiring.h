@@ -109,6 +109,18 @@ signals:
      */
     void showGameEndDialogRequested(const QString& title, const QString& message);
 
+    /**
+     * @brief エラーメッセージ表示を要求
+     * @param message エラーメッセージ
+     */
+    void errorMessageRequested(const QString& message);
+
+public slots:
+    /**
+     * @brief 待機キャンセル時の処理
+     */
+    void onWaitingCancelled();
+
 private slots:
     /**
      * @brief 対局開始時の処理
