@@ -106,6 +106,9 @@ class CsaWaitingDialog;
 class JosekiWindow;
 class CsaGameWiring;
 class BranchRowDelegate;
+class JosekiWindowWiring;
+class PlayerInfoWiring;
+class PreStartCleanupHandler;
 
 // ============================================================
 // MainWindow
@@ -247,25 +250,16 @@ private slots:
 
     // 移動要求
     void onMoveRequested_(const QPoint& from, const QPoint& to);
-    
-    // 定跡手着手
-    void onJosekiMoveSelected(const QString& usiMove);
-    
-    // 定跡マージ用棋譜データ要求
-    void onRequestKifuDataForMerge();
 
     // リプレイ
     void setReplayMode(bool on);
 
-    // CSA通信対局関連
-    void onCsaGameStarted_(const QString& blackName, const QString& whiteName);
-    void onCsaGameEnded_(const QString& result, const QString& cause, int consumedTimeMs);
-    void onCsaMoveMade_(const QString& csaMove, const QString& usiMove,
-                        const QString& prettyMove, int consumedTimeMs);
-    void onCsaTurnChanged_(bool isMyTurn);
-    void onCsaLogMessage_(const QString& message, bool isError);
-    void onCsaMoveHighlightRequested_(const QPoint& from, const QPoint& to);
-    void onCsaWaitingCancelled_();
+    // CSA通信対局関連（CsaGameWiringからのシグナル受信用）
+    void onCsaPlayModeChanged_(int mode);
+    void onCsaShowGameEndDialog_(const QString& title, const QString& message);
+
+    // 定跡ウィンドウ関連（JosekiWindowWiringからのシグナル受信用）
+    void onJosekiForcedPromotion_(bool forced, bool promote);
 
     // 内部配線
     void connectBoardClicks_();
@@ -338,7 +332,6 @@ private:
     KifuAnalysisDialog*      m_analyzeGameRecordDialog = nullptr;
     CsaGameDialog*           m_csaGameDialog = nullptr;
     CsaWaitingDialog*        m_csaWaitingDialog = nullptr;
-    JosekiWindow*            m_josekiWindow = nullptr;
 
     // CSA通信対局コーディネータ
     CsaGameCoordinator*      m_csaGameCoordinator = nullptr;
@@ -453,6 +446,15 @@ private:
     // CSA通信対局UI配線
     CsaGameWiring*            m_csaGameWiring = nullptr;
 
+    // 定跡ウィンドウUI配線
+    JosekiWindowWiring*       m_josekiWiring = nullptr;
+
+    // 対局情報・プレイヤー情報UI配線
+    PlayerInfoWiring*         m_playerInfoWiring = nullptr;
+
+    // 対局開始前クリーンアップハンドラ
+    PreStartCleanupHandler*   m_preStartCleanupHandler = nullptr;
+
     // 変化エンジン
     std::unique_ptr<KifuVariationEngine> m_varEngine;
 
@@ -538,6 +540,9 @@ private:
     void ensureRecordNavigationController_();
     void ensurePositionEditCoordinator_();
     void ensureCsaGameWiring_();
+    void ensureJosekiWiring_();
+    void ensurePlayerInfoWiring_();
+    void ensurePreStartCleanupHandler_();
 
     // ctor の分割先
     void setupCentralWidgetContainer_();
