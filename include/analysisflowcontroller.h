@@ -111,6 +111,7 @@ private:
 
     void applyDialogOptions_(KifuAnalysisDialog* dlg);
     void commitPendingResult_();  // bestmove受信時に結果を確定
+    QString extractUsiMoveFromKanji_(const QString& kanjiMove) const;  // 漢字表記からUSI形式に変換
 
     // 自動生成したUsi用のPlayMode（インスタンス保持）
     PlayMode m_playModeForAnalysis = PlayMode::AnalysisMode;

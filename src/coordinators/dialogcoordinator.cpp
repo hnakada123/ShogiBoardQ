@@ -205,15 +205,34 @@ void DialogCoordinator::showKifuAnalysisDialogFromContext()
 
     // USI形式の指し手リストを取得（コンテキストから、またはKifuLoadCoordinatorから）
     // 注: コンテキストのusiMovesが空の場合はKifuLoadCoordinatorから取得
+    // ★ 重要: sfenRecordとusiMovesの整合性をチェック（sfenRecord.size() == usiMoves.size() + 1）
+    const qsizetype sfenSize = params.sfenRecord ? params.sfenRecord->size() : 0;
+
     if (m_kifuAnalysisCtx.gameUsiMoves && !m_kifuAnalysisCtx.gameUsiMoves->isEmpty()) {
-        params.usiMoves = m_kifuAnalysisCtx.gameUsiMoves;
-        qDebug().noquote() << "[DialogCoord] using ctx.gameUsiMoves (from game), size=" << params.usiMoves->size();
+        // 対局時のUSI形式指し手リストを使用
+        const qsizetype usiSize = m_kifuAnalysisCtx.gameUsiMoves->size();
+        if (sfenSize == usiSize + 1) {
+            params.usiMoves = m_kifuAnalysisCtx.gameUsiMoves;
+            qDebug().noquote() << "[DialogCoord] using ctx.gameUsiMoves (from game), size=" << usiSize;
+        } else {
+            // 整合性がないためusiMovesを使用しない（フォールバックを使用）
+            qDebug().noquote() << "[DialogCoord] ctx.gameUsiMoves size mismatch: sfenSize=" << sfenSize
+                               << " usiSize=" << usiSize << " (expected sfenSize == usiSize + 1)";
+        }
     } else if (m_kifuAnalysisCtx.kifuLoadCoordinator) {
-        params.usiMoves = m_kifuAnalysisCtx.kifuLoadCoordinator->kifuUsiMovesPtr();
-        qDebug().noquote() << "[DialogCoord] using kifuLoadCoordinator->kifuUsiMovesPtr(), size=" 
-                           << (params.usiMoves ? params.usiMoves->size() : -1);
+        // 棋譜読み込み時のUSI形式指し手リストを使用
+        QStringList* kifuUsiMoves = m_kifuAnalysisCtx.kifuLoadCoordinator->kifuUsiMovesPtr();
+        const qsizetype usiSize = kifuUsiMoves ? kifuUsiMoves->size() : 0;
+        if (sfenSize == usiSize + 1) {
+            params.usiMoves = kifuUsiMoves;
+            qDebug().noquote() << "[DialogCoord] using kifuLoadCoordinator->kifuUsiMovesPtr(), size=" << usiSize;
+        } else {
+            // 整合性がないためusiMovesを使用しない（フォールバックを使用）
+            qDebug().noquote() << "[DialogCoord] kifuUsiMoves size mismatch: sfenSize=" << sfenSize
+                               << " usiSize=" << usiSize << " (expected sfenSize == usiSize + 1)";
+        }
     }
-    qDebug().noquote() << "[DialogCoord] showKifuAnalysisDialogFromContext: params.usiMoves=" 
+    qDebug().noquote() << "[DialogCoord] showKifuAnalysisDialogFromContext: params.usiMoves="
                        << params.usiMoves << " size=" << (params.usiMoves ? params.usiMoves->size() : -1);
 
     // 対局者名を取得（GameInfoPaneControllerから）

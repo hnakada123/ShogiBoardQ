@@ -55,6 +55,19 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
     m_whitePlayerName = d.whitePlayerName;
     m_usiMoves      = d.usiMoves;
     m_err           = d.displayError;
+
+    // ★ sfenRecordとusiMovesの整合性をチェック（デバッグ用）
+    const qsizetype sfenSize = m_sfenRecord ? m_sfenRecord->size() : 0;
+    const qsizetype usiSize = m_usiMoves ? m_usiMoves->size() : 0;
+    qDebug().noquote() << "[AnalysisFlowController::start] sfenRecord.size=" << sfenSize
+                       << " usiMoves.size=" << usiSize
+                       << " (expected: sfenSize == usiSize + 1)";
+    if (m_usiMoves && sfenSize != usiSize + 1) {
+        qWarning().noquote() << "[AnalysisFlowController::start] WARNING: sfenRecord and usiMoves size mismatch!"
+                             << " Will use recordModel fallback for lastUsiMove extraction.";
+        // 注意: m_usiMovesをnullptrにしない。境界チェックで対応し、範囲外の場合は棋譜表記から抽出する
+    }
+
     m_prevEvalCp    = 0; // 差分用の前回値をリセット
     m_pendingPly    = -1; // 一時結果をリセット
     m_lastCommittedPly = -1; // GUI更新用の結果をリセット
@@ -331,8 +344,18 @@ void AnalysisFlowController::onPositionPrepared_(int ply, const QString& sfen)
         if (m_usiMoves && ply > 0 && ply <= m_usiMoves->size()) {
             lastUsiMove = m_usiMoves->at(ply - 1);
             qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] extracted lastUsiMove from m_usiMoves[" << (ply - 1) << "]=" << lastUsiMove;
+        } else if (m_recordModel && ply > 0 && ply < m_recordModel->rowCount()) {
+            // フォールバック: 棋譜表記からUSI形式の指し手を抽出
+            // 形式: 「▲７六歩(77)」または「△５五角打」など
+            KifuDisplay* moveDisp = m_recordModel->item(ply);
+            if (moveDisp) {
+                QString moveLabel = moveDisp->currentMove();
+                qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] extracting USI move from kanji:" << moveLabel;
+                lastUsiMove = extractUsiMoveFromKanji_(moveLabel);
+                qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] extracted lastUsiMove from kanji:" << lastUsiMove;
+            }
         } else {
-            qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] no lastUsiMove: ply=" << ply << " is out of range or m_usiMoves is null";
+            qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] no lastUsiMove: ply=" << ply << " is out of range or m_usiMoves/m_recordModel is null";
         }
         m_usi->setLastUsiMove(lastUsiMove);
         qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] setLastUsiMove called with:" << lastUsiMove;
@@ -891,4 +914,123 @@ void AnalysisFlowController::onResultRowDoubleClicked_(int row)
     
     dlg->setAttribute(Qt::WA_DeleteOnClose);
     dlg->show();
+}
+
+QString AnalysisFlowController::extractUsiMoveFromKanji_(const QString& kanjiMove) const
+{
+    // 漢字表記からUSI形式の指し手を抽出する
+    // 形式例:
+    //   「▲７六歩(77)」 → "7g7f" （通常移動）
+    //   「△同　銀(31)」 → 同表記は前回の移動先が必要なのでスキップ
+    //   「▲５五角打」   → "B*5e" （駒打ち）
+    //   「▲３三歩成(34)」 → "3d3c+" （成り）
+
+    if (kanjiMove.isEmpty()) {
+        return QString();
+    }
+
+    // 先手・後手マークを探す
+    static const QString senteMark = QStringLiteral("▲");
+    static const QString goteMark = QStringLiteral("△");
+
+    qsizetype markPos = kanjiMove.indexOf(senteMark);
+    if (markPos < 0) {
+        markPos = kanjiMove.indexOf(goteMark);
+    }
+    if (markPos < 0 || kanjiMove.length() <= markPos + 2) {
+        return QString();
+    }
+
+    QString afterMark = kanjiMove.mid(markPos + 1);
+
+    // 「同」表記の場合は前回の移動先が必要なのでスキップ
+    if (afterMark.startsWith(QStringLiteral("同"))) {
+        qDebug().noquote() << "[extractUsiMoveFromKanji_] 同 notation, cannot extract USI move";
+        return QString();
+    }
+
+    // 駒打ち判定（「打」を含む場合）
+    bool isDrop = afterMark.contains(QStringLiteral("打"));
+
+    // 成り判定（「成」を含む場合）
+    bool isPromotion = afterMark.contains(QStringLiteral("成")) && !afterMark.contains(QStringLiteral("不成"));
+
+    // 移動先座標を取得（全角数字 + 漢数字）
+    QChar fileChar = afterMark.at(0);  // 全角数字 '１'〜'９'
+    QChar rankChar = afterMark.at(1);  // 漢数字 '一'〜'九'
+
+    // 全角数字を整数に変換
+    int fileTo = 0;
+    if (fileChar >= QChar(0xFF11) && fileChar <= QChar(0xFF19)) {
+        fileTo = fileChar.unicode() - 0xFF11 + 1;
+    }
+
+    // 漢数字を整数に変換
+    int rankTo = 0;
+    static const QString kanjiRanks = QStringLiteral("一二三四五六七八九");
+    qsizetype rankIdx = kanjiRanks.indexOf(rankChar);
+    if (rankIdx >= 0) {
+        rankTo = static_cast<int>(rankIdx) + 1;
+    }
+
+    if (fileTo < 1 || fileTo > 9 || rankTo < 1 || rankTo > 9) {
+        qDebug().noquote() << "[extractUsiMoveFromKanji_] invalid destination:" << fileTo << rankTo;
+        return QString();
+    }
+
+    QChar toRankAlpha = QChar('a' + rankTo - 1);
+
+    if (isDrop) {
+        // 駒打ちの場合: "P*5e" 形式
+        // 駒の種類を抽出（歩/香/桂/銀/金/角/飛）
+        static const QString pieceChars = QStringLiteral("歩香桂銀金角飛");
+        static const QString usiPieces = QStringLiteral("PLNSGBR");
+
+        QChar pieceUsi;
+        for (qsizetype i = 0; i < pieceChars.size(); ++i) {
+            if (afterMark.contains(pieceChars.at(i))) {
+                pieceUsi = usiPieces.at(i);
+                break;
+            }
+        }
+
+        if (pieceUsi.isNull()) {
+            qDebug().noquote() << "[extractUsiMoveFromKanji_] could not identify piece for drop";
+            return QString();
+        }
+
+        return QString("%1*%2%3").arg(pieceUsi).arg(fileTo).arg(toRankAlpha);
+    } else {
+        // 通常移動の場合: 括弧内の元位置を取得 "(77)" → file=7, rank=7
+        qsizetype parenStart = afterMark.indexOf('(');
+        qsizetype parenEnd = afterMark.indexOf(')');
+
+        if (parenStart < 0 || parenEnd < 0 || parenEnd <= parenStart + 1) {
+            qDebug().noquote() << "[extractUsiMoveFromKanji_] could not find source position in parentheses";
+            return QString();
+        }
+
+        QString srcStr = afterMark.mid(parenStart + 1, parenEnd - parenStart - 1);
+        if (srcStr.length() != 2) {
+            qDebug().noquote() << "[extractUsiMoveFromKanji_] invalid source string:" << srcStr;
+            return QString();
+        }
+
+        int fileFrom = srcStr.at(0).digitValue();
+        int rankFrom = srcStr.at(1).digitValue();
+
+        if (fileFrom < 1 || fileFrom > 9 || rankFrom < 1 || rankFrom > 9) {
+            qDebug().noquote() << "[extractUsiMoveFromKanji_] invalid source coordinates:" << fileFrom << rankFrom;
+            return QString();
+        }
+
+        QChar fromRankAlpha = QChar('a' + rankFrom - 1);
+
+        QString usiMove = QString("%1%2%3%4").arg(fileFrom).arg(fromRankAlpha).arg(fileTo).arg(toRankAlpha);
+        if (isPromotion) {
+            usiMove += '+';
+        }
+
+        return usiMove;
+    }
 }
