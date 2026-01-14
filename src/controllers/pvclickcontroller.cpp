@@ -145,9 +145,18 @@ void PvClickController::onPvRowClicked(int engineIndex, int row)
     QString lastUsiMove = record->lastUsiMove();
     qDebug() << "[PvClick] onPvRowClicked: lastUsiMove from record=" << lastUsiMove;
     if (lastUsiMove.isEmpty()) {
-        // フォールバック: m_usiMovesまたはm_gameMovesから取得
-        lastUsiMove = resolveLastUsiMove();
-        qDebug() << "[PvClick] onPvRowClicked: lastUsiMove from fallback=" << lastUsiMove;
+        // 開始局面（平手初期配置）かどうかをチェック
+        // 開始局面の場合は前の手がないのでフォールバックを使わない
+        static const QString startposSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+        bool isStartPosition = currentSfen.startsWith(startposSfen.left(60));  // 盤面部分のみ比較
+
+        if (!isStartPosition) {
+            // フォールバック: m_usiMovesまたはm_gameMovesから取得
+            lastUsiMove = resolveLastUsiMove();
+            qDebug() << "[PvClick] onPvRowClicked: lastUsiMove from fallback=" << lastUsiMove;
+        } else {
+            qDebug() << "[PvClick] onPvRowClicked: start position detected, no lastUsiMove needed";
+        }
     }
     if (!lastUsiMove.isEmpty()) {
         qDebug() << "[PvClick] onPvRowClicked: calling setLastMove with:" << lastUsiMove;
