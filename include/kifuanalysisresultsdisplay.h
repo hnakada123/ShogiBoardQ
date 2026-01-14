@@ -45,7 +45,7 @@ public:
     QString candidateMove() const { return m_candidateMove; }
 
     // 候補手を設定する。
-    void setCandidateMove(const QString& candidateMove) { m_candidateMove = candidateMove; }
+    void setCandidateMove(const QString& move) { m_candidateMove = move; }
 
     // 評価値を取得する。
     QString evaluationValue() const;

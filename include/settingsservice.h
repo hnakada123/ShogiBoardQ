@@ -102,6 +102,11 @@ int kifuAnalysisFontSize();
 // フォントサイズを保存
 void setKifuAnalysisFontSize(int size);
 
+// 棋譜解析結果ウィンドウのサイズを取得（デフォルト: 1100x600）
+QSize kifuAnalysisResultsWindowSize();
+// 棋譜解析結果ウィンドウのサイズを保存
+void setKifuAnalysisResultsWindowSize(const QSize& size);
+
 // 1手あたりの思考時間（秒）を取得（デフォルト: 3）
 int kifuAnalysisByoyomiSec();
 // 1手あたりの思考時間（秒）を保存
