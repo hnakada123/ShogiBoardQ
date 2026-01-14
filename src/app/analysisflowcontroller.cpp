@@ -604,14 +604,26 @@ void AnalysisFlowController::commitPendingResult_()
     
     // 最後の指し手（USI形式）を設定（読み筋表示ウィンドウのハイライト用）
     // ply=0 は開始局面なので指し手なし、ply>=1 は usiMoves[ply-1] が最後の指し手
+    QString lastMove;
     if (m_usiMoves && ply > 0 && ply <= m_usiMoves->size()) {
-        QString lastMove = m_usiMoves->at(ply - 1);
+        lastMove = m_usiMoves->at(ply - 1);
+        qDebug().noquote() << "[AnalysisFlowController::commitPendingResult_] lastMove from m_usiMoves[" << (ply - 1) << "]=" << lastMove;
+    } else if (m_recordModel && ply > 0 && ply < m_recordModel->rowCount()) {
+        // フォールバック: 棋譜表記からUSI形式の指し手を抽出
+        KifuDisplay* moveDisp = m_recordModel->item(ply);
+        if (moveDisp) {
+            QString kanjiMoveStr = moveDisp->currentMove();
+            lastMove = extractUsiMoveFromKanji_(kanjiMoveStr);
+            qDebug().noquote() << "[AnalysisFlowController::commitPendingResult_] lastMove from kanji:" << kanjiMoveStr << "->" << lastMove;
+        }
+    } else {
+        qDebug().noquote() << "[AnalysisFlowController::commitPendingResult_] no lastMove: m_usiMoves=" << m_usiMoves
+                           << "ply=" << ply
+                           << "usiMoves.size=" << (m_usiMoves ? m_usiMoves->size() : -1);
+    }
+    if (!lastMove.isEmpty()) {
         resultItem->setLastUsiMove(lastMove);
         qDebug().noquote() << "[AnalysisFlowController::commitPendingResult_] setLastUsiMove: ply=" << ply << "lastMove=" << lastMove;
-    } else {
-        qDebug().noquote() << "[AnalysisFlowController::commitPendingResult_] no lastUsiMove: m_usiMoves=" << m_usiMoves 
-                           << "ply=" << ply 
-                           << "usiMoves.size=" << (m_usiMoves ? m_usiMoves->size() : -1);
     }
     
     // 候補手を設定（前の行の読み筋の最初の指し手）
@@ -907,6 +919,19 @@ void AnalysisFlowController::onResultRowDoubleClicked_(int row)
     
     // 最後の指し手を設定（初期局面のハイライト用）
     QString lastMove = item->lastUsiMove();
+    if (lastMove.isEmpty()) {
+        // フォールバック: 棋譜表記からUSI形式の指し手を抽出
+        // rowはitem->moveNum()と同じはずだが、念のためrowを使用
+        int ply = row;  // 解析結果のrow番号は手数(ply)と一致
+        if (m_recordModel && ply > 0 && ply < m_recordModel->rowCount()) {
+            KifuDisplay* moveDisp = m_recordModel->item(ply);
+            if (moveDisp) {
+                QString moveLabel = moveDisp->currentMove();
+                lastMove = extractUsiMoveFromKanji_(moveLabel);
+                qDebug().noquote() << "[AnalysisFlowController::onResultRowDoubleClicked_] lastMove from kanji:" << moveLabel << "->" << lastMove;
+            }
+        }
+    }
     if (!lastMove.isEmpty()) {
         qDebug().noquote() << "[AnalysisFlowController::onResultRowDoubleClicked_] setting lastMove:" << lastMove;
         dlg->setLastMove(lastMove);
