@@ -26,6 +26,9 @@ public:
     // 中止ボタンの有効/無効を設定
     void setStopButtonEnabled(bool enabled);
     
+    // 解析中フラグを設定（行追加時の自動選択に使用）
+    void setAnalyzing(bool analyzing) { m_isAnalyzing = analyzing; }
+    
     // 解析完了を通知（完了メッセージボックスを表示）
     void showAnalysisComplete(int totalMoves);
 
@@ -35,6 +38,9 @@ signals:
     
     // 行がダブルクリックされたときに発行（読み筋表示用）
     void rowDoubleClicked(int row);
+    
+    // 行が選択されたときに発行（棋譜欄・将棋盤・分岐ツリー連動用）
+    void rowSelected(int row);
 
 private slots:
     void reflowNow();
@@ -44,6 +50,7 @@ private slots:
     void onLayoutChanged();
     void onScrollRangeChanged(int, int);
     void onTableDoubleClicked(const QModelIndex& index);
+    void onTableSelectionChanged(const QModelIndex& current, const QModelIndex& previous);
     
     // フォントサイズ変更
     void increaseFontSize();
@@ -62,6 +69,12 @@ private:
     QPointer<QHeaderView> m_header;
     QPointer<QPushButton> m_stopButton;
     QTimer* m_reflowTimer;
+    
+    // 解析中フラグ（行追加時に最後の行を自動選択）
+    bool m_isAnalyzing = false;
+    
+    // 自動選択中フラグ（rowSelectedシグナル発行をスキップ）
+    bool m_autoSelecting = false;
 };
 
 #endif // ANALYSISRESULTSPRESENTER_H

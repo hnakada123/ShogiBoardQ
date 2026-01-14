@@ -246,6 +246,11 @@ Q_SIGNALS:
      */
     void analysisProgressReported(int ply, int scoreCp);
 
+    /**
+     * @brief 棋譜解析結果の行が選択されたときに通知
+     */
+    void analysisResultRowSelected(int row);
+
 private:
     QWidget* m_parentWidget = nullptr;
     MatchCoordinator* m_match = nullptr;

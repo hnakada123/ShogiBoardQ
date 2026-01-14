@@ -153,6 +153,8 @@ void DialogCoordinator::showKifuAnalysisDialog(const KifuAnalysisParams& params)
         // シグナル中継（Flow → DialogCoordinator → MainWindow）
         QObject::connect(m_analysisFlow, &AnalysisFlowController::analysisProgressReported,
                          this, &DialogCoordinator::analysisProgressReported, Qt::UniqueConnection);
+        QObject::connect(m_analysisFlow, &AnalysisFlowController::analysisResultRowSelected,
+                         this, &DialogCoordinator::analysisResultRowSelected, Qt::UniqueConnection);
     }
 
     // 依存を詰めて Flow へ一任
