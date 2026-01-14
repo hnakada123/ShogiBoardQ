@@ -864,6 +864,7 @@ void MainWindow::displayKifuAnalysisDialog()
     ctx.gameInfoController = m_gameInfoController;
     ctx.kifuLoadCoordinator = m_kifuLoadCoordinator;
     ctx.recordPane = m_recordPane;
+    ctx.gameUsiMoves = &m_gameUsiMoves;  // 対局時のUSI形式指し手リスト
     m_dialogCoordinator->setKifuAnalysisContext(ctx);
 
     // コンテキストから自動パラメータ構築してダイアログを表示
@@ -2192,7 +2193,7 @@ void MainWindow::updateKifuExportDependencies_()
     deps.gameController = m_gameController;
     deps.statusBar = ui ? ui->statusbar : nullptr;
     deps.sfenRecord = m_sfenRecord;
-    deps.usiMoves = &m_usiMoves;
+    deps.usiMoves = &m_gameUsiMoves;
     deps.resolvedRows = &m_resolvedRows;
     deps.commentsByRow = &m_commentsByRow;
     deps.startSfenStr = m_startSfenStr;
@@ -2308,7 +2309,7 @@ void MainWindow::ensurePvClickController_()
     m_pvClickController->setLogModels(m_lineEditModel1, m_lineEditModel2);
     m_pvClickController->setSfenRecord(m_sfenRecord);
     m_pvClickController->setGameMoves(&m_gameMoves);
-    m_pvClickController->setUsiMoves(&m_usiMoves);
+    m_pvClickController->setUsiMoves(&m_gameUsiMoves);
 }
 
 void MainWindow::ensureRecordNavigationController_()
@@ -2465,7 +2466,7 @@ void MainWindow::ensureJosekiWiring_()
     deps.gameController = m_gameController;
     deps.kifuRecordModel = m_kifuRecordModel;
     deps.sfenRecord = m_sfenRecord;
-    deps.usiMoves = &m_usiMoves;
+    deps.usiMoves = &m_gameUsiMoves;
     deps.currentSfenStr = &m_currentSfenStr;
     deps.currentMoveIndex = &m_currentMoveIndex;
     deps.currentSelectedPly = &m_currentSelectedPly;

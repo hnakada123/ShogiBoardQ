@@ -180,6 +180,7 @@ public:
         GameInfoPaneController* gameInfoController = nullptr;
         KifuLoadCoordinator* kifuLoadCoordinator = nullptr;
         RecordPane* recordPane = nullptr;
+        QStringList* gameUsiMoves = nullptr;  // 対局時のUSI形式指し手リスト（MainWindow::m_gameUsiMoves）
     };
 
     /**

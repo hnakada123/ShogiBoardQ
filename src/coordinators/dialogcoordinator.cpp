@@ -203,10 +203,18 @@ void DialogCoordinator::showKifuAnalysisDialogFromContext()
     params.activePly = m_kifuAnalysisCtx.activePly ? *m_kifuAnalysisCtx.activePly : 0;
     params.gameController = m_kifuAnalysisCtx.gameController;
 
-    // USI形式の指し手リストを取得（KifuLoadCoordinatorから）
-    if (m_kifuAnalysisCtx.kifuLoadCoordinator) {
-        params.usiMoves = m_kifuAnalysisCtx.kifuLoadCoordinator->usiMovesPtr();
+    // USI形式の指し手リストを取得（コンテキストから、またはKifuLoadCoordinatorから）
+    // 注: コンテキストのusiMovesが空の場合はKifuLoadCoordinatorから取得
+    if (m_kifuAnalysisCtx.gameUsiMoves && !m_kifuAnalysisCtx.gameUsiMoves->isEmpty()) {
+        params.usiMoves = m_kifuAnalysisCtx.gameUsiMoves;
+        qDebug().noquote() << "[DialogCoord] using ctx.gameUsiMoves (from game), size=" << params.usiMoves->size();
+    } else if (m_kifuAnalysisCtx.kifuLoadCoordinator) {
+        params.usiMoves = m_kifuAnalysisCtx.kifuLoadCoordinator->kifuUsiMovesPtr();
+        qDebug().noquote() << "[DialogCoord] using kifuLoadCoordinator->kifuUsiMovesPtr(), size=" 
+                           << (params.usiMoves ? params.usiMoves->size() : -1);
     }
+    qDebug().noquote() << "[DialogCoord] showKifuAnalysisDialogFromContext: params.usiMoves=" 
+                       << params.usiMoves << " size=" << (params.usiMoves ? params.usiMoves->size() : -1);
 
     // 対局者名を取得（GameInfoPaneControllerから）
     if (m_kifuAnalysisCtx.gameInfoController) {

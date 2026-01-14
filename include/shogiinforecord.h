@@ -50,6 +50,12 @@ public:
     // 読み筋の開始局面SFENを設定する。
     void setBaseSfen(const QString& sfen);
 
+    // 開始局面に至った最後の指し手（USI形式）を取得する。
+    QString lastUsiMove() const;
+
+    // 開始局面に至った最後の指し手（USI形式）を設定する。
+    void setLastUsiMove(const QString& move);
+
 private:
     // 思考時間
     QString m_time;
@@ -71,6 +77,9 @@ private:
 
     // 読み筋の開始局面SFEN
     QString m_baseSfen;
+
+    // 開始局面に至った最後の指し手（USI形式）
+    QString m_lastUsiMove;
 };
 
 #endif // SHOGIINFORECORD_H

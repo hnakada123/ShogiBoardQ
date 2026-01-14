@@ -195,11 +195,16 @@ void Usi::onThinkingInfoUpdated(const QString& time, const QString& depth,
                                 const QString& pvKanjiStr, const QString& usiPv,
                                 const QString& baseSfen)
 {
+    qDebug().noquote() << "[Usi::onThinkingInfoUpdated] m_lastUsiMove=" << m_lastUsiMove
+                       << " baseSfen=" << baseSfen.left(50);
+    
     // 思考タブへ追記（USI PVとbaseSfenも保存）
     if (m_thinkingModel) {
         ShogiInfoRecord* record = new ShogiInfoRecord(time, depth, nodes, score, pvKanjiStr);
         record->setUsiPv(usiPv);
         record->setBaseSfen(baseSfen);
+        record->setLastUsiMove(m_lastUsiMove);
+        qDebug().noquote() << "[Usi::onThinkingInfoUpdated] record->lastUsiMove() after set=" << record->lastUsiMove();
         m_thinkingModel->prependItem(record);
     }
     
@@ -269,6 +274,12 @@ void Usi::setPreviousRankTo(int newPreviousRankTo)
 {
     m_previousRankTo = newPreviousRankTo;
     m_presenter->setPreviousMove(m_previousFileTo, m_previousRankTo);
+}
+
+void Usi::setLastUsiMove(const QString& move)
+{
+    qDebug().noquote() << "[Usi::setLastUsiMove] move=" << move;
+    m_lastUsiMove = move;
 }
 
 void Usi::setLogIdentity(const QString& engineTag, const QString& sideTag,

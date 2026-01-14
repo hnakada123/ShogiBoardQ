@@ -90,11 +90,11 @@ public:
 
     void setBranchCandidatesController(BranchCandidatesController* ctl);
 
-    // USI指し手リストを取得（CSA出力用）
-    const QStringList& usiMoves() const { return m_usiMoves; }
+    // USI指し手リストを取得（CSA出力用）- 棋譜から読み込んだ指し手
+    const QStringList& kifuUsiMoves() const { return m_kifuUsiMoves; }
     
-    // USI指し手リストへのポインタを取得（棋譜解析用）
-    QStringList* usiMovesPtr() { return &m_usiMoves; }
+    // USI指し手リストへのポインタを取得（棋譜解析用）- 棋譜から読み込んだ指し手
+    QStringList* kifuUsiMovesPtr() { return &m_kifuUsiMoves; }
 
     void updateBranchTreeFromLive(int currentPly);
 
@@ -134,7 +134,7 @@ private:
     EngineAnalysisTab* m_analysisTab = nullptr;  // setAnalysisTab() 経由で設定
     QTabWidget* m_tab;
     ShogiView* m_shogiView = nullptr;            // setShogiView() 経由で設定
-    QStringList m_usiMoves;
+    QStringList m_kifuUsiMoves;  // 棋譜から読み込んだUSI形式の指し手リスト
     QStringList* m_sfenRecord;
     QVector<ShogiMove>& m_gameMoves;
     QStringList& m_positionStrList;

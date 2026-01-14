@@ -128,6 +128,8 @@ void PvClickController::onPvRowClicked(int engineIndex, int row)
     // 現在の局面SFENを取得
     QString currentSfen = resolveCurrentSfen(record->baseSfen());
     qDebug() << "[PvClick] onPvRowClicked: currentSfen=" << currentSfen;
+    qDebug() << "[PvClick] onPvRowClicked: record->baseSfen()=" << record->baseSfen();
+    qDebug() << "[PvClick] onPvRowClicked: record->lastUsiMove()=" << record->lastUsiMove();
 
     // PvBoardDialog を表示
     PvBoardDialog* dlg = new PvBoardDialog(currentSfen, usiMoves, qobject_cast<QWidget*>(parent()));
@@ -139,10 +141,19 @@ void PvClickController::onPvRowClicked(int engineIndex, int row)
     dlg->setPlayerNames(blackName, whiteName);
 
     // 起動時の局面に至った最後の手を設定
-    QString lastUsiMove = resolveLastUsiMove();
+    // まずShogiInfoRecordから取得を試みる（棋譜解析モード用）
+    QString lastUsiMove = record->lastUsiMove();
+    qDebug() << "[PvClick] onPvRowClicked: lastUsiMove from record=" << lastUsiMove;
+    if (lastUsiMove.isEmpty()) {
+        // フォールバック: m_usiMovesまたはm_gameMovesから取得
+        lastUsiMove = resolveLastUsiMove();
+        qDebug() << "[PvClick] onPvRowClicked: lastUsiMove from fallback=" << lastUsiMove;
+    }
     if (!lastUsiMove.isEmpty()) {
         qDebug() << "[PvClick] onPvRowClicked: calling setLastMove with:" << lastUsiMove;
         dlg->setLastMove(lastUsiMove);
+    } else {
+        qDebug() << "[PvClick] onPvRowClicked: lastUsiMove is EMPTY, no highlight will be set";
     }
 
     dlg->setAttribute(Qt::WA_DeleteOnClose);

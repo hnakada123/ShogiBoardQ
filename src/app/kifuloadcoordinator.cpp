@@ -803,7 +803,7 @@ void KifuLoadCoordinator::applyParsedResultCommon_(
 {
     // 本譜（表示／USI）
     const QList<KifDisplayItem>& disp = res.mainline.disp;
-    m_usiMoves = res.mainline.usiMoves;
+    m_kifuUsiMoves = res.mainline.usiMoves;
 
     // 終局/中断判定（見た目文字列で簡易判定）
     static const QStringList kTerminalKeywords = {
@@ -822,7 +822,7 @@ void KifuLoadCoordinator::applyParsedResultCommon_(
     const bool hasTerminal = (!disp.isEmpty() && isTerminalPretty(disp.back().prettyMove));
 
     // disp[0]は開始局面エントリなので、指し手が1つもない場合は disp.size() <= 1
-    if (m_usiMoves.isEmpty() && !hasTerminal && disp.size() <= 1) {
+    if (m_kifuUsiMoves.isEmpty() && !hasTerminal && disp.size() <= 1) {
         const QString errorMessage =
             tr("読み込み失敗 %1 から指し手を取得できませんでした。").arg(filePath);
         emit errorOccurred(errorMessage);
@@ -832,22 +832,22 @@ void KifuLoadCoordinator::applyParsedResultCommon_(
     }
 
     // 3) 本譜の SFEN 列と m_gameMoves を再構築
-    rebuildSfenRecord(initialSfen, m_usiMoves, hasTerminal);
-    rebuildGameMoves(initialSfen, m_usiMoves);
+    rebuildSfenRecord(initialSfen, m_kifuUsiMoves, hasTerminal);
+    rebuildGameMoves(initialSfen, m_kifuUsiMoves);
 
     // 3.5) USI position コマンド列を構築（0..N）
     //     initialSfen は prepareInitialSfen() が返す手合い込みの SFEN
-    //     m_usiMoves は 1..N の USI 文字列（"7g7f" 等）
+    //     m_kifuUsiMoves は 1..N の USI 文字列（"7g7f" 等）
     m_positionStrList.clear();
-    m_positionStrList.reserve(m_usiMoves.size() + 1);
+    m_positionStrList.reserve(m_kifuUsiMoves.size() + 1);
 
     const QString base = QStringLiteral("position sfen %1").arg(initialSfen);
     m_positionStrList.push_back(base);  // 0手目：moves なし
 
     QStringList acc; // 先頭からの累積
-    acc.reserve(m_usiMoves.size());
-    for (qsizetype i = 0; i < m_usiMoves.size(); ++i) {
-        acc.push_back(m_usiMoves.at(i));
+    acc.reserve(m_kifuUsiMoves.size());
+    for (qsizetype i = 0; i < m_kifuUsiMoves.size(); ++i) {
+        acc.push_back(m_kifuUsiMoves.at(i));
         // i+1 手目：先頭から i+1 個の moves を連結
         m_positionStrList.push_back(base + QStringLiteral(" moves ") + acc.join(' '));
     }
@@ -914,7 +914,7 @@ void KifuLoadCoordinator::applyParsedResultCommon_(
 
     // 9) UIの整合
     emit enableArrowButtons();
-    logImportSummary(filePath, m_usiMoves, disp, teaiLabel, parseWarn, QString());
+    logImportSummary(filePath, m_kifuUsiMoves, disp, teaiLabel, parseWarn, QString());
 
     // 10) 解決済み行を構築（親探索規則で親子関係を決定）
     buildResolvedLinesAfterLoad();
@@ -952,8 +952,8 @@ void KifuLoadCoordinator::applyParsedResultCommon_(
     }
     {
         QVector<UsiMove> usiMain;
-        usiMain.reserve(m_usiMoves.size());
-        for (const auto& u : std::as_const(m_usiMoves)) {
+        usiMain.reserve(m_kifuUsiMoves.size());
+        for (const auto& u : std::as_const(m_kifuUsiMoves)) {
             usiMain.push_back(UsiMove(u));
         }
         m_varEngine->ingest(res, m_sfenMain, usiMain, m_dispMain);
