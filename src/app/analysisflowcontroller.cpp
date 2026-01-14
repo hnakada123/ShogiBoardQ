@@ -209,33 +209,10 @@ void AnalysisFlowController::applyDialogOptions_(KifuAnalysisDialog* dlg)
 
     const int sfenSize = static_cast<int>(m_sfenRecord->size());
     
-    // 終局を示す指し手（投了、中断など）を検出して最大手数を調整
+    // 解析範囲の最大値を設定
+    // 注: sfenRecordには終局指し手（投了、中断など）は含まれないため、
+    //     sfenSize - 1 が最後の指し手の局面インデックスとなる
     int maxEndPly = sfenSize - 1;
-    if (m_recordModel && maxEndPly > 0) {
-        // 終局を示す文字列リスト
-        static const QStringList terminalKeywords = {
-            QStringLiteral("投了"), QStringLiteral("中断"), QStringLiteral("持将棋"),
-            QStringLiteral("千日手"), QStringLiteral("切れ負け"),
-            QStringLiteral("反則勝ち"), QStringLiteral("反則負け"),
-            QStringLiteral("不戦勝"), QStringLiteral("不戦敗"),
-            QStringLiteral("詰み"), QStringLiteral("不詰"),
-            QStringLiteral("入玉勝ち"), QStringLiteral("時間切れ")
-        };
-        
-        // 最終行が終局指し手かどうか確認
-        KifuDisplay* lastDisp = m_recordModel->item(m_recordModel->rowCount() - 1);
-        if (lastDisp) {
-            QString lastMove = lastDisp->currentMove();
-            for (const QString& keyword : terminalKeywords) {
-                if (lastMove.contains(keyword)) {
-                    maxEndPly = sfenSize - 2;  // 終局指し手の前で終了
-                    qDebug().noquote() << "[AnalysisFlowController::applyDialogOptions_] terminal move detected:"
-                                       << lastMove << "-> maxEndPly adjusted to" << maxEndPly;
-                    break;
-                }
-            }
-        }
-    }
     
     // ダイアログの設定に基づいて範囲を決定
     if (dlg->initPosition()) {
@@ -339,6 +316,72 @@ void AnalysisFlowController::onPositionPrepared_(int ply, const QString& sfen)
         m_usi->setBaseSfen(pureSfen);
         qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] called setBaseSfen with pureSfen=" << pureSfen.left(50);
         
+        // 直前の指し手の移動先を設定（読み筋の最初の指し手で「同」表記を正しく判定するため）
+        // ply=0は開始局面なので直前の指し手なし
+        // ply>=1の場合、その局面に至った指し手はrecordModel->item(ply)（ply番目の指し手）
+        bool previousMoveSet = false;
+        if (m_recordModel && ply > 0 && ply < m_recordModel->rowCount()) {
+            KifuDisplay* prevDisp = m_recordModel->item(ply);  // plyの指し手（その局面に至った指し手）
+            if (prevDisp) {
+                QString prevMoveLabel = prevDisp->currentMove();
+                qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] prevMoveLabel from recordModel[" << ply << "]:" << prevMoveLabel;
+                
+                // 漢字の移動先を抽出して整数座標に変換
+                // 形式: 「▲７六歩(77)」または「△同　銀(31)」
+                static const QString senteMark = QStringLiteral("▲");
+                static const QString goteMark = QStringLiteral("△");
+                
+                qsizetype markPos = prevMoveLabel.indexOf(senteMark);
+                if (markPos < 0) {
+                    markPos = prevMoveLabel.indexOf(goteMark);
+                }
+                
+                if (markPos >= 0 && prevMoveLabel.length() > markPos + 2) {
+                    QString afterMark = prevMoveLabel.mid(markPos + 1);
+                    
+                    // 「同」の場合はスキップ（前回の移動先をそのまま使用）
+                    if (!afterMark.startsWith(QStringLiteral("同"))) {
+                        // 「７六」のような漢字座標を取得
+                        QChar fileChar = afterMark.at(0);  // 全角数字 '１'〜'９'
+                        QChar rankChar = afterMark.at(1);  // 漢数字 '一'〜'九'
+                        
+                        // 全角数字を整数に変換（'１'=0xFF11 → 1）
+                        int fileTo = 0;
+                        if (fileChar >= QChar(0xFF11) && fileChar <= QChar(0xFF19)) {
+                            fileTo = fileChar.unicode() - 0xFF11 + 1;
+                        }
+                        
+                        // 漢数字を整数に変換
+                        int rankTo = 0;
+                        static const QString kanjiRanks = QStringLiteral("一二三四五六七八九");
+                        int rankIdx = kanjiRanks.indexOf(rankChar);
+                        if (rankIdx >= 0) {
+                            rankTo = rankIdx + 1;
+                        }
+                        
+                        if (fileTo >= 1 && fileTo <= 9 && rankTo >= 1 && rankTo <= 9) {
+                            m_usi->setPreviousFileTo(fileTo);
+                            m_usi->setPreviousRankTo(rankTo);
+                            previousMoveSet = true;
+                            qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] setPreviousMove from recordModel:"
+                                               << "fileTo=" << fileTo << "rankTo=" << rankTo;
+                        }
+                    } else {
+                        // 「同」の場合は、前回設定した座標をそのまま維持
+                        previousMoveSet = true;
+                        qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] previousMove kept (同 notation)";
+                    }
+                }
+            }
+        }
+        
+        if (!previousMoveSet) {
+            // 開始局面（ply=0）または取得失敗の場合は移動先をリセット
+            m_usi->setPreviousFileTo(0);
+            m_usi->setPreviousRankTo(0);
+            qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] reset previousMove";
+        }
+        
         // SFENから手番を抽出してGameControllerに設定
         // 形式: "盤面 手番 駒台 手数" 例: "lnsgkgsnl/... b - 1"
         if (m_gameController) {
@@ -371,6 +414,16 @@ void AnalysisFlowController::onPositionPrepared_(int ply, const QString& sfen)
         
         // リセット
         m_lastCommittedPly = -1;
+    }
+    
+    // ★ 現在解析する局面に将棋盤を移動（INT_MINで評価値追加をスキップ）
+    static constexpr int POSITION_ONLY_MARKER = std::numeric_limits<int>::min();
+    qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] moving board to ply=" << ply;
+    Q_EMIT analysisProgressReported(ply, POSITION_ONLY_MARKER);
+    
+    // ★ 思考タブをクリアしてからgoコマンドを送信
+    if (m_usi) {
+        m_usi->requestClearThinkingInfo();
     }
     
     // ★ GUI更新後にgoコマンドを送信
@@ -517,6 +570,106 @@ void AnalysisFlowController::commitPendingResult_()
                            << "usiMoves.size=" << (m_usiMoves ? m_usiMoves->size() : -1);
     }
     
+    // 候補手を設定（前の行の読み筋の最初の指し手）
+    int prevRow = m_analysisModel->rowCount() - 1;  // 今追加しようとしている行の1つ前
+    if (prevRow >= 0) {
+        KifuAnalysisResultsDisplay* prevItem = m_analysisModel->item(prevRow);
+        if (prevItem) {
+            QString prevPv = prevItem->principalVariation();
+            if (!prevPv.isEmpty() && prevPv != QStringLiteral("（定跡）")) {
+                // 最初の指し手を取得（スペース区切りまたは末尾まで）
+                // 読み筋は "▲７六歩(77)△８四歩(83)..." のような形式
+                QString candidateMove;
+                
+                // 先手/後手を示す記号
+                static const QString senteMark = QStringLiteral("▲");
+                static const QString goteMark = QStringLiteral("△");
+                
+                // 漢字表記の場合: 先頭から次の△/▲の前までを取得
+                qsizetype nextMark = -1;
+                if (prevPv.startsWith(senteMark) || prevPv.startsWith(goteMark)) {
+                    // 2文字目以降で次の△/▲を探す
+                    qsizetype sentePos = prevPv.indexOf(senteMark, 1);
+                    qsizetype gotePos = prevPv.indexOf(goteMark, 1);
+                    
+                    if (sentePos > 0 && gotePos > 0) {
+                        nextMark = qMin(sentePos, gotePos);
+                    } else if (sentePos > 0) {
+                        nextMark = sentePos;
+                    } else if (gotePos > 0) {
+                        nextMark = gotePos;
+                    }
+                }
+                
+                if (nextMark > 0) {
+                    candidateMove = prevPv.left(nextMark);
+                } else {
+                    // △/▲が見つからなければ全体（1手のみの読み筋）
+                    candidateMove = prevPv;
+                }
+                
+                // 前の行の指し手の移動先と候補手の移動先が同じ場合は「同」表記に変換
+                // 例: 前の指し手「△８八角成(22)」、候補手「▲８八銀(79)」→「▲同　銀(79)」
+                // 注: prevMoveLabelは「   3 ▲２二角成(88)」のように行番号が先頭についている場合がある
+                QString prevMoveLabel = prevItem->currentMove();
+                qDebug().noquote() << "[AnalysisFlowController::commitPendingResult_] prevMoveLabel=" << prevMoveLabel << "candidateMove=" << candidateMove;
+                
+                if (candidateMove.length() >= 3) {
+                    // 前の指し手から移動先を抽出
+                    // 行番号を除去して▲/△の位置を見つける
+                    QString prevDestination;
+                    qsizetype prevMarkPos = prevMoveLabel.indexOf(senteMark);
+                    if (prevMarkPos < 0) {
+                        prevMarkPos = prevMoveLabel.indexOf(goteMark);
+                    }
+                    
+                    if (prevMarkPos >= 0) {
+                        // ▲/△の後の文字が「同」でなければ移動先を抽出
+                        QString afterMark = prevMoveLabel.mid(prevMarkPos + 1);
+                        if (!afterMark.startsWith(QStringLiteral("同"))) {
+                            // 「２二」のような2文字の移動先を抽出
+                            if (afterMark.length() >= 2) {
+                                prevDestination = afterMark.left(2);
+                            }
+                        }
+                    }
+                    
+                    // 候補手から移動先を抽出
+                    QString candDestination;
+                    qsizetype candMarkPos = candidateMove.indexOf(senteMark);
+                    if (candMarkPos < 0) {
+                        candMarkPos = candidateMove.indexOf(goteMark);
+                    }
+                    
+                    if (candMarkPos >= 0) {
+                        QString afterMark = candidateMove.mid(candMarkPos + 1);
+                        if (!afterMark.startsWith(QStringLiteral("同"))) {
+                            if (afterMark.length() >= 2) {
+                                candDestination = afterMark.left(2);
+                            }
+                        }
+                    }
+                    
+                    qDebug().noquote() << "[AnalysisFlowController::commitPendingResult_] prevDestination=" << prevDestination << "candDestination=" << candDestination;
+                    
+                    // 移動先が同じなら「同」表記に変換
+                    if (!prevDestination.isEmpty() && !candDestination.isEmpty() &&
+                        prevDestination == candDestination) {
+                        // 「▲８八銀(79)」→「▲同　銀(79)」
+                        // candMarkPosの位置から変換
+                        QString prefix = candidateMove.left(candMarkPos + 1);  // "▲" or "△"まで
+                        QString suffix = candidateMove.mid(candMarkPos + 3);    // 駒種以降（銀(79)など）
+                        candidateMove = prefix + QStringLiteral("同　") + suffix;
+                        qDebug().noquote() << "[AnalysisFlowController::commitPendingResult_] converted to 同 notation:" << candidateMove;
+                    }
+                }
+                
+                resultItem->setCandidateMove(candidateMove);
+                qDebug().noquote() << "[AnalysisFlowController::commitPendingResult_] setCandidateMove:" << candidateMove;
+            }
+        }
+    }
+    
     m_analysisModel->appendItem(resultItem);
     
     // ★ GUI更新用に結果を保存（次のonPositionPrepared_でシグナルを発行）
@@ -572,33 +725,10 @@ void AnalysisFlowController::runWithDialog(const Deps& d, QWidget* parent)
     // ダイアログを生成してユーザに選択してもらう
     KifuAnalysisDialog dlg(parent);
     
-    // 最大手数を設定（終局指し手を除外）
+    // 最大手数を設定
+    // 注: sfenRecordには終局指し手（投了、中断など）は含まれないため、
+    //     sfenSize - 1 が最後の指し手の局面インデックスとなる
     int maxPly = static_cast<int>(d.sfenRecord->size()) - 1;
-    if (d.recordModel && maxPly > 0) {
-        // 終局を示す文字列リスト
-        static const QStringList terminalKeywords = {
-            QStringLiteral("投了"), QStringLiteral("中断"), QStringLiteral("持将棋"),
-            QStringLiteral("千日手"), QStringLiteral("切れ負け"),
-            QStringLiteral("反則勝ち"), QStringLiteral("反則負け"),
-            QStringLiteral("不戦勝"), QStringLiteral("不戦敗"),
-            QStringLiteral("詰み"), QStringLiteral("不詰"),
-            QStringLiteral("入玉勝ち"), QStringLiteral("時間切れ")
-        };
-        
-        // 最終行が終局指し手かどうか確認
-        KifuDisplay* lastDisp = d.recordModel->item(d.recordModel->rowCount() - 1);
-        if (lastDisp) {
-            QString lastMove = lastDisp->currentMove();
-            for (const QString& keyword : terminalKeywords) {
-                if (lastMove.contains(keyword)) {
-                    maxPly = static_cast<int>(d.sfenRecord->size()) - 2;
-                    qDebug().noquote() << "[AnalysisFlowController::runWithDialog] terminal move detected:"
-                                       << lastMove << "-> maxPly adjusted to" << maxPly;
-                    break;
-                }
-            }
-        }
-    }
     dlg.setMaxPly(qMax(0, maxPly));
     
     const int result = dlg.exec();

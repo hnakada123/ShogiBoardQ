@@ -17,6 +17,7 @@
 #include <QLineEdit>       // ★ 追加
 #include <QWheelEvent>     // ★ 追加: Ctrl+ホイール処理用
 #include <functional>
+#include <limits>
 #include <QPainter>
 #include <QFontDatabase>
 
@@ -899,7 +900,9 @@ void MainWindow::onKifuAnalysisProgress(int ply, int scoreCp)
     
     // 2) 評価値グラフに評価値をプロット
     //    ※AnalysisFlowControllerで既に先手視点に変換済み（後手番は符号反転済み）
-    if (m_recordPane) {
+    //    ※scoreCpがINT_MINの場合は位置移動のみ（評価値追加しない）
+    static constexpr int POSITION_ONLY_MARKER = std::numeric_limits<int>::min();
+    if (scoreCp != POSITION_ONLY_MARKER && m_recordPane) {
         EvaluationChartWidget* ec = m_recordPane->evalChart();
         if (ec) {
             ec->appendScoreP1(ply, scoreCp, false);
@@ -908,6 +911,8 @@ void MainWindow::onKifuAnalysisProgress(int ply, int scoreCp)
         } else {
             qDebug().noquote() << "[MainWindow::onKifuAnalysisProgress] evalChart is null!";
         }
+    } else if (scoreCp == POSITION_ONLY_MARKER) {
+        qDebug().noquote() << "[MainWindow::onKifuAnalysisProgress] position only (no score update)";
     } else {
         qDebug().noquote() << "[MainWindow::onKifuAnalysisProgress] m_recordPane is null!";
     }
