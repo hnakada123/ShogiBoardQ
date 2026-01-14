@@ -66,11 +66,20 @@ void AnalysisResultsPresenter::buildUi(KifuAnalysisListModel* model)
     m_view->setSelectionMode(QAbstractItemView::SingleSelection);
     m_view->setTextElideMode(Qt::ElideRight);
     
+    // 選択行の背景色を黄色に設定（棋譜欄と同じ色）
+    m_view->setStyleSheet(QStringLiteral(
+        "QTableView::item:selected { background-color: rgb(255, 255, 0); color: black; }"
+    ));
+    
     // テーブル全体の水平スクロールは無効化（ヘッダーを常に表示するため）
     m_view->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     
     // ダブルクリックで読み筋表示ウィンドウを開く
     connect(m_view, &QTableView::doubleClicked, this, &AnalysisResultsPresenter::onTableDoubleClicked);
+    
+    // 行選択時に棋譜欄・将棋盤・分岐ツリーを連動させる
+    connect(m_view->selectionModel(), &QItemSelectionModel::currentRowChanged,
+            this, &AnalysisResultsPresenter::onTableSelectionChanged);
 
     // 数値デリゲートを評価値と差の列に設定
     auto* numDelegate = new NumericRightAlignCommaDelegate(m_view);
@@ -162,7 +171,37 @@ void AnalysisResultsPresenter::reflowNow()
 }
 
 void AnalysisResultsPresenter::onModelReset() { m_reflowTimer->start(); }
-void AnalysisResultsPresenter::onRowsInserted(const QModelIndex&, int, int) { m_reflowTimer->start(); }
+
+void AnalysisResultsPresenter::onRowsInserted(const QModelIndex&, int, int)
+{
+    m_reflowTimer->start();
+    
+    // 解析中は最後の行を自動選択（黄色ハイライト）
+    if (m_isAnalyzing && m_view) {
+        // 自動選択中はシグナル発行をスキップするためフラグを立てる
+        m_autoSelecting = true;
+        
+        // 最後に追加された行を選択
+        QAbstractItemModel* model = m_view->model();
+        if (model) {
+            int lastRow = model->rowCount() - 1;
+            if (lastRow >= 0) {
+                // 一時的に選択モードをSingleSelectionに変更（setCurrentIndexを機能させるため）
+                m_view->setSelectionMode(QAbstractItemView::SingleSelection);
+                
+                QModelIndex idx = model->index(lastRow, 0);
+                m_view->setCurrentIndex(idx);
+                m_view->scrollTo(idx);  // 最後の行が見えるようにスクロール
+                
+                // 選択モードをNoSelectionに戻す（ユーザークリックを無効化）
+                m_view->setSelectionMode(QAbstractItemView::NoSelection);
+            }
+        }
+        
+        m_autoSelecting = false;
+    }
+}
+
 void AnalysisResultsPresenter::onDataChanged(const QModelIndex&, const QModelIndex&, const QList<int>&) { m_reflowTimer->start(); }
 void AnalysisResultsPresenter::onLayoutChanged() { m_reflowTimer->start(); }
 void AnalysisResultsPresenter::onScrollRangeChanged(int, int) { m_reflowTimer->start(); }
@@ -172,14 +211,53 @@ void AnalysisResultsPresenter::setStopButtonEnabled(bool enabled)
     if (m_stopButton) {
         m_stopButton->setEnabled(enabled);
     }
+    
+    // 解析中フラグを更新（enabled=true: 解析中, enabled=false: 解析終了）
+    m_isAnalyzing = enabled;
+    
+    // 解析中はテーブルのクリック操作を無効化
+    if (m_view) {
+        if (enabled) {
+            // 解析中: 選択不可（ただし自動選択は可能）
+            m_view->setSelectionMode(QAbstractItemView::NoSelection);
+        } else {
+            // 解析終了: 選択可能に戻す
+            m_view->setSelectionMode(QAbstractItemView::SingleSelection);
+        }
+    }
 }
 
 void AnalysisResultsPresenter::onTableDoubleClicked(const QModelIndex& index)
 {
     if (!index.isValid()) return;
     
+    // 解析中はダブルクリックを無視
+    if (m_isAnalyzing) {
+        return;
+    }
+    
     qDebug().noquote() << "[AnalysisResultsPresenter::onTableDoubleClicked] row=" << index.row();
     Q_EMIT rowDoubleClicked(index.row());
+}
+
+void AnalysisResultsPresenter::onTableSelectionChanged(const QModelIndex& current, const QModelIndex& /*previous*/)
+{
+    if (!current.isValid()) return;
+    
+    // 自動選択中（解析中の行追加時）はシグナル発行をスキップ
+    // （解析中は既にanalysisProgressReportedで盤面更新済みのため）
+    if (m_autoSelecting) {
+        return;
+    }
+    
+    // 解析中は選択変更を無視（NoSelectionモードなので通常来ないが念のため）
+    if (m_isAnalyzing) {
+        return;
+    }
+    
+    int row = current.row();
+    qDebug().noquote() << "[AnalysisResultsPresenter::onTableSelectionChanged] row=" << row;
+    Q_EMIT rowSelected(row);
 }
 
 void AnalysisResultsPresenter::showAnalysisComplete(int totalMoves)

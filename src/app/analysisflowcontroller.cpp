@@ -138,6 +138,12 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
             this,        &AnalysisFlowController::onResultRowDoubleClicked_,
             Qt::UniqueConnection
             );
+        // 行選択のシグナルを接続（棋譜欄・将棋盤・分岐ツリー連動用）
+        QObject::connect(
+            m_presenter, &AnalysisResultsPresenter::rowSelected,
+            this,        &AnalysisFlowController::analysisResultRowSelected,
+            Qt::UniqueConnection
+            );
     }
     m_presenter->showWithModel(m_analysisModel);
     m_presenter->setStopButtonEnabled(true);  // 解析開始時は有効

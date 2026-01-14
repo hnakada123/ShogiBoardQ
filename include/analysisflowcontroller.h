@@ -60,6 +60,9 @@ Q_SIGNALS:
     
     // 解析進捗を通知（ply: 手数, scoreCp: 評価値）
     void analysisProgressReported(int ply, int scoreCp);
+    
+    // 解析結果の行が選択されたときに通知（棋譜欄・将棋盤・分岐ツリー連動用）
+    void analysisResultRowSelected(int row);
 
 private slots:
     void onUsiCommLogChanged_();

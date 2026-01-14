@@ -848,6 +848,10 @@ void MainWindow::displayKifuAnalysisDialog()
     // 解析進捗シグナルを接続
     QObject::connect(m_dialogCoordinator, &DialogCoordinator::analysisProgressReported,
                      this, &MainWindow::onKifuAnalysisProgress, Qt::UniqueConnection);
+    
+    // 解析結果行選択シグナルを接続（棋譜欄・将棋盤・分岐ツリー連動用）
+    QObject::connect(m_dialogCoordinator, &DialogCoordinator::analysisResultRowSelected,
+                     this, &MainWindow::onKifuAnalysisResultRowSelected, Qt::UniqueConnection);
 
     // コンテキストを設定
     ensureGameInfoController_();
@@ -915,6 +919,27 @@ void MainWindow::onKifuAnalysisProgress(int ply, int scoreCp)
         qDebug().noquote() << "[MainWindow::onKifuAnalysisProgress] position only (no score update)";
     } else {
         qDebug().noquote() << "[MainWindow::onKifuAnalysisProgress] m_recordPane is null!";
+    }
+}
+
+void MainWindow::onKifuAnalysisResultRowSelected(int row)
+{
+    qDebug().noquote() << "[MainWindow::onKifuAnalysisResultRowSelected] row=" << row;
+    
+    // rowは解析結果の行番号で、plyに相当する
+    int ply = row;
+    
+    // 1) 棋譜欄の該当行をハイライトし、盤面を更新
+    ensureRecordNavigationController_();
+    if (m_recordNavController) {
+        qDebug().noquote() << "[MainWindow::onKifuAnalysisResultRowSelected] calling navigateKifuViewToRow(" << ply << ")";
+        m_recordNavController->navigateKifuViewToRow(ply);
+    }
+    
+    // 2) 分岐ツリーの該当手数をハイライト
+    if (m_analysisTab) {
+        qDebug().noquote() << "[MainWindow::onKifuAnalysisResultRowSelected] calling highlightBranchTreeAt(0, " << ply << ")";
+        m_analysisTab->highlightBranchTreeAt(/*row=*/0, ply, /*centerOn=*/true);
     }
 }
 
