@@ -64,5 +64,6 @@
         <file>images/icons/owari.png</file>
         <file>images/icons/tsuu.png</file>
         <file>images/icons/jyoseki.png</file>
+        <file>images/icons/menu.png</file>
     </qresource>
 </RCC>

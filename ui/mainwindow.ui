@@ -86,6 +86,7 @@
     <addaction name="actionShrinkBoard"/>
     <addaction name="separator"/>
     <addaction name="actionStandardMove"/>
+    <addaction name="actionMenu"/>
    </widget>
    <widget class="QMenu" name="Game">
     <property name="title">
@@ -107,21 +108,16 @@
     <addaction name="actionTsumeShogiSearch"/>
     <addaction name="separator"/>
    </widget>
-   <widget class="QMenu" name="Tool">
+   <widget class="QMenu" name="Setting">
     <property name="title">
-     <string>ツール(T)</string>
+     <string>設定(S)</string>
     </property>
     <addaction name="actionEngineSettings"/>
     <addaction name="separator"/>
     <addaction name="gameSetup"/>
     <addaction name="configurationSetting"/>
-    <addaction name="hintSetting"/>
+    <addaction name="action_2"/>
     <addaction name="shogiProblemSearchSetting"/>
-    <addaction name="separator"/>
-    <addaction name="option"/>
-    <addaction name="separator"/>
-    <addaction name="openFolderAutoSaveRecord"/>
-    <addaction name="shogiWarsGameRecordList"/>
    </widget>
    <widget class="QMenu" name="Help">
     <property name="title">
@@ -136,7 +132,7 @@
    <addaction name="Edit"/>
    <addaction name="Display"/>
    <addaction name="Game"/>
-   <addaction name="Tool"/>
+   <addaction name="Setting"/>
    <addaction name="Help"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
@@ -152,6 +148,7 @@
    </attribute>
    <addaction name="actionOpenKifuFile"/>
    <addaction name="actionSave"/>
+   <addaction name="actionMenu"/>
    <addaction name="actionStartGame"/>
    <addaction name="actionResign"/>
    <addaction name="actionUndoMove"/>
@@ -756,6 +753,20 @@
    </property>
    <property name="text">
     <string>定跡ウィンドウ</string>
+   </property>
+  </action>
+  <action name="actionMenu">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/menu.png</normaloff>:/images/icons/menu.png</iconset>
+   </property>
+   <property name="text">
+    <string>メニューウィンドウ</string>
+   </property>
+  </action>
+  <action name="action_2">
+   <property name="text">
+    <string>棋譜解析設定</string>
    </property>
   </action>
  </widget>
