@@ -151,6 +151,13 @@ public:
      */
     void flushThinkingInfoBuffer();
 
+    /**
+     * @brief 思考情報をクリアする
+     * 
+     * 棋譜解析で各局面の解析開始前に思考タブをクリアするために使用。
+     */
+    void requestClearThinkingInfo();
+
     void cleanupEngineProcessAndThread();
 
     void sendPositionAndGoMate(const QString& sfen, int timeMs, bool infinite);

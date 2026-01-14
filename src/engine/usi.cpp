@@ -450,6 +450,14 @@ void Usi::flushThinkingInfoBuffer()
     }
 }
 
+void Usi::requestClearThinkingInfo()
+{
+    qDebug().noquote() << "[Usi::requestClearThinkingInfo] called";
+    if (m_presenter) {
+        m_presenter->requestClearThinkingInfo();
+    }
+}
+
 void Usi::sendGameOverLoseAndQuitCommands()
 {
     if (!m_processManager->isRunning()) return;

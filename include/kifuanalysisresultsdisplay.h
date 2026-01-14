@@ -19,6 +19,9 @@ private:
     // 指し手
     QString m_currentMove;
 
+    // 候補手（前の行の読み筋の最初の指し手）
+    QString m_candidateMove;
+
     // 評価値
     QString m_evaluationValue;
 
@@ -37,6 +40,12 @@ private:
 public:
     // 指し手を取得する。
     QString currentMove() const;
+
+    // 候補手を取得する。
+    QString candidateMove() const { return m_candidateMove; }
+
+    // 候補手を設定する。
+    void setCandidateMove(const QString& candidateMove) { m_candidateMove = candidateMove; }
 
     // 評価値を取得する。
     QString evaluationValue() const;

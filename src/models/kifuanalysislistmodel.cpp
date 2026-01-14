@@ -11,8 +11,8 @@ int KifuAnalysisListModel::columnCount(const QModelIndex &parent) const
 {
     Q_UNUSED(parent)
 
-    // 「指し手」「評価値」「差」「読み筋」の4列を返す。
-    return 4;
+    // 「指し手」「候補手」「評価値」「差」「読み筋」の5列を返す。
+    return 5;
 }
 
 // データを返す。
@@ -23,7 +23,7 @@ QVariant KifuAnalysisListModel::data(const QModelIndex &index, int role) const
 
     // 右寄せ：Evaluation / Difference 列は常に右寄せ（デリゲートが無い場面でも崩れないように）
     if (role == Qt::TextAlignmentRole) {
-        if (index.column() == 1 || index.column() == 2) {
+        if (index.column() == 2 || index.column() == 3) {
             return QVariant::fromValue<int>(Qt::AlignRight | Qt::AlignVCenter);
         }
         return QVariant();
@@ -35,11 +35,13 @@ QVariant KifuAnalysisListModel::data(const QModelIndex &index, int role) const
     switch (index.column()) {
     case 0: // 指し手
         return list[index.row()]->currentMove();
-    case 1: // 評価値
+    case 1: // 候補手
+        return list[index.row()]->candidateMove();
+    case 2: // 評価値
         return list[index.row()]->evaluationValue();
-    case 2: // 差
+    case 3: // 差
         return list[index.row()]->evaluationDifference();
-    case 3: // 読み筋
+    case 4: // 読み筋
         return list[index.row()]->principalVariation();
     default:
         return QVariant();
@@ -60,10 +62,12 @@ QVariant KifuAnalysisListModel::headerData(int section, Qt::Orientation orientat
         case 0:
             return QStringLiteral("指し手");
         case 1:
-            return QStringLiteral("評価値");
+            return QStringLiteral("候補手");
         case 2:
-            return QStringLiteral("差");
+            return QStringLiteral("評価値");
         case 3:
+            return QStringLiteral("差");
+        case 4:
             return QStringLiteral("読み筋");
         default:
             // それ以外の場合、空のQVariantを返す。
