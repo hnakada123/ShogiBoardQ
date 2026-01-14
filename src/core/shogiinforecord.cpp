@@ -81,3 +81,15 @@ void ShogiInfoRecord::setBaseSfen(const QString& sfen)
 {
     m_baseSfen = sfen;
 }
+
+// 開始局面に至った最後の指し手（USI形式）を取得する。
+QString ShogiInfoRecord::lastUsiMove() const
+{
+    return m_lastUsiMove;
+}
+
+// 開始局面に至った最後の指し手（USI形式）を設定する。
+void ShogiInfoRecord::setLastUsiMove(const QString& move)
+{
+    m_lastUsiMove = move;
+}

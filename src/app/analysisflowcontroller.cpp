@@ -322,6 +322,21 @@ void AnalysisFlowController::onPositionPrepared_(int ply, const QString& sfen)
         m_usi->setBaseSfen(pureSfen);
         qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] called setBaseSfen with pureSfen=" << pureSfen.left(50);
         
+        // ★ 開始局面に至った最後のUSI指し手を設定（読み筋表示ウィンドウのハイライト用）
+        // ply=0は開始局面なので指し手なし、ply>=1はm_usiMoves[ply-1]が最後の指し手
+        QString lastUsiMove;
+        qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] ply=" << ply
+                           << " m_usiMoves=" << m_usiMoves
+                           << " m_usiMoves->size()=" << (m_usiMoves ? m_usiMoves->size() : -1);
+        if (m_usiMoves && ply > 0 && ply <= m_usiMoves->size()) {
+            lastUsiMove = m_usiMoves->at(ply - 1);
+            qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] extracted lastUsiMove from m_usiMoves[" << (ply - 1) << "]=" << lastUsiMove;
+        } else {
+            qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] no lastUsiMove: ply=" << ply << " is out of range or m_usiMoves is null";
+        }
+        m_usi->setLastUsiMove(lastUsiMove);
+        qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] setLastUsiMove called with:" << lastUsiMove;
+        
         // 直前の指し手の移動先を設定（読み筋の最初の指し手で「同」表記を正しく判定するため）
         // ply=0は開始局面なので直前の指し手なし
         // ply>=1の場合、その局面に至った指し手はrecordModel->item(ply)（ply番目の指し手）

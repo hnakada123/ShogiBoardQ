@@ -318,7 +318,7 @@ private:
     Usi*        m_usi2 = nullptr;
     QString     m_positionStr1;
     QStringList m_positionStrList;
-    QStringList m_usiMoves;
+    QStringList m_gameUsiMoves;  // 対局時のUSI形式指し手リスト（棋譜読み込み時はKifuLoadCoordinator::m_kifuUsiMovesを使用）
 
     // UI 構成
     QTabWidget* m_tab = nullptr;

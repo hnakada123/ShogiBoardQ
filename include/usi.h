@@ -99,6 +99,10 @@ public:
     void setPreviousFileTo(int newPreviousFileTo);
     void setPreviousRankTo(int newPreviousRankTo);
 
+    // 開始局面に至った最後の指し手（USI形式）を設定する。
+    // 読み筋表示ウィンドウでのハイライト用。
+    void setLastUsiMove(const QString& move);
+
     qint64 lastBestmoveElapsedMs() const;
 
     void sendGameOverLoseAndQuitCommands();
@@ -210,6 +214,7 @@ private:
     
     int m_previousFileTo = 0;
     int m_previousRankTo = 0;
+    QString m_lastUsiMove;  // 開始局面に至った最後の指し手（USI形式）
     QVector<QChar> m_clonedBoardData;
     bool m_analysisMode = false;
     bool m_gameoverSent = false;

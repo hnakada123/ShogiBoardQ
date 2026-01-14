@@ -66,9 +66,9 @@ QStringList KifuExportController::resolveUsiMoves() const
     
     // 2. KifuLoadCoordinatorから取得
     if (m_deps.kifuLoadCoordinator) {
-        QStringList moves = m_deps.kifuLoadCoordinator->usiMoves();
+        QStringList moves = m_deps.kifuLoadCoordinator->kifuUsiMoves();
         if (!moves.isEmpty()) {
-            qDebug().noquote() << "[KifuExport] usiMoves from KifuLoadCoordinator, size =" << moves.size();
+            qDebug().noquote() << "[KifuExport] kifuUsiMoves from KifuLoadCoordinator, size =" << moves.size();
             return moves;
         }
     }
