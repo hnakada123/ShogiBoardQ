@@ -45,32 +45,23 @@ private slots:
     void onScrollRangeChanged(int, int);
     void onTableDoubleClicked(const QModelIndex& index);
     
-    // フォントサイズ変更スロット
-    void onFontIncrease();
-    void onFontDecrease();
+    // フォントサイズ変更
+    void increaseFontSize();
+    void decreaseFontSize();
+    
+    // ウィンドウサイズ保存
+    void saveWindowSize();
 
 private:
     void buildUi(KifuAnalysisListModel* model);
     void connectModelSignals(KifuAnalysisListModel* model);
-    void applyFontSize();
-    void saveFontSize();
-    void loadFontSize();
+    void restoreFontSize();
 
     QPointer<QDialog> m_dlg;
     QPointer<QTableView> m_view;
     QPointer<QHeaderView> m_header;
     QPointer<QPushButton> m_stopButton;
-    QPointer<QPushButton> m_fontIncreaseButton;
-    QPointer<QPushButton> m_fontDecreaseButton;
     QTimer* m_reflowTimer;
-    
-    // 現在のフォントサイズ（ポイント）
-    int m_fontSize;
-    
-    // フォントサイズのデフォルト値
-    static constexpr int DefaultFontSize = 10;
-    static constexpr int MinFontSize = 8;
-    static constexpr int MaxFontSize = 24;
 };
 
 #endif // ANALYSISRESULTSPRESENTER_H

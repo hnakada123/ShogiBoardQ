@@ -354,9 +354,9 @@ void AnalysisFlowController::onPositionPrepared_(int ply, const QString& sfen)
                         // 漢数字を整数に変換
                         int rankTo = 0;
                         static const QString kanjiRanks = QStringLiteral("一二三四五六七八九");
-                        int rankIdx = kanjiRanks.indexOf(rankChar);
-                        if (rankIdx >= 0) {
-                            rankTo = rankIdx + 1;
+                        qsizetype rankIdxPos = kanjiRanks.indexOf(rankChar);
+                        if (rankIdxPos >= 0) {
+                            rankTo = static_cast<int>(rankIdxPos) + 1;
                         }
                         
                         if (fileTo >= 1 && fileTo <= 9 && rankTo >= 1 && rankTo <= 9) {
@@ -661,6 +661,17 @@ void AnalysisFlowController::commitPendingResult_()
                         QString suffix = candidateMove.mid(candMarkPos + 3);    // 駒種以降（銀(79)など）
                         candidateMove = prefix + QStringLiteral("同　") + suffix;
                         qDebug().noquote() << "[AnalysisFlowController::commitPendingResult_] converted to 同 notation:" << candidateMove;
+                    }
+                }
+                
+                // 候補手に「同」が含まれている場合、「同　」（同＋全角空白）に統一
+                // 「△同銀(31)」→「△同　銀(31)」
+                if (candidateMove.contains(QStringLiteral("同"))) {
+                    // 「同」の後に全角空白がない場合は追加
+                    // ただし「同　」は既にあるのでスキップ
+                    if (!candidateMove.contains(QStringLiteral("同　"))) {
+                        candidateMove.replace(QStringLiteral("同"), QStringLiteral("同　"));
+                        qDebug().noquote() << "[AnalysisFlowController::commitPendingResult_] added space after 同:" << candidateMove;
                     }
                 }
                 

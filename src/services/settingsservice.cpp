@@ -300,6 +300,22 @@ void setKifuAnalysisFontSize(int size)
     s.setValue("KifuAnalysis/fontSize", size);
 }
 
+// ★ 追加: 棋譜解析結果ウィンドウのサイズを取得
+QSize kifuAnalysisResultsWindowSize()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("KifuAnalysis/resultsWindowSize", QSize(1100, 600)).toSize();
+}
+
+// ★ 追加: 棋譜解析結果ウィンドウのサイズを保存
+void setKifuAnalysisResultsWindowSize(const QSize& size)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("KifuAnalysis/resultsWindowSize", size);
+}
+
 // ★ 追加: 棋譜解析ダイアログの1手あたりの思考時間（秒）を取得
 int kifuAnalysisByoyomiSec()
 {
