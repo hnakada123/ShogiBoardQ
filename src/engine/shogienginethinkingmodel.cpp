@@ -1,4 +1,5 @@
 #include "shogienginethinkingmodel.h"
+#include <QColor>
 
 // 将棋エンジンの思考結果をGUI上で表示するためのクラス
 // コンストラクタ
@@ -11,15 +12,38 @@ int ShogiEngineThinkingModel::columnCount(const QModelIndex &parent) const
 {
     Q_UNUSED(parent)
 
-    // 「時間」「深さ」「ノード数」「評価値」「読み筋」の5列を返す。
-    return 5;
+    // 「時間」「深さ」「ノード数」「評価値」「盤面」「読み筋」の6列を返す。
+    return 6;
 }
 
 // データを返す。
 QVariant ShogiEngineThinkingModel::data(const QModelIndex &index, int role) const
 {
-    // indexが無効またはroleが表示用のデータを要求していない場合、空のQVariantを返す。
-    if (!index.isValid() || role != Qt::DisplayRole) {
+    // indexが無効の場合、空のQVariantを返す。
+    if (!index.isValid()) {
+        return QVariant();
+    }
+
+    // 盤面列（列4）は特別扱い：ボタン風の表示
+    if (index.column() == 4) {
+        if (role == Qt::DisplayRole) {
+            return tr("表示");
+        }
+        if (role == Qt::TextAlignmentRole) {
+            return Qt::AlignCenter;
+        }
+        if (role == Qt::BackgroundRole) {
+            // 青緑系のボタン色（クリック可能であることを示す）
+            return QColor(0x20, 0x9c, 0xee);  // 明るい青
+        }
+        if (role == Qt::ForegroundRole) {
+            return QColor(Qt::white);  // 白文字
+        }
+        return QVariant();
+    }
+
+    // それ以外の列はDisplayRoleのみ処理
+    if (role != Qt::DisplayRole) {
         return QVariant();
     }
 
@@ -28,7 +52,7 @@ QVariant ShogiEngineThinkingModel::data(const QModelIndex &index, int role) cons
     case 0:
         // 時間を返す。
         return list[index.row()]->time();
-    case 1:        
+    case 1:
         // 深さを返す。
         return list[index.row()]->depth();
     case 2:
@@ -37,7 +61,7 @@ QVariant ShogiEngineThinkingModel::data(const QModelIndex &index, int role) cons
     case 3:
         // 評価値を返す。
         return list[index.row()]->score();
-    case 4:
+    case 5:
         // 読み筋を返す。
         return list[index.row()]->pv();
     default:
@@ -70,6 +94,9 @@ QVariant ShogiEngineThinkingModel::headerData(int section, Qt::Orientation orien
             // 評価値
             return tr("評価値");
         case 4:
+            // 盤面
+            return tr("盤面");
+        case 5:
             // 読み筋
             return tr("読み筋");
         default:
