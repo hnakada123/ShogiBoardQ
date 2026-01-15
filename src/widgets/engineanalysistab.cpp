@@ -370,10 +370,20 @@ void EngineAnalysisTab::setModels(ShogiEngineThinkingModel* m1, ShogiEngineThink
     if (m_log1) {
         QObject::connect(m_log1, &UsiCommLogModel::usiCommLogChanged,
                          this, &EngineAnalysisTab::onLog1Changed_, Qt::UniqueConnection);
+        // ★ 追加: エンジン名変更シグナルを接続
+        QObject::connect(m_log1, &UsiCommLogModel::engineNameChanged,
+                         this, &EngineAnalysisTab::onEngine1NameChanged, Qt::UniqueConnection);
+        // 初期値を設定
+        onEngine1NameChanged();
     }
     if (m_log2) {
         QObject::connect(m_log2, &UsiCommLogModel::usiCommLogChanged,
                          this, &EngineAnalysisTab::onLog2Changed_, Qt::UniqueConnection);
+        // ★ 追加: エンジン名変更シグナルを接続
+        QObject::connect(m_log2, &UsiCommLogModel::engineNameChanged,
+                         this, &EngineAnalysisTab::onEngine2NameChanged, Qt::UniqueConnection);
+        // 初期値を設定
+        onEngine2NameChanged();
     }
 }
 
@@ -1151,8 +1161,18 @@ void EngineAnalysisTab::buildUsiLogToolbar()
     m_btnUsiLogFontIncrease->setFixedSize(28, 24);
     connect(m_btnUsiLogFontIncrease, &QToolButton::clicked, this, &EngineAnalysisTab::onUsiLogFontIncrease);
 
+    // ★ 追加: エンジン名ラベル（E1: xxx, E2: xxx）
+    m_usiLogEngine1Label = new QLabel(QStringLiteral("E1: ---"), m_usiLogToolbar);
+    m_usiLogEngine1Label->setStyleSheet(QStringLiteral("QLabel { color: #2060a0; font-weight: bold; }"));
+    m_usiLogEngine2Label = new QLabel(QStringLiteral("E2: ---"), m_usiLogToolbar);
+    m_usiLogEngine2Label->setStyleSheet(QStringLiteral("QLabel { color: #a02060; font-weight: bold; }"));
+
     toolbarLayout->addWidget(m_btnUsiLogFontDecrease);
     toolbarLayout->addWidget(m_btnUsiLogFontIncrease);
+    toolbarLayout->addSpacing(20);
+    toolbarLayout->addWidget(m_usiLogEngine1Label);
+    toolbarLayout->addSpacing(20);
+    toolbarLayout->addWidget(m_usiLogEngine2Label);
     toolbarLayout->addStretch();
 
     m_usiLogToolbar->setLayout(toolbarLayout);
@@ -1183,6 +1203,30 @@ void EngineAnalysisTab::onUsiLogFontIncrease()
 void EngineAnalysisTab::onUsiLogFontDecrease()
 {
     updateUsiLogFontSize(-1);
+}
+
+// ★ 追加: エンジン1名変更時のスロット
+void EngineAnalysisTab::onEngine1NameChanged()
+{
+    if (m_usiLogEngine1Label && m_log1) {
+        QString name = m_log1->engineName();
+        if (name.isEmpty()) {
+            name = QStringLiteral("---");
+        }
+        m_usiLogEngine1Label->setText(QStringLiteral("E1: %1").arg(name));
+    }
+}
+
+// ★ 追加: エンジン2名変更時のスロット
+void EngineAnalysisTab::onEngine2NameChanged()
+{
+    if (m_usiLogEngine2Label && m_log2) {
+        QString name = m_log2->engineName();
+        if (name.isEmpty()) {
+            name = QStringLiteral("---");
+        }
+        m_usiLogEngine2Label->setText(QStringLiteral("E2: %1").arg(name));
+    }
 }
 
 // ★ 追加: 思考タブフォントサイズ変更

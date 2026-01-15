@@ -165,19 +165,38 @@ void ThinkingInfoPresenter::requestClearThinkingInfo()
 
 // === 通信ログ ===
 
+// ★ 追加: プレフィックスからエンジン番号を抽出するヘルパー関数
+static QString extractEngineTag(const QString& prefix)
+{
+    // プレフィックスは "[E1]..." や "[E2]..." の形式
+    // E1 または E2 を抽出
+    if (prefix.contains(QStringLiteral("[E1"))) {
+        return QStringLiteral("E1");
+    } else if (prefix.contains(QStringLiteral("[E2"))) {
+        return QStringLiteral("E2");
+    }
+    return QStringLiteral("E?");
+}
+
 void ThinkingInfoPresenter::logSentCommand(const QString& prefix, const QString& command)
 {
-    emit commLogAppended(prefix + " > " + command);
+    // ★ 変更: 新しいフォーマット ▶ E1: command
+    const QString tag = extractEngineTag(prefix);
+    emit commLogAppended(QStringLiteral("▶ ") + tag + QStringLiteral(": ") + command);
 }
 
 void ThinkingInfoPresenter::logReceivedData(const QString& prefix, const QString& data)
 {
-    emit commLogAppended(prefix + " < " + data);
+    // ★ 変更: 新しいフォーマット ◀ E1: response
+    const QString tag = extractEngineTag(prefix);
+    emit commLogAppended(QStringLiteral("◀ ") + tag + QStringLiteral(": ") + data);
 }
 
 void ThinkingInfoPresenter::logStderrData(const QString& prefix, const QString& data)
 {
-    emit commLogAppended(prefix + " <stderr> " + data);
+    // ★ 変更: 新しいフォーマット ⚠ E1: stderr
+    const QString tag = extractEngineTag(prefix);
+    emit commLogAppended(QStringLiteral("⚠ ") + tag + QStringLiteral(": ") + data);
 }
 
 // === シグナル発行ヘルパメソッド ===
