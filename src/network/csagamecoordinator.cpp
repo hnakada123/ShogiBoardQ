@@ -467,16 +467,19 @@ void CsaGameCoordinator::onMoveConfirmed(const QString& move, int consumedTimeMs
     // SFEN記録を更新
     // 注意: ShogiBoard::currentPlayer()はsetSfen()でのみ更新されるため、
     //       ShogiGameController::currentPlayer()から手番を取得する
-    if (m_gameController && m_gameController->board() && m_sfenRecord) {
-        QString boardSfen = m_gameController->board()->convertBoardToSfen();
-        QString standSfen = m_gameController->board()->convertStandToSfen();
-        // ShogiGameController::currentPlayer()から手番を取得（Player1=先手="b", Player2=後手="w"）
-        QString currentPlayerStr = (m_gameController->currentPlayer() == ShogiGameController::Player1)
-                                   ? QStringLiteral("b") : QStringLiteral("w");
-        QString fullSfen = QString("%1 %2 %3 %4")
-                               .arg(boardSfen, currentPlayerStr, standSfen)
-                               .arg(m_moveCount + 1);
-        m_sfenRecord->append(fullSfen);
+    // 人間の指し手の場合は、validateAndMoveで既にSFEN記録が追加されているためスキップ
+    if (m_playerType == PlayerType::Engine) {
+        if (m_gameController && m_gameController->board() && m_sfenRecord) {
+            QString boardSfen = m_gameController->board()->convertBoardToSfen();
+            QString standSfen = m_gameController->board()->convertStandToSfen();
+            // ShogiGameController::currentPlayer()から手番を取得（Player1=先手="b", Player2=後手="w"）
+            QString currentPlayerStr = (m_gameController->currentPlayer() == ShogiGameController::Player1)
+                                       ? QStringLiteral("b") : QStringLiteral("w");
+            QString fullSfen = QString("%1 %2 %3 %4")
+                                   .arg(boardSfen, currentPlayerStr, standSfen)
+                                   .arg(m_moveCount + 1);
+            m_sfenRecord->append(fullSfen);
+        }
     }
 
     // CSA形式から座標を抽出（ハイライト用）
