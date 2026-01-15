@@ -518,13 +518,81 @@ void CsaGameCoordinator::onMoveConfirmed(const QString& move, int consumedTimeMs
 // 対局終了ハンドラ
 void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause, int consumedTimeMs)
 {
-    // サーバーからの消費時間が0で、自分が投了した場合は、保存した経過時間を使う
-    int actualConsumedTimeMs = consumedTimeMs;
-    if (consumedTimeMs == 0 && cause == CsaClient::GameEndCause::Resign && 
-        result == CsaClient::GameResult::Lose && m_resignConsumedTimeMs > 0) {
-        actualConsumedTimeMs = m_resignConsumedTimeMs;
-        qDebug() << "[CSA] Using saved resign consumed time:" << actualConsumedTimeMs << "ms";
+    // ★ デバッグ: 入力パラメータと状態を出力
+    qDebug().noquote() << "[CSA-DEBUG] onClientGameEnded ENTER:"
+                       << "result=" << static_cast<int>(result)
+                       << "cause=" << static_cast<int>(cause)
+                       << "consumedTimeMs=" << consumedTimeMs
+                       << "m_isBlackSide=" << m_isBlackSide;
+
+    // ★ 修正: 時間を読み取る前にクロックを停止
+    // これにより、残り時間の計算が正確になる
+    if (m_clock) {
+        m_clock->stopClock();
     }
+
+    // ★ デバッグ: クロックの状態を出力（停止後）
+    if (m_clock) {
+        qDebug().noquote() << "[CSA-DEBUG] Clock state:"
+                           << "player1TimeMs=" << m_clock->getPlayer1TimeIntMs()
+                           << "player2TimeMs=" << m_clock->getPlayer2TimeIntMs()
+                           << "currentPlayer=" << m_clock->currentPlayer();
+    } else {
+        qDebug().noquote() << "[CSA-DEBUG] m_clock is NULL!";
+    }
+
+    // ★ デバッグ: 累計消費時間を出力
+    qDebug().noquote() << "[CSA-DEBUG] Total consumed times:"
+                       << "m_blackTotalTimeMs=" << m_blackTotalTimeMs
+                       << "m_whiteTotalTimeMs=" << m_whiteTotalTimeMs
+                       << "m_initialTimeMs=" << m_initialTimeMs;
+
+    // サーバーからの消費時間が0の場合、クロックから計算する
+    int actualConsumedTimeMs = consumedTimeMs;
+    if (consumedTimeMs == 0) {
+        // 自分が投了した場合は保存した経過時間を使う
+        if (cause == CsaClient::GameEndCause::Resign &&
+            result == CsaClient::GameResult::Lose && m_resignConsumedTimeMs > 0) {
+            actualConsumedTimeMs = m_resignConsumedTimeMs;
+            qDebug().noquote() << "[CSA-DEBUG] Using saved resign consumed time (my resign):" << actualConsumedTimeMs << "ms";
+        }
+        // 相手が投了した場合（自分が勝ち）はクロックから消費時間を計算
+        else if (cause == CsaClient::GameEndCause::Resign &&
+                 result == CsaClient::GameResult::Win && m_clock) {
+            // 投了したのは相手側なので、相手の消費時間を計算
+            // 自分が先手(黒)の場合、相手は後手(白) → player2
+            // 自分が後手(白)の場合、相手は先手(黒) → player1
+            qint64 opponentClockRemainingMs = m_isBlackSide
+                ? m_clock->getPlayer2TimeIntMs()  // 相手は後手
+                : m_clock->getPlayer1TimeIntMs(); // 相手は先手
+            int opponentPreviousConsumedMs = m_isBlackSide
+                ? m_whiteTotalTimeMs
+                : m_blackTotalTimeMs;
+
+            // ★ デバッグ: 計算に使う値を出力
+            qDebug().noquote() << "[CSA-DEBUG] Opponent resign calculation:"
+                               << "opponentClockRemainingMs=" << opponentClockRemainingMs
+                               << "opponentPreviousConsumedMs=" << opponentPreviousConsumedMs;
+
+            // 消費時間 = 初期時間 - クロック残り時間 - 既に消費した時間
+            actualConsumedTimeMs = static_cast<int>(m_initialTimeMs - opponentClockRemainingMs - opponentPreviousConsumedMs);
+            if (actualConsumedTimeMs < 0) actualConsumedTimeMs = 0;
+
+            qDebug().noquote() << "[CSA-DEBUG] Calculated opponent resign consumed time:"
+                               << "initialTime=" << m_initialTimeMs
+                               << "clockRemaining=" << opponentClockRemainingMs
+                               << "previousConsumed=" << opponentPreviousConsumedMs
+                               << "calculated=" << actualConsumedTimeMs << "ms";
+        } else {
+            qDebug().noquote() << "[CSA-DEBUG] consumedTimeMs=0 but no calculation done:"
+                               << "cause=" << static_cast<int>(cause)
+                               << "result=" << static_cast<int>(result)
+                               << "m_clock=" << (m_clock ? "valid" : "null");
+        }
+    }
+
+    // ★ デバッグ: 最終的な消費時間を出力
+    qDebug().noquote() << "[CSA-DEBUG] Final actualConsumedTimeMs=" << actualConsumedTimeMs;
 
     QString resultStr;
     switch (result) {
@@ -586,10 +654,8 @@ void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClie
     setGameState(GameState::GameOver);
     emit gameEnded(resultStr, causeStr, actualConsumedTimeMs);
 
-    if (m_clock) {
-        m_clock->stopClock();
-    }
-    
+    // ★ 注: クロック停止は関数冒頭で既に実行済み
+
     // エンジンにgameoverとquitコマンドを送信
     if (m_engine) {
         switch (result) {

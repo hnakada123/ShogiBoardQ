@@ -6,6 +6,7 @@
 #include <QTableView>
 #include <QWidget>
 
+#include "playmode.h"
 #include "csagamecoordinator.h"
 #include "csagamedialog.h"
 #include "csawaitingdialog.h"
@@ -140,6 +141,12 @@ void CsaGameWiring::onGameEnded(const QString& result, const QString& cause, int
     const bool isBlackSide = m_coordinator->isBlackSide();
     const bool loserIsBlack = (iAmLoser == isBlackSide);
 
+    // ★ デバッグ: 敗者判定の詳細を出力
+    qDebug().noquote() << "[CSA-DEBUG] onGameEnded judgment:"
+                       << "iAmLoser=" << iAmLoser
+                       << "isBlackSide=" << isBlackSide
+                       << "loserIsBlack=" << loserIsBlack;
+
     // 終局行テキストを生成
     const QString endLine = buildEndLineText(cause, loserIsBlack);
 
@@ -148,7 +155,17 @@ void CsaGameWiring::onGameEnded(const QString& result, const QString& cause, int
     // 消費時間をフォーマット
     const int totalMs = loserIsBlack ? m_coordinator->blackTotalTimeMs()
                                      : m_coordinator->whiteTotalTimeMs();
+
+    // ★ デバッグ: 消費時間の計算詳細を出力
+    qDebug().noquote() << "[CSA-DEBUG] Time calculation:"
+                       << "blackTotalTimeMs=" << m_coordinator->blackTotalTimeMs()
+                       << "whiteTotalTimeMs=" << m_coordinator->whiteTotalTimeMs()
+                       << "totalMs(for loser)=" << totalMs
+                       << "consumedTimeMs=" << consumedTimeMs
+                       << "totalMs+consumedTimeMs=" << (totalMs + consumedTimeMs);
+
     const QString elapsedStr = formatElapsedTime(consumedTimeMs, totalMs + consumedTimeMs);
+    qDebug().noquote() << "[CSA-DEBUG] elapsedStr=" << elapsedStr;
 
     // 棋譜欄に追加
     Q_EMIT appendKifuLineRequested(endLine, elapsedStr);
@@ -411,7 +428,7 @@ bool CsaGameWiring::startCsaGame(CsaGameDialog* dialog, QWidget* parent)
     }
 
     // プレイモード変更を通知
-    Q_EMIT playModeChanged(7);  // CsaNetworkMode
+    Q_EMIT playModeChanged(static_cast<int>(PlayMode::CsaNetworkMode));
 
     qDebug() << "[CsaGameWiring] startCsaGame: About to start game and create waiting dialog";
 
