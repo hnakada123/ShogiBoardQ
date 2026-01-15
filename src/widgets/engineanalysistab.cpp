@@ -1020,6 +1020,16 @@ void EngineAnalysisTab::setupThinkingViewHeader_(QTableView* v)
     h->setDefaultSectionSize(100);
     h->setMinimumSectionSize(24);
     h->setStretchLastSection(true);
+
+    // 行の高さを文字サイズに合わせて固定（余白を最小限に）
+    auto* vh = v->verticalHeader();
+    if (vh) {
+        vh->setVisible(false);
+        const int rowHeight = v->fontMetrics().height() + 4;
+        vh->setDefaultSectionSize(rowHeight);
+        vh->setSectionResizeMode(QHeaderView::Fixed);
+    }
+    v->setWordWrap(false);
 }
 
 // ★ 列幅の適用（モデル設定後に呼ぶ）
@@ -1183,11 +1193,21 @@ void EngineAnalysisTab::updateThinkingFontSize(int delta)
     // 上段（EngineInfoWidget）のフォントサイズ変更
     if (m_info1) m_info1->setFontSize(m_thinkingFontSize);
     if (m_info2) m_info2->setFontSize(m_thinkingFontSize);
-    
+
     // 下段（TableView）のフォントサイズ変更
-    if (m_view1) m_view1->setFont(font);
-    if (m_view2) m_view2->setFont(font);
-    
+    if (m_view1) {
+        m_view1->setFont(font);
+        // 行の高さもフォントサイズに合わせて更新
+        const int rowHeight = m_view1->fontMetrics().height() + 4;
+        m_view1->verticalHeader()->setDefaultSectionSize(rowHeight);
+    }
+    if (m_view2) {
+        m_view2->setFont(font);
+        // 行の高さもフォントサイズに合わせて更新
+        const int rowHeight = m_view2->fontMetrics().height() + 4;
+        m_view2->verticalHeader()->setDefaultSectionSize(rowHeight);
+    }
+
     // ★ 追加: 設定ファイルに保存
     SettingsService::setThinkingFontSize(m_thinkingFontSize);
 }
