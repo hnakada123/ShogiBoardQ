@@ -144,34 +144,27 @@ void RecordPane::buildUi()
     m_navButtons->setFixedWidth(50);
     m_navButtons->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
 
-    // --- 右側：分岐 + コメント（縦分割） ---
+    // --- 右側：分岐候補欄 ---
     m_branch = new QTableView(this);
     m_branch->setSelectionMode(QAbstractItemView::SingleSelection);
     m_branch->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_branch->verticalHeader()->setVisible(false);
 
-    m_branchText = new QTextBrowser(this);
-    m_branchText->setReadOnly(true);
-    m_branchText->setOpenExternalLinks(true);
-    m_branchText->setOpenLinks(true);
-    m_branchText->setPlaceholderText(tr("コメントを表示"));
+    // 分岐候補欄を縦レイアウトでラップ（「本譜に戻る」ボタン用）
+    m_branchContainer = new QWidget(this);
+    auto* branchLay = new QVBoxLayout(m_branchContainer);
+    branchLay->setContentsMargins(0, 0, 0, 0);
+    branchLay->setSpacing(2);
+    branchLay->addWidget(m_branch);
+    m_branchContainer->setFixedWidth(120);  // 指し手が表示できる程度の幅
 
-    // ★ 追加: アダプタに実体を紐付け
-    m_commentAdapter.reset(m_branchText);
-
-    m_right = new QSplitter(Qt::Vertical, this);
-    m_right->addWidget(m_branch);
-    m_right->addWidget(m_branchText);
-    m_right->setChildrenCollapsible(false);
-    m_right->setSizes({300, 200});
-
-    // --- 左右分割（棋譜 | ナビボタン | 分岐+コメント） ---
+    // --- 左右分割（棋譜 | ナビボタン | 分岐候補） ---
     m_lr = new QSplitter(Qt::Horizontal, this);
     m_lr->addWidget(m_kifu);
     m_lr->addWidget(m_navButtons);
-    m_lr->addWidget(m_right);
+    m_lr->addWidget(m_branchContainer);
     m_lr->setChildrenCollapsible(false);
-    m_lr->setSizes({500, 50, 400});
+    m_lr->setSizes({800, 50, 120});
 
     // --- 評価値グラフ（スクロール） ---
     m_eval = new EvaluationChartWidget(this);
@@ -266,8 +259,13 @@ void RecordPane::setModels(KifuRecordListModel* recModel, KifuBranchListModel* b
     }
 
     if (auto* hh = m_kifu->horizontalHeader()) {
-        hh->setSectionResizeMode(0, QHeaderView::Stretch);
-        hh->setSectionResizeMode(1, QHeaderView::Stretch);
+        // 指し手列：必要最小限の幅
+        hh->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+        // 消費時間列：固定幅（日時形式を表示できる程度）
+        hh->setSectionResizeMode(1, QHeaderView::Fixed);
+        hh->resizeSection(1, 130);
+        // コメント列：残りのスペースを使用
+        hh->setSectionResizeMode(2, QHeaderView::Stretch);
     }
     m_kifu->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_kifu->setSelectionMode(QAbstractItemView::SingleSelection);
@@ -372,12 +370,14 @@ void RecordPane::onKifuCurrentRowChanged(const QModelIndex& cur, const QModelInd
 
 void RecordPane::setBranchCommentText(const QString& text)
 {
-    if (m_branchText) m_branchText->setPlainText(text);
+    Q_UNUSED(text)
+    // コメントは棋譜欄のコメント列に表示するため、ここでは何もしない
 }
 
 void RecordPane::setBranchCommentHtml(const QString& html)
 {
-    if (m_branchText) m_branchText->setHtml(html);
+    Q_UNUSED(html)
+    // コメントは棋譜欄のコメント列に表示するため、ここでは何もしない
 }
 
 // ★ 追加: MainWindow から呼ばれる getter 実装
@@ -387,11 +387,11 @@ CommentTextAdapter* RecordPane::commentLabel()
 }
 
 // RecordPane に「本譜に戻る」ボタンを遅延生成して差し込む。
-// 右側の縦スプリッタ m_right の [分岐テーブル, ←このボタン, コメント欄] の順に挿入する。
+// 分岐候補欄コンテナの下部に挿入する。
 // 既に存在する場合はそれを返す。
 QPushButton* RecordPane::backToMainButton()
 {
-    if (!m_right) return nullptr;
+    if (!m_branchContainer) return nullptr;
 
     // 既に作ってあればそれを返す
     if (auto* existed = this->findChild<QPushButton*>("backToMainButton"))
@@ -403,8 +403,10 @@ QPushButton* RecordPane::backToMainButton()
     btn->setVisible(false); // 初期は非表示
     btn->setToolTip(tr("現在の手数で本譜（メインライン）に戻る"));
 
-    // m_right の 1 番目（分岐テーブルとコメントの間）に挿入
-    m_right->insertWidget(1, btn);
+    // 分岐候補欄コンテナのレイアウトに追加
+    if (auto* lay = qobject_cast<QVBoxLayout*>(m_branchContainer->layout())) {
+        lay->addWidget(btn);
+    }
     return btn;
 }
 
@@ -504,10 +506,5 @@ void RecordPane::applyFontSize(int size)
     // 分岐候補欄にフォントサイズを適用
     if (m_branch) {
         m_branch->setFont(font);
-    }
-
-    // コメント欄にもフォントサイズを適用
-    if (m_branchText) {
-        m_branchText->setFont(font);
     }
 }

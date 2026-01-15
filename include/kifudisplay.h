@@ -13,14 +13,23 @@ public:
     // コンストラクタ
     explicit KifuDisplay(QObject *parent = nullptr);
 
-    // コンストラクタ
+    // コンストラクタ（2引数）
     KifuDisplay(const QString &currentMove, const QString &timeSpent, QObject *parent = nullptr);
+
+    // コンストラクタ（3引数：コメント付き）
+    KifuDisplay(const QString &currentMove, const QString &timeSpent, const QString &comment, QObject *parent = nullptr);
 
     // 指し手を取得する。
     QString currentMove() const;
 
-    // 消費時間を取得する。  
+    // 消費時間を取得する。
     QString timeSpent() const;
+
+    // コメントを取得する。
+    QString comment() const;
+
+    // コメントを設定する。
+    void setComment(const QString &comment);
 
 private:
     // 指し手
@@ -28,6 +37,9 @@ private:
 
     // 消費時間
     QString m_timeSpent;
+
+    // コメント
+    QString m_comment;
 
 };
 

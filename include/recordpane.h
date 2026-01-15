@@ -66,12 +66,12 @@ private:
 
     QTableView *m_kifu=nullptr, *m_branch=nullptr;
     QWidget *m_navButtons=nullptr;  // ナビゲーションボタン群（棋譜と分岐の間に縦配置）
+    QWidget *m_branchContainer=nullptr;  // 分岐候補欄のコンテナ（本譜に戻るボタン用）
     QPushButton *m_btn1=nullptr,*m_btn2=nullptr,*m_btn3=nullptr,*m_btn4=nullptr,*m_btn5=nullptr,*m_btn6=nullptr;
     QPushButton *m_btnFontUp=nullptr, *m_btnFontDown=nullptr;  // 文字サイズ変更ボタン
     int m_fontSize = 10;  // 現在のフォントサイズ
-    QTextBrowser* m_branchText=nullptr;
     QSplitter *m_mainSplitter=nullptr;  // 上下分割用メインスプリッター
-    QSplitter *m_lr=nullptr, *m_right=nullptr;
+    QSplitter *m_lr=nullptr;
     QScrollArea* m_scroll=nullptr;
     EvaluationChartWidget* m_eval=nullptr;
     QWidget* m_evalWrap=nullptr;  // 評価値グラフのラッパーウィジェット

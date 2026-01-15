@@ -12,8 +12,8 @@ KifuRecordListModel::KifuRecordListModel(QObject *parent)
 int KifuRecordListModel::columnCount(const QModelIndex &parent) const
 {
     Q_UNUSED(parent)
-    // 「指し手」「消費時間」の2列
-    return 2;
+    // 「指し手」「消費時間」「コメント」の3列
+    return 3;
 }
 
 QVariant KifuRecordListModel::data(const QModelIndex &index, int role) const
@@ -52,6 +52,9 @@ QVariant KifuRecordListModel::data(const QModelIndex &index, int role) const
     case 1:
         // 消費時間列
         return list[row]->timeSpent();
+    case 2:
+        // コメント列
+        return list[row]->comment();
     default:
         return QVariant();
     }
@@ -65,6 +68,7 @@ QVariant KifuRecordListModel::headerData(int section, Qt::Orientation orientatio
         switch (section) {
         case 0: return tr("指し手");
         case 1: return tr("消費時間");
+        case 2: return tr("コメント");
         default: return QVariant();
         }
     } else {
@@ -127,7 +131,7 @@ void KifuRecordListModel::setBranchPlyMarks(const QSet<int>& ply1Set)
 
     if (rowCount() > 0) {
         const QModelIndex tl = index(0, 0);
-        const QModelIndex br = index(rowCount() - 1, 1);
+        const QModelIndex br = index(rowCount() - 1, columnCount() - 1);
         // 指し手の '+' 付与と背景色の両方を更新
         emit dataChanged(tl, br, { Qt::DisplayRole, Qt::BackgroundRole });
     }
@@ -144,12 +148,12 @@ void KifuRecordListModel::setCurrentHighlightRow(int row)
     // 旧行と新行の背景色を更新
     if (oldRow >= 0 && oldRow < rowCount()) {
         const QModelIndex tl = index(oldRow, 0);
-        const QModelIndex br = index(oldRow, 1);
+        const QModelIndex br = index(oldRow, columnCount() - 1);
         emit dataChanged(tl, br, { Qt::BackgroundRole });
     }
     if (row >= 0 && row < rowCount()) {
         const QModelIndex tl = index(row, 0);
-        const QModelIndex br = index(row, 1);
+        const QModelIndex br = index(row, columnCount() - 1);
         emit dataChanged(tl, br, { Qt::BackgroundRole });
     }
 }

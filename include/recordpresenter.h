@@ -34,6 +34,9 @@ public:
     // 1手分を末尾に追記（対局中のライブ更新でも使用）
     void appendMoveLine(const QString& prettyMove, const QString& elapsedTime);
 
+    // 1手分を末尾に追記（コメント付き：棋譜ファイル読み込み時に使用）
+    void appendMoveLineWithComment(const QString& prettyMove, const QString& elapsedTime, const QString& comment);
+
     int  currentMoveIndex() const { return m_currentMoveIndex; }
 
 signals:
