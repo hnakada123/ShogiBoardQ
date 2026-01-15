@@ -80,6 +80,12 @@ public:
     // 盤面をSFEN形式へ変換する。
     QString convertBoardToSfen();
 
+    // 指したマスが将棋盤内で相手の駒があった場合、自分の駒台の枚数に1加える。
+    void addPieceToStand(QChar dest);
+
+    // 駒台から駒を打った場合、駒台の駒の枚数を1減らす。
+    void decrementPieceOnStand(QChar source);
+
     // 駒台のSFEN形式への変換
     QString convertStandToSfen() const;
 
@@ -129,12 +135,6 @@ private:
 
     // SFEN文字列から将棋盤内に駒を配置する。
     void setPiecePlacementFromSfen(QString& initialSfenStr);
-
-    // 指したマスが将棋盤内で相手の駒があった場合、自分の駒台の枚数に1加える。
-    void addPieceToStand(QChar dest);
-
-    // 駒台から指した場合、駒台の駒の枚数を1減らす。
-    void decrementPieceOnStand(QChar source);
 
     // SFEN文字列を入力し、エラーチェックを行い、次の手番、次の手が何手目かを取得する。
     void validateSfenString(const QString& sfenStr, QString& sfenBoardStr, QString& sfenStandStr);
