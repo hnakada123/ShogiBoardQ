@@ -1276,9 +1276,10 @@ void KifuLoadCoordinator::showBranchCandidatesFromPlan(int row, int ply1)
     const BranchCandidateDisplay& plan = itP.value();
 
     // （必要なら）現在指し手のラベルを取得しておく（候補リスト選択合わせ用）
+    // ply1 手目の指し手を取得（disp配列は index 0 = 開始局面、index 1 = 1手目、...）
     QString currentLbl;
     {
-        const int li = ply1 - 1;
+        const int li = ply1;  // ply1 手目は disp[ply1] にある（0手目=開始局面を含むため）
         const auto& disp = m_resolvedRows[row].disp;
         if (li >= 0 && li < disp.size()) {
             currentLbl = pickLabelForDisp(disp.at(li));
@@ -1350,9 +1351,12 @@ void KifuLoadCoordinator::showBranchCandidatesFromPlan(int row, int ply1)
             const QModelIndex pick = m_kifuBranchModel->index(foundRow, 0);
             sel->setCurrentIndex(pick, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
             view->scrollTo(pick, QAbstractItemView::PositionAtCenter);
+            // モデルのハイライト行も更新
+            m_kifuBranchModel->setCurrentHighlightRow(foundRow);
         } else {
             // 見つからない場合は勝手に先頭を選ばず、選択をクリアしておく
             sel->clearSelection();
+            m_kifuBranchModel->setCurrentHighlightRow(-1);
         }
     }
 
@@ -2421,12 +2425,20 @@ void KifuLoadCoordinator::applyResolvedRowAndSelect(int row, int selPly)
 // 既存：分岐候補モデルの構築・表示更新を担う関数
 void KifuLoadCoordinator::showBranchCandidates(int row, int ply)
 {
+    // 再入防止：更新中に再度呼ばれた場合はスキップ
+    if (m_updatingBranchCandidates) {
+        return;
+    }
+    m_updatingBranchCandidates = true;
+
     // Plan ベースの表示へ一本化
     showBranchCandidatesFromPlan(row, ply);
 
     // 表示更新後にツリーハイライトだけ通知（逆呼びになるため refreshAll は呼ばない）
     ensureNavigationPresenter_();
     m_navPresenter->updateAfterBranchListChanged(row, ply);
+
+    m_updatingBranchCandidates = false;
 }
 
 void KifuLoadCoordinator::onMainMoveRowChanged(int selPly)

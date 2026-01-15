@@ -57,8 +57,17 @@ QVariant KifuBranchListModel::data(const QModelIndex &index, int role) const
         return QVariant();
     }
 
-    // --- 体裁（任意） ---
-    if (role == Qt::TextAlignmentRole && isBackRow) {
+    // --- 背景色：現在選択行は黄色 ---
+    if (role == Qt::BackgroundRole) {
+        if (index.row() == m_currentHighlightRow) {
+            static const QBrush kYellowBg(QColor(255, 255, 0));
+            return kYellowBg;
+        }
+        return QVariant();
+    }
+
+    // --- 体裁：中央揃え ---
+    if (role == Qt::TextAlignmentRole) {
         return Qt::AlignCenter;
     }
     if (role == Qt::FontRole && isBackRow) {
@@ -241,4 +250,29 @@ void KifuBranchListModel::clear()
 
     // アクティブノードの変更（無効化）を通知
     emit activeNodeChanged(-1);
+}
+
+void KifuBranchListModel::setCurrentHighlightRow(int row)
+{
+    if (m_currentHighlightRow == row) {
+        return;
+    }
+
+    const int oldRow = m_currentHighlightRow;
+    m_currentHighlightRow = row;
+
+    // 旧行と新行の背景色を更新
+    if (oldRow >= 0 && oldRow < rowCount()) {
+        const QModelIndex idx = index(oldRow, 0);
+        emit dataChanged(idx, idx, { Qt::BackgroundRole });
+    }
+    if (row >= 0 && row < rowCount()) {
+        const QModelIndex idx = index(row, 0);
+        emit dataChanged(idx, idx, { Qt::BackgroundRole });
+    }
+}
+
+int KifuBranchListModel::currentHighlightRow() const
+{
+    return m_currentHighlightRow;
 }

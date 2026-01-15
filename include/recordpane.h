@@ -84,6 +84,7 @@ private slots:
 private:
     QMetaObject::Connection m_connRowChanged;
     QMetaObject::Connection m_connRowsInserted;
+    QMetaObject::Connection m_connBranchCurrentRow;
 
     // ★ 追加: コメント用アダプタの実体
     CommentTextAdapter m_commentAdapter{nullptr};

@@ -38,6 +38,14 @@ QVariant KifuRecordListModel::data(const QModelIndex &index, int role) const
         return QVariant();
     }
 
+    // テキスト配置：消費時間列は中央揃え
+    if (role == Qt::TextAlignmentRole) {
+        if (col == 1) {
+            return Qt::AlignCenter;
+        }
+        return QVariant();
+    }
+
     if (role != Qt::DisplayRole) return QVariant();
 
     switch (col) {
