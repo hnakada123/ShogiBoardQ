@@ -41,9 +41,13 @@ void RecordPane::buildUi()
     m_kifu->setSelectionMode(QAbstractItemView::SingleSelection);
     m_kifu->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_kifu->verticalHeader()->setVisible(false);
-    // 行の高さを文字サイズに合わせて自動調整（余白を最小限に）
-    m_kifu->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
-    m_kifu->verticalHeader()->setMinimumSectionSize(1);
+    // 行の高さを1行分のテキストに固定（コメント欄が複数行でも1行表示に制限）
+    const int rowHeight = m_kifu->fontMetrics().height() + 4;  // フォント高さ + 最小限のパディング
+    m_kifu->verticalHeader()->setDefaultSectionSize(rowHeight);
+    m_kifu->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
+    // テキストが溢れる場合は省略記号（...）で表示
+    m_kifu->setWordWrap(false);
+    m_kifu->setTextElideMode(Qt::ElideRight);
 
     // --- 文字サイズ変更ボタン ---
     m_btnFontUp = new QPushButton(this);
@@ -152,9 +156,11 @@ void RecordPane::buildUi()
     m_branch->setSelectionMode(QAbstractItemView::SingleSelection);
     m_branch->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_branch->verticalHeader()->setVisible(false);
-    // 行の高さを文字サイズに合わせて自動調整（余白を最小限に）
-    m_branch->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
-    m_branch->verticalHeader()->setMinimumSectionSize(1);
+    // 行の高さを1行分のテキストに固定
+    const int branchRowHeight = m_branch->fontMetrics().height() + 4;
+    m_branch->verticalHeader()->setDefaultSectionSize(branchRowHeight);
+    m_branch->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
+    m_branch->setWordWrap(false);
 
     // 分岐候補欄を縦レイアウトでラップ（「本譜に戻る」ボタン用）
     m_branchContainer = new QWidget(this);
@@ -521,10 +527,16 @@ void RecordPane::applyFontSize(int size)
     // 棋譜欄にフォントサイズを適用
     if (m_kifu) {
         m_kifu->setFont(font);
+        // 行の高さもフォントサイズに合わせて更新
+        const int rowHeight = m_kifu->fontMetrics().height() + 4;
+        m_kifu->verticalHeader()->setDefaultSectionSize(rowHeight);
     }
 
     // 分岐候補欄にフォントサイズを適用
     if (m_branch) {
         m_branch->setFont(font);
+        // 行の高さもフォントサイズに合わせて更新
+        const int rowHeight = m_branch->fontMetrics().height() + 4;
+        m_branch->verticalHeader()->setDefaultSectionSize(rowHeight);
     }
 }
