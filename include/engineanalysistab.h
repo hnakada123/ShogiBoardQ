@@ -149,6 +149,9 @@ signals:
     void csaRawCommandRequested(const QString& command);
 
 private:
+    // ★ 追加: 分岐ツリーのクリック有効フラグ（対局中は無効にする）
+    bool m_branchTreeClickEnabled = true;
+
     // --- 内部：ツリー描画 ---
     void rebuildBranchTree();
     QGraphicsPathItem* addNode(int row, int ply, const QString& text);
@@ -235,12 +238,16 @@ private:
 public:
     // ★ 追加: 未保存の編集があるかチェック
     bool hasUnsavedComment() const { return m_isCommentDirty; }
-    
+
     // ★ 追加: 未保存編集の警告ダイアログを表示（移動を続けるならtrue）
     bool confirmDiscardUnsavedComment();
-    
+
     // ★ 追加: 編集状態をクリア（コメント更新後に呼ぶ）
     void clearCommentDirty();
+
+    // ★ 追加: 分岐ツリーのクリック有効/無効を設定（対局中は無効にする）
+    void setBranchTreeClickEnabled(bool enabled) { m_branchTreeClickEnabled = enabled; }
+    bool isBranchTreeClickEnabled() const { return m_branchTreeClickEnabled; }
 
     // --- モデル参照（所有しない） ---
     ShogiEngineThinkingModel* m_model1=nullptr;
@@ -276,7 +283,7 @@ public:
     int m_nextNodeId = 1;
     // 直前に黄色にした item
     QGraphicsPathItem* m_prevSelected = nullptr;
-    
+
     // ★ 追加: 思考タブ下段の列幅が設定から読み込まれたか
     bool m_thinkingView1WidthsLoaded = false;
     bool m_thinkingView2WidthsLoaded = false;

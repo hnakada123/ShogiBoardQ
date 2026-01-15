@@ -828,6 +828,11 @@ bool EngineAnalysisTab::eventFilter(QObject* obj, QEvent* ev)
     if (m_branchTree && obj == m_branchTree->viewport()
         && ev->type() == QEvent::MouseButtonRelease)
     {
+        // 対局中はクリックを無効化（スクロールバーは引き続き動作可能）
+        if (!m_branchTreeClickEnabled) {
+            return false;
+        }
+
         auto* me = static_cast<QMouseEvent*>(ev);
         if (!(me->button() & Qt::LeftButton)) return QWidget::eventFilter(obj, ev);
 
