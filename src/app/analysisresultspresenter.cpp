@@ -8,9 +8,34 @@
 #include <QScrollBar>
 #include <QPushButton>
 #include <QMessageBox>
+#include <QPainter>
+#include <QStyledItemDelegate>
 #include "settingsservice.h"
 #include "numeric_right_align_comma_delegate.h"
 #include "kifuanalysislistmodel.h"
+
+// 「表示」ボタン列用のデリゲート（選択時も色を維持）
+class BoardButtonDelegate : public QStyledItemDelegate
+{
+public:
+    explicit BoardButtonDelegate(QObject* parent = nullptr) : QStyledItemDelegate(parent) {}
+
+    void paint(QPainter* painter, const QStyleOptionViewItem& option,
+               const QModelIndex& /*index*/) const override
+    {
+        painter->save();
+
+        // 背景色（常に青色）
+        QColor bgColor(0x20, 0x9c, 0xee);
+        painter->fillRect(option.rect, bgColor);
+
+        // テキスト「表示」を白色で中央に描画
+        painter->setPen(Qt::white);
+        painter->drawText(option.rect, Qt::AlignCenter, QStringLiteral("表示"));
+
+        painter->restore();
+    }
+};
 
 AnalysisResultsPresenter::AnalysisResultsPresenter(QObject* parent)
     : QObject(parent)
@@ -74,8 +99,8 @@ void AnalysisResultsPresenter::buildUi(KifuAnalysisListModel* model)
     // テーブル全体の水平スクロールは無効化（ヘッダーを常に表示するため）
     m_view->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     
-    // ダブルクリックで読み筋表示ウィンドウを開く
-    connect(m_view, &QTableView::doubleClicked, this, &AnalysisResultsPresenter::onTableDoubleClicked);
+    // 盤面列（列6）のクリックで読み筋表示ウィンドウを開く
+    connect(m_view, &QTableView::clicked, this, &AnalysisResultsPresenter::onTableClicked);
     
     // 行選択時に棋譜欄・将棋盤・分岐ツリーを連動させる
     connect(m_view->selectionModel(), &QItemSelectionModel::currentRowChanged,
@@ -86,17 +111,23 @@ void AnalysisResultsPresenter::buildUi(KifuAnalysisListModel* model)
     m_view->setItemDelegateForColumn(3, numDelegate); // 評価値
     m_view->setItemDelegateForColumn(5, numDelegate); // 差
 
+    // 盤面列用のデリゲート（選択時も青色を維持）
+    auto* boardBtnDelegate = new BoardButtonDelegate(m_view);
+    m_view->setItemDelegateForColumn(6, boardBtnDelegate); // 盤面
+
     m_header = m_view->horizontalHeader();
     m_header->setMinimumSectionSize(30);
-    
-    // 列の構成: 指し手(0), 候補手(1), 一致(2), 評価値(3), 形勢(4), 差(5), 読み筋(6)
-    m_header->setSectionResizeMode(0, QHeaderView::ResizeToContents); // 指し手
-    m_header->setSectionResizeMode(1, QHeaderView::ResizeToContents); // 候補手
-    m_header->setSectionResizeMode(2, QHeaderView::ResizeToContents); // 一致
-    m_header->setSectionResizeMode(3, QHeaderView::ResizeToContents); // 評価値
-    m_header->setSectionResizeMode(4, QHeaderView::ResizeToContents); // 形勢
-    m_header->setSectionResizeMode(5, QHeaderView::ResizeToContents); // 差
-    m_header->setSectionResizeMode(6, QHeaderView::Stretch);          // 読み筋（残り幅を使用）
+
+    // 列の構成: 指し手(0), 候補手(1), 一致(2), 評価値(3), 形勢(4), 差(5), 盤面(6), 読み筋(7)
+    // Interactiveモードを使用し、reflowNowで適切な幅を設定
+    m_header->setSectionResizeMode(0, QHeaderView::Interactive); // 指し手
+    m_header->setSectionResizeMode(1, QHeaderView::Interactive); // 候補手
+    m_header->setSectionResizeMode(2, QHeaderView::Interactive); // 一致
+    m_header->setSectionResizeMode(3, QHeaderView::Interactive); // 評価値
+    m_header->setSectionResizeMode(4, QHeaderView::Interactive); // 形勢
+    m_header->setSectionResizeMode(5, QHeaderView::Interactive); // 差
+    m_header->setSectionResizeMode(6, QHeaderView::Interactive); // 盤面
+    m_header->setSectionResizeMode(7, QHeaderView::Stretch);     // 読み筋（残り幅を使用）
     m_header->setStretchLastSection(true);  // 最後の列を引き伸ばす
 
     // フォントサイズのA-/A+ボタン
@@ -150,23 +181,21 @@ void AnalysisResultsPresenter::reflowNow()
 {
     if (!m_view || !m_header) return;
 
-    // 列の構成: 指し手(0), 候補手(1), 一致(2), 評価値(3), 形勢(4), 差(5), 読み筋(6)
-    m_header->setSectionResizeMode(0, QHeaderView::ResizeToContents);
-    m_header->setSectionResizeMode(1, QHeaderView::ResizeToContents);
-    m_header->setSectionResizeMode(2, QHeaderView::ResizeToContents);
-    m_header->setSectionResizeMode(3, QHeaderView::ResizeToContents);
-    m_header->setSectionResizeMode(4, QHeaderView::ResizeToContents);
-    m_header->setSectionResizeMode(5, QHeaderView::ResizeToContents);
-    
-    m_view->resizeColumnToContents(0);
-    m_view->resizeColumnToContents(1);
-    m_view->resizeColumnToContents(2);
-    m_view->resizeColumnToContents(3);
-    m_view->resizeColumnToContents(4);
-    m_view->resizeColumnToContents(5);
-    
+    // 列の構成: 指し手(0), 候補手(1), 一致(2), 評価値(3), 形勢(4), 差(5), 盤面(6), 読み筋(7)
+    // 各列の最小幅（ヘッダーテキストが見える幅）
+    static const int minWidths[] = {100, 100, 40, 70, 90, 50, 50};
+
+    // 各列のコンテンツに合わせてリサイズし、最小幅を保証
+    for (int col = 0; col < 7; ++col) {
+        m_view->resizeColumnToContents(col);
+        int currentWidth = m_header->sectionSize(col);
+        if (currentWidth < minWidths[col]) {
+            m_header->resizeSection(col, minWidths[col]);
+        }
+    }
+
     // 読み筋列は残りの幅を使用（Stretchモード）
-    m_header->setSectionResizeMode(6, QHeaderView::Stretch);
+    m_header->setSectionResizeMode(7, QHeaderView::Stretch);
     m_header->setStretchLastSection(true);
 }
 
@@ -227,16 +256,21 @@ void AnalysisResultsPresenter::setStopButtonEnabled(bool enabled)
     }
 }
 
-void AnalysisResultsPresenter::onTableDoubleClicked(const QModelIndex& index)
+void AnalysisResultsPresenter::onTableClicked(const QModelIndex& index)
 {
     if (!index.isValid()) return;
-    
-    // 解析中はダブルクリックを無視
+
+    // 解析中はクリックを無視
     if (m_isAnalyzing) {
         return;
     }
-    
-    qDebug().noquote() << "[AnalysisResultsPresenter::onTableDoubleClicked] row=" << index.row();
+
+    // 盤面列（列6）のみ反応
+    if (index.column() != 6) {
+        return;
+    }
+
+    qDebug().noquote() << "[AnalysisResultsPresenter::onTableClicked] row=" << index.row();
     Q_EMIT rowDoubleClicked(index.row());
 }
 
@@ -279,46 +313,65 @@ void AnalysisResultsPresenter::showAnalysisComplete(int totalMoves)
 void AnalysisResultsPresenter::increaseFontSize()
 {
     if (!m_view) return;
-    
+
     QFont font = m_view->font();
     int newSize = font.pointSize() + 1;
     if (newSize > 24) newSize = 24;  // 最大サイズ制限
     font.setPointSize(newSize);
     m_view->setFont(font);
-    
+
+    // ヘッダーのフォントサイズも変更（スタイルシートを使用）
+    if (m_header) {
+        m_header->setStyleSheet(QStringLiteral("QHeaderView::section { font-size: %1pt; }").arg(newSize));
+    }
+
     // SettingsServiceで設定を保存
     SettingsService::setKifuAnalysisFontSize(newSize);
-    
+
     m_reflowTimer->start();
 }
 
 void AnalysisResultsPresenter::decreaseFontSize()
 {
     if (!m_view) return;
-    
+
     QFont font = m_view->font();
     int newSize = font.pointSize() - 1;
     if (newSize < 8) newSize = 8;  // 最小サイズ制限
     font.setPointSize(newSize);
     m_view->setFont(font);
-    
+
+    // ヘッダーのフォントサイズも変更（スタイルシートを使用）
+    if (m_header) {
+        m_header->setStyleSheet(QStringLiteral("QHeaderView::section { font-size: %1pt; }").arg(newSize));
+    }
+
     // SettingsServiceで設定を保存
     SettingsService::setKifuAnalysisFontSize(newSize);
-    
+
     m_reflowTimer->start();
 }
 
 void AnalysisResultsPresenter::restoreFontSize()
 {
     if (!m_view) return;
-    
+
     // SettingsServiceからフォントサイズを復元
     int savedSize = SettingsService::kifuAnalysisFontSize();
-    
-    if (savedSize >= 8 && savedSize <= 24) {
-        QFont font = m_view->font();
-        font.setPointSize(savedSize);
-        m_view->setFont(font);
+
+    // 有効なサイズでない場合はデフォルトのフォントサイズを使用
+    if (savedSize < 8 || savedSize > 24) {
+        savedSize = m_view->font().pointSize();
+        if (savedSize < 8) savedSize = 10;  // デフォルト
+    }
+
+    QFont font = m_view->font();
+    font.setPointSize(savedSize);
+    m_view->setFont(font);
+
+    // ヘッダーのフォントサイズも同じサイズに設定（スタイルシートを使用）
+    if (m_header) {
+        m_header->setStyleSheet(QStringLiteral("QHeaderView::section { font-size: %1pt; }").arg(savedSize));
     }
 }
 

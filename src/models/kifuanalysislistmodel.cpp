@@ -1,5 +1,6 @@
 #include "kifuanalysislistmodel.h"
 #include <cmath>
+#include <QColor>
 
 //将棋の棋譜解析結果をGUI上で表示するためのモデルクラス
 // コンストラクタ
@@ -12,8 +13,8 @@ int KifuAnalysisListModel::columnCount(const QModelIndex &parent) const
 {
     Q_UNUSED(parent)
 
-    // 「指し手」「候補手」「一致」「評価値」「形勢」「差」「読み筋」の7列を返す。
-    return 7;
+    // 「指し手」「候補手」「一致」「評価値」「形勢」「差」「盤面」「読み筋」の8列を返す。
+    return 8;
 }
 
 // 指し手と候補手が一致するか判定する
@@ -119,6 +120,24 @@ QVariant KifuAnalysisListModel::data(const QModelIndex &index, int role) const
     if (!index.isValid())
         return QVariant();
 
+    // 盤面列（列6）は特別扱い：ボタン風の表示
+    if (index.column() == 6) {
+        if (role == Qt::DisplayRole) {
+            return QStringLiteral("表示");
+        }
+        if (role == Qt::TextAlignmentRole) {
+            return Qt::AlignCenter;
+        }
+        if (role == Qt::BackgroundRole) {
+            // 青緑系のボタン色（クリック可能であることを示す）
+            return QColor(0x20, 0x9c, 0xee);  // 明るい青
+        }
+        if (role == Qt::ForegroundRole) {
+            return QColor(Qt::white);  // 白文字
+        }
+        return QVariant();
+    }
+
     // 右寄せ：評価値 / 差 列は右寄せ
     if (role == Qt::TextAlignmentRole) {
         // 列3（評価値）と列5（差）を右寄せ
@@ -136,7 +155,7 @@ QVariant KifuAnalysisListModel::data(const QModelIndex &index, int role) const
         return QVariant();
 
     KifuAnalysisResultsDisplay* item = list[index.row()];
-    
+
     switch (index.column()) {
     case 0: // 指し手
         return item->currentMove();
@@ -153,7 +172,7 @@ QVariant KifuAnalysisListModel::data(const QModelIndex &index, int role) const
         return getJudgementString(item->evaluationValue());
     case 5: // 差
         return item->evaluationDifference();
-    case 6: // 読み筋
+    case 7: // 読み筋
         return item->principalVariation();
     default:
         return QVariant();
@@ -184,6 +203,8 @@ QVariant KifuAnalysisListModel::headerData(int section, Qt::Orientation orientat
         case 5:
             return QStringLiteral("差");
         case 6:
+            return QStringLiteral("盤面");
+        case 7:
             return QStringLiteral("読み筋");
         default:
             // それ以外の場合、空のQVariantを返す。
