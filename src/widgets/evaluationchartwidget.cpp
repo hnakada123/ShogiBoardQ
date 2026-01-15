@@ -344,10 +344,10 @@ void EvaluationChartWidget::onSeriesHovered(const QPointF& point, bool state)
 void EvaluationChartWidget::setupControlPanel()
 {
     m_controlPanel = new QWidget(this);
-    m_controlPanel->setFixedHeight(36);
+    m_controlPanel->setFixedHeight(26);  // コンパクトな高さに変更
 
     auto* layout = new QHBoxLayout(m_controlPanel);
-    layout->setContentsMargins(4, 2, 4, 2);
+    layout->setContentsMargins(4, 0, 4, 0);  // 上下のマージンを削除
     layout->setSpacing(4);
 
     // ラベルスタイル（少し大きめのフォント）
@@ -429,13 +429,6 @@ void EvaluationChartWidget::setupControlPanel()
     m_btnFontDown->setToolTip(tr("目盛りの文字を小さく"));
     m_btnFontUp->setToolTip(tr("目盛りの文字を大きく"));
 
-    // エンジン情報ラベル
-    m_lblEngineInfo = new QLabel(m_controlPanel);
-    m_lblEngineInfo->setStyleSheet(labelStyle);
-    m_lblEngineInfo->setMinimumWidth(300);
-    m_lblEngineInfo->setText(QStringLiteral("(エンジン情報)"));  // デバッグ用初期テキスト
-    qDebug() << "[EVAL_CHART] m_lblEngineInfo created:" << m_lblEngineInfo;
-
     // レイアウトに追加（左端から配置）
     layout->addWidget(lblYLimit);
     layout->addWidget(m_comboYLimit);
@@ -451,9 +444,6 @@ void EvaluationChartWidget::setupControlPanel()
 
     layout->addWidget(m_btnFontDown);
     layout->addWidget(m_btnFontUp);
-    layout->addSpacing(16);
-
-    layout->addWidget(m_lblEngineInfo);
 
     layout->addStretch();  // 残りのスペースを右側に
 
@@ -948,72 +938,5 @@ void EvaluationChartWidget::setEngine2Name(const QString& name)
 
 void EvaluationChartWidget::updateEngineInfoLabel()
 {
-    qDebug() << "[ENGINE_INFO] updateEngineInfoLabel called";
-    qDebug() << "[ENGINE_INFO] m_lblEngineInfo:" << m_lblEngineInfo;
-    qDebug() << "[ENGINE_INFO] m_engine1Name:" << m_engine1Name << "m_engine1Ply:" << m_engine1Ply << "m_engine1Cp:" << m_engine1Cp;
-    qDebug() << "[ENGINE_INFO] m_engine2Name:" << m_engine2Name << "m_engine2Ply:" << m_engine2Ply << "m_engine2Cp:" << m_engine2Cp;
-
-    if (!m_lblEngineInfo) {
-        qDebug() << "[ENGINE_INFO] m_lblEngineInfo is NULL!";
-        return;
-    }
-
-    QString text;
-
-    // エンジン1の情報（先手・▲）
-    if (!m_engine1Name.isEmpty() && m_engine1Ply > 0) {
-        QString status;
-        if (m_engine1Cp > 100) {
-            status = QStringLiteral("優勢");
-        } else if (m_engine1Cp < -100) {
-            status = QStringLiteral("劣勢");
-        } else {
-            status = QStringLiteral("互角");
-        }
-
-        QString cpStr;
-        if (m_engine1Cp >= 0) {
-            cpStr = QStringLiteral("+%1").arg(m_engine1Cp);
-        } else {
-            cpStr = QString::number(m_engine1Cp);
-        }
-
-        text += QStringLiteral("▲%1 %2 %3手目 評価値 %4")
-                    .arg(m_engine1Name, status)
-                    .arg(m_engine1Ply)
-                    .arg(cpStr);
-    }
-
-    // エンジン2の情報（後手・△）
-    if (!m_engine2Name.isEmpty() && m_engine2Ply > 0) {
-        if (!text.isEmpty()) {
-            text += QStringLiteral("  ");  // 区切りスペース
-        }
-
-        QString status;
-        // エンジンが返す評価値は自分から見た値
-        // 正の値 = 自分（後手）が優勢、負の値 = 自分（後手）が劣勢
-        if (m_engine2Cp > 100) {
-            status = QStringLiteral("優勢");
-        } else if (m_engine2Cp < -100) {
-            status = QStringLiteral("劣勢");
-        } else {
-            status = QStringLiteral("互角");
-        }
-
-        QString cpStr;
-        if (m_engine2Cp >= 0) {
-            cpStr = QStringLiteral("+%1").arg(m_engine2Cp);
-        } else {
-            cpStr = QString::number(m_engine2Cp);
-        }
-
-        text += QStringLiteral("△%1 %2 %3手目 評価値 %4")
-                    .arg(m_engine2Name, status)
-                    .arg(m_engine2Ply)
-                    .arg(cpStr);
-    }
-
-    qDebug() << "[ENGINE_INFO] final text:" << text;
-    m_lblEngineInfo->setText(text);
+    // エンジン情報ラベルは廃止されたため、何もしない
 }

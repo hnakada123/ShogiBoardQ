@@ -136,9 +136,6 @@ private:
     QPushButton* m_btnFontUp = nullptr;
     QPushButton* m_btnFontDown = nullptr;
 
-    // エンジン情報ラベル
-    QLabel* m_lblEngineInfo = nullptr;
-
     // ツールチップ（付箋）ラベル
     QLabel* m_tooltip = nullptr;
 
