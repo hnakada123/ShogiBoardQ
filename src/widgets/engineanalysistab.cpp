@@ -1039,7 +1039,7 @@ void EngineAnalysisTab::applyThinkingViewColumnWidths_(QTableView* v, int viewIn
     auto* h = v->horizontalHeader();
     if (!h) return;
 
-    constexpr int kColCount = 5;
+    constexpr int kColCount = 6;  // 「時間」「深さ」「ノード数」「評価値」「盤面」「読み筋」
 
     // 全ての列をInteractive（ユーザーがリサイズ可能）に設定
     for (int col = 0; col < kColCount; ++col) {
@@ -1048,7 +1048,7 @@ void EngineAnalysisTab::applyThinkingViewColumnWidths_(QTableView* v, int viewIn
 
     // ★ 設定ファイルから列幅を読み込む
     QList<int> savedWidths = SettingsService::thinkingViewColumnWidths(viewIndex);
-    
+
     if (savedWidths.size() == kColCount) {
         // 保存された列幅を適用
         h->blockSignals(true);
@@ -1058,7 +1058,7 @@ void EngineAnalysisTab::applyThinkingViewColumnWidths_(QTableView* v, int viewIn
             }
         }
         h->blockSignals(false);
-        
+
         // ★ 列幅読み込み済みフラグを遅延で設定
         QTimer::singleShot(500, this, [this, viewIndex]() {
             if (viewIndex == 0) {
@@ -1069,14 +1069,14 @@ void EngineAnalysisTab::applyThinkingViewColumnWidths_(QTableView* v, int viewIn
         });
     } else {
         // デフォルトの列幅を設定
-        // 「時間」「深さ」「ノード数」「評価値」「読み筋」
-        const int defaultWidths[] = {60, 50, 100, 80, 380};
+        // 「時間」「深さ」「ノード数」「評価値」「盤面」「読み筋」
+        const int defaultWidths[] = {60, 50, 100, 80, 50, 330};
         h->blockSignals(true);
         for (int col = 0; col < kColCount; ++col) {
             v->setColumnWidth(col, defaultWidths[col]);
         }
         h->blockSignals(false);
-        
+
         // デフォルト幅の場合も、初期化後に保存を有効にする
         QTimer::singleShot(500, this, [this, viewIndex]() {
             if (viewIndex == 0) {
@@ -1524,16 +1524,22 @@ void EngineAnalysisTab::clearCommentDirty()
 void EngineAnalysisTab::onView1Clicked(const QModelIndex& index)
 {
     if (!index.isValid()) return;
-    qDebug() << "[EngineAnalysisTab] onView1Clicked: row=" << index.row();
-    emit pvRowClicked(0, index.row());
+    // 「盤面」列（列4）のクリック時のみ読み筋表示ウィンドウを開く
+    if (index.column() == 4) {
+        qDebug() << "[EngineAnalysisTab] onView1Clicked: row=" << index.row() << "(盤面ボタン)";
+        emit pvRowClicked(0, index.row());
+    }
 }
 
 // ★ 追加: エンジン2の読み筋テーブルクリック処理
 void EngineAnalysisTab::onView2Clicked(const QModelIndex& index)
 {
     if (!index.isValid()) return;
-    qDebug() << "[EngineAnalysisTab] onView2Clicked: row=" << index.row();
-    emit pvRowClicked(1, index.row());
+    // 「盤面」列（列4）のクリック時のみ読み筋表示ウィンドウを開く
+    if (index.column() == 4) {
+        qDebug() << "[EngineAnalysisTab] onView2Clicked: row=" << index.row() << "(盤面ボタン)";
+        emit pvRowClicked(1, index.row());
+    }
 }
 
 // ★ 追加: エンジン情報ウィジェットの列幅変更時の保存

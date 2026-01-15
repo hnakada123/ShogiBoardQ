@@ -48,8 +48,10 @@ void GameInfoPaneController::buildUi()
     m_table->setHorizontalHeaderLabels({tr("項目"), tr("内容")});
     m_table->horizontalHeader()->setStretchLastSection(true);
     m_table->verticalHeader()->setVisible(false);
+    m_table->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
     m_table->setSelectionBehavior(QAbstractItemView::SelectItems);
     m_table->setSelectionMode(QAbstractItemView::SingleSelection);
+    m_table->setWordWrap(false);
 
     // フォントサイズ適用
     applyFontSize();
@@ -403,7 +405,9 @@ void GameInfoPaneController::applyFontSize()
         QFont font = m_table->font();
         font.setPointSize(m_fontSize);
         m_table->setFont(font);
-        m_table->resizeRowsToContents();
+        // フォントメトリクスに基づいた固定行高さを設定
+        const int rowHeight = m_table->fontMetrics().height() + 4;
+        m_table->verticalHeader()->setDefaultSectionSize(rowHeight);
     }
 }
 
