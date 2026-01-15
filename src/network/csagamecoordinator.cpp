@@ -1279,10 +1279,23 @@ void CsaGameCoordinator::startEngineThinking()
     if (!isDrop) {
         // 盤上の駒を移動
         QChar pieceChar = board->getPieceCharacter(from.x(), from.y());
+
+        // 移動先の駒を取得（駒を取る場合に必要）
+        QChar capturedPiece = board->getPieceCharacter(toFile, toRank);
+
+        // 駒を取った場合は駒台に追加
+        if (!capturedPiece.isNull() && capturedPiece != QLatin1Char(' ')) {
+            board->addPieceToStand(capturedPiece);
+        }
+
         board->movePieceToSquare(pieceChar, from.x(), from.y(), toFile, toRank, promote);
     } else {
         // 駒打ち
         QChar pieceChar = board->getPieceCharacter(from.x(), from.y());
+
+        // 駒台から駒を減らす
+        board->decrementPieceOnStand(pieceChar);
+
         board->movePieceToSquare(pieceChar, 0, 0, toFile, toRank, false);
     }
 
@@ -1348,12 +1361,24 @@ bool CsaGameCoordinator::applyMoveToBoard(const QString& csaMove)
     // 盤面を直接更新
     if (fromFile != 0 || fromRank != 0) {
         // 通常移動
+        // 移動先の駒を取得（駒を取る場合に必要）
+        QChar capturedPiece = m_gameController->board()->getPieceCharacter(toFile, toRank);
+
+        // 駒を取った場合は駒台に追加
+        if (!capturedPiece.isNull() && capturedPiece != QLatin1Char(' ')) {
+            m_gameController->board()->addPieceToStand(capturedPiece);
+        }
+
         m_gameController->board()->movePieceToSquare(
             selectedPiece, fromFile, fromRank, toFile, toRank, isPromoted);
     } else {
         // 駒打ち
         // 駒台から駒を減らし、盤面に配置
         QChar pieceChar = csaPieceToSfenChar(piece, turnSign == QLatin1Char('+'));
+
+        // 駒台から駒を減らす
+        m_gameController->board()->decrementPieceOnStand(pieceChar);
+
         m_gameController->board()->movePieceToSquare(
             pieceChar, 0, 0, toFile, toRank, false);
     }
