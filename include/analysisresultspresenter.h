@@ -49,7 +49,7 @@ private slots:
     void onDataChanged(const QModelIndex&, const QModelIndex&, const QList<int>&);
     void onLayoutChanged();
     void onScrollRangeChanged(int, int);
-    void onTableDoubleClicked(const QModelIndex& index);
+    void onTableClicked(const QModelIndex& index);
     void onTableSelectionChanged(const QModelIndex& current, const QModelIndex& previous);
     
     // フォントサイズ変更
