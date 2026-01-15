@@ -302,6 +302,20 @@ void RecordPane::setModels(KifuRecordListModel* recModel, KifuBranchListModel* b
     if (auto* hh2 = m_branch->horizontalHeader()) {
         hh2->setSectionResizeMode(0, QHeaderView::Stretch);
     }
+
+    // 分岐テーブルの選択変更時にモデルのハイライト行を更新
+    if (auto* sel = m_branch->selectionModel()) {
+        // 既存の接続があれば解除
+        if (m_connBranchCurrentRow) {
+            disconnect(m_connBranchCurrentRow);
+        }
+        m_connBranchCurrentRow = connect(sel, &QItemSelectionModel::currentRowChanged,
+                this, [brModel](const QModelIndex& current, const QModelIndex&) {
+                    if (brModel && current.isValid()) {
+                        brModel->setCurrentHighlightRow(current.row());
+                    }
+                });
+    }
 }
 
 QTableView* RecordPane::kifuView() const { return m_kifu; }

@@ -32,6 +32,12 @@ void BranchCandidatesController::activateCandidate(int rowIndex)
                  << " metas=" << m_planMetas.size();
         return;
     }
+
+    // 分岐候補欄のハイライト行を更新
+    if (m_model) {
+        m_model->setCurrentHighlightRow(rowIndex);
+    }
+
     const auto& m = m_planMetas[rowIndex];
     qDebug() << "[BRANCH-CTL] planActivated row=" << m.targetRow
              << " ply=" << m.targetPly
@@ -89,6 +95,8 @@ void BranchCandidatesController::refreshCandidatesFromPlan(
         meta.lineName   = it.lineName;
         m_planMetas.push_back(meta);
     }
+
+    // ハイライト行はここでは設定しない（呼び出し側で適切な行を設定する）
 
     qDebug() << "[BRANCH-CTL] set plan items =" << items.size()
              << " ply=" << ply1;

@@ -129,6 +129,7 @@ signals:
 
 private:
     bool m_loadingKifu = false;
+    bool m_updatingBranchCandidates = false;  // 分岐候補更新中の再入防止フラグ
     QTableWidget* m_gameInfoTable;
     QDockWidget*  m_gameInfoDock;
     EngineAnalysisTab* m_analysisTab = nullptr;  // setAnalysisTab() 経由で設定

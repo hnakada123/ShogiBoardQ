@@ -58,6 +58,10 @@ public:
         return m_hasBackToMainRow ? (rowCount() >= 2 ? 1 : -1) : 0;
     }
 
+    // 現在ハイライトする行を設定（棋譜欄と連動）
+    void setCurrentHighlightRow(int row);
+    int currentHighlightRow() const;
+
     // --- 追加: カスタムロール ---
     enum Roles {
         DispCountRole = Qt::UserRole + 1,  // 行ごとの最大手数（0..N）
@@ -66,7 +70,7 @@ public:
     // 候補リスト＋分岐グラフの全消去
     void clear();
 
-private:  
+private:
     struct RowItem {
         QString label;
         // …既存のフィールド（variationId など）がある前提…
@@ -74,6 +78,7 @@ private:
     };
     QVector<RowItem> m_rows;
     bool m_hasBackToMainRow = false;
+    int m_currentHighlightRow = 0;  // 現在ハイライトする行
 
 private:
     int m_activeVid = -1;
