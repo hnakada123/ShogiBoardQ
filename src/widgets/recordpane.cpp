@@ -41,6 +41,9 @@ void RecordPane::buildUi()
     m_kifu->setSelectionMode(QAbstractItemView::SingleSelection);
     m_kifu->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_kifu->verticalHeader()->setVisible(false);
+    // 行の高さを文字サイズに合わせて自動調整（余白を最小限に）
+    m_kifu->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+    m_kifu->verticalHeader()->setMinimumSectionSize(1);
 
     // --- 文字サイズ変更ボタン ---
     m_btnFontUp = new QPushButton(this);
@@ -149,6 +152,9 @@ void RecordPane::buildUi()
     m_branch->setSelectionMode(QAbstractItemView::SingleSelection);
     m_branch->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_branch->verticalHeader()->setVisible(false);
+    // 行の高さを文字サイズに合わせて自動調整（余白を最小限に）
+    m_branch->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+    m_branch->verticalHeader()->setMinimumSectionSize(1);
 
     // 分岐候補欄を縦レイアウトでラップ（「本譜に戻る」ボタン用）
     m_branchContainer = new QWidget(this);
