@@ -173,6 +173,8 @@ private:
     // ★ 追加: USI通信ログ編集用UI
     QWidget* m_usiLogContainer=nullptr;
     QWidget* m_usiLogToolbar=nullptr;
+    QLabel* m_usiLogEngine1Label=nullptr;   // ★ 追加: エンジン1名ラベル
+    QLabel* m_usiLogEngine2Label=nullptr;   // ★ 追加: エンジン2名ラベル
     QToolButton* m_btnUsiLogFontIncrease=nullptr;
     QToolButton* m_btnUsiLogFontDecrease=nullptr;
     int m_usiLogFontSize=10;
@@ -213,6 +215,8 @@ private:
     void updateUsiLogFontSize(int delta);  // ★ 追加: USI通信ログフォントサイズ変更
     void onUsiLogFontIncrease();     // ★ 追加
     void onUsiLogFontDecrease();     // ★ 追加
+    void onEngine1NameChanged();     // ★ 追加: エンジン1名変更時
+    void onEngine2NameChanged();     // ★ 追加: エンジン2名変更時
     void buildCsaLogToolbar();       // ★ 追加: CSA通信ログツールバー構築
     void updateCsaLogFontSize(int delta);  // ★ 追加: CSA通信ログフォントサイズ変更
     void onCsaLogFontIncrease();     // ★ 追加

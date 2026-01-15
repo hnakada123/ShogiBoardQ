@@ -1,0 +1,103 @@
+[E1/P1] Apery_WCSC30 > usi
+[E1/P1] Apery_WCSC30 < id name Apery_WCSC30
+[E1/P1] Apery_WCSC30 < id author HiraokaTakuya
+[E1/P1] Apery_WCSC30 < option name Book_Enable type check default false
+[E1/P1] Apery_WCSC30 < option name Book_File type filename default book/20191216/book.json
+[E1/P1] Apery_WCSC30 < option name Byoyomi_Margin type spin default 500 min 0 max 9223372036854775807
+[E1/P1] Apery_WCSC30 < option name Clear_Hash type button
+[E1/P1] Apery_WCSC30 < option name Eval_Dir type string default eval/20190617
+[E1/P1] Apery_WCSC30 < option name Eval_Hash type spin default 256 min 1 max 1048576
+[E1/P1] Apery_WCSC30 < option name Minimum_Thinking_Time type spin default 20 min 0 max 5000
+[E1/P1] Apery_WCSC30 < option name MultiPV type spin default 1 min 1 max 500
+[E1/P1] Apery_WCSC30 < option name Slow_Mover type spin default 84 min 10 max 1000
+[E1/P1] Apery_WCSC30 < option name Threads type spin default 1 min 1 max 8192
+[E1/P1] Apery_WCSC30 < option name Time_Margin type spin default 500 min 0 max 9223372036854775807
+[E1/P1] Apery_WCSC30 < option name USI_Hash type spin default 256 min 1 max 1048576
+[E1/P1] Apery_WCSC30 < option name USI_Ponder type check default true
+[E1/P1] Apery_WCSC30 < usiok
+[E1/P1] Apery_WCSC30 > setoption name Book_Enable value false
+[E1/P1] Apery_WCSC30 > setoption name Book_File value book/20191216/book.json
+[E1/P1] Apery_WCSC30 > setoption name Byoyomi_Margin value 500
+[E1/P1] Apery_WCSC30 > setoption name Eval_Dir value eval/20190617
+[E1/P1] Apery_WCSC30 > setoption name Eval_Hash value 256
+[E1/P1] Apery_WCSC30 > setoption name Minimum_Thinking_Time value 20
+[E1/P1] Apery_WCSC30 > setoption name MultiPV value 1
+[E1/P1] Apery_WCSC30 > setoption name Slow_Mover value 84
+[E1/P1] Apery_WCSC30 > setoption name Threads value 1
+[E1/P1] Apery_WCSC30 > setoption name Time_Margin value 500
+[E1/P1] Apery_WCSC30 > setoption name USI_Hash value 256
+[E1/P1] Apery_WCSC30 > setoption name USI_Ponder value true
+[E1/P1] Apery_WCSC30 > isready
+[E1/P1] Apery_WCSC30 < readyok
+[E1/P1] Apery_WCSC30 > usinewgame
+[E2/P2] Gikou 2 (v2.0.2) > usi
+[E2/P2] Gikou 2 (v2.0.2) < id name Gikou 2 (v2.0.2)
+[E2/P2] Gikou 2 (v2.0.2) < id author Yosuke Demura
+[E2/P2] Gikou 2 (v2.0.2) < option name BookFile type filename default book.bin
+[E2/P2] Gikou 2 (v2.0.2) < option name BookMaxPly type spin default 20 min 0 max 50
+[E2/P2] Gikou 2 (v2.0.2) < option name ByoyomiMargin type spin default 100 min 0 max 10000
+[E2/P2] Gikou 2 (v2.0.2) < option name DepthLimit type spin default 100 min 1 max 100
+[E2/P2] Gikou 2 (v2.0.2) < option name DrawScore type spin default 0 min -200 max 200
+[E2/P2] Gikou 2 (v2.0.2) < option name FischerMargin type spin default 12000 min 0 max 60000
+[E2/P2] Gikou 2 (v2.0.2) < option name MinThinkingTime type spin default 1000 min 10 max 60000
+[E2/P2] Gikou 2 (v2.0.2) < option name MultiPV type spin default 1 min 1 max 700
+[E2/P2] Gikou 2 (v2.0.2) < option name NarrowBook type check default false
+[E2/P2] Gikou 2 (v2.0.2) < option name OwnBook type check default true
+[E2/P2] Gikou 2 (v2.0.2) < option name ResignScore type spin default -10000 min -32600 max -500
+[E2/P2] Gikou 2 (v2.0.2) < option name SuddenDeathMargin type spin default 60 min 0 max 600
+[E2/P2] Gikou 2 (v2.0.2) < option name Threads type spin default 16 min 1 max 64
+[E2/P2] Gikou 2 (v2.0.2) < option name TinyBook type check default false
+[E2/P2] Gikou 2 (v2.0.2) < usiok
+[E2/P2] Gikou 2 (v2.0.2) > setoption name BookFile value book.bin
+[E2/P2] Gikou 2 (v2.0.2) > setoption name BookMaxPly value 20
+[E2/P2] Gikou 2 (v2.0.2) > setoption name ByoyomiMargin value 100
+[E2/P2] Gikou 2 (v2.0.2) > setoption name DepthLimit value 100
+[E2/P2] Gikou 2 (v2.0.2) > setoption name DrawScore value 0
+[E2/P2] Gikou 2 (v2.0.2) > setoption name FischerMargin value 12000
+[E2/P2] Gikou 2 (v2.0.2) > setoption name MinThinkingTime value 1000
+[E2/P2] Gikou 2 (v2.0.2) > setoption name MultiPV value 1
+[E2/P2] Gikou 2 (v2.0.2) > setoption name NarrowBook value false
+[E2/P2] Gikou 2 (v2.0.2) > setoption name OwnBook value true
+[E2/P2] Gikou 2 (v2.0.2) > setoption name ResignScore value -10000
+[E2/P2] Gikou 2 (v2.0.2) > setoption name SuddenDeathMargin value 60
+[E2/P2] Gikou 2 (v2.0.2) > setoption name Threads value 16
+[E2/P2] Gikou 2 (v2.0.2) > setoption name TinyBook value false
+[E2/P2] Gikou 2 (v2.0.2) > setoption name USI_Hash value 1024
+[E2/P2] Gikou 2 (v2.0.2) > setoption name USI_Ponder value false
+[E2/P2] Gikou 2 (v2.0.2) > isready
+[E2/P2] Gikou 2 (v2.0.2) < readyok
+[E2/P2] Gikou 2 (v2.0.2) > usinewgame
+[E1/P1] Apery_WCSC30 > position startpos moves
+[E1/P1] Apery_WCSC30 > go btime 60000 wtime 60000 byoyomi 5000
+[E1/P1] Apery_WCSC30 < info depth 1 seldepth 1 multipv 1 score cp 95 nodes 32 nps 3555 time 9 pv 2g2f
+[E1/P1] Apery_WCSC30 < info depth 2 seldepth 2 multipv 1 score cp 114 nodes 70 nps 7777 time 9 pv 2g2f 1c1d
+[E1/P1] Apery_WCSC30 < info depth 3 seldepth 3 multipv 1 score cp 118 nodes 123 nps 13666 time 9 pv 2g2f 3c3d 2f2e
+[E1/P1] Apery_WCSC30 < info depth 4 seldepth 4 multipv 1 score cp 171 nodes 186 nps 20666 time 9 pv 2g2f 3c3d 2f2e
+[E1/P1] Apery_WCSC30 < info depth 5 seldepth 5 multipv 1 score cp 277 nodes 302 nps 33555 time 9 pv 2g2f 3c3d 2f2e
+[E1/P1] Apery_WCSC30 < info depth 6 seldepth 6 multipv 1 score cp 87 nodes 961 nps 96100 time 10 pv 2g2f 3c3d 6i7h 2b3c 5i6i 3a3b
+[E1/P1] Apery_WCSC30 < info depth 7 seldepth 8 multipv 1 score cp 47 nodes 2421 nps 220090 time 11 pv 2g2f 3c3d 6i7h 8c8d 2f2e 2b3c 7g7f 3a2b 8h3c+ 2b3c
+[E1/P1] Apery_WCSC30 < info depth 8 seldepth 13 multipv 1 score cp 122 nodes 2898 nps 241500 time 12 pv 2g2f 3c3d 6i7h 8c8d 2f2e 2b3c 7g7f 3a2b 8h3c+ 2b3c 7i8h
+[E1/P1] Apery_WCSC30 < info depth 9 seldepth 11 multipv 1 score cp 156 nodes 4370 nps 336153 time 13 pv 2g2f 3c3d 7g7f 2b3c 8h3c+ 2a3c 2f2e 3a2b 2e2d 2c2d 2h2d
+[E1/P1] Apery_WCSC30 < info depth 17 seldepth 23 multipv 1 score cp 74 nodes 231629 nps 919162 time 252 pv 2g2f 8c8d 2f2e 4a3b 7g7f 8d8e 8h7g 3c3d 7i8h 2b7g+ 8h7g 3a2b 2e2d 2c2d 2h2d 7a6b 2d3d 2b3c 3d3f 5a4b
+[E1/P1] Apery_WCSC30 < info depth 19 seldepth 26 multipv 1 score cp 28 nodes 532388 nps 938955 time 567 pv 7g7f 8c8d 8h7g 3c3d 7i8h 2b7g+ 8h7g 3a2b 3i3h 2b3c 4g4f 8d8e 2g2f 7a7b 3h4g 6c6d 4g5f 4a3b 5i6h 7b6c 2f2e 6c5d
+[E1/P1] Apery_WCSC30 < info depth 21 seldepth 32 multipv 1 score cp 11 nodes 1092060 nps 936586 time 1166 pv 6i7h 8c8d 2g2f 3c3d 2f2e 2b3c 7g7f 3a2b 8h3c+ 2b3c 7i6h 7a6b 3i3h 6c6d 6h7g 6b6c 4g4f 6c5d 1g1f 4a3b 3h4g 4c4d 4g5f 1c1d
+[E1/P1] Apery_WCSC30 < info depth 23 seldepth 33 multipv 1 score cp 52 nodes 2039712 nps 923782 time 2208 pv 7g7f 3c3d 6i7h 8c8d 2g2f 8d8e 2f2e 4a3b 2e2d 2c2d 2h2d 8e8f 8g8f 8b8f 2d3d 2b3c 3d3f 8f8b P*8g 3a2b 3f2f P*2c 5i6h 5a4b 3i3h 7a7b 8h7g 3c7g+ 8i7g
+[E1/P1] Apery_WCSC30 < info depth 24 seldepth 32 multipv 1 score cp 64 nodes 2461117 nps 929424 time 2648 pv 7g7f 3c3d 6i7h 8c8d 2g2f 8d8e 2f2e 4a3b 2e2d 2c2d 2h2d 8e8f 8g8f 8b8f 2d3d 2b3c 3d3f 8f8e 3f2f P*2e 2f5f 3a4b 5i5h 4c4d P*2d 3c2d P*8g 2d3c 8h7g 7a6b
+[E1/P1] Apery_WCSC30 < info depth 25 seldepth 36 multipv 1 score cp 41 upperbound nodes 2928904 nps 929220 time 3152 pv 7g7f 3c3d 6i7h 8c8d 2g2f 8d8e 2f2e 4a3b 2e2d 2c2d 2h2d 8e8f 8g8f 8b8f 2d3d 2b3c 3d3f 8f8e 3f2f P*2e 2f5f 3c8h+ 7i8h B*4e 5f4f 4e6g+
+[E1/P1] Apery_WCSC30 < info depth 25 seldepth 36 multipv 1 score cp 64 lowerbound nodes 3272640 nps 925520 time 3536 pv 7g7f 3c3d 6i7h 8c8d 2g2f 8d8e 2f2e 4a3b 2e2d 2c2d 2h2d 8e8f 8g8f 8b8f 2d3d 2b3c 3d3f 8f8e 3f2f P*2e 2f2h P*8g 8h3c+ 2a3c P*8h 8g8h+ 7i8h 3a2b P*8g
+[E1/P1] Apery_WCSC30 < info depth 25 seldepth 36 multipv 1 score cp 70 nodes 3510297 nps 920854 time 3812 pv 7g7f 3c3d 6i7h 8c8d 2g2f 8d8e 2f2e 8e8f 8g8f 8b8f P*8g 8f8b 2e2d 2c2d 2h2d 4a3b 2d2h P*2c 5i6h 5a4b 3i3h 7a6b 3g3f 6c6d 2i3g 6b6c 2h2i
+[E1/P1] Apery_WCSC30 < info depth 26 seldepth 34 multipv 1 score cp 46 upperbound nodes 4203575 nps 919015 time 4574 pv 7g7f 3c3d 6i7h 8c8d 2g2f 8d8e 2f2e 4a3b 2e2d 2c2d 2h2d 8e8f 8g8f 8b8f 2d3d 2b3c 3d3f 8f8d 3f2f P*2d P*8g 3a2b 3i3h 5a4b 8h7g 7a7b 2f3f 3c7g+ 8i7g 2b3c
+[E1/P1] Apery_WCSC30 < info depth 26 seldepth 35 multipv 1 score cp 42 nodes 5735477 nps 901946 time 6359 pv 2g2f 3c3d 2f2e 4a3b 2e2d 2c2d 2h2d 8c8d 2d2h P*2c 7g7f 8d8e 8h2b+ 3a2b 7i8h 7a6b 8h7g 5a4b 5i5h 6c6d 6i7h 6b6c 3g3f 7c7d 2i3g 6a7b 3i3h 1c1d 2h2i 8a7c
+[E1/P1] Apery_WCSC30 < info depth 27 seldepth 35 multipv 1 score cp 65 lowerbound nodes 6500662 nps 903246 time 7197 pv 2g2f 3c3d 2f2e 4a3b 2e2d 2c2d 2h2d 8c8d 2d2h P*2c 6i7h 8d8e 3i3h 8e8f 8g8f 8b8f P*8g 8f8d 7g7f 7a7b 4g4f 5a4b 9g9f 2b8h+ 7i8h
+[E1/P1] Apery_WCSC30 < info depth 27 seldepth 35 multipv 1 score cp 72 nodes 7767261 nps 902330 time 8608 pv 2g2f 3c3d 2f2e 2b3c 7g7f 3a2b 3i4h 8c8d 8h3c+ 2b3c 7i8h 7a6b 3g3f 7c7d 6i7h 6b7c 2i3g 4a3b 8h7g 7c6d 4i3h 4c4d 5i6h 5a4b 4g4f 8a7c 4h4g 8d8e 6g6f
+[E1/P1] Apery_WCSC30 < info depth 28 seldepth 35 multipv 1 score cp 48 upperbound nodes 10539320 nps 906062 time 11632 pv 2g2f 3c3d 2f2e 2b3c 7g7f 3a2b 6i7h 8c8d 8h3c+ 2b3c 7i8h 4a3b 3g3f 7a7b 2i3g 8d8e 8h7g 6c6d 4i3h 7b6c 3i4h 5a4b 4g4f 7c7d 4h4g 8a7c 5i6h 6a7b 2e2d 2c2d
+[E1/P1] Apery_WCSC30 < info depth 28 seldepth 35 multipv 1 score cp 42 nodes 13031001 nps 909287 time 14331 pv 2g2f 3c3d 2f2e 2b3c 7g7f 3a2b 6i7h 8c8d 8h3c+ 2b3c 7i8h 4a3b 8h7g 7a7b 3i3h 7c7d 5i6h 7b7c 3g3f 7c6d 4g4f 7d7e 7f7e 6d7e P*7f 7e6d 3h4g 5a4b 2i3g 8d8e 4g5f
+[E1/P1] Apery_WCSC30 < info depth 28 seldepth 35 multipv 1 score cp 42 nodes 13031001 nps 909287 time 14331 pv 2g2f 3c3d 2f2e 2b3c 7g7f 3a2b 6i7h 8c8d 8h3c+ 2b3c 7i8h 4a3b 8h7g 7a7b 3i3h 7c7d 5i6h 7b7c 3g3f 7c6d 4g4f 7d7e 7f7e 6d7e P*7f 7e6d 3h4g 5a4b 2i3g 8d8e 4g5f
+[E1/P1] Apery_WCSC30 < bestmove 2g2f ponder 3c3d
+[E1/P1] Apery_WCSC30 > position startpos moves 2g2f 3c3d
+[E1/P1] Apery_WCSC30 > go ponder
+[E2/P2] Gikou 2 (v2.0.2) > position startpos moves 2g2f
+[E2/P2] Gikou 2 (v2.0.2) > go btime 60000 wtime 60000 byoyomi 5000
+[E2/P2] Gikou 2 (v2.0.2) < info time 0 depth 32 nodes 13749 score cp 0 multipv 1 pv 8c8d
+[E2/P2] Gikou 2 (v2.0.2) < info time 0 depth 32 nodes 13749 score cp 0 multipv 1 pv 8c8d
+[E2/P2] Gikou 2 (v2.0.2) < bestmove 8c8d
