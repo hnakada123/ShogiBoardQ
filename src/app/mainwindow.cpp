@@ -605,6 +605,8 @@ void MainWindow::enableArrowButtons()
 void MainWindow::setNavigationEnabled(bool on)
 {
     if (m_recordPane) m_recordPane->setNavigationEnabled(on);
+    // 分岐ツリータブのクリックも連動して有効/無効にする
+    if (m_analysisTab) m_analysisTab->setBranchTreeClickEnabled(on);
 }
 
 // 対局中にナビゲーション（棋譜欄と矢印ボタン）を無効にする。

@@ -347,8 +347,8 @@ void RecordPane::setKifuViewEnabled(bool on)
         m_navigationDisabled = !on;
 
         // setEnabled(false) を使うとテキストがグレーアウトされるため、
-        // 代わりにマウスイベントを透過させてクリックを無効化する
-        m_kifu->setAttribute(Qt::WA_TransparentForMouseEvents, !on);
+        // 代わりにビューポートのみマウスイベントを透過させてクリックを無効化する
+        // ビュー自体には設定しないことで、スクロールバーは操作可能にする
         m_kifu->viewport()->setAttribute(Qt::WA_TransparentForMouseEvents, !on);
 
         if (!on) {
