@@ -31,10 +31,17 @@ void GameRecordPresenter::presentGameRecord(const QList<KifDisplayItem>& disp) {
 
     clear();
 
-    // ヘッダ（開始局面）
+    // 開始局面のコメントを取得（disp[0] がある場合）
+    QString openingComment;
+    if (!disp.isEmpty()) {
+        openingComment = disp.at(0).comment;
+    }
+
+    // ヘッダ（開始局面）+ コメント
     m_d.model->appendItem(new KifuDisplay(
         QStringLiteral("=== 開始局面 ==="),
-        QStringLiteral("（1手 / 合計）")
+        QStringLiteral("（1手 / 合計）"),
+        openingComment
         ));
 
     // ★ 追加：開始局面（行0）をハイライト
@@ -43,7 +50,7 @@ void GameRecordPresenter::presentGameRecord(const QList<KifDisplayItem>& disp) {
     // 各手を追加（dispの先頭は開始局面エントリなのでスキップ）
     for (qsizetype i = 1; i < disp.size(); ++i) {
         const auto& it = disp.at(i);
-        appendMoveLine(it.prettyMove, it.timeText);
+        appendMoveLineWithComment(it.prettyMove, it.timeText, it.comment);
     }
 
     // 初期選択位置は先頭に寄せる（任意）
@@ -110,6 +117,53 @@ void GameRecordPresenter::appendMoveLine(const QString& prettyMove, const QStrin
         m_d.model->appendItem(new KifuDisplay(recordLine, elapsedTime));
 
         // 新しく追加した行（最後の行）を黄色でハイライト
+        const int newRow = m_d.model->rowCount() - 1;
+        m_d.model->setCurrentHighlightRow(newRow);
+    }
+}
+
+void GameRecordPresenter::appendMoveLineWithComment(const QString& prettyMove, const QString& elapsedTime, const QString& comment)
+{
+    const QString last = prettyMove.trimmed();
+    if (last.isEmpty()) {
+        qDebug() << "[RecordPresenter] skip empty move line";
+        return;
+    }
+
+    // --- 手数の算出 ---
+    int moveRows = 0;
+    if (m_d.model) {
+        moveRows = m_d.model->rowCount();
+
+        if (moveRows > 0) {
+            const QModelIndex headIdx = m_d.model->index(0, 0);
+            const QString headText = m_d.model->data(headIdx, Qt::DisplayRole).toString();
+
+            if (headText.contains(QStringLiteral("開始局面"))
+                || headText.contains(QStringLiteral("平手"))
+                || headText.contains(QStringLiteral("startpos"), Qt::CaseInsensitive)) {
+                moveRows -= 1;
+                if (moveRows < 0) moveRows = 0;
+            }
+        }
+    }
+
+    const int nextMoveNumber = moveRows + 1;
+    m_currentMoveIndex = nextMoveNumber;
+
+    const QString moveNumberStr = QString::number(m_currentMoveIndex);
+    const QString spaces = QString(qMax(0, 4 - moveNumberStr.length()), QLatin1Char(' '));
+    const QString recordLine = spaces + moveNumberStr + QLatin1Char(' ') + last;
+
+    QString kifuLine = recordLine + QStringLiteral(" ( ") + elapsedTime + QLatin1String(" )");
+    kifuLine.remove(QStringLiteral("▲"));
+    kifuLine.remove(QStringLiteral("△"));
+    m_kifuDataList.append(kifuLine);
+
+    if (m_d.model) {
+        // コメント付きで KifuDisplay を追加
+        m_d.model->appendItem(new KifuDisplay(recordLine, elapsedTime, comment));
+
         const int newRow = m_d.model->rowCount() - 1;
         m_d.model->setCurrentHighlightRow(newRow);
     }

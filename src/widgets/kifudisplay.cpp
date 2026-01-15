@@ -4,7 +4,7 @@
 // コンストラクタ
 KifuDisplay::KifuDisplay(QObject *parent) : QObject(parent) { }
 
-// コンストラクタ
+// コンストラクタ（2引数）
 KifuDisplay::KifuDisplay(const QString &currentMove, const QString &timeSpent, QObject *parent)
     : KifuDisplay(parent)
 {
@@ -13,6 +13,15 @@ KifuDisplay::KifuDisplay(const QString &currentMove, const QString &timeSpent, Q
     m_timeSpent = timeSpent;
 }
 
+// コンストラクタ（3引数：コメント付き）
+KifuDisplay::KifuDisplay(const QString &currentMove, const QString &timeSpent, const QString &comment, QObject *parent)
+    : KifuDisplay(parent)
+{
+    // 指し手、消費時間、コメントを設定する。
+    m_currentMove = currentMove;
+    m_timeSpent = timeSpent;
+    m_comment = comment;
+}
 
 // 指し手を取得する。
 QString KifuDisplay::currentMove() const
@@ -24,4 +33,16 @@ QString KifuDisplay::currentMove() const
 QString KifuDisplay::timeSpent() const
 {
     return m_timeSpent;
+}
+
+// コメントを取得する。
+QString KifuDisplay::comment() const
+{
+    return m_comment;
+}
+
+// コメントを設定する。
+void KifuDisplay::setComment(const QString &comment)
+{
+    m_comment = comment;
 }
