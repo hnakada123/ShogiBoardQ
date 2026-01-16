@@ -9,10 +9,13 @@
 using namespace EngineSettingsConstants;
 
 // コンストラクタ
-StartGameDialog::StartGameDialog(QWidget *parent) : QDialog(parent), ui(new Ui::StartGameDialog)
+StartGameDialog::StartGameDialog(QWidget *parent) : QDialog(parent), ui(new Ui::StartGameDialog), m_fontSize(DefaultFontSize)
 {
     // UIをセットアップする。
     ui->setupUi(this);
+
+    // 文字サイズ設定を読み込んで適用する。
+    loadFontSizeSettings();
 
     // 設定ファイルからエンジンの名前とディレクトリを読み込む。
     loadEngineConfigurations();
@@ -81,6 +84,12 @@ void StartGameDialog::connectSignalsAndSlots() const
     // 後手／上手の1手ごとの加算時間の値が変更された場合、秒読みを0に設定する。
     connect(ui->addEachMoveSec2, QOverload<int>::of(&QSpinBox::valueChanged),
             this, &StartGameDialog::handleAddEachMoveSecChanged);
+
+    // 文字サイズを大きくするボタンが押された場合、文字サイズを大きくする。
+    connect(ui->pushButtonFontSizeUp, &QPushButton::clicked, this, &StartGameDialog::increaseFontSize);
+
+    // 文字サイズを小さくするボタンが押された場合、文字サイズを小さくする。
+    connect(ui->pushButtonFontSizeDown, &QPushButton::clicked, this, &StartGameDialog::decreaseFontSize);
 }
 
 // 秒読みの値が変更された場合、1手ごとの加算時間を0に設定する。
@@ -676,4 +685,56 @@ void StartGameDialog::onFirstPlayerSettingsClicked()
 void StartGameDialog::onSecondPlayerSettingsClicked()
 {
     showEngineSettingsDialog(ui->comboBoxEngine2);
+}
+
+// 文字サイズを大きくする。
+void StartGameDialog::increaseFontSize()
+{
+    if (m_fontSize < MaxFontSize) {
+        m_fontSize++;
+        applyFontSize(m_fontSize);
+        saveFontSizeSettings();
+    }
+}
+
+// 文字サイズを小さくする。
+void StartGameDialog::decreaseFontSize()
+{
+    if (m_fontSize > MinFontSize) {
+        m_fontSize--;
+        applyFontSize(m_fontSize);
+        saveFontSizeSettings();
+    }
+}
+
+// 文字サイズを適用する。
+void StartGameDialog::applyFontSize(int size)
+{
+    QFont font = this->font();
+    font.setPointSize(size);
+    this->setFont(font);
+}
+
+// 文字サイズ設定を読み込む。
+void StartGameDialog::loadFontSizeSettings()
+{
+    QSettings settings(SettingsFileName, QSettings::IniFormat);
+    settings.beginGroup("GameSettings");
+    m_fontSize = settings.value("dialogFontSize", DefaultFontSize).toInt();
+    settings.endGroup();
+
+    // 範囲内に収める
+    if (m_fontSize < MinFontSize) m_fontSize = MinFontSize;
+    if (m_fontSize > MaxFontSize) m_fontSize = MaxFontSize;
+
+    applyFontSize(m_fontSize);
+}
+
+// 文字サイズ設定を保存する。
+void StartGameDialog::saveFontSizeSettings()
+{
+    QSettings settings(SettingsFileName, QSettings::IniFormat);
+    settings.beginGroup("GameSettings");
+    settings.setValue("dialogFontSize", m_fontSize);
+    settings.endGroup();
 }
