@@ -30,8 +30,8 @@ class MatchCoordinator : public QObject {
 public:
     enum Player : int { P1 = 1, P2 = 2 };
 
-    // ★ BreakOff を追加（中断終局）
-    enum class Cause : int { Resignation = 0, Timeout = 1, BreakOff = 2 };
+    // ★ BreakOff を追加（中断終局）、Jishogi を追加（持将棋／最大手数到達）
+    enum class Cause : int { Resignation = 0, Timeout = 1, BreakOff = 2, Jishogi = 3 };
 
     struct GoTimes {
         qint64 btime = 0;   // 先手 残り(ms)
@@ -318,6 +318,9 @@ public:
         // HvE の場合、エンジンがどちら側か
         bool engineIsP1 = false;
         bool engineIsP2 = false;
+
+        // 最大手数（0=無制限）
+        int maxMoves = 0;
     };
 
     // 対局開始フローを一元化
@@ -379,6 +382,10 @@ private:
 
     // 時間ルール（byoyomi / increment / timeout）
     TimeControl m_tc;
+
+    // 最大手数（0=無制限）
+    int m_maxMoves = 0;
+
     // === ここから MainWindow から移した状態 ===
     // ターン計測（HvH）
     QElapsedTimer m_turnTimer;
@@ -490,6 +497,12 @@ public:
 
     // BreakOff（中断）時の棋譜1行追記＋二重追記ブロック確定
     void appendBreakOffLineAndMark();
+
+    // 持将棋（最大手数到達）時の棋譜1行追記＋終局処理
+    void handleMaxMovesJishogi();
+
+    // 最大手数を取得する
+    int maxMoves() const { return m_maxMoves; }
 
     // ShogiClock 取得アクセサ
     ShogiClock*       clock();       // 非const版

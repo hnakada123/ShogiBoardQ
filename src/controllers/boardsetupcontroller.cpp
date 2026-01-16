@@ -244,6 +244,15 @@ void BoardSetupController::onMoveRequested(const QPoint& from, const QPoint& to)
         if (m_updateGameRecord) {
             m_updateGameRecord(m_lastMove, elapsed);
         }
+
+        // ★ 最大手数チェック
+        if (m_match && m_sfenRecord) {
+            const int maxMoves = m_match->maxMoves();
+            const int currentMoveIdx = static_cast<int>(m_sfenRecord->size() - 1);
+            if (maxMoves > 0 && currentMoveIdx >= maxMoves) {
+                m_match->handleMaxMovesJishogi();
+            }
+        }
         break;
     }
 
