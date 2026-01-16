@@ -805,6 +805,13 @@ void MainWindow::displayCsaGameDialog()
 
         // CsaGameCoordinatorの参照を保持（他のコードとの互換性のため）
         m_csaGameCoordinator = m_csaGameWiring->coordinator();
+
+        // CSA対局でエンジンを使用する場合、評価値グラフ更新用のシグナル接続
+        if (m_csaGameCoordinator) {
+            connect(m_csaGameCoordinator, &CsaGameCoordinator::engineScoreUpdated,
+                    this, &MainWindow::onCsaEngineScoreUpdated_,
+                    Qt::UniqueConnection);
+        }
     }
 }
 
@@ -3285,6 +3292,39 @@ void MainWindow::onCsaPlayModeChanged_(int mode)
 void MainWindow::onCsaShowGameEndDialog_(const QString& title, const QString& message)
 {
     QMessageBox::information(this, title, message);
+}
+
+void MainWindow::onCsaEngineScoreUpdated_(int scoreCp, int ply)
+{
+    qDebug().noquote() << "[MW] onCsaEngineScoreUpdated_: scoreCp=" << scoreCp << "ply=" << ply;
+
+    // 評価値グラフに追加
+    if (!m_recordPane) {
+        qDebug().noquote() << "[MW] onCsaEngineScoreUpdated_: m_recordPane is NULL";
+        return;
+    }
+
+    EvaluationChartWidget* ec = m_recordPane->evalChart();
+    if (!ec) {
+        qDebug().noquote() << "[MW] onCsaEngineScoreUpdated_: evalChart() returned NULL";
+        return;
+    }
+
+    // CSA対局では自分側のエンジンの評価値を表示
+    // 自分が先手(黒)ならP1に、後手(白)ならP2に追加
+    if (m_csaGameCoordinator) {
+        bool isBlackSide = m_csaGameCoordinator->isBlackSide();
+        if (isBlackSide) {
+            // 先手側のエンジン評価値はP1に追加
+            ec->appendScoreP1(ply, scoreCp, false);
+            qDebug().noquote() << "[MW] onCsaEngineScoreUpdated_: appendScoreP1 called";
+        } else {
+            // 後手側のエンジン評価値はP2に追加
+            // 後手視点の評価値なので、グラフ表示用に反転する
+            ec->appendScoreP2(ply, -scoreCp, false);
+            qDebug().noquote() << "[MW] onCsaEngineScoreUpdated_: appendScoreP2 called (inverted)";
+        }
+    }
 }
 
 void MainWindow::onJosekiForcedPromotion_(bool forced, bool promote)

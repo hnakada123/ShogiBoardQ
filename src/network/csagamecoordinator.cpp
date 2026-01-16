@@ -1310,6 +1310,13 @@ void CsaGameCoordinator::startEngineThinking()
         m_view->update();
     }
 
+    // エンジンの評価値をグラフに反映するためシグナルを発行
+    // 手数は現在の手数（1から始まる）
+    int ply = m_moveCount + 1;
+    int scoreCp = m_engine->lastScoreCp();
+    qDebug() << "[CSA] Engine score updated: scoreCp=" << scoreCp << "ply=" << ply;
+    emit engineScoreUpdated(scoreCp, ply);
+
     // サーバーに送信
     m_client->sendMove(csaMove);
 }

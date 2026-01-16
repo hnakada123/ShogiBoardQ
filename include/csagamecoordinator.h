@@ -241,6 +241,13 @@ signals:
      */
     void csaCommLogAppended(const QString& line);
 
+    /**
+     * @brief エンジンの評価値が更新された時に発行
+     * @param scoreCp 評価値（センチポーン）
+     * @param ply 手数
+     */
+    void engineScoreUpdated(int scoreCp, int ply);
+
 public slots:
     /**
      * @brief 人間の指し手を処理する
