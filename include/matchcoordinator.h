@@ -89,6 +89,14 @@ public:
 
         std::function<void()> appendEvalP1; // P1(先手)エンジンが着手確定 → 評価値を1本目に追記
         std::function<void()> appendEvalP2; // P2(後手)エンジンが着手確定 → 評価値を2本目に追記
+
+        // 棋譜自動保存（対局終了時に呼び出し）
+        // saveDir: 保存先ディレクトリ, playMode: 対局モード
+        // humanName1, humanName2: 人間対局者名
+        // engineName1, engineName2: エンジン名
+        std::function<void(const QString& saveDir, PlayMode playMode,
+                           const QString& humanName1, const QString& humanName2,
+                           const QString& engineName1, const QString& engineName2)> autoSaveKifu;
     };
 
     struct Deps {
@@ -321,6 +329,14 @@ public:
 
         // 最大手数（0=無制限）
         int maxMoves = 0;
+
+        // 棋譜自動保存設定
+        bool autoSaveKifu = false;
+        QString kifuSaveDir;
+
+        // 対局者名（ファイル名生成用）
+        QString humanName1;
+        QString humanName2;
     };
 
     // 対局開始フローを一元化
@@ -385,6 +401,16 @@ private:
 
     // 最大手数（0=無制限）
     int m_maxMoves = 0;
+
+    // 棋譜自動保存設定
+    bool m_autoSaveKifu = false;
+    QString m_kifuSaveDir;
+
+    // 対局者名（ファイル名生成用）
+    QString m_humanName1;
+    QString m_humanName2;
+    QString m_engineNameForSave1;
+    QString m_engineNameForSave2;
 
     // === ここから MainWindow から移した状態 ===
     // ターン計測（HvH）
