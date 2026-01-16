@@ -251,6 +251,10 @@ void MatchCoordinator::displayResultsAndUpdateGui_(const GameEndInfo& info) {
         // 例）「先手の時間切れ。後手の勝ちです。」
         msg = tr("%1の時間切れ。%2の勝ちです。").arg(loserJP, winnerJP);
         break;
+    case Cause::Jishogi:
+        // 持将棋（最大手数到達）
+        msg = tr("最大手数に達しました。持将棋です。");
+        break;
     case Cause::BreakOff:
     default:
         // 念のためのフォールバック
@@ -579,6 +583,7 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
     }
 
     m_playMode = opt.mode;
+    m_maxMoves = opt.maxMoves;
 
     // 盤・名前などの初期化（GUI側へ委譲）
     qDebug().noquote() << "[MC] ★★★ configureAndStart: calling hooks ★★★";
@@ -1221,6 +1226,12 @@ void MatchCoordinator::kickNextEvETurn_()
         (m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2
         );
 
+    // ★ 最大手数チェック：m_maxMoves > 0 かつ m_eveMoveIndex >= m_maxMoves なら持将棋
+    if (m_maxMoves > 0 && m_eveMoveIndex >= m_maxMoves) {
+        handleMaxMovesJishogi();
+        return;
+    }
+
     QTimer::singleShot(0, this, &MatchCoordinator::kickNextEvETurn_);
 }
 
@@ -1800,6 +1811,12 @@ void MatchCoordinator::startInitialEngineMoveFor_(Player engineSide)
         qDebug() << "[HvE] calling appendEvalP2, hook set=" << (m_hooks.appendEvalP2 ? "YES" : "NO");
         if (m_hooks.appendEvalP2) m_hooks.appendEvalP2();
     }
+
+    // ★ 最大手数チェック
+    if (m_maxMoves > 0 && nextIdx >= m_maxMoves) {
+        handleMaxMovesJishogi();
+        return;
+    }
 }
 
 // ---------------------------------------------
@@ -1940,6 +1957,12 @@ void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& hu
     } else {
         qDebug() << "[HvE][onHumanMove] calling appendEvalP2, hook set=" << (m_hooks.appendEvalP2 ? "YES" : "NO");
         if (m_hooks.appendEvalP2) m_hooks.appendEvalP2();
+    }
+
+    // ★ 最大手数チェック：m_maxMoves > 0 かつ m_currentMoveIndex >= m_maxMoves なら持将棋
+    if (m_maxMoves > 0 && m_currentMoveIndex >= m_maxMoves) {
+        handleMaxMovesJishogi();
+        return;
     }
 
     if (!gameOverState().isOver) armHumanTimerIfNeeded();
@@ -2154,6 +2177,10 @@ MatchCoordinator::StartOptions MatchCoordinator::buildStartOptions(
             opt.engineName2 = dlg->engineName2();
             opt.enginePath2 = engines.at(idx2).path;
         }
+
+        // 最大手数を取得
+        opt.maxMoves = dlg->maxMoves();
+
         return opt;
     }
 
@@ -2333,10 +2360,16 @@ void MatchCoordinator::appendGameOverLineAndMark(Cause cause, Player loser)
     m_clock->stopClock();
 
     // 表記（▲/△は絶対座席）
-    const QString mark = (loser == P1) ? QStringLiteral("▲") : QStringLiteral("△");
-    const QString line = (cause == Cause::Resignation)
-                             ? QStringLiteral("%1投了").arg(mark)
-                             : QStringLiteral("%1時間切れ").arg(mark);
+    QString line;
+    if (cause == Cause::Jishogi) {
+        // 持将棋は勝敗なし（loserは無視）
+        line = QStringLiteral("持将棋");
+    } else {
+        const QString mark = (loser == P1) ? QStringLiteral("▲") : QStringLiteral("△");
+        line = (cause == Cause::Resignation)
+                   ? QStringLiteral("%1投了").arg(mark)
+                   : QStringLiteral("%1時間切れ").arg(mark);
+    }
 
     // 「この手」の思考時間を確定（KIF 表示のため）
     // エポックが設定されている場合はそれを使用、未設定の場合はShogiClock内部の考慮時間を使用
@@ -2537,6 +2570,59 @@ void MatchCoordinator::appendBreakOffLineAndMark()
 
     // 二重追記ブロック確定（以降は UI 側からも重複しない）
     markGameOverMoveAppended();
+}
+
+void MatchCoordinator::handleMaxMovesJishogi()
+{
+    // すでに終局なら何もしない
+    if (m_gameOver.isOver) return;
+
+    qDebug() << "[MC] handleMaxMovesJishogi(): max moves reached";
+
+    // 進行系タイマを停止
+    disarmHumanTimerIfNeeded();
+
+    // エンジンへの終了通知（EvE の場合）
+    const bool isEvE =
+        (m_playMode == PlayMode::EvenEngineVsEngine) ||
+        (m_playMode == PlayMode::HandicapEngineVsEngine);
+    if (isEvE) {
+        if (m_usi1) {
+            m_usi1->sendGameOverCommand(QStringLiteral("draw"));
+            m_usi1->sendQuitCommand();
+            m_usi1->setSquelchResignLogging(true);
+        }
+        if (m_usi2) {
+            m_usi2->sendGameOverCommand(QStringLiteral("draw"));
+            m_usi2->sendQuitCommand();
+            m_usi2->setSquelchResignLogging(true);
+        }
+    } else {
+        // HvE の場合は主エンジンへ通知
+        if (Usi* eng = primaryEngine()) {
+            eng->sendGameOverCommand(QStringLiteral("draw"));
+            eng->sendQuitCommand();
+            eng->setSquelchResignLogging(true);
+        }
+    }
+
+    // GameEndInfo を構築（持将棋は loser を便宜上 P1 とする）
+    GameEndInfo info;
+    info.cause = Cause::Jishogi;
+    info.loser = P1;  // 持将棋は勝敗なし
+
+    // 終局状態を確定
+    m_gameOver.isOver        = true;
+    m_gameOver.when          = QDateTime::currentDateTime();
+    m_gameOver.hasLast       = true;
+    m_gameOver.lastInfo      = info;
+    m_gameOver.lastLoserIsP1 = true;
+
+    // 棋譜欄に「持将棋」を追記
+    appendGameOverLineAndMark(Cause::Jishogi, P1);
+
+    // 結果ダイアログの表示
+    displayResultsAndUpdateGui_(info);
 }
 
 ShogiClock* MatchCoordinator::clock()
