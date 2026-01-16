@@ -232,6 +232,34 @@ private slots:
 
     // 1手ごとの加算時間の値が変更された場合、秒読みを0に設定する。
     void handleAddEachMoveSecChanged(int value);
+
+    // 文字サイズを大きくする。
+    void increaseFontSize();
+
+    // 文字サイズを小さくする。
+    void decreaseFontSize();
+
+private:
+    // 現在の文字サイズ
+    int m_fontSize;
+
+    // デフォルトの文字サイズ
+    static constexpr int DefaultFontSize = 9;
+
+    // 最小文字サイズ
+    static constexpr int MinFontSize = 7;
+
+    // 最大文字サイズ
+    static constexpr int MaxFontSize = 16;
+
+    // 文字サイズを適用する。
+    void applyFontSize(int size);
+
+    // 文字サイズ設定を読み込む。
+    void loadFontSizeSettings();
+
+    // 文字サイズ設定を保存する。
+    void saveFontSizeSettings();
 };
 
 #endif // STARTGAMEDIALOG_H

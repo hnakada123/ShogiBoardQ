@@ -2635,6 +2635,11 @@ void MainWindow::ensureGameStartCoordinator_()
     // ★ 追加: 対局開始時にナビゲーション（棋譜欄と矢印ボタン）を無効化
     connect(m_gameStart, &GameStartCoordinator::started,
             this, &MainWindow::disableNavigationForGame);
+
+    // ★ 追加: 盤面反転シグナルを接続（人を手前に表示する機能用）
+    connect(m_gameStart, &GameStartCoordinator::boardFlipped,
+            this, &MainWindow::onBoardFlipped,
+            Qt::UniqueConnection);
 }
 
 void MainWindow::onPreStartCleanupRequested_()

@@ -2207,6 +2207,11 @@ void MatchCoordinator::ensureHumanAtBottomIfApplicable(const StartGameDialog* dl
 {
     if (!dlg) return;
 
+    // 「人を手前に表示する」がチェックされていない場合は何もしない
+    if (!dlg->isShowHumanInFront()) {
+        return;
+    }
+
     const bool humanP1  = dlg->isHuman1();
     const bool humanP2  = dlg->isHuman2();
     const bool oneHuman = (humanP1 ^ humanP2); // HvE / EvH のときだけ true
