@@ -3,7 +3,6 @@
 
 #include <QDialog>
 #include <QComboBox>
-#include <QRadioButton>
 
 namespace Ui {
 class StartGameDialog;
@@ -102,6 +101,9 @@ public:
     // 棋譜の自動保存フラグを取得する。
     bool isAutoSaveKifu() const;
 
+    // 棋譜の保存ディレクトリを取得する。
+    const QString& kifuSaveDir() const;
+
     // 時間切れを負けにするかどうかのフラグを取得する。
     bool isLoseOnTimeout() const;
 
@@ -187,6 +189,9 @@ private:
     // 棋譜の自動保存フラグ
     bool m_isAutoSaveKifu;
 
+    // 棋譜の保存ディレクトリ
+    QString m_kifuSaveDir;
+
     // 時間切れを負けにするかどうかのフラグ
     bool m_isLoseOnTimeout;
 
@@ -196,11 +201,14 @@ private:
     // 設定ファイルからエンジンの名前とディレクトリを読み込む。
     void loadEngineConfigurations();
 
-    // UIにエンジン設定を反映する。
-    void populateUIWithEngines() const;
+    // UIに対局者リスト（人間＋エンジン）を反映する。
+    void populatePlayerComboBoxes();
 
     // エンジン設定ダイアログの共通処理を行う。
-    void showEngineSettingsDialog(QComboBox* comboBox);
+    void showEngineSettingsDialog(int playerNumber);
+
+    // 対局者コンボボックスの選択に応じてUIを更新する。
+    void updatePlayerUI(int playerNumber, int index);
 
     // シグナルとスロットを接続する。
     void connectSignalsAndSlots() const;
@@ -238,6 +246,15 @@ private slots:
 
     // 文字サイズを小さくする。
     void decreaseFontSize();
+
+    // 先手／下手の対局者選択が変更された場合、UIを更新する。
+    void onPlayer1SelectionChanged(int index);
+
+    // 後手／上手の対局者選択が変更された場合、UIを更新する。
+    void onPlayer2SelectionChanged(int index);
+
+    // 棋譜保存ディレクトリ選択ボタンが押された場合、ディレクトリ選択ダイアログを表示する。
+    void onSelectKifuDirClicked();
 
 private:
     // 現在の文字サイズ
