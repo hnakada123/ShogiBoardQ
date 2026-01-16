@@ -5,6 +5,8 @@
 #include <QSettings>
 #include <QMessageBox>
 #include <QDir>
+#include <QFileDialog>
+#include <QStandardPaths>
 
 using namespace EngineSettingsConstants;
 
@@ -20,8 +22,8 @@ StartGameDialog::StartGameDialog(QWidget *parent) : QDialog(parent), ui(new Ui::
     // 設定ファイルからエンジンの名前とディレクトリを読み込む。
     loadEngineConfigurations();
 
-    // GUIにエンジン設定を反映する。
-    populateUIWithEngines();
+    // 対局者コンボボックスにエンジンリストを反映する。
+    populatePlayerComboBoxes();
 
     // 設定ファイルから対局設定を読み込みGUIに反映する。
     loadGameSettings();
@@ -90,6 +92,17 @@ void StartGameDialog::connectSignalsAndSlots() const
 
     // 文字サイズを小さくするボタンが押された場合、文字サイズを小さくする。
     connect(ui->pushButtonFontSizeDown, &QPushButton::clicked, this, &StartGameDialog::decreaseFontSize);
+
+    // 先手／下手の対局者選択が変更された場合、UIを更新する。
+    connect(ui->comboBoxPlayer1, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &StartGameDialog::onPlayer1SelectionChanged);
+
+    // 後手／上手の対局者選択が変更された場合、UIを更新する。
+    connect(ui->comboBoxPlayer2, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &StartGameDialog::onPlayer2SelectionChanged);
+
+    // 棋譜保存ディレクトリ選択ボタンが押された場合、ディレクトリ選択ダイアログを表示する。
+    connect(ui->pushButtonSelectKifuDir, &QPushButton::clicked, this, &StartGameDialog::onSelectKifuDirClicked);
 }
 
 // 秒読みの値が変更された場合、1手ごとの加算時間を0に設定する。
@@ -125,11 +138,17 @@ void StartGameDialog::saveGameSettings()
     settings.beginGroup("GameSettings");
 
     // 先手／下手の設定を保存する。
-    settings.setValue("isHuman1", ui->radioButtonHuman1->isChecked());
-    settings.setValue("isEngine1", ui->radioButtonEngine1->isChecked());
-    settings.setValue("engineName1", ui->comboBoxEngine1->currentText());
+    // インデックス0は「人間」、1以上はエンジン
+    int player1Index = ui->comboBoxPlayer1->currentIndex();
+    bool isHuman1 = (player1Index == 0);
+    settings.setValue("isHuman1", isHuman1);
+    settings.setValue("isEngine1", !isHuman1);
     settings.setValue("humanName1", ui->lineEditHumanName1->text());
-    settings.setValue("engineNumber1", ui->comboBoxEngine1->currentIndex());
+    if (!isHuman1) {
+        // エンジンの場合、インデックスから1を引いてエンジン番号を算出
+        settings.setValue("engineNumber1", player1Index - 1);
+        settings.setValue("engineName1", ui->comboBoxPlayer1->currentText());
+    }
     settings.setValue("basicTimeHour1", ui->basicTimeHour1->value());
     settings.setValue("basicTimeMinutes1", ui->basicTimeMinutes1->value());
     settings.setValue("byoyomiSec1", ui->byoyomiSec1->value());
@@ -138,11 +157,16 @@ void StartGameDialog::saveGameSettings()
     // 後手／上手の設定を保存する。
     settings.setValue("isGroupBoxSecondPlayerTimeSettingsChecked", ui->groupBoxSecondPlayerTimeSettings->isChecked());
 
-    settings.setValue("isHuman2", ui->radioButtonHuman2->isChecked());
-    settings.setValue("isEngine2", ui->radioButtonEngine2->isChecked());
-    settings.setValue("engineName2", ui->comboBoxEngine2->currentText());
+    int player2Index = ui->comboBoxPlayer2->currentIndex();
+    bool isHuman2 = (player2Index == 0);
+    settings.setValue("isHuman2", isHuman2);
+    settings.setValue("isEngine2", !isHuman2);
     settings.setValue("humanName2", ui->lineEditHumanName2->text());
-    settings.setValue("engineNumber2", ui->comboBoxEngine2->currentIndex());
+    if (!isHuman2) {
+        // エンジンの場合、インデックスから1を引いてエンジン番号を算出
+        settings.setValue("engineNumber2", player2Index - 1);
+        settings.setValue("engineName2", ui->comboBoxPlayer2->currentText());
+    }
     settings.setValue("basicTimeHour2", ui->basicTimeHour2->value());
     settings.setValue("basicTimeMinutes2", ui->basicTimeMinutes2->value());
     settings.setValue("byoyomiSec2", ui->byoyomiSec2->value());
@@ -164,6 +188,9 @@ void StartGameDialog::saveGameSettings()
     // 棋譜の自動保存フラグを保存する。
     settings.setValue("isAutoSaveKifu", ui->checkBoxAutoSaveKifu->isChecked());
 
+    // 棋譜の保存ディレクトリを保存する。
+    settings.setValue("kifuSaveDir", ui->lineEditKifuSaveDir->text());
+
     // 時間切れを負けにするかどうかのフラグを保存する。
     settings.setValue("isLoseOnTimeout", ui->checkBoxLoseOnTimeOut->isChecked());
 
@@ -184,11 +211,19 @@ void StartGameDialog::loadGameSettings()
     settings.beginGroup("GameSettings");
 
     // 先手／下手の設定を読み込む。
-    ui->radioButtonHuman1->setChecked(settings.value("isHuman1", true).toBool());
-    ui->radioButtonEngine1->setChecked(settings.value("isEngine1", false).toBool());
-    ui->comboBoxEngine1->setCurrentText(settings.value("engineName1", "").toString());
+    bool isHuman1 = settings.value("isHuman1", true).toBool();
     ui->lineEditHumanName1->setText(settings.value("humanName1", tr("You")).toString());
-    ui->comboBoxEngine1->setCurrentIndex(settings.value("engineNumber1", 0).toInt());
+    if (isHuman1) {
+        // 人間の場合、インデックス0を選択
+        ui->comboBoxPlayer1->setCurrentIndex(0);
+    } else {
+        // エンジンの場合、エンジン番号+1をインデックスとして選択
+        int engineNumber = settings.value("engineNumber1", 0).toInt();
+        ui->comboBoxPlayer1->setCurrentIndex(engineNumber + 1);
+    }
+    // UIを更新（人間名欄/エンジン設定ボタンの表示切替）
+    updatePlayerUI(1, ui->comboBoxPlayer1->currentIndex());
+
     ui->basicTimeHour1->setValue(settings.value("basicTimeHour1", 0).toInt());
     ui->basicTimeMinutes1->setValue(settings.value("basicTimeMinutes1", 0).toInt());
     ui->byoyomiSec1->setValue(settings.value("byoyomiSec1", 0).toInt());
@@ -198,11 +233,19 @@ void StartGameDialog::loadGameSettings()
     bool isChecked = settings.value("isGroupBoxSecondPlayerTimeSettingsChecked", false).toBool();
     ui->groupBoxSecondPlayerTimeSettings->setChecked(isChecked);
 
-    ui->radioButtonHuman2->setChecked(settings.value("isHuman2", false).toBool());
-    ui->radioButtonEngine2->setChecked(settings.value("isEngine2", true).toBool());
-    ui->comboBoxEngine2->setCurrentText(settings.value("engineName2", "").toString());
+    bool isHuman2 = settings.value("isHuman2", false).toBool();
     ui->lineEditHumanName2->setText(settings.value("humanName2", tr("You")).toString());
-    ui->comboBoxEngine2->setCurrentIndex(settings.value("engineNumber2", 0).toInt());
+    if (isHuman2) {
+        // 人間の場合、インデックス0を選択
+        ui->comboBoxPlayer2->setCurrentIndex(0);
+    } else {
+        // エンジンの場合、エンジン番号+1をインデックスとして選択
+        int engineNumber = settings.value("engineNumber2", 0).toInt();
+        ui->comboBoxPlayer2->setCurrentIndex(engineNumber + 1);
+    }
+    // UIを更新（人間名欄/エンジン設定ボタンの表示切替）
+    updatePlayerUI(2, ui->comboBoxPlayer2->currentIndex());
+
     ui->basicTimeHour2->setValue(settings.value("basicTimeHour2", 0).toInt());
     ui->basicTimeMinutes2->setValue(settings.value("basicTimeMinutes2", 0).toInt());
     ui->byoyomiSec2->setValue(settings.value("byoyomiSec2", 0).toInt());
@@ -224,6 +267,10 @@ void StartGameDialog::loadGameSettings()
     // 棋譜の自動保存フラグを読み込む。
     ui->checkBoxAutoSaveKifu->setChecked(settings.value("isAutoSaveKifu", false).toBool());
 
+    // 棋譜の保存ディレクトリを読み込む。デフォルトはドキュメントフォルダ。
+    QString defaultKifuDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+    ui->lineEditKifuSaveDir->setText(settings.value("kifuSaveDir", defaultKifuDir).toString());
+
     // 時間切れを負けにするかどうかのフラグを読み込む。
     ui->checkBoxLoseOnTimeOut->setChecked(settings.value("isLoseOnTimeout", true).toBool());
 
@@ -238,12 +285,9 @@ void StartGameDialog::loadGameSettings()
 void StartGameDialog::resetSettingsToDefault()
 {
     // 先手／下手の設定を初期値に戻す。
-    // 人間をデフォルトに設定する。
-    ui->radioButtonHuman1->setChecked(true);
-    ui->radioButtonEngine1->setChecked(false);
-
-    // エンジン1のデフォルト値を設定する。
-    ui->comboBoxEngine1->setCurrentIndex(0);
+    // 人間をデフォルトに設定する（インデックス0）。
+    ui->comboBoxPlayer1->setCurrentIndex(0);
+    updatePlayerUI(1, 0);
 
     // 人間の名前をデフォルトに設定する。
     ui->lineEditHumanName1->setText(tr("You"));
@@ -259,12 +303,15 @@ void StartGameDialog::resetSettingsToDefault()
     ui->addEachMoveSec1->setValue(0);
 
     // 後手／上手の設定を初期値に戻す。
-    // エンジン2をデフォルトに設定する。
-    ui->radioButtonHuman2->setChecked(false);
-    ui->radioButtonEngine2->setChecked(true);
-
-    // エンジン2のデフォルト値を設定する。
-    ui->comboBoxEngine2->setCurrentIndex(0);
+    // エンジン（最初のエンジン）をデフォルトに設定する（インデックス1）。
+    if (ui->comboBoxPlayer2->count() > 1) {
+        ui->comboBoxPlayer2->setCurrentIndex(1);
+        updatePlayerUI(2, 1);
+    } else {
+        // エンジンが登録されていない場合は人間に設定
+        ui->comboBoxPlayer2->setCurrentIndex(0);
+        updatePlayerUI(2, 0);
+    }
 
     // 人間の名前をデフォルトに設定する。
     ui->lineEditHumanName2->setText(tr("You"));
@@ -294,33 +341,33 @@ void StartGameDialog::resetSettingsToDefault()
     // 棋譜の自動保存はデフォルトでオフにする。
     ui->checkBoxAutoSaveKifu->setChecked(false);
 
+    // 棋譜の保存ディレクトリをデフォルト（ドキュメントフォルダ）に設定する。
+    ui->lineEditKifuSaveDir->setText(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation));
+
     // 時間切れを負けにする。
     ui->checkBoxLoseOnTimeOut->setChecked(true);
 
-     // 手番の入れ替えはデフォルトでオフにする。
+    // 手番の入れ替えはデフォルトでオフにする。
     ui->checkBoxSwitchTurnEachGame->setChecked(false);
 }
 
 // 先後入れ替えボタンが押された場合、先後を入れ替える。
 void StartGameDialog::swapSides()
 {
-    // 対局者のラジオボタンを入れ替える。
-    bool isHumanTemp = ui->radioButtonHuman2->isChecked();
-    bool isEngineTemp = ui->radioButtonEngine2->isChecked();
-    ui->radioButtonHuman2->setChecked(ui->radioButtonHuman1->isChecked());
-    ui->radioButtonEngine2->setChecked(ui->radioButtonEngine1->isChecked());
-    ui->radioButtonHuman1->setChecked(isHumanTemp);
-    ui->radioButtonEngine1->setChecked(isEngineTemp);
+    // 対局者コンボボックスのインデックスを入れ替える。
+    int player1Index = ui->comboBoxPlayer1->currentIndex();
+    int player2Index = ui->comboBoxPlayer2->currentIndex();
+    ui->comboBoxPlayer1->setCurrentIndex(player2Index);
+    ui->comboBoxPlayer2->setCurrentIndex(player1Index);
+
+    // UIを更新（人間名欄/エンジン設定ボタンの表示切替）
+    updatePlayerUI(1, player2Index);
+    updatePlayerUI(2, player1Index);
 
     // 人間の名前を入れ替える。
     QString temp = ui->lineEditHumanName1->text();
     ui->lineEditHumanName1->setText(ui->lineEditHumanName2->text());
     ui->lineEditHumanName2->setText(temp);
-
-    // エンジン名のインデックスを入れ替える。
-    int index = ui->comboBoxEngine1->currentIndex();
-    ui->comboBoxEngine1->setCurrentIndex(ui->comboBoxEngine2->currentIndex());
-    ui->comboBoxEngine2->setCurrentIndex(index);
 
     // 「後手／上手に異なる時間を設定」にチェックが入っている場合
     if (ui->groupBoxSecondPlayerTimeSettings->isChecked()) {
@@ -375,17 +422,21 @@ void StartGameDialog::loadEngineConfigurations()
     settings.endArray();
 }
 
-// GUIにエンジン設定を反映する。
-void StartGameDialog::populateUIWithEngines() const
+// UIに対局者リスト（人間＋エンジン）を反映する。
+void StartGameDialog::populatePlayerComboBoxes()
 {
     // コンボボックスをクリアする。
-    ui->comboBoxEngine1->clear();
-    ui->comboBoxEngine2->clear();
+    ui->comboBoxPlayer1->clear();
+    ui->comboBoxPlayer2->clear();
 
-    // エンジンリストの各エンジンをコンボボックスに追加する。
+    // 最初に「人間」を追加する（インデックス0）。
+    ui->comboBoxPlayer1->addItem(tr("人間"));
+    ui->comboBoxPlayer2->addItem(tr("人間"));
+
+    // エンジンリストの各エンジンをコンボボックスに追加する（インデックス1以降）。
     foreach (const Engine& engine, engineList) {
-        ui->comboBoxEngine1->addItem(engine.name);
-        ui->comboBoxEngine2->addItem(engine.name);
+        ui->comboBoxPlayer1->addItem(engine.name);
+        ui->comboBoxPlayer2->addItem(engine.name);
     }
 }
 
@@ -539,6 +590,12 @@ bool StartGameDialog::isAutoSaveKifu() const
     return m_isAutoSaveKifu;
 }
 
+// 棋譜の保存ディレクトリを取得する。
+const QString& StartGameDialog::kifuSaveDir() const
+{
+    return m_kifuSaveDir;
+}
+
 // 時間切れを負けにするかどうかのフラグを取得する。
 bool StartGameDialog::isLoseOnTimeout() const
 {
@@ -554,36 +611,39 @@ bool StartGameDialog::isSwitchTurnEachGame() const
 // OKボタンが押された場合、対局ダイアログ内の各パラメータを取得する。
 void StartGameDialog::updateGameSettingsFromDialog()
 {
-    // 先手／下手が人間である場合
-    if (ui->radioButtonHuman1->isChecked()) {
+    // 先手／下手の設定を取得する。
+    int player1Index = ui->comboBoxPlayer1->currentIndex();
+    if (player1Index == 0) {
+        // 人間の場合
         m_isHuman1 = true;
         m_isEngine1 = false;
-    }
-    // 先手／下手がエンジンである場合
-    else if (ui->radioButtonEngine1->isChecked()) {
+        m_engineNumber1 = -1;
+        m_engineName1 = "";
+    } else {
+        // エンジンの場合
         m_isHuman1 = false;
         m_isEngine1 = true;
+        m_engineNumber1 = player1Index - 1;
+        m_engineName1 = ui->comboBoxPlayer1->currentText();
     }
-
     m_humanName1 = ui->lineEditHumanName1->text();
-    m_engineName1 = ui->comboBoxEngine1->currentText();
-    m_engineNumber1 = ui->comboBoxEngine1->currentIndex();
 
-    // 後手／上手が人間である場合
-    if (ui->radioButtonHuman2->isChecked()) {
+    // 後手／上手の設定を取得する。
+    int player2Index = ui->comboBoxPlayer2->currentIndex();
+    if (player2Index == 0) {
+        // 人間の場合
         m_isHuman2 = true;
         m_isEngine2 = false;
-    }
-    // 後手／上手がエンジンである場合
-    else if (ui->radioButtonEngine2->isChecked()) {
+        m_engineNumber2 = -1;
+        m_engineName2 = "";
+    } else {
+        // エンジンの場合
         m_isHuman2 = false;
         m_isEngine2 = true;
-
+        m_engineNumber2 = player2Index - 1;
+        m_engineName2 = ui->comboBoxPlayer2->currentText();
     }
-
     m_humanName2 = ui->lineEditHumanName2->text();
-    m_engineName2 = ui->comboBoxEngine2->currentText();
-    m_engineNumber2 = ui->comboBoxEngine2->currentIndex();
 
     // 対局者1の持ち時間を取得する。
     m_basicTimeHour1 = ui->basicTimeHour1->text().toInt();
@@ -636,6 +696,9 @@ void StartGameDialog::updateGameSettingsFromDialog()
     // 棋譜の自動保存フラグを取得する。
     m_isAutoSaveKifu = ui->checkBoxAutoSaveKifu->isChecked();
 
+    // 棋譜の保存ディレクトリを取得する。
+    m_kifuSaveDir = ui->lineEditKifuSaveDir->text();
+
     // 時間切れを負けにするかどうかのフラグを取得する。
     m_isLoseOnTimeout = ui->checkBoxLoseOnTimeOut->isChecked();
 
@@ -644,17 +707,29 @@ void StartGameDialog::updateGameSettingsFromDialog()
 }
 
 // エンジン設定ダイアログの共通処理を行う。
-void StartGameDialog::showEngineSettingsDialog(QComboBox* comboBox)
+void StartGameDialog::showEngineSettingsDialog(int playerNumber)
 {
-    // エンジン番号を取得する。
-    int engineNumber = comboBox->currentIndex();
+    // 対局者コンボボックスを取得する。
+    QComboBox* comboBox = (playerNumber == 1) ? ui->comboBoxPlayer1 : ui->comboBoxPlayer2;
+
+    // 現在のインデックスを取得する。
+    int currentIndex = comboBox->currentIndex();
+
+    // 人間が選択されている場合（インデックス0）は何もしない。
+    if (currentIndex == 0) {
+        QMessageBox::information(this, tr("情報"), tr("人間が選択されています。"));
+        return;
+    }
+
+    // エンジン番号を計算する（インデックスから1を引く）。
+    int engineNumber = currentIndex - 1;
 
     // エンジン名を取得する。
     QString engineName = comboBox->currentText();
 
     // エンジン名が空の場合
     if (engineName.isEmpty()) {
-        QMessageBox::critical(this, "エラー", "将棋エンジンが選択されていません。");
+        QMessageBox::critical(this, tr("エラー"), tr("将棋エンジンが選択されていません。"));
     }
     // エンジン名が空でない場合
     else {
@@ -678,13 +753,13 @@ void StartGameDialog::showEngineSettingsDialog(QComboBox* comboBox)
 // 先手／下手のエンジン設定ボタンが押された場合、エンジン設定ダイアログを表示する。
 void StartGameDialog::onFirstPlayerSettingsClicked()
 {
-    showEngineSettingsDialog(ui->comboBoxEngine1);
+    showEngineSettingsDialog(1);
 }
 
- // 後手／上手のエンジン設定ボタンが押された場合、エンジン設定ダイアログを表示する。
+// 後手／上手のエンジン設定ボタンが押された場合、エンジン設定ダイアログを表示する。
 void StartGameDialog::onSecondPlayerSettingsClicked()
 {
-    showEngineSettingsDialog(ui->comboBoxEngine2);
+    showEngineSettingsDialog(2);
 }
 
 // 文字サイズを大きくする。
@@ -737,4 +812,55 @@ void StartGameDialog::saveFontSizeSettings()
     settings.beginGroup("GameSettings");
     settings.setValue("dialogFontSize", m_fontSize);
     settings.endGroup();
+}
+
+// 対局者コンボボックスの選択に応じてUIを更新する。
+void StartGameDialog::updatePlayerUI(int playerNumber, int index)
+{
+    // playerNumber: 1 = 先手／下手, 2 = 後手／上手
+    // index: 0 = 人間, 1以上 = エンジン
+    // QStackedWidgetのページ: 0 = 人間名入力欄, 1 = エンジン設定ボタン
+
+    if (playerNumber == 1) {
+        // 人間が選択された場合はページ0、エンジンの場合はページ1
+        ui->stackedWidgetPlayer1->setCurrentIndex(index == 0 ? 0 : 1);
+    } else {
+        // 人間が選択された場合はページ0、エンジンの場合はページ1
+        ui->stackedWidgetPlayer2->setCurrentIndex(index == 0 ? 0 : 1);
+    }
+}
+
+// 先手／下手の対局者選択が変更された場合、UIを更新する。
+void StartGameDialog::onPlayer1SelectionChanged(int index)
+{
+    updatePlayerUI(1, index);
+}
+
+// 後手／上手の対局者選択が変更された場合、UIを更新する。
+void StartGameDialog::onPlayer2SelectionChanged(int index)
+{
+    updatePlayerUI(2, index);
+}
+
+// 棋譜保存ディレクトリ選択ボタンが押された場合、ディレクトリ選択ダイアログを表示する。
+void StartGameDialog::onSelectKifuDirClicked()
+{
+    // 現在のディレクトリを取得（空の場合はドキュメントフォルダ）
+    QString currentDir = ui->lineEditKifuSaveDir->text();
+    if (currentDir.isEmpty()) {
+        currentDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+    }
+
+    // ディレクトリ選択ダイアログを表示
+    QString selectedDir = QFileDialog::getExistingDirectory(
+        this,
+        tr("棋譜保存先を選択"),
+        currentDir,
+        QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks
+    );
+
+    // ディレクトリが選択された場合、テキストボックスに設定
+    if (!selectedDir.isEmpty()) {
+        ui->lineEditKifuSaveDir->setText(selectedDir);
+    }
 }
