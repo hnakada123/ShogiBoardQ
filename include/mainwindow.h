@@ -258,6 +258,7 @@ private slots:
     // CSA通信対局関連（CsaGameWiringからのシグナル受信用）
     void onCsaPlayModeChanged_(int mode);
     void onCsaShowGameEndDialog_(const QString& title, const QString& message);
+    void onCsaEngineScoreUpdated_(int scoreCp, int ply);
 
     // 定跡ウィンドウ関連（JosekiWindowWiringからのシグナル受信用）
     void onJosekiForcedPromotion_(bool forced, bool promote);
