@@ -572,6 +572,11 @@ private:
     // ゲームオーバー関連
     void showGameOverMessageBox_(const QString& title, const QString& message);
 
+    // 棋譜自動保存
+    void autoSaveKifuToFile_(const QString& saveDir, PlayMode playMode,
+                             const QString& humanName1, const QString& humanName2,
+                             const QString& engineName1, const QString& engineName2);
+
     // 分岐ツリー更新
     void refreshBranchTreeLive_();
 

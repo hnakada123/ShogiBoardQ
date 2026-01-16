@@ -93,6 +93,8 @@
 #include "csagamewiring.h"              // ★ 追加: CSA通信対局UI配線
 #include "playerinfowiring.h"           // ★ 追加: 対局情報UI配線
 #include "prestartcleanuphandler.h"     // ★ 追加: 対局開始前クリーンアップ
+#include "kifuioservice.h"              // ★ 追加: 棋譜ファイルI/O
+#include <QDir>                         // ★ 追加: ディレクトリ操作
 
 // ★ コメント整形ヘルパ：KifuContentBuilderへ委譲
 namespace {
@@ -1721,6 +1723,10 @@ void MainWindow::initMatchCoordinator()
 
     using std::placeholders::_1;
     using std::placeholders::_2;
+    using std::placeholders::_3;
+    using std::placeholders::_4;
+    using std::placeholders::_5;
+    using std::placeholders::_6;
 
     // --- MatchCoordinator::Deps を構築（UI hooks は従来どおりここで設定） ---
     MatchCoordinator::Deps d;
@@ -1760,6 +1766,9 @@ void MainWindow::initMatchCoordinator()
     // ★ 追加：対局者名の更新フック（将棋盤ラベルと対局情報タブ）
     d.hooks.setPlayersNames = std::bind(&MainWindow::onSetPlayersNames_, this, _1, _2);
     d.hooks.setEngineNames  = std::bind(&MainWindow::onSetEngineNames_, this, _1, _2);
+
+    // ★ 追加：棋譜自動保存フック
+    d.hooks.autoSaveKifu = std::bind(&MainWindow::autoSaveKifuToFile_, this, _1, _2, _3, _4, _5, _6);
 
     // --- GameStartCoordinator の確保（1 回だけ） ---
     if (!m_gameStartCoordinator) {
@@ -3043,6 +3052,79 @@ void MainWindow::saveKifuToFile()
     const QString path = m_kifuExportController->saveToFile();
     if (!path.isEmpty()) {
         kifuSaveFileName = path;
+    }
+}
+
+// 棋譜自動保存
+void MainWindow::autoSaveKifuToFile_(const QString& saveDir, PlayMode playMode,
+                                      const QString& humanName1, const QString& humanName2,
+                                      const QString& engineName1, const QString& engineName2)
+{
+    qDebug() << "[MW] autoSaveKifuToFile_ called: dir=" << saveDir
+             << "mode=" << static_cast<int>(playMode);
+
+    if (saveDir.isEmpty()) {
+        qWarning() << "[MW] autoSaveKifuToFile_: saveDir is empty";
+        return;
+    }
+
+    // GameRecordModel と KifuExportController の準備
+    ensureGameRecordModel_();
+    ensureKifuExportController_();
+    updateKifuExportDependencies_();
+
+    if (!m_gameRecord) {
+        qWarning() << "[MW] autoSaveKifuToFile_: m_gameRecord is null";
+        return;
+    }
+
+    // ExportContext を構築
+    GameRecordModel::ExportContext ctx;
+    ctx.gameInfoTable = m_gameInfoController ? m_gameInfoController->tableWidget() : nullptr;
+    ctx.recordModel = m_kifuRecordModel;
+    ctx.startSfen = (m_sfenRecord && !m_sfenRecord->isEmpty()) ? m_sfenRecord->first() : QString();
+    ctx.playMode = playMode;
+    ctx.human1 = humanName1;
+    ctx.human2 = humanName2;
+    ctx.engine1 = engineName1;
+    ctx.engine2 = engineName2;
+
+    // 時間制御情報
+    if (m_timeController) {
+        ctx.hasTimeControl = m_timeController->hasTimeControl();
+        ctx.initialTimeMs = static_cast<int>(m_timeController->baseTimeMs());
+        ctx.byoyomiMs = static_cast<int>(m_timeController->byoyomiMs());
+        ctx.fischerIncrementMs = static_cast<int>(m_timeController->incrementMs());
+        ctx.gameStartDateTime = m_timeController->gameStartDateTime();
+    }
+
+    // KIF行を生成
+    QStringList kifLines = m_gameRecord->toKifLines(ctx);
+    if (kifLines.isEmpty()) {
+        qWarning() << "[MW] autoSaveKifuToFile_: kifLines is empty";
+        return;
+    }
+
+    // ファイル名を生成
+    const QString fileName = KifuIoService::makeDefaultSaveFileName(
+        playMode, humanName1, humanName2, engineName1, engineName2, QDateTime::currentDateTime());
+
+    // フルパスを構築
+    const QString filePath = QDir(saveDir).filePath(fileName);
+
+    qDebug() << "[MW] autoSaveKifuToFile_: saving to" << filePath;
+
+    // ファイルに書き込み
+    QString errorText;
+    const bool ok = KifuIoService::writeKifuFile(filePath, kifLines, &errorText);
+
+    if (ok) {
+        qDebug() << "[MW] autoSaveKifuToFile_: saved successfully";
+        kifuSaveFileName = filePath;
+        statusBar()->showMessage(tr("棋譜を自動保存しました: %1").arg(filePath), 5000);
+    } else {
+        qWarning() << "[MW] autoSaveKifuToFile_: failed -" << errorText;
+        statusBar()->showMessage(tr("棋譜の自動保存に失敗しました: %1").arg(errorText), 5000);
     }
 }
 

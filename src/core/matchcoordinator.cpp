@@ -269,6 +269,14 @@ void MatchCoordinator::displayResultsAndUpdateGui_(const GameEndInfo& info) {
 
     if (m_hooks.log) m_hooks.log(QStringLiteral("Game ended"));
 
+    // 棋譜自動保存
+    if (m_autoSaveKifu && !m_kifuSaveDir.isEmpty() && m_hooks.autoSaveKifu) {
+        qDebug() << "[MC] Calling autoSaveKifu hook: dir=" << m_kifuSaveDir;
+        m_hooks.autoSaveKifu(m_kifuSaveDir, m_playMode,
+                             m_humanName1, m_humanName2,
+                             m_engineNameForSave1, m_engineNameForSave2);
+    }
+
     // UI 全体へも通知（既存のUI処理と整合）
     emit gameEnded(info);
     emit gameOverShown();
@@ -584,6 +592,14 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
 
     m_playMode = opt.mode;
     m_maxMoves = opt.maxMoves;
+
+    // 棋譜自動保存設定を保存
+    m_autoSaveKifu = opt.autoSaveKifu;
+    m_kifuSaveDir = opt.kifuSaveDir;
+    m_humanName1 = opt.humanName1;
+    m_humanName2 = opt.humanName2;
+    m_engineNameForSave1 = opt.engineName1;
+    m_engineNameForSave2 = opt.engineName2;
 
     // 盤・名前などの初期化（GUI側へ委譲）
     qDebug().noquote() << "[MC] ★★★ configureAndStart: calling hooks ★★★";
@@ -2180,6 +2196,14 @@ MatchCoordinator::StartOptions MatchCoordinator::buildStartOptions(
 
         // 最大手数を取得
         opt.maxMoves = dlg->maxMoves();
+
+        // 棋譜自動保存設定を取得
+        opt.autoSaveKifu = dlg->isAutoSaveKifu();
+        opt.kifuSaveDir = dlg->kifuSaveDir();
+
+        // 対局者名を取得
+        opt.humanName1 = dlg->humanName1();
+        opt.humanName2 = dlg->humanName2();
 
         return opt;
     }
