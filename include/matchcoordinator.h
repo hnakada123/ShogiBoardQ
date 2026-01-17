@@ -31,7 +31,8 @@ public:
     enum Player : int { P1 = 1, P2 = 2 };
 
     // ★ BreakOff を追加（中断終局）、Jishogi を追加（持将棋／最大手数到達）
-    enum class Cause : int { Resignation = 0, Timeout = 1, BreakOff = 2, Jishogi = 3 };
+    // ★ NyugyokuWin を追加（入玉宣言勝ち）、IllegalMove を追加（反則負け：入玉宣言失敗など）
+    enum class Cause : int { Resignation = 0, Timeout = 1, BreakOff = 2, Jishogi = 3, NyugyokuWin = 4, IllegalMove = 5 };
 
     struct GoTimes {
         qint64 btime = 0;   // 先手 残り(ms)
@@ -122,6 +123,7 @@ public:
     void flipBoard();                    // 盤反転 + 表示更新
     void updateUsiPtrs(Usi* e1, Usi* e2);// エンジン再生成時などに差し替え
     void handleBreakOff();               // ★ 中断（UI→司令塔）
+    void handleNyugyokuDeclaration(Player declarer, bool success, bool isDraw); // ★ 入玉宣言
 
     // ★ 追加: 対局中の指し手リストを取得（CSA出力等で使用）
     const QVector<ShogiMove>& gameMoves() const { return m_gameMoves; }

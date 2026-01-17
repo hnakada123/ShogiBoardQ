@@ -556,4 +556,36 @@ void setCsaGameDialogFontSize(int size)
     s.setValue("FontSize/csaGameDialog", size);
 }
 
+// ★ 追加: 持将棋の点数ダイアログのフォントサイズを取得
+int jishogiScoreFontSize()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("FontSize/jishogiScore", 10).toInt();
+}
+
+// ★ 追加: 持将棋の点数ダイアログのフォントサイズを保存
+void setJishogiScoreFontSize(int size)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("FontSize/jishogiScore", size);
+}
+
+// ★ 追加: 持将棋の点数ダイアログのウィンドウサイズを取得
+QSize jishogiScoreDialogSize()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("JishogiScore/dialogSize", QSize(250, 280)).toSize();
+}
+
+// ★ 追加: 持将棋の点数ダイアログのウィンドウサイズを保存
+void setJishogiScoreDialogSize(const QSize& size)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("JishogiScore/dialogSize", size);
+}
+
 } // namespace SettingsService

@@ -96,33 +96,33 @@ bool JishogiCalculator::meetsDeclarationConditions(const PlayerScore& score, boo
 // 24点法での判定結果文字列を取得する
 QString JishogiCalculator::getResult24(const PlayerScore& score, bool kingInCheck)
 {
-    // 宣言条件（玉が敵陣、敵陣に10枚以上、王手なし）を満たしていない場合
+    // 宣言条件（玉が敵陣、敵陣に10枚以上、王手なし）を満たしていない場合は負け
     if (!meetsDeclarationConditions(score, kingInCheck)) {
-        return QStringLiteral("条件未達");
+        return QStringLiteral("負け");
     }
 
-    // 宣言条件を満たしている場合、点数で判定
+    // 点数に基づく結果を判定
     // 31点以上: 勝ち
     // 24〜30点: 引き分け（持将棋成立）
-    // 24点未満: 宣言失敗
+    // 24点未満: 負け
     if (score.declarationPoints >= 31) {
         return QStringLiteral("勝ち");
     } else if (score.declarationPoints >= 24) {
         return QStringLiteral("引き分け");
     } else {
-        return QStringLiteral("宣言失敗");
+        return QStringLiteral("負け");
     }
 }
 
 // 27点法での判定結果文字列を取得する
 QString JishogiCalculator::getResult27(const PlayerScore& score, bool isSente, bool kingInCheck)
 {
-    // 宣言条件（玉が敵陣、敵陣に10枚以上、王手なし）を満たしていない場合
+    // 宣言条件（玉が敵陣、敵陣に10枚以上、王手なし）を満たしていない場合は負け
     if (!meetsDeclarationConditions(score, kingInCheck)) {
-        return QStringLiteral("条件未達");
+        return QStringLiteral("負け");
     }
 
-    // 宣言条件を満たしている場合、点数で判定
+    // 点数に基づく結果を判定
     // 先手: 28点以上で勝ち
     // 後手: 27点以上で勝ち
     int requiredPoints = isSente ? 28 : 27;

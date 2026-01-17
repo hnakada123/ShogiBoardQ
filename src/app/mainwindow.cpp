@@ -1,6 +1,7 @@
 #include <QMessageBox>
 #include <QDesktopServices>
 #include <QHBoxLayout>
+#include <QVBoxLayout>
 #include <QHeaderView>
 #include <QFileDialog>
 #include <QFileInfo>
@@ -10,6 +11,8 @@
 #include <QDebug>
 #include <QScrollBar>
 #include <QPushButton>
+#include <QDialog>
+#include <QSettings>
 #include <QSignalBlocker>  // ★ 追加
 #include <QLabel>          // ★ 追加
 #include <QApplication>    // ★ 追加
@@ -728,29 +731,241 @@ void MainWindow::displayJishogiScoreDialog()
     // 後手の玉が王手されているかどうかを判定
     bool goteInCheck = validator.checkIfKingInCheck(MoveValidator::WHITE, board->boardData()) > 0;
 
+    // 宣言条件の判定文字列を生成
+    auto buildConditionStr = [](const JishogiCalculator::PlayerScore& score, bool inCheck) -> QString {
+        const QString checkMark = QStringLiteral("○");
+        const QString crossMark = QStringLiteral("×");
+
+        QString str;
+        str += QStringLiteral("【宣言条件】\n");
+        str += QStringLiteral("① 玉が敵陣 : %1\n").arg(score.kingInEnemyTerritory ? checkMark : crossMark);
+        str += QStringLiteral("② 敵陣10枚以上 : %1 (%2枚)\n")
+                   .arg(score.piecesInEnemyTerritory >= 10 ? checkMark : crossMark)
+                   .arg(score.piecesInEnemyTerritory);
+        str += QStringLiteral("③ 王手なし : %1\n").arg(!inCheck ? checkMark : crossMark);
+        str += QStringLiteral("④ 宣言点数 : %1点").arg(score.declarationPoints);
+        return str;
+    };
+
     QString message = tr("持将棋の点数\n\n"
-                         "先手 %1\n"
-                         "合計点数 : %2\n"
-                         "宣言点数 : %3\n"
-                         "24点法 : %4\n"
-                         "27点法 : %5\n\n"
-                         "後手 %6\n"
-                         "合計点数 : %7\n"
-                         "宣言点数 : %8\n"
-                         "24点法 : %9\n"
-                         "27点法 : %10")
-        .arg(senteInCheck ? tr("(王手)") : QString())
-        .arg(result.sente.totalPoints)
-        .arg(result.sente.declarationPoints)
+                         "先手\n"
+                         "%1\n"
+                         "24点法 : %2\n"
+                         "27点法 : %3\n\n"
+                         "後手\n"
+                         "%4\n"
+                         "24点法 : %5\n"
+                         "27点法 : %6")
+        .arg(buildConditionStr(result.sente, senteInCheck))
         .arg(JishogiCalculator::getResult24(result.sente, senteInCheck))
         .arg(JishogiCalculator::getResult27(result.sente, true, senteInCheck))   // 先手
-        .arg(goteInCheck ? tr("(王手)") : QString())
-        .arg(result.gote.totalPoints)
-        .arg(result.gote.declarationPoints)
+        .arg(buildConditionStr(result.gote, goteInCheck))
         .arg(JishogiCalculator::getResult24(result.gote, goteInCheck))
         .arg(JishogiCalculator::getResult27(result.gote, false, goteInCheck));  // 後手
 
-    QMessageBox::information(this, tr("持将棋の点数"), message);
+    // カスタムダイアログを作成
+    QDialog dialog(this);
+    dialog.setWindowTitle(tr("持将棋の点数"));
+
+    // 保存されたウィンドウサイズを読み込む
+    QSize savedSize = SettingsService::jishogiScoreDialogSize();
+    if (savedSize.isValid() && savedSize.width() > 50 && savedSize.height() > 50) {
+        dialog.resize(savedSize);
+    }
+
+    QVBoxLayout* mainLayout = new QVBoxLayout(&dialog);
+
+    // テキスト表示用ラベル
+    QLabel* label = new QLabel(message);
+    label->setAlignment(Qt::AlignLeft);
+
+    // 保存されたフォントサイズを読み込む
+    int savedFontSize = SettingsService::jishogiScoreFontSize();
+    QFont labelFont = label->font();
+    labelFont.setPointSize(savedFontSize);
+    label->setFont(labelFont);
+
+    mainLayout->addWidget(label);
+
+    // ボタン用レイアウト
+    QHBoxLayout* buttonLayout = new QHBoxLayout();
+
+    // A- ボタン（文字縮小）
+    QPushButton* shrinkButton = new QPushButton(tr("A-"));
+    shrinkButton->setFixedWidth(40);
+    connect(shrinkButton, &QPushButton::clicked, [label]() {
+        QFont font = label->font();
+        if (font.pointSize() > 6) {
+            font.setPointSize(font.pointSize() - 1);
+            label->setFont(font);
+        }
+    });
+    buttonLayout->addWidget(shrinkButton);
+
+    // A+ ボタン（文字拡大）
+    QPushButton* enlargeButton = new QPushButton(tr("A+"));
+    enlargeButton->setFixedWidth(40);
+    connect(enlargeButton, &QPushButton::clicked, [label]() {
+        QFont font = label->font();
+        font.setPointSize(font.pointSize() + 1);
+        label->setFont(font);
+    });
+    buttonLayout->addWidget(enlargeButton);
+
+    buttonLayout->addStretch();
+
+    // OKボタン
+    QPushButton* okButton = new QPushButton(tr("OK"));
+    connect(okButton, &QPushButton::clicked, &dialog, &QDialog::accept);
+    buttonLayout->addWidget(okButton);
+
+    mainLayout->addLayout(buttonLayout);
+
+    dialog.exec();
+
+    // ダイアログを閉じる際にフォントサイズとウィンドウサイズを保存
+    SettingsService::setJishogiScoreFontSize(label->font().pointSize());
+    SettingsService::setJishogiScoreDialogSize(dialog.size());
+}
+
+void MainWindow::handleNyugyokuDeclaration()
+{
+    // 対局中かどうかをチェック
+    if (m_playMode == PlayMode::NotStarted) {
+        QMessageBox::warning(this, tr("入玉宣言"), tr("対局中ではありません。"));
+        return;
+    }
+
+    // 盤面データの確認
+    if (!m_shogiView || !m_shogiView->board()) {
+        QMessageBox::warning(this, tr("エラー"), tr("盤面データがありません。"));
+        return;
+    }
+
+    // 持将棋ルールの取得（QSettingsから読み込む）
+    QSettings settings(QStringLiteral("ShogiBoardQ.ini"), QSettings::IniFormat);
+    int jishogiRule = settings.value("GameSettings/jishogiRule", 0).toInt();
+
+    if (jishogiRule == 0) {
+        QMessageBox::warning(this, tr("入玉宣言"),
+            tr("持将棋ルールが「なし」に設定されています。\n"
+               "対局ダイアログで「24点法」または「27点法」を選択してください。"));
+        return;
+    }
+
+    // 現在の手番を取得（宣言者）
+    bool isSenteTurn = true;
+    if (m_gameController) {
+        isSenteTurn = (m_gameController->currentPlayer() == ShogiGameController::Player1);
+    }
+    QString declarerName = isSenteTurn ? tr("先手") : tr("後手");
+
+    // 確認ダイアログ
+    QMessageBox::StandardButton reply = QMessageBox::question(
+        this,
+        tr("入玉宣言確認"),
+        tr("%1が入玉宣言を行います。\n\n"
+           "宣言条件を満たさない場合は宣言側の負けとなります。\n"
+           "本当に宣言しますか？").arg(declarerName),
+        QMessageBox::Yes | QMessageBox::No,
+        QMessageBox::No);
+
+    if (reply != QMessageBox::Yes) {
+        return;
+    }
+
+    // 盤面データと点数を計算
+    ShogiBoard* board = m_shogiView->board();
+    auto result = JishogiCalculator::calculate(board->boardData(), board->getPieceStand());
+
+    // 王手判定
+    MoveValidator validator;
+    bool declarerInCheck = false;
+    const auto& score = isSenteTurn ? result.sente : result.gote;
+
+    if (isSenteTurn) {
+        declarerInCheck = validator.checkIfKingInCheck(MoveValidator::BLACK, board->boardData()) > 0;
+    } else {
+        declarerInCheck = validator.checkIfKingInCheck(MoveValidator::WHITE, board->boardData()) > 0;
+    }
+
+    // 宣言条件の判定
+    bool kingInEnemyTerritory = score.kingInEnemyTerritory;
+    bool enoughPieces = score.piecesInEnemyTerritory >= 10;
+    bool noCheck = !declarerInCheck;
+    int declarationPoints = score.declarationPoints;
+
+    // 結果の判定
+    QString resultStr;
+    bool declarationSuccess = false;
+    bool isDraw = false;
+
+    // 条件判定の詳細
+    QString conditionDetails = tr("【宣言条件の判定】\n"
+                                  "① 玉が敵陣にいる: %1\n"
+                                  "② 敵陣に10枚以上: %2 (%3枚)\n"
+                                  "③ 王手がかかっていない: %4\n"
+                                  "④ 宣言点数: %5点\n")
+        .arg(kingInEnemyTerritory ? tr("○") : tr("×"))
+        .arg(enoughPieces ? tr("○") : tr("×"))
+        .arg(score.piecesInEnemyTerritory)
+        .arg(noCheck ? tr("○") : tr("×"))
+        .arg(declarationPoints);
+
+    if (jishogiRule == 1) {
+        // 24点法
+        conditionDetails += tr("\n【24点法】\n");
+        if (kingInEnemyTerritory && enoughPieces && noCheck) {
+            if (declarationPoints >= 31) {
+                resultStr = tr("宣言勝ち");
+                declarationSuccess = true;
+                conditionDetails += tr("31点以上: 勝ち");
+            } else if (declarationPoints >= 24) {
+                resultStr = tr("持将棋（引き分け）");
+                declarationSuccess = true;
+                isDraw = true;
+                conditionDetails += tr("24〜30点: 引き分け");
+            } else {
+                resultStr = tr("宣言失敗（負け）");
+                conditionDetails += tr("24点未満: 宣言失敗");
+            }
+        } else {
+            resultStr = tr("宣言失敗（負け）");
+            conditionDetails += tr("条件未達: 宣言失敗");
+        }
+    } else {
+        // 27点法
+        int requiredPoints = isSenteTurn ? 28 : 27;
+        conditionDetails += tr("\n【27点法】\n");
+        conditionDetails += tr("必要点数: %1点以上\n").arg(requiredPoints);
+
+        if (kingInEnemyTerritory && enoughPieces && noCheck && declarationPoints >= requiredPoints) {
+            resultStr = tr("宣言勝ち");
+            declarationSuccess = true;
+            conditionDetails += tr("条件達成: 勝ち");
+        } else {
+            resultStr = tr("宣言失敗（負け）");
+            if (!kingInEnemyTerritory || !enoughPieces || !noCheck) {
+                conditionDetails += tr("条件未達: 宣言失敗");
+            } else {
+                conditionDetails += tr("点数不足: 宣言失敗");
+            }
+        }
+    }
+
+    // 対局終了処理（MatchCoordinatorを使用）- 先に棋譜を更新
+    if (m_match) {
+        MatchCoordinator::Player declarer = isSenteTurn ? MatchCoordinator::P1 : MatchCoordinator::P2;
+        m_match->handleNyugyokuDeclaration(declarer, declarationSuccess, isDraw);
+    }
+
+    // 結果ダイアログの表示
+    QString finalMessage = tr("%1の入玉宣言\n\n%2\n\n【結果】%3")
+        .arg(declarerName)
+        .arg(conditionDetails)
+        .arg(resultStr);
+
+    QMessageBox::information(this, tr("入玉宣言結果"), finalMessage);
 }
 
 void MainWindow::openWebsiteInExternalBrowser()
