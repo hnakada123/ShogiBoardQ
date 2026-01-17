@@ -48,6 +48,7 @@ void UiActionsWiring::wire()
     QObject::connect(ui->actionEndEditPosition,      &QAction::triggered, mw, &MainWindow::finishPositionEditing,          Qt::UniqueConnection);
     QObject::connect(ui->actionTsumeShogiSearch,     &QAction::triggered, mw, &MainWindow::displayTsumeShogiSearchDialog,  Qt::UniqueConnection);
     QObject::connect(ui->actionJishogiScore,        &QAction::triggered, mw, &MainWindow::displayJishogiScoreDialog,      Qt::UniqueConnection);
+    QObject::connect(ui->actionNyugyokuDeclaration, &QAction::triggered, mw, &MainWindow::handleNyugyokuDeclaration,      Qt::UniqueConnection);
     QObject::connect(ui->actionQuitEngine,           &QAction::triggered, mw, &MainWindow::handleBreakOffConsidaration,    Qt::UniqueConnection);
 
     // 棋譜コピー (編集メニュー)

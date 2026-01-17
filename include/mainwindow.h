@@ -195,6 +195,7 @@ public slots:
     void displayJosekiWindow();
     void updateJosekiWindow();  // 定跡ウィンドウの更新
     void displayJishogiScoreDialog();  // 持将棋の点数ダイアログ
+    void handleNyugyokuDeclaration();  // 入玉宣言
 
     // その他操作
     void toggleEngineAnalysisVisibility();

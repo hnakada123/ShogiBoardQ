@@ -108,6 +108,7 @@
     <addaction name="actionTsumeShogiSearch"/>
     <addaction name="separator"/>
     <addaction name="actionJishogiScore"/>
+    <addaction name="actionNyugyokuDeclaration"/>
    </widget>
    <widget class="QMenu" name="Setting">
     <property name="title">
@@ -709,6 +710,11 @@
   <action name="actionJishogiScore">
    <property name="text">
     <string>持将棋の点数</string>
+   </property>
+  </action>
+  <action name="actionNyugyokuDeclaration">
+   <property name="text">
+    <string>入玉宣言</string>
    </property>
   </action>
   <action name="actionQuitEngine">

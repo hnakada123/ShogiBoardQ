@@ -216,6 +216,93 @@ void MatchCoordinator::handleEngineResign(int idx) {
     displayResultsAndUpdateGui_(info);
 }
 
+// ★ 入玉宣言処理
+void MatchCoordinator::handleNyugyokuDeclaration(Player declarer, bool success, bool isDraw)
+{
+    // すでに終局なら何もしない
+    if (m_gameOver.isOver) return;
+
+    qDebug() << "[MC] handleNyugyokuDeclaration(): declarer=" << (declarer == P1 ? "P1" : "P2")
+             << " success=" << success << " isDraw=" << isDraw;
+
+    // 進行系タイマを停止
+    disarmHumanTimerIfNeeded();
+
+    // 時計を停止
+    if (m_clock) m_clock->stopClock();
+
+    // GameEndInfo を構築
+    GameEndInfo info;
+    if (isDraw) {
+        // 持将棋（引き分け）
+        info.cause = Cause::Jishogi;
+        info.loser = declarer;  // 持将棋は勝敗なし、宣言者のマーク表示用
+    } else if (success) {
+        // 入玉宣言勝ち
+        info.cause = Cause::NyugyokuWin;
+        info.loser = (declarer == P1) ? P2 : P1;  // 宣言者の相手が敗者
+    } else {
+        // 入玉宣言失敗（反則負け）
+        info.cause = Cause::IllegalMove;
+        info.loser = declarer;  // 宣言者が敗者
+    }
+
+    // エンジンへの終了通知
+    const bool isEvE =
+        (m_playMode == PlayMode::EvenEngineVsEngine) ||
+        (m_playMode == PlayMode::HandicapEngineVsEngine);
+    if (isEvE) {
+        if (isDraw) {
+            // 引き分け
+            if (m_usi1) {
+                m_usi1->sendGameOverCommand(QStringLiteral("draw"));
+                m_usi1->sendQuitCommand();
+                m_usi1->setSquelchResignLogging(true);
+            }
+            if (m_usi2) {
+                m_usi2->sendGameOverCommand(QStringLiteral("draw"));
+                m_usi2->sendQuitCommand();
+                m_usi2->setSquelchResignLogging(true);
+            }
+        } else {
+            // 勝敗あり
+            Usi* winnerEng = (info.loser == P1) ? m_usi2 : m_usi1;
+            Usi* loserEng  = (info.loser == P1) ? m_usi1 : m_usi2;
+            if (winnerEng) {
+                winnerEng->sendGameOverCommand(QStringLiteral("win"));
+                winnerEng->sendQuitCommand();
+                winnerEng->setSquelchResignLogging(true);
+            }
+            if (loserEng) {
+                loserEng->sendGameOverCommand(QStringLiteral("lose"));
+                loserEng->sendQuitCommand();
+                loserEng->setSquelchResignLogging(true);
+            }
+        }
+    } else {
+        // HvE の場合は主エンジンへ通知
+        if (Usi* eng = primaryEngine()) {
+            if (isDraw) {
+                eng->sendGameOverCommand(QStringLiteral("draw"));
+            } else if (info.loser == P1) {
+                // P1（人間）の負け
+                eng->sendGameOverCommand(QStringLiteral("win"));
+            } else {
+                // P2（エンジン）の負け
+                eng->sendGameOverCommand(QStringLiteral("lose"));
+            }
+            eng->sendQuitCommand();
+            eng->setSquelchResignLogging(true);
+        }
+    }
+
+    // 終局状態を確定
+    const bool loserIsP1 = (info.loser == P1);
+    setGameOver(info, loserIsP1, /*appendMoveOnce=*/true);
+
+    // 結果ダイアログは既にMainWindowで表示済みなので省略
+}
+
 void MatchCoordinator::flipBoard() {
     // 実際の反転は GUI 側で実施（レイアウト/ラベル入替等を考慮）
     if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
@@ -254,6 +341,14 @@ void MatchCoordinator::displayResultsAndUpdateGui_(const GameEndInfo& info) {
     case Cause::Jishogi:
         // 持将棋（最大手数到達）
         msg = tr("最大手数に達しました。持将棋です。");
+        break;
+    case Cause::NyugyokuWin:
+        // 入玉宣言勝ち
+        msg = tr("%1の入玉宣言。%2の勝ちです。").arg(winnerJP, winnerJP);
+        break;
+    case Cause::IllegalMove:
+        // 反則負け（入玉宣言失敗など）
+        msg = tr("%1の反則負け。%2の勝ちです。").arg(loserJP, winnerJP);
         break;
     case Cause::BreakOff:
     default:
@@ -2383,11 +2478,21 @@ void MatchCoordinator::appendGameOverLineAndMark(Cause cause, Player loser)
     // 残り時間を固定
     m_clock->stopClock();
 
-    // 表記（▲/△は絶対座席）
+    // 表記（KIF形式に準拠、▲/△は絶対座席）
     QString line;
     if (cause == Cause::Jishogi) {
-        // 持将棋は勝敗なし（loserは無視）
-        line = QStringLiteral("持将棋");
+        // 持将棋（入玉宣言で引き分け、または最大手数到達）
+        // loserには宣言者が入っている（勝敗はないがマーク表示用）
+        const QString mark = (loser == P1) ? QStringLiteral("▲") : QStringLiteral("△");
+        line = QStringLiteral("%1持将棋").arg(mark);
+    } else if (cause == Cause::NyugyokuWin) {
+        // 入玉宣言で勝ち（loserは敗者＝宣言者の相手、勝者のマークを使用）
+        const QString mark = (loser == P1) ? QStringLiteral("△") : QStringLiteral("▲");
+        line = QStringLiteral("%1入玉勝ち").arg(mark);
+    } else if (cause == Cause::IllegalMove) {
+        // 反則負け（入玉宣言失敗など、敗者のマークを使用）
+        const QString mark = (loser == P1) ? QStringLiteral("▲") : QStringLiteral("△");
+        line = QStringLiteral("%1反則負け").arg(mark);
     } else {
         const QString mark = (loser == P1) ? QStringLiteral("▲") : QStringLiteral("△");
         line = (cause == Cause::Resignation)

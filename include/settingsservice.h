@@ -183,6 +183,16 @@ int csaGameDialogFontSize();
 // ★ 追加: CSA通信対局ダイアログのフォントサイズを保存
 void setCsaGameDialogFontSize(int size);
 
+// ★ 追加: 持将棋の点数ダイアログのフォントサイズを取得（デフォルト: 10）
+int jishogiScoreFontSize();
+// ★ 追加: 持将棋の点数ダイアログのフォントサイズを保存
+void setJishogiScoreFontSize(int size);
+
+// ★ 追加: 持将棋の点数ダイアログのウィンドウサイズを取得（デフォルト: 250x280）
+QSize jishogiScoreDialogSize();
+// ★ 追加: 持将棋の点数ダイアログのウィンドウサイズを保存
+void setJishogiScoreDialogSize(const QSize& size);
+
 } // namespace SettingsService
 
 #endif // SETTINGSSERVICE_H
