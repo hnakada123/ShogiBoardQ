@@ -58,6 +58,10 @@ public:
     // 指定局面での合法手を生成する。
     int generateLegalMoves(const Turn& turn, const QVector<QChar>& boardData, const QMap<QChar, int>& pieceStand);
 
+    // 指定手番の玉が王手されているかどうかを判定する。
+    // 戻り値: 王手の数（0=王手なし, 1=王手, 2=両王手）
+    int checkIfKingInCheck(const Turn& turn, const QVector<QChar>& boardData);
+
 signals:
     // エラーを報告するためのシグナル
     void errorOccurred(const QString& errorMessage);

@@ -197,6 +197,9 @@ void StartGameDialog::saveGameSettings()
     // 1局ごとに手番を入れ替えるかどうかのフラグを保存する。
     settings.setValue("isSwitchTurnEachGame", ui->checkBoxSwitchTurnEachGame->isChecked());
 
+    // 持将棋ルールを保存する。
+    settings.setValue("jishogiRule", ui->comboBoxJishogi->currentIndex());
+
     // 設定の書き込みを終了する。
     settings.endGroup();
 }
@@ -277,6 +280,9 @@ void StartGameDialog::loadGameSettings()
     // 1局ごとに手番を入れ替えるかどうかのフラグを読み込む。
     ui->checkBoxSwitchTurnEachGame->setChecked(settings.value("isSwitchTurnEachGame", false).toBool());
 
+    // 持将棋ルールを読み込む。
+    ui->comboBoxJishogi->setCurrentIndex(settings.value("jishogiRule", 0).toInt());
+
     // 設定の読み込みを終了する。
     settings.endGroup();
 }
@@ -349,6 +355,9 @@ void StartGameDialog::resetSettingsToDefault()
 
     // 手番の入れ替えはデフォルトでオフにする。
     ui->checkBoxSwitchTurnEachGame->setChecked(false);
+
+    // 持将棋ルールのデフォルトは「なし」にする。
+    ui->comboBoxJishogi->setCurrentIndex(0);
 }
 
 // 先後入れ替えボタンが押された場合、先後を入れ替える。
@@ -608,6 +617,12 @@ bool StartGameDialog::isSwitchTurnEachGame() const
     return m_isSwitchTurnEachGame;
 }
 
+// 持将棋ルールを取得する（0: なし, 1: 24点法, 2: 27点法）。
+int StartGameDialog::jishogiRule() const
+{
+    return m_jishogiRule;
+}
+
 // OKボタンが押された場合、対局ダイアログ内の各パラメータを取得する。
 void StartGameDialog::updateGameSettingsFromDialog()
 {
@@ -704,6 +719,9 @@ void StartGameDialog::updateGameSettingsFromDialog()
 
     // 1局ごとに手番を入れ替えるかどうかのフラグを取得する。
     m_isSwitchTurnEachGame = ui->checkBoxSwitchTurnEachGame->isChecked();
+
+    // 持将棋ルールを取得する。
+    m_jishogiRule = ui->comboBoxJishogi->currentIndex();
 }
 
 // エンジン設定ダイアログの共通処理を行う。

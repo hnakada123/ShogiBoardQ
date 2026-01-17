@@ -110,6 +110,9 @@ public:
     // 1局ごとに手番を入れ替えるかどうかのフラグを取得する。
     bool isSwitchTurnEachGame() const;
 
+    // 持将棋ルールを取得する（0: なし, 1: 24点法, 2: 27点法）。
+    int jishogiRule() const;
+
 private:
     // UI
     Ui::StartGameDialog* ui;
@@ -197,6 +200,9 @@ private:
 
     // 1局ごとに手番を入れ替えるかどうかのフラグ
     bool m_isSwitchTurnEachGame;
+
+    // 持将棋ルール（0: なし, 1: 24点法, 2: 27点法）
+    int m_jishogiRule;
 
     // 設定ファイルからエンジンの名前とディレクトリを読み込む。
     void loadEngineConfigurations();

@@ -985,6 +985,55 @@
           </item>
          </layout>
         </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayoutJishogi">
+          <item>
+           <widget class="QLabel" name="labelJishogi">
+            <property name="text">
+             <string>持将棋</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QComboBox" name="comboBoxJishogi">
+            <property name="minimumSize">
+             <size>
+              <width>80</width>
+              <height>0</height>
+             </size>
+            </property>
+            <item>
+             <property name="text">
+              <string>なし</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>24点法</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>27点法</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item>
+           <spacer name="horizontalSpacerJishogi">
+            <property name="orientation">
+             <enum>Qt::Orientation::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </item>
        </layout>
       </item>
       <item>
