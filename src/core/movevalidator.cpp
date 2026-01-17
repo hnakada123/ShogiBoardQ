@@ -870,6 +870,36 @@ void MoveValidator::performAndOperation(const std::bitset<NUM_BOARD_SQUARES>& em
 
 }
 
+// 指定手番の玉が王手されているかどうかを判定する。
+// 戻り値: 王手の数（0=王手なし, 1=王手, 2=両王手）
+int MoveValidator::checkIfKingInCheck(const Turn& turn, const QVector<QChar>& boardData)
+{
+    // 先手、後手の2種類
+    // 歩、香車、桂馬、銀、金、角、飛車、玉、と金、成香、成桂、成銀、馬、龍の14種類
+    // の合計28種類の駒が存在するマスを表すbitboardを作成する。
+    BoardStateArray piecePlacedBitboards;
+    generateBitboard(boardData, piecePlacedBitboards);
+
+    // 先手の歩、先手の香車、先手の桂馬〜先手の龍、
+    // 後手の歩、後手の香車、後手の桂馬〜後手の龍の28種類に分けて
+    // 各駒ごとに駒が存在するマスを表すbitboardを作成する。
+    QVector<QVector<std::bitset<NUM_BOARD_SQUARES>>> allPieceBitboards;
+    generateAllPieceBitboards(allPieceBitboards, boardData);
+
+    // 各個々の駒が移動できるマスを表すbitboardを作成する。
+    QVector<QVector<std::bitset<NUM_BOARD_SQUARES>>> allPieceAttackBitboards;
+    generateAllIndividualPieceAttackBitboards(allPieceBitboards, piecePlacedBitboards, allPieceAttackBitboards);
+
+    // 王手を回避するために必要な手を表すbitboard
+    std::bitset<MoveValidator::NUM_BOARD_SQUARES> necessaryMovesBitboard;
+
+    // 玉を除いた攻撃範囲のマスを表すbitboard
+    std::bitset<MoveValidator::NUM_BOARD_SQUARES> attackWithoutKingBitboard;
+
+    // 手番の玉が王手されているかどうかを調べる。
+    return isKingInCheck(turn, allPieceBitboards, allPieceAttackBitboards, necessaryMovesBitboard, attackWithoutKingBitboard);
+}
+
 // 歩が無い筋を1で表すbitboardを作成する。
 void MoveValidator::generateBitboardForEmptyFiles(const Turn& turn, const QVector<QChar>& boardData, std::bitset<NUM_BOARD_SQUARES>& emptyFilePawnBitboard) const
 {

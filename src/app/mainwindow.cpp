@@ -28,6 +28,8 @@
 #include "shogigamecontroller.h"
 #include "shogiboard.h"
 #include "shogiview.h"
+#include "jishogicalculator.h"
+#include "movevalidator.h"
 #include "timedisplaypresenter.h"
 #include "tsumesearchflowcontroller.h"
 #include "ui_mainwindow.h"
@@ -705,6 +707,50 @@ void MainWindow::displayVersionInformation()
     if (m_dialogCoordinator) {
         m_dialogCoordinator->showVersionInformation();
     }
+}
+
+void MainWindow::displayJishogiScoreDialog()
+{
+    if (!m_shogiView || !m_shogiView->board()) {
+        QMessageBox::warning(this, tr("エラー"), tr("盤面データがありません。"));
+        return;
+    }
+
+    ShogiBoard* board = m_shogiView->board();
+    auto result = JishogiCalculator::calculate(board->boardData(), board->getPieceStand());
+
+    // 王手判定のためのMoveValidatorを作成
+    MoveValidator validator;
+
+    // 先手の玉が王手されているかどうかを判定
+    bool senteInCheck = validator.checkIfKingInCheck(MoveValidator::BLACK, board->boardData()) > 0;
+
+    // 後手の玉が王手されているかどうかを判定
+    bool goteInCheck = validator.checkIfKingInCheck(MoveValidator::WHITE, board->boardData()) > 0;
+
+    QString message = tr("持将棋の点数\n\n"
+                         "先手 %1\n"
+                         "合計点数 : %2\n"
+                         "宣言点数 : %3\n"
+                         "24点法 : %4\n"
+                         "27点法 : %5\n\n"
+                         "後手 %6\n"
+                         "合計点数 : %7\n"
+                         "宣言点数 : %8\n"
+                         "24点法 : %9\n"
+                         "27点法 : %10")
+        .arg(senteInCheck ? tr("(王手)") : QString())
+        .arg(result.sente.totalPoints)
+        .arg(result.sente.declarationPoints)
+        .arg(JishogiCalculator::getResult24(result.sente, senteInCheck))
+        .arg(JishogiCalculator::getResult27(result.sente, true, senteInCheck))   // 先手
+        .arg(goteInCheck ? tr("(王手)") : QString())
+        .arg(result.gote.totalPoints)
+        .arg(result.gote.declarationPoints)
+        .arg(JishogiCalculator::getResult24(result.gote, goteInCheck))
+        .arg(JishogiCalculator::getResult27(result.gote, false, goteInCheck));  // 後手
+
+    QMessageBox::information(this, tr("持将棋の点数"), message);
 }
 
 void MainWindow::openWebsiteInExternalBrowser()

@@ -194,6 +194,7 @@ public slots:
     void displayCsaGameDialog();
     void displayJosekiWindow();
     void updateJosekiWindow();  // 定跡ウィンドウの更新
+    void displayJishogiScoreDialog();  // 持将棋の点数ダイアログ
 
     // その他操作
     void toggleEngineAnalysisVisibility();

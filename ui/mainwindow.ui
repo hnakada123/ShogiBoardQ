@@ -107,6 +107,7 @@
     <addaction name="separator"/>
     <addaction name="actionTsumeShogiSearch"/>
     <addaction name="separator"/>
+    <addaction name="actionJishogiScore"/>
    </widget>
    <widget class="QMenu" name="Setting">
     <property name="title">
@@ -703,6 +704,11 @@
    </property>
    <property name="text">
     <string>詰み探索</string>
+   </property>
+  </action>
+  <action name="actionJishogiScore">
+   <property name="text">
+    <string>持将棋の点数</string>
    </property>
   </action>
   <action name="actionQuitEngine">
