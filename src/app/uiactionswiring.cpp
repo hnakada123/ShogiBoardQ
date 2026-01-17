@@ -2,6 +2,7 @@
 #include "ui_mainwindow.h"        // Ui::MainWindow
 #include "shogiview.h"
 #include "mainwindow.h"           // MainWindow のスロットを型安全に結ぶため
+#include <QApplication>
 
 void UiActionsWiring::wire()
 {
@@ -16,6 +17,7 @@ void UiActionsWiring::wire()
     QObject::connect(ui->actionOpenKifuFile,&QAction::triggered, mw, &MainWindow::chooseAndLoadKifuFile,     Qt::UniqueConnection);
     QObject::connect(ui->actionVersionInfo, &QAction::triggered, mw, &MainWindow::displayVersionInformation, Qt::UniqueConnection);
     QObject::connect(ui->actionOpenWebsite, &QAction::triggered, mw, &MainWindow::openWebsiteInExternalBrowser, Qt::UniqueConnection);
+    QObject::connect(ui->actionAboutQt,     &QAction::triggered, mw, []() { QApplication::aboutQt(); });
 
     // 対局
     QObject::connect(ui->actionNewGame,     &QAction::triggered, mw, &MainWindow::resetToInitialState, Qt::UniqueConnection);

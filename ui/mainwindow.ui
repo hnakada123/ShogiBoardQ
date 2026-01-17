@@ -127,6 +127,7 @@
     <addaction name="usageMethod"/>
     <addaction name="separator"/>
     <addaction name="actionVersionInfo"/>
+    <addaction name="actionAboutQt"/>
    </widget>
    <addaction name="File"/>
    <addaction name="Edit"/>
@@ -575,6 +576,11 @@
   <action name="actionVersionInfo">
    <property name="text">
     <string>バージョン情報</string>
+   </property>
+  </action>
+  <action name="actionAboutQt">
+   <property name="text">
+    <string>Qtについて</string>
    </property>
   </action>
   <action name="kifFormat">
