@@ -133,6 +133,12 @@ void MatchCoordinator::updateUsiPtrs(Usi* e1, Usi* e2) {
 
 // 1) 人間側の投了
 void MatchCoordinator::handleResign() {
+    // すでに終局なら何もしない（中断後のタイムアウト等で呼ばれるのを防ぐ）
+    if (m_gameOver.isOver) {
+        qDebug() << "[MC] handleResign: already game over, ignoring";
+        return;
+    }
+
     GameEndInfo info;
     info.cause = Cause::Resignation;
 
@@ -1616,20 +1622,55 @@ void MatchCoordinator::markGameOverMoveAppended()
     qDebug() << "[Match] markGameOverMoveAppended()";
 }
 
-// 投了と同様に“対局の実体”として中断を一元処理
+// 投了と同様に"対局の実体"として中断を一元処理
 void MatchCoordinator::handleBreakOff()
 {
     // すでに終局なら何もしない
     if (m_gameOver.isOver) return;
 
-    // 進行系タイマを停止（人間用のみでOK）
-    disarmHumanTimerIfNeeded();
-
-    // 司令塔として終局状態を確定（中断）
+    // ★ 最初に終局フラグを立てる（resignationTriggered シグナルが既にキューにある場合に備える）
     m_gameOver.isOver         = true;
     m_gameOver.when           = QDateTime::currentDateTime();
     m_gameOver.hasLast        = true;
     m_gameOver.lastInfo.cause = Cause::BreakOff;
+
+    // ★ 時計を即座に停止 & ゲームオーバーマーク（タイムアウト処理を防ぐ）
+    if (m_clock) {
+        m_clock->markGameOver();
+        m_clock->stopClock();
+    }
+
+    // 進行系タイマを停止（人間用のみでOK）
+    disarmHumanTimerIfNeeded();
+
+    // EvE かどうかを判定（エンジン終了処理に必要）
+    const bool isEvE =
+        (m_playMode == PlayMode::EvenEngineVsEngine) ||
+        (m_playMode == PlayMode::HandicapEngineVsEngine);
+
+    // ★ 思考中のエンジンを中断してから終了通知を送る
+    if (isEvE) {
+        // EvE: 両方のエンジンに stop を送って思考を中断
+        if (m_usi1) m_usi1->sendStopCommand();
+        if (m_usi2) m_usi2->sendStopCommand();
+
+        // gameover 通知を送る（中断は引き分け扱い）
+        if (m_usi1) {
+            m_usi1->sendGameOverCommand(QStringLiteral("draw"));
+            m_usi1->setSquelchResignLogging(true);
+        }
+        if (m_usi2) {
+            m_usi2->sendGameOverCommand(QStringLiteral("draw"));
+            m_usi2->setSquelchResignLogging(true);
+        }
+    } else {
+        // HvE: 主エンジンに stop を送って思考を中断
+        if (Usi* eng = primaryEngine()) {
+            eng->sendStopCommand();
+            eng->sendGameOverCommand(QStringLiteral("draw"));
+            eng->setSquelchResignLogging(true);
+        }
+    }
 
     // ★ 中断行の生成＋KIF追記＋一度だけの追記ブロック確定（内部で emit 済み）
     appendBreakOffLineAndMark();
@@ -1730,38 +1771,6 @@ void MatchCoordinator::onCheckmateUnknown_()
     if (m_hooks.showGameOverDialog) {
         m_hooks.showGameOverDialog(tr("詰み探索"), tr("不明（解析不能）"));
     }
-}
-
-// 検討モードを手動終了する（quit送信→エンジン破棄）
-//  - PlayMode::ConsiderationMode 以外では何もしない
-//  - Usi::sendQuitCommand() は終了時のログ抑止などの安全策込み
-//  - 送信後にプロセス/スレッドを片付け、Usi オブジェクトも破棄
-//  - モードは PlayMode::NotStarted に戻す（isAnalysisActive() が偽になる）
-void MatchCoordinator::handleBreakOffConsidaration()
-{
-    if (m_playMode != PlayMode::ConsiderationMode)
-        return;
-
-    // 単発検討は m_usi1 を利用している前提（存在すれば確実に止める）
-    if (m_usi1) {
-        m_usi1->cleanupEngineProcessAndThread(); // 読み取り側をドレインして安全終了
-        destroyEngine(1);                       // Usi オブジェクト自体も破棄
-    }
-
-    // 念のため、片側だけの想定でも m_usi2 が残っていれば同様に止める
-    if (m_usi2) {
-        m_usi2->cleanupEngineProcessAndThread();
-        destroyEngine(2);
-    }
-
-    // モードを通常状態へ戻す（以降 isAnalysisActive()==false）
-    setPlayMode(PlayMode::NotStarted);
-
-    // UI 側のボタン等を「対局中でない」状態へ（フック未設定なら何もしない）
-    setGameInProgressActions_(false);
-
-    // 手番表示などの軽い再描画（必要なければ削ってOK）
-    updateTurnDisplay_(m_cur);
 }
 
 void MatchCoordinator::onUsiError_(const QString& msg)

@@ -2898,30 +2898,6 @@ void MainWindow::ensurePreStartCleanupHandler_()
     qDebug().noquote() << "[MW] ensurePreStartCleanupHandler_: created and connected";
 }
 
-// 「検討を終了」アクション用：エンジンに quit を送り検討セッションを終了
-void MainWindow::handleBreakOffConsidaration()
-{
-    if (!m_match) return;
-
-    // 司令塔に依頼（内部で quit 送信→プロセス/Usi 破棄→モード PlayMode::NotStarted）
-    m_match->handleBreakOffConsidaration();
-
-    // UI の後始末（任意）——検討のハイライトなどをクリアしておく
-    if (m_shogiView) m_shogiView->removeHighlightAllData();
-
-    // MainWindow 側のモードも念のため合わせる（UI 表示に依存がある場合）
-    m_playMode = PlayMode::NotStarted;
-
-    // 盤下のエンジン名表示などを通常状態へ（関数がある場合）
-    setEngineNamesBasedOnMode();
-    updateSecondEngineVisibility();  // ★ 追加: 検討終了時も2番目エンジン表示を更新
-
-    // ここでは UI の大規模リセットは行わず、検討終了の状態だけ示す
-    if (statusBar()) {
-        statusBar()->showMessage(tr("検討を中断しました（エンジンに quit を送信）。"), 3000);
-    }
-}
-
 void MainWindow::ensureTurnSyncBridge_()
 {
     auto* gc = m_gameController;

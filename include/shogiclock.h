@@ -76,6 +76,9 @@ public:
     bool isGameOver() const { return m_gameOver; }
     void markGameOver() { m_gameOver = true; }
 
+    // 時計が動作中かどうか（デバッグ/状態確認用）
+    bool isRunning() const { return m_clockRunning; }
+
     // デバッグ/ログ用
     qint64 player1ConsiderationMs() const { return m_player1ConsiderationTimeMs; }
     qint64 player2ConsiderationMs() const { return m_player2ConsiderationTimeMs; }
