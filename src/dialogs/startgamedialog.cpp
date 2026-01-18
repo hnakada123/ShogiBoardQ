@@ -16,6 +16,12 @@ StartGameDialog::StartGameDialog(QWidget *parent) : QDialog(parent), ui(new Ui::
     // UIをセットアップする。
     ui->setupUi(this);
 
+    // グリッドレイアウトの列ストレッチを設定（ラベル列は伸びず、コントロール列が伸びる）
+    ui->gridLayoutPlayer1->setColumnStretch(0, 0);
+    ui->gridLayoutPlayer1->setColumnStretch(1, 1);
+    ui->gridLayoutPlayer2->setColumnStretch(0, 0);
+    ui->gridLayoutPlayer2->setColumnStretch(1, 1);
+
     // 文字サイズ設定を読み込んで適用する。
     loadFontSizeSettings();
 
@@ -844,10 +850,14 @@ void StartGameDialog::updatePlayerUI(int playerNumber, int index)
 
     if (playerNumber == 1) {
         // 人間が選択された場合はページ0、エンジンの場合はページ1
-        ui->stackedWidgetPlayer1->setCurrentIndex(index == 0 ? 0 : 1);
+        const int pageIndex = (index == 0) ? 0 : 1;
+        ui->stackedWidgetPlayer1->setCurrentIndex(pageIndex);
+        ui->stackedWidgetLabel1->setCurrentIndex(pageIndex);
     } else {
         // 人間が選択された場合はページ0、エンジンの場合はページ1
-        ui->stackedWidgetPlayer2->setCurrentIndex(index == 0 ? 0 : 1);
+        const int pageIndex = (index == 0) ? 0 : 1;
+        ui->stackedWidgetPlayer2->setCurrentIndex(pageIndex);
+        ui->stackedWidgetLabel2->setCurrentIndex(pageIndex);
     }
 }
 
