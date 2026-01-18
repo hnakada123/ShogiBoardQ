@@ -193,6 +193,15 @@ QSize jishogiScoreDialogSize();
 // ★ 追加: 持将棋の点数ダイアログのウィンドウサイズを保存
 void setJishogiScoreDialogSize(const QSize& size);
 
+// ★ 追加: 言語設定
+// 言語コードを取得（デフォルト: "system"）
+// "system" = システムロケールに従う
+// "ja_JP" = 日本語
+// "en" = 英語
+QString language();
+// 言語コードを保存
+void setLanguage(const QString& lang);
+
 } // namespace SettingsService
 
 #endif // SETTINGSSERVICE_H

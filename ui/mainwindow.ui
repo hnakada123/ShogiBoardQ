@@ -32,10 +32,7 @@
     <addaction name="actionSave"/>
     <addaction name="actionSaveAs"/>
     <addaction name="separator"/>
-    <addaction name="importRecordWeb"/>
-    <addaction name="separator"/>
     <addaction name="actionSaveBoardImage"/>
-    <addaction name="saveImageEvaluatedValue"/>
     <addaction name="separator"/>
     <addaction name="actionQuit"/>
    </widget>
@@ -114,11 +111,15 @@
      <string>設定(S)</string>
     </property>
     <addaction name="actionEngineSettings"/>
-    <addaction name="separator"/>
-    <addaction name="gameSetup"/>
-    <addaction name="configurationSetting"/>
-    <addaction name="action_2"/>
-    <addaction name="shogiProblemSearchSetting"/>
+    <widget class="QMenu" name="menuLanguage">
+     <property name="title">
+      <string>言語設定</string>
+     </property>
+     <addaction name="actionLanguageSystem"/>
+     <addaction name="actionLanguageJapanese"/>
+     <addaction name="actionLanguageEnglish"/>
+    </widget>
+    <addaction name="menuLanguage"/>
    </widget>
    <widget class="QMenu" name="Help">
     <property name="title">
@@ -765,6 +766,30 @@
   <action name="action_2">
    <property name="text">
     <string>棋譜解析設定</string>
+   </property>
+  </action>
+  <action name="actionLanguageSystem">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>システム設定に従う</string>
+   </property>
+  </action>
+  <action name="actionLanguageJapanese">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>日本語</string>
+   </property>
+  </action>
+  <action name="actionLanguageEnglish">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>English</string>
    </property>
   </action>
  </widget>

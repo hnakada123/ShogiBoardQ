@@ -65,4 +65,9 @@ void UiActionsWiring::wire()
 
     // 棋譜貼り付け (編集メニュー)
     QObject::connect(ui->pasteGameRecord,            &QAction::triggered, mw, &MainWindow::pasteKifuFromClipboard,         Qt::UniqueConnection);
+
+    // 言語設定
+    QObject::connect(ui->actionLanguageSystem,   &QAction::triggered, mw, &MainWindow::onLanguageSystemTriggered,   Qt::UniqueConnection);
+    QObject::connect(ui->actionLanguageJapanese, &QAction::triggered, mw, &MainWindow::onLanguageJapaneseTriggered, Qt::UniqueConnection);
+    QObject::connect(ui->actionLanguageEnglish,  &QAction::triggered, mw, &MainWindow::onLanguageEnglishTriggered,  Qt::UniqueConnection);
 }

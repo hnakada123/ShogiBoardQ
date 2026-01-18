@@ -588,4 +588,20 @@ void setJishogiScoreDialogSize(const QSize& size)
     s.setValue("JishogiScore/dialogSize", size);
 }
 
+// ★ 追加: 言語コードを取得
+QString language()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("General/language", "system").toString();
+}
+
+// ★ 追加: 言語コードを保存
+void setLanguage(const QString& lang)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("General/language", lang);
+}
+
 } // namespace SettingsService

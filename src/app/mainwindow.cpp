@@ -158,9 +158,17 @@ MainWindow::MainWindow(QWidget *parent)
     // 司令塔やUIフォント/位置編集コントローラの最終初期化
     finalizeCoordinators_();
 
-    // 起動時用：編集メニューを“編集前（未編集）”の初期状態にする
+    // 起動時用：編集メニューを"編集前（未編集）"の初期状態にする
     initializeEditMenuForStartup();
-    
+
+    // 言語メニューをグループ化（相互排他）して現在の設定を反映
+    m_languageActionGroup = new QActionGroup(this);
+    m_languageActionGroup->addAction(ui->actionLanguageSystem);
+    m_languageActionGroup->addAction(ui->actionLanguageJapanese);
+    m_languageActionGroup->addAction(ui->actionLanguageEnglish);
+    m_languageActionGroup->setExclusive(true);
+    updateLanguageMenuState();
+
     // 評価値グラフ高さ調整用タイマーを初期化（デバウンス処理用）
     m_evalChartResizeTimer = new QTimer(this);
     m_evalChartResizeTimer->setSingleShot(true);
@@ -3745,4 +3753,46 @@ void MainWindow::onJosekiForcedPromotion_(bool forced, bool promote)
     if (m_gameController) {
         m_gameController->setForcedPromotion(forced, promote);
     }
+}
+
+// =============================================================================
+// 言語設定
+// =============================================================================
+
+void MainWindow::updateLanguageMenuState()
+{
+    QString current = SettingsService::language();
+    ui->actionLanguageSystem->setChecked(current == "system");
+    ui->actionLanguageJapanese->setChecked(current == "ja_JP");
+    ui->actionLanguageEnglish->setChecked(current == "en");
+}
+
+void MainWindow::changeLanguage(const QString& lang)
+{
+    QString current = SettingsService::language();
+    if (current == lang) return;
+
+    SettingsService::setLanguage(lang);
+
+    QMessageBox::information(this,
+        tr("言語設定"),
+        tr("言語設定を変更しました。\n変更を反映するにはアプリケーションを再起動してください。"));
+}
+
+void MainWindow::onLanguageSystemTriggered()
+{
+    changeLanguage("system");
+    updateLanguageMenuState();
+}
+
+void MainWindow::onLanguageJapaneseTriggered()
+{
+    changeLanguage("ja_JP");
+    updateLanguageMenuState();
+}
+
+void MainWindow::onLanguageEnglishTriggered()
+{
+    changeLanguage("en");
+    updateLanguageMenuState();
 }
