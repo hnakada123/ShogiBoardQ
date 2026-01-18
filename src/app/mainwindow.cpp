@@ -1745,6 +1745,76 @@ void MainWindow::onGameInfoUpdated_(const QList<KifGameInfoItem>& items)
     qDebug().noquote() << "[MW] onGameInfoUpdated_: Game info updated, items=" << items.size();
 }
 
+// ★ 追加: 連続対局設定を受信
+void MainWindow::onConsecutiveGamesConfigured_(int totalGames, bool switchTurn)
+{
+    qDebug().noquote() << "[MW] onConsecutiveGamesConfigured_: totalGames=" << totalGames << " switchTurn=" << switchTurn;
+
+    // 連続対局設定を保存
+    m_consecutiveGamesTotal = totalGames;
+    m_consecutiveGamesRemaining = totalGames - 1;  // 最初の1局目は既に開始されている
+    m_consecutiveGameNumber = 1;
+    m_switchTurnEachGame = switchTurn;
+}
+
+// ★ 追加: 対局開始時の設定を保存（連続対局用）
+void MainWindow::onGameStarted_(const MatchCoordinator::StartOptions& opt)
+{
+    qDebug().noquote() << "[MW] onGameStarted_: mode=" << static_cast<int>(opt.mode)
+                       << " sfenStart=" << opt.sfenStart;
+    // 連続対局用に設定を保存
+    m_lastStartOptions = opt;
+}
+
+// ★ 追加: 連続対局の次の対局を開始
+void MainWindow::startNextConsecutiveGame_()
+{
+    qDebug().noquote() << "[MW] startNextConsecutiveGame_: remaining=" << m_consecutiveGamesRemaining
+                       << " gameNumber=" << m_consecutiveGameNumber;
+
+    if (m_consecutiveGamesRemaining <= 0) {
+        qDebug() << "[MW] No more consecutive games remaining.";
+        return;
+    }
+
+    // 残り回数をデクリメント、対局番号をインクリメント
+    m_consecutiveGamesRemaining--;
+    m_consecutiveGameNumber++;
+
+    // 1局ごとに手番を入れ替える場合
+    if (m_switchTurnEachGame) {
+        // エンジン名とパスを入れ替え
+        std::swap(m_lastStartOptions.engineName1, m_lastStartOptions.engineName2);
+        std::swap(m_lastStartOptions.enginePath1, m_lastStartOptions.enginePath2);
+        qDebug() << "[MW] Switched engine sides for next game";
+    }
+
+    // 少し遅延を入れて次の対局を開始（UIの更新を待つため）
+    QTimer::singleShot(1500, this, [this]() {
+        qDebug() << "[MW] Starting next consecutive game after delay";
+
+        // 開始前クリーンアップ
+        onPreStartCleanupRequested_();
+
+        // 時計の適用
+        if (m_timeController) {
+            ShogiClock* clk = m_timeController->clock();
+            TimeControlUtil::applyToClock(clk, m_lastTimeControl, m_lastStartOptions.sfenStart, QString());
+        }
+
+        // GameStartCoordinatorを使って対局開始
+        ensureGameStartCoordinator_();
+        if (m_gameStart) {
+            GameStartCoordinator::StartParams params;
+            params.opt = m_lastStartOptions;
+            params.tc = m_lastTimeControl;
+            params.autoStartEngineMove = true;
+
+            m_gameStart->start(params);
+        }
+    });
+}
+
 void MainWindow::syncBoardAndHighlightsAtRow(int ply)
 {
     qDebug() << "[MW-DEBUG] syncBoardAndHighlightsAtRow ENTER ply=" << ply;
@@ -2147,6 +2217,14 @@ void MainWindow::onMatchGameEnded(const MatchCoordinator::GameEndInfo& info)
     ensureGameStateController_();
     if (m_gameStateController) {
         m_gameStateController->onMatchGameEnded(info);
+    }
+
+    // ★ 追加: EvE対局で連続対局が残っている場合、次の対局を自動開始
+    const bool isEvE = (m_playMode == PlayMode::EvenEngineVsEngine ||
+                        m_playMode == PlayMode::HandicapEngineVsEngine);
+    if (isEvE && m_consecutiveGamesRemaining > 0) {
+        qDebug() << "[MW] EvE game ended, starting next consecutive game...";
+        startNextConsecutiveGame_();
     }
 }
 
@@ -2902,9 +2980,17 @@ void MainWindow::ensureGameStartCoordinator_()
     connect(m_gameStart, &GameStartCoordinator::playerNamesResolved,
             this, &MainWindow::onPlayerNamesResolved_);
 
+    // ★ 追加: 連続対局設定シグナルを接続
+    connect(m_gameStart, &GameStartCoordinator::consecutiveGamesConfigured,
+            this, &MainWindow::onConsecutiveGamesConfigured_);
+
     // ★ 追加: 対局開始時にナビゲーション（棋譜欄と矢印ボタン）を無効化
     connect(m_gameStart, &GameStartCoordinator::started,
             this, &MainWindow::disableNavigationForGame);
+
+    // ★ 追加: 対局開始時の設定を保存（連続対局用）
+    connect(m_gameStart, &GameStartCoordinator::started,
+            this, &MainWindow::onGameStarted_);
 
     // ★ 追加: 盤面反転シグナルを接続（人を手前に表示する機能用）
     connect(m_gameStart, &GameStartCoordinator::boardFlipped,
@@ -2927,6 +3013,9 @@ void MainWindow::onApplyTimeControlRequested_(const GameStartCoordinator::TimeCo
     << " enabled=" << tc.enabled
     << " P1{base=" << tc.p1.baseMs << " byoyomi=" << tc.p1.byoyomiMs << " inc=" << tc.p1.incrementMs << "}"
     << " P2{base=" << tc.p2.baseMs << " byoyomi=" << tc.p2.byoyomiMs << " inc=" << tc.p2.incrementMs << "}";
+
+    // ★ 連続対局用に時間設定を保存
+    m_lastTimeControl = tc;
 
     // ★ TimeControlControllerに時間制御情報を保存
     if (m_timeController) {

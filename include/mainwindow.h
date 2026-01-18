@@ -294,6 +294,15 @@ private slots:
     // ★ 新規: GameInfoPaneControllerからの通知
     void onGameInfoUpdated_(const QList<KifGameInfoItem>& items);
 
+    // 連続対局: 設定を受信
+    void onConsecutiveGamesConfigured_(int totalGames, bool switchTurn);
+
+    // 連続対局: 対局開始時の設定を保存
+    void onGameStarted_(const MatchCoordinator::StartOptions& opt);
+
+    // 連続対局: 次の対局を開始
+    void startNextConsecutiveGame_();
+
     // ========================================================
     // private
     // ========================================================
@@ -391,6 +400,14 @@ private:
     // 試合進行（司令塔）
     MatchCoordinator* m_match = nullptr;
     QMetaObject::Connection m_timeConn;
+
+    // 連続対局設定
+    int  m_consecutiveGamesRemaining = 0;  // 残り連続対局回数
+    int  m_consecutiveGamesTotal     = 1;  // 連続対局の設定回数（合計）
+    int  m_consecutiveGameNumber     = 1;  // 現在の対局番号（1から始まる）
+    bool m_switchTurnEachGame        = false;  // 1局ごとに手番を入れ替えるかどうか
+    MatchCoordinator::StartOptions m_lastStartOptions;  // 前回の対局設定（連続対局用）
+    GameStartCoordinator::TimeControl m_lastTimeControl;  // 前回の時間設定（連続対局用）
 
     // リプレイ制御（ReplayControllerへ移行）
     ReplayController* m_replayController = nullptr;

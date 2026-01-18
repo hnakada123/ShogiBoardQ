@@ -860,6 +860,13 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
     qDebug().noquote() << "[GSC] ★★★ startGameAfterDialog: BEFORE playerNamesResolved ★★★";
     qDebug().noquote() << "[GSC] human1=" << human1 << " human2=" << human2 << " engine1=" << engine1 << " engine2=" << engine2;
     emit playerNamesResolved(human1, human2, engine1, engine2, static_cast<int>(mode));
+
+    // --- 8.5) 連続対局設定を通知（EvE対局時のみ有効） ---
+    const int consecutiveGames = dlg->consecutiveGames();
+    const bool switchTurn = dlg->isSwitchTurnEachGame();
+    emit consecutiveGamesConfigured(consecutiveGames, switchTurn);
+    qDebug().noquote() << "[GSC] consecutiveGames=" << consecutiveGames << " switchTurn=" << switchTurn;
+
     qDebug().noquote() << "[GSC] ★★★ startGameAfterDialog: AFTER playerNamesResolved, BEFORE start() ★★★";
 
     // --- 9) 対局開始（時計設定 + 初手 go 設定） ---

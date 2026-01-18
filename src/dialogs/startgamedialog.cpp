@@ -285,6 +285,9 @@ void StartGameDialog::loadGameSettings()
 
     // 設定の読み込みを終了する。
     settings.endGroup();
+
+    // 連続対局スピンボックスの有効/無効を更新する。
+    updateConsecutiveGamesEnabled();
 }
 
 // 設定を初期値にリセットする。
@@ -852,12 +855,30 @@ void StartGameDialog::updatePlayerUI(int playerNumber, int index)
 void StartGameDialog::onPlayer1SelectionChanged(int index)
 {
     updatePlayerUI(1, index);
+    updateConsecutiveGamesEnabled();
 }
 
 // 後手／上手の対局者選択が変更された場合、UIを更新する。
 void StartGameDialog::onPlayer2SelectionChanged(int index)
 {
     updatePlayerUI(2, index);
+    updateConsecutiveGamesEnabled();
+}
+
+// 連続対局スピンボックスの有効/無効を更新する。
+void StartGameDialog::updateConsecutiveGamesEnabled()
+{
+    // 両方のプレイヤーがエンジン（インデックス > 0）の場合のみ連続対局を有効にする
+    bool isEngine1 = (ui->comboBoxPlayer1->currentIndex() > 0);
+    bool isEngine2 = (ui->comboBoxPlayer2->currentIndex() > 0);
+    bool enableConsecutive = (isEngine1 && isEngine2);
+
+    ui->spinBoxConsecutiveGames->setEnabled(enableConsecutive);
+
+    // 人間が含まれる場合は連続対局数を1に固定する
+    if (!enableConsecutive) {
+        ui->spinBoxConsecutiveGames->setValue(1);
+    }
 }
 
 // 棋譜保存ディレクトリ選択ボタンが押された場合、ディレクトリ選択ダイアログを表示する。
