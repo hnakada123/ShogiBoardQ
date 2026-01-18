@@ -159,6 +159,10 @@ signals:
     void gameOverStateChanged(const MatchCoordinator::GameOverState& st);
     void matchGameEnded(const MatchCoordinator::GameEndInfo& info);
 
+    // ★追加：連続対局設定（EvE対局時のみ使用）
+    // totalGames: 連続対局数（合計）, switchTurn: 1局ごとに手番を入れ替えるか
+    void consecutiveGamesConfigured(int totalGames, bool switchTurn);
+
 private:
     bool validate_(const StartParams& params, QString& whyNot) const;
 

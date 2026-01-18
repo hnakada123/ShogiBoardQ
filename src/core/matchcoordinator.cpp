@@ -993,6 +993,12 @@ void MatchCoordinator::startEngineVsEngine_(const StartOptions& opt)
 {
     if (!m_usi1 || !m_usi2 || !m_gc) return;
 
+    // ★ 時計を開始（EvE対局で初手からタイマーを動作させるため）
+    if (m_clock) {
+        m_clock->startClock();
+        qDebug() << "[EvE] Clock started";
+    }
+
     // 駒落ちの場合、SFENで手番が「w」（後手番）になっている
     // GCの currentPlayer() がその手番を持っているはず
     if (m_gc->currentPlayer() == ShogiGameController::NoPlayer) {

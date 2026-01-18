@@ -262,6 +262,9 @@ private slots:
     // 棋譜保存ディレクトリ選択ボタンが押された場合、ディレクトリ選択ダイアログを表示する。
     void onSelectKifuDirClicked();
 
+    // 連続対局スピンボックスの有効/無効を更新する。
+    void updateConsecutiveGamesEnabled();
+
 private:
     // 現在の文字サイズ
     int m_fontSize;
