@@ -100,7 +100,6 @@
     <addaction name="actionUndoMove"/>
     <addaction name="actionMakeImmediateMove"/>
     <addaction name="breakOffGame"/>
-    <addaction name="actionQuitEngine"/>
     <addaction name="separator"/>
     <addaction name="actionAnalyzeKifu"/>
     <addaction name="actionCacelAnalyzeKifu"/>
@@ -157,7 +156,6 @@
    <addaction name="actionUndoMove"/>
    <addaction name="actionMakeImmediateMove"/>
    <addaction name="breakOffGame"/>
-   <addaction name="actionQuitEngine"/>
    <addaction name="actionConsideration"/>
    <addaction name="actionAnalyzeKifu"/>
    <addaction name="actionTsumeShogiSearch"/>
@@ -715,24 +713,6 @@
   <action name="actionNyugyokuDeclaration">
    <property name="text">
     <string>入玉宣言</string>
-   </property>
-  </action>
-  <action name="actionQuitEngine">
-   <property name="icon">
-    <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/owari.png</normaloff>:/images/icons/owari.png</iconset>
-   </property>
-   <property name="text">
-    <string>エンジン終了</string>
-   </property>
-   <property name="toolTip">
-    <string>エンジン終了</string>
-   </property>
-   <property name="whatsThis">
-    <string/>
-   </property>
-   <property name="visible">
-    <bool>true</bool>
    </property>
   </action>
   <action name="actionUSI">

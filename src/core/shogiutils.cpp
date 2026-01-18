@@ -13,6 +13,11 @@ QString transRankTo(const int rankTo)
     static const QStringList rankStrings = { "", "一", "二", "三", "四", "五", "六", "七", "八", "九" };
 
     if (rankTo < 1 || rankTo > 9) {
+        // -1 はセンチネル値（未設定/無効）として使われるため、エラーダイアログは表示しない
+        if (rankTo == -1) {
+            qDebug().noquote() << "[ShogiUtils] transRankTo: sentinel value -1 (no valid coordinate)";
+            return QString();
+        }
         const QString msg = QObject::tr("The rank must be a value between 1 and 9. (got %1)")
         .arg(rankTo);
         qWarning().noquote() << "[ShogiUtils]" << msg;
@@ -28,6 +33,11 @@ QString transFileTo(const int fileTo)
     static const QStringList fileStrings = { "", "１", "２", "３", "４", "５", "６", "７", "８", "９" };
 
     if (fileTo < 1 || fileTo > 9) {
+        // -1 はセンチネル値（未設定/無効）として使われるため、エラーダイアログは表示しない
+        if (fileTo == -1) {
+            qDebug().noquote() << "[ShogiUtils] transFileTo: sentinel value -1 (no valid coordinate)";
+            return QString();
+        }
         const QString msg = QObject::tr("The file must be a value between 1 and 9. (got %1)")
         .arg(fileTo);
         qWarning().noquote() << "[ShogiUtils]" << msg;

@@ -448,10 +448,6 @@ private:
     // ...（既存）
     GameOverState m_gameOver;
 
-public:
-    // ==== 追加：検討の強制終了（quit送信→エンジン破棄） ====
-    void handleBreakOffConsidaration();
-
 private slots:
     void onCheckmateSolved_(const QStringList& pv);
     void onCheckmateNoMate_();

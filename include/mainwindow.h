@@ -209,7 +209,6 @@ public slots:
                                 int playMode);
     void onActionFlipBoardTriggered(bool checked = false);
     void handleBreakOffGame();
-    void handleBreakOffConsidaration();
     void movePieceImmediately();
     void onRecordPaneMainRowChanged_(int row);
 
