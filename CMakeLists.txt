@@ -126,6 +126,7 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets LinguistTools Cha
 # ==== Translations (.ts) ====
 set(TS_FILES
     resources/translations/ShogiBoardQ_ja_JP.ts
+    resources/translations/ShogiBoardQ_en.ts
 )
 
 # ==== UI (.ui) ====
@@ -197,6 +198,20 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
 
     # .qm 生成（出力はビルド側に）
     qt_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
+
+    # .qm ファイルをビルドターゲットとして追加
+    add_custom_target(translations ALL DEPENDS ${QM_FILES})
+    add_dependencies(ShogiBoardQ translations)
+
+    # .qm ファイルを実行可能ファイルと同じディレクトリにコピー
+    foreach(QM_FILE ${QM_FILES})
+        add_custom_command(TARGET ShogiBoardQ POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                ${QM_FILE}
+                $<TARGET_FILE_DIR:ShogiBoardQ>
+            COMMENT "Copying ${QM_FILE} to output directory"
+        )
+    endforeach()
 else()
     # Qt5 フォールバック（基本は Qt6 想定）
     add_executable(ShogiBoardQ

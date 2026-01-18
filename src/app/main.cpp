@@ -1,4 +1,5 @@
 #include "mainwindow.h"
+#include "settingsservice.h"
 
 #include <QApplication>
 #include <QLocale>
@@ -55,16 +56,56 @@ int main(int argc, char *argv[])
     // アプリケーションアイコンを設定
     a.setWindowIcon(QIcon(":/shogiboardq.png"));
 
+    // 言語設定を読み込み、適切な翻訳ファイルをロード
     QTranslator translator;
+    QString langSetting = SettingsService::language();
 
-    const QStringList uiLanguages = QLocale::system().uiLanguages();
+    qDebug() << "[i18n] Language setting:" << langSetting;
+    qDebug() << "[i18n] Application dir:" << QCoreApplication::applicationDirPath();
 
-    for (const QString &locale : uiLanguages) {
-        const QString baseName = "ShogiBoardQ_" + QLocale(locale).name();
-
-        if (translator.load(":/i18n/" + baseName)) {
+    bool loaded = false;
+    if (langSetting == "ja_JP") {
+        // 日本語を明示的に指定
+        loaded = translator.load(":/i18n/ShogiBoardQ_ja_JP");
+        qDebug() << "[i18n] Trying :/i18n/ShogiBoardQ_ja_JP ->" << (loaded ? "SUCCESS" : "FAILED");
+        if (!loaded) {
+            // ビルドディレクトリから読み込みを試行
+            loaded = translator.load(QCoreApplication::applicationDirPath() + "/ShogiBoardQ_ja_JP.qm");
+            qDebug() << "[i18n] Trying applicationDir/ShogiBoardQ_ja_JP.qm ->" << (loaded ? "SUCCESS" : "FAILED");
+        }
+        if (loaded) {
             a.installTranslator(&translator);
-            break;
+            qDebug() << "[i18n] Translator installed for ja_JP";
+        }
+    } else if (langSetting == "en") {
+        // 英語翻訳ファイルをロード
+        loaded = translator.load(":/i18n/ShogiBoardQ_en");
+        qDebug() << "[i18n] Trying :/i18n/ShogiBoardQ_en ->" << (loaded ? "SUCCESS" : "FAILED");
+        if (!loaded) {
+            // ビルドディレクトリから読み込みを試行
+            loaded = translator.load(QCoreApplication::applicationDirPath() + "/ShogiBoardQ_en.qm");
+            qDebug() << "[i18n] Trying applicationDir/ShogiBoardQ_en.qm ->" << (loaded ? "SUCCESS" : "FAILED");
+        }
+        if (loaded) {
+            a.installTranslator(&translator);
+            qDebug() << "[i18n] Translator installed for en";
+        } else {
+            qDebug() << "[i18n] WARNING: English translation file not found!";
+        }
+    } else {
+        // "system" またはその他: システムロケールに従う（既存の動作）
+        qDebug() << "[i18n] Using system locale";
+        const QStringList uiLanguages = QLocale::system().uiLanguages();
+        qDebug() << "[i18n] System UI languages:" << uiLanguages;
+        for (const QString &locale : uiLanguages) {
+            const QString baseName = "ShogiBoardQ_" + QLocale(locale).name();
+            loaded = translator.load(":/i18n/" + baseName);
+            qDebug() << "[i18n] Trying :/i18n/" << baseName << "->" << (loaded ? "SUCCESS" : "FAILED");
+            if (loaded) {
+                a.installTranslator(&translator);
+                qDebug() << "[i18n] Translator installed for" << baseName;
+                break;
+            }
         }
     }
 

@@ -12,6 +12,7 @@
 #include <QTime>
 #include <QTimer>
 #include <QVBoxLayout>
+#include <QActionGroup>
 
 // ==============================
 // Project includes (types used by value)
@@ -196,6 +197,11 @@ public slots:
     void updateJosekiWindow();  // 定跡ウィンドウの更新
     void displayJishogiScoreDialog();  // 持将棋の点数ダイアログ
     void handleNyugyokuDeclaration();  // 入玉宣言
+
+    // 言語設定
+    void onLanguageSystemTriggered();
+    void onLanguageJapaneseTriggered();
+    void onLanguageEnglishTriggered();
 
     // その他操作
     void toggleEngineAnalysisVisibility();
@@ -479,9 +485,16 @@ private:
     // 変化エンジン
     std::unique_ptr<KifuVariationEngine> m_varEngine;
 
+    // 言語設定用アクショングループ
+    QActionGroup* m_languageActionGroup = nullptr;
+
     // --------------------------------------------------------
     // Private Methods
     // --------------------------------------------------------
+
+    // 言語設定
+    void updateLanguageMenuState();
+    void changeLanguage(const QString& lang);
 
     // UI / 表示更新
     void updateGameRecord(const QString& elapsedTime);
