@@ -604,4 +604,68 @@ void setLanguage(const QString& lang)
     s.setValue("General/language", lang);
 }
 
+// ★ 追加: メニューウィンドウのお気に入りアクションリストを取得
+QStringList menuWindowFavorites()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("MenuWindow/favorites", QStringList()).toStringList();
+}
+
+// ★ 追加: メニューウィンドウのお気に入りアクションリストを保存
+void setMenuWindowFavorites(const QStringList& favorites)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("MenuWindow/favorites", favorites);
+}
+
+// ★ 追加: メニューウィンドウのサイズを取得
+QSize menuWindowSize()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("MenuWindow/size", QSize(500, 400)).toSize();
+}
+
+// ★ 追加: メニューウィンドウのサイズを保存
+void setMenuWindowSize(const QSize& size)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("MenuWindow/size", size);
+}
+
+// ★ 追加: メニューウィンドウのボタンサイズを取得
+int menuWindowButtonSize()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("MenuWindow/buttonSize", 72).toInt();
+}
+
+// ★ 追加: メニューウィンドウのボタンサイズを保存
+void setMenuWindowButtonSize(int size)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("MenuWindow/buttonSize", size);
+}
+
+// ★ 追加: メニューウィンドウのフォントサイズを取得
+int menuWindowFontSize()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("MenuWindow/fontSize", 9).toInt();
+}
+
+// ★ 追加: メニューウィンドウのフォントサイズを保存
+void setMenuWindowFontSize(int size)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("MenuWindow/fontSize", size);
+}
+
 } // namespace SettingsService

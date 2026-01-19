@@ -65,5 +65,6 @@
         <file>images/icons/tsuu.png</file>
         <file>images/icons/jyoseki.png</file>
         <file>images/icons/menu.png</file>
+        <file>images/icons/actionAboutQt.png</file>
     </qresource>
 </RCC>

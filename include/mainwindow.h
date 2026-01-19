@@ -110,6 +110,7 @@ class BranchRowDelegate;
 class JosekiWindowWiring;
 class PlayerInfoWiring;
 class PreStartCleanupHandler;
+class MenuWindowWiring;
 
 // ============================================================
 // MainWindow
@@ -195,6 +196,7 @@ public slots:
     void displayCsaGameDialog();
     void displayJosekiWindow();
     void updateJosekiWindow();  // 定跡ウィンドウの更新
+    void displayMenuWindow();   // メニューウィンドウの表示
     void displayJishogiScoreDialog();  // 持将棋の点数ダイアログ
     void handleNyugyokuDeclaration();  // 入玉宣言
 
@@ -476,6 +478,9 @@ private:
     // 定跡ウィンドウUI配線
     JosekiWindowWiring*       m_josekiWiring = nullptr;
 
+    // メニューウィンドウUI配線
+    MenuWindowWiring*         m_menuWiring = nullptr;
+
     // 対局情報・プレイヤー情報UI配線
     PlayerInfoWiring*         m_playerInfoWiring = nullptr;
 
@@ -575,6 +580,7 @@ private:
     void ensurePositionEditCoordinator_();
     void ensureCsaGameWiring_();
     void ensureJosekiWiring_();
+    void ensureMenuWiring_();
     void ensurePlayerInfoWiring_();
     void ensurePreStartCleanupHandler_();
 

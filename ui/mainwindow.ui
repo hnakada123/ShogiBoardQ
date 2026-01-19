@@ -110,7 +110,6 @@
     <property name="title">
      <string>設定(S)</string>
     </property>
-    <addaction name="actionEngineSettings"/>
     <widget class="QMenu" name="menuLanguage">
      <property name="title">
       <string>言語設定</string>
@@ -119,6 +118,7 @@
      <addaction name="actionLanguageJapanese"/>
      <addaction name="actionLanguageEnglish"/>
     </widget>
+    <addaction name="actionEngineSettings"/>
     <addaction name="menuLanguage"/>
    </widget>
    <widget class="QMenu" name="Help">
@@ -580,6 +580,10 @@
    </property>
   </action>
   <action name="actionAboutQt">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/actionAboutQt.png</normaloff>:/images/icons/actionAboutQt.png</iconset>
+   </property>
    <property name="text">
     <string>Qtについて</string>
    </property>

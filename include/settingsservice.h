@@ -202,6 +202,27 @@ QString language();
 // 言語コードを保存
 void setLanguage(const QString& lang);
 
+// ★ 追加: メニューウィンドウ設定
+// メニューウィンドウのお気に入りアクションリストを取得
+QStringList menuWindowFavorites();
+// メニューウィンドウのお気に入りアクションリストを保存
+void setMenuWindowFavorites(const QStringList& favorites);
+
+// メニューウィンドウのサイズを取得（デフォルト: 500x400）
+QSize menuWindowSize();
+// メニューウィンドウのサイズを保存
+void setMenuWindowSize(const QSize& size);
+
+// メニューウィンドウのボタンサイズを取得（デフォルト: 72）
+int menuWindowButtonSize();
+// メニューウィンドウのボタンサイズを保存
+void setMenuWindowButtonSize(int size);
+
+// メニューウィンドウのフォントサイズを取得（デフォルト: 9）
+int menuWindowFontSize();
+// メニューウィンドウのフォントサイズを保存
+void setMenuWindowFontSize(int size);
+
 } // namespace SettingsService
 
 #endif // SETTINGSSERVICE_H
