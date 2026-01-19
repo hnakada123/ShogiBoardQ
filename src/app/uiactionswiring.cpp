@@ -40,7 +40,6 @@ void UiActionsWiring::wire()
     QObject::connect(ui->actionSaveBoardImage,       &QAction::triggered, mw, &MainWindow::saveShogiBoardImage, Qt::UniqueConnection);
 
     // 解析/検討/詰み・エンジン設定
-    QObject::connect(ui->actionToggleEngineAnalysis, &QAction::triggered, mw, &MainWindow::toggleEngineAnalysisVisibility, Qt::UniqueConnection);
     QObject::connect(ui->actionEngineSettings,       &QAction::triggered, mw, &MainWindow::displayEngineSettingsDialog,    Qt::UniqueConnection);
     QObject::connect(ui->actionConsideration,        &QAction::triggered, mw, &MainWindow::displayConsiderationDialog,     Qt::UniqueConnection);
     QObject::connect(ui->actionAnalyzeKifu,          &QAction::triggered, mw, &MainWindow::displayKifuAnalysisDialog,      Qt::UniqueConnection);
@@ -54,7 +53,7 @@ void UiActionsWiring::wire()
     // 棋譜コピー (編集メニュー)
     QObject::connect(ui->kifFormat,                  &QAction::triggered, mw, &MainWindow::copyKifToClipboard,             Qt::UniqueConnection);
     QObject::connect(ui->ki2Format,                  &QAction::triggered, mw, &MainWindow::copyKi2ToClipboard,             Qt::UniqueConnection);
-    QObject::connect(ui->usiFormat,                  &QAction::triggered, mw, &MainWindow::copyCsaToClipboard,             Qt::UniqueConnection);  // CSA形式
+    QObject::connect(ui->csaFormat,                  &QAction::triggered, mw, &MainWindow::copyCsaToClipboard,             Qt::UniqueConnection);  // CSA形式
     QObject::connect(ui->universal,                  &QAction::triggered, mw, &MainWindow::copyUsiCurrentToClipboard,      Qt::UniqueConnection);  // USI形式（現在の指し手まで）
     QObject::connect(ui->actionUSI,                  &QAction::triggered, mw, &MainWindow::copyUsiToClipboard,             Qt::UniqueConnection);  // USI形式（全て）
     QObject::connect(ui->actionJSON,                 &QAction::triggered, mw, &MainWindow::copyJkfToClipboard,             Qt::UniqueConnection);  // JKF形式

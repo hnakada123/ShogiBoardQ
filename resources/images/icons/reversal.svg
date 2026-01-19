@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+    <title>先後反転</title>
+    <defs>
+        <style>
+            text { font-family: 'Noto Sans JP', 'Yu Gothic', sans-serif; }
+        </style>
+    </defs>
+    <circle cx="64" cy="64" r="64" fill="#607D8B"/>
+        <polygon points="64,4 48,36 80,36" fill="white"/>
+        <polygon points="64,124 80,92 48,92" fill="#1A1A1A"/>
+        <path d="M24 48 A44 44 0 0 1 104 48" stroke="white" stroke-width="6" fill="none"/>
+        <path d="M104 80 A44 44 0 0 1 24 80" stroke="#1A1A1A" stroke-width="6" fill="none"/>
+</svg>

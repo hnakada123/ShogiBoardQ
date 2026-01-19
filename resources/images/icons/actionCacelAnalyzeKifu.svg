@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+    <title>棋譜解析中止</title>
+    <defs>
+        <style>
+            text { font-family: 'Noto Sans JP', 'Yu Gothic', sans-serif; }
+        </style>
+    </defs>
+    <rect x="0" y="8" width="72" height="112" rx="6" fill="#ECEFF1" stroke="#607D8B" stroke-width="3"/>
+        <line x1="12" y1="36" x2="60" y2="36" stroke="#455A64" stroke-width="4"/>
+        <line x1="12" y1="56" x2="60" y2="56" stroke="#455A64" stroke-width="4"/>
+        <line x1="12" y1="76" x2="48" y2="76" stroke="#455A64" stroke-width="4"/>
+        <line x1="12" y1="96" x2="52" y2="96" stroke="#455A64" stroke-width="4"/>
+        <circle cx="96" cy="64" r="32" fill="#F44336" stroke="#C62828" stroke-width="3"/>
+        <line x1="80" y1="48" x2="112" y2="80" stroke="white" stroke-width="6" stroke-linecap="round"/>
+        <line x1="112" y1="48" x2="80" y2="80" stroke="white" stroke-width="6" stroke-linecap="round"/>
+</svg>

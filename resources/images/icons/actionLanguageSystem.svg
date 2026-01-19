@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+    <title>システム設定に従う</title>
+    <defs>
+        <style>
+            text { font-family: 'Noto Sans JP', 'Yu Gothic', sans-serif; }
+        </style>
+    </defs>
+    <rect x="0" y="8" width="128" height="104" rx="12" fill="#78909C" stroke="#546E7A" stroke-width="4"/>
+        <rect x="12" y="20" width="104" height="68" rx="4" fill="#ECEFF1"/>
+        <circle cx="64" cy="104" r="6" fill="#455A64"/>
+        <path d="M44 48 L58 64 L84 36" stroke="#4CAF50" stroke-width="8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

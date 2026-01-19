@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+    <title>エンジン設定</title>
+    <defs>
+        <style>
+            text { font-family: 'Noto Sans JP', 'Yu Gothic', sans-serif; }
+        </style>
+    </defs>
+    <circle cx="64" cy="64" r="64" fill="#607D8B"/>
+        <circle cx="64" cy="64" r="32" fill="#455A64"/>
+        <circle cx="64" cy="64" r="12" fill="#607D8B"/>
+        <g fill="#607D8B">
+            <rect x="58" y="0" width="12" height="24" rx="3"/>
+            <rect x="58" y="104" width="12" height="24" rx="3"/>
+            <rect x="0" y="58" width="24" height="12" rx="3"/>
+            <rect x="104" y="58" width="24" height="12" rx="3"/>
+            <rect x="14" y="14" width="12" height="20" rx="3" transform="rotate(45 20 24)"/>
+            <rect x="102" y="94" width="12" height="20" rx="3" transform="rotate(45 108 104)"/>
+            <rect x="102" y="14" width="12" height="20" rx="3" transform="rotate(-45 108 24)"/>
+            <rect x="14" y="94" width="12" height="20" rx="3" transform="rotate(-45 20 104)"/>
+        </g>
+</svg>

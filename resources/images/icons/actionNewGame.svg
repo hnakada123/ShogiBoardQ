@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+    <title>新規</title>
+    <defs>
+        <style>
+            text { font-family: 'Noto Sans JP', 'Yu Gothic', sans-serif; }
+        </style>
+    </defs>
+    <rect x="0" y="0" width="96" height="128" rx="6" fill="#4A90D9" stroke="#2D5A8A" stroke-width="4"/>
+        <line x1="16" y1="32" x2="80" y2="32" stroke="white" stroke-width="6" stroke-linecap="round"/>
+        <line x1="16" y1="56" x2="80" y2="56" stroke="white" stroke-width="6" stroke-linecap="round"/>
+        <line x1="16" y1="80" x2="56" y2="80" stroke="white" stroke-width="6" stroke-linecap="round"/>
+        <circle cx="96" cy="96" r="32" fill="#4CAF50"/>
+        <line x1="96" y1="80" x2="96" y2="112" stroke="white" stroke-width="6" stroke-linecap="round"/>
+        <line x1="80" y1="96" x2="112" y2="96" stroke="white" stroke-width="6" stroke-linecap="round"/>
+</svg>

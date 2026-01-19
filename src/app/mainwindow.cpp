@@ -395,12 +395,14 @@ void MainWindow::displayErrorMessage(const QString& errorMessage)
     QMessageBox::critical(this, tr("Error"), errorMessage);
 }
 
+/*
 // 「表示」の「思考」 思考タブの表示・非表示
 void MainWindow::toggleEngineAnalysisVisibility()
 {
     if (!m_analysisTab) return;
     m_analysisTab->setAnalysisVisible(ui->actionToggleEngineAnalysis->isChecked());
 }
+*/
 
 // 待ったボタンを押すと、2手戻る。
 void MainWindow::undoLastTwoMoves()
@@ -741,7 +743,7 @@ void MainWindow::displayJishogiScoreDialog()
     bool goteInCheck = validator.checkIfKingInCheck(MoveValidator::WHITE, board->boardData()) > 0;
 
     // 宣言条件の判定文字列を生成
-    auto buildConditionStr = [this](const JishogiCalculator::PlayerScore& score, bool inCheck) -> QString {
+    auto buildConditionStr = [](const JishogiCalculator::PlayerScore& score, bool inCheck) -> QString {
         const QString checkMark = QStringLiteral("○");
         const QString crossMark = QStringLiteral("×");
 
@@ -765,12 +767,12 @@ void MainWindow::displayJishogiScoreDialog()
                          "%4\n"
                          "24点法 : %5\n"
                          "27点法 : %6")
-        .arg(buildConditionStr(result.sente, senteInCheck))
-        .arg(JishogiCalculator::getResult24(result.sente, senteInCheck))
-        .arg(JishogiCalculator::getResult27(result.sente, true, senteInCheck))   // 先手
-        .arg(buildConditionStr(result.gote, goteInCheck))
-        .arg(JishogiCalculator::getResult24(result.gote, goteInCheck))
-        .arg(JishogiCalculator::getResult27(result.gote, false, goteInCheck));  // 後手
+        .arg(buildConditionStr(result.sente, senteInCheck),
+             JishogiCalculator::getResult24(result.sente, senteInCheck),
+             JishogiCalculator::getResult27(result.sente, true, senteInCheck),   // 先手
+             buildConditionStr(result.gote, goteInCheck),
+             JishogiCalculator::getResult24(result.gote, goteInCheck),
+             JishogiCalculator::getResult27(result.gote, false, goteInCheck));  // 後手
 
     // カスタムダイアログを作成
     QDialog dialog(this);
@@ -915,11 +917,11 @@ void MainWindow::handleNyugyokuDeclaration()
                                   "② 敵陣に10枚以上: %2 (%3枚)\n"
                                   "③ 王手がかかっていない: %4\n"
                                   "④ 宣言点数: %5点\n")
-        .arg(kingInEnemyTerritory ? tr("○") : tr("×"))
-        .arg(enoughPieces ? tr("○") : tr("×"))
+        .arg(kingInEnemyTerritory ? tr("○") : tr("×"),
+             enoughPieces ? tr("○") : tr("×"))
         .arg(score.piecesInEnemyTerritory)
-        .arg(noCheck ? tr("○") : tr("×"))
-        .arg(declarationPoints);
+        .arg(noCheck ? tr("○") : tr("×"),
+             QString::number(declarationPoints));
 
     if (jishogiRule == 1) {
         // 24点法
@@ -970,9 +972,7 @@ void MainWindow::handleNyugyokuDeclaration()
 
     // 結果ダイアログの表示
     QString finalMessage = tr("%1の入玉宣言\n\n%2\n\n【結果】%3")
-        .arg(declarerName)
-        .arg(conditionDetails)
-        .arg(resultStr);
+        .arg(declarerName, conditionDetails, resultStr);
 
     QMessageBox::information(this, tr("入玉宣言結果"), finalMessage);
 }

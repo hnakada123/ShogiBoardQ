@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+    <title>ホームページ</title>
+    <defs>
+        <style>
+            text { font-family: 'Noto Sans JP', 'Yu Gothic', sans-serif; }
+        </style>
+    </defs>
+    <circle cx="64" cy="64" r="64" fill="#2196F3"/>
+        <circle cx="64" cy="64" r="48" fill="none" stroke="white" stroke-width="5"/>
+        <ellipse cx="64" cy="64" rx="20" ry="48" fill="none" stroke="white" stroke-width="5"/>
+        <line x1="16" y1="64" x2="112" y2="64" stroke="white" stroke-width="5"/>
+        <line x1="24" y1="36" x2="104" y2="36" stroke="white" stroke-width="3"/>
+        <line x1="24" y1="92" x2="104" y2="92" stroke="white" stroke-width="3"/>
+</svg>

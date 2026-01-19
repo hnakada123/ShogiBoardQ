@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+    <title>対局</title>
+    <defs>
+        <style>
+            text { font-family: 'Noto Sans JP', 'Yu Gothic', sans-serif; }
+        </style>
+    </defs>
+    <rect x="0" y="0" width="128" height="128" fill="#D4A574" stroke="#8B4513" stroke-width="4"/>
+        <line x1="0" y1="42.7" x2="128" y2="42.7" stroke="#8B4513" stroke-width="2"/>
+        <line x1="0" y1="85.3" x2="128" y2="85.3" stroke="#8B4513" stroke-width="2"/>
+        <line x1="42.7" y1="0" x2="42.7" y2="128" stroke="#8B4513" stroke-width="2"/>
+        <line x1="85.3" y1="0" x2="85.3" y2="128" stroke="#8B4513" stroke-width="2"/>
+        <polygon points="64,8 52,40 76,40" fill="#C62828"/>
+        <text x="64" y="32" text-anchor="middle" font-family="serif" font-size="18" fill="white">王</text>
+        <polygon points="64,88 76,120 52,120" fill="#1A1A1A"/>
+        <text x="64" y="112" text-anchor="middle" font-family="serif" font-size="18" fill="white">玉</text>
+</svg>

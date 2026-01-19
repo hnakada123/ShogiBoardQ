@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+    <title>将棋盤画像コピー</title>
+    <defs>
+        <style>
+            text { font-family: 'Noto Sans JP', 'Yu Gothic', sans-serif; }
+        </style>
+    </defs>
+    <rect x="0" y="0" width="80" height="80" fill="#D4A574" stroke="#8B4513" stroke-width="3"/>
+        <line x1="0" y1="26.7" x2="80" y2="26.7" stroke="#8B4513" stroke-width="1.5"/>
+        <line x1="0" y1="53.3" x2="80" y2="53.3" stroke="#8B4513" stroke-width="1.5"/>
+        <line x1="26.7" y1="0" x2="26.7" y2="80" stroke="#8B4513" stroke-width="1.5"/>
+        <line x1="53.3" y1="0" x2="53.3" y2="80" stroke="#8B4513" stroke-width="1.5"/>
+        <rect x="48" y="48" width="80" height="80" rx="6" fill="#B0BEC5" stroke="#607D8B" stroke-width="3"/>
+        <line x1="64" y1="76" x2="112" y2="76" stroke="#455A64" stroke-width="5"/>
+        <line x1="64" y1="96" x2="104" y2="96" stroke="#455A64" stroke-width="5"/>
+        <line x1="64" y1="116" x2="96" y2="116" stroke="#455A64" stroke-width="5"/>
+</svg>

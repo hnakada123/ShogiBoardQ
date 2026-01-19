@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+    <title>使い方</title>
+    <defs>
+        <style>
+            text { font-family: 'Noto Sans JP', 'Yu Gothic', sans-serif; }
+        </style>
+    </defs>
+    <circle cx="64" cy="64" r="64" fill="#4CAF50"/>
+        <circle cx="64" cy="36" r="14" fill="white"/>
+        <rect x="52" y="60" width="24" height="56" rx="8" fill="white"/>
+</svg>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+    <title>上書き保存</title>
+    <defs>
+        <style>
+            text { font-family: 'Noto Sans JP', 'Yu Gothic', sans-serif; }
+        </style>
+    </defs>
+    <rect x="0" y="0" width="128" height="128" rx="8" fill="#2196F3"/>
+        <rect x="24" y="0" width="80" height="44" fill="#1565C0"/>
+        <rect x="36" y="8" width="56" height="28" rx="4" fill="#BBDEFB"/>
+        <rect x="24" y="80" width="80" height="48" rx="4" fill="#BBDEFB"/>
+        <line x1="40" y1="96" x2="88" y2="96" stroke="#1565C0" stroke-width="4"/>
+        <line x1="40" y1="112" x2="72" y2="112" stroke="#1565C0" stroke-width="4"/>
+</svg>

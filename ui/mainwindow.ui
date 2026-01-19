@@ -46,7 +46,7 @@
      </property>
      <addaction name="kifFormat"/>
      <addaction name="ki2Format"/>
-     <addaction name="usiFormat"/>
+     <addaction name="csaFormat"/>
      <addaction name="universal"/>
      <addaction name="actionUSI"/>
      <addaction name="actionJSON"/>
@@ -169,7 +169,7 @@
   <action name="actionSave">
    <property name="icon">
     <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/save.png</normaloff>:/images/icons/save.png</iconset>
+     <normaloff>:/images/icons/actionSave.svg</normaloff>:/images/icons/actionSave.svg</iconset>
    </property>
    <property name="text">
     <string>上書き保存</string>
@@ -181,7 +181,7 @@
   <action name="actionSaveAs">
    <property name="icon">
     <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/save_as.png</normaloff>:/images/icons/save_as.png</iconset>
+     <normaloff>:/images/icons/actionSaveAs.svg</normaloff>:/images/icons/actionSaveAs.svg</iconset>
    </property>
    <property name="text">
     <string>名前を付けて保存</string>
@@ -190,143 +190,40 @@
     <string>Ctrl+A</string>
    </property>
   </action>
-  <action name="importRecordWeb">
-   <property name="text">
-    <string>Webから棋譜を取り込み</string>
-   </property>
-  </action>
   <action name="actionSaveBoardImage">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/actionSaveBoardImage.svg</normaloff>:/images/icons/actionSaveBoardImage.svg</iconset>
+   </property>
    <property name="text">
     <string>将棋盤の画像をファイルに保存</string>
-   </property>
-  </action>
-  <action name="saveImageEvaluatedValue">
-   <property name="text">
-    <string>評価値の画像をファイルに保存</string>
-   </property>
-  </action>
-  <action name="undo">
-   <property name="icon">
-    <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/edit_undo.png</normaloff>:/images/icons/edit_undo.png</iconset>
-   </property>
-   <property name="text">
-    <string>元に戻す</string>
-   </property>
-  </action>
-  <action name="redo">
-   <property name="icon">
-    <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/edit_redo.png</normaloff>:/images/icons/edit_redo.png</iconset>
-   </property>
-   <property name="text">
-    <string>やり直し</string>
-   </property>
-  </action>
-  <action name="unprompted">
-   <property name="text">
-    <string>入力取り消し</string>
-   </property>
-  </action>
-  <action name="pass">
-   <property name="text">
-    <string>パス</string>
    </property>
   </action>
   <action name="pasteGameRecord">
    <property name="icon">
     <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/paste.png</normaloff>:/images/icons/paste.png</iconset>
+     <normaloff>:/images/icons/pasteGameRecord.svg</normaloff>:/images/icons/pasteGameRecord.svg</iconset>
    </property>
    <property name="text">
     <string>棋譜貼り付け</string>
    </property>
   </action>
   <action name="actionCopyBoardToClipboard">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/actionCopyBoardToClipboard.svg</normaloff>:/images/icons/actionCopyBoardToClipboard.svg</iconset>
+   </property>
    <property name="text">
     <string>将棋盤画像コピー</string>
-   </property>
-  </action>
-  <action name="copyImageEvaluatedValueClipboard">
-   <property name="text">
-    <string>評価値の画像をクリップボードにコピー</string>
-   </property>
-  </action>
-  <action name="viewPlayBrowser">
-   <property name="text">
-    <string>局面をブラウザで表示</string>
-   </property>
-  </action>
-  <action name="kyokumenPedia">
-   <property name="text">
-    <string>局面ペディア</string>
-   </property>
-  </action>
-  <action name="bookmark">
-   <property name="text">
-    <string>しおり</string>
    </property>
   </action>
   <action name="actionFlipBoard">
    <property name="icon">
     <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/kaiten.png</normaloff>:/images/icons/kaiten.png</iconset>
+     <normaloff>:/images/icons/actionFlipBoard.svg</normaloff>:/images/icons/actionFlipBoard.svg</iconset>
    </property>
    <property name="text">
     <string>盤面の回転</string>
-   </property>
-  </action>
-  <action name="actionToggleEngineAnalysis">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="checked">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>思考</string>
-   </property>
-  </action>
-  <action name="usiProtocolCommunicationLog">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="checked">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>USIプロトコル通信ログ</string>
-   </property>
-  </action>
-  <action name="action_33">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>ツリーダイアグラム</string>
-   </property>
-  </action>
-  <action name="action_34">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>コメント（思考）</string>
-   </property>
-  </action>
-  <action name="action_35">
-   <property name="text">
-    <string>アシスタント</string>
-   </property>
-  </action>
-  <action name="action_36">
-   <property name="text">
-    <string>解析一覧</string>
-   </property>
-  </action>
-  <action name="action_37">
-   <property name="text">
-    <string>継ぎ盤</string>
    </property>
   </action>
   <action name="actionStartGame">
@@ -335,7 +232,7 @@
    </property>
    <property name="icon">
     <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/taikyoku.png</normaloff>:/images/icons/taikyoku.png</iconset>
+     <normaloff>:/images/icons/actionStartGame.svg</normaloff>:/images/icons/actionStartGame.svg</iconset>
    </property>
    <property name="text">
     <string>対局</string>
@@ -344,7 +241,7 @@
   <action name="actionConsideration">
    <property name="icon">
     <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/kentou.png</normaloff>:/images/icons/kentou.png</iconset>
+     <normaloff>:/images/icons/actionConsideration.svg</normaloff>:/images/icons/actionConsideration.svg</iconset>
    </property>
    <property name="text">
     <string>検討</string>
@@ -353,7 +250,7 @@
   <action name="actionResign">
    <property name="icon">
     <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/touryou.png</normaloff>:/images/icons/touryou.png</iconset>
+     <normaloff>:/images/icons/actionResign.svg</normaloff>:/images/icons/actionResign.svg</iconset>
    </property>
    <property name="text">
     <string>投了</string>
@@ -362,7 +259,7 @@
   <action name="breakOffGame">
    <property name="icon">
     <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/chuudan.png</normaloff>:/images/icons/chuudan.png</iconset>
+     <normaloff>:/images/icons/breakOffGame.svg</normaloff>:/images/icons/breakOffGame.svg</iconset>
    </property>
    <property name="text">
     <string>中断</string>
@@ -374,207 +271,110 @@
     <bool>true</bool>
    </property>
   </action>
-  <action name="openDefaultTrail">
-   <property name="enabled">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>既定定跡を開く</string>
-   </property>
-  </action>
-  <action name="openStandardMove">
-   <property name="text">
-    <string>定跡を開く</string>
-   </property>
-  </action>
-  <action name="createNew">
-   <property name="text">
-    <string>新規作成</string>
-   </property>
-  </action>
-  <action name="openFile">
-   <property name="text">
-    <string>開く</string>
-   </property>
-  </action>
-  <action name="saveFile">
-   <property name="text">
-    <string>保存</string>
-   </property>
-  </action>
   <action name="actionQuit">
    <property name="icon">
-    <iconset theme="exit.png" resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/exit.png</normaloff>:/images/icons/exit.png</iconset>
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/actionQuit.svg</normaloff>:/images/icons/actionQuit.svg</iconset>
    </property>
    <property name="text">
     <string>終了</string>
    </property>
   </action>
-  <action name="bookmarkRegistration">
-   <property name="text">
-    <string>しおり登録</string>
-   </property>
-  </action>
   <action name="actionAnalyzeKifu">
    <property name="icon">
     <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/kaiseki.png</normaloff>:/images/icons/kaiseki.png</iconset>
+     <normaloff>:/images/icons/actionAnalyzeKifu.svg</normaloff>:/images/icons/actionAnalyzeKifu.svg</iconset>
    </property>
    <property name="text">
     <string>棋譜解析</string>
    </property>
   </action>
-  <action name="saveFileAsNamedStandardMove">
-   <property name="text">
-    <string>名前を付けて保存</string>
-   </property>
-  </action>
-  <action name="closeFile">
-   <property name="text">
-    <string>閉じる</string>
-   </property>
-  </action>
-  <action name="exportFile">
-   <property name="text">
-    <string>エクスポート</string>
-   </property>
-  </action>
-  <action name="addMoveStandard">
-   <property name="text">
-    <string>指し手を定跡に追加</string>
-   </property>
-  </action>
-  <action name="addFromFile">
-   <property name="text">
-    <string>ファイルから追加</string>
-   </property>
-  </action>
-  <action name="addFromClipboard">
-   <property name="text">
-    <string>クリップボードから追加</string>
-   </property>
-  </action>
-  <action name="evaluationValueDisplay">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>評価値表示</string>
-   </property>
-  </action>
-  <action name="commentaryStandard">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>定跡コメント</string>
-   </property>
-  </action>
-  <action name="treeStandardMove">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>定跡ツリー</string>
-   </property>
-  </action>
-  <action name="evaluationValueStandard">
-   <property name="text">
-    <string>定跡評価値</string>
-   </property>
-  </action>
-  <action name="standardMoveManagement">
-   <property name="text">
-    <string>定跡管理</string>
-   </property>
-  </action>
-  <action name="evaluationValueInformation">
-   <property name="text">
-    <string>定跡情報</string>
-   </property>
-  </action>
   <action name="actionStartEditPosition">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/actionStartEditPosition.svg</normaloff>:/images/icons/actionStartEditPosition.svg</iconset>
+   </property>
    <property name="text">
     <string>局面編集開始</string>
    </property>
   </action>
   <action name="flatHandInitialPosition">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/flatHandInitialPosition.svg</normaloff>:/images/icons/flatHandInitialPosition.svg</iconset>
+   </property>
    <property name="text">
     <string>平手初期配置</string>
    </property>
   </action>
   <action name="shogiProblemInitialPosition">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/shogiProblemInitialPosition.svg</normaloff>:/images/icons/shogiProblemInitialPosition.svg</iconset>
+   </property>
    <property name="text">
     <string>詰将棋初期配置</string>
    </property>
   </action>
   <action name="returnAllPiecesOnStand">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/returnAllPiecesOnStand.svg</normaloff>:/images/icons/returnAllPiecesOnStand.svg</iconset>
+   </property>
    <property name="text">
     <string>全ての駒を駒台へ</string>
    </property>
   </action>
   <action name="reversal">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/reversal.svg</normaloff>:/images/icons/reversal.svg</iconset>
+   </property>
    <property name="text">
     <string>先後反転</string>
    </property>
   </action>
   <action name="turnaround">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/turnaround.svg</normaloff>:/images/icons/turnaround.svg</iconset>
+   </property>
    <property name="text">
     <string>手番変更</string>
    </property>
   </action>
   <action name="actionEngineSettings">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/actionEngineSettings.svg</normaloff>:/images/icons/actionEngineSettings.svg</iconset>
+   </property>
    <property name="text">
     <string>エンジン設定</string>
    </property>
   </action>
-  <action name="gameSetup">
-   <property name="text">
-    <string>対局設定</string>
-   </property>
-  </action>
-  <action name="configurationSetting">
-   <property name="text">
-    <string>検討設定</string>
-   </property>
-  </action>
-  <action name="hintSetting">
-   <property name="text">
-    <string>ヒント設定</string>
-   </property>
-  </action>
-  <action name="shogiProblemSearchSetting">
-   <property name="text">
-    <string>詰み探索設定</string>
-   </property>
-  </action>
-  <action name="option">
-   <property name="text">
-    <string>オプション</string>
-   </property>
-  </action>
-  <action name="openFolderAutoSaveRecord">
-   <property name="text">
-    <string>棋譜自動保存フォルダを開く</string>
-   </property>
-  </action>
-  <action name="shogiWarsGameRecordList">
-   <property name="text">
-    <string>将棋ウォーズ棋譜一覧</string>
-   </property>
-  </action>
   <action name="actionOpenWebsite">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/actionOpenWebsite.svg</normaloff>:/images/icons/actionOpenWebsite.svg</iconset>
+   </property>
    <property name="text">
     <string>ホームページ</string>
    </property>
   </action>
   <action name="usageMethod">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/usageMethod.svg</normaloff>:/images/icons/usageMethod.svg</iconset>
+   </property>
    <property name="text">
     <string>使い方</string>
    </property>
   </action>
   <action name="actionVersionInfo">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/actionVersionInfo.svg</normaloff>:/images/icons/actionVersionInfo.svg</iconset>
+   </property>
    <property name="text">
     <string>バージョン情報</string>
    </property>
@@ -582,56 +382,70 @@
   <action name="actionAboutQt">
    <property name="icon">
     <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/actionAboutQt.png</normaloff>:/images/icons/actionAboutQt.png</iconset>
+     <normaloff>:/images/icons/actionAboutQt.svg</normaloff>:/images/icons/actionAboutQt.svg</iconset>
    </property>
    <property name="text">
     <string>Qtについて</string>
    </property>
   </action>
   <action name="kifFormat">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/kifFormat.svg</normaloff>:/images/icons/kifFormat.svg</iconset>
+   </property>
    <property name="text">
     <string>KIF形式</string>
    </property>
   </action>
   <action name="ki2Format">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/ki2Format.svg</normaloff>:/images/icons/ki2Format.svg</iconset>
+   </property>
    <property name="text">
     <string>KI2形式</string>
    </property>
   </action>
-  <action name="usiFormat">
+  <action name="csaFormat">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/csaFormat.svg</normaloff>:/images/icons/csaFormat.svg</iconset>
+   </property>
    <property name="text">
     <string>CSA形式</string>
    </property>
   </action>
   <action name="universal">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/universal.svg</normaloff>:/images/icons/universal.svg</iconset>
+   </property>
    <property name="text">
     <string>USI形式（現在の指し手まで）</string>
    </property>
   </action>
   <action name="Sfen">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/Sfen.svg</normaloff>:/images/icons/Sfen.svg</iconset>
+   </property>
    <property name="text">
     <string>SFEN形式</string>
    </property>
   </action>
   <action name="BOD">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/BOD.svg</normaloff>:/images/icons/BOD.svg</iconset>
+   </property>
    <property name="text">
     <string>BOD形式</string>
-   </property>
-  </action>
-  <action name="withoutImgTag">
-   <property name="text">
-    <string>&amp;imgタグなし</string>
-   </property>
-  </action>
-  <action name="withImgTag">
-   <property name="text">
-    <string>i&amp;mgタグあり</string>
    </property>
   </action>
   <action name="actionNewGame">
    <property name="icon">
     <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/new.png</normaloff>:/images/icons/new.png</iconset>
+     <normaloff>:/images/icons/actionNewGame.svg</normaloff>:/images/icons/actionNewGame.svg</iconset>
    </property>
    <property name="text">
     <string>新規</string>
@@ -640,7 +454,7 @@
   <action name="actionOpenKifuFile">
    <property name="icon">
     <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/open.png</normaloff>:/images/icons/open.png</iconset>
+     <normaloff>:/images/icons/actionOpenKifuFile.svg</normaloff>:/images/icons/actionOpenKifuFile.svg</iconset>
    </property>
    <property name="text">
     <string>開く</string>
@@ -652,7 +466,7 @@
   <action name="actionUndoMove">
    <property name="icon">
     <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/matta.png</normaloff>:/images/icons/matta.png</iconset>
+     <normaloff>:/images/icons/actionUndoMove.svg</normaloff>:/images/icons/actionUndoMove.svg</iconset>
    </property>
    <property name="text">
     <string>待った</string>
@@ -661,7 +475,7 @@
   <action name="actionMakeImmediateMove">
    <property name="icon">
     <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/kyuu.png</normaloff>:/images/icons/kyuu.png</iconset>
+     <normaloff>:/images/icons/actionMakeImmediateMove.svg</normaloff>:/images/icons/actionMakeImmediateMove.svg</iconset>
    </property>
    <property name="text">
     <string>すぐ指させる</string>
@@ -670,7 +484,7 @@
   <action name="actionEnlargeBoard">
    <property name="icon">
     <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/dai.png</normaloff>:/images/icons/dai.png</iconset>
+     <normaloff>:/images/icons/actionEnlargeBoard.svg</normaloff>:/images/icons/actionEnlargeBoard.svg</iconset>
    </property>
    <property name="text">
     <string>将棋盤の拡大</string>
@@ -682,7 +496,7 @@
   <action name="actionShrinkBoard">
    <property name="icon">
     <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/shou.png</normaloff>:/images/icons/shou.png</iconset>
+     <normaloff>:/images/icons/actionShrinkBoard.svg</normaloff>:/images/icons/actionShrinkBoard.svg</iconset>
    </property>
    <property name="text">
     <string>将棋盤の縮小</string>
@@ -692,45 +506,64 @@
    </property>
   </action>
   <action name="actionEndEditPosition">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/actionEndEditPosition.svg</normaloff>:/images/icons/actionEndEditPosition.svg</iconset>
+   </property>
    <property name="text">
     <string>局面編集終了</string>
-   </property>
-  </action>
-  <action name="action">
-   <property name="text">
-    <string>実行関数</string>
    </property>
   </action>
   <action name="actionTsumeShogiSearch">
    <property name="icon">
     <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/tsumi.png</normaloff>:/images/icons/tsumi.png</iconset>
+     <normaloff>:/images/icons/actionTsumeShogiSearch.svg</normaloff>:/images/icons/actionTsumeShogiSearch.svg</iconset>
    </property>
    <property name="text">
     <string>詰み探索</string>
    </property>
   </action>
   <action name="actionJishogiScore">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/actionJishogiScore.svg</normaloff>:/images/icons/actionJishogiScore.svg</iconset>
+   </property>
    <property name="text">
-    <string>持将棋の点数</string>
+    <string>持将棋点数</string>
    </property>
   </action>
   <action name="actionNyugyokuDeclaration">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/actionNyugyokuDeclaration.svg</normaloff>:/images/icons/actionNyugyokuDeclaration.svg</iconset>
+   </property>
    <property name="text">
     <string>入玉宣言</string>
    </property>
   </action>
   <action name="actionUSI">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/actionUSI.svg</normaloff>:/images/icons/actionUSI.svg</iconset>
+   </property>
    <property name="text">
     <string>USI形式（全て）</string>
    </property>
   </action>
   <action name="actionJSON">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/actionJSON.svg</normaloff>:/images/icons/actionJSON.svg</iconset>
+   </property>
    <property name="text">
     <string>JSON棋譜フォーマット</string>
    </property>
   </action>
   <action name="actionUSEN">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/actionUSI.svg</normaloff>:/images/icons/actionUSI.svg</iconset>
+   </property>
    <property name="text">
     <string>USEN</string>
    </property>
@@ -738,13 +571,17 @@
   <action name="actionCSA">
    <property name="icon">
     <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/tsuu.png</normaloff>:/images/icons/tsuu.png</iconset>
+     <normaloff>:/images/icons/actionCSA.svg</normaloff>:/images/icons/actionCSA.svg</iconset>
    </property>
    <property name="text">
     <string>通信対局（CSA）</string>
    </property>
   </action>
   <action name="actionCacelAnalyzeKifu">
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/actionCacelAnalyzeKifu.svg</normaloff>:/images/icons/actionCacelAnalyzeKifu.svg</iconset>
+   </property>
    <property name="text">
     <string>棋譜解析中止</string>
    </property>
@@ -752,7 +589,7 @@
   <action name="actionStandardMove">
    <property name="icon">
     <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/jyoseki.png</normaloff>:/images/icons/jyoseki.png</iconset>
+     <normaloff>:/images/icons/actionStandardMove.svg</normaloff>:/images/icons/actionStandardMove.svg</iconset>
    </property>
    <property name="text">
     <string>定跡ウィンドウ</string>
@@ -761,20 +598,19 @@
   <action name="actionMenu">
    <property name="icon">
     <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/menu.png</normaloff>:/images/icons/menu.png</iconset>
+     <normaloff>:/images/icons/actionMenu.svg</normaloff>:/images/icons/actionMenu.svg</iconset>
    </property>
    <property name="text">
     <string>メニューウィンドウ</string>
    </property>
   </action>
-  <action name="action_2">
-   <property name="text">
-    <string>棋譜解析設定</string>
-   </property>
-  </action>
   <action name="actionLanguageSystem">
    <property name="checkable">
     <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/actionLanguageSystem.svg</normaloff>:/images/icons/actionLanguageSystem.svg</iconset>
    </property>
    <property name="text">
     <string>システム設定に従う</string>
@@ -784,6 +620,10 @@
    <property name="checkable">
     <bool>true</bool>
    </property>
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/actionLanguageJapanese.svg</normaloff>:/images/icons/actionLanguageJapanese.svg</iconset>
+   </property>
    <property name="text">
     <string>日本語</string>
    </property>
@@ -791,6 +631,10 @@
   <action name="actionLanguageEnglish">
    <property name="checkable">
     <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/actionLanguageEnglish.svg</normaloff>:/images/icons/actionLanguageEnglish.svg</iconset>
    </property>
    <property name="text">
     <string>English</string>
