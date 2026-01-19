@@ -604,7 +604,7 @@ void EngineAnalysisTab::rebuildBranchTree()
     {
         const qreal x = BASE_X + SHIFT_X;
         const qreal y = BASE_Y + 0 * STEP_Y;
-        const QString label = QStringLiteral("開始局面");
+        const QString label = tr("開始局面");
 
         const QFontMetrics fm(LABEL_FONT);
         const int  wText = fm.horizontalAdvance(label);

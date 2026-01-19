@@ -29,15 +29,15 @@ AnalysisFlowController::AnalysisFlowController(QObject* parent)
 void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
 {
     if (!d.sfenRecord || d.sfenRecord->isEmpty()) {
-        if (d.displayError) d.displayError(QStringLiteral("内部エラー: sfenRecord が未準備です。棋譜読み込み後に実行してください。"));
+        if (d.displayError) d.displayError(tr("内部エラー: sfenRecord が未準備です。棋譜読み込み後に実行してください。"));
         return;
     }
     if (!d.analysisModel) {
-        if (d.displayError) d.displayError(QStringLiteral("内部エラー: 解析モデルが未準備です。"));
+        if (d.displayError) d.displayError(tr("内部エラー: 解析モデルが未準備です。"));
         return;
     }
     if (!d.usi) {
-        if (d.displayError) d.displayError(QStringLiteral("内部エラー: Usi インスタンスが未初期化です。"));
+        if (d.displayError) d.displayError(tr("内部エラー: Usi インスタンスが未初期化です。"));
         return;
     }
     if (!dlg) return;
@@ -168,7 +168,7 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
     const int  engineIdx = dlg->engineNumber();
     const auto engines   = dlg->engineList();
     if (engineIdx < 0 || engineIdx >= engines.size()) {
-        if (m_err) m_err(QStringLiteral("エンジン選択が不正です。"));
+        if (m_err) m_err(tr("エンジン選択が不正です。"));
         return;
     }
     const QString enginePath = engines.at(engineIdx).path;
@@ -520,7 +520,7 @@ void AnalysisFlowController::commitPendingResult_()
     // 漢字PVがあればそれを使用、なければUSI形式PV、定跡なら「定跡」
     QString pv;
     if (isBook) {
-        pv = QStringLiteral("（定跡）");
+        pv = tr("（定跡）");
     } else if (!m_pendingPvKanji.isEmpty()) {
         pv = m_pendingPvKanji;
     } else {
@@ -632,7 +632,7 @@ void AnalysisFlowController::commitPendingResult_()
         KifuAnalysisResultsDisplay* prevItem = m_analysisModel->item(prevRow);
         if (prevItem) {
             QString prevPv = prevItem->principalVariation();
-            if (!prevPv.isEmpty() && prevPv != QStringLiteral("（定跡）")) {
+            if (!prevPv.isEmpty() && prevPv != tr("（定跡）")) {
                 // 最初の指し手を取得（スペース区切りまたは末尾まで）
                 // 読み筋は "▲７六歩(77)△８四歩(83)..." のような形式
                 QString candidateMove;
@@ -781,11 +781,11 @@ void AnalysisFlowController::runWithDialog(const Deps& d, QWidget* parent)
     
     // 依存の必須チェック（usi以外）
     if (!d.sfenRecord || d.sfenRecord->isEmpty()) {
-        if (d.displayError) d.displayError(QStringLiteral("内部エラー: sfenRecord が未準備です。棋譜読み込み後に実行してください。"));
+        if (d.displayError) d.displayError(tr("内部エラー: sfenRecord が未準備です。棋譜読み込み後に実行してください。"));
         return;
     }
     if (!d.analysisModel) {
-        if (d.displayError) d.displayError(QStringLiteral("内部エラー: 解析モデルが未準備です。"));
+        if (d.displayError) d.displayError(tr("内部エラー: 解析モデルが未準備です。"));
         return;
     }
 
