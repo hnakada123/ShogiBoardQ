@@ -168,6 +168,10 @@ MainWindow::MainWindow(QWidget *parent)
     m_languageActionGroup->addAction(ui->actionLanguageJapanese);
     m_languageActionGroup->addAction(ui->actionLanguageEnglish);
     m_languageActionGroup->setExclusive(true);
+    // メニュー内でアイコンを非表示にしてチェックマークを表示
+    ui->actionLanguageSystem->setIconVisibleInMenu(false);
+    ui->actionLanguageJapanese->setIconVisibleInMenu(false);
+    ui->actionLanguageEnglish->setIconVisibleInMenu(false);
     updateLanguageMenuState();
 
     // 評価値グラフ高さ調整用タイマーを初期化（デバウンス処理用）
@@ -194,6 +198,14 @@ void MainWindow::configureToolBarFromUi_()
             "QToolBar{margin:0px; padding:0px; spacing:2px;}"
             "QToolButton{margin:0px; padding:2px;}"
             );
+
+        // 保存された設定からツールバーの表示状態を復元
+        bool visible = SettingsService::toolbarVisible();
+        tb->setVisible(visible);
+
+        // メニュー内でアイコンを非表示にしてチェックマークを表示
+        ui->actionToolBar->setIconVisibleInMenu(false);
+        ui->actionToolBar->setChecked(visible);
     }
 }
 
@@ -3817,4 +3829,12 @@ void MainWindow::onLanguageEnglishTriggered()
 {
     changeLanguage("en");
     updateLanguageMenuState();
+}
+
+void MainWindow::onToolBarVisibilityToggled(bool visible)
+{
+    if (ui->toolBar) {
+        ui->toolBar->setVisible(visible);
+    }
+    SettingsService::setToolbarVisible(visible);
 }

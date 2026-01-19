@@ -70,4 +70,7 @@ void UiActionsWiring::wire()
     QObject::connect(ui->actionLanguageSystem,   &QAction::triggered, mw, &MainWindow::onLanguageSystemTriggered,   Qt::UniqueConnection);
     QObject::connect(ui->actionLanguageJapanese, &QAction::triggered, mw, &MainWindow::onLanguageJapaneseTriggered, Qt::UniqueConnection);
     QObject::connect(ui->actionLanguageEnglish,  &QAction::triggered, mw, &MainWindow::onLanguageEnglishTriggered,  Qt::UniqueConnection);
+
+    // ツールバー表示切替
+    QObject::connect(ui->actionToolBar,          &QAction::toggled,   mw, &MainWindow::onToolBarVisibilityToggled,  Qt::UniqueConnection);
 }
