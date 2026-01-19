@@ -2680,7 +2680,7 @@ Format is auto-detected.</translation>
     <message>
         <location filename="../../ui/mainwindow.ui" line="657"/>
         <source>ツールバー</source>
-        <translation type="unfinished"></translation>
+        <translation>Toolbar</translation>
     </message>
     <message>
         <source>Webから棋譜を取り込み</source>
