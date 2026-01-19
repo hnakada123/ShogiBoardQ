@@ -81,5 +81,6 @@
         <file>images/icons/returnAllPiecesOnStand.svg</file>
         <file>images/icons/reversal.svg</file>
         <file>images/icons/turnaround.svg</file>
+        <file>images/icons/actionToolbar.svg</file>
     </qresource>
 </RCC>

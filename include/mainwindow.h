@@ -205,6 +205,9 @@ public slots:
     void onLanguageJapaneseTriggered();
     void onLanguageEnglishTriggered();
 
+    // ツールバー表示切替
+    void onToolBarVisibilityToggled(bool visible);
+
     // その他操作
     void undoLastTwoMoves();
     void beginPositionEditing();

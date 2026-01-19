@@ -223,6 +223,12 @@ int menuWindowFontSize();
 // メニューウィンドウのフォントサイズを保存
 void setMenuWindowFontSize(int size);
 
+// ★ 追加: ツールバー表示設定
+// ツールバーの表示状態を取得（デフォルト: true = 表示）
+bool toolbarVisible();
+// ツールバーの表示状態を保存
+void setToolbarVisible(bool visible);
+
 } // namespace SettingsService
 
 #endif // SETTINGSSERVICE_H

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+    <title>ツールバー</title>
+    
+    <!-- 背景 -->
+    <rect x="0" y="0" width="128" height="128" rx="12" fill="#546E7A"/>
+    
+    <!-- ツールバー本体（水平バー） -->
+    <rect x="0" y="40" width="128" height="48" fill="#78909C"/>
+    <rect x="0" y="40" width="128" height="6" fill="#90A4AE"/>
+    
+    <!-- グリップハンドル -->
+    <rect x="6" y="52" width="4" height="24" rx="2" fill="#455A64"/>
+    <rect x="14" y="52" width="4" height="24" rx="2" fill="#455A64"/>
+    
+    <!-- ツールボタン1 -->
+    <rect x="24" y="48" width="28" height="32" rx="4" fill="#ECEFF1" stroke="#B0BEC5" stroke-width="1"/>
+    <rect x="30" y="54" width="16" height="12" rx="2" fill="#42A5F5"/>
+    <line x1="33" y1="59" x2="43" y2="59" stroke="white" stroke-width="2"/>
+    <line x1="33" y1="63" x2="40" y2="63" stroke="white" stroke-width="2"/>
+    <circle cx="44" cy="72" r="4" fill="#4CAF50"/>
+    
+    <!-- ツールボタン2 -->
+    <rect x="56" y="48" width="28" height="32" rx="4" fill="#ECEFF1" stroke="#B0BEC5" stroke-width="1"/>
+    <path d="M62 56 L62 72 L78 72 L78 60 L74 60 L72 56 Z" fill="#FFB74D"/>
+    <path d="M62 60 L66 64 L78 64 L78 60 L74 60 L72 56 L62 56 Z" fill="#FFC107"/>
+    
+    <!-- ツールボタン3 -->
+    <rect x="88" y="48" width="28" height="32" rx="4" fill="#ECEFF1" stroke="#B0BEC5" stroke-width="1"/>
+    <circle cx="102" cy="64" r="10" fill="#607D8B"/>
+    <circle cx="102" cy="64" r="4" fill="#ECEFF1"/>
+    <rect x="100" y="52" width="4" height="5" rx="1" fill="#607D8B"/>
+    <rect x="100" y="71" width="4" height="5" rx="1" fill="#607D8B"/>
+    <rect x="90" y="62" width="5" height="4" rx="1" fill="#607D8B"/>
+    <rect x="109" y="62" width="5" height="4" rx="1" fill="#607D8B"/>
+    
+    <!-- 下部シャドウライン -->
+    <rect x="0" y="88" width="128" height="3" fill="#455A64"/>
+    
+    <!-- 上下の装飾ライン -->
+    <rect x="8" y="8" width="112" height="20" rx="4" fill="#455A64" opacity="0.5"/>
+    <rect x="8" y="100" width="112" height="20" rx="4" fill="#455A64" opacity="0.5"/>
+</svg>

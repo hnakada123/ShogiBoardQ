@@ -668,4 +668,20 @@ void setMenuWindowFontSize(int size)
     s.setValue("MenuWindow/fontSize", size);
 }
 
+// ★ 追加: ツールバーの表示状態を取得
+bool toolbarVisible()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("UI/toolbarVisible", true).toBool();
+}
+
+// ★ 追加: ツールバーの表示状態を保存
+void setToolbarVisible(bool visible)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("UI/toolbarVisible", visible);
+}
+
 } // namespace SettingsService

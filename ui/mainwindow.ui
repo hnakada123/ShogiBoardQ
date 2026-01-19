@@ -84,6 +84,8 @@
     <addaction name="separator"/>
     <addaction name="actionStandardMove"/>
     <addaction name="actionMenu"/>
+    <addaction name="separator"/>
+    <addaction name="actionToolBar"/>
    </widget>
    <widget class="QMenu" name="Game">
     <property name="title">
@@ -638,6 +640,21 @@
    </property>
    <property name="text">
     <string>English</string>
+   </property>
+  </action>
+  <action name="actionToolBar">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../resources/shogiboardq.qrc">
+     <normaloff>:/images/icons/actionToolbar.svg</normaloff>:/images/icons/actionToolbar.svg</iconset>
+   </property>
+   <property name="text">
+    <string>ツールバー</string>
    </property>
   </action>
  </widget>
