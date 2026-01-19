@@ -31,6 +31,7 @@ void UiActionsWiring::wire()
     QObject::connect(ui->actionCopyBoardToClipboard, &QAction::triggered, mw,           &MainWindow::copyBoardToClipboard,       Qt::UniqueConnection);
     QObject::connect(ui->actionMakeImmediateMove,    &QAction::triggered, mw,           &MainWindow::movePieceImmediately,       Qt::UniqueConnection);
     QObject::connect(ui->actionStandardMove,         &QAction::triggered, mw,           &MainWindow::displayJosekiWindow,        Qt::UniqueConnection);
+    QObject::connect(ui->actionMenu,                 &QAction::triggered, mw,           &MainWindow::displayMenuWindow,          Qt::UniqueConnection);
     if (m_d.shogiView) {
         QObject::connect(ui->actionEnlargeBoard,     &QAction::triggered, m_d.shogiView, &ShogiView::enlargeBoard, Qt::UniqueConnection);
         QObject::connect(ui->actionShrinkBoard,      &QAction::triggered, m_d.shogiView, &ShogiView::reduceBoard,  Qt::UniqueConnection);

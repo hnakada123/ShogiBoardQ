@@ -95,6 +95,7 @@
 #include "csagamecoordinator.h"         // ★ 追加: CSA通信対局コーディネータ
 #include "csawaitingdialog.h"           // ★ 追加: CSA通信対局待機ダイアログ
 #include "josekiwindowwiring.h"          // ★ 追加: 定跡ウィンドウUI配線
+#include "menuwindowwiring.h"            // ★ 追加: メニューウィンドウUI配線
 #include "csagamewiring.h"              // ★ 追加: CSA通信対局UI配線
 #include "playerinfowiring.h"           // ★ 追加: 対局情報UI配線
 #include "prestartcleanuphandler.h"     // ★ 追加: 対局開始前クリーンアップ
@@ -1044,6 +1045,14 @@ void MainWindow::updateJosekiWindow()
 {
     if (m_josekiWiring) {
         m_josekiWiring->updateJosekiWindow();
+    }
+}
+
+void MainWindow::displayMenuWindow()
+{
+    ensureMenuWiring_();
+    if (m_menuWiring) {
+        m_menuWiring->displayMenuWindow();
     }
 }
 
@@ -2846,6 +2855,19 @@ void MainWindow::ensureJosekiWiring_()
             this, &MainWindow::onJosekiForcedPromotion_);
 
     qDebug().noquote() << "[MW] ensureJosekiWiring_: created and connected";
+}
+
+void MainWindow::ensureMenuWiring_()
+{
+    if (m_menuWiring) return;
+
+    MenuWindowWiring::Dependencies deps;
+    deps.parentWidget = this;
+    deps.menuBar = menuBar();
+
+    m_menuWiring = new MenuWindowWiring(deps, this);
+
+    qDebug().noquote() << "[MW] ensureMenuWiring_: created and connected";
 }
 
 void MainWindow::ensurePlayerInfoWiring_()
