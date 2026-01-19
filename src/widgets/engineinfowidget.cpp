@@ -1,5 +1,6 @@
 #include "engineinfowidget.h"
 #include <QHBoxLayout>
+#include <QVBoxLayout>
 #include <QTableWidget>
 #include <QHeaderView>
 #include <QToolButton>
@@ -77,37 +78,49 @@ EngineInfoWidget::EngineInfoWidget(QWidget* parent, bool showFontButtons)
         m_table->setItem(0, col, item);
     }
     
-    // レイアウト
-    QHBoxLayout* layout = new QHBoxLayout(this);
-    layout->setContentsMargins(0, 0, 0, 0);
-    layout->setSpacing(4);
-    
+    // レイアウト（縦配置：ボタン行 → テーブル）
+    QVBoxLayout* mainLayout = new QVBoxLayout(this);
+    mainLayout->setContentsMargins(0, 0, 0, 0);
+    mainLayout->setSpacing(0);
+
     // ★ フォントサイズボタンを追加（showFontButtons=trueの場合のみ）
+    // ヘッダーの上に表示するため、テーブルの上に配置
+    m_buttonRowHeight = 0;
     if (m_showFontButtons) {
-        m_btnFontDecrease = new QToolButton(this);
+        QWidget* buttonRow = new QWidget(this);
+        QHBoxLayout* buttonLayout = new QHBoxLayout(buttonRow);
+        buttonLayout->setContentsMargins(0, 0, 0, 2);
+        buttonLayout->setSpacing(4);
+
+        m_btnFontDecrease = new QToolButton(buttonRow);
         m_btnFontDecrease->setText(QStringLiteral("A-"));
         m_btnFontDecrease->setToolTip(tr("フォントサイズを小さくする"));
-        m_btnFontDecrease->setFixedSize(28, 24);
+        m_btnFontDecrease->setFixedSize(28, 20);
         connect(m_btnFontDecrease, &QToolButton::clicked,
                 this, &EngineInfoWidget::fontSizeDecreaseRequested);
-        
-        m_btnFontIncrease = new QToolButton(this);
+
+        m_btnFontIncrease = new QToolButton(buttonRow);
         m_btnFontIncrease->setText(QStringLiteral("A+"));
         m_btnFontIncrease->setToolTip(tr("フォントサイズを大きくする"));
-        m_btnFontIncrease->setFixedSize(28, 24);
+        m_btnFontIncrease->setFixedSize(28, 20);
         connect(m_btnFontIncrease, &QToolButton::clicked,
                 this, &EngineInfoWidget::fontSizeIncreaseRequested);
-        
-        layout->addWidget(m_btnFontDecrease);
-        layout->addWidget(m_btnFontIncrease);
+
+        buttonLayout->addWidget(m_btnFontDecrease);
+        buttonLayout->addWidget(m_btnFontIncrease);
+        buttonLayout->addStretch();  // 右側に余白を追加
+
+        buttonRow->setLayout(buttonLayout);
+        mainLayout->addWidget(buttonRow);
+        m_buttonRowHeight = 22;  // ボタン行の高さ
     }
-    
-    layout->addWidget(m_table);
-    
-    // 高さ固定（ヘッダー + 1行）
+
+    mainLayout->addWidget(m_table);
+
+    // 高さ固定（ボタン行 + ヘッダー + 1行）
     int headerHeight = m_table->horizontalHeader()->height();
     int rowHeight = m_table->verticalHeader()->defaultSectionSize();
-    setFixedHeight(headerHeight + rowHeight + 2);  // +2 for border
+    setFixedHeight(m_buttonRowHeight + headerHeight + rowHeight + 2);  // +2 for border
 }
 
 void EngineInfoWidget::setCellValue(int col, const QString& value) {
@@ -119,24 +132,24 @@ void EngineInfoWidget::setCellValue(int col, const QString& value) {
 
 void EngineInfoWidget::setFontSize(int pointSize) {
     if (!m_table) return;
-    
+
     m_fontSize = pointSize;
-    
+
     QFont font = m_table->font();
     font.setPointSize(pointSize);
     m_table->setFont(font);
-    
+
     // ヘッダーのフォントも変更
     m_table->horizontalHeader()->setFont(font);
-    
+
     // 行の高さを調整
     QFontMetrics fm(font);
     int rowHeight = fm.height() + 6;
     m_table->verticalHeader()->setDefaultSectionSize(rowHeight);
-    
-    // ウィジェット全体の高さを再計算
+
+    // ウィジェット全体の高さを再計算（ボタン行 + ヘッダー + 1行）
     int headerHeight = m_table->horizontalHeader()->height();
-    setFixedHeight(headerHeight + rowHeight + 2);
+    setFixedHeight(m_buttonRowHeight + headerHeight + rowHeight + 2);
 }
 
 void EngineInfoWidget::setModel(UsiCommLogModel* m) {
