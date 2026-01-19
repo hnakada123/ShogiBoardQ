@@ -58,19 +58,16 @@
     <name>ChangeEngineSettingsDialog</name>
     <message>
         <location filename="../../ui/changeenginesettingsdialog.ui" line="14"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_changeenginesettingsdialog.h" line="103"/>
         <source>エンジン設定</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/changeenginesettingsdialog.ui" line="44"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_changeenginesettingsdialog.h" line="104"/>
         <source>TextLabel</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/changeenginesettingsdialog.ui" line="87"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_changeenginesettingsdialog.h" line="105"/>
         <source>既定値に戻す</source>
         <translation type="unfinished"></translation>
     </message>
@@ -116,39 +113,32 @@
     <name>ConsiderationDialog</name>
     <message>
         <location filename="../../ui/considerationdialog.ui" line="14"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_considerationdialog.h" line="150"/>
         <source>検討</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/considerationdialog.ui" line="29"/>
         <location filename="../../ui/considerationdialog.ui" line="49"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_considerationdialog.h" line="151"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_considerationdialog.h" line="152"/>
         <source>エンジン設定</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/considerationdialog.ui" line="62"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_considerationdialog.h" line="153"/>
         <source>思考時間</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/considerationdialog.ui" line="72"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_considerationdialog.h" line="154"/>
         <source>時間無制限</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/considerationdialog.ui" line="87"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_considerationdialog.h" line="155"/>
         <source>検討時間</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/considerationdialog.ui" line="97"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_considerationdialog.h" line="156"/>
         <source>秒まで</source>
         <translation type="unfinished"></translation>
     </message>
@@ -425,147 +415,122 @@
     <name>CsaGameDialog</name>
     <message>
         <location filename="../../ui/csagamedialog.ui" line="14"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_csagamedialog.h" line="262"/>
         <source>通信対局（CSA）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/csagamedialog.ui" line="35"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_csagamedialog.h" line="263"/>
         <source>A-</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/csagamedialog.ui" line="38"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_csagamedialog.h" line="265"/>
         <source>フォントサイズを小さくする</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/csagamedialog.ui" line="57"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_csagamedialog.h" line="267"/>
         <source>A+</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/csagamedialog.ui" line="60"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_csagamedialog.h" line="269"/>
         <source>フォントサイズを大きくする</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/csagamedialog.ui" line="81"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_csagamedialog.h" line="271"/>
         <source>こちら側の対局者</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/csagamedialog.ui" line="89"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_csagamedialog.h" line="272"/>
         <source>人間</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/csagamedialog.ui" line="116"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_csagamedialog.h" line="273"/>
         <source>エンジン</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/csagamedialog.ui" line="133"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_csagamedialog.h" line="274"/>
         <source>エンジン設定...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/csagamedialog.ui" line="158"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_csagamedialog.h" line="275"/>
         <source>サーバー</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/csagamedialog.ui" line="164"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_csagamedialog.h" line="276"/>
         <source>履歴から選ぶ</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/csagamedialog.ui" line="181"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_csagamedialog.h" line="277"/>
         <source>バージョン</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/csagamedialog.ui" line="195"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_csagamedialog.h" line="278"/>
         <source>CSAプロトコル1.2.1 読み筋コメント出力あり</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/csagamedialog.ui" line="200"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_csagamedialog.h" line="279"/>
         <source>CSAプロトコル1.2.1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/csagamedialog.ui" line="205"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_csagamedialog.h" line="280"/>
         <source>CSAプロトコル1.1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/csagamedialog.ui" line="213"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_csagamedialog.h" line="282"/>
         <source>接続先ホスト</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/csagamedialog.ui" line="220"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_csagamedialog.h" line="283"/>
         <source>例: 172.17.0.2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/csagamedialog.ui" line="227"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_csagamedialog.h" line="284"/>
         <source>ポート番号</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/csagamedialog.ui" line="247"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_csagamedialog.h" line="285"/>
         <source>ID</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/csagamedialog.ui" line="254"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_csagamedialog.h" line="286"/>
         <source>ログインID</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/csagamedialog.ui" line="261"/>
         <location filename="../../ui/csagamedialog.ui" line="271"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_csagamedialog.h" line="287"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_csagamedialog.h" line="288"/>
         <source>パスワード</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/csagamedialog.ui" line="278"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_csagamedialog.h" line="289"/>
         <source>パスワードを表示する</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/csagamedialog.ui" line="316"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_csagamedialog.h" line="290"/>
         <source>対局開始</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/csagamedialog.ui" line="326"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_csagamedialog.h" line="291"/>
         <source>キャンセル</source>
         <translation type="unfinished"></translation>
     </message>
@@ -923,47 +888,47 @@
 <context>
     <name>EngineInfoWidget</name>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="18"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="19"/>
         <source>エンジン</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="18"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="19"/>
         <source>予想手</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="18"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="19"/>
         <source>探索手</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="19"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="20"/>
         <source>深さ</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="19"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="20"/>
         <source>ノード数</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="19"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="20"/>
         <source>探索局面数</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="19"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="20"/>
         <source>ハッシュ使用率</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="89"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="97"/>
         <source>フォントサイズを小さくする</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="96"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="104"/>
         <source>フォントサイズを大きくする</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1015,25 +980,21 @@
     <name>EngineRegistrationDialog</name>
     <message>
         <location filename="../../ui/engineregistrationdialog.ui" line="14"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_engineregistrationdialog.h" line="104"/>
         <source>エンジン登録</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/engineregistrationdialog.ui" line="82"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_engineregistrationdialog.h" line="105"/>
         <source>追加</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/engineregistrationdialog.ui" line="89"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_engineregistrationdialog.h" line="106"/>
         <source>削除</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/engineregistrationdialog.ui" line="96"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_engineregistrationdialog.h" line="107"/>
         <source>設定</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2161,81 +2122,67 @@ OKを選択すると保存先が指定できます。</source>
     <name>KifuAnalysisDialog</name>
     <message>
         <location filename="../../ui/kifuanalysisdialog.ui" line="20"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_kifuanalysisdialog.h" line="220"/>
         <source>棋譜解析</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/kifuanalysisdialog.ui" line="41"/>
         <location filename="../../ui/kifuanalysisdialog.ui" line="60"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_kifuanalysisdialog.h" line="221"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_kifuanalysisdialog.h" line="222"/>
         <source>エンジン設定</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/kifuanalysisdialog.ui" line="70"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_kifuanalysisdialog.h" line="223"/>
         <source>解析範囲</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/kifuanalysisdialog.ui" line="82"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_kifuanalysisdialog.h" line="224"/>
         <source>開始局面から最終手まで</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/kifuanalysisdialog.ui" line="117"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_kifuanalysisdialog.h" line="226"/>
         <source>手目から</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/kifuanalysisdialog.ui" line="140"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_kifuanalysisdialog.h" line="227"/>
         <source>手目まで</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/kifuanalysisdialog.ui" line="165"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_kifuanalysisdialog.h" line="228"/>
         <source>時間制限</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/kifuanalysisdialog.ui" line="174"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_kifuanalysisdialog.h" line="229"/>
         <source>１手あたりの思考時間</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/kifuanalysisdialog.ui" line="200"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_kifuanalysisdialog.h" line="230"/>
         <source>秒</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/kifuanalysisdialog.ui" line="250"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_kifuanalysisdialog.h" line="231"/>
         <source>A-</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/kifuanalysisdialog.ui" line="253"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_kifuanalysisdialog.h" line="233"/>
         <source>文字サイズを縮小</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/kifuanalysisdialog.ui" line="272"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_kifuanalysisdialog.h" line="235"/>
         <source>A+</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/kifuanalysisdialog.ui" line="275"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_kifuanalysisdialog.h" line="237"/>
         <source>文字サイズを拡大</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2504,517 +2451,430 @@ OKを選択すると保存先が指定できます。</source>
     <name>MainWindow</name>
     <message>
         <location filename="../../ui/mainwindow.ui" line="14"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="542"/>
         <source>将棋盤Q</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="28"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="656"/>
         <source>ファイル(F)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="41"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="657"/>
         <source>編集(E)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="45"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="658"/>
         <source>棋譜コピー</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="57"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="659"/>
         <source>局面コピー</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="79"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="660"/>
         <source>表示(I)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="90"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="661"/>
         <source>対局(G)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="126"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="664"/>
         <source>ヘルプ(H)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="144"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="665"/>
         <source>toolBar</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="175"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="543"/>
         <source>上書き保存</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="178"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="545"/>
         <source>Ctrl+S</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="187"/>
         <location filename="../../ui/mainwindow.ui" line="430"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="547"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="587"/>
         <source>名前を付けて保存</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="190"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="549"/>
         <source>Ctrl+A</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="200"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="552"/>
         <source>将棋盤の画像をファイルに保存</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="205"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="553"/>
         <source>評価値の画像をファイルに保存</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="214"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="554"/>
         <source>元に戻す</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="223"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="555"/>
         <source>やり直し</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="228"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="556"/>
         <source>入力取り消し</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="233"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="557"/>
         <source>パス</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="242"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="558"/>
         <source>棋譜貼り付け</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="252"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="560"/>
         <source>評価値の画像をクリップボードにコピー</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="257"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="561"/>
         <source>局面をブラウザで表示</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="262"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="562"/>
         <source>局面ペディア</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="267"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="563"/>
         <source>しおり</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="276"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="564"/>
         <source>盤面の回転</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="287"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="565"/>
         <source>思考</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="111"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="662"/>
         <source>設定(S)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="116"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="663"/>
         <location filename="../../src/app/mainwindow.cpp" line="3778"/>
         <source>言語設定</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="195"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="551"/>
         <source>Webから棋譜を取り込み</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="247"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="559"/>
         <source>将棋盤画像コピー</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="298"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="566"/>
         <source>USIプロトコル通信ログ</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="306"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="567"/>
         <source>ツリーダイアグラム</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="314"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="568"/>
         <source>コメント（思考）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="319"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="569"/>
         <source>アシスタント</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="324"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="570"/>
         <source>解析一覧</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="329"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="571"/>
         <source>継ぎ盤</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="341"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="572"/>
         <source>対局</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="350"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="573"/>
         <source>検討</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="359"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="574"/>
         <source>投了</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="368"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="575"/>
         <source>中断</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="382"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="579"/>
         <source>既定定跡を開く</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="387"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="580"/>
         <source>定跡を開く</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="392"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="581"/>
         <source>新規作成</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="397"/>
         <location filename="../../ui/mainwindow.ui" line="642"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="582"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="626"/>
         <source>開く</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="402"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="583"/>
         <source>保存</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="411"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="584"/>
         <source>終了</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="416"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="585"/>
         <source>しおり登録</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="425"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="586"/>
         <source>棋譜解析</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="435"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="588"/>
         <source>閉じる</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="440"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="589"/>
         <source>エクスポート</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="445"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="590"/>
         <source>指し手を定跡に追加</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="450"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="591"/>
         <source>ファイルから追加</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="455"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="592"/>
         <source>クリップボードから追加</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="463"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="593"/>
         <source>評価値表示</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="471"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="594"/>
         <source>定跡コメント</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="479"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="595"/>
         <source>定跡ツリー</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="484"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="596"/>
         <source>定跡評価値</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="489"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="597"/>
         <source>定跡管理</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="494"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="598"/>
         <source>定跡情報</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="499"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="599"/>
         <source>局面編集開始</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="504"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="600"/>
         <source>平手初期配置</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="509"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="601"/>
         <source>詰将棋初期配置</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="514"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="602"/>
         <source>全ての駒を駒台へ</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="519"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="603"/>
         <source>先後反転</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="524"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="604"/>
         <source>手番変更</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="529"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="605"/>
         <source>エンジン設定</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="534"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="606"/>
         <source>対局設定</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="539"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="607"/>
         <source>検討設定</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="544"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="608"/>
         <source>ヒント設定</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="549"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="609"/>
         <source>詰み探索設定</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="554"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="610"/>
         <source>オプション</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="559"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="611"/>
         <source>棋譜自動保存フォルダを開く</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="564"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="612"/>
         <source>将棋ウォーズ棋譜一覧</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="569"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="613"/>
         <source>ホームページ</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="574"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="614"/>
         <source>使い方</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="579"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="615"/>
         <source>バージョン情報</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="584"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="616"/>
         <source>Qtについて</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="589"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="617"/>
         <source>KIF形式</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="594"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="618"/>
         <source>KI2形式</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="599"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="619"/>
         <source>CSA形式</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="604"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="620"/>
         <source>USI形式（現在の指し手まで）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="609"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="621"/>
         <source>SFEN形式</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="614"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="622"/>
         <source>BOD形式</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="711"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="643"/>
         <location filename="../../src/app/mainwindow.cpp" line="776"/>
         <source>持将棋の点数</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="716"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="644"/>
         <location filename="../../src/app/mainwindow.cpp" line="843"/>
         <location filename="../../src/app/mainwindow.cpp" line="858"/>
         <source>入玉宣言</source>
@@ -3022,145 +2882,121 @@ OKを選択すると保存先が指定できます。</source>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="721"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="645"/>
         <source>USI形式（全て）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="726"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="646"/>
         <source>JSON棋譜フォーマット</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="731"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="647"/>
         <source>USEN</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="740"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="648"/>
         <source>通信対局（CSA）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="745"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="649"/>
         <source>棋譜解析中止</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="754"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="650"/>
         <source>定跡ウィンドウ</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="763"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="651"/>
         <source>メニューウィンドウ</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="768"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="652"/>
         <source>棋譜解析設定</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="776"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="653"/>
         <source>システム設定に従う</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="784"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="654"/>
         <source>日本語</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="792"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="655"/>
         <source>English</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="619"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="623"/>
         <source>&amp;imgタグなし</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="624"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="624"/>
         <source>i&amp;mgタグあり</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="633"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="625"/>
         <source>新規</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="645"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="628"/>
         <source>Ctrl+O</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="654"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="630"/>
         <source>待った</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="663"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="631"/>
         <source>すぐ指させる</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="672"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="632"/>
         <source>将棋盤の拡大</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="675"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="634"/>
         <source>Ctrl++</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="684"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="636"/>
         <source>将棋盤の縮小</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="687"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="638"/>
         <source>Ctrl+-</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="692"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="640"/>
         <source>局面編集終了</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="697"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="641"/>
         <source>実行関数</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="706"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_mainwindow.h" line="642"/>
         <source>詰み探索</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3687,13 +3523,11 @@ OKを選択すると保存先が指定できます。</source>
     <name>PromoteDialog</name>
     <message>
         <location filename="../../ui/promotedialog.ui" line="20"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_promotedialog.h" line="59"/>
         <source>成る・不成</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/promotedialog.ui" line="35"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_promotedialog.h" line="60"/>
         <source>成りますか？(OK: 成る、キャンセル:不成)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4268,13 +4102,11 @@ OKを選択すると保存先が指定できます。</source>
     <name>StartGameDialog</name>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="20"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="817"/>
         <source>対局</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="141"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="821"/>
         <source>先手／下手</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4312,16 +4144,12 @@ OKを選択すると保存先が指定できます。</source>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="207"/>
         <location filename="../../ui/startgamedialog.ui" line="375"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="823"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="828"/>
         <source>名前</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="259"/>
         <location filename="../../ui/startgamedialog.ui" line="427"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="824"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="829"/>
         <location filename="../../src/dialogs/startgamedialog.cpp" line="224"/>
         <location filename="../../src/dialogs/startgamedialog.cpp" line="246"/>
         <location filename="../../src/dialogs/startgamedialog.cpp" line="308"/>
@@ -4332,44 +4160,34 @@ OKを選択すると保存先が指定できます。</source>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="282"/>
         <location filename="../../ui/startgamedialog.ui" line="450"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="825"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="830"/>
         <source>エンジン設定</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="309"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="826"/>
         <source>後手／上手</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="683"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="840"/>
         <source>後手／上手に異なる時間を設定</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="498"/>
         <location filename="../../ui/startgamedialog.ui" line="703"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="832"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="841"/>
         <source>持ち時間</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="515"/>
         <location filename="../../ui/startgamedialog.ui" line="720"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="833"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="842"/>
         <source>時間</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="535"/>
         <location filename="../../ui/startgamedialog.ui" line="740"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="834"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="843"/>
         <source>分</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4378,256 +4196,209 @@ OKを選択すると保存先が指定できます。</source>
         <location filename="../../ui/startgamedialog.ui" line="658"/>
         <location filename="../../ui/startgamedialog.ui" line="790"/>
         <location filename="../../ui/startgamedialog.ui" line="840"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="836"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="839"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="845"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="847"/>
         <source>秒</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="484"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="831"/>
         <source>時間設定</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="608"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="837"/>
         <source>※ 秒読みと増加は併用できません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="867"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="848"/>
         <source>設定</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="882"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="849"/>
         <source>開始局面</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="893"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="850"/>
         <source>現在の局面</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="898"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="851"/>
         <source>平手</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="903"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="852"/>
         <source>香落ち</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="908"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="853"/>
         <source>右香落ち</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="913"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="854"/>
         <source>角落ち</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="918"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="855"/>
         <source>飛車落ち</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="923"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="856"/>
         <source>飛香落ち</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="928"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="857"/>
         <source>二枚落ち</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="933"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="858"/>
         <source>三枚落ち</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="938"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="859"/>
         <source>四枚落ち</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="943"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="860"/>
         <source>五枚落ち</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="948"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="861"/>
         <source>左五枚落ち</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="953"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="862"/>
         <source>六枚落ち</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="958"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="863"/>
         <source>八枚落ち</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="963"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="864"/>
         <source>十枚落ち</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="988"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="866"/>
         <source>最大手数</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="1025"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="867"/>
         <source>連続対局</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="1062"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="868"/>
         <source>持将棋</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="1076"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="869"/>
         <source>なし</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="1081"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="870"/>
         <source>24点法</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="1086"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="871"/>
         <source>27点法</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="1113"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="873"/>
         <source>人を手前に表示する</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="1156"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="876"/>
         <source>棋譜自動保存</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="1120"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="874"/>
         <source>時間切れを負けにする</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="89"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="818"/>
         <source>文字サイズ:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="108"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="819"/>
         <source>A-</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="127"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="820"/>
         <source>A+</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="159"/>
         <location filename="../../ui/startgamedialog.ui" line="327"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="822"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="827"/>
         <source>対局者</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="565"/>
         <location filename="../../ui/startgamedialog.ui" line="770"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="835"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="844"/>
         <source>秒読み</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="638"/>
         <location filename="../../ui/startgamedialog.ui" line="820"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="838"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="846"/>
         <source>増加</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="1127"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="875"/>
         <source>1局ごとに手番を入れ替える</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="1178"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="877"/>
         <source>保存先を選択...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="1185"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="878"/>
         <source>...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="1209"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="879"/>
         <source>↔ 先後入れ替え</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="1216"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="880"/>
         <source>設定のみ保存</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/startgamedialog.ui" line="1223"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_startgamedialog.h" line="881"/>
         <source>初期設定に戻す</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4705,25 +4476,21 @@ OKを選択すると保存先が指定できます。</source>
     <name>VersionDialog</name>
     <message>
         <location filename="../../ui/versiondialog.ui" line="14"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_versiondialog.h" line="97"/>
         <source>バージョン情報</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/versiondialog.ui" line="26"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_versiondialog.h" line="98"/>
         <source>OK</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/versiondialog.ui" line="61"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_versiondialog.h" line="99"/>
         <source>将棋盤Q</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../ui/versiondialog.ui" line="106"/>
-        <location filename="../../build/ShogiBoardQ_autogen/include/ui_versiondialog.h" line="100"/>
         <source>Hiroshi Nakada</source>
         <translation type="unfinished"></translation>
     </message>

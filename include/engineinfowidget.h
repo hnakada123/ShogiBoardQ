@@ -62,7 +62,8 @@ private:
     int m_fontSize=10;
     int m_widgetIndex=0;  // ★ 追加: ウィジェットインデックス
     bool m_columnWidthsLoaded=false;  // ★ 追加: 列幅が設定ファイルから読み込まれたか
-    
+    int m_buttonRowHeight=0;  // ★ 追加: ボタン行の高さ（ボタン非表示時は0）
+
     // ★ 追加: フォントサイズボタン
     QToolButton* m_btnFontDecrease=nullptr;
     QToolButton* m_btnFontIncrease=nullptr;

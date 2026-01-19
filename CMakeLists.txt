@@ -197,7 +197,14 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     )
 
     # .qm 生成（出力はビルド側に）
-    qt_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
+    # 注意: CMAKE_SOURCE_DIR 全体を渡すとビルドディレクトリ内の autogen ファイルも
+    # スキャンされ、循環依存が発生するため、ソースディレクトリのみを指定する
+    qt_create_translation(QM_FILES
+        ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_SOURCE_DIR}/include
+        ${CMAKE_SOURCE_DIR}/ui
+        ${TS_FILES}
+    )
 
     # .qm ファイルをビルドターゲットとして追加
     add_custom_target(translations ALL DEPENDS ${QM_FILES})
