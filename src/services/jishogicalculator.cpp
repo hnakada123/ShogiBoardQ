@@ -1,4 +1,5 @@
 #include "jishogicalculator.h"
+#include <QObject>
 
 // 盤面データと駒台データから点数を計算する
 JishogiCalculator::JishogiResult JishogiCalculator::calculate(
@@ -98,7 +99,7 @@ QString JishogiCalculator::getResult24(const PlayerScore& score, bool kingInChec
 {
     // 宣言条件（玉が敵陣、敵陣に10枚以上、王手なし）を満たしていない場合は負け
     if (!meetsDeclarationConditions(score, kingInCheck)) {
-        return QStringLiteral("負け");
+        return QObject::tr("負け");
     }
 
     // 点数に基づく結果を判定
@@ -106,11 +107,11 @@ QString JishogiCalculator::getResult24(const PlayerScore& score, bool kingInChec
     // 24〜30点: 引き分け（持将棋成立）
     // 24点未満: 負け
     if (score.declarationPoints >= 31) {
-        return QStringLiteral("勝ち");
+        return QObject::tr("勝ち");
     } else if (score.declarationPoints >= 24) {
-        return QStringLiteral("引き分け");
+        return QObject::tr("引き分け");
     } else {
-        return QStringLiteral("負け");
+        return QObject::tr("負け");
     }
 }
 
@@ -119,7 +120,7 @@ QString JishogiCalculator::getResult27(const PlayerScore& score, bool isSente, b
 {
     // 宣言条件（玉が敵陣、敵陣に10枚以上、王手なし）を満たしていない場合は負け
     if (!meetsDeclarationConditions(score, kingInCheck)) {
-        return QStringLiteral("負け");
+        return QObject::tr("負け");
     }
 
     // 点数に基づく結果を判定
@@ -128,9 +129,9 @@ QString JishogiCalculator::getResult27(const PlayerScore& score, bool isSente, b
     int requiredPoints = isSente ? 28 : 27;
 
     if (score.declarationPoints >= requiredPoints) {
-        return QStringLiteral("勝ち");
+        return QObject::tr("勝ち");
     } else {
-        return QStringLiteral("負け");
+        return QObject::tr("負け");
     }
 }
 

@@ -740,18 +740,18 @@ void MainWindow::displayJishogiScoreDialog()
     bool goteInCheck = validator.checkIfKingInCheck(MoveValidator::WHITE, board->boardData()) > 0;
 
     // 宣言条件の判定文字列を生成
-    auto buildConditionStr = [](const JishogiCalculator::PlayerScore& score, bool inCheck) -> QString {
+    auto buildConditionStr = [this](const JishogiCalculator::PlayerScore& score, bool inCheck) -> QString {
         const QString checkMark = QStringLiteral("○");
         const QString crossMark = QStringLiteral("×");
 
         QString str;
-        str += QStringLiteral("【宣言条件】\n");
-        str += QStringLiteral("① 玉が敵陣 : %1\n").arg(score.kingInEnemyTerritory ? checkMark : crossMark);
-        str += QStringLiteral("② 敵陣10枚以上 : %1 (%2枚)\n")
+        str += tr("【宣言条件】") + QStringLiteral("\n");
+        str += tr("① 玉が敵陣 : %1").arg(score.kingInEnemyTerritory ? checkMark : crossMark) + QStringLiteral("\n");
+        str += tr("② 敵陣10枚以上 : %1 (%2枚)")
                    .arg(score.piecesInEnemyTerritory >= 10 ? checkMark : crossMark)
-                   .arg(score.piecesInEnemyTerritory);
-        str += QStringLiteral("③ 王手なし : %1\n").arg(!inCheck ? checkMark : crossMark);
-        str += QStringLiteral("④ 宣言点数 : %1点").arg(score.declarationPoints);
+                   .arg(score.piecesInEnemyTerritory) + QStringLiteral("\n");
+        str += tr("③ 王手なし : %1").arg(!inCheck ? checkMark : crossMark) + QStringLiteral("\n");
+        str += tr("④ 宣言点数 : %1点").arg(score.declarationPoints);
         return str;
     };
 

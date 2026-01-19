@@ -74,43 +74,43 @@ static QString getJudgementString(const QString& evalStr)
     if (evalStr.isEmpty() || evalStr == QStringLiteral("-")) {
         return QString();
     }
-    
+
     // 詰み表示の場合
-    if (evalStr.contains(QStringLiteral("詰"))) {
+    if (evalStr.contains(QStringLiteral("詰")) || evalStr.contains(QStringLiteral("mate"))) {
         if (evalStr.startsWith(QStringLiteral("-"))) {
-            return QStringLiteral("後手勝ち");
+            return QObject::tr("後手勝ち");
         } else {
-            return QStringLiteral("先手勝ち");
+            return QObject::tr("先手勝ち");
         }
     }
-    
+
     bool ok = false;
     int score = evalStr.toInt(&ok);
     if (!ok) {
         return QString();
     }
-    
+
     int absScore = std::abs(score);
     QString advantage;
-    
+
     if (absScore <= 100) {
-        advantage = QStringLiteral("互角");
+        advantage = QObject::tr("互角");
     } else if (absScore <= 300) {
-        advantage = QStringLiteral("やや有利");
+        advantage = QObject::tr("やや有利");
     } else if (absScore <= 600) {
-        advantage = QStringLiteral("有利");
+        advantage = QObject::tr("有利");
     } else if (absScore <= 1000) {
-        advantage = QStringLiteral("優勢");
+        advantage = QObject::tr("優勢");
     } else {
-        advantage = QStringLiteral("勝勢");
+        advantage = QObject::tr("勝勢");
     }
-    
+
     // 互角の場合は「互角」のみ、それ以外は「先手/後手 + 形勢」
     if (absScore <= 100) {
         return advantage;
     }
-    
-    QString side = (score > 0) ? QStringLiteral("先手") : QStringLiteral("後手");
+
+    QString side = (score > 0) ? QObject::tr("先手") : QObject::tr("後手");
     return side + advantage;
 }
 
@@ -123,7 +123,7 @@ QVariant KifuAnalysisListModel::data(const QModelIndex &index, int role) const
     // 盤面列（列6）は特別扱い：ボタン風の表示
     if (index.column() == 6) {
         if (role == Qt::DisplayRole) {
-            return QStringLiteral("表示");
+            return tr("表示");
         }
         if (role == Qt::TextAlignmentRole) {
             return Qt::AlignCenter;
@@ -191,21 +191,21 @@ QVariant KifuAnalysisListModel::headerData(int section, Qt::Orientation orientat
     if (orientation == Qt::Horizontal) {
         switch (section) {
         case 0:
-            return QStringLiteral("指し手");
+            return tr("指し手");
         case 1:
-            return QStringLiteral("候補手");
+            return tr("候補手");
         case 2:
-            return QStringLiteral("一致");
+            return tr("一致");
         case 3:
-            return QStringLiteral("評価値");
+            return tr("評価値");
         case 4:
-            return QStringLiteral("形勢");
+            return tr("形勢");
         case 5:
-            return QStringLiteral("差");
+            return tr("差");
         case 6:
-            return QStringLiteral("盤面");
+            return tr("盤面");
         case 7:
-            return QStringLiteral("読み筋");
+            return tr("読み筋");
         default:
             // それ以外の場合、空のQVariantを返す。
             return QVariant();

@@ -304,11 +304,11 @@ void EvaluationChartWidget::onSeriesHovered(const QPointF& point, bool state)
         // フォーマット: "▲エンジン名\nN手目: 評価値" または "△エンジン名\nN手目: 評価値"
         QString text;
         if (!engineName.isEmpty()) {
-            text = QStringLiteral("%1%2\n%3手目: %4").arg(sideMarker, engineName).arg(ply).arg(cp);
+            text = tr("%1%2\nMove %3: %4").arg(sideMarker, engineName).arg(ply).arg(cp);
         } else {
             // エンジン名がない場合は「先手」「後手」を表示
-            const QString sideName = (series == m_s1) ? QStringLiteral("先手") : QStringLiteral("後手");
-            text = QStringLiteral("%1%2\n%3手目: %4").arg(sideMarker, sideName).arg(ply).arg(cp);
+            const QString sideName = (series == m_s1) ? tr("先手") : tr("後手");
+            text = tr("%1%2\nMove %3: %4").arg(sideMarker, sideName).arg(ply).arg(cp);
         }
         qDebug() << "[CHART] onSeriesHovered: tooltip text=" << text;
         m_tooltip->setText(text);
@@ -390,7 +390,7 @@ void EvaluationChartWidget::setupControlPanel()
     );
 
     // 評価値上限ComboBox
-    auto* lblYLimit = new QLabel(QStringLiteral("評価値上限:"), m_controlPanel);
+    auto* lblYLimit = new QLabel(tr("評価値上限:"), m_controlPanel);
     lblYLimit->setStyleSheet(labelStyle);
     m_comboYLimit = new QComboBox(m_controlPanel);
     m_comboYLimit->setStyleSheet(comboStyle);
@@ -400,7 +400,7 @@ void EvaluationChartWidget::setupControlPanel()
     }
 
     // 手数上限ComboBox
-    auto* lblXLimit = new QLabel(QStringLiteral("手数上限:"), m_controlPanel);
+    auto* lblXLimit = new QLabel(tr("手数上限:"), m_controlPanel);
     lblXLimit->setStyleSheet(labelStyle);
     m_comboXLimit = new QComboBox(m_controlPanel);
     m_comboXLimit->setStyleSheet(comboStyle);
@@ -410,7 +410,7 @@ void EvaluationChartWidget::setupControlPanel()
     }
 
     // 手数間隔ComboBox
-    auto* lblXInterval = new QLabel(QStringLiteral("手数間隔:"), m_controlPanel);
+    auto* lblXInterval = new QLabel(tr("手数間隔:"), m_controlPanel);
     lblXInterval->setStyleSheet(labelStyle);
     m_comboXInterval = new QComboBox(m_controlPanel);
     m_comboXInterval->setStyleSheet(comboStyle);

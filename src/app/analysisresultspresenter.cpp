@@ -31,7 +31,7 @@ public:
 
         // テキスト「表示」を白色で中央に描画
         painter->setPen(Qt::white);
-        painter->drawText(option.rect, Qt::AlignCenter, QStringLiteral("表示"));
+        painter->drawText(option.rect, Qt::AlignCenter, QObject::tr("表示"));
 
         painter->restore();
     }
