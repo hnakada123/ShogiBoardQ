@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+    <title>KI2形式</title>
+    <defs>
+        <style>
+            text { font-family: 'Noto Sans JP', 'Yu Gothic', sans-serif; }
+        </style>
+    </defs>
+    <rect x="0" y="0" width="128" height="128" rx="8" fill="#795548"/>
+        <text x="64" y="82" text-anchor="middle" font-family="Arial Black" font-size="40" font-weight="bold" fill="white">KI2</text>
+</svg>

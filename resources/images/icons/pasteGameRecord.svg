@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+    <title>棋譜貼り付け</title>
+    <defs>
+        <style>
+            text { font-family: 'Noto Sans JP', 'Yu Gothic', sans-serif; }
+        </style>
+    </defs>
+    <rect x="0" y="0" width="80" height="100" rx="6" fill="#90A4AE" stroke="#607D8B" stroke-width="3"/>
+        <rect x="24" y="28" width="80" height="100" rx="6" fill="#B0BEC5" stroke="#607D8B" stroke-width="3"/>
+        <line x1="40" y1="52" x2="88" y2="52" stroke="#455A64" stroke-width="5"/>
+        <line x1="40" y1="72" x2="88" y2="72" stroke="#455A64" stroke-width="5"/>
+        <line x1="40" y1="92" x2="72" y2="92" stroke="#455A64" stroke-width="5"/>
+        <rect x="48" y="28" width="80" height="100" rx="6" fill="#CFD8DC" stroke="#607D8B" stroke-width="3"/>
+        <line x1="64" y1="52" x2="112" y2="52" stroke="#455A64" stroke-width="5"/>
+        <line x1="64" y1="72" x2="112" y2="72" stroke="#455A64" stroke-width="5"/>
+        <line x1="64" y1="92" x2="96" y2="92" stroke="#455A64" stroke-width="5"/>
+        <path d="M108 8 L108 28" stroke="#4CAF50" stroke-width="6" fill="none" stroke-linecap="round"/>
+        <polygon points="100,8 108,0 116,8" fill="#4CAF50"/>
+</svg>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+    <title>通信対局（CSA）</title>
+    <defs>
+        <style>
+            text { font-family: 'Noto Sans JP', 'Yu Gothic', sans-serif; }
+        </style>
+    </defs>
+    <circle cx="64" cy="64" r="64" fill="#2196F3"/>
+        <circle cx="32" cy="48" r="20" fill="white"/>
+        <circle cx="96" cy="48" r="20" fill="white"/>
+        <polygon points="32,68 26,92 38,92" fill="white"/>
+        <polygon points="96,68 90,92 102,92" fill="white"/>
+        <path d="M48 48 L80 48" stroke="#1565C0" stroke-width="6" stroke-dasharray="6,6"/>
+        <path d="M32 104 Q64 120 96 104" stroke="white" stroke-width="5" fill="none"/>
+</svg>

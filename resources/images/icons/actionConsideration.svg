@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+    <title>検討</title>
+    <defs>
+        <style>
+            text { font-family: 'Noto Sans JP', 'Yu Gothic', sans-serif; }
+        </style>
+    </defs>
+    <circle cx="64" cy="64" r="64" fill="#FF9800"/>
+        <circle cx="64" cy="40" r="24" fill="white"/>
+        <path d="M64 68 L64 116" stroke="white" stroke-width="14" stroke-linecap="round"/>
+        <line x1="36" y1="92" x2="92" y2="92" stroke="white" stroke-width="14" stroke-linecap="round"/>
+</svg>

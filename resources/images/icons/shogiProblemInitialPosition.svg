@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+    <title>詰将棋初期配置</title>
+    <defs>
+        <style>
+            text { font-family: 'Noto Sans JP', 'Yu Gothic', sans-serif; }
+        </style>
+    </defs>
+    <rect x="0" y="0" width="128" height="128" fill="#D4A574" stroke="#8B4513" stroke-width="4"/>
+        <line x1="0" y1="42.7" x2="128" y2="42.7" stroke="#8B4513" stroke-width="2"/>
+        <line x1="0" y1="85.3" x2="128" y2="85.3" stroke="#8B4513" stroke-width="2"/>
+        <line x1="42.7" y1="0" x2="42.7" y2="128" stroke="#8B4513" stroke-width="2"/>
+        <line x1="85.3" y1="0" x2="85.3" y2="128" stroke="#8B4513" stroke-width="2"/>
+        <polygon points="21,8 12,32 30,32" fill="#C62828"/>
+        <text x="21" y="26" text-anchor="middle" font-family="serif" font-size="14" fill="white">王</text>
+        <polygon points="64,52 55,76 73,76" fill="#1A1A1A"/>
+        <polygon points="107,52 98,76 116,76" fill="#1A1A1A"/>
+</svg>

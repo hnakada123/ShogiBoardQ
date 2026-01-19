@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+    <title>盤面の回転</title>
+    <defs>
+        <style>
+            text { font-family: 'Noto Sans JP', 'Yu Gothic', sans-serif; }
+        </style>
+    </defs>
+    <rect x="24" y="24" width="80" height="80" fill="#D4A574" stroke="#8B4513" stroke-width="3"/>
+        <path d="M64 0 L64 20" stroke="#2196F3" stroke-width="6" stroke-linecap="round"/>
+        <polygon points="52,8 64,0 76,8" fill="#2196F3"/>
+        <path d="M64 108 L64 128" stroke="#2196F3" stroke-width="6" stroke-linecap="round"/>
+        <polygon points="52,120 64,128 76,120" fill="#2196F3"/>
+        <path d="M0 64 L20 64" stroke="#2196F3" stroke-width="6" stroke-linecap="round"/>
+        <polygon points="8,52 0,64 8,76" fill="#2196F3"/>
+        <path d="M108 64 L128 64" stroke="#2196F3" stroke-width="6" stroke-linecap="round"/>
+        <polygon points="120,52 128,64 120,76" fill="#2196F3"/>
+</svg>

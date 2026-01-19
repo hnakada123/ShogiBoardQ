@@ -206,7 +206,6 @@ public slots:
     void onLanguageEnglishTriggered();
 
     // その他操作
-    void toggleEngineAnalysisVisibility();
     void undoLastTwoMoves();
     void beginPositionEditing();
     void finishPositionEditing();

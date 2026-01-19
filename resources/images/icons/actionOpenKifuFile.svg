@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+    <title>開く</title>
+    <defs>
+        <style>
+            text { font-family: 'Noto Sans JP', 'Yu Gothic', sans-serif; }
+        </style>
+    </defs>
+    <path d="M0 24 L0 128 L128 128 L128 40 L80 40 L64 24 Z" fill="#FFB74D" stroke="#E68A00" stroke-width="4"/>
+        <path d="M0 40 L24 72 L128 72 L128 40 L80 40 L64 24 L0 24 Z" fill="#FFC107"/>
+        <rect x="0" y="0" width="72" height="24" fill="#FFB74D"/>
+        <path d="M52 96 L52 112 M40 104 L64 104" stroke="#E68A00" stroke-width="6" stroke-linecap="round"/>
+</svg>

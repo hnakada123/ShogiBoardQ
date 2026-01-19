@@ -2619,7 +2619,6 @@ OKを選択すると保存先が指定できます。</source>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="187"/>
-        <location filename="../../ui/mainwindow.ui" line="430"/>
         <source>名前を付けて保存</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2629,68 +2628,23 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="200"/>
+        <location filename="../../ui/mainwindow.ui" line="199"/>
         <source>将棋盤の画像をファイルに保存</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="205"/>
-        <source>評価値の画像をファイルに保存</source>
+        <location filename="../../ui/mainwindow.ui" line="532"/>
+        <source>持将棋点数</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="214"/>
-        <source>元に戻す</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="223"/>
-        <source>やり直し</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="228"/>
-        <source>入力取り消し</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="233"/>
-        <source>パス</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="242"/>
+        <location filename="../../ui/mainwindow.ui" line="208"/>
         <source>棋譜貼り付け</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="252"/>
-        <source>評価値の画像をクリップボードにコピー</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="257"/>
-        <source>局面をブラウザで表示</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="262"/>
-        <source>局面ペディア</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="267"/>
-        <source>しおり</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="276"/>
+        <location filename="../../ui/mainwindow.ui" line="226"/>
         <source>盤面の回転</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="287"/>
-        <source>思考</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2705,411 +2659,239 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="195"/>
-        <source>Webから棋譜を取り込み</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="247"/>
+        <location filename="../../ui/mainwindow.ui" line="217"/>
         <source>将棋盤画像コピー</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="298"/>
-        <source>USIプロトコル通信ログ</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="306"/>
-        <source>ツリーダイアグラム</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="314"/>
-        <source>コメント（思考）</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="319"/>
-        <source>アシスタント</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="324"/>
-        <source>解析一覧</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="329"/>
-        <source>継ぎ盤</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="341"/>
+        <location filename="../../ui/mainwindow.ui" line="238"/>
         <source>対局</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="350"/>
+        <location filename="../../ui/mainwindow.ui" line="247"/>
         <source>検討</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="359"/>
+        <location filename="../../ui/mainwindow.ui" line="256"/>
         <source>投了</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="368"/>
+        <location filename="../../ui/mainwindow.ui" line="265"/>
         <source>中断</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="382"/>
-        <source>既定定跡を開く</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="387"/>
-        <source>定跡を開く</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="392"/>
-        <source>新規作成</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="397"/>
-        <location filename="../../ui/mainwindow.ui" line="646"/>
+        <location filename="../../ui/mainwindow.ui" line="460"/>
         <source>開く</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="402"/>
-        <source>保存</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="411"/>
+        <location filename="../../ui/mainwindow.ui" line="280"/>
         <source>終了</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="416"/>
-        <source>しおり登録</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="425"/>
+        <location filename="../../ui/mainwindow.ui" line="289"/>
         <source>棋譜解析</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="435"/>
-        <source>閉じる</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="440"/>
-        <source>エクスポート</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="445"/>
-        <source>指し手を定跡に追加</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="450"/>
-        <source>ファイルから追加</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="455"/>
-        <source>クリップボードから追加</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="463"/>
-        <source>評価値表示</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="471"/>
-        <source>定跡コメント</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="479"/>
-        <source>定跡ツリー</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="484"/>
-        <source>定跡評価値</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="489"/>
-        <source>定跡管理</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="494"/>
-        <source>定跡情報</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="499"/>
+        <location filename="../../ui/mainwindow.ui" line="298"/>
         <source>局面編集開始</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="504"/>
+        <location filename="../../ui/mainwindow.ui" line="307"/>
         <source>平手初期配置</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="509"/>
+        <location filename="../../ui/mainwindow.ui" line="316"/>
         <source>詰将棋初期配置</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="514"/>
+        <location filename="../../ui/mainwindow.ui" line="325"/>
         <source>全ての駒を駒台へ</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="519"/>
+        <location filename="../../ui/mainwindow.ui" line="334"/>
         <source>先後反転</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="524"/>
+        <location filename="../../ui/mainwindow.ui" line="343"/>
         <source>手番変更</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="529"/>
+        <location filename="../../ui/mainwindow.ui" line="352"/>
         <source>エンジン設定</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="534"/>
-        <source>対局設定</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="539"/>
-        <source>検討設定</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="544"/>
-        <source>ヒント設定</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="549"/>
-        <source>詰み探索設定</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="554"/>
-        <source>オプション</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="559"/>
-        <source>棋譜自動保存フォルダを開く</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="564"/>
-        <source>将棋ウォーズ棋譜一覧</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="569"/>
+        <location filename="../../ui/mainwindow.ui" line="361"/>
         <source>ホームページ</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="574"/>
+        <location filename="../../ui/mainwindow.ui" line="370"/>
         <source>使い方</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="579"/>
+        <location filename="../../ui/mainwindow.ui" line="379"/>
         <source>バージョン情報</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="588"/>
+        <location filename="../../ui/mainwindow.ui" line="388"/>
         <source>Qtについて</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="593"/>
+        <location filename="../../ui/mainwindow.ui" line="397"/>
         <source>KIF形式</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="598"/>
+        <location filename="../../ui/mainwindow.ui" line="406"/>
         <source>KI2形式</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="603"/>
+        <location filename="../../ui/mainwindow.ui" line="415"/>
         <source>CSA形式</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="608"/>
+        <location filename="../../ui/mainwindow.ui" line="424"/>
         <source>USI形式（現在の指し手まで）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="613"/>
+        <location filename="../../ui/mainwindow.ui" line="433"/>
         <source>SFEN形式</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="618"/>
+        <location filename="../../ui/mainwindow.ui" line="442"/>
         <source>BOD形式</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="715"/>
-        <location filename="../../src/app/mainwindow.cpp" line="777"/>
+        <location filename="../../src/app/mainwindow.cpp" line="779"/>
         <source>持将棋の点数</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="720"/>
-        <location filename="../../src/app/mainwindow.cpp" line="844"/>
-        <location filename="../../src/app/mainwindow.cpp" line="859"/>
+        <location filename="../../ui/mainwindow.ui" line="541"/>
+        <location filename="../../src/app/mainwindow.cpp" line="846"/>
+        <location filename="../../src/app/mainwindow.cpp" line="861"/>
         <source>入玉宣言</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="725"/>
+        <location filename="../../ui/mainwindow.ui" line="550"/>
         <source>USI形式（全て）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="730"/>
+        <location filename="../../ui/mainwindow.ui" line="559"/>
         <source>JSON棋譜フォーマット</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="735"/>
+        <location filename="../../ui/mainwindow.ui" line="568"/>
         <source>USEN</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="744"/>
+        <location filename="../../ui/mainwindow.ui" line="577"/>
         <source>通信対局（CSA）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="749"/>
+        <location filename="../../ui/mainwindow.ui" line="586"/>
         <source>棋譜解析中止</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="758"/>
+        <location filename="../../ui/mainwindow.ui" line="595"/>
         <source>定跡ウィンドウ</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="767"/>
+        <location filename="../../ui/mainwindow.ui" line="604"/>
         <source>メニューウィンドウ</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="772"/>
-        <source>棋譜解析設定</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="780"/>
+        <location filename="../../ui/mainwindow.ui" line="616"/>
         <source>システム設定に従う</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="788"/>
+        <location filename="../../ui/mainwindow.ui" line="628"/>
         <source>日本語</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="796"/>
+        <location filename="../../ui/mainwindow.ui" line="640"/>
         <source>English</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="623"/>
-        <source>&amp;imgタグなし</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="628"/>
-        <source>i&amp;mgタグあり</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="637"/>
+        <location filename="../../ui/mainwindow.ui" line="451"/>
         <source>新規</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="649"/>
+        <location filename="../../ui/mainwindow.ui" line="463"/>
         <source>Ctrl+O</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="658"/>
+        <location filename="../../ui/mainwindow.ui" line="472"/>
         <source>待った</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="667"/>
+        <location filename="../../ui/mainwindow.ui" line="481"/>
         <source>すぐ指させる</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="676"/>
+        <location filename="../../ui/mainwindow.ui" line="490"/>
         <source>将棋盤の拡大</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="679"/>
+        <location filename="../../ui/mainwindow.ui" line="493"/>
         <source>Ctrl++</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="688"/>
+        <location filename="../../ui/mainwindow.ui" line="502"/>
         <source>将棋盤の縮小</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="691"/>
+        <location filename="../../ui/mainwindow.ui" line="505"/>
         <source>Ctrl+-</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="696"/>
+        <location filename="../../ui/mainwindow.ui" line="514"/>
         <source>局面編集終了</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../ui/mainwindow.ui" line="701"/>
-        <source>実行関数</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../ui/mainwindow.ui" line="710"/>
+        <location filename="../../ui/mainwindow.ui" line="523"/>
         <source>詰み探索</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3119,54 +2901,54 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="648"/>
+        <location filename="../../src/app/mainwindow.cpp" line="650"/>
         <source>投了確認</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="649"/>
+        <location filename="../../src/app/mainwindow.cpp" line="651"/>
         <source>本当に投了しますか？</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="727"/>
-        <location filename="../../src/app/mainwindow.cpp" line="850"/>
+        <location filename="../../src/app/mainwindow.cpp" line="729"/>
+        <location filename="../../src/app/mainwindow.cpp" line="852"/>
         <source>エラー</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="727"/>
-        <location filename="../../src/app/mainwindow.cpp" line="850"/>
+        <location filename="../../src/app/mainwindow.cpp" line="729"/>
+        <location filename="../../src/app/mainwindow.cpp" line="852"/>
         <source>盤面データがありません。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="749"/>
+        <location filename="../../src/app/mainwindow.cpp" line="751"/>
         <source>【宣言条件】</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="750"/>
+        <location filename="../../src/app/mainwindow.cpp" line="752"/>
         <source>① 玉が敵陣 : %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="751"/>
+        <location filename="../../src/app/mainwindow.cpp" line="753"/>
         <source>② 敵陣10枚以上 : %1 (%2枚)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="754"/>
+        <location filename="../../src/app/mainwindow.cpp" line="756"/>
         <source>③ 王手なし : %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="755"/>
+        <location filename="../../src/app/mainwindow.cpp" line="757"/>
         <source>④ 宣言点数 : %1点</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="759"/>
+        <location filename="../../src/app/mainwindow.cpp" line="761"/>
         <source>持将棋の点数
 
 先手
@@ -3181,50 +2963,50 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="803"/>
+        <location filename="../../src/app/mainwindow.cpp" line="805"/>
         <source>A-</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="815"/>
+        <location filename="../../src/app/mainwindow.cpp" line="817"/>
         <source>A+</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="827"/>
+        <location filename="../../src/app/mainwindow.cpp" line="829"/>
         <source>OK</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="844"/>
+        <location filename="../../src/app/mainwindow.cpp" line="846"/>
         <source>対局中ではありません。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="860"/>
+        <location filename="../../src/app/mainwindow.cpp" line="862"/>
         <source>持将棋ルールが「なし」に設定されています。
 対局ダイアログで「24点法」または「27点法」を選択してください。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="870"/>
+        <location filename="../../src/app/mainwindow.cpp" line="872"/>
         <location filename="../../src/app/mainwindow.cpp" line="1694"/>
         <source>先手</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="870"/>
+        <location filename="../../src/app/mainwindow.cpp" line="872"/>
         <location filename="../../src/app/mainwindow.cpp" line="1695"/>
         <source>後手</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="875"/>
+        <location filename="../../src/app/mainwindow.cpp" line="877"/>
         <source>入玉宣言確認</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="876"/>
+        <location filename="../../src/app/mainwindow.cpp" line="878"/>
         <source>%1が入玉宣言を行います。
 
 宣言条件を満たさない場合は宣言側の負けとなります。
@@ -3232,7 +3014,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="913"/>
+        <location filename="../../src/app/mainwindow.cpp" line="915"/>
         <source>【宣言条件の判定】
 ① 玉が敵陣にいる: %1
 ② 敵陣に10枚以上: %2 (%3枚)
@@ -3242,90 +3024,90 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="918"/>
-        <location filename="../../src/app/mainwindow.cpp" line="919"/>
+        <location filename="../../src/app/mainwindow.cpp" line="920"/>
         <location filename="../../src/app/mainwindow.cpp" line="921"/>
+        <location filename="../../src/app/mainwindow.cpp" line="923"/>
         <source>○</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="918"/>
-        <location filename="../../src/app/mainwindow.cpp" line="919"/>
+        <location filename="../../src/app/mainwindow.cpp" line="920"/>
         <location filename="../../src/app/mainwindow.cpp" line="921"/>
+        <location filename="../../src/app/mainwindow.cpp" line="923"/>
         <source>×</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="926"/>
+        <location filename="../../src/app/mainwindow.cpp" line="928"/>
         <source>
 【24点法】
 </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="929"/>
-        <location filename="../../src/app/mainwindow.cpp" line="952"/>
+        <location filename="../../src/app/mainwindow.cpp" line="931"/>
+        <location filename="../../src/app/mainwindow.cpp" line="954"/>
         <source>宣言勝ち</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="931"/>
+        <location filename="../../src/app/mainwindow.cpp" line="933"/>
         <source>31点以上: 勝ち</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="933"/>
+        <location filename="../../src/app/mainwindow.cpp" line="935"/>
         <source>持将棋（引き分け）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="936"/>
+        <location filename="../../src/app/mainwindow.cpp" line="938"/>
         <source>24〜30点: 引き分け</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="938"/>
-        <location filename="../../src/app/mainwindow.cpp" line="942"/>
-        <location filename="../../src/app/mainwindow.cpp" line="956"/>
+        <location filename="../../src/app/mainwindow.cpp" line="940"/>
+        <location filename="../../src/app/mainwindow.cpp" line="944"/>
+        <location filename="../../src/app/mainwindow.cpp" line="958"/>
         <source>宣言失敗（負け）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="939"/>
+        <location filename="../../src/app/mainwindow.cpp" line="941"/>
         <source>24点未満: 宣言失敗</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="943"/>
-        <location filename="../../src/app/mainwindow.cpp" line="958"/>
+        <location filename="../../src/app/mainwindow.cpp" line="945"/>
+        <location filename="../../src/app/mainwindow.cpp" line="960"/>
         <source>条件未達: 宣言失敗</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="948"/>
+        <location filename="../../src/app/mainwindow.cpp" line="950"/>
         <source>
 【27点法】
 </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="949"/>
+        <location filename="../../src/app/mainwindow.cpp" line="951"/>
         <source>必要点数: %1点以上
 </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="954"/>
+        <location filename="../../src/app/mainwindow.cpp" line="956"/>
         <source>条件達成: 勝ち</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="960"/>
+        <location filename="../../src/app/mainwindow.cpp" line="962"/>
         <source>点数不足: 宣言失敗</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="972"/>
+        <location filename="../../src/app/mainwindow.cpp" line="974"/>
         <source>%1の入玉宣言
 
 %2

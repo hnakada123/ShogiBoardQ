@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+    <title>局面編集終了</title>
+    <defs>
+        <style>
+            text { font-family: 'Noto Sans JP', 'Yu Gothic', sans-serif; }
+        </style>
+    </defs>
+    <rect x="0" y="0" width="104" height="104" fill="#D4A574" stroke="#8B4513" stroke-width="4"/>
+        <line x1="0" y1="34.7" x2="104" y2="34.7" stroke="#8B4513" stroke-width="2"/>
+        <line x1="0" y1="69.3" x2="104" y2="69.3" stroke="#8B4513" stroke-width="2"/>
+        <line x1="34.7" y1="0" x2="34.7" y2="104" stroke="#8B4513" stroke-width="2"/>
+        <line x1="69.3" y1="0" x2="69.3" y2="104" stroke="#8B4513" stroke-width="2"/>
+        <circle cx="96" cy="96" r="32" fill="#2196F3"/>
+        <path d="M82 96 L92 106 L112 86" stroke="white" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
