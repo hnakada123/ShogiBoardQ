@@ -290,6 +290,71 @@ void UsiProtocolHandler::sendGoMovetime(int timeMs)
     sendCommand(QStringLiteral("go movetime %1").arg(timeMs));
 }
 
+void UsiProtocolHandler::sendGoSearchmoves(const QStringList& moves, bool infinite)
+{
+    if (moves.isEmpty()) {
+        qWarning() << "[USI] sendGoSearchmoves: moves list is empty, sending go infinite instead";
+        sendCommand(QStringLiteral("go infinite"));
+        return;
+    }
+
+    if (m_presenter) {
+        m_presenter->requestClearThinkingInfo();
+    }
+
+    m_lastGoToBestmoveMs = 0;
+    m_goTimer.start();
+    m_phase = SearchPhase::Main;
+
+    QString command = QStringLiteral("go searchmoves ") + moves.join(QLatin1Char(' '));
+    if (infinite) {
+        command += QStringLiteral(" infinite");
+    }
+    sendCommand(command);
+}
+
+void UsiProtocolHandler::sendGoSearchmovesDepth(const QStringList& moves, int depth)
+{
+    if (moves.isEmpty()) {
+        qWarning() << "[USI] sendGoSearchmovesDepth: moves list is empty, sending go depth instead";
+        sendGoDepth(depth);
+        return;
+    }
+
+    if (m_presenter) {
+        m_presenter->requestClearThinkingInfo();
+    }
+
+    m_lastGoToBestmoveMs = 0;
+    m_goTimer.start();
+    m_phase = SearchPhase::Main;
+
+    QString command = QStringLiteral("go searchmoves ") + moves.join(QLatin1Char(' '));
+    command += QStringLiteral(" depth %1").arg(depth);
+    sendCommand(command);
+}
+
+void UsiProtocolHandler::sendGoSearchmovesMovetime(const QStringList& moves, int timeMs)
+{
+    if (moves.isEmpty()) {
+        qWarning() << "[USI] sendGoSearchmovesMovetime: moves list is empty, sending go movetime instead";
+        sendGoMovetime(timeMs);
+        return;
+    }
+
+    if (m_presenter) {
+        m_presenter->requestClearThinkingInfo();
+    }
+
+    m_lastGoToBestmoveMs = 0;
+    m_goTimer.start();
+    m_phase = SearchPhase::Main;
+
+    QString command = QStringLiteral("go searchmoves ") + moves.join(QLatin1Char(' '));
+    command += QStringLiteral(" movetime %1").arg(timeMs);
+    sendCommand(command);
+}
+
 void UsiProtocolHandler::sendStop()
 {
     sendCommand("stop");

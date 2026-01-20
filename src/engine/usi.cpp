@@ -450,6 +450,24 @@ void Usi::sendGoMovetimeCommand(int timeMs)
     m_protocolHandler->sendGoMovetime(timeMs);
 }
 
+void Usi::sendGoSearchmovesCommand(const QStringList& moves, bool infinite)
+{
+    cloneCurrentBoardData();
+    m_protocolHandler->sendGoSearchmoves(moves, infinite);
+}
+
+void Usi::sendGoSearchmovesDepthCommand(const QStringList& moves, int depth)
+{
+    cloneCurrentBoardData();
+    m_protocolHandler->sendGoSearchmovesDepth(moves, depth);
+}
+
+void Usi::sendGoSearchmovesMovetimeCommand(const QStringList& moves, int timeMs)
+{
+    cloneCurrentBoardData();
+    m_protocolHandler->sendGoSearchmovesMovetime(moves, timeMs);
+}
+
 void Usi::sendRaw(const QString& command) const
 {
     m_protocolHandler->sendRaw(command);
