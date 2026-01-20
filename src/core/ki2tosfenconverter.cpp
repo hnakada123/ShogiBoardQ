@@ -12,34 +12,34 @@
 namespace {
 
 // 半角/全角の数字1桁 → int（0..9）
-static inline int asciiDigitToInt_(QChar c) {
+static inline int asciiDigitToInt(QChar c) {
     const ushort u = c.unicode();
     return (u >= '0' && u <= '9') ? (u - '0') : 0;
 }
 
-static inline int zenkakuDigitToInt_(QChar c) {
+static inline int zenkakuDigitToInt(QChar c) {
     static const QString z = QStringLiteral("０１２３４５６７８９");
     const qsizetype idx = z.indexOf(c);
     return (idx >= 0) ? static_cast<int>(idx) : 0;
 }
 
 // 1桁（半角/全角）→ int
-static inline int flexDigitToInt_NoDetach_(QChar c)
+static inline int flexDigitToInt_NoDetach(QChar c)
 {
-    int v = asciiDigitToInt_(c);
-    if (!v) v = zenkakuDigitToInt_(c);
+    int v = asciiDigitToInt(c);
+    if (!v) v = zenkakuDigitToInt(c);
     return v;
 }
 
 // 文字列に含まれる（半角/全角）数字を int へ
-static int flexDigitsToInt_NoDetach_(const QString& t)
+static int flexDigitsToInt_NoDetach(const QString& t)
 {
     int v = 0;
     const qsizetype n = t.size();
     for (qsizetype i = 0; i < n; ++i) {
         const QChar ch = t.at(i);
-        int d = asciiDigitToInt_(ch);
-        if (!d) d = zenkakuDigitToInt_(ch);
+        int d = asciiDigitToInt(ch);
+        if (!d) d = zenkakuDigitToInt(ch);
         if (!d && ch != QChar(u'0') && ch != QChar(u'０')) continue;
         if (ch == QChar(u'0') || ch == QChar(u'０')) d = 0;
         v = v * 10 + d;
@@ -48,7 +48,7 @@ static int flexDigitsToInt_NoDetach_(const QString& t)
 }
 
 // --- 終局語の判定 ---
-static inline bool isTerminalWord_(const QString& s, QString* normalized)
+static inline bool isTerminalWord(const QString& s, QString* normalized)
 {
     static const QStringList kTerminals = {
         QStringLiteral("中断"),
@@ -77,7 +77,7 @@ static inline bool isTerminalWord_(const QString& s, QString* normalized)
 // 例: "まで2手で中断" → terminalWord="中断", moveCount=2
 // 例: "まで2手で詰" → terminalWord="詰み", moveCount=2
 // blackToMove: 終局語の手番を決める（奇数手目なら先手番）
-static bool parseResultLine_(const QString& line, QString& terminalWord, int& moveCount)
+static bool parseResultLine(const QString& line, QString& terminalWord, int& moveCount)
 {
     static const QRegularExpression kResultPattern(
         QStringLiteral("^\\s*まで([0-9０-９]+)手")
@@ -87,7 +87,7 @@ static bool parseResultLine_(const QString& line, QString& terminalWord, int& mo
     if (!m.hasMatch()) return false;
     
     // 手数を抽出
-    moveCount = flexDigitsToInt_NoDetach_(m.captured(1));
+    moveCount = flexDigitsToInt_NoDetach(m.captured(1));
     
     // 終局語を判定
     // 「○手で後手の勝ち」→ 投了
@@ -151,7 +151,7 @@ static bool parseResultLine_(const QString& line, QString& terminalWord, int& mo
 }
 
 // --- 終局行かどうか判定 ---
-static inline bool isResultLine_(const QString& line)
+static inline bool isResultLine(const QString& line)
 {
     static const QRegularExpression kResultPattern(
         QStringLiteral("^\\s*まで[0-9０-９]+手")
@@ -439,9 +439,9 @@ bool Ki2ToSfenConverter::findDestination(const QString& moveText, int& toFile, i
     const QChar fch = m.capturedView(1).at(0);
     const QChar rch = m.capturedView(2).at(0);
 
-    toFile = flexDigitToInt_NoDetach_(fch);
+    toFile = flexDigitToInt_NoDetach(fch);
     int r  = kanjiDigitToInt(rch);
-    if (r == 0) r = flexDigitToInt_NoDetach_(rch);
+    if (r == 0) r = flexDigitToInt_NoDetach(rch);
     toRank = r;
 
     return (toFile >= 1 && toFile <= 9 && toRank >= 1 && toRank <= 9);
@@ -1050,7 +1050,7 @@ QString Ki2ToSfenConverter::convertKi2MoveToUsi(const QString& moveText,
     
     // 終局語判定
     QString term;
-    if (isTerminalWord_(moveText, &term)) {
+    if (isTerminalWord(moveText, &term)) {
         return QString(); // 終局は空文字列を返す
     }
     
@@ -1222,7 +1222,7 @@ QStringList Ki2ToSfenConverter::convertFile(const QString& ki2Path, QString* err
         if (isCommentLine(lineStr) || isBookmarkLine(lineStr)) continue;
         
         // 「まで○手で...」行で終了
-        if (isResultLine_(lineStr)) {
+        if (isResultLine(lineStr)) {
             break;
         }
         
@@ -1238,7 +1238,7 @@ QStringList Ki2ToSfenConverter::convertFile(const QString& ki2Path, QString* err
         for (const QString& move : moves) {
             // 終局語判定
             QString term;
-            if (isTerminalWord_(move, &term)) {
+            if (isTerminalWord(move, &term)) {
                 gameEnded = true;
                 break;
             }
@@ -1340,10 +1340,10 @@ QList<KifDisplayItem> Ki2ToSfenConverter::extractMovesWithTimes(const QString& k
         }
 
         // 「まで○手で...」行の処理
-        if (isResultLine_(lineStr)) {
+        if (isResultLine(lineStr)) {
             QString terminalWord;
             int resultMoveCount = 0;
-            if (parseResultLine_(lineStr, terminalWord, resultMoveCount)) {
+            if (parseResultLine(lineStr, terminalWord, resultMoveCount)) {
                 // 最初の指し手が見つかる前に終局語が来た場合
                 if (!firstMoveFound) {
                     firstMoveFound = true;
@@ -1387,7 +1387,7 @@ QList<KifDisplayItem> Ki2ToSfenConverter::extractMovesWithTimes(const QString& k
         for (const QString& move : moves) {
             // 終局語判定
             QString term;
-            if (isTerminalWord_(move, &term)) {
+            if (isTerminalWord(move, &term)) {
                 // 最初の指し手が見つかる前に終局語が来た場合
                 if (!firstMoveFound) {
                     firstMoveFound = true;

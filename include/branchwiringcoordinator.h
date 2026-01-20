@@ -44,7 +44,7 @@ public slots:
     void onBranchNodeActivated(int row, int ply);
 
 private:
-    void applyResolvedRowAndSelect_(int row, int selPly);
+    void applyResolvedRowAndSelect(int row, int selPly);
 
 private:
     RecordPane*                  m_recordPane = nullptr;

@@ -712,7 +712,7 @@ void CsaGameCoordinator::onRawMessageSent(const QString& message)
 // 注意: handleEngineVsHumanOrEngineMatchCommunicationがブロッキングで処理するため、
 // このスロットは startEngineThinking() が完了した後に呼ばれる。
 // 主に非同期で使う場合のためのスタブとして残す。
-void CsaGameCoordinator::onEngineBestMoveReceived_()
+void CsaGameCoordinator::onEngineBestMoveReceived()
 {
     // handleEngineVsHumanOrEngineMatchCommunication がブロッキングで処理するため、
     // このスロットが呼ばれる時点では既に startEngineThinking() 内で処理済み。
@@ -1150,7 +1150,7 @@ void CsaGameCoordinator::initializeEngine()
                        m_gameController.data(), dummyPlayMode, this);
 
     connect(m_engine, &Usi::bestMoveReceived,
-            this, &CsaGameCoordinator::onEngineBestMoveReceived_);
+            this, &CsaGameCoordinator::onEngineBestMoveReceived);
     connect(m_engine, &Usi::bestMoveResignReceived,
             this, &CsaGameCoordinator::onEngineResign);
 

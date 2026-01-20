@@ -65,19 +65,19 @@ Q_SIGNALS:
     void analysisResultRowSelected(int row);
 
 private slots:
-    void onUsiCommLogChanged_();
-    void onBestMoveReceived_();
-    void onInfoLineReceived_(const QString& line);
-    void onThinkingInfoUpdated_(const QString& time, const QString& depth,
+    void onUsiCommLogChanged();
+    void onBestMoveReceived();
+    void onInfoLineReceived(const QString& line);
+    void onThinkingInfoUpdated(const QString& time, const QString& depth,
                                 const QString& nodes, const QString& score,
                                 const QString& pvKanjiStr, const QString& usiPv,
                                 const QString& baseSfen);
-    void onPositionPrepared_(int ply, const QString& sfen);
-    void onAnalysisProgress_(int ply, int depth, int seldepth,
+    void onPositionPrepared(int ply, const QString& sfen);
+    void onAnalysisProgress(int ply, int depth, int seldepth,
                              int scoreCp, int mate,
                              const QString& pv, const QString& raw);
-    void onAnalysisFinished_(AnalysisCoordinator::Mode mode);
-    void onResultRowDoubleClicked_(int row);
+    void onAnalysisFinished(AnalysisCoordinator::Mode mode);
+    void onResultRowDoubleClicked(int row);
 
 private:
     QPointer<AnalysisCoordinator>      m_coord;
@@ -109,9 +109,9 @@ private:
     int m_lastCommittedPly = -1;
     int m_lastCommittedScoreCp = 0;
 
-    void applyDialogOptions_(KifuAnalysisDialog* dlg);
-    void commitPendingResult_();  // bestmove受信時に結果を確定
-    QString extractUsiMoveFromKanji_(const QString& kanjiMove) const;  // 漢字表記からUSI形式に変換
+    void applyDialogOptions(KifuAnalysisDialog* dlg);
+    void commitPendingResult();  // bestmove受信時に結果を確定
+    QString extractUsiMoveFromKanji(const QString& kanjiMove) const;  // 漢字表記からUSI形式に変換
 
     // 自動生成したUsi用のPlayMode（インスタンス保持）
     PlayMode m_playModeForAnalysis = PlayMode::AnalysisMode;

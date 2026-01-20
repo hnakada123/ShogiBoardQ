@@ -154,8 +154,8 @@ void EngineAnalysisTab::buildUi()
     }
 
     // ★ ヘッダの基本設定のみ（列幅はsetModels後に適用）
-    setupThinkingViewHeader_(m_view1);
-    setupThinkingViewHeader_(m_view2);
+    setupThinkingViewHeader(m_view1);
+    setupThinkingViewHeader(m_view2);
     
     // ★ 追加: 列幅変更シグナルを接続
     connect(m_view1->horizontalHeader(), &QHeaderView::sectionResized,
@@ -265,8 +265,8 @@ void EngineAnalysisTab::buildUi()
     m_tab->addTab(m_branchTree, tr("分岐ツリー"));
 
     // ★ 初回起動時（あるいは再構築時）にモデルが既にあるなら即時適用
-    reapplyViewTuning_(m_view1, m_model1);  // 右寄せ＋3桁カンマ＆列幅チューニング
-    reapplyViewTuning_(m_view2, m_model2);
+    reapplyViewTuning(m_view1, m_model1);  // 右寄せ＋3桁カンマ＆列幅チューニング
+    reapplyViewTuning(m_view2, m_model2);
 
     // --- 分岐ツリーのクリック検知（二重 install 防止のガード付き） ---
     if (m_branchTree && m_branchTree->viewport()) {
@@ -309,29 +309,29 @@ void EngineAnalysisTab::buildUi()
     rebuildBranchTree();
 }
 
-void EngineAnalysisTab::reapplyViewTuning_(QTableView* v, QAbstractItemModel* m)
+void EngineAnalysisTab::reapplyViewTuning(QTableView* v, QAbstractItemModel* m)
 {
     if (!v) return;
     // 数値列（時間/深さ/ノード数/評価値）の右寄せ＆3桁カンマ
-    if (m) applyNumericFormattingTo_(v, m);
+    if (m) applyNumericFormattingTo(v, m);
 }
 
-void EngineAnalysisTab::onModel1Reset_()
+void EngineAnalysisTab::onModel1Reset()
 {
-    reapplyViewTuning_(m_view1, m_model1);
+    reapplyViewTuning(m_view1, m_model1);
 }
 
-void EngineAnalysisTab::onModel2Reset_()
+void EngineAnalysisTab::onModel2Reset()
 {
-    reapplyViewTuning_(m_view2, m_model2);
+    reapplyViewTuning(m_view2, m_model2);
 }
 
-void EngineAnalysisTab::onLog1Changed_()
+void EngineAnalysisTab::onLog1Changed()
 {
     if (m_usiLog && m_log1) m_usiLog->appendPlainText(m_log1->usiCommLog());
 }
 
-void EngineAnalysisTab::onLog2Changed_()
+void EngineAnalysisTab::onLog2Changed()
 {
     if (m_usiLog && m_log2) m_usiLog->appendPlainText(m_log2->usiCommLog());
 }
@@ -349,27 +349,27 @@ void EngineAnalysisTab::setModels(ShogiEngineThinkingModel* m1, ShogiEngineThink
     if (m_info2) m_info2->setModel(log2);
 
     // ★ モデル設定後に列幅を適用（モデルがないと列幅が適用されない）
-    applyThinkingViewColumnWidths_(m_view1, 0);
-    applyThinkingViewColumnWidths_(m_view2, 1);
+    applyThinkingViewColumnWidths(m_view1, 0);
+    applyThinkingViewColumnWidths(m_view2, 1);
 
     // モデル設定直後に数値フォーマットを適用
-    reapplyViewTuning_(m_view1, m_model1);
-    reapplyViewTuning_(m_view2, m_model2);
+    reapplyViewTuning(m_view1, m_model1);
+    reapplyViewTuning(m_view2, m_model2);
 
     // modelReset時に再適用（ラムダ→関数スロット）
     if (m_model1) {
         QObject::connect(m_model1, &QAbstractItemModel::modelReset,
-                         this, &EngineAnalysisTab::onModel1Reset_, Qt::UniqueConnection);
+                         this, &EngineAnalysisTab::onModel1Reset, Qt::UniqueConnection);
     }
     if (m_model2) {
         QObject::connect(m_model2, &QAbstractItemModel::modelReset,
-                         this, &EngineAnalysisTab::onModel2Reset_, Qt::UniqueConnection);
+                         this, &EngineAnalysisTab::onModel2Reset, Qt::UniqueConnection);
     }
 
     // USIログ反映（ラムダ→関数スロット）
     if (m_log1) {
         QObject::connect(m_log1, &UsiCommLogModel::usiCommLogChanged,
-                         this, &EngineAnalysisTab::onLog1Changed_, Qt::UniqueConnection);
+                         this, &EngineAnalysisTab::onLog1Changed, Qt::UniqueConnection);
         // ★ 追加: エンジン名変更シグナルを接続
         QObject::connect(m_log1, &UsiCommLogModel::engineNameChanged,
                          this, &EngineAnalysisTab::onEngine1NameChanged, Qt::UniqueConnection);
@@ -378,7 +378,7 @@ void EngineAnalysisTab::setModels(ShogiEngineThinkingModel* m1, ShogiEngineThink
     }
     if (m_log2) {
         QObject::connect(m_log2, &UsiCommLogModel::usiCommLogChanged,
-                         this, &EngineAnalysisTab::onLog2Changed_, Qt::UniqueConnection);
+                         this, &EngineAnalysisTab::onLog2Changed, Qt::UniqueConnection);
         // ★ 追加: エンジン名変更シグナルを接続
         QObject::connect(m_log2, &UsiCommLogModel::engineNameChanged,
                          this, &EngineAnalysisTab::onEngine2NameChanged, Qt::UniqueConnection);
@@ -552,7 +552,7 @@ void EngineAnalysisTab::addEdge(QGraphicsPathItem* from, QGraphicsPathItem* to)
 }
 
 // --- 追加ヘルパ：row(>=1) の分岐元となる「親行」を決める ---
-int EngineAnalysisTab::resolveParentRowForVariation_(int row) const
+int EngineAnalysisTab::resolveParentRowForVariation(int row) const
 {
     Q_ASSERT(row >= 1 && row < m_rows.size());
 
@@ -659,7 +659,7 @@ void EngineAnalysisTab::rebuildBranchTree()
         const int startPly = qMax(1, rv.startPly);      // 1-origin
 
         // 1) 親行を決定
-        const int parentRow = resolveParentRowForVariation_(static_cast<int>(row));
+        const int parentRow = resolveParentRowForVariation(static_cast<int>(row));
 
         // 2) 親と繋ぐ“合流手”は (startPly - 1) 手目のノード
         const int joinPly = startPly - 1;
@@ -796,18 +796,18 @@ void EngineAnalysisTab::highlightBranchTreeAt(int row, int ply, bool centerOn)
     // まず (row,ply) 直指定
     auto it = m_nodeIndex.find(qMakePair(row, ply));
     if (it != m_nodeIndex.end()) {
-        highlightNodeId_(it.value()->data(ROLE_NODE_ID).toInt(), centerOn);
+        highlightNodeId(it.value()->data(ROLE_NODE_ID).toInt(), centerOn);
         return;
     }
 
     // 無ければグラフでフォールバック（分岐開始前は親行へ、あるいは next/prev を辿る）
-    const int nid = graphFallbackToPly_(row, ply);
+    const int nid = graphFallbackToPly(row, ply);
     if (nid > 0) {
-        highlightNodeId_(nid, centerOn);
+        highlightNodeId(nid, centerOn);
     }
 }
 
-void EngineAnalysisTab::highlightNodeId_(int nodeId, bool centerOn)
+void EngineAnalysisTab::highlightNodeId(int nodeId, bool centerOn)
 {
     if (nodeId <= 0) return;
     const auto node = m_nodesById.value(nodeId);
@@ -944,7 +944,7 @@ void EngineAnalysisTab::linkEdge(int prevId, int nextId)
 
 // ===================== フォールバック探索 =====================
 
-int EngineAnalysisTab::graphFallbackToPly_(int row, int targetPly) const
+int EngineAnalysisTab::graphFallbackToPly(int row, int targetPly) const
 {
     // 1) まず (row, ply) にノードがあるならそれ
     const int direct = nodeIdFor(row, targetPly);
@@ -954,8 +954,8 @@ int EngineAnalysisTab::graphFallbackToPly_(int row, int targetPly) const
     if (row >= 1 && row < m_rows.size()) {
         const int startPly = qMax(1, m_rows.at(row).startPly);
         if (targetPly < startPly) {
-            const int parentRow = resolveParentRowForVariation_(row);
-            return graphFallbackToPly_(parentRow, targetPly);
+            const int parentRow = resolveParentRowForVariation(row);
+            return graphFallbackToPly(parentRow, targetPly);
         }
     }
 
@@ -995,9 +995,9 @@ int EngineAnalysisTab::graphFallbackToPly_(int row, int targetPly) const
 
     // 4) それでも見つからない場合、親行へ委譲してみる（最終手段）
     if (row >= 1 && row < m_rows.size()) {
-        const int parentRow = resolveParentRowForVariation_(row);
+        const int parentRow = resolveParentRowForVariation(row);
         if (parentRow != row) {
-            const int viaParent = graphFallbackToPly_(parentRow, targetPly);
+            const int viaParent = graphFallbackToPly(parentRow, targetPly);
             if (viaParent > 0) return viaParent;
         }
     }
@@ -1025,7 +1025,7 @@ int EngineAnalysisTab::graphFallbackToPly_(int row, int targetPly) const
 }
 
 // ★ ヘッダの基本設定（モデル設定前でもOK）
-void EngineAnalysisTab::setupThinkingViewHeader_(QTableView* v)
+void EngineAnalysisTab::setupThinkingViewHeader(QTableView* v)
 {
     if (!v) return;
     auto* h = v->horizontalHeader();
@@ -1048,7 +1048,7 @@ void EngineAnalysisTab::setupThinkingViewHeader_(QTableView* v)
 }
 
 // ★ 列幅の適用（モデル設定後に呼ぶ）
-void EngineAnalysisTab::applyThinkingViewColumnWidths_(QTableView* v, int viewIndex)
+void EngineAnalysisTab::applyThinkingViewColumnWidths(QTableView* v, int viewIndex)
 {
     if (!v || !v->model()) return;
     auto* h = v->horizontalHeader();
@@ -1104,7 +1104,7 @@ void EngineAnalysisTab::applyThinkingViewColumnWidths_(QTableView* v, int viewIn
 }
 
 // 追加：ヘッダー名で列を探す（大文字小文字は無視）
-int EngineAnalysisTab::findColumnByHeader_(QAbstractItemModel* model, const QString& title)
+int EngineAnalysisTab::findColumnByHeader(QAbstractItemModel* model, const QString& title)
 {
     if (!model) return -1;
     const int cols = model->columnCount();
@@ -1119,7 +1119,7 @@ int EngineAnalysisTab::findColumnByHeader_(QAbstractItemModel* model, const QStr
 }
 
 // 追加：Time/Depth/Nodes/Score を「右寄せ＋3桁カンマ」で表示するデリゲートを適用
-void EngineAnalysisTab::applyNumericFormattingTo_(QTableView* view, QAbstractItemModel* model)
+void EngineAnalysisTab::applyNumericFormattingTo(QTableView* view, QAbstractItemModel* model)
 {
     if (!view || !model) return;
 
@@ -1132,7 +1132,7 @@ void EngineAnalysisTab::applyNumericFormattingTo_(QTableView* view, QAbstractIte
         "時間", "深さ", "ノード数", "評価値"
     };
     for (const QString& t : targets) {
-        const int col = findColumnByHeader_(model, t);
+        const int col = findColumnByHeader(model, t);
         if (col >= 0) {
             view->setItemDelegateForColumn(col, delegate);
         }

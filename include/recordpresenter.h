@@ -77,7 +77,7 @@ private:
     QStringList m_commentsByRow;
 
 private slots:
-    void onKifuCurrentRowChanged_(const QModelIndex& current, const QModelIndex& previous);
+    void onKifuCurrentRowChanged(const QModelIndex& current, const QModelIndex& previous);
 
 public:
     // ライブ記録用アイテムを追加（保存）

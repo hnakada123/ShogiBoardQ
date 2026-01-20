@@ -956,12 +956,12 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="97"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="98"/>
         <source>フォントサイズを小さくする</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="104"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="105"/>
         <source>フォントサイズを大きくする</source>
         <translation type="unfinished"></translation>
     </message>

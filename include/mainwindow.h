@@ -189,7 +189,7 @@ public slots:
     void displayErrorMessage(const QString& message);
     void saveSettingsAndClose();
     void resetToInitialState();
-    void onFlowError_(const QString& msg);
+    void onFlowError(const QString& msg);
 
     // ダイアログ表示
     void displayPromotionDialog();
@@ -222,13 +222,13 @@ public slots:
     void finishPositionEditing();
     void initializeGame();
     void handleResignation();
-    void onPlayerNamesResolved_(const QString& human1, const QString& human2,
+    void onPlayerNamesResolved(const QString& human1, const QString& human2,
                                 const QString& engine1, const QString& engine2,
                                 int playMode);
     void onActionFlipBoardTriggered(bool checked = false);
     void handleBreakOffGame();
     void movePieceImmediately();
-    void onRecordPaneMainRowChanged_(int row);
+    void onRecordPaneMainRowChanged(int row);
 
     // ========================================================
     // protected
@@ -269,22 +269,22 @@ private slots:
     void onRequestAppendGameOverMove(const MatchCoordinator::GameEndInfo& info);
 
     // 移動要求
-    void onMoveRequested_(const QPoint& from, const QPoint& to);
+    void onMoveRequested(const QPoint& from, const QPoint& to);
 
     // リプレイ
     void setReplayMode(bool on);
 
     // CSA通信対局関連（CsaGameWiringからのシグナル受信用）
-    void onCsaPlayModeChanged_(int mode);
-    void onCsaShowGameEndDialog_(const QString& title, const QString& message);
-    void onCsaEngineScoreUpdated_(int scoreCp, int ply);
+    void onCsaPlayModeChanged(int mode);
+    void onCsaShowGameEndDialog(const QString& title, const QString& message);
+    void onCsaEngineScoreUpdated(int scoreCp, int ply);
 
     // 定跡ウィンドウ関連（JosekiWindowWiringからのシグナル受信用）
-    void onJosekiForcedPromotion_(bool forced, bool promote);
+    void onJosekiForcedPromotion(bool forced, bool promote);
 
     // 内部配線
-    void connectBoardClicks_();
-    void connectMoveRequested_();
+    void connectBoardClicks();
+    void connectMoveRequested();
 
     // 棋譜表示 / 同期
     void onMoveCommitted(ShogiGameController::Player mover, int ply);
@@ -293,32 +293,32 @@ private slots:
     void onRecordRowChangedByPresenter(int row, const QString& comment);
     void onCommentUpdated(int moveIndex, const QString& newComment);
     void onPvRowClicked(int engineIndex, int row);
-    void onKifuPasteImportRequested_(const QString& content);
+    void onKifuPasteImportRequested(const QString& content);
     void onGameRecordCommentChanged(int ply, const QString& comment);
-    void onCommentUpdateCallback_(int ply, const QString& comment);
+    void onCommentUpdateCallback(int ply, const QString& comment);
 
     // 分岐ノード活性化
-    void onBranchNodeActivated_(int row, int ply);
+    void onBranchNodeActivated(int row, int ply);
 
     // エラー / 前準備
     void onErrorBusOccurred(const QString& msg);
-    void onPreStartCleanupRequested_();
-    void onApplyTimeControlRequested_(const GameStartCoordinator::TimeControl& tc);
+    void onPreStartCleanupRequested();
+    void onApplyTimeControlRequested(const GameStartCoordinator::TimeControl& tc);
 
     // 投了
     void onResignationTriggered();
 
     // ★ 新規: GameInfoPaneControllerからの通知
-    void onGameInfoUpdated_(const QList<KifGameInfoItem>& items);
+    void onGameInfoUpdated(const QList<KifGameInfoItem>& items);
 
     // 連続対局: 設定を受信
-    void onConsecutiveGamesConfigured_(int totalGames, bool switchTurn);
+    void onConsecutiveGamesConfigured(int totalGames, bool switchTurn);
 
     // 連続対局: 対局開始時の設定を保存
-    void onGameStarted_(const MatchCoordinator::StartOptions& opt);
+    void onGameStarted(const MatchCoordinator::StartOptions& opt);
 
     // 連続対局: 次の対局を開始
-    void startNextConsecutiveGame_();
+    void startNextConsecutiveGame();
 
     // ========================================================
     // private
@@ -522,13 +522,13 @@ private:
     void updateTurnStatus(int currentPlayer);
     void redrawEngine1EvaluationGraph(int ply = -1);  // EvaluationGraphControllerへ委譲
     void redrawEngine2EvaluationGraph(int ply = -1);  // EvaluationGraphControllerへ委譲
-    void ensureEvaluationGraphController_();          // ★ 追加
+    void ensureEvaluationGraphController();          // ★ 追加
 
     // 初期化 / セットアップ
     void initializeComponents();
     void setupHorizontalGameLayout();
     void initializeCentralGameDisplay();
-    void ensureTimeController_();  // ★ TimeControlControllerへ移行
+    void ensureTimeController();  // ★ TimeControlControllerへ移行
     void initMatchCoordinator();
     void setupRecordPane();
     void setupEngineAnalysisTab();
@@ -545,15 +545,15 @@ private:
     void loadWindowSettings();
 
     // ★ 対局情報関連（GameInfoPaneControllerへ委譲）
-    void ensureGameInfoController_();
-    void addGameInfoTabAtStartup_();
-    void populateDefaultGameInfo_();
-    void updateGameInfoForCurrentMatch_();
+    void ensureGameInfoController();
+    void addGameInfoTabAtStartup();
+    void populateDefaultGameInfo();
+    void updateGameInfoForCurrentMatch();
 
     // ★ 互換性のため残す古い関数（GameStartCoordinatorのhooksで使用）
-    void onSetPlayersNames_(const QString& p1, const QString& p2);
-    void onSetEngineNames_(const QString& e1, const QString& e2);
-    void updateGameInfoPlayerNames_(const QString& blackName, const QString& whiteName);
+    void onSetPlayersNames(const QString& p1, const QString& p2);
+    void onSetEngineNames(const QString& e1, const QString& e2);
+    void updateGameInfoPlayerNames(const QString& blackName, const QString& whiteName);
     void setOriginalGameInfo(const QList<KifGameInfoItem>& items);
 
     // 分岐 / 変化
@@ -568,90 +568,90 @@ private:
     void broadcastComment(const QString& text, bool asHtml=false);
 
     // 手番チェックヘルパー
-    bool isHumanTurnNow_() const;
+    bool isHumanTurnNow() const;
 
     // フォント/描画ヘルパ
-    void setupNameAndClockFonts_();
+    void setupNameAndClockFonts();
 
     // リプレイ制御
-    void ensureReplayController_();
-    void ensureTurnSyncBridge_();
+    void ensureReplayController();
+    void ensureTurnSyncBridge();
 
     // 各種 ensure メソッド
-    void ensurePositionEditController_();
-    void ensureBoardSyncPresenter_();
-    void ensureAnalysisPresenter_();
-    void ensureGameStartCoordinator_();
-    void ensureRecordPresenter_();
-    void ensureKifuLoadCoordinatorForLive_();
-    void ensureGameRecordModel_();
-    void ensureDialogCoordinator_();
-    void ensureKifuExportController_();
-    void updateKifuExportDependencies_();
-    void ensureGameStateController_();
-    void ensurePlayerInfoController_();
-    void ensureBoardSetupController_();
-    void ensurePvClickController_();
-    void ensureRecordNavigationController_();
-    void ensurePositionEditCoordinator_();
-    void ensureCsaGameWiring_();
-    void ensureJosekiWiring_();
-    void ensureMenuWiring_();
-    void ensurePlayerInfoWiring_();
-    void ensurePreStartCleanupHandler_();
-    void ensureJishogiController_();
-    void ensureNyugyokuHandler_();
-    void ensureConsecutiveGamesController_();
-    void ensureLanguageController_();
+    void ensurePositionEditController();
+    void ensureBoardSyncPresenter();
+    void ensureAnalysisPresenter();
+    void ensureGameStartCoordinator();
+    void ensureRecordPresenter();
+    void ensureKifuLoadCoordinatorForLive();
+    void ensureGameRecordModel();
+    void ensureDialogCoordinator();
+    void ensureKifuExportController();
+    void updateKifuExportDependencies();
+    void ensureGameStateController();
+    void ensurePlayerInfoController();
+    void ensureBoardSetupController();
+    void ensurePvClickController();
+    void ensureRecordNavigationController();
+    void ensurePositionEditCoordinator();
+    void ensureCsaGameWiring();
+    void ensureJosekiWiring();
+    void ensureMenuWiring();
+    void ensurePlayerInfoWiring();
+    void ensurePreStartCleanupHandler();
+    void ensureJishogiController();
+    void ensureNyugyokuHandler();
+    void ensureConsecutiveGamesController();
+    void ensureLanguageController();
 
     // ctor の分割先
-    void setupCentralWidgetContainer_();
-    void configureToolBarFromUi_();
-    void buildGamePanels_();
-    void restoreWindowAndSync_();
-    void connectAllActions_();
-    void connectCoreSignals_();
-    void installAppToolTips_();
-    void finalizeCoordinators_();
+    void setupCentralWidgetContainer();
+    void configureToolBarFromUi();
+    void buildGamePanels();
+    void restoreWindowAndSync();
+    void connectAllActions();
+    void connectCoreSignals();
+    void installAppToolTips();
+    void finalizeCoordinators();
 
     // hooks 用メンバー関数
-    void requestRedrawEngine1Eval_();
-    void requestRedrawEngine2Eval_();
-    void initializeNewGame_(const QString& s);
-    void showMoveHighlights_(const QPoint& from, const QPoint& to);
-    void appendKifuLineHook_(const QString& text, const QString& elapsed);
+    void requestRedrawEngine1Eval();
+    void requestRedrawEngine2Eval();
+    void initializeNewGameHook(const QString& s);
+    void showMoveHighlights(const QPoint& from, const QPoint& to);
+    void appendKifuLineHook(const QString& text, const QString& elapsed);
 
     // 時間取得ヘルパ
-    qint64 getRemainingMsFor_(MatchCoordinator::Player p) const;
-    qint64 getIncrementMsFor_(MatchCoordinator::Player p) const;
-    qint64 getByoyomiMs_() const;
+    qint64 getRemainingMsFor(MatchCoordinator::Player p) const;
+    qint64 getIncrementMsFor(MatchCoordinator::Player p) const;
+    qint64 getByoyomiMs() const;
 
     // ゲームオーバー関連
-    void showGameOverMessageBox_(const QString& title, const QString& message);
+    void showGameOverMessageBox(const QString& title, const QString& message);
 
     // 棋譜自動保存
-    void autoSaveKifuToFile_(const QString& saveDir, PlayMode playMode,
+    void autoSaveKifuToFile(const QString& saveDir, PlayMode playMode,
                              const QString& humanName1, const QString& humanName2,
                              const QString& engineName1, const QString& engineName2);
 
     // 分岐ツリー更新
-    void refreshBranchTreeLive_();
+    void refreshBranchTreeLive();
 
     // ガード / 判定ヘルパ
-    bool getMainRowGuard_() const;
-    void setMainRowGuard_(bool on);
-    bool isHvH_() const;
-    bool isHumanSide_(ShogiGameController::Player p) const;
+    bool getMainRowGuard() const;
+    void setMainRowGuard(bool on);
+    bool isHvH() const;
+    bool isHumanSide(ShogiGameController::Player p) const;
 
     // 表示更新
-    void updateTurnAndTimekeepingDisplay_();
+    void updateTurnAndTimekeepingDisplay();
 
     // 編集メニュー
     void initializeEditMenuForStartup();
     void applyEditMenuEditingState(bool editing);
 
     // 開始局面解決
-    QString resolveCurrentSfenForGameStart_() const;
+    QString resolveCurrentSfenForGameStart() const;
 };
 
 #endif // MAINWINDOW_H

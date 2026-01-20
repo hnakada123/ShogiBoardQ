@@ -111,14 +111,14 @@ private:
     static quint64 vpKey(int vid, int ply) {
         return (quint64(uint32_t(vid)) << 32) | uint32_t(ply);
     }
-    void setActiveNode_(int nodeId);      // 低レベル切替
-    bool graphFallbackToPly_(int targetPly, bool preferPrev);
+    void setActiveNode(int nodeId);      // 低レベル切替
+    bool graphFallbackToPly(int targetPly, bool preferPrev);
 
     // --- 追加: QML等でロール名が欲しい場合に備えて ---
     QHash<int, QByteArray> roleNames() const override;
 
     // --- 追加: 行の最大手数を算出するヘルパ ---
-    int rowMaxPly_(int row) const;
+    int rowMaxPly(int row) const;
 };
 
 #endif // KIFUBRANCHLISTMODEL_H

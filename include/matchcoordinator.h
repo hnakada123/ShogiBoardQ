@@ -209,15 +209,15 @@ public:
     bool undoTwoPlies();
 
 private:
-    bool tryRemoveLastItems_(QObject* model, int n);
+    bool tryRemoveLastItems(QObject* model, int n);
     bool m_isUndoInProgress = false;
     UndoRefs  u_;
     UndoHooks h_;
 
 // --- private: 内部ヘルパ ---
 private:
-    void initPositionStringsFromSfen_(const QString& sfenBase);
-    void startInitialEngineMoveFor_(Player engineSide);  // 先手/後手どちらでも1手だけ指す
+    void initPositionStringsFromSfen(const QString& sfenBase);
+    void startInitialEngineMoveFor(Player engineSide);  // 先手/後手どちらでも1手だけ指す
 
 signals:
     void gameOverShown();
@@ -246,14 +246,14 @@ private:
 
 private:
     // Main から段階的に移す関数群
-    void setGameInProgressActions_(bool inProgress);
-    void updateTurnDisplay_(Player p);
+    void setGameInProgressActions(bool inProgress);
+    void updateTurnDisplay(Player p);
 
     // 時計/USI 時間計算
-    GoTimes computeGoTimes_() const;
+    GoTimes computeGoTimes() const;
 
     // 終局処理
-    void displayResultsAndUpdateGui_(const GameEndInfo& info);
+    void displayResultsAndUpdateGui(const GameEndInfo& info);
 
 public:
     // MainWindow からエンジン初期化/開始を委譲するための統一API
@@ -268,17 +268,17 @@ public:
 
 private:
     // resign 配線の実装（内部ユーティリティ）
-    void wireResignToArbiter_(Usi* engine, bool asP1);
+    void wireResignToArbiter(Usi* engine, bool asP1);
 
     // 共通ロジック：時計と手番を読んで timeUpdated(...) を発火
-    void emitTimeUpdateFromClock_();
+    void emitTimeUpdateFromClock();
 
 private slots:
     void onEngine1Resign();
     void onEngine2Resign();
-    void kickNextEvETurn_();  // EvE を1手ずつ進める
-    void onClockTick_();
-    void onUsiError_(const QString& msg);
+    void kickNextEvETurn();  // EvE を1手ずつ進める
+    void onClockTick();
+    void onUsiError(const QString& msg);
 
 public slots:
     // 即時に現在値で timeUpdated(...) を発火（UIをすぐ同期させたい時に使う）
@@ -362,12 +362,12 @@ public:
 
 private:
     // 内部ヘルパ
-    void startHumanVsHuman_(const StartOptions& opt);
-    void startHumanVsEngine_(const StartOptions& opt, bool engineIsP1);
-    void initPositionStringsForEvE_(const QString& sfenStart);  // ← 新規ヘルパ
-    void startEngineVsEngine_(const StartOptions& opt);
-    void startEvEFirstMoveByBlack_();         // 平手EvE：先手から開始
-    void startEvEFirstMoveByWhite_();         // 駒落ちEvE：後手（上手）から開始
+    void startHumanVsHuman(const StartOptions& opt);
+    void startHumanVsEngine(const StartOptions& opt, bool engineIsP1);
+    void initPositionStringsForEvE(const QString& sfenStart);  // ← 新規ヘルパ
+    void startEngineVsEngine(const StartOptions& opt);
+    void startEvEFirstMoveByBlack();         // 平手EvE：先手から開始
+    void startEvEFirstMoveByWhite();         // 駒落ちEvE：後手（上手）から開始
 
 private:
     // USI "position ... moves" の作業用バッファ
@@ -387,8 +387,8 @@ private:
     int                m_eveMoveIndex = 0;
 
     // ★ EvE用：共有sfenRecordが設定されていればそれを使い、なければローカルを使う
-    QStringList* sfenRecordForEvE_() { return m_sfenRecord ? m_sfenRecord : &m_eveSfenRecord; }
-    QVector<ShogiMove>& gameMovesForEvE_() { return m_sfenRecord ? m_gameMoves : m_eveGameMoves; }
+    QStringList* sfenRecordForEvE() { return m_sfenRecord ? m_sfenRecord : &m_eveSfenRecord; }
+    QVector<ShogiMove>& gameMovesForEvE() { return m_sfenRecord ? m_gameMoves : m_eveGameMoves; }
 
 private:
     // 「その手の開始」エポック（KIFの消費時間計算に使用）
@@ -428,8 +428,8 @@ public:
     void setClock(ShogiClock* clock);
 
 private:
-    void wireClock_();           // ★追加：時計と onClockTick_ の connect を一元化
-    void unwireClock_();         // ★追加：既存接続の解除
+    void wireClock();           // ★追加：時計と onClockTick_ の connect を一元化
+    void unwireClock();         // ★追加：既存接続の解除
     QMetaObject::Connection m_clockConn; // ★追加：接続ハンドル保持
 
 public:
@@ -449,10 +449,10 @@ private:
     GameOverState m_gameOver;
 
 private slots:
-    void onCheckmateSolved_(const QStringList& pv);
-    void onCheckmateNoMate_();
-    void onCheckmateNotImplemented_();
-    void onCheckmateUnknown_();
+    void onCheckmateSolved(const QStringList& pv);
+    void onCheckmateNoMate();
+    void onCheckmateNotImplemented();
+    void onCheckmateUnknown();
 
 public:
     StartOptions buildStartOptions(PlayMode mode,
@@ -508,7 +508,7 @@ public:
     void forceImmediateMove();
 
 private:
-    void sendRawTo_(Usi* which, const QString& cmd);
+    void sendRawTo(Usi* which, const QString& cmd);
 
     // USI "position ... moves" の履歴（UNDO等で使う）。SFENとは混ぜないこと！
     QStringList m_positionStrHistory;

@@ -30,7 +30,7 @@ public:
     void runWithDialog(const Deps& d, QWidget* parent, const QString& positionStr);
 
 private:
-    void startAnalysis_(MatchCoordinator* match,
+    void startAnalysis(MatchCoordinator* match,
                         const QString& enginePath,
                         const QString& engineName,
                         const QString& positionStr,

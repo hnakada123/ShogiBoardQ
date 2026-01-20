@@ -41,10 +41,10 @@ void ConsiderationFlowController::runWithDialog(const Deps& d, QWidget* parent, 
     }
 
     // 表示名は engine.name を使用
-    startAnalysis_(d.match, engine.path, engine.name, positionStr, byoyomiMs);
+    startAnalysis(d.match, engine.path, engine.name, positionStr, byoyomiMs);
 }
 
-void ConsiderationFlowController::startAnalysis_(MatchCoordinator* match,
+void ConsiderationFlowController::startAnalysis(MatchCoordinator* match,
                                                  const QString& enginePath,
                                                  const QString& engineName,
                                                  const QString& positionStr,

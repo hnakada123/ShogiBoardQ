@@ -25,7 +25,7 @@
 #include <QThread>
 
 // 平手初期SFENの簡易判定（必要なら厳密化可）
-static bool isStandardStartposSfen_(const QString& sfen)
+static bool isStandardStartposSfen(const QString& sfen)
 {
     const QString canon = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
     return (!sfen.isEmpty() && sfen.trimmed() == canon);
@@ -34,7 +34,7 @@ static bool isStandardStartposSfen_(const QString& sfen)
 // 直前のフル position 文字列から、先頭 handCount 手だけ残したベースを作る。
 // 例）prev="position startpos moves 7g7f 3c3d 2g2f 8c8d", handCount=2
 //   → "position startpos moves 7g7f 3c3d"
-static QString buildBasePositionUpToHands_(const QString& prevFull, int handCount, const QString& startSfenHint)
+static QString buildBasePositionUpToHands(const QString& prevFull, int handCount, const QString& startSfenHint)
 {
     QString head;  // "position startpos" or "position sfen <...>"
     QStringList moves;
@@ -65,7 +65,7 @@ static QString buildBasePositionUpToHands_(const QString& prevFull, int handCoun
 
     // prevFull から head が取れなかった場合：SFENヒントで head を決める
     if (head.isEmpty()) {
-        if (isStandardStartposSfen_(startSfenHint)) {
+        if (isStandardStartposSfen(startSfenHint)) {
             head = QStringLiteral("position startpos");
         } else if (!startSfenHint.isEmpty()) {
             head = QStringLiteral("position sfen %1").arg(startSfenHint);
@@ -121,7 +121,7 @@ MatchCoordinator::MatchCoordinator(const Deps& d, QObject* parent)
         qWarning() << "[MC][init] sfenRecord is null! Presenterと同期できません。Deps.sfenRecordを渡してください。";
     }
 
-    wireClock_(); // ★CTOR でも配線
+    wireClock(); // ★CTOR でも配線
 }
 
 MatchCoordinator::~MatchCoordinator() = default;
@@ -170,17 +170,17 @@ void MatchCoordinator::handleResign() {
         // ★ hooks 未指定でも最低限の通知を司令塔内で実施
         if (isHvE) {
             // HvE：人間が投了＝エンジン勝ち。
-            sendRawTo_(m_usi1, QStringLiteral("gameover win"));
-            sendRawTo_(m_usi1, QStringLiteral("quit"));
+            sendRawTo(m_usi1, QStringLiteral("gameover win"));
+            sendRawTo(m_usi1, QStringLiteral("quit"));
         } else {
             // EvE：勝者/敗者のエンジンそれぞれに通知
             const Player winner = (m_cur == P1 ? P2 : P1);
             Usi* winEng  = (winner     == P1) ? m_usi1 : m_usi2;
             Usi* loseEng = (info.loser == P1) ? m_usi1 : m_usi2;
-            if (loseEng) sendRawTo_(loseEng, QStringLiteral("gameover lose"));
+            if (loseEng) sendRawTo(loseEng, QStringLiteral("gameover lose"));
             if (winEng)  {
-                sendRawTo_(winEng,  QStringLiteral("gameover win"));
-                sendRawTo_(winEng,  QStringLiteral("quit"));
+                sendRawTo(winEng,  QStringLiteral("gameover win"));
+                sendRawTo(winEng,  QStringLiteral("quit"));
             }
         }
     }
@@ -189,7 +189,7 @@ void MatchCoordinator::handleResign() {
     setGameOver(info, /*loserIsP1=*/(info.loser==P1), /*appendMoveOnce=*/true);
 
     // ★ 追加：投了時も結果ダイアログを表示
-    displayResultsAndUpdateGui_(info);
+    displayResultsAndUpdateGui(info);
 }
 
 // 2) エンジン側の投了
@@ -219,7 +219,7 @@ void MatchCoordinator::handleEngineResign(int idx) {
     setGameOver(info, loserIsP1, /*appendMoveOnce=*/true);
 
     // ★ 追加：エンジン投了時も結果ダイアログを表示
-    displayResultsAndUpdateGui_(info);
+    displayResultsAndUpdateGui(info);
 }
 
 // ★ 入玉宣言処理
@@ -315,18 +315,18 @@ void MatchCoordinator::flipBoard() {
     emit boardFlipped(true);
 }
 
-void MatchCoordinator::setGameInProgressActions_(bool inProgress) {
+void MatchCoordinator::setGameInProgressActions(bool inProgress) {
     if (m_hooks.setGameActions) m_hooks.setGameActions(inProgress);
 }
 
-void MatchCoordinator::updateTurnDisplay_(Player p) {
+void MatchCoordinator::updateTurnDisplay(Player p) {
     m_cur = p; // ★ 同期
     if (m_hooks.updateTurnDisplay) m_hooks.updateTurnDisplay(p);
 }
 
-void MatchCoordinator::displayResultsAndUpdateGui_(const GameEndInfo& info) {
+void MatchCoordinator::displayResultsAndUpdateGui(const GameEndInfo& info) {
     // 対局中メニューのON/OFFなどUI側の状態を更新
-    setGameInProgressActions_(false);
+    setGameInProgressActions(false);
 
     // 先後の文字列（日本語）
     const bool loserIsP1  = (info.loser == P1);
@@ -407,10 +407,10 @@ void MatchCoordinator::initializeAndStartEngineFor(Player side,
     eng->initializeAndStartEngineCommunication(path, name);
 
     // 投了シグナル配線（side に基づいて先手/後手を判断）
-    wireResignToArbiter_(eng, (side == P1));
+    wireResignToArbiter(eng, (side == P1));
 }
 
-void MatchCoordinator::wireResignToArbiter_(Usi* engine, bool asP1)
+void MatchCoordinator::wireResignToArbiter(Usi* engine, bool asP1)
 {
     if (!engine) return;
 
@@ -486,8 +486,8 @@ void MatchCoordinator::initEnginesForEvE(const QString& engineName1,
     m_usi2->resetResignNotified(); m_usi2->clearHardTimeout();
 
     // 投了配線
-    wireResignToArbiter_(m_usi1, /*asP1=*/true);
-    wireResignToArbiter_(m_usi2, /*asP1=*/false);
+    wireResignToArbiter(m_usi1, /*asP1=*/true);
+    wireResignToArbiter(m_usi2, /*asP1=*/false);
 
     // ログ識別
     m_usi1->setLogIdentity(QStringLiteral("[E1]"), QStringLiteral("P1"), engineName1);
@@ -507,7 +507,7 @@ bool MatchCoordinator::engineThinkApplyMove(Usi* engine,
 {
     if (!engine || !m_gc) return false;
 
-    const GoTimes t = computeGoTimes_();
+    const GoTimes t = computeGoTimes();
 
     // byoyomi が設定されていれば USI 的には秒読みを使う
     const bool useByoyomi = (t.byoyomi > 0);
@@ -756,7 +756,7 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
 
     // 司令塔の内部手番も GC に同期（既存互換）
     m_cur = (startSide == ShogiGameController::Player2) ? P2 : P1;
-    updateTurnDisplay_(m_cur);
+    updateTurnDisplay(m_cur);
 
     // ------------------------------------------------------------
     // ★★ 「探索で見つけたゲームのヘッダ」をベースに moves だけをトリム ★★
@@ -867,36 +867,36 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
         initEnginesForEvE(opt.engineName1, opt.engineName2);
         initializeAndStartEngineFor(P1, opt.enginePath1, opt.engineName1);
         initializeAndStartEngineFor(P2, opt.enginePath2, opt.engineName2);
-        startEngineVsEngine_(opt);
+        startEngineVsEngine(opt);
         break;
     }
 
     // ★平手：先手エンジン（P1エンジン固定）
     case PlayMode::EvenEngineVsHuman: {
-        startHumanVsEngine_(opt, /*engineIsP1=*/true);
+        startHumanVsEngine(opt, /*engineIsP1=*/true);
         break;
     }
 
     // ★平手：後手エンジン（P2エンジン固定）
     case PlayMode::EvenHumanVsEngine: {
-        startHumanVsEngine_(opt, /*engineIsP1=*/false);
+        startHumanVsEngine(opt, /*engineIsP1=*/false);
         break;
     }
 
     // ★駒落ち：先手エンジン（下手＝P1エンジン固定）
     case PlayMode::HandicapEngineVsHuman: {
-        startHumanVsEngine_(opt, /*engineIsP1=*/true);
+        startHumanVsEngine(opt, /*engineIsP1=*/true);
         break;
     }
 
     // ★駒落ち：後手エンジン（上手＝P2エンジン固定）
     case PlayMode::HandicapHumanVsEngine: {
-        startHumanVsEngine_(opt, /*engineIsP1=*/false);
+        startHumanVsEngine(opt, /*engineIsP1=*/false);
         break;
     }
 
     case PlayMode::HumanVsHuman:
-        startHumanVsHuman_(opt);
+        startHumanVsHuman(opt);
         break;
 
     default:
@@ -913,7 +913,7 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
 }
 
 // HvH（人間対人間）
-void MatchCoordinator::startHumanVsHuman_(const StartOptions& /*opt*/)
+void MatchCoordinator::startHumanVsHuman(const StartOptions& /*opt*/)
 {
     if (m_hooks.log) m_hooks.log(QStringLiteral("[Match] Start HvH"));
 
@@ -929,12 +929,12 @@ void MatchCoordinator::startHumanVsHuman_(const StartOptions& /*opt*/)
 
     // 盤描画は手番反映のあと（ハイライト/時計のズレ防止）
     if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
-    updateTurnDisplay_(m_cur);
+    updateTurnDisplay(m_cur);
 }
 
 // HvE（人間対エンジン）
 //   engineIsP1 == true ならエンジンは先手座席、false なら後手座席
-void MatchCoordinator::startHumanVsEngine_(const StartOptions& opt, bool engineIsP1)
+void MatchCoordinator::startHumanVsEngine(const StartOptions& opt, bool engineIsP1)
 {
     if (m_hooks.log) {
         m_hooks.log(QStringLiteral("[Match] Start HvE (engineIsP1=%1)").arg(engineIsP1));
@@ -962,7 +962,7 @@ void MatchCoordinator::startHumanVsEngine_(const StartOptions& opt, bool engineI
     m_usi2 = nullptr;
 
     // 投了配線
-    wireResignToArbiter_(m_usi1, /*asP1=*/engineIsP1);
+    wireResignToArbiter(m_usi1, /*asP1=*/engineIsP1);
 
     // ログ識別（UI 表示用）
     if (m_usi1) {
@@ -991,11 +991,11 @@ void MatchCoordinator::startHumanVsEngine_(const StartOptions& opt, bool engineI
 
     // 盤描画は手番反映のあと（ハイライト/時計のズレ防止）
     if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
-    updateTurnDisplay_(m_cur);
+    updateTurnDisplay(m_cur);
 }
 
 // EvE の初手を開始する（起動・初期化済み前提）
-void MatchCoordinator::startEngineVsEngine_(const StartOptions& opt)
+void MatchCoordinator::startEngineVsEngine(const StartOptions& opt)
 {
     if (!m_usi1 || !m_usi2 || !m_gc) return;
 
@@ -1012,9 +1012,9 @@ void MatchCoordinator::startEngineVsEngine_(const StartOptions& opt)
         m_gc->setCurrentPlayer(ShogiGameController::Player1);
     }
     m_cur = (m_gc->currentPlayer() == ShogiGameController::Player2) ? P2 : P1;
-    updateTurnDisplay_(m_cur);
+    updateTurnDisplay(m_cur);
 
-    initPositionStringsForEvE_(opt.sfenStart);
+    initPositionStringsForEvE(opt.sfenStart);
 
     // ★ 駒落ちの場合は後手（上手）から開始
     const bool isHandicap = (m_playMode == PlayMode::HandicapEngineVsEngine);
@@ -1022,17 +1022,17 @@ void MatchCoordinator::startEngineVsEngine_(const StartOptions& opt)
 
     if (isHandicap && whiteToMove) {
         // 駒落ち：後手（上手 = m_usi2）が初手を指す
-        startEvEFirstMoveByWhite_();
+        startEvEFirstMoveByWhite();
     } else {
         // 平手：先手（下手 = m_usi1）が初手を指す
-        startEvEFirstMoveByBlack_();
+        startEvEFirstMoveByBlack();
     }
 }
 
 // 平手EvE：先手から開始
-void MatchCoordinator::startEvEFirstMoveByBlack_()
+void MatchCoordinator::startEvEFirstMoveByBlack()
 {
-    const GoTimes t1 = computeGoTimes_();
+    const GoTimes t1 = computeGoTimes();
     const QString btimeStr1 = QString::number(t1.btime);
     const QString wtimeStr1 = QString::number(t1.wtime);
 
@@ -1057,8 +1057,8 @@ void MatchCoordinator::startEvEFirstMoveByBlack_()
             p1From, p1To, rec1,
             pm,
             nextEve,
-            sfenRecordForEvE_(),
-            gameMovesForEvE_()
+            sfenRecordForEvE(),
+            gameMovesForEvE()
             )) {
         return;
     } else {
@@ -1076,7 +1076,7 @@ void MatchCoordinator::startEvEFirstMoveByBlack_()
 
     if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
     if (m_hooks.showMoveHighlights) m_hooks.showMoveHighlights(p1From, p1To);
-    updateTurnDisplay_((m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2);
+    updateTurnDisplay((m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2);
 
     if (m_usi2) {
         m_usi2->setPreviousFileTo(p1To.x());
@@ -1086,7 +1086,7 @@ void MatchCoordinator::startEvEFirstMoveByBlack_()
     m_positionStr2     = m_positionStr1;
     m_positionPonder2.clear();
 
-    const GoTimes t2 = computeGoTimes_();
+    const GoTimes t2 = computeGoTimes();
     const QString btimeStr2 = QString::number(t2.btime);
     const QString wtimeStr2 = QString::number(t2.wtime);
 
@@ -1110,8 +1110,8 @@ void MatchCoordinator::startEvEFirstMoveByBlack_()
             p2From, p2To, rec2,
             pm,
             nextEve,
-            sfenRecordForEvE_(),
-            gameMovesForEvE_()
+            sfenRecordForEvE(),
+            gameMovesForEvE()
             )) {
         return;
     } else {
@@ -1129,16 +1129,16 @@ void MatchCoordinator::startEvEFirstMoveByBlack_()
 
     if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
     if (m_hooks.showMoveHighlights) m_hooks.showMoveHighlights(p2From, p2To);
-    updateTurnDisplay_((m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2);
+    updateTurnDisplay((m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2);
 
-    QTimer::singleShot(std::chrono::milliseconds(0), this, &MatchCoordinator::kickNextEvETurn_);
+    QTimer::singleShot(std::chrono::milliseconds(0), this, &MatchCoordinator::kickNextEvETurn);
 }
 
 // 駒落ちEvE：後手（上手）から開始
-void MatchCoordinator::startEvEFirstMoveByWhite_()
+void MatchCoordinator::startEvEFirstMoveByWhite()
 {
     // 後手（上手 = m_usi2）が初手を指す
-    const GoTimes t2 = computeGoTimes_();
+    const GoTimes t2 = computeGoTimes();
     const QString btimeStr2 = QString::number(t2.btime);
     const QString wtimeStr2 = QString::number(t2.wtime);
 
@@ -1163,8 +1163,8 @@ void MatchCoordinator::startEvEFirstMoveByWhite_()
             p2From, p2To, rec2,
             pm,
             nextEve,
-            sfenRecordForEvE_(),
-            gameMovesForEvE_()
+            sfenRecordForEvE(),
+            gameMovesForEvE()
             )) {
         return;
     } else {
@@ -1182,7 +1182,7 @@ void MatchCoordinator::startEvEFirstMoveByWhite_()
 
     if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
     if (m_hooks.showMoveHighlights) m_hooks.showMoveHighlights(p2From, p2To);
-    updateTurnDisplay_((m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2);
+    updateTurnDisplay((m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2);
 
     if (m_usi1) {
         m_usi1->setPreviousFileTo(p2To.x());
@@ -1193,7 +1193,7 @@ void MatchCoordinator::startEvEFirstMoveByWhite_()
     m_positionPonder1.clear();
 
     // 先手（下手 = m_usi1）が2手目を指す
-    const GoTimes t1 = computeGoTimes_();
+    const GoTimes t1 = computeGoTimes();
     const QString btimeStr1 = QString::number(t1.btime);
     const QString wtimeStr1 = QString::number(t1.wtime);
 
@@ -1217,8 +1217,8 @@ void MatchCoordinator::startEvEFirstMoveByWhite_()
             p1From, p1To, rec1,
             pm,
             nextEve,
-            sfenRecordForEvE_(),
-            gameMovesForEvE_()
+            sfenRecordForEvE(),
+            gameMovesForEvE()
             )) {
         return;
     } else {
@@ -1236,9 +1236,9 @@ void MatchCoordinator::startEvEFirstMoveByWhite_()
 
     if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
     if (m_hooks.showMoveHighlights) m_hooks.showMoveHighlights(p1From, p1To);
-    updateTurnDisplay_((m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2);
+    updateTurnDisplay((m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2);
 
-    QTimer::singleShot(std::chrono::milliseconds(0), this, &MatchCoordinator::kickNextEvETurn_);
+    QTimer::singleShot(std::chrono::milliseconds(0), this, &MatchCoordinator::kickNextEvETurn);
 }
 
 Usi* MatchCoordinator::primaryEngine() const
@@ -1251,7 +1251,7 @@ Usi* MatchCoordinator::secondaryEngine() const
     return m_usi2;
 }
 
-void MatchCoordinator::initPositionStringsForEvE_(const QString& sfenStart)
+void MatchCoordinator::initPositionStringsForEvE(const QString& sfenStart)
 {
     m_positionStr1.clear();
     m_positionPonder1.clear();
@@ -1293,7 +1293,7 @@ void MatchCoordinator::initPositionStringsForEvE_(const QString& sfenStart)
     m_positionStr2 = base;
 }
 
-void MatchCoordinator::kickNextEvETurn_()
+void MatchCoordinator::kickNextEvETurn()
 {
     if (m_playMode != PlayMode::EvenEngineVsEngine && m_playMode != PlayMode::HandicapEngineVsEngine) return;
     if (!m_usi1 || !m_usi2 || !m_gc) return;
@@ -1315,7 +1315,7 @@ void MatchCoordinator::kickNextEvETurn_()
     // ★ 次の手を渡す
     int nextEve = m_eveMoveIndex + 1;
     if (!m_gc->validateAndMove(from, to, rec, m_playMode,
-                               nextEve, sfenRecordForEvE_(), gameMovesForEvE_())) {
+                               nextEve, sfenRecordForEvE(), gameMovesForEvE())) {
         return;
     } else {
         m_eveMoveIndex = nextEve;
@@ -1345,7 +1345,7 @@ void MatchCoordinator::kickNextEvETurn_()
 
     if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
     if (m_hooks.showMoveHighlights) m_hooks.showMoveHighlights(from, to);
-    updateTurnDisplay_(
+    updateTurnDisplay(
         (m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2
         );
 
@@ -1355,7 +1355,7 @@ void MatchCoordinator::kickNextEvETurn_()
         return;
     }
 
-    QTimer::singleShot(0, this, &MatchCoordinator::kickNextEvETurn_);
+    QTimer::singleShot(0, this, &MatchCoordinator::kickNextEvETurn);
 }
 
 // ===== 時間制御の設定／照会 =====
@@ -1442,7 +1442,7 @@ void MatchCoordinator::disarmHumanTimerIfNeeded() {
 // ===== USI用 残時間算出 =====
 
 
-MatchCoordinator::GoTimes MatchCoordinator::computeGoTimes_() const {
+MatchCoordinator::GoTimes MatchCoordinator::computeGoTimes() const {
     GoTimes t;
 
     const bool hasRemainHook = static_cast<bool>(m_hooks.remainingMsFor);
@@ -1498,7 +1498,7 @@ MatchCoordinator::GoTimes MatchCoordinator::computeGoTimes_() const {
 }
 
 void MatchCoordinator::computeGoTimesForUSI(qint64& outB, qint64& outW) const {
-    const GoTimes t = computeGoTimes_();
+    const GoTimes t = computeGoTimes();
     outB = t.btime;
     outW = t.wtime;
 }
@@ -1514,24 +1514,24 @@ void MatchCoordinator::refreshGoTimes() {
 void MatchCoordinator::setClock(ShogiClock* clock)
 {
     if (m_clock == clock) return;
-    unwireClock_();
+    unwireClock();
     m_clock = clock;
-    wireClock_();
+    wireClock();
 }
 
-void MatchCoordinator::onClockTick_()
+void MatchCoordinator::onClockTick()
 {
     // デバッグ：ここが動いていれば Coordinator は時計を受信できている
-    qDebug() << "[Match] onClockTick_()";
-    emitTimeUpdateFromClock_();
+    qDebug() << "[Match] onClockTick()";
+    emitTimeUpdateFromClock();
 }
 
 void MatchCoordinator::pokeTimeUpdateNow()
 {
-    emitTimeUpdateFromClock_();
+    emitTimeUpdateFromClock();
 }
 
-void MatchCoordinator::emitTimeUpdateFromClock_()
+void MatchCoordinator::emitTimeUpdateFromClock()
 {
     if (!m_clock || !m_gc) return;
 
@@ -1556,19 +1556,19 @@ void MatchCoordinator::emitTimeUpdateFromClock_()
     emit timeUpdated(p1ms, p2ms, p1turn, urgencyMs);
 }
 
-void MatchCoordinator::wireClock_()
+void MatchCoordinator::wireClock()
 {
     if (!m_clock) return;
     if (m_clockConn) { QObject::disconnect(m_clockConn); m_clockConn = {}; }
 
     // 明示シグネチャにしておくと安心（ShogiClock 側の timeUpdated が多態でも解決）
     m_clockConn = connect(m_clock, &ShogiClock::timeUpdated,
-                          this, &MatchCoordinator::onClockTick_,
+                          this, &MatchCoordinator::onClockTick,
                           Qt::UniqueConnection);
     Q_ASSERT(m_clockConn);
 }
 
-void MatchCoordinator::unwireClock_()
+void MatchCoordinator::unwireClock()
 {
     if (m_clockConn) { QObject::disconnect(m_clockConn); m_clockConn = {}; }
 }
@@ -1703,11 +1703,11 @@ void MatchCoordinator::startAnalysis(const AnalysisOptions& opt)
 
     // 既存の接続（bestmove等）はそのまま。エラー用だけスロット接続を追加。
     connect(m_usi1, &Usi::errorOccurred,
-            this,   &MatchCoordinator::onUsiError_,
+            this,   &MatchCoordinator::onUsiError,
             Qt::UniqueConnection);
 
     // 5) 投了配線
-    wireResignToArbiter_(m_usi1, /*asP1=*/true);
+    wireResignToArbiter(m_usi1, /*asP1=*/true);
 
     // 6) ログ識別
     m_usi1->setLogIdentity(QStringLiteral("[E1]"), QStringLiteral("P1"), opt.engineName);
@@ -1722,16 +1722,16 @@ void MatchCoordinator::startAnalysis(const AnalysisOptions& opt)
     // 9) 詰み探索の配線（TsumiSearchMode のときのみ）
     if (opt.mode == PlayMode::TsumiSearchMode && m_usi1) {
         connect(m_usi1, &Usi::checkmateSolved,
-                this,  &MatchCoordinator::onCheckmateSolved_,
+                this,  &MatchCoordinator::onCheckmateSolved,
                 Qt::UniqueConnection);
         connect(m_usi1, &Usi::checkmateNoMate,
-                this,  &MatchCoordinator::onCheckmateNoMate_,
+                this,  &MatchCoordinator::onCheckmateNoMate,
                 Qt::UniqueConnection);
         connect(m_usi1, &Usi::checkmateNotImplemented,
-                this,  &MatchCoordinator::onCheckmateNotImplemented_,
+                this,  &MatchCoordinator::onCheckmateNotImplemented,
                 Qt::UniqueConnection);
         connect(m_usi1, &Usi::checkmateUnknown,
-                this,  &MatchCoordinator::onCheckmateUnknown_,
+                this,  &MatchCoordinator::onCheckmateUnknown,
                 Qt::UniqueConnection);
     }
 
@@ -1744,7 +1744,7 @@ void MatchCoordinator::startAnalysis(const AnalysisOptions& opt)
     }
 }
 
-void MatchCoordinator::onCheckmateSolved_(const QStringList& pv)
+void MatchCoordinator::onCheckmateSolved(const QStringList& pv)
 {
     if (m_hooks.showGameOverDialog) {
         const QString msg = tr("詰みあり（手順 %1 手）").arg(pv.size());
@@ -1752,28 +1752,28 @@ void MatchCoordinator::onCheckmateSolved_(const QStringList& pv)
     }
 }
 
-void MatchCoordinator::onCheckmateNoMate_()
+void MatchCoordinator::onCheckmateNoMate()
 {
     if (m_hooks.showGameOverDialog) {
         m_hooks.showGameOverDialog(tr("詰み探索"), tr("詰みなし"));
     }
 }
 
-void MatchCoordinator::onCheckmateNotImplemented_()
+void MatchCoordinator::onCheckmateNotImplemented()
 {
     if (m_hooks.showGameOverDialog) {
         m_hooks.showGameOverDialog(tr("詰み探索"), tr("（エンジン側）未実装"));
     }
 }
 
-void MatchCoordinator::onCheckmateUnknown_()
+void MatchCoordinator::onCheckmateUnknown()
 {
     if (m_hooks.showGameOverDialog) {
         m_hooks.showGameOverDialog(tr("詰み探索"), tr("不明（解析不能）"));
     }
 }
 
-void MatchCoordinator::onUsiError_(const QString& msg)
+void MatchCoordinator::onUsiError(const QString& msg)
 {
     // ログへ（あれば）
     if (m_hooks.log) m_hooks.log(QStringLiteral("[USI-ERROR] ") + msg);
@@ -1787,10 +1787,10 @@ void MatchCoordinator::onUsiError_(const QString& msg)
 // ---------------------------------------------
 void MatchCoordinator::initializePositionStringsForStart(const QString& sfenStart)
 {
-    initPositionStringsFromSfen_(sfenStart);
+    initPositionStringsFromSfen(sfenStart);
 }
 
-void MatchCoordinator::initPositionStringsFromSfen_(const QString& sfenBase)
+void MatchCoordinator::initPositionStringsFromSfen(const QString& sfenBase)
 {
     // m_positionStr1/m_positionPonder1 だけ使う（単発エンジン系）
     m_positionStr1.clear();
@@ -1814,7 +1814,7 @@ void MatchCoordinator::initPositionStringsFromSfen_(const QString& sfenBase)
         m_positionPonder1 = base;
     }
     // ▼▼▼【ここに追加】平手初期局面のSFENと一致する場合は startpos に戻す ▼▼▼
-    else if (isStandardStartposSfen_(base)) {
+    else if (isStandardStartposSfen(base)) {
         m_positionStr1    = QStringLiteral("position startpos");
         m_positionPonder1 = m_positionStr1;
     }
@@ -1838,14 +1838,14 @@ void MatchCoordinator::startInitialEngineMoveIfNeeded()
     const auto sideToMove = m_gc->currentPlayer();
 
     if (engineIsP1 && sideToMove == ShogiGameController::Player1) {
-        startInitialEngineMoveFor_(P1);
+        startInitialEngineMoveFor(P1);
     } else if (engineIsP2 && sideToMove == ShogiGameController::Player2) {
-        startInitialEngineMoveFor_(P2);
+        startInitialEngineMoveFor(P2);
     }
 }
 
 // （内部）指定したエンジン側で 1手だけ指す
-void MatchCoordinator::startInitialEngineMoveFor_(Player engineSide)
+void MatchCoordinator::startInitialEngineMoveFor(Player engineSide)
 {
     Usi* eng = primaryEngine();
     if (!eng || !m_gc) return;
@@ -1857,7 +1857,7 @@ void MatchCoordinator::startInitialEngineMoveFor_(Player engineSide)
     };
 
     if (m_positionStr1.isEmpty()) {
-        initPositionStringsFromSfen_(QString()); // startpos moves
+        initPositionStringsFromSfen(QString()); // startpos moves
     }
     if (!m_positionStr1.startsWith(QLatin1String("position "))) {
         m_positionStr1 = QStringLiteral("position startpos moves");
@@ -1925,7 +1925,7 @@ void MatchCoordinator::startInitialEngineMoveFor_(Player engineSide)
 
     if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
     m_cur = (m_gc->currentPlayer() == ShogiGameController::Player2) ? P2 : P1;
-    updateTurnDisplay_(m_cur);
+    updateTurnDisplay(m_cur);
 
     armHumanTimerIfNeeded();
 
@@ -2003,7 +2003,7 @@ void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& hu
     Usi* eng = primaryEngine();
     if (!eng || !m_gc || !m_sfenRecord) { if (!gameOverState().isOver) armHumanTimerIfNeeded(); return; }
 
-    if (m_positionStr1.isEmpty()) { initPositionStringsFromSfen_(QString()); }
+    if (m_positionStr1.isEmpty()) { initPositionStringsFromSfen(QString()); }
     if (!m_positionStr1.startsWith(QLatin1String("position "))) {
         m_positionStr1 = QStringLiteral("position startpos moves");
     }
@@ -2071,7 +2071,7 @@ void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& hu
 
     if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
     m_cur = (m_gc->currentPlayer() == ShogiGameController::Player2) ? P2 : P1;
-    updateTurnDisplay_(m_cur);
+    updateTurnDisplay(m_cur);
 
     // ★★★ エンジン着手後の評価値追加 ★★★
     // engineIsP1: エンジンがP1（先手）の場合 → appendEvalP1
@@ -2186,7 +2186,7 @@ bool MatchCoordinator::undoTwoPlies()
     }
 
     // --- 棋譜/モデル/履歴を末尾2件ずつ削除 ---
-    if (u_.recordModel)              tryRemoveLastItems_(u_.recordModel, 2);
+    if (u_.recordModel)              tryRemoveLastItems(u_.recordModel, 2);
     if (u_.gameMoves && u_.gameMoves->size() >= 2) {
         u_.gameMoves->remove(u_.gameMoves->size() - 2, 2);
     }
@@ -2206,7 +2206,7 @@ bool MatchCoordinator::undoTwoPlies()
 
     // --- ★ 巻き戻し後の “現在ベース” を厳密に再構成（prev を 先頭 remainHands 手にトリム） ---
     const QString startSfen0 = (srec && !srec->isEmpty()) ? srec->first() : QString();
-    const QString nextBase   = buildBasePositionUpToHands_(prevFullPosition, remainHands, startSfen0);
+    const QString nextBase   = buildBasePositionUpToHands(prevFullPosition, remainHands, startSfen0);
 
     // 現在値と履歴に反映
     m_positionStr1    = nextBase;
@@ -2246,7 +2246,7 @@ bool MatchCoordinator::undoTwoPlies()
     return true;
 }
 
-bool MatchCoordinator::tryRemoveLastItems_(QObject* model, int n) {
+bool MatchCoordinator::tryRemoveLastItems(QObject* model, int n) {
     if (!model) return false;
 
     // まずは直接呼び出し（ダウンキャスト）
@@ -2605,7 +2605,7 @@ void MatchCoordinator::forceImmediateMove()
     }
 }
 
-void MatchCoordinator::sendRawTo_(Usi* which, const QString& cmd)
+void MatchCoordinator::sendRawTo(Usi* which, const QString& cmd)
 {
     if (!which) return;
     which->sendRaw(cmd);   // ← sendRawCommand ではなく sendRaw を呼ぶ
@@ -2766,7 +2766,7 @@ void MatchCoordinator::handleMaxMovesJishogi()
     appendGameOverLineAndMark(Cause::Jishogi, P1);
 
     // 結果ダイアログの表示
-    displayResultsAndUpdateGui_(info);
+    displayResultsAndUpdateGui(info);
 }
 
 ShogiClock* MatchCoordinator::clock()

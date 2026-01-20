@@ -20,7 +20,7 @@ AnalysisCoordinator::AnalysisCoordinator(const Deps& d, QObject* parent)
     // stopタイマーの設定（シングルショット）
     m_stopTimer.setSingleShot(true);
     connect(&m_stopTimer, &QTimer::timeout,
-            this, &AnalysisCoordinator::onStopTimerTimeout_);
+            this, &AnalysisCoordinator::onStopTimerTimeout);
 }
 
 void AnalysisCoordinator::setDeps(const Deps& d)
@@ -61,11 +61,11 @@ void AnalysisCoordinator::startAnalyzeRange()
 
     // MultiPV は setoption で設定（対応エンジンのみ有効）
     if (m_opt.multiPV > 1) {
-        send_(QStringLiteral("setoption name MultiPV value %1").arg(m_opt.multiPV));
+        send(QStringLiteral("setoption name MultiPV value %1").arg(m_opt.multiPV));
     }
     // 念のため isready → readyok を待ちたければ、呼び出し側で同期を取ること
     // ここでは簡易化して直ちに開始
-    startRange_();
+    startRange();
 }
 
 void AnalysisCoordinator::startAnalyzeSingle(int ply)
@@ -85,9 +85,9 @@ void AnalysisCoordinator::startAnalyzeSingle(int ply)
     emit analysisStarted(m_opt.startPly, m_opt.endPly, m_mode);
 
     if (m_opt.multiPV > 1) {
-        send_(QStringLiteral("setoption name MultiPV value %1").arg(m_opt.multiPV));
+        send(QStringLiteral("setoption name MultiPV value %1").arg(m_opt.multiPV));
     }
-    startSingle_(m_opt.startPly);
+    startSingle(m_opt.startPly);
 }
 
 void AnalysisCoordinator::stop()
@@ -98,7 +98,7 @@ void AnalysisCoordinator::stop()
     m_stopTimer.stop();
     
     // USI の明示停止
-    send_(QStringLiteral("stop"));
+    send(QStringLiteral("stop"));
 
     m_running = false;
     m_mode = Idle;
@@ -107,19 +107,19 @@ void AnalysisCoordinator::stop()
     emit analysisFinished(Idle);
 }
 
-void AnalysisCoordinator::startRange_()
+void AnalysisCoordinator::startRange()
 {
     m_currentPly = m_opt.startPly;
-    sendAnalyzeForPly_(m_currentPly);
+    sendAnalyzeForPly(m_currentPly);
 }
 
-void AnalysisCoordinator::startSingle_(int ply)
+void AnalysisCoordinator::startSingle(int ply)
 {
     m_currentPly = ply;
-    sendAnalyzeForPly_(m_currentPly);
+    sendAnalyzeForPly(m_currentPly);
 }
 
-void AnalysisCoordinator::nextPlyOrFinish_()
+void AnalysisCoordinator::nextPlyOrFinish()
 {
     if (m_mode != RangePositions) {
         // SinglePosition の場合はここで終わる
@@ -143,16 +143,16 @@ void AnalysisCoordinator::nextPlyOrFinish_()
 
     // 次の局面へ
     m_currentPly += 1;
-    sendAnalyzeForPly_(m_currentPly);
+    sendAnalyzeForPly(m_currentPly);
 }
 
-void AnalysisCoordinator::sendAnalyzeForPly_(int ply)
+void AnalysisCoordinator::sendAnalyzeForPly(int ply)
 {
     if (!m_running) return;
     if (!m_deps.sfenRecord) return;
     if (ply < 0 || ply >= m_deps.sfenRecord->size()) {
         qWarning() << "[ANA] sendAnalyzeForPly_: index out of range" << ply;
-        nextPlyOrFinish_();
+        nextPlyOrFinish();
         return;
     }
 
@@ -180,11 +180,11 @@ void AnalysisCoordinator::sendGoCommand()
     qDebug().noquote() << "[ANA] sendGoCommand: sending position and go infinite commands";
     
     // positionコマンドを送信
-    send_(m_pendingPosCmd);
+    send(m_pendingPosCmd);
     m_pendingPosCmd.clear();
     
     // go infiniteコマンドを送信（USIプロトコル準拠）
-    send_(QStringLiteral("go infinite"));
+    send(QStringLiteral("go infinite"));
     
     // 設定された思考時間後にstopを送信するタイマーを開始
     m_stopTimer.start(m_opt.movetimeMs);
@@ -206,7 +206,7 @@ void AnalysisCoordinator::onEngineInfoLine(const QString& line)
     if (!line.startsWith(QStringLiteral("info"))) return;
 
     ParsedInfo p;
-    if (!parseInfoUSI_(line, &p)) {
+    if (!parseInfoUSI(line, &p)) {
         // パース不能でも raw を進捗として流しておくと UI 側で全文表示に使える
         qDebug().noquote() << "[ANA::onEngineInfoLine] parse failed, emitting raw";
         emit analysisProgress(m_currentPly, -1, -1,
@@ -231,10 +231,10 @@ void AnalysisCoordinator::onEngineBestmoveReceived(const QString& /*line*/)
     // （AnalysisFlowController側で定跡かどうかを判断できるようにする）
     
     // "bestmove ..." を受けたら次へ
-    nextPlyOrFinish_();
+    nextPlyOrFinish();
 }
 
-bool AnalysisCoordinator::parseInfoUSI_(const QString& line, ParsedInfo* out)
+bool AnalysisCoordinator::parseInfoUSI(const QString& line, ParsedInfo* out)
 {
     // ざっくりとした USI info 行のパース：
     // 例）info depth 20 seldepth 34 score cp 23 pv 7g7f 3c3d ...
@@ -282,12 +282,12 @@ bool AnalysisCoordinator::parseInfoUSI_(const QString& line, ParsedInfo* out)
     return true;
 }
 
-void AnalysisCoordinator::send_(const QString& line)
+void AnalysisCoordinator::send(const QString& line)
 {
     emit requestSendUsiCommand(line);
 }
 
-void AnalysisCoordinator::onStopTimerTimeout_()
+void AnalysisCoordinator::onStopTimerTimeout()
 {
     if (!m_running) return;
     
@@ -295,5 +295,5 @@ void AnalysisCoordinator::onStopTimerTimeout_()
                        << m_opt.movetimeMs << "ms";
     
     // stopコマンドを送信（bestmoveが返ってきたらonEngineBestmoveReceived_で処理される）
-    send_(QStringLiteral("stop"));
+    send(QStringLiteral("stop"));
 }

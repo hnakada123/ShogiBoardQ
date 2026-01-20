@@ -255,24 +255,24 @@ private:
     CommentUpdateCallback m_commentUpdateCallback;  ///< コメント更新時の通知コールバック
 
     // === 内部ヘルパ ===
-    void syncToExternalStores_(int ply, const QString& comment);
-    QList<KifDisplayItem> collectMainlineForExport_() const;
-    static QList<KifGameInfoItem> collectGameInfo_(const ExportContext& ctx);
-    static void resolvePlayerNames_(const ExportContext& ctx, QString& outBlack, QString& outWhite);
+    void syncToExternalStores(int ply, const QString& comment);
+    QList<KifDisplayItem> collectMainlineForExport() const;
+    static QList<KifGameInfoItem> collectGameInfo(const ExportContext& ctx);
+    static void resolvePlayerNames(const ExportContext& ctx, QString& outBlack, QString& outWhite);
 
     // === 分岐出力用ヘルパ ===
     /**
      * @brief 分岐が存在する手数のセットを収集
      * @return 分岐開始手数のセット（本譜基準）
      */
-    QSet<int> collectBranchPoints_() const;
+    QSet<int> collectBranchPoints() const;
 
     /**
      * @brief 指定した行の変化をKIF形式で出力
      * @param rowIndex ResolvedRow のインデックス
      * @param out 出力先
      */
-    void outputVariation_(int rowIndex, QStringList& out) const;
+    void outputVariation(int rowIndex, QStringList& out) const;
 
     /**
      * @brief 再帰的に変化を出力（子の変化を含む）
@@ -280,7 +280,7 @@ private:
      * @param out 出力先
      * @param visitedRows 訪問済み行のセット（無限ループ防止）
      */
-    void outputVariationsRecursively_(int parentRowIndex, QStringList& out, QSet<int>& visitedRows) const;
+    void outputVariationsRecursively(int parentRowIndex, QStringList& out, QSet<int>& visitedRows) const;
 
     // === KI2形式出力用ヘルパ ===
     /**
@@ -288,7 +288,7 @@ private:
      * @param rowIndex ResolvedRow のインデックス
      * @param out 出力先
      */
-    void outputKi2Variation_(int rowIndex, QStringList& out) const;
+    void outputKi2Variation(int rowIndex, QStringList& out) const;
 
     /**
      * @brief KI2形式で再帰的に変化を出力
@@ -296,7 +296,7 @@ private:
      * @param out 出力先
      * @param visitedRows 訪問済み行のセット（無限ループ防止）
      */
-    void outputKi2VariationsRecursively_(int parentRowIndex, QStringList& out, QSet<int>& visitedRows) const;
+    void outputKi2VariationsRecursively(int parentRowIndex, QStringList& out, QSet<int>& visitedRows) const;
 
     // === JKF形式出力用ヘルパ ===
     /**
@@ -304,14 +304,14 @@ private:
      * @param ctx 出力コンテキスト
      * @return QJsonObject 形式のヘッダ
      */
-    QJsonObject buildJkfHeader_(const ExportContext& ctx) const;
+    QJsonObject buildJkfHeader(const ExportContext& ctx) const;
 
     /**
      * @brief JKF形式の初期局面部分を構築
      * @param ctx 出力コンテキスト
      * @return QJsonObject 形式の初期局面
      */
-    QJsonObject buildJkfInitial_(const ExportContext& ctx) const;
+    QJsonObject buildJkfInitial(const ExportContext& ctx) const;
 
     /**
      * @brief 指し手をJKF形式の move オブジェクトに変換
@@ -321,21 +321,21 @@ private:
      * @param ply 手数
      * @return QJsonObject 形式の指し手
      */
-    QJsonObject convertMoveToJkf_(const KifDisplayItem& disp, int& prevToX, int& prevToY, int ply) const;
+    QJsonObject convertMoveToJkf(const KifDisplayItem& disp, int& prevToX, int& prevToY, int ply) const;
 
     /**
      * @brief JKF形式の moves 配列を構築（本譜）
      * @param disp 表示用指し手データリスト
      * @return QJsonArray 形式の指し手配列
      */
-    QJsonArray buildJkfMoves_(const QList<KifDisplayItem>& disp) const;
+    QJsonArray buildJkfMoves(const QList<KifDisplayItem>& disp) const;
 
     /**
      * @brief JKF形式の moves 配列に分岐を追加
      * @param movesArray 本譜の指し手配列
      * @param mainRowIndex 本譜の行インデックス
      */
-    void addJkfForks_(QJsonArray& movesArray, int mainRowIndex) const;
+    void addJkfForks(QJsonArray& movesArray, int mainRowIndex) const;
 
     /**
      * @brief 分岐の指し手配列を再帰的に構築（深い分岐対応）
@@ -343,7 +343,7 @@ private:
      * @param visitedRows 訪問済み行のセット（無限ループ防止）
      * @return QJsonArray 形式の分岐指し手配列
      */
-    QJsonArray buildJkfForkMovesRecursive_(int rowIndex, QSet<int>& visitedRows) const;
+    QJsonArray buildJkfForkMovesRecursive(int rowIndex, QSet<int>& visitedRows) const;
 
     // === USEN形式出力用ヘルパ ===
     /**
@@ -351,28 +351,28 @@ private:
      * @param sfen SFEN形式の局面文字列
      * @return USEN形式の局面文字列（平手の場合は空文字列）
      */
-    static QString sfenToUsenPosition_(const QString& sfen);
+    static QString sfenToUsenPosition(const QString& sfen);
 
     /**
      * @brief USI形式の指し手をUSEN形式にエンコード
      * @param usiMove USI形式の指し手（例: "7g7f", "P*5e", "2h3g+"）
      * @return USEN形式（3文字のbase36）
      */
-    static QString encodeUsiMoveToUsen_(const QString& usiMove);
+    static QString encodeUsiMoveToUsen(const QString& usiMove);
 
     /**
      * @brief 指し手番号をbase36（3文字）にエンコード
      * @param moveCode 指し手コード（0-46655）
      * @return 3文字のbase36文字列
      */
-    static QString intToBase36_(int moveCode);
+    static QString intToBase36(int moveCode);
 
     /**
      * @brief 終局語からUSEN終局コードを取得
      * @param terminalMove 終局語（例: "▲投了"）
      * @return USENの終局コード（例: "r"）、該当なしは空文字列
      */
-    static QString getUsenTerminalCode_(const QString& terminalMove);
+    static QString getUsenTerminalCode(const QString& terminalMove);
 
     /**
      * @brief 分岐のUSEN文字列を構築
@@ -380,7 +380,7 @@ private:
      * @param visitedRows 訪問済み行のセット
      * @return USEN形式の分岐文字列（~offset.moves の形式）
      */
-    QString buildUsenVariation_(int rowIndex, QSet<int>& visitedRows) const;
+    QString buildUsenVariation(int rowIndex, QSet<int>& visitedRows) const;
 
     /**
      * @brief 2つのSFEN間の差分からUSI形式の指し手を推測
@@ -389,7 +389,7 @@ private:
      * @param isSente 先手番かどうか
      * @return USI形式の指し手（推測できない場合は空文字列）
      */
-    static QString inferUsiFromSfenDiff_(const QString& sfenBefore, const QString& sfenAfter, bool isSente);
+    static QString inferUsiFromSfenDiff(const QString& sfenBefore, const QString& sfenAfter, bool isSente);
 
     // === USI（position コマンド）形式出力用ヘルパ ===
     /**
@@ -397,7 +397,7 @@ private:
      * @param terminalMove 終局語（例: "▲投了"、"千日手"）
      * @return USIの終局コード（例: "resign", "rep_draw"）、該当なしは空文字列
      */
-    static QString getUsiTerminalCode_(const QString& terminalMove);
+    static QString getUsiTerminalCode(const QString& terminalMove);
 };
 
 #endif // GAMERECORDMODEL_H

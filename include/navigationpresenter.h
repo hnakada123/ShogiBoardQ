@@ -39,7 +39,7 @@ signals:
     void branchUiUpdated(int row, int ply);
 
 private:
-    void highlightBranchTree_(int row, int ply);
+    void highlightBranchTree(int row, int ply);
 
     QPointer<KifuLoadCoordinator> m_coordinator;
     QPointer<EngineAnalysisTab>   m_analysisTab;

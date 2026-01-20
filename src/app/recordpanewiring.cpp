@@ -20,7 +20,7 @@ void RecordPaneWiring::buildUiAndWire()
         // MainWindow へ「メイン行変更」を通知（こちらは MainWindow にスロットあり）
         if (auto* mw = qobject_cast<MainWindow*>(m_d.ctx)) {
             QObject::connect(m_pane, &RecordPane::mainRowChanged,
-                             mw,     &MainWindow::onRecordPaneMainRowChanged_,
+                             mw,     &MainWindow::onRecordPaneMainRowChanged,
                              Qt::UniqueConnection);
         }
 

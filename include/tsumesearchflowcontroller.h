@@ -26,8 +26,8 @@ public:
     void runWithDialog(const Deps& d, QWidget* parent);
 
 private:
-    QString buildPositionForMate_(const Deps& d) const;
-    void startAnalysis_(MatchCoordinator* match,
+    QString buildPositionForMate(const Deps& d) const;
+    void startAnalysis(MatchCoordinator* match,
                         const QString& enginePath,
                         const QString& engineName,
                         const QString& positionStr,

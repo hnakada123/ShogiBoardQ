@@ -102,18 +102,18 @@ private:
     QTimer m_stopTimer;  // go infinite後にstopを送信するためのタイマー
 
     // 内部
-    void startRange_();
-    void startSingle_(int ply);
-    void nextPlyOrFinish_();
-    void sendAnalyzeForPly_(int ply);
-    static bool parseInfoUSI_(const QString& line, ParsedInfo* out);
+    void startRange();
+    void startSingle(int ply);
+    void nextPlyOrFinish();
+    void sendAnalyzeForPly(int ply);
+    static bool parseInfoUSI(const QString& line, ParsedInfo* out);
 
     // USI 便利
-    void send_(const QString& line); // requestSendUsiCommand をまとめる
+    void send(const QString& line); // requestSendUsiCommand をまとめる
 
 private slots:
     // stopタイマーのタイムアウト処理
-    void onStopTimerTimeout_();
+    void onStopTimerTimeout();
 };
 
 #endif // ANALYSISCOORDINATOR_H

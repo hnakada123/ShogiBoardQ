@@ -158,8 +158,8 @@ private:
     void addEdge(QGraphicsPathItem* from, QGraphicsPathItem* to);
 
     // ---- 追加：フォールバック探索とハイライト実体（実装は .cpp） ----
-    int  graphFallbackToPly_(int row, int targetPly) const;
-    void highlightNodeId_(int nodeId, bool centerOn);
+    int  graphFallbackToPly(int row, int targetPly) const;
+    void highlightNodeId(int nodeId, bool centerOn);
 
     // --- UI ---
     QTabWidget* m_tab=nullptr;
@@ -295,26 +295,26 @@ public:
     // ツリークリック検出
     bool eventFilter(QObject* obj, QEvent* ev) override;
 
-    int resolveParentRowForVariation_(int row) const;
+    int resolveParentRowForVariation(int row) const;
 
     // すでに Q_OBJECT が付いている前提
 private slots:
-    void onModel1Reset_();
-    void onModel2Reset_();
-    void onLog1Changed_();
-    void onLog2Changed_();
+    void onModel1Reset();
+    void onModel2Reset();
+    void onLog1Changed();
+    void onLog2Changed();
     void onView1SectionResized(int logicalIndex, int oldSize, int newSize);  // ★ 追加
     void onView2SectionResized(int logicalIndex, int oldSize, int newSize);  // ★ 追加
 
 private:
-    void reapplyViewTuning_(QTableView* v, QAbstractItemModel* m);
+    void reapplyViewTuning(QTableView* v, QAbstractItemModel* m);
 
     // 既に導入済みのヘルパ（前回案）
 private:
-    void setupThinkingViewHeader_(QTableView* v);  // ★ 変更: ヘッダ基本設定
-    void applyThinkingViewColumnWidths_(QTableView* v, int viewIndex);  // ★ 追加: 列幅適用
-    void applyNumericFormattingTo_(QTableView* view, QAbstractItemModel* model);
-    static int findColumnByHeader_(QAbstractItemModel* model, const QString& title);
+    void setupThinkingViewHeader(QTableView* v);  // ★ 変更: ヘッダ基本設定
+    void applyThinkingViewColumnWidths(QTableView* v, int viewIndex);  // ★ 追加: 列幅適用
+    void applyNumericFormattingTo(QTableView* view, QAbstractItemModel* model);
+    static int findColumnByHeader(QAbstractItemModel* model, const QString& title);
 };
 
 #endif // ENGINEANALYSISTAB_H

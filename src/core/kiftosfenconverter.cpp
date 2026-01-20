@@ -7,7 +7,7 @@
 #include <array>
 
 // 全角数字文字列（exit-time destructor回避）
-static const QString& zenkakuDigitsStr_() {
+static const QString& zenkakuDigitsStr() {
     static const auto& s = *[]() {
         static const QString str = QStringLiteral("０１２３４５６７８９");
         return &str;
@@ -16,33 +16,33 @@ static const QString& zenkakuDigitsStr_() {
 }
 
 // 半角/全角の数字1桁 → int（0..9）。クラス外から使える軽量ラッパ
-static inline int asciiDigitToInt_(QChar c) {
+static inline int asciiDigitToInt(QChar c) {
     const ushort u = c.unicode();
     return (u >= '0' && u <= '9') ? (u - '0') : 0;
 }
-static inline int zenkakuDigitToInt_(QChar c) {
-    const int idx = static_cast<int>(zenkakuDigitsStr_().indexOf(c));
+static inline int zenkakuDigitToInt(QChar c) {
+    const int idx = static_cast<int>(zenkakuDigitsStr().indexOf(c));
     return (idx >= 0) ? idx : 0;
 }
 
 // 1桁（半角/全角）→ int。QString の range-for を使わず detach 回避。
-static inline int flexDigitToInt_NoDetach_(QChar c)
+static inline int flexDigitToInt_NoDetach(QChar c)
 {
-    int v = asciiDigitToInt_(c);
-    if (!v) v = zenkakuDigitToInt_(c);
+    int v = asciiDigitToInt(c);
+    if (!v) v = zenkakuDigitToInt(c);
     return v;
 }
 
 // 文字列に含まれる（半角/全角）数字を int へ。
 // QString を range-for しない（detach 回避）。
-static int flexDigitsToInt_NoDetach_(const QString& t)
+static int flexDigitsToInt_NoDetach(const QString& t)
 {
     int v = 0;
     const int n = static_cast<int>(t.size());
     for (int i = 0; i < n; ++i) {
         const QChar ch = t.at(i);
-        int d = asciiDigitToInt_(ch);
-        if (!d) d = zenkakuDigitToInt_(ch);
+        int d = asciiDigitToInt(ch);
+        if (!d) d = zenkakuDigitToInt(ch);
         if (!d && ch != QChar(u'0') && ch != QChar(u'０')) continue;
         if (ch == QChar(u'0') || ch == QChar(u'０')) d = 0;
         v = v * 10 + d;
@@ -79,15 +79,15 @@ static const QRegularExpression& kifTimeRe()
 }
 
 // 時間の正規化 "mm:ss/HH:MM:SS"
-static inline QString normalizeTimeMatch_(const QRegularExpressionMatch& m)
+static inline QString normalizeTimeMatch(const QRegularExpressionMatch& m)
 {
     // 既存の flexDigitsToInt_NoDetach_ を想定（全角→半角も許容）
-    const int mm = flexDigitsToInt_NoDetach_(m.captured(1));
-    const int ss = flexDigitsToInt_NoDetach_(m.captured(2));
+    const int mm = flexDigitsToInt_NoDetach(m.captured(1));
+    const int ss = flexDigitsToInt_NoDetach(m.captured(2));
     const bool hasCum = m.lastCapturedIndex() >= 5 && m.captured(3).size();
-    const int HH = hasCum ? flexDigitsToInt_NoDetach_(m.captured(3)) : 0;
-    const int MM = hasCum ? flexDigitsToInt_NoDetach_(m.captured(4)) : 0;
-    const int SS = hasCum ? flexDigitsToInt_NoDetach_(m.captured(5)) : 0;
+    const int HH = hasCum ? flexDigitsToInt_NoDetach(m.captured(3)) : 0;
+    const int MM = hasCum ? flexDigitsToInt_NoDetach(m.captured(4)) : 0;
+    const int SS = hasCum ? flexDigitsToInt_NoDetach(m.captured(5)) : 0;
     auto z2 = [](int x){ return QStringLiteral("%1").arg(x, 2, 10, QLatin1Char('0')); };
     return z2(mm) + QLatin1Char(':') + z2(ss) + QLatin1Char('/') +
            z2(HH) + QLatin1Char(':') + z2(MM) + QLatin1Char(':') + z2(SS);
@@ -95,7 +95,7 @@ static inline QString normalizeTimeMatch_(const QRegularExpressionMatch& m)
 
 // --- 終局語の判定（KIF仕様に準拠） ---
 // 該当すれば normalized に表記をそのまま返す（例: "千日手"）
-static inline bool isTerminalWord_(const QString& s, QString* normalized)
+static inline bool isTerminalWord(const QString& s, QString* normalized)
 {
     static const auto& kTerminals = *[]() {
         static const std::array<QString, 12> arr = {{
@@ -351,7 +351,7 @@ QList<KifDisplayItem> KifToSfenConverter::extractMovesWithTimes(const QString& k
             int nextMoveStartIdx = -1;
 
             if (tm.hasMatch()) {
-                timeText = normalizeTimeMatch_(tm);
+                timeText = normalizeTimeMatch(tm);
                 nextMoveStartIdx = static_cast<int>(tm.capturedEnd(0));
                 rest = rest.left(tm.capturedStart(0)).trimmed();
             } else {
@@ -415,7 +415,7 @@ QList<KifDisplayItem> KifToSfenConverter::extractMovesWithTimes(const QString& k
 
             // 終局語?
             QString term;
-            if (isTerminalWord_(rest, &term)) {
+            if (isTerminalWord(rest, &term)) {
                 // 直前の指し手に commentBuf を付与
                 if (!commentBuf.isEmpty() && out.size() > 1) {
                     QString& dst = out.last().comment;
@@ -433,9 +433,9 @@ QList<KifDisplayItem> KifToSfenConverter::extractMovesWithTimes(const QString& k
                 if (tm.hasMatch()) {
                     const bool hasCum = tm.lastCapturedIndex() >= 5 && tm.captured(3).size();
                     if (hasCum) {
-                        const int HH = flexDigitsToInt_NoDetach_(tm.captured(3));
-                        const int MM = flexDigitsToInt_NoDetach_(tm.captured(4));
-                        const int SS = flexDigitsToInt_NoDetach_(tm.captured(5));
+                        const int HH = flexDigitsToInt_NoDetach(tm.captured(3));
+                        const int MM = flexDigitsToInt_NoDetach(tm.captured(4));
+                        const int SS = flexDigitsToInt_NoDetach(tm.captured(5));
                         cum = z2(HH) + QLatin1Char(':') + z2(MM) + QLatin1Char(':') + z2(SS);
                     }
                 }
@@ -629,7 +629,7 @@ bool KifToSfenConverter::parseWithVariations(const QString& kifPath,
         QRegularExpressionMatch m = sVarHead.match(l);
         if (!m.hasMatch()) { ++i; continue; }
 
-        const int startPly = flexDigitsToInt_NoDetach_(m.captured(1));
+        const int startPly = flexDigitsToInt_NoDetach(m.captured(1));
         KifVariation var; var.startPly = startPly;
 
         ++i;
@@ -688,7 +688,7 @@ bool KifToSfenConverter::parseWithVariations(const QString& kifPath,
                     QRegularExpressionMatch tm = kifTimeRe().match(rest);
                     QString timeText;
                     if (tm.hasMatch()) {
-                        timeText = normalizeTimeMatch_(tm);
+                        timeText = normalizeTimeMatch(tm);
                         rest = rest.left(tm.capturedStart(0)).trimmed();
                     } else {
                         static const auto& s_nextNum = *[]() {
@@ -713,7 +713,7 @@ bool KifToSfenConverter::parseWithVariations(const QString& kifPath,
 
                     // 終局語？
                     QString term;
-                    bool isTerm = isTerminalWord_(rest, &term);
+                    bool isTerm = isTerminalWord(rest, &term);
 
                     if (isTerm) {
                         // 直前の指し手にコメントを付与
@@ -733,9 +733,9 @@ bool KifToSfenConverter::parseWithVariations(const QString& kifPath,
                         if (tm.hasMatch()) {
                             const bool hasCum = tm.lastCapturedIndex() >= 5 && tm.captured(3).size();
                             if (hasCum) {
-                                const int HH = flexDigitsToInt_NoDetach_(tm.captured(3));
-                                const int MM = flexDigitsToInt_NoDetach_(tm.captured(4));
-                                const int SS = flexDigitsToInt_NoDetach_(tm.captured(5));
+                                const int HH = flexDigitsToInt_NoDetach(tm.captured(3));
+                                const int MM = flexDigitsToInt_NoDetach(tm.captured(4));
+                                const int SS = flexDigitsToInt_NoDetach(tm.captured(5));
                                 cum = z2(HH) + QLatin1Char(':') + z2(MM) + QLatin1Char(':') + z2(SS);
                             }
                         }
@@ -983,9 +983,9 @@ bool KifToSfenConverter::findDestination(const QString& line, int& toFile, int& 
     const QChar fch = m.capturedView(1).at(0);
     const QChar rch = m.capturedView(2).at(0);
 
-    toFile = flexDigitToInt_NoDetach_(fch);
+    toFile = flexDigitToInt_NoDetach(fch);
     int r  = KifToSfenConverter::kanjiDigitToInt(rch); // 漢数字を優先
-    if (r == 0) r = flexDigitToInt_NoDetach_(rch);     // 半/全角数字ならこちら
+    if (r == 0) r = flexDigitToInt_NoDetach(rch);     // 半/全角数字ならこちら
     toRank = r;
 
     return (toFile >= 1 && toFile <= 9 && toRank >= 1 && toRank <= 9);
@@ -1082,8 +1082,8 @@ bool KifToSfenConverter::convertMoveLine(const QString& moveText,
             const QChar a = m.capturedView(1).at(0);
             const QChar b = m.capturedView(2).at(0);
 
-            fromF = flexDigitToInt_NoDetach_(a);
-            fromR = flexDigitToInt_NoDetach_(b);
+            fromF = flexDigitToInt_NoDetach(a);
+            fromR = flexDigitToInt_NoDetach(b);
         }
     }
 

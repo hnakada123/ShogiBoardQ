@@ -58,7 +58,7 @@ private:
         QString lineName;          // "Main" or "VarN"
     };
 
-    void applyHighlight_(); // 内部一元処理
+    void applyHighlight(); // 内部一元処理
 
     KifuVariationEngine*         m_ve    = nullptr;  // 参照だけ残す（現状Planでは未使用）
     KifuBranchListModel*         m_model = nullptr;

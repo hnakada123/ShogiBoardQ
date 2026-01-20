@@ -211,7 +211,7 @@ QString GameRecordPresenter::commentForRow(int row) const
     return QString();
 }
 
-void GameRecordPresenter::onKifuCurrentRowChanged_(const QModelIndex& current,
+void GameRecordPresenter::onKifuCurrentRowChanged(const QModelIndex& current,
                                                    const QModelIndex& previous)
 {
     const int row = current.isValid() ? current.row() : -1;
@@ -251,7 +251,7 @@ void GameRecordPresenter::bindKifuSelection(QTableView* kifuView)
     // 行とコメントを整形して currentRowChanged(row, cmt) を発火
     m_connRowChanged = connect(
         sel, &QItemSelectionModel::currentRowChanged,
-        this, &GameRecordPresenter::onKifuCurrentRowChanged_,
+        this, &GameRecordPresenter::onKifuCurrentRowChanged,
         Qt::UniqueConnection
         );
 }

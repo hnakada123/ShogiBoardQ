@@ -115,7 +115,7 @@ public slots:
     void onMainMoveRowChanged(int selPly);
 
 private slots:
-    void onBackToMainButtonClicked_();
+    void onBackToMainButtonClicked();
 
 signals:
     void errorOccurred(const QString& errorMessage);
@@ -123,7 +123,7 @@ signals:
     void displayGameRecord(const QList<KifDisplayItem> disp);
     void syncBoardAndHighlightsAtRow(int ply1);
     void enableArrowButtons();
-    void setupBranchCandidatesWiring_();
+    void setupBranchCandidatesWiring();
     void gameInfoPopulated(const QList<KifGameInfoItem>& items);  // ★ 追加
 
 
@@ -183,9 +183,9 @@ private:
                           const QString& warnConvert) const;
     void buildResolvedLinesAfterLoad();
     void dumpBranchSplitReport() const;
-    QString rowNameFor_(int row) const;
-    QString labelAt_(const ResolvedRow& rr, int ply) const;
-    bool prefixEqualsUpTo_(int rowA, int rowB, int p) const;
+    QString rowNameFor(int row) const;
+    QString labelAt(const ResolvedRow& rr, int ply) const;
+    bool prefixEqualsUpTo(int rowA, int rowB, int p) const;
 
     void dumpBranchCandidateDisplayPlan() const;
     void ensureResolvedRowsHaveFullSfen();
@@ -193,17 +193,17 @@ private:
     void dumpAllRowsSfenTable() const;
     void dumpAllLinesGameMoves() const;
     void buildBranchCandidateDisplayPlan();
-    void ensureNavigationPresenter_();
+    void ensureNavigationPresenter();
 
     // 追加（private）
-    QList<KifDisplayItem> collectDispFromRecordModel_() const;
+    QList<KifDisplayItem> collectDispFromRecordModel() const;
 
     // ★ 追加：現在表示中の行（m_activeResolvedRow）の分岐手をモデルへ反映
-    void applyBranchMarksForCurrentLine_();
+    void applyBranchMarksForCurrentLine();
 
-    void refreshBranchCandidatesUIOnly_(int row, int ply1); // 文脈を変えずUIだけ更新
+    void refreshBranchCandidatesUIOnly(int row, int ply1); // 文脈を変えずUIだけ更新
 
-    void applyParsedResultCommon_(const QString& filePath, const QString& initialSfen,
+    void applyParsedResultCommon(const QString& filePath, const QString& initialSfen,
                                   const QString& teaiLabel, const KifParseResult& res,
                                   const QString& parseWarn, const char* callerTag);
 
@@ -213,7 +213,7 @@ private:
     using KifuExtractGameInfoFunc = std::function<QList<KifGameInfoItem>(const QString&)>;
 
     // 棋譜読み込み共通ロジック
-    void loadKifuCommon_(const QString& filePath, const char* funcName,
+    void loadKifuCommon(const QString& filePath, const char* funcName,
                          const KifuParseFunc& parseFunc,
                          const KifuDetectSfenFunc& detectSfenFunc,
                          const KifuExtractGameInfoFunc& extractGameInfoFunc,
