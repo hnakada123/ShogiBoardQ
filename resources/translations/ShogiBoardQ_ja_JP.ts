@@ -4162,13 +4162,13 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>ShogiView</name>
     <message>
-        <location filename="../../src/views/shogiview.cpp" line="3110"/>
-        <location filename="../../src/views/shogiview.cpp" line="3125"/>
+        <location filename="../../src/views/shogiview.cpp" line="3121"/>
+        <location filename="../../src/views/shogiview.cpp" line="3141"/>
         <source>次の手番</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/views/shogiview.cpp" line="3346"/>
+        <location filename="../../src/views/shogiview.cpp" line="3363"/>
         <source>編集終了</source>
         <translation type="unfinished"></translation>
     </message>
