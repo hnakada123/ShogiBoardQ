@@ -164,7 +164,7 @@ signals:
     void consecutiveGamesConfigured(int totalGames, bool switchTurn);
 
 private:
-    bool validate_(const StartParams& params, QString& whyNot) const;
+    bool validate(const StartParams& params, QString& whyNot) const;
 
     // ダイアログからの抽出ヘルパ（型非依存：objectName + property 読み）
     static int  readIntProperty (const QObject* root, const char* objectName,
@@ -190,7 +190,7 @@ signals:
 
 private:
     // これを追加：SFENから手番('b' or 'w')を抽出
-    static QChar turnFromSfen_(const QString& sfen);
+    static QChar turnFromSfen(const QString& sfen);
 
 public:
     // 再開 SFEN が指定されていれば盤へ適用し、必要なら即時描画まで行う軽量ユーティリティ
@@ -199,7 +199,7 @@ public:
                                          const QString& resumeSfen);
 
 private:
-    TimeControl buildTimeControlFromDialog_(QDialog* startDlg) const;
+    TimeControl buildTimeControlFromDialog(QDialog* startDlg) const;
 };
 
 Q_DECLARE_METATYPE(GameStartCoordinator::TimeControl)

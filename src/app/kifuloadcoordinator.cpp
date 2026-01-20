@@ -287,7 +287,7 @@ KifuLoadCoordinator::KifuLoadCoordinator(QVector<ShogiMove>& gameMoves,
 // ============================================================
 
 // 本譜（メインライン）のデバッグダンプ
-static void dumpMainline_(const KifParseResult& res, const QString& parseWarn)
+static void dumpMainline(const KifParseResult& res, const QString& parseWarn)
 {
     if (!kGM_VERBOSE) return;
 
@@ -310,7 +310,7 @@ static void dumpMainline_(const KifParseResult& res, const QString& parseWarn)
 }
 
 // 変化（バリエーション）のデバッグダンプ
-static void dumpVariations_(const KifParseResult& res)
+static void dumpVariationsDebug(const KifParseResult& res)
 {
     if (!kGM_VERBOSE) return;
 
@@ -342,7 +342,7 @@ static void dumpVariations_(const KifParseResult& res)
 // detectSfenFunc: 初期SFEN検出関数（空の場合はprepareInitialSfenを使用）
 // extractGameInfoFunc: ゲーム情報抽出関数（空の場合はスキップ）
 // dumpVariations: 変化のデバッグ出力を行うかどうか
-void KifuLoadCoordinator::loadKifuCommon_(
+void KifuLoadCoordinator::loadKifuCommon(
     const QString& filePath,
     const char* funcName,
     const KifuParseFunc& parseFunc,
@@ -382,9 +382,9 @@ void KifuLoadCoordinator::loadKifuCommon_(
     }
 
     // 3) デバッグ出力
-    dumpMainline_(res, parseWarn);
+    dumpMainline(res, parseWarn);
     if (dumpVariations) {
-        dumpVariations_(res);
+        dumpVariationsDebug(res);
     }
 
     // 4) 先手/後手名などヘッダ反映
@@ -395,7 +395,7 @@ void KifuLoadCoordinator::loadKifuCommon_(
     }
 
     // 5) 共通の後処理に委譲
-    applyParsedResultCommon_(filePath, initialSfen, teaiLabel, res, parseWarn, funcName);
+    applyParsedResultCommon(filePath, initialSfen, teaiLabel, res, parseWarn, funcName);
 }
 
 // ============================================================
@@ -404,7 +404,7 @@ void KifuLoadCoordinator::loadKifuCommon_(
 
 void KifuLoadCoordinator::loadKi2FromFile(const QString& filePath)
 {
-    loadKifuCommon_(
+    loadKifuCommon(
         filePath,
         "loadKi2FromFile",
         // 解析関数
@@ -424,7 +424,7 @@ void KifuLoadCoordinator::loadKi2FromFile(const QString& filePath)
 
 void KifuLoadCoordinator::loadCsaFromFile(const QString& filePath)
 {
-    loadKifuCommon_(
+    loadKifuCommon(
         filePath,
         "loadCsaFromFile",
         // 解析関数
@@ -444,7 +444,7 @@ void KifuLoadCoordinator::loadCsaFromFile(const QString& filePath)
 
 void KifuLoadCoordinator::loadJkfFromFile(const QString& filePath)
 {
-    loadKifuCommon_(
+    loadKifuCommon(
         filePath,
         "loadJkfFromFile",
         // 解析関数
@@ -467,7 +467,7 @@ void KifuLoadCoordinator::loadJkfFromFile(const QString& filePath)
 
 void KifuLoadCoordinator::loadKifuFromFile(const QString& filePath)
 {
-    loadKifuCommon_(
+    loadKifuCommon(
         filePath,
         "loadKifuFromFile",
         // 解析関数
@@ -488,7 +488,7 @@ void KifuLoadCoordinator::loadKifuFromFile(const QString& filePath)
 
 void KifuLoadCoordinator::loadUsenFromFile(const QString& filePath)
 {
-    loadKifuCommon_(
+    loadKifuCommon(
         filePath,
         "loadUsenFromFile",
         // 解析関数
@@ -509,7 +509,7 @@ void KifuLoadCoordinator::loadUsenFromFile(const QString& filePath)
 
 void KifuLoadCoordinator::loadUsiFromFile(const QString& filePath)
 {
-    loadKifuCommon_(
+    loadKifuCommon(
         filePath,
         "loadUsiFromFile",
         // 解析関数
@@ -793,7 +793,7 @@ bool KifuLoadCoordinator::loadPositionFromBod(const QString& bodStr)
     return loadPositionFromSfen(sfen);
 }
 
-void KifuLoadCoordinator::applyParsedResultCommon_(
+void KifuLoadCoordinator::applyParsedResultCommon(
     const QString& filePath,
     const QString& initialSfen,
     const QString& teaiLabel,
@@ -925,7 +925,7 @@ void KifuLoadCoordinator::applyParsedResultCommon_(
     dumpBranchCandidateDisplayPlan();
 
     // ★ 追加：読み込み直後に “+付与 & 行着色” をまとめて反映（Main 行が表示中）
-    applyBranchMarksForCurrentLine_();
+    applyBranchMarksForCurrentLine();
 
     // 12) 分岐ツリーへ供給（黄色ハイライトは applyResolvedRowAndSelect 内で同期）
     if (m_analysisTab) {
@@ -970,7 +970,7 @@ void KifuLoadCoordinator::applyParsedResultCommon_(
     // 14) （Plan方式化に伴い）WL 構築や従来の候補再計算は廃止
     // 15) ブランチ候補ワイヤリング（planActivated -> applyResolvedRowAndSelect）
     if (!m_branchCtl) {
-        emit setupBranchCandidatesWiring_(); // 内部で planActivated の connect を済ませる
+        emit setupBranchCandidatesWiring(); // 内部で planActivated の connect を済ませる
     }
 
     if (m_kifuBranchModel) {
@@ -1178,7 +1178,7 @@ void KifuLoadCoordinator::showRecordAtPly(const QList<KifDisplayItem>& disp, int
     displayGameRecord(disp);
 
     // ★ 追加：現在表示中の行に対する「分岐あり手」マーキングをモデルへ反映
-    applyBranchMarksForCurrentLine_();
+    applyBranchMarksForCurrentLine();
 
     // ★ RecordPane 内のビューを使う
     QTableView* view = (m_recordPane ? m_recordPane->kifuView() : nullptr);
@@ -1367,7 +1367,7 @@ void KifuLoadCoordinator::showBranchCandidatesFromPlan(int row, int ply1)
             btn->setVisible(hasRows);
             if (hasRows) {
                 QObject::connect(btn, &QPushButton::clicked,
-                                 this, &KifuLoadCoordinator::onBackToMainButtonClicked_,
+                                 this, &KifuLoadCoordinator::onBackToMainButtonClicked,
                                  Qt::UniqueConnection);
             }
         }
@@ -1378,7 +1378,7 @@ void KifuLoadCoordinator::showBranchCandidatesFromPlan(int row, int ply1)
     m_activeResolvedRow = row;
 }
 
-void KifuLoadCoordinator::onBackToMainButtonClicked_()
+void KifuLoadCoordinator::onBackToMainButtonClicked()
 {
     // varIndex == -1 の行が「本譜」
     int mainRow = 0;
@@ -1677,7 +1677,7 @@ void KifuLoadCoordinator::buildResolvedLinesAfterLoad()
 }
 
 // 行番号から表示名を作る（Main / VarN）
-QString KifuLoadCoordinator::rowNameFor_(int row) const
+QString KifuLoadCoordinator::rowNameFor(int row) const
 {
     if (row < 0 || row >= m_resolvedRows.size()) return QString("<?>");
     const auto& rr = m_resolvedRows[row];
@@ -1686,7 +1686,7 @@ QString KifuLoadCoordinator::rowNameFor_(int row) const
 }
 
 // 1始まり hand-ply のラベル（無ければ ""）
-QString KifuLoadCoordinator::labelAt_(const ResolvedRow& rr, int ply) const
+QString KifuLoadCoordinator::labelAt(const ResolvedRow& rr, int ply) const
 {
     // 新データ構造: disp[ply] が ply 手目
     if (ply < 0 || ply >= rr.disp.size()) return QString();
@@ -1694,15 +1694,15 @@ QString KifuLoadCoordinator::labelAt_(const ResolvedRow& rr, int ply) const
 }
 
 // 1..p までの完全一致（両方に手が存在し、かつ全ラベル一致）なら true
-bool KifuLoadCoordinator::prefixEqualsUpTo_(int rowA, int rowB, int p) const
+bool KifuLoadCoordinator::prefixEqualsUpTo(int rowA, int rowB, int p) const
 {
     if (rowA < 0 || rowA >= m_resolvedRows.size()) return false;
     if (rowB < 0 || rowB >= m_resolvedRows.size()) return false;
     const auto& A = m_resolvedRows[rowA];
     const auto& B = m_resolvedRows[rowB];
     for (int k = 1; k <= p; ++k) {
-        const QString a = labelAt_(A, k);
-        const QString b = labelAt_(B, k);
+        const QString a = labelAt(A, k);
+        const QString b = labelAt(B, k);
         if (a.isEmpty() || b.isEmpty() || a != b) return false;
     }
     return true;
@@ -1715,18 +1715,18 @@ void KifuLoadCoordinator::dumpBranchSplitReport() const
     // 行ごとに出力
     for (qsizetype r = 0; r < m_resolvedRows.size(); ++r) {
         const auto& rr = m_resolvedRows[r];
-        const QString header = rowNameFor_(static_cast<int>(r));
+        const QString header = rowNameFor(static_cast<int>(r));
         qDebug().noquote() << header;
 
         // 新データ構造: disp[0]=開始局面, disp[1..N]=指し手
         // p = 1 から disp.size() - 1 まで（p手目はdisp[p]）
         const qsizetype maxPly = rr.disp.size() - 1;
         for (int p = 1; p <= maxPly; ++p) {
-            const QString curLbl = labelAt_(rr, p);
+            const QString curLbl = labelAt(rr, p);
             // この行と「1..p まで完全一致」する仲間を抽出
             QList<int> group;
             for (qsizetype j = 0; j < m_resolvedRows.size(); ++j) {
-                if (prefixEqualsUpTo_(static_cast<int>(r), static_cast<int>(j), p)) group << static_cast<int>(j);
+                if (prefixEqualsUpTo(static_cast<int>(r), static_cast<int>(j), p)) group << static_cast<int>(j);
             }
 
             // その仲間たちの「次手 (p+1)」を集計（存在するものだけ）
@@ -1736,9 +1736,9 @@ void KifuLoadCoordinator::dumpBranchSplitReport() const
 
             // ★ detach 回避：QList を const 化して range-for
             for (int j : std::as_const(group)) {
-                const QString lblNext = labelAt_(m_resolvedRows[j], p + 1);
+                const QString lblNext = labelAt(m_resolvedRows[j], p + 1);
                 if (lblNext.isEmpty()) continue; // ここで終端は候補に出さない
-                const QString who = rowNameFor_(j);
+                const QString who = rowNameFor(j);
                 nexts.push_back({who, lblNext});
                 uniq.insert(lblNext);
             }
@@ -2313,7 +2313,7 @@ void KifuLoadCoordinator::setAnalysisTab(EngineAnalysisTab* tab)
     }
 }
 
-void KifuLoadCoordinator::ensureNavigationPresenter_()
+void KifuLoadCoordinator::ensureNavigationPresenter()
 {
     if (m_navPresenter) return;
 
@@ -2343,7 +2343,7 @@ void KifuLoadCoordinator::applyResolvedRowAndSelect(int row, int selPly)
         // 解決行が未構築のケースでは、現在の disp を使って最低限の同期だけ行う
         const int pick = (selPly < 0) ? 0 : selPly;
         showRecordAtPly(m_dispCurrent, pick);
-        ensureNavigationPresenter_();
+        ensureNavigationPresenter();
         m_navPresenter->refreshAll(/*row=*/0, pick);
         qDebug() << "[KLC] applyResolvedRowAndSelect leave (no resolved rows)";
         return;
@@ -2413,7 +2413,7 @@ void KifuLoadCoordinator::applyResolvedRowAndSelect(int row, int selPly)
     m_loadingKifu = false;
 
     // ------- 分岐候補（Plan 方式）とツリーハイライトまで一括更新 -------
-    ensureNavigationPresenter_();
+    ensureNavigationPresenter();
     m_navPresenter->refreshAll(safeRow, safePly);
 
     // デバッグ：出口
@@ -2435,7 +2435,7 @@ void KifuLoadCoordinator::showBranchCandidates(int row, int ply)
     showBranchCandidatesFromPlan(row, ply);
 
     // 表示更新後にツリーハイライトだけ通知（逆呼びになるため refreshAll は呼ばない）
-    ensureNavigationPresenter_();
+    ensureNavigationPresenter();
     m_navPresenter->updateAfterBranchListChanged(row, ply);
 
     m_updatingBranchCandidates = false;
@@ -2464,7 +2464,7 @@ void KifuLoadCoordinator::setBranchCandidatesController(BranchCandidatesControll
 }
 
 // ===== KifuLoadCoordinator.cpp: ライブ対局から分岐ツリーを更新 =====
-QList<KifDisplayItem> KifuLoadCoordinator::collectDispFromRecordModel_() const
+QList<KifDisplayItem> KifuLoadCoordinator::collectDispFromRecordModel() const
 {
     QList<KifDisplayItem> disp;
 
@@ -2518,7 +2518,7 @@ void KifuLoadCoordinator::updateBranchTreeFromLive(int currentPly)
     qDebug().noquote() << "[KLC-DEBUG] updateBranchTreeFromLive ENTER: currentPly=" << currentPly;
 
     // 1) 現在の棋譜モデルから disp を再構成
-    const QList<KifDisplayItem> dispLive = collectDispFromRecordModel_();
+    const QList<KifDisplayItem> dispLive = collectDispFromRecordModel();
 
     qDebug().noquote() << "[KLC-DEBUG] updateBranchTreeFromLive: dispLive.size=" << dispLive.size();
     for (int i = 0; i < qMin(10, static_cast<int>(dispLive.size())); ++i) {
@@ -2750,7 +2750,7 @@ void KifuLoadCoordinator::updateBranchTreeFromLive(int currentPly)
     m_analysisTab->highlightBranchTreeAt(highlightRow, highlightAbsPly, /*centerOn=*/true);
 }
 
-void KifuLoadCoordinator::applyBranchMarksForCurrentLine_()
+void KifuLoadCoordinator::applyBranchMarksForCurrentLine()
 {
     if (!m_kifuRecordModel) return;
 
@@ -2811,14 +2811,14 @@ void KifuLoadCoordinator::rebuildBranchPlanAndMarksForLive(int /*currentPly*/)
     const int oldActive = m_activeResolvedRow;
     m_activeResolvedRow = anchorRow;
     updateKifuBranchMarkersForActiveRow();   // 行背景（オレンジ）の再計算
-    applyBranchMarksForCurrentLine_();       // 行末の '+' 再付与
+    applyBranchMarksForCurrentLine();       // 行末の '+' 再付与
     m_activeResolvedRow = oldActive;
 
     // 5) 分岐候補欄は UI のみ更新（★ m_branchPlyContext を変更しない）
-    refreshBranchCandidatesUIOnly_(anchorRow, anchorPly);
+    refreshBranchCandidatesUIOnly(anchorRow, anchorPly);
 }
 
-void KifuLoadCoordinator::refreshBranchCandidatesUIOnly_(int row, int ply1)
+void KifuLoadCoordinator::refreshBranchCandidatesUIOnly(int row, int ply1)
 {
     QTableView* view = m_recordPane ? m_recordPane->branchView() : nullptr;
 

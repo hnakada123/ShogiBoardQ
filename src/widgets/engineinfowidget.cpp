@@ -60,8 +60,9 @@ EngineInfoWidget::EngineInfoWidget(QWidget* parent, bool showFontButtons)
     m_table->setSelectionMode(QAbstractItemView::NoSelection);
     m_table->setFocusPolicy(Qt::NoFocus);
     
-    // 行の高さを固定
-    m_table->verticalHeader()->setDefaultSectionSize(22);
+    // 行の高さを文字サイズに合わせて固定（棋譜欄と同様の余白）
+    QFontMetrics fm(m_table->font());
+    m_table->verticalHeader()->setDefaultSectionSize(fm.height() + 4);
     
     // スクロールバー非表示
     m_table->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -142,9 +143,9 @@ void EngineInfoWidget::setFontSize(int pointSize) {
     // ヘッダーのフォントも変更
     m_table->horizontalHeader()->setFont(font);
 
-    // 行の高さを調整
+    // 行の高さを調整（棋譜欄と同様の余白）
     QFontMetrics fm(font);
-    int rowHeight = fm.height() + 6;
+    int rowHeight = fm.height() + 4;
     m_table->verticalHeader()->setDefaultSectionSize(rowHeight);
 
     // ウィジェット全体の高さを再計算（ボタン行 + ヘッダー + 1行）

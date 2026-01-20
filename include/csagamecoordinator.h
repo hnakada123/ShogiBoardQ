@@ -280,7 +280,7 @@ private slots:
     void onRawMessageSent(const QString& message);
 
     // エンジンからのシグナルハンドラ
-    void onEngineBestMoveReceived_();
+    void onEngineBestMoveReceived();
     void onEngineResign();
 
 private:

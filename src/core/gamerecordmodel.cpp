@@ -165,7 +165,7 @@ void GameRecordModel::setComment(int ply, const QString& comment)
     m_comments[ply] = comment;
 
     // 2) 外部データストアへ同期
-    syncToExternalStores_(ply, comment);
+    syncToExternalStores(ply, comment);
 
     // 3) 変更フラグを設定
     if (oldComment != comment) {
@@ -214,7 +214,7 @@ int GameRecordModel::activeRow() const
 // 内部ヘルパ：外部データストアへの同期
 // ========================================
 
-void GameRecordModel::syncToExternalStores_(int ply, const QString& comment)
+void GameRecordModel::syncToExternalStores(int ply, const QString& comment)
 {
     // 1) ResolvedRow への同期
     if (m_resolvedRows && m_activeResolvedRow) {
@@ -258,7 +258,7 @@ QStringList GameRecordModel::toKifLines(const ExportContext& ctx) const
     QStringList out;
 
     // 1) ヘッダ
-    const QList<KifGameInfoItem> header = collectGameInfo_(ctx);
+    const QList<KifGameInfoItem> header = collectGameInfo(ctx);
     for (const auto& it : header) {
         if (!it.key.trimmed().isEmpty()) {
             out << fwColonLine(it.key.trimmed(), it.value.trimmed());
@@ -272,10 +272,10 @@ QStringList GameRecordModel::toKifLines(const ExportContext& ctx) const
     out << QStringLiteral("手数----指手---------消費時間--");
 
     // 3) 本譜の指し手を収集
-    const QList<KifDisplayItem> disp = collectMainlineForExport_();
+    const QList<KifDisplayItem> disp = collectMainlineForExport();
 
     // 4) 分岐ポイントを収集（本譜のどの手に分岐があるか）
-    const QSet<int> branchPoints = collectBranchPoints_();
+    const QSet<int> branchPoints = collectBranchPoints();
 
     // 5) 開始局面の処理（prettyMoveが空のエントリ）
     int startIdx = 0;
@@ -367,7 +367,7 @@ QStringList GameRecordModel::toKifLines(const ExportContext& ctx) const
         if (mainRowIndex >= 0) {
             QSet<int> visitedRows;
             visitedRows.insert(mainRowIndex); // 本譜は既に出力済み
-            outputVariationsRecursively_(mainRowIndex, out, visitedRows);
+            outputVariationsRecursively(mainRowIndex, out, visitedRows);
         }
     }
 
@@ -379,7 +379,7 @@ QStringList GameRecordModel::toKifLines(const ExportContext& ctx) const
     return out;
 }
 
-QList<KifDisplayItem> GameRecordModel::collectMainlineForExport_() const
+QList<KifDisplayItem> GameRecordModel::collectMainlineForExport() const
 {
     QList<KifDisplayItem> result;
 
@@ -425,7 +425,7 @@ QList<KifDisplayItem> GameRecordModel::collectMainlineForExport_() const
     return result;
 }
 
-QList<KifGameInfoItem> GameRecordModel::collectGameInfo_(const ExportContext& ctx)
+QList<KifGameInfoItem> GameRecordModel::collectGameInfo(const ExportContext& ctx)
 {
     QList<KifGameInfoItem> items;
 
@@ -447,7 +447,7 @@ QList<KifGameInfoItem> GameRecordModel::collectGameInfo_(const ExportContext& ct
 
     // b) 自動生成
     QString black, white;
-    resolvePlayerNames_(ctx, black, white);
+    resolvePlayerNames(ctx, black, white);
 
     items.push_back({
         QStringLiteral("開始日時"),
@@ -470,7 +470,7 @@ QList<KifGameInfoItem> GameRecordModel::collectGameInfo_(const ExportContext& ct
     return items;
 }
 
-void GameRecordModel::resolvePlayerNames_(const ExportContext& ctx, QString& outBlack, QString& outWhite)
+void GameRecordModel::resolvePlayerNames(const ExportContext& ctx, QString& outBlack, QString& outWhite)
 {
     switch (ctx.playMode) {
     case PlayMode::HumanVsHuman:
@@ -508,7 +508,7 @@ void GameRecordModel::resolvePlayerNames_(const ExportContext& ctx, QString& out
 // 分岐出力用ヘルパ
 // ========================================
 
-QSet<int> GameRecordModel::collectBranchPoints_() const
+QSet<int> GameRecordModel::collectBranchPoints() const
 {
     QSet<int> result;
     
@@ -549,7 +549,7 @@ QSet<int> GameRecordModel::collectBranchPoints_() const
     return result;
 }
 
-void GameRecordModel::outputVariation_(int rowIndex, QStringList& out) const
+void GameRecordModel::outputVariation(int rowIndex, QStringList& out) const
 {
     if (!m_resolvedRows || rowIndex < 0 || rowIndex >= m_resolvedRows->size()) {
         return;
@@ -641,7 +641,7 @@ void GameRecordModel::outputVariation_(int rowIndex, QStringList& out) const
     }
 }
 
-void GameRecordModel::outputVariationsRecursively_(int parentRowIndex, QStringList& out, QSet<int>& visitedRows) const
+void GameRecordModel::outputVariationsRecursively(int parentRowIndex, QStringList& out, QSet<int>& visitedRows) const
 {
     Q_UNUSED(parentRowIndex);
     
@@ -679,7 +679,7 @@ void GameRecordModel::outputVariationsRecursively_(int parentRowIndex, QStringLi
         visitedRows.insert(rowIndex);
         
         // この変化を出力
-        outputVariation_(rowIndex, out);
+        outputVariation(rowIndex, out);
     }
 }
 
@@ -692,7 +692,7 @@ QStringList GameRecordModel::toKi2Lines(const ExportContext& ctx) const
     QStringList out;
 
     // 1) ヘッダ
-    const QList<KifGameInfoItem> header = collectGameInfo_(ctx);
+    const QList<KifGameInfoItem> header = collectGameInfo(ctx);
     for (const auto& it : header) {
         if (!it.key.trimmed().isEmpty()) {
             // 消費時間は KI2 では省略
@@ -702,7 +702,7 @@ QStringList GameRecordModel::toKi2Lines(const ExportContext& ctx) const
     }
 
     // 2) 本譜の指し手を収集
-    const QList<KifDisplayItem> disp = collectMainlineForExport_();
+    const QList<KifDisplayItem> disp = collectMainlineForExport();
 
     // 3) 開始局面のコメントを先に出力
     int startIdx = 0;
@@ -812,7 +812,7 @@ QStringList GameRecordModel::toKi2Lines(const ExportContext& ctx) const
         if (mainRowIndex >= 0) {
             QSet<int> visitedRows;
             visitedRows.insert(mainRowIndex); // 本譜は既に出力済み
-            outputKi2VariationsRecursively_(mainRowIndex, out, visitedRows);
+            outputKi2VariationsRecursively(mainRowIndex, out, visitedRows);
         }
     }
 
@@ -823,7 +823,7 @@ QStringList GameRecordModel::toKi2Lines(const ExportContext& ctx) const
     return out;
 }
 
-void GameRecordModel::outputKi2Variation_(int rowIndex, QStringList& out) const
+void GameRecordModel::outputKi2Variation(int rowIndex, QStringList& out) const
 {
     if (!m_resolvedRows || rowIndex < 0 || rowIndex >= m_resolvedRows->size()) {
         return;
@@ -890,7 +890,7 @@ void GameRecordModel::outputKi2Variation_(int rowIndex, QStringList& out) const
     }
 }
 
-void GameRecordModel::outputKi2VariationsRecursively_(int parentRowIndex, QStringList& out, QSet<int>& visitedRows) const
+void GameRecordModel::outputKi2VariationsRecursively(int parentRowIndex, QStringList& out, QSet<int>& visitedRows) const
 {
     Q_UNUSED(parentRowIndex);
     
@@ -922,7 +922,7 @@ void GameRecordModel::outputKi2VariationsRecursively_(int parentRowIndex, QStrin
         }
         visitedRows.insert(rowIndex);
         
-        outputKi2Variation_(rowIndex, out);
+        outputKi2Variation(rowIndex, out);
     }
 }
 
@@ -1126,7 +1126,7 @@ public:
 };
 
 // ヘルパー関数: 日時文字列をCSA V3.0形式 (YYYY/MM/DD HH:MM:SS) に変換
-static QString convertToCsaDateTime_(const QString& dateTimeStr)
+static QString convertToCsaDateTime(const QString& dateTimeStr)
 {
     // 既にCSA形式の場合はそのまま返す
     if (dateTimeStr.contains(QLatin1Char('/')) && 
@@ -1187,7 +1187,7 @@ static QString convertToCsaDateTime_(const QString& dateTimeStr)
 }
 
 // ヘルパー関数: 持ち時間文字列をCSA V3.0形式 ($TIME:秒+秒読み+フィッシャー) に変換
-static QString convertToCsaTime_(const QString& timeStr)
+static QString convertToCsaTime(const QString& timeStr)
 {
     // V2.2形式: "HH:MM+SS" → V3.0形式: "$TIME:秒+秒読み+0"
     static const QRegularExpression reV22(
@@ -1255,7 +1255,7 @@ QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringL
     out << QStringLiteral("V3.0");
     
     // 3) 棋譜情報を先に収集（対局者名もここから取得）
-    const QList<KifGameInfoItem> header = collectGameInfo_(ctx);
+    const QList<KifGameInfoItem> header = collectGameInfo(ctx);
     
     // 4) 対局者名
     // まず棋譜情報から対局者名を探す（CSAファイル読み込み時はここに保存される）
@@ -1272,7 +1272,7 @@ QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringL
     // 棋譜情報になければresolvePlayerNames_から取得
     if (blackPlayer.isEmpty() || whitePlayer.isEmpty()) {
         QString resolvedBlack, resolvedWhite;
-        resolvePlayerNames_(ctx, resolvedBlack, resolvedWhite);
+        resolvePlayerNames(ctx, resolvedBlack, resolvedWhite);
         if (blackPlayer.isEmpty()) blackPlayer = resolvedBlack;
         if (whitePlayer.isEmpty()) whitePlayer = resolvedWhite;
     }
@@ -1308,17 +1308,17 @@ QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringL
             out << QStringLiteral("$SITE:%1").arg(val);
         } else if (key == QStringLiteral("開始日時")) {
             // 日時形式を CSA V3.0 形式に変換
-            QString csaDateTime = convertToCsaDateTime_(val);
+            QString csaDateTime = convertToCsaDateTime(val);
             out << QStringLiteral("$START_TIME:%1").arg(csaDateTime);
             hasStartTime = true;
         } else if (key == QStringLiteral("終了日時")) {
-            QString csaDateTime = convertToCsaDateTime_(val);
+            QString csaDateTime = convertToCsaDateTime(val);
             out << QStringLiteral("$END_TIME:%1").arg(csaDateTime);
             hasEndTime = true;
         } else if (key == QStringLiteral("持ち時間")) {
             // V3.0形式: $TIME:秒+秒読み+フィッシャー
             // 入力値の形式を判定して適切な形式で出力
-            QString timeVal = convertToCsaTime_(val);
+            QString timeVal = convertToCsaTime(val);
             out << timeVal;
             hasTime = true;
         } else if (key == QStringLiteral("戦型")) {
@@ -1383,7 +1383,7 @@ QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringL
     }
     
     // 7) 本譜の指し手を収集
-    const QList<KifDisplayItem> disp = collectMainlineForExport_();
+    const QList<KifDisplayItem> disp = collectMainlineForExport();
     
     // ★★★ デバッグ: disp の確認 ★★★
     qDebug().noquote() << "[toCsaLines] disp.size() =" << disp.size();
@@ -1845,11 +1845,11 @@ static QJsonObject sfenToJkfData(const QString& sfen)
     return data;
 }
 
-QJsonObject GameRecordModel::buildJkfHeader_(const ExportContext& ctx) const
+QJsonObject GameRecordModel::buildJkfHeader(const ExportContext& ctx) const
 {
     QJsonObject header;
     
-    const QList<KifGameInfoItem> items = collectGameInfo_(ctx);
+    const QList<KifGameInfoItem> items = collectGameInfo(ctx);
     for (const auto& item : items) {
         const QString key = item.key.trimmed();
         const QString val = item.value.trimmed();
@@ -1861,7 +1861,7 @@ QJsonObject GameRecordModel::buildJkfHeader_(const ExportContext& ctx) const
     return header;
 }
 
-QJsonObject GameRecordModel::buildJkfInitial_(const ExportContext& ctx) const
+QJsonObject GameRecordModel::buildJkfInitial(const ExportContext& ctx) const
 {
     QJsonObject initial;
     
@@ -1882,7 +1882,7 @@ QJsonObject GameRecordModel::buildJkfInitial_(const ExportContext& ctx) const
     return initial;
 }
 
-QJsonObject GameRecordModel::convertMoveToJkf_(const KifDisplayItem& disp, int& prevToX, int& prevToY, int /*ply*/) const
+QJsonObject GameRecordModel::convertMoveToJkf(const KifDisplayItem& disp, int& prevToX, int& prevToY, int /*ply*/) const
 {
     QJsonObject result;
     
@@ -2065,7 +2065,7 @@ QJsonObject GameRecordModel::convertMoveToJkf_(const KifDisplayItem& disp, int& 
     return result;
 }
 
-QJsonArray GameRecordModel::buildJkfMoves_(const QList<KifDisplayItem>& disp) const
+QJsonArray GameRecordModel::buildJkfMoves(const QList<KifDisplayItem>& disp) const
 {
     QJsonArray moves;
     
@@ -2094,7 +2094,7 @@ QJsonArray GameRecordModel::buildJkfMoves_(const QList<KifDisplayItem>& disp) co
             }
             moves.append(openingMove);
         } else {
-            const QJsonObject moveObj = convertMoveToJkf_(item, prevToX, prevToY, static_cast<int>(i));
+            const QJsonObject moveObj = convertMoveToJkf(item, prevToX, prevToY, static_cast<int>(i));
             if (!moveObj.isEmpty()) {
                 moves.append(moveObj);
             }
@@ -2104,7 +2104,7 @@ QJsonArray GameRecordModel::buildJkfMoves_(const QList<KifDisplayItem>& disp) co
     return moves;
 }
 
-void GameRecordModel::addJkfForks_(QJsonArray& movesArray, int mainRowIndex) const
+void GameRecordModel::addJkfForks(QJsonArray& movesArray, int mainRowIndex) const
 {
     if (!m_resolvedRows || m_resolvedRows->size() <= 1) {
         return;
@@ -2141,7 +2141,7 @@ void GameRecordModel::addJkfForks_(QJsonArray& movesArray, int mainRowIndex) con
                 QSet<int> visitedRows;
                 visitedRows.insert(mainRowIndex); // 本譜は既に処理済み
                 
-                const QJsonArray forkMoves = buildJkfForkMovesRecursive_(rowIndex, visitedRows);
+                const QJsonArray forkMoves = buildJkfForkMovesRecursive(rowIndex, visitedRows);
                 if (!forkMoves.isEmpty()) {
                     forks.append(forkMoves);
                 }
@@ -2155,7 +2155,7 @@ void GameRecordModel::addJkfForks_(QJsonArray& movesArray, int mainRowIndex) con
     }
 }
 
-QJsonArray GameRecordModel::buildJkfForkMovesRecursive_(int rowIndex, QSet<int>& visitedRows) const
+QJsonArray GameRecordModel::buildJkfForkMovesRecursive(int rowIndex, QSet<int>& visitedRows) const
 {
     QJsonArray forkMoves;
     
@@ -2188,7 +2188,7 @@ QJsonArray GameRecordModel::buildJkfForkMovesRecursive_(int rowIndex, QSet<int>&
         const auto& item = dispItems[j];
         if (item.prettyMove.trimmed().isEmpty()) continue;
         
-        QJsonObject forkMoveObj = convertMoveToJkf_(item, forkPrevToX, forkPrevToY, static_cast<int>(j));
+        QJsonObject forkMoveObj = convertMoveToJkf(item, forkPrevToX, forkPrevToY, static_cast<int>(j));
         if (forkMoveObj.isEmpty()) continue;
         
         // この手数に子分岐があれば追加
@@ -2197,7 +2197,7 @@ QJsonArray GameRecordModel::buildJkfForkMovesRecursive_(int rowIndex, QSet<int>&
             const QVector<int>& childRowIndices = childForksByPly[static_cast<int>(j)];
             
             for (int childRowIndex : childRowIndices) {
-                const QJsonArray childForkMoves = buildJkfForkMovesRecursive_(childRowIndex, visitedRows);
+                const QJsonArray childForkMoves = buildJkfForkMovesRecursive(childRowIndex, visitedRows);
                 if (!childForkMoves.isEmpty()) {
                     childForks.append(childForkMoves);
                 }
@@ -2222,14 +2222,14 @@ QStringList GameRecordModel::toJkfLines(const ExportContext& ctx) const
     QJsonObject root;
     
     // 1) header
-    root[QStringLiteral("header")] = buildJkfHeader_(ctx);
+    root[QStringLiteral("header")] = buildJkfHeader(ctx);
     
     // 2) initial
-    root[QStringLiteral("initial")] = buildJkfInitial_(ctx);
+    root[QStringLiteral("initial")] = buildJkfInitial(ctx);
     
     // 3) moves（本譜）
-    const QList<KifDisplayItem> disp = collectMainlineForExport_();
-    QJsonArray movesArray = buildJkfMoves_(disp);
+    const QList<KifDisplayItem> disp = collectMainlineForExport();
+    QJsonArray movesArray = buildJkfMoves(disp);
     
     // 4) 分岐を追加
     if (m_resolvedRows && m_resolvedRows->size() > 1) {
@@ -2243,7 +2243,7 @@ QStringList GameRecordModel::toJkfLines(const ExportContext& ctx) const
         }
         
         if (mainRowIndex >= 0) {
-            addJkfForks_(movesArray, mainRowIndex);
+            addJkfForks(movesArray, mainRowIndex);
         }
     }
     
@@ -2288,7 +2288,7 @@ static int usiPieceToUsenDropCode(QChar usiPiece)
 // base36文字セット
 static const QString kUsenBase36Chars = QStringLiteral("0123456789abcdefghijklmnopqrstuvwxyz");
 
-QString GameRecordModel::intToBase36_(int moveCode)
+QString GameRecordModel::intToBase36(int moveCode)
 {
     // 3文字のbase36に変換（範囲: 0-46655）
     if (moveCode < 0 || moveCode > 46655) {
@@ -2312,7 +2312,7 @@ QString GameRecordModel::intToBase36_(int moveCode)
     return result;
 }
 
-QString GameRecordModel::encodeUsiMoveToUsen_(const QString& usiMove)
+QString GameRecordModel::encodeUsiMoveToUsen(const QString& usiMove)
 {
     if (usiMove.isEmpty() || usiMove.size() < 4) {
         return QString();
@@ -2352,10 +2352,10 @@ QString GameRecordModel::encodeUsiMoveToUsen_(const QString& usiMove)
     // エンコード: code = (from_sq * 81 + to_sq) * 2 + (成る場合は1)
     int moveCode = (from_sq * 81 + to_sq) * 2 + (isPromotion ? 1 : 0);
     
-    return intToBase36_(moveCode);
+    return intToBase36(moveCode);
 }
 
-QString GameRecordModel::sfenToUsenPosition_(const QString& sfen)
+QString GameRecordModel::sfenToUsenPosition(const QString& sfen)
 {
     // 平手初期局面のチェック
     static const QString kHirateSfenPrefix = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL");
@@ -2380,7 +2380,7 @@ QString GameRecordModel::sfenToUsenPosition_(const QString& sfen)
     return usen;
 }
 
-QString GameRecordModel::getUsenTerminalCode_(const QString& terminalMove)
+QString GameRecordModel::getUsenTerminalCode(const QString& terminalMove)
 {
     const QString move = removeTurnMarker(terminalMove);
     
@@ -2395,7 +2395,7 @@ QString GameRecordModel::getUsenTerminalCode_(const QString& terminalMove)
     return QString();
 }
 
-QString GameRecordModel::inferUsiFromSfenDiff_(const QString& sfenBefore, const QString& sfenAfter, bool isSente)
+QString GameRecordModel::inferUsiFromSfenDiff(const QString& sfenBefore, const QString& sfenAfter, bool isSente)
 {
     // 2つのSFEN間の差分からUSI形式の指し手を推測
     // SFEN形式: "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"
@@ -2542,7 +2542,7 @@ QString GameRecordModel::inferUsiFromSfenDiff_(const QString& sfenBefore, const 
     return QString();
 }
 
-QString GameRecordModel::buildUsenVariation_(int rowIndex, QSet<int>& visitedRows) const
+QString GameRecordModel::buildUsenVariation(int rowIndex, QSet<int>& visitedRows) const
 {
     if (!m_resolvedRows || rowIndex < 0 || rowIndex >= m_resolvedRows->size()) {
         return QString();
@@ -2590,7 +2590,7 @@ QString GameRecordModel::buildUsenVariation_(int rowIndex, QSet<int>& visitedRow
         
         // 終局語のチェック
         if (isTerminalMove(prettyMove)) {
-            terminalCode = getUsenTerminalCode_(prettyMove);
+            terminalCode = getUsenTerminalCode(prettyMove);
             break;
         }
         
@@ -2619,14 +2619,14 @@ QStringList GameRecordModel::toUsenLines(const ExportContext& ctx, const QString
     QStringList out;
     
     // 1) 初期局面をUSEN形式に変換
-    QString position = sfenToUsenPosition_(ctx.startSfen);
+    QString position = sfenToUsenPosition(ctx.startSfen);
     
     // 2) 本譜の指し手をエンコード
     QString mainMoves;
     QString terminalCode;
     
     // 本譜の指し手リストを取得
-    const QList<KifDisplayItem> disp = collectMainlineForExport_();
+    const QList<KifDisplayItem> disp = collectMainlineForExport();
     
     // USI moves が渡された場合はそれを使用
     // そうでない場合は ResolvedRow から取得を試みる
@@ -2645,7 +2645,7 @@ QStringList GameRecordModel::toUsenLines(const ExportContext& ctx, const QString
     
     // 各USI指し手をUSEN形式にエンコード
     for (const QString& usi : std::as_const(mainlineUsi)) {
-        QString encoded = encodeUsiMoveToUsen_(usi);
+        QString encoded = encodeUsiMoveToUsen(usi);
         if (!encoded.isEmpty()) {
             mainMoves += encoded;
         }
@@ -2655,7 +2655,7 @@ QStringList GameRecordModel::toUsenLines(const ExportContext& ctx, const QString
     if (!disp.isEmpty()) {
         const QString& lastMove = disp.last().prettyMove;
         if (isTerminalMove(lastMove)) {
-            terminalCode = getUsenTerminalCode_(lastMove);
+            terminalCode = getUsenTerminalCode(lastMove);
         }
     }
     
@@ -2719,16 +2719,16 @@ QStringList GameRecordModel::toUsenLines(const ExportContext& ctx, const QString
                 
                 // 終局語チェック
                 if (isTerminalMove(item.prettyMove)) {
-                    branchTerminal = getUsenTerminalCode_(item.prettyMove);
+                    branchTerminal = getUsenTerminalCode(item.prettyMove);
                     break;
                 }
                 
                 // SFENリストを使ってUSI指し手を推測
                 // i-1番目のSFENからi番目のSFENへの差分を計算
                 if (i < sfenList.size() && (i - 1) >= 0 && (i - 1) < sfenList.size()) {
-                    QString usi = inferUsiFromSfenDiff_(sfenList[i - 1], sfenList[i], (i % 2 != 0));
+                    QString usi = inferUsiFromSfenDiff(sfenList[i - 1], sfenList[i], (i % 2 != 0));
                     if (!usi.isEmpty()) {
-                        QString encoded = encodeUsiMoveToUsen_(usi);
+                        QString encoded = encodeUsiMoveToUsen(usi);
                         if (!encoded.isEmpty()) {
                             branchMoves += encoded;
                         }
@@ -2760,7 +2760,7 @@ QStringList GameRecordModel::toUsenLines(const ExportContext& ctx, const QString
 // USI形式（position コマンド）出力
 // ========================================
 
-QString GameRecordModel::getUsiTerminalCode_(const QString& terminalMove)
+QString GameRecordModel::getUsiTerminalCode(const QString& terminalMove)
 {
     const QString stripped = removeTurnMarker(terminalMove);
     
@@ -2842,11 +2842,11 @@ QStringList GameRecordModel::toUsiLines(const ExportContext& ctx, const QStringL
     
     // 3) 終局コードを取得
     QString terminalCode;
-    const QList<KifDisplayItem> disp = collectMainlineForExport_();
+    const QList<KifDisplayItem> disp = collectMainlineForExport();
     if (!disp.isEmpty()) {
         const QString& lastMove = disp.last().prettyMove;
         if (isTerminalMove(lastMove)) {
-            terminalCode = getUsiTerminalCode_(lastMove);
+            terminalCode = getUsiTerminalCode(lastMove);
         }
     }
     

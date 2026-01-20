@@ -1875,7 +1875,7 @@ void ShogiView::setPositionEditMode(bool positionEditMode)
     // ── ここが肝 ──────────────────────────────────────────────
     // 名前・時計・手番の三者を同一ロジックで一括再配置する
     // （updateBlack/White... だけだと手番ラベルとズレる）
-    relayoutTurnLabels_();
+    relayoutTurnLabels();
     // ────────────────────────────────────────────────────────
 
     // 手番ラベルの可視状態を復元して前面へ
@@ -1936,7 +1936,7 @@ void ShogiView::setFlipMode(bool newFlipMode)
 
     // ★ 手番ラベルも「反転後の名前/時計の最終ジオメトリ」に追従させる
     //    （フォント/スタイルのコピーと角丸無効化も relayout 内で同期されます）
-    relayoutTurnLabels_();
+    relayoutTurnLabels();
 
     // 反転前の可視状態を復元（「次の手番」が見えなくなる問題を防ぐ）
     if (tlBlack) { tlBlack->setVisible(blackShown); tlBlack->raise(); }
@@ -2160,7 +2160,7 @@ void ShogiView::resizeEvent(QResizeEvent* e)
     updateWhiteClockLabelGeometry();
 
     // ★ 手番ラベルの再配置（名前/時計の確定ジオメトリに追従）
-    relayoutTurnLabels_();
+    relayoutTurnLabels();
 }
 
 // fitBoardToWidget は Splitter連動時に使用していたが、
@@ -2670,7 +2670,7 @@ void ShogiView::recalcLayoutParams()
     m_standGapPx = qRound(effCols * m_squareSize);
 
     // ★ 手番ラベルも最新レイアウトに追従
-    relayoutTurnLabels_();
+    relayoutTurnLabels();
 }
 
 // 指定段（rank）に対応する「段ラベル（漢数字）」を、盤の外縁と駒台の内縁のあいだに描画する。
@@ -2892,7 +2892,7 @@ void ShogiView::updateBoardSize()
     updateGeometry();                                // 冗長だが安全側の再通知
 
     // ★ 盤マスサイズ変更に伴い、手番ラベルの位置/フォントも追従
-    relayoutTurnLabels_();
+    relayoutTurnLabels();
 }
 
 QString ShogiView::toRgb(const QColor& c)
@@ -3102,7 +3102,7 @@ void ShogiView::setActiveIsBlack(bool activeIsBlack)
 // ・参照元（黒=名前／白=時計）からフォント/色/背景をコピー
 // ・角丸を無効化（border-radius:0）して四角い枠に統一
 // ・内部マージンやラップを無効化して文字欠けを抑制
-void ShogiView::ensureTurnLabels_()
+void ShogiView::ensureTurnLabels()
 {
     // 先手用
     QLabel* tlBlack = this->findChild<QLabel*>(QStringLiteral("turnLabelBlack"));
@@ -3147,9 +3147,9 @@ void ShogiView::ensureTurnLabels_()
     }
 }
 
-void ShogiView::relayoutTurnLabels_()
+void ShogiView::relayoutTurnLabels()
 {
-    ensureTurnLabels_();
+    ensureTurnLabels();
 
     QLabel* tlBlack = this->findChild<QLabel*>(QStringLiteral("turnLabelBlack"));
     QLabel* tlWhite = this->findChild<QLabel*>(QStringLiteral("turnLabelWhite"));
@@ -3306,7 +3306,7 @@ void ShogiView::updateTurnIndicator(ShogiGameController::Player now)
 {
     if (!m_blackNameLabel || !m_whiteClockLabel) return;
 
-    ensureTurnLabels_();
+    ensureTurnLabels();
 
     QLabel* tlBlack = this->findChild<QLabel*>(QStringLiteral("turnLabelBlack"));
     QLabel* tlWhite = this->findChild<QLabel*>(QStringLiteral("turnLabelWhite"));
@@ -3317,7 +3317,7 @@ void ShogiView::updateTurnIndicator(ShogiGameController::Player now)
     tlWhite->hide();
 
     // 配置更新（黒は駒台直上アンカー／白は従来）。内部で角丸無効化・スタイル同期も実施。
-    relayoutTurnLabels_();
+    relayoutTurnLabels();
 
     // ★ 起動直後など now==NoPlayer の場合でも先手を既定表示にする
     const auto side = (now == ShogiGameController::Player1 || now == ShogiGameController::Player2)
@@ -3332,9 +3332,9 @@ void ShogiView::updateTurnIndicator(ShogiGameController::Player now)
     }
 }
 
-void ShogiView::ensureAndPlaceEditExitButton_()
+void ShogiView::ensureAndPlaceEditExitButton()
 {
-    ensureTurnLabels_();
+    ensureTurnLabels();
 
     QLabel* bn = m_blackNameLabel;
     QLabel* wn = m_whiteNameLabel;
@@ -3416,7 +3416,7 @@ void ShogiView::ensureAndPlaceEditExitButton_()
     const int maxW = this->width() - x - 4;
     if (w > maxW) w = maxW;
 
-    fitEditExitButtonFont_(exitBtn, w);
+    fitEditExitButtonFont(exitBtn, w);
 
     const int hBtn = qMax(exitBtn->sizeHint().height(), 28);
     int  y = 0;
@@ -3444,11 +3444,11 @@ void ShogiView::ensureAndPlaceEditExitButton_()
 // ラベル類の再配置後に呼んでください（resizeEvent/盤サイズ変更/回転後など）。
 void ShogiView::relayoutEditExitButton()
 {
-    ensureAndPlaceEditExitButton_();
+    ensureAndPlaceEditExitButton();
 }
 
 // 「局面編集終了」ボタンの見た目（目立つ色・文字色）を設定
-void ShogiView::styleEditExitButton_(QPushButton* btn)
+void ShogiView::styleEditExitButton(QPushButton* btn)
 {
     if (!btn) return;
 
@@ -3478,7 +3478,7 @@ void ShogiView::styleEditExitButton_(QPushButton* btn)
 }
 
 // ボタンの文字列が maxWidth に必ず収まるよう、フォントサイズを自動調整（縮小のみ）
-void ShogiView::fitEditExitButtonFont_(QPushButton* btn, int maxWidth)
+void ShogiView::fitEditExitButtonFont(QPushButton* btn, int maxWidth)
 {
     if (!btn || maxWidth <= 20) return;
 

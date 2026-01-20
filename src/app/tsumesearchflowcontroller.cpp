@@ -19,7 +19,7 @@ void TsumeSearchFlowController::runWithDialog(const Deps& d, QWidget* parent)
         if (d.onError) d.onError(QStringLiteral("内部エラー: MatchCoordinator が未初期化です。"));
         return;
     }
-    const QString pos = buildPositionForMate_(d);
+    const QString pos = buildPositionForMate(d);
     if (pos.isEmpty()) {
         if (d.onError) d.onError(QStringLiteral("詰み探索用の局面（SFEN）が取得できません。棋譜を読み込むか局面を指定してください。"));
         return;
@@ -43,16 +43,16 @@ void TsumeSearchFlowController::runWithDialog(const Deps& d, QWidget* parent)
         byoyomiMs = dlg.getByoyomiSec() * 1000;  // 秒 → ms
     }
 
-    startAnalysis_(d.match, engine.path, engine.name, pos, byoyomiMs);
+    startAnalysis(d.match, engine.path, engine.name, pos, byoyomiMs);
 }
 
-QString TsumeSearchFlowController::buildPositionForMate_(const Deps& d) const
+QString TsumeSearchFlowController::buildPositionForMate(const Deps& d) const
 {
     return TsumePositionUtil::buildPositionForMate(
         d.sfenRecord, d.startSfenStr, d.positionStrList, qMax(0, d.currentMoveIndex));
 }
 
-void TsumeSearchFlowController::startAnalysis_(MatchCoordinator* match,
+void TsumeSearchFlowController::startAnalysis(MatchCoordinator* match,
                                                const QString& enginePath,
                                                const QString& engineName,
                                                const QString& positionStr,

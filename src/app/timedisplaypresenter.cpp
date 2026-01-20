@@ -45,15 +45,15 @@ void TimeDisplayPresenter::onMatchTimeUpdated(qint64 p1ms, qint64 p2ms, bool p1t
         m_view->setBlackTimeMs(p1ms);
         m_view->setWhiteTimeMs(p2ms);
     }
-    applyTurnHighlights_(p1turn);
+    applyTurnHighlights(p1turn);
 }
 
-void TimeDisplayPresenter::applyTurnHighlights_(bool p1turn)
+void TimeDisplayPresenter::applyTurnHighlights(bool p1turn)
 {
-    updateUrgencyStyles_(p1turn);
+    updateUrgencyStyles(p1turn);
 }
 
-bool TimeDisplayPresenter::isInByoyomi_(bool p1turn) const
+bool TimeDisplayPresenter::isInByoyomi(bool p1turn) const
 {
     // クロックが設定されていない場合
     if (!m_clock) {
@@ -81,7 +81,7 @@ bool TimeDisplayPresenter::isInByoyomi_(bool p1turn) const
     }
 }
 
-void TimeDisplayPresenter::updateUrgencyStyles_(bool p1turn)
+void TimeDisplayPresenter::updateUrgencyStyles(bool p1turn)
 {
     if (!m_view) return;
 
@@ -89,7 +89,7 @@ void TimeDisplayPresenter::updateUrgencyStyles_(bool p1turn)
     m_view->setActiveIsBlack(p1turn);
 
     // 秒読みに入っているかどうかで緊急度を決定
-    const bool inByoyomi = isInByoyomi_(p1turn);
+    const bool inByoyomi = isInByoyomi(p1turn);
     ShogiView::Urgency u = inByoyomi ? ShogiView::Urgency::Warn5 : ShogiView::Urgency::Normal;
 
     // 見た目の適用は ShogiView に一元化

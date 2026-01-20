@@ -41,29 +41,29 @@ public:
 
 private:
     // ---- 低レベルユーティリティ ----
-    static bool readAllLinesDetectEncoding_(const QString& path, QStringList& outLines, QString* warn);
-    static bool isMoveLine_(const QString& s);
-    static bool isResultLine_(const QString& s);
-    static bool isMetaLine_(const QString& s);
-    static bool isCommentLine_(const QString& s);
+    static bool readAllLinesDetectEncoding(const QString& path, QStringList& outLines, QString* warn);
+    static bool isMoveLine(const QString& s);
+    static bool isResultLine(const QString& s);
+    static bool isMetaLine(const QString& s);
+    static bool isCommentLine(const QString& s);
 
-    static bool parseStartPos_(const QStringList& lines, int& idx, QString& baseSfen, Color& stm, Board& board);
+    static bool parseStartPos(const QStringList& lines, int& idx, QString& baseSfen, Color& stm, Board& board);
 
     // 【修正】直前の着手位置 (prevTx, prevTy) を参照渡しで受け取るように変更
-    static bool parseMoveLine_(const QString& line, Color mover, Board& b,
+    static bool parseMoveLine(const QString& line, Color mover, Board& b,
                                int& prevTx, int& prevTy,
                                QString& usiMoveOut, QString& prettyOut, QString* warn);
 
     // ---- 変換ユーティリティ ----
-    static bool parseCsaMoveToken_(const QString& token, int& fx, int& fy, int& tx, int& ty, Piece& afterPiece);
-    static QChar usiRankLetter_(int y);      // 1->'a' ... 9->'i'
-    static QString toUsiSquare_(int x, int y);
-    static bool   isPromotedPiece_(Piece p);
-    static Piece  basePieceOf_(Piece p);
-    static QString pieceKanji_(Piece p);     // 歩,香,桂,銀,金,角,飛,玉, と/馬/龍/成香/成桂/成銀
-    static QString zenkakuDigit_(int d);     // 1..9 -> １..９
-    static QString kanjiRank_(int y);        // 1..9 -> 一..九
-    static bool   inside_(int v);
+    static bool parseCsaMoveToken(const QString& token, int& fx, int& fy, int& tx, int& ty, Piece& afterPiece);
+    static QChar usiRankLetter(int y);      // 1->'a' ... 9->'i'
+    static QString toUsiSquare(int x, int y);
+    static bool   isPromotedPiece(Piece p);
+    static Piece  basePieceOf(Piece p);
+    static QString pieceKanji(Piece p);     // 歩,香,桂,銀,金,角,飛,玉, と/馬/龍/成香/成桂/成銀
+    static QString zenkakuDigit(int d);     // 1..9 -> １..９
+    static QString kanjiRank(int y);        // 1..9 -> 一..九
+    static bool   inside(int v);
 };
 
 #endif // CSATOSFENCONVERTER_H

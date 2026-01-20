@@ -32,7 +32,7 @@ GameStartCoordinator::GameStartCoordinator(const Deps& d, QObject* parent)
     qRegisterMetaType<GameStartCoordinator::Request>("GameStartCoordinator::Request");
 }
 
-bool GameStartCoordinator::validate_(const StartParams& p, QString& whyNot) const
+bool GameStartCoordinator::validate(const StartParams& p, QString& whyNot) const
 {
     if (!m_match) {
         whyNot = QStringLiteral("MatchCoordinator が未設定です。");
@@ -52,7 +52,7 @@ bool GameStartCoordinator::validate_(const StartParams& p, QString& whyNot) cons
 void GameStartCoordinator::start(const StartParams& params)
 {
     QString reason;
-    if (!validate_(params, reason)) {
+    if (!validate(params, reason)) {
         emit startFailed(reason);
         qWarning().noquote() << "[GameStartCoordinator] startFailed:" << reason;
         return;
@@ -601,7 +601,7 @@ PlayMode GameStartCoordinator::setPlayMode(const Ctx& c) const
     return mode;
 }
 
-QChar GameStartCoordinator::turnFromSfen_(const QString& sfen)
+QChar GameStartCoordinator::turnFromSfen(const QString& sfen)
 {
     const QString s = sfen.trimmed();
     if (s.isEmpty()) return QChar();
@@ -624,7 +624,7 @@ QChar GameStartCoordinator::turnFromSfen_(const QString& sfen)
 PlayMode GameStartCoordinator::determinePlayModeAlignedWithTurn(
     int initPositionNumber, bool isPlayer1Human, bool isPlayer2Human, const QString& startSfen)
 {
-    const QChar turn = turnFromSfen_(startSfen); // 'b' or 'w'
+    const QChar turn = turnFromSfen(startSfen); // 'b' or 'w'
     const bool isEven = (initPositionNumber == 1);
     const bool hvh = (isPlayer1Human && isPlayer2Human);
     const bool eve = (!isPlayer1Human && !isPlayer2Human);
@@ -985,7 +985,7 @@ void GameStartCoordinator::applyPlayersNamesForMode(ShogiView* view,
 // ダイアログから TimeControl を組み立てるユーティリティ。
 // ※ StartGameDialog が無い場合でも QObject::property でフォールバックします。
 GameStartCoordinator::TimeControl
-GameStartCoordinator::buildTimeControlFromDialog_(QDialog* startDlg) const
+GameStartCoordinator::buildTimeControlFromDialog(QDialog* startDlg) const
 {
     TimeControl tc; // すべて 0 で初期化される前提の構造体
 

@@ -82,7 +82,7 @@ void BranchWiringCoordinator::onRecordPaneBranchActivated(const QModelIndex& ind
 void BranchWiringCoordinator::onBranchPlanActivated(int row, int ply1)
 {
     qDebug() << "[BRANCH] planActivated -> applyResolvedRowAndSelect row=" << row << " ply=" << ply1;
-    applyResolvedRowAndSelect_(row, ply1);
+    applyResolvedRowAndSelect(row, ply1);
 }
 
 void BranchWiringCoordinator::onBranchNodeActivated(int row, int ply)
@@ -95,10 +95,10 @@ void BranchWiringCoordinator::onBranchNodeActivated(int row, int ply)
                                            KifuBranchListModel::DispCountRole).toInt();
     const int selPly = qBound(0, ply, maxPly);
 
-    applyResolvedRowAndSelect_(row, selPly);
+    applyResolvedRowAndSelect(row, selPly);
 }
 
-void BranchWiringCoordinator::applyResolvedRowAndSelect_(int row, int selPly)
+void BranchWiringCoordinator::applyResolvedRowAndSelect(int row, int selPly)
 {
     if (!m_loader) return;
     // KifuLoadCoordinator へ委譲（局面/棋譜/ビューの同期を一括で）

@@ -10,7 +10,7 @@ namespace {
 using Piece = CsaToSfenConverter::Piece;
 using Color = CsaToSfenConverter::Color;
 
-static Piece pieceFromCsa2_(const QString& two)
+static Piece pieceFromCsa2(const QString& two)
 {
     using C = CsaToSfenConverter;
     if      (two == u"FU") return C::FU;
@@ -30,7 +30,7 @@ static Piece pieceFromCsa2_(const QString& two)
     return C::NO_P;
 }
 
-static Piece basePieceOfLocal_(Piece p)
+static Piece basePieceOfLocal(Piece p)
 {
     using C = CsaToSfenConverter;
     switch (p) {
@@ -44,14 +44,14 @@ static Piece basePieceOfLocal_(Piece p)
     }
 }
 
-static bool isPromotedLocal_(Piece p)
+static bool isPromotedLocal(Piece p)
 {
     using C = CsaToSfenConverter;
     return (p == C::TO || p == C::NY || p == C::NK || p == C::NG || p == C::UM || p == C::RY);
 }
 
 // P1..P9 行
-static bool applyPRowLine_(const QString& raw, CsaToSfenConverter::Board& b)
+static bool applyPRowLine(const QString& raw, CsaToSfenConverter::Board& b)
 {
     if (raw.size() < 2 || raw.at(0) != QLatin1Char('P')) return false;
     const int row = (raw.size() >= 2 && raw.at(1).isDigit()) ? raw.at(1).digitValue() : -1;
@@ -108,14 +108,14 @@ static bool applyPRowLine_(const QString& raw, CsaToSfenConverter::Board& b)
         const CsaToSfenConverter::Color side =
             (t.at(0) == QLatin1Char('+')) ? CsaToSfenConverter::Black
                                           : CsaToSfenConverter::White;
-        const CsaToSfenConverter::Piece pc = pieceFromCsa2_(t.mid(1, 2));
+        const CsaToSfenConverter::Piece pc = pieceFromCsa2(t.mid(1, 2));
         b.sq[x][row] = { pc, side };
     }
     return true;
 }
 
 // P+ / P-（手駒 00XY、盤上配置、00AL）
-static bool applyPPlusMinusLine_(const QString& raw, CsaToSfenConverter::Board& b,
+static bool applyPPlusMinusLine(const QString& raw, CsaToSfenConverter::Board& b,
                                  int bH[7], int wH[7], bool& alBlack, bool& alWhite)
 {
     if (raw.size() < 2 || raw.at(0) != QLatin1Char('P')) return false;
@@ -140,9 +140,9 @@ static bool applyPPlusMinusLine_(const QString& raw, CsaToSfenConverter::Board& 
             continue;
         }
 
-        const CsaToSfenConverter::Piece pc = pieceFromCsa2_(pc2);
+        const CsaToSfenConverter::Piece pc = pieceFromCsa2(pc2);
         if (file == 0 && rank == 0) {
-            const CsaToSfenConverter::Piece base = basePieceOfLocal_(pc);
+            const CsaToSfenConverter::Piece base = basePieceOfLocal(pc);
             int idx = -1;
             switch (base) {
             case CsaToSfenConverter::HI: idx = 0; break;
@@ -168,7 +168,7 @@ static bool applyPPlusMinusLine_(const QString& raw, CsaToSfenConverter::Board& 
 }
 
 // 盤→SFEN（面フィールドのみ）
-static QString toSfenBoard_(const CsaToSfenConverter::Board& b)
+static QString toSfenBoard(const CsaToSfenConverter::Board& b)
 {
     QString s;
     s.reserve(81);
@@ -180,7 +180,7 @@ static QString toSfenBoard_(const CsaToSfenConverter::Board& b)
                 ++empty;
             } else {
                 if (empty > 0) { s += QString::number(empty); empty = 0; }
-                const Piece base = basePieceOfLocal_(cell.p);
+                const Piece base = basePieceOfLocal(cell.p);
                 QChar ch;
                 switch (base) {
                 case CsaToSfenConverter::FU: ch = QLatin1Char('P'); break;
@@ -194,7 +194,7 @@ static QString toSfenBoard_(const CsaToSfenConverter::Board& b)
                 default: ch = QLatin1Char('?'); break;
                 }
                 if (cell.c == CsaToSfenConverter::White) ch = ch.toLower();
-                if (isPromotedLocal_(cell.p)) s += QLatin1Char('+');
+                if (isPromotedLocal(cell.p)) s += QLatin1Char('+');
                 s += ch;
             }
         }
@@ -205,7 +205,7 @@ static QString toSfenBoard_(const CsaToSfenConverter::Board& b)
 }
 
 // 持駒→SFEN
-static QString handsToSfen_(const int bH[7], const int wH[7])
+static QString handsToSfen(const int bH[7], const int wH[7])
 {
     auto append = [](QString& out, int n, QChar ch) {
         if (n <= 0) return;
@@ -228,7 +228,7 @@ static QString handsToSfen_(const int bH[7], const int wH[7])
 } // namespace
 
 // コメント正規化（'、'*'、'** 読み筋/Floodgate）
-static QString normalizeCsaCommentLine_(const QString& line)
+static QString normalizeCsaCommentLine(const QString& line)
 {
     if (line.isEmpty() || line.at(0) != QLatin1Char('\'')) return QString();
 
@@ -278,7 +278,7 @@ void CsaToSfenConverter::Board::setHirate()
 }
 
 // ---- ファイル読込 ----
-bool CsaToSfenConverter::readAllLinesDetectEncoding_(const QString& path, QStringList& outLines, QString* warn)
+bool CsaToSfenConverter::readAllLinesDetectEncoding(const QString& path, QStringList& outLines, QString* warn)
 {
     QFile f(path);
     if (!f.open(QIODevice::ReadOnly)) {
@@ -327,33 +327,33 @@ bool CsaToSfenConverter::readAllLinesDetectEncoding_(const QString& path, QStrin
     return true;
 }
 
-bool CsaToSfenConverter::isMoveLine_(const QString& s)
+bool CsaToSfenConverter::isMoveLine(const QString& s)
 {
     if (s.isEmpty()) return false;
     const QChar c = s.at(0);
     return (c == QLatin1Char('+') || c == QLatin1Char('-'));
 }
 
-bool CsaToSfenConverter::isResultLine_(const QString& s)
+bool CsaToSfenConverter::isResultLine(const QString& s)
 {
     return s.startsWith(QLatin1Char('%'));
 }
 
-bool CsaToSfenConverter::isMetaLine_(const QString& s)
+bool CsaToSfenConverter::isMetaLine(const QString& s)
 {
     if (s.isEmpty()) return false;
     const QChar c = s.at(0);
     return (c == QLatin1Char('V') || c == QLatin1Char('$') || c == QLatin1Char('N'));
 }
 
-bool CsaToSfenConverter::isCommentLine_(const QString& s)
+bool CsaToSfenConverter::isCommentLine(const QString& s)
 {
     if (s.isEmpty()) return false;
     return s.startsWith(QLatin1Char('\''));
 }
 
 // ---- 開始局面解析（CSA v3: PI / P1..P9 / P+ / P- / + or - 対応）----
-bool CsaToSfenConverter::parseStartPos_(const QStringList& lines, int& idx,
+bool CsaToSfenConverter::parseStartPos(const QStringList& lines, int& idx,
                                         QString& baseSfen, Color& stm, Board& board)
 {
     board.setHirate();
@@ -381,7 +381,7 @@ bool CsaToSfenConverter::parseStartPos_(const QStringList& lines, int& idx,
     for (; i < lines.size(); ++i) {
         QString raw = lines.at(i).trimmed();
         if (raw.isEmpty()) continue;
-        if (isMetaLine_(raw) || isCommentLine_(raw)) continue;
+        if (isMetaLine(raw) || isCommentLine(raw)) continue;
 
         if (raw == QLatin1String("PI")) {
             board.setHirate();
@@ -394,10 +394,10 @@ bool CsaToSfenConverter::parseStartPos_(const QStringList& lines, int& idx,
             if (!sawPI && !sawAnyP) Clear::all(board);
 
             if (raw.at(1).isDigit()) {
-                if (applyPRowLine_(raw, board)) sawAnyP = true;
+                if (applyPRowLine(raw, board)) sawAnyP = true;
                 continue;
             } else if (raw.at(1) == QLatin1Char('+') || raw.at(1) == QLatin1Char('-')) {
-                if (applyPPlusMinusLine_(raw, board, bH, wH, alBlack, alWhite)) sawAnyP = true;
+                if (applyPPlusMinusLine(raw, board, bH, wH, alBlack, alWhite)) sawAnyP = true;
                 continue;
             }
         }
@@ -405,7 +405,7 @@ bool CsaToSfenConverter::parseStartPos_(const QStringList& lines, int& idx,
         if (raw == QLatin1String("+")) { stm = Black; ++i; break; }
         if (raw == QLatin1String("-")) { stm = White; ++i; break; }
 
-        if (isMoveLine_(raw) || isResultLine_(raw)) {
+        if (isMoveLine(raw) || isResultLine(raw)) {
             if (raw.startsWith(QLatin1Char('+'))) stm = Black;
             else if (raw.startsWith(QLatin1Char('-'))) stm = White;
             break;
@@ -420,7 +420,7 @@ bool CsaToSfenConverter::parseStartPos_(const QStringList& lines, int& idx,
         for (int x = 1; x <= 9; ++x)
             for (int y = 1; y <= 9; ++y) {
                 const Piece p = board.sq[x][y].p;
-                switch (basePieceOf_(p)) {
+                switch (basePieceOf(p)) {
                 case HI: ++used[0]; break; case KA: ++used[1]; break; case KI: ++used[2]; break;
                 case GI: ++used[3]; break; case KE: ++used[4]; break; case KY: ++used[5]; break;
                 case FU: ++used[6]; break; default: break;
@@ -435,9 +435,9 @@ bool CsaToSfenConverter::parseStartPos_(const QStringList& lines, int& idx,
 
     // base SFEN を構築
     QString boardField = sawAnyP || sawPI
-                             ? toSfenBoard_(board)
+                             ? toSfenBoard(board)
                              : QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL");
-    const QString handsField = handsToSfen_(bH, wH);
+    const QString handsField = handsToSfen(bH, wH);
 
     baseSfen = boardField
                + (stm == Black ? QStringLiteral(" b ") : QStringLiteral(" w "))
@@ -446,7 +446,7 @@ bool CsaToSfenConverter::parseStartPos_(const QStringList& lines, int& idx,
 }
 
 // ---- CSAトークンを USI 1手 にして盤も更新 ----
-bool CsaToSfenConverter::parseMoveLine_(const QString& line, Color mover, Board& b,
+bool CsaToSfenConverter::parseMoveLine(const QString& line, Color mover, Board& b,
                                         int& prevTx, int& prevTy,
                                         QString& usiMoveOut, QString& prettyOut, QString* warn)
 {
@@ -455,7 +455,7 @@ bool CsaToSfenConverter::parseMoveLine_(const QString& line, Color mover, Board&
 
     int fx=0, fy=0, tx=0, ty=0;
     Piece after = NO_P;
-    if (!parseCsaMoveToken_(token, fx, fy, tx, ty, after)) {
+    if (!parseCsaMoveToken(token, fx, fy, tx, ty, after)) {
         if (warn) *warn += QStringLiteral("Malformed move token: %1\n").arg(token);
         return false;
     }
@@ -464,7 +464,7 @@ bool CsaToSfenConverter::parseMoveLine_(const QString& line, Color mover, Board&
 
     // from 情報
     Piece beforePiece = NO_P;
-    const bool srcInside = (!isDrop && inside_(fx) && inside_(fy));
+    const bool srcInside = (!isDrop && inside(fx) && inside(fy));
     bool  beforeProm  = false;
     if (!isDrop) {
         if (!srcInside) {
@@ -473,22 +473,22 @@ bool CsaToSfenConverter::parseMoveLine_(const QString& line, Color mover, Board&
         }
         const Cell from = b.sq[fx][fy];
         beforePiece = from.p;
-        beforeProm  = isPromotedPiece_(from.p);
+        beforeProm  = isPromotedPiece(from.p);
     }
 
     // 成り（USIの '+'）
     bool promote = false;
     if (!isDrop) {
-        if (isPromotedPiece_(after)) {
-            const Piece base = basePieceOf_(after);
-            if (!beforeProm && base == basePieceOf_(beforePiece)) {
+        if (isPromotedPiece(after)) {
+            const Piece base = basePieceOf(after);
+            if (!beforeProm && base == basePieceOf(beforePiece)) {
                 promote = true;
             }
         }
     }
 
     // USI
-    const QString toSq = toUsiSquare_(tx, ty);
+    const QString toSq = toUsiSquare(tx, ty);
     QString usi;
     if (isDrop) {
         QString usiPiece;
@@ -504,7 +504,7 @@ bool CsaToSfenConverter::parseMoveLine_(const QString& line, Color mover, Board&
         }
         usi = usiPiece + QStringLiteral("*") + toSq;
     } else {
-        const QString fromSq = toUsiSquare_(fx, fy);
+        const QString fromSq = toUsiSquare(fx, fy);
         usi = fromSq + toSq + (promote ? QStringLiteral("+") : QString());
     }
     usiMoveOut = usi;
@@ -513,18 +513,18 @@ bool CsaToSfenConverter::parseMoveLine_(const QString& line, Color mover, Board&
     const QString sideMark = (mover == Black) ? QStringLiteral("▲") : QStringLiteral("△");
 
     if (isDrop) {
-        const QString pj = pieceKanji_(after);
-        const QString dest = zenkakuDigit_(tx) + kanjiRank_(ty);
+        const QString pj = pieceKanji(after);
+        const QString dest = zenkakuDigit(tx) + kanjiRank(ty);
         prettyOut = sideMark + dest + pj + QStringLiteral("打");
     } else {
         QString pj;
-        if (promote)           pj = pieceKanji_(after);       // 角→馬、飛→龍 等
-        else if (beforeProm)   pj = pieceKanji_(beforePiece); // 既成成駒(UM/RY)の移動
-        else                   pj = pieceKanji_(beforePiece);
+        if (promote)           pj = pieceKanji(after);       // 角→馬、飛→龍 等
+        else if (beforeProm)   pj = pieceKanji(beforePiece); // 既成成駒(UM/RY)の移動
+        else                   pj = pieceKanji(beforePiece);
 
         QString dest;
         if (tx == prevTx && ty == prevTy) dest = QStringLiteral("同　");
-        else dest = zenkakuDigit_(tx) + kanjiRank_(ty);
+        else dest = zenkakuDigit(tx) + kanjiRank(ty);
 
         const QString origin = QStringLiteral("(") + QString::number(fx) + QString::number(fy) + QStringLiteral(")");
         prettyOut = sideMark + dest + pj + origin;
@@ -538,7 +538,7 @@ bool CsaToSfenConverter::parseMoveLine_(const QString& line, Color mover, Board&
     return true;
 }
 
-bool CsaToSfenConverter::parseCsaMoveToken_(const QString& token,
+bool CsaToSfenConverter::parseCsaMoveToken(const QString& token,
                                             int& fx, int& fy, int& tx, int& ty,
                                             Piece& afterPiece)
 {
@@ -577,24 +577,24 @@ bool CsaToSfenConverter::parseCsaMoveToken_(const QString& token,
 }
 
 // ---- 文字変換 ----
-QChar CsaToSfenConverter::usiRankLetter_(int y)
+QChar CsaToSfenConverter::usiRankLetter(int y)
 {
     static const char table[10] = {0,'a','b','c','d','e','f','g','h','i'};
     if (y < 1 || y > 9) return QLatin1Char('a');
     return QLatin1Char(table[y]);
 }
 
-QString CsaToSfenConverter::toUsiSquare_(int x, int y)
+QString CsaToSfenConverter::toUsiSquare(int x, int y)
 {
-    return QString::number(x) + usiRankLetter_(y);
+    return QString::number(x) + usiRankLetter(y);
 }
 
-bool CsaToSfenConverter::isPromotedPiece_(Piece p)
+bool CsaToSfenConverter::isPromotedPiece(Piece p)
 {
     return (p == TO || p == NY || p == NK || p == NG || p == UM || p == RY);
 }
 
-CsaToSfenConverter::Piece CsaToSfenConverter::basePieceOf_(Piece p)
+CsaToSfenConverter::Piece CsaToSfenConverter::basePieceOf(Piece p)
 {
     switch (p) {
     case TO: return FU; case NY: return KY; case NK: return KE;
@@ -603,7 +603,7 @@ CsaToSfenConverter::Piece CsaToSfenConverter::basePieceOf_(Piece p)
     }
 }
 
-QString CsaToSfenConverter::pieceKanji_(Piece p)
+QString CsaToSfenConverter::pieceKanji(Piece p)
 {
     switch (p) {
     case FU: return QStringLiteral("歩");
@@ -624,7 +624,7 @@ QString CsaToSfenConverter::pieceKanji_(Piece p)
     }
 }
 
-QString CsaToSfenConverter::zenkakuDigit_(int d)
+QString CsaToSfenConverter::zenkakuDigit(int d)
 {
     static const QChar map[] = { QChar(u'０'),QChar(u'１'),QChar(u'２'),QChar(u'３'),QChar(u'４'),
                                 QChar(u'５'),QChar(u'６'),QChar(u'７'),QChar(u'８'),QChar(u'９') };
@@ -632,7 +632,7 @@ QString CsaToSfenConverter::zenkakuDigit_(int d)
     return QString(QChar(u'？'));
 }
 
-QString CsaToSfenConverter::kanjiRank_(int y)
+QString CsaToSfenConverter::kanjiRank(int y)
 {
     static const QChar map[10] = { QChar(), QChar(u'一'), QChar(u'二'), QChar(u'三'), QChar(u'四'),
                                   QChar(u'五'), QChar(u'六'), QChar(u'七'), QChar(u'八'), QChar(u'九') };
@@ -640,7 +640,7 @@ QString CsaToSfenConverter::kanjiRank_(int y)
     return QString(QChar(u'？'));
 }
 
-bool CsaToSfenConverter::inside_(int v)
+bool CsaToSfenConverter::inside(int v)
 {
     return (v >= 1) && (v <= 9);
 }
@@ -652,14 +652,14 @@ QList<KifGameInfoItem> CsaToSfenConverter::extractGameInfo(const QString& filePa
     QStringList lines;
     QString warn;
 
-    if (!readAllLinesDetectEncoding_(filePath, lines, &warn)) return items;
+    if (!readAllLinesDetectEncoding(filePath, lines, &warn)) return items;
 
     for (qsizetype i = 0; i < lines.size(); ++i) {
         const QString line = lines.at(i).trimmed();
         if (line.isEmpty()) continue;
 
         // 盤定義/指し手が始まったら終了
-        if (isMoveLine_(line)) break;
+        if (isMoveLine(line)) break;
         if (line.startsWith(QLatin1Char('P')) || line == QLatin1String("PI")) continue;
 
         if (line.startsWith(QLatin1String("N+"))) {
@@ -698,7 +698,7 @@ QList<KifGameInfoItem> CsaToSfenConverter::extractGameInfo(const QString& filePa
 }
 
 // 秒 or 秒.ミリ(最大3桁) → ms
-static bool parseTimeTokenMs_(const QString& token, qint64& msOut)
+static bool parseTimeTokenMs(const QString& token, qint64& msOut)
 {
     msOut = 0;
     if (!token.startsWith(QLatin1Char('T'))) return false;
@@ -719,7 +719,7 @@ static bool parseTimeTokenMs_(const QString& token, qint64& msOut)
     msOut = sec * 1000 + milli; return true;
 }
 
-static QString mmssFromMs_(qint64 ms)
+static QString mmssFromMs(qint64 ms)
 {
     if (ms < 0) ms = 0;
     const qint64 tot = ms / 1000;
@@ -728,7 +728,7 @@ static QString mmssFromMs_(qint64 ms)
     return QStringLiteral("%1:%2").arg(mm, 2, 10, QLatin1Char('0')).arg(ss, 2, 10, QLatin1Char('0'));
 }
 
-static QString hhmmssFromMs_(qint64 ms)
+static QString hhmmssFromMs(qint64 ms)
 {
     if (ms < 0) ms = 0;
     const qint64 tot = ms / 1000;
@@ -741,15 +741,15 @@ static QString hhmmssFromMs_(qint64 ms)
         .arg(ss, 2, 10, QLatin1Char('0'));
 }
 
-static QString composeTimeText_(qint64 moveMs, qint64 cumMs)
+static QString composeTimeText(qint64 moveMs, qint64 cumMs)
 {
-    return mmssFromMs_(moveMs) + QStringLiteral("/") + hhmmssFromMs_(cumMs);
+    return mmssFromMs(moveMs) + QStringLiteral("/") + hhmmssFromMs(cumMs);
 }
 
 bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QString* warn)
 {
     QStringList lines;
-    if (!readAllLinesDetectEncoding_(filePath, lines, warn)) return false;
+    if (!readAllLinesDetectEncoding(filePath, lines, warn)) return false;
 
     out.mainline.baseSfen.clear();
     out.mainline.usiMoves.clear();
@@ -759,7 +759,7 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
     int   idx  = 0;
     Color stm  = Black;
     Board board; board.setHirate();
-    if (!parseStartPos_(lines, idx, out.mainline.baseSfen, stm, board)) {
+    if (!parseStartPos(lines, idx, out.mainline.baseSfen, stm, board)) {
         if (warn) *warn += QStringLiteral("Failed to parse start position.\n");
         return false;
     }
@@ -806,7 +806,7 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
 
                 // コメント
                 if (token.startsWith(QLatin1Char('\''))) {
-                    const QString norm = normalizeCsaCommentLine_(token);
+                    const QString norm = normalizeCsaCommentLine(token);
                     if (!norm.isNull()) {
                         if (lastDispIsResult && lastResultDispIndex >= 0 &&
                             lastResultDispIndex < out.mainline.disp.size()) {
@@ -878,20 +878,20 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
                 // 時間（T...）
                 if (token.startsWith(QLatin1Char('T'))) {
                     qint64 moveMs = 0;
-                    if (parseTimeTokenMs_(token, moveMs)) {
+                    if (parseTimeTokenMs(token, moveMs)) {
                         if (lastDispIsResult && lastResultDispIndex >= 0 &&
                             lastResultDispIndex < out.mainline.disp.size())
                         {
                             if (lastResultSideIdx >= 0) {
                                 cumMs[lastResultSideIdx] += moveMs;
                                 out.mainline.disp[lastResultDispIndex].timeText =
-                                    composeTimeText_(moveMs, cumMs[lastResultSideIdx]);
+                                    composeTimeText(moveMs, cumMs[lastResultSideIdx]);
                             } else {
-                                out.mainline.disp[lastResultDispIndex].timeText = composeTimeText_(moveMs, 0);
+                                out.mainline.disp[lastResultDispIndex].timeText = composeTimeText(moveMs, 0);
                             }
                         } else if (!out.mainline.disp.isEmpty() && lastMover >= 0) {
                             cumMs[lastMover] += moveMs;
-                            out.mainline.disp.last().timeText = composeTimeText_(moveMs, cumMs[lastMover]);
+                            out.mainline.disp.last().timeText = composeTimeText(moveMs, cumMs[lastMover]);
                         }
                     } else if (warn) {
                         *warn += QStringLiteral("Failed to parse time token: %1\n").arg(token);
@@ -900,12 +900,12 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
                 }
 
                 // 通常の指し手
-                if (isMoveLine_(token)) {
+                if (isMoveLine(token)) {
                     const QChar head  = token.at(0);
                     const Color mover = (head == QLatin1Char('+')) ? Black : White;
 
                     QString usi, pretty;
-                    if (!parseMoveLine_(token, mover, board, prevTx, prevTy, usi, pretty, warn)) {
+                    if (!parseMoveLine(token, mover, board, prevTx, prevTy, usi, pretty, warn)) {
                         if (warn) *warn += QStringLiteral("Failed to parse move: %1\n").arg(token);
                         continue;
                     }
@@ -943,8 +943,8 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
         }
 
         // 単独行・コメント
-        if (isCommentLine_(s)) {
-            const QString norm = normalizeCsaCommentLine_(s);
+        if (isCommentLine(s)) {
+            const QString norm = normalizeCsaCommentLine(s);
             if (!norm.isNull()) pendingComments.append(norm);
             continue;
         }
@@ -957,7 +957,7 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
         }
 
         // 単独行・結果コード
-        if (isResultLine_(s)) {
+        if (isResultLine(s)) {
             // 結果コードが来たが、まだ初手が見つかっていない場合
             if (!firstMoveFound) {
                 firstMoveFound = true;
@@ -1005,12 +1005,12 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
         }
 
         // 単独行・指し手
-        if (isMoveLine_(s)) {
+        if (isMoveLine(s)) {
             const QChar head  = s.at(0);
             const Color mover = (head == QLatin1Char('+')) ? Black : White;
 
             QString usi, pretty;
-            if (!parseMoveLine_(s, mover, board, prevTx, prevTy, usi, pretty, warn)) {
+            if (!parseMoveLine(s, mover, board, prevTx, prevTy, usi, pretty, warn)) {
                 if (warn) *warn += QStringLiteral("Failed to parse move: %1\n").arg(s);
                 continue;
             }

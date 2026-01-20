@@ -16,7 +16,7 @@ void NavigationPresenter::setDeps(const Deps& d)
     m_analysisTab = d.analysisTab;
 }
 
-void NavigationPresenter::highlightBranchTree_(int row, int ply)
+void NavigationPresenter::highlightBranchTree(int row, int ply)
 {
     if (!m_analysisTab) return;
     // ツリー側に行/手のハイライトとセンタリングを依頼
@@ -37,7 +37,7 @@ void NavigationPresenter::refreshAll(int row, int ply)
     m_coordinator->showBranchCandidates(safeRow, safePly);
 
     // 2) 再構築が終わった前提でツリーハイライト＆通知
-    highlightBranchTree_(safeRow, safePly);
+    highlightBranchTree(safeRow, safePly);
     emit branchUiUpdated(safeRow, safePly);
 }
 
@@ -54,6 +54,6 @@ void NavigationPresenter::updateAfterBranchListChanged(int row, int ply)
     const int safeRow = qMax(0, row);
     const int safePly = qMax(0, ply);
 
-    highlightBranchTree_(safeRow, safePly);
+    highlightBranchTree(safeRow, safePly);
     emit branchUiUpdated(safeRow, safePly);
 }

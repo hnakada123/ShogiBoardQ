@@ -406,13 +406,13 @@ private:
     bool m_uiMuted = false;
     bool m_gameOverStyleLock = false;  // 対局終了時のスタイル維持
 
-    void ensureTurnLabels_();
-    void relayoutTurnLabels_();
+    void ensureTurnLabels();
+    void relayoutTurnLabels();
 
-    void ensureAndPlaceEditExitButton_();
+    void ensureAndPlaceEditExitButton();
 
-    void styleEditExitButton_(QPushButton* btn);
-    void fitEditExitButtonFont_(QPushButton* btn, int maxWidth);
+    void styleEditExitButton(QPushButton* btn);
+    void fitEditExitButtonFont(QPushButton* btn, int maxWidth);
 };
 
 #endif // SHOGIVIEW_H

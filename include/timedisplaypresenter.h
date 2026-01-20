@@ -21,11 +21,11 @@ public slots:
     void onMatchTimeUpdated(qint64 p1ms, qint64 p2ms, bool p1turn, qint64 urgencyMs);
 
 private:
-    void applyTurnHighlights_(bool p1turn);
-    void updateUrgencyStyles_(bool p1turn);
+    void applyTurnHighlights(bool p1turn);
+    void updateUrgencyStyles(bool p1turn);
 
     // 秒読みに入っているかどうかを判定
-    bool isInByoyomi_(bool p1turn) const;
+    bool isInByoyomi(bool p1turn) const;
 
     static inline QString fmt_hhmmss(qint64 ms);
 

@@ -130,9 +130,9 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
-    setupCentralWidgetContainer_();
+    setupCentralWidgetContainer();
 
-    configureToolBarFromUi_();
+    configureToolBarFromUi();
 
     // コア部品（GC, View, 盤モデル etc.）は既存関数で初期化
     initializeComponents();
@@ -140,35 +140,35 @@ MainWindow::MainWindow(QWidget *parent)
     if (!m_timePresenter) m_timePresenter = new TimeDisplayPresenter(m_shogiView, this);
 
     // TimeControlControllerを初期化してTimeDisplayPresenterに設定
-    ensureTimeController_();
+    ensureTimeController();
     if (m_timePresenter && m_timeController) {
         m_timePresenter->setClock(m_timeController->clock());
     }
 
     // 画面骨格（棋譜/分岐/レイアウト/タブ/中央表示）
-    buildGamePanels_();
+    buildGamePanels();
 
     // ウィンドウ設定の復元（位置/サイズなど）
-    restoreWindowAndSync_();
+    restoreWindowAndSync();
 
     // メニュー/アクションのconnect（関数ポインタで統一）
-    connectAllActions_();
+    connectAllActions();
 
     // コアシグナル（昇格ダイアログ・エラー・ドラッグ終了・指し手確定 等）
-    connectCoreSignals_();
+    connectCoreSignals();
 
     // ツールチップをコンパクト表示へ
-    installAppToolTips_();
+    installAppToolTips();
 
     // 司令塔やUIフォント/位置編集コントローラの最終初期化
-    finalizeCoordinators_();
+    finalizeCoordinators();
 
     // 起動時用：編集メニューを"編集前（未編集）"の初期状態にする
     initializeEditMenuForStartup();
 
     // 言語メニューをグループ化（相互排他）して現在の設定を反映
     // LanguageControllerに委譲
-    ensureLanguageController_();
+    ensureLanguageController();
     updateLanguageMenuState();
 
     // 評価値グラフ高さ調整用タイマーを初期化（デバウンス処理用）
@@ -178,7 +178,7 @@ MainWindow::MainWindow(QWidget *parent)
             this, &MainWindow::performDeferredEvalChartResize);
 }
 
-void MainWindow::setupCentralWidgetContainer_()
+void MainWindow::setupCentralWidgetContainer()
 {
     m_central = ui->centralwidget;
     m_centralLayout = new QVBoxLayout(m_central);
@@ -186,7 +186,7 @@ void MainWindow::setupCentralWidgetContainer_()
     m_centralLayout->setSpacing(0);
 }
 
-void MainWindow::configureToolBarFromUi_()
+void MainWindow::configureToolBarFromUi()
 {
     if (QToolBar* tb = ui->toolBar) {
         tb->setIconSize(QSize(18, 18)); // お好みで 16/18/20/24
@@ -206,12 +206,12 @@ void MainWindow::configureToolBarFromUi_()
     }
 }
 
-void MainWindow::buildGamePanels_()
+void MainWindow::buildGamePanels()
 {
     // 1) 記録ペイン（RecordPane）など UI 部の初期化
     setupRecordPane();
 
-    // 2) 分岐配線をコーディネータに集約（旧: setupBranchCandidatesWiring_()）
+    // 2) 分岐配線をコーディネータに集約（旧: setupBranchCandidatesWiring()）
     //    既存があれば入れ替え（多重接続を防ぐ）
     if (m_branchWiring) {
         m_branchWiring->deleteLater();
@@ -247,12 +247,12 @@ void MainWindow::buildGamePanels_()
     initializeCentralGameDisplay();
 }
 
-void MainWindow::restoreWindowAndSync_()
+void MainWindow::restoreWindowAndSync()
 {
     loadWindowSettings();
 }
 
-void MainWindow::connectAllActions_()
+void MainWindow::connectAllActions()
 {
     // 既存があれば使い回し
     if (!m_actionsWiring) {
@@ -265,7 +265,7 @@ void MainWindow::connectAllActions_()
     m_actionsWiring->wire();
 }
 
-void MainWindow::connectCoreSignals_()
+void MainWindow::connectCoreSignals()
 {
     qDebug() << "[CONNECT] connectCoreSignals_ called";
 
@@ -296,7 +296,7 @@ void MainWindow::connectCoreSignals_()
             this, &MainWindow::onErrorBusOccurred, Qt::UniqueConnection);
 }
 
-void MainWindow::installAppToolTips_()
+void MainWindow::installAppToolTips()
 {
     auto* tipFilter = new AppToolTipFilter(this);
     tipFilter->setPointSizeF(12.0);
@@ -311,13 +311,13 @@ void MainWindow::installAppToolTips_()
     }
 }
 
-void MainWindow::finalizeCoordinators_()
+void MainWindow::finalizeCoordinators()
 {
     initMatchCoordinator();
-    setupNameAndClockFonts_();
-    ensurePositionEditController_();
-    ensureBoardSyncPresenter_();
-    ensureAnalysisPresenter_();
+    setupNameAndClockFonts();
+    ensurePositionEditController();
+    ensureBoardSyncPresenter();
+    ensureAnalysisPresenter();
 }
 
 void MainWindow::onErrorBusOccurred(const QString& msg)
@@ -382,7 +382,7 @@ void MainWindow::initializeComponents()
     setCurrentTurn();
 
     // 2) GC ↔ TurnManager のブリッジ確立＆初期同期（内部で gc->currentPlayer() を反映）
-    ensureTurnSyncBridge_();
+    ensureTurnSyncBridge();
 
     // ───────────────── 表示名・ログモデル名の初期反映（任意だが初期表示を安定化） ─────────────────
     // setPlayersNamesForMode / setEngineNamesBasedOnMode がサービスへ移設済みでも呼び出し名は同じ
@@ -420,7 +420,7 @@ void MainWindow::undoLastTwoMoves()
         // 2手戻しを実行し、成功した場合は分岐ツリーを更新する
         if (m_match->undoTwoPlies()) {
             // 短くなった棋譜データに基づいて分岐ツリー（長方形と罫線）を再描画・同期する
-            refreshBranchTreeLive_();
+            refreshBranchTreeLive();
 
             // 評価値グラフのプロットを1つ削除（2手で1プロット）
             // ※EvEモードでは「待った」は使用しない想定
@@ -468,7 +468,7 @@ void MainWindow::initializeNewGame(QString& startSfenStr)
 // 対局モードに応じて将棋盤上部に表示される対局者名をセットする。
 void MainWindow::setPlayersNamesForMode()
 {
-    ensurePlayerInfoController_();
+    ensurePlayerInfoController();
     if (m_playerInfoController) {
         m_playerInfoController->setPlayMode(m_playMode);
         m_playerInfoController->setHumanNames(m_humanName1, m_humanName2);
@@ -491,7 +491,7 @@ void MainWindow::saveShogiBoardImage()
 // 対局モードに応じて将棋盤下部に表示されるエンジン名をセットする。
 void MainWindow::setEngineNamesBasedOnMode()
 {
-    ensurePlayerInfoController_();
+    ensurePlayerInfoController();
     if (m_playerInfoController) {
         m_playerInfoController->setPlayMode(m_playMode);
         m_playerInfoController->setEngineNames(m_engineName1, m_engineName2);
@@ -502,7 +502,7 @@ void MainWindow::setEngineNamesBasedOnMode()
 // ★ 追加: EvE対局時に2番目のエンジン情報を表示する
 void MainWindow::updateSecondEngineVisibility()
 {
-    ensurePlayerInfoController_();
+    ensurePlayerInfoController();
     if (m_playerInfoController) {
         m_playerInfoController->setPlayMode(m_playMode);
         m_playerInfoController->updateSecondEngineVisibility();
@@ -579,7 +579,7 @@ void MainWindow::initializeCentralGameDisplay()
 
 void MainWindow::startNewShogiGame(QString& startSfenStr)
 {
-    ensureReplayController_();
+    ensureReplayController();
     const bool resume = m_replayController ? m_replayController->isResumeFromCurrent() : false;
 
     // 対局終了時のスタイルロックを解除
@@ -590,7 +590,7 @@ void MainWindow::startNewShogiGame(QString& startSfenStr)
         if (!resume) ec->clearAll();
     }
     if (!resume) {
-        ensureEvaluationGraphController_();
+        ensureEvaluationGraphController();
         if (m_evalGraphController) {
             m_evalGraphController->clearScores();
         }
@@ -668,7 +668,7 @@ void MainWindow::handleResignation()
     }
 
     // 通常対局モードの場合
-    ensureGameStateController_();
+    ensureGameStateController();
     if (m_gameStateController) {
         m_gameStateController->handleResignation();
     }
@@ -676,7 +676,7 @@ void MainWindow::handleResignation()
 
 void MainWindow::redrawEngine1EvaluationGraph(int ply)
 {
-    ensureEvaluationGraphController_();
+    ensureEvaluationGraphController();
     if (m_evalGraphController) {
         m_evalGraphController->redrawEngine1Graph(ply);
     }
@@ -684,14 +684,14 @@ void MainWindow::redrawEngine1EvaluationGraph(int ply)
 
 void MainWindow::redrawEngine2EvaluationGraph(int ply)
 {
-    ensureEvaluationGraphController_();
+    ensureEvaluationGraphController();
     if (m_evalGraphController) {
         m_evalGraphController->redrawEngine2Graph(ply);
     }
 }
 
 // ★ 追加: EvaluationGraphControllerの初期化
-void MainWindow::ensureEvaluationGraphController_()
+void MainWindow::ensureEvaluationGraphController()
 {
     if (m_evalGraphController) return;
 
@@ -713,7 +713,7 @@ void MainWindow::updateTurnStatus(int currentPlayer)
 {
     if (!m_shogiView) return;
 
-    ensureTimeController_();
+    ensureTimeController();
     ShogiClock* clock = m_timeController ? m_timeController->clock() : nullptr;
     if (!clock) {
         qWarning() << "ShogiClock not ready yet";
@@ -726,7 +726,7 @@ void MainWindow::updateTurnStatus(int currentPlayer)
 
 void MainWindow::displayVersionInformation()
 {
-    ensureDialogCoordinator_();
+    ensureDialogCoordinator();
     if (m_dialogCoordinator) {
         m_dialogCoordinator->showVersionInformation();
     }
@@ -739,7 +739,7 @@ void MainWindow::displayJishogiScoreDialog()
         return;
     }
 
-    ensureJishogiController_();
+    ensureJishogiController();
     if (m_jishogiController) {
         m_jishogiController->showDialog(this, m_shogiView->board());
     }
@@ -753,7 +753,7 @@ void MainWindow::handleNyugyokuDeclaration()
         return;
     }
 
-    ensureNyugyokuHandler_();
+    ensureNyugyokuHandler();
     if (m_nyugyokuHandler) {
         m_nyugyokuHandler->setGameController(m_gameController);
         m_nyugyokuHandler->setMatchCoordinator(m_match);
@@ -763,7 +763,7 @@ void MainWindow::handleNyugyokuDeclaration()
 
 void MainWindow::openWebsiteInExternalBrowser()
 {
-    ensureDialogCoordinator_();
+    ensureDialogCoordinator();
     if (m_dialogCoordinator) {
         m_dialogCoordinator->openProjectWebsite();
     }
@@ -771,7 +771,7 @@ void MainWindow::openWebsiteInExternalBrowser()
 
 void MainWindow::displayEngineSettingsDialog()
 {
-    ensureDialogCoordinator_();
+    ensureDialogCoordinator();
     if (m_dialogCoordinator) {
         m_dialogCoordinator->showEngineSettingsDialog();
     }
@@ -781,7 +781,7 @@ void MainWindow::displayEngineSettingsDialog()
 void MainWindow::displayPromotionDialog()
 {
     if (!m_gameController) return;
-    ensureDialogCoordinator_();
+    ensureDialogCoordinator();
     if (m_dialogCoordinator) {
         const bool promote = m_dialogCoordinator->showPromotionDialog();
         m_gameController->setPromote(promote);
@@ -807,7 +807,7 @@ void MainWindow::displayConsiderationDialog()
                                  ? m_positionStrList.at(m_currentMoveIndex)
                                  : QString();
 
-    ensureDialogCoordinator_();
+    ensureDialogCoordinator();
     if (m_dialogCoordinator) {
         DialogCoordinator::ConsiderationParams params;
         params.position = position;
@@ -819,7 +819,7 @@ void MainWindow::displayConsiderationDialog()
 // CSA通信対局ダイアログを表示する。
 void MainWindow::displayJosekiWindow()
 {
-    ensureJosekiWiring_();
+    ensureJosekiWiring();
     if (m_josekiWiring) {
         m_josekiWiring->displayJosekiWindow();
     }
@@ -834,7 +834,7 @@ void MainWindow::updateJosekiWindow()
 
 void MainWindow::displayMenuWindow()
 {
-    ensureMenuWiring_();
+    ensureMenuWiring();
     if (m_menuWiring) {
         m_menuWiring->displayMenuWindow();
     }
@@ -850,14 +850,14 @@ void MainWindow::displayCsaGameDialog()
     // ダイアログを表示する
     if (m_csaGameDialog->exec() == QDialog::Accepted) {
         // CsaGameWiringを確保
-        ensureCsaGameWiring_();
+        ensureCsaGameWiring();
         if (!m_csaGameWiring) {
             qWarning().noquote() << "[MainWindow] displayCsaGameDialog: CsaGameWiring is null";
             return;
         }
 
         // BoardSetupControllerを確保して設定
-        ensureBoardSetupController_();
+        ensureBoardSetupController();
         m_csaGameWiring->setBoardSetupController(m_boardSetupController);
         m_csaGameWiring->setAnalysisTab(m_analysisTab);
 
@@ -873,7 +873,7 @@ void MainWindow::displayCsaGameDialog()
         // CSA対局でエンジンを使用する場合、評価値グラフ更新用のシグナル接続
         if (m_csaGameCoordinator) {
             connect(m_csaGameCoordinator, &CsaGameCoordinator::engineScoreUpdated,
-                    this, &MainWindow::onCsaEngineScoreUpdated_,
+                    this, &MainWindow::onCsaEngineScoreUpdated,
                     Qt::UniqueConnection);
         }
     }
@@ -884,7 +884,7 @@ void MainWindow::displayTsumeShogiSearchDialog()
     // 解析モード切替
     m_playMode = PlayMode::TsumiSearchMode;
 
-    ensureDialogCoordinator_();
+    ensureDialogCoordinator();
     if (m_dialogCoordinator) {
         DialogCoordinator::TsumeSearchParams params;
         params.sfenRecord = m_sfenRecord;
@@ -908,7 +908,7 @@ void MainWindow::displayKifuAnalysisDialog()
         m_analysisModel = new KifuAnalysisListModel(this);
     }
 
-    ensureDialogCoordinator_();
+    ensureDialogCoordinator();
     if (!m_dialogCoordinator) return;
 
     // 解析モデルとタブを設定
@@ -927,7 +927,7 @@ void MainWindow::displayKifuAnalysisDialog()
                      this, &MainWindow::onKifuAnalysisResultRowSelected, Qt::UniqueConnection);
 
     // コンテキストを設定
-    ensureGameInfoController_();
+    ensureGameInfoController();
     DialogCoordinator::KifuAnalysisContext ctx;
     ctx.sfenRecord = m_sfenRecord;
     ctx.moveRecords = m_moveRecords;
@@ -948,7 +948,7 @@ void MainWindow::cancelKifuAnalysis()
 {
     qDebug().noquote() << "[MainWindow::cancelKifuAnalysis] called";
     
-    ensureDialogCoordinator_();
+    ensureDialogCoordinator();
     if (m_dialogCoordinator) {
         if (m_dialogCoordinator->isKifuAnalysisRunning()) {
             m_dialogCoordinator->stopKifuAnalysis();
@@ -968,7 +968,7 @@ void MainWindow::onKifuAnalysisProgress(int ply, int scoreCp)
     qDebug().noquote() << "[MainWindow::onKifuAnalysisProgress] ply=" << ply << "scoreCp=" << scoreCp;
     
     // 1) 棋譜欄の該当行をハイライトし、盤面を更新
-    ensureRecordNavigationController_();
+    ensureRecordNavigationController();
     if (m_recordNavController) {
         qDebug().noquote() << "[MainWindow::onKifuAnalysisProgress] calling navigateKifuViewToRow(" << ply << ")";
         m_recordNavController->navigateKifuViewToRow(ply);
@@ -1004,7 +1004,7 @@ void MainWindow::onKifuAnalysisResultRowSelected(int row)
     int ply = row;
     
     // 1) 棋譜欄の該当行をハイライトし、盤面を更新
-    ensureRecordNavigationController_();
+    ensureRecordNavigationController();
     if (m_recordNavController) {
         qDebug().noquote() << "[MainWindow::onKifuAnalysisResultRowSelected] calling navigateKifuViewToRow(" << ply << ")";
         m_recordNavController->navigateKifuViewToRow(ply);
@@ -1063,7 +1063,7 @@ void MainWindow::setCurrentTurn()
     }
 }
 
-QString MainWindow::resolveCurrentSfenForGameStart_() const
+QString MainWindow::resolveCurrentSfenForGameStart() const
 {
     // 1) 棋譜SFENリストの「選択手」から取得（最優先）
     if (m_sfenRecord) {
@@ -1088,7 +1088,7 @@ QString MainWindow::resolveCurrentSfenForGameStart_() const
 // 対局を開始する。
 void MainWindow::initializeGame()
 {
-    ensureGameStartCoordinator_();
+    ensureGameStartCoordinator();
 
     // ★ 平手SFENが優先されてしまう問題の根本対策：
     //    ダイアログ確定直後に司令塔へ渡す前に、startSfen を明示クリアし、
@@ -1097,7 +1097,7 @@ void MainWindow::initializeGame()
 
     // 現在の局面SFEN（棋譜レコードから最優先で取得）
     {
-        const QString sfen = resolveCurrentSfenForGameStart_().trimmed();
+        const QString sfen = resolveCurrentSfenForGameStart().trimmed();
         if (!sfen.isEmpty()) {
             m_currentSfenStr = sfen;
         } else {
@@ -1137,7 +1137,7 @@ void MainWindow::saveSettingsAndClose()
 void MainWindow::resetToInitialState()
 {
     // 既存呼び出し互換のため残し、内部は司令塔フックへ集約
-    onPreStartCleanupRequested_();
+    onPreStartCleanupRequested();
 }
 
 // 棋譜ファイルをダイアログから選択し、そのファイルを開く。
@@ -1159,7 +1159,7 @@ void MainWindow::chooseAndLoadKifuFile()
     SettingsService::setLastKifuDirectory(fileInfo.absolutePath());
 
     setReplayMode(true);
-    ensureGameInfoController_();
+    ensureGameInfoController();
 
     // 既存があれば破棄予約（多重生成対策）
     if (m_kifuLoadCoordinator) {
@@ -1195,7 +1195,7 @@ void MainWindow::chooseAndLoadKifuFile()
     // ★ 追加 (2): KifuLoadCoordinator 側が必要時に再配線させるためのトリガ
     // （KifuLoadCoordinator::setupBranchCandidatesWiring_ シグナル → BranchWiring の配線処理）
     if (m_branchWiring) {
-        connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::setupBranchCandidatesWiring_,
+        connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::setupBranchCandidatesWiring,
                 m_branchWiring,       &BranchWiringCoordinator::setupBranchCandidatesWiring,
                 Qt::UniqueConnection);
     }
@@ -1243,7 +1243,7 @@ void MainWindow::displayGameRecord(const QList<KifDisplayItem> disp)
 {
     if (!m_kifuRecordModel) return;
 
-    ensureRecordPresenter_();
+    ensureRecordPresenter();
     if (!m_recordPresenter) return;
 
     const qsizetype moveCount = disp.size();
@@ -1252,7 +1252,7 @@ void MainWindow::displayGameRecord(const QList<KifDisplayItem> disp)
                              : static_cast<int>(moveCount + 1);
 
     // ★ GameRecordModel を初期化
-    ensureGameRecordModel_();
+    ensureGameRecordModel();
     if (m_gameRecord) {
         m_gameRecord->initializeFromDisplayItems(disp, rowCount);
     }
@@ -1349,7 +1349,7 @@ void MainWindow::applyEditMenuEditingState(bool editing)
 
 void MainWindow::beginPositionEditing()
 {
-    ensurePositionEditCoordinator_();
+    ensurePositionEditCoordinator();
     if (m_posEditCoordinator) {
         // 最新の依存オブジェクトを同期
         m_posEditCoordinator->setPositionEditController(m_posEdit);
@@ -1361,7 +1361,7 @@ void MainWindow::beginPositionEditing()
 
 void MainWindow::finishPositionEditing()
 {
-    ensurePositionEditCoordinator_();
+    ensurePositionEditCoordinator();
     if (m_posEditCoordinator) {
         // 最新の依存オブジェクトを同期
         m_posEditCoordinator->setPositionEditController(m_posEdit);
@@ -1380,7 +1380,7 @@ void MainWindow::movePieceImmediately()
 
 void MainWindow::setGameOverMove(MatchCoordinator::Cause cause, bool loserIsPlayerOne)
 {
-    ensureGameStateController_();
+    ensureGameStateController();
     if (m_gameStateController) {
         m_gameStateController->setGameOverMove(cause, loserIsPlayerOne);
     }
@@ -1406,7 +1406,7 @@ void MainWindow::appendKifuLine(const QString& text, const QString& elapsedTime)
 
 // 人間の手番かどうかを判定するヘルパー
 // 対局中で、現在手番が人間なら true を返す
-bool MainWindow::isHumanTurnNow_() const
+bool MainWindow::isHumanTurnNow() const
 {
     // 対局中でなければ常に true（編集等では制限しない）
     switch (m_playMode) {
@@ -1443,9 +1443,9 @@ bool MainWindow::isHumanTurnNow_() const
 }
 
 // ★ 新規: GameInfoPaneControllerの初期化（PlayerInfoWiring経由）
-void MainWindow::ensureGameInfoController_()
+void MainWindow::ensureGameInfoController()
 {
-    ensurePlayerInfoWiring_();
+    ensurePlayerInfoWiring();
     if (m_playerInfoWiring && !m_gameInfoController) {
         // ★ 追加: PlayerInfoWiring側でGameInfoPaneControllerを確実に生成
         m_playerInfoWiring->ensureGameInfoController();
@@ -1454,9 +1454,9 @@ void MainWindow::ensureGameInfoController_()
 }
 
 // ★ 追加: 起動時に対局情報タブを追加（PlayerInfoWiring経由）
-void MainWindow::addGameInfoTabAtStartup_()
+void MainWindow::addGameInfoTabAtStartup()
 {
-    ensurePlayerInfoWiring_();
+    ensurePlayerInfoWiring();
     if (m_playerInfoWiring) {
         // ★ 追加: m_tabが設定されている場合はPlayerInfoWiringにも設定
         if (m_tab) {
@@ -1469,7 +1469,7 @@ void MainWindow::addGameInfoTabAtStartup_()
 }
 
 // ★ 追加: 対局情報テーブルにデフォルト値を設定（PlayerInfoWiring内部で実行）
-void MainWindow::populateDefaultGameInfo_()
+void MainWindow::populateDefaultGameInfo()
 {
     // PlayerInfoWiring::addGameInfoTabAtStartup()内で呼ばれるため、
     // 直接呼ぶ必要がある場合のみ実行
@@ -1483,27 +1483,27 @@ void MainWindow::populateDefaultGameInfo_()
 }
 
 // ★ 追加: 対局者名設定フック（PlayerInfoWiring経由）
-void MainWindow::onSetPlayersNames_(const QString& p1, const QString& p2)
+void MainWindow::onSetPlayersNames(const QString& p1, const QString& p2)
 {
-    ensurePlayerInfoWiring_();
+    ensurePlayerInfoWiring();
     if (m_playerInfoWiring) {
         m_playerInfoWiring->onSetPlayersNames(p1, p2);
     }
 }
 
 // ★ 追加: エンジン名設定フック（PlayerInfoWiring経由）
-void MainWindow::onSetEngineNames_(const QString& e1, const QString& e2)
+void MainWindow::onSetEngineNames(const QString& e1, const QString& e2)
 {
-    ensurePlayerInfoWiring_();
+    ensurePlayerInfoWiring();
     if (m_playerInfoWiring) {
         m_playerInfoWiring->onSetEngineNames(e1, e2);
     }
 }
 
 // ★ 追加: 対局情報タブの先手・後手名を更新（PlayerInfoWiring経由）
-void MainWindow::updateGameInfoPlayerNames_(const QString& blackName, const QString& whiteName)
+void MainWindow::updateGameInfoPlayerNames(const QString& blackName, const QString& whiteName)
 {
-    ensurePlayerInfoWiring_();
+    ensurePlayerInfoWiring();
     if (m_playerInfoWiring) {
         m_playerInfoWiring->updateGameInfoPlayerNames(blackName, whiteName);
     }
@@ -1512,46 +1512,46 @@ void MainWindow::updateGameInfoPlayerNames_(const QString& blackName, const QStr
 // ★ 追加: 元の対局情報を保存（PlayerInfoWiring経由）
 void MainWindow::setOriginalGameInfo(const QList<KifGameInfoItem>& items)
 {
-    ensurePlayerInfoWiring_();
+    ensurePlayerInfoWiring();
     if (m_playerInfoWiring) {
         m_playerInfoWiring->setOriginalGameInfo(items);
     }
 }
 
 // ★ 追加: 現在の対局に基づいて対局情報タブを更新（PlayerInfoWiring経由）
-void MainWindow::updateGameInfoForCurrentMatch_()
+void MainWindow::updateGameInfoForCurrentMatch()
 {
-    ensurePlayerInfoWiring_();
+    ensurePlayerInfoWiring();
     if (m_playerInfoWiring) {
         m_playerInfoWiring->updateGameInfoForCurrentMatch();
     }
 }
 
 // ★ 追加: 対局者名確定時のスロット（PlayerInfoWiring経由）
-void MainWindow::onPlayerNamesResolved_(const QString& human1, const QString& human2,
+void MainWindow::onPlayerNamesResolved(const QString& human1, const QString& human2,
                                         const QString& engine1, const QString& engine2,
                                         int playMode)
 {
     qDebug().noquote() << "[MW] onPlayerNamesResolved_: playMode=" << playMode;
 
-    ensurePlayerInfoWiring_();
+    ensurePlayerInfoWiring();
     if (m_playerInfoWiring) {
         m_playerInfoWiring->onPlayerNamesResolved(human1, human2, engine1, engine2, playMode);
     }
 }
 
 // ★ 追加: GameInfoPaneControllerからの更新通知
-void MainWindow::onGameInfoUpdated_(const QList<KifGameInfoItem>& items)
+void MainWindow::onGameInfoUpdated(const QList<KifGameInfoItem>& items)
 {
     qDebug().noquote() << "[MW] onGameInfoUpdated_: Game info updated, items=" << items.size();
 }
 
 // ★ 追加: 連続対局設定を受信
-void MainWindow::onConsecutiveGamesConfigured_(int totalGames, bool switchTurn)
+void MainWindow::onConsecutiveGamesConfigured(int totalGames, bool switchTurn)
 {
     qDebug().noquote() << "[MW] onConsecutiveGamesConfigured_: totalGames=" << totalGames << " switchTurn=" << switchTurn;
 
-    ensureConsecutiveGamesController_();
+    ensureConsecutiveGamesController();
     if (m_consecutiveGamesController) {
         m_consecutiveGamesController->configure(totalGames, switchTurn);
     }
@@ -1564,12 +1564,12 @@ void MainWindow::onConsecutiveGamesConfigured_(int totalGames, bool switchTurn)
 }
 
 // ★ 追加: 対局開始時の設定を保存（連続対局用）
-void MainWindow::onGameStarted_(const MatchCoordinator::StartOptions& opt)
+void MainWindow::onGameStarted(const MatchCoordinator::StartOptions& opt)
 {
     qDebug().noquote() << "[MW] onGameStarted_: mode=" << static_cast<int>(opt.mode)
                        << " sfenStart=" << opt.sfenStart;
 
-    ensureConsecutiveGamesController_();
+    ensureConsecutiveGamesController();
     if (m_consecutiveGamesController) {
         m_consecutiveGamesController->onGameStarted(opt, m_lastTimeControl);
     }
@@ -1579,12 +1579,12 @@ void MainWindow::onGameStarted_(const MatchCoordinator::StartOptions& opt)
 }
 
 // ★ 追加: 連続対局の次の対局を開始
-void MainWindow::startNextConsecutiveGame_()
+void MainWindow::startNextConsecutiveGame()
 {
     qDebug().noquote() << "[MW] startNextConsecutiveGame_: remaining=" << m_consecutiveGamesRemaining
                        << " gameNumber=" << m_consecutiveGameNumber;
 
-    ensureConsecutiveGamesController_();
+    ensureConsecutiveGamesController();
     if (m_consecutiveGamesController && m_consecutiveGamesController->shouldStartNextGame()) {
         m_consecutiveGamesController->startNextGame();
 
@@ -1597,7 +1597,7 @@ void MainWindow::startNextConsecutiveGame_()
 void MainWindow::syncBoardAndHighlightsAtRow(int ply)
 {
     qDebug() << "[MW-DEBUG] syncBoardAndHighlightsAtRow ENTER ply=" << ply;
-    ensureRecordNavigationController_();
+    ensureRecordNavigationController();
     if (m_recordNavController) {
         m_recordNavController->syncBoardAndHighlightsAtRow(ply);
     }
@@ -1729,7 +1729,7 @@ int MainWindow::currentPly() const
 
 void MainWindow::applySelect(int row, int ply)
 {
-    ensureRecordNavigationController_();
+    ensureRecordNavigationController();
     if (m_recordNavController) {
         m_recordNavController->applySelect(row, ply);
     }
@@ -1797,7 +1797,7 @@ void MainWindow::setupEngineAnalysisTab()
     // 分岐ツリーのアクティベートを MainWindow スロットへ（ラムダ不使用）
     QObject::connect(
         m_analysisTab, &EngineAnalysisTab::branchNodeActivated,
-        this,          &MainWindow::onBranchNodeActivated_,
+        this,          &MainWindow::onBranchNodeActivated,
         Qt::UniqueConnection);
 
     // ★ 追加: コメント更新シグナルの接続
@@ -1819,7 +1819,7 @@ void MainWindow::setupEngineAnalysisTab()
     }
 
     // ★ 追加: 起動時に対局情報タブを追加
-    addGameInfoTabAtStartup_();
+    addGameInfoTabAtStartup();
 }
 
 // src/app/mainwindow.cpp
@@ -1829,7 +1829,7 @@ void MainWindow::initMatchCoordinator()
     if (!m_gameController || !m_shogiView) return;
 
     // まず時計を用意（nullでも可だが、あれば渡す）
-    ensureTimeController_();
+    ensureTimeController();
 
     using std::placeholders::_1;
     using std::placeholders::_2;
@@ -1856,29 +1856,29 @@ void MainWindow::initMatchCoordinator()
     d.sfenRecord = m_sfenRecord;
 
     // ---- ここは「コメントアウト」せず、関数バインドで割り当て ----
-    d.hooks.appendEvalP1       = std::bind(&MainWindow::requestRedrawEngine1Eval_, this);
-    d.hooks.appendEvalP2       = std::bind(&MainWindow::requestRedrawEngine2Eval_, this);
+    d.hooks.appendEvalP1       = std::bind(&MainWindow::requestRedrawEngine1Eval, this);
+    d.hooks.appendEvalP2       = std::bind(&MainWindow::requestRedrawEngine2Eval, this);
     d.hooks.sendGoToEngine     = std::bind(&MatchCoordinator::sendGoToEngine,   m_match, _1, _2);
     d.hooks.sendStopToEngine   = std::bind(&MatchCoordinator::sendStopToEngine, m_match, _1);
     d.hooks.sendRawToEngine    = std::bind(&MatchCoordinator::sendRawToEngine,  m_match, _1, _2);
-    d.hooks.initializeNewGame  = std::bind(&MainWindow::initializeNewGame_, this, _1);
-    d.hooks.showMoveHighlights = std::bind(&MainWindow::showMoveHighlights_, this, _1, _2);
-    d.hooks.appendKifuLine     = std::bind(&MainWindow::appendKifuLineHook_, this, _1, _2);
+    d.hooks.initializeNewGame  = std::bind(&MainWindow::initializeNewGameHook, this, _1);
+    d.hooks.showMoveHighlights = std::bind(&MainWindow::showMoveHighlights, this, _1, _2);
+    d.hooks.appendKifuLine     = std::bind(&MainWindow::appendKifuLineHook, this, _1, _2);
 
     // ★ 追加（今回の肝）：結果ダイアログ表示フックを配線
-    d.hooks.showGameOverDialog = std::bind(&MainWindow::showGameOverMessageBox_, this, _1, _2);
+    d.hooks.showGameOverDialog = std::bind(&MainWindow::showGameOverMessageBox, this, _1, _2);
 
     // ★★ 追加：時計から「残り/増加/秒読み」を司令塔へ提供するフックを配線
-    d.hooks.remainingMsFor = std::bind(&MainWindow::getRemainingMsFor_, this, _1);
-    d.hooks.incrementMsFor = std::bind(&MainWindow::getIncrementMsFor_, this, _1);
-    d.hooks.byoyomiMs      = std::bind(&MainWindow::getByoyomiMs_, this);
+    d.hooks.remainingMsFor = std::bind(&MainWindow::getRemainingMsFor, this, _1);
+    d.hooks.incrementMsFor = std::bind(&MainWindow::getIncrementMsFor, this, _1);
+    d.hooks.byoyomiMs      = std::bind(&MainWindow::getByoyomiMs, this);
 
     // ★ 追加：対局者名の更新フック（将棋盤ラベルと対局情報タブ）
-    d.hooks.setPlayersNames = std::bind(&MainWindow::onSetPlayersNames_, this, _1, _2);
-    d.hooks.setEngineNames  = std::bind(&MainWindow::onSetEngineNames_, this, _1, _2);
+    d.hooks.setPlayersNames = std::bind(&MainWindow::onSetPlayersNames, this, _1, _2);
+    d.hooks.setEngineNames  = std::bind(&MainWindow::onSetEngineNames, this, _1, _2);
 
     // ★ 追加：棋譜自動保存フック
-    d.hooks.autoSaveKifu = std::bind(&MainWindow::autoSaveKifuToFile_, this, _1, _2, _3, _4, _5, _6);
+    d.hooks.autoSaveKifu = std::bind(&MainWindow::autoSaveKifuToFile, this, _1, _2, _3, _4, _5, _6);
 
     // --- GameStartCoordinator の確保（1 回だけ） ---
     if (!m_gameStartCoordinator) {
@@ -1947,14 +1947,14 @@ void MainWindow::initMatchCoordinator()
         u.view             = m_shogiView;            // クリック可否の切替
 
         MatchCoordinator::UndoHooks h;
-        h.getMainRowGuard                 = std::bind(&MainWindow::getMainRowGuard_, this);
-        h.setMainRowGuard                 = std::bind(&MainWindow::setMainRowGuard_, this, _1);
+        h.getMainRowGuard                 = std::bind(&MainWindow::getMainRowGuard, this);
+        h.setMainRowGuard                 = std::bind(&MainWindow::setMainRowGuard, this, _1);
         h.updateHighlightsForPly          = std::bind(&MainWindow::syncBoardAndHighlightsAtRow, this, _1);
-        h.updateTurnAndTimekeepingDisplay = std::bind(&MainWindow::updateTurnAndTimekeepingDisplay_, this);
+        h.updateTurnAndTimekeepingDisplay = std::bind(&MainWindow::updateTurnAndTimekeepingDisplay, this);
         // 評価値などの巻戻しが必要なら将来ここに追加：
-        // h.handleUndoMove               = std::bind(&MainWindow::onUndoMove_, this, _1);
-        h.isHumanSide                     = std::bind(&MainWindow::isHumanSide_, this, _1);
-        h.isHvH                           = std::bind(&MainWindow::isHvH_, this);
+        // h.handleUndoMove               = std::bind(&MainWindow::onUndoMove, this, _1);
+        h.isHumanSide                     = std::bind(&MainWindow::isHumanSide, this, _1);
+        h.isHvH                           = std::bind(&MainWindow::isHvH, this);
 
         m_match->setUndoBindings(u, h);
     }
@@ -1972,17 +1972,17 @@ void MainWindow::initMatchCoordinator()
     }
 
     // 盤クリックの配線
-    connectBoardClicks_();
+    connectBoardClicks();
 
     // 人間操作 → 合法判定＆適用の配線
-    connectMoveRequested_();
+    connectMoveRequested();
 
     // 既定モード（必要に応じて開始時に上書き）
     if (m_boardController)
         m_boardController->setMode(BoardInteractionController::Mode::HumanVsHuman);
 }
 
-void MainWindow::ensureTimeController_()
+void MainWindow::ensureTimeController()
 {
     if (m_timeController) return;
 
@@ -1993,7 +1993,7 @@ void MainWindow::ensureTimeController_()
 
 void MainWindow::onMatchGameEnded(const MatchCoordinator::GameEndInfo& info)
 {
-    ensureGameStateController_();
+    ensureGameStateController();
     if (m_gameStateController) {
         m_gameStateController->onMatchGameEnded(info);
     }
@@ -2003,7 +2003,7 @@ void MainWindow::onMatchGameEnded(const MatchCoordinator::GameEndInfo& info)
                         m_playMode == PlayMode::HandicapEngineVsEngine);
     if (isEvE && m_consecutiveGamesRemaining > 0) {
         qDebug() << "[MW] EvE game ended, starting next consecutive game...";
-        startNextConsecutiveGame_();
+        startNextConsecutiveGame();
     }
 }
 
@@ -2014,7 +2014,7 @@ void MainWindow::onActionFlipBoardTriggered(bool /*checked*/)
 
 void MainWindow::onRequestAppendGameOverMove(const MatchCoordinator::GameEndInfo& info)
 {
-    ensureGameStateController_();
+    ensureGameStateController();
     if (m_gameStateController) {
         m_gameStateController->onRequestAppendGameOverMove(info);
     }
@@ -2022,7 +2022,7 @@ void MainWindow::onRequestAppendGameOverMove(const MatchCoordinator::GameEndInfo
 
 void MainWindow::setupBoardInteractionController()
 {
-    ensureBoardSetupController_();
+    ensureBoardSetupController();
     if (m_boardSetupController) {
         m_boardSetupController->setupBoardInteractionController();
         m_boardController = m_boardSetupController->boardController();
@@ -2030,39 +2030,39 @@ void MainWindow::setupBoardInteractionController()
         // 人間の手番かどうかを判定するコールバックを設定
         if (m_boardController) {
             m_boardController->setIsHumanTurnCallback([this]() -> bool {
-                return isHumanTurnNow_();
+                return isHumanTurnNow();
             });
         }
     }
 }
 
-void MainWindow::connectBoardClicks_()
+void MainWindow::connectBoardClicks()
 {
-    ensureBoardSetupController_();
+    ensureBoardSetupController();
     if (m_boardSetupController) {
         m_boardSetupController->connectBoardClicks();
     }
 }
 
-void MainWindow::connectMoveRequested_()
+void MainWindow::connectMoveRequested()
 {
     // BoardInteractionControllerからのシグナルをMainWindow経由で処理
     if (m_boardController) {
         QObject::connect(
             m_boardController, &BoardInteractionController::moveRequested,
-            this,              &MainWindow::onMoveRequested_,
+            this,              &MainWindow::onMoveRequested,
             Qt::UniqueConnection);
     }
 }
 
-void MainWindow::onMoveRequested_(const QPoint& from, const QPoint& to)
+void MainWindow::onMoveRequested(const QPoint& from, const QPoint& to)
 {
     qDebug().noquote() << "[MW] onMoveRequested_: from=" << from << " to=" << to
                        << " m_playMode=" << static_cast<int>(m_playMode)
                        << " m_match=" << (m_match ? "valid" : "null")
                        << " matchMode=" << (m_match ? static_cast<int>(m_match->playMode()) : -1);
     
-    ensureBoardSetupController_();
+    ensureBoardSetupController();
     if (m_boardSetupController) {
         // 最新の状態を同期
         m_boardSetupController->setPlayMode(m_playMode);
@@ -2076,7 +2076,7 @@ void MainWindow::onMoveRequested_(const QPoint& from, const QPoint& to)
 // 再生モードの切替を ReplayController へ委譲
 void MainWindow::setReplayMode(bool on)
 {
-    ensureReplayController_();
+    ensureReplayController();
     if (m_replayController) {
         m_replayController->setReplayMode(on);
     }
@@ -2129,7 +2129,7 @@ std::pair<int,int> MainWindow::resolveBranchHighlightTarget(int row, int ply) co
     return { vid, ply };
 }
 
-void MainWindow::onBranchNodeActivated_(int row, int ply)
+void MainWindow::onBranchNodeActivated(int row, int ply)
 {
     if (row < 0 || row >= m_resolvedRows.size()) return;
 
@@ -2144,7 +2144,7 @@ void MainWindow::onBranchNodeActivated_(int row, int ply)
 // 毎手の着手確定時：ライブ分岐ツリー更新をイベントループ後段に遅延
 void MainWindow::onMoveCommitted(ShogiGameController::Player mover, int ply)
 {
-    ensureBoardSetupController_();
+    ensureBoardSetupController();
     if (m_boardSetupController) {
         m_boardSetupController->setPlayMode(m_playMode);
         m_boardSetupController->onMoveCommitted(mover, ply);
@@ -2185,7 +2185,7 @@ void MainWindow::flipBoardAndUpdatePlayerInfo()
     qDebug() << "[UI] flipBoardAndUpdatePlayerInfo LEAVE";
 }
 
-void MainWindow::setupNameAndClockFonts_()
+void MainWindow::setupNameAndClockFonts()
 {
     if (!m_shogiView) return;
     auto* n1 = m_shogiView->blackNameLabel();
@@ -2262,7 +2262,7 @@ void MainWindow::performDeferredEvalChartResize()
 
 void MainWindow::onGameOverStateChanged(const MatchCoordinator::GameOverState& st)
 {
-    ensureGameStateController_();
+    ensureGameStateController();
     if (m_gameStateController) {
         m_gameStateController->onGameOverStateChanged(st);
     }
@@ -2270,13 +2270,13 @@ void MainWindow::onGameOverStateChanged(const MatchCoordinator::GameOverState& s
 
 void MainWindow::handleBreakOffGame()
 {
-    ensureGameStateController_();
+    ensureGameStateController();
     if (m_gameStateController) {
         m_gameStateController->handleBreakOffGame();
     }
 }
 
-void MainWindow::ensureReplayController_()
+void MainWindow::ensureReplayController()
 {
     if (m_replayController) return;
 
@@ -2288,7 +2288,7 @@ void MainWindow::ensureReplayController_()
     m_replayController->setRecordPane(m_recordPane);
 }
 
-void MainWindow::ensureDialogCoordinator_()
+void MainWindow::ensureDialogCoordinator()
 {
     if (m_dialogCoordinator) return;
 
@@ -2297,7 +2297,7 @@ void MainWindow::ensureDialogCoordinator_()
     m_dialogCoordinator->setGameController(m_gameController);
 }
 
-void MainWindow::ensureKifuExportController_()
+void MainWindow::ensureKifuExportController()
 {
     if (m_kifuExportController) return;
 
@@ -2313,7 +2313,7 @@ void MainWindow::ensureKifuExportController_()
 }
 
 // KifuExportControllerに依存を設定するヘルパー
-void MainWindow::updateKifuExportDependencies_()
+void MainWindow::updateKifuExportDependencies()
 {
     if (!m_kifuExportController) return;
 
@@ -2346,7 +2346,7 @@ void MainWindow::updateKifuExportDependencies_()
     m_kifuExportController->setDependencies(deps);
 }
 
-void MainWindow::ensureGameStateController_()
+void MainWindow::ensureGameStateController()
 {
     if (m_gameStateController) return;
 
@@ -2370,7 +2370,7 @@ void MainWindow::ensureGameStateController_()
         std::bind(&MainWindow::setReplayMode, this, std::placeholders::_1));
     m_gameStateController->setRefreshBranchTreeCallback([this]() {
         m_currentSelectedPly = 0;  // リセット
-        refreshBranchTreeLive_();
+        refreshBranchTreeLive();
     });
     m_gameStateController->setUpdatePlyStateCallback([this](int activePly, int selectedPly, int moveIndex) {
         m_activePly = activePly;
@@ -2379,12 +2379,12 @@ void MainWindow::ensureGameStateController_()
     });
 }
 
-void MainWindow::ensurePlayerInfoController_()
+void MainWindow::ensurePlayerInfoController()
 {
     if (m_playerInfoController) return;
 
     // PlayerInfoWiring経由でPlayerInfoControllerを取得
-    ensurePlayerInfoWiring_();
+    ensurePlayerInfoWiring();
     if (m_playerInfoWiring) {
         m_playerInfoController = m_playerInfoWiring->playerInfoController();
     }
@@ -2397,7 +2397,7 @@ void MainWindow::ensurePlayerInfoController_()
     }
 }
 
-void MainWindow::ensureBoardSetupController_()
+void MainWindow::ensureBoardSetupController()
 {
     if (m_boardSetupController) return;
 
@@ -2414,10 +2414,10 @@ void MainWindow::ensureBoardSetupController_()
 
     // コールバックの設定
     m_boardSetupController->setEnsurePositionEditCallback([this]() {
-        ensurePositionEditController_();
+        ensurePositionEditController();
     });
     m_boardSetupController->setEnsureTimeControllerCallback([this]() {
-        ensureTimeController_();
+        ensureTimeController();
     });
     m_boardSetupController->setUpdateGameRecordCallback([this](const QString& moveText, const QString& elapsed) {
         m_lastMove = moveText;
@@ -2430,11 +2430,11 @@ void MainWindow::ensureBoardSetupController_()
         redrawEngine2EvaluationGraph(ply);
     });
     m_boardSetupController->setRefreshBranchTreeCallback([this]() {
-        refreshBranchTreeLive_();
+        refreshBranchTreeLive();
     });
 }
 
-void MainWindow::ensurePvClickController_()
+void MainWindow::ensurePvClickController()
 {
     if (m_pvClickController) return;
 
@@ -2448,7 +2448,7 @@ void MainWindow::ensurePvClickController_()
     m_pvClickController->setUsiMoves(&m_gameUsiMoves);
 }
 
-void MainWindow::ensureRecordNavigationController_()
+void MainWindow::ensureRecordNavigationController()
 {
     if (m_recordNavController) return;
 
@@ -2472,7 +2472,7 @@ void MainWindow::ensureRecordNavigationController_()
 
     // コールバックの設定
     m_recordNavController->setEnsureBoardSyncCallback([this]() {
-        ensureBoardSyncPresenter_();
+        ensureBoardSyncPresenter();
         if (m_recordNavController) {
             m_recordNavController->setBoardSyncPresenter(m_boardSync);
         }
@@ -2501,7 +2501,7 @@ void MainWindow::ensureRecordNavigationController_()
     });
 }
 
-void MainWindow::ensurePositionEditCoordinator_()
+void MainWindow::ensurePositionEditCoordinator()
 {
     if (m_posEditCoordinator) return;
 
@@ -2529,7 +2529,7 @@ void MainWindow::ensurePositionEditCoordinator_()
         applyEditMenuEditingState(editing);
     });
     m_posEditCoordinator->setEnsurePositionEditCallback([this]() {
-        ensurePositionEditController_();
+        ensurePositionEditController();
         if (m_posEditCoordinator) {
             m_posEditCoordinator->setPositionEditController(m_posEdit);
         }
@@ -2551,7 +2551,7 @@ void MainWindow::ensurePositionEditCoordinator_()
             this, &MainWindow::onReverseTriggered, Qt::UniqueConnection);
 }
 
-void MainWindow::ensureCsaGameWiring_()
+void MainWindow::ensureCsaGameWiring()
 {
     if (m_csaGameWiring) return;
 
@@ -2582,18 +2582,18 @@ void MainWindow::ensureCsaGameWiring_()
     connect(m_csaGameWiring, &CsaGameWiring::appendKifuLineRequested,
             this, &MainWindow::appendKifuLine);
     connect(m_csaGameWiring, &CsaGameWiring::refreshBranchTreeRequested,
-            this, &MainWindow::refreshBranchTreeLive_);
+            this, &MainWindow::refreshBranchTreeLive);
     connect(m_csaGameWiring, &CsaGameWiring::playModeChanged,
-            this, &MainWindow::onCsaPlayModeChanged_);
+            this, &MainWindow::onCsaPlayModeChanged);
     connect(m_csaGameWiring, &CsaGameWiring::showGameEndDialogRequested,
-            this, &MainWindow::onCsaShowGameEndDialog_);
+            this, &MainWindow::onCsaShowGameEndDialog);
     connect(m_csaGameWiring, &CsaGameWiring::errorMessageRequested,
             this, &MainWindow::displayErrorMessage);
 
     qDebug().noquote() << "[MW] ensureCsaGameWiring_: created and connected";
 }
 
-void MainWindow::ensureJosekiWiring_()
+void MainWindow::ensureJosekiWiring()
 {
     if (m_josekiWiring) return;
 
@@ -2612,14 +2612,14 @@ void MainWindow::ensureJosekiWiring_()
 
     // JosekiWindowWiringからのシグナルをMainWindowに接続
     connect(m_josekiWiring, &JosekiWindowWiring::moveRequested,
-            this, &MainWindow::onMoveRequested_);
+            this, &MainWindow::onMoveRequested);
     connect(m_josekiWiring, &JosekiWindowWiring::forcedPromotionRequested,
-            this, &MainWindow::onJosekiForcedPromotion_);
+            this, &MainWindow::onJosekiForcedPromotion);
 
     qDebug().noquote() << "[MW] ensureJosekiWiring_: created and connected";
 }
 
-void MainWindow::ensureMenuWiring_()
+void MainWindow::ensureMenuWiring()
 {
     if (m_menuWiring) return;
 
@@ -2632,7 +2632,7 @@ void MainWindow::ensureMenuWiring_()
     qDebug().noquote() << "[MW] ensureMenuWiring_: created and connected";
 }
 
-void MainWindow::ensurePlayerInfoWiring_()
+void MainWindow::ensurePlayerInfoWiring()
 {
     if (m_playerInfoWiring) return;
 
@@ -2650,7 +2650,7 @@ void MainWindow::ensurePlayerInfoWiring_()
 
     // PlayerInfoWiringからのシグナルをMainWindowに接続
     connect(m_playerInfoWiring, &PlayerInfoWiring::gameInfoUpdated,
-            this, &MainWindow::onGameInfoUpdated_);
+            this, &MainWindow::onGameInfoUpdated);
     connect(m_playerInfoWiring, &PlayerInfoWiring::tabCurrentChanged,
             this, &MainWindow::onTabCurrentChanged);
 
@@ -2660,7 +2660,7 @@ void MainWindow::ensurePlayerInfoWiring_()
     qDebug().noquote() << "[MW] ensurePlayerInfoWiring_: created and connected";
 }
 
-void MainWindow::ensurePreStartCleanupHandler_()
+void MainWindow::ensurePreStartCleanupHandler()
 {
     if (m_preStartCleanupHandler) return;
 
@@ -2690,7 +2690,7 @@ void MainWindow::ensurePreStartCleanupHandler_()
     qDebug().noquote() << "[MW] ensurePreStartCleanupHandler_: created and connected";
 }
 
-void MainWindow::ensureTurnSyncBridge_()
+void MainWindow::ensureTurnSyncBridge()
 {
     auto* gc = m_gameController;
     auto* tm = findChild<TurnManager*>("TurnManager");
@@ -2699,13 +2699,13 @@ void MainWindow::ensureTurnSyncBridge_()
     TurnSyncBridge::wire(gc, tm, this);
 }
 
-void MainWindow::ensurePositionEditController_()
+void MainWindow::ensurePositionEditController()
 {
     if (m_posEdit) return;
     m_posEdit = new PositionEditController(this); // 親=MainWindow にして寿命管理
 }
 
-void MainWindow::ensureBoardSyncPresenter_()
+void MainWindow::ensureBoardSyncPresenter()
 {
     if (m_boardSync) return;
 
@@ -2719,13 +2719,13 @@ void MainWindow::ensureBoardSyncPresenter_()
     m_boardSync = new BoardSyncPresenter(d, this);
 }
 
-void MainWindow::ensureAnalysisPresenter_()
+void MainWindow::ensureAnalysisPresenter()
 {
     if (!m_analysisPresenter)
         m_analysisPresenter = new AnalysisResultsPresenter(this);
 }
 
-void MainWindow::ensureGameStartCoordinator_()
+void MainWindow::ensureGameStartCoordinator()
 {
     if (m_gameStart) return;
 
@@ -2739,18 +2739,18 @@ void MainWindow::ensureGameStartCoordinator_()
 
     // 依頼シグナルを既存メソッドへ接続（ラムダ不使用）
     connect(m_gameStart, &GameStartCoordinator::requestPreStartCleanup,
-            this, &MainWindow::onPreStartCleanupRequested_);
+            this, &MainWindow::onPreStartCleanupRequested);
 
     connect(m_gameStart, &GameStartCoordinator::requestApplyTimeControl,
-            this, &MainWindow::onApplyTimeControlRequested_);
+            this, &MainWindow::onApplyTimeControlRequested);
 
     // ★ 追加: 対局者名確定シグナルを接続
     connect(m_gameStart, &GameStartCoordinator::playerNamesResolved,
-            this, &MainWindow::onPlayerNamesResolved_);
+            this, &MainWindow::onPlayerNamesResolved);
 
     // ★ 追加: 連続対局設定シグナルを接続
     connect(m_gameStart, &GameStartCoordinator::consecutiveGamesConfigured,
-            this, &MainWindow::onConsecutiveGamesConfigured_);
+            this, &MainWindow::onConsecutiveGamesConfigured);
 
     // ★ 追加: 対局開始時にナビゲーション（棋譜欄と矢印ボタン）を無効化
     connect(m_gameStart, &GameStartCoordinator::started,
@@ -2758,7 +2758,7 @@ void MainWindow::ensureGameStartCoordinator_()
 
     // ★ 追加: 対局開始時の設定を保存（連続対局用）
     connect(m_gameStart, &GameStartCoordinator::started,
-            this, &MainWindow::onGameStarted_);
+            this, &MainWindow::onGameStarted);
 
     // ★ 追加: 盤面反転シグナルを接続（人を手前に表示する機能用）
     connect(m_gameStart, &GameStartCoordinator::boardFlipped,
@@ -2766,15 +2766,15 @@ void MainWindow::ensureGameStartCoordinator_()
             Qt::UniqueConnection);
 }
 
-void MainWindow::onPreStartCleanupRequested_()
+void MainWindow::onPreStartCleanupRequested()
 {
-    ensurePreStartCleanupHandler_();
+    ensurePreStartCleanupHandler();
     if (m_preStartCleanupHandler) {
         m_preStartCleanupHandler->performCleanup();
     }
 }
 
-void MainWindow::onApplyTimeControlRequested_(const GameStartCoordinator::TimeControl& tc)
+void MainWindow::onApplyTimeControlRequested(const GameStartCoordinator::TimeControl& tc)
 {
     qDebug().noquote()
     << "[MW] onApplyTimeControlRequested_:"
@@ -2836,7 +2836,7 @@ void MainWindow::onApplyTimeControlRequested_(const GameStartCoordinator::TimeCo
     if (m_shogiView) m_shogiView->update();
 }
 
-void MainWindow::ensureRecordPresenter_()
+void MainWindow::ensureRecordPresenter()
 {
     if (m_recordPresenter) return;
 
@@ -2857,24 +2857,24 @@ void MainWindow::ensureRecordPresenter_()
 }
 
 // UIスレッド安全のため queued 呼び出しにしています
-void MainWindow::requestRedrawEngine1Eval_()
+void MainWindow::requestRedrawEngine1Eval()
 {
-    qDebug() << "[EVAL_GRAPH] requestRedrawEngine1Eval_() hook called - invoking redrawEngine1EvaluationGraph";
+    qDebug() << "[EVAL_GRAPH] requestRedrawEngine1Eval() hook called - invoking redrawEngine1EvaluationGraph";
     // デフォルトパラメータ -1 で呼び出し（HvEでは sfenRecord から計算）
     redrawEngine1EvaluationGraph(-1);
 }
 
-void MainWindow::requestRedrawEngine2Eval_()
+void MainWindow::requestRedrawEngine2Eval()
 {
-    qDebug() << "[EVAL_GRAPH] requestRedrawEngine2Eval_() hook called - invoking redrawEngine2EvaluationGraph";
+    qDebug() << "[EVAL_GRAPH] requestRedrawEngine2Eval() hook called - invoking redrawEngine2EvaluationGraph";
     // デフォルトパラメータ -1 で呼び出し（HvEでは sfenRecord から計算）
     redrawEngine2EvaluationGraph(-1);
 }
 
-void MainWindow::initializeNewGame_(const QString& s)
+void MainWindow::initializeNewGameHook(const QString& s)
 {
     // --- デバッグ：誰がこの関数を呼び出したか追跡 ---
-    qDebug() << "[DEBUG] MainWindow::initializeNewGame_ called with sfen:" << s;
+    qDebug() << "[DEBUG] MainWindow::initializeNewGameHook called with sfen:" << s;
     qDebug() << "[DEBUG]   PlayMode:" << static_cast<int>(m_playMode);
     qDebug() << "[DEBUG]   Call stack trace requested";
     
@@ -2897,19 +2897,19 @@ void MainWindow::initializeNewGame_(const QString& s)
     updateSecondEngineVisibility();  // ★ 追加: 棋譜読み込み後も2番目エンジン表示を更新
 }
 
-void MainWindow::showMoveHighlights_(const QPoint& from, const QPoint& to)
+void MainWindow::showMoveHighlights(const QPoint& from, const QPoint& to)
 {
     if (m_boardController) m_boardController->showMoveHighlights(from, to);
 }
 
 // ===== MainWindow.cpp: appendKifuLineHook_（ライブ分岐ツリー更新を追加） =====
-void MainWindow::appendKifuLineHook_(const QString& text, const QString& elapsed)
+void MainWindow::appendKifuLineHook(const QString& text, const QString& elapsed)
 {
     // 既存：棋譜欄へ 1手追記（Presenter がモデルへ反映）
     appendKifuLine(text, elapsed);
 
     // ★追加：HvH/HvE の「1手指すごと」に分岐ツリーを更新
-    refreshBranchTreeLive_();
+    refreshBranchTreeLive();
 }
 
 void MainWindow::onRecordRowChangedByPresenter(int row, const QString& comment)
@@ -2918,13 +2918,13 @@ void MainWindow::onRecordRowChangedByPresenter(int row, const QString& comment)
              << "comment=" << comment.left(30) << "..."
              << "playMode=" << static_cast<int>(m_playMode);
     
-    ensureRecordNavigationController_();
+    ensureRecordNavigationController();
     if (m_recordNavController) {
         m_recordNavController->onRecordRowChangedByPresenter(row, comment);
     }
 }
 
-void MainWindow::onFlowError_(const QString& msg)
+void MainWindow::onFlowError(const QString& msg)
 {
     // 既存のエラー表示に委譲（UI 専用）
     displayErrorMessage(msg);
@@ -2936,7 +2936,7 @@ void MainWindow::onResignationTriggered()
     handleResignation();
 }
 
-qint64 MainWindow::getRemainingMsFor_(MatchCoordinator::Player p) const
+qint64 MainWindow::getRemainingMsFor(MatchCoordinator::Player p) const
 {
     if (!m_timeController) {
         qDebug() << "[MW] getRemainingMsFor_: timeController=null";
@@ -2946,7 +2946,7 @@ qint64 MainWindow::getRemainingMsFor_(MatchCoordinator::Player p) const
     return m_timeController->getRemainingMs(player);
 }
 
-qint64 MainWindow::getIncrementMsFor_(MatchCoordinator::Player p) const
+qint64 MainWindow::getIncrementMsFor(MatchCoordinator::Player p) const
 {
     if (!m_timeController) {
         qDebug() << "[MW] getIncrementMsFor_: timeController=null";
@@ -2956,7 +2956,7 @@ qint64 MainWindow::getIncrementMsFor_(MatchCoordinator::Player p) const
     return m_timeController->getIncrementMs(player);
 }
 
-qint64 MainWindow::getByoyomiMs_() const
+qint64 MainWindow::getByoyomiMs() const
 {
     if (!m_timeController) {
         qDebug() << "[MW] getByoyomiMs_: timeController=null";
@@ -2966,20 +2966,20 @@ qint64 MainWindow::getByoyomiMs_() const
 }
 
 // 対局終了時のタイトルと本文を受け取り、情報ダイアログを表示するだけのヘルパ
-void MainWindow::showGameOverMessageBox_(const QString& title, const QString& message)
+void MainWindow::showGameOverMessageBox(const QString& title, const QString& message)
 {
-    ensureDialogCoordinator_();
+    ensureDialogCoordinator();
     if (m_dialogCoordinator) {
         m_dialogCoordinator->showGameOverMessage(title, message);
     }
 }
 
-void MainWindow::onRecordPaneMainRowChanged_(int row)
+void MainWindow::onRecordPaneMainRowChanged(int row)
 {
     qDebug() << "[MW-DEBUG] onRecordPaneMainRowChanged_ ENTER row=" << row;
 
     // RecordNavigationControllerに委譲
-    ensureRecordNavigationController_();
+    ensureRecordNavigationController();
     if (m_recordNavController) {
         // 最新の依存を同期
         m_recordNavController->setCsaGameCoordinator(m_csaGameCoordinator);
@@ -3000,7 +3000,7 @@ void MainWindow::onRecordPaneMainRowChanged_(int row)
 }
 
 // ===== MainWindow.cpp: ライブ用の KifuLoadCoordinator を確保 =====
-void MainWindow::ensureKifuLoadCoordinatorForLive_()
+void MainWindow::ensureKifuLoadCoordinatorForLive()
 {
     if (m_kifuLoadCoordinator) {
         return; // 既に用意済み
@@ -3030,7 +3030,7 @@ void MainWindow::ensureKifuLoadCoordinatorForLive_()
     // setBranchCandidatesController() 経由で注入される
     if (m_branchWiring) {
         m_branchWiring->setKifuLoader(m_kifuLoadCoordinator);
-        connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::setupBranchCandidatesWiring_,
+        connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::setupBranchCandidatesWiring,
                 m_branchWiring,       &BranchWiringCoordinator::setupBranchCandidatesWiring,
                 Qt::UniqueConnection);
 
@@ -3055,13 +3055,13 @@ void MainWindow::ensureKifuLoadCoordinatorForLive_()
 }
 
 // ===== MainWindow.cpp: ライブ対局中に分岐ツリーを更新 =====
-void MainWindow::refreshBranchTreeLive_()
+void MainWindow::refreshBranchTreeLive()
 {
-    qDebug().noquote() << "[MW-DEBUG] refreshBranchTreeLive_() ENTER";
+    qDebug().noquote() << "[MW-DEBUG] refreshBranchTreeLive() ENTER";
 
-    ensureKifuLoadCoordinatorForLive_();
+    ensureKifuLoadCoordinatorForLive();
     if (!m_kifuLoadCoordinator) {
-        qDebug().noquote() << "[MW-DEBUG] refreshBranchTreeLive_(): m_kifuLoadCoordinator is null";
+        qDebug().noquote() << "[MW-DEBUG] refreshBranchTreeLive(): m_kifuLoadCoordinator is null";
         return;
     }
 
@@ -3070,7 +3070,7 @@ void MainWindow::refreshBranchTreeLive_()
         ply = qMax(0, m_kifuRecordModel->rowCount() - 1);
     }
 
-    qDebug().noquote() << "[MW-DEBUG] refreshBranchTreeLive_(): ply=" << ply
+    qDebug().noquote() << "[MW-DEBUG] refreshBranchTreeLive(): ply=" << ply
                        << "kifuModel.rowCount=" << (m_kifuRecordModel ? m_kifuRecordModel->rowCount() : -1);
 
     // ツリーの再構築（既存）
@@ -3079,22 +3079,22 @@ void MainWindow::refreshBranchTreeLive_()
     // ★ 文脈を固定したまま、＋/オレンジ/候補欄を更新
     m_kifuLoadCoordinator->rebuildBranchPlanAndMarksForLive(ply);
 
-    qDebug().noquote() << "[MW-DEBUG] refreshBranchTreeLive_() LEAVE";
+    qDebug().noquote() << "[MW-DEBUG] refreshBranchTreeLive() LEAVE";
 }
 
 // ========== UNDO用：MainWindow 補助関数 ==========
 
-bool MainWindow::getMainRowGuard_() const
+bool MainWindow::getMainRowGuard() const
 {
     return m_onMainRowGuard;
 }
 
-void MainWindow::setMainRowGuard_(bool on)
+void MainWindow::setMainRowGuard(bool on)
 {
     m_onMainRowGuard = on;
 }
 
-bool MainWindow::isHvH_() const
+bool MainWindow::isHvH() const
 {
     if (m_gameStateController) {
         return m_gameStateController->isHvH();
@@ -3102,7 +3102,7 @@ bool MainWindow::isHvH_() const
     return (m_playMode == PlayMode::HumanVsHuman);
 }
 
-bool MainWindow::isHumanSide_(ShogiGameController::Player p) const
+bool MainWindow::isHumanSide(ShogiGameController::Player p) const
 {
     if (m_gameStateController) {
         return m_gameStateController->isHumanSide(p);
@@ -3125,7 +3125,7 @@ bool MainWindow::isHumanSide_(ShogiGameController::Player p) const
     }
 }
 
-void MainWindow::updateTurnAndTimekeepingDisplay_()
+void MainWindow::updateTurnAndTimekeepingDisplay()
 {
     // 手番ラベルなど
     setCurrentTurn();
@@ -3147,7 +3147,7 @@ void MainWindow::updateGameRecord(const QString& elapsedTime)
         (m_match && m_match->gameOverState().isOver && m_match->gameOverState().moveAppended);
     if (gameOverAppended) return;
 
-    ensureRecordPresenter_();
+    ensureRecordPresenter();
     if (m_recordPresenter) {
         m_recordPresenter->appendMoveLine(m_lastMove, elapsedTime);
 
@@ -3163,9 +3163,9 @@ void MainWindow::updateGameRecord(const QString& elapsedTime)
 // 新しい保存関数
 void MainWindow::saveKifuToFile()
 {
-    ensureGameRecordModel_();
-    ensureKifuExportController_();
-    updateKifuExportDependencies_();
+    ensureGameRecordModel();
+    ensureKifuExportController();
+    updateKifuExportDependencies();
 
     const QString path = m_kifuExportController->saveToFile();
     if (!path.isEmpty()) {
@@ -3174,7 +3174,7 @@ void MainWindow::saveKifuToFile()
 }
 
 // 棋譜自動保存
-void MainWindow::autoSaveKifuToFile_(const QString& saveDir, PlayMode playMode,
+void MainWindow::autoSaveKifuToFile(const QString& saveDir, PlayMode playMode,
                                       const QString& humanName1, const QString& humanName2,
                                       const QString& engineName1, const QString& engineName2)
 {
@@ -3187,9 +3187,9 @@ void MainWindow::autoSaveKifuToFile_(const QString& saveDir, PlayMode playMode,
     }
 
     // GameRecordModel と KifuExportController の準備
-    ensureGameRecordModel_();
-    ensureKifuExportController_();
-    updateKifuExportDependencies_();
+    ensureGameRecordModel();
+    ensureKifuExportController();
+    updateKifuExportDependencies();
 
     if (!m_gameRecord) {
         qWarning() << "[MW] autoSaveKifuToFile_: m_gameRecord is null";
@@ -3249,81 +3249,81 @@ void MainWindow::autoSaveKifuToFile_(const QString& saveDir, PlayMode playMode,
 // KIF形式で棋譜をクリップボードにコピー
 void MainWindow::copyKifToClipboard()
 {
-    ensureGameRecordModel_();
-    ensureKifuExportController_();
-    updateKifuExportDependencies_();
+    ensureGameRecordModel();
+    ensureKifuExportController();
+    updateKifuExportDependencies();
     m_kifuExportController->copyKifToClipboard();
 }
 
 // KI2形式で棋譜をクリップボードにコピー
 void MainWindow::copyKi2ToClipboard()
 {
-    ensureGameRecordModel_();
-    ensureKifuExportController_();
-    updateKifuExportDependencies_();
+    ensureGameRecordModel();
+    ensureKifuExportController();
+    updateKifuExportDependencies();
     m_kifuExportController->copyKi2ToClipboard();
 }
 
 // CSA形式で棋譜をクリップボードにコピー
 void MainWindow::copyCsaToClipboard()
 {
-    ensureGameRecordModel_();
-    ensureKifuExportController_();
-    updateKifuExportDependencies_();
+    ensureGameRecordModel();
+    ensureKifuExportController();
+    updateKifuExportDependencies();
     m_kifuExportController->copyCsaToClipboard();
 }
 
 // USI形式（全て）で棋譜をクリップボードにコピー
 void MainWindow::copyUsiToClipboard()
 {
-    ensureGameRecordModel_();
-    ensureKifuExportController_();
-    updateKifuExportDependencies_();
+    ensureGameRecordModel();
+    ensureKifuExportController();
+    updateKifuExportDependencies();
     m_kifuExportController->copyUsiToClipboard();
 }
 
 // USI形式（現在の指し手まで）で棋譜をクリップボードにコピー
 void MainWindow::copyUsiCurrentToClipboard()
 {
-    ensureGameRecordModel_();
-    ensureKifuExportController_();
-    updateKifuExportDependencies_();
+    ensureGameRecordModel();
+    ensureKifuExportController();
+    updateKifuExportDependencies();
     m_kifuExportController->copyUsiCurrentToClipboard();
 }
 
 // JKF形式で棋譜をクリップボードにコピー
 void MainWindow::copyJkfToClipboard()
 {
-    ensureGameRecordModel_();
-    ensureKifuExportController_();
-    updateKifuExportDependencies_();
+    ensureGameRecordModel();
+    ensureKifuExportController();
+    updateKifuExportDependencies();
     m_kifuExportController->copyJkfToClipboard();
 }
 
 // USEN形式で棋譜をクリップボードにコピー
 void MainWindow::copyUsenToClipboard()
 {
-    ensureGameRecordModel_();
-    ensureKifuExportController_();
-    updateKifuExportDependencies_();
+    ensureGameRecordModel();
+    ensureKifuExportController();
+    updateKifuExportDependencies();
     m_kifuExportController->copyUsenToClipboard();
 }
 
 // SFEN形式で局面をクリップボードにコピー
 void MainWindow::copySfenToClipboard()
 {
-    ensureGameRecordModel_();
-    ensureKifuExportController_();
-    updateKifuExportDependencies_();
+    ensureGameRecordModel();
+    ensureKifuExportController();
+    updateKifuExportDependencies();
     m_kifuExportController->copySfenToClipboard();
 }
 
 // BOD形式で局面をクリップボードにコピー
 void MainWindow::copyBodToClipboard()
 {
-    ensureGameRecordModel_();
-    ensureKifuExportController_();
-    updateKifuExportDependencies_();
+    ensureGameRecordModel();
+    ensureKifuExportController();
+    updateKifuExportDependencies();
     m_kifuExportController->copyBodToClipboard();
 }
 
@@ -3336,17 +3336,17 @@ void MainWindow::pasteKifuFromClipboard()
 
     // ダイアログの「取り込む」シグナルをKifuLoadCoordinatorに接続
     connect(dlg, &KifuPasteDialog::importRequested,
-            this, &MainWindow::onKifuPasteImportRequested_);
+            this, &MainWindow::onKifuPasteImportRequested);
 
     dlg->show();
 }
 
-void MainWindow::onKifuPasteImportRequested_(const QString& content)
+void MainWindow::onKifuPasteImportRequested(const QString& content)
 {
     qDebug().noquote() << "[MW] onKifuPasteImportRequested_: content length =" << content.size();
 
     // KifuLoadCoordinator を確保
-    ensureKifuLoadCoordinatorForLive_();
+    ensureKifuLoadCoordinatorForLive();
 
     if (m_kifuLoadCoordinator) {
         // 文字列から棋譜を読み込み
@@ -3369,9 +3369,9 @@ void MainWindow::overwriteKifuFile()
         return;
     }
 
-    ensureGameRecordModel_();
-    ensureKifuExportController_();
-    updateKifuExportDependencies_();
+    ensureGameRecordModel();
+    ensureKifuExportController();
+    updateKifuExportDependencies();
     m_kifuExportController->overwriteFile(kifuSaveFileName);
 }
 
@@ -3391,7 +3391,7 @@ void MainWindow::onCommentUpdated(int moveIndex, const QString& newComment)
 
     // GameRecordModel を使ってコメントを更新
     // （通知処理はコールバック経由で自動実行される）
-    ensureGameRecordModel_();
+    ensureGameRecordModel();
     if (m_gameRecord) {
         m_gameRecord->setComment(moveIndex, newComment);
     }
@@ -3401,7 +3401,7 @@ void MainWindow::onCommentUpdated(int moveIndex, const QString& newComment)
 }
 
 // ★ 追加: GameRecordModel の遅延初期化
-void MainWindow::ensureGameRecordModel_()
+void MainWindow::ensureGameRecordModel()
 {
     if (m_gameRecord) return;
 
@@ -3423,7 +3423,7 @@ void MainWindow::ensureGameRecordModel_()
     // コメント更新時のコールバックを設定
     // m_commentsByRow 同期、RecordPresenter通知、UI更新を自動実行
     m_gameRecord->setCommentUpdateCallback(
-        std::bind(&MainWindow::onCommentUpdateCallback_, this,
+        std::bind(&MainWindow::onCommentUpdateCallback, this,
                   std::placeholders::_1, std::placeholders::_2));
 
     qDebug().noquote() << "[MW] ensureGameRecordModel_: created and bound";
@@ -3436,7 +3436,7 @@ void MainWindow::onGameRecordCommentChanged(int ply, const QString& /*comment*/)
 }
 
 // コメント更新コールバック（GameRecordModel から呼ばれる）
-void MainWindow::onCommentUpdateCallback_(int ply, const QString& comment)
+void MainWindow::onCommentUpdateCallback(int ply, const QString& comment)
 {
     qDebug().noquote() << "[MW] onCommentUpdateCallback_ ply=" << ply;
 
@@ -3465,7 +3465,7 @@ void MainWindow::onCommentUpdateCallback_(int ply, const QString& comment)
 // ★ 追加: 読み筋クリック処理
 void MainWindow::onPvRowClicked(int engineIndex, int row)
 {
-    ensurePvClickController_();
+    ensurePvClickController();
     if (m_pvClickController) {
         // 状態を同期
         m_pvClickController->setPlayMode(m_playMode);
@@ -3488,18 +3488,18 @@ void MainWindow::onTabCurrentChanged(int index)
 // CSA通信対局関連のスロット（CsaGameWiring経由）
 // ========================================================
 
-void MainWindow::onCsaPlayModeChanged_(int mode)
+void MainWindow::onCsaPlayModeChanged(int mode)
 {
     m_playMode = static_cast<PlayMode>(mode);
     qDebug().noquote() << "[MW] onCsaPlayModeChanged_: mode=" << mode;
 }
 
-void MainWindow::onCsaShowGameEndDialog_(const QString& title, const QString& message)
+void MainWindow::onCsaShowGameEndDialog(const QString& title, const QString& message)
 {
     QMessageBox::information(this, title, message);
 }
 
-void MainWindow::onCsaEngineScoreUpdated_(int scoreCp, int ply)
+void MainWindow::onCsaEngineScoreUpdated(int scoreCp, int ply)
 {
     qDebug().noquote() << "[MW] onCsaEngineScoreUpdated_: scoreCp=" << scoreCp << "ply=" << ply;
 
@@ -3532,7 +3532,7 @@ void MainWindow::onCsaEngineScoreUpdated_(int scoreCp, int ply)
     }
 }
 
-void MainWindow::onJosekiForcedPromotion_(bool forced, bool promote)
+void MainWindow::onJosekiForcedPromotion(bool forced, bool promote)
 {
     if (m_gameController) {
         m_gameController->setForcedPromotion(forced, promote);
@@ -3545,7 +3545,7 @@ void MainWindow::onJosekiForcedPromotion_(bool forced, bool promote)
 
 void MainWindow::updateLanguageMenuState()
 {
-    ensureLanguageController_();
+    ensureLanguageController();
     if (m_languageController) {
         m_languageController->updateMenuState();
     }
@@ -3559,7 +3559,7 @@ void MainWindow::changeLanguage(const QString& lang)
 
 void MainWindow::onLanguageSystemTriggered()
 {
-    ensureLanguageController_();
+    ensureLanguageController();
     if (m_languageController) {
         m_languageController->onSystemLanguageTriggered();
     }
@@ -3567,7 +3567,7 @@ void MainWindow::onLanguageSystemTriggered()
 
 void MainWindow::onLanguageJapaneseTriggered()
 {
-    ensureLanguageController_();
+    ensureLanguageController();
     if (m_languageController) {
         m_languageController->onJapaneseTriggered();
     }
@@ -3575,7 +3575,7 @@ void MainWindow::onLanguageJapaneseTriggered()
 
 void MainWindow::onLanguageEnglishTriggered()
 {
-    ensureLanguageController_();
+    ensureLanguageController();
     if (m_languageController) {
         m_languageController->onEnglishTriggered();
     }
@@ -3593,19 +3593,19 @@ void MainWindow::onToolBarVisibilityToggled(bool visible)
 // 新規コントローラのensure関数
 // =============================================================================
 
-void MainWindow::ensureJishogiController_()
+void MainWindow::ensureJishogiController()
 {
     if (m_jishogiController) return;
     m_jishogiController = new JishogiScoreDialogController(this);
 }
 
-void MainWindow::ensureNyugyokuHandler_()
+void MainWindow::ensureNyugyokuHandler()
 {
     if (m_nyugyokuHandler) return;
     m_nyugyokuHandler = new NyugyokuDeclarationHandler(this);
 }
 
-void MainWindow::ensureConsecutiveGamesController_()
+void MainWindow::ensureConsecutiveGamesController()
 {
     if (m_consecutiveGamesController) return;
 
@@ -3615,10 +3615,10 @@ void MainWindow::ensureConsecutiveGamesController_()
 
     // シグナル接続
     connect(m_consecutiveGamesController, &ConsecutiveGamesController::requestPreStartCleanup,
-            this, &MainWindow::onPreStartCleanupRequested_);
+            this, &MainWindow::onPreStartCleanupRequested);
     connect(m_consecutiveGamesController, &ConsecutiveGamesController::requestStartNextGame,
             this, [this](const MatchCoordinator::StartOptions& opt, const GameStartCoordinator::TimeControl& tc) {
-                ensureGameStartCoordinator_();
+                ensureGameStartCoordinator();
                 if (m_gameStart) {
                     GameStartCoordinator::StartParams params;
                     params.opt = opt;
@@ -3629,7 +3629,7 @@ void MainWindow::ensureConsecutiveGamesController_()
             });
 }
 
-void MainWindow::ensureLanguageController_()
+void MainWindow::ensureLanguageController()
 {
     if (m_languageController) return;
 

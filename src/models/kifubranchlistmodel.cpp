@@ -32,7 +32,7 @@ QVariant KifuBranchListModel::data(const QModelIndex &index, int role) const
     if (role == DispCountRole) {
         // 「本譜へ戻る」行は 0 を返しておく（呼び出し側でクランプされる前提）
         if (isBackRow) return 0;
-        return rowMaxPly_(index.row());
+        return rowMaxPly(index.row());
     }
 
     // --- 表示テキスト ---
@@ -158,7 +158,7 @@ int KifuBranchListModel::backToMainRowIndex() const
     return m_hasBackToMainRow ? static_cast<int>(list.size()) : -1;
 }
 
-void KifuBranchListModel::setActiveNode_(int nodeId)
+void KifuBranchListModel::setActiveNode(int nodeId)
 {
     if (nodeId < 0 || nodeId >= m_nodes.size()) return;
     if (m_activeNodeId == nodeId) return;
@@ -180,21 +180,21 @@ void KifuBranchListModel::setActiveNode_(int nodeId)
 
 // 罫線（前後エッジ）だけで targetPly を探すフォールバック。
 // preferPrev=true のとき、まず prev を見て一致すれば採用、だめなら next 側を探す。
-bool KifuBranchListModel::graphFallbackToPly_(int targetPly, bool preferPrev)
+bool KifuBranchListModel::graphFallbackToPly(int targetPly, bool preferPrev)
 {
     if (m_activeNodeId < 0) return false;
 
     const auto tryPrev = [&]()->bool{
         const int p = m_nodes[m_activeNodeId].prevId;
         if (p >= 0 && m_nodes[p].ply == targetPly) {
-            setActiveNode_(p); return true;
+            setActiveNode(p); return true;
         }
         return false;
     };
     const auto tryNext = [&]()->bool{
         const auto& nx = m_nodes[m_activeNodeId].nextIds;
         for (int id : nx) if (m_nodes[id].ply == targetPly) {
-                setActiveNode_(id); return true;
+                setActiveNode(id); return true;
             }
         return false;
     };
@@ -216,7 +216,7 @@ QHash<int, QByteArray> KifuBranchListModel::roleNames() const
     return r;
 }
 
-int KifuBranchListModel::rowMaxPly_(int row) const
+int KifuBranchListModel::rowMaxPly(int row) const
 {
     if (row < 0) return 0;
 

@@ -84,7 +84,7 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
     QObject::disconnect(m_coord, &AnalysisCoordinator::analysisProgress, nullptr, nullptr);
     QObject::connect(
         m_coord, &AnalysisCoordinator::analysisProgress,
-        this,    &AnalysisFlowController::onAnalysisProgress_,
+        this,    &AnalysisFlowController::onAnalysisProgress,
         Qt::UniqueConnection
         );
 
@@ -92,7 +92,7 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
     QObject::disconnect(m_coord, &AnalysisCoordinator::positionPrepared, nullptr, nullptr);
     QObject::connect(
         m_coord, &AnalysisCoordinator::positionPrepared,
-        this,    &AnalysisFlowController::onPositionPrepared_,
+        this,    &AnalysisFlowController::onPositionPrepared,
         Qt::UniqueConnection
         );
 
@@ -100,7 +100,7 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
     QObject::disconnect(m_coord, &AnalysisCoordinator::analysisFinished, nullptr, nullptr);
     QObject::connect(
         m_coord, &AnalysisCoordinator::analysisFinished,
-        this,    &AnalysisFlowController::onAnalysisFinished_,
+        this,    &AnalysisFlowController::onAnalysisFinished,
         Qt::UniqueConnection
         );
 
@@ -116,7 +116,7 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
     QObject::disconnect(m_usi, &Usi::bestMoveReceived, nullptr, nullptr);
     QObject::connect(
         m_usi, &Usi::bestMoveReceived,
-        this,  &AnalysisFlowController::onBestMoveReceived_,
+        this,  &AnalysisFlowController::onBestMoveReceived,
         Qt::UniqueConnection
         );
 
@@ -124,7 +124,7 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
     QObject::disconnect(m_usi, &Usi::infoLineReceived, nullptr, nullptr);
     QObject::connect(
         m_usi, &Usi::infoLineReceived,
-        this,  &AnalysisFlowController::onInfoLineReceived_,
+        this,  &AnalysisFlowController::onInfoLineReceived,
         Qt::UniqueConnection
         );
 
@@ -132,7 +132,7 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
     QObject::disconnect(m_usi, &Usi::thinkingInfoUpdated, nullptr, nullptr);
     QObject::connect(
         m_usi, &Usi::thinkingInfoUpdated,
-        this,  &AnalysisFlowController::onThinkingInfoUpdated_,
+        this,  &AnalysisFlowController::onThinkingInfoUpdated,
         Qt::UniqueConnection
         );
 
@@ -148,7 +148,7 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
         // 行ダブルクリックのシグナルを接続（読み筋表示用）
         QObject::connect(
             m_presenter, &AnalysisResultsPresenter::rowDoubleClicked,
-            this,        &AnalysisFlowController::onResultRowDoubleClicked_,
+            this,        &AnalysisFlowController::onResultRowDoubleClicked,
             Qt::UniqueConnection
             );
         // 行選択のシグナルを接続（棋譜欄・将棋盤・分岐ツリー連動用）
@@ -162,7 +162,7 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
     m_presenter->setStopButtonEnabled(true);  // 解析開始時は有効
 
     // ダイアログ設定を AC オプションへ反映
-    applyDialogOptions_(dlg);
+    applyDialogOptions(dlg);
 
     // エンジン起動
     const int  engineIdx = dlg->engineNumber();
@@ -221,7 +221,7 @@ void AnalysisFlowController::stop()
     qDebug().noquote() << "[AnalysisFlowController::stop] analysis stopped";
 }
 
-void AnalysisFlowController::applyDialogOptions_(KifuAnalysisDialog* dlg)
+void AnalysisFlowController::applyDialogOptions(KifuAnalysisDialog* dlg)
 {
     AnalysisCoordinator::Options opt;
     opt.movetimeMs = dlg->byoyomiSec() * 1000;
@@ -257,7 +257,7 @@ void AnalysisFlowController::applyDialogOptions_(KifuAnalysisDialog* dlg)
 //  スロット実装（非ラムダ）
 // ======================
 
-void AnalysisFlowController::onUsiCommLogChanged_()
+void AnalysisFlowController::onUsiCommLogChanged()
 {
     if (!m_coord || !m_logModel) return;
 
@@ -268,7 +268,7 @@ void AnalysisFlowController::onUsiCommLogChanged_()
     // bestmoveはonBestMoveReceived_で処理するため、ここでは処理しない
 }
 
-void AnalysisFlowController::onBestMoveReceived_()
+void AnalysisFlowController::onBestMoveReceived()
 {
     qDebug().noquote() << "[AnalysisFlowController::onBestMoveReceived_] called, pendingPly=" << m_pendingPly;
     
@@ -278,13 +278,13 @@ void AnalysisFlowController::onBestMoveReceived_()
     }
     
     // 一時保存した結果を確定
-    commitPendingResult_();
+    commitPendingResult();
     
     if (!m_coord) return;
     m_coord->onEngineBestmoveReceived(QString());
 }
 
-void AnalysisFlowController::onInfoLineReceived_(const QString& line)
+void AnalysisFlowController::onInfoLineReceived(const QString& line)
 {
     // info行を受け取り、AnalysisCoordinatorに転送
     // 漢字PV変換はThinkingInfoPresenterが行い、onThinkingInfoUpdated_で受け取る
@@ -297,7 +297,7 @@ void AnalysisFlowController::onInfoLineReceived_(const QString& line)
     m_coord->onEngineInfoLine(line);
 }
 
-void AnalysisFlowController::onThinkingInfoUpdated_(const QString& /*time*/, const QString& /*depth*/,
+void AnalysisFlowController::onThinkingInfoUpdated(const QString& /*time*/, const QString& /*depth*/,
                                                     const QString& /*nodes*/, const QString& /*score*/,
                                                     const QString& pvKanjiStr, const QString& /*usiPv*/,
                                                     const QString& /*baseSfen*/)
@@ -309,7 +309,7 @@ void AnalysisFlowController::onThinkingInfoUpdated_(const QString& /*time*/, con
     }
 }
 
-void AnalysisFlowController::onPositionPrepared_(int ply, const QString& sfen)
+void AnalysisFlowController::onPositionPrepared(int ply, const QString& sfen)
 {
     // 各局面の解析開始時のログ
     qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] ply=" << ply << "sfen=" << sfen.left(50);
@@ -351,7 +351,7 @@ void AnalysisFlowController::onPositionPrepared_(int ply, const QString& sfen)
             if (moveDisp) {
                 QString moveLabel = moveDisp->currentMove();
                 qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] extracting USI move from kanji:" << moveLabel;
-                lastUsiMove = extractUsiMoveFromKanji_(moveLabel);
+                lastUsiMove = extractUsiMoveFromKanji(moveLabel);
                 qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] extracted lastUsiMove from kanji:" << lastUsiMove;
             }
         } else {
@@ -477,7 +477,7 @@ void AnalysisFlowController::onPositionPrepared_(int ply, const QString& sfen)
     }
 }
 
-void AnalysisFlowController::onAnalysisProgress_(int ply, int /*depth*/, int /*seldepth*/,
+void AnalysisFlowController::onAnalysisProgress(int ply, int /*depth*/, int /*seldepth*/,
                                                  int scoreCp, int mate,
                                                  const QString& pv, const QString& /*raw*/)
 {
@@ -493,7 +493,7 @@ void AnalysisFlowController::onAnalysisProgress_(int ply, int /*depth*/, int /*s
     qDebug().noquote() << "[AnalysisFlowController::onAnalysisProgress_] ply=" << ply << "pv=" << pv.left(30) << "pvKanji=" << m_pendingPvKanji.left(30);
 }
 
-void AnalysisFlowController::commitPendingResult_()
+void AnalysisFlowController::commitPendingResult()
 {
     if (!m_analysisModel) {
         qDebug().noquote() << "[AnalysisFlowController::commitPendingResult_] m_analysisModel is null";
@@ -613,7 +613,7 @@ void AnalysisFlowController::commitPendingResult_()
         KifuDisplay* moveDisp = m_recordModel->item(ply);
         if (moveDisp) {
             QString kanjiMoveStr = moveDisp->currentMove();
-            lastMove = extractUsiMoveFromKanji_(kanjiMoveStr);
+            lastMove = extractUsiMoveFromKanji(kanjiMoveStr);
             qDebug().noquote() << "[AnalysisFlowController::commitPendingResult_] lastMove from kanji:" << kanjiMoveStr << "->" << lastMove;
         }
     } else {
@@ -744,7 +744,7 @@ void AnalysisFlowController::commitPendingResult_()
     m_lastCommittedScoreCp = curVal;
 }
 
-void AnalysisFlowController::onAnalysisFinished_(AnalysisCoordinator::Mode /*mode*/)
+void AnalysisFlowController::onAnalysisFinished(AnalysisCoordinator::Mode /*mode*/)
 {
     qDebug().noquote() << "[AnalysisFlowController::onAnalysisFinished_] called, m_stoppedByUser=" << m_stoppedByUser;
     
@@ -847,7 +847,7 @@ void AnalysisFlowController::runWithDialog(const Deps& d, QWidget* parent)
     start(actualDeps, &dlg);
 }
 
-void AnalysisFlowController::onResultRowDoubleClicked_(int row)
+void AnalysisFlowController::onResultRowDoubleClicked(int row)
 {
     qDebug().noquote() << "[AnalysisFlowController::onResultRowDoubleClicked_] row=" << row;
     
@@ -927,7 +927,7 @@ void AnalysisFlowController::onResultRowDoubleClicked_(int row)
             KifuDisplay* moveDisp = m_recordModel->item(ply);
             if (moveDisp) {
                 QString moveLabel = moveDisp->currentMove();
-                lastMove = extractUsiMoveFromKanji_(moveLabel);
+                lastMove = extractUsiMoveFromKanji(moveLabel);
                 qDebug().noquote() << "[AnalysisFlowController::onResultRowDoubleClicked_] lastMove from kanji:" << moveLabel << "->" << lastMove;
             }
         }
@@ -941,7 +941,7 @@ void AnalysisFlowController::onResultRowDoubleClicked_(int row)
     dlg->show();
 }
 
-QString AnalysisFlowController::extractUsiMoveFromKanji_(const QString& kanjiMove) const
+QString AnalysisFlowController::extractUsiMoveFromKanji(const QString& kanjiMove) const
 {
     // 漢字表記からUSI形式の指し手を抽出する
     // 形式例:
