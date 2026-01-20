@@ -37,6 +37,17 @@ static QString ensureNoBorderRadiusStyle(const QString& base)
     return s;
 }
 
+// スタイルシートからフォントサイズを除去するユーティリティ（setFont()でサイズ調整するため）
+static QString removeFontSizeFromStyle(const QString& base)
+{
+    QString s = base;
+    // font-size プロパティを除去
+    QRegularExpression re(R"(font-size\s*:\s*[^;]+;?)",
+                          QRegularExpression::CaseInsensitiveOption);
+    s.remove(re);
+    return s;
+}
+
 static void enforceSquareCorners(QLabel* lab)
 {
     if (!lab) return;
@@ -3117,6 +3128,11 @@ void ShogiView::ensureTurnLabels()
         tlBlack->setTextFormat(Qt::PlainText);
         tlBlack->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
         tlBlack->hide();
+        // 初期見た目をコピー + 角丸を外す + フォントサイズを除去（作成時のみ）
+        if (m_blackNameLabel) {
+            QString style = removeFontSizeFromStyle(m_blackNameLabel->styleSheet());
+            tlBlack->setStyleSheet(ensureNoBorderRadiusStyle(style));
+        }
     }
 
     // 後手用
@@ -3132,18 +3148,11 @@ void ShogiView::ensureTurnLabels()
         tlWhite->setTextFormat(Qt::PlainText);
         tlWhite->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
         tlWhite->hide();
-    }
-
-    // 初期見た目をコピー + 角丸を外す
-    if (m_blackNameLabel && tlBlack) {
-        tlBlack->setFont(m_blackNameLabel->font());
-        tlBlack->setStyleSheet(m_blackNameLabel->styleSheet());
-        enforceSquareCorners(tlBlack);
-    }
-    if (m_whiteClockLabel && tlWhite) {
-        tlWhite->setFont(m_whiteClockLabel->font());
-        tlWhite->setStyleSheet(m_whiteClockLabel->styleSheet());
-        enforceSquareCorners(tlWhite);
+        // 初期見た目をコピー + 角丸を外す + フォントサイズを除去（作成時のみ）
+        if (m_whiteClockLabel) {
+            QString style = removeFontSizeFromStyle(m_whiteClockLabel->styleSheet());
+            tlWhite->setStyleSheet(ensureNoBorderRadiusStyle(style));
+        }
     }
 }
 
@@ -3242,6 +3251,10 @@ void ShogiView::relayoutTurnLabels()
         if (H2 > 0 && (lab2 == m_blackClockLabel || lab2 == m_whiteClockLabel)) {
             fitLabelFontToRect(lab2, lab2->text(), r2, 2);
         }
+        // 次の手番ラベルは枠にフィット（lab3がturnLabel）
+        if (H3 > 0 && (lab3 == tlBlack || lab3 == tlWhite)) {
+            fitLabelFontToRect(lab3, lab3->text(), r3, 2);
+        }
     };
 
     // 直上に縦積み（駒台の上）: 上から [lab1][lab2][lab3]
@@ -3279,6 +3292,10 @@ void ShogiView::relayoutTurnLabels()
         // 時計は枠にフィット（有効時のみ）
         if (H3 > 0 && (lab3 == m_blackClockLabel || lab3 == m_whiteClockLabel)) {
             fitLabelFontToRect(lab3, lab3->text(), r3, 2);
+        }
+        // 次の手番ラベルは枠にフィット（lab1がturnLabel）
+        if (H1 > 0 && (lab1 == tlBlack || lab1 == tlWhite)) {
+            fitLabelFontToRect(lab1, lab1->text(), r1, 2);
         }
     };
 
