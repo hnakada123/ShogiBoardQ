@@ -126,6 +126,17 @@ public:
     void sendGoNodesCommand(qint64 nodes);    ///< go nodes <x> - 指定ノード数まで探索
     void sendGoMovetimeCommand(int timeMs);   ///< go movetime <x> - 指定時間(ms)探索
 
+    /// go searchmoves <move1> ... <movei> [infinite] - 指定した手のみを探索
+    /// @param moves 探索対象の手（USI形式、例: "7g7f", "8h2b+"）
+    /// @param infinite trueの場合 "go searchmoves ... infinite" を送信
+    void sendGoSearchmovesCommand(const QStringList& moves, bool infinite = true);
+
+    /// go searchmoves <move1> ... <movei> depth <x> - 指定した手のみを指定深さまで探索
+    void sendGoSearchmovesDepthCommand(const QStringList& moves, int depth);
+
+    /// go searchmoves <move1> ... <movei> movetime <x> - 指定した手のみを指定時間探索
+    void sendGoSearchmovesMovetimeCommand(const QStringList& moves, int timeMs);
+
     void sendRaw(const QString& command) const;
 
     /// エンジンプロセスが起動中かどうかを返す

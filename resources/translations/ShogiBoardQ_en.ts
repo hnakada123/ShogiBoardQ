@@ -4924,12 +4924,12 @@ Are you sure you want to declare?</translation>
         <translation>Failed to change directory to %1</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="541"/>
+        <location filename="../../src/engine/usi.cpp" line="559"/>
         <source>USI engine is not running.</source>
         <translation>USI engine is not running.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="739"/>
+        <location filename="../../src/engine/usi.cpp" line="757"/>
         <source>Timeout waiting for bestmove.</source>
         <translation>Timeout waiting for bestmove.</translation>
     </message>
@@ -4947,27 +4947,27 @@ Are you sure you want to declare?</translation>
         <translation>Timeout waiting for readyok</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="537"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="602"/>
         <source>Invalid bestmove format: %1</source>
         <translation>Invalid bestmove format: %1</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="629"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="694"/>
         <source>Invalid bestmove format: &quot;%1&quot;</source>
         <translation>Invalid bestmove format: &quot;%1&quot;</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="663"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="728"/>
         <source>Invalid move format in moveFrom</source>
         <translation>Invalid move format in moveFrom</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="670"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="735"/>
         <source>Invalid move format in moveTo</source>
         <translation>Invalid move format in moveTo</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="701"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="766"/>
         <source>Invalid fileFrom value</source>
         <translation>Invalid fileFrom value</translation>
     </message>

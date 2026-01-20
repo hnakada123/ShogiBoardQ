@@ -4499,12 +4499,12 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="541"/>
+        <location filename="../../src/engine/usi.cpp" line="559"/>
         <source>USI engine is not running.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="739"/>
+        <location filename="../../src/engine/usi.cpp" line="757"/>
         <source>Timeout waiting for bestmove.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4522,27 +4522,27 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="537"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="602"/>
         <source>Invalid bestmove format: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="629"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="694"/>
         <source>Invalid bestmove format: &quot;%1&quot;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="663"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="728"/>
         <source>Invalid move format in moveFrom</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="670"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="735"/>
         <source>Invalid move format in moveTo</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="701"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="766"/>
         <source>Invalid fileFrom value</source>
         <translation type="unfinished"></translation>
     </message>
