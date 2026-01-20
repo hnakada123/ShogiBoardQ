@@ -154,7 +154,8 @@ void ChangeEngineSettingsDialog::changeColorTypeButton()
 // オプションの説明ラベルを作成してレイアウトに追加する。
 void ChangeEngineSettingsDialog::createHelpDescriptionLabel(const QString& optionName, QVBoxLayout* layout)
 {
-    QString description = EngineOptionDescriptions::getDescription(optionName);
+    // エンジン名に基づいて説明を取得（対応エンジンのみ説明が返る）
+    QString description = EngineOptionDescriptions::getDescription(m_engineName, optionName);
 
     if (!description.isEmpty()) {
         m_optionWidgets.helpDescriptionLabel = new QLabel(description, this);
@@ -464,10 +465,10 @@ void ChangeEngineSettingsDialog::createOptionWidgets()
     // キー: カテゴリ、値: (オプションインデックス, オプション) のリスト
     QMap<EngineOptionCategory, QList<QPair<int, EngineOption>>> categoryOptionsMap;
 
-    // オプションをカテゴリ別に分類
+    // オプションをカテゴリ別に分類（エンジン名に基づいてカテゴリを取得）
     for (qsizetype i = 0; i < m_optionList.size(); ++i) {
         const auto& option = m_optionList.at(i);
-        EngineOptionCategory category = EngineOptionDescriptions::getCategory(option.name);
+        EngineOptionCategory category = EngineOptionDescriptions::getCategory(m_engineName, option.name);
         categoryOptionsMap[category].append(qMakePair(static_cast<int>(i), option));
     }
 
