@@ -28,6 +28,7 @@
 #include <QMessageBox>  // ★ 追加
 #include <QTimer>       // ★ 追加: 列幅設定の遅延用
 #include <QLineEdit>    // ★ 追加: CSAコマンド入力用
+#include <QComboBox>    // ★ 追加: USIコマンド送信先選択用
 #include <QTextCursor>      // ★ 追加: ログ色付け用
 #include <QTextCharFormat>  // ★ 追加: ログ色付け用
 
@@ -188,6 +189,10 @@ void EngineAnalysisTab::buildUi()
     // ツールバーを構築
     buildUsiLogToolbar();
     usiLogLayout->addWidget(m_usiLogToolbar);
+
+    // ★ 追加: コマンド入力バーを構築
+    buildUsiCommandBar();
+    usiLogLayout->addWidget(m_usiCommandBar);
 
     m_usiLog = new QPlainTextEdit(m_usiLogContainer);
     m_usiLog->setReadOnly(true);
@@ -353,6 +358,22 @@ void EngineAnalysisTab::appendColoredUsiLog(const QString& logLine, const QColor
     QTextCharFormat coloredFormat;
     coloredFormat.setForeground(lineColor);
     cursor.insertText(logLine + QStringLiteral("\n"), coloredFormat);
+
+    m_usiLog->setTextCursor(cursor);
+    m_usiLog->ensureCursorVisible();
+}
+
+void EngineAnalysisTab::appendUsiLogStatus(const QString& message)
+{
+    if (!m_usiLog || message.isEmpty()) return;
+
+    // ステータスメッセージをグレーで表示
+    QTextCursor cursor = m_usiLog->textCursor();
+    cursor.movePosition(QTextCursor::End);
+
+    QTextCharFormat grayFormat;
+    grayFormat.setForeground(QColor(0x80, 0x80, 0x80));  // グレー
+    cursor.insertText(QStringLiteral("⚙ ") + message + QStringLiteral("\n"), grayFormat);
 
     m_usiLog->setTextCursor(cursor);
     m_usiLog->ensureCursorVisible();
@@ -1207,12 +1228,17 @@ void EngineAnalysisTab::updateUsiLogFontSize(int delta)
     if (m_usiLogFontSize < 8) m_usiLogFontSize = 8;
     if (m_usiLogFontSize > 24) m_usiLogFontSize = 24;
 
+    QFont font;
+    font.setPointSize(m_usiLogFontSize);
+
     if (m_usiLog) {
-        QFont font = m_usiLog->font();
-        font.setPointSize(m_usiLogFontSize);
         m_usiLog->setFont(font);
     }
-    
+
+    // ★ 追加: コマンドバーのフォントサイズも更新
+    if (m_usiTargetCombo) m_usiTargetCombo->setFont(font);
+    if (m_usiCommandInput) m_usiCommandInput->setFont(font);
+
     // ★ 追加: 設定ファイルに保存
     SettingsService::setUsiLogFontSize(m_usiLogFontSize);
 }
@@ -1225,6 +1251,63 @@ void EngineAnalysisTab::onUsiLogFontIncrease()
 void EngineAnalysisTab::onUsiLogFontDecrease()
 {
     updateUsiLogFontSize(-1);
+}
+
+// ★ 追加: USIコマンドバーを構築
+void EngineAnalysisTab::buildUsiCommandBar()
+{
+    m_usiCommandBar = new QWidget(m_usiLogContainer);
+    QHBoxLayout* layout = new QHBoxLayout(m_usiCommandBar);
+    layout->setContentsMargins(0, 0, 0, 0);
+    layout->setSpacing(4);
+
+    // 送信先選択コンボボックス
+    m_usiTargetCombo = new QComboBox(m_usiCommandBar);
+    m_usiTargetCombo->addItem(QStringLiteral("E1"), 0);
+    m_usiTargetCombo->addItem(QStringLiteral("E2"), 1);
+    m_usiTargetCombo->addItem(QStringLiteral("E1+E2"), 2);
+    m_usiTargetCombo->setMinimumWidth(70);
+    m_usiTargetCombo->setToolTip(tr("コマンドの送信先を選択"));
+
+    // コマンド入力欄
+    m_usiCommandInput = new QLineEdit(m_usiCommandBar);
+    m_usiCommandInput->setPlaceholderText(tr("USIコマンドを入力してEnter"));
+
+    layout->addWidget(m_usiTargetCombo);
+    layout->addWidget(m_usiCommandInput, 1);  // stretchで伸縮
+
+    // フォントサイズを適用
+    {
+        QFont font;
+        font.setPointSize(m_usiLogFontSize);
+        m_usiTargetCombo->setFont(font);
+        m_usiCommandInput->setFont(font);
+    }
+
+    m_usiCommandBar->setLayout(layout);
+
+    // シグナル接続
+    connect(m_usiCommandInput, &QLineEdit::returnPressed,
+            this, &EngineAnalysisTab::onUsiCommandEntered);
+}
+
+// ★ 追加: USIコマンド入力処理（Enterキー）
+void EngineAnalysisTab::onUsiCommandEntered()
+{
+    if (!m_usiCommandInput || !m_usiTargetCombo) {
+        return;
+    }
+
+    QString command = m_usiCommandInput->text().trimmed();
+    if (command.isEmpty()) {
+        return;
+    }
+
+    int target = m_usiTargetCombo->currentData().toInt();
+    emit usiCommandRequested(target, command);
+
+    // 入力欄をクリア
+    m_usiCommandInput->clear();
 }
 
 // ★ 追加: エンジン1名変更時のスロット

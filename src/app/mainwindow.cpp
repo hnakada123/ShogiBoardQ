@@ -1812,6 +1812,12 @@ void MainWindow::setupEngineAnalysisTab()
         this,          &MainWindow::onPvRowClicked,
         Qt::UniqueConnection);
 
+    // ★ 追加: USIコマンド手動送信シグナルの接続
+    QObject::connect(
+        m_analysisTab, &EngineAnalysisTab::usiCommandRequested,
+        this,          &MainWindow::onUsiCommandRequested,
+        Qt::UniqueConnection);
+
     // ★ 追加: PlayerInfoControllerにもm_analysisTabを設定
     //    （ensurePlayerInfoController_がこれより先に呼ばれた場合への対応）
     if (m_playerInfoController) {
@@ -3473,6 +3479,40 @@ void MainWindow::onPvRowClicked(int engineIndex, int row)
         m_pvClickController->setCurrentSfen(m_currentSfenStr);
         m_pvClickController->setStartSfen(m_startSfenStr);
         m_pvClickController->onPvRowClicked(engineIndex, row);
+    }
+}
+
+// ★ 追加: USIコマンド手動送信処理
+void MainWindow::onUsiCommandRequested(int target, const QString& command)
+{
+    qDebug().noquote() << "[MW] onUsiCommandRequested: target=" << target << "command=" << command;
+
+    // MatchCoordinatorからエンジンを取得
+    Usi* usi1 = m_match ? m_match->primaryEngine() : nullptr;
+    Usi* usi2 = m_match ? m_match->secondaryEngine() : nullptr;
+
+    // target: 0=E1, 1=E2, 2=両方
+    if (target == 0 || target == 2) {
+        if (usi1 && usi1->isEngineRunning()) {
+            usi1->sendRaw(command);
+            qDebug().noquote() << "[MW] Sent to E1:" << command;
+        } else {
+            qDebug().noquote() << "[MW] E1 is not available or not running";
+            if (m_analysisTab) {
+                m_analysisTab->appendUsiLogStatus(tr("E1: エンジンが起動していません"));
+            }
+        }
+    }
+    if (target == 1 || target == 2) {
+        if (usi2 && usi2->isEngineRunning()) {
+            usi2->sendRaw(command);
+            qDebug().noquote() << "[MW] Sent to E2:" << command;
+        } else {
+            qDebug().noquote() << "[MW] E2 is not available or not running";
+            if (m_analysisTab) {
+                m_analysisTab->appendUsiLogStatus(tr("E2: エンジンが起動していません"));
+            }
+        }
     }
 }
 
