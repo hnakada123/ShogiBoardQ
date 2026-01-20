@@ -120,6 +120,7 @@ public:
     // 外部 API
     void handleResign();                 // 人間の投了
     void handleEngineResign(int idx);    // エンジン投了通知(1 or 2)
+    void handleEngineWin(int idx);       // エンジン入玉宣言勝ち通知(1 or 2)
     void flipBoard();                    // 盤反転 + 表示更新
     void updateUsiPtrs(Usi* e1, Usi* e2);// エンジン再生成時などに差し替え
     void handleBreakOff();               // ★ 中断（UI→司令塔）
@@ -267,8 +268,9 @@ public:
     void destroyEngines();
 
 private:
-    // resign 配線の実装（内部ユーティリティ）
+    // resign/win 配線の実装（内部ユーティリティ）
     void wireResignToArbiter(Usi* engine, bool asP1);
+    void wireWinToArbiter(Usi* engine, bool asP1);   ///< 入玉宣言勝ちシグナルを配線
 
     // 共通ロジック：時計と手番を読んで timeUpdated(...) を発火
     void emitTimeUpdateFromClock();
@@ -276,6 +278,8 @@ private:
 private slots:
     void onEngine1Resign();
     void onEngine2Resign();
+    void onEngine1Win();              ///< エンジン1が入玉宣言勝ち
+    void onEngine2Win();              ///< エンジン2が入玉宣言勝ち
     void kickNextEvETurn();  // EvE を1手ずつ進める
     void onClockTick();
     void onUsiError(const QString& msg);

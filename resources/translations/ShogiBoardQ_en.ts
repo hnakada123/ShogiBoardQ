@@ -3492,77 +3492,77 @@ Please restart the application to apply the changes.</translation>
 <context>
     <name>MatchCoordinator</name>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="342"/>
-        <location filename="../../src/game/matchcoordinator.cpp" line="343"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="349"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="350"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="342"/>
-        <location filename="../../src/game/matchcoordinator.cpp" line="343"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="349"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="350"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="350"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="357"/>
         <source>%1の投了。%2の勝ちです。</source>
         <translation>%1 resigned. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="354"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="361"/>
         <source>%1の時間切れ。%2の勝ちです。</source>
         <translation>%1 ran out of time. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="358"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="365"/>
         <source>最大手数に達しました。持将棋です。</source>
         <translation>Maximum moves reached. Jishogi (impasse).</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="362"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="369"/>
         <source>%1の入玉宣言。%2の勝ちです。</source>
         <translation>%1 declared entering king. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="366"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="373"/>
         <source>%1の反則負け。%2の勝ちです。</source>
         <translation>%1 committed a foul. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="371"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="378"/>
         <source>対局が終了しました。</source>
         <translation>The game has ended.</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="377"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="384"/>
         <source>対局終了</source>
         <translation>Game Over</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1759"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="1805"/>
         <source>詰みあり（手順 %1 手）</source>
         <translation>Mate found (%1 moves)</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1760"/>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1767"/>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1774"/>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1781"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="1806"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="1813"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="1820"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="1827"/>
         <source>詰み探索</source>
         <translation>Mate Search</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1767"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="1813"/>
         <source>詰みなし</source>
         <translation>No mate</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1774"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="1820"/>
         <source>（エンジン側）未実装</source>
         <translation>(Engine) Not implemented</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1781"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="1827"/>
         <source>不明（解析不能）</source>
         <translation>Unknown (unable to analyze)</translation>
     </message>
@@ -4137,12 +4137,12 @@ Are you sure you want to declare?</translation>
         <translation>Engine2</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2468"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2514"/>
         <source>先手番</source>
         <translation>Sente (Black)</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2468"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2514"/>
         <source>後手番</source>
         <translation>Gote (White)</translation>
     </message>
@@ -4914,22 +4914,22 @@ Are you sure you want to declare?</translation>
 <context>
     <name>Usi</name>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="354"/>
+        <location filename="../../src/engine/usi.cpp" line="366"/>
         <source>Engine file path is empty.</source>
         <translation>Engine file path is empty.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="369"/>
+        <location filename="../../src/engine/usi.cpp" line="381"/>
         <source>Failed to change directory to %1</source>
         <translation>Failed to change directory to %1</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="511"/>
+        <location filename="../../src/engine/usi.cpp" line="541"/>
         <source>USI engine is not running.</source>
         <translation>USI engine is not running.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="709"/>
+        <location filename="../../src/engine/usi.cpp" line="739"/>
         <source>Timeout waiting for bestmove.</source>
         <translation>Timeout waiting for bestmove.</translation>
     </message>
@@ -4947,27 +4947,27 @@ Are you sure you want to declare?</translation>
         <translation>Timeout waiting for readyok</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="498"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="537"/>
         <source>Invalid bestmove format: %1</source>
         <translation>Invalid bestmove format: %1</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="578"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="629"/>
         <source>Invalid bestmove format: &quot;%1&quot;</source>
         <translation>Invalid bestmove format: &quot;%1&quot;</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="612"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="663"/>
         <source>Invalid move format in moveFrom</source>
         <translation>Invalid move format in moveFrom</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="619"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="670"/>
         <source>Invalid move format in moveTo</source>
         <translation>Invalid move format in moveTo</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="650"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="701"/>
         <source>Invalid fileFrom value</source>
         <translation>Invalid fileFrom value</translation>
     </message>

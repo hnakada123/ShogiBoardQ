@@ -73,6 +73,9 @@ public:
                 int bincMs, int wincMs, bool useByoyomi);
     void sendGoPonder();
     void sendGoMate(int timeMs, bool infinite = false);
+    void sendGoDepth(int depth);              ///< go depth <x> - 指定深さまで探索
+    void sendGoNodes(qint64 nodes);           ///< go nodes <x> - 指定ノード数まで探索
+    void sendGoMovetime(int timeMs);          ///< go movetime <x> - 指定時間(ms)探索
     void sendStop();
     void sendPonderHit();
     void sendGameOver(const QString& result);
@@ -107,12 +110,15 @@ public:
     // === 状態管理 ===
     
     bool isResignMove() const { return m_isResignMove; }
+    bool isWinMove() const { return m_isWinMove; }
     bool isPonderEnabled() const { return m_isPonderEnabled; }
     SearchPhase currentPhase() const { return m_phase; }
     qint64 lastBestmoveElapsedMs() const { return m_lastGoToBestmoveMs; }
-    
+
     void setResignMove(bool value) { m_isResignMove = value; }
+    void setWinMove(bool value) { m_isWinMove = value; }
     void resetResignNotified() { m_resignNotified = false; }
+    void resetWinNotified() { m_winNotified = false; }
     void markHardTimeout() { m_timeoutDeclared = true; }
     void clearHardTimeout() { m_timeoutDeclared = false; }
     bool isTimeoutDeclared() const { return m_timeoutDeclared; }
@@ -132,6 +138,7 @@ signals:
     void readyOkReceived();
     void bestMoveReceived();
     void bestMoveResignReceived();
+    void bestMoveWinReceived();    ///< bestmove win（入玉宣言勝ち）を受信
     void stopOrPonderhitSent();
     void errorOccurred(const QString& message);
     void infoLineReceived(const QString& line);  // info行受信通知
@@ -179,6 +186,7 @@ private:
     bool m_readyOkReceived = false;
     bool m_bestMoveReceived = false;
     bool m_isResignMove = false;
+    bool m_isWinMove = false;         ///< bestmove win（入玉宣言勝ち）を受信
     bool m_isPonderEnabled = false;
 
     /// 指し手情報
@@ -199,6 +207,7 @@ private:
 
     /// 状態管理
     bool m_resignNotified = false;
+    bool m_winNotified = false;       ///< 入玉宣言勝ち通知済みフラグ
     bool m_timeoutDeclared = false;
     bool m_modeTsume = false;
 
