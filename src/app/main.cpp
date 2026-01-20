@@ -38,8 +38,7 @@ static void messageHandler(QtMsgType type, const QMessageLogContext &context, co
 int main(int argc, char *argv[])
 {
     // ログファイルを設定（実行ファイルと同じディレクトリに出力）
-    QString logPath = QCoreApplication::applicationDirPath() + "/debug.log";
-    // applicationDirPathはQApplicationインスタンス作成後でないと使えないので、一時的に固定パス
+    // 注: applicationDirPathはQApplicationインスタンス作成後でないと使えないため固定パス
     logFile = new QFile("debug.log");
     if (logFile->open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
         qInstallMessageHandler(messageHandler);

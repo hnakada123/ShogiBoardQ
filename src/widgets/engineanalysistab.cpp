@@ -116,6 +116,35 @@ void EngineAnalysisTab::buildUi()
     if (!m_tab) {
         m_tab = new QTabWidget(this);  // 親をthisに指定（メモリリーク防止）
         m_tab->setObjectName(QStringLiteral("analysisTabs"));
+
+        // タブバーを青色、タブ内をクリーム色にスタイル設定
+        m_tab->setStyleSheet(QStringLiteral(
+            "QTabWidget::pane {"
+            "  background-color: #fefcf6;"
+            "  border: 1px solid #d4c9a8;"
+            "  border-top: none;"
+            "}"
+            "QTabBar::tab {"
+            "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+            "    stop:0 #4a9eff, stop:1 #2d7dd2);"
+            "  color: white;"
+            "  font-weight: bold;"
+            "  padding: 4px 12px;"
+            "  border: 1px solid #2d7dd2;"
+            "  border-bottom: none;"
+            "  border-top-left-radius: 4px;"
+            "  border-top-right-radius: 4px;"
+            "  margin-right: 2px;"
+            "}"
+            "QTabBar::tab:selected {"
+            "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+            "    stop:0 #5aafff, stop:1 #3d8de2);"
+            "}"
+            "QTabBar::tab:hover:!selected {"
+            "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+            "    stop:0 #5aafff, stop:1 #3d8de2);"
+            "}"
+        ));
     } else {
         m_tab->clear();
     }

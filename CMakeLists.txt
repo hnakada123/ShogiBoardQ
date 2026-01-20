@@ -68,7 +68,6 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
         -Wsign-conversion
         -Wnon-virtual-dtor
         -Woverloaded-virtual
-        -Wnull-dereference
         -Wformat=2
         -Wimplicit-fallthrough
         # 未使用系
@@ -77,6 +76,8 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
         -Wunused-variable
         -Wunused-parameter
     )
+    # -Wnull-dereference は GCC の最適化（特にインライン展開）により
+    # Qt ヘッダやメンバ変数アクセスで誤検知が多発するため無効化
 endif()
 
 # --- 厳格なコンパイルオプション

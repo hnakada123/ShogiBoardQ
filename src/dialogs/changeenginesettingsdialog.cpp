@@ -1,18 +1,23 @@
 ﻿#include "changeenginesettingsdialog.h"
 #include "enginesettingsconstants.h"
+#include "engineoptiondescriptions.h"
+#include "settingsservice.h"
 #include "ui_changeenginesettingsdialog.h"
 #include <QSettings>
 #include <QGroupBox>
 #include <QPushButton>
 #include <QDir>
 #include <QFileDialog>
+#include <functional>
 
 using namespace EngineSettingsConstants;
 
 // 将棋エンジンの設定を変更するダイアログ
 // コンストラクタ
 ChangeEngineSettingsDialog::ChangeEngineSettingsDialog(QWidget *parent)
-    : QDialog(parent), ui(new Ui::ChangeEngineSettingsDialog)
+    : QDialog(parent)
+    , ui(new Ui::ChangeEngineSettingsDialog)
+    , m_fontSize(SettingsService::engineSettingsFontSize())
 {
     ui->setupUi(this);
 }
@@ -130,57 +135,108 @@ void ChangeEngineSettingsDialog::changeColorTypeButton()
 
     // ボタンが押された状態の場合
     if (m_engineOptionWidgetsList.at(index).selectionButton->isChecked()) {
-        m_engineOptionWidgetsList.at(index).selectionButton->setStyleSheet("background-color: #3daee9; color: white");
+        m_engineOptionWidgetsList.at(index).selectionButton->setStyleSheet(
+            "QPushButton { border: none; border-radius: 4px; padding: 8px 16px; "
+            "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4a9eff, stop:1 #2d7dd2); "
+            "color: white; font-weight: bold; }");
     }
     // ボタンが押されていない場合
     else {
-        m_engineOptionWidgetsList.at(index).selectionButton->setStyleSheet("");
+        m_engineOptionWidgetsList.at(index).selectionButton->setStyleSheet(
+            "QPushButton { border: 1px solid #a8c8e8; border-radius: 4px; padding: 8px 16px; "
+            "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #f8fbfe, stop:1 #e8f2fc); "
+            "color: #1a5276; }"
+            "QPushButton:hover { background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
+            "stop:0 #e8f2fc, stop:1 #d4e9f7); }");
+    }
+}
+
+// オプションの説明ラベルを作成してレイアウトに追加する。
+void ChangeEngineSettingsDialog::createHelpDescriptionLabel(const QString& optionName, QVBoxLayout* layout)
+{
+    QString description = EngineOptionDescriptions::getDescription(optionName);
+
+    if (!description.isEmpty()) {
+        m_optionWidgets.helpDescriptionLabel = new QLabel(description, this);
+        m_optionWidgets.helpDescriptionLabel->setWordWrap(true);
+        m_optionWidgets.helpDescriptionLabel->setStyleSheet(
+            "QLabel { color: #333333; padding: 2px 0px 6px 0px; "
+            "background: transparent; }");
+        layout->addWidget(m_optionWidgets.helpDescriptionLabel);
+    } else {
+        m_optionWidgets.helpDescriptionLabel = nullptr;
     }
 }
 
 // エンジンオプションのためのテキストボックスを作成する。
-void ChangeEngineSettingsDialog::createTextBox(const EngineOption& option, QVBoxLayout* layout)
+void ChangeEngineSettingsDialog::createTextBox(const EngineOption& option, QVBoxLayout* layout, int optionIndex)
 {
     // オプション名でラベルを作成する。
     m_optionWidgets.optionNameLabel = new QLabel(tr("%1（既定値 %2）").arg(option.name, option.defaultValue), this);
+    m_optionWidgets.optionNameLabel->setStyleSheet(
+        "QLabel { color: #333333; font-weight: bold; "
+        "background: transparent; padding: 4px 0px 2px 0px; }");
+
+    // UI要素を指定されたレイアウトに追加する。
+    layout->addWidget(m_optionWidgets.optionNameLabel);
+
+    // オプションの説明ラベルを追加する。
+    createHelpDescriptionLabel(option.name, layout);
 
     // テキスト入力用のLineEditを作成する。
     m_optionWidgets.lineEdit = new QLineEdit(this);
+    m_optionWidgets.lineEdit->setStyleSheet(
+        "QLineEdit { border: 1px solid #a8c8e8; border-radius: 4px; padding: 6px 8px; "
+        "background-color: white; color: #333333; }"
+        "QLineEdit:focus { border: 2px solid #4a9eff; }");
 
     // 現在値をセットする。
     m_optionWidgets.lineEdit->setText(option.currentValue);
 
-    // ファイルタイプを判定して対応するボタンを作成する。
-    m_optionWidgets.selectionButton = new QPushButton(this);
-
-    // デフォルトをファイルタイプに設定する。
-    EngineSettings::FileType fileType = EngineSettings::FileType::File;
-
-    // オプション名に"Dir"もしくは"dir"が含まれるかチェックして、対応するボタンのテキストを設定する。
-    if (option.name.contains("Dir", Qt::CaseInsensitive)) {
-        m_optionWidgets.selectionButton->setText(tr("フォルダ・ディレクトリの選択"));
-
-        // ディレクトリタイプに設定
-        fileType = EngineSettings::FileType::Directory;
-    } else {
-        m_optionWidgets.selectionButton->setText(tr("ファイルの選択"));
-
-        // ファイルタイプに設定する。
-        fileType = EngineSettings::FileType::File;
-    }
-
-    // ボタンのプロパティにインデックスとファイルタイプを設定する。
-    // layoutに既に追加された要素の数をインデックスとして使用する。
-    m_optionWidgets.selectionButton->setProperty("index", layout->count());
-    m_optionWidgets.selectionButton->setProperty("fileType", static_cast<int>(fileType));
-
-    // ボタンのクリックイベントに対するスロットを接続
-    connect(m_optionWidgets.selectionButton, &QPushButton::clicked, this, &ChangeEngineSettingsDialog::openFile);
-
-    // UI要素を指定されたレイアウトに追加する。
-    layout->addWidget(m_optionWidgets.optionNameLabel);
     layout->addWidget(m_optionWidgets.lineEdit);
-    layout->addWidget(m_optionWidgets.selectionButton);
+
+    // オプション名に"Dir"、"File"、"Log"が含まれる場合のみファイル/フォルダ選択ボタンを表示する。
+    if (option.name.contains("Dir", Qt::CaseInsensitive) ||
+        option.name.contains("File", Qt::CaseInsensitive) ||
+        option.name.contains("Log", Qt::CaseInsensitive)) {
+
+        // ファイルタイプを判定して対応するボタンを作成する。
+        m_optionWidgets.selectionButton = new QPushButton(this);
+        m_optionWidgets.selectionButton->setStyleSheet(
+            "QPushButton { border: 1px solid #7fb3d5; border-radius: 4px; padding: 6px 12px; "
+            "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #e8f4fc, stop:1 #d4e9f7); "
+            "color: #1a5276; }"
+            "QPushButton:hover { background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
+            "stop:0 #d4e9f7, stop:1 #c0ddf0); }"
+            "QPushButton:pressed { background: #b8d4e8; }");
+
+        // デフォルトをファイルタイプに設定する。
+        EngineSettings::FileType fileType = EngineSettings::FileType::File;
+
+        // オプション名に"Dir"が含まれるかチェックして、対応するボタンのテキストを設定する。
+        if (option.name.contains("Dir", Qt::CaseInsensitive)) {
+            m_optionWidgets.selectionButton->setText(tr("フォルダ・ディレクトリの選択"));
+
+            // ディレクトリタイプに設定
+            fileType = EngineSettings::FileType::Directory;
+        } else {
+            m_optionWidgets.selectionButton->setText(tr("ファイルの選択"));
+
+            // ファイルタイプに設定する。
+            fileType = EngineSettings::FileType::File;
+        }
+
+        // ボタンのプロパティにオプションインデックスとファイルタイプを設定する。
+        m_optionWidgets.selectionButton->setProperty("index", optionIndex);
+        m_optionWidgets.selectionButton->setProperty("fileType", static_cast<int>(fileType));
+
+        // ボタンのクリックイベントに対するスロットを接続
+        connect(m_optionWidgets.selectionButton, &QPushButton::clicked, this, &ChangeEngineSettingsDialog::openFile);
+
+        layout->addWidget(m_optionWidgets.selectionButton);
+    } else {
+        m_optionWidgets.selectionButton = nullptr;
+    }
 
     // テキストボックスのオブジェクト名を設定
     m_optionWidgets.lineEdit->setObjectName(option.name);
@@ -190,6 +246,15 @@ void ChangeEngineSettingsDialog::createTextBox(const EngineOption& option, QVBox
 void ChangeEngineSettingsDialog::createSpinBox(const EngineOption& option, QVBoxLayout* layout)
 {
     m_optionWidgets.optionNameLabel = new QLabel(tr("%1").arg(option.name), this);
+    m_optionWidgets.optionNameLabel->setStyleSheet(
+        "QLabel { color: #333333; font-weight: bold; "
+        "background: transparent; padding: 4px 0px 2px 0px; }");
+
+    // オプション名のラベルをレイアウトに追加する。
+    layout->addWidget(m_optionWidgets.optionNameLabel);
+
+    // オプションの説明ラベルを追加する。
+    createHelpDescriptionLabel(option.name, layout);
 
     // オプション名が"USI_Hash"の場合、入力値制限についてのラベルを作成する。
     if (option.name == "USI_Hash") {
@@ -199,12 +264,17 @@ void ChangeEngineSettingsDialog::createSpinBox(const EngineOption& option, QVBox
         m_optionWidgets.optionDescriptionLabel = new QLabel(tr("%1 から %2 までの値を入力してください。（既定値: %3）")
                                     .arg(option.min, option.max, option.defaultValue), this);
     }
+    m_optionWidgets.optionDescriptionLabel->setStyleSheet(
+        "QLabel { color: #5d6d7e; background: transparent; }");
 
     // スピンボックスを作成する。
     m_optionWidgets.integerSpinBox = new LongLongSpinBox(this);
 
-    // スタイルシートの確認と修正
-    m_optionWidgets.integerSpinBox->setStyleSheet("");
+    // スタイルシートを設定
+    m_optionWidgets.integerSpinBox->setStyleSheet(
+        "QSpinBox { border: 1px solid #a8c8e8; border-radius: 4px; padding: 6px 8px; "
+        "background-color: white; color: #333333; }"
+        "QSpinBox:focus { border: 2px solid #4a9eff; }");
 
     // スピンボックスの範囲を設定する。オプションのminとmaxを使用する。
     m_optionWidgets.integerSpinBox->setSpinBoxRange(option.min.toLongLong(), option.max.toLongLong());
@@ -218,8 +288,7 @@ void ChangeEngineSettingsDialog::createSpinBox(const EngineOption& option, QVBox
     // このダイアログ自体をスピンボックスのイベントフィルタとしてインストールする。これにより、特定のイベントをこのダイアログで処理できるようになる。
     m_optionWidgets.integerSpinBox->installEventFilter(this);
 
-    // オプション名のラベルとスピンボックスをレイアウトに追加する。
-    layout->addWidget(m_optionWidgets.optionNameLabel);
+    // 入力値制限のラベルとスピンボックスをレイアウトに追加する。
     layout->addWidget(m_optionWidgets.optionDescriptionLabel);
     layout->addWidget(m_optionWidgets.integerSpinBox);
 
@@ -232,6 +301,15 @@ void ChangeEngineSettingsDialog::createCheckBox(const EngineOption& option, QVBo
 {
     // チェックボックスを作成
     m_optionWidgets.optionCheckBox = new QCheckBox(this);
+    m_optionWidgets.optionCheckBox->setStyleSheet(
+        "QCheckBox { color: #333333; font-weight: bold; "
+        "background: transparent; padding: 4px 0px 2px 0px; spacing: 8px; }"
+        "QCheckBox::indicator { width: 18px; height: 18px; }"
+        "QCheckBox::indicator:unchecked { border: 2px solid #a8c8e8; border-radius: 4px; "
+        "background-color: white; }"
+        "QCheckBox::indicator:checked { border: 2px solid #4a9eff; border-radius: 4px; "
+        "background-color: #4a9eff; }"
+        "QCheckBox::indicator:hover { border: 2px solid #4a9eff; }");
 
     // チェックボックスにオプション名と既定値のテキストをセット
     m_optionWidgets.optionCheckBox->setText(tr("%1（既定値 %2）").arg(option.name, option.defaultValue));
@@ -241,6 +319,9 @@ void ChangeEngineSettingsDialog::createCheckBox(const EngineOption& option, QVBo
 
     // チェックボックスをレイアウトに追加
     layout->addWidget(m_optionWidgets.optionCheckBox);
+
+    // オプションの説明ラベルを追加する。
+    createHelpDescriptionLabel(option.name, layout);
 
     // ここで、チェックボックスのオブジェクト名をオプション名に基づいて設定しておくことで、
     // 後で特定のオプションに対応するチェックボックスを識別できるようにしておく。
@@ -261,13 +342,24 @@ void ChangeEngineSettingsDialog::createButton(const EngineOption& option, QVBoxL
 
     // ボタンのスタイルをチェック状態に応じて設定
     if (m_optionWidgets.selectionButton->isChecked()) {
-        m_optionWidgets.selectionButton->setStyleSheet("background-color: #3daee9; color: white");
+        m_optionWidgets.selectionButton->setStyleSheet(
+            "QPushButton { border: none; border-radius: 4px; padding: 8px 16px; "
+            "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4a9eff, stop:1 #2d7dd2); "
+            "color: white; font-weight: bold; }");
     } else {
-        m_optionWidgets.selectionButton->setStyleSheet("");
+        m_optionWidgets.selectionButton->setStyleSheet(
+            "QPushButton { border: 1px solid #a8c8e8; border-radius: 4px; padding: 8px 16px; "
+            "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #f8fbfe, stop:1 #e8f2fc); "
+            "color: #1a5276; }"
+            "QPushButton:hover { background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
+            "stop:0 #e8f2fc, stop:1 #d4e9f7); }");
     }
 
     // ボタンをレイアウトに追加
     layout->addWidget(m_optionWidgets.selectionButton);
+
+    // オプションの説明ラベルを追加する。
+    createHelpDescriptionLabel(option.name, layout);
 
     // ボタンのオブジェクト名を設定
     m_optionWidgets.selectionButton->setObjectName(option.name);
@@ -278,11 +370,29 @@ void ChangeEngineSettingsDialog::createComboBox(const EngineOption& option, QVBo
 {
     // オプション名のラベルを作成
     m_optionWidgets.optionNameLabel = new QLabel(tr("%1（既定値 %2）").arg(option.name, option.defaultValue), this);
+    m_optionWidgets.optionNameLabel->setStyleSheet(
+        "QLabel { color: #333333; font-weight: bold; "
+        "background: transparent; padding: 4px 0px 2px 0px; }");
+
+    // ラベルをレイアウトに追加
+    layout->addWidget(m_optionWidgets.optionNameLabel);
+
+    // オプションの説明ラベルを追加する。
+    createHelpDescriptionLabel(option.name, layout);
 
     // コンボボックスを作成
     m_optionWidgets.comboBox = new QComboBox(this);
     m_optionWidgets.comboBox->setFocusPolicy(Qt::StrongFocus);
     m_optionWidgets.comboBox->installEventFilter(this);
+    m_optionWidgets.comboBox->setStyleSheet(
+        "QComboBox { border: 1px solid #a8c8e8; border-radius: 4px; padding: 6px 8px; "
+        "background-color: white; color: #333333; }"
+        "QComboBox:focus { border: 2px solid #4a9eff; }"
+        "QComboBox::drop-down { border: none; width: 24px; }"
+        "QComboBox::down-arrow { image: none; border-left: 5px solid transparent; "
+        "border-right: 5px solid transparent; border-top: 6px solid #4a9eff; }"
+        "QComboBox QAbstractItemView { border: 1px solid #a8c8e8; background-color: white; "
+        "selection-background-color: #d4e9f7; selection-color: #333333; }");
 
     // コンボボックスに選択肢を追加
     for (const QString& value : option.valueList) {
@@ -295,8 +405,7 @@ void ChangeEngineSettingsDialog::createComboBox(const EngineOption& option, QVBo
         m_optionWidgets.comboBox->setCurrentIndex(currentIndex);
     }
 
-    // ラベルとコンボボックスをレイアウトに追加
-    layout->addWidget(m_optionWidgets.optionNameLabel);
+    // コンボボックスをレイアウトに追加
     layout->addWidget(m_optionWidgets.comboBox);
 
     // コンボボックスのオブジェクト名を設定
@@ -304,34 +413,42 @@ void ChangeEngineSettingsDialog::createComboBox(const EngineOption& option, QVBo
 }
 
 // オプションのタイプに応じたUIコンポーネントを作成し、レイアウトに追加する。
-void ChangeEngineSettingsDialog::createWidgetForOption(const EngineOption& option)
+void ChangeEngineSettingsDialog::createWidgetForOption(const EngineOption& option, int optionIndex, QVBoxLayout* targetLayout)
 {
     // オプションタイプが"filename"か"string"の場合
     if (option.type == "filename" || option.type == "string") {
         // エンジンオプションのためのテキストボックスを作成する。
-        createTextBox(option, optionWidgetsLayout);
+        createTextBox(option, targetLayout, optionIndex);
     }
     // オプションタイプが"spin"の場合
     else if (option.type == "spin") {
         // エンジンオプションのためのスピンボックスを作成する。
-        createSpinBox(option, optionWidgetsLayout);
+        createSpinBox(option, targetLayout);
     }
     // オプションタイプが"check"の場合
     else if (option.type == "check") {
         // エンジンオプションのためのチェックボックスを作成する。
-        createCheckBox(option, optionWidgetsLayout);
+        createCheckBox(option, targetLayout);
     }
     // オプションタイプが"button"の場合
     else if (option.type == "button") {
         // エンジンオプションのためのボタンを作成する。
-        createButton(option, optionWidgetsLayout);
+        createButton(option, targetLayout);
 
     }
     // オプションタイプが"combo"の場合
     else if (option.type == "combo") {
         // エンジンオプションのためのコンボボックスを作成する。
-        createComboBox(option, optionWidgetsLayout);
+        createComboBox(option, targetLayout);
     }
+}
+
+// カテゴリ別の折りたたみ可能なグループボックスを作成する。
+CollapsibleGroupBox* ChangeEngineSettingsDialog::createCategoryGroupBox(EngineOptionCategory category)
+{
+    QString categoryName = EngineOptionDescriptions::getCategoryDisplayName(category);
+    CollapsibleGroupBox* groupBox = new CollapsibleGroupBox(categoryName, this);
+    return groupBox;
 }
 
 // エンジンオプションに基づいてUIコンポーネントを作成して配置する。
@@ -343,13 +460,48 @@ void ChangeEngineSettingsDialog::createOptionWidgets()
     // 画面レイアウトを作成する。
     optionWidgetsLayout = new QVBoxLayout;
 
-    // オプション数でループさせる。
-    for (const auto& option : std::as_const(m_optionList)) {
-        // オプションのタイプに応じたUIコンポーネントを作成し、レイアウトに追加する。
-        createWidgetForOption(option);
+    // カテゴリ別にオプションをグループ化するためのマップを作成
+    // キー: カテゴリ、値: (オプションインデックス, オプション) のリスト
+    QMap<EngineOptionCategory, QList<QPair<int, EngineOption>>> categoryOptionsMap;
 
-        // 各オプションの状態をメニューリストに追加する。
-        m_engineOptionWidgetsList.append(m_optionWidgets);
+    // オプションをカテゴリ別に分類
+    for (qsizetype i = 0; i < m_optionList.size(); ++i) {
+        const auto& option = m_optionList.at(i);
+        EngineOptionCategory category = EngineOptionDescriptions::getCategory(option.name);
+        categoryOptionsMap[category].append(qMakePair(static_cast<int>(i), option));
+    }
+
+    // m_engineOptionWidgetsList のサイズを事前に確保（インデックスでアクセスするため）
+    m_engineOptionWidgetsList.resize(m_optionList.size());
+
+    // 定義された順序でカテゴリを処理
+    QList<EngineOptionCategory> categoryOrder = EngineOptionDescriptions::getAllCategories();
+
+    for (EngineOptionCategory category : categoryOrder) {
+        // このカテゴリにオプションがない場合はスキップ
+        if (!categoryOptionsMap.contains(category) || categoryOptionsMap[category].isEmpty()) {
+            continue;
+        }
+
+        // カテゴリ用の折りたたみ可能なグループボックスを作成
+        CollapsibleGroupBox* groupBox = createCategoryGroupBox(category);
+        QVBoxLayout* groupLayout = groupBox->contentLayout();
+
+        // このカテゴリのオプションを処理
+        const auto& optionsInCategory = categoryOptionsMap[category];
+        for (const auto& pair : optionsInCategory) {
+            int optionIndex = pair.first;
+            const EngineOption& option = pair.second;
+
+            // オプションのタイプに応じたUIコンポーネントを作成し、グループレイアウトに追加
+            createWidgetForOption(option, optionIndex, groupLayout);
+
+            // 各オプションの状態をメニューリストの対応する位置に格納
+            m_engineOptionWidgetsList[optionIndex] = m_optionWidgets;
+        }
+
+        // グループボックスをメインレイアウトに追加
+        optionWidgetsLayout->addWidget(groupBox);
     }
 
     // 各ボタンが押されているかどうかを確認し、ボタンの色を設定する。
@@ -374,6 +526,13 @@ void ChangeEngineSettingsDialog::createOptionWidgets()
 
     // "Cancel"ボタンが押された場合、エンジン設定ダイアログを保存せずに終了する。
     connect(ui->buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
+
+    // フォントサイズ変更ボタンの接続
+    connect(ui->fontIncreaseButton, &QPushButton::clicked, this, &ChangeEngineSettingsDialog::increaseFontSize);
+    connect(ui->fontDecreaseButton, &QPushButton::clicked, this, &ChangeEngineSettingsDialog::decreaseFontSize);
+
+    // 保存されているフォントサイズを適用
+    applyFontSize();
 
     // ダイアログのサイズをコンテンツに合わせて固定する。
     this->setFixedSize(this->geometry().width(), this->geometry().height());
@@ -442,7 +601,19 @@ void ChangeEngineSettingsDialog::restoreDefaultOptions() {
             bool isChecked = option.defaultValue == "on";
             widget.selectionButton->setChecked(isChecked);
             // チェック状態に応じてボタンのスタイルを変更
-            widget.selectionButton->setStyleSheet(isChecked ? "background-color: #3daee9; color: white" : "");
+            if (isChecked) {
+                widget.selectionButton->setStyleSheet(
+                    "QPushButton { border: none; border-radius: 4px; padding: 8px 16px; "
+                    "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4a9eff, stop:1 #2d7dd2); "
+                    "color: white; font-weight: bold; }");
+            } else {
+                widget.selectionButton->setStyleSheet(
+                    "QPushButton { border: 1px solid #a8c8e8; border-radius: 4px; padding: 8px 16px; "
+                    "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #f8fbfe, stop:1 #e8f2fc); "
+                    "color: #1a5276; }"
+                    "QPushButton:hover { background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
+                    "stop:0 #e8f2fc, stop:1 #d4e9f7); }");
+            }
         } else if (option.type == "combo") {
             // コンボボックスオプションの場合、既定値に基づいて選択肢を設定
             widget.comboBox->clear(); // 既存の選択肢をクリア
@@ -539,4 +710,51 @@ bool ChangeEngineSettingsDialog::eventFilter(QObject* obj, QEvent* e)
     }
     // 上記の条件に当てはまらない場合は、falseを返してイベントの伝播を続行させる。
     return false;
+}
+
+// フォントサイズを増加する。
+void ChangeEngineSettingsDialog::increaseFontSize()
+{
+    if (m_fontSize < 20) {  // 最大サイズを20に制限
+        m_fontSize++;
+        applyFontSize();
+        SettingsService::setEngineSettingsFontSize(m_fontSize);
+    }
+}
+
+// フォントサイズを減少する。
+void ChangeEngineSettingsDialog::decreaseFontSize()
+{
+    if (m_fontSize > 8) {  // 最小サイズを8に制限
+        m_fontSize--;
+        applyFontSize();
+        SettingsService::setEngineSettingsFontSize(m_fontSize);
+    }
+}
+
+// すべてのウィジェットにフォントサイズを適用する。
+void ChangeEngineSettingsDialog::applyFontSize()
+{
+    // ダイアログ全体のフォントを設定
+    QFont font = this->font();
+    font.setPointSize(m_fontSize);
+    this->setFont(font);
+
+    // スクロールエリアのコンテンツにも明示的にフォントを設定
+    ui->scrollAreaWidgetContents->setFont(font);
+
+    // 全ての子ウィジェットにフォントを再帰的に適用
+    const std::function<void(QWidget*)> applyToChildren = [&font, &applyToChildren](QWidget* widget) {
+        if (!widget) return;
+        widget->setFont(font);
+        const QObjectList& children = widget->children();
+        for (QObject* child : children) {
+            QWidget* childWidget = qobject_cast<QWidget*>(child);
+            if (childWidget) {
+                applyToChildren(childWidget);
+            }
+        }
+    };
+
+    applyToChildren(ui->scrollAreaWidgetContents);
 }
