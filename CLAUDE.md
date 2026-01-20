@@ -25,43 +25,79 @@ cmake -B build -S . -DENABLE_CLANG_TIDY=ON
 cmake -B build -S . -DENABLE_CPPCHECK=ON
 
 # Update translations
-lupdate src include ui -ts resources/translations/ShogiBoardQ_ja_JP.ts resources/translations/ShogiBoardQ_en.ts
+lupdate src ui -ts resources/translations/ShogiBoardQ_ja_JP.ts resources/translations/ShogiBoardQ_en.ts
 ```
 
 ## Architecture
 
 ### Source Organization (`src/`)
 
-- **app/**: Application-level coordinators and presenters that wire together UI and business logic
+ヘッダーファイル（.h）は対応するソースファイル（.cpp）と同じディレクトリに配置されています。
+
+- **app/**: アプリケーションエントリーポイント
   - `main.cpp` - Entry point
-  - Coordinators (e.g., `gamestartcoordinator`, `analysiscoordinator`) - orchestrate complex flows
-  - Presenters (e.g., `evalgraphpresenter`, `recordpresenter`) - bridge models to views
-  - Wiring classes (e.g., `csagamewiring`, `analysistabwiring`) - connect signals/slots
+  - `mainwindow.cpp/.h` - Main window
 
-- **core/**: Core game logic and data structures
-  - `shogiboard.cpp` - Board state and piece management
-  - `shogigamecontroller.cpp` - Game flow control
-  - `movevalidator.cpp` - Move legality validation
-  - `gamerecordmodel.cpp` - Kifu data model
-  - Format converters: `kiftosfenconverter`, `ki2tosfenconverter`, `csatosfenconverter`, `usitosfenconverter`, `jkftosfenconverter`
+- **core/**: 純粋なゲームロジック（Qt GUI非依存）
+  - `shogiboard.cpp/.h` - Board state and piece management
+  - `shogimove.cpp/.h` - Move representation
+  - `movevalidator.cpp/.h` - Move legality validation
+  - `shogiclock.cpp/.h` - Game clock
+  - `shogiutils.cpp/.h` - Utilities
 
-- **engine/**: USI (Universal Shogi Interface) engine integration
-  - `usi.cpp` - Main engine interface
-  - `usiprotocolhandler.cpp` - USI protocol implementation
-  - `engineprocessmanager.cpp` - Engine process lifecycle
-  - `shogienginethinkingmodel.cpp` - Analysis data model
+- **game/**: ゲーム進行・対局管理
+  - `matchcoordinator.cpp/.h` - Match orchestration
+  - `shogigamecontroller.cpp/.h` - Game flow control
+  - `gamestartcoordinator.cpp/.h` - Game start flow
+  - `turnmanager.cpp/.h` - Turn management
 
-- **controllers/**: UI state controllers
-- **views/**: Qt Graphics View for board rendering (`shogiview.cpp`)
+- **kifu/**: 棋譜関連
+  - `gamerecordmodel.cpp/.h` - Kifu data model
+  - `kifuloadcoordinator.cpp/.h` - Kifu loading
+  - `kifuioservice.cpp/.h` - Kifu file I/O
+  - **formats/**: Format converters
+    - `kiftosfenconverter`, `ki2tosfenconverter`, `csatosfenconverter`, etc.
+
+- **analysis/**: 解析機能
+  - `analysiscoordinator.cpp/.h` - Analysis orchestration
+  - `analysisflowcontroller.cpp/.h` - Analysis flow control
+  - `considerationflowcontroller.cpp/.h` - Consideration mode
+
+- **engine/**: USI (Universal Shogi Interface) エンジン連携
+  - `usi.cpp/.h` - Main engine interface
+  - `usiprotocolhandler.cpp/.h` - USI protocol implementation
+  - `engineprocessmanager.cpp/.h` - Engine process lifecycle
+  - `enginesettingscoordinator.cpp/.h` - Engine settings
+
+- **network/**: CSA通信対局
+  - `csaclient.cpp/.h` - CSA protocol client
+  - `csagamecoordinator.cpp/.h` - CSA game coordination
+
+- **navigation/**: ナビゲーション機能
+  - `navigationcontroller.cpp/.h` - Navigation control
+  - `navigationcontext.cpp/.h` - Navigation context
+
+- **board/**: 盤面編集・操作
+  - `boardinteractioncontroller.cpp/.h` - Board interaction
+  - `positioneditcontroller.cpp/.h` - Position editing
+  - `boardimageexporter.cpp/.h` - Board image export
+
+- **ui/**: UI層
+  - **presenters/**: MVP Presenter layer
+    - `evalgraphpresenter`, `recordpresenter`, `navigationpresenter`, etc.
+  - **controllers/**: UI event handlers
+    - `boardsetupcontroller`, `recordnavigationcontroller`, etc.
+  - **wiring/**: Signal/Slot connections
+    - `uiactionswiring`, `csagamewiring`, `analysistabwiring`, etc.
+  - **coordinators/**: UI coordination
+    - `dialogcoordinator`, `positioneditcoordinator`, etc.
+
+- **views/**: Qt Graphics View for board rendering (`shogiview.cpp/.h`)
 - **widgets/**: Custom Qt widgets
 - **dialogs/**: Dialog implementations
-- **services/**: Business logic services (kifu I/O, clipboard, time keeping)
-- **network/**: CSA client for network play
 - **models/**: Qt models for lists and data binding
-
-### Headers (`include/`)
-
-All header files are in a flat structure under `include/`. Use `#include "filename.h"` format.
+- **services/**: Cross-cutting services (settings, time keeping)
+- **common/**: Shared utilities (`errorbus`, `jishogicalculator`)
 
 ### UI Files (`ui/`)
 
@@ -75,7 +111,7 @@ Qt Designer `.ui` files for dialogs and main window. Auto-processed by CMake's A
 
 ## Key Technologies
 
-- **Qt 6** (Qt 5 fallback supported): Widgets, Charts, Network, LinguistTools
+- **Qt 6** (Qt6専用、Qt5非対応): Widgets, Charts, Network, LinguistTools
 - **C++17** required
 - **CMake 3.16+** build system
 - **USI Protocol** for engine communication
