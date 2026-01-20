@@ -10,6 +10,7 @@
 #include <QHash>
 #include <QSet>
 #include <QAbstractItemModel>
+#include <QColor>
 
 class QTabWidget;
 class QTableView;
@@ -215,6 +216,7 @@ private:
     void updateUsiLogFontSize(int delta);  // ★ 追加: USI通信ログフォントサイズ変更
     void onUsiLogFontIncrease();     // ★ 追加
     void onUsiLogFontDecrease();     // ★ 追加
+    void appendColoredUsiLog(const QString& logLine, const QColor& prefixColor);  // ★ 追加: 色付きログ追加
     void onEngine1NameChanged();     // ★ 追加: エンジン1名変更時
     void onEngine2NameChanged();     // ★ 追加: エンジン2名変更時
     void buildCsaLogToolbar();       // ★ 追加: CSA通信ログツールバー構築

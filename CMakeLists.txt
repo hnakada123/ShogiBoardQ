@@ -4,8 +4,9 @@ project(ShogiBoardQ VERSION 0.1 LANGUAGES CXX)
 
 # ==== Qt auto features ====
 set(CMAKE_AUTOUIC ON)
-# .ui は従来どおり ui/ 配下を探索
-set(CMAKE_AUTOUIC_SEARCH_PATHS ui)
+# .ui ファイルはソースと同じディレクトリに配置
+# 他のディレクトリから ui_*.h をインクルードする場合のための検索パス
+set(CMAKE_AUTOUIC_SEARCH_PATHS src/app src/dialogs)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
@@ -130,15 +131,15 @@ set(TS_FILES
 
 # ==== UI (.ui) ====
 set(UI_FILES
-    ui/mainwindow.ui
-    ui/changeenginesettingsdialog.ui
-    ui/considerationdialog.ui
-    ui/csagamedialog.ui
-    ui/engineregistrationdialog.ui
-    ui/kifuanalysisdialog.ui
-    ui/promotedialog.ui
-    ui/startgamedialog.ui
-    ui/versiondialog.ui
+    src/app/mainwindow.ui
+    src/dialogs/changeenginesettingsdialog.ui
+    src/dialogs/considerationdialog.ui
+    src/dialogs/csagamedialog.ui
+    src/dialogs/engineregistrationdialog.ui
+    src/dialogs/kifuanalysisdialog.ui
+    src/dialogs/promotedialog.ui
+    src/dialogs/startgamedialog.ui
+    src/dialogs/versiondialog.ui
 )
 
 # ==== Sources (機能別ディレクトリ構造) ====
@@ -166,13 +167,13 @@ file(GLOB_RECURSE HDRS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.h)
 # ==== Application Icon ====
 # Windows用リソースファイル
 if(WIN32)
-    set(APP_ICON_RESOURCE_WINDOWS "${CMAKE_CURRENT_SOURCE_DIR}/resources/app.rc")
+    set(APP_ICON_RESOURCE_WINDOWS "${CMAKE_CURRENT_SOURCE_DIR}/resources/platform/app.rc")
 endif()
 
 # macOS用アイコン
 if(APPLE)
     set(MACOSX_BUNDLE_ICON_FILE shogiboardq.icns)
-    set(APP_ICON_MACOS "${CMAKE_CURRENT_SOURCE_DIR}/resources/shogiboardq.icns")
+    set(APP_ICON_MACOS "${CMAKE_CURRENT_SOURCE_DIR}/resources/icons/shogiboardq.icns")
     set_source_files_properties(${APP_ICON_MACOS} PROPERTIES
         MACOSX_PACKAGE_LOCATION "Resources")
 endif()
@@ -206,9 +207,9 @@ qt_add_executable(ShogiBoardQ
 # .qm 生成（出力はビルド側に）
 # 注意: CMAKE_SOURCE_DIR 全体を渡すとビルドディレクトリ内の autogen ファイルも
 # スキャンされ、循環依存が発生するため、ソースディレクトリのみを指定する
+# .ui ファイルはソースディレクトリに含まれる
 qt_create_translation(QM_FILES
     ${CMAKE_SOURCE_DIR}/src
-    ${CMAKE_SOURCE_DIR}/ui
     ${TS_FILES}
 )
 
