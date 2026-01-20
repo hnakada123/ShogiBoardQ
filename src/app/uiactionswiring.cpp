@@ -24,14 +24,14 @@ void UiActionsWiring::wire()
     QObject::connect(ui->actionStartGame,   &QAction::triggered, mw, &MainWindow::initializeGame,      Qt::UniqueConnection);
     QObject::connect(ui->actionCSA,        &QAction::triggered, mw, &MainWindow::displayCsaGameDialog, Qt::UniqueConnection);
     QObject::connect(ui->actionResign,      &QAction::triggered, mw, &MainWindow::handleResignation,   Qt::UniqueConnection);
-    QObject::connect(ui->breakOffGame,      &QAction::triggered, mw, &MainWindow::handleBreakOffGame,  Qt::UniqueConnection);
+    QObject::connect(ui->actionBreakOffGame,      &QAction::triggered, mw, &MainWindow::handleBreakOffGame,  Qt::UniqueConnection);
 
     // 盤操作・表示
     QObject::connect(ui->actionFlipBoard,            &QAction::triggered, mw,           &MainWindow::onActionFlipBoardTriggered, Qt::UniqueConnection);
     QObject::connect(ui->actionCopyBoardToClipboard, &QAction::triggered, mw,           &MainWindow::copyBoardToClipboard,       Qt::UniqueConnection);
     QObject::connect(ui->actionMakeImmediateMove,    &QAction::triggered, mw,           &MainWindow::movePieceImmediately,       Qt::UniqueConnection);
-    QObject::connect(ui->actionStandardMove,         &QAction::triggered, mw,           &MainWindow::displayJosekiWindow,        Qt::UniqueConnection);
-    QObject::connect(ui->actionMenu,                 &QAction::triggered, mw,           &MainWindow::displayMenuWindow,          Qt::UniqueConnection);
+    QObject::connect(ui->actionJosekiWindow,         &QAction::triggered, mw,           &MainWindow::displayJosekiWindow,        Qt::UniqueConnection);
+    QObject::connect(ui->actionMenuWindow,                 &QAction::triggered, mw,           &MainWindow::displayMenuWindow,          Qt::UniqueConnection);
     if (m_d.shogiView) {
         QObject::connect(ui->actionEnlargeBoard,     &QAction::triggered, m_d.shogiView, &ShogiView::enlargeBoard, Qt::UniqueConnection);
         QObject::connect(ui->actionShrinkBoard,      &QAction::triggered, m_d.shogiView, &ShogiView::reduceBoard,  Qt::UniqueConnection);
@@ -43,7 +43,7 @@ void UiActionsWiring::wire()
     QObject::connect(ui->actionEngineSettings,       &QAction::triggered, mw, &MainWindow::displayEngineSettingsDialog,    Qt::UniqueConnection);
     QObject::connect(ui->actionConsideration,        &QAction::triggered, mw, &MainWindow::displayConsiderationDialog,     Qt::UniqueConnection);
     QObject::connect(ui->actionAnalyzeKifu,          &QAction::triggered, mw, &MainWindow::displayKifuAnalysisDialog,      Qt::UniqueConnection);
-    QObject::connect(ui->actionCacelAnalyzeKifu,     &QAction::triggered, mw, &MainWindow::cancelKifuAnalysis,             Qt::UniqueConnection);
+    QObject::connect(ui->actionCancelAnalyzeKifu,     &QAction::triggered, mw, &MainWindow::cancelKifuAnalysis,             Qt::UniqueConnection);
     QObject::connect(ui->actionStartEditPosition,    &QAction::triggered, mw, &MainWindow::beginPositionEditing,           Qt::UniqueConnection);
     QObject::connect(ui->actionEndEditPosition,      &QAction::triggered, mw, &MainWindow::finishPositionEditing,          Qt::UniqueConnection);
     QObject::connect(ui->actionTsumeShogiSearch,     &QAction::triggered, mw, &MainWindow::displayTsumeShogiSearchDialog,  Qt::UniqueConnection);
@@ -51,20 +51,20 @@ void UiActionsWiring::wire()
     QObject::connect(ui->actionNyugyokuDeclaration, &QAction::triggered, mw, &MainWindow::handleNyugyokuDeclaration,      Qt::UniqueConnection);
 
     // 棋譜コピー (編集メニュー)
-    QObject::connect(ui->kifFormat,                  &QAction::triggered, mw, &MainWindow::copyKifToClipboard,             Qt::UniqueConnection);
-    QObject::connect(ui->ki2Format,                  &QAction::triggered, mw, &MainWindow::copyKi2ToClipboard,             Qt::UniqueConnection);
-    QObject::connect(ui->csaFormat,                  &QAction::triggered, mw, &MainWindow::copyCsaToClipboard,             Qt::UniqueConnection);  // CSA形式
-    QObject::connect(ui->universal,                  &QAction::triggered, mw, &MainWindow::copyUsiCurrentToClipboard,      Qt::UniqueConnection);  // USI形式（現在の指し手まで）
-    QObject::connect(ui->actionUSI,                  &QAction::triggered, mw, &MainWindow::copyUsiToClipboard,             Qt::UniqueConnection);  // USI形式（全て）
-    QObject::connect(ui->actionJSON,                 &QAction::triggered, mw, &MainWindow::copyJkfToClipboard,             Qt::UniqueConnection);  // JKF形式
-    QObject::connect(ui->actionUSEN,                 &QAction::triggered, mw, &MainWindow::copyUsenToClipboard,            Qt::UniqueConnection);  // USEN形式
+    QObject::connect(ui->actionCopyKIF,                  &QAction::triggered, mw, &MainWindow::copyKifToClipboard,             Qt::UniqueConnection);
+    QObject::connect(ui->actionCopyKI2,                  &QAction::triggered, mw, &MainWindow::copyKi2ToClipboard,             Qt::UniqueConnection);
+    QObject::connect(ui->actionCopyCSA,                  &QAction::triggered, mw, &MainWindow::copyCsaToClipboard,             Qt::UniqueConnection);  // CSA形式
+    QObject::connect(ui->actionCopyUSICurrent,                  &QAction::triggered, mw, &MainWindow::copyUsiCurrentToClipboard,      Qt::UniqueConnection);  // USI形式（現在の指し手まで）
+    QObject::connect(ui->actionCopyUSIAll,                  &QAction::triggered, mw, &MainWindow::copyUsiToClipboard,             Qt::UniqueConnection);  // USI形式（全て）
+    QObject::connect(ui->actionCopyJKF,                 &QAction::triggered, mw, &MainWindow::copyJkfToClipboard,             Qt::UniqueConnection);  // JKF形式
+    QObject::connect(ui->actionCopyUSEN,                 &QAction::triggered, mw, &MainWindow::copyUsenToClipboard,            Qt::UniqueConnection);  // USEN形式
 
     // 局面コピー (編集メニュー)
-    QObject::connect(ui->Sfen,                       &QAction::triggered, mw, &MainWindow::copySfenToClipboard,            Qt::UniqueConnection);  // SFEN形式
-    QObject::connect(ui->BOD,                        &QAction::triggered, mw, &MainWindow::copyBodToClipboard,             Qt::UniqueConnection);  // BOD形式
+    QObject::connect(ui->actionCopySFEN,                       &QAction::triggered, mw, &MainWindow::copySfenToClipboard,            Qt::UniqueConnection);  // SFEN形式
+    QObject::connect(ui->actionCopyBOD,                        &QAction::triggered, mw, &MainWindow::copyBodToClipboard,             Qt::UniqueConnection);  // BOD形式
 
     // 棋譜貼り付け (編集メニュー)
-    QObject::connect(ui->pasteGameRecord,            &QAction::triggered, mw, &MainWindow::pasteKifuFromClipboard,         Qt::UniqueConnection);
+    QObject::connect(ui->actionPasteKifu,            &QAction::triggered, mw, &MainWindow::pasteKifuFromClipboard,         Qt::UniqueConnection);
 
     // 言語設定
     QObject::connect(ui->actionLanguageSystem,   &QAction::triggered, mw, &MainWindow::onLanguageSystemTriggered,   Qt::UniqueConnection);

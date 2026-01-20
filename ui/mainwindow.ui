@@ -44,35 +44,35 @@
      <property name="title">
       <string>棋譜コピー</string>
      </property>
-     <addaction name="kifFormat"/>
-     <addaction name="ki2Format"/>
-     <addaction name="csaFormat"/>
-     <addaction name="universal"/>
-     <addaction name="actionUSI"/>
-     <addaction name="actionJSON"/>
-     <addaction name="actionUSEN"/>
+     <addaction name="actionCopyKIF"/>
+     <addaction name="actionCopyKI2"/>
+     <addaction name="actionCopyCSA"/>
+     <addaction name="actionCopyUSICurrent"/>
+     <addaction name="actionCopyUSIAll"/>
+     <addaction name="actionCopyJKF"/>
+     <addaction name="actionCopyUSEN"/>
     </widget>
     <widget class="QMenu" name="shogiPositionCopy">
      <property name="title">
       <string>局面コピー</string>
      </property>
-     <addaction name="Sfen"/>
-     <addaction name="BOD"/>
+     <addaction name="actionCopySFEN"/>
+     <addaction name="actionCopyBOD"/>
     </widget>
     <addaction name="copyGameRecord"/>
     <addaction name="shogiPositionCopy"/>
-    <addaction name="pasteGameRecord"/>
+    <addaction name="actionPasteKifu"/>
     <addaction name="separator"/>
     <addaction name="actionCopyBoardToClipboard"/>
     <addaction name="separator"/>
     <addaction name="actionStartEditPosition"/>
     <addaction name="actionEndEditPosition"/>
-    <addaction name="flatHandInitialPosition"/>
-    <addaction name="shogiProblemInitialPosition"/>
-    <addaction name="returnAllPiecesOnStand"/>
+    <addaction name="actionSetHiratePosition"/>
+    <addaction name="actionSetTsumePosition"/>
+    <addaction name="actionReturnAllPiecesToStand"/>
     <addaction name="separator"/>
-    <addaction name="reversal"/>
-    <addaction name="turnaround"/>
+    <addaction name="actionSwapSides"/>
+    <addaction name="actionChangeTurn"/>
    </widget>
    <widget class="QMenu" name="Display">
     <property name="title">
@@ -82,8 +82,8 @@
     <addaction name="actionEnlargeBoard"/>
     <addaction name="actionShrinkBoard"/>
     <addaction name="separator"/>
-    <addaction name="actionStandardMove"/>
-    <addaction name="actionMenu"/>
+    <addaction name="actionJosekiWindow"/>
+    <addaction name="actionMenuWindow"/>
     <addaction name="separator"/>
     <addaction name="actionToolBar"/>
    </widget>
@@ -98,10 +98,10 @@
     <addaction name="actionResign"/>
     <addaction name="actionUndoMove"/>
     <addaction name="actionMakeImmediateMove"/>
-    <addaction name="breakOffGame"/>
+    <addaction name="actionBreakOffGame"/>
     <addaction name="separator"/>
     <addaction name="actionAnalyzeKifu"/>
-    <addaction name="actionCacelAnalyzeKifu"/>
+    <addaction name="actionCancelAnalyzeKifu"/>
     <addaction name="separator"/>
     <addaction name="actionTsumeShogiSearch"/>
     <addaction name="separator"/>
@@ -128,7 +128,7 @@
      <string>ヘルプ(H)</string>
     </property>
     <addaction name="actionOpenWebsite"/>
-    <addaction name="usageMethod"/>
+    <addaction name="actionUsage"/>
     <addaction name="separator"/>
     <addaction name="actionVersionInfo"/>
     <addaction name="actionAboutQt"/>
@@ -153,12 +153,12 @@
    </attribute>
    <addaction name="actionOpenKifuFile"/>
    <addaction name="actionSave"/>
-   <addaction name="actionMenu"/>
+   <addaction name="actionMenuWindow"/>
    <addaction name="actionStartGame"/>
    <addaction name="actionResign"/>
    <addaction name="actionUndoMove"/>
    <addaction name="actionMakeImmediateMove"/>
-   <addaction name="breakOffGame"/>
+   <addaction name="actionBreakOffGame"/>
    <addaction name="actionConsideration"/>
    <addaction name="actionAnalyzeKifu"/>
    <addaction name="actionTsumeShogiSearch"/>
@@ -166,7 +166,7 @@
    <addaction name="actionEnlargeBoard"/>
    <addaction name="actionShrinkBoard"/>
    <addaction name="actionCSA"/>
-   <addaction name="actionStandardMove"/>
+   <addaction name="actionJosekiWindow"/>
   </widget>
   <action name="actionSave">
    <property name="icon">
@@ -201,10 +201,10 @@
     <string>将棋盤の画像をファイルに保存</string>
    </property>
   </action>
-  <action name="pasteGameRecord">
+  <action name="actionPasteKifu">
    <property name="icon">
     <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/pasteGameRecord.svg</normaloff>:/images/icons/pasteGameRecord.svg</iconset>
+     <normaloff>:/images/icons/actionPasteKifu.svg</normaloff>:/images/icons/actionPasteKifu.svg</iconset>
    </property>
    <property name="text">
     <string>棋譜貼り付け</string>
@@ -258,10 +258,10 @@
     <string>投了</string>
    </property>
   </action>
-  <action name="breakOffGame">
+  <action name="actionBreakOffGame">
    <property name="icon">
     <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/breakOffGame.svg</normaloff>:/images/icons/breakOffGame.svg</iconset>
+     <normaloff>:/images/icons/actionBreakOffGame.svg</normaloff>:/images/icons/actionBreakOffGame.svg</iconset>
    </property>
    <property name="text">
     <string>中断</string>
@@ -300,46 +300,46 @@
     <string>局面編集開始</string>
    </property>
   </action>
-  <action name="flatHandInitialPosition">
+  <action name="actionSetHiratePosition">
    <property name="icon">
     <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/flatHandInitialPosition.svg</normaloff>:/images/icons/flatHandInitialPosition.svg</iconset>
+     <normaloff>:/images/icons/actionSetHiratePosition.svg</normaloff>:/images/icons/actionSetHiratePosition.svg</iconset>
    </property>
    <property name="text">
     <string>平手初期配置</string>
    </property>
   </action>
-  <action name="shogiProblemInitialPosition">
+  <action name="actionSetTsumePosition">
    <property name="icon">
     <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/shogiProblemInitialPosition.svg</normaloff>:/images/icons/shogiProblemInitialPosition.svg</iconset>
+     <normaloff>:/images/icons/actionSetTsumePosition.svg</normaloff>:/images/icons/actionSetTsumePosition.svg</iconset>
    </property>
    <property name="text">
     <string>詰将棋初期配置</string>
    </property>
   </action>
-  <action name="returnAllPiecesOnStand">
+  <action name="actionReturnAllPiecesToStand">
    <property name="icon">
     <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/returnAllPiecesOnStand.svg</normaloff>:/images/icons/returnAllPiecesOnStand.svg</iconset>
+     <normaloff>:/images/icons/actionReturnAllPiecesToStand.svg</normaloff>:/images/icons/actionReturnAllPiecesToStand.svg</iconset>
    </property>
    <property name="text">
     <string>全ての駒を駒台へ</string>
    </property>
   </action>
-  <action name="reversal">
+  <action name="actionSwapSides">
    <property name="icon">
     <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/reversal.svg</normaloff>:/images/icons/reversal.svg</iconset>
+     <normaloff>:/images/icons/actionSwapSides.svg</normaloff>:/images/icons/actionSwapSides.svg</iconset>
    </property>
    <property name="text">
     <string>先後反転</string>
    </property>
   </action>
-  <action name="turnaround">
+  <action name="actionChangeTurn">
    <property name="icon">
     <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/turnaround.svg</normaloff>:/images/icons/turnaround.svg</iconset>
+     <normaloff>:/images/icons/actionChangeTurn.svg</normaloff>:/images/icons/actionChangeTurn.svg</iconset>
    </property>
    <property name="text">
     <string>手番変更</string>
@@ -363,10 +363,10 @@
     <string>ホームページ</string>
    </property>
   </action>
-  <action name="usageMethod">
+  <action name="actionUsage">
    <property name="icon">
     <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/usageMethod.svg</normaloff>:/images/icons/usageMethod.svg</iconset>
+     <normaloff>:/images/icons/actionUsage.svg</normaloff>:/images/icons/actionUsage.svg</iconset>
    </property>
    <property name="text">
     <string>使い方</string>
@@ -390,55 +390,55 @@
     <string>Qtについて</string>
    </property>
   </action>
-  <action name="kifFormat">
+  <action name="actionCopyKIF">
    <property name="icon">
     <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/kifFormat.svg</normaloff>:/images/icons/kifFormat.svg</iconset>
+     <normaloff>:/images/icons/actionCopyKIF.svg</normaloff>:/images/icons/actionCopyKIF.svg</iconset>
    </property>
    <property name="text">
     <string>KIF形式</string>
    </property>
   </action>
-  <action name="ki2Format">
+  <action name="actionCopyKI2">
    <property name="icon">
     <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/ki2Format.svg</normaloff>:/images/icons/ki2Format.svg</iconset>
+     <normaloff>:/images/icons/actionCopyKI2.svg</normaloff>:/images/icons/actionCopyKI2.svg</iconset>
    </property>
    <property name="text">
     <string>KI2形式</string>
    </property>
   </action>
-  <action name="csaFormat">
+  <action name="actionCopyCSA">
    <property name="icon">
     <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/csaFormat.svg</normaloff>:/images/icons/csaFormat.svg</iconset>
+     <normaloff>:/images/icons/actionCopyCSA.svg</normaloff>:/images/icons/actionCopyCSA.svg</iconset>
    </property>
    <property name="text">
     <string>CSA形式</string>
    </property>
   </action>
-  <action name="universal">
+  <action name="actionCopyUSICurrent">
    <property name="icon">
     <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/universal.svg</normaloff>:/images/icons/universal.svg</iconset>
+     <normaloff>:/images/icons/actionCopyUSICurrent.svg</normaloff>:/images/icons/actionCopyUSICurrent.svg</iconset>
    </property>
    <property name="text">
     <string>USI形式（現在の指し手まで）</string>
    </property>
   </action>
-  <action name="Sfen">
+  <action name="actionCopySFEN">
    <property name="icon">
     <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/Sfen.svg</normaloff>:/images/icons/Sfen.svg</iconset>
+     <normaloff>:/images/icons/actionCopySFEN.svg</normaloff>:/images/icons/actionCopySFEN.svg</iconset>
    </property>
    <property name="text">
     <string>SFEN形式</string>
    </property>
   </action>
-  <action name="BOD">
+  <action name="actionCopyBOD">
    <property name="icon">
     <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/BOD.svg</normaloff>:/images/icons/BOD.svg</iconset>
+     <normaloff>:/images/icons/actionCopyBOD.svg</normaloff>:/images/icons/actionCopyBOD.svg</iconset>
    </property>
    <property name="text">
     <string>BOD形式</string>
@@ -543,28 +543,28 @@
     <string>入玉宣言</string>
    </property>
   </action>
-  <action name="actionUSI">
+  <action name="actionCopyUSIAll">
    <property name="icon">
     <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/actionUSI.svg</normaloff>:/images/icons/actionUSI.svg</iconset>
+     <normaloff>:/images/icons/actionCopyUSIAll.svg</normaloff>:/images/icons/actionCopyUSIAll.svg</iconset>
    </property>
    <property name="text">
     <string>USI形式（全て）</string>
    </property>
   </action>
-  <action name="actionJSON">
+  <action name="actionCopyJKF">
    <property name="icon">
     <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/actionJSON.svg</normaloff>:/images/icons/actionJSON.svg</iconset>
+     <normaloff>:/images/icons/actionCopyJKF.svg</normaloff>:/images/icons/actionCopyJKF.svg</iconset>
    </property>
    <property name="text">
     <string>JSON棋譜フォーマット</string>
    </property>
   </action>
-  <action name="actionUSEN">
+  <action name="actionCopyUSEN">
    <property name="icon">
     <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/actionUSI.svg</normaloff>:/images/icons/actionUSI.svg</iconset>
+     <normaloff>:/images/icons/actionCopyUSIAll.svg</normaloff>:/images/icons/actionCopyUSIAll.svg</iconset>
    </property>
    <property name="text">
     <string>USEN</string>
@@ -579,28 +579,28 @@
     <string>通信対局（CSA）</string>
    </property>
   </action>
-  <action name="actionCacelAnalyzeKifu">
+  <action name="actionCancelAnalyzeKifu">
    <property name="icon">
     <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/actionCacelAnalyzeKifu.svg</normaloff>:/images/icons/actionCacelAnalyzeKifu.svg</iconset>
+     <normaloff>:/images/icons/actionCancelAnalyzeKifu.svg</normaloff>:/images/icons/actionCancelAnalyzeKifu.svg</iconset>
    </property>
    <property name="text">
     <string>棋譜解析中止</string>
    </property>
   </action>
-  <action name="actionStandardMove">
+  <action name="actionJosekiWindow">
    <property name="icon">
     <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/actionStandardMove.svg</normaloff>:/images/icons/actionStandardMove.svg</iconset>
+     <normaloff>:/images/icons/actionJosekiWindow.svg</normaloff>:/images/icons/actionJosekiWindow.svg</iconset>
    </property>
    <property name="text">
     <string>定跡ウィンドウ</string>
    </property>
   </action>
-  <action name="actionMenu">
+  <action name="actionMenuWindow">
    <property name="icon">
     <iconset resource="../resources/shogiboardq.qrc">
-     <normaloff>:/images/icons/actionMenu.svg</normaloff>:/images/icons/actionMenu.svg</iconset>
+     <normaloff>:/images/icons/actionMenuWindow.svg</normaloff>:/images/icons/actionMenuWindow.svg</iconset>
    </property>
    <property name="text">
     <string>メニューウィンドウ</string>
