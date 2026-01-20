@@ -34,7 +34,7 @@
         <file>translations/ShogiBoardQ_ja_JP.ts</file>
         <file>images/icons/actionAboutQt.svg</file>
         <file>images/icons/actionAnalyzeKifu.svg</file>
-        <file>images/icons/actionCacelAnalyzeKifu.svg</file>
+        <file>images/icons/actionCancelAnalyzeKifu.svg</file>
         <file>images/icons/actionConsideration.svg</file>
         <file>images/icons/actionCopyBoardToClipboard.svg</file>
         <file>images/icons/actionCSA.svg</file>
@@ -43,12 +43,12 @@
         <file>images/icons/actionEnlargeBoard.svg</file>
         <file>images/icons/actionFlipBoard.svg</file>
         <file>images/icons/actionJishogiScore.svg</file>
-        <file>images/icons/actionJSON.svg</file>
+        <file>images/icons/actionCopyJKF.svg</file>
         <file>images/icons/actionLanguageEnglish.svg</file>
         <file>images/icons/actionLanguageJapanese.svg</file>
         <file>images/icons/actionLanguageSystem.svg</file>
         <file>images/icons/actionMakeImmediateMove.svg</file>
-        <file>images/icons/actionMenu.svg</file>
+        <file>images/icons/actionMenuWindow.svg</file>
         <file>images/icons/actionNewGame.svg</file>
         <file>images/icons/actionNyugyokuDeclaration.svg</file>
         <file>images/icons/actionOpenKifuFile.svg</file>
@@ -59,28 +59,28 @@
         <file>images/icons/actionSaveAs.svg</file>
         <file>images/icons/actionSaveBoardImage.svg</file>
         <file>images/icons/actionShrinkBoard.svg</file>
-        <file>images/icons/actionStandardMove.svg</file>
+        <file>images/icons/actionJosekiWindow.svg</file>
         <file>images/icons/actionStartEditPosition.svg</file>
         <file>images/icons/actionStartGame.svg</file>
         <file>images/icons/actionTsumeShogiSearch.svg</file>
         <file>images/icons/actionUndoMove.svg</file>
-        <file>images/icons/actionUSEN.svg</file>
-        <file>images/icons/actionUSI.svg</file>
+        <file>images/icons/actionCopyUSEN.svg</file>
+        <file>images/icons/actionCopyUSIAll.svg</file>
         <file>images/icons/actionVersionInfo.svg</file>
-        <file>images/icons/kifFormat.svg</file>
-        <file>images/icons/ki2Format.svg</file>
-        <file>images/icons/csaFormat.svg</file>
-        <file>images/icons/breakOffGame.svg</file>
-        <file>images/icons/usageMethod.svg</file>
-        <file>images/icons/pasteGameRecord.svg</file>
-        <file>images/icons/universal.svg</file>
-        <file>images/icons/Sfen.svg</file>
-        <file>images/icons/BOD.svg</file>
-        <file>images/icons/flatHandInitialPosition.svg</file>
-        <file>images/icons/shogiProblemInitialPosition.svg</file>
-        <file>images/icons/returnAllPiecesOnStand.svg</file>
-        <file>images/icons/reversal.svg</file>
-        <file>images/icons/turnaround.svg</file>
+        <file>images/icons/actionCopyKIF.svg</file>
+        <file>images/icons/actionCopyKI2.svg</file>
+        <file>images/icons/actionCopyCSA.svg</file>
+        <file>images/icons/actionBreakOffGame.svg</file>
+        <file>images/icons/actionUsage.svg</file>
+        <file>images/icons/actionPasteKifu.svg</file>
+        <file>images/icons/actionCopyUSICurrent.svg</file>
+        <file>images/icons/actionCopySFEN.svg</file>
+        <file>images/icons/actionCopyBOD.svg</file>
+        <file>images/icons/actionSetHiratePosition.svg</file>
+        <file>images/icons/actionSetTsumePosition.svg</file>
+        <file>images/icons/actionReturnAllPiecesToStand.svg</file>
+        <file>images/icons/actionSwapSides.svg</file>
+        <file>images/icons/actionChangeTurn.svg</file>
         <file>images/icons/actionToolbar.svg</file>
     </qresource>
 </RCC>

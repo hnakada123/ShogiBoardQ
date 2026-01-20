@@ -1335,11 +1335,11 @@ void MainWindow::applyEditMenuEditingState(bool editing)
 
     // 編集モード関連アクションは editing のときのみ表示
     ui->actionEndEditPosition->setVisible(editing);
-    ui->flatHandInitialPosition->setVisible(editing);
-    ui->shogiProblemInitialPosition->setVisible(editing);
-    ui->returnAllPiecesOnStand->setVisible(editing);
-    ui->reversal->setVisible(editing);
-    ui->turnaround->setVisible(editing);
+    ui->actionSetHiratePosition->setVisible(editing);
+    ui->actionSetTsumePosition->setVisible(editing);
+    ui->actionReturnAllPiecesToStand->setVisible(editing);
+    ui->actionSwapSides->setVisible(editing);
+    ui->actionChangeTurn->setVisible(editing);
 
     // ※ QMenu名は .ui 上で "Edit"（= ui->Edit）です。必要なら再描画。
     if (ui->Edit) {
@@ -2538,11 +2538,11 @@ void MainWindow::ensurePositionEditCoordinator()
     // 編集用アクションの設定
     if (ui) {
         PositionEditCoordinator::EditActions actions;
-        actions.returnAllPiecesOnStand = ui->returnAllPiecesOnStand;
-        actions.flatHandInitialPosition = ui->flatHandInitialPosition;
-        actions.shogiProblemInitialPosition = ui->shogiProblemInitialPosition;
-        actions.turnaround = ui->turnaround;
-        actions.reversal = ui->reversal;
+        actions.actionReturnAllPiecesToStand = ui->actionReturnAllPiecesToStand;
+        actions.actionSetHiratePosition = ui->actionSetHiratePosition;
+        actions.actionSetTsumePosition = ui->actionSetTsumePosition;
+        actions.actionChangeTurn = ui->actionChangeTurn;
+        actions.actionSwapSides = ui->actionSwapSides;
         m_posEditCoordinator->setEditActions(actions);
     }
 

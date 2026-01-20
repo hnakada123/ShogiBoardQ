@@ -157,33 +157,33 @@ void PositionEditCoordinator::beginPositionEditing()
     m_posEdit->beginPositionEditing(ctx);
 
     // 編集用アクション配線
-    if (m_editActions.returnAllPiecesOnStand) {
-        QObject::connect(m_editActions.returnAllPiecesOnStand, &QAction::triggered,
+    if (m_editActions.actionReturnAllPiecesToStand) {
+        QObject::connect(m_editActions.actionReturnAllPiecesToStand, &QAction::triggered,
                          m_posEdit, &PositionEditController::onReturnAllPiecesOnStandTriggered,
                          Qt::UniqueConnection);
     }
 
-    if (m_editActions.flatHandInitialPosition) {
-        QObject::connect(m_editActions.flatHandInitialPosition, &QAction::triggered,
+    if (m_editActions.actionSetHiratePosition) {
+        QObject::connect(m_editActions.actionSetHiratePosition, &QAction::triggered,
                          m_posEdit, &PositionEditController::onFlatHandInitialPositionTriggered,
                          Qt::UniqueConnection);
     }
 
-    if (m_editActions.shogiProblemInitialPosition) {
-        QObject::connect(m_editActions.shogiProblemInitialPosition, &QAction::triggered,
+    if (m_editActions.actionSetTsumePosition) {
+        QObject::connect(m_editActions.actionSetTsumePosition, &QAction::triggered,
                          m_posEdit, &PositionEditController::onShogiProblemInitialPositionTriggered,
                          Qt::UniqueConnection);
     }
 
-    if (m_editActions.turnaround) {
-        QObject::connect(m_editActions.turnaround, &QAction::triggered,
+    if (m_editActions.actionChangeTurn) {
+        QObject::connect(m_editActions.actionChangeTurn, &QAction::triggered,
                          m_posEdit, &PositionEditController::onToggleSideToMoveTriggered,
                          Qt::UniqueConnection);
     }
 
     // 先後反転はシグナルで通知
-    if (m_editActions.reversal) {
-        QObject::connect(m_editActions.reversal, &QAction::triggered,
+    if (m_editActions.actionSwapSides) {
+        QObject::connect(m_editActions.actionSwapSides, &QAction::triggered,
                          this, &PositionEditCoordinator::reversalTriggered,
                          Qt::UniqueConnection);
     }

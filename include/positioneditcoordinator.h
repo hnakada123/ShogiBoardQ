@@ -65,11 +65,11 @@ public:
     // 編集用アクションの設定
     // --------------------------------------------------------
     struct EditActions {
-        QAction* returnAllPiecesOnStand = nullptr;
-        QAction* flatHandInitialPosition = nullptr;
-        QAction* shogiProblemInitialPosition = nullptr;
-        QAction* turnaround = nullptr;
-        QAction* reversal = nullptr;
+        QAction* actionReturnAllPiecesToStand = nullptr;
+        QAction* actionSetHiratePosition = nullptr;
+        QAction* actionSetTsumePosition = nullptr;
+        QAction* actionChangeTurn = nullptr;
+        QAction* actionSwapSides = nullptr;
     };
     void setEditActions(const EditActions& actions);
 
