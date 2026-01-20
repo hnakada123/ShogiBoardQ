@@ -243,12 +243,51 @@ void UsiProtocolHandler::sendGoPonder()
 void UsiProtocolHandler::sendGoMate(int timeMs, bool infinite)
 {
     m_modeTsume = true;
-    
+
     if (infinite || timeMs <= 0) {
         sendCommand("go mate infinite");
     } else {
         sendCommand(QString("go mate %1").arg(timeMs));
     }
+}
+
+void UsiProtocolHandler::sendGoDepth(int depth)
+{
+    if (m_presenter) {
+        m_presenter->requestClearThinkingInfo();
+    }
+
+    m_lastGoToBestmoveMs = 0;
+    m_goTimer.start();
+    m_phase = SearchPhase::Main;
+
+    sendCommand(QStringLiteral("go depth %1").arg(depth));
+}
+
+void UsiProtocolHandler::sendGoNodes(qint64 nodes)
+{
+    if (m_presenter) {
+        m_presenter->requestClearThinkingInfo();
+    }
+
+    m_lastGoToBestmoveMs = 0;
+    m_goTimer.start();
+    m_phase = SearchPhase::Main;
+
+    sendCommand(QStringLiteral("go nodes %1").arg(nodes));
+}
+
+void UsiProtocolHandler::sendGoMovetime(int timeMs)
+{
+    if (m_presenter) {
+        m_presenter->requestClearThinkingInfo();
+    }
+
+    m_lastGoToBestmoveMs = 0;
+    m_goTimer.start();
+    m_phase = SearchPhase::Main;
+
+    sendCommand(QStringLiteral("go movetime %1").arg(timeMs));
 }
 
 void UsiProtocolHandler::sendStop()
@@ -520,6 +559,18 @@ void UsiProtocolHandler::handleBestMoveLine(const QString& line)
         m_resignNotified = true;
         m_isResignMove = true;
         emit bestMoveResignReceived();
+        return;
+    }
+
+    // win判定（入玉宣言勝ち）
+    if (m_bestMove.compare(QStringLiteral("win"), Qt::CaseInsensitive) == 0) {
+        if (m_winNotified) {
+            qDebug() << "[USI] [dup-win-ignored]";
+            return;
+        }
+        m_winNotified = true;
+        m_isWinMove = true;
+        emit bestMoveWinReceived();
         return;
     }
 

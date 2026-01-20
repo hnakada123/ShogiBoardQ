@@ -61,6 +61,7 @@ public:
     
     QString scoreStr() const;
     bool isResignMove() const;
+    bool isWinMove() const;           ///< bestmove win（入玉宣言勝ち）を受信したか
     int lastScoreCp() const;
     QString pvKanjiStr() const;
     void setPvKanjiStr(const QString& newPvKanjiStr);
@@ -113,12 +114,17 @@ public:
     void setSquelchResignLogging(bool on);
 
     void resetResignNotified();
+    void resetWinNotified();          ///< 入玉宣言勝ち通知フラグをリセット
     void markHardTimeout();
     void clearHardTimeout();
     bool isIgnoring() const;
 
     void sendGoCommand(int byoyomiMilliSec, const QString& btime, const QString& wtime,
                        int addEachMoveMilliSec1, int addEachMoveMilliSec2, bool useByoyomi);
+
+    void sendGoDepthCommand(int depth);       ///< go depth <x> - 指定深さまで探索
+    void sendGoNodesCommand(qint64 nodes);    ///< go nodes <x> - 指定ノード数まで探索
+    void sendGoMovetimeCommand(int timeMs);   ///< go movetime <x> - 指定時間(ms)探索
 
     void sendRaw(const QString& command) const;
 
@@ -184,6 +190,7 @@ public:
 signals:
     void stopOrPonderhitCommandSent();
     void bestMoveResignReceived();
+    void bestMoveWinReceived();      ///< bestmove win（入玉宣言勝ち）を受信
     void sigTsumeCheckmate(const Usi::TsumeResult& result);
     void checkmateSolved(const QStringList& pvMoves);
     void checkmateNoMate();

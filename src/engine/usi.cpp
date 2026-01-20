@@ -80,6 +80,8 @@ void Usi::setupConnections()
             this, &Usi::bestMoveReceived);
     connect(m_protocolHandler.get(), &UsiProtocolHandler::bestMoveResignReceived,
             this, &Usi::bestMoveResignReceived);
+    connect(m_protocolHandler.get(), &UsiProtocolHandler::bestMoveWinReceived,
+            this, &Usi::bestMoveWinReceived);
     connect(m_protocolHandler.get(), &UsiProtocolHandler::stopOrPonderhitSent,
             this, &Usi::stopOrPonderhitCommandSent);
     connect(m_protocolHandler.get(), &UsiProtocolHandler::errorOccurred,
@@ -224,6 +226,11 @@ bool Usi::isResignMove() const
     return m_protocolHandler->isResignMove();
 }
 
+bool Usi::isWinMove() const
+{
+    return m_protocolHandler->isWinMove();
+}
+
 int Usi::lastScoreCp() const
 {
     return m_presenter->lastScoreCp();
@@ -297,6 +304,11 @@ void Usi::setSquelchResignLogging(bool on)
 void Usi::resetResignNotified()
 {
     m_protocolHandler->resetResignNotified();
+}
+
+void Usi::resetWinNotified()
+{
+    m_protocolHandler->resetWinNotified();
 }
 
 void Usi::markHardTimeout()
@@ -418,6 +430,24 @@ void Usi::sendGoCommand(int byoyomiMilliSec, const QString& btime, const QString
     cloneCurrentBoardData();
     m_protocolHandler->sendGo(byoyomiMilliSec, btime, wtime,
                               addEachMoveMilliSec1, addEachMoveMilliSec2, useByoyomi);
+}
+
+void Usi::sendGoDepthCommand(int depth)
+{
+    cloneCurrentBoardData();
+    m_protocolHandler->sendGoDepth(depth);
+}
+
+void Usi::sendGoNodesCommand(qint64 nodes)
+{
+    cloneCurrentBoardData();
+    m_protocolHandler->sendGoNodes(nodes);
+}
+
+void Usi::sendGoMovetimeCommand(int timeMs)
+{
+    cloneCurrentBoardData();
+    m_protocolHandler->sendGoMovetime(timeMs);
 }
 
 void Usi::sendRaw(const QString& command) const

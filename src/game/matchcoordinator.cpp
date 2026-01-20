@@ -231,6 +231,13 @@ void MatchCoordinator::handleEngineResign(int idx) {
     displayResultsAndUpdateGui(info);
 }
 
+// ★ エンジンが「bestmove win」を返した場合の入玉宣言勝ち処理
+void MatchCoordinator::handleEngineWin(int idx) {
+    // エンジン入玉宣言勝ち＝宣言者がエンジン、成功=true、引き分け=false
+    const Player declarer = (idx == 1 ? P1 : P2);
+    handleNyugyokuDeclaration(declarer, /*success=*/true, /*isDraw=*/false);
+}
+
 // ★ 入玉宣言処理
 void MatchCoordinator::handleNyugyokuDeclaration(Player declarer, bool success, bool isDraw)
 {
@@ -417,6 +424,8 @@ void MatchCoordinator::initializeAndStartEngineFor(Player side,
 
     // 投了シグナル配線（side に基づいて先手/後手を判断）
     wireResignToArbiter(eng, (side == P1));
+    // 入玉宣言勝ちシグナル配線
+    wireWinToArbiter(eng, (side == P1));
 }
 
 void MatchCoordinator::wireResignToArbiter(Usi* engine, bool asP1)
@@ -437,6 +446,24 @@ void MatchCoordinator::wireResignToArbiter(Usi* engine, bool asP1)
     }
 }
 
+void MatchCoordinator::wireWinToArbiter(Usi* engine, bool asP1)
+{
+    if (!engine) return;
+
+    // 既存接続の掃除は「該当シグナルのみ」を明示して行う
+    QObject::disconnect(engine, &Usi::bestMoveWinReceived, this, nullptr);
+
+    if (asP1) {
+        QObject::connect(engine, &Usi::bestMoveWinReceived,
+                         this,   &MatchCoordinator::onEngine1Win,
+                         Qt::UniqueConnection);
+    } else {
+        QObject::connect(engine, &Usi::bestMoveWinReceived,
+                         this,   &MatchCoordinator::onEngine2Win,
+                         Qt::UniqueConnection);
+    }
+}
+
 void MatchCoordinator::onEngine1Resign()
 {
     // 既存のハンドラへ委譲（番号は 1 = P1）
@@ -447,6 +474,18 @@ void MatchCoordinator::onEngine2Resign()
 {
     // 既存のハンドラへ委譲（番号は 2 = P2）
     this->handleEngineResign(2);
+}
+
+void MatchCoordinator::onEngine1Win()
+{
+    // エンジン1が入玉宣言勝ち
+    this->handleEngineWin(1);
+}
+
+void MatchCoordinator::onEngine2Win()
+{
+    // エンジン2が入玉宣言勝ち
+    this->handleEngineWin(2);
 }
 
 void MatchCoordinator::destroyEngine(int idx)
@@ -491,12 +530,15 @@ void MatchCoordinator::initEnginesForEvE(const QString& engineName1,
     m_usi2 = new Usi(comm2, think2, m_gc, m_playMode, this);
 
     // 状態初期化
-    m_usi1->resetResignNotified(); m_usi1->clearHardTimeout();
-    m_usi2->resetResignNotified(); m_usi2->clearHardTimeout();
+    m_usi1->resetResignNotified(); m_usi1->clearHardTimeout(); m_usi1->resetWinNotified();
+    m_usi2->resetResignNotified(); m_usi2->clearHardTimeout(); m_usi2->resetWinNotified();
 
     // 投了配線
     wireResignToArbiter(m_usi1, /*asP1=*/true);
     wireResignToArbiter(m_usi2, /*asP1=*/false);
+    // 入玉宣言勝ち配線
+    wireWinToArbiter(m_usi1, /*asP1=*/true);
+    wireWinToArbiter(m_usi2, /*asP1=*/false);
 
     // ログ識別
     m_usi1->setLogIdentity(QStringLiteral("[E1]"), QStringLiteral("P1"), engineName1);
@@ -972,6 +1014,8 @@ void MatchCoordinator::startHumanVsEngine(const StartOptions& opt, bool engineIs
 
     // 投了配線
     wireResignToArbiter(m_usi1, /*asP1=*/engineIsP1);
+    // 入玉宣言勝ち配線
+    wireWinToArbiter(m_usi1, /*asP1=*/engineIsP1);
 
     // ログ識別（UI 表示用）
     if (m_usi1) {
@@ -1717,6 +1761,8 @@ void MatchCoordinator::startAnalysis(const AnalysisOptions& opt)
 
     // 5) 投了配線
     wireResignToArbiter(m_usi1, /*asP1=*/true);
+    // 入玉宣言勝ち配線
+    wireWinToArbiter(m_usi1, /*asP1=*/true);
 
     // 6) ログ識別
     m_usi1->setLogIdentity(QStringLiteral("[E1]"), QStringLiteral("P1"), opt.engineName);
