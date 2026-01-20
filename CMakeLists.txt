@@ -119,9 +119,8 @@ endif()
 #endif()
 # --- ここまで
 
-# ==== Qt packages ====
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets LinguistTools Charts Network)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets LinguistTools Charts Network)
+# ==== Qt6 packages ====
+find_package(Qt6 REQUIRED COMPONENTS Widgets LinguistTools Charts Network)
 
 # ==== Translations (.ts) ====
 set(TS_FILES
@@ -142,23 +141,27 @@ set(UI_FILES
     ui/versiondialog.ui
 )
 
-# ==== Sources (after moving .cpp into subdirs) ====
-# とりあえず GLOB_RECURSE で楽をします（CONFIGURE_DEPENDS 付き）。
-# 将来的には明示列挙に切り替えてOKです。
-file(GLOB_RECURSE SRC_APP      CONFIGURE_DEPENDS src/app/*.cpp)
-file(GLOB_RECURSE SRC_CORE     CONFIGURE_DEPENDS src/core/*.cpp)
-file(GLOB_RECURSE SRC_CONTROLLERS     CONFIGURE_DEPENDS src/controllers/*.cpp)
-file(GLOB_RECURSE SRC_COORDINATORS     CONFIGURE_DEPENDS src/coordinators/*.cpp)
-file(GLOB_RECURSE SRC_VIEWS    CONFIGURE_DEPENDS src/views/*.cpp)
-file(GLOB_RECURSE SRC_ENGINE   CONFIGURE_DEPENDS src/engine/*.cpp)
-file(GLOB_RECURSE SRC_MODELS   CONFIGURE_DEPENDS src/models/*.cpp)
-file(GLOB_RECURSE SRC_WIDGETS  CONFIGURE_DEPENDS src/widgets/*.cpp)
-file(GLOB_RECURSE SRC_DIALOGS  CONFIGURE_DEPENDS src/dialogs/*.cpp)
-file(GLOB_RECURSE SRC_SERVICES CONFIGURE_DEPENDS src/services/*.cpp)
-file(GLOB_RECURSE SRC_NETWORK  CONFIGURE_DEPENDS src/network/*.cpp)
+# ==== Sources (機能別ディレクトリ構造) ====
+# GLOB_RECURSE + CONFIGURE_DEPENDS でファイルを自動収集
+file(GLOB_RECURSE SRC_APP        CONFIGURE_DEPENDS src/app/*.cpp)
+file(GLOB_RECURSE SRC_CORE       CONFIGURE_DEPENDS src/core/*.cpp)
+file(GLOB_RECURSE SRC_GAME       CONFIGURE_DEPENDS src/game/*.cpp)
+file(GLOB_RECURSE SRC_KIFU       CONFIGURE_DEPENDS src/kifu/*.cpp)
+file(GLOB_RECURSE SRC_ANALYSIS   CONFIGURE_DEPENDS src/analysis/*.cpp)
+file(GLOB_RECURSE SRC_ENGINE     CONFIGURE_DEPENDS src/engine/*.cpp)
+file(GLOB_RECURSE SRC_NETWORK    CONFIGURE_DEPENDS src/network/*.cpp)
+file(GLOB_RECURSE SRC_NAVIGATION CONFIGURE_DEPENDS src/navigation/*.cpp)
+file(GLOB_RECURSE SRC_BOARD      CONFIGURE_DEPENDS src/board/*.cpp)
+file(GLOB_RECURSE SRC_UI         CONFIGURE_DEPENDS src/ui/*.cpp)
+file(GLOB_RECURSE SRC_VIEWS      CONFIGURE_DEPENDS src/views/*.cpp)
+file(GLOB_RECURSE SRC_WIDGETS    CONFIGURE_DEPENDS src/widgets/*.cpp)
+file(GLOB_RECURSE SRC_DIALOGS    CONFIGURE_DEPENDS src/dialogs/*.cpp)
+file(GLOB_RECURSE SRC_MODELS     CONFIGURE_DEPENDS src/models/*.cpp)
+file(GLOB_RECURSE SRC_SERVICES   CONFIGURE_DEPENDS src/services/*.cpp)
+file(GLOB_RECURSE SRC_COMMON     CONFIGURE_DEPENDS src/common/*.cpp)
 
-# ==== Headers (for AUTOMOC) ====
-file(GLOB_RECURSE HDRS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h)
+# ==== Headers (for AUTOMOC - ソースと同じディレクトリに配置) ====
+file(GLOB_RECURSE HDRS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.h)
 
 # ==== Application Icon ====
 # Windows用リソースファイル
@@ -175,90 +178,89 @@ if(APPLE)
 endif()
 
 # ==== Executable ====
-if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
-    qt_add_executable(ShogiBoardQ
-        MANUAL_FINALIZATION
-        ${SRC_APP}
-        ${SRC_CORE}
-        ${SRC_CONTROLLERS}
-        ${SRC_COORDINATORS}
-        ${SRC_VIEWS}
-        ${SRC_ENGINE}
-        ${SRC_MODELS}
-        ${SRC_WIDGETS}
-        ${SRC_DIALOGS}
-        ${SRC_SERVICES}
-        ${SRC_NETWORK}
-        ${UI_FILES}
-        ${HDRS}
-        resources/shogiboardq.qrc
-        ${APP_ICON_RESOURCE_WINDOWS}
-        ${APP_ICON_MACOS}
-    )
+qt_add_executable(ShogiBoardQ
+    MANUAL_FINALIZATION
+    ${SRC_APP}
+    ${SRC_CORE}
+    ${SRC_GAME}
+    ${SRC_KIFU}
+    ${SRC_ANALYSIS}
+    ${SRC_ENGINE}
+    ${SRC_NETWORK}
+    ${SRC_NAVIGATION}
+    ${SRC_BOARD}
+    ${SRC_UI}
+    ${SRC_VIEWS}
+    ${SRC_WIDGETS}
+    ${SRC_DIALOGS}
+    ${SRC_MODELS}
+    ${SRC_SERVICES}
+    ${SRC_COMMON}
+    ${UI_FILES}
+    ${HDRS}
+    resources/shogiboardq.qrc
+    ${APP_ICON_RESOURCE_WINDOWS}
+    ${APP_ICON_MACOS}
+)
 
-    # .qm 生成（出力はビルド側に）
-    # 注意: CMAKE_SOURCE_DIR 全体を渡すとビルドディレクトリ内の autogen ファイルも
-    # スキャンされ、循環依存が発生するため、ソースディレクトリのみを指定する
-    qt_create_translation(QM_FILES
-        ${CMAKE_SOURCE_DIR}/src
-        ${CMAKE_SOURCE_DIR}/include
-        ${CMAKE_SOURCE_DIR}/ui
-        ${TS_FILES}
-    )
+# .qm 生成（出力はビルド側に）
+# 注意: CMAKE_SOURCE_DIR 全体を渡すとビルドディレクトリ内の autogen ファイルも
+# スキャンされ、循環依存が発生するため、ソースディレクトリのみを指定する
+qt_create_translation(QM_FILES
+    ${CMAKE_SOURCE_DIR}/src
+    ${CMAKE_SOURCE_DIR}/ui
+    ${TS_FILES}
+)
 
-    # .qm ファイルをビルドターゲットとして追加
-    add_custom_target(translations ALL DEPENDS ${QM_FILES})
-    add_dependencies(ShogiBoardQ translations)
+# .qm ファイルをビルドターゲットとして追加
+add_custom_target(translations ALL DEPENDS ${QM_FILES})
+add_dependencies(ShogiBoardQ translations)
 
-    # .qm ファイルを実行可能ファイルと同じディレクトリにコピー
-    foreach(QM_FILE ${QM_FILES})
-        add_custom_command(TARGET ShogiBoardQ POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                ${QM_FILE}
-                $<TARGET_FILE_DIR:ShogiBoardQ>
-            COMMENT "Copying ${QM_FILE} to output directory"
-        )
-    endforeach()
-else()
-    # Qt5 フォールバック（基本は Qt6 想定）
-    add_executable(ShogiBoardQ
-        ${SRC_APP}
-        ${SRC_CORE}
-        ${SRC_CONTROLLERS}
-        ${SRC_COORDINATORS}
-        ${SRC_VIEWS}
-        ${SRC_ENGINE}
-        ${SRC_MODELS}
-        ${SRC_WIDGETS}
-        ${SRC_DIALOGS}
-        ${SRC_SERVICES}
-        ${SRC_NETWORK}
-        ${UI_FILES}
-        resources/shogiboardq.qrc
-        ${APP_ICON_RESOURCE_WINDOWS}
-        ${APP_ICON_MACOS}
+# .qm ファイルを実行可能ファイルと同じディレクトリにコピー
+foreach(QM_FILE ${QM_FILES})
+    add_custom_command(TARGET ShogiBoardQ POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${QM_FILE}
+            $<TARGET_FILE_DIR:ShogiBoardQ>
+        COMMENT "Copying ${QM_FILE} to output directory"
     )
-    qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
-endif()
+endforeach()
 
 # ==== Includes / Links ====
-# グローバル include_directories はやめ、ターゲットに限定
+# ヘッダーはソースと同じディレクトリに配置
 target_include_directories(ShogiBoardQ PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/app
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/core
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/game
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/kifu
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/kifu/formats
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/analysis
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/engine
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/network
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/navigation
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/board
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/controllers
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/coordinators
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/presenters
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/wiring
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/views
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/widgets
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/dialogs
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/models
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/services
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/common
 )
 
 target_link_libraries(ShogiBoardQ PRIVATE
-    Qt${QT_VERSION_MAJOR}::Widgets
-    Qt${QT_VERSION_MAJOR}::Charts
-    Qt${QT_VERSION_MAJOR}::Network
+    Qt6::Widgets
+    Qt6::Charts
+    Qt6::Network
 )
 
 # ==== Bundle properties ====
-if(${QT_VERSION} VERSION_LESS 6.1.0)
-  set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.example.ShogiBoardQ)
-endif()
 set_target_properties(ShogiBoardQ PROPERTIES
-    ${BUNDLE_ID_OPTION}
+    MACOSX_BUNDLE_GUI_IDENTIFIER com.example.ShogiBoardQ
     MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
     MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
     MACOSX_BUNDLE TRUE
@@ -273,7 +275,5 @@ install(TARGETS ShogiBoardQ
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
-# ==== Finalize (Qt6) ====
-if(QT_VERSION_MAJOR EQUAL 6)
-    qt_finalize_executable(ShogiBoardQ)
-endif()
+# ==== Finalize ====
+qt_finalize_executable(ShogiBoardQ)
