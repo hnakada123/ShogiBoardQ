@@ -25,6 +25,7 @@ class QToolButton;
 class QPushButton;
 class QLabel;  // ★ 追加
 class QLineEdit;      // ★ 追加
+class QComboBox;      // ★ 追加: USIコマンド送信先選択用
 
 class EngineInfoWidget;
 class ShogiEngineThinkingModel;
@@ -78,6 +79,9 @@ public:
     void appendCsaLog(const QString& line);
     // ★ 追加: CSA通信ログクリア
     void clearCsaLog();
+
+    // ★ 追加: USI通信ログにステータスメッセージを追記
+    void appendUsiLogStatus(const QString& message);
 
     // 分岐ツリー用の種類とロール
     enum BranchNodeKind { BNK_Start = 1, BNK_Main = 2, BNK_Var = 3 };
@@ -149,6 +153,10 @@ signals:
     // ★ 追加: CSAコマンド送信シグナル
     void csaRawCommandRequested(const QString& command);
 
+    // ★ 追加: USIコマンド送信シグナル
+    // target: 0=E1, 1=E2, 2=両方
+    void usiCommandRequested(int target, const QString& command);
+
 private:
     // ★ 追加: 分岐ツリーのクリック有効フラグ（対局中は無効にする）
     bool m_branchTreeClickEnabled = true;
@@ -179,6 +187,11 @@ private:
     QToolButton* m_btnUsiLogFontIncrease=nullptr;
     QToolButton* m_btnUsiLogFontDecrease=nullptr;
     int m_usiLogFontSize=10;
+
+    // ★ 追加: USI通信ログコマンド入力UI
+    QWidget* m_usiCommandBar=nullptr;
+    QComboBox* m_usiTargetCombo=nullptr;
+    QLineEdit* m_usiCommandInput=nullptr;
 
     // ★ 追加: CSA通信ログ用UI
     QWidget* m_csaLogContainer=nullptr;
@@ -216,7 +229,9 @@ private:
     void updateUsiLogFontSize(int delta);  // ★ 追加: USI通信ログフォントサイズ変更
     void onUsiLogFontIncrease();     // ★ 追加
     void onUsiLogFontDecrease();     // ★ 追加
-    void appendColoredUsiLog(const QString& logLine, const QColor& prefixColor);  // ★ 追加: 色付きログ追加
+    void appendColoredUsiLog(const QString& logLine, const QColor& lineColor);  // ★ 追加: 色付きログ追加
+    void buildUsiCommandBar();       // ★ 追加: USIコマンドバー構築
+    void onUsiCommandEntered();      // ★ 追加: USIコマンド入力処理
     void onEngine1NameChanged();     // ★ 追加: エンジン1名変更時
     void onEngine2NameChanged();     // ★ 追加: エンジン2名変更時
     void buildCsaLogToolbar();       // ★ 追加: CSA通信ログツールバー構築

@@ -144,20 +144,26 @@ void MatchCoordinator::handleResign() {
 
     // 投了は「現在手番側」が行う：GCの現在手番から判定
     info.loser = (m_gc && m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2;
-    //const Player winner = (m_cur == P1 ? P2 : P1);
+    // 勝者は敗者の逆（loserと同じソースから計算）
+    const Player winner = (info.loser == P1) ? P2 : P1;
 
     // エンジンへの最終通知（HvE / EvE の両方に対応）
-    // HvE は「m_usi1のみ」の状態
-    const bool isHvE = (m_usi1 && !m_usi2);
+    // HvE/HvH は PlayMode から判定（m_usi2 の状態に依存しない）
+    const bool isHvE = (m_playMode == PlayMode::EvenHumanVsEngine) ||
+                       (m_playMode == PlayMode::EvenEngineVsHuman) ||
+                       (m_playMode == PlayMode::HandicapHumanVsEngine) ||
+                       (m_playMode == PlayMode::HandicapEngineVsHuman);
+    const bool isHvH = (m_playMode == PlayMode::HumanVsHuman);
 
     if (m_hooks.sendRawToEngine) {
         if (isHvE) {
             // HvE：人間が投了＝エンジン勝ち。
-            m_hooks.sendRawToEngine(m_usi1, QStringLiteral("gameover win"));
-            m_hooks.sendRawToEngine(m_usi1, QStringLiteral("quit")); // 再戦しないなら送る
-        } else {
+            if (m_usi1) {
+                m_hooks.sendRawToEngine(m_usi1, QStringLiteral("gameover win"));
+                m_hooks.sendRawToEngine(m_usi1, QStringLiteral("quit"));
+            }
+        } else if (!isHvH) {
             // EvE：勝者/敗者のエンジンそれぞれに通知
-            const Player winner = (m_cur == P1 ? P2 : P1);
             Usi* winEng  = (winner     == P1) ? m_usi1 : m_usi2;
             Usi* loseEng = (info.loser == P1) ? m_usi1 : m_usi2;
             if (loseEng) m_hooks.sendRawToEngine(loseEng, QStringLiteral("gameover lose"));
@@ -166,15 +172,17 @@ void MatchCoordinator::handleResign() {
                 m_hooks.sendRawToEngine(winEng,  QStringLiteral("quit"));
             }
         }
+        // HvH の場合はエンジンへの通知不要
     } else {
         // ★ hooks 未指定でも最低限の通知を司令塔内で実施
         if (isHvE) {
             // HvE：人間が投了＝エンジン勝ち。
-            sendRawTo(m_usi1, QStringLiteral("gameover win"));
-            sendRawTo(m_usi1, QStringLiteral("quit"));
-        } else {
+            if (m_usi1) {
+                sendRawTo(m_usi1, QStringLiteral("gameover win"));
+                sendRawTo(m_usi1, QStringLiteral("quit"));
+            }
+        } else if (!isHvH) {
             // EvE：勝者/敗者のエンジンそれぞれに通知
-            const Player winner = (m_cur == P1 ? P2 : P1);
             Usi* winEng  = (winner     == P1) ? m_usi1 : m_usi2;
             Usi* loseEng = (info.loser == P1) ? m_usi1 : m_usi2;
             if (loseEng) sendRawTo(loseEng, QStringLiteral("gameover lose"));
@@ -183,6 +191,7 @@ void MatchCoordinator::handleResign() {
                 sendRawTo(winEng,  QStringLiteral("quit"));
             }
         }
+        // HvH の場合はエンジンへの通知不要
     }
 
     // 司令塔のゲームオーバー状態を確定（棋譜「投了」一意追記は appendMoveOnce=true で司令塔→UIへ）

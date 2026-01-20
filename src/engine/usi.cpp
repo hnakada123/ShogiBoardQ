@@ -425,6 +425,11 @@ void Usi::sendRaw(const QString& command) const
     m_protocolHandler->sendRaw(command);
 }
 
+bool Usi::isEngineRunning() const
+{
+    return m_processManager && m_processManager->isRunning();
+}
+
 void Usi::prepareBoardDataForAnalysis()
 {
     qDebug().noquote() << "[Usi::prepareBoardDataForAnalysis] called";

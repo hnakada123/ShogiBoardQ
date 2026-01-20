@@ -293,6 +293,7 @@ private slots:
     void onRecordRowChangedByPresenter(int row, const QString& comment);
     void onCommentUpdated(int moveIndex, const QString& newComment);
     void onPvRowClicked(int engineIndex, int row);
+    void onUsiCommandRequested(int target, const QString& command);
     void onKifuPasteImportRequested(const QString& content);
     void onGameRecordCommentChanged(int ply, const QString& comment);
     void onCommentUpdateCallback(int ply, const QString& comment);

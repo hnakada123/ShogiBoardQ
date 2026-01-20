@@ -122,6 +122,9 @@ public:
 
     void sendRaw(const QString& command) const;
 
+    /// エンジンプロセスが起動中かどうかを返す
+    bool isEngineRunning() const;
+
     void setThinkingModel(ShogiEngineThinkingModel* m);
     void setLogModel(UsiCommLogModel* m);
 

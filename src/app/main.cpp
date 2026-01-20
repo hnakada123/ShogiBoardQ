@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
     QApplication a(argc, argv);
 
     // アプリケーションアイコンを設定
-    a.setWindowIcon(QIcon(":/shogiboardq.png"));
+    a.setWindowIcon(QIcon(":/icons/shogiboardq.png"));
 
     // 言語設定を読み込み、適切な翻訳ファイルをロード
     QTranslator translator;
