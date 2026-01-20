@@ -28,6 +28,8 @@
 #include <QMessageBox>  // ★ 追加
 #include <QTimer>       // ★ 追加: 列幅設定の遅延用
 #include <QLineEdit>    // ★ 追加: CSAコマンド入力用
+#include <QTextCursor>      // ★ 追加: ログ色付け用
+#include <QTextCharFormat>  // ★ 追加: ログ色付け用
 
 #include "settingsservice.h"  // ★ 追加: フォントサイズ保存用
 #include <QFontDatabase>      // ★ 追加: フォント検索用
@@ -328,12 +330,32 @@ void EngineAnalysisTab::onModel2Reset()
 
 void EngineAnalysisTab::onLog1Changed()
 {
-    if (m_usiLog && m_log1) m_usiLog->appendPlainText(m_log1->usiCommLog());
+    if (m_usiLog && m_log1) {
+        appendColoredUsiLog(m_log1->usiCommLog(), QColor(0x20, 0x60, 0xa0));  // E1: 青色
+    }
 }
 
 void EngineAnalysisTab::onLog2Changed()
 {
-    if (m_usiLog && m_log2) m_usiLog->appendPlainText(m_log2->usiCommLog());
+    if (m_usiLog && m_log2) {
+        appendColoredUsiLog(m_log2->usiCommLog(), QColor(0xa0, 0x20, 0x60));  // E2: 赤色
+    }
+}
+
+void EngineAnalysisTab::appendColoredUsiLog(const QString& logLine, const QColor& lineColor)
+{
+    if (!m_usiLog || logLine.isEmpty()) return;
+
+    // 行全体を指定された色で表示
+    QTextCursor cursor = m_usiLog->textCursor();
+    cursor.movePosition(QTextCursor::End);
+
+    QTextCharFormat coloredFormat;
+    coloredFormat.setForeground(lineColor);
+    cursor.insertText(logLine + QStringLiteral("\n"), coloredFormat);
+
+    m_usiLog->setTextCursor(cursor);
+    m_usiLog->ensureCursorVisible();
 }
 
 void EngineAnalysisTab::setModels(ShogiEngineThinkingModel* m1, ShogiEngineThinkingModel* m2,

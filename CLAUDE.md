@@ -24,8 +24,8 @@ ninja -C build
 cmake -B build -S . -DENABLE_CLANG_TIDY=ON
 cmake -B build -S . -DENABLE_CPPCHECK=ON
 
-# Update translations
-lupdate src ui -ts resources/translations/ShogiBoardQ_ja_JP.ts resources/translations/ShogiBoardQ_en.ts
+# Update translations (.ui files are in src/)
+lupdate src -ts resources/translations/ShogiBoardQ_ja_JP.ts resources/translations/ShogiBoardQ_en.ts
 ```
 
 ## Architecture
@@ -36,7 +36,7 @@ lupdate src ui -ts resources/translations/ShogiBoardQ_ja_JP.ts resources/transla
 
 - **app/**: アプリケーションエントリーポイント
   - `main.cpp` - Entry point
-  - `mainwindow.cpp/.h` - Main window
+  - `mainwindow.cpp/.h/.ui` - Main window
 
 - **core/**: 純粋なゲームロジック（Qt GUI非依存）
   - `shogiboard.cpp/.h` - Board state and piece management
@@ -94,20 +94,28 @@ lupdate src ui -ts resources/translations/ShogiBoardQ_ja_JP.ts resources/transla
 
 - **views/**: Qt Graphics View for board rendering (`shogiview.cpp/.h`)
 - **widgets/**: Custom Qt widgets
-- **dialogs/**: Dialog implementations
+- **dialogs/**: Dialog implementations (with co-located .ui files)
 - **models/**: Qt models for lists and data binding
 - **services/**: Cross-cutting services (settings, time keeping)
 - **common/**: Shared utilities (`errorbus`, `jishogicalculator`)
 
-### UI Files (`ui/`)
+### UI Files
 
-Qt Designer `.ui` files for dialogs and main window. Auto-processed by CMake's AUTOUIC.
+Qt Designer `.ui` files are co-located with their corresponding source files:
+- `src/app/mainwindow.ui` - Main window
+- `src/dialogs/*.ui` - Dialog files
+
+Auto-processed by CMake's AUTOUIC.
 
 ### Resources (`resources/`)
 
 - `shogiboardq.qrc` - Qt resource file
+- `icons/` - Application icons (.icns, .ico, .png)
+- `images/`
+  - `actions/` - Menu/Toolbar action icons
+  - `pieces/` - Shogi piece images
+- `platform/` - Platform-specific files (app.rc for Windows)
 - `translations/` - Translation files (Japanese `_ja_JP.ts`, English `_en.ts`)
-- Icons and images
 
 ## Key Technologies
 
