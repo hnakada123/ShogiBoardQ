@@ -101,6 +101,10 @@
 #include "prestartcleanuphandler.h"     // ★ 追加: 対局開始前クリーンアップ
 #include "kifuioservice.h"              // ★ 追加: 棋譜ファイルI/O
 #include <QDir>                         // ★ 追加: ディレクトリ操作
+#include "jishogiscoredialogcontroller.h"  // ★ 追加: 持将棋点数ダイアログ
+#include "nyugyokudeclarationhandler.h"    // ★ 追加: 入玉宣言処理
+#include "consecutivegamescontroller.h"    // ★ 追加: 連続対局管理
+#include "languagecontroller.h"            // ★ 追加: 言語設定管理
 
 // ★ コメント整形ヘルパ：KifuContentBuilderへ委譲
 namespace {
@@ -163,15 +167,8 @@ MainWindow::MainWindow(QWidget *parent)
     initializeEditMenuForStartup();
 
     // 言語メニューをグループ化（相互排他）して現在の設定を反映
-    m_languageActionGroup = new QActionGroup(this);
-    m_languageActionGroup->addAction(ui->actionLanguageSystem);
-    m_languageActionGroup->addAction(ui->actionLanguageJapanese);
-    m_languageActionGroup->addAction(ui->actionLanguageEnglish);
-    m_languageActionGroup->setExclusive(true);
-    // メニュー内でアイコンを非表示にしてチェックマークを表示
-    ui->actionLanguageSystem->setIconVisibleInMenu(false);
-    ui->actionLanguageJapanese->setIconVisibleInMenu(false);
-    ui->actionLanguageEnglish->setIconVisibleInMenu(false);
+    // LanguageControllerに委譲
+    ensureLanguageController_();
     updateLanguageMenuState();
 
     // 評価値グラフ高さ調整用タイマーを初期化（デバウンス処理用）
@@ -742,251 +739,26 @@ void MainWindow::displayJishogiScoreDialog()
         return;
     }
 
-    ShogiBoard* board = m_shogiView->board();
-    auto result = JishogiCalculator::calculate(board->boardData(), board->getPieceStand());
-
-    // 王手判定のためのMoveValidatorを作成
-    MoveValidator validator;
-
-    // 先手の玉が王手されているかどうかを判定
-    bool senteInCheck = validator.checkIfKingInCheck(MoveValidator::BLACK, board->boardData()) > 0;
-
-    // 後手の玉が王手されているかどうかを判定
-    bool goteInCheck = validator.checkIfKingInCheck(MoveValidator::WHITE, board->boardData()) > 0;
-
-    // 宣言条件の判定文字列を生成
-    auto buildConditionStr = [](const JishogiCalculator::PlayerScore& score, bool inCheck) -> QString {
-        const QString checkMark = QStringLiteral("○");
-        const QString crossMark = QStringLiteral("×");
-
-        QString str;
-        str += tr("【宣言条件】") + QStringLiteral("\n");
-        str += tr("① 玉が敵陣 : %1").arg(score.kingInEnemyTerritory ? checkMark : crossMark) + QStringLiteral("\n");
-        str += tr("② 敵陣10枚以上 : %1 (%2枚)")
-                   .arg(score.piecesInEnemyTerritory >= 10 ? checkMark : crossMark)
-                   .arg(score.piecesInEnemyTerritory) + QStringLiteral("\n");
-        str += tr("③ 王手なし : %1").arg(!inCheck ? checkMark : crossMark) + QStringLiteral("\n");
-        str += tr("④ 宣言点数 : %1点").arg(score.declarationPoints);
-        return str;
-    };
-
-    QString message = tr("持将棋の点数\n\n"
-                         "先手\n"
-                         "%1\n"
-                         "24点法 : %2\n"
-                         "27点法 : %3\n\n"
-                         "後手\n"
-                         "%4\n"
-                         "24点法 : %5\n"
-                         "27点法 : %6")
-        .arg(buildConditionStr(result.sente, senteInCheck),
-             JishogiCalculator::getResult24(result.sente, senteInCheck),
-             JishogiCalculator::getResult27(result.sente, true, senteInCheck),   // 先手
-             buildConditionStr(result.gote, goteInCheck),
-             JishogiCalculator::getResult24(result.gote, goteInCheck),
-             JishogiCalculator::getResult27(result.gote, false, goteInCheck));  // 後手
-
-    // カスタムダイアログを作成
-    QDialog dialog(this);
-    dialog.setWindowTitle(tr("持将棋の点数"));
-
-    // 保存されたウィンドウサイズを読み込む
-    QSize savedSize = SettingsService::jishogiScoreDialogSize();
-    if (savedSize.isValid() && savedSize.width() > 50 && savedSize.height() > 50) {
-        dialog.resize(savedSize);
+    ensureJishogiController_();
+    if (m_jishogiController) {
+        m_jishogiController->showDialog(this, m_shogiView->board());
     }
-
-    QVBoxLayout* mainLayout = new QVBoxLayout(&dialog);
-
-    // テキスト表示用ラベル
-    QLabel* label = new QLabel(message);
-    label->setAlignment(Qt::AlignLeft);
-
-    // 保存されたフォントサイズを読み込む
-    int savedFontSize = SettingsService::jishogiScoreFontSize();
-    QFont labelFont = label->font();
-    labelFont.setPointSize(savedFontSize);
-    label->setFont(labelFont);
-
-    mainLayout->addWidget(label);
-
-    // ボタン用レイアウト
-    QHBoxLayout* buttonLayout = new QHBoxLayout();
-
-    // A- ボタン（文字縮小）
-    QPushButton* shrinkButton = new QPushButton(tr("A-"));
-    shrinkButton->setFixedWidth(40);
-    connect(shrinkButton, &QPushButton::clicked, [label]() {
-        QFont font = label->font();
-        if (font.pointSize() > 6) {
-            font.setPointSize(font.pointSize() - 1);
-            label->setFont(font);
-        }
-    });
-    buttonLayout->addWidget(shrinkButton);
-
-    // A+ ボタン（文字拡大）
-    QPushButton* enlargeButton = new QPushButton(tr("A+"));
-    enlargeButton->setFixedWidth(40);
-    connect(enlargeButton, &QPushButton::clicked, [label]() {
-        QFont font = label->font();
-        font.setPointSize(font.pointSize() + 1);
-        label->setFont(font);
-    });
-    buttonLayout->addWidget(enlargeButton);
-
-    buttonLayout->addStretch();
-
-    // OKボタン
-    QPushButton* okButton = new QPushButton(tr("OK"));
-    connect(okButton, &QPushButton::clicked, &dialog, &QDialog::accept);
-    buttonLayout->addWidget(okButton);
-
-    mainLayout->addLayout(buttonLayout);
-
-    dialog.exec();
-
-    // ダイアログを閉じる際にフォントサイズとウィンドウサイズを保存
-    SettingsService::setJishogiScoreFontSize(label->font().pointSize());
-    SettingsService::setJishogiScoreDialogSize(dialog.size());
 }
 
 void MainWindow::handleNyugyokuDeclaration()
 {
-    // 対局中かどうかをチェック
-    if (m_playMode == PlayMode::NotStarted) {
-        QMessageBox::warning(this, tr("入玉宣言"), tr("対局中ではありません。"));
-        return;
-    }
-
     // 盤面データの確認
     if (!m_shogiView || !m_shogiView->board()) {
         QMessageBox::warning(this, tr("エラー"), tr("盤面データがありません。"));
         return;
     }
 
-    // 持将棋ルールの取得（QSettingsから読み込む）
-    QSettings settings(QStringLiteral("ShogiBoardQ.ini"), QSettings::IniFormat);
-    int jishogiRule = settings.value("GameSettings/jishogiRule", 0).toInt();
-
-    if (jishogiRule == 0) {
-        QMessageBox::warning(this, tr("入玉宣言"),
-            tr("持将棋ルールが「なし」に設定されています。\n"
-               "対局ダイアログで「24点法」または「27点法」を選択してください。"));
-        return;
+    ensureNyugyokuHandler_();
+    if (m_nyugyokuHandler) {
+        m_nyugyokuHandler->setGameController(m_gameController);
+        m_nyugyokuHandler->setMatchCoordinator(m_match);
+        m_nyugyokuHandler->handleDeclaration(this, m_shogiView->board(), static_cast<int>(m_playMode));
     }
-
-    // 現在の手番を取得（宣言者）
-    bool isSenteTurn = true;
-    if (m_gameController) {
-        isSenteTurn = (m_gameController->currentPlayer() == ShogiGameController::Player1);
-    }
-    QString declarerName = isSenteTurn ? tr("先手") : tr("後手");
-
-    // 確認ダイアログ
-    QMessageBox::StandardButton reply = QMessageBox::question(
-        this,
-        tr("入玉宣言確認"),
-        tr("%1が入玉宣言を行います。\n\n"
-           "宣言条件を満たさない場合は宣言側の負けとなります。\n"
-           "本当に宣言しますか？").arg(declarerName),
-        QMessageBox::Yes | QMessageBox::No,
-        QMessageBox::No);
-
-    if (reply != QMessageBox::Yes) {
-        return;
-    }
-
-    // 盤面データと点数を計算
-    ShogiBoard* board = m_shogiView->board();
-    auto result = JishogiCalculator::calculate(board->boardData(), board->getPieceStand());
-
-    // 王手判定
-    MoveValidator validator;
-    bool declarerInCheck = false;
-    const auto& score = isSenteTurn ? result.sente : result.gote;
-
-    if (isSenteTurn) {
-        declarerInCheck = validator.checkIfKingInCheck(MoveValidator::BLACK, board->boardData()) > 0;
-    } else {
-        declarerInCheck = validator.checkIfKingInCheck(MoveValidator::WHITE, board->boardData()) > 0;
-    }
-
-    // 宣言条件の判定
-    bool kingInEnemyTerritory = score.kingInEnemyTerritory;
-    bool enoughPieces = score.piecesInEnemyTerritory >= 10;
-    bool noCheck = !declarerInCheck;
-    int declarationPoints = score.declarationPoints;
-
-    // 結果の判定
-    QString resultStr;
-    bool declarationSuccess = false;
-    bool isDraw = false;
-
-    // 条件判定の詳細
-    QString conditionDetails = tr("【宣言条件の判定】\n"
-                                  "① 玉が敵陣にいる: %1\n"
-                                  "② 敵陣に10枚以上: %2 (%3枚)\n"
-                                  "③ 王手がかかっていない: %4\n"
-                                  "④ 宣言点数: %5点\n")
-        .arg(kingInEnemyTerritory ? tr("○") : tr("×"),
-             enoughPieces ? tr("○") : tr("×"))
-        .arg(score.piecesInEnemyTerritory)
-        .arg(noCheck ? tr("○") : tr("×"),
-             QString::number(declarationPoints));
-
-    if (jishogiRule == 1) {
-        // 24点法
-        conditionDetails += tr("\n【24点法】\n");
-        if (kingInEnemyTerritory && enoughPieces && noCheck) {
-            if (declarationPoints >= 31) {
-                resultStr = tr("宣言勝ち");
-                declarationSuccess = true;
-                conditionDetails += tr("31点以上: 勝ち");
-            } else if (declarationPoints >= 24) {
-                resultStr = tr("持将棋（引き分け）");
-                declarationSuccess = true;
-                isDraw = true;
-                conditionDetails += tr("24〜30点: 引き分け");
-            } else {
-                resultStr = tr("宣言失敗（負け）");
-                conditionDetails += tr("24点未満: 宣言失敗");
-            }
-        } else {
-            resultStr = tr("宣言失敗（負け）");
-            conditionDetails += tr("条件未達: 宣言失敗");
-        }
-    } else {
-        // 27点法
-        int requiredPoints = isSenteTurn ? 28 : 27;
-        conditionDetails += tr("\n【27点法】\n");
-        conditionDetails += tr("必要点数: %1点以上\n").arg(requiredPoints);
-
-        if (kingInEnemyTerritory && enoughPieces && noCheck && declarationPoints >= requiredPoints) {
-            resultStr = tr("宣言勝ち");
-            declarationSuccess = true;
-            conditionDetails += tr("条件達成: 勝ち");
-        } else {
-            resultStr = tr("宣言失敗（負け）");
-            if (!kingInEnemyTerritory || !enoughPieces || !noCheck) {
-                conditionDetails += tr("条件未達: 宣言失敗");
-            } else {
-                conditionDetails += tr("点数不足: 宣言失敗");
-            }
-        }
-    }
-
-    // 対局終了処理（MatchCoordinatorを使用）- 先に棋譜を更新
-    if (m_match) {
-        MatchCoordinator::Player declarer = isSenteTurn ? MatchCoordinator::P1 : MatchCoordinator::P2;
-        m_match->handleNyugyokuDeclaration(declarer, declarationSuccess, isDraw);
-    }
-
-    // 結果ダイアログの表示
-    QString finalMessage = tr("%1の入玉宣言\n\n%2\n\n【結果】%3")
-        .arg(declarerName, conditionDetails, resultStr);
-
-    QMessageBox::information(this, tr("入玉宣言結果"), finalMessage);
 }
 
 void MainWindow::openWebsiteInExternalBrowser()
@@ -1779,9 +1551,14 @@ void MainWindow::onConsecutiveGamesConfigured_(int totalGames, bool switchTurn)
 {
     qDebug().noquote() << "[MW] onConsecutiveGamesConfigured_: totalGames=" << totalGames << " switchTurn=" << switchTurn;
 
-    // 連続対局設定を保存
+    ensureConsecutiveGamesController_();
+    if (m_consecutiveGamesController) {
+        m_consecutiveGamesController->configure(totalGames, switchTurn);
+    }
+
+    // 互換性のため残す
     m_consecutiveGamesTotal = totalGames;
-    m_consecutiveGamesRemaining = totalGames - 1;  // 最初の1局目は既に開始されている
+    m_consecutiveGamesRemaining = totalGames - 1;
     m_consecutiveGameNumber = 1;
     m_switchTurnEachGame = switchTurn;
 }
@@ -1791,7 +1568,13 @@ void MainWindow::onGameStarted_(const MatchCoordinator::StartOptions& opt)
 {
     qDebug().noquote() << "[MW] onGameStarted_: mode=" << static_cast<int>(opt.mode)
                        << " sfenStart=" << opt.sfenStart;
-    // 連続対局用に設定を保存
+
+    ensureConsecutiveGamesController_();
+    if (m_consecutiveGamesController) {
+        m_consecutiveGamesController->onGameStarted(opt, m_lastTimeControl);
+    }
+
+    // 互換性のため残す
     m_lastStartOptions = opt;
 }
 
@@ -1801,47 +1584,14 @@ void MainWindow::startNextConsecutiveGame_()
     qDebug().noquote() << "[MW] startNextConsecutiveGame_: remaining=" << m_consecutiveGamesRemaining
                        << " gameNumber=" << m_consecutiveGameNumber;
 
-    if (m_consecutiveGamesRemaining <= 0) {
-        qDebug() << "[MW] No more consecutive games remaining.";
-        return;
+    ensureConsecutiveGamesController_();
+    if (m_consecutiveGamesController && m_consecutiveGamesController->shouldStartNextGame()) {
+        m_consecutiveGamesController->startNextGame();
+
+        // 同期用に状態を更新
+        m_consecutiveGamesRemaining = m_consecutiveGamesController->remainingGames();
+        m_consecutiveGameNumber = m_consecutiveGamesController->currentGameNumber();
     }
-
-    // 残り回数をデクリメント、対局番号をインクリメント
-    m_consecutiveGamesRemaining--;
-    m_consecutiveGameNumber++;
-
-    // 1局ごとに手番を入れ替える場合
-    if (m_switchTurnEachGame) {
-        // エンジン名とパスを入れ替え
-        std::swap(m_lastStartOptions.engineName1, m_lastStartOptions.engineName2);
-        std::swap(m_lastStartOptions.enginePath1, m_lastStartOptions.enginePath2);
-        qDebug() << "[MW] Switched engine sides for next game";
-    }
-
-    // 少し遅延を入れて次の対局を開始（UIの更新を待つため）
-    QTimer::singleShot(1500, this, [this]() {
-        qDebug() << "[MW] Starting next consecutive game after delay";
-
-        // 開始前クリーンアップ
-        onPreStartCleanupRequested_();
-
-        // 時計の適用
-        if (m_timeController) {
-            ShogiClock* clk = m_timeController->clock();
-            TimeControlUtil::applyToClock(clk, m_lastTimeControl, m_lastStartOptions.sfenStart, QString());
-        }
-
-        // GameStartCoordinatorを使って対局開始
-        ensureGameStartCoordinator_();
-        if (m_gameStart) {
-            GameStartCoordinator::StartParams params;
-            params.opt = m_lastStartOptions;
-            params.tc = m_lastTimeControl;
-            params.autoStartEngineMove = true;
-
-            m_gameStart->start(params);
-        }
-    });
 }
 
 void MainWindow::syncBoardAndHighlightsAtRow(int ply)
@@ -3795,40 +3545,40 @@ void MainWindow::onJosekiForcedPromotion_(bool forced, bool promote)
 
 void MainWindow::updateLanguageMenuState()
 {
-    QString current = SettingsService::language();
-    ui->actionLanguageSystem->setChecked(current == "system");
-    ui->actionLanguageJapanese->setChecked(current == "ja_JP");
-    ui->actionLanguageEnglish->setChecked(current == "en");
+    ensureLanguageController_();
+    if (m_languageController) {
+        m_languageController->updateMenuState();
+    }
 }
 
 void MainWindow::changeLanguage(const QString& lang)
 {
-    QString current = SettingsService::language();
-    if (current == lang) return;
-
-    SettingsService::setLanguage(lang);
-
-    QMessageBox::information(this,
-        tr("言語設定"),
-        tr("言語設定を変更しました。\n変更を反映するにはアプリケーションを再起動してください。"));
+    Q_UNUSED(lang);
+    // LanguageControllerに委譲
 }
 
 void MainWindow::onLanguageSystemTriggered()
 {
-    changeLanguage("system");
-    updateLanguageMenuState();
+    ensureLanguageController_();
+    if (m_languageController) {
+        m_languageController->onSystemLanguageTriggered();
+    }
 }
 
 void MainWindow::onLanguageJapaneseTriggered()
 {
-    changeLanguage("ja_JP");
-    updateLanguageMenuState();
+    ensureLanguageController_();
+    if (m_languageController) {
+        m_languageController->onJapaneseTriggered();
+    }
 }
 
 void MainWindow::onLanguageEnglishTriggered()
 {
-    changeLanguage("en");
-    updateLanguageMenuState();
+    ensureLanguageController_();
+    if (m_languageController) {
+        m_languageController->onEnglishTriggered();
+    }
 }
 
 void MainWindow::onToolBarVisibilityToggled(bool visible)
@@ -3837,4 +3587,56 @@ void MainWindow::onToolBarVisibilityToggled(bool visible)
         ui->toolBar->setVisible(visible);
     }
     SettingsService::setToolbarVisible(visible);
+}
+
+// =============================================================================
+// 新規コントローラのensure関数
+// =============================================================================
+
+void MainWindow::ensureJishogiController_()
+{
+    if (m_jishogiController) return;
+    m_jishogiController = new JishogiScoreDialogController(this);
+}
+
+void MainWindow::ensureNyugyokuHandler_()
+{
+    if (m_nyugyokuHandler) return;
+    m_nyugyokuHandler = new NyugyokuDeclarationHandler(this);
+}
+
+void MainWindow::ensureConsecutiveGamesController_()
+{
+    if (m_consecutiveGamesController) return;
+
+    m_consecutiveGamesController = new ConsecutiveGamesController(this);
+    m_consecutiveGamesController->setTimeController(m_timeController);
+    m_consecutiveGamesController->setGameStartCoordinator(m_gameStart);
+
+    // シグナル接続
+    connect(m_consecutiveGamesController, &ConsecutiveGamesController::requestPreStartCleanup,
+            this, &MainWindow::onPreStartCleanupRequested_);
+    connect(m_consecutiveGamesController, &ConsecutiveGamesController::requestStartNextGame,
+            this, [this](const MatchCoordinator::StartOptions& opt, const GameStartCoordinator::TimeControl& tc) {
+                ensureGameStartCoordinator_();
+                if (m_gameStart) {
+                    GameStartCoordinator::StartParams params;
+                    params.opt = opt;
+                    params.tc = tc;
+                    params.autoStartEngineMove = true;
+                    m_gameStart->start(params);
+                }
+            });
+}
+
+void MainWindow::ensureLanguageController_()
+{
+    if (m_languageController) return;
+
+    m_languageController = new LanguageController(this);
+    m_languageController->setParentWidget(this);
+    m_languageController->setActions(
+        ui->actionLanguageSystem,
+        ui->actionLanguageJapanese,
+        ui->actionLanguageEnglish);
 }

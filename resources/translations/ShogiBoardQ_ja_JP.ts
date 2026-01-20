@@ -1287,6 +1287,69 @@ Move %3: %4</source>
     </message>
 </context>
 <context>
+    <name>JishogiScoreDialogController</name>
+    <message>
+        <location filename="../../src/controllers/jishogiscoredialogcontroller.cpp" line="26"/>
+        <source>【宣言条件】</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/controllers/jishogiscoredialogcontroller.cpp" line="27"/>
+        <source>① 玉が敵陣 : %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/controllers/jishogiscoredialogcontroller.cpp" line="28"/>
+        <source>② 敵陣10枚以上 : %1 (%2枚)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/controllers/jishogiscoredialogcontroller.cpp" line="31"/>
+        <source>③ 王手なし : %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/controllers/jishogiscoredialogcontroller.cpp" line="32"/>
+        <source>④ 宣言点数 : %1点</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/controllers/jishogiscoredialogcontroller.cpp" line="66"/>
+        <source>持将棋の点数
+
+先手
+%1
+24点法 : %2
+27点法 : %3
+
+後手
+%4
+24点法 : %5
+27点法 : %6</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/controllers/jishogiscoredialogcontroller.cpp" line="84"/>
+        <source>持将棋の点数</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/controllers/jishogiscoredialogcontroller.cpp" line="110"/>
+        <source>A-</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/controllers/jishogiscoredialogcontroller.cpp" line="122"/>
+        <source>A+</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/controllers/jishogiscoredialogcontroller.cpp" line="134"/>
+        <source>OK</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>JosekiMergeDialog</name>
     <message>
         <location filename="../../src/dialogs/josekimergedialog.cpp" line="27"/>
@@ -2561,6 +2624,20 @@ OKを選択すると保存先が指定できます。</source>
     </message>
 </context>
 <context>
+    <name>LanguageController</name>
+    <message>
+        <location filename="../../src/controllers/languagecontroller.cpp" line="63"/>
+        <source>言語設定</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/controllers/languagecontroller.cpp" line="64"/>
+        <source>言語設定を変更しました。
+変更を反映するにはアプリケーションを再起動してください。</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>MainWindow</name>
     <message>
         <location filename="../../ui/mainwindow.ui" line="14"/>
@@ -2654,7 +2731,6 @@ OKを選択すると保存先が指定できます。</source>
     </message>
     <message>
         <location filename="../../ui/mainwindow.ui" line="117"/>
-        <location filename="../../src/app/mainwindow.cpp" line="3812"/>
         <source>言語設定</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2789,14 +2865,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="791"/>
-        <source>持将棋の点数</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <location filename="../../ui/mainwindow.ui" line="543"/>
-        <location filename="../../src/app/mainwindow.cpp" line="858"/>
-        <location filename="../../src/app/mainwindow.cpp" line="873"/>
         <source>入玉宣言</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2901,289 +2970,95 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="407"/>
+        <location filename="../../src/app/mainwindow.cpp" line="404"/>
         <source>Error</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="662"/>
+        <location filename="../../src/app/mainwindow.cpp" line="659"/>
         <source>投了確認</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="663"/>
+        <location filename="../../src/app/mainwindow.cpp" line="660"/>
         <source>本当に投了しますか？</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="741"/>
-        <location filename="../../src/app/mainwindow.cpp" line="864"/>
+        <location filename="../../src/app/mainwindow.cpp" line="738"/>
+        <location filename="../../src/app/mainwindow.cpp" line="752"/>
         <source>エラー</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="741"/>
-        <location filename="../../src/app/mainwindow.cpp" line="864"/>
+        <location filename="../../src/app/mainwindow.cpp" line="738"/>
+        <location filename="../../src/app/mainwindow.cpp" line="752"/>
         <source>盤面データがありません。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="763"/>
-        <source>【宣言条件】</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="764"/>
-        <source>① 玉が敵陣 : %1</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="765"/>
-        <source>② 敵陣10枚以上 : %1 (%2枚)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="768"/>
-        <source>③ 王手なし : %1</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="769"/>
-        <source>④ 宣言点数 : %1点</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="773"/>
-        <source>持将棋の点数
-
-先手
-%1
-24点法 : %2
-27点法 : %3
-
-後手
-%4
-24点法 : %5
-27点法 : %6</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="817"/>
-        <source>A-</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="829"/>
-        <source>A+</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="841"/>
-        <source>OK</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="858"/>
-        <source>対局中ではありません。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="874"/>
-        <source>持将棋ルールが「なし」に設定されています。
-対局ダイアログで「24点法」または「27点法」を選択してください。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="884"/>
-        <location filename="../../src/app/mainwindow.cpp" line="1706"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1478"/>
         <source>先手</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="884"/>
-        <location filename="../../src/app/mainwindow.cpp" line="1707"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1479"/>
         <source>後手</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="889"/>
-        <source>入玉宣言確認</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="890"/>
-        <source>%1が入玉宣言を行います。
-
-宣言条件を満たさない場合は宣言側の負けとなります。
-本当に宣言しますか？</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="927"/>
-        <source>【宣言条件の判定】
-① 玉が敵陣にいる: %1
-② 敵陣に10枚以上: %2 (%3枚)
-③ 王手がかかっていない: %4
-④ 宣言点数: %5点
-</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="932"/>
-        <location filename="../../src/app/mainwindow.cpp" line="933"/>
-        <location filename="../../src/app/mainwindow.cpp" line="935"/>
-        <source>○</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="932"/>
-        <location filename="../../src/app/mainwindow.cpp" line="933"/>
-        <location filename="../../src/app/mainwindow.cpp" line="935"/>
-        <source>×</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="940"/>
-        <source>
-【24点法】
-</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="943"/>
-        <location filename="../../src/app/mainwindow.cpp" line="966"/>
-        <source>宣言勝ち</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="945"/>
-        <source>31点以上: 勝ち</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="947"/>
-        <source>持将棋（引き分け）</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="950"/>
-        <source>24〜30点: 引き分け</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="952"/>
-        <location filename="../../src/app/mainwindow.cpp" line="956"/>
-        <location filename="../../src/app/mainwindow.cpp" line="970"/>
-        <source>宣言失敗（負け）</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="953"/>
-        <source>24点未満: 宣言失敗</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="957"/>
-        <location filename="../../src/app/mainwindow.cpp" line="972"/>
-        <source>条件未達: 宣言失敗</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="962"/>
-        <source>
-【27点法】
-</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="963"/>
-        <source>必要点数: %1点以上
-</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="968"/>
-        <source>条件達成: 勝ち</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="974"/>
-        <source>点数不足: 宣言失敗</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="986"/>
-        <source>%1の入玉宣言
-
-%2
-
-【結果】%3</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="989"/>
-        <source>入玉宣言結果</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1379"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1151"/>
         <source>棋譜ファイルを開く</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1380"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1152"/>
         <source>Kifu Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1708"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1480"/>
         <source>手合割</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1708"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1480"/>
         <source>平手</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3492"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3242"/>
         <source>棋譜を自動保存しました: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3495"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3245"/>
         <source>棋譜の自動保存に失敗しました: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3605"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3355"/>
         <source>棋譜を取り込みました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3607"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3357"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3611"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3361"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3650"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3400"/>
         <source>コメントを更新しました（手数: %1）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3711"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3461"/>
         <source>コメントなし</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3813"/>
-        <source>言語設定を変更しました。
-変更を反映するにはアプリケーションを再起動してください。</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -3419,6 +3294,162 @@ OKを選択すると保存先が指定できます。</source>
     <message>
         <location filename="../../src/core/movevalidator.cpp" line="2070"/>
         <source>An error occurred in MoveValidator::validateMoveWithoutChecks. Dropping a pawn to give checkmate is not allowed.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>NyugyokuDeclarationHandler</name>
+    <message>
+        <location filename="../../src/controllers/nyugyokudeclarationhandler.cpp" line="31"/>
+        <source>○</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/controllers/nyugyokudeclarationhandler.cpp" line="32"/>
+        <source>×</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/controllers/nyugyokudeclarationhandler.cpp" line="34"/>
+        <source>【宣言条件の判定】
+① 玉が敵陣にいる: %1
+② 敵陣に10枚以上: %2 (%3枚)
+③ 王手がかかっていない: %4
+④ 宣言点数: %5点
+</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/controllers/nyugyokudeclarationhandler.cpp" line="46"/>
+        <source>
+【24点法】
+</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/controllers/nyugyokudeclarationhandler.cpp" line="49"/>
+        <source>
+【27点法】
+</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/controllers/nyugyokudeclarationhandler.cpp" line="50"/>
+        <source>必要点数: %1点以上
+</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/controllers/nyugyokudeclarationhandler.cpp" line="67"/>
+        <location filename="../../src/controllers/nyugyokudeclarationhandler.cpp" line="99"/>
+        <source>宣言勝ち</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/controllers/nyugyokudeclarationhandler.cpp" line="68"/>
+        <source>31点以上: 勝ち</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/controllers/nyugyokudeclarationhandler.cpp" line="72"/>
+        <source>持将棋（引き分け）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/controllers/nyugyokudeclarationhandler.cpp" line="73"/>
+        <source>24〜30点: 引き分け</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/controllers/nyugyokudeclarationhandler.cpp" line="76"/>
+        <location filename="../../src/controllers/nyugyokudeclarationhandler.cpp" line="81"/>
+        <location filename="../../src/controllers/nyugyokudeclarationhandler.cpp" line="103"/>
+        <source>宣言失敗（負け）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/controllers/nyugyokudeclarationhandler.cpp" line="77"/>
+        <source>24点未満: 宣言失敗</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/controllers/nyugyokudeclarationhandler.cpp" line="82"/>
+        <location filename="../../src/controllers/nyugyokudeclarationhandler.cpp" line="105"/>
+        <source>条件未達: 宣言失敗</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/controllers/nyugyokudeclarationhandler.cpp" line="100"/>
+        <source>条件達成: 勝ち</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/controllers/nyugyokudeclarationhandler.cpp" line="107"/>
+        <source>点数不足: 宣言失敗</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/controllers/nyugyokudeclarationhandler.cpp" line="118"/>
+        <location filename="../../src/controllers/nyugyokudeclarationhandler.cpp" line="133"/>
+        <source>入玉宣言</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/controllers/nyugyokudeclarationhandler.cpp" line="118"/>
+        <source>対局中ではありません。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/controllers/nyugyokudeclarationhandler.cpp" line="124"/>
+        <source>エラー</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/controllers/nyugyokudeclarationhandler.cpp" line="124"/>
+        <source>盤面データがありません。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/controllers/nyugyokudeclarationhandler.cpp" line="134"/>
+        <source>持将棋ルールが「なし」に設定されています。
+対局ダイアログで「24点法」または「27点法」を選択してください。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/controllers/nyugyokudeclarationhandler.cpp" line="144"/>
+        <source>先手</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/controllers/nyugyokudeclarationhandler.cpp" line="144"/>
+        <source>後手</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/controllers/nyugyokudeclarationhandler.cpp" line="149"/>
+        <source>入玉宣言確認</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/controllers/nyugyokudeclarationhandler.cpp" line="150"/>
+        <source>%1が入玉宣言を行います。
+
+宣言条件を満たさない場合は宣言側の負けとなります。
+本当に宣言しますか？</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/controllers/nyugyokudeclarationhandler.cpp" line="202"/>
+        <source>%1の入玉宣言
+
+%2
+
+【結果】%3</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/controllers/nyugyokudeclarationhandler.cpp" line="205"/>
+        <source>入玉宣言結果</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

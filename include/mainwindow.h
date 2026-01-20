@@ -52,6 +52,14 @@
 #include "gameinfopanecontroller.h"  // KifGameInfoItem
 
 // ==============================
+// Forward declarations (new controllers)
+// ==============================
+class JishogiScoreDialogController;
+class NyugyokuDeclarationHandler;
+class ConsecutiveGamesController;
+class LanguageController;
+
+// ==============================
 // Macros / aliases
 // ==============================
 #define SHOGIBOARDQ_DEBUG_KIF 1
@@ -495,6 +503,12 @@ private:
     // 言語設定用アクショングループ
     QActionGroup* m_languageActionGroup = nullptr;
 
+    // ★ 新規コントローラ（MainWindowから分離した責務）
+    JishogiScoreDialogController* m_jishogiController = nullptr;
+    NyugyokuDeclarationHandler* m_nyugyokuHandler = nullptr;
+    ConsecutiveGamesController* m_consecutiveGamesController = nullptr;
+    LanguageController* m_languageController = nullptr;
+
     // --------------------------------------------------------
     // Private Methods
     // --------------------------------------------------------
@@ -585,6 +599,10 @@ private:
     void ensureMenuWiring_();
     void ensurePlayerInfoWiring_();
     void ensurePreStartCleanupHandler_();
+    void ensureJishogiController_();
+    void ensureNyugyokuHandler_();
+    void ensureConsecutiveGamesController_();
+    void ensureLanguageController_();
 
     // ctor の分割先
     void setupCentralWidgetContainer_();
