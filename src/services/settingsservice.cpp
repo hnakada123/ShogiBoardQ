@@ -684,4 +684,20 @@ void setToolbarVisible(bool visible)
     s.setValue("UI/toolbarVisible", visible);
 }
 
+// ★ 追加: エンジン設定ダイアログのフォントサイズを取得
+int engineSettingsFontSize()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("FontSize/engineSettings", 12).toInt();
+}
+
+// ★ 追加: エンジン設定ダイアログのフォントサイズを保存
+void setEngineSettingsFontSize(int size)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("FontSize/engineSettings", size);
+}
+
 } // namespace SettingsService

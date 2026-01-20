@@ -7,10 +7,14 @@
 #include <QLineEdit>
 #include <QComboBox>
 #include <QCheckBox>
+#include <QGroupBox>
 #include <QSettings>
 #include <QDir>
+#include <QMap>
 #include "longlongspinbox.h"
 #include "engineoptions.h"
+#include "engineoptiondescriptions.h"
+#include "collapsiblegroupbox.h"
 
 namespace EngineSettings {
 // ファイルまたはディレクトリ選択のためのEnum型の定義
@@ -74,6 +78,9 @@ private:
         // オプションの説明や制約を表示するラベル
         QLabel* optionDescriptionLabel = nullptr;
 
+        // オプションの機能説明を表示するラベル（ヘルプテキスト）
+        QLabel* helpDescriptionLabel = nullptr;
+
         // 数値入力用のスピンボックス
         LongLongSpinBox* integerSpinBox = nullptr;
 
@@ -92,6 +99,9 @@ private:
 
     // エンジンオプションのためのウィジェットを格納するリスト
     QList<OptionWidgets> m_engineOptionWidgetsList;
+
+    // 現在のフォントサイズ
+    int m_fontSize;
 
     // 開くファイル名
     QString m_openFileName;
@@ -115,7 +125,7 @@ private:
     QString openSelectionDialog(QWidget* parent, int fileType, const QString& initialDir = QDir::homePath());
 
     // エンジンオプションのためのテキストボックスを作成する。
-    void createTextBox(const EngineOption& option, QVBoxLayout* layout);
+    void createTextBox(const EngineOption& option, QVBoxLayout* layout, int optionIndex);
 
     // エンジンオプションのためのスピンボックスを作成する。
     void createSpinBox(const EngineOption& option, QVBoxLayout* layout);
@@ -129,11 +139,20 @@ private:
     // エンジンオプションのためのコンボボックスを作成する。
     void createComboBox(const EngineOption& option, QVBoxLayout* layout);
 
+    // オプションの説明ラベルを作成してレイアウトに追加する。
+    void createHelpDescriptionLabel(const QString& optionName, QVBoxLayout* layout);
+
     // オプションのタイプに応じたUIコンポーネントを作成し、レイアウトに追加する。
-    void createWidgetForOption(const EngineOption& option);
+    void createWidgetForOption(const EngineOption& option, int optionIndex, QVBoxLayout* targetLayout);
+
+    // カテゴリ別の折りたたみ可能なグループボックスを作成する。
+    CollapsibleGroupBox* createCategoryGroupBox(EngineOptionCategory category);
 
     // 設定ファイルにエンジンのオプション設定を保存する。
     void saveOptionsToSettings();
+
+    // すべてのウィジェットにフォントサイズを適用する。
+    void applyFontSize();
 
 private slots:
     // 設定画面で"フォルダ・ディレクトリの選択"ボタンあるいは"ファイルの選択"ボタンをクリックした場合にディレクトリ、ファイルを選択する画面を表示する。
@@ -147,6 +166,12 @@ private slots:
 
     // ボタンが押された場合、ボタンの色を変える。
     void changeColorTypeButton();
+
+    // フォントサイズを増加する。
+    void increaseFontSize();
+
+    // フォントサイズを減少する。
+    void decreaseFontSize();
 };
 
 #endif // CHANGEENGINESETTINGSDIALOG_H

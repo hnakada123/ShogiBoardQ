@@ -229,6 +229,11 @@ bool toolbarVisible();
 // ツールバーの表示状態を保存
 void setToolbarVisible(bool visible);
 
+// ★ 追加: エンジン設定ダイアログのフォントサイズを取得（デフォルト: 12）
+int engineSettingsFontSize();
+// ★ 追加: エンジン設定ダイアログのフォントサイズを保存
+void setEngineSettingsFontSize(int size);
+
 } // namespace SettingsService
 
 #endif // SETTINGSSERVICE_H

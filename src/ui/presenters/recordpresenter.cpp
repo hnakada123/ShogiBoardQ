@@ -55,11 +55,24 @@ void GameRecordPresenter::presentGameRecord(const QList<KifDisplayItem>& disp) {
 
     // 初期選択位置は先頭に寄せる（任意）
     // ただし、対局中（ナビゲーション無効化中）はsetCurrentIndexを呼ばない
+    qDebug() << "[PRESENTER] presentGameRecord: about to set initial selection";
+    qDebug() << "[PRESENTER] m_d.recordPane=" << m_d.recordPane;
     if (m_d.recordPane) {
+        qDebug() << "[PRESENTER] isNavigationDisabled=" << m_d.recordPane->isNavigationDisabled();
         if (!m_d.recordPane->isNavigationDisabled()) {
             if (auto* view = m_d.recordPane->kifuView()) {
+                qDebug() << "[PRESENTER] view=" << view << " model=" << view->model();
                 const QModelIndex top = m_d.model->index(0, 0);
-                view->setCurrentIndex(top);
+                qDebug() << "[PRESENTER] top index valid=" << top.isValid();
+                // カレントインデックスと選択の両方を設定（選択行を黄色にするため）
+                if (auto* sel = view->selectionModel()) {
+                    qDebug() << "[PRESENTER] selectionModel exists, calling setCurrentIndex with ClearAndSelect";
+                    sel->setCurrentIndex(top, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+                    qDebug() << "[PRESENTER] after setCurrentIndex: currentIndex=" << sel->currentIndex()
+                             << " hasSelection=" << sel->hasSelection();
+                } else {
+                    qDebug() << "[PRESENTER] WARNING: selectionModel is null!";
+                }
                 view->scrollTo(top, QAbstractItemView::PositionAtCenter);
             }
         }
@@ -119,6 +132,21 @@ void GameRecordPresenter::appendMoveLine(const QString& prettyMove, const QStrin
         // 新しく追加した行（最後の行）を黄色でハイライト
         const int newRow = m_d.model->rowCount() - 1;
         m_d.model->setCurrentHighlightRow(newRow);
+
+        // ★ 追加：QTableViewの選択モデルでも新しい行を選択（黄色表示のため）
+        if (m_kifuView) {
+            if (auto* sel = m_kifuView->selectionModel()) {
+                const QModelIndex idx = m_d.model->index(newRow, 0);
+                sel->setCurrentIndex(idx, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+            }
+        } else if (m_d.recordPane) {
+            if (auto* view = m_d.recordPane->kifuView()) {
+                if (auto* sel = view->selectionModel()) {
+                    const QModelIndex idx = m_d.model->index(newRow, 0);
+                    sel->setCurrentIndex(idx, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+                }
+            }
+        }
     }
 }
 
@@ -166,6 +194,21 @@ void GameRecordPresenter::appendMoveLineWithComment(const QString& prettyMove, c
 
         const int newRow = m_d.model->rowCount() - 1;
         m_d.model->setCurrentHighlightRow(newRow);
+
+        // ★ 追加：QTableViewの選択モデルでも新しい行を選択（黄色表示のため）
+        if (m_kifuView) {
+            if (auto* sel = m_kifuView->selectionModel()) {
+                const QModelIndex idx = m_d.model->index(newRow, 0);
+                sel->setCurrentIndex(idx, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+            }
+        } else if (m_d.recordPane) {
+            if (auto* view = m_d.recordPane->kifuView()) {
+                if (auto* sel = view->selectionModel()) {
+                    const QModelIndex idx = m_d.model->index(newRow, 0);
+                    sel->setCurrentIndex(idx, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+                }
+            }
+        }
     }
 }
 

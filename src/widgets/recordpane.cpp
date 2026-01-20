@@ -3,6 +3,7 @@
 #include "kifubranchlistmodel.h"
 #include "settingsservice.h"
 
+#include <QDebug>
 #include <QTextBrowser>
 #include <QTableView>
 #include <QHeaderView>
@@ -48,6 +49,35 @@ void RecordPane::buildUi()
     // テキストが溢れる場合は省略記号（...）で表示
     m_kifu->setWordWrap(false);
     m_kifu->setTextElideMode(Qt::ElideRight);
+
+    // ヘッダーを青色、データ欄をクリーム色にスタイル設定（選択行は黄色を維持）
+    m_kifu->setStyleSheet(QStringLiteral(
+        "QTableView {"
+        "  background-color: #fefcf6;"
+        "  selection-background-color: #ffff00;"
+        "  selection-color: black;"
+        "}"
+        "QTableView::item {"
+        "  background-color: #fefcf6;"
+        "}"
+        "QTableView::item:selected:active {"
+        "  background-color: #ffff00;"
+        "  color: black;"
+        "}"
+        "QTableView::item:selected:!active {"
+        "  background-color: #ffff00;"
+        "  color: black;"
+        "}"
+        "QHeaderView::section {"
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+        "    stop:0 #4a9eff, stop:1 #2d7dd2);"
+        "  color: white;"
+        "  font-weight: bold;"
+        "  padding: 2px 6px;"
+        "  border: none;"
+        "  border-bottom: 1px solid #2d7dd2;"
+        "}"
+    ));
 
     // --- 文字サイズ変更ボタン ---
     m_btnFontUp = new QPushButton(this);
@@ -162,6 +192,35 @@ void RecordPane::buildUi()
     m_branch->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
     m_branch->setWordWrap(false);
 
+    // ヘッダーを青色、データ欄をクリーム色にスタイル設定（選択行は黄色を維持）
+    m_branch->setStyleSheet(QStringLiteral(
+        "QTableView {"
+        "  background-color: #fefcf6;"
+        "  selection-background-color: #ffff00;"
+        "  selection-color: black;"
+        "}"
+        "QTableView::item {"
+        "  background-color: #fefcf6;"
+        "}"
+        "QTableView::item:selected:active {"
+        "  background-color: #ffff00;"
+        "  color: black;"
+        "}"
+        "QTableView::item:selected:!active {"
+        "  background-color: #ffff00;"
+        "  color: black;"
+        "}"
+        "QHeaderView::section {"
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+        "    stop:0 #4a9eff, stop:1 #2d7dd2);"
+        "  color: white;"
+        "  font-weight: bold;"
+        "  padding: 2px 6px;"
+        "  border: none;"
+        "  border-bottom: 1px solid #2d7dd2;"
+        "}"
+    ));
+
     // 分岐候補欄を縦レイアウトでラップ（「本譜に戻る」ボタン用）
     m_branchContainer = new QWidget(this);
     auto* branchLay = new QVBoxLayout(m_branchContainer);
@@ -246,8 +305,25 @@ void RecordPane::setModels(KifuRecordListModel* recModel, KifuBranchListModel* b
     Q_ASSERT(m_branch);
     if (!m_kifu || !m_branch) buildUi();
 
+    qDebug() << "setModels called";
+    qDebug() << "m_kifu styleSheet in setModels:" << m_kifu->styleSheet().left(100) << "...";
+
     // --- 棋譜テーブル ---
     m_kifu->setModel(recModel);
+
+    // モデルに行がある場合、最初の行を選択する
+    if (recModel && recModel->rowCount() > 0) {
+        qDebug() << "[RecordPane] setModels: model has rows, selecting first row";
+        QTimer::singleShot(0, this, [this]() {
+            if (m_kifu && m_kifu->model() && m_kifu->model()->rowCount() > 0) {
+                if (auto* sel = m_kifu->selectionModel()) {
+                    const QModelIndex top = m_kifu->model()->index(0, 0);
+                    sel->setCurrentIndex(top, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+                    qDebug() << "[RecordPane] initial row selected";
+                }
+            }
+        });
+    }
 
     // 行追加→自動スクロール（多重接続防止）
     if (auto* model = m_kifu->model()) {
@@ -343,7 +419,38 @@ void RecordPane::setArrowButtonsEnabled(bool on)
 
 void RecordPane::setKifuViewEnabled(bool on)
 {
+    // 共通のスタイルシート（ヘッダー青色、データ欄クリーム色、選択行黄色）
+    static const QString kBaseStyleSheet = QStringLiteral(
+        "QTableView {"
+        "  background-color: #fefcf6;"
+        "  selection-background-color: #ffff00;"
+        "  selection-color: black;"
+        "}"
+        "QTableView::item {"
+        "  background-color: #fefcf6;"
+        "}"
+        "QTableView::item:selected:active {"
+        "  background-color: #ffff00;"
+        "  color: black;"
+        "}"
+        "QTableView::item:selected:!active {"
+        "  background-color: #ffff00;"
+        "  color: black;"
+        "}"
+        "QHeaderView::section {"
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+        "    stop:0 #4a9eff, stop:1 #2d7dd2);"
+        "  color: white;"
+        "  font-weight: bold;"
+        "  padding: 2px 6px;"
+        "  border: none;"
+        "  border-bottom: 1px solid #2d7dd2;"
+        "}"
+    );
+
     if (m_kifu) {
+        qDebug() << "setKifuViewEnabled called, on=" << on;
+
         m_navigationDisabled = !on;
 
         // setEnabled(false) を使うとテキストがグレーアウトされるため、
@@ -357,10 +464,12 @@ void RecordPane::setKifuViewEnabled(bool on)
             m_kifu->clearFocus();
 
             // スタイルシートでcurrentIndex（フォーカスセル）のハイライトを無効化
-            m_kifu->setStyleSheet(QStringLiteral(
+            // ベーススタイルに無効化用のスタイルを追加
+            m_kifu->setStyleSheet(kBaseStyleSheet + QStringLiteral(
                 "QTableView::item:focus { background-color: transparent; }"
                 "QTableView::item:selected:focus { background-color: transparent; }"
             ));
+            qDebug() << "setKifuViewEnabled: disabled stylesheet applied";
 
             // 選択をクリア
             if (QItemSelectionModel* sel = m_kifu->selectionModel()) {
@@ -372,8 +481,9 @@ void RecordPane::setKifuViewEnabled(bool on)
         } else {
             // 有効化時はフォーカスを受け付けるように戻す
             m_kifu->setFocusPolicy(Qt::StrongFocus);
-            // スタイルシートをクリア（デフォルトに戻す）
-            m_kifu->setStyleSheet(QString());
+            // ベーススタイルシートを適用
+            m_kifu->setStyleSheet(kBaseStyleSheet);
+            qDebug() << "setKifuViewEnabled: base stylesheet restored (enabled)";
         }
     }
 }
@@ -440,6 +550,9 @@ void RecordPane::setupKifuSelectionAppearance()
 {
     if (!m_kifu) return;
 
+    qDebug() << "setupKifuSelectionAppearance called";
+    qDebug() << "m_kifu styleSheet before:" << m_kifu->styleSheet();
+
     // 行選択（行全体を黄色でハイライトするために必須）
     m_kifu->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_kifu->setSelectionMode(QAbstractItemView::SingleSelection);
@@ -452,6 +565,9 @@ void RecordPane::setupKifuSelectionAppearance()
     pal.setColor(QPalette::Active,   QPalette::HighlightedText, Qt::black);
     pal.setColor(QPalette::Inactive, QPalette::HighlightedText, Qt::black);
     m_kifu->setPalette(pal);
+
+    qDebug() << "setupKifuSelectionAppearance: palette Highlight (Active):" << pal.color(QPalette::Active, QPalette::Highlight);
+    qDebug() << "setupKifuSelectionAppearance: palette Highlight (Inactive):" << pal.color(QPalette::Inactive, QPalette::Highlight);
 }
 
 void RecordPane::setupBranchViewSelectionAppearance()

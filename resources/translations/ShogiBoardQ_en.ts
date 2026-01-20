@@ -97,44 +97,54 @@ Analyzed moves: %1</translation>
         <translation>TextLabel</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.ui" line="87"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.ui" line="85"/>
         <source>既定値に戻す</source>
         <translation>Reset to Default</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="145"/>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="237"/>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="280"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.ui" line="92"/>
+        <source>A-</source>
+        <translation type="unfinished">A-</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.ui" line="105"/>
+        <source>A+</source>
+        <translation type="unfinished">A+</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="175"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="315"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="372"/>
         <source>%1（既定値 %2）</source>
         <translation>%1 (Default: %2)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="161"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="218"/>
         <source>フォルダ・ディレクトリの選択</source>
         <translation>Select Folder</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="166"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="223"/>
         <source>ファイルの選択</source>
         <translation>Select File</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="192"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="248"/>
         <source>%1</source>
         <translation>%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="196"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="261"/>
         <source>%1 以上の値を入力してください。（既定値: %2）</source>
         <translation>Please enter a value of %1 or more. (Default: %2)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="199"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="264"/>
         <source>%1 から %2 までの値を入力してください。（既定値: %3）</source>
         <translation>Please enter a value between %1 and %2. (Default: %3)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="366"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="518"/>
         <source>適用</source>
         <translation>Apply</translation>
     </message>
@@ -814,123 +824,123 @@ Cause: %2</translation>
 <context>
     <name>EngineAnalysisTab</name>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="180"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="209"/>
         <source>思考</source>
         <translation>Thinking</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="201"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="230"/>
         <source>USI通信ログ</source>
         <translation>USI Log</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="230"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="259"/>
         <source>CSA通信ログ</source>
         <translation>CSA Log</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="246"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="275"/>
         <source>コメントを表示・編集</source>
         <translation>View/Edit comments</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="253"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="282"/>
         <source>棋譜コメント</source>
         <translation>Comments</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="272"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="301"/>
         <source>分岐ツリー</source>
         <translation>Branch Tree</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1196"/>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1390"/>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1766"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1225"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1419"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1795"/>
         <source>フォントサイズを小さくする</source>
         <translation>Decrease font size</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1203"/>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1397"/>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1773"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1232"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1426"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1802"/>
         <source>フォントサイズを大きくする</source>
         <translation>Increase font size</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1270"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1299"/>
         <source>コマンドの送信先を選択</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1274"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1303"/>
         <source>USIコマンドを入力してEnter</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1404"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1433"/>
         <source>元に戻す (Ctrl+Z)</source>
         <translation>Undo (Ctrl+Z)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1411"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1440"/>
         <source>やり直す (Ctrl+Y)</source>
         <translation>Redo (Ctrl+Y)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1418"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1447"/>
         <source>切り取り (Ctrl+X)</source>
         <translation>Cut (Ctrl+X)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1425"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1454"/>
         <source>コピー (Ctrl+C)</source>
         <translation>Copy (Ctrl+C)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1432"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1461"/>
         <source>貼り付け (Ctrl+V)</source>
         <translation>Paste (Ctrl+V)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1437"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1466"/>
         <source>修正中</source>
         <translation>Editing</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1442"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1471"/>
         <source>コメント更新</source>
         <translation>Update Comment</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1443"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1472"/>
         <source>編集したコメントを棋譜に反映する</source>
         <translation>Apply edited comment to game record</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1646"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1675"/>
         <source>未保存のコメント</source>
         <translation>Unsaved Comment</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1647"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1676"/>
         <source>コメントが編集されていますが、まだ更新されていません。
 変更を破棄して移動しますか？</source>
         <translation>The comment has been edited but not saved yet.
 Discard changes and move?</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1854"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1883"/>
         <source>CSAサーバーへ送信</source>
         <translation>Send to CSA Server</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1863"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1892"/>
         <source>コマンドを入力してEnter</source>
         <translation>Enter command and press Enter</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="650"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="679"/>
         <source>開始局面</source>
         <translation>Start</translation>
     </message>
@@ -3205,29 +3215,29 @@ Please restart the application to apply the changes.</translation>
         <translation>English</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="404"/>
+        <location filename="../../src/app/mainwindow.cpp" line="405"/>
         <source>Error</source>
         <translation>Error</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="659"/>
+        <location filename="../../src/app/mainwindow.cpp" line="660"/>
         <source>投了確認</source>
         <translation>Confirm Resignation</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="660"/>
+        <location filename="../../src/app/mainwindow.cpp" line="661"/>
         <source>本当に投了しますか？</source>
         <translation>Are you sure you want to resign?</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="738"/>
-        <location filename="../../src/app/mainwindow.cpp" line="752"/>
+        <location filename="../../src/app/mainwindow.cpp" line="739"/>
+        <location filename="../../src/app/mainwindow.cpp" line="753"/>
         <source>エラー</source>
         <translation>Error</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="738"/>
-        <location filename="../../src/app/mainwindow.cpp" line="752"/>
+        <location filename="../../src/app/mainwindow.cpp" line="739"/>
+        <location filename="../../src/app/mainwindow.cpp" line="753"/>
         <source>盤面データがありません。</source>
         <translation>No board data available.</translation>
     </message>
@@ -3298,12 +3308,12 @@ White
 Please select &quot;24-Point Rule&quot; or &quot;27-Point Rule&quot; in the game dialog.</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1478"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1479"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1479"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1480"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
@@ -3418,67 +3428,67 @@ Are you sure you want to declare?</translation>
         <translation type="vanished">Entering King Declaration Result</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1151"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1152"/>
         <source>棋譜ファイルを開く</source>
         <translation>Open Game Record File</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1152"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1153"/>
         <source>Kifu Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</source>
         <translation>Game Record Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1480"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1481"/>
         <source>手合割</source>
         <translation>Handicap</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1480"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1481"/>
         <source>平手</source>
         <translation>Even Game</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3248"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3260"/>
         <source>棋譜を自動保存しました: %1</source>
         <translation>Game record auto-saved: %1</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3251"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3263"/>
         <source>棋譜の自動保存に失敗しました: %1</source>
         <translation>Failed to auto-save game record: %1</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3361"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3373"/>
         <source>棋譜を取り込みました</source>
         <translation>Game record imported</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3363"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3375"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation>Failed to import game record</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3367"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3379"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation>Failed to import game record (internal error)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3406"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3418"/>
         <source>コメントを更新しました（手数: %1）</source>
         <translation>Comment updated (move: %1)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3467"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3479"/>
         <source>コメントなし</source>
         <translation>No comment</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3502"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3514"/>
         <source>E1: エンジンが起動していません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3513"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3525"/>
         <source>E2: エンジンが起動していません</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4157,12 +4167,12 @@ Are you sure you want to declare?</translation>
         <translation>The file must be a value between 1 and 9. (got %1)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="389"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="548"/>
         <source>フォルダ・ディレクトリの選択</source>
         <translation>Select Folder</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="391"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="550"/>
         <source>ファイルの選択</source>
         <translation>Select File</translation>
     </message>
@@ -4284,6 +4294,239 @@ Are you sure you want to declare?</translation>
         <source>引き分け</source>
         <translation>Draw</translation>
     </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="43"/>
+        <source>基本設定</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="45"/>
+        <source>思考設定</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="47"/>
+        <source>時間制御</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="49"/>
+        <source>定跡設定</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="51"/>
+        <source>対局ルール</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="54"/>
+        <source>その他</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="73"/>
+        <source>探索に使用するスレッド数です。CPUの論理コア数に合わせて設定すると最も効率的です。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="76"/>
+        <source>置換表(トランスポジションテーブル)に使用するメモリサイズ(MB)です。大きいほど長時間の探索で有利になりますが、搭載メモリ量を超えないように注意してください。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="80"/>
+        <source>探索時に出力する候補手の数です。検討モードでは複数の候補手を比較するために増やすと便利です。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="83"/>
+        <source>評価関数ファイルが格納されているフォルダのパスです。エンジンの実行ファイルからの相対パスで指定します。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="87"/>
+        <source>相手の手番中に先読み(Ponder)を行うかどうかです。有効にすると対局時に強くなりますが、CPU使用率が高くなります。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="91"/>
+        <source>Ponder時に相手の応手を確率的に予測する機能です。通常のPonderは最善手のみを予測しますが、この機能では複数の候補手を考慮します。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="96"/>
+        <source>探索の最大深さを制限します。0の場合は無制限です。デバッグや検討用途で使用します。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="99"/>
+        <source>探索するノード数の上限を設定します。0の場合は無制限です。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="103"/>
+        <source>検討モードを有効にします。有効にすると、読み筋の出力形式が検討向けに最適化されます。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="106"/>
+        <source>fail-low/fail-high時にも読み筋(PV)を出力するかどうかです。検討時に有効にすると途中経過が分かりやすくなります。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="110"/>
+        <source>ネットワーク対局時の通信遅延を補正するための値(ミリ秒)です。この時間分だけ早めに指し手を返します。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="114"/>
+        <source>秒読み時など時間に余裕がない場合の最大遅延補正値(ミリ秒)です。NetworkDelayより大きい値を設定してください。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="118"/>
+        <source>最小思考時間(ミリ秒)です。どんなに持ち時間が少なくても、この時間は考えます。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="121"/>
+        <source>序盤の時間配分を調整します。100が標準で、大きくすると序盤により多くの時間を使います。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="124"/>
+        <source>秒単位で時間を切り上げて消費するかどうかです。多くの将棋サーバーでは秒未満が切り上げられるため、有効にすることを推奨します。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="129"/>
+        <source>エンジン内蔵の定跡を使用するかどうかです。無効にするとGUI側の定跡のみを使用します。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="132"/>
+        <source>使用する定跡ファイルを選択します。no_bookを選ぶと定跡を使用しません。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="135"/>
+        <source>定跡ファイルが格納されているフォルダのパスです。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="138"/>
+        <source>定跡を使用する手数の上限です。この手数を超えると定跡を参照せずに探索します。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="141"/>
+        <source>定跡を無視する確率(%)です。0なら常に定跡を使用、100なら定跡を使用しません。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="144"/>
+        <source>定跡ファイルを必要な部分だけ読み込むモードです。メモリ使用量を抑えられますが、読み込みが遅くなる場合があります。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="148"/>
+        <source>定跡の候補手を狭めるかどうかです。有効にすると最善手に近い手のみを選択します。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="151"/>
+        <source>定跡の候補手として採用する評価値の差の許容範囲です。この値以内の評価値差の手が候補になります。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="155"/>
+        <source>先手番で定跡を採用する評価値の下限です。これより悪い評価の定跡手は採用しません。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="158"/>
+        <source>後手番で定跡を採用する評価値の下限です。これより悪い評価の定跡手は採用しません。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="161"/>
+        <source>定跡として採用する最小探索深さです。これより浅い探索で登録された定跡は使用しません。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="164"/>
+        <source>定跡選択時に出現頻度を考慮するかどうかです。有効にすると頻出する手を優先します。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="167"/>
+        <source>定跡の読み筋として出力する手数です。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="170"/>
+        <source>定跡の手数制限を無視するかどうかです。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="173"/>
+        <source>後手番の定跡を先手番の定跡から反転して生成するかどうかです。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="177"/>
+        <source>入玉時の勝敗判定ルールを選択します。
+CSARule27: CSAルール(27点法)
+CSARule24: CSAルール(24点法)
+TryRule: トライルール</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="183"/>
+        <source>この手数に達すると引き分けとします。0の場合は手数による引き分けはありません。256手ルールを適用する場合は256を設定します。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="187"/>
+        <source>この評価値以下になると投了します。99999の場合は自動投了しません。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="190"/>
+        <source>先手番での引き分けの評価値です。通常はわずかにマイナスに設定して引き分けを避けます。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="193"/>
+        <source>後手番での引き分けの評価値です。通常はわずかにマイナスに設定して引き分けを避けます。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="197"/>
+        <source>NUMAアーキテクチャでのメモリ割り当てポリシーです。autoで自動設定、その他にbind/interleave/noneが指定できます。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="201"/>
+        <source>デバッグログを出力するファイルのパスです。空の場合はログを出力しません。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="204"/>
+        <source>読み筋(PV)を出力する間隔(ミリ秒)です。0にすると深さが更新されるたびに出力します。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="207"/>
+        <source>合法手生成時にすべての合法手を生成するかどうかです。通常はfalseで問題ありません。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="210"/>
+        <source>評価関数のスケーリング係数です。評価関数に合わせて調整しますが、通常は変更不要です。</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>RecordNavigationController</name>
@@ -4296,82 +4539,82 @@ Are you sure you want to declare?</translation>
 <context>
     <name>RecordPane</name>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="57"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="87"/>
         <source>文字を大きくする</source>
         <translation>Increase font size</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="58"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="88"/>
         <source>文字を小さくする</source>
         <translation>Decrease font size</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="93"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="123"/>
         <source>▲|</source>
         <translation>▲|</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="94"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="124"/>
         <source>▲▲</source>
         <translation>▲▲</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="95"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="125"/>
         <source>▲</source>
         <translation>▲</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="96"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="126"/>
         <source>▼</source>
         <translation>▼</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="97"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="127"/>
         <source>▼▼</source>
         <translation>▼▼</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="98"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="128"/>
         <source>▼|</source>
         <translation>▼|</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="101"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="131"/>
         <source>最初に戻る</source>
         <translation>Go to Start</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="102"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="132"/>
         <source>10手戻る</source>
         <translation>Go Back 10 Moves</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="103"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="133"/>
         <source>1手戻る</source>
         <translation>Go Back 1 Move</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="104"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="134"/>
         <source>1手進む</source>
         <translation>Go Forward 1 Move</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="105"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="135"/>
         <source>10手進む</source>
         <translation>Go Forward 10 Moves</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="106"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="136"/>
         <source>最後に進む</source>
         <translation>Go to End</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="426"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="536"/>
         <source>本譜に戻る</source>
         <translation>Return to Main</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="430"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="540"/>
         <source>現在の手数で本譜（メインライン）に戻る</source>
         <translation>Return to main line at current move</translation>
     </message>

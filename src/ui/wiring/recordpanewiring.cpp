@@ -6,6 +6,7 @@
 #include "mainwindow.h"
 
 #include <QModelIndex>
+#include <QItemSelectionModel>
 #include <QDebug>
 
 RecordPaneWiring::RecordPaneWiring(const Deps& d, QObject* parent)
@@ -75,5 +76,14 @@ void RecordPaneWiring::buildUiAndWire()
 
         // ★ 追加：開始局面（行0）をハイライト
         m_d.recordModel->setCurrentHighlightRow(0);
+
+        // ★ 追加：QTableViewの選択モデルで行0を選択（黄色表示のため）
+        if (auto* kifuView = m_pane->kifuView()) {
+            if (auto* sel = kifuView->selectionModel()) {
+                const QModelIndex idx0 = m_d.recordModel->index(0, 0);
+                sel->setCurrentIndex(idx0, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+                qDebug() << "[RecordPaneWiring] initial row 0 selected";
+            }
+        }
     }
 }
