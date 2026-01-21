@@ -47,6 +47,12 @@ private slots:
     // エンジン名、エンジン番号、時間無制限フラグ、検討時間フラグ、検討時間を取得する。
     void processEngineSettings();
 
+    // フォントサイズを大きくする
+    void onFontIncrease();
+
+    // フォントサイズを小さくする
+    void onFontDecrease();
+
 private:
     // UI
     Ui::ConsiderationDialog* ui;
@@ -63,11 +69,26 @@ private:
     // 1手あたりの思考時間（秒数）
     int m_byoyomiSec;
 
+    // フォントサイズ
+    int m_fontSize;
+
     // エンジンの名前とディレクトリを格納するリスト
     QList<Engine> engineList;
 
     // 設定ファイルからエンジンの名前とディレクトリを読み込む。
     void readEngineNameAndDir();
+
+    // 保存された設定を読み込む
+    void loadSettings();
+
+    // 設定を保存する
+    void saveSettings();
+
+    // フォントサイズを更新する
+    void updateFontSize(int delta);
+
+    // ダイアログ全体にフォントサイズを適用する
+    void applyFontSize();
 };
 
 inline bool ConsiderationDialog::unlimitedTimeFlag() const

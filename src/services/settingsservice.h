@@ -249,6 +249,26 @@ QSize engineRegistrationDialogSize();
 // ★ 追加: エンジン登録ダイアログのウィンドウサイズを保存
 void setEngineRegistrationDialogSize(const QSize& size);
 
+// ★ 追加: 検討ダイアログのフォントサイズを取得（デフォルト: 10）
+int considerationDialogFontSize();
+// ★ 追加: 検討ダイアログのフォントサイズを保存
+void setConsiderationDialogFontSize(int size);
+
+// ★ 追加: 検討ダイアログの最後に選択したエンジン番号を取得（デフォルト: 0）
+int considerationEngineIndex();
+// ★ 追加: 検討ダイアログの最後に選択したエンジン番号を保存
+void setConsiderationEngineIndex(int index);
+
+// ★ 追加: 検討ダイアログの時間無制限フラグを取得（デフォルト: true）
+bool considerationUnlimitedTime();
+// ★ 追加: 検討ダイアログの時間無制限フラグを保存
+void setConsiderationUnlimitedTime(bool unlimited);
+
+// ★ 追加: 検討ダイアログの検討時間（秒）を取得（デフォルト: 0）
+int considerationByoyomiSec();
+// ★ 追加: 検討ダイアログの検討時間（秒）を保存
+void setConsiderationByoyomiSec(int sec);
+
 } // namespace SettingsService
 
 #endif // SETTINGSSERVICE_H

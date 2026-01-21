@@ -164,30 +164,50 @@ Author: %1</translation>
         <translation>Analysis Mode</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/considerationdialog.ui" line="29"/>
-        <location filename="../../src/dialogs/considerationdialog.ui" line="49"/>
+        <location filename="../../src/dialogs/considerationdialog.ui" line="20"/>
+        <location filename="../../src/dialogs/considerationdialog.ui" line="38"/>
         <source>エンジン設定</source>
         <translation>Engine Settings</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/considerationdialog.ui" line="62"/>
+        <location filename="../../src/dialogs/considerationdialog.ui" line="63"/>
         <source>思考時間</source>
         <translation>Thinking Time</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/considerationdialog.ui" line="72"/>
+        <location filename="../../src/dialogs/considerationdialog.ui" line="71"/>
         <source>時間無制限</source>
         <translation>Unlimited</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/considerationdialog.ui" line="87"/>
+        <location filename="../../src/dialogs/considerationdialog.ui" line="95"/>
         <source>検討時間</source>
         <translation>Analysis Time</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/considerationdialog.ui" line="97"/>
+        <location filename="../../src/dialogs/considerationdialog.ui" line="112"/>
         <source>秒まで</source>
         <translation>seconds</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/considerationdialog.ui" line="152"/>
+        <source>A-</source>
+        <translation>A-</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/considerationdialog.ui" line="155"/>
+        <source>フォントサイズを小さくする</source>
+        <translation>Decrease font size</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/considerationdialog.ui" line="174"/>
+        <source>A+</source>
+        <translation>A+</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/considerationdialog.ui" line="177"/>
+        <source>フォントサイズを大きくする</source>
+        <translation>Increase font size</translation>
     </message>
 </context>
 <context>
