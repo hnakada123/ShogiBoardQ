@@ -24,10 +24,11 @@
 #include <QFileInfo>
 #include <QDir>
 #include <QRegularExpression>
+#include <QElapsedTimer>
 #include <functional>
 
-// デバッグのオン/オフ（必要に応じて false に）
-static bool kGM_VERBOSE = true;
+// デバッグのオン/オフ（必要に応じて true に）
+static bool kGM_VERBOSE = false;
 
 static inline QString pickLabelForDisp(const KifDisplayItem& d)
 {
@@ -350,6 +351,16 @@ void KifuLoadCoordinator::loadKifuCommon(
     const KifuExtractGameInfoFunc& extractGameInfoFunc,
     bool dumpVariations)
 {
+    // ★ パフォーマンス計測用
+    QElapsedTimer totalTimer;
+    totalTimer.start();
+    QElapsedTimer stepTimer;
+    auto logStep = [&](const char* stepName) {
+        qDebug().noquote() << QStringLiteral("[PERF] %1: %2 ms").arg(stepName).arg(stepTimer.elapsed());
+        stepTimer.restart();
+    };
+    stepTimer.start();
+
     // --- IN ログ ---
     qDebug().noquote() << "[MAIN]" << funcName << "IN file=" << filePath;
 
@@ -368,6 +379,7 @@ void KifuLoadCoordinator::loadKifuCommon(
     } else {
         initialSfen = prepareInitialSfen(filePath, teaiLabel);
     }
+    logStep("detectInitialSfen");
 
     // 2) 解析（本譜＋分岐＋コメント）を一括取得
     KifParseResult res;
@@ -380,12 +392,14 @@ void KifuLoadCoordinator::loadKifuCommon(
     if (!parseWarn.isEmpty()) {
         qWarning().noquote() << "[GM] parse warn:" << parseWarn;
     }
+    logStep("parseFunc");
 
     // 3) デバッグ出力
     dumpMainline(res, parseWarn);
     if (dumpVariations) {
         dumpVariationsDebug(res);
     }
+    logStep("dumpMainline/Variations");
 
     // 4) 先手/後手名などヘッダ反映
     if (extractGameInfoFunc) {
@@ -393,9 +407,11 @@ void KifuLoadCoordinator::loadKifuCommon(
         populateGameInfo(infoItems);
         applyPlayersFromGameInfo(infoItems);
     }
+    logStep("extractGameInfo");
 
     // 5) 共通の後処理に委譲
     applyParsedResultCommon(filePath, initialSfen, teaiLabel, res, parseWarn, funcName);
+    qDebug().noquote() << QStringLiteral("[PERF] loadKifuCommon TOTAL: %1 ms").arg(totalTimer.elapsed());
 }
 
 // ============================================================
@@ -801,6 +817,16 @@ void KifuLoadCoordinator::applyParsedResultCommon(
     const QString& parseWarn,
     const char* callerTag)
 {
+    // ★ パフォーマンス計測用
+    QElapsedTimer totalTimer;
+    totalTimer.start();
+    QElapsedTimer stepTimer;
+    auto logStep = [&](const char* stepName) {
+        qDebug().noquote() << QStringLiteral("[PERF] %1: %2 ms").arg(stepName).arg(stepTimer.elapsed());
+        stepTimer.restart();
+    };
+    stepTimer.start();
+
     // 本譜（表示／USI）
     const QList<KifDisplayItem>& disp = res.mainline.disp;
     m_kifuUsiMoves = res.mainline.usiMoves;
@@ -833,7 +859,9 @@ void KifuLoadCoordinator::applyParsedResultCommon(
 
     // 3) 本譜の SFEN 列と m_gameMoves を再構築
     rebuildSfenRecord(initialSfen, m_kifuUsiMoves, hasTerminal);
+    logStep("rebuildSfenRecord");
     rebuildGameMoves(initialSfen, m_kifuUsiMoves);
+    logStep("rebuildGameMoves");
 
     // 3.5) USI position コマンド列を構築（0..N）
     //     initialSfen は prepareInitialSfen() が返す手合い込みの SFEN
@@ -861,8 +889,11 @@ void KifuLoadCoordinator::applyParsedResultCommon(
         }
     }
 
+    logStep("buildPositionStrList");
+
     // 4) 棋譜表示へ反映（本譜）
     emit displayGameRecord(disp);
+    logStep("displayGameRecord");
 
     // 5) 本譜スナップショットを保持（以降の解決・描画に使用）
     m_dispMain = disp;          // 表示列（1..N）
@@ -911,6 +942,7 @@ void KifuLoadCoordinator::applyParsedResultCommon(
 
     // apply 内では m_loadingKifu を見て分岐候補の更新を抑止
     applyResolvedRowAndSelect(/*row=*/0, /*selPly=*/0);
+    logStep("applyResolvedRowAndSelect");
 
     // 9) UIの整合
     emit enableArrowButtons();
@@ -918,14 +950,17 @@ void KifuLoadCoordinator::applyParsedResultCommon(
 
     // 10) 解決済み行を構築（親探索規則で親子関係を決定）
     buildResolvedLinesAfterLoad();
+    logStep("buildResolvedLinesAfterLoad");
 
     // 11) 分岐レポート → Plan 構築（Plan方式の基礎データ）
-    dumpBranchSplitReport();
+    if (kGM_VERBOSE) dumpBranchSplitReport();
     buildBranchCandidateDisplayPlan();
-    dumpBranchCandidateDisplayPlan();
+    logStep("buildBranchCandidateDisplayPlan");
+    if (kGM_VERBOSE) dumpBranchCandidateDisplayPlan();
 
-    // ★ 追加：読み込み直後に “+付与 & 行着色” をまとめて反映（Main 行が表示中）
+    // ★ 追加：読み込み直後に "+付与 & 行着色" をまとめて反映（Main 行が表示中）
     applyBranchMarksForCurrentLine();
+    logStep("applyBranchMarksForCurrentLine");
 
     // 12) 分岐ツリーへ供給（黄色ハイライトは applyResolvedRowAndSelect 内で同期）
     if (m_analysisTab) {
@@ -945,6 +980,7 @@ void KifuLoadCoordinator::applyParsedResultCommon(
         m_analysisTab->setBranchTreeRows(rows);
         m_analysisTab->highlightBranchTreeAt(/*row=*/0, /*ply=*/0, /*centerOn=*/true);
     }
+    logStep("setBranchTreeRows");
 
     // 13) VariationEngine への投入（他機能で必要な可能性があるため保持）
     if (!m_varEngine) {
@@ -958,14 +994,17 @@ void KifuLoadCoordinator::applyParsedResultCommon(
         }
         m_varEngine->ingest(res, m_sfenMain, usiMain, m_dispMain);
     }
+    logStep("varEngine->ingest");
 
     // ←ここで SFEN を各行に流し込む
     ensureResolvedRowsHaveFullSfen();
-    // ←そして表を出す
-    dumpAllRowsSfenTable();
+    logStep("ensureResolvedRowsHaveFullSfen");
+    // ←そして表を出す（デバッグ時のみ）
+    if (kGM_VERBOSE) dumpAllRowsSfenTable();
 
     ensureResolvedRowsHaveFullGameMoves();
-    dumpAllLinesGameMoves();
+    logStep("ensureResolvedRowsHaveFullGameMoves");
+    if (kGM_VERBOSE) dumpAllLinesGameMoves();
 
     // 14) （Plan方式化に伴い）WL 構築や従来の候補再計算は廃止
     // 15) ブランチ候補ワイヤリング（planActivated -> applyResolvedRowAndSelect）
@@ -991,6 +1030,7 @@ void KifuLoadCoordinator::applyParsedResultCommon(
     m_branchTreeLocked = true;
     qDebug() << "[BRANCH] tree locked after load";
 
+    qDebug().noquote() << QStringLiteral("[PERF] applyParsedResultCommon TOTAL: %1 ms").arg(totalTimer.elapsed());
     qDebug().noquote() << "[MAIN]" << callerTag << "OUT";
 }
 

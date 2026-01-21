@@ -46,6 +46,20 @@ public:
         endInsertRows();
     }
 
+    // リストに複数の項目を一括追加する（パフォーマンス向上のため）
+    void appendItems(const QList<T*>& items)
+    {
+        if (items.isEmpty()) return;
+
+        const int first = static_cast<int>(list.count());
+        const int last  = first + static_cast<int>(items.count()) - 1;
+
+        // 一度だけ beginInsertRows/endInsertRows を呼び出す
+        beginInsertRows(QModelIndex(), first, last);
+        list.append(items);
+        endInsertRows();
+    }
+
     void prependItem(T *item)
     {
         // リストに項目を追加する前にモデルの状態を変更することを通知する。

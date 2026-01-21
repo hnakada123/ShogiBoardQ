@@ -20,6 +20,7 @@
 #include <QClipboard>      // ★ 追加
 #include <QLineEdit>       // ★ 追加
 #include <QWheelEvent>     // ★ 追加: Ctrl+ホイール処理用
+#include <QElapsedTimer>   // ★ パフォーマンス計測用
 #include <functional>
 #include <limits>
 #include <QPainter>
@@ -1242,6 +1243,9 @@ void MainWindow::chooseAndLoadKifuFile()
 
 void MainWindow::displayGameRecord(const QList<KifDisplayItem> disp)
 {
+    QElapsedTimer timer;
+    timer.start();
+
     if (!m_kifuRecordModel) return;
 
     ensureRecordPresenter();
@@ -1257,6 +1261,7 @@ void MainWindow::displayGameRecord(const QList<KifDisplayItem> disp)
     if (m_gameRecord) {
         m_gameRecord->initializeFromDisplayItems(disp, rowCount);
     }
+    qDebug().noquote() << QStringLiteral("[PERF] GameRecordModel init: %1 ms").arg(timer.elapsed());
 
     // ★ m_commentsByRow も同期（互換性のため）
     m_commentsByRow.clear();
@@ -1267,7 +1272,11 @@ void MainWindow::displayGameRecord(const QList<KifDisplayItem> disp)
     qDebug().noquote() << "[MW] displayGameRecord: initialized with" << rowCount << "entries";
 
     // ← まとめて Presenter 側に委譲
+    QElapsedTimer presenterTimer;
+    presenterTimer.start();
     m_recordPresenter->displayAndWire(disp, rowCount, m_recordPane);
+    qDebug().noquote() << QStringLiteral("[PERF] displayAndWire: %1 ms").arg(presenterTimer.elapsed());
+    qDebug().noquote() << QStringLiteral("[PERF] displayGameRecord TOTAL: %1 ms").arg(timer.elapsed());
 }
 
 void MainWindow::loadWindowSettings()
