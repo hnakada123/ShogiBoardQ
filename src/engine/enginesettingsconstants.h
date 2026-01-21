@@ -37,6 +37,14 @@ static constexpr char EngineOptionValueKey[] = "value";
 
 // combo型のオプションで選択可能な値のリストを指定するキー
 static constexpr char EngineOptionValueListKey[] = "valueList";
+
+// USI オプションタイプ文字列
+static constexpr char OptionTypeSpin[] = "spin";
+static constexpr char OptionTypeCheck[] = "check";
+static constexpr char OptionTypeCombo[] = "combo";
+static constexpr char OptionTypeButton[] = "button";
+static constexpr char OptionTypeFilename[] = "filename";
+static constexpr char OptionTypeString[] = "string";
 }
 
 #endif // ENGINESETTINGSCONSTANTS_H

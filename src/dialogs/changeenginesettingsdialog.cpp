@@ -3,6 +3,7 @@
 #include "engineoptiondescriptions.h"
 #include "settingsservice.h"
 #include "ui_changeenginesettingsdialog.h"
+#include <QApplication>
 #include <QSettings>
 #include <QGroupBox>
 #include <QPushButton>
@@ -47,7 +48,6 @@ void ChangeEngineSettingsDialog::setEngineName(const QString& engineName)
 void ChangeEngineSettingsDialog::setEngineAuthor(const QString& engineAuthor)
 {
     m_engineAuthor = engineAuthor;
-    qDebug() << "setEngineAuthor:" << m_engineAuthor;
 }
 
 // 設定ファイルから選択したエンジンのオプションを読み込む。
@@ -55,6 +55,9 @@ void ChangeEngineSettingsDialog::readEngineOptions()
 {
     // オプションリストを初期化する。
     m_optionList.clear();
+
+    // アプリケーションのディレクトリに移動してから設定ファイルを操作する。
+    QDir::setCurrent(QApplication::applicationDirPath());
 
     // 設定ファイルを指定する。
     QSettings settings(SettingsFileName, QSettings::IniFormat);
@@ -115,7 +118,7 @@ void ChangeEngineSettingsDialog::changeStatusColorTypeButton()
     // オプション数までループする。
     for (qsizetype i = 0; i < m_engineOptionWidgetsList.size(); i++) {
         // オプションタイプが"button"の場合
-        if (m_optionList.at(i).type == "button") {
+        if (m_optionList.at(i).type == OptionTypeButton) {
             m_engineOptionWidgetsList.at(i).selectionButton->setProperty("index", i);
 
             // ボタンが押された場合、ボタンの色を変える。
@@ -434,28 +437,28 @@ void ChangeEngineSettingsDialog::createComboBox(const EngineOption& option, QVBo
 void ChangeEngineSettingsDialog::createWidgetForOption(const EngineOption& option, int optionIndex, QVBoxLayout* targetLayout)
 {
     // オプションタイプが"filename"か"string"の場合
-    if (option.type == "filename" || option.type == "string") {
+    if (option.type == OptionTypeFilename || option.type == OptionTypeString) {
         // エンジンオプションのためのテキストボックスを作成する。
         createTextBox(option, targetLayout, optionIndex);
     }
     // オプションタイプが"spin"の場合
-    else if (option.type == "spin") {
+    else if (option.type == OptionTypeSpin) {
         // エンジンオプションのためのスピンボックスを作成する。
         createSpinBox(option, targetLayout);
     }
     // オプションタイプが"check"の場合
-    else if (option.type == "check") {
+    else if (option.type == OptionTypeCheck) {
         // エンジンオプションのためのチェックボックスを作成する。
         createCheckBox(option, targetLayout);
     }
     // オプションタイプが"button"の場合
-    else if (option.type == "button") {
+    else if (option.type == OptionTypeButton) {
         // エンジンオプションのためのボタンを作成する。
         createButton(option, targetLayout);
 
     }
     // オプションタイプが"combo"の場合
-    else if (option.type == "combo") {
+    else if (option.type == OptionTypeCombo) {
         // エンジンオプションのためのコンボボックスを作成する。
         createComboBox(option, targetLayout);
     }
@@ -474,12 +477,9 @@ void ChangeEngineSettingsDialog::createOptionWidgets()
 {
     // 設定画面の上部にエンジン名と作者名を表示する。
     QString headerText = m_engineName;
-    qDebug() << "createOptionWidgets: m_engineName=" << m_engineName
-             << "m_engineAuthor=" << m_engineAuthor;
     if (!m_engineAuthor.isEmpty()) {
         headerText += tr("\n作者: %1").arg(m_engineAuthor);
     }
-    qDebug() << "createOptionWidgets: headerText=" << headerText;
     ui->label->setText(headerText);
     ui->label->setStyleSheet(
         "QLabel { background-color: transparent; padding: 8px; "
@@ -490,7 +490,7 @@ void ChangeEngineSettingsDialog::createOptionWidgets()
         "QDialog { background-color: #fefcf6; }");
 
     // 画面レイアウトを作成する。
-    optionWidgetsLayout = new QVBoxLayout;
+    m_optionWidgetsLayout = new QVBoxLayout;
 
     // カテゴリ別にオプションをグループ化するためのマップを作成
     // キー: カテゴリ、値: (オプションインデックス, オプション) のリスト
@@ -533,17 +533,17 @@ void ChangeEngineSettingsDialog::createOptionWidgets()
         }
 
         // グループボックスをメインレイアウトに追加
-        optionWidgetsLayout->addWidget(groupBox);
+        m_optionWidgetsLayout->addWidget(groupBox);
     }
 
     // 各ボタンが押されているかどうかを確認し、ボタンの色を設定する。
     changeStatusColorTypeButton();
 
     // レイアウトを上部に配置するためにスペーサーを追加（setAlignmentは水平方向の拡張を制限するため使用しない）
-    optionWidgetsLayout->addStretch();
+    m_optionWidgetsLayout->addStretch();
 
     // ダイアログのスクロールアリアのウィジェットにレイアウトをセットする。
-    ui->scrollAreaWidgetContents->setLayout(optionWidgetsLayout);
+    ui->scrollAreaWidgetContents->setLayout(m_optionWidgetsLayout);
     ui->scrollArea->setWidget(ui->scrollAreaWidgetContents);
 
     // ダイアログの最後に適用ボタンを表示する。
@@ -606,7 +606,7 @@ void ChangeEngineSettingsDialog::openFile()
     int index = qvariant_cast<int>(pButton->property("index"));
 
     // ボタンのプロパティから、ファイル選択かディレクトリ選択かを識別するためのタイプを取得する。
-    int fileType = qvariant_cast<int>(pButton->property("filetype"));
+    int fileType = qvariant_cast<int>(pButton->property("fileType"));
 
     // 汎用の選択ダイアログを使って、ファイルまたはディレクトリのパスを取得する。
     QString selectedPath = openSelectionDialog(this, fileType);
@@ -625,16 +625,16 @@ void ChangeEngineSettingsDialog::restoreDefaultOptions() {
         auto& widget = m_engineOptionWidgetsList[i]; // 対応するウィジェットを参照
 
         // オプションタイプに応じた既定値の設定
-        if (option.type == "filename" || option.type == "string") {
+        if (option.type == OptionTypeFilename || option.type == OptionTypeString) {
             // ファイル名または文字列オプションの場合、LineEditに既定値を設定
             widget.lineEdit->setText(option.defaultValue);
-        } else if (option.type == "spin") {
+        } else if (option.type == OptionTypeSpin) {
             // 数値オプションの場合、SpinBoxに既定値を設定（文字列を数値に変換）
             widget.integerSpinBox->setSpinBoxValue(option.defaultValue.toLongLong());
-        } else if (option.type == "check") {
+        } else if (option.type == OptionTypeCheck) {
             // チェックボックスオプションの場合、既定値が"true"ならチェック
             widget.optionCheckBox->setChecked(option.defaultValue == "true");
-        } else if (option.type == "button") {
+        } else if (option.type == OptionTypeButton) {
             // ボタンオプションの場合、既定値が"on"ならボタンをチェック状態に
             bool isChecked = option.defaultValue == "on";
             widget.selectionButton->setChecked(isChecked);
@@ -652,7 +652,7 @@ void ChangeEngineSettingsDialog::restoreDefaultOptions() {
                     "QPushButton:hover { background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
                     "stop:0 #e8f2fc, stop:1 #d4e9f7); }");
             }
-        } else if (option.type == "combo") {
+        } else if (option.type == OptionTypeCombo) {
             // コンボボックスオプションの場合、既定値に基づいて選択肢を設定
             widget.comboBox->clear(); // 既存の選択肢をクリア
             for (const auto& value : option.valueList) {
@@ -669,6 +669,9 @@ void ChangeEngineSettingsDialog::restoreDefaultOptions() {
 // 設定ファイルにエンジンのオプション設定を保存する。
 void ChangeEngineSettingsDialog::saveOptionsToSettings()
 {
+    // アプリケーションのディレクトリに移動してから設定ファイルを操作する。
+    QDir::setCurrent(QApplication::applicationDirPath());
+
     // 設定ファイルを操作するためのQSettingsオブジェクトを作成する。ファイル名とフォーマットを指定。
     QSettings settings(SettingsFileName, QSettings::IniFormat);
 
@@ -709,15 +712,15 @@ void ChangeEngineSettingsDialog::writeEngineOptions()
     for (qsizetype i = 0; i < m_optionList.size(); i++) {
         EngineOption option = m_optionList.at(i);
 
-        if (option.type == "filename" || option.type == "string") {
+        if (option.type == OptionTypeFilename || option.type == OptionTypeString) {
             option.currentValue = m_engineOptionWidgetsList.at(i).lineEdit->text();
-        } else if (option.type == "spin") {
+        } else if (option.type == OptionTypeSpin) {
             option.currentValue = QString::number(m_engineOptionWidgetsList.at(i).integerSpinBox->value());
-        } else if (option.type == "check") {
+        } else if (option.type == OptionTypeCheck) {
             option.currentValue = m_engineOptionWidgetsList.at(i).optionCheckBox->isChecked() ? "true" : "false";
-        } else if (option.type == "button") {
+        } else if (option.type == OptionTypeButton) {
             option.currentValue = m_engineOptionWidgetsList.at(i).selectionButton->isChecked() ? "on" : "";
-        } else if (option.type == "combo") {
+        } else if (option.type == OptionTypeCombo) {
             option.currentValue = m_engineOptionWidgetsList.at(i).comboBox->currentText();
         }
 

@@ -129,6 +129,55 @@ Auto-processed by CMake's AUTOUIC.
 
 The app supports Japanese and English. Translations are in `.ts` files under `resources/translations/`. After modifying translatable strings, run `lupdate` to update `.ts` files, then rebuild to generate `.qm` files.
 
+### Translation Update Guidelines
+
+**ソースコードを修正した際は、必ず翻訳ファイルも更新すること。**
+
+1. `tr()` でラップされた文字列を追加・変更した場合:
+   ```bash
+   lupdate src -ts resources/translations/ShogiBoardQ_ja_JP.ts resources/translations/ShogiBoardQ_en.ts
+   ```
+2. 翻訳ファイル（`.ts`）を開き、`type="unfinished"` となっている新規エントリに翻訳を追加する
+3. 日本語が原文の場合は英語翻訳を、英語が原文の場合は必要に応じて日本語翻訳を追加する
+
+### SettingsService Update Guidelines
+
+**ダイアログに関するソースコードを修正した場合は、SettingsServiceも更新すること。**
+
+ダイアログやウィンドウを追加・修正する際は、以下の設定をSettingsServiceに登録して永続化を検討する:
+
+1. **ウィンドウサイズ**: ユーザーがリサイズ可能なダイアログは、サイズを保存・復元する
+2. **フォントサイズ**: フォントサイズ調整機能（A-/A+ボタン）がある場合は、サイズを保存
+3. **列幅**: テーブルやリストビューの列幅を保存
+4. **最後に選択した項目**: コンボボックスの選択状態など
+
+**追加手順:**
+1. `src/services/settingsservice.h` に getter/setter 関数を宣言
+2. `src/services/settingsservice.cpp` に実装を追加（既存の実装パターンに従う）
+3. ダイアログのコンストラクタで設定を読み込み、デストラクタまたは `closeEvent` で保存
+
+**実装例:**
+```cpp
+// settingsservice.h
+QSize myDialogSize();
+void setMyDialogSize(const QSize& size);
+
+// settingsservice.cpp
+QSize myDialogSize()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("MyDialog/size", QSize(800, 600)).toSize();
+}
+
+void setMyDialogSize(const QSize& size)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("MyDialog/size", size);
+}
+```
+
 ## Development Environment
 
 - **Qt Creator** is used for development
