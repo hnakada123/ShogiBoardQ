@@ -1043,118 +1043,134 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.ui" line="82"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.ui" line="66"/>
         <source>追加</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.ui" line="89"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.ui" line="73"/>
         <source>削除</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.ui" line="96"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.ui" line="80"/>
         <source>設定</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="89"/>
-        <source>An error occurred in EngineRegistrationDialog::processEngineErrorOutput. Engine error output: %1</source>
+        <location filename="../../src/dialogs/engineregistrationdialog.ui" line="109"/>
+        <source>A-</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="100"/>
-        <source>An error occurred in EngineRegistrationDialog::onProcessError. The process failed to start.</source>
+        <location filename="../../src/dialogs/engineregistrationdialog.ui" line="122"/>
+        <source>A+</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="103"/>
-        <source>An error occurred in EngineRegistrationDialog::onProcessError. The process crashed.</source>
+        <location filename="../../src/dialogs/engineregistrationdialog.ui" line="148"/>
+        <source>閉じる</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="106"/>
-        <source>An error occurred in EngineRegistrationDialog::onProcessError. The process timed out.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="109"/>
-        <source>An error occurred in EngineRegistrationDialog::onProcessError. An issue occurred while writing data.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="112"/>
-        <source>An error occurred in EngineRegistrationDialog::onProcessError. An issue occurred while reading data.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="116"/>
-        <source>An error occurred in EngineRegistrationDialog::onProcessError. An unknown error occurred.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="188"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="209"/>
         <source>ファイルの選択</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="222"/>
-        <source>An error occurred in EngineRegistrationDialog::addEngineFromFileSelection. Could not move to %1. Failed to add shogi engine.</source>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="110"/>
+        <source>エンジンからエラー出力がありました: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="241"/>
-        <source>An error occurred in EngineRegistrationDialog::handleDuplicateEngine. The engine %1 is already added.</source>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="121"/>
+        <source>エンジンの起動に失敗しました。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="367"/>
-        <source>An error occurred in EngineRegistrationDialog::startEngine. The specified engine file does not exist: %1</source>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="124"/>
+        <source>エンジンがクラッシュしました。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="410"/>
-        <source>An error occurred in EngineRegistrationDialog::startEngine.&#x3000;Failed to start the engine： %1</source>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="127"/>
+        <source>エンジンがタイムアウトしました。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="454"/>
-        <source>The shogi engine is already registered. Please delete the previously registered shogi engine first. Please select one shogi engine.</source>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="130"/>
+        <source>エンジンへのデータ書き込み中にエラーが発生しました。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="466"/>
-        <source>An error occurred in EngineRegistrationDialog::startEngine.&#x3000;Please select one shogi engine.</source>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="133"/>
+        <source>エンジンからのデータ読み込み中にエラーが発生しました。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="594"/>
-        <source>USI_Hash option added.</source>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="137"/>
+        <source>不明なエラーが発生しました。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="606"/>
-        <source>USI_Ponder option added.</source>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="152"/>
+        <source>エラー</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="243"/>
+        <source>ディレクトリ %1 に移動できませんでした。エンジンの追加に失敗しました。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="262"/>
+        <source>エンジン %1 は既に追加されています。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="388"/>
+        <source>指定されたエンジンファイルが存在しません: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="431"/>
+        <source>エンジンの起動に失敗しました: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="475"/>
+        <source>この将棋エンジンは既に登録されています。先に登録済みのエンジンを削除してください。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="487"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="820"/>
+        <source>将棋エンジンを1つ選択してください。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="615"/>
+        <source>USI_Hash option added.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="627"/>
+        <source>USI_Ponder option added.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="636"/>
         <source>New option added:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="703"/>
-        <source>An error occurred in EngineRegistrationDialog::parseOptionLine. Invalid option line format.</source>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="724"/>
+        <source>オプション行の形式が無効です。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="760"/>
-        <source>An error occurred in EngineRegistrationDialog::parseOptionLine. Duplicate engine option found.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="799"/>
-        <source>An error occurred in EngineRegistrationDialog::removeSelectedEngineFromList. Please select one shogi engine.</source>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="781"/>
+        <source>重複したエンジンオプションが見つかりました。</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

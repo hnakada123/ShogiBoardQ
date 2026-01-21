@@ -48,6 +48,12 @@ private slots:
     // 将棋エンジンの出力を１行ずつ読み取り、エンジン情報やオプション情報を取得する。
     void processEngineOutput();
 
+    // フォントサイズを増加する
+    void increaseFontSize();
+
+    // フォントサイズを減少する
+    void decreaseFontSize();
+
     // QProcessのエラーが発生したときに呼び出されるスロット
     void onProcessError(const QProcess::ProcessError error);
 
@@ -66,6 +72,9 @@ private:
 
     // エラーが発生したかどうかを示すフラグ
     bool m_errorOccurred;
+
+    // 現在のフォントサイズ
+    int m_fontSize;
 
     // 将棋エンジンから"option name"行を保存するリスト
     QStringList m_optionLines;
@@ -178,6 +187,9 @@ private:
 
     // エラーメッセージを表示する。
     void showErrorMessage(const QString &errorMessage);
+
+    // すべてのウィジェットにフォントサイズを適用する
+    void applyFontSize();
 };
 
 #endif // ENGINEREGISTRATIONDIALOG_H

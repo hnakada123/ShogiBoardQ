@@ -1,5 +1,6 @@
 #include "engineregistrationdialog.h"
 #include "enginesettingsconstants.h"
+#include "settingsservice.h"
 #include "qdebug.h"
 #include "ui_engineregistrationdialog.h"
 #include "changeenginesettingsdialog.h"
@@ -20,7 +21,8 @@ EngineRegistrationDialog::EngineRegistrationDialog(QWidget *parent)
     : QDialog(parent),
     ui(new Ui::EngineRegistrationDialog),
     m_process(nullptr),
-    m_errorOccurred(false)
+    m_errorOccurred(false),
+    m_fontSize(SettingsService::engineRegistrationFontSize())
 {
     // Qt Designerで作成されたUIをプログラムのウィンドウに読み込み、初期化する。
     ui->setupUi(this);
@@ -30,11 +32,23 @@ EngineRegistrationDialog::EngineRegistrationDialog(QWidget *parent)
 
     // 設定ファイルからエンジン名と絶対パス付きの実行ファイル名を読み込み、GUIのリストウィジェットにエンジン名を追加する。
     loadEnginesFromSettings();
+
+    // フォントサイズを適用
+    applyFontSize();
+
+    // 保存されているウィンドウサイズを復元
+    QSize savedSize = SettingsService::engineRegistrationDialogSize();
+    if (savedSize.isValid()) {
+        this->resize(savedSize);
+    }
 }
 
 // デストラクタ
 EngineRegistrationDialog::~EngineRegistrationDialog()
 {
+    // ウィンドウサイズを保存
+    SettingsService::setEngineRegistrationDialogSize(this->size());
+
     // 既存のプロセスが存在する場合
     if (m_process != nullptr) {
         // プロセスのシグナル・スロットの接続を解除する。
@@ -71,6 +85,13 @@ void EngineRegistrationDialog::initializeSignals() const
 
     // 設定ボタンが押されたときの処理を接続
     connect(ui->configureEngineButton, &QPushButton::clicked, this, &EngineRegistrationDialog::configureEngine);
+
+    // 閉じるボタンが押されたときの処理を接続
+    connect(ui->closeButton, &QPushButton::clicked, this, &QDialog::accept);
+
+    // フォントサイズ変更ボタンの接続
+    connect(ui->fontIncreaseButton, &QPushButton::clicked, this, &EngineRegistrationDialog::increaseFontSize);
+    connect(ui->fontDecreaseButton, &QPushButton::clicked, this, &EngineRegistrationDialog::decreaseFontSize);
 }
 
 // プロセスの標準エラー出力を処理する。
@@ -86,7 +107,7 @@ void EngineRegistrationDialog::processEngineErrorOutput()
         qDebug() << QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss") << " - Engine Error Output:" << stderrString;
 
         // エラーメッセージを通知する。
-        showErrorMessage(tr("An error occurred in EngineRegistrationDialog::processEngineErrorOutput. Engine error output: %1").arg(stderrString));
+        showErrorMessage(tr("エンジンからエラー出力がありました: %1").arg(stderrString));
     }
 }
 
@@ -97,23 +118,23 @@ void EngineRegistrationDialog::onProcessError(QProcess::ProcessError error)
 
     switch (error) {
     case QProcess::FailedToStart:
-        errorMessage = tr("An error occurred in EngineRegistrationDialog::onProcessError. The process failed to start.");
+        errorMessage = tr("エンジンの起動に失敗しました。");
         break;
     case QProcess::Crashed:
-        errorMessage = tr("An error occurred in EngineRegistrationDialog::onProcessError. The process crashed.");
+        errorMessage = tr("エンジンがクラッシュしました。");
         break;
     case QProcess::Timedout:
-        errorMessage = tr("An error occurred in EngineRegistrationDialog::onProcessError. The process timed out.");
+        errorMessage = tr("エンジンがタイムアウトしました。");
         break;
     case QProcess::WriteError:
-        errorMessage = tr("An error occurred in EngineRegistrationDialog::onProcessError. An issue occurred while writing data.");
+        errorMessage = tr("エンジンへのデータ書き込み中にエラーが発生しました。");
         break;
     case QProcess::ReadError:
-        errorMessage = tr("An error occurred in EngineRegistrationDialog::onProcessError. An issue occurred while reading data.");
+        errorMessage = tr("エンジンからのデータ読み込み中にエラーが発生しました。");
         break;
     case QProcess::UnknownError:
     default:
-        errorMessage = tr("An error occurred in EngineRegistrationDialog::onProcessError. An unknown error occurred.");
+        errorMessage = tr("不明なエラーが発生しました。");
         break;
     }
 
@@ -128,7 +149,7 @@ void EngineRegistrationDialog::showErrorMessage(const QString &errorMessage)
     m_errorOccurred = true;
 
     // エラーメッセージを表示する。
-    QMessageBox::critical(this, "Error", errorMessage);
+    QMessageBox::critical(this, tr("エラー"), errorMessage);
 }
 
 // 設定ファイルからエンジン名と絶対パス付きの実行ファイル名を読み込み、GUIのリストウィジェットにエンジン名を追加する。
@@ -219,7 +240,7 @@ void EngineRegistrationDialog::addEngineFromFileSelection()
     // ファイルのパスが有効でない場合、エラーメッセージを表示し、処理を中断する。
     if (!validateEnginePath(m_fileName)) {
         // エラーメッセージを通知する。
-        showErrorMessage(tr("An error occurred in EngineRegistrationDialog::addEngineFromFileSelection. Could not move to %1. Failed to add shogi engine.").arg(QFileInfo(m_fileName).path()));
+        showErrorMessage(tr("ディレクトリ %1 に移動できませんでした。エンジンの追加に失敗しました。").arg(QFileInfo(m_fileName).path()));
 
         // ディレクトリの検証に失敗した場合、処理を中断する。
         return;
@@ -238,7 +259,7 @@ void EngineRegistrationDialog::addEngineFromFileSelection()
 void EngineRegistrationDialog::handleDuplicateEngine(const QString& engineName)
 {
     // 重複エラーのメッセージを通知する。
-    showErrorMessage(tr("An error occurred in EngineRegistrationDialog::handleDuplicateEngine. The engine %1 is already added.").arg(engineName));
+    showErrorMessage(tr("エンジン %1 は既に追加されています。").arg(engineName));
 }
 
 // ファイルのパスが有効かどうかを検証する。
@@ -364,7 +385,7 @@ void EngineRegistrationDialog::startEngine(const QString& engineFile)
     // エンジンファイルの存在を確認
     if (engineFile.isEmpty() || !QFile::exists(engineFile)) {
         // エラーメッセージを通知する。
-        showErrorMessage(tr("An error occurred in EngineRegistrationDialog::startEngine. The specified engine file does not exist: %1").arg(engineFile));
+        showErrorMessage(tr("指定されたエンジンファイルが存在しません: %1").arg(engineFile));
 
         return;
     }
@@ -407,7 +428,7 @@ void EngineRegistrationDialog::startEngine(const QString& engineFile)
 
     if (!m_process->waitForStarted()) {
         // エラーメッセージを通知する。
-        showErrorMessage(tr("An error occurred in EngineRegistrationDialog::startEngine.　Failed to start the engine： %1").arg(engineFile));
+        showErrorMessage(tr("エンジンの起動に失敗しました: %1").arg(engineFile));
 
         return;
     }
@@ -451,7 +472,7 @@ void EngineRegistrationDialog::removeEngine()
 void EngineRegistrationDialog::duplicateEngine()
 {
     // エラーメッセージを通知する。
-    showErrorMessage(tr("The shogi engine is already registered. Please delete the previously registered shogi engine first. Please select one shogi engine."));
+    showErrorMessage(tr("この将棋エンジンは既に登録されています。先に登録済みのエンジンを削除してください。"));
 }
 
 // 設定ボタンが押されたときに呼び出されるスロット
@@ -463,7 +484,7 @@ void EngineRegistrationDialog::configureEngine()
     // 選択されたアイテムが正確に一つであるかをチェックする。
     if (items.count() != 1) {
         // エラーメッセージを通知する。
-        showErrorMessage(tr("An error occurred in EngineRegistrationDialog::startEngine.　Please select one shogi engine."));
+        showErrorMessage(tr("将棋エンジンを1つ選択してください。"));
 
         // 一つではない場合は、処理を中断して戻る。
         return;
@@ -700,7 +721,7 @@ void EngineRegistrationDialog::parseOptionLine(const QString& line)
         qDebug() << "The option command is invalid:" << line << result.errorMessage;
 
         // エラーが発生したことを通知する。
-        showErrorMessage(tr("An error occurred in EngineRegistrationDialog::parseOptionLine. Invalid option line format."));
+        showErrorMessage(tr("オプション行の形式が無効です。"));
 
         return;
     }
@@ -757,7 +778,7 @@ void EngineRegistrationDialog::parseOptionLine(const QString& line)
          qWarning() << "Duplicate engine option found:" << name;
 
         // エラーが発生したことを通知する。
-        showErrorMessage(tr("An error occurred in EngineRegistrationDialog::parseOptionLine. Duplicate engine option found."));
+        showErrorMessage(tr("重複したエンジンオプションが見つかりました。"));
 
         return;
     }
@@ -796,7 +817,7 @@ void EngineRegistrationDialog::removeSelectedEngineFromList(QString& removeEngin
     // 選択したエンジンが正確に一つであるかをチェックする。
     if (items.count() != 1) {
         // エラーが発生したことを通知する。
-        showErrorMessage(tr("An error occurred in EngineRegistrationDialog::removeSelectedEngineFromList. Please select one shogi engine."));
+        showErrorMessage(tr("将棋エンジンを1つ選択してください。"));
 
         // 一つではない場合は、処理を中断する。
         return;
@@ -824,4 +845,35 @@ void EngineRegistrationDialog::concatenateComboOptionValues()
         // comboタイプのオプションの値を " " で結合する。
         m_concatenatedOptionValuesList.append(option.valueList.join(" "));
     }
+}
+
+// フォントサイズを増加する
+void EngineRegistrationDialog::increaseFontSize()
+{
+    if (m_fontSize < 20) {  // 最大サイズを20に制限
+        m_fontSize++;
+        applyFontSize();
+        SettingsService::setEngineRegistrationFontSize(m_fontSize);
+    }
+}
+
+// フォントサイズを減少する
+void EngineRegistrationDialog::decreaseFontSize()
+{
+    if (m_fontSize > 8) {  // 最小サイズを8に制限
+        m_fontSize--;
+        applyFontSize();
+        SettingsService::setEngineRegistrationFontSize(m_fontSize);
+    }
+}
+
+// すべてのウィジェットにフォントサイズを適用する
+void EngineRegistrationDialog::applyFontSize()
+{
+    QFont font = this->font();
+    font.setPointSize(m_fontSize);
+    this->setFont(font);
+
+    // リストウィジェットにもフォントを設定
+    ui->engineListWidget->setFont(font);
 }

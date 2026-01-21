@@ -239,6 +239,16 @@ QSize engineSettingsDialogSize();
 // ★ 追加: エンジン設定ダイアログのウィンドウサイズを保存
 void setEngineSettingsDialogSize(const QSize& size);
 
+// ★ 追加: エンジン登録ダイアログのフォントサイズを取得（デフォルト: 12）
+int engineRegistrationFontSize();
+// ★ 追加: エンジン登録ダイアログのフォントサイズを保存
+void setEngineRegistrationFontSize(int size);
+
+// ★ 追加: エンジン登録ダイアログのウィンドウサイズを取得（デフォルト: 647x421）
+QSize engineRegistrationDialogSize();
+// ★ 追加: エンジン登録ダイアログのウィンドウサイズを保存
+void setEngineRegistrationDialogSize(const QSize& size);
+
 } // namespace SettingsService
 
 #endif // SETTINGSSERVICE_H

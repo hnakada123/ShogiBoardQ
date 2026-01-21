@@ -716,4 +716,36 @@ void setEngineSettingsDialogSize(const QSize& size)
     s.setValue("EngineSettings/dialogSize", size);
 }
 
+// ★ 追加: エンジン登録ダイアログのフォントサイズを取得
+int engineRegistrationFontSize()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("FontSize/engineRegistration", 12).toInt();
+}
+
+// ★ 追加: エンジン登録ダイアログのフォントサイズを保存
+void setEngineRegistrationFontSize(int size)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("FontSize/engineRegistration", size);
+}
+
+// ★ 追加: エンジン登録ダイアログのウィンドウサイズを取得
+QSize engineRegistrationDialogSize()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("EngineRegistration/dialogSize", QSize(647, 421)).toSize();
+}
+
+// ★ 追加: エンジン登録ダイアログのウィンドウサイズを保存
+void setEngineRegistrationDialogSize(const QSize& size)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("EngineRegistration/dialogSize", size);
+}
+
 } // namespace SettingsService
