@@ -171,6 +171,11 @@ Engine EngineRegistrationDialog::readEngineFromSettings(const QSettings& setting
     // 将棋エンジンの名前と実行ファイルの絶対パスを設定ファイルから読み込む。
     engine.name = settings.value(EngineNameKey).toString();
     engine.path = settings.value(EnginePathKey).toString();
+    engine.author = settings.value(EngineAuthorKey).toString();
+
+    qDebug() << "readEngineFromSettings: name=" << engine.name
+             << "path=" << engine.path
+             << "author=" << engine.author;
 
     return engine;
 }
@@ -220,6 +225,11 @@ void EngineRegistrationDialog::addEngineFromFileSelection()
         return;
     }
 
+    // 前回のエンジン情報をクリアする
+    m_engineIdName.clear();
+    m_engineIdAuthor.clear();
+    m_optionLines.clear();
+
     // エンジンを起動し、usiコマンドを送信する。
     startAndInitializeEngine(m_fileName);
 }
@@ -263,6 +273,12 @@ void EngineRegistrationDialog::parseEngineOutput(const QString& line)
         // エンジン名と絶対パスでの実行ファイル名を取得する。
         processIdName(line);
     }
+    // "id author"で始まる行の場合
+    else if (line.startsWith(IdAuthorPrefix)) {
+        // "id author "の部分を除去してエンジン作者名を取得する。
+        m_engineIdAuthor = line.mid(QString(IdAuthorPrefix).length() + 1);
+        qDebug() << "parseEngineOutput: id author found:" << m_engineIdAuthor;
+    }
     // "option name"で始まる行の場合
     else if (line.startsWith(OptionNamePrefix)) {
         // オプション行をQStringList型の変数に蓄える。
@@ -275,6 +291,18 @@ void EngineRegistrationDialog::parseEngineOutput(const QString& line)
 
         // 設定ファイルを書き込むディレクトリに移動する。（現時点では実行ファイルと同じディレクトリ）
         QDir::setCurrent(m_engineDir);
+
+        // エンジンリストにエンジン名、絶対パス付きの実行ファイル名、作者名を追加する。
+        // "id name" と "id author" の両方を受信した後なので、ここで追加する。
+        Engine engine;
+        engine.name = m_engineIdName;
+        engine.path = m_fileName;
+        engine.author = m_engineIdAuthor;
+        m_engineList.append(engine);
+
+        qDebug() << "usiok received: adding engine to list:"
+                 << "name=" << engine.name
+                 << "author=" << engine.author;
 
         // usiコマンドの出力からエンジンオプションを取り出す。
         getEngineOptions();
@@ -314,12 +342,7 @@ void EngineRegistrationDialog::processIdName(const QString& line)
             return;
         }
     }
-
-    // エンジンリストにエンジン名と絶対パス付きの実行ファイル名を追加する。
-    Engine engine;
-    engine.name = m_engineIdName;
-    engine.path = m_fileName;
-    m_engineList.append(engine);
+    // 注意: エンジンリストへの追加は "usiok" 受信後に行う（"id author" が後から来るため）
 }
 
 // 将棋エンジンを起動し、usiコマンドを送信する。
@@ -456,11 +479,19 @@ void EngineRegistrationDialog::configureEngine()
     // 選択されたアイテムのエンジン名を取得する。
     QString engineName = selectedItem->text();
 
+    // 選択されたエンジンの作者名を取得する。
+    QString engineAuthor = m_engineList.at(engineNumber).author;
+
+    qDebug() << "configureEngine: engineNumber=" << engineNumber
+             << "engineName=" << engineName
+             << "engineAuthor=" << engineAuthor;
+
     // 選択されたエンジンの設定変更ダイアログを表示する。
     ChangeEngineSettingsDialog dialog(this);
 
     dialog.setEngineNumber(engineNumber);
     dialog.setEngineName(engineName);
+    dialog.setEngineAuthor(engineAuthor);
     dialog.setupEngineOptionsDialog();
 
     if (dialog.exec() == QDialog::Rejected) return;
@@ -496,6 +527,9 @@ void EngineRegistrationDialog::saveEngineToSettings(QSettings& settings, const E
 
     // エンジンの実行ファイルパスを設定ファイルに書き込む。
     settings.setValue(EnginePathKey, engine.path);
+
+    // エンジンの作者名を設定ファイルに書き込む。
+    settings.setValue(EngineAuthorKey, engine.author);
 }
 
 // 設定ファイルに追加エンジンのオプションを書き込む。

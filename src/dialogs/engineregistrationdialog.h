@@ -18,6 +18,9 @@ struct Engine
 
     // エンジンの実行ファイル名
     QString path;
+
+    // エンジンの作者名
+    QString author;
 };
 
 // エンジン登録ダイアログ
@@ -76,6 +79,9 @@ private:
     // エンジン名
     QString m_engineIdName;
 
+    // エンジン作者名
+    QString m_engineIdAuthor;
+
     // エンジンのリスト
     QList<Engine> m_engineList;
 
@@ -90,6 +96,7 @@ private:
     static constexpr char UsiCommand[] = "usi\n";
     static constexpr char QuitCommand[] = "quit\n";
     static constexpr char IdNamePrefix[] = "id name";
+    static constexpr char IdAuthorPrefix[] = "id author";
     static constexpr char OptionNamePrefix[] = "option name";
     static constexpr char UsiOkPrefix[] = "usiok";
 

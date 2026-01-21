@@ -8,12 +8,16 @@ CollapsibleGroupBox::CollapsibleGroupBox(const QString& title, QWidget* parent)
     , m_contentAnimation(nullptr)
     , m_title(title)
 {
+    // サイズポリシーを設定して水平方向に広がるようにする
+    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(0, 0, 0, 0);
     mainLayout->setSpacing(0);
 
     // トグルボタンの作成
     m_toggleButton = new QPushButton(this);
+    m_toggleButton->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     m_toggleButton->setCheckable(true);
     m_toggleButton->setChecked(true);
     m_toggleButton->setStyleSheet(
@@ -40,6 +44,7 @@ CollapsibleGroupBox::CollapsibleGroupBox(const QString& title, QWidget* parent)
 
     // コンテンツフレームの作成
     m_contentFrame = new QFrame(this);
+    m_contentFrame->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
     m_contentFrame->setStyleSheet(
         "QFrame {"
         "  border: 1px solid #d4c9a8;"
@@ -54,11 +59,10 @@ CollapsibleGroupBox::CollapsibleGroupBox(const QString& title, QWidget* parent)
     m_contentLayout = new QVBoxLayout(m_contentFrame);
     m_contentLayout->setContentsMargins(12, 8, 12, 12);
     m_contentLayout->setSpacing(8);
-    m_contentLayout->setAlignment(Qt::AlignTop);
 
-    // メインレイアウトに追加
-    mainLayout->addWidget(m_toggleButton);
-    mainLayout->addWidget(m_contentFrame);
+    // メインレイアウトに追加（ストレッチファクター0で幅を親に合わせる）
+    mainLayout->addWidget(m_toggleButton, 0);
+    mainLayout->addWidget(m_contentFrame, 0);
 
     // アニメーションの設定
     m_animationGroup = new QParallelAnimationGroup(this);

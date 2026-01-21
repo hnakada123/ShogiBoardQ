@@ -700,4 +700,20 @@ void setEngineSettingsFontSize(int size)
     s.setValue("FontSize/engineSettings", size);
 }
 
+// ★ 追加: エンジン設定ダイアログのウィンドウサイズを取得
+QSize engineSettingsDialogSize()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("EngineSettings/dialogSize", QSize(800, 800)).toSize();
+}
+
+// ★ 追加: エンジン設定ダイアログのウィンドウサイズを保存
+void setEngineSettingsDialogSize(const QSize& size)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("EngineSettings/dialogSize", size);
+}
+
 } // namespace SettingsService

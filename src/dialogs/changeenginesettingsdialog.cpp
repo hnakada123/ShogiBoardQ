@@ -25,6 +25,9 @@ ChangeEngineSettingsDialog::ChangeEngineSettingsDialog(QWidget *parent)
 // デストラクタ
 ChangeEngineSettingsDialog::~ChangeEngineSettingsDialog()
 {
+    // ウィンドウサイズを保存
+    SettingsService::setEngineSettingsDialogSize(this->size());
+
     delete ui;
 }
 
@@ -38,6 +41,13 @@ void ChangeEngineSettingsDialog::setEngineNumber(const int& engineNumber)
 void ChangeEngineSettingsDialog::setEngineName(const QString& engineName)
 {
     m_engineName = engineName;
+}
+
+// 将棋エンジン作者名のsetter
+void ChangeEngineSettingsDialog::setEngineAuthor(const QString& engineAuthor)
+{
+    m_engineAuthor = engineAuthor;
+    qDebug() << "setEngineAuthor:" << m_engineAuthor;
 }
 
 // 設定ファイルから選択したエンジンのオプションを読み込む。
@@ -271,6 +281,9 @@ void ChangeEngineSettingsDialog::createSpinBox(const EngineOption& option, QVBox
     // スピンボックスを作成する。
     m_optionWidgets.integerSpinBox = new LongLongSpinBox(this);
 
+    // スピンボックスの横幅を制限する。
+    m_optionWidgets.integerSpinBox->setMaximumWidth(200);
+
     // スタイルシートを設定
     m_optionWidgets.integerSpinBox->setStyleSheet(
         "QSpinBox { border: 1px solid #a8c8e8; border-radius: 4px; padding: 6px 8px; "
@@ -385,6 +398,10 @@ void ChangeEngineSettingsDialog::createComboBox(const EngineOption& option, QVBo
     m_optionWidgets.comboBox = new QComboBox(this);
     m_optionWidgets.comboBox->setFocusPolicy(Qt::StrongFocus);
     m_optionWidgets.comboBox->installEventFilter(this);
+
+    // コンボボックスの横幅を制限する。
+    m_optionWidgets.comboBox->setMaximumWidth(200);
+
     m_optionWidgets.comboBox->setStyleSheet(
         "QComboBox { border: 1px solid #a8c8e8; border-radius: 4px; padding: 6px 8px; "
         "background-color: white; color: #333333; }"
@@ -455,8 +472,22 @@ CollapsibleGroupBox* ChangeEngineSettingsDialog::createCategoryGroupBox(EngineOp
 // エンジンオプションに基づいてUIコンポーネントを作成して配置する。
 void ChangeEngineSettingsDialog::createOptionWidgets()
 {
-    // 設定画面の上部にエンジン名を表示する。
-    ui->label->setText(m_engineName);
+    // 設定画面の上部にエンジン名と作者名を表示する。
+    QString headerText = m_engineName;
+    qDebug() << "createOptionWidgets: m_engineName=" << m_engineName
+             << "m_engineAuthor=" << m_engineAuthor;
+    if (!m_engineAuthor.isEmpty()) {
+        headerText += tr("\n作者: %1").arg(m_engineAuthor);
+    }
+    qDebug() << "createOptionWidgets: headerText=" << headerText;
+    ui->label->setText(headerText);
+    ui->label->setStyleSheet(
+        "QLabel { background-color: transparent; padding: 8px; "
+        "font-weight: bold; color: #333333; }");
+
+    // ダイアログ全体の背景をクリーム色にする
+    this->setStyleSheet(
+        "QDialog { background-color: #fefcf6; }");
 
     // 画面レイアウトを作成する。
     optionWidgetsLayout = new QVBoxLayout;
@@ -508,8 +539,8 @@ void ChangeEngineSettingsDialog::createOptionWidgets()
     // 各ボタンが押されているかどうかを確認し、ボタンの色を設定する。
     changeStatusColorTypeButton();
 
-    // レイアウトを上部に配置する。
-    optionWidgetsLayout->setAlignment(Qt::AlignTop);
+    // レイアウトを上部に配置するためにスペーサーを追加（setAlignmentは水平方向の拡張を制限するため使用しない）
+    optionWidgetsLayout->addStretch();
 
     // ダイアログのスクロールアリアのウィジェットにレイアウトをセットする。
     ui->scrollAreaWidgetContents->setLayout(optionWidgetsLayout);
@@ -535,8 +566,14 @@ void ChangeEngineSettingsDialog::createOptionWidgets()
     // 保存されているフォントサイズを適用
     applyFontSize();
 
-    // ダイアログのサイズをコンテンツに合わせて固定する。
-    this->setFixedSize(this->geometry().width(), this->geometry().height());
+    // ダイアログの最小サイズを設定（リサイズ可能にする）
+    this->setMinimumSize(400, 300);
+
+    // 保存されているウィンドウサイズを復元
+    QSize savedSize = SettingsService::engineSettingsDialogSize();
+    if (savedSize.isValid()) {
+        this->resize(savedSize);
+    }
 }
 
 // ファイルまたはディレクトリの選択ダイアログを開き、選択されたパスを返す。
@@ -743,6 +780,9 @@ void ChangeEngineSettingsDialog::applyFontSize()
 
     // スクロールエリアのコンテンツにも明示的にフォントを設定
     ui->scrollAreaWidgetContents->setFont(font);
+
+    // エンジン名・作者ラベルにもフォントを設定
+    ui->label->setFont(font);
 
     // 全ての子ウィジェットにフォントを再帰的に適用
     const std::function<void(QWidget*)> applyToChildren = [&font, &applyToChildren](QWidget* widget) {
