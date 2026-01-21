@@ -864,102 +864,102 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="282"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="287"/>
         <source>棋譜コメント</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="301"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="306"/>
         <source>分岐ツリー</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="679"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="684"/>
         <source>開始局面</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1225"/>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1419"/>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1795"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1247"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1441"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1817"/>
         <source>フォントサイズを小さくする</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1232"/>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1426"/>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1802"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1254"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1448"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1824"/>
         <source>フォントサイズを大きくする</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1299"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1321"/>
         <source>コマンドの送信先を選択</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1303"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1325"/>
         <source>USIコマンドを入力してEnter</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1433"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1455"/>
         <source>元に戻す (Ctrl+Z)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1440"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1462"/>
         <source>やり直す (Ctrl+Y)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1447"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1469"/>
         <source>切り取り (Ctrl+X)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1454"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1476"/>
         <source>コピー (Ctrl+C)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1461"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1483"/>
         <source>貼り付け (Ctrl+V)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1466"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1488"/>
         <source>修正中</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1471"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1493"/>
         <source>コメント更新</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1472"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1494"/>
         <source>編集したコメントを棋譜に反映する</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1675"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1697"/>
         <source>未保存のコメント</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1676"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1698"/>
         <source>コメントが編集されていますが、まだ更新されていません。
 変更を破棄して移動しますか？</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1883"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1905"/>
         <source>CSAサーバーへ送信</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1892"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1914"/>
         <source>コマンドを入力してEnter</source>
         <translation type="unfinished"></translation>
     </message>

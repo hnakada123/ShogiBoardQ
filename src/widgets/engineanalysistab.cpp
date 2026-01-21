@@ -275,6 +275,11 @@ void EngineAnalysisTab::buildUi()
     m_comment->setPlaceholderText(tr("コメントを表示・編集"));
     commentLayout->addWidget(m_comment);
 
+    // ★ 追加: コメントのURLクリックを処理するためのイベントフィルター
+    if (m_comment->viewport()) {
+        m_comment->viewport()->installEventFilter(this);
+    }
+
     // ★ 追加: コメント変更時の検知
     connect(m_comment, &QTextEdit::textChanged,
             this, &EngineAnalysisTab::onCommentTextChanged);
@@ -907,6 +912,23 @@ void EngineAnalysisTab::highlightNodeId(int nodeId, bool centerOn)
 // ===================== クリック検出 =====================
 bool EngineAnalysisTab::eventFilter(QObject* obj, QEvent* ev)
 {
+    // ★ コメント内のURLクリック処理
+    if (m_comment && obj == m_comment->viewport()
+        && ev->type() == QEvent::MouseButtonRelease)
+    {
+        auto* me = static_cast<QMouseEvent*>(ev);
+        if (me->button() == Qt::LeftButton) {
+            // クリック位置にあるアンカー（URL）を取得
+            const QString anchor = m_comment->anchorAt(me->pos());
+            if (!anchor.isEmpty()) {
+                // URLをブラウザで開く
+                QDesktopServices::openUrl(QUrl(anchor));
+                return true;  // イベントを消費
+            }
+        }
+    }
+
+    // 分岐ツリーのクリック処理
     if (m_branchTree && obj == m_branchTree->viewport()
         && ev->type() == QEvent::MouseButtonRelease)
     {
