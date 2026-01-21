@@ -128,7 +128,7 @@ void EngineAnalysisTab::buildUi()
             "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
             "    stop:0 #4a9eff, stop:1 #2d7dd2);"
             "  color: white;"
-            "  font-weight: bold;"
+            "  font-weight: normal;"
             "  padding: 4px 12px;"
             "  border: 1px solid #2d7dd2;"
             "  border-bottom: none;"

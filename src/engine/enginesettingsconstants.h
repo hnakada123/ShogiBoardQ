@@ -14,6 +14,9 @@ static constexpr char EngineNameKey[] = "name";
 // エンジンの実行ファイルパスを指定するキー
 static constexpr char EnginePathKey[] = "path";
 
+// エンジンの作者名を指定するキー
+static constexpr char EngineAuthorKey[] = "author";
+
 // オプション名を指定するキー
 static constexpr char EngineOptionNameKey[] = "name";
 

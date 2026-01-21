@@ -128,189 +128,175 @@ void EngineOptionDescriptions::initializeDescriptions()
 
     // 基本設定
     s_yaneuraouDescriptions["Threads"] = QObject::tr(
-        "探索に使用するスレッド数です。CPUの論理コア数に合わせて設定すると最も効率的です。");
+        "探索に使用するスレッド数");
 
     s_yaneuraouDescriptions["USI_Hash"] = QObject::tr(
-        "置換表(トランスポジションテーブル)に使用するメモリサイズ(MB)です。"
-        "大きいほど長時間の探索で有利になりますが、搭載メモリ量を超えないように注意してください。");
+        "置換表サイズ(MB)");
 
     s_yaneuraouDescriptions["MultiPV"] = QObject::tr(
-        "探索時に出力する候補手の数です。検討モードでは複数の候補手を比較するために増やすと便利です。");
+        "出力する候補手の数");
 
     s_yaneuraouDescriptions["EvalDir"] = QObject::tr(
-        "評価関数ファイルが格納されているフォルダのパスです。エンジンの実行ファイルからの相対パスで指定します。");
+        "評価関数フォルダのパス");
 
     // Ponder関連
     s_yaneuraouDescriptions["USI_Ponder"] = QObject::tr(
-        "相手の手番中に先読み(Ponder)を行うかどうかです。"
-        "有効にすると対局時に強くなりますが、CPU使用率が高くなります。");
+        "相手の手番中の先読み");
 
     s_yaneuraouDescriptions["Stochastic_Ponder"] = QObject::tr(
-        "Ponder時に相手の応手を確率的に予測する機能です。"
-        "通常のPonderは最善手のみを予測しますが、この機能では複数の候補手を考慮します。");
+        "Ponder時の確率的な応手予測");
 
     // 探索制限
     s_yaneuraouDescriptions["DepthLimit"] = QObject::tr(
-        "探索の最大深さを制限します。0の場合は無制限です。デバッグや検討用途で使用します。");
+        "探索の最大深さ(0で無制限)");
 
     s_yaneuraouDescriptions["NodesLimit"] = QObject::tr(
-        "探索するノード数の上限を設定します。0の場合は無制限です。");
+        "探索ノード数の上限(0で無制限)");
 
     // 検討モード
     s_yaneuraouDescriptions["ConsiderationMode"] = QObject::tr(
-        "検討モードを有効にします。有効にすると、読み筋の出力形式が検討向けに最適化されます。");
+        "検討モードの有効化");
 
     s_yaneuraouDescriptions["OutputFailLHPV"] = QObject::tr(
-        "fail-low/fail-high時にも読み筋(PV)を出力するかどうかです。検討時に有効にすると途中経過が分かりやすくなります。");
+        "fail-low/fail-high時の読み筋出力");
 
     // 時間制御
     s_yaneuraouDescriptions["NetworkDelay"] = QObject::tr(
-        "ネットワーク対局時の通信遅延を補正するための値(ミリ秒)です。"
-        "この時間分だけ早めに指し手を返します。");
+        "通信遅延補正(ミリ秒)");
 
     s_yaneuraouDescriptions["NetworkDelay2"] = QObject::tr(
-        "秒読み時など時間に余裕がない場合の最大遅延補正値(ミリ秒)です。"
-        "NetworkDelayより大きい値を設定してください。");
+        "秒読み時の最大遅延補正(ミリ秒)");
 
     s_yaneuraouDescriptions["MinimumThinkingTime"] = QObject::tr(
-        "最小思考時間(ミリ秒)です。どんなに持ち時間が少なくても、この時間は考えます。");
+        "最小思考時間(ミリ秒)");
 
     s_yaneuraouDescriptions["SlowMover"] = QObject::tr(
-        "序盤の時間配分を調整します。100が標準で、大きくすると序盤により多くの時間を使います。");
+        "序盤の時間配分調整(100が標準)");
 
     s_yaneuraouDescriptions["RoundUpToFullSecond"] = QObject::tr(
-        "秒単位で時間を切り上げて消費するかどうかです。"
-        "多くの将棋サーバーでは秒未満が切り上げられるため、有効にすることを推奨します。");
+        "消費時間の秒単位切り上げ");
 
     // 定跡関連
     s_yaneuraouDescriptions["USI_OwnBook"] = QObject::tr(
-        "エンジン内蔵の定跡を使用するかどうかです。無効にするとGUI側の定跡のみを使用します。");
+        "エンジン内蔵定跡の使用");
 
     s_yaneuraouDescriptions["BookFile"] = QObject::tr(
-        "使用する定跡ファイルを選択します。no_bookを選ぶと定跡を使用しません。");
+        "使用する定跡ファイル");
 
     s_yaneuraouDescriptions["BookDir"] = QObject::tr(
-        "定跡ファイルが格納されているフォルダのパスです。");
+        "定跡フォルダのパス");
 
     s_yaneuraouDescriptions["BookMoves"] = QObject::tr(
-        "定跡を使用する手数の上限です。この手数を超えると定跡を参照せずに探索します。");
+        "定跡を使用する手数の上限");
 
     s_yaneuraouDescriptions["BookIgnoreRate"] = QObject::tr(
-        "定跡を無視する確率(%)です。0なら常に定跡を使用、100なら定跡を使用しません。");
+        "定跡を無視する確率(%)");
 
     s_yaneuraouDescriptions["BookOnTheFly"] = QObject::tr(
-        "定跡ファイルを必要な部分だけ読み込むモードです。"
-        "メモリ使用量を抑えられますが、読み込みが遅くなる場合があります。");
+        "定跡の部分読み込み");
 
     s_yaneuraouDescriptions["NarrowBook"] = QObject::tr(
-        "定跡の候補手を狭めるかどうかです。有効にすると最善手に近い手のみを選択します。");
+        "最善手に近い定跡手のみの選択");
 
     s_yaneuraouDescriptions["BookEvalDiff"] = QObject::tr(
-        "定跡の候補手として採用する評価値の差の許容範囲です。"
-        "この値以内の評価値差の手が候補になります。");
+        "定跡の評価値差の許容範囲");
 
     s_yaneuraouDescriptions["BookEvalBlackLimit"] = QObject::tr(
-        "先手番で定跡を採用する評価値の下限です。これより悪い評価の定跡手は採用しません。");
+        "先手番での定跡採用の評価値下限");
 
     s_yaneuraouDescriptions["BookEvalWhiteLimit"] = QObject::tr(
-        "後手番で定跡を採用する評価値の下限です。これより悪い評価の定跡手は採用しません。");
+        "後手番での定跡採用の評価値下限");
 
     s_yaneuraouDescriptions["BookDepthLimit"] = QObject::tr(
-        "定跡として採用する最小探索深さです。これより浅い探索で登録された定跡は使用しません。");
+        "定跡として採用する最小探索深さ");
 
     s_yaneuraouDescriptions["ConsiderBookMoveCount"] = QObject::tr(
-        "定跡選択時に出現頻度を考慮するかどうかです。有効にすると頻出する手を優先します。");
+        "定跡選択時の出現頻度考慮");
 
     s_yaneuraouDescriptions["BookPvMoves"] = QObject::tr(
-        "定跡の読み筋として出力する手数です。");
+        "定跡の読み筋出力手数");
 
     s_yaneuraouDescriptions["IgnoreBookPly"] = QObject::tr(
-        "定跡の手数制限を無視するかどうかです。");
+        "定跡の手数制限無視");
 
     s_yaneuraouDescriptions["FlippedBook"] = QObject::tr(
-        "後手番の定跡を先手番の定跡から反転して生成するかどうかです。");
+        "後手定跡の先手定跡からの反転生成");
 
     // 対局ルール関連
     s_yaneuraouDescriptions["EnteringKingRule"] = QObject::tr(
-        "入玉時の勝敗判定ルールを選択します。\n"
-        "CSARule27: CSAルール(27点法)\n"
-        "CSARule24: CSAルール(24点法)\n"
-        "TryRule: トライルール");
+        "入玉時の勝敗判定ルール");
 
     s_yaneuraouDescriptions["MaxMovesToDraw"] = QObject::tr(
-        "この手数に達すると引き分けとします。0の場合は手数による引き分けはありません。"
-        "256手ルールを適用する場合は256を設定します。");
+        "引き分けとなる手数(0で無効)");
 
     s_yaneuraouDescriptions["ResignValue"] = QObject::tr(
-        "この評価値以下になると投了します。99999の場合は自動投了しません。");
+        "投了する評価値");
 
     s_yaneuraouDescriptions["DrawValueBlack"] = QObject::tr(
-        "先手番での引き分けの評価値です。通常はわずかにマイナスに設定して引き分けを避けます。");
+        "先手番での引き分けの評価値");
 
     s_yaneuraouDescriptions["DrawValueWhite"] = QObject::tr(
-        "後手番での引き分けの評価値です。通常はわずかにマイナスに設定して引き分けを避けます。");
+        "後手番での引き分けの評価値");
 
     // その他
     s_yaneuraouDescriptions["NumaPolicy"] = QObject::tr(
-        "NUMAアーキテクチャでのメモリ割り当てポリシーです。"
-        "autoで自動設定、その他にbind/interleave/noneが指定できます。");
+        "NUMAメモリ割り当てポリシー");
 
     s_yaneuraouDescriptions["DebugLogFile"] = QObject::tr(
-        "デバッグログを出力するファイルのパスです。空の場合はログを出力しません。");
+        "デバッグログの出力先ファイル");
 
     s_yaneuraouDescriptions["PvInterval"] = QObject::tr(
-        "読み筋(PV)を出力する間隔(ミリ秒)です。0にすると深さが更新されるたびに出力します。");
+        "読み筋の出力間隔(ミリ秒)");
 
     s_yaneuraouDescriptions["GenerateAllLegalMoves"] = QObject::tr(
-        "合法手生成時にすべての合法手を生成するかどうかです。通常はfalseで問題ありません。");
+        "すべての合法手の生成");
 
     s_yaneuraouDescriptions["FV_SCALE"] = QObject::tr(
-        "評価関数のスケーリング係数です。評価関数に合わせて調整しますが、通常は変更不要です。");
+        "評価関数のスケーリング係数");
 
     // ===== Gikou（技巧）用の説明 =====
 
     s_gikouDescriptions["Threads"] = QObject::tr(
-        "探索に使用するスレッド数です。CPUの論理コア数に合わせて設定すると効率的です。");
+        "探索に使用するスレッド数");
 
     s_gikouDescriptions["MultiPV"] = QObject::tr(
-        "探索時に出力する候補手の数です。検討モードで複数の候補手を比較する際に増やすと便利です。");
-
-    s_gikouDescriptions["OwnBook"] = QObject::tr(
-        "エンジン内蔵の定跡を使用するかどうかです。");
-
-    s_gikouDescriptions["BookFile"] = QObject::tr(
-        "使用する定跡ファイルです。戦型選択に使用されます。");
-
-    s_gikouDescriptions["BookMaxPly"] = QObject::tr(
-        "定跡を何手目まで使用するかを設定します。この手数を超えると定跡を参照せずに探索します。");
-
-    s_gikouDescriptions["NarrowBook"] = QObject::tr(
-        "勝率が相対的に低い定跡手を選ばないようにします。より安定した指し手を選択します。");
-
-    s_gikouDescriptions["TinyBook"] = QObject::tr(
-        "出現頻度の低い定跡手を選ばないようにします。よく指される定跡手のみを使用します。");
+        "候補手の数");
 
     s_gikouDescriptions["DepthLimit"] = QObject::tr(
-        "探索の深さ（読みの深さ）を制限します。強さのレベル調節に使用できます。"
-        "100が最大で、小さい値にすると弱くなります。");
+        "読みの深さ（強さのレベル調節用）");
 
-    s_gikouDescriptions["ResignScore"] = QObject::tr(
-        "この評価値以下になると技巧が投了します。負の値で設定します。");
+    s_gikouDescriptions["OwnBook"] = QObject::tr(
+        "定跡の使用");
 
-    s_gikouDescriptions["DrawScore"] = QObject::tr(
-        "千日手の評価値です。0が標準で、正の値にすると千日手を狙いやすくなります。");
+    s_gikouDescriptions["BookFile"] = QObject::tr(
+        "定跡ファイル(戦型選択用)");
+
+    s_gikouDescriptions["BookMaxPly"] = QObject::tr(
+        "定跡使用の手数上限");
+
+    s_gikouDescriptions["NarrowBook"] = QObject::tr(
+        "低勝率の定跡手の除外");
+
+    s_gikouDescriptions["TinyBook"] = QObject::tr(
+        "低出現頻度の定跡手の除外");
 
     s_gikouDescriptions["MinThinkingTime"] = QObject::tr(
-        "最小思考時間(ミリ秒)です。どんなに時間が少なくても、最低この時間は考えます。");
+        "最小思考時間(ミリ秒)");
 
     s_gikouDescriptions["ByoyomiMargin"] = QObject::tr(
-        "秒読み時の余裕(ミリ秒)です。時間切れを防ぐためのマージンを設定します。");
+        "秒読み時の余裕(ミリ秒)");
 
     s_gikouDescriptions["SuddenDeathMargin"] = QObject::tr(
-        "切れ負けルール時の余裕(秒)です。時間切れを防ぐためのマージンを設定します。");
+        "切れ負けルール時の余裕(秒)");
 
     s_gikouDescriptions["FischerMargin"] = QObject::tr(
-        "フィッシャールール（加算秒あり）時の余裕(ミリ秒)です。時間切れを防ぐためのマージンを設定します。");
+        "フィッシャールール時の余裕(ミリ秒)");
+
+    s_gikouDescriptions["ResignScore"] = QObject::tr(
+        "技巧が投了する評価値");
+
+    s_gikouDescriptions["DrawScore"] = QObject::tr(
+        "千日手の評価値");
 }
 
 void EngineOptionDescriptions::initializeCategories()

@@ -46,6 +46,9 @@ public:
     // 将棋エンジン名のsetter
     void setEngineName(const QString &engineName);
 
+    // 将棋エンジン作者名のsetter
+    void setEngineAuthor(const QString &engineAuthor);
+
     // "エンジン設定"ダイアログを作成する。
     void setupEngineOptionsDialog();
 
@@ -58,6 +61,9 @@ private:
 
     // エンジン名
     QString m_engineName;
+
+    // エンジン作者名
+    QString m_engineAuthor;
 
     // エンジンオプションのリスト
     QList<EngineOption> m_optionList;

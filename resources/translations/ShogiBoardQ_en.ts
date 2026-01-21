@@ -92,59 +92,66 @@ Analyzed moves: %1</translation>
         <translation>Engine Settings</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.ui" line="44"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.ui" line="35"/>
         <source>TextLabel</source>
         <translation>TextLabel</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.ui" line="85"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.ui" line="82"/>
         <source>既定値に戻す</source>
         <translation>Reset to Default</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.ui" line="92"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.ui" line="89"/>
         <source>A-</source>
         <translation type="unfinished">A-</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.ui" line="105"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.ui" line="102"/>
         <source>A+</source>
         <translation type="unfinished">A+</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="176"/>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="316"/>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="373"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="186"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="329"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="386"/>
         <source>%1（既定値 %2）</source>
         <translation>%1 (Default: %2)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="219"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="229"/>
         <source>フォルダ・ディレクトリの選択</source>
         <translation>Select Folder</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="224"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="234"/>
         <source>ファイルの選択</source>
         <translation>Select File</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="249"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="259"/>
         <source>%1</source>
         <translation>%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="262"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="272"/>
         <source>%1 以上の値を入力してください。（既定値: %2）</source>
         <translation>Please enter a value of %1 or more. (Default: %2)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="265"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="275"/>
         <source>%1 から %2 までの値を入力してください。（既定値: %3）</source>
         <translation>Please enter a value between %1 and %2. (Default: %3)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="519"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="480"/>
+        <source>
+作者: %1</source>
+        <translation>
+Author: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="550"/>
         <source>適用</source>
         <translation>Apply</translation>
     </message>
@@ -1094,67 +1101,67 @@ Discard changes and move?</translation>
         <translation>An error occurred in EngineRegistrationDialog::onProcessError. An unknown error occurred.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="183"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="188"/>
         <source>ファイルの選択</source>
         <translation>Select File</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="217"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="222"/>
         <source>An error occurred in EngineRegistrationDialog::addEngineFromFileSelection. Could not move to %1. Failed to add shogi engine.</source>
         <translation>An error occurred in EngineRegistrationDialog::addEngineFromFileSelection. Could not move to %1. Failed to add shogi engine.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="231"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="241"/>
         <source>An error occurred in EngineRegistrationDialog::handleDuplicateEngine. The engine %1 is already added.</source>
         <translation>An error occurred in EngineRegistrationDialog::handleDuplicateEngine. The engine %1 is already added.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="344"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="367"/>
         <source>An error occurred in EngineRegistrationDialog::startEngine. The specified engine file does not exist: %1</source>
         <translation>An error occurred in EngineRegistrationDialog::startEngine. The specified engine file does not exist: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="387"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="410"/>
         <source>An error occurred in EngineRegistrationDialog::startEngine.&#x3000;Failed to start the engine： %1</source>
         <translation>An error occurred in EngineRegistrationDialog::startEngine. Failed to start the engine: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="431"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="454"/>
         <source>The shogi engine is already registered. Please delete the previously registered shogi engine first. Please select one shogi engine.</source>
         <translation>The shogi engine is already registered. Please delete the previously registered shogi engine first. Please select one shogi engine.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="443"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="466"/>
         <source>An error occurred in EngineRegistrationDialog::startEngine.&#x3000;Please select one shogi engine.</source>
         <translation>An error occurred in EngineRegistrationDialog::startEngine. Please select one shogi engine.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="560"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="594"/>
         <source>USI_Hash option added.</source>
         <translation>USI_Hash option added.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="572"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="606"/>
         <source>USI_Ponder option added.</source>
         <translation>USI_Ponder option added.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="581"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="615"/>
         <source>New option added:</source>
         <translation>New option added:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="669"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="703"/>
         <source>An error occurred in EngineRegistrationDialog::parseOptionLine. Invalid option line format.</source>
         <translation>An error occurred in EngineRegistrationDialog::parseOptionLine. Invalid option line format.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="726"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="760"/>
         <source>An error occurred in EngineRegistrationDialog::parseOptionLine. Duplicate engine option found.</source>
         <translation>An error occurred in EngineRegistrationDialog::parseOptionLine. Duplicate engine option found.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="765"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="799"/>
         <source>An error occurred in EngineRegistrationDialog::removeSelectedEngineFromList. Please select one shogi engine.</source>
         <translation>An error occurred in EngineRegistrationDialog::removeSelectedEngineFromList. Please select one shogi engine.</translation>
     </message>
@@ -4167,12 +4174,12 @@ Are you sure you want to declare?</translation>
         <translation>The file must be a value between 1 and 9. (got %1)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="549"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="586"/>
         <source>フォルダ・ディレクトリの選択</source>
         <translation>Select Folder</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="551"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="588"/>
         <source>ファイルの選択</source>
         <translation>Select File</translation>
     </message>
@@ -4326,275 +4333,264 @@ Are you sure you want to declare?</translation>
     </message>
     <message>
         <location filename="../../src/engine/engineoptiondescriptions.cpp" line="130"/>
-        <source>探索に使用するスレッド数です。CPUの論理コア数に合わせて設定すると最も効率的です。</source>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="259"/>
+        <source>探索に使用するスレッド数</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../src/engine/engineoptiondescriptions.cpp" line="133"/>
-        <source>置換表(トランスポジションテーブル)に使用するメモリサイズ(MB)です。大きいほど長時間の探索で有利になりますが、搭載メモリ量を超えないように注意してください。</source>
+        <source>置換表サイズ(MB)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="137"/>
-        <source>探索時に出力する候補手の数です。検討モードでは複数の候補手を比較するために増やすと便利です。</source>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="136"/>
+        <source>出力する候補手の数</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="140"/>
-        <source>評価関数ファイルが格納されているフォルダのパスです。エンジンの実行ファイルからの相対パスで指定します。</source>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="139"/>
+        <source>評価関数フォルダのパス</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="144"/>
-        <source>相手の手番中に先読み(Ponder)を行うかどうかです。有効にすると対局時に強くなりますが、CPU使用率が高くなります。</source>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="143"/>
+        <source>相手の手番中の先読み</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="148"/>
-        <source>Ponder時に相手の応手を確率的に予測する機能です。通常のPonderは最善手のみを予測しますが、この機能では複数の候補手を考慮します。</source>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="146"/>
+        <source>Ponder時の確率的な応手予測</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="153"/>
-        <source>探索の最大深さを制限します。0の場合は無制限です。デバッグや検討用途で使用します。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="156"/>
-        <source>探索するノード数の上限を設定します。0の場合は無制限です。</source>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="157"/>
+        <source>検討モードの有効化</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../src/engine/engineoptiondescriptions.cpp" line="160"/>
-        <source>検討モードを有効にします。有効にすると、読み筋の出力形式が検討向けに最適化されます。</source>
+        <source>fail-low/fail-high時の読み筋出力</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="163"/>
-        <source>fail-low/fail-high時にも読み筋(PV)を出力するかどうかです。検討時に有効にすると途中経過が分かりやすくなります。</source>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="150"/>
+        <source>探索の最大深さ(0で無制限)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="153"/>
+        <source>探索ノード数の上限(0で無制限)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="164"/>
+        <source>通信遅延補正(ミリ秒)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../src/engine/engineoptiondescriptions.cpp" line="167"/>
-        <source>ネットワーク対局時の通信遅延を補正するための値(ミリ秒)です。この時間分だけ早めに指し手を返します。</source>
+        <source>秒読み時の最大遅延補正(ミリ秒)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="171"/>
-        <source>秒読み時など時間に余裕がない場合の最大遅延補正値(ミリ秒)です。NetworkDelayより大きい値を設定してください。</source>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="173"/>
+        <source>序盤の時間配分調整(100が標準)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="175"/>
-        <source>最小思考時間(ミリ秒)です。どんなに持ち時間が少なくても、この時間は考えます。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="178"/>
-        <source>序盤の時間配分を調整します。100が標準で、大きくすると序盤により多くの時間を使います。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="181"/>
-        <source>秒単位で時間を切り上げて消費するかどうかです。多くの将棋サーバーでは秒未満が切り上げられるため、有効にすることを推奨します。</source>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="183"/>
+        <source>使用する定跡ファイル</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../src/engine/engineoptiondescriptions.cpp" line="186"/>
-        <source>エンジン内蔵の定跡を使用するかどうかです。無効にするとGUI側の定跡のみを使用します。</source>
+        <source>定跡フォルダのパス</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../src/engine/engineoptiondescriptions.cpp" line="189"/>
-        <source>使用する定跡ファイルを選択します。no_bookを選ぶと定跡を使用しません。</source>
+        <source>定跡を使用する手数の上限</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../src/engine/engineoptiondescriptions.cpp" line="192"/>
-        <source>定跡ファイルが格納されているフォルダのパスです。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="195"/>
-        <source>定跡を使用する手数の上限です。この手数を超えると定跡を参照せずに探索します。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="198"/>
-        <source>定跡を無視する確率(%)です。0なら常に定跡を使用、100なら定跡を使用しません。</source>
+        <source>定跡を無視する確率(%)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../src/engine/engineoptiondescriptions.cpp" line="201"/>
-        <source>定跡ファイルを必要な部分だけ読み込むモードです。メモリ使用量を抑えられますが、読み込みが遅くなる場合があります。</source>
+        <source>定跡の評価値差の許容範囲</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="205"/>
-        <source>定跡の候補手を狭めるかどうかです。有効にすると最善手に近い手のみを選択します。</source>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="204"/>
+        <source>先手番での定跡採用の評価値下限</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="208"/>
-        <source>定跡の候補手として採用する評価値の差の許容範囲です。この値以内の評価値差の手が候補になります。</source>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="207"/>
+        <source>後手番での定跡採用の評価値下限</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="212"/>
-        <source>先手番で定跡を採用する評価値の下限です。これより悪い評価の定跡手は採用しません。</source>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="210"/>
+        <source>定跡として採用する最小探索深さ</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="215"/>
-        <source>後手番で定跡を採用する評価値の下限です。これより悪い評価の定跡手は採用しません。</source>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="226"/>
+        <source>入玉時の勝敗判定ルール</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="218"/>
-        <source>定跡として採用する最小探索深さです。これより浅い探索で登録された定跡は使用しません。</source>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="229"/>
+        <source>引き分けとなる手数(0で無効)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="221"/>
-        <source>定跡選択時に出現頻度を考慮するかどうかです。有効にすると頻出する手を優先します。</source>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="232"/>
+        <source>投了する評価値</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="224"/>
-        <source>定跡の読み筋として出力する手数です。</source>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="235"/>
+        <source>先手番での引き分けの評価値</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="227"/>
-        <source>定跡の手数制限を無視するかどうかです。</source>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="238"/>
+        <source>後手番での引き分けの評価値</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="230"/>
-        <source>後手番の定跡を先手番の定跡から反転して生成するかどうかです。</source>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="242"/>
+        <source>NUMAメモリ割り当てポリシー</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="234"/>
-        <source>入玉時の勝敗判定ルールを選択します。
-CSARule27: CSAルール(27点法)
-CSARule24: CSAルール(24点法)
-TryRule: トライルール</source>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="245"/>
+        <source>デバッグログの出力先ファイル</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="240"/>
-        <source>この手数に達すると引き分けとします。0の場合は手数による引き分けはありません。256手ルールを適用する場合は256を設定します。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="244"/>
-        <source>この評価値以下になると投了します。99999の場合は自動投了しません。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="247"/>
-        <source>先手番での引き分けの評価値です。通常はわずかにマイナスに設定して引き分けを避けます。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="250"/>
-        <source>後手番での引き分けの評価値です。通常はわずかにマイナスに設定して引き分けを避けます。</source>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="248"/>
+        <source>読み筋の出力間隔(ミリ秒)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../src/engine/engineoptiondescriptions.cpp" line="254"/>
-        <source>NUMAアーキテクチャでのメモリ割り当てポリシーです。autoで自動設定、その他にbind/interleave/noneが指定できます。</source>
+        <source>評価関数のスケーリング係数</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="258"/>
-        <source>デバッグログを出力するファイルのパスです。空の場合はログを出力しません。</source>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="262"/>
+        <source>候補手の数</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="261"/>
-        <source>読み筋(PV)を出力する間隔(ミリ秒)です。0にすると深さが更新されるたびに出力します。</source>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="265"/>
+        <source>読みの深さ（強さのレベル調節用）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="264"/>
-        <source>合法手生成時にすべての合法手を生成するかどうかです。通常はfalseで問題ありません。</source>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="271"/>
+        <source>定跡ファイル(戦型選択用)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="267"/>
-        <source>評価関数のスケーリング係数です。評価関数に合わせて調整しますが、通常は変更不要です。</source>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="170"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="283"/>
+        <source>最小思考時間(ミリ秒)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="272"/>
-        <source>探索に使用するスレッド数です。CPUの論理コア数に合わせて設定すると効率的です。</source>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="176"/>
+        <source>消費時間の秒単位切り上げ</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="275"/>
-        <source>探索時に出力する候補手の数です。検討モードで複数の候補手を比較する際に増やすと便利です。</source>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="180"/>
+        <source>エンジン内蔵定跡の使用</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="278"/>
-        <source>エンジン内蔵の定跡を使用するかどうかです。</source>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="195"/>
+        <source>定跡の部分読み込み</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="281"/>
-        <source>使用する定跡ファイルです。戦型選択に使用されます。</source>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="198"/>
+        <source>最善手に近い定跡手のみの選択</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="284"/>
-        <source>定跡を何手目まで使用するかを設定します。この手数を超えると定跡を参照せずに探索します。</source>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="213"/>
+        <source>定跡選択時の出現頻度考慮</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="287"/>
-        <source>勝率が相対的に低い定跡手を選ばないようにします。より安定した指し手を選択します。</source>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="216"/>
+        <source>定跡の読み筋出力手数</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="290"/>
-        <source>出現頻度の低い定跡手を選ばないようにします。よく指される定跡手のみを使用します。</source>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="219"/>
+        <source>定跡の手数制限無視</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="293"/>
-        <source>探索の深さ（読みの深さ）を制限します。強さのレベル調節に使用できます。100が最大で、小さい値にすると弱くなります。</source>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="222"/>
+        <source>後手定跡の先手定跡からの反転生成</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="297"/>
-        <source>この評価値以下になると技巧が投了します。負の値で設定します。</source>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="251"/>
+        <source>すべての合法手の生成</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="300"/>
-        <source>千日手の評価値です。0が標準で、正の値にすると千日手を狙いやすくなります。</source>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="268"/>
+        <source>定跡の使用</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="303"/>
-        <source>最小思考時間(ミリ秒)です。どんなに時間が少なくても、最低この時間は考えます。</source>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="274"/>
+        <source>定跡使用の手数上限</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="306"/>
-        <source>秒読み時の余裕(ミリ秒)です。時間切れを防ぐためのマージンを設定します。</source>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="277"/>
+        <source>低勝率の定跡手の除外</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="309"/>
-        <source>切れ負けルール時の余裕(秒)です。時間切れを防ぐためのマージンを設定します。</source>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="280"/>
+        <source>低出現頻度の定跡手の除外</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="312"/>
-        <source>フィッシャールール（加算秒あり）時の余裕(ミリ秒)です。時間切れを防ぐためのマージンを設定します。</source>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="286"/>
+        <source>秒読み時の余裕(ミリ秒)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="289"/>
+        <source>切れ負けルール時の余裕(秒)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="292"/>
+        <source>フィッシャールール時の余裕(ミリ秒)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="295"/>
+        <source>技巧が投了する評価値</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="298"/>
+        <source>千日手の評価値</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
