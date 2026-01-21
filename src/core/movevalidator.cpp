@@ -27,17 +27,17 @@ void MoveValidator::checkDoublePawn(const QVector<QChar>& boardData)
 {
     // 筋
     for (int file = 0; file < BOARD_SIZE; ++file) {
-        int pawnCountWhite = 0;
-        int pawnCountBlack = 0;
+        int pawnCountBlack = 0;  // 先手の歩 'P'
+        int pawnCountWhite = 0;  // 後手の歩 'p'
         // 段
         for (int rank = 0; rank < BOARD_SIZE; ++rank) {
             int index = rank * BOARD_SIZE + file;
-            if (boardData[index] == 'P') ++pawnCountWhite;
-            if (boardData[index] == 'p') ++pawnCountBlack;
+            if (boardData[index] == 'P') ++pawnCountBlack;
+            if (boardData[index] == 'p') ++pawnCountWhite;
         }
 
         // 先手あるいは後手の歩が同じ筋に複数存在する場合、二歩が存在すると判定する。
-        if (pawnCountWhite > 1 || pawnCountBlack > 1) {
+        if (pawnCountBlack > 1 || pawnCountWhite > 1) {
             const QString errorMessage = tr("An error occurred in MoveValidator::checkDoublePawn. There is a double pawn situation.");
             emit errorOccurred(errorMessage);
             return; // ★ 打ち切り
@@ -84,18 +84,19 @@ void MoveValidator::checkPieceCount(const QVector<QChar>& boardData, const QMap<
 // 玉が一方の対局者につき一つ存在していることをチェックする。
 void MoveValidator::checkKingPresence(const QVector<QChar>& boardData, const QMap<QChar, int>& pieceStand)
 {
-    // 先手と後手の玉の数をカウントする。
-    int kingCountWhite = pieceStand['K'];
-    int kingCountBlack = pieceStand['k'];
+    Q_UNUSED(pieceStand);  // 玉は持ち駒にできないため使用しない
 
     // 盤面上の先手と後手の玉の数をカウントする。
+    int kingCountBlack = 0;  // 先手の玉 'K'
+    int kingCountWhite = 0;  // 後手の玉 'k'
+
     for (const auto& piece : std::as_const(boardData)) {
-        if (piece == 'K') ++kingCountWhite;
-        if (piece == 'k') ++kingCountBlack;
+        if (piece == 'K') ++kingCountBlack;
+        if (piece == 'k') ++kingCountWhite;
     }
 
     // 先手と後手の玉が一つずつ存在していない場合、エラーになる。
-    if ((kingCountWhite != 1) || (kingCountBlack != 1)) {
+    if ((kingCountBlack != 1) || (kingCountWhite != 1)) {
         const QString errorMessage = tr("An error occurred in MoveValidator::checkKingPresence. There is not exactly one king per player.");
         emit errorOccurred(errorMessage);
         return; // ★ 打ち切り
@@ -449,7 +450,7 @@ LegalMoveStatus MoveValidator::isLegalMove(const Turn& turn, const QVector<QChar
     QVector<ShogiMove> legalMovesList;
 
     //begin
-    std::cout << "Current Shogi move: " << currentMove << std::endl;;
+    // std::cout << "Current Shogi move: " << currentMove << std::endl;
     //end
 
     // 指し手が合法手かどうか判定する。
@@ -1032,7 +1033,7 @@ void MoveValidator::printBitboards(const BoardStateArray& piecePlacedBitboard) c
 }
 
 // 自分の各駒が存在するbitboard中でindexで指定されたマスに味方の駒が存在するかどうかを判定する。
-bool MoveValidator::isPieceOnSquare(int& index, const std::array<std::bitset<NUM_BOARD_SQUARES>, NUM_PIECE_TYPES>& turnBitboards) const
+bool MoveValidator::isPieceOnSquare(int index, const std::array<std::bitset<NUM_BOARD_SQUARES>, NUM_PIECE_TYPES>& turnBitboards) const
 {
     for (int pieceType = 0; pieceType < NUM_PIECE_TYPES; ++pieceType) {
         if (turnBitboards[static_cast<size_t>(pieceType)].test(static_cast<size_t>(index))) {
@@ -1477,6 +1478,14 @@ int MoveValidator::isKingInCheck(const Turn& turn, const QVector<QVector<std::bi
     attackWithoutKingBitboard.reset();
 
     int kingIndex = turn == BLACK ? K_IDX : k_IDX;
+
+    // 玉が盤上に存在しない不正な局面の場合はエラー
+    if (allPieceBitboards[kingIndex].isEmpty()) {
+        const QString errorMessage = tr("An error occurred in MoveValidator::isKingInCheck. The king is not on the board.");
+        emit errorOccurred(errorMessage);
+        return 0;
+    }
+
     const std::bitset<NUM_BOARD_SQUARES>& kingBitboard = allPieceBitboards[kingIndex][0];
     int numChecks = 0;
 
@@ -1638,7 +1647,7 @@ void MoveValidator::generateDropMoveForPiece(QVector<ShogiMove>& allMovesList, c
 
                     if (canDrop) {
                         // 駒台を示す座標
-                        int fromFile = turn == BLACK ? 9 : 10;
+                        int fromFile = turn == BLACK ? BLACK_HAND_FILE : WHITE_HAND_FILE;
                         int fromRank = turn == BLACK ? m_pieceOrderBlack[piece] : m_pieceOrderWhite[piece];
                         allMovesList.append(ShogiMove(QPoint(fromFile, fromRank), QPoint(file, rank), piece, ' ', false));
                     }
@@ -1688,7 +1697,7 @@ void MoveValidator::generateDropPawnMoves(QVector<ShogiMove>& allMovesList, cons
 
                     if (canDrop) {
                         // 駒台を示す座標
-                        int fromFile = turn == BLACK ? 9 : 10;
+                        int fromFile = turn == BLACK ? BLACK_HAND_FILE : WHITE_HAND_FILE;
                         int fromRank = turn == BLACK ? m_pieceOrderBlack[pawn] : m_pieceOrderWhite[pawn];
                         allMovesList.append(ShogiMove(QPoint(fromFile, fromRank), QPoint(file, rank), pawn, ' ', false));
                     }
@@ -1935,7 +1944,7 @@ void MoveValidator::decreasePieceCount(const ShogiMove& move, const QMap<QChar, 
 }
 
 // 駒を成って指した直後の盤面データを作成する。
-void MoveValidator::applyPromotionMovesToBoard(const ShogiMove& move, int& toIndex, QVector<QChar>& boardDataAfterMove) const
+void MoveValidator::applyPromotionMovesToBoard(const ShogiMove& move, int toIndex, QVector<QChar>& boardDataAfterMove) const
 {
     // 駒を成駒に変換するマップ
     static const QMap<QChar, QChar> promotionMap = {
@@ -1958,7 +1967,7 @@ void MoveValidator::applyPromotionMovesToBoard(const ShogiMove& move, int& toInd
 }
 
 // 駒を不成で指した直後の盤面データを作成する。
-void MoveValidator::applyStandardMovesToBoard(const ShogiMove& move, int& toIndex, QVector<QChar>& boardDataAfterMove) const
+void MoveValidator::applyStandardMovesToBoard(const ShogiMove& move, int toIndex, QVector<QChar>& boardDataAfterMove) const
 {
     boardDataAfterMove[toIndex] = move.movingPiece;
 }
@@ -2094,8 +2103,8 @@ bool MoveValidator::isPawnInFrontOfKing(const ShogiMove& currentMove, const Turn
                 // および、移動駒が歩であることを確認
                 if ((currentMove.toSquare.x() == file) &&
                     (currentMove.toSquare.y() == rank + direction) &&
-                    ((turn == BLACK && currentMove.movingPiece == 'P' && currentMove.fromSquare.x() == 9) ||
-                     (turn == WHITE && currentMove.movingPiece == 'p' && currentMove.fromSquare.x() == 10))) {
+                    ((turn == BLACK && currentMove.movingPiece == 'P' && currentMove.fromSquare.x() == BLACK_HAND_FILE) ||
+                     (turn == WHITE && currentMove.movingPiece == 'p' && currentMove.fromSquare.x() == WHITE_HAND_FILE))) {
                     return true;
                 } else {
                     return false;

@@ -52,6 +52,10 @@ public:
     // 将棋盤のマス数
     static constexpr int NUM_BOARD_SQUARES = BOARD_SIZE * BOARD_SIZE;
 
+    // 駒台を表すX座標（fromSquare.x()の値）
+    static constexpr int BLACK_HAND_FILE = BOARD_SIZE;      // 先手の駒台 (9)
+    static constexpr int WHITE_HAND_FILE = BOARD_SIZE + 1;  // 後手の駒台 (10)
+
     // 指し手が合法手かどうかを判定する。
     LegalMoveStatus isLegalMove(const Turn& turn, const QVector<QChar>& boardData, const QMap<QChar, int>& pieceStand, ShogiMove& currentMove);
 
@@ -99,7 +103,7 @@ private:
     void printBitboards(const BoardStateArray& piecePlacedBitboard) const;
 
     // 味方の各駒が存在するbitBoard中でindexで指定されたマスに味方の駒が存在するかどうかを判定する。
-    bool isPieceOnSquare(int& index, const std::array<std::bitset<NUM_BOARD_SQUARES>, NUM_PIECE_TYPES>& turnBitboards) const;
+    bool isPieceOnSquare(int index, const std::array<std::bitset<NUM_BOARD_SQUARES>, NUM_PIECE_TYPES>& turnBitboards) const;
 
     // 盤面データboardDataからtargetPieceに該当する駒が存在するマスを表すbitboardを各駒ごとに作成し、そのリストを返す。
     QVector<std::bitset<NUM_BOARD_SQUARES>> generateIndividualPieceBitboards(const QVector<QChar>& boardData, const QChar& targetPiece) const;
@@ -288,10 +292,10 @@ private:
     void applyMovesToBoard(const ShogiMove& move, const QVector<QChar>& boardData, QVector<QChar>& boardDataAfterMove) const;
 
     // 駒を成って指した直後の盤面データを作成する。
-    void applyPromotionMovesToBoard(const ShogiMove& move, int& toIndex, QVector<QChar>& boardDataAfterMove) const;
+    void applyPromotionMovesToBoard(const ShogiMove& move, int toIndex, QVector<QChar>& boardDataAfterMove) const;
 
     // 駒を不成で指した直後の盤面データを作成する。
-    void applyStandardMovesToBoard(const ShogiMove& move, int& toIndex, QVector<QChar>& boardDataAfterMove) const;
+    void applyStandardMovesToBoard(const ShogiMove& move, int toIndex, QVector<QChar>& boardDataAfterMove) const;
 
     // 駒を持ち駒から打った後の持ち駒数を更新する。
     void decreasePieceCount(const ShogiMove& move, const QMap<QChar, int>& pieceStand, QMap<QChar, int>& pieceStandAfterMove);
