@@ -3715,108 +3715,113 @@ Please restart the application to apply the changes.</translation>
         <translation>An error occurred in MoveValidator::checkPieceCount. The number of pieces exceeds the maximum allowed.</translation>
     </message>
     <message>
-        <location filename="../../src/core/movevalidator.cpp" line="99"/>
+        <location filename="../../src/core/movevalidator.cpp" line="100"/>
         <source>An error occurred in MoveValidator::checkKingPresence. There is not exactly one king per player.</source>
         <translation>An error occurred in MoveValidator::checkKingPresence. There is not exactly one king per player.</translation>
     </message>
     <message>
-        <location filename="../../src/core/movevalidator.cpp" line="126"/>
+        <location filename="../../src/core/movevalidator.cpp" line="127"/>
         <source>An error occurred in MoveValidator::checkCorrectPosition. A piece that should be promoted is in an incorrect position.</source>
         <translation>An error occurred in MoveValidator::checkCorrectPosition. A piece that should be promoted is in an incorrect position.</translation>
     </message>
     <message>
-        <location filename="../../src/core/movevalidator.cpp" line="156"/>
+        <location filename="../../src/core/movevalidator.cpp" line="157"/>
         <source>An error occurred in MoveValidator::validateMoveFileValue. Validation Error: The file value of the move is incorrect.</source>
         <translation>An error occurred in MoveValidator::validateMoveFileValue. Validation Error: The file value of the move is incorrect.</translation>
     </message>
     <message>
-        <location filename="../../src/core/movevalidator.cpp" line="175"/>
+        <location filename="../../src/core/movevalidator.cpp" line="176"/>
         <source>An error occurred in MoveValidator::validateMovingPiece. Validation Error: The rank value of the move is out of bounds.</source>
         <translation>An error occurred in MoveValidator::validateMovingPiece. Validation Error: The rank value of the move is out of bounds.</translation>
     </message>
     <message>
-        <location filename="../../src/core/movevalidator.cpp" line="186"/>
+        <location filename="../../src/core/movevalidator.cpp" line="187"/>
         <source>An error occurred in MoveValidator::validateMovingPiece. Validation Error: The board index is out of bounds.</source>
         <translation>An error occurred in MoveValidator::validateMovingPiece. Validation Error: The board index is out of bounds.</translation>
     </message>
     <message>
-        <location filename="../../src/core/movevalidator.cpp" line="195"/>
+        <location filename="../../src/core/movevalidator.cpp" line="196"/>
         <source>An error occurred in MoveValidator::validateMovingPiece. Validation Error: The piece in the move does not match the piece on the square.</source>
         <translation>An error occurred in MoveValidator::validateMovingPiece. Validation Error: The piece in the move does not match the piece on the square.</translation>
     </message>
     <message>
-        <location filename="../../src/core/movevalidator.cpp" line="236"/>
+        <location filename="../../src/core/movevalidator.cpp" line="237"/>
         <source>An error occurred in MoveValidator::validatePieceStand. The number of pieces in the stand of the player moving is not positive.</source>
         <translation>An error occurred in MoveValidator::validatePieceStand. The number of pieces in the stand of the player moving is not positive.</translation>
     </message>
     <message>
-        <location filename="../../src/core/movevalidator.cpp" line="244"/>
+        <location filename="../../src/core/movevalidator.cpp" line="245"/>
         <source>An error occurred in MoveValidator::validatePieceStand. It&apos;s White&apos;s turn, but trying to drop a piece from Black&apos;s piece stand.</source>
         <translation>An error occurred in MoveValidator::validatePieceStand. It&apos;s White&apos;s turn, but trying to drop a piece from Black&apos;s piece stand.</translation>
     </message>
     <message>
-        <location filename="../../src/core/movevalidator.cpp" line="257"/>
+        <location filename="../../src/core/movevalidator.cpp" line="258"/>
         <source>An error occurred in MoveValidator::validatePieceStand. The number of pieces on White&apos;s piece stand to drop is not positive.</source>
         <translation>An error occurred in MoveValidator::validatePieceStand. The number of pieces on White&apos;s piece stand to drop is not positive.</translation>
     </message>
     <message>
-        <location filename="../../src/core/movevalidator.cpp" line="265"/>
+        <location filename="../../src/core/movevalidator.cpp" line="266"/>
         <source>An error occurred in MoveValidator::validatePieceStand. It&apos;s Black&apos;s turn, but trying to drop a piece from White&apos;s piece stand.</source>
         <translation>An error occurred in MoveValidator::validatePieceStand. It&apos;s Black&apos;s turn, but trying to drop a piece from White&apos;s piece stand.</translation>
     </message>
     <message>
-        <location filename="../../src/core/movevalidator.cpp" line="285"/>
+        <location filename="../../src/core/movevalidator.cpp" line="286"/>
         <source>An error occurred in MoveValidator::validateCapturedPiece. The captured piece does not match the piece on the destination square of the board.</source>
         <translation>An error occurred in MoveValidator::validateCapturedPiece. The captured piece does not match the piece on the destination square of the board.</translation>
     </message>
     <message>
-        <location filename="../../src/core/movevalidator.cpp" line="420"/>
+        <location filename="../../src/core/movevalidator.cpp" line="421"/>
         <source>An error occurred in MoveValidator::isLegalMove. Validation Error: The position is already in check. Making another move is incorrect.</source>
         <translation>An error occurred in MoveValidator::isLegalMove. Validation Error: The position is already in check. Making another move is incorrect.</translation>
     </message>
     <message>
-        <location filename="../../src/core/movevalidator.cpp" line="482"/>
+        <location filename="../../src/core/movevalidator.cpp" line="483"/>
         <source>An error occurred in MoveValidator::isBoardMoveValid. The piece in the move is not a king.</source>
         <translation>An error occurred in MoveValidator::isBoardMoveValid. The piece in the move is not a king.</translation>
     </message>
     <message>
-        <location filename="../../src/core/movevalidator.cpp" line="551"/>
+        <location filename="../../src/core/movevalidator.cpp" line="552"/>
         <source>An error occurred in MoveValidator::isHandPieceMoveValid. In the case of double check, dropping a piece from the piece stand is not possible.</source>
         <translation>An error occurred in MoveValidator::isHandPieceMoveValid. In the case of double check, dropping a piece from the piece stand is not possible.</translation>
     </message>
     <message>
-        <location filename="../../src/core/movevalidator.cpp" line="559"/>
+        <location filename="../../src/core/movevalidator.cpp" line="560"/>
         <source>An error occurred in MoveValidator::isHandPieceMoveValid. The number of pieces putting the player&apos;s king in check is 3 or more.</source>
         <translation>An error occurred in MoveValidator::isHandPieceMoveValid. The number of pieces putting the player&apos;s king in check is 3 or more.</translation>
     </message>
     <message>
-        <location filename="../../src/core/movevalidator.cpp" line="584"/>
+        <location filename="../../src/core/movevalidator.cpp" line="585"/>
         <source>An error occurred in MoveValidator::generateLegalMovesForPiece. The piece to be dropped does not exist in the piece stand.</source>
         <translation>An error occurred in MoveValidator::generateLegalMovesForPiece. The piece to be dropped does not exist in the piece stand.</translation>
     </message>
     <message>
-        <location filename="../../src/core/movevalidator.cpp" line="614"/>
+        <location filename="../../src/core/movevalidator.cpp" line="615"/>
         <source>An error occurred in MoveValidator::generateLegalMovesForPiece. The character representing the piece to be dropped is incorrect.</source>
         <translation>An error occurred in MoveValidator::generateLegalMovesForPiece. The character representing the piece to be dropped is incorrect.</translation>
     </message>
     <message>
-        <location filename="../../src/core/movevalidator.cpp" line="768"/>
+        <location filename="../../src/core/movevalidator.cpp" line="769"/>
         <source>An error occurred in MoveValidator::generateLegalMoves. The position is already in check. Making another move is incorrect.</source>
         <translation>An error occurred in MoveValidator::generateLegalMoves. The position is already in check. Making another move is incorrect.</translation>
     </message>
     <message>
-        <location filename="../../src/core/movevalidator.cpp" line="1507"/>
+        <location filename="../../src/core/movevalidator.cpp" line="1484"/>
+        <source>An error occurred in MoveValidator::isKingInCheck. The king is not on the board.</source>
+        <translation>An error occurred in MoveValidator::isKingInCheck. The king is not on the board.</translation>
+    </message>
+    <message>
+        <location filename="../../src/core/movevalidator.cpp" line="1516"/>
         <source>An error occurred in MoveValidator::isKingInCheck. The player&apos;s king is checked by three or more pieces at the same time.</source>
         <translation>An error occurred in MoveValidator::isKingInCheck. The player&apos;s king is checked by three or more pieces at the same time.</translation>
     </message>
     <message>
-        <location filename="../../src/core/movevalidator.cpp" line="1923"/>
-        <location filename="../../src/core/movevalidator.cpp" line="1930"/>
+        <location filename="../../src/core/movevalidator.cpp" line="1932"/>
+        <location filename="../../src/core/movevalidator.cpp" line="1939"/>
         <source>An error occurred in MoveValidator::decreasePieceCount. There is no piece of %1.</source>
         <translation>An error occurred in MoveValidator::decreasePieceCount. There is no piece of %1.</translation>
     </message>
     <message>
-        <location filename="../../src/core/movevalidator.cpp" line="2070"/>
+        <location filename="../../src/core/movevalidator.cpp" line="2079"/>
         <source>An error occurred in MoveValidator::validateMoveWithoutChecks. Dropping a pawn to give checkmate is not allowed.</source>
         <translation>An error occurred in MoveValidator::validateMoveWithoutChecks. Dropping a pawn to give checkmate is not allowed.</translation>
     </message>
