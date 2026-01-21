@@ -2,25 +2,32 @@
 #include "changeenginesettingsdialog.h"
 #include "ui_considerationdialog.h"
 #include "enginesettingsconstants.h"
+#include "settingsservice.h"
 #include <QFile>
 #include <QTextStream>
 #include <QMessageBox>
+#include <QToolButton>
 
 using namespace EngineSettingsConstants;
 
 // 検討ダイアログを表示する。
 // コンストラクタ
 ConsiderationDialog::ConsiderationDialog(QWidget *parent)
-    : QDialog(parent), ui(new Ui::ConsiderationDialog)
+    : QDialog(parent)
+    , ui(new Ui::ConsiderationDialog)
+    , m_fontSize(SettingsService::considerationDialogFontSize())
 {
     // UIをセットアップする。
     ui->setupUi(this);
 
-    // "開始局面から"にチェックを入れる。
-    ui->unlimitedTimeRadioButton->setChecked(true);
+    // フォントサイズを適用
+    applyFontSize();
 
     // 設定ファイルからエンジンの名前とディレクトリを読み込む。
     readEngineNameAndDir();
+
+    // 保存された設定を復元する
+    loadSettings();
 
     // エンジン設定ボタンが押されたときの処理
     connect(ui->engineSetting, &QPushButton::clicked, this, &ConsiderationDialog::showEngineSettingsDialog);
@@ -33,6 +40,10 @@ ConsiderationDialog::ConsiderationDialog(QWidget *parent)
 
     // キャンセルボタンが押された場合、ダイアログを拒否する動作を行う。
     connect(ui->buttonBox, &QDialogButtonBox::rejected, this, &ConsiderationDialog::reject);
+
+    // フォントサイズボタン
+    connect(ui->toolButtonFontIncrease, &QToolButton::clicked, this, &ConsiderationDialog::onFontIncrease);
+    connect(ui->toolButtonFontDecrease, &QToolButton::clicked, this, &ConsiderationDialog::onFontDecrease);
 }
 
 // デストラクタ
@@ -110,6 +121,9 @@ void ConsiderationDialog::processEngineSettings()
         m_unlimitedTimeFlag = false;
         m_byoyomiSec = ui->byoyomiSec->text().toInt();
     }
+
+    // 設定を保存する
+    saveSettings();
 }
 
 // 設定ファイルからエンジンの名前とディレクトリを読み込む。
@@ -149,4 +163,72 @@ void ConsiderationDialog::readEngineNameAndDir()
 const QList<ConsiderationDialog::Engine>& ConsiderationDialog::getEngineList() const
 {
     return engineList;
+}
+
+// フォントサイズを大きくする
+void ConsiderationDialog::onFontIncrease()
+{
+    updateFontSize(1);
+}
+
+// フォントサイズを小さくする
+void ConsiderationDialog::onFontDecrease()
+{
+    updateFontSize(-1);
+}
+
+// フォントサイズを更新する
+void ConsiderationDialog::updateFontSize(int delta)
+{
+    m_fontSize += delta;
+    if (m_fontSize < 8) m_fontSize = 8;
+    if (m_fontSize > 24) m_fontSize = 24;
+
+    applyFontSize();
+
+    // SettingsServiceに保存
+    SettingsService::setConsiderationDialogFontSize(m_fontSize);
+}
+
+// ダイアログ全体にフォントサイズを適用する
+void ConsiderationDialog::applyFontSize()
+{
+    QFont font = this->font();
+    font.setPointSize(m_fontSize);
+    this->setFont(font);
+}
+
+// 保存された設定を読み込む
+void ConsiderationDialog::loadSettings()
+{
+    // 最後に選択したエンジン番号を復元
+    int engineIndex = SettingsService::considerationEngineIndex();
+    if (engineIndex >= 0 && engineIndex < ui->comboBoxEngine1->count()) {
+        ui->comboBoxEngine1->setCurrentIndex(engineIndex);
+    }
+
+    // 時間設定を復元
+    bool unlimitedTime = SettingsService::considerationUnlimitedTime();
+    if (unlimitedTime) {
+        ui->unlimitedTimeRadioButton->setChecked(true);
+    } else {
+        ui->considerationTimeRadioButton->setChecked(true);
+    }
+
+    // 検討時間（秒）を復元
+    int byoyomiSec = SettingsService::considerationByoyomiSec();
+    ui->byoyomiSec->setValue(byoyomiSec);
+}
+
+// 設定を保存する
+void ConsiderationDialog::saveSettings()
+{
+    // エンジン番号を保存
+    SettingsService::setConsiderationEngineIndex(m_engineNumber);
+
+    // 時間無制限フラグを保存
+    SettingsService::setConsiderationUnlimitedTime(m_unlimitedTimeFlag);
+
+    // 検討時間（秒）を保存
+    SettingsService::setConsiderationByoyomiSec(ui->byoyomiSec->value());
 }

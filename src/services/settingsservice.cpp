@@ -748,4 +748,68 @@ void setEngineRegistrationDialogSize(const QSize& size)
     s.setValue("EngineRegistration/dialogSize", size);
 }
 
+// ★ 追加: 検討ダイアログのフォントサイズを取得
+int considerationDialogFontSize()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("FontSize/considerationDialog", 10).toInt();
+}
+
+// ★ 追加: 検討ダイアログのフォントサイズを保存
+void setConsiderationDialogFontSize(int size)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("FontSize/considerationDialog", size);
+}
+
+// ★ 追加: 検討ダイアログの最後に選択したエンジン番号を取得
+int considerationEngineIndex()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("Consideration/engineIndex", 0).toInt();
+}
+
+// ★ 追加: 検討ダイアログの最後に選択したエンジン番号を保存
+void setConsiderationEngineIndex(int index)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("Consideration/engineIndex", index);
+}
+
+// ★ 追加: 検討ダイアログの時間無制限フラグを取得
+bool considerationUnlimitedTime()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("Consideration/unlimitedTime", true).toBool();
+}
+
+// ★ 追加: 検討ダイアログの時間無制限フラグを保存
+void setConsiderationUnlimitedTime(bool unlimited)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("Consideration/unlimitedTime", unlimited);
+}
+
+// ★ 追加: 検討ダイアログの検討時間（秒）を取得
+int considerationByoyomiSec()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("Consideration/byoyomiSec", 0).toInt();
+}
+
+// ★ 追加: 検討ダイアログの検討時間（秒）を保存
+void setConsiderationByoyomiSec(int sec)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("Consideration/byoyomiSec", sec);
+}
+
 } // namespace SettingsService
