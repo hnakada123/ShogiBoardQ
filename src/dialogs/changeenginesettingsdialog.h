@@ -69,7 +69,7 @@ private:
     QList<EngineOption> m_optionList;
 
     // エンジンオプションウィジェットのレイアウト
-    QVBoxLayout* optionWidgetsLayout;
+    QVBoxLayout* m_optionWidgetsLayout;
 
     // オプションUIのためのウィジェットを格納する構造体
     // 各メンバー変数は、デフォルトではnullptrに設定しておく。
@@ -108,9 +108,6 @@ private:
 
     // 現在のフォントサイズ
     int m_fontSize;
-
-    // 開くファイル名
-    QString m_openFileName;
 
     // 設定ファイルから選択したエンジンのオプションを読み込む。
     void readEngineOptions();

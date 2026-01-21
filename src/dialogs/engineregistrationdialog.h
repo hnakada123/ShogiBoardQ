@@ -124,8 +124,8 @@ private:
     // 設定ファイルにエンジン名と絶対パス付きの実行ファイル名を書き込む。
     void saveEnginesToSettingsFile() const;
 
-    // usiコマンドの出力からエンジンオプションを取り出す。
-    void getEngineOptions();
+    // usiコマンドの出力からエンジンオプションを解析・処理する。
+    void parseEngineOptionsFromUsiOutput();
 
     // 設定ファイルに追加エンジンのオプションを書き込む。；
     void saveEngineOptionsToSettings() const;
@@ -145,11 +145,11 @@ private:
     // comboタイプのオプションの文字列を作成する。
     void concatenateComboOptionValues();
 
-    // 将棋エンジンを起動し、対局開始に関するコマンドを送信する。
-    void startAndInitializeEngine(const QString& engineFile);
-
     // 将棋エンジンを起動する。
     void startEngine(const QString& engineFile);
+
+    // エンジンプロセスをクリーンアップする。
+    void cleanupEngineProcess();
 
     // usiコマンドを将棋エンジンに送信する。
     void sendUsiCommand() const;
@@ -157,8 +157,8 @@ private:
     // quitコマンドを将棋エンジンに送信する。
     void sendQuitCommand() const;
 
-    // 登録したいエンジンが既に登録されている場合、重複エラーのメッセージを表示する。
-    void duplicateEngine();
+    // エンジン名が重複している場合、重複エラーのメッセージを表示する。
+    void showDuplicateEngineByNameError();
 
     // 設定ファイルからエンジン名と絶対パス付きの実行ファイル名を読み込み、GUIのリストウィジェットにエンジン名を追加する。
     void loadEnginesFromSettings();
@@ -172,8 +172,8 @@ private:
     // 将棋エンジンからの出力を解析する。
     void parseEngineOutput(const QString& line);
 
-    // エンジン登録が重複している場合、重複エラーのメッセージを表示する。
-    void handleDuplicateEngine(const QString& engineName);
+    // エンジンパスが重複している場合、重複エラーのメッセージを表示する。
+    void showDuplicateEngineByPathError(const QString& engineName);
 
     // エンジン名と絶対パスでの実行ファイル名を取得する。
     void processIdName(const QString& line);
