@@ -63,6 +63,7 @@ public:
         bool      bottomIsP1 = true;  // 「人を手前」初期希望
         QWidget*  startDialog = nullptr; // 持ち時間UI（QWidgetなら型不問：objectNameとproperty参照）
         ShogiClock* clock = nullptr;     // 任意（参照のみ）
+        bool      skipCleanup = false;   // trueなら requestPreStartCleanup をスキップ（既に呼び出し済みの場合）
     };
 
     struct Ctx {
@@ -162,6 +163,9 @@ signals:
     // ★追加：連続対局設定（EvE対局時のみ使用）
     // totalGames: 連続対局数（合計）, switchTurn: 1局ごとに手番を入れ替えるか
     void consecutiveGamesConfigured(int totalGames, bool switchTurn);
+
+    // ★追加：対局開始後に棋譜欄の指定行を選択する（現在局面から開始時に使用）
+    void requestSelectKifuRow(int row);
 
 private:
     bool validate(const StartParams& params, QString& whyNot) const;

@@ -345,7 +345,16 @@ void BoardSyncPresenter::syncBoardAndHighlightsAtRow(int ply) const
     if (!ok) {
         // フォールバック：対局中に積んだ m_gameMoves（HvH等）を参照
         const int mvIdx = safePly - 1;
+        qDebug().noquote() << "[PRESENTER] highlight: SFEN diff failed, trying fallback"
+                           << " safePly=" << safePly
+                           << " mvIdx=" << mvIdx
+                           << " gameMoves=" << (m_gameMoves ? QString::number(m_gameMoves->size()) : "null")
+                           << " prev=" << prev.left(50)
+                           << " curr=" << curr.left(50);
         if (!m_gameMoves || mvIdx < 0 || mvIdx >= m_gameMoves->size()) {
+            qDebug().noquote() << "[PRESENTER] highlight: fallback FAILED, clearing highlights"
+                               << " reason=" << (!m_gameMoves ? "gameMoves null" :
+                                                 (mvIdx < 0 ? "mvIdx<0" : "mvIdx>=size"));
             m_bic->clearAllHighlights();
             return;
         }

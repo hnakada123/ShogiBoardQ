@@ -1067,23 +1067,36 @@ void MainWindow::setCurrentTurn()
 
 QString MainWindow::resolveCurrentSfenForGameStart() const
 {
+    qDebug().noquote() << "[DEBUG] resolveCurrentSfenForGameStart: m_currentSelectedPly=" << m_currentSelectedPly
+                       << " m_sfenRecord=" << (m_sfenRecord ? "exists" : "null")
+                       << " size=" << (m_sfenRecord ? m_sfenRecord->size() : -1);
+
     // 1) 棋譜SFENリストの「選択手」から取得（最優先）
     if (m_sfenRecord) {
         const qsizetype size = m_sfenRecord->size();
         // m_currentSelectedPly が [0..size-1] のインデックスである前提（本プロジェクトの慣習）
         // 1始まりの場合はプロジェクト実装に合わせて +0 / -1 調整してください。
         int idx = m_currentSelectedPly;
+        qDebug().noquote() << "[DEBUG] resolveCurrentSfenForGameStart: initial idx=" << idx;
         if (idx < 0) {
             // 0手目（開始局面）などのとき
             idx = 0;
         }
+        // ★修正: 投了行など、m_sfenRecordの範囲外を指している場合は
+        // 最後の有効なSFEN（対局終了時点の局面）を使用する
+        if (idx >= size && size > 0) {
+            qDebug().noquote() << "[DEBUG] resolveCurrentSfenForGameStart: idx(" << idx << ") >= size(" << size << "), clamping to " << (size - 1);
+            idx = static_cast<int>(size - 1);
+        }
         if (idx >= 0 && idx < size) {
             const QString s = m_sfenRecord->at(idx).trimmed();
+            qDebug().noquote() << "[DEBUG] resolveCurrentSfenForGameStart: at(" << idx << ")=" << s.left(50);
             if (!s.isEmpty()) return s;
         }
     }
 
     // 2) フォールバックなし（司令塔側が安全に処理）
+    qDebug().noquote() << "[DEBUG] resolveCurrentSfenForGameStart: returning EMPTY";
     return QString();
 }
 
@@ -1099,9 +1112,12 @@ void MainWindow::initializeGame()
 
     // 現在の局面SFEN（棋譜レコードから最優先で取得）
     {
+        qDebug().noquote() << "[DEBUG] initializeGame: BEFORE resolve, m_currentSfenStr=" << m_currentSfenStr.left(50);
         const QString sfen = resolveCurrentSfenForGameStart().trimmed();
+        qDebug().noquote() << "[DEBUG] initializeGame: resolved sfen=" << sfen.left(50);
         if (!sfen.isEmpty()) {
             m_currentSfenStr = sfen;
+            qDebug().noquote() << "[DEBUG] initializeGame: SET m_currentSfenStr=" << m_currentSfenStr.left(50);
         } else {
             // 何も取れないケースは珍しいが、空のままでも司令塔側で安全にフォールバックされる。
             // ここでは何もしない（ログのみ）
@@ -1109,11 +1125,16 @@ void MainWindow::initializeGame()
         }
     }
 
+    qDebug().noquote() << "[DEBUG] initializeGame: FINAL m_currentSfenStr=" << m_currentSfenStr.left(50)
+                       << " m_startSfenStr=" << m_startSfenStr.left(50)
+                       << " m_currentSelectedPly=" << m_currentSelectedPly;
+
     GameStartCoordinator::Ctx c;
     c.view            = m_shogiView;
     c.gc              = m_gameController;
     c.clock           = m_timeController ? m_timeController->clock() : nullptr;
     c.sfenRecord      = m_sfenRecord;          // QStringList*
+    c.kifuModel       = m_kifuRecordModel;     // ★ 棋譜欄モデル（終端行削除に使用）
     c.currentSfenStr  = &m_currentSfenStr;     // 現局面の SFEN（ここで事前決定済み）
     c.startSfenStr    = &m_startSfenStr;       // 開始SFENは明示的に空（優先度を逆転）
     c.selectedPly     = m_currentSelectedPly;  // 1始まり/0始まりはプロジェクト規約に準拠
@@ -1601,6 +1622,25 @@ void MainWindow::startNextConsecutiveGame()
         // 同期用に状態を更新
         m_consecutiveGamesRemaining = m_consecutiveGamesController->remainingGames();
         m_consecutiveGameNumber = m_consecutiveGamesController->currentGameNumber();
+    }
+}
+
+void MainWindow::onRequestSelectKifuRow(int row)
+{
+    qDebug().noquote() << "[MW] onRequestSelectKifuRow: row=" << row;
+
+    // 棋譜欄の指定行を選択
+    if (m_recordPane) {
+        if (QTableView* view = m_recordPane->kifuView()) {
+            if (view->model() && row >= 0 && row < view->model()->rowCount()) {
+                const QModelIndex idx = view->model()->index(row, 0);
+                view->setCurrentIndex(idx);
+                qDebug().noquote() << "[MW] onRequestSelectKifuRow: selected row=" << row;
+
+                // 盤面・ハイライトも同期
+                syncBoardAndHighlightsAtRow(row);
+            }
+        }
     }
 }
 
@@ -2779,6 +2819,11 @@ void MainWindow::ensureGameStartCoordinator()
     // ★ 追加: 盤面反転シグナルを接続（人を手前に表示する機能用）
     connect(m_gameStart, &GameStartCoordinator::boardFlipped,
             this, &MainWindow::onBoardFlipped,
+            Qt::UniqueConnection);
+
+    // ★ 追加: 現在局面から開始時、対局開始後に棋譜欄の指定行を選択
+    connect(m_gameStart, &GameStartCoordinator::requestSelectKifuRow,
+            this, &MainWindow::onRequestSelectKifuRow,
             Qt::UniqueConnection);
 }
 

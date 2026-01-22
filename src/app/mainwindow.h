@@ -321,6 +321,9 @@ private slots:
     // 連続対局: 次の対局を開始
     void startNextConsecutiveGame();
 
+    // 対局開始後に棋譜欄の指定行を選択
+    void onRequestSelectKifuRow(int row);
+
     // ========================================================
     // private
     // ========================================================
