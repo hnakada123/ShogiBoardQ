@@ -54,6 +54,12 @@ void ShogiGameController::newGame(QString& initialSfenString)
 
     // 現在の手番をNoPlayerに設定する。
     setCurrentPlayer(NoPlayer);
+
+    // ★ 前の手の移動先をリセット（「同」表記の判定用）
+    // これがないと、前の対局の最終手の移動先が残り、
+    // 新しい対局の最初の手が誤って「同」と表示されてしまう
+    previousFileTo = 0;
+    previousRankTo = 0;
 }
 
 // 将棋盤を示すポインタm_boardを作成する。
