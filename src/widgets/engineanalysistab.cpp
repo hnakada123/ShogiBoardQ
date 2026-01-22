@@ -731,9 +731,14 @@ void EngineAnalysisTab::rebuildBranchTree()
     }
 
     // ===== 分岐 row=1.. =====
+    qDebug().noquote() << "[EAT] rebuildBranchTree: m_rows.size=" << m_rows.size();
     for (qsizetype row = 1; row < m_rows.size(); ++row) {
         const auto& rv = m_rows.at(row);
         const int startPly = qMax(1, rv.startPly);      // 1-origin
+        qDebug().noquote() << "[EAT] rebuildBranchTree: row=" << row
+                           << " startPly=" << startPly
+                           << " rv.disp.size=" << rv.disp.size()
+                           << " rv.parent=" << rv.parent;
 
         // 1) 親行を決定
         const int parentRow = resolveParentRowForVariation(static_cast<int>(row));
@@ -798,7 +803,12 @@ void EngineAnalysisTab::rebuildBranchTree()
         const int cut   = startPly;                       // disp[startPly]がstartPly手目
         const qsizetype total = rv.disp.size();
         const int take  = (cut < total) ? static_cast<int>(total - cut) : 0;
-        if (take <= 0) continue;                              // 描くもの無し
+        qDebug().noquote() << "[EAT] rebuildBranchTree: row=" << row
+                           << " cut=" << cut << " total=" << total << " take=" << take;
+        if (take <= 0) {
+            qDebug().noquote() << "[EAT] rebuildBranchTree: SKIPPING row=" << row << " (no moves to draw)";
+            continue;                              // 描くもの無し
+        }
 
         // 4) 切り出した手だけを絶対手数で並べる（absPly = startPly + i）
         for (int i = 0; i < take; ++i) {

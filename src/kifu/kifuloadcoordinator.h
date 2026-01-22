@@ -161,6 +161,7 @@ private:
     KifuBranchListModel* m_kifuBranchModel;
     BranchCandidatesController* m_branchCtl;
     int m_branchPlyContext = -1;
+    int m_liveBranchAnchorPly = -1;  // ライブ分岐の起点（再対局時に設定、対局中は変更しない）
     QSet<int> m_branchablePlySet;
     QHash<int, QHash<QString, QList<BranchCandidate>>> m_branchIndex;
     // 行(row) → (ply → 表示計画) の保持

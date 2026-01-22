@@ -3049,6 +3049,11 @@ void MainWindow::showGameOverMessageBox(const QString& title, const QString& mes
 
 void MainWindow::onRecordPaneMainRowChanged(int row)
 {
+    // 再入防止
+    static bool s_inProgress = false;
+    if (s_inProgress) return;
+    s_inProgress = true;
+
     qDebug() << "[MW-DEBUG] onRecordPaneMainRowChanged_ ENTER row=" << row;
 
     // RecordNavigationControllerに委譲
@@ -3058,6 +3063,14 @@ void MainWindow::onRecordPaneMainRowChanged(int row)
         m_recordNavController->setCsaGameCoordinator(m_csaGameCoordinator);
         m_recordNavController->setEvalGraphController(m_evalGraphController);
         m_recordNavController->onMainRowChanged(row);
+    }
+
+    // ★ 追加：分岐候補欄の更新（KifuLoadCoordinator経由）
+    // 分岐がある場合（m_resolvedRows.size() > 1）のみ更新する
+    // showBranchCandidates を直接呼び出す（onMainMoveRowChanged は applyResolvedRowAndSelect を
+    // 呼び出し、それが棋譜欄の選択を変更して無限ループを引き起こすため）
+    if (m_kifuLoadCoordinator && m_resolvedRows.size() > 1) {
+        m_kifuLoadCoordinator->showBranchCandidates(m_activeResolvedRow, row);
     }
 
     // m_currentSfenStrを現在の局面に更新
@@ -3070,6 +3083,8 @@ void MainWindow::onRecordPaneMainRowChanged(int row)
     updateJosekiWindow();
 
     qDebug() << "[MW-DEBUG] onRecordPaneMainRowChanged_ LEAVE";
+
+    s_inProgress = false;
 }
 
 // ===== MainWindow.cpp: ライブ用の KifuLoadCoordinator を確保 =====

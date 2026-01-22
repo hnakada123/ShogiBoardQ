@@ -1253,11 +1253,17 @@ void KifuLoadCoordinator::showRecordAtPly(const QList<KifDisplayItem>& disp, int
 
 void KifuLoadCoordinator::showBranchCandidatesFromPlan(int row, int ply1)
 {
+    qDebug().noquote() << "[KLC-DEBUG] showBranchCandidatesFromPlan: row=" << row
+                       << "ply1=" << ply1
+                       << "m_branchDisplayPlan.size=" << m_branchDisplayPlan.size()
+                       << "m_resolvedRows.size=" << m_resolvedRows.size();
+
     // モデル/ビュー参照
     QTableView* view = m_recordPane ? m_recordPane->branchView() : nullptr;
 
     // 行・手の安全化（不正時はクリア＆ボタン非表示）
     if (ply1 <= 0 || row < 0 || row >= m_resolvedRows.size()) {
+        qDebug().noquote() << "[KLC-DEBUG] showBranchCandidatesFromPlan: early return (invalid row/ply1)";
         if (m_kifuBranchModel) {
             m_kifuBranchModel->clearBranchCandidates();
             m_kifuBranchModel->setHasBackToMainRow(false);
@@ -1276,8 +1282,29 @@ void KifuLoadCoordinator::showBranchCandidatesFromPlan(int row, int ply1)
     }
 
     // 行→(手→計画) テーブルから該当プランを取得
-    const auto rowIt = m_branchDisplayPlan.constFind(row);
-    if (rowIt == m_branchDisplayPlan.constEnd()) {
+    // ★修正：指定行で見つからない場合は本譜（row=0）からも探す
+    int lookupRow = row;
+    auto rowIt = m_branchDisplayPlan.constFind(lookupRow);
+    bool found = (rowIt != m_branchDisplayPlan.constEnd()) && rowIt.value().contains(ply1);
+
+    qDebug().noquote() << "[KLC-DEBUG] showBranchCandidatesFromPlan: first lookup row=" << lookupRow
+                       << "found=" << found;
+
+    // 指定行で見つからず、かつ指定行が本譜でない場合は本譜を試す
+    if (!found && row != 0) {
+        lookupRow = 0;
+        rowIt = m_branchDisplayPlan.constFind(lookupRow);
+        found = (rowIt != m_branchDisplayPlan.constEnd()) && rowIt.value().contains(ply1);
+        qDebug().noquote() << "[KLC-DEBUG] showBranchCandidatesFromPlan: fallback to row=0, found=" << found;
+    }
+
+    if (!found || rowIt == m_branchDisplayPlan.constEnd()) {
+        qDebug().noquote() << "[KLC-DEBUG] showBranchCandidatesFromPlan: no plan found, clearing";
+        // ダンプ：m_branchDisplayPlan の内容
+        for (auto it = m_branchDisplayPlan.constBegin(); it != m_branchDisplayPlan.constEnd(); ++it) {
+            qDebug().noquote() << "[KLC-DEBUG]   m_branchDisplayPlan[" << it.key() << "] has plys: "
+                               << it.value().keys();
+        }
         if (m_kifuBranchModel) {
             m_kifuBranchModel->clearBranchCandidates();
             m_kifuBranchModel->setHasBackToMainRow(false);
@@ -1314,6 +1341,13 @@ void KifuLoadCoordinator::showBranchCandidatesFromPlan(int row, int ply1)
     }
 
     const BranchCandidateDisplay& plan = itP.value();
+
+    qDebug().noquote() << "[KLC-DEBUG] showBranchCandidatesFromPlan: plan.items.size=" << plan.items.size()
+                       << "lookupRow=" << lookupRow << "baseLabel=" << plan.baseLabel;
+    for (int i = 0; i < plan.items.size(); ++i) {
+        qDebug().noquote() << "[KLC-DEBUG]   plan.items[" << i << "]: row=" << plan.items[i].row
+                           << "label=" << plan.items[i].label << "lineName=" << plan.items[i].lineName;
+    }
 
     // （必要なら）現在指し手のラベルを取得しておく（候補リスト選択合わせ用）
     // ply1 手目の指し手を取得（disp配列は index 0 = 開始局面、index 1 = 1手目、...）
@@ -2597,19 +2631,23 @@ void KifuLoadCoordinator::updateBranchTreeFromLive(int currentPly)
     // 3) アンカー手（「現在の局面から開始」）の決定
     // ★修正: m_resolvedRowsが1行（本譜のみ）の場合は、常に startFromCurrentPos = false
     // これにより、CSA通信対局や新規対局で分岐が誤って作成されることを防ぐ
+    // ★修正2: m_liveBranchAnchorPlyを使用（ナビゲーションで変わるm_branchPlyContextではなく）
     bool startFromCurrentPos = false;
     int anchorPly = 0;
 
     if (m_resolvedRows.size() > 1) {
         // 分岐がある場合のみ、「現在の局面から開始」モードを考慮
-        anchorPly = (m_branchPlyContext >= 0)
-                        ? m_branchPlyContext
-                        : qMax(0, m_currentSelectedPly);
+        // ★ m_liveBranchAnchorPlyがあればそれを使用（setupBranchForResumeFromCurrentで設定された値）
+        if (m_liveBranchAnchorPly >= 0) {
+            anchorPly = m_liveBranchAnchorPly;
+        } else {
+            anchorPly = qMax(0, m_currentSelectedPly);
+        }
         startFromCurrentPos = (anchorPly > 0);
     }
 
-    qDebug().noquote() << "[KLC-DEBUG] updateBranchTreeFromLive: m_branchPlyContext=" << m_branchPlyContext
-                       << "m_currentSelectedPly=" << m_currentSelectedPly
+    qDebug().noquote() << "[KLC-DEBUG] updateBranchTreeFromLive: m_liveBranchAnchorPly=" << m_liveBranchAnchorPly
+                       << "m_branchPlyContext=" << m_branchPlyContext
                        << "anchorPly=" << anchorPly
                        << "startFromCurrentPos=" << startFromCurrentPos
                        << "m_resolvedRows.size=" << m_resolvedRows.size();
@@ -2620,13 +2658,16 @@ void KifuLoadCoordinator::updateBranchTreeFromLive(int currentPly)
 
     if (!startFromCurrentPos) {
         // 4-a) 通常の新規対局：本譜をそのまま置換
-        // ★修正：分岐が存在する場合は本譜を上書きしない（既存の分岐構造を保持）
-        if (m_resolvedRows.size() <= 1) {
-            m_resolvedRows[mainRow].disp = dispLive;
-            qDebug().noquote() << "[KLC-DEBUG] updateBranchTreeFromLive: mainline updated (no branches)";
-        } else {
-            qDebug().noquote() << "[KLC-DEBUG] updateBranchTreeFromLive: mainline NOT updated (branches exist)";
+        // ★修正：通常の新規対局では分岐をクリアして本譜のみにする
+        if (m_resolvedRows.size() > 1) {
+            // 分岐データをクリアして本譜のみに
+            m_resolvedRows.resize(1);
+            m_branchDisplayPlan.clear();
+            m_activeResolvedRow = 0;
+            qDebug().noquote() << "[KLC-DEBUG] updateBranchTreeFromLive: cleared branches for new game";
         }
+        m_resolvedRows[mainRow].disp = dispLive;
+        qDebug().noquote() << "[KLC-DEBUG] updateBranchTreeFromLive: mainline updated";
         highlightRow    = mainRow;
         highlightAbsPly = static_cast<int>(qBound(qsizetype(0), qsizetype(currentPly), m_resolvedRows.at(mainRow).disp.size()));
     } else {
@@ -2882,8 +2923,19 @@ void KifuLoadCoordinator::refreshBranchCandidatesUIOnly(int row, int ply1)
         return;
     }
 
-    const auto itRow = m_branchDisplayPlan.constFind(row);
-    if (itRow == m_branchDisplayPlan.constEnd()) {
+    // ★修正：指定行で見つからない場合は本譜（row=0）からも探す
+    int lookupRow = row;
+    auto itRow = m_branchDisplayPlan.constFind(lookupRow);
+    bool found = (itRow != m_branchDisplayPlan.constEnd()) && itRow.value().contains(ply1);
+
+    // 指定行で見つからず、かつ指定行が本譜でない場合は本譜を試す
+    if (!found && row != 0) {
+        lookupRow = 0;
+        itRow = m_branchDisplayPlan.constFind(lookupRow);
+        found = (itRow != m_branchDisplayPlan.constEnd()) && itRow.value().contains(ply1);
+    }
+
+    if (!found || itRow == m_branchDisplayPlan.constEnd()) {
         if (m_kifuBranchModel) {
             m_kifuBranchModel->clearBranchCandidates();
             m_kifuBranchModel->setHasBackToMainRow(false);
@@ -2946,6 +2998,9 @@ void KifuLoadCoordinator::refreshBranchCandidatesUIOnly(int row, int ply1)
 void KifuLoadCoordinator::resetBranchContext()
 {
     m_branchPlyContext = -1;
+    // ★ m_liveBranchAnchorPly はリセットしない（対局終了後も分岐構造を維持するため）
+    // 新規対局開始時に setupBranchForResumeFromCurrent または clearBranchData で
+    // リセットされる
     m_activeResolvedRow = 0;  // 本譜行に戻す
 }
 
@@ -2956,6 +3011,16 @@ bool KifuLoadCoordinator::setupBranchForResumeFromCurrent(int anchorPly, const Q
     qDebug().noquote() << "[KLC] setupBranchForResumeFromCurrent: anchorPly=" << anchorPly
                        << "terminalLabel=" << terminalLabel
                        << "m_resolvedRows.size=" << m_resolvedRows.size();
+
+    // デバッグ：既存のm_resolvedRowsの内容を出力
+    for (int dbgI = 0; dbgI < m_resolvedRows.size(); ++dbgI) {
+        const auto& dbgR = m_resolvedRows[dbgI];
+        qDebug().noquote() << "[KLC] existing m_resolvedRows[" << dbgI << "]:"
+                           << "startPly=" << dbgR.startPly
+                           << "parent=" << dbgR.parent
+                           << "disp.size=" << dbgR.disp.size()
+                           << "sfen.size=" << dbgR.sfen.size();
+    }
 
     // anchorPly は 0-based（開始局面=0, 1手目=1, ...）
     if (anchorPly < 0) {
@@ -3045,12 +3110,48 @@ bool KifuLoadCoordinator::setupBranchForResumeFromCurrent(int anchorPly, const Q
     // 4) 分岐コンテキストを設定
     //    新しい手はライブ分岐に追加される
     m_branchPlyContext = anchorPly;
+    m_liveBranchAnchorPly = anchorPly;  // ★ライブ分岐の起点を保存（対局中は変更しない）
     m_activeResolvedRow = liveRowIdx;  // 新しい手はライブ分岐に追加される
     m_branchTreeLocked = false;  // 分岐追加を許可
 
     // 5) 分岐表示プランを再構築
     buildBranchCandidateDisplayPlan();
     applyBranchMarksForCurrentLine();
+
+    // 6) ★重要：分岐ツリータブの表示を更新
+    //    m_resolvedRowsを更新しただけではUIに反映されないため、
+    //    EngineAnalysisTabにデータを渡す必要がある
+    if (m_analysisTab) {
+        QVector<EngineAnalysisTab::ResolvedRowLite> rowsLite;
+        rowsLite.reserve(m_resolvedRows.size());
+        const auto& rowsConst = std::as_const(m_resolvedRows);
+        for (const ResolvedRow& r : rowsConst) {
+            EngineAnalysisTab::ResolvedRowLite x;
+            x.startPly = r.startPly;
+            x.disp     = r.disp;
+            x.sfen     = r.sfen;
+            x.parent   = r.parent;
+            rowsLite.push_back(std::move(x));
+        }
+
+        qDebug().noquote() << "[KLC] setupBranchForResumeFromCurrent: updating branch tree UI"
+                           << "rows=" << rowsLite.size();
+        for (int i = 0; i < rowsLite.size(); ++i) {
+            qDebug().noquote() << "  row[" << i << "]: startPly=" << rowsLite[i].startPly
+                               << " parent=" << rowsLite[i].parent
+                               << " disp.size=" << rowsLite[i].disp.size();
+            // 最初の数手を表示
+            for (int j = 0; j < qMin(5, static_cast<int>(rowsLite[i].disp.size())); ++j) {
+                qDebug().noquote() << "    disp[" << j << "]=" << rowsLite[i].disp[j].prettyMove;
+            }
+        }
+
+        m_analysisTab->setBranchTreeRows(rowsLite);
+        // ライブ分岐（新しいゲームの行）をハイライト
+        m_analysisTab->highlightBranchTreeAt(liveRowIdx, anchorPly, /*centerOn=*/true);
+    } else {
+        qDebug().noquote() << "[KLC] setupBranchForResumeFromCurrent: m_analysisTab is null, cannot update UI";
+    }
 
     qDebug().noquote() << "[KLC] setupBranchForResumeFromCurrent: done"
                        << "m_branchPlyContext=" << m_branchPlyContext

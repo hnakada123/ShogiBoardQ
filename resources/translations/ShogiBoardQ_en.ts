@@ -881,88 +881,88 @@ Cause: %2</translation>
         <translation>Branch Tree</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1247"/>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1441"/>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1817"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1257"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1451"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1827"/>
         <source>フォントサイズを小さくする</source>
         <translation>Decrease font size</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1254"/>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1448"/>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1824"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1264"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1458"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1834"/>
         <source>フォントサイズを大きくする</source>
         <translation>Increase font size</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1321"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1331"/>
         <source>コマンドの送信先を選択</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1325"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1335"/>
         <source>USIコマンドを入力してEnter</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1455"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1465"/>
         <source>元に戻す (Ctrl+Z)</source>
         <translation>Undo (Ctrl+Z)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1462"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1472"/>
         <source>やり直す (Ctrl+Y)</source>
         <translation>Redo (Ctrl+Y)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1469"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1479"/>
         <source>切り取り (Ctrl+X)</source>
         <translation>Cut (Ctrl+X)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1476"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1486"/>
         <source>コピー (Ctrl+C)</source>
         <translation>Copy (Ctrl+C)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1483"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1493"/>
         <source>貼り付け (Ctrl+V)</source>
         <translation>Paste (Ctrl+V)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1488"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1498"/>
         <source>修正中</source>
         <translation>Editing</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1493"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1503"/>
         <source>コメント更新</source>
         <translation>Update Comment</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1494"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1504"/>
         <source>編集したコメントを棋譜に反映する</source>
         <translation>Apply edited comment to game record</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1697"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1707"/>
         <source>未保存のコメント</source>
         <translation>Unsaved Comment</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1698"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1708"/>
         <source>コメントが編集されていますが、まだ更新されていません。
 変更を破棄して移動しますか？</source>
         <translation>The comment has been edited but not saved yet.
 Discard changes and move?</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1905"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1915"/>
         <source>CSAサーバーへ送信</source>
         <translation>Send to CSA Server</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1914"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1924"/>
         <source>コマンドを入力してEnter</source>
         <translation>Enter command and press Enter</translation>
     </message>
@@ -3555,47 +3555,47 @@ Are you sure you want to declare?</translation>
         <translation>Even Game</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3315"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3330"/>
         <source>棋譜を自動保存しました: %1</source>
         <translation>Game record auto-saved: %1</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3318"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3333"/>
         <source>棋譜の自動保存に失敗しました: %1</source>
         <translation>Failed to auto-save game record: %1</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3428"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3443"/>
         <source>棋譜を取り込みました</source>
         <translation>Game record imported</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3430"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3445"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation>Failed to import game record</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3434"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3449"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation>Failed to import game record (internal error)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3473"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3488"/>
         <source>コメントを更新しました（手数: %1）</source>
         <translation>Comment updated (move: %1)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3534"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3549"/>
         <source>コメントなし</source>
         <translation>No comment</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3569"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3584"/>
         <source>E1: エンジンが起動していません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3580"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3595"/>
         <source>E2: エンジンが起動していません</source>
         <translation type="unfinished"></translation>
     </message>
