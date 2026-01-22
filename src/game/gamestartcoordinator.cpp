@@ -869,21 +869,27 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
 
     qDebug().noquote() << "[GSC] ★★★ startGameAfterDialog: AFTER playerNamesResolved, BEFORE start() ★★★";
 
-    // --- 9) 対局開始（時計設定 + 初手 go 設定） ---
+    // --- 9) 対局開始（時計設定のみ、初手goはまだ呼ばない） ---
     StartParams params;
     params.opt  = opt;
     params.tc   = tc;                 // 司令塔側の go 計算にも使用
-    params.autoStartEngineMove = true;
+    params.autoStartEngineMove = false;  // ここでは呼ばない（順序制御のため）
 
     start(params);
     qDebug().noquote() << "[GSC] ★★★ startGameAfterDialog: AFTER start() ★★★";
 
-    // --- 10) 保険：時計起動/初手go の取りこぼし防止 ---
+    // --- 10) 時計の関連付けと開始、その後エンジン初手 ---
+    // 順序: 1) 時計開始 → 2) 初手go（元のstartMatchTimingAndMaybeInitialGoと同じ順序）
     if (m_match) {
         if (c.clock && m_match->clock() != c.clock) {
             m_match->setClock(c.clock);
         }
-        m_match->startMatchTimingAndMaybeInitialGo();
+        // 時計を開始
+        if (ShogiClock* clk = m_match->clock()) {
+            clk->startClock();
+        }
+        // 初手がエンジン手番なら go を起動（1回だけ）
+        m_match->startInitialEngineMoveIfNeeded();
     }
 
     delete dlg;
