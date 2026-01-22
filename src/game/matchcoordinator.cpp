@@ -492,7 +492,12 @@ void MatchCoordinator::destroyEngine(int idx)
 {
     Usi*& ref = (idx == 1 ? m_usi1 : m_usi2);
     if (ref) {
-        delete ref;
+        // すべてのシグナル接続を切断して、削除中/削除後のコールバックを防ぐ
+        ref->disconnect();
+        // エンジンプロセスを同期的にクリーンアップ（quitコマンド送信とプロセス終了待ち）
+        ref->cleanupEngineProcessAndThread();
+        // deleteLater()を使用して安全に削除
+        ref->deleteLater();
         ref = nullptr;
     }
 }
@@ -741,6 +746,9 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
         }
         qDebug() << "----------------------------------------------------";
     }
+
+    // ★ 前回の対局終了状態をクリア（再対局時に棋譜追加がブロックされる問題を修正）
+    clearGameOverState();
 
     m_playMode = opt.mode;
     m_maxMoves = opt.maxMoves;

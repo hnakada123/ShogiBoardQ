@@ -8,7 +8,6 @@
 #include <QDebug>
 #include <QTableView>
 #include <QItemSelectionModel>
-#include <QDebug>
 
 GameRecordPresenter::GameRecordPresenter(const Deps& d, QObject* parent)
     : QObject(parent), m_d(d) {}
@@ -97,10 +96,7 @@ void GameRecordPresenter::presentGameRecord(const QList<KifDisplayItem>& disp) {
 void GameRecordPresenter::appendMoveLine(const QString& prettyMove, const QString& elapsedTime)
 {
     const QString last = prettyMove.trimmed();
-    if (last.isEmpty()) {
-        qDebug() << "[RecordPresenter] skip empty move line";
-        return;
-    }
+    if (last.isEmpty()) return;
 
     // --- 手数の算出 ---
     // 基本は「モデルの現在行数」だが、先頭に「開始局面」「平手」「startpos」などの見出し行が
@@ -272,11 +268,8 @@ QString GameRecordPresenter::commentForRow(int row) const
 void GameRecordPresenter::onKifuCurrentRowChanged(const QModelIndex& current,
                                                    const QModelIndex& previous)
 {
+    Q_UNUSED(previous)
     const int row = current.isValid() ? current.row() : -1;
-    const int prevRow = previous.isValid() ? previous.row() : -1;
-    
-    qDebug() << "[PRESENTER-DEBUG] onKifuCurrentRowChanged_ called:"
-             << "row=" << row << "prevRow=" << prevRow;
 
     // ★ 追加：選択行が変わったらモデルのハイライト行も更新
     if (m_d.model && row >= 0) {
