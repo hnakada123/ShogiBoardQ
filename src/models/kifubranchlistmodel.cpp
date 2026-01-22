@@ -95,6 +95,7 @@ QVariant KifuBranchListModel::headerData(int section, Qt::Orientation orientatio
 
 void KifuBranchListModel::clearBranchCandidates()
 {
+    qDebug().noquote() << "[BRANCH-MODEL] clearBranchCandidates called, list.size was:" << list.size();
     beginResetModel();
     qDeleteAll(list);
     list.clear();
@@ -104,11 +105,9 @@ void KifuBranchListModel::clearBranchCandidates()
 
 void KifuBranchListModel::setBranchCandidatesFromKif(const QList<KifDisplayItem>& rows)
 {
-#ifdef SHOGIBOARDQ_DEBUG_KIF
     QStringList s; s.reserve(rows.size());
     for (qsizetype i=0;i<rows.size();++i) s << rows[i].prettyMove;
-    qDebug().noquote() << "[BRANCH-MODEL] set" << rows.size() << ":" << s.join(", ");
-#endif
+    qDebug().noquote() << "[BRANCH-MODEL] setBranchCandidatesFromKif:" << rows.size() << "items:" << s.join(", ");
 
     beginResetModel();
     qDeleteAll(list);

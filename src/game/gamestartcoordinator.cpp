@@ -727,55 +727,60 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
 
     if (startingPosNumber == 0) {
         // 現在局面から開始
-        Ctx c2 = c;
-        c2.startDlg = dlg;
-        prepareDataCurrentPosition(c2);
 
-        qDebug().noquote() << "[DEBUG][GSC] initializeGame: AFTER prepareDataCurrentPosition"
-                           << " c.currentSfenStr=" << (c.currentSfenStr ? c.currentSfenStr->left(50) : "null");
+        // ★ 重要：分岐設定に必要な情報を事前に取得
+        // prepareDataCurrentPosition が cleanup をトリガーし、分岐モデルがクリアされるため、
+        // その前にオリジナルの行数を確認し、cleanup後に分岐を設定する
+        int effectivePly = 0;
+        QString terminalLabel;
+        bool needBranchSetup = false;
 
-        // ★ 現在局面より後の行（投了など）を分岐として保持
-        // 棋譜欄の行番号とsfenRecordのインデックスを一致させつつ、
-        // 終了手（投了など）を分岐候補として表示できるようにする
-        if (c.kifuModel && c.sfenRecord) {
-            // sfenRecordの最大インデックス = 実際に局面がある最後の手数
-            // selectedPlyがsfenRecordの範囲外（投了行など）の場合は調整
+        if (c.kifuModel && c.sfenRecord && c.kifuLoadCoordinator) {
+            const int originalRowCount = c.kifuModel->rowCount();
             const int sfenMaxIdx = static_cast<int>(c.sfenRecord->size()) - 1;
-            const int effectivePly = qMin(c.selectedPly, sfenMaxIdx);
-            const int rowCount = c.kifuModel->rowCount();
+            effectivePly = qMin(c.selectedPly, sfenMaxIdx);
 
-            qDebug().noquote() << "[GSC] Terminal row check: selectedPly=" << c.selectedPly
+            qDebug().noquote() << "[GSC] Pre-cleanup terminal row check: selectedPly=" << c.selectedPly
                                << " sfenMaxIdx=" << sfenMaxIdx
                                << " effectivePly=" << effectivePly
-                               << " rowCount=" << rowCount;
+                               << " originalRowCount=" << originalRowCount;
 
-            // effectivePlyより後の行があれば、分岐として設定
-            const int rowsToRemove = rowCount - effectivePly - 1;
-            if (rowsToRemove > 0) {
+            // effectivePlyより後の行があれば、分岐として設定する必要がある
+            const int rowsAfter = originalRowCount - effectivePly - 1;
+            if (rowsAfter > 0) {
                 // 終了手のラベルを取得（投了、詰み、千日手など）
-                QString terminalLabel;
-                if (KifuDisplay* lastItem = c.kifuModel->item(rowCount - 1)) {
+                if (KifuDisplay* lastItem = c.kifuModel->item(originalRowCount - 1)) {
                     terminalLabel = lastItem->currentMove();
                 }
 
                 qDebug().noquote() << "[GSC] Setting up branch for terminal move:"
                                    << " effectivePly=" << effectivePly
-                                   << " terminalLabel=" << terminalLabel;
+                                   << " terminalLabel=" << terminalLabel
+                                   << " rowsAfter=" << rowsAfter;
 
-                // KifuLoadCoordinator に分岐構造を設定
-                if (c.kifuLoadCoordinator) {
-                    c.kifuLoadCoordinator->setupBranchForResumeFromCurrent(effectivePly, terminalLabel);
-                }
-
-                // 棋譜モデルから終端行を削除（表示用）
-                qDebug().noquote() << "[GSC] Removing" << rowsToRemove << "terminal rows after row" << effectivePly
-                                   << " (rowCount=" << rowCount << ")";
-                for (int i = 0; i < rowsToRemove; ++i) {
-                    c.kifuModel->removeLastItem();
-                }
-                qDebug().noquote() << "[GSC] After removal: rowCount=" << c.kifuModel->rowCount();
+                needBranchSetup = true;
             }
         }
+
+        Ctx c2 = c;
+        c2.startDlg = dlg;
+        prepareDataCurrentPosition(c2);
+
+        // ★ 重要：cleanup後に分岐を設定（cleanupで分岐モデルがクリアされるため）
+        if (needBranchSetup && c.kifuLoadCoordinator) {
+            qDebug().noquote() << "[GSC] About to call setupBranchForResumeFromCurrent:"
+                               << " effectivePly=" << effectivePly
+                               << " terminalLabel=" << terminalLabel;
+            const bool branchResult = c.kifuLoadCoordinator->setupBranchForResumeFromCurrent(effectivePly, terminalLabel);
+            qDebug().noquote() << "[GSC] setupBranchForResumeFromCurrent returned:" << branchResult;
+        } else {
+            qDebug().noquote() << "[GSC] Skipping branch setup:"
+                               << " needBranchSetup=" << needBranchSetup
+                               << " kifuLoadCoordinator=" << (c.kifuLoadCoordinator ? "valid" : "null");
+        }
+
+        qDebug().noquote() << "[DEBUG][GSC] initializeGame: AFTER prepareDataCurrentPosition"
+                           << " c.currentSfenStr=" << (c.currentSfenStr ? c.currentSfenStr->left(50) : "null");
 
         if (c.currentSfenStr && !c.currentSfenStr->isEmpty()) {
             startSfen = *(c.currentSfenStr);
