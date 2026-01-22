@@ -901,6 +901,28 @@ void EvaluationChartWidget::removeLastP2()
     if (m_chartView) m_chartView->update();
 }
 
+void EvaluationChartWidget::trimToPly(int maxPly)
+{
+    // maxPly以降の手数のデータポイントを削除
+    auto trimSeries = [maxPly](QLineSeries* series) {
+        if (!series) return;
+        QList<QPointF> points = series->points();
+        QList<QPointF> kept;
+        for (const QPointF& p : points) {
+            if (p.x() <= maxPly) {
+                kept.append(p);
+            }
+        }
+        series->clear();
+        series->append(kept);
+    };
+
+    trimSeries(m_s1);
+    trimSeries(m_s2);
+
+    if (m_chartView) m_chartView->update();
+}
+
 int EvaluationChartWidget::countP1() const { return m_s1 ? m_s1->count() : 0; }
 int EvaluationChartWidget::countP2() const { return m_s2 ? m_s2->count() : 0; }
 

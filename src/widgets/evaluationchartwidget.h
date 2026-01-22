@@ -28,6 +28,9 @@ public:
     void removeLastP1();
     void removeLastP2();
 
+    // 指定した手数以降のデータを削除
+    void trimToPly(int maxPly);
+
     int countP1() const;
     int countP2() const;
 

@@ -2835,13 +2835,26 @@ void MainWindow::onPreStartCleanupRequested()
         m_preStartCleanupHandler->performCleanup();
     }
 
-    // ★ 追加：評価値グラフのクリア
-    if (auto ec = m_recordPane ? m_recordPane->evalChart() : nullptr) {
-        ec->clearAll();
-    }
-    ensureEvaluationGraphController();
-    if (m_evalGraphController) {
-        m_evalGraphController->clearScores();
+    // ★ 修正：評価値グラフの処理
+    // m_startSfenStr が空で m_currentSfenStr に値がある場合は「現在の局面から開始」
+    const bool startFromCurrentPos = m_startSfenStr.trimmed().isEmpty()
+                                     && !m_currentSfenStr.trimmed().isEmpty();
+    if (!startFromCurrentPos) {
+        // 平手・駒落ちなど新規開始の場合は評価値グラフをクリア
+        if (auto ec = m_recordPane ? m_recordPane->evalChart() : nullptr) {
+            ec->clearAll();
+        }
+        ensureEvaluationGraphController();
+        if (m_evalGraphController) {
+            m_evalGraphController->clearScores();
+        }
+    } else {
+        // 「現在の局面から」開始時は、選択した手数までトリム
+        ensureEvaluationGraphController();
+        if (m_evalGraphController) {
+            const int trimPly = qMax(0, m_currentMoveIndex);
+            m_evalGraphController->trimToPly(trimPly);
+        }
     }
 
     // ★ 追加：クリーンアップ後に開始局面（行0）を選択（黄色表示のため）
