@@ -517,6 +517,11 @@ private:
     // USI "position ... moves" の履歴（UNDO等で使う）。SFENとは混ぜないこと！
     QStringList m_positionStrHistory;
 
+    // 過去の対局履歴（途中局面からの再開判定に使用）
+    // 最大履歴数を制限してメモリリークを防止
+    static constexpr int kMaxGameHistories = 10;
+    QVector<QStringList> m_allGameHistories;
+
 public:
     // --- USI 送受の実体（UI 依存なし） ---
     void sendGoToEngine(Usi* which, const GoTimes& t);

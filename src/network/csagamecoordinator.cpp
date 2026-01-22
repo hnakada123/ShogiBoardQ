@@ -1135,12 +1135,18 @@ void CsaGameCoordinator::initializeEngine()
     if (!m_engineCommLog) {
         m_engineCommLog = new UsiCommLogModel(this);
         m_ownsCommLog = true;
+    } else {
+        // ★ メモリリーク防止：既存モデルをクリア（前回対局のデータを消去）
+        m_engineCommLog->clear();
     }
-    
+
     // エンジン思考モデル：外部から渡されていなければ内部で作成
     if (!m_engineThinking) {
         m_engineThinking = new ShogiEngineThinkingModel(this);
         m_ownsThinking = true;
+    } else {
+        // ★ メモリリーク防止：既存モデルをクリア（前回対局のデータを消去）
+        m_engineThinking->clearAllItems();
     }
 
     // PlayModeを取得するためにstaticなダミーを使用

@@ -252,6 +252,8 @@ void CsaWaitingDialog::createLogWindow()
     m_logTextEdit = new QPlainTextEdit(m_logWindow);
     m_logTextEdit->setReadOnly(true);
     m_logTextEdit->setLineWrapMode(QPlainTextEdit::NoWrap);
+    // ★ メモリリーク防止：ログの最大行数を制限（古いログは自動削除される）
+    m_logTextEdit->setMaximumBlockCount(5000);
 
     // 固定幅フォントを設定
     QFont font = m_logTextEdit->font();

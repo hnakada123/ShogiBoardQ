@@ -26,6 +26,16 @@ AnalysisFlowController::AnalysisFlowController(QObject* parent)
 {
 }
 
+AnalysisFlowController::~AnalysisFlowController()
+{
+    // ★ メモリリーク防止：解析中の場合は停止処理を行う
+    if (m_running) {
+        stop();
+    }
+    // 注意：m_ownedLogModel, m_ownedThinkingModel, m_usi, m_coord は
+    //       すべて this を親として作成されているため、Qtの親子関係により自動破棄される
+}
+
 void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
 {
     if (!d.sfenRecord || d.sfenRecord->isEmpty()) {
@@ -55,6 +65,11 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
     m_whitePlayerName = d.whitePlayerName;
     m_usiMoves      = d.usiMoves;
     m_err           = d.displayError;
+
+    // ★ メモリリーク防止：新しい解析開始時に前回の解析結果をクリア
+    if (m_analysisModel) {
+        m_analysisModel->clearAllItems();
+    }
 
     // ★ sfenRecordとusiMovesの整合性をチェック（デバッグ用）
     const qsizetype sfenSize = m_sfenRecord ? m_sfenRecord->size() : 0;
@@ -812,21 +827,35 @@ void AnalysisFlowController::runWithDialog(const Deps& d, QWidget* parent)
     Deps actualDeps = d;
     if (!actualDeps.usi) {
         qDebug().noquote() << "[AnalysisFlowController::runWithDialog] Creating internal Usi instance...";
-        
+
+        // ★ メモリリーク防止：既存の内部Usiを破棄
+        if (m_ownsUsi && m_usi) {
+            m_usi->disconnect();
+            m_usi->deleteLater();
+            m_usi = nullptr;
+            m_ownsUsi = false;
+        }
+
         // ログモデル: 渡されたものがあればそれを使用、なければ生成
         UsiCommLogModel* logModelToUse = d.logModel;
         if (!logModelToUse) {
             if (!m_ownedLogModel) {
                 m_ownedLogModel = new UsiCommLogModel(this);
+            } else {
+                // ★ 既存モデルをクリア
+                m_ownedLogModel->clear();
             }
             logModelToUse = m_ownedLogModel;
         }
-        
+
         // ThinkingModel: 渡されたものがあればそれを使用、なければ生成
         ShogiEngineThinkingModel* thinkingModelToUse = d.thinkingModel;
         if (!thinkingModelToUse) {
             if (!m_ownedThinkingModel) {
                 m_ownedThinkingModel = new ShogiEngineThinkingModel(this);
+            } else {
+                // ★ 既存モデルをクリア
+                m_ownedThinkingModel->clearAllItems();
             }
             thinkingModelToUse = m_ownedThinkingModel;
         }

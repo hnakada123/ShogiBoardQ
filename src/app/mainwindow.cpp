@@ -553,8 +553,9 @@ void MainWindow::initializeCentralGameDisplay()
     // setupHorizontalGameLayout() は setupEngineAnalysisTab() より先に呼ばれるため、
     // 起動順によっては m_tab 未設定のまま m_layoutBuilder が生成されている。
     // ここで一度 Builder を作り直し、最新の依存を確実に反映させる。
+    // ★注: deleteLater()は非同期のため、直後に再作成すると複数存在しうる
     if (m_layoutBuilder) {
-        m_layoutBuilder->deleteLater();
+        delete m_layoutBuilder;
         m_layoutBuilder = nullptr;
     }
     {
@@ -1185,9 +1186,10 @@ void MainWindow::chooseAndLoadKifuFile()
     setReplayMode(true);
     ensureGameInfoController();
 
-    // 既存があれば破棄予約（多重生成対策）
+    // 既存があれば即座に破棄（多重生成対策）
+    // ★注: deleteLater()は非同期のため、直後に再作成すると複数存在しうる
     if (m_kifuLoadCoordinator) {
-        m_kifuLoadCoordinator->deleteLater();
+        delete m_kifuLoadCoordinator;
         m_kifuLoadCoordinator = nullptr;
     }
 

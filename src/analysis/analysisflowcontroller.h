@@ -43,6 +43,7 @@ public:
     };
 
     explicit AnalysisFlowController(QObject* parent = nullptr);
+    ~AnalysisFlowController() override;
     void start(const Deps& d, KifuAnalysisDialog* dlg);
 
     // ダイアログの生成・exec も含めて丸ごと実行する入口
