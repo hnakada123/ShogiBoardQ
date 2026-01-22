@@ -1135,6 +1135,7 @@ void MainWindow::initializeGame()
     c.clock           = m_timeController ? m_timeController->clock() : nullptr;
     c.sfenRecord      = m_sfenRecord;          // QStringList*
     c.kifuModel       = m_kifuRecordModel;     // ★ 棋譜欄モデル（終端行削除に使用）
+    c.kifuLoadCoordinator = m_kifuLoadCoordinator;  // ★ 分岐構造の設定用
     c.currentSfenStr  = &m_currentSfenStr;     // 現局面の SFEN（ここで事前決定済み）
     c.startSfenStr    = &m_startSfenStr;       // 開始SFENは明示的に空（優先度を逆転）
     c.selectedPly     = m_currentSelectedPly;  // 1始まり/0始まりはプロジェクト規約に準拠

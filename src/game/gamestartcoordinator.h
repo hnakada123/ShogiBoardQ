@@ -12,6 +12,7 @@ class QWidget;
 class ShogiClock;
 class ShogiGameController;
 class ShogiView;
+class KifuLoadCoordinator;
 
 /**
  * @brief 対局開始を司るコーディネータ
@@ -81,6 +82,7 @@ public:
         // ★ 追加：棋譜欄モデル／SFEN履歴（MainWindow が持っていたものを注入）
         KifuRecordListModel* kifuModel  = nullptr;
         QStringList*         sfenRecord = nullptr;
+        KifuLoadCoordinator* kifuLoadCoordinator = nullptr;  // ★ 追加：分岐構造の設定用
 
         // 追加：この関数で使う情報
         bool                 isReplayMode = false;     // 再生モード中は時計を動かさない
