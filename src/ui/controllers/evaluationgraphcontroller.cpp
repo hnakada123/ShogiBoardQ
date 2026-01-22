@@ -85,6 +85,24 @@ void EvaluationGraphController::clearScores()
     m_scoreCp.clear();
 }
 
+void EvaluationGraphController::trimToPly(int maxPly)
+{
+    // m_scoreCp は 2手ごとに1要素（先手の手で追加）
+    // インデックス i は手数 (i+1)*2 に対応（例: i=0 は2手目、i=1 は4手目）
+    // maxPly までのデータを残すには、(maxPly / 2) 個の要素を残す
+    const int keepCount = maxPly / 2;
+    if (keepCount < m_scoreCp.size()) {
+        m_scoreCp = m_scoreCp.mid(0, keepCount);
+    }
+
+    // チャートウィジェットもトリム
+    if (m_recordPane) {
+        if (auto* ec = m_recordPane->evalChart()) {
+            ec->trimToPly(maxPly);
+        }
+    }
+}
+
 const QList<int>& EvaluationGraphController::scores() const
 {
     return m_scoreCp;

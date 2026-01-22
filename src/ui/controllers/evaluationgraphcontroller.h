@@ -60,6 +60,12 @@ public:
     void clearScores();
 
     /**
+     * @brief 評価値スコアリストを指定した手数までトリム
+     * @param maxPly 残す最大手数
+     */
+    void trimToPly(int maxPly);
+
+    /**
      * @brief 評価値スコアリストへの参照を取得（読み取り専用）
      */
     const QList<int>& scores() const;
