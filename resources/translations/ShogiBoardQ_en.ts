@@ -1417,7 +1417,7 @@ Discard changes and continue?</translation>
 <context>
     <name>GameStartCoordinator</name>
     <message>
-        <location filename="../../src/game/gamestartcoordinator.cpp" line="609"/>
+        <location filename="../../src/game/gamestartcoordinator.cpp" line="610"/>
         <source>An error occurred in GameStartCoordinator::determinePlayMode. There is a mistake in the game options.</source>
         <translation>An error occurred in GameStartCoordinator::determinePlayMode. There is a mistake in the game options.</translation>
     </message>
@@ -3415,12 +3415,12 @@ White
 Please select &quot;24-Point Rule&quot; or &quot;27-Point Rule&quot; in the game dialog.</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1509"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1510"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1510"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1511"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
@@ -3535,67 +3535,67 @@ Are you sure you want to declare?</translation>
         <translation type="vanished">Entering King Declaration Result</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1174"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1175"/>
         <source>棋譜ファイルを開く</source>
         <translation>Open Game Record File</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1175"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1176"/>
         <source>Kifu Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</source>
         <translation>Game Record Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1511"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1512"/>
         <source>手合割</source>
         <translation>Handicap</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1511"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1512"/>
         <source>平手</source>
         <translation>Even Game</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3314"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3315"/>
         <source>棋譜を自動保存しました: %1</source>
         <translation>Game record auto-saved: %1</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3317"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3318"/>
         <source>棋譜の自動保存に失敗しました: %1</source>
         <translation>Failed to auto-save game record: %1</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3427"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3428"/>
         <source>棋譜を取り込みました</source>
         <translation>Game record imported</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3429"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3430"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation>Failed to import game record</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3433"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3434"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation>Failed to import game record (internal error)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3472"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3473"/>
         <source>コメントを更新しました（手数: %1）</source>
         <translation>Comment updated (move: %1)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3533"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3534"/>
         <source>コメントなし</source>
         <translation>No comment</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3568"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3569"/>
         <source>E1: エンジンが起動していません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3579"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3580"/>
         <source>E2: エンジンが起動していません</source>
         <translation type="unfinished"></translation>
     </message>

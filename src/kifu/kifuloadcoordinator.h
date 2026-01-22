@@ -104,6 +104,12 @@ public:
     // ★ 追加：分岐コンテキストをリセット（対局終了時に使用）
     void resetBranchContext();
 
+    // ★ 追加：「現在の局面から再開」時に分岐構造を設定
+    //   anchorPly: 分岐の起点となる手数（この手数の直後から新しい手が追加される）
+    //   terminalLabel: 終了手のラベル（例: "▲投了"）
+    //   戻り値: 成功したら true
+    bool setupBranchForResumeFromCurrent(int anchorPly, const QString& terminalLabel);
+
 public slots:
     void applyResolvedRowAndSelect(int row, int selPly);
 

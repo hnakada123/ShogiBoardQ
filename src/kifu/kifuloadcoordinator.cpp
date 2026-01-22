@@ -2620,13 +2620,20 @@ void KifuLoadCoordinator::updateBranchTreeFromLive(int currentPly)
 
     if (!startFromCurrentPos) {
         // 4-a) 通常の新規対局：本譜をそのまま置換
-        m_resolvedRows[mainRow].disp = dispLive;
+        // ★修正：分岐が存在する場合は本譜を上書きしない（既存の分岐構造を保持）
+        if (m_resolvedRows.size() <= 1) {
+            m_resolvedRows[mainRow].disp = dispLive;
+            qDebug().noquote() << "[KLC-DEBUG] updateBranchTreeFromLive: mainline updated (no branches)";
+        } else {
+            qDebug().noquote() << "[KLC-DEBUG] updateBranchTreeFromLive: mainline NOT updated (branches exist)";
+        }
         highlightRow    = mainRow;
         highlightAbsPly = static_cast<int>(qBound(qsizetype(0), qsizetype(currentPly), m_resolvedRows.at(mainRow).disp.size()));
     } else {
         // 4-b) 「現在の局面」からの 2局目以降
         const int startPly = anchorPly + 1;        // 分岐開始の絶対手
-        const int suffixStart = static_cast<int>(qBound(qsizetype(0), qsizetype(anchorPly), dispLive.size()));
+        // ★修正：suffixStart は startPly にする（anchorPly だと分岐前の手が重複する）
+        const int suffixStart = static_cast<int>(qBound(qsizetype(0), qsizetype(startPly), dispLive.size()));
 
         // 親の prefix を切り出す
         int parentRow = m_activeResolvedRow;
@@ -2940,4 +2947,115 @@ void KifuLoadCoordinator::resetBranchContext()
 {
     m_branchPlyContext = -1;
     m_activeResolvedRow = 0;  // 本譜行に戻す
+}
+
+bool KifuLoadCoordinator::setupBranchForResumeFromCurrent(int anchorPly, const QString& terminalLabel)
+{
+    Q_UNUSED(terminalLabel);
+
+    qDebug().noquote() << "[KLC] setupBranchForResumeFromCurrent: anchorPly=" << anchorPly
+                       << "terminalLabel=" << terminalLabel
+                       << "m_resolvedRows.size=" << m_resolvedRows.size();
+
+    // anchorPly は 0-based（開始局面=0, 1手目=1, ...）
+    if (anchorPly < 0) {
+        qDebug().noquote() << "[KLC] setupBranchForResumeFromCurrent: invalid anchorPly";
+        return false;
+    }
+
+    // 1) 本譜行（row=0）を探す or 作成
+    int mainRow = -1;
+    for (qsizetype i = 0; i < m_resolvedRows.size(); ++i) {
+        if (m_resolvedRows.at(i).parent < 0) {
+            mainRow = static_cast<int>(i);
+            break;
+        }
+    }
+
+    if (mainRow < 0) {
+        // 本譜がない場合は、現在の棋譜モデルから作成
+        const QList<KifDisplayItem> dispLive = collectDispFromRecordModel();
+        if (dispLive.isEmpty()) {
+            qDebug().noquote() << "[KLC] setupBranchForResumeFromCurrent: no mainline and empty dispLive";
+            return false;
+        }
+
+        ResolvedRow main;
+        main.startPly = 1;
+        main.parent   = -1;
+        main.disp     = dispLive;
+        main.sfen     = (m_sfenRecord) ? *m_sfenRecord : QStringList();
+        main.gm       = m_gameMoves;
+        main.varIndex = -1;  // 本譜
+        m_resolvedRows.push_back(main);
+        mainRow = static_cast<int>(m_resolvedRows.size() - 1);
+        qDebug().noquote() << "[KLC] setupBranchForResumeFromCurrent: created mainRow=" << mainRow
+                           << "disp.size=" << dispLive.size();
+    }
+
+    // 2) 本譜のデータを取得
+    const ResolvedRow& mainline = m_resolvedRows.at(mainRow);
+
+    // anchorPly より後に手がない場合は分岐を作る必要がない
+    // disp[0]=開始局面, disp[i]=i手目 なので、anchorPly + 1 が終了手
+    if (mainline.disp.size() <= anchorPly + 1) {
+        qDebug().noquote() << "[KLC] setupBranchForResumeFromCurrent: no terminal move after anchorPly"
+                           << "disp.size=" << mainline.disp.size()
+                           << "anchorPly=" << anchorPly;
+        // 終端手がないので分岐は不要、コンテキストだけ設定
+        m_branchPlyContext = anchorPly;
+        m_branchTreeLocked = false;
+        return true;
+    }
+
+    // 3) 新しい「ライブゲーム」分岐を作成（終了手を含まない）
+    //    この分岐は新しいゲームの手が追加される先となる
+    //    本譜（mainline）は元の終了手を含んだまま残す
+    ResolvedRow liveBranch;
+    liveBranch.startPly = anchorPly + 1;  // 新しい手が始まる位置
+    liveBranch.parent   = mainRow;
+    liveBranch.varIndex = -2;  // ライブ分岐マーカー
+
+    // プレフィクス（終了手より前の部分）をコピー
+    // disp[0..anchorPly] をコピー（anchorPly+1 個）
+    liveBranch.disp = mainline.disp;
+    if (liveBranch.disp.size() > anchorPly + 1) {
+        liveBranch.disp.resize(anchorPly + 1);
+    }
+
+    // sfen[0..anchorPly] をコピー
+    liveBranch.sfen = mainline.sfen;
+    if (liveBranch.sfen.size() > anchorPly + 1) {
+        liveBranch.sfen.resize(anchorPly + 1);
+    }
+
+    // gm[0..anchorPly-1] をコピー（gm[i] = i+1手目の着手）
+    liveBranch.gm = mainline.gm;
+    if (liveBranch.gm.size() > anchorPly) {
+        liveBranch.gm.resize(anchorPly);
+    }
+
+    m_resolvedRows.push_back(liveBranch);
+    const int liveRowIdx = static_cast<int>(m_resolvedRows.size() - 1);
+
+    qDebug().noquote() << "[KLC] setupBranchForResumeFromCurrent: created liveBranch row=" << liveRowIdx
+                       << "startPly=" << liveBranch.startPly
+                       << "disp.size=" << liveBranch.disp.size();
+
+    // 4) 分岐コンテキストを設定
+    //    新しい手はライブ分岐に追加される
+    m_branchPlyContext = anchorPly;
+    m_activeResolvedRow = liveRowIdx;  // 新しい手はライブ分岐に追加される
+    m_branchTreeLocked = false;  // 分岐追加を許可
+
+    // 5) 分岐表示プランを再構築
+    buildBranchCandidateDisplayPlan();
+    applyBranchMarksForCurrentLine();
+
+    qDebug().noquote() << "[KLC] setupBranchForResumeFromCurrent: done"
+                       << "m_branchPlyContext=" << m_branchPlyContext
+                       << "m_activeResolvedRow=" << m_activeResolvedRow
+                       << "m_resolvedRows.size=" << m_resolvedRows.size();
+
+    return true;
 }

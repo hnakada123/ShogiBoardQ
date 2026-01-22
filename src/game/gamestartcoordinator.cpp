@@ -1,5 +1,6 @@
 #include "gamestartcoordinator.h"
 #include "kifurecordlistmodel.h"
+#include "kifuloadcoordinator.h"
 #include "shogiboard.h"
 #include "shogiview.h"
 #include "matchcoordinator.h"
@@ -733,8 +734,9 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
         qDebug().noquote() << "[DEBUG][GSC] initializeGame: AFTER prepareDataCurrentPosition"
                            << " c.currentSfenStr=" << (c.currentSfenStr ? c.currentSfenStr->left(50) : "null");
 
-        // ★ 現在局面より後の行（投了など）を削除
-        // 棋譜欄の行番号とsfenRecordのインデックスを一致させるために必要
+        // ★ 現在局面より後の行（投了など）を分岐として保持
+        // 棋譜欄の行番号とsfenRecordのインデックスを一致させつつ、
+        // 終了手（投了など）を分岐候補として表示できるようにする
         if (c.kifuModel && c.sfenRecord) {
             // sfenRecordの最大インデックス = 実際に局面がある最後の手数
             // selectedPlyがsfenRecordの範囲外（投了行など）の場合は調整
@@ -747,20 +749,31 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
                                << " effectivePly=" << effectivePly
                                << " rowCount=" << rowCount;
 
-            // effectivePlyより後の行をすべて削除（投了行など）
+            // effectivePlyより後の行があれば、分岐として設定
             const int rowsToRemove = rowCount - effectivePly - 1;
             if (rowsToRemove > 0) {
+                // 終了手のラベルを取得（投了、詰み、千日手など）
+                QString terminalLabel;
+                if (KifuDisplay* lastItem = c.kifuModel->item(rowCount - 1)) {
+                    terminalLabel = lastItem->currentMove();
+                }
+
+                qDebug().noquote() << "[GSC] Setting up branch for terminal move:"
+                                   << " effectivePly=" << effectivePly
+                                   << " terminalLabel=" << terminalLabel;
+
+                // KifuLoadCoordinator に分岐構造を設定
+                if (c.kifuLoadCoordinator) {
+                    c.kifuLoadCoordinator->setupBranchForResumeFromCurrent(effectivePly, terminalLabel);
+                }
+
+                // 棋譜モデルから終端行を削除（表示用）
                 qDebug().noquote() << "[GSC] Removing" << rowsToRemove << "terminal rows after row" << effectivePly
                                    << " (rowCount=" << rowCount << ")";
                 for (int i = 0; i < rowsToRemove; ++i) {
                     c.kifuModel->removeLastItem();
                 }
                 qDebug().noquote() << "[GSC] After removal: rowCount=" << c.kifuModel->rowCount();
-
-                // selectedPlyも調整（後続の処理で使用されるため）
-                // Note: c.selectedPlyを直接変更はできないが、
-                // sfenRecord処理で使用されるkeepIdxはc.selectedPlyから計算されるため、
-                // sfenRecordのサイズで自動的にクランプされる
             }
         }
 
