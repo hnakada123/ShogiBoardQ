@@ -4,40 +4,40 @@
 <context>
     <name>AnalysisFlowController</name>
     <message>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="32"/>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="784"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="42"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="799"/>
         <source>内部エラー: sfenRecord が未準備です。棋譜読み込み後に実行してください。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="36"/>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="788"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="46"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="803"/>
         <source>内部エラー: 解析モデルが未準備です。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="40"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="50"/>
         <source>内部エラー: Usi インスタンスが未初期化です。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="171"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="186"/>
         <source>エンジン選択が不正です。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="523"/>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="635"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="538"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="650"/>
         <source>（定跡）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="916"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="945"/>
         <source>先手</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="917"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="946"/>
         <source>後手</source>
         <translation type="unfinished"></translation>
     </message>
@@ -45,37 +45,37 @@
 <context>
     <name>AnalysisResultsPresenter</name>
     <message>
-        <location filename="../../src/analysis/analysisresultspresenter.cpp" line="83"/>
+        <location filename="../../src/analysis/analysisresultspresenter.cpp" line="86"/>
         <source>棋譜解析結果</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisresultspresenter.cpp" line="134"/>
+        <location filename="../../src/analysis/analysisresultspresenter.cpp" line="137"/>
         <source>A-</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisresultspresenter.cpp" line="138"/>
+        <location filename="../../src/analysis/analysisresultspresenter.cpp" line="141"/>
         <source>A+</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisresultspresenter.cpp" line="143"/>
+        <location filename="../../src/analysis/analysisresultspresenter.cpp" line="146"/>
         <source>棋譜解析中止</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisresultspresenter.cpp" line="147"/>
+        <location filename="../../src/analysis/analysisresultspresenter.cpp" line="150"/>
         <source>閉じる</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisresultspresenter.cpp" line="307"/>
+        <location filename="../../src/analysis/analysisresultspresenter.cpp" line="310"/>
         <source>棋譜解析完了</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisresultspresenter.cpp" line="308"/>
+        <location filename="../../src/analysis/analysisresultspresenter.cpp" line="311"/>
         <source>棋譜解析が完了しました。
 
 解析手数: %1 手</source>
@@ -440,37 +440,37 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="1165"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="1171"/>
         <source>エンジン %1 を起動しました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="1202"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="1208"/>
         <source>エンジンが思考中...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="1219"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="1225"/>
         <source>エンジンが投了しました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="1227"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="1233"/>
         <source>エンジンが有効な指し手を返しませんでした</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="1234"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="1240"/>
         <source>エンジンの指し手: from=(%1,%2) to=(%3,%4) promote=%5</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="1243"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="1249"/>
         <source>盤面が取得できませんでした</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="1279"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="1285"/>
         <source>CSA形式の指し手: %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -823,7 +823,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="268"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="270"/>
         <source>閉じる</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3033,99 +3033,99 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="661"/>
+        <location filename="../../src/app/mainwindow.cpp" line="662"/>
         <source>投了確認</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="662"/>
+        <location filename="../../src/app/mainwindow.cpp" line="663"/>
         <source>本当に投了しますか？</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="740"/>
-        <location filename="../../src/app/mainwindow.cpp" line="754"/>
+        <location filename="../../src/app/mainwindow.cpp" line="741"/>
+        <location filename="../../src/app/mainwindow.cpp" line="755"/>
         <source>エラー</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="740"/>
-        <location filename="../../src/app/mainwindow.cpp" line="754"/>
+        <location filename="../../src/app/mainwindow.cpp" line="741"/>
+        <location filename="../../src/app/mainwindow.cpp" line="755"/>
         <source>盤面データがありません。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1510"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1512"/>
         <source>先手</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1511"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1513"/>
         <source>後手</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1175"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1176"/>
         <source>棋譜ファイルを開く</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1176"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1177"/>
         <source>Kifu Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1512"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1514"/>
         <source>手合割</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1512"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1514"/>
         <source>平手</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3352"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3354"/>
         <source>棋譜を自動保存しました: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3355"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3357"/>
         <source>棋譜の自動保存に失敗しました: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3465"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3467"/>
         <source>棋譜を取り込みました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3467"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3469"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3471"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3473"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3510"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3512"/>
         <source>コメントを更新しました（手数: %1）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3571"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3573"/>
         <source>コメントなし</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3606"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3608"/>
         <source>E1: エンジンが起動していません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3617"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3619"/>
         <source>E2: エンジンが起動していません</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3180,30 +3180,30 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1843"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="1851"/>
         <source>詰みあり（手順 %1 手）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1844"/>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1851"/>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1858"/>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1865"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="1852"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="1859"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="1866"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="1873"/>
         <source>詰み探索</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1851"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="1859"/>
         <source>詰みなし</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1858"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="1866"/>
         <source>（エンジン側）未実装</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1865"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="1873"/>
         <source>不明（解析不能）</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3775,12 +3775,12 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2552"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2560"/>
         <source>先手番</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2552"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2560"/>
         <source>後手番</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4507,13 +4507,13 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>ShogiView</name>
     <message>
-        <location filename="../../src/views/shogiview.cpp" line="3121"/>
-        <location filename="../../src/views/shogiview.cpp" line="3141"/>
+        <location filename="../../src/views/shogiview.cpp" line="3122"/>
+        <location filename="../../src/views/shogiview.cpp" line="3142"/>
         <source>次の手番</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/views/shogiview.cpp" line="3363"/>
+        <location filename="../../src/views/shogiview.cpp" line="3364"/>
         <source>編集終了</source>
         <translation type="unfinished"></translation>
     </message>

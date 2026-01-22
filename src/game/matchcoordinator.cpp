@@ -506,6 +506,13 @@ void MatchCoordinator::destroyEngines()
 {
     destroyEngine(1);
     destroyEngine(2);
+
+    // モデルをクリア（削除はしない。次回対局で再利用するため）
+    // これにより、対局を繰り返してもデータが蓄積しない
+    if (m_comm1)  m_comm1->clear();
+    if (m_think1) m_think1->clearAllItems();
+    if (m_comm2)  m_comm2->clear();
+    if (m_think2) m_think2->clearAllItems();
 }
 
 void MatchCoordinator::setPlayMode(PlayMode m)
@@ -658,9 +665,6 @@ bool MatchCoordinator::engineMoveOnce(Usi* eng,
 
 void MatchCoordinator::configureAndStart(const StartOptions& opt)
 {
-    // ★ デバッグ: 起動からの対局履歴を蓄積して出力
-    static QVector<QStringList> allGameHistories;
-
     // ★ 修正: 直前の対局で更新された m_positionStr1 を履歴に反映してから保存
     // （ゲーム中に指し手が追加されても m_positionStrHistory は更新されないため、
     //   次の対局開始時に最終状態を確定させる）
@@ -678,7 +682,11 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
     // 直前の対局履歴が残っていれば、それを確定した過去の対局として蓄積
     // (m_positionStrHistory はこの後クリアされるため、その前に保存)
     if (!m_positionStrHistory.isEmpty()) {
-        allGameHistories.append(m_positionStrHistory);
+        m_allGameHistories.append(m_positionStrHistory);
+        // メモリリーク防止：履歴数を制限
+        while (m_allGameHistories.size() > kMaxGameHistories) {
+            m_allGameHistories.removeFirst();
+        }
     }
 
     // --- 探索対象SFENを正規化 ---
@@ -696,11 +704,11 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
     QString  bestBaseFull;                // これをヘッダ保持のまま moves だけトリムして使う
     int      bestMatchPly = -1;           // 見つかった手数（デバッグ用）
 
-    if (!allGameHistories.isEmpty()) {
-        qDebug() << "=== Accumulated Game Histories (Count:" << allGameHistories.size() << ") ===";
-        for (qsizetype i = 0; i < allGameHistories.size(); ++i) {
+    if (!m_allGameHistories.isEmpty()) {
+        qDebug() << "=== Accumulated Game Histories (Count:" << m_allGameHistories.size() << ") ===";
+        for (qsizetype i = 0; i < m_allGameHistories.size(); ++i) {
             qDebug() << " [Game" << (i + 1) << "]";
-            const QStringList& rec = allGameHistories.at(i);
+            const QStringList& rec = m_allGameHistories.at(i);
             for (const QString& pos : rec) {
                 qDebug().noquote() << "  " << pos;
             }
@@ -708,8 +716,8 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
         qDebug() << "=======================================================";
         qDebug() << "--- Searching for start position in previous games ---";
 
-        for (qsizetype i = 0; i < allGameHistories.size(); ++i) {
-            const QStringList& hist = allGameHistories.at(i);
+        for (qsizetype i = 0; i < m_allGameHistories.size(); ++i) {
+            const QStringList& hist = m_allGameHistories.at(i);
             if (hist.isEmpty()) continue;
 
             const QString fullCmd = hist.last(); // 例: "position startpos moves 7g7f 3c3d ..."

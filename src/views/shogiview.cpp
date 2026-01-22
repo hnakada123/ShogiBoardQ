@@ -1688,14 +1688,15 @@ void ShogiView::removeHighlight(ShogiView::Highlight* hl)
 }
 
 // すべてのハイライトを削除する（コンテナを空にする）。
-// 役割：クリア → 再描画要求。
-// 注意：clear() はポインタを捨てるだけで delete はしない。
-//       ハイライトの所有権が本ビュー側にある設計なら、qDeleteAll(m_highlights); m_highlights.clear();
-//       として実体破棄を行うことを検討（ダングリングポインタ/リーク対策）。
+// 役割：実体を破棄 → クリア → 再描画要求。
+// ★ メモリリーク防止：ハイライトの実体を破棄してからクリアする。
+//    removeHighlight() で個別に削除されたハイライトはリストに残っていないため、
+//    二重解放は発生しない。
 void ShogiView::removeHighlightAllData()
 {
-    m_highlights.clear(); // 全要素を除去（ポインタの所有権/破棄は別途の設計に依存）
-    update();             // 反映のため再描画を要求
+    qDeleteAll(m_highlights); // ★ 実体を破棄
+    m_highlights.clear();     // コンテナをクリア
+    update();                 // 反映のため再描画を要求
 }
 
 // 駒文字 → アイコン（QIcon）を一括で登録する初期化関数。

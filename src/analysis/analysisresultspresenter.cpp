@@ -73,8 +73,11 @@ void AnalysisResultsPresenter::showWithModel(KifuAnalysisListModel* model)
 
 void AnalysisResultsPresenter::buildUi(KifuAnalysisListModel* model)
 {
+    // ★ メモリリーク防止：既存ダイアログを同期的に削除
     if (m_dlg) {
-        m_dlg->deleteLater();
+        m_dlg->hide();
+        m_dlg->setAttribute(Qt::WA_DeleteOnClose, false);  // 手動削除のため無効化
+        delete m_dlg;
         m_dlg = nullptr;
     }
 
