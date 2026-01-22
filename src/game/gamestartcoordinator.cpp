@@ -819,6 +819,12 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
         // 駒落ち開始の内部状態整備（既存メソッド）
         Ctx c2 = c; c2.startDlg = dlg;
         prepareInitialPosition(c2);
+
+        // ★ 追加：平手/駒落ちから新規対局を開始する場合、分岐ツリーを完全リセット
+        // これにより、前の対局の分岐データがクリアされる
+        if (c.kifuLoadCoordinator) {
+            c.kifuLoadCoordinator->resetBranchTreeForNewGame();
+        }
     }
 
     // --- 3.5) ★開始SFENを正規化して共有リストに seed ---

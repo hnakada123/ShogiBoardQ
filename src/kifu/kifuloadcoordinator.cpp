@@ -2999,9 +2999,37 @@ void KifuLoadCoordinator::resetBranchContext()
 {
     m_branchPlyContext = -1;
     // ★ m_liveBranchAnchorPly はリセットしない（対局終了後も分岐構造を維持するため）
-    // 新規対局開始時に setupBranchForResumeFromCurrent または clearBranchData で
-    // リセットされる
+    // 新規対局開始時に resetBranchTreeForNewGame でリセットされる
     m_activeResolvedRow = 0;  // 本譜行に戻す
+}
+
+// ★ 追加：分岐ツリーを完全リセット（新規対局開始時に使用）
+void KifuLoadCoordinator::resetBranchTreeForNewGame()
+{
+    qDebug().noquote() << "[KLC] resetBranchTreeForNewGame: clearing all branch data";
+
+    // 1) 分岐コンテキストを完全リセット
+    m_branchPlyContext = -1;
+    m_liveBranchAnchorPly = -1;  // ★ これをリセットすることで、新規対局で古い分岐が残らない
+    m_activeResolvedRow = 0;
+
+    // 2) 解決済み行をクリア
+    m_resolvedRows.clear();
+
+    // 3) 分岐表示計画をクリア
+    m_branchDisplayPlan.clear();
+
+    // 4) 分岐候補インデックスをクリア
+    m_branchIndex.clear();
+    m_branchablePlySet.clear();
+
+    // 5) 分岐ツリーUIをクリア
+    if (m_analysisTab) {
+        QVector<EngineAnalysisTab::ResolvedRowLite> emptyRows;
+        m_analysisTab->setBranchTreeRows(emptyRows);
+    }
+
+    qDebug().noquote() << "[KLC] resetBranchTreeForNewGame: done";
 }
 
 bool KifuLoadCoordinator::setupBranchForResumeFromCurrent(int anchorPly, const QString& terminalLabel)
