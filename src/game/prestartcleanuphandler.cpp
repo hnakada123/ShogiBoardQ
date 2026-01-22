@@ -111,6 +111,30 @@ int PreStartCleanupHandler::cleanupKifuModel(bool startFromCurrentPos, int keepR
         }
         // keepRow をモデル範囲にクランプし、末尾の余剰行を一括削除
         if (keepRow > rows - 1) keepRow = rows - 1;
+
+        // ★ 終局手（投了、詰み、千日手など）から再対局する場合、終局手を除外
+        // 終局手は盤面を変更しないため、その直前の局面から再対局する
+        static const QStringList kTerminalKeywords = {
+            QStringLiteral("投了"), QStringLiteral("中断"), QStringLiteral("持将棋"),
+            QStringLiteral("千日手"), QStringLiteral("切れ負け"),
+            QStringLiteral("反則勝ち"), QStringLiteral("反則負け"),
+            QStringLiteral("入玉勝ち"), QStringLiteral("不戦勝"),
+            QStringLiteral("不戦敗"), QStringLiteral("詰み"), QStringLiteral("不詰"),
+        };
+        if (keepRow > 0 && keepRow < rows) {
+            if (KifuDisplay* item = m_kifuRecordModel->item(keepRow)) {
+                const QString moveText = item->currentMove();
+                for (const auto& kw : kTerminalKeywords) {
+                    if (moveText.contains(kw)) {
+                        qDebug().noquote() << "[PreStartCleanupHandler] cleanupKifuModel: detected terminal move at row"
+                                           << keepRow << "(" << moveText << "), adjusting to" << (keepRow - 1);
+                        keepRow = keepRow - 1;
+                        break;
+                    }
+                }
+            }
+        }
+
         const int toRemove = rows - (keepRow + 1);
         if (toRemove > 0) {
             m_kifuRecordModel->removeLastItems(toRemove);
