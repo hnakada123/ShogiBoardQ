@@ -2835,6 +2835,15 @@ void MainWindow::onPreStartCleanupRequested()
         m_preStartCleanupHandler->performCleanup();
     }
 
+    // ★ 追加：評価値グラフのクリア
+    if (auto ec = m_recordPane ? m_recordPane->evalChart() : nullptr) {
+        ec->clearAll();
+    }
+    ensureEvaluationGraphController();
+    if (m_evalGraphController) {
+        m_evalGraphController->clearScores();
+    }
+
     // ★ 追加：クリーンアップ後に開始局面（行0）を選択（黄色表示のため）
     if (m_recordPane && m_kifuRecordModel && m_kifuRecordModel->rowCount() > 0) {
         if (auto* view = m_recordPane->kifuView()) {
