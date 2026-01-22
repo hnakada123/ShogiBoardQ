@@ -20,6 +20,9 @@ public:
     Q_INVOKABLE bool removeLastItem();
     Q_INVOKABLE bool removeLastItems(int n);
 
+    // ★ 追加：clearAllItems()のオーバーライド（ハイライト行もリセット）
+    void clearAllItems();
+
     // ★ 追加：分岐のある手（ply1=1..N）集合をセット
     void setBranchPlyMarks(const QSet<int>& ply1Set);
     QSet<int> branchPlyMarks() const { return m_branchPlySet; }
