@@ -128,7 +128,10 @@ void GameStartCoordinator::start(const StartParams& params)
 void GameStartCoordinator::prepare(const Request& req)
 {
     // --- 0) 前処理（UIのプレクリア） ---
-    emit requestPreStartCleanup();
+    // ★ skipCleanup が true の場合はスキップ（既に prepareDataCurrentPosition 等で呼び出し済み）
+    if (!req.skipCleanup) {
+        emit requestPreStartCleanup();
+    }
 
     // --- 1) ダイアログから時間設定を抽出 ---
     const TimeControl tc = extractTimeControlFromDialog(req.startDialog);
@@ -172,6 +175,10 @@ void GameStartCoordinator::prepare(const Request& req)
 // ===================================================================
 void GameStartCoordinator::prepareDataCurrentPosition(const Ctx& c)
 {
+    qDebug().noquote() << "[DEBUG][GSC] prepareDataCurrentPosition: ENTER"
+                       << " c.currentSfenStr=" << (c.currentSfenStr ? c.currentSfenStr->left(50) : "null")
+                       << " c.startSfenStr=" << (c.startSfenStr ? c.startSfenStr->left(50) : "null");
+
     // 依存の軽いバリデーション
     if (!c.view || !m_match) {
         qWarning().noquote() << "[GameStartCoordinator] prepareDataCurrentPosition: missing deps:"
@@ -179,29 +186,39 @@ void GameStartCoordinator::prepareDataCurrentPosition(const Ctx& c)
         return;
     }
 
-    // --- 0) 開始前クリーンアップを UI 層へ依頼（ハイライト/選択/解析UI などの掃除） ---
-    emit requestPreStartCleanup();
-
     // --- 1) ベースSFENの決定（★優先: 現在SFEN → 開始SFEN → 平手） ---
+    // ★重要: requestPreStartCleanup より前に決定する。
+    //         requestPreStartCleanup 内で棋譜欄の選択が変更され、
+    //         m_currentSfenStr が上書きされる可能性があるため。
     QString baseSfen;
     if (c.currentSfenStr && !c.currentSfenStr->isEmpty()) {
         baseSfen = *(c.currentSfenStr);
+        qDebug().noquote() << "[DEBUG][GSC] prepareDataCurrentPosition: baseSfen from currentSfenStr=" << baseSfen.left(50);
     } else if (c.startSfenStr && !c.startSfenStr->isEmpty()) {
         baseSfen = *(c.startSfenStr);
+        qDebug().noquote() << "[DEBUG][GSC] prepareDataCurrentPosition: baseSfen from startSfenStr=" << baseSfen.left(50);
     } else {
         baseSfen = QStringLiteral("startpos");
+        qDebug().noquote() << "[DEBUG][GSC] prepareDataCurrentPosition: baseSfen FALLBACK to startpos";
     }
+
+    // --- 0) 開始前クリーンアップを UI 層へ依頼（ハイライト/選択/解析UI などの掃除） ---
+    // ★注意: この呼び出しで m_currentSfenStr が変更される可能性があるが、
+    //         baseSfen は既に決定済みなので影響を受けない。
+    emit requestPreStartCleanup();
 
     // --- 2) ベースSFENの適用 ---
     //    ・"startpos" なら既定初期配置に
     //    ・それ以外の SFEN 文字列ならその局面を盤へセット
     if (baseSfen == QLatin1String("startpos")) {
+        qDebug().noquote() << "[DEBUG][GSC] prepareDataCurrentPosition: applying startpos";
         c.view->initializeToFlatStartingPosition();
         if (c.startSfenStr && c.startSfenStr->isEmpty())
             *c.startSfenStr = QStringLiteral("startpos");
         if (c.currentSfenStr)
             *c.currentSfenStr = QStringLiteral("startpos");
     } else {
+        qDebug().noquote() << "[DEBUG][GSC] prepareDataCurrentPosition: applying baseSfen=" << baseSfen.left(50);
         // 既存の「SFENを盤へ反映する」系ユーティリティを使用
         // ※ applyResumePositionIfAny は空でなければ SFEN を即適用し描画も反映
         GameStartCoordinator::applyResumePositionIfAny(c.gc, c.view, baseSfen);
@@ -218,7 +235,8 @@ void GameStartCoordinator::prepareDataCurrentPosition(const Ctx& c)
     // --- 4) ハイライトを確実に空へ ---
     c.view->removeHighlightAllData();
 
-    qDebug().noquote() << "[GameStartCoordinator] prepareDataCurrentPosition: done.";
+    qDebug().noquote() << "[GameStartCoordinator] prepareDataCurrentPosition: done."
+                       << " FINAL c.currentSfenStr=" << (c.currentSfenStr ? c.currentSfenStr->left(50) : "null");
 }
 
 // 初期局面（平手／手合割）で開始する場合の準備を行う。
@@ -670,6 +688,12 @@ PlayMode GameStartCoordinator::determinePlayModeAlignedWithTurn(
 
 void GameStartCoordinator::initializeGame(const Ctx& c)
 {
+    qDebug().noquote() << "[DEBUG][GSC] initializeGame: ENTER"
+                       << " c.currentSfenStr=" << (c.currentSfenStr ? c.currentSfenStr->left(50) : "null")
+                       << " c.startSfenStr=" << (c.startSfenStr ? c.startSfenStr->left(50) : "null")
+                       << " c.selectedPly=" << c.selectedPly
+                       << " c.sfenRecord size=" << (c.sfenRecord ? c.sfenRecord->size() : -1);
+
     // --- 1) ダイアログ生成＆受付 ---
     StartGameDialog* dlg = new StartGameDialog;
     if (!dlg) return;
@@ -684,23 +708,68 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
     const bool p1Human   = dlg->isHuman1();
     const bool p2Human   = dlg->isHuman2();
 
+    qDebug().noquote() << "[DEBUG][GSC] initializeGame: after dialog, initPosNo=" << initPosNo;
+
     // --- 3) 開始SFENの決定（既存ロジック踏襲） ---
     const int startingPosNumber = initPosNo;
+
+    // ★ 対局開始後に選択すべき棋譜行（現在局面から開始時に使用）
+    int startingRow = -1;
 
     QString startSfen;
     if (c.startSfenStr && !c.startSfenStr->isEmpty()) {
         startSfen = *(c.startSfenStr);
     }
+    qDebug().noquote() << "[DEBUG][GSC] initializeGame: BEFORE prepareDataCurrentPosition"
+                       << " startSfen=" << startSfen.left(50)
+                       << " c.currentSfenStr=" << (c.currentSfenStr ? c.currentSfenStr->left(50) : "null");
+
     if (startingPosNumber == 0) {
         // 現在局面から開始
         Ctx c2 = c;
         c2.startDlg = dlg;
         prepareDataCurrentPosition(c2);
 
+        qDebug().noquote() << "[DEBUG][GSC] initializeGame: AFTER prepareDataCurrentPosition"
+                           << " c.currentSfenStr=" << (c.currentSfenStr ? c.currentSfenStr->left(50) : "null");
+
+        // ★ 現在局面より後の行（投了など）を削除
+        // 棋譜欄の行番号とsfenRecordのインデックスを一致させるために必要
+        if (c.kifuModel && c.sfenRecord) {
+            // sfenRecordの最大インデックス = 実際に局面がある最後の手数
+            // selectedPlyがsfenRecordの範囲外（投了行など）の場合は調整
+            const int sfenMaxIdx = static_cast<int>(c.sfenRecord->size()) - 1;
+            const int effectivePly = qMin(c.selectedPly, sfenMaxIdx);
+            const int rowCount = c.kifuModel->rowCount();
+
+            qDebug().noquote() << "[GSC] Terminal row check: selectedPly=" << c.selectedPly
+                               << " sfenMaxIdx=" << sfenMaxIdx
+                               << " effectivePly=" << effectivePly
+                               << " rowCount=" << rowCount;
+
+            // effectivePlyより後の行をすべて削除（投了行など）
+            const int rowsToRemove = rowCount - effectivePly - 1;
+            if (rowsToRemove > 0) {
+                qDebug().noquote() << "[GSC] Removing" << rowsToRemove << "terminal rows after row" << effectivePly
+                                   << " (rowCount=" << rowCount << ")";
+                for (int i = 0; i < rowsToRemove; ++i) {
+                    c.kifuModel->removeLastItem();
+                }
+                qDebug().noquote() << "[GSC] After removal: rowCount=" << c.kifuModel->rowCount();
+
+                // selectedPlyも調整（後続の処理で使用されるため）
+                // Note: c.selectedPlyを直接変更はできないが、
+                // sfenRecord処理で使用されるkeepIdxはc.selectedPlyから計算されるため、
+                // sfenRecordのサイズで自動的にクランプされる
+            }
+        }
+
         if (c.currentSfenStr && !c.currentSfenStr->isEmpty()) {
             startSfen = *(c.currentSfenStr);
+            qDebug().noquote() << "[DEBUG][GSC] initializeGame: SET startSfen from currentSfenStr=" << startSfen.left(50);
         } else if (startSfen.isEmpty()) {
             startSfen = QStringLiteral("startpos");
+            qDebug().noquote() << "[DEBUG][GSC] initializeGame: FALLBACK to startpos";
         }
     } else if (startSfen.isEmpty()) {
         // 平手/駒落ちプリセット
@@ -746,7 +815,7 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
     const QString seedSfen = canonicalizeStart(startSfen);
 
     if (c.sfenRecord) {
-        // ★ 修正点：現在局面から開始（startingPosNumber==0）の場合は
+        // ★ 現在局面から開始（startingPosNumber==0）の場合は
         // 0..selectedPly を保全し、末尾（選択行）だけ seedSfen に置換してから入れ直す。
         if (startingPosNumber == 0 && !c.sfenRecord->isEmpty() && c.selectedPly >= 0) {
             const int keepIdx = static_cast<int>(qBound(qsizetype(0), qsizetype(c.selectedPly), c.sfenRecord->size() - 1));
@@ -754,7 +823,6 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
 
             QStringList preserved;
             preserved.reserve(takeLen);
-            // 0..keepIdx を手動コピー（detach回避のため明示ループは使わず、push_back等も避ける）
             for (int i = 0; i < takeLen; ++i) {
                 preserved.append(c.sfenRecord->at(i));
             }
@@ -764,6 +832,9 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
 
             c.sfenRecord->clear();
             c.sfenRecord->append(preserved);
+
+            // ★ 対局開始後に選択すべき行を記録
+            startingRow = keepIdx;
 
             qInfo().noquote()
                 << "[GSC][seed-resume] kept(0.." << keepIdx << ") size=" << c.sfenRecord->size()
@@ -849,6 +920,8 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
     req.startDialog = dlg;
     req.startSfen   = seedSfen;                         // ★ 手番確定に使用（正規化済み）
     req.clock       = c.clock ? c.clock : m_match->clock();
+    // ★ 現在局面からの開始時は prepareDataCurrentPosition() で既にクリーンアップ済み
+    req.skipCleanup = (startingPosNumber == 0);
 
     prepare(req); // requestPreStartCleanup / 時間適用シグナル / setClock→startClock など
 
@@ -877,6 +950,12 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
 
     start(params);
     qDebug().noquote() << "[GSC] ★★★ startGameAfterDialog: AFTER start() ★★★";
+
+    // --- 9.5) ★ 現在局面から開始の場合、開始行を選択するよう通知 ---
+    if (startingRow >= 0) {
+        qDebug().noquote() << "[GSC] emit requestSelectKifuRow(" << startingRow << ")";
+        emit requestSelectKifuRow(startingRow);
+    }
 
     // --- 10) 時計の関連付けと開始、その後エンジン初手 ---
     // 順序: 1) 時計開始 → 2) 初手go（元のstartMatchTimingAndMaybeInitialGoと同じ順序）

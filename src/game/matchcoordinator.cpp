@@ -661,6 +661,20 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
     // ★ デバッグ: 起動からの対局履歴を蓄積して出力
     static QVector<QStringList> allGameHistories;
 
+    // ★ 修正: 直前の対局で更新された m_positionStr1 を履歴に反映してから保存
+    // （ゲーム中に指し手が追加されても m_positionStrHistory は更新されないため、
+    //   次の対局開始時に最終状態を確定させる）
+    if (!m_positionStr1.isEmpty() && m_positionStr1.startsWith(QLatin1String("position "))) {
+        // m_positionStrHistory が空、または最後の要素と異なる場合は追加/更新
+        if (m_positionStrHistory.isEmpty()) {
+            m_positionStrHistory.append(m_positionStr1);
+        } else if (m_positionStrHistory.constLast() != m_positionStr1) {
+            // 最後の要素を最新の m_positionStr1 で置き換え
+            m_positionStrHistory[m_positionStrHistory.size() - 1] = m_positionStr1;
+        }
+        qDebug().noquote() << "[MC][configureAndStart] synced m_positionStrHistory with m_positionStr1=" << m_positionStr1;
+    }
+
     // 直前の対局履歴が残っていれば、それを確定した過去の対局として蓄積
     // (m_positionStrHistory はこの後クリアされるため、その前に保存)
     if (!m_positionStrHistory.isEmpty()) {
@@ -876,14 +890,30 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
             const QString trimmed = trimMovesPreserveHeader(candidateBase, keepMoves);
             qDebug().noquote() << "[MC][configureAndStart] trimmed(base, keep=" << keepMoves << ")=" << trimmed;
 
-            m_positionStr1     = trimmed;
-            m_positionPonder1  = trimmed;
+            // ★ 修正: trimmed が keepMoves 分の手を持っているか確認
+            // candidateBase に十分な手数がない場合は、フォールバックに任せる
+            auto countMoves = [](const QString& posStr) -> int {
+                const qsizetype idx = posStr.indexOf(QLatin1String(" moves "));
+                if (idx < 0) return 0;
+                const QString after = posStr.mid(idx + 7).trimmed();
+                if (after.isEmpty()) return 0;
+                return static_cast<int>(after.split(QLatin1Char(' '), Qt::SkipEmptyParts).size());
+            };
+            const int actualMoves = countMoves(trimmed);
 
-            // 履歴はベースを差し替えて 1 件から再スタート（UNDO用）
-            m_positionStrHistory.clear();
-            m_positionStrHistory.append(trimmed);
+            if (actualMoves >= keepMoves) {
+                m_positionStr1     = trimmed;
+                m_positionPonder1  = trimmed;
 
-            applied = true;
+                // 履歴はベースを差し替えて 1 件から再スタート（UNDO用）
+                m_positionStrHistory.clear();
+                m_positionStrHistory.append(trimmed);
+
+                applied = true;
+                qDebug().noquote() << "[MC][configureAndStart] applied=true (actualMoves=" << actualMoves << " >= keepMoves=" << keepMoves << ")";
+            } else {
+                qDebug().noquote() << "[MC][configureAndStart] candidateBase has insufficient moves (actualMoves=" << actualMoves << " < keepMoves=" << keepMoves << "), falling back to SFEN";
+            }
         } else {
             qWarning().noquote()
             << "[MC][configureAndStart] candidateBase is not 'position ...' :" << candidateBase;
