@@ -488,14 +488,14 @@ void MatchCoordinator::onEngine2Win()
     this->handleEngineWin(2);
 }
 
-void MatchCoordinator::destroyEngine(int idx)
+void MatchCoordinator::destroyEngine(int idx, bool clearThinking)
 {
     Usi*& ref = (idx == 1 ? m_usi1 : m_usi2);
     if (ref) {
         // すべてのシグナル接続を切断して、削除中/削除後のコールバックを防ぐ
         ref->disconnect();
         // エンジンプロセスを同期的にクリーンアップ（quitコマンド送信とプロセス終了待ち）
-        ref->cleanupEngineProcessAndThread();
+        ref->cleanupEngineProcessAndThread(clearThinking);
         // deleteLater()を使用して安全に削除
         ref->deleteLater();
         ref = nullptr;
@@ -504,17 +504,21 @@ void MatchCoordinator::destroyEngine(int idx)
 
 void MatchCoordinator::destroyEngines(bool clearModels)
 {
-    destroyEngine(1);
-    destroyEngine(2);
+    qDebug().noquote() << "[MC::destroyEngines] called, clearModels=" << clearModels;
+    destroyEngine(1, clearModels);
+    destroyEngine(2, clearModels);
 
     // モデルをクリア（削除はしない。次回対局で再利用するため）
     // これにより、対局を繰り返してもデータが蓄積しない
     // clearModels=false の場合はクリアしない（詰み探索完了後などで思考内容を保持したい場合）
     if (clearModels) {
+        qDebug().noquote() << "[MC::destroyEngines] clearing models";
         if (m_comm1)  m_comm1->clear();
         if (m_think1) m_think1->clearAllItems();
         if (m_comm2)  m_comm2->clear();
         if (m_think2) m_think2->clearAllItems();
+    } else {
+        qDebug().noquote() << "[MC::destroyEngines] preserving models (clearModels=false)";
     }
 }
 

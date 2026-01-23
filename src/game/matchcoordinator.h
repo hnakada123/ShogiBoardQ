@@ -264,7 +264,7 @@ public:
                                      const QString& engineNameIn);
 
     // エンジン破棄（片方 or 両方）
-    void destroyEngine(int idx);   // idx: 1 or 2
+    void destroyEngine(int idx, bool clearThinking = true);   // idx: 1 or 2
     void destroyEngines(bool clearModels = true);
 
 private:

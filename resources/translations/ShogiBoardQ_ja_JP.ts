@@ -3185,36 +3185,36 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1868"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="1872"/>
         <source>詰みあり（手順 %1 手）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1869"/>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1878"/>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1887"/>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1896"/>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1908"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="1873"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="1882"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="1891"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="1900"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="1912"/>
         <source>詰み探索</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1878"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="1882"/>
         <source>詰みなし</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1887"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="1891"/>
         <source>（エンジン側）未実装</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1896"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="1900"/>
         <source>不明（解析不能）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1908"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="1912"/>
         <source>探索が完了しました</source>
         <translation>探索が完了しました</translation>
     </message>
@@ -3786,12 +3786,12 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2596"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2600"/>
         <source>先手番</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2596"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2600"/>
         <source>後手番</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4849,22 +4849,22 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>Usi</name>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="371"/>
+        <location filename="../../src/engine/usi.cpp" line="373"/>
         <source>Engine file path is empty.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="386"/>
+        <location filename="../../src/engine/usi.cpp" line="388"/>
         <source>Failed to change directory to %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="568"/>
+        <location filename="../../src/engine/usi.cpp" line="572"/>
         <source>USI engine is not running.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="766"/>
+        <location filename="../../src/engine/usi.cpp" line="770"/>
         <source>Timeout waiting for bestmove.</source>
         <translation type="unfinished"></translation>
     </message>
