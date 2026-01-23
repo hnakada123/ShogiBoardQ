@@ -33,8 +33,8 @@ QVariant ShogiEngineThinkingModel::data(const QModelIndex &index, int role) cons
             return Qt::AlignCenter;
         }
         if (role == Qt::BackgroundRole) {
-            // 青緑系のボタン色（クリック可能であることを示す）
-            return QColor(0x20, 0x9c, 0xee);  // 明るい青
+            // タブバーと同系色のボタン色（クリック可能であることを示す）
+            return QColor(0x3d, 0x8d, 0xe2);  // タブバーの青
         }
         if (role == Qt::ForegroundRole) {
             return QColor(Qt::white);  // 白文字
