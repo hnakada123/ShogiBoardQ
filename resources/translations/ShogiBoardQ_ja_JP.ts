@@ -4541,7 +4541,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="141"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="79"/>
         <source>先手／下手</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4577,14 +4577,14 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="207"/>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="375"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="145"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="313"/>
         <source>名前</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="259"/>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="427"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="197"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="365"/>
         <location filename="../../src/dialogs/startgamedialog.cpp" line="224"/>
         <location filename="../../src/dialogs/startgamedialog.cpp" line="246"/>
         <location filename="../../src/dialogs/startgamedialog.cpp" line="308"/>
@@ -4593,247 +4593,242 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="282"/>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="450"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="220"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="388"/>
         <source>エンジン設定</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="309"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="247"/>
         <source>後手／上手</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="683"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="621"/>
         <source>後手／上手に異なる時間を設定</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="498"/>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="703"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="436"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="641"/>
         <source>持ち時間</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="515"/>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="720"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="453"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="658"/>
         <source>時間</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="535"/>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="740"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="473"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="678"/>
         <source>分</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="585"/>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="658"/>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="790"/>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="840"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="523"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="596"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="728"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="778"/>
         <source>秒</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="484"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="422"/>
         <source>時間設定</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="608"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="546"/>
         <source>※ 秒読みと増加は併用できません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="867"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="805"/>
         <source>設定</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="882"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="820"/>
         <source>開始局面</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="893"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="831"/>
         <source>現在の局面</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="898"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="836"/>
         <source>平手</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="903"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="841"/>
         <source>香落ち</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="908"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="846"/>
         <source>右香落ち</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="913"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="851"/>
         <source>角落ち</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="918"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="856"/>
         <source>飛車落ち</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="923"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="861"/>
         <source>飛香落ち</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="928"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="866"/>
         <source>二枚落ち</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="933"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="871"/>
         <source>三枚落ち</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="938"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="876"/>
         <source>四枚落ち</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="943"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="881"/>
         <source>五枚落ち</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="948"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="886"/>
         <source>左五枚落ち</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="953"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="891"/>
         <source>六枚落ち</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="958"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="896"/>
         <source>八枚落ち</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="963"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="901"/>
         <source>十枚落ち</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="988"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="926"/>
         <source>最大手数</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="1025"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="963"/>
         <source>連続対局</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="1062"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="1000"/>
         <source>持将棋</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="1076"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="1014"/>
         <source>なし</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="1081"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="1019"/>
         <source>24点法</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="1086"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="1024"/>
         <source>27点法</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="1113"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="1051"/>
         <source>人を手前に表示する</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="1156"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="1094"/>
         <source>棋譜自動保存</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="1120"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="1058"/>
         <source>時間切れを負けにする</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="89"/>
-        <source>文字サイズ:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="108"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="1180"/>
         <source>A-</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="127"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="1199"/>
         <source>A+</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="159"/>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="327"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="97"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="265"/>
         <source>対局者</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="565"/>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="770"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="503"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="708"/>
         <source>秒読み</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="638"/>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="820"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="576"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="758"/>
         <source>増加</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="1127"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="1065"/>
         <source>1局ごとに手番を入れ替える</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="1178"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="1116"/>
         <source>保存先を選択...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="1185"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="1123"/>
         <source>...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="1209"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="1147"/>
         <source>↔ 先後入れ替え</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="1216"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="1154"/>
         <source>設定のみ保存</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.ui" line="1223"/>
+        <location filename="../../src/dialogs/startgamedialog.ui" line="1161"/>
         <source>初期設定に戻す</source>
         <translation type="unfinished"></translation>
     </message>
