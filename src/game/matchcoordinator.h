@@ -265,7 +265,7 @@ public:
 
     // エンジン破棄（片方 or 両方）
     void destroyEngine(int idx);   // idx: 1 or 2
-    void destroyEngines();
+    void destroyEngines(bool clearModels = true);
 
 private:
     // resign/win 配線の実装（内部ユーティリティ）
@@ -360,6 +360,9 @@ public:
     // ==== 追加：検討API ====
     void startAnalysis(const AnalysisOptions& opt);
 
+    /// 詰み探索・検討エンジンを終了する
+    void stopAnalysisEngine();
+
 public:
     Usi* primaryEngine() const;   // HvE/EvH で司令塔が使う主エンジン（これまで m_usi1 に相当）
     Usi* secondaryEngine() const; // ★ 追加
@@ -393,6 +396,11 @@ private:
     // ★ EvE用：共有sfenRecordが設定されていればそれを使い、なければローカルを使う
     QStringList* sfenRecordForEvE() { return m_sfenRecord ? m_sfenRecord : &m_eveSfenRecord; }
     QVector<ShogiMove>& gameMovesForEvE() { return m_sfenRecord ? m_gameMoves : m_eveGameMoves; }
+
+    // ★ HvE/EvH用：u_.gameMoves（MainWindowのポインタ）が設定されていればそれを使う
+    QVector<ShogiMove>& gameMovesRef() {
+        return u_.gameMoves ? *u_.gameMoves : m_gameMoves;
+    }
 
 private:
     // 「その手の開始」エポック（KIFの消費時間計算に使用）
@@ -451,12 +459,14 @@ signals:
 private:
     // ...（既存）
     GameOverState m_gameOver;
+    bool m_inTsumeSearchMode = false;  ///< 詰み探索モード中かどうか
 
 private slots:
     void onCheckmateSolved(const QStringList& pv);
     void onCheckmateNoMate();
     void onCheckmateNotImplemented();
     void onCheckmateUnknown();
+    void onTsumeBestMoveReceived();  ///< 詰み探索中に bestmove を受信
 
 public:
     StartOptions buildStartOptions(PlayMode mode,

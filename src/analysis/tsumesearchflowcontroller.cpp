@@ -48,6 +48,20 @@ void TsumeSearchFlowController::runWithDialog(const Deps& d, QWidget* parent)
 
 QString TsumeSearchFlowController::buildPositionForMate(const Deps& d) const
 {
+    qDebug().noquote() << "[TsumeSearch] buildPositionForMate:"
+                       << "usiMoves=" << (d.usiMoves ? QString::number(d.usiMoves->size()) : "null")
+                       << "startPositionCmd=" << d.startPositionCmd
+                       << "currentMoveIndex=" << d.currentMoveIndex;
+
+    // USI形式の指し手リストが利用可能な場合はmoves形式を使用
+    if (d.usiMoves && !d.usiMoves->isEmpty() && !d.startPositionCmd.isEmpty()) {
+        const QString result = TsumePositionUtil::buildPositionWithMoves(
+            d.usiMoves, d.startPositionCmd, qMax(0, d.currentMoveIndex));
+        qDebug().noquote() << "[TsumeSearch] using moves format:" << result;
+        return result;
+    }
+    // フォールバック: SFEN形式
+    qDebug().noquote() << "[TsumeSearch] fallback to SFEN format";
     return TsumePositionUtil::buildPositionForMate(
         d.sfenRecord, d.startSfenStr, d.positionStrList, qMax(0, d.currentMoveIndex));
 }

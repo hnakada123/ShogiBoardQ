@@ -136,6 +136,8 @@ void DialogCoordinator::showTsumeSearchDialog(const TsumeSearchParams& params)
     d.startSfenStr = params.startSfenStr;
     d.positionStrList = params.positionStrList;
     d.currentMoveIndex = qMax(0, params.currentMoveIndex);
+    d.usiMoves = params.usiMoves;
+    d.startPositionCmd = params.startPositionCmd;
     d.onError = [this](const QString& msg) { showFlowError(msg); };
 
     flow->runWithDialog(d, m_parentWidget);

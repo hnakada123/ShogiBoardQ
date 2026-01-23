@@ -502,17 +502,20 @@ void MatchCoordinator::destroyEngine(int idx)
     }
 }
 
-void MatchCoordinator::destroyEngines()
+void MatchCoordinator::destroyEngines(bool clearModels)
 {
     destroyEngine(1);
     destroyEngine(2);
 
     // モデルをクリア（削除はしない。次回対局で再利用するため）
     // これにより、対局を繰り返してもデータが蓄積しない
-    if (m_comm1)  m_comm1->clear();
-    if (m_think1) m_think1->clearAllItems();
-    if (m_comm2)  m_comm2->clear();
-    if (m_think2) m_think2->clearAllItems();
+    // clearModels=false の場合はクリアしない（詰み探索完了後などで思考内容を保持したい場合）
+    if (clearModels) {
+        if (m_comm1)  m_comm1->clear();
+        if (m_think1) m_think1->clearAllItems();
+        if (m_comm2)  m_comm2->clear();
+        if (m_think2) m_think2->clearAllItems();
+    }
 }
 
 void MatchCoordinator::setPlayMode(PlayMode m)
@@ -1788,7 +1791,8 @@ void MatchCoordinator::startAnalysis(const AnalysisOptions& opt)
     // 1) モード設定（検討 / 詰み探索）
     setPlayMode(opt.mode); // PlayMode::ConsiderationMode or PlayMode::TsumiSearchMode
 
-    // 2) 以前の単発エンジンは破棄
+    // 2) 既存エンジンを破棄して新規作成（毎回エンジンを起動する）
+    qDebug().noquote() << "[MC] startAnalysis: starting engine" << opt.enginePath;
     destroyEngines();
 
     // 3) 表示モデル（無ければ生成して保持）
@@ -1821,7 +1825,8 @@ void MatchCoordinator::startAnalysis(const AnalysisOptions& opt)
     if (m_hooks.setEngineNames) m_hooks.setEngineNames(opt.engineName, QString());
 
     // 9) 詰み探索の配線（TsumiSearchMode のときのみ）
-    if (opt.mode == PlayMode::TsumiSearchMode && m_usi1) {
+    m_inTsumeSearchMode = (opt.mode == PlayMode::TsumiSearchMode);
+    if (m_inTsumeSearchMode && m_usi1) {
         connect(m_usi1, &Usi::checkmateSolved,
                 this,  &MatchCoordinator::onCheckmateSolved,
                 Qt::UniqueConnection);
@@ -1834,6 +1839,10 @@ void MatchCoordinator::startAnalysis(const AnalysisOptions& opt)
         connect(m_usi1, &Usi::checkmateUnknown,
                 this,  &MatchCoordinator::onCheckmateUnknown,
                 Qt::UniqueConnection);
+        // bestmove 受信時も通知（checkmate 非対応エンジン用）
+        connect(m_usi1, &Usi::bestMoveReceived,
+                this,   &MatchCoordinator::onTsumeBestMoveReceived,
+                Qt::UniqueConnection);
     }
 
     // 10) 解析/詰み探索の実行
@@ -1845,33 +1854,60 @@ void MatchCoordinator::startAnalysis(const AnalysisOptions& opt)
     }
 }
 
+void MatchCoordinator::stopAnalysisEngine()
+{
+    qDebug().noquote() << "[MC] stopAnalysisEngine called";
+    m_inTsumeSearchMode = false;  // フラグをリセット
+    destroyEngines(false);  // 思考内容を保持
+}
+
 void MatchCoordinator::onCheckmateSolved(const QStringList& pv)
 {
+    m_inTsumeSearchMode = false;  // 完了したのでフラグをリセット
     if (m_hooks.showGameOverDialog) {
         const QString msg = tr("詰みあり（手順 %1 手）").arg(pv.size());
         m_hooks.showGameOverDialog(tr("詰み探索"), msg);
     }
+    destroyEngines(false);  // 探索完了後にエンジンを終了（思考内容を保持）
 }
 
 void MatchCoordinator::onCheckmateNoMate()
 {
+    m_inTsumeSearchMode = false;  // 完了したのでフラグをリセット
     if (m_hooks.showGameOverDialog) {
         m_hooks.showGameOverDialog(tr("詰み探索"), tr("詰みなし"));
     }
+    destroyEngines(false);  // 探索完了後にエンジンを終了（思考内容を保持）
 }
 
 void MatchCoordinator::onCheckmateNotImplemented()
 {
+    m_inTsumeSearchMode = false;  // 完了したのでフラグをリセット
     if (m_hooks.showGameOverDialog) {
         m_hooks.showGameOverDialog(tr("詰み探索"), tr("（エンジン側）未実装"));
     }
+    destroyEngines(false);  // 探索完了後にエンジンを終了（思考内容を保持）
 }
 
 void MatchCoordinator::onCheckmateUnknown()
 {
+    m_inTsumeSearchMode = false;  // 完了したのでフラグをリセット
     if (m_hooks.showGameOverDialog) {
         m_hooks.showGameOverDialog(tr("詰み探索"), tr("不明（解析不能）"));
     }
+    destroyEngines(false);  // 探索完了後にエンジンを終了（思考内容を保持）
+}
+
+void MatchCoordinator::onTsumeBestMoveReceived()
+{
+    // 詰み探索モード中でない場合は無視
+    if (!m_inTsumeSearchMode) return;
+
+    m_inTsumeSearchMode = false;  // 完了したのでフラグをリセット
+    if (m_hooks.showGameOverDialog) {
+        m_hooks.showGameOverDialog(tr("詰み探索"), tr("探索が完了しました"));
+    }
+    destroyEngines(false);  // 探索完了後にエンジンを終了（思考内容を保持）
 }
 
 void MatchCoordinator::onUsiError(const QString& msg)
@@ -1996,7 +2032,7 @@ void MatchCoordinator::startInitialEngineMoveFor(Player engineSide)
     int nextIdx = mcCur + 1; // ★ 「次の手」
     const bool ok = m_gc->validateAndMove(
         eFrom, eTo, rec, m_playMode,
-        nextIdx, m_sfenRecord, m_gameMoves);
+        nextIdx, m_sfenRecord, gameMovesRef());
 
     const QString recTailAfter = (m_sfenRecord && !m_sfenRecord->isEmpty()) ? m_sfenRecord->last() : QString();
     const int recTailNum = recTailAfter.isEmpty() ? -1 : extractMoveNumber(recTailAfter);
@@ -2129,7 +2165,7 @@ void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& hu
     int nextIdx = mcCur + 1;              // ★ 同期後の mcCur から算出
     const bool ok = m_gc->validateAndMove(
         eFrom, eTo, rec, m_playMode,
-        nextIdx, m_sfenRecord, m_gameMoves);
+        nextIdx, m_sfenRecord, gameMovesRef());
 
     const QString recTailAfter = (m_sfenRecord && !m_sfenRecord->isEmpty()) ? m_sfenRecord->last() : QString();
     const int recTailNum = recTailAfter.isEmpty() ? -1 : extractMoveNumber(recTailAfter);

@@ -1,4 +1,5 @@
 #include "shogiutils.h"
+#include "shogimove.h"
 #include "errorbus.h"
 #include <QStringList>
 #include <QDebug>
@@ -45,6 +46,47 @@ QString transFileTo(const int fileTo)
         return QString();
     }
     return fileStrings.at(fileTo);
+}
+
+QString moveToUsi(const ShogiMove& move)
+{
+    const int fromX = move.fromSquare.x();  // 0-indexed (0-8 for board, 9/10 for piece stands)
+    const int fromY = move.fromSquare.y();  // 0-indexed (0-8)
+    const int toX = move.toSquare.x();      // 0-indexed (0-8)
+    const int toY = move.toSquare.y();      // 0-indexed (0-8)
+
+    // 移動先が盤外なら無効
+    if (toX < 0 || toX > 8 || toY < 0 || toY > 8) {
+        return QString();
+    }
+
+    // USI形式: file=1-9, rank=a-i
+    const int toFile = toX + 1;             // 1-9
+    const QChar toRank = QChar('a' + toY);  // a-i
+
+    // 駒打ち判定: fromX が 9（先手駒台）または 10（後手駒台）の場合
+    if (fromX == 9 || fromX == 10) {
+        // 駒種（大文字に変換）
+        QChar piece = move.movingPiece.toUpper();
+        return QStringLiteral("%1*%2%3").arg(piece).arg(toFile).arg(toRank);
+    }
+
+    // 通常の盤上移動
+    if (fromX < 0 || fromX > 8 || fromY < 0 || fromY > 8) {
+        return QString();
+    }
+
+    const int fromFile = fromX + 1;           // 1-9
+    const QChar fromRank = QChar('a' + fromY);// a-i
+
+    QString usi = QStringLiteral("%1%2%3%4").arg(fromFile).arg(fromRank).arg(toFile).arg(toRank);
+
+    // 成りの場合は "+" を追加
+    if (move.isPromotion) {
+        usi += QLatin1Char('+');
+    }
+
+    return usi;
 }
 
 } // namespace ShogiUtils

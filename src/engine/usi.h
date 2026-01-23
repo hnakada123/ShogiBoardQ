@@ -119,6 +119,9 @@ public:
     void clearHardTimeout();
     bool isIgnoring() const;
 
+    /// 現在実行中のエンジンファイルパスを取得
+    QString currentEnginePath() const;
+
     void sendGoCommand(int byoyomiMilliSec, const QString& btime, const QString& wtime,
                        int addEachMoveMilliSec1, int addEachMoveMilliSec2, bool useByoyomi);
 

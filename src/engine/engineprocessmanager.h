@@ -45,9 +45,12 @@ public:
     
     /// プロセスが実行中かどうか
     bool isRunning() const;
-    
+
     /// プロセスの状態を取得
     QProcess::ProcessState state() const;
+
+    /// 現在実行中のエンジンファイルパスを取得
+    QString currentEnginePath() const { return m_currentEnginePath; }
 
     // === コマンド送信 ===
     
@@ -143,6 +146,9 @@ private:
     
     /// データ受信継続用
     void scheduleMoreReading();
+
+    /// 現在のエンジンファイルパス
+    QString m_currentEnginePath;
 };
 
 #endif // ENGINEPROCESSMANAGER_H

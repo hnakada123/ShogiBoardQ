@@ -19,6 +19,8 @@ public:
         QString            startSfenStr;          // 開始 SFEN（空可）
         QStringList        positionStrList;       // 既存 "position ..." の列
         int                currentMoveIndex = 0;  // 現在の行
+        const QStringList* usiMoves = nullptr;    // USI形式の指し手リスト（moves形式用）
+        QString            startPositionCmd;      // 開始局面コマンド（"startpos" or "sfen ..."）
         std::function<void(const QString&)> onError; // 任意: エラー表示
     };
 
