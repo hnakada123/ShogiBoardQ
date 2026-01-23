@@ -193,7 +193,10 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
     if (m_logModel) {
         m_logModel->setEngineName(engineName);
     }
-    
+
+    // USI通信ログのエンジン識別子を設定（"E?" ではなく "E1" と表示されるようにする）
+    m_usi->setLogIdentity(QStringLiteral("[E1]"), QString(), engineName);
+
     m_usi->startAndInitializeEngine(enginePath, engineName); // usi→usiok/setoption/isready→readyok
 
     // ★ 解析用の盤面データを初期化（info行のPV解析に必要）

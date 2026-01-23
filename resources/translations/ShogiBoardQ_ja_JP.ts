@@ -5,13 +5,13 @@
     <name>AnalysisFlowController</name>
     <message>
         <location filename="../../src/analysis/analysisflowcontroller.cpp" line="42"/>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="799"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="802"/>
         <source>内部エラー: sfenRecord が未準備です。棋譜読み込み後に実行してください。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../src/analysis/analysisflowcontroller.cpp" line="46"/>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="803"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="806"/>
         <source>内部エラー: 解析モデルが未準備です。</source>
         <translation type="unfinished"></translation>
     </message>
@@ -26,18 +26,18 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="538"/>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="650"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="541"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="653"/>
         <source>（定跡）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="945"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="948"/>
         <source>先手</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="946"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="949"/>
         <source>後手</source>
         <translation type="unfinished"></translation>
     </message>
@@ -50,32 +50,32 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisresultspresenter.cpp" line="137"/>
+        <location filename="../../src/analysis/analysisresultspresenter.cpp" line="146"/>
         <source>A-</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisresultspresenter.cpp" line="141"/>
+        <location filename="../../src/analysis/analysisresultspresenter.cpp" line="150"/>
         <source>A+</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisresultspresenter.cpp" line="146"/>
+        <location filename="../../src/analysis/analysisresultspresenter.cpp" line="155"/>
         <source>棋譜解析中止</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisresultspresenter.cpp" line="150"/>
+        <location filename="../../src/analysis/analysisresultspresenter.cpp" line="159"/>
         <source>閉じる</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisresultspresenter.cpp" line="310"/>
+        <location filename="../../src/analysis/analysisresultspresenter.cpp" line="319"/>
         <source>棋譜解析完了</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisresultspresenter.cpp" line="311"/>
+        <location filename="../../src/analysis/analysisresultspresenter.cpp" line="320"/>
         <source>棋譜解析が完了しました。
 
 解析手数: %1 手</source>
@@ -2373,12 +2373,12 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="140"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="141"/>
         <source>An error occurred in KifuAnalysisDialog::showEngineSettingsDialog. The Shogi engine has not been selected.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="143"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="144"/>
         <source>Error</source>
         <translation type="unfinished"></translation>
     </message>

@@ -61,11 +61,12 @@ KifuAnalysisDialog::KifuAnalysisDialog(QWidget *parent)
     // エンジン設定ボタンが押されたときの処理
     connect(ui->engineSetting, &QPushButton::clicked, this, &KifuAnalysisDialog::showEngineSettingsDialog);
 
+    // OKボタンが押された場合、エンジン名、エンジン番号、解析局面フラグ、思考時間を取得する。
+    // ★ 重要: accept()より先に接続し、メンバー変数が確実に更新されるようにする
+    connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &KifuAnalysisDialog::processEngineSettings);
+
     // OKボタンが押された場合、ダイアログを受け入れたとして閉じる動作を行う。
     connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &KifuAnalysisDialog::accept);
-
-    // OKボタンが押された場合、エンジン名、エンジン番号、解析局面フラグ、思考時間を取得する。
-    connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &KifuAnalysisDialog::processEngineSettings);
 
     // キャンセルボタンが押された場合、ダイアログを拒否する動作を行う。
     connect(ui->buttonBox, &QDialogButtonBox::rejected, this, &KifuAnalysisDialog::reject);
