@@ -66,6 +66,7 @@ bool EngineProcessManager::startProcess(const QString& engineFile)
     }
 
     m_shutdownState = ShutdownState::Running;
+    m_currentEnginePath = engineFile;  // エンジンパスを記録
     return true;
 }
 
@@ -87,9 +88,10 @@ void EngineProcessManager::stopProcess()
     disconnect(m_process, nullptr, this, nullptr);
     delete m_process;
     m_process = nullptr;
-    
+
     m_shutdownState = ShutdownState::Running;
     m_postQuitInfoStringLinesLeft = 0;
+    m_currentEnginePath.clear();  // エンジンパスをクリア
 }
 
 bool EngineProcessManager::isRunning() const

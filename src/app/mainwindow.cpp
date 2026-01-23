@@ -29,6 +29,7 @@
 #include "mainwindow.h"
 #include "branchwiringcoordinator.h"
 #include "considerationflowcontroller.h"
+#include "shogiutils.h"
 #include "gamelayoutbuilder.h"
 #include "shogigamecontroller.h"
 #include "shogiboard.h"
@@ -346,6 +347,10 @@ void MainWindow::initializeComponents()
     // 棋譜表示用のレコードリストを確保（ここでは容器だけ用意）
     if (!m_moveRecords) m_moveRecords = new QList<KifuDisplay *>;
     else                m_moveRecords->clear();
+
+    // ゲーム中の指し手リストをクリア
+    m_gameMoves.clear();
+    m_gameUsiMoves.clear();
 
     // ───────────────── View ─────────────────
     if (!m_shogiView) {
@@ -894,7 +899,64 @@ void MainWindow::displayTsumeShogiSearchDialog()
         params.startSfenStr = m_startSfenStr;
         params.positionStrList = m_positionStrList;
         params.currentMoveIndex = qMax(0, m_currentMoveIndex);
+
+        // USI形式の指し手リストを取得（棋譜解析と同様のロジック）
+        // 1) 対局時のUSI形式指し手リストを優先
+        // 2) 棋譜読み込み時のUSI形式指し手リストを使用
+        const qsizetype sfenSize = m_sfenRecord ? m_sfenRecord->size() : 0;
+        qDebug().noquote() << "[MainWindow::displayTsumeShogiSearchDialog] sfenSize=" << sfenSize
+                           << "m_gameUsiMoves.size=" << m_gameUsiMoves.size()
+                           << "m_kifuLoadCoordinator=" << (m_kifuLoadCoordinator ? "exists" : "null");
+        if (!m_gameUsiMoves.isEmpty()) {
+            const qsizetype usiSize = m_gameUsiMoves.size();
+            qDebug().noquote() << "[MainWindow::displayTsumeShogiSearchDialog] checking m_gameUsiMoves: sfenSize=" << sfenSize << " usiSize=" << usiSize;
+            if (sfenSize == usiSize + 1) {
+                params.usiMoves = &m_gameUsiMoves;
+                qDebug().noquote() << "[MainWindow::displayTsumeShogiSearchDialog] using m_gameUsiMoves, size=" << usiSize;
+            } else {
+                qDebug().noquote() << "[MainWindow::displayTsumeShogiSearchDialog] m_gameUsiMoves size mismatch";
+            }
+        } else if (m_kifuLoadCoordinator) {
+            QStringList* kifuUsiMoves = m_kifuLoadCoordinator->kifuUsiMovesPtr();
+            const qsizetype usiSize = kifuUsiMoves ? kifuUsiMoves->size() : 0;
+            qDebug().noquote() << "[MainWindow::displayTsumeShogiSearchDialog] checking kifuUsiMoves: sfenSize=" << sfenSize << " usiSize=" << usiSize;
+            if (kifuUsiMoves) {
+                qDebug().noquote() << "[MainWindow::displayTsumeShogiSearchDialog] kifuUsiMoves content:" << *kifuUsiMoves;
+            }
+            if (sfenSize == usiSize + 1) {
+                params.usiMoves = kifuUsiMoves;
+                qDebug().noquote() << "[MainWindow::displayTsumeShogiSearchDialog] using kifuLoadCoordinator->kifuUsiMovesPtr(), size=" << usiSize;
+            } else {
+                qDebug().noquote() << "[MainWindow::displayTsumeShogiSearchDialog] kifuUsiMoves size mismatch (expected sfenSize == usiSize + 1)";
+            }
+        } else {
+            qDebug().noquote() << "[MainWindow::displayTsumeShogiSearchDialog] no usiMoves source available";
+        }
+
+        // 開始局面コマンドを決定（平手初期局面の場合は "startpos"、それ以外は "sfen ..."）
+        static const QString kHirateSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+        if (m_startSfenStr.isEmpty() || m_startSfenStr == kHirateSfen) {
+            params.startPositionCmd = QStringLiteral("startpos");
+        } else {
+            params.startPositionCmd = QStringLiteral("sfen ") + m_startSfenStr;
+        }
+
+        qDebug().noquote() << "[MainWindow::displayTsumeShogiSearchDialog]"
+                           << "usiMoves=" << (params.usiMoves ? QString::number(params.usiMoves->size()) : "null")
+                           << "m_startSfenStr=" << m_startSfenStr.left(50)
+                           << "startPositionCmd=" << params.startPositionCmd
+                           << "currentMoveIndex=" << params.currentMoveIndex;
+
         m_dialogCoordinator->showTsumeSearchDialog(params);
+    }
+}
+
+// 詰み探索エンジンを終了する
+void MainWindow::stopTsumeSearch()
+{
+    qDebug().noquote() << "[MainWindow] stopTsumeSearch called";
+    if (m_match) {
+        m_match->stopAnalysisEngine();
     }
 }
 
@@ -1269,6 +1331,11 @@ void MainWindow::displayGameRecord(const QList<KifDisplayItem> disp)
 {
     QElapsedTimer timer;
     timer.start();
+
+    // 棋譜読み込み時は対局で記録したUSI形式指し手リストをクリア
+    // （代わりに KifuLoadCoordinator::kifuUsiMovesPtr() を使用する）
+    m_gameUsiMoves.clear();
+    m_gameMoves.clear();
 
     if (!m_kifuRecordModel) return;
 
@@ -2208,17 +2275,33 @@ void MainWindow::onMoveCommitted(ShogiGameController::Player mover, int ply)
         m_boardSetupController->setPlayMode(m_playMode);
         m_boardSetupController->onMoveCommitted(mover, ply);
     }
-    
+
+    // USI形式の指し手を記録（詰み探索などで使用）
+    // m_gameMovesの最新の指し手をUSI形式に変換して追加
+    if (!m_gameMoves.isEmpty()) {
+        const ShogiMove& lastMove = m_gameMoves.last();
+        const QString usiMove = ShogiUtils::moveToUsi(lastMove);
+        if (!usiMove.isEmpty()) {
+            // m_gameUsiMovesのサイズがm_gameMoves.size()-1の場合のみ追加
+            // （重複追加を防ぐ）
+            if (m_gameUsiMoves.size() == m_gameMoves.size() - 1) {
+                m_gameUsiMoves.append(usiMove);
+                qDebug().noquote() << "[MainWindow] onMoveCommitted: added USI move:" << usiMove
+                                   << "m_gameUsiMoves.size()=" << m_gameUsiMoves.size();
+            }
+        }
+    }
+
     // m_currentSfenStrを現在の局面に更新
     // m_sfenRecordの最新のSFENを取得（plyはタイミングの問題で信頼できない）
     if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
         // 最新のSFENを取得
         m_currentSfenStr = m_sfenRecord->last();
-        qDebug() << "[JosekiWindow] onMoveCommitted: ply=" << ply 
+        qDebug() << "[JosekiWindow] onMoveCommitted: ply=" << ply
                  << "sfenRecord.size()=" << m_sfenRecord->size()
                  << "using last sfen=" << m_currentSfenStr;
     }
-    
+
     // 定跡ウィンドウを更新
     updateJosekiWindow();
 }

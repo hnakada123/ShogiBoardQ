@@ -201,6 +201,7 @@ public slots:
     void onKifuAnalysisProgress(int ply, int scoreCp);  // 棋譜解析進捗
     void onKifuAnalysisResultRowSelected(int row);  // 棋譜解析結果行選択
     void displayTsumeShogiSearchDialog();
+    void stopTsumeSearch();  // 詰み探索エンジン終了
     void displayCsaGameDialog();
     void displayJosekiWindow();
     void updateJosekiWindow();  // 定跡ウィンドウの更新

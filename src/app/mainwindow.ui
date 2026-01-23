@@ -104,6 +104,7 @@
     <addaction name="actionCancelAnalyzeKifu"/>
     <addaction name="separator"/>
     <addaction name="actionTsumeShogiSearch"/>
+    <addaction name="actionStopTsumeSearch"/>
     <addaction name="separator"/>
     <addaction name="actionJishogiScore"/>
     <addaction name="actionNyugyokuDeclaration"/>
@@ -523,6 +524,11 @@
    </property>
    <property name="text">
     <string>詰み探索</string>
+   </property>
+  </action>
+  <action name="actionStopTsumeSearch">
+   <property name="text">
+    <string>詰み探索終了</string>
    </property>
   </action>
   <action name="actionJishogiScore">

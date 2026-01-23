@@ -4,9 +4,62 @@
 #include <QString>
 #include <QStringList>
 
-// 詰み探索用に SFEN を「手番を明示」へ正規化し、"position sfen <...>" を返すユーティリティ。
+// 詰み探索用に局面コマンドを構築するユーティリティ。
+// usiMovesが利用可能な場合は "position startpos moves ..." 形式を使用し、
+// そうでない場合は "position sfen <...>" 形式にフォールバックする。
 class TsumePositionUtil {
 public:
+    /**
+     * @brief USI形式の指し手リストを使用してposition コマンドを構築（推奨）
+     * @param usiMoves USI形式の指し手リスト（例: ["7g7f", "3c3d", ...]）
+     * @param startPositionCmd 開始局面コマンド（"startpos" または "sfen ..."）
+     * @param selectedIndex 現在の手数（0始まり）
+     * @return "position startpos moves 7g7f 3c3d ..." または "position sfen ... moves ..."
+     */
+    static QString buildPositionWithMoves(const QStringList* usiMoves,
+                                          const QString& startPositionCmd,
+                                          int selectedIndex)
+    {
+        if (!usiMoves || usiMoves->isEmpty() || selectedIndex <= 0) {
+            // 指し手がない場合は開始局面を返す
+            if (startPositionCmd.isEmpty()) {
+                return QStringLiteral("position startpos");
+            }
+            if (startPositionCmd == QStringLiteral("startpos")) {
+                return QStringLiteral("position startpos");
+            }
+            // "sfen ..." の場合は "position sfen ..." にする
+            if (startPositionCmd.startsWith(QStringLiteral("sfen "))) {
+                return QStringLiteral("position ") + startPositionCmd;
+            }
+            return QStringLiteral("position sfen ") + startPositionCmd;
+        }
+
+        // selectedIndex手目までの指し手を取得
+        const int moveCount = qMin(selectedIndex, static_cast<int>(usiMoves->size()));
+        QStringList moves;
+        for (int i = 0; i < moveCount; ++i) {
+            moves.append(usiMoves->at(i));
+        }
+
+        QString base;
+        if (startPositionCmd.isEmpty() || startPositionCmd == QStringLiteral("startpos")) {
+            base = QStringLiteral("position startpos");
+        } else if (startPositionCmd.startsWith(QStringLiteral("sfen "))) {
+            base = QStringLiteral("position ") + startPositionCmd;
+        } else {
+            base = QStringLiteral("position sfen ") + startPositionCmd;
+        }
+
+        if (moves.isEmpty()) {
+            return base;
+        }
+        return base + QStringLiteral(" moves ") + moves.join(QLatin1Char(' '));
+    }
+
+    /**
+     * @brief SFEN形式で局面コマンドを構築（フォールバック用）
+     */
     static QString buildPositionForMate(const QStringList* sfenRecord,
                                         const QString& startSfenStr,
                                         const QStringList& positionStrList,

@@ -89,10 +89,13 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
     m_stoppedByUser = false; // 中止フラグをリセット
 
     // Coordinator（初回のみ作成、シグナル接続は毎回）
+    AnalysisCoordinator::Deps cd;
+    cd.sfenRecord = m_sfenRecord;       // ★ 解析対象のSFEN列
     if (!m_coord) {
-        AnalysisCoordinator::Deps cd;
-        cd.sfenRecord = m_sfenRecord;       // ★ 解析対象のSFEN列
         m_coord = new AnalysisCoordinator(cd, this);
+    } else {
+        // ★ 2回目以降の解析では依存関係を更新（sfenRecordが変わっている可能性あり）
+        m_coord->setDeps(cd);
     }
 
     // (C) 進捗を結果モデルへ投入（毎回再接続）

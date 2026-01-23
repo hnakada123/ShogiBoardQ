@@ -323,8 +323,13 @@ void Usi::clearHardTimeout()
 
 bool Usi::isIgnoring() const
 {
-    return m_processManager->shutdownState() != 
+    return m_processManager->shutdownState() !=
            EngineProcessManager::ShutdownState::Running;
+}
+
+QString Usi::currentEnginePath() const
+{
+    return m_processManager->currentEnginePath();
 }
 
 void Usi::setThinkingModel(ShogiEngineThinkingModel* m)
@@ -403,6 +408,10 @@ void Usi::startAndInitializeEngine(const QString& engineFile, const QString& eng
 
 void Usi::cleanupEngineProcessAndThread()
 {
+    // エンジンプロセスが実行中の場合は quit コマンドを送信してから停止
+    if (m_processManager->isRunning()) {
+        m_protocolHandler->sendQuit();
+    }
     m_processManager->stopProcess();
     m_presenter->requestClearThinkingInfo();
 }
