@@ -69,68 +69,6 @@
         <number>0</number>
        </property>
        <item>
-        <layout class="QHBoxLayout" name="fontSizeLayout">
-         <item>
-          <spacer name="fontSizeLeftSpacer">
-           <property name="orientation">
-            <enum>Qt::Orientation::Horizontal</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>40</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-         <item>
-          <widget class="QLabel" name="labelFontSize">
-           <property name="text">
-            <string>文字サイズ:</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QPushButton" name="pushButtonFontSizeDown">
-           <property name="minimumSize">
-            <size>
-             <width>40</width>
-             <height>28</height>
-            </size>
-           </property>
-           <property name="maximumSize">
-            <size>
-             <width>40</width>
-             <height>28</height>
-            </size>
-           </property>
-           <property name="text">
-            <string>A-</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QPushButton" name="pushButtonFontSizeUp">
-           <property name="minimumSize">
-            <size>
-             <width>40</width>
-             <height>28</height>
-            </size>
-           </property>
-           <property name="maximumSize">
-            <size>
-             <width>40</width>
-             <height>28</height>
-            </size>
-           </property>
-           <property name="text">
-            <string>A+</string>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </item>
-       <item>
         <layout class="QHBoxLayout" name="playerLayout">
          <property name="spacing">
           <number>10</number>
@@ -1221,6 +1159,44 @@
       <widget class="QPushButton" name="pushButtonResetToDefault">
        <property name="text">
         <string>初期設定に戻す</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButtonFontSizeDown">
+       <property name="minimumSize">
+        <size>
+         <width>40</width>
+         <height>28</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>40</width>
+         <height>28</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>A-</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButtonFontSizeUp">
+       <property name="minimumSize">
+        <size>
+         <width>40</width>
+         <height>28</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>40</width>
+         <height>28</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>A+</string>
        </property>
       </widget>
      </item>
