@@ -94,9 +94,18 @@ void AnalysisResultsPresenter::buildUi(KifuAnalysisListModel* model)
     m_view->setSelectionMode(QAbstractItemView::SingleSelection);
     m_view->setTextElideMode(Qt::ElideRight);
     
-    // 選択行の背景色を黄色に設定（棋譜欄と同じ色）
+    // 選択行の背景色を黄色に設定、ヘッダーを青背景・白文字に設定（棋譜欄と同じスタイル）
     m_view->setStyleSheet(QStringLiteral(
         "QTableView::item:selected { background-color: rgb(255, 255, 0); color: black; }"
+        "QHeaderView::section {"
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+        "    stop:0 #4a9eff, stop:1 #2d7dd2);"
+        "  color: white;"
+        "  font-weight: normal;"
+        "  padding: 2px 6px;"
+        "  border: none;"
+        "  border-bottom: 1px solid #2d7dd2;"
+        "}"
     ));
     
     // テーブル全体の水平スクロールは無効化（ヘッダーを常に表示するため）
@@ -323,9 +332,19 @@ void AnalysisResultsPresenter::increaseFontSize()
     font.setPointSize(newSize);
     m_view->setFont(font);
 
-    // ヘッダーのフォントサイズも変更（スタイルシートを使用）
+    // ヘッダーのフォントサイズも変更（棋譜欄と同じスタイルを維持）
     if (m_header) {
-        m_header->setStyleSheet(QStringLiteral("QHeaderView::section { font-size: %1pt; }").arg(newSize));
+        m_header->setStyleSheet(QStringLiteral(
+            "QHeaderView::section {"
+            "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+            "    stop:0 #4a9eff, stop:1 #2d7dd2);"
+            "  color: white;"
+            "  font-weight: normal;"
+            "  font-size: %1pt;"
+            "  padding: 2px 6px;"
+            "  border: none;"
+            "  border-bottom: 1px solid #2d7dd2;"
+            "}").arg(newSize));
     }
 
     // SettingsServiceで設定を保存
@@ -344,9 +363,19 @@ void AnalysisResultsPresenter::decreaseFontSize()
     font.setPointSize(newSize);
     m_view->setFont(font);
 
-    // ヘッダーのフォントサイズも変更（スタイルシートを使用）
+    // ヘッダーのフォントサイズも変更（棋譜欄と同じスタイルを維持）
     if (m_header) {
-        m_header->setStyleSheet(QStringLiteral("QHeaderView::section { font-size: %1pt; }").arg(newSize));
+        m_header->setStyleSheet(QStringLiteral(
+            "QHeaderView::section {"
+            "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+            "    stop:0 #4a9eff, stop:1 #2d7dd2);"
+            "  color: white;"
+            "  font-weight: normal;"
+            "  font-size: %1pt;"
+            "  padding: 2px 6px;"
+            "  border: none;"
+            "  border-bottom: 1px solid #2d7dd2;"
+            "}").arg(newSize));
     }
 
     // SettingsServiceで設定を保存
@@ -372,9 +401,19 @@ void AnalysisResultsPresenter::restoreFontSize()
     font.setPointSize(savedSize);
     m_view->setFont(font);
 
-    // ヘッダーのフォントサイズも同じサイズに設定（スタイルシートを使用）
+    // ヘッダーのフォントサイズも同じサイズに設定（棋譜欄と同じスタイルを維持）
     if (m_header) {
-        m_header->setStyleSheet(QStringLiteral("QHeaderView::section { font-size: %1pt; }").arg(savedSize));
+        m_header->setStyleSheet(QStringLiteral(
+            "QHeaderView::section {"
+            "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+            "    stop:0 #4a9eff, stop:1 #2d7dd2);"
+            "  color: white;"
+            "  font-weight: normal;"
+            "  font-size: %1pt;"
+            "  padding: 2px 6px;"
+            "  border: none;"
+            "  border-bottom: 1px solid #2d7dd2;"
+            "}").arg(savedSize));
     }
 }
 
