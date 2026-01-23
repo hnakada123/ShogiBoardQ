@@ -185,7 +185,7 @@ public:
      */
     void requestClearThinkingInfo();
 
-    void cleanupEngineProcessAndThread();
+    void cleanupEngineProcessAndThread(bool clearThinking = true);
 
     void sendPositionAndGoMate(const QString& sfen, int timeMs, bool infinite);
     void sendStopForMate();

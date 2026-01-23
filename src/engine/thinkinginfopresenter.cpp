@@ -159,6 +159,7 @@ void ThinkingInfoPresenter::processInfoLineInternal(const QString& line)
 
 void ThinkingInfoPresenter::requestClearThinkingInfo()
 {
+    qDebug().noquote() << "[ThinkingInfoPresenter::requestClearThinkingInfo] called";
     m_infoBuffer.clear();
     emit clearThinkingInfoRequested();
 }

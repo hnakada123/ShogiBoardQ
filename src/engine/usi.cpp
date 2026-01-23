@@ -187,7 +187,9 @@ void Usi::onCommLogAppended(const QString& log)
 
 void Usi::onClearThinkingInfoRequested()
 {
+    qDebug().noquote() << "[Usi::onClearThinkingInfoRequested] called";
     if (m_thinkingModel) {
+        qDebug().noquote() << "[Usi::onClearThinkingInfoRequested] clearing thinking model";
         m_thinkingModel->clearAllItems();
     }
 }
@@ -406,14 +408,16 @@ void Usi::startAndInitializeEngine(const QString& engineFile, const QString& eng
     }
 }
 
-void Usi::cleanupEngineProcessAndThread()
+void Usi::cleanupEngineProcessAndThread(bool clearThinking)
 {
     // エンジンプロセスが実行中の場合は quit コマンドを送信してから停止
     if (m_processManager->isRunning()) {
         m_protocolHandler->sendQuit();
     }
     m_processManager->stopProcess();
-    m_presenter->requestClearThinkingInfo();
+    if (clearThinking) {
+        m_presenter->requestClearThinkingInfo();
+    }
 }
 
 // === コマンド送信 ===
