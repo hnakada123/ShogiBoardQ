@@ -5,6 +5,7 @@
 #include <QHeaderView>
 #include <QToolButton>
 #include <QFont>
+#include <QPalette>
 #include <QResizeEvent>
 #include <QShowEvent>
 #include "usicommlogmodel.h"
@@ -19,7 +20,11 @@ EngineInfoWidget::EngineInfoWidget(QWidget* parent, bool showFontButtons)
     headers << tr("エンジン") << tr("予想手") << tr("探索手") 
             << tr("深さ") << tr("ノード数") << tr("探索局面数") << tr("ハッシュ使用率");
     m_table->setHorizontalHeaderLabels(headers);
-    
+
+    // ヘッダーの背景色と文字色を設定
+    m_table->setStyleSheet(
+        QStringLiteral("QHeaderView::section { background-color: #0a5a9e; color: white; }"));
+
     // 行ヘッダーを非表示
     m_table->verticalHeader()->setVisible(false);
     
