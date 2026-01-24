@@ -2,6 +2,7 @@
 
 #include "considerationdialog.h"
 #include "matchcoordinator.h"
+#include "shogienginethinkingmodel.h"
 
 #include <QObject>
 #include <QDialog>
@@ -35,27 +36,39 @@ void ConsiderationFlowController::runWithDialog(const Deps& d, QWidget* parent, 
 
     const auto& engine = engines.at(idx);
 
+    const bool unlimitedTime = dlg.unlimitedTimeFlag();
+    const int byoyomiSec = dlg.getByoyomiSec();
+
     int byoyomiMs = 0;  // 0 は無制限
-    if (!dlg.unlimitedTimeFlag()) {
-        byoyomiMs = dlg.getByoyomiSec() * 1000;  // 秒 → ms
+    if (!unlimitedTime) {
+        byoyomiMs = byoyomiSec * 1000;  // 秒 → ms
+    }
+
+    // 時間設定コールバックを呼び出し
+    if (d.onTimeSettingsReady) {
+        d.onTimeSettingsReady(unlimitedTime, byoyomiSec);
     }
 
     // 表示名は engine.name を使用
-    startAnalysis(d.match, engine.path, engine.name, positionStr, byoyomiMs);
+    startAnalysis(d.match, engine.path, engine.name, positionStr, byoyomiMs, d.multiPV, d.considerationModel);
 }
 
 void ConsiderationFlowController::startAnalysis(MatchCoordinator* match,
                                                  const QString& enginePath,
                                                  const QString& engineName,
                                                  const QString& positionStr,
-                                                 int byoyomiMs)
+                                                 int byoyomiMs,
+                                                 int multiPV,
+                                                 ShogiEngineThinkingModel* considerationModel)
 {
     MatchCoordinator::AnalysisOptions opt;
     opt.enginePath  = enginePath;
     opt.engineName  = engineName;
     opt.positionStr = positionStr;
     opt.byoyomiMs   = byoyomiMs;
+    opt.multiPV     = multiPV;
     opt.mode        = PlayMode::ConsiderationMode;  // 既存の PlayMode
+    opt.considerationModel = considerationModel;    // ★ 追加: 検討タブ用モデル
 
     match->startAnalysis(opt);
 }

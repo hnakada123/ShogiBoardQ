@@ -108,7 +108,8 @@ void DialogCoordinator::showGameOverMessage(const QString& title, const QString&
 
 void DialogCoordinator::showConsiderationDialog(const ConsiderationParams& params)
 {
-    qDebug().noquote() << "[DialogCoord] showConsiderationDialog: position=" << params.position;
+    qDebug().noquote() << "[DialogCoord] showConsiderationDialog: position=" << params.position
+                       << "multiPV=" << params.multiPV;
 
     Q_EMIT considerationModeStarted();
 
@@ -117,6 +118,11 @@ void DialogCoordinator::showConsiderationDialog(const ConsiderationParams& param
     ConsiderationFlowController::Deps d;
     d.match = m_match;
     d.onError = [this](const QString& msg) { showFlowError(msg); };
+    d.multiPV = params.multiPV;
+    d.considerationModel = params.considerationModel;  // ★ 追加: 検討タブ用モデル
+    d.onTimeSettingsReady = [this](bool unlimited, int byoyomiSec) {
+        Q_EMIT considerationTimeSettingsReady(unlimited, byoyomiSec);
+    };
 
     flow->runWithDialog(d, m_parentWidget, params.position);
 }

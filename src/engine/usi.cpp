@@ -197,23 +197,37 @@ void Usi::onClearThinkingInfoRequested()
 void Usi::onThinkingInfoUpdated(const QString& time, const QString& depth,
                                 const QString& nodes, const QString& score,
                                 const QString& pvKanjiStr, const QString& usiPv,
-                                const QString& baseSfen)
+                                const QString& baseSfen, int multipv, int scoreCp)
 {
     qDebug().noquote() << "[Usi::onThinkingInfoUpdated] m_lastUsiMove=" << m_lastUsiMove
-                       << " baseSfen=" << baseSfen.left(50);
-    
-    // 思考タブへ追記（USI PVとbaseSfenも保存）
+                       << " baseSfen=" << baseSfen.left(50)
+                       << " multipv=" << multipv << " scoreCp=" << scoreCp;
+
+    // 思考タブへ追記（通常モード: 先頭に追加）
     if (m_thinkingModel) {
         ShogiInfoRecord* record = new ShogiInfoRecord(time, depth, nodes, score, pvKanjiStr);
         record->setUsiPv(usiPv);
         record->setBaseSfen(baseSfen);
         record->setLastUsiMove(m_lastUsiMove);
+        record->setMultipv(multipv);
+        record->setScoreCp(scoreCp);
         qDebug().noquote() << "[Usi::onThinkingInfoUpdated] record->lastUsiMove() after set=" << record->lastUsiMove();
         m_thinkingModel->prependItem(record);
     }
-    
+
+    // 検討タブへ追記（MultiPVモード: multipv値に基づいて行を更新/挿入）
+    if (m_considerationModel) {
+        ShogiInfoRecord* record = new ShogiInfoRecord(time, depth, nodes, score, pvKanjiStr);
+        record->setUsiPv(usiPv);
+        record->setBaseSfen(baseSfen);
+        record->setLastUsiMove(m_lastUsiMove);
+        record->setMultipv(multipv);
+        record->setScoreCp(scoreCp);
+        m_considerationModel->updateByMultipv(record, m_considerationMaxMultiPV);
+    }
+
     // 外部への通知
-    emit thinkingInfoUpdated(time, depth, nodes, score, pvKanjiStr, usiPv, baseSfen);
+    emit thinkingInfoUpdated(time, depth, nodes, score, pvKanjiStr, usiPv, baseSfen, multipv, scoreCp);
 }
 
 // === 公開インターフェース実装 ===
@@ -435,6 +449,46 @@ void Usi::sendQuitCommand()
 void Usi::sendStopCommand()
 {
     m_protocolHandler->sendStop();
+    // 検討タブ用モデルをクリア（停止時）
+    m_considerationModel = nullptr;
+}
+
+// ★ 追加: 検討タブ用モデルを設定
+void Usi::setConsiderationModel(ShogiEngineThinkingModel* model, int maxMultiPV)
+{
+    m_considerationModel = model;
+    m_considerationMaxMultiPV = qBound(1, maxMultiPV, 10);
+    qDebug().noquote() << "[Usi::setConsiderationModel] model=" << model << " maxMultiPV=" << m_considerationMaxMultiPV;
+
+    // モデルをクリア
+    if (m_considerationModel) {
+        m_considerationModel->clearAllItems();
+    }
+}
+
+// ★ 追加: 検討中にMultiPVを変更する
+void Usi::updateConsiderationMultiPV(int multiPV)
+{
+    const int newMultiPV = qBound(1, multiPV, 10);
+    qDebug().noquote() << "[Usi::updateConsiderationMultiPV] old=" << m_considerationMaxMultiPV
+                       << " new=" << newMultiPV;
+
+    // 変更がない場合は何もしない
+    if (m_considerationMaxMultiPV == newMultiPV) {
+        return;
+    }
+
+    m_considerationMaxMultiPV = newMultiPV;
+
+    // エンジンにMultiPV設定を送信
+    if (m_protocolHandler) {
+        m_protocolHandler->sendRaw(QStringLiteral("setoption name MultiPV value %1").arg(newMultiPV));
+    }
+
+    // モデルをクリアして新しいMultiPV設定で再表示
+    if (m_considerationModel) {
+        m_considerationModel->clearAllItems();
+    }
 }
 
 void Usi::sendGoCommand(int byoyomiMilliSec, const QString& btime, const QString& wtime,
@@ -669,6 +723,9 @@ void Usi::executeEngineCommunication(QString& positionStr, QString& positionPond
                                      int addEachMoveMilliSec1, int addEachMoveMilliSec2,
                                      bool useByoyomi)
 {
+    // 対局時は検討タブ用モデルをクリア
+    m_considerationModel = nullptr;
+
     processEngineResponse(positionStr, positionPonderStr, byoyomiMilliSec, btime, wtime,
                           addEachMoveMilliSec1, addEachMoveMilliSec2, useByoyomi);
 
@@ -796,21 +853,24 @@ void Usi::appendBestMoveAndStartPondering(QString& positionStr, QString& positio
 
 // === 棋譜解析 ===
 
-void Usi::executeAnalysisCommunication(QString& positionStr, int byoyomiMilliSec)
+void Usi::executeAnalysisCommunication(QString& positionStr, int byoyomiMilliSec, int multiPV)
 {
     // 思考開始時の局面SFENを保存（読み筋表示用）
     if (m_gameController && m_gameController->board()) {
         ShogiBoard* board = m_gameController->board();
-        QString turn = (m_gameController->currentPlayer() == ShogiGameController::Player1) 
+        QString turn = (m_gameController->currentPlayer() == ShogiGameController::Player1)
                        ? QStringLiteral("b") : QStringLiteral("w");
         QString baseSfen = board->convertBoardToSfen() + QStringLiteral(" ") + turn +
                           QStringLiteral(" ") + board->convertStandToSfen() + QStringLiteral(" 1");
         m_presenter->setBaseSfen(baseSfen);
     }
-    
+
     cloneCurrentBoardData();
     m_protocolHandler->sendPosition(positionStr);
-    
+
+    // MultiPV を設定（常に送信して、前回の設定をリセット）
+    m_protocolHandler->sendRaw(QStringLiteral("setoption name MultiPV value %1").arg(multiPV));
+
     m_presenter->requestClearThinkingInfo();
     m_protocolHandler->sendRaw("go infinite");
 

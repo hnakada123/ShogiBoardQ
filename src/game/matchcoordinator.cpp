@@ -1802,6 +1802,11 @@ void MatchCoordinator::startAnalysis(const AnalysisOptions& opt)
     if (!comm)  { comm  = new UsiCommLogModel(this);          m_comm1  = comm;  }
     if (!think) { think = new ShogiEngineThinkingModel(this); m_think1 = think; }
 
+    // ★ エンジン名をログモデルに設定（思考タブ表示用）
+    if (comm) {
+        comm->setEngineName(opt.engineName);
+    }
+
     // 4) 単発エンジン生成（常に m_usi1 を使用）
     m_usi1 = new Usi(comm, think, m_gc, m_playMode, this);
 
@@ -1846,20 +1851,79 @@ void MatchCoordinator::startAnalysis(const AnalysisOptions& opt)
                 Qt::UniqueConnection);
     }
 
-    // 10) 解析/詰み探索の実行
+    // 10) 検討タブ用モデルを設定
+    if (opt.considerationModel && opt.mode == PlayMode::ConsiderationMode) {
+        m_usi1->setConsiderationModel(opt.considerationModel, opt.multiPV);
+    }
+
+    // 10.5) 検討モードの場合、フラグを設定し bestmove を接続
+    if (opt.mode == PlayMode::ConsiderationMode) {
+        m_inConsiderationMode = true;
+        // ★ 検討の状態を保存（MultiPV変更時の再開用）
+        m_considerationPositionStr = opt.positionStr;
+        m_considerationByoyomiMs = opt.byoyomiMs;
+        m_considerationMultiPV = opt.multiPV;
+        m_considerationModelPtr = opt.considerationModel;
+        m_considerationRestartPending = false;
+
+        connect(m_usi1, &Usi::bestMoveReceived,
+                this,   &MatchCoordinator::onConsiderationBestMoveReceived,
+                Qt::UniqueConnection);
+    }
+
+    // 11) 解析/詰み探索の実行
     QString pos = opt.positionStr; // "position sfen <...>"
     if (opt.mode == PlayMode::TsumiSearchMode) {
         m_usi1->executeTsumeCommunication(pos, opt.byoyomiMs);
     } else {
-        m_usi1->executeAnalysisCommunication(pos, opt.byoyomiMs);
+        m_usi1->executeAnalysisCommunication(pos, opt.byoyomiMs, opt.multiPV);
     }
 }
 
 void MatchCoordinator::stopAnalysisEngine()
 {
     qDebug().noquote() << "[MC] stopAnalysisEngine called";
+
+    // 検討モード中なら終了シグナルを発火
+    if (m_inConsiderationMode) {
+        m_inConsiderationMode = false;
+        emit considerationModeEnded();
+    }
+
     m_inTsumeSearchMode = false;  // フラグをリセット
     destroyEngines(false);  // 思考内容を保持
+}
+
+void MatchCoordinator::updateConsiderationMultiPV(int multiPV)
+{
+    qDebug().noquote() << "[MC] updateConsiderationMultiPV called: multiPV=" << multiPV;
+
+    // 検討モード中でない場合は無視
+    if (!m_inConsiderationMode) {
+        qDebug().noquote() << "[MC] updateConsiderationMultiPV: not in consideration mode, ignoring";
+        return;
+    }
+
+    // 値が同じなら何もしない
+    if (m_considerationMultiPV == multiPV) {
+        qDebug().noquote() << "[MC] updateConsiderationMultiPV: same value, ignoring";
+        return;
+    }
+
+    // ★ 新しいMultiPV値を保存し、再開フラグを設定
+    m_considerationMultiPV = multiPV;
+    m_considerationRestartPending = true;
+
+    // ★ 検討タブ用モデルをクリア
+    if (m_considerationModelPtr) {
+        m_considerationModelPtr->clearAllItems();
+    }
+
+    // ★ エンジンを停止（bestmove を受信後に再開する）
+    if (m_usi1) {
+        qDebug().noquote() << "[MC] updateConsiderationMultiPV: sending stop to restart with new MultiPV";
+        m_usi1->sendStopCommand();
+    }
 }
 
 void MatchCoordinator::onCheckmateSolved(const QStringList& pv)
@@ -1908,6 +1972,35 @@ void MatchCoordinator::onTsumeBestMoveReceived()
     if (m_hooks.showGameOverDialog) {
         m_hooks.showGameOverDialog(tr("詰み探索"), tr("探索が完了しました"));
     }
+    destroyEngines(false);  // 探索完了後にエンジンを終了（思考内容を保持）
+}
+
+void MatchCoordinator::onConsiderationBestMoveReceived()
+{
+    // 検討モード中でない場合は無視
+    if (!m_inConsiderationMode) return;
+
+    // ★ 再開フラグがセットされている場合は、新しいMultiPV設定で検討を再開
+    if (m_considerationRestartPending) {
+        m_considerationRestartPending = false;
+        qDebug().noquote() << "[MC] onConsiderationBestMoveReceived: restarting with new MultiPV=" << m_considerationMultiPV;
+
+        // 検討タブ用モデルを新しいMultiPV設定で再設定
+        if (m_usi1 && m_considerationModelPtr) {
+            m_usi1->setConsiderationModel(m_considerationModelPtr, m_considerationMultiPV);
+        }
+
+        // 検討を再開
+        if (m_usi1) {
+            QString pos = m_considerationPositionStr;
+            m_usi1->executeAnalysisCommunication(pos, m_considerationByoyomiMs, m_considerationMultiPV);
+        }
+        return;
+    }
+
+    qDebug().noquote() << "[MC] onConsiderationBestMoveReceived: consideration mode ended";
+    m_inConsiderationMode = false;  // 完了したのでフラグをリセット
+    emit considerationModeEnded();
     destroyEngines(false);  // 探索完了後にエンジンを終了（思考内容を保持）
 }
 

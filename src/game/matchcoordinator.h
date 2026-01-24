@@ -354,7 +354,9 @@ public:
         QString  engineName;   // 表示用エンジン名
         QString  positionStr;  // "position sfen ... [moves ...]" の完全文字列
         int      byoyomiMs = 0;           // 0=無制限、>0=秒→ms
+        int      multiPV   = 1;           // ★ 追加: MultiPV（候補手の数）
         PlayMode mode      = PlayMode::ConsiderationMode; // 既定で検討モード
+        ShogiEngineThinkingModel* considerationModel = nullptr;  // ★ 追加: 検討タブ用モデル
     };
 
     // ==== 追加：検討API ====
@@ -362,6 +364,9 @@ public:
 
     /// 詰み探索・検討エンジンを終了する
     void stopAnalysisEngine();
+
+    /// 検討中にMultiPVを変更する
+    void updateConsiderationMultiPV(int multiPV);
 
 public:
     Usi* primaryEngine() const;   // HvE/EvH で司令塔が使う主エンジン（これまで m_usi1 に相当）
@@ -456,10 +461,21 @@ signals:
     void gameOverStateChanged(const GameOverState& st);      // 参照側UI向け
     void requestAppendGameOverMove(const GameEndInfo& info); // 必要なら司令塔から一意追記をリクエスト
 
+    // ★ 追加: 検討モード終了時に発火
+    void considerationModeEnded();
+
 private:
     // ...（既存）
     GameOverState m_gameOver;
     bool m_inTsumeSearchMode = false;  ///< 詰み探索モード中かどうか
+    bool m_inConsiderationMode = false;  ///< 検討モード中かどうか
+
+    // ★ 検討モードの状態（MultiPV変更時の再開用）
+    QString m_considerationPositionStr;     ///< 検討中の position 文字列
+    int m_considerationByoyomiMs = 0;       ///< 検討の時間制限 (ms)
+    int m_considerationMultiPV = 1;         ///< 検討の候補手数
+    ShogiEngineThinkingModel* m_considerationModelPtr = nullptr;  ///< 検討タブ用モデル
+    bool m_considerationRestartPending = false;  ///< 検討再開待ちフラグ
 
 private slots:
     void onCheckmateSolved(const QStringList& pv);
@@ -467,6 +483,7 @@ private slots:
     void onCheckmateNotImplemented();
     void onCheckmateUnknown();
     void onTsumeBestMoveReceived();  ///< 詰み探索中に bestmove を受信
+    void onConsiderationBestMoveReceived();  ///< 検討モード中に bestmove を受信
 
 public:
     StartOptions buildStartOptions(PlayMode mode,

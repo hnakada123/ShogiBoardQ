@@ -812,4 +812,20 @@ void setConsiderationByoyomiSec(int sec)
     s.setValue("Consideration/byoyomiSec", sec);
 }
 
+// ★ 追加: 検討タブのフォントサイズを取得
+int considerationFontSize()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("ConsiderationTab/fontSize", 10).toInt();
+}
+
+// ★ 追加: 検討タブのフォントサイズを保存
+void setConsiderationFontSize(int size)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("ConsiderationTab/fontSize", size);
+}
+
 } // namespace SettingsService

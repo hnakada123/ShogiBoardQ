@@ -253,6 +253,18 @@ private slots:
     // タブ選択変更
     void onTabCurrentChanged(int index);
 
+    // 検討モード開始時
+    void onConsiderationModeStarted();
+
+    // 検討モードの時間設定確定時
+    void onConsiderationTimeSettingsReady(bool unlimited, int byoyomiSec);
+
+    // 検討モード終了時
+    void onConsiderationModeEnded();
+
+    // 検討中にMultiPV変更時
+    void onConsiderationMultiPVChanged(int value);
+
     // ボタン有効/無効
     void disableArrowButtons();
     void enableArrowButtons();
@@ -377,6 +389,7 @@ private:
     KifuBranchListModel*       m_kifuBranchModel  = nullptr;
     ShogiEngineThinkingModel*  m_modelThinking1   = nullptr;
     ShogiEngineThinkingModel*  m_modelThinking2   = nullptr;
+    ShogiEngineThinkingModel*  m_considerationModel = nullptr;  // ★ 追加: 検討タブ専用モデル
     KifuAnalysisListModel*     m_analysisModel    = nullptr;
     UsiCommLogModel*           m_lineEditModel1   = nullptr;
     UsiCommLogModel*           m_lineEditModel2   = nullptr;

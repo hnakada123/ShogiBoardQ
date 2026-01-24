@@ -321,7 +321,7 @@ void AnalysisFlowController::onInfoLineReceived(const QString& line)
 void AnalysisFlowController::onThinkingInfoUpdated(const QString& /*time*/, const QString& /*depth*/,
                                                     const QString& /*nodes*/, const QString& /*score*/,
                                                     const QString& pvKanjiStr, const QString& /*usiPv*/,
-                                                    const QString& /*baseSfen*/)
+                                                    const QString& /*baseSfen*/, int /*multipv*/, int /*scoreCp*/)
 {
     // ThinkingInfoPresenterからの漢字PVを保存（思考タブと同じ内容を棋譜解析結果に使用）
     if (!pvKanjiStr.isEmpty()) {

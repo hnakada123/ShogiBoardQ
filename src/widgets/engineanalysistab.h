@@ -26,6 +26,8 @@ class QPushButton;
 class QLabel;  // ★ 追加
 class QLineEdit;      // ★ 追加
 class QComboBox;      // ★ 追加: USIコマンド送信先選択用
+class QSpinBox;       // ★ 追加: 候補手の数用
+class QTimer;         // ★ 追加: 経過時間用
 
 class EngineInfoWidget;
 class ShogiEngineThinkingModel;
@@ -118,6 +120,36 @@ public:
     QTableView*       view1() const { return m_view1; }
     QTableView*       view2() const { return m_view2; }
 
+    // ★ 追加: 検討タブ用アクセサ
+    EngineInfoWidget* considerationInfo() const { return m_considerationInfo; }
+    QTableView*       considerationView() const { return m_considerationView; }
+
+    // ★ 追加: 検討タブ用モデル設定
+    void setConsiderationThinkingModel(ShogiEngineThinkingModel* m);
+
+    // ★ 追加: 検討タブに切り替える
+    void switchToConsiderationTab();
+
+    // ★ 追加: 思考タブに切り替える
+    void switchToThinkingTab();
+
+    // ★ 追加: 検討タブの候補手の数を取得
+    int considerationMultiPV() const;
+
+    // ★ 追加: 検討タブの候補手の数を設定
+    void setConsiderationMultiPV(int value);
+
+    // ★ 追加: 検討タブの時間設定を表示
+    void setConsiderationTimeLimit(bool unlimited, int byoyomiSec);
+
+    // ★ 追加: 検討タブのエンジン名を設定
+    void setConsiderationEngineName(const QString& name);
+
+    // ★ 追加: 検討タブの経過時間タイマー制御
+    void startElapsedTimer();
+    void stopElapsedTimer();
+    void resetElapsedTimer();
+
 public slots:
     void setAnalysisVisible(bool on);
     void setCommentHtml(const QString& html);
@@ -157,6 +189,12 @@ signals:
     // target: 0=E1, 1=E2, 2=両方
     void usiCommandRequested(int target, const QString& command);
 
+    // ★ 追加: 検討タブの候補手の数変更シグナル
+    void considerationMultiPVChanged(int value);
+
+    // ★ 追加: 検討中止シグナル
+    void stopConsiderationRequested();
+
 private:
     // ★ 追加: 分岐ツリーのクリック有効フラグ（対局中は無効にする）
     bool m_branchTreeClickEnabled = true;
@@ -178,6 +216,24 @@ private:
     QTextEdit* m_comment=nullptr;
     QGraphicsView* m_branchTree=nullptr;
     QGraphicsScene* m_scene=nullptr;
+
+    // ★ 追加: 検討タブ用UI
+    EngineInfoWidget* m_considerationInfo=nullptr;
+    QTableView* m_considerationView=nullptr;
+    ShogiEngineThinkingModel* m_considerationModel=nullptr;
+    int m_considerationTabIndex=-1;  // 検討タブのインデックス
+    QWidget* m_considerationToolbar=nullptr;  // 検討タブ用ツールバー
+    QToolButton* m_btnConsiderationFontDecrease=nullptr;  // 検討タブフォントサイズ減少ボタン
+    QToolButton* m_btnConsiderationFontIncrease=nullptr;  // 検討タブフォントサイズ増加ボタン
+    QLabel* m_timeLimitLabel=nullptr;         // 時間設定ラベル（「時間無制限」or「XX秒」）
+    QLabel* m_elapsedTimeLabel=nullptr;       // 経過時間ラベル
+    QTimer* m_elapsedTimer=nullptr;           // 経過時間更新タイマー
+    int m_elapsedSeconds=0;                   // 経過秒数
+    int m_considerationTimeLimitSec=0;        // 検討時間制限（秒、0=無制限）
+    QLabel* m_multiPVLabel=nullptr;           // 「候補手の数」ラベル
+    QComboBox* m_multiPVComboBox=nullptr;     // 候補手の数コンボボックス
+    QToolButton* m_btnStopConsideration=nullptr;  // 検討中止ボタン
+    int m_considerationFontSize=10;           // 検討タブフォントサイズ
 
     // ★ 追加: USI通信ログ編集用UI
     QWidget* m_usiLogContainer=nullptr;
@@ -243,6 +299,11 @@ private:
     void updateThinkingFontSize(int delta);  // ★ 追加: 思考タブフォントサイズ変更
     void onThinkingFontIncrease();   // ★ 追加
     void onThinkingFontDecrease();   // ★ 追加
+    void updateConsiderationFontSize(int delta);  // ★ 追加: 検討タブフォントサイズ変更
+    void onConsiderationFontIncrease();  // ★ 追加
+    void onConsiderationFontDecrease();  // ★ 追加
+    void onMultiPVComboBoxChanged(int index);  // ★ 追加: コンボボックス値変更
+    void onElapsedTimerTick();           // ★ 追加: 経過時間更新
     void buildCommentToolbar();
     void updateCommentFontSize(int delta);
     QString convertUrlsToLinks(const QString& text);

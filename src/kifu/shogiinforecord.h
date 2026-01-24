@@ -56,6 +56,18 @@ public:
     // 開始局面に至った最後の指し手（USI形式）を設定する。
     void setLastUsiMove(const QString& move);
 
+    // MultiPV番号を取得する（1から始まる、1が最良）
+    int multipv() const;
+
+    // MultiPV番号を設定する
+    void setMultipv(int multipv);
+
+    // 評価値（整数）を取得する（ソート用）
+    int scoreCp() const;
+
+    // 評価値（整数）を設定する
+    void setScoreCp(int scoreCp);
+
 private:
     // 思考時間
     QString m_time;
@@ -80,6 +92,12 @@ private:
 
     // 開始局面に至った最後の指し手（USI形式）
     QString m_lastUsiMove;
+
+    // MultiPV番号（1から始まる、1が最良）
+    int m_multipv = 1;
+
+    // 評価値（整数、ソート用）
+    int m_scoreCp = 0;
 };
 
 #endif // SHOGIINFORECORD_H

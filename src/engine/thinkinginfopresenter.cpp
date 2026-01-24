@@ -150,10 +150,17 @@ void ThinkingInfoPresenter::processInfoLineInternal(const QString& line)
         !info->nodes().isEmpty() || !info->score().isEmpty() ||
         !info->pvKanjiStr().isEmpty()) {
 
+        // multipv値を取得（空の場合は1とみなす）
+        int multipv = 1;
+        if (!info->multipv().isEmpty()) {
+            multipv = info->multipv().toInt();
+            if (multipv < 1) multipv = 1;
+        }
+
         emit thinkingInfoUpdated(info->time(), info->depth(),
                                  info->nodes(), info->score(),
                                  info->pvKanjiStr(), info->pvUsiStr(),
-                                 m_baseSfen);
+                                 m_baseSfen, multipv, scoreInt);
     }
 }
 
