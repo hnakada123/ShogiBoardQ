@@ -299,6 +299,11 @@ void EngineAnalysisTab::buildUi()
         QFont font = m_considerationView->font();
         font.setPointSize(m_considerationFontSize);
         m_considerationView->setFont(font);
+        // スタイルシートでヘッダーの色とフォントサイズを設定
+        QString headerStyle = QStringLiteral(
+            "QHeaderView::section { background-color: #0a5a9e; color: white; font-size: %1pt; }")
+            .arg(m_considerationFontSize);
+        m_considerationView->setStyleSheet(headerStyle);
         const int rowHeight = m_considerationView->fontMetrics().height() + 4;
         m_considerationView->verticalHeader()->setDefaultSectionSize(rowHeight);
 
@@ -451,12 +456,25 @@ void EngineAnalysisTab::buildUi()
         // 上段（EngineInfoWidget）
         if (m_info1) m_info1->setFontSize(m_thinkingFontSize);
         if (m_info2) m_info2->setFontSize(m_thinkingFontSize);
-        // 下段（TableView）
-        if (m_view1) m_view1->setFont(font);
-        if (m_view2) m_view2->setFont(font);
+        // 下段（TableView）- スタイルシートでヘッダーの色とフォントサイズを設定
+        QString headerStyle = QStringLiteral(
+            "QHeaderView::section { background-color: #0a5a9e; color: white; font-size: %1pt; }")
+            .arg(m_thinkingFontSize);
+
+        if (m_view1) {
+            m_view1->setFont(font);
+            m_view1->setStyleSheet(headerStyle);
+        }
+        if (m_view2) {
+            m_view2->setFont(font);
+            m_view2->setStyleSheet(headerStyle);
+        }
         // 検討タブ
         if (m_considerationInfo) m_considerationInfo->setFontSize(m_thinkingFontSize);
-        if (m_considerationView) m_considerationView->setFont(font);
+        if (m_considerationView) {
+            m_considerationView->setFont(font);
+            m_considerationView->setStyleSheet(headerStyle);
+        }
     }
 
     // ★ 追加：起動直後でも「開始局面」だけは描く
@@ -1248,6 +1266,10 @@ void EngineAnalysisTab::setupThinkingViewHeader(QTableView* v)
     auto* h = v->horizontalHeader();
     if (!h) return;
 
+    // ヘッダーの背景色と文字色を設定
+    v->setStyleSheet(
+        QStringLiteral("QHeaderView::section { background-color: #0a5a9e; color: white; }"));
+
     // ★ 全ての列をInteractive（ユーザーがリサイズ可能）に設定
     h->setDefaultSectionSize(100);
     h->setMinimumSectionSize(24);
@@ -1523,14 +1545,21 @@ void EngineAnalysisTab::updateThinkingFontSize(int delta)
     if (m_info2) m_info2->setFontSize(m_thinkingFontSize);
 
     // 下段（TableView）のフォントサイズ変更
+    // スタイルシートでヘッダーの色とフォントサイズを設定
+    QString headerStyle = QStringLiteral(
+        "QHeaderView::section { background-color: #0a5a9e; color: white; font-size: %1pt; }")
+        .arg(m_thinkingFontSize);
+
     if (m_view1) {
         m_view1->setFont(font);
+        m_view1->setStyleSheet(headerStyle);
         // 行の高さもフォントサイズに合わせて更新
         const int rowHeight = m_view1->fontMetrics().height() + 4;
         m_view1->verticalHeader()->setDefaultSectionSize(rowHeight);
     }
     if (m_view2) {
         m_view2->setFont(font);
+        m_view2->setStyleSheet(headerStyle);
         // 行の高さもフォントサイズに合わせて更新
         const int rowHeight = m_view2->fontMetrics().height() + 4;
         m_view2->verticalHeader()->setDefaultSectionSize(rowHeight);
@@ -1573,8 +1602,14 @@ void EngineAnalysisTab::updateConsiderationFontSize(int delta)
     if (m_considerationInfo) m_considerationInfo->setFontSize(m_considerationFontSize);
 
     // 下段（TableView）のフォントサイズ変更
+    // スタイルシートでヘッダーの色とフォントサイズを設定
+    QString headerStyle = QStringLiteral(
+        "QHeaderView::section { background-color: #0a5a9e; color: white; font-size: %1pt; }")
+        .arg(m_considerationFontSize);
+
     if (m_considerationView) {
         m_considerationView->setFont(font);
+        m_considerationView->setStyleSheet(headerStyle);
         // 行の高さもフォントサイズに合わせて更新
         const int rowHeight = m_considerationView->fontMetrics().height() + 4;
         m_considerationView->verticalHeader()->setDefaultSectionSize(rowHeight);
