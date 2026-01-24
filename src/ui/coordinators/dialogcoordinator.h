@@ -129,7 +129,9 @@ public:
      * @brief 検討ダイアログの依存情報
      */
     struct ConsiderationParams {
-        QString position;  // 送信する position 文字列
+        QString position;      // 送信する position 文字列
+        int     multiPV = 1;   // ★ 追加: 候補手の数（MultiPV）
+        ShogiEngineThinkingModel* considerationModel = nullptr;  // ★ 追加: 検討タブ用モデル
     };
 
     /**
@@ -233,6 +235,13 @@ Q_SIGNALS:
      * @brief 検討モードが開始された
      */
     void considerationModeStarted();
+
+    /**
+     * @brief 検討モードの時間設定が確定した
+     * @param unlimited 時間無制限の場合true
+     * @param byoyomiSec 検討時間（秒）。unlimitedがtrueの場合は0
+     */
+    void considerationTimeSettingsReady(bool unlimited, int byoyomiSec);
 
     /**
      * @brief 詰み探索モードが開始された

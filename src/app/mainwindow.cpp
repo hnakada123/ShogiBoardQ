@@ -817,9 +817,94 @@ void MainWindow::displayConsiderationDialog()
 
     ensureDialogCoordinator();
     if (m_dialogCoordinator) {
+        // 検討タブ専用モデルを作成（なければ）
+        if (!m_considerationModel) {
+            m_considerationModel = new ShogiEngineThinkingModel(this);
+        }
+
         DialogCoordinator::ConsiderationParams params;
         params.position = position;
+        // 検討タブから候補手の数（MultiPV）を取得
+        if (m_analysisTab) {
+            params.multiPV = m_analysisTab->considerationMultiPV();
+        }
+        params.considerationModel = m_considerationModel;  // ★ 追加: 検討タブ用モデル
         m_dialogCoordinator->showConsiderationDialog(params);
+    }
+}
+
+// 検討モード開始時の初期化（タブは切り替えない）
+void MainWindow::onConsiderationModeStarted()
+{
+    qDebug().noquote() << "[MainWindow::onConsiderationModeStarted] Initializing consideration mode";
+
+    if (m_analysisTab && m_considerationModel) {
+        // 検討タブに専用モデルを設定
+        m_analysisTab->setConsiderationThinkingModel(m_considerationModel);
+
+        // 検討タブのEngineInfoWidgetにもモデルとエンジン名を設定
+        if (m_analysisTab->considerationInfo()) {
+            m_analysisTab->considerationInfo()->setModel(m_lineEditModel1);
+            if (!m_engineName1.isEmpty()) {
+                m_analysisTab->considerationInfo()->setDisplayNameFallback(m_engineName1);
+            }
+        }
+
+        // 注: 現在のタブ選択を維持するため、タブ切り替えは行わない
+    }
+}
+
+// 検討モードの時間設定が確定したときの処理
+void MainWindow::onConsiderationTimeSettingsReady(bool unlimited, int byoyomiSec)
+{
+    qDebug().noquote() << "[MainWindow::onConsiderationTimeSettingsReady] unlimited=" << unlimited
+                       << " byoyomiSec=" << byoyomiSec;
+
+    if (m_analysisTab) {
+        // 時間設定を検討タブに反映
+        m_analysisTab->setConsiderationTimeLimit(unlimited, byoyomiSec);
+
+        // 経過時間タイマーを開始
+        m_analysisTab->startElapsedTimer();
+
+        // 検討中のMultiPV変更を接続
+        connect(m_analysisTab, &EngineAnalysisTab::considerationMultiPVChanged,
+                this, &MainWindow::onConsiderationMultiPVChanged,
+                Qt::UniqueConnection);
+
+        // 検討中止ボタンを接続（stopAnalysisEngine を呼ぶ）
+        connect(m_analysisTab, &EngineAnalysisTab::stopConsiderationRequested,
+                this, &MainWindow::stopTsumeSearch,
+                Qt::UniqueConnection);
+    }
+
+    // 検討終了時にタイマーを停止するための接続
+    if (m_match) {
+        connect(m_match, &MatchCoordinator::considerationModeEnded,
+                this, &MainWindow::onConsiderationModeEnded,
+                Qt::UniqueConnection);
+    }
+}
+
+// 検討モード終了時の処理
+void MainWindow::onConsiderationModeEnded()
+{
+    qDebug().noquote() << "[MainWindow::onConsiderationModeEnded] Stopping elapsed timer";
+
+    if (m_analysisTab) {
+        // 経過時間タイマーを停止
+        m_analysisTab->stopElapsedTimer();
+    }
+}
+
+// 検討中にMultiPV変更時の処理
+void MainWindow::onConsiderationMultiPVChanged(int value)
+{
+    qDebug().noquote() << "[MainWindow::onConsiderationMultiPVChanged] value=" << value;
+
+    // 検討中の場合のみMatchCoordinatorに転送
+    if (m_match && m_playMode == PlayMode::ConsiderationMode) {
+        m_match->updateConsiderationMultiPV(value);
     }
 }
 
@@ -1598,6 +1683,13 @@ void MainWindow::onSetEngineNames(const QString& e1, const QString& e2)
     ensurePlayerInfoWiring();
     if (m_playerInfoWiring) {
         m_playerInfoWiring->onSetEngineNames(e1, e2);
+    }
+
+    // 検討モード・詰み探索モードの場合、検討タブにもエンジン名を設定
+    if (m_playMode == PlayMode::ConsiderationMode || m_playMode == PlayMode::TsumiSearchMode) {
+        if (m_analysisTab) {
+            m_analysisTab->setConsiderationEngineName(e1);
+        }
     }
 }
 
@@ -2437,6 +2529,14 @@ void MainWindow::ensureDialogCoordinator()
     m_dialogCoordinator = new DialogCoordinator(this, this);
     m_dialogCoordinator->setMatchCoordinator(m_match);
     m_dialogCoordinator->setGameController(m_gameController);
+
+    // 検討モード開始時に検討タブへ切り替え
+    connect(m_dialogCoordinator, &DialogCoordinator::considerationModeStarted,
+            this, &MainWindow::onConsiderationModeStarted);
+
+    // 検討モードの時間設定確定時
+    connect(m_dialogCoordinator, &DialogCoordinator::considerationTimeSettingsReady,
+            this, &MainWindow::onConsiderationTimeSettingsReady);
 }
 
 void MainWindow::ensureKifuExportController()

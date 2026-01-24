@@ -95,7 +95,7 @@ public:
     void sendStopCommand();
     void waitForStopOrPonderhitCommand();
 
-    void executeAnalysisCommunication(QString& positionStr, int byoyomiMilliSec);
+    void executeAnalysisCommunication(QString& positionStr, int byoyomiMilliSec, int multiPV = 1);
 
     void setPreviousFileTo(int newPreviousFileTo);
     void setPreviousRankTo(int newPreviousRankTo);
@@ -112,6 +112,13 @@ public:
                         const QString& engineName = QString());
 
     void setSquelchResignLogging(bool on);
+
+    // ★ 追加: 検討タブ用モデルを設定
+    // このモデルはMultiPVモード（updateByMultipv）で更新される
+    void setConsiderationModel(ShogiEngineThinkingModel* model, int maxMultiPV = 1);
+
+    // ★ 追加: 検討中にMultiPVを変更する
+    void updateConsiderationMultiPV(int multiPV);
 
     void resetResignNotified();
     void resetWinNotified();          ///< 入玉宣言勝ち通知フラグをリセット
@@ -218,7 +225,7 @@ signals:
     void thinkingInfoUpdated(const QString& time, const QString& depth,
                              const QString& nodes, const QString& score,
                              const QString& pvKanjiStr, const QString& usiPv,
-                             const QString& baseSfen);
+                             const QString& baseSfen, int multipv, int scoreCp);
 
 private:
     // === 内部コンポーネント ===
@@ -243,6 +250,8 @@ private:
     bool m_analysisMode = false;
     bool m_gameoverSent = false;
     QString m_pvKanjiStr;
+    QPointer<ShogiEngineThinkingModel> m_considerationModel;  // ★ 追加: 検討タブ用モデル
+    int m_considerationMaxMultiPV = 1;                        // ★ 追加: 検討タブの最大MultiPV値
 
     // === プライベートメソッド ===
     
@@ -291,7 +300,7 @@ private slots:
     void onThinkingInfoUpdated(const QString& time, const QString& depth,
                                const QString& nodes, const QString& score,
                                const QString& pvKanjiStr, const QString& usiPv,
-                               const QString& baseSfen);
+                               const QString& baseSfen, int multipv, int scoreCp);
 };
 
 #endif // USI_H

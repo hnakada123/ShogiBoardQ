@@ -29,6 +29,7 @@
 #include <QTimer>       // ★ 追加: 列幅設定の遅延用
 #include <QLineEdit>    // ★ 追加: CSAコマンド入力用
 #include <QComboBox>    // ★ 追加: USIコマンド送信先選択用
+#include <QSpinBox>     // ★ 追加: 候補手の数用
 #include <QTextCursor>      // ★ 追加: ログ色付け用
 #include <QTextCharFormat>  // ★ 追加: ログ色付け用
 
@@ -208,6 +209,115 @@ void EngineAnalysisTab::buildUi()
 
     m_tab->addTab(page, tr("思考"));
 
+    // --- 検討タブ ---
+    // SettingsServiceからフォントサイズを読み込み
+    m_considerationFontSize = SettingsService::considerationFontSize();
+
+    QWidget* considerationPage = new QWidget(m_tab);
+    auto* considerationLayout = new QVBoxLayout(considerationPage);
+    considerationLayout->setContentsMargins(4, 4, 4, 4);
+    considerationLayout->setSpacing(4);
+
+    // 検討タブ用ツールバー（A-/A+ボタン、候補手の数）
+    m_considerationToolbar = new QWidget(considerationPage);
+    auto* toolbarLayout = new QHBoxLayout(m_considerationToolbar);
+    toolbarLayout->setContentsMargins(2, 2, 2, 2);
+    toolbarLayout->setSpacing(8);
+
+    // フォントサイズ減少ボタン（A-）
+    m_btnConsiderationFontDecrease = new QToolButton(m_considerationToolbar);
+    m_btnConsiderationFontDecrease->setText(QStringLiteral("A-"));
+    m_btnConsiderationFontDecrease->setToolTip(tr("フォントサイズを小さくする"));
+    m_btnConsiderationFontDecrease->setFixedSize(28, 24);
+    connect(m_btnConsiderationFontDecrease, &QToolButton::clicked,
+            this, &EngineAnalysisTab::onConsiderationFontDecrease);
+
+    // フォントサイズ増加ボタン（A+）
+    m_btnConsiderationFontIncrease = new QToolButton(m_considerationToolbar);
+    m_btnConsiderationFontIncrease->setText(QStringLiteral("A+"));
+    m_btnConsiderationFontIncrease->setToolTip(tr("フォントサイズを大きくする"));
+    m_btnConsiderationFontIncrease->setFixedSize(28, 24);
+    connect(m_btnConsiderationFontIncrease, &QToolButton::clicked,
+            this, &EngineAnalysisTab::onConsiderationFontIncrease);
+
+    // 時間設定ラベル
+    m_timeLimitLabel = new QLabel(m_considerationToolbar);
+    m_timeLimitLabel->setToolTip(tr("検討ダイアログで指定した時間設定"));
+
+    // 経過時間ラベル
+    m_elapsedTimeLabel = new QLabel(tr("経過: 0:00"), m_considerationToolbar);
+    m_elapsedTimeLabel->setToolTip(tr("検討開始からの経過時間"));
+
+    // 経過時間更新タイマー
+    m_elapsedTimer = new QTimer(this);
+    m_elapsedTimer->setInterval(1000);  // 1秒ごと
+    connect(m_elapsedTimer, &QTimer::timeout, this, &EngineAnalysisTab::onElapsedTimerTick);
+
+    m_multiPVLabel = new QLabel(tr("候補手の数"), m_considerationToolbar);
+    m_multiPVComboBox = new QComboBox(m_considerationToolbar);
+    // 1〜10手の選択肢を追加
+    for (int i = 1; i <= 10; ++i) {
+        m_multiPVComboBox->addItem(tr("%1手").arg(i), i);
+    }
+    m_multiPVComboBox->setCurrentIndex(0);  // デフォルト1手
+    m_multiPVComboBox->setToolTip(tr("評価値が大きい順に表示する候補手の数を指定します"));
+
+    // 検討中止ボタン
+    m_btnStopConsideration = new QToolButton(m_considerationToolbar);
+    m_btnStopConsideration->setText(tr("検討中止"));
+    m_btnStopConsideration->setToolTip(tr("検討を中止してエンジンを停止します"));
+    connect(m_btnStopConsideration, &QToolButton::clicked,
+            this, &EngineAnalysisTab::stopConsiderationRequested);
+
+    toolbarLayout->addWidget(m_btnConsiderationFontDecrease);
+    toolbarLayout->addWidget(m_btnConsiderationFontIncrease);
+    toolbarLayout->addSpacing(16);  // ボタンとラベルの間にスペース
+    toolbarLayout->addWidget(m_timeLimitLabel);
+    toolbarLayout->addSpacing(16);
+    toolbarLayout->addWidget(m_elapsedTimeLabel);
+    toolbarLayout->addSpacing(16);
+    toolbarLayout->addWidget(m_multiPVLabel);
+    toolbarLayout->addWidget(m_multiPVComboBox);
+    toolbarLayout->addSpacing(16);
+    toolbarLayout->addWidget(m_btnStopConsideration);
+    toolbarLayout->addStretch();  // 右側にスペースを追加
+
+    // コンボボックスの値変更シグナルを接続
+    connect(m_multiPVComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &EngineAnalysisTab::onMultiPVComboBoxChanged);
+
+    m_considerationInfo = new EngineInfoWidget(considerationPage, false);  // showFontButtons=false（ツールバーにボタンがあるため）
+    m_considerationInfo->setWidgetIndex(2);  // 検討タブ用のインデックス
+    m_considerationInfo->setFontSize(m_considerationFontSize);  // 保存されたフォントサイズを適用
+    m_considerationView = new QTableView(considerationPage);
+
+    // 検討タブのヘッダ設定
+    setupThinkingViewHeader(m_considerationView);
+
+    // 保存されたフォントサイズを適用
+    {
+        QFont font = m_considerationView->font();
+        font.setPointSize(m_considerationFontSize);
+        m_considerationView->setFont(font);
+        const int rowHeight = m_considerationView->fontMetrics().height() + 4;
+        m_considerationView->verticalHeader()->setDefaultSectionSize(rowHeight);
+
+        // ツールバー要素にも適用
+        m_btnConsiderationFontDecrease->setFont(font);
+        m_btnConsiderationFontIncrease->setFont(font);
+        m_timeLimitLabel->setFont(font);
+        m_elapsedTimeLabel->setFont(font);
+        m_multiPVLabel->setFont(font);
+        m_multiPVComboBox->setFont(font);
+        m_btnStopConsideration->setFont(font);
+    }
+
+    considerationLayout->addWidget(m_considerationToolbar);
+    considerationLayout->addWidget(m_considerationInfo);
+    considerationLayout->addWidget(m_considerationView, 1);
+
+    m_considerationTabIndex = m_tab->addTab(considerationPage, tr("検討"));
+
     // --- USI通信ログ ---
     // ★ 修正: ツールバー付きコンテナに変更
     m_usiLogContainer = new QWidget(m_tab);
@@ -344,6 +454,9 @@ void EngineAnalysisTab::buildUi()
         // 下段（TableView）
         if (m_view1) m_view1->setFont(font);
         if (m_view2) m_view2->setFont(font);
+        // 検討タブ
+        if (m_considerationInfo) m_considerationInfo->setFontSize(m_thinkingFontSize);
+        if (m_considerationView) m_considerationView->setFont(font);
     }
 
     // ★ 追加：起動直後でも「開始局面」だけは描く
@@ -1437,6 +1550,50 @@ void EngineAnalysisTab::onThinkingFontDecrease()
     updateThinkingFontSize(-1);
 }
 
+// ★ 追加: 検討タブのフォントサイズを変更
+void EngineAnalysisTab::updateConsiderationFontSize(int delta)
+{
+    m_considerationFontSize += delta;
+    if (m_considerationFontSize < 8) m_considerationFontSize = 8;
+    if (m_considerationFontSize > 24) m_considerationFontSize = 24;
+
+    QFont font;
+    font.setPointSize(m_considerationFontSize);
+
+    // ツールバーの要素にフォントサイズを適用
+    if (m_btnConsiderationFontDecrease) m_btnConsiderationFontDecrease->setFont(font);
+    if (m_btnConsiderationFontIncrease) m_btnConsiderationFontIncrease->setFont(font);
+    if (m_timeLimitLabel) m_timeLimitLabel->setFont(font);
+    if (m_elapsedTimeLabel) m_elapsedTimeLabel->setFont(font);
+    if (m_multiPVLabel) m_multiPVLabel->setFont(font);
+    if (m_multiPVComboBox) m_multiPVComboBox->setFont(font);
+    if (m_btnStopConsideration) m_btnStopConsideration->setFont(font);
+
+    // 上段（EngineInfoWidget）のフォントサイズ変更
+    if (m_considerationInfo) m_considerationInfo->setFontSize(m_considerationFontSize);
+
+    // 下段（TableView）のフォントサイズ変更
+    if (m_considerationView) {
+        m_considerationView->setFont(font);
+        // 行の高さもフォントサイズに合わせて更新
+        const int rowHeight = m_considerationView->fontMetrics().height() + 4;
+        m_considerationView->verticalHeader()->setDefaultSectionSize(rowHeight);
+    }
+
+    // 設定ファイルに保存
+    SettingsService::setConsiderationFontSize(m_considerationFontSize);
+}
+
+void EngineAnalysisTab::onConsiderationFontIncrease()
+{
+    updateConsiderationFontSize(1);
+}
+
+void EngineAnalysisTab::onConsiderationFontDecrease()
+{
+    updateConsiderationFontSize(-1);
+}
+
 // ★ 追加: コメントツールバーを構築
 void EngineAnalysisTab::buildCommentToolbar()
 {
@@ -1958,3 +2115,148 @@ void EngineAnalysisTab::onCsaCommandEntered()
     m_csaCommandInput->clear();
 }
 
+// ★ 追加: 検討タブ用モデル設定
+void EngineAnalysisTab::setConsiderationThinkingModel(ShogiEngineThinkingModel* m)
+{
+    m_considerationModel = m;
+    if (m_considerationView && m) {
+        m_considerationView->setModel(m);
+        reapplyViewTuning(m_considerationView, m);
+    }
+}
+
+// ★ 追加: 検討タブに切り替える
+void EngineAnalysisTab::switchToConsiderationTab()
+{
+    if (m_tab && m_considerationTabIndex >= 0) {
+        m_tab->setCurrentIndex(m_considerationTabIndex);
+    }
+}
+
+// ★ 追加: 思考タブに切り替える
+void EngineAnalysisTab::switchToThinkingTab()
+{
+    if (m_tab) {
+        // 思考タブは常にインデックス0
+        m_tab->setCurrentIndex(0);
+    }
+}
+
+// ★ 追加: 検討タブの候補手の数を取得
+int EngineAnalysisTab::considerationMultiPV() const
+{
+    if (m_multiPVComboBox) {
+        return m_multiPVComboBox->currentData().toInt();
+    }
+    return 1;  // デフォルト
+}
+
+// ★ 追加: 検討タブの候補手の数を設定
+void EngineAnalysisTab::setConsiderationMultiPV(int value)
+{
+    if (m_multiPVComboBox) {
+        // 値からインデックスを計算（1→0, 2→1, ...）
+        int index = qBound(0, value - 1, m_multiPVComboBox->count() - 1);
+        m_multiPVComboBox->setCurrentIndex(index);
+    }
+}
+
+// ★ 追加: コンボボックスの値変更スロット
+void EngineAnalysisTab::onMultiPVComboBoxChanged(int index)
+{
+    Q_UNUSED(index);
+    if (m_multiPVComboBox) {
+        int value = m_multiPVComboBox->currentData().toInt();
+        emit considerationMultiPVChanged(value);
+    }
+}
+
+// ★ 追加: 検討タブの時間設定を表示
+void EngineAnalysisTab::setConsiderationTimeLimit(bool unlimited, int byoyomiSec)
+{
+    // 時間制限を保存（経過時間タイマーの自動停止用）
+    m_considerationTimeLimitSec = unlimited ? 0 : byoyomiSec;
+
+    if (!m_timeLimitLabel) return;
+
+    if (unlimited) {
+        m_timeLimitLabel->setText(tr("時間: 無制限"));
+    } else {
+        // 秒数を分:秒形式で表示
+        if (byoyomiSec >= 60) {
+            const int minutes = byoyomiSec / 60;
+            const int seconds = byoyomiSec % 60;
+            if (seconds == 0) {
+                m_timeLimitLabel->setText(tr("時間: %1分").arg(minutes));
+            } else {
+                m_timeLimitLabel->setText(tr("時間: %1分%2秒").arg(minutes).arg(seconds));
+            }
+        } else {
+            m_timeLimitLabel->setText(tr("時間: %1秒").arg(byoyomiSec));
+        }
+    }
+}
+
+// ★ 追加: 検討タブのエンジン名を設定
+void EngineAnalysisTab::setConsiderationEngineName(const QString& name)
+{
+    if (m_considerationInfo) {
+        m_considerationInfo->setDisplayNameFallback(name);
+    }
+}
+
+// ★ 追加: 経過時間タイマー開始
+void EngineAnalysisTab::startElapsedTimer()
+{
+    if (m_elapsedTimer) {
+        m_elapsedSeconds = 0;
+        if (m_elapsedTimeLabel) {
+            m_elapsedTimeLabel->setText(tr("経過: 0:00"));
+        }
+        m_elapsedTimer->start();
+    }
+}
+
+// ★ 追加: 経過時間タイマー停止
+void EngineAnalysisTab::stopElapsedTimer()
+{
+    if (m_elapsedTimer) {
+        m_elapsedTimer->stop();
+    }
+}
+
+// ★ 追加: 経過時間リセット
+void EngineAnalysisTab::resetElapsedTimer()
+{
+    if (m_elapsedTimer) {
+        m_elapsedTimer->stop();
+    }
+    m_elapsedSeconds = 0;
+    if (m_elapsedTimeLabel) {
+        m_elapsedTimeLabel->setText(tr("経過: 0:00"));
+    }
+}
+
+// ★ 追加: 経過時間タイマー更新
+void EngineAnalysisTab::onElapsedTimerTick()
+{
+    m_elapsedSeconds++;
+
+    // 時間制限がある場合、制限に達したらタイマーを停止
+    if (m_considerationTimeLimitSec > 0 && m_elapsedSeconds >= m_considerationTimeLimitSec) {
+        if (m_elapsedTimer) {
+            m_elapsedTimer->stop();
+        }
+        // 制限時間ちょうどに設定（超過を防ぐ）
+        m_elapsedSeconds = m_considerationTimeLimitSec;
+    }
+
+    const int minutes = m_elapsedSeconds / 60;
+    const int seconds = m_elapsedSeconds % 60;
+
+    if (m_elapsedTimeLabel) {
+        m_elapsedTimeLabel->setText(tr("経過: %1:%2")
+            .arg(minutes)
+            .arg(seconds, 2, 10, QLatin1Char('0')));
+    }
+}

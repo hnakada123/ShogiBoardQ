@@ -93,3 +93,27 @@ void ShogiInfoRecord::setLastUsiMove(const QString& move)
 {
     m_lastUsiMove = move;
 }
+
+// MultiPV番号を取得する（1から始まる、1が最良）
+int ShogiInfoRecord::multipv() const
+{
+    return m_multipv;
+}
+
+// MultiPV番号を設定する
+void ShogiInfoRecord::setMultipv(int multipv)
+{
+    m_multipv = multipv;
+}
+
+// 評価値（整数）を取得する（ソート用）
+int ShogiInfoRecord::scoreCp() const
+{
+    return m_scoreCp;
+}
+
+// 評価値（整数）を設定する
+void ShogiInfoRecord::setScoreCp(int scoreCp)
+{
+    m_scoreCp = scoreCp;
+}

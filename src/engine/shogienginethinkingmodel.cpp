@@ -1,5 +1,6 @@
 #include "shogienginethinkingmodel.h"
 #include <QColor>
+#include <algorithm>
 
 // 将棋エンジンの思考結果をGUI上で表示するためのクラス
 // コンストラクタ
@@ -125,4 +126,74 @@ const ShogiInfoRecord* ShogiEngineThinkingModel::recordAt(int row) const
         return nullptr;
     }
     return list.at(row);
+}
+
+// ★ 追加: MultiPVモードで行を更新または挿入する
+void ShogiEngineThinkingModel::updateByMultipv(ShogiInfoRecord* record, int maxMultiPV)
+{
+    if (!record) return;
+
+    const int multipv = record->multipv();
+    if (multipv < 1 || multipv > maxMultiPV) {
+        // 範囲外のmultipvは無視
+        delete record;
+        return;
+    }
+
+    // 同じmultipv値を持つ既存の行を探す
+    int existingRow = -1;
+    for (int i = 0; i < list.size(); ++i) {
+        if (list.at(i)->multipv() == multipv) {
+            existingRow = i;
+            break;
+        }
+    }
+
+    if (existingRow >= 0) {
+        // 既存の行を更新（データを入れ替え）
+        ShogiInfoRecord* oldRecord = list.at(existingRow);
+        list[existingRow] = record;
+        delete oldRecord;
+
+        // その行のデータが変更されたことを通知
+        const QModelIndex topLeft = index(existingRow, 0);
+        const QModelIndex bottomRight = index(existingRow, columnCount() - 1);
+        emit dataChanged(topLeft, bottomRight);
+    } else {
+        // 新しい行を挿入（multipv順に挿入）
+        int insertPos = 0;
+        for (int i = 0; i < list.size(); ++i) {
+            if (list.at(i)->multipv() < multipv) {
+                insertPos = i + 1;
+            }
+        }
+
+        beginInsertRows(QModelIndex(), insertPos, insertPos);
+        list.insert(insertPos, record);
+        endInsertRows();
+    }
+
+    // maxMultiPVを超える行を削除
+    while (list.size() > maxMultiPV) {
+        // 最後の行を削除
+        const int lastIdx = static_cast<int>(list.size()) - 1;
+        beginRemoveRows(QModelIndex(), lastIdx, lastIdx);
+        delete list.takeLast();
+        endRemoveRows();
+    }
+}
+
+// ★ 追加: 全行を評価値でソートする（高い順）
+void ShogiEngineThinkingModel::sortByScore()
+{
+    if (list.size() <= 1) return;
+
+    beginResetModel();
+
+    // 評価値の高い順にソート
+    std::sort(list.begin(), list.end(), [](const ShogiInfoRecord* a, const ShogiInfoRecord* b) {
+        return a->scoreCp() > b->scoreCp();
+    });
+
+    endResetModel();
 }

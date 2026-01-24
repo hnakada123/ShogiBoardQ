@@ -102,10 +102,12 @@ signals:
     /// pvKanjiStr: 漢字表記の読み筋
     /// usiPv: USI形式の読み筋（スペース区切り）
     /// baseSfen: 思考開始時の局面SFEN
+    /// multipv: MultiPV番号（1から始まる、1が最良）
+    /// scoreCp: 評価値（整数、センチポーン）
     void thinkingInfoUpdated(const QString& time, const QString& depth,
                              const QString& nodes, const QString& score,
                              const QString& pvKanjiStr, const QString& usiPv,
-                             const QString& baseSfen);
+                             const QString& baseSfen, int multipv, int scoreCp);
     
     /// 思考情報クリアリクエストシグナル
     void clearThinkingInfoRequested();

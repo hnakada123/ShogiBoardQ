@@ -72,7 +72,7 @@ private slots:
     void onThinkingInfoUpdated(const QString& time, const QString& depth,
                                 const QString& nodes, const QString& score,
                                 const QString& pvKanjiStr, const QString& usiPv,
-                                const QString& baseSfen);
+                                const QString& baseSfen, int multipv, int scoreCp);
     void onPositionPrepared(int ply, const QString& sfen);
     void onAnalysisProgress(int ply, int depth, int seldepth,
                              int scoreCp, int mate,

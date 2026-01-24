@@ -269,6 +269,11 @@ int considerationByoyomiSec();
 // ★ 追加: 検討ダイアログの検討時間（秒）を保存
 void setConsiderationByoyomiSec(int sec);
 
+// ★ 追加: 検討タブのフォントサイズを取得（デフォルト: 10）
+int considerationFontSize();
+// ★ 追加: 検討タブのフォントサイズを保存
+void setConsiderationFontSize(int size);
+
 } // namespace SettingsService
 
 #endif // SETTINGSSERVICE_H

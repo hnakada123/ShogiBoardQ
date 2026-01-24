@@ -28,6 +28,14 @@ public:
 
     // ★ 追加: 指定行のShogiInfoRecordを取得（読み取り専用）
     const ShogiInfoRecord* recordAt(int row) const;
+
+    // ★ 追加: MultiPVモードで行を更新または挿入する
+    // multipv値に基づいて既存の行を更新するか、新しい行を挿入する
+    // maxMultiPV: 表示する最大行数（1〜10）
+    void updateByMultipv(ShogiInfoRecord* record, int maxMultiPV);
+
+    // ★ 追加: 全行を評価値でソートする（高い順）
+    void sortByScore();
 };
 
 #endif // SHOGIENGINETHINKINGMODEL_H

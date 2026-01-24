@@ -7,6 +7,7 @@
 class QWidget;
 class ConsiderationDialog;
 class MatchCoordinator;
+class ShogiEngineThinkingModel;
 
 /**
  * 単一局面の「検討」実行を司る薄いフローコントローラ。
@@ -19,6 +20,9 @@ public:
     struct Deps {
         MatchCoordinator* match = nullptr;               // 司令塔
         std::function<void(const QString&)> onError;     // 任意: エラー表示
+        int multiPV = 1;                                 // ★ 追加: 候補手の数
+        ShogiEngineThinkingModel* considerationModel = nullptr;  // ★ 追加: 検討タブ用モデル
+        std::function<void(bool unlimited, int byoyomiSec)> onTimeSettingsReady;  // ★ 追加: 時間設定コールバック
     };
 
     explicit ConsiderationFlowController(QObject* parent=nullptr);
@@ -34,7 +38,9 @@ private:
                         const QString& enginePath,
                         const QString& engineName,
                         const QString& positionStr,
-                        int byoyomiMs);
+                        int byoyomiMs,
+                        int multiPV,
+                        ShogiEngineThinkingModel* considerationModel);
 };
 
 #endif // CONSIDERATIONFLOWCONTROLLER_H
