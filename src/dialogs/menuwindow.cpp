@@ -17,7 +17,7 @@ MenuWindow::MenuWindow(QWidget* parent)
 
 void MenuWindow::setupUi()
 {
-    setWindowTitle(tr("Menu Window"));
+    setWindowTitle(tr("メニューウィンドウ"));
     setAttribute(Qt::WA_DeleteOnClose, false);  // 閉じても破棄しない
 
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
@@ -120,6 +120,31 @@ void MenuWindow::setupUi()
     );
     connect(m_customizeButton, &QToolButton::clicked, this, &MenuWindow::onCustomizeButtonClicked);
     headerLayout->addWidget(m_customizeButton);
+
+    // 閉じるボタン
+    QToolButton* closeButton = new QToolButton(this);
+    closeButton->setText(QStringLiteral("\u2715"));  // ×記号
+    closeButton->setToolTip(tr("閉じる"));
+    closeButton->setStyleSheet(
+        "QToolButton {"
+        "  font-size: 14px;"
+        "  font-weight: bold;"
+        "  border: none;"
+        "  border-radius: 4px;"
+        "  padding: 4px 6px;"
+        "  min-width: 28px;"
+        "  background-color: #F44336;"
+        "  color: white;"
+        "}"
+        "QToolButton:hover {"
+        "  background-color: #D32F2F;"
+        "}"
+        "QToolButton:pressed {"
+        "  background-color: #B71C1C;"
+        "}"
+    );
+    connect(closeButton, &QToolButton::clicked, this, &MenuWindow::close);
+    headerLayout->addWidget(closeButton);
 
     mainLayout->addLayout(headerLayout);
 

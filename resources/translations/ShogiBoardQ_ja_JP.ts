@@ -67,7 +67,7 @@
     <message>
         <location filename="../../src/analysis/analysisresultspresenter.cpp" line="159"/>
         <source>閉じる</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">閉じる</translation>
     </message>
     <message>
         <location filename="../../src/analysis/analysisresultspresenter.cpp" line="319"/>
@@ -825,7 +825,7 @@
     <message>
         <location filename="../../src/dialogs/csawaitingdialog.cpp" line="270"/>
         <source>閉じる</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">閉じる</translation>
     </message>
 </context>
 <context>
@@ -1090,7 +1090,7 @@
     <message>
         <location filename="../../src/dialogs/engineregistrationdialog.ui" line="148"/>
         <source>閉じる</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">閉じる</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="219"/>
@@ -1478,7 +1478,7 @@ Move %3: %4</source>
     <message>
         <location filename="../../src/dialogs/josekimergedialog.cpp" line="103"/>
         <source>閉じる</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">閉じる</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/josekimergedialog.cpp" line="122"/>
@@ -1854,7 +1854,7 @@ Move %3: %4</source>
     <message>
         <location filename="../../src/dialogs/josekiwindow.cpp" line="173"/>
         <source>閉じる</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">閉じる</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/josekiwindow.cpp" line="174"/>
@@ -2768,7 +2768,12 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="540"/>
+        <location filename="../../src/app/mainwindow.ui" line="535"/>
+        <source>詰み探索中止</source>
+        <translation>詰み探索中止</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="544"/>
         <source>持将棋点数</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2918,67 +2923,66 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="531"/>
         <source>詰み探索終了</source>
-        <translation>詰み探索終了</translation>
+        <translation type="vanished">詰み探索終了</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="663"/>
+        <location filename="../../src/app/mainwindow.ui" line="667"/>
         <source>ツールバー</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="549"/>
+        <location filename="../../src/app/mainwindow.ui" line="553"/>
         <source>入玉宣言</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="558"/>
+        <location filename="../../src/app/mainwindow.ui" line="562"/>
         <source>USI形式（全て）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="567"/>
+        <location filename="../../src/app/mainwindow.ui" line="571"/>
         <source>JSON棋譜フォーマット</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="576"/>
+        <location filename="../../src/app/mainwindow.ui" line="580"/>
         <source>USEN</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="585"/>
+        <location filename="../../src/app/mainwindow.ui" line="589"/>
         <source>通信対局（CSA）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="594"/>
+        <location filename="../../src/app/mainwindow.ui" line="598"/>
         <source>棋譜解析中止</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="603"/>
+        <location filename="../../src/app/mainwindow.ui" line="607"/>
         <source>定跡ウィンドウ</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="612"/>
+        <location filename="../../src/app/mainwindow.ui" line="616"/>
         <source>メニューウィンドウ</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">メニューウィンドウ</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="624"/>
+        <location filename="../../src/app/mainwindow.ui" line="628"/>
         <source>システム設定に従う</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="636"/>
+        <location filename="../../src/app/mainwindow.ui" line="640"/>
         <source>日本語</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="648"/>
+        <location filename="../../src/app/mainwindow.ui" line="652"/>
         <source>English</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3222,8 +3226,12 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>MenuWindow</name>
     <message>
-        <location filename="../../src/dialogs/menuwindow.cpp" line="20"/>
         <source>Menu Window</source>
+        <translation type="vanished">メニューウィンドウ</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/menuwindow.cpp" line="20"/>
+        <source>メニューウィンドウ</source>
         <translation>メニューウィンドウ</translation>
     </message>
     <message>
@@ -3252,7 +3260,12 @@ OKを選択すると保存先が指定できます。</source>
         <translation>カスタマイズ</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/menuwindow.cpp" line="167"/>
+        <location filename="../../src/dialogs/menuwindow.cpp" line="127"/>
+        <source>閉じる</source>
+        <translation>閉じる</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/menuwindow.cpp" line="192"/>
         <source>Favorites</source>
         <translation>お気に入り</translation>
     </message>
@@ -3662,7 +3675,7 @@ OKを選択すると保存先が指定できます。</source>
     <message>
         <location filename="../../src/dialogs/pvboarddialog.cpp" line="223"/>
         <source>閉じる</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">閉じる</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/pvboarddialog.cpp" line="265"/>

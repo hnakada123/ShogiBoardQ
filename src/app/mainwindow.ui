@@ -527,8 +527,12 @@
    </property>
   </action>
   <action name="actionStopTsumeSearch">
+   <property name="icon">
+    <iconset resource="../../resources/shogiboardq.qrc">
+     <normaloff>:/images/actions/actionCancelTsumeShogiSearch.svg</normaloff>:/images/actions/actionCancelTsumeShogiSearch.svg</iconset>
+   </property>
    <property name="text">
-    <string>詰み探索終了</string>
+    <string>詰み探索中止</string>
    </property>
   </action>
   <action name="actionJishogiScore">

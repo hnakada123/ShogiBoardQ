@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+    <title>詰み探索中止</title>
+    
+    <!-- 背景円（少し暗めの紫） -->
+    <circle cx="64" cy="64" r="64" fill="#7B1FA2"/>
+    
+    <!-- 王将の駒（金色） -->
+    <polygon points="64,4 48,44 80,44" fill="#FFD700"/>
+    <text x="64" y="36" text-anchor="middle" font-family="serif" font-size="20" fill="#7B1FA2">王</text>
+    
+    <!-- 虫眼鏡（探索を示す） -->
+    <circle cx="52" cy="88" r="20" fill="none" stroke="white" stroke-width="6" opacity="0.5"/>
+    <line x1="66" y1="102" x2="80" y2="116" stroke="white" stroke-width="6" stroke-linecap="round" opacity="0.5"/>
+    
+    <!-- 中止マーク（赤い円と×） -->
+    <circle cx="96" cy="96" r="32" fill="#F44336"/>
+    <line x1="80" y1="80" x2="112" y2="112" stroke="white" stroke-width="8" stroke-linecap="round"/>
+    <line x1="112" y1="80" x2="80" y2="112" stroke="white" stroke-width="8" stroke-linecap="round"/>
+</svg>
