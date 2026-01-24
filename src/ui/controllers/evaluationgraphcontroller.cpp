@@ -226,8 +226,10 @@ void EvaluationGraphController::doRedrawEngine2Graph()
     // エンジン名を設定
     ec->setEngine2Name(m_engine2Name.isEmpty() ? m_engine1Name : m_engine2Name);
 
-    qDebug() << "[EVAL_GRAPH] P2: calling ec->appendScoreP2(" << ply << "," << cpAfter << ", false)";
-    ec->appendScoreP2(ply, cpAfter, false);
+    // 後手/上手のエンジン評価値は符号を反転させてプロット
+    // USIエンジンは手番側から見た評価値を出力するため、後手の評価値を先手視点に変換
+    qDebug() << "[EVAL_GRAPH] P2: calling ec->appendScoreP2(" << ply << "," << cpAfter << ", true)";
+    ec->appendScoreP2(ply, cpAfter, true);
     qDebug() << "[EVAL_GRAPH] P2: appendScoreP2 done, chart countP2 =" << ec->countP2();
 }
 
