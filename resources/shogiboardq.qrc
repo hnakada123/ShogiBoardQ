@@ -40,6 +40,7 @@
         <file>images/actions/actionAnalyzeKifu.svg</file>
         <file>images/actions/actionBreakOffGame.svg</file>
         <file>images/actions/actionCancelAnalyzeKifu.svg</file>
+        <file>images/actions/actionCancelTsumeShogiSearch.svg</file>
         <file>images/actions/actionChangeTurn.svg</file>
         <file>images/actions/actionConsideration.svg</file>
         <file>images/actions/actionCopyBOD.svg</file>

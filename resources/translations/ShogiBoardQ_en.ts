@@ -2887,17 +2887,21 @@ Please restart the application to apply the changes.</translation>
         <translation>Ctrl+A</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="531"/>
-        <source>詰み探索終了</source>
-        <translation>Stop Tsume Search</translation>
+        <location filename="../../src/app/mainwindow.ui" line="535"/>
+        <source>詰み探索中止</source>
+        <translation>Cancel Tsume Search</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="540"/>
+        <source>詰み探索終了</source>
+        <translation type="vanished">Stop Tsume Search</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="544"/>
         <source>持将棋点数</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="663"/>
+        <location filename="../../src/app/mainwindow.ui" line="667"/>
         <source>ツールバー</source>
         <translation>Toolbar</translation>
     </message>
@@ -3268,42 +3272,42 @@ Please restart the application to apply the changes.</translation>
         <translation type="vanished">Jishogi Points</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="549"/>
+        <location filename="../../src/app/mainwindow.ui" line="553"/>
         <source>入玉宣言</source>
         <translation>Entering King Declaration</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="558"/>
+        <location filename="../../src/app/mainwindow.ui" line="562"/>
         <source>USI形式（全て）</source>
         <translation>USI Format (All)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="567"/>
+        <location filename="../../src/app/mainwindow.ui" line="571"/>
         <source>JSON棋譜フォーマット</source>
         <translation>JSON Game Format</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="576"/>
+        <location filename="../../src/app/mainwindow.ui" line="580"/>
         <source>USEN</source>
         <translation>USEN</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="585"/>
+        <location filename="../../src/app/mainwindow.ui" line="589"/>
         <source>通信対局（CSA）</source>
         <translation>Network Game (CSA)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="594"/>
+        <location filename="../../src/app/mainwindow.ui" line="598"/>
         <source>棋譜解析中止</source>
         <translation>Cancel Analysis</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="603"/>
+        <location filename="../../src/app/mainwindow.ui" line="607"/>
         <source>定跡ウィンドウ</source>
         <translation>Opening Book Window</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="612"/>
+        <location filename="../../src/app/mainwindow.ui" line="616"/>
         <source>メニューウィンドウ</source>
         <translation>Menu Window</translation>
     </message>
@@ -3312,17 +3316,17 @@ Please restart the application to apply the changes.</translation>
         <translation type="vanished">Game Analysis Settings</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="624"/>
+        <location filename="../../src/app/mainwindow.ui" line="628"/>
         <source>システム設定に従う</source>
         <translation>Use System Default</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="636"/>
+        <location filename="../../src/app/mainwindow.ui" line="640"/>
         <source>日本語</source>
         <translation>Japanese</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="648"/>
+        <location filename="../../src/app/mainwindow.ui" line="652"/>
         <source>English</source>
         <translation>English</translation>
     </message>
@@ -3699,8 +3703,8 @@ Please restart the application to apply the changes.</translation>
     <name>MenuWindow</name>
     <message>
         <location filename="../../src/dialogs/menuwindow.cpp" line="20"/>
-        <source>Menu Window</source>
-        <translation type="unfinished"></translation>
+        <source>メニューウィンドウ</source>
+        <translation>Menu Window</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/menuwindow.cpp" line="53"/>
@@ -3728,7 +3732,12 @@ Please restart the application to apply the changes.</translation>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/menuwindow.cpp" line="167"/>
+        <location filename="../../src/dialogs/menuwindow.cpp" line="127"/>
+        <source>閉じる</source>
+        <translation>Close</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/menuwindow.cpp" line="192"/>
         <source>Favorites</source>
         <translation type="unfinished"></translation>
     </message>
