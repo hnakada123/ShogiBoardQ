@@ -884,18 +884,15 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
     const int keepMoves = parseKeepMovesFromSfen(opt.sfenStart);
     qDebug().noquote() << "[MC][configureAndStart] keepMoves(from sfenStart)=" << keepMoves;
 
-    // --- ベース候補：探索一致ゲーム > 直前ゲーム履歴 の順で採用
+    // --- ベース候補：探索一致ゲームのみ採用
+    // ★修正: マッチしなかった場合は履歴からの再利用をスキップ
+    // （異なる初期局面の履歴を再利用すると、駒落ちなのに "position startpos" が送信される問題が発生するため）
     QString candidateBase;
     if (!bestBaseFull.isEmpty()) {
         candidateBase = bestBaseFull;
         qDebug().noquote()
             << "[MC][configureAndStart] base=matched game"
             << "gameIdx=" << (bestGameIdx + 1) << "matchPly=" << bestMatchPly
-            << "full=" << candidateBase;
-    } else if (!m_positionStrHistory.isEmpty()) {
-        candidateBase = m_positionStrHistory.constLast();
-        qDebug().noquote()
-            << "[MC][configureAndStart] base=last history (fallback)"
             << "full=" << candidateBase;
     }
 
