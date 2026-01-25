@@ -3771,6 +3771,8 @@ void MainWindow::onPvRowClicked(int engineIndex, int row)
         m_pvClickController->setPlayerNames(m_humanName1, m_humanName2, m_engineName1, m_engineName2);
         m_pvClickController->setCurrentSfen(m_currentSfenStr);
         m_pvClickController->setStartSfen(m_startSfenStr);
+        // 現在選択されている棋譜行のインデックスを設定（ハイライト用）
+        m_pvClickController->setCurrentRecordIndex(m_currentMoveIndex);
         m_pvClickController->onPvRowClicked(engineIndex, row);
     }
 }
