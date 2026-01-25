@@ -38,6 +38,7 @@ void ConsiderationFlowController::runWithDialog(const Deps& d, QWidget* parent, 
 
     const bool unlimitedTime = dlg.unlimitedTimeFlag();
     const int byoyomiSec = dlg.getByoyomiSec();
+    const int multiPV = dlg.getMultiPV();
 
     int byoyomiMs = 0;  // 0 は無制限
     if (!unlimitedTime) {
@@ -49,8 +50,14 @@ void ConsiderationFlowController::runWithDialog(const Deps& d, QWidget* parent, 
         d.onTimeSettingsReady(unlimitedTime, byoyomiSec);
     }
 
+    // 候補手の数コールバックを呼び出し
+    if (d.onMultiPVReady) {
+        d.onMultiPVReady(multiPV);
+    }
+
     // 表示名は engine.name を使用
-    startAnalysis(d.match, engine.path, engine.name, positionStr, byoyomiMs, d.multiPV, d.considerationModel);
+    // ダイアログで選択された候補手の数を使用
+    startAnalysis(d.match, engine.path, engine.name, positionStr, byoyomiMs, multiPV, d.considerationModel);
 }
 
 void ConsiderationFlowController::startAnalysis(MatchCoordinator* match,

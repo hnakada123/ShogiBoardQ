@@ -103,6 +103,12 @@ int ConsiderationDialog::getByoyomiSec() const
     return m_byoyomiSec;
 }
 
+// 候補手の数（MultiPV）を取得する。
+int ConsiderationDialog::getMultiPV() const
+{
+    return m_multiPV;
+}
+
 // エンジン名、エンジン番号、時間無制限フラグ、検討時間フラグ、検討時間を取得する。
 void ConsiderationDialog::processEngineSettings()
 {
@@ -121,6 +127,9 @@ void ConsiderationDialog::processEngineSettings()
         m_unlimitedTimeFlag = false;
         m_byoyomiSec = ui->byoyomiSec->text().toInt();
     }
+
+    // 候補手の数を取得する。
+    m_multiPV = ui->spinBoxMultiPV->value();
 
     // 設定を保存する
     saveSettings();
@@ -218,6 +227,10 @@ void ConsiderationDialog::loadSettings()
     // 検討時間（秒）を復元
     int byoyomiSec = SettingsService::considerationByoyomiSec();
     ui->byoyomiSec->setValue(byoyomiSec);
+
+    // 候補手の数を復元
+    int multiPV = SettingsService::considerationMultiPV();
+    ui->spinBoxMultiPV->setValue(multiPV);
 }
 
 // 設定を保存する
@@ -231,4 +244,7 @@ void ConsiderationDialog::saveSettings()
 
     // 検討時間（秒）を保存
     SettingsService::setConsiderationByoyomiSec(ui->byoyomiSec->value());
+
+    // 候補手の数を保存
+    SettingsService::setConsiderationMultiPV(m_multiPV);
 }

@@ -190,22 +190,42 @@ Author: %1</translation>
         <translation>seconds</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/considerationdialog.ui" line="152"/>
+        <location filename="../../src/dialogs/considerationdialog.ui" line="137"/>
+        <source>候補手</source>
+        <translation>Candidate Moves</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/considerationdialog.ui" line="145"/>
+        <source>候補手の数</source>
+        <translation>Candidate moves</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/considerationdialog.ui" line="161"/>
+        <source>評価値が大きい順に表示する候補手の数を指定します</source>
+        <translation>Specify the number of candidate moves to display in order of evaluation</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/considerationdialog.ui" line="168"/>
+        <source>手</source>
+        <translation>moves</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/considerationdialog.ui" line="208"/>
         <source>A-</source>
         <translation>A-</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/considerationdialog.ui" line="155"/>
+        <location filename="../../src/dialogs/considerationdialog.ui" line="211"/>
         <source>フォントサイズを小さくする</source>
         <translation>Decrease font size</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/considerationdialog.ui" line="174"/>
+        <location filename="../../src/dialogs/considerationdialog.ui" line="230"/>
         <source>A+</source>
         <translation>A+</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/considerationdialog.ui" line="177"/>
+        <location filename="../../src/dialogs/considerationdialog.ui" line="233"/>
         <source>フォントサイズを大きくする</source>
         <translation>Increase font size</translation>
     </message>
@@ -838,12 +858,12 @@ Cause: %2</translation>
 <context>
     <name>DialogCoordinator</name>
     <message>
-        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="290"/>
+        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="293"/>
         <source>Error</source>
         <translation>Error</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="296"/>
+        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="299"/>
         <source>エラー</source>
         <translation>Error</translation>
     </message>
@@ -3514,12 +3534,12 @@ White
 Please select &quot;24-Point Rule&quot; or &quot;27-Point Rule&quot; in the game dialog.</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1705"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1716"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1706"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1717"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
@@ -3634,67 +3654,67 @@ Are you sure you want to declare?</translation>
         <translation type="vanished">Entering King Declaration Result</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1364"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1375"/>
         <source>棋譜ファイルを開く</source>
         <translation>Open Game Record File</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1365"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1376"/>
         <source>Kifu Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</source>
         <translation>Game Record Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1707"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1718"/>
         <source>手合割</source>
         <translation>Handicap</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1707"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1718"/>
         <source>平手</source>
         <translation>Even Game</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3611"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3626"/>
         <source>棋譜を自動保存しました: %1</source>
         <translation>Game record auto-saved: %1</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3614"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3629"/>
         <source>棋譜の自動保存に失敗しました: %1</source>
         <translation>Failed to auto-save game record: %1</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3724"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3739"/>
         <source>棋譜を取り込みました</source>
         <translation>Game record imported</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3726"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3741"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation>Failed to import game record</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3730"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3745"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation>Failed to import game record (internal error)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3769"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3784"/>
         <source>コメントを更新しました（手数: %1）</source>
         <translation>Comment updated (move: %1)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3830"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3845"/>
         <source>コメントなし</source>
         <translation>No comment</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3876"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3891"/>
         <source>E1: エンジンが起動していません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3887"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3902"/>
         <source>E2: エンジンが起動していません</source>
         <translation type="unfinished"></translation>
     </message>

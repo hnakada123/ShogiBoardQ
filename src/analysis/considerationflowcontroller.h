@@ -20,9 +20,10 @@ public:
     struct Deps {
         MatchCoordinator* match = nullptr;               // 司令塔
         std::function<void(const QString&)> onError;     // 任意: エラー表示
-        int multiPV = 1;                                 // ★ 追加: 候補手の数
-        ShogiEngineThinkingModel* considerationModel = nullptr;  // ★ 追加: 検討タブ用モデル
-        std::function<void(bool unlimited, int byoyomiSec)> onTimeSettingsReady;  // ★ 追加: 時間設定コールバック
+        int multiPV = 1;                                 // 候補手の数（初期値、ダイアログで上書き可能）
+        ShogiEngineThinkingModel* considerationModel = nullptr;  // 検討タブ用モデル
+        std::function<void(bool unlimited, int byoyomiSec)> onTimeSettingsReady;  // 時間設定コールバック
+        std::function<void(int multiPV)> onMultiPVReady;  // 候補手の数コールバック
     };
 
     explicit ConsiderationFlowController(QObject* parent=nullptr);

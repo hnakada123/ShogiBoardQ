@@ -20,7 +20,10 @@ public:
     ~ConsiderationDialog() override;
 
     // 1手あたりの思考時間（秒数）を取得する。
-     int getByoyomiSec() const;
+    int getByoyomiSec() const;
+
+    // 候補手の数（MultiPV）を取得する。
+    int getMultiPV() const;
 
     // エンジン番号を取得する。
     int getEngineNumber() const;
@@ -68,6 +71,9 @@ private:
 
     // 1手あたりの思考時間（秒数）
     int m_byoyomiSec;
+
+    // 候補手の数（MultiPV）
+    int m_multiPV;
 
     // フォントサイズ
     int m_fontSize;

@@ -123,6 +123,9 @@ void DialogCoordinator::showConsiderationDialog(const ConsiderationParams& param
     d.onTimeSettingsReady = [this](bool unlimited, int byoyomiSec) {
         Q_EMIT considerationTimeSettingsReady(unlimited, byoyomiSec);
     };
+    d.onMultiPVReady = [this](int multiPV) {
+        Q_EMIT considerationMultiPVReady(multiPV);
+    };
 
     flow->runWithDialog(d, m_parentWidget, params.position);
 }
