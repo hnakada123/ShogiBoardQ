@@ -2055,6 +2055,14 @@ void MainWindow::setupEngineAnalysisTab()
 
     // ★ 追加: 起動時に対局情報タブを追加
     addGameInfoTabAtStartup();
+
+    // ★ 追加: 起動時に検討タブのモデルを設定（ヘッダー表示のため）
+    if (!m_considerationModel) {
+        m_considerationModel = new ShogiEngineThinkingModel(this);
+    }
+    if (m_analysisTab) {
+        m_analysisTab->setConsiderationThinkingModel(m_considerationModel);
+    }
 }
 
 // src/app/mainwindow.cpp
