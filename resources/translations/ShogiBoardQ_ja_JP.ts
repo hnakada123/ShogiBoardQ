@@ -1076,12 +1076,12 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="103"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="102"/>
         <source>フォントサイズを小さくする</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="110"/>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="109"/>
         <source>フォントサイズを大きくする</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3263,36 +3263,36 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1933"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="1942"/>
         <source>詰みあり（手順 %1 手）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1934"/>
         <location filename="../../src/game/matchcoordinator.cpp" line="1943"/>
         <location filename="../../src/game/matchcoordinator.cpp" line="1952"/>
         <location filename="../../src/game/matchcoordinator.cpp" line="1961"/>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1973"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="1970"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="1982"/>
         <source>詰み探索</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1943"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="1952"/>
         <source>詰みなし</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1952"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="1961"/>
         <source>（エンジン側）未実装</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1961"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="1970"/>
         <source>不明（解析不能）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1973"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="1982"/>
         <source>探索が完了しました</source>
         <translation>探索が完了しました</translation>
     </message>
@@ -3873,12 +3873,12 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2690"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2699"/>
         <source>先手番</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2690"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2699"/>
         <source>後手番</source>
         <translation type="unfinished"></translation>
     </message>

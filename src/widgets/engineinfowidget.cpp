@@ -22,8 +22,7 @@ EngineInfoWidget::EngineInfoWidget(QWidget* parent, bool showFontButtons)
     m_table->setHorizontalHeaderLabels(headers);
 
     // ヘッダーの背景色と文字色を設定
-    m_table->setStyleSheet(
-        QStringLiteral("QHeaderView::section { background-color: #0a5a9e; color: white; }"));
+    applyHeaderStyle();
 
     // 行ヘッダーを非表示
     m_table->verticalHeader()->setVisible(false);
@@ -147,6 +146,7 @@ void EngineInfoWidget::setFontSize(int pointSize) {
 
     // ヘッダーのフォントも変更
     m_table->horizontalHeader()->setFont(font);
+    applyHeaderStyle();
 
     // 行の高さを調整（棋譜欄と同様の余白）
     QFontMetrics fm(font);
@@ -210,6 +210,15 @@ QList<int> EngineInfoWidget::columnWidths() const
         widths.append(m_table->columnWidth(col));
     }
     return widths;
+}
+
+void EngineInfoWidget::applyHeaderStyle()
+{
+    if (!m_table) return;
+    const QString headerStyle = QStringLiteral(
+        "QHeaderView::section { background-color: #1e7fc4; color: white; font-size: %1pt; }")
+        .arg(m_fontSize);
+    m_table->setStyleSheet(headerStyle);
 }
 
 // ★ 追加: 列幅の設定
@@ -292,4 +301,3 @@ void EngineInfoWidget::adjustEngineNameColumn()
     m_table->setColumnWidth(COL_ENGINE_NAME, engineNameWidth);
     m_table->horizontalHeader()->blockSignals(false);
 }
-
