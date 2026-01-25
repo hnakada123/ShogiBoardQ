@@ -938,12 +938,12 @@ Cause: %2</translation>
         <translation type="unfinished">%1手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="268"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2297"/>
         <source>検討中止</source>
         <translation>Stop</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="269"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2298"/>
         <source>検討を中止してエンジンを停止します</source>
         <translation>Stop analysis and terminate the engine</translation>
     </message>
@@ -951,6 +951,18 @@ Cause: %2</translation>
         <location filename="../../src/widgets/engineanalysistab.cpp" line="1467"/>
         <source>コマンドの送信先を選択</source>
         <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="268"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2303"/>
+        <source>検討開始</source>
+        <translation>Start Consideration</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="269"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2304"/>
+        <source>検討ダイアログを開いて検討を開始します</source>
+        <translation>Open consideration dialog to start analysis</translation>
     </message>
     <message>
         <location filename="../../src/widgets/engineanalysistab.cpp" line="1471"/>
@@ -1040,7 +1052,7 @@ Discard changes and move?</translation>
         <translation>Time: %1 sec</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2305"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2328"/>
         <source>経過: %1:%2</source>
         <translation>Elapsed: %1:%2</translation>
     </message>
@@ -3502,12 +3514,12 @@ White
 Please select &quot;24-Point Rule&quot; or &quot;27-Point Rule&quot; in the game dialog.</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1664"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1675"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1665"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1676"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
@@ -3622,67 +3634,67 @@ Are you sure you want to declare?</translation>
         <translation type="vanished">Entering King Declaration Result</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1323"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1334"/>
         <source>棋譜ファイルを開く</source>
         <translation>Open Game Record File</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1324"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1335"/>
         <source>Kifu Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</source>
         <translation>Game Record Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1666"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1677"/>
         <source>手合割</source>
         <translation>Handicap</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1666"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1677"/>
         <source>平手</source>
         <translation>Even Game</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3541"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3558"/>
         <source>棋譜を自動保存しました: %1</source>
         <translation>Game record auto-saved: %1</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3544"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3561"/>
         <source>棋譜の自動保存に失敗しました: %1</source>
         <translation>Failed to auto-save game record: %1</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3654"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3671"/>
         <source>棋譜を取り込みました</source>
         <translation>Game record imported</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3656"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3673"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation>Failed to import game record</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3660"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3677"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation>Failed to import game record (internal error)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3699"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3716"/>
         <source>コメントを更新しました（手数: %1）</source>
         <translation>Comment updated (move: %1)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3760"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3777"/>
         <source>コメントなし</source>
         <translation>No comment</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3804"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3821"/>
         <source>E1: エンジンが起動していません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3815"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3832"/>
         <source>E2: エンジンが起動していません</source>
         <translation type="unfinished"></translation>
     </message>

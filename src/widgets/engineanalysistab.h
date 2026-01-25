@@ -151,6 +151,9 @@ public:
     void stopElapsedTimer();
     void resetElapsedTimer();
 
+    // ★ 追加: 検討実行状態の設定（ボタン表示切替用）
+    void setConsiderationRunning(bool running);
+
 public slots:
     void setAnalysisVisible(bool on);
     void setCommentHtml(const QString& html);
@@ -195,6 +198,9 @@ signals:
 
     // ★ 追加: 検討中止シグナル
     void stopConsiderationRequested();
+
+    // ★ 追加: 検討開始シグナル
+    void startConsiderationRequested();
 
 private:
     // ★ 追加: 分岐ツリーのクリック有効フラグ（対局中は無効にする）
