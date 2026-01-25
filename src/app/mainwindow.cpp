@@ -867,6 +867,9 @@ void MainWindow::onConsiderationTimeSettingsReady(bool unlimited, int byoyomiSec
         // 経過時間タイマーを開始
         m_analysisTab->startElapsedTimer();
 
+        // ボタンを「検討中止」に切り替え
+        m_analysisTab->setConsiderationRunning(true);
+
         // 検討中のMultiPV変更を接続
         connect(m_analysisTab, &EngineAnalysisTab::considerationMultiPVChanged,
                 this, &MainWindow::onConsiderationMultiPVChanged,
@@ -875,6 +878,11 @@ void MainWindow::onConsiderationTimeSettingsReady(bool unlimited, int byoyomiSec
         // 検討中止ボタンを接続（stopAnalysisEngine を呼ぶ）
         connect(m_analysisTab, &EngineAnalysisTab::stopConsiderationRequested,
                 this, &MainWindow::stopTsumeSearch,
+                Qt::UniqueConnection);
+
+        // 検討開始ボタンを接続（displayConsiderationDialogを呼ぶ）
+        connect(m_analysisTab, &EngineAnalysisTab::startConsiderationRequested,
+                this, &MainWindow::displayConsiderationDialog,
                 Qt::UniqueConnection);
     }
 
@@ -894,6 +902,9 @@ void MainWindow::onConsiderationModeEnded()
     if (m_analysisTab) {
         // 経過時間タイマーを停止
         m_analysisTab->stopElapsedTimer();
+
+        // ボタンを「検討開始」に切り替え
+        m_analysisTab->setConsiderationRunning(false);
     }
 }
 
@@ -2028,6 +2039,12 @@ void MainWindow::setupEngineAnalysisTab()
     QObject::connect(
         m_analysisTab, &EngineAnalysisTab::usiCommandRequested,
         this,          &MainWindow::onUsiCommandRequested,
+        Qt::UniqueConnection);
+
+    // ★ 追加: 検討開始シグナルの接続
+    QObject::connect(
+        m_analysisTab, &EngineAnalysisTab::startConsiderationRequested,
+        this,          &MainWindow::displayConsiderationDialog,
         Qt::UniqueConnection);
 
     // ★ 追加: PlayerInfoControllerにもm_analysisTabを設定

@@ -263,12 +263,12 @@ void EngineAnalysisTab::buildUi()
     m_multiPVComboBox->setCurrentIndex(0);  // デフォルト1手
     m_multiPVComboBox->setToolTip(tr("評価値が大きい順に表示する候補手の数を指定します"));
 
-    // 検討中止ボタン
+    // 検討開始/中止ボタン（初期状態は「検討開始」）
     m_btnStopConsideration = new QToolButton(m_considerationToolbar);
-    m_btnStopConsideration->setText(tr("検討中止"));
-    m_btnStopConsideration->setToolTip(tr("検討を中止してエンジンを停止します"));
+    m_btnStopConsideration->setText(tr("検討開始"));
+    m_btnStopConsideration->setToolTip(tr("検討ダイアログを開いて検討を開始します"));
     connect(m_btnStopConsideration, &QToolButton::clicked,
-            this, &EngineAnalysisTab::stopConsiderationRequested);
+            this, &EngineAnalysisTab::startConsiderationRequested);
 
     toolbarLayout->addWidget(m_btnConsiderationFontDecrease);
     toolbarLayout->addWidget(m_btnConsiderationFontIncrease);
@@ -2281,6 +2281,29 @@ void EngineAnalysisTab::resetElapsedTimer()
     m_elapsedSeconds = 0;
     if (m_elapsedTimeLabel) {
         m_elapsedTimeLabel->setText(tr("経過: 0:00"));
+    }
+}
+
+// ★ 追加: 検討実行状態の設定（ボタン表示切替用）
+void EngineAnalysisTab::setConsiderationRunning(bool running)
+{
+    if (!m_btnStopConsideration) return;
+
+    // 既存のシグナル接続を切断
+    m_btnStopConsideration->disconnect();
+
+    if (running) {
+        // 検討中: 「検討中止」ボタンを表示
+        m_btnStopConsideration->setText(tr("検討中止"));
+        m_btnStopConsideration->setToolTip(tr("検討を中止してエンジンを停止します"));
+        connect(m_btnStopConsideration, &QToolButton::clicked,
+                this, &EngineAnalysisTab::stopConsiderationRequested);
+    } else {
+        // 検討停止中: 「検討開始」ボタンを表示
+        m_btnStopConsideration->setText(tr("検討開始"));
+        m_btnStopConsideration->setToolTip(tr("検討ダイアログを開いて検討を開始します"));
+        connect(m_btnStopConsideration, &QToolButton::clicked,
+                this, &EngineAnalysisTab::startConsiderationRequested);
     }
 }
 
