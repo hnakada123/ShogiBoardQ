@@ -3700,64 +3700,64 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>PvBoardDialog</name>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="27"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="29"/>
         <source>読み筋表示</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="107"/>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="179"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="109"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="181"/>
         <source>先手</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="108"/>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="180"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="110"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="182"/>
         <source>後手</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="151"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="153"/>
         <source>将棋盤を縮小する</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="156"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="158"/>
         <source>将棋盤を拡大する</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="198"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="200"/>
         <source>最初の局面に戻る</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="204"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="206"/>
         <source>1手戻る</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="210"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="212"/>
         <source>1手進む</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="216"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="218"/>
         <source>最後の局面まで進む</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="223"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="225"/>
         <source>閉じる</source>
         <translation type="unfinished">閉じる</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="265"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="267"/>
         <source>手数: %1 / %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="267"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="269"/>
         <source> (開始局面)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3765,20 +3765,20 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>PvClickController</name>
     <message>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="298"/>
         <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="303"/>
         <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="308"/>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="312"/>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="318"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="313"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="317"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="323"/>
         <source>先手</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="299"/>
         <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="304"/>
         <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="309"/>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="313"/>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="319"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="314"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="318"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="324"/>
         <source>後手</source>
         <translation type="unfinished"></translation>
     </message>

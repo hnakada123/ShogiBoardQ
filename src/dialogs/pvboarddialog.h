@@ -88,6 +88,8 @@ private:
     void parseKanjiMoves();
     /// ウィンドウサイズを保存
     void saveWindowSize();
+    /// レイアウト確定後にウィンドウサイズを調整
+    void adjustWindowToContents();
 
 protected:
     /// ウィンドウを閉じる際にサイズを保存
