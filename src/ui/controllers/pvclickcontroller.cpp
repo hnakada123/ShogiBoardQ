@@ -61,6 +61,11 @@ void PvClickController::setLogModels(UsiCommLogModel* log1, UsiCommLogModel* log
     m_lineEditModel2 = log2;
 }
 
+void PvClickController::setConsiderationModel(ShogiEngineThinkingModel* model)
+{
+    m_considerationModel = model;
+}
+
 void PvClickController::setSfenRecord(QStringList* sfenRecord)
 {
     m_sfenRecord = sfenRecord;
@@ -122,7 +127,15 @@ void PvClickController::onPvRowClicked(int engineIndex, int row)
     qDebug() << "[PvClick] onPvRowClicked: engineIndex=" << engineIndex << " row=" << row;
 
     // 対象のモデルを取得
-    ShogiEngineThinkingModel* model = (engineIndex == 0) ? m_modelThinking1 : m_modelThinking2;
+    // engineIndex: 0=エンジン1, 1=エンジン2, 2=検討タブ
+    ShogiEngineThinkingModel* model = nullptr;
+    if (engineIndex == 0) {
+        model = m_modelThinking1;
+    } else if (engineIndex == 1) {
+        model = m_modelThinking2;
+    } else if (engineIndex == 2) {
+        model = m_considerationModel;
+    }
     if (!model) {
         qDebug() << "[PvClick] onPvRowClicked: model is null";
         return;
@@ -160,7 +173,8 @@ void PvClickController::onPvRowClicked(int engineIndex, int row)
 
     // USI moves が空の場合、UsiCommLogModel から検索を試みる
     if (usiMoves.isEmpty()) {
-        UsiCommLogModel* logModel = (engineIndex == 0) ? m_lineEditModel1 : m_lineEditModel2;
+        // engineIndex: 0=エンジン1, 1=エンジン2, 2=検討タブ（エンジン1のログを使用）
+        UsiCommLogModel* logModel = (engineIndex == 1) ? m_lineEditModel2 : m_lineEditModel1;
         usiMoves = searchUsiMovesFromLog(logModel);
     }
 

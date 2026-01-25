@@ -295,6 +295,10 @@ void EngineAnalysisTab::buildUi()
     // 検討タブのヘッダ設定
     setupThinkingViewHeader(m_considerationView);
 
+    // ★ 追加: 検討タブの読み筋テーブルのクリックシグナルを接続
+    connect(m_considerationView, &QTableView::clicked,
+            this, &EngineAnalysisTab::onConsiderationViewClicked);
+
     // 保存されたフォントサイズを適用
     {
         QFont font = m_considerationView->font();
@@ -1950,6 +1954,17 @@ void EngineAnalysisTab::onView2Clicked(const QModelIndex& index)
     }
 }
 
+// ★ 追加: 検討タブの読み筋テーブルクリック処理
+void EngineAnalysisTab::onConsiderationViewClicked(const QModelIndex& index)
+{
+    if (!index.isValid()) return;
+    // 「盤面」列（列4）のクリック時のみ読み筋表示ウィンドウを開く
+    if (index.column() == 4) {
+        qDebug() << "[EngineAnalysisTab] onConsiderationViewClicked: row=" << index.row() << "(盤面ボタン)";
+        emit pvRowClicked(2, index.row());  // engineIndex=2 は検討タブ
+    }
+}
+
 // ★ 追加: エンジン情報ウィジェットの列幅変更時の保存
 void EngineAnalysisTab::onEngineInfoColumnWidthChanged()
 {
@@ -2199,7 +2214,15 @@ void EngineAnalysisTab::setConsiderationMultiPV(int value)
 
 void EngineAnalysisTab::clearThinkingViewSelection(int engineIndex)
 {
-    QTableView* view = (engineIndex == 0) ? m_view1 : m_view2;
+    // engineIndex: 0=エンジン1, 1=エンジン2, 2=検討タブ
+    QTableView* view = nullptr;
+    if (engineIndex == 0) {
+        view = m_view1;
+    } else if (engineIndex == 1) {
+        view = m_view2;
+    } else if (engineIndex == 2) {
+        view = m_considerationView;
+    }
     if (!view) return;
 
     if (auto* sel = view->selectionModel()) {

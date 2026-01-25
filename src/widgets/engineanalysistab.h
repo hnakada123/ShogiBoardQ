@@ -169,6 +169,7 @@ private slots:
     // ★ 追加: 読み筋テーブルのクリック処理
     void onView1Clicked(const QModelIndex& index);
     void onView2Clicked(const QModelIndex& index);
+    void onConsiderationViewClicked(const QModelIndex& index);
 
 signals:
     // ツリー上のノード（行row, 手ply）がクリックされた
