@@ -12,9 +12,11 @@
 #include <QRegularExpression>
 #include <QCloseEvent>
 #include <QWheelEvent>
+#include <QTimer>
 
 // 前方宣言: SFENからUSI形式の手を盤面に適用する静的ヘルパー
 static void applyUsiMoveToBoard(ShogiBoard* board, const QString& usiMove, bool isBlackToMove);
+static bool isStartposSfen(QString sfen);
 
 PvBoardDialog::PvBoardDialog(const QString& baseSfen,
                              const QStringList& pvMoves,
@@ -80,9 +82,9 @@ PvBoardDialog::PvBoardDialog(const QString& baseSfen,
     // 初期表示
     updateBoardDisplay();
     updateButtonStates();
-    
-    // ダイアログサイズを内容に合わせて自動調整
-    adjustSize();
+
+    // レイアウト確定後に自動調整（起動直後のサイズ不足を防ぐ）
+    QTimer::singleShot(0, this, &PvBoardDialog::adjustWindowToContents);
 }
 
 PvBoardDialog::~PvBoardDialog()
@@ -505,6 +507,24 @@ static QPoint getStandPseudoCoord(QChar pieceChar, bool isBlack)
     }
 }
 
+static bool isStartposSfen(QString sfen)
+{
+    sfen = sfen.trimmed();
+    if (sfen.startsWith(QStringLiteral("position sfen "))) {
+        sfen = sfen.mid(14).trimmed();
+    } else if (sfen.startsWith(QStringLiteral("position "))) {
+        sfen = sfen.mid(9).trimmed();
+    }
+
+    if (sfen == QLatin1String("startpos")) {
+        return true;
+    }
+
+    static const QString startposSfen =
+        QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+    return sfen.startsWith(startposSfen.left(60));
+}
+
 void PvBoardDialog::updateMoveHighlights()
 {
     qDebug() << "[PvBoardDialog] updateMoveHighlights: m_currentPly=" << m_currentPly
@@ -524,14 +544,18 @@ void PvBoardDialog::updateMoveHighlights()
 
     // 開始局面（手数0）の場合
     if (m_currentPly == 0) {
-        // m_lastMoveが設定されていればそれを使用
-        if (m_lastMove.isEmpty() || m_lastMove.length() < 4) {
-            qDebug() << "[PvBoardDialog] updateMoveHighlights: m_lastMove is empty or too short, no highlight";
+        if (!m_lastMove.isEmpty() && m_lastMove.length() >= 4) {
+            usiMove = m_lastMove;
+            isBasePosition = true;
+            qDebug() << "[PvBoardDialog] updateMoveHighlights: using m_lastMove=" << usiMove;
+        } else if (!m_pvMoves.isEmpty() && m_pvMoves.first().length() >= 4 && isStartposSfen(m_baseSfen)) {
+            usiMove = m_pvMoves.first();
+            isBasePosition = false;
+            qDebug() << "[PvBoardDialog] updateMoveHighlights: using first pvMove(startpos)=" << usiMove;
+        } else {
+            qDebug() << "[PvBoardDialog] updateMoveHighlights: no usable move for base position";
             return;  // ハイライトなし
         }
-        usiMove = m_lastMove;
-        isBasePosition = true;
-        qDebug() << "[PvBoardDialog] updateMoveHighlights: using m_lastMove=" << usiMove;
     } else if (m_currentPly > m_pvMoves.size()) {
         qDebug() << "[PvBoardDialog] updateMoveHighlights: m_currentPly > m_pvMoves.size(), no highlight";
         return;
@@ -632,6 +656,15 @@ void PvBoardDialog::parseKanjiMoves()
 void PvBoardDialog::saveWindowSize()
 {
     SettingsService::setPvBoardDialogSize(size());
+}
+
+void PvBoardDialog::adjustWindowToContents()
+{
+    if (m_shogiView) {
+        m_shogiView->updateBoardSize();
+        hideClockLabels();
+    }
+    adjustSize();
 }
 
 void PvBoardDialog::closeEvent(QCloseEvent* event)

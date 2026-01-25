@@ -22,6 +22,11 @@ static QString normalizedSfen(QString sfen)
         sfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
     }
 
+    const QStringList parts = sfen.split(' ', Qt::SkipEmptyParts);
+    if (parts.size() >= 3) {
+        return parts.mid(0, 3).join(' ');
+    }
+
     return sfen;
 }
 
