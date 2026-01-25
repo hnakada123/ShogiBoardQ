@@ -268,6 +268,9 @@ private slots:
     // 検討中にMultiPV変更時
     void onConsiderationMultiPVChanged(int value);
 
+    // 検討ダイアログでMultiPVが設定されたとき
+    void onConsiderationDialogMultiPVReady(int multiPV);
+
     // ボタン有効/無効
     void disableArrowButtons();
     void enableArrowButtons();

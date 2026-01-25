@@ -949,6 +949,17 @@ void MainWindow::onConsiderationMultiPVChanged(int value)
     }
 }
 
+// 検討ダイアログでMultiPVが設定されたとき
+void MainWindow::onConsiderationDialogMultiPVReady(int multiPV)
+{
+    qDebug().noquote() << "[MainWindow::onConsiderationDialogMultiPVReady] multiPV=" << multiPV;
+
+    // 検討タブのMultiPVコンボボックスを更新
+    if (m_analysisTab) {
+        m_analysisTab->setConsiderationMultiPV(multiPV);
+    }
+}
+
 // 詰み探索ダイアログを表示する。
 // CSA通信対局ダイアログを表示する。
 void MainWindow::displayJosekiWindow()
@@ -2592,6 +2603,10 @@ void MainWindow::ensureDialogCoordinator()
     // 検討モードの時間設定確定時
     connect(m_dialogCoordinator, &DialogCoordinator::considerationTimeSettingsReady,
             this, &MainWindow::onConsiderationTimeSettingsReady);
+
+    // 検討ダイアログでMultiPVが設定されたとき
+    connect(m_dialogCoordinator, &DialogCoordinator::considerationMultiPVReady,
+            this, &MainWindow::onConsiderationDialogMultiPVReady);
 }
 
 void MainWindow::ensureKifuExportController()

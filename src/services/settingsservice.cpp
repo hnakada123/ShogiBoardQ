@@ -812,6 +812,22 @@ void setConsiderationByoyomiSec(int sec)
     s.setValue("Consideration/byoyomiSec", sec);
 }
 
+// ★ 追加: 検討の候補手の数を取得
+int considerationMultiPV()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("Consideration/multiPV", 1).toInt();
+}
+
+// ★ 追加: 検討の候補手の数を保存
+void setConsiderationMultiPV(int multiPV)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("Consideration/multiPV", multiPV);
+}
+
 // ★ 追加: 検討タブのフォントサイズを取得
 int considerationFontSize()
 {

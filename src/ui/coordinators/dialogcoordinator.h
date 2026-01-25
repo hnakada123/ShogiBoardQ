@@ -244,6 +244,12 @@ Q_SIGNALS:
     void considerationTimeSettingsReady(bool unlimited, int byoyomiSec);
 
     /**
+     * @brief 検討モードの候補手の数が確定した
+     * @param multiPV 候補手の数
+     */
+    void considerationMultiPVReady(int multiPV);
+
+    /**
      * @brief 詰み探索モードが開始された
      */
     void tsumeSearchModeStarted();

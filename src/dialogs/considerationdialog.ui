@@ -132,6 +132,62 @@
     </widget>
    </item>
    <item>
+    <widget class="QGroupBox" name="groupBoxMultiPV">
+     <property name="title">
+      <string>候補手</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayoutMultiPV">
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayoutMultiPV">
+        <item>
+         <widget class="QLabel" name="labelMultiPV">
+          <property name="text">
+           <string>候補手の数</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QSpinBox" name="spinBoxMultiPV">
+          <property name="minimum">
+           <number>1</number>
+          </property>
+          <property name="maximum">
+           <number>10</number>
+          </property>
+          <property name="value">
+           <number>1</number>
+          </property>
+          <property name="toolTip">
+           <string>評価値が大きい順に表示する候補手の数を指定します</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="labelMultiPVUnit">
+          <property name="text">
+           <string>手</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacerMultiPV">
+          <property name="orientation">
+           <enum>Qt::Orientation::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
     <spacer name="verticalSpacer">
      <property name="orientation">
       <enum>Qt::Orientation::Vertical</enum>
