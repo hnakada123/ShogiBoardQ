@@ -33,6 +33,7 @@ public:
     // 依存オブジェクトの設定
     // --------------------------------------------------------
     void setThinkingModels(ShogiEngineThinkingModel* model1, ShogiEngineThinkingModel* model2);
+    void setConsiderationModel(ShogiEngineThinkingModel* model);
     void setLogModels(UsiCommLogModel* log1, UsiCommLogModel* log2);
     void setSfenRecord(QStringList* sfenRecord);
     void setGameMoves(const QVector<ShogiMove>* gameMoves);
@@ -85,6 +86,7 @@ private:
 private:
     ShogiEngineThinkingModel* m_modelThinking1 = nullptr;
     ShogiEngineThinkingModel* m_modelThinking2 = nullptr;
+    ShogiEngineThinkingModel* m_considerationModel = nullptr;
     UsiCommLogModel* m_lineEditModel1 = nullptr;
     UsiCommLogModel* m_lineEditModel2 = nullptr;
     QStringList* m_sfenRecord = nullptr;

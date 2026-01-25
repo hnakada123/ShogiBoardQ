@@ -2709,6 +2709,7 @@ void MainWindow::ensurePvClickController()
 
     // 依存オブジェクトの設定
     m_pvClickController->setThinkingModels(m_modelThinking1, m_modelThinking2);
+    m_pvClickController->setConsiderationModel(m_considerationModel);
     m_pvClickController->setLogModels(m_lineEditModel1, m_lineEditModel2);
     m_pvClickController->setSfenRecord(m_sfenRecord);
     m_pvClickController->setGameMoves(&m_gameMoves);
@@ -3798,6 +3799,8 @@ void MainWindow::onPvRowClicked(int engineIndex, int row)
         m_pvClickController->setStartSfen(m_startSfenStr);
         // 現在選択されている棋譜行のインデックスを設定（ハイライト用）
         m_pvClickController->setCurrentRecordIndex(m_currentMoveIndex);
+        // 検討モデルを更新（検討タブから呼ばれた場合に必要）
+        m_pvClickController->setConsiderationModel(m_considerationModel);
         m_pvClickController->onPvRowClicked(engineIndex, row);
     }
 }
