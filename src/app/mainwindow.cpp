@@ -2688,6 +2688,10 @@ void MainWindow::ensurePvClickController()
     m_pvClickController->setSfenRecord(m_sfenRecord);
     m_pvClickController->setGameMoves(&m_gameMoves);
     m_pvClickController->setUsiMoves(&m_gameUsiMoves);
+    QObject::connect(
+        m_pvClickController, &PvClickController::pvDialogClosed,
+        this,                &MainWindow::onPvDialogClosed,
+        Qt::UniqueConnection);
 }
 
 void MainWindow::ensureRecordNavigationController()
@@ -3768,6 +3772,13 @@ void MainWindow::onPvRowClicked(int engineIndex, int row)
         m_pvClickController->setCurrentSfen(m_currentSfenStr);
         m_pvClickController->setStartSfen(m_startSfenStr);
         m_pvClickController->onPvRowClicked(engineIndex, row);
+    }
+}
+
+void MainWindow::onPvDialogClosed(int engineIndex)
+{
+    if (m_analysisTab) {
+        m_analysisTab->clearThinkingViewSelection(engineIndex);
     }
 }
 
