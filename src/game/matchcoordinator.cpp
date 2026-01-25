@@ -23,6 +23,7 @@
 #include <QMetaMethod>
 #include <QSettings>
 #include <QThread>
+#include <QCoreApplication>
 
 // 平手初期SFENの簡易判定（必要なら厳密化可）
 static bool isStandardStartposSfen(const QString& sfen)
@@ -1798,12 +1799,22 @@ void MatchCoordinator::handleBreakOff()
 // 検討を開始する（単発エンジンセッション）
 void MatchCoordinator::startAnalysis(const AnalysisOptions& opt)
 {
+    qDebug().noquote() << "[MC] startAnalysis ENTER:"
+                       << "mode=" << static_cast<int>(opt.mode)
+                       << "byoyomiMs=" << opt.byoyomiMs
+                       << "multiPV=" << opt.multiPV
+                       << "m_inConsiderationMode=" << m_inConsiderationMode;
+
     // 1) モード設定（検討 / 詰み探索）
     setPlayMode(opt.mode); // PlayMode::ConsiderationMode or PlayMode::TsumiSearchMode
 
     // 2) 既存エンジンを破棄して新規作成（毎回エンジンを起動する）
-    qDebug().noquote() << "[MC] startAnalysis: starting engine" << opt.enginePath;
+    qDebug().noquote() << "[MC] startAnalysis: destroying old engines and starting new:" << opt.enginePath;
     destroyEngines();
+
+    // ★ deleteLater()で予約された削除を処理してから新エンジンを作成
+    // これにより、古いエンジンオブジェクトが完全に破棄されてからメモリを再利用する
+    QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
 
     // 3) 表示モデル（無ければ生成して保持）
     UsiCommLogModel*          comm  = m_comm1;
@@ -1868,12 +1879,17 @@ void MatchCoordinator::startAnalysis(const AnalysisOptions& opt)
     // 10.5) 検討モードの場合、フラグを設定し bestmove を接続
     if (opt.mode == PlayMode::ConsiderationMode) {
         m_inConsiderationMode = true;
-        // ★ 検討の状態を保存（MultiPV変更時の再開用）
+        // ★ 検討の状態を保存（MultiPV変更時・ポジション変更時の再開用）
         m_considerationPositionStr = opt.positionStr;
         m_considerationByoyomiMs = opt.byoyomiMs;
         m_considerationMultiPV = opt.multiPV;
         m_considerationModelPtr = opt.considerationModel;
         m_considerationRestartPending = false;
+        m_considerationWaiting = false;  // 待機フラグをリセット
+        // 注意: m_considerationRestartInProgress はここではリセットしない
+        // （restartConsiderationDeferred から呼ばれた場合は呼び出し元でリセットする）
+        m_considerationEnginePath = opt.enginePath;
+        m_considerationEngineName = opt.engineName;
 
         connect(m_usi1, &Usi::bestMoveReceived,
                 this,   &MatchCoordinator::onConsiderationBestMoveReceived,
@@ -1882,11 +1898,13 @@ void MatchCoordinator::startAnalysis(const AnalysisOptions& opt)
 
     // 11) 解析/詰み探索の実行
     QString pos = opt.positionStr; // "position sfen <...>"
+    qDebug().noquote() << "[MC] startAnalysis: about to call executeAnalysisCommunication, byoyomiMs=" << opt.byoyomiMs;
     if (opt.mode == PlayMode::TsumiSearchMode) {
         m_usi1->executeTsumeCommunication(pos, opt.byoyomiMs);
     } else {
         m_usi1->executeAnalysisCommunication(pos, opt.byoyomiMs, opt.multiPV);
     }
+    qDebug().noquote() << "[MC] startAnalysis EXIT (executeAnalysisCommunication returned)";
 }
 
 void MatchCoordinator::stopAnalysisEngine()
@@ -1896,6 +1914,8 @@ void MatchCoordinator::stopAnalysisEngine()
     // 検討モード中なら終了シグナルを発火
     if (m_inConsiderationMode) {
         m_inConsiderationMode = false;
+        m_considerationRestartInProgress = false;  // 再入防止フラグもリセット
+        m_considerationWaiting = false;  // 待機フラグもリセット
         emit considerationModeEnded();
     }
 
@@ -1933,6 +1953,57 @@ void MatchCoordinator::updateConsiderationMultiPV(int multiPV)
         qDebug().noquote() << "[MC] updateConsiderationMultiPV: sending stop to restart with new MultiPV";
         m_usi1->sendStopCommand();
     }
+}
+
+bool MatchCoordinator::updateConsiderationPosition(const QString& newPositionStr)
+{
+    qDebug().noquote() << "[MC] updateConsiderationPosition called:"
+                       << "m_inConsiderationMode=" << m_inConsiderationMode
+                       << "m_considerationWaiting=" << m_considerationWaiting
+                       << "m_considerationRestartPending=" << m_considerationRestartPending
+                       << "m_usi1=" << (m_usi1 ? "valid" : "null");
+
+    // 検討モード中でない場合は無視
+    if (!m_inConsiderationMode) {
+        qDebug().noquote() << "[MC] updateConsiderationPosition: not in consideration mode, ignoring";
+        return false;
+    }
+
+    // 同じポジションなら何もしない
+    if (m_considerationPositionStr == newPositionStr) {
+        qDebug().noquote() << "[MC] updateConsiderationPosition: same position, ignoring";
+        return false;
+    }
+
+    // ★ 新しいポジションを保存
+    m_considerationPositionStr = newPositionStr;
+
+    // ★ 検討タブ用モデルをクリア
+    if (m_considerationModelPtr) {
+        m_considerationModelPtr->clearAllItems();
+    }
+
+    // ★ エンジンが待機状態の場合、直接新しい局面で検討を再開（stop不要）
+    if (m_considerationWaiting && m_usi1) {
+        qDebug().noquote() << "[MC] updateConsiderationPosition: engine is waiting, resuming with new position";
+        m_considerationWaiting = false;  // 待機状態を解除
+
+        // 既存エンジンに直接コマンドを送信（非ブロッキング）
+        m_usi1->sendAnalysisCommands(newPositionStr, m_considerationByoyomiMs, m_considerationMultiPV);
+        return true;
+    }
+
+    // ★ エンジンが稼働中の場合、停止して再開フラグを設定
+    m_considerationRestartPending = true;
+    qDebug().noquote() << "[MC] updateConsiderationPosition: set m_considerationRestartPending=true";
+
+    // ★ エンジンを停止（bestmove を受信後に再開する）
+    if (m_usi1) {
+        qDebug().noquote() << "[MC] updateConsiderationPosition: sending stop to restart with new position";
+        m_usi1->sendStopCommand();
+    }
+
+    return true;
 }
 
 void MatchCoordinator::onCheckmateSolved(const QStringList& pv)
@@ -1986,31 +2057,81 @@ void MatchCoordinator::onTsumeBestMoveReceived()
 
 void MatchCoordinator::onConsiderationBestMoveReceived()
 {
+    qDebug().noquote() << "[MC] onConsiderationBestMoveReceived ENTER:"
+                       << "m_inConsiderationMode=" << m_inConsiderationMode
+                       << "m_considerationRestartPending=" << m_considerationRestartPending
+                       << "m_considerationWaiting=" << m_considerationWaiting;
+
     // 検討モード中でない場合は無視
-    if (!m_inConsiderationMode) return;
-
-    // ★ 再開フラグがセットされている場合は、新しいMultiPV設定で検討を再開
-    if (m_considerationRestartPending) {
-        m_considerationRestartPending = false;
-        qDebug().noquote() << "[MC] onConsiderationBestMoveReceived: restarting with new MultiPV=" << m_considerationMultiPV;
-
-        // 検討タブ用モデルを新しいMultiPV設定で再設定
-        if (m_usi1 && m_considerationModelPtr) {
-            m_usi1->setConsiderationModel(m_considerationModelPtr, m_considerationMultiPV);
-        }
-
-        // 検討を再開
-        if (m_usi1) {
-            QString pos = m_considerationPositionStr;
-            m_usi1->executeAnalysisCommunication(pos, m_considerationByoyomiMs, m_considerationMultiPV);
-        }
+    if (!m_inConsiderationMode) {
+        qDebug().noquote() << "[MC] onConsiderationBestMoveReceived: not in consideration mode, ignoring";
         return;
     }
 
-    qDebug().noquote() << "[MC] onConsiderationBestMoveReceived: consideration mode ended";
-    m_inConsiderationMode = false;  // 完了したのでフラグをリセット
-    emit considerationModeEnded();
-    destroyEngines(false);  // 探索完了後にエンジンを終了（思考内容を保持）
+    // ★ 再開フラグがセットされている場合は、新しい設定で検討を再開
+    // 注意: executeAnalysisCommunication はブロッキング処理なので、
+    // シグナルハンドラ内から直接呼び出すとGUIがフリーズする。
+    // QTimer::singleShot で次のイベントループに遅延させる。
+    if (m_considerationRestartPending) {
+        m_considerationRestartPending = false;
+        qDebug().noquote() << "[MC] onConsiderationBestMoveReceived: scheduling restart (restart was pending)";
+
+        // 再開処理を次のイベントループに遅延
+        QTimer::singleShot(0, this, &MatchCoordinator::restartConsiderationDeferred);
+        return;
+    }
+
+    // ★ 検討時間が経過した場合、エンジンを待機状態にして次の局面選択を待つ
+    // エンジンを終了せず、検討モードも維持する
+    qDebug().noquote() << "[MC] onConsiderationBestMoveReceived: entering waiting state (engine idle)";
+    m_considerationWaiting = true;  // 待機状態に移行
+    m_considerationRestartInProgress = false;  // 再入防止フラグをリセット
+    // ★ 検討モードは維持（m_inConsiderationMode = true のまま）
+    // ★ エンジンは終了しない（destroyEngines を呼ばない）
+    // ★ considerationModeEnded も発火しない（ボタンは「検討中止」のまま）
+    emit considerationWaitingStarted();  // UIに待機開始を通知（経過タイマー停止用）
+    qDebug().noquote() << "[MC] onConsiderationBestMoveReceived EXIT (waiting state)";
+}
+
+void MatchCoordinator::restartConsiderationDeferred()
+{
+    qDebug().noquote() << "[MC] restartConsiderationDeferred ENTER:"
+                       << "m_inConsiderationMode=" << m_inConsiderationMode
+                       << "m_considerationRestartPending=" << m_considerationRestartPending
+                       << "m_considerationRestartInProgress=" << m_considerationRestartInProgress
+                       << "m_usi1=" << (m_usi1 ? "valid" : "null");
+
+    // 検討モード中でなければ何もしない
+    if (!m_inConsiderationMode) {
+        qDebug().noquote() << "[MC] restartConsiderationDeferred: not in consideration mode, ignoring";
+        return;
+    }
+
+    // エンジンがなければ何もしない
+    if (!m_usi1) {
+        qDebug().noquote() << "[MC] restartConsiderationDeferred: no engine, ignoring";
+        return;
+    }
+
+    // ★ 既存エンジンに直接コマンドを送信（非ブロッキング）
+    // エンジンは bestmove 送信後アイドル状態なので、そのまま新しいコマンドを送れる
+    qDebug().noquote() << "[MC] restartConsiderationDeferred: sending commands to existing engine"
+                       << "position=" << m_considerationPositionStr
+                       << "byoyomiMs=" << m_considerationByoyomiMs
+                       << "multiPV=" << m_considerationMultiPV;
+
+    // モデルをクリア
+    if (m_considerationModelPtr) {
+        m_considerationModelPtr->clearAllItems();
+    }
+
+    // 待機状態を解除
+    m_considerationWaiting = false;
+
+    // 既存エンジンにコマンドを送信
+    m_usi1->sendAnalysisCommands(m_considerationPositionStr, m_considerationByoyomiMs, m_considerationMultiPV);
+
+    qDebug().noquote() << "[MC] restartConsiderationDeferred EXIT";
 }
 
 void MatchCoordinator::onUsiError(const QString& msg)

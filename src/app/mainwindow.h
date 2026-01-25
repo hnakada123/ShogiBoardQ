@@ -262,6 +262,9 @@ private slots:
     // 検討モード終了時
     void onConsiderationModeEnded();
 
+    // 検討待機開始時（時間切れ後、次の局面選択待ち）
+    void onConsiderationWaitingStarted();
+
     // 検討中にMultiPV変更時
     void onConsiderationMultiPVChanged(int value);
 

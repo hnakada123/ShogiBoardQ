@@ -54,6 +54,12 @@ Usi::Usi(UsiCommLogModel* model, ShogiEngineThinkingModel* modelThinking,
 
 Usi::~Usi()
 {
+    // 停止タイマーをキャンセル
+    if (m_analysisStopTimer) {
+        m_analysisStopTimer->stop();
+        delete m_analysisStopTimer;
+        m_analysisStopTimer = nullptr;
+    }
     // デストラクタ時はモデルクリアをスキップ（モデルが既に破棄されている可能性があるため）
     m_processManager->stopProcess();
     // m_presenter->requestClearThinkingInfo() は呼ばない
@@ -449,8 +455,8 @@ void Usi::sendQuitCommand()
 void Usi::sendStopCommand()
 {
     m_protocolHandler->sendStop();
-    // 検討タブ用モデルをクリア（停止時）
-    m_considerationModel = nullptr;
+    // ★ 検討モデルはクリアしない（再開時に必要）
+    // モデルのクリアはエンジン破棄時に自動的に行われる
 }
 
 // ★ 追加: 検討タブ用モデルを設定
@@ -855,6 +861,13 @@ void Usi::appendBestMoveAndStartPondering(QString& positionStr, QString& positio
 
 void Usi::executeAnalysisCommunication(QString& positionStr, int byoyomiMilliSec, int multiPV)
 {
+    // ★ 既存の停止タイマーをキャンセル
+    if (m_analysisStopTimer) {
+        m_analysisStopTimer->stop();
+        m_analysisStopTimer->deleteLater();
+        m_analysisStopTimer = nullptr;
+    }
+
     // 思考開始時の局面SFENを保存（読み筋表示用）
     if (m_gameController && m_gameController->board()) {
         ShogiBoard* board = m_gameController->board();
@@ -877,13 +890,70 @@ void Usi::executeAnalysisCommunication(QString& positionStr, int byoyomiMilliSec
     if (byoyomiMilliSec <= 0) {
         m_protocolHandler->keepWaitingForBestMove();
     } else {
-        // タイムアウト後にstop送信
-        QTimer::singleShot(byoyomiMilliSec, this, [this]() {
+        // ★ タイムアウト後にstop送信（メンバータイマーを使用）
+        m_analysisStopTimer = new QTimer(this);
+        m_analysisStopTimer->setSingleShot(true);
+        connect(m_analysisStopTimer, &QTimer::timeout, this, [this]() {
+            qDebug().noquote() << "[Usi] executeAnalysisCommunication stop timer fired";
             m_protocolHandler->sendStop();
+            m_analysisStopTimer = nullptr;
         });
-        
+        m_analysisStopTimer->start(byoyomiMilliSec);
+
         static constexpr int kPostStopGraceMs = 4000;
         const int waitBudget = qMax(byoyomiMilliSec + kPostStopGraceMs, 2500);
         m_protocolHandler->waitForBestMove(waitBudget);
     }
+}
+
+void Usi::sendAnalysisCommands(const QString& positionStr, int byoyomiMilliSec, int multiPV)
+{
+    qDebug().noquote() << "[Usi] sendAnalysisCommands:"
+                       << "positionStr=" << positionStr
+                       << "byoyomiMilliSec=" << byoyomiMilliSec
+                       << "multiPV=" << multiPV;
+
+    // ★ 既存の停止タイマーをキャンセル（前回の検討のタイマーが残っている可能性がある）
+    if (m_analysisStopTimer) {
+        m_analysisStopTimer->stop();
+        m_analysisStopTimer->deleteLater();
+        m_analysisStopTimer = nullptr;
+    }
+
+    // 思考開始時の局面SFENを保存（読み筋表示用）
+    if (m_gameController && m_gameController->board()) {
+        ShogiBoard* board = m_gameController->board();
+        QString turn = (m_gameController->currentPlayer() == ShogiGameController::Player1)
+                       ? QStringLiteral("b") : QStringLiteral("w");
+        QString baseSfen = board->convertBoardToSfen() + QStringLiteral(" ") + turn +
+                          QStringLiteral(" ") + board->convertStandToSfen() + QStringLiteral(" 1");
+        m_presenter->setBaseSfen(baseSfen);
+    }
+
+    cloneCurrentBoardData();
+    m_protocolHandler->sendPosition(positionStr);
+
+    // MultiPV を設定（常に送信して、前回の設定をリセット）
+    m_protocolHandler->sendRaw(QStringLiteral("setoption name MultiPV value %1").arg(multiPV));
+
+    m_presenter->requestClearThinkingInfo();
+    m_protocolHandler->sendRaw("go infinite");
+
+    // ★ タイムアウト後にstop送信（byoyomiMilliSec > 0 の場合のみ）
+    // メンバータイマーを使用して、次回の sendAnalysisCommands でキャンセル可能にする
+    if (byoyomiMilliSec > 0) {
+        m_analysisStopTimer = new QTimer(this);
+        m_analysisStopTimer->setSingleShot(true);
+        connect(m_analysisStopTimer, &QTimer::timeout, this, [this]() {
+            if (m_processManager && m_processManager->isRunning()) {
+                qDebug().noquote() << "[Usi] Analysis stop timer fired, sending stop";
+                m_protocolHandler->sendStop();
+            }
+            m_analysisStopTimer = nullptr;  // タイマーは自動削除される（deleteLater済み）
+        });
+        m_analysisStopTimer->start(byoyomiMilliSec);
+    }
+
+    // ★ waitForBestMove は呼ばない（非ブロッキング）
+    // bestmove はシグナル経由で通知される
 }
