@@ -544,6 +544,12 @@ void MatchCoordinator::initEnginesForEvE(const QString& engineName1,
     if (!m_comm2)  { m_comm2  = comm2;  qWarning() << "[EvE] comm2 fallback created"; }
     if (!m_think2) { m_think2 = think2; qWarning() << "[EvE] think2 fallback created"; }
 
+    // 思考タブのエンジン名表示用（EngineAnalysisTab は log model を参照）
+    const QString dispName1 = engineName1.isEmpty() ? QStringLiteral("Engine") : engineName1;
+    const QString dispName2 = engineName2.isEmpty() ? QStringLiteral("Engine") : engineName2;
+    if (comm1) comm1->setEngineName(dispName1);
+    if (comm2) comm2->setEngineName(dispName2);
+
     // USI を生成（この時点ではプロセス未起動）
     m_usi1 = new Usi(comm1, think1, m_gc, m_playMode, this);
     m_usi2 = new Usi(comm2, think2, m_gc, m_playMode, this);
@@ -1057,6 +1063,10 @@ void MatchCoordinator::startHumanVsEngine(const StartOptions& opt, bool engineIs
     if (!comm)  { comm  = new UsiCommLogModel(this);          m_comm1  = comm;  }
     if (!think) { think = new ShogiEngineThinkingModel(this); m_think1 = think; }
 
+    // 思考タブのエンジン名表示用（EngineAnalysisTab は log model を参照）
+    const QString dispName = engineName.isEmpty() ? QStringLiteral("Engine") : engineName;
+    if (comm) comm->setEngineName(dispName);
+
     // USI を生成（この時点ではプロセス未起動）
     // HvEでは常に m_usi1 を使用
     m_usi1 = new Usi(comm, think, m_gc, m_playMode, this);
@@ -1069,7 +1079,6 @@ void MatchCoordinator::startHumanVsEngine(const StartOptions& opt, bool engineIs
 
     // ログ識別（UI 表示用）
     if (m_usi1) {
-        const QString dispName = engineName.isEmpty() ? QStringLiteral("Engine") : engineName;
         m_usi1->setLogIdentity(QStringLiteral("[E1]"), QStringLiteral("P1"), dispName);
         m_usi1->setSquelchResignLogging(false);
     }

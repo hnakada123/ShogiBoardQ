@@ -85,6 +85,9 @@ private:
     
     // ★ 追加: エンジン名列の幅を残りスペースに合わせて調整
     void adjustEngineNameColumn();
+
+    // ★ 追加: ヘッダースタイルの再適用（フォントサイズ反映用）
+    void applyHeaderStyle();
 };
 
 #endif // ENGINEINFOWIDGET_H
