@@ -47,6 +47,9 @@ public:
     void setCurrentSfen(const QString& sfen);
     void setStartSfen(const QString& sfen);
 
+signals:
+    void pvDialogClosed(int engineIndex);
+
 public Q_SLOTS:
     /**
      * @brief 読み筋行がクリックされた時の処理
@@ -56,6 +59,8 @@ public Q_SLOTS:
     void onPvRowClicked(int engineIndex, int row);
 
 private:
+    void onPvDialogFinished(int result);
+
     /**
      * @brief USI形式の読み筋をログから検索
      */

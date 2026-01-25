@@ -138,6 +138,7 @@ public:
 
     // ★ 追加: 検討タブの候補手の数を設定
     void setConsiderationMultiPV(int value);
+    void clearThinkingViewSelection(int engineIndex);
 
     // ★ 追加: 検討タブの時間設定を表示
     void setConsiderationTimeLimit(bool unlimited, int byoyomiSec);

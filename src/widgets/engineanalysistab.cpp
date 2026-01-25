@@ -32,6 +32,7 @@
 #include <QSpinBox>     // ★ 追加: 候補手の数用
 #include <QTextCursor>      // ★ 追加: ログ色付け用
 #include <QTextCharFormat>  // ★ 追加: ログ色付け用
+#include <QItemSelectionModel>
 
 #include "settingsservice.h"  // ★ 追加: フォントサイズ保存用
 #include <QFontDatabase>      // ★ 追加: フォント検索用
@@ -2193,6 +2194,17 @@ void EngineAnalysisTab::setConsiderationMultiPV(int value)
         // 値からインデックスを計算（1→0, 2→1, ...）
         int index = qBound(0, value - 1, m_multiPVComboBox->count() - 1);
         m_multiPVComboBox->setCurrentIndex(index);
+    }
+}
+
+void EngineAnalysisTab::clearThinkingViewSelection(int engineIndex)
+{
+    QTableView* view = (engineIndex == 0) ? m_view1 : m_view2;
+    if (!view) return;
+
+    if (auto* sel = view->selectionModel()) {
+        sel->clearSelection();
+        sel->setCurrentIndex(QModelIndex(), QItemSelectionModel::NoUpdate);
     }
 }
 

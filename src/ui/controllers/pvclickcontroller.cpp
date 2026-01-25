@@ -8,6 +8,31 @@
 #include "shogimove.h"
 #include "pvboarddialog.h"
 
+namespace {
+static QString normalizedSfen(QString sfen)
+{
+    sfen = sfen.trimmed();
+    if (sfen.startsWith(QStringLiteral("position sfen "))) {
+        sfen = sfen.mid(14).trimmed();
+    } else if (sfen.startsWith(QStringLiteral("position "))) {
+        sfen = sfen.mid(9).trimmed();
+    }
+
+    if (sfen == QLatin1String("startpos")) {
+        sfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+    }
+
+    return sfen;
+}
+
+static bool isStartposSfen(const QString& sfen)
+{
+    static const QString startposSfen =
+        QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+    return normalizedSfen(sfen).startsWith(startposSfen.left(60));
+}
+}  // namespace
+
 PvClickController::PvClickController(QObject* parent)
     : QObject(parent)
 {
@@ -134,6 +159,8 @@ void PvClickController::onPvRowClicked(int engineIndex, int row)
     // PvBoardDialog を表示
     PvBoardDialog* dlg = new PvBoardDialog(currentSfen, usiMoves, qobject_cast<QWidget*>(parent()));
     dlg->setKanjiPv(kanjiPv);
+    dlg->setProperty("pv_engine_index", engineIndex);
+    connect(dlg, &QDialog::finished, this, &PvClickController::onPvDialogFinished);
 
     // 対局者名を設定
     QString blackName, whiteName;
@@ -145,17 +172,42 @@ void PvClickController::onPvRowClicked(int engineIndex, int row)
     QString lastUsiMove = record->lastUsiMove();
     qDebug() << "[PvClick] onPvRowClicked: lastUsiMove from record=" << lastUsiMove;
     if (lastUsiMove.isEmpty()) {
-        // 開始局面（平手初期配置）かどうかをチェック
-        // 開始局面の場合は前の手がないのでフォールバックを使わない
-        static const QString startposSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
-        bool isStartPosition = currentSfen.startsWith(startposSfen.left(60));  // 盤面部分のみ比較
+        const QString baseSfenNormalized = normalizedSfen(currentSfen);
 
-        if (!isStartPosition) {
-            // フォールバック: m_usiMovesまたはm_gameMovesから取得
-            lastUsiMove = resolveLastUsiMove();
-            qDebug() << "[PvClick] onPvRowClicked: lastUsiMove from fallback=" << lastUsiMove;
-        } else {
-            qDebug() << "[PvClick] onPvRowClicked: start position detected, no lastUsiMove needed";
+        // 1) baseSfen と一致する局面が棋譜にある場合、そこから直前の手を取得
+        if (m_sfenRecord && m_usiMoves) {
+            int matchedIndex = -1;
+            for (int i = 0; i < m_sfenRecord->size(); ++i) {
+                if (normalizedSfen(m_sfenRecord->at(i)) == baseSfenNormalized) {
+                    matchedIndex = i;
+                    break;
+                }
+            }
+            if (matchedIndex > 0 && matchedIndex - 1 < m_usiMoves->size()) {
+                lastUsiMove = m_usiMoves->at(matchedIndex - 1);
+                qDebug() << "[PvClick] onPvRowClicked: lastUsiMove from sfenRecord=" << lastUsiMove;
+            }
+        }
+
+        // 2) まだ不明なら、現在局面と一致している場合のみフォールバックを許可
+        if (lastUsiMove.isEmpty()) {
+            const QString currentSfenNormalized = normalizedSfen(m_currentSfenStr);
+            bool baseIsCurrent = !currentSfenNormalized.isEmpty() &&
+                                 currentSfenNormalized == baseSfenNormalized;
+
+            if (!baseIsCurrent && m_sfenRecord && !m_sfenRecord->isEmpty()) {
+                baseIsCurrent = normalizedSfen(m_sfenRecord->last()) == baseSfenNormalized;
+            }
+
+            if (!isStartposSfen(baseSfenNormalized) && baseIsCurrent) {
+                // フォールバック: m_usiMovesまたはm_gameMovesから取得
+                lastUsiMove = resolveLastUsiMove();
+                qDebug() << "[PvClick] onPvRowClicked: lastUsiMove from fallback=" << lastUsiMove;
+            } else if (isStartposSfen(baseSfenNormalized)) {
+                qDebug() << "[PvClick] onPvRowClicked: start position detected, no lastUsiMove needed";
+            } else {
+                qDebug() << "[PvClick] onPvRowClicked: base position is not current, skip fallback";
+            }
         }
     }
     if (!lastUsiMove.isEmpty()) {
@@ -167,6 +219,20 @@ void PvClickController::onPvRowClicked(int engineIndex, int row)
 
     dlg->setAttribute(Qt::WA_DeleteOnClose);
     dlg->show();
+}
+
+void PvClickController::onPvDialogFinished(int result)
+{
+    Q_UNUSED(result)
+
+    QObject* dlg = sender();
+    if (!dlg) return;
+
+    bool ok = false;
+    const int engineIndex = dlg->property("pv_engine_index").toInt(&ok);
+    if (!ok) return;
+
+    emit pvDialogClosed(engineIndex);
 }
 
 // --------------------------------------------------------
