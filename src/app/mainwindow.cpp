@@ -799,6 +799,8 @@ void MainWindow::displayPromotionDialog()
 // 検討ダイアログを表示する。
 void MainWindow::displayConsiderationDialog()
 {
+    qDebug().noquote() << "[MainWindow::displayConsiderationDialog] ENTER, current m_playMode=" << static_cast<int>(m_playMode);
+
     // UI 側の状態保持（従来どおり）
     m_playMode = PlayMode::ConsiderationMode;
 
@@ -815,6 +817,8 @@ void MainWindow::displayConsiderationDialog()
                                  ? m_positionStrList.at(m_currentMoveIndex)
                                  : QString();
 
+    qDebug().noquote() << "[MainWindow::displayConsiderationDialog] position=" << position.left(50);
+
     ensureDialogCoordinator();
     if (m_dialogCoordinator) {
         // 検討タブ専用モデルを作成（なければ）
@@ -829,8 +833,11 @@ void MainWindow::displayConsiderationDialog()
             params.multiPV = m_analysisTab->considerationMultiPV();
         }
         params.considerationModel = m_considerationModel;  // ★ 追加: 検討タブ用モデル
+        qDebug().noquote() << "[MainWindow::displayConsiderationDialog] calling showConsiderationDialog";
         m_dialogCoordinator->showConsiderationDialog(params);
+        qDebug().noquote() << "[MainWindow::displayConsiderationDialog] showConsiderationDialog returned";
     }
+    qDebug().noquote() << "[MainWindow::displayConsiderationDialog] EXIT";
 }
 
 // 検討モード開始時の初期化（タブは切り替えない）
@@ -891,21 +898,44 @@ void MainWindow::onConsiderationTimeSettingsReady(bool unlimited, int byoyomiSec
         connect(m_match, &MatchCoordinator::considerationModeEnded,
                 this, &MainWindow::onConsiderationModeEnded,
                 Qt::UniqueConnection);
+
+        // 検討待機開始時にタイマーを停止（ボタンは「検討中止」のまま）
+        connect(m_match, &MatchCoordinator::considerationWaitingStarted,
+                this, &MainWindow::onConsiderationWaitingStarted,
+                Qt::UniqueConnection);
     }
 }
 
 // 検討モード終了時の処理
 void MainWindow::onConsiderationModeEnded()
 {
-    qDebug().noquote() << "[MainWindow::onConsiderationModeEnded] Stopping elapsed timer";
+    qDebug().noquote() << "[MainWindow::onConsiderationModeEnded] ENTER, m_playMode=" << static_cast<int>(m_playMode);
 
     if (m_analysisTab) {
         // 経過時間タイマーを停止
+        qDebug().noquote() << "[MainWindow::onConsiderationModeEnded] Stopping elapsed timer";
         m_analysisTab->stopElapsedTimer();
 
         // ボタンを「検討開始」に切り替え
+        qDebug().noquote() << "[MainWindow::onConsiderationModeEnded] Calling setConsiderationRunning(false)";
         m_analysisTab->setConsiderationRunning(false);
+        qDebug().noquote() << "[MainWindow::onConsiderationModeEnded] setConsiderationRunning(false) returned";
     }
+    qDebug().noquote() << "[MainWindow::onConsiderationModeEnded] EXIT";
+}
+
+// 検討待機開始時の処理（時間切れ後、次の局面選択待ち）
+void MainWindow::onConsiderationWaitingStarted()
+{
+    qDebug().noquote() << "[MainWindow::onConsiderationWaitingStarted] ENTER";
+
+    if (m_analysisTab) {
+        // 経過時間タイマーを停止（ボタンは「検討中止」のまま）
+        qDebug().noquote() << "[MainWindow::onConsiderationWaitingStarted] Stopping elapsed timer";
+        m_analysisTab->stopElapsedTimer();
+        // ★ setConsiderationRunning(false) は呼ばない（ボタンは「検討中止」のまま）
+    }
+    qDebug().noquote() << "[MainWindow::onConsiderationWaitingStarted] EXIT";
 }
 
 // 検討中にMultiPV変更時の処理
@@ -3227,10 +3257,24 @@ void MainWindow::onRecordRowChangedByPresenter(int row, const QString& comment)
     qDebug() << "[MW-DEBUG] onRecordRowChangedByPresenter called: row=" << row
              << "comment=" << comment.left(30) << "..."
              << "playMode=" << static_cast<int>(m_playMode);
-    
+
     ensureRecordNavigationController();
     if (m_recordNavController) {
         m_recordNavController->onRecordRowChangedByPresenter(row, comment);
+    }
+
+    // 検討モード中であれば、選択した手の局面で検討を再開
+    if (m_playMode == PlayMode::ConsiderationMode && m_match) {
+        if (row >= 0 && row < m_positionStrList.size()) {
+            const QString newPosition = m_positionStrList.at(row);
+            qDebug() << "[MW-DEBUG] Consideration mode: restarting with new position at row=" << row;
+            if (m_match->updateConsiderationPosition(newPosition)) {
+                // ポジションが変更された場合、経過時間タイマーをリセットして再開
+                if (m_analysisTab) {
+                    m_analysisTab->startElapsedTimer();
+                }
+            }
+        }
     }
 }
 

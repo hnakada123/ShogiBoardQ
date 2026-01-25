@@ -368,6 +368,10 @@ public:
     /// 検討中にMultiPVを変更する
     void updateConsiderationMultiPV(int multiPV);
 
+    /// 検討中にポジションを変更する（棋譜欄の別の手を選択したとき）
+    /// @return true: 再開処理を開始した, false: 検討モードでないか同じポジションのため無視
+    bool updateConsiderationPosition(const QString& newPositionStr);
+
 public:
     Usi* primaryEngine() const;   // HvE/EvH で司令塔が使う主エンジン（これまで m_usi1 に相当）
     Usi* secondaryEngine() const; // ★ 追加
@@ -464,18 +468,25 @@ signals:
     // ★ 追加: 検討モード終了時に発火
     void considerationModeEnded();
 
+    // ★ 追加: 検討待機開始時に発火（経過タイマー停止用）
+    void considerationWaitingStarted();
+
 private:
     // ...（既存）
     GameOverState m_gameOver;
     bool m_inTsumeSearchMode = false;  ///< 詰み探索モード中かどうか
     bool m_inConsiderationMode = false;  ///< 検討モード中かどうか
 
-    // ★ 検討モードの状態（MultiPV変更時の再開用）
+    // ★ 検討モードの状態（MultiPV変更時・ポジション変更時の再開用）
     QString m_considerationPositionStr;     ///< 検討中の position 文字列
     int m_considerationByoyomiMs = 0;       ///< 検討の時間制限 (ms)
     int m_considerationMultiPV = 1;         ///< 検討の候補手数
     ShogiEngineThinkingModel* m_considerationModelPtr = nullptr;  ///< 検討タブ用モデル
     bool m_considerationRestartPending = false;  ///< 検討再開待ちフラグ
+    bool m_considerationRestartInProgress = false;  ///< 検討再開処理中フラグ（再入防止）
+    bool m_considerationWaiting = false;  ///< 検討待機中フラグ（時間切れ後、次の局面選択待ち）
+    QString m_considerationEnginePath;      ///< 検討中のエンジンパス
+    QString m_considerationEngineName;      ///< 検討中のエンジン名
 
 private slots:
     void onCheckmateSolved(const QStringList& pv);
@@ -484,6 +495,7 @@ private slots:
     void onCheckmateUnknown();
     void onTsumeBestMoveReceived();  ///< 詰み探索中に bestmove を受信
     void onConsiderationBestMoveReceived();  ///< 検討モード中に bestmove を受信
+    void restartConsiderationDeferred();  ///< 検討再開（遅延実行用）
 
 public:
     StartOptions buildStartOptions(PlayMode mode,

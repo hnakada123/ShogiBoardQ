@@ -938,12 +938,12 @@ Cause: %2</translation>
         <translation type="unfinished">%1手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2320"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2327"/>
         <source>検討中止</source>
         <translation>Stop</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2321"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2328"/>
         <source>検討を中止してエンジンを停止します</source>
         <translation>Stop analysis and terminate the engine</translation>
     </message>
@@ -954,13 +954,13 @@ Cause: %2</translation>
     </message>
     <message>
         <location filename="../../src/widgets/engineanalysistab.cpp" line="268"/>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2326"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2334"/>
         <source>検討開始</source>
         <translation>Start Consideration</translation>
     </message>
     <message>
         <location filename="../../src/widgets/engineanalysistab.cpp" line="269"/>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2327"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2335"/>
         <source>検討ダイアログを開いて検討を開始します</source>
         <translation>Open consideration dialog to start analysis</translation>
     </message>
@@ -1052,7 +1052,7 @@ Discard changes and move?</translation>
         <translation>Time: %1 sec</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2351"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2360"/>
         <source>経過: %1:%2</source>
         <translation>Elapsed: %1:%2</translation>
     </message>
@@ -3514,12 +3514,12 @@ White
 Please select &quot;24-Point Rule&quot; or &quot;27-Point Rule&quot; in the game dialog.</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1675"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1705"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1676"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1706"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
@@ -3634,67 +3634,67 @@ Are you sure you want to declare?</translation>
         <translation type="vanished">Entering King Declaration Result</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1334"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1364"/>
         <source>棋譜ファイルを開く</source>
         <translation>Open Game Record File</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1335"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1365"/>
         <source>Kifu Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</source>
         <translation>Game Record Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1677"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1707"/>
         <source>手合割</source>
         <translation>Handicap</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1677"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1707"/>
         <source>平手</source>
         <translation>Even Game</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3567"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3611"/>
         <source>棋譜を自動保存しました: %1</source>
         <translation>Game record auto-saved: %1</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3570"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3614"/>
         <source>棋譜の自動保存に失敗しました: %1</source>
         <translation>Failed to auto-save game record: %1</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3680"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3724"/>
         <source>棋譜を取り込みました</source>
         <translation>Game record imported</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3682"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3726"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation>Failed to import game record</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3686"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3730"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation>Failed to import game record (internal error)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3725"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3769"/>
         <source>コメントを更新しました（手数: %1）</source>
         <translation>Comment updated (move: %1)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3786"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3830"/>
         <source>コメントなし</source>
         <translation>No comment</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3832"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3876"/>
         <source>E1: エンジンが起動していません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3843"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3887"/>
         <source>E2: エンジンが起動していません</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3708,83 +3708,83 @@ Please restart the application to apply the changes.</translation>
 <context>
     <name>MatchCoordinator</name>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="349"/>
         <location filename="../../src/game/matchcoordinator.cpp" line="350"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="351"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="349"/>
         <location filename="../../src/game/matchcoordinator.cpp" line="350"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="351"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="357"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="358"/>
         <source>%1の投了。%2の勝ちです。</source>
         <translation>%1 resigned. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="361"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="362"/>
         <source>%1の時間切れ。%2の勝ちです。</source>
         <translation>%1 ran out of time. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="365"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="366"/>
         <source>最大手数に達しました。持将棋です。</source>
         <translation>Maximum moves reached. Jishogi (impasse).</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="369"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="370"/>
         <source>%1の入玉宣言。%2の勝ちです。</source>
         <translation>%1 declared entering king. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="373"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="374"/>
         <source>%1の反則負け。%2の勝ちです。</source>
         <translation>%1 committed a foul. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="378"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="379"/>
         <source>対局が終了しました。</source>
         <translation>The game has ended.</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="384"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="385"/>
         <source>対局終了</source>
         <translation>Game Over</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1942"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2013"/>
         <source>詰みあり（手順 %1 手）</source>
         <translation>Mate found (%1 moves)</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1943"/>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1952"/>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1961"/>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1970"/>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1982"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2014"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2023"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2032"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2041"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2053"/>
         <source>詰み探索</source>
         <translation>Mate Search</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1952"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2023"/>
         <source>詰みなし</source>
         <translation>No mate</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1961"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2032"/>
         <source>（エンジン側）未実装</source>
         <translation>(Engine) Not implemented</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1970"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2041"/>
         <source>不明（解析不能）</source>
         <translation>Unknown (unable to analyze)</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1982"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2053"/>
         <source>探索が完了しました</source>
         <translation>Search completed</translation>
     </message>
@@ -4369,12 +4369,12 @@ Are you sure you want to declare?</translation>
         <translation>Engine2</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2699"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2820"/>
         <source>先手番</source>
         <translation>Sente (Black)</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2699"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2820"/>
         <source>後手番</source>
         <translation>Gote (White)</translation>
     </message>
@@ -5441,22 +5441,22 @@ Are you sure you want to declare?</translation>
 <context>
     <name>Usi</name>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="387"/>
+        <location filename="../../src/engine/usi.cpp" line="393"/>
         <source>Engine file path is empty.</source>
         <translation>Engine file path is empty.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="402"/>
+        <location filename="../../src/engine/usi.cpp" line="408"/>
         <source>Failed to change directory to %1</source>
         <translation>Failed to change directory to %1</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="626"/>
+        <location filename="../../src/engine/usi.cpp" line="632"/>
         <source>USI engine is not running.</source>
         <translation>USI engine is not running.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="827"/>
+        <location filename="../../src/engine/usi.cpp" line="833"/>
         <source>Timeout waiting for bestmove.</source>
         <translation>Timeout waiting for bestmove.</translation>
     </message>

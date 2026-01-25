@@ -2310,24 +2310,33 @@ void EngineAnalysisTab::resetElapsedTimer()
 // ★ 追加: 検討実行状態の設定（ボタン表示切替用）
 void EngineAnalysisTab::setConsiderationRunning(bool running)
 {
-    if (!m_btnStopConsideration) return;
+    qDebug().noquote() << "[EngineAnalysisTab::setConsiderationRunning] ENTER running=" << running;
+
+    if (!m_btnStopConsideration) {
+        qDebug().noquote() << "[EngineAnalysisTab::setConsiderationRunning] button is null, returning";
+        return;
+    }
 
     // 既存のシグナル接続を切断
+    qDebug().noquote() << "[EngineAnalysisTab::setConsiderationRunning] disconnecting button signals";
     m_btnStopConsideration->disconnect();
 
     if (running) {
         // 検討中: 「検討中止」ボタンを表示
+        qDebug().noquote() << "[EngineAnalysisTab::setConsiderationRunning] setting button to '検討中止'";
         m_btnStopConsideration->setText(tr("検討中止"));
         m_btnStopConsideration->setToolTip(tr("検討を中止してエンジンを停止します"));
         connect(m_btnStopConsideration, &QToolButton::clicked,
                 this, &EngineAnalysisTab::stopConsiderationRequested);
     } else {
         // 検討停止中: 「検討開始」ボタンを表示
+        qDebug().noquote() << "[EngineAnalysisTab::setConsiderationRunning] setting button to '検討開始'";
         m_btnStopConsideration->setText(tr("検討開始"));
         m_btnStopConsideration->setToolTip(tr("検討ダイアログを開いて検討を開始します"));
         connect(m_btnStopConsideration, &QToolButton::clicked,
                 this, &EngineAnalysisTab::startConsiderationRequested);
     }
+    qDebug().noquote() << "[EngineAnalysisTab::setConsiderationRunning] EXIT";
 }
 
 // ★ 追加: 経過時間タイマー更新

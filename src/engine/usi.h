@@ -8,6 +8,7 @@
 #include <QVector>
 #include <QThread>
 #include <QPointer>
+#include <QTimer>
 #include <memory>
 
 #include "engineprocessmanager.h"
@@ -96,6 +97,11 @@ public:
     void waitForStopOrPonderhitCommand();
 
     void executeAnalysisCommunication(QString& positionStr, int byoyomiMilliSec, int multiPV = 1);
+
+    /// 検討用コマンド送信（非ブロッキング）
+    /// position + go infinite を送信し、タイムアウト時に stop を送信するタイマーをセット
+    /// bestmove の待機は行わず、シグナル経由で通知を受ける
+    void sendAnalysisCommands(const QString& positionStr, int byoyomiMilliSec, int multiPV = 1);
 
     void setPreviousFileTo(int newPreviousFileTo);
     void setPreviousRankTo(int newPreviousRankTo);
@@ -242,7 +248,7 @@ private:
     PlayMode& m_playMode;
 
     // === 状態 ===
-    
+
     int m_previousFileTo = 0;
     int m_previousRankTo = 0;
     QString m_lastUsiMove;  // 開始局面に至った最後の指し手（USI形式）
@@ -252,6 +258,7 @@ private:
     QString m_pvKanjiStr;
     QPointer<ShogiEngineThinkingModel> m_considerationModel;  // ★ 追加: 検討タブ用モデル
     int m_considerationMaxMultiPV = 1;                        // ★ 追加: 検討タブの最大MultiPV値
+    QTimer* m_analysisStopTimer = nullptr;                    // ★ 追加: 検討停止タイマー
 
     // === プライベートメソッド ===
     
