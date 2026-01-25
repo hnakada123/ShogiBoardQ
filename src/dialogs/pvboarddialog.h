@@ -52,6 +52,7 @@ public:
      * この手が設定されている場合、開始局面（手数0）でもハイライトが表示される。
      */
     void setLastMove(const QString& lastMove);
+    void setPrevSfenForHighlight(const QString& prevSfen);
 
 private slots:
     /// 最初に戻る
@@ -108,6 +109,7 @@ private:
     QString m_blackPlayerName;    ///< 先手の対局者名
     QString m_whitePlayerName;    ///< 後手の対局者名
     QString m_lastMove;           ///< 起動時の局面に至った最後の手（USI形式）
+    QString m_prevSfen;           ///< 起動時局面の1手前SFEN（差分ハイライト用）
 
     QVector<QString> m_sfenHistory; ///< 各手数での局面SFEN履歴
 

@@ -104,6 +104,15 @@ void PvClickController::setStartSfen(const QString& sfen)
     m_startSfenStr = sfen;
 }
 
+void PvClickController::setCurrentRecordIndex(int index)
+{
+    // Note: This value is no longer used for PV display.
+    // The PV dialog uses record->baseSfen() which contains the position
+    // from when the PV was generated, not the currently selected position in kifu.
+    m_currentRecordIndex = index;
+    qDebug() << "[PvClick] setCurrentRecordIndex:" << index << "(not used for PV display)";
+}
+
 // --------------------------------------------------------
 // スロット
 // --------------------------------------------------------
@@ -155,11 +164,53 @@ void PvClickController::onPvRowClicked(int engineIndex, int row)
         usiMoves = searchUsiMovesFromLog(logModel);
     }
 
-    // 現在の局面SFENを取得
+    // ★重要: 読み筋（PV）が生成された時点の局面を使用する
+    // record->baseSfen() は読み筋生成時の局面SFENを保持している
+    // m_currentRecordIndex は棋譜欄で選択中の位置なので、PV表示には使用しない
     QString currentSfen = resolveCurrentSfen(record->baseSfen());
     qDebug() << "[PvClick] onPvRowClicked: currentSfen=" << currentSfen;
     qDebug() << "[PvClick] onPvRowClicked: record->baseSfen()=" << record->baseSfen();
     qDebug() << "[PvClick] onPvRowClicked: record->lastUsiMove()=" << record->lastUsiMove();
+    qDebug() << "[PvClick] onPvRowClicked: sfenRecord size=" << (m_sfenRecord ? m_sfenRecord->size() : -1);
+
+    // 起動時の局面に至った最後の手を設定
+    // ShogiInfoRecordから取得（読み筋生成時に保存された情報）
+    QString lastUsiMove = record->lastUsiMove();
+    QString prevSfenForHighlight;
+    qDebug() << "[PvClick] onPvRowClicked: lastUsiMove from record=" << lastUsiMove;
+
+    // ★重要: 読み筋生成時の局面に基づいてprevSfenを検索する
+    // m_currentRecordIndex（棋譜欄で選択中の位置）ではなく、
+    // currentSfen（読み筋生成時の局面）に一致する位置を検索
+    int matchedIndexInRecord = -1;
+    if (m_sfenRecord && !currentSfen.isEmpty()) {
+        const QString curNorm = normalizedSfen(currentSfen);
+        for (int i = 0; i < m_sfenRecord->size(); ++i) {
+            if (normalizedSfen(m_sfenRecord->at(i)) == curNorm) {
+                matchedIndexInRecord = i;
+                break;
+            }
+        }
+        qDebug() << "[PvClick] onPvRowClicked: found matchedIndexInRecord by baseSfen comparison=" << matchedIndexInRecord;
+    }
+
+    // lastUsiMoveが空の場合、m_sfenRecordから前の局面を取得してハイライト計算用に使用
+    if (matchedIndexInRecord > 0 && m_sfenRecord
+        && matchedIndexInRecord - 1 < m_sfenRecord->size()) {
+        prevSfenForHighlight = m_sfenRecord->at(matchedIndexInRecord - 1);
+        qDebug() << "[PvClick] onPvRowClicked: prevSfenForHighlight from m_sfenRecord["
+                 << (matchedIndexInRecord - 1) << "]";
+
+        // lastUsiMoveが空の場合、m_usiMovesから取得を試みる
+        if (lastUsiMove.isEmpty() && m_usiMoves
+            && !m_usiMoves->isEmpty() && matchedIndexInRecord - 1 < m_usiMoves->size()) {
+            lastUsiMove = m_usiMoves->at(matchedIndexInRecord - 1);
+            qDebug() << "[PvClick] onPvRowClicked: lastUsiMove from m_usiMoves["
+                     << (matchedIndexInRecord - 1) << "]=" << lastUsiMove;
+        }
+    }
+    qDebug() << "[PvClick] onPvRowClicked: prevSfenForHighlight="
+             << (prevSfenForHighlight.isEmpty() ? QStringLiteral("<empty>") : prevSfenForHighlight.left(60));
 
     // PvBoardDialog を表示
     PvBoardDialog* dlg = new PvBoardDialog(currentSfen, usiMoves, qobject_cast<QWidget*>(parent()));
@@ -172,47 +223,15 @@ void PvClickController::onPvRowClicked(int engineIndex, int row)
     resolvePlayerNames(blackName, whiteName);
     dlg->setPlayerNames(blackName, whiteName);
 
-    // 起動時の局面に至った最後の手を設定
-    // まずShogiInfoRecordから取得を試みる（棋譜解析モード用）
-    QString lastUsiMove = record->lastUsiMove();
-    qDebug() << "[PvClick] onPvRowClicked: lastUsiMove from record=" << lastUsiMove;
+    // lastUsiMoveがまだ空の場合の追加フォールバック
     if (lastUsiMove.isEmpty()) {
         const QString baseSfenNormalized = normalizedSfen(currentSfen);
 
-        // 1) baseSfen と一致する局面が棋譜にある場合、そこから直前の手を取得
-        if (m_sfenRecord && m_usiMoves) {
-            int matchedIndex = -1;
-            for (int i = 0; i < m_sfenRecord->size(); ++i) {
-                if (normalizedSfen(m_sfenRecord->at(i)) == baseSfenNormalized) {
-                    matchedIndex = i;
-                    break;
-                }
-            }
-            if (matchedIndex > 0 && matchedIndex - 1 < m_usiMoves->size()) {
-                lastUsiMove = m_usiMoves->at(matchedIndex - 1);
-                qDebug() << "[PvClick] onPvRowClicked: lastUsiMove from sfenRecord=" << lastUsiMove;
-            }
-        }
-
-        // 2) まだ不明なら、現在局面と一致している場合のみフォールバックを許可
-        if (lastUsiMove.isEmpty()) {
-            const QString currentSfenNormalized = normalizedSfen(m_currentSfenStr);
-            bool baseIsCurrent = !currentSfenNormalized.isEmpty() &&
-                                 currentSfenNormalized == baseSfenNormalized;
-
-            if (!baseIsCurrent && m_sfenRecord && !m_sfenRecord->isEmpty()) {
-                baseIsCurrent = normalizedSfen(m_sfenRecord->last()) == baseSfenNormalized;
-            }
-
-            if (!isStartposSfen(baseSfenNormalized) && baseIsCurrent) {
-                // フォールバック: m_usiMovesまたはm_gameMovesから取得
-                lastUsiMove = resolveLastUsiMove();
-                qDebug() << "[PvClick] onPvRowClicked: lastUsiMove from fallback=" << lastUsiMove;
-            } else if (isStartposSfen(baseSfenNormalized)) {
-                qDebug() << "[PvClick] onPvRowClicked: start position detected, no lastUsiMove needed";
-            } else {
-                qDebug() << "[PvClick] onPvRowClicked: base position is not current, skip fallback";
-            }
+        // 開始局面の場合はlastUsiMoveは不要
+        if (isStartposSfen(baseSfenNormalized)) {
+            qDebug() << "[PvClick] onPvRowClicked: start position detected, no lastUsiMove needed";
+        } else {
+            qDebug() << "[PvClick] onPvRowClicked: lastUsiMove is empty, will use diffSfenForHighlight";
         }
     }
     if (!lastUsiMove.isEmpty()) {
@@ -220,6 +239,10 @@ void PvClickController::onPvRowClicked(int engineIndex, int row)
         dlg->setLastMove(lastUsiMove);
     } else {
         qDebug() << "[PvClick] onPvRowClicked: lastUsiMove is EMPTY, no highlight will be set";
+    }
+    if (!prevSfenForHighlight.isEmpty()) {
+        qDebug() << "[PvClick] onPvRowClicked: calling setPrevSfenForHighlight";
+        dlg->setPrevSfenForHighlight(prevSfenForHighlight);
     }
 
     dlg->setAttribute(Qt::WA_DeleteOnClose);
@@ -283,6 +306,19 @@ QString PvClickController::resolveCurrentSfen(const QString& baseSfen) const
         currentSfen = m_sfenRecord->first().trimmed();
         qDebug() << "[PvClick] fallback to sfenRecord first:" << currentSfen;
     }
+
+    // baseSfenがstartposでも、現在局面がstartposでないなら現在局面を優先
+    if (!currentSfen.isEmpty() && isStartposSfen(currentSfen)) {
+        QString fallbackCurrent = m_currentSfenStr;
+        if (fallbackCurrent.isEmpty() && m_sfenRecord && !m_sfenRecord->isEmpty()) {
+            fallbackCurrent = m_sfenRecord->last().trimmed();
+        }
+        if (!fallbackCurrent.isEmpty() && !isStartposSfen(fallbackCurrent)) {
+            qDebug() << "[PvClick] override startpos baseSfen with currentSfen=" << fallbackCurrent;
+            currentSfen = fallbackCurrent;
+        }
+    }
+
     if (currentSfen.isEmpty()) {
         currentSfen = m_currentSfenStr;
     }

@@ -46,6 +46,7 @@ public:
                         const QString& engine1, const QString& engine2);
     void setCurrentSfen(const QString& sfen);
     void setStartSfen(const QString& sfen);
+    void setCurrentRecordIndex(int index);
 
 signals:
     void pvDialogClosed(int engineIndex);
@@ -97,6 +98,7 @@ private:
     QString m_engineName2;
     QString m_currentSfenStr;
     QString m_startSfenStr;
+    int m_currentRecordIndex = -1;  ///< 現在選択されている棋譜行のインデックス（PV表示では未使用）
 };
 
 #endif // PVCLICKCONTROLLER_H

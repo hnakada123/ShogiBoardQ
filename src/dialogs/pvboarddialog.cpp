@@ -17,6 +17,10 @@
 // 前方宣言: SFENからUSI形式の手を盤面に適用する静的ヘルパー
 static void applyUsiMoveToBoard(ShogiBoard* board, const QString& usiMove, bool isBlackToMove);
 static bool isStartposSfen(QString sfen);
+static bool diffSfenForHighlight(const QString& prevSfen, const QString& currSfen,
+                                 int& fromFile, int& fromRank,
+                                 int& toFile, int& toRank,
+                                 QChar& droppedPiece);
 
 PvBoardDialog::PvBoardDialog(const QString& baseSfen,
                              const QStringList& pvMoves,
@@ -125,6 +129,16 @@ void PvBoardDialog::setLastMove(const QString& lastMove)
     // 現在が開始局面（手数0）であれば、ハイライトを更新
     if (m_currentPly == 0) {
         qDebug() << "[PvBoardDialog] setLastMove: calling updateMoveHighlights()";
+        updateMoveHighlights();
+    }
+}
+
+void PvBoardDialog::setPrevSfenForHighlight(const QString& prevSfen)
+{
+    m_prevSfen = prevSfen;
+    qDebug() << "[PvBoardDialog] setPrevSfenForHighlight: prevSfen=" << m_prevSfen.left(60);
+    if (m_currentPly == 0) {
+        qDebug() << "[PvBoardDialog] setPrevSfenForHighlight: calling updateMoveHighlights()";
         updateMoveHighlights();
     }
 }
@@ -525,11 +539,127 @@ static bool isStartposSfen(QString sfen)
     return sfen.startsWith(startposSfen.left(60));
 }
 
+static bool diffSfenForHighlight(const QString& prevSfen, const QString& currSfen,
+                                 int& fromFile, int& fromRank,
+                                 int& toFile, int& toRank,
+                                 QChar& droppedPiece)
+{
+    fromFile = 0;
+    fromRank = 0;
+    toFile = 0;
+    toRank = 0;
+    droppedPiece = QChar();
+
+    auto parseOneBoard = [](const QString& sfen, QString grid[9][9])->bool {
+        for (int y = 0; y < 9; ++y) {
+            for (int x = 0; x < 9; ++x) grid[y][x].clear();
+        }
+
+        if (sfen.isEmpty()) return false;
+        const QString boardField = sfen.split(QLatin1Char(' '), Qt::KeepEmptyParts).value(0);
+        const QStringList rows = boardField.split(QLatin1Char('/'), Qt::KeepEmptyParts);
+        if (rows.size() != 9) return false;
+
+        for (int r = 0; r < 9; ++r) {
+            const QString& row = rows.at(r);
+            const int y = r;
+            int x = 8;
+            for (qsizetype i = 0; i < row.size(); ++i) {
+                const QChar ch = row.at(i);
+                if (ch.isDigit()) {
+                    x -= (ch.toLatin1() - '0');
+                } else if (ch == QLatin1Char('+')) {
+                    if (i + 1 >= row.size() || x < 0) return false;
+                    grid[y][x] = QStringLiteral("+") + row.at(++i);
+                    --x;
+                } else {
+                    if (x < 0) return false;
+                    grid[y][x] = QString(ch);
+                    --x;
+                }
+            }
+            if (x != -1) return false;
+        }
+        return true;
+    };
+
+    QString ga[9][9], gb[9][9];
+    if (!parseOneBoard(prevSfen, ga) || !parseOneBoard(currSfen, gb)) return false;
+
+    int fromX = -1;
+    int fromY = -1;
+    int toX = -1;
+    int toY = -1;
+    int emptyCount = 0;    // 駒がなくなったマスの数（移動元候補）
+    int filledCount = 0;   // 駒が現れたマスの数（駒打ちの移動先候補）
+    int changedCount = 0;  // 駒が置き換わったマスの数（駒取りの移動先候補）
+
+    for (int y = 0; y < 9; ++y) {
+        for (int x = 0; x < 9; ++x) {
+            if (ga[y][x] == gb[y][x]) continue;
+            if (!ga[y][x].isEmpty() && gb[y][x].isEmpty()) {
+                // 駒がなくなった（移動元）
+                ++emptyCount;
+                fromX = x;
+                fromY = y;
+            } else if (ga[y][x].isEmpty() && !gb[y][x].isEmpty()) {
+                // 駒が現れた（駒打ちの移動先）
+                ++filledCount;
+                toX = x;
+                toY = y;
+                droppedPiece = gb[y][x].at(0);
+                if (droppedPiece == QLatin1Char('+') && gb[y][x].size() >= 2) {
+                    droppedPiece = gb[y][x].at(1);
+                }
+            } else {
+                // 駒が置き換わった（駒取りの移動先）
+                ++changedCount;
+                toX = x;
+                toY = y;
+            }
+        }
+    }
+
+    // 1手の移動としては以下のパターンのみ有効:
+    // - 通常移動: emptyCount=1, changedCount=0, filledCount=1 (移動元が空になり、移動先に駒が現れる)
+    // - 駒取り移動: emptyCount=1, changedCount=1, filledCount=0 (移動元が空になり、移動先の駒が置き換わる)
+    // - 駒打ち: emptyCount=0, changedCount=0, filledCount=1 (移動元なし、移動先に駒が現れる)
+    // それ以外（複数手分の差分など）は失敗を返す
+    bool validMove = (emptyCount == 1 && changedCount == 0 && filledCount == 1) ||
+                     (emptyCount == 1 && changedCount == 1 && filledCount == 0) ||
+                     (emptyCount == 0 && changedCount == 0 && filledCount == 1);
+
+    if (!validMove) {
+        qDebug() << "[diffSfenForHighlight] Invalid diff pattern:"
+                 << " emptyCount=" << emptyCount
+                 << " filledCount=" << filledCount
+                 << " changedCount=" << changedCount;
+        return false;
+    }
+
+    // 移動先が見つからない場合は失敗
+    if (toX < 0 || toY < 0) return false;
+
+    auto toFileRank = [](int x, int y, int& file, int& rank) {
+        // x=8は9筋、x=0は1筋なので、file = x + 1
+        file = x + 1;
+        rank = y + 1;
+    };
+
+    if (fromX >= 0 && fromY >= 0) {
+        toFileRank(fromX, fromY, fromFile, fromRank);
+    }
+    toFileRank(toX, toY, toFile, toRank);
+    return true;
+}
+
 void PvBoardDialog::updateMoveHighlights()
 {
     qDebug() << "[PvBoardDialog] updateMoveHighlights: m_currentPly=" << m_currentPly
              << " m_lastMove=" << m_lastMove
              << " m_pvMoves.size()=" << m_pvMoves.size();
+    qDebug() << "[PvBoardDialog] updateMoveHighlights: baseSfen=" << m_baseSfen.left(60)
+             << " prevSfen=" << m_prevSfen.left(60);
     
     // 既存のハイライトをクリア
     clearMoveHighlights();
@@ -548,6 +678,39 @@ void PvBoardDialog::updateMoveHighlights()
             usiMove = m_lastMove;
             isBasePosition = true;
             qDebug() << "[PvBoardDialog] updateMoveHighlights: using m_lastMove=" << usiMove;
+        } else if (!m_prevSfen.isEmpty()) {
+            int fromFile = 0;
+            int fromRank = 0;
+            int toFile = 0;
+            int toRank = 0;
+            QChar droppedPiece;
+            if (diffSfenForHighlight(m_prevSfen, m_baseSfen, fromFile, fromRank, toFile, toRank, droppedPiece)) {
+                qDebug() << "[PvBoardDialog] updateMoveHighlights: diff ok"
+                         << " from=" << fromFile << fromRank
+                         << " to=" << toFile << toRank
+                         << " drop=" << droppedPiece;
+                if (fromFile > 0 && fromRank > 0) {
+                    m_fromHighlight = new ShogiView::FieldHighlight(fromFile, fromRank, QColor(255, 0, 0, 50));
+                    m_shogiView->addHighlight(m_fromHighlight);
+                } else if (!droppedPiece.isNull()) {
+                    const bool isBlack = droppedPiece.isUpper();
+                    QPoint standCoord = getStandPseudoCoord(droppedPiece, isBlack);
+                    if (!standCoord.isNull()) {
+                        m_fromHighlight = new ShogiView::FieldHighlight(
+                            standCoord.x(), standCoord.y(), QColor(255, 0, 0, 50));
+                        m_shogiView->addHighlight(m_fromHighlight);
+                    }
+                }
+                if (toFile > 0 && toRank > 0) {
+                    m_toHighlight = new ShogiView::FieldHighlight(toFile, toRank, QColor(255, 255, 0));
+                    m_shogiView->addHighlight(m_toHighlight);
+                }
+                m_shogiView->update();
+                qDebug() << "[PvBoardDialog] updateMoveHighlights: diff highlight applied";
+                return;
+            } else {
+                qDebug() << "[PvBoardDialog] updateMoveHighlights: diff failed";
+            }
         } else if (!m_pvMoves.isEmpty() && m_pvMoves.first().length() >= 4 && isStartposSfen(m_baseSfen)) {
             usiMove = m_pvMoves.first();
             isBasePosition = false;
