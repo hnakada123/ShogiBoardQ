@@ -113,6 +113,8 @@ public:
         int fromRank = 0;   // 移動元の段（1-9）、駒打ちの場合は0
         int toFile = 0;     // 移動先の筋（1-9）
         int toRank = 0;     // 移動先の段（1-9）
+        int priority = 0;   // 優先順位（1が最善手、2以上で数字を表示）
+        QChar dropPiece = ' ';  // 駒打ちの場合の駒種（例: 'P', 'G' など）、通常の移動は空白
         QColor color = QColor(255, 0, 0, 200);  // 半透明の赤
     };
     void setArrows(const QVector<Arrow>& arrows);  // 矢印をセット（複数可）

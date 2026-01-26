@@ -4289,14 +4289,40 @@ void MainWindow::updateConsiderationArrows()
         int fromFile = 0, fromRank = 0, toFile = 0, toRank = 0;
         if (!parseUsiMove(firstMove, fromFile, fromRank, toFile, toRank)) continue;
 
-        // 駒打ちの場合は矢印を描画しない
-        if (fromFile == 0 || fromRank == 0) continue;
-
         ShogiView::Arrow arrow;
         arrow.fromFile = fromFile;
         arrow.fromRank = fromRank;
         arrow.toFile = toFile;
         arrow.toRank = toRank;
+        arrow.priority = row + 1;  // 優先順位（1が最善手）
+
+        // 駒打ちの場合は打つ駒を設定（USI形式: "P*3c" → 'P'）
+        if (fromFile == 0 || fromRank == 0) {
+            if (firstMove.length() >= 1) {
+                // USI形式の駒打ちは "P*3c" のような形式
+                // 最初の文字が駒種（大文字）
+                QChar usiPiece = firstMove.at(0);
+
+                // 現在の手番を確認（SFENの手番フィールドを使用）
+                // SFENフォーマット: "position sfen ... b ..." (b=先手, w=後手)
+                bool isBlackTurn = true;  // デフォルトは先手
+                if (!m_currentSfenStr.isEmpty()) {
+                    // SFENの手番フィールドを探す（スペース区切りの2番目）
+                    QStringList sfenParts = m_currentSfenStr.split(' ');
+                    if (sfenParts.size() >= 2) {
+                        isBlackTurn = (sfenParts.at(1) == "b");
+                    }
+                }
+
+                // USI形式では P=歩, L=香, N=桂, S=銀, G=金, B=角, R=飛
+                // ShogiViewの駒文字は 先手:大文字, 後手:小文字
+                if (isBlackTurn) {
+                    arrow.dropPiece = usiPiece;  // 先手は大文字
+                } else {
+                    arrow.dropPiece = usiPiece.toLower();  // 後手は小文字
+                }
+            }
+        }
 
         // 最善手（最初の行）は濃い赤、それ以外は薄い赤
         if (row == 0) {
