@@ -3581,17 +3581,67 @@ void ShogiView::drawArrows(QPainter* painter)
     painter->setRenderHint(QPainter::Antialiasing, true);
 
     for (const Arrow& arrow : std::as_const(m_arrows)) {
-        // 駒打ちの場合（fromFile/fromRankが0）は矢印を描画しない
-        if (arrow.fromFile == 0 || arrow.fromRank == 0) continue;
-
-        // 移動元と移動先のマスの中心座標を計算
-        // calculateSquareRectangleBasedOnBoardState は盤のオフセットを含まないため、
-        // m_offsetX/Y を加算する必要がある
-        QRect fromRect = calculateSquareRectangleBasedOnBoardState(arrow.fromFile, arrow.fromRank);
+        // 移動先のマスの矩形を計算
         QRect toRect = calculateSquareRectangleBasedOnBoardState(arrow.toFile, arrow.toRank);
-
-        QPointF from(fromRect.center().x() + m_offsetX, fromRect.center().y() + m_offsetY);
         QPointF to(toRect.center().x() + m_offsetX, toRect.center().y() + m_offsetY);
+
+        // 駒打ちの場合（fromFile/fromRankが0）は駒アイコンを表示
+        if (arrow.fromFile == 0 || arrow.fromRank == 0) {
+            // 打つ駒のアイコンを半透明で表示
+            if (arrow.dropPiece != ' ') {
+                const QIcon icon = piece(arrow.dropPiece);
+                if (!icon.isNull()) {
+                    // 移動先のマスの矩形（実際の描画位置）
+                    QRect adjustedRect(toRect.left() + m_offsetX,
+                                       toRect.top() + m_offsetY,
+                                       toRect.width(),
+                                       toRect.height());
+
+                    // 半透明で描画するため、一度QPixmapに描いてから透明度を設定
+                    QPixmap pixmap = icon.pixmap(adjustedRect.size());
+                    painter->setOpacity(0.6);  // 60%の透明度
+                    painter->drawPixmap(adjustedRect, pixmap);
+                    painter->setOpacity(1.0);  // 透明度を元に戻す
+
+                    // 赤い枠で囲む
+                    QPen borderPen(QColor(255, 0, 0, 200));
+                    borderPen.setWidth(qMax(2, m_squareSize / 20));
+                    painter->setPen(borderPen);
+                    painter->setBrush(Qt::NoBrush);
+                    painter->drawRect(adjustedRect);
+                }
+            }
+
+            // 候補手が複数ある場合、マスの右下に数字を表示
+            if (arrow.priority >= 1 && m_arrows.size() >= 2) {
+                const int fontSize = qMax(10, m_squareSize / 4);
+                QFont font = painter->font();
+                font.setPointSize(fontSize);
+                font.setBold(true);
+                painter->setFont(font);
+
+                const int circleRadius = static_cast<int>(fontSize * 0.8);
+                // 右下に配置
+                QPointF numPos(to.x() + toRect.width() / 3, to.y() + toRect.height() / 3);
+
+                painter->setPen(Qt::NoPen);
+                painter->setBrush(QColor(255, 255, 255, 230));
+                painter->drawEllipse(numPos, circleRadius, circleRadius);
+
+                painter->setPen(QColor(220, 0, 0));
+                QString priorityText = QString::number(arrow.priority);
+                QRectF textRect(numPos.x() - circleRadius, numPos.y() - circleRadius,
+                               circleRadius * 2, circleRadius * 2);
+                painter->drawText(textRect, Qt::AlignCenter, priorityText);
+            }
+            continue;
+        }
+
+        // 通常の移動：矢印を描画
+        // 移動元のマスの中心座標を計算
+        QRect fromRect = calculateSquareRectangleBasedOnBoardState(arrow.fromFile, arrow.fromRank);
+        QPointF from(fromRect.center().x() + m_offsetX, fromRect.center().y() + m_offsetY);
+        // toは既にループ冒頭で定義済み
 
         // 矢印の太さを計算（マスサイズに応じて調整）
         const int arrowWidth = qMax(3, m_squareSize / 12);
@@ -3630,6 +3680,32 @@ void ShogiView::drawArrows(QPainter* painter)
         painter->setPen(Qt::NoPen);
         painter->setBrush(color);
         painter->drawPolygon(arrowHead);
+
+        // 候補手が複数ある場合、矢印の中央付近に優先順位の数字を描画
+        if (arrow.priority >= 1 && m_arrows.size() >= 2) {
+            // 数字の位置は矢印の中央（fromとtoの中点）
+            QPointF center((from.x() + to.x()) / 2.0, (from.y() + to.y()) / 2.0);
+
+            // 数字のフォントサイズ（マスサイズに応じて調整）
+            const int fontSize = qMax(10, m_squareSize / 4);
+            QFont font = painter->font();
+            font.setPointSize(fontSize);
+            font.setBold(true);
+            painter->setFont(font);
+
+            // 数字の背景（白い円）を描画して視認性を向上
+            const int circleRadius = static_cast<int>(fontSize * 0.8);
+            painter->setPen(Qt::NoPen);
+            painter->setBrush(QColor(255, 255, 255, 230));  // 半透明の白
+            painter->drawEllipse(center, circleRadius, circleRadius);
+
+            // 数字を描画（赤色）
+            painter->setPen(QColor(220, 0, 0));  // 濃い赤色
+            QString priorityText = QString::number(arrow.priority);
+            QRectF textRect(center.x() - circleRadius, center.y() - circleRadius,
+                           circleRadius * 2, circleRadius * 2);
+            painter->drawText(textRect, Qt::AlignCenter, priorityText);
+        }
     }
 
     painter->restore();
