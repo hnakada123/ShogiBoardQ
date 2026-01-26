@@ -797,13 +797,15 @@ void Usi::sendCommandsAndProcess(int byoyomiMilliSec, QString& positionStr,
     // 思考開始時の局面SFENを保存（読み筋表示用）
     if (m_gameController && m_gameController->board()) {
         ShogiBoard* board = m_gameController->board();
-        QString turn = (m_gameController->currentPlayer() == ShogiGameController::Player1) 
+        QString turn = (m_gameController->currentPlayer() == ShogiGameController::Player1)
                        ? QStringLiteral("b") : QStringLiteral("w");
         QString baseSfen = board->convertBoardToSfen() + QStringLiteral(" ") + turn +
                           QStringLiteral(" ") + board->convertStandToSfen() + QStringLiteral(" 1");
         m_presenter->setBaseSfen(baseSfen);
     }
-    
+
+    qDebug().noquote() << "[Usi][sendCommandsAndProcess] positionStr=" << positionStr;
+
     m_protocolHandler->sendPosition(positionStr);
     cloneCurrentBoardData();
     m_protocolHandler->sendGo(byoyomiMilliSec, btime, wtime,

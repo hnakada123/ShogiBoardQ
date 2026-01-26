@@ -464,10 +464,12 @@ void RecordPane::setKifuViewEnabled(bool on)
             ));
             qDebug() << "setKifuViewEnabled: disabled stylesheet applied";
 
-            // 選択をクリア
+            // 選択をクリア（シグナルをブロックして盤面同期を防ぐ）
             if (QItemSelectionModel* sel = m_kifu->selectionModel()) {
+                const bool wasBlocked = sel->blockSignals(true);
                 sel->clearSelection();
                 sel->setCurrentIndex(QModelIndex(), QItemSelectionModel::Clear);
+                sel->blockSignals(wasBlocked);
             }
 
             m_kifu->viewport()->update();
