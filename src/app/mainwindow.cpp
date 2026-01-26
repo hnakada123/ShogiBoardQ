@@ -1387,6 +1387,11 @@ void MainWindow::saveSettingsAndClose()
     // また、将棋盤のマスサイズも書き込む。
     saveWindowAndBoardSettings();
 
+    // エンジンが起動していれば終了する
+    if (m_match) {
+        m_match->destroyEngines();
+    }
+
     // GUIを終了する。
     QCoreApplication::quit();
 }
@@ -1554,6 +1559,12 @@ void MainWindow::saveWindowAndBoardSettings()
 void MainWindow::closeEvent(QCloseEvent* e)
 {
     saveWindowAndBoardSettings();
+
+    // エンジンが起動していれば終了する（quitコマンドを送信してプロセスを停止）
+    if (m_match) {
+        m_match->destroyEngines();
+    }
+
     QMainWindow::closeEvent(e);
 }
 
