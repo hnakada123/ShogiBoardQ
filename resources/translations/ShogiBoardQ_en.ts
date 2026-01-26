@@ -3834,36 +3834,36 @@ Please restart the application to apply the changes.</translation>
         <translation>Game Over</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2035"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2045"/>
         <source>詰みあり（手順 %1 手）</source>
         <translation>Mate found (%1 moves)</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2036"/>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2045"/>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2054"/>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2063"/>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2075"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2046"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2055"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2064"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2073"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2085"/>
         <source>詰み探索</source>
         <translation>Mate Search</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2045"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2055"/>
         <source>詰みなし</source>
         <translation>No mate</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2054"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2064"/>
         <source>（エンジン側）未実装</source>
         <translation>(Engine) Not implemented</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2063"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2073"/>
         <source>不明（解析不能）</source>
         <translation>Unknown (unable to analyze)</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2075"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2085"/>
         <source>探索が完了しました</source>
         <translation>Search completed</translation>
     </message>
@@ -4448,12 +4448,12 @@ Are you sure you want to declare?</translation>
         <translation>Engine2</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2842"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2852"/>
         <source>先手番</source>
         <translation>Sente (Black)</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2842"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2852"/>
         <source>後手番</source>
         <translation>Gote (White)</translation>
     </message>
