@@ -650,6 +650,9 @@ private:
     // 時間取得ヘルパ
     qint64 getRemainingMsFor(MatchCoordinator::Player p) const;
     qint64 getIncrementMsFor(MatchCoordinator::Player p) const;
+
+    // 検討用ヘルパ
+    QString buildPositionStringForIndex(int moveIndex) const;
     qint64 getByoyomiMs() const;
 
     // ゲームオーバー関連
