@@ -10,14 +10,14 @@
 #include <QShowEvent>
 #include "usicommlogmodel.h"
 
-EngineInfoWidget::EngineInfoWidget(QWidget* parent, bool showFontButtons)
-    : QWidget(parent), m_showFontButtons(showFontButtons) 
+EngineInfoWidget::EngineInfoWidget(QWidget* parent, bool showFontButtons, bool showPredictedMove)
+    : QWidget(parent), m_showFontButtons(showFontButtons), m_showPredictedMove(showPredictedMove)
 {
     m_table = new QTableWidget(1, COL_COUNT, this);
-    
+
     // ヘッダー設定
     QStringList headers;
-    headers << tr("エンジン") << tr("予想手") << tr("探索手") 
+    headers << tr("エンジン") << tr("予想手") << tr("探索手")
             << tr("深さ") << tr("ノード数") << tr("探索局面数") << tr("ハッシュ使用率");
     m_table->setHorizontalHeaderLabels(headers);
 
@@ -52,6 +52,11 @@ EngineInfoWidget::EngineInfoWidget(QWidget* parent, bool showFontButtons)
     m_table->setColumnWidth(COL_NODES, 85);
     m_table->setColumnWidth(COL_NPS, 85);
     m_table->setColumnWidth(COL_HASH, 120);
+
+    // ★ 予想手列を非表示にする場合
+    if (!m_showPredictedMove) {
+        m_table->setColumnHidden(COL_PRED, true);
+    }
     
     // ★ 列幅変更時のシグナルを接続
     connect(m_table->horizontalHeader(), &QHeaderView::sectionResized,
@@ -188,10 +193,18 @@ void EngineInfoWidget::onNpsChanged()     { setCellValue(COL_NPS, m_model->nodes
 void EngineInfoWidget::onHashChanged()    { setCellValue(COL_HASH, m_model->hashUsage()); }
 
 void EngineInfoWidget::setDisplayNameFallback(const QString& name) {
+    qDebug().noquote() << "[EngineInfoWidget::setDisplayNameFallback] name=" << name
+                       << "this=" << this
+                       << "m_widgetIndex=" << m_widgetIndex
+                       << "m_model=" << m_model
+                       << "modelEngineName=" << (m_model ? m_model->engineName() : "<no model>");
     m_fallbackName = name;
     // モデル未設定 or まだ空ならフォールバックを表示
     if (!m_model || m_model->engineName().isEmpty()) {
+        qDebug().noquote() << "[EngineInfoWidget::setDisplayNameFallback] Setting cell value to:" << m_fallbackName;
         setCellValue(COL_ENGINE_NAME, m_fallbackName);
+    } else {
+        qDebug().noquote() << "[EngineInfoWidget::setDisplayNameFallback] NOT setting cell (model has name):" << m_model->engineName();
     }
 }
 
@@ -281,10 +294,12 @@ void EngineInfoWidget::adjustEngineNameColumn()
 {
     if (!m_table) return;
     
-    // 他の列の合計幅を計算
+    // 他の列の合計幅を計算（非表示列はスキップ）
     int otherColumnsWidth = 0;
     for (int col = COL_PRED; col < COL_COUNT; ++col) {
-        otherColumnsWidth += m_table->columnWidth(col);
+        if (!m_table->isColumnHidden(col)) {
+            otherColumnsWidth += m_table->columnWidth(col);
+        }
     }
     
     // テーブルの利用可能な幅を取得

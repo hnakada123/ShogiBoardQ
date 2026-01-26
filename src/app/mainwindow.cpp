@@ -39,6 +39,7 @@
 #include "movevalidator.h"
 #include "timedisplaypresenter.h"
 #include "tsumesearchflowcontroller.h"
+#include "tsumepositionutil.h"
 #include "ui_mainwindow.h"
 #include "shogiclock.h"
 #include "apptooltipfilter.h"
@@ -835,10 +836,8 @@ void MainWindow::displayConsiderationDialog()
             m_gameController->setCurrentPlayer(ShogiGameController::Player2);
     }
 
-    // 送信する position（既存の m_positionStrList を利用）
-    const QString position = (m_currentMoveIndex >= 0 && m_currentMoveIndex < m_positionStrList.size())
-                                 ? m_positionStrList.at(m_currentMoveIndex)
-                                 : QString();
+    // 送信する position を決定
+    const QString position = buildPositionStringForIndex(m_currentMoveIndex);
 
     qDebug().noquote() << "[MainWindow::displayConsiderationDialog] position=" << position.left(50);
 
@@ -883,14 +882,17 @@ void MainWindow::onConsiderationModeStarted()
         // 検討タブに専用モデルを設定
         m_analysisTab->setConsiderationThinkingModel(m_considerationModel);
 
-        // 検討タブのEngineInfoWidgetにもモデルとエンジン名を設定
+        // 検討タブのEngineInfoWidgetにもモデルを設定
         if (m_analysisTab->considerationInfo()) {
             m_analysisTab->considerationInfo()->setModel(m_lineEditModel1);
-            if (!m_engineName1.isEmpty()) {
-                m_analysisTab->considerationInfo()->setDisplayNameFallback(m_engineName1);
-            }
         }
 
+        // 思考タブのEngineInfoWidgetにもモデルを設定
+        if (m_analysisTab->info1()) {
+            m_analysisTab->info1()->setModel(m_lineEditModel1);
+        }
+
+        // 注: エンジン名の設定は onSetEngineNames で行われる
         // 注: 現在のタブ選択を維持するため、タブ切り替えは行わない
     }
 }
@@ -1782,10 +1784,14 @@ void MainWindow::onSetEngineNames(const QString& e1, const QString& e2)
         m_playerInfoWiring->onSetEngineNames(e1, e2);
     }
 
-    // 検討モード・詰み探索モードの場合、検討タブにもエンジン名を設定
+    // 検討モード・詰み探索モードの場合、検討タブと思考タブにエンジン名を設定
     if (m_playMode == PlayMode::ConsiderationMode || m_playMode == PlayMode::TsumiSearchMode) {
         if (m_analysisTab) {
             m_analysisTab->setConsiderationEngineName(e1);
+            // 思考タブにもエンジン名を設定
+            if (m_analysisTab->info1() && !e1.isEmpty()) {
+                m_analysisTab->info1()->setDisplayNameFallback(e1);
+            }
         }
     }
 }
@@ -3330,11 +3336,20 @@ void MainWindow::onRecordRowChangedByPresenter(int row, const QString& comment)
     }
 
     // 検討モード中であれば、選択した手の局面で検討を再開
+    qDebug().noquote() << "[MW] onRecordRowChangedByPresenter: checking consideration mode:"
+                       << "playMode=" << static_cast<int>(m_playMode)
+                       << "(ConsiderationMode=" << static_cast<int>(PlayMode::ConsiderationMode) << ")"
+                       << "m_match=" << (m_match ? "valid" : "null");
     if (m_playMode == PlayMode::ConsiderationMode && m_match) {
-        if (row >= 0 && row < m_positionStrList.size()) {
-            const QString newPosition = m_positionStrList.at(row);
+        const QString newPosition = buildPositionStringForIndex(row);
+        qDebug().noquote() << "[MW] Consideration update: row=" << row
+                           << " newPosition.isEmpty=" << newPosition.isEmpty()
+                           << " newPosition=" << newPosition.left(80);
+        if (!newPosition.isEmpty()) {
             qDebug() << "[MW-DEBUG] Consideration mode: restarting with new position at row=" << row;
-            if (m_match->updateConsiderationPosition(newPosition)) {
+            const bool updated = m_match->updateConsiderationPosition(newPosition);
+            qDebug().noquote() << "[MW] updateConsiderationPosition returned:" << updated;
+            if (updated) {
                 // ポジションが変更された場合、経過時間タイマーをリセットして再開
                 if (m_analysisTab) {
                     m_analysisTab->startElapsedTimer();
@@ -3376,6 +3391,44 @@ qint64 MainWindow::getIncrementMsFor(MatchCoordinator::Player p) const
     return m_timeController->getIncrementMs(player);
 }
 
+QString MainWindow::buildPositionStringForIndex(int moveIndex) const
+{
+    // 1) m_positionStrList に該当インデックスがあればそれを使用（棋譜読み込み時）
+    if (moveIndex >= 0 && moveIndex < m_positionStrList.size()) {
+        return m_positionStrList.at(moveIndex);
+    }
+
+    // 2) 対局後: m_gameUsiMoves または m_kifuLoadCoordinator から構築
+    const QStringList* usiMoves = nullptr;
+    if (!m_gameUsiMoves.isEmpty()) {
+        usiMoves = &m_gameUsiMoves;
+    } else if (m_kifuLoadCoordinator) {
+        usiMoves = m_kifuLoadCoordinator->kifuUsiMovesPtr();
+    }
+
+    // 開始局面コマンドを決定
+    QString startCmd;
+    const QString kHirateSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+    if (m_startSfenStr.isEmpty() || m_startSfenStr == kHirateSfen) {
+        startCmd = QStringLiteral("startpos");
+    } else {
+        startCmd = QStringLiteral("sfen ") + m_startSfenStr;
+    }
+
+    if (usiMoves && !usiMoves->isEmpty()) {
+        // USI指し手リストから構築
+        return TsumePositionUtil::buildPositionWithMoves(usiMoves, startCmd, moveIndex);
+    }
+
+    // 3) フォールバック: SFEN形式で構築
+    if (m_sfenRecord && moveIndex >= 0 && moveIndex < m_sfenRecord->size()) {
+        const QString sfen = m_sfenRecord->at(moveIndex);
+        return QStringLiteral("position sfen ") + sfen;
+    }
+
+    return QString();
+}
+
 qint64 MainWindow::getByoyomiMs() const
 {
     if (!m_timeController) {
@@ -3401,8 +3454,6 @@ void MainWindow::onRecordPaneMainRowChanged(int row)
     if (s_inProgress) return;
     s_inProgress = true;
 
-    qDebug() << "[MW-DEBUG] onRecordPaneMainRowChanged_ ENTER row=" << row;
-
     // RecordNavigationControllerに委譲
     ensureRecordNavigationController();
     if (m_recordNavController) {
@@ -3423,13 +3474,23 @@ void MainWindow::onRecordPaneMainRowChanged(int row)
     // m_currentSfenStrを現在の局面に更新
     if (row >= 0 && m_sfenRecord && row < m_sfenRecord->size()) {
         m_currentSfenStr = m_sfenRecord->at(row);
-        qDebug() << "[MW-DEBUG] onRecordPaneMainRowChanged_: updated m_currentSfenStr=" << m_currentSfenStr;
     }
 
     // 定跡ウィンドウを更新
     updateJosekiWindow();
 
-    qDebug() << "[MW-DEBUG] onRecordPaneMainRowChanged_ LEAVE";
+    // 検討モード中であれば、選択した手の局面で検討を再開
+    if (m_playMode == PlayMode::ConsiderationMode && m_match) {
+        const QString newPosition = buildPositionStringForIndex(row);
+        if (!newPosition.isEmpty()) {
+            if (m_match->updateConsiderationPosition(newPosition)) {
+                // ポジションが変更された場合、経過時間タイマーをリセットして再開
+                if (m_analysisTab) {
+                    m_analysisTab->startElapsedTimer();
+                }
+            }
+        }
+    }
 
     s_inProgress = false;
 }

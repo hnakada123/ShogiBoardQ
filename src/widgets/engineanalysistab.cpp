@@ -340,7 +340,7 @@ void EngineAnalysisTab::buildUi()
     loadEngineList();
     loadConsiderationTabSettings();
 
-    m_considerationInfo = new EngineInfoWidget(considerationPage, false);  // showFontButtons=false（ツールバーにボタンがあるため）
+    m_considerationInfo = new EngineInfoWidget(considerationPage, false, false);  // showFontButtons=false, showPredictedMove=false（検討タブでは予想手を非表示）
     m_considerationInfo->setWidgetIndex(2);  // 検討タブ用のインデックス
     m_considerationInfo->setFontSize(m_considerationFontSize);  // 保存されたフォントサイズを適用
     m_considerationView = new QTableView(considerationPage);

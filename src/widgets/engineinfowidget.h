@@ -11,7 +11,7 @@ class UsiCommLogModel;
 class EngineInfoWidget : public QWidget {
     Q_OBJECT
 public:
-    explicit EngineInfoWidget(QWidget* parent=nullptr, bool showFontButtons=false);
+    explicit EngineInfoWidget(QWidget* parent=nullptr, bool showFontButtons=false, bool showPredictedMove=true);
     void setModel(UsiCommLogModel* model);
     void setDisplayNameFallback(const QString& name);
     
@@ -68,6 +68,7 @@ private:
     QToolButton* m_btnFontDecrease=nullptr;
     QToolButton* m_btnFontIncrease=nullptr;
     bool m_showFontButtons=false;
+    bool m_showPredictedMove=true;  // 予想手列を表示するか
     
     // 列インデックス
     enum Column {
