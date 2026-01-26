@@ -1750,10 +1750,20 @@ void MatchCoordinator::markGameOverMoveAppended()
 // 投了と同様に"対局の実体"として中断を一元処理
 void MatchCoordinator::handleBreakOff()
 {
+    // ★ 最初にエンジンの投了シグナルを切断（レースコンディション防止）
+    // これにより、エンジンからの "bestmove resign" が処理されても
+    // 棋譜に「投了」が追加されることを防ぐ
+    if (m_usi1) {
+        QObject::disconnect(m_usi1, &Usi::bestMoveResignReceived, this, nullptr);
+    }
+    if (m_usi2) {
+        QObject::disconnect(m_usi2, &Usi::bestMoveResignReceived, this, nullptr);
+    }
+
     // すでに終局なら何もしない
     if (m_gameOver.isOver) return;
 
-    // ★ 最初に終局フラグを立てる（resignationTriggered シグナルが既にキューにある場合に備える）
+    // ★ 終局フラグを立てる
     m_gameOver.isOver         = true;
     m_gameOver.when           = QDateTime::currentDateTime();
     m_gameOver.hasLast        = true;
