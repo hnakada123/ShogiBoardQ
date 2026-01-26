@@ -140,7 +140,13 @@ QString ShogiEngineInfoParser::getMoveSymbol(const int moveIndex, const ShogiGam
 // 直前の指し手と同じマスに指す場合、「同」を付ける。（同歩、同銀など）
 QString ShogiEngineInfoParser::getFormattedMove(int fileTo, int rankTo, const QString& kanji) const
 {
+    qDebug().noquote() << "[ShogiEngineInfoParser::getFormattedMove] fileTo=" << fileTo
+                       << "rankTo=" << rankTo
+                       << "previousFileTo()=" << previousFileTo()
+                       << "previousRankTo()=" << previousRankTo()
+                       << "kanji=" << kanji;
     if ((fileTo == previousFileTo()) && (rankTo == previousRankTo())) {
+        qDebug().noquote() << "[ShogiEngineInfoParser::getFormattedMove] -> returning 同" << kanji;
         return "同" + kanji;
     }
 

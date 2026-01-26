@@ -295,12 +295,16 @@ qint64 Usi::lastBestmoveElapsedMs() const
 
 void Usi::setPreviousFileTo(int newPreviousFileTo)
 {
+    qDebug().noquote() << "[Usi::setPreviousFileTo] newPreviousFileTo=" << newPreviousFileTo
+                       << "m_previousRankTo=" << m_previousRankTo;
     m_previousFileTo = newPreviousFileTo;
     m_presenter->setPreviousMove(m_previousFileTo, m_previousRankTo);
 }
 
 void Usi::setPreviousRankTo(int newPreviousRankTo)
 {
+    qDebug().noquote() << "[Usi::setPreviousRankTo] m_previousFileTo=" << m_previousFileTo
+                       << "newPreviousRankTo=" << newPreviousRankTo;
     m_previousRankTo = newPreviousRankTo;
     m_presenter->setPreviousMove(m_previousFileTo, m_previousRankTo);
 }

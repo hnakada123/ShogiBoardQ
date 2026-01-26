@@ -1908,6 +1908,18 @@ void MatchCoordinator::startAnalysis(const AnalysisOptions& opt)
         m_usi1->setConsiderationModel(opt.considerationModel, opt.multiPV);
     }
 
+    // 10.1) 前回の移動先を設定（「同」表記のため）
+    qDebug().noquote() << "[MC] startAnalysis: opt.previousFileTo=" << opt.previousFileTo
+                       << "opt.previousRankTo=" << opt.previousRankTo;
+    if (opt.previousFileTo > 0 && opt.previousRankTo > 0) {
+        m_usi1->setPreviousFileTo(opt.previousFileTo);
+        m_usi1->setPreviousRankTo(opt.previousRankTo);
+        qDebug().noquote() << "[MC] startAnalysis: setPreviousFileTo/RankTo:"
+                           << opt.previousFileTo << "/" << opt.previousRankTo;
+    } else {
+        qDebug().noquote() << "[MC] startAnalysis: WARNING: previousFileTo/RankTo not set (values are 0)";
+    }
+
     // 10.5) 検討モードの場合、フラグを設定し bestmove を接続
     if (opt.mode == PlayMode::ConsiderationMode) {
         m_inConsiderationMode = true;
@@ -1922,6 +1934,8 @@ void MatchCoordinator::startAnalysis(const AnalysisOptions& opt)
         // （restartConsiderationDeferred から呼ばれた場合は呼び出し元でリセットする）
         m_considerationEnginePath = opt.enginePath;
         m_considerationEngineName = opt.engineName;
+        m_considerationPreviousFileTo = opt.previousFileTo;  // ★ 追加: 前回の移動先を保存
+        m_considerationPreviousRankTo = opt.previousRankTo;  // ★ 追加: 前回の移動先を保存
 
         connect(m_usi1, &Usi::bestMoveReceived,
                 this,   &MatchCoordinator::onConsiderationBestMoveReceived,
@@ -1987,13 +2001,16 @@ void MatchCoordinator::updateConsiderationMultiPV(int multiPV)
     }
 }
 
-bool MatchCoordinator::updateConsiderationPosition(const QString& newPositionStr)
+bool MatchCoordinator::updateConsiderationPosition(const QString& newPositionStr,
+                                                   int previousFileTo, int previousRankTo)
 {
     qDebug().noquote() << "[MC] updateConsiderationPosition called:"
                        << "m_inConsiderationMode=" << m_inConsiderationMode
                        << "m_considerationWaiting=" << m_considerationWaiting
                        << "m_considerationRestartPending=" << m_considerationRestartPending
-                       << "m_usi1=" << (m_usi1 ? "valid" : "null");
+                       << "m_usi1=" << (m_usi1 ? "valid" : "null")
+                       << "previousFileTo=" << previousFileTo
+                       << "previousRankTo=" << previousRankTo;
 
     // 検討モード中でない場合は無視
     if (!m_inConsiderationMode) {
@@ -2007,8 +2024,10 @@ bool MatchCoordinator::updateConsiderationPosition(const QString& newPositionStr
         return false;
     }
 
-    // ★ 新しいポジションを保存
+    // ★ 新しいポジションと前回の移動先を保存
     m_considerationPositionStr = newPositionStr;
+    m_considerationPreviousFileTo = previousFileTo;
+    m_considerationPreviousRankTo = previousRankTo;
 
     // ★ 検討タブ用モデルをクリア
     if (m_considerationModelPtr) {
@@ -2019,6 +2038,12 @@ bool MatchCoordinator::updateConsiderationPosition(const QString& newPositionStr
     if (m_considerationWaiting && m_usi1) {
         qDebug().noquote() << "[MC] updateConsiderationPosition: engine is waiting, resuming with new position";
         m_considerationWaiting = false;  // 待機状態を解除
+
+        // 前回の移動先を設定（「同」表記のため）
+        if (previousFileTo > 0 && previousRankTo > 0) {
+            m_usi1->setPreviousFileTo(previousFileTo);
+            m_usi1->setPreviousRankTo(previousRankTo);
+        }
 
         // 既存エンジンに直接コマンドを送信（非ブロッキング）
         m_usi1->sendAnalysisCommands(newPositionStr, m_considerationByoyomiMs, m_considerationMultiPV);
@@ -2159,6 +2184,14 @@ void MatchCoordinator::restartConsiderationDeferred()
 
     // 待機状態を解除
     m_considerationWaiting = false;
+
+    // 前回の移動先を設定（「同」表記のため）
+    if (m_considerationPreviousFileTo > 0 && m_considerationPreviousRankTo > 0) {
+        m_usi1->setPreviousFileTo(m_considerationPreviousFileTo);
+        m_usi1->setPreviousRankTo(m_considerationPreviousRankTo);
+        qDebug().noquote() << "[MC] restartConsiderationDeferred: setPreviousFileTo/RankTo:"
+                           << m_considerationPreviousFileTo << "/" << m_considerationPreviousRankTo;
+    }
 
     // 既存エンジンにコマンドを送信
     m_usi1->sendAnalysisCommands(m_considerationPositionStr, m_considerationByoyomiMs, m_considerationMultiPV);

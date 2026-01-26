@@ -851,12 +851,12 @@
 <context>
     <name>DialogCoordinator</name>
     <message>
-        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="303"/>
+        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="305"/>
         <source>Error</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="309"/>
+        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="311"/>
         <source>エラー</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3210,17 +3210,17 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1785"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1880"/>
         <source>先手</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1786"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1881"/>
         <source>後手</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1438"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1533"/>
         <source>棋譜ファイルを開く</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3230,62 +3230,62 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1439"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1534"/>
         <source>Kifu Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1787"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1882"/>
         <source>手合割</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1787"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1882"/>
         <source>平手</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3760"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3969"/>
         <source>棋譜を自動保存しました: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3763"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3972"/>
         <source>棋譜の自動保存に失敗しました: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3873"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4082"/>
         <source>棋譜を取り込みました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3875"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4084"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3879"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4088"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3918"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4127"/>
         <source>コメントを更新しました（手数: %1）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3979"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4188"/>
         <source>コメントなし</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4025"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4234"/>
         <source>E1: エンジンが起動していません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4036"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4245"/>
         <source>E2: エンジンが起動していません</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3340,36 +3340,36 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2045"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2070"/>
         <source>詰みあり（手順 %1 手）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2046"/>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2055"/>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2064"/>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2073"/>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2085"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2071"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2080"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2089"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2098"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2110"/>
         <source>詰み探索</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2055"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2080"/>
         <source>詰みなし</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2064"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2089"/>
         <source>（エンジン側）未実装</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2073"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2098"/>
         <source>不明（解析不能）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2085"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2110"/>
         <source>探索が完了しました</source>
         <translation>探索が完了しました</translation>
     </message>
@@ -3950,12 +3950,12 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2852"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2885"/>
         <source>先手番</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2852"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2885"/>
         <source>後手番</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4538,57 +4538,57 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>ShogiEngineInfoParser</name>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="195"/>
+        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="201"/>
         <source>An error occurred in ShogiEngineInfoParser::convertRankCharToInt. Invalid character conversion %1.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="230"/>
+        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="236"/>
         <source>An error occurred in ShogiEngineInfoParser::parseMoveString. The length of the move string %1 is insufficient.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="260"/>
+        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="266"/>
         <source>An error occurred in ShogiEngineInfoParser::parseMoveString. Failed to convert source rank.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="271"/>
+        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="277"/>
         <source>An error occurred in ShogiEngineInfoParser::parseMoveString. Invalid stand piece specification.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="277"/>
+        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="283"/>
         <source>An error occurred in ShogiEngineInfoParser::parseMoveString. The coordinates of the source square are invalid.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="287"/>
+        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="293"/>
         <source>An error occurred in ShogiEngineInfoParser::parseMoveString. The coordinates of the destination file are invalid.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="297"/>
+        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="303"/>
         <source>An error occurred in ShogiEngineInfoParser::parseMoveString. Failed to convert destination rank.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="303"/>
+        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="309"/>
         <source>An error occurred in ShogiEngineInfoParser::parseMoveString. The coordinates of the destination square are invalid.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="365"/>
+        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="371"/>
         <source>An error occurred in ShogiEngineInfoParser::getPieceKanjiName. The piece character &apos;%1&apos; does not exist.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="392"/>
+        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="398"/>
         <source>An error occurred in ShogiEngineInfoParser::getPieceCharacter. The rank value is invalid.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="404"/>
+        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="410"/>
         <source>An error occurred in ShogiEngineInfoParser::getPieceCharacter. The file value is invalid.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5008,22 +5008,22 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>Usi</name>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="393"/>
+        <location filename="../../src/engine/usi.cpp" line="397"/>
         <source>Engine file path is empty.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="408"/>
+        <location filename="../../src/engine/usi.cpp" line="412"/>
         <source>Failed to change directory to %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="632"/>
+        <location filename="../../src/engine/usi.cpp" line="636"/>
         <source>USI engine is not running.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="833"/>
+        <location filename="../../src/engine/usi.cpp" line="837"/>
         <source>Timeout waiting for bestmove.</source>
         <translation type="unfinished"></translation>
     </message>

@@ -109,7 +109,9 @@ void ThinkingInfoPresenter::processInfoLineInternal(const QString& line)
     qDebug().noquote() << "[ThinkingInfoPresenter::processInfoLineInternal] m_clonedBoardData.size()=" << m_clonedBoardData.size();
     qDebug().noquote() << "[ThinkingInfoPresenter::processInfoLineInternal] m_gameController=" << m_gameController;
     qDebug().noquote() << "[ThinkingInfoPresenter::processInfoLineInternal] m_thinkingStartPlayerIsP1=" << m_thinkingStartPlayerIsP1;
-    
+    qDebug().noquote() << "[ThinkingInfoPresenter::processInfoLineInternal] m_previousFileTo=" << m_previousFileTo
+                       << "m_previousRankTo=" << m_previousRankTo;
+
     int scoreInt = 0;
 
     // スマートポインタでメモリ管理

@@ -35,6 +35,8 @@ public:
         bool unlimitedTime = true;     // 時間無制限フラグ
         int byoyomiSec = 20;           // 検討時間（秒）
         int multiPV = 1;               // 候補手の数
+        int previousFileTo = 0;        // 前回の移動先の筋（1-9, 0=未設定）
+        int previousRankTo = 0;        // 前回の移動先の段（1-9, 0=未設定）
     };
 
     /**
@@ -52,7 +54,9 @@ private:
                         const QString& positionStr,
                         int byoyomiMs,
                         int multiPV,
-                        ShogiEngineThinkingModel* considerationModel);
+                        ShogiEngineThinkingModel* considerationModel,
+                        int previousFileTo,
+                        int previousRankTo);
 };
 
 #endif // CONSIDERATIONFLOWCONTROLLER_H
