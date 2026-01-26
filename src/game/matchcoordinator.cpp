@@ -1145,10 +1145,6 @@ void MatchCoordinator::startEngineVsEngine(const StartOptions& opt)
 // 平手EvE：先手から開始
 void MatchCoordinator::startEvEFirstMoveByBlack()
 {
-    qDebug().noquote() << "[EvE][startEvEFirstMoveByBlack] START"
-                       << "positionStr1=" << m_positionStr1
-                       << "positionStr2=" << m_positionStr2;
-
     const GoTimes t1 = computeGoTimes();
     const QString btimeStr1 = QString::number(t1.btime);
     const QString wtimeStr1 = QString::number(t1.wtime);
@@ -1414,7 +1410,6 @@ void MatchCoordinator::initPositionStringsForEvE(const QString& sfenStart)
     }
     m_positionStr1 = base;
     m_positionStr2 = base;
-    qDebug().noquote() << "[EvE][initPositionStringsForEvE] base=" << base;
 }
 
 void MatchCoordinator::kickNextEvETurn()
@@ -1428,11 +1423,6 @@ void MatchCoordinator::kickNextEvETurn()
 
     QString& pos    = p1ToMove ? m_positionStr1     : m_positionStr2;
     QString& ponder = p1ToMove ? m_positionPonder1  : m_positionPonder2;
-
-    qDebug().noquote() << "[EvE][kickNextEvETurn] moveIndex=" << m_eveMoveIndex
-                       << "p1ToMove=" << p1ToMove
-                       << "positionStr1=" << m_positionStr1
-                       << "positionStr2=" << m_positionStr2;
 
     QPoint from(-1,-1), to(-1,-1);
     if (!engineThinkApplyMove(mover, pos, ponder, &from, &to))

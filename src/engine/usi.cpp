@@ -804,8 +804,6 @@ void Usi::sendCommandsAndProcess(int byoyomiMilliSec, QString& positionStr,
         m_presenter->setBaseSfen(baseSfen);
     }
 
-    qDebug().noquote() << "[Usi][sendCommandsAndProcess] positionStr=" << positionStr;
-
     m_protocolHandler->sendPosition(positionStr);
     cloneCurrentBoardData();
     m_protocolHandler->sendGo(byoyomiMilliSec, btime, wtime,
