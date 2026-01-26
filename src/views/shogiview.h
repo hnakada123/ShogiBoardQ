@@ -106,6 +106,18 @@ public:
     Highlight *highlight(int index) const { return m_highlights.at(index); }
     int highlightCount() const { return static_cast<int>(m_highlights.size()); }
 
+    // ───────────────────────────── 矢印表示（検討機能用） ─────────────────────
+    // 盤上に矢印を描画するためのデータ構造
+    struct Arrow {
+        int fromFile = 0;   // 移動元の筋（1-9）、駒打ちの場合は0
+        int fromRank = 0;   // 移動元の段（1-9）、駒打ちの場合は0
+        int toFile = 0;     // 移動先の筋（1-9）
+        int toRank = 0;     // 移動先の段（1-9）
+        QColor color = QColor(255, 0, 0, 200);  // 半透明の赤
+    };
+    void setArrows(const QVector<Arrow>& arrows);  // 矢印をセット（複数可）
+    void clearArrows();                            // 矢印をクリア
+
     // ───────────────────────────── 操作/状態切替 ────────────────────────────
     void setMouseClickMode(bool mouseClickMode); // クリック操作フラグ
     int  squareSize() const;                     // m_squareSize（px）
@@ -331,6 +343,10 @@ private:
     // リソース（駒アイコン・ハイライト）
     QMap<QChar, QIcon>  m_pieces;       // 駒文字 → QIcon
     QList<Highlight*>   m_highlights;   // ハイライト（所有権は呼び出し側設計に依存）
+
+    // 矢印表示（検討機能用）
+    QVector<Arrow>  m_arrows;           // 表示する矢印リスト
+    void drawArrows(QPainter* painter); // 矢印描画ヘルパ
 
     // ラベル（子ウィジェット）
     QLabel*     m_blackClockLabel { nullptr };

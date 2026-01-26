@@ -266,6 +266,12 @@ private slots:
     // 検討待機開始時（時間切れ後、次の局面選択待ち）
     void onConsiderationWaitingStarted();
 
+    // 検討モデル更新時に矢印を更新
+    void updateConsiderationArrows();
+
+    // 矢印表示チェックボックスの状態変更時
+    void onShowArrowsChanged(bool checked);
+
     // 検討中にMultiPV変更時
     void onConsiderationMultiPVChanged(int value);
 
@@ -654,6 +660,10 @@ private:
     // 検討用ヘルパ
     QString buildPositionStringForIndex(int moveIndex) const;
     qint64 getByoyomiMs() const;
+
+    // 矢印表示用ヘルパ（USI形式の指し手から座標を取得）
+    bool parseUsiMove(const QString& usiMove, int& fromFile, int& fromRank, int& toFile, int& toRank) const;
+    bool m_showConsiderationArrows = true;  // 検討の矢印を表示するかどうか
 
     // ゲームオーバー関連
     void showGameOverMessageBox(const QString& title, const QString& message);

@@ -871,12 +871,12 @@ Cause: %2</translation>
 <context>
     <name>EngineAnalysisTab</name>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="217"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="218"/>
         <source>思考</source>
         <translation>Thinking</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="299"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="300"/>
         <source>候補手の数</source>
         <translation>Candidate moves</translation>
     </message>
@@ -885,53 +885,53 @@ Cause: %2</translation>
         <translation type="vanished"> moves</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="306"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="307"/>
         <source>評価値が大きい順に表示する候補手の数を指定します</source>
         <translation>Specify the number of candidate moves to display in order of evaluation</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="387"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="398"/>
         <source>検討</source>
         <translation>Consideration</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="408"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="419"/>
         <source>USI通信ログ</source>
         <translation>USI Log</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="437"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="448"/>
         <source>CSA通信ログ</source>
         <translation>CSA Log</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="453"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="464"/>
         <source>コメントを表示・編集</source>
         <translation>View/Edit comments</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="465"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="476"/>
         <source>棋譜コメント</source>
         <translation>Comments</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="484"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="495"/>
         <source>分岐ツリー</source>
         <translation>Branch Tree</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="237"/>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1455"/>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1711"/>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2098"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="238"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1466"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1723"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2110"/>
         <source>フォントサイズを小さくする</source>
         <translation>Decrease font size</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="245"/>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1462"/>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1718"/>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2105"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="246"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1473"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1730"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2117"/>
         <source>フォントサイズを大きくする</source>
         <translation>Increase font size</translation>
     </message>
@@ -940,172 +940,182 @@ Cause: %2</translation>
         <translation type="vanished">Time setting specified in consideration dialog</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="285"/>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2347"/>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2373"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="286"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2359"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2385"/>
         <source>経過: 0:00</source>
         <translation>Elapsed: 0:00</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="286"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="287"/>
         <source>検討開始からの経過時間</source>
         <translation>Elapsed time since consideration started</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="303"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="304"/>
         <source>%1手</source>
         <translation type="unfinished">%1手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2394"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2406"/>
         <source>検討中止</source>
         <translation>Stop</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2395"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2407"/>
         <source>検討を中止してエンジンを停止します</source>
         <translation>Stop analysis and terminate the engine</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1529"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1540"/>
         <source>コマンドの送信先を選択</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="310"/>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2401"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="318"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2413"/>
         <source>検討開始</source>
         <translation>Start Consideration</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2402"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2414"/>
         <source>検討ダイアログを開いて検討を開始します</source>
         <translation>Open consideration dialog to start analysis</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1533"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1544"/>
         <source>USIコマンドを入力してEnter</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="252"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="253"/>
         <source>検討に使用するエンジンを選択します</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="256"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="257"/>
         <source>エンジン設定</source>
         <translation type="unfinished">Engine Settings</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="257"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="258"/>
         <source>選択したエンジンの設定を変更します</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="262"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="263"/>
         <source>時間無制限</source>
         <translation type="unfinished">Unlimited</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="263"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="264"/>
         <source>時間制限なしで検討します</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="268"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="269"/>
         <source>検討時間</source>
         <translation type="unfinished">Analysis Time</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="269"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="270"/>
         <source>指定した秒数まで検討します</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="277"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="278"/>
         <source>検討時間（秒）を指定します</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="282"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="283"/>
         <source>秒まで</source>
         <translation type="unfinished">seconds</translation>
     </message>
     <message>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="310"/>
+        <source>矢印表示</source>
+        <translation>Show Arrows</translation>
+    </message>
+    <message>
         <location filename="../../src/widgets/engineanalysistab.cpp" line="311"/>
+        <source>最善手の矢印を盤面に表示します</source>
+        <translation>Displays arrows for the best moves on the board</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="319"/>
         <source>検討を開始します</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1725"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1737"/>
         <source>元に戻す (Ctrl+Z)</source>
         <translation>Undo (Ctrl+Z)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1732"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1744"/>
         <source>やり直す (Ctrl+Y)</source>
         <translation>Redo (Ctrl+Y)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1739"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1751"/>
         <source>切り取り (Ctrl+X)</source>
         <translation>Cut (Ctrl+X)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1746"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1758"/>
         <source>コピー (Ctrl+C)</source>
         <translation>Copy (Ctrl+C)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1753"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1765"/>
         <source>貼り付け (Ctrl+V)</source>
         <translation>Paste (Ctrl+V)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1758"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1770"/>
         <source>修正中</source>
         <translation>Editing</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1763"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1775"/>
         <source>コメント更新</source>
         <translation>Update Comment</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1764"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1776"/>
         <source>編集したコメントを棋譜に反映する</source>
         <translation>Apply edited comment to game record</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1967"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1979"/>
         <source>未保存のコメント</source>
         <translation>Unsaved Comment</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1968"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1980"/>
         <source>コメントが編集されていますが、まだ更新されていません。
 変更を破棄して移動しますか？</source>
         <translation>The comment has been edited but not saved yet.
 Discard changes and move?</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2186"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2198"/>
         <source>CSAサーバーへ送信</source>
         <translation>Send to CSA Server</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2195"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2207"/>
         <source>コマンドを入力してEnter</source>
         <translation>Enter command and press Enter</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2511"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2523"/>
         <source>エラー</source>
         <translation type="unfinished">Error</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2511"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2523"/>
         <source>将棋エンジンが選択されていません。</source>
         <translation type="unfinished">No shogi engine is selected.</translation>
     </message>
@@ -1126,12 +1136,12 @@ Discard changes and move?</translation>
         <translation type="vanished">Time: %1 sec</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2427"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2439"/>
         <source>経過: %1:%2</source>
         <translation>Elapsed: %1:%2</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="878"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="889"/>
         <source>開始局面</source>
         <translation>Start</translation>
     </message>
@@ -3588,12 +3598,12 @@ White
 Please select &quot;24-Point Rule&quot; or &quot;27-Point Rule&quot; in the game dialog.</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1763"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1785"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1764"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1786"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
@@ -3713,67 +3723,67 @@ Are you sure you want to declare?</translation>
         <translation type="unfinished">No shogi engine is selected.</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1416"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1438"/>
         <source>棋譜ファイルを開く</source>
         <translation>Open Game Record File</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1417"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1439"/>
         <source>Kifu Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</source>
         <translation>Game Record Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1765"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1787"/>
         <source>手合割</source>
         <translation>Handicap</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1765"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1787"/>
         <source>平手</source>
         <translation>Even Game</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3738"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3760"/>
         <source>棋譜を自動保存しました: %1</source>
         <translation>Game record auto-saved: %1</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3741"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3763"/>
         <source>棋譜の自動保存に失敗しました: %1</source>
         <translation>Failed to auto-save game record: %1</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3851"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3873"/>
         <source>棋譜を取り込みました</source>
         <translation>Game record imported</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3853"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3875"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation>Failed to import game record</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3857"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3879"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation>Failed to import game record (internal error)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3896"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3918"/>
         <source>コメントを更新しました（手数: %1）</source>
         <translation>Comment updated (move: %1)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3957"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3979"/>
         <source>コメントなし</source>
         <translation>No comment</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4003"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4025"/>
         <source>E1: エンジンが起動していません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4014"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4036"/>
         <source>E2: エンジンが起動していません</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5190,13 +5200,13 @@ Are you sure you want to declare?</translation>
 <context>
     <name>ShogiView</name>
     <message>
-        <location filename="../../src/views/shogiview.cpp" line="3122"/>
-        <location filename="../../src/views/shogiview.cpp" line="3142"/>
+        <location filename="../../src/views/shogiview.cpp" line="3125"/>
+        <location filename="../../src/views/shogiview.cpp" line="3145"/>
         <source>次の手番</source>
         <translation>Next Turn</translation>
     </message>
     <message>
-        <location filename="../../src/views/shogiview.cpp" line="3364"/>
+        <location filename="../../src/views/shogiview.cpp" line="3367"/>
         <source>編集終了</source>
         <translation>End Edit</translation>
     </message>

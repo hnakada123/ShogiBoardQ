@@ -31,6 +31,7 @@
 #include <QComboBox>    // ★ 追加: USIコマンド送信先選択用
 #include <QSpinBox>     // ★ 追加: 候補手の数用
 #include <QRadioButton> // ★ 追加: 思考時間設定用
+#include <QCheckBox>    // ★ 追加: 矢印表示チェックボックス用
 #include <QPalette>     // ★ 追加: 経過時間ラベル色変更用
 #include <QTextCursor>      // ★ 追加: ログ色付け用
 #include <QTextCharFormat>  // ★ 追加: ログ色付け用
@@ -305,6 +306,13 @@ void EngineAnalysisTab::buildUi()
     m_multiPVComboBox->setCurrentIndex(0);  // デフォルト1手
     m_multiPVComboBox->setToolTip(tr("評価値が大きい順に表示する候補手の数を指定します"));
 
+    // ★ 追加: 矢印表示チェックボックス
+    m_showArrowsCheckBox = new QCheckBox(tr("矢印表示"), m_considerationToolbar);
+    m_showArrowsCheckBox->setToolTip(tr("最善手の矢印を盤面に表示します"));
+    m_showArrowsCheckBox->setChecked(true);  // デフォルトは表示
+    connect(m_showArrowsCheckBox, &QCheckBox::toggled,
+            this, &EngineAnalysisTab::showArrowsChanged);
+
     // 検討開始/中止ボタン（初期状態は「検討開始」）
     m_btnStopConsideration = new QToolButton(m_considerationToolbar);
     m_btnStopConsideration->setText(tr("検討開始"));
@@ -328,6 +336,8 @@ void EngineAnalysisTab::buildUi()
     toolbarLayout->addSpacing(12);
     toolbarLayout->addWidget(m_multiPVLabel);
     toolbarLayout->addWidget(m_multiPVComboBox);
+    toolbarLayout->addSpacing(12);
+    toolbarLayout->addWidget(m_showArrowsCheckBox);
     toolbarLayout->addSpacing(12);
     toolbarLayout->addWidget(m_btnStopConsideration);
     toolbarLayout->addStretch();  // 右側にスペースを追加
@@ -377,6 +387,7 @@ void EngineAnalysisTab::buildUi()
         m_elapsedTimeLabel->setFont(font);
         m_multiPVLabel->setFont(font);
         m_multiPVComboBox->setFont(font);
+        m_showArrowsCheckBox->setFont(font);
         m_btnStopConsideration->setFont(font);
     }
 
@@ -1664,6 +1675,7 @@ void EngineAnalysisTab::updateConsiderationFontSize(int delta)
     if (m_elapsedTimeLabel) m_elapsedTimeLabel->setFont(font);
     if (m_multiPVLabel) m_multiPVLabel->setFont(font);
     if (m_multiPVComboBox) m_multiPVComboBox->setFont(font);
+    if (m_showArrowsCheckBox) m_showArrowsCheckBox->setFont(font);
     if (m_btnStopConsideration) m_btnStopConsideration->setFont(font);
 
     // 上段（EngineInfoWidget）のフォントサイズ変更
@@ -2564,4 +2576,13 @@ int EngineAnalysisTab::byoyomiSec() const
         return m_byoyomiSecSpinBox->value();
     }
     return 20;
+}
+
+// ★ 追加: 矢印表示チェックボックスの状態を取得
+bool EngineAnalysisTab::isShowArrowsChecked() const
+{
+    if (m_showArrowsCheckBox) {
+        return m_showArrowsCheckBox->isChecked();
+    }
+    return true;
 }
