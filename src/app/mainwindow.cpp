@@ -894,6 +894,22 @@ void MainWindow::onConsiderationModeStarted()
 
         // 注: エンジン名の設定は onSetEngineNames で行われる
         // 注: 現在のタブ選択を維持するため、タブ切り替えは行わない
+
+        // ★ 追加: 検討モデルの変更時に矢印を更新
+        connect(m_considerationModel, &ShogiEngineThinkingModel::rowsInserted,
+                this, &MainWindow::updateConsiderationArrows,
+                Qt::UniqueConnection);
+        connect(m_considerationModel, &ShogiEngineThinkingModel::dataChanged,
+                this, &MainWindow::updateConsiderationArrows,
+                Qt::UniqueConnection);
+        connect(m_considerationModel, &ShogiEngineThinkingModel::modelReset,
+                this, &MainWindow::updateConsiderationArrows,
+                Qt::UniqueConnection);
+
+        // ★ 追加: 矢印表示チェックボックスの状態変更時
+        connect(m_analysisTab, &EngineAnalysisTab::showArrowsChanged,
+                this, &MainWindow::onShowArrowsChanged,
+                Qt::UniqueConnection);
     }
 }
 
@@ -957,6 +973,12 @@ void MainWindow::onConsiderationModeEnded()
         m_analysisTab->setConsiderationRunning(false);
         qDebug().noquote() << "[MainWindow::onConsiderationModeEnded] setConsiderationRunning(false) returned";
     }
+
+    // ★ 追加: 検討終了時に矢印をクリア
+    if (m_shogiView) {
+        m_shogiView->clearArrows();
+    }
+
     qDebug().noquote() << "[MainWindow::onConsiderationModeEnded] EXIT";
 }
 
@@ -4180,4 +4202,118 @@ void MainWindow::ensureLanguageController()
         ui->actionLanguageSystem,
         ui->actionLanguageJapanese,
         ui->actionLanguageEnglish);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 矢印表示機能（検討機能用）
+// ─────────────────────────────────────────────────────────────────────────────
+
+// USI形式の指し手（例: "7g7f", "P*3c"）から座標を取得
+// 戻り値: 解析成功ならtrue、駒打ちの場合はfromFile/fromRankが0になる
+bool MainWindow::parseUsiMove(const QString& usiMove, int& fromFile, int& fromRank, int& toFile, int& toRank) const
+{
+    if (usiMove.isEmpty()) return false;
+
+    // 駒打ちの場合: "P*3c" のような形式
+    if (usiMove.length() >= 4 && usiMove.at(1) == '*') {
+        fromFile = 0;
+        fromRank = 0;
+        // 移動先の座標を取得
+        QChar toFileChar = usiMove.at(2);
+        QChar toRankChar = usiMove.at(3);
+        if (toFileChar >= '1' && toFileChar <= '9' && toRankChar >= 'a' && toRankChar <= 'i') {
+            toFile = toFileChar.digitValue();
+            toRank = toRankChar.toLatin1() - 'a' + 1;
+            return true;
+        }
+        return false;
+    }
+
+    // 通常の指し手: "7g7f" のような形式
+    if (usiMove.length() >= 4) {
+        QChar fromFileChar = usiMove.at(0);
+        QChar fromRankChar = usiMove.at(1);
+        QChar toFileChar = usiMove.at(2);
+        QChar toRankChar = usiMove.at(3);
+
+        if (fromFileChar >= '1' && fromFileChar <= '9' &&
+            fromRankChar >= 'a' && fromRankChar <= 'i' &&
+            toFileChar >= '1' && toFileChar <= '9' &&
+            toRankChar >= 'a' && toRankChar <= 'i') {
+            fromFile = fromFileChar.digitValue();
+            fromRank = fromRankChar.toLatin1() - 'a' + 1;
+            toFile = toFileChar.digitValue();
+            toRank = toRankChar.toLatin1() - 'a' + 1;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// 検討モデルから矢印を更新
+void MainWindow::updateConsiderationArrows()
+{
+    if (!m_shogiView) return;
+
+    // 矢印表示がOFFの場合はクリアして終了
+    if (!m_showConsiderationArrows) {
+        m_shogiView->clearArrows();
+        return;
+    }
+
+    // 検討モデルがない場合はクリアして終了
+    if (!m_considerationModel || m_considerationModel->rowCount() == 0) {
+        m_shogiView->clearArrows();
+        return;
+    }
+
+    // 「矢印表示」チェックボックスの状態を確認
+    if (m_analysisTab && !m_analysisTab->isShowArrowsChecked()) {
+        m_shogiView->clearArrows();
+        return;
+    }
+
+    QVector<ShogiView::Arrow> arrows;
+
+    // 検討モデルの各行から読み筋の最初の指し手を取得して矢印を作成
+    const int rowCount = m_considerationModel->rowCount();
+    for (int row = 0; row < rowCount; ++row) {
+        QString usiPv = m_considerationModel->usiPvAt(row);
+        if (usiPv.isEmpty()) continue;
+
+        // 読み筋の最初の指し手を取得（スペース区切り）
+        QString firstMove = usiPv.split(' ').first();
+        if (firstMove.isEmpty()) continue;
+
+        int fromFile = 0, fromRank = 0, toFile = 0, toRank = 0;
+        if (!parseUsiMove(firstMove, fromFile, fromRank, toFile, toRank)) continue;
+
+        // 駒打ちの場合は矢印を描画しない
+        if (fromFile == 0 || fromRank == 0) continue;
+
+        ShogiView::Arrow arrow;
+        arrow.fromFile = fromFile;
+        arrow.fromRank = fromRank;
+        arrow.toFile = toFile;
+        arrow.toRank = toRank;
+
+        // 最善手（最初の行）は濃い赤、それ以外は薄い赤
+        if (row == 0) {
+            arrow.color = QColor(255, 0, 0, 200);  // 濃い赤（半透明）
+        } else {
+            arrow.color = QColor(255, 100, 100, 150);  // 薄い赤（より透明）
+        }
+
+        arrows.append(arrow);
+    }
+
+    m_shogiView->setArrows(arrows);
+}
+
+// 矢印表示チェックボックスの状態変更時
+void MainWindow::onShowArrowsChanged(bool checked)
+{
+    m_showConsiderationArrows = checked;
+    updateConsiderationArrows();
 }

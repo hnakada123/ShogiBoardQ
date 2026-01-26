@@ -856,6 +856,9 @@ void ShogiView::paintEvent(QPaintEvent *)
     // 5) 盤上の駒
     drawPieces(&painter);
 
+    // 5.5) 矢印（検討機能の最善手表示）
+    drawArrows(&painter);
+
     // 描画中に致命的な異常が検知された場合はここで打ち切る。
     if (m_errorOccurred) return;
 
@@ -3551,4 +3554,83 @@ void ShogiView::fitEditExitButtonFont(QPushButton* btn, int maxWidth)
         f.setPointSize(minPoint);
         btn->setFont(f);
     }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 矢印表示機能（検討機能用）
+// ─────────────────────────────────────────────────────────────────────────────
+
+void ShogiView::setArrows(const QVector<Arrow>& arrows)
+{
+    m_arrows = arrows;
+    update();
+}
+
+void ShogiView::clearArrows()
+{
+    m_arrows.clear();
+    update();
+}
+
+// 矢印を描画するヘルパ関数
+void ShogiView::drawArrows(QPainter* painter)
+{
+    if (m_arrows.isEmpty()) return;
+
+    painter->save();
+    painter->setRenderHint(QPainter::Antialiasing, true);
+
+    for (const Arrow& arrow : std::as_const(m_arrows)) {
+        // 駒打ちの場合（fromFile/fromRankが0）は矢印を描画しない
+        if (arrow.fromFile == 0 || arrow.fromRank == 0) continue;
+
+        // 移動元と移動先のマスの中心座標を計算
+        // calculateSquareRectangleBasedOnBoardState は盤のオフセットを含まないため、
+        // m_offsetX/Y を加算する必要がある
+        QRect fromRect = calculateSquareRectangleBasedOnBoardState(arrow.fromFile, arrow.fromRank);
+        QRect toRect = calculateSquareRectangleBasedOnBoardState(arrow.toFile, arrow.toRank);
+
+        QPointF from(fromRect.center().x() + m_offsetX, fromRect.center().y() + m_offsetY);
+        QPointF to(toRect.center().x() + m_offsetX, toRect.center().y() + m_offsetY);
+
+        // 矢印の太さを計算（マスサイズに応じて調整）
+        const int arrowWidth = qMax(3, m_squareSize / 12);
+        const int arrowHeadSize = qMax(10, m_squareSize / 4);
+
+        // 矢印の色（半透明の赤）
+        QColor color = arrow.color;
+        color.setAlpha(200);
+
+        // 矢印の線を描画
+        QPen pen(color);
+        pen.setWidth(arrowWidth);
+        pen.setCapStyle(Qt::RoundCap);
+        painter->setPen(pen);
+
+        // 方向ベクトルを計算
+        QPointF dir = to - from;
+        double length = std::sqrt(dir.x() * dir.x() + dir.y() * dir.y());
+        if (length < 1.0) continue;  // 距離が短すぎる場合はスキップ
+
+        // 単位ベクトル
+        QPointF unit = dir / length;
+
+        // 矢じりの手前まで線を引く
+        QPointF lineEnd = to - unit * (arrowHeadSize * 0.7);
+        painter->drawLine(from, lineEnd);
+
+        // 矢じりを描画（三角形）
+        QPointF perpendicular(-unit.y(), unit.x());  // 垂直ベクトル
+        QPointF arrowPoint1 = to - unit * arrowHeadSize + perpendicular * (arrowHeadSize * 0.5);
+        QPointF arrowPoint2 = to - unit * arrowHeadSize - perpendicular * (arrowHeadSize * 0.5);
+
+        QPolygonF arrowHead;
+        arrowHead << to << arrowPoint1 << arrowPoint2;
+
+        painter->setPen(Qt::NoPen);
+        painter->setBrush(color);
+        painter->drawPolygon(arrowHead);
+    }
+
+    painter->restore();
 }

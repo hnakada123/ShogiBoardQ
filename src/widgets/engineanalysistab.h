@@ -29,6 +29,7 @@ class QComboBox;      // ★ 追加: USIコマンド送信先選択用
 class QSpinBox;       // ★ 追加: 候補手の数用
 class QTimer;         // ★ 追加: 経過時間用
 class QRadioButton;   // ★ 追加: 思考時間設定用
+class QCheckBox;      // ★ 追加: 矢印表示チェックボックス用
 
 class EngineInfoWidget;
 class ShogiEngineThinkingModel;
@@ -172,6 +173,9 @@ public:
     // ★ 追加: 検討タブの設定を保存
     void saveConsiderationTabSettings();
 
+    // ★ 追加: 矢印表示チェックボックスの状態を取得
+    bool isShowArrowsChecked() const;
+
 public slots:
     void setAnalysisVisible(bool on);
     void setCommentHtml(const QString& html);
@@ -227,6 +231,9 @@ signals:
     // ★ 追加: 思考時間設定が変更されたシグナル
     void considerationTimeSettingsChanged(bool unlimited, int byoyomiSec);
 
+    // ★ 追加: 矢印表示設定が変更されたシグナル
+    void showArrowsChanged(bool checked);
+
 private:
     // ★ 追加: 分岐ツリーのクリック有効フラグ（対局中は無効にする）
     bool m_branchTreeClickEnabled = true;
@@ -270,6 +277,7 @@ private:
     QLabel* m_multiPVLabel=nullptr;           // 「候補手の数」ラベル
     QComboBox* m_multiPVComboBox=nullptr;     // 候補手の数コンボボックス
     QToolButton* m_btnStopConsideration=nullptr;  // 検討中止ボタン
+    QCheckBox* m_showArrowsCheckBox=nullptr;      // ★ 追加: 矢印表示チェックボックス
     int m_considerationFontSize=10;           // 検討タブフォントサイズ
 
     // ★ 追加: USI通信ログ編集用UI
