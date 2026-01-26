@@ -126,18 +126,22 @@ public:
     // --------------------------------------------------------
 
     /**
-     * @brief 検討ダイアログの依存情報
+     * @brief 検討を直接開始するためのパラメータ
      */
-    struct ConsiderationParams {
-        QString position;      // 送信する position 文字列
-        int     multiPV = 1;   // ★ 追加: 候補手の数（MultiPV）
-        ShogiEngineThinkingModel* considerationModel = nullptr;  // ★ 追加: 検討タブ用モデル
+    struct ConsiderationDirectParams {
+        QString position;                  // 送信する position 文字列
+        int engineIndex = 0;               // エンジンインデックス
+        QString engineName;                // エンジン名
+        bool unlimitedTime = true;         // 時間無制限フラグ
+        int byoyomiSec = 20;               // 検討時間（秒）
+        int multiPV = 1;                   // 候補手の数
+        ShogiEngineThinkingModel* considerationModel = nullptr;  // 検討タブ用モデル
     };
 
     /**
-     * @brief 検討ダイアログを表示
+     * @brief ダイアログを表示せずに直接検討を開始
      */
-    void showConsiderationDialog(const ConsiderationParams& params);
+    void startConsiderationDirect(const ConsiderationDirectParams& params);
 
     /**
      * @brief 詰み探索ダイアログの依存情報
