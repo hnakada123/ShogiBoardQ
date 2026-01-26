@@ -1769,6 +1769,11 @@ void MatchCoordinator::handleBreakOff()
     m_gameOver.hasLast        = true;
     m_gameOver.lastInfo.cause = Cause::BreakOff;
 
+    // 現在手番を loser に設定（中断時のマーク表示用、実際の勝敗はない）
+    const ShogiGameController::Player gcTurn =
+        (m_gc ? m_gc->currentPlayer() : ShogiGameController::NoPlayer);
+    m_gameOver.lastInfo.loser = (gcTurn == ShogiGameController::Player1) ? P1 : P2;
+
     // ★ 時計を即座に停止 & ゲームオーバーマーク（タイムアウト処理を防ぐ）
     if (m_clock) {
         m_clock->markGameOver();
@@ -1806,6 +1811,11 @@ void MatchCoordinator::handleBreakOff()
             eng->setSquelchResignLogging(true);
         }
     }
+
+    // ★ UI側に終局を通知（対局者名・時間ラベルのスタイル維持のため）
+    // appendBreakOffLineAndMark() より先に emit して setGameOverStyleLock(true) を設定し、
+    // リプレイモード遷移時の clearTurnHighlight() で黄色ハイライトが消えないようにする
+    emit gameEnded(m_gameOver.lastInfo);
 
     // ★ 中断行の生成＋KIF追記＋一度だけの追記ブロック確定（内部で emit 済み）
     appendBreakOffLineAndMark();
@@ -2891,6 +2901,10 @@ void MatchCoordinator::appendGameOverLineAndMark(Cause cause, Player loser)
         // 反則負け（入玉宣言失敗など、敗者のマークを使用）
         const QString mark = (loser == P1) ? QStringLiteral("▲") : QStringLiteral("△");
         line = QStringLiteral("%1反則負け").arg(mark);
+    } else if (cause == Cause::BreakOff) {
+        // 中断（loserには現在手番が入っている）
+        const QString mark = (loser == P1) ? QStringLiteral("▲") : QStringLiteral("△");
+        line = QStringLiteral("%1中断").arg(mark);
     } else {
         const QString mark = (loser == P1) ? QStringLiteral("▲") : QStringLiteral("△");
         line = (cause == Cause::Resignation)
