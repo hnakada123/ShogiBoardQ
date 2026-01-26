@@ -106,9 +106,12 @@ void DialogCoordinator::showGameOverMessage(const QString& title, const QString&
 // 解析関連ダイアログ
 // --------------------------------------------------------
 
-void DialogCoordinator::showConsiderationDialog(const ConsiderationParams& params)
+void DialogCoordinator::startConsiderationDirect(const ConsiderationDirectParams& params)
 {
-    qDebug().noquote() << "[DialogCoord] showConsiderationDialog: position=" << params.position
+    qDebug().noquote() << "[DialogCoord] startConsiderationDirect: position=" << params.position
+                       << "engineIndex=" << params.engineIndex
+                       << "unlimitedTime=" << params.unlimitedTime
+                       << "byoyomiSec=" << params.byoyomiSec
                        << "multiPV=" << params.multiPV;
 
     Q_EMIT considerationModeStarted();
@@ -119,7 +122,7 @@ void DialogCoordinator::showConsiderationDialog(const ConsiderationParams& param
     d.match = m_match;
     d.onError = [this](const QString& msg) { showFlowError(msg); };
     d.multiPV = params.multiPV;
-    d.considerationModel = params.considerationModel;  // ★ 追加: 検討タブ用モデル
+    d.considerationModel = params.considerationModel;
     d.onTimeSettingsReady = [this](bool unlimited, int byoyomiSec) {
         Q_EMIT considerationTimeSettingsReady(unlimited, byoyomiSec);
     };
@@ -127,7 +130,14 @@ void DialogCoordinator::showConsiderationDialog(const ConsiderationParams& param
         Q_EMIT considerationMultiPVReady(multiPV);
     };
 
-    flow->runWithDialog(d, m_parentWidget, params.position);
+    ConsiderationFlowController::DirectParams directParams;
+    directParams.engineIndex = params.engineIndex;
+    directParams.engineName = params.engineName;
+    directParams.unlimitedTime = params.unlimitedTime;
+    directParams.byoyomiSec = params.byoyomiSec;
+    directParams.multiPV = params.multiPV;
+
+    flow->runDirect(d, directParams, params.position);
 }
 
 void DialogCoordinator::showTsumeSearchDialog(const TsumeSearchParams& params)

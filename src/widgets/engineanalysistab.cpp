@@ -30,9 +30,15 @@
 #include <QLineEdit>    // ★ 追加: CSAコマンド入力用
 #include <QComboBox>    // ★ 追加: USIコマンド送信先選択用
 #include <QSpinBox>     // ★ 追加: 候補手の数用
+#include <QRadioButton> // ★ 追加: 思考時間設定用
+#include <QPalette>     // ★ 追加: 経過時間ラベル色変更用
 #include <QTextCursor>      // ★ 追加: ログ色付け用
 #include <QTextCharFormat>  // ★ 追加: ログ色付け用
 #include <QItemSelectionModel>
+#include <QSettings>        // ★ 追加: エンジンリスト読み込み用
+#include <QDir>             // ★ 追加: エンジンリスト読み込み用
+#include <QApplication>     // ★ 追加: エンジンリスト読み込み用
+#include "enginesettingsconstants.h"  // ★ 追加: エンジン設定定数
 
 #include "settingsservice.h"  // ★ 追加: フォントサイズ保存用
 #include <QFontDatabase>      // ★ 追加: フォント検索用
@@ -219,7 +225,7 @@ void EngineAnalysisTab::buildUi()
     considerationLayout->setContentsMargins(4, 4, 4, 4);
     considerationLayout->setSpacing(4);
 
-    // 検討タブ用ツールバー（A-/A+ボタン、候補手の数）
+    // 検討タブ用ツールバー（A-/A+ボタン、エンジン設定、思考時間、候補手の数）
     m_considerationToolbar = new QWidget(considerationPage);
     auto* toolbarLayout = new QHBoxLayout(m_considerationToolbar);
     toolbarLayout->setContentsMargins(2, 2, 2, 2);
@@ -241,13 +247,49 @@ void EngineAnalysisTab::buildUi()
     connect(m_btnConsiderationFontIncrease, &QToolButton::clicked,
             this, &EngineAnalysisTab::onConsiderationFontIncrease);
 
-    // 時間設定ラベル
-    m_timeLimitLabel = new QLabel(m_considerationToolbar);
-    m_timeLimitLabel->setToolTip(tr("検討ダイアログで指定した時間設定"));
+    // エンジン選択コンボボックス
+    m_engineComboBox = new QComboBox(m_considerationToolbar);
+    m_engineComboBox->setToolTip(tr("検討に使用するエンジンを選択します"));
+    m_engineComboBox->setMinimumWidth(150);
+
+    // エンジン設定ボタン
+    m_btnEngineSettings = new QPushButton(tr("エンジン設定"), m_considerationToolbar);
+    m_btnEngineSettings->setToolTip(tr("選択したエンジンの設定を変更します"));
+    connect(m_btnEngineSettings, &QPushButton::clicked,
+            this, &EngineAnalysisTab::onEngineSettingsClicked);
+
+    // 時間無制限ラジオボタン
+    m_unlimitedTimeRadioButton = new QRadioButton(tr("時間無制限"), m_considerationToolbar);
+    m_unlimitedTimeRadioButton->setToolTip(tr("時間制限なしで検討します"));
+    connect(m_unlimitedTimeRadioButton, &QRadioButton::toggled,
+            this, &EngineAnalysisTab::onTimeSettingChanged);
+
+    // 検討時間ラジオボタン
+    m_considerationTimeRadioButton = new QRadioButton(tr("検討時間"), m_considerationToolbar);
+    m_considerationTimeRadioButton->setToolTip(tr("指定した秒数まで検討します"));
+    connect(m_considerationTimeRadioButton, &QRadioButton::toggled,
+            this, &EngineAnalysisTab::onTimeSettingChanged);
+
+    // 検討時間スピンボックス
+    m_byoyomiSecSpinBox = new QSpinBox(m_considerationToolbar);
+    m_byoyomiSecSpinBox->setRange(1, 3600);
+    m_byoyomiSecSpinBox->setValue(20);
+    m_byoyomiSecSpinBox->setToolTip(tr("検討時間（秒）を指定します"));
+    connect(m_byoyomiSecSpinBox, QOverload<int>::of(&QSpinBox::valueChanged),
+            this, &EngineAnalysisTab::onTimeSettingChanged);
+
+    // 「秒まで」ラベル
+    m_byoyomiSecUnitLabel = new QLabel(tr("秒まで"), m_considerationToolbar);
 
     // 経過時間ラベル
     m_elapsedTimeLabel = new QLabel(tr("経過: 0:00"), m_considerationToolbar);
     m_elapsedTimeLabel->setToolTip(tr("検討開始からの経過時間"));
+    // 経過時間ラベルは常に赤色で表示
+    {
+        QPalette palette = m_elapsedTimeLabel->palette();
+        palette.setColor(QPalette::WindowText, Qt::red);
+        m_elapsedTimeLabel->setPalette(palette);
+    }
 
     // 経過時間更新タイマー
     m_elapsedTimer = new QTimer(this);
@@ -266,26 +308,37 @@ void EngineAnalysisTab::buildUi()
     // 検討開始/中止ボタン（初期状態は「検討開始」）
     m_btnStopConsideration = new QToolButton(m_considerationToolbar);
     m_btnStopConsideration->setText(tr("検討開始"));
-    m_btnStopConsideration->setToolTip(tr("検討ダイアログを開いて検討を開始します"));
+    m_btnStopConsideration->setToolTip(tr("検討を開始します"));
     connect(m_btnStopConsideration, &QToolButton::clicked,
             this, &EngineAnalysisTab::startConsiderationRequested);
 
+    // ツールバーにウィジェットを追加
     toolbarLayout->addWidget(m_btnConsiderationFontDecrease);
     toolbarLayout->addWidget(m_btnConsiderationFontIncrease);
-    toolbarLayout->addSpacing(16);  // ボタンとラベルの間にスペース
-    toolbarLayout->addWidget(m_timeLimitLabel);
-    toolbarLayout->addSpacing(16);
+    toolbarLayout->addSpacing(12);
+    toolbarLayout->addWidget(m_engineComboBox);
+    toolbarLayout->addWidget(m_btnEngineSettings);
+    toolbarLayout->addSpacing(12);
+    toolbarLayout->addWidget(m_unlimitedTimeRadioButton);
+    toolbarLayout->addWidget(m_considerationTimeRadioButton);
+    toolbarLayout->addWidget(m_byoyomiSecSpinBox);
+    toolbarLayout->addWidget(m_byoyomiSecUnitLabel);
+    toolbarLayout->addSpacing(12);
     toolbarLayout->addWidget(m_elapsedTimeLabel);
-    toolbarLayout->addSpacing(16);
+    toolbarLayout->addSpacing(12);
     toolbarLayout->addWidget(m_multiPVLabel);
     toolbarLayout->addWidget(m_multiPVComboBox);
-    toolbarLayout->addSpacing(16);
+    toolbarLayout->addSpacing(12);
     toolbarLayout->addWidget(m_btnStopConsideration);
     toolbarLayout->addStretch();  // 右側にスペースを追加
 
     // コンボボックスの値変更シグナルを接続
     connect(m_multiPVComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &EngineAnalysisTab::onMultiPVComboBoxChanged);
+
+    // エンジンリストを読み込み、設定を復元
+    loadEngineList();
+    loadConsiderationTabSettings();
 
     m_considerationInfo = new EngineInfoWidget(considerationPage, false);  // showFontButtons=false（ツールバーにボタンがあるため）
     m_considerationInfo->setWidgetIndex(2);  // 検討タブ用のインデックス
@@ -315,7 +368,12 @@ void EngineAnalysisTab::buildUi()
         // ツールバー要素にも適用
         m_btnConsiderationFontDecrease->setFont(font);
         m_btnConsiderationFontIncrease->setFont(font);
-        m_timeLimitLabel->setFont(font);
+        m_engineComboBox->setFont(font);
+        m_btnEngineSettings->setFont(font);
+        m_unlimitedTimeRadioButton->setFont(font);
+        m_considerationTimeRadioButton->setFont(font);
+        m_byoyomiSecSpinBox->setFont(font);
+        m_byoyomiSecUnitLabel->setFont(font);
         m_elapsedTimeLabel->setFont(font);
         m_multiPVLabel->setFont(font);
         m_multiPVComboBox->setFont(font);
@@ -1597,7 +1655,12 @@ void EngineAnalysisTab::updateConsiderationFontSize(int delta)
     // ツールバーの要素にフォントサイズを適用
     if (m_btnConsiderationFontDecrease) m_btnConsiderationFontDecrease->setFont(font);
     if (m_btnConsiderationFontIncrease) m_btnConsiderationFontIncrease->setFont(font);
-    if (m_timeLimitLabel) m_timeLimitLabel->setFont(font);
+    if (m_engineComboBox) m_engineComboBox->setFont(font);
+    if (m_btnEngineSettings) m_btnEngineSettings->setFont(font);
+    if (m_unlimitedTimeRadioButton) m_unlimitedTimeRadioButton->setFont(font);
+    if (m_considerationTimeRadioButton) m_considerationTimeRadioButton->setFont(font);
+    if (m_byoyomiSecSpinBox) m_byoyomiSecSpinBox->setFont(font);
+    if (m_byoyomiSecUnitLabel) m_byoyomiSecUnitLabel->setFont(font);
     if (m_elapsedTimeLabel) m_elapsedTimeLabel->setFont(font);
     if (m_multiPVLabel) m_multiPVLabel->setFont(font);
     if (m_multiPVComboBox) m_multiPVComboBox->setFont(font);
@@ -2247,23 +2310,23 @@ void EngineAnalysisTab::setConsiderationTimeLimit(bool unlimited, int byoyomiSec
     // 時間制限を保存（経過時間タイマーの自動停止用）
     m_considerationTimeLimitSec = unlimited ? 0 : byoyomiSec;
 
-    if (!m_timeLimitLabel) return;
+    // ラジオボタンとスピンボックスを更新
+    if (m_unlimitedTimeRadioButton && m_considerationTimeRadioButton && m_byoyomiSecSpinBox) {
+        // シグナル一時停止（設定変更の循環を防ぐ）
+        m_unlimitedTimeRadioButton->blockSignals(true);
+        m_considerationTimeRadioButton->blockSignals(true);
+        m_byoyomiSecSpinBox->blockSignals(true);
 
-    if (unlimited) {
-        m_timeLimitLabel->setText(tr("時間: 無制限"));
-    } else {
-        // 秒数を分:秒形式で表示
-        if (byoyomiSec >= 60) {
-            const int minutes = byoyomiSec / 60;
-            const int seconds = byoyomiSec % 60;
-            if (seconds == 0) {
-                m_timeLimitLabel->setText(tr("時間: %1分").arg(minutes));
-            } else {
-                m_timeLimitLabel->setText(tr("時間: %1分%2秒").arg(minutes).arg(seconds));
-            }
+        if (unlimited) {
+            m_unlimitedTimeRadioButton->setChecked(true);
         } else {
-            m_timeLimitLabel->setText(tr("時間: %1秒").arg(byoyomiSec));
+            m_considerationTimeRadioButton->setChecked(true);
+            m_byoyomiSecSpinBox->setValue(byoyomiSec);
         }
+
+        m_unlimitedTimeRadioButton->blockSignals(false);
+        m_considerationTimeRadioButton->blockSignals(false);
+        m_byoyomiSecSpinBox->blockSignals(false);
     }
 }
 
@@ -2282,6 +2345,10 @@ void EngineAnalysisTab::startElapsedTimer()
         m_elapsedSeconds = 0;
         if (m_elapsedTimeLabel) {
             m_elapsedTimeLabel->setText(tr("経過: 0:00"));
+            // 検討中は赤色で表示
+            QPalette palette = m_elapsedTimeLabel->palette();
+            palette.setColor(QPalette::WindowText, Qt::red);
+            m_elapsedTimeLabel->setPalette(palette);
         }
         m_elapsedTimer->start();
     }
@@ -2361,4 +2428,140 @@ void EngineAnalysisTab::onElapsedTimerTick()
             .arg(minutes)
             .arg(seconds, 2, 10, QLatin1Char('0')));
     }
+}
+
+// ★ 追加: エンジンリストを設定ファイルから読み込む
+void EngineAnalysisTab::loadEngineList()
+{
+    if (!m_engineComboBox) return;
+
+    m_engineComboBox->clear();
+
+    // 設定ファイルからエンジンリストを読み込む
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings settings(EngineSettingsConstants::SettingsFileName, QSettings::IniFormat);
+
+    const int size = settings.beginReadArray(EngineSettingsConstants::EnginesGroupName);
+    for (int i = 0; i < size; i++) {
+        settings.setArrayIndex(i);
+        const QString name = settings.value(EngineSettingsConstants::EngineNameKey).toString();
+        m_engineComboBox->addItem(name);
+    }
+    settings.endArray();
+}
+
+// ★ 追加: 検討タブの設定を復元
+void EngineAnalysisTab::loadConsiderationTabSettings()
+{
+    // エンジン選択を復元
+    const int engineIndex = SettingsService::considerationEngineIndex();
+    if (m_engineComboBox && engineIndex >= 0 && engineIndex < m_engineComboBox->count()) {
+        m_engineComboBox->setCurrentIndex(engineIndex);
+    }
+
+    // 時間設定を復元
+    const bool unlimitedTime = SettingsService::considerationUnlimitedTime();
+    const int byoyomiSec = SettingsService::considerationByoyomiSec();
+
+    if (m_unlimitedTimeRadioButton && m_considerationTimeRadioButton && m_byoyomiSecSpinBox) {
+        if (unlimitedTime) {
+            m_unlimitedTimeRadioButton->setChecked(true);
+        } else {
+            m_considerationTimeRadioButton->setChecked(true);
+        }
+        m_byoyomiSecSpinBox->setValue(byoyomiSec > 0 ? byoyomiSec : 20);
+    }
+
+    // 候補手の数を復元
+    const int multiPV = SettingsService::considerationMultiPV();
+    if (m_multiPVComboBox && multiPV >= 1 && multiPV <= 10) {
+        m_multiPVComboBox->setCurrentIndex(multiPV - 1);
+    }
+}
+
+// ★ 追加: 検討タブの設定を保存
+void EngineAnalysisTab::saveConsiderationTabSettings()
+{
+    // エンジン選択を保存
+    if (m_engineComboBox) {
+        SettingsService::setConsiderationEngineIndex(m_engineComboBox->currentIndex());
+    }
+
+    // 時間設定を保存
+    if (m_unlimitedTimeRadioButton && m_byoyomiSecSpinBox) {
+        SettingsService::setConsiderationUnlimitedTime(m_unlimitedTimeRadioButton->isChecked());
+        SettingsService::setConsiderationByoyomiSec(m_byoyomiSecSpinBox->value());
+    }
+
+    // 候補手の数を保存
+    if (m_multiPVComboBox) {
+        SettingsService::setConsiderationMultiPV(m_multiPVComboBox->currentData().toInt());
+    }
+}
+
+// ★ 追加: エンジン設定ボタンクリック
+void EngineAnalysisTab::onEngineSettingsClicked()
+{
+    if (!m_engineComboBox) return;
+
+    const int engineNumber = m_engineComboBox->currentIndex();
+    const QString engineName = m_engineComboBox->currentText();
+
+    if (engineName.isEmpty()) {
+        QMessageBox::critical(this, tr("エラー"), tr("将棋エンジンが選択されていません。"));
+        return;
+    }
+
+    emit engineSettingsRequested(engineNumber, engineName);
+}
+
+// ★ 追加: 時間設定変更スロット
+void EngineAnalysisTab::onTimeSettingChanged()
+{
+    // 設定を保存
+    saveConsiderationTabSettings();
+
+    // 時間制限を内部変数に反映
+    const bool unlimited = isUnlimitedTime();
+    const int sec = byoyomiSec();
+    m_considerationTimeLimitSec = unlimited ? 0 : sec;
+
+    // シグナルを発行
+    emit considerationTimeSettingsChanged(unlimited, sec);
+}
+
+// ★ 追加: 選択されたエンジンのインデックスを取得
+int EngineAnalysisTab::selectedEngineIndex() const
+{
+    if (m_engineComboBox) {
+        return m_engineComboBox->currentIndex();
+    }
+    return 0;
+}
+
+// ★ 追加: 選択されたエンジンの名前を取得
+QString EngineAnalysisTab::selectedEngineName() const
+{
+    if (m_engineComboBox) {
+        return m_engineComboBox->currentText();
+    }
+    return QString();
+}
+
+// ★ 追加: 時間無制限かどうかを取得
+bool EngineAnalysisTab::isUnlimitedTime() const
+{
+    if (m_unlimitedTimeRadioButton) {
+        return m_unlimitedTimeRadioButton->isChecked();
+    }
+    return true;
+}
+
+// ★ 追加: 検討時間（秒）を取得
+int EngineAnalysisTab::byoyomiSec() const
+{
+    if (m_byoyomiSecSpinBox) {
+        return m_byoyomiSecSpinBox->value();
+    }
+    return 20;
 }

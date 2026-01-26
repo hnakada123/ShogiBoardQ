@@ -28,6 +28,7 @@ class QLineEdit;      // ★ 追加
 class QComboBox;      // ★ 追加: USIコマンド送信先選択用
 class QSpinBox;       // ★ 追加: 候補手の数用
 class QTimer;         // ★ 追加: 経過時間用
+class QRadioButton;   // ★ 追加: 思考時間設定用
 
 class EngineInfoWidget;
 class ShogiEngineThinkingModel;
@@ -154,6 +155,23 @@ public:
     // ★ 追加: 検討実行状態の設定（ボタン表示切替用）
     void setConsiderationRunning(bool running);
 
+    // ★ 追加: エンジンリストを読み込み
+    void loadEngineList();
+
+    // ★ 追加: エンジン選択を取得
+    int selectedEngineIndex() const;
+    QString selectedEngineName() const;
+
+    // ★ 追加: 時間設定を取得
+    bool isUnlimitedTime() const;
+    int byoyomiSec() const;
+
+    // ★ 追加: 検討タブの設定を復元
+    void loadConsiderationTabSettings();
+
+    // ★ 追加: 検討タブの設定を保存
+    void saveConsiderationTabSettings();
+
 public slots:
     void setAnalysisVisible(bool on);
     void setCommentHtml(const QString& html);
@@ -203,6 +221,12 @@ signals:
     // ★ 追加: 検討開始シグナル
     void startConsiderationRequested();
 
+    // ★ 追加: エンジン設定ボタンが押されたシグナル
+    void engineSettingsRequested(int engineNumber, const QString& engineName);
+
+    // ★ 追加: 思考時間設定が変更されたシグナル
+    void considerationTimeSettingsChanged(bool unlimited, int byoyomiSec);
+
 private:
     // ★ 追加: 分岐ツリーのクリック有効フラグ（対局中は無効にする）
     bool m_branchTreeClickEnabled = true;
@@ -233,7 +257,12 @@ private:
     QWidget* m_considerationToolbar=nullptr;  // 検討タブ用ツールバー
     QToolButton* m_btnConsiderationFontDecrease=nullptr;  // 検討タブフォントサイズ減少ボタン
     QToolButton* m_btnConsiderationFontIncrease=nullptr;  // 検討タブフォントサイズ増加ボタン
-    QLabel* m_timeLimitLabel=nullptr;         // 時間設定ラベル（「時間無制限」or「XX秒」）
+    QComboBox* m_engineComboBox=nullptr;      // エンジン選択コンボボックス
+    QPushButton* m_btnEngineSettings=nullptr; // エンジン設定ボタン
+    QRadioButton* m_unlimitedTimeRadioButton=nullptr;      // 時間無制限ラジオボタン
+    QRadioButton* m_considerationTimeRadioButton=nullptr;  // 検討時間ラジオボタン
+    QSpinBox* m_byoyomiSecSpinBox=nullptr;    // 検討時間スピンボックス
+    QLabel* m_byoyomiSecUnitLabel=nullptr;    // 「秒まで」ラベル
     QLabel* m_elapsedTimeLabel=nullptr;       // 経過時間ラベル
     QTimer* m_elapsedTimer=nullptr;           // 経過時間更新タイマー
     int m_elapsedSeconds=0;                   // 経過秒数
@@ -312,6 +341,8 @@ private:
     void onConsiderationFontDecrease();  // ★ 追加
     void onMultiPVComboBoxChanged(int index);  // ★ 追加: コンボボックス値変更
     void onElapsedTimerTick();           // ★ 追加: 経過時間更新
+    void onEngineSettingsClicked();      // ★ 追加: エンジン設定ボタンクリック
+    void onTimeSettingChanged();         // ★ 追加: 時間設定変更
     void buildCommentToolbar();
     void updateCommentFontSize(int delta);
     QString convertUrlsToLinks(const QString& text);

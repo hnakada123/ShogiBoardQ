@@ -4,8 +4,6 @@
 #include <QObject>
 #include <functional>
 
-class QWidget;
-class ConsiderationDialog;
 class MatchCoordinator;
 class ShogiEngineThinkingModel;
 
@@ -20,7 +18,7 @@ public:
     struct Deps {
         MatchCoordinator* match = nullptr;               // 司令塔
         std::function<void(const QString&)> onError;     // 任意: エラー表示
-        int multiPV = 1;                                 // 候補手の数（初期値、ダイアログで上書き可能）
+        int multiPV = 1;                                 // 候補手の数
         ShogiEngineThinkingModel* considerationModel = nullptr;  // 検討タブ用モデル
         std::function<void(bool unlimited, int byoyomiSec)> onTimeSettingsReady;  // 時間設定コールバック
         std::function<void(int multiPV)> onMultiPVReady;  // 候補手の数コールバック
@@ -29,10 +27,23 @@ public:
     explicit ConsiderationFlowController(QObject* parent=nullptr);
 
     /**
-     * 検討ダイアログを表示して、OKなら司令塔へ startAnalysis を投げます。
-     * @param positionStr 送信する "position ..." 文字列（MainWindow側で既に用意）
+     * @brief 検討パラメータ
      */
-    void runWithDialog(const Deps& d, QWidget* parent, const QString& positionStr);
+    struct DirectParams {
+        int engineIndex = 0;           // エンジンインデックス
+        QString engineName;            // エンジン名
+        bool unlimitedTime = true;     // 時間無制限フラグ
+        int byoyomiSec = 20;           // 検討時間（秒）
+        int multiPV = 1;               // 候補手の数
+    };
+
+    /**
+     * ダイアログを表示せず、指定されたパラメータで直接検討を開始します。
+     * @param d 依存情報
+     * @param params 検討パラメータ
+     * @param positionStr 送信する "position ..." 文字列
+     */
+    void runDirect(const Deps& d, const DirectParams& params, const QString& positionStr);
 
 private:
     void startAnalysis(MatchCoordinator* match,

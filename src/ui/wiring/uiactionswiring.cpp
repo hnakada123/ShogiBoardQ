@@ -41,7 +41,6 @@ void UiActionsWiring::wire()
 
     // 解析/検討/詰み・エンジン設定
     QObject::connect(ui->actionEngineSettings,       &QAction::triggered, mw, &MainWindow::displayEngineSettingsDialog,    Qt::UniqueConnection);
-    QObject::connect(ui->actionConsideration,        &QAction::triggered, mw, &MainWindow::displayConsiderationDialog,     Qt::UniqueConnection);
     QObject::connect(ui->actionAnalyzeKifu,          &QAction::triggered, mw, &MainWindow::displayKifuAnalysisDialog,      Qt::UniqueConnection);
     QObject::connect(ui->actionCancelAnalyzeKifu,     &QAction::triggered, mw, &MainWindow::cancelKifuAnalysis,             Qt::UniqueConnection);
     QObject::connect(ui->actionStartEditPosition,    &QAction::triggered, mw, &MainWindow::beginPositionEditing,           Qt::UniqueConnection);

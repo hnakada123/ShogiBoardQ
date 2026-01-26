@@ -28,6 +28,7 @@
 
 #include "mainwindow.h"
 #include "branchwiringcoordinator.h"
+#include "changeenginesettingsdialog.h"
 #include "considerationflowcontroller.h"
 #include "shogiutils.h"
 #include "gamelayoutbuilder.h"
@@ -785,6 +786,22 @@ void MainWindow::displayEngineSettingsDialog()
     }
 }
 
+// 検討タブからのエンジン設定リクエスト
+void MainWindow::onConsiderationEngineSettingsRequested(int engineNumber, const QString& engineName)
+{
+    qDebug().noquote() << "[MainWindow::onConsiderationEngineSettingsRequested] engineNumber=" << engineNumber
+                       << " engineName=" << engineName;
+
+    ChangeEngineSettingsDialog dialog(this);
+    dialog.setEngineNumber(engineNumber);
+    dialog.setEngineName(engineName);
+    dialog.setupEngineOptionsDialog();
+
+    if (dialog.exec() == QDialog::Rejected) {
+        return;
+    }
+}
+
 // 成る・不成の選択ダイアログを起動する。
 void MainWindow::displayPromotionDialog()
 {
@@ -796,10 +813,16 @@ void MainWindow::displayPromotionDialog()
     }
 }
 
-// 検討ダイアログを表示する。
+// 検討を開始する（検討タブの設定を使用）
 void MainWindow::displayConsiderationDialog()
 {
     qDebug().noquote() << "[MainWindow::displayConsiderationDialog] ENTER, current m_playMode=" << static_cast<int>(m_playMode);
+
+    // エンジンが選択されているかチェック
+    if (m_analysisTab && m_analysisTab->selectedEngineName().isEmpty()) {
+        QMessageBox::critical(this, tr("エラー"), tr("将棋エンジンが選択されていません。"));
+        return;
+    }
 
     // UI 側の状態保持（従来どおり）
     m_playMode = PlayMode::ConsiderationMode;
@@ -820,22 +843,33 @@ void MainWindow::displayConsiderationDialog()
     qDebug().noquote() << "[MainWindow::displayConsiderationDialog] position=" << position.left(50);
 
     ensureDialogCoordinator();
-    if (m_dialogCoordinator) {
+    if (m_dialogCoordinator && m_analysisTab) {
         // 検討タブ専用モデルを作成（なければ）
         if (!m_considerationModel) {
             m_considerationModel = new ShogiEngineThinkingModel(this);
         }
 
-        DialogCoordinator::ConsiderationParams params;
+        // 検討タブの設定を保存
+        m_analysisTab->saveConsiderationTabSettings();
+
+        // 検討タブの設定を使用して直接検討を開始
+        DialogCoordinator::ConsiderationDirectParams params;
         params.position = position;
-        // 検討タブから候補手の数（MultiPV）を取得
-        if (m_analysisTab) {
-            params.multiPV = m_analysisTab->considerationMultiPV();
-        }
-        params.considerationModel = m_considerationModel;  // ★ 追加: 検討タブ用モデル
-        qDebug().noquote() << "[MainWindow::displayConsiderationDialog] calling showConsiderationDialog";
-        m_dialogCoordinator->showConsiderationDialog(params);
-        qDebug().noquote() << "[MainWindow::displayConsiderationDialog] showConsiderationDialog returned";
+        params.engineIndex = m_analysisTab->selectedEngineIndex();
+        params.engineName = m_analysisTab->selectedEngineName();
+        params.unlimitedTime = m_analysisTab->isUnlimitedTime();
+        params.byoyomiSec = m_analysisTab->byoyomiSec();
+        params.multiPV = m_analysisTab->considerationMultiPV();
+        params.considerationModel = m_considerationModel;
+
+        qDebug().noquote() << "[MainWindow::displayConsiderationDialog] calling startConsiderationDirect"
+                          << "engineIndex=" << params.engineIndex
+                          << "engineName=" << params.engineName
+                          << "unlimitedTime=" << params.unlimitedTime
+                          << "byoyomiSec=" << params.byoyomiSec
+                          << "multiPV=" << params.multiPV;
+        m_dialogCoordinator->startConsiderationDirect(params);
+        qDebug().noquote() << "[MainWindow::displayConsiderationDialog] startConsiderationDirect returned";
     }
     qDebug().noquote() << "[MainWindow::displayConsiderationDialog] EXIT";
 }
@@ -2086,6 +2120,12 @@ void MainWindow::setupEngineAnalysisTab()
     QObject::connect(
         m_analysisTab, &EngineAnalysisTab::startConsiderationRequested,
         this,          &MainWindow::displayConsiderationDialog,
+        Qt::UniqueConnection);
+
+    // ★ 追加: 検討タブからのエンジン設定リクエストの接続
+    QObject::connect(
+        m_analysisTab, &EngineAnalysisTab::engineSettingsRequested,
+        this,          &MainWindow::onConsiderationEngineSettingsRequested,
         Qt::UniqueConnection);
 
     // ★ 追加: PlayerInfoControllerにもm_analysisTabを設定

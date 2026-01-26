@@ -1,19 +1,23 @@
 #include "considerationflowcontroller.h"
 
-#include "considerationdialog.h"
 #include "matchcoordinator.h"
 #include "shogienginethinkingmodel.h"
+#include "enginesettingsconstants.h"
 
 #include <QObject>
-#include <QDialog>
+#include <QSettings>
+#include <QDir>
+#include <QApplication>
 
 ConsiderationFlowController::ConsiderationFlowController(QObject* parent)
     : QObject(parent)
 {
 }
 
-void ConsiderationFlowController::runWithDialog(const Deps& d, QWidget* parent, const QString& positionStr)
+void ConsiderationFlowController::runDirect(const Deps& d, const DirectParams& params, const QString& positionStr)
 {
+    using namespace EngineSettingsConstants;
+
     if (!d.match) {
         if (d.onError) d.onError(QStringLiteral("内部エラー: MatchCoordinator が未初期化です。"));
         return;
@@ -23,41 +27,44 @@ void ConsiderationFlowController::runWithDialog(const Deps& d, QWidget* parent, 
         return;
     }
 
-    ConsiderationDialog dlg(parent);
-    if (dlg.exec() != QDialog::Accepted) return;
+    // 設定ファイルからエンジンパスを取得
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings settings(SettingsFileName, QSettings::IniFormat);
 
-    const QList<ConsiderationDialog::Engine>& engines = dlg.getEngineList();
-    const int idx = dlg.getEngineNumber();
+    const int size = settings.beginReadArray(EnginesGroupName);
+    QString enginePath;
+    QString engineName = params.engineName;
 
-    if (engines.isEmpty() || idx < 0 || idx >= engines.size()) {
+    if (params.engineIndex >= 0 && params.engineIndex < size) {
+        settings.setArrayIndex(params.engineIndex);
+        enginePath = settings.value(EnginePathKey).toString();
+        if (engineName.isEmpty()) {
+            engineName = settings.value(EngineNameKey).toString();
+        }
+    }
+    settings.endArray();
+
+    if (enginePath.isEmpty()) {
         if (d.onError) d.onError(QStringLiteral("検討エンジンの選択が不正です。"));
         return;
     }
 
-    const auto& engine = engines.at(idx);
-
-    const bool unlimitedTime = dlg.unlimitedTimeFlag();
-    const int byoyomiSec = dlg.getByoyomiSec();
-    const int multiPV = dlg.getMultiPV();
-
     int byoyomiMs = 0;  // 0 は無制限
-    if (!unlimitedTime) {
-        byoyomiMs = byoyomiSec * 1000;  // 秒 → ms
+    if (!params.unlimitedTime) {
+        byoyomiMs = params.byoyomiSec * 1000;  // 秒 → ms
     }
 
     // 時間設定コールバックを呼び出し
     if (d.onTimeSettingsReady) {
-        d.onTimeSettingsReady(unlimitedTime, byoyomiSec);
+        d.onTimeSettingsReady(params.unlimitedTime, params.byoyomiSec);
     }
 
     // 候補手の数コールバックを呼び出し
     if (d.onMultiPVReady) {
-        d.onMultiPVReady(multiPV);
+        d.onMultiPVReady(params.multiPV);
     }
 
-    // 表示名は engine.name を使用
-    // ダイアログで選択された候補手の数を使用
-    startAnalysis(d.match, engine.path, engine.name, positionStr, byoyomiMs, multiPV, d.considerationModel);
+    startAnalysis(d.match, enginePath, engineName, positionStr, byoyomiMs, params.multiPV, d.considerationModel);
 }
 
 void ConsiderationFlowController::startAnalysis(MatchCoordinator* match,

@@ -93,7 +93,6 @@
     </property>
     <addaction name="actionStartGame"/>
     <addaction name="actionCSA"/>
-    <addaction name="actionConsideration"/>
     <addaction name="separator"/>
     <addaction name="actionResign"/>
     <addaction name="actionUndoMove"/>
@@ -160,7 +159,6 @@
    <addaction name="actionUndoMove"/>
    <addaction name="actionMakeImmediateMove"/>
    <addaction name="actionBreakOffGame"/>
-   <addaction name="actionConsideration"/>
    <addaction name="actionAnalyzeKifu"/>
    <addaction name="actionTsumeShogiSearch"/>
    <addaction name="actionFlipBoard"/>
@@ -239,15 +237,6 @@
    </property>
    <property name="text">
     <string>対局</string>
-   </property>
-  </action>
-  <action name="actionConsideration">
-   <property name="icon">
-    <iconset resource="../../resources/shogiboardq.qrc">
-     <normaloff>:/images/actions/actionConsideration.svg</normaloff>:/images/actions/actionConsideration.svg</iconset>
-   </property>
-   <property name="text">
-    <string>検討</string>
    </property>
   </action>
   <action name="actionResign">

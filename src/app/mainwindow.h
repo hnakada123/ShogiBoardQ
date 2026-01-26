@@ -208,6 +208,7 @@ public slots:
     void displayMenuWindow();   // メニューウィンドウの表示
     void displayJishogiScoreDialog();  // 持将棋の点数ダイアログ
     void handleNyugyokuDeclaration();  // 入玉宣言
+    void onConsiderationEngineSettingsRequested(int engineNumber, const QString& engineName);  // 検討タブからのエンジン設定リクエスト
 
     // 言語設定
     void onLanguageSystemTriggered();
