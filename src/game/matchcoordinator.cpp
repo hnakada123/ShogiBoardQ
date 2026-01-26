@@ -1145,6 +1145,10 @@ void MatchCoordinator::startEngineVsEngine(const StartOptions& opt)
 // 平手EvE：先手から開始
 void MatchCoordinator::startEvEFirstMoveByBlack()
 {
+    qDebug().noquote() << "[EvE][startEvEFirstMoveByBlack] START"
+                       << "positionStr1=" << m_positionStr1
+                       << "positionStr2=" << m_positionStr2;
+
     const GoTimes t1 = computeGoTimes();
     const QString btimeStr1 = QString::number(t1.btime);
     const QString wtimeStr1 = QString::number(t1.wtime);
@@ -1243,6 +1247,9 @@ void MatchCoordinator::startEvEFirstMoveByBlack()
     if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
     if (m_hooks.showMoveHighlights) m_hooks.showMoveHighlights(p2From, p2To);
     updateTurnDisplay((m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2);
+
+    // P2の手をP1のポジション文字列に同期
+    m_positionStr1 = m_positionStr2;
 
     QTimer::singleShot(std::chrono::milliseconds(0), this, &MatchCoordinator::kickNextEvETurn);
 }
@@ -1351,6 +1358,9 @@ void MatchCoordinator::startEvEFirstMoveByWhite()
     if (m_hooks.showMoveHighlights) m_hooks.showMoveHighlights(p1From, p1To);
     updateTurnDisplay((m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2);
 
+    // P1の手をP2のポジション文字列に同期
+    m_positionStr2 = m_positionStr1;
+
     QTimer::singleShot(std::chrono::milliseconds(0), this, &MatchCoordinator::kickNextEvETurn);
 }
 
@@ -1404,6 +1414,7 @@ void MatchCoordinator::initPositionStringsForEvE(const QString& sfenStart)
     }
     m_positionStr1 = base;
     m_positionStr2 = base;
+    qDebug().noquote() << "[EvE][initPositionStringsForEvE] base=" << base;
 }
 
 void MatchCoordinator::kickNextEvETurn()
@@ -1417,7 +1428,11 @@ void MatchCoordinator::kickNextEvETurn()
 
     QString& pos    = p1ToMove ? m_positionStr1     : m_positionStr2;
     QString& ponder = p1ToMove ? m_positionPonder1  : m_positionPonder2;
-    if (p1ToMove) pos = m_positionStr2; else pos = m_positionStr1;
+
+    qDebug().noquote() << "[EvE][kickNextEvETurn] moveIndex=" << m_eveMoveIndex
+                       << "p1ToMove=" << p1ToMove
+                       << "positionStr1=" << m_positionStr1
+                       << "positionStr2=" << m_positionStr2;
 
     QPoint from(-1,-1), to(-1,-1);
     if (!engineThinkApplyMove(mover, pos, ponder, &from, &to))
@@ -1432,6 +1447,13 @@ void MatchCoordinator::kickNextEvETurn()
         return;
     } else {
         m_eveMoveIndex = nextEve;
+    }
+
+    // 相手側のポジション文字列を同期
+    if (p1ToMove) {
+        m_positionStr2 = m_positionStr1;
+    } else {
+        m_positionStr1 = m_positionStr2;
     }
 
     if (m_clock) {

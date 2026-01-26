@@ -3834,36 +3834,36 @@ Please restart the application to apply the changes.</translation>
         <translation>Game Over</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2013"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2035"/>
         <source>詰みあり（手順 %1 手）</source>
         <translation>Mate found (%1 moves)</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2014"/>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2023"/>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2032"/>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2041"/>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2053"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2036"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2045"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2054"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2063"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2075"/>
         <source>詰み探索</source>
         <translation>Mate Search</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2023"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2045"/>
         <source>詰みなし</source>
         <translation>No mate</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2032"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2054"/>
         <source>（エンジン側）未実装</source>
         <translation>(Engine) Not implemented</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2041"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2063"/>
         <source>不明（解析不能）</source>
         <translation>Unknown (unable to analyze)</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2053"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2075"/>
         <source>探索が完了しました</source>
         <translation>Search completed</translation>
     </message>
@@ -4448,12 +4448,12 @@ Are you sure you want to declare?</translation>
         <translation>Engine2</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2820"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2842"/>
         <source>先手番</source>
         <translation>Sente (Black)</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2820"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2842"/>
         <source>後手番</source>
         <translation>Gote (White)</translation>
     </message>
@@ -4969,12 +4969,12 @@ Are you sure you want to declare?</translation>
         <translation>Go to End</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="529"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="531"/>
         <source>本譜に戻る</source>
         <translation>Return to Main</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="533"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="535"/>
         <source>現在の手数で本譜（メインライン）に戻る</source>
         <translation>Return to main line at current move</translation>
     </message>
@@ -5535,7 +5535,7 @@ Are you sure you want to declare?</translation>
         <translation>USI engine is not running.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="833"/>
+        <location filename="../../src/engine/usi.cpp" line="835"/>
         <source>Timeout waiting for bestmove.</source>
         <translation>Timeout waiting for bestmove.</translation>
     </message>
