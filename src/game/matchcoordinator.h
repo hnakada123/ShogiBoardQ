@@ -357,6 +357,8 @@ public:
         int      multiPV   = 1;           // ★ 追加: MultiPV（候補手の数）
         PlayMode mode      = PlayMode::ConsiderationMode; // 既定で検討モード
         ShogiEngineThinkingModel* considerationModel = nullptr;  // ★ 追加: 検討タブ用モデル
+        int      previousFileTo = 0;      // ★ 追加: 前回の移動先の筋（1-9, 0=未設定）
+        int      previousRankTo = 0;      // ★ 追加: 前回の移動先の段（1-9, 0=未設定）
     };
 
     // ==== 追加：検討API ====
@@ -370,7 +372,8 @@ public:
 
     /// 検討中にポジションを変更する（棋譜欄の別の手を選択したとき）
     /// @return true: 再開処理を開始した, false: 検討モードでないか同じポジションのため無視
-    bool updateConsiderationPosition(const QString& newPositionStr);
+    bool updateConsiderationPosition(const QString& newPositionStr,
+                                     int previousFileTo = 0, int previousRankTo = 0);
 
 public:
     Usi* primaryEngine() const;   // HvE/EvH で司令塔が使う主エンジン（これまで m_usi1 に相当）
@@ -487,6 +490,8 @@ private:
     bool m_considerationWaiting = false;  ///< 検討待機中フラグ（時間切れ後、次の局面選択待ち）
     QString m_considerationEnginePath;      ///< 検討中のエンジンパス
     QString m_considerationEngineName;      ///< 検討中のエンジン名
+    int m_considerationPreviousFileTo = 0;  ///< 検討中の前回の移動先の筋
+    int m_considerationPreviousRankTo = 0;  ///< 検討中の前回の移動先の段
 
 private slots:
     void onCheckmateSolved(const QStringList& pv);

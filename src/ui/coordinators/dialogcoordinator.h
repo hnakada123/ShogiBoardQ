@@ -136,6 +136,8 @@ public:
         int byoyomiSec = 20;               // 検討時間（秒）
         int multiPV = 1;                   // 候補手の数
         ShogiEngineThinkingModel* considerationModel = nullptr;  // 検討タブ用モデル
+        int previousFileTo = 0;            // 前回の移動先の筋（1-9, 0=未設定）
+        int previousRankTo = 0;            // 前回の移動先の段（1-9, 0=未設定）
     };
 
     /**

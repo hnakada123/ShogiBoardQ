@@ -64,7 +64,8 @@ void ConsiderationFlowController::runDirect(const Deps& d, const DirectParams& p
         d.onMultiPVReady(params.multiPV);
     }
 
-    startAnalysis(d.match, enginePath, engineName, positionStr, byoyomiMs, params.multiPV, d.considerationModel);
+    startAnalysis(d.match, enginePath, engineName, positionStr, byoyomiMs, params.multiPV, d.considerationModel,
+                  params.previousFileTo, params.previousRankTo);
 }
 
 void ConsiderationFlowController::startAnalysis(MatchCoordinator* match,
@@ -73,7 +74,9 @@ void ConsiderationFlowController::startAnalysis(MatchCoordinator* match,
                                                  const QString& positionStr,
                                                  int byoyomiMs,
                                                  int multiPV,
-                                                 ShogiEngineThinkingModel* considerationModel)
+                                                 ShogiEngineThinkingModel* considerationModel,
+                                                 int previousFileTo,
+                                                 int previousRankTo)
 {
     MatchCoordinator::AnalysisOptions opt;
     opt.enginePath  = enginePath;
@@ -83,6 +86,8 @@ void ConsiderationFlowController::startAnalysis(MatchCoordinator* match,
     opt.multiPV     = multiPV;
     opt.mode        = PlayMode::ConsiderationMode;  // 既存の PlayMode
     opt.considerationModel = considerationModel;    // ★ 追加: 検討タブ用モデル
+    opt.previousFileTo = previousFileTo;            // ★ 追加: 前回の移動先の筋
+    opt.previousRankTo = previousRankTo;            // ★ 追加: 前回の移動先の段
 
     match->startAnalysis(opt);
 }

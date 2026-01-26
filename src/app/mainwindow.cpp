@@ -861,6 +861,101 @@ void MainWindow::displayConsiderationDialog()
         params.multiPV = m_analysisTab->considerationMultiPV();
         params.considerationModel = m_considerationModel;
 
+        // 選択中の指し手の移動先を取得（「同」表記のため）
+        // m_gameMoves が空の場合（棋譜読み込み時）は棋譜モデルから取得
+        qDebug().noquote() << "[MainWindow::displayConsiderationDialog] m_currentMoveIndex=" << m_currentMoveIndex
+                           << "m_gameMoves.size()=" << m_gameMoves.size();
+        if (m_currentMoveIndex >= 0 && m_currentMoveIndex < m_gameMoves.size()) {
+            // 対局中の場合: m_gameMoves から直接取得
+            const QPoint& toSquare = m_gameMoves.at(m_currentMoveIndex).toSquare;
+            params.previousFileTo = toSquare.x();
+            params.previousRankTo = toSquare.y();
+            qDebug().noquote() << "[MainWindow::displayConsiderationDialog] previousFileTo/RankTo (from gameMoves):"
+                               << params.previousFileTo << "/" << params.previousRankTo;
+        } else if (m_kifuRecordModel && m_currentMoveIndex > 0 && m_currentMoveIndex < m_kifuRecordModel->rowCount()) {
+            // 棋譜読み込み時: 棋譜モデルから指し手ラベルを取得して座標を解析
+            const QModelIndex idx = m_kifuRecordModel->index(m_currentMoveIndex, 0);
+            const QString moveLabel = m_kifuRecordModel->data(idx, Qt::DisplayRole).toString();
+            qDebug().noquote() << "[MainWindow::displayConsiderationDialog] moveLabel from recordModel:" << moveLabel;
+
+            // 形式: 「▲７六歩(77)」または「△同　銀(31)」
+            static const QString senteMark = QStringLiteral("▲");
+            static const QString goteMark = QStringLiteral("△");
+
+            qsizetype markPos = moveLabel.indexOf(senteMark);
+            if (markPos < 0) {
+                markPos = moveLabel.indexOf(goteMark);
+            }
+
+            if (markPos >= 0 && moveLabel.length() > markPos + 2) {
+                QString afterMark = moveLabel.mid(markPos + 1);
+
+                // 「同」の場合は前の手から座標を取得する必要がある
+                if (!afterMark.startsWith(QStringLiteral("同"))) {
+                    // 「７六」のような漢字座標を取得
+                    QChar fileChar = afterMark.at(0);  // 全角数字 '１'〜'９'
+                    QChar rankChar = afterMark.at(1);  // 漢数字 '一'〜'九'
+
+                    // 全角数字を整数に変換（'１'=0xFF11 → 1）
+                    int fileTo = 0;
+                    if (fileChar >= QChar(0xFF11) && fileChar <= QChar(0xFF19)) {
+                        fileTo = fileChar.unicode() - 0xFF11 + 1;
+                    }
+
+                    // 漢数字を整数に変換
+                    int rankTo = 0;
+                    static const QString kanjiRanks = QStringLiteral("一二三四五六七八九");
+                    qsizetype rankIdxPos = kanjiRanks.indexOf(rankChar);
+                    if (rankIdxPos >= 0) {
+                        rankTo = static_cast<int>(rankIdxPos) + 1;
+                    }
+
+                    if (fileTo >= 1 && fileTo <= 9 && rankTo >= 1 && rankTo <= 9) {
+                        params.previousFileTo = fileTo;
+                        params.previousRankTo = rankTo;
+                        qDebug().noquote() << "[MainWindow::displayConsiderationDialog] previousFileTo/RankTo (from recordModel):"
+                                           << params.previousFileTo << "/" << params.previousRankTo;
+                    }
+                } else {
+                    // 「同」の場合は、さらに前の手を遡って座標を取得
+                    for (int i = m_currentMoveIndex - 1; i > 0; --i) {
+                        const QModelIndex prevIdx = m_kifuRecordModel->index(i, 0);
+                        const QString prevLabel = m_kifuRecordModel->data(prevIdx, Qt::DisplayRole).toString();
+                        qsizetype prevMarkPos = prevLabel.indexOf(senteMark);
+                        if (prevMarkPos < 0) {
+                            prevMarkPos = prevLabel.indexOf(goteMark);
+                        }
+                        if (prevMarkPos >= 0 && prevLabel.length() > prevMarkPos + 2) {
+                            QString prevAfterMark = prevLabel.mid(prevMarkPos + 1);
+                            if (!prevAfterMark.startsWith(QStringLiteral("同"))) {
+                                QChar fileChar = prevAfterMark.at(0);
+                                QChar rankChar = prevAfterMark.at(1);
+                                int fileTo = 0;
+                                if (fileChar >= QChar(0xFF11) && fileChar <= QChar(0xFF19)) {
+                                    fileTo = fileChar.unicode() - 0xFF11 + 1;
+                                }
+                                int rankTo = 0;
+                                static const QString kanjiRanks = QStringLiteral("一二三四五六七八九");
+                                qsizetype rankIdxPos = kanjiRanks.indexOf(rankChar);
+                                if (rankIdxPos >= 0) {
+                                    rankTo = static_cast<int>(rankIdxPos) + 1;
+                                }
+                                if (fileTo >= 1 && fileTo <= 9 && rankTo >= 1 && rankTo <= 9) {
+                                    params.previousFileTo = fileTo;
+                                    params.previousRankTo = rankTo;
+                                    qDebug().noquote() << "[MainWindow::displayConsiderationDialog] previousFileTo/RankTo (from 同 lookup):"
+                                                       << params.previousFileTo << "/" << params.previousRankTo;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            qDebug().noquote() << "[MainWindow::displayConsiderationDialog] WARNING: condition failed, no previousFileTo/RankTo set";
+        }
+
         qDebug().noquote() << "[MainWindow::displayConsiderationDialog] calling startConsiderationDirect"
                           << "engineIndex=" << params.engineIndex
                           << "engineName=" << params.engineName
@@ -3369,8 +3464,66 @@ void MainWindow::onRecordRowChangedByPresenter(int row, const QString& comment)
                            << " newPosition=" << newPosition.left(80);
         if (!newPosition.isEmpty()) {
             qDebug() << "[MW-DEBUG] Consideration mode: restarting with new position at row=" << row;
-            const bool updated = m_match->updateConsiderationPosition(newPosition);
-            qDebug().noquote() << "[MW] updateConsiderationPosition returned:" << updated;
+
+            // 選択した手の移動先を取得（「同」表記のため）
+            int previousFileTo = 0;
+            int previousRankTo = 0;
+            if (row >= 0 && row < m_gameMoves.size()) {
+                const QPoint& toSquare = m_gameMoves.at(row).toSquare;
+                previousFileTo = toSquare.x();
+                previousRankTo = toSquare.y();
+            } else if (m_kifuRecordModel && row > 0 && row < m_kifuRecordModel->rowCount()) {
+                // 棋譜読み込み時: 棋譜モデルから座標を解析
+                const QModelIndex idx = m_kifuRecordModel->index(row, 0);
+                const QString moveLabel = m_kifuRecordModel->data(idx, Qt::DisplayRole).toString();
+                static const QString senteMark = QStringLiteral("▲");
+                static const QString goteMark = QStringLiteral("△");
+                qsizetype markPos = moveLabel.indexOf(senteMark);
+                if (markPos < 0) markPos = moveLabel.indexOf(goteMark);
+                if (markPos >= 0 && moveLabel.length() > markPos + 2) {
+                    QString afterMark = moveLabel.mid(markPos + 1);
+                    if (!afterMark.startsWith(QStringLiteral("同"))) {
+                        QChar fileChar = afterMark.at(0);
+                        QChar rankChar = afterMark.at(1);
+                        if (fileChar >= QChar(0xFF11) && fileChar <= QChar(0xFF19)) {
+                            previousFileTo = fileChar.unicode() - 0xFF11 + 1;
+                        }
+                        static const QString kanjiRanks = QStringLiteral("一二三四五六七八九");
+                        qsizetype rankIdxPos = kanjiRanks.indexOf(rankChar);
+                        if (rankIdxPos >= 0) {
+                            previousRankTo = static_cast<int>(rankIdxPos) + 1;
+                        }
+                    } else {
+                        // 「同」の場合は遡って座標を取得
+                        for (int i = row - 1; i > 0; --i) {
+                            const QModelIndex prevIdx = m_kifuRecordModel->index(i, 0);
+                            const QString prevLabel = m_kifuRecordModel->data(prevIdx, Qt::DisplayRole).toString();
+                            qsizetype prevMarkPos = prevLabel.indexOf(senteMark);
+                            if (prevMarkPos < 0) prevMarkPos = prevLabel.indexOf(goteMark);
+                            if (prevMarkPos >= 0 && prevLabel.length() > prevMarkPos + 2) {
+                                QString prevAfterMark = prevLabel.mid(prevMarkPos + 1);
+                                if (!prevAfterMark.startsWith(QStringLiteral("同"))) {
+                                    QChar fileChar = prevAfterMark.at(0);
+                                    QChar rankChar = prevAfterMark.at(1);
+                                    if (fileChar >= QChar(0xFF11) && fileChar <= QChar(0xFF19)) {
+                                        previousFileTo = fileChar.unicode() - 0xFF11 + 1;
+                                    }
+                                    static const QString kanjiRanks = QStringLiteral("一二三四五六七八九");
+                                    qsizetype rankIdxPos = kanjiRanks.indexOf(rankChar);
+                                    if (rankIdxPos >= 0) {
+                                        previousRankTo = static_cast<int>(rankIdxPos) + 1;
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            const bool updated = m_match->updateConsiderationPosition(newPosition, previousFileTo, previousRankTo);
+            qDebug().noquote() << "[MW] updateConsiderationPosition returned:" << updated
+                               << "previousFileTo=" << previousFileTo << "previousRankTo=" << previousRankTo;
             if (updated) {
                 // ポジションが変更された場合、経過時間タイマーをリセットして再開
                 if (m_analysisTab) {
@@ -3505,7 +3658,63 @@ void MainWindow::onRecordPaneMainRowChanged(int row)
     if (m_playMode == PlayMode::ConsiderationMode && m_match) {
         const QString newPosition = buildPositionStringForIndex(row);
         if (!newPosition.isEmpty()) {
-            if (m_match->updateConsiderationPosition(newPosition)) {
+            // 選択した手の移動先を取得（「同」表記のため）
+            int previousFileTo = 0;
+            int previousRankTo = 0;
+            if (row >= 0 && row < m_gameMoves.size()) {
+                const QPoint& toSquare = m_gameMoves.at(row).toSquare;
+                previousFileTo = toSquare.x();
+                previousRankTo = toSquare.y();
+            } else if (m_kifuRecordModel && row > 0 && row < m_kifuRecordModel->rowCount()) {
+                // 棋譜読み込み時: 棋譜モデルから座標を解析
+                const QModelIndex idx = m_kifuRecordModel->index(row, 0);
+                const QString moveLabel = m_kifuRecordModel->data(idx, Qt::DisplayRole).toString();
+                static const QString senteMark = QStringLiteral("▲");
+                static const QString goteMark = QStringLiteral("△");
+                qsizetype markPos = moveLabel.indexOf(senteMark);
+                if (markPos < 0) markPos = moveLabel.indexOf(goteMark);
+                if (markPos >= 0 && moveLabel.length() > markPos + 2) {
+                    QString afterMark = moveLabel.mid(markPos + 1);
+                    if (!afterMark.startsWith(QStringLiteral("同"))) {
+                        QChar fileChar = afterMark.at(0);
+                        QChar rankChar = afterMark.at(1);
+                        if (fileChar >= QChar(0xFF11) && fileChar <= QChar(0xFF19)) {
+                            previousFileTo = fileChar.unicode() - 0xFF11 + 1;
+                        }
+                        static const QString kanjiRanks = QStringLiteral("一二三四五六七八九");
+                        qsizetype rankIdxPos = kanjiRanks.indexOf(rankChar);
+                        if (rankIdxPos >= 0) {
+                            previousRankTo = static_cast<int>(rankIdxPos) + 1;
+                        }
+                    } else {
+                        // 「同」の場合は遡って座標を取得
+                        for (int i = row - 1; i > 0; --i) {
+                            const QModelIndex prevIdx = m_kifuRecordModel->index(i, 0);
+                            const QString prevLabel = m_kifuRecordModel->data(prevIdx, Qt::DisplayRole).toString();
+                            qsizetype prevMarkPos = prevLabel.indexOf(senteMark);
+                            if (prevMarkPos < 0) prevMarkPos = prevLabel.indexOf(goteMark);
+                            if (prevMarkPos >= 0 && prevLabel.length() > prevMarkPos + 2) {
+                                QString prevAfterMark = prevLabel.mid(prevMarkPos + 1);
+                                if (!prevAfterMark.startsWith(QStringLiteral("同"))) {
+                                    QChar fileChar = prevAfterMark.at(0);
+                                    QChar rankChar = prevAfterMark.at(1);
+                                    if (fileChar >= QChar(0xFF11) && fileChar <= QChar(0xFF19)) {
+                                        previousFileTo = fileChar.unicode() - 0xFF11 + 1;
+                                    }
+                                    static const QString kanjiRanks = QStringLiteral("一二三四五六七八九");
+                                    qsizetype rankIdxPos = kanjiRanks.indexOf(rankChar);
+                                    if (rankIdxPos >= 0) {
+                                        previousRankTo = static_cast<int>(rankIdxPos) + 1;
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (m_match->updateConsiderationPosition(newPosition, previousFileTo, previousRankTo)) {
                 // ポジションが変更された場合、経過時間タイマーをリセットして再開
                 if (m_analysisTab) {
                     m_analysisTab->startElapsedTimer();

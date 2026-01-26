@@ -136,6 +136,8 @@ void DialogCoordinator::startConsiderationDirect(const ConsiderationDirectParams
     directParams.unlimitedTime = params.unlimitedTime;
     directParams.byoyomiSec = params.byoyomiSec;
     directParams.multiPV = params.multiPV;
+    directParams.previousFileTo = params.previousFileTo;
+    directParams.previousRankTo = params.previousRankTo;
 
     flow->runDirect(d, directParams, params.position);
 }
