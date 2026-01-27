@@ -1100,4 +1100,55 @@ void setMenuWindowDockVisible(bool visible)
     s.setValue("MenuWindowDock/visible", visible);
 }
 
+// ★ 追加: 保存されているカスタムドックレイアウト名のリストを取得
+QStringList savedDockLayoutNames()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.beginGroup("CustomDockLayouts");
+    QStringList names = s.childKeys();
+    s.endGroup();
+    return names;
+}
+
+// ★ 追加: 指定した名前でドックレイアウトを保存
+void saveDockLayout(const QString& name, const QByteArray& state)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("CustomDockLayouts/" + name, state);
+}
+
+// ★ 追加: 指定した名前のドックレイアウトを取得
+QByteArray loadDockLayout(const QString& name)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("CustomDockLayouts/" + name, QByteArray()).toByteArray();
+}
+
+// ★ 追加: 指定した名前のドックレイアウトを削除
+void deleteDockLayout(const QString& name)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.remove("CustomDockLayouts/" + name);
+}
+
+// ★ 追加: 起動時に使用するレイアウト名を取得
+QString startupDockLayoutName()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("DockLayout/startupLayoutName", QString()).toString();
+}
+
+// ★ 追加: 起動時に使用するレイアウト名を保存
+void setStartupDockLayoutName(const QString& name)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("DockLayout/startupLayoutName", name);
+}
+
 } // namespace SettingsService

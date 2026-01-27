@@ -1,4 +1,6 @@
 #include <QMessageBox>
+#include <QInputDialog>   // ★ 追加: レイアウト名入力用
+#include <QMenu>          // ★ 追加: レイアウトサブメニュー用
 #include <QDesktopServices>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
@@ -268,19 +270,38 @@ void MainWindow::buildGamePanels()
     // 10) central への初期化（すべてのウィジェットはドックに移動）
     initializeCentralGameDisplay();
 
-    // 11) 表示メニューに「ドックレイアウトをリセット」アクションを追加
+    // 11) 表示メニューにドックレイアウト関連アクションを追加
     if (ui->Display) {
         ui->Display->addSeparator();
+
+        // ドックレイアウトをリセット
         QAction* resetLayoutAction = new QAction(tr("ドックレイアウトをリセット"), this);
         resetLayoutAction->setObjectName(QStringLiteral("actionResetDockLayout"));
         connect(resetLayoutAction, &QAction::triggered, this, &MainWindow::resetDockLayout);
         ui->Display->addAction(resetLayoutAction);
+
+        // ドックレイアウトを保存
+        QAction* saveLayoutAction = new QAction(tr("ドックレイアウトを保存..."), this);
+        saveLayoutAction->setObjectName(QStringLiteral("actionSaveDockLayout"));
+        connect(saveLayoutAction, &QAction::triggered, this, &MainWindow::saveDockLayoutAs);
+        ui->Display->addAction(saveLayoutAction);
+
+        // 保存済みレイアウトのサブメニュー
+        m_savedLayoutsMenu = new QMenu(tr("保存済みレイアウト"), this);
+        m_savedLayoutsMenu->setObjectName(QStringLiteral("menuSavedLayouts"));
+        ui->Display->addMenu(m_savedLayoutsMenu);
+
+        // サブメニューを初期化
+        updateSavedLayoutsMenu();
     }
 }
 
 void MainWindow::restoreWindowAndSync()
 {
     loadWindowSettings();
+
+    // 起動時のカスタムレイアウトがあれば復元
+    restoreStartupLayoutIfSet();
 }
 
 void MainWindow::connectAllActions()
@@ -1212,6 +1233,165 @@ void MainWindow::resetDockLayout()
                 {400, 250, 350}, Qt::Horizontal);
     resizeDocks({m_analysisTabDock, m_evalChartDock},
                 {500, 400}, Qt::Horizontal);
+}
+
+void MainWindow::saveDockLayoutAs()
+{
+    bool ok;
+    QString name = QInputDialog::getText(this,
+        tr("ドックレイアウトを保存"),
+        tr("レイアウト名:"),
+        QLineEdit::Normal,
+        QString(),
+        &ok);
+
+    if (!ok || name.trimmed().isEmpty()) {
+        return;  // キャンセルまたは空の名前
+    }
+
+    name = name.trimmed();
+
+    // 既存のレイアウトがあれば上書き確認
+    QStringList existingNames = SettingsService::savedDockLayoutNames();
+    if (existingNames.contains(name)) {
+        QMessageBox::StandardButton reply = QMessageBox::question(this,
+            tr("確認"),
+            tr("「%1」は既に存在します。上書きしますか？").arg(name),
+            QMessageBox::Yes | QMessageBox::No);
+        if (reply != QMessageBox::Yes) {
+            return;
+        }
+    }
+
+    // 現在のドック状態を保存
+    QByteArray state = saveState();
+    SettingsService::saveDockLayout(name, state);
+
+    // メニューを更新
+    updateSavedLayoutsMenu();
+
+    QMessageBox::information(this, tr("保存完了"),
+        tr("レイアウト「%1」を保存しました。").arg(name));
+}
+
+void MainWindow::restoreSavedDockLayout(const QString& name)
+{
+    QByteArray state = SettingsService::loadDockLayout(name);
+    if (state.isEmpty()) {
+        QMessageBox::warning(this, tr("エラー"),
+            tr("レイアウト「%1」が見つかりません。").arg(name));
+        return;
+    }
+
+    // すべてのドックを表示状態にしてから復元
+    if (m_boardDock) m_boardDock->setVisible(true);
+    if (m_menuWindowDock) m_menuWindowDock->setVisible(true);
+    if (m_recordPaneDock) m_recordPaneDock->setVisible(true);
+    if (m_analysisTabDock) m_analysisTabDock->setVisible(true);
+    if (m_evalChartDock) m_evalChartDock->setVisible(true);
+
+    // 状態を復元
+    restoreState(state);
+}
+
+void MainWindow::deleteSavedDockLayout(const QString& name)
+{
+    QMessageBox::StandardButton reply = QMessageBox::question(this,
+        tr("確認"),
+        tr("レイアウト「%1」を削除しますか？").arg(name),
+        QMessageBox::Yes | QMessageBox::No);
+
+    if (reply == QMessageBox::Yes) {
+        SettingsService::deleteDockLayout(name);
+        updateSavedLayoutsMenu();
+    }
+}
+
+void MainWindow::setAsStartupLayout(const QString& name)
+{
+    SettingsService::setStartupDockLayoutName(name);
+    updateSavedLayoutsMenu();
+    QMessageBox::information(this, tr("設定完了"),
+        tr("レイアウト「%1」を起動時のレイアウトに設定しました。").arg(name));
+}
+
+void MainWindow::clearStartupLayout()
+{
+    SettingsService::setStartupDockLayoutName(QString());
+    updateSavedLayoutsMenu();
+    QMessageBox::information(this, tr("設定完了"),
+        tr("起動時のレイアウト設定をクリアしました。\n次回起動時はデフォルトレイアウトが使用されます。"));
+}
+
+void MainWindow::restoreStartupLayoutIfSet()
+{
+    QString startupLayoutName = SettingsService::startupDockLayoutName();
+    if (!startupLayoutName.isEmpty()) {
+        QByteArray state = SettingsService::loadDockLayout(startupLayoutName);
+        if (!state.isEmpty()) {
+            // すべてのドックを表示状態にしてから復元
+            if (m_boardDock) m_boardDock->setVisible(true);
+            if (m_menuWindowDock) m_menuWindowDock->setVisible(true);
+            if (m_recordPaneDock) m_recordPaneDock->setVisible(true);
+            if (m_analysisTabDock) m_analysisTabDock->setVisible(true);
+            if (m_evalChartDock) m_evalChartDock->setVisible(true);
+
+            restoreState(state);
+            qDebug() << "[MainWindow] Restored startup layout:" << startupLayoutName;
+        }
+    }
+}
+
+void MainWindow::updateSavedLayoutsMenu()
+{
+    if (!m_savedLayoutsMenu) return;
+
+    m_savedLayoutsMenu->clear();
+
+    QStringList names = SettingsService::savedDockLayoutNames();
+    QString startupLayoutName = SettingsService::startupDockLayoutName();
+
+    if (names.isEmpty()) {
+        QAction* emptyAction = m_savedLayoutsMenu->addAction(tr("（保存済みレイアウトなし）"));
+        emptyAction->setEnabled(false);
+    } else {
+        for (const QString& name : std::as_const(names)) {
+            // レイアウト名（起動時レイアウトには★マーク）
+            QString displayName = name;
+            if (name == startupLayoutName) {
+                displayName = QStringLiteral("★ ") + name;
+            }
+
+            // 復元用サブメニュー
+            QMenu* layoutMenu = m_savedLayoutsMenu->addMenu(displayName);
+
+            // 復元アクション
+            QAction* restoreAction = layoutMenu->addAction(tr("復元"));
+            connect(restoreAction, &QAction::triggered, this, [this, name]() {
+                restoreSavedDockLayout(name);
+            });
+
+            // 起動時のレイアウトに設定
+            QAction* setStartupAction = layoutMenu->addAction(tr("起動時のレイアウトに設定"));
+            connect(setStartupAction, &QAction::triggered, this, [this, name]() {
+                setAsStartupLayout(name);
+            });
+
+            layoutMenu->addSeparator();
+
+            // 削除アクション
+            QAction* deleteAction = layoutMenu->addAction(tr("削除"));
+            connect(deleteAction, &QAction::triggered, this, [this, name]() {
+                deleteSavedDockLayout(name);
+            });
+        }
+    }
+
+    // 起動時レイアウト設定のクリア
+    m_savedLayoutsMenu->addSeparator();
+    QAction* clearStartupAction = m_savedLayoutsMenu->addAction(tr("起動時のレイアウトをクリア"));
+    clearStartupAction->setEnabled(!startupLayoutName.isEmpty());
+    connect(clearStartupAction, &QAction::triggered, this, &MainWindow::clearStartupLayout);
 }
 
 void MainWindow::displayCsaGameDialog()
