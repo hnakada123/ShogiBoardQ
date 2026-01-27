@@ -83,6 +83,7 @@ class QLabel;
 class QToolButton;
 class QPushButton;
 class ShogiView;
+class EvaluationChartWidget;
 class BoardSyncPresenter;
 class AnalysisResultsPresenter;
 class GameStartCoordinator;
@@ -161,6 +162,9 @@ public:
     int  currentPly() const override;
     void applySelect(int row, int ply) override;
 
+    // 評価値グラフウィジェットへのアクセス
+    EvaluationChartWidget* evalChart() const { return m_evalChart; }
+
     // ========================================================
     // public slots
     // ========================================================
@@ -206,6 +210,7 @@ public slots:
     void displayJosekiWindow();
     void updateJosekiWindow();  // 定跡ウィンドウの更新
     void displayMenuWindow();   // メニューウィンドウの表示
+    void resetDockLayout();     // ドックレイアウトをデフォルトにリセット
     void displayJishogiScoreDialog();  // 持将棋の点数ダイアログ
     void handleNyugyokuDeclaration();  // 入玉宣言
     void onConsiderationEngineSettingsRequested(int engineNumber, const QString& engineName);  // 検討タブからのエンジン設定リクエスト
@@ -446,6 +451,22 @@ private:
     NavigationController* m_nav = nullptr;
     EngineAnalysisTab*    m_analysisTab = nullptr;
 
+    // 評価値グラフドック
+    QDockWidget*           m_evalChartDock = nullptr;
+    EvaluationChartWidget* m_evalChart = nullptr;
+
+    // 棋譜欄ドック
+    QDockWidget*           m_recordPaneDock = nullptr;
+
+    // 解析タブドック
+    QDockWidget*           m_analysisTabDock = nullptr;
+
+    // 将棋盤ドック
+    QDockWidget*           m_boardDock = nullptr;
+
+    // メニューウィンドウドック
+    QDockWidget*           m_menuWindowDock = nullptr;
+
     // 試合進行（司令塔）
     MatchCoordinator* m_match = nullptr;
     QMetaObject::Connection m_timeConn;
@@ -565,6 +586,11 @@ private:
     void setupRecordPane();
     void setupEngineAnalysisTab();
     void setupBoardInteractionController();
+    void createEvalChartDock();  // ★ 評価値グラフのQDockWidget作成
+    void createRecordPaneDock();  // ★ 棋譜欄のQDockWidget作成
+    void createAnalysisTabDock();  // ★ 解析タブのQDockWidget作成
+    void createBoardDock();  // ★ 将棋盤のQDockWidget作成
+    void createMenuWindowDock();  // ★ メニューウィンドウのQDockWidget作成
 
     // ゲーム開始/切替
     void initializeNewGame(QString& startSfenStr);

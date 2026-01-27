@@ -11,7 +11,6 @@
 #include <QPushButton>
 #include <QTextBrowser>
 #include <QSplitter>
-#include <QScrollArea>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QPalette>
@@ -24,7 +23,6 @@
 #include <QTimer>
 #include <QFont>
 
-#include "evaluationchartwidget.h"
 // KifuRecordListModel / KifuBranchListModel は前方宣言で十分（ここでは include 不要）
 
 RecordPane::RecordPane(QWidget* parent)
@@ -234,45 +232,10 @@ void RecordPane::buildUi()
     m_lr->setChildrenCollapsible(false);
     m_lr->setSizes({800, 50, 120});
 
-    // --- 評価値グラフ（スクロール） ---
-    m_eval = new EvaluationChartWidget(this);
-    m_eval->setMinimumHeight(150);
-    m_eval->setFixedWidth(10000); // 横方向に長くしてスクロール
-    m_eval->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);  // 縦方向に伸縮
-
-    auto* evalWrapLay = new QHBoxLayout;
-    evalWrapLay->setContentsMargins(0,0,0,0);
-    evalWrapLay->addWidget(m_eval);
-
-    m_evalWrap = new QWidget(this);
-    m_evalWrap->setLayout(evalWrapLay);
-    m_evalWrap->setMinimumHeight(150);
-    m_evalWrap->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-
-    m_scroll = new QScrollArea(this);
-    m_scroll->setMinimumHeight(180);  // 最小高さのみ設定
-    m_scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
-    m_scroll->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);  // 縦スクロールは不要
-    m_scroll->setWidgetResizable(true);  // 中身をリサイズ可能に
-    m_scroll->setWidget(m_evalWrap);
-    m_scroll->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-
-    // --- ルート（上下分割スプリッター：上=左右スプリッタ、下=評価スクロール） ---
-    m_mainSplitter = new QSplitter(Qt::Vertical, this);
-    m_mainSplitter->addWidget(m_lr);
-    m_mainSplitter->addWidget(m_scroll);
-    m_mainSplitter->setChildrenCollapsible(false);
-    m_mainSplitter->setSizes({400, 250});  // 初期サイズ比率
-    m_mainSplitter->setStretchFactor(0, 1);  // 上部は伸縮可
-    m_mainSplitter->setStretchFactor(1, 0);  // 下部は固定気味
-
-    // スプリッターハンドルを見やすくする
-    m_mainSplitter->setHandleWidth(6);
-
     auto* root = new QVBoxLayout(this);
     root->setContentsMargins(0,0,0,0);
     root->setSpacing(0);
-    root->addWidget(m_mainSplitter);
+    root->addWidget(m_lr);
     setLayout(root);
 }
 
@@ -405,7 +368,6 @@ void RecordPane::setModels(KifuRecordListModel* recModel, KifuBranchListModel* b
 
 QTableView* RecordPane::kifuView() const { return m_kifu; }
 QTableView* RecordPane::branchView() const { return m_branch; }
-EvaluationChartWidget* RecordPane::evalChart() const { return m_eval; }
 
 void RecordPane::setArrowButtonsEnabled(bool on)
 {
@@ -581,35 +543,6 @@ void RecordPane::setupBranchViewSelectionAppearance()
     pal.setColor(QPalette::Active,   QPalette::HighlightedText, Qt::black);
     pal.setColor(QPalette::Inactive, QPalette::HighlightedText, Qt::black);
     m_branch->setPalette(pal);
-}
-
-void RecordPane::setEvalChartHeight(int height)
-{
-    qDebug() << "[EVAL_HEIGHT] setEvalChartHeight called, height=" << height;
-
-    // メインスプリッターのサイズを調整
-    if (m_mainSplitter) {
-        QList<int> sizes = m_mainSplitter->sizes();
-        if (sizes.size() >= 2) {
-            int totalHeight = sizes[0] + sizes[1];
-            int newEvalHeight = qMax(height, 180);
-            sizes[1] = newEvalHeight;
-            sizes[0] = totalHeight - newEvalHeight;
-            if (sizes[0] < 100) {
-                sizes[0] = 100;
-                // 全体が足りない場合は評価値グラフ側を調整
-                sizes[1] = totalHeight - 100;
-                if (sizes[1] < 180) sizes[1] = 180;
-            }
-            m_mainSplitter->setSizes(sizes);
-            qDebug() << "[EVAL_HEIGHT] m_mainSplitter: sizes set to" << sizes;
-        }
-    }
-}
-
-int RecordPane::evalChartHeight() const
-{
-    return m_scroll ? m_scroll->height() : 200;
 }
 
 void RecordPane::onFontIncrease(bool /*checked*/)

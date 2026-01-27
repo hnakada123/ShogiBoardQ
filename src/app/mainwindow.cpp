@@ -11,6 +11,7 @@
 #include <QMetaType>
 #include <QDebug>
 #include <QScrollBar>
+#include <QScrollArea>    // ★ 追加: 将棋盤ドック用
 #include <QPushButton>
 #include <QDialog>
 #include <QSettings>
@@ -101,6 +102,7 @@
 #include "csawaitingdialog.h"           // ★ 追加: CSA通信対局待機ダイアログ
 #include "josekiwindowwiring.h"          // ★ 追加: 定跡ウィンドウUI配線
 #include "menuwindowwiring.h"            // ★ 追加: メニューウィンドウUI配線
+#include "menuwindow.h"                  // ★ 追加: メニューウィンドウ
 #include "csagamewiring.h"              // ★ 追加: CSA通信対局UI配線
 #include "playerinfowiring.h"           // ★ 追加: 対局情報UI配線
 #include "prestartcleanuphandler.h"     // ★ 追加: 対局開始前クリーンアップ
@@ -134,6 +136,9 @@ MainWindow::MainWindow(QWidget *parent)
     , m_lineEditModel2(new UsiCommLogModel(this))
 {
     ui->setupUi(this);
+
+    // ドックネスティングを有効化（同じエリア内でドックを左右に分割可能にする）
+    setDockNestingEnabled(true);
 
     setupCentralWidgetContainer();
 
@@ -239,17 +244,38 @@ void MainWindow::buildGamePanels()
         qWarning() << "[UI] buildGamePanels_: RecordPane is null; skip branch wiring.";
     }
 
-    // 3) 将棋盤・駒台の初期化（従来順序を維持）
+    // 3) 棋譜欄をQDockWidgetとして作成
+    createRecordPaneDock();
+
+    // 4) 将棋盤・駒台の初期化（従来順序を維持）
     startNewShogiGame(m_startSfenStr);
 
-    // 4) 盤＋各パネルの横並びレイアウト構築
-    setupHorizontalGameLayout();
+    // 5) 将棋盤をQDockWidgetとして作成
+    createBoardDock();
 
-    // 5) エンジン解析タブの構築
+    // 6) エンジン解析タブの構築
     setupEngineAnalysisTab();
 
-    // 6) central へのタブ追加など表示側の初期化
+    // 7) 解析タブをQDockWidgetとして作成
+    createAnalysisTabDock();
+
+    // 8) 評価値グラフのQDockWidget作成
+    createEvalChartDock();
+
+    // 9) メニューウィンドウのQDockWidget作成（デフォルトは非表示）
+    createMenuWindowDock();
+
+    // 10) central への初期化（すべてのウィジェットはドックに移動）
     initializeCentralGameDisplay();
+
+    // 11) 表示メニューに「ドックレイアウトをリセット」アクションを追加
+    if (ui->Display) {
+        ui->Display->addSeparator();
+        QAction* resetLayoutAction = new QAction(tr("ドックレイアウトをリセット"), this);
+        resetLayoutAction->setObjectName(QStringLiteral("actionResetDockLayout"));
+        connect(resetLayoutAction, &QAction::triggered, this, &MainWindow::resetDockLayout);
+        ui->Display->addAction(resetLayoutAction);
+    }
 }
 
 void MainWindow::restoreWindowAndSync()
@@ -518,17 +544,11 @@ void MainWindow::updateSecondEngineVisibility()
     }
 }
 
-// 対局者名と残り時間、将棋盤と棋譜、矢印ボタン、評価値グラフのグループを横に並べて表示する。
+// 以前は対局者名と残り時間、将棋盤のレイアウトを構築していた。
+// ★ すべての主要ウィジェットはQDockWidgetに移動したため、この関数は不要になった。
 void MainWindow::setupHorizontalGameLayout()
 {
-    if (!m_layoutBuilder) {
-        GameLayoutBuilder::Deps d;
-        d.shogiView          = m_shogiView;
-        d.recordPaneOrWidget = m_gameRecordLayoutWidget;
-        d.analysisTabWidget  = m_tab; // 下段タブ
-        m_layoutBuilder = new GameLayoutBuilder(d, this);
-    }
-    m_hsplit = m_layoutBuilder->buildHorizontalSplit();
+    // 何もしない（すべてのウィジェットはドックに移動）
 }
 
 // --- レイアウトの中身だけ入れ替えるヘルパ ---
@@ -546,45 +566,19 @@ void MainWindow::initializeCentralGameDisplay()
     // レイアウトを空にする（既存のウィジェットはレイアウトから外すだけ）
     clearLayout(m_centralLayout);
 
-    // 必須部品の存在チェック（無ければ何もしない）
-    if (!m_shogiView || !m_gameRecordLayoutWidget || !m_tab) {
-        qWarning().noquote()
-        << "[initializeCentralGameDisplay] missing widget(s)."
-        << " shogiView=" << (m_shogiView!=nullptr)
-        << " recordPaneOrWidget=" << (m_gameRecordLayoutWidget!=nullptr)
-        << " tab=" << (m_tab!=nullptr);
-        return;
+    // ★ すべての主要ウィジェット（将棋盤、棋譜欄、解析タブ、評価値グラフ）は
+    // QDockWidget に移動したため、中央レイアウトには何も配置しない。
+    // 中央ウィジェットのサイズを0に設定して、ドック間の隙間をなくす。
+    if (m_central) {
+        m_central->setMaximumSize(0, 0);
     }
 
-    // ★ 重要：
-    // setupHorizontalGameLayout() は setupEngineAnalysisTab() より先に呼ばれるため、
-    // 起動順によっては m_tab 未設定のまま m_layoutBuilder が生成されている。
-    // ここで一度 Builder を作り直し、最新の依存を確実に反映させる。
-    // ★注: deleteLater()は非同期のため、直後に再作成すると複数存在しうる
+    // GameLayoutBuilder は不要になったのでクリーンアップ
     if (m_layoutBuilder) {
         delete m_layoutBuilder;
         m_layoutBuilder = nullptr;
     }
-    {
-        GameLayoutBuilder::Deps d;
-        d.shogiView          = m_shogiView;
-        d.recordPaneOrWidget = m_gameRecordLayoutWidget; // 右ペイン（RecordPane）
-        d.analysisTabWidget  = m_tab;                    // 下段タブ（EngineAnalysisTab を内包）
-        m_layoutBuilder = new GameLayoutBuilder(d, this);
-    }
-
-    // 左右スプリッタを生成して保持（以後も m_hsplit を参照する箇所があるため）
-    m_hsplit = m_layoutBuilder->buildHorizontalSplit();
-    Q_ASSERT(m_hsplit);
-    Q_ASSERT(m_tab);
-
-    // 中央レイアウトへ追加：上=スプリッタ、下=タブ
-    m_centralLayout->addWidget(m_hsplit);
-    m_centralLayout->addWidget(m_tab);
-
-    // 見た目調整：上を広く、下のタブは控えめ
-    m_centralLayout->setStretch(0, 1); // splitter
-    m_centralLayout->setStretch(1, 0); // analysis tab
+    m_hsplit = nullptr;  // 使用しなくなったためクリア
 }
 
 void MainWindow::startNewShogiGame(QString& startSfenStr)
@@ -596,8 +590,8 @@ void MainWindow::startNewShogiGame(QString& startSfenStr)
     if (m_shogiView) m_shogiView->setGameOverStyleLock(false);
 
     // 評価値グラフ等の初期化
-    if (auto ec = m_recordPane ? m_recordPane->evalChart() : nullptr) {
-        if (!resume) ec->clearAll();
+    if (m_evalChart && !resume) {
+        m_evalChart->clearAll();
     }
     if (!resume) {
         ensureEvaluationGraphController();
@@ -706,7 +700,7 @@ void MainWindow::ensureEvaluationGraphController()
     if (m_evalGraphController) return;
 
     m_evalGraphController = new EvaluationGraphController(this);
-    m_evalGraphController->setRecordPane(m_recordPane);
+    m_evalGraphController->setEvalChart(m_evalChart);
     m_evalGraphController->setMatchCoordinator(m_match);
     m_evalGraphController->setSfenRecord(m_sfenRecord);
     m_evalGraphController->setEngine1Name(m_engineName1);
@@ -1132,10 +1126,92 @@ void MainWindow::updateJosekiWindow()
 
 void MainWindow::displayMenuWindow()
 {
-    ensureMenuWiring();
-    if (m_menuWiring) {
-        m_menuWiring->displayMenuWindow();
+    // ドックが未作成の場合は作成
+    if (!m_menuWindowDock) {
+        createMenuWindowDock();
     }
+
+    // ドックの表示/非表示をトグル
+    if (m_menuWindowDock) {
+        if (m_menuWindowDock->isVisible()) {
+            m_menuWindowDock->hide();
+        } else {
+            m_menuWindowDock->show();
+            m_menuWindowDock->raise();
+        }
+    }
+}
+
+void MainWindow::resetDockLayout()
+{
+    // すべてのドックをフローティング解除して表示
+    if (m_boardDock) {
+        m_boardDock->setFloating(false);
+        m_boardDock->setVisible(true);
+    }
+    if (m_menuWindowDock) {
+        m_menuWindowDock->setFloating(false);
+        m_menuWindowDock->setVisible(true);
+    }
+    if (m_recordPaneDock) {
+        m_recordPaneDock->setFloating(false);
+        m_recordPaneDock->setVisible(true);
+    }
+    if (m_analysisTabDock) {
+        m_analysisTabDock->setFloating(false);
+        m_analysisTabDock->setVisible(true);
+    }
+    if (m_evalChartDock) {
+        m_evalChartDock->setFloating(false);
+        m_evalChartDock->setVisible(true);
+    }
+
+    // デフォルトのドック配置を設定
+    // 上段: 将棋盤(左) | メニューウィンドウ(中央) | 棋譜(右)
+    // 下段: 解析(左) | 評価値グラフ(右)
+
+    // まず全てのドックをいったん削除
+    if (m_boardDock) removeDockWidget(m_boardDock);
+    if (m_menuWindowDock) removeDockWidget(m_menuWindowDock);
+    if (m_recordPaneDock) removeDockWidget(m_recordPaneDock);
+    if (m_analysisTabDock) removeDockWidget(m_analysisTabDock);
+    if (m_evalChartDock) removeDockWidget(m_evalChartDock);
+
+    // 上段左: 将棋盤
+    if (m_boardDock) {
+        addDockWidget(Qt::LeftDockWidgetArea, m_boardDock);
+        m_boardDock->setVisible(true);
+    }
+
+    // 上段右: 棋譜
+    if (m_recordPaneDock) {
+        addDockWidget(Qt::RightDockWidgetArea, m_recordPaneDock);
+        m_recordPaneDock->setVisible(true);
+    }
+
+    // 上段中央: メニューウィンドウ（将棋盤の右に分割配置）
+    if (m_menuWindowDock && m_boardDock) {
+        splitDockWidget(m_boardDock, m_menuWindowDock, Qt::Horizontal);
+        m_menuWindowDock->setVisible(true);
+    }
+
+    // 下段左: 解析
+    if (m_analysisTabDock) {
+        addDockWidget(Qt::BottomDockWidgetArea, m_analysisTabDock);
+        m_analysisTabDock->setVisible(true);
+    }
+
+    // 下段右: 評価値グラフ（解析の右に分割配置）
+    if (m_evalChartDock && m_analysisTabDock) {
+        splitDockWidget(m_analysisTabDock, m_evalChartDock, Qt::Horizontal);
+        m_evalChartDock->setVisible(true);
+    }
+
+    // ドックのサイズを調整（おおよその比率）
+    resizeDocks({m_boardDock, m_menuWindowDock, m_recordPaneDock},
+                {400, 250, 350}, Qt::Horizontal);
+    resizeDocks({m_analysisTabDock, m_evalChartDock},
+                {500, 400}, Qt::Horizontal);
 }
 
 void MainWindow::displayCsaGameDialog()
@@ -1291,7 +1367,7 @@ void MainWindow::displayKifuAnalysisDialog()
     ctx.gameController = m_gameController;
     ctx.gameInfoController = m_gameInfoController;
     ctx.kifuLoadCoordinator = m_kifuLoadCoordinator;
-    ctx.recordPane = m_recordPane;
+    ctx.evalChart = m_evalChart;
     ctx.gameUsiMoves = &m_gameUsiMoves;  // 対局時のUSI形式指し手リスト
     m_dialogCoordinator->setKifuAnalysisContext(ctx);
 
@@ -1335,15 +1411,10 @@ void MainWindow::onKifuAnalysisProgress(int ply, int scoreCp)
     //    ※AnalysisFlowControllerで既に先手視点に変換済み（後手番は符号反転済み）
     //    ※scoreCpがINT_MINの場合は位置移動のみ（評価値追加しない）
     static constexpr int POSITION_ONLY_MARKER = std::numeric_limits<int>::min();
-    if (scoreCp != POSITION_ONLY_MARKER && m_recordPane) {
-        EvaluationChartWidget* ec = m_recordPane->evalChart();
-        if (ec) {
-            ec->appendScoreP1(ply, scoreCp, false);
-            qDebug().noquote() << "[MainWindow::onKifuAnalysisProgress] appended score to chart: ply=" << ply 
-                               << "scoreCp=" << scoreCp;
-        } else {
-            qDebug().noquote() << "[MainWindow::onKifuAnalysisProgress] evalChart is null!";
-        }
+    if (scoreCp != POSITION_ONLY_MARKER && m_evalChart) {
+        m_evalChart->appendScoreP1(ply, scoreCp, false);
+        qDebug().noquote() << "[MainWindow::onKifuAnalysisProgress] appended score to chart: ply=" << ply
+                           << "scoreCp=" << scoreCp;
     } else if (scoreCp == POSITION_ONLY_MARKER) {
         qDebug().noquote() << "[MainWindow::onKifuAnalysisProgress] position only (no score update)";
     } else {
@@ -1673,6 +1744,41 @@ void MainWindow::loadWindowSettings()
 void MainWindow::saveWindowAndBoardSettings()
 {
     SettingsService::saveWindowAndBoard(this, m_shogiView);
+
+    // 評価値グラフドックの状態を保存
+    if (m_evalChartDock) {
+        SettingsService::setEvalChartDockFloating(m_evalChartDock->isFloating());
+        SettingsService::setEvalChartDockVisible(m_evalChartDock->isVisible());
+        SettingsService::setEvalChartDockGeometry(m_evalChartDock->saveGeometry());
+    }
+
+    // 棋譜欄ドックの状態を保存
+    if (m_recordPaneDock) {
+        SettingsService::setRecordPaneDockFloating(m_recordPaneDock->isFloating());
+        SettingsService::setRecordPaneDockVisible(m_recordPaneDock->isVisible());
+        SettingsService::setRecordPaneDockGeometry(m_recordPaneDock->saveGeometry());
+    }
+
+    // 解析タブドックの状態を保存
+    if (m_analysisTabDock) {
+        SettingsService::setAnalysisTabDockFloating(m_analysisTabDock->isFloating());
+        SettingsService::setAnalysisTabDockVisible(m_analysisTabDock->isVisible());
+        SettingsService::setAnalysisTabDockGeometry(m_analysisTabDock->saveGeometry());
+    }
+
+    // 将棋盤ドックの状態を保存
+    if (m_boardDock) {
+        SettingsService::setBoardDockFloating(m_boardDock->isFloating());
+        SettingsService::setBoardDockVisible(m_boardDock->isVisible());
+        SettingsService::setBoardDockGeometry(m_boardDock->saveGeometry());
+    }
+
+    // メニューウィンドウドックの状態を保存
+    if (m_menuWindowDock) {
+        SettingsService::setMenuWindowDockFloating(m_menuWindowDock->isFloating());
+        SettingsService::setMenuWindowDockVisible(m_menuWindowDock->isVisible());
+        SettingsService::setMenuWindowDockGeometry(m_menuWindowDock->saveGeometry());
+    }
 }
 
 void MainWindow::closeEvent(QCloseEvent* e)
@@ -2201,8 +2307,7 @@ void MainWindow::setupRecordPane()
     m_recordPane = m_recordPaneWiring->pane();
     m_nav        = m_recordPaneWiring->nav(); // 既存コードで m_nav を使う場合に備えて保持
 
-    // レイアウト用（右側ペインとして使用）
-    m_gameRecordLayoutWidget = m_recordPane;
+    // ★ RecordPane は QDockWidget に移動したため、m_gameRecordLayoutWidget への設定は不要
 }
 
 void MainWindow::setupEngineAnalysisTab()
@@ -2278,6 +2383,230 @@ void MainWindow::setupEngineAnalysisTab()
     if (m_analysisTab) {
         m_analysisTab->setConsiderationThinkingModel(m_considerationModel);
     }
+}
+
+void MainWindow::createEvalChartDock()
+{
+    // 評価値グラフウィジェットを作成
+    m_evalChart = new EvaluationChartWidget(this);
+
+    // 既存のEvaluationGraphControllerがあれば、評価値グラフを設定
+    // （ensureEvaluationGraphController()が先に呼ばれた場合への対応）
+    if (m_evalGraphController) {
+        m_evalGraphController->setEvalChart(m_evalChart);
+    }
+
+    // QDockWidgetを作成
+    m_evalChartDock = new QDockWidget(tr("評価値グラフ"), this);
+    m_evalChartDock->setObjectName(QStringLiteral("EvalChartDock"));
+    m_evalChartDock->setWidget(m_evalChart);
+    m_evalChartDock->setFeatures(
+        QDockWidget::DockWidgetMovable |
+        QDockWidget::DockWidgetFloatable |
+        QDockWidget::DockWidgetClosable);
+    m_evalChartDock->setAllowedAreas(Qt::AllDockWidgetAreas);
+
+    // 初期位置は下部
+    addDockWidget(Qt::BottomDockWidgetArea, m_evalChartDock);
+
+    // 表示メニューにトグルアクションを追加
+    if (ui->Display) {
+        // セパレータを追加してから評価値グラフの表示/非表示アクションを追加
+        ui->Display->addSeparator();
+        QAction* toggleAction = m_evalChartDock->toggleViewAction();
+        toggleAction->setText(tr("評価値グラフ"));
+        ui->Display->addAction(toggleAction);
+    }
+
+    // 保存された状態を復元
+    const QByteArray dockGeometry = SettingsService::evalChartDockGeometry();
+    if (!dockGeometry.isEmpty()) {
+        m_evalChartDock->restoreGeometry(dockGeometry);
+    }
+
+    const bool wasFloating = SettingsService::evalChartDockFloating();
+    m_evalChartDock->setFloating(wasFloating);
+
+    const bool wasVisible = SettingsService::evalChartDockVisible();
+    m_evalChartDock->setVisible(wasVisible);
+}
+
+void MainWindow::createRecordPaneDock()
+{
+    if (!m_recordPane) {
+        qWarning() << "[MainWindow] createRecordPaneDock: m_recordPane is null!";
+        return;
+    }
+
+    // QDockWidgetを作成
+    m_recordPaneDock = new QDockWidget(tr("棋譜"), this);
+    m_recordPaneDock->setObjectName(QStringLiteral("RecordPaneDock"));
+    m_recordPaneDock->setWidget(m_recordPane);
+    m_recordPaneDock->setFeatures(
+        QDockWidget::DockWidgetMovable |
+        QDockWidget::DockWidgetFloatable |
+        QDockWidget::DockWidgetClosable);
+    m_recordPaneDock->setAllowedAreas(Qt::AllDockWidgetAreas);
+
+    // 初期位置は右側
+    addDockWidget(Qt::RightDockWidgetArea, m_recordPaneDock);
+
+    // 表示メニューにトグルアクションを追加
+    if (ui->Display) {
+        QAction* toggleAction = m_recordPaneDock->toggleViewAction();
+        toggleAction->setText(tr("棋譜"));
+        ui->Display->addAction(toggleAction);
+    }
+
+    // 保存された状態を復元
+    const QByteArray dockGeometry = SettingsService::recordPaneDockGeometry();
+    if (!dockGeometry.isEmpty()) {
+        m_recordPaneDock->restoreGeometry(dockGeometry);
+    }
+
+    const bool wasFloating = SettingsService::recordPaneDockFloating();
+    m_recordPaneDock->setFloating(wasFloating);
+
+    const bool wasVisible = SettingsService::recordPaneDockVisible();
+    m_recordPaneDock->setVisible(wasVisible);
+}
+
+void MainWindow::createAnalysisTabDock()
+{
+    if (!m_tab) {
+        qWarning() << "[MainWindow] createAnalysisTabDock: m_tab is null!";
+        return;
+    }
+
+    // QDockWidgetを作成
+    m_analysisTabDock = new QDockWidget(tr("解析"), this);
+    m_analysisTabDock->setObjectName(QStringLiteral("AnalysisTabDock"));
+    m_analysisTabDock->setWidget(m_tab);
+
+    // 解析タブの最小サイズを設定（タブヘッダーと基本的なコンテンツが見えるように）
+    m_analysisTabDock->setMinimumSize(300, 150);
+    m_analysisTabDock->setFeatures(
+        QDockWidget::DockWidgetMovable |
+        QDockWidget::DockWidgetFloatable |
+        QDockWidget::DockWidgetClosable);
+    m_analysisTabDock->setAllowedAreas(Qt::AllDockWidgetAreas);
+
+    // 初期位置は下部
+    addDockWidget(Qt::BottomDockWidgetArea, m_analysisTabDock);
+
+    // 表示メニューにトグルアクションを追加
+    if (ui->Display) {
+        QAction* toggleAction = m_analysisTabDock->toggleViewAction();
+        toggleAction->setText(tr("解析"));
+        ui->Display->addAction(toggleAction);
+    }
+
+    // 保存された状態を復元
+    const QByteArray dockGeometry = SettingsService::analysisTabDockGeometry();
+    if (!dockGeometry.isEmpty()) {
+        m_analysisTabDock->restoreGeometry(dockGeometry);
+    }
+
+    const bool wasFloating = SettingsService::analysisTabDockFloating();
+    m_analysisTabDock->setFloating(wasFloating);
+
+    const bool wasVisible = SettingsService::analysisTabDockVisible();
+    m_analysisTabDock->setVisible(wasVisible);
+}
+
+void MainWindow::createBoardDock()
+{
+    if (!m_shogiView) {
+        qWarning() << "[MainWindow] createBoardDock: m_shogiView is null!";
+        return;
+    }
+
+    // QDockWidgetを作成（将棋盤は直接配置、スクロールなし）
+    m_boardDock = new QDockWidget(tr("将棋盤"), this);
+    m_boardDock->setObjectName(QStringLiteral("BoardDock"));
+    m_boardDock->setWidget(m_shogiView);
+    m_boardDock->setFeatures(
+        QDockWidget::DockWidgetMovable |
+        QDockWidget::DockWidgetFloatable |
+        QDockWidget::DockWidgetClosable);
+    m_boardDock->setAllowedAreas(Qt::AllDockWidgetAreas);
+
+    // 将棋盤の最小サイズをドックに設定（盤全体が見えるように）
+    // ShogiViewのminimumSizeHint()を参考に余裕を持たせる
+    const QSize boardMinSize = m_shogiView->minimumSizeHint();
+    m_boardDock->setMinimumSize(boardMinSize.width() + 20, boardMinSize.height() + 40);
+
+    // 初期位置は左側（中央に近い位置）
+    addDockWidget(Qt::LeftDockWidgetArea, m_boardDock);
+
+    // 表示メニューにトグルアクションを追加
+    if (ui->Display) {
+        QAction* toggleAction = m_boardDock->toggleViewAction();
+        toggleAction->setText(tr("将棋盤"));
+        ui->Display->addAction(toggleAction);
+    }
+
+    // 保存された状態を復元
+    const QByteArray dockGeometry = SettingsService::boardDockGeometry();
+    if (!dockGeometry.isEmpty()) {
+        m_boardDock->restoreGeometry(dockGeometry);
+    }
+
+    const bool wasFloating = SettingsService::boardDockFloating();
+    m_boardDock->setFloating(wasFloating);
+
+    const bool wasVisible = SettingsService::boardDockVisible();
+    m_boardDock->setVisible(wasVisible);
+}
+
+void MainWindow::createMenuWindowDock()
+{
+    // MenuWindowWiringを確保
+    ensureMenuWiring();
+    if (!m_menuWiring) {
+        qWarning() << "[MainWindow] createMenuWindowDock: MenuWindowWiring is null!";
+        return;
+    }
+
+    // MenuWindowを確保（未作成時のみ作成）
+    m_menuWiring->ensureMenuWindow();
+    MenuWindow* menuWindow = m_menuWiring->menuWindow();
+    if (!menuWindow) {
+        qWarning() << "[MainWindow] createMenuWindowDock: MenuWindow is null!";
+        return;
+    }
+
+    // QDockWidgetを作成
+    m_menuWindowDock = new QDockWidget(tr("メニューウィンドウ"), this);
+    m_menuWindowDock->setObjectName(QStringLiteral("MenuWindowDock"));
+    m_menuWindowDock->setWidget(menuWindow);
+    m_menuWindowDock->setFeatures(
+        QDockWidget::DockWidgetMovable |
+        QDockWidget::DockWidgetFloatable |
+        QDockWidget::DockWidgetClosable);
+    m_menuWindowDock->setAllowedAreas(Qt::AllDockWidgetAreas);
+
+    // 初期位置は右側
+    addDockWidget(Qt::RightDockWidgetArea, m_menuWindowDock);
+
+    // 表示メニューにトグルアクションを追加
+    if (ui->Display) {
+        QAction* toggleAction = m_menuWindowDock->toggleViewAction();
+        toggleAction->setText(tr("メニューウィンドウ"));
+        ui->Display->addAction(toggleAction);
+    }
+
+    // 保存された状態を復元
+    const QByteArray dockGeometry = SettingsService::menuWindowDockGeometry();
+    if (!dockGeometry.isEmpty()) {
+        m_menuWindowDock->restoreGeometry(dockGeometry);
+    }
+
+    const bool wasFloating = SettingsService::menuWindowDockFloating();
+    m_menuWindowDock->setFloating(wasFloating);
+
+    const bool wasVisible = SettingsService::menuWindowDockVisible();
+    m_menuWindowDock->setVisible(wasVisible);
 }
 
 // src/app/mainwindow.cpp
@@ -2694,35 +3023,9 @@ void MainWindow::onBoardFlipped(bool /*flipped*/)
 
 void MainWindow::onBoardSizeChanged(QSize fieldSize)
 {
-    // 将棋盤のマスサイズに連動して評価値グラフの高さを調整
-    // fieldSizeは1マスのサイズなので、盤全体の高さは fieldSize.height() * 9
-    // 評価値グラフは盤の高さの約1/3程度が見やすい
-
-    qDebug() << "[BOARD_SIZE] onBoardSizeChanged called, fieldSize=" << fieldSize;
-
-    if (!m_recordPane) {
-        qDebug() << "[BOARD_SIZE] m_recordPane is NULL, returning";
-        return;
-    }
-
-    const int squareSize = fieldSize.height();
-    // 基準高さ250に対して、マスサイズの変化に応じてスケール
-    // デフォルトのマスサイズを40として計算
-    const int baseHeight = 250;
-    const int baseSquareSize = 40;
-    const int newHeight = baseHeight * squareSize / baseSquareSize;
-
-    // 最小220、最大500に制限
-    const int clampedHeight = qBound(220, newHeight, 500);
-
-    qDebug() << "[BOARD_SIZE] squareSize=" << squareSize
-             << "baseHeight=" << baseHeight
-             << "baseSquareSize=" << baseSquareSize
-             << "newHeight=" << newHeight
-             << "clampedHeight=" << clampedHeight;
-
-    m_recordPane->setEvalChartHeight(clampedHeight);
-    qDebug() << "[BOARD_SIZE] setEvalChartHeight called with" << clampedHeight;
+    // 将棋盤サイズ変更通知のハンドラ
+    // 評価値グラフはQDockWidgetに移行したため、自動リサイズは行わない
+    Q_UNUSED(fieldSize)
 }
 
 void MainWindow::performDeferredEvalChartResize()
@@ -3275,8 +3578,8 @@ void MainWindow::onPreStartCleanupRequested()
                                      && !m_currentSfenStr.trimmed().isEmpty();
     if (!startFromCurrentPos) {
         // 平手・駒落ちなど新規開始の場合は評価値グラフをクリア
-        if (auto ec = m_recordPane ? m_recordPane->evalChart() : nullptr) {
-            ec->clearAll();
+        if (m_evalChart) {
+            m_evalChart->clearAll();
         }
         ensureEvaluationGraphController();
         if (m_evalGraphController) {
@@ -4276,14 +4579,8 @@ void MainWindow::onCsaEngineScoreUpdated(int scoreCp, int ply)
     qDebug().noquote() << "[MW] onCsaEngineScoreUpdated_: scoreCp=" << scoreCp << "ply=" << ply;
 
     // 評価値グラフに追加
-    if (!m_recordPane) {
-        qDebug().noquote() << "[MW] onCsaEngineScoreUpdated_: m_recordPane is NULL";
-        return;
-    }
-
-    EvaluationChartWidget* ec = m_recordPane->evalChart();
-    if (!ec) {
-        qDebug().noquote() << "[MW] onCsaEngineScoreUpdated_: evalChart() returned NULL";
+    if (!m_evalChart) {
+        qDebug().noquote() << "[MW] onCsaEngineScoreUpdated_: m_evalChart is NULL";
         return;
     }
 
@@ -4293,12 +4590,12 @@ void MainWindow::onCsaEngineScoreUpdated(int scoreCp, int ply)
         bool isBlackSide = m_csaGameCoordinator->isBlackSide();
         if (isBlackSide) {
             // 先手側のエンジン評価値はP1に追加
-            ec->appendScoreP1(ply, scoreCp, false);
+            m_evalChart->appendScoreP1(ply, scoreCp, false);
             qDebug().noquote() << "[MW] onCsaEngineScoreUpdated_: appendScoreP1 called";
         } else {
             // 後手側のエンジン評価値はP2に追加
             // 後手視点の評価値なので、グラフ表示用に反転する
-            ec->appendScoreP2(ply, -scoreCp, false);
+            m_evalChart->appendScoreP2(ply, -scoreCp, false);
             qDebug().noquote() << "[MW] onCsaEngineScoreUpdated_: appendScoreP2 called (inverted)";
         }
     }

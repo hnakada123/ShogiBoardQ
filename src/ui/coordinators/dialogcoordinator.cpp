@@ -19,7 +19,6 @@
 #include "shogienginethinkingmodel.h"
 #include "gameinfopanecontroller.h"
 #include "kifuloadcoordinator.h"
-#include "recordpane.h"
 #include "evaluationchartwidget.h"
 
 DialogCoordinator::DialogCoordinator(QWidget* parentWidget, QObject* parent)
@@ -210,12 +209,9 @@ void DialogCoordinator::showKifuAnalysisDialogFromContext()
     qDebug().noquote() << "[DialogCoord] showKifuAnalysisDialogFromContext";
 
     // 評価値グラフをクリア（対局時のグラフが残らないようにする）
-    if (m_kifuAnalysisCtx.recordPane) {
-        EvaluationChartWidget* ec = m_kifuAnalysisCtx.recordPane->evalChart();
-        if (ec) {
-            ec->clearAll();
-            qDebug().noquote() << "[DialogCoord] evaluation chart cleared";
-        }
+    if (m_kifuAnalysisCtx.evalChart) {
+        m_kifuAnalysisCtx.evalChart->clearAll();
+        qDebug().noquote() << "[DialogCoord] evaluation chart cleared";
     }
 
     // パラメータを構築

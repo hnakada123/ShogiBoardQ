@@ -5,7 +5,7 @@
 #include <QList>
 
 class MatchCoordinator;
-class RecordPane;
+class EvaluationChartWidget;
 
 /**
  * @brief EvaluationGraphController - 評価値グラフの管理クラス
@@ -29,9 +29,9 @@ public:
     // --------------------------------------------------------
 
     /**
-     * @brief RecordPane（評価値グラフ表示ウィジェットを含む）を設定
+     * @brief EvaluationChartWidget（評価値グラフ表示ウィジェット）を設定
      */
-    void setRecordPane(RecordPane* pane);
+    void setEvalChart(EvaluationChartWidget* chart);
 
     /**
      * @brief MatchCoordinator（エンジン評価値の取得元）を設定
@@ -124,7 +124,7 @@ private:
     QList<int> m_scoreCp;
 
     // 依存オブジェクト
-    RecordPane* m_recordPane = nullptr;
+    EvaluationChartWidget* m_evalChart = nullptr;
     MatchCoordinator* m_match = nullptr;
     QStringList* m_sfenRecord = nullptr;
 
