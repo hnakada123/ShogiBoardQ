@@ -240,6 +240,8 @@ public slots:
                                 const QString& engine1, const QString& engine2,
                                 int playMode);
     void onActionFlipBoardTriggered(bool checked = false);
+    void onActionEnlargeBoardTriggered(bool checked = false);
+    void onActionShrinkBoardTriggered(bool checked = false);
     void handleBreakOffGame();
     void movePieceImmediately();
     void onRecordPaneMainRowChanged(int row);
@@ -468,9 +470,6 @@ private:
     // 解析タブドック
     QDockWidget*           m_analysisTabDock = nullptr;
 
-    // 将棋盤ドック
-    QDockWidget*           m_boardDock = nullptr;
-
     // メニューウィンドウドック
     QDockWidget*           m_menuWindowDock = nullptr;
 
@@ -599,7 +598,7 @@ private:
     void createEvalChartDock();  // ★ 評価値グラフのQDockWidget作成
     void createRecordPaneDock();  // ★ 棋譜欄のQDockWidget作成
     void createAnalysisTabDock();  // ★ 解析タブのQDockWidget作成
-    void createBoardDock();  // ★ 将棋盤のQDockWidget作成
+    void setupBoardInCenter();  // ★ 将棋盤をセントラルウィジェットに配置
     void createMenuWindowDock();  // ★ メニューウィンドウのQDockWidget作成
 
     // ゲーム開始/切替

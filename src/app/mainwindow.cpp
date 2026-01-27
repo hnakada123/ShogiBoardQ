@@ -253,7 +253,7 @@ void MainWindow::buildGamePanels()
     startNewShogiGame(m_startSfenStr);
 
     // 5) 将棋盤をQDockWidgetとして作成
-    createBoardDock();
+    setupBoardInCenter();
 
     // 6) エンジン解析タブの構築
     setupEngineAnalysisTab();
@@ -572,27 +572,10 @@ void MainWindow::setupHorizontalGameLayout()
     // 何もしない（すべてのウィジェットはドックに移動）
 }
 
-// --- レイアウトの中身だけ入れ替えるヘルパ ---
-static void clearLayout(QLayout* lay) {
-    while (QLayoutItem* it = lay->takeAt(0)) {
-        if (QWidget* w = it->widget()) w->setParent(nullptr);
-        delete it;
-    }
-}
-
 void MainWindow::initializeCentralGameDisplay()
 {
-    if (!m_centralLayout) return;
-
-    // レイアウトを空にする（既存のウィジェットはレイアウトから外すだけ）
-    clearLayout(m_centralLayout);
-
-    // ★ すべての主要ウィジェット（将棋盤、棋譜欄、解析タブ、評価値グラフ）は
-    // QDockWidget に移動したため、中央レイアウトには何も配置しない。
-    // 中央ウィジェットのサイズを0に設定して、ドック間の隙間をなくす。
-    if (m_central) {
-        m_central->setMaximumSize(0, 0);
-    }
+    // セントラルウィジェットには将棋盤が配置されている
+    // setupBoardInCenter() で設定済みのため、レイアウトはクリアしない
 
     // GameLayoutBuilder は不要になったのでクリーンアップ
     if (m_layoutBuilder) {
@@ -1166,10 +1149,6 @@ void MainWindow::displayMenuWindow()
 void MainWindow::resetDockLayout()
 {
     // すべてのドックをフローティング解除して表示
-    if (m_boardDock) {
-        m_boardDock->setFloating(false);
-        m_boardDock->setVisible(true);
-    }
     if (m_menuWindowDock) {
         m_menuWindowDock->setFloating(false);
         m_menuWindowDock->setVisible(true);
@@ -1188,32 +1167,26 @@ void MainWindow::resetDockLayout()
     }
 
     // デフォルトのドック配置を設定
-    // 上段: 将棋盤(左) | メニューウィンドウ(中央) | 棋譜(右)
+    // 将棋盤は中央（セントラルウィジェット）に固定
+    // 上段: メニューウィンドウ(左) | 棋譜(右)
     // 下段: 解析(左) | 評価値グラフ(右)
 
     // まず全てのドックをいったん削除
-    if (m_boardDock) removeDockWidget(m_boardDock);
     if (m_menuWindowDock) removeDockWidget(m_menuWindowDock);
     if (m_recordPaneDock) removeDockWidget(m_recordPaneDock);
     if (m_analysisTabDock) removeDockWidget(m_analysisTabDock);
     if (m_evalChartDock) removeDockWidget(m_evalChartDock);
 
-    // 上段左: 将棋盤
-    if (m_boardDock) {
-        addDockWidget(Qt::LeftDockWidgetArea, m_boardDock);
-        m_boardDock->setVisible(true);
+    // 上段左: メニューウィンドウ
+    if (m_menuWindowDock) {
+        addDockWidget(Qt::LeftDockWidgetArea, m_menuWindowDock);
+        m_menuWindowDock->setVisible(true);
     }
 
     // 上段右: 棋譜
     if (m_recordPaneDock) {
         addDockWidget(Qt::RightDockWidgetArea, m_recordPaneDock);
         m_recordPaneDock->setVisible(true);
-    }
-
-    // 上段中央: メニューウィンドウ（将棋盤の右に分割配置）
-    if (m_menuWindowDock && m_boardDock) {
-        splitDockWidget(m_boardDock, m_menuWindowDock, Qt::Horizontal);
-        m_menuWindowDock->setVisible(true);
     }
 
     // 下段左: 解析
@@ -1229,8 +1202,8 @@ void MainWindow::resetDockLayout()
     }
 
     // ドックのサイズを調整（おおよその比率）
-    resizeDocks({m_boardDock, m_menuWindowDock, m_recordPaneDock},
-                {400, 250, 350}, Qt::Horizontal);
+    resizeDocks({m_menuWindowDock, m_recordPaneDock},
+                {250, 350}, Qt::Horizontal);
     resizeDocks({m_analysisTabDock, m_evalChartDock},
                 {500, 400}, Qt::Horizontal);
 }
@@ -1284,7 +1257,6 @@ void MainWindow::restoreSavedDockLayout(const QString& name)
     }
 
     // すべてのドックを表示状態にしてから復元
-    if (m_boardDock) m_boardDock->setVisible(true);
     if (m_menuWindowDock) m_menuWindowDock->setVisible(true);
     if (m_recordPaneDock) m_recordPaneDock->setVisible(true);
     if (m_analysisTabDock) m_analysisTabDock->setVisible(true);
@@ -1330,7 +1302,6 @@ void MainWindow::restoreStartupLayoutIfSet()
         QByteArray state = SettingsService::loadDockLayout(startupLayoutName);
         if (!state.isEmpty()) {
             // すべてのドックを表示状態にしてから復元
-            if (m_boardDock) m_boardDock->setVisible(true);
             if (m_menuWindowDock) m_menuWindowDock->setVisible(true);
             if (m_recordPaneDock) m_recordPaneDock->setVisible(true);
             if (m_analysisTabDock) m_analysisTabDock->setVisible(true);
@@ -1944,13 +1915,6 @@ void MainWindow::saveWindowAndBoardSettings()
         SettingsService::setAnalysisTabDockFloating(m_analysisTabDock->isFloating());
         SettingsService::setAnalysisTabDockVisible(m_analysisTabDock->isVisible());
         SettingsService::setAnalysisTabDockGeometry(m_analysisTabDock->saveGeometry());
-    }
-
-    // 将棋盤ドックの状態を保存
-    if (m_boardDock) {
-        SettingsService::setBoardDockFloating(m_boardDock->isFloating());
-        SettingsService::setBoardDockVisible(m_boardDock->isVisible());
-        SettingsService::setBoardDockGeometry(m_boardDock->saveGeometry());
     }
 
     // メニューウィンドウドックの状態を保存
@@ -2694,49 +2658,30 @@ void MainWindow::createAnalysisTabDock()
     m_analysisTabDock->setVisible(wasVisible);
 }
 
-void MainWindow::createBoardDock()
+void MainWindow::setupBoardInCenter()
 {
     if (!m_shogiView) {
-        qWarning() << "[MainWindow] createBoardDock: m_shogiView is null!";
+        qWarning() << "[MainWindow] setupBoardInCenter: m_shogiView is null!";
         return;
     }
 
-    // QDockWidgetを作成（将棋盤は直接配置、スクロールなし）
-    m_boardDock = new QDockWidget(tr("将棋盤"), this);
-    m_boardDock->setObjectName(QStringLiteral("BoardDock"));
-    m_boardDock->setWidget(m_shogiView);
-    m_boardDock->setFeatures(
-        QDockWidget::DockWidgetMovable |
-        QDockWidget::DockWidgetFloatable |
-        QDockWidget::DockWidgetClosable);
-    m_boardDock->setAllowedAreas(Qt::AllDockWidgetAreas);
-
-    // 将棋盤の最小サイズをドックに設定（盤全体が見えるように）
-    // ShogiViewのminimumSizeHint()を参考に余裕を持たせる
-    const QSize boardMinSize = m_shogiView->minimumSizeHint();
-    m_boardDock->setMinimumSize(boardMinSize.width() + 20, boardMinSize.height() + 40);
-
-    // 初期位置は左側（中央に近い位置）
-    addDockWidget(Qt::LeftDockWidgetArea, m_boardDock);
-
-    // 表示メニューにトグルアクションを追加
-    if (ui->Display) {
-        QAction* toggleAction = m_boardDock->toggleViewAction();
-        toggleAction->setText(tr("将棋盤"));
-        ui->Display->addAction(toggleAction);
+    if (!m_centralLayout) {
+        qWarning() << "[MainWindow] setupBoardInCenter: m_centralLayout is null!";
+        return;
     }
 
-    // 保存された状態を復元
-    const QByteArray dockGeometry = SettingsService::boardDockGeometry();
-    if (!dockGeometry.isEmpty()) {
-        m_boardDock->restoreGeometry(dockGeometry);
+    // 将棋盤をセントラルウィジェットに配置
+    m_centralLayout->addWidget(m_shogiView);
+
+    // セントラルウィジェットのサイズを将棋盤に合わせて固定
+    // これにより余白がなくなる
+    if (m_central) {
+        const QSize boardSize = m_shogiView->sizeHint();
+        m_central->setFixedSize(boardSize);
     }
 
-    const bool wasFloating = SettingsService::boardDockFloating();
-    m_boardDock->setFloating(wasFloating);
-
-    const bool wasVisible = SettingsService::boardDockVisible();
-    m_boardDock->setVisible(wasVisible);
+    // 将棋盤を表示
+    m_shogiView->show();
 }
 
 void MainWindow::createMenuWindowDock()
@@ -2979,6 +2924,18 @@ void MainWindow::onActionFlipBoardTriggered(bool /*checked*/)
     if (m_match) m_match->flipBoard();
 }
 
+void MainWindow::onActionEnlargeBoardTriggered(bool /*checked*/)
+{
+    if (!m_shogiView) return;
+    m_shogiView->enlargeBoard(true);
+}
+
+void MainWindow::onActionShrinkBoardTriggered(bool /*checked*/)
+{
+    if (!m_shogiView) return;
+    m_shogiView->reduceBoard(true);
+}
+
 void MainWindow::onRequestAppendGameOverMove(const MatchCoordinator::GameEndInfo& info)
 {
     ensureGameStateController();
@@ -3204,8 +3161,17 @@ void MainWindow::onBoardFlipped(bool /*flipped*/)
 void MainWindow::onBoardSizeChanged(QSize fieldSize)
 {
     // 将棋盤サイズ変更通知のハンドラ
-    // 評価値グラフはQDockWidgetに移行したため、自動リサイズは行わない
+    // セントラルウィジェットのサイズを将棋盤に合わせて調整
     Q_UNUSED(fieldSize)
+
+    if (m_central && m_shogiView) {
+        // 将棋盤の実際のサイズを取得
+        const QSize boardSize = m_shogiView->sizeHint();
+
+        // セントラルウィジェットの最大サイズを将棋盤サイズに制限
+        // これにより余白がなくなる
+        m_central->setFixedSize(boardSize);
+    }
 }
 
 void MainWindow::performDeferredEvalChartResize()
