@@ -83,7 +83,6 @@
     <addaction name="actionShrinkBoard"/>
     <addaction name="separator"/>
     <addaction name="actionJosekiWindow"/>
-    <addaction name="actionMenuWindow"/>
     <addaction name="separator"/>
     <addaction name="actionToolBar"/>
    </widget>
@@ -602,7 +601,7 @@
      <normaloff>:/images/actions/actionMenuWindow.svg</normaloff>:/images/actions/actionMenuWindow.svg</iconset>
    </property>
    <property name="text">
-    <string>メニューウィンドウ</string>
+    <string>メニュー</string>
    </property>
   </action>
   <action name="actionLanguageSystem">

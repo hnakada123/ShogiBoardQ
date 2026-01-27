@@ -2805,7 +2805,7 @@ void MainWindow::createMenuWindowDock()
     }
 
     // QDockWidgetを作成
-    m_menuWindowDock = new QDockWidget(tr("メニューウィンドウ"), this);
+    m_menuWindowDock = new QDockWidget(tr("メニュー"), this);
     m_menuWindowDock->setObjectName(QStringLiteral("MenuWindowDock"));
     m_menuWindowDock->setWidget(menuWindow);
     m_menuWindowDock->setFeatures(
@@ -2820,7 +2820,7 @@ void MainWindow::createMenuWindowDock()
     // 表示メニューにトグルアクションを追加
     if (ui->Display) {
         QAction* toggleAction = m_menuWindowDock->toggleViewAction();
-        toggleAction->setText(tr("メニューウィンドウ"));
+        toggleAction->setText(tr("メニュー"));
         ui->Display->addAction(toggleAction);
     }
 
