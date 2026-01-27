@@ -32,10 +32,8 @@ void UiActionsWiring::wire()
     QObject::connect(ui->actionMakeImmediateMove,    &QAction::triggered, mw,           &MainWindow::movePieceImmediately,       Qt::UniqueConnection);
     QObject::connect(ui->actionJosekiWindow,         &QAction::triggered, mw,           &MainWindow::displayJosekiWindow,        Qt::UniqueConnection);
     QObject::connect(ui->actionMenuWindow,                 &QAction::triggered, mw,           &MainWindow::displayMenuWindow,          Qt::UniqueConnection);
-    if (m_d.shogiView) {
-        QObject::connect(ui->actionEnlargeBoard,     &QAction::triggered, m_d.shogiView, &ShogiView::enlargeBoard, Qt::UniqueConnection);
-        QObject::connect(ui->actionShrinkBoard,      &QAction::triggered, m_d.shogiView, &ShogiView::reduceBoard,  Qt::UniqueConnection);
-    }
+    QObject::connect(ui->actionEnlargeBoard,     &QAction::triggered, mw, &MainWindow::onActionEnlargeBoardTriggered, Qt::UniqueConnection);
+    QObject::connect(ui->actionShrinkBoard,      &QAction::triggered, mw, &MainWindow::onActionShrinkBoardTriggered,  Qt::UniqueConnection);
     QObject::connect(ui->actionUndoMove,             &QAction::triggered, mw, &MainWindow::undoLastTwoMoves,   Qt::UniqueConnection);
     QObject::connect(ui->actionSaveBoardImage,       &QAction::triggered, mw, &MainWindow::saveShogiBoardImage, Qt::UniqueConnection);
 
