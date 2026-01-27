@@ -344,6 +344,21 @@ void setMenuWindowDockGeometry(const QByteArray& geometry);
 bool menuWindowDockVisible();
 void setMenuWindowDockVisible(bool visible);
 
+// ★ 追加: カスタムドックレイアウトの保存・読み込み
+// 保存されているレイアウト名のリストを取得
+QStringList savedDockLayoutNames();
+// 指定した名前でレイアウトを保存
+void saveDockLayout(const QString& name, const QByteArray& state);
+// 指定した名前のレイアウトを取得（存在しない場合は空のQByteArray）
+QByteArray loadDockLayout(const QString& name);
+// 指定した名前のレイアウトを削除
+void deleteDockLayout(const QString& name);
+
+// ★ 追加: 起動時に使用するレイアウト名
+// 空文字列の場合はデフォルトレイアウトを使用
+QString startupDockLayoutName();
+void setStartupDockLayoutName(const QString& name);
+
 } // namespace SettingsService
 
 #endif // SETTINGSSERVICE_H

@@ -211,6 +211,13 @@ public slots:
     void updateJosekiWindow();  // 定跡ウィンドウの更新
     void displayMenuWindow();   // メニューウィンドウの表示
     void resetDockLayout();     // ドックレイアウトをデフォルトにリセット
+    void saveDockLayoutAs();    // 現在のドックレイアウトを名前を付けて保存
+    void restoreSavedDockLayout(const QString& name);  // 保存したレイアウトを復元
+    void deleteSavedDockLayout(const QString& name);   // 保存したレイアウトを削除
+    void setAsStartupLayout(const QString& name);      // 起動時のレイアウトに設定
+    void clearStartupLayout();  // 起動時のレイアウト設定をクリア
+    void updateSavedLayoutsMenu();  // 保存レイアウトメニューを更新
+    void restoreStartupLayoutIfSet();  // 起動時レイアウトがあれば復元
     void displayJishogiScoreDialog();  // 持将棋の点数ダイアログ
     void handleNyugyokuDeclaration();  // 入玉宣言
     void onConsiderationEngineSettingsRequested(int engineNumber, const QString& engineName);  // 検討タブからのエンジン設定リクエスト
@@ -466,6 +473,9 @@ private:
 
     // メニューウィンドウドック
     QDockWidget*           m_menuWindowDock = nullptr;
+
+    // 保存済みドックレイアウトのサブメニュー
+    QMenu*                 m_savedLayoutsMenu = nullptr;
 
     // 試合進行（司令塔）
     MatchCoordinator* m_match = nullptr;
