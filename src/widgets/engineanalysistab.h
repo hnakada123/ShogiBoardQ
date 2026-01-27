@@ -43,6 +43,7 @@ class EngineAnalysisTab : public QWidget
 
 public:
     explicit EngineAnalysisTab(QWidget* parent=nullptr);
+    ~EngineAnalysisTab() override;
 
     void buildUi();
 
@@ -264,6 +265,10 @@ private:
     QTextEdit* m_comment=nullptr;
     QGraphicsView* m_branchTree=nullptr;
     QGraphicsScene* m_scene=nullptr;
+
+    // ★ 追加: イベントフィルターをインストールしたviewportへのポインタ（削除時の安全な解除用）
+    QWidget* m_commentViewport=nullptr;
+    QWidget* m_branchTreeViewport=nullptr;
 
     // ★ 追加: 検討タブ用UI
     EngineInfoWidget* m_considerationInfo=nullptr;

@@ -134,6 +134,14 @@ EngineAnalysisTab::EngineAnalysisTab(QWidget* parent)
 {
 }
 
+EngineAnalysisTab::~EngineAnalysisTab()
+{
+    // viewportポインタをクリア（オブジェクトは既に削除されている可能性があるため、
+    // removeEventFilterは呼ばない。Qtが自動的に処理する）
+    m_commentViewport = nullptr;
+    m_branchTreeViewport = nullptr;
+}
+
 void EngineAnalysisTab::buildUi()
 {
     // --- QTabWidget 準備 ---
@@ -475,7 +483,8 @@ void EngineAnalysisTab::buildUi()
 
     // ★ 追加: コメントのURLクリックを処理するためのイベントフィルター
     if (m_comment->viewport()) {
-        m_comment->viewport()->installEventFilter(this);
+        m_commentViewport = m_comment->viewport();
+        m_commentViewport->installEventFilter(this);
     }
 
     // ★ 追加: コメント変更時の検知
@@ -509,8 +518,9 @@ void EngineAnalysisTab::buildUi()
 
     // --- 分岐ツリーのクリック検知（二重 install 防止のガード付き） ---
     if (m_branchTree && m_branchTree->viewport()) {
-        QObject* vp = m_branchTree->viewport();
+        QWidget* vp = m_branchTree->viewport();
         if (!vp->property("branchFilterInstalled").toBool()) {
+            m_branchTreeViewport = vp;
             vp->installEventFilter(this);
             vp->setProperty("branchFilterInstalled", true);
         }
@@ -846,7 +856,8 @@ QWidget* EngineAnalysisTab::createCommentPage(QWidget* parent)
     commentLayout->addWidget(m_comment);
 
     if (m_comment->viewport()) {
-        m_comment->viewport()->installEventFilter(this);
+        m_commentViewport = m_comment->viewport();
+        m_commentViewport->installEventFilter(this);
     }
 
     connect(m_comment, &QTextEdit::textChanged,
@@ -877,8 +888,9 @@ QWidget* EngineAnalysisTab::createBranchTreePage(QWidget* parent)
     m_branchTree->setScene(m_scene);
 
     if (m_branchTree && m_branchTree->viewport()) {
-        QObject* vp = m_branchTree->viewport();
+        QWidget* vp = m_branchTree->viewport();
         if (!vp->property("branchFilterInstalled").toBool()) {
+            m_branchTreeViewport = vp;
             vp->installEventFilter(this);
             vp->setProperty("branchFilterInstalled", true);
         }
@@ -1461,12 +1473,18 @@ void EngineAnalysisTab::highlightNodeId(int nodeId, bool centerOn)
 // ===================== クリック検出 =====================
 bool EngineAnalysisTab::eventFilter(QObject* obj, QEvent* ev)
 {
+    // ウィジェット削除中は早期リターン（クラッシュ防止）
+    if (!obj || ev->type() == QEvent::Destroy) {
+        return QWidget::eventFilter(obj, ev);
+    }
+
     // ★ コメント内のURLクリック処理
-    if (m_comment && obj == m_comment->viewport()
+    // 保存したviewportポインタを使用（viewport()の呼び出しを避ける）
+    if (m_commentViewport && obj == m_commentViewport
         && ev->type() == QEvent::MouseButtonRelease)
     {
         auto* me = static_cast<QMouseEvent*>(ev);
-        if (me->button() == Qt::LeftButton) {
+        if (me->button() == Qt::LeftButton && m_comment) {
             // クリック位置にあるアンカー（URL）を取得
             const QString anchor = m_comment->anchorAt(me->pos());
             if (!anchor.isEmpty()) {
@@ -1478,7 +1496,8 @@ bool EngineAnalysisTab::eventFilter(QObject* obj, QEvent* ev)
     }
 
     // 分岐ツリーのクリック処理
-    if (m_branchTree && obj == m_branchTree->viewport()
+    // 保存したviewportポインタを使用
+    if (m_branchTreeViewport && obj == m_branchTreeViewport
         && ev->type() == QEvent::MouseButtonRelease)
     {
         // 対局中はクリックを無効化（スクロールバーは引き続き動作可能）
