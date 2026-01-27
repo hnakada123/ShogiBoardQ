@@ -87,7 +87,9 @@ static void collectActionsFromMenuHelper(QMenu* menu, QList<QAction*>& actions)
         } else {
             // 通常のアクションを追加
             // objectNameが空でないものだけを追加
-            if (!action->objectName().isEmpty()) {
+            // actionToolBarはメニューウィンドウには表示しない
+            if (!action->objectName().isEmpty() &&
+                action->objectName() != QStringLiteral("actionToolBar")) {
                 actions.append(action);
             }
         }

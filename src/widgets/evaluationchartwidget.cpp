@@ -29,9 +29,14 @@ const QList<int> EvaluationChartWidget::s_availableYLimits = {
     31111, 32000
 };
 
+// 利用可能な間隔値のリスト（Y軸：評価値間隔）
+const QList<int> EvaluationChartWidget::s_availableYIntervals = {
+    100, 200, 500, 1000, 2000, 5000, 10000
+};
+
 // 利用可能な上限値のリスト（X軸：手数上限）
 const QList<int> EvaluationChartWidget::s_availableXLimits = {
-    500, 600, 700, 800, 900, 1000
+    100, 200, 300, 400, 500, 600, 700, 800, 900, 1000
 };
 
 // 利用可能な間隔値のリスト（X軸：手数間隔）
@@ -394,10 +399,23 @@ void EvaluationChartWidget::setupControlPanel()
     lblYLimit->setStyleSheet(labelStyle);
     m_comboYLimit = new QComboBox(m_controlPanel);
     m_comboYLimit->setStyleSheet(comboStyle);
-    m_comboYLimit->setToolTip(tr("評価値の表示上限を選択（目盛り間隔は自動設定）"));
+    m_comboYLimit->setToolTip(tr("評価値の表示上限を選択"));
     for (int val : s_availableYLimits) {
         m_comboYLimit->addItem(QString::number(val), val);
     }
+
+    // 評価値間隔ComboBox（フローティング時のみ有効）
+    m_lblYInterval = new QLabel(tr("評価値間隔:"), m_controlPanel);
+    m_lblYInterval->setStyleSheet(labelStyle);
+    m_comboYInterval = new QComboBox(m_controlPanel);
+    m_comboYInterval->setStyleSheet(comboStyle);
+    m_comboYInterval->setToolTip(tr("評価値の目盛り間隔を選択（フローティング時のみ）"));
+    for (int val : s_availableYIntervals) {
+        m_comboYInterval->addItem(QString::number(val), val);
+    }
+    // 初期状態はドッキングなので無効化
+    m_lblYInterval->setEnabled(false);
+    m_comboYInterval->setEnabled(false);
 
     // 手数上限ComboBox
     auto* lblXLimit = new QLabel(tr("手数上限:"), m_controlPanel);
@@ -434,6 +452,10 @@ void EvaluationChartWidget::setupControlPanel()
     layout->addWidget(m_comboYLimit);
     layout->addSpacing(8);
 
+    layout->addWidget(m_lblYInterval);
+    layout->addWidget(m_comboYInterval);
+    layout->addSpacing(8);
+
     layout->addWidget(lblXLimit);
     layout->addWidget(m_comboXLimit);
     layout->addSpacing(8);
@@ -458,6 +480,8 @@ void EvaluationChartWidget::setupControlPanel()
     // シグナル接続（ラムダ不使用）
     connect(m_comboYLimit, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &EvaluationChartWidget::onYLimitChanged);
+    connect(m_comboYInterval, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &EvaluationChartWidget::onYIntervalChanged);
     connect(m_comboXLimit, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &EvaluationChartWidget::onXLimitChanged);
     connect(m_comboXInterval, QOverload<int>::of(&QComboBox::currentIndexChanged),
@@ -559,10 +583,20 @@ void EvaluationChartWidget::setYAxisLimit(int limit)
 {
     if (limit > 0 && limit != m_yLimit) {
         m_yLimit = limit;
-        
-        // 評価値間隔は上限の半分に自動設定（目盛り数5個固定）
-        m_yInterval = calculateAppropriateYInterval(m_yLimit);
-        
+
+        // ドッキング時は評価値間隔を上限の半分に自動設定（目盛り数5個固定）
+        // フローティング時はユーザーの設定を維持
+        if (!m_isFloating) {
+            m_yInterval = calculateAppropriateYInterval(m_yLimit);
+            // 間隔コンボボックスの選択を更新
+            if (m_comboYInterval) {
+                m_comboYInterval->blockSignals(true);
+                qsizetype idx = s_availableYIntervals.indexOf(m_yInterval);
+                if (idx >= 0) m_comboYInterval->setCurrentIndex(static_cast<int>(idx));
+                m_comboYInterval->blockSignals(false);
+            }
+        }
+
         updateYAxis();
         // ComboBoxの選択を更新
         if (m_comboYLimit) {
@@ -570,6 +604,21 @@ void EvaluationChartWidget::setYAxisLimit(int limit)
             qsizetype idx = s_availableYLimits.indexOf(m_yLimit);
             if (idx >= 0) m_comboYLimit->setCurrentIndex(static_cast<int>(idx));
             m_comboYLimit->blockSignals(false);
+        }
+    }
+}
+
+void EvaluationChartWidget::setYAxisInterval(int interval)
+{
+    if (interval > 0 && interval != m_yInterval) {
+        m_yInterval = interval;
+        updateYAxis();
+        // ComboBoxの選択を更新
+        if (m_comboYInterval) {
+            m_comboYInterval->blockSignals(true);
+            qsizetype idx = s_availableYIntervals.indexOf(m_yInterval);
+            if (idx >= 0) m_comboYInterval->setCurrentIndex(static_cast<int>(idx));
+            m_comboYInterval->blockSignals(false);
         }
     }
 }
@@ -640,6 +689,15 @@ void EvaluationChartWidget::onYLimitChanged(int index)
     }
 }
 
+void EvaluationChartWidget::onYIntervalChanged(int index)
+{
+    if (index < 0 || index >= s_availableYIntervals.size()) return;
+    int newInterval = s_availableYIntervals.at(index);
+    if (newInterval != m_yInterval && newInterval <= m_yLimit) {
+        setYAxisInterval(newInterval);
+    }
+}
+
 void EvaluationChartWidget::onXLimitChanged(int index)
 {
     if (index < 0 || index >= s_availableXLimits.size()) return;
@@ -690,6 +748,13 @@ void EvaluationChartWidget::updateComboBoxSelections()
         qsizetype idx = s_availableYLimits.indexOf(m_yLimit);
         if (idx >= 0) m_comboYLimit->setCurrentIndex(static_cast<int>(idx));
         m_comboYLimit->blockSignals(false);
+    }
+
+    if (m_comboYInterval) {
+        m_comboYInterval->blockSignals(true);
+        qsizetype idx = s_availableYIntervals.indexOf(m_yInterval);
+        if (idx >= 0) m_comboYInterval->setCurrentIndex(static_cast<int>(idx));
+        m_comboYInterval->blockSignals(false);
     }
 
     if (m_comboXLimit) {
@@ -961,4 +1026,32 @@ void EvaluationChartWidget::setEngine2Name(const QString& name)
 void EvaluationChartWidget::updateEngineInfoLabel()
 {
     // エンジン情報ラベルは廃止されたため、何もしない
+}
+
+void EvaluationChartWidget::setFloating(bool floating)
+{
+    if (m_isFloating == floating) return;
+
+    m_isFloating = floating;
+
+    // コンボボックスとラベルの有効/無効を切り替え
+    if (m_lblYInterval) {
+        m_lblYInterval->setEnabled(floating);
+    }
+    if (m_comboYInterval) {
+        m_comboYInterval->setEnabled(floating);
+    }
+
+    if (!floating) {
+        // ドッキング時：評価値間隔を上限の半分に自動設定（目盛り数5個固定）
+        m_yInterval = calculateAppropriateYInterval(m_yLimit);
+        updateYAxis();
+        // 間隔コンボボックスの選択を更新
+        if (m_comboYInterval) {
+            m_comboYInterval->blockSignals(true);
+            qsizetype idx = s_availableYIntervals.indexOf(m_yInterval);
+            if (idx >= 0) m_comboYInterval->setCurrentIndex(static_cast<int>(idx));
+            m_comboYInterval->blockSignals(false);
+        }
+    }
 }

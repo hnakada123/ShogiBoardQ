@@ -624,6 +624,10 @@ QWidget* EngineAnalysisTab::createThinkingPage(QWidget* parent)
     v->addWidget(m_info2);
     v->addWidget(m_view2, 1);
 
+    // 起動時はエンジン2を非表示
+    m_info2->setVisible(false);
+    m_view2->setVisible(false);
+
     // フォントサイズを適用
     m_thinkingFontSize = SettingsService::thinkingFontSize();
     if (m_thinkingFontSize != 10) {
@@ -1727,46 +1731,50 @@ void EngineAnalysisTab::applyThinkingViewColumnWidths(QTableView* v, int viewInd
         h->setSectionResizeMode(col, QHeaderView::Interactive);
     }
 
+    // デフォルトの列幅
+    // 「時間」「深さ」「ノード数」「評価値」「盤面」「読み筋」
+    // 読み筋はsetStretchLastSection(true)で自動伸縮するため小さめに設定
+    const int defaultWidths[] = {50, 40, 80, 60, 45, 100};
+    constexpr int kMaxTotalWidth = 450;  // 読み筋以外の列幅合計の上限
+
     // ★ 設定ファイルから列幅を読み込む
     QList<int> savedWidths = SettingsService::thinkingViewColumnWidths(viewIndex);
 
+    // 保存された列幅の合計をチェック（読み筋列を除く）
+    bool useSavedWidths = false;
     if (savedWidths.size() == kColCount) {
+        int totalWidth = 0;
+        for (int col = 0; col < kColCount - 1; ++col) {  // 読み筋列を除く
+            totalWidth += savedWidths.at(col);
+        }
+        // 読み筋以外の列幅合計が上限以下なら保存された幅を使用
+        useSavedWidths = (totalWidth <= kMaxTotalWidth);
+    }
+
+    h->blockSignals(true);
+    if (useSavedWidths) {
         // 保存された列幅を適用
-        h->blockSignals(true);
         for (int col = 0; col < kColCount; ++col) {
             if (savedWidths.at(col) > 0) {
                 v->setColumnWidth(col, savedWidths.at(col));
             }
         }
-        h->blockSignals(false);
-
-        // ★ 列幅読み込み済みフラグを遅延で設定
-        QTimer::singleShot(500, this, [this, viewIndex]() {
-            if (viewIndex == 0) {
-                m_thinkingView1WidthsLoaded = true;
-            } else {
-                m_thinkingView2WidthsLoaded = true;
-            }
-        });
     } else {
         // デフォルトの列幅を設定
-        // 「時間」「深さ」「ノード数」「評価値」「盤面」「読み筋」
-        const int defaultWidths[] = {60, 50, 100, 80, 50, 330};
-        h->blockSignals(true);
         for (int col = 0; col < kColCount; ++col) {
             v->setColumnWidth(col, defaultWidths[col]);
         }
-        h->blockSignals(false);
-
-        // デフォルト幅の場合も、初期化後に保存を有効にする
-        QTimer::singleShot(500, this, [this, viewIndex]() {
-            if (viewIndex == 0) {
-                m_thinkingView1WidthsLoaded = true;
-            } else {
-                m_thinkingView2WidthsLoaded = true;
-            }
-        });
     }
+    h->blockSignals(false);
+
+    // ★ 列幅読み込み済みフラグを遅延で設定
+    QTimer::singleShot(500, this, [this, viewIndex]() {
+        if (viewIndex == 0) {
+            m_thinkingView1WidthsLoaded = true;
+        } else {
+            m_thinkingView2WidthsLoaded = true;
+        }
+    });
 }
 
 // 追加：ヘッダー名で列を探す（大文字小文字は無視）
