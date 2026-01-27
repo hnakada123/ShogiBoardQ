@@ -48,6 +48,7 @@
 #include <QDebug>             // ★ 追加: デバッグ出力用
 #include "numeric_right_align_comma_delegate.h"
 #include "engineinfowidget.h"
+#include "flowlayout.h"  // ★ 追加: 自動折り返しレイアウト
 #include "shogienginethinkingmodel.h"
 #include "usicommlogmodel.h"
 
@@ -114,27 +115,15 @@ static void debugFontInfo(const QFont &font, const QString &context)
 }
 
 namespace {
-void relaxWidgetWidth(QWidget* w)
-{
-    if (!w) return;
-    w->setMinimumWidth(0);
-    QSizePolicy pol = w->sizePolicy();
-    pol.setHorizontalPolicy(QSizePolicy::Ignored);
-    w->setSizePolicy(pol);
-}
-
+// ツールバーの幅制約を緩和する（ドックウィンドウで縮小可能にする）
+// ツールバー自体のサイズポリシーのみを変更し、子ウィジェットはそのまま維持
 void relaxToolbarWidth(QWidget* toolbar)
 {
     if (!toolbar) return;
-    relaxWidgetWidth(toolbar);
-    const auto children = toolbar->findChildren<QWidget*>(QString(), Qt::FindDirectChildrenOnly);
-    for (QWidget* child : children) {
-        relaxWidgetWidth(child);
-        if (auto* combo = qobject_cast<QComboBox*>(child)) {
-            combo->setMinimumContentsLength(0);
-            combo->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
-        }
-    }
+    toolbar->setMinimumWidth(0);
+    QSizePolicy pol = toolbar->sizePolicy();
+    pol.setHorizontalPolicy(QSizePolicy::Ignored);
+    toolbar->setSizePolicy(pol);
 }
 } // namespace
 
@@ -255,10 +244,9 @@ void EngineAnalysisTab::buildUi()
     considerationLayout->setSpacing(4);
 
     // 検討タブ用ツールバー（A-/A+ボタン、エンジン設定、思考時間、候補手の数）
+    // FlowLayoutを使用して、幅が足りない場合は自動的に複数行に折り返す
     m_considerationToolbar = new QWidget(considerationPage);
-    auto* toolbarLayout = new QHBoxLayout(m_considerationToolbar);
-    toolbarLayout->setContentsMargins(2, 2, 2, 2);
-    toolbarLayout->setSpacing(8);
+    auto* toolbarLayout = new FlowLayout(m_considerationToolbar, 2, 8, 4);  // margin=2, hSpacing=8, vSpacing=4
 
     // フォントサイズ減少ボタン（A-）
     m_btnConsiderationFontDecrease = new QToolButton(m_considerationToolbar);
@@ -348,29 +336,20 @@ void EngineAnalysisTab::buildUi()
     connect(m_btnStopConsideration, &QToolButton::clicked,
             this, &EngineAnalysisTab::startConsiderationRequested);
 
-    // ツールバーにウィジェットを追加
+    // ツールバーにウィジェットを追加（FlowLayoutで自動折り返し）
     toolbarLayout->addWidget(m_btnConsiderationFontDecrease);
     toolbarLayout->addWidget(m_btnConsiderationFontIncrease);
-    toolbarLayout->addSpacing(12);
     toolbarLayout->addWidget(m_engineComboBox);
     toolbarLayout->addWidget(m_btnEngineSettings);
-    toolbarLayout->addSpacing(12);
     toolbarLayout->addWidget(m_unlimitedTimeRadioButton);
     toolbarLayout->addWidget(m_considerationTimeRadioButton);
     toolbarLayout->addWidget(m_byoyomiSecSpinBox);
     toolbarLayout->addWidget(m_byoyomiSecUnitLabel);
-    toolbarLayout->addSpacing(12);
     toolbarLayout->addWidget(m_elapsedTimeLabel);
-    toolbarLayout->addSpacing(12);
     toolbarLayout->addWidget(m_multiPVLabel);
     toolbarLayout->addWidget(m_multiPVComboBox);
-    toolbarLayout->addSpacing(12);
     toolbarLayout->addWidget(m_showArrowsCheckBox);
-    toolbarLayout->addSpacing(12);
     toolbarLayout->addWidget(m_btnStopConsideration);
-    toolbarLayout->addStretch();  // 右側にスペースを追加
-
-    relaxToolbarWidth(m_considerationToolbar);
 
     // コンボボックスの値変更シグナルを接続
     connect(m_multiPVComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
