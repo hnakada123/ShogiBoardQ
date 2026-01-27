@@ -46,10 +46,19 @@ public:
 
     void buildUi();
 
+    // ★ 追加: 独立したドック用にページを作成
+    // 各メソッドは独立したQWidgetを作成して返す（呼び出し側が親を設定）
+    QWidget* createThinkingPage(QWidget* parent);
+    QWidget* createConsiderationPage(QWidget* parent);
+    QWidget* createUsiLogPage(QWidget* parent);
+    QWidget* createCsaLogPage(QWidget* parent);
+    QWidget* createCommentPage(QWidget* parent);
+    QWidget* createBranchTreePage(QWidget* parent);
+
     void setModels(ShogiEngineThinkingModel* m1, ShogiEngineThinkingModel* m2,
                    UsiCommLogModel* log1, UsiCommLogModel* log2);
 
-    // 既存コードの m_tab をそのまま使えるように
+    // 既存コードの m_tab をそのまま使えるように（ドックモードでは使用しない）
     QTabWidget* tab() const;
 
     // --- 分岐ツリー：MainWindow から供給する軽量行データ ---
