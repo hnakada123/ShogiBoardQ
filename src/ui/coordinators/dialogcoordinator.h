@@ -24,7 +24,7 @@ class AnalysisFlowController;
 class KifuDisplay;
 class GameInfoPaneController;
 class KifuLoadCoordinator;
-class RecordPane;
+class EvaluationChartWidget;
 
 /**
  * @brief DialogCoordinator - ダイアログ表示の管理クラス
@@ -189,7 +189,7 @@ public:
         ShogiGameController* gameController = nullptr;
         GameInfoPaneController* gameInfoController = nullptr;
         KifuLoadCoordinator* kifuLoadCoordinator = nullptr;
-        RecordPane* recordPane = nullptr;
+        EvaluationChartWidget* evalChart = nullptr;
         QStringList* gameUsiMoves = nullptr;  // 対局時のUSI形式指し手リスト（MainWindow::m_gameUsiMoves）
     };
 

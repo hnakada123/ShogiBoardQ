@@ -844,4 +844,260 @@ void setConsiderationFontSize(int size)
     s.setValue("ConsiderationTab/fontSize", size);
 }
 
+// ★ 追加: 評価値グラフドックの状態を取得
+QByteArray evalChartDockState()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("EvalChartDock/state", QByteArray()).toByteArray();
+}
+
+// ★ 追加: 評価値グラフドックの状態を保存
+void setEvalChartDockState(const QByteArray& state)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("EvalChartDock/state", state);
+}
+
+// ★ 追加: 評価値グラフドックのフローティング状態を取得
+bool evalChartDockFloating()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("EvalChartDock/floating", false).toBool();
+}
+
+// ★ 追加: 評価値グラフドックのフローティング状態を保存
+void setEvalChartDockFloating(bool floating)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("EvalChartDock/floating", floating);
+}
+
+// ★ 追加: 評価値グラフドックのジオメトリを取得
+QByteArray evalChartDockGeometry()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("EvalChartDock/geometry", QByteArray()).toByteArray();
+}
+
+// ★ 追加: 評価値グラフドックのジオメトリを保存
+void setEvalChartDockGeometry(const QByteArray& geometry)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("EvalChartDock/geometry", geometry);
+}
+
+// ★ 追加: 評価値グラフドックの表示状態を取得
+bool evalChartDockVisible()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("EvalChartDock/visible", true).toBool();
+}
+
+// ★ 追加: 評価値グラフドックの表示状態を保存
+void setEvalChartDockVisible(bool visible)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("EvalChartDock/visible", visible);
+}
+
+// ★ 追加: 棋譜欄ドックのフローティング状態を取得
+bool recordPaneDockFloating()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("RecordPaneDock/floating", false).toBool();
+}
+
+// ★ 追加: 棋譜欄ドックのフローティング状態を保存
+void setRecordPaneDockFloating(bool floating)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("RecordPaneDock/floating", floating);
+}
+
+// ★ 追加: 棋譜欄ドックのジオメトリを取得
+QByteArray recordPaneDockGeometry()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("RecordPaneDock/geometry", QByteArray()).toByteArray();
+}
+
+// ★ 追加: 棋譜欄ドックのジオメトリを保存
+void setRecordPaneDockGeometry(const QByteArray& geometry)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("RecordPaneDock/geometry", geometry);
+}
+
+// ★ 追加: 棋譜欄ドックの表示状態を取得
+bool recordPaneDockVisible()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("RecordPaneDock/visible", true).toBool();
+}
+
+// ★ 追加: 棋譜欄ドックの表示状態を保存
+void setRecordPaneDockVisible(bool visible)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("RecordPaneDock/visible", visible);
+}
+
+// ★ 追加: 解析タブドックのフローティング状態を取得
+bool analysisTabDockFloating()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("AnalysisTabDock/floating", false).toBool();
+}
+
+// ★ 追加: 解析タブドックのフローティング状態を保存
+void setAnalysisTabDockFloating(bool floating)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("AnalysisTabDock/floating", floating);
+}
+
+// ★ 追加: 解析タブドックのジオメトリを取得
+QByteArray analysisTabDockGeometry()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("AnalysisTabDock/geometry", QByteArray()).toByteArray();
+}
+
+// ★ 追加: 解析タブドックのジオメトリを保存
+void setAnalysisTabDockGeometry(const QByteArray& geometry)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("AnalysisTabDock/geometry", geometry);
+}
+
+// ★ 追加: 解析タブドックの表示状態を取得
+bool analysisTabDockVisible()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("AnalysisTabDock/visible", true).toBool();
+}
+
+// ★ 追加: 解析タブドックの表示状態を保存
+void setAnalysisTabDockVisible(bool visible)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("AnalysisTabDock/visible", visible);
+}
+
+// ★ 追加: 将棋盤ドックのフローティング状態を取得
+bool boardDockFloating()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("BoardDock/floating", false).toBool();
+}
+
+// ★ 追加: 将棋盤ドックのフローティング状態を保存
+void setBoardDockFloating(bool floating)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("BoardDock/floating", floating);
+}
+
+// ★ 追加: 将棋盤ドックのジオメトリを取得
+QByteArray boardDockGeometry()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("BoardDock/geometry", QByteArray()).toByteArray();
+}
+
+// ★ 追加: 将棋盤ドックのジオメトリを保存
+void setBoardDockGeometry(const QByteArray& geometry)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("BoardDock/geometry", geometry);
+}
+
+// ★ 追加: 将棋盤ドックの表示状態を取得
+bool boardDockVisible()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("BoardDock/visible", true).toBool();
+}
+
+// ★ 追加: 将棋盤ドックの表示状態を保存
+void setBoardDockVisible(bool visible)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("BoardDock/visible", visible);
+}
+
+// ★ 追加: メニューウィンドウドックのフローティング状態を取得
+bool menuWindowDockFloating()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("MenuWindowDock/floating", false).toBool();
+}
+
+// ★ 追加: メニューウィンドウドックのフローティング状態を保存
+void setMenuWindowDockFloating(bool floating)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("MenuWindowDock/floating", floating);
+}
+
+// ★ 追加: メニューウィンドウドックのジオメトリを取得
+QByteArray menuWindowDockGeometry()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("MenuWindowDock/geometry", QByteArray()).toByteArray();
+}
+
+// ★ 追加: メニューウィンドウドックのジオメトリを保存
+void setMenuWindowDockGeometry(const QByteArray& geometry)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("MenuWindowDock/geometry", geometry);
+}
+
+// ★ 追加: メニューウィンドウドックの表示状態を取得
+bool menuWindowDockVisible()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("MenuWindowDock/visible", false).toBool();  // デフォルトは非表示
+}
+
+// ★ 追加: メニューウィンドウドックの表示状態を保存
+void setMenuWindowDockVisible(bool visible)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("MenuWindowDock/visible", visible);
+}
+
 } // namespace SettingsService

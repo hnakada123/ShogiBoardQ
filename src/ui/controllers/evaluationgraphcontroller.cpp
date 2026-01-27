@@ -5,7 +5,6 @@
 
 #include "evalgraphpresenter.h"
 #include "evaluationchartwidget.h"
-#include "recordpane.h"
 #include "matchcoordinator.h"
 
 EvaluationGraphController::EvaluationGraphController(QObject* parent)
@@ -19,9 +18,9 @@ EvaluationGraphController::~EvaluationGraphController() = default;
 // 依存オブジェクトの設定
 // --------------------------------------------------------
 
-void EvaluationGraphController::setRecordPane(RecordPane* pane)
+void EvaluationGraphController::setEvalChart(EvaluationChartWidget* chart)
 {
-    m_recordPane = pane;
+    m_evalChart = chart;
 }
 
 void EvaluationGraphController::setMatchCoordinator(MatchCoordinator* match)
@@ -42,18 +41,13 @@ void EvaluationGraphController::setEngine1Name(const QString& name)
 {
     qDebug() << "[EVAL_GRAPH_CTRL] setEngine1Name called: name=" << name;
     m_engine1Name = name;
-    
+
     // EvaluationChartWidgetにも即座に設定
-    if (m_recordPane) {
-        EvaluationChartWidget* ec = m_recordPane->evalChart();
-        if (ec) {
-            qDebug() << "[EVAL_GRAPH_CTRL] setEngine1Name: forwarding to EvaluationChartWidget";
-            ec->setEngine1Name(name);
-        } else {
-            qDebug() << "[EVAL_GRAPH_CTRL] setEngine1Name: evalChart() returned NULL!";
-        }
+    if (m_evalChart) {
+        qDebug() << "[EVAL_GRAPH_CTRL] setEngine1Name: forwarding to EvaluationChartWidget";
+        m_evalChart->setEngine1Name(name);
     } else {
-        qDebug() << "[EVAL_GRAPH_CTRL] setEngine1Name: m_recordPane is NULL!";
+        qDebug() << "[EVAL_GRAPH_CTRL] setEngine1Name: m_evalChart is NULL!";
     }
 }
 
@@ -61,18 +55,13 @@ void EvaluationGraphController::setEngine2Name(const QString& name)
 {
     qDebug() << "[EVAL_GRAPH_CTRL] setEngine2Name called: name=" << name;
     m_engine2Name = name;
-    
+
     // EvaluationChartWidgetにも即座に設定
-    if (m_recordPane) {
-        EvaluationChartWidget* ec = m_recordPane->evalChart();
-        if (ec) {
-            qDebug() << "[EVAL_GRAPH_CTRL] setEngine2Name: forwarding to EvaluationChartWidget";
-            ec->setEngine2Name(name);
-        } else {
-            qDebug() << "[EVAL_GRAPH_CTRL] setEngine2Name: evalChart() returned NULL!";
-        }
+    if (m_evalChart) {
+        qDebug() << "[EVAL_GRAPH_CTRL] setEngine2Name: forwarding to EvaluationChartWidget";
+        m_evalChart->setEngine2Name(name);
     } else {
-        qDebug() << "[EVAL_GRAPH_CTRL] setEngine2Name: m_recordPane is NULL!";
+        qDebug() << "[EVAL_GRAPH_CTRL] setEngine2Name: m_evalChart is NULL!";
     }
 }
 
@@ -96,10 +85,8 @@ void EvaluationGraphController::trimToPly(int maxPly)
     }
 
     // チャートウィジェットもトリム
-    if (m_recordPane) {
-        if (auto* ec = m_recordPane->evalChart()) {
-            ec->trimToPly(maxPly);
-        }
+    if (m_evalChart) {
+        m_evalChart->trimToPly(maxPly);
     }
 }
 
@@ -168,23 +155,17 @@ void EvaluationGraphController::doRedrawEngine1Graph()
              << ", last cp =" << cpAfter;
 
     // 実際のチャートウィジェットにも描画
-    if (!m_recordPane) {
-        qDebug() << "[EVAL_GRAPH] P1: m_recordPane is NULL!";
-        return;
-    }
-
-    EvaluationChartWidget* ec = m_recordPane->evalChart();
-    if (!ec) {
-        qDebug() << "[EVAL_GRAPH] P1: evalChart() returned NULL!";
+    if (!m_evalChart) {
+        qDebug() << "[EVAL_GRAPH] P1: m_evalChart is NULL!";
         return;
     }
 
     // エンジン名を設定
-    ec->setEngine1Name(m_engine1Name);
+    m_evalChart->setEngine1Name(m_engine1Name);
 
-    qDebug() << "[EVAL_GRAPH] P1: calling ec->appendScoreP1(" << ply << "," << cpAfter << ", false)";
-    ec->appendScoreP1(ply, cpAfter, false);
-    qDebug() << "[EVAL_GRAPH] P1: appendScoreP1 done, chart countP1 =" << ec->countP1();
+    qDebug() << "[EVAL_GRAPH] P1: calling m_evalChart->appendScoreP1(" << ply << "," << cpAfter << ", false)";
+    m_evalChart->appendScoreP1(ply, cpAfter, false);
+    qDebug() << "[EVAL_GRAPH] P1: appendScoreP1 done, chart countP1 =" << m_evalChart->countP1();
 }
 
 void EvaluationGraphController::doRedrawEngine2Graph()
@@ -212,25 +193,19 @@ void EvaluationGraphController::doRedrawEngine2Graph()
              << ", last cp =" << cpAfter;
 
     // 実際のチャートウィジェットにも描画
-    if (!m_recordPane) {
-        qDebug() << "[EVAL_GRAPH] P2: m_recordPane is NULL!";
-        return;
-    }
-
-    EvaluationChartWidget* ec = m_recordPane->evalChart();
-    if (!ec) {
-        qDebug() << "[EVAL_GRAPH] P2: evalChart() returned NULL!";
+    if (!m_evalChart) {
+        qDebug() << "[EVAL_GRAPH] P2: m_evalChart is NULL!";
         return;
     }
 
     // エンジン名を設定
-    ec->setEngine2Name(m_engine2Name.isEmpty() ? m_engine1Name : m_engine2Name);
+    m_evalChart->setEngine2Name(m_engine2Name.isEmpty() ? m_engine1Name : m_engine2Name);
 
     // 後手/上手のエンジン評価値は符号を反転させてプロット
     // USIエンジンは手番側から見た評価値を出力するため、後手の評価値を先手視点に変換
-    qDebug() << "[EVAL_GRAPH] P2: calling ec->appendScoreP2(" << ply << "," << cpAfter << ", true)";
-    ec->appendScoreP2(ply, cpAfter, true);
-    qDebug() << "[EVAL_GRAPH] P2: appendScoreP2 done, chart countP2 =" << ec->countP2();
+    qDebug() << "[EVAL_GRAPH] P2: calling m_evalChart->appendScoreP2(" << ply << "," << cpAfter << ", true)";
+    m_evalChart->appendScoreP2(ply, cpAfter, true);
+    qDebug() << "[EVAL_GRAPH] P2: appendScoreP2 done, chart countP2 =" << m_evalChart->countP2();
 }
 
 // --------------------------------------------------------
@@ -248,19 +223,13 @@ void EvaluationGraphController::removeLastP1Score()
     }
 
     // チャートウィジェットから削除
-    if (!m_recordPane) {
-        qDebug() << "[EVAL_GRAPH] removeLastP1Score: m_recordPane is NULL!";
+    if (!m_evalChart) {
+        qDebug() << "[EVAL_GRAPH] removeLastP1Score: m_evalChart is NULL!";
         return;
     }
 
-    EvaluationChartWidget* ec = m_recordPane->evalChart();
-    if (!ec) {
-        qDebug() << "[EVAL_GRAPH] removeLastP1Score: evalChart() returned NULL!";
-        return;
-    }
-
-    ec->removeLastP1();
-    qDebug() << "[EVAL_GRAPH] removeLastP1Score done, chart countP1 =" << ec->countP1();
+    m_evalChart->removeLastP1();
+    qDebug() << "[EVAL_GRAPH] removeLastP1Score done, chart countP1 =" << m_evalChart->countP1();
 }
 
 void EvaluationGraphController::removeLastP2Score()
@@ -274,19 +243,13 @@ void EvaluationGraphController::removeLastP2Score()
     }
 
     // チャートウィジェットから削除
-    if (!m_recordPane) {
-        qDebug() << "[EVAL_GRAPH] removeLastP2Score: m_recordPane is NULL!";
+    if (!m_evalChart) {
+        qDebug() << "[EVAL_GRAPH] removeLastP2Score: m_evalChart is NULL!";
         return;
     }
 
-    EvaluationChartWidget* ec = m_recordPane->evalChart();
-    if (!ec) {
-        qDebug() << "[EVAL_GRAPH] removeLastP2Score: evalChart() returned NULL!";
-        return;
-    }
-
-    ec->removeLastP2();
-    qDebug() << "[EVAL_GRAPH] removeLastP2Score done, chart countP2 =" << ec->countP2();
+    m_evalChart->removeLastP2();
+    qDebug() << "[EVAL_GRAPH] removeLastP2Score done, chart countP2 =" << m_evalChart->countP2();
 }
 
 // --------------------------------------------------------
@@ -297,16 +260,10 @@ void EvaluationGraphController::setCurrentPly(int ply)
 {
     qDebug() << "[EVAL_GRAPH] setCurrentPly() called with ply =" << ply;
 
-    if (!m_recordPane) {
-        qDebug() << "[EVAL_GRAPH] setCurrentPly: m_recordPane is NULL!";
+    if (!m_evalChart) {
+        qDebug() << "[EVAL_GRAPH] setCurrentPly: m_evalChart is NULL!";
         return;
     }
 
-    EvaluationChartWidget* ec = m_recordPane->evalChart();
-    if (!ec) {
-        qDebug() << "[EVAL_GRAPH] setCurrentPly: evalChart() returned NULL!";
-        return;
-    }
-
-    ec->setCurrentPly(ply);
+    m_evalChart->setCurrentPly(ply);
 }

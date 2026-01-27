@@ -49,6 +49,11 @@ public:
     void displayMenuWindow();
 
     /**
+     * @brief MenuWindowを確保する（未作成時のみ作成）
+     */
+    void ensureMenuWindow();
+
+    /**
      * @brief メニューウィンドウを取得
      * @return MenuWindowへのポインタ（未作成時はnullptr）
      */
@@ -68,11 +73,6 @@ signals:
     void favoritesChanged(const QStringList& favorites);
 
 private:
-    /**
-     * @brief MenuWindowを確保する
-     */
-    void ensureMenuWindow();
-
     /**
      * @brief メニューバーからカテゴリ情報を収集
      */

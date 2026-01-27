@@ -4,9 +4,8 @@
 #include <QWidget>
 #include <QTextBrowser>
 
-class QTableView; class QPushButton; class QTextBrowser; class QSplitter; class QScrollArea;
+class QTableView; class QPushButton; class QTextBrowser; class QSplitter;
 class KifuRecordListModel; class KifuBranchListModel;
-class EvaluationChartWidget;
 
 // ★ 追加: コメント表示用のラッパ（setText を提供）
 class CommentTextAdapter {
@@ -28,7 +27,6 @@ public:
 
     QTableView* kifuView() const;
     QTableView* branchView() const;
-    EvaluationChartWidget* evalChart() const;
 
     void setArrowButtonsEnabled(bool on);
     void setKifuViewEnabled(bool on);
@@ -52,10 +50,6 @@ public:
     void setupKifuSelectionAppearance();
     void setupBranchViewSelectionAppearance();
 
-    // 評価値グラフエリアの高さを設定
-    void setEvalChartHeight(int height);
-    int evalChartHeight() const;
-
 signals:
     void mainRowChanged(int row);
     void branchActivated(const QModelIndex&);
@@ -70,11 +64,7 @@ private:
     QPushButton *m_btn1=nullptr,*m_btn2=nullptr,*m_btn3=nullptr,*m_btn4=nullptr,*m_btn5=nullptr,*m_btn6=nullptr;
     QPushButton *m_btnFontUp=nullptr, *m_btnFontDown=nullptr;  // 文字サイズ変更ボタン
     int m_fontSize = 10;  // 現在のフォントサイズ
-    QSplitter *m_mainSplitter=nullptr;  // 上下分割用メインスプリッター
     QSplitter *m_lr=nullptr;
-    QScrollArea* m_scroll=nullptr;
-    EvaluationChartWidget* m_eval=nullptr;
-    QWidget* m_evalWrap=nullptr;  // 評価値グラフのラッパーウィジェット
     QMetaObject::Connection m_connKifuCurrentRow;
 
 private slots:

@@ -3,6 +3,7 @@
 
 #include <QString>
 #include <QSize>
+#include <QByteArray>
 
 class QWidget;
 class ShogiView;
@@ -278,6 +279,70 @@ void setConsiderationMultiPV(int multiPV);
 int considerationFontSize();
 // ★ 追加: 検討タブのフォントサイズを保存
 void setConsiderationFontSize(int size);
+
+// ★ 追加: 評価値グラフドックの状態（QMainWindow::saveState()のバイト列）
+QByteArray evalChartDockState();
+void setEvalChartDockState(const QByteArray& state);
+
+// ★ 追加: 評価値グラフドックのフローティング状態
+bool evalChartDockFloating();
+void setEvalChartDockFloating(bool floating);
+
+// ★ 追加: 評価値グラフドックのジオメトリ（フローティング時のウィンドウ位置・サイズ）
+QByteArray evalChartDockGeometry();
+void setEvalChartDockGeometry(const QByteArray& geometry);
+
+// ★ 追加: 評価値グラフドックの表示状態
+bool evalChartDockVisible();
+void setEvalChartDockVisible(bool visible);
+
+// ★ 追加: 棋譜欄ドックのフローティング状態
+bool recordPaneDockFloating();
+void setRecordPaneDockFloating(bool floating);
+
+// ★ 追加: 棋譜欄ドックのジオメトリ（フローティング時のウィンドウ位置・サイズ）
+QByteArray recordPaneDockGeometry();
+void setRecordPaneDockGeometry(const QByteArray& geometry);
+
+// ★ 追加: 棋譜欄ドックの表示状態
+bool recordPaneDockVisible();
+void setRecordPaneDockVisible(bool visible);
+
+// ★ 追加: 解析タブドックのフローティング状態
+bool analysisTabDockFloating();
+void setAnalysisTabDockFloating(bool floating);
+
+// ★ 追加: 解析タブドックのジオメトリ（フローティング時のウィンドウ位置・サイズ）
+QByteArray analysisTabDockGeometry();
+void setAnalysisTabDockGeometry(const QByteArray& geometry);
+
+// ★ 追加: 解析タブドックの表示状態
+bool analysisTabDockVisible();
+void setAnalysisTabDockVisible(bool visible);
+
+// ★ 追加: 将棋盤ドックのフローティング状態
+bool boardDockFloating();
+void setBoardDockFloating(bool floating);
+
+// ★ 追加: 将棋盤ドックのジオメトリ（フローティング時のウィンドウ位置・サイズ）
+QByteArray boardDockGeometry();
+void setBoardDockGeometry(const QByteArray& geometry);
+
+// ★ 追加: 将棋盤ドックの表示状態
+bool boardDockVisible();
+void setBoardDockVisible(bool visible);
+
+// ★ 追加: メニューウィンドウドックのフローティング状態
+bool menuWindowDockFloating();
+void setMenuWindowDockFloating(bool floating);
+
+// ★ 追加: メニューウィンドウドックのジオメトリ（フローティング時のウィンドウ位置・サイズ）
+QByteArray menuWindowDockGeometry();
+void setMenuWindowDockGeometry(const QByteArray& geometry);
+
+// ★ 追加: メニューウィンドウドックの表示状態
+bool menuWindowDockVisible();
+void setMenuWindowDockVisible(bool visible);
 
 } // namespace SettingsService
 
