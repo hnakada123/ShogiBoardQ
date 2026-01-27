@@ -45,6 +45,9 @@ public:
     int xAxisLimit() const { return m_xLimit; }
     int xAxisInterval() const { return m_xInterval; }
 
+    // Y軸間隔の変更
+    void setYAxisInterval(int interval);
+
     // X軸設定の変更
     void setXAxisLimit(int limit);
     void setXAxisInterval(int interval);
@@ -69,9 +72,14 @@ signals:
     // X軸設定が変更されたときに発行
     void xAxisSettingsChanged(int limit, int interval);
 
+public slots:
+    // ドッキング状態の変更（QDockWidget::topLevelChangedから呼び出す）
+    void setFloating(bool floating);
+
 private slots:
     // ComboBox選択変更時のスロット
     void onYLimitChanged(int index);
+    void onYIntervalChanged(int index);
     void onXLimitChanged(int index);
     void onXIntervalChanged(int index);
 
@@ -132,8 +140,12 @@ private:
 
     // ComboBox
     QComboBox* m_comboYLimit = nullptr;
+    QComboBox* m_comboYInterval = nullptr;
     QComboBox* m_comboXLimit = nullptr;
     QComboBox* m_comboXInterval = nullptr;
+
+    // 評価値間隔のラベル（無効化用）
+    QLabel* m_lblYInterval = nullptr;
 
     // フォントサイズボタン
     QPushButton* m_btnFontUp = nullptr;
@@ -164,8 +176,13 @@ private:
     // 現在の手数（縦線表示用）
     int m_currentPly = 0;
 
+    // フローティング状態（ドッキング時はfalse）
+    bool m_isFloating = false;
+
     // 利用可能な上限値のリスト（Y軸）
     static const QList<int> s_availableYLimits;
+    // 利用可能な間隔値のリスト（Y軸）
+    static const QList<int> s_availableYIntervals;
     // 利用可能な上限値のリスト（X軸）
     static const QList<int> s_availableXLimits;
     // 利用可能な間隔値のリスト（X軸）

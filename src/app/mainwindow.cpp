@@ -2629,6 +2629,13 @@ void MainWindow::createEvalChartDock()
 
     const bool wasVisible = SettingsService::evalChartDockVisible();
     m_evalChartDock->setVisible(wasVisible);
+
+    // ドッキング状態変更時にEvaluationChartWidgetに通知
+    connect(m_evalChartDock, &QDockWidget::topLevelChanged,
+            m_evalChart, &EvaluationChartWidget::setFloating);
+
+    // 初期状態を同期（保存されたフローティング状態を反映）
+    m_evalChart->setFloating(wasFloating);
 }
 
 void MainWindow::createRecordPaneDock()

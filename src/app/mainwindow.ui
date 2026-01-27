@@ -152,7 +152,6 @@
    </attribute>
    <addaction name="actionOpenKifuFile"/>
    <addaction name="actionSave"/>
-   <addaction name="actionMenuWindow"/>
    <addaction name="actionStartGame"/>
    <addaction name="actionResign"/>
    <addaction name="actionUndoMove"/>
