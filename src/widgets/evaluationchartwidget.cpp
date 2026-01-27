@@ -404,18 +404,15 @@ void EvaluationChartWidget::setupControlPanel()
         m_comboYLimit->addItem(QString::number(val), val);
     }
 
-    // 評価値間隔ComboBox（フローティング時のみ有効）
+    // 評価値間隔ComboBox
     m_lblYInterval = new QLabel(tr("評価値間隔:"), m_controlPanel);
     m_lblYInterval->setStyleSheet(labelStyle);
     m_comboYInterval = new QComboBox(m_controlPanel);
     m_comboYInterval->setStyleSheet(comboStyle);
-    m_comboYInterval->setToolTip(tr("評価値の目盛り間隔を選択（フローティング時のみ）"));
+    m_comboYInterval->setToolTip(tr("評価値の目盛り間隔を選択"));
     for (int val : s_availableYIntervals) {
         m_comboYInterval->addItem(QString::number(val), val);
     }
-    // 初期状態はドッキングなので無効化
-    m_lblYInterval->setEnabled(false);
-    m_comboYInterval->setEnabled(false);
 
     // 手数上限ComboBox
     auto* lblXLimit = new QLabel(tr("手数上限:"), m_controlPanel);
@@ -583,19 +580,6 @@ void EvaluationChartWidget::setYAxisLimit(int limit)
 {
     if (limit > 0 && limit != m_yLimit) {
         m_yLimit = limit;
-
-        // ドッキング時は評価値間隔を上限の半分に自動設定（目盛り数5個固定）
-        // フローティング時はユーザーの設定を維持
-        if (!m_isFloating) {
-            m_yInterval = calculateAppropriateYInterval(m_yLimit);
-            // 間隔コンボボックスの選択を更新
-            if (m_comboYInterval) {
-                m_comboYInterval->blockSignals(true);
-                qsizetype idx = s_availableYIntervals.indexOf(m_yInterval);
-                if (idx >= 0) m_comboYInterval->setCurrentIndex(static_cast<int>(idx));
-                m_comboYInterval->blockSignals(false);
-            }
-        }
 
         updateYAxis();
         // ComboBoxの選択を更新
@@ -1030,28 +1014,6 @@ void EvaluationChartWidget::updateEngineInfoLabel()
 
 void EvaluationChartWidget::setFloating(bool floating)
 {
-    if (m_isFloating == floating) return;
-
-    m_isFloating = floating;
-
-    // コンボボックスとラベルの有効/無効を切り替え
-    if (m_lblYInterval) {
-        m_lblYInterval->setEnabled(floating);
-    }
-    if (m_comboYInterval) {
-        m_comboYInterval->setEnabled(floating);
-    }
-
-    if (!floating) {
-        // ドッキング時：評価値間隔を上限の半分に自動設定（目盛り数5個固定）
-        m_yInterval = calculateAppropriateYInterval(m_yLimit);
-        updateYAxis();
-        // 間隔コンボボックスの選択を更新
-        if (m_comboYInterval) {
-            m_comboYInterval->blockSignals(true);
-            qsizetype idx = s_availableYIntervals.indexOf(m_yInterval);
-            if (idx >= 0) m_comboYInterval->setCurrentIndex(static_cast<int>(idx));
-            m_comboYInterval->blockSignals(false);
-        }
-    }
+    Q_UNUSED(floating)
+    // 現在は特別な処理なし（将来の拡張用に残す）
 }

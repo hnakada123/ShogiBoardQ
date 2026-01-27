@@ -1502,36 +1502,36 @@ Move %3: %4</translation>
     </message>
     <message>
         <location filename="../../src/widgets/evaluationchartwidget.cpp" line="412"/>
-        <source>評価値の目盛り間隔を選択（フローティング時のみ）</source>
-        <translation>Select evaluation tick interval (floating only)</translation>
+        <source>評価値の目盛り間隔を選択</source>
+        <translation>Select evaluation tick interval</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="421"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="418"/>
         <source>手数上限:</source>
         <translation>Move Limit:</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="425"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="422"/>
         <source>手数の表示上限を選択</source>
         <translation>Select move display limit</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="431"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="428"/>
         <source>手数間隔:</source>
         <translation>Move Interval:</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="435"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="432"/>
         <source>手数の目盛り間隔を選択</source>
         <translation>Select move tick interval</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="447"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="444"/>
         <source>目盛りの文字を小さく</source>
         <translation>Decrease tick font size</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="448"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="445"/>
         <source>目盛りの文字を大きく</source>
         <translation>Increase tick font size</translation>
     </message>
