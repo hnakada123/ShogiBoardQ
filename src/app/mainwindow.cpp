@@ -259,8 +259,8 @@ void MainWindow::buildGamePanels()
     // 6) エンジン解析タブの構築
     setupEngineAnalysisTab();
 
-    // 7) 解析タブをQDockWidgetとして作成
-    createAnalysisTabDock();
+    // 7) 解析用ドックを作成（6つの独立したドック）
+    createAnalysisDocks();
 
     // 8) 評価値グラフのQDockWidget作成
     createEvalChartDock();
@@ -1158,9 +1158,16 @@ void MainWindow::resetDockLayout()
         m_recordPaneDock->setFloating(false);
         m_recordPaneDock->setVisible(true);
     }
-    if (m_analysisTabDock) {
-        m_analysisTabDock->setFloating(false);
-        m_analysisTabDock->setVisible(true);
+    // 解析ドック（7つ）をリセット
+    QList<QDockWidget*> analysisDocks = {
+        m_gameInfoDock, m_thinkingDock, m_considerationDock, m_usiLogDock,
+        m_csaLogDock, m_commentDock, m_branchTreeDock
+    };
+    for (QDockWidget* dock : std::as_const(analysisDocks)) {
+        if (dock) {
+            dock->setFloating(false);
+            dock->setVisible(true);
+        }
     }
     if (m_evalChartDock) {
         m_evalChartDock->setFloating(false);
@@ -1170,12 +1177,14 @@ void MainWindow::resetDockLayout()
     // デフォルトのドック配置を設定
     // 将棋盤は中央（セントラルウィジェット）に固定
     // 上段: メニューウィンドウ(左) | 棋譜(右)
-    // 下段: 解析(左) | 評価値グラフ(右)
+    // 下段: 解析ドック群(タブ化) | 評価値グラフ(右)
 
     // まず全てのドックをいったん削除
     if (m_menuWindowDock) removeDockWidget(m_menuWindowDock);
     if (m_recordPaneDock) removeDockWidget(m_recordPaneDock);
-    if (m_analysisTabDock) removeDockWidget(m_analysisTabDock);
+    for (QDockWidget* dock : std::as_const(analysisDocks)) {
+        if (dock) removeDockWidget(dock);
+    }
     if (m_evalChartDock) removeDockWidget(m_evalChartDock);
 
     // 上段左: メニューウィンドウ
@@ -1190,23 +1199,61 @@ void MainWindow::resetDockLayout()
         m_recordPaneDock->setVisible(true);
     }
 
-    // 下段左: 解析
-    if (m_analysisTabDock) {
-        addDockWidget(Qt::BottomDockWidgetArea, m_analysisTabDock);
-        m_analysisTabDock->setVisible(true);
+    // 下段: 解析ドック群（タブ化して配置）
+    if (m_gameInfoDock) {
+        addDockWidget(Qt::BottomDockWidgetArea, m_gameInfoDock);
+        m_gameInfoDock->setVisible(true);
+    }
+    // 残りのドックをタブ化
+    if (m_thinkingDock) {
+        if (m_gameInfoDock) {
+            tabifyDockWidget(m_gameInfoDock, m_thinkingDock);
+        } else {
+            addDockWidget(Qt::BottomDockWidgetArea, m_thinkingDock);
+        }
+        m_thinkingDock->setVisible(true);
+    }
+    if (m_considerationDock && m_thinkingDock) {
+        tabifyDockWidget(m_thinkingDock, m_considerationDock);
+        m_considerationDock->setVisible(true);
+    }
+    if (m_usiLogDock && m_considerationDock) {
+        tabifyDockWidget(m_considerationDock, m_usiLogDock);
+        m_usiLogDock->setVisible(true);
+    }
+    if (m_csaLogDock && m_usiLogDock) {
+        tabifyDockWidget(m_usiLogDock, m_csaLogDock);
+        m_csaLogDock->setVisible(true);
+    }
+    if (m_commentDock && m_csaLogDock) {
+        tabifyDockWidget(m_csaLogDock, m_commentDock);
+        m_commentDock->setVisible(true);
+    }
+    if (m_branchTreeDock && m_commentDock) {
+        tabifyDockWidget(m_commentDock, m_branchTreeDock);
+        m_branchTreeDock->setVisible(true);
+    }
+    // 対局情報ドックをアクティブに
+    if (m_gameInfoDock) {
+        m_gameInfoDock->raise();
+    } else if (m_thinkingDock) {
+        m_thinkingDock->raise();
     }
 
     // 下段右: 評価値グラフ（解析の右に分割配置）
-    if (m_evalChartDock && m_analysisTabDock) {
-        splitDockWidget(m_analysisTabDock, m_evalChartDock, Qt::Horizontal);
+    QDockWidget* leftmostDock = m_gameInfoDock ? m_gameInfoDock : m_thinkingDock;
+    if (m_evalChartDock && leftmostDock) {
+        splitDockWidget(leftmostDock, m_evalChartDock, Qt::Horizontal);
         m_evalChartDock->setVisible(true);
     }
 
     // ドックのサイズを調整（おおよその比率）
     resizeDocks({m_menuWindowDock, m_recordPaneDock},
                 {250, 350}, Qt::Horizontal);
-    resizeDocks({m_analysisTabDock, m_evalChartDock},
-                {500, 400}, Qt::Horizontal);
+    if (m_thinkingDock && m_evalChartDock) {
+        resizeDocks({m_thinkingDock, m_evalChartDock},
+                    {500, 400}, Qt::Horizontal);
+    }
 }
 
 void MainWindow::saveDockLayoutAs()
@@ -1260,7 +1307,13 @@ void MainWindow::restoreSavedDockLayout(const QString& name)
     // すべてのドックを表示状態にしてから復元
     if (m_menuWindowDock) m_menuWindowDock->setVisible(true);
     if (m_recordPaneDock) m_recordPaneDock->setVisible(true);
-    if (m_analysisTabDock) m_analysisTabDock->setVisible(true);
+    if (m_gameInfoDock) m_gameInfoDock->setVisible(true);
+    if (m_thinkingDock) m_thinkingDock->setVisible(true);
+    if (m_considerationDock) m_considerationDock->setVisible(true);
+    if (m_usiLogDock) m_usiLogDock->setVisible(true);
+    if (m_csaLogDock) m_csaLogDock->setVisible(true);
+    if (m_commentDock) m_commentDock->setVisible(true);
+    if (m_branchTreeDock) m_branchTreeDock->setVisible(true);
     if (m_evalChartDock) m_evalChartDock->setVisible(true);
 
     // 状態を復元
@@ -1305,7 +1358,13 @@ void MainWindow::restoreStartupLayoutIfSet()
             // すべてのドックを表示状態にしてから復元
             if (m_menuWindowDock) m_menuWindowDock->setVisible(true);
             if (m_recordPaneDock) m_recordPaneDock->setVisible(true);
-            if (m_analysisTabDock) m_analysisTabDock->setVisible(true);
+            if (m_gameInfoDock) m_gameInfoDock->setVisible(true);
+            if (m_thinkingDock) m_thinkingDock->setVisible(true);
+            if (m_considerationDock) m_considerationDock->setVisible(true);
+            if (m_usiLogDock) m_usiLogDock->setVisible(true);
+            if (m_csaLogDock) m_csaLogDock->setVisible(true);
+            if (m_commentDock) m_commentDock->setVisible(true);
+            if (m_branchTreeDock) m_branchTreeDock->setVisible(true);
             if (m_evalChartDock) m_evalChartDock->setVisible(true);
 
             restoreState(state);
@@ -1911,12 +1970,8 @@ void MainWindow::saveWindowAndBoardSettings()
         SettingsService::setRecordPaneDockGeometry(m_recordPaneDock->saveGeometry());
     }
 
-    // 解析タブドックの状態を保存
-    if (m_analysisTabDock) {
-        SettingsService::setAnalysisTabDockFloating(m_analysisTabDock->isFloating());
-        SettingsService::setAnalysisTabDockVisible(m_analysisTabDock->isVisible());
-        SettingsService::setAnalysisTabDockGeometry(m_analysisTabDock->saveGeometry());
-    }
+    // 解析ドックの状態はQMainWindowのsaveState/restoreStateで管理するため
+    // 個別の保存は不要
 
     // メニューウィンドウドックの状態を保存
     if (m_menuWindowDock) {
@@ -2474,7 +2529,7 @@ void MainWindow::setupEngineAnalysisTab()
     m_modelThinking1 = m_analysisWiring->thinking1();
     m_modelThinking2 = m_analysisWiring->thinking2();
 
-    Q_ASSERT(m_analysisTab && m_tab && m_modelThinking1 && m_modelThinking2);
+    Q_ASSERT(m_analysisTab && m_modelThinking1 && m_modelThinking2);
 
     // 分岐ツリーのアクティベートを MainWindow スロットへ（ラムダ不使用）
     QObject::connect(
@@ -2616,52 +2671,94 @@ void MainWindow::createRecordPaneDock()
     m_recordPaneDock->setVisible(wasVisible);
 }
 
-void MainWindow::createAnalysisTabDock()
+void MainWindow::createAnalysisDocks()
 {
-    if (!m_tab) {
-        qWarning() << "[MainWindow] createAnalysisTabDock: m_tab is null!";
+    if (!m_analysisTab) {
+        qWarning() << "[MainWindow] createAnalysisDocks: m_analysisTab is null!";
         return;
     }
 
-    // QDockWidgetを作成
-    m_analysisTabDock = new QDockWidget(tr("解析"), this);
-    m_analysisTabDock->setObjectName(QStringLiteral("AnalysisTabDock"));
-    m_analysisTabDock->setWidget(m_tab);
+    // ドック共通の設定を適用するヘルパー
+    auto setupDock = [this](QDockWidget* dock, QWidget* content, const QString& title, const QString& objectName) {
+        dock->setObjectName(objectName);
+        dock->setWidget(content);
+        dock->setMinimumWidth(0);
+        dock->setMinimumHeight(100);
+        dock->setFeatures(
+            QDockWidget::DockWidgetMovable |
+            QDockWidget::DockWidgetFloatable |
+            QDockWidget::DockWidgetClosable);
+        dock->setAllowedAreas(Qt::AllDockWidgetAreas);
+        addDockWidget(Qt::BottomDockWidgetArea, dock);
 
-    // 解析タブの最小サイズを設定（横幅は縮められるように緩める）
-    m_analysisTabDock->setMinimumWidth(0);
-    m_analysisTabDock->setMinimumHeight(150);
-    if (m_tab) {
-        m_tab->setMinimumWidth(0);
-        m_tab->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    }
-    m_analysisTabDock->setFeatures(
-        QDockWidget::DockWidgetMovable |
-        QDockWidget::DockWidgetFloatable |
-        QDockWidget::DockWidgetClosable);
-    m_analysisTabDock->setAllowedAreas(Qt::AllDockWidgetAreas);
+        // 表示メニューにトグルアクションを追加
+        if (ui->Display) {
+            QAction* toggleAction = dock->toggleViewAction();
+            toggleAction->setText(title);
+            ui->Display->addAction(toggleAction);
+        }
+    };
 
-    // 初期位置は下部
-    addDockWidget(Qt::BottomDockWidgetArea, m_analysisTabDock);
-
-    // 表示メニューにトグルアクションを追加
-    if (ui->Display) {
-        QAction* toggleAction = m_analysisTabDock->toggleViewAction();
-        toggleAction->setText(tr("解析"));
-        ui->Display->addAction(toggleAction);
-    }
-
-    // 保存された状態を復元
-    const QByteArray dockGeometry = SettingsService::analysisTabDockGeometry();
-    if (!dockGeometry.isEmpty()) {
-        m_analysisTabDock->restoreGeometry(dockGeometry);
+    // 0. 対局情報ドック
+    ensureGameInfoController();
+    if (m_gameInfoController) {
+        // デフォルトの対局情報を設定
+        populateDefaultGameInfo();
+        m_gameInfoDock = new QDockWidget(tr("対局情報"), this);
+        setupDock(m_gameInfoDock, m_gameInfoController->containerWidget(), tr("対局情報"), QStringLiteral("GameInfoDock"));
     }
 
-    const bool wasFloating = SettingsService::analysisTabDockFloating();
-    m_analysisTabDock->setFloating(wasFloating);
+    // 1. 思考ドック
+    m_thinkingDock = new QDockWidget(tr("思考"), this);
+    QWidget* thinkingPage = m_analysisTab->createThinkingPage(m_thinkingDock);
+    setupDock(m_thinkingDock, thinkingPage, tr("思考"), QStringLiteral("ThinkingDock"));
 
-    const bool wasVisible = SettingsService::analysisTabDockVisible();
-    m_analysisTabDock->setVisible(wasVisible);
+    // 2. 検討ドック
+    m_considerationDock = new QDockWidget(tr("検討"), this);
+    QWidget* considerationPage = m_analysisTab->createConsiderationPage(m_considerationDock);
+    setupDock(m_considerationDock, considerationPage, tr("検討"), QStringLiteral("ConsiderationDock"));
+
+    // 3. USI通信ログドック
+    m_usiLogDock = new QDockWidget(tr("USI通信ログ"), this);
+    QWidget* usiLogPage = m_analysisTab->createUsiLogPage(m_usiLogDock);
+    setupDock(m_usiLogDock, usiLogPage, tr("USI通信ログ"), QStringLiteral("UsiLogDock"));
+
+    // 4. CSA通信ログドック
+    m_csaLogDock = new QDockWidget(tr("CSA通信ログ"), this);
+    QWidget* csaLogPage = m_analysisTab->createCsaLogPage(m_csaLogDock);
+    setupDock(m_csaLogDock, csaLogPage, tr("CSA通信ログ"), QStringLiteral("CsaLogDock"));
+
+    // 5. 棋譜コメントドック
+    m_commentDock = new QDockWidget(tr("棋譜コメント"), this);
+    QWidget* commentPage = m_analysisTab->createCommentPage(m_commentDock);
+    setupDock(m_commentDock, commentPage, tr("棋譜コメント"), QStringLiteral("CommentDock"));
+
+    // 6. 分岐ツリードック
+    m_branchTreeDock = new QDockWidget(tr("分岐ツリー"), this);
+    QWidget* branchTreePage = m_analysisTab->createBranchTreePage(m_branchTreeDock);
+    setupDock(m_branchTreeDock, branchTreePage, tr("分岐ツリー"), QStringLiteral("BranchTreeDock"));
+
+    // ドックをタブ化して配置（初期状態は全て下部にタブ表示）
+    if (m_gameInfoDock && m_thinkingDock) {
+        tabifyDockWidget(m_gameInfoDock, m_thinkingDock);
+    }
+    tabifyDockWidget(m_thinkingDock, m_considerationDock);
+    tabifyDockWidget(m_considerationDock, m_usiLogDock);
+    tabifyDockWidget(m_usiLogDock, m_csaLogDock);
+    tabifyDockWidget(m_csaLogDock, m_commentDock);
+    tabifyDockWidget(m_commentDock, m_branchTreeDock);
+
+    // 対局情報ドックをアクティブにする
+    if (m_gameInfoDock) {
+        m_gameInfoDock->raise();
+    } else if (m_thinkingDock) {
+        m_thinkingDock->raise();
+    }
+
+    // モデルを設定（UIの構築後に呼び出す）
+    if (m_modelThinking1 && m_modelThinking2 && m_lineEditModel1 && m_lineEditModel2) {
+        m_analysisTab->setModels(m_modelThinking1, m_modelThinking2, m_lineEditModel1, m_lineEditModel2);
+    }
 }
 
 void MainWindow::setupBoardInCenter()

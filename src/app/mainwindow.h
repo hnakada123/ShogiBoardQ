@@ -467,8 +467,14 @@ private:
     // 棋譜欄ドック
     QDockWidget*           m_recordPaneDock = nullptr;
 
-    // 解析タブドック
-    QDockWidget*           m_analysisTabDock = nullptr;
+    // 解析ドック（7つの独立したドック）
+    QDockWidget*           m_gameInfoDock = nullptr;      // 対局情報ドック
+    QDockWidget*           m_thinkingDock = nullptr;      // 思考ドック
+    QDockWidget*           m_considerationDock = nullptr; // 検討ドック
+    QDockWidget*           m_usiLogDock = nullptr;        // USI通信ログドック
+    QDockWidget*           m_csaLogDock = nullptr;        // CSA通信ログドック
+    QDockWidget*           m_commentDock = nullptr;       // 棋譜コメントドック
+    QDockWidget*           m_branchTreeDock = nullptr;    // 分岐ツリードック
 
     // メニューウィンドウドック
     QDockWidget*           m_menuWindowDock = nullptr;
@@ -597,7 +603,7 @@ private:
     void setupBoardInteractionController();
     void createEvalChartDock();  // ★ 評価値グラフのQDockWidget作成
     void createRecordPaneDock();  // ★ 棋譜欄のQDockWidget作成
-    void createAnalysisTabDock();  // ★ 解析タブのQDockWidget作成
+    void createAnalysisDocks();  // ★ 解析用の6つのQDockWidget作成
     void setupBoardInCenter();  // ★ 将棋盤をセントラルウィジェットに配置
     void createMenuWindowDock();  // ★ メニューウィンドウのQDockWidget作成
 

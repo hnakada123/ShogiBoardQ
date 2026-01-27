@@ -564,6 +564,331 @@ void EngineAnalysisTab::buildUi()
     rebuildBranchTree();
 }
 
+// ★ 追加: 思考ページを独立したウィジェットとして作成
+QWidget* EngineAnalysisTab::createThinkingPage(QWidget* parent)
+{
+    QWidget* page = new QWidget(parent);
+    auto* v = new QVBoxLayout(page);
+    v->setContentsMargins(4, 4, 4, 4);
+    v->setSpacing(4);
+
+    m_info1 = new EngineInfoWidget(page, true);  // showFontButtons=true
+    m_info1->setWidgetIndex(0);
+    m_view1 = new QTableView(page);
+    m_info2 = new EngineInfoWidget(page, false);
+    m_info2->setWidgetIndex(1);
+    m_view2 = new QTableView(page);
+
+    connect(m_info1, &EngineInfoWidget::fontSizeIncreaseRequested,
+            this, &EngineAnalysisTab::onThinkingFontIncrease);
+    connect(m_info1, &EngineInfoWidget::fontSizeDecreaseRequested,
+            this, &EngineAnalysisTab::onThinkingFontDecrease);
+    connect(m_info1, &EngineInfoWidget::columnWidthChanged,
+            this, &EngineAnalysisTab::onEngineInfoColumnWidthChanged);
+    connect(m_info2, &EngineInfoWidget::columnWidthChanged,
+            this, &EngineAnalysisTab::onEngineInfoColumnWidthChanged);
+
+    QList<int> widths0 = SettingsService::engineInfoColumnWidths(0);
+    if (!widths0.isEmpty() && widths0.size() == m_info1->columnCount()) {
+        m_info1->setColumnWidths(widths0);
+    }
+    QList<int> widths1 = SettingsService::engineInfoColumnWidths(1);
+    if (!widths1.isEmpty() && widths1.size() == m_info2->columnCount()) {
+        m_info2->setColumnWidths(widths1);
+    }
+
+    setupThinkingViewHeader(m_view1);
+    setupThinkingViewHeader(m_view2);
+
+    connect(m_view1->horizontalHeader(), &QHeaderView::sectionResized,
+            this, &EngineAnalysisTab::onView1SectionResized);
+    connect(m_view2->horizontalHeader(), &QHeaderView::sectionResized,
+            this, &EngineAnalysisTab::onView2SectionResized);
+    connect(m_view1, &QTableView::clicked,
+            this, &EngineAnalysisTab::onView1Clicked);
+    connect(m_view2, &QTableView::clicked,
+            this, &EngineAnalysisTab::onView2Clicked);
+
+    v->addWidget(m_info1);
+    v->addWidget(m_view1, 1);
+    v->addWidget(m_info2);
+    v->addWidget(m_view2, 1);
+
+    // フォントサイズを適用
+    m_thinkingFontSize = SettingsService::thinkingFontSize();
+    if (m_thinkingFontSize != 10) {
+        QFont font;
+        font.setPointSize(m_thinkingFontSize);
+        if (m_info1) m_info1->setFontSize(m_thinkingFontSize);
+        if (m_info2) m_info2->setFontSize(m_thinkingFontSize);
+        QString headerStyle = QStringLiteral(
+            "QHeaderView::section { background-color: #1e7fc4; color: white; font-size: %1pt; }")
+            .arg(m_thinkingFontSize);
+        if (m_view1) {
+            m_view1->setFont(font);
+            m_view1->setStyleSheet(headerStyle);
+        }
+        if (m_view2) {
+            m_view2->setFont(font);
+            m_view2->setStyleSheet(headerStyle);
+        }
+    }
+
+    return page;
+}
+
+// ★ 追加: 検討ページを独立したウィジェットとして作成
+QWidget* EngineAnalysisTab::createConsiderationPage(QWidget* parent)
+{
+    m_considerationFontSize = SettingsService::considerationFontSize();
+
+    QWidget* considerationPage = new QWidget(parent);
+    auto* considerationLayout = new QVBoxLayout(considerationPage);
+    considerationLayout->setContentsMargins(4, 4, 4, 4);
+    considerationLayout->setSpacing(4);
+
+    // ツールバー（FlowLayout使用）
+    m_considerationToolbar = new QWidget(considerationPage);
+    auto* toolbarLayout = new FlowLayout(m_considerationToolbar, 2, 8, 4);
+
+    m_btnConsiderationFontDecrease = new QToolButton(m_considerationToolbar);
+    m_btnConsiderationFontDecrease->setText(QStringLiteral("A-"));
+    m_btnConsiderationFontDecrease->setToolTip(tr("フォントサイズを小さくする"));
+    m_btnConsiderationFontDecrease->setFixedSize(28, 24);
+    connect(m_btnConsiderationFontDecrease, &QToolButton::clicked,
+            this, &EngineAnalysisTab::onConsiderationFontDecrease);
+
+    m_btnConsiderationFontIncrease = new QToolButton(m_considerationToolbar);
+    m_btnConsiderationFontIncrease->setText(QStringLiteral("A+"));
+    m_btnConsiderationFontIncrease->setToolTip(tr("フォントサイズを大きくする"));
+    m_btnConsiderationFontIncrease->setFixedSize(28, 24);
+    connect(m_btnConsiderationFontIncrease, &QToolButton::clicked,
+            this, &EngineAnalysisTab::onConsiderationFontIncrease);
+
+    m_engineComboBox = new QComboBox(m_considerationToolbar);
+    m_engineComboBox->setToolTip(tr("検討に使用するエンジンを選択します"));
+    m_engineComboBox->setMinimumWidth(150);
+
+    m_btnEngineSettings = new QPushButton(tr("エンジン設定"), m_considerationToolbar);
+    m_btnEngineSettings->setToolTip(tr("選択したエンジンの設定を変更します"));
+    connect(m_btnEngineSettings, &QPushButton::clicked,
+            this, &EngineAnalysisTab::onEngineSettingsClicked);
+
+    m_unlimitedTimeRadioButton = new QRadioButton(tr("時間無制限"), m_considerationToolbar);
+    m_unlimitedTimeRadioButton->setToolTip(tr("時間制限なしで検討します"));
+    connect(m_unlimitedTimeRadioButton, &QRadioButton::toggled,
+            this, &EngineAnalysisTab::onTimeSettingChanged);
+
+    m_considerationTimeRadioButton = new QRadioButton(tr("検討時間"), m_considerationToolbar);
+    m_considerationTimeRadioButton->setToolTip(tr("指定した秒数まで検討します"));
+    connect(m_considerationTimeRadioButton, &QRadioButton::toggled,
+            this, &EngineAnalysisTab::onTimeSettingChanged);
+
+    m_byoyomiSecSpinBox = new QSpinBox(m_considerationToolbar);
+    m_byoyomiSecSpinBox->setRange(1, 3600);
+    m_byoyomiSecSpinBox->setValue(20);
+    m_byoyomiSecSpinBox->setToolTip(tr("検討時間（秒）を指定します"));
+    connect(m_byoyomiSecSpinBox, QOverload<int>::of(&QSpinBox::valueChanged),
+            this, &EngineAnalysisTab::onTimeSettingChanged);
+
+    m_byoyomiSecUnitLabel = new QLabel(tr("秒まで"), m_considerationToolbar);
+
+    m_elapsedTimeLabel = new QLabel(tr("経過: 0:00"), m_considerationToolbar);
+    m_elapsedTimeLabel->setToolTip(tr("検討開始からの経過時間"));
+    {
+        QPalette palette = m_elapsedTimeLabel->palette();
+        palette.setColor(QPalette::WindowText, Qt::red);
+        m_elapsedTimeLabel->setPalette(palette);
+    }
+
+    m_elapsedTimer = new QTimer(this);
+    m_elapsedTimer->setInterval(1000);
+    connect(m_elapsedTimer, &QTimer::timeout, this, &EngineAnalysisTab::onElapsedTimerTick);
+
+    m_multiPVLabel = new QLabel(tr("候補手の数"), m_considerationToolbar);
+    m_multiPVComboBox = new QComboBox(m_considerationToolbar);
+    for (int i = 1; i <= 10; ++i) {
+        m_multiPVComboBox->addItem(tr("%1手").arg(i), i);
+    }
+    m_multiPVComboBox->setCurrentIndex(0);
+    m_multiPVComboBox->setToolTip(tr("評価値が大きい順に表示する候補手の数を指定します"));
+
+    m_showArrowsCheckBox = new QCheckBox(tr("矢印表示"), m_considerationToolbar);
+    m_showArrowsCheckBox->setToolTip(tr("最善手の矢印を盤面に表示します"));
+    m_showArrowsCheckBox->setChecked(true);
+    connect(m_showArrowsCheckBox, &QCheckBox::toggled,
+            this, &EngineAnalysisTab::showArrowsChanged);
+
+    m_btnStopConsideration = new QToolButton(m_considerationToolbar);
+    m_btnStopConsideration->setText(tr("検討開始"));
+    m_btnStopConsideration->setToolTip(tr("検討を開始します"));
+    connect(m_btnStopConsideration, &QToolButton::clicked,
+            this, &EngineAnalysisTab::startConsiderationRequested);
+
+    toolbarLayout->addWidget(m_btnConsiderationFontDecrease);
+    toolbarLayout->addWidget(m_btnConsiderationFontIncrease);
+    toolbarLayout->addWidget(m_engineComboBox);
+    toolbarLayout->addWidget(m_btnEngineSettings);
+    toolbarLayout->addWidget(m_unlimitedTimeRadioButton);
+    toolbarLayout->addWidget(m_considerationTimeRadioButton);
+    toolbarLayout->addWidget(m_byoyomiSecSpinBox);
+    toolbarLayout->addWidget(m_byoyomiSecUnitLabel);
+    toolbarLayout->addWidget(m_elapsedTimeLabel);
+    toolbarLayout->addWidget(m_multiPVLabel);
+    toolbarLayout->addWidget(m_multiPVComboBox);
+    toolbarLayout->addWidget(m_showArrowsCheckBox);
+    toolbarLayout->addWidget(m_btnStopConsideration);
+
+    connect(m_multiPVComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &EngineAnalysisTab::onMultiPVComboBoxChanged);
+
+    loadEngineList();
+    loadConsiderationTabSettings();
+
+    m_considerationInfo = new EngineInfoWidget(considerationPage, false, false);
+    m_considerationInfo->setWidgetIndex(2);
+    m_considerationInfo->setFontSize(m_considerationFontSize);
+    m_considerationView = new QTableView(considerationPage);
+
+    setupThinkingViewHeader(m_considerationView);
+
+    connect(m_considerationView, &QTableView::clicked,
+            this, &EngineAnalysisTab::onConsiderationViewClicked);
+
+    {
+        QFont font = m_considerationView->font();
+        font.setPointSize(m_considerationFontSize);
+        m_considerationView->setFont(font);
+        QString headerStyle = QStringLiteral(
+            "QHeaderView::section { background-color: #1e7fc4; color: white; font-size: %1pt; }")
+            .arg(m_considerationFontSize);
+        m_considerationView->setStyleSheet(headerStyle);
+    }
+
+    considerationLayout->addWidget(m_considerationToolbar);
+    considerationLayout->addWidget(m_considerationInfo);
+    considerationLayout->addWidget(m_considerationView, 1);
+
+    return considerationPage;
+}
+
+// ★ 追加: USI通信ログページを独立したウィジェットとして作成
+QWidget* EngineAnalysisTab::createUsiLogPage(QWidget* parent)
+{
+    m_usiLogContainer = new QWidget(parent);
+    QVBoxLayout* usiLogLayout = new QVBoxLayout(m_usiLogContainer);
+    usiLogLayout->setContentsMargins(4, 4, 4, 4);
+    usiLogLayout->setSpacing(2);
+
+    buildUsiLogToolbar();
+    usiLogLayout->addWidget(m_usiLogToolbar);
+
+    buildUsiCommandBar();
+    usiLogLayout->addWidget(m_usiCommandBar);
+
+    m_usiLog = new QPlainTextEdit(m_usiLogContainer);
+    m_usiLog->setReadOnly(true);
+    usiLogLayout->addWidget(m_usiLog);
+
+    m_usiLogFontSize = SettingsService::usiLogFontSize();
+    if (m_usiLog) {
+        QFont font = m_usiLog->font();
+        font.setPointSize(m_usiLogFontSize);
+        m_usiLog->setFont(font);
+    }
+
+    return m_usiLogContainer;
+}
+
+// ★ 追加: CSA通信ログページを独立したウィジェットとして作成
+QWidget* EngineAnalysisTab::createCsaLogPage(QWidget* parent)
+{
+    m_csaLogFontSize = SettingsService::csaLogFontSize();
+
+    m_csaLogContainer = new QWidget(parent);
+    QVBoxLayout* csaLogLayout = new QVBoxLayout(m_csaLogContainer);
+    csaLogLayout->setContentsMargins(4, 4, 4, 4);
+    csaLogLayout->setSpacing(2);
+
+    buildCsaLogToolbar();
+    csaLogLayout->addWidget(m_csaLogToolbar);
+
+    buildCsaCommandBar();
+    csaLogLayout->addWidget(m_csaCommandBar);
+
+    m_csaLog = new QPlainTextEdit(m_csaLogContainer);
+    m_csaLog->setReadOnly(true);
+    {
+        QFont font = m_csaLog->font();
+        font.setPointSize(m_csaLogFontSize);
+        m_csaLog->setFont(font);
+    }
+    csaLogLayout->addWidget(m_csaLog);
+
+    return m_csaLogContainer;
+}
+
+// ★ 追加: 棋譜コメントページを独立したウィジェットとして作成
+QWidget* EngineAnalysisTab::createCommentPage(QWidget* parent)
+{
+    QWidget* commentContainer = new QWidget(parent);
+    QVBoxLayout* commentLayout = new QVBoxLayout(commentContainer);
+    commentLayout->setContentsMargins(4, 4, 4, 4);
+    commentLayout->setSpacing(2);
+
+    buildCommentToolbar();
+    commentLayout->addWidget(m_commentToolbar);
+
+    m_comment = new QTextEdit(commentContainer);
+    m_comment->setReadOnly(false);
+    m_comment->setAcceptRichText(true);
+    m_comment->setPlaceholderText(tr("コメントを表示・編集"));
+    commentLayout->addWidget(m_comment);
+
+    if (m_comment->viewport()) {
+        m_comment->viewport()->installEventFilter(this);
+    }
+
+    connect(m_comment, &QTextEdit::textChanged,
+            this, &EngineAnalysisTab::onCommentTextChanged);
+
+    m_currentFontSize = SettingsService::commentFontSize();
+    if (m_comment) {
+        QFont font = m_comment->font();
+        font.setPointSize(m_currentFontSize);
+        m_comment->setFont(font);
+    }
+
+    return commentContainer;
+}
+
+// ★ 追加: 分岐ツリーページを独立したウィジェットとして作成
+QWidget* EngineAnalysisTab::createBranchTreePage(QWidget* parent)
+{
+    m_branchTree = new QGraphicsView(parent);
+    m_branchTree->setRenderHint(QPainter::Antialiasing, true);
+    m_branchTree->setRenderHint(QPainter::TextAntialiasing, true);
+    m_branchTree->setRenderHint(QPainter::SmoothPixmapTransform, true);
+    m_branchTree->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    m_branchTree->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    m_branchTree->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+
+    m_scene = new QGraphicsScene(m_branchTree);
+    m_branchTree->setScene(m_scene);
+
+    if (m_branchTree && m_branchTree->viewport()) {
+        QObject* vp = m_branchTree->viewport();
+        if (!vp->property("branchFilterInstalled").toBool()) {
+            vp->installEventFilter(this);
+            vp->setProperty("branchFilterInstalled", true);
+        }
+    }
+
+    rebuildBranchTree();
+
+    return m_branchTree;
+}
+
 void EngineAnalysisTab::reapplyViewTuning(QTableView* v, QAbstractItemModel* m)
 {
     if (!v) return;
