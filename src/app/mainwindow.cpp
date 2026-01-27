@@ -24,6 +24,7 @@
 #include <QLineEdit>       // ★ 追加
 #include <QWheelEvent>     // ★ 追加: Ctrl+ホイール処理用
 #include <QElapsedTimer>   // ★ パフォーマンス計測用
+#include <QSizePolicy>
 #include <functional>
 #include <limits>
 #include <QPainter>
@@ -2627,8 +2628,13 @@ void MainWindow::createAnalysisTabDock()
     m_analysisTabDock->setObjectName(QStringLiteral("AnalysisTabDock"));
     m_analysisTabDock->setWidget(m_tab);
 
-    // 解析タブの最小サイズを設定（タブヘッダーと基本的なコンテンツが見えるように）
-    m_analysisTabDock->setMinimumSize(300, 150);
+    // 解析タブの最小サイズを設定（横幅は縮められるように緩める）
+    m_analysisTabDock->setMinimumWidth(0);
+    m_analysisTabDock->setMinimumHeight(150);
+    if (m_tab) {
+        m_tab->setMinimumWidth(0);
+        m_tab->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    }
     m_analysisTabDock->setFeatures(
         QDockWidget::DockWidgetMovable |
         QDockWidget::DockWidgetFloatable |

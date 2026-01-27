@@ -38,6 +38,7 @@
 #include <QItemSelectionModel>
 #include <QSettings>        // ★ 追加: エンジンリスト読み込み用
 #include <QDir>             // ★ 追加: エンジンリスト読み込み用
+#include <QSizePolicy>
 #include <QApplication>     // ★ 追加: エンジンリスト読み込み用
 #include "enginesettingsconstants.h"  // ★ 追加: エンジン設定定数
 
@@ -112,6 +113,31 @@ static void debugFontInfo(const QFont &font, const QString &context)
     qDebug() << "  Exact match:" << info.exactMatch();
 }
 
+namespace {
+void relaxWidgetWidth(QWidget* w)
+{
+    if (!w) return;
+    w->setMinimumWidth(0);
+    QSizePolicy pol = w->sizePolicy();
+    pol.setHorizontalPolicy(QSizePolicy::Ignored);
+    w->setSizePolicy(pol);
+}
+
+void relaxToolbarWidth(QWidget* toolbar)
+{
+    if (!toolbar) return;
+    relaxWidgetWidth(toolbar);
+    const auto children = toolbar->findChildren<QWidget*>(QString(), Qt::FindDirectChildrenOnly);
+    for (QWidget* child : children) {
+        relaxWidgetWidth(child);
+        if (auto* combo = qobject_cast<QComboBox*>(child)) {
+            combo->setMinimumContentsLength(0);
+            combo->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+        }
+    }
+}
+} // namespace
+
 // ===================== コンストラクタ/UI =====================
 
 EngineAnalysisTab::EngineAnalysisTab(QWidget* parent)
@@ -125,6 +151,8 @@ void EngineAnalysisTab::buildUi()
     if (!m_tab) {
         m_tab = new QTabWidget(this);  // 親をthisに指定（メモリリーク防止）
         m_tab->setObjectName(QStringLiteral("analysisTabs"));
+        m_tab->setMinimumWidth(0);
+        m_tab->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Expanding);
 
         // タブバーを青色、タブ内をクリーム色にスタイル設定
         m_tab->setStyleSheet(QStringLiteral(
@@ -341,6 +369,8 @@ void EngineAnalysisTab::buildUi()
     toolbarLayout->addSpacing(12);
     toolbarLayout->addWidget(m_btnStopConsideration);
     toolbarLayout->addStretch();  // 右側にスペースを追加
+
+    relaxToolbarWidth(m_considerationToolbar);
 
     // コンボボックスの値変更シグナルを接続
     connect(m_multiPVComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
@@ -1489,6 +1519,7 @@ void EngineAnalysisTab::buildUsiLogToolbar()
     toolbarLayout->addStretch();
 
     m_usiLogToolbar->setLayout(toolbarLayout);
+    relaxToolbarWidth(m_usiLogToolbar);
 }
 
 // ★ 追加: USI通信ログフォントサイズ変更
@@ -1555,6 +1586,7 @@ void EngineAnalysisTab::buildUsiCommandBar()
     }
 
     m_usiCommandBar->setLayout(layout);
+    relaxToolbarWidth(m_usiCommandBar);
 
     // シグナル接続
     connect(m_usiCommandInput, &QLineEdit::returnPressed,
@@ -1789,6 +1821,7 @@ void EngineAnalysisTab::buildCommentToolbar()
     toolbarLayout->addWidget(m_btnUpdateComment);
 
     m_commentToolbar->setLayout(toolbarLayout);
+    relaxToolbarWidth(m_commentToolbar);
 }
 
 // ★ 追加: フォントサイズ更新
@@ -2123,6 +2156,7 @@ void EngineAnalysisTab::buildCsaLogToolbar()
     toolbarLayout->addStretch();
 
     m_csaLogToolbar->setLayout(toolbarLayout);
+    relaxToolbarWidth(m_csaLogToolbar);
 }
 
 // ★ 追加: CSA通信ログフォントサイズ変更
@@ -2216,6 +2250,7 @@ void EngineAnalysisTab::buildCsaCommandBar()
     }
 
     m_csaCommandBar->setLayout(layout);
+    relaxToolbarWidth(m_csaCommandBar);
 
     // コマンド入力のEnterキー処理を接続
     connect(m_csaCommandInput, &QLineEdit::returnPressed,
