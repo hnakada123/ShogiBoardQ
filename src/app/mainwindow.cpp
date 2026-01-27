@@ -1948,11 +1948,11 @@ bool MainWindow::eventFilter(QObject* watched, QEvent* event)
             if (delta > 0) {
                 // 上方向スクロール → 拡大
                 // シグナル発火を抑制して同期的に処理
-                m_shogiView->enlargeBoard(false);
+                m_shogiView->enlargeBoard(true);
             } else if (delta < 0) {
                 // 下方向スクロール → 縮小
                 // シグナル発火を抑制して同期的に処理
-                m_shogiView->reduceBoard(false);
+                m_shogiView->reduceBoard(true);
             }
             // 評価値グラフの高さ自動調整は無効（QSplitterのリサイズがちらつきの原因となるため）
             return true;  // イベントを消費（ShogiViewには渡さない）
