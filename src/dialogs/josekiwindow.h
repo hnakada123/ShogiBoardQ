@@ -12,6 +12,7 @@
 #include <QMap>
 #include <QVector>
 #include <QCloseEvent>
+#include <QShowEvent>
 #include <QMenu>
 #include <QStringList>
 #include <QAction>
@@ -223,6 +224,11 @@ protected:
      */
     void closeEvent(QCloseEvent *event) override;
 
+    /**
+     * @brief ウィンドウが表示される時に遅延読込を実行
+     */
+    void showEvent(QShowEvent *event) override;
+
 private:
     /**
      * @brief UIコンポーネントのセットアップ
@@ -411,6 +417,12 @@ private:
     
     /// マージダイアログで登録済みの指し手セット（「正規化SFEN:USI指し手」形式）
     QSet<QString> m_mergeRegisteredMoves;
+
+    /// 遅延読込用：初回表示時に自動読込を行うかどうか
+    bool          m_pendingAutoLoad = false;
+
+    /// 遅延読込用：自動読込するファイルパス
+    QString       m_pendingAutoLoadPath;
 };
 
 #endif // JOSEKIWINDOW_H
