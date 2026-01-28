@@ -820,6 +820,31 @@ void MainWindow::onConsiderationEngineSettingsRequested(int engineNumber, const 
     }
 }
 
+// 検討中にエンジンが変更された場合の処理
+void MainWindow::onConsiderationEngineChanged(int engineIndex, const QString& engineName)
+{
+    qDebug().noquote() << "[MainWindow::onConsiderationEngineChanged] engineIndex=" << engineIndex
+                       << " engineName=" << engineName
+                       << " m_playMode=" << static_cast<int>(m_playMode);
+
+    // 検討モード中でなければ何もしない
+    if (m_playMode != PlayMode::ConsiderationMode) {
+        qDebug().noquote() << "[MainWindow::onConsiderationEngineChanged] not in consideration mode, ignoring";
+        return;
+    }
+
+    // 現在の検討を中止して新しいエンジンで再開
+    // まず現在のエンジンを停止
+    if (m_match) {
+        m_match->stopAnalysisEngine();
+    }
+
+    // 新しいエンジンで検討を開始
+    // displayConsiderationDialog は現在のコンボボックスの選択を使用するため、
+    // 単に呼び出すだけで新しいエンジンで検討が開始される
+    displayConsiderationDialog();
+}
+
 // 成る・不成の選択ダイアログを起動する。
 void MainWindow::displayPromotionDialog()
 {
@@ -2020,6 +2045,12 @@ void MainWindow::setupEngineAnalysisTab()
     QObject::connect(
         m_analysisTab, &EngineAnalysisTab::engineSettingsRequested,
         this,          &MainWindow::onConsiderationEngineSettingsRequested,
+        Qt::UniqueConnection);
+
+    // ★ 追加: 検討中のエンジン変更リクエストの接続
+    QObject::connect(
+        m_analysisTab, &EngineAnalysisTab::considerationEngineChanged,
+        this,          &MainWindow::onConsiderationEngineChanged,
         Qt::UniqueConnection);
 
     // ★ 追加: PlayerInfoControllerにもm_analysisTabを設定

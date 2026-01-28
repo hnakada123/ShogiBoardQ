@@ -244,6 +244,9 @@ signals:
     // ★ 追加: 矢印表示設定が変更されたシグナル
     void showArrowsChanged(bool checked);
 
+    // ★ 追加: 検討中にエンジン選択が変更されたシグナル
+    void considerationEngineChanged(int index, const QString& name);
+
 private:
     // ★ 追加: 分岐ツリーのクリック有効フラグ（対局中は無効にする）
     bool m_branchTreeClickEnabled = true;
@@ -293,6 +296,7 @@ private:
     QToolButton* m_btnStopConsideration=nullptr;  // 検討中止ボタン
     QCheckBox* m_showArrowsCheckBox=nullptr;      // ★ 追加: 矢印表示チェックボックス
     int m_considerationFontSize=10;           // 検討タブフォントサイズ
+    bool m_considerationRunning=false;        // ★ 追加: 検討実行中フラグ
 
     // ★ 追加: USI通信ログ編集用UI
     QWidget* m_usiLogContainer=nullptr;
@@ -365,6 +369,7 @@ private:
     void onElapsedTimerTick();           // ★ 追加: 経過時間更新
     void onEngineSettingsClicked();      // ★ 追加: エンジン設定ボタンクリック
     void onTimeSettingChanged();         // ★ 追加: 時間設定変更
+    void onEngineComboBoxChanged(int index);  // ★ 追加: エンジン選択変更
     void buildCommentToolbar();
     void updateCommentFontSize(int delta);
     QString convertUrlsToLinks(const QString& text);

@@ -216,6 +216,7 @@ public slots:
     void displayJishogiScoreDialog();  // 持将棋の点数ダイアログ
     void handleNyugyokuDeclaration();  // 入玉宣言
     void onConsiderationEngineSettingsRequested(int engineNumber, const QString& engineName);  // 検討タブからのエンジン設定リクエスト
+    void onConsiderationEngineChanged(int engineIndex, const QString& engineName);  // 検討中のエンジン変更
 
     // ツールバー表示切替
     void onToolBarVisibilityToggled(bool visible);

@@ -276,6 +276,8 @@ void EngineAnalysisTab::buildUi()
     m_engineComboBox = new QComboBox(m_considerationToolbar);
     m_engineComboBox->setToolTip(tr("検討に使用するエンジンを選択します"));
     m_engineComboBox->setMinimumWidth(150);
+    connect(m_engineComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &EngineAnalysisTab::onEngineComboBoxChanged);
 
     // エンジン設定ボタン
     m_btnEngineSettings = new QPushButton(tr("エンジン設定"), m_considerationToolbar);
@@ -682,6 +684,8 @@ QWidget* EngineAnalysisTab::createConsiderationPage(QWidget* parent)
     m_engineComboBox = new QComboBox(m_considerationToolbar);
     m_engineComboBox->setToolTip(tr("検討に使用するエンジンを選択します"));
     m_engineComboBox->setMinimumWidth(150);
+    connect(m_engineComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &EngineAnalysisTab::onEngineComboBoxChanged);
 
     m_btnEngineSettings = new QPushButton(tr("エンジン設定"), m_considerationToolbar);
     m_btnEngineSettings->setToolTip(tr("選択したエンジンの設定を変更します"));
@@ -2757,6 +2761,9 @@ void EngineAnalysisTab::setConsiderationRunning(bool running)
 {
     qDebug().noquote() << "[EngineAnalysisTab::setConsiderationRunning] ENTER running=" << running;
 
+    // ★ 検討実行中フラグを更新
+    m_considerationRunning = running;
+
     if (!m_btnStopConsideration) {
         qDebug().noquote() << "[EngineAnalysisTab::setConsiderationRunning] button is null, returning";
         return;
@@ -2920,6 +2927,24 @@ void EngineAnalysisTab::onTimeSettingChanged()
 
     // シグナルを発行
     emit considerationTimeSettingsChanged(unlimited, sec);
+}
+
+// ★ 追加: エンジン選択変更スロット
+void EngineAnalysisTab::onEngineComboBoxChanged(int index)
+{
+    qDebug().noquote() << "[EngineAnalysisTab::onEngineComboBoxChanged] index=" << index
+                       << "m_considerationRunning=" << m_considerationRunning;
+
+    // 設定を保存
+    saveConsiderationTabSettings();
+
+    // 検討中の場合のみエンジン変更シグナルを発行
+    if (m_considerationRunning && m_engineComboBox) {
+        const QString engineName = m_engineComboBox->currentText();
+        qDebug().noquote() << "[EngineAnalysisTab::onEngineComboBoxChanged] emitting considerationEngineChanged"
+                           << "index=" << index << "name=" << engineName;
+        emit considerationEngineChanged(index, engineName);
+    }
 }
 
 // ★ 追加: 選択されたエンジンのインデックスを取得
