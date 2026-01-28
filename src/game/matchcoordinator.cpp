@@ -1957,12 +1957,21 @@ void MatchCoordinator::startAnalysis(const AnalysisOptions& opt)
 
     // 11) 解析/詰み探索の実行
     QString pos = opt.positionStr; // "position sfen <...>"
-    qDebug().noquote() << "[MC] startAnalysis: about to call executeAnalysisCommunication, byoyomiMs=" << opt.byoyomiMs;
+    qDebug().noquote() << "[MC] startAnalysis: about to start analysis communication, byoyomiMs=" << opt.byoyomiMs;
     if (opt.mode == PlayMode::TsumiSearchMode) {
         m_usi1->executeTsumeCommunication(pos, opt.byoyomiMs);
-    } else {
-        m_usi1->executeAnalysisCommunication(pos, opt.byoyomiMs, opt.multiPV);
+        qDebug().noquote() << "[MC] startAnalysis EXIT (executeTsumeCommunication returned)";
+        return;
     }
+
+    if (opt.mode == PlayMode::ConsiderationMode) {
+        // 検討は非ブロッキングで開始し、UIフリーズを避ける
+        m_usi1->sendAnalysisCommands(pos, opt.byoyomiMs, opt.multiPV);
+        qDebug().noquote() << "[MC] startAnalysis EXIT (sendAnalysisCommands queued)";
+        return;
+    }
+
+    m_usi1->executeAnalysisCommunication(pos, opt.byoyomiMs, opt.multiPV);
     qDebug().noquote() << "[MC] startAnalysis EXIT (executeAnalysisCommunication returned)";
 }
 
