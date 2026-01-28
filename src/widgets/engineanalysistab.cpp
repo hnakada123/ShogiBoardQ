@@ -2762,6 +2762,9 @@ void EngineAnalysisTab::setConsiderationRunning(bool running)
         return;
     }
 
+    // ★ ボタンを一時的に無効化（切り替え中のクリックを防止）
+    m_btnStopConsideration->setEnabled(false);
+
     // 既存のシグナル接続を切断
     qDebug().noquote() << "[EngineAnalysisTab::setConsiderationRunning] disconnecting button signals";
     m_btnStopConsideration->disconnect();
@@ -2781,6 +2784,10 @@ void EngineAnalysisTab::setConsiderationRunning(bool running)
         connect(m_btnStopConsideration, &QToolButton::clicked,
                 this, &EngineAnalysisTab::startConsiderationRequested);
     }
+
+    // ★ ボタンを再有効化
+    m_btnStopConsideration->setEnabled(true);
+
     qDebug().noquote() << "[EngineAnalysisTab::setConsiderationRunning] EXIT";
 }
 

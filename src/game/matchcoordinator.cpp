@@ -1835,7 +1835,14 @@ void MatchCoordinator::startAnalysis(const AnalysisOptions& opt)
                        << "mode=" << static_cast<int>(opt.mode)
                        << "byoyomiMs=" << opt.byoyomiMs
                        << "multiPV=" << opt.multiPV
-                       << "m_inConsiderationMode=" << m_inConsiderationMode;
+                       << "m_inConsiderationMode=" << m_inConsiderationMode
+                       << "m_engineShutdownInProgress=" << m_engineShutdownInProgress;
+
+    // ★ エンジン破棄中の場合は検討開始を拒否（再入防止）
+    if (m_engineShutdownInProgress) {
+        qDebug().noquote() << "[MC] startAnalysis: engine shutdown in progress, ignoring request";
+        return;
+    }
 
     // 1) モード設定（検討 / 詰み探索）
     setPlayMode(opt.mode); // PlayMode::ConsiderationMode or PlayMode::TsumiSearchMode
@@ -1963,6 +1970,9 @@ void MatchCoordinator::stopAnalysisEngine()
 {
     qDebug().noquote() << "[MC] stopAnalysisEngine called";
 
+    // ★ エンジン破棄中フラグをセット（検討再開の再入防止）
+    m_engineShutdownInProgress = true;
+
     // 検討モード中なら終了シグナルを発火
     if (m_inConsiderationMode) {
         m_inConsiderationMode = false;
@@ -1973,6 +1983,9 @@ void MatchCoordinator::stopAnalysisEngine()
 
     m_inTsumeSearchMode = false;  // フラグをリセット
     destroyEngines(false);  // 思考内容を保持
+
+    // ★ エンジン破棄完了後にフラグをリセット
+    m_engineShutdownInProgress = false;
 }
 
 void MatchCoordinator::updateConsiderationMultiPV(int multiPV)
