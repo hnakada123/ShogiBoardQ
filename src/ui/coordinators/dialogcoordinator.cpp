@@ -190,6 +190,7 @@ void DialogCoordinator::showKifuAnalysisDialog(const KifuAnalysisParams& params)
     d.logModel = m_logModel;
     d.thinkingModel = m_thinkingModel;
     d.gameController = params.gameController;  // 盤面情報取得用
+    d.presenter = params.presenter;  // 結果表示用プレゼンター
     d.activePly = params.activePly;
     d.blackPlayerName = params.blackPlayerName;
     d.whitePlayerName = params.whitePlayerName;
@@ -259,6 +260,9 @@ void DialogCoordinator::showKifuAnalysisDialogFromContext()
         const QList<KifGameInfoItem> items = m_kifuAnalysisCtx.gameInfoController->gameInfo();
         extractPlayerNames(items, params.blackPlayerName, params.whitePlayerName);
     }
+
+    // プレゼンターを設定
+    params.presenter = m_kifuAnalysisCtx.presenter;
 
     qDebug().noquote() << "[DialogCoord] showKifuAnalysisDialogFromContext:"
                        << "blackPlayerName=" << params.blackPlayerName

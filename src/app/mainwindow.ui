@@ -82,8 +82,6 @@
     <addaction name="actionEnlargeBoard"/>
     <addaction name="actionShrinkBoard"/>
     <addaction name="separator"/>
-    <addaction name="actionJosekiWindow"/>
-    <addaction name="separator"/>
     <addaction name="actionToolBar"/>
    </widget>
    <widget class="QMenu" name="Game">
@@ -163,7 +161,6 @@
    <addaction name="actionEnlargeBoard"/>
    <addaction name="actionShrinkBoard"/>
    <addaction name="actionCSA"/>
-   <addaction name="actionJosekiWindow"/>
   </widget>
   <action name="actionSave">
    <property name="icon">
@@ -583,15 +580,6 @@
    </property>
    <property name="text">
     <string>棋譜解析中止</string>
-   </property>
-  </action>
-  <action name="actionJosekiWindow">
-   <property name="icon">
-    <iconset resource="../../resources/shogiboardq.qrc">
-     <normaloff>:/images/actions/actionJosekiWindow.svg</normaloff>:/images/actions/actionJosekiWindow.svg</iconset>
-   </property>
-   <property name="text">
-    <string>定跡ウィンドウ</string>
    </property>
   </action>
   <action name="actionMenuWindow">

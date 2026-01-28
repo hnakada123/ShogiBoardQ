@@ -1100,6 +1100,54 @@ void setMenuWindowDockVisible(bool visible)
     s.setValue("MenuWindowDock/visible", visible);
 }
 
+// ★ 追加: 定跡ウィンドウドックのフローティング状態を取得
+bool josekiWindowDockFloating()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("JosekiWindowDock/floating", false).toBool();
+}
+
+// ★ 追加: 定跡ウィンドウドックのフローティング状態を保存
+void setJosekiWindowDockFloating(bool floating)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("JosekiWindowDock/floating", floating);
+}
+
+// ★ 追加: 定跡ウィンドウドックのジオメトリを取得
+QByteArray josekiWindowDockGeometry()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("JosekiWindowDock/geometry", QByteArray()).toByteArray();
+}
+
+// ★ 追加: 定跡ウィンドウドックのジオメトリを保存
+void setJosekiWindowDockGeometry(const QByteArray& geometry)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("JosekiWindowDock/geometry", geometry);
+}
+
+// ★ 追加: 定跡ウィンドウドックの表示状態を取得
+bool josekiWindowDockVisible()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("JosekiWindowDock/visible", false).toBool();  // デフォルトは非表示
+}
+
+// ★ 追加: 定跡ウィンドウドックの表示状態を保存
+void setJosekiWindowDockVisible(bool visible)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("JosekiWindowDock/visible", visible);
+}
+
 // ★ 追加: 保存されているカスタムドックレイアウト名のリストを取得
 QStringList savedDockLayoutNames()
 {
@@ -1149,6 +1197,70 @@ void setStartupDockLayoutName(const QString& name)
     QDir::setCurrent(QApplication::applicationDirPath());
     QSettings s(kIniName, QSettings::IniFormat);
     s.setValue("DockLayout/startupLayoutName", name);
+}
+
+// ★ 追加: 棋譜解析結果ドックのフローティング状態を取得
+bool kifuAnalysisResultsDockFloating()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("KifuAnalysisResultsDock/floating", false).toBool();
+}
+
+// ★ 追加: 棋譜解析結果ドックのフローティング状態を保存
+void setKifuAnalysisResultsDockFloating(bool floating)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("KifuAnalysisResultsDock/floating", floating);
+}
+
+// ★ 追加: 棋譜解析結果ドックのジオメトリを取得
+QByteArray kifuAnalysisResultsDockGeometry()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("KifuAnalysisResultsDock/geometry", QByteArray()).toByteArray();
+}
+
+// ★ 追加: 棋譜解析結果ドックのジオメトリを保存
+void setKifuAnalysisResultsDockGeometry(const QByteArray& geometry)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("KifuAnalysisResultsDock/geometry", geometry);
+}
+
+// ★ 追加: 棋譜解析結果ドックの表示状態を取得
+bool kifuAnalysisResultsDockVisible()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("KifuAnalysisResultsDock/visible", false).toBool();  // デフォルトは非表示
+}
+
+// ★ 追加: 棋譜解析結果ドックの表示状態を保存
+void setKifuAnalysisResultsDockVisible(bool visible)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("KifuAnalysisResultsDock/visible", visible);
+}
+
+// ★ 追加: 全ドックの固定設定を取得
+bool docksLocked()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("Dock/docksLocked", false).toBool();  // デフォルトは非固定
+}
+
+// ★ 追加: 全ドックの固定設定を保存
+void setDocksLocked(bool locked)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("Dock/docksLocked", locked);
 }
 
 } // namespace SettingsService

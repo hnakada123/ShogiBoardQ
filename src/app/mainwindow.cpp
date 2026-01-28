@@ -104,6 +104,7 @@
 #include "csagamecoordinator.h"         // ★ 追加: CSA通信対局コーディネータ
 #include "csawaitingdialog.h"           // ★ 追加: CSA通信対局待機ダイアログ
 #include "josekiwindowwiring.h"          // ★ 追加: 定跡ウィンドウUI配線
+#include "josekiwindow.h"                // ★ 追加: 定跡ウィンドウ
 #include "menuwindowwiring.h"            // ★ 追加: メニューウィンドウUI配線
 #include "menuwindow.h"                  // ★ 追加: メニューウィンドウ
 #include "csagamewiring.h"              // ★ 追加: CSA通信対局UI配線
@@ -268,10 +269,16 @@ void MainWindow::buildGamePanels()
     // 9) メニューウィンドウのQDockWidget作成（デフォルトは非表示）
     createMenuWindowDock();
 
-    // 10) central への初期化（すべてのウィジェットはドックに移動）
+    // 10) 定跡ウィンドウのQDockWidget作成（デフォルトは非表示）
+    createJosekiWindowDock();
+
+    // 11) 棋譜解析結果のQDockWidget作成（初期状態は非表示）
+    createAnalysisResultsDock();
+
+    // 12) central への初期化（すべてのウィジェットはドックに移動）
     initializeCentralGameDisplay();
 
-    // 11) 表示メニューにドックレイアウト関連アクションを追加
+    // 13) 表示メニューにドックレイアウト関連アクションを追加
     if (ui->Display) {
         ui->Display->addSeparator();
 
@@ -294,6 +301,19 @@ void MainWindow::buildGamePanels()
 
         // サブメニューを初期化
         updateSavedLayoutsMenu();
+
+        // ドック固定のチェックボックスアクションを追加
+        ui->Display->addSeparator();
+        QAction* lockDocksAction = new QAction(tr("ドックを固定"), this);
+        lockDocksAction->setObjectName(QStringLiteral("actionLockDocks"));
+        lockDocksAction->setCheckable(true);
+        const bool docksLocked = SettingsService::docksLocked();
+        lockDocksAction->setChecked(docksLocked);
+        ui->Display->addAction(lockDocksAction);
+        connect(lockDocksAction, &QAction::toggled, this, &MainWindow::onDocksLockToggled);
+
+        // 起動時に全ドックに固定設定を適用
+        onDocksLockToggled(docksLocked);
     }
 }
 
@@ -1112,18 +1132,33 @@ void MainWindow::onConsiderationDialogMultiPVReady(int multiPV)
     }
 }
 
-// 詰み探索ダイアログを表示する。
-// CSA通信対局ダイアログを表示する。
+// 定跡ウィンドウ（ドック）を表示/非表示にトグルする。
 void MainWindow::displayJosekiWindow()
 {
-    ensureJosekiWiring();
-    if (m_josekiWiring) {
-        m_josekiWiring->displayJosekiWindow();
+    // ドックが未作成の場合は作成
+    if (!m_josekiWindowDock) {
+        createJosekiWindowDock();
+    }
+
+    // ドックの表示/非表示をトグル
+    if (m_josekiWindowDock) {
+        if (m_josekiWindowDock->isVisible()) {
+            m_josekiWindowDock->hide();
+        } else {
+            m_josekiWindowDock->show();
+            m_josekiWindowDock->raise();
+            // 表示時に定跡ウィンドウを更新
+            updateJosekiWindow();
+        }
     }
 }
 
 void MainWindow::updateJosekiWindow()
 {
+    // ドックが非表示の場合は更新をスキップ
+    if (m_josekiWindowDock && !m_josekiWindowDock->isVisible()) {
+        return;
+    }
     if (m_josekiWiring) {
         m_josekiWiring->updateJosekiWindow();
     }
@@ -1154,6 +1189,10 @@ void MainWindow::resetDockLayout()
         m_menuWindowDock->setFloating(false);
         m_menuWindowDock->setVisible(true);
     }
+    if (m_josekiWindowDock) {
+        m_josekiWindowDock->setFloating(false);
+        m_josekiWindowDock->setVisible(false);  // デフォルトは非表示
+    }
     if (m_recordPaneDock) {
         m_recordPaneDock->setFloating(false);
         m_recordPaneDock->setVisible(true);
@@ -1181,6 +1220,7 @@ void MainWindow::resetDockLayout()
 
     // まず全てのドックをいったん削除
     if (m_menuWindowDock) removeDockWidget(m_menuWindowDock);
+    if (m_josekiWindowDock) removeDockWidget(m_josekiWindowDock);
     if (m_recordPaneDock) removeDockWidget(m_recordPaneDock);
     for (QDockWidget* dock : std::as_const(analysisDocks)) {
         if (dock) removeDockWidget(dock);
@@ -1191,6 +1231,12 @@ void MainWindow::resetDockLayout()
     if (m_menuWindowDock) {
         addDockWidget(Qt::LeftDockWidgetArea, m_menuWindowDock);
         m_menuWindowDock->setVisible(true);
+    }
+
+    // 定跡ドック（デフォルトは非表示）
+    if (m_josekiWindowDock) {
+        addDockWidget(Qt::RightDockWidgetArea, m_josekiWindowDock);
+        m_josekiWindowDock->setVisible(false);
     }
 
     // 上段右: 棋譜
@@ -1306,6 +1352,7 @@ void MainWindow::restoreSavedDockLayout(const QString& name)
 
     // すべてのドックを表示状態にしてから復元
     if (m_menuWindowDock) m_menuWindowDock->setVisible(true);
+    if (m_josekiWindowDock) m_josekiWindowDock->setVisible(true);
     if (m_recordPaneDock) m_recordPaneDock->setVisible(true);
     if (m_gameInfoDock) m_gameInfoDock->setVisible(true);
     if (m_thinkingDock) m_thinkingDock->setVisible(true);
@@ -1357,6 +1404,7 @@ void MainWindow::restoreStartupLayoutIfSet()
         if (!state.isEmpty()) {
             // すべてのドックを表示状態にしてから復元
             if (m_menuWindowDock) m_menuWindowDock->setVisible(true);
+            if (m_josekiWindowDock) m_josekiWindowDock->setVisible(true);
             if (m_recordPaneDock) m_recordPaneDock->setVisible(true);
             if (m_gameInfoDock) m_gameInfoDock->setVisible(true);
             if (m_thinkingDock) m_thinkingDock->setVisible(true);
@@ -1570,6 +1618,7 @@ void MainWindow::displayKifuAnalysisDialog()
 
     // コンテキストを設定
     ensureGameInfoController();
+    ensureAnalysisPresenter();  // プレゼンターを確保
     DialogCoordinator::KifuAnalysisContext ctx;
     ctx.sfenRecord = m_sfenRecord;
     ctx.moveRecords = m_moveRecords;
@@ -1580,6 +1629,7 @@ void MainWindow::displayKifuAnalysisDialog()
     ctx.kifuLoadCoordinator = m_kifuLoadCoordinator;
     ctx.evalChart = m_evalChart;
     ctx.gameUsiMoves = &m_gameUsiMoves;  // 対局時のUSI形式指し手リスト
+    ctx.presenter = m_analysisPresenter;  // 結果表示用プレゼンター
     m_dialogCoordinator->setKifuAnalysisContext(ctx);
 
     // コンテキストから自動パラメータ構築してダイアログを表示
@@ -1979,6 +2029,20 @@ void MainWindow::saveWindowAndBoardSettings()
         SettingsService::setMenuWindowDockVisible(m_menuWindowDock->isVisible());
         SettingsService::setMenuWindowDockGeometry(m_menuWindowDock->saveGeometry());
     }
+
+    // 定跡ウィンドウドックの状態を保存
+    if (m_josekiWindowDock) {
+        SettingsService::setJosekiWindowDockFloating(m_josekiWindowDock->isFloating());
+        SettingsService::setJosekiWindowDockVisible(m_josekiWindowDock->isVisible());
+        SettingsService::setJosekiWindowDockGeometry(m_josekiWindowDock->saveGeometry());
+    }
+
+    // 棋譜解析結果ドックの状態を保存
+    if (m_analysisResultsDock) {
+        SettingsService::setKifuAnalysisResultsDockFloating(m_analysisResultsDock->isFloating());
+        SettingsService::setKifuAnalysisResultsDockVisible(m_analysisResultsDock->isVisible());
+        SettingsService::setKifuAnalysisResultsDockGeometry(m_analysisResultsDock->saveGeometry());
+    }
 }
 
 void MainWindow::closeEvent(QCloseEvent* e)
@@ -2022,7 +2086,41 @@ void MainWindow::onReverseTriggered()
     if (m_match) m_match->flipBoard();
 }
 
-// 起動時用：編集メニューを“編集前（未編集）”の初期状態にする
+void MainWindow::onDocksLockToggled(bool locked)
+{
+    // 固定時: ドッキング禁止、フローティング禁止、移動禁止
+    // 非固定時: 全て許可
+    const Qt::DockWidgetAreas areas = locked ? Qt::NoDockWidgetArea : Qt::AllDockWidgetAreas;
+    const QDockWidget::DockWidgetFeatures features = locked
+        ? QDockWidget::DockWidgetClosable  // 固定時は閉じるのみ許可
+        : (QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
+
+    // 全ドックに設定を適用するラムダ
+    auto applyToAllDocks = [&](QDockWidget* dock) {
+        if (dock) {
+            dock->setAllowedAreas(areas);
+            dock->setFeatures(features);
+        }
+    };
+
+    applyToAllDocks(m_evalChartDock);
+    applyToAllDocks(m_recordPaneDock);
+    applyToAllDocks(m_gameInfoDock);
+    applyToAllDocks(m_thinkingDock);
+    applyToAllDocks(m_considerationDock);
+    applyToAllDocks(m_usiLogDock);
+    applyToAllDocks(m_csaLogDock);
+    applyToAllDocks(m_commentDock);
+    applyToAllDocks(m_branchTreeDock);
+    applyToAllDocks(m_menuWindowDock);
+    applyToAllDocks(m_josekiWindowDock);
+    applyToAllDocks(m_analysisResultsDock);
+
+    // 設定を保存
+    SettingsService::setDocksLocked(locked);
+}
+
+// 起動時用：編集メニューを"編集前（未編集）"の初期状態にする
 void MainWindow::initializeEditMenuForStartup()
 {
     // 未編集状態（＝編集モードではない）でメニューを整える
@@ -2605,6 +2703,8 @@ void MainWindow::createEvalChartDock()
         QDockWidget::DockWidgetFloatable |
         QDockWidget::DockWidgetClosable);
     m_evalChartDock->setAllowedAreas(Qt::AllDockWidgetAreas);
+    // フローティング時のタイトルバーを掴みやすくする
+    m_evalChartDock->setStyleSheet(QStringLiteral("QDockWidget::title { padding: 8px; }"));
 
     // 初期位置は下部
     addDockWidget(Qt::BottomDockWidgetArea, m_evalChartDock);
@@ -2842,6 +2942,107 @@ void MainWindow::createMenuWindowDock()
 
     const bool wasVisible = SettingsService::menuWindowDockVisible();
     m_menuWindowDock->setVisible(wasVisible);
+}
+
+void MainWindow::createJosekiWindowDock()
+{
+    // JosekiWindowWiringを確保
+    ensureJosekiWiring();
+    if (!m_josekiWiring) {
+        qWarning() << "[MainWindow] createJosekiWindowDock: JosekiWindowWiring is null!";
+        return;
+    }
+
+    // JosekiWindowを確保（未作成時のみ作成）
+    m_josekiWiring->ensureJosekiWindow();
+    JosekiWindow* josekiWindow = m_josekiWiring->josekiWindow();
+    if (!josekiWindow) {
+        qWarning() << "[MainWindow] createJosekiWindowDock: JosekiWindow is null!";
+        return;
+    }
+
+    // QDockWidgetを作成
+    m_josekiWindowDock = new QDockWidget(tr("定跡"), this);
+    m_josekiWindowDock->setObjectName(QStringLiteral("JosekiWindowDock"));
+    m_josekiWindowDock->setWidget(josekiWindow);
+    m_josekiWindowDock->setFeatures(
+        QDockWidget::DockWidgetMovable |
+        QDockWidget::DockWidgetFloatable |
+        QDockWidget::DockWidgetClosable);
+    m_josekiWindowDock->setAllowedAreas(Qt::AllDockWidgetAreas);
+
+    // 初期位置は右側
+    addDockWidget(Qt::RightDockWidgetArea, m_josekiWindowDock);
+
+    // 表示メニューにトグルアクションを追加
+    if (ui->Display) {
+        QAction* toggleAction = m_josekiWindowDock->toggleViewAction();
+        toggleAction->setText(tr("定跡"));
+        ui->Display->addAction(toggleAction);
+    }
+
+    // 保存された状態を復元
+    const QByteArray dockGeometry = SettingsService::josekiWindowDockGeometry();
+    if (!dockGeometry.isEmpty()) {
+        m_josekiWindowDock->restoreGeometry(dockGeometry);
+    }
+
+    const bool wasFloating = SettingsService::josekiWindowDockFloating();
+    m_josekiWindowDock->setFloating(wasFloating);
+
+    const bool wasVisible = SettingsService::josekiWindowDockVisible();
+    m_josekiWindowDock->setVisible(wasVisible);
+}
+
+void MainWindow::createAnalysisResultsDock()
+{
+    // AnalysisResultsPresenterを確保
+    ensureAnalysisPresenter();
+    if (!m_analysisPresenter) {
+        qWarning() << "[MainWindow] createAnalysisResultsDock: AnalysisResultsPresenter is null!";
+        return;
+    }
+
+    // QDockWidgetを作成
+    m_analysisResultsDock = new QDockWidget(tr("棋譜解析"), this);
+    m_analysisResultsDock->setObjectName(QStringLiteral("AnalysisResultsDock"));
+    m_analysisResultsDock->setWidget(m_analysisPresenter->containerWidget());
+    m_analysisResultsDock->setFeatures(
+        QDockWidget::DockWidgetMovable |
+        QDockWidget::DockWidgetFloatable |
+        QDockWidget::DockWidgetClosable);
+    m_analysisResultsDock->setAllowedAreas(Qt::AllDockWidgetAreas);
+
+    // プレゼンターにドックを設定
+    m_analysisPresenter->setDockWidget(m_analysisResultsDock);
+
+    // 初期位置は下部（他の解析ドックとタブ化）
+    addDockWidget(Qt::BottomDockWidgetArea, m_analysisResultsDock);
+
+    // 分岐ツリードックの後ろにタブ化
+    if (m_branchTreeDock) {
+        tabifyDockWidget(m_branchTreeDock, m_analysisResultsDock);
+    }
+
+    // 表示メニューにトグルアクションを追加
+    if (ui->Display) {
+        QAction* toggleAction = m_analysisResultsDock->toggleViewAction();
+        toggleAction->setText(tr("棋譜解析"));
+        ui->Display->addAction(toggleAction);
+    }
+
+    // 保存された状態を復元
+    const QByteArray dockGeometry = SettingsService::kifuAnalysisResultsDockGeometry();
+    if (!dockGeometry.isEmpty()) {
+        m_analysisResultsDock->restoreGeometry(dockGeometry);
+    }
+
+    const bool wasFloating = SettingsService::kifuAnalysisResultsDockFloating();
+    m_analysisResultsDock->setFloating(wasFloating);
+
+    // 初期状態は非表示
+    const bool wasVisible = SettingsService::kifuAnalysisResultsDockVisible();
+    m_analysisResultsDock->setVisible(wasVisible);
 }
 
 // src/app/mainwindow.cpp

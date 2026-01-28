@@ -1,5 +1,5 @@
 #include "analysisresultspresenter.h"
-#include <QDialog>
+#include <QDockWidget>
 #include <QTableView>
 #include <QHeaderView>
 #include <QVBoxLayout>
@@ -46,47 +46,82 @@ AnalysisResultsPresenter::AnalysisResultsPresenter(QObject* parent)
     connect(m_reflowTimer, &QTimer::timeout, this, &AnalysisResultsPresenter::reflowNow);
 }
 
-void AnalysisResultsPresenter::showWithModel(KifuAnalysisListModel* model)
+void AnalysisResultsPresenter::setDockWidget(QDockWidget* dock)
 {
-    buildUi(model);
-    connectModelSignals(model);
+    m_dock = dock;
+}
 
-    if (m_dlg) {
-        // SettingsServiceからウィンドウサイズを復元
-        QSize savedSize = SettingsService::kifuAnalysisResultsWindowSize();
-        if (savedSize.isValid() && savedSize.width() > 100 && savedSize.height() > 100) {
-            m_dlg->resize(savedSize);
-        } else {
-            m_dlg->resize(1100, 600);
-        }
-        m_dlg->setModal(false);
-        m_dlg->setWindowModality(Qt::NonModal);
-        m_dlg->show();
-        
-        // ウィンドウサイズ変更時に保存
-        connect(m_dlg, &QDialog::finished, this, &AnalysisResultsPresenter::saveWindowSize);
+QWidget* AnalysisResultsPresenter::containerWidget()
+{
+    // コンテナウィジェットが未作成なら作成
+    if (!m_container) {
+        m_container = new QWidget;
     }
 
-    // 初回レイアウト
+    // UIが未構築なら構築（モデルなしで）
+    if (!m_uiBuilt) {
+        buildUi(nullptr);
+        m_uiBuilt = true;
+    }
+
+    return m_container;
+}
+
+void AnalysisResultsPresenter::showWithModel(KifuAnalysisListModel* model)
+{
+    // UIが未構築なら構築
+    if (!m_uiBuilt) {
+        buildUi(nullptr);
+        m_uiBuilt = true;
+    }
+
+    // モデルを設定（既存の接続を切断してから新しいモデルを設定）
+    if (m_view) {
+        // 古いモデルの接続を切断
+        QAbstractItemModel* oldModel = m_view->model();
+        if (oldModel) {
+            disconnect(oldModel, nullptr, this, nullptr);
+        }
+        // 古いselectionModelの接続も切断
+        if (m_view->selectionModel()) {
+            disconnect(m_view->selectionModel(), nullptr, this, nullptr);
+        }
+
+        // 新しいモデルを設定
+        if (model) {
+            m_view->setModel(model);
+            connectModelSignals(model);
+            setupHeaderConfiguration();
+
+            // selectionModelの接続（モデル設定後に行う必要がある）
+            connect(m_view->selectionModel(), &QItemSelectionModel::currentRowChanged,
+                    this, &AnalysisResultsPresenter::onTableSelectionChanged);
+        }
+    }
+
+    // ドックを表示
+    if (m_dock) {
+        m_dock->setVisible(true);
+        m_dock->raise();
+    }
+
+    // レイアウト調整
     m_reflowTimer->start();
 }
 
-void AnalysisResultsPresenter::buildUi(KifuAnalysisListModel* model)
+void AnalysisResultsPresenter::buildUi(KifuAnalysisListModel* /*model*/)
 {
-    // ★ メモリリーク防止：既存ダイアログを同期的に削除
-    if (m_dlg) {
-        m_dlg->hide();
-        m_dlg->setAttribute(Qt::WA_DeleteOnClose, false);  // 手動削除のため無効化
-        delete m_dlg;
-        m_dlg = nullptr;
+    // コンテナウィジェットが未作成なら作成
+    if (!m_container) {
+        m_container = new QWidget;
     }
 
-    m_dlg = new QDialog;
-    m_dlg->setAttribute(Qt::WA_DeleteOnClose, true);
-    m_dlg->setWindowTitle(tr("棋譜解析結果"));
+    m_view = new QTableView(m_container);
 
-    m_view = new QTableView(m_dlg);
-    m_view->setModel(model);
+    // ヘッダー表示用に空のモデルを作成（起動時からヘッダーを表示するため）
+    auto* emptyModel = new KifuAnalysisListModel(m_view);
+    m_view->setModel(emptyModel);
+
     m_view->setAlternatingRowColors(true);
     m_view->setWordWrap(false);
     m_view->verticalHeader()->setVisible(false);
@@ -113,10 +148,8 @@ void AnalysisResultsPresenter::buildUi(KifuAnalysisListModel* model)
     
     // 盤面列（列6）のクリックで読み筋表示ウィンドウを開く
     connect(m_view, &QTableView::clicked, this, &AnalysisResultsPresenter::onTableClicked);
-    
-    // 行選択時に棋譜欄・将棋盤・分岐ツリーを連動させる
-    connect(m_view->selectionModel(), &QItemSelectionModel::currentRowChanged,
-            this, &AnalysisResultsPresenter::onTableSelectionChanged);
+
+    // 注意: selectionModelへの接続はモデル設定後に行う（showWithModel()内）
 
     // 数値デリゲートを評価値と差の列に設定
     auto* numDelegate = new NumericRightAlignCommaDelegate(m_view);
@@ -130,34 +163,25 @@ void AnalysisResultsPresenter::buildUi(KifuAnalysisListModel* model)
     m_header = m_view->horizontalHeader();
     m_header->setMinimumSectionSize(30);
 
-    // 列の構成: 指し手(0), 候補手(1), 一致(2), 評価値(3), 形勢(4), 差(5), 盤面(6), 読み筋(7)
-    // Interactiveモードを使用し、reflowNowで適切な幅を設定
-    m_header->setSectionResizeMode(0, QHeaderView::Interactive); // 指し手
-    m_header->setSectionResizeMode(1, QHeaderView::Interactive); // 候補手
-    m_header->setSectionResizeMode(2, QHeaderView::Interactive); // 一致
-    m_header->setSectionResizeMode(3, QHeaderView::Interactive); // 評価値
-    m_header->setSectionResizeMode(4, QHeaderView::Interactive); // 形勢
-    m_header->setSectionResizeMode(5, QHeaderView::Interactive); // 差
-    m_header->setSectionResizeMode(6, QHeaderView::Interactive); // 盤面
-    m_header->setSectionResizeMode(7, QHeaderView::Stretch);     // 読み筋（残り幅を使用）
-    m_header->setStretchLastSection(true);  // 最後の列を引き伸ばす
+    // 空のモデルが設定されているのでヘッダー設定を適用
+    setupHeaderConfiguration();
 
     // フォントサイズのA-/A+ボタン
-    QPushButton* fontDecBtn = new QPushButton(tr("A-"), m_dlg);
+    QPushButton* fontDecBtn = new QPushButton(tr("A-"), m_container);
     fontDecBtn->setFixedWidth(40);
     connect(fontDecBtn, &QPushButton::clicked, this, &AnalysisResultsPresenter::decreaseFontSize);
-    
-    QPushButton* fontIncBtn = new QPushButton(tr("A+"), m_dlg);
+
+    QPushButton* fontIncBtn = new QPushButton(tr("A+"), m_container);
     fontIncBtn->setFixedWidth(40);
     connect(fontIncBtn, &QPushButton::clicked, this, &AnalysisResultsPresenter::increaseFontSize);
 
     // 棋譜解析中止ボタン
-    m_stopButton = new QPushButton(tr("棋譜解析中止"), m_dlg);
+    m_stopButton = new QPushButton(tr("棋譜解析中止"), m_container);
     connect(m_stopButton, &QPushButton::clicked, this, &AnalysisResultsPresenter::stopRequested);
 
-    // 閉じるボタン
-    QPushButton* closeButton = new QPushButton(tr("閉じる"), m_dlg);
-    connect(closeButton, &QPushButton::clicked, m_dlg, &QDialog::accept);
+    // 閉じるボタン（ドックを非表示にする）
+    QPushButton* closeButton = new QPushButton(tr("閉じる"), m_container);
+    connect(closeButton, &QPushButton::clicked, this, &AnalysisResultsPresenter::saveWindowSize);
 
     // ボタン用の水平レイアウト
     QHBoxLayout* buttonLayout = new QHBoxLayout;
@@ -167,7 +191,7 @@ void AnalysisResultsPresenter::buildUi(KifuAnalysisListModel* model)
     buttonLayout->addWidget(m_stopButton);
     buttonLayout->addWidget(closeButton);
 
-    QVBoxLayout* lay = new QVBoxLayout(m_dlg);
+    QVBoxLayout* lay = new QVBoxLayout(m_container);
     lay->setContentsMargins(8,8,8,8);
     lay->addWidget(m_view);
     lay->addLayout(buttonLayout);
@@ -187,6 +211,23 @@ void AnalysisResultsPresenter::connectModelSignals(KifuAnalysisListModel* model)
     connect(model, &QAbstractItemModel::rowsInserted, this, &AnalysisResultsPresenter::onRowsInserted);
     connect(model, &QAbstractItemModel::dataChanged,  this, &AnalysisResultsPresenter::onDataChanged);
     connect(model, &QAbstractItemModel::layoutChanged,this, &AnalysisResultsPresenter::onLayoutChanged);
+}
+
+void AnalysisResultsPresenter::setupHeaderConfiguration()
+{
+    if (!m_header) return;
+
+    // 列の構成: 指し手(0), 候補手(1), 一致(2), 評価値(3), 形勢(4), 差(5), 盤面(6), 読み筋(7)
+    // Interactiveモードを使用し、reflowNowで適切な幅を設定
+    m_header->setSectionResizeMode(0, QHeaderView::Interactive); // 指し手
+    m_header->setSectionResizeMode(1, QHeaderView::Interactive); // 候補手
+    m_header->setSectionResizeMode(2, QHeaderView::Interactive); // 一致
+    m_header->setSectionResizeMode(3, QHeaderView::Interactive); // 評価値
+    m_header->setSectionResizeMode(4, QHeaderView::Interactive); // 形勢
+    m_header->setSectionResizeMode(5, QHeaderView::Interactive); // 差
+    m_header->setSectionResizeMode(6, QHeaderView::Interactive); // 盤面
+    m_header->setSectionResizeMode(7, QHeaderView::Stretch);     // 読み筋（残り幅を使用）
+    m_header->setStretchLastSection(true);  // 最後の列を引き伸ばす
 }
 
 void AnalysisResultsPresenter::reflowNow()
@@ -308,18 +349,20 @@ void AnalysisResultsPresenter::onTableSelectionChanged(const QModelIndex& curren
 
 void AnalysisResultsPresenter::showAnalysisComplete(int totalMoves)
 {
-    if (!m_dlg) return;
-    
     // 中止ボタンを無効化
     setStopButtonEnabled(false);
-    
-    // 完了メッセージを表示
-    QMessageBox::information(
-        m_dlg,
-        tr("棋譜解析完了"),
-        tr("棋譜解析が完了しました。\n\n解析手数: %1 手").arg(totalMoves),
-        QMessageBox::Ok
-    );
+
+    // 完了メッセージを表示（イベント処理完了後に遅延実行）
+    // シグナル処理中にモーダルダイアログを表示するとクラッシュするため
+    QTimer::singleShot(0, this, [this, totalMoves]() {
+        QWidget* parentWidget = m_dock ? qobject_cast<QWidget*>(m_dock.data()) : m_container.data();
+        QMessageBox::information(
+            parentWidget,
+            tr("棋譜解析完了"),
+            tr("棋譜解析が完了しました。\n\n解析手数: %1 手").arg(totalMoves),
+            QMessageBox::Ok
+        );
+    });
 }
 
 void AnalysisResultsPresenter::increaseFontSize()
@@ -419,8 +462,10 @@ void AnalysisResultsPresenter::restoreFontSize()
 
 void AnalysisResultsPresenter::saveWindowSize()
 {
-    if (!m_dlg) return;
-    
-    // SettingsServiceでウィンドウサイズを保存
-    SettingsService::setKifuAnalysisResultsWindowSize(m_dlg->size());
+    // ドックのサイズを保存
+    if (m_dock) {
+        SettingsService::setKifuAnalysisResultsWindowSize(m_dock->size());
+        // 閉じるボタンが押されたらドックを非表示にする
+        m_dock->setVisible(false);
+    }
 }

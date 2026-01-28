@@ -74,6 +74,11 @@ public:
      */
     JosekiWindow* josekiWindow() const { return m_josekiWindow; }
 
+    /**
+     * @brief JosekiWindowを確保する（未作成時のみ作成）
+     */
+    void ensureJosekiWindow();
+
 signals:
     /**
      * @brief 指し手実行を要求
@@ -102,11 +107,6 @@ private slots:
     void onRequestKifuDataForMerge();
 
 private:
-    /**
-     * @brief JosekiWindowを確保する
-     */
-    void ensureJosekiWindow();
-
     /**
      * @brief USI形式の指し手をQPoint座標に変換
      * @param usiMove USI形式の指し手

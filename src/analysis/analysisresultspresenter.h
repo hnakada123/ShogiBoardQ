@@ -3,12 +3,13 @@
 
 #include <QObject>
 #include <QPointer>
-#include <QDialog>
+#include <QWidget>
 #include <QTableView>
 #include <QHeaderView>
 class QAbstractItemModel;
 class QTimer;
 class QPushButton;
+class QDockWidget;
 class KifuAnalysisListModel;
 
 class AnalysisResultsPresenter : public QObject
@@ -17,11 +18,17 @@ class AnalysisResultsPresenter : public QObject
 public:
     explicit AnalysisResultsPresenter(QObject* parent=nullptr);
 
-    // モデルを受け取り、非モーダルで表示（UIは都度作り直し）
+    // ドックウィジェットを設定（MainWindowから呼び出し）
+    void setDockWidget(QDockWidget* dock);
+
+    // コンテナウィジェットを取得（ドック作成時に使用）
+    QWidget* containerWidget();
+
+    // モデルを受け取り、ドックを表示（UIは初回のみ構築）
     void showWithModel(KifuAnalysisListModel* model);
 
     QTableView* view() const { return m_view; }
-    QDialog* dialog() const { return m_dlg; }
+    QWidget* container() const { return m_container; }
     
     // 中止ボタンの有効/無効を設定
     void setStopButtonEnabled(bool enabled);
@@ -61,20 +68,25 @@ private slots:
 
 private:
     void buildUi(KifuAnalysisListModel* model);
+    void setupHeaderConfiguration();  // ヘッダーの列設定を適用
     void connectModelSignals(KifuAnalysisListModel* model);
     void restoreFontSize();
 
-    QPointer<QDialog> m_dlg;
+    QPointer<QDockWidget> m_dock;
+    QPointer<QWidget> m_container;
     QPointer<QTableView> m_view;
     QPointer<QHeaderView> m_header;
     QPointer<QPushButton> m_stopButton;
     QTimer* m_reflowTimer;
-    
+
     // 解析中フラグ（行追加時に最後の行を自動選択）
     bool m_isAnalyzing = false;
-    
+
     // 自動選択中フラグ（rowSelectedシグナル発行をスキップ）
     bool m_autoSelecting = false;
+
+    // UIが既に構築済みかどうか
+    bool m_uiBuilt = false;
 };
 
 #endif // ANALYSISRESULTSPRESENTER_H

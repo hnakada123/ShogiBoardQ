@@ -344,6 +344,18 @@ void setMenuWindowDockGeometry(const QByteArray& geometry);
 bool menuWindowDockVisible();
 void setMenuWindowDockVisible(bool visible);
 
+// ★ 追加: 定跡ウィンドウドックのフローティング状態
+bool josekiWindowDockFloating();
+void setJosekiWindowDockFloating(bool floating);
+
+// ★ 追加: 定跡ウィンドウドックのジオメトリ（フローティング時のウィンドウ位置・サイズ）
+QByteArray josekiWindowDockGeometry();
+void setJosekiWindowDockGeometry(const QByteArray& geometry);
+
+// ★ 追加: 定跡ウィンドウドックの表示状態
+bool josekiWindowDockVisible();
+void setJosekiWindowDockVisible(bool visible);
+
 // ★ 追加: カスタムドックレイアウトの保存・読み込み
 // 保存されているレイアウト名のリストを取得
 QStringList savedDockLayoutNames();
@@ -358,6 +370,22 @@ void deleteDockLayout(const QString& name);
 // 空文字列の場合はデフォルトレイアウトを使用
 QString startupDockLayoutName();
 void setStartupDockLayoutName(const QString& name);
+
+// ★ 追加: 棋譜解析結果ドックのフローティング状態
+bool kifuAnalysisResultsDockFloating();
+void setKifuAnalysisResultsDockFloating(bool floating);
+
+// ★ 追加: 棋譜解析結果ドックのジオメトリ（フローティング時のウィンドウ位置・サイズ）
+QByteArray kifuAnalysisResultsDockGeometry();
+void setKifuAnalysisResultsDockGeometry(const QByteArray& geometry);
+
+// ★ 追加: 棋譜解析結果ドックの表示状態
+bool kifuAnalysisResultsDockVisible();
+void setKifuAnalysisResultsDockVisible(bool visible);
+
+// ★ 追加: 全ドックの固定設定
+bool docksLocked();
+void setDocksLocked(bool locked);
 
 } // namespace SettingsService
 
