@@ -2,6 +2,7 @@
 #include "ui_mainwindow.h"        // Ui::MainWindow
 #include "shogiview.h"
 #include "mainwindow.h"           // MainWindow のスロットを型安全に結ぶため
+#include "kifuexportcontroller.h" // ★ 追加: クリップボードコピー直接接続用
 #include <QApplication>
 
 void UiActionsWiring::wire()
@@ -47,26 +48,24 @@ void UiActionsWiring::wire()
     QObject::connect(ui->actionJishogiScore,        &QAction::triggered, mw, &MainWindow::displayJishogiScoreDialog,      Qt::UniqueConnection);
     QObject::connect(ui->actionNyugyokuDeclaration, &QAction::triggered, mw, &MainWindow::handleNyugyokuDeclaration,      Qt::UniqueConnection);
 
-    // 棋譜コピー (編集メニュー)
-    QObject::connect(ui->actionCopyKIF,                  &QAction::triggered, mw, &MainWindow::copyKifToClipboard,             Qt::UniqueConnection);
-    QObject::connect(ui->actionCopyKI2,                  &QAction::triggered, mw, &MainWindow::copyKi2ToClipboard,             Qt::UniqueConnection);
-    QObject::connect(ui->actionCopyCSA,                  &QAction::triggered, mw, &MainWindow::copyCsaToClipboard,             Qt::UniqueConnection);  // CSA形式
-    QObject::connect(ui->actionCopyUSICurrent,                  &QAction::triggered, mw, &MainWindow::copyUsiCurrentToClipboard,      Qt::UniqueConnection);  // USI形式（現在の指し手まで）
-    QObject::connect(ui->actionCopyUSIAll,                  &QAction::triggered, mw, &MainWindow::copyUsiToClipboard,             Qt::UniqueConnection);  // USI形式（全て）
-    QObject::connect(ui->actionCopyJKF,                 &QAction::triggered, mw, &MainWindow::copyJkfToClipboard,             Qt::UniqueConnection);  // JKF形式
-    QObject::connect(ui->actionCopyUSEN,                 &QAction::triggered, mw, &MainWindow::copyUsenToClipboard,            Qt::UniqueConnection);  // USEN形式
+    // 棋譜コピー (編集メニュー) - KifuExportControllerに直接接続
+    KifuExportController* kec = mw->kifuExportController();
+    QObject::connect(ui->actionCopyKIF,        &QAction::triggered, kec, &KifuExportController::copyKifToClipboard,        Qt::UniqueConnection);
+    QObject::connect(ui->actionCopyKI2,        &QAction::triggered, kec, &KifuExportController::copyKi2ToClipboard,        Qt::UniqueConnection);
+    QObject::connect(ui->actionCopyCSA,        &QAction::triggered, kec, &KifuExportController::copyCsaToClipboard,        Qt::UniqueConnection);
+    QObject::connect(ui->actionCopyUSICurrent, &QAction::triggered, kec, &KifuExportController::copyUsiCurrentToClipboard, Qt::UniqueConnection);
+    QObject::connect(ui->actionCopyUSIAll,     &QAction::triggered, kec, &KifuExportController::copyUsiToClipboard,        Qt::UniqueConnection);
+    QObject::connect(ui->actionCopyJKF,        &QAction::triggered, kec, &KifuExportController::copyJkfToClipboard,        Qt::UniqueConnection);
+    QObject::connect(ui->actionCopyUSEN,       &QAction::triggered, kec, &KifuExportController::copyUsenToClipboard,       Qt::UniqueConnection);
 
-    // 局面コピー (編集メニュー)
-    QObject::connect(ui->actionCopySFEN,                       &QAction::triggered, mw, &MainWindow::copySfenToClipboard,            Qt::UniqueConnection);  // SFEN形式
-    QObject::connect(ui->actionCopyBOD,                        &QAction::triggered, mw, &MainWindow::copyBodToClipboard,             Qt::UniqueConnection);  // BOD形式
+    // 局面コピー (編集メニュー) - KifuExportControllerに直接接続
+    QObject::connect(ui->actionCopySFEN,       &QAction::triggered, kec, &KifuExportController::copySfenToClipboard,       Qt::UniqueConnection);
+    QObject::connect(ui->actionCopyBOD,        &QAction::triggered, kec, &KifuExportController::copyBodToClipboard,        Qt::UniqueConnection);
 
     // 棋譜貼り付け (編集メニュー)
     QObject::connect(ui->actionPasteKifu,            &QAction::triggered, mw, &MainWindow::pasteKifuFromClipboard,         Qt::UniqueConnection);
 
-    // 言語設定
-    QObject::connect(ui->actionLanguageSystem,   &QAction::triggered, mw, &MainWindow::onLanguageSystemTriggered,   Qt::UniqueConnection);
-    QObject::connect(ui->actionLanguageJapanese, &QAction::triggered, mw, &MainWindow::onLanguageJapaneseTriggered, Qt::UniqueConnection);
-    QObject::connect(ui->actionLanguageEnglish,  &QAction::triggered, mw, &MainWindow::onLanguageEnglishTriggered,  Qt::UniqueConnection);
+    // 言語設定: LanguageControllerで直接接続（MainWindow::ensureLanguageController参照）
 
     // ツールバー表示切替
     QObject::connect(ui->actionToolBar,          &QAction::toggled,   mw, &MainWindow::onToolBarVisibilityToggled,  Qt::UniqueConnection);

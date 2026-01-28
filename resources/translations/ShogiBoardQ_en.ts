@@ -857,14 +857,112 @@ Cause: %2</translation>
 <context>
     <name>DialogCoordinator</name>
     <message>
-        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="305"/>
+        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="317"/>
+        <source>将棋エンジンが選択されていません。</source>
+        <translation type="unfinished">No shogi engine is selected.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="505"/>
         <source>Error</source>
         <translation>Error</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="311"/>
+        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="317"/>
+        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="511"/>
         <source>エラー</source>
         <translation>Error</translation>
+    </message>
+</context>
+<context>
+    <name>DockLayoutManager</name>
+    <message>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="185"/>
+        <source>ドックレイアウトを保存</source>
+        <translation type="unfinished">Save Dock Layout</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="186"/>
+        <source>レイアウト名:</source>
+        <translation type="unfinished">Layout name:</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="201"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="247"/>
+        <source>確認</source>
+        <translation type="unfinished">Confirm</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="202"/>
+        <source>「%1」は既に存在します。上書きしますか？</source>
+        <translation type="unfinished">&quot;%1&quot; already exists. Overwrite?</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="216"/>
+        <source>保存完了</source>
+        <translation type="unfinished">Save Complete</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="217"/>
+        <source>レイアウト「%1」を保存しました。</source>
+        <translation type="unfinished">Layout &quot;%1&quot; has been saved.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="228"/>
+        <source>エラー</source>
+        <translation type="unfinished">Error</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="229"/>
+        <source>レイアウト「%1」が見つかりません。</source>
+        <translation type="unfinished">Layout &quot;%1&quot; not found.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="248"/>
+        <source>レイアウト「%1」を削除しますか？</source>
+        <translation type="unfinished">Delete layout &quot;%1&quot;?</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="263"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="273"/>
+        <source>設定完了</source>
+        <translation type="unfinished">Settings Complete</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="264"/>
+        <source>レイアウト「%1」を起動時のレイアウトに設定しました。</source>
+        <translation type="unfinished">Layout &quot;%1&quot; has been set as startup layout.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="274"/>
+        <source>起動時のレイアウト設定をクリアしました。
+次回起動時はデフォルトレイアウトが使用されます。</source>
+        <translation type="unfinished">Startup layout setting has been cleared.
+The default layout will be used on next startup.</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="304"/>
+        <source>（保存済みレイアウトなし）</source>
+        <translation type="unfinished">(No saved layouts)</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="318"/>
+        <source>復元</source>
+        <translation type="unfinished">Restore</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="324"/>
+        <source>起動時のレイアウトに設定</source>
+        <translation type="unfinished">Set as Startup Layout</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="332"/>
+        <source>削除</source>
+        <translation type="unfinished">Delete</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="341"/>
+        <source>起動時のレイアウトをクリア</source>
+        <translation type="unfinished">Clear Startup Layout</translation>
     </message>
 </context>
 <context>
@@ -2769,126 +2867,126 @@ Select OK to specify the save location.</translation>
 <context>
     <name>KifuExportController</name>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="146"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="153"/>
         <source>棋譜データがありません</source>
         <translation>No game record data</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="183"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="190"/>
         <source>棋譜を保存しました: %1</source>
         <translation>Game record saved: %1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="232"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="241"/>
         <source>棋譜を上書き保存しました: %1</source>
         <translation>Game record overwritten: %1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="235"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="244"/>
         <source>KIF Save Error</source>
         <translation>KIF Save Error</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="248"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="267"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="259"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="278"/>
         <source>KIF形式の棋譜データがありません</source>
         <translation>No KIF format game record data</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="264"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="275"/>
         <source>KIF形式の棋譜をクリップボードにコピーしました</source>
         <translation>Copied KIF format game record to clipboard</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="275"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="294"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="288"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="307"/>
         <source>KI2形式の棋譜データがありません</source>
         <translation>No KI2 format game record data</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="291"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="304"/>
         <source>KI2形式の棋譜をクリップボードにコピーしました</source>
         <translation>Copied KI2 format game record to clipboard</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="311"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="326"/>
         <source>CSA形式の棋譜データがありません</source>
         <translation>No CSA format game record data</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="320"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="335"/>
         <source>CSA形式の棋譜をクリップボードにコピーしました</source>
         <translation>Copied CSA format game record to clipboard</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="324"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="353"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="388"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="415"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="444"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="505"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="681"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="339"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="370"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="407"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="436"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="467"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="530"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="708"/>
         <source>クリップボードへのコピーに失敗しました</source>
         <translation>Failed to copy to clipboard</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="340"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="375"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="357"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="394"/>
         <source>USI形式の棋譜データがありません</source>
         <translation>No USI format game record data</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="349"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="366"/>
         <source>USI形式の棋譜をクリップボードにコピーしました</source>
         <translation>Copied USI format game record to clipboard</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="384"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="403"/>
         <source>USI形式（現在の指し手まで）の棋譜をクリップボードにコピーしました</source>
         <translation>Copied USI format game record (up to current move) to clipboard</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="402"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="423"/>
         <source>JKF形式の棋譜データがありません</source>
         <translation>No JKF format game record data</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="411"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="432"/>
         <source>JKF形式の棋譜をクリップボードにコピーしました</source>
         <translation>Copied JKF format game record to clipboard</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="431"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="454"/>
         <source>USEN形式の棋譜データがありません</source>
         <translation>No USEN format game record data</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="440"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="463"/>
         <source>USEN形式の棋譜をクリップボードにコピーしました</source>
         <translation>Copied USEN format game record to clipboard</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="493"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="518"/>
         <source>SFEN形式の局面データがありません</source>
         <translation>No SFEN format position data</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="500"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="525"/>
         <source>SFEN形式の局面をクリップボードにコピーしました</source>
         <translation>Copied SFEN format position to clipboard</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="663"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="690"/>
         <source>BOD形式の局面データがありません</source>
         <translation>No BOD format position data</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="669"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="696"/>
         <source>SFEN形式の解析に失敗しました</source>
         <translation>Failed to parse SFEN format</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="676"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="703"/>
         <source>BOD形式の局面をクリップボードにコピーしました</source>
         <translation>Copied BOD format position to clipboard</translation>
     </message>
@@ -3010,12 +3108,12 @@ Format is auto-detected.</translation>
 <context>
     <name>LanguageController</name>
     <message>
-        <location filename="../../src/ui/controllers/languagecontroller.cpp" line="63"/>
+        <location filename="../../src/ui/controllers/languagecontroller.cpp" line="69"/>
         <source>言語設定</source>
         <translation type="unfinished">Language</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/languagecontroller.cpp" line="64"/>
+        <location filename="../../src/ui/controllers/languagecontroller.cpp" line="70"/>
         <source>言語設定を変更しました。
 変更を反映するにはアプリケーションを再起動してください。</source>
         <translation type="unfinished">Language setting has been changed.
@@ -3115,8 +3213,8 @@ Please restart the application to apply the changes.</translation>
     </message>
     <message>
         <location filename="../../src/app/mainwindow.ui" line="591"/>
-        <location filename="../../src/app/mainwindow.cpp" line="2915"/>
-        <location filename="../../src/app/mainwindow.cpp" line="2930"/>
+        <location filename="../../src/app/mainwindow.cpp" line="2335"/>
+        <location filename="../../src/app/mainwindow.cpp" line="2350"/>
         <source>メニュー</source>
         <translation>Menu</translation>
     </message>
@@ -3186,8 +3284,8 @@ Please restart the application to apply the changes.</translation>
         <translation>Flip Board</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="2819"/>
-        <location filename="../../src/app/mainwindow.cpp" line="2821"/>
+        <location filename="../../src/app/mainwindow.cpp" line="2239"/>
+        <location filename="../../src/app/mainwindow.cpp" line="2241"/>
         <source>思考</source>
         <translation>Thinking</translation>
     </message>
@@ -3221,8 +3319,8 @@ Please restart the application to apply the changes.</translation>
         <translation>Game</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="2824"/>
-        <location filename="../../src/app/mainwindow.cpp" line="2826"/>
+        <location filename="../../src/app/mainwindow.cpp" line="2244"/>
+        <location filename="../../src/app/mainwindow.cpp" line="2246"/>
         <source>検討</source>
         <translation>Analysis Mode</translation>
     </message>
@@ -3268,8 +3366,8 @@ Please restart the application to apply the changes.</translation>
     </message>
     <message>
         <location filename="../../src/app/mainwindow.ui" line="276"/>
-        <location filename="../../src/app/mainwindow.cpp" line="3007"/>
-        <location filename="../../src/app/mainwindow.cpp" line="3030"/>
+        <location filename="../../src/app/mainwindow.cpp" line="2427"/>
+        <location filename="../../src/app/mainwindow.cpp" line="2450"/>
         <source>棋譜解析</source>
         <translation>Analyze Game Record</translation>
     </message>
@@ -3554,31 +3652,29 @@ Please restart the application to apply the changes.</translation>
         <translation>English</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="481"/>
+        <location filename="../../src/app/mainwindow.cpp" line="483"/>
         <source>Error</source>
         <translation>Error</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="688"/>
+        <location filename="../../src/app/mainwindow.cpp" line="690"/>
         <source>投了確認</source>
         <translation>Confirm Resignation</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="689"/>
+        <location filename="../../src/app/mainwindow.cpp" line="691"/>
         <source>本当に投了しますか？</source>
         <translation>Are you sure you want to resign?</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="767"/>
-        <location filename="../../src/app/mainwindow.cpp" line="781"/>
-        <location filename="../../src/app/mainwindow.cpp" line="843"/>
-        <location filename="../../src/app/mainwindow.cpp" line="1348"/>
+        <location filename="../../src/app/mainwindow.cpp" line="769"/>
+        <location filename="../../src/app/mainwindow.cpp" line="783"/>
         <source>エラー</source>
         <translation>Error</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="767"/>
-        <location filename="../../src/app/mainwindow.cpp" line="781"/>
+        <location filename="../../src/app/mainwindow.cpp" line="769"/>
+        <location filename="../../src/app/mainwindow.cpp" line="783"/>
         <source>盤面データがありません。</source>
         <translation>No board data available.</translation>
     </message>
@@ -3649,12 +3745,12 @@ White
 Please select &quot;24-Point Rule&quot; or &quot;27-Point Rule&quot; in the game dialog.</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="2284"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1774"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="2285"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1775"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
@@ -3769,17 +3865,17 @@ Are you sure you want to declare?</translation>
         <translation type="vanished">Entering King Declaration Result</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="286"/>
+        <location filename="../../src/app/mainwindow.cpp" line="288"/>
         <source>ドックレイアウトをリセット</source>
         <translation>Reset Dock Layout</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="292"/>
+        <location filename="../../src/app/mainwindow.cpp" line="294"/>
         <source>ドックレイアウトを保存...</source>
         <translation>Save Dock Layout...</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="298"/>
+        <location filename="../../src/app/mainwindow.cpp" line="300"/>
         <source>保存済みレイアウト</source>
         <translation>Saved Layouts</translation>
     </message>
@@ -3788,164 +3884,145 @@ Are you sure you want to declare?</translation>
         <translation type="vanished">Allow Docking</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="307"/>
+        <location filename="../../src/app/mainwindow.cpp" line="309"/>
         <source>ドックを固定</source>
         <translation>Lock Docks</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="843"/>
         <source>将棋エンジンが選択されていません。</source>
-        <translation type="unfinished">No shogi engine is selected.</translation>
+        <translation type="obsolete">No shogi engine is selected.</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1309"/>
         <source>ドックレイアウトを保存</source>
-        <translation>Save Dock Layout</translation>
+        <translation type="vanished">Save Dock Layout</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1310"/>
         <source>レイアウト名:</source>
-        <translation>Layout name:</translation>
+        <translation type="vanished">Layout name:</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1325"/>
-        <location filename="../../src/app/mainwindow.cpp" line="1373"/>
         <source>確認</source>
-        <translation type="unfinished">Confirm</translation>
+        <translation type="obsolete">Confirm</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1326"/>
         <source>「%1」は既に存在します。上書きしますか？</source>
-        <translation>&quot;%1&quot; already exists. Overwrite?</translation>
+        <translation type="vanished">&quot;%1&quot; already exists. Overwrite?</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1340"/>
         <source>保存完了</source>
-        <translation>Save Complete</translation>
+        <translation type="vanished">Save Complete</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1341"/>
         <source>レイアウト「%1」を保存しました。</source>
-        <translation>Layout &quot;%1&quot; has been saved.</translation>
+        <translation type="vanished">Layout &quot;%1&quot; has been saved.</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1349"/>
         <source>レイアウト「%1」が見つかりません。</source>
-        <translation>Layout &quot;%1&quot; not found.</translation>
+        <translation type="vanished">Layout &quot;%1&quot; not found.</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1374"/>
         <source>レイアウト「%1」を削除しますか？</source>
-        <translation>Delete layout &quot;%1&quot;?</translation>
+        <translation type="vanished">Delete layout &quot;%1&quot;?</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1387"/>
-        <location filename="../../src/app/mainwindow.cpp" line="1395"/>
         <source>設定完了</source>
-        <translation>Settings Complete</translation>
+        <translation type="vanished">Settings Complete</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1388"/>
         <source>レイアウト「%1」を起動時のレイアウトに設定しました。</source>
-        <translation>Layout &quot;%1&quot; has been set as startup layout.</translation>
+        <translation type="vanished">Layout &quot;%1&quot; has been set as startup layout.</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1396"/>
         <source>起動時のレイアウト設定をクリアしました。
 次回起動時はデフォルトレイアウトが使用されます。</source>
-        <translation>Startup layout setting has been cleared.
+        <translation type="vanished">Startup layout setting has been cleared.
 The default layout will be used on next startup.</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1434"/>
         <source>（保存済みレイアウトなし）</source>
-        <translation>(No saved layouts)</translation>
+        <translation type="vanished">(No saved layouts)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1448"/>
         <source>復元</source>
-        <translation>Restore</translation>
+        <translation type="vanished">Restore</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1454"/>
         <source>起動時のレイアウトに設定</source>
-        <translation>Set as Startup Layout</translation>
+        <translation type="vanished">Set as Startup Layout</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1462"/>
         <source>削除</source>
-        <translation>Delete</translation>
+        <translation type="vanished">Delete</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1471"/>
         <source>起動時のレイアウトをクリア</source>
-        <translation>Clear Startup Layout</translation>
+        <translation type="vanished">Clear Startup Layout</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1865"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1376"/>
         <source>棋譜ファイルを開く</source>
         <translation>Open Game Record File</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1866"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1377"/>
         <source>Kifu Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</source>
         <translation>Game Record Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="2286"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1776"/>
         <source>手合割</source>
         <translation>Handicap</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="2286"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1776"/>
         <source>平手</source>
         <translation>Even Game</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="2698"/>
-        <location filename="../../src/app/mainwindow.cpp" line="2717"/>
+        <location filename="../../src/app/mainwindow.cpp" line="2118"/>
+        <location filename="../../src/app/mainwindow.cpp" line="2137"/>
         <source>評価値グラフ</source>
         <translation>Evaluation Graph</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="2749"/>
-        <location filename="../../src/app/mainwindow.cpp" line="2764"/>
+        <location filename="../../src/app/mainwindow.cpp" line="2169"/>
+        <location filename="../../src/app/mainwindow.cpp" line="2184"/>
         <source>棋譜</source>
         <translation>Game Record</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="2814"/>
-        <location filename="../../src/app/mainwindow.cpp" line="2815"/>
+        <location filename="../../src/app/mainwindow.cpp" line="2234"/>
+        <location filename="../../src/app/mainwindow.cpp" line="2235"/>
         <source>対局情報</source>
         <translation type="unfinished">Game Info</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="2829"/>
-        <location filename="../../src/app/mainwindow.cpp" line="2831"/>
+        <location filename="../../src/app/mainwindow.cpp" line="2249"/>
+        <location filename="../../src/app/mainwindow.cpp" line="2251"/>
         <source>USI通信ログ</source>
         <translation type="unfinished">USI Log</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="2834"/>
-        <location filename="../../src/app/mainwindow.cpp" line="2836"/>
+        <location filename="../../src/app/mainwindow.cpp" line="2254"/>
+        <location filename="../../src/app/mainwindow.cpp" line="2256"/>
         <source>CSA通信ログ</source>
         <translation type="unfinished">CSA Log</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="2839"/>
-        <location filename="../../src/app/mainwindow.cpp" line="2841"/>
+        <location filename="../../src/app/mainwindow.cpp" line="2259"/>
+        <location filename="../../src/app/mainwindow.cpp" line="2261"/>
         <source>棋譜コメント</source>
         <translation type="unfinished">Comments</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="2844"/>
-        <location filename="../../src/app/mainwindow.cpp" line="2846"/>
+        <location filename="../../src/app/mainwindow.cpp" line="2264"/>
+        <location filename="../../src/app/mainwindow.cpp" line="2266"/>
         <source>分岐ツリー</source>
         <translation type="unfinished">Branch Tree</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="2965"/>
-        <location filename="../../src/app/mainwindow.cpp" line="2980"/>
+        <location filename="../../src/app/mainwindow.cpp" line="2385"/>
+        <location filename="../../src/app/mainwindow.cpp" line="2400"/>
         <source>定跡</source>
         <translation>Joseki</translation>
     </message>
@@ -3966,47 +4043,47 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Shogi Board</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4729"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4085"/>
         <source>棋譜を自動保存しました: %1</source>
         <translation>Game record auto-saved: %1</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4732"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4088"/>
         <source>棋譜の自動保存に失敗しました: %1</source>
         <translation>Failed to auto-save game record: %1</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4842"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4117"/>
         <source>棋譜を取り込みました</source>
         <translation>Game record imported</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4844"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4119"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation>Failed to import game record</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4848"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4123"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation>Failed to import game record (internal error)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4887"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4162"/>
         <source>コメントを更新しました（手数: %1）</source>
         <translation>Comment updated (move: %1)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4948"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4223"/>
         <source>コメントなし</source>
         <translation>No comment</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4994"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4269"/>
         <source>E1: エンジンが起動していません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="5005"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4280"/>
         <source>E2: エンジンが起動していません</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4694,12 +4771,12 @@ Are you sure you want to declare?</translation>
         <translation>Gote (White)</translation>
     </message>
     <message>
-        <location filename="../../src/core/shogiutils.cpp" line="22"/>
+        <location filename="../../src/core/shogiutils.cpp" line="24"/>
         <source>The rank must be a value between 1 and 9. (got %1)</source>
         <translation>The rank must be a value between 1 and 9. (got %1)</translation>
     </message>
     <message>
-        <location filename="../../src/core/shogiutils.cpp" line="42"/>
+        <location filename="../../src/core/shogiutils.cpp" line="44"/>
         <source>The file must be a value between 1 and 9. (got %1)</source>
         <translation>The file must be a value between 1 and 9. (got %1)</translation>
     </message>

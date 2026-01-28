@@ -1,0 +1,151 @@
+#ifndef CONSIDERATIONMODEUICONTROLLER_H
+#define CONSIDERATIONMODEUICONTROLLER_H
+
+#include <QObject>
+#include <QVector>
+#include <QString>
+
+class EngineAnalysisTab;
+class ShogiView;
+class MatchCoordinator;
+class ShogiEngineThinkingModel;
+class UsiCommLogModel;
+class KifuRecordListModel;
+struct ShogiMove;
+
+/**
+ * @brief 検討モードのUI状態を管理するコントローラ
+ *
+ * MainWindowから検討モード関連のUI処理を分離し、以下の責務を担う:
+ * - 検討モードの開始/終了/待機状態の管理
+ * - 矢印表示の更新
+ * - MultiPV変更の処理
+ * - 検討タブとの連携
+ */
+class ConsiderationModeUIController : public QObject
+{
+    Q_OBJECT
+
+public:
+    explicit ConsiderationModeUIController(QObject* parent = nullptr);
+
+    // 依存オブジェクトの設定
+    void setAnalysisTab(EngineAnalysisTab* tab);
+    void setShogiView(ShogiView* view);
+    void setMatchCoordinator(MatchCoordinator* match);
+    void setConsiderationModel(ShogiEngineThinkingModel* model);
+    void setCommLogModel(UsiCommLogModel* model);
+    void setCurrentSfenStr(const QString& sfen);
+
+    // 矢印表示設定
+    bool isShowArrowsEnabled() const { return m_showArrows; }
+    void setShowArrowsEnabled(bool enabled);
+
+public slots:
+    /**
+     * @brief 検討モード開始時の初期化
+     * モデルの接続、矢印更新シグナルの設定を行う
+     */
+    void onModeStarted();
+
+    /**
+     * @brief 検討モードの時間設定が確定したとき
+     * @param unlimited 時間無制限フラグ
+     * @param byoyomiSec 秒読み時間（秒）
+     */
+    void onTimeSettingsReady(bool unlimited, int byoyomiSec);
+
+    /**
+     * @brief 検討モード終了時の処理
+     * タイマー停止、矢印クリア、ボタン状態復元
+     */
+    void onModeEnded();
+
+    /**
+     * @brief 検討待機開始時の処理（時間切れ後、次の局面選択待ち）
+     * タイマーは停止するが、ボタンは「検討中止」のまま
+     */
+    void onWaitingStarted();
+
+    /**
+     * @brief 検討中にMultiPVが変更されたとき
+     * @param value 新しいMultiPV値
+     */
+    void onMultiPVChanged(int value);
+
+    /**
+     * @brief 検討ダイアログでMultiPVが設定されたとき
+     * @param multiPV 設定されたMultiPV値
+     */
+    void onDialogMultiPVReady(int multiPV);
+
+    /**
+     * @brief 矢印表示チェックボックスの状態変更時
+     * @param checked チェック状態
+     */
+    void onShowArrowsChanged(bool checked);
+
+    /**
+     * @brief 検討モデルから矢印を更新
+     */
+    void updateArrows();
+
+    /**
+     * @brief 検討モード中に局面が変更されたときの処理
+     * @param row 新しい行番号
+     * @param newPosition 新しい局面のposition文字列
+     * @param gameMoves ゲームの指し手リスト（移動先座標取得用、nullの場合は使用しない）
+     * @param kifuRecordModel 棋譜モデル（移動先座標取得用、nullの場合は使用しない）
+     * @return 局面が更新された場合true
+     */
+    bool updatePositionIfInConsiderationMode(int row, const QString& newPosition,
+                                             const QVector<ShogiMove>* gameMoves,
+                                             KifuRecordListModel* kifuRecordModel);
+
+signals:
+    /**
+     * @brief 検討中止が要求されたとき（MainWindow::stopTsumeSearchへ転送）
+     */
+    void stopRequested();
+
+    /**
+     * @brief 検討開始が要求されたとき（MainWindow::displayConsiderationDialogへ転送）
+     */
+    void startRequested();
+
+    /**
+     * @brief 検討中にMultiPV変更が要求されたとき
+     * @param value 新しいMultiPV値
+     */
+    void multiPVChangeRequested(int value);
+
+private:
+    /**
+     * @brief USI形式の指し手から座標を取得
+     * @param usiMove USI形式の指し手（例: "7g7f", "P*3c"）
+     * @param fromFile 出力: 移動元の筋（1-9、駒打ちは0）
+     * @param fromRank 出力: 移動元の段（1-9、駒打ちは0）
+     * @param toFile 出力: 移動先の筋（1-9）
+     * @param toRank 出力: 移動先の段（1-9）
+     * @return 解析成功ならtrue
+     */
+    static bool parseUsiMove(const QString& usiMove,
+                             int& fromFile, int& fromRank,
+                             int& toFile, int& toRank);
+
+    /**
+     * @brief 矢印更新用のシグナル接続を設定
+     */
+    void connectArrowUpdateSignals();
+
+    EngineAnalysisTab* m_analysisTab = nullptr;
+    ShogiView* m_shogiView = nullptr;
+    MatchCoordinator* m_match = nullptr;
+    ShogiEngineThinkingModel* m_considerationModel = nullptr;
+    UsiCommLogModel* m_commLogModel = nullptr;
+    QString m_currentSfenStr;
+    bool m_showArrows = true;
+    bool m_arrowSignalsConnected = false;
+};
+
+#endif // CONSIDERATIONMODEUICONTROLLER_H

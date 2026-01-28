@@ -20,6 +20,9 @@
 #include "gameinfopanecontroller.h"
 #include "kifuloadcoordinator.h"
 #include "evaluationchartwidget.h"
+#include "shogimove.h"
+#include "kifurecordlistmodel.h"
+#include "shogiutils.h"
 
 DialogCoordinator::DialogCoordinator(QWidget* parentWidget, QObject* parent)
     : QObject(parent)
@@ -294,6 +297,203 @@ void DialogCoordinator::stopKifuAnalysis()
 bool DialogCoordinator::isKifuAnalysisRunning() const
 {
     return m_analysisFlow && m_analysisFlow->isRunning();
+}
+
+// --------------------------------------------------------
+// 検討コンテキスト
+// --------------------------------------------------------
+
+void DialogCoordinator::setConsiderationContext(const ConsiderationContext& ctx)
+{
+    m_considerationCtx = ctx;
+}
+
+bool DialogCoordinator::startConsiderationFromContext()
+{
+    qDebug().noquote() << "[DialogCoord] startConsiderationFromContext";
+
+    // エンジンが選択されているかチェック
+    if (m_analysisTab && m_analysisTab->selectedEngineName().isEmpty()) {
+        QMessageBox::critical(m_parentWidget, tr("エラー"), tr("将棋エンジンが選択されていません。"));
+        return false;
+    }
+
+    // 手番表示用の設定
+    if (m_considerationCtx.gameController && m_considerationCtx.gameMoves && m_considerationCtx.currentMoveIndex) {
+        const int moveIdx = *m_considerationCtx.currentMoveIndex;
+        const int movesSize = static_cast<int>(m_considerationCtx.gameMoves->size());
+        if (movesSize > 0 && moveIdx >= 0 && moveIdx < movesSize) {
+            if (m_considerationCtx.gameMoves->at(moveIdx).movingPiece.isUpper())
+                m_considerationCtx.gameController->setCurrentPlayer(ShogiGameController::Player1);
+            else
+                m_considerationCtx.gameController->setCurrentPlayer(ShogiGameController::Player2);
+        }
+    }
+
+    // 送信する position を決定
+    const int currentMoveIdx = m_considerationCtx.currentMoveIndex ? *m_considerationCtx.currentMoveIndex : 0;
+    const QString position = buildPositionStringForIndex(currentMoveIdx);
+
+    qDebug().noquote() << "[DialogCoord] startConsiderationFromContext: position=" << position.left(50);
+
+    // 検討タブ専用モデルを作成（なければ）
+    if (m_considerationCtx.considerationModel) {
+        if (!(*m_considerationCtx.considerationModel)) {
+            *m_considerationCtx.considerationModel = new ShogiEngineThinkingModel(m_parentWidget);
+        }
+    }
+
+    // 検討タブの設定を保存
+    if (m_analysisTab) {
+        m_analysisTab->saveConsiderationTabSettings();
+    }
+
+    // 検討タブの設定を使用して直接検討を開始
+    ConsiderationDirectParams params;
+    params.position = position;
+    params.engineIndex = m_analysisTab ? m_analysisTab->selectedEngineIndex() : 0;
+    params.engineName = m_analysisTab ? m_analysisTab->selectedEngineName() : QString();
+    params.unlimitedTime = m_analysisTab ? m_analysisTab->isUnlimitedTime() : true;
+    params.byoyomiSec = m_analysisTab ? m_analysisTab->byoyomiSec() : 20;
+    params.multiPV = m_analysisTab ? m_analysisTab->considerationMultiPV() : 1;
+    params.considerationModel = m_considerationCtx.considerationModel ? *m_considerationCtx.considerationModel : nullptr;
+
+    // 選択中の指し手の移動先を取得（「同」表記のため）
+    const int moveIdx = m_considerationCtx.currentMoveIndex ? *m_considerationCtx.currentMoveIndex : 0;
+    qDebug().noquote() << "[DialogCoord] startConsiderationFromContext: moveIdx=" << moveIdx;
+
+    if (m_considerationCtx.gameMoves) {
+        const int movesSize = static_cast<int>(m_considerationCtx.gameMoves->size());
+        if (moveIdx >= 0 && moveIdx < movesSize) {
+            // 対局中の場合: m_gameMoves から直接取得
+            const QPoint& toSquare = m_considerationCtx.gameMoves->at(moveIdx).toSquare;
+            params.previousFileTo = toSquare.x();
+            params.previousRankTo = toSquare.y();
+            qDebug().noquote() << "[DialogCoord] previousFileTo/RankTo (from gameMoves):"
+                               << params.previousFileTo << "/" << params.previousRankTo;
+        }
+    }
+
+    if (params.previousFileTo == 0 && m_considerationCtx.kifuRecordModel && moveIdx > 0) {
+        // 棋譜読み込み時: ShogiUtilsを使用して座標を解析（「同」の場合は自動的に遡る）
+        const int modelRowCount = m_considerationCtx.kifuRecordModel->rowCount();
+        if (moveIdx < modelRowCount) {
+            int fileTo = 0, rankTo = 0;
+            if (ShogiUtils::parseMoveCoordinateFromModel(m_considerationCtx.kifuRecordModel, moveIdx, &fileTo, &rankTo)) {
+                params.previousFileTo = fileTo;
+                params.previousRankTo = rankTo;
+                qDebug().noquote() << "[DialogCoord] previousFileTo/RankTo (from recordModel):"
+                                   << params.previousFileTo << "/" << params.previousRankTo;
+            }
+        }
+    }
+
+    qDebug().noquote() << "[DialogCoord] startConsiderationFromContext calling startConsiderationDirect"
+                      << "engineIndex=" << params.engineIndex
+                      << "engineName=" << params.engineName
+                      << "unlimitedTime=" << params.unlimitedTime
+                      << "byoyomiSec=" << params.byoyomiSec
+                      << "multiPV=" << params.multiPV;
+    startConsiderationDirect(params);
+    qDebug().noquote() << "[DialogCoord] startConsiderationFromContext EXIT";
+    return true;
+}
+
+QString DialogCoordinator::buildPositionStringForIndex(int moveIndex) const
+{
+    // 平手初期局面のSFEN
+    static const QString kHirateSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+
+    const QString startSfen = m_considerationCtx.startSfenStr ? *m_considerationCtx.startSfenStr : QString();
+    const QStringList* sfenRecord = m_considerationCtx.sfenRecord;
+
+    if (!sfenRecord || sfenRecord->isEmpty()) {
+        // sfenRecordがない場合は startpos を返す
+        if (startSfen.isEmpty() || startSfen == kHirateSfen) {
+            return QStringLiteral("startpos");
+        } else {
+            return QStringLiteral("sfen ") + startSfen;
+        }
+    }
+
+    // 指定インデックスの局面が存在するか確認
+    const int idx = qBound(0, moveIndex, static_cast<int>(sfenRecord->size()) - 1);
+    const QString currentSfen = sfenRecord->at(idx);
+
+    // position 文字列を構築
+    if (startSfen.isEmpty() || startSfen == kHirateSfen) {
+        return QStringLiteral("position startpos moves ") + currentSfen;
+    } else {
+        return QStringLiteral("position sfen ") + startSfen + QStringLiteral(" moves ") + currentSfen;
+    }
+}
+
+// --------------------------------------------------------
+// 詰み探索コンテキスト
+// --------------------------------------------------------
+
+void DialogCoordinator::setTsumeSearchContext(const TsumeSearchContext& ctx)
+{
+    m_tsumeSearchCtx = ctx;
+}
+
+void DialogCoordinator::showTsumeSearchDialogFromContext()
+{
+    qDebug().noquote() << "[DialogCoord] showTsumeSearchDialogFromContext";
+
+    TsumeSearchParams params;
+    params.sfenRecord = m_tsumeSearchCtx.sfenRecord;
+    params.startSfenStr = m_tsumeSearchCtx.startSfenStr ? *m_tsumeSearchCtx.startSfenStr : QString();
+    params.positionStrList = m_tsumeSearchCtx.positionStrList ? *m_tsumeSearchCtx.positionStrList : QStringList();
+    params.currentMoveIndex = m_tsumeSearchCtx.currentMoveIndex ? qMax(0, *m_tsumeSearchCtx.currentMoveIndex) : 0;
+
+    // USI形式の指し手リストを取得（棋譜解析と同様のロジック）
+    const qsizetype sfenSize = params.sfenRecord ? params.sfenRecord->size() : 0;
+    qDebug().noquote() << "[DialogCoord] showTsumeSearchDialogFromContext: sfenSize=" << sfenSize
+                       << "gameUsiMoves.size=" << (m_tsumeSearchCtx.gameUsiMoves ? m_tsumeSearchCtx.gameUsiMoves->size() : -1)
+                       << "kifuLoadCoordinator=" << (m_tsumeSearchCtx.kifuLoadCoordinator ? "exists" : "null");
+
+    if (m_tsumeSearchCtx.gameUsiMoves && !m_tsumeSearchCtx.gameUsiMoves->isEmpty()) {
+        const qsizetype usiSize = m_tsumeSearchCtx.gameUsiMoves->size();
+        qDebug().noquote() << "[DialogCoord] checking gameUsiMoves: sfenSize=" << sfenSize << " usiSize=" << usiSize;
+        if (sfenSize == usiSize + 1) {
+            params.usiMoves = m_tsumeSearchCtx.gameUsiMoves;
+            qDebug().noquote() << "[DialogCoord] using gameUsiMoves, size=" << usiSize;
+        } else {
+            qDebug().noquote() << "[DialogCoord] gameUsiMoves size mismatch";
+        }
+    } else if (m_tsumeSearchCtx.kifuLoadCoordinator) {
+        QStringList* kifuUsiMoves = m_tsumeSearchCtx.kifuLoadCoordinator->kifuUsiMovesPtr();
+        const qsizetype usiSize = kifuUsiMoves ? kifuUsiMoves->size() : 0;
+        qDebug().noquote() << "[DialogCoord] checking kifuUsiMoves: sfenSize=" << sfenSize << " usiSize=" << usiSize;
+        if (kifuUsiMoves) {
+            qDebug().noquote() << "[DialogCoord] kifuUsiMoves content:" << *kifuUsiMoves;
+        }
+        if (sfenSize == usiSize + 1) {
+            params.usiMoves = kifuUsiMoves;
+            qDebug().noquote() << "[DialogCoord] using kifuLoadCoordinator->kifuUsiMovesPtr(), size=" << usiSize;
+        } else {
+            qDebug().noquote() << "[DialogCoord] kifuUsiMoves size mismatch (expected sfenSize == usiSize + 1)";
+        }
+    } else {
+        qDebug().noquote() << "[DialogCoord] no usiMoves source available";
+    }
+
+    // 開始局面コマンドを決定（平手初期局面の場合は "startpos"、それ以外は "sfen ..."）
+    static const QString kHirateSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+    if (params.startSfenStr.isEmpty() || params.startSfenStr == kHirateSfen) {
+        params.startPositionCmd = QStringLiteral("startpos");
+    } else {
+        params.startPositionCmd = QStringLiteral("sfen ") + params.startSfenStr;
+    }
+
+    qDebug().noquote() << "[DialogCoord] showTsumeSearchDialogFromContext:"
+                       << "usiMoves=" << (params.usiMoves ? QString::number(params.usiMoves->size()) : "null")
+                       << "startSfenStr=" << params.startSfenStr.left(50)
+                       << "startPositionCmd=" << params.startPositionCmd
+                       << "currentMoveIndex=" << params.currentMoveIndex;
+
+    showTsumeSearchDialog(params);
 }
 
 // --------------------------------------------------------

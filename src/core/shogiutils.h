@@ -4,6 +4,7 @@
 #include <QString>
 #include <QElapsedTimer>
 
+class QAbstractItemModel;
 struct ShogiMove;
 
 // ShogibanQで使用する共通関数
@@ -28,6 +29,46 @@ namespace ShogiUtils {
      * - USI形式: file=1-9, rank=a-i
      */
     QString moveToUsi(const ShogiMove& move);
+
+    // ========================================
+    // 漢字座標解析（逆変換）
+    // ========================================
+
+    /**
+     * @brief 全角数字「１」〜「９」を1-9に変換する
+     * @param ch 全角数字文字
+     * @return 1-9、無効な場合は0
+     */
+    int parseFullwidthFile(QChar ch);
+
+    /**
+     * @brief 漢数字「一」〜「九」を1-9に変換する
+     * @param ch 漢数字文字
+     * @return 1-9、無効な場合は0
+     */
+    int parseKanjiRank(QChar ch);
+
+    /**
+     * @brief 指し手ラベルから移動先座標を解析する
+     * @param moveLabel 指し手ラベル（例: "▲７六歩(77)", "△同　銀(31)"）
+     * @param outFile 出力: 筋 (1-9)、解析失敗時は0
+     * @param outRank 出力: 段 (1-9)、解析失敗時は0
+     * @return true=座標解析成功、false=「同」または解析失敗
+     *
+     * 「同」で始まる場合はfalseを返し、呼び出し側で前の手を参照する必要がある
+     */
+    bool parseMoveLabel(const QString& moveLabel, int* outFile, int* outRank);
+
+    /**
+     * @brief 棋譜モデルから指定行の移動先座標を解析する（「同」の場合は遡る）
+     * @param model 棋譜モデル（Qt::DisplayRoleで指し手ラベルを返すこと）
+     * @param row 解析対象の行インデックス
+     * @param outFile 出力: 筋 (1-9)、解析失敗時は0
+     * @param outRank 出力: 段 (1-9)、解析失敗時は0
+     * @return true=座標解析成功、false=解析失敗
+     */
+    bool parseMoveCoordinateFromModel(const QAbstractItemModel* model, int row,
+                                       int* outFile, int* outRank);
 }
 
 namespace ShogiUtils {

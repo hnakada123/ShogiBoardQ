@@ -36,6 +36,11 @@ void KifuExportController::setDependencies(const Dependencies& deps)
     m_deps = deps;
 }
 
+void KifuExportController::setPrepareCallback(std::function<void()> callback)
+{
+    m_prepareCallback = std::move(callback);
+}
+
 void KifuExportController::updateState(const QString& startSfen, PlayMode mode,
                                         const QString& human1, const QString& human2,
                                         const QString& engine1, const QString& engine2,
@@ -142,6 +147,8 @@ int KifuExportController::currentPly() const
 
 QString KifuExportController::saveToFile()
 {
+    if (m_prepareCallback) m_prepareCallback();
+
     if (!m_deps.gameRecord) {
         Q_EMIT statusMessage(tr("棋譜データがありません"), 3000);
         return QString();
@@ -189,6 +196,8 @@ QString KifuExportController::saveToFile()
 
 bool KifuExportController::overwriteFile(const QString& filePath)
 {
+    if (m_prepareCallback) m_prepareCallback();
+
     if (filePath.isEmpty()) {
         return false;
     }
@@ -244,6 +253,8 @@ bool KifuExportController::overwriteFile(const QString& filePath)
 
 bool KifuExportController::copyKifToClipboard()
 {
+    if (m_prepareCallback) m_prepareCallback();
+
     if (!m_deps.gameRecord) {
         Q_EMIT statusMessage(tr("KIF形式の棋譜データがありません"), 3000);
         return false;
@@ -271,6 +282,8 @@ bool KifuExportController::copyKifToClipboard()
 
 bool KifuExportController::copyKi2ToClipboard()
 {
+    if (m_prepareCallback) m_prepareCallback();
+
     if (!m_deps.gameRecord) {
         Q_EMIT statusMessage(tr("KI2形式の棋譜データがありません"), 3000);
         return false;
@@ -298,6 +311,8 @@ bool KifuExportController::copyKi2ToClipboard()
 
 bool KifuExportController::copyCsaToClipboard()
 {
+    if (m_prepareCallback) m_prepareCallback();
+
     QStringList usiMovesForCsa = resolveUsiMoves();
     
     QStringList csaLines;
@@ -327,6 +342,8 @@ bool KifuExportController::copyCsaToClipboard()
 
 bool KifuExportController::copyUsiToClipboard()
 {
+    if (m_prepareCallback) m_prepareCallback();
+
     QStringList usiMovesForOutput = resolveUsiMoves();
     
     QStringList usiLines;
@@ -356,6 +373,8 @@ bool KifuExportController::copyUsiToClipboard()
 
 bool KifuExportController::copyUsiCurrentToClipboard()
 {
+    if (m_prepareCallback) m_prepareCallback();
+
     QStringList usiMovesForOutput = resolveUsiMoves();
     
     // 現在の手数まで制限
@@ -391,6 +410,8 @@ bool KifuExportController::copyUsiCurrentToClipboard()
 
 bool KifuExportController::copyJkfToClipboard()
 {
+    if (m_prepareCallback) m_prepareCallback();
+
     QStringList jkfLines;
     if (m_deps.gameRecord) {
         GameRecordModel::ExportContext ctx = buildExportContext();
@@ -418,6 +439,8 @@ bool KifuExportController::copyJkfToClipboard()
 
 bool KifuExportController::copyUsenToClipboard()
 {
+    if (m_prepareCallback) m_prepareCallback();
+
     QStringList usiMovesForOutput = resolveUsiMoves();
     
     QStringList usenLines;
@@ -487,6 +510,8 @@ KifuExportController::PositionData KifuExportController::getCurrentPositionData(
 
 bool KifuExportController::copySfenToClipboard()
 {
+    if (m_prepareCallback) m_prepareCallback();
+
     PositionData pos = getCurrentPositionData();
     
     if (pos.sfenStr.isEmpty()) {
@@ -657,6 +682,8 @@ QString KifuExportController::generateBodText(const PositionData& pos) const
 
 bool KifuExportController::copyBodToClipboard()
 {
+    if (m_prepareCallback) m_prepareCallback();
+
     PositionData pos = getCurrentPositionData();
     
     if (pos.sfenStr.isEmpty()) {

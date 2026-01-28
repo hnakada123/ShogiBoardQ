@@ -1,6 +1,8 @@
 #include "shogiutils.h"
 #include "shogimove.h"
 #include "errorbus.h"
+#include <QAbstractItemModel>
+#include <QModelIndex>
 #include <QStringList>
 #include <QDebug>
 #include <QAtomicInteger>
@@ -87,6 +89,105 @@ QString moveToUsi(const ShogiMove& move)
     }
 
     return usi;
+}
+
+// ========================================
+// 漢字座標解析（逆変換）
+// ========================================
+
+int parseFullwidthFile(QChar ch)
+{
+    // 全角数字 '１' (0xFF11) 〜 '９' (0xFF19) を 1-9 に変換
+    if (ch >= QChar(0xFF11) && ch <= QChar(0xFF19)) {
+        return ch.unicode() - 0xFF11 + 1;
+    }
+    return 0;  // 無効
+}
+
+int parseKanjiRank(QChar ch)
+{
+    // 漢数字「一」〜「九」を 1-9 に変換
+    static const QString kanjiRanks = QStringLiteral("一二三四五六七八九");
+    const auto idx = kanjiRanks.indexOf(ch);
+    if (idx >= 0) {
+        return static_cast<int>(idx) + 1;
+    }
+    return 0;  // 無効
+}
+
+bool parseMoveLabel(const QString& moveLabel, int* outFile, int* outRank)
+{
+    if (!outFile || !outRank) return false;
+    *outFile = 0;
+    *outRank = 0;
+
+    // 手番マーク（▲/△）を探す
+    static const QString senteMark = QStringLiteral("▲");
+    static const QString goteMark = QStringLiteral("△");
+
+    qsizetype markPos = moveLabel.indexOf(senteMark);
+    if (markPos < 0) {
+        markPos = moveLabel.indexOf(goteMark);
+    }
+    if (markPos < 0 || moveLabel.length() <= markPos + 2) {
+        return false;  // マークが見つからない、または文字列が短すぎる
+    }
+
+    // マーク後の文字列を取得
+    const QString afterMark = moveLabel.mid(markPos + 1);
+
+    // 「同」で始まる場合は前の手を参照する必要がある
+    if (afterMark.startsWith(QStringLiteral("同"))) {
+        return false;
+    }
+
+    // 「７六」のような漢字座標を解析
+    const QChar fileChar = afterMark.at(0);  // 全角数字 '１'〜'９'
+    const QChar rankChar = afterMark.at(1);  // 漢数字 '一'〜'九'
+
+    const int file = parseFullwidthFile(fileChar);
+    const int rank = parseKanjiRank(rankChar);
+
+    if (file >= 1 && file <= 9 && rank >= 1 && rank <= 9) {
+        *outFile = file;
+        *outRank = rank;
+        return true;
+    }
+
+    return false;
+}
+
+bool parseMoveCoordinateFromModel(const QAbstractItemModel* model, int row,
+                                   int* outFile, int* outRank)
+{
+    if (!model || !outFile || !outRank) return false;
+    *outFile = 0;
+    *outRank = 0;
+
+    if (row <= 0 || row >= model->rowCount()) {
+        return false;
+    }
+
+    // 指定行のラベルを取得
+    const QModelIndex idx = model->index(row, 0);
+    const QString moveLabel = model->data(idx, Qt::DisplayRole).toString();
+
+    // まず直接座標を解析
+    if (parseMoveLabel(moveLabel, outFile, outRank)) {
+        return true;
+    }
+
+    // 「同」の場合は前の手を遡って座標を取得
+    for (int i = row - 1; i > 0; --i) {
+        const QModelIndex prevIdx = model->index(i, 0);
+        const QString prevLabel = model->data(prevIdx, Qt::DisplayRole).toString();
+
+        if (parseMoveLabel(prevLabel, outFile, outRank)) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 } // namespace ShogiUtils

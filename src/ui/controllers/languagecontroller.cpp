@@ -20,15 +20,21 @@ void LanguageController::setActions(QAction* systemAction, QAction* japaneseActi
     if (m_systemAction) {
         m_actionGroup->addAction(m_systemAction);
         m_systemAction->setIconVisibleInMenu(false);
+        connect(m_systemAction, &QAction::triggered, this, &LanguageController::onSystemLanguageTriggered);
     }
     if (m_japaneseAction) {
         m_actionGroup->addAction(m_japaneseAction);
         m_japaneseAction->setIconVisibleInMenu(false);
+        connect(m_japaneseAction, &QAction::triggered, this, &LanguageController::onJapaneseTriggered);
     }
     if (m_englishAction) {
         m_actionGroup->addAction(m_englishAction);
         m_englishAction->setIconVisibleInMenu(false);
+        connect(m_englishAction, &QAction::triggered, this, &LanguageController::onEnglishTriggered);
     }
+
+    // 初期状態を設定
+    updateMenuState();
 }
 
 void LanguageController::setParentWidget(QWidget* parent)

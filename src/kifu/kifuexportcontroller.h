@@ -6,6 +6,7 @@
 #include <QStringList>
 #include <QVector>
 #include <QPoint>
+#include <functional>
 
 #include "mainwindow.h"  // PlayMode enum
 #include "gamerecordmodel.h"  // GameRecordModel::ExportContext
@@ -81,6 +82,14 @@ public:
     };
 
     void setDependencies(const Dependencies& deps);
+
+    /**
+     * @brief 準備コールバックを設定
+     *
+     * クリップボードコピーやファイル保存の前に呼び出されるコールバック。
+     * 依存関係の更新などを行う。
+     */
+    void setPrepareCallback(std::function<void()> callback);
 
     /**
      * @brief 状態値を更新（呼び出し時点の値を反映）
@@ -201,7 +210,8 @@ private:
 
     QWidget* m_parentWidget = nullptr;
     Dependencies m_deps;
-    
+    std::function<void()> m_prepareCallback;
+
     // キャッシュ用
     QStringList m_kifuDataList;
 };
