@@ -390,17 +390,16 @@ void JosekiWindow::loadSettings()
     // 最近使ったファイルリストを読み込み
     m_recentFiles = SettingsService::josekiWindowRecentFiles();
     updateRecentFilesMenu();
-    
-    // 最後に開いた定跡ファイルを読み込み（自動読込が有効な場合のみ）
+
+    // 最後に開いた定跡ファイルのパスを保存（遅延読込のため）
+    // 実際の読み込みはshowEvent()で行う
     if (m_autoLoadEnabled) {
         QString lastFilePath = SettingsService::josekiWindowLastFilePath();
         if (!lastFilePath.isEmpty() && QFileInfo::exists(lastFilePath)) {
-            if (loadJosekiFile(lastFilePath)) {
-                m_currentFilePath = lastFilePath;
-                m_filePathLabel->setText(lastFilePath);
-                m_filePathLabel->setStyleSheet(QString());
-                setModified(false);
-            }
+            m_pendingAutoLoad = true;
+            m_pendingAutoLoadPath = lastFilePath;
+            // ファイルパスは表示しておく（読込中であることがわかるように）
+            m_filePathLabel->setText(lastFilePath + tr(" (未読込)"));
         }
     }
 }
@@ -430,9 +429,15 @@ void JosekiWindow::closeEvent(QCloseEvent *event)
         event->ignore();
         return;
     }
-    
+
     saveSettings();
     QWidget::closeEvent(event);
+}
+
+void JosekiWindow::showEvent(QShowEvent *event)
+{
+    QWidget::showEvent(event);
+    // 注意: 遅延読込はupdateJosekiDisplay()内で行う
 }
 
 void JosekiWindow::applyFontSize()
@@ -826,15 +831,33 @@ void JosekiWindow::setHumanCanPlay(bool canPlay)
 void JosekiWindow::updateJosekiDisplay()
 {
     qDebug() << "[JosekiWindow] updateJosekiDisplay() called";
-    
+
+    // 遅延読込: 定跡データが未読込の場合、ここで読み込む
+    if (m_pendingAutoLoad && !m_pendingAutoLoadPath.isEmpty()) {
+        m_pendingAutoLoad = false;  // 二重読込防止
+        QString pathToLoad = m_pendingAutoLoadPath;
+        m_pendingAutoLoadPath.clear();
+
+        qDebug() << "[JosekiWindow] Performing deferred auto-load:" << pathToLoad;
+
+        if (loadJosekiFile(pathToLoad)) {
+            m_currentFilePath = pathToLoad;
+            m_filePathLabel->setText(pathToLoad);
+            m_filePathLabel->setStyleSheet(QString());
+            setModified(false);
+        } else {
+            m_filePathLabel->setText(QString());
+        }
+    }
+
     clearTable();
-    
+
     // 表示が停止中の場合は何もしない
     if (!m_displayEnabled) {
         qDebug() << "[JosekiWindow] updateJosekiDisplay: display is disabled";
         return;
     }
-    
+
     if (m_currentSfen.isEmpty()) {
         qDebug() << "[JosekiWindow] updateJosekiDisplay: currentSfen is empty";
         return;
