@@ -124,6 +124,7 @@ private:
     MatchCoordinator* m_match = nullptr;
     TimeControlController* m_timeController = nullptr;
     PositionEditController* m_posEdit = nullptr;
+    QObject* m_wheelFilter = nullptr;
 
     PlayMode m_playMode = PlayMode::NotStarted;
     QStringList* m_sfenRecord = nullptr;

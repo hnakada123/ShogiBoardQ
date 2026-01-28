@@ -140,6 +140,7 @@ public:
         ShogiEngineThinkingModel* considerationModel = nullptr;  // 検討タブ用モデル
         int previousFileTo = 0;            // 前回の移動先の筋（1-9, 0=未設定）
         int previousRankTo = 0;            // 前回の移動先の段（1-9, 0=未設定）
+        QString lastUsiMove;               // 開始局面に至った最後の指し手（USI形式）
     };
 
     /**
@@ -160,6 +161,8 @@ public:
         QStringList* sfenRecord = nullptr;
         QString* startSfenStr = nullptr;
         ShogiEngineThinkingModel** considerationModel = nullptr;  // ダブルポインタ（遅延生成用）
+        const QStringList* gameUsiMoves = nullptr;                // 対局中のUSI指し手リスト
+        class KifuLoadCoordinator* kifuLoadCoordinator = nullptr; // 棋譜読み込みコーディネータ
     };
 
     /**

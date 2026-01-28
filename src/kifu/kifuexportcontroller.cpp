@@ -7,6 +7,8 @@
 #include <QTableWidget>
 #include <QDebug>
 #include <QMessageBox>
+#include <QDir>
+#include <QDateTime>
 
 #include "gamerecordmodel.h"
 #include "kifurecordlistmodel.h"
@@ -22,6 +24,7 @@
 #include "kifucontentbuilder.h"
 #include "kifuclipboardservice.h"
 #include "shogimove.h"
+#include "kifuioservice.h"
 
 KifuExportController::KifuExportController(QWidget* parentWidget, QObject* parent)
     : QObject(parent)
@@ -243,7 +246,52 @@ bool KifuExportController::overwriteFile(const QString& filePath)
     } else {
         QMessageBox::warning(m_parentWidget, tr("KIF Save Error"), error);
     }
-    
+
+    return ok;
+}
+
+bool KifuExportController::autoSaveToDir(const QString& saveDir, QString* outPath)
+{
+    if (m_prepareCallback) m_prepareCallback();
+
+    if (saveDir.isEmpty()) {
+        Q_EMIT statusMessage(tr("自動保存先ディレクトリが指定されていません"), 3000);
+        return false;
+    }
+
+    if (!m_deps.gameRecord) {
+        Q_EMIT statusMessage(tr("棋譜データがありません（自動保存をスキップ）"), 3000);
+        return false;
+    }
+
+    GameRecordModel::ExportContext ctx = buildExportContext();
+    QStringList kifLines = m_deps.gameRecord->toKifLines(ctx);
+    if (kifLines.isEmpty()) {
+        Q_EMIT statusMessage(tr("棋譜データが空のため自動保存をスキップしました"), 3000);
+        return false;
+    }
+
+    // ファイル名生成
+    const QString fileName = KifuIoService::makeDefaultSaveFileName(
+        m_deps.playMode,
+        m_deps.humanName1, m_deps.humanName2,
+        m_deps.engineName1, m_deps.engineName2,
+        QDateTime::currentDateTime());
+
+    const QString filePath = QDir(saveDir).filePath(fileName);
+
+    QString errorText;
+    const bool ok = KifuIoService::writeKifuFile(filePath, kifLines, &errorText);
+    if (ok) {
+        if (m_deps.gameRecord) {
+            m_deps.gameRecord->clearDirty();
+        }
+        if (outPath) *outPath = filePath;
+        Q_EMIT statusMessage(tr("棋譜を自動保存しました: %1").arg(filePath), 5000);
+        Q_EMIT fileSaved(filePath);
+    } else {
+        Q_EMIT statusMessage(tr("棋譜の自動保存に失敗しました: %1").arg(errorText), 5000);
+    }
     return ok;
 }
 

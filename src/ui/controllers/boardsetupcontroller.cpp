@@ -2,6 +2,8 @@
 
 #include <QDebug>
 #include <QTimer>
+#include <QWheelEvent>
+#include <QEvent>
 
 #include "shogiview.h"
 #include "boardinteractioncontroller.h"
@@ -10,6 +12,38 @@
 #include "positioneditcontroller.h"
 #include "shogiclock.h"
 #include "shogimove.h"
+
+namespace {
+
+class BoardWheelZoomFilter : public QObject
+{
+public:
+    explicit BoardWheelZoomFilter(ShogiView* view, QObject* parent = nullptr)
+        : QObject(parent), m_view(view) {}
+
+protected:
+    bool eventFilter(QObject* watched, QEvent* event) override
+    {
+        if (watched == m_view && event->type() == QEvent::Wheel) {
+            auto* wheelEvent = static_cast<QWheelEvent*>(event);
+            if (wheelEvent->modifiers() & Qt::ControlModifier) {
+                const int delta = wheelEvent->angleDelta().y();
+                if (delta > 0) {
+                    m_view->enlargeBoard(true);
+                } else if (delta < 0) {
+                    m_view->reduceBoard(true);
+                }
+                return true; // イベント消費
+            }
+        }
+        return QObject::eventFilter(watched, event);
+    }
+
+private:
+    ShogiView* m_view = nullptr;
+};
+
+} // namespace
 
 BoardSetupController::BoardSetupController(QObject* parent)
     : QObject(parent)
@@ -128,6 +162,12 @@ void BoardSetupController::setupBoardInteractionController()
 
     // 既定モード
     m_boardController->setMode(BoardInteractionController::Mode::HumanVsHuman);
+
+    // Ctrl+ホイールで盤サイズ変更するフィルタを装着
+    if (m_shogiView && !m_wheelFilter) {
+        m_wheelFilter = new BoardWheelZoomFilter(m_shogiView, this);
+        m_shogiView->installEventFilter(m_wheelFilter);
+    }
 }
 
 void BoardSetupController::connectBoardClicks()

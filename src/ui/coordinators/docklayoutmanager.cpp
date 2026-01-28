@@ -6,6 +6,7 @@
 #include <QInputDialog>
 #include <QMessageBox>
 #include <QDebug>
+#include <QAction>
 
 DockLayoutManager::DockLayoutManager(QMainWindow* mainWindow, QObject* parent)
     : QObject(parent)
@@ -343,6 +344,33 @@ void DockLayoutManager::updateSavedLayoutsMenu()
     connect(clearStartupAction, &QAction::triggered, this, &DockLayoutManager::clearStartupLayout);
 }
 
+void DockLayoutManager::wireMenuActions(QAction* resetLayout,
+                                        QAction* saveLayoutAs,
+                                        QAction* clearStartupLayout,
+                                        QAction* lockDocks,
+                                        QMenu* savedLayoutsMenu)
+{
+    if (resetLayout) {
+        connect(resetLayout, &QAction::triggered, this, &DockLayoutManager::resetToDefault);
+    }
+    if (saveLayoutAs) {
+        connect(saveLayoutAs, &QAction::triggered, this, &DockLayoutManager::saveLayoutAs);
+    }
+    if (clearStartupLayout) {
+        connect(clearStartupLayout, &QAction::triggered, this, &DockLayoutManager::clearStartupLayout);
+    }
+    if (lockDocks) {
+        lockDocks->setChecked(SettingsService::docksLocked());
+        connect(lockDocks, &QAction::toggled, this, &DockLayoutManager::setDocksLocked);
+        // 起動時適用
+        setDocksLocked(lockDocks->isChecked());
+    }
+    if (savedLayoutsMenu) {
+        setSavedLayoutsMenu(savedLayoutsMenu);
+        updateSavedLayoutsMenu();
+    }
+}
+
 void DockLayoutManager::setDocksLocked(bool locked)
 {
     // 固定時: ドッキング禁止、フローティング禁止、移動禁止
@@ -358,4 +386,43 @@ void DockLayoutManager::setDocksLocked(bool locked)
             d->setFeatures(features);
         }
     }
+}
+
+void DockLayoutManager::saveDockStates()
+{
+    // 必要なドックのみ保存（従来MainWindowが行っていたもの）
+    auto saveIf = [](QDockWidget* dock,
+                     auto setFloating,
+                     auto setVisible,
+                     auto setGeometry) {
+        if (!dock) return;
+        setFloating(dock->isFloating());
+        setVisible(dock->isVisible());
+        setGeometry(dock->saveGeometry());
+    };
+
+    saveIf(dock(DockType::EvalChart),
+           SettingsService::setEvalChartDockFloating,
+           SettingsService::setEvalChartDockVisible,
+           SettingsService::setEvalChartDockGeometry);
+
+    saveIf(dock(DockType::Record),
+           SettingsService::setRecordPaneDockFloating,
+           SettingsService::setRecordPaneDockVisible,
+           SettingsService::setRecordPaneDockGeometry);
+
+    saveIf(dock(DockType::Menu),
+           SettingsService::setMenuWindowDockFloating,
+           SettingsService::setMenuWindowDockVisible,
+           SettingsService::setMenuWindowDockGeometry);
+
+    saveIf(dock(DockType::Joseki),
+           SettingsService::setJosekiWindowDockFloating,
+           SettingsService::setJosekiWindowDockVisible,
+           SettingsService::setJosekiWindowDockGeometry);
+
+    saveIf(dock(DockType::AnalysisResults),
+           SettingsService::setKifuAnalysisResultsDockFloating,
+           SettingsService::setKifuAnalysisResultsDockVisible,
+           SettingsService::setKifuAnalysisResultsDockGeometry);
 }

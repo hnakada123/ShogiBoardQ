@@ -14,6 +14,9 @@ class KifuRecordListModel;
 class KifuBranchListModel;
 class UsiCommLogModel;
 class TimeControlController;
+class EvaluationChartWidget;
+class EvaluationGraphController;
+class RecordPane;
 
 /**
  * @brief 対局開始前のクリーンアップ処理を担当するクラス
@@ -46,6 +49,9 @@ public:
         UsiCommLogModel* lineEditModel1 = nullptr;
         UsiCommLogModel* lineEditModel2 = nullptr;
         TimeControlController* timeController = nullptr;
+        EvaluationChartWidget* evalChart = nullptr;
+        EvaluationGraphController* evalGraphController = nullptr;
+        RecordPane* recordPane = nullptr;
         
         // MainWindowの状態変数への参照
         QString* startSfenStr = nullptr;
@@ -131,6 +137,16 @@ private:
     void resetTimeControl();
 
     /**
+     * @brief 評価値グラフを初期化またはトリム
+     */
+    void resetEvaluationGraph();
+
+    /**
+     * @brief 棋譜欄の開始行を選択（黄色ハイライト）
+     */
+    void selectStartRow();
+
+    /**
      * @brief 「現在の局面から開始」かどうかを判定
      * @return 現在の局面から開始する場合true
      */
@@ -144,6 +160,9 @@ private:
     UsiCommLogModel* m_lineEditModel1 = nullptr;
     UsiCommLogModel* m_lineEditModel2 = nullptr;
     TimeControlController* m_timeController = nullptr;
+    EvaluationChartWidget* m_evalChart = nullptr;
+    EvaluationGraphController* m_evalGraphController = nullptr;
+    RecordPane* m_recordPane = nullptr;
 
     // MainWindowの状態変数への参照
     QString* m_startSfenStr = nullptr;

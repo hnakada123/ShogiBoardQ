@@ -140,6 +140,7 @@ void DialogCoordinator::startConsiderationDirect(const ConsiderationDirectParams
     directParams.multiPV = params.multiPV;
     directParams.previousFileTo = params.previousFileTo;
     directParams.previousRankTo = params.previousRankTo;
+    directParams.lastUsiMove = params.lastUsiMove;
 
     flow->runDirect(d, directParams, params.position);
 }
@@ -388,6 +389,37 @@ bool DialogCoordinator::startConsiderationFromContext()
         }
     }
 
+    // 開始局面に至った最後の指し手を取得（読み筋表示ウィンドウのハイライト用）
+    // moveIdx=0 は開始局面なので直前の指し手なし
+    // moveIdx>=1 の場合、その局面に至った指し手は moveIdx-1 番目の指し手
+    if (moveIdx > 0) {
+        // 対局中: gameUsiMoves から取得
+        if (m_considerationCtx.gameUsiMoves && !m_considerationCtx.gameUsiMoves->isEmpty()) {
+            const int usiIdx = moveIdx - 1;
+            if (usiIdx >= 0 && usiIdx < m_considerationCtx.gameUsiMoves->size()) {
+                params.lastUsiMove = m_considerationCtx.gameUsiMoves->at(usiIdx);
+                qDebug().noquote() << "[DialogCoord] lastUsiMove (from gameUsiMoves):" << params.lastUsiMove;
+            }
+        }
+        // 棋譜読み込み時: kifuLoadCoordinator から取得
+        else if (m_considerationCtx.kifuLoadCoordinator) {
+            const QStringList& kifuUsiMoves = m_considerationCtx.kifuLoadCoordinator->kifuUsiMoves();
+            const int usiIdx = moveIdx - 1;
+            if (usiIdx >= 0 && usiIdx < kifuUsiMoves.size()) {
+                params.lastUsiMove = kifuUsiMoves.at(usiIdx);
+                qDebug().noquote() << "[DialogCoord] lastUsiMove (from kifuLoadCoordinator):" << params.lastUsiMove;
+            }
+        }
+        // フォールバック: gameMoves から変換
+        else if (m_considerationCtx.gameMoves) {
+            const int moveIdx2 = moveIdx - 1;
+            if (moveIdx2 >= 0 && moveIdx2 < m_considerationCtx.gameMoves->size()) {
+                params.lastUsiMove = ShogiUtils::moveToUsi(m_considerationCtx.gameMoves->at(moveIdx2));
+                qDebug().noquote() << "[DialogCoord] lastUsiMove (from gameMoves):" << params.lastUsiMove;
+            }
+        }
+    }
+
     qDebug().noquote() << "[DialogCoord] startConsiderationFromContext calling startConsiderationDirect"
                       << "engineIndex=" << params.engineIndex
                       << "engineName=" << params.engineName
@@ -410,9 +442,9 @@ QString DialogCoordinator::buildPositionStringForIndex(int moveIndex) const
     if (!sfenRecord || sfenRecord->isEmpty()) {
         // sfenRecordがない場合は startpos を返す
         if (startSfen.isEmpty() || startSfen == kHirateSfen) {
-            return QStringLiteral("startpos");
+            return QStringLiteral("position startpos");
         } else {
-            return QStringLiteral("sfen ") + startSfen;
+            return QStringLiteral("position sfen ") + startSfen;
         }
     }
 
@@ -420,12 +452,8 @@ QString DialogCoordinator::buildPositionStringForIndex(int moveIndex) const
     const int idx = qBound(0, moveIndex, static_cast<int>(sfenRecord->size()) - 1);
     const QString currentSfen = sfenRecord->at(idx);
 
-    // position 文字列を構築
-    if (startSfen.isEmpty() || startSfen == kHirateSfen) {
-        return QStringLiteral("position startpos moves ") + currentSfen;
-    } else {
-        return QStringLiteral("position sfen ") + startSfen + QStringLiteral(" moves ") + currentSfen;
-    }
+    // position sfen 形式で返す（指定局面を直接SFENで送信）
+    return QStringLiteral("position sfen ") + currentSfen;
 }
 
 // --------------------------------------------------------

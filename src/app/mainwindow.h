@@ -125,6 +125,7 @@ class JosekiWindowWiring;
 class PlayerInfoWiring;
 class PreStartCleanupHandler;
 class MenuWindowWiring;
+class UsiCommandController;
 
 // ============================================================
 // MainWindow
@@ -244,8 +245,7 @@ public slots:
 protected:
     Ui::MainWindow* ui = nullptr;
     void closeEvent(QCloseEvent* event) override;
-    /// ShogiViewのCtrl+ホイールイベントを横取りして処理
-    bool eventFilter(QObject* watched, QEvent* event) override;
+    // eventFilter は使用しない（BoardSetupControllerへ委譲）
 
     // ========================================================
     // private slots
@@ -326,7 +326,6 @@ private slots:
     void onCommentUpdated(int moveIndex, const QString& newComment);
     void onPvRowClicked(int engineIndex, int row);
     void onPvDialogClosed(int engineIndex);
-    void onUsiCommandRequested(int target, const QString& command);
     void onKifuPasteImportRequested(const QString& content);
     void onGameRecordCommentChanged(int ply, const QString& comment);
     void onCommentUpdateCallback(int ply, const QString& comment);
@@ -484,12 +483,7 @@ private:
     MatchCoordinator* m_match = nullptr;
     QMetaObject::Connection m_timeConn;
 
-    // 連続対局設定
-    int  m_consecutiveGamesRemaining = 0;  // 残り連続対局回数
-    int  m_consecutiveGamesTotal     = 1;  // 連続対局の設定回数（合計）
-    int  m_consecutiveGameNumber     = 1;  // 現在の対局番号（1から始まる）
-    bool m_switchTurnEachGame        = false;  // 1局ごとに手番を入れ替えるかどうか
-    MatchCoordinator::StartOptions m_lastStartOptions;  // 前回の対局設定（連続対局用）
+    // 連続対局設定（コントローラへ委譲、直近の時間設定のみ保持）
     GameStartCoordinator::TimeControl m_lastTimeControl;  // 前回の時間設定（連続対局用）
 
     // リプレイ制御（ReplayControllerへ移行）
@@ -579,6 +573,7 @@ private:
     NavigationContextAdapter* m_navContextAdapter = nullptr;
     DockCreationService* m_dockCreationService = nullptr;
     CommentCoordinator* m_commentCoordinator = nullptr;
+    UsiCommandController* m_usiCommandController = nullptr;
 
     // --------------------------------------------------------
     // Private Methods
@@ -682,6 +677,7 @@ private:
     void ensureNavigationContextAdapter();
     void ensureDockCreationService();
     void ensureCommentCoordinator();
+    void ensureUsiCommandController();
 
     // ctor の分割先
     void setupCentralWidgetContainer();

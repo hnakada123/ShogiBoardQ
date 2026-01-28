@@ -147,6 +147,14 @@ public:
     /** @brief BOD形式で現在局面をクリップボードにコピー */
     bool copyBodToClipboard();
 
+    /**
+     * @brief 指定ディレクトリへ自動保存（ダイアログなし）
+     * @param saveDir 保存先ディレクトリ
+     * @param outPath 保存に成功した場合のファイルパスを書き込むポインタ（null可）
+     * @return 成功時true
+     */
+    bool autoSaveToDir(const QString& saveDir, QString* outPath = nullptr);
+
     // --------------------------------------------------------
     // ユーティリティ
     // --------------------------------------------------------

@@ -1882,6 +1882,11 @@ void MatchCoordinator::startAnalysis(const AnalysisOptions& opt)
     // 8) UI 側にエンジン名を通知（必要時）
     if (m_hooks.setEngineNames) m_hooks.setEngineNames(opt.engineName, QString());
 
+    // 8.5) 開始局面に至った最後の指し手を設定（読み筋表示ウィンドウのハイライト用）
+    if (!opt.lastUsiMove.isEmpty()) {
+        m_usi1->setLastUsiMove(opt.lastUsiMove);
+    }
+
     // 9) 詰み探索の配線（TsumiSearchMode のときのみ）
     m_inTsumeSearchMode = (opt.mode == PlayMode::TsumiSearchMode);
     if (m_inTsumeSearchMode && m_usi1) {
@@ -1936,6 +1941,7 @@ void MatchCoordinator::startAnalysis(const AnalysisOptions& opt)
         m_considerationEngineName = opt.engineName;
         m_considerationPreviousFileTo = opt.previousFileTo;  // ★ 追加: 前回の移動先を保存
         m_considerationPreviousRankTo = opt.previousRankTo;  // ★ 追加: 前回の移動先を保存
+        m_considerationLastUsiMove = opt.lastUsiMove;        // ★ 追加: 最後の指し手を保存
 
         connect(m_usi1, &Usi::bestMoveReceived,
                 this,   &MatchCoordinator::onConsiderationBestMoveReceived,
@@ -2002,7 +2008,8 @@ void MatchCoordinator::updateConsiderationMultiPV(int multiPV)
 }
 
 bool MatchCoordinator::updateConsiderationPosition(const QString& newPositionStr,
-                                                   int previousFileTo, int previousRankTo)
+                                                   int previousFileTo, int previousRankTo,
+                                                   const QString& lastUsiMove)
 {
     qDebug().noquote() << "[MC] updateConsiderationPosition called:"
                        << "m_inConsiderationMode=" << m_inConsiderationMode
@@ -2010,7 +2017,8 @@ bool MatchCoordinator::updateConsiderationPosition(const QString& newPositionStr
                        << "m_considerationRestartPending=" << m_considerationRestartPending
                        << "m_usi1=" << (m_usi1 ? "valid" : "null")
                        << "previousFileTo=" << previousFileTo
-                       << "previousRankTo=" << previousRankTo;
+                       << "previousRankTo=" << previousRankTo
+                       << "lastUsiMove=" << lastUsiMove;
 
     // 検討モード中でない場合は無視
     if (!m_inConsiderationMode) {
@@ -2028,6 +2036,7 @@ bool MatchCoordinator::updateConsiderationPosition(const QString& newPositionStr
     m_considerationPositionStr = newPositionStr;
     m_considerationPreviousFileTo = previousFileTo;
     m_considerationPreviousRankTo = previousRankTo;
+    m_considerationLastUsiMove = lastUsiMove;
 
     // ★ 検討タブ用モデルをクリア
     if (m_considerationModelPtr) {
@@ -2043,6 +2052,11 @@ bool MatchCoordinator::updateConsiderationPosition(const QString& newPositionStr
         if (previousFileTo > 0 && previousRankTo > 0) {
             m_usi1->setPreviousFileTo(previousFileTo);
             m_usi1->setPreviousRankTo(previousRankTo);
+        }
+
+        // 最後の指し手を設定（読み筋表示ウィンドウのハイライト用）
+        if (!lastUsiMove.isEmpty()) {
+            m_usi1->setLastUsiMove(lastUsiMove);
         }
 
         // 既存エンジンに直接コマンドを送信（非ブロッキング）
@@ -2191,6 +2205,13 @@ void MatchCoordinator::restartConsiderationDeferred()
         m_usi1->setPreviousRankTo(m_considerationPreviousRankTo);
         qDebug().noquote() << "[MC] restartConsiderationDeferred: setPreviousFileTo/RankTo:"
                            << m_considerationPreviousFileTo << "/" << m_considerationPreviousRankTo;
+    }
+
+    // 最後の指し手を設定（読み筋表示ウィンドウのハイライト用）
+    if (!m_considerationLastUsiMove.isEmpty()) {
+        m_usi1->setLastUsiMove(m_considerationLastUsiMove);
+        qDebug().noquote() << "[MC] restartConsiderationDeferred: setLastUsiMove:"
+                           << m_considerationLastUsiMove;
     }
 
     // 既存エンジンにコマンドを送信

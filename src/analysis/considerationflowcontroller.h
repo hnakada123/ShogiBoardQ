@@ -37,6 +37,7 @@ public:
         int multiPV = 1;               // 候補手の数
         int previousFileTo = 0;        // 前回の移動先の筋（1-9, 0=未設定）
         int previousRankTo = 0;        // 前回の移動先の段（1-9, 0=未設定）
+        QString lastUsiMove;           // 開始局面に至った最後の指し手（USI形式）
     };
 
     /**
@@ -56,7 +57,8 @@ private:
                         int multiPV,
                         ShogiEngineThinkingModel* considerationModel,
                         int previousFileTo,
-                        int previousRankTo);
+                        int previousRankTo,
+                        const QString& lastUsiMove);
 };
 
 #endif // CONSIDERATIONFLOWCONTROLLER_H
