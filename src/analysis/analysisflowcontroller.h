@@ -35,6 +35,7 @@ public:
         UsiCommLogModel*             logModel = nullptr;     // optional（info/bestmove 橋渡し）
         ShogiEngineThinkingModel*    thinkingModel = nullptr;// optional（思考情報表示用）
         ShogiGameController*         gameController = nullptr; // optional（Usi内部生成時に必要）
+        AnalysisResultsPresenter*    presenter = nullptr;    // optional（外部から渡す場合）
         int                          activePly = 0;
         QString                      blackPlayerName;        // optional（先手対局者名）
         QString                      whitePlayerName;        // optional（後手対局者名）

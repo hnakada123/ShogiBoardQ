@@ -154,9 +154,13 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
         Qt::UniqueConnection
         );
 
-    // 結果ビュー（Presenter）— 既存APIは showWithModel(...)
+    // 結果ビュー（Presenter）— 外部から渡された場合はそれを使用
     if (!m_presenter) {
-        m_presenter = new AnalysisResultsPresenter(this);
+        if (d.presenter) {
+            m_presenter = d.presenter;
+        } else {
+            m_presenter = new AnalysisResultsPresenter(this);
+        }
         // 中止ボタンのシグナルを接続
         QObject::connect(
             m_presenter, &AnalysisResultsPresenter::stopRequested,
@@ -940,8 +944,8 @@ void AnalysisFlowController::onResultRowDoubleClicked(int row)
     
     // PvBoardDialogを表示
     QWidget* parentWidget = nullptr;
-    if (m_presenter && m_presenter->dialog()) {
-        parentWidget = m_presenter->dialog();
+    if (m_presenter && m_presenter->container()) {
+        parentWidget = m_presenter->container();
     }
     
     PvBoardDialog* dlg = new PvBoardDialog(baseSfen, usiMoves, parentWidget);

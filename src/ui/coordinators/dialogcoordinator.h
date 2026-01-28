@@ -25,6 +25,7 @@ class KifuDisplay;
 class GameInfoPaneController;
 class KifuLoadCoordinator;
 class EvaluationChartWidget;
+class AnalysisResultsPresenter;
 
 /**
  * @brief DialogCoordinator - ダイアログ表示の管理クラス
@@ -174,11 +175,12 @@ public:
         QString blackPlayerName;   // 先手対局者名
         QString whitePlayerName;   // 後手対局者名
         QStringList* usiMoves = nullptr;  // USI形式の指し手リスト
+        AnalysisResultsPresenter* presenter = nullptr;  // 結果表示用プレゼンター
     };
 
     /**
      * @brief 棋譜解析ダイアログの依存コンテキスト
-     * 
+     *
      * MainWindowから一度設定することで、パラメータ収集を自動化します。
      */
     struct KifuAnalysisContext {
@@ -191,6 +193,7 @@ public:
         KifuLoadCoordinator* kifuLoadCoordinator = nullptr;
         EvaluationChartWidget* evalChart = nullptr;
         QStringList* gameUsiMoves = nullptr;  // 対局時のUSI形式指し手リスト（MainWindow::m_gameUsiMoves）
+        AnalysisResultsPresenter* presenter = nullptr;  // 結果表示用プレゼンター
     };
 
     /**

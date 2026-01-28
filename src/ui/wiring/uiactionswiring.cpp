@@ -30,7 +30,6 @@ void UiActionsWiring::wire()
     QObject::connect(ui->actionFlipBoard,            &QAction::triggered, mw,           &MainWindow::onActionFlipBoardTriggered, Qt::UniqueConnection);
     QObject::connect(ui->actionCopyBoardToClipboard, &QAction::triggered, mw,           &MainWindow::copyBoardToClipboard,       Qt::UniqueConnection);
     QObject::connect(ui->actionMakeImmediateMove,    &QAction::triggered, mw,           &MainWindow::movePieceImmediately,       Qt::UniqueConnection);
-    QObject::connect(ui->actionJosekiWindow,         &QAction::triggered, mw,           &MainWindow::displayJosekiWindow,        Qt::UniqueConnection);
     QObject::connect(ui->actionMenuWindow,                 &QAction::triggered, mw,           &MainWindow::displayMenuWindow,          Qt::UniqueConnection);
     QObject::connect(ui->actionEnlargeBoard,     &QAction::triggered, mw, &MainWindow::onActionEnlargeBoardTriggered, Qt::UniqueConnection);
     QObject::connect(ui->actionShrinkBoard,      &QAction::triggered, mw, &MainWindow::onActionShrinkBoardTriggered,  Qt::UniqueConnection);

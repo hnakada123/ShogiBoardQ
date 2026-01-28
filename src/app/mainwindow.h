@@ -230,6 +230,9 @@ public slots:
     // ツールバー表示切替
     void onToolBarVisibilityToggled(bool visible);
 
+    // 全ドックの固定切替
+    void onDocksLockToggled(bool locked);
+
     // その他操作
     void undoLastTwoMoves();
     void beginPositionEditing();
@@ -479,6 +482,12 @@ private:
     // メニューウィンドウドック
     QDockWidget*           m_menuWindowDock = nullptr;
 
+    // 定跡ウィンドウドック
+    QDockWidget*           m_josekiWindowDock = nullptr;
+
+    // 棋譜解析結果ドック
+    QDockWidget*           m_analysisResultsDock = nullptr;
+
     // 保存済みドックレイアウトのサブメニュー
     QMenu*                 m_savedLayoutsMenu = nullptr;
 
@@ -606,6 +615,8 @@ private:
     void createAnalysisDocks();  // ★ 解析用の6つのQDockWidget作成
     void setupBoardInCenter();  // ★ 将棋盤をセントラルウィジェットに配置
     void createMenuWindowDock();  // ★ メニューウィンドウのQDockWidget作成
+    void createJosekiWindowDock();  // ★ 定跡ウィンドウのQDockWidget作成
+    void createAnalysisResultsDock();  // ★ 棋譜解析結果のQDockWidget作成
 
     // ゲーム開始/切替
     void initializeNewGame(QString& startSfenStr);
