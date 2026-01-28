@@ -83,7 +83,6 @@
 #include "recordpane.h"
 #include "navigationcontroller.h"
 #include "uiactionswiring.h"
-#include "kifucontentbuilder.h"
 #include "gamerecordmodel.h"
 #include "pvboarddialog.h"
 #include "kifupastedialog.h"
@@ -119,14 +118,8 @@
 #include "considerationmodeuicontroller.h" // ★ 追加: 検討モードUI管理
 #include "docklayoutmanager.h"             // ★ 追加: ドックレイアウト管理
 #include "navigationcontextadapter.h"      // ★ 追加: INavigationContext委譲
-
-// ★ コメント整形ヘルパ：KifuContentBuilderへ委譲
-namespace {
-static QString toRichHtmlWithStarBreaksAndLinks(const QString& raw)
-{
-    return KifuContentBuilder::toRichHtmlWithStarBreaksAndLinks(raw);
-}
-} // anonymous namespace
+#include "dockcreationservice.h"           // ★ 追加: ドック作成サービス
+#include "commentcoordinator.h"            // ★ 追加: コメント処理
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -2109,53 +2102,14 @@ void MainWindow::createEvalChartDock()
     m_evalChart = new EvaluationChartWidget(this);
 
     // 既存のEvaluationGraphControllerがあれば、評価値グラフを設定
-    // （ensureEvaluationGraphController()が先に呼ばれた場合への対応）
     if (m_evalGraphController) {
         m_evalGraphController->setEvalChart(m_evalChart);
     }
 
-    // QDockWidgetを作成
-    m_evalChartDock = new QDockWidget(tr("評価値グラフ"), this);
-    m_evalChartDock->setObjectName(QStringLiteral("EvalChartDock"));
-    m_evalChartDock->setWidget(m_evalChart);
-    m_evalChartDock->setFeatures(
-        QDockWidget::DockWidgetMovable |
-        QDockWidget::DockWidgetFloatable |
-        QDockWidget::DockWidgetClosable);
-    m_evalChartDock->setAllowedAreas(Qt::AllDockWidgetAreas);
-    // フローティング時のタイトルバーを掴みやすくする
-    m_evalChartDock->setStyleSheet(QStringLiteral("QDockWidget::title { padding: 8px; }"));
-
-    // 初期位置は下部
-    addDockWidget(Qt::BottomDockWidgetArea, m_evalChartDock);
-
-    // 表示メニューにトグルアクションを追加
-    if (ui->Display) {
-        // セパレータを追加してから評価値グラフの表示/非表示アクションを追加
-        ui->Display->addSeparator();
-        QAction* toggleAction = m_evalChartDock->toggleViewAction();
-        toggleAction->setText(tr("評価値グラフ"));
-        ui->Display->addAction(toggleAction);
-    }
-
-    // 保存された状態を復元
-    const QByteArray dockGeometry = SettingsService::evalChartDockGeometry();
-    if (!dockGeometry.isEmpty()) {
-        m_evalChartDock->restoreGeometry(dockGeometry);
-    }
-
-    const bool wasFloating = SettingsService::evalChartDockFloating();
-    m_evalChartDock->setFloating(wasFloating);
-
-    const bool wasVisible = SettingsService::evalChartDockVisible();
-    m_evalChartDock->setVisible(wasVisible);
-
-    // ドッキング状態変更時にEvaluationChartWidgetに通知
-    connect(m_evalChartDock, &QDockWidget::topLevelChanged,
-            m_evalChart, &EvaluationChartWidget::setFloating);
-
-    // 初期状態を同期（保存されたフローティング状態を反映）
-    m_evalChart->setFloating(wasFloating);
+    // DockCreationServiceに委譲
+    ensureDockCreationService();
+    m_dockCreationService->setEvalChart(m_evalChart);
+    m_evalChartDock = m_dockCreationService->createEvalChartDock();
 }
 
 void MainWindow::createRecordPaneDock()
@@ -2165,37 +2119,10 @@ void MainWindow::createRecordPaneDock()
         return;
     }
 
-    // QDockWidgetを作成
-    m_recordPaneDock = new QDockWidget(tr("棋譜"), this);
-    m_recordPaneDock->setObjectName(QStringLiteral("RecordPaneDock"));
-    m_recordPaneDock->setWidget(m_recordPane);
-    m_recordPaneDock->setFeatures(
-        QDockWidget::DockWidgetMovable |
-        QDockWidget::DockWidgetFloatable |
-        QDockWidget::DockWidgetClosable);
-    m_recordPaneDock->setAllowedAreas(Qt::AllDockWidgetAreas);
-
-    // 初期位置は右側
-    addDockWidget(Qt::RightDockWidgetArea, m_recordPaneDock);
-
-    // 表示メニューにトグルアクションを追加
-    if (ui->Display) {
-        QAction* toggleAction = m_recordPaneDock->toggleViewAction();
-        toggleAction->setText(tr("棋譜"));
-        ui->Display->addAction(toggleAction);
-    }
-
-    // 保存された状態を復元
-    const QByteArray dockGeometry = SettingsService::recordPaneDockGeometry();
-    if (!dockGeometry.isEmpty()) {
-        m_recordPaneDock->restoreGeometry(dockGeometry);
-    }
-
-    const bool wasFloating = SettingsService::recordPaneDockFloating();
-    m_recordPaneDock->setFloating(wasFloating);
-
-    const bool wasVisible = SettingsService::recordPaneDockVisible();
-    m_recordPaneDock->setVisible(wasVisible);
+    // DockCreationServiceに委譲
+    ensureDockCreationService();
+    m_dockCreationService->setRecordPane(m_recordPane);
+    m_recordPaneDock = m_dockCreationService->createRecordPaneDock();
 }
 
 void MainWindow::createAnalysisDocks()
@@ -2205,87 +2132,27 @@ void MainWindow::createAnalysisDocks()
         return;
     }
 
-    // ドック共通の設定を適用するヘルパー
-    auto setupDock = [this](QDockWidget* dock, QWidget* content, const QString& title, const QString& objectName) {
-        dock->setObjectName(objectName);
-        dock->setWidget(content);
-        dock->setMinimumWidth(0);
-        dock->setMinimumHeight(100);
-        dock->setFeatures(
-            QDockWidget::DockWidgetMovable |
-            QDockWidget::DockWidgetFloatable |
-            QDockWidget::DockWidgetClosable);
-        dock->setAllowedAreas(Qt::AllDockWidgetAreas);
-        addDockWidget(Qt::BottomDockWidgetArea, dock);
-
-        // 表示メニューにトグルアクションを追加
-        if (ui->Display) {
-            QAction* toggleAction = dock->toggleViewAction();
-            toggleAction->setText(title);
-            ui->Display->addAction(toggleAction);
-        }
-    };
-
-    // 0. 対局情報ドック
+    // 対局情報コントローラを準備し、デフォルト値を設定
     ensureGameInfoController();
     if (m_gameInfoController) {
-        // デフォルトの対局情報を設定
         populateDefaultGameInfo();
-        m_gameInfoDock = new QDockWidget(tr("対局情報"), this);
-        setupDock(m_gameInfoDock, m_gameInfoController->containerWidget(), tr("対局情報"), QStringLiteral("GameInfoDock"));
     }
 
-    // 1. 思考ドック
-    m_thinkingDock = new QDockWidget(tr("思考"), this);
-    QWidget* thinkingPage = m_analysisTab->createThinkingPage(m_thinkingDock);
-    setupDock(m_thinkingDock, thinkingPage, tr("思考"), QStringLiteral("ThinkingDock"));
+    // DockCreationServiceに委譲
+    ensureDockCreationService();
+    m_dockCreationService->setAnalysisTab(m_analysisTab);
+    m_dockCreationService->setGameInfoController(m_gameInfoController);
+    m_dockCreationService->setModels(m_modelThinking1, m_modelThinking2, m_lineEditModel1, m_lineEditModel2);
+    m_dockCreationService->createAnalysisDocks();
 
-    // 2. 検討ドック
-    m_considerationDock = new QDockWidget(tr("検討"), this);
-    QWidget* considerationPage = m_analysisTab->createConsiderationPage(m_considerationDock);
-    setupDock(m_considerationDock, considerationPage, tr("検討"), QStringLiteral("ConsiderationDock"));
-
-    // 3. USI通信ログドック
-    m_usiLogDock = new QDockWidget(tr("USI通信ログ"), this);
-    QWidget* usiLogPage = m_analysisTab->createUsiLogPage(m_usiLogDock);
-    setupDock(m_usiLogDock, usiLogPage, tr("USI通信ログ"), QStringLiteral("UsiLogDock"));
-
-    // 4. CSA通信ログドック
-    m_csaLogDock = new QDockWidget(tr("CSA通信ログ"), this);
-    QWidget* csaLogPage = m_analysisTab->createCsaLogPage(m_csaLogDock);
-    setupDock(m_csaLogDock, csaLogPage, tr("CSA通信ログ"), QStringLiteral("CsaLogDock"));
-
-    // 5. 棋譜コメントドック
-    m_commentDock = new QDockWidget(tr("棋譜コメント"), this);
-    QWidget* commentPage = m_analysisTab->createCommentPage(m_commentDock);
-    setupDock(m_commentDock, commentPage, tr("棋譜コメント"), QStringLiteral("CommentDock"));
-
-    // 6. 分岐ツリードック
-    m_branchTreeDock = new QDockWidget(tr("分岐ツリー"), this);
-    QWidget* branchTreePage = m_analysisTab->createBranchTreePage(m_branchTreeDock);
-    setupDock(m_branchTreeDock, branchTreePage, tr("分岐ツリー"), QStringLiteral("BranchTreeDock"));
-
-    // ドックをタブ化して配置（初期状態は全て下部にタブ表示）
-    if (m_gameInfoDock && m_thinkingDock) {
-        tabifyDockWidget(m_gameInfoDock, m_thinkingDock);
-    }
-    tabifyDockWidget(m_thinkingDock, m_considerationDock);
-    tabifyDockWidget(m_considerationDock, m_usiLogDock);
-    tabifyDockWidget(m_usiLogDock, m_csaLogDock);
-    tabifyDockWidget(m_csaLogDock, m_commentDock);
-    tabifyDockWidget(m_commentDock, m_branchTreeDock);
-
-    // 対局情報ドックをアクティブにする
-    if (m_gameInfoDock) {
-        m_gameInfoDock->raise();
-    } else if (m_thinkingDock) {
-        m_thinkingDock->raise();
-    }
-
-    // モデルを設定（UIの構築後に呼び出す）
-    if (m_modelThinking1 && m_modelThinking2 && m_lineEditModel1 && m_lineEditModel2) {
-        m_analysisTab->setModels(m_modelThinking1, m_modelThinking2, m_lineEditModel1, m_lineEditModel2);
-    }
+    // 作成されたドックへの参照を取得
+    m_gameInfoDock = m_dockCreationService->gameInfoDock();
+    m_thinkingDock = m_dockCreationService->thinkingDock();
+    m_considerationDock = m_dockCreationService->considerationDock();
+    m_usiLogDock = m_dockCreationService->usiLogDock();
+    m_csaLogDock = m_dockCreationService->csaLogDock();
+    m_commentDock = m_dockCreationService->commentDock();
+    m_branchTreeDock = m_dockCreationService->branchTreeDock();
 }
 
 void MainWindow::setupBoardInCenter()
@@ -2323,45 +2190,10 @@ void MainWindow::createMenuWindowDock()
         return;
     }
 
-    // MenuWindowを確保（未作成時のみ作成）
-    m_menuWiring->ensureMenuWindow();
-    MenuWindow* menuWindow = m_menuWiring->menuWindow();
-    if (!menuWindow) {
-        qWarning() << "[MainWindow] createMenuWindowDock: MenuWindow is null!";
-        return;
-    }
-
-    // QDockWidgetを作成
-    m_menuWindowDock = new QDockWidget(tr("メニュー"), this);
-    m_menuWindowDock->setObjectName(QStringLiteral("MenuWindowDock"));
-    m_menuWindowDock->setWidget(menuWindow);
-    m_menuWindowDock->setFeatures(
-        QDockWidget::DockWidgetMovable |
-        QDockWidget::DockWidgetFloatable |
-        QDockWidget::DockWidgetClosable);
-    m_menuWindowDock->setAllowedAreas(Qt::AllDockWidgetAreas);
-
-    // 初期位置は右側
-    addDockWidget(Qt::RightDockWidgetArea, m_menuWindowDock);
-
-    // 表示メニューにトグルアクションを追加
-    if (ui->Display) {
-        QAction* toggleAction = m_menuWindowDock->toggleViewAction();
-        toggleAction->setText(tr("メニュー"));
-        ui->Display->addAction(toggleAction);
-    }
-
-    // 保存された状態を復元
-    const QByteArray dockGeometry = SettingsService::menuWindowDockGeometry();
-    if (!dockGeometry.isEmpty()) {
-        m_menuWindowDock->restoreGeometry(dockGeometry);
-    }
-
-    const bool wasFloating = SettingsService::menuWindowDockFloating();
-    m_menuWindowDock->setFloating(wasFloating);
-
-    const bool wasVisible = SettingsService::menuWindowDockVisible();
-    m_menuWindowDock->setVisible(wasVisible);
+    // DockCreationServiceに委譲
+    ensureDockCreationService();
+    m_dockCreationService->setMenuWiring(m_menuWiring);
+    m_menuWindowDock = m_dockCreationService->createMenuWindowDock();
 }
 
 void MainWindow::createJosekiWindowDock()
@@ -2373,45 +2205,10 @@ void MainWindow::createJosekiWindowDock()
         return;
     }
 
-    // JosekiWindowを確保（未作成時のみ作成）
-    m_josekiWiring->ensureJosekiWindow();
-    JosekiWindow* josekiWindow = m_josekiWiring->josekiWindow();
-    if (!josekiWindow) {
-        qWarning() << "[MainWindow] createJosekiWindowDock: JosekiWindow is null!";
-        return;
-    }
-
-    // QDockWidgetを作成
-    m_josekiWindowDock = new QDockWidget(tr("定跡"), this);
-    m_josekiWindowDock->setObjectName(QStringLiteral("JosekiWindowDock"));
-    m_josekiWindowDock->setWidget(josekiWindow);
-    m_josekiWindowDock->setFeatures(
-        QDockWidget::DockWidgetMovable |
-        QDockWidget::DockWidgetFloatable |
-        QDockWidget::DockWidgetClosable);
-    m_josekiWindowDock->setAllowedAreas(Qt::AllDockWidgetAreas);
-
-    // 初期位置は右側
-    addDockWidget(Qt::RightDockWidgetArea, m_josekiWindowDock);
-
-    // 表示メニューにトグルアクションを追加
-    if (ui->Display) {
-        QAction* toggleAction = m_josekiWindowDock->toggleViewAction();
-        toggleAction->setText(tr("定跡"));
-        ui->Display->addAction(toggleAction);
-    }
-
-    // 保存された状態を復元
-    const QByteArray dockGeometry = SettingsService::josekiWindowDockGeometry();
-    if (!dockGeometry.isEmpty()) {
-        m_josekiWindowDock->restoreGeometry(dockGeometry);
-    }
-
-    const bool wasFloating = SettingsService::josekiWindowDockFloating();
-    m_josekiWindowDock->setFloating(wasFloating);
-
-    const bool wasVisible = SettingsService::josekiWindowDockVisible();
-    m_josekiWindowDock->setVisible(wasVisible);
+    // DockCreationServiceに委譲
+    ensureDockCreationService();
+    m_dockCreationService->setJosekiWiring(m_josekiWiring);
+    m_josekiWindowDock = m_dockCreationService->createJosekiWindowDock();
 }
 
 void MainWindow::createAnalysisResultsDock()
@@ -2423,46 +2220,10 @@ void MainWindow::createAnalysisResultsDock()
         return;
     }
 
-    // QDockWidgetを作成
-    m_analysisResultsDock = new QDockWidget(tr("棋譜解析"), this);
-    m_analysisResultsDock->setObjectName(QStringLiteral("AnalysisResultsDock"));
-    m_analysisResultsDock->setWidget(m_analysisPresenter->containerWidget());
-    m_analysisResultsDock->setFeatures(
-        QDockWidget::DockWidgetMovable |
-        QDockWidget::DockWidgetFloatable |
-        QDockWidget::DockWidgetClosable);
-    m_analysisResultsDock->setAllowedAreas(Qt::AllDockWidgetAreas);
-
-    // プレゼンターにドックを設定
-    m_analysisPresenter->setDockWidget(m_analysisResultsDock);
-
-    // 初期位置は下部（他の解析ドックとタブ化）
-    addDockWidget(Qt::BottomDockWidgetArea, m_analysisResultsDock);
-
-    // 分岐ツリードックの後ろにタブ化
-    if (m_branchTreeDock) {
-        tabifyDockWidget(m_branchTreeDock, m_analysisResultsDock);
-    }
-
-    // 表示メニューにトグルアクションを追加
-    if (ui->Display) {
-        QAction* toggleAction = m_analysisResultsDock->toggleViewAction();
-        toggleAction->setText(tr("棋譜解析"));
-        ui->Display->addAction(toggleAction);
-    }
-
-    // 保存された状態を復元
-    const QByteArray dockGeometry = SettingsService::kifuAnalysisResultsDockGeometry();
-    if (!dockGeometry.isEmpty()) {
-        m_analysisResultsDock->restoreGeometry(dockGeometry);
-    }
-
-    const bool wasFloating = SettingsService::kifuAnalysisResultsDockFloating();
-    m_analysisResultsDock->setFloating(wasFloating);
-
-    // 初期状態は非表示
-    const bool wasVisible = SettingsService::kifuAnalysisResultsDockVisible();
-    m_analysisResultsDock->setVisible(wasVisible);
+    // DockCreationServiceに委譲
+    ensureDockCreationService();
+    m_dockCreationService->setAnalysisPresenter(m_analysisPresenter);
+    m_analysisResultsDock = m_dockCreationService->createAnalysisResultsDock();
 }
 
 // src/app/mainwindow.cpp
@@ -2739,18 +2500,12 @@ void MainWindow::setReplayMode(bool on)
 
 void MainWindow::broadcastComment(const QString& text, bool asHtml)
 {
-    // ★ 追加: 現在の手数インデックスをEngineAnalysisTabに設定
-    if (m_analysisTab) m_analysisTab->setCurrentMoveIndex(m_currentMoveIndex);
-
-    if (asHtml) {
-        // ★ 「*の手前で改行」＋「URLリンク化」付きのHTMLに整形して配信
-        const QString html = toRichHtmlWithStarBreaksAndLinks(text);
-        if (m_analysisTab) m_analysisTab->setCommentHtml(html);
-        if (m_recordPane)  m_recordPane->setBranchCommentHtml(html);
-    } else {
-        // プレーンテキスト経路は従来通り
-        if (m_analysisTab) m_analysisTab->setCommentText(text);
-        if (m_recordPane)  m_recordPane->setBranchCommentText(text);
+    ensureCommentCoordinator();
+    if (m_commentCoordinator) {
+        // 最新の依存を同期
+        m_commentCoordinator->setAnalysisTab(m_analysisTab);
+        m_commentCoordinator->setRecordPane(m_recordPane);
+        m_commentCoordinator->broadcastComment(text, asHtml);
     }
 }
 
@@ -4137,29 +3892,14 @@ void MainWindow::overwriteKifuFile()
     m_kifuExportController->overwriteFile(kifuSaveFileName);
 }
 
-// ★ 追加: コメント更新スロットの実装
+// ★ コメント更新スロットの実装（CommentCoordinatorに委譲）
 void MainWindow::onCommentUpdated(int moveIndex, const QString& newComment)
 {
-    qDebug().noquote()
-        << "[MW] onCommentUpdated"
-        << " moveIndex=" << moveIndex
-        << " newComment.len=" << newComment.size();
-
-    // 有効な手数インデックスかチェック
-    if (moveIndex < 0) {
-        qWarning().noquote() << "[MW] onCommentUpdated: invalid moveIndex";
-        return;
+    ensureCommentCoordinator();
+    if (m_commentCoordinator) {
+        m_commentCoordinator->setGameRecordModel(m_gameRecord);
+        m_commentCoordinator->onCommentUpdated(moveIndex, newComment);
     }
-
-    // GameRecordModel を使ってコメントを更新
-    // （通知処理はコールバック経由で自動実行される）
-    ensureGameRecordModel();
-    if (m_gameRecord) {
-        m_gameRecord->setComment(moveIndex, newComment);
-    }
-
-    // ステータスバーに通知
-    ui->statusbar->showMessage(tr("コメントを更新しました（手数: %1）").arg(moveIndex), 3000);
 }
 
 // ★ 追加: GameRecordModel の遅延初期化
@@ -4191,37 +3931,23 @@ void MainWindow::ensureGameRecordModel()
     qDebug().noquote() << "[MW] ensureGameRecordModel_: created and bound";
 }
 
-// ★ 追加: GameRecordModel::commentChanged スロット
-void MainWindow::onGameRecordCommentChanged(int ply, const QString& /*comment*/)
+// ★ GameRecordModel::commentChanged スロット（CommentCoordinatorに委譲）
+void MainWindow::onGameRecordCommentChanged(int ply, const QString& comment)
 {
-    qDebug().noquote() << "[MW] GameRecordModel::commentChanged ply=" << ply;
+    ensureCommentCoordinator();
+    if (m_commentCoordinator) {
+        m_commentCoordinator->onGameRecordCommentChanged(ply, comment);
+    }
 }
 
-// コメント更新コールバック（GameRecordModel から呼ばれる）
+// コメント更新コールバック（GameRecordModel から呼ばれる、CommentCoordinatorに委譲）
 void MainWindow::onCommentUpdateCallback(int ply, const QString& comment)
 {
-    qDebug().noquote() << "[MW] onCommentUpdateCallback_ ply=" << ply;
-
-    // m_commentsByRow への同期（互換性・RecordPresenterへの供給用）
-    while (m_commentsByRow.size() <= ply) {
-        m_commentsByRow.append(QString());
+    ensureCommentCoordinator();
+    if (m_commentCoordinator) {
+        m_commentCoordinator->setRecordPresenter(m_recordPresenter);
+        m_commentCoordinator->onCommentUpdateCallback(ply, comment);
     }
-    m_commentsByRow[ply] = comment;
-
-    // RecordPresenter のコメント配列も更新（行選択時に正しいコメントを表示するため）
-    if (m_recordPresenter) {
-        QStringList updatedComments;
-        updatedComments.reserve(m_commentsByRow.size());
-        for (const QString& c : std::as_const(m_commentsByRow)) {
-            updatedComments.append(c);
-        }
-        m_recordPresenter->setCommentsByRow(updatedComments);
-        qDebug().noquote() << "[MW] Updated RecordPresenter commentsByRow";
-    }
-
-    // 現在表示中のコメントを更新（両方のコメント欄に反映）
-    const QString displayComment = comment.trimmed().isEmpty() ? tr("コメントなし") : comment;
-    broadcastComment(displayComment, /*asHtml=*/true);
 }
 
 // ★ 追加: 読み筋クリック処理
@@ -4449,6 +4175,31 @@ void MainWindow::ensureDockLayoutManager()
 
     // 保存済みレイアウトメニューを設定
     m_dockLayoutManager->setSavedLayoutsMenu(m_savedLayoutsMenu);
+}
+
+void MainWindow::ensureDockCreationService()
+{
+    if (m_dockCreationService) return;
+
+    m_dockCreationService = new DockCreationService(this, this);
+    m_dockCreationService->setDisplayMenu(ui->Display);
+}
+
+void MainWindow::ensureCommentCoordinator()
+{
+    if (m_commentCoordinator) return;
+
+    m_commentCoordinator = new CommentCoordinator(this);
+    m_commentCoordinator->setAnalysisTab(m_analysisTab);
+    m_commentCoordinator->setRecordPane(m_recordPane);
+    m_commentCoordinator->setRecordPresenter(m_recordPresenter);
+    m_commentCoordinator->setStatusBar(ui->statusbar);
+    m_commentCoordinator->setCurrentMoveIndex(&m_currentMoveIndex);
+    m_commentCoordinator->setCommentsByRow(&m_commentsByRow);
+
+    // GameRecordModel初期化要求時のシグナル接続
+    connect(m_commentCoordinator, &CommentCoordinator::ensureGameRecordModelRequested,
+            this, &MainWindow::ensureGameRecordModel);
 }
 
 // 検討モデルから矢印を更新（コントローラに委譲）
