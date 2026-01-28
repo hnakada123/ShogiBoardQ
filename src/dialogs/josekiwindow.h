@@ -168,10 +168,6 @@ private slots:
      */
     void onStopButtonClicked();
     
-    /**
-     * @brief 「閉じる」ボタンがクリックされたときのスロット
-     */
-    void onCloseButtonClicked();
     
     /**
      * @brief 最近使ったファイルメニューの項目がクリックされたときのスロット
@@ -372,7 +368,6 @@ private:
     QPushButton  *m_addMoveButton;     ///< 定跡手追加ボタン
     QToolButton  *m_mergeButton;       ///< マージボタン（ドロップダウンメニュー付き）
     QMenu        *m_mergeMenu;         ///< マージメニュー
-    QPushButton  *m_closeButton;       ///< 閉じるボタン
     
     // === 状態表示 ===
     QLabel       *m_currentSfenLabel;  ///< 現在の局面のSFEN表示用ラベル
