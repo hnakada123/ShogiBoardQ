@@ -58,6 +58,9 @@ class JishogiScoreDialogController;
 class NyugyokuDeclarationHandler;
 class ConsecutiveGamesController;
 class LanguageController;
+class ConsiderationModeUIController;
+class DockLayoutManager;
+class NavigationContextAdapter;
 
 // ==============================
 // Macros / aliases
@@ -144,7 +147,7 @@ class MenuWindowWiring;
  * - CsaGameWiring: CSA通信対局のUI配線
  * - BranchRowDelegate: 分岐行の描画カスタマイズ
  */
-class MainWindow : public QMainWindow, public INavigationContext
+class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
@@ -154,16 +157,14 @@ class MainWindow : public QMainWindow, public INavigationContext
 public:
     explicit MainWindow(QWidget* parent = nullptr);
 
-    // INavigationContext override
-    bool hasResolvedRows() const override;
-    int  resolvedRowCount() const override;
-    int  activeResolvedRow() const override;
-    int  maxPlyAtRow(int row) const override;
-    int  currentPly() const override;
-    void applySelect(int row, int ply) override;
+    // INavigationContext へのアクセス（NavigationContextAdapterへ委譲）
+    INavigationContext* navigationContext() const;
 
     // 評価値グラフウィジェットへのアクセス
     EvaluationChartWidget* evalChart() const { return m_evalChart; }
+
+    // 棋譜エクスポートコントローラへのアクセス（UiActionsWiring用）
+    KifuExportController* kifuExportController();
 
     // ========================================================
     // public slots
@@ -177,16 +178,7 @@ public slots:
     void saveKifuToFile();
     void overwriteKifuFile();
 
-    // クリップボード操作（KifuClipboardServiceへ委譲）
-    void copyKifToClipboard();
-    void copyKi2ToClipboard();
-    void copyCsaToClipboard();
-    void copyUsiToClipboard();
-    void copyUsiCurrentToClipboard();
-    void copyJkfToClipboard();
-    void copyUsenToClipboard();
-    void copySfenToClipboard();
-    void copyBodToClipboard();
+    // クリップボード操作
     void pasteKifuFromClipboard();
 
     // エラー/一般UI
@@ -221,11 +213,6 @@ public slots:
     void displayJishogiScoreDialog();  // 持将棋の点数ダイアログ
     void handleNyugyokuDeclaration();  // 入玉宣言
     void onConsiderationEngineSettingsRequested(int engineNumber, const QString& engineName);  // 検討タブからのエンジン設定リクエスト
-
-    // 言語設定
-    void onLanguageSystemTriggered();
-    void onLanguageJapaneseTriggered();
-    void onLanguageEnglishTriggered();
 
     // ツールバー表示切替
     void onToolBarVisibilityToggled(bool visible);
@@ -585,14 +572,13 @@ private:
     NyugyokuDeclarationHandler* m_nyugyokuHandler = nullptr;
     ConsecutiveGamesController* m_consecutiveGamesController = nullptr;
     LanguageController* m_languageController = nullptr;
+    ConsiderationModeUIController* m_considerationUIController = nullptr;
+    DockLayoutManager* m_dockLayoutManager = nullptr;
+    NavigationContextAdapter* m_navContextAdapter = nullptr;
 
     // --------------------------------------------------------
     // Private Methods
     // --------------------------------------------------------
-
-    // 言語設定
-    void updateLanguageMenuState();
-    void changeLanguage(const QString& lang);
 
     // UI / 表示更新
     void updateGameRecord(const QString& elapsedTime);
@@ -687,6 +673,9 @@ private:
     void ensureNyugyokuHandler();
     void ensureConsecutiveGamesController();
     void ensureLanguageController();
+    void ensureConsiderationUIController();
+    void ensureDockLayoutManager();
+    void ensureNavigationContextAdapter();
 
     // ctor の分割先
     void setupCentralWidgetContainer();
@@ -712,10 +701,6 @@ private:
     // 検討用ヘルパ
     QString buildPositionStringForIndex(int moveIndex) const;
     qint64 getByoyomiMs() const;
-
-    // 矢印表示用ヘルパ（USI形式の指し手から座標を取得）
-    bool parseUsiMove(const QString& usiMove, int& fromFile, int& fromRank, int& toFile, int& toRank) const;
-    bool m_showConsiderationArrows = true;  // 検討の矢印を表示するかどうか
 
     // ゲームオーバー関連
     void showGameOverMessageBox(const QString& title, const QString& message);

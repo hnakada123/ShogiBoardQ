@@ -5,7 +5,7 @@
 #include <QString>
 #include <QStringList>
 #include <QList>
-#include <functional>
+#include <QVector>
 
 #include "kifparsetypes.h"
 
@@ -26,6 +26,7 @@ class GameInfoPaneController;
 class KifuLoadCoordinator;
 class EvaluationChartWidget;
 class AnalysisResultsPresenter;
+struct ShogiMove;
 
 /**
  * @brief DialogCoordinator - ダイアログ表示の管理クラス
@@ -147,6 +148,36 @@ public:
     void startConsiderationDirect(const ConsiderationDirectParams& params);
 
     /**
+     * @brief 検討ダイアログの依存コンテキスト
+     *
+     * MainWindowから一度設定することで、パラメータ収集を自動化します。
+     */
+    struct ConsiderationContext {
+        ShogiGameController* gameController = nullptr;
+        const QVector<ShogiMove>* gameMoves = nullptr;
+        const int* currentMoveIndex = nullptr;
+        KifuRecordListModel* kifuRecordModel = nullptr;
+        QStringList* sfenRecord = nullptr;
+        QString* startSfenStr = nullptr;
+        ShogiEngineThinkingModel** considerationModel = nullptr;  // ダブルポインタ（遅延生成用）
+    };
+
+    /**
+     * @brief 検討コンテキストを設定
+     * @param ctx 検討に必要な依存オブジェクト群
+     */
+    void setConsiderationContext(const ConsiderationContext& ctx);
+
+    /**
+     * @brief 検討を開始（コンテキストから自動パラメータ構築）
+     *
+     * setConsiderationContext で設定した依存オブジェクトから
+     * 自動的にパラメータを構築して検討を開始します。
+     * @return true=検討開始, false=エラー（エンジン未選択等）
+     */
+    bool startConsiderationFromContext();
+
+    /**
      * @brief 詰み探索ダイアログの依存情報
      */
     struct TsumeSearchParams {
@@ -162,6 +193,34 @@ public:
      * @brief 詰み探索ダイアログを表示
      */
     void showTsumeSearchDialog(const TsumeSearchParams& params);
+
+    /**
+     * @brief 詰み探索ダイアログの依存コンテキスト
+     *
+     * MainWindowから一度設定することで、パラメータ収集を自動化します。
+     */
+    struct TsumeSearchContext {
+        QStringList* sfenRecord = nullptr;
+        QString* startSfenStr = nullptr;
+        QStringList* positionStrList = nullptr;
+        const int* currentMoveIndex = nullptr;
+        QStringList* gameUsiMoves = nullptr;
+        KifuLoadCoordinator* kifuLoadCoordinator = nullptr;
+    };
+
+    /**
+     * @brief 詰み探索コンテキストを設定
+     * @param ctx 詰み探索に必要な依存オブジェクト群
+     */
+    void setTsumeSearchContext(const TsumeSearchContext& ctx);
+
+    /**
+     * @brief 詰み探索ダイアログを表示（コンテキストから自動パラメータ構築）
+     *
+     * setTsumeSearchContext で設定した依存オブジェクトから
+     * 自動的にパラメータを構築してダイアログを表示します。
+     */
+    void showTsumeSearchDialogFromContext();
 
     /**
      * @brief 棋譜解析ダイアログの依存情報
@@ -291,12 +350,17 @@ private:
     // Flow コントローラ（遅延生成）
     AnalysisFlowController* m_analysisFlow = nullptr;
 
-    // 棋譜解析コンテキスト
+    // コンテキスト
+    ConsiderationContext m_considerationCtx;
+    TsumeSearchContext m_tsumeSearchCtx;
     KifuAnalysisContext m_kifuAnalysisCtx;
 
     // ヘルパー: 対局情報から対局者名を取得
     static void extractPlayerNames(const QList<KifGameInfoItem>& gameInfo,
                                    QString& outBlackName, QString& outWhiteName);
+
+    // ヘルパー: 検討用のposition文字列を構築
+    QString buildPositionStringForIndex(int moveIndex) const;
 };
 
 #endif // DIALOGCOORDINATOR_H

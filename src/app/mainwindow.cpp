@@ -116,6 +116,9 @@
 #include "nyugyokudeclarationhandler.h"    // ★ 追加: 入玉宣言処理
 #include "consecutivegamescontroller.h"    // ★ 追加: 連続対局管理
 #include "languagecontroller.h"            // ★ 追加: 言語設定管理
+#include "considerationmodeuicontroller.h" // ★ 追加: 検討モードUI管理
+#include "docklayoutmanager.h"             // ★ 追加: ドックレイアウト管理
+#include "navigationcontextadapter.h"      // ★ 追加: INavigationContext委譲
 
 // ★ コメント整形ヘルパ：KifuContentBuilderへ委譲
 namespace {
@@ -181,9 +184,8 @@ MainWindow::MainWindow(QWidget *parent)
     initializeEditMenuForStartup();
 
     // 言語メニューをグループ化（相互排他）して現在の設定を反映
-    // LanguageControllerに委譲
+    // LanguageControllerに委譲（setActions内でupdateMenuStateも呼び出し）
     ensureLanguageController();
-    updateLanguageMenuState();
 
     // 評価値グラフ高さ調整用タイマーを初期化（デバウンス処理用）
     m_evalChartResizeTimer = new QTimer(this);
@@ -838,151 +840,13 @@ void MainWindow::displayConsiderationDialog()
 {
     qDebug().noquote() << "[MainWindow::displayConsiderationDialog] ENTER, current m_playMode=" << static_cast<int>(m_playMode);
 
-    // エンジンが選択されているかチェック
-    if (m_analysisTab && m_analysisTab->selectedEngineName().isEmpty()) {
-        QMessageBox::critical(this, tr("エラー"), tr("将棋エンジンが選択されていません。"));
-        return;
-    }
-
-    // UI 側の状態保持（従来どおり）
-    m_playMode = PlayMode::ConsiderationMode;
-
-    // 手番表示（必要最小限）
-    if (m_gameController && m_gameMoves.size() > 0 && m_currentMoveIndex >= 0 && m_currentMoveIndex < m_gameMoves.size()) {
-        if (m_gameMoves.at(m_currentMoveIndex).movingPiece.isUpper())
-            m_gameController->setCurrentPlayer(ShogiGameController::Player1);
-        else
-            m_gameController->setCurrentPlayer(ShogiGameController::Player2);
-    }
-
-    // 送信する position を決定
-    const QString position = buildPositionStringForIndex(m_currentMoveIndex);
-
-    qDebug().noquote() << "[MainWindow::displayConsiderationDialog] position=" << position.left(50);
-
     ensureDialogCoordinator();
-    if (m_dialogCoordinator && m_analysisTab) {
-        // 検討タブ専用モデルを作成（なければ）
-        if (!m_considerationModel) {
-            m_considerationModel = new ShogiEngineThinkingModel(this);
+    if (m_dialogCoordinator) {
+        m_dialogCoordinator->setAnalysisTab(m_analysisTab);
+        if (m_dialogCoordinator->startConsiderationFromContext()) {
+            // 検討開始成功時にモードを変更
+            m_playMode = PlayMode::ConsiderationMode;
         }
-
-        // 検討タブの設定を保存
-        m_analysisTab->saveConsiderationTabSettings();
-
-        // 検討タブの設定を使用して直接検討を開始
-        DialogCoordinator::ConsiderationDirectParams params;
-        params.position = position;
-        params.engineIndex = m_analysisTab->selectedEngineIndex();
-        params.engineName = m_analysisTab->selectedEngineName();
-        params.unlimitedTime = m_analysisTab->isUnlimitedTime();
-        params.byoyomiSec = m_analysisTab->byoyomiSec();
-        params.multiPV = m_analysisTab->considerationMultiPV();
-        params.considerationModel = m_considerationModel;
-
-        // 選択中の指し手の移動先を取得（「同」表記のため）
-        // m_gameMoves が空の場合（棋譜読み込み時）は棋譜モデルから取得
-        qDebug().noquote() << "[MainWindow::displayConsiderationDialog] m_currentMoveIndex=" << m_currentMoveIndex
-                           << "m_gameMoves.size()=" << m_gameMoves.size();
-        if (m_currentMoveIndex >= 0 && m_currentMoveIndex < m_gameMoves.size()) {
-            // 対局中の場合: m_gameMoves から直接取得
-            const QPoint& toSquare = m_gameMoves.at(m_currentMoveIndex).toSquare;
-            params.previousFileTo = toSquare.x();
-            params.previousRankTo = toSquare.y();
-            qDebug().noquote() << "[MainWindow::displayConsiderationDialog] previousFileTo/RankTo (from gameMoves):"
-                               << params.previousFileTo << "/" << params.previousRankTo;
-        } else if (m_kifuRecordModel && m_currentMoveIndex > 0 && m_currentMoveIndex < m_kifuRecordModel->rowCount()) {
-            // 棋譜読み込み時: 棋譜モデルから指し手ラベルを取得して座標を解析
-            const QModelIndex idx = m_kifuRecordModel->index(m_currentMoveIndex, 0);
-            const QString moveLabel = m_kifuRecordModel->data(idx, Qt::DisplayRole).toString();
-            qDebug().noquote() << "[MainWindow::displayConsiderationDialog] moveLabel from recordModel:" << moveLabel;
-
-            // 形式: 「▲７六歩(77)」または「△同　銀(31)」
-            static const QString senteMark = QStringLiteral("▲");
-            static const QString goteMark = QStringLiteral("△");
-
-            qsizetype markPos = moveLabel.indexOf(senteMark);
-            if (markPos < 0) {
-                markPos = moveLabel.indexOf(goteMark);
-            }
-
-            if (markPos >= 0 && moveLabel.length() > markPos + 2) {
-                QString afterMark = moveLabel.mid(markPos + 1);
-
-                // 「同」の場合は前の手から座標を取得する必要がある
-                if (!afterMark.startsWith(QStringLiteral("同"))) {
-                    // 「７六」のような漢字座標を取得
-                    QChar fileChar = afterMark.at(0);  // 全角数字 '１'〜'９'
-                    QChar rankChar = afterMark.at(1);  // 漢数字 '一'〜'九'
-
-                    // 全角数字を整数に変換（'１'=0xFF11 → 1）
-                    int fileTo = 0;
-                    if (fileChar >= QChar(0xFF11) && fileChar <= QChar(0xFF19)) {
-                        fileTo = fileChar.unicode() - 0xFF11 + 1;
-                    }
-
-                    // 漢数字を整数に変換
-                    int rankTo = 0;
-                    static const QString kanjiRanks = QStringLiteral("一二三四五六七八九");
-                    qsizetype rankIdxPos = kanjiRanks.indexOf(rankChar);
-                    if (rankIdxPos >= 0) {
-                        rankTo = static_cast<int>(rankIdxPos) + 1;
-                    }
-
-                    if (fileTo >= 1 && fileTo <= 9 && rankTo >= 1 && rankTo <= 9) {
-                        params.previousFileTo = fileTo;
-                        params.previousRankTo = rankTo;
-                        qDebug().noquote() << "[MainWindow::displayConsiderationDialog] previousFileTo/RankTo (from recordModel):"
-                                           << params.previousFileTo << "/" << params.previousRankTo;
-                    }
-                } else {
-                    // 「同」の場合は、さらに前の手を遡って座標を取得
-                    for (int i = m_currentMoveIndex - 1; i > 0; --i) {
-                        const QModelIndex prevIdx = m_kifuRecordModel->index(i, 0);
-                        const QString prevLabel = m_kifuRecordModel->data(prevIdx, Qt::DisplayRole).toString();
-                        qsizetype prevMarkPos = prevLabel.indexOf(senteMark);
-                        if (prevMarkPos < 0) {
-                            prevMarkPos = prevLabel.indexOf(goteMark);
-                        }
-                        if (prevMarkPos >= 0 && prevLabel.length() > prevMarkPos + 2) {
-                            QString prevAfterMark = prevLabel.mid(prevMarkPos + 1);
-                            if (!prevAfterMark.startsWith(QStringLiteral("同"))) {
-                                QChar fileChar = prevAfterMark.at(0);
-                                QChar rankChar = prevAfterMark.at(1);
-                                int fileTo = 0;
-                                if (fileChar >= QChar(0xFF11) && fileChar <= QChar(0xFF19)) {
-                                    fileTo = fileChar.unicode() - 0xFF11 + 1;
-                                }
-                                int rankTo = 0;
-                                static const QString kanjiRanks = QStringLiteral("一二三四五六七八九");
-                                qsizetype rankIdxPos = kanjiRanks.indexOf(rankChar);
-                                if (rankIdxPos >= 0) {
-                                    rankTo = static_cast<int>(rankIdxPos) + 1;
-                                }
-                                if (fileTo >= 1 && fileTo <= 9 && rankTo >= 1 && rankTo <= 9) {
-                                    params.previousFileTo = fileTo;
-                                    params.previousRankTo = rankTo;
-                                    qDebug().noquote() << "[MainWindow::displayConsiderationDialog] previousFileTo/RankTo (from 同 lookup):"
-                                                       << params.previousFileTo << "/" << params.previousRankTo;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        } else {
-            qDebug().noquote() << "[MainWindow::displayConsiderationDialog] WARNING: condition failed, no previousFileTo/RankTo set";
-        }
-
-        qDebug().noquote() << "[MainWindow::displayConsiderationDialog] calling startConsiderationDirect"
-                          << "engineIndex=" << params.engineIndex
-                          << "engineName=" << params.engineName
-                          << "unlimitedTime=" << params.unlimitedTime
-                          << "byoyomiSec=" << params.byoyomiSec
-                          << "multiPV=" << params.multiPV;
-        m_dialogCoordinator->startConsiderationDirect(params);
-        qDebug().noquote() << "[MainWindow::displayConsiderationDialog] startConsiderationDirect returned";
     }
     qDebug().noquote() << "[MainWindow::displayConsiderationDialog] EXIT";
 }
@@ -990,124 +854,47 @@ void MainWindow::displayConsiderationDialog()
 // 検討モード開始時の初期化（タブは切り替えない）
 void MainWindow::onConsiderationModeStarted()
 {
-    qDebug().noquote() << "[MainWindow::onConsiderationModeStarted] Initializing consideration mode";
-
-    if (m_analysisTab && m_considerationModel) {
-        // 検討タブに専用モデルを設定
-        m_analysisTab->setConsiderationThinkingModel(m_considerationModel);
-
-        // 検討タブのEngineInfoWidgetにもモデルを設定
-        if (m_analysisTab->considerationInfo()) {
-            m_analysisTab->considerationInfo()->setModel(m_lineEditModel1);
-        }
-
-        // 思考タブのEngineInfoWidgetにもモデルを設定
-        if (m_analysisTab->info1()) {
-            m_analysisTab->info1()->setModel(m_lineEditModel1);
-        }
-
-        // 注: エンジン名の設定は onSetEngineNames で行われる
-        // 注: 現在のタブ選択を維持するため、タブ切り替えは行わない
-
-        // ★ 追加: 検討モデルの変更時に矢印を更新
-        connect(m_considerationModel, &ShogiEngineThinkingModel::rowsInserted,
-                this, &MainWindow::updateConsiderationArrows,
-                Qt::UniqueConnection);
-        connect(m_considerationModel, &ShogiEngineThinkingModel::dataChanged,
-                this, &MainWindow::updateConsiderationArrows,
-                Qt::UniqueConnection);
-        connect(m_considerationModel, &ShogiEngineThinkingModel::modelReset,
-                this, &MainWindow::updateConsiderationArrows,
-                Qt::UniqueConnection);
-
-        // ★ 追加: 矢印表示チェックボックスの状態変更時
-        connect(m_analysisTab, &EngineAnalysisTab::showArrowsChanged,
-                this, &MainWindow::onShowArrowsChanged,
-                Qt::UniqueConnection);
+    ensureConsiderationUIController();
+    if (m_considerationUIController) {
+        // 最新の依存オブジェクトを同期
+        m_considerationUIController->setAnalysisTab(m_analysisTab);
+        m_considerationUIController->setConsiderationModel(m_considerationModel);
+        m_considerationUIController->setCommLogModel(m_lineEditModel1);
+        m_considerationUIController->onModeStarted();
     }
 }
 
 // 検討モードの時間設定が確定したときの処理
 void MainWindow::onConsiderationTimeSettingsReady(bool unlimited, int byoyomiSec)
 {
-    qDebug().noquote() << "[MainWindow::onConsiderationTimeSettingsReady] unlimited=" << unlimited
-                       << " byoyomiSec=" << byoyomiSec;
-
-    if (m_analysisTab) {
-        // 時間設定を検討タブに反映
-        m_analysisTab->setConsiderationTimeLimit(unlimited, byoyomiSec);
-
-        // 経過時間タイマーを開始
-        m_analysisTab->startElapsedTimer();
-
-        // ボタンを「検討中止」に切り替え
-        m_analysisTab->setConsiderationRunning(true);
-
-        // 検討中のMultiPV変更を接続
-        connect(m_analysisTab, &EngineAnalysisTab::considerationMultiPVChanged,
-                this, &MainWindow::onConsiderationMultiPVChanged,
-                Qt::UniqueConnection);
-
-        // 検討中止ボタンを接続（stopAnalysisEngine を呼ぶ）
-        connect(m_analysisTab, &EngineAnalysisTab::stopConsiderationRequested,
-                this, &MainWindow::stopTsumeSearch,
-                Qt::UniqueConnection);
-
-        // 検討開始ボタンを接続（displayConsiderationDialogを呼ぶ）
-        connect(m_analysisTab, &EngineAnalysisTab::startConsiderationRequested,
-                this, &MainWindow::displayConsiderationDialog,
-                Qt::UniqueConnection);
-    }
-
-    // 検討終了時にタイマーを停止するための接続
-    if (m_match) {
-        connect(m_match, &MatchCoordinator::considerationModeEnded,
-                this, &MainWindow::onConsiderationModeEnded,
-                Qt::UniqueConnection);
-
-        // 検討待機開始時にタイマーを停止（ボタンは「検討中止」のまま）
-        connect(m_match, &MatchCoordinator::considerationWaitingStarted,
-                this, &MainWindow::onConsiderationWaitingStarted,
-                Qt::UniqueConnection);
+    ensureConsiderationUIController();
+    if (m_considerationUIController) {
+        // 最新の依存オブジェクトを同期
+        m_considerationUIController->setAnalysisTab(m_analysisTab);
+        m_considerationUIController->setMatchCoordinator(m_match);
+        m_considerationUIController->onTimeSettingsReady(unlimited, byoyomiSec);
     }
 }
 
 // 検討モード終了時の処理
 void MainWindow::onConsiderationModeEnded()
 {
-    qDebug().noquote() << "[MainWindow::onConsiderationModeEnded] ENTER, m_playMode=" << static_cast<int>(m_playMode);
-
-    if (m_analysisTab) {
-        // 経過時間タイマーを停止
-        qDebug().noquote() << "[MainWindow::onConsiderationModeEnded] Stopping elapsed timer";
-        m_analysisTab->stopElapsedTimer();
-
-        // ボタンを「検討開始」に切り替え
-        qDebug().noquote() << "[MainWindow::onConsiderationModeEnded] Calling setConsiderationRunning(false)";
-        m_analysisTab->setConsiderationRunning(false);
-        qDebug().noquote() << "[MainWindow::onConsiderationModeEnded] setConsiderationRunning(false) returned";
+    ensureConsiderationUIController();
+    if (m_considerationUIController) {
+        m_considerationUIController->setAnalysisTab(m_analysisTab);
+        m_considerationUIController->setShogiView(m_shogiView);
+        m_considerationUIController->onModeEnded();
     }
-
-    // ★ 追加: 検討終了時に矢印をクリア
-    if (m_shogiView) {
-        m_shogiView->clearArrows();
-    }
-
-    qDebug().noquote() << "[MainWindow::onConsiderationModeEnded] EXIT";
 }
 
 // 検討待機開始時の処理（時間切れ後、次の局面選択待ち）
 void MainWindow::onConsiderationWaitingStarted()
 {
-    qDebug().noquote() << "[MainWindow::onConsiderationWaitingStarted] ENTER";
-
-    if (m_analysisTab) {
-        // 経過時間タイマーを停止（ボタンは「検討中止」のまま）
-        qDebug().noquote() << "[MainWindow::onConsiderationWaitingStarted] Stopping elapsed timer";
-        m_analysisTab->stopElapsedTimer();
-        // ★ setConsiderationRunning(false) は呼ばない（ボタンは「検討中止」のまま）
+    ensureConsiderationUIController();
+    if (m_considerationUIController) {
+        m_considerationUIController->setAnalysisTab(m_analysisTab);
+        m_considerationUIController->onWaitingStarted();
     }
-    qDebug().noquote() << "[MainWindow::onConsiderationWaitingStarted] EXIT";
 }
 
 // 検討中にMultiPV変更時の処理
@@ -1119,14 +906,24 @@ void MainWindow::onConsiderationMultiPVChanged(int value)
     if (m_match && m_playMode == PlayMode::ConsiderationMode) {
         m_match->updateConsiderationMultiPV(value);
     }
+
+    // コントローラにも通知
+    ensureConsiderationUIController();
+    if (m_considerationUIController) {
+        m_considerationUIController->onMultiPVChanged(value);
+    }
 }
 
 // 検討ダイアログでMultiPVが設定されたとき
 void MainWindow::onConsiderationDialogMultiPVReady(int multiPV)
 {
-    qDebug().noquote() << "[MainWindow::onConsiderationDialogMultiPVReady] multiPV=" << multiPV;
+    ensureConsiderationUIController();
+    if (m_considerationUIController) {
+        m_considerationUIController->setAnalysisTab(m_analysisTab);
+        m_considerationUIController->onDialogMultiPVReady(multiPV);
+    }
 
-    // 検討タブのMultiPVコンボボックスを更新
+    // 互換性のため既存のロジックも維持
     if (m_analysisTab) {
         m_analysisTab->setConsiderationMultiPV(multiPV);
     }
@@ -1184,293 +981,66 @@ void MainWindow::displayMenuWindow()
 
 void MainWindow::resetDockLayout()
 {
-    // すべてのドックをフローティング解除して表示
-    if (m_menuWindowDock) {
-        m_menuWindowDock->setFloating(false);
-        m_menuWindowDock->setVisible(true);
-    }
-    if (m_josekiWindowDock) {
-        m_josekiWindowDock->setFloating(false);
-        m_josekiWindowDock->setVisible(false);  // デフォルトは非表示
-    }
-    if (m_recordPaneDock) {
-        m_recordPaneDock->setFloating(false);
-        m_recordPaneDock->setVisible(true);
-    }
-    // 解析ドック（7つ）をリセット
-    QList<QDockWidget*> analysisDocks = {
-        m_gameInfoDock, m_thinkingDock, m_considerationDock, m_usiLogDock,
-        m_csaLogDock, m_commentDock, m_branchTreeDock
-    };
-    for (QDockWidget* dock : std::as_const(analysisDocks)) {
-        if (dock) {
-            dock->setFloating(false);
-            dock->setVisible(true);
-        }
-    }
-    if (m_evalChartDock) {
-        m_evalChartDock->setFloating(false);
-        m_evalChartDock->setVisible(true);
-    }
-
-    // デフォルトのドック配置を設定
-    // 将棋盤は中央（セントラルウィジェット）に固定
-    // 上段: メニューウィンドウ(左) | 棋譜(右)
-    // 下段: 解析ドック群(タブ化) | 評価値グラフ(右)
-
-    // まず全てのドックをいったん削除
-    if (m_menuWindowDock) removeDockWidget(m_menuWindowDock);
-    if (m_josekiWindowDock) removeDockWidget(m_josekiWindowDock);
-    if (m_recordPaneDock) removeDockWidget(m_recordPaneDock);
-    for (QDockWidget* dock : std::as_const(analysisDocks)) {
-        if (dock) removeDockWidget(dock);
-    }
-    if (m_evalChartDock) removeDockWidget(m_evalChartDock);
-
-    // 上段左: メニューウィンドウ
-    if (m_menuWindowDock) {
-        addDockWidget(Qt::LeftDockWidgetArea, m_menuWindowDock);
-        m_menuWindowDock->setVisible(true);
-    }
-
-    // 定跡ドック（デフォルトは非表示）
-    if (m_josekiWindowDock) {
-        addDockWidget(Qt::RightDockWidgetArea, m_josekiWindowDock);
-        m_josekiWindowDock->setVisible(false);
-    }
-
-    // 上段右: 棋譜
-    if (m_recordPaneDock) {
-        addDockWidget(Qt::RightDockWidgetArea, m_recordPaneDock);
-        m_recordPaneDock->setVisible(true);
-    }
-
-    // 下段: 解析ドック群（タブ化して配置）
-    if (m_gameInfoDock) {
-        addDockWidget(Qt::BottomDockWidgetArea, m_gameInfoDock);
-        m_gameInfoDock->setVisible(true);
-    }
-    // 残りのドックをタブ化
-    if (m_thinkingDock) {
-        if (m_gameInfoDock) {
-            tabifyDockWidget(m_gameInfoDock, m_thinkingDock);
-        } else {
-            addDockWidget(Qt::BottomDockWidgetArea, m_thinkingDock);
-        }
-        m_thinkingDock->setVisible(true);
-    }
-    if (m_considerationDock && m_thinkingDock) {
-        tabifyDockWidget(m_thinkingDock, m_considerationDock);
-        m_considerationDock->setVisible(true);
-    }
-    if (m_usiLogDock && m_considerationDock) {
-        tabifyDockWidget(m_considerationDock, m_usiLogDock);
-        m_usiLogDock->setVisible(true);
-    }
-    if (m_csaLogDock && m_usiLogDock) {
-        tabifyDockWidget(m_usiLogDock, m_csaLogDock);
-        m_csaLogDock->setVisible(true);
-    }
-    if (m_commentDock && m_csaLogDock) {
-        tabifyDockWidget(m_csaLogDock, m_commentDock);
-        m_commentDock->setVisible(true);
-    }
-    if (m_branchTreeDock && m_commentDock) {
-        tabifyDockWidget(m_commentDock, m_branchTreeDock);
-        m_branchTreeDock->setVisible(true);
-    }
-    // 対局情報ドックをアクティブに
-    if (m_gameInfoDock) {
-        m_gameInfoDock->raise();
-    } else if (m_thinkingDock) {
-        m_thinkingDock->raise();
-    }
-
-    // 下段右: 評価値グラフ（解析の右に分割配置）
-    QDockWidget* leftmostDock = m_gameInfoDock ? m_gameInfoDock : m_thinkingDock;
-    if (m_evalChartDock && leftmostDock) {
-        splitDockWidget(leftmostDock, m_evalChartDock, Qt::Horizontal);
-        m_evalChartDock->setVisible(true);
-    }
-
-    // ドックのサイズを調整（おおよその比率）
-    resizeDocks({m_menuWindowDock, m_recordPaneDock},
-                {250, 350}, Qt::Horizontal);
-    if (m_thinkingDock && m_evalChartDock) {
-        resizeDocks({m_thinkingDock, m_evalChartDock},
-                    {500, 400}, Qt::Horizontal);
+    ensureDockLayoutManager();
+    if (m_dockLayoutManager) {
+        m_dockLayoutManager->resetToDefault();
     }
 }
 
 void MainWindow::saveDockLayoutAs()
 {
-    bool ok;
-    QString name = QInputDialog::getText(this,
-        tr("ドックレイアウトを保存"),
-        tr("レイアウト名:"),
-        QLineEdit::Normal,
-        QString(),
-        &ok);
-
-    if (!ok || name.trimmed().isEmpty()) {
-        return;  // キャンセルまたは空の名前
+    ensureDockLayoutManager();
+    if (m_dockLayoutManager) {
+        m_dockLayoutManager->saveLayoutAs();
     }
-
-    name = name.trimmed();
-
-    // 既存のレイアウトがあれば上書き確認
-    QStringList existingNames = SettingsService::savedDockLayoutNames();
-    if (existingNames.contains(name)) {
-        QMessageBox::StandardButton reply = QMessageBox::question(this,
-            tr("確認"),
-            tr("「%1」は既に存在します。上書きしますか？").arg(name),
-            QMessageBox::Yes | QMessageBox::No);
-        if (reply != QMessageBox::Yes) {
-            return;
-        }
-    }
-
-    // 現在のドック状態を保存
-    QByteArray state = saveState();
-    SettingsService::saveDockLayout(name, state);
-
-    // メニューを更新
-    updateSavedLayoutsMenu();
-
-    QMessageBox::information(this, tr("保存完了"),
-        tr("レイアウト「%1」を保存しました。").arg(name));
 }
 
 void MainWindow::restoreSavedDockLayout(const QString& name)
 {
-    QByteArray state = SettingsService::loadDockLayout(name);
-    if (state.isEmpty()) {
-        QMessageBox::warning(this, tr("エラー"),
-            tr("レイアウト「%1」が見つかりません。").arg(name));
-        return;
+    ensureDockLayoutManager();
+    if (m_dockLayoutManager) {
+        m_dockLayoutManager->restoreLayout(name);
     }
-
-    // すべてのドックを表示状態にしてから復元
-    if (m_menuWindowDock) m_menuWindowDock->setVisible(true);
-    if (m_josekiWindowDock) m_josekiWindowDock->setVisible(true);
-    if (m_recordPaneDock) m_recordPaneDock->setVisible(true);
-    if (m_gameInfoDock) m_gameInfoDock->setVisible(true);
-    if (m_thinkingDock) m_thinkingDock->setVisible(true);
-    if (m_considerationDock) m_considerationDock->setVisible(true);
-    if (m_usiLogDock) m_usiLogDock->setVisible(true);
-    if (m_csaLogDock) m_csaLogDock->setVisible(true);
-    if (m_commentDock) m_commentDock->setVisible(true);
-    if (m_branchTreeDock) m_branchTreeDock->setVisible(true);
-    if (m_evalChartDock) m_evalChartDock->setVisible(true);
-
-    // 状態を復元
-    restoreState(state);
 }
 
 void MainWindow::deleteSavedDockLayout(const QString& name)
 {
-    QMessageBox::StandardButton reply = QMessageBox::question(this,
-        tr("確認"),
-        tr("レイアウト「%1」を削除しますか？").arg(name),
-        QMessageBox::Yes | QMessageBox::No);
-
-    if (reply == QMessageBox::Yes) {
-        SettingsService::deleteDockLayout(name);
-        updateSavedLayoutsMenu();
+    ensureDockLayoutManager();
+    if (m_dockLayoutManager) {
+        m_dockLayoutManager->deleteLayout(name);
     }
 }
 
 void MainWindow::setAsStartupLayout(const QString& name)
 {
-    SettingsService::setStartupDockLayoutName(name);
-    updateSavedLayoutsMenu();
-    QMessageBox::information(this, tr("設定完了"),
-        tr("レイアウト「%1」を起動時のレイアウトに設定しました。").arg(name));
+    ensureDockLayoutManager();
+    if (m_dockLayoutManager) {
+        m_dockLayoutManager->setAsStartupLayout(name);
+    }
 }
 
 void MainWindow::clearStartupLayout()
 {
-    SettingsService::setStartupDockLayoutName(QString());
-    updateSavedLayoutsMenu();
-    QMessageBox::information(this, tr("設定完了"),
-        tr("起動時のレイアウト設定をクリアしました。\n次回起動時はデフォルトレイアウトが使用されます。"));
+    ensureDockLayoutManager();
+    if (m_dockLayoutManager) {
+        m_dockLayoutManager->clearStartupLayout();
+    }
 }
 
 void MainWindow::restoreStartupLayoutIfSet()
 {
-    QString startupLayoutName = SettingsService::startupDockLayoutName();
-    if (!startupLayoutName.isEmpty()) {
-        QByteArray state = SettingsService::loadDockLayout(startupLayoutName);
-        if (!state.isEmpty()) {
-            // すべてのドックを表示状態にしてから復元
-            if (m_menuWindowDock) m_menuWindowDock->setVisible(true);
-            if (m_josekiWindowDock) m_josekiWindowDock->setVisible(true);
-            if (m_recordPaneDock) m_recordPaneDock->setVisible(true);
-            if (m_gameInfoDock) m_gameInfoDock->setVisible(true);
-            if (m_thinkingDock) m_thinkingDock->setVisible(true);
-            if (m_considerationDock) m_considerationDock->setVisible(true);
-            if (m_usiLogDock) m_usiLogDock->setVisible(true);
-            if (m_csaLogDock) m_csaLogDock->setVisible(true);
-            if (m_commentDock) m_commentDock->setVisible(true);
-            if (m_branchTreeDock) m_branchTreeDock->setVisible(true);
-            if (m_evalChartDock) m_evalChartDock->setVisible(true);
-
-            restoreState(state);
-            qDebug() << "[MainWindow] Restored startup layout:" << startupLayoutName;
-        }
+    ensureDockLayoutManager();
+    if (m_dockLayoutManager) {
+        m_dockLayoutManager->restoreStartupLayoutIfSet();
     }
 }
 
 void MainWindow::updateSavedLayoutsMenu()
 {
-    if (!m_savedLayoutsMenu) return;
-
-    m_savedLayoutsMenu->clear();
-
-    QStringList names = SettingsService::savedDockLayoutNames();
-    QString startupLayoutName = SettingsService::startupDockLayoutName();
-
-    if (names.isEmpty()) {
-        QAction* emptyAction = m_savedLayoutsMenu->addAction(tr("（保存済みレイアウトなし）"));
-        emptyAction->setEnabled(false);
-    } else {
-        for (const QString& name : std::as_const(names)) {
-            // レイアウト名（起動時レイアウトには★マーク）
-            QString displayName = name;
-            if (name == startupLayoutName) {
-                displayName = QStringLiteral("★ ") + name;
-            }
-
-            // 復元用サブメニュー
-            QMenu* layoutMenu = m_savedLayoutsMenu->addMenu(displayName);
-
-            // 復元アクション
-            QAction* restoreAction = layoutMenu->addAction(tr("復元"));
-            connect(restoreAction, &QAction::triggered, this, [this, name]() {
-                restoreSavedDockLayout(name);
-            });
-
-            // 起動時のレイアウトに設定
-            QAction* setStartupAction = layoutMenu->addAction(tr("起動時のレイアウトに設定"));
-            connect(setStartupAction, &QAction::triggered, this, [this, name]() {
-                setAsStartupLayout(name);
-            });
-
-            layoutMenu->addSeparator();
-
-            // 削除アクション
-            QAction* deleteAction = layoutMenu->addAction(tr("削除"));
-            connect(deleteAction, &QAction::triggered, this, [this, name]() {
-                deleteSavedDockLayout(name);
-            });
-        }
+    ensureDockLayoutManager();
+    if (m_dockLayoutManager) {
+        m_dockLayoutManager->updateSavedLayoutsMenu();
     }
-
-    // 起動時レイアウト設定のクリア
-    m_savedLayoutsMenu->addSeparator();
-    QAction* clearStartupAction = m_savedLayoutsMenu->addAction(tr("起動時のレイアウトをクリア"));
-    clearStartupAction->setEnabled(!startupLayoutName.isEmpty());
-    connect(clearStartupAction, &QAction::triggered, this, &MainWindow::clearStartupLayout);
 }
 
 void MainWindow::displayCsaGameDialog()
@@ -1519,60 +1089,7 @@ void MainWindow::displayTsumeShogiSearchDialog()
 
     ensureDialogCoordinator();
     if (m_dialogCoordinator) {
-        DialogCoordinator::TsumeSearchParams params;
-        params.sfenRecord = m_sfenRecord;
-        params.startSfenStr = m_startSfenStr;
-        params.positionStrList = m_positionStrList;
-        params.currentMoveIndex = qMax(0, m_currentMoveIndex);
-
-        // USI形式の指し手リストを取得（棋譜解析と同様のロジック）
-        // 1) 対局時のUSI形式指し手リストを優先
-        // 2) 棋譜読み込み時のUSI形式指し手リストを使用
-        const qsizetype sfenSize = m_sfenRecord ? m_sfenRecord->size() : 0;
-        qDebug().noquote() << "[MainWindow::displayTsumeShogiSearchDialog] sfenSize=" << sfenSize
-                           << "m_gameUsiMoves.size=" << m_gameUsiMoves.size()
-                           << "m_kifuLoadCoordinator=" << (m_kifuLoadCoordinator ? "exists" : "null");
-        if (!m_gameUsiMoves.isEmpty()) {
-            const qsizetype usiSize = m_gameUsiMoves.size();
-            qDebug().noquote() << "[MainWindow::displayTsumeShogiSearchDialog] checking m_gameUsiMoves: sfenSize=" << sfenSize << " usiSize=" << usiSize;
-            if (sfenSize == usiSize + 1) {
-                params.usiMoves = &m_gameUsiMoves;
-                qDebug().noquote() << "[MainWindow::displayTsumeShogiSearchDialog] using m_gameUsiMoves, size=" << usiSize;
-            } else {
-                qDebug().noquote() << "[MainWindow::displayTsumeShogiSearchDialog] m_gameUsiMoves size mismatch";
-            }
-        } else if (m_kifuLoadCoordinator) {
-            QStringList* kifuUsiMoves = m_kifuLoadCoordinator->kifuUsiMovesPtr();
-            const qsizetype usiSize = kifuUsiMoves ? kifuUsiMoves->size() : 0;
-            qDebug().noquote() << "[MainWindow::displayTsumeShogiSearchDialog] checking kifuUsiMoves: sfenSize=" << sfenSize << " usiSize=" << usiSize;
-            if (kifuUsiMoves) {
-                qDebug().noquote() << "[MainWindow::displayTsumeShogiSearchDialog] kifuUsiMoves content:" << *kifuUsiMoves;
-            }
-            if (sfenSize == usiSize + 1) {
-                params.usiMoves = kifuUsiMoves;
-                qDebug().noquote() << "[MainWindow::displayTsumeShogiSearchDialog] using kifuLoadCoordinator->kifuUsiMovesPtr(), size=" << usiSize;
-            } else {
-                qDebug().noquote() << "[MainWindow::displayTsumeShogiSearchDialog] kifuUsiMoves size mismatch (expected sfenSize == usiSize + 1)";
-            }
-        } else {
-            qDebug().noquote() << "[MainWindow::displayTsumeShogiSearchDialog] no usiMoves source available";
-        }
-
-        // 開始局面コマンドを決定（平手初期局面の場合は "startpos"、それ以外は "sfen ..."）
-        static const QString kHirateSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
-        if (m_startSfenStr.isEmpty() || m_startSfenStr == kHirateSfen) {
-            params.startPositionCmd = QStringLiteral("startpos");
-        } else {
-            params.startPositionCmd = QStringLiteral("sfen ") + m_startSfenStr;
-        }
-
-        qDebug().noquote() << "[MainWindow::displayTsumeShogiSearchDialog]"
-                           << "usiMoves=" << (params.usiMoves ? QString::number(params.usiMoves->size()) : "null")
-                           << "m_startSfenStr=" << m_startSfenStr.left(50)
-                           << "startPositionCmd=" << params.startPositionCmd
-                           << "currentMoveIndex=" << params.currentMoveIndex;
-
-        m_dialogCoordinator->showTsumeSearchDialog(params);
+        m_dialogCoordinator->showTsumeSearchDialogFromContext();
     }
 }
 
@@ -1601,36 +1118,30 @@ void MainWindow::displayKifuAnalysisDialog()
     ensureDialogCoordinator();
     if (!m_dialogCoordinator) return;
 
-    // 解析モデルとタブを設定
+    // 依存オブジェクトを確保
+    ensureGameInfoController();
+    ensureAnalysisPresenter();
+
+    // 解析に必要な依存オブジェクトを設定
     m_dialogCoordinator->setAnalysisModel(m_analysisModel);
     m_dialogCoordinator->setAnalysisTab(m_analysisTab);
     m_dialogCoordinator->setUsiEngine(m_usi1);
     m_dialogCoordinator->setLogModel(m_lineEditModel1);
     m_dialogCoordinator->setThinkingModel(m_modelThinking1);
 
-    // 解析進捗シグナルを接続
-    QObject::connect(m_dialogCoordinator, &DialogCoordinator::analysisProgressReported,
-                     this, &MainWindow::onKifuAnalysisProgress, Qt::UniqueConnection);
-    
-    // 解析結果行選択シグナルを接続（棋譜欄・将棋盤・分岐ツリー連動用）
-    QObject::connect(m_dialogCoordinator, &DialogCoordinator::analysisResultRowSelected,
-                     this, &MainWindow::onKifuAnalysisResultRowSelected, Qt::UniqueConnection);
-
-    // コンテキストを設定
-    ensureGameInfoController();
-    ensureAnalysisPresenter();  // プレゼンターを確保
-    DialogCoordinator::KifuAnalysisContext ctx;
-    ctx.sfenRecord = m_sfenRecord;
-    ctx.moveRecords = m_moveRecords;
-    ctx.recordModel = m_kifuRecordModel;
-    ctx.activePly = &m_activePly;
-    ctx.gameController = m_gameController;
-    ctx.gameInfoController = m_gameInfoController;
-    ctx.kifuLoadCoordinator = m_kifuLoadCoordinator;
-    ctx.evalChart = m_evalChart;
-    ctx.gameUsiMoves = &m_gameUsiMoves;  // 対局時のUSI形式指し手リスト
-    ctx.presenter = m_analysisPresenter;  // 結果表示用プレゼンター
-    m_dialogCoordinator->setKifuAnalysisContext(ctx);
+    // 棋譜解析コンテキストを更新（遅延初期化されたオブジェクトを反映）
+    DialogCoordinator::KifuAnalysisContext kifuCtx;
+    kifuCtx.sfenRecord = m_sfenRecord;
+    kifuCtx.moveRecords = m_moveRecords;
+    kifuCtx.recordModel = m_kifuRecordModel;
+    kifuCtx.activePly = &m_activePly;
+    kifuCtx.gameController = m_gameController;
+    kifuCtx.gameInfoController = m_gameInfoController;
+    kifuCtx.kifuLoadCoordinator = m_kifuLoadCoordinator;
+    kifuCtx.evalChart = m_evalChart;
+    kifuCtx.gameUsiMoves = &m_gameUsiMoves;
+    kifuCtx.presenter = m_analysisPresenter;
+    m_dialogCoordinator->setKifuAnalysisContext(kifuCtx);
 
     // コンテキストから自動パラメータ構築してダイアログを表示
     m_dialogCoordinator->showKifuAnalysisDialogFromContext();
@@ -2088,33 +1599,12 @@ void MainWindow::onReverseTriggered()
 
 void MainWindow::onDocksLockToggled(bool locked)
 {
-    // 固定時: ドッキング禁止、フローティング禁止、移動禁止
-    // 非固定時: 全て許可
-    const Qt::DockWidgetAreas areas = locked ? Qt::NoDockWidgetArea : Qt::AllDockWidgetAreas;
-    const QDockWidget::DockWidgetFeatures features = locked
-        ? QDockWidget::DockWidgetClosable  // 固定時は閉じるのみ許可
-        : (QDockWidget::DockWidgetClosable | QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
-
-    // 全ドックに設定を適用するラムダ
-    auto applyToAllDocks = [&](QDockWidget* dock) {
-        if (dock) {
-            dock->setAllowedAreas(areas);
-            dock->setFeatures(features);
-        }
-    };
-
-    applyToAllDocks(m_evalChartDock);
-    applyToAllDocks(m_recordPaneDock);
-    applyToAllDocks(m_gameInfoDock);
-    applyToAllDocks(m_thinkingDock);
-    applyToAllDocks(m_considerationDock);
-    applyToAllDocks(m_usiLogDock);
-    applyToAllDocks(m_csaLogDock);
-    applyToAllDocks(m_commentDock);
-    applyToAllDocks(m_branchTreeDock);
-    applyToAllDocks(m_menuWindowDock);
-    applyToAllDocks(m_josekiWindowDock);
-    applyToAllDocks(m_analysisResultsDock);
+    ensureDockLayoutManager();
+    if (m_dockLayoutManager) {
+        // AnalysisResultsドックも登録（遅延生成のため毎回チェック）
+        m_dockLayoutManager->registerDock(DockLayoutManager::DockType::AnalysisResults, m_analysisResultsDock);
+        m_dockLayoutManager->setDocksLocked(locked);
+    }
 
     // 設定を保存
     SettingsService::setDocksLocked(locked);
@@ -2470,114 +1960,44 @@ void MainWindow::applyResolvedRowAndSelect(int row, int selPly)
     updateJosekiWindow();
 }
 
-// --- INavigationContext の実装 ---
-bool MainWindow::hasResolvedRows() const
+// --- INavigationContext アクセス（NavigationContextAdapterへ委譲）---
+INavigationContext* MainWindow::navigationContext() const
 {
-    return !m_resolvedRows.isEmpty();
+    // const_castを使用して非constメソッドから初期化
+    // navigationContext()の呼び出し時に確実にアダプターが存在するようにする
+    const_cast<MainWindow*>(this)->ensureNavigationContextAdapter();
+    return m_navContextAdapter;
 }
 
-int MainWindow::resolvedRowCount() const
+KifuExportController* MainWindow::kifuExportController()
 {
-    return static_cast<int>(m_resolvedRows.size());
+    ensureKifuExportController();
+    return m_kifuExportController;
 }
 
-int MainWindow::activeResolvedRow() const
+void MainWindow::ensureNavigationContextAdapter()
 {
-    return m_activeResolvedRow;
-}
+    if (m_navContextAdapter) return;
 
-int MainWindow::maxPlyAtRow(int row) const
-{
-    if (m_resolvedRows.isEmpty()) {
-        // ライブ（解決済み行なし）のとき：
-        // - SFEN: 「開始局面 + 実手数」なので終局行（投了/時間切れ）は含まれない → size()-1
-        // - 棋譜欄: 「実手 + 終局行（あれば）」が入る → rowCount()-1
-        // 末尾へ進める上限は「どちらか大きい方」を採用する。
-        const int sfenMax = (m_sfenRecord && !m_sfenRecord->isEmpty())
-                                ? static_cast<int>(m_sfenRecord->size() - 1)
-                                : 0;
-        const int kifuMax = (m_kifuRecordModel && m_kifuRecordModel->rowCount() > 0)
-                                ? (m_kifuRecordModel->rowCount() - 1)
-                                : 0;
-        const int result = qMax(sfenMax, kifuMax);
-        qDebug().noquote() << "[MW-DEBUG] maxPlyAtRow (live): row=" << row
-                           << "sfenMax=" << sfenMax << "kifuMax=" << kifuMax
-                           << "result=" << result;
-        return result;
-    }
+    m_navContextAdapter = new NavigationContextAdapter(this);
 
-    // 既に解決済み行がある（棋譜ファイル読み込み後など）のとき：
-    // その行に表示するエントリ数（disp.size()）が末尾。
-    const int clamped = static_cast<int>(qBound(qsizetype(0), qsizetype(row), m_resolvedRows.size() - 1));
-    const int result = static_cast<int>(m_resolvedRows[clamped].disp.size());
-    qDebug().noquote() << "[MW-DEBUG] maxPlyAtRow (resolved): row=" << row
-                       << "clamped=" << clamped << "result=" << result;
-    return result;
-}
+    NavigationContextAdapter::Deps deps;
+    deps.resolvedRows = &m_resolvedRows;
+    deps.activeResolvedRow = &m_activeResolvedRow;
+    deps.sfenRecord = &m_sfenRecord;           // pointer to pointer
+    deps.kifuRecordModel = &m_kifuRecordModel; // pointer to pointer
+    deps.recordNavController = &m_recordNavController;  // pointer to pointer
+    deps.recordPane = &m_recordPane;           // pointer to pointer
+    deps.replayController = &m_replayController;  // pointer to pointer
+    deps.activePly = &m_activePly;
+    deps.currentSelectedPly = &m_currentSelectedPly;
+    deps.currentSfenStr = &m_currentSfenStr;
+    m_navContextAdapter->setDeps(deps);
 
-int MainWindow::currentPly() const
-{
-    // ★ リプレイ／再開（ライブ追記）中は UI 側のトラッキング値を優先
-    const bool liveAppend = m_replayController ? m_replayController->isLiveAppendMode() : false;
-
-    qDebug().noquote() << "[MW-DEBUG] currentPly(): liveAppend=" << liveAppend
-                       << "m_currentSelectedPly=" << m_currentSelectedPly
-                       << "m_activePly=" << m_activePly;
-
-    if (liveAppend) {
-        if (m_currentSelectedPly >= 0) {
-            qDebug().noquote() << "[MW-DEBUG] currentPly() returning m_currentSelectedPly=" << m_currentSelectedPly;
-            return m_currentSelectedPly;
-        }
-
-        // 念のためビューの currentIndex もフォールバックに
-        const QTableView* view = (m_recordPane ? m_recordPane->kifuView() : nullptr);
-        if (view) {
-            const QModelIndex cur = view->currentIndex();
-            if (cur.isValid()) {
-                int result = qMax(0, cur.row());
-                qDebug().noquote() << "[MW-DEBUG] currentPly() (liveAppend) returning view.currentIndex.row=" << result;
-                return result;
-            }
-        }
-        qDebug().noquote() << "[MW-DEBUG] currentPly() (liveAppend) returning 0 (fallback)";
-        return 0;
-    }
-
-    // 通常時は従来通り m_activePly を優先
-    if (m_activePly >= 0) {
-        qDebug().noquote() << "[MW-DEBUG] currentPly() returning m_activePly=" << m_activePly;
-        return m_activePly;
-    }
-
-    const QTableView* view = (m_recordPane ? m_recordPane->kifuView() : nullptr);
-    if (view) {
-        const QModelIndex cur = view->currentIndex();
-        if (cur.isValid()) {
-            int result = qMax(0, cur.row());
-            qDebug().noquote() << "[MW-DEBUG] currentPly() returning view.currentIndex.row=" << result;
-            return result;
-        }
-    }
-    qDebug().noquote() << "[MW-DEBUG] currentPly() returning 0 (final fallback)";
-    return 0;
-}
-
-void MainWindow::applySelect(int row, int ply)
-{
-    ensureRecordNavigationController();
-    if (m_recordNavController) {
-        m_recordNavController->applySelect(row, ply);
-    }
-    
-    // m_currentSfenStrを選択した局面に更新
-    if (m_sfenRecord && ply >= 0 && ply < m_sfenRecord->size()) {
-        m_currentSfenStr = m_sfenRecord->at(ply);
-        qDebug() << "[JosekiWindow] applySelect: row=" << row << "ply=" << ply << "sfen=" << m_currentSfenStr;
-    }
-    
-    // 定跡ウィンドウを更新
-    updateJosekiWindow();
+    NavigationContextAdapter::Callbacks callbacks;
+    callbacks.updateJosekiWindow = [this]() { updateJosekiWindow(); };
+    callbacks.ensureRecordNavController = [this]() { ensureRecordNavigationController(); };
+    m_navContextAdapter->setCallbacks(callbacks);
 }
 
 void MainWindow::setupRecordPane()
@@ -2591,7 +2011,7 @@ void MainWindow::setupRecordPane()
         RecordPaneWiring::Deps d;
         d.parent      = m_central;                               // 親ウィジェット
         d.ctx         = this;                                    // RecordPane::mainRowChanged の受け先
-        d.navCtx      = dynamic_cast<INavigationContext*>(this); // NavigationController 用
+        d.navCtx      = navigationContext(); // NavigationController 用
         d.recordModel = m_kifuRecordModel;
         d.branchModel = m_kifuBranchModel;
 
@@ -3530,6 +2950,41 @@ void MainWindow::ensureDialogCoordinator()
     m_dialogCoordinator->setMatchCoordinator(m_match);
     m_dialogCoordinator->setGameController(m_gameController);
 
+    // 検討コンテキストを設定
+    DialogCoordinator::ConsiderationContext conCtx;
+    conCtx.gameController = m_gameController;
+    conCtx.gameMoves = &m_gameMoves;
+    conCtx.currentMoveIndex = &m_currentMoveIndex;
+    conCtx.kifuRecordModel = m_kifuRecordModel;
+    conCtx.sfenRecord = m_sfenRecord;
+    conCtx.startSfenStr = &m_startSfenStr;
+    conCtx.considerationModel = &m_considerationModel;
+    m_dialogCoordinator->setConsiderationContext(conCtx);
+
+    // 詰み探索コンテキストを設定
+    DialogCoordinator::TsumeSearchContext tsumeCtx;
+    tsumeCtx.sfenRecord = m_sfenRecord;
+    tsumeCtx.startSfenStr = &m_startSfenStr;
+    tsumeCtx.positionStrList = &m_positionStrList;
+    tsumeCtx.currentMoveIndex = &m_currentMoveIndex;
+    tsumeCtx.gameUsiMoves = &m_gameUsiMoves;
+    tsumeCtx.kifuLoadCoordinator = m_kifuLoadCoordinator;
+    m_dialogCoordinator->setTsumeSearchContext(tsumeCtx);
+
+    // 棋譜解析コンテキストを設定
+    DialogCoordinator::KifuAnalysisContext kifuCtx;
+    kifuCtx.sfenRecord = m_sfenRecord;
+    kifuCtx.moveRecords = m_moveRecords;
+    kifuCtx.recordModel = m_kifuRecordModel;
+    kifuCtx.activePly = &m_activePly;
+    kifuCtx.gameController = m_gameController;
+    kifuCtx.gameInfoController = m_gameInfoController;
+    kifuCtx.kifuLoadCoordinator = m_kifuLoadCoordinator;
+    kifuCtx.evalChart = m_evalChart;
+    kifuCtx.gameUsiMoves = &m_gameUsiMoves;
+    kifuCtx.presenter = m_analysisPresenter;
+    m_dialogCoordinator->setKifuAnalysisContext(kifuCtx);
+
     // 検討モード開始時に検討タブへ切り替え
     connect(m_dialogCoordinator, &DialogCoordinator::considerationModeStarted,
             this, &MainWindow::onConsiderationModeStarted);
@@ -3541,6 +2996,14 @@ void MainWindow::ensureDialogCoordinator()
     // 検討ダイアログでMultiPVが設定されたとき
     connect(m_dialogCoordinator, &DialogCoordinator::considerationMultiPVReady,
             this, &MainWindow::onConsiderationDialogMultiPVReady);
+
+    // 解析進捗シグナルを接続
+    connect(m_dialogCoordinator, &DialogCoordinator::analysisProgressReported,
+            this, &MainWindow::onKifuAnalysisProgress);
+
+    // 解析結果行選択シグナルを接続（棋譜欄・将棋盤・分岐ツリー連動用）
+    connect(m_dialogCoordinator, &DialogCoordinator::analysisResultRowSelected,
+            this, &MainWindow::onKifuAnalysisResultRowSelected);
 }
 
 void MainWindow::ensureKifuExportController()
@@ -3548,6 +3011,12 @@ void MainWindow::ensureKifuExportController()
     if (m_kifuExportController) return;
 
     m_kifuExportController = new KifuExportController(this, this);
+
+    // 準備コールバックを設定（クリップボードコピー等の前に呼ばれる）
+    m_kifuExportController->setPrepareCallback([this]() {
+        ensureGameRecordModel();
+        updateKifuExportDependencies();
+    });
 
     // ステータスバーへのメッセージ転送
     connect(m_kifuExportController, &KifuExportController::statusMessage,
@@ -4213,83 +3682,14 @@ void MainWindow::onRecordRowChangedByPresenter(int row, const QString& comment)
     }
 
     // 検討モード中であれば、選択した手の局面で検討を再開
-    qDebug().noquote() << "[MW] onRecordRowChangedByPresenter: checking consideration mode:"
-                       << "playMode=" << static_cast<int>(m_playMode)
-                       << "(ConsiderationMode=" << static_cast<int>(PlayMode::ConsiderationMode) << ")"
-                       << "m_match=" << (m_match ? "valid" : "null");
-    if (m_playMode == PlayMode::ConsiderationMode && m_match) {
+    if (m_playMode == PlayMode::ConsiderationMode) {
         const QString newPosition = buildPositionStringForIndex(row);
-        qDebug().noquote() << "[MW] Consideration update: row=" << row
-                           << " newPosition.isEmpty=" << newPosition.isEmpty()
-                           << " newPosition=" << newPosition.left(80);
-        if (!newPosition.isEmpty()) {
-            qDebug() << "[MW-DEBUG] Consideration mode: restarting with new position at row=" << row;
-
-            // 選択した手の移動先を取得（「同」表記のため）
-            int previousFileTo = 0;
-            int previousRankTo = 0;
-            if (row >= 0 && row < m_gameMoves.size()) {
-                const QPoint& toSquare = m_gameMoves.at(row).toSquare;
-                previousFileTo = toSquare.x();
-                previousRankTo = toSquare.y();
-            } else if (m_kifuRecordModel && row > 0 && row < m_kifuRecordModel->rowCount()) {
-                // 棋譜読み込み時: 棋譜モデルから座標を解析
-                const QModelIndex idx = m_kifuRecordModel->index(row, 0);
-                const QString moveLabel = m_kifuRecordModel->data(idx, Qt::DisplayRole).toString();
-                static const QString senteMark = QStringLiteral("▲");
-                static const QString goteMark = QStringLiteral("△");
-                qsizetype markPos = moveLabel.indexOf(senteMark);
-                if (markPos < 0) markPos = moveLabel.indexOf(goteMark);
-                if (markPos >= 0 && moveLabel.length() > markPos + 2) {
-                    QString afterMark = moveLabel.mid(markPos + 1);
-                    if (!afterMark.startsWith(QStringLiteral("同"))) {
-                        QChar fileChar = afterMark.at(0);
-                        QChar rankChar = afterMark.at(1);
-                        if (fileChar >= QChar(0xFF11) && fileChar <= QChar(0xFF19)) {
-                            previousFileTo = fileChar.unicode() - 0xFF11 + 1;
-                        }
-                        static const QString kanjiRanks = QStringLiteral("一二三四五六七八九");
-                        qsizetype rankIdxPos = kanjiRanks.indexOf(rankChar);
-                        if (rankIdxPos >= 0) {
-                            previousRankTo = static_cast<int>(rankIdxPos) + 1;
-                        }
-                    } else {
-                        // 「同」の場合は遡って座標を取得
-                        for (int i = row - 1; i > 0; --i) {
-                            const QModelIndex prevIdx = m_kifuRecordModel->index(i, 0);
-                            const QString prevLabel = m_kifuRecordModel->data(prevIdx, Qt::DisplayRole).toString();
-                            qsizetype prevMarkPos = prevLabel.indexOf(senteMark);
-                            if (prevMarkPos < 0) prevMarkPos = prevLabel.indexOf(goteMark);
-                            if (prevMarkPos >= 0 && prevLabel.length() > prevMarkPos + 2) {
-                                QString prevAfterMark = prevLabel.mid(prevMarkPos + 1);
-                                if (!prevAfterMark.startsWith(QStringLiteral("同"))) {
-                                    QChar fileChar = prevAfterMark.at(0);
-                                    QChar rankChar = prevAfterMark.at(1);
-                                    if (fileChar >= QChar(0xFF11) && fileChar <= QChar(0xFF19)) {
-                                        previousFileTo = fileChar.unicode() - 0xFF11 + 1;
-                                    }
-                                    static const QString kanjiRanks = QStringLiteral("一二三四五六七八九");
-                                    qsizetype rankIdxPos = kanjiRanks.indexOf(rankChar);
-                                    if (rankIdxPos >= 0) {
-                                        previousRankTo = static_cast<int>(rankIdxPos) + 1;
-                                    }
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            const bool updated = m_match->updateConsiderationPosition(newPosition, previousFileTo, previousRankTo);
-            qDebug().noquote() << "[MW] updateConsiderationPosition returned:" << updated
-                               << "previousFileTo=" << previousFileTo << "previousRankTo=" << previousRankTo;
-            if (updated) {
-                // ポジションが変更された場合、経過時間タイマーをリセットして再開
-                if (m_analysisTab) {
-                    m_analysisTab->startElapsedTimer();
-                }
-            }
+        ensureConsiderationUIController();
+        if (m_considerationUIController) {
+            m_considerationUIController->setMatchCoordinator(m_match);
+            m_considerationUIController->setAnalysisTab(m_analysisTab);
+            m_considerationUIController->updatePositionIfInConsiderationMode(
+                row, newPosition, &m_gameMoves, m_kifuRecordModel);
         }
     }
 }
@@ -4426,52 +3826,8 @@ void MainWindow::onRecordPaneMainRowChanged(int row)
                 previousFileTo = toSquare.x();
                 previousRankTo = toSquare.y();
             } else if (m_kifuRecordModel && row > 0 && row < m_kifuRecordModel->rowCount()) {
-                // 棋譜読み込み時: 棋譜モデルから座標を解析
-                const QModelIndex idx = m_kifuRecordModel->index(row, 0);
-                const QString moveLabel = m_kifuRecordModel->data(idx, Qt::DisplayRole).toString();
-                static const QString senteMark = QStringLiteral("▲");
-                static const QString goteMark = QStringLiteral("△");
-                qsizetype markPos = moveLabel.indexOf(senteMark);
-                if (markPos < 0) markPos = moveLabel.indexOf(goteMark);
-                if (markPos >= 0 && moveLabel.length() > markPos + 2) {
-                    QString afterMark = moveLabel.mid(markPos + 1);
-                    if (!afterMark.startsWith(QStringLiteral("同"))) {
-                        QChar fileChar = afterMark.at(0);
-                        QChar rankChar = afterMark.at(1);
-                        if (fileChar >= QChar(0xFF11) && fileChar <= QChar(0xFF19)) {
-                            previousFileTo = fileChar.unicode() - 0xFF11 + 1;
-                        }
-                        static const QString kanjiRanks = QStringLiteral("一二三四五六七八九");
-                        qsizetype rankIdxPos = kanjiRanks.indexOf(rankChar);
-                        if (rankIdxPos >= 0) {
-                            previousRankTo = static_cast<int>(rankIdxPos) + 1;
-                        }
-                    } else {
-                        // 「同」の場合は遡って座標を取得
-                        for (int i = row - 1; i > 0; --i) {
-                            const QModelIndex prevIdx = m_kifuRecordModel->index(i, 0);
-                            const QString prevLabel = m_kifuRecordModel->data(prevIdx, Qt::DisplayRole).toString();
-                            qsizetype prevMarkPos = prevLabel.indexOf(senteMark);
-                            if (prevMarkPos < 0) prevMarkPos = prevLabel.indexOf(goteMark);
-                            if (prevMarkPos >= 0 && prevLabel.length() > prevMarkPos + 2) {
-                                QString prevAfterMark = prevLabel.mid(prevMarkPos + 1);
-                                if (!prevAfterMark.startsWith(QStringLiteral("同"))) {
-                                    QChar fileChar = prevAfterMark.at(0);
-                                    QChar rankChar = prevAfterMark.at(1);
-                                    if (fileChar >= QChar(0xFF11) && fileChar <= QChar(0xFF19)) {
-                                        previousFileTo = fileChar.unicode() - 0xFF11 + 1;
-                                    }
-                                    static const QString kanjiRanks = QStringLiteral("一二三四五六七八九");
-                                    qsizetype rankIdxPos = kanjiRanks.indexOf(rankChar);
-                                    if (rankIdxPos >= 0) {
-                                        previousRankTo = static_cast<int>(rankIdxPos) + 1;
-                                    }
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
+                // 棋譜読み込み時: ShogiUtilsを使用して座標を解析（「同」の場合は自動的に遡る）
+                ShogiUtils::parseMoveCoordinateFromModel(m_kifuRecordModel, row, &previousFileTo, &previousRankTo);
             }
 
             if (m_match->updateConsiderationPosition(newPosition, previousFileTo, previousRankTo)) {
@@ -4734,88 +4090,7 @@ void MainWindow::autoSaveKifuToFile(const QString& saveDir, PlayMode playMode,
 }
 
 // KIF形式で棋譜をクリップボードにコピー
-void MainWindow::copyKifToClipboard()
-{
-    ensureGameRecordModel();
-    ensureKifuExportController();
-    updateKifuExportDependencies();
-    m_kifuExportController->copyKifToClipboard();
-}
-
-// KI2形式で棋譜をクリップボードにコピー
-void MainWindow::copyKi2ToClipboard()
-{
-    ensureGameRecordModel();
-    ensureKifuExportController();
-    updateKifuExportDependencies();
-    m_kifuExportController->copyKi2ToClipboard();
-}
-
-// CSA形式で棋譜をクリップボードにコピー
-void MainWindow::copyCsaToClipboard()
-{
-    ensureGameRecordModel();
-    ensureKifuExportController();
-    updateKifuExportDependencies();
-    m_kifuExportController->copyCsaToClipboard();
-}
-
-// USI形式（全て）で棋譜をクリップボードにコピー
-void MainWindow::copyUsiToClipboard()
-{
-    ensureGameRecordModel();
-    ensureKifuExportController();
-    updateKifuExportDependencies();
-    m_kifuExportController->copyUsiToClipboard();
-}
-
-// USI形式（現在の指し手まで）で棋譜をクリップボードにコピー
-void MainWindow::copyUsiCurrentToClipboard()
-{
-    ensureGameRecordModel();
-    ensureKifuExportController();
-    updateKifuExportDependencies();
-    m_kifuExportController->copyUsiCurrentToClipboard();
-}
-
-// JKF形式で棋譜をクリップボードにコピー
-void MainWindow::copyJkfToClipboard()
-{
-    ensureGameRecordModel();
-    ensureKifuExportController();
-    updateKifuExportDependencies();
-    m_kifuExportController->copyJkfToClipboard();
-}
-
-// USEN形式で棋譜をクリップボードにコピー
-void MainWindow::copyUsenToClipboard()
-{
-    ensureGameRecordModel();
-    ensureKifuExportController();
-    updateKifuExportDependencies();
-    m_kifuExportController->copyUsenToClipboard();
-}
-
-// SFEN形式で局面をクリップボードにコピー
-void MainWindow::copySfenToClipboard()
-{
-    ensureGameRecordModel();
-    ensureKifuExportController();
-    updateKifuExportDependencies();
-    m_kifuExportController->copySfenToClipboard();
-}
-
-// BOD形式で局面をクリップボードにコピー
-void MainWindow::copyBodToClipboard()
-{
-    ensureGameRecordModel();
-    ensureKifuExportController();
-    updateKifuExportDependencies();
-    m_kifuExportController->copyBodToClipboard();
-}
-
-
-// ★ 追加: クリップボードから棋譜を貼り付け
+// ★ クリップボードから棋譜を貼り付け
 void MainWindow::pasteKifuFromClipboard()
 {
     KifuPasteDialog* dlg = new KifuPasteDialog(this);
@@ -5069,44 +4344,6 @@ void MainWindow::onJosekiForcedPromotion(bool forced, bool promote)
 // 言語設定
 // =============================================================================
 
-void MainWindow::updateLanguageMenuState()
-{
-    ensureLanguageController();
-    if (m_languageController) {
-        m_languageController->updateMenuState();
-    }
-}
-
-void MainWindow::changeLanguage(const QString& lang)
-{
-    Q_UNUSED(lang);
-    // LanguageControllerに委譲
-}
-
-void MainWindow::onLanguageSystemTriggered()
-{
-    ensureLanguageController();
-    if (m_languageController) {
-        m_languageController->onSystemLanguageTriggered();
-    }
-}
-
-void MainWindow::onLanguageJapaneseTriggered()
-{
-    ensureLanguageController();
-    if (m_languageController) {
-        m_languageController->onJapaneseTriggered();
-    }
-}
-
-void MainWindow::onLanguageEnglishTriggered()
-{
-    ensureLanguageController();
-    if (m_languageController) {
-        m_languageController->onEnglishTriggered();
-    }
-}
-
 void MainWindow::onToolBarVisibilityToggled(bool visible)
 {
     if (ui->toolBar) {
@@ -5167,142 +4404,71 @@ void MainWindow::ensureLanguageController()
         ui->actionLanguageEnglish);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 矢印表示機能（検討機能用）
-// ─────────────────────────────────────────────────────────────────────────────
-
-// USI形式の指し手（例: "7g7f", "P*3c"）から座標を取得
-// 戻り値: 解析成功ならtrue、駒打ちの場合はfromFile/fromRankが0になる
-bool MainWindow::parseUsiMove(const QString& usiMove, int& fromFile, int& fromRank, int& toFile, int& toRank) const
+void MainWindow::ensureConsiderationUIController()
 {
-    if (usiMove.isEmpty()) return false;
+    if (m_considerationUIController) return;
 
-    // 駒打ちの場合: "P*3c" のような形式
-    if (usiMove.length() >= 4 && usiMove.at(1) == '*') {
-        fromFile = 0;
-        fromRank = 0;
-        // 移動先の座標を取得
-        QChar toFileChar = usiMove.at(2);
-        QChar toRankChar = usiMove.at(3);
-        if (toFileChar >= '1' && toFileChar <= '9' && toRankChar >= 'a' && toRankChar <= 'i') {
-            toFile = toFileChar.digitValue();
-            toRank = toRankChar.toLatin1() - 'a' + 1;
-            return true;
-        }
-        return false;
-    }
+    m_considerationUIController = new ConsiderationModeUIController(this);
+    m_considerationUIController->setAnalysisTab(m_analysisTab);
+    m_considerationUIController->setShogiView(m_shogiView);
+    m_considerationUIController->setMatchCoordinator(m_match);
+    m_considerationUIController->setConsiderationModel(m_considerationModel);
+    m_considerationUIController->setCommLogModel(m_lineEditModel1);
 
-    // 通常の指し手: "7g7f" のような形式
-    if (usiMove.length() >= 4) {
-        QChar fromFileChar = usiMove.at(0);
-        QChar fromRankChar = usiMove.at(1);
-        QChar toFileChar = usiMove.at(2);
-        QChar toRankChar = usiMove.at(3);
-
-        if (fromFileChar >= '1' && fromFileChar <= '9' &&
-            fromRankChar >= 'a' && fromRankChar <= 'i' &&
-            toFileChar >= '1' && toFileChar <= '9' &&
-            toRankChar >= 'a' && toRankChar <= 'i') {
-            fromFile = fromFileChar.digitValue();
-            fromRank = fromRankChar.toLatin1() - 'a' + 1;
-            toFile = toFileChar.digitValue();
-            toRank = toRankChar.toLatin1() - 'a' + 1;
-            return true;
-        }
-    }
-
-    return false;
+    // コントローラからのシグナルをMainWindowスロットに接続
+    connect(m_considerationUIController, &ConsiderationModeUIController::stopRequested,
+            this, &MainWindow::stopTsumeSearch);
+    connect(m_considerationUIController, &ConsiderationModeUIController::startRequested,
+            this, &MainWindow::displayConsiderationDialog);
+    connect(m_considerationUIController, &ConsiderationModeUIController::multiPVChangeRequested,
+            this, [this](int value) {
+                if (m_match && m_playMode == PlayMode::ConsiderationMode) {
+                    m_match->updateConsiderationMultiPV(value);
+                }
+            });
 }
 
-// 検討モデルから矢印を更新
+void MainWindow::ensureDockLayoutManager()
+{
+    if (m_dockLayoutManager) return;
+
+    m_dockLayoutManager = new DockLayoutManager(this, this);
+
+    // ドックを登録
+    m_dockLayoutManager->registerDock(DockLayoutManager::DockType::Menu, m_menuWindowDock);
+    m_dockLayoutManager->registerDock(DockLayoutManager::DockType::Joseki, m_josekiWindowDock);
+    m_dockLayoutManager->registerDock(DockLayoutManager::DockType::Record, m_recordPaneDock);
+    m_dockLayoutManager->registerDock(DockLayoutManager::DockType::GameInfo, m_gameInfoDock);
+    m_dockLayoutManager->registerDock(DockLayoutManager::DockType::Thinking, m_thinkingDock);
+    m_dockLayoutManager->registerDock(DockLayoutManager::DockType::Consideration, m_considerationDock);
+    m_dockLayoutManager->registerDock(DockLayoutManager::DockType::UsiLog, m_usiLogDock);
+    m_dockLayoutManager->registerDock(DockLayoutManager::DockType::CsaLog, m_csaLogDock);
+    m_dockLayoutManager->registerDock(DockLayoutManager::DockType::Comment, m_commentDock);
+    m_dockLayoutManager->registerDock(DockLayoutManager::DockType::BranchTree, m_branchTreeDock);
+    m_dockLayoutManager->registerDock(DockLayoutManager::DockType::EvalChart, m_evalChartDock);
+
+    // 保存済みレイアウトメニューを設定
+    m_dockLayoutManager->setSavedLayoutsMenu(m_savedLayoutsMenu);
+}
+
+// 検討モデルから矢印を更新（コントローラに委譲）
 void MainWindow::updateConsiderationArrows()
 {
-    if (!m_shogiView) return;
-
-    // 矢印表示がOFFの場合はクリアして終了
-    if (!m_showConsiderationArrows) {
-        m_shogiView->clearArrows();
-        return;
+    ensureConsiderationUIController();
+    if (m_considerationUIController) {
+        m_considerationUIController->setShogiView(m_shogiView);
+        m_considerationUIController->setAnalysisTab(m_analysisTab);
+        m_considerationUIController->setConsiderationModel(m_considerationModel);
+        m_considerationUIController->setCurrentSfenStr(m_currentSfenStr);
+        m_considerationUIController->updateArrows();
     }
-
-    // 検討モデルがない場合はクリアして終了
-    if (!m_considerationModel || m_considerationModel->rowCount() == 0) {
-        m_shogiView->clearArrows();
-        return;
-    }
-
-    // 「矢印表示」チェックボックスの状態を確認
-    if (m_analysisTab && !m_analysisTab->isShowArrowsChecked()) {
-        m_shogiView->clearArrows();
-        return;
-    }
-
-    QVector<ShogiView::Arrow> arrows;
-
-    // 検討モデルの各行から読み筋の最初の指し手を取得して矢印を作成
-    const int rowCount = m_considerationModel->rowCount();
-    for (int row = 0; row < rowCount; ++row) {
-        QString usiPv = m_considerationModel->usiPvAt(row);
-        if (usiPv.isEmpty()) continue;
-
-        // 読み筋の最初の指し手を取得（スペース区切り）
-        QString firstMove = usiPv.split(' ').first();
-        if (firstMove.isEmpty()) continue;
-
-        int fromFile = 0, fromRank = 0, toFile = 0, toRank = 0;
-        if (!parseUsiMove(firstMove, fromFile, fromRank, toFile, toRank)) continue;
-
-        ShogiView::Arrow arrow;
-        arrow.fromFile = fromFile;
-        arrow.fromRank = fromRank;
-        arrow.toFile = toFile;
-        arrow.toRank = toRank;
-        arrow.priority = row + 1;  // 優先順位（1が最善手）
-
-        // 駒打ちの場合は打つ駒を設定（USI形式: "P*3c" → 'P'）
-        if (fromFile == 0 || fromRank == 0) {
-            if (firstMove.length() >= 1) {
-                // USI形式の駒打ちは "P*3c" のような形式
-                // 最初の文字が駒種（大文字）
-                QChar usiPiece = firstMove.at(0);
-
-                // 現在の手番を確認（SFENの手番フィールドを使用）
-                // SFENフォーマット: "position sfen ... b ..." (b=先手, w=後手)
-                bool isBlackTurn = true;  // デフォルトは先手
-                if (!m_currentSfenStr.isEmpty()) {
-                    // SFENの手番フィールドを探す（スペース区切りの2番目）
-                    QStringList sfenParts = m_currentSfenStr.split(' ');
-                    if (sfenParts.size() >= 2) {
-                        isBlackTurn = (sfenParts.at(1) == "b");
-                    }
-                }
-
-                // USI形式では P=歩, L=香, N=桂, S=銀, G=金, B=角, R=飛
-                // ShogiViewの駒文字は 先手:大文字, 後手:小文字
-                if (isBlackTurn) {
-                    arrow.dropPiece = usiPiece;  // 先手は大文字
-                } else {
-                    arrow.dropPiece = usiPiece.toLower();  // 後手は小文字
-                }
-            }
-        }
-
-        // 最善手（最初の行）は濃い赤、それ以外は薄い赤
-        if (row == 0) {
-            arrow.color = QColor(255, 0, 0, 200);  // 濃い赤（半透明）
-        } else {
-            arrow.color = QColor(255, 100, 100, 150);  // 薄い赤（より透明）
-        }
-
-        arrows.append(arrow);
-    }
-
-    m_shogiView->setArrows(arrows);
 }
 
-// 矢印表示チェックボックスの状態変更時
+// 矢印表示チェックボックスの状態変更時（コントローラに委譲）
 void MainWindow::onShowArrowsChanged(bool checked)
 {
-    m_showConsiderationArrows = checked;
-    updateConsiderationArrows();
+    ensureConsiderationUIController();
+    if (m_considerationUIController) {
+        m_considerationUIController->onShowArrowsChanged(checked);
+    }
 }
