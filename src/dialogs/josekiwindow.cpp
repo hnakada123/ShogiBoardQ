@@ -38,7 +38,6 @@ JosekiWindow::JosekiWindow(QWidget *parent)
     , m_addMoveButton(nullptr)
     , m_mergeButton(nullptr)
     , m_mergeMenu(nullptr)
-    , m_closeButton(nullptr)
     , m_currentSfenLabel(nullptr)
     , m_sfenLineLabel(nullptr)
     , m_statusLabel(nullptr)
@@ -167,14 +166,6 @@ void JosekiWindow::setupUi()
     
     toolbarLayout->addWidget(operationGroup);
     
-    toolbarLayout->addStretch();
-    
-    // --- 閉じるボタン（独立配置） ---
-    m_closeButton = new QPushButton(tr("閉じる"), this);
-    m_closeButton->setToolTip(tr("定跡ウィンドウを閉じる"));
-    m_closeButton->setIcon(style()->standardIcon(QStyle::SP_DialogCloseButton));
-    toolbarLayout->addWidget(m_closeButton);
-
     mainLayout->addLayout(toolbarLayout);
 
     // ============================================================
@@ -343,8 +334,6 @@ void JosekiWindow::setupUi()
             this, &JosekiWindow::onAutoLoadCheckBoxChanged);
     connect(m_stopButton, &QPushButton::clicked,
             this, &JosekiWindow::onStopButtonClicked);
-    connect(m_closeButton, &QPushButton::clicked,
-            this, &JosekiWindow::onCloseButtonClicked);
     
     // SFEN詳細表示トグル
     connect(m_showSfenDetailBtn, &QPushButton::toggled,
@@ -1086,11 +1075,6 @@ void JosekiWindow::onStopButtonClicked()
     
     updateStatusDisplay();
     qDebug() << "[JosekiWindow] Display enabled:" << m_displayEnabled;
-}
-
-void JosekiWindow::onCloseButtonClicked()
-{
-    close();
 }
 
 void JosekiWindow::updateStatusDisplay()
