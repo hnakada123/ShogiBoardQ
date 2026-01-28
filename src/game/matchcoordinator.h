@@ -496,6 +496,12 @@ private:
     int m_considerationPreviousRankTo = 0;  ///< 検討中の前回の移動先の段
     QString m_considerationLastUsiMove;     ///< 検討中の最後の指し手（USI形式）
 
+    bool m_engineShutdownInProgress = false;  ///< エンジン破棄中フラグ（再入防止用）
+
+public:
+    /// エンジン破棄中かどうかを返す
+    bool isEngineShutdownInProgress() const { return m_engineShutdownInProgress; }
+
 private slots:
     void onCheckmateSolved(const QStringList& pv);
     void onCheckmateNoMate();

@@ -836,6 +836,12 @@ void MainWindow::displayConsiderationDialog()
 {
     qDebug().noquote() << "[MainWindow::displayConsiderationDialog] ENTER, current m_playMode=" << static_cast<int>(m_playMode);
 
+    // ★ エンジン破棄中の場合は検討開始を拒否（ハングアップ防止）
+    if (m_match && m_match->isEngineShutdownInProgress()) {
+        qDebug().noquote() << "[MainWindow::displayConsiderationDialog] engine shutdown in progress, ignoring request";
+        return;
+    }
+
     ensureDialogCoordinator();
     if (m_dialogCoordinator) {
         m_dialogCoordinator->setAnalysisTab(m_analysisTab);
