@@ -2762,7 +2762,7 @@ void EngineAnalysisTab::setConsiderationRunning(bool running)
         return;
     }
 
-    // ★ ボタンを一時的に無効化（切り替え中のクリックを防止）
+    // ★ ボタンを無効化（切り替え中のクリックを防止）
     m_btnStopConsideration->setEnabled(false);
 
     // 既存のシグナル接続を切断
@@ -2776,6 +2776,8 @@ void EngineAnalysisTab::setConsiderationRunning(bool running)
         m_btnStopConsideration->setToolTip(tr("検討を中止してエンジンを停止します"));
         connect(m_btnStopConsideration, &QToolButton::clicked,
                 this, &EngineAnalysisTab::stopConsiderationRequested);
+        // 検討開始時はすぐに有効化して良い
+        m_btnStopConsideration->setEnabled(true);
     } else {
         // 検討停止中: 「検討開始」ボタンを表示
         qDebug().noquote() << "[EngineAnalysisTab::setConsiderationRunning] setting button to '検討開始'";
@@ -2783,10 +2785,15 @@ void EngineAnalysisTab::setConsiderationRunning(bool running)
         m_btnStopConsideration->setToolTip(tr("検討ダイアログを開いて検討を開始します"));
         connect(m_btnStopConsideration, &QToolButton::clicked,
                 this, &EngineAnalysisTab::startConsiderationRequested);
+        // ★ 検討停止時はボタンの再有効化を次のイベントループに遅延
+        // これにより、シグナルチェーン完了後まで新しいクリックを受け付けない
+        QTimer::singleShot(0, this, [this]() {
+            if (m_btnStopConsideration) {
+                m_btnStopConsideration->setEnabled(true);
+                qDebug().noquote() << "[EngineAnalysisTab] button re-enabled after deferred timer";
+            }
+        });
     }
-
-    // ★ ボタンを再有効化
-    m_btnStopConsideration->setEnabled(true);
 
     qDebug().noquote() << "[EngineAnalysisTab::setConsiderationRunning] EXIT";
 }

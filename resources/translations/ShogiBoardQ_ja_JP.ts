@@ -1152,12 +1152,12 @@
     <message>
         <location filename="../../src/widgets/engineanalysistab.cpp" line="342"/>
         <location filename="../../src/widgets/engineanalysistab.cpp" line="737"/>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2782"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2784"/>
         <source>検討開始</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2783"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2785"/>
         <source>検討ダイアログを開いて検討を開始します</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1300,17 +1300,17 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2896"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2903"/>
         <source>エラー</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2896"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2903"/>
         <source>将棋エンジンが選択されていません。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2812"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2819"/>
         <source>経過: %1:%2</source>
         <translation type="unfinished"></translation>
     </message>

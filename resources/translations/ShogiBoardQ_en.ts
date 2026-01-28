@@ -1167,12 +1167,12 @@ The default layout will be used on next startup.</translation>
     <message>
         <location filename="../../src/widgets/engineanalysistab.cpp" line="342"/>
         <location filename="../../src/widgets/engineanalysistab.cpp" line="737"/>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2782"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2784"/>
         <source>検討開始</source>
         <translation>Start Consideration</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2783"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2785"/>
         <source>検討ダイアログを開いて検討を開始します</source>
         <translation>Open consideration dialog to start analysis</translation>
     </message>
@@ -1316,12 +1316,12 @@ Discard changes and move?</translation>
         <translation>Enter command and press Enter</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2896"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2903"/>
         <source>エラー</source>
         <translation type="unfinished">Error</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2896"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2903"/>
         <source>将棋エンジンが選択されていません。</source>
         <translation type="unfinished">No shogi engine is selected.</translation>
     </message>
@@ -1342,7 +1342,7 @@ Discard changes and move?</translation>
         <translation type="vanished">Time: %1 sec</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2812"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2819"/>
         <source>経過: %1:%2</source>
         <translation>Elapsed: %1:%2</translation>
     </message>
