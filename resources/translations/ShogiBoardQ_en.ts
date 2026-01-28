@@ -156,6 +156,19 @@ Author: %1</translation>
     </message>
 </context>
 <context>
+    <name>CommentCoordinator</name>
+    <message>
+        <location filename="../../src/app/commentcoordinator.cpp" line="61"/>
+        <source>コメントを更新しました（手数: %1）</source>
+        <translation type="unfinished">Comment updated (move: %1)</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/commentcoordinator.cpp" line="97"/>
+        <source>コメントなし</source>
+        <translation type="unfinished">No comment</translation>
+    </message>
+</context>
+<context>
     <name>ConsiderationDialog</name>
     <message>
         <location filename="../../src/dialogs/considerationdialog.ui" line="14"/>
@@ -871,6 +884,81 @@ Cause: %2</translation>
         <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="511"/>
         <source>エラー</source>
         <translation>Error</translation>
+    </message>
+</context>
+<context>
+    <name>DockCreationService</name>
+    <message>
+        <location filename="../../src/app/dockcreationservice.cpp" line="71"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="80"/>
+        <source>評価値グラフ</source>
+        <translation type="unfinished">Evaluation Graph</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/dockcreationservice.cpp" line="106"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="111"/>
+        <source>棋譜</source>
+        <translation type="unfinished">Game Record</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/dockcreationservice.cpp" line="145"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="147"/>
+        <source>対局情報</source>
+        <translation type="unfinished">Game Info</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/dockcreationservice.cpp" line="151"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="153"/>
+        <source>思考</source>
+        <translation type="unfinished">Thinking</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/dockcreationservice.cpp" line="156"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="158"/>
+        <source>検討</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/app/dockcreationservice.cpp" line="161"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="163"/>
+        <source>USI通信ログ</source>
+        <translation type="unfinished">USI Log</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/dockcreationservice.cpp" line="166"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="168"/>
+        <source>CSA通信ログ</source>
+        <translation type="unfinished">CSA Log</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/dockcreationservice.cpp" line="171"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="173"/>
+        <source>棋譜コメント</source>
+        <translation type="unfinished">Comments</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/dockcreationservice.cpp" line="176"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="178"/>
+        <source>分岐ツリー</source>
+        <translation type="unfinished">Branch Tree</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/dockcreationservice.cpp" line="217"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="222"/>
+        <source>メニュー</source>
+        <translation type="unfinished">Menu</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/dockcreationservice.cpp" line="246"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="251"/>
+        <source>定跡</source>
+        <translation type="unfinished">Joseki</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/dockcreationservice.cpp" line="268"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="281"/>
+        <source>棋譜解析</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -3213,8 +3301,6 @@ Please restart the application to apply the changes.</translation>
     </message>
     <message>
         <location filename="../../src/app/mainwindow.ui" line="591"/>
-        <location filename="../../src/app/mainwindow.cpp" line="2335"/>
-        <location filename="../../src/app/mainwindow.cpp" line="2350"/>
         <source>メニュー</source>
         <translation>Menu</translation>
     </message>
@@ -3284,10 +3370,8 @@ Please restart the application to apply the changes.</translation>
         <translation>Flip Board</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="2239"/>
-        <location filename="../../src/app/mainwindow.cpp" line="2241"/>
         <source>思考</source>
-        <translation>Thinking</translation>
+        <translation type="vanished">Thinking</translation>
     </message>
     <message>
         <source>USIプロトコル通信ログ</source>
@@ -3319,10 +3403,8 @@ Please restart the application to apply the changes.</translation>
         <translation>Game</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="2244"/>
-        <location filename="../../src/app/mainwindow.cpp" line="2246"/>
         <source>検討</source>
-        <translation>Analysis Mode</translation>
+        <translation type="vanished">Analysis Mode</translation>
     </message>
     <message>
         <location filename="../../src/app/mainwindow.ui" line="243"/>
@@ -3366,8 +3448,6 @@ Please restart the application to apply the changes.</translation>
     </message>
     <message>
         <location filename="../../src/app/mainwindow.ui" line="276"/>
-        <location filename="../../src/app/mainwindow.cpp" line="2427"/>
-        <location filename="../../src/app/mainwindow.cpp" line="2450"/>
         <source>棋譜解析</source>
         <translation>Analyze Game Record</translation>
     </message>
@@ -3652,29 +3732,29 @@ Please restart the application to apply the changes.</translation>
         <translation>English</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="483"/>
+        <location filename="../../src/app/mainwindow.cpp" line="476"/>
         <source>Error</source>
         <translation>Error</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="690"/>
+        <location filename="../../src/app/mainwindow.cpp" line="683"/>
         <source>投了確認</source>
         <translation>Confirm Resignation</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="691"/>
+        <location filename="../../src/app/mainwindow.cpp" line="684"/>
         <source>本当に投了しますか？</source>
         <translation>Are you sure you want to resign?</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="769"/>
-        <location filename="../../src/app/mainwindow.cpp" line="783"/>
+        <location filename="../../src/app/mainwindow.cpp" line="762"/>
+        <location filename="../../src/app/mainwindow.cpp" line="776"/>
         <source>エラー</source>
         <translation>Error</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="769"/>
-        <location filename="../../src/app/mainwindow.cpp" line="783"/>
+        <location filename="../../src/app/mainwindow.cpp" line="762"/>
+        <location filename="../../src/app/mainwindow.cpp" line="776"/>
         <source>盤面データがありません。</source>
         <translation>No board data available.</translation>
     </message>
@@ -3745,12 +3825,12 @@ White
 Please select &quot;24-Point Rule&quot; or &quot;27-Point Rule&quot; in the game dialog.</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1774"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1767"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1775"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1768"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
@@ -3865,17 +3945,17 @@ Are you sure you want to declare?</translation>
         <translation type="vanished">Entering King Declaration Result</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="288"/>
+        <location filename="../../src/app/mainwindow.cpp" line="281"/>
         <source>ドックレイアウトをリセット</source>
         <translation>Reset Dock Layout</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="294"/>
+        <location filename="../../src/app/mainwindow.cpp" line="287"/>
         <source>ドックレイアウトを保存...</source>
         <translation>Save Dock Layout...</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="300"/>
+        <location filename="../../src/app/mainwindow.cpp" line="293"/>
         <source>保存済みレイアウト</source>
         <translation>Saved Layouts</translation>
     </message>
@@ -3884,7 +3964,7 @@ Are you sure you want to declare?</translation>
         <translation type="vanished">Allow Docking</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="309"/>
+        <location filename="../../src/app/mainwindow.cpp" line="302"/>
         <source>ドックを固定</source>
         <translation>Lock Docks</translation>
     </message>
@@ -3959,72 +4039,56 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Clear Startup Layout</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1376"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1369"/>
         <source>棋譜ファイルを開く</source>
         <translation>Open Game Record File</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1377"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1370"/>
         <source>Kifu Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</source>
         <translation>Game Record Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1776"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1769"/>
         <source>手合割</source>
         <translation>Handicap</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1776"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1769"/>
         <source>平手</source>
         <translation>Even Game</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="2118"/>
-        <location filename="../../src/app/mainwindow.cpp" line="2137"/>
         <source>評価値グラフ</source>
-        <translation>Evaluation Graph</translation>
+        <translation type="vanished">Evaluation Graph</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="2169"/>
-        <location filename="../../src/app/mainwindow.cpp" line="2184"/>
         <source>棋譜</source>
-        <translation>Game Record</translation>
+        <translation type="vanished">Game Record</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="2234"/>
-        <location filename="../../src/app/mainwindow.cpp" line="2235"/>
         <source>対局情報</source>
-        <translation type="unfinished">Game Info</translation>
+        <translation type="obsolete">Game Info</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="2249"/>
-        <location filename="../../src/app/mainwindow.cpp" line="2251"/>
         <source>USI通信ログ</source>
-        <translation type="unfinished">USI Log</translation>
+        <translation type="obsolete">USI Log</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="2254"/>
-        <location filename="../../src/app/mainwindow.cpp" line="2256"/>
         <source>CSA通信ログ</source>
-        <translation type="unfinished">CSA Log</translation>
+        <translation type="obsolete">CSA Log</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="2259"/>
-        <location filename="../../src/app/mainwindow.cpp" line="2261"/>
         <source>棋譜コメント</source>
-        <translation type="unfinished">Comments</translation>
+        <translation type="obsolete">Comments</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="2264"/>
-        <location filename="../../src/app/mainwindow.cpp" line="2266"/>
         <source>分岐ツリー</source>
-        <translation type="unfinished">Branch Tree</translation>
+        <translation type="obsolete">Branch Tree</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="2385"/>
-        <location filename="../../src/app/mainwindow.cpp" line="2400"/>
         <source>定跡</source>
-        <translation>Joseki</translation>
+        <translation type="vanished">Joseki</translation>
     </message>
     <message>
         <source>棋譜解析結果</source>
@@ -4043,47 +4107,45 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Shogi Board</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4085"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3840"/>
         <source>棋譜を自動保存しました: %1</source>
         <translation>Game record auto-saved: %1</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4088"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3843"/>
         <source>棋譜の自動保存に失敗しました: %1</source>
         <translation>Failed to auto-save game record: %1</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4117"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3872"/>
         <source>棋譜を取り込みました</source>
         <translation>Game record imported</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4119"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3874"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation>Failed to import game record</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4123"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3878"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation>Failed to import game record (internal error)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4162"/>
         <source>コメントを更新しました（手数: %1）</source>
-        <translation>Comment updated (move: %1)</translation>
+        <translation type="vanished">Comment updated (move: %1)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4223"/>
         <source>コメントなし</source>
-        <translation>No comment</translation>
+        <translation type="vanished">No comment</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4269"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3995"/>
         <source>E1: エンジンが起動していません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4280"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4006"/>
         <source>E2: エンジンが起動していません</source>
         <translation type="unfinished"></translation>
     </message>

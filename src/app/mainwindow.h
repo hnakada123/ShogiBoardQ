@@ -61,6 +61,8 @@ class LanguageController;
 class ConsiderationModeUIController;
 class DockLayoutManager;
 class NavigationContextAdapter;
+class DockCreationService;
+class CommentCoordinator;
 
 // ==============================
 // Macros / aliases
@@ -575,6 +577,8 @@ private:
     ConsiderationModeUIController* m_considerationUIController = nullptr;
     DockLayoutManager* m_dockLayoutManager = nullptr;
     NavigationContextAdapter* m_navContextAdapter = nullptr;
+    DockCreationService* m_dockCreationService = nullptr;
+    CommentCoordinator* m_commentCoordinator = nullptr;
 
     // --------------------------------------------------------
     // Private Methods
@@ -676,6 +680,8 @@ private:
     void ensureConsiderationUIController();
     void ensureDockLayoutManager();
     void ensureNavigationContextAdapter();
+    void ensureDockCreationService();
+    void ensureCommentCoordinator();
 
     // ctor の分割先
     void setupCentralWidgetContainer();
