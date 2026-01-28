@@ -102,10 +102,25 @@ public:
     void updateSavedLayoutsMenu();
 
     /**
+     * @brief メニュー項目の接続を一括で行う
+     * @param menuActions 「表示」メニュー配下のアクション群
+     */
+    void wireMenuActions(QAction* resetLayout,
+                         QAction* saveLayoutAs,
+                         QAction* clearStartupLayout,
+                         QAction* lockDocks,
+                         QMenu* savedLayoutsMenu);
+
+    /**
      * @brief ドックのロック状態を切り替える
      * @param locked true=ロック（移動・フローティング禁止）
      */
     void setDocksLocked(bool locked);
+
+    /**
+     * @brief ドックの状態（浮動/可視/ジオメトリ）を設定サービスへ保存
+     */
+    void saveDockStates();
 
 signals:
     /**

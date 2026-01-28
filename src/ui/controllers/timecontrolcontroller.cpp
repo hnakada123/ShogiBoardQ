@@ -5,6 +5,9 @@
 #include "shogiclock.h"
 #include "matchcoordinator.h"
 #include "timedisplaypresenter.h"
+#include "timecontrolutil.h"
+#include "gamestartcoordinator.h"
+#include "shogiview.h"
 
 TimeControlController::TimeControlController(QObject* parent)
     : QObject(parent)
@@ -56,6 +59,47 @@ void TimeControlController::setTimeDisplayPresenter(TimeDisplayPresenter* presen
     // 既にClockが存在していれば、Presenterに設定
     if (m_timePresenter && m_clock) {
         m_timePresenter->setClock(m_clock);
+    }
+}
+
+// --------------------------------------------------------
+// 時間設定適用ヘルパー
+// --------------------------------------------------------
+
+void TimeControlController::applyTimeControl(const GameStartCoordinator::TimeControl& tc,
+                                             MatchCoordinator* match,
+                                             const QString& startSfen,
+                                             const QString& currentSfen,
+                                             ShogiView* shogiView)
+{
+    // 1) 設定を保存し、開始時刻を記録
+    saveTimeControlSettings(tc.enabled, tc.p1.baseMs, tc.p1.byoyomiMs, tc.p1.incrementMs);
+    recordGameStartTime();
+
+    // 2) 時計へ適用
+    ensureClock();
+    ShogiClock* clk = clock();
+    TimeControlUtil::applyToClock(clk, tc, startSfen, currentSfen);
+
+    // 3) 司令塔へ反映
+    if (match) {
+        const bool useByoyomi = (tc.p1.byoyomiMs > 0) || (tc.p2.byoyomiMs > 0);
+        match->setTimeControlConfig(useByoyomi,
+                                    static_cast<int>(tc.p1.byoyomiMs), static_cast<int>(tc.p2.byoyomiMs),
+                                    static_cast<int>(tc.p1.incrementMs), static_cast<int>(tc.p2.incrementMs),
+                                    /*loseOnTimeout*/ true);
+        match->refreshGoTimes();
+    }
+
+    // 4) 表示更新
+    if (m_timePresenter && clk) {
+        const qint64 p1 = clk->getPlayer1TimeIntMs();
+        const qint64 p2 = clk->getPlayer2TimeIntMs();
+        const bool p1turn = true;  // 呼び出し元で手番更新済みの想定
+        m_timePresenter->onMatchTimeUpdated(p1, p2, p1turn, /*urgencyMs*/ 0);
+    }
+    if (shogiView) {
+        shogiView->update();
     }
 }
 

@@ -22,7 +22,6 @@
 #include <QApplication>    // ★ 追加
 #include <QClipboard>      // ★ 追加
 #include <QLineEdit>       // ★ 追加
-#include <QWheelEvent>     // ★ 追加: Ctrl+ホイール処理用
 #include <QElapsedTimer>   // ★ パフォーマンス計測用
 #include <QSizePolicy>
 #include <functional>
@@ -109,8 +108,6 @@
 #include "csagamewiring.h"              // ★ 追加: CSA通信対局UI配線
 #include "playerinfowiring.h"           // ★ 追加: 対局情報UI配線
 #include "prestartcleanuphandler.h"     // ★ 追加: 対局開始前クリーンアップ
-#include "kifuioservice.h"              // ★ 追加: 棋譜ファイルI/O
-#include <QDir>                         // ★ 追加: ディレクトリ操作
 #include "jishogiscoredialogcontroller.h"  // ★ 追加: 持将棋点数ダイアログ
 #include "nyugyokudeclarationhandler.h"    // ★ 追加: 入玉宣言処理
 #include "consecutivegamescontroller.h"    // ★ 追加: 連続対局管理
@@ -120,6 +117,7 @@
 #include "navigationcontextadapter.h"      // ★ 追加: INavigationContext委譲
 #include "dockcreationservice.h"           // ★ 追加: ドック作成サービス
 #include "commentcoordinator.h"            // ★ 追加: コメント処理
+#include "usicommandcontroller.h"          // ★ 追加: USI手動送信
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -179,6 +177,9 @@ MainWindow::MainWindow(QWidget *parent)
     // 言語メニューをグループ化（相互排他）して現在の設定を反映
     // LanguageControllerに委譲（setActions内でupdateMenuStateも呼び出し）
     ensureLanguageController();
+
+    // ドックレイアウト関連のメニュー配線をDockLayoutManagerへ移譲
+    ensureDockLayoutManager();
 
     // 評価値グラフ高さ調整用タイマーを初期化（デバウンス処理用）
     m_evalChartResizeTimer = new QTimer(this);
@@ -280,13 +281,11 @@ void MainWindow::buildGamePanels()
         // ドックレイアウトをリセット
         QAction* resetLayoutAction = new QAction(tr("ドックレイアウトをリセット"), this);
         resetLayoutAction->setObjectName(QStringLiteral("actionResetDockLayout"));
-        connect(resetLayoutAction, &QAction::triggered, this, &MainWindow::resetDockLayout);
         ui->Display->addAction(resetLayoutAction);
 
         // ドックレイアウトを保存
         QAction* saveLayoutAction = new QAction(tr("ドックレイアウトを保存..."), this);
         saveLayoutAction->setObjectName(QStringLiteral("actionSaveDockLayout"));
-        connect(saveLayoutAction, &QAction::triggered, this, &MainWindow::saveDockLayoutAs);
         ui->Display->addAction(saveLayoutAction);
 
         // 保存済みレイアウトのサブメニュー
@@ -294,8 +293,7 @@ void MainWindow::buildGamePanels()
         m_savedLayoutsMenu->setObjectName(QStringLiteral("menuSavedLayouts"));
         ui->Display->addMenu(m_savedLayoutsMenu);
 
-        // サブメニューを初期化
-        updateSavedLayoutsMenu();
+        // サブメニュー設定はDockLayoutManagerに委譲
 
         // ドック固定のチェックボックスアクションを追加
         ui->Display->addSeparator();
@@ -305,10 +303,18 @@ void MainWindow::buildGamePanels()
         const bool docksLocked = SettingsService::docksLocked();
         lockDocksAction->setChecked(docksLocked);
         ui->Display->addAction(lockDocksAction);
-        connect(lockDocksAction, &QAction::toggled, this, &MainWindow::onDocksLockToggled);
+        // onDocksLockToggled への接続は DockLayoutManager.wireMenuActions で実施
 
-        // 起動時に全ドックに固定設定を適用
-        onDocksLockToggled(docksLocked);
+        // ドックレイアウト関連アクションをDockLayoutManagerに配線
+        ensureDockLayoutManager();
+        if (m_dockLayoutManager) {
+            m_dockLayoutManager->wireMenuActions(
+                resetLayoutAction,
+                saveLayoutAction,
+                /*clearStartupLayout*/nullptr,
+                lockDocksAction,
+                m_savedLayoutsMenu);
+        }
     }
 }
 
@@ -421,9 +427,6 @@ void MainWindow::initializeComponents()
     if (!m_shogiView) {
         m_shogiView = new ShogiView(this);     // 親をMainWindowに
         m_shogiView->setNameFontScale(0.30);   // 好みの倍率（表示前に設定）
-        // Ctrl+ホイールイベントを横取りして、MainWindow側で同期的に処理する
-        // これにより盤サイズ変更時のちらつきを防止
-        m_shogiView->installEventFilter(this);
     } else {
         // 再初期化時も念のためパラメータを揃える
         m_shogiView->setParent(this);
@@ -836,9 +839,12 @@ void MainWindow::displayConsiderationDialog()
     ensureDialogCoordinator();
     if (m_dialogCoordinator) {
         m_dialogCoordinator->setAnalysisTab(m_analysisTab);
-        if (m_dialogCoordinator->startConsiderationFromContext()) {
-            // 検討開始成功時にモードを変更
-            m_playMode = PlayMode::ConsiderationMode;
+        // ★ 検討開始前にモードを設定（onSetEngineNamesで検討タブにエンジン名を設定するため）
+        const PlayMode previousMode = m_playMode;
+        m_playMode = PlayMode::ConsiderationMode;
+        if (!m_dialogCoordinator->startConsiderationFromContext()) {
+            // 検討開始失敗時は元のモードに戻す
+            m_playMode = previousMode;
         }
     }
     qDebug().noquote() << "[MainWindow::displayConsiderationDialog] EXIT";
@@ -1510,42 +1516,9 @@ void MainWindow::saveWindowAndBoardSettings()
 {
     SettingsService::saveWindowAndBoard(this, m_shogiView);
 
-    // 評価値グラフドックの状態を保存
-    if (m_evalChartDock) {
-        SettingsService::setEvalChartDockFloating(m_evalChartDock->isFloating());
-        SettingsService::setEvalChartDockVisible(m_evalChartDock->isVisible());
-        SettingsService::setEvalChartDockGeometry(m_evalChartDock->saveGeometry());
-    }
-
-    // 棋譜欄ドックの状態を保存
-    if (m_recordPaneDock) {
-        SettingsService::setRecordPaneDockFloating(m_recordPaneDock->isFloating());
-        SettingsService::setRecordPaneDockVisible(m_recordPaneDock->isVisible());
-        SettingsService::setRecordPaneDockGeometry(m_recordPaneDock->saveGeometry());
-    }
-
-    // 解析ドックの状態はQMainWindowのsaveState/restoreStateで管理するため
-    // 個別の保存は不要
-
-    // メニューウィンドウドックの状態を保存
-    if (m_menuWindowDock) {
-        SettingsService::setMenuWindowDockFloating(m_menuWindowDock->isFloating());
-        SettingsService::setMenuWindowDockVisible(m_menuWindowDock->isVisible());
-        SettingsService::setMenuWindowDockGeometry(m_menuWindowDock->saveGeometry());
-    }
-
-    // 定跡ウィンドウドックの状態を保存
-    if (m_josekiWindowDock) {
-        SettingsService::setJosekiWindowDockFloating(m_josekiWindowDock->isFloating());
-        SettingsService::setJosekiWindowDockVisible(m_josekiWindowDock->isVisible());
-        SettingsService::setJosekiWindowDockGeometry(m_josekiWindowDock->saveGeometry());
-    }
-
-    // 棋譜解析結果ドックの状態を保存
-    if (m_analysisResultsDock) {
-        SettingsService::setKifuAnalysisResultsDockFloating(m_analysisResultsDock->isFloating());
-        SettingsService::setKifuAnalysisResultsDockVisible(m_analysisResultsDock->isVisible());
-        SettingsService::setKifuAnalysisResultsDockGeometry(m_analysisResultsDock->saveGeometry());
+    ensureDockLayoutManager();
+    if (m_dockLayoutManager) {
+        m_dockLayoutManager->saveDockStates();
     }
 }
 
@@ -1559,30 +1532,6 @@ void MainWindow::closeEvent(QCloseEvent* e)
     }
 
     QMainWindow::closeEvent(e);
-}
-
-bool MainWindow::eventFilter(QObject* watched, QEvent* event)
-{
-    // ShogiViewのCtrl+ホイールイベントを横取りして処理
-    // これにより盤サイズ変更とラベル更新を同期的に行い、ちらつきを防止
-    if (watched == m_shogiView && event->type() == QEvent::Wheel) {
-        QWheelEvent* wheelEvent = static_cast<QWheelEvent*>(event);
-        if (wheelEvent->modifiers() & Qt::ControlModifier) {
-            const int delta = wheelEvent->angleDelta().y();
-            if (delta > 0) {
-                // 上方向スクロール → 拡大
-                // シグナル発火を抑制して同期的に処理
-                m_shogiView->enlargeBoard(true);
-            } else if (delta < 0) {
-                // 下方向スクロール → 縮小
-                // シグナル発火を抑制して同期的に処理
-                m_shogiView->reduceBoard(true);
-            }
-            // 評価値グラフの高さ自動調整は無効（QSplitterのリサイズがちらつきの原因となるため）
-            return true;  // イベントを消費（ShogiViewには渡さない）
-        }
-    }
-    return QMainWindow::eventFilter(watched, event);
 }
 
 void MainWindow::onReverseTriggered()
@@ -1855,12 +1804,6 @@ void MainWindow::onConsecutiveGamesConfigured(int totalGames, bool switchTurn)
     if (m_consecutiveGamesController) {
         m_consecutiveGamesController->configure(totalGames, switchTurn);
     }
-
-    // 互換性のため残す
-    m_consecutiveGamesTotal = totalGames;
-    m_consecutiveGamesRemaining = totalGames - 1;
-    m_consecutiveGameNumber = 1;
-    m_switchTurnEachGame = switchTurn;
 }
 
 // ★ 追加: 対局開始時の設定を保存（連続対局用）
@@ -1873,24 +1816,16 @@ void MainWindow::onGameStarted(const MatchCoordinator::StartOptions& opt)
     if (m_consecutiveGamesController) {
         m_consecutiveGamesController->onGameStarted(opt, m_lastTimeControl);
     }
-
-    // 互換性のため残す
-    m_lastStartOptions = opt;
 }
 
 // ★ 追加: 連続対局の次の対局を開始
 void MainWindow::startNextConsecutiveGame()
 {
-    qDebug().noquote() << "[MW] startNextConsecutiveGame_: remaining=" << m_consecutiveGamesRemaining
-                       << " gameNumber=" << m_consecutiveGameNumber;
+    qDebug().noquote() << "[MW] startNextConsecutiveGame_ (delegated to controller)";
 
     ensureConsecutiveGamesController();
     if (m_consecutiveGamesController && m_consecutiveGamesController->shouldStartNextGame()) {
         m_consecutiveGamesController->startNextGame();
-
-        // 同期用に状態を更新
-        m_consecutiveGamesRemaining = m_consecutiveGamesController->remainingGames();
-        m_consecutiveGameNumber = m_consecutiveGamesController->currentGameNumber();
     }
 }
 
@@ -2060,11 +1995,14 @@ void MainWindow::setupEngineAnalysisTab()
         this,          &MainWindow::onPvRowClicked,
         Qt::UniqueConnection);
 
-    // ★ 追加: USIコマンド手動送信シグナルの接続
-    QObject::connect(
-        m_analysisTab, &EngineAnalysisTab::usiCommandRequested,
-        this,          &MainWindow::onUsiCommandRequested,
-        Qt::UniqueConnection);
+    // ★ 追加: USIコマンド手動送信シグナルの接続（専用コントローラへ委譲）
+    ensureUsiCommandController();
+    if (m_usiCommandController) {
+        QObject::connect(
+            m_analysisTab, &EngineAnalysisTab::usiCommandRequested,
+            m_usiCommandController, &UsiCommandController::sendCommand,
+            Qt::UniqueConnection);
+    }
 
     // ★ 追加: 検討開始シグナルの接続
     QObject::connect(
@@ -2327,6 +2265,9 @@ void MainWindow::initMatchCoordinator()
     // --- 司令塔の生成＆初期配線を Coordinator に委譲 ---
     m_match = m_gameStartCoordinator->createAndWireMatch(d, this);
 
+    // USIコマンドコントローラへ司令塔を反映
+    ensureUsiCommandController();
+
     // PlayMode を司令塔へ伝達（従来どおり）
     if (m_match) {
         m_match->setPlayMode(m_playMode);
@@ -2405,7 +2346,8 @@ void MainWindow::onMatchGameEnded(const MatchCoordinator::GameEndInfo& info)
     // ★ 追加: EvE対局で連続対局が残っている場合、次の対局を自動開始
     const bool isEvE = (m_playMode == PlayMode::EvenEngineVsEngine ||
                         m_playMode == PlayMode::HandicapEngineVsEngine);
-    if (isEvE && m_consecutiveGamesRemaining > 0) {
+    ensureConsecutiveGamesController();
+    if (isEvE && m_consecutiveGamesController && m_consecutiveGamesController->shouldStartNextGame()) {
         qDebug() << "[MW] EvE game ended, starting next consecutive game...";
         startNextConsecutiveGame();
     }
@@ -2714,6 +2656,8 @@ void MainWindow::ensureDialogCoordinator()
     conCtx.sfenRecord = m_sfenRecord;
     conCtx.startSfenStr = &m_startSfenStr;
     conCtx.considerationModel = &m_considerationModel;
+    conCtx.gameUsiMoves = &m_gameUsiMoves;
+    conCtx.kifuLoadCoordinator = m_kifuLoadCoordinator;
     m_dialogCoordinator->setConsiderationContext(conCtx);
 
     // 詰み探索コンテキストを設定
@@ -3147,6 +3091,9 @@ void MainWindow::ensurePreStartCleanupHandler()
     deps.lineEditModel1 = m_lineEditModel1;
     deps.lineEditModel2 = m_lineEditModel2;
     deps.timeController = m_timeController;
+    deps.evalChart = m_evalChart;
+    deps.evalGraphController = m_evalGraphController;
+    deps.recordPane = m_recordPane;
     deps.startSfenStr = &m_startSfenStr;
     deps.currentSfenStr = &m_currentSfenStr;
     deps.activePly = &m_activePly;
@@ -3252,39 +3199,6 @@ void MainWindow::onPreStartCleanupRequested()
     if (m_preStartCleanupHandler) {
         m_preStartCleanupHandler->performCleanup();
     }
-
-    // ★ 修正：評価値グラフの処理
-    // m_startSfenStr が空で m_currentSfenStr に値がある場合は「現在の局面から開始」
-    const bool startFromCurrentPos = m_startSfenStr.trimmed().isEmpty()
-                                     && !m_currentSfenStr.trimmed().isEmpty();
-    if (!startFromCurrentPos) {
-        // 平手・駒落ちなど新規開始の場合は評価値グラフをクリア
-        if (m_evalChart) {
-            m_evalChart->clearAll();
-        }
-        ensureEvaluationGraphController();
-        if (m_evalGraphController) {
-            m_evalGraphController->clearScores();
-        }
-    } else {
-        // 「現在の局面から」開始時は、選択した手数までトリム
-        ensureEvaluationGraphController();
-        if (m_evalGraphController) {
-            const int trimPly = qMax(0, m_currentMoveIndex);
-            m_evalGraphController->trimToPly(trimPly);
-        }
-    }
-
-    // ★ 追加：クリーンアップ後に開始局面（行0）を選択（黄色表示のため）
-    if (m_recordPane && m_kifuRecordModel && m_kifuRecordModel->rowCount() > 0) {
-        if (auto* view = m_recordPane->kifuView()) {
-            if (auto* sel = view->selectionModel()) {
-                const QModelIndex idx = m_kifuRecordModel->index(0, 0);
-                sel->setCurrentIndex(idx, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
-            }
-        }
-        m_kifuRecordModel->setCurrentHighlightRow(0);
-    }
 }
 
 void MainWindow::onApplyTimeControlRequested(const GameStartCoordinator::TimeControl& tc)
@@ -3298,55 +3212,10 @@ void MainWindow::onApplyTimeControlRequested(const GameStartCoordinator::TimeCon
     // ★ 連続対局用に時間設定を保存
     m_lastTimeControl = tc;
 
-    // ★ TimeControlControllerに時間制御情報を保存
+    // 時間設定の適用をTimeControlControllerに委譲
     if (m_timeController) {
-        m_timeController->saveTimeControlSettings(tc.enabled, tc.p1.baseMs, tc.p1.byoyomiMs, tc.p1.incrementMs);
-        m_timeController->recordGameStartTime();
+        m_timeController->applyTimeControl(tc, m_match, m_startSfenStr, m_currentSfenStr, m_shogiView);
     }
-
-    // 1) まず時計に適用
-    ShogiClock* clk = m_timeController ? m_timeController->clock() : nullptr;
-    TimeControlUtil::applyToClock(clk, tc, m_startSfenStr, m_currentSfenStr);
-
-    // 2) 司令塔へも必ず反映（これが無いと computeGoTimes_ が byoyomi を使いません）
-    if (m_match) {
-        const bool useByoyomi = (tc.p1.byoyomiMs > 0) || (tc.p2.byoyomiMs > 0);
-
-        // byoyomi を使う場合は inc は無視されます（司令塔側ロジックに合わせる）
-        const qint64 byo1 = tc.p1.byoyomiMs;
-        const qint64 byo2 = tc.p2.byoyomiMs;
-        const qint64 inc1 = tc.p1.incrementMs;
-        const qint64 inc2 = tc.p2.incrementMs;
-
-        // 負け扱い（秒読みのみ運用でも true 推奨）
-        const bool loseOnTimeout = true;
-
-        qDebug().noquote()
-            << "[MW] setTimeControlConfig to MatchCoordinator:"
-            << " useByoyomi=" << useByoyomi
-            << " byo1=" << byo1 << " byo2=" << byo2
-            << " inc1=" << inc1 << " inc2=" << inc2
-            << " loseOnTimeout=" << loseOnTimeout;
-
-        m_match->setTimeControlConfig(useByoyomi,
-                                       static_cast<int>(byo1), static_cast<int>(byo2),
-                                       static_cast<int>(inc1), static_cast<int>(inc2),
-                                       loseOnTimeout);
-        // 反映直後に現在の go 用数値を再計算しておくと安全
-        m_match->refreshGoTimes();
-    }
-
-    // 3) 表示更新
-    if (clk) {
-        qDebug() << "[MW] clock after apply:"
-                 << "P1=" << clk->getPlayer1TimeIntMs()
-                 << "P2=" << clk->getPlayer2TimeIntMs()
-                 << "byo=" << clk->getCommonByoyomiMs()
-                 << "binc=" << clk->getBincMs()
-                 << "winc=" << clk->getWincMs();
-        clk->updateClock();
-    }
-    if (m_shogiView) m_shogiView->update();
 }
 
 void MainWindow::ensureRecordPresenter()
@@ -3585,7 +3454,23 @@ void MainWindow::onRecordPaneMainRowChanged(int row)
                 ShogiUtils::parseMoveCoordinateFromModel(m_kifuRecordModel, row, &previousFileTo, &previousRankTo);
             }
 
-            if (m_match->updateConsiderationPosition(newPosition, previousFileTo, previousRankTo)) {
+            // 開始局面に至った最後の指し手を取得（読み筋表示ウィンドウのハイライト用）
+            QString lastUsiMove;
+            if (row > 0) {
+                const int usiIdx = row - 1;
+                if (!m_gameUsiMoves.isEmpty() && usiIdx < m_gameUsiMoves.size()) {
+                    lastUsiMove = m_gameUsiMoves.at(usiIdx);
+                } else if (m_kifuLoadCoordinator) {
+                    const QStringList& kifuUsiMoves = m_kifuLoadCoordinator->kifuUsiMoves();
+                    if (usiIdx < kifuUsiMoves.size()) {
+                        lastUsiMove = kifuUsiMoves.at(usiIdx);
+                    }
+                } else if (usiIdx < m_gameMoves.size()) {
+                    lastUsiMove = ShogiUtils::moveToUsi(m_gameMoves.at(usiIdx));
+                }
+            }
+
+            if (m_match->updateConsiderationPosition(newPosition, previousFileTo, previousRankTo, lastUsiMove)) {
                 // ポジションが変更された場合、経過時間タイマーをリセットして再開
                 if (m_analysisTab) {
                     m_analysisTab->startElapsedTimer();
@@ -3776,71 +3661,28 @@ void MainWindow::autoSaveKifuToFile(const QString& saveDir, PlayMode playMode,
                                       const QString& humanName1, const QString& humanName2,
                                       const QString& engineName1, const QString& engineName2)
 {
+    Q_UNUSED(playMode);
+    Q_UNUSED(humanName1);
+    Q_UNUSED(humanName2);
+    Q_UNUSED(engineName1);
+    Q_UNUSED(engineName2);
     qDebug() << "[MW] autoSaveKifuToFile_ called: dir=" << saveDir
              << "mode=" << static_cast<int>(playMode);
-
-    if (saveDir.isEmpty()) {
-        qWarning() << "[MW] autoSaveKifuToFile_: saveDir is empty";
-        return;
-    }
 
     // GameRecordModel と KifuExportController の準備
     ensureGameRecordModel();
     ensureKifuExportController();
     updateKifuExportDependencies();
 
-    if (!m_gameRecord) {
-        qWarning() << "[MW] autoSaveKifuToFile_: m_gameRecord is null";
+    if (!m_kifuExportController) {
+        qWarning() << "[MW] autoSaveKifuToFile_: kifuExportController is null";
         return;
     }
 
-    // ExportContext を構築
-    GameRecordModel::ExportContext ctx;
-    ctx.gameInfoTable = m_gameInfoController ? m_gameInfoController->tableWidget() : nullptr;
-    ctx.recordModel = m_kifuRecordModel;
-    ctx.startSfen = (m_sfenRecord && !m_sfenRecord->isEmpty()) ? m_sfenRecord->first() : QString();
-    ctx.playMode = playMode;
-    ctx.human1 = humanName1;
-    ctx.human2 = humanName2;
-    ctx.engine1 = engineName1;
-    ctx.engine2 = engineName2;
-
-    // 時間制御情報
-    if (m_timeController) {
-        ctx.hasTimeControl = m_timeController->hasTimeControl();
-        ctx.initialTimeMs = static_cast<int>(m_timeController->baseTimeMs());
-        ctx.byoyomiMs = static_cast<int>(m_timeController->byoyomiMs());
-        ctx.fischerIncrementMs = static_cast<int>(m_timeController->incrementMs());
-        ctx.gameStartDateTime = m_timeController->gameStartDateTime();
-    }
-
-    // KIF行を生成
-    QStringList kifLines = m_gameRecord->toKifLines(ctx);
-    if (kifLines.isEmpty()) {
-        qWarning() << "[MW] autoSaveKifuToFile_: kifLines is empty";
-        return;
-    }
-
-    // ファイル名を生成
-    const QString fileName = KifuIoService::makeDefaultSaveFileName(
-        playMode, humanName1, humanName2, engineName1, engineName2, QDateTime::currentDateTime());
-
-    // フルパスを構築
-    const QString filePath = QDir(saveDir).filePath(fileName);
-
-    qDebug() << "[MW] autoSaveKifuToFile_: saving to" << filePath;
-
-    // ファイルに書き込み
-    QString errorText;
-    const bool ok = KifuIoService::writeKifuFile(filePath, kifLines, &errorText);
-
-    if (ok) {
-        qDebug() << "[MW] autoSaveKifuToFile_: saved successfully";
-        kifuSaveFileName = filePath;
-        statusBar()->showMessage(tr("棋譜を自動保存しました: %1").arg(filePath), 5000);
-    } else {
-        qWarning() << "[MW] autoSaveKifuToFile_: failed -" << errorText;
-        statusBar()->showMessage(tr("棋譜の自動保存に失敗しました: %1").arg(errorText), 5000);
+    QString savedPath;
+    const bool ok = m_kifuExportController->autoSaveToDir(saveDir, &savedPath);
+    if (ok && !savedPath.isEmpty()) {
+        kifuSaveFileName = savedPath;
     }
 }
 
@@ -3972,40 +3814,6 @@ void MainWindow::onPvDialogClosed(int engineIndex)
 {
     if (m_analysisTab) {
         m_analysisTab->clearThinkingViewSelection(engineIndex);
-    }
-}
-
-// ★ 追加: USIコマンド手動送信処理
-void MainWindow::onUsiCommandRequested(int target, const QString& command)
-{
-    qDebug().noquote() << "[MW] onUsiCommandRequested: target=" << target << "command=" << command;
-
-    // MatchCoordinatorからエンジンを取得
-    Usi* usi1 = m_match ? m_match->primaryEngine() : nullptr;
-    Usi* usi2 = m_match ? m_match->secondaryEngine() : nullptr;
-
-    // target: 0=E1, 1=E2, 2=両方
-    if (target == 0 || target == 2) {
-        if (usi1 && usi1->isEngineRunning()) {
-            usi1->sendRaw(command);
-            qDebug().noquote() << "[MW] Sent to E1:" << command;
-        } else {
-            qDebug().noquote() << "[MW] E1 is not available or not running";
-            if (m_analysisTab) {
-                m_analysisTab->appendUsiLogStatus(tr("E1: エンジンが起動していません"));
-            }
-        }
-    }
-    if (target == 1 || target == 2) {
-        if (usi2 && usi2->isEngineRunning()) {
-            usi2->sendRaw(command);
-            qDebug().noquote() << "[MW] Sent to E2:" << command;
-        } else {
-            qDebug().noquote() << "[MW] E2 is not available or not running";
-            if (m_analysisTab) {
-                m_analysisTab->appendUsiLogStatus(tr("E2: エンジンが起動していません"));
-            }
-        }
     }
 }
 
@@ -4200,6 +4008,15 @@ void MainWindow::ensureCommentCoordinator()
     // GameRecordModel初期化要求時のシグナル接続
     connect(m_commentCoordinator, &CommentCoordinator::ensureGameRecordModelRequested,
             this, &MainWindow::ensureGameRecordModel);
+}
+
+void MainWindow::ensureUsiCommandController()
+{
+    if (!m_usiCommandController) {
+        m_usiCommandController = new UsiCommandController(this);
+    }
+    m_usiCommandController->setMatchCoordinator(m_match);
+    m_usiCommandController->setAnalysisTab(m_analysisTab);
 }
 
 // 検討モデルから矢印を更新（コントローラに委譲）

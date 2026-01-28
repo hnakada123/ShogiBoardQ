@@ -3,10 +3,14 @@
 
 #include <QObject>
 #include <QDateTime>
+#include <QString>
+#include "gamestartcoordinator.h"
 
 class ShogiClock;
 class MatchCoordinator;
 class TimeDisplayPresenter;
+class ShogiView;
+class GameStartCoordinator;
 
 /**
  * @brief TimeControlController - 時間制御の管理クラス
@@ -63,6 +67,20 @@ public:
      * @brief TimeDisplayPresenter（表示用）を設定
      */
     void setTimeDisplayPresenter(TimeDisplayPresenter* presenter);
+
+    /**
+     * @brief 時間設定を時計および司令塔へ適用するヘルパー
+     * @param tc        GameStartCoordinatorから渡される時間設定
+     * @param match     対局司令塔（null可）
+     * @param startSfen 開始局面SFEN（平手/手合割/現在局面など）
+     * @param currentSfen 現在のSFEN（「現在の局面から」開始時に使用）
+     * @param shogiView UI再描画対象（nullの場合はスキップ）
+     */
+    void applyTimeControl(const GameStartCoordinator::TimeControl& tc,
+                          MatchCoordinator* match,
+                          const QString& startSfen,
+                          const QString& currentSfen,
+                          ShogiView* shogiView = nullptr);
 
     // --------------------------------------------------------
     // 時間制御設定

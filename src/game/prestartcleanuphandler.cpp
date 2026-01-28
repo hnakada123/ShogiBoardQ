@@ -2,6 +2,8 @@
 
 #include <QDebug>
 #include <QLabel>
+#include <QTableView>
+#include <QItemSelectionModel>
 
 #include "boardinteractioncontroller.h"
 #include "shogiview.h"
@@ -10,6 +12,9 @@
 #include "usicommlogmodel.h"
 #include "timecontrolcontroller.h"
 #include "kifudisplay.h"
+#include "evaluationchartwidget.h"
+#include "evaluationgraphcontroller.h"
+#include "recordpane.h"
 
 PreStartCleanupHandler::PreStartCleanupHandler(const Dependencies& deps, QObject* parent)
     : QObject(parent)
@@ -20,6 +25,9 @@ PreStartCleanupHandler::PreStartCleanupHandler(const Dependencies& deps, QObject
     , m_lineEditModel1(deps.lineEditModel1)
     , m_lineEditModel2(deps.lineEditModel2)
     , m_timeController(deps.timeController)
+    , m_evalChart(deps.evalChart)
+    , m_evalGraphController(deps.evalGraphController)
+    , m_recordPane(deps.recordPane)
     , m_startSfenStr(deps.startSfenStr)
     , m_currentSfenStr(deps.currentSfenStr)
     , m_activePly(deps.activePly)
@@ -64,6 +72,12 @@ void PreStartCleanupHandler::performCleanup()
 
     // 時間制御のリセット
     resetTimeControl();
+
+    // 評価値グラフの初期化/トリム
+    resetEvaluationGraph();
+
+    // 棋譜欄の開始行を選択
+    selectStartRow();
 
     // デバッグログ
     qDebug().noquote()
@@ -201,4 +215,35 @@ void PreStartCleanupHandler::resetTimeControl()
     if (m_timeController) {
         m_timeController->clearGameStartTime();
     }
+}
+
+void PreStartCleanupHandler::resetEvaluationGraph()
+{
+    const bool startFromCurrentPos = isStartFromCurrentPosition();
+    if (!startFromCurrentPos) {
+        if (m_evalChart) {
+            m_evalChart->clearAll();
+        }
+        if (m_evalGraphController) {
+            m_evalGraphController->clearScores();
+        }
+    } else {
+        if (m_evalGraphController && m_currentMoveIndex) {
+            const int trimPly = qMax(0, *m_currentMoveIndex);
+            m_evalGraphController->trimToPly(trimPly);
+        }
+    }
+}
+
+void PreStartCleanupHandler::selectStartRow()
+{
+    if (!m_recordPane || !m_kifuRecordModel || m_kifuRecordModel->rowCount() <= 0) return;
+
+    if (auto* view = m_recordPane->kifuView()) {
+        if (auto* sel = view->selectionModel()) {
+            const QModelIndex idx = m_kifuRecordModel->index(0, 0);
+            sel->setCurrentIndex(idx, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+        }
+    }
+    m_kifuRecordModel->setCurrentHighlightRow(0);
 }
