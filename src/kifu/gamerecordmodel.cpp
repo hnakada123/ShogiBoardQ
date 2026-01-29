@@ -11,6 +11,21 @@
 #include <algorithm>
 
 // ========================================
+// KIF形式の定数
+// ========================================
+namespace KifFormat {
+    // 指し手フォーマットの幅設定
+    constexpr int kMoveNumberWidth = 4;    // 手数の幅（右寄せ）
+    constexpr int kMoveTextWidth = 12;     // 指し手テキストの幅（左寄せ）
+
+    // セパレータ行
+    const QString kSeparatorLine = QStringLiteral("手数----指手---------消費時間--");
+
+    // 既定の消費時間
+    const QString kDefaultTime = QStringLiteral("( 0:00/00:00:00)");
+}
+
+// ========================================
 // ヘルパ関数
 // ========================================
 
@@ -36,22 +51,22 @@ static QString formatKifTime(const QString& timeText)
     // 既に括弧付きならそのまま返す
     if (timeText.startsWith(QLatin1Char('('))) return timeText;
     // 空なら既定値
-    if (timeText.isEmpty()) return QStringLiteral("( 0:00/00:00:00)");
-    
+    if (timeText.isEmpty()) return KifFormat::kDefaultTime;
+
     // mm:ss/HH:MM:SS 形式を解析して ( m:ss/HH:MM:SS) 形式に変換
     const QStringList parts = timeText.split(QLatin1Char('/'));
     if (parts.size() == 2) {
         QString moveTime = parts[0];  // mm:ss
         QString totalTime = parts[1]; // HH:MM:SS
-        
+
         // 分の先頭ゼロを除去（例: "00:00" → " 0:00", "01:30" → " 1:30"）
         if (moveTime.length() >= 2 && moveTime.at(0) == QLatin1Char('0')) {
             moveTime = QStringLiteral(" %1").arg(moveTime.mid(1));
         }
-        
+
         return QStringLiteral("(%1/%2)").arg(moveTime, totalTime);
     }
-    
+
     // 解析できない場合はそのまま括弧で囲む
     return QStringLiteral("( %1)").arg(timeText);
 }
@@ -81,18 +96,133 @@ static bool isTerminalMove(const QString& move)
 }
 
 // ヘルパ関数: 終局結果文字列を生成
+// KIF形式仕様: 「まで○手で○手の勝ち」または「まで○手で○○」
 static QString buildEndingLine(int lastActualMoveNo, const QString& terminalMove)
 {
     const QString stripped = removeTurnMarker(terminalMove);
-    // 投了なら直前の手番が勝者
+
+    // 勝者判定: lastActualMoveNo が奇数なら先手の手、偶数なら後手の手が最後
+    const bool lastMoveBySente = (lastActualMoveNo % 2 != 0);
+    const QString senteStr = QStringLiteral("先手");
+    const QString goteStr = QStringLiteral("後手");
+
+    // 投了: 直前の指し手側が勝ち
     if (stripped.contains(QStringLiteral("投了"))) {
-        // lastActualMoveNo が奇数なら先手の手、偶数なら後手の手が最後
-        const bool senteWin = (lastActualMoveNo % 2 != 0);
         return QStringLiteral("まで%1手で%2の勝ち")
-            .arg(QString::number(lastActualMoveNo), senteWin ? QStringLiteral("先手") : QStringLiteral("後手"));
+            .arg(QString::number(lastActualMoveNo), lastMoveBySente ? senteStr : goteStr);
     }
-    // その他の終局は単純に手数のみ
+
+    // 詰み: 詰ませた側（直前の指し手側）が勝ち
+    if (stripped.contains(QStringLiteral("詰み"))) {
+        return QStringLiteral("まで%1手で%2の勝ち")
+            .arg(QString::number(lastActualMoveNo), lastMoveBySente ? senteStr : goteStr);
+    }
+
+    // 切れ負け: 手番側（次に指す側）が負け = 直前の指し手側が勝ち
+    if (stripped.contains(QStringLiteral("切れ負け"))) {
+        return QStringLiteral("まで%1手で%2の勝ち")
+            .arg(QString::number(lastActualMoveNo), lastMoveBySente ? senteStr : goteStr);
+    }
+
+    // 反則勝ち: 手番記号があればその側が勝ち、なければ直前の相手側が勝ち
+    if (stripped.contains(QStringLiteral("反則勝ち"))) {
+        // 手番記号で判定（▲反則勝ち = 先手の勝ち）
+        if (terminalMove.startsWith(QStringLiteral("▲"))) {
+            return QStringLiteral("まで%1手で%2の勝ち").arg(QString::number(lastActualMoveNo), senteStr);
+        } else if (terminalMove.startsWith(QStringLiteral("△"))) {
+            return QStringLiteral("まで%1手で%2の勝ち").arg(QString::number(lastActualMoveNo), goteStr);
+        }
+        // 手番記号なし: 直前の相手が反則 = 直前の指し手側の勝ち
+        return QStringLiteral("まで%1手で%2の勝ち")
+            .arg(QString::number(lastActualMoveNo), lastMoveBySente ? senteStr : goteStr);
+    }
+
+    // 反則負け: 手番記号があればその側が負け
+    if (stripped.contains(QStringLiteral("反則負け"))) {
+        if (terminalMove.startsWith(QStringLiteral("▲"))) {
+            return QStringLiteral("まで%1手で%2の勝ち").arg(QString::number(lastActualMoveNo), goteStr);
+        } else if (terminalMove.startsWith(QStringLiteral("△"))) {
+            return QStringLiteral("まで%1手で%2の勝ち").arg(QString::number(lastActualMoveNo), senteStr);
+        }
+        return QStringLiteral("まで%1手で%2の勝ち")
+            .arg(QString::number(lastActualMoveNo), lastMoveBySente ? goteStr : senteStr);
+    }
+
+    // 入玉勝ち: 手番記号で判定
+    if (stripped.contains(QStringLiteral("入玉勝ち"))) {
+        if (terminalMove.startsWith(QStringLiteral("▲"))) {
+            return QStringLiteral("まで%1手で%2の勝ち").arg(QString::number(lastActualMoveNo), senteStr);
+        } else if (terminalMove.startsWith(QStringLiteral("△"))) {
+            return QStringLiteral("まで%1手で%2の勝ち").arg(QString::number(lastActualMoveNo), goteStr);
+        }
+        return QStringLiteral("まで%1手で%2の勝ち")
+            .arg(QString::number(lastActualMoveNo), lastMoveBySente ? senteStr : goteStr);
+    }
+
+    // 不戦勝/不戦敗
+    if (stripped.contains(QStringLiteral("不戦勝"))) {
+        if (terminalMove.startsWith(QStringLiteral("▲"))) {
+            return QStringLiteral("まで%1手で%2の勝ち").arg(QString::number(lastActualMoveNo), senteStr);
+        } else if (terminalMove.startsWith(QStringLiteral("△"))) {
+            return QStringLiteral("まで%1手で%2の勝ち").arg(QString::number(lastActualMoveNo), goteStr);
+        }
+    }
+    if (stripped.contains(QStringLiteral("不戦敗"))) {
+        if (terminalMove.startsWith(QStringLiteral("▲"))) {
+            return QStringLiteral("まで%1手で%2の勝ち").arg(QString::number(lastActualMoveNo), goteStr);
+        } else if (terminalMove.startsWith(QStringLiteral("△"))) {
+            return QStringLiteral("まで%1手で%2の勝ち").arg(QString::number(lastActualMoveNo), senteStr);
+        }
+    }
+
+    // 千日手: 引き分け
+    if (stripped.contains(QStringLiteral("千日手"))) {
+        return QStringLiteral("まで%1手で千日手").arg(QString::number(lastActualMoveNo));
+    }
+
+    // 持将棋: 引き分け
+    if (stripped.contains(QStringLiteral("持将棋"))) {
+        return QStringLiteral("まで%1手で持将棋").arg(QString::number(lastActualMoveNo));
+    }
+
+    // 中断
+    if (stripped.contains(QStringLiteral("中断"))) {
+        return QStringLiteral("まで%1手で中断").arg(QString::number(lastActualMoveNo));
+    }
+
+    // 不詰
+    if (stripped.contains(QStringLiteral("不詰"))) {
+        return QStringLiteral("まで%1手で不詰").arg(QString::number(lastActualMoveNo));
+    }
+
+    // その他: 手数のみ
     return QStringLiteral("まで%1手").arg(QString::number(lastActualMoveNo));
+}
+
+// ヘルパ関数: KIF形式の指し手行を生成
+static QString formatKifMoveLine(int moveNo, const QString& kifMove, const QString& time, bool hasBranch)
+{
+    const QString moveNoStr = QStringLiteral("%1").arg(moveNo, KifFormat::kMoveNumberWidth);
+    const QString branchMark = hasBranch ? QStringLiteral("+") : QString();
+    return QStringLiteral("%1 %2   %3%4")
+        .arg(moveNoStr, kifMove.leftJustified(KifFormat::kMoveTextWidth), time, branchMark);
+}
+
+// ヘルパ関数: コメント行を出力リストに追加
+static void appendKifComments(const QString& comment, QStringList& out)
+{
+    if (comment.trimmed().isEmpty()) return;
+
+    const QStringList lines = comment.split(QRegularExpression(QStringLiteral("\r?\n")), Qt::KeepEmptyParts);
+    for (const QString& raw : lines) {
+        const QString t = raw.trimmed();
+        if (t.isEmpty()) continue;
+        if (t.startsWith(QLatin1Char('*'))) {
+            out << t;
+        } else {
+            out << (QStringLiteral("*") + t);
+        }
+    }
 }
 
 // ========================================
@@ -264,12 +394,9 @@ QStringList GameRecordModel::toKifLines(const ExportContext& ctx) const
             out << fwColonLine(it.key.trimmed(), it.value.trimmed());
         }
     }
-    if (!out.isEmpty()) {
-        out << QString();
-    }
 
     // 2) セパレータ
-    out << QStringLiteral("手数----指手---------消費時間--");
+    out << KifFormat::kSeparatorLine;
 
     // 3) 本譜の指し手を収集
     const QList<KifDisplayItem> disp = collectMainlineForExport();
@@ -281,19 +408,7 @@ QStringList GameRecordModel::toKifLines(const ExportContext& ctx) const
     int startIdx = 0;
     if (!disp.isEmpty() && disp[0].prettyMove.trimmed().isEmpty()) {
         // 開始局面のコメントを先に出力
-        const QString cmt = disp[0].comment.trimmed();
-        if (!cmt.isEmpty()) {
-            const QStringList lines = cmt.split(QRegularExpression(QStringLiteral("\r?\n")), Qt::KeepEmptyParts);
-            for (const QString& raw : lines) {
-                const QString t = raw.trimmed();
-                if (t.isEmpty()) continue;
-                if (t.startsWith(QLatin1Char('*'))) {
-                    out << t;
-                } else {
-                    out << (QStringLiteral("*") + t);
-                }
-            }
-        }
+        appendKifComments(disp[0].comment, out);
         startIdx = 1; // 実際の指し手は次から
     }
 
@@ -301,46 +416,32 @@ QStringList GameRecordModel::toKifLines(const ExportContext& ctx) const
     int moveNo = 1;
     int lastActualMoveNo = 0;
     QString terminalMove;
-    
+
     for (qsizetype i = startIdx; i < disp.size(); ++i) {
         const auto& it = disp[i];
         const QString moveText = it.prettyMove.trimmed();
-        
+
         // 空の指し手はスキップ
         if (moveText.isEmpty()) continue;
-        
+
         // 終局語の判定
         const bool isTerminal = isTerminalMove(moveText);
-        
+
         // 手番記号を除去してKIF形式に変換
         const QString kifMove = removeTurnMarker(moveText);
-        
+
         // 時間フォーマット（括弧付き）
         const QString time = formatKifTime(it.timeText);
-        
+
         // 分岐マークの判定（この手に分岐があるか）
-        const QString branchMark = branchPoints.contains(moveNo) ? QStringLiteral("+") : QString();
-        
-        // KIF形式で出力: "   手数 指し手   (時間)+"
-        const QString moveNoStr = QStringLiteral("%1").arg(moveNo, 4);
-        out << QStringLiteral("%1 %2   %3%4")
-                   .arg(moveNoStr, kifMove.leftJustified(12), time, branchMark);
-        
+        const bool hasBranch = branchPoints.contains(moveNo);
+
+        // KIF形式で出力
+        out << formatKifMoveLine(moveNo, kifMove, time, hasBranch);
+
         // コメント出力（指し手の後に）
-        const QString cmt = it.comment.trimmed();
-        if (!cmt.isEmpty()) {
-            const QStringList lines = cmt.split(QRegularExpression(QStringLiteral("\r?\n")), Qt::KeepEmptyParts);
-            for (const QString& raw : lines) {
-                const QString t = raw.trimmed();
-                if (t.isEmpty()) continue;
-                if (t.startsWith(QLatin1Char('*'))) {
-                    out << t;
-                } else {
-                    out << (QStringLiteral("*") + t);
-                }
-            }
-        }
-        
+        appendKifComments(it.comment, out);
+
         if (isTerminal) {
             terminalMove = moveText;
         } else {
@@ -350,7 +451,6 @@ QStringList GameRecordModel::toKifLines(const ExportContext& ctx) const
     }
 
     // 7) 終了行（本譜のみ）
-    out << QString();
     out << buildEndingLine(lastActualMoveNo, terminalMove);
 
     // 8) 変化（分岐）を出力
@@ -363,7 +463,7 @@ QStringList GameRecordModel::toKifLines(const ExportContext& ctx) const
                 break;
             }
         }
-        
+
         if (mainRowIndex >= 0) {
             QSet<int> visitedRows;
             visitedRows.insert(mainRowIndex); // 本譜は既に出力済み
@@ -599,13 +699,12 @@ void GameRecordModel::outputVariation(int rowIndex, QStringList& out) const
     if (!m_resolvedRows || rowIndex < 0 || rowIndex >= m_resolvedRows->size()) {
         return;
     }
-    
+
     const ResolvedRow& row = m_resolvedRows->at(rowIndex);
-    
+
     // 変化ヘッダを出力
-    out << QString();
     out << QStringLiteral("変化：%1手").arg(row.startPly);
-    
+
     // この変化から分岐する子変化のstartPlyを収集
     QSet<int> childBranchPoints;
     for (int i = 0; i < m_resolvedRows->size(); ++i) {
@@ -613,7 +712,7 @@ void GameRecordModel::outputVariation(int rowIndex, QStringList& out) const
             childBranchPoints.insert(m_resolvedRows->at(i).startPly);
         }
     }
-    
+
     // 同じ親・同じstartPlyを持ち、varIndexが自分より大きい兄弟変化があるかチェック
     // （この変化の最初の手に+マークを付けるため - 後に来る変化がある場合のみ）
     bool hasSiblingAfterThis = false;
@@ -630,28 +729,28 @@ void GameRecordModel::outputVariation(int rowIndex, QStringList& out) const
             }
         }
     }
-    
+
     // 変化の指し手を出力
     // disp[0]=開始局面, disp[i]=i手目 なので、startPly手目から出力開始
     const QList<KifDisplayItem>& disp = row.disp;
-    
+
     int moveNo = row.startPly;
     bool isFirstMove = true;
-    
+
     // dispのstartPly番目の要素から出力（disp[startPly]がstartPly手目）
     for (qsizetype i = row.startPly; i < disp.size(); ++i) {
         const auto& it = disp[i];
         const QString moveText = it.prettyMove.trimmed();
-        
+
         // 空の指し手はスキップ
         if (moveText.isEmpty()) continue;
-        
+
         // 手番記号を除去してKIF形式に変換
         const QString kifMove = removeTurnMarker(moveText);
-        
+
         // 時間フォーマット（括弧付き）
         const QString time = formatKifTime(it.timeText);
-        
+
         // 分岐マークの判定
         // 1. この手に子分岐があるか
         // 2. 最初の手で、後に来る兄弟変化があるか
@@ -659,28 +758,13 @@ void GameRecordModel::outputVariation(int rowIndex, QStringList& out) const
         if (isFirstMove && hasSiblingAfterThis) {
             hasBranch = true;
         }
-        const QString branchMark = hasBranch ? QStringLiteral("+") : QString();
-        
+
         // KIF形式で出力
-        const QString moveNoStr = QStringLiteral("%1").arg(moveNo, 4);
-        out << QStringLiteral("%1 %2   %3%4")
-                   .arg(moveNoStr, kifMove.leftJustified(12), time, branchMark);
-        
+        out << formatKifMoveLine(moveNo, kifMove, time, hasBranch);
+
         // コメント出力
-        const QString cmt = it.comment.trimmed();
-        if (!cmt.isEmpty()) {
-            const QStringList lines = cmt.split(QRegularExpression(QStringLiteral("\r?\n")), Qt::KeepEmptyParts);
-            for (const QString& raw : lines) {
-                const QString t = raw.trimmed();
-                if (t.isEmpty()) continue;
-                if (t.startsWith(QLatin1Char('*'))) {
-                    out << t;
-                } else {
-                    out << (QStringLiteral("*") + t);
-                }
-            }
-        }
-        
+        appendKifComments(it.comment, out);
+
         ++moveNo;
         isFirstMove = false;
     }
@@ -753,22 +837,7 @@ QStringList GameRecordModel::toKi2Lines(const ExportContext& ctx) const
     int startIdx = 0;
     if (!disp.isEmpty() && disp[0].prettyMove.trimmed().isEmpty()) {
         // 開始局面のコメントを先に出力
-        const QString cmt = disp[0].comment.trimmed();
-        if (!cmt.isEmpty()) {
-            if (!out.isEmpty()) {
-                out << QString();  // 空行を入れる
-            }
-            const QStringList lines = cmt.split(QRegularExpression(QStringLiteral("\r?\n")), Qt::KeepEmptyParts);
-            for (const QString& raw : lines) {
-                const QString t = raw.trimmed();
-                if (t.isEmpty()) continue;
-                if (t.startsWith(QLatin1Char('*'))) {
-                    out << t;
-                } else {
-                    out << (QStringLiteral("*") + t);
-                }
-            }
-        }
+        appendKifComments(disp[0].comment, out);
         startIdx = 1; // 実際の指し手は次から
     }
 
@@ -778,26 +847,26 @@ QStringList GameRecordModel::toKi2Lines(const ExportContext& ctx) const
     QString terminalMove;
     QStringList movesOnLine;  // 現在の行に蓄積する指し手
     bool lastMoveHadComment = false;
-    
+
     for (qsizetype i = startIdx; i < disp.size(); ++i) {
         const auto& it = disp[i];
         const QString moveText = it.prettyMove.trimmed();
-        
+
         // 空の指し手はスキップ
         if (moveText.isEmpty()) continue;
-        
+
         // 終局語の判定
         const bool isTerminal = isTerminalMove(moveText);
-        
+
         // KI2形式: 手番記号は維持、(xx)の移動元は削除
         QString ki2Move = moveText;
         // 移動元情報 (xx) を削除
         static const QRegularExpression fromPosPattern(QStringLiteral("\\([0-9０-９]+[0-9０-９]+\\)$"));
         ki2Move.remove(fromPosPattern);
-        
+
         const QString cmt = it.comment.trimmed();
         const bool hasComment = !cmt.isEmpty();
-        
+
         if (hasComment || lastMoveHadComment || isTerminal) {
             // コメントがある場合、または前の手にコメントがあった場合は、
             // 溜まっている指し手を吐き出してから、この指し手を単独行で出力
@@ -806,19 +875,10 @@ QStringList GameRecordModel::toKi2Lines(const ExportContext& ctx) const
                 movesOnLine.clear();
             }
             out << ki2Move;
-            
+
             // コメント出力
             if (hasComment) {
-                const QStringList cmtLines = cmt.split(QRegularExpression(QStringLiteral("\r?\n")), Qt::KeepEmptyParts);
-                for (const QString& raw : cmtLines) {
-                    const QString t = raw.trimmed();
-                    if (t.isEmpty()) continue;
-                    if (t.startsWith(QLatin1Char('*'))) {
-                        out << t;
-                    } else {
-                        out << (QStringLiteral("*") + t);
-                    }
-                }
+                appendKifComments(cmt, out);
             }
             lastMoveHadComment = hasComment;
         } else {
@@ -826,7 +886,7 @@ QStringList GameRecordModel::toKi2Lines(const ExportContext& ctx) const
             movesOnLine.append(ki2Move);
             lastMoveHadComment = false;
         }
-        
+
         if (isTerminal) {
             terminalMove = moveText;
         } else {
@@ -834,7 +894,7 @@ QStringList GameRecordModel::toKi2Lines(const ExportContext& ctx) const
         }
         ++moveNo;
     }
-    
+
     // 残りの指し手を出力
     if (!movesOnLine.isEmpty()) {
         out << movesOnLine.join(QStringLiteral("    "));
@@ -853,7 +913,7 @@ QStringList GameRecordModel::toKi2Lines(const ExportContext& ctx) const
                 break;
             }
         }
-        
+
         if (mainRowIndex >= 0) {
             QSet<int> visitedRows;
             visitedRows.insert(mainRowIndex); // 本譜は既に出力済み
@@ -873,54 +933,44 @@ void GameRecordModel::outputKi2Variation(int rowIndex, QStringList& out) const
     if (!m_resolvedRows || rowIndex < 0 || rowIndex >= m_resolvedRows->size()) {
         return;
     }
-    
+
     const ResolvedRow& row = m_resolvedRows->at(rowIndex);
-    
+
     // 変化ヘッダを出力
-    out << QString();
     out << QStringLiteral("変化：%1手").arg(row.startPly);
-    
+
     // 変化の指し手を出力
     const QList<KifDisplayItem>& disp = row.disp;
-    
+
     QStringList movesOnLine;
     bool lastMoveHadComment = false;
-    
+
     // dispのstartPly番目の要素から出力
     for (qsizetype i = row.startPly; i < disp.size(); ++i) {
         const auto& it = disp[i];
         const QString moveText = it.prettyMove.trimmed();
-        
+
         // 空の指し手はスキップ
         if (moveText.isEmpty()) continue;
-        
+
         // KI2形式: 手番記号は維持、(xx)の移動元は削除
         QString ki2Move = moveText;
         static const QRegularExpression fromPosPattern(QStringLiteral("\\([0-9０-９]+[0-9０-９]+\\)$"));
         ki2Move.remove(fromPosPattern);
-        
+
         const QString cmt = it.comment.trimmed();
         const bool hasComment = !cmt.isEmpty();
         const bool isTerminal = isTerminalMove(moveText);
-        
+
         if (hasComment || lastMoveHadComment || isTerminal) {
             if (!movesOnLine.isEmpty()) {
                 out << movesOnLine.join(QStringLiteral("    "));
                 movesOnLine.clear();
             }
             out << ki2Move;
-            
+
             if (hasComment) {
-                const QStringList cmtLines = cmt.split(QRegularExpression(QStringLiteral("\r?\n")), Qt::KeepEmptyParts);
-                for (const QString& raw : cmtLines) {
-                    const QString t = raw.trimmed();
-                    if (t.isEmpty()) continue;
-                    if (t.startsWith(QLatin1Char('*'))) {
-                        out << t;
-                    } else {
-                        out << (QStringLiteral("*") + t);
-                    }
-                }
+                appendKifComments(cmt, out);
             }
             lastMoveHadComment = hasComment;
         } else {
@@ -928,7 +978,7 @@ void GameRecordModel::outputKi2Variation(int rowIndex, QStringList& out) const
             lastMoveHadComment = false;
         }
     }
-    
+
     // 残りの指し手を出力
     if (!movesOnLine.isEmpty()) {
         out << movesOnLine.join(QStringLiteral("    "));
