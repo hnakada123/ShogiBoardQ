@@ -4,6 +4,7 @@
 #include <QRegularExpression>
 #include <QDebug>
 #include <QMap>
+#include <array>
 
 // ============================================================================
 // 静的ヘルパ関数（無名名前空間）
@@ -47,28 +48,76 @@ static int flexDigitsToInt_NoDetach(const QString& t)
     return v;
 }
 
+// --- 終局語の統一リスト（KI2仕様に準拠 + 表記ゆらぎ吸収） ---
+// isTerminalWord と containsAnyTerminal で共通使用
+static const auto& kTerminalWords() {
+    static const auto& arr = *[]() {
+        static const std::array<QString, 17> a = {{
+            // 主要な終局語
+            QStringLiteral("中断"),
+            QStringLiteral("投了"),
+            QStringLiteral("持将棋"),
+            QStringLiteral("千日手"),
+            QStringLiteral("切れ負け"),
+            QStringLiteral("時間切れ"),  // 切れ負けの別表記
+            QStringLiteral("反則勝ち"),
+            QStringLiteral("反則負け"),
+            QStringLiteral("不戦勝"),
+            QStringLiteral("不戦敗"),
+            // 詰関連
+            QStringLiteral("詰み"),
+            QStringLiteral("詰"),         // 詰みの短縮形
+            QStringLiteral("不詰"),
+            // 宣言系（表記ゆらぎを吸収）
+            QStringLiteral("入玉勝ち"),
+            QStringLiteral("宣言勝ち"),
+            QStringLiteral("入玉宣言勝ち")
+        }};
+        return &a;
+    }();
+    return arr;
+}
+
 // --- 終局語の判定 ---
 static inline bool isTerminalWord(const QString& s, QString* normalized)
 {
-    static const QStringList kTerminals = {
-        QStringLiteral("中断"),
-        QStringLiteral("投了"),
-        QStringLiteral("持将棋"),
-        QStringLiteral("千日手"),
-        QStringLiteral("切れ負け"),
-        QStringLiteral("反則勝ち"),
-        QStringLiteral("反則負け"),
-        QStringLiteral("入玉勝ち"),
-        QStringLiteral("不戦勝"),
-        QStringLiteral("不戦敗"),
-        QStringLiteral("詰み"),
-        QStringLiteral("不詰")
-    };
     const QString t = s.trimmed();
-    for (const QString& w : kTerminals) {
+    for (const QString& w : kTerminalWords()) {
         if (t == w || t.contains(w)) { if (normalized) *normalized = w; return true; }
     }
     return false;
+}
+
+// --- 共通正規表現（重複排除） ---
+
+// 結果行検出（キャプチャあり）: "まで○手で..." の手数をキャプチャ
+static const QRegularExpression& resultPatternCaptureRe()
+{
+    static const auto& re = *[]() {
+        static const QRegularExpression r(QStringLiteral("^\\s*まで([0-9０-９]+)手"));
+        return &r;
+    }();
+    return re;
+}
+
+// 結果行検出（キャプチャなし）: "まで○手で..." の判定のみ
+static const QRegularExpression& resultPatternRe()
+{
+    static const auto& re = *[]() {
+        static const QRegularExpression r(QStringLiteral("^\\s*まで[0-9０-９]+手"));
+        return &r;
+    }();
+    return re;
+}
+
+// コロン以降を削除: "棋戦：タイトル" → "タイトル"
+static const QRegularExpression& afterColonRe()
+{
+    static const auto& re = *[]() {
+        static const QRegularExpression r(QStringLiteral("^.*[:：]"));
+        return &r;
+    }();
+    return re;
 }
 
 // --- 「まで○手で...」行を解析して終局語と手番を取得 ---
@@ -79,11 +128,7 @@ static inline bool isTerminalWord(const QString& s, QString* normalized)
 // blackToMove: 終局語の手番を決める（奇数手目なら先手番）
 static bool parseResultLine(const QString& line, QString& terminalWord, int& moveCount)
 {
-    static const QRegularExpression kResultPattern(
-        QStringLiteral("^\\s*まで([0-9０-９]+)手")
-    );
-    
-    const QRegularExpressionMatch m = kResultPattern.match(line);
+    const QRegularExpressionMatch m = resultPatternCaptureRe().match(line);
     if (!m.hasMatch()) return false;
     
     // 手数を抽出
@@ -153,10 +198,7 @@ static bool parseResultLine(const QString& line, QString& terminalWord, int& mov
 // --- 終局行かどうか判定 ---
 static inline bool isResultLine(const QString& line)
 {
-    static const QRegularExpression kResultPattern(
-        QStringLiteral("^\\s*まで[0-9０-９]+手")
-    );
-    return kResultPattern.match(line).hasMatch();
+    return resultPatternRe().match(line).hasMatch();
 }
 
 // 駒の漢字 → (USI基底文字, 成りフラグ)
@@ -396,15 +438,8 @@ bool Ki2ToSfenConverter::isBoardHeaderOrFrame(const QString& line)
 
 bool Ki2ToSfenConverter::containsAnyTerminal(const QString& s, QString* matched)
 {
-    static const QStringList kWords = {
-        QStringLiteral("投了"), QStringLiteral("中断"), QStringLiteral("持将棋"),
-        QStringLiteral("千日手"), QStringLiteral("切れ負け"), QStringLiteral("時間切れ"),
-        QStringLiteral("反則勝ち"), QStringLiteral("反則負け"),
-        QStringLiteral("不戦勝"), QStringLiteral("不戦敗"),
-        QStringLiteral("詰み"), QStringLiteral("詰"), QStringLiteral("不詰"),
-        QStringLiteral("宣言勝ち"), QStringLiteral("入玉勝ち"), QStringLiteral("入玉宣言勝ち")
-    };
-    for (const QString& w : kWords) {
+    // kTerminalWords() を使用（終局語リストの統一）
+    for (const QString& w : kTerminalWords()) {
         if (s.contains(w)) { if (matched) *matched = w; return true; }
     }
     return false;
@@ -1171,9 +1206,8 @@ QString Ki2ToSfenConverter::detectInitialSfenFromFile(const QString& ki2Path, QS
         return mapHandicapToSfenImpl(QStringLiteral("平手"));
     }
 
-    static const QRegularExpression s_afterColon(QStringLiteral("^.*[:：]"));
     QString label = found;
-    label.remove(s_afterColon);
+    label.remove(afterColonRe());
     label = label.trimmed();
     if (detectedLabel) *detectedLabel = label;
     return mapHandicapToSfenImpl(label);
@@ -1683,9 +1717,8 @@ bool Ki2ToSfenConverter::buildInitialSfenFromBod(const QStringList& lines,
     for (const QString& line : lines) {
         const QString t = line.trimmed();
         if (t.contains(QStringLiteral("手合割")) || t.contains(QStringLiteral("手合"))) {
-            static const QRegularExpression s_afterColon(QStringLiteral("^.*[:：]"));
             QString label = t;
-            label.remove(s_afterColon);
+            label.remove(afterColonRe());
             label = label.trimmed();
             
             if (!label.isEmpty()) {
