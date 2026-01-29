@@ -41,6 +41,9 @@ void DockCreationService::setupDockFeatures(QDockWidget* dock, const QString& ob
         QDockWidget::DockWidgetFloatable |
         QDockWidget::DockWidgetClosable);
     dock->setAllowedAreas(Qt::AllDockWidgetAreas);
+    // タイトルバーの高さと色を設定（ドラッグ領域を認識しやすくする）
+    dock->setStyleSheet(QStringLiteral(
+        "QDockWidget::title { padding: 8px; background-color: #dcdcdc; }"));
 }
 
 void DockCreationService::addToggleActionToMenu(QDockWidget* dock, const QString& title)
@@ -71,7 +74,6 @@ QDockWidget* DockCreationService::createEvalChartDock()
     m_evalChartDock = new QDockWidget(tr("評価値グラフ"), m_mainWindow);
     setupDockFeatures(m_evalChartDock, QStringLiteral("EvalChartDock"));
     m_evalChartDock->setWidget(m_evalChart);
-    m_evalChartDock->setStyleSheet(QStringLiteral("QDockWidget::title { padding: 8px; }"));
 
     m_mainWindow->addDockWidget(Qt::BottomDockWidgetArea, m_evalChartDock);
 
@@ -136,6 +138,9 @@ void DockCreationService::createAnalysisDocks()
             QDockWidget::DockWidgetFloatable |
             QDockWidget::DockWidgetClosable);
         dock->setAllowedAreas(Qt::AllDockWidgetAreas);
+        // タイトルバーの高さと色を設定（ドラッグ領域を認識しやすくする）
+        dock->setStyleSheet(QStringLiteral(
+            "QDockWidget::title { padding: 8px; background-color: #dcdcdc; }"));
         m_mainWindow->addDockWidget(Qt::BottomDockWidgetArea, dock);
         addToggleActionToMenu(dock, title);
     };

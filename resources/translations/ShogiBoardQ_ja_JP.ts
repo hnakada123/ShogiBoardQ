@@ -877,74 +877,74 @@
 <context>
     <name>DockCreationService</name>
     <message>
-        <location filename="../../src/app/dockcreationservice.cpp" line="71"/>
-        <location filename="../../src/app/dockcreationservice.cpp" line="80"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="74"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="82"/>
         <source>評価値グラフ</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/dockcreationservice.cpp" line="106"/>
-        <location filename="../../src/app/dockcreationservice.cpp" line="111"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="108"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="113"/>
         <source>棋譜</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/dockcreationservice.cpp" line="145"/>
-        <location filename="../../src/app/dockcreationservice.cpp" line="147"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="150"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="152"/>
         <source>対局情報</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/dockcreationservice.cpp" line="151"/>
-        <location filename="../../src/app/dockcreationservice.cpp" line="153"/>
-        <source>思考</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../src/app/dockcreationservice.cpp" line="156"/>
         <location filename="../../src/app/dockcreationservice.cpp" line="158"/>
-        <source>検討</source>
+        <source>思考</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../src/app/dockcreationservice.cpp" line="161"/>
         <location filename="../../src/app/dockcreationservice.cpp" line="163"/>
-        <source>USI通信ログ</source>
+        <source>検討</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../src/app/dockcreationservice.cpp" line="166"/>
         <location filename="../../src/app/dockcreationservice.cpp" line="168"/>
-        <source>CSA通信ログ</source>
+        <source>USI通信ログ</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../src/app/dockcreationservice.cpp" line="171"/>
         <location filename="../../src/app/dockcreationservice.cpp" line="173"/>
-        <source>棋譜コメント</source>
+        <source>CSA通信ログ</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../src/app/dockcreationservice.cpp" line="176"/>
         <location filename="../../src/app/dockcreationservice.cpp" line="178"/>
+        <source>棋譜コメント</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/app/dockcreationservice.cpp" line="181"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="183"/>
         <source>分岐ツリー</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/dockcreationservice.cpp" line="217"/>
         <location filename="../../src/app/dockcreationservice.cpp" line="222"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="227"/>
         <source>メニュー</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/dockcreationservice.cpp" line="246"/>
         <location filename="../../src/app/dockcreationservice.cpp" line="251"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="256"/>
         <source>定跡</source>
         <translation type="unfinished">定跡</translation>
     </message>
     <message>
-        <location filename="../../src/app/dockcreationservice.cpp" line="268"/>
-        <location filename="../../src/app/dockcreationservice.cpp" line="281"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="273"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="286"/>
         <source>棋譜解析</source>
         <translation type="unfinished"></translation>
     </message>
