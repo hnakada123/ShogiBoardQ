@@ -107,6 +107,18 @@ public:
     void updateGameInfoWithEndTime(const QDateTime& endDateTime);
 
     /**
+     * @brief 持ち時間情報を対局情報に追加/更新
+     * @param hasTimeControl 時間制御が有効か
+     * @param baseTimeMs 持ち時間（ミリ秒）
+     * @param byoyomiMs 秒読み（ミリ秒）
+     * @param incrementMs フィッシャー加算（ミリ秒）
+     */
+    void updateGameInfoWithTimeControl(bool hasTimeControl,
+                                       qint64 baseTimeMs,
+                                       qint64 byoyomiMs,
+                                       qint64 incrementMs);
+
+    /**
      * @brief GameInfoPaneControllerを取得
      * @return GameInfoPaneControllerへのポインタ
      */

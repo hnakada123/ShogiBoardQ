@@ -79,91 +79,126 @@ void JosekiWindow::setupUi()
     QHBoxLayout *toolbarLayout = new QHBoxLayout();
     toolbarLayout->setSpacing(12);
     
+    // ボタンスタイル定義
+    const QString fileBtnStyle = QStringLiteral(
+        "QPushButton { background-color: #e3f2fd; border: 1px solid #90caf9; border-radius: 3px; padding: 4px 8px; }"
+        "QPushButton:hover { background-color: #bbdefb; }"
+        "QPushButton:pressed { background-color: #90caf9; }"
+        "QPushButton:disabled { background-color: #f5f5f5; color: #9e9e9e; border: 1px solid #e0e0e0; }");
+    const QString fontBtnStyle = QStringLiteral(
+        "QPushButton { background-color: #e3f2fd; border: 1px solid #90caf9; border-radius: 3px; }"
+        "QPushButton:hover { background-color: #bbdefb; }"
+        "QPushButton:pressed { background-color: #90caf9; }");
+    const QString editBtnStyle = QStringLiteral(
+        "QPushButton { background-color: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 3px; padding: 4px 8px; }"
+        "QPushButton:hover { background-color: #c8e6c9; }"
+        "QPushButton:pressed { background-color: #a5d6a7; }");
+    const QString editToolBtnStyle = QStringLiteral(
+        "QToolButton { background-color: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 3px; padding: 4px 8px; }"
+        "QToolButton:hover { background-color: #c8e6c9; }"
+        "QToolButton:pressed { background-color: #a5d6a7; }"
+        "QToolButton::menu-indicator { image: none; }");
+    const QString stopBtnStyle = QStringLiteral(
+        "QPushButton { background-color: #fff3e0; border: 1px solid #ffcc80; border-radius: 3px; padding: 4px 8px; }"
+        "QPushButton:hover { background-color: #ffe0b2; }"
+        "QPushButton:pressed { background-color: #ffcc80; }"
+        "QPushButton:checked { background-color: #ffcc80; }");
+
     // --- ファイル操作グループ ---
     QGroupBox *fileGroup = new QGroupBox(tr("ファイル"), this);
     QHBoxLayout *fileGroupLayout = new QHBoxLayout(fileGroup);
     fileGroupLayout->setContentsMargins(8, 4, 8, 4);
     fileGroupLayout->setSpacing(4);
-    
+
     m_newButton = new QPushButton(tr("新規"), this);
     m_newButton->setToolTip(tr("新しい空の定跡ファイルを作成"));
     m_newButton->setIcon(style()->standardIcon(QStyle::SP_FileIcon));
+    m_newButton->setStyleSheet(fileBtnStyle);
     fileGroupLayout->addWidget(m_newButton);
-    
+
     m_openButton = new QPushButton(tr("開く"), this);
     m_openButton->setToolTip(tr("定跡ファイル(.db)を開く"));
     m_openButton->setIcon(style()->standardIcon(QStyle::SP_DialogOpenButton));
+    m_openButton->setStyleSheet(fileBtnStyle);
     fileGroupLayout->addWidget(m_openButton);
-    
+
     m_saveButton = new QPushButton(tr("保存"), this);
     m_saveButton->setToolTip(tr("現在のファイルに上書き保存"));
     m_saveButton->setIcon(style()->standardIcon(QStyle::SP_DialogSaveButton));
+    m_saveButton->setStyleSheet(fileBtnStyle);
     m_saveButton->setEnabled(false);
     fileGroupLayout->addWidget(m_saveButton);
-    
+
     m_saveAsButton = new QPushButton(tr("別名保存"), this);
     m_saveAsButton->setToolTip(tr("別の名前で保存"));
     m_saveAsButton->setIcon(style()->standardIcon(QStyle::SP_DialogSaveButton));
+    m_saveAsButton->setStyleSheet(fileBtnStyle);
     fileGroupLayout->addWidget(m_saveAsButton);
-    
+
     m_recentButton = new QPushButton(tr("履歴"), this);
     m_recentButton->setToolTip(tr("最近使ったファイルを開く"));
+    m_recentButton->setStyleSheet(fileBtnStyle);
     m_recentFilesMenu = new QMenu(this);
     m_recentButton->setMenu(m_recentFilesMenu);
     fileGroupLayout->addWidget(m_recentButton);
-    
+
     toolbarLayout->addWidget(fileGroup);
-    
+
     // --- 表示設定グループ ---
     QGroupBox *displayGroup = new QGroupBox(tr("表示"), this);
     QHBoxLayout *displayGroupLayout = new QHBoxLayout(displayGroup);
     displayGroupLayout->setContentsMargins(8, 4, 8, 4);
     displayGroupLayout->setSpacing(4);
-    
+
     m_fontIncreaseBtn = new QPushButton(tr("A+"), this);
     m_fontIncreaseBtn->setToolTip(tr("フォントサイズを拡大"));
     m_fontIncreaseBtn->setFixedWidth(36);
+    m_fontIncreaseBtn->setStyleSheet(fontBtnStyle);
     displayGroupLayout->addWidget(m_fontIncreaseBtn);
-    
+
     m_fontDecreaseBtn = new QPushButton(tr("A-"), this);
     m_fontDecreaseBtn->setToolTip(tr("フォントサイズを縮小"));
     m_fontDecreaseBtn->setFixedWidth(36);
+    m_fontDecreaseBtn->setStyleSheet(fontBtnStyle);
     displayGroupLayout->addWidget(m_fontDecreaseBtn);
-    
+
     m_autoLoadCheckBox = new QCheckBox(tr("自動読込"), this);
     m_autoLoadCheckBox->setToolTip(tr("定跡ウィンドウ表示時に前回のファイルを自動で読み込む"));
     m_autoLoadCheckBox->setChecked(true);
     displayGroupLayout->addWidget(m_autoLoadCheckBox);
-    
+
     toolbarLayout->addWidget(displayGroup);
-    
+
     // --- 操作グループ ---
     QGroupBox *operationGroup = new QGroupBox(tr("操作"), this);
     QHBoxLayout *operationGroupLayout = new QHBoxLayout(operationGroup);
     operationGroupLayout->setContentsMargins(8, 4, 8, 4);
     operationGroupLayout->setSpacing(4);
-    
+
     m_addMoveButton = new QPushButton(tr("＋追加"), this);
     m_addMoveButton->setToolTip(tr("現在の局面に定跡手を追加"));
+    m_addMoveButton->setStyleSheet(editBtnStyle);
     operationGroupLayout->addWidget(m_addMoveButton);
-    
+
     // マージボタン（ドロップダウンメニュー付き）
     m_mergeButton = new QToolButton(this);
     m_mergeButton->setText(tr("マージ ▼"));
     m_mergeButton->setToolTip(tr("棋譜から定跡をマージ"));
     m_mergeButton->setPopupMode(QToolButton::InstantPopup);
-    
+    m_mergeButton->setStyleSheet(editToolBtnStyle);
+
     m_mergeMenu = new QMenu(this);
     m_mergeMenu->addAction(tr("現在の棋譜から"), this, &JosekiWindow::onMergeFromCurrentKifu);
     m_mergeMenu->addAction(tr("棋譜ファイルから"), this, &JosekiWindow::onMergeFromKifuFile);
     m_mergeButton->setMenu(m_mergeMenu);
     operationGroupLayout->addWidget(m_mergeButton);
-    
+
     m_stopButton = new QPushButton(tr("■ 停止"), this);
     m_stopButton->setToolTip(tr("定跡表示を停止/再開"));
     m_stopButton->setCheckable(true);
+    m_stopButton->setStyleSheet(stopBtnStyle);
     operationGroupLayout->addWidget(m_stopButton);
-    
+
     toolbarLayout->addWidget(operationGroup);
     
     mainLayout->addLayout(toolbarLayout);
