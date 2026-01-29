@@ -50,6 +50,29 @@ static bool isPromotedLocal(Piece p)
     return (p == C::TO || p == C::NY || p == C::NK || p == C::NG || p == C::UM || p == C::RY);
 }
 
+// --- CSA終局語を日本語ラベルに変換 ---
+// CSA形式の終局コード（%TORYO等）から日本語表記を返す
+// マッチしない場合は空文字列を返す
+static QString csaResultToLabel(const QString& token)
+{
+    if      (token.startsWith(QLatin1String("%TORYO")))            return QStringLiteral("投了");
+    else if (token.startsWith(QLatin1String("%CHUDAN")))           return QStringLiteral("中断");
+    else if (token.startsWith(QLatin1String("%SENNICHITE")))       return QStringLiteral("千日手");
+    else if (token.startsWith(QLatin1String("%OUTE_SENNICHITE")))  return QStringLiteral("王手千日手");
+    else if (token.startsWith(QLatin1String("%JISHOGI")))          return QStringLiteral("持将棋");
+    else if (token.startsWith(QLatin1String("%TIME_UP")))          return QStringLiteral("切れ負け");
+    else if (token.startsWith(QLatin1String("%ILLEGAL_MOVE")))     return QStringLiteral("反則負け");
+    else if (token.startsWith(QLatin1String("%+ILLEGAL_ACTION")))  return QStringLiteral("反則負け");
+    else if (token.startsWith(QLatin1String("%-ILLEGAL_ACTION")))  return QStringLiteral("反則負け");
+    else if (token.startsWith(QLatin1String("%KACHI")))            return QStringLiteral("入玉勝ち");
+    else if (token.startsWith(QLatin1String("%HIKIWAKE")))         return QStringLiteral("引き分け");
+    else if (token.startsWith(QLatin1String("%MAX_MOVES")))        return QStringLiteral("最大手数到達");
+    else if (token.startsWith(QLatin1String("%TSUMI")))            return QStringLiteral("詰み");
+    else if (token.startsWith(QLatin1String("%FUZUMI")))           return QStringLiteral("不詰");
+    else if (token.startsWith(QLatin1String("%ERROR")))            return QStringLiteral("エラー");
+    return QString();
+}
+
 // P1..P9 行
 static bool applyPRowLine(const QString& raw, CsaToSfenConverter::Board& b)
 {
@@ -846,23 +869,8 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
                     }
 
                     const QString sideMark = (turn == Black) ? QStringLiteral("▲") : QStringLiteral("△");
-                    QString label;
-                    if      (token.startsWith(QLatin1String("%TORYO")))            label = QStringLiteral("投了");
-                    else if (token.startsWith(QLatin1String("%CHUDAN")))           label = QStringLiteral("中断");
-                    else if (token.startsWith(QLatin1String("%SENNICHITE")))       label = QStringLiteral("千日手");
-                    else if (token.startsWith(QLatin1String("%OUTE_SENNICHITE")))  label = QStringLiteral("王手千日手");
-                    else if (token.startsWith(QLatin1String("%JISHOGI")))          label = QStringLiteral("持将棋");
-                    else if (token.startsWith(QLatin1String("%TIME_UP")))          label = QStringLiteral("切れ負け");
-                    else if (token.startsWith(QLatin1String("%ILLEGAL_MOVE")))     label = QStringLiteral("反則負け");
-                    else if (token.startsWith(QLatin1String("%+ILLEGAL_ACTION")))  label = QStringLiteral("反則負け");
-                    else if (token.startsWith(QLatin1String("%-ILLEGAL_ACTION")))  label = QStringLiteral("反則負け");
-                    else if (token.startsWith(QLatin1String("%KACHI")))            label = QStringLiteral("入玉勝ち");
-                    else if (token.startsWith(QLatin1String("%HIKIWAKE")))         label = QStringLiteral("引き分け");
-                    else if (token.startsWith(QLatin1String("%MAX_MOVES")))        label = QStringLiteral("最大手数到達");
-                    else if (token.startsWith(QLatin1String("%TSUMI")))            label = QStringLiteral("詰み");
-                    else if (token.startsWith(QLatin1String("%FUZUMI")))           label = QStringLiteral("不詰");
-                    else if (token.startsWith(QLatin1String("%ERROR")))            label = QStringLiteral("エラー");
-                    else                                                           label = token;
+                    QString label = csaResultToLabel(token);
+                    if (label.isEmpty()) label = token;
 
                     KifDisplayItem di;
                     di.prettyMove = sideMark + label;
@@ -975,23 +983,8 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
             }
 
             const QString sideMark = (turn == Black) ? QStringLiteral("▲") : QStringLiteral("△");
-            QString label;
-            if      (s.startsWith(QLatin1String("%TORYO")))            label = QStringLiteral("投了");
-            else if (s.startsWith(QLatin1String("%CHUDAN")))           label = QStringLiteral("中断");
-            else if (s.startsWith(QLatin1String("%SENNICHITE")))       label = QStringLiteral("千日手");
-            else if (s.startsWith(QLatin1String("%OUTE_SENNICHITE")))  label = QStringLiteral("王手千日手");
-            else if (s.startsWith(QLatin1String("%JISHOGI")))          label = QStringLiteral("持将棋");
-            else if (s.startsWith(QLatin1String("%TIME_UP")))          label = QStringLiteral("切れ負け");
-            else if (s.startsWith(QLatin1String("%ILLEGAL_MOVE")))     label = QStringLiteral("反則負け");
-            else if (s.startsWith(QLatin1String("%+ILLEGAL_ACTION")))  label = QStringLiteral("反則負け");
-            else if (s.startsWith(QLatin1String("%-ILLEGAL_ACTION")))  label = QStringLiteral("反則負け");
-            else if (s.startsWith(QLatin1String("%KACHI")))            label = QStringLiteral("入玉勝ち");
-            else if (s.startsWith(QLatin1String("%HIKIWAKE")))         label = QStringLiteral("引き分け");
-            else if (s.startsWith(QLatin1String("%MAX_MOVES")))        label = QStringLiteral("最大手数到達");
-            else if (s.startsWith(QLatin1String("%TSUMI")))            label = QStringLiteral("詰み");
-            else if (s.startsWith(QLatin1String("%FUZUMI")))           label = QStringLiteral("不詰");
-            else if (s.startsWith(QLatin1String("%ERROR")))            label = QStringLiteral("エラー");
-            else                                                       label = s;
+            QString label = csaResultToLabel(s);
+            if (label.isEmpty()) label = s;
 
             KifDisplayItem di;
             di.prettyMove = sideMark + label;
