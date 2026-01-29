@@ -73,21 +73,16 @@ static const TerminalInfo kTerminalCodes[] = {
 static const QString kZenkakuDigits = QStringLiteral("０１２３４５６７８９");
 static const QString kKanjiRanks = QStringLiteral("〇一二三四五六七八九");
 
-// 終局理由コードかどうかを判定
+// 終局理由コードかどうかを判定（kTerminalCodesを参照して一貫性を保つ）
 static bool isTerminalCode(const QString& str)
 {
-    static const QStringList terminals = {
-        QStringLiteral("resign"),
-        QStringLiteral("break"),
-        QStringLiteral("rep_draw"),
-        QStringLiteral("draw"),
-        QStringLiteral("timeout"),
-        QStringLiteral("win"),
-        QStringLiteral("lose"),
-        QStringLiteral("sennichite"),
-        QStringLiteral("checkmate")
-    };
-    return terminals.contains(str.toLower());
+    QString lower = str.toLower();
+    for (int i = 0; kTerminalCodes[i].code != nullptr; ++i) {
+        if (lower == QString::fromLatin1(kTerminalCodes[i].code)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 // USI指し手として有効かどうかを簡易判定
@@ -130,6 +125,29 @@ static bool isValidUsiMove(const QString& str)
 }
 
 } // namespace
+
+// ============================================================================
+// ヘルパー関数（クラスメソッドから共通で使用）
+// ============================================================================
+
+// USI形式の指し手から駒トークンを抽出する
+// tracer: 現在の盤面状態を追跡するトレーサー（指し手適用前の状態）
+static QString extractPieceTokenFromUsi(const QString& usi, SfenPositionTracer& tracer)
+{
+    if (usi.size() < 4) {
+        return QString();
+    }
+
+    if (usi.at(1) == QChar('*')) {
+        // 駒打ちの場合はUSI文字から取得
+        return QString(usi.at(0).toUpper());
+    }
+
+    // 盤上移動の場合は盤面から取得
+    int fromFile = usi.at(0).toLatin1() - '0';
+    QChar fromRankChar = usi.at(1);
+    return tracer.tokenAtFileRank(fromFile, fromRankChar);
+}
 
 // ============================================================================
 // 公開メソッド
@@ -219,16 +237,7 @@ QList<KifDisplayItem> UsiToSfenConverter::extractMovesWithTimes(const QString& u
         ++plyNumber;
 
         // 指し手を適用する前に、移動元の駒トークンを取得
-        QString pieceToken;
-        if (usi.size() >= 4 && usi.at(1) == QChar('*')) {
-            // 駒打ちの場合はUSI文字から取得
-            pieceToken = QString(usi.at(0).toUpper());
-        } else if (usi.size() >= 4) {
-            // 盤上移動の場合は盤面から取得
-            int fromFile = usi.at(0).toLatin1() - '0';
-            QChar fromRankChar = usi.at(1);
-            pieceToken = tracer.tokenAtFileRank(fromFile, fromRankChar);
-        }
+        QString pieceToken = extractPieceTokenFromUsi(usi, tracer);
 
         KifDisplayItem item;
         item.prettyMove = usiToPrettyMove(usi, plyNumber, prevToFile, prevToRank, pieceToken);
@@ -305,16 +314,7 @@ bool UsiToSfenConverter::parseWithVariations(const QString& usiPath,
         ++plyNumber;
 
         // 指し手を適用する前に、移動元の駒トークンを取得
-        QString pieceToken;
-        if (usi.size() >= 4 && usi.at(1) == QChar('*')) {
-            // 駒打ちの場合はUSI文字から取得
-            pieceToken = QString(usi.at(0).toUpper());
-        } else if (usi.size() >= 4) {
-            // 盤上移動の場合は盤面から取得
-            int fromFile = usi.at(0).toLatin1() - '0';
-            QChar fromRankChar = usi.at(1);
-            pieceToken = tracer.tokenAtFileRank(fromFile, fromRankChar);
-        }
+        QString pieceToken = extractPieceTokenFromUsi(usi, tracer);
 
         KifDisplayItem item;
         item.prettyMove = usiToPrettyMove(usi, plyNumber, prevToFile, prevToRank, pieceToken);
@@ -516,16 +516,7 @@ void UsiToSfenConverter::buildKifLine(const QStringList& usiMoves,
         ++plyNumber;
 
         // 指し手を適用する前に、移動元の駒トークンを取得
-        QString pieceToken;
-        if (usi.size() >= 4 && usi.at(1) == QChar('*')) {
-            // 駒打ちの場合はUSI文字から取得
-            pieceToken = QString(usi.at(0).toUpper());
-        } else if (usi.size() >= 4) {
-            // 盤上移動の場合は盤面から取得
-            int fromFile = usi.at(0).toLatin1() - '0';
-            QChar fromRankChar = usi.at(1);
-            pieceToken = tracer.tokenAtFileRank(fromFile, fromRankChar);
-        }
+        QString pieceToken = extractPieceTokenFromUsi(usi, tracer);
 
         KifDisplayItem item;
         item.prettyMove = usiToPrettyMove(usi, plyNumber, prevToFile, prevToRank, pieceToken);
