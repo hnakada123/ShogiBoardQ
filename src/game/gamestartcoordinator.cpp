@@ -842,7 +842,20 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
         // ★ 現在局面から開始（startingPosNumber==0）の場合は
         // 0..selectedPly を保全し、末尾（選択行）だけ seedSfen に置換してから入れ直す。
         if (startingPosNumber == 0 && !c.sfenRecord->isEmpty() && c.selectedPly >= 0) {
-            const int keepIdx = static_cast<int>(qBound(qsizetype(0), qsizetype(c.selectedPly), c.sfenRecord->size() - 1));
+            // ★ 修正: クリーンアップで棋譜モデルが終局手検出により調整されている可能性があるため、
+            // 実際の棋譜モデルの行数に基づいて keepIdx を計算する。
+            // これにより sfenRecord のエントリ数と棋譜モデルの行数が一致する。
+            const int actualKifuRowCount = c.kifuModel ? c.kifuModel->rowCount() : 0;
+            int keepIdx;
+            if (actualKifuRowCount > 0) {
+                // 棋譜モデルの最後の行インデックス（0始まり）を使用
+                keepIdx = actualKifuRowCount - 1;
+            } else {
+                // フォールバック: 元の計算方法を使用
+                keepIdx = static_cast<int>(qBound(qsizetype(0), qsizetype(c.selectedPly), c.sfenRecord->size() - 1));
+            }
+            // sfenRecord の範囲にもクランプ
+            keepIdx = qBound(0, keepIdx, static_cast<int>(c.sfenRecord->size()) - 1);
             const int takeLen = keepIdx + 1;
 
             QStringList preserved;

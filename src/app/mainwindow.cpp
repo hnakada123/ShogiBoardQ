@@ -412,8 +412,14 @@ void MainWindow::initializeComponents()
     }
 
     // 局面履歴（SFEN列）を確保（起動直後の初期化なのでクリアもOK）
-    if (!m_sfenRecord) m_sfenRecord = new QStringList;
-    else               m_sfenRecord->clear();
+    if (!m_sfenRecord) {
+        m_sfenRecord = new QStringList;
+        qDebug().noquote() << "[MW] initializeComponents: created m_sfenRecord*=" << static_cast<const void*>(m_sfenRecord);
+    } else {
+        qDebug().noquote() << "[MW] initializeComponents: clearing m_sfenRecord*=" << static_cast<const void*>(m_sfenRecord)
+                           << "old_size=" << m_sfenRecord->size();
+        m_sfenRecord->clear();
+    }
 
     // 棋譜表示用のレコードリストを確保（ここでは容器だけ用意）
     if (!m_moveRecords) m_moveRecords = new QList<KifuDisplay *>;
@@ -1398,6 +1404,11 @@ void MainWindow::resetToInitialState()
 // 棋譜ファイルをダイアログから選択し、そのファイルを開く。
 void MainWindow::chooseAndLoadKifuFile()
 {
+    qDebug().noquote() << "[MW] chooseAndLoadKifuFile ENTER"
+                       << "m_sfenRecord*=" << static_cast<const void*>(m_sfenRecord)
+                       << "m_sfenRecord.size=" << (m_sfenRecord ? m_sfenRecord->size() : -1)
+                       << "m_boardSync*=" << static_cast<const void*>(m_boardSync);
+
     // --- 1) ファイル選択（UI層に残す） ---
     // 以前開いたディレクトリを取得
     const QString lastDir = SettingsService::lastKifuDirectory();
@@ -1454,6 +1465,9 @@ void MainWindow::chooseAndLoadKifuFile()
         connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::setupBranchCandidatesWiring,
                 m_branchWiring,       &BranchWiringCoordinator::setupBranchCandidatesWiring,
                 Qt::UniqueConnection);
+
+        // ★追加修正: 生成した Loader に Controller を確実に注入するため、配線を即時実行する
+        m_branchWiring->setupBranchCandidatesWiring();
     }
 
     // ★ MainWindow 側でやっていた branchNode 配線は setAnalysisTab() に委譲
@@ -1472,8 +1486,13 @@ void MainWindow::chooseAndLoadKifuFile()
     connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::gameInfoPopulated,
             this, &MainWindow::setOriginalGameInfo, Qt::UniqueConnection);
 
+    qDebug().noquote() << "[MW] chooseAndLoadKifuFile: KifuLoadCoordinator created"
+                       << "m_kifuLoadCoordinator*=" << static_cast<const void*>(m_kifuLoadCoordinator)
+                       << "passed m_sfenRecord*=" << static_cast<const void*>(m_sfenRecord);
+
     // --- 4) 読み込み実行（ロジックは Coordinator へ） ---
     // 拡張子判定
+    qDebug().noquote() << "[MW] chooseAndLoadKifuFile: loading file=" << filePath;
     if (filePath.endsWith(QLatin1String(".csa"), Qt::CaseInsensitive)) {
         // CSA読み込み
         m_kifuLoadCoordinator->loadCsaFromFile(filePath);
@@ -1492,6 +1511,17 @@ void MainWindow::chooseAndLoadKifuFile()
     } else {
         // KIF読み込み (既存)
         m_kifuLoadCoordinator->loadKifuFromFile(filePath);
+    }
+
+    // デバッグ: 読み込み後のsfenRecord状態を確認
+    qDebug().noquote() << "[MW] chooseAndLoadKifuFile LEAVE"
+                       << "m_sfenRecord*=" << static_cast<const void*>(m_sfenRecord)
+                       << "m_sfenRecord.size=" << (m_sfenRecord ? m_sfenRecord->size() : -1);
+    if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
+        qDebug().noquote() << "[MW] m_sfenRecord[0]=" << m_sfenRecord->first().left(60);
+        if (m_sfenRecord->size() > 1) {
+            qDebug().noquote() << "[MW] m_sfenRecord[1]=" << m_sfenRecord->at(1).left(60);
+        }
     }
 }
 
@@ -3238,6 +3268,10 @@ void MainWindow::ensureBoardSyncPresenter()
 {
     if (m_boardSync) return;
 
+    qDebug().noquote() << "[MW] ensureBoardSyncPresenter: creating BoardSyncPresenter"
+                       << "m_sfenRecord*=" << static_cast<const void*>(m_sfenRecord)
+                       << "m_sfenRecord.size=" << (m_sfenRecord ? m_sfenRecord->size() : -1);
+
     BoardSyncPresenter::Deps d;
     d.gc         = m_gameController;
     d.view       = m_shogiView;
@@ -3246,6 +3280,8 @@ void MainWindow::ensureBoardSyncPresenter()
     d.gameMoves  = &m_gameMoves;
 
     m_boardSync = new BoardSyncPresenter(d, this);
+
+    qDebug().noquote() << "[MW] ensureBoardSyncPresenter: created m_boardSync*=" << static_cast<const void*>(m_boardSync);
 }
 
 void MainWindow::ensureAnalysisPresenter()
@@ -3526,18 +3562,29 @@ void MainWindow::showGameOverMessageBox(const QString& title, const QString& mes
 
 void MainWindow::onRecordPaneMainRowChanged(int row)
 {
+    qDebug().noquote() << "[MW] onRecordPaneMainRowChanged ENTER row=" << row
+                       << "m_sfenRecord*=" << static_cast<const void*>(m_sfenRecord)
+                       << "m_sfenRecord.size=" << (m_sfenRecord ? m_sfenRecord->size() : -1)
+                       << "m_boardSync*=" << static_cast<const void*>(m_boardSync);
+
     // 再入防止
     static bool s_inProgress = false;
-    if (s_inProgress) return;
+    if (s_inProgress) {
+        qDebug() << "[MW] onRecordPaneMainRowChanged: SKIPPED (re-entry guard)";
+        return;
+    }
     s_inProgress = true;
 
     // RecordNavigationControllerに委譲
     ensureRecordNavigationController();
     if (m_recordNavController) {
+        qDebug() << "[MW] onRecordPaneMainRowChanged: calling m_recordNavController->onMainRowChanged(" << row << ")";
         // 最新の依存を同期
         m_recordNavController->setCsaGameCoordinator(m_csaGameCoordinator);
         m_recordNavController->setEvalGraphController(m_evalGraphController);
         m_recordNavController->onMainRowChanged(row);
+    } else {
+        qWarning() << "[MW] onRecordPaneMainRowChanged: m_recordNavController is NULL!";
     }
 
     // ★ 追加：分岐候補欄の更新（KifuLoadCoordinator経由）
@@ -3549,8 +3596,16 @@ void MainWindow::onRecordPaneMainRowChanged(int row)
     }
 
     // m_currentSfenStrを現在の局面に更新
+    qDebug().noquote() << "[MW] onRecordPaneMainRowChanged: checking sfenRecord"
+                       << "row=" << row
+                       << "m_sfenRecord=" << (m_sfenRecord ? "exists" : "NULL")
+                       << "size=" << (m_sfenRecord ? m_sfenRecord->size() : -1);
     if (row >= 0 && m_sfenRecord && row < m_sfenRecord->size()) {
         m_currentSfenStr = m_sfenRecord->at(row);
+        qDebug().noquote() << "[MW] onRecordPaneMainRowChanged: updated m_currentSfenStr="
+                           << m_currentSfenStr.left(60);
+    } else {
+        qWarning() << "[MW] onRecordPaneMainRowChanged: row out of range or sfenRecord invalid!";
     }
 
     // 定跡ウィンドウを更新
@@ -3597,6 +3652,7 @@ void MainWindow::onRecordPaneMainRowChanged(int row)
         }
     }
 
+    qDebug() << "[MW] onRecordPaneMainRowChanged LEAVE row=" << row;
     s_inProgress = false;
 }
 

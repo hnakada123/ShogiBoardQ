@@ -129,7 +129,7 @@ static const QRegularExpression& nextMoveNumberRe()
 // isTerminalWord と containsAnyTerminal で共通使用
 static const auto& kTerminalWords() {
     static const auto& arr = *[]() {
-        static const std::array<QString, 17> a = {{
+        static const std::array<QString, 16> a = {{
             // 主要な終局語
             QStringLiteral("中断"),
             QStringLiteral("投了"),
@@ -570,9 +570,6 @@ QStringList KifToSfenConverter::convertFile(const QString& kifPath, QString* err
         return out;
     }
 
-    qDebug().noquote() << QStringLiteral("[convertFile] encoding = %1 , lines = %2")
-                              .arg(usedEnc).arg(lines.size());
-
     int prevToFile = 0, prevToRank = 0;
 
     for (const QString& raw : std::as_const(lines)) {
@@ -621,7 +618,6 @@ QStringList KifToSfenConverter::convertFile(const QString& kifPath, QString* err
             QString usi;
             if (convertMoveLine(rest, usi, prevToFile, prevToRank)) {
                 out << usi;
-                qDebug().noquote() << QStringLiteral("[USI %1] %2").arg(out.size()).arg(usi);
             } else {
                 if (errorMessage) *errorMessage += QStringLiteral("[skip ?] %1\n").arg(raw);
             }

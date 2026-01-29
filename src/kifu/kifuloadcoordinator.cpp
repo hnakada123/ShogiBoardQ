@@ -858,7 +858,23 @@ void KifuLoadCoordinator::applyParsedResultCommon(
     }
 
     // 3) 本譜の SFEN 列と m_gameMoves を再構築
+    qDebug().noquote() << "[KLC] applyParsedResultCommon: calling rebuildSfenRecord"
+                       << "initialSfen=" << initialSfen.left(60)
+                       << "usiMoves.size=" << m_kifuUsiMoves.size()
+                       << "hasTerminal=" << hasTerminal;
     rebuildSfenRecord(initialSfen, m_kifuUsiMoves, hasTerminal);
+    qDebug().noquote() << "[KLC] applyParsedResultCommon: after rebuildSfenRecord"
+                       << "m_sfenRecord*=" << static_cast<const void*>(m_sfenRecord)
+                       << "m_sfenRecord.size=" << (m_sfenRecord ? m_sfenRecord->size() : -1);
+    if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
+        qDebug().noquote() << "[KLC] m_sfenRecord[0]=" << m_sfenRecord->first().left(60);
+        if (m_sfenRecord->size() > 1) {
+            qDebug().noquote() << "[KLC] m_sfenRecord[1]=" << m_sfenRecord->at(1).left(60);
+        }
+        if (m_sfenRecord->size() > 2) {
+            qDebug().noquote() << "[KLC] m_sfenRecord[last]=" << m_sfenRecord->last().left(60);
+        }
+    }
     logStep("rebuildSfenRecord");
     rebuildGameMoves(initialSfen, m_kifuUsiMoves);
     logStep("rebuildGameMoves");
@@ -1196,9 +1212,31 @@ void KifuLoadCoordinator::rebuildSfenRecord(const QString& initialSfen,
                                             const QStringList& usiMoves,
                                             bool hasTerminal)
 {
+    qDebug().noquote() << "[KLC] rebuildSfenRecord ENTER"
+                       << "initialSfen=" << initialSfen.left(60)
+                       << "usiMoves.size=" << usiMoves.size()
+                       << "hasTerminal=" << hasTerminal
+                       << "m_sfenRecord*=" << static_cast<const void*>(m_sfenRecord);
+
     const QStringList list = SfenPositionTracer::buildSfenRecord(initialSfen, usiMoves, hasTerminal);
-    if (!m_sfenRecord) m_sfenRecord = new QStringList;
+
+    qDebug().noquote() << "[KLC] rebuildSfenRecord: built list.size=" << list.size();
+    if (!list.isEmpty()) {
+        qDebug().noquote() << "[KLC] rebuildSfenRecord: head[0]=" << list.first().left(60);
+        if (list.size() > 1) {
+            qDebug().noquote() << "[KLC] rebuildSfenRecord: tail[last]=" << list.last().left(60);
+        }
+    }
+
+    if (!m_sfenRecord) {
+        qWarning() << "[KLC] rebuildSfenRecord: m_sfenRecord was NULL! Creating new QStringList.";
+        m_sfenRecord = new QStringList;
+    }
     *m_sfenRecord = list; // COW
+
+    qDebug().noquote() << "[KLC] rebuildSfenRecord LEAVE"
+                       << "m_sfenRecord*=" << static_cast<const void*>(m_sfenRecord)
+                       << "m_sfenRecord->size=" << m_sfenRecord->size();
 }
 
 void KifuLoadCoordinator::rebuildGameMoves(const QString& initialSfen,
