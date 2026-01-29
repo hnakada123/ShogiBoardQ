@@ -295,15 +295,11 @@ void RecordPane::setModels(KifuRecordListModel* recModel, KifuBranchListModel* b
                                      });
     }
 
-    // 行選択の中継（多重接続防止 & メンバ関数スロット化）
-    if (auto* sel = m_kifu->selectionModel()) {
-        if (m_connRowChanged)
-            disconnect(m_connRowChanged);
-        m_connRowChanged = connect(sel,
-                                   &QItemSelectionModel::currentRowChanged,
-                                   this,
-                                   &RecordPane::onKifuCurrentRowChanged,
-                                   Qt::UniqueConnection);
+    // ★ 注意: 行選択の中継は後続の connectCurrentRow で行うため、ここでは接続しない
+    // （二重接続によるシグナル二重発火を防止）
+    if (m_connRowChanged) {
+        disconnect(m_connRowChanged);
+        m_connRowChanged = {};
     }
 
     if (auto* hh = m_kifu->horizontalHeader()) {
@@ -325,24 +321,14 @@ void RecordPane::setModels(KifuRecordListModel* recModel, KifuBranchListModel* b
     }
 
     // ② selectionModel() が確実にできてから接続（即時にあれば即時、なければ次のイベントループで）
-    auto connectCurrentRow = [this]() {
-        if (!m_kifu) return;
-        if (auto* sel = m_kifu->selectionModel()) {
-            // UniqueConnection は使わず、自前で前の接続を外す方が安全
-            m_connKifuCurrentRow =
-                connect(sel, &QItemSelectionModel::currentRowChanged,
-                        this,
-                        [this](const QModelIndex& idx, const QModelIndex&) {
-                            emit mainRowChanged(idx.isValid() ? idx.row() : 0);
-                        });
-        }
-    };
-
-    if (m_kifu->selectionModel()) {
-        connectCurrentRow();
+    // ★ ラムダを使用せず、メンバ関数を使用（CLAUDE.md準拠）
+    if (auto* sel = m_kifu->selectionModel()) {
+        m_connKifuCurrentRow =
+            connect(sel, &QItemSelectionModel::currentRowChanged,
+                    this, &RecordPane::onKifuCurrentRowChanged);
     } else {
         // setModel 後すぐは selectionModel がまだ未設定なことがあるため遅延
-        QTimer::singleShot(0, this, connectCurrentRow);
+        QTimer::singleShot(0, this, &RecordPane::connectKifuCurrentRowChanged);
     }
 
     // --- 分岐テーブル ---
@@ -458,7 +444,23 @@ void RecordPane::onKifuRowsInserted(const QModelIndex&, int, int)
 
 void RecordPane::onKifuCurrentRowChanged(const QModelIndex& cur, const QModelIndex&)
 {
-    emit mainRowChanged(cur.isValid() ? cur.row() : 0);
+    const int row = cur.isValid() ? cur.row() : 0;
+    qDebug().noquote() << "[RecordPane] onKifuCurrentRowChanged: emitting mainRowChanged(" << row << ")";
+    emit mainRowChanged(row);
+}
+
+void RecordPane::connectKifuCurrentRowChanged()
+{
+    if (!m_kifu) return;
+    if (auto* sel = m_kifu->selectionModel()) {
+        // 既存接続を解除してから再接続
+        if (m_connKifuCurrentRow) {
+            QObject::disconnect(m_connKifuCurrentRow);
+        }
+        m_connKifuCurrentRow =
+            connect(sel, &QItemSelectionModel::currentRowChanged,
+                    this, &RecordPane::onKifuCurrentRowChanged);
+    }
 }
 
 void RecordPane::setBranchCommentText(const QString& text)

@@ -173,20 +173,26 @@ void BoardSyncPresenter::applySfenAtPly(int ply) const
 // 盤面・ハイライト同期（行 → 盤面）
 void BoardSyncPresenter::syncBoardAndHighlightsAtRow(int ply) const
 {
+    qDebug().noquote() << "[PRESENTER] syncBoardAndHighlightsAtRow CALLED"
+                       << "ply=" << ply
+                       << "m_sfenRecord*=" << static_cast<const void*>(m_sfenRecord)
+                       << "m_sfenRecord.size=" << (m_sfenRecord ? m_sfenRecord->size() : -1);
+
     // 依存チェック
     if (!m_sfenRecord || !m_gc || !m_gc->board()) {
-        qDebug().noquote() << "[PRESENTER] syncBoardAndHighlightsAtRow ABORT:"
-                           << "sfenRecord?" << (m_sfenRecord!=nullptr)
-                           << "gc?"        << (m_gc!=nullptr)
-                           << "board?"     << (m_gc? (m_gc->board()!=nullptr) : false)
-                           << " ply="      << ply;
+        qWarning().noquote() << "[PRESENTER] syncBoardAndHighlightsAtRow ABORT:"
+                           << "sfenRecord*=" << static_cast<const void*>(m_sfenRecord)
+                           << "sfenRecord.empty?=" << (m_sfenRecord ? m_sfenRecord->isEmpty() : true)
+                           << "gc*=" << static_cast<const void*>(m_gc)
+                           << "board*=" << (m_gc? static_cast<const void*>(m_gc->board()) : nullptr)
+                           << " ply=" << ply;
         return;
     }
 
     const int size   = static_cast<int>(m_sfenRecord->size());
     const int maxIdx = size - 1;
     if (maxIdx < 0) {
-        qDebug().noquote() << "[PRESENTER] syncBoardAndHighlightsAtRow: empty sfenRecord ply=" << ply;
+        qWarning().noquote() << "[PRESENTER] syncBoardAndHighlightsAtRow: EMPTY sfenRecord! ply=" << ply;
         return;
     }
 
@@ -194,12 +200,20 @@ void BoardSyncPresenter::syncBoardAndHighlightsAtRow(int ply) const
     const int  safePly       = qBound(0, ply, maxIdx);
 
     qDebug().noquote()
-        << "[PRESENTER] syncBoardAndHighlightsAtRow enter"
+        << "[PRESENTER] syncBoardAndHighlightsAtRow processing"
         << " reqPly=" << ply
         << " safePly=" << safePly
         << " size=" << size
         << " maxIdx=" << maxIdx
         << " isTerminalRow=" << isTerminalRow;
+
+    // デバッグ: sfenRecordの先頭と末尾を表示
+    if (size > 0) {
+        qDebug().noquote() << "[PRESENTER] sfenRecord[0]=" << m_sfenRecord->at(0).left(60);
+        if (safePly > 0 && safePly < size) {
+            qDebug().noquote() << "[PRESENTER] sfenRecord[" << safePly << "]=" << m_sfenRecord->at(safePly).left(60);
+        }
+    }
 
     // ★重要：先に盤面を適用（元の実装と同じ順序を維持）
     // applySfenAtPly 内でクランプされる想定のため reqPly のまま渡す
