@@ -237,7 +237,16 @@ void EngineInfoWidget::applyHeaderStyle()
 {
     if (!m_table) return;
     const QString headerStyle = QStringLiteral(
-        "QHeaderView::section { background-color: #1e7fc4; color: white; font-size: %1pt; }")
+        "QHeaderView::section {"
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+        "    stop:0 #40acff, stop:1 #209cee);"
+        "  color: white;"
+        "  font-weight: normal;"
+        "  padding: 2px 6px;"
+        "  border: none;"
+        "  border-bottom: 1px solid #209cee;"
+        "  font-size: %1pt;"
+        "}")
         .arg(m_fontSize);
     m_table->setStyleSheet(headerStyle);
 }
