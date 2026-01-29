@@ -336,6 +336,8 @@ bool Ki2ToSfenConverter::isBoardHeaderOrFrame(const QString& line)
 
     static const QString kDigitsZ   = QStringLiteral("１２３４５６７８９");
     static const QString kKanjiRow  = QStringLiteral("一二三四五六七八九");
+    // 公式BOD形式はASCII罫線(+, -, |)を使用するが、
+    // ウェブ等からコピーされた盤面がUnicode罫線を含む場合にも対応
     static const QString kBoxChars  = QStringLiteral("┌┬┐┏┳┓└┴┘┗┻┛│┃─━┼");
 
     // 先頭「９ ８ ７ … １」

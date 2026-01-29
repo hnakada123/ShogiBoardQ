@@ -93,32 +93,98 @@ static inline QString normalizeTimeMatch(const QRegularExpressionMatch& m)
            z2(HH) + QLatin1Char(':') + z2(MM) + QLatin1Char(':') + z2(SS);
 }
 
-// --- 終局語の判定（KIF仕様に準拠） ---
-// 該当すれば normalized に表記をそのまま返す（例: "千日手"）
-static inline bool isTerminalWord(const QString& s, QString* normalized)
+// --- 共通正規表現（重複排除） ---
+
+// 変化行検出（キャプチャなし）: "変化：12手" など
+static const QRegularExpression& variationHeaderRe()
 {
-    static const auto& kTerminals = *[]() {
-        static const std::array<QString, 12> arr = {{
+    static const auto& re = *[]() {
+        static const QRegularExpression r(QStringLiteral("^\\s*変化[:：]\\s*[0-9０-９]+\\s*手"));
+        return &r;
+    }();
+    return re;
+}
+
+// 変化行検出（キャプチャあり）: 手数をキャプチャする
+static const QRegularExpression& variationHeaderCaptureRe()
+{
+    static const auto& re = *[]() {
+        static const QRegularExpression r(QStringLiteral("^\\s*変化[:：]\\s*([0-9０-９]+)手"));
+        return &r;
+    }();
+    return re;
+}
+
+// 次の手番検出: 空白＋数字の開始位置を検出
+static const QRegularExpression& nextMoveNumberRe()
+{
+    static const auto& re = *[]() {
+        static const QRegularExpression r(QStringLiteral("\\s+[0-9０-９]"));
+        return &r;
+    }();
+    return re;
+}
+
+// --- 終局語の統一リスト（KIF仕様に準拠 + 表記ゆらぎ吸収） ---
+// isTerminalWord と containsAnyTerminal で共通使用
+static const auto& kTerminalWords() {
+    static const auto& arr = *[]() {
+        static const std::array<QString, 17> a = {{
+            // 主要な終局語
             QStringLiteral("中断"),
             QStringLiteral("投了"),
             QStringLiteral("持将棋"),
             QStringLiteral("千日手"),
             QStringLiteral("切れ負け"),
+            QStringLiteral("時間切れ"),  // 切れ負けの別表記
             QStringLiteral("反則勝ち"),
             QStringLiteral("反則負け"),
-            QStringLiteral("入玉勝ち"),
             QStringLiteral("不戦勝"),
             QStringLiteral("不戦敗"),
+            // 詰関連
             QStringLiteral("詰み"),
-            QStringLiteral("不詰")
+            QStringLiteral("詰"),         // 詰みの短縮形
+            QStringLiteral("不詰"),
+            // 宣言系（表記ゆらぎを吸収）
+            QStringLiteral("入玉勝ち"),
+            QStringLiteral("宣言勝ち"),
+            QStringLiteral("入玉宣言勝ち")
         }};
-        return &arr;
+        return &a;
     }();
+    return arr;
+}
+
+// --- 終局語の判定（KIF仕様に準拠） ---
+// 該当すれば normalized に表記をそのまま返す（例: "千日手"）
+static inline bool isTerminalWord(const QString& s, QString* normalized)
+{
     const QString t = s.trimmed();
-    for (const QString& w : kTerminals) {
+    for (const QString& w : kTerminalWords()) {
         if (t == w) { if (normalized) *normalized = w; return true; }
     }
     return false;
+}
+
+// --- 持駒SFEN生成 ---
+// 持駒マップからSFEN形式の持駒文字列を生成
+static QString buildHandsSfen(const QMap<QChar,int>& black, const QMap<QChar,int>& white)
+{
+    auto emitSide = [](const QMap<QChar,int>& m, bool gote)->QString{
+        const char order[] = {'R','B','G','S','N','L','P'};
+        QString s;
+        for (char c : order) {
+            const QChar key = QLatin1Char(c);
+            int cnt = m.value(key, 0);
+            if (cnt <= 0) continue;
+            if (cnt > 1) s += QString::number(cnt);
+            s += (gote ? key.toLower() : key);
+        }
+        return s;
+    };
+    QString s = emitSide(black, false) + emitSide(white, true);
+    if (s.isEmpty()) s = QStringLiteral("-");
+    return s;
 }
 
 } // namespace
@@ -329,8 +395,7 @@ QList<KifDisplayItem> KifToSfenConverter::extractMovesWithTimes(const QString& k
         if (lineStr.isEmpty() || isSkippableLine(lineStr) || isBoardHeaderOrFrame(lineStr)) continue;
 
         // ★ 変化行に到達したら本譜の抽出を終了
-        static const QRegularExpression sVarHead(QStringLiteral("^\\s*変化[:：]\\s*[0-9０-９]+\\s*手"));
-        if (sVarHead.match(lineStr).hasMatch()) {
+        if (variationHeaderRe().match(lineStr).hasMatch()) {
             break;  // 変化以降は本譜ではない
         }
 
@@ -355,11 +420,7 @@ QList<KifDisplayItem> KifToSfenConverter::extractMovesWithTimes(const QString& k
                 nextMoveStartIdx = static_cast<int>(tm.capturedEnd(0));
                 rest = rest.left(tm.capturedStart(0)).trimmed();
             } else {
-                static const auto& s_nextNum = *[]() {
-                    static const QRegularExpression r(QStringLiteral("\\s+[0-9０-９]"));
-                    return &r;
-                }();
-                QRegularExpressionMatch nextM = s_nextNum.match(rest);
+                QRegularExpressionMatch nextM = nextMoveNumberRe().match(rest);
                 if (nextM.hasMatch()) {
                     nextMoveStartIdx = static_cast<int>(nextM.capturedStart());
                     rest = rest.left(nextMoveStartIdx).trimmed();
@@ -512,15 +573,6 @@ QStringList KifToSfenConverter::convertFile(const QString& kifPath, QString* err
     qDebug().noquote() << QStringLiteral("[convertFile] encoding = %1 , lines = %2")
                               .arg(usedEnc).arg(lines.size());
 
-    auto isCommentLine = [](const QString& s)->bool {
-        if (s.isEmpty()) return false;
-        const QChar ch = s.front();
-        return (ch == QChar(u'*') || ch == QChar(u'＊'));
-    };
-    auto isBookmarkLine = [](const QString& s)->bool {
-        return s.startsWith(QLatin1Char('&'));
-    };
-
     int prevToFile = 0, prevToRank = 0;
 
     for (const QString& raw : std::as_const(lines)) {
@@ -530,8 +582,7 @@ QStringList KifToSfenConverter::convertFile(const QString& kifPath, QString* err
         if (lineStr.isEmpty() || isSkippableLine(lineStr) || isBoardHeaderOrFrame(lineStr)) continue;
 
         // ★ 変化行に到達したら本譜の抽出を終了
-        static const QRegularExpression sVarHead(QStringLiteral("^\\s*変化[:：]\\s*[0-9０-９]+\\s*手"));
-        if (sVarHead.match(lineStr).hasMatch()) {
+        if (variationHeaderRe().match(lineStr).hasMatch()) {
             break;  // 変化以降は本譜ではない
         }
 
@@ -553,11 +604,7 @@ QStringList KifToSfenConverter::convertFile(const QString& kifPath, QString* err
             if (tm.hasMatch()) {
                 rest = rest.left(tm.capturedStart(0)).trimmed();
             } else {
-                static const auto& s_nextNum = *[]() {
-                    static const QRegularExpression r(QStringLiteral("\\s+[0-9０-９]"));
-                    return &r;
-                }();
-                QRegularExpressionMatch nm = s_nextNum.match(rest);
+                QRegularExpressionMatch nm = nextMoveNumberRe().match(rest);
                 if (nm.hasMatch()) {
                     rest = rest.left(nm.capturedStart()).trimmed();
                 }
@@ -618,7 +665,6 @@ bool KifToSfenConverter::parseWithVariations(const QString& kifPath,
         return false;
     }
 
-    static const QRegularExpression sVarHead(QStringLiteral("^\\s*変化[:：]\\s*([0-9０-９]+)手"));
     QVector<KifVariation> vars;
     int i = 0;
 
@@ -626,7 +672,7 @@ bool KifToSfenConverter::parseWithVariations(const QString& kifPath,
         QString l = lines.at(i).trimmed();
         if (l.isEmpty() || isSkippableLine(l) || isBoardHeaderOrFrame(l)) { ++i; continue; }
 
-        QRegularExpressionMatch m = sVarHead.match(l);
+        QRegularExpressionMatch m = variationHeaderCaptureRe().match(l);
         if (!m.hasMatch()) { ++i; continue; }
 
         const int startPly = flexDigitsToInt_NoDetach(m.captured(1));
@@ -691,11 +737,7 @@ bool KifToSfenConverter::parseWithVariations(const QString& kifPath,
                         timeText = normalizeTimeMatch(tm);
                         rest = rest.left(tm.capturedStart(0)).trimmed();
                     } else {
-                        static const auto& s_nextNum = *[]() {
-                            static const QRegularExpression r(QStringLiteral("\\s+[0-9０-９]"));
-                            return &r;
-                        }();
-                        QRegularExpressionMatch nm = s_nextNum.match(rest);
+                        QRegularExpressionMatch nm = nextMoveNumberRe().match(rest);
                         if (nm.hasMatch()) rest = rest.left(nm.capturedStart()).trimmed();
                     }
 
@@ -855,6 +897,8 @@ bool KifToSfenConverter::isBoardHeaderOrFrame(const QString& line)
     // 使い回す定数群（毎回 QStringLiteral を生成しない）
     static const QString kDigitsZ   = QStringLiteral("１２３４５６７８９");
     static const QString kKanjiRow  = QStringLiteral("一二三四五六七八九");
+    // 公式BOD形式はASCII罫線(+, -, |)を使用するが、
+    // ウェブ等からコピーされた盤面がUnicode罫線を含む場合にも対応
     static const QString kBoxChars  = QStringLiteral("┌┬┐┏┳┓└┴┘┗┻┛│┃─━┼");
 
     // 先頭「９ ８ ７ … １」（半角/全角/混在・空白区切りを許容）
@@ -909,20 +953,8 @@ bool KifToSfenConverter::isBoardHeaderOrFrame(const QString& line)
 
 bool KifToSfenConverter::containsAnyTerminal(const QString& s, QString* matched)
 {
-    static const QStringList kWords = {
-        // 主要
-        QStringLiteral("投了"), QStringLiteral("中断"), QStringLiteral("持将棋"),
-        QStringLiteral("千日手"), QStringLiteral("切れ負け"), QStringLiteral("時間切れ"),
-        QStringLiteral("反則勝ち"), QStringLiteral("反則負け"),
-        QStringLiteral("不戦勝"), QStringLiteral("不戦敗"),
-
-        // 詰関連
-        QStringLiteral("詰み"), QStringLiteral("詰"), QStringLiteral("不詰"),
-
-        // 宣言系（KIF記述のゆらぎを吸収）
-        QStringLiteral("宣言勝ち"), QStringLiteral("入玉勝ち"), QStringLiteral("入玉宣言勝ち")
-    };
-    for (const QString& w : kWords) {
+    // kTerminalWords() を使用（終局語リストの統一）
+    for (const QString& w : kTerminalWords()) {
         if (s.contains(w)) { if (matched) *matched = w; return true; }
     }
     return false;
@@ -1390,24 +1422,6 @@ bool KifToSfenConverter::buildInitialSfenFromBod(const QStringList& lines,
         }
     };
 
-    auto buildHandsSfen = [](const QMap<QChar,int>& black, const QMap<QChar,int>& white)->QString {
-        auto emitSide = [](const QMap<QChar,int>& m, bool gote)->QString{
-            const char order[] = {'R','B','G','S','N','L','P'};
-            QString s;
-            for (char c : order) {
-                const QChar key = QLatin1Char(c);
-                int cnt = m.value(key, 0);
-                if (cnt <= 0) continue;
-                if (cnt > 1) s += QString::number(cnt);
-                s += (gote ? key.toLower() : key);
-            }
-            return s;
-        };
-        QString s = emitSide(black, false) + emitSide(white, true);
-        if (s.isEmpty()) s = QStringLiteral("-");
-        return s;
-    };
-
     auto zenk2ascii = [](QString s)->QString{
         static const QString z = QStringLiteral("０１２３４５６７８９");
         for (qsizetype i=0;i<s.size();++i) {
@@ -1529,8 +1543,7 @@ QString KifToSfenConverter::extractOpeningComment(const QString& filePath)
         if (startsWithMoveNumber(t)) break;
 
         // 変化の開始もここでは境界とみなす
-        static const QRegularExpression sVarHead(QStringLiteral("^\\s*変化[:：]\\s*[0-9０-９]+\\s*手"));
-        if (sVarHead.match(t).hasMatch()) break;
+        if (variationHeaderRe().match(t).hasMatch()) break;
 
         // コメント行（開始局面コメント）
         if (t.startsWith(QChar(u'*')) || t.startsWith(QChar(u'＊'))) {
