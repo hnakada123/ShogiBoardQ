@@ -95,8 +95,12 @@ void PlayerInfoWiring::populateDefaultGameInfo()
 {
     if (!m_gameInfoController) return;
 
-    // デフォルトの対局情報を設定
+    // デフォルトの対局情報を設定（対局開始時刻は現在時刻）
+    const QDateTime now = QDateTime::currentDateTime();
+
     QList<KifGameInfoItem> defaultItems;
+    defaultItems.append({tr("対局日"), now.toString(QStringLiteral("yyyy/MM/dd"))});
+    defaultItems.append({tr("開始日時"), now.toString(QStringLiteral("yyyy/MM/dd HH:mm:ss"))});
     defaultItems.append({tr("先手"), tr("先手")});
     defaultItems.append({tr("後手"), tr("後手")});
     defaultItems.append({tr("手合割"), tr("平手")});
@@ -192,4 +196,88 @@ void PlayerInfoWiring::onGameInfoUpdated(const QList<KifGameInfoItem>& items)
 {
     qDebug().noquote() << "[PlayerInfoWiring] onGameInfoUpdated: items=" << items.size();
     Q_EMIT gameInfoUpdated(items);
+}
+
+void PlayerInfoWiring::setGameInfoForMatchStart(const QDateTime& startDateTime,
+                                                const QString& blackName,
+                                                const QString& whiteName,
+                                                const QString& handicap,
+                                                bool hasTimeControl,
+                                                qint64 baseTimeMs,
+                                                qint64 byoyomiMs,
+                                                qint64 incrementMs)
+{
+    ensureGameInfoController();
+    if (!m_gameInfoController) return;
+
+    QList<KifGameInfoItem> items;
+
+    // 対局日
+    items.append({tr("対局日"), startDateTime.toString(QStringLiteral("yyyy/MM/dd"))});
+
+    // 開始日時
+    items.append({tr("開始日時"), startDateTime.toString(QStringLiteral("yyyy/MM/dd HH:mm:ss"))});
+
+    // 先手
+    items.append({tr("先手"), blackName.isEmpty() ? tr("先手") : blackName});
+
+    // 後手
+    items.append({tr("後手"), whiteName.isEmpty() ? tr("後手") : whiteName});
+
+    // 手合割
+    items.append({tr("手合割"), handicap.isEmpty() ? tr("平手") : handicap});
+
+    // 持ち時間（時間制御が有効な場合のみ）
+    if (hasTimeControl) {
+        const int baseMin = static_cast<int>(baseTimeMs / 60000);
+        const int baseSec = static_cast<int>((baseTimeMs % 60000) / 1000);
+        const int byoyomiSec = static_cast<int>(byoyomiMs / 1000);
+        const int incrementSec = static_cast<int>(incrementMs / 1000);
+
+        QString timeStr;
+        if (baseMin > 0 || baseSec > 0) {
+            timeStr = QStringLiteral("%1:%2")
+                .arg(baseMin, 2, 10, QLatin1Char('0'))
+                .arg(baseSec, 2, 10, QLatin1Char('0'));
+        } else {
+            timeStr = QStringLiteral("00:00");
+        }
+        if (byoyomiSec > 0) {
+            timeStr += QStringLiteral("+%1").arg(byoyomiSec);
+        } else if (incrementSec > 0) {
+            timeStr += QStringLiteral("+%1").arg(incrementSec);
+        }
+        items.append({tr("持ち時間"), timeStr});
+    }
+
+    m_gameInfoController->setGameInfo(items);
+
+    qDebug().noquote() << "[PlayerInfoWiring] setGameInfoForMatchStart: items=" << items.size()
+                       << " hasTimeControl=" << hasTimeControl;
+}
+
+void PlayerInfoWiring::updateGameInfoWithEndTime(const QDateTime& endDateTime)
+{
+    if (!m_gameInfoController) return;
+
+    // 現在の対局情報を取得
+    QList<KifGameInfoItem> items = m_gameInfoController->gameInfo();
+
+    // 終了日時が既にあれば更新、なければ追加
+    bool found = false;
+    for (int i = 0; i < items.size(); ++i) {
+        if (items[i].key == tr("終了日時")) {
+            items[i].value = endDateTime.toString(QStringLiteral("yyyy/MM/dd HH:mm:ss"));
+            found = true;
+            break;
+        }
+    }
+    if (!found) {
+        items.append({tr("終了日時"), endDateTime.toString(QStringLiteral("yyyy/MM/dd HH:mm:ss"))});
+    }
+
+    m_gameInfoController->setGameInfo(items);
+
+    qDebug().noquote() << "[PlayerInfoWiring] updateGameInfoWithEndTime:"
+                       << endDateTime.toString(Qt::ISODate);
 }

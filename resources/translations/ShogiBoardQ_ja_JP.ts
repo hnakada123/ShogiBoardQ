@@ -2807,151 +2807,151 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>KifuExportController</name>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="156"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="157"/>
         <source>棋譜データがありません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="193"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="194"/>
         <source>棋譜を保存しました: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="244"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="245"/>
         <source>棋譜を上書き保存しました: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="247"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="248"/>
         <source>KIF Save Error</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="258"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="259"/>
         <source>自動保存先ディレクトリが指定されていません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="263"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="264"/>
         <source>棋譜データがありません（自動保存をスキップ）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="270"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="271"/>
         <source>棋譜データが空のため自動保存をスキップしました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="290"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="291"/>
         <source>棋譜を自動保存しました: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="293"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="294"/>
         <source>棋譜の自動保存に失敗しました: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="307"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="326"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="308"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="327"/>
         <source>KIF形式の棋譜データがありません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="323"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="324"/>
         <source>KIF形式の棋譜をクリップボードにコピーしました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="336"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="355"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="337"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="356"/>
         <source>KI2形式の棋譜データがありません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="352"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="353"/>
         <source>KI2形式の棋譜をクリップボードにコピーしました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="374"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="375"/>
         <source>CSA形式の棋譜データがありません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="383"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="384"/>
         <source>CSA形式の棋譜をクリップボードにコピーしました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="387"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="418"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="455"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="484"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="515"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="578"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="756"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="388"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="419"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="456"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="485"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="516"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="579"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="757"/>
         <source>クリップボードへのコピーに失敗しました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="405"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="442"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="406"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="443"/>
         <source>USI形式の棋譜データがありません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="414"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="415"/>
         <source>USI形式の棋譜をクリップボードにコピーしました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="451"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="452"/>
         <source>USI形式（現在の指し手まで）の棋譜をクリップボードにコピーしました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="471"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="472"/>
         <source>JKF形式の棋譜データがありません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="480"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="481"/>
         <source>JKF形式の棋譜をクリップボードにコピーしました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="502"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="503"/>
         <source>USEN形式の棋譜データがありません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="511"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="512"/>
         <source>USEN形式の棋譜をクリップボードにコピーしました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="566"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="567"/>
         <source>SFEN形式の局面データがありません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="573"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="574"/>
         <source>SFEN形式の局面をクリップボードにコピーしました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="738"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="739"/>
         <source>BOD形式の局面データがありません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="744"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="745"/>
         <source>SFEN形式の解析に失敗しました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="751"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="752"/>
         <source>BOD形式の局面をクリップボードにコピーしました</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3444,11 +3444,17 @@ OKを選択すると保存先が指定できます。</source>
     </message>
     <message>
         <location filename="../../src/app/mainwindow.cpp" line="1747"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1828"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1833"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1847"/>
         <source>先手</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../src/app/mainwindow.cpp" line="1748"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1829"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1839"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1848"/>
         <source>後手</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3489,7 +3495,29 @@ OKを選択すると保存先が指定できます。</source>
     </message>
     <message>
         <location filename="../../src/app/mainwindow.cpp" line="1749"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1855"/>
         <source>平手</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.cpp" line="1834"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1838"/>
+        <source>Engine</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.cpp" line="1843"/>
+        <source>Engine1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.cpp" line="1844"/>
+        <source>Engine2</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.cpp" line="1859"/>
+        <source>その他</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3497,17 +3525,17 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">定跡</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3751"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3821"/>
         <source>棋譜を取り込みました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3753"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3823"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3757"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3827"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3966,24 +3994,51 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="100"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="102"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="216"/>
+        <source>対局日</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="103"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="219"/>
+        <source>開始日時</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="104"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="222"/>
         <source>先手</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="101"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="105"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="225"/>
         <source>後手</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="102"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="106"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="228"/>
         <source>手合割</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="102"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="106"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="228"/>
         <source>平手</source>
         <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="250"/>
+        <source>持ち時間</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="269"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="276"/>
+        <source>終了日時</source>
+        <translation></translation>
     </message>
 </context>
 <context>
@@ -4126,10 +4181,10 @@ OKを選択すると保存先が指定できます。</source>
     </message>
     <message>
         <location filename="../../src/analysis/kifuanalysislistmodel.cpp" line="113"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="477"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="481"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="497"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="501"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="522"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="526"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="542"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="546"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="180"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="184"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="200"/>
@@ -4139,10 +4194,10 @@ OKを選択すると保存先が指定できます。</source>
     </message>
     <message>
         <location filename="../../src/analysis/kifuanalysislistmodel.cpp" line="113"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="478"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="486"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="494"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="502"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="523"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="531"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="539"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="547"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="181"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="189"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="197"/>
@@ -4151,10 +4206,10 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="482"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="485"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="493"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="498"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="527"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="530"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="538"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="543"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="185"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="188"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="196"/>
@@ -4163,13 +4218,13 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="489"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="534"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="192"/>
         <source>Engine1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="490"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="535"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="193"/>
         <source>Engine2</source>
         <translation type="unfinished"></translation>
@@ -4195,17 +4250,17 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuioservice.cpp" line="76"/>
+        <location filename="../../src/kifu/kifuioservice.cpp" line="78"/>
         <source>File path is empty.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuioservice.cpp" line="85"/>
+        <location filename="../../src/kifu/kifuioservice.cpp" line="87"/>
         <source>Failed to create directory: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuioservice.cpp" line="94"/>
+        <location filename="../../src/kifu/kifuioservice.cpp" line="96"/>
         <source>Could not open the file for writing: %1</source>
         <translation type="unfinished"></translation>
     </message>

@@ -110,8 +110,9 @@ GameRecordModel::ExportContext KifuExportController::buildExportContext() const
         ctx.byoyomiMs = static_cast<int>(m_deps.timeController->byoyomiMs());
         ctx.fischerIncrementMs = static_cast<int>(m_deps.timeController->incrementMs());
         ctx.gameStartDateTime = m_deps.timeController->gameStartDateTime();
+        ctx.gameEndDateTime = m_deps.timeController->gameEndDateTime();
     }
-    
+
     return ctx;
 }
 

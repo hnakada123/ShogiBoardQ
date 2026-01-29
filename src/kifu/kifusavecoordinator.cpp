@@ -23,7 +23,7 @@ QString saveViaDialog(QWidget* parent,
     // 既定ファイル名を生成
     QString defaultName = KifuIoService::makeDefaultSaveFileName(
         mode, human1, human2, engine1, engine2, QDateTime::currentDateTime());
-    if (defaultName.isEmpty() || defaultName == "_vs.kifu")
+    if (defaultName.isEmpty() || defaultName.startsWith(QStringLiteral("_")))
         defaultName = "untitled.kifu";
 
     // ダイアログのカレントを実行ディレクトリへ
@@ -54,7 +54,7 @@ QString saveViaDialogWithKi2(QWidget* parent,
     // 既定ファイル名を生成
     QString defaultName = KifuIoService::makeDefaultSaveFileName(
         mode, human1, human2, engine1, engine2, QDateTime::currentDateTime());
-    if (defaultName.isEmpty() || defaultName == "_vs.kifu")
+    if (defaultName.isEmpty() || defaultName.startsWith(QStringLiteral("_")))
         defaultName = "untitled.kifu";
 
     // ダイアログのカレントを実行ディレクトリへ
@@ -102,7 +102,7 @@ QString saveViaDialogWithAllFormats(QWidget* parent,
     // 既定ファイル名を生成
     QString defaultName = KifuIoService::makeDefaultSaveFileName(
         mode, human1, human2, engine1, engine2, QDateTime::currentDateTime());
-    if (defaultName.isEmpty() || defaultName == "_vs.kifu")
+    if (defaultName.isEmpty() || defaultName.startsWith(QStringLiteral("_")))
         defaultName = "untitled.kifu";
 
     // ダイアログのカレントを実行ディレクトリへ
@@ -157,7 +157,7 @@ QString saveViaDialogWithJkf(QWidget* parent,
     // 既定ファイル名を生成
     QString defaultName = KifuIoService::makeDefaultSaveFileName(
         mode, human1, human2, engine1, engine2, QDateTime::currentDateTime());
-    if (defaultName.isEmpty() || defaultName == "_vs.kifu")
+    if (defaultName.isEmpty() || defaultName.startsWith(QStringLiteral("_")))
         defaultName = "untitled.kifu";
 
     // ダイアログのカレントを実行ディレクトリへ
@@ -219,7 +219,7 @@ QString saveViaDialogWithUsen(QWidget* parent,
     // 既定ファイル名を生成
     QString defaultName = KifuIoService::makeDefaultSaveFileName(
         mode, human1, human2, engine1, engine2, QDateTime::currentDateTime());
-    if (defaultName.isEmpty() || defaultName == "_vs.kifu")
+    if (defaultName.isEmpty() || defaultName.startsWith(QStringLiteral("_")))
         defaultName = "untitled.kifu";
 
     // ダイアログのカレントを実行ディレクトリへ
@@ -288,7 +288,7 @@ QString saveViaDialogWithUsi(QWidget* parent,
     // 既定ファイル名を生成
     QString defaultName = KifuIoService::makeDefaultSaveFileName(
         mode, human1, human2, engine1, engine2, QDateTime::currentDateTime());
-    if (defaultName.isEmpty() || defaultName == "_vs.kifu")
+    if (defaultName.isEmpty() || defaultName.startsWith(QStringLiteral("_")))
         defaultName = "untitled.kifu";
 
     // ダイアログのカレントを実行ディレクトリへ
