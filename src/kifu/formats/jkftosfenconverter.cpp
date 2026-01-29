@@ -159,6 +159,21 @@ static QString formatMS(qint64 sec)
         .arg(s, 2, 10, QLatin1Char('0'));
 }
 
+// --- JKFのcommentsフィールドからコメント文字列を抽出 ---
+// QJsonObjectのcommentsフィールドを改行区切りの文字列に変換
+static QString extractCommentsFromMoveObj(const QJsonObject& moveObj)
+{
+    if (!moveObj.contains(QStringLiteral("comments"))) {
+        return QString();
+    }
+    const QJsonArray comments = moveObj[QStringLiteral("comments")].toArray();
+    QStringList cmtList;
+    for (const QJsonValueConstRef c : comments) {
+        cmtList.append(c.toString());
+    }
+    return cmtList.join(QLatin1Char('\n'));
+}
+
 // 終局語の変換
 static QString specialToJapaneseImpl(const QString& special)
 {
@@ -283,15 +298,7 @@ QList<KifDisplayItem> JkfToSfenConverter::extractMovesWithTimes(const QString& j
         const QJsonObject moveObj = moves[i].toObject();
 
         // コメントを取得
-        QString comment;
-        if (moveObj.contains(QStringLiteral("comments"))) {
-            const QJsonArray comments = moveObj[QStringLiteral("comments")].toArray();
-            QStringList cmtList;
-            for (const QJsonValueConstRef c : comments) {
-                cmtList.append(c.toString());
-            }
-            comment = cmtList.join(QLatin1Char('\n'));
-        }
+        const QString comment = extractCommentsFromMoveObj(moveObj);
 
         // 終局語
         if (moveObj.contains(QStringLiteral("special"))) {
@@ -639,15 +646,7 @@ void JkfToSfenConverter::parseMovesArray(const QJsonArray& movesArray,
             const QString teban = ((plyNumber + 1) % 2 != 0) ? QStringLiteral("▲") : QStringLiteral("△");
 
             // 終局語のコメントはその要素自身から取得
-            QString comment;
-            if (moveObj.contains(QStringLiteral("comments"))) {
-                const QJsonArray comments = moveObj[QStringLiteral("comments")].toArray();
-                QStringList cmtList;
-                for (const QJsonValueConstRef c : comments) {
-                    cmtList.append(c.toString());
-                }
-                comment = cmtList.join(QLatin1Char('\n'));
-            }
+            const QString comment = extractCommentsFromMoveObj(moveObj);
 
             KifDisplayItem item;
             item.prettyMove = teban + label;
@@ -689,15 +688,7 @@ void JkfToSfenConverter::parseMovesArray(const QJsonArray& movesArray,
             }
 
             // コメントは同じ要素から取得 (moves[i].comments は moves[i].move のコメント)
-            QString comment;
-            if (moveObj.contains(QStringLiteral("comments"))) {
-                const QJsonArray comments = moveObj[QStringLiteral("comments")].toArray();
-                QStringList cmtList;
-                for (const QJsonValueConstRef c : comments) {
-                    cmtList.append(c.toString());
-                }
-                comment = cmtList.join(QLatin1Char('\n'));
-            }
+            const QString comment = extractCommentsFromMoveObj(moveObj);
 
             KifDisplayItem item;
             item.prettyMove = pretty;
@@ -707,14 +698,7 @@ void JkfToSfenConverter::parseMovesArray(const QJsonArray& movesArray,
             mainline.disp.append(item);
         } else if (i == 0) {
             // moves[0] は初期局面用 - コメントがあれば開始局面エントリに設定
-            if (moveObj.contains(QStringLiteral("comments"))) {
-                const QJsonArray comments = moveObj[QStringLiteral("comments")].toArray();
-                QStringList cmtList;
-                for (const QJsonValueConstRef c : comments) {
-                    cmtList.append(c.toString());
-                }
-                openingItem.comment = cmtList.join(QLatin1Char('\n'));
-            }
+            openingItem.comment = extractCommentsFromMoveObj(moveObj);
         }
 
         // 分岐 (forks) を処理
@@ -746,15 +730,7 @@ void JkfToSfenConverter::parseMovesArray(const QJsonArray& movesArray,
                         const QString teban = ((forkPlyNumber + 1) % 2 != 0) ? QStringLiteral("▲") : QStringLiteral("△");
 
                         // 終局語のコメントはその要素自身から取得
-                        QString forkComment;
-                        if (forkMoveObj.contains(QStringLiteral("comments"))) {
-                            const QJsonArray forkComments = forkMoveObj[QStringLiteral("comments")].toArray();
-                            QStringList cmtList;
-                            for (const QJsonValueConstRef c : forkComments) {
-                                cmtList.append(c.toString());
-                            }
-                            forkComment = cmtList.join(QLatin1Char('\n'));
-                        }
+                        const QString forkComment = extractCommentsFromMoveObj(forkMoveObj);
 
                         KifDisplayItem item;
                         item.prettyMove = teban + label;
@@ -786,15 +762,7 @@ void JkfToSfenConverter::parseMovesArray(const QJsonArray& movesArray,
                         }
 
                         // コメントは同じ要素から取得
-                        QString forkComment;
-                        if (forkMoveObj.contains(QStringLiteral("comments"))) {
-                            const QJsonArray forkComments = forkMoveObj[QStringLiteral("comments")].toArray();
-                            QStringList cmtList;
-                            for (const QJsonValueConstRef c : forkComments) {
-                                cmtList.append(c.toString());
-                            }
-                            forkComment = cmtList.join(QLatin1Char('\n'));
-                        }
+                        const QString forkComment = extractCommentsFromMoveObj(forkMoveObj);
 
                         KifDisplayItem item;
                         item.prettyMove = pretty;
