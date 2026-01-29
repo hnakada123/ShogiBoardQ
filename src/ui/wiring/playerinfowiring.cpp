@@ -281,3 +281,53 @@ void PlayerInfoWiring::updateGameInfoWithEndTime(const QDateTime& endDateTime)
     qDebug().noquote() << "[PlayerInfoWiring] updateGameInfoWithEndTime:"
                        << endDateTime.toString(Qt::ISODate);
 }
+
+void PlayerInfoWiring::updateGameInfoWithTimeControl(bool hasTimeControl,
+                                                     qint64 baseTimeMs,
+                                                     qint64 byoyomiMs,
+                                                     qint64 incrementMs)
+{
+    if (!m_gameInfoController) return;
+    if (!hasTimeControl) return;
+
+    // 現在の対局情報を取得
+    QList<KifGameInfoItem> items = m_gameInfoController->gameInfo();
+
+    // 持ち時間文字列を生成
+    const int baseMin = static_cast<int>(baseTimeMs / 60000);
+    const int baseSec = static_cast<int>((baseTimeMs % 60000) / 1000);
+    const int byoyomiSec = static_cast<int>(byoyomiMs / 1000);
+    const int incrementSec = static_cast<int>(incrementMs / 1000);
+
+    QString timeStr;
+    if (baseMin > 0 || baseSec > 0) {
+        timeStr = QStringLiteral("%1:%2")
+            .arg(baseMin, 2, 10, QLatin1Char('0'))
+            .arg(baseSec, 2, 10, QLatin1Char('0'));
+    } else {
+        timeStr = QStringLiteral("00:00");
+    }
+    if (byoyomiSec > 0) {
+        timeStr += QStringLiteral("+%1").arg(byoyomiSec);
+    } else if (incrementSec > 0) {
+        timeStr += QStringLiteral("+%1").arg(incrementSec);
+    }
+
+    // 持ち時間が既にあれば更新、なければ追加
+    bool found = false;
+    for (int i = 0; i < items.size(); ++i) {
+        if (items[i].key == tr("持ち時間")) {
+            items[i].value = timeStr;
+            found = true;
+            break;
+        }
+    }
+    if (!found) {
+        items.append({tr("持ち時間"), timeStr});
+    }
+
+    m_gameInfoController->setGameInfo(items);
+
+    qDebug().noquote() << "[PlayerInfoWiring] updateGameInfoWithTimeControl:"
+                       << timeStr;
+}

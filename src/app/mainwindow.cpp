@@ -3323,6 +3323,17 @@ void MainWindow::onApplyTimeControlRequested(const GameStartCoordinator::TimeCon
     if (m_timeController) {
         m_timeController->applyTimeControl(tc, m_match, m_startSfenStr, m_currentSfenStr, m_shogiView);
     }
+
+    // ★ 対局情報ドックに持ち時間を追加
+    ensurePlayerInfoWiring();
+    if (m_playerInfoWiring && tc.enabled) {
+        m_playerInfoWiring->updateGameInfoWithTimeControl(
+            tc.enabled,
+            tc.p1.baseMs,
+            tc.p1.byoyomiMs,
+            tc.p1.incrementMs
+        );
+    }
 }
 
 void MainWindow::ensureRecordPresenter()

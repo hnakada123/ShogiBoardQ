@@ -256,11 +256,22 @@ void EngineAnalysisTab::buildUi()
     m_considerationToolbar = new QWidget(considerationPage);
     auto* toolbarLayout = new FlowLayout(m_considerationToolbar, 2, 8, 4);  // margin=2, hSpacing=8, vSpacing=4
 
+    // ボタンスタイル定義
+    const QString fontBtnStyle = QStringLiteral(
+        "QToolButton { background-color: #e3f2fd; border: 1px solid #90caf9; border-radius: 3px; }"
+        "QToolButton:hover { background-color: #bbdefb; }"
+        "QToolButton:pressed { background-color: #90caf9; }");
+    const QString actionBtnStyle = QStringLiteral(
+        "QPushButton { background-color: #1976d2; color: white; border: 1px solid #1565c0; border-radius: 3px; padding: 2px 8px; }"
+        "QPushButton:hover { background-color: #1e88e5; }"
+        "QPushButton:pressed { background-color: #1565c0; }");
+
     // フォントサイズ減少ボタン（A-）
     m_btnConsiderationFontDecrease = new QToolButton(m_considerationToolbar);
     m_btnConsiderationFontDecrease->setText(QStringLiteral("A-"));
     m_btnConsiderationFontDecrease->setToolTip(tr("フォントサイズを小さくする"));
     m_btnConsiderationFontDecrease->setFixedSize(28, 24);
+    m_btnConsiderationFontDecrease->setStyleSheet(fontBtnStyle);
     connect(m_btnConsiderationFontDecrease, &QToolButton::clicked,
             this, &EngineAnalysisTab::onConsiderationFontDecrease);
 
@@ -269,6 +280,7 @@ void EngineAnalysisTab::buildUi()
     m_btnConsiderationFontIncrease->setText(QStringLiteral("A+"));
     m_btnConsiderationFontIncrease->setToolTip(tr("フォントサイズを大きくする"));
     m_btnConsiderationFontIncrease->setFixedSize(28, 24);
+    m_btnConsiderationFontIncrease->setStyleSheet(fontBtnStyle);
     connect(m_btnConsiderationFontIncrease, &QToolButton::clicked,
             this, &EngineAnalysisTab::onConsiderationFontIncrease);
 
@@ -282,6 +294,7 @@ void EngineAnalysisTab::buildUi()
     // エンジン設定ボタン
     m_btnEngineSettings = new QPushButton(tr("エンジン設定"), m_considerationToolbar);
     m_btnEngineSettings->setToolTip(tr("選択したエンジンの設定を変更します"));
+    m_btnEngineSettings->setStyleSheet(actionBtnStyle);
     connect(m_btnEngineSettings, &QPushButton::clicked,
             this, &EngineAnalysisTab::onEngineSettingsClicked);
 
@@ -343,6 +356,10 @@ void EngineAnalysisTab::buildUi()
     m_btnStopConsideration = new QToolButton(m_considerationToolbar);
     m_btnStopConsideration->setText(tr("検討開始"));
     m_btnStopConsideration->setToolTip(tr("検討を開始します"));
+    m_btnStopConsideration->setStyleSheet(QStringLiteral(
+        "QToolButton { background-color: #1976d2; color: white; border: 1px solid #1565c0; border-radius: 3px; padding: 2px 8px; }"
+        "QToolButton:hover { background-color: #1e88e5; }"
+        "QToolButton:pressed { background-color: #1565c0; }"));
     connect(m_btnStopConsideration, &QToolButton::clicked,
             this, &EngineAnalysisTab::startConsiderationRequested);
 
@@ -667,10 +684,21 @@ QWidget* EngineAnalysisTab::createConsiderationPage(QWidget* parent)
     m_considerationToolbar = new QWidget(considerationPage);
     auto* toolbarLayout = new FlowLayout(m_considerationToolbar, 2, 8, 4);
 
+    // ボタンスタイル定義
+    const QString fontBtnStyle = QStringLiteral(
+        "QToolButton { background-color: #e3f2fd; border: 1px solid #90caf9; border-radius: 3px; }"
+        "QToolButton:hover { background-color: #bbdefb; }"
+        "QToolButton:pressed { background-color: #90caf9; }");
+    const QString actionBtnStyle = QStringLiteral(
+        "QPushButton { background-color: #1976d2; color: white; border: 1px solid #1565c0; border-radius: 3px; padding: 2px 8px; }"
+        "QPushButton:hover { background-color: #1e88e5; }"
+        "QPushButton:pressed { background-color: #1565c0; }");
+
     m_btnConsiderationFontDecrease = new QToolButton(m_considerationToolbar);
     m_btnConsiderationFontDecrease->setText(QStringLiteral("A-"));
     m_btnConsiderationFontDecrease->setToolTip(tr("フォントサイズを小さくする"));
     m_btnConsiderationFontDecrease->setFixedSize(28, 24);
+    m_btnConsiderationFontDecrease->setStyleSheet(fontBtnStyle);
     connect(m_btnConsiderationFontDecrease, &QToolButton::clicked,
             this, &EngineAnalysisTab::onConsiderationFontDecrease);
 
@@ -678,6 +706,7 @@ QWidget* EngineAnalysisTab::createConsiderationPage(QWidget* parent)
     m_btnConsiderationFontIncrease->setText(QStringLiteral("A+"));
     m_btnConsiderationFontIncrease->setToolTip(tr("フォントサイズを大きくする"));
     m_btnConsiderationFontIncrease->setFixedSize(28, 24);
+    m_btnConsiderationFontIncrease->setStyleSheet(fontBtnStyle);
     connect(m_btnConsiderationFontIncrease, &QToolButton::clicked,
             this, &EngineAnalysisTab::onConsiderationFontIncrease);
 
@@ -689,6 +718,7 @@ QWidget* EngineAnalysisTab::createConsiderationPage(QWidget* parent)
 
     m_btnEngineSettings = new QPushButton(tr("エンジン設定"), m_considerationToolbar);
     m_btnEngineSettings->setToolTip(tr("選択したエンジンの設定を変更します"));
+    m_btnEngineSettings->setStyleSheet(actionBtnStyle);
     connect(m_btnEngineSettings, &QPushButton::clicked,
             this, &EngineAnalysisTab::onEngineSettingsClicked);
 
@@ -740,6 +770,10 @@ QWidget* EngineAnalysisTab::createConsiderationPage(QWidget* parent)
     m_btnStopConsideration = new QToolButton(m_considerationToolbar);
     m_btnStopConsideration->setText(tr("検討開始"));
     m_btnStopConsideration->setToolTip(tr("検討を開始します"));
+    m_btnStopConsideration->setStyleSheet(QStringLiteral(
+        "QToolButton { background-color: #1976d2; color: white; border: 1px solid #1565c0; border-radius: 3px; padding: 2px 8px; }"
+        "QToolButton:hover { background-color: #1e88e5; }"
+        "QToolButton:pressed { background-color: #1565c0; }"));
     connect(m_btnStopConsideration, &QToolButton::clicked,
             this, &EngineAnalysisTab::startConsiderationRequested);
 
@@ -1825,11 +1859,18 @@ void EngineAnalysisTab::buildUsiLogToolbar()
     toolbarLayout->setContentsMargins(2, 2, 2, 2);
     toolbarLayout->setSpacing(4);
 
+    // フォントボタン用スタイル
+    const QString fontBtnStyle = QStringLiteral(
+        "QToolButton { background-color: #e3f2fd; border: 1px solid #90caf9; border-radius: 3px; }"
+        "QToolButton:hover { background-color: #bbdefb; }"
+        "QToolButton:pressed { background-color: #90caf9; }");
+
     // フォントサイズ減少ボタン
     m_btnUsiLogFontDecrease = new QToolButton(m_usiLogToolbar);
     m_btnUsiLogFontDecrease->setText(QStringLiteral("A-"));
     m_btnUsiLogFontDecrease->setToolTip(tr("フォントサイズを小さくする"));
     m_btnUsiLogFontDecrease->setFixedSize(28, 24);
+    m_btnUsiLogFontDecrease->setStyleSheet(fontBtnStyle);
     connect(m_btnUsiLogFontDecrease, &QToolButton::clicked, this, &EngineAnalysisTab::onUsiLogFontDecrease);
 
     // フォントサイズ増加ボタン
@@ -1837,6 +1878,7 @@ void EngineAnalysisTab::buildUsiLogToolbar()
     m_btnUsiLogFontIncrease->setText(QStringLiteral("A+"));
     m_btnUsiLogFontIncrease->setToolTip(tr("フォントサイズを大きくする"));
     m_btnUsiLogFontIncrease->setFixedSize(28, 24);
+    m_btnUsiLogFontIncrease->setStyleSheet(fontBtnStyle);
     connect(m_btnUsiLogFontIncrease, &QToolButton::clicked, this, &EngineAnalysisTab::onUsiLogFontIncrease);
 
     // ★ 追加: エンジン名ラベル（E1: xxx, E2: xxx）
@@ -2084,11 +2126,30 @@ void EngineAnalysisTab::buildCommentToolbar()
     toolbarLayout->setContentsMargins(2, 2, 2, 2);
     toolbarLayout->setSpacing(4);
 
+    // ボタンスタイル定義
+    const QString fontBtnStyle = QStringLiteral(
+        "QToolButton { background-color: #e3f2fd; border: 1px solid #90caf9; border-radius: 3px; }"
+        "QToolButton:hover { background-color: #bbdefb; }"
+        "QToolButton:pressed { background-color: #90caf9; }");
+    const QString undoRedoBtnStyle = QStringLiteral(
+        "QToolButton { background-color: #fff3e0; border: 1px solid #ffcc80; border-radius: 3px; }"
+        "QToolButton:hover { background-color: #ffe0b2; }"
+        "QToolButton:pressed { background-color: #ffcc80; }");
+    const QString editBtnStyle = QStringLiteral(
+        "QToolButton { background-color: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 3px; }"
+        "QToolButton:hover { background-color: #c8e6c9; }"
+        "QToolButton:pressed { background-color: #a5d6a7; }");
+    const QString updateBtnStyle = QStringLiteral(
+        "QPushButton { background-color: #1976d2; color: white; border: 1px solid #1565c0; border-radius: 3px; padding: 2px 8px; }"
+        "QPushButton:hover { background-color: #1e88e5; }"
+        "QPushButton:pressed { background-color: #1565c0; }");
+
     // フォントサイズ減少ボタン
     m_btnFontDecrease = new QToolButton(m_commentToolbar);
     m_btnFontDecrease->setText(QStringLiteral("A-"));
     m_btnFontDecrease->setToolTip(tr("フォントサイズを小さくする"));
     m_btnFontDecrease->setFixedSize(28, 24);
+    m_btnFontDecrease->setStyleSheet(fontBtnStyle);
     connect(m_btnFontDecrease, &QToolButton::clicked, this, &EngineAnalysisTab::onFontDecrease);
 
     // フォントサイズ増加ボタン
@@ -2096,6 +2157,7 @@ void EngineAnalysisTab::buildCommentToolbar()
     m_btnFontIncrease->setText(QStringLiteral("A+"));
     m_btnFontIncrease->setToolTip(tr("フォントサイズを大きくする"));
     m_btnFontIncrease->setFixedSize(28, 24);
+    m_btnFontIncrease->setStyleSheet(fontBtnStyle);
     connect(m_btnFontIncrease, &QToolButton::clicked, this, &EngineAnalysisTab::onFontIncrease);
 
     // undoボタン（元に戻す）
@@ -2103,6 +2165,7 @@ void EngineAnalysisTab::buildCommentToolbar()
     m_btnCommentUndo->setText(QStringLiteral("↩"));
     m_btnCommentUndo->setToolTip(tr("元に戻す (Ctrl+Z)"));
     m_btnCommentUndo->setFixedSize(28, 24);
+    m_btnCommentUndo->setStyleSheet(undoRedoBtnStyle);
     connect(m_btnCommentUndo, &QToolButton::clicked, this, &EngineAnalysisTab::onCommentUndo);
 
     // ★ 追加: redoボタン（やり直す）
@@ -2110,6 +2173,7 @@ void EngineAnalysisTab::buildCommentToolbar()
     m_btnCommentRedo->setText(QStringLiteral("↪"));
     m_btnCommentRedo->setToolTip(tr("やり直す (Ctrl+Y)"));
     m_btnCommentRedo->setFixedSize(28, 24);
+    m_btnCommentRedo->setStyleSheet(undoRedoBtnStyle);
     connect(m_btnCommentRedo, &QToolButton::clicked, this, &EngineAnalysisTab::onCommentRedo);
 
     // ★ 追加: 切り取りボタン
@@ -2117,6 +2181,7 @@ void EngineAnalysisTab::buildCommentToolbar()
     m_btnCommentCut->setText(QStringLiteral("✂"));
     m_btnCommentCut->setToolTip(tr("切り取り (Ctrl+X)"));
     m_btnCommentCut->setFixedSize(28, 24);
+    m_btnCommentCut->setStyleSheet(editBtnStyle);
     connect(m_btnCommentCut, &QToolButton::clicked, this, &EngineAnalysisTab::onCommentCut);
 
     // ★ 追加: コピーボタン
@@ -2124,6 +2189,7 @@ void EngineAnalysisTab::buildCommentToolbar()
     m_btnCommentCopy->setText(QStringLiteral("📋"));
     m_btnCommentCopy->setToolTip(tr("コピー (Ctrl+C)"));
     m_btnCommentCopy->setFixedSize(28, 24);
+    m_btnCommentCopy->setStyleSheet(editBtnStyle);
     connect(m_btnCommentCopy, &QToolButton::clicked, this, &EngineAnalysisTab::onCommentCopy);
 
     // ★ 追加: 貼り付けボタン
@@ -2131,6 +2197,7 @@ void EngineAnalysisTab::buildCommentToolbar()
     m_btnCommentPaste->setText(QStringLiteral("📄"));
     m_btnCommentPaste->setToolTip(tr("貼り付け (Ctrl+V)"));
     m_btnCommentPaste->setFixedSize(28, 24);
+    m_btnCommentPaste->setStyleSheet(editBtnStyle);
     connect(m_btnCommentPaste, &QToolButton::clicked, this, &EngineAnalysisTab::onCommentPaste);
 
     // 「修正中」ラベル（赤字）
@@ -2142,18 +2209,22 @@ void EngineAnalysisTab::buildCommentToolbar()
     m_btnUpdateComment = new QPushButton(tr("コメント更新"), m_commentToolbar);
     m_btnUpdateComment->setToolTip(tr("編集したコメントを棋譜に反映する"));
     m_btnUpdateComment->setFixedHeight(24);
+    m_btnUpdateComment->setStyleSheet(updateBtnStyle);
     connect(m_btnUpdateComment, &QPushButton::clicked, this, &EngineAnalysisTab::onUpdateCommentClicked);
 
+    // レイアウトに追加（更新ボタンを左側に配置）
     toolbarLayout->addWidget(m_btnFontDecrease);
     toolbarLayout->addWidget(m_btnFontIncrease);
     toolbarLayout->addWidget(m_btnCommentUndo);
-    toolbarLayout->addWidget(m_btnCommentRedo);   // ★ 追加
-    toolbarLayout->addWidget(m_btnCommentCut);    // ★ 追加
-    toolbarLayout->addWidget(m_btnCommentCopy);   // ★ 追加
-    toolbarLayout->addWidget(m_btnCommentPaste);  // ★ 追加
+    toolbarLayout->addWidget(m_btnCommentRedo);
+    toolbarLayout->addWidget(m_btnCommentCut);
+    toolbarLayout->addWidget(m_btnCommentCopy);
+    toolbarLayout->addWidget(m_btnCommentPaste);
+    toolbarLayout->addSpacing(8);
+    toolbarLayout->addWidget(m_btnUpdateComment);
+    toolbarLayout->addSpacing(8);
     toolbarLayout->addWidget(m_editingLabel);
     toolbarLayout->addStretch();
-    toolbarLayout->addWidget(m_btnUpdateComment);
 
     m_commentToolbar->setLayout(toolbarLayout);
     relaxToolbarWidth(m_commentToolbar);
@@ -2472,11 +2543,18 @@ void EngineAnalysisTab::buildCsaLogToolbar()
     toolbarLayout->setContentsMargins(2, 2, 2, 2);
     toolbarLayout->setSpacing(4);
 
+    // フォントボタン用スタイル
+    const QString fontBtnStyle = QStringLiteral(
+        "QToolButton { background-color: #e3f2fd; border: 1px solid #90caf9; border-radius: 3px; }"
+        "QToolButton:hover { background-color: #bbdefb; }"
+        "QToolButton:pressed { background-color: #90caf9; }");
+
     // フォントサイズ減少ボタン
     m_btnCsaLogFontDecrease = new QToolButton(m_csaLogToolbar);
     m_btnCsaLogFontDecrease->setText(QStringLiteral("A-"));
     m_btnCsaLogFontDecrease->setToolTip(tr("フォントサイズを小さくする"));
     m_btnCsaLogFontDecrease->setFixedSize(28, 24);
+    m_btnCsaLogFontDecrease->setStyleSheet(fontBtnStyle);
     connect(m_btnCsaLogFontDecrease, &QToolButton::clicked, this, &EngineAnalysisTab::onCsaLogFontDecrease);
 
     // フォントサイズ増加ボタン
@@ -2484,6 +2562,7 @@ void EngineAnalysisTab::buildCsaLogToolbar()
     m_btnCsaLogFontIncrease->setText(QStringLiteral("A+"));
     m_btnCsaLogFontIncrease->setToolTip(tr("フォントサイズを大きくする"));
     m_btnCsaLogFontIncrease->setFixedSize(28, 24);
+    m_btnCsaLogFontIncrease->setStyleSheet(fontBtnStyle);
     connect(m_btnCsaLogFontIncrease, &QToolButton::clicked, this, &EngineAnalysisTab::onCsaLogFontIncrease);
 
     toolbarLayout->addWidget(m_btnCsaLogFontDecrease);

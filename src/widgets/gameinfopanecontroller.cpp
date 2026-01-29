@@ -70,11 +70,30 @@ void GameInfoPaneController::buildToolbar()
     layout->setContentsMargins(2, 2, 2, 2);
     layout->setSpacing(4);
 
+    // ボタンスタイル定義
+    const QString fontBtnStyle = QStringLiteral(
+        "QToolButton { background-color: #e3f2fd; border: 1px solid #90caf9; border-radius: 3px; }"
+        "QToolButton:hover { background-color: #bbdefb; }"
+        "QToolButton:pressed { background-color: #90caf9; }");
+    const QString undoRedoBtnStyle = QStringLiteral(
+        "QToolButton { background-color: #fff3e0; border: 1px solid #ffcc80; border-radius: 3px; }"
+        "QToolButton:hover { background-color: #ffe0b2; }"
+        "QToolButton:pressed { background-color: #ffcc80; }");
+    const QString editBtnStyle = QStringLiteral(
+        "QToolButton { background-color: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 3px; }"
+        "QToolButton:hover { background-color: #c8e6c9; }"
+        "QToolButton:pressed { background-color: #a5d6a7; }");
+    const QString updateBtnStyle = QStringLiteral(
+        "QPushButton { background-color: #1976d2; color: white; border: 1px solid #1565c0; border-radius: 3px; padding: 2px 8px; }"
+        "QPushButton:hover { background-color: #1e88e5; }"
+        "QPushButton:pressed { background-color: #1565c0; }");
+
     // フォントサイズ減少ボタン
     m_btnFontDecrease = new QToolButton(m_toolbar);
     m_btnFontDecrease->setText(QStringLiteral("A-"));
     m_btnFontDecrease->setToolTip(tr("フォントサイズを小さくする"));
     m_btnFontDecrease->setFixedSize(28, 24);
+    m_btnFontDecrease->setStyleSheet(fontBtnStyle);
     QObject::connect(m_btnFontDecrease, &QToolButton::clicked,
                      this, &GameInfoPaneController::decreaseFontSize);
 
@@ -83,6 +102,7 @@ void GameInfoPaneController::buildToolbar()
     m_btnFontIncrease->setText(QStringLiteral("A+"));
     m_btnFontIncrease->setToolTip(tr("フォントサイズを大きくする"));
     m_btnFontIncrease->setFixedSize(28, 24);
+    m_btnFontIncrease->setStyleSheet(fontBtnStyle);
     QObject::connect(m_btnFontIncrease, &QToolButton::clicked,
                      this, &GameInfoPaneController::increaseFontSize);
 
@@ -91,6 +111,7 @@ void GameInfoPaneController::buildToolbar()
     m_btnUndo->setText(QStringLiteral("↩"));
     m_btnUndo->setToolTip(tr("元に戻す (Ctrl+Z)"));
     m_btnUndo->setFixedSize(28, 24);
+    m_btnUndo->setStyleSheet(undoRedoBtnStyle);
     QObject::connect(m_btnUndo, &QToolButton::clicked,
                      this, &GameInfoPaneController::undo);
 
@@ -99,6 +120,7 @@ void GameInfoPaneController::buildToolbar()
     m_btnRedo->setText(QStringLiteral("↪"));
     m_btnRedo->setToolTip(tr("やり直す (Ctrl+Y)"));
     m_btnRedo->setFixedSize(28, 24);
+    m_btnRedo->setStyleSheet(undoRedoBtnStyle);
     QObject::connect(m_btnRedo, &QToolButton::clicked,
                      this, &GameInfoPaneController::redo);
 
@@ -107,6 +129,7 @@ void GameInfoPaneController::buildToolbar()
     m_btnCut->setText(QStringLiteral("✂"));
     m_btnCut->setToolTip(tr("切り取り (Ctrl+X)"));
     m_btnCut->setFixedSize(28, 24);
+    m_btnCut->setStyleSheet(editBtnStyle);
     QObject::connect(m_btnCut, &QToolButton::clicked,
                      this, &GameInfoPaneController::cut);
 
@@ -115,6 +138,7 @@ void GameInfoPaneController::buildToolbar()
     m_btnCopy->setText(QStringLiteral("📋"));
     m_btnCopy->setToolTip(tr("コピー (Ctrl+C)"));
     m_btnCopy->setFixedSize(28, 24);
+    m_btnCopy->setStyleSheet(editBtnStyle);
     QObject::connect(m_btnCopy, &QToolButton::clicked,
                      this, &GameInfoPaneController::copy);
 
@@ -123,6 +147,7 @@ void GameInfoPaneController::buildToolbar()
     m_btnPaste->setText(QStringLiteral("📄"));
     m_btnPaste->setToolTip(tr("貼り付け (Ctrl+V)"));
     m_btnPaste->setFixedSize(28, 24);
+    m_btnPaste->setStyleSheet(editBtnStyle);
     QObject::connect(m_btnPaste, &QToolButton::clicked,
                      this, &GameInfoPaneController::paste);
 
@@ -135,10 +160,11 @@ void GameInfoPaneController::buildToolbar()
     m_btnUpdate = new QPushButton(tr("対局情報更新"), m_toolbar);
     m_btnUpdate->setToolTip(tr("編集した対局情報を棋譜に反映する"));
     m_btnUpdate->setFixedHeight(24);
+    m_btnUpdate->setStyleSheet(updateBtnStyle);
     QObject::connect(m_btnUpdate, &QPushButton::clicked,
                      this, &GameInfoPaneController::applyChanges);
 
-    // レイアウトに追加
+    // レイアウトに追加（更新ボタンを左側に配置）
     layout->addWidget(m_btnFontDecrease);
     layout->addWidget(m_btnFontIncrease);
     layout->addWidget(m_btnUndo);
@@ -146,9 +172,11 @@ void GameInfoPaneController::buildToolbar()
     layout->addWidget(m_btnCut);
     layout->addWidget(m_btnCopy);
     layout->addWidget(m_btnPaste);
+    layout->addSpacing(8);
+    layout->addWidget(m_btnUpdate);
+    layout->addSpacing(8);
     layout->addWidget(m_editingLabel);
     layout->addStretch();
-    layout->addWidget(m_btnUpdate);
 }
 
 QWidget* GameInfoPaneController::containerWidget() const

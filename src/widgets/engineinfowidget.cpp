@@ -102,10 +102,17 @@ EngineInfoWidget::EngineInfoWidget(QWidget* parent, bool showFontButtons, bool s
         buttonLayout->setContentsMargins(0, 0, 0, 2);
         buttonLayout->setSpacing(4);
 
+        // フォントボタン用スタイル
+        const QString fontBtnStyle = QStringLiteral(
+            "QToolButton { background-color: #e3f2fd; border: 1px solid #90caf9; border-radius: 3px; }"
+            "QToolButton:hover { background-color: #bbdefb; }"
+            "QToolButton:pressed { background-color: #90caf9; }");
+
         m_btnFontDecrease = new QToolButton(buttonRow);
         m_btnFontDecrease->setText(QStringLiteral("A-"));
         m_btnFontDecrease->setToolTip(tr("フォントサイズを小さくする"));
         m_btnFontDecrease->setFixedSize(28, 20);
+        m_btnFontDecrease->setStyleSheet(fontBtnStyle);
         connect(m_btnFontDecrease, &QToolButton::clicked,
                 this, &EngineInfoWidget::fontSizeDecreaseRequested);
 
@@ -113,6 +120,7 @@ EngineInfoWidget::EngineInfoWidget(QWidget* parent, bool showFontButtons, bool s
         m_btnFontIncrease->setText(QStringLiteral("A+"));
         m_btnFontIncrease->setToolTip(tr("フォントサイズを大きくする"));
         m_btnFontIncrease->setFixedSize(28, 20);
+        m_btnFontIncrease->setStyleSheet(fontBtnStyle);
         connect(m_btnFontIncrease, &QToolButton::clicked,
                 this, &EngineInfoWidget::fontSizeIncreaseRequested);
 

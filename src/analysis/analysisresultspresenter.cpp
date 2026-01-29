@@ -166,35 +166,44 @@ void AnalysisResultsPresenter::buildUi(KifuAnalysisListModel* /*model*/)
     // 空のモデルが設定されているのでヘッダー設定を適用
     setupHeaderConfiguration();
 
+    // ボタンスタイル定義
+    const QString fontBtnStyle = QStringLiteral(
+        "QPushButton { background-color: #e3f2fd; border: 1px solid #90caf9; border-radius: 3px; }"
+        "QPushButton:hover { background-color: #bbdefb; }"
+        "QPushButton:pressed { background-color: #90caf9; }");
+    const QString stopBtnStyle = QStringLiteral(
+        "QPushButton { background-color: #fff3e0; border: 1px solid #ffcc80; border-radius: 3px; padding: 4px 12px; }"
+        "QPushButton:hover { background-color: #ffe0b2; }"
+        "QPushButton:pressed { background-color: #ffcc80; }");
+
     // フォントサイズのA-/A+ボタン
     QPushButton* fontDecBtn = new QPushButton(tr("A-"), m_container);
     fontDecBtn->setFixedWidth(40);
+    fontDecBtn->setStyleSheet(fontBtnStyle);
     connect(fontDecBtn, &QPushButton::clicked, this, &AnalysisResultsPresenter::decreaseFontSize);
 
     QPushButton* fontIncBtn = new QPushButton(tr("A+"), m_container);
     fontIncBtn->setFixedWidth(40);
+    fontIncBtn->setStyleSheet(fontBtnStyle);
     connect(fontIncBtn, &QPushButton::clicked, this, &AnalysisResultsPresenter::increaseFontSize);
 
     // 棋譜解析中止ボタン
     m_stopButton = new QPushButton(tr("棋譜解析中止"), m_container);
+    m_stopButton->setStyleSheet(stopBtnStyle);
     connect(m_stopButton, &QPushButton::clicked, this, &AnalysisResultsPresenter::stopRequested);
 
-    // 閉じるボタン（ドックを非表示にする）
-    QPushButton* closeButton = new QPushButton(tr("閉じる"), m_container);
-    connect(closeButton, &QPushButton::clicked, this, &AnalysisResultsPresenter::saveWindowSize);
-
-    // ボタン用の水平レイアウト
+    // ボタン用の水平レイアウト（上部に配置）
     QHBoxLayout* buttonLayout = new QHBoxLayout;
+    buttonLayout->addWidget(m_stopButton);
+    buttonLayout->addSpacing(12);
     buttonLayout->addWidget(fontDecBtn);
     buttonLayout->addWidget(fontIncBtn);
     buttonLayout->addStretch();
-    buttonLayout->addWidget(m_stopButton);
-    buttonLayout->addWidget(closeButton);
 
     QVBoxLayout* lay = new QVBoxLayout(m_container);
     lay->setContentsMargins(8,8,8,8);
+    lay->addLayout(buttonLayout);  // ボタンを上部に配置
     lay->addWidget(m_view);
-    lay->addLayout(buttonLayout);
 
     // ウィンドウリサイズ時に再レイアウト
     connect(m_view->verticalScrollBar(), &QAbstractSlider::rangeChanged,
