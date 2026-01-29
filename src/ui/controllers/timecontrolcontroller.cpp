@@ -169,6 +169,28 @@ void TimeControlController::clearGameStartTime()
 }
 
 // --------------------------------------------------------
+// 対局終了時刻
+// --------------------------------------------------------
+
+void TimeControlController::recordGameEndTime()
+{
+    if (!m_gameEndDateTime.isValid()) {
+        m_gameEndDateTime = QDateTime::currentDateTime();
+        qDebug().noquote() << "[TimeCtrl] recordGameEndTime:" << m_gameEndDateTime.toString(Qt::ISODate);
+    }
+}
+
+QDateTime TimeControlController::gameEndDateTime() const
+{
+    return m_gameEndDateTime;
+}
+
+void TimeControlController::clearGameEndTime()
+{
+    m_gameEndDateTime = QDateTime();
+}
+
+// --------------------------------------------------------
 // 時間取得ヘルパー
 // --------------------------------------------------------
 

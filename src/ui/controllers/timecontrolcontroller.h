@@ -136,6 +136,25 @@ public:
     void clearGameStartTime();
 
     // --------------------------------------------------------
+    // 対局終了時刻
+    // --------------------------------------------------------
+
+    /**
+     * @brief 対局終了時刻を記録
+     */
+    void recordGameEndTime();
+
+    /**
+     * @brief 対局終了時刻を取得
+     */
+    QDateTime gameEndDateTime() const;
+
+    /**
+     * @brief 対局終了時刻をクリア
+     */
+    void clearGameEndTime();
+
+    // --------------------------------------------------------
     // 時間取得ヘルパー（MatchCoordinator hooks用）
     // --------------------------------------------------------
 
@@ -185,6 +204,7 @@ private:
 
     TimeControlSettings m_settings;
     QDateTime m_gameStartDateTime;
+    QDateTime m_gameEndDateTime;
 };
 
 #endif // TIMECONTROLCONTROLLER_H

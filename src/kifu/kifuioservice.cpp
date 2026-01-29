@@ -29,42 +29,44 @@ QString KifuIoService::makeDefaultSaveFileName(PlayMode mode,
                                                const QString& human2,
                                                const QString& engine1,
                                                const QString& engine2,
-                                               const QDateTime& now)
+                                               const QDateTime& now,
+                                               const QString& ext)
 {
     const QDateTime ts = now.isValid() ? now : QDateTime::currentDateTime();
     const QString stamp = ts.toString(QStringLiteral("yyyyMMdd_HHmmss"));
+    const QString extension = ext.isEmpty() ? QStringLiteral("kifu") : ext;
 
-    auto mk = [&](const QString& p1, const QString& p2, const QString& tag) -> QString {
+    auto mk = [&](const QString& p1, const QString& p2) -> QString {
         const QString a = sanitizeForFileName(p1, QStringLiteral("P1"));
         const QString b = sanitizeForFileName(p2, QStringLiteral("P2"));
-        return QStringLiteral("%1_%2_%3vs%4.kifu").arg(stamp, tag, a, b);
+        return QStringLiteral("%1_%2_vs_%3.%4").arg(stamp, a, b, extension);
     };
 
     switch (mode) {
     case PlayMode::HumanVsHuman:
-        return mk(human1, human2, QStringLiteral("HvH"));
+        return mk(human1, human2);
     case PlayMode::EvenHumanVsEngine:      // 平手 P1: Human, P2: Engine
-        return mk(human1, engine2, QStringLiteral("HvE"));
+        return mk(human1, engine2);
     case PlayMode::EvenEngineVsHuman:      // 平手 P1: Engine, P2: Human
-        return mk(engine1, human2, QStringLiteral("EvH"));
+        return mk(engine1, human2);
     case PlayMode::EvenEngineVsEngine:     // 平手/駒落ち P1: Engine, P2: Engine
-        return mk(engine1, engine2, QStringLiteral("EvE"));
+        return mk(engine1, engine2);
     case PlayMode::HandicapEngineVsHuman:  // 駒落ち P1: Engine(下手), P2: Human(上手)
-        return mk(engine1, human2, QStringLiteral("Handi_EvH"));
+        return mk(engine1, human2);
     case PlayMode::HandicapHumanVsEngine:  // 駒落ち P1: Human(下手), P2: Engine(上手)
-        return mk(human1, engine2, QStringLiteral("Handi_HvE"));
+        return mk(human1, engine2);
     case PlayMode::HandicapEngineVsEngine: // 駒落ち P1: Engine(下手), P2: Engine(上手)
-        return mk(engine1, engine2, QStringLiteral("Handi_EvE"));
+        return mk(engine1, engine2);
     case PlayMode::AnalysisMode:
-        return QStringLiteral("%1_Analysis.kifu").arg(stamp);
+        return QStringLiteral("%1_Analysis.%2").arg(stamp, extension);
     case PlayMode::ConsiderationMode:
-        return QStringLiteral("%1_Consideration.kifu").arg(stamp);
+        return QStringLiteral("%1_Consideration.%2").arg(stamp, extension);
     case PlayMode::TsumiSearchMode:
-        return QStringLiteral("%1_TsumiSearch.kifu").arg(stamp);
+        return QStringLiteral("%1_TsumiSearch.%2").arg(stamp, extension);
     case PlayMode::NotStarted:
     case PlayMode::PlayModeError:
     default:
-        return QStringLiteral("%1_Session.kifu").arg(stamp);
+        return QStringLiteral("%1_Session.%2").arg(stamp, extension);
     }
 }
 

@@ -134,6 +134,7 @@ public:
         int byoyomiMs = 0;                     // 秒読み（ミリ秒）
         int fischerIncrementMs = 0;            // フィッシャー加算（ミリ秒）
         QDateTime gameStartDateTime;           // 対局開始日時
+        QDateTime gameEndDateTime;             // 対局終了日時
     };
 
     /**

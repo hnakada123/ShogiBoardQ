@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QString>
 #include <QList>
+#include <QDateTime>
 
 #include "playmode.h"
 #include "kifparsetypes.h"
@@ -78,6 +79,32 @@ public:
      * @param whiteName 後手名
      */
     void updateGameInfoPlayerNames(const QString& blackName, const QString& whiteName);
+
+    /**
+     * @brief 対局開始時の対局情報を設定（持ち時間を含む）
+     * @param startDateTime 対局開始日時
+     * @param blackName 先手名
+     * @param whiteName 後手名
+     * @param handicap 手合割
+     * @param hasTimeControl 時間制御が有効か
+     * @param baseTimeMs 持ち時間（ミリ秒）
+     * @param byoyomiMs 秒読み（ミリ秒）
+     * @param incrementMs フィッシャー加算（ミリ秒）
+     */
+    void setGameInfoForMatchStart(const QDateTime& startDateTime,
+                                  const QString& blackName,
+                                  const QString& whiteName,
+                                  const QString& handicap,
+                                  bool hasTimeControl,
+                                  qint64 baseTimeMs,
+                                  qint64 byoyomiMs,
+                                  qint64 incrementMs);
+
+    /**
+     * @brief 対局終了時の終了日時を対局情報に追加
+     * @param endDateTime 対局終了日時
+     */
+    void updateGameInfoWithEndTime(const QDateTime& endDateTime);
 
     /**
      * @brief GameInfoPaneControllerを取得

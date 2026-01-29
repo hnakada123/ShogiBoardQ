@@ -1817,6 +1817,64 @@ void MainWindow::onPlayerNamesResolved(const QString& human1, const QString& hum
     ensurePlayerInfoWiring();
     if (m_playerInfoWiring) {
         m_playerInfoWiring->onPlayerNamesResolved(human1, human2, engine1, engine2, playMode);
+
+        // 対局情報ドックに開始日時・持ち時間を含む情報を設定
+        if (m_timeController) {
+            // プレイモードに応じた先手・後手名を決定
+            const PlayMode mode = static_cast<PlayMode>(playMode);
+            QString blackName, whiteName;
+            switch (mode) {
+            case PlayMode::HumanVsHuman:
+                blackName = human1.isEmpty() ? tr("先手") : human1;
+                whiteName = human2.isEmpty() ? tr("後手") : human2;
+                break;
+            case PlayMode::EvenHumanVsEngine:
+            case PlayMode::HandicapHumanVsEngine:
+                blackName = human1.isEmpty() ? tr("先手") : human1;
+                whiteName = engine2.isEmpty() ? tr("Engine") : engine2;
+                break;
+            case PlayMode::EvenEngineVsHuman:
+            case PlayMode::HandicapEngineVsHuman:
+                blackName = engine1.isEmpty() ? tr("Engine") : engine1;
+                whiteName = human2.isEmpty() ? tr("後手") : human2;
+                break;
+            case PlayMode::EvenEngineVsEngine:
+            case PlayMode::HandicapEngineVsEngine:
+                blackName = engine1.isEmpty() ? tr("Engine1") : engine1;
+                whiteName = engine2.isEmpty() ? tr("Engine2") : engine2;
+                break;
+            default:
+                blackName = tr("先手");
+                whiteName = tr("後手");
+                break;
+            }
+
+            // 手合割の判定
+            const QString sfen = m_startSfenStr.trimmed();
+            const QString initPP = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL");
+            QString handicap = tr("平手");
+            if (!sfen.isEmpty()) {
+                const QString pp = sfen.section(QLatin1Char(' '), 0, 0);
+                if (!pp.isEmpty() && pp != initPP) {
+                    handicap = tr("その他");
+                }
+            }
+
+            // 終了日時をクリア（新しい対局が始まるため）
+            m_timeController->clearGameEndTime();
+
+            // 対局情報を設定
+            m_playerInfoWiring->setGameInfoForMatchStart(
+                m_timeController->gameStartDateTime(),
+                blackName,
+                whiteName,
+                handicap,
+                m_timeController->hasTimeControl(),
+                m_timeController->baseTimeMs(),
+                m_timeController->byoyomiMs(),
+                m_timeController->incrementMs()
+            );
+        }
     }
 }
 
@@ -2378,6 +2436,18 @@ void MainWindow::onMatchGameEnded(const MatchCoordinator::GameEndInfo& info)
     ensureGameStateController();
     if (m_gameStateController) {
         m_gameStateController->onMatchGameEnded(info);
+    }
+
+    // ★ 追加: 対局終了日時を記録し、対局情報ドックを更新
+    if (m_timeController) {
+        m_timeController->recordGameEndTime();
+        const QDateTime endTime = m_timeController->gameEndDateTime();
+        if (endTime.isValid()) {
+            ensurePlayerInfoWiring();
+            if (m_playerInfoWiring) {
+                m_playerInfoWiring->updateGameInfoWithEndTime(endTime);
+            }
+        }
     }
 
     // ★ 追加: EvE対局で連続対局が残っている場合、次の対局を自動開始

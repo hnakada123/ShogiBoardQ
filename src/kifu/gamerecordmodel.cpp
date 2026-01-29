@@ -449,10 +449,23 @@ QList<KifGameInfoItem> GameRecordModel::collectGameInfo(const ExportContext& ctx
     QString black, white;
     resolvePlayerNames(ctx, black, white);
 
+    // 開始日時の決定（ctx.gameStartDateTimeが有効ならそれを使用、なければ現在時刻）
+    const QDateTime startDateTime = ctx.gameStartDateTime.isValid()
+        ? ctx.gameStartDateTime
+        : QDateTime::currentDateTime();
+
+    // 対局日
+    items.push_back({
+        QStringLiteral("対局日"),
+        startDateTime.toString(QStringLiteral("yyyy/MM/dd"))
+    });
+
+    // 開始日時（秒まで表示）
     items.push_back({
         QStringLiteral("開始日時"),
-        QDateTime::currentDateTime().toString(QStringLiteral("yyyy/MM/dd HH:mm"))
+        startDateTime.toString(QStringLiteral("yyyy/MM/dd HH:mm:ss"))
     });
+
     items.push_back({ QStringLiteral("先手"), black });
     items.push_back({ QStringLiteral("後手"), white });
 
@@ -466,6 +479,38 @@ QList<KifGameInfoItem> GameRecordModel::collectGameInfo(const ExportContext& ctx
         }
     }
     items.push_back({ QStringLiteral("手合割"), teai });
+
+    // 持ち時間（時間制御が有効な場合のみ）
+    if (ctx.hasTimeControl) {
+        // mm:ss+ss 形式（初期持ち時間:秒読み+加算秒）
+        const int baseMin = ctx.initialTimeMs / 60000;
+        const int baseSec = (ctx.initialTimeMs % 60000) / 1000;
+        const int byoyomiSec = ctx.byoyomiMs / 1000;
+        const int incrementSec = ctx.fischerIncrementMs / 1000;
+
+        QString timeStr;
+        if (baseMin > 0 || baseSec > 0) {
+            timeStr = QStringLiteral("%1:%2")
+                .arg(baseMin, 2, 10, QLatin1Char('0'))
+                .arg(baseSec, 2, 10, QLatin1Char('0'));
+        } else {
+            timeStr = QStringLiteral("00:00");
+        }
+        if (byoyomiSec > 0) {
+            timeStr += QStringLiteral("+%1").arg(byoyomiSec);
+        } else if (incrementSec > 0) {
+            timeStr += QStringLiteral("+%1").arg(incrementSec);
+        }
+        items.push_back({ QStringLiteral("持ち時間"), timeStr });
+    }
+
+    // 終了日時（ctx.gameEndDateTimeが有効な場合のみ）
+    if (ctx.gameEndDateTime.isValid()) {
+        items.push_back({
+            QStringLiteral("終了日時"),
+            ctx.gameEndDateTime.toString(QStringLiteral("yyyy/MM/dd HH:mm:ss"))
+        });
+    }
 
     return items;
 }
