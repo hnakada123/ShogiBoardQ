@@ -3004,6 +3004,18 @@ OKを選択すると保存先が指定できます。</source>
         <source>コメント</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="1362"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="3085"/>
+        <source>本譜</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="1369"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="3092"/>
+        <source>ライブ</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>KifuPasteDialog</name>
@@ -3524,17 +3536,17 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">定跡</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3888"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3918"/>
         <source>棋譜を取り込みました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3890"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3920"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3894"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3924"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation type="unfinished"></translation>
     </message>

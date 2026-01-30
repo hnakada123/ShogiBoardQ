@@ -2033,6 +2033,7 @@ void MainWindow::ensureNavigationContextAdapter()
     deps.activeResolvedRow = &m_activeResolvedRow;
     deps.sfenRecord = &m_sfenRecord;           // pointer to pointer
     deps.kifuRecordModel = &m_kifuRecordModel; // pointer to pointer
+    deps.kifuLoadCoordinator = &m_kifuLoadCoordinator;  // pointer to pointer (ライブ対局状態参照用)
     deps.recordNavController = &m_recordNavController;  // pointer to pointer
     deps.recordPane = &m_recordPane;           // pointer to pointer
     deps.replayController = &m_replayController;  // pointer to pointer
@@ -2468,6 +2469,9 @@ void MainWindow::onMatchGameEnded(const MatchCoordinator::GameEndInfo& info)
         m_gameStateController->onMatchGameEnded(info);
     }
 
+    // ★ 注意: ライブ対局の確定（commitLiveGameToResolvedRows）は
+    //   onRequestAppendGameOverMove の後で行う（投了手を含めるため）
+
     // ★ 追加: 対局終了日時を記録し、対局情報ドックを更新
     if (m_timeController) {
         m_timeController->recordGameEndTime();
@@ -2512,6 +2516,12 @@ void MainWindow::onRequestAppendGameOverMove(const MatchCoordinator::GameEndInfo
     ensureGameStateController();
     if (m_gameStateController) {
         m_gameStateController->onRequestAppendGameOverMove(info);
+    }
+
+    // ★ 追加: 投了手が追加された後にライブ対局をResolvedRowに確定
+    if (m_kifuLoadCoordinator && m_kifuLoadCoordinator->isLiveGameActive()) {
+        qDebug() << "[MW] onRequestAppendGameOverMove: committing live game to resolved rows";
+        m_kifuLoadCoordinator->commitLiveGameToResolvedRows();
     }
 }
 
@@ -3812,6 +3822,26 @@ void MainWindow::updateGameRecord(const QString& elapsedTime)
         if (!m_lastMove.isEmpty()) {
             m_recordPresenter->addLiveKifItem(m_lastMove, elapsedTime);
         }
+    }
+
+    // ★ 追加: KifuLoadCoordinator にライブ対局の手を通知
+    if (m_kifuLoadCoordinator && m_kifuLoadCoordinator->isLiveGameActive() && !m_lastMove.isEmpty()) {
+        KifDisplayItem item;
+        item.prettyMove = m_lastMove;
+        item.timeText = elapsedTime;
+        // ply は moves.size() から自動計算されるので設定不要
+
+        QString sfen;
+        if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
+            sfen = m_sfenRecord->last();
+        }
+
+        ShogiMove move;
+        if (!m_gameMoves.isEmpty()) {
+            move = m_gameMoves.last();
+        }
+
+        m_kifuLoadCoordinator->appendLiveMove(item, sfen, move);
     }
 
     m_lastMove.clear();

@@ -7,6 +7,7 @@
 #include <functional>
 
 class KifuRecordListModel;
+class KifuLoadCoordinator;
 class RecordNavigationController;
 class RecordPane;
 class ReplayController;
@@ -31,6 +32,7 @@ public:
         const int* activeResolvedRow = nullptr;
         QStringList* const* sfenRecord = nullptr;       // pointer to pointer (tracks changes)
         KifuRecordListModel* const* kifuRecordModel = nullptr;  // pointer to pointer
+        KifuLoadCoordinator* const* kifuLoadCoordinator = nullptr;  // pointer to pointer (ライブ対局状態参照用)
         RecordNavigationController* const* recordNavController = nullptr;  // pointer to pointer
         RecordPane* const* recordPane = nullptr;        // pointer to pointer
         ReplayController* const* replayController = nullptr;  // pointer to pointer

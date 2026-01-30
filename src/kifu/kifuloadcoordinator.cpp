@@ -1336,6 +1336,63 @@ void KifuLoadCoordinator::showBranchCandidatesFromPlan(int row, int ply1)
         qDebug().noquote() << "[KLC-DEBUG] showBranchCandidatesFromPlan: fallback to row=0, found=" << found;
     }
 
+    // ★ ライブ対局中の分岐点をチェック（branchDisplayPlanに無い場合でも対応）
+    const int firstLivePly = m_liveGameState.anchorPly + 1;
+    const bool isLiveBranchPly = m_liveGameState.isActive &&
+                                  ply1 == firstLivePly &&
+                                  !m_liveGameState.moves.isEmpty() &&
+                                  m_liveGameState.parentRowIndex >= 0 &&
+                                  m_liveGameState.parentRowIndex < m_resolvedRows.size();
+
+    if (!found && isLiveBranchPly) {
+        // ライブ対局の分岐点: 親行の手とライブの手を動的に候補として表示
+        const auto& parentRow = m_resolvedRows[m_liveGameState.parentRowIndex];
+        if (firstLivePly < parentRow.disp.size()) {
+            const QString parentMove = parentRow.disp[firstLivePly].prettyMove;
+            const QString liveMove = m_liveGameState.moves[0].prettyMove;
+            if (parentMove != liveMove) {
+                qDebug().noquote() << "[KLC-DEBUG] showBranchCandidatesFromPlan: live branch point"
+                                   << "ply=" << ply1 << "parent=" << parentMove << "live=" << liveMove;
+                // 分岐候補を動的に作成
+                QVector<BranchCandidateDisplayItem> pubItems;
+                // 親行の手
+                BranchCandidateDisplayItem parentItem;
+                parentItem.row = m_liveGameState.parentRowIndex;
+                parentItem.varN = 0;
+                parentItem.lineName = tr("本譜");
+                parentItem.label = parentMove;
+                pubItems.push_back(parentItem);
+                // ライブの手
+                BranchCandidateDisplayItem liveItem;
+                liveItem.row = -1;  // ライブ行（未確定）
+                liveItem.varN = 1;
+                liveItem.lineName = tr("ライブ");
+                liveItem.label = liveMove;
+                pubItems.push_back(liveItem);
+
+                if (m_branchCtl) {
+                    m_branchCtl->refreshCandidatesFromPlan(ply1, pubItems, parentMove);
+                } else if (m_kifuBranchModel) {
+                    QList<KifDisplayItem> rows;
+                    rows.push_back(KifDisplayItem(parentMove, QString(), QString(), ply1));
+                    rows.push_back(KifDisplayItem(liveMove, QString(), QString(), ply1));
+                    m_kifuBranchModel->setHasBackToMainRow(false);
+                    m_kifuBranchModel->setBranchCandidatesFromKif(rows);
+                }
+
+                if (view && m_kifuBranchModel) {
+                    view->setVisible(true);
+                    view->setEnabled(true);
+                    view->selectRow(1);  // ライブの手を選択
+                }
+
+                m_branchPlyContext  = ply1;
+                m_activeResolvedRow = row;
+                return;
+            }
+        }
+    }
+
     if (!found || rowIt == m_branchDisplayPlan.constEnd()) {
         qDebug().noquote() << "[KLC-DEBUG] showBranchCandidatesFromPlan: no plan found, clearing";
         // ダンプ：m_branchDisplayPlan の内容
@@ -2627,31 +2684,114 @@ QList<KifDisplayItem> KifuLoadCoordinator::collectDispFromRecordModel() const
 // ライブ（HvH/HvE）対局の 1手追加ごとに分岐ツリーを更新するエントリポイント
 void KifuLoadCoordinator::updateBranchTreeFromLive(int currentPly)
 {
-    qDebug().noquote() << "[KLC-DEBUG] updateBranchTreeFromLive ENTER: currentPly=" << currentPly;
-
-    // 1) 現在の棋譜モデルから disp を再構成
-    const QList<KifDisplayItem> dispLive = collectDispFromRecordModel();
-
-    qDebug().noquote() << "[KLC-DEBUG] updateBranchTreeFromLive: dispLive.size=" << dispLive.size();
-    for (int i = 0; i < qMin(10, static_cast<int>(dispLive.size())); ++i) {
-        qDebug().noquote() << "[KLC-DEBUG]   dispLive[" << i << "]=" << dispLive.at(i).prettyMove;
-    }
+    qDebug().noquote() << "[KLC-DEBUG] updateBranchTreeFromLive ENTER: currentPly=" << currentPly
+                       << "liveGameState.isActive=" << m_liveGameState.isActive;
 
     if (!m_analysisTab) {
         qDebug().noquote() << "[KLC-DEBUG] updateBranchTreeFromLive: m_analysisTab is null, returning";
         return;
     }
 
-    // 2) 本譜行（row=0 相当：parent==-1）を特定（なければ作成）
+    // ★★★ 新設計: m_liveGameState を使用してUI表示のみを更新
+    // m_resolvedRows は変更しない（対局終了時に commitLiveGameToResolvedRows で確定する）
+
+    if (m_liveGameState.isActive) {
+        // ライブ対局中の場合
+        qDebug().noquote() << "[KLC-DEBUG] updateBranchTreeFromLive: using liveGameState"
+                           << "anchorPly=" << m_liveGameState.anchorPly
+                           << "parentRowIndex=" << m_liveGameState.parentRowIndex
+                           << "moves.size=" << m_liveGameState.moves.size();
+
+        QVector<EngineAnalysisTab::ResolvedRowLite> rowsLite;
+        rowsLite.reserve(m_resolvedRows.size() + 1);
+
+        // 既存の m_resolvedRows を追加（読み込んだ棋譜データはそのまま）
+        for (const ResolvedRow& r : std::as_const(m_resolvedRows)) {
+            EngineAnalysisTab::ResolvedRowLite x;
+            x.startPly = r.startPly;
+            x.disp     = r.disp;
+            x.sfen     = r.sfen;
+            x.parent   = r.parent;
+            rowsLite.push_back(std::move(x));
+        }
+
+        // ライブゲーム行を追加
+        EngineAnalysisTab::ResolvedRowLite liveRow;
+        liveRow.startPly = m_liveGameState.anchorPly + 1;
+        liveRow.parent = m_liveGameState.parentRowIndex;
+
+        // 親行のデータを anchorPly まで コピー
+        int parentIdx = m_liveGameState.parentRowIndex;
+        if (parentIdx < 0) parentIdx = 0;  // デフォルトは本譜
+        if (parentIdx < m_resolvedRows.size()) {
+            const auto& parent = m_resolvedRows[parentIdx];
+            for (int i = 0; i <= m_liveGameState.anchorPly && i < parent.disp.size(); ++i) {
+                liveRow.disp.append(parent.disp[i]);
+            }
+            for (int i = 0; i <= m_liveGameState.anchorPly && i < parent.sfen.size(); ++i) {
+                liveRow.sfen.append(parent.sfen[i]);
+            }
+        }
+
+        // ライブ対局の手を追加
+        liveRow.disp.append(m_liveGameState.moves);
+        liveRow.sfen.append(m_liveGameState.sfens);
+
+        rowsLite.push_back(std::move(liveRow));
+
+        const int liveRowIdx = static_cast<int>(rowsLite.size() - 1);
+        const int highlightAbsPly = m_liveGameState.anchorPly + static_cast<int>(m_liveGameState.moves.size());
+
+        qDebug().noquote() << "[KLC-DEBUG] updateBranchTreeFromLive: rows=" << rowsLite.size()
+                           << "liveRowIdx=" << liveRowIdx
+                           << "highlightAbsPly=" << highlightAbsPly;
+
+        m_analysisTab->setBranchTreeRows(rowsLite);
+        m_analysisTab->highlightBranchTreeAt(liveRowIdx, highlightAbsPly, /*centerOn=*/true);
+        return;
+    }
+
+    // 以下は m_liveGameState.isActive == false の場合（通常の新規対局など）
+
+    // ★ 追加: 読み込んだ棋譜の分岐が存在する場合は、分岐ツリーの更新のみ行う
+    //   （分岐をクリアしない）
+    if (m_resolvedRows.size() > 1) {
+        qDebug().noquote() << "[KLC-DEBUG] updateBranchTreeFromLive: preserving existing branches"
+                           << "m_resolvedRows.size=" << m_resolvedRows.size();
+
+        // 既存の分岐ツリーを再表示するだけ
+        QVector<EngineAnalysisTab::ResolvedRowLite> rowsLite;
+        rowsLite.reserve(m_resolvedRows.size());
+        for (const ResolvedRow& r : std::as_const(m_resolvedRows)) {
+            EngineAnalysisTab::ResolvedRowLite x;
+            x.startPly = r.startPly;
+            x.disp     = r.disp;
+            x.sfen     = r.sfen;
+            x.parent   = r.parent;
+            rowsLite.push_back(std::move(x));
+        }
+        m_analysisTab->setBranchTreeRows(rowsLite);
+
+        // ハイライト位置を更新
+        const int highlightRow = qBound(0, m_activeResolvedRow, static_cast<int>(m_resolvedRows.size()) - 1);
+        const int highlightAbsPly = qBound(0, currentPly, static_cast<int>(m_resolvedRows[highlightRow].disp.size()) - 1);
+        m_analysisTab->highlightBranchTreeAt(highlightRow, highlightAbsPly, /*centerOn=*/true);
+        return;
+    }
+
+    // 現在の棋譜モデルから disp を再構成
+    const QList<KifDisplayItem> dispLive = collectDispFromRecordModel();
+
+    qDebug().noquote() << "[KLC-DEBUG] updateBranchTreeFromLive: dispLive.size=" << dispLive.size();
+
+    // 本譜行（row=0 相当：parent==-1）を特定（なければ作成）
     int mainRow = -1;
     {
         const qsizetype n = m_resolvedRows.size();
-        qDebug().noquote() << "[KLC-DEBUG] updateBranchTreeFromLive: m_resolvedRows.size=" << n;
         for (qsizetype i = 0; i < n; ++i) {
             if (m_resolvedRows.at(i).parent < 0) { mainRow = static_cast<int>(i); break; }
         }
         if (mainRow < 0) {
-            qDebug().noquote() << "[KLC-DEBUG] updateBranchTreeFromLive: creating new mainRow";
             ResolvedRow main;
             main.startPly = 1;
             main.parent   = -1;
@@ -2663,118 +2803,13 @@ void KifuLoadCoordinator::updateBranchTreeFromLive(int currentPly)
             mainRow = static_cast<int>(m_resolvedRows.size() - 1);
             m_activeResolvedRow = mainRow;
         }
-        qDebug().noquote() << "[KLC-DEBUG] updateBranchTreeFromLive: mainRow=" << mainRow;
     }
 
-    // 3) アンカー手（「現在の局面から開始」）の決定
-    // ★修正: m_resolvedRowsが1行（本譜のみ）の場合は、常に startFromCurrentPos = false
-    // これにより、CSA通信対局や新規対局で分岐が誤って作成されることを防ぐ
-    // ★修正2: m_liveBranchAnchorPlyを使用（ナビゲーションで変わるm_branchPlyContextではなく）
-    bool startFromCurrentPos = false;
-    int anchorPly = 0;
+    // 通常の新規対局：本譜を更新（分岐が1行のみの場合）
+    m_resolvedRows[mainRow].disp = dispLive;
 
-    if (m_resolvedRows.size() > 1) {
-        // 分岐がある場合のみ、「現在の局面から開始」モードを考慮
-        // ★ m_liveBranchAnchorPlyがあればそれを使用（setupBranchForResumeFromCurrentで設定された値）
-        if (m_liveBranchAnchorPly >= 0) {
-            anchorPly = m_liveBranchAnchorPly;
-        } else {
-            anchorPly = qMax(0, m_currentSelectedPly);
-        }
-        startFromCurrentPos = (anchorPly > 0);
-    }
-
-    qDebug().noquote() << "[KLC-DEBUG] updateBranchTreeFromLive: m_liveBranchAnchorPly=" << m_liveBranchAnchorPly
-                       << "m_branchPlyContext=" << m_branchPlyContext
-                       << "anchorPly=" << anchorPly
-                       << "startFromCurrentPos=" << startFromCurrentPos
-                       << "m_resolvedRows.size=" << m_resolvedRows.size();
-
-    // 4) 行の更新（または新規追加）
-    int highlightRow = mainRow;                          // NOLINT(clang-analyzer-deadcode.DeadStores)
-    int highlightAbsPly = static_cast<int>(qBound(qsizetype(0), qsizetype(currentPly), dispLive.size()));  // NOLINT(clang-analyzer-deadcode.DeadStores)
-
-    if (!startFromCurrentPos) {
-        // 4-a) 通常の新規対局：本譜をそのまま置換
-        // ★修正：通常の新規対局では分岐をクリアして本譜のみにする
-        if (m_resolvedRows.size() > 1) {
-            // 分岐データをクリアして本譜のみに
-            m_resolvedRows.resize(1);
-            m_branchDisplayPlan.clear();
-            m_activeResolvedRow = 0;
-            qDebug().noquote() << "[KLC-DEBUG] updateBranchTreeFromLive: cleared branches for new game";
-        }
-        m_resolvedRows[mainRow].disp = dispLive;
-        qDebug().noquote() << "[KLC-DEBUG] updateBranchTreeFromLive: mainline updated";
-        highlightRow    = mainRow;
-        highlightAbsPly = static_cast<int>(qBound(qsizetype(0), qsizetype(currentPly), m_resolvedRows.at(mainRow).disp.size()));
-    } else {
-        // 4-b) 「現在の局面」からの 2局目以降
-        const int startPly = anchorPly + 1;        // 分岐開始の絶対手
-        // ★修正：suffixStart は startPly にする（anchorPly だと分岐前の手が重複する）
-        const int suffixStart = static_cast<int>(qBound(qsizetype(0), qsizetype(startPly), dispLive.size()));
-
-        // 親の prefix を切り出す
-        int parentRow = m_activeResolvedRow;
-        if (parentRow < 0 || parentRow >= m_resolvedRows.size()) parentRow = mainRow;
-
-        QList<KifDisplayItem> merged = m_resolvedRows.at(parentRow).disp;
-        // ★修正：新データ構造（disp[0]=開始局面, disp[i]=i手目）に合わせて、
-        // startPly手目の直前まで（つまり disp[0..startPly-1] = startPly個）を保持する
-        if (merged.size() > startPly) merged.resize(startPly);
-
-        const auto& liveConst = std::as_const(dispLive);
-        for (qsizetype i = suffixStart; i < liveConst.size(); ++i) {
-            merged.push_back(liveConst.at(i));
-        }
-
-        // 既存のライブ枝を探す（自分自身 または 同一条件の行）
-        int liveRowIdx = -1;
-
-        // 1. 自分自身チェック
-        if (m_activeResolvedRow >= 0 && m_activeResolvedRow < m_resolvedRows.size()) {
-            const auto& current = m_resolvedRows.at(m_activeResolvedRow);
-            if (current.varIndex <= -2 && current.startPly == startPly) {
-                liveRowIdx = m_activeResolvedRow;
-            }
-        }
-        // 2. リスト検索
-        if (liveRowIdx < 0) {
-            const qsizetype n = m_resolvedRows.size();
-            for (qsizetype i = 0; i < n; ++i) {
-                const ResolvedRow& r = m_resolvedRows.at(i);
-                if (r.parent == parentRow && r.startPly == startPly && r.varIndex <= -2) {
-                    liveRowIdx = static_cast<int>(i);
-                    break;
-                }
-            }
-        }
-
-        if (liveRowIdx < 0) {
-            // 新規作成
-            ResolvedRow br;
-            br.startPly = startPly;
-            br.parent   = parentRow;
-            br.disp     = merged;
-            br.sfen     = QStringList();
-            br.gm       = QVector<ShogiMove>();
-            br.varIndex = -2;
-            m_resolvedRows.push_back(br);
-            liveRowIdx = static_cast<int>(m_resolvedRows.size() - 1);
-        } else {
-            // 既存更新
-            m_resolvedRows[liveRowIdx].disp = merged;
-        }
-
-        m_activeResolvedRow = liveRowIdx;
-
-        const int relPlayed = qMax(0, currentPly - anchorPly);
-        highlightRow    = liveRowIdx;
-        highlightAbsPly = (startPly - 1) + relPlayed;
-        highlightAbsPly = static_cast<int>(qBound(qsizetype(startPly - 1),
-                                 qsizetype(highlightAbsPly),
-                                 qsizetype(startPly - 1) + (liveConst.size() - suffixStart)));
-    }
+    int highlightRow = mainRow;
+    int highlightAbsPly = static_cast<int>(qBound(qsizetype(0), qsizetype(currentPly), m_resolvedRows.at(mainRow).disp.size()));
 
     // ---------------------------------------------------------
     // ★ 行の並び替え
@@ -2882,6 +2917,9 @@ void KifuLoadCoordinator::applyBranchMarksForCurrentLine()
 
     QSet<int> marks; // ply1=1..N（モデルの行番号と一致。0は開始局面なので除外）
 
+    qDebug().noquote() << "[KLC] applyBranchMarksForCurrentLine: m_activeResolvedRow=" << m_activeResolvedRow
+                       << "liveGameState.isActive=" << m_liveGameState.isActive;
+
     const auto itRow = m_branchDisplayPlan.constFind(m_activeResolvedRow);
     if (itRow != m_branchDisplayPlan.cend()) {
         // byPly: QMap<int (ply1), BranchCandidateDisplay>
@@ -2894,6 +2932,56 @@ void KifuLoadCoordinator::applyBranchMarksForCurrentLine()
         }
     }
 
+    // ★ 追加: ライブ対局中は、親行の分岐プランからもマークを取得
+    if (m_liveGameState.isActive && m_liveGameState.parentRowIndex >= 0) {
+        const auto itParent = m_branchDisplayPlan.constFind(m_liveGameState.parentRowIndex);
+        if (itParent != m_branchDisplayPlan.cend()) {
+            const QMap<int, BranchCandidateDisplay>& byPly = itParent.value();
+            for (auto pit = byPly.constBegin(); pit != byPly.constEnd(); ++pit) {
+                const int ply1 = pit.key();
+                // anchorPly以下の手のみ（ライブ対局で使われる部分）
+                if (ply1 > 0 && ply1 <= m_liveGameState.anchorPly) {
+                    marks.insert(ply1);
+                }
+            }
+        }
+
+        // ★ 追加: ライブ対局の最初の手（anchorPly + 1）に分岐マークを追加
+        // ライブ対局で指した手が親行と異なる場合、そこが分岐点になる
+        const int firstLivePly = m_liveGameState.anchorPly + 1;
+        qDebug().noquote() << "[KLC] applyBranchMarksForCurrentLine: checking live branch"
+                           << "anchorPly=" << m_liveGameState.anchorPly
+                           << "firstLivePly=" << firstLivePly
+                           << "moves.size=" << m_liveGameState.moves.size()
+                           << "parentRowIndex=" << m_liveGameState.parentRowIndex;
+        if (!m_liveGameState.moves.isEmpty() && m_liveGameState.parentRowIndex >= 0 &&
+            m_liveGameState.parentRowIndex < m_resolvedRows.size()) {
+            const auto& parentRow = m_resolvedRows[m_liveGameState.parentRowIndex];
+            qDebug().noquote() << "[KLC] applyBranchMarksForCurrentLine: parentRow.disp.size="
+                               << parentRow.disp.size();
+            if (firstLivePly < parentRow.disp.size()) {
+                // 親行にも firstLivePly 手目がある → 比較して異なれば分岐
+                const QString parentMove = parentRow.disp[firstLivePly].prettyMove;
+                const QString liveMove = m_liveGameState.moves[0].prettyMove;
+                qDebug().noquote() << "[KLC] applyBranchMarksForCurrentLine: comparing"
+                                   << "parent=" << parentMove << "live=" << liveMove;
+                if (parentMove != liveMove) {
+                    marks.insert(firstLivePly);
+                    qDebug().noquote() << "[KLC] applyBranchMarksForCurrentLine: added live branch mark at ply"
+                                       << firstLivePly;
+                } else {
+                    qDebug().noquote() << "[KLC] applyBranchMarksForCurrentLine: moves are same, no mark added";
+                }
+            } else {
+                // 親行に firstLivePly 手目がない → ライブ対局の手が新規の手なので分岐マーク追加
+                marks.insert(firstLivePly);
+                qDebug().noquote() << "[KLC] applyBranchMarksForCurrentLine: parent has no move at"
+                                   << firstLivePly << "adding mark for new move";
+            }
+        }
+    }
+
+    qDebug().noquote() << "[KLC] applyBranchMarksForCurrentLine: final marks=" << marks;
     m_kifuRecordModel->setBranchPlyMarks(marks);
 }
 
@@ -2973,6 +3061,58 @@ void KifuLoadCoordinator::refreshBranchCandidatesUIOnly(int row, int ply1)
         found = (itRow != m_branchDisplayPlan.constEnd()) && itRow.value().contains(ply1);
     }
 
+    // ★ ライブ対局中の分岐点をチェック（branchDisplayPlanに無い場合でも対応）
+    const int firstLivePly = m_liveGameState.anchorPly + 1;
+    const bool isLiveBranchPly = m_liveGameState.isActive &&
+                                  ply1 == firstLivePly &&
+                                  !m_liveGameState.moves.isEmpty() &&
+                                  m_liveGameState.parentRowIndex >= 0 &&
+                                  m_liveGameState.parentRowIndex < m_resolvedRows.size();
+
+    if (!found && isLiveBranchPly) {
+        // ライブ対局の分岐点: 親行の手とライブの手を動的に候補として表示
+        const auto& parentRow = m_resolvedRows[m_liveGameState.parentRowIndex];
+        if (firstLivePly < parentRow.disp.size()) {
+            const QString parentMove = parentRow.disp[firstLivePly].prettyMove;
+            const QString liveMove = m_liveGameState.moves[0].prettyMove;
+            if (parentMove != liveMove) {
+                // 分岐候補を動的に作成
+                QVector<BranchCandidateDisplayItem> pubItems;
+                // 親行の手
+                BranchCandidateDisplayItem parentItem;
+                parentItem.row = m_liveGameState.parentRowIndex;
+                parentItem.varN = 0;
+                parentItem.lineName = tr("本譜");
+                parentItem.label = parentMove;
+                pubItems.push_back(parentItem);
+                // ライブの手
+                BranchCandidateDisplayItem liveItem;
+                liveItem.row = -1;  // ライブ行（未確定）
+                liveItem.varN = 1;
+                liveItem.lineName = tr("ライブ");
+                liveItem.label = liveMove;
+                pubItems.push_back(liveItem);
+
+                if (m_branchCtl) {
+                    m_branchCtl->refreshCandidatesFromPlan(ply1, pubItems, parentMove);
+                } else if (m_kifuBranchModel) {
+                    QList<KifDisplayItem> rows;
+                    rows.push_back(KifDisplayItem(parentMove, QString(), QString(), ply1));
+                    rows.push_back(KifDisplayItem(liveMove, QString(), QString(), ply1));
+                    m_kifuBranchModel->setHasBackToMainRow(false);
+                    m_kifuBranchModel->setBranchCandidatesFromKif(rows);
+                }
+
+                if (view && m_kifuBranchModel) {
+                    view->setVisible(true);
+                    view->setEnabled(true);
+                    view->selectRow(1);  // ライブの手を選択
+                }
+                return;
+            }
+        }
+    }
+
     if (!found || itRow == m_branchDisplayPlan.constEnd()) {
         if (m_kifuBranchModel) {
             m_kifuBranchModel->clearBranchCandidates();
@@ -3039,6 +3179,8 @@ void KifuLoadCoordinator::resetBranchContext()
     // ★ m_liveBranchAnchorPly はリセットしない（対局終了後も分岐構造を維持するため）
     // 新規対局開始時に resetBranchTreeForNewGame でリセットされる
     m_activeResolvedRow = 0;  // 本譜行に戻す
+    // ★ 注意: m_liveGameState は commitLiveGameToResolvedRows() でクリアするので
+    //   ここではクリアしない（対局終了時の順序問題を回避）
 }
 
 // ★ 追加：分岐ツリーを完全リセット（新規対局開始時に使用）
@@ -3050,6 +3192,7 @@ void KifuLoadCoordinator::resetBranchTreeForNewGame()
     m_branchPlyContext = -1;
     m_liveBranchAnchorPly = -1;  // ★ これをリセットすることで、新規対局で古い分岐が残らない
     m_activeResolvedRow = 0;
+    m_liveGameState.clear();  // ★ 追加: ライブ対局状態をクリア
 
     // 2) 解決済み行をクリア
     m_resolvedRows.clear();
@@ -3140,71 +3283,74 @@ bool KifuLoadCoordinator::setupBranchForResumeFromCurrent(int anchorPly, const Q
 
     const ResolvedRow& parentLine = m_resolvedRows.at(parentRow);
 
-    // anchorPly より後に手がない場合は分岐を作る必要がない
-    // disp[0]=開始局面, disp[i]=i手目 なので、anchorPly + 1 が終了手
-    if (parentLine.disp.size() <= anchorPly + 1) {
-        qDebug().noquote() << "[KLC] setupBranchForResumeFromCurrent: no terminal move after anchorPly"
-                           << "disp.size=" << parentLine.disp.size()
-                           << "anchorPly=" << anchorPly;
-        // 終端手がないので分岐は不要、コンテキストだけ設定
-        m_branchPlyContext = anchorPly;
-        m_branchTreeLocked = false;
-        return true;
+    // ★追加: 分岐ラインから対局開始する場合、棋譜モデルを分岐ラインのデータで更新する
+    // 本譜以外から開始する場合、棋譜欄に分岐ラインのデータを表示する必要がある
+    if (parentRow != mainRow && m_kifuRecordModel) {
+        qDebug().noquote() << "[KLC] setupBranchForResumeFromCurrent: updating kifuRecordModel with branch line data"
+                           << "parentRow=" << parentRow << "anchorPly=" << anchorPly;
+
+        // 棋譜モデルをクリア
+        m_kifuRecordModel->clearAllItems();
+
+        // 開始局面ヘッダを追加
+        m_kifuRecordModel->appendItem(
+            new KifuDisplay(QStringLiteral("=== 開始局面 ==="),
+                            QStringLiteral("（１手 / 合計）")));
+
+        // 分岐ラインのデータを anchorPly 手目まで追加
+        // parentLine.disp[0] は開始局面（空）、disp[i] は i 手目
+        for (int i = 1; i <= anchorPly && i < parentLine.disp.size(); ++i) {
+            const auto& dispItem = parentLine.disp.at(i);
+            QString timeStr;
+            if (!dispItem.timeText.isEmpty()) {
+                timeStr = dispItem.timeText;
+            }
+            // ★手数の番号を付与（prettyMove に番号が含まれていない場合）
+            // フォーマット：「   n ▲７六歩」形式（左寄せ4桁 + スペース + 指し手）
+            QString moveText = dispItem.prettyMove;
+            // 既に番号が付いているかチェック（数字で始まるか）
+            static const QRegularExpression kStartsWithNumber(QStringLiteral("^\\s*\\d"));
+            if (!kStartsWithNumber.match(moveText).hasMatch() && !moveText.isEmpty()) {
+                // 番号を先頭に付与（通常の appendMoveLine と同じフォーマット）
+                const QString moveNumberStr = QString::number(i);
+                const QString spaces = QString(qMax(0, 4 - moveNumberStr.length()), QLatin1Char(' '));
+                moveText = spaces + moveNumberStr + QLatin1Char(' ') + moveText;
+            }
+            m_kifuRecordModel->appendItem(
+                new KifuDisplay(moveText, timeStr, dispItem.comment));
+        }
+
+        qDebug().noquote() << "[KLC] setupBranchForResumeFromCurrent: kifuRecordModel updated with"
+                           << m_kifuRecordModel->rowCount() << "rows";
     }
 
-    // 3) 新しい「ライブゲーム」分岐を作成（終了手を含まない）
-    //    この分岐は新しいゲームの手が追加される先となる
-    //    親行（本譜または分岐ライン）は元の終了手を含んだまま残す
-    ResolvedRow liveBranch;
-    liveBranch.startPly = anchorPly + 1;  // 新しい手が始まる位置
-    liveBranch.parent   = parentRow;      // ★修正: 本譜ではなく親行を設定
-    liveBranch.varIndex = -2;  // ライブ分岐マーカー
+    // ★★★ 新設計: LiveGameState を使用（m_resolvedRowsに即座に追加しない）
+    // ライブゲーム状態を初期化
+    m_liveGameState.clear();
+    m_liveGameState.anchorPly = anchorPly;
+    m_liveGameState.parentRowIndex = parentRow;
+    m_liveGameState.isActive = true;
 
-    // プレフィクス（終了手より前の部分）をコピー
-    // disp[0..anchorPly] をコピー（anchorPly+1 個）
-    liveBranch.disp = parentLine.disp;
-    if (liveBranch.disp.size() > anchorPly + 1) {
-        liveBranch.disp.resize(anchorPly + 1);
-    }
+    qDebug().noquote() << "[KLC] setupBranchForResumeFromCurrent: initialized liveGameState"
+                       << "anchorPly=" << m_liveGameState.anchorPly
+                       << "parentRowIndex=" << m_liveGameState.parentRowIndex;
 
-    // sfen[0..anchorPly] をコピー
-    liveBranch.sfen = parentLine.sfen;
-    if (liveBranch.sfen.size() > anchorPly + 1) {
-        liveBranch.sfen.resize(anchorPly + 1);
-    }
-
-    // gm[0..anchorPly-1] をコピー（gm[i] = i+1手目の着手）
-    liveBranch.gm = parentLine.gm;
-    if (liveBranch.gm.size() > anchorPly) {
-        liveBranch.gm.resize(anchorPly);
-    }
-
-    m_resolvedRows.push_back(liveBranch);
-    const int liveRowIdx = static_cast<int>(m_resolvedRows.size() - 1);
-
-    qDebug().noquote() << "[KLC] setupBranchForResumeFromCurrent: created liveBranch row=" << liveRowIdx
-                       << "startPly=" << liveBranch.startPly
-                       << "disp.size=" << liveBranch.disp.size();
-
-    // 4) 分岐コンテキストを設定
-    //    新しい手はライブ分岐に追加される
+    // 分岐コンテキストを設定
     m_branchPlyContext = anchorPly;
-    m_liveBranchAnchorPly = anchorPly;  // ★ライブ分岐の起点を保存（対局中は変更しない）
-    m_activeResolvedRow = liveRowIdx;  // 新しい手はライブ分岐に追加される
+    m_liveBranchAnchorPly = anchorPly;  // ライブ分岐の起点を保存
     m_branchTreeLocked = false;  // 分岐追加を許可
 
-    // 5) 分岐表示プランを再構築
+    // 分岐表示プランを再構築
     buildBranchCandidateDisplayPlan();
     applyBranchMarksForCurrentLine();
 
-    // 6) ★重要：分岐ツリータブの表示を更新
-    //    m_resolvedRowsを更新しただけではUIに反映されないため、
-    //    EngineAnalysisTabにデータを渡す必要がある
+    // 分岐ツリータブの表示を更新（ライブ行は空の状態で表示）
     if (m_analysisTab) {
         QVector<EngineAnalysisTab::ResolvedRowLite> rowsLite;
-        rowsLite.reserve(m_resolvedRows.size());
-        const auto& rowsConst = std::as_const(m_resolvedRows);
-        for (const ResolvedRow& r : rowsConst) {
+        rowsLite.reserve(m_resolvedRows.size() + 1);
+
+        // 既存の m_resolvedRows を追加
+        for (const ResolvedRow& r : std::as_const(m_resolvedRows)) {
             EngineAnalysisTab::ResolvedRowLite x;
             x.startPly = r.startPly;
             x.disp     = r.disp;
@@ -3213,20 +3359,31 @@ bool KifuLoadCoordinator::setupBranchForResumeFromCurrent(int anchorPly, const Q
             rowsLite.push_back(std::move(x));
         }
 
+        // ライブゲーム行を追加（親行のプレフィックスのみ）
+        EngineAnalysisTab::ResolvedRowLite liveRow;
+        liveRow.startPly = anchorPly + 1;
+        liveRow.parent = parentRow;
+
+        // 親行のデータを anchorPly まで コピー
+        for (int i = 0; i <= anchorPly && i < parentLine.disp.size(); ++i) {
+            liveRow.disp.append(parentLine.disp[i]);
+        }
+        for (int i = 0; i <= anchorPly && i < parentLine.sfen.size(); ++i) {
+            liveRow.sfen.append(parentLine.sfen[i]);
+        }
+        rowsLite.push_back(std::move(liveRow));
+
+        const int liveRowIdx = static_cast<int>(rowsLite.size() - 1);
+
         qDebug().noquote() << "[KLC] setupBranchForResumeFromCurrent: updating branch tree UI"
                            << "rows=" << rowsLite.size();
         for (int i = 0; i < rowsLite.size(); ++i) {
             qDebug().noquote() << "  row[" << i << "]: startPly=" << rowsLite[i].startPly
                                << " parent=" << rowsLite[i].parent
                                << " disp.size=" << rowsLite[i].disp.size();
-            // 最初の数手を表示
-            for (int j = 0; j < qMin(5, static_cast<int>(rowsLite[i].disp.size())); ++j) {
-                qDebug().noquote() << "    disp[" << j << "]=" << rowsLite[i].disp[j].prettyMove;
-            }
         }
 
         m_analysisTab->setBranchTreeRows(rowsLite);
-        // ライブ分岐（新しいゲームの行）をハイライト
         m_analysisTab->highlightBranchTreeAt(liveRowIdx, anchorPly, /*centerOn=*/true);
     } else {
         qDebug().noquote() << "[KLC] setupBranchForResumeFromCurrent: m_analysisTab is null, cannot update UI";
@@ -3234,8 +3391,144 @@ bool KifuLoadCoordinator::setupBranchForResumeFromCurrent(int anchorPly, const Q
 
     qDebug().noquote() << "[KLC] setupBranchForResumeFromCurrent: done"
                        << "m_branchPlyContext=" << m_branchPlyContext
-                       << "m_activeResolvedRow=" << m_activeResolvedRow
-                       << "m_resolvedRows.size=" << m_resolvedRows.size();
+                       << "liveGameState.isActive=" << m_liveGameState.isActive;
 
     return true;
+}
+
+// ★ 追加：ライブ対局の手を追加
+void KifuLoadCoordinator::appendLiveMove(const KifDisplayItem& item, const QString& sfen, const ShogiMove& move)
+{
+    if (!m_liveGameState.isActive) {
+        qDebug().noquote() << "[KLC] appendLiveMove: liveGameState is not active, ignoring";
+        return;
+    }
+
+    m_liveGameState.moves.append(item);
+    m_liveGameState.sfens.append(sfen);
+    m_liveGameState.gameMoves.append(move);
+
+    qDebug().noquote() << "[KLC] appendLiveMove: added move"
+                       << "ply=" << m_liveGameState.totalPly()
+                       << "move=" << item.prettyMove
+                       << "moves.size=" << m_liveGameState.moves.size();
+
+    // ★ 追加: 分岐マーク（'+'）を更新
+    applyBranchMarksForCurrentLine();
+
+    emit liveGameStateChanged();
+}
+
+// ★ 追加：ライブ対局をResolvedRowに確定
+void KifuLoadCoordinator::commitLiveGameToResolvedRows()
+{
+    if (!m_liveGameState.isActive) {
+        qDebug().noquote() << "[KLC] commitLiveGameToResolvedRows: liveGameState is not active";
+        return;
+    }
+
+    if (m_liveGameState.moves.isEmpty()) {
+        qDebug().noquote() << "[KLC] commitLiveGameToResolvedRows: no live moves to commit";
+        m_liveGameState.clear();
+        return;
+    }
+
+    qDebug().noquote() << "[KLC] commitLiveGameToResolvedRows:"
+                       << "anchorPly=" << m_liveGameState.anchorPly
+                       << "parentRowIndex=" << m_liveGameState.parentRowIndex
+                       << "moves.size=" << m_liveGameState.moves.size();
+
+    ResolvedRow newRow;
+    newRow.startPly = m_liveGameState.anchorPly + 1;
+    newRow.parent = m_liveGameState.parentRowIndex;
+    newRow.varIndex = static_cast<int>(m_resolvedRows.size());  // 新しい分岐番号
+
+    // 親行のデータをコピー（anchorPlyまで）
+    if (m_liveGameState.parentRowIndex >= 0 &&
+        m_liveGameState.parentRowIndex < m_resolvedRows.size()) {
+        const auto& parent = m_resolvedRows[m_liveGameState.parentRowIndex];
+
+        // disp[0..anchorPly] をコピー（anchorPly+1個）
+        for (int i = 0; i <= m_liveGameState.anchorPly && i < parent.disp.size(); ++i) {
+            newRow.disp.append(parent.disp[i]);
+        }
+        // sfen[0..anchorPly] をコピー
+        for (int i = 0; i <= m_liveGameState.anchorPly && i < parent.sfen.size(); ++i) {
+            newRow.sfen.append(parent.sfen[i]);
+        }
+        // gm[0..anchorPly-1] をコピー（gm[i] = i+1手目の着手）
+        for (int i = 0; i < m_liveGameState.anchorPly && i < parent.gm.size(); ++i) {
+            newRow.gm.append(parent.gm[i]);
+        }
+    } else if (m_liveGameState.parentRowIndex < 0 && !m_resolvedRows.isEmpty()) {
+        // 本譜（row 0）を親として使用
+        const auto& mainRow = m_resolvedRows[0];
+        for (int i = 0; i <= m_liveGameState.anchorPly && i < mainRow.disp.size(); ++i) {
+            newRow.disp.append(mainRow.disp[i]);
+        }
+        for (int i = 0; i <= m_liveGameState.anchorPly && i < mainRow.sfen.size(); ++i) {
+            newRow.sfen.append(mainRow.sfen[i]);
+        }
+        for (int i = 0; i < m_liveGameState.anchorPly && i < mainRow.gm.size(); ++i) {
+            newRow.gm.append(mainRow.gm[i]);
+        }
+    }
+
+    // ライブデータを追加
+    newRow.disp.append(m_liveGameState.moves);
+    newRow.sfen.append(m_liveGameState.sfens);
+    newRow.gm.append(m_liveGameState.gameMoves);
+
+    m_resolvedRows.append(newRow);
+    const int newRowIdx = static_cast<int>(m_resolvedRows.size() - 1);
+
+    qDebug().noquote() << "[KLC] commitLiveGameToResolvedRows: created row" << newRowIdx
+                       << "disp.size=" << newRow.disp.size()
+                       << "sfen.size=" << newRow.sfen.size()
+                       << "gm.size=" << newRow.gm.size();
+
+    // ★ 追加: 新しく作成した行をアクティブにする
+    m_activeResolvedRow = newRowIdx;
+
+    // 分岐表示プランを再構築
+    buildBranchCandidateDisplayPlan();
+
+    // デバッグ: 分岐プランの内容を出力
+    qDebug().noquote() << "[KLC] commitLiveGameToResolvedRows: branch plan after rebuild:";
+    for (auto it = m_branchDisplayPlan.constBegin(); it != m_branchDisplayPlan.constEnd(); ++it) {
+        const int rowIdx = it.key();
+        const QMap<int, BranchCandidateDisplay>& byPly = it.value();
+        qDebug().noquote() << "  row[" << rowIdx << "]: plys with branches:";
+        for (auto pit = byPly.constBegin(); pit != byPly.constEnd(); ++pit) {
+            qDebug().noquote() << "    ply" << pit.key() << ": " << pit.value().items.size() << " items";
+        }
+    }
+    qDebug().noquote() << "[KLC] commitLiveGameToResolvedRows: m_activeResolvedRow=" << m_activeResolvedRow;
+
+    applyBranchMarksForCurrentLine();
+
+    // ライブゲーム状態をクリア
+    m_liveGameState.clear();
+    m_liveBranchAnchorPly = -1;
+
+    // 分岐ツリーUIを更新
+    if (m_analysisTab) {
+        QVector<EngineAnalysisTab::ResolvedRowLite> rowsLite;
+        rowsLite.reserve(m_resolvedRows.size());
+        for (const ResolvedRow& r : std::as_const(m_resolvedRows)) {
+            EngineAnalysisTab::ResolvedRowLite x;
+            x.startPly = r.startPly;
+            x.disp     = r.disp;
+            x.sfen     = r.sfen;
+            x.parent   = r.parent;
+            rowsLite.push_back(std::move(x));
+        }
+        m_analysisTab->setBranchTreeRows(rowsLite);
+
+        // 新しく追加した行をハイライト（最後の手をハイライト）
+        const int lastPly = static_cast<int>(newRow.disp.size()) - 1;
+        m_analysisTab->highlightBranchTreeAt(newRowIdx, lastPly, /*centerOn=*/true);
+    }
+
+    emit liveGameCommitted(newRowIdx);
 }

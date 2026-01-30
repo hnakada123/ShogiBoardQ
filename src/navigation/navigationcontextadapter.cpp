@@ -1,5 +1,6 @@
 #include "navigationcontextadapter.h"
 #include "kifurecordlistmodel.h"
+#include "kifuloadcoordinator.h"
 #include "recordnavigationcontroller.h"
 #include "recordpane.h"
 #include "replaycontroller.h"
@@ -41,6 +42,18 @@ int NavigationContextAdapter::activeResolvedRow() const
 
 int NavigationContextAdapter::maxPlyAtRow(int row) const
 {
+    // ★ ライブ対局中の場合は、棋譜モデルの行数を使用
+    KifuLoadCoordinator* kifuCoord = m_deps.kifuLoadCoordinator ? *m_deps.kifuLoadCoordinator : nullptr;
+    if (kifuCoord && kifuCoord->isLiveGameActive()) {
+        KifuRecordListModel* kifuModel = m_deps.kifuRecordModel ? *m_deps.kifuRecordModel : nullptr;
+        const int kifuMax = (kifuModel && kifuModel->rowCount() > 0)
+                                ? (kifuModel->rowCount() - 1)
+                                : 0;
+        qDebug().noquote() << "[NavCtxAdapter] maxPlyAtRow (liveGameActive): row=" << row
+                           << "kifuMax=" << kifuMax;
+        return kifuMax;
+    }
+
     if (!m_deps.resolvedRows || m_deps.resolvedRows->isEmpty()) {
         // ライブ（解決済み行なし）のとき：
         // - SFEN: 「開始局面 + 実手数」なので終局行（投了/時間切れ）は含まれない → size()-1
@@ -131,9 +144,23 @@ void NavigationContextAdapter::applySelect(int row, int ply)
         m_callbacks.ensureRecordNavController();
     }
 
-    RecordNavigationController* navCtrl = m_deps.recordNavController ? *m_deps.recordNavController : nullptr;
-    if (navCtrl) {
-        navCtrl->applySelect(row, ply);
+    // ★ ライブ対局中は行（row）を無視して、単純にplyナビゲーションを行う
+    KifuLoadCoordinator* kifuCoord = m_deps.kifuLoadCoordinator ? *m_deps.kifuLoadCoordinator : nullptr;
+    const bool liveGameActive = kifuCoord && kifuCoord->isLiveGameActive();
+
+    if (liveGameActive) {
+        qDebug().noquote() << "[NavCtxAdapter] applySelect (liveGameActive): ignoring row=" << row
+                           << "using ply=" << ply;
+        // ライブ対局中はresolvedRowsを経由せず、直接棋譜ビューをナビゲート
+        RecordNavigationController* navCtrl = m_deps.recordNavController ? *m_deps.recordNavController : nullptr;
+        if (navCtrl) {
+            navCtrl->navigateKifuViewToRow(ply);
+        }
+    } else {
+        RecordNavigationController* navCtrl = m_deps.recordNavController ? *m_deps.recordNavController : nullptr;
+        if (navCtrl) {
+            navCtrl->applySelect(row, ply);
+        }
     }
 
     // currentSfenStrを選択した局面に更新

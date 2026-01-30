@@ -114,6 +114,18 @@ public:
     //   戻り値: 成功したら true
     bool setupBranchForResumeFromCurrent(int anchorPly, const QString& terminalLabel);
 
+    // ★ 追加：ライブ対局の手を追加
+    void appendLiveMove(const KifDisplayItem& item, const QString& sfen, const ShogiMove& move);
+
+    // ★ 追加：ライブ対局をResolvedRowに確定
+    void commitLiveGameToResolvedRows();
+
+    // ★ 追加：ライブ対局の状態を取得
+    const LiveGameState& liveGameState() const { return m_liveGameState; }
+
+    // ★ 追加：ライブ対局中かどうか
+    bool isLiveGameActive() const { return m_liveGameState.isActive; }
+
 public slots:
     void applyResolvedRowAndSelect(int row, int selPly);
 
@@ -135,6 +147,8 @@ signals:
     void enableArrowButtons();
     void setupBranchCandidatesWiring();
     void gameInfoPopulated(const QList<KifGameInfoItem>& items);  // ★ 追加
+    void liveGameStateChanged();  // ライブ対局の状態が変わった時
+    void liveGameCommitted(int newRowIndex);  // ライブ対局がResolvedRowに確定した時
 
 
 private:
@@ -166,6 +180,7 @@ private:
     BranchCandidatesController* m_branchCtl;
     int m_branchPlyContext = -1;
     int m_liveBranchAnchorPly = -1;  // ライブ分岐の起点（再対局時に設定、対局中は変更しない）
+    LiveGameState m_liveGameState;   // ライブ対局の状態（読み込んだ棋譜データとは分離して管理）
     QSet<int> m_branchablePlySet;
     QHash<int, QHash<QString, QList<BranchCandidate>>> m_branchIndex;
     // 行(row) → (ply → 表示計画) の保持
