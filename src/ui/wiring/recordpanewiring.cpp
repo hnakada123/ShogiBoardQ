@@ -26,9 +26,8 @@ void RecordPaneWiring::buildUiAndWire()
         }
 
         // ★重要★
-        // branchActivated は BranchCandidatesController 側で配線する設計なので、
+        // branchActivated は KifuDisplayCoordinator 側で配線する設計なので、
         // ここ（RecordPaneWiring）では接続しません。
-        // （以前の MainWindow::onRecordPaneBranchActivated への接続行は削除）
     }
 
     // RecordPane へのモデル割当て

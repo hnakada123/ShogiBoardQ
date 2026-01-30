@@ -69,6 +69,15 @@ public:
     int currentPly() const override;
     void applySelect(int row, int ply) override;
 
+signals:
+    /**
+     * @brief 位置が変更された時に発火するシグナル
+     * @param row 行番号（分岐インデックス）
+     * @param ply 手数
+     * @param sfen 現在局面のSFEN（空の場合あり）
+     */
+    void positionChanged(int row, int ply, const QString& sfen);
+
 private:
     Deps m_deps;
     Callbacks m_callbacks;

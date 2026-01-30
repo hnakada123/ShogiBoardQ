@@ -7,11 +7,14 @@
 #include "branchdisplayplan.h"
 #include "navigationpresenter.h"
 #include "engineanalysistab.h"
+#include "kifuvariationengine.h"
 #include "csatosfenconverter.h"
 #include "ki2tosfenconverter.h"
 #include "jkftosfenconverter.h"
 #include "usentosfenconverter.h"
 #include "usitosfenconverter.h"
+#include "kifubranchtree.h"
+#include "kifubranchtreebuilder.h"
 
 #include <QDebug>
 #include <QStyledItemDelegate>
@@ -280,7 +283,6 @@ KifuLoadCoordinator::KifuLoadCoordinator(QVector<ShogiMove>& gameMoves,
     // Q_ASSERT(m_sfenRecord && "sfenRecord must not be null");
     // m_analysisTab は setAnalysisTab() 経由で後から設定される
     // m_shogiView は setShogiView() 経由で後から設定される
-    // m_branchCtl は setBranchCandidatesController() 経由で後から設定される
 }
 
 // ============================================================
@@ -968,6 +970,16 @@ void KifuLoadCoordinator::applyParsedResultCommon(
     buildResolvedLinesAfterLoad();
     logStep("buildResolvedLinesAfterLoad");
 
+    // 10.5) ★ 新規: KifuBranchTree を構築
+    if (m_branchTree != nullptr) {
+        // KifuBranchTreeBuilder を使用してツリーを構築
+        KifuBranchTreeBuilder::buildFromKifParseResult(m_branchTree, res, initialSfen);
+        qDebug().noquote() << "[KLC] KifuBranchTree built: nodeCount=" << m_branchTree->nodeCount()
+                           << "lineCount=" << m_branchTree->lineCount();
+        emit branchTreeBuilt();
+    }
+    logStep("buildKifuBranchTree");
+
     // 11) 分岐レポート → Plan 構築（Plan方式の基礎データ）
     if (kGM_VERBOSE) dumpBranchSplitReport();
     buildBranchCandidateDisplayPlan();
@@ -1024,9 +1036,7 @@ void KifuLoadCoordinator::applyParsedResultCommon(
 
     // 14) （Plan方式化に伴い）WL 構築や従来の候補再計算は廃止
     // 15) ブランチ候補ワイヤリング（planActivated -> applyResolvedRowAndSelect）
-    if (!m_branchCtl) {
-        emit setupBranchCandidatesWiring(); // 内部で planActivated の connect を済ませる
-    }
+    emit setupBranchCandidatesWiring(); // 内部で planActivated の connect を済ませる
 
     if (m_kifuBranchModel) {
         // 起動直後は候補を出さない（0手目）：モデルクリア＆ビュー非表示
@@ -1291,6 +1301,15 @@ void KifuLoadCoordinator::showRecordAtPly(const QList<KifDisplayItem>& disp, int
 
 void KifuLoadCoordinator::showBranchCandidatesFromPlan(int row, int ply1)
 {
+    // 新システムが有効な場合は、旧システムの分岐候補表示をスキップ
+    // m_branchTree が存在する場合も新システムを使用する（フラグが設定されていなくても）
+    if (m_useNewBranchSystem || m_branchTree != nullptr) {
+        qDebug().noquote() << "[KLC-DEBUG] showBranchCandidatesFromPlan: skipped"
+                           << "(useNewBranchSystem=" << m_useNewBranchSystem
+                           << "branchTree=" << (m_branchTree ? "exists" : "null") << ")";
+        return;
+    }
+
     qDebug().noquote() << "[KLC-DEBUG] showBranchCandidatesFromPlan: row=" << row
                        << "ply1=" << ply1
                        << "m_branchDisplayPlan.size=" << m_branchDisplayPlan.size()
@@ -1370,9 +1389,8 @@ void KifuLoadCoordinator::showBranchCandidatesFromPlan(int row, int ply1)
                 liveItem.label = liveMove;
                 pubItems.push_back(liveItem);
 
-                if (m_branchCtl) {
-                    m_branchCtl->refreshCandidatesFromPlan(ply1, pubItems, parentMove);
-                } else if (m_kifuBranchModel) {
+                Q_UNUSED(pubItems)
+                if (m_kifuBranchModel) {
                     QList<KifDisplayItem> rows;
                     rows.push_back(KifDisplayItem(parentMove, QString(), QString(), ply1));
                     rows.push_back(KifDisplayItem(liveMove, QString(), QString(), ply1));
@@ -1455,24 +1473,11 @@ void KifuLoadCoordinator::showBranchCandidatesFromPlan(int row, int ply1)
         }
     }
 
-    // --- BranchCandidatesController 経由で候補を更新（クリック→局面反映の経路を保持） ---
-    if (m_branchCtl) {
-        QVector<BranchCandidateDisplayItem> pubItems;
-        pubItems.reserve(plan.items.size());
-        for (const auto& it : plan.items) {
-            BranchCandidateDisplayItem x;
-            x.row      = it.row;
-            x.varN     = it.varN;
-            x.lineName = it.lineName;
-            x.label    = it.label;
-            pubItems.push_back(x);
-        }
-        m_branchCtl->refreshCandidatesFromPlan(ply1, pubItems, plan.baseLabel);
-    } else if (m_kifuBranchModel) {
-        // フォールバック：Controller 未注入でも最低限の表示だけは行う（クリック遷移は不可）
+    // --- 分岐候補モデルを更新 ---
+    if (m_kifuBranchModel) {
         QList<KifDisplayItem> rows;
         rows.reserve(plan.items.size());
-        for (const auto& it : plan.items) {
+        for (const auto& it : std::as_const(plan.items)) {
             rows.push_back(KifDisplayItem(it.label, QString(), QString(), ply1));
         }
         m_kifuBranchModel->setHasBackToMainRow(false);
@@ -2594,6 +2599,15 @@ void KifuLoadCoordinator::applyResolvedRowAndSelect(int row, int selPly)
 // 既存：分岐候補モデルの構築・表示更新を担う関数
 void KifuLoadCoordinator::showBranchCandidates(int row, int ply)
 {
+    // 新システムが有効な場合は完全にスキップ
+    // m_branchTree が存在する場合も新システムを使用する（フラグが設定されていなくても）
+    qDebug().noquote() << "[KLC] showBranchCandidates: m_useNewBranchSystem=" << m_useNewBranchSystem
+                       << "branchTree=" << (m_branchTree ? "exists" : "null");
+    if (m_useNewBranchSystem || m_branchTree != nullptr) {
+        qDebug().noquote() << "[KLC] showBranchCandidates: skipped (new system active)";
+        return;
+    }
+
     // 再入防止：更新中に再度呼ばれた場合はスキップ
     if (m_updatingBranchCandidates) {
         return;
@@ -2625,11 +2639,6 @@ void KifuLoadCoordinator::onMainMoveRowChanged(int selPly)
 
     // 盤/棋譜/ハイライトは Coordinator の既存ユーティリティに一任
     applyResolvedRowAndSelect(row, safePly);
-}
-
-void KifuLoadCoordinator::setBranchCandidatesController(BranchCandidatesController* ctl)
-{
-    m_branchCtl = ctl;
 }
 
 // ===== KifuLoadCoordinator.cpp: ライブ対局から分岐ツリーを更新 =====
@@ -3093,9 +3102,8 @@ void KifuLoadCoordinator::refreshBranchCandidatesUIOnly(int row, int ply1)
                 liveItem.label = liveMove;
                 pubItems.push_back(liveItem);
 
-                if (m_branchCtl) {
-                    m_branchCtl->refreshCandidatesFromPlan(ply1, pubItems, parentMove);
-                } else if (m_kifuBranchModel) {
+                Q_UNUSED(pubItems)
+                if (m_kifuBranchModel) {
                     QList<KifDisplayItem> rows;
                     rows.push_back(KifDisplayItem(parentMove, QString(), QString(), ply1));
                     rows.push_back(KifDisplayItem(liveMove, QString(), QString(), ply1));
@@ -3141,23 +3149,11 @@ void KifuLoadCoordinator::refreshBranchCandidatesUIOnly(int row, int ply1)
 
     const BranchCandidateDisplay& plan = itP.value();
 
-    // Controller 経由で候補を流し込む（クリック遷移は従来どおり生きる）
-    if (m_branchCtl) {
-        QVector<BranchCandidateDisplayItem> pubItems;
-        pubItems.reserve(plan.items.size());
-        for (const auto& it : plan.items) {
-            BranchCandidateDisplayItem x;
-            x.row      = it.row;
-            x.varN     = it.varN;
-            x.lineName = it.lineName;
-            x.label    = it.label;
-            pubItems.push_back(x);
-        }
-        m_branchCtl->refreshCandidatesFromPlan(ply1, pubItems, plan.baseLabel);
-    } else if (m_kifuBranchModel) {
+    // 分岐候補モデルを更新
+    if (m_kifuBranchModel) {
         QList<KifDisplayItem> rows;
         rows.reserve(plan.items.size());
-        for (const auto& it : plan.items) {
+        for (const auto& it : std::as_const(plan.items)) {
             rows.push_back(KifDisplayItem(it.label, QString(), QString(), ply1));
         }
         m_kifuBranchModel->setHasBackToMainRow(false);

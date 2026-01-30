@@ -30,7 +30,6 @@
 #include <QFontDatabase>
 
 #include "mainwindow.h"
-#include "branchwiringcoordinator.h"
 #include "changeenginesettingsdialog.h"
 #include "considerationflowcontroller.h"
 #include "shogiutils.h"
@@ -52,7 +51,6 @@
 #include "engineanalysistab.h"
 #include "matchcoordinator.h"
 #include "kifuvariationengine.h"
-#include "branchcandidatescontroller.h"
 #include "turnmanager.h"
 #include "errorbus.h"
 #include "kifuloadcoordinator.h"
@@ -107,6 +105,14 @@
 #include "menuwindow.h"                  // ★ 追加: メニューウィンドウ
 #include "csagamewiring.h"              // ★ 追加: CSA通信対局UI配線
 #include "playerinfowiring.h"           // ★ 追加: 対局情報UI配線
+
+// ★ 新規分岐ナビゲーションクラス
+#include "kifubranchtree.h"
+#include "kifunavigationstate.h"
+#include "kifunavigationcontroller.h"
+#include "kifudisplaycoordinator.h"
+#include "branchtreewidget.h"
+#include "livegamesession.h"
 #include "prestartcleanuphandler.h"     // ★ 追加: 対局開始前クリーンアップ
 #include "jishogiscoredialogcontroller.h"  // ★ 追加: 持将棋点数ダイアログ
 #include "nyugyokudeclarationhandler.h"    // ★ 追加: 入玉宣言処理
@@ -221,30 +227,7 @@ void MainWindow::buildGamePanels()
     // 1) 記録ペイン（RecordPane）など UI 部の初期化
     setupRecordPane();
 
-    // 2) 分岐配線をコーディネータに集約（旧: setupBranchCandidatesWiring()）
-    //    既存があれば入れ替え（多重接続を防ぐ）
-    if (m_branchWiring) {
-        m_branchWiring->deleteLater();
-        m_branchWiring = nullptr;
-    }
-    if (m_recordPane) {
-        BranchWiringCoordinator::Deps bw;
-        bw.recordPane      = m_recordPane;
-        bw.branchModel     = m_kifuBranchModel;     // 既に保持していれば渡す（null可）
-        bw.variationEngine = m_varEngine.get();     // unique_ptr想定
-        bw.kifuLoader      = m_kifuLoadCoordinator; // 読み込み済みなら渡す（null可）
-        bw.parent          = this;
-
-        m_branchWiring = new BranchWiringCoordinator(bw);
-
-        // ★ 冪等なのでこの1回で十分
-        m_branchWiring->setupBranchView();
-        m_branchWiring->setupBranchCandidatesWiring();
-    } else {
-        qWarning() << "[UI] buildGamePanels_: RecordPane is null; skip branch wiring.";
-    }
-
-    // 3) 棋譜欄をQDockWidgetとして作成
+    // 2) 棋譜欄をQDockWidgetとして作成
     createRecordPaneDock();
 
     // 4) 将棋盤・駒台の初期化（従来順序を維持）
@@ -258,6 +241,9 @@ void MainWindow::buildGamePanels()
 
     // 7) 解析用ドックを作成（6つの独立したドック）
     createAnalysisDocks();
+
+    // 7.5) 新規分岐ナビゲーションクラスの初期化
+    initializeBranchNavigationClasses();
 
     // 8) 評価値グラフのQDockWidget作成
     createEvalChartDock();
@@ -1454,21 +1440,21 @@ void MainWindow::chooseAndLoadKifuFile()
         /* parent              */ this
         );
 
-    // ★ 追加 (1): BranchWiring に loader を後から注入
-    if (m_branchWiring) {
-        m_branchWiring->setKifuLoader(m_kifuLoadCoordinator);
+    // ★ 新規: 分岐ツリーを設定
+    if (m_branchTree != nullptr) {
+        m_kifuLoadCoordinator->setBranchTree(m_branchTree);
     }
 
-    // ★ 追加 (2): KifuLoadCoordinator 側が必要時に再配線させるためのトリガ
-    // （KifuLoadCoordinator::setupBranchCandidatesWiring_ シグナル → BranchWiring の配線処理）
-    if (m_branchWiring) {
-        connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::setupBranchCandidatesWiring,
-                m_branchWiring,       &BranchWiringCoordinator::setupBranchCandidatesWiring,
-                Qt::UniqueConnection);
-
-        // ★追加修正: 生成した Loader に Controller を確実に注入するため、配線を即時実行する
-        m_branchWiring->setupBranchCandidatesWiring();
+    // ★ 新システムが有効な場合、旧システムの分岐候補表示を無効化
+    // m_branchTree が存在すれば新システムを有効化する
+    if (m_branchTree != nullptr) {
+        m_kifuLoadCoordinator->setUseNewBranchSystem(true);
+        qDebug().noquote() << "[MW] ensureKifuLoadCoordinator: setUseNewBranchSystem(true)";
     }
+
+    // ★ 新規: 分岐ツリー構築完了シグナルを接続
+    connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::branchTreeBuilt,
+            this, &MainWindow::onBranchTreeBuilt, Qt::UniqueConnection);
 
     // ★ MainWindow 側でやっていた branchNode 配線は setAnalysisTab() に委譲
     //   （内部で disconnect / connect を一貫管理）
@@ -2046,6 +2032,90 @@ void MainWindow::ensureNavigationContextAdapter()
     callbacks.updateJosekiWindow = [this]() { updateJosekiWindow(); };
     callbacks.ensureRecordNavController = [this]() { ensureRecordNavigationController(); };
     m_navContextAdapter->setCallbacks(callbacks);
+}
+
+void MainWindow::initializeBranchNavigationClasses()
+{
+    // ツリーの作成
+    if (m_branchTree == nullptr) {
+        m_branchTree = new KifuBranchTree(this);
+    }
+
+    // ナビゲーション状態の作成
+    if (m_navState == nullptr) {
+        m_navState = new KifuNavigationState(this);
+        m_navState->setTree(m_branchTree);
+    }
+
+    // ナビゲーションコントローラの作成
+    if (m_kifuNavController == nullptr) {
+        m_kifuNavController = new KifuNavigationController(this);
+        m_kifuNavController->setTreeAndState(m_branchTree, m_navState);
+
+        // ボタン接続（RecordPaneが存在する場合）
+        if (m_recordPane != nullptr) {
+            // 既存の NavigationController がボタンを使用中なら二重ナビゲーションになるため接続しない
+            if (m_nav != nullptr) {
+                qDebug().noquote()
+                    << "[MW] initializeBranchNavigationClasses: skip KifuNavigationController button wiring"
+                    << "(NavigationController already connected)";
+            } else {
+                KifuNavigationController::Buttons buttons;
+                buttons.first = m_recordPane->firstButton();
+                buttons.back10 = m_recordPane->back10Button();
+                buttons.prev = m_recordPane->prevButton();
+                buttons.next = m_recordPane->nextButton();
+                buttons.fwd10 = m_recordPane->fwd10Button();
+                buttons.last = m_recordPane->lastButton();
+                m_kifuNavController->connectButtons(buttons);
+            }
+        }
+    }
+
+    // ライブゲームセッションの作成
+    if (m_liveGameSession == nullptr) {
+        m_liveGameSession = new LiveGameSession(this);
+        m_liveGameSession->setTree(m_branchTree);
+    }
+
+    // 表示コーディネーターの作成
+    qDebug().noquote() << "[MW] initializeBranchNavigationClasses: m_displayCoordinator=" << (m_displayCoordinator ? "exists" : "null");
+    if (m_displayCoordinator == nullptr) {
+        qDebug().noquote() << "[MW] initializeBranchNavigationClasses: creating KifuDisplayCoordinator";
+        m_displayCoordinator = new KifuDisplayCoordinator(
+            m_branchTree, m_navState, m_kifuNavController, this);
+        m_displayCoordinator->setRecordPane(m_recordPane);
+        m_displayCoordinator->setRecordModel(m_kifuRecordModel);
+        m_displayCoordinator->setBranchModel(m_kifuBranchModel);
+
+        // 分岐ツリーウィジェットを設定（EngineAnalysisTabから取得）
+        if (m_branchTreeWidget != nullptr) {
+            m_displayCoordinator->setBranchTreeWidget(m_branchTreeWidget);
+        }
+
+        m_displayCoordinator->wireSignals();
+
+        // 盤面更新シグナルを接続
+        // 新しい分岐ナビゲーションシステムでは、sfenを受け取って盤面を更新する
+        // 既存のsyncBoardAndHighlightsAtRowと連携するため、必要に応じて呼び出し側で処理
+
+        // 旧システムの分岐候補表示を無効化（新システムが管理する）
+        if (m_kifuLoadCoordinator != nullptr) {
+            m_kifuLoadCoordinator->setUseNewBranchSystem(true);
+        }
+    }
+
+    // 旧ナビゲーションシステムとの接続
+    ensureNavigationContextAdapter();
+    if (m_navContextAdapter != nullptr && m_displayCoordinator != nullptr) {
+        qDebug().noquote() << "[MW] initializeBranchNavigationClasses: connecting positionChanged -> onLegacyPositionChanged";
+        connect(m_navContextAdapter, &NavigationContextAdapter::positionChanged,
+                m_displayCoordinator, &KifuDisplayCoordinator::onLegacyPositionChanged);
+    } else {
+        qDebug().noquote() << "[MW] initializeBranchNavigationClasses: WARNING - m_navContextAdapter="
+                           << (m_navContextAdapter ? "yes" : "null")
+                           << "m_displayCoordinator=" << (m_displayCoordinator ? "yes" : "null");
+    }
 }
 
 void MainWindow::setupRecordPane()
@@ -2638,6 +2708,27 @@ void MainWindow::onBranchNodeActivated(int row, int ply)
 
     // これだけで：局面更新 / 棋譜欄差し替え＆選択 / 分岐候補欄更新 / ツリーハイライト同期
     applyResolvedRowAndSelect(row, selPly);
+}
+
+// ★ 新規: 分岐ツリー構築完了時のハンドラ
+void MainWindow::onBranchTreeBuilt()
+{
+    qDebug() << "[MW] onBranchTreeBuilt: updating new navigation system";
+
+    // 新しいナビゲーションシステムを更新
+    if (m_navState != nullptr && m_branchTree != nullptr) {
+        m_navState->setTree(m_branchTree);
+    }
+
+    // 分岐ツリーウィジェットを更新
+    if (m_branchTreeWidget != nullptr && m_branchTree != nullptr) {
+        m_branchTreeWidget->setTree(m_branchTree);
+    }
+
+    // 表示コーディネーターにツリー変更を通知
+    if (m_displayCoordinator != nullptr) {
+        m_displayCoordinator->onTreeChanged();
+    }
 }
 
 // 毎手の着手確定時：ライブ分岐ツリー更新をイベントループ後段に遅延
@@ -3692,18 +3783,21 @@ void MainWindow::ensureKifuLoadCoordinatorForLive()
         /* branchDisplayPlan   */ m_branchDisplayPlan,
         this);
 
-    // 分岐配線（既存のやり方に合わせる）
-    // BranchCandidatesController は BranchWiringCoordinator が生成し、
-    // setBranchCandidatesController() 経由で注入される
-    if (m_branchWiring) {
-        m_branchWiring->setKifuLoader(m_kifuLoadCoordinator);
-        connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::setupBranchCandidatesWiring,
-                m_branchWiring,       &BranchWiringCoordinator::setupBranchCandidatesWiring,
-                Qt::UniqueConnection);
-
-        // ★追加修正: 生成した Loader に Controller を確実に注入するため、配線を即時実行する
-        m_branchWiring->setupBranchCandidatesWiring();
+    // ★ 新規: 分岐ツリーを設定
+    if (m_branchTree != nullptr) {
+        m_kifuLoadCoordinator->setBranchTree(m_branchTree);
     }
+
+    // ★ 新システムが有効な場合、旧システムの分岐候補表示を無効化
+    // m_branchTree が存在すれば新システムを有効化する
+    if (m_branchTree != nullptr) {
+        m_kifuLoadCoordinator->setUseNewBranchSystem(true);
+        qDebug().noquote() << "[MW] ensureKifuLoadCoordinatorForLive: setUseNewBranchSystem(true)";
+    }
+
+    // ★ 新規: 分岐ツリー構築完了シグナルを接続
+    connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::branchTreeBuilt,
+            this, &MainWindow::onBranchTreeBuilt, Qt::UniqueConnection);
 
     // Analysisタブ・ShogiViewとの配線
     m_kifuLoadCoordinator->setAnalysisTab(m_analysisTab);

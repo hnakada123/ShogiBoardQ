@@ -170,7 +170,7 @@ private:
 
 ### 3.3 LiveGameSession（新規クラス）
 
-ライブ対局のセッションを管理する。
+ライブ対局のセッションを管理する。途中局面からの対局開始に対応。
 
 ```cpp
 // src/kifu/livegamesession.h
@@ -178,34 +178,50 @@ class LiveGameSession : public QObject {
     Q_OBJECT
 public:
     // セッション開始
-    void startFromNode(KifuBranchNode* branchPoint);  // 分岐点から開始
-    void startFromRoot();                              // 開始局面から開始
+    void startFromNode(KifuBranchNode* branchPoint);  // 任意の局面から開始
+    void startFromRoot();                              // 開始局面から開始（新規対局）
 
     // 状態
     bool isActive() const;
-    KifuBranchNode* branchPoint() const;
-    int anchorPly() const;
+    KifuBranchNode* branchPoint() const;              // 分岐起点（nullptrなら開始局面から）
+    int anchorPly() const;                            // 分岐起点の手数
+    QString anchorSfen() const;                       // 分岐起点の局面SFEN
+
+    // 開始可否チェック
+    static bool canStartFrom(KifuBranchNode* node);   // 終局手でないことを確認
 
     // 指し手追加
     void addMove(const ShogiMove& move, const QString& displayText,
                  const QString& sfen, const QString& elapsed);
 
-    // 確定
-    void commit();    // 現在のセッションをKifuBranchTreeに確定
-    void discard();   // 破棄
+    // 終局手追加（対局終了時）
+    void addTerminalMove(TerminalType type, const QString& displayText,
+                         const QString& elapsed);
+
+    // 確定・破棄
+    void commit();    // 現在のセッションをKifuBranchTreeに確定（新しい分岐として）
+    void discard();   // 破棄（何も変更しない）
 
     // 一時データアクセス
-    int moveCount() const;
+    int moveCount() const;                            // 追加した手数
+    int totalPly() const;                             // anchorPly + moveCount
     QVector<KifDisplayItem> moves() const;
+    QString currentSfen() const;                      // 最新局面のSFEN
+
+    // 確定時の分岐情報
+    bool willCreateBranch() const;                    // 分岐を作成するか（途中からの場合true）
+    QString newLineName() const;                      // 確定後の分岐名（"分岐N"）
 
 signals:
     void sessionStarted(KifuBranchNode* branchPoint);
     void moveAdded(int ply, const QString& displayText);
+    void terminalAdded(TerminalType type);
     void sessionCommitted(KifuBranchNode* newLineEnd);
     void sessionDiscarded();
 
 private:
     bool m_active = false;
+    bool m_hasTerminal = false;
     KifuBranchNode* m_branchPoint = nullptr;
     QVector<KifDisplayItem> m_moves;
     QVector<ShogiMove> m_gameMoves;
@@ -213,6 +229,14 @@ private:
     KifuBranchTree* m_tree = nullptr;
 };
 ```
+
+**開始位置と結果の関係**:
+
+| 開始位置 | `branchPoint()` | `willCreateBranch()` | 確定後の結果 |
+|----------|-----------------|---------------------|--------------|
+| 開始局面 | `nullptr` | `false` | 本譜を置換 |
+| 本譜N手目 | N手目のノード | `true` | 新しい分岐を作成 |
+| 分岐M手目 | M手目のノード | `true` | さらに新しい分岐を作成 |
 
 ---
 
@@ -551,16 +575,41 @@ private:
               └─→ branchCandidatesUpdateRequired ─→ 分岐候補欄更新
 ```
 
-### 6.3 対局開始時（分岐の途中から）
+### 6.3 対局開始時（途中局面から）
+
+任意の局面から対局を開始できる。開始位置に応じて分岐が作成される。
+
+#### 6.3.1 開始位置のパターン
+
+| 開始位置 | 動作 |
+|----------|------|
+| 開始局面（ply=0） | 本譜を上書き、または新しい本譜として開始 |
+| 本譜の途中（ply=N） | N手目から分岐を作成 |
+| 分岐の途中 | その分岐からさらに分岐を作成 |
+| 終局手の位置 | 対局開始不可（エラーまたは1手戻って開始） |
+
+#### 6.3.2 データフロー
 
 ```
 [対局開始リクエスト（現在位置から）]
      │
      ▼
+[現在位置の確認]
+     │
+     ├─ 終局手の場合 → エラー or 1手戻る
+     │
+     └─ 通常の局面 →
+            │
+            ▼
 [LiveGameSession::startFromNode(currentNode)]
+     │
+     ├─→ branchPoint = currentNode（分岐起点を記憶）
      │
      ├─→ sessionStarted シグナル
      │        └─→ UIを対局モードに切り替え
+     │            ・ナビゲーションボタン無効化
+     │            ・分岐ツリーのクリック無効化
+     │            ・棋譜欄のクリック無効化
      │
      ▼
 [指し手着手]
@@ -568,8 +617,79 @@ private:
      ▼
 [LiveGameSession::addMove]
      │
+     ├─→ 一時的な手リストに追加
+     │
      └─→ moveAdded シグナル
-              └─→ 棋譜欄に手を追加（分岐ラインとして）
+              └─→ 棋譜欄に手を追加（ライブ対局行として表示）
+```
+
+#### 6.3.3 具体例
+
+**例1: 本譜3手目から対局開始**
+```
+対局開始前:
+  開始局面 ─ 1手目 ─ 2手目 ─ 3手目 ─ 4手目 ─ [△投了]  ← 本譜
+                              ↑
+                         現在位置（ここから対局開始）
+
+対局中（2手指した後）:
+  開始局面 ─ 1手目 ─ 2手目 ─ 3手目 ─ 4手目 ─ [△投了]  ← 本譜
+                              │
+                              └─ 4手目' ─ 5手目'        ← ライブ対局（未確定）
+
+対局終了後:
+  開始局面 ─ 1手目 ─ 2手目 ─ 3手目 ─ 4手目 ─ [△投了]  ← 本譜
+                              │
+                              └─ 4手目' ─ 5手目' ─ [▲投了]  ← 分岐1（確定）
+```
+
+**例2: 分岐1の途中から対局開始**
+```
+対局開始前:
+  開始局面 ─ 1手目 ─ 2手目 ─ 3手目 ─ ...               ← 本譜
+                              │
+                              └─ 3手目' ─ 4手目' ─ ...  ← 分岐1
+                                          ↑
+                                     現在位置（ここから対局開始）
+
+対局終了後:
+  開始局面 ─ 1手目 ─ 2手目 ─ 3手目 ─ ...               ← 本譜
+                              │
+                              └─ 3手目' ─ 4手目' ─ ...  ← 分岐1
+                                          │
+                                          └─ 5手目'' ─ [△投了]  ← 分岐2（新規）
+```
+
+#### 6.3.4 棋譜欄の表示（ライブ対局中）
+
+ライブ対局中は、分岐起点以降の手を表示する:
+
+```
+=== 3手目から対局開始 ===     ← ヘッダーに起点情報を表示
+3 ▲２六歩(27)               ← 分岐起点（変更不可）
+4 △８四歩(83)               ← ライブで追加した手
+5 ▲２五歩(26)               ← ライブで追加した手
+                             ← 対局中は黄色ハイライトが最新手に追従
+```
+
+#### 6.3.5 特殊な開始局面
+
+駒落ちや任意局面からの対局開始にも対応:
+
+| 開始局面 | 処理 |
+|----------|------|
+| 平手初期局面 | 通常の対局開始 |
+| 駒落ち初期局面 | 開始SFENを駒落ち局面に設定 |
+| 任意局面（局面編集後） | 開始SFENを編集後の局面に設定 |
+| 棋譜途中の局面 | その局面から分岐を作成 |
+
+```cpp
+// KifuBranchTree
+void setRootSfen(const QString& sfen);  // 開始局面を設定
+
+// 駒落ちの例
+tree->setRootSfen("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");  // 平手
+tree->setRootSfen("lnsgkgsn1/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");  // 香落ち
 ```
 
 ### 6.4 対局終了時
