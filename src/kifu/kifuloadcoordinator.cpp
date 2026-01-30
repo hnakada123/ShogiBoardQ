@@ -3124,14 +3124,27 @@ bool KifuLoadCoordinator::setupBranchForResumeFromCurrent(int anchorPly, const Q
                            << "disp.size=" << dispLive.size();
     }
 
-    // 2) 本譜のデータを取得
-    const ResolvedRow& mainline = m_resolvedRows.at(mainRow);
+    // 2) 親行のデータを取得
+    //    ★修正: 分岐ラインから対局開始した場合は、その分岐ラインを親として使用する
+    //    m_activeResolvedRow が有効な分岐を指している場合はそれを使用
+    int parentRow = mainRow;
+    if (m_activeResolvedRow >= 0 && m_activeResolvedRow < m_resolvedRows.size()) {
+        // 現在選択されている行が anchorPly 手目を持っているか確認
+        const ResolvedRow& currentRow = m_resolvedRows.at(m_activeResolvedRow);
+        if (currentRow.disp.size() > anchorPly) {
+            parentRow = m_activeResolvedRow;
+            qDebug().noquote() << "[KLC] setupBranchForResumeFromCurrent: using activeResolvedRow as parent:"
+                               << parentRow << "instead of mainRow:" << mainRow;
+        }
+    }
+
+    const ResolvedRow& parentLine = m_resolvedRows.at(parentRow);
 
     // anchorPly より後に手がない場合は分岐を作る必要がない
     // disp[0]=開始局面, disp[i]=i手目 なので、anchorPly + 1 が終了手
-    if (mainline.disp.size() <= anchorPly + 1) {
+    if (parentLine.disp.size() <= anchorPly + 1) {
         qDebug().noquote() << "[KLC] setupBranchForResumeFromCurrent: no terminal move after anchorPly"
-                           << "disp.size=" << mainline.disp.size()
+                           << "disp.size=" << parentLine.disp.size()
                            << "anchorPly=" << anchorPly;
         // 終端手がないので分岐は不要、コンテキストだけ設定
         m_branchPlyContext = anchorPly;
@@ -3141,27 +3154,27 @@ bool KifuLoadCoordinator::setupBranchForResumeFromCurrent(int anchorPly, const Q
 
     // 3) 新しい「ライブゲーム」分岐を作成（終了手を含まない）
     //    この分岐は新しいゲームの手が追加される先となる
-    //    本譜（mainline）は元の終了手を含んだまま残す
+    //    親行（本譜または分岐ライン）は元の終了手を含んだまま残す
     ResolvedRow liveBranch;
     liveBranch.startPly = anchorPly + 1;  // 新しい手が始まる位置
-    liveBranch.parent   = mainRow;
+    liveBranch.parent   = parentRow;      // ★修正: 本譜ではなく親行を設定
     liveBranch.varIndex = -2;  // ライブ分岐マーカー
 
     // プレフィクス（終了手より前の部分）をコピー
     // disp[0..anchorPly] をコピー（anchorPly+1 個）
-    liveBranch.disp = mainline.disp;
+    liveBranch.disp = parentLine.disp;
     if (liveBranch.disp.size() > anchorPly + 1) {
         liveBranch.disp.resize(anchorPly + 1);
     }
 
     // sfen[0..anchorPly] をコピー
-    liveBranch.sfen = mainline.sfen;
+    liveBranch.sfen = parentLine.sfen;
     if (liveBranch.sfen.size() > anchorPly + 1) {
         liveBranch.sfen.resize(anchorPly + 1);
     }
 
     // gm[0..anchorPly-1] をコピー（gm[i] = i+1手目の着手）
-    liveBranch.gm = mainline.gm;
+    liveBranch.gm = parentLine.gm;
     if (liveBranch.gm.size() > anchorPly) {
         liveBranch.gm.resize(anchorPly);
     }
