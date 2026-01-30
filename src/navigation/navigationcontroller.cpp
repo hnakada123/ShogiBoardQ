@@ -61,9 +61,18 @@ void NavigationController::next(bool /*checked*/) {
 
     const int maxPly = m_ctx->maxPlyAtRow(row);         // 空の時は MainWindow 側でモデル行数から算出
     const int cur    = qBound(0, m_ctx->currentPly(), maxPly);
-    if (cur >= maxPly) return;
 
+    qDebug().noquote() << "[NavCtrl] next(): has=" << has << "row=" << row
+                       << "maxPly=" << maxPly << "cur=" << cur;
+
+    if (cur >= maxPly) {
+        qDebug().noquote() << "[NavCtrl] next(): at end, returning";
+        return;
+    }
+
+    qDebug().noquote() << "[NavCtrl] next(): calling applySelect row=" << row << "ply=" << (cur + 1);
     m_ctx->applySelect(row, cur + 1);                    // 空の時は MainWindow 側のフォールバックが実行
+    qDebug().noquote() << "[NavCtrl] next(): applySelect returned";
 }
 
 void NavigationController::fwd10(bool /*checked*/) {

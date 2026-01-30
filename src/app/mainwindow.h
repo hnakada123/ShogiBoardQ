@@ -41,7 +41,6 @@
 #include "engineanalysistab.h"
 #include "boardinteractioncontroller.h"
 #include "kifuvariationengine.h"
-#include "branchcandidatescontroller.h"
 #include "kifuloadcoordinator.h"
 #include "kifutypes.h"
 #include "positioneditcontroller.h"
@@ -63,6 +62,14 @@ class DockLayoutManager;
 class NavigationContextAdapter;
 class DockCreationService;
 class CommentCoordinator;
+
+// New branch navigation classes
+class KifuBranchTree;
+class KifuNavigationState;
+class KifuNavigationController;
+class KifuDisplayCoordinator;
+class BranchTreeWidget;
+class LiveGameSession;
 
 // ==============================
 // Macros / aliases
@@ -94,7 +101,6 @@ class AnalysisResultsPresenter;
 class GameStartCoordinator;
 class AnalysisCoordinator;
 class GameRecordPresenter;
-class BranchWiringCoordinator;
 class TimeDisplayPresenter;
 class AnalysisTabWiring;
 class RecordPaneWiring;
@@ -146,7 +152,7 @@ class UsiCommandController;
  * - GameStartCoordinator: 対局開始処理
  * - BoardSyncPresenter: 盤面同期
  * - AnalysisResultsPresenter: 解析結果表示
- * - BranchWiringCoordinator: 分岐配線
+ * - KifuDisplayCoordinator: 分岐表示統括
  * - CsaGameWiring: CSA通信対局のUI配線
  * - BranchRowDelegate: 分岐行の描画カスタマイズ
  */
@@ -334,6 +340,9 @@ private slots:
     // 分岐ノード活性化
     void onBranchNodeActivated(int row, int ply);
 
+    // ★ 新規: 分岐ツリー構築完了
+    void onBranchTreeBuilt();
+
     // エラー / 前準備
     void onErrorBusOccurred(const QString& msg);
     void onPreStartCleanupRequested();
@@ -512,7 +521,6 @@ private:
     GameStartCoordinator*     m_gameStart = nullptr;
     GameStartCoordinator*     m_gameStartCoordinator = nullptr;
     GameRecordPresenter*      m_recordPresenter = nullptr;
-    BranchWiringCoordinator*  m_branchWiring = nullptr;
     TimeDisplayPresenter*     m_timePresenter = nullptr;
     AnalysisTabWiring*        m_analysisWiring = nullptr;
     RecordPaneWiring*         m_recordPaneWiring = nullptr;
@@ -576,6 +584,14 @@ private:
     CommentCoordinator* m_commentCoordinator = nullptr;
     UsiCommandController* m_usiCommandController = nullptr;
 
+    // ★ 新規分岐ナビゲーションクラス
+    KifuBranchTree* m_branchTree = nullptr;
+    KifuNavigationState* m_navState = nullptr;
+    KifuNavigationController* m_kifuNavController = nullptr;
+    KifuDisplayCoordinator* m_displayCoordinator = nullptr;
+    BranchTreeWidget* m_branchTreeWidget = nullptr;
+    LiveGameSession* m_liveGameSession = nullptr;
+
     // --------------------------------------------------------
     // Private Methods
     // --------------------------------------------------------
@@ -603,6 +619,7 @@ private:
     void createMenuWindowDock();  // ★ メニューウィンドウのQDockWidget作成
     void createJosekiWindowDock();  // ★ 定跡ウィンドウのQDockWidget作成
     void createAnalysisResultsDock();  // ★ 棋譜解析結果のQDockWidget作成
+    void initializeBranchNavigationClasses();  // ★ 新規分岐ナビゲーションクラスの初期化
 
     // ゲーム開始/切替
     void initializeNewGame(QString& startSfenStr);

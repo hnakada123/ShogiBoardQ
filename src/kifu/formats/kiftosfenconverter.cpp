@@ -1,5 +1,6 @@
 #include "kiftosfenconverter.h"
 #include "kifreader.h"
+#include "board/sfenpositiontracer.h"
 
 #include <QRegularExpression>
 #include <QDebug>
@@ -654,6 +655,12 @@ bool KifToSfenConverter::parseWithVariations(const QString& kifPath,
     out.mainline.disp     = extractMovesWithTimes(kifPath, errorMessage);
     out.mainline.usiMoves = convertFile(kifPath, errorMessage);
 
+    // 本譜のSFEN列を生成（分岐のbaseSfen計算用）
+    // sfenList[0] = baseSfen, sfenList[i] = i手目後の局面
+    out.mainline.sfenList = SfenPositionTracer::buildSfenRecord(
+        out.mainline.baseSfen, out.mainline.usiMoves, false);
+    qDebug().noquote() << "[KIF] mainline sfenList built: size=" << out.mainline.sfenList.size();
+
     // 変化抽出
     QString usedEnc;
     QStringList lines;
@@ -673,6 +680,50 @@ bool KifToSfenConverter::parseWithVariations(const QString& kifPath,
 
         const int startPly = flexDigitsToInt_NoDetach(m.captured(1));
         KifVariation var; var.startPly = startPly;
+
+        // 分岐の開始局面SFENを決定
+        // ネストした分岐に対応：既存の分岐から分岐点を探す
+        // startPly=5 の分岐は、4手目の局面から分岐するので、
+        // 4手目を含む分岐（または本譜）からbaseSfenを取得する
+        int branchPointPly = startPly - 1;
+        QString foundBaseSfen;
+        QString foundSource;
+
+        // まず既存の分岐から探す（後方の分岐が前方の分岐から派生する可能性があるため）
+        // 分岐開始手数が小さく、かつ branchPointPly を含む分岐を探す
+        for (qsizetype vi = vars.size() - 1; vi >= 0; --vi) {
+            const KifVariation& prevVar = vars.at(vi);
+            // この分岐が branchPointPly の局面を持っているか？
+            // prevVar.startPly から始まり、prevVar.line.sfenList で局面列を持つ
+            // sfenList[0] = baseSfen (startPly-1手目), sfenList[k] = startPly-1+k 手目
+            if (prevVar.startPly <= branchPointPly && !prevVar.line.sfenList.isEmpty()) {
+                // この分岐の sfenList でのインデックス
+                qsizetype idxInPrevVar = branchPointPly - (prevVar.startPly - 1);
+                if (idxInPrevVar >= 0 && idxInPrevVar < prevVar.line.sfenList.size()) {
+                    foundBaseSfen = prevVar.line.sfenList.at(idxInPrevVar);
+                    foundSource = QStringLiteral("variation %1 (startPly=%2)").arg(vi).arg(prevVar.startPly);
+                    break;
+                }
+            }
+        }
+
+        // 分岐から見つからなければ本譜から探す
+        if (foundBaseSfen.isEmpty()) {
+            if (branchPointPly >= 0 && branchPointPly < out.mainline.sfenList.size()) {
+                foundBaseSfen = out.mainline.sfenList.at(branchPointPly);
+                foundSource = QStringLiteral("mainline");
+            }
+        }
+
+        if (!foundBaseSfen.isEmpty()) {
+            var.line.baseSfen = foundBaseSfen;
+            qDebug().noquote() << "[KIF] variation startPly=" << startPly
+                               << "baseSfen from" << foundSource
+                               << "=" << var.line.baseSfen.left(60);
+        } else {
+            qDebug().noquote() << "[KIF] variation startPly=" << startPly
+                               << "baseSfen: NOT FOUND";
+        }
 
         ++i;
         QStringList block;
@@ -844,6 +895,15 @@ bool KifToSfenConverter::parseWithVariations(const QString& kifPath,
                 dst += commentBuf;
             }
         }
+
+        // この分岐のsfenListを生成（後続の分岐がこの分岐から派生する場合に使用）
+        if (!var.line.baseSfen.isEmpty() && !var.line.usiMoves.isEmpty()) {
+            var.line.sfenList = SfenPositionTracer::buildSfenRecord(
+                var.line.baseSfen, var.line.usiMoves, false);
+            qDebug().noquote() << "[KIF] variation startPly=" << var.startPly
+                               << "sfenList built: size=" << var.line.sfenList.size();
+        }
+
         vars.push_back(var);
     }
 

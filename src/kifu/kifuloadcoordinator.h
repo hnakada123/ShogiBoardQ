@@ -11,13 +11,14 @@
 #include "engineanalysistab.h"
 #include "shogiview.h"
 #include "recordpane.h"
-#include "branchcandidatescontroller.h"
 #include "kifurecordlistmodel.h"
 #include "kifutypes.h"
 #include "branchdisplayplan.h"
 
 class NavigationPresenter;
+class KifuBranchTree;
 class EngineAnalysisTab;
+class KifuVariationEngine;
 
 class KifuLoadCoordinator : public QObject
 {
@@ -88,7 +89,9 @@ public:
 
     void setShogiView(ShogiView* view) { m_shogiView = view; }
 
-    void setBranchCandidatesController(BranchCandidatesController* ctl);
+    // ★ 新規: KifuBranchTreeを設定
+    void setBranchTree(KifuBranchTree* tree) { m_branchTree = tree; }
+
 
     // USI指し手リストを取得（CSA出力用）- 棋譜から読み込んだ指し手
     const QStringList& kifuUsiMoves() const { return m_kifuUsiMoves; }
@@ -149,11 +152,23 @@ signals:
     void gameInfoPopulated(const QList<KifGameInfoItem>& items);  // ★ 追加
     void liveGameStateChanged();  // ライブ対局の状態が変わった時
     void liveGameCommitted(int newRowIndex);  // ライブ対局がResolvedRowに確定した時
+    void branchTreeBuilt();  // ★ 新規: 分岐ツリーが構築された時
 
+
+public:
+    /**
+     * @brief 新システムによる分岐候補管理を有効化
+     *
+     * 有効化すると、showBranchCandidatesFromPlan() は何もしなくなり、
+     * 新システム（KifuDisplayCoordinator）が分岐候補を管理する。
+     */
+    void setUseNewBranchSystem(bool enabled) { m_useNewBranchSystem = enabled; }
+    bool useNewBranchSystem() const { return m_useNewBranchSystem; }
 
 private:
     bool m_loadingKifu = false;
     bool m_updatingBranchCandidates = false;  // 分岐候補更新中の再入防止フラグ
+    bool m_useNewBranchSystem = false;  // 新システムによる分岐候補管理を使用するか
     QTableWidget* m_gameInfoTable;
     QDockWidget*  m_gameInfoDock;
     EngineAnalysisTab* m_analysisTab = nullptr;  // setAnalysisTab() 経由で設定
@@ -177,7 +192,6 @@ private:
     int& m_currentMoveIndex;
     KifuRecordListModel* m_kifuRecordModel;
     KifuBranchListModel* m_kifuBranchModel;
-    BranchCandidatesController* m_branchCtl;
     int m_branchPlyContext = -1;
     int m_liveBranchAnchorPly = -1;  // ライブ分岐の起点（再対局時に設定、対局中は変更しない）
     LiveGameState m_liveGameState;   // ライブ対局の状態（読み込んだ棋譜データとは分離して管理）
@@ -189,6 +203,7 @@ private:
     std::unique_ptr<KifuVariationEngine> m_varEngine;
     bool m_branchTreeLocked = false;  // ← 分岐ツリーの追加・変更を禁止するロック
     NavigationPresenter* m_navPresenter = nullptr;
+    KifuBranchTree* m_branchTree = nullptr;  // ★ 新規: 分岐ツリー
 
     QString prepareInitialSfen(const QString& filePath, QString& teaiLabel) const;
     void populateGameInfo(const QList<KifGameInfoItem>& items);

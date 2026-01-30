@@ -174,4 +174,14 @@ void NavigationContextAdapter::applySelect(int row, int ply)
     if (m_callbacks.updateJosekiWindow) {
         m_callbacks.updateJosekiWindow();
     }
+
+    // 新システムに位置変更を通知（SFENも含める）
+    QString sfen;
+    if (sfenRecord && ply >= 0 && ply < sfenRecord->size()) {
+        sfen = sfenRecord->at(ply);
+    }
+    qDebug().noquote() << "[NCA] applySelect: emitting positionChanged row=" << row << "ply=" << ply
+                       << "sfen=" << sfen.left(50);
+    emit positionChanged(row, ply, sfen);
+    qDebug().noquote() << "[NCA] applySelect: positionChanged emitted, returning";
 }
