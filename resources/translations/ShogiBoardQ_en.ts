@@ -3150,6 +3150,18 @@ Select OK to specify the save location.</translation>
         <source>コメント</source>
         <translation>Comment</translation>
     </message>
+    <message>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="1362"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="3085"/>
+        <source>本譜</source>
+        <translation>Main Line</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="1369"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="3092"/>
+        <source>ライブ</source>
+        <translation>Live</translation>
+    </message>
 </context>
 <context>
     <name>KifuPasteDialog</name>
@@ -4165,17 +4177,17 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Failed to auto-save game record: %1</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3888"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3918"/>
         <source>棋譜を取り込みました</source>
         <translation>Game record imported</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3890"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3920"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation>Failed to import game record</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3894"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3924"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation>Failed to import game record (internal error)</translation>
     </message>

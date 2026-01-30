@@ -17,4 +17,25 @@ struct ResolvedRow {
     QStringList comments;              // ★追加：各手のコメント
 };
 
+// ライブ対局の状態を保持する構造体（読み込んだ棋譜データとは分離して管理）
+struct LiveGameState {
+    int anchorPly = -1;              // 分岐起点の手数（-1 = 初期局面から）
+    int parentRowIndex = -1;         // 親行のインデックス（-1 = 本譜）
+    QList<KifDisplayItem> moves;     // ライブ対局で追加された手
+    QStringList sfens;               // SFEN列
+    QVector<ShogiMove> gameMoves;    // 指し手
+    bool isActive = false;           // ライブ対局中かどうか
+
+    int totalPly() const { return anchorPly + static_cast<int>(moves.size()); }
+
+    void clear() {
+        anchorPly = -1;
+        parentRowIndex = -1;
+        moves.clear();
+        sfens.clear();
+        gameMoves.clear();
+        isActive = false;
+    }
+};
+
 #endif // KIFUTYPES_H
