@@ -243,22 +243,24 @@ int main(int argc, char *argv[])
     }
 
     // 分岐候補クリックの自動実行
+    // click-tree-nodeが設定されている場合は、ツリーノードクリック後に実行
+    // ★ 手動操作をシミュレートするため、ツリーノードクリック後に十分な遅延を設ける
+    const int branchClickTime = parser.isSet(clickTreeNodeOption) ? 3500 : 1500;
     if (parser.isSet(clickBranchOption)) {
         const int branchIndex = parser.value(clickBranchOption).toInt();
-        qDebug() << "[TEST] Auto-clicking branch index:" << branchIndex;
-        // ナビゲーション後に実行（1.5秒後）
-        QTimer::singleShot(1500, &w, [&w, branchIndex]() {
+        qDebug() << "[TEST] Auto-clicking branch index:" << branchIndex << "at" << branchClickTime << "ms";
+        QTimer::singleShot(branchClickTime, &w, [&w, branchIndex]() {
             w.clickBranchCandidate(branchIndex);
         });
     }
 
     // 1手進むボタンの自動クリック
     const int nextCount = parser.isSet(clickNextOption) ? parser.value(clickNextOption).toInt() : 0;
+    const int nextStartTime = branchClickTime + 500; // 分岐クリック後に実行
     if (nextCount > 0) {
-        qDebug() << "[TEST] Auto-clicking next button" << nextCount << "times";
-        // 分岐クリック後に実行（2秒後から開始、100msごと）
+        qDebug() << "[TEST] Auto-clicking next button" << nextCount << "times starting at" << nextStartTime << "ms";
         for (int i = 0; i < nextCount; ++i) {
-            QTimer::singleShot(2000 + i * 100, &w, [&w]() {
+            QTimer::singleShot(nextStartTime + i * 100, &w, [&w]() {
                 w.clickNextButton();
             });
         }
@@ -266,10 +268,9 @@ int main(int argc, char *argv[])
 
     // 1手戻るボタンの自動クリック（nextボタンの後に実行）
     const int prevCount = parser.isSet(clickPrevOption) ? parser.value(clickPrevOption).toInt() : 0;
+    const int prevStartTime = nextStartTime + nextCount * 100 + 500;
     if (prevCount > 0) {
-        qDebug() << "[TEST] Auto-clicking prev button" << prevCount << "times";
-        // nextボタンの後に実行（nextの終了時間 + 500ms から開始）
-        const int prevStartTime = 2000 + nextCount * 100 + 500;
+        qDebug() << "[TEST] Auto-clicking prev button" << prevCount << "times starting at" << prevStartTime << "ms";
         for (int i = 0; i < prevCount; ++i) {
             QTimer::singleShot(prevStartTime + i * 100, &w, [&w]() {
                 w.clickPrevButton();
@@ -278,7 +279,7 @@ int main(int argc, char *argv[])
     }
 
     // 2回目の分岐候補クリック（next/prev後に実行）
-    const int branch2StartTime = 2000 + nextCount * 100 + 500 + prevCount * 100 + 500;
+    const int branch2StartTime = prevStartTime + prevCount * 100 + 500;
     if (parser.isSet(clickBranch2Option)) {
         const int branch2Index = parser.value(clickBranch2Option).toInt();
         qDebug() << "[TEST] Auto-clicking branch2 index:" << branch2Index;

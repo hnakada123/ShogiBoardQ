@@ -60,6 +60,11 @@ public:
     void resetPreferredLineIndex();
 
     /**
+     * @brief 優先ラインインデックスを取得（デバッグ用）
+     */
+    int preferredLineIndex() const { return m_preferredLineIndex; }
+
+    /**
      * @brief 現在のライン名を取得（"本譜" または "分岐N"）
      */
     QString currentLineName() const;

@@ -2114,6 +2114,10 @@ void MainWindow::initializeBranchNavigationClasses()
         connect(m_displayCoordinator, &KifuDisplayCoordinator::boardSfenChanged,
                 this, &MainWindow::loadBoardFromSfen);
 
+        // ★ 新規: 分岐ライン選択変更シグナルを接続（旧システムの m_activeResolvedRow と同期）
+        connect(m_kifuNavController, &KifuNavigationController::lineSelectionChanged,
+                this, &MainWindow::onLineSelectionChanged);
+
         // 旧システムの分岐候補表示を無効化（新システムが管理する）
         if (m_kifuLoadCoordinator != nullptr) {
             m_kifuLoadCoordinator->setUseNewBranchSystem(true);
@@ -2803,6 +2807,18 @@ void MainWindow::loadBoardFromSfen(const QString& sfen)
                    << "gc=" << m_gameController
                    << "board=" << (m_gameController ? m_gameController->board() : nullptr)
                    << "view=" << m_shogiView;
+    }
+}
+
+// ★ 新規: 分岐ライン選択変更時に m_activeResolvedRow を同期
+void MainWindow::onLineSelectionChanged(int newLineIndex)
+{
+    if (newLineIndex >= 0 && newLineIndex < m_resolvedRows.size()) {
+        m_activeResolvedRow = newLineIndex;
+        qDebug().noquote() << "[MW] onLineSelectionChanged: m_activeResolvedRow=" << m_activeResolvedRow;
+    } else {
+        qDebug().noquote() << "[MW] onLineSelectionChanged: newLineIndex=" << newLineIndex
+                           << "out of range (resolvedRows.size=" << m_resolvedRows.size() << ")";
     }
 }
 

@@ -272,7 +272,15 @@ void KifuNavigationController::selectBranchCandidate(int candidateIndex)
     if (lineIndex > 0) {
         m_state->setPreferredLineIndex(lineIndex);
         qDebug().noquote() << "[KNC] selectBranchCandidate: setPreferredLineIndex=" << lineIndex;
+    } else {
+        // ★ 本譜の手を選択した場合は優先ラインをリセット
+        m_state->resetPreferredLineIndex();
+        qDebug().noquote() << "[KNC] selectBranchCandidate: resetPreferredLineIndex (main line selected)";
     }
+
+    // ★ 追加: ライン選択変更を通知（旧システムのm_activeResolvedRowを同期するため）
+    emit lineSelectionChanged(lineIndex);
+    qDebug().noquote() << "[KNC] selectBranchCandidate: emitted lineSelectionChanged=" << lineIndex;
 
     goToNode(candidate);
 }

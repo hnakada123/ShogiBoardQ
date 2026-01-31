@@ -354,6 +354,9 @@ private slots:
     // ★ 新規: 分岐ツリー構築完了
     void onBranchTreeBuilt();
 
+    // ★ 新規: 分岐ライン選択変更（旧システムとの同期用）
+    void onLineSelectionChanged(int newLineIndex);
+
     // ★ 新規: SFENから直接盤面を読み込む（分岐ナビゲーション用）
     void loadBoardFromSfen(const QString& sfen);
 
