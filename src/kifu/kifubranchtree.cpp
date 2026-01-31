@@ -277,7 +277,10 @@ void KifuBranchTree::collectLinesRecursive(KifuBranchNode* node,
             line.branchPoint = nullptr;
         } else {
             line.name = QStringLiteral("分岐%1").arg(lineIndex);
-            // 分岐点を探す
+            // 分岐点を探す（最後に見つかった分岐点を使用）
+            // 例: Line 2 (７七角分岐) の場合、3手目で本譜から分岐し、
+            // さらに5手目でLine 1から分岐する。この場合、branchPointは
+            // 5手目の親（4手目の「△８四歩」）であるべき。
             for (int i = 0; i < currentPath.size(); ++i) {
                 KifuBranchNode* n = currentPath.at(i);
                 if (n->parent() != nullptr && n->parent()->childCount() > 1) {
@@ -285,7 +288,7 @@ void KifuBranchTree::collectLinesRecursive(KifuBranchNode* node,
                     if (!n->isMainLine()) {
                         line.branchPly = n->ply();
                         line.branchPoint = n->parent();
-                        break;
+                        // breakしない: 最後に見つかった分岐点を使う
                     }
                 }
             }

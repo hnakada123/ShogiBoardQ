@@ -252,6 +252,48 @@ done
 棋譜読み込み時に分岐候補ビューが `setEnabled(false)` で無効化され、
 ナビゲーションボタン経由の移動では有効化処理が呼ばれていなかったことが原因でした。
 
+### 10. 分岐ツリーの罫線接続確認テスト
+
+分岐ツリーにおいて、各分岐ラインの branchPoint（分岐元ノード）が正しく設定されていることを確認。
+特に「分岐の分岐」（Line 2 のような二段階分岐）の罫線が正しい親ノードから引かれることを確認する。
+
+```bash
+./build/ShogiBoardQ --test-mode \
+    --load-kif test_branch.kif \
+    --dump-state-after 2000
+```
+
+**期待結果**:
+- `line[ 0 ] ... branchPly: 0 branchPoint: "null"`（本譜は分岐なし）
+- `line[ 1 ] ... branchPly: 3 branchPoint: "△３四歩(33)"`（2手目から3手目で分岐）
+- `line[ 2 ] ... branchPly: 5 branchPoint: "△８四歩(83)"`（4手目から5手目で分岐）
+
+**補足**: このテストは、Line 2（７七角分岐）の罫線がLine 1の4手目「△８四歩(83)」から正しく引かれることを確認します。
+修正前は、最初に見つかった分岐点（3手目「▲６六歩」の親である2手目「△３四歩」）を使用していたため、
+Line 2 の罫線が誤って3手目の位置から引かれていました。
+修正により、最後に見つかった分岐点（そのライン固有の分岐点）を使用するようになりました。
+
+### 11. 分岐ライン上での「本譜へ戻る」表示テスト
+
+分岐ライン上にいるとき、分岐候補欄に「本譜へ戻る」ボタンが正しく表示されることを確認。
+
+```bash
+./build/ShogiBoardQ --test-mode \
+    --load-kif test2_branch.kif \
+    --click-tree-node 1,5 \
+    --dump-state-after 4000
+```
+
+**期待結果**:
+- `kifuBranchModel hasBackToMainRow: true`
+- `branch[ 2 ]: "本譜へ戻る"`（分岐候補欄に「本譜へ戻る」が表示される）
+- `currentLineIndex: 1`（分岐ライン上にいる）
+
+**補足**: このテストは、分岐ライン上にいるにもかかわらず「本譜へ戻る」ボタンが表示されないバグ（修正済み）の再発を防ぐためのものです。
+元の実装では `KifuBranchNode::isMainLine()` が「親の最初の子か」だけで判定していたため、
+分岐ライン上でも親の最初の子であれば「本譜」と判定されていました。
+修正により、`currentLineIndex()` が 0 かどうかで本譜判定を行うようになりました。
+
 ## 検証項目
 
 テスト実行後、debug.logで以下の項目を確認できます：
@@ -260,7 +302,7 @@ done
 2. **棋譜欄の状態** (`kifuRecordModel rowCount`, `currentHighlightRow`)
 3. **分岐候補欄** (`kifuBranchModel rowCount`, 各候補の内容, `branchView enabled`)
 4. **ナビゲーション状態** (`currentPly`, `currentLineIndex`, `isOnMainLine`, `currentNode displayText`)
-5. **分岐ツリー** (`branchTree lineCount`, 各ラインのノード数)
+5. **分岐ツリー** (`branchTree lineCount`, 各ラインのノード数, `branchPly`, `branchPoint`)
 
 ## 一括テストスクリプト
 
@@ -368,6 +410,23 @@ echo "--- テスト9: 1手進むボタンで移動後の分岐候補欄有効化
     --click-next 3 \
     --dump-state-after 4000 2>&1 > /dev/null
 grep -E "branchView enabled:|kifuBranchModel rowCount:|branch\[" debug.log | tail -4
+
+# テスト10: 分岐ツリーの罫線接続確認
+echo ""
+echo "--- テスト10: 分岐ツリーの罫線接続確認 ---"
+./build/ShogiBoardQ --test-mode \
+    --load-kif test_branch.kif \
+    --dump-state-after 2000 2>&1 > /dev/null
+grep -E "line\[.*branchPly.*branchPoint" debug.log | tail -3
+
+# テスト11: 分岐ライン上での「本譜へ戻る」表示
+echo ""
+echo "--- テスト11: 分岐ライン上での「本譜へ戻る」表示 ---"
+./build/ShogiBoardQ --test-mode \
+    --load-kif test2_branch.kif \
+    --click-tree-node 1,5 \
+    --dump-state-after 4000 2>&1 > /dev/null
+grep -E "hasBackToMainRow|currentLineIndex:|branch\[" debug.log | tail -5
 
 echo ""
 echo "=== テスト完了 ==="

@@ -243,7 +243,8 @@ void KifuDisplayCoordinator::onBranchCandidatesUpdateRequired(const QVector<Kifu
     m_branchModel->setBranchCandidatesByNewSystem(items);
 
     // 本譜にいない場合は「本譜に戻る」を表示
-    bool isOnMainLine = (m_state != nullptr) ? m_state->isOnMainLine() : true;
+    // currentLineIndex() が 0 でなければ分岐ライン上
+    bool isOnMainLine = (m_state != nullptr) ? (m_state->currentLineIndex() == 0) : true;
     m_branchModel->setHasBackToMainRow(!isOnMainLine);
 
     // 現在選択されている分岐をハイライト
