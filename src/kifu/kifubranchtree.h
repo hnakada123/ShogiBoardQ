@@ -156,6 +156,17 @@ public:
      */
     QSet<int> branchablePlysOnLine(const BranchLine& line) const;
 
+    /**
+     * @brief 指定ノードが属するラインインデックスを取得
+     * @param node 対象ノード
+     * @return ラインインデックス（見つからない場合は-1）
+     *
+     * ノードが複数のラインに属する場合（分岐点より前）は、
+     * そのノードを終端として含むラインを優先して返す。
+     * 見つからない場合は、そのノードを含む最初のラインを返す。
+     */
+    int findLineIndexForNode(KifuBranchNode* node) const;
+
     // === コメント ===
 
     /**

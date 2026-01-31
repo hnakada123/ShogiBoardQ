@@ -5,6 +5,10 @@
 #include "recordpane.h"
 #include "replaycontroller.h"
 #include "kifutypes.h"  // ResolvedRow
+#include "kifunavigationstate.h"
+#include "kifunavigationcontroller.h"
+#include "kifubranchtree.h"
+#include "kifubranchnode.h"
 
 #include <QTableView>
 #include <QAbstractItemModel>
@@ -37,11 +41,36 @@ int NavigationContextAdapter::resolvedRowCount() const
 
 int NavigationContextAdapter::activeResolvedRow() const
 {
+    // ★ 新分岐システムが有効で、分岐ラインにいる場合はそのラインインデックスを返す
+    // 注意: isOnMainLine()はノードごとの判定なので、currentLineIndex() > 0 で分岐判定する
+    KifuNavigationState* navState = m_deps.navState ? *m_deps.navState : nullptr;
+    if (navState != nullptr && navState->currentLineIndex() > 0) {
+        const int lineIndex = navState->currentLineIndex();
+        qDebug().noquote() << "[NavCtxAdapter] activeResolvedRow: using navState lineIndex=" << lineIndex;
+        return lineIndex;
+    }
+
     return m_deps.activeResolvedRow ? *m_deps.activeResolvedRow : 0;
 }
 
 int NavigationContextAdapter::maxPlyAtRow(int row) const
 {
+    // ★ 新分岐システムが有効で、分岐ラインにいる場合はそのラインのノード数を使用
+    // 注意: isOnMainLine()はノードごとの判定なので、currentLineIndex() > 0 で分岐判定する
+    KifuNavigationState* navState = m_deps.navState ? *m_deps.navState : nullptr;
+    KifuBranchTree* branchTree = m_deps.branchTree ? *m_deps.branchTree : nullptr;
+    if (navState != nullptr && branchTree != nullptr && navState->currentLineIndex() > 0) {
+        QVector<BranchLine> lines = branchTree->allLines();
+        const int lineIndex = navState->currentLineIndex();
+        if (lineIndex >= 0 && lineIndex < lines.size()) {
+            // ノード数 - 1 = 最大ply (開始局面が ply=0)
+            const int maxPly = static_cast<int>(lines.at(lineIndex).nodes.size()) - 1;
+            qDebug().noquote() << "[NavCtxAdapter] maxPlyAtRow (branch): row=" << row
+                               << "lineIndex=" << lineIndex << "maxPly=" << maxPly;
+            return maxPly;
+        }
+    }
+
     // ★ ライブ対局中の場合は、棋譜モデルの行数を使用
     KifuLoadCoordinator* kifuCoord = m_deps.kifuLoadCoordinator ? *m_deps.kifuLoadCoordinator : nullptr;
     if (kifuCoord && kifuCoord->isLiveGameActive()) {
@@ -86,6 +115,15 @@ int NavigationContextAdapter::maxPlyAtRow(int row) const
 
 int NavigationContextAdapter::currentPly() const
 {
+    // ★ 新分岐システムが有効で、分岐ラインにいる場合はそのplyを使用
+    // 注意: isOnMainLine()はノードごとの判定なので、currentLineIndex() > 0 で分岐判定する
+    KifuNavigationState* navState = m_deps.navState ? *m_deps.navState : nullptr;
+    if (navState != nullptr && navState->currentLineIndex() > 0) {
+        const int ply = navState->currentPly();
+        qDebug().noquote() << "[NavCtxAdapter] currentPly (branch): ply=" << ply;
+        return ply;
+    }
+
     // ★ リプレイ／再開（ライブ追記）中は UI 側のトラッキング値を優先
     ReplayController* replayCtrl = m_deps.replayController ? *m_deps.replayController : nullptr;
     const bool liveAppend = replayCtrl ? replayCtrl->isLiveAppendMode() : false;
@@ -142,6 +180,33 @@ void NavigationContextAdapter::applySelect(int row, int ply)
 {
     if (m_callbacks.ensureRecordNavController) {
         m_callbacks.ensureRecordNavController();
+    }
+
+    // ★ 新分岐システムが有効で、分岐ラインにいる場合は新システムでナビゲート
+    // 注意: isOnMainLine()はノードごとの判定なので、currentLineIndex() > 0 で分岐判定する
+    KifuNavigationState* navState = m_deps.navState ? *m_deps.navState : nullptr;
+    KifuNavigationController* kifuNavCtrl = m_deps.kifuNavController ? *m_deps.kifuNavController : nullptr;
+    KifuBranchTree* branchTree = m_deps.branchTree ? *m_deps.branchTree : nullptr;
+
+    if (navState != nullptr && kifuNavCtrl != nullptr && branchTree != nullptr && navState->currentLineIndex() > 0) {
+        qDebug().noquote() << "[NavCtxAdapter] applySelect (branch): row=" << row
+                           << "ply=" << ply << "lineIndex=" << navState->currentLineIndex();
+
+        // 現在のライン上でplyに対応するノードを探す
+        QVector<BranchLine> lines = branchTree->allLines();
+        const int lineIndex = navState->currentLineIndex();
+        if (lineIndex >= 0 && lineIndex < lines.size()) {
+            const BranchLine& line = lines.at(lineIndex);
+            for (KifuBranchNode* node : std::as_const(line.nodes)) {
+                if (node->ply() == ply) {
+                    kifuNavCtrl->goToNode(node);
+                    qDebug().noquote() << "[NavCtxAdapter] applySelect (branch): goToNode ply=" << ply;
+                    return;
+                }
+            }
+        }
+        qDebug().noquote() << "[NavCtxAdapter] applySelect (branch): node not found for ply=" << ply;
+        return;
     }
 
     // ★ ライブ対局中は行（row）を無視して、単純にplyナビゲーションを行う

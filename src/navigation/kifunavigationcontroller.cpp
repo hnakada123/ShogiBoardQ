@@ -243,16 +243,37 @@ void KifuNavigationController::switchToLine(int lineIndex)
 
 void KifuNavigationController::selectBranchCandidate(int candidateIndex)
 {
+    qDebug().noquote() << "[KNC] selectBranchCandidate ENTER candidateIndex=" << candidateIndex;
+
     if (m_state == nullptr) {
+        qDebug().noquote() << "[KNC] selectBranchCandidate: m_state is null, returning";
         return;
     }
 
     QVector<KifuBranchNode*> candidates = m_state->branchCandidatesAtCurrent();
+    qDebug().noquote() << "[KNC] selectBranchCandidate: candidates.size()=" << candidates.size()
+                       << "currentNode=" << (m_state->currentNode() ? "yes" : "null")
+                       << "currentPly=" << m_state->currentPly();
+
     if (candidateIndex < 0 || candidateIndex >= candidates.size()) {
+        qDebug().noquote() << "[KNC] selectBranchCandidate: candidateIndex out of range, returning";
         return;
     }
 
     KifuBranchNode* candidate = candidates.at(candidateIndex);
+    qDebug().noquote() << "[KNC] selectBranchCandidate: navigating to candidate"
+                       << "ply=" << candidate->ply()
+                       << "displayText=" << candidate->displayText();
+
+    // ★ 分岐を選択した場合、そのラインを優先ラインとして記憶
+    // node->lineIndex()は最初の分岐点のインデックスしか返さないため、
+    // ツリーから実際のラインインデックスを取得する
+    const int lineIndex = m_tree ? m_tree->findLineIndexForNode(candidate) : candidate->lineIndex();
+    if (lineIndex > 0) {
+        m_state->setPreferredLineIndex(lineIndex);
+        qDebug().noquote() << "[KNC] selectBranchCandidate: setPreferredLineIndex=" << lineIndex;
+    }
+
     goToNode(candidate);
 }
 
@@ -261,6 +282,10 @@ void KifuNavigationController::goToMainLineAtCurrentPly()
     if (m_state == nullptr || m_tree == nullptr) {
         return;
     }
+
+    // ★ 本譜に戻る場合、優先ラインをリセット
+    m_state->resetPreferredLineIndex();
+    qDebug().noquote() << "[KNC] goToMainLineAtCurrentPly: resetPreferredLineIndex";
 
     int currentPly = m_state->currentPly();
     KifuBranchNode* mainNode = m_tree->findByPlyOnMainLine(currentPly);

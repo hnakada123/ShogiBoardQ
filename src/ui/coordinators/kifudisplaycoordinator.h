@@ -10,8 +10,10 @@ class KifuNavigationState;
 class KifuNavigationController;
 class RecordPane;
 class BranchTreeWidget;
+class EngineAnalysisTab;
 class KifuRecordListModel;
 class KifuBranchListModel;
+class QModelIndex;
 
 /**
  * @brief UI更新を統括するコーディネーター
@@ -51,6 +53,11 @@ public:
      * @brief 分岐候補モデルを設定
      */
     void setBranchModel(KifuBranchListModel* model);
+
+    /**
+     * @brief エンジン解析タブを設定（分岐ツリーハイライト用）
+     */
+    void setAnalysisTab(EngineAnalysisTab* tab);
 
     // === 初期化 ===
 
@@ -100,6 +107,11 @@ public slots:
     void onBranchTreeNodeClicked(int lineIndex, int ply);
 
     /**
+     * @brief 分岐候補クリック時
+     */
+    void onBranchCandidateActivated(const QModelIndex& index);
+
+    /**
      * @brief 旧ナビゲーションシステムからの位置変更通知
      * @param row 行番号（分岐インデックス）
      * @param ply 手数
@@ -112,6 +124,13 @@ signals:
      * @brief 盤面更新が必要
      */
     void boardSfenChanged(const QString& sfen);
+
+    /**
+     * @brief 盤面とハイライト更新が必要（分岐ナビゲーション用）
+     * @param currentSfen 現在局面のSFEN
+     * @param prevSfen 直前局面のSFEN（ハイライト計算用、開始局面の場合は空）
+     */
+    void boardWithHighlightsRequired(const QString& currentSfen, const QString& prevSfen);
 
 private:
     void updateRecordView();
@@ -127,8 +146,11 @@ private:
 
     RecordPane* m_recordPane = nullptr;
     BranchTreeWidget* m_branchTreeWidget = nullptr;
+    EngineAnalysisTab* m_analysisTab = nullptr;
     KifuRecordListModel* m_recordModel = nullptr;
     KifuBranchListModel* m_branchModel = nullptr;
+
+    int m_lastLineIndex = 0;  // ライン変更検出用
 };
 
 #endif // KIFUDISPLAYCOORDINATOR_H

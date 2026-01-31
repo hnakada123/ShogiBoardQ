@@ -5,12 +5,14 @@
 #include "kifunavigationcontroller.h"
 #include "recordpane.h"
 #include "branchtreewidget.h"
+#include "engineanalysistab.h"
 #include "kifurecordlistmodel.h"
 #include "kifubranchlistmodel.h"
 #include "kifudisplay.h"
 #include "kifdisplayitem.h"
 
 #include <QTableView>
+#include <QModelIndex>
 #include <QDebug>
 
 KifuDisplayCoordinator::KifuDisplayCoordinator(
@@ -48,6 +50,11 @@ void KifuDisplayCoordinator::setBranchModel(KifuBranchListModel* model)
     m_branchModel = model;
 }
 
+void KifuDisplayCoordinator::setAnalysisTab(EngineAnalysisTab* tab)
+{
+    m_analysisTab = tab;
+}
+
 void KifuDisplayCoordinator::wireSignals()
 {
     if (m_navController != nullptr) {
@@ -72,6 +79,12 @@ void KifuDisplayCoordinator::wireSignals()
     if (m_branchTreeWidget != nullptr && m_navController != nullptr) {
         connect(m_branchTreeWidget, &BranchTreeWidget::nodeClicked,
                 this, &KifuDisplayCoordinator::onBranchTreeNodeClicked);
+    }
+
+    // 分岐候補のクリックをナビゲーションに接続
+    if (m_recordPane != nullptr && m_navController != nullptr) {
+        connect(m_recordPane, &RecordPane::branchActivated,
+                this, &KifuDisplayCoordinator::onBranchCandidateActivated);
     }
 }
 
@@ -101,15 +114,68 @@ void KifuDisplayCoordinator::onBranchTreeNodeClicked(int lineIndex, int ply)
     }
 }
 
+void KifuDisplayCoordinator::onBranchCandidateActivated(const QModelIndex& index)
+{
+    qDebug().noquote() << "[KDC] onBranchCandidateActivated ENTER"
+                       << "index.valid=" << index.isValid()
+                       << "row=" << index.row()
+                       << "navController=" << (m_navController ? "yes" : "null")
+                       << "branchModel=" << (m_branchModel ? "yes" : "null");
+
+    if (!index.isValid() || m_navController == nullptr || m_branchModel == nullptr) {
+        qDebug().noquote() << "[KDC] onBranchCandidateActivated: guard failed, returning";
+        return;
+    }
+
+    const int row = index.row();
+    if (m_branchModel->isBackToMainRow(row)) {
+        qDebug().noquote() << "[KDC] onBranchCandidateActivated: back to main row, calling goToMainLineAtCurrentPly";
+        m_navController->goToMainLineAtCurrentPly();
+        return;
+    }
+
+    qDebug().noquote() << "[KDC] onBranchCandidateActivated: calling selectBranchCandidate(" << row << ")";
+    m_navController->selectBranchCandidate(row);
+}
+
 void KifuDisplayCoordinator::onNavigationCompleted(KifuBranchNode* node)
 {
-    Q_UNUSED(node)
+    qDebug().noquote() << "[KDC] onNavigationCompleted ENTER node="
+                       << (node ? QString("ply=%1").arg(node->ply()) : "null");
+
+    // ラインが変更された場合は棋譜欄の内容を更新
+    if (m_state != nullptr) {
+        const int newLineIndex = m_state->currentLineIndex();
+        if (newLineIndex != m_lastLineIndex) {
+            qDebug().noquote() << "[KDC] onNavigationCompleted: line changed from"
+                               << m_lastLineIndex << "to" << newLineIndex;
+            m_lastLineIndex = newLineIndex;
+            updateRecordView();  // 棋譜欄の内容を再構築
+        }
+    }
+
+    // 盤面とハイライトを更新（新システム用シグナル）
+    if (node != nullptr) {
+        QString currentSfen = node->sfen();
+        QString prevSfen;
+        if (node->parent() != nullptr) {
+            prevSfen = node->parent()->sfen();
+        }
+        qDebug().noquote() << "[KDC] onNavigationCompleted: emitting boardWithHighlightsRequired"
+                           << "currentSfen=" << currentSfen.left(40)
+                           << "prevSfen=" << (prevSfen.isEmpty() ? "(empty)" : prevSfen.left(40));
+        emit boardWithHighlightsRequired(currentSfen, prevSfen);
+    }
+
     highlightCurrentPosition();
 }
 
 void KifuDisplayCoordinator::onBoardUpdateRequired(const QString& sfen)
 {
-    emit boardSfenChanged(sfen);
+    // 注意: 新システムでは boardWithHighlightsRequired を使用するため、
+    // このシグナルは旧システムとの互換性のために残している
+    Q_UNUSED(sfen);
+    // emit boardSfenChanged(sfen);  // 新システムでは onNavigationCompleted で処理
 }
 
 void KifuDisplayCoordinator::onRecordHighlightRequired(int ply)
@@ -133,8 +199,13 @@ void KifuDisplayCoordinator::onRecordHighlightRequired(int ply)
 
 void KifuDisplayCoordinator::onBranchTreeHighlightRequired(int lineIndex, int ply)
 {
+    // BranchTreeWidget がある場合はそちらを使用
     if (m_branchTreeWidget != nullptr) {
         m_branchTreeWidget->highlightNode(lineIndex, ply);
+    }
+    // EngineAnalysisTab がある場合はそちらを使用（通常はこちら）
+    if (m_analysisTab != nullptr) {
+        m_analysisTab->highlightBranchTreeAt(lineIndex, ply, /*centerOn=*/false);
     }
 }
 
@@ -144,7 +215,7 @@ void KifuDisplayCoordinator::onBranchCandidatesUpdateRequired(const QVector<Kifu
         return;
     }
 
-    m_branchModel->clearBranchCandidates();
+    m_branchModel->clearBranchCandidatesByNewSystem();
 
     if (candidates.isEmpty()) {
         // 分岐がない場合は「本譜に戻る」ボタンも非表示
@@ -160,7 +231,7 @@ void KifuDisplayCoordinator::onBranchCandidatesUpdateRequired(const QVector<Kifu
         item.timeText = node->timeText();
         items.append(item);
     }
-    m_branchModel->setBranchCandidatesFromKif(items);
+    m_branchModel->setBranchCandidatesByNewSystem(items);
 
     // 本譜にいない場合は「本譜に戻る」を表示
     bool isOnMainLine = (m_state != nullptr) ? m_state->isOnMainLine() : true;
@@ -183,6 +254,9 @@ void KifuDisplayCoordinator::onBranchCandidatesUpdateRequired(const QVector<Kifu
 
 void KifuDisplayCoordinator::onTreeChanged()
 {
+    // ツリー変更時にラインインデックスをリセット
+    m_lastLineIndex = (m_state != nullptr) ? m_state->currentLineIndex() : 0;
+
     updateRecordView();
     updateBranchTreeView();
     updateBranchCandidatesView();
@@ -444,18 +518,36 @@ void KifuDisplayCoordinator::onLegacyPositionChanged(int row, int ply, const QSt
 
     // 分岐ツリーのハイライト（グラフィカルのみ）
     // targetNodeが含まれるラインを探す
-    if (m_branchTreeWidget != nullptr) {
-        int highlightLineIndex = 0;
-        QVector<BranchLine> allLines = m_tree->allLines();
-        for (int li = 0; li < allLines.size(); ++li) {
-            for (KifuBranchNode* node : std::as_const(allLines.at(li).nodes)) {
-                if (node == targetNode) {
-                    highlightLineIndex = li;
-                    break;
-                }
+    // 現在のラインインデックスを優先して使用（分岐選択後の状態を維持）
+    int highlightLineIndex = m_state->currentLineIndex();
+    QVector<BranchLine> allLines = m_tree->allLines();
+
+    // 現在のラインにノードが存在するか確認
+    bool foundInCurrentLine = false;
+    if (highlightLineIndex >= 0 && highlightLineIndex < allLines.size()) {
+        for (KifuBranchNode* node : std::as_const(allLines.at(highlightLineIndex).nodes)) {
+            if (node == targetNode) {
+                foundInCurrentLine = true;
+                break;
             }
         }
+    }
+
+    // 現在のラインになければ、本譜（line 0）を使用
+    if (!foundInCurrentLine) {
+        highlightLineIndex = 0;
+    }
+
+    qDebug().noquote() << "[KDC] onLegacyPositionChanged: highlighting branch tree at line="
+                       << highlightLineIndex << "ply=" << ply;
+
+    // BranchTreeWidget がある場合はそちらを使用
+    if (m_branchTreeWidget != nullptr) {
         m_branchTreeWidget->highlightNode(highlightLineIndex, ply);
+    }
+    // EngineAnalysisTab がある場合はそちらも使用（通常はこちらが表示される）
+    if (m_analysisTab != nullptr) {
+        m_analysisTab->highlightBranchTreeAt(highlightLineIndex, ply, /*centerOn=*/false);
     }
 
     // ★ 重要: onRecordHighlightRequired() は呼び出さない

@@ -330,6 +330,51 @@ QSet<int> KifuBranchTree::branchablePlysOnLine(const BranchLine& line) const
     return result;
 }
 
+int KifuBranchTree::findLineIndexForNode(KifuBranchNode* node) const
+{
+    if (node == nullptr) {
+        return -1;
+    }
+
+    QVector<BranchLine> lines = allLines();
+
+    // まず、このノードが終端であるラインを探す（子がないノード）
+    if (node->childCount() == 0) {
+        for (const BranchLine& line : std::as_const(lines)) {
+            if (!line.nodes.isEmpty() && line.nodes.last() == node) {
+                return line.lineIndex;
+            }
+        }
+    }
+
+    // 次に、このノードの後に分岐があるかチェック
+    // ノードから終端までのパスを辿り、その終端が属するラインを返す
+    KifuBranchNode* current = node;
+    while (current->childCount() > 0) {
+        // 最初の子を辿る（このノードが属する「主要な」パス）
+        current = current->childAt(0);
+    }
+
+    // 終端ノードが属するラインを探す
+    for (const BranchLine& line : std::as_const(lines)) {
+        if (!line.nodes.isEmpty() && line.nodes.last() == current) {
+            // このラインに対象ノードが含まれているか確認
+            if (line.nodes.contains(node)) {
+                return line.lineIndex;
+            }
+        }
+    }
+
+    // フォールバック: ノードを含む最初のラインを返す
+    for (const BranchLine& line : std::as_const(lines)) {
+        if (line.nodes.contains(node)) {
+            return line.lineIndex;
+        }
+    }
+
+    return -1;
+}
+
 void KifuBranchTree::setComment(int nodeId, const QString& comment)
 {
     KifuBranchNode* node = nodeAt(nodeId);

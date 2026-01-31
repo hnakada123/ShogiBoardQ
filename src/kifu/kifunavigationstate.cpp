@@ -14,6 +14,7 @@ void KifuNavigationState::setTree(KifuBranchTree* tree)
     m_tree = tree;
     m_currentNode = nullptr;
     m_lastSelectedLineAtBranch.clear();
+    m_preferredLineIndex = -1;  // ★ ツリー設定時にリセット
 
     if (m_tree != nullptr && m_tree->root() != nullptr) {
         setCurrentNode(m_tree->root());
@@ -33,7 +34,26 @@ int KifuNavigationState::currentLineIndex() const
     if (m_currentNode == nullptr) {
         return 0;
     }
+
+    // 優先ラインが設定されている場合は、それを返す
+    // これにより、分岐を選択した後は分岐点より前に戻っても、
+    // または別のサブブランチにいても、選択したラインを維持できる
+    if (m_preferredLineIndex > 0) {
+        return m_preferredLineIndex;
+    }
+
+    // 優先ラインが設定されていない場合は、ノードのラインインデックスを使用
     return m_currentNode->lineIndex();
+}
+
+void KifuNavigationState::setPreferredLineIndex(int lineIndex)
+{
+    m_preferredLineIndex = lineIndex;
+}
+
+void KifuNavigationState::resetPreferredLineIndex()
+{
+    m_preferredLineIndex = -1;
 }
 
 QString KifuNavigationState::currentLineName() const
@@ -132,14 +152,16 @@ int KifuNavigationState::maxPlyOnCurrentLine() const
 QVector<KifuBranchNode*> KifuNavigationState::branchCandidatesAtCurrent() const
 {
     QVector<KifuBranchNode*> result;
-    if (m_currentNode == nullptr || m_tree == nullptr) {
-        return result;
-    }
+    if (m_currentNode == nullptr) return result;
 
-    // 現在ノードの子が分岐候補
-    if (m_currentNode->childCount() > 1) {
-        for (int i = 0; i < m_currentNode->childCount(); ++i) {
-            result.append(m_currentNode->childAt(i));
+    KifuBranchNode* parent = m_currentNode->parent();
+    if (parent == nullptr) return result;
+
+    // 分岐候補は「親ノードの子」＝現在手の兄弟（同じ手数での別の指し手）
+    if (parent->childCount() > 1) {
+        result.reserve(parent->childCount());
+        for (int i = 0; i < parent->childCount(); ++i) {
+            result.append(parent->childAt(i));
         }
     }
 
@@ -148,10 +170,10 @@ QVector<KifuBranchNode*> KifuNavigationState::branchCandidatesAtCurrent() const
 
 bool KifuNavigationState::hasBranchAtCurrent() const
 {
-    if (m_currentNode == nullptr) {
-        return false;
-    }
-    return m_currentNode->childCount() > 1;
+    if (m_currentNode == nullptr) return false;
+    KifuBranchNode* parent = m_currentNode->parent();
+    if (parent == nullptr) return false;
+    return parent->childCount() > 1;
 }
 
 void KifuNavigationState::rememberLineSelection(KifuBranchNode* branchPoint, int lineIndex)
