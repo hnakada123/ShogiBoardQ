@@ -14,10 +14,12 @@
 #include "kifdisplayitem.h"
 #include "kifparsetypes.h"
 #include "kifutypes.h"
+#include "kifubranchtree.h"
 #include "playmode.h"
 
 class QTableWidget;
 class KifuRecordListModel;
+class KifuNavigationState;
 
 /**
  * @brief 棋譜データの中央管理クラス
@@ -48,6 +50,16 @@ public:
     void bind(QVector<ResolvedRow>* resolvedRows,
               int* activeResolvedRow,
               QList<KifDisplayItem>* liveDisp);
+
+    /**
+     * @brief KifuBranchTree を設定（新システム用）
+     */
+    void setBranchTree(KifuBranchTree* tree);
+
+    /**
+     * @brief KifuNavigationState を設定（新システム用、現在のライン取得に使用）
+     */
+    void setNavigationState(KifuNavigationState* state);
 
     /**
      * @brief 棋譜読み込み時の初期化
@@ -252,6 +264,10 @@ private:
     int* m_activeResolvedRow = nullptr;
     QList<KifDisplayItem>* m_liveDisp = nullptr;
 
+    // === 新システム（KifuBranchTree）への参照 ===
+    KifuBranchTree* m_branchTree = nullptr;
+    KifuNavigationState* m_navState = nullptr;
+
     // === コールバック ===
     CommentUpdateCallback m_commentUpdateCallback;  ///< コメント更新時の通知コールバック
 
@@ -283,6 +299,13 @@ private:
      */
     void outputVariationsRecursively(int parentRowIndex, QStringList& out, QSet<int>& visitedRows) const;
 
+    /**
+     * @brief BranchLineからKIF形式で変化を出力（新システム）
+     * @param line 分岐ライン
+     * @param out 出力先
+     */
+    void outputVariationFromBranchLine(const BranchLine& line, QStringList& out) const;
+
     // === KI2形式出力用ヘルパ ===
     /**
      * @brief KI2形式で指定した行の変化を出力
@@ -298,6 +321,13 @@ private:
      * @param visitedRows 訪問済み行のセット（無限ループ防止）
      */
     void outputKi2VariationsRecursively(int parentRowIndex, QStringList& out, QSet<int>& visitedRows) const;
+
+    /**
+     * @brief BranchLineからKI2形式で変化を出力（新システム）
+     * @param line 分岐ライン
+     * @param out 出力先
+     */
+    void outputKi2VariationFromBranchLine(const BranchLine& line, QStringList& out) const;
 
     // === JKF形式出力用ヘルパ ===
     /**
@@ -345,6 +375,20 @@ private:
      * @return QJsonArray 形式の分岐指し手配列
      */
     QJsonArray buildJkfForkMovesRecursive(int rowIndex, QSet<int>& visitedRows) const;
+
+    /**
+     * @brief KifuBranchTree から JKF形式の分岐を追加（新システム）
+     * @param movesArray 本譜の指し手配列
+     */
+    void addJkfForksFromTree(QJsonArray& movesArray) const;
+
+    /**
+     * @brief KifuBranchNode から JKF形式の分岐指し手配列を構築（新システム）
+     * @param node 分岐開始ノード
+     * @param visitedNodes 訪問済みノードIDのセット
+     * @return QJsonArray 形式の分岐指し手配列
+     */
+    QJsonArray buildJkfForkMovesFromNode(KifuBranchNode* node, QSet<int>& visitedNodes) const;
 
     // === USEN形式出力用ヘルパ ===
     /**

@@ -46,7 +46,6 @@
 #include "ui_mainwindow.h"
 #include "shogiclock.h"
 #include "apptooltipfilter.h"
-#include "navigationcontroller.h"
 #include "boardimageexporter.h"
 #include "engineinfowidget.h"
 #include "engineanalysistab.h"
@@ -79,7 +78,6 @@
 #include "analysistabwiring.h"
 #include "recordpanewiring.h"
 #include "recordpane.h"
-#include "navigationcontroller.h"
 #include "uiactionswiring.h"
 #include "gamerecordmodel.h"
 #include "pvboarddialog.h"
@@ -95,7 +93,6 @@
 #include "playerinfocontroller.h"    // ★ 追加: 対局者情報管理
 #include "boardsetupcontroller.h"    // ★ 追加: 盤面操作配線管理
 #include "pvclickcontroller.h"       // ★ 追加: 読み筋クリック処理
-#include "recordnavigationcontroller.h" // ★ 追加: 棋譜ナビゲーション管理
 #include "positioneditcoordinator.h"    // ★ 追加: 局面編集調整
 #include "csagamedialog.h"              // ★ 追加: CSA通信対局ダイアログ
 #include "csagamecoordinator.h"         // ★ 追加: CSA通信対局コーディネータ
@@ -122,7 +119,6 @@
 #include "languagecontroller.h"            // ★ 追加: 言語設定管理
 #include "considerationmodeuicontroller.h" // ★ 追加: 検討モードUI管理
 #include "docklayoutmanager.h"             // ★ 追加: ドックレイアウト管理
-#include "navigationcontextadapter.h"      // ★ 追加: INavigationContext委譲
 #include "dockcreationservice.h"           // ★ 追加: ドック作成サービス
 #include "commentcoordinator.h"            // ★ 追加: コメント処理
 #include "usicommandcontroller.h"          // ★ 追加: USI手動送信
@@ -1193,16 +1189,10 @@ void MainWindow::cancelKifuAnalysis()
 void MainWindow::onKifuAnalysisProgress(int ply, int scoreCp)
 {
     qDebug().noquote() << "[MainWindow::onKifuAnalysisProgress] ply=" << ply << "scoreCp=" << scoreCp;
-    
+
     // 1) 棋譜欄の該当行をハイライトし、盤面を更新
-    ensureRecordNavigationController();
-    if (m_recordNavController) {
-        qDebug().noquote() << "[MainWindow::onKifuAnalysisProgress] calling navigateKifuViewToRow(" << ply << ")";
-        m_recordNavController->navigateKifuViewToRow(ply);
-    } else {
-        qDebug().noquote() << "[MainWindow::onKifuAnalysisProgress] m_recordNavController is null!";
-    }
-    
+    navigateKifuViewToRow(ply);
+
     // 2) 評価値グラフに評価値をプロット
     //    ※AnalysisFlowControllerで既に先手視点に変換済み（後手番は符号反転済み）
     //    ※scoreCpがINT_MINの場合は位置移動のみ（評価値追加しない）
@@ -1221,17 +1211,13 @@ void MainWindow::onKifuAnalysisProgress(int ply, int scoreCp)
 void MainWindow::onKifuAnalysisResultRowSelected(int row)
 {
     qDebug().noquote() << "[MainWindow::onKifuAnalysisResultRowSelected] row=" << row;
-    
+
     // rowは解析結果の行番号で、plyに相当する
     int ply = row;
-    
+
     // 1) 棋譜欄の該当行をハイライトし、盤面を更新
-    ensureRecordNavigationController();
-    if (m_recordNavController) {
-        qDebug().noquote() << "[MainWindow::onKifuAnalysisResultRowSelected] calling navigateKifuViewToRow(" << ply << ")";
-        m_recordNavController->navigateKifuViewToRow(ply);
-    }
-    
+    navigateKifuViewToRow(ply);
+
     // 2) 分岐ツリーの該当手数をハイライト
     if (m_analysisTab) {
         qDebug().noquote() << "[MainWindow::onKifuAnalysisResultRowSelected] calling highlightBranchTreeAt(0, " << ply << ")";
@@ -1958,20 +1944,37 @@ void MainWindow::onRequestSelectKifuRow(int row)
 void MainWindow::syncBoardAndHighlightsAtRow(int ply)
 {
     qDebug() << "[MW-DEBUG] syncBoardAndHighlightsAtRow ENTER ply=" << ply;
-    ensureRecordNavigationController();
-    if (m_recordNavController) {
-        m_recordNavController->syncBoardAndHighlightsAtRow(ply);
+
+    // ★ 分岐ナビゲーション中は盤面同期をスキップ
+    if (m_skipBoardSyncForBranchNav) {
+        qDebug() << "[MW-DEBUG] syncBoardAndHighlightsAtRow skipped (branch navigation in progress)";
+        return;
     }
-    
+
+    // 位置編集モード中はスキップ
+    if (m_shogiView && m_shogiView->positionEditMode()) {
+        qDebug() << "[MW-DEBUG] syncBoardAndHighlightsAtRow skipped (edit-mode)";
+        return;
+    }
+
+    // BoardSyncPresenterを確保して盤面同期
+    ensureBoardSyncPresenter();
+    if (m_boardSync) {
+        m_boardSync->syncBoardAndHighlightsAtRow(ply);
+    }
+
+    // 矢印ボタンの活性化
+    enableArrowButtons();
+
     // m_currentSfenStrを現在の局面に更新
     if (m_sfenRecord && ply >= 0 && ply < m_sfenRecord->size()) {
         m_currentSfenStr = m_sfenRecord->at(ply);
         qDebug() << "[MW-DEBUG] syncBoardAndHighlightsAtRow: updated m_currentSfenStr=" << m_currentSfenStr;
     }
-    
+
     // 定跡ウィンドウを更新
     updateJosekiWindow();
-    
+
     qDebug() << "[MW-DEBUG] syncBoardAndHighlightsAtRow LEAVE";
 }
 
@@ -1995,49 +1998,59 @@ void MainWindow::applyResolvedRowAndSelect(int row, int selPly)
     updateJosekiWindow();
 }
 
-// --- INavigationContext アクセス（NavigationContextAdapterへ委譲）---
-INavigationContext* MainWindow::navigationContext() const
+void MainWindow::navigateKifuViewToRow(int ply)
 {
-    // const_castを使用して非constメソッドから初期化
-    // navigationContext()の呼び出し時に確実にアダプターが存在するようにする
-    const_cast<MainWindow*>(this)->ensureNavigationContextAdapter();
-    return m_navContextAdapter;
+    qDebug().noquote() << "[MW] navigateKifuViewToRow ENTER ply=" << ply;
+
+    if (!m_recordPane || !m_kifuRecordModel) {
+        qDebug().noquote() << "[MW] navigateKifuViewToRow ABORT: recordPane or kifuRecordModel is null";
+        return;
+    }
+
+    QTableView* view = m_recordPane->kifuView();
+    if (!view) {
+        qDebug().noquote() << "[MW] navigateKifuViewToRow ABORT: kifuView is null";
+        return;
+    }
+
+    const int rows = m_kifuRecordModel->rowCount();
+    const int safe = (rows > 0) ? qBound(0, ply, rows - 1) : 0;
+
+    qDebug().noquote() << "[MW] navigateKifuViewToRow: ply=" << ply
+                       << "rows=" << rows << "safe=" << safe;
+
+    const QModelIndex idx = m_kifuRecordModel->index(safe, 0);
+    if (idx.isValid()) {
+        if (auto* sel = view->selectionModel()) {
+            sel->setCurrentIndex(
+                idx, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
+        } else {
+            view->setCurrentIndex(idx);
+        }
+        view->scrollTo(idx, QAbstractItemView::PositionAtCenter);
+    }
+
+    // 棋譜欄のハイライト行を更新
+    m_kifuRecordModel->setCurrentHighlightRow(safe);
+
+    // 盤・ハイライト即時同期
+    syncBoardAndHighlightsAtRow(safe);
+
+    // トラッキングを更新
+    m_activePly = safe;
+    m_currentSelectedPly = safe;
+    m_currentMoveIndex = safe;
+
+    // 手番表示を更新
+    setCurrentTurn();
+
+    qDebug().noquote() << "[MW] navigateKifuViewToRow LEAVE";
 }
 
 KifuExportController* MainWindow::kifuExportController()
 {
     ensureKifuExportController();
     return m_kifuExportController;
-}
-
-void MainWindow::ensureNavigationContextAdapter()
-{
-    if (m_navContextAdapter) return;
-
-    m_navContextAdapter = new NavigationContextAdapter(this);
-
-    NavigationContextAdapter::Deps deps;
-    deps.resolvedRows = &m_resolvedRows;
-    deps.activeResolvedRow = &m_activeResolvedRow;
-    deps.sfenRecord = &m_sfenRecord;           // pointer to pointer
-    deps.kifuRecordModel = &m_kifuRecordModel; // pointer to pointer
-    deps.kifuLoadCoordinator = &m_kifuLoadCoordinator;  // pointer to pointer (ライブ対局状態参照用)
-    deps.recordNavController = &m_recordNavController;  // pointer to pointer
-    deps.recordPane = &m_recordPane;           // pointer to pointer
-    deps.replayController = &m_replayController;  // pointer to pointer
-    deps.activePly = &m_activePly;
-    deps.currentSelectedPly = &m_currentSelectedPly;
-    deps.currentSfenStr = &m_currentSfenStr;
-    // ★ 新分岐システム用
-    deps.navState = &m_navState;
-    deps.kifuNavController = &m_kifuNavController;
-    deps.branchTree = &m_branchTree;
-    m_navContextAdapter->setDeps(deps);
-
-    NavigationContextAdapter::Callbacks callbacks;
-    callbacks.updateJosekiWindow = [this]() { updateJosekiWindow(); };
-    callbacks.ensureRecordNavController = [this]() { ensureRecordNavigationController(); };
-    m_navContextAdapter->setCallbacks(callbacks);
 }
 
 void MainWindow::initializeBranchNavigationClasses()
@@ -2060,21 +2073,15 @@ void MainWindow::initializeBranchNavigationClasses()
 
         // ボタン接続（RecordPaneが存在する場合）
         if (m_recordPane != nullptr) {
-            // 既存の NavigationController がボタンを使用中なら二重ナビゲーションになるため接続しない
-            if (m_nav != nullptr) {
-                qDebug().noquote()
-                    << "[MW] initializeBranchNavigationClasses: skip KifuNavigationController button wiring"
-                    << "(NavigationController already connected)";
-            } else {
-                KifuNavigationController::Buttons buttons;
-                buttons.first = m_recordPane->firstButton();
-                buttons.back10 = m_recordPane->back10Button();
-                buttons.prev = m_recordPane->prevButton();
-                buttons.next = m_recordPane->nextButton();
-                buttons.fwd10 = m_recordPane->fwd10Button();
-                buttons.last = m_recordPane->lastButton();
-                m_kifuNavController->connectButtons(buttons);
-            }
+            KifuNavigationController::Buttons buttons;
+            buttons.first = m_recordPane->firstButton();
+            buttons.back10 = m_recordPane->back10Button();
+            buttons.prev = m_recordPane->prevButton();
+            buttons.next = m_recordPane->nextButton();
+            buttons.fwd10 = m_recordPane->fwd10Button();
+            buttons.last = m_recordPane->lastButton();
+            m_kifuNavController->connectButtons(buttons);
+            qDebug().noquote() << "[MW] initializeBranchNavigationClasses: KifuNavigationController buttons connected";
         }
     }
 
@@ -2124,17 +2131,6 @@ void MainWindow::initializeBranchNavigationClasses()
         }
     }
 
-    // 旧ナビゲーションシステムとの接続
-    ensureNavigationContextAdapter();
-    if (m_navContextAdapter != nullptr && m_displayCoordinator != nullptr) {
-        qDebug().noquote() << "[MW] initializeBranchNavigationClasses: connecting positionChanged -> onLegacyPositionChanged";
-        connect(m_navContextAdapter, &NavigationContextAdapter::positionChanged,
-                m_displayCoordinator, &KifuDisplayCoordinator::onLegacyPositionChanged);
-    } else {
-        qDebug().noquote() << "[MW] initializeBranchNavigationClasses: WARNING - m_navContextAdapter="
-                           << (m_navContextAdapter ? "yes" : "null")
-                           << "m_displayCoordinator=" << (m_displayCoordinator ? "yes" : "null");
-    }
 }
 
 void MainWindow::setupRecordPane()
@@ -2148,7 +2144,6 @@ void MainWindow::setupRecordPane()
         RecordPaneWiring::Deps d;
         d.parent      = m_central;                               // 親ウィジェット
         d.ctx         = this;                                    // RecordPane::mainRowChanged の受け先
-        d.navCtx      = navigationContext(); // NavigationController 用
         d.recordModel = m_kifuRecordModel;
         d.branchModel = m_kifuBranchModel;
 
@@ -2160,7 +2155,6 @@ void MainWindow::setupRecordPane()
 
     // 生成物の取得
     m_recordPane = m_recordPaneWiring->pane();
-    m_nav        = m_recordPaneWiring->nav(); // 既存コードで m_nav を使う場合に備えて保持
 
     // ★ RecordPane は QDockWidget に移動したため、m_gameRecordLayoutWidget への設定は不要
 }
@@ -2687,45 +2681,31 @@ void MainWindow::broadcastComment(const QString& text, bool asHtml)
     }
 }
 
-std::pair<int,int> MainWindow::resolveBranchHighlightTarget(int row, int ply) const
-{
-    if (!m_varEngine) return {-1, -1};
-    if (row < 0 || row >= m_resolvedRows.size() || ply < 0) return {-1, -1};
-
-    const ResolvedRow& rr = m_resolvedRows[row];
-
-    // Main 行（varIndex < 0）は常に vid=0（本譜）
-    if (rr.varIndex < 0) {
-        return { 0, ply };
-    }
-
-    // 親行（無ければ Main=0）
-    const int parentRow =
-        (rr.parent >= 0 && rr.parent < m_resolvedRows.size()) ? rr.parent : 0;
-
-    // 分岐前の手は親行の vid でハイライト
-    if (ply < rr.startPly) {
-        return resolveBranchHighlightTarget(parentRow, ply);
-    }
-
-    // 分岐以降は当該分岐の vid（sourceIndex -> variationId）
-    const int vid = m_varEngine->variationIdFromSourceIndex(rr.varIndex);
-    if (vid < 0) {
-        // 念のためフォールバック
-        return resolveBranchHighlightTarget(parentRow, ply);
-    }
-    return { vid, ply };
-}
-
 void MainWindow::onBranchNodeActivated(int row, int ply)
 {
     qDebug().noquote() << "[MW] onBranchNodeActivated ENTER row=" << row << "ply=" << ply;
 
-    if (row < 0 || row >= m_resolvedRows.size()) return;
+    // ★ 新システム: KifuBranchTree を使用して境界チェック
+    if (m_branchTree == nullptr || m_kifuNavController == nullptr) {
+        qDebug().noquote() << "[MW] onBranchNodeActivated: branchTree or kifuNavController is null, fallback to old system";
+        // フォールバック: 旧システム
+        if (row < 0 || row >= m_resolvedRows.size()) return;
+        const qsizetype maxPly = m_resolvedRows[row].disp.size();
+        const int selPly = static_cast<int>(qBound(qsizetype(0), qsizetype(ply), maxPly));
+        applyResolvedRowAndSelect(row, selPly);
+        return;
+    }
 
-    // その行の手数内にクランプ（0=開始局面, 1..N）
-    const qsizetype maxPly = m_resolvedRows[row].disp.size();
-    const int selPly = static_cast<int>(qBound(qsizetype(0), qsizetype(ply), maxPly));
+    QVector<BranchLine> lines = m_branchTree->allLines();
+    if (row < 0 || row >= lines.size()) {
+        qDebug().noquote() << "[MW] onBranchNodeActivated: row out of bounds (row=" << row << ", lines=" << lines.size() << ")";
+        return;
+    }
+
+    const BranchLine& line = lines.at(row);
+    // ライン上の最大ply（ノードがない場合は0）
+    const int maxPly = line.nodes.isEmpty() ? 0 : line.nodes.last()->ply();
+    const int selPly = qBound(0, ply, maxPly);
 
     // ★ 新システム用：分岐ラインを選択した場合、優先ラインを設定
     // これにより、prev/nextボタンで分岐ライン上をナビゲートできる
@@ -2737,25 +2717,38 @@ void MainWindow::onBranchNodeActivated(int row, int ply)
             m_navState->resetPreferredLineIndex();
             qDebug().noquote() << "[MW] onBranchNodeActivated: resetPreferredLineIndex (main line)";
         }
+    }
 
-        // ★ 新システム用：対応するノードを探して設定
-        if (m_branchTree != nullptr) {
-            QVector<BranchLine> lines = m_branchTree->allLines();
-            if (row >= 0 && row < lines.size()) {
-                const BranchLine& line = lines.at(row);
-                for (KifuBranchNode* node : std::as_const(line.nodes)) {
-                    if (node->ply() == selPly) {
-                        m_navState->setCurrentNode(node);
-                        qDebug().noquote() << "[MW] onBranchNodeActivated: setCurrentNode ply=" << selPly;
-                        break;
-                    }
-                }
-            }
+    // 対応するノードを探してナビゲート
+    KifuBranchNode* targetNode = nullptr;
+    for (KifuBranchNode* node : std::as_const(line.nodes)) {
+        if (node->ply() == selPly) {
+            targetNode = node;
+            break;
         }
     }
 
-    // これだけで：局面更新 / 棋譜欄差し替え＆選択 / 分岐候補欄更新 / ツリーハイライト同期
-    applyResolvedRowAndSelect(row, selPly);
+    // ply=0の場合（開始局面）はルートノードを使用
+    if (targetNode == nullptr && selPly == 0) {
+        targetNode = m_branchTree->root();
+    }
+
+    if (targetNode != nullptr) {
+        // goToNode で盤面同期・棋譜欄ハイライト・分岐候補更新が行われる
+        m_kifuNavController->goToNode(targetNode);
+        qDebug().noquote() << "[MW] onBranchNodeActivated: goToNode ply=" << selPly;
+
+        // ★ 旧システムとの互換性のため、レガシー変数を更新
+        m_activeResolvedRow = row;
+        m_activePly = selPly;
+        m_currentSelectedPly = selPly;
+        m_currentMoveIndex = selPly;
+
+        // 定跡ウィンドウを更新
+        updateJosekiWindow();
+    } else {
+        qDebug().noquote() << "[MW] onBranchNodeActivated: node not found for ply=" << selPly;
+    }
 
     qDebug().noquote() << "[MW] onBranchNodeActivated LEAVE";
 }
@@ -2778,6 +2771,14 @@ void MainWindow::onBranchTreeBuilt()
     // 表示コーディネーターにツリー変更を通知
     if (m_displayCoordinator != nullptr) {
         m_displayCoordinator->onTreeChanged();
+    }
+
+    // ★ GameRecordModel に新システムを設定（エクスポート用）
+    if (m_gameRecord != nullptr && m_branchTree != nullptr) {
+        m_gameRecord->setBranchTree(m_branchTree);
+        if (m_navState != nullptr) {
+            m_gameRecord->setNavigationState(m_navState);
+        }
     }
 }
 
@@ -2810,15 +2811,15 @@ void MainWindow::loadBoardFromSfen(const QString& sfen)
     }
 }
 
-// ★ 新規: 分岐ライン選択変更時に m_activeResolvedRow を同期
+// ★ 分岐ライン選択変更時の処理
+// 新システム（KifuNavigationState）が管理するため、旧システムの同期は最小限に
 void MainWindow::onLineSelectionChanged(int newLineIndex)
 {
-    if (newLineIndex >= 0 && newLineIndex < m_resolvedRows.size()) {
+    // 旧システムとの互換性のためm_activeResolvedRowを更新
+    // KifuLoadCoordinatorとGameRecordModelがまだ参照している
+    if (newLineIndex >= 0) {
         m_activeResolvedRow = newLineIndex;
         qDebug().noquote() << "[MW] onLineSelectionChanged: m_activeResolvedRow=" << m_activeResolvedRow;
-    } else {
-        qDebug().noquote() << "[MW] onLineSelectionChanged: newLineIndex=" << newLineIndex
-                           << "out of range (resolvedRows.size=" << m_resolvedRows.size() << ")";
     }
 }
 
@@ -2832,16 +2833,10 @@ void MainWindow::loadBoardWithHighlights(const QString& currentSfen, const QStri
     // ★ 旧システムの盤面同期をスキップするフラグを設定
     // このメソッドが完了するまで、onRecordPaneMainRowChanged での盤面同期を抑制する
     m_skipBoardSyncForBranchNav = true;
-    if (m_recordNavController) {
-        m_recordNavController->setSkipBoardSync(true);
-    }
 
     // ★ フラグをリセットするラムダ（QTimer::singleShotで使用）
     auto resetSkipFlags = [this]() {
         m_skipBoardSyncForBranchNav = false;
-        if (m_recordNavController) {
-            m_recordNavController->setSkipBoardSync(false);
-        }
     };
 
     if (currentSfen.isEmpty()) {
@@ -3341,58 +3336,6 @@ void MainWindow::ensurePvClickController()
         Qt::UniqueConnection);
 }
 
-void MainWindow::ensureRecordNavigationController()
-{
-    if (m_recordNavController) return;
-
-    m_recordNavController = new RecordNavigationController(this);
-
-    // 依存オブジェクトの設定
-    m_recordNavController->setShogiView(m_shogiView);
-    m_recordNavController->setBoardSyncPresenter(m_boardSync);
-    m_recordNavController->setKifuRecordModel(m_kifuRecordModel);
-    m_recordNavController->setKifuLoadCoordinator(m_kifuLoadCoordinator);
-    m_recordNavController->setReplayController(m_replayController);
-    m_recordNavController->setAnalysisTab(m_analysisTab);
-    m_recordNavController->setRecordPane(m_recordPane);
-    m_recordNavController->setRecordPresenter(m_recordPresenter);
-    m_recordNavController->setCsaGameCoordinator(m_csaGameCoordinator);
-    m_recordNavController->setEvalGraphController(m_evalGraphController);
-
-    // 状態参照の設定
-    m_recordNavController->setResolvedRows(&m_resolvedRows);
-    m_recordNavController->setActiveResolvedRow(&m_activeResolvedRow);
-
-    // コールバックの設定
-    m_recordNavController->setEnsureBoardSyncCallback([this]() {
-        ensureBoardSyncPresenter();
-        if (m_recordNavController) {
-            m_recordNavController->setBoardSyncPresenter(m_boardSync);
-        }
-    });
-    m_recordNavController->setEnableArrowButtonsCallback([this]() {
-        enableArrowButtons();
-    });
-    m_recordNavController->setSetCurrentTurnCallback([this]() {
-        setCurrentTurn();
-    });
-    m_recordNavController->setBroadcastCommentCallback([this](const QString& text, bool asHtml) {
-        broadcastComment(text, asHtml);
-    });
-    m_recordNavController->setApplyResolvedRowAndSelectCallback([this](int row, int ply) {
-        applyResolvedRowAndSelect(row, ply);
-    });
-    m_recordNavController->setUpdatePlyStateCallback([this](int activePly, int selectedPly, int moveIndex) {
-        m_activePly = activePly;
-        m_currentSelectedPly = selectedPly;
-        m_currentMoveIndex = moveIndex;
-    });
-    m_recordNavController->setUpdateTurnIndicatorCallback([this](ShogiGameController::Player player) {
-        if (m_shogiView) {
-            m_shogiView->updateTurnIndicator(player);
-        }
-    });
-}
 
 void MainWindow::ensurePositionEditCoordinator()
 {
@@ -3791,10 +3734,44 @@ void MainWindow::onRecordRowChangedByPresenter(int row, const QString& comment)
              << "comment=" << comment.left(30) << "..."
              << "playMode=" << static_cast<int>(m_playMode);
 
-    ensureRecordNavigationController();
-    if (m_recordNavController) {
-        m_recordNavController->onRecordRowChangedByPresenter(row, comment);
+    // ★ RecordNavigationController::onRecordRowChangedByPresenter から移植
+
+    // 未保存コメントの確認
+    const int editingRow = (m_analysisTab ? m_analysisTab->currentMoveIndex() : -1);
+    if (m_analysisTab && m_analysisTab->hasUnsavedComment()) {
+        if (row != editingRow) {
+            if (!m_analysisTab->confirmDiscardUnsavedComment()) {
+                // キャンセル：元の行に戻す
+                if (m_recordPane && m_recordPane->kifuView()) {
+                    QTableView* kifuView = m_recordPane->kifuView();
+                    if (kifuView->model() && editingRow >= 0 && editingRow < kifuView->model()->rowCount()) {
+                        QSignalBlocker blocker(kifuView->selectionModel());
+                        kifuView->setCurrentIndex(kifuView->model()->index(editingRow, 0));
+                    }
+                }
+                return;
+            }
+        }
     }
+
+    // 盤面・ハイライト同期
+    if (row >= 0) {
+        syncBoardAndHighlightsAtRow(row);
+
+        // 現在手数トラッキングを更新
+        m_activePly = row;
+        m_currentSelectedPly = row;
+        m_currentMoveIndex = row;
+
+        // ★ 注意：分岐候補欄の更新は新システム（KifuDisplayCoordinator）が担当
+    }
+
+    // コメント表示
+    const QString cmt = comment.trimmed();
+    broadcastComment(cmt.isEmpty() ? tr("コメントなし") : cmt, true);
+
+    // 矢印ボタンなどの活性化
+    enableArrowButtons();
 
     // 検討モード中であれば、選択した手の局面で検討を再開
     if (m_playMode == PlayMode::ConsiderationMode) {
@@ -3920,25 +3897,59 @@ void MainWindow::onRecordPaneMainRowChanged(int row)
         return;
     }
 
-    // RecordNavigationControllerに委譲
-    ensureRecordNavigationController();
-    if (m_recordNavController) {
-        qDebug() << "[MW] onRecordPaneMainRowChanged: calling m_recordNavController->onMainRowChanged(" << row << ")";
-        // 最新の依存を同期
-        m_recordNavController->setCsaGameCoordinator(m_csaGameCoordinator);
-        m_recordNavController->setEvalGraphController(m_evalGraphController);
-        m_recordNavController->onMainRowChanged(row);
-    } else {
-        qWarning() << "[MW] onRecordPaneMainRowChanged: m_recordNavController is NULL!";
+    // ★ CSA対局が進行中の場合のみ棋譜リストの選択変更による盤面同期をスキップ
+    bool csaGameInProgress = false;
+    if (m_csaGameCoordinator) {
+        csaGameInProgress = (m_csaGameCoordinator->gameState() == CsaGameCoordinator::GameState::InGame);
     }
 
-    // ★ 追加：分岐候補欄の更新（KifuLoadCoordinator経由）
-    // 分岐がある場合（m_resolvedRows.size() > 1）のみ更新する
-    // showBranchCandidates を直接呼び出す（onMainMoveRowChanged は applyResolvedRowAndSelect を
-    // 呼び出し、それが棋譜欄の選択を変更して無限ループを引き起こすため）
-    if (m_kifuLoadCoordinator && m_resolvedRows.size() > 1) {
-        m_kifuLoadCoordinator->showBranchCandidates(m_activeResolvedRow, row);
+    if (csaGameInProgress) {
+        qDebug() << "[MW] onRecordPaneMainRowChanged: SKIPPED (CSA game in progress)";
+        s_inProgress = false;
+        return;
     }
+
+    // ★ 盤面同期とUI更新（RecordNavigationController::onMainRowChanged から移植）
+    if (row >= 0) {
+        // 盤面・ハイライト同期
+        syncBoardAndHighlightsAtRow(row);
+
+        // 現在手数トラッキングを更新
+        m_activePly = row;
+        m_currentSelectedPly = row;
+        m_currentMoveIndex = row;
+
+        // 棋譜欄のハイライト行を更新
+        if (m_kifuRecordModel) {
+            m_kifuRecordModel->setCurrentHighlightRow(row);
+        }
+
+        // 手番表示を更新
+        setCurrentTurn();
+
+        // 盤面の手番ラベルを更新
+        if (m_shogiView && m_shogiView->board()) {
+            const QString bw = m_shogiView->board()->currentPlayer();
+            const bool isBlackTurn = (bw != QStringLiteral("w"));
+            m_shogiView->setActiveSide(isBlackTurn);
+
+            const auto player = isBlackTurn ? ShogiGameController::Player1 : ShogiGameController::Player2;
+            if (m_shogiView) {
+                m_shogiView->updateTurnIndicator(player);
+            }
+        }
+
+        // 評価値グラフの縦線（カーソルライン）を更新
+        if (m_evalGraphController) {
+            m_evalGraphController->setCurrentPly(row);
+        }
+    }
+
+    // 矢印ボタンを有効化
+    enableArrowButtons();
+
+    // ★ 注意：分岐候補欄の更新は新システム（KifuDisplayCoordinator::onLegacyPositionChanged）が担当
+    // 旧システムのshowBranchCandidatesは新システム有効時にスキップされるため、ここでは呼び出さない
 
     // m_currentSfenStrを現在の局面に更新
     // ★ 注意：変化ライン上にいる場合は m_sfenRecord（本譜のSFEN）を使わない
@@ -4314,6 +4325,14 @@ void MainWindow::ensureGameRecordModel()
     }
 
     m_gameRecord->bind(&m_resolvedRows, &m_activeResolvedRow, liveDispPtr);
+
+    // ★ 新システム: KifuBranchTree と KifuNavigationState を設定
+    if (m_branchTree != nullptr) {
+        m_gameRecord->setBranchTree(m_branchTree);
+    }
+    if (m_navState != nullptr) {
+        m_gameRecord->setNavigationState(m_navState);
+    }
 
     // commentChanged シグナルを接続（将来の拡張用）
     connect(m_gameRecord, &GameRecordModel::commentChanged,

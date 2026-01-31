@@ -2,7 +2,6 @@
 #include "recordpane.h"
 #include "kifurecordlistmodel.h"
 #include "kifudisplay.h"
-#include "navigationcontroller.h"
 #include "mainwindow.h"
 
 #include <QModelIndex>
@@ -33,26 +32,8 @@ void RecordPaneWiring::buildUiAndWire()
     // RecordPane へのモデル割当て
     m_pane->setModels(m_d.recordModel, m_d.branchModel);
 
-    // ナビゲーションボタン束
-    NavigationController::Buttons btns{
-        m_pane->firstButton(),
-        m_pane->back10Button(),
-        m_pane->prevButton(),
-        m_pane->nextButton(),
-        m_pane->fwd10Button(),
-        m_pane->lastButton(),
-    };
-
-    // NavigationController 生成（INavigationContext* が必須）
-    if (!m_nav) {
-        INavigationContext* ctx = m_d.navCtx;
-        if (!ctx) ctx = dynamic_cast<INavigationContext*>(m_d.ctx);
-        if (!ctx) {
-            qWarning() << "[RecordPaneWiring] navCtx is null. NavigationController will not be created.";
-        } else {
-            m_nav = new NavigationController(btns, ctx);
-        }
-    }
+    // ★ 旧NavigationControllerは廃止。新システム（KifuNavigationController）がボタン接続を担当する。
+    // ボタン接続は MainWindow::initializeBranchNavigationClasses() で行われる。
 
     // 起動直後の「=== 開始局面 ===」ヘッダを重複なく用意（任意）
     if (m_d.recordModel) {

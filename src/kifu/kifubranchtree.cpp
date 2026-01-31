@@ -383,3 +383,80 @@ void KifuBranchTree::setComment(int nodeId, const QString& comment)
         emit commentChanged(nodeId, comment);
     }
 }
+
+// === データ抽出（ResolvedRow互換）===
+
+QList<KifDisplayItem> KifuBranchTree::getDisplayItemsForLine(int lineIndex) const
+{
+    QList<KifDisplayItem> result;
+
+    QVector<BranchLine> lines = allLines();
+    if (lineIndex < 0 || lineIndex >= lines.size()) {
+        return result;
+    }
+
+    const BranchLine& line = lines.at(lineIndex);
+    for (KifuBranchNode* node : std::as_const(line.nodes)) {
+        KifDisplayItem item;
+        item.prettyMove = node->displayText();
+        item.comment = node->comment();
+        item.timeText = node->timeText();
+        result.append(item);
+    }
+
+    return result;
+}
+
+QStringList KifuBranchTree::getSfenListForLine(int lineIndex) const
+{
+    QStringList result;
+
+    QVector<BranchLine> lines = allLines();
+    if (lineIndex < 0 || lineIndex >= lines.size()) {
+        return result;
+    }
+
+    const BranchLine& line = lines.at(lineIndex);
+    for (KifuBranchNode* node : std::as_const(line.nodes)) {
+        result.append(node->sfen());
+    }
+
+    return result;
+}
+
+QVector<ShogiMove> KifuBranchTree::getGameMovesForLine(int lineIndex) const
+{
+    QVector<ShogiMove> result;
+
+    QVector<BranchLine> lines = allLines();
+    if (lineIndex < 0 || lineIndex >= lines.size()) {
+        return result;
+    }
+
+    const BranchLine& line = lines.at(lineIndex);
+    for (KifuBranchNode* node : std::as_const(line.nodes)) {
+        // ply=0（開始局面）と終局手は含めない
+        if (node->isActualMove()) {
+            result.append(node->move());
+        }
+    }
+
+    return result;
+}
+
+QStringList KifuBranchTree::getCommentsForLine(int lineIndex) const
+{
+    QStringList result;
+
+    QVector<BranchLine> lines = allLines();
+    if (lineIndex < 0 || lineIndex >= lines.size()) {
+        return result;
+    }
+
+    const BranchLine& line = lines.at(lineIndex);
+    for (KifuBranchNode* node : std::as_const(line.nodes)) {
+        result.append(node->comment());
+    }
+
+    return result;
+}
