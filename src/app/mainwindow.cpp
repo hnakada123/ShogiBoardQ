@@ -4864,7 +4864,10 @@ void MainWindow::dumpTestState()
         auto lines = m_branchTree->allLines();
         qDebug() << "[TEST] branchTree lineCount:" << lines.size();
         for (int i = 0; i < lines.size() && i < 5; ++i) {  // 最大5ライン
-            qDebug() << "[TEST]   line[" << i << "] nodeCount:" << lines[i].nodes.size();
+            const auto& line = lines[i];
+            qDebug() << "[TEST]   line[" << i << "] nodeCount:" << line.nodes.size()
+                     << "branchPly:" << line.branchPly
+                     << "branchPoint:" << (line.branchPoint ? line.branchPoint->displayText() : "null");
         }
     }
 
