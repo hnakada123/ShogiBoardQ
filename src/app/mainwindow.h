@@ -36,7 +36,6 @@
 #include "considerationdialog.h"
 #include "tsumeshogisearchdialog.h"
 #include "shogiclock.h"
-#include "navigationcontext.h"
 #include "recordpane.h"
 #include "engineanalysistab.h"
 #include "boardinteractioncontroller.h"
@@ -59,7 +58,6 @@ class ConsecutiveGamesController;
 class LanguageController;
 class ConsiderationModeUIController;
 class DockLayoutManager;
-class NavigationContextAdapter;
 class DockCreationService;
 class CommentCoordinator;
 
@@ -86,7 +84,6 @@ QT_END_NAMESPACE
 class QPainter;
 class QStyleOptionViewItem;
 class QModelIndex;
-class NavigationController;
 class QGraphicsView;
 class QGraphicsPathItem;
 class QTableView;
@@ -106,7 +103,6 @@ class AnalysisTabWiring;
 class RecordPaneWiring;
 class UiActionsWiring;
 class GameLayoutBuilder;
-class INavigationContext;
 class GameRecordModel;
 class KifuPasteDialog;
 class GameInfoPaneController;
@@ -119,7 +115,6 @@ class GameStateController;
 class PlayerInfoController;
 class BoardSetupController;
 class PvClickController;
-class RecordNavigationController;
 class PositionEditCoordinator;
 class CsaGameDialog;
 class CsaGameCoordinator;
@@ -165,9 +160,6 @@ class MainWindow : public QMainWindow
     // ========================================================
 public:
     explicit MainWindow(QWidget* parent = nullptr);
-
-    // INavigationContext へのアクセス（NavigationContextAdapterへ委譲）
-    INavigationContext* navigationContext() const;
 
     // 評価値グラフウィジェットへのアクセス
     EvaluationChartWidget* evalChart() const { return m_evalChart; }
@@ -477,9 +469,8 @@ private:
     GameRecordModel* m_gameRecord = nullptr;
 
     // 新UI部品 / ナビゲーション
-    RecordPane*           m_recordPane = nullptr;
-    NavigationController* m_nav = nullptr;
-    EngineAnalysisTab*    m_analysisTab = nullptr;
+    RecordPane*        m_recordPane = nullptr;
+    EngineAnalysisTab* m_analysisTab = nullptr;
 
     // 評価値グラフドック
     QDockWidget*           m_evalChartDock = nullptr;
@@ -565,8 +556,6 @@ private:
     // 読み筋クリック処理
     PvClickController*        m_pvClickController = nullptr;
 
-    // 棋譜ナビゲーション管理
-    RecordNavigationController* m_recordNavController = nullptr;
 
     // 局面編集調整
     PositionEditCoordinator*  m_posEditCoordinator = nullptr;
@@ -599,7 +588,6 @@ private:
     LanguageController* m_languageController = nullptr;
     ConsiderationModeUIController* m_considerationUIController = nullptr;
     DockLayoutManager* m_dockLayoutManager = nullptr;
-    NavigationContextAdapter* m_navContextAdapter = nullptr;
     DockCreationService* m_dockCreationService = nullptr;
     CommentCoordinator* m_commentCoordinator = nullptr;
     UsiCommandController* m_usiCommandController = nullptr;
@@ -665,7 +653,6 @@ private:
 
     // 分岐 / 変化
     void applyResolvedRowAndSelect(int row, int selPly);
-    std::pair<int,int> resolveBranchHighlightTarget(int row, int ply) const;
 
     // ユーティリティ
     void setPlayersNamesForMode();
@@ -699,7 +686,6 @@ private:
     void ensurePlayerInfoController();
     void ensureBoardSetupController();
     void ensurePvClickController();
-    void ensureRecordNavigationController();
     void ensurePositionEditCoordinator();
     void ensureCsaGameWiring();
     void ensureJosekiWiring();
@@ -712,7 +698,6 @@ private:
     void ensureLanguageController();
     void ensureConsiderationUIController();
     void ensureDockLayoutManager();
-    void ensureNavigationContextAdapter();
     void ensureDockCreationService();
     void ensureCommentCoordinator();
     void ensureUsiCommandController();
@@ -726,6 +711,9 @@ private:
     void connectCoreSignals();
     void installAppToolTips();
     void finalizeCoordinators();
+
+    // 棋譜ナビゲーション用ヘルパー（RecordNavigationControllerから移行）
+    void navigateKifuViewToRow(int ply);
 
     // hooks 用メンバー関数
     void requestRedrawEngine1Eval();

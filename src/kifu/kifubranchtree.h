@@ -5,8 +5,10 @@
 #include <QHash>
 #include <QVector>
 #include <QSet>
+#include <QList>
 
 #include "kifubranchnode.h"
+#include "kifdisplayitem.h"
 
 class KifuBranchTree;
 
@@ -173,6 +175,36 @@ public:
      * @brief ノードのコメントを設定
      */
     void setComment(int nodeId, const QString& comment);
+
+    // === データ抽出（ResolvedRow互換）===
+
+    /**
+     * @brief 指定ラインの表示アイテムリストを取得
+     * @param lineIndex ラインインデックス（0=本譜）
+     * @return KifDisplayItemのリスト（インデックス0=開始局面、1以降=指し手）
+     */
+    QList<KifDisplayItem> getDisplayItemsForLine(int lineIndex) const;
+
+    /**
+     * @brief 指定ラインのSFENリストを取得
+     * @param lineIndex ラインインデックス（0=本譜）
+     * @return SFENのリスト（インデックス0=開始局面、1以降=各手後の局面）
+     */
+    QStringList getSfenListForLine(int lineIndex) const;
+
+    /**
+     * @brief 指定ラインの指し手リストを取得
+     * @param lineIndex ラインインデックス（0=本譜）
+     * @return ShogiMoveのリスト（インデックス0=1手目、終局手は含まない）
+     */
+    QVector<ShogiMove> getGameMovesForLine(int lineIndex) const;
+
+    /**
+     * @brief 指定ラインのコメントリストを取得
+     * @param lineIndex ラインインデックス（0=本譜）
+     * @return コメントのリスト（インデックス対応はSFENと同じ）
+     */
+    QStringList getCommentsForLine(int lineIndex) const;
 
 signals:
     /**
