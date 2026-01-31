@@ -79,6 +79,17 @@ public:
     void setUpdateTurnIndicatorCallback(UpdateTurnIndicatorCallback cb);
 
     // --------------------------------------------------------
+    // 分岐ナビゲーション用スキップフラグ
+    // --------------------------------------------------------
+    /**
+     * @brief 盤面同期をスキップするフラグを設定
+     * 分岐ナビゲーション中は盤面が既に更新されているため、
+     * 旧システムの盤面同期をスキップする必要がある
+     */
+    void setSkipBoardSync(bool skip);
+    bool skipBoardSync() const;
+
+    // --------------------------------------------------------
     // ナビゲーション処理
     // --------------------------------------------------------
 
@@ -139,6 +150,9 @@ private:
     ApplyResolvedRowAndSelectCallback m_applyResolvedRowAndSelect;
     UpdatePlyStateCallback m_updatePlyState;
     UpdateTurnIndicatorCallback m_updateTurnIndicator;
+
+    // ★ 分岐ナビゲーション用スキップフラグ
+    bool m_skipBoardSync = false;
 };
 
 #endif // RECORDNAVIGATIONCONTROLLER_H

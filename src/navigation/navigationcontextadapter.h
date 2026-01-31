@@ -11,6 +11,9 @@ class KifuLoadCoordinator;
 class RecordNavigationController;
 class RecordPane;
 class ReplayController;
+class KifuNavigationState;
+class KifuNavigationController;
+class KifuBranchTree;
 struct ResolvedRow;
 
 /**
@@ -39,6 +42,10 @@ public:
         const int* activePly = nullptr;
         const int* currentSelectedPly = nullptr;
         QString* currentSfenStr = nullptr;
+        // ★ 新分岐システム用
+        KifuNavigationState* const* navState = nullptr;
+        KifuNavigationController* const* kifuNavController = nullptr;
+        KifuBranchTree* const* branchTree = nullptr;
     };
 
     /**

@@ -132,6 +132,16 @@ void RecordNavigationController::setUpdateTurnIndicatorCallback(UpdateTurnIndica
     m_updateTurnIndicator = std::move(cb);
 }
 
+void RecordNavigationController::setSkipBoardSync(bool skip)
+{
+    m_skipBoardSync = skip;
+}
+
+bool RecordNavigationController::skipBoardSync() const
+{
+    return m_skipBoardSync;
+}
+
 // --------------------------------------------------------
 // ナビゲーション処理
 // --------------------------------------------------------
@@ -140,7 +150,15 @@ void RecordNavigationController::syncBoardAndHighlightsAtRow(int ply)
 {
     qDebug().noquote() << "[RecordNav] syncBoardAndHighlightsAtRow ENTER ply=" << ply
                        << "m_boardSync=" << static_cast<const void*>(m_boardSync)
-                       << "m_ensureBoardSync=" << (m_ensureBoardSync ? "set" : "NOT SET");
+                       << "m_ensureBoardSync=" << (m_ensureBoardSync ? "set" : "NOT SET")
+                       << "m_skipBoardSync=" << m_skipBoardSync;
+
+    // ★ 分岐ナビゲーション中は盤面同期をスキップ
+    // 新システムが既に盤面を更新しているため
+    if (m_skipBoardSync) {
+        qDebug() << "[RecordNav] syncBoardAndHighlightsAtRow skipped (branch navigation). ply=" << ply;
+        return;
+    }
 
     // 位置編集モード中はスキップ
     if (m_shogiView && m_shogiView->positionEditMode()) {

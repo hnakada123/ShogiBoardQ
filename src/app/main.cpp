@@ -12,6 +12,8 @@
 #include <QTextStream>
 #include <QDateTime>
 #include <QStandardPaths>
+#include <QCommandLineParser>
+#include <QTimer>
 
 // デバッグメッセージをファイルに出力するハンドラ
 static QFile *logFile = nullptr;
@@ -111,9 +113,265 @@ int main(int argc, char *argv[])
     // Creatorのような「Fusion」スタイルに統一する。
     a.setStyle(QStyleFactory::create("Fusion"));
 
+    // コマンドライン引数の解析
+    QCommandLineParser parser;
+    parser.setApplicationDescription("ShogiBoardQ - Japanese Chess Board Application");
+    parser.addHelpOption();
+    parser.addVersionOption();
+
+    // --load-kif <file> : 起動時にKIFファイルを読み込む
+    QCommandLineOption loadKifOption(
+        QStringList() << "load-kif",
+        "Load a KIF/KI2/CSA file on startup.",
+        "file");
+    parser.addOption(loadKifOption);
+
+    // --test-mode : テストモード（詳細なログ出力）
+    QCommandLineOption testModeOption(
+        QStringList() << "test-mode",
+        "Enable test mode with verbose state logging.");
+    parser.addOption(testModeOption);
+
+    // --dump-state-after <ms> : 指定ミリ秒後に状態をダンプして終了
+    QCommandLineOption dumpStateOption(
+        QStringList() << "dump-state-after",
+        "Dump UI state after <ms> milliseconds and exit.",
+        "ms");
+    parser.addOption(dumpStateOption);
+
+    // --click-branch <index> : 指定インデックスの分岐候補をクリック
+    QCommandLineOption clickBranchOption(
+        QStringList() << "click-branch",
+        "Click branch candidate at <index> (0-based).",
+        "index");
+    parser.addOption(clickBranchOption);
+
+    // --navigate-to <ply> : 指定手数まで移動
+    QCommandLineOption navigateToOption(
+        QStringList() << "navigate-to",
+        "Navigate to specified ply (0-based).",
+        "ply");
+    parser.addOption(navigateToOption);
+
+    // --click-next <count> : 1手進むボタンを指定回数クリック
+    QCommandLineOption clickNextOption(
+        QStringList() << "click-next",
+        "Click next button <count> times.",
+        "count");
+    parser.addOption(clickNextOption);
+
+    // --click-prev <count> : 1手戻るボタンを指定回数クリック
+    QCommandLineOption clickPrevOption(
+        QStringList() << "click-prev",
+        "Click prev button <count> times.",
+        "count");
+    parser.addOption(clickPrevOption);
+
+    // --click-branch2 <index> : 2回目の分岐候補クリック（next/prev後に実行）
+    QCommandLineOption clickBranch2Option(
+        QStringList() << "click-branch2",
+        "Click branch candidate at <index> after next/prev buttons.",
+        "index");
+    parser.addOption(clickBranch2Option);
+
+    // --click-next2 <count> : click-branch2後の1手進む
+    QCommandLineOption clickNext2Option(
+        QStringList() << "click-next2",
+        "Click next button <count> times after click-branch2.",
+        "count");
+    parser.addOption(clickNext2Option);
+
+    // --click-prev2 <count> : click-branch2後の1手戻る
+    QCommandLineOption clickPrev2Option(
+        QStringList() << "click-prev2",
+        "Click prev button <count> times after click-branch2.",
+        "count");
+    parser.addOption(clickPrev2Option);
+
+    // --click-kifu-row <row> : 棋譜欄の行を直接クリック
+    QCommandLineOption clickKifuRowOption(
+        QStringList() << "click-kifu-row",
+        "Click kifu list row directly.",
+        "row");
+    parser.addOption(clickKifuRowOption);
+
+    // --click-tree-node <row,ply> : 分岐ツリーのノードを直接クリック
+    QCommandLineOption clickTreeNodeOption(
+        QStringList() << "click-tree-node",
+        "Click branch tree node directly at <row,ply>.",
+        "row,ply");
+    parser.addOption(clickTreeNodeOption);
+
+    // --click-next3 <count> : click-prev2後の1手進む
+    QCommandLineOption clickNext3Option(
+        QStringList() << "click-next3",
+        "Click next button <count> times after click-prev2.",
+        "count");
+    parser.addOption(clickNext3Option);
+
+    parser.process(a);
+
     MainWindow w;
 
+    // テストモードの設定
+    const bool testMode = parser.isSet(testModeOption);
+    if (testMode) {
+        w.setTestMode(true);
+        qDebug() << "[TEST] Test mode enabled";
+    }
+
     w.show();
+
+    // KIFファイルの自動読み込み
+    if (parser.isSet(loadKifOption)) {
+        const QString kifFile = parser.value(loadKifOption);
+        qDebug() << "[TEST] Auto-loading KIF file:" << kifFile;
+        // ウィンドウ表示後に読み込みを遅延実行
+        QTimer::singleShot(500, &w, [&w, kifFile]() {
+            w.loadKifuFile(kifFile);
+        });
+    }
+
+    // 手数へのナビゲーション
+    if (parser.isSet(navigateToOption)) {
+        const int ply = parser.value(navigateToOption).toInt();
+        qDebug() << "[TEST] Auto-navigating to ply:" << ply;
+        // KIF読み込み後に実行（1秒後）
+        QTimer::singleShot(1000, &w, [&w, ply]() {
+            w.navigateToPly(ply);
+        });
+    }
+
+    // 分岐候補クリックの自動実行
+    if (parser.isSet(clickBranchOption)) {
+        const int branchIndex = parser.value(clickBranchOption).toInt();
+        qDebug() << "[TEST] Auto-clicking branch index:" << branchIndex;
+        // ナビゲーション後に実行（1.5秒後）
+        QTimer::singleShot(1500, &w, [&w, branchIndex]() {
+            w.clickBranchCandidate(branchIndex);
+        });
+    }
+
+    // 1手進むボタンの自動クリック
+    const int nextCount = parser.isSet(clickNextOption) ? parser.value(clickNextOption).toInt() : 0;
+    if (nextCount > 0) {
+        qDebug() << "[TEST] Auto-clicking next button" << nextCount << "times";
+        // 分岐クリック後に実行（2秒後から開始、100msごと）
+        for (int i = 0; i < nextCount; ++i) {
+            QTimer::singleShot(2000 + i * 100, &w, [&w]() {
+                w.clickNextButton();
+            });
+        }
+    }
+
+    // 1手戻るボタンの自動クリック（nextボタンの後に実行）
+    const int prevCount = parser.isSet(clickPrevOption) ? parser.value(clickPrevOption).toInt() : 0;
+    if (prevCount > 0) {
+        qDebug() << "[TEST] Auto-clicking prev button" << prevCount << "times";
+        // nextボタンの後に実行（nextの終了時間 + 500ms から開始）
+        const int prevStartTime = 2000 + nextCount * 100 + 500;
+        for (int i = 0; i < prevCount; ++i) {
+            QTimer::singleShot(prevStartTime + i * 100, &w, [&w]() {
+                w.clickPrevButton();
+            });
+        }
+    }
+
+    // 2回目の分岐候補クリック（next/prev後に実行）
+    const int branch2StartTime = 2000 + nextCount * 100 + 500 + prevCount * 100 + 500;
+    if (parser.isSet(clickBranch2Option)) {
+        const int branch2Index = parser.value(clickBranch2Option).toInt();
+        qDebug() << "[TEST] Auto-clicking branch2 index:" << branch2Index;
+        QTimer::singleShot(branch2StartTime, &w, [&w, branch2Index]() {
+            w.clickBranchCandidate(branch2Index);
+        });
+    }
+
+    // click-branch2後の1手進む
+    const int next2Count = parser.isSet(clickNext2Option) ? parser.value(clickNext2Option).toInt() : 0;
+    if (next2Count > 0) {
+        qDebug() << "[TEST] Auto-clicking next2 button" << next2Count << "times";
+        const int next2StartTime = branch2StartTime + 500;
+        for (int i = 0; i < next2Count; ++i) {
+            QTimer::singleShot(next2StartTime + i * 100, &w, [&w]() {
+                w.clickNextButton();
+            });
+        }
+    }
+
+    // click-branch2後の1手戻る
+    const int prev2Count = parser.isSet(clickPrev2Option) ? parser.value(clickPrev2Option).toInt() : 0;
+    if (prev2Count > 0) {
+        qDebug() << "[TEST] Auto-clicking prev2 button" << prev2Count << "times";
+        const int prev2StartTime = branch2StartTime + 500 + next2Count * 100 + 500;
+        for (int i = 0; i < prev2Count; ++i) {
+            QTimer::singleShot(prev2StartTime + i * 100, &w, [&w]() {
+                w.clickPrevButton();
+            });
+        }
+    }
+
+    // click-prev2後の1手進む
+    const int next3Count = parser.isSet(clickNext3Option) ? parser.value(clickNext3Option).toInt() : 0;
+    if (next3Count > 0) {
+        qDebug() << "[TEST] Auto-clicking next3 button" << next3Count << "times";
+        const int next3StartTime = branch2StartTime + 500 + next2Count * 100 + 500 + prev2Count * 100 + 500;
+        for (int i = 0; i < next3Count; ++i) {
+            QTimer::singleShot(next3StartTime + i * 100, &w, [&w]() {
+                w.clickNextButton();
+            });
+        }
+    }
+
+    // 分岐ツリーのノードを直接クリック
+    // KIF読み込み後に実行
+    int treeNodeClickTime = 1500;
+    if (parser.isSet(clickTreeNodeOption)) {
+        const QString value = parser.value(clickTreeNodeOption);
+        const QStringList parts = value.split(QLatin1Char(','));
+        if (parts.size() == 2) {
+            const int treeRow = parts.at(0).toInt();
+            const int treePly = parts.at(1).toInt();
+            qDebug() << "[TEST] Auto-clicking tree node: row=" << treeRow << "ply=" << treePly;
+            treeNodeClickTime = 1500;
+            QTimer::singleShot(treeNodeClickTime, &w, [&w, treeRow, treePly]() {
+                w.clickBranchTreeNode(treeRow, treePly);
+            });
+        }
+    }
+
+    // 棋譜欄の行を直接クリック
+    // 他の操作がある場合は全操作完了後、なければKIF読み込み直後に実行
+    if (parser.isSet(clickKifuRowOption)) {
+        const int kifuRow = parser.value(clickKifuRowOption).toInt();
+        qDebug() << "[TEST] Auto-clicking kifu row:" << kifuRow;
+
+        int kifuRowStartTime;
+        const bool hasOtherOps = parser.isSet(clickBranchOption) || nextCount > 0 || prevCount > 0 ||
+                                  parser.isSet(clickBranch2Option) || next2Count > 0 ||
+                                  prev2Count > 0 || next3Count > 0 || parser.isSet(clickTreeNodeOption);
+        if (hasOtherOps) {
+            // 他の操作がある場合は全操作完了後
+            kifuRowStartTime = branch2StartTime + 500 + next2Count * 100 + 500 + prev2Count * 100 + 500 + next3Count * 100 + 500;
+        } else {
+            // 他の操作がなければKIF読み込み後すぐ
+            kifuRowStartTime = 1500;
+        }
+
+        QTimer::singleShot(kifuRowStartTime, &w, [&w, kifuRow]() {
+            w.clickKifuRow(kifuRow);
+        });
+    }
+
+    // 状態ダンプ＆終了
+    if (parser.isSet(dumpStateOption)) {
+        const int delayMs = parser.value(dumpStateOption).toInt();
+        qDebug() << "[TEST] Will dump state and exit after" << delayMs << "ms";
+        QTimer::singleShot(delayMs, &w, [&w]() {
+            w.dumpTestState();
+            QApplication::quit();
+        });
+    }
 
     int result = a.exec();
 

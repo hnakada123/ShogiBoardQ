@@ -190,6 +190,17 @@ public slots:
     // クリップボード操作
     void pasteKifuFromClipboard();
 
+    // ★ テスト自動化用メソッド
+    void setTestMode(bool enabled);
+    void loadKifuFile(const QString& path);
+    void navigateToPly(int ply);
+    void clickBranchCandidate(int index);
+    void clickNextButton();           // 1手進むボタンをクリック
+    void clickPrevButton();           // 1手戻るボタンをクリック
+    void clickKifuRow(int row);       // 棋譜欄の行を直接クリック
+    void clickBranchTreeNode(int row, int ply); // 分岐ツリーのノードを直接クリック
+    void dumpTestState();
+
     // エラー/一般UI
     void displayErrorMessage(const QString& message);
     void saveSettingsAndClose();
@@ -342,6 +353,12 @@ private slots:
 
     // ★ 新規: 分岐ツリー構築完了
     void onBranchTreeBuilt();
+
+    // ★ 新規: SFENから直接盤面を読み込む（分岐ナビゲーション用）
+    void loadBoardFromSfen(const QString& sfen);
+
+    // ★ 新規: SFENから盤面とハイライトを更新（分岐ナビゲーション用）
+    void loadBoardWithHighlights(const QString& currentSfen, const QString& prevSfen);
 
     // エラー / 前準備
     void onErrorBusOccurred(const QString& msg);
@@ -748,6 +765,12 @@ private:
 
     // 開始局面解決
     QString resolveCurrentSfenForGameStart() const;
+
+    // ★ テスト自動化用
+    bool m_testMode = false;
+
+    // ★ 分岐ナビゲーション中の盤面同期スキップフラグ
+    bool m_skipBoardSyncForBranchNav = false;
 };
 
 #endif // MAINWINDOW_H

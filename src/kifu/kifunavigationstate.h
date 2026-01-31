@@ -44,8 +44,20 @@ public:
 
     /**
      * @brief 現在のラインインデックスを取得（0=本譜、1以降=分岐）
+     * 分岐点より前にいる場合でも、優先ラインが設定されていればそれを返す
      */
     int currentLineIndex() const;
+
+    /**
+     * @brief 優先ラインインデックスを設定
+     * 分岐を選択した時に呼び出す。分岐点より前に戻っても維持される。
+     */
+    void setPreferredLineIndex(int lineIndex);
+
+    /**
+     * @brief 優先ラインインデックスをリセット（本譜に戻る時に呼び出す）
+     */
+    void resetPreferredLineIndex();
 
     /**
      * @brief 現在のライン名を取得（"本譜" または "分岐N"）
@@ -141,6 +153,10 @@ private:
 
     // 分岐点のnodeId -> 選択したラインのインデックス
     QHash<int, int> m_lastSelectedLineAtBranch;
+
+    // 優先ラインインデックス（分岐選択時に設定、分岐点より前に戻っても維持）
+    // -1 = 未設定（ノードのlineIndexを使用）
+    int m_preferredLineIndex = -1;
 };
 
 #endif // KIFUNAVIGATIONSTATE_H
