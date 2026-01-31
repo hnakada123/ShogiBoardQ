@@ -4842,6 +4842,10 @@ void MainWindow::dumpTestState()
                      << m_kifuBranchModel->data(idx, Qt::DisplayRole).toString();
         }
     }
+    // 分岐候補ビューの有効状態を確認
+    if (m_recordPane && m_recordPane->branchView()) {
+        qDebug() << "[TEST] branchView enabled:" << m_recordPane->branchView()->isEnabled();
+    }
 
     // 4. ナビゲーション状態
     qDebug() << "[TEST] === NAVIGATION STATE ===";

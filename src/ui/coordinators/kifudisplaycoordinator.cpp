@@ -225,6 +225,10 @@ void KifuDisplayCoordinator::onBranchCandidatesUpdateRequired(const QVector<Kifu
     if (candidates.isEmpty()) {
         // 分岐がない場合は「本譜に戻る」ボタンも非表示
         m_branchModel->setHasBackToMainRow(false);
+        // 分岐がない場合もビューを有効化（薄く表示されないように）
+        if (m_recordPane != nullptr && m_recordPane->branchView() != nullptr) {
+            m_recordPane->branchView()->setEnabled(true);
+        }
         return;
     }
 
@@ -254,6 +258,11 @@ void KifuDisplayCoordinator::onBranchCandidatesUpdateRequired(const QVector<Kifu
                 }
             }
         }
+    }
+
+    // 分岐候補ビューを有効化（ナビゲーションボタン経由でも有効にする）
+    if (m_recordPane != nullptr && m_recordPane->branchView() != nullptr) {
+        m_recordPane->branchView()->setEnabled(true);
     }
 }
 
