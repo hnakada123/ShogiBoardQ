@@ -141,16 +141,21 @@ void KifuDisplayCoordinator::onBranchCandidateActivated(const QModelIndex& index
 void KifuDisplayCoordinator::onNavigationCompleted(KifuBranchNode* node)
 {
     qDebug().noquote() << "[KDC] onNavigationCompleted ENTER node="
-                       << (node ? QString("ply=%1").arg(node->ply()) : "null");
+                       << (node ? QString("ply=%1").arg(node->ply()) : "null")
+                       << "preferredLineIndex=" << (m_state ? m_state->preferredLineIndex() : -999);
 
     // ラインが変更された場合は棋譜欄の内容を更新
     if (m_state != nullptr) {
         const int newLineIndex = m_state->currentLineIndex();
+        qDebug().noquote() << "[KDC] onNavigationCompleted: newLineIndex=" << newLineIndex
+                           << "m_lastLineIndex=" << m_lastLineIndex;
         if (newLineIndex != m_lastLineIndex) {
             qDebug().noquote() << "[KDC] onNavigationCompleted: line changed from"
                                << m_lastLineIndex << "to" << newLineIndex;
             m_lastLineIndex = newLineIndex;
             updateRecordView();  // 棋譜欄の内容を再構築
+        } else {
+            qDebug().noquote() << "[KDC] onNavigationCompleted: line NOT changed, skipping updateRecordView";
         }
     }
 
@@ -265,8 +270,16 @@ void KifuDisplayCoordinator::onTreeChanged()
 
 void KifuDisplayCoordinator::updateRecordView()
 {
+    qDebug().noquote() << "[KDC] updateRecordView: CALLED";
     populateRecordModel();
     populateBranchMarks();
+
+    // ★ 追加: ビューの明示的な更新を強制（モデル変更後にビューが更新されない問題の対策）
+    if (m_recordPane != nullptr && m_recordPane->kifuView() != nullptr) {
+        QTableView* view = m_recordPane->kifuView();
+        view->viewport()->update();
+        qDebug().noquote() << "[KDC] updateRecordView: forced view update, model rowCount=" << m_recordModel->rowCount();
+    }
 }
 
 void KifuDisplayCoordinator::updateBranchTreeView()
@@ -310,17 +323,28 @@ void KifuDisplayCoordinator::highlightCurrentPosition()
 
 void KifuDisplayCoordinator::populateRecordModel()
 {
+    qDebug().noquote() << "[KDC] populateRecordModel: ENTER"
+                       << "m_recordModel=" << (m_recordModel ? "yes" : "null")
+                       << "m_recordModel ptr=" << static_cast<void*>(m_recordModel)
+                       << "m_tree=" << (m_tree ? "yes" : "null");
+
     if (m_recordModel == nullptr || m_tree == nullptr) {
+        qDebug().noquote() << "[KDC] populateRecordModel: EARLY RETURN (null model or tree)";
         return;
     }
 
+    const int oldRowCount = m_recordModel->rowCount();
     m_recordModel->clearAllItems();
+    qDebug().noquote() << "[KDC] populateRecordModel: cleared model, old rowCount=" << oldRowCount
+                       << "new rowCount=" << m_recordModel->rowCount();
 
     // 現在のラインを取得
     int currentLineIndex = 0;
     if (m_state != nullptr) {
         currentLineIndex = m_state->currentLineIndex();
     }
+
+    qDebug().noquote() << "[KDC] populateRecordModel: currentLineIndex=" << currentLineIndex;
 
     QVector<BranchLine> lines = m_tree->allLines();
     if (currentLineIndex < 0 || currentLineIndex >= lines.size()) {
@@ -367,6 +391,8 @@ void KifuDisplayCoordinator::populateRecordModel()
         );
         m_recordModel->appendItem(item);
     }
+
+    qDebug().noquote() << "[KDC] populateRecordModel: DONE, final rowCount=" << m_recordModel->rowCount();
 }
 
 void KifuDisplayCoordinator::populateBranchMarks()
@@ -521,6 +547,15 @@ void KifuDisplayCoordinator::onLegacyPositionChanged(int row, int ply, const QSt
     // 現在のラインインデックスを優先して使用（分岐選択後の状態を維持）
     int highlightLineIndex = m_state->currentLineIndex();
     QVector<BranchLine> allLines = m_tree->allLines();
+
+    // ★ 重要: m_lastLineIndex を同期しておく（新システムとの整合性を保つため）
+    // 分岐ツリーから直接クリックした場合など、onNavigationCompleted を経由しない
+    // 場合でもラインインデックスを追跡する
+    const int oldLastLineIndex = m_lastLineIndex;
+    m_lastLineIndex = highlightLineIndex;
+    qDebug().noquote() << "[KDC] onLegacyPositionChanged: synced m_lastLineIndex from" << oldLastLineIndex
+                       << "to" << m_lastLineIndex
+                       << "(model rowCount=" << (m_recordModel ? m_recordModel->rowCount() : -1) << ")";
 
     // 現在のラインにノードが存在するか確認
     bool foundInCurrentLine = false;

@@ -136,6 +136,11 @@ signals:
      */
     void branchCandidatesUpdateRequired(const QVector<KifuBranchNode*>& candidates);
 
+    /**
+     * @brief 分岐ライン選択が変更された（旧システムとの同期用）
+     */
+    void lineSelectionChanged(int newLineIndex);
+
 private:
     void emitUpdateSignals();
     KifuBranchNode* findForwardNode() const;
