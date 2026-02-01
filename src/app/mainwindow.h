@@ -195,6 +195,12 @@ public slots:
     void dumpTestState();
     bool verify4WayConsistency();     // 4方向一致検証
 
+    // ★ 対局シミュレーション用テストメソッド
+    void startTestGame();             // テスト用対局を開始（平手、人間vs人間）
+    bool makeTestMove(const QString& usiMove);  // USI形式で指し手を入力
+    int getBranchTreeNodeCount();     // 分岐ツリーのノード数を取得
+    bool verifyBranchTreeNodeCount(int minExpected);  // ノード数の検証
+
     // エラー/一般UI
     void displayErrorMessage(const QString& message);
     void saveSettingsAndClose();
@@ -666,6 +672,7 @@ private:
     void ensureAnalysisPresenter();
     void ensureGameStartCoordinator();
     void ensureRecordPresenter();
+    void ensureLiveGameSessionStarted();
     void ensureKifuLoadCoordinatorForLive();
     void ensureGameRecordModel();
     void ensureDialogCoordinator();

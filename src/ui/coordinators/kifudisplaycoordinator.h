@@ -153,6 +153,11 @@ public slots:
     void onLiveGameMoveAdded(int ply, const QString& displayText);
 
     /**
+     * @brief ライブ対局セッション開始時
+     */
+    void onLiveGameSessionStarted(KifuBranchNode* branchPoint);
+
+    /**
      * @brief ライブ対局の分岐マークが更新された
      */
     void onLiveGameBranchMarksUpdated(const QSet<int>& branchPlys);
@@ -192,6 +197,7 @@ private:
     void highlightCurrentPosition();
     void populateRecordModel();
     void populateBranchMarks();
+    void populateRecordModelFromPath(const QVector<KifuBranchNode*>& path, int highlightPly);
 
     KifuBranchTree* m_tree;
     KifuNavigationState* m_state;

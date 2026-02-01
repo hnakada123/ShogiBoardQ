@@ -56,6 +56,11 @@ public:
     KifuBranchNode* branchPoint() const { return m_branchPoint; }
 
     /**
+     * @brief ライブ対局で最後に追加されたノードを取得
+     */
+    KifuBranchNode* liveNode() const { return m_liveParent; }
+
+    /**
      * @brief 分岐起点の手数を取得
      */
     int anchorPly() const;
@@ -135,6 +140,11 @@ public:
      */
     QString currentSfen() const;
 
+    /**
+     * @brief 現在のライブ対局が属するラインインデックスを取得
+     */
+    int currentLineIndex() const;
+
     // === 確定時の分岐情報 ===
 
     /**
@@ -192,6 +202,7 @@ private:
     bool m_hasTerminal = false;
     KifuBranchNode* m_branchPoint = nullptr;
     KifuBranchTree* m_tree = nullptr;
+    KifuBranchNode* m_liveParent = nullptr;  // ツリー内の現在位置を追跡（リアルタイム更新用）
 
     QVector<KifDisplayItem> m_moves;
     QVector<ShogiMove> m_gameMoves;

@@ -78,6 +78,18 @@ public:
                                     const QString& displayText,
                                     const QString& timeText = QString());
 
+    /**
+     * @brief 指し手を追加する（treeChanged シグナルを発火しない）
+     *
+     * ライブ対局中など、treeChanged による UI 更新を避けたい場合に使用。
+     * nodeAdded シグナルのみ発火する。
+     */
+    KifuBranchNode* addMoveQuiet(KifuBranchNode* parent,
+                                 const ShogiMove& move,
+                                 const QString& displayText,
+                                 const QString& sfen,
+                                 const QString& timeText = QString());
+
     // === クエリ ===
 
     /**

@@ -21,12 +21,14 @@ KifuBranchTree::~KifuBranchTree()
 void KifuBranchTree::clear()
 {
     // 全ノードを削除
+    // 注意: シグナルはここでは発行しない。
+    // 理由: clear() 後に setRootSfen() 等が呼ばれることが多く、
+    // 空の状態でシグナルを発行すると受信側で無効なポインタ参照が発生する可能性がある。
+    // 呼び出し側が必要に応じてシグナルを発行する。
     qDeleteAll(m_nodeById);
     m_nodeById.clear();
     m_root = nullptr;
     m_nextNodeId = 1;
-
-    emit treeChanged();
 }
 
 void KifuBranchTree::setRootSfen(const QString& sfen)
@@ -109,6 +111,40 @@ KifuBranchNode* KifuBranchTree::addTerminalMove(KifuBranchNode* parent,
 
     emit nodeAdded(node);
     emit treeChanged();
+
+    return node;
+}
+
+KifuBranchNode* KifuBranchTree::addMoveQuiet(KifuBranchNode* parent,
+                                              const ShogiMove& move,
+                                              const QString& displayText,
+                                              const QString& sfen,
+                                              const QString& timeText)
+{
+    if (parent == nullptr) {
+        return nullptr;
+    }
+
+    // 終局手には子を追加できない
+    if (parent->isTerminal()) {
+        return nullptr;
+    }
+
+    auto* node = createNode();
+    node->setPly(parent->ply() + 1);
+    node->setDisplayText(displayText);
+    node->setSfen(sfen);
+    node->setMove(move);
+    node->setTimeText(timeText);
+
+    // 終局手かどうかを判定
+    TerminalType termType = detectTerminalType(displayText);
+    node->setTerminalType(termType);
+
+    parent->addChild(node);
+
+    // nodeAdded のみ発火、treeChanged は発火しない
+    emit nodeAdded(node);
 
     return node;
 }

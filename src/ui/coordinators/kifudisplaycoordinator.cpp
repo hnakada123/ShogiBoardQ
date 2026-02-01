@@ -70,6 +70,8 @@ void KifuDisplayCoordinator::setLiveGameSession(LiveGameSession* session)
     if (m_liveSession != nullptr) {
         connect(m_liveSession, &LiveGameSession::moveAdded,
                 this, &KifuDisplayCoordinator::onLiveGameMoveAdded);
+        connect(m_liveSession, &LiveGameSession::sessionStarted,
+                this, &KifuDisplayCoordinator::onLiveGameSessionStarted);
         connect(m_liveSession, &LiveGameSession::branchMarksUpdated,
                 this, &KifuDisplayCoordinator::onLiveGameBranchMarksUpdated);
         connect(m_liveSession, &LiveGameSession::sessionCommitted,
@@ -490,6 +492,54 @@ void KifuDisplayCoordinator::populateBranchMarks()
     m_recordModel->setBranchPlyMarks(branchPlys);
 }
 
+void KifuDisplayCoordinator::populateRecordModelFromPath(const QVector<KifuBranchNode*>& path, int highlightPly)
+{
+    if (m_recordModel == nullptr) {
+        return;
+    }
+
+    m_recordModel->clearAllItems();
+
+    auto* startItem = new KifuDisplay(
+        QStringLiteral("=== 開始局面 ==="),
+        QStringLiteral("（１手 / 合計）"),
+        this);
+    m_recordModel->appendItem(startItem);
+
+    QSet<int> branchPlys;
+
+    for (KifuBranchNode* node : std::as_const(path)) {
+        if (node == nullptr || node->ply() == 0) {
+            continue;
+        }
+
+        const QString moveNumberStr = QString::number(node->ply());
+        const QString spaces = QString(qMax(0, 4 - moveNumberStr.length()), QLatin1Char(' '));
+        QString displayText = spaces + moveNumberStr + QLatin1Char(' ') + node->displayText();
+
+        if (node->parent() != nullptr && node->parent()->hasBranch()) {
+            if (!displayText.endsWith(QLatin1Char('+'))) {
+                displayText += QLatin1Char('+');
+            }
+            branchPlys.insert(node->ply());
+        }
+
+        auto* item = new KifuDisplay(
+            displayText,
+            node->timeText(),
+            node->comment(),
+            this
+        );
+        m_recordModel->appendItem(item);
+    }
+
+    m_recordModel->setBranchPlyMarks(branchPlys);
+
+    const int maxRow = m_recordModel->rowCount() - 1;
+    const int rowToHighlight = qBound(0, highlightPly, maxRow);
+    onRecordHighlightRequired(rowToHighlight);
+}
+
 void KifuDisplayCoordinator::onPositionChanged(int lineIndex, int ply, const QString& sfen)
 {
     Q_UNUSED(sfen)
@@ -775,23 +825,86 @@ QString KifuDisplayCoordinator::getConsistencyReport() const
 
 void KifuDisplayCoordinator::onLiveGameMoveAdded(int ply, const QString& displayText)
 {
+    Q_UNUSED(ply);
     Q_UNUSED(displayText);
-    qDebug().noquote() << "[KDC] onLiveGameMoveAdded: ply=" << ply;
 
-    // 分岐ツリーのハイライトを更新（ライブ対局行の末尾）
-    if (m_liveSession != nullptr && m_analysisTab != nullptr) {
-        // ライブ対局は最新ライン（一時的なライン）として表示
-        // 現在は m_liveSession から直接情報を取得
-        const int totalPly = m_liveSession->totalPly();
-        // 分岐ツリーUIは別途更新されるため、ここではハイライトのみ
-        qDebug().noquote() << "[KDC] onLiveGameMoveAdded: totalPly=" << totalPly;
+    const int liveLineIndex = (m_liveSession != nullptr) ? m_liveSession->currentLineIndex() : 0;
+    KifuBranchNode* liveNode = (m_liveSession != nullptr) ? m_liveSession->liveNode() : nullptr;
+
+    // EngineAnalysisTab の分岐ツリーを更新
+    // addMoveQuiet() は treeChanged() を発火しないため、ここで明示的に更新する
+    if (m_analysisTab != nullptr && m_tree != nullptr) {
+        // KifuBranchTree から ResolvedRowLite 形式に変換
+        QVector<EngineAnalysisTab::ResolvedRowLite> rows;
+        QVector<BranchLine> lines = m_tree->allLines();
+
+        for (const BranchLine& line : std::as_const(lines)) {
+            EngineAnalysisTab::ResolvedRowLite row;
+            row.startPly = (line.branchPly > 0) ? line.branchPly : 1;
+            row.parent = -1;  // 簡略化：親情報は省略
+
+            // rebuildBranchTree() は disp[0] が開始局面エントリ（prettyMove 空）、
+            // disp[i] (i>=1) が i 手目に対応することを期待する。
+            for (KifuBranchNode* node : std::as_const(line.nodes)) {
+                KifDisplayItem item;
+                if (node->ply() == 0) {
+                    // 開始局面: prettyMove を空にして追加
+                    item.prettyMove = QString();
+                } else {
+                    item.prettyMove = node->displayText();
+                }
+                item.timeText = node->timeText();
+                item.comment = node->comment();
+                row.disp.append(item);
+                row.sfen.append(node->sfen());
+            }
+
+            rows.append(row);
+        }
+
+        m_analysisTab->setBranchTreeRows(rows);
+
+        // ハイライト更新
+        if (m_liveSession != nullptr) {
+            const int totalPly = m_liveSession->totalPly();
+            m_analysisTab->highlightBranchTreeAt(liveLineIndex, totalPly, false);
+        }
     }
+
+    // BranchTreeWidget も更新（存在する場合）
+    if (m_branchTreeWidget != nullptr && m_tree != nullptr) {
+        m_branchTreeWidget->setTree(m_tree);
+    }
+
+    // ライブ対局中は最新ノードへナビゲートし、分岐ラインを同期
+    if (liveNode != nullptr && m_navController != nullptr && m_state != nullptr) {
+        if (liveLineIndex > 0) {
+            m_state->setPreferredLineIndex(liveLineIndex);
+        } else {
+            m_state->resetPreferredLineIndex();
+        }
+        m_navController->goToNode(liveNode);
+    }
+}
+
+void KifuDisplayCoordinator::onLiveGameSessionStarted(KifuBranchNode* branchPoint)
+{
+    if (m_recordModel == nullptr || m_tree == nullptr) {
+        return;
+    }
+
+    if (branchPoint == nullptr) {
+        m_recordModel->setBranchPlyMarks(QSet<int>());
+        onRecordHighlightRequired(0);
+        return;
+    }
+
+    const QVector<KifuBranchNode*> path = m_tree->pathToNode(branchPoint);
+    populateRecordModelFromPath(path, branchPoint->ply());
 }
 
 void KifuDisplayCoordinator::onLiveGameBranchMarksUpdated(const QSet<int>& branchPlys)
 {
-    qDebug().noquote() << "[KDC] onLiveGameBranchMarksUpdated: branchPlys.size=" << branchPlys.size();
-
     if (m_recordModel != nullptr) {
         m_recordModel->setBranchPlyMarks(branchPlys);
     }
@@ -799,9 +912,6 @@ void KifuDisplayCoordinator::onLiveGameBranchMarksUpdated(const QSet<int>& branc
 
 void KifuDisplayCoordinator::onLiveGameCommitted(KifuBranchNode* newLineEnd)
 {
-    qDebug().noquote() << "[KDC] onLiveGameCommitted: newLineEnd="
-                       << (newLineEnd ? QString("ply=%1").arg(newLineEnd->ply()) : "null");
-
     // ライブ対局がツリーに確定されたので、ビューを更新
     updateRecordView();
     updateBranchTreeView();
@@ -814,8 +924,6 @@ void KifuDisplayCoordinator::onLiveGameCommitted(KifuBranchNode* newLineEnd)
 
 void KifuDisplayCoordinator::onLiveGameDiscarded()
 {
-    qDebug().noquote() << "[KDC] onLiveGameDiscarded";
-
     // ライブ対局が破棄されたので、元の状態に戻す
     updateRecordView();
     updateBranchTreeView();
@@ -823,8 +931,6 @@ void KifuDisplayCoordinator::onLiveGameDiscarded()
 
 void KifuDisplayCoordinator::onLiveGameRecordModelUpdateRequired()
 {
-    qDebug().noquote() << "[KDC] onLiveGameRecordModelUpdateRequired";
-
     // 棋譜欄ビューの更新を強制
     if (m_recordPane != nullptr && m_recordPane->kifuView() != nullptr) {
         m_recordPane->kifuView()->viewport()->update();

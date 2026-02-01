@@ -253,6 +253,12 @@ int main(int argc, char *argv[])
         "Verify 4-way consistency and exit with error code if failed.");
     parser.addOption(verifyConsistencyOption);
 
+    // --test-live-game : 対局シミュレーションテストを実行
+    QCommandLineOption testLiveGameOption(
+        QStringList() << "test-live-game",
+        "Run live game simulation test (verify branch tree updates during game).");
+    parser.addOption(testLiveGameOption);
+
     parser.process(a);
 
     MainWindow w;
@@ -555,6 +561,53 @@ int main(int argc, char *argv[])
                 qWarning() << "[TEST] Consistency verification: FAIL";
             }
             QApplication::exit(consistent ? 0 : 1);
+        });
+    }
+
+    // ★ 対局シミュレーションテスト
+    if (parser.isSet(testLiveGameOption)) {
+        qDebug() << "[TEST] Live game simulation test starting...";
+
+        // テストシナリオ:
+        // 1. 500ms後: 対局を開始（LiveGameSession開始、ルートノード作成）
+        // 2. 1000ms後: 1手目を追加（7g7f = 76歩）
+        // 3. 2000ms後: 状態を確認（ルート + 1手 = 2ノード以上が期待値）
+
+        QTimer::singleShot(500, &w, [&w]() {
+            qDebug() << "[TEST] Step 1: Starting test game";
+            w.startTestGame();
+            qDebug() << "[TEST] Step 1: Test game started";
+        });
+
+        QTimer::singleShot(1000, &w, [&w]() {
+            qDebug() << "[TEST] Step 2: Making move 7g7f (76歩)";
+            const bool moveOk = w.makeTestMove("7g7f");
+            qDebug() << "[TEST] Step 2: makeTestMove result:" << (moveOk ? "OK" : "FAILED");
+        });
+
+        QTimer::singleShot(2000, &w, [&w]() {
+            qDebug() << "[TEST] Step 3: Verifying branch tree state";
+            w.dumpTestState();
+
+            // 分岐ツリーのノード数を確認（開始局面 + 1手 = 2ノード以上）
+            const int nodeCount = w.getBranchTreeNodeCount();
+            const bool pass = (nodeCount >= 2);
+
+            qDebug() << "========================================";
+            qDebug() << "[TEST] LIVE GAME SIMULATION TEST RESULT:";
+            qDebug() << "========================================";
+            qDebug() << "[TEST] Branch tree node count:" << nodeCount;
+            qDebug() << "[TEST] Expected: >= 2 nodes (root + 1 move)";
+            if (pass) {
+                qDebug() << "[TEST] ★★★ PASS ★★★";
+                qDebug() << "[TEST] Branch tree correctly shows moves during live game.";
+            } else {
+                qWarning() << "[TEST] ✗✗✗ FAIL ✗✗✗";
+                qWarning() << "[TEST] Branch tree does NOT show moves during live game.";
+            }
+            qDebug() << "========================================";
+
+            QApplication::exit(pass ? 0 : 1);
         });
     }
 
