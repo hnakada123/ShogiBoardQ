@@ -15,6 +15,9 @@ class TimeControlController;
 class EvaluationChartWidget;
 class EvaluationGraphController;
 class RecordPane;
+class LiveGameSession;
+class KifuBranchTree;
+class KifuBranchNode;
 
 /**
  * @brief 対局開始前のクリーンアップ処理を担当するクラス
@@ -57,6 +60,10 @@ public:
         int* activePly = nullptr;
         int* currentSelectedPly = nullptr;
         int* currentMoveIndex = nullptr;
+
+        // 分岐ツリー関連
+        LiveGameSession* liveGameSession = nullptr;
+        KifuBranchTree* branchTree = nullptr;
     };
 
     /**
@@ -86,6 +93,35 @@ signals:
      * @param asHtml HTMLフラグ
      */
     void broadcastCommentRequested(const QString& text, bool asHtml);
+
+public:
+    /**
+     * @brief 「現在の局面から開始」判定の共通ロジック
+     *
+     * テストで使用するためヘッダで公開する。
+     */
+    static bool shouldStartFromCurrentPosition(const QString& startSfen,
+                                               const QString& currentSfen,
+                                               int selectedPly)
+    {
+        const QString cur = currentSfen.trimmed();
+        const QString start = startSfen.trimmed();
+
+        if (cur.isEmpty()) {
+            return false;
+        }
+
+        if (start.isEmpty()) {
+            return true;
+        }
+
+        // startSfen が残っていても、選択手数が進んでいれば現在局面開始とみなす
+        if (selectedPly > 0 && cur != QStringLiteral("startpos")) {
+            return true;
+        }
+
+        return false;
+    }
 
 private:
     /**
@@ -144,6 +180,19 @@ private:
      */
     bool isStartFromCurrentPosition() const;
 
+    /**
+     * @brief ライブゲームセッションを開始
+     *
+     * 対局開始時にLiveGameSessionを開始し、分岐ツリーへの
+     * リアルタイム更新を有効にする。
+     */
+    void startLiveGameSession();
+
+    /**
+     * @brief 分岐ツリーのルートノードを作成（セッションは開始しない）
+     */
+    void ensureBranchTreeRoot();
+
     // 依存オブジェクト
     BoardInteractionController* m_boardController = nullptr;
     ShogiView* m_shogiView = nullptr;
@@ -162,6 +211,14 @@ private:
     int* m_activePly = nullptr;
     int* m_currentSelectedPly = nullptr;
     int* m_currentMoveIndex = nullptr;
+
+    // 分岐ツリー関連
+    LiveGameSession* m_liveGameSession = nullptr;
+    KifuBranchTree* m_branchTree = nullptr;
+
+    // performCleanup() 開始時に保存する値（selectStartRow() で変更される前の値）
+    QString m_savedCurrentSfen;
+    int m_savedSelectedPly = 0;
 };
 
 #endif // PRESTARTCLEANUPHANDLER_H

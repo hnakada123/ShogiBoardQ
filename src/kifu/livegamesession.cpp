@@ -37,7 +37,6 @@ void LiveGameSession::startFromNode(KifuBranchNode* branchPoint)
         m_sfens.append(m_tree->root()->sfen());
     }
 
-    qDebug() << "[LiveGameSession] Started from ply" << anchorPly();
     emit sessionStarted(m_branchPoint);
 }
 
@@ -80,6 +79,21 @@ void LiveGameSession::addMove(const ShogiMove& move, const QString& displayText,
 
     const int ply = anchorPly() + static_cast<int>(m_moves.size()) + 1;
 
+    // リアルタイムでツリーに追加（treeChanged を発火しない quiet 版を使用）
+    // treeChanged が発火すると KifuDisplayCoordinator::onTreeChanged() が呼ばれ、
+    // 棋譜モデルが再構築されて HvE 対局に干渉する
+    if (m_tree != nullptr) {
+        KifuBranchNode* parent = m_liveParent;
+        if (parent == nullptr) {
+            parent = (m_branchPoint != nullptr) ? m_branchPoint : m_tree->root();
+        }
+
+        if (parent != nullptr) {
+            // addMoveQuiet() を使用: nodeAdded のみ発火、treeChanged は発火しない
+            m_liveParent = m_tree->addMoveQuiet(parent, move, displayText, sfen, elapsed);
+        }
+    }
+
     KifDisplayItem item;
     item.prettyMove = displayText;
     item.timeText = elapsed;
@@ -89,7 +103,6 @@ void LiveGameSession::addMove(const ShogiMove& move, const QString& displayText,
     m_gameMoves.append(move);
     m_sfens.append(sfen);
 
-    qDebug() << "[LiveGameSession] Added move at ply" << ply << ":" << displayText;
     emit moveAdded(ply, displayText);
 
     // 分岐マークを計算して通知
@@ -125,7 +138,6 @@ void LiveGameSession::addTerminalMove(TerminalType type, const QString& displayT
 
     m_hasTerminal = true;
 
-    qDebug() << "[LiveGameSession] Added terminal at ply" << ply << ":" << displayText;
     emit terminalAdded(type);
 }
 
@@ -144,9 +156,16 @@ KifuBranchNode* LiveGameSession::commit()
 
     // 追加する指し手がない場合は何もしない
     if (m_moves.isEmpty()) {
-        qDebug() << "[LiveGameSession] No moves to commit";
         discard();
         return nullptr;
+    }
+
+    // リアルタイム追加済みの場合は既存ノードを返す
+    if (m_liveParent != nullptr) {
+        KifuBranchNode* result = m_liveParent;
+        reset();
+        emit sessionCommitted(result);
+        return result;
     }
 
     // 分岐起点を決定
@@ -181,8 +200,6 @@ KifuBranchNode* LiveGameSession::commit()
         }
     }
 
-    qDebug() << "[LiveGameSession] Committed" << m_moves.size() << "moves";
-
     KifuBranchNode* result = lastNode;
     reset();
 
@@ -192,7 +209,6 @@ KifuBranchNode* LiveGameSession::commit()
 
 void LiveGameSession::discard()
 {
-    qDebug() << "[LiveGameSession] Session discarded";
     reset();
     emit sessionDiscarded();
 }
@@ -208,6 +224,29 @@ QString LiveGameSession::currentSfen() const
         return QString();
     }
     return m_sfens.last();
+}
+
+int LiveGameSession::currentLineIndex() const
+{
+    if (m_tree == nullptr) {
+        return 0;
+    }
+
+    KifuBranchNode* node = m_liveParent;
+    if (node == nullptr) {
+        node = (m_branchPoint != nullptr) ? m_branchPoint : m_tree->root();
+    }
+
+    if (node == nullptr) {
+        return 0;
+    }
+
+    const int lineIndex = m_tree->findLineIndexForNode(node);
+    if (lineIndex >= 0) {
+        return lineIndex;
+    }
+
+    return node->lineIndex();
 }
 
 bool LiveGameSession::willCreateBranch() const
@@ -245,6 +284,7 @@ void LiveGameSession::reset()
     m_active = false;
     m_hasTerminal = false;
     m_branchPoint = nullptr;
+    m_liveParent = nullptr;
     m_moves.clear();
     m_gameMoves.clear();
     m_sfens.clear();
@@ -281,8 +321,8 @@ void LiveGameSession::computeAndEmitBranchMarks()
                 if (node == parentNode && !m_moves.isEmpty()) {
                     // 最初の手が追加された位置は分岐点になる可能性がある
                     int firstMovePly = anchorPly() + 1;
-                    // 親に既に子がいる場合は分岐
-                    if (parentNode->childCount() > 0) {
+                    // 親に複数の子がある場合は分岐（子が1つだけなら分岐ではない）
+                    if (parentNode->childCount() > 1) {
                         branchPlys.insert(firstMovePly);
                     }
                 }
@@ -290,6 +330,5 @@ void LiveGameSession::computeAndEmitBranchMarks()
         }
     }
 
-    qDebug() << "[LiveGameSession] computeAndEmitBranchMarks: branchPlys=" << branchPlys;
     emit branchMarksUpdated(branchPlys);
 }

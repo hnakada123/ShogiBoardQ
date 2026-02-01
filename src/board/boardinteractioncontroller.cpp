@@ -71,7 +71,7 @@ void BoardInteractionController::onLeftClick(const QPoint& pt)
 
     // 直前の赤ハイライトは、適用が成功したタイミングで描くためここでは触らない
     // ★重要★ ここではドラッグを終了しない。
-    //         理由：成/不成ダイアログ表示中も “相手駒に重なった状態” を維持したい。
+    //         理由：成/不成ダイアログ表示中も "相手駒に重なった状態" を維持したい。
     //         ドラッグの終了は ShogiGameController 側で昇格判定後に endDragSignal を emit し、
     //         MainWindow::endDrag() 経由で ShogiView::endDrag() が呼ばれて行われる。
     emit moveRequested(from, to);

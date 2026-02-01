@@ -277,5 +277,12 @@ install(TARGETS ShogiBoardQ
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
+# ==== Tests ====
+option(BUILD_TESTING "Build tests" OFF)
+if(BUILD_TESTING)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
+
 # ==== Finalize ====
 qt_finalize_executable(ShogiBoardQ)

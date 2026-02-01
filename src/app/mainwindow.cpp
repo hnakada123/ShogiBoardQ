@@ -2086,6 +2086,11 @@ void MainWindow::initializeBranchNavigationClasses()
 
         m_displayCoordinator->wireSignals();
 
+        // ★ ライブゲームセッションを設定（分岐ツリーのリアルタイム更新用）
+        if (m_liveGameSession != nullptr) {
+            m_displayCoordinator->setLiveGameSession(m_liveGameSession);
+        }
+
         // 盤面とハイライト更新シグナルを接続（新システム用）
         connect(m_displayCoordinator, &KifuDisplayCoordinator::boardWithHighlightsRequired,
                 this, &MainWindow::loadBoardWithHighlights);
@@ -3489,6 +3494,8 @@ void MainWindow::ensurePreStartCleanupHandler()
     deps.activePly = &m_activePly;
     deps.currentSelectedPly = &m_currentSelectedPly;
     deps.currentMoveIndex = &m_currentMoveIndex;
+    deps.liveGameSession = m_liveGameSession;
+    deps.branchTree = m_branchTree;
 
     m_preStartCleanupHandler = new PreStartCleanupHandler(deps, this);
 
@@ -3640,6 +3647,50 @@ void MainWindow::ensureRecordPresenter()
         &MainWindow::onRecordRowChangedByPresenter,       // スロット
         Qt::UniqueConnection
         );
+}
+
+void MainWindow::ensureLiveGameSessionStarted()
+{
+    if (m_liveGameSession == nullptr || m_branchTree == nullptr) {
+        return;
+    }
+
+    if (m_liveGameSession->isActive()) {
+        return;  // 既に開始済み
+    }
+
+    // ルートノードが必要（performCleanup で作成済みのはず）
+    if (m_branchTree->root() == nullptr) {
+        qWarning().noquote() << "[MW] ensureLiveGameSessionStarted: root is null, cannot start session";
+        return;
+    }
+
+    // 平手初期局面SFEN
+    static const QString kHirateStartSfen = QStringLiteral(
+        "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+
+    // 現在の局面が途中局面かどうかを判定
+    const QString currentSfen = m_currentSfenStr.trimmed();
+    bool isFromMidPosition = !currentSfen.isEmpty() &&
+                              currentSfen != QStringLiteral("startpos") &&
+                              !currentSfen.startsWith(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL"));
+
+    if (isFromMidPosition) {
+        // 途中局面から開始: SFENからノードを探す
+        KifuBranchNode* branchPoint = m_branchTree->findBySfen(currentSfen);
+        if (branchPoint != nullptr) {
+            m_liveGameSession->startFromNode(branchPoint);
+            qDebug().noquote() << "[MW] ensureLiveGameSessionStarted: started from node, ply=" << branchPoint->ply();
+        } else {
+            // ノードが見つからない場合はルートから開始
+            qWarning().noquote() << "[MW] ensureLiveGameSessionStarted: branchPoint not found for sfen, starting from root";
+            m_liveGameSession->startFromRoot();
+        }
+    } else {
+        // 新規対局: ルートから開始
+        m_liveGameSession->startFromRoot();
+        qDebug().noquote() << "[MW] ensureLiveGameSessionStarted: session started from root";
+    }
 }
 
 // UIスレッド安全のため queued 呼び出しにしています
@@ -4130,18 +4181,25 @@ void MainWindow::updateGameRecord(const QString& elapsedTime)
     }
 
     // ★ 新システム: LiveGameSession にライブ対局の手を通知
-    if (m_liveGameSession != nullptr && m_liveGameSession->isActive() && !m_lastMove.isEmpty()) {
-        QString sfen;
-        if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
-            sfen = m_sfenRecord->last();
+    if (m_liveGameSession != nullptr && !m_lastMove.isEmpty()) {
+        // セッションが未開始の場合は遅延開始
+        if (!m_liveGameSession->isActive()) {
+            ensureLiveGameSessionStarted();
         }
 
-        ShogiMove move;
-        if (!m_gameMoves.isEmpty()) {
-            move = m_gameMoves.last();
-        }
+        if (m_liveGameSession->isActive()) {
+            QString sfen;
+            if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
+                sfen = m_sfenRecord->last();
+            }
 
-        m_liveGameSession->addMove(move, m_lastMove, sfen, elapsedTime);
+            ShogiMove move;
+            if (!m_gameMoves.isEmpty()) {
+                move = m_gameMoves.last();
+            }
+
+            m_liveGameSession->addMove(move, m_lastMove, sfen, elapsedTime);
+        }
     }
 
     m_lastMove.clear();
@@ -4982,4 +5040,185 @@ bool MainWindow::verify4WayConsistency()
     }
 
     return consistent;
+}
+
+// =====================================================================
+// ★ 対局シミュレーション用テストメソッド
+// =====================================================================
+
+void MainWindow::startTestGame()
+{
+    qDebug() << "[TEST] startTestGame: starting test game (hirate)";
+
+    // 1. ゲームコントローラーを平手で初期化
+    qDebug() << "[TEST] startTestGame: step 1 - gameController=" << static_cast<void*>(m_gameController);
+    if (m_gameController != nullptr) {
+        // 平手初期局面のSFEN
+        QString hirateSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+        m_gameController->newGame(hirateSfen);
+        qDebug() << "[TEST] startTestGame: newGame completed";
+    }
+
+    // 2. 盤面を初期化
+    qDebug() << "[TEST] startTestGame: step 2 - shogiView=" << static_cast<void*>(m_shogiView)
+             << "board=" << (m_gameController ? static_cast<void*>(m_gameController->board()) : nullptr);
+    if (m_shogiView != nullptr && m_gameController != nullptr && m_gameController->board() != nullptr) {
+        m_shogiView->setBoard(m_gameController->board());
+        m_shogiView->applyBoardAndRender(m_gameController->board());
+        qDebug() << "[TEST] startTestGame: board render completed";
+    }
+
+    // 3. PreStartCleanupHandler を呼び出して LiveGameSession を開始
+    qDebug() << "[TEST] startTestGame: step 3 - preparing LiveGameSession";
+    // m_startSfenStr と m_currentSfenStr をクリア
+    m_startSfenStr.clear();
+    m_currentSfenStr = QStringLiteral("startpos");
+
+    qDebug() << "[TEST] startTestGame: calling ensurePreStartCleanupHandler";
+    ensurePreStartCleanupHandler();
+    qDebug() << "[TEST] startTestGame: preStartCleanupHandler=" << static_cast<void*>(m_preStartCleanupHandler);
+    if (m_preStartCleanupHandler != nullptr) {
+        qDebug() << "[TEST] startTestGame: calling performCleanup";
+        m_preStartCleanupHandler->performCleanup();
+        qDebug() << "[TEST] startTestGame: performCleanup completed";
+    }
+
+    // 4. 状態をダンプ
+    qDebug() << "[TEST] startTestGame: completed";
+    qDebug() << "[TEST] branchTree root:" << (m_branchTree ? static_cast<void*>(m_branchTree->root()) : nullptr);
+    qDebug() << "[TEST] liveGameSession isActive:" << (m_liveGameSession ? m_liveGameSession->isActive() : false);
+}
+
+bool MainWindow::makeTestMove(const QString& usiMove)
+{
+    qDebug() << "[TEST] makeTestMove: usiMove=" << usiMove;
+
+    // セッションが未開始の場合は遅延開始
+    if (m_liveGameSession == nullptr) {
+        qWarning() << "[TEST] makeTestMove: LiveGameSession is null";
+        return false;
+    }
+    if (!m_liveGameSession->isActive()) {
+        ensureLiveGameSessionStarted();
+    }
+    if (!m_liveGameSession->isActive()) {
+        qWarning() << "[TEST] makeTestMove: LiveGameSession could not be started";
+        return false;
+    }
+
+    if (m_gameController == nullptr || m_gameController->board() == nullptr) {
+        qWarning() << "[TEST] makeTestMove: gameController or board is null";
+        return false;
+    }
+
+    // USI形式の指し手をパース（例: "7g7f", "3c3d"）
+    // USI形式: 筋(1-9) + 段(a-i) + 筋(1-9) + 段(a-i) [+ 成(+)]
+    // 例: 7g7f = 7筋7段目から7筋6段目へ
+    if (usiMove.length() < 4) {
+        qWarning() << "[TEST] makeTestMove: invalid usiMove format";
+        return false;
+    }
+
+    // USI座標を変換
+    // USI: 筋は数字(1-9)、段はアルファベット(a-i, a=1段目)
+    // 内部: file=筋(1-9), rank=段(1-9)
+    auto usiFileToInternal = [](QChar c) -> int {
+        return c.toLatin1() - '0';  // '1'->'9' を 1->9 に
+    };
+    auto usiRankToInternal = [](QChar c) -> int {
+        return c.toLatin1() - 'a' + 1;  // 'a'->'i' を 1->9 に
+    };
+
+    const int fromFile = usiFileToInternal(usiMove.at(0));
+    const int fromRank = usiRankToInternal(usiMove.at(1));
+    const int toFile = usiFileToInternal(usiMove.at(2));
+    const int toRank = usiRankToInternal(usiMove.at(3));
+    const bool promote = (usiMove.length() >= 5 && usiMove.at(4) == QLatin1Char('+'));
+
+    qDebug() << "[TEST] makeTestMove: from=(" << fromFile << "," << fromRank << ")"
+             << "to=(" << toFile << "," << toRank << ")"
+             << "promote=" << promote;
+
+    // 駒を移動（盤面データを更新）
+    ShogiBoard* board = m_gameController->board();
+    const QChar piece = board->getPieceCharacter(fromFile, fromRank);
+    const QChar capturedPiece = board->getPieceCharacter(toFile, toRank);
+    board->movePieceToSquare(piece, fromFile, fromRank, toFile, toRank, promote);
+
+    // 指し手を作成
+    ShogiMove move(QPoint(fromFile, fromRank), QPoint(toFile, toRank), piece, capturedPiece, promote);
+
+    // 盤面を再描画
+    if (m_shogiView != nullptr) {
+        m_shogiView->applyBoardAndRender(board);
+    }
+
+    // SFEN を更新
+    const QString newSfen = board->convertBoardToSfen();
+    m_currentSfenStr = newSfen;
+
+    // 手数をカウント
+    const int ply = m_liveGameSession->totalPly() + 1;
+
+    // 表示テキストを簡易生成（実際のゲームでは m_lastMove が使用される）
+    const QString displayText = QString::number(ply) + QStringLiteral("手目");
+    const QString elapsedTime = QStringLiteral("00:00/00:00:00");
+
+    // LiveGameSession に追加（これがツリーにも追加する）
+    m_liveGameSession->addMove(move, displayText, newSfen, elapsedTime);
+
+    // 棋譜欄モデルに追加
+    if (m_kifuRecordModel != nullptr) {
+        const QString moveNumberStr = QString::number(ply);
+        const QString spaces = QString(qMax(0, 4 - moveNumberStr.length()), QLatin1Char(' '));
+        const QString displayTextWithPly = spaces + moveNumberStr + QLatin1Char(' ') + displayText;
+
+        auto* item = new KifuDisplay(displayTextWithPly, elapsedTime, this);
+        m_kifuRecordModel->appendItem(item);
+    }
+
+    // SFEN記録に追加
+    if (m_sfenRecord != nullptr) {
+        m_sfenRecord->append(newSfen);
+    }
+
+    qDebug() << "[TEST] makeTestMove: completed, ply=" << ply;
+    return true;
+}
+
+int MainWindow::getBranchTreeNodeCount()
+{
+    if (m_branchTree == nullptr) {
+        return 0;
+    }
+
+    // 全ラインのノード数を合計
+    int totalNodes = 0;
+    const auto lines = m_branchTree->allLines();
+    for (const auto& line : lines) {
+        totalNodes += static_cast<int>(line.nodes.size());
+    }
+
+    // ルートノードは全ラインで共有されているので、重複を除く
+    // 実際のノード数はlineCount + 各ラインの独自ノード数
+    // より正確には、nodeById のサイズを使用
+    // ここでは簡易的に最初のラインのノード数を返す
+    if (!lines.isEmpty()) {
+        return static_cast<int>(lines.first().nodes.size());
+    }
+
+    return totalNodes;
+}
+
+bool MainWindow::verifyBranchTreeNodeCount(int minExpected)
+{
+    const int actual = getBranchTreeNodeCount();
+    const bool pass = (actual >= minExpected);
+
+    qDebug() << "[TEST] verifyBranchTreeNodeCount:"
+             << "expected>=" << minExpected
+             << "actual=" << actual
+             << (pass ? "PASS" : "FAIL");
+
+    return pass;
 }
