@@ -6,8 +6,6 @@
 #include <QHash>
 #include <QMap>
 
-#include "branchdisplayplan.h"
-
 class BoardInteractionController;
 class ShogiView;
 class KifuRecordListModel;
@@ -72,12 +70,6 @@ public:
      * @brief デストラクタ
      */
     ~PreStartCleanupHandler() override = default;
-
-    /**
-     * @brief 分岐表示プランへの参照を設定
-     * @param plan 分岐表示プランへのポインタ
-     */
-    void setBranchDisplayPlan(QHash<int, QMap<int, BranchCandidateDisplay>>* plan);
 
 public slots:
     /**
@@ -170,9 +162,6 @@ private:
     int* m_activePly = nullptr;
     int* m_currentSelectedPly = nullptr;
     int* m_currentMoveIndex = nullptr;
-
-    // 分岐表示プラン（外部所有）
-    QHash<int, QMap<int, BranchCandidateDisplay>>* m_branchDisplayPlan = nullptr;
 };
 
 #endif // PRESTARTCLEANUPHANDLER_H

@@ -39,7 +39,6 @@
 #include "recordpane.h"
 #include "engineanalysistab.h"
 #include "boardinteractioncontroller.h"
-#include "kifuvariationengine.h"
 #include "kifuloadcoordinator.h"
 #include "kifutypes.h"
 #include "positioneditcontroller.h"
@@ -194,6 +193,7 @@ public slots:
     void clickKifuRow(int row);       // 棋譜欄の行を直接クリック
     void clickBranchTreeNode(int row, int ply); // 分岐ツリーのノードを直接クリック
     void dumpTestState();
+    bool verify4WayConsistency();     // 4方向一致検証
 
     // エラー/一般UI
     void displayErrorMessage(const QString& message);
@@ -348,7 +348,7 @@ private slots:
     // ★ 新規: 分岐ツリー構築完了
     void onBranchTreeBuilt();
 
-    // ★ 新規: 分岐ライン選択変更（旧システムとの同期用）
+    // ★ 分岐ライン選択変更通知
     void onLineSelectionChanged(int newLineIndex);
 
     // ★ 新規: SFENから直接盤面を読み込む（分岐ナビゲーション用）
@@ -452,9 +452,6 @@ private:
     // 時計 / 時刻管理（TimeControlControllerへ移行）
     TimeControlController* m_timeController = nullptr;
 
-    // 行解決 / 選択状態
-    int m_activeResolvedRow = 0;
-
     // ★ 対局情報タブ（GameInfoPaneControllerへ移行）
     GameInfoPaneController* m_gameInfoController = nullptr;
 
@@ -510,9 +507,6 @@ private:
 
     // リプレイ制御（ReplayControllerへ移行）
     ReplayController* m_replayController = nullptr;
-
-    // 分岐表示計画
-    QHash<int, QMap<int, BranchCandidateDisplay>> m_branchDisplayPlan;
 
     // 直近の手番と残時間
     bool   m_lastP1Turn = true;
@@ -575,9 +569,6 @@ private:
 
     // 対局開始前クリーンアップハンドラ
     PreStartCleanupHandler*   m_preStartCleanupHandler = nullptr;
-
-    // 変化エンジン
-    std::unique_ptr<KifuVariationEngine> m_varEngine;
 
     // 言語設定用アクショングループ
     QActionGroup* m_languageActionGroup = nullptr;
@@ -651,9 +642,6 @@ private:
     void onSetEngineNames(const QString& e1, const QString& e2);
     void updateGameInfoPlayerNames(const QString& blackName, const QString& whiteName);
     void setOriginalGameInfo(const QList<KifGameInfoItem>& items);
-
-    // 分岐 / 変化
-    void applyResolvedRowAndSelect(int row, int selPly);
 
     // ユーティリティ
     void setPlayersNamesForMode();
@@ -760,6 +748,7 @@ private:
 
     // ★ テスト自動化用
     bool m_testMode = false;
+    QString extractSfenBase(const QString& sfen) const;  // SFEN文字列から局面部分を抽出
 
     // ★ 分岐ナビゲーション中の盤面同期スキップフラグ
     bool m_skipBoardSyncForBranchNav = false;

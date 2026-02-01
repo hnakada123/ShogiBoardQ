@@ -347,7 +347,7 @@ Line 2 の罫線が誤って3手目の位置から引かれていました。
 **補足**: このテストは、棋譜欄で分岐ライン上の指し手をクリックした後に1手進むボタンを押しても
 局面が進まないバグの再発を防ぐためのものです。
 原因は2つありました：
-1. `onLegacyPositionChanged` で `rememberLineSelection` が呼ばれず、次のナビゲーションで正しい子が選択されなかった
+1. `onPositionChanged` で `rememberLineSelection` が呼ばれず、次のナビゲーションで正しい子が選択されなかった
 2. `m_skipBoardSyncForBranchNav` フラグが true のままで、`onRecordPaneMainRowChanged` がブロックされていた
 
 ### 14. 「本譜へ戻る」後の戻る→進むテスト
@@ -737,14 +737,130 @@ echo "--- テスト20: 分岐選択 → 先頭へ → 末尾へ ---"
     --dump-state-after 6000 2>&1 > /dev/null
 grep -E "currentPly:|currentLineIndex:|currentNode displayText:" debug.log | tail -3
 
+# テスト21: 分岐ツリークリック後の一致性検証
+echo ""
+echo "--- テスト21: 分岐ツリークリック後の一致性検証 ---"
+./build/ShogiBoardQ --test-mode \
+    --load-kif test_branch.kif \
+    --click-tree-node 1,5 \
+    --dump-state-after 4000 2>&1 > /dev/null
+grep -E "displayConsistency:|fourWayConsistency:" debug.log | tail -2
+
+# テスト22: 戻る→進む後の一致性検証
+echo ""
+echo "--- テスト22: 戻る→進む後の一致性検証 ---"
+./build/ShogiBoardQ --test-mode \
+    --load-kif test_branch.kif \
+    --click-tree-node 1,5 \
+    --click-prev 3 \
+    --click-next-after-prev 3 \
+    --dump-state-after 8000 2>&1 > /dev/null
+grep -E "displayConsistency:|fourWayConsistency:|currentLineIndex:" debug.log | tail -3
+
+# テスト23: 分岐候補選択後の一致性検証
+echo ""
+echo "--- テスト23: 分岐候補選択後の一致性検証 ---"
+./build/ShogiBoardQ --test-mode \
+    --load-kif test_branch.kif \
+    --click-kifu-row 3 \
+    --click-branch 1 \
+    --dump-state-after 5000 2>&1 > /dev/null
+grep -E "displayConsistency:|fourWayConsistency:|currentLineIndex:" debug.log | tail -3
+
+# テスト24: --verify-consistency オプションテスト
+echo ""
+echo "--- テスト24: --verify-consistency オプションテスト ---"
+./build/ShogiBoardQ --test-mode \
+    --load-kif test_branch.kif \
+    --click-tree-node 1,5 \
+    --verify-consistency 2>&1 > /dev/null
+echo "Exit code: $?"
+
 echo ""
 echo "=== テスト完了 ==="
 ```
 
+### 21. 分岐ツリークリック後の一致性検証テスト
+
+分岐ツリーのノードをクリックした後、棋譜欄・分岐候補欄・分岐ツリーの表示が一致することを確認。
+
+```bash
+./build/ShogiBoardQ --test-mode \
+    --load-kif test_branch.kif \
+    --click-tree-node 1,5 \
+    --dump-state-after 4000
+```
+
+**期待結果**:
+- `displayConsistency: PASS`
+- `fourWayConsistency: PASS`
+
+**補足**: このテストは、分岐ツリーのノードをクリックした後の4表示（盤面・棋譜欄・分岐候補欄・分岐ツリー）の
+一致性を自動検証するためのものです。不一致が検出された場合は詳細なレポートが出力されます。
+
+### 22. 戻る→進む後の一致性検証テスト
+
+分岐ツリーのノードをクリックした後、戻る→進む操作を行い、一致性が維持されることを確認。
+
+```bash
+./build/ShogiBoardQ --test-mode \
+    --load-kif test_branch.kif \
+    --click-tree-node 1,5 \
+    --click-prev 3 \
+    --click-next-after-prev 3 \
+    --dump-state-after 8000
+```
+
+**期待結果**:
+- `displayConsistency: PASS`
+- `fourWayConsistency: PASS`
+- `currentLineIndex: 1`（分岐ラインに留まっている）
+
+**補足**: このテストは、分岐ラインを選択した後に戻る→進む操作を行っても
+4表示の一致性が維持されることを確認するためのものです。
+
+### 23. 分岐候補選択後の一致性検証テスト
+
+棋譜欄で分岐点をクリックし、分岐候補欄から分岐を選択した後の一致性を確認。
+
+```bash
+./build/ShogiBoardQ --test-mode \
+    --load-kif test_branch.kif \
+    --click-kifu-row 3 \
+    --click-branch 1 \
+    --dump-state-after 5000
+```
+
+**期待結果**:
+- `displayConsistency: PASS`
+- `fourWayConsistency: PASS`
+- `currentLineIndex: 1`（分岐ラインに移動している）
+
+**補足**: このテストは、棋譜欄クリック→分岐候補クリックという典型的な操作パターンにおける
+4表示の一致性を確認するためのものです。
+
+### 24. 一致性検証オプションテスト（--verify-consistency）
+
+`--verify-consistency` オプションを使用して、一致性検証結果をプログラムの終了コードとして取得。
+
+```bash
+./build/ShogiBoardQ --test-mode \
+    --load-kif test_branch.kif \
+    --click-tree-node 1,5 \
+    --verify-consistency
+echo "Exit code: $?"  # 0=PASS, 1=FAIL
+```
+
+**期待結果**:
+- 終了コード: 0（一致性検証成功）
+
+**補足**: このオプションはCI/CDパイプラインでの自動テストに使用できます。
+一致性検証に失敗した場合は終了コード1で終了し、詳細なレポートがログに出力されます。
+
 ## 関連ソースファイル
 
 - `src/app/main.cpp` - テストオプションの定義と実行タイミング
-- `src/app/mainwindow.cpp` - テストメソッド実装（`clickKifuRow`, `clickBranchCandidate`, `dumpTestState`等）
+- `src/app/mainwindow.cpp` - テストメソッド実装（`clickKifuRow`, `clickBranchCandidate`, `dumpTestState`, `verify4WayConsistency`等）
 - `src/navigation/kifunavigationcontroller.cpp` - 分岐ナビゲーションロジック
 - `src/kifu/kifunavigationstate.cpp` - ナビゲーション状態管理
-- `src/ui/coordinators/kifudisplaycoordinator.cpp` - 棋譜表示・分岐ツリーハイライト連携
+- `src/ui/coordinators/kifudisplaycoordinator.cpp` - 棋譜表示・分岐ツリーハイライト連携、一致性検証

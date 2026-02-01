@@ -247,6 +247,12 @@ int main(int argc, char *argv[])
         "Click last button (go to end position).");
     parser.addOption(clickLastOption);
 
+    // --verify-consistency : 4方向一致検証を行い、失敗時はエラーコードで終了
+    QCommandLineOption verifyConsistencyOption(
+        QStringList() << "verify-consistency",
+        "Verify 4-way consistency and exit with error code if failed.");
+    parser.addOption(verifyConsistencyOption);
+
     parser.process(a);
 
     MainWindow w;
@@ -526,6 +532,29 @@ int main(int argc, char *argv[])
         QTimer::singleShot(delayMs, &w, [&w]() {
             w.dumpTestState();
             QApplication::quit();
+        });
+    }
+
+    // 一致性検証のみ実行して終了
+    // --dump-state-after が設定されている場合はそちらに任せる
+    if (parser.isSet(verifyConsistencyOption) && !parser.isSet(dumpStateOption)) {
+        // デフォルトの遅延時間（KIF読み込み後十分な時間を取る）
+        int verifyDelayMs = 3000;
+        // 他の操作がある場合は操作完了後に検証
+        if (parser.isSet(clickTreeNodeOption) || parser.isSet(clickBranchOption) ||
+            nextCount > 0 || prevCount > 0 || parser.isSet(clickKifuRowOption)) {
+            verifyDelayMs = allOpsCompletedTime + 1000;
+        }
+        qDebug() << "[TEST] Will verify consistency and exit after" << verifyDelayMs << "ms";
+        QTimer::singleShot(verifyDelayMs, &w, [&w]() {
+            w.dumpTestState();  // 状態をダンプ（デバッグ用）
+            const bool consistent = w.verify4WayConsistency();
+            if (consistent) {
+                qDebug() << "[TEST] Consistency verification: PASS";
+            } else {
+                qWarning() << "[TEST] Consistency verification: FAIL";
+            }
+            QApplication::exit(consistent ? 0 : 1);
         });
     }
 

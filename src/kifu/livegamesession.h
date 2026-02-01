@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QVector>
 #include <QStringList>
+#include <QSet>
 
 #include "kifubranchnode.h"
 #include "kifdisplayitem.h"
@@ -172,8 +173,20 @@ signals:
      */
     void sessionDiscarded();
 
+    /**
+     * @brief 分岐マークが更新された
+     * @param branchPlys 分岐がある手数のセット
+     */
+    void branchMarksUpdated(const QSet<int>& branchPlys);
+
+    /**
+     * @brief 棋譜欄モデルの更新が必要
+     */
+    void recordModelUpdateRequired();
+
 private:
     void reset();
+    void computeAndEmitBranchMarks();
 
     bool m_active = false;
     bool m_hasTerminal = false;

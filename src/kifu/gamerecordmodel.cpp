@@ -240,14 +240,11 @@ GameRecordModel::GameRecordModel(QObject* parent)
 // 初期化・バインド
 // ========================================
 
-void GameRecordModel::bind(int* activeResolvedRow,
-                           QList<KifDisplayItem>* liveDisp)
+void GameRecordModel::bind(QList<KifDisplayItem>* liveDisp)
 {
-    m_activeResolvedRow = activeResolvedRow;
     m_liveDisp = liveDisp;
 
     qDebug().noquote() << "[GameRecordModel] bind:"
-                       << " activeResolvedRow=" << (activeResolvedRow ? *activeResolvedRow : -1)
                        << " liveDisp=" << (liveDisp ? "valid" : "null");
 }
 
@@ -348,7 +345,11 @@ void GameRecordModel::ensureCommentCapacity(int ply)
 
 int GameRecordModel::activeRow() const
 {
-    return m_activeResolvedRow ? *m_activeResolvedRow : 0;
+    // 新システム: KifuNavigationState から現在のラインインデックスを取得
+    if (m_navState != nullptr) {
+        return m_navState->currentLineIndex();
+    }
+    return 0;
 }
 
 // ========================================

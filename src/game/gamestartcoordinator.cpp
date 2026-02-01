@@ -766,18 +766,12 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
         c2.startDlg = dlg;
         prepareDataCurrentPosition(c2);
 
-        // ★ 重要：cleanup後に分岐を設定（cleanupで分岐モデルがクリアされるため）
-        if (needBranchSetup && c.kifuLoadCoordinator) {
-            qDebug().noquote() << "[GSC] About to call setupBranchForResumeFromCurrent:"
-                               << " effectivePly=" << effectivePly
-                               << " terminalLabel=" << terminalLabel;
-            const bool branchResult = c.kifuLoadCoordinator->setupBranchForResumeFromCurrent(effectivePly, terminalLabel);
-            qDebug().noquote() << "[GSC] setupBranchForResumeFromCurrent returned:" << branchResult;
-        } else {
-            qDebug().noquote() << "[GSC] Skipping branch setup:"
-                               << " needBranchSetup=" << needBranchSetup
-                               << " kifuLoadCoordinator=" << (c.kifuLoadCoordinator ? "valid" : "null");
-        }
+        // ★ 新システム: 分岐セットアップは LiveGameSession::startFromNode で行う
+        // KifuLoadCoordinator::setupBranchForResumeFromCurrent は削除済み
+        Q_UNUSED(needBranchSetup)
+        Q_UNUSED(effectivePly)
+        Q_UNUSED(terminalLabel)
+        qDebug().noquote() << "[GSC] Branch setup is now handled by LiveGameSession";
 
         qDebug().noquote() << "[DEBUG][GSC] initializeGame: AFTER prepareDataCurrentPosition"
                            << " c.currentSfenStr=" << (c.currentSfenStr ? c.currentSfenStr->left(50) : "null");

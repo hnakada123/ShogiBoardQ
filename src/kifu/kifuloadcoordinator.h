@@ -12,13 +12,10 @@
 #include "shogiview.h"
 #include "recordpane.h"
 #include "kifurecordlistmodel.h"
-#include "kifutypes.h"
-#include "branchdisplayplan.h"
 
-class NavigationPresenter;
 class KifuBranchTree;
+class KifuNavigationState;
 class EngineAnalysisTab;
-class KifuVariationEngine;
 
 class KifuLoadCoordinator : public QObject
 {
@@ -28,7 +25,6 @@ public:
     // コンストラクタ
     explicit KifuLoadCoordinator(QVector<ShogiMove>& gameMoves,
                         QStringList& positionStrList,
-                        int& activeResolvedRow,
                         int& activePly,
                         int& currentSelectedPly,
                         int& currentMoveIndex,
@@ -39,7 +35,6 @@ public:
                         RecordPane* recordPane,
                         KifuRecordListModel* kifuRecordModel,
                         KifuBranchListModel* kifuBranchModel,
-                        QHash<int, QMap<int, ::BranchCandidateDisplay>>& branchDisplayPlan,
                         QObject* parent=nullptr);
 
     // --- 装飾（棋譜テーブル マーカー描画） ---
@@ -91,6 +86,8 @@ public:
     // ★ 新規: KifuBranchTreeを設定
     void setBranchTree(KifuBranchTree* tree) { m_branchTree = tree; }
 
+    // ★ 新規: KifuNavigationStateを設定
+    void setNavigationState(KifuNavigationState* state) { m_navState = state; }
 
     // USI指し手リストを取得（CSA出力用）- 棋譜から読み込んだ指し手
     const QStringList& kifuUsiMoves() const { return m_kifuUsiMoves; }
@@ -98,48 +95,12 @@ public:
     // USI指し手リストへのポインタを取得（棋譜解析用）- 棋譜から読み込んだ指し手
     QStringList* kifuUsiMovesPtr() { return &m_kifuUsiMoves; }
 
-    void updateBranchTreeFromLive(int currentPly);
-
-    // ライブ対局用：分岐Plan・＋/オレンジ強調・候補欄を一括更新
-    void rebuildBranchPlanAndMarksForLive(int currentPly);
-
     // ★ 追加：分岐コンテキストをリセット（対局終了時に使用）
     void resetBranchContext();
 
     // ★ 追加：分岐ツリーを完全リセット（新規対局開始時に使用）
     //   平手・駒落ちなど、「現在の局面」以外から対局を開始する場合に呼び出す
     void resetBranchTreeForNewGame();
-
-    // ★ 追加：「現在の局面から再開」時に分岐構造を設定
-    //   anchorPly: 分岐の起点となる手数（この手数の直後から新しい手が追加される）
-    //   terminalLabel: 終了手のラベル（例: "▲投了"）
-    //   戻り値: 成功したら true
-    bool setupBranchForResumeFromCurrent(int anchorPly, const QString& terminalLabel);
-
-    // ★ 追加：ライブ対局の手を追加
-    void appendLiveMove(const KifDisplayItem& item, const QString& sfen, const ShogiMove& move);
-
-    // ★ 追加：ライブ対局をResolvedRowに確定
-    void commitLiveGameToResolvedRows();
-
-    // ★ 追加：ライブ対局の状態を取得
-    const LiveGameState& liveGameState() const { return m_liveGameState; }
-
-    // ★ 追加：ライブ対局中かどうか
-    bool isLiveGameActive() const { return m_liveGameState.isActive; }
-
-public slots:
-    void applyResolvedRowAndSelect(int row, int selPly);
-
-    // ★ 新規公開：行(row)・手数(ply1)の分岐候補を“表示のみ”更新
-    //   （内部で showBranchCandidatesFromPlan を呼ぶラッパー）
-    void showBranchCandidates(int row, int ply1);
-
-    // 棋譜テーブルの「本譜行」選択が変わったときに呼ぶ
-    void onMainMoveRowChanged(int selPly);
-
-private slots:
-    void onBackToMainButtonClicked();
 
 signals:
     void errorOccurred(const QString& errorMessage);
@@ -149,25 +110,10 @@ signals:
     void enableArrowButtons();
     void setupBranchCandidatesWiring();
     void gameInfoPopulated(const QList<KifGameInfoItem>& items);  // ★ 追加
-    void liveGameStateChanged();  // ライブ対局の状態が変わった時
-    void liveGameCommitted(int newRowIndex);  // ライブ対局がResolvedRowに確定した時
     void branchTreeBuilt();  // ★ 新規: 分岐ツリーが構築された時
-
-
-public:
-    /**
-     * @brief 新システムによる分岐候補管理を有効化
-     *
-     * 有効化すると、showBranchCandidatesFromPlan() は何もしなくなり、
-     * 新システム（KifuDisplayCoordinator）が分岐候補を管理する。
-     */
-    void setUseNewBranchSystem(bool enabled) { m_useNewBranchSystem = enabled; }
-    bool useNewBranchSystem() const { return m_useNewBranchSystem; }
 
 private:
     bool m_loadingKifu = false;
-    bool m_updatingBranchCandidates = false;  // 分岐候補更新中の再入防止フラグ
-    bool m_useNewBranchSystem = false;  // 新システムによる分岐候補管理を使用するか
     QTableWidget* m_gameInfoTable;
     QDockWidget*  m_gameInfoDock;
     EngineAnalysisTab* m_analysisTab = nullptr;  // setAnalysisTab() 経由で設定
@@ -184,24 +130,15 @@ private:
     QHash<int, QList<KifLine>> m_variationsByPly;
     QList<KifLine> m_variationsSeq;
     RecordPane* m_recordPane;
-    int& m_activeResolvedRow;
     int& m_activePly;
     int& m_currentSelectedPly;
     int& m_currentMoveIndex;
     KifuRecordListModel* m_kifuRecordModel;
     KifuBranchListModel* m_kifuBranchModel;
     int m_branchPlyContext = -1;
-    int m_liveBranchAnchorPly = -1;  // ライブ分岐の起点（再対局時に設定、対局中は変更しない）
-    LiveGameState m_liveGameState;   // ライブ対局の状態（読み込んだ棋譜データとは分離して管理）
     QSet<int> m_branchablePlySet;
-    QHash<int, QHash<QString, QList<BranchCandidate>>> m_branchIndex;
-    // 行(row) → (ply → 表示計画) の保持
-    // 例: m_branchDisplayPlan[row][ply]
-    QHash<int, QMap<int, BranchCandidateDisplay>>& m_branchDisplayPlan;
-    std::unique_ptr<KifuVariationEngine> m_varEngine;
-    bool m_branchTreeLocked = false;  // ← 分岐ツリーの追加・変更を禁止するロック
-    NavigationPresenter* m_navPresenter = nullptr;
-    KifuBranchTree* m_branchTree = nullptr;  // ★ 新規: 分岐ツリー
+    KifuBranchTree* m_branchTree = nullptr;       // ★ 分岐ツリー
+    KifuNavigationState* m_navState = nullptr;    // ★ ナビゲーション状態
 
     QString prepareInitialSfen(const QString& filePath, QString& teaiLabel) const;
     void populateGameInfo(const QList<KifGameInfoItem>& items);
@@ -210,8 +147,6 @@ private:
     QString findGameInfoValue(const QList<KifGameInfoItem>& items, const QStringList& keys) const;
     void rebuildSfenRecord(const QString& initialSfen, const QStringList& usiMoves, bool hasTerminal);
     void rebuildGameMoves(const QString& initialSfen, const QStringList& usiMoves);
-    void showRecordAtPly(const QList<KifDisplayItem>& disp, int selectPly);
-    void showBranchCandidatesFromPlan(int row, int ply1);
     void updateKifuBranchMarkersForActiveRow();
     void ensureBranchRowDelegateInstalled();
     void logImportSummary(const QString& filePath,
@@ -220,16 +155,9 @@ private:
                           const QString& teaiLabel,
                           const QString& warnParse,
                           const QString& warnConvert) const;
-    void buildBranchCandidateDisplayPlan();
-    void ensureNavigationPresenter();
-
-    // 追加（private）
-    QList<KifDisplayItem> collectDispFromRecordModel() const;
 
     // ★ 追加：現在表示中の行（m_activeResolvedRow）の分岐手をモデルへ反映
     void applyBranchMarksForCurrentLine();
-
-    void refreshBranchCandidatesUIOnly(int row, int ply1); // 文脈を変えずUIだけ更新
 
     void applyParsedResultCommon(const QString& filePath, const QString& initialSfen,
                                   const QString& teaiLabel, const KifParseResult& res,

@@ -4,18 +4,16 @@
 #include <QObject>
 #include <QPointer>
 
-class KifuLoadCoordinator;
 class EngineAnalysisTab;
 
-// 分岐候補 UI の更新とツリーハイライトに専念する Presenter。
-// - 候補の“再構築”は Coordinator に依頼する
-// - Coordinator が内部で候補モデルを更新し終えたら、Presenter の「事後通知API」を呼ぶ
+// 分岐ツリーハイライトと通知に専念する Presenter。
+// - 分岐候補表示は KifuDisplayCoordinator が管理
+// - NavigationPresenter はツリーハイライトとシグナル通知のみを担当
 class NavigationPresenter : public QObject
 {
     Q_OBJECT
 public:
     struct Deps {
-        KifuLoadCoordinator* coordinator = nullptr;   // 候補生成の実体
         EngineAnalysisTab*   analysisTab = nullptr;   // 分岐ツリーハイライト先（任意）
     };
 
@@ -41,7 +39,6 @@ signals:
 private:
     void highlightBranchTree(int row, int ply);
 
-    QPointer<KifuLoadCoordinator> m_coordinator;
     QPointer<EngineAnalysisTab>   m_analysisTab;
 };
 

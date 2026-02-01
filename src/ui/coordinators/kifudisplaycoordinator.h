@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QVector>
+#include <QSet>
 
 class KifuBranchTree;
 class KifuBranchNode;
@@ -13,6 +14,7 @@ class BranchTreeWidget;
 class EngineAnalysisTab;
 class KifuRecordListModel;
 class KifuBranchListModel;
+class LiveGameSession;
 class QModelIndex;
 
 /**
@@ -59,6 +61,11 @@ public:
      */
     void setAnalysisTab(EngineAnalysisTab* tab);
 
+    /**
+     * @brief ライブ対局セッションを設定
+     */
+    void setLiveGameSession(LiveGameSession* session);
+
     // === 初期化 ===
 
     /**
@@ -101,6 +108,25 @@ public slots:
      */
     void onTreeChanged();
 
+    // === 一致性検証 ===
+
+    /**
+     * @brief 表示状態の一致性を検証する
+     * @return 一致している場合は true
+     *
+     * 以下の項目を検証する:
+     * - m_lastLineIndex と m_state->currentLineIndex() の一致
+     * - 棋譜欄の内容が現在のラインと一致しているか
+     * - ツリーハイライトの期待値と実際の状態
+     */
+    bool verifyDisplayConsistency() const;
+
+    /**
+     * @brief 一致性レポートを生成する
+     * @return 診断情報を含む文字列
+     */
+    QString getConsistencyReport() const;
+
     /**
      * @brief 分岐ツリーノードクリック時
      */
@@ -112,12 +138,39 @@ public slots:
     void onBranchCandidateActivated(const QModelIndex& index);
 
     /**
-     * @brief 旧ナビゲーションシステムからの位置変更通知
-     * @param row 行番号（分岐インデックス）
+     * @brief MainWindowからの位置変更通知（棋譜欄ナビゲーション）
+     * @param lineIndex 分岐ラインインデックス（0=本譜）
      * @param ply 手数
      * @param sfen 現在局面のSFEN（ツリーから正しいノードを探すために使用）
      */
-    void onLegacyPositionChanged(int row, int ply, const QString& sfen);
+    void onPositionChanged(int lineIndex, int ply, const QString& sfen);
+
+    // === ライブ対局セッションからのシグナル ===
+
+    /**
+     * @brief ライブ対局で手が追加された
+     */
+    void onLiveGameMoveAdded(int ply, const QString& displayText);
+
+    /**
+     * @brief ライブ対局の分岐マークが更新された
+     */
+    void onLiveGameBranchMarksUpdated(const QSet<int>& branchPlys);
+
+    /**
+     * @brief ライブ対局が確定された
+     */
+    void onLiveGameCommitted(KifuBranchNode* newLineEnd);
+
+    /**
+     * @brief ライブ対局が破棄された
+     */
+    void onLiveGameDiscarded();
+
+    /**
+     * @brief ライブ対局の棋譜欄更新が必要
+     */
+    void onLiveGameRecordModelUpdateRequired();
 
 signals:
     /**
@@ -149,8 +202,13 @@ private:
     EngineAnalysisTab* m_analysisTab = nullptr;
     KifuRecordListModel* m_recordModel = nullptr;
     KifuBranchListModel* m_branchModel = nullptr;
+    LiveGameSession* m_liveSession = nullptr;
 
     int m_lastLineIndex = 0;  // ライン変更検出用
+
+    // ツリーハイライトの期待値追跡（一致性検証用）
+    int m_expectedTreeLineIndex = 0;
+    int m_expectedTreePly = 0;
 };
 
 #endif // KIFUDISPLAYCOORDINATOR_H

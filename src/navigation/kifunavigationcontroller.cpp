@@ -283,7 +283,7 @@ void KifuNavigationController::selectBranchCandidate(int candidateIndex)
         qDebug().noquote() << "[KNC] selectBranchCandidate: resetPreferredLineIndex (main line selected)";
     }
 
-    // ★ 追加: ライン選択変更を通知（旧システムのm_activeResolvedRowを同期するため）
+    // ★ ライン選択変更を通知
     emit lineSelectionChanged(lineIndex);
     qDebug().noquote() << "[KNC] selectBranchCandidate: emitted lineSelectionChanged=" << lineIndex;
 

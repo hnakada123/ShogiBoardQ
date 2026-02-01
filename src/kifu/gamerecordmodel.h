@@ -47,8 +47,7 @@ public:
     /**
      * @brief 既存のデータストアをバインド（参照を保持、所有しない）
      */
-    void bind(int* activeResolvedRow,
-              QList<KifDisplayItem>* liveDisp);
+    void bind(QList<KifDisplayItem>* liveDisp);
 
     /**
      * @brief KifuBranchTree を設定（新システム用）
@@ -258,7 +257,6 @@ private:
     bool m_isDirty = false;       ///< 変更フラグ
 
     // === 外部データへの参照（同期更新用、所有しない） ===
-    int* m_activeResolvedRow = nullptr;
     QList<KifDisplayItem>* m_liveDisp = nullptr;
 
     // === 新システム（KifuBranchTree）への参照 ===

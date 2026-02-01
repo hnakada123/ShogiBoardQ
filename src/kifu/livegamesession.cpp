@@ -2,6 +2,7 @@
 #include "kifubranchtree.h"
 
 #include <QDebug>
+#include <QSet>
 
 LiveGameSession::LiveGameSession(QObject* parent)
     : QObject(parent)
@@ -90,6 +91,12 @@ void LiveGameSession::addMove(const ShogiMove& move, const QString& displayText,
 
     qDebug() << "[LiveGameSession] Added move at ply" << ply << ":" << displayText;
     emit moveAdded(ply, displayText);
+
+    // 分岐マークを計算して通知
+    computeAndEmitBranchMarks();
+
+    // 棋譜欄モデルの更新が必要
+    emit recordModelUpdateRequired();
 }
 
 void LiveGameSession::addTerminalMove(TerminalType type, const QString& displayText,
@@ -241,4 +248,48 @@ void LiveGameSession::reset()
     m_moves.clear();
     m_gameMoves.clear();
     m_sfens.clear();
+}
+
+void LiveGameSession::computeAndEmitBranchMarks()
+{
+    QSet<int> branchPlys;
+
+    if (m_tree == nullptr || m_tree->isEmpty()) {
+        emit branchMarksUpdated(branchPlys);
+        return;
+    }
+
+    // 分岐起点から始まるラインを取得
+    // 親ラインの分岐マークを取得
+    KifuBranchNode* parentNode = m_branchPoint;
+    if (parentNode == nullptr) {
+        parentNode = m_tree->root();
+    }
+
+    // 分岐起点から親をたどって分岐マークを収集
+    if (parentNode != nullptr) {
+        // 親ラインを含むラインを探す
+        QVector<BranchLine> lines = m_tree->allLines();
+        for (const BranchLine& line : std::as_const(lines)) {
+            for (KifuBranchNode* node : std::as_const(line.nodes)) {
+                // 分岐起点以下の手で、親に複数の子がある場合は分岐マーク
+                if (node->ply() <= anchorPly() && node->parent() != nullptr &&
+                    node->parent()->childCount() > 1) {
+                    branchPlys.insert(node->ply());
+                }
+                // 自分自身への分岐マーク（最初の1手目）
+                if (node == parentNode && !m_moves.isEmpty()) {
+                    // 最初の手が追加された位置は分岐点になる可能性がある
+                    int firstMovePly = anchorPly() + 1;
+                    // 親に既に子がいる場合は分岐
+                    if (parentNode->childCount() > 0) {
+                        branchPlys.insert(firstMovePly);
+                    }
+                }
+            }
+        }
+    }
+
+    qDebug() << "[LiveGameSession] computeAndEmitBranchMarks: branchPlys=" << branchPlys;
+    emit branchMarksUpdated(branchPlys);
 }

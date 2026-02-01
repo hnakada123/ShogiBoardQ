@@ -96,10 +96,10 @@ QVariant KifuBranchListModel::headerData(int section, Qt::Orientation orientatio
 void KifuBranchListModel::clearBranchCandidates()
 {
     qDebug().noquote() << "[BRANCH-MODEL] clearBranchCandidates called, list.size was:" << list.size()
-                       << "locked=" << m_lockedByNewSystem;
-    // ロック中は旧システムからのクリアを無視
-    if (m_lockedByNewSystem) {
-        qDebug().noquote() << "[BRANCH-MODEL] clearBranchCandidates: IGNORED (locked by new system)";
+                       << "locked=" << m_locked;
+    // ロック中は外部からのクリアを無視
+    if (m_locked) {
+        qDebug().noquote() << "[BRANCH-MODEL] clearBranchCandidates: IGNORED (locked)";
         return;
     }
     beginResetModel();
@@ -109,9 +109,9 @@ void KifuBranchListModel::clearBranchCandidates()
     endResetModel();
 }
 
-void KifuBranchListModel::clearBranchCandidatesByNewSystem()
+void KifuBranchListModel::resetBranchCandidates()
 {
-    qDebug().noquote() << "[BRANCH-MODEL] clearBranchCandidatesByNewSystem called";
+    qDebug().noquote() << "[BRANCH-MODEL] resetBranchCandidates called";
     beginResetModel();
     qDeleteAll(list);
     list.clear();
@@ -124,11 +124,11 @@ void KifuBranchListModel::setBranchCandidatesFromKif(const QList<KifDisplayItem>
     QStringList s; s.reserve(rows.size());
     for (qsizetype i=0;i<rows.size();++i) s << rows[i].prettyMove;
     qDebug().noquote() << "[BRANCH-MODEL] setBranchCandidatesFromKif:" << rows.size() << "items:" << s.join(", ")
-                       << "locked=" << m_lockedByNewSystem;
+                       << "locked=" << m_locked;
 
-    // ロック中は旧システムからの設定を無視
-    if (m_lockedByNewSystem) {
-        qDebug().noquote() << "[BRANCH-MODEL] setBranchCandidatesFromKif: IGNORED (locked by new system)";
+    // ロック中は外部からの設定を無視
+    if (m_locked) {
+        qDebug().noquote() << "[BRANCH-MODEL] setBranchCandidatesFromKif: IGNORED (locked)";
         return;
     }
 
@@ -157,11 +157,11 @@ void KifuBranchListModel::setBranchCandidatesFromKif(const QList<KifDisplayItem>
     endResetModel();
 }
 
-void KifuBranchListModel::setBranchCandidatesByNewSystem(const QList<KifDisplayItem>& rows)
+void KifuBranchListModel::updateBranchCandidates(const QList<KifDisplayItem>& rows)
 {
     QStringList s; s.reserve(rows.size());
     for (qsizetype i=0;i<rows.size();++i) s << rows[i].prettyMove;
-    qDebug().noquote() << "[BRANCH-MODEL] setBranchCandidatesByNewSystem:" << rows.size() << "items:" << s.join(", ");
+    qDebug().noquote() << "[BRANCH-MODEL] updateBranchCandidates:" << rows.size() << "items:" << s.join(", ");
 
     beginResetModel();
     qDeleteAll(list);
@@ -187,8 +187,8 @@ void KifuBranchListModel::setBranchCandidatesByNewSystem(const QList<KifDisplayI
     }
     endResetModel();
 
-    // ロックを有効にして、旧システムからの変更を防ぐ
-    m_lockedByNewSystem = true;
+    // ロックを有効にして、外部からの変更を防ぐ
+    m_locked = true;
 }
 
 void KifuBranchListModel::setHasBackToMainRow(bool enabled)
