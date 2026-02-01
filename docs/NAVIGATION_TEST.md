@@ -79,6 +79,13 @@
 | `--click-next-after-kifu <count>` | click-kifu-row後の1手進む | kifu-row後 +500ms |
 | `--click-next-after-prev <count>` | click-prev後の1手進む | prev後 +500ms |
 
+### 先頭/末尾ボタン
+
+| オプション | 説明 | 実行タイミング |
+|------------|------|----------------|
+| `--click-first` | 先頭へボタンをクリック（開始局面に移動） | 全操作完了後 +500ms |
+| `--click-last` | 末尾へボタンをクリック（最終手に移動） | first後 +500ms または全操作完了後 +500ms |
+
 ## テストシナリオ
 
 ### 1. 基本ナビゲーションテスト（本譜）
@@ -394,6 +401,113 @@ Line 2 の罫線が誤って3手目の位置から引かれていました。
 ルートまでの全分岐点で選択を記憶していなかったことでした。
 修正により、`goToNode()` でルートから目標ノードまでの全分岐点で選択を記憶します。
 
+### 16. 棋譜欄の分岐点クリック → 分岐候補クリックテスト
+
+棋譜欄で分岐点（3手目）を直接クリックし、その後分岐候補欄から分岐を選択することを確認。
+4表示（盤面・棋譜欄・分岐候補欄・分岐ツリー）が全て一致することを検証。
+
+```bash
+./build/ShogiBoardQ --test-mode \
+    --load-kif test_branch.kif \
+    --click-kifu-row 3 \
+    --click-branch 1 \
+    --dump-state-after 5000
+```
+
+**期待結果**:
+- `currentPly: 3`
+- `currentLineIndex: 1`（分岐ライン1に移動）
+- `currentNode displayText: "▲６六歩(67)"`
+- `actualSfen`: ６六に歩がある状態
+- `kifu[ 3 ]:    3 ▲６六歩(67)+`（棋譜欄が分岐ラインの内容に更新される）
+
+**補足**: このテストは、棋譜欄の直接クリックと分岐候補クリックの組み合わせにおける
+4表示の一致を確認するためのものです。
+
+### 17. 分岐ライン末尾での「1手進む」テスト
+
+分岐ラインの末尾に移動後、「1手進む」ボタンを押しても末尾で停止することを確認。
+
+```bash
+./build/ShogiBoardQ --test-mode \
+    --load-kif test_branch.kif \
+    --click-tree-node 1,5 \
+    --click-next 1 \
+    --dump-state-after 5000
+```
+
+**期待結果**:
+- `currentPly: 5`（末尾で変化なし）
+- `currentLineIndex: 1`（分岐ライン1に留まる）
+- `currentNode displayText: "▲６五歩(66)"`（Line 1の末尾）
+
+**補足**: このテストは、分岐ラインの末尾で「1手進む」を押しても
+末尾を超えて移動しないことを確認するためのものです。
+
+### 18. 本譜末尾から「1手戻る」→「1手進む」テスト
+
+本譜の末尾に移動後、「1手戻る」「1手進む」と操作しても本譜に留まることを確認。
+
+```bash
+./build/ShogiBoardQ --test-mode \
+    --load-kif test_branch.kif \
+    --click-last \
+    --click-prev 1 \
+    --click-next-after-prev 1 \
+    --dump-state-after 6000
+```
+
+**期待結果**:
+- `currentPly: 7`（本譜の末尾に戻る）
+- `currentLineIndex: 0`（本譜に留まる）
+- `currentNode displayText: "▲７八金(69)"`（本譜の7手目）
+
+**補足**: このテストは、末尾へボタンで最終手に移動した後、
+戻る→進むの操作で本譜に正しく留まることを確認するためのものです。
+
+### 19. 開始局面から「1手進む」（4表示一致確認）テスト
+
+棋譜読み込み後に「1手進む」ボタンで移動し、4表示全てが正しく一致することを確認。
+
+```bash
+./build/ShogiBoardQ --test-mode \
+    --load-kif test_branch.kif \
+    --click-next 1 \
+    --dump-state-after 3000
+```
+
+**期待結果**:
+- `currentPly: 1`
+- `currentLineIndex: 0`（本譜）
+- `currentNode displayText: "▲７六歩(77)"`
+- `actualSfen`: ７六に歩がある状態
+- `branchView enabled: true`（分岐候補欄は有効だが候補なし）
+
+**補足**: このテストは、開始局面からの「1手進む」における
+4表示の一致を確認する基本的なテストです。
+
+### 20. 分岐選択 → 先頭へ → 末尾へテスト
+
+分岐ラインを選択した後、「先頭へ」「末尾へ」と操作すると
+分岐ラインの末尾に正しく移動することを確認。
+
+```bash
+./build/ShogiBoardQ --test-mode \
+    --load-kif test_branch.kif \
+    --click-tree-node 1,3 \
+    --click-first \
+    --click-last \
+    --dump-state-after 6000
+```
+
+**期待結果**:
+- `currentPly: 5`（分岐ライン1の末尾）
+- `currentLineIndex: 1`（分岐ライン1に留まる）
+- `currentNode displayText: "▲６五歩(66)"`（Line 1の末尾）
+
+**補足**: このテストは、分岐ラインを選択した状態で「先頭へ」「末尾へ」ボタンを使用した際、
+本譜ではなく選択中の分岐ラインのコンテキストが維持されることを確認するためのものです。
+
 ## 検証項目
 
 テスト実行後、debug.logで以下の項目を確認できます：
@@ -571,6 +685,57 @@ echo "--- テスト15: 分岐ツリークリック後の戻る→進む ---"
     --click-next-after-prev 1 \
     --dump-state-after 8000 2>&1 > /dev/null
 grep -E "currentPly:|currentLineIndex:|currentNode displayText:|actualSfen:" debug.log | tail -4
+
+# テスト16: 棋譜欄の分岐点クリック → 分岐候補クリック
+echo ""
+echo "--- テスト16: 棋譜欄の分岐点クリック → 分岐候補クリック ---"
+./build/ShogiBoardQ --test-mode \
+    --load-kif test_branch.kif \
+    --click-kifu-row 3 \
+    --click-branch 1 \
+    --dump-state-after 5000 2>&1 > /dev/null
+grep -E "currentPly:|currentLineIndex:|currentNode displayText:|actualSfen:" debug.log | tail -4
+
+# テスト17: 分岐ライン末尾での「1手進む」
+echo ""
+echo "--- テスト17: 分岐ライン末尾での「1手進む」 ---"
+./build/ShogiBoardQ --test-mode \
+    --load-kif test_branch.kif \
+    --click-tree-node 1,5 \
+    --click-next 1 \
+    --dump-state-after 5000 2>&1 > /dev/null
+grep -E "currentPly:|currentLineIndex:|currentNode displayText:" debug.log | tail -3
+
+# テスト18: 本譜末尾から「1手戻る」→「1手進む」
+echo ""
+echo "--- テスト18: 本譜末尾から「1手戻る」→「1手進む」 ---"
+./build/ShogiBoardQ --test-mode \
+    --load-kif test_branch.kif \
+    --click-last \
+    --click-prev 1 \
+    --click-next-after-prev 1 \
+    --dump-state-after 6000 2>&1 > /dev/null
+grep -E "currentPly:|currentLineIndex:|currentNode displayText:" debug.log | tail -3
+
+# テスト19: 開始局面から「1手進む」（4表示一致確認）
+echo ""
+echo "--- テスト19: 開始局面から「1手進む」（4表示一致確認） ---"
+./build/ShogiBoardQ --test-mode \
+    --load-kif test_branch.kif \
+    --click-next 1 \
+    --dump-state-after 3000 2>&1 > /dev/null
+grep -E "currentPly:|currentLineIndex:|currentNode displayText:|actualSfen:|branchView enabled:" debug.log | tail -5
+
+# テスト20: 分岐選択 → 先頭へ → 末尾へ
+echo ""
+echo "--- テスト20: 分岐選択 → 先頭へ → 末尾へ ---"
+./build/ShogiBoardQ --test-mode \
+    --load-kif test_branch.kif \
+    --click-tree-node 1,3 \
+    --click-first \
+    --click-last \
+    --dump-state-after 6000 2>&1 > /dev/null
+grep -E "currentPly:|currentLineIndex:|currentNode displayText:" debug.log | tail -3
 
 echo ""
 echo "=== テスト完了 ==="

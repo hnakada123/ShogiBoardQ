@@ -235,6 +235,18 @@ int main(int argc, char *argv[])
         "count");
     parser.addOption(clickNextAfterPrevOption);
 
+    // --click-first : 先頭へボタンをクリック
+    QCommandLineOption clickFirstOption(
+        QStringList() << "click-first",
+        "Click first button (go to start position).");
+    parser.addOption(clickFirstOption);
+
+    // --click-last : 末尾へボタンをクリック
+    QCommandLineOption clickLastOption(
+        QStringList() << "click-last",
+        "Click last button (go to end position).");
+    parser.addOption(clickLastOption);
+
     parser.process(a);
 
     MainWindow w;
@@ -276,9 +288,17 @@ int main(int argc, char *argv[])
     }
 
     // 分岐候補クリックの自動実行
-    // click-tree-nodeが設定されている場合は、ツリーノードクリック後に実行
-    // ★ 手動操作をシミュレートするため、ツリーノードクリック後に十分な遅延を設ける
-    const int branchClickTime = parser.isSet(clickTreeNodeOption) ? 3500 : 1500;
+    // click-tree-nodeまたはclick-kifu-rowが設定されている場合は、それらの後に実行
+    // ★ 手動操作をシミュレートするため、他の操作後に十分な遅延を設ける
+    int branchClickTime;
+    if (parser.isSet(clickKifuRowOption)) {
+        // kifu-rowクリック後に分岐候補クリック
+        branchClickTime = 1500 + 500;  // kifu-row (1500ms) + 500ms
+    } else if (parser.isSet(clickTreeNodeOption)) {
+        branchClickTime = 3500;
+    } else {
+        branchClickTime = 1500;
+    }
     if (parser.isSet(clickBranchOption)) {
         const int branchIndex = parser.value(clickBranchOption).toInt();
         qDebug() << "[TEST] Auto-clicking branch index:" << branchIndex << "at" << branchClickTime << "ms";
@@ -299,9 +319,17 @@ int main(int argc, char *argv[])
         }
     }
 
-    // 1手戻るボタンの自動クリック（nextボタンの後に実行）
+    // 1手戻るボタンの自動クリック（nextボタンまたはlastボタンの後に実行）
     const int prevCount = parser.isSet(clickPrevOption) ? parser.value(clickPrevOption).toInt() : 0;
-    const int prevStartTime = nextStartTime + nextCount * 100 + 500;
+    // lastオプションが設定されていて、他の操作がない場合はlast後に実行
+    // ※ lastClickTimeはまだ計算されていないので、ここで計算
+    int prevStartTime;
+    if (parser.isSet(clickLastOption) && nextCount == 0 && !parser.isSet(clickBranchOption)) {
+        // --click-lastの後に実行
+        prevStartTime = 1500 + 500;  // last (1500ms) + 500ms
+    } else {
+        prevStartTime = nextStartTime + nextCount * 100 + 500;
+    }
     if (prevCount > 0) {
         qDebug() << "[TEST] Auto-clicking prev button" << prevCount << "times starting at" << prevStartTime << "ms";
         for (int i = 0; i < prevCount; ++i) {
@@ -403,13 +431,14 @@ int main(int argc, char *argv[])
     }
 
     // 棋譜欄の行を直接クリック
-    // 他の操作がある場合は全操作完了後、なければKIF読み込み直後に実行
+    // 他の操作（tree-node等）がある場合はその後に実行、なければKIF読み込み直後に実行
+    // 注: click-branchはkifu-row後に実行されるので、hasOtherOpsから除外
     if (parser.isSet(clickKifuRowOption)) {
         const int kifuRow = parser.value(clickKifuRowOption).toInt();
         qDebug() << "[TEST] Auto-clicking kifu row:" << kifuRow;
 
         int kifuRowStartTime;
-        const bool hasOtherOps = parser.isSet(clickBranchOption) || nextCount > 0 || prevCount > 0 ||
+        const bool hasOtherOps = nextCount > 0 || prevCount > 0 ||
                                   parser.isSet(clickBranch2Option) || next2Count > 0 ||
                                   prev2Count > 0 || next3Count > 0 || parser.isSet(clickTreeNodeOption);
         if (hasOtherOps) {
@@ -437,6 +466,57 @@ int main(int argc, char *argv[])
                 });
             }
         }
+    }
+
+    // 先頭へボタンの自動クリック
+    // 他の操作がある場合は全操作完了後、なければKIF読み込み直後に実行
+    // 全操作完了後の時間を計算
+    int allOpsCompletedTime = branch2StartTime + 500 + next2Count * 100 + 500 + prev2Count * 100 + 500 + next3Count * 100 + 500;
+    if (parser.isSet(clickKifuRowOption)) {
+        const int nextAfterKifuCount = parser.isSet(clickNextAfterKifuOption)
+                                           ? parser.value(clickNextAfterKifuOption).toInt()
+                                           : 0;
+        allOpsCompletedTime += 500 + nextAfterKifuCount * 100;
+    }
+
+    int firstClickTime = 0;
+    if (parser.isSet(clickFirstOption)) {
+        const bool hasOtherOps = parser.isSet(clickBranchOption) || nextCount > 0 || prevCount > 0 ||
+                                  parser.isSet(clickBranch2Option) || next2Count > 0 ||
+                                  prev2Count > 0 || next3Count > 0 || parser.isSet(clickTreeNodeOption) ||
+                                  parser.isSet(clickKifuRowOption);
+        if (hasOtherOps) {
+            firstClickTime = allOpsCompletedTime + 500;
+        } else {
+            firstClickTime = 1500;
+        }
+        qDebug() << "[TEST] Auto-clicking first button at" << firstClickTime << "ms";
+        QTimer::singleShot(firstClickTime, &w, [&w]() {
+            w.clickFirstButton();
+        });
+    }
+
+    // 末尾へボタンの自動クリック
+    // firstボタンの後に実行（設定されている場合）
+    if (parser.isSet(clickLastOption)) {
+        int lastClickTime;
+        if (parser.isSet(clickFirstOption)) {
+            lastClickTime = firstClickTime + 500;
+        } else {
+            const bool hasOtherOps = parser.isSet(clickBranchOption) || nextCount > 0 || prevCount > 0 ||
+                                      parser.isSet(clickBranch2Option) || next2Count > 0 ||
+                                      prev2Count > 0 || next3Count > 0 || parser.isSet(clickTreeNodeOption) ||
+                                      parser.isSet(clickKifuRowOption);
+            if (hasOtherOps) {
+                lastClickTime = allOpsCompletedTime + 500;
+            } else {
+                lastClickTime = 1500;
+            }
+        }
+        qDebug() << "[TEST] Auto-clicking last button at" << lastClickTime << "ms";
+        QTimer::singleShot(lastClickTime, &w, [&w]() {
+            w.clickLastButton();
+        });
     }
 
     // 状態ダンプ＆終了

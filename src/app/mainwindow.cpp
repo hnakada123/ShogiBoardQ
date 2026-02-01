@@ -4766,6 +4766,40 @@ void MainWindow::clickPrevButton()
     }
 }
 
+void MainWindow::clickFirstButton()
+{
+    qDebug() << "[TEST] clickFirstButton";
+
+    if (m_recordPane != nullptr) {
+        QPushButton* firstBtn = m_recordPane->firstButton();
+        if (firstBtn != nullptr) {
+            firstBtn->click();
+            qDebug() << "[TEST] clickFirstButton: button clicked";
+        } else {
+            qWarning() << "[TEST] clickFirstButton: firstButton is null";
+        }
+    } else {
+        qWarning() << "[TEST] clickFirstButton: m_recordPane is null";
+    }
+}
+
+void MainWindow::clickLastButton()
+{
+    qDebug() << "[TEST] clickLastButton";
+
+    if (m_recordPane != nullptr) {
+        QPushButton* lastBtn = m_recordPane->lastButton();
+        if (lastBtn != nullptr) {
+            lastBtn->click();
+            qDebug() << "[TEST] clickLastButton: button clicked";
+        } else {
+            qWarning() << "[TEST] clickLastButton: lastButton is null";
+        }
+    } else {
+        qWarning() << "[TEST] clickLastButton: m_recordPane is null";
+    }
+}
+
 void MainWindow::clickKifuRow(int row)
 {
     qDebug() << "[TEST] clickKifuRow:" << row;
