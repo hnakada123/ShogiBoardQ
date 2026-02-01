@@ -189,6 +189,8 @@ public slots:
     void clickBranchCandidate(int index);
     void clickNextButton();           // 1手進むボタンをクリック
     void clickPrevButton();           // 1手戻るボタンをクリック
+    void clickFirstButton();          // 先頭へボタンをクリック
+    void clickLastButton();           // 末尾へボタンをクリック
     void clickKifuRow(int row);       // 棋譜欄の行を直接クリック
     void clickBranchTreeNode(int row, int ply); // 分岐ツリーのノードを直接クリック
     void dumpTestState();

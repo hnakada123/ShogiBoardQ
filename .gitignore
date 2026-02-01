@@ -5,3 +5,5 @@ CMakeLists.txt.user
 
 # Qt Creator user files
 *.user
+
+debug.log
