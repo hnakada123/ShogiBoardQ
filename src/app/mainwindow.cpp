@@ -1411,7 +1411,6 @@ void MainWindow::chooseAndLoadKifuFile()
     // --- 2) 読み込み系の配線と依存は Coordinator に集約 ---
     m_kifuLoadCoordinator = new KifuLoadCoordinator(
         /* gameMoves           */ m_gameMoves,
-        /* resolvedRows        */ m_resolvedRows,
         /* positionStrList     */ m_positionStrList,
         /* activeResolvedRow   */ m_activeResolvedRow,
         /* activePly           */ m_activePly,
@@ -2687,12 +2686,7 @@ void MainWindow::onBranchNodeActivated(int row, int ply)
 
     // ★ 新システム: KifuBranchTree を使用して境界チェック
     if (m_branchTree == nullptr || m_kifuNavController == nullptr) {
-        qDebug().noquote() << "[MW] onBranchNodeActivated: branchTree or kifuNavController is null, fallback to old system";
-        // フォールバック: 旧システム
-        if (row < 0 || row >= m_resolvedRows.size()) return;
-        const qsizetype maxPly = m_resolvedRows[row].disp.size();
-        const int selPly = static_cast<int>(qBound(qsizetype(0), qsizetype(ply), maxPly));
-        applyResolvedRowAndSelect(row, selPly);
+        qDebug().noquote() << "[MW] onBranchNodeActivated: branchTree or kifuNavController is null, cannot proceed";
         return;
     }
 
@@ -2702,7 +2696,22 @@ void MainWindow::onBranchNodeActivated(int row, int ply)
         return;
     }
 
-    const BranchLine& line = lines.at(row);
+    // ★ 共有ノードのクリック時はライン維持
+    // 分岐ライン上にいるとき、分岐前の共有ノードをクリックした場合は現在のラインを維持
+    int effectiveRow = row;
+    if (m_navState != nullptr) {
+        const int currentLine = m_navState->currentLineIndex();
+        if (currentLine > 0 && currentLine < lines.size()) {
+            const BranchLine& currentBranchLine = lines.at(currentLine);
+            // クリックされたplyが現在ラインの分岐点より前なら、共有ノードとみなす
+            if (ply < currentBranchLine.branchPly) {
+                effectiveRow = currentLine;
+                qDebug().noquote() << "[MW] onBranchNodeActivated: shared node clicked, keeping current line=" << currentLine;
+            }
+        }
+    }
+
+    const BranchLine& line = lines.at(effectiveRow);
     // ライン上の最大ply（ノードがない場合は0）
     const int maxPly = line.nodes.isEmpty() ? 0 : line.nodes.last()->ply();
     const int selPly = qBound(0, ply, maxPly);
@@ -2710,9 +2719,9 @@ void MainWindow::onBranchNodeActivated(int row, int ply)
     // ★ 新システム用：分岐ラインを選択した場合、優先ラインを設定
     // これにより、prev/nextボタンで分岐ライン上をナビゲートできる
     if (m_navState != nullptr) {
-        if (row > 0) {
-            m_navState->setPreferredLineIndex(row);
-            qDebug().noquote() << "[MW] onBranchNodeActivated: setPreferredLineIndex=" << row;
+        if (effectiveRow > 0) {
+            m_navState->setPreferredLineIndex(effectiveRow);
+            qDebug().noquote() << "[MW] onBranchNodeActivated: setPreferredLineIndex=" << effectiveRow;
         } else {
             m_navState->resetPreferredLineIndex();
             qDebug().noquote() << "[MW] onBranchNodeActivated: resetPreferredLineIndex (main line)";
@@ -2739,7 +2748,7 @@ void MainWindow::onBranchNodeActivated(int row, int ply)
         qDebug().noquote() << "[MW] onBranchNodeActivated: goToNode ply=" << selPly;
 
         // ★ 旧システムとの互換性のため、レガシー変数を更新
-        m_activeResolvedRow = row;
+        m_activeResolvedRow = effectiveRow;
         m_activePly = selPly;
         m_currentSelectedPly = selPly;
         m_currentMoveIndex = selPly;
@@ -3213,7 +3222,7 @@ void MainWindow::updateKifuExportDependencies()
     deps.statusBar = ui ? ui->statusbar : nullptr;
     deps.sfenRecord = m_sfenRecord;
     deps.usiMoves = &m_gameUsiMoves;
-    deps.resolvedRows = &m_resolvedRows;
+    deps.resolvedRows = nullptr;  // KifuBranchTree を優先使用
     deps.commentsByRow = &m_commentsByRow;
     deps.startSfenStr = m_startSfenStr;
     deps.playMode = m_playMode;
@@ -4035,7 +4044,6 @@ void MainWindow::ensureKifuLoadCoordinatorForLive()
     // KIF読込時と同等の依存で生成（ロード自体はしない）
     m_kifuLoadCoordinator = new KifuLoadCoordinator(
         /* gameMoves           */ m_gameMoves,
-        /* resolvedRows        */ m_resolvedRows,
         /* positionStrList     */ m_positionStrList,
         /* activeResolvedRow   */ m_activeResolvedRow,
         /* activePly           */ m_activePly,
@@ -4324,7 +4332,7 @@ void MainWindow::ensureGameRecordModel()
         liveDispPtr = const_cast<QList<KifDisplayItem>*>(&m_recordPresenter->liveDisp());
     }
 
-    m_gameRecord->bind(&m_resolvedRows, &m_activeResolvedRow, liveDispPtr);
+    m_gameRecord->bind(&m_activeResolvedRow, liveDispPtr);
 
     // ★ 新システム: KifuBranchTree と KifuNavigationState を設定
     if (m_branchTree != nullptr) {
@@ -4645,7 +4653,7 @@ void MainWindow::loadKifuFile(const QString& path)
 
     // KifuLoadCoordinatorを作成
     m_kifuLoadCoordinator = new KifuLoadCoordinator(
-        m_gameMoves, m_resolvedRows, m_positionStrList,
+        m_gameMoves, m_positionStrList,
         m_activeResolvedRow, m_activePly, m_currentSelectedPly,
         m_currentMoveIndex, m_sfenRecord,
         m_gameInfoController ? m_gameInfoController->tableWidget() : nullptr,
@@ -4761,6 +4769,10 @@ void MainWindow::clickPrevButton()
 void MainWindow::clickKifuRow(int row)
 {
     qDebug() << "[TEST] clickKifuRow:" << row;
+
+    // ★ ユーザー操作（テスト）による棋譜欄クリックの前にフラグをリセット
+    // 分岐ナビゲーションのスキップフラグが残っていると、棋譜欄の選択が正しく処理されない
+    m_skipBoardSyncForBranchNav = false;
 
     if (m_recordPane == nullptr) {
         qWarning() << "[TEST] clickKifuRow: m_recordPane is null";

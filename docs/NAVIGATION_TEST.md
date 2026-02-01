@@ -75,6 +75,8 @@
 | オプション | 説明 | 実行タイミング |
 |------------|------|----------------|
 | `--click-tree-node <row,ply>` | 分岐ツリーのノードを直接クリック | kifu-row後 +500ms |
+| `--click-tree-node2 <row,ply>` | 2回目の分岐ツリーノードクリック | tree-node後 +1500ms |
+| `--click-next-after-kifu <count>` | click-kifu-row後の1手進む | kifu-row後 +500ms |
 
 ## テストシナリオ
 
@@ -294,6 +296,52 @@ Line 2 の罫線が誤って3手目の位置から引かれていました。
 分岐ライン上でも親の最初の子であれば「本譜」と判定されていました。
 修正により、`currentLineIndex()` が 0 かどうかで本譜判定を行うようになりました。
 
+### 12. 分岐ライン選択後に共有ノードクリックでライン維持テスト
+
+分岐ツリーで分岐ラインのノードをクリックした後、開始局面や分岐前の共有ノードをクリックしても、
+棋譜欄が現在の分岐ラインの内容を維持することを確認。
+
+```bash
+./build/ShogiBoardQ --test-mode \
+    --load-kif test_branch.kif \
+    --click-tree-node 1,4 \
+    --click-tree-node2 0,0 \
+    --dump-state-after 5000
+```
+
+**期待結果**:
+- `currentPly: 0`
+- `currentLineIndex: 1`（分岐ライン1に留まる、本譜に切り替わらない）
+- `kifu[ 3 ]:    3 ▲６六歩(67)+`（棋譜欄が分岐ラインの内容を維持）
+
+**補足**: このテストは、分岐ライン上にいるときに、分岐ツリーの開始局面や分岐前の共有ノードをクリックすると
+棋譜欄が本譜に切り替わってしまうバグの再発を防ぐためのものです。
+開始局面や分岐前の指し手は複数のラインで共有されているため、クリック時に現在のラインコンテキストを維持すべきです。
+
+### 13. 棋譜欄クリック後の1手進むボタンテスト
+
+棋譜欄で分岐ライン上の指し手をクリックした後、1手進むボタンで正しく次の手に移動することを確認。
+
+```bash
+./build/ShogiBoardQ --test-mode \
+    --load-kif test2_branch.kif \
+    --click-tree-node 1,4 \
+    --click-kifu-row 4 \
+    --click-next-after-kifu 1 \
+    --dump-state-after 12000
+```
+
+**期待結果**:
+- `currentPly: 5`（4手目から5手目に進む）
+- `currentLineIndex: 1`（分岐ライン1に留まる）
+- `currentNode displayText: "▲４六歩(47)"`（Line 1の5手目）
+
+**補足**: このテストは、棋譜欄で分岐ライン上の指し手をクリックした後に1手進むボタンを押しても
+局面が進まないバグの再発を防ぐためのものです。
+原因は2つありました：
+1. `onLegacyPositionChanged` で `rememberLineSelection` が呼ばれず、次のナビゲーションで正しい子が選択されなかった
+2. `m_skipBoardSyncForBranchNav` フラグが true のままで、`onRecordPaneMainRowChanged` がブロックされていた
+
 ## 検証項目
 
 テスト実行後、debug.logで以下の項目を確認できます：
@@ -427,6 +475,27 @@ echo "--- テスト11: 分岐ライン上での「本譜へ戻る」表示 ---"
     --click-tree-node 1,5 \
     --dump-state-after 4000 2>&1 > /dev/null
 grep -E "hasBackToMainRow|currentLineIndex:|branch\[" debug.log | tail -5
+
+# テスト12: 分岐ライン選択後に共有ノードクリックでライン維持
+echo ""
+echo "--- テスト12: 分岐ライン選択後に共有ノードクリックでライン維持 ---"
+./build/ShogiBoardQ --test-mode \
+    --load-kif test_branch.kif \
+    --click-tree-node 1,4 \
+    --click-tree-node2 0,0 \
+    --dump-state-after 5000 2>&1 > /dev/null
+grep -E "currentPly:|currentLineIndex:|kifu\[" debug.log | tail -5
+
+# テスト13: 棋譜欄クリック後の1手進むボタン
+echo ""
+echo "--- テスト13: 棋譜欄クリック後の1手進むボタン ---"
+./build/ShogiBoardQ --test-mode \
+    --load-kif test2_branch.kif \
+    --click-tree-node 1,4 \
+    --click-kifu-row 4 \
+    --click-next-after-kifu 1 \
+    --dump-state-after 12000 2>&1 > /dev/null
+grep -E "currentPly:|currentLineIndex:|currentNode displayText:" debug.log | tail -3
 
 echo ""
 echo "=== テスト完了 ==="

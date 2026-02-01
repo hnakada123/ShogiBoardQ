@@ -497,6 +497,20 @@ void KifuDisplayCoordinator::onLegacyPositionChanged(int row, int ply, const QSt
                        << "childCount=" << targetNode->childCount()
                        << "parent=" << (targetNode->parent() ? "yes" : "null");
 
+    // ★ 分岐点での選択を記憶（次回のナビゲーションで正しい子を選択するため）
+    // goToNodeと同様のロジックで、現在ノードが分岐の子である場合に記憶
+    KifuBranchNode* nodeParent = targetNode->parent();
+    if (nodeParent != nullptr && nodeParent->childCount() > 1) {
+        for (int i = 0; i < nodeParent->childCount(); ++i) {
+            if (nodeParent->childAt(i) == targetNode) {
+                m_state->rememberLineSelection(nodeParent, i);
+                qDebug().noquote() << "[KDC] onLegacyPositionChanged: remembered line selection at parent ply="
+                                   << nodeParent->ply() << "index=" << i;
+                break;
+            }
+        }
+    }
+
     // ★ 状態を更新（次回の検索で正しいラインを使用するため）
     // この呼び出しはシグナルを発火するが、UI側での二重ナビゲーションは発生しない
     // （旧システムが既にUIを管理しているため）

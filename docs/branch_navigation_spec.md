@@ -15,9 +15,9 @@
 
 2. **複雑な依存注入**: `pointer to pointer`のパターンが多用されており追跡が困難
 
-3. **分散した状態管理**:
-   - `m_resolvedRows` - MainWindow
-   - `m_activeResolvedRow` - MainWindow
+3. **分散した状態管理**（移行完了）:
+   - `KifuBranchTree` - MainWindow（主要データソース、m_resolvedRows を置換）
+   - `m_activeResolvedRow` - MainWindow（ライン選択状態）
    - `m_liveGameState` - KifuLoadCoordinator
    - `m_branchDisplayPlan` - MainWindow（参照はKifuLoadCoordinator）
 
@@ -845,14 +845,17 @@ src/
 
 ## 10. 既存クラスへの影響
 
-### 削除候補
-- `KifuLoadCoordinator` の分岐関連メソッド（buildResolvedLinesAfterLoad等）
-- `NavigationContextAdapter`（新しいコントローラーに置換）
-- `BranchCandidatesController`（新しいコーディネーターに統合）
-- `BranchWiringCoordinator`（不要になる）
-- `ResolvedRow` 構造体（`KifuBranchTree`に置換）
-- `LiveGameState` 構造体（`LiveGameSession`に置換）
-- `BranchCandidateDisplay` 関連（新モデルに統合）
+### 削除済み
+- `KifuLoadCoordinator` の分岐関連メソッド（buildResolvedLinesAfterLoad等）✅
+- `NavigationContextAdapter`（新しいコントローラーに置換）✅
+- `NavigationController`（`KifuNavigationController`に統合）✅
+- `RecordNavigationController`（削除）✅
+- `m_resolvedRows`（MainWindow、KifuLoadCoordinator、GameRecordModelから削除）✅
+
+### 維持（互換性のため）
+- `ResolvedRow` 構造体（`KifuBranchTreeBuilder::fromResolvedRows`で使用）
+- `LiveGameState` 構造体（KifuLoadCoordinator内で使用）
+- `BranchCandidateDisplay` 関連（旧システムとの互換性維持）
 
 ### 変更（UIは維持、内部ロジックを変更）
 - `MainWindow`: 新しいクラス群のインスタンス管理
@@ -1068,5 +1071,5 @@ static TerminalType detectTerminalType(const QString& displayText) {
 ---
 
 *作成日: 2026-01-30*
-*更新日: 2026-01-30*
+*更新日: 2026-02-01*
 *対象バージョン: ShogiBoardQ (Qt6/C++17)*
