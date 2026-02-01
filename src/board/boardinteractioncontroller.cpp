@@ -16,6 +16,10 @@ BoardInteractionController::BoardInteractionController(ShogiView* view,
 {
     Q_ASSERT(m_view);
     Q_ASSERT(m_gc);
+
+    // ShogiView::removeHighlightAllData() が呼ばれたときに
+    // 本クラスが保持するハイライトポインタをnullにする（ダングリングポインタ防止）
+    connect(m_view, &ShogiView::highlightsCleared, this, &BoardInteractionController::onHighlightsCleared);
 }
 
 // ===================== public slots =====================
@@ -131,6 +135,15 @@ void BoardInteractionController::clearAllHighlights()
     deleteHighlight(m_selectedField);
     deleteHighlight(m_selectedField2);
     deleteHighlight(m_movedField);
+}
+
+void BoardInteractionController::onHighlightsCleared()
+{
+    // ShogiView::removeHighlightAllData() が呼ばれた
+    // → 実体はすでに qDeleteAll で破棄されているのでポインタだけ null に
+    m_selectedField  = nullptr;
+    m_selectedField2 = nullptr;
+    m_movedField     = nullptr;
 }
 
 void BoardInteractionController::clearSelectionHighlight()

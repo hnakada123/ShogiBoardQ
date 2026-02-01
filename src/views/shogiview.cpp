@@ -1699,6 +1699,7 @@ void ShogiView::removeHighlightAllData()
 {
     qDeleteAll(m_highlights); // ★ 実体を破棄
     m_highlights.clear();     // コンテナをクリア
+    emit highlightsCleared(); // ★ 外部に通知（ダングリングポインタ防止）
     update();                 // 反映のため再描画を要求
 }
 
