@@ -60,6 +60,14 @@ public:
     void resetPreferredLineIndex();
 
     /**
+     * @brief ライン選択記憶をクリア（本譜に戻る時に呼び出す）
+     *
+     * 分岐点での選択記憶（m_lastSelectedLineAtBranch）をクリアします。
+     * これにより、本譜に戻った後のナビゲーションで正しく本譜を辿ります。
+     */
+    void clearLineSelectionMemory();
+
+    /**
      * @brief 優先ラインインデックスを取得（デバッグ用）
      */
     int preferredLineIndex() const { return m_preferredLineIndex; }
