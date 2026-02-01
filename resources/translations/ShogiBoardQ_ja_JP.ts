@@ -4968,13 +4968,13 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>ShogiView</name>
     <message>
-        <location filename="../../src/views/shogiview.cpp" line="3125"/>
-        <location filename="../../src/views/shogiview.cpp" line="3145"/>
+        <location filename="../../src/views/shogiview.cpp" line="3126"/>
+        <location filename="../../src/views/shogiview.cpp" line="3146"/>
         <source>次の手番</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/views/shogiview.cpp" line="3367"/>
+        <location filename="../../src/views/shogiview.cpp" line="3368"/>
         <source>編集終了</source>
         <translation type="unfinished"></translation>
     </message>

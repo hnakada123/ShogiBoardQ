@@ -41,6 +41,9 @@ public slots:
     // 呼び元で着手が適用された結果を通知
     void onMoveApplied(const QPoint& from, const QPoint& to, bool success);
 
+    // ShogiView::highlightsCleared() に接続（ダングリングポインタ防止）
+    void onHighlightsCleared();
+
 signals:
     void moveRequested(const QPoint& from, const QPoint& to);
     void selectionChanged(const QPoint& pos);

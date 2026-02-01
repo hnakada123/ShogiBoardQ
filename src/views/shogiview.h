@@ -223,6 +223,7 @@ signals:
     void clicked(const QPoint&);             // 左クリック
     void rightClicked(const QPoint&);        // 右クリック
     void errorOccurred(const QString& errorMessage);
+    void highlightsCleared();                // removeHighlightAllData() で発火
 
 protected:
     // ───────────────────────────── QWidget オーバライド ─────────────────────
