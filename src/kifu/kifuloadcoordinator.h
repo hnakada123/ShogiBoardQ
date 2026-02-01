@@ -27,7 +27,6 @@ class KifuLoadCoordinator : public QObject
 public:
     // コンストラクタ
     explicit KifuLoadCoordinator(QVector<ShogiMove>& gameMoves,
-                        QVector<ResolvedRow>& resolvedRows,
                         QStringList& positionStrList,
                         int& activeResolvedRow,
                         int& activePly,
@@ -185,7 +184,6 @@ private:
     QHash<int, QList<KifLine>> m_variationsByPly;
     QList<KifLine> m_variationsSeq;
     RecordPane* m_recordPane;
-    QVector<ResolvedRow>& m_resolvedRows;
     int& m_activeResolvedRow;
     int& m_activePly;
     int& m_currentSelectedPly;
@@ -222,17 +220,6 @@ private:
                           const QString& teaiLabel,
                           const QString& warnParse,
                           const QString& warnConvert) const;
-    void buildResolvedLinesAfterLoad();
-    void dumpBranchSplitReport() const;
-    QString rowNameFor(int row) const;
-    QString labelAt(const ResolvedRow& rr, int ply) const;
-    bool prefixEqualsUpTo(int rowA, int rowB, int p) const;
-
-    void dumpBranchCandidateDisplayPlan() const;
-    void ensureResolvedRowsHaveFullSfen();
-    void ensureResolvedRowsHaveFullGameMoves();
-    void dumpAllRowsSfenTable() const;
-    void dumpAllLinesGameMoves() const;
     void buildBranchCandidateDisplayPlan();
     void ensureNavigationPresenter();
 

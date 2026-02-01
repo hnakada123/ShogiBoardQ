@@ -47,8 +47,7 @@ public:
     /**
      * @brief 既存のデータストアをバインド（参照を保持、所有しない）
      */
-    void bind(QVector<ResolvedRow>* resolvedRows,
-              int* activeResolvedRow,
+    void bind(int* activeResolvedRow,
               QList<KifDisplayItem>* liveDisp);
 
     /**
@@ -81,11 +80,10 @@ public:
      * @brief 指定手数のコメントを設定
      * @param ply 手数（0=開始局面, 1=1手目, ...）
      * @param comment 新しいコメント
-     * 
+     *
      * この関数は以下のすべてを同期更新します:
      * - 内部コメント配列 (m_comments)
-     * - ResolvedRow::comments
-     * - ResolvedRow::disp[ply].comment
+     * - KifuBranchTree のノードコメント
      * - liveDisp[ply].comment
      */
     void setComment(int ply, const QString& comment);
@@ -260,7 +258,6 @@ private:
     bool m_isDirty = false;       ///< 変更フラグ
 
     // === 外部データへの参照（同期更新用、所有しない） ===
-    QVector<ResolvedRow>* m_resolvedRows = nullptr;
     int* m_activeResolvedRow = nullptr;
     QList<KifDisplayItem>* m_liveDisp = nullptr;
 
@@ -279,28 +276,7 @@ private:
 
     // === 分岐出力用ヘルパ ===
     /**
-     * @brief 分岐が存在する手数のセットを収集
-     * @return 分岐開始手数のセット（本譜基準）
-     */
-    QSet<int> collectBranchPoints() const;
-
-    /**
-     * @brief 指定した行の変化をKIF形式で出力
-     * @param rowIndex ResolvedRow のインデックス
-     * @param out 出力先
-     */
-    void outputVariation(int rowIndex, QStringList& out) const;
-
-    /**
-     * @brief 再帰的に変化を出力（子の変化を含む）
-     * @param parentRowIndex 親行のインデックス
-     * @param out 出力先
-     * @param visitedRows 訪問済み行のセット（無限ループ防止）
-     */
-    void outputVariationsRecursively(int parentRowIndex, QStringList& out, QSet<int>& visitedRows) const;
-
-    /**
-     * @brief BranchLineからKIF形式で変化を出力（新システム）
+     * @brief BranchLineからKIF形式で変化を出力
      * @param line 分岐ライン
      * @param out 出力先
      */
@@ -308,22 +284,7 @@ private:
 
     // === KI2形式出力用ヘルパ ===
     /**
-     * @brief KI2形式で指定した行の変化を出力
-     * @param rowIndex ResolvedRow のインデックス
-     * @param out 出力先
-     */
-    void outputKi2Variation(int rowIndex, QStringList& out) const;
-
-    /**
-     * @brief KI2形式で再帰的に変化を出力
-     * @param parentRowIndex 親行のインデックス
-     * @param out 出力先
-     * @param visitedRows 訪問済み行のセット（無限ループ防止）
-     */
-    void outputKi2VariationsRecursively(int parentRowIndex, QStringList& out, QSet<int>& visitedRows) const;
-
-    /**
-     * @brief BranchLineからKI2形式で変化を出力（新システム）
+     * @brief BranchLineからKI2形式で変化を出力
      * @param line 分岐ライン
      * @param out 出力先
      */
@@ -362,22 +323,7 @@ private:
     QJsonArray buildJkfMoves(const QList<KifDisplayItem>& disp) const;
 
     /**
-     * @brief JKF形式の moves 配列に分岐を追加
-     * @param movesArray 本譜の指し手配列
-     * @param mainRowIndex 本譜の行インデックス
-     */
-    void addJkfForks(QJsonArray& movesArray, int mainRowIndex) const;
-
-    /**
-     * @brief 分岐の指し手配列を再帰的に構築（深い分岐対応）
-     * @param rowIndex 分岐行のインデックス
-     * @param visitedRows 訪問済み行のセット（無限ループ防止）
-     * @return QJsonArray 形式の分岐指し手配列
-     */
-    QJsonArray buildJkfForkMovesRecursive(int rowIndex, QSet<int>& visitedRows) const;
-
-    /**
-     * @brief KifuBranchTree から JKF形式の分岐を追加（新システム）
+     * @brief KifuBranchTree から JKF形式の分岐を追加
      * @param movesArray 本譜の指し手配列
      */
     void addJkfForksFromTree(QJsonArray& movesArray) const;
@@ -418,14 +364,6 @@ private:
      * @return USENの終局コード（例: "r"）、該当なしは空文字列
      */
     static QString getUsenTerminalCode(const QString& terminalMove);
-
-    /**
-     * @brief 分岐のUSEN文字列を構築
-     * @param rowIndex 分岐行のインデックス
-     * @param visitedRows 訪問済み行のセット
-     * @return USEN形式の分岐文字列（~offset.moves の形式）
-     */
-    QString buildUsenVariation(int rowIndex, QSet<int>& visitedRows) const;
 
     /**
      * @brief 2つのSFEN間の差分からUSI形式の指し手を推測

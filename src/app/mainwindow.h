@@ -451,7 +451,6 @@ private:
     TimeControlController* m_timeController = nullptr;
 
     // 行解決 / 選択状態
-    QVector<ResolvedRow> m_resolvedRows;
     int m_activeResolvedRow = 0;
 
     // ★ 対局情報タブ（GameInfoPaneControllerへ移行）

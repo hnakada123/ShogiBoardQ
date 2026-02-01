@@ -14,6 +14,8 @@
 #include <QStandardPaths>
 #include <QCommandLineParser>
 #include <QTimer>
+#include <QFileInfo>
+#include <QDir>
 
 // デバッグメッセージをファイルに出力するハンドラ
 static QFile *logFile = nullptr;
@@ -40,6 +42,9 @@ static void messageHandler(QtMsgType type, const QMessageLogContext &context, co
 int main(int argc, char *argv[])
 {
     // ログファイルを設定（実行ファイルと同じディレクトリに出力）
+    // オリジナルの作業ディレクトリを保存（SettingsServiceがCWDを変更する前に）
+    const QString originalCwd = QDir::currentPath();
+
     // 注: applicationDirPathはQApplicationインスタンス作成後でないと使えないため固定パス
     logFile = new QFile("debug.log");
     if (logFile->open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
@@ -202,12 +207,26 @@ int main(int argc, char *argv[])
         "row,ply");
     parser.addOption(clickTreeNodeOption);
 
+    // --click-tree-node2 <row,ply> : 2回目の分岐ツリーノードクリック
+    QCommandLineOption clickTreeNode2Option(
+        QStringList() << "click-tree-node2",
+        "Click branch tree node directly at <row,ply> (second click).",
+        "row,ply");
+    parser.addOption(clickTreeNode2Option);
+
     // --click-next3 <count> : click-prev2後の1手進む
     QCommandLineOption clickNext3Option(
         QStringList() << "click-next3",
         "Click next button <count> times after click-prev2.",
         "count");
     parser.addOption(clickNext3Option);
+
+    // --click-next-after-kifu <count> : click-kifu-row後の1手進む
+    QCommandLineOption clickNextAfterKifuOption(
+        QStringList() << "click-next-after-kifu",
+        "Click next button <count> times after click-kifu-row.",
+        "count");
+    parser.addOption(clickNextAfterKifuOption);
 
     parser.process(a);
 
@@ -225,10 +244,17 @@ int main(int argc, char *argv[])
     // KIFファイルの自動読み込み
     if (parser.isSet(loadKifOption)) {
         const QString kifFile = parser.value(loadKifOption);
-        qDebug() << "[TEST] Auto-loading KIF file:" << kifFile;
+        // 相対パスを絶対パスに変換（オリジナルのCWDを使用）
+        QString absoluteKifFile;
+        if (QFileInfo(kifFile).isAbsolute()) {
+            absoluteKifFile = kifFile;
+        } else {
+            absoluteKifFile = QDir(originalCwd).absoluteFilePath(kifFile);
+        }
+        qDebug() << "[TEST] Auto-loading KIF file:" << absoluteKifFile;
         // ウィンドウ表示後に読み込みを遅延実行
-        QTimer::singleShot(500, &w, [&w, kifFile]() {
-            w.loadKifuFile(kifFile);
+        QTimer::singleShot(500, &w, [&w, absoluteKifFile]() {
+            w.loadKifuFile(absoluteKifFile);
         });
     }
 
@@ -341,6 +367,22 @@ int main(int argc, char *argv[])
         }
     }
 
+    // 2回目の分岐ツリーノードクリック
+    // tree-node後に実行
+    int treeNode2ClickTime = treeNodeClickTime + 1500;
+    if (parser.isSet(clickTreeNode2Option)) {
+        const QString value = parser.value(clickTreeNode2Option);
+        const QStringList parts = value.split(QLatin1Char(','));
+        if (parts.size() == 2) {
+            const int treeRow = parts.at(0).toInt();
+            const int treePly = parts.at(1).toInt();
+            qDebug() << "[TEST] Auto-clicking tree node2: row=" << treeRow << "ply=" << treePly;
+            QTimer::singleShot(treeNode2ClickTime, &w, [&w, treeRow, treePly]() {
+                w.clickBranchTreeNode(treeRow, treePly);
+            });
+        }
+    }
+
     // 棋譜欄の行を直接クリック
     // 他の操作がある場合は全操作完了後、なければKIF読み込み直後に実行
     if (parser.isSet(clickKifuRowOption)) {
@@ -362,6 +404,20 @@ int main(int argc, char *argv[])
         QTimer::singleShot(kifuRowStartTime, &w, [&w, kifuRow]() {
             w.clickKifuRow(kifuRow);
         });
+
+        // click-kifu-row後のnextボタンクリック
+        const int nextAfterKifuCount = parser.isSet(clickNextAfterKifuOption)
+                                           ? parser.value(clickNextAfterKifuOption).toInt()
+                                           : 0;
+        if (nextAfterKifuCount > 0) {
+            const int nextAfterKifuStartTime = kifuRowStartTime + 500;
+            qDebug() << "[TEST] Auto-clicking next after kifu" << nextAfterKifuCount << "times at" << nextAfterKifuStartTime << "ms";
+            for (int i = 0; i < nextAfterKifuCount; ++i) {
+                QTimer::singleShot(nextAfterKifuStartTime + i * 100, &w, [&w]() {
+                    w.clickNextButton();
+                });
+            }
+        }
     }
 
     // 状態ダンプ＆終了

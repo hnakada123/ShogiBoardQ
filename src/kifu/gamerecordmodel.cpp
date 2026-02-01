@@ -240,16 +240,13 @@ GameRecordModel::GameRecordModel(QObject* parent)
 // 初期化・バインド
 // ========================================
 
-void GameRecordModel::bind(QVector<ResolvedRow>* resolvedRows,
-                           int* activeResolvedRow,
+void GameRecordModel::bind(int* activeResolvedRow,
                            QList<KifDisplayItem>* liveDisp)
 {
-    m_resolvedRows = resolvedRows;
     m_activeResolvedRow = activeResolvedRow;
     m_liveDisp = liveDisp;
 
     qDebug().noquote() << "[GameRecordModel] bind:"
-                       << " resolvedRows=" << (resolvedRows ? "valid" : "null")
                        << " activeResolvedRow=" << (activeResolvedRow ? *activeResolvedRow : -1)
                        << " liveDisp=" << (liveDisp ? "valid" : "null");
 }
@@ -360,34 +357,11 @@ int GameRecordModel::activeRow() const
 
 void GameRecordModel::syncToExternalStores(int ply, const QString& comment)
 {
-    // 1) ResolvedRow への同期
-    if (m_resolvedRows && m_activeResolvedRow) {
-        const int row = *m_activeResolvedRow;
-        if (row >= 0 && row < m_resolvedRows->size()) {
-            ResolvedRow& rr = (*m_resolvedRows)[row];
-
-            // ResolvedRow::comments を拡張・更新
-            while (rr.comments.size() <= ply) {
-                rr.comments.append(QString());
-            }
-            rr.comments[ply] = comment;
-
-            // ResolvedRow::disp[ply].comment も更新
-            if (ply >= 0 && ply < rr.disp.size()) {
-                rr.disp[ply].comment = comment;
-            }
-
-            qDebug().noquote() << "[GameRecordModel] syncToExternalStores_:"
-                               << " updated ResolvedRow[" << row << "]"
-                               << " comments[" << ply << "]";
-        }
-    }
-
-    // 2) liveDisp への同期
+    // liveDisp への同期
     if (m_liveDisp) {
         if (ply >= 0 && ply < m_liveDisp->size()) {
             (*m_liveDisp)[ply].comment = comment;
-            qDebug().noquote() << "[GameRecordModel] syncToExternalStores_:"
+            qDebug().noquote() << "[GameRecordModel] syncToExternalStores:"
                                << " updated liveDisp[" << ply << "]";
         }
     }
@@ -415,8 +389,15 @@ QStringList GameRecordModel::toKifLines(const ExportContext& ctx) const
     // 3) 本譜の指し手を収集
     const QList<KifDisplayItem> disp = collectMainlineForExport();
 
-    // 4) 分岐ポイントを収集（本譜のどの手に分岐があるか）
-    const QSet<int> branchPoints = collectBranchPoints();
+    // 4) 分岐ポイントを収集（KifuBranchTree から）
+    QSet<int> branchPoints;
+    if (m_branchTree != nullptr && !m_branchTree->isEmpty()) {
+        QVector<BranchLine> lines = m_branchTree->allLines();
+        for (int lineIdx = 1; lineIdx < lines.size(); ++lineIdx) {
+            const BranchLine& line = lines.at(lineIdx);
+            branchPoints.insert(line.branchPly);
+        }
+    }
 
     // 5) 開始局面の処理（prettyMoveが空のエントリ）
     int startIdx = 0;
@@ -467,31 +448,13 @@ QStringList GameRecordModel::toKifLines(const ExportContext& ctx) const
     // 7) 終了行（本譜のみ）
     out << buildEndingLine(lastActualMoveNo, terminalMove);
 
-    // 8) 変化（分岐）を出力
-    // ★ 新システム: KifuBranchTree から出力
+    // 8) 変化（分岐）を出力（KifuBranchTree から）
     if (m_branchTree != nullptr && !m_branchTree->isEmpty()) {
         QVector<BranchLine> lines = m_branchTree->allLines();
         // lineIndex = 0 は本譜なのでスキップ、1以降が分岐
         for (int lineIdx = 1; lineIdx < lines.size(); ++lineIdx) {
             const BranchLine& line = lines.at(lineIdx);
             outputVariationFromBranchLine(line, out);
-        }
-    }
-    // フォールバック: 旧システム（m_resolvedRows）
-    else if (m_resolvedRows && m_resolvedRows->size() > 1) {
-        // 本譜（parent < 0）の行インデックスを探す
-        int mainRowIndex = -1;
-        for (int i = 0; i < m_resolvedRows->size(); ++i) {
-            if (m_resolvedRows->at(i).parent < 0) {
-                mainRowIndex = i;
-                break;
-            }
-        }
-
-        if (mainRowIndex >= 0) {
-            QSet<int> visitedRows;
-            visitedRows.insert(mainRowIndex); // 本譜は既に出力済み
-            outputVariationsRecursively(mainRowIndex, out, visitedRows);
         }
     }
 
@@ -536,38 +499,10 @@ QList<KifDisplayItem> GameRecordModel::collectMainlineForExport() const
         if (!result.isEmpty()) {
             return result;
         }
-        // ツリーから取得できなかった場合はフォールバック
-        qDebug().noquote() << "[GameRecordModel] collectMainlineForExport: BranchTree empty, fallback";
     }
 
-    // 優先1: ResolvedRows からアクティブ行を取得（旧システム）
-    if (m_resolvedRows && !m_resolvedRows->isEmpty() && m_activeResolvedRow) {
-        int targetRow = *m_activeResolvedRow;
-
-        // 有効範囲外なら本譜行（parent < 0）を探す
-        if (targetRow < 0 || targetRow >= m_resolvedRows->size()) {
-            targetRow = -1;
-            for (int i = 0; i < m_resolvedRows->size(); ++i) {
-                if (m_resolvedRows->at(i).parent < 0) {
-                    targetRow = i;
-                    break;
-                }
-            }
-            if (targetRow < 0) targetRow = 0;
-        }
-
-        const ResolvedRow& rr = m_resolvedRows->at(targetRow);
-        result = rr.disp;
-
-        // ResolvedRow::comments からコメントをマージ
-        for (qsizetype i = 0; i < result.size() && i < rr.comments.size(); ++i) {
-            if (!rr.comments[i].isEmpty()) {
-                result[i].comment = rr.comments[i];
-            }
-        }
-    }
-    // 優先2: liveDisp から取得
-    else if (m_liveDisp && !m_liveDisp->isEmpty()) {
+    // フォールバック: liveDisp から取得
+    if (m_liveDisp && !m_liveDisp->isEmpty()) {
         result = *m_liveDisp;
     }
 
@@ -709,180 +644,6 @@ void GameRecordModel::resolvePlayerNames(const ExportContext& ctx, QString& outB
 // ========================================
 // 分岐出力用ヘルパ
 // ========================================
-
-QSet<int> GameRecordModel::collectBranchPoints() const
-{
-    QSet<int> result;
-
-    // ★ 新システム: KifuBranchTree から取得
-    if (m_branchTree != nullptr && !m_branchTree->isEmpty()) {
-        // 本譜ライン上の分岐点を収集
-        QVector<BranchLine> lines = m_branchTree->allLines();
-        if (!lines.isEmpty()) {
-            // 本譜（lineIndex=0）のノードを取得して分岐点を探す
-            const BranchLine& mainLine = lines.at(0);
-            for (KifuBranchNode* node : std::as_const(mainLine.nodes)) {
-                if (node->hasBranch()) {
-                    // このノードの子の手数を分岐点として記録
-                    result.insert(node->ply() + 1);
-                }
-            }
-            return result;
-        }
-    }
-
-    // フォールバック: 旧システム（m_resolvedRows）
-    if (!m_resolvedRows || m_resolvedRows->isEmpty()) {
-        return result;
-    }
-
-    // 本譜（parent == -1 の行）を探す
-    int mainRowIndex = -1;
-    for (int i = 0; i < m_resolvedRows->size(); ++i) {
-        if (m_resolvedRows->at(i).parent < 0) {
-            mainRowIndex = i;
-            break;
-        }
-    }
-
-    if (mainRowIndex < 0) {
-        return result;
-    }
-
-    // 本譜の子（直接の分岐）と、すべての変化の子を調べる
-    // 各変化のstartPlyを記録
-    for (int i = 0; i < m_resolvedRows->size(); ++i) {
-        const ResolvedRow& row = m_resolvedRows->at(i);
-
-        // 本譜はスキップ
-        if (row.parent < 0) continue;
-
-        // この変化が本譜から直接分岐している場合
-        if (row.parent == mainRowIndex) {
-            result.insert(row.startPly);
-        }
-    }
-
-    return result;
-}
-
-void GameRecordModel::outputVariation(int rowIndex, QStringList& out) const
-{
-    if (!m_resolvedRows || rowIndex < 0 || rowIndex >= m_resolvedRows->size()) {
-        return;
-    }
-
-    const ResolvedRow& row = m_resolvedRows->at(rowIndex);
-
-    // 変化ヘッダを出力
-    out << QStringLiteral("変化：%1手").arg(row.startPly);
-
-    // この変化から分岐する子変化のstartPlyを収集
-    QSet<int> childBranchPoints;
-    for (int i = 0; i < m_resolvedRows->size(); ++i) {
-        if (m_resolvedRows->at(i).parent == rowIndex) {
-            childBranchPoints.insert(m_resolvedRows->at(i).startPly);
-        }
-    }
-
-    // 同じ親・同じstartPlyを持ち、varIndexが自分より大きい兄弟変化があるかチェック
-    // （この変化の最初の手に+マークを付けるため - 後に来る変化がある場合のみ）
-    bool hasSiblingAfterThis = false;
-    const int myVarIndex = row.varIndex;
-    for (int i = 0; i < m_resolvedRows->size(); ++i) {
-        if (i == rowIndex) continue; // 自分自身はスキップ
-        const ResolvedRow& other = m_resolvedRows->at(i);
-        if (other.parent == row.parent && other.startPly == row.startPly) {
-            // 同じ親・同じstartPlyの兄弟変化
-            // varIndexが自分より大きい（= 後に出力される）場合のみ+マーク
-            if (other.varIndex > myVarIndex) {
-                hasSiblingAfterThis = true;
-                break;
-            }
-        }
-    }
-
-    // 変化の指し手を出力
-    // disp[0]=開始局面, disp[i]=i手目 なので、startPly手目から出力開始
-    const QList<KifDisplayItem>& disp = row.disp;
-
-    int moveNo = row.startPly;
-    bool isFirstMove = true;
-
-    // dispのstartPly番目の要素から出力（disp[startPly]がstartPly手目）
-    for (qsizetype i = row.startPly; i < disp.size(); ++i) {
-        const auto& it = disp[i];
-        const QString moveText = it.prettyMove.trimmed();
-
-        // 空の指し手はスキップ
-        if (moveText.isEmpty()) continue;
-
-        // 手番記号を除去してKIF形式に変換
-        const QString kifMove = removeTurnMarker(moveText);
-
-        // 時間フォーマット（括弧付き）
-        const QString time = formatKifTime(it.timeText);
-
-        // 分岐マークの判定
-        // 1. この手に子分岐があるか
-        // 2. 最初の手で、後に来る兄弟変化があるか
-        bool hasBranch = childBranchPoints.contains(moveNo);
-        if (isFirstMove && hasSiblingAfterThis) {
-            hasBranch = true;
-        }
-
-        // KIF形式で出力
-        out << formatKifMoveLine(moveNo, kifMove, time, hasBranch);
-
-        // コメント出力
-        appendKifComments(it.comment, out);
-
-        ++moveNo;
-        isFirstMove = false;
-    }
-}
-
-void GameRecordModel::outputVariationsRecursively(int parentRowIndex, QStringList& out, QSet<int>& visitedRows) const
-{
-    Q_UNUSED(parentRowIndex);
-    
-    if (!m_resolvedRows) {
-        return;
-    }
-    
-    // 元のKIFファイルの順序を維持するため、varIndexの順序で出力する
-    // varIndex >= 0 の行を varIndex の昇順で収集
-    QVector<QPair<int, int>> variations; // (varIndex, rowIndex)
-    
-    for (int i = 0; i < m_resolvedRows->size(); ++i) {
-        const ResolvedRow& row = m_resolvedRows->at(i);
-        // 本譜（parent < 0）はスキップ、既に訪問済みもスキップ
-        if (row.parent < 0 || visitedRows.contains(i)) {
-            continue;
-        }
-        // varIndex が有効な場合はそれを使用、無効な場合は行インデックスを使用
-        int sortKey = (row.varIndex >= 0) ? row.varIndex : (1000 + i);
-        variations.append(qMakePair(sortKey, i));
-    }
-    
-    // varIndex（または代替キー）でソート（昇順）
-    std::sort(variations.begin(), variations.end(), [](const QPair<int, int>& a, const QPair<int, int>& b) {
-        return a.first < b.first;
-    });
-    
-    // 各変化を順番に出力
-    for (const auto& var : variations) {
-        const int rowIndex = var.second;
-        
-        if (visitedRows.contains(rowIndex)) {
-            continue;
-        }
-        visitedRows.insert(rowIndex);
-
-        // この変化を出力
-        outputVariation(rowIndex, out);
-    }
-}
 
 void GameRecordModel::outputVariationFromBranchLine(const BranchLine& line, QStringList& out) const
 {
@@ -1046,8 +807,7 @@ QStringList GameRecordModel::toKi2Lines(const ExportContext& ctx) const
     // 5) 終了行
     out << buildEndingLine(lastActualMoveNo, terminalMove);
 
-    // 6) 変化（分岐）を出力
-    // ★ 新システム: KifuBranchTree から出力
+    // 6) 変化（分岐）を出力（KifuBranchTree から）
     if (m_branchTree != nullptr && !m_branchTree->isEmpty()) {
         QVector<BranchLine> lines = m_branchTree->allLines();
         // lineIndex = 0 は本譜なのでスキップ、1以降が分岐
@@ -1056,122 +816,12 @@ QStringList GameRecordModel::toKi2Lines(const ExportContext& ctx) const
             outputKi2VariationFromBranchLine(line, out);
         }
     }
-    // フォールバック: 旧システム（m_resolvedRows）
-    else if (m_resolvedRows && m_resolvedRows->size() > 1) {
-        // 本譜（parent < 0）の行インデックスを探す
-        int mainRowIndex = -1;
-        for (int i = 0; i < m_resolvedRows->size(); ++i) {
-            if (m_resolvedRows->at(i).parent < 0) {
-                mainRowIndex = i;
-                break;
-            }
-        }
-
-        if (mainRowIndex >= 0) {
-            QSet<int> visitedRows;
-            visitedRows.insert(mainRowIndex); // 本譜は既に出力済み
-            outputKi2VariationsRecursively(mainRowIndex, out, visitedRows);
-        }
-    }
 
     qDebug().noquote() << "[GameRecordModel] toKi2Lines: generated"
                        << out.size() << "lines,"
                        << lastActualMoveNo << "moves";
 
     return out;
-}
-
-void GameRecordModel::outputKi2Variation(int rowIndex, QStringList& out) const
-{
-    if (!m_resolvedRows || rowIndex < 0 || rowIndex >= m_resolvedRows->size()) {
-        return;
-    }
-
-    const ResolvedRow& row = m_resolvedRows->at(rowIndex);
-
-    // 変化ヘッダを出力
-    out << QStringLiteral("変化：%1手").arg(row.startPly);
-
-    // 変化の指し手を出力
-    const QList<KifDisplayItem>& disp = row.disp;
-
-    QStringList movesOnLine;
-    bool lastMoveHadComment = false;
-
-    // dispのstartPly番目の要素から出力
-    for (qsizetype i = row.startPly; i < disp.size(); ++i) {
-        const auto& it = disp[i];
-        const QString moveText = it.prettyMove.trimmed();
-
-        // 空の指し手はスキップ
-        if (moveText.isEmpty()) continue;
-
-        // KI2形式: 手番記号は維持、(xx)の移動元は削除
-        QString ki2Move = moveText;
-        static const QRegularExpression fromPosPattern(QStringLiteral("\\([0-9０-９]+[0-9０-９]+\\)$"));
-        ki2Move.remove(fromPosPattern);
-
-        const QString cmt = it.comment.trimmed();
-        const bool hasComment = !cmt.isEmpty();
-        const bool isTerminal = isTerminalMove(moveText);
-
-        if (hasComment || lastMoveHadComment || isTerminal) {
-            if (!movesOnLine.isEmpty()) {
-                out << movesOnLine.join(QStringLiteral("    "));
-                movesOnLine.clear();
-            }
-            out << ki2Move;
-
-            if (hasComment) {
-                appendKifComments(cmt, out);
-            }
-            lastMoveHadComment = hasComment;
-        } else {
-            movesOnLine.append(ki2Move);
-            lastMoveHadComment = false;
-        }
-    }
-
-    // 残りの指し手を出力
-    if (!movesOnLine.isEmpty()) {
-        out << movesOnLine.join(QStringLiteral("    "));
-    }
-}
-
-void GameRecordModel::outputKi2VariationsRecursively(int parentRowIndex, QStringList& out, QSet<int>& visitedRows) const
-{
-    Q_UNUSED(parentRowIndex);
-    
-    if (!m_resolvedRows) {
-        return;
-    }
-    
-    // varIndexの順序で出力する
-    QVector<QPair<int, int>> variations; // (varIndex, rowIndex)
-    
-    for (int i = 0; i < m_resolvedRows->size(); ++i) {
-        const ResolvedRow& row = m_resolvedRows->at(i);
-        if (row.parent < 0 || visitedRows.contains(i)) {
-            continue;
-        }
-        int sortKey = (row.varIndex >= 0) ? row.varIndex : (1000 + i);
-        variations.append(qMakePair(sortKey, i));
-    }
-    
-    std::sort(variations.begin(), variations.end(), [](const QPair<int, int>& a, const QPair<int, int>& b) {
-        return a.first < b.first;
-    });
-    
-    for (const auto& var : variations) {
-        const int rowIndex = var.second;
-
-        if (visitedRows.contains(rowIndex)) {
-            continue;
-        }
-        visitedRows.insert(rowIndex);
-
-        outputKi2Variation(rowIndex, out);
-    }
 }
 
 void GameRecordModel::outputKi2VariationFromBranchLine(const BranchLine& line, QStringList& out) const
@@ -2409,116 +2059,6 @@ QJsonArray GameRecordModel::buildJkfMoves(const QList<KifDisplayItem>& disp) con
     return moves;
 }
 
-void GameRecordModel::addJkfForks(QJsonArray& movesArray, int mainRowIndex) const
-{
-    if (!m_resolvedRows || m_resolvedRows->size() <= 1) {
-        return;
-    }
-    
-    // 分岐を収集（startPlyでグループ化）
-    QMap<int, QVector<int>> forksByPly; // startPly -> rowIndex のリスト
-    
-    for (int i = 0; i < m_resolvedRows->size(); ++i) {
-        const ResolvedRow& row = m_resolvedRows->at(i);
-        if (row.parent == mainRowIndex) {
-            forksByPly[row.startPly].append(i);
-        }
-    }
-    
-    // 各分岐を movesArray の適切な位置に追加
-    for (auto it = forksByPly.begin(); it != forksByPly.end(); ++it) {
-        const int startPly = it.key();
-        const QVector<int>& rowIndices = it.value();
-        
-        // movesArray 内の対応する位置を探す
-        // startPly 手目の指し手は movesArray[startPly] にある
-        // （moves[0]=開始局面, moves[1]=1手目, ...）
-        if (startPly < movesArray.size()) {
-            QJsonObject moveObj = movesArray[startPly].toObject();
-            
-            QJsonArray forks;
-            if (moveObj.contains(QStringLiteral("forks"))) {
-                forks = moveObj[QStringLiteral("forks")].toArray();
-            }
-            
-            // 各分岐を forks 配列に追加（深い分岐も再帰的に処理）
-            for (int rowIndex : rowIndices) {
-                QSet<int> visitedRows;
-                visitedRows.insert(mainRowIndex); // 本譜は既に処理済み
-                
-                const QJsonArray forkMoves = buildJkfForkMovesRecursive(rowIndex, visitedRows);
-                if (!forkMoves.isEmpty()) {
-                    forks.append(forkMoves);
-                }
-            }
-            
-            if (!forks.isEmpty()) {
-                moveObj[QStringLiteral("forks")] = forks;
-                movesArray[startPly] = moveObj;
-            }
-        }
-    }
-}
-
-QJsonArray GameRecordModel::buildJkfForkMovesRecursive(int rowIndex, QSet<int>& visitedRows) const
-{
-    QJsonArray forkMoves;
-    
-    if (!m_resolvedRows || rowIndex < 0 || rowIndex >= m_resolvedRows->size()) {
-        return forkMoves;
-    }
-    
-    // 無限ループ防止
-    if (visitedRows.contains(rowIndex)) {
-        return forkMoves;
-    }
-    visitedRows.insert(rowIndex);
-    
-    const ResolvedRow& row = m_resolvedRows->at(rowIndex);
-    const QList<KifDisplayItem>& dispItems = row.disp;
-    
-    int forkPrevToX = 0, forkPrevToY = 0;
-    
-    // この分岐の子分岐を収集（手数でグループ化）
-    QMap<int, QVector<int>> childForksByPly;
-    for (int i = 0; i < m_resolvedRows->size(); ++i) {
-        const ResolvedRow& childRow = m_resolvedRows->at(i);
-        if (childRow.parent == rowIndex && !visitedRows.contains(i)) {
-            childForksByPly[childRow.startPly].append(i);
-        }
-    }
-    
-    // startPly 手目以降の指し手を追加
-    for (qsizetype j = row.startPly; j < dispItems.size(); ++j) {
-        const auto& item = dispItems[j];
-        if (item.prettyMove.trimmed().isEmpty()) continue;
-        
-        QJsonObject forkMoveObj = convertMoveToJkf(item, forkPrevToX, forkPrevToY, static_cast<int>(j));
-        if (forkMoveObj.isEmpty()) continue;
-        
-        // この手数に子分岐があれば追加
-        if (childForksByPly.contains(static_cast<int>(j))) {
-            QJsonArray childForks;
-            const QVector<int>& childRowIndices = childForksByPly[static_cast<int>(j)];
-            
-            for (int childRowIndex : childRowIndices) {
-                const QJsonArray childForkMoves = buildJkfForkMovesRecursive(childRowIndex, visitedRows);
-                if (!childForkMoves.isEmpty()) {
-                    childForks.append(childForkMoves);
-                }
-            }
-            
-            if (!childForks.isEmpty()) {
-                forkMoveObj[QStringLiteral("forks")] = childForks;
-            }
-        }
-        
-        forkMoves.append(forkMoveObj);
-    }
-
-    return forkMoves;
-}
-
 void GameRecordModel::addJkfForksFromTree(QJsonArray& movesArray) const
 {
     if (m_branchTree == nullptr || m_branchTree->isEmpty()) {
@@ -2673,25 +2213,9 @@ QStringList GameRecordModel::toJkfLines(const ExportContext& ctx) const
     const QList<KifDisplayItem> disp = collectMainlineForExport();
     QJsonArray movesArray = buildJkfMoves(disp);
     
-    // 4) 分岐を追加
-    // ★ 新システム: KifuBranchTree から出力
+    // 4) 分岐を追加（KifuBranchTree から）
     if (m_branchTree != nullptr && !m_branchTree->isEmpty()) {
         addJkfForksFromTree(movesArray);
-    }
-    // フォールバック: 旧システム（m_resolvedRows）
-    else if (m_resolvedRows && m_resolvedRows->size() > 1) {
-        // 本譜の行インデックスを探す
-        int mainRowIndex = -1;
-        for (int i = 0; i < m_resolvedRows->size(); ++i) {
-            if (m_resolvedRows->at(i).parent < 0) {
-                mainRowIndex = i;
-                break;
-            }
-        }
-
-        if (mainRowIndex >= 0) {
-            addJkfForks(movesArray, mainRowIndex);
-        }
     }
 
     root[QStringLiteral("moves")] = movesArray;
@@ -2989,78 +2513,6 @@ QString GameRecordModel::inferUsiFromSfenDiff(const QString& sfenBefore, const Q
     return QString();
 }
 
-QString GameRecordModel::buildUsenVariation(int rowIndex, QSet<int>& visitedRows) const
-{
-    if (!m_resolvedRows || rowIndex < 0 || rowIndex >= m_resolvedRows->size()) {
-        return QString();
-    }
-    
-    if (visitedRows.contains(rowIndex)) {
-        return QString();
-    }
-    visitedRows.insert(rowIndex);
-    
-    const ResolvedRow& row = m_resolvedRows->at(rowIndex);
-    const int startPly = row.startPly;
-    
-    // USENのオフセットは startPly - 1 (0-indexed)
-    int offset = startPly - 1;
-    if (offset < 0) offset = 0;
-    
-    QString usen = QStringLiteral("~%1.").arg(offset);
-    
-    // 指し手をエンコード
-    // ResolvedRowからUSI指し手を取得するには、sfenリストを使って再構築するか、
-    // または表示用データから推測する必要がある
-    // ここでは sfen リストから USI を再構築する
-    const QStringList& sfenList = row.sfen;
-    QString terminalCode;
-    
-    // sfenリストが利用可能な場合、連続するSFENからUSI指し手を推測
-    // または、disp から prettyMove を使って変換
-    // 実際のアプローチ: dispの指し手を使ってUSIに変換する必要があるが、
-    // prettyMoveからUSIへの逆変換は複雑なので、ResolvedRow に usiMoves があれば使用
-    
-    // 注意: ResolvedRow には usiMoves がないので、prettyMove + sfen から推測する
-    // より確実なアプローチとして、SfenPositionTracer を使って盤面を追跡し、
-    // dispの指し手と照合することでUSIを生成する
-    
-    // シンプルなアプローチ: disp の各指し手を解析してUSIを推定
-    // これは完全ではないが、多くのケースで動作する
-    const QList<KifDisplayItem>& disp = row.disp;
-    
-    for (qsizetype i = startPly; i < disp.size(); ++i) {
-        const KifDisplayItem& item = disp[i];
-        const QString& prettyMove = item.prettyMove;
-        
-        if (prettyMove.isEmpty()) continue;
-        
-        // 終局語のチェック
-        if (isTerminalMove(prettyMove)) {
-            terminalCode = getUsenTerminalCode(prettyMove);
-            break;
-        }
-        
-        // prettyMove から USI を推測（sfenリストを使用）
-        // 2つの連続するSFENから差分を見つけてUSIを生成
-        if (i < sfenList.size() && (i - 1) >= 0 && (i - 1) < sfenList.size()) {
-            // SFEN差分からUSI生成は複雑なので、ここでは簡易実装
-            // 実際にはprettyMoveを解析する
-        }
-        
-        // prettyMove からの USI 推定
-        // これは GameRecordModel では難しいので、別途 SfenPositionTracer を使う必要がある
-        // 今回はスキップし、USI moves を直接渡すアプローチを使用
-    }
-    
-    // 終局コードを追加
-    if (!terminalCode.isEmpty()) {
-        usen += QStringLiteral(".") + terminalCode;
-    }
-    
-    return usen;
-}
-
 QStringList GameRecordModel::toUsenLines(const ExportContext& ctx, const QStringList& usiMoves) const
 {
     QStringList out;
@@ -3076,20 +2528,8 @@ QStringList GameRecordModel::toUsenLines(const ExportContext& ctx, const QString
     const QList<KifDisplayItem> disp = collectMainlineForExport();
     
     // USI moves が渡された場合はそれを使用
-    // そうでない場合は ResolvedRow から取得を試みる
-    QStringList mainlineUsi = usiMoves;
-    
-    if (mainlineUsi.isEmpty() && m_resolvedRows && !m_resolvedRows->isEmpty()) {
-        // 本譜行を探す
-        for (int i = 0; i < m_resolvedRows->size(); ++i) {
-            if (m_resolvedRows->at(i).parent < 0) {
-                // 本譜のSFENリストからUSI指し手を推測することは複雑
-                // ここでは空のままにする
-                break;
-            }
-        }
-    }
-    
+    const QStringList& mainlineUsi = usiMoves;
+
     // 各USI指し手をUSEN形式にエンコード
     for (const QString& usi : std::as_const(mainlineUsi)) {
         QString encoded = encodeUsiMoveToUsen(usi);
@@ -3166,88 +2606,13 @@ QStringList GameRecordModel::toUsenLines(const ExportContext& ctx, const QString
             usen += branchUsen;
         }
     }
-    // フォールバック: 旧システム（m_resolvedRows）
-    else if (m_resolvedRows && m_resolvedRows->size() > 1) {
-        QSet<int> visitedRows;
 
-        // 本譜の行インデックスを探す
-        for (int i = 0; i < m_resolvedRows->size(); ++i) {
-            if (m_resolvedRows->at(i).parent < 0) {
-                visitedRows.insert(i);
-                break;
-            }
-        }
-
-        // 分岐をvarIndexの順でソート
-        QVector<QPair<int, int>> variations; // (sortKey, rowIndex)
-        for (int i = 0; i < m_resolvedRows->size(); ++i) {
-            const ResolvedRow& row = m_resolvedRows->at(i);
-            if (row.parent < 0 || visitedRows.contains(i)) {
-                continue;
-            }
-            int sortKey = (row.varIndex >= 0) ? row.varIndex : (1000 + i);
-            variations.append(qMakePair(sortKey, i));
-        }
-
-        std::sort(variations.begin(), variations.end(), [](const QPair<int, int>& a, const QPair<int, int>& b) {
-            return a.first < b.first;
-        });
-
-        // 各分岐をUSEN形式で出力
-        for (const auto& var : std::as_const(variations)) {
-            const int rowIndex = var.second;
-            const ResolvedRow& row = m_resolvedRows->at(rowIndex);
-
-            // オフセット（分岐開始位置 - 1）
-            int offset = row.startPly - 1;
-            if (offset < 0) offset = 0;
-
-            QString branchMoves;
-            QString branchTerminal;
-
-            // 分岐のSFENリストからUSI指し手を推測
-            const QStringList& sfenList = row.sfen;
-            const QList<KifDisplayItem>& branchDisp = row.disp;
-
-            // SFENの差分からUSI指し手を推測
-            for (qsizetype i = row.startPly; i < branchDisp.size(); ++i) {
-                const KifDisplayItem& item = branchDisp[i];
-                if (item.prettyMove.isEmpty()) continue;
-
-                // 終局語チェック
-                if (isTerminalMove(item.prettyMove)) {
-                    branchTerminal = getUsenTerminalCode(item.prettyMove);
-                    break;
-                }
-
-                // SFENリストを使ってUSI指し手を推測
-                if (i < sfenList.size() && (i - 1) >= 0 && (i - 1) < sfenList.size()) {
-                    QString usi = inferUsiFromSfenDiff(sfenList[i - 1], sfenList[i], (i % 2 != 0));
-                    if (!usi.isEmpty()) {
-                        QString encoded = encodeUsiMoveToUsen(usi);
-                        if (!encoded.isEmpty()) {
-                            branchMoves += encoded;
-                        }
-                    }
-                }
-            }
-
-            // 分岐のUSEN文字列を構築
-            QString branchUsen = QStringLiteral("~%1.%2").arg(offset).arg(branchMoves);
-            if (!branchTerminal.isEmpty()) {
-                branchUsen += QStringLiteral(".") + branchTerminal;
-            }
-
-            usen += branchUsen;
-            visitedRows.insert(rowIndex);
-        }
-    }
-    
     out << usen;
-    
+
+    const int branchCount = (m_branchTree != nullptr) ? (m_branchTree->lineCount() - 1) : 0;
     qDebug().noquote() << "[GameRecordModel] toUsenLines: generated USEN with"
                        << mainMoves.size() / 3 << "mainline moves,"
-                       << (m_resolvedRows ? m_resolvedRows->size() - 1 : 0) << "variations";
+                       << branchCount << "variations";
     
     return out;
 }

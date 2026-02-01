@@ -3112,63 +3112,59 @@ Select OK to specify the save location.</translation>
 <context>
     <name>KifuLoadCoordinator</name>
     <message>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="551"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="338"/>
         <source>貼り付けるテキストが空です。</source>
         <translation>The text to paste is empty.</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="658"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="445"/>
         <source>一時ファイルの作成に失敗しました。</source>
         <translation>Failed to create temporary file.</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="668"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="455"/>
         <source>一時ファイルへの書き込みに失敗しました。</source>
         <translation>Failed to write to temporary file.</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="723"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="510"/>
         <source>無効なSFEN形式です。</source>
         <translation>Invalid SFEN format.</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="788"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="577"/>
         <source>BOD形式の解析に失敗しました。%1</source>
         <translation>Failed to parse BOD format. %1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="793"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="582"/>
         <source>BOD形式から局面を取得できませんでした。</source>
         <translation>Could not get position from BOD format.</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="855"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="644"/>
         <source>読み込み失敗 %1 から指し手を取得できませんでした。</source>
         <translation>Load failed: Could not get moves from %1.</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="1177"/>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="1180"/>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="1204"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="922"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="925"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="949"/>
         <source>対局情報</source>
         <translation>Game Info</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="1196"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="941"/>
         <source>コメント</source>
         <translation>Comment</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="1411"/>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="3389"/>
         <source>本譜</source>
-        <translation>Main Line</translation>
+        <translation type="vanished">Main Line</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="1418"/>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="3396"/>
         <source>ライブ</source>
-        <translation>Live</translation>
+        <translation type="vanished">Live</translation>
     </message>
 </context>
 <context>
@@ -3801,23 +3797,23 @@ Please restart the application to apply the changes.</translation>
         <translation>No board data available.</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1838"/>
-        <location filename="../../src/app/mainwindow.cpp" line="1842"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1837"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1841"/>
         <source>Engine</source>
         <translation type="unfinished">Engine</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1847"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1846"/>
         <source>Engine1</source>
         <translation type="unfinished">Engine1</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1848"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1847"/>
         <source>Engine2</source>
         <translation type="unfinished">Engine2</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1863"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1862"/>
         <source>その他</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3888,18 +3884,18 @@ White
 Please select &quot;24-Point Rule&quot; or &quot;27-Point Rule&quot; in the game dialog.</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1751"/>
-        <location filename="../../src/app/mainwindow.cpp" line="1832"/>
-        <location filename="../../src/app/mainwindow.cpp" line="1837"/>
-        <location filename="../../src/app/mainwindow.cpp" line="1851"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1750"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1831"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1836"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1850"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1752"/>
-        <location filename="../../src/app/mainwindow.cpp" line="1833"/>
-        <location filename="../../src/app/mainwindow.cpp" line="1843"/>
-        <location filename="../../src/app/mainwindow.cpp" line="1852"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1751"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1832"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1842"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1851"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
@@ -4118,13 +4114,13 @@ The default layout will be used on next startup.</translation>
         <translation>Game Record Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1753"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1752"/>
         <source>手合割</source>
         <translation>Handicap</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1753"/>
-        <location filename="../../src/app/mainwindow.cpp" line="1859"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1752"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1858"/>
         <source>平手</source>
         <translation>Even Game</translation>
     </message>
@@ -4185,17 +4181,17 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Failed to auto-save game record: %1</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4280"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4288"/>
         <source>棋譜を取り込みました</source>
         <translation>Game record imported</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4282"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4290"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation>Failed to import game record</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4286"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4294"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation>Failed to import game record (internal error)</translation>
     </message>
@@ -4204,7 +4200,7 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Comment updated (move: %1)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3771"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3780"/>
         <source>コメントなし</source>
         <translation>No comment</translation>
     </message>
@@ -4862,10 +4858,10 @@ Are you sure you want to declare?</translation>
     </message>
     <message>
         <location filename="../../src/analysis/kifuanalysislistmodel.cpp" line="113"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="679"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="683"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="699"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="703"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="614"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="618"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="634"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="638"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="180"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="184"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="200"/>
@@ -4875,10 +4871,10 @@ Are you sure you want to declare?</translation>
     </message>
     <message>
         <location filename="../../src/analysis/kifuanalysislistmodel.cpp" line="113"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="680"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="688"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="696"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="704"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="615"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="623"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="631"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="639"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="181"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="189"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="197"/>
@@ -4887,10 +4883,10 @@ Are you sure you want to declare?</translation>
         <translation>White</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="684"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="687"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="695"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="700"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="619"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="622"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="630"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="635"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="185"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="188"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="196"/>
@@ -4899,13 +4895,13 @@ Are you sure you want to declare?</translation>
         <translation>Engine</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="691"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="626"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="192"/>
         <source>Engine1</source>
         <translation>Engine1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="692"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="627"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="193"/>
         <source>Engine2</source>
         <translation>Engine2</translation>
