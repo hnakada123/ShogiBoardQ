@@ -56,6 +56,11 @@ void KifuNavigationState::resetPreferredLineIndex()
     m_preferredLineIndex = -1;
 }
 
+void KifuNavigationState::clearLineSelectionMemory()
+{
+    m_lastSelectedLineAtBranch.clear();
+}
+
 QString KifuNavigationState::currentLineName() const
 {
     if (m_currentNode == nullptr) {

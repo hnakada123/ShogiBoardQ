@@ -228,6 +228,13 @@ int main(int argc, char *argv[])
         "count");
     parser.addOption(clickNextAfterKifuOption);
 
+    // --click-next-after-prev <count> : click-prev後の1手進む
+    QCommandLineOption clickNextAfterPrevOption(
+        QStringList() << "click-next-after-prev",
+        "Click next button <count> times after click-prev.",
+        "count");
+    parser.addOption(clickNextAfterPrevOption);
+
     parser.process(a);
 
     MainWindow w;
@@ -304,8 +311,20 @@ int main(int argc, char *argv[])
         }
     }
 
+    // click-prev後の1手進む
+    const int nextAfterPrevCount = parser.isSet(clickNextAfterPrevOption) ? parser.value(clickNextAfterPrevOption).toInt() : 0;
+    const int nextAfterPrevStartTime = prevStartTime + prevCount * 100 + 500;
+    if (nextAfterPrevCount > 0) {
+        qDebug() << "[TEST] Auto-clicking next-after-prev button" << nextAfterPrevCount << "times starting at" << nextAfterPrevStartTime << "ms";
+        for (int i = 0; i < nextAfterPrevCount; ++i) {
+            QTimer::singleShot(nextAfterPrevStartTime + i * 100, &w, [&w]() {
+                w.clickNextButton();
+            });
+        }
+    }
+
     // 2回目の分岐候補クリック（next/prev後に実行）
-    const int branch2StartTime = prevStartTime + prevCount * 100 + 500;
+    const int branch2StartTime = nextAfterPrevStartTime + nextAfterPrevCount * 100 + 500;
     if (parser.isSet(clickBranch2Option)) {
         const int branch2Index = parser.value(clickBranch2Option).toInt();
         qDebug() << "[TEST] Auto-clicking branch2 index:" << branch2Index;

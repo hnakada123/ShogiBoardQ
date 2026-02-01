@@ -154,16 +154,21 @@ void KifuNavigationController::goToNode(KifuBranchNode* node)
         return;
     }
 
-    // 分岐を選択した場合、その選択を記憶
-    KifuBranchNode* parent = node->parent();
-    if (parent != nullptr && parent->childCount() > 1) {
-        // 何番目の子かを探す
-        for (int i = 0; i < parent->childCount(); ++i) {
-            if (parent->childAt(i) == node) {
-                m_state->rememberLineSelection(parent, i);
-                break;
+    // ★ ルートからこのノードまでの全分岐点で選択を記憶
+    // これにより、戻る→進むナビゲーション時に正しいパスを辿れる
+    KifuBranchNode* current = node;
+    while (current != nullptr) {
+        KifuBranchNode* parent = current->parent();
+        if (parent != nullptr && parent->childCount() > 1) {
+            // 何番目の子かを探す
+            for (int i = 0; i < parent->childCount(); ++i) {
+                if (parent->childAt(i) == current) {
+                    m_state->rememberLineSelection(parent, i);
+                    break;
+                }
             }
         }
+        current = parent;
     }
 
     m_state->setCurrentNode(node);
@@ -291,9 +296,10 @@ void KifuNavigationController::goToMainLineAtCurrentPly()
         return;
     }
 
-    // ★ 本譜に戻る場合、優先ラインをリセット
+    // ★ 本譜に戻る場合、優先ラインと選択記憶をリセット
     m_state->resetPreferredLineIndex();
-    qDebug().noquote() << "[KNC] goToMainLineAtCurrentPly: resetPreferredLineIndex";
+    m_state->clearLineSelectionMemory();
+    qDebug().noquote() << "[KNC] goToMainLineAtCurrentPly: resetPreferredLineIndex and clearLineSelectionMemory";
 
     int currentPly = m_state->currentPly();
     KifuBranchNode* mainNode = m_tree->findByPlyOnMainLine(currentPly);

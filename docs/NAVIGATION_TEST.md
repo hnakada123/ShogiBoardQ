@@ -77,6 +77,7 @@
 | `--click-tree-node <row,ply>` | 分岐ツリーのノードを直接クリック | kifu-row後 +500ms |
 | `--click-tree-node2 <row,ply>` | 2回目の分岐ツリーノードクリック | tree-node後 +1500ms |
 | `--click-next-after-kifu <count>` | click-kifu-row後の1手進む | kifu-row後 +500ms |
+| `--click-next-after-prev <count>` | click-prev後の1手進む | prev後 +500ms |
 
 ## テストシナリオ
 
@@ -342,6 +343,57 @@ Line 2 の罫線が誤って3手目の位置から引かれていました。
 1. `onLegacyPositionChanged` で `rememberLineSelection` が呼ばれず、次のナビゲーションで正しい子が選択されなかった
 2. `m_skipBoardSyncForBranchNav` フラグが true のままで、`onRecordPaneMainRowChanged` がブロックされていた
 
+### 14. 「本譜へ戻る」後の戻る→進むテスト
+
+分岐ライン上で「本譜へ戻る」をクリックした後、1手戻って1手進むと本譜に正しく留まることを確認。
+
+```bash
+./build/ShogiBoardQ --test-mode \
+    --load-kif test2_branch.kif \
+    --click-tree-node 1,3 \
+    --click-branch 3 \
+    --click-prev 1 \
+    --click-next-after-prev 1 \
+    --dump-state-after 8000
+```
+
+**期待結果**:
+- `currentPly: 3`
+- `currentLineIndex: 0`（本譜に留まる、分岐ライン1に戻らない）
+- `currentNode displayText: "▲２六歩(27)"`（本譜の3手目）
+
+**補足**: このテストは、分岐ライン上で「本譜へ戻る」をクリックした後、1手戻って1手進むと
+誤って元の分岐ラインに戻ってしまうバグの再発を防ぐためのものです。
+原因は `goToMainLineAtCurrentPly()` で `m_lastSelectedLineAtBranch` マップがクリアされず、
+ナビゲーション時に以前の分岐選択が記憶されたままだったことでした。
+修正により、本譜に戻る際に `clearLineSelectionMemory()` を呼び出して選択記憶をクリアします。
+
+### 15. 分岐ツリークリック後の戻る→進むテスト
+
+分岐ツリーで分岐ノードをクリックし、分岐点より前まで戻って再度進むと、
+盤面・棋譜欄・分岐ツリーが全て一致して分岐ラインを表示することを確認。
+
+```bash
+./build/ShogiBoardQ --test-mode \
+    --load-kif test_branch.kif \
+    --click-tree-node 1,5 \
+    --click-prev 3 \
+    --click-next-after-prev 1 \
+    --dump-state-after 8000
+```
+
+**期待結果**:
+- `currentPly: 3`
+- `currentLineIndex: 1`（分岐ライン1に留まる）
+- `currentNode displayText: "▲６六歩(67)"`（分岐ラインの3手目）
+- 盤面のSFEN: 6六に歩がある状態（本譜の2六歩ではない）
+
+**補足**: このテストは、分岐ツリーで分岐ノードをクリックした後、分岐点より前まで戻って再度進むと
+盤面だけが本譜の指し手を表示し、棋譜欄・分岐ツリーと不一致になるバグの再発を防ぐためのものです。
+原因は `goToNode()` が直接の親の分岐点でしか選択を記憶しておらず、
+ルートまでの全分岐点で選択を記憶していなかったことでした。
+修正により、`goToNode()` でルートから目標ノードまでの全分岐点で選択を記憶します。
+
 ## 検証項目
 
 テスト実行後、debug.logで以下の項目を確認できます：
@@ -496,6 +548,29 @@ echo "--- テスト13: 棋譜欄クリック後の1手進むボタン ---"
     --click-next-after-kifu 1 \
     --dump-state-after 12000 2>&1 > /dev/null
 grep -E "currentPly:|currentLineIndex:|currentNode displayText:" debug.log | tail -3
+
+# テスト14: 「本譜へ戻る」後の戻る→進む
+echo ""
+echo "--- テスト14: 「本譜へ戻る」後の戻る→進む ---"
+./build/ShogiBoardQ --test-mode \
+    --load-kif test2_branch.kif \
+    --click-tree-node 1,3 \
+    --click-branch 3 \
+    --click-prev 1 \
+    --click-next-after-prev 1 \
+    --dump-state-after 8000 2>&1 > /dev/null
+grep -E "currentPly:|currentLineIndex:|currentNode displayText:" debug.log | tail -3
+
+# テスト15: 分岐ツリークリック後の戻る→進む
+echo ""
+echo "--- テスト15: 分岐ツリークリック後の戻る→進む ---"
+./build/ShogiBoardQ --test-mode \
+    --load-kif test_branch.kif \
+    --click-tree-node 1,5 \
+    --click-prev 3 \
+    --click-next-after-prev 1 \
+    --dump-state-after 8000 2>&1 > /dev/null
+grep -E "currentPly:|currentLineIndex:|currentNode displayText:|actualSfen:" debug.log | tail -4
 
 echo ""
 echo "=== テスト完了 ==="
