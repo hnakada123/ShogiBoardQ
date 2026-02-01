@@ -36,11 +36,6 @@ PreStartCleanupHandler::PreStartCleanupHandler(const Dependencies& deps, QObject
 {
 }
 
-void PreStartCleanupHandler::setBranchDisplayPlan(QHash<int, QMap<int, BranchCandidateDisplay>>* plan)
-{
-    m_branchDisplayPlan = plan;
-}
-
 void PreStartCleanupHandler::performCleanup()
 {
     qDebug().noquote() << "[PreStartCleanupHandler] performCleanup: start";
@@ -182,9 +177,6 @@ void PreStartCleanupHandler::clearBranchModel()
 {
     if (m_kifuBranchModel) {
         m_kifuBranchModel->clear();
-    }
-    if (m_branchDisplayPlan) {
-        m_branchDisplayPlan->clear();
     }
 }
 

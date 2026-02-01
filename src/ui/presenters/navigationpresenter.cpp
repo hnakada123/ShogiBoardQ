@@ -1,18 +1,15 @@
 #include "navigationpresenter.h"
-#include "kifuloadcoordinator.h"
 #include "engineanalysistab.h"
 #include <QDebug>
 
 NavigationPresenter::NavigationPresenter(const Deps& d, QObject* parent)
     : QObject(parent)
-    , m_coordinator(d.coordinator)
     , m_analysisTab(d.analysisTab)
 {
 }
 
 void NavigationPresenter::setDeps(const Deps& d)
 {
-    m_coordinator = d.coordinator;
     m_analysisTab = d.analysisTab;
 }
 
@@ -25,18 +22,9 @@ void NavigationPresenter::highlightBranchTree(int row, int ply)
 
 void NavigationPresenter::refreshAll(int row, int ply)
 {
-    if (!m_coordinator) {
-        qDebug() << "[NAV-PRES] refreshAll skipped (coordinator==null)";
-        return;
-    }
-
     const int safeRow = qMax(0, row);
     const int safePly = qMax(0, ply);
 
-    // 1) 候補再構築は Coordinator に依頼
-    m_coordinator->showBranchCandidates(safeRow, safePly);
-
-    // 2) 再構築が終わった前提でツリーハイライト＆通知
     highlightBranchTree(safeRow, safePly);
     emit branchUiUpdated(safeRow, safePly);
 }

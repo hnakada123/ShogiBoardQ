@@ -70,18 +70,17 @@ public:
     // 候補リスト＋分岐グラフの全消去
     void clear();
 
-    // ★ 新システムによるロック機能
+    // ★ ロック機能（KifuDisplayCoordinatorが分岐候補を管理中は外部からの変更を防ぐ）
     // ロック中は clearBranchCandidates/setBranchCandidatesFromKif の呼び出しを無視
-    // （新システムからの呼び出しは setXxxByNewSystem を使う）
-    void setLockedByNewSystem(bool locked) { m_lockedByNewSystem = locked; }
-    bool isLockedByNewSystem() const { return m_lockedByNewSystem; }
+    void setLocked(bool locked) { m_locked = locked; }
+    bool isLocked() const { return m_locked; }
 
-    // 新システム専用: ロックを無視して設定
-    void clearBranchCandidatesByNewSystem();
-    void setBranchCandidatesByNewSystem(const QList<KifDisplayItem>& rows);
+    // KifuDisplayCoordinator専用: ロックを無視して設定
+    void resetBranchCandidates();
+    void updateBranchCandidates(const QList<KifDisplayItem>& rows);
 
 private:
-    bool m_lockedByNewSystem = false;
+    bool m_locked = false;
     struct RowItem {
         QString label;
         // …既存のフィールド（variationId など）がある前提…

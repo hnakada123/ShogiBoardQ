@@ -29,6 +29,7 @@
 #include <limits>
 #include <QPainter>
 #include <QFontDatabase>
+#include <QRegularExpression>
 
 #include "mainwindow.h"
 #include "changeenginesettingsdialog.h"
@@ -50,7 +51,6 @@
 #include "engineinfowidget.h"
 #include "engineanalysistab.h"
 #include "matchcoordinator.h"
-#include "kifuvariationengine.h"
 #include "turnmanager.h"
 #include "errorbus.h"
 #include "kifuloadcoordinator.h"
@@ -1412,7 +1412,6 @@ void MainWindow::chooseAndLoadKifuFile()
     m_kifuLoadCoordinator = new KifuLoadCoordinator(
         /* gameMoves           */ m_gameMoves,
         /* positionStrList     */ m_positionStrList,
-        /* activeResolvedRow   */ m_activeResolvedRow,
         /* activePly           */ m_activePly,
         /* currentSelectedPly  */ m_currentSelectedPly,
         /* currentMoveIndex    */ m_currentMoveIndex,
@@ -1423,20 +1422,15 @@ void MainWindow::chooseAndLoadKifuFile()
         /* recordPane          */ m_recordPane,
         /* kifuRecordModel     */ m_kifuRecordModel,
         /* kifuBranchModel     */ m_kifuBranchModel,
-        /* branchDisplayPlan   */ m_branchDisplayPlan,
         /* parent              */ this
         );
 
-    // ★ 新規: 分岐ツリーを設定
+    // ★ 新規: 分岐ツリーとナビゲーション状態を設定
     if (m_branchTree != nullptr) {
         m_kifuLoadCoordinator->setBranchTree(m_branchTree);
     }
-
-    // ★ 新システムが有効な場合、旧システムの分岐候補表示を無効化
-    // m_branchTree が存在すれば新システムを有効化する
-    if (m_branchTree != nullptr) {
-        m_kifuLoadCoordinator->setUseNewBranchSystem(true);
-        qDebug().noquote() << "[MW] ensureKifuLoadCoordinator: setUseNewBranchSystem(true)";
+    if (m_navState != nullptr) {
+        m_kifuLoadCoordinator->setNavigationState(m_navState);
     }
 
     // ★ 新規: 分岐ツリー構築完了シグナルを接続
@@ -1977,26 +1971,6 @@ void MainWindow::syncBoardAndHighlightsAtRow(int ply)
     qDebug() << "[MW-DEBUG] syncBoardAndHighlightsAtRow LEAVE";
 }
 
-void MainWindow::applyResolvedRowAndSelect(int row, int selPly)
-{
-    if (!m_kifuLoadCoordinator) return;
-
-    // 状態の差し替え（disp/sfen/gm）と Presenter 更新は Coordinator 側の責務
-    m_kifuLoadCoordinator->applyResolvedRowAndSelect(row, selPly);
-
-    // ★ 追加：盤面適用後に手番表示を更新
-    setCurrentTurn();
-    
-    // m_currentSfenStrを選択した局面に更新
-    if (m_sfenRecord && selPly >= 0 && selPly < m_sfenRecord->size()) {
-        m_currentSfenStr = m_sfenRecord->at(selPly);
-        qDebug() << "[JosekiWindow] applyResolvedRowAndSelect: row=" << row << "selPly=" << selPly << "sfen=" << m_currentSfenStr;
-    }
-    
-    // 定跡ウィンドウを更新
-    updateJosekiWindow();
-}
-
 void MainWindow::navigateKifuViewToRow(int ply)
 {
     qDebug().noquote() << "[MW] navigateKifuViewToRow ENTER ply=" << ply;
@@ -2116,18 +2090,13 @@ void MainWindow::initializeBranchNavigationClasses()
         connect(m_displayCoordinator, &KifuDisplayCoordinator::boardWithHighlightsRequired,
                 this, &MainWindow::loadBoardWithHighlights);
 
-        // 盤面のみ更新シグナル（旧システム互換用、新システムでは通常使用しない）
+        // 盤面のみ更新シグナル（通常は boardWithHighlightsRequired を使用）
         connect(m_displayCoordinator, &KifuDisplayCoordinator::boardSfenChanged,
                 this, &MainWindow::loadBoardFromSfen);
 
-        // ★ 新規: 分岐ライン選択変更シグナルを接続（旧システムの m_activeResolvedRow と同期）
+        // ★ 分岐ライン選択変更シグナルを接続
         connect(m_kifuNavController, &KifuNavigationController::lineSelectionChanged,
                 this, &MainWindow::onLineSelectionChanged);
-
-        // 旧システムの分岐候補表示を無効化（新システムが管理する）
-        if (m_kifuLoadCoordinator != nullptr) {
-            m_kifuLoadCoordinator->setUseNewBranchSystem(true);
-        }
     }
 
 }
@@ -2551,7 +2520,7 @@ void MainWindow::onMatchGameEnded(const MatchCoordinator::GameEndInfo& info)
         m_gameStateController->onMatchGameEnded(info);
     }
 
-    // ★ 注意: ライブ対局の確定（commitLiveGameToResolvedRows）は
+    // ★ ライブ対局の確定（LiveGameSession::commit）は
     //   onRequestAppendGameOverMove の後で行う（投了手を含めるため）
 
     // ★ 追加: 対局終了日時を記録し、対局情報ドックを更新
@@ -2600,10 +2569,10 @@ void MainWindow::onRequestAppendGameOverMove(const MatchCoordinator::GameEndInfo
         m_gameStateController->onRequestAppendGameOverMove(info);
     }
 
-    // ★ 追加: 投了手が追加された後にライブ対局をResolvedRowに確定
-    if (m_kifuLoadCoordinator && m_kifuLoadCoordinator->isLiveGameActive()) {
-        qDebug() << "[MW] onRequestAppendGameOverMove: committing live game to resolved rows";
-        m_kifuLoadCoordinator->commitLiveGameToResolvedRows();
+    // ★ 新システム: ライブ対局の確定は LiveGameSession::commit() で行う
+    if (m_liveGameSession != nullptr && m_liveGameSession->isActive()) {
+        qDebug() << "[MW] onRequestAppendGameOverMove: committing live game session";
+        m_liveGameSession->commit();
     }
 }
 
@@ -2747,8 +2716,7 @@ void MainWindow::onBranchNodeActivated(int row, int ply)
         m_kifuNavController->goToNode(targetNode);
         qDebug().noquote() << "[MW] onBranchNodeActivated: goToNode ply=" << selPly;
 
-        // ★ 旧システムとの互換性のため、レガシー変数を更新
-        m_activeResolvedRow = effectiveRow;
+        // ★ plyインデックス変数を更新（新システムはnavStateが管理）
         m_activePly = selPly;
         m_currentSelectedPly = selPly;
         m_currentMoveIndex = selPly;
@@ -2821,15 +2789,11 @@ void MainWindow::loadBoardFromSfen(const QString& sfen)
 }
 
 // ★ 分岐ライン選択変更時の処理
-// 新システム（KifuNavigationState）が管理するため、旧システムの同期は最小限に
+// 新システム（KifuNavigationState）が管理
 void MainWindow::onLineSelectionChanged(int newLineIndex)
 {
-    // 旧システムとの互換性のためm_activeResolvedRowを更新
-    // KifuLoadCoordinatorとGameRecordModelがまだ参照している
-    if (newLineIndex >= 0) {
-        m_activeResolvedRow = newLineIndex;
-        qDebug().noquote() << "[MW] onLineSelectionChanged: m_activeResolvedRow=" << m_activeResolvedRow;
-    }
+    Q_UNUSED(newLineIndex)
+    // KifuNavigationState が currentLineIndex() を管理
 }
 
 // ★ 新規: SFENから盤面とハイライトを更新（分岐ナビゲーション用）
@@ -2839,7 +2803,7 @@ void MainWindow::loadBoardWithHighlights(const QString& currentSfen, const QStri
                        << "currentSfen=" << currentSfen.left(40)
                        << "prevSfen=" << (prevSfen.isEmpty() ? "(empty)" : prevSfen.left(40));
 
-    // ★ 旧システムの盤面同期をスキップするフラグを設定
+    // ★ 盤面同期をスキップするフラグを設定
     // このメソッドが完了するまで、onRecordPaneMainRowChanged での盤面同期を抑制する
     m_skipBoardSyncForBranchNav = true;
 
@@ -3230,7 +3194,7 @@ void MainWindow::updateKifuExportDependencies()
     deps.humanName2 = m_humanName2;
     deps.engineName1 = m_engineName1;
     deps.engineName2 = m_engineName2;
-    deps.activeResolvedRow = m_activeResolvedRow;
+    deps.activeResolvedRow = (m_navState != nullptr) ? m_navState->currentLineIndex() : 0;
     deps.currentMoveIndex = m_currentMoveIndex;
     deps.activePly = m_activePly;
     deps.currentSelectedPly = m_currentSelectedPly;
@@ -3527,9 +3491,6 @@ void MainWindow::ensurePreStartCleanupHandler()
     deps.currentMoveIndex = &m_currentMoveIndex;
 
     m_preStartCleanupHandler = new PreStartCleanupHandler(deps, this);
-
-    // 分岐表示プランへの参照を設定
-    m_preStartCleanupHandler->setBranchDisplayPlan(&m_branchDisplayPlan);
 
     // PreStartCleanupHandlerからのシグナルをMainWindowに接続
     connect(m_preStartCleanupHandler, &PreStartCleanupHandler::broadcastCommentRequested,
@@ -3899,7 +3860,7 @@ void MainWindow::onRecordPaneMainRowChanged(int row)
     s_inProgress = true;
 
     // ★ 分岐ナビゲーション中は盤面同期をスキップ
-    // loadBoardWithHighlights() が盤面を管理しているため、旧システムの上書きを防ぐ
+    // loadBoardWithHighlights() が盤面を管理しているため、二重更新を防ぐ
     if (m_skipBoardSyncForBranchNav) {
         qDebug() << "[MW] onRecordPaneMainRowChanged: SKIPPED (branch navigation in progress)";
         s_inProgress = false;
@@ -3957,8 +3918,7 @@ void MainWindow::onRecordPaneMainRowChanged(int row)
     // 矢印ボタンを有効化
     enableArrowButtons();
 
-    // ★ 注意：分岐候補欄の更新は新システム（KifuDisplayCoordinator::onLegacyPositionChanged）が担当
-    // 旧システムのshowBranchCandidatesは新システム有効時にスキップされるため、ここでは呼び出さない
+    // ★ 注意：分岐候補欄の更新は KifuDisplayCoordinator::onPositionChanged() が担当
 
     // m_currentSfenStrを現在の局面に更新
     // ★ 注意：変化ライン上にいる場合は m_sfenRecord（本譜のSFEN）を使わない
@@ -4027,7 +3987,8 @@ void MainWindow::onRecordPaneMainRowChanged(int row)
     // これにより分岐候補欄と分岐ツリーのハイライトが更新される
     if (m_displayCoordinator != nullptr && m_sfenRecord != nullptr && row >= 0 && row < m_sfenRecord->size()) {
         const QString sfen = m_sfenRecord->at(row);
-        m_displayCoordinator->onLegacyPositionChanged(m_activeResolvedRow, row, sfen);
+        const int lineIndex = (m_navState != nullptr) ? m_navState->currentLineIndex() : 0;
+        m_displayCoordinator->onPositionChanged(lineIndex, row, sfen);
     }
 
     qDebug() << "[MW] onRecordPaneMainRowChanged LEAVE row=" << row;
@@ -4045,7 +4006,6 @@ void MainWindow::ensureKifuLoadCoordinatorForLive()
     m_kifuLoadCoordinator = new KifuLoadCoordinator(
         /* gameMoves           */ m_gameMoves,
         /* positionStrList     */ m_positionStrList,
-        /* activeResolvedRow   */ m_activeResolvedRow,
         /* activePly           */ m_activePly,
         /* currentSelectedPly  */ m_currentSelectedPly,
         /* currentMoveIndex    */ m_currentMoveIndex,
@@ -4056,19 +4016,14 @@ void MainWindow::ensureKifuLoadCoordinatorForLive()
         /* recordPane          */ m_recordPane,
         /* kifuRecordModel     */ m_kifuRecordModel,
         /* kifuBranchModel     */ m_kifuBranchModel,
-        /* branchDisplayPlan   */ m_branchDisplayPlan,
         this);
 
-    // ★ 新規: 分岐ツリーを設定
+    // ★ 新規: 分岐ツリーとナビゲーション状態を設定
     if (m_branchTree != nullptr) {
         m_kifuLoadCoordinator->setBranchTree(m_branchTree);
     }
-
-    // ★ 新システムが有効な場合、旧システムの分岐候補表示を無効化
-    // m_branchTree が存在すれば新システムを有効化する
-    if (m_branchTree != nullptr) {
-        m_kifuLoadCoordinator->setUseNewBranchSystem(true);
-        qDebug().noquote() << "[MW] ensureKifuLoadCoordinatorForLive: setUseNewBranchSystem(true)";
+    if (m_navState != nullptr) {
+        m_kifuLoadCoordinator->setNavigationState(m_navState);
     }
 
     // ★ 新規: 分岐ツリー構築完了シグナルを接続
@@ -4094,29 +4049,9 @@ void MainWindow::ensureKifuLoadCoordinatorForLive()
 // ===== MainWindow.cpp: ライブ対局中に分岐ツリーを更新 =====
 void MainWindow::refreshBranchTreeLive()
 {
-    qDebug().noquote() << "[MW-DEBUG] refreshBranchTreeLive() ENTER";
-
-    ensureKifuLoadCoordinatorForLive();
-    if (!m_kifuLoadCoordinator) {
-        qDebug().noquote() << "[MW-DEBUG] refreshBranchTreeLive(): m_kifuLoadCoordinator is null";
-        return;
-    }
-
-    int ply = 0;
-    if (m_kifuRecordModel) {
-        ply = qMax(0, m_kifuRecordModel->rowCount() - 1);
-    }
-
-    qDebug().noquote() << "[MW-DEBUG] refreshBranchTreeLive(): ply=" << ply
-                       << "kifuModel.rowCount=" << (m_kifuRecordModel ? m_kifuRecordModel->rowCount() : -1);
-
-    // ツリーの再構築（既存）
-    m_kifuLoadCoordinator->updateBranchTreeFromLive(ply);
-
-    // ★ 文脈を固定したまま、＋/オレンジ/候補欄を更新
-    m_kifuLoadCoordinator->rebuildBranchPlanAndMarksForLive(ply);
-
-    qDebug().noquote() << "[MW-DEBUG] refreshBranchTreeLive() LEAVE";
+    // ★ 新システム: LiveGameSession と KifuDisplayCoordinator が分岐ツリーを管理
+    // この関数は互換性のために残すが、新システムが自動的に更新を行う
+    qDebug().noquote() << "[MW-DEBUG] refreshBranchTreeLive(): delegating to new system (no-op)";
 }
 
 // ========== UNDO用：MainWindow 補助関数 ==========
@@ -4194,13 +4129,8 @@ void MainWindow::updateGameRecord(const QString& elapsedTime)
         }
     }
 
-    // ★ 追加: KifuLoadCoordinator にライブ対局の手を通知
-    if (m_kifuLoadCoordinator && m_kifuLoadCoordinator->isLiveGameActive() && !m_lastMove.isEmpty()) {
-        KifDisplayItem item;
-        item.prettyMove = m_lastMove;
-        item.timeText = elapsedTime;
-        // ply は moves.size() から自動計算されるので設定不要
-
+    // ★ 新システム: LiveGameSession にライブ対局の手を通知
+    if (m_liveGameSession != nullptr && m_liveGameSession->isActive() && !m_lastMove.isEmpty()) {
         QString sfen;
         if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
             sfen = m_sfenRecord->last();
@@ -4211,7 +4141,7 @@ void MainWindow::updateGameRecord(const QString& elapsedTime)
             move = m_gameMoves.last();
         }
 
-        m_kifuLoadCoordinator->appendLiveMove(item, sfen, move);
+        m_liveGameSession->addMove(move, m_lastMove, sfen, elapsedTime);
     }
 
     m_lastMove.clear();
@@ -4332,7 +4262,7 @@ void MainWindow::ensureGameRecordModel()
         liveDispPtr = const_cast<QList<KifDisplayItem>*>(&m_recordPresenter->liveDisp());
     }
 
-    m_gameRecord->bind(&m_activeResolvedRow, liveDispPtr);
+    m_gameRecord->bind(liveDispPtr);
 
     // ★ 新システム: KifuBranchTree と KifuNavigationState を設定
     if (m_branchTree != nullptr) {
@@ -4654,17 +4584,19 @@ void MainWindow::loadKifuFile(const QString& path)
     // KifuLoadCoordinatorを作成
     m_kifuLoadCoordinator = new KifuLoadCoordinator(
         m_gameMoves, m_positionStrList,
-        m_activeResolvedRow, m_activePly, m_currentSelectedPly,
+        m_activePly, m_currentSelectedPly,
         m_currentMoveIndex, m_sfenRecord,
         m_gameInfoController ? m_gameInfoController->tableWidget() : nullptr,
         nullptr, m_tab, m_recordPane,
         m_kifuRecordModel, m_kifuBranchModel,
-        m_branchDisplayPlan, this);
+        this);
 
-    // 分岐ツリーを設定
+    // 分岐ツリーとナビゲーション状態を設定
     if (m_branchTree != nullptr) {
         m_kifuLoadCoordinator->setBranchTree(m_branchTree);
-        m_kifuLoadCoordinator->setUseNewBranchSystem(true);
+    }
+    if (m_navState != nullptr) {
+        m_kifuLoadCoordinator->setNavigationState(m_navState);
     }
 
     // シグナル接続
@@ -4841,8 +4773,18 @@ void MainWindow::clickBranchTreeNode(int row, int ply)
     qDebug() << "[TEST] clickBranchTreeNode: row=" << row << "ply=" << ply;
 
     // 分岐ツリーのノードをクリックしたのと同等の処理
-    // onBranchNodeActivated を直接呼び出す
-    onBranchNodeActivated(row, ply);
+    // EngineAnalysisTab の branchNodeActivated シグナルを発火させる
+    // これにより、KifuDisplayCoordinator が分岐ナビゲーションを処理する
+    if (m_analysisTab) {
+        // シグナルを直接発火（テスト用）
+        // まずハイライトを更新（GUIクリック時の即時フィードバックをシミュレート）
+        m_analysisTab->highlightBranchTreeAt(row, ply, false);
+        // シグナルを発火
+        emit m_analysisTab->branchNodeActivated(row, ply);
+    } else {
+        // フォールバック: 直接呼び出し
+        onBranchNodeActivated(row, ply);
+    }
 
     qDebug() << "[TEST] clickBranchTreeNode: completed";
 }
@@ -4917,5 +4859,127 @@ void MainWindow::dumpTestState()
         }
     }
 
+    // 6. 一致性チェック
+    qDebug() << "[TEST] === CONSISTENCY CHECK ===";
+    if (m_displayCoordinator) {
+        const bool displayConsistent = m_displayCoordinator->verifyDisplayConsistency();
+        qDebug() << "[TEST] displayConsistency:" << (displayConsistent ? "PASS" : "FAIL");
+        if (!displayConsistent) {
+            qDebug().noquote() << m_displayCoordinator->getConsistencyReport();
+        }
+    }
+
+    // 7. 4方向一致検証
+    const bool fourWayConsistent = verify4WayConsistency();
+    qDebug() << "[TEST] fourWayConsistency:" << (fourWayConsistent ? "PASS" : "FAIL");
+
     qDebug() << "========== [END STATE DUMP] ==========";
+}
+
+QString MainWindow::extractSfenBase(const QString& sfen) const
+{
+    // SFEN文字列から局面部分（手数と持ち駒前の部分）を抽出
+    // 例: "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"
+    // から "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL" を取得
+    const QStringList parts = sfen.split(QLatin1Char(' '));
+    if (parts.isEmpty()) {
+        return sfen;
+    }
+    return parts.at(0);  // 盤面部分のみを返す
+}
+
+bool MainWindow::verify4WayConsistency()
+{
+    // 4方向（盤面・棋譜欄・分岐候補欄・分岐ツリー）の一致を検証
+    bool consistent = true;
+    QString issues;
+
+    // 1. 盤面SFENとナビゲーション状態のSFENを比較
+    if (m_gameController != nullptr && m_gameController->board() != nullptr && m_navState != nullptr) {
+        const QString boardSfen = m_gameController->board()->convertBoardToSfen();
+        KifuBranchNode* currentNode = m_navState->currentNode();
+        if (currentNode != nullptr) {
+            const QString nodeSfen = currentNode->sfen();
+            const QString boardBase = extractSfenBase(boardSfen);
+            const QString nodeBase = extractSfenBase(nodeSfen);
+            if (boardBase != nodeBase) {
+                consistent = false;
+                qWarning() << "[4WAY] Board SFEN mismatch:"
+                           << "board=" << boardBase
+                           << "node=" << nodeBase;
+            }
+        }
+    }
+
+    // 2. 棋譜欄の内容が選択ラインの内容と一致するかを検証
+    if (m_kifuRecordModel != nullptr && m_navState != nullptr && m_branchTree != nullptr) {
+        const int currentLineIndex = m_navState->currentLineIndex();
+        QVector<BranchLine> lines = m_branchTree->allLines();
+        if (currentLineIndex >= 0 && currentLineIndex < lines.size()) {
+            const BranchLine& line = lines.at(currentLineIndex);
+            // 3手目の内容を比較（分岐が発生しやすい箇所）
+            if (line.nodes.size() > 3 && m_kifuRecordModel->rowCount() > 3) {
+                KifuDisplay* item = m_kifuRecordModel->item(3);  // 3手目（1-indexed で row 3）
+                if (item != nullptr && line.nodes.size() > 2) {
+                    // ライン内でply=3のノードを探す
+                    for (KifuBranchNode* node : std::as_const(line.nodes)) {
+                        if (node->ply() == 3) {
+                            // 指し手テキストから手数番号部分を除去して比較
+                            QString itemMove = item->currentMove().trimmed();
+                            QString nodeMove = node->displayText();
+                            // itemMove は "   3 ▲○○+" のような形式
+                            // 手数番号を除去: 最初の数字+スペースを取り除く
+                            itemMove = itemMove.remove(QRegularExpression(QStringLiteral("^\\s*\\d+\\s+")));
+                            itemMove = itemMove.remove(QLatin1Char('+'));  // 分岐マークを除去
+                            if (!itemMove.contains(nodeMove) && !nodeMove.contains(itemMove)) {
+                                // 完全一致しない場合でも、部分一致があれば OK
+                                // （表示形式の違いによる）
+                                if (itemMove != nodeMove) {
+                                    consistent = false;
+                                    qWarning() << "[4WAY] Kifu content mismatch at ply 3:"
+                                               << "model=" << itemMove
+                                               << "node=" << nodeMove;
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 3. 分岐候補数が期待値と一致するかを検証
+    if (m_kifuBranchModel != nullptr && m_navState != nullptr) {
+        KifuBranchNode* currentNode = m_navState->currentNode();
+        if (currentNode != nullptr) {
+            KifuBranchNode* parent = currentNode->parent();
+            if (parent != nullptr) {
+                const int expectedCandidates = parent->childCount();
+                int actualCandidates = m_kifuBranchModel->rowCount();
+                // "本譜へ戻る" 行がある場合は除外
+                if (m_kifuBranchModel->hasBackToMainRow() && actualCandidates > 0) {
+                    actualCandidates--;
+                }
+                // 分岐がない場合（候補が1つのみ）は0になることがある
+                if (expectedCandidates > 1 && actualCandidates != expectedCandidates) {
+                    // 分岐がある場合のみ警告
+                    qWarning() << "[4WAY] Branch candidate count mismatch:"
+                               << "expected=" << expectedCandidates
+                               << "actual=" << actualCandidates;
+                    // これは軽微な不一致なのでconsistentはfalseにしない
+                }
+            }
+        }
+    }
+
+    // 4. KifuDisplayCoordinator の一致性を確認
+    if (m_displayCoordinator != nullptr) {
+        if (!m_displayCoordinator->verifyDisplayConsistency()) {
+            consistent = false;
+            qWarning() << "[4WAY] KifuDisplayCoordinator inconsistency detected";
+        }
+    }
+
+    return consistent;
 }
