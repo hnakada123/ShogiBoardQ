@@ -176,10 +176,19 @@ void KifuDisplayCoordinator::onNavigationCompleted(KifuBranchNode* node)
     if (m_state != nullptr) {
         const int newLineIndex = m_state->currentLineIndex();
         qDebug().noquote() << "[KDC] onNavigationCompleted: newLineIndex=" << newLineIndex
-                           << "m_lastLineIndex=" << m_lastLineIndex;
-        if (newLineIndex != m_lastLineIndex) {
-            qDebug().noquote() << "[KDC] onNavigationCompleted: line changed from"
-                               << m_lastLineIndex << "to" << newLineIndex;
+                           << "m_lastLineIndex=" << m_lastLineIndex
+                           << "m_lastModelLineIndex=" << m_lastModelLineIndex;
+
+        // ★ 重要: 棋譜モデルが実際に表示しているラインと一致しているかも確認
+        // onPositionChanged() でm_lastLineIndexが先に更新されてしまう場合があるため、
+        // m_lastModelLineIndex を使って実際のモデル内容との不一致を検出する
+        const bool lineIndexChanged = (newLineIndex != m_lastLineIndex);
+        const bool modelNeedsUpdate = (m_lastModelLineIndex >= 0 && m_lastModelLineIndex != newLineIndex);
+
+        if (lineIndexChanged || modelNeedsUpdate) {
+            qDebug().noquote() << "[KDC] onNavigationCompleted: updating record view"
+                               << "lineIndexChanged=" << lineIndexChanged
+                               << "modelNeedsUpdate=" << modelNeedsUpdate;
             m_lastLineIndex = newLineIndex;
             updateRecordView();  // 棋譜欄の内容を再構築
         } else {
@@ -452,7 +461,11 @@ void KifuDisplayCoordinator::populateRecordModel()
         m_recordModel->appendItem(item);
     }
 
-    qDebug().noquote() << "[KDC] populateRecordModel: DONE, final rowCount=" << m_recordModel->rowCount();
+    // ★ 重要: 棋譜モデルが実際に表示しているラインインデックスを記録
+    m_lastModelLineIndex = currentLineIndex;
+
+    qDebug().noquote() << "[KDC] populateRecordModel: DONE, final rowCount=" << m_recordModel->rowCount()
+                       << "m_lastModelLineIndex=" << m_lastModelLineIndex;
 
     // ★ デバッグ: 棋譜欄の3手目の内容を出力（不一致検出用）
     if (m_recordModel->rowCount() > 3) {
@@ -534,6 +547,15 @@ void KifuDisplayCoordinator::populateRecordModelFromPath(const QVector<KifuBranc
     }
 
     m_recordModel->setBranchPlyMarks(branchPlys);
+
+    // ★ 重要: 棋譜モデルが実際に表示しているラインインデックスを記録
+    // パスの最後のノードからラインインデックスを取得
+    if (!path.isEmpty() && path.last() != nullptr) {
+        m_lastModelLineIndex = path.last()->lineIndex();
+    } else {
+        m_lastModelLineIndex = 0;  // 空のパスは本譜として扱う
+    }
+    qDebug().noquote() << "[KDC] populateRecordModelFromPath: m_lastModelLineIndex=" << m_lastModelLineIndex;
 
     const int maxRow = m_recordModel->rowCount() - 1;
     const int rowToHighlight = qBound(0, highlightPly, maxRow);
@@ -838,10 +860,23 @@ void KifuDisplayCoordinator::onLiveGameMoveAdded(int ply, const QString& display
         QVector<EngineAnalysisTab::ResolvedRowLite> rows;
         QVector<BranchLine> lines = m_tree->allLines();
 
-        for (const BranchLine& line : std::as_const(lines)) {
+        for (int lineIdx = 0; lineIdx < lines.size(); ++lineIdx) {
+            const BranchLine& line = lines.at(lineIdx);
             EngineAnalysisTab::ResolvedRowLite row;
             row.startPly = (line.branchPly > 0) ? line.branchPly : 1;
-            row.parent = -1;  // 簡略化：親情報は省略
+
+            // ★ 修正: branchPointから親行インデックスを正しく計算する
+            // branchPointが含まれる他のラインのインデックスを探す
+            row.parent = -1;
+            if (line.branchPoint != nullptr) {
+                for (int j = 0; j < lines.size(); ++j) {
+                    if (j == lineIdx) continue;  // 自分自身はスキップ
+                    if (lines.at(j).nodes.contains(line.branchPoint)) {
+                        row.parent = j;
+                        break;
+                    }
+                }
+            }
 
             // rebuildBranchTree() は disp[0] が開始局面エントリ（prettyMove 空）、
             // disp[i] (i>=1) が i 手目に対応することを期待する。
@@ -889,6 +924,34 @@ void KifuDisplayCoordinator::onLiveGameMoveAdded(int ply, const QString& display
 
 void KifuDisplayCoordinator::onLiveGameSessionStarted(KifuBranchNode* branchPoint)
 {
+    qDebug().noquote() << "[KDC] onLiveGameSessionStarted: branchPoint="
+                       << (branchPoint ? QString("ply=%1").arg(branchPoint->ply()) : "null");
+
+    // branchPoint のラインインデックスを取得して設定
+    // 再対局開始時点でユーザーが選択したラインは確定しているため、
+    // リセットではなく正しいラインインデックスを設定する
+    int branchLineIndex = 0;
+    if (branchPoint != nullptr && m_tree != nullptr) {
+        branchLineIndex = m_tree->findLineIndexForNode(branchPoint);
+        if (branchLineIndex < 0) {
+            branchLineIndex = 0;
+        }
+    }
+
+    if (m_state != nullptr) {
+        if (branchLineIndex > 0) {
+            m_state->setPreferredLineIndex(branchLineIndex);
+        } else {
+            m_state->resetPreferredLineIndex();
+        }
+        m_state->clearLineSelectionMemory();
+        qDebug().noquote() << "[KDC] onLiveGameSessionStarted: set preferredLineIndex=" << branchLineIndex
+                           << "and clearLineSelectionMemory";
+    }
+
+    // m_lastLineIndex を branchPoint のラインインデックスに設定
+    m_lastLineIndex = branchLineIndex;
+
     if (m_recordModel == nullptr || m_tree == nullptr) {
         return;
     }

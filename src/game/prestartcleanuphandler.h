@@ -18,6 +18,7 @@ class RecordPane;
 class LiveGameSession;
 class KifuBranchTree;
 class KifuBranchNode;
+class KifuNavigationState;
 
 /**
  * @brief 対局開始前のクリーンアップ処理を担当するクラス
@@ -64,6 +65,7 @@ public:
         // 分岐ツリー関連
         LiveGameSession* liveGameSession = nullptr;
         KifuBranchTree* branchTree = nullptr;
+        KifuNavigationState* navState = nullptr;
     };
 
     /**
@@ -215,10 +217,12 @@ private:
     // 分岐ツリー関連
     LiveGameSession* m_liveGameSession = nullptr;
     KifuBranchTree* m_branchTree = nullptr;
+    KifuNavigationState* m_navState = nullptr;
 
     // performCleanup() 開始時に保存する値（selectStartRow() で変更される前の値）
     QString m_savedCurrentSfen;
     int m_savedSelectedPly = 0;
+    KifuBranchNode* m_savedCurrentNode = nullptr;  // ユーザーが選択していたノード
 };
 
 #endif // PRESTARTCLEANUPHANDLER_H

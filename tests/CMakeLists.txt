@@ -44,14 +44,20 @@ add_test(NAME tst_livegamesession COMMAND tst_livegamesession)
 # PreStartCleanupHandler 判定ロジックのテスト
 add_executable(tst_prestartcleanuphandler
     tst_prestartcleanuphandler.cpp
+    ${SRC_DIR}/kifu/kifubranchtree.cpp
+    ${SRC_DIR}/kifu/kifubranchnode.cpp
+    ${SRC_DIR}/core/shogimove.cpp
 )
 
 target_include_directories(tst_prestartcleanuphandler PRIVATE
     ${SRC_DIR}/game
+    ${SRC_DIR}/kifu
+    ${SRC_DIR}/core
 )
 
 target_link_libraries(tst_prestartcleanuphandler PRIVATE
     Qt6::Test
+    Qt6::Widgets
 )
 
 set_target_properties(tst_prestartcleanuphandler PROPERTIES AUTOMOC ON)

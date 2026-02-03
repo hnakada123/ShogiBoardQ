@@ -2665,8 +2665,38 @@ void MainWindow::onBranchNodeActivated(int row, int ply)
     }
 
     QVector<BranchLine> lines = m_branchTree->allLines();
+    if (lines.isEmpty()) {
+        qDebug().noquote() << "[MW] onBranchNodeActivated: no lines available";
+        return;
+    }
+
+    // ★ 重要: EngineAnalysisTabの「row」は allLines() のインデックスそのもの
+    // setBranchTreeRows() で allLines() の順番で設定されるため、
+    // row はそのまま lines のインデックスとして使用できる
+
+    // 境界チェック
     if (row < 0 || row >= lines.size()) {
         qDebug().noquote() << "[MW] onBranchNodeActivated: row out of bounds (row=" << row << ", lines=" << lines.size() << ")";
+        return;
+    }
+
+    // ply=0の場合（開始局面）は常にルートノードを使用
+    if (ply == 0) {
+        KifuBranchNode* targetNode = m_branchTree->root();
+        if (targetNode != nullptr) {
+            if (m_navState != nullptr) {
+                m_navState->resetPreferredLineIndex();
+            }
+            m_kifuNavController->goToNode(targetNode);
+            m_activePly = 0;
+            m_currentSelectedPly = 0;
+            m_currentMoveIndex = 0;
+            if (!targetNode->sfen().isEmpty()) {
+                m_currentSfenStr = targetNode->sfen();
+            }
+            updateJosekiWindow();
+        }
+        qDebug().noquote() << "[MW] onBranchNodeActivated LEAVE (root node)";
         return;
     }
 
@@ -2725,6 +2755,13 @@ void MainWindow::onBranchNodeActivated(int row, int ply)
         m_activePly = selPly;
         m_currentSelectedPly = selPly;
         m_currentMoveIndex = selPly;
+
+        // ★ m_currentSfenStr を更新（再対局時に正しい分岐点を見つけるため）
+        if (!targetNode->sfen().isEmpty()) {
+            m_currentSfenStr = targetNode->sfen();
+            qDebug().noquote() << "[MW] onBranchNodeActivated: updated m_currentSfenStr="
+                               << m_currentSfenStr.left(60);
+        }
 
         // 定跡ウィンドウを更新
         updateJosekiWindow();
@@ -3496,6 +3533,7 @@ void MainWindow::ensurePreStartCleanupHandler()
     deps.currentMoveIndex = &m_currentMoveIndex;
     deps.liveGameSession = m_liveGameSession;
     deps.branchTree = m_branchTree;
+    deps.navState = m_navState;
 
     m_preStartCleanupHandler = new PreStartCleanupHandler(deps, this);
 

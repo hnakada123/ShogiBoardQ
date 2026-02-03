@@ -3528,7 +3528,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3792"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3830"/>
         <source>コメントなし</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3537,17 +3537,17 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">定跡</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4276"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4314"/>
         <source>棋譜を取り込みました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4278"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4316"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4282"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4320"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation type="unfinished"></translation>
     </message>

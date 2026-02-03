@@ -211,6 +211,7 @@ private:
     LiveGameSession* m_liveSession = nullptr;
 
     int m_lastLineIndex = 0;  // ライン変更検出用
+    int m_lastModelLineIndex = -1;  // 棋譜モデルが実際に表示しているライン (-1 = 不明)
 
     // ツリーハイライトの期待値追跡（一致性検証用）
     int m_expectedTreeLineIndex = 0;

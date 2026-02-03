@@ -42,8 +42,18 @@ int KifuNavigationState::currentLineIndex() const
         return m_preferredLineIndex;
     }
 
-    // 優先ラインが設定されていない場合は、ノードのラインインデックスを使用
-    return m_currentNode->lineIndex();
+    // 優先ラインが設定されていない場合は、ツリーから正確なインデックスを取得
+    // KifuBranchNode::lineIndex() は最初の分岐点での子インデックスのみを返すため
+    // allLines() の順序（DFS順）と一致しない問題がある
+    if (m_tree != nullptr) {
+        int lineIndex = m_tree->findLineIndexForNode(m_currentNode);
+        if (lineIndex >= 0) {
+            return lineIndex;
+        }
+    }
+
+    // フォールバック: 本譜
+    return 0;
 }
 
 void KifuNavigationState::setPreferredLineIndex(int lineIndex)
