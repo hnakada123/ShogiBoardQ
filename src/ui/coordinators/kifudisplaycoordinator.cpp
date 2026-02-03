@@ -230,6 +230,17 @@ void KifuDisplayCoordinator::onRecordHighlightRequired(int ply)
         return;
     }
 
+    qDebug().noquote() << "[KDC] onRecordHighlightRequired: ply=" << ply
+                       << "modelRowCount=" << m_recordModel->rowCount()
+                       << "lastModelLineIndex=" << m_lastModelLineIndex
+                       << "stateLineIndex=" << (m_state ? m_state->currentLineIndex() : -1);
+
+    // ★ 重要: モデルのラインとナビゲーション状態のラインが一致しない場合、モデルを再構築
+    if (m_state != nullptr && m_lastModelLineIndex >= 0 && m_lastModelLineIndex != m_state->currentLineIndex()) {
+        qDebug().noquote() << "[KDC] onRecordHighlightRequired: Line mismatch detected, rebuilding model";
+        updateRecordView();
+    }
+
     // ply=0は開始局面で、モデルの行0に対応
     // ply=Nはモデルの行Nに対応
     m_recordModel->setCurrentHighlightRow(ply);
@@ -550,8 +561,18 @@ void KifuDisplayCoordinator::populateRecordModelFromPath(const QVector<KifuBranc
 
     // ★ 重要: 棋譜モデルが実際に表示しているラインインデックスを記録
     // パスの最後のノードからラインインデックスを取得
-    if (!path.isEmpty() && path.last() != nullptr) {
-        m_lastModelLineIndex = path.last()->lineIndex();
+    // 注意: node->lineIndex() は最初の分岐点での選択インデックスのみを返すため、
+    // allLines() の DFS順と一致しない。findLineIndexForNode() を使用する必要がある。
+    if (!path.isEmpty() && path.last() != nullptr && m_tree != nullptr) {
+        const int nodeLineIndex = path.last()->lineIndex();
+        const int treeLineIndex = m_tree->findLineIndexForNode(path.last());
+        qDebug().noquote() << "[KDC] populateRecordModelFromPath: DEBUG"
+                           << "nodeLineIndex=" << nodeLineIndex
+                           << "treeLineIndex=" << treeLineIndex
+                           << "pathSize=" << path.size()
+                           << "lastNodePly=" << path.last()->ply();
+        // ★ 修正: findLineIndexForNode() を使用して正確なラインインデックスを取得
+        m_lastModelLineIndex = (treeLineIndex >= 0) ? treeLineIndex : 0;
     } else {
         m_lastModelLineIndex = 0;  // 空のパスは本譜として扱う
     }
@@ -963,6 +984,28 @@ void KifuDisplayCoordinator::onLiveGameSessionStarted(KifuBranchNode* branchPoin
     }
 
     const QVector<KifuBranchNode*> path = m_tree->pathToNode(branchPoint);
+
+    // ★ 修正: branchPoint までのパスの分岐選択を記憶
+    // これにより、開始局面から1手ずつ進む際に正しい子を選択できる
+    // goToNode() と同様のロジックで、各分岐点での選択をm_lastSelectedLineAtBranch に記憶する
+    if (m_state != nullptr && !path.isEmpty()) {
+        for (int i = 0; i < path.size(); ++i) {
+            KifuBranchNode* node = path.at(i);
+            KifuBranchNode* parent = node->parent();
+            if (parent != nullptr && parent->childCount() > 1) {
+                // 何番目の子かを探す
+                for (int j = 0; j < parent->childCount(); ++j) {
+                    if (parent->childAt(j) == node) {
+                        m_state->rememberLineSelection(parent, j);
+                        qDebug().noquote() << "[KDC] onLiveGameSessionStarted: remembered line selection"
+                                           << "parentPly=" << parent->ply() << "childIndex=" << j;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
     populateRecordModelFromPath(path, branchPoint->ply());
 }
 

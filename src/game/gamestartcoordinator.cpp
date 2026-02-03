@@ -204,9 +204,17 @@ void GameStartCoordinator::prepareDataCurrentPosition(const Ctx& c)
     }
 
     // --- 0) 開始前クリーンアップを UI 層へ依頼（ハイライト/選択/解析UI などの掃除） ---
-    // ★注意: この呼び出しで m_currentSfenStr が変更される可能性があるが、
-    //         baseSfen は既に決定済みなので影響を受けない。
+    // ★修正: cleanup 中に m_currentSfenStr が branchPoint の SFEN に更新される可能性がある
+    //         その場合は baseSfen を更新して正しい局面から開始する
     emit requestPreStartCleanup();
+
+    // ★ 追加: cleanup 後に m_currentSfenStr が変更されていたら baseSfen を更新
+    if (c.currentSfenStr && !c.currentSfenStr->isEmpty() && *c.currentSfenStr != baseSfen) {
+        qDebug().noquote() << "[DEBUG][GSC] prepareDataCurrentPosition: baseSfen updated after cleanup"
+                           << "old=" << baseSfen.left(50)
+                           << "new=" << c.currentSfenStr->left(50);
+        baseSfen = *(c.currentSfenStr);
+    }
 
     // --- 2) ベースSFENの適用 ---
     //    ・"startpos" なら既定初期配置に
