@@ -334,6 +334,16 @@ void PreStartCleanupHandler::startLiveGameSession()
         if (branchPoint != nullptr && branchPoint->ply() > 0) {
             // 途中局面のノードが見つかった場合
             m_liveGameSession->startFromNode(branchPoint);
+
+            // ★ 重要: m_currentSfenStr を branchPoint の SFEN で更新
+            // これにより、GameStartCoordinator::prepareDataCurrentPosition() で
+            // 盤面が正しい位置にリセットされる
+            if (m_currentSfenStr != nullptr) {
+                *m_currentSfenStr = branchPoint->sfen();
+                qDebug().noquote() << "[PreStartCleanupHandler] startLiveGameSession: updated m_currentSfenStr to branchPoint sfen="
+                                   << branchPoint->sfen().left(60);
+            }
+
             qDebug().noquote() << "[PreStartCleanupHandler] startLiveGameSession: started from node, ply=" << branchPoint->ply()
                                << "displayText=" << branchPoint->displayText();
             return;  // 早期リターン

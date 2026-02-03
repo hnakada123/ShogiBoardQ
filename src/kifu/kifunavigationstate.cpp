@@ -194,17 +194,29 @@ bool KifuNavigationState::hasBranchAtCurrent() const
 void KifuNavigationState::rememberLineSelection(KifuBranchNode* branchPoint, int lineIndex)
 {
     if (branchPoint == nullptr) {
+        qDebug().noquote() << "[KNS] rememberLineSelection: branchPoint is null, returning";
         return;
     }
+    qDebug().noquote() << "[KNS] rememberLineSelection: nodeId=" << branchPoint->nodeId()
+                       << "ply=" << branchPoint->ply()
+                       << "lineIndex=" << lineIndex
+                       << "(childCount=" << branchPoint->childCount() << ")";
     m_lastSelectedLineAtBranch.insert(branchPoint->nodeId(), lineIndex);
 }
 
 int KifuNavigationState::lastSelectedLineAt(KifuBranchNode* branchPoint) const
 {
     if (branchPoint == nullptr) {
+        qDebug().noquote() << "[KNS] lastSelectedLineAt: branchPoint is null, returning 0";
         return 0;
     }
-    return m_lastSelectedLineAtBranch.value(branchPoint->nodeId(), 0);
+    const int result = m_lastSelectedLineAtBranch.value(branchPoint->nodeId(), 0);
+    qDebug().noquote() << "[KNS] lastSelectedLineAt: nodeId=" << branchPoint->nodeId()
+                       << "ply=" << branchPoint->ply()
+                       << "childCount=" << branchPoint->childCount()
+                       << "result=" << result
+                       << "(map size=" << m_lastSelectedLineAtBranch.size() << ")";
+    return result;
 }
 
 void KifuNavigationState::clearLineSelections()

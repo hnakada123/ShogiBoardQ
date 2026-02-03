@@ -1960,7 +1960,21 @@ void MainWindow::syncBoardAndHighlightsAtRow(int ply)
     enableArrowButtons();
 
     // m_currentSfenStrを現在の局面に更新
-    if (m_sfenRecord && ply >= 0 && ply < m_sfenRecord->size()) {
+    // 分岐ライン上では m_branchTree から正しいSFENを取得
+    bool foundInBranch = false;
+    if (m_navState != nullptr && !m_navState->isOnMainLine() && m_branchTree != nullptr) {
+        const int lineIndex = m_navState->currentLineIndex();
+        QVector<BranchLine> lines = m_branchTree->allLines();
+        if (lineIndex >= 0 && lineIndex < lines.size()) {
+            const BranchLine& line = lines.at(lineIndex);
+            if (ply >= 0 && ply < line.nodes.size()) {
+                m_currentSfenStr = line.nodes.at(ply)->sfen();
+                foundInBranch = true;
+                qDebug() << "[MW-DEBUG] syncBoardAndHighlightsAtRow: updated m_currentSfenStr from branchTree";
+            }
+        }
+    }
+    if (!foundInBranch && m_sfenRecord && ply >= 0 && ply < m_sfenRecord->size()) {
         m_currentSfenStr = m_sfenRecord->at(ply);
         qDebug() << "[MW-DEBUG] syncBoardAndHighlightsAtRow: updated m_currentSfenStr=" << m_currentSfenStr;
     }
@@ -3936,9 +3950,9 @@ void MainWindow::showGameOverMessageBox(const QString& title, const QString& mes
 void MainWindow::onRecordPaneMainRowChanged(int row)
 {
     qDebug().noquote() << "[MW] onRecordPaneMainRowChanged ENTER row=" << row
-                       << "m_sfenRecord*=" << static_cast<const void*>(m_sfenRecord)
-                       << "m_sfenRecord.size=" << (m_sfenRecord ? m_sfenRecord->size() : -1)
-                       << "m_boardSync*=" << static_cast<const void*>(m_boardSync);
+                       << "navState lineIndex=" << (m_navState ? m_navState->currentLineIndex() : -1)
+                       << "isOnMainLine=" << (m_navState ? m_navState->isOnMainLine() : true)
+                       << "m_sfenRecord.size=" << (m_sfenRecord ? m_sfenRecord->size() : -1);
 
     // 再入防止
     static bool s_inProgress = false;
@@ -3970,8 +3984,34 @@ void MainWindow::onRecordPaneMainRowChanged(int row)
 
     // ★ 盤面同期とUI更新（RecordNavigationController::onMainRowChanged から移植）
     if (row >= 0) {
-        // 盤面・ハイライト同期
-        syncBoardAndHighlightsAtRow(row);
+        // ★ 修正: 分岐ライン上の場合は分岐ツリーからSFENを取得して盤面を更新
+        // syncBoardAndHighlightsAtRow は m_sfenRecord（本譜）を使用するため、
+        // 分岐ライン上では正しくない局面が表示されてしまう
+        bool handledByBranchTree = false;
+        if (m_navState != nullptr && !m_navState->isOnMainLine() && m_branchTree != nullptr) {
+            const int lineIndex = m_navState->currentLineIndex();
+            QVector<BranchLine> lines = m_branchTree->allLines();
+            if (lineIndex >= 0 && lineIndex < lines.size()) {
+                const BranchLine& line = lines.at(lineIndex);
+                if (row >= 0 && row < line.nodes.size()) {
+                    QString currentSfen = line.nodes.at(row)->sfen();
+                    QString prevSfen;
+                    if (row > 0 && (row - 1) < line.nodes.size()) {
+                        prevSfen = line.nodes.at(row - 1)->sfen();
+                    }
+                    qDebug().noquote() << "[MW] onRecordPaneMainRowChanged: using branch tree SFEN"
+                                       << "lineIndex=" << lineIndex << "row=" << row
+                                       << "sfen=" << currentSfen.left(40);
+                    loadBoardWithHighlights(currentSfen, prevSfen);
+                    handledByBranchTree = true;
+                }
+            }
+        }
+
+        // 本譜の場合、または分岐ツリーから取得できなかった場合は従来の方法を使用
+        if (!handledByBranchTree) {
+            syncBoardAndHighlightsAtRow(row);
+        }
 
         // 現在手数トラッキングを更新
         m_activePly = row;
@@ -4074,10 +4114,33 @@ void MainWindow::onRecordPaneMainRowChanged(int row)
 
     // ★ 新システム（KifuDisplayCoordinator）に位置変更を通知
     // これにより分岐候補欄と分岐ツリーのハイライトが更新される
-    if (m_displayCoordinator != nullptr && m_sfenRecord != nullptr && row >= 0 && row < m_sfenRecord->size()) {
-        const QString sfen = m_sfenRecord->at(row);
+    if (m_displayCoordinator != nullptr) {
+        QString sfen;
+        bool foundInBranch = false;
         const int lineIndex = (m_navState != nullptr) ? m_navState->currentLineIndex() : 0;
-        m_displayCoordinator->onPositionChanged(lineIndex, row, sfen);
+
+        // 分岐ライン上では m_branchTree から正しいSFENを取得
+        if (m_navState != nullptr && !m_navState->isOnMainLine() && m_branchTree != nullptr) {
+            QVector<BranchLine> lines = m_branchTree->allLines();
+            if (lineIndex >= 0 && lineIndex < lines.size()) {
+                const BranchLine& line = lines.at(lineIndex);
+                if (row >= 0 && row < line.nodes.size()) {
+                    sfen = line.nodes.at(row)->sfen();
+                    foundInBranch = true;
+                    qDebug().noquote() << "[MW] onRecordPaneMainRowChanged: got SFEN from branchTree"
+                                       << "lineIndex=" << lineIndex << "row=" << row;
+                }
+            }
+        }
+
+        // 本譜または分岐ツリーから取得できなかった場合は m_sfenRecord から取得
+        if (!foundInBranch && m_sfenRecord != nullptr && row >= 0 && row < m_sfenRecord->size()) {
+            sfen = m_sfenRecord->at(row);
+        }
+
+        if (!sfen.isEmpty()) {
+            m_displayCoordinator->onPositionChanged(lineIndex, row, sfen);
+        }
     }
 
     qDebug() << "[MW] onRecordPaneMainRowChanged LEAVE row=" << row;
@@ -4226,9 +4289,28 @@ void MainWindow::updateGameRecord(const QString& elapsedTime)
         }
 
         if (m_liveGameSession->isActive()) {
+            // ★ 修正: m_sfenRecord は本譜の SFEN リストなので、分岐対局中は
+            //    実際の盤面から完全な SFEN を構築する必要がある
             QString sfen;
-            if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
+            if (m_gameController && m_gameController->board()) {
+                ShogiBoard* board = m_gameController->board();
+                // 完全な SFEN を構築: <盤面> <手番> <持ち駒> <手数>
+                const QString boardPart = board->convertBoardToSfen();
+                const QString turnPart = board->currentPlayer();  // "b" or "w"
+                QString standPart = board->convertStandToSfen();
+                if (standPart.isEmpty()) {
+                    standPart = QStringLiteral("-");
+                }
+                // 手数は anchorPly + 現在のセッション内の手数 + 1
+                const int moveCount = m_liveGameSession->totalPly() + 1;
+                sfen = QStringLiteral("%1 %2 %3 %4")
+                           .arg(boardPart, turnPart, standPart, QString::number(moveCount));
+                qDebug().noquote() << "[MW] appendMoveLineToRecordPane: constructed full SFEN for LiveGameSession"
+                                   << "sfen=" << sfen.left(80);
+            } else if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
+                // フォールバック: 盤面がない場合は m_sfenRecord を使用
                 sfen = m_sfenRecord->last();
+                qWarning() << "[MW] appendMoveLineToRecordPane: fallback to m_sfenRecord (no board)";
             }
 
             ShogiMove move;

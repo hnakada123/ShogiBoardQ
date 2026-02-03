@@ -16,6 +16,11 @@ void LiveGameSession::setTree(KifuBranchTree* tree)
 
 void LiveGameSession::startFromNode(KifuBranchNode* branchPoint)
 {
+    qDebug().noquote() << "[LGS] startFromNode ENTER branchPoint="
+                       << (branchPoint ? "yes" : "null")
+                       << "branchPointPly=" << (branchPoint ? branchPoint->ply() : -1)
+                       << "branchPointSfen=" << (branchPoint ? branchPoint->sfen().left(60) : "(null)");
+
     if (m_active) {
         qWarning() << "[LiveGameSession] Session already active";
         return;
@@ -33,11 +38,17 @@ void LiveGameSession::startFromNode(KifuBranchNode* branchPoint)
     // 起点のSFENを記録
     if (m_branchPoint != nullptr) {
         m_sfens.append(m_branchPoint->sfen());
+        qDebug().noquote() << "[LGS] startFromNode: recorded anchor sfen from branchPoint";
     } else if (m_tree != nullptr && m_tree->root() != nullptr) {
         m_sfens.append(m_tree->root()->sfen());
+        qDebug().noquote() << "[LGS] startFromNode: recorded anchor sfen from root";
     }
 
+    qDebug().noquote() << "[LGS] startFromNode: anchorSfen=" << anchorSfen().left(60);
+
     emit sessionStarted(m_branchPoint);
+
+    qDebug().noquote() << "[LGS] startFromNode LEAVE";
 }
 
 void LiveGameSession::startFromRoot()
@@ -72,12 +83,18 @@ bool LiveGameSession::canStartFrom(KifuBranchNode* node)
 void LiveGameSession::addMove(const ShogiMove& move, const QString& displayText,
                                const QString& sfen, const QString& elapsed)
 {
+    qDebug().noquote() << "[LGS] addMove ENTER displayText=" << displayText
+                       << "sfen=" << sfen.left(60);
+
     if (!canAddMove()) {
         qWarning() << "[LiveGameSession] Cannot add move - session not active or already terminated";
         return;
     }
 
     const int ply = anchorPly() + static_cast<int>(m_moves.size()) + 1;
+    qDebug().noquote() << "[LGS] addMove: ply=" << ply
+                       << "anchorPly=" << anchorPly()
+                       << "movesSize=" << m_moves.size();
 
     // リアルタイムでツリーに追加（treeChanged を発火しない quiet 版を使用）
     // treeChanged が発火すると KifuDisplayCoordinator::onTreeChanged() が呼ばれ、
@@ -88,9 +105,18 @@ void LiveGameSession::addMove(const ShogiMove& move, const QString& displayText,
             parent = (m_branchPoint != nullptr) ? m_branchPoint : m_tree->root();
         }
 
+        qDebug().noquote() << "[LGS] addMove: parent node ply="
+                           << (parent ? parent->ply() : -1)
+                           << "branchPoint ply="
+                           << (m_branchPoint ? m_branchPoint->ply() : -1);
+
         if (parent != nullptr) {
             // addMoveQuiet() を使用: nodeAdded のみ発火、treeChanged は発火しない
             m_liveParent = m_tree->addMoveQuiet(parent, move, displayText, sfen, elapsed);
+            qDebug().noquote() << "[LGS] addMove: added to tree, m_liveParent ply="
+                               << (m_liveParent ? m_liveParent->ply() : -1)
+                               << "sfen stored in node="
+                               << (m_liveParent ? m_liveParent->sfen().left(60) : "(null)");
         }
     }
 
@@ -110,6 +136,8 @@ void LiveGameSession::addMove(const ShogiMove& move, const QString& displayText,
 
     // 棋譜欄モデルの更新が必要
     emit recordModelUpdateRequired();
+
+    qDebug().noquote() << "[LGS] addMove LEAVE";
 }
 
 void LiveGameSession::addTerminalMove(TerminalType type, const QString& displayText,

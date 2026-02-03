@@ -107,45 +107,75 @@ void KifuNavigationController::goBack(int count)
 
 void KifuNavigationController::goForward(int count)
 {
+    qDebug().noquote() << "[KNC] goForward ENTER count=" << count;
+
     if (m_state == nullptr || m_tree == nullptr || count <= 0) {
+        qDebug().noquote() << "[KNC] goForward: early return (null state/tree or count<=0)";
         return;
     }
 
     KifuBranchNode* node = m_state->currentNode();
     if (node == nullptr) {
+        qDebug().noquote() << "[KNC] goForward: currentNode is null, returning";
         return;
     }
+
+    qDebug().noquote() << "[KNC] goForward: starting from ply=" << node->ply()
+                       << "sfen=" << node->sfen().left(40)
+                       << "childCount=" << node->childCount();
 
     for (int i = 0; i < count && node->childCount() > 0; ++i) {
         node = findForwardNode();
         if (node == nullptr) {
+            qDebug().noquote() << "[KNC] goForward: findForwardNode returned null at step" << i;
             break;
         }
+        qDebug().noquote() << "[KNC] goForward: step" << i << "-> ply=" << node->ply()
+                           << "sfen=" << node->sfen().left(40)
+                           << "displayText=" << node->displayText();
         m_state->setCurrentNode(node);
     }
 
+    qDebug().noquote() << "[KNC] goForward LEAVE";
     emitUpdateSignals();
 }
 
 KifuBranchNode* KifuNavigationController::findForwardNode() const
 {
+    qDebug().noquote() << "[KNC] findForwardNode ENTER";
+
     if (m_state == nullptr) {
+        qDebug().noquote() << "[KNC] findForwardNode: m_state is null";
         return nullptr;
     }
 
     KifuBranchNode* current = m_state->currentNode();
     if (current == nullptr || current->childCount() == 0) {
+        qDebug().noquote() << "[KNC] findForwardNode: current is null or no children";
         return nullptr;
     }
 
+    qDebug().noquote() << "[KNC] findForwardNode: current ply=" << current->ply()
+                       << "childCount=" << current->childCount();
+
     // 分岐がある場合、最後に選択したラインを優先
     int selectedLine = m_state->lastSelectedLineAt(current);
+    qDebug().noquote() << "[KNC] findForwardNode: lastSelectedLineAt=" << selectedLine;
+
     if (selectedLine < current->childCount()) {
-        return current->childAt(selectedLine);
+        KifuBranchNode* child = current->childAt(selectedLine);
+        qDebug().noquote() << "[KNC] findForwardNode: using selectedLine"
+                           << "childPly=" << (child ? child->ply() : -1)
+                           << "childSfen=" << (child ? child->sfen().left(40) : "(null)");
+        return child;
     }
 
     // フォールバック: 最初の子（本譜）
-    return current->childAt(0);
+    KifuBranchNode* firstChild = current->childAt(0);
+    qDebug().noquote() << "[KNC] findForwardNode: fallback to child(0)"
+                       << "childPly=" << (firstChild ? firstChild->ply() : -1)
+                       << "childSfen=" << (firstChild ? firstChild->sfen().left(40) : "(null)");
+    return firstChild;
 }
 
 void KifuNavigationController::goToNode(KifuBranchNode* node)
@@ -348,18 +378,29 @@ void KifuNavigationController::onLastClicked(bool checked)
 
 void KifuNavigationController::emitUpdateSignals()
 {
+    qDebug().noquote() << "[KNC] emitUpdateSignals ENTER";
+
     if (m_state == nullptr) {
+        qDebug().noquote() << "[KNC] emitUpdateSignals: m_state is null, returning";
         return;
     }
 
     KifuBranchNode* node = m_state->currentNode();
     if (node == nullptr) {
+        qDebug().noquote() << "[KNC] emitUpdateSignals: currentNode is null, returning";
         return;
     }
+
+    qDebug().noquote() << "[KNC] emitUpdateSignals: node ply=" << node->ply()
+                       << "sfen=" << node->sfen()
+                       << "displayText=" << node->displayText()
+                       << "lineIndex=" << m_state->currentLineIndex();
 
     emit navigationCompleted(node);
     emit boardUpdateRequired(node->sfen());
     emit recordHighlightRequired(node->ply());
     emit branchTreeHighlightRequired(m_state->currentLineIndex(), node->ply());
     emit branchCandidatesUpdateRequired(m_state->branchCandidatesAtCurrent());
+
+    qDebug().noquote() << "[KNC] emitUpdateSignals LEAVE";
 }
