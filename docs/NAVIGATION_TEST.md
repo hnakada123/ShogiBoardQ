@@ -776,6 +776,16 @@ echo "--- テスト24: --verify-consistency オプションテスト ---"
     --verify-consistency 2>&1 > /dev/null
 echo "Exit code: $?"
 
+# テスト25: 本譜途中から再対局後の分岐ツリー親子関係維持
+echo ""
+echo "--- テスト25: 本譜途中から再対局後の分岐ツリー親子関係維持 ---"
+echo "（GUIテスト - 手動実行が必要）"
+
+# テスト26: 分岐ライン途中から再対局後の指し手追加先
+echo ""
+echo "--- テスト26: 分岐ライン途中から再対局後の指し手追加先 ---"
+echo "（GUIテスト - 手動実行が必要）"
+
 echo ""
 echo "=== テスト完了 ==="
 ```
@@ -856,6 +866,63 @@ echo "Exit code: $?"  # 0=PASS, 1=FAIL
 
 **補足**: このオプションはCI/CDパイプラインでの自動テストに使用できます。
 一致性検証に失敗した場合は終了コード1で終了し、詳細なレポートがログに出力されます。
+
+### 25. 本譜途中から再対局後の分岐ツリー親子関係維持テスト
+
+分岐棋譜を読み込んだ後、本譜の途中局面から対局を開始した場合に、
+既存の分岐ツリーの親子関係（罫線）が正しく維持されることを確認。
+
+```bash
+./build/ShogiBoardQ --test-mode \
+    --load-kif test2_branch.kif \
+    --click-tree-node 0,4 \
+    --start-game-hve \
+    --wait 5000 \
+    --dump-state-after 8000
+```
+
+**期待結果**:
+- 分岐2（▲5六歩(57)から始まるライン）のbranchPointが「△9四歩(93)」であること
+- 分岐2の罫線が分岐1の4手目「△9四歩(93)」から引かれること
+- 本譜の4手目「△8四歩(83)」からではないこと
+
+**補足**: このテストは、本譜の途中局面から再対局を開始した際に、
+既存の分岐ツリーの親子関係が壊れるバグ（修正済み）の再発を防ぐためのものです。
+修正前は、`KifuDisplayCoordinator::onLiveGameMoveAdded()` で
+`ResolvedRowLite.parent` が常に `-1` に設定されていたため、
+`EngineAnalysisTab::rebuildBranchTree()` が正しい親行を解決できませんでした。
+修正により、`BranchLine.branchPoint` から親行インデックスを正しく計算するようになりました。
+
+**関連する自動テスト**: `tst_kifudisplaycoordinator::testBranchParentIndexPreservedAfterRematch()`
+
+### 26. 分岐ライン途中から再対局後の指し手追加先テスト
+
+分岐棋譜を読み込んだ後、分岐ラインの途中局面から対局を開始した場合に、
+新しい指し手がその分岐ラインに正しく追加されることを確認。
+
+```bash
+./build/ShogiBoardQ --test-mode \
+    --load-kif test2_branch.kif \
+    --click-tree-node 1,4 \
+    --start-game-hve \
+    --wait 5000 \
+    --dump-state-after 8000
+```
+
+**期待結果**:
+- 新しい分岐のbranchPointが「△9四歩(93)」（分岐1の4手目）であること
+- 新しい指し手が分岐1の4手目の子ノードとして追加されること
+- 本譜の4手目「△8四歩(83)」の子ノードではないこと
+
+**補足**: このテストは、分岐ライン上のノードをクリックして再対局を開始した際に、
+新しい指し手が誤って本譜に追加されるバグ（修正済み）の再発を防ぐためのものです。
+修正前は、`PreStartCleanupHandler::startLiveGameSession()` で
+`findBySfen()` を使用していたため、同じSFENが複数のラインに存在する場合に
+誤ったノード（本譜のノード）を返すことがありました。
+修正により、ユーザーが選択していたノード（`KifuNavigationState::currentNode()`）を
+直接保存して使用するようになりました。
+
+**関連する自動テスト**: `tst_kifudisplaycoordinator::testRematchFromBranchLineAddsMoveToCorrectLine()`
 
 ## 関連ソースファイル
 
