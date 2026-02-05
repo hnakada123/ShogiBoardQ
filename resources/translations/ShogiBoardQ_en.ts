@@ -3797,23 +3797,23 @@ Please restart the application to apply the changes.</translation>
         <translation>No board data available.</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1831"/>
-        <location filename="../../src/app/mainwindow.cpp" line="1835"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1849"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1853"/>
         <source>Engine</source>
         <translation type="unfinished">Engine</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1840"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1858"/>
         <source>Engine1</source>
         <translation type="unfinished">Engine1</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1841"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1859"/>
         <source>Engine2</source>
         <translation type="unfinished">Engine2</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1856"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1874"/>
         <source>その他</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3884,18 +3884,18 @@ White
 Please select &quot;24-Point Rule&quot; or &quot;27-Point Rule&quot; in the game dialog.</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1744"/>
-        <location filename="../../src/app/mainwindow.cpp" line="1825"/>
-        <location filename="../../src/app/mainwindow.cpp" line="1830"/>
-        <location filename="../../src/app/mainwindow.cpp" line="1844"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1762"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1843"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1848"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1862"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1745"/>
-        <location filename="../../src/app/mainwindow.cpp" line="1826"/>
-        <location filename="../../src/app/mainwindow.cpp" line="1836"/>
-        <location filename="../../src/app/mainwindow.cpp" line="1845"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1763"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1844"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1854"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1863"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
@@ -4104,23 +4104,23 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Clear Startup Layout</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1391"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1409"/>
         <source>棋譜ファイルを開く</source>
         <translation>Open Game Record File</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1392"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1410"/>
         <source>Kifu Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</source>
         <translation>Game Record Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1746"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1764"/>
         <source>手合割</source>
         <translation>Handicap</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1746"/>
-        <location filename="../../src/app/mainwindow.cpp" line="1852"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1764"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1870"/>
         <source>平手</source>
         <translation>Even Game</translation>
     </message>
@@ -4181,17 +4181,17 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Failed to auto-save game record: %1</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4396"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4414"/>
         <source>棋譜を取り込みました</source>
         <translation>Game record imported</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4398"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4416"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation>Failed to import game record</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4402"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4420"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation>Failed to import game record (internal error)</translation>
     </message>
@@ -4200,7 +4200,7 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Comment updated (move: %1)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3844"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3862"/>
         <source>コメントなし</source>
         <translation>No comment</translation>
     </message>
