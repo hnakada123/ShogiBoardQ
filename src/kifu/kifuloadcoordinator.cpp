@@ -1174,8 +1174,12 @@ void KifuLoadCoordinator::resetBranchTreeForNewGame()
 
     // 1) 分岐コンテキストを完全リセット
     m_branchPlyContext = -1;
+
+    // ★ ツリーをクリアする前にcurrentNodeをnullに設定
+    // setRootSfen()がtreeChangedシグナルを同期的に発火するため、
+    // 旧ノード削除後にダングリングポインタで不正メモリアクセスが発生するのを防止
     if (m_navState != nullptr) {
-        m_navState->goToRoot();
+        m_navState->setCurrentNode(nullptr);
         m_navState->resetPreferredLineIndex();
     }
 
@@ -1189,6 +1193,11 @@ void KifuLoadCoordinator::resetBranchTreeForNewGame()
     static const QString kHirateStartSfen = QStringLiteral(
         "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
     m_branchTree->setRootSfen(kHirateStartSfen);
+
+    // ★ ツリー再構築後にナビゲーション状態を新しいルートに設定
+    if (m_navState != nullptr) {
+        m_navState->goToRoot();
+    }
 
     // 2) 分岐候補インデックスをクリア
     m_branchablePlySet.clear();
