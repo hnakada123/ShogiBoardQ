@@ -1335,6 +1335,24 @@ void MainWindow::initializeGame()
                        << " m_startSfenStr=" << m_startSfenStr.left(50)
                        << " m_currentSelectedPly=" << m_currentSelectedPly;
 
+    // ★ 修正: 分岐ツリーから途中局面で再対局する場合、m_sfenRecord を
+    // 現在のラインのSFENで再構築する。これにより、前の対局の異なる分岐の
+    // SFENが混在してSFEN差分によるハイライトが誤動作する問題を防ぐ。
+    if (m_branchTree != nullptr && m_navState != nullptr
+        && m_sfenRecord != nullptr && m_currentSelectedPly > 0) {
+        const int lineIndex = m_navState->currentLineIndex();
+        const QStringList branchSfens = m_branchTree->getSfenListForLine(lineIndex);
+        if (!branchSfens.isEmpty() && m_currentSelectedPly < branchSfens.size()) {
+            m_sfenRecord->clear();
+            for (int i = 0; i <= m_currentSelectedPly; ++i) {
+                m_sfenRecord->append(branchSfens.at(i));
+            }
+            qInfo().noquote()
+                << "[MW] initializeGame: rebuilt sfenRecord from branchTree line=" << lineIndex
+                << " entries=" << m_sfenRecord->size();
+        }
+    }
+
     GameStartCoordinator::Ctx c;
     c.view            = m_shogiView;
     c.gc              = m_gameController;
