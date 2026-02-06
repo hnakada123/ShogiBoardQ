@@ -13,6 +13,7 @@ class QTabWidget;
 class GameInfoPaneController;
 class PlayerInfoController;
 class ShogiView;
+class EngineAnalysisTab;
 
 /**
  * @brief 対局情報・プレイヤー情報関連のUI配線を担当するクラス
@@ -142,6 +143,12 @@ public:
     void setTabWidget(QTabWidget* tabWidget);
 
     /**
+     * @brief 検討タブを設定する（エンジン名設定時の検討タブ更新用）
+     * @param analysisTab 検討タブ
+     */
+    void setAnalysisTab(EngineAnalysisTab* analysisTab);
+
+    /**
      * @brief 対局開始時の時間制御情報
      */
     struct TimeControlInfo {
@@ -194,6 +201,22 @@ public slots:
     void onPlayerNamesResolved(const QString& human1, const QString& human2,
                                const QString& engine1, const QString& engine2,
                                int playMode);
+
+    /**
+     * @brief 対局者名確定時の処理（持ち時間情報付き）
+     * @param human1 人間1名
+     * @param human2 人間2名
+     * @param engine1 エンジン1名
+     * @param engine2 エンジン2名
+     * @param playMode プレイモード
+     * @param startSfen 開始局面SFEN文字列
+     * @param timeInfo 時間制御情報
+     */
+    void onPlayerNamesResolvedWithTime(const QString& human1, const QString& human2,
+                                       const QString& engine1, const QString& engine2,
+                                       int playMode,
+                                       const QString& startSfen,
+                                       const TimeControlInfo& timeInfo);
 
 signals:
     /**
@@ -258,6 +281,9 @@ private:
     // 内部コントローラ
     GameInfoPaneController* m_gameInfoController = nullptr;
     PlayerInfoController* m_playerInfoController = nullptr;
+
+    // 検討タブ（エンジン名設定時の更新用）
+    EngineAnalysisTab* m_analysisTab = nullptr;
 };
 
 #endif // PLAYERINFOWIRING_H

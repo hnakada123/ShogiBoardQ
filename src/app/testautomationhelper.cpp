@@ -17,6 +17,8 @@
 #include "shogigamecontroller.h"
 #include "shogiboard.h"
 #include "shogiview.h"
+#include "livegamesession.h"
+#include "shogimove.h"
 
 TestAutomationHelper::TestAutomationHelper(QObject* parent)
     : QObject(parent)
@@ -185,6 +187,147 @@ void TestAutomationHelper::clickBranchTreeNode(int row, int ply)
     }
 
     qDebug() << "[TEST] clickBranchTreeNode: completed";
+}
+
+void TestAutomationHelper::startTestGame()
+{
+    qDebug() << "[TEST] startTestGame: starting test game (hirate)";
+
+    // 1. ゲームコントローラーを平手で初期化
+    qDebug() << "[TEST] startTestGame: step 1 - gameController=" << static_cast<void*>(m_deps.gameController);
+    if (m_deps.gameController != nullptr) {
+        // 平手初期局面のSFEN
+        QString hirateSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+        m_deps.gameController->newGame(hirateSfen);
+        qDebug() << "[TEST] startTestGame: newGame completed";
+    }
+
+    // 2. 盤面を初期化
+    qDebug() << "[TEST] startTestGame: step 2 - shogiView=" << static_cast<void*>(m_deps.shogiView)
+             << "board=" << (m_deps.gameController ? static_cast<void*>(m_deps.gameController->board()) : nullptr);
+    if (m_deps.shogiView != nullptr && m_deps.gameController != nullptr && m_deps.gameController->board() != nullptr) {
+        m_deps.shogiView->setBoard(m_deps.gameController->board());
+        m_deps.shogiView->applyBoardAndRender(m_deps.gameController->board());
+        qDebug() << "[TEST] startTestGame: board render completed";
+    }
+
+    // 3. PreStartCleanupHandler を呼び出して LiveGameSession を開始
+    qDebug() << "[TEST] startTestGame: step 3 - preparing LiveGameSession";
+    // m_startSfenStr と m_currentSfenStr をクリア
+    if (m_deps.startSfenStr != nullptr) {
+        m_deps.startSfenStr->clear();
+    }
+    if (m_deps.currentSfenStr != nullptr) {
+        *m_deps.currentSfenStr = QStringLiteral("startpos");
+    }
+
+    qDebug() << "[TEST] startTestGame: calling performCleanup";
+    if (m_deps.performCleanup) {
+        m_deps.performCleanup();
+        qDebug() << "[TEST] startTestGame: performCleanup completed";
+    }
+
+    // 4. 状態をダンプ
+    qDebug() << "[TEST] startTestGame: completed";
+    qDebug() << "[TEST] branchTree root:" << (m_deps.branchTree ? static_cast<void*>(m_deps.branchTree->root()) : nullptr);
+    qDebug() << "[TEST] liveGameSession isActive:" << (m_deps.liveGameSession ? m_deps.liveGameSession->isActive() : false);
+}
+
+bool TestAutomationHelper::makeTestMove(const QString& usiMove)
+{
+    qDebug() << "[TEST] makeTestMove: usiMove=" << usiMove;
+
+    // セッションが未開始の場合は遅延開始
+    if (m_deps.liveGameSession == nullptr) {
+        qWarning() << "[TEST] makeTestMove: LiveGameSession is null";
+        return false;
+    }
+    if (!m_deps.liveGameSession->isActive()) {
+        if (m_deps.ensureLiveGameSessionStarted) {
+            m_deps.ensureLiveGameSessionStarted();
+        }
+    }
+    if (!m_deps.liveGameSession->isActive()) {
+        qWarning() << "[TEST] makeTestMove: LiveGameSession could not be started";
+        return false;
+    }
+
+    if (m_deps.gameController == nullptr || m_deps.gameController->board() == nullptr) {
+        qWarning() << "[TEST] makeTestMove: gameController or board is null";
+        return false;
+    }
+
+    // USI形式の指し手をパース（例: "7g7f", "3c3d"）
+    if (usiMove.length() < 4) {
+        qWarning() << "[TEST] makeTestMove: invalid usiMove format";
+        return false;
+    }
+
+    // USI座標を変換
+    auto usiFileToInternal = [](QChar c) -> int {
+        return c.toLatin1() - '0';
+    };
+    auto usiRankToInternal = [](QChar c) -> int {
+        return c.toLatin1() - 'a' + 1;
+    };
+
+    const int fromFile = usiFileToInternal(usiMove.at(0));
+    const int fromRank = usiRankToInternal(usiMove.at(1));
+    const int toFile = usiFileToInternal(usiMove.at(2));
+    const int toRank = usiRankToInternal(usiMove.at(3));
+    const bool promote = (usiMove.length() >= 5 && usiMove.at(4) == QLatin1Char('+'));
+
+    qDebug() << "[TEST] makeTestMove: from=(" << fromFile << "," << fromRank << ")"
+             << "to=(" << toFile << "," << toRank << ")"
+             << "promote=" << promote;
+
+    // 駒を移動（盤面データを更新）
+    ShogiBoard* board = m_deps.gameController->board();
+    const QChar piece = board->getPieceCharacter(fromFile, fromRank);
+    const QChar capturedPiece = board->getPieceCharacter(toFile, toRank);
+    board->movePieceToSquare(piece, fromFile, fromRank, toFile, toRank, promote);
+
+    // 指し手を作成
+    ShogiMove move(QPoint(fromFile, fromRank), QPoint(toFile, toRank), piece, capturedPiece, promote);
+
+    // 盤面を再描画
+    if (m_deps.shogiView != nullptr) {
+        m_deps.shogiView->applyBoardAndRender(board);
+    }
+
+    // SFEN を更新
+    const QString newSfen = board->convertBoardToSfen();
+    if (m_deps.currentSfenStr != nullptr) {
+        *m_deps.currentSfenStr = newSfen;
+    }
+
+    // 手数をカウント
+    const int ply = m_deps.liveGameSession->totalPly() + 1;
+
+    // 表示テキストを簡易生成
+    const QString displayText = QString::number(ply) + QStringLiteral("手目");
+    const QString elapsedTime = QStringLiteral("00:00/00:00:00");
+
+    // LiveGameSession に追加（これがツリーにも追加する）
+    m_deps.liveGameSession->addMove(move, displayText, newSfen, elapsedTime);
+
+    // 棋譜欄モデルに追加
+    if (m_deps.kifuRecordModel != nullptr) {
+        const QString moveNumberStr = QString::number(ply);
+        const QString spaces = QString(qMax(0, 4 - moveNumberStr.length()), QLatin1Char(' '));
+        const QString displayTextWithPly = spaces + moveNumberStr + QLatin1Char(' ') + displayText;
+
+        auto* item = new KifuDisplay(displayTextWithPly, elapsedTime, nullptr);
+        m_deps.kifuRecordModel->appendItem(item);
+    }
+
+    // SFEN記録に追加
+    if (m_deps.sfenRecord != nullptr) {
+        m_deps.sfenRecord->append(newSfen);
+    }
+
+    qDebug() << "[TEST] makeTestMove: completed, ply=" << ply;
+    return true;
 }
 
 void TestAutomationHelper::dumpTestState()

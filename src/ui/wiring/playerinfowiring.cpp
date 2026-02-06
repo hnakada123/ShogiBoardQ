@@ -7,6 +7,8 @@
 #include "playerinfocontroller.h"
 #include "shogiview.h"
 #include "settingsservice.h"
+#include "engineanalysistab.h"
+#include "engineinfowidget.h"
 
 PlayerInfoWiring::PlayerInfoWiring(const Dependencies& deps, QObject* parent)
     : QObject(parent)
@@ -37,6 +39,11 @@ void PlayerInfoWiring::ensureGameInfoController()
 void PlayerInfoWiring::setTabWidget(QTabWidget* tabWidget)
 {
     m_tabWidget = tabWidget;
+}
+
+void PlayerInfoWiring::setAnalysisTab(EngineAnalysisTab* analysisTab)
+{
+    m_analysisTab = analysisTab;
 }
 
 void PlayerInfoWiring::ensurePlayerInfoController()
@@ -134,6 +141,17 @@ void PlayerInfoWiring::onSetEngineNames(const QString& e1, const QString& e2)
         if (m_engineName2) *m_engineName2 = newEngine2;
 
         Q_EMIT engineNamesUpdated(newEngine1, newEngine2);
+    }
+
+    // 検討モード・詰み探索モードの場合、検討タブと思考タブにエンジン名を設定
+    if (m_playMode &&
+        (*m_playMode == PlayMode::ConsiderationMode || *m_playMode == PlayMode::TsumiSearchMode)) {
+        if (m_analysisTab) {
+            m_analysisTab->setConsiderationEngineName(e1);
+            if (m_analysisTab->info1() && !e1.isEmpty()) {
+                m_analysisTab->info1()->setDisplayNameFallback(e1);
+            }
+        }
     }
 }
 
@@ -252,6 +270,15 @@ void PlayerInfoWiring::resolveNamesAndSetupGameInfo(const QString& human1, const
         timeInfo.byoyomiMs,
         timeInfo.incrementMs
     );
+}
+
+void PlayerInfoWiring::onPlayerNamesResolvedWithTime(const QString& human1, const QString& human2,
+                                                       const QString& engine1, const QString& engine2,
+                                                       int playMode,
+                                                       const QString& startSfen,
+                                                       const TimeControlInfo& timeInfo)
+{
+    resolveNamesAndSetupGameInfo(human1, human2, engine1, engine2, playMode, startSfen, timeInfo);
 }
 
 void PlayerInfoWiring::onGameInfoUpdated(const QList<KifGameInfoItem>& items)
