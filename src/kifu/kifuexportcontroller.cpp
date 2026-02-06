@@ -10,6 +10,7 @@
 #include <QDir>
 #include <QDateTime>
 
+#include "errorbus.h"
 #include "gamerecordmodel.h"
 #include "kifurecordlistmodel.h"
 #include "gameinfopanecontroller.h"
@@ -291,7 +292,9 @@ bool KifuExportController::autoSaveToDir(const QString& saveDir, QString* outPat
         Q_EMIT statusMessage(tr("棋譜を自動保存しました: %1").arg(filePath), 5000);
         Q_EMIT fileSaved(filePath);
     } else {
-        Q_EMIT statusMessage(tr("棋譜の自動保存に失敗しました: %1").arg(errorText), 5000);
+        qWarning().noquote() << "[KifuExport] autoSaveToDir failed:" << errorText;
+        ErrorBus::instance().postError(
+            tr("棋譜の自動保存に失敗しました: %1").arg(errorText));
     }
     return ok;
 }

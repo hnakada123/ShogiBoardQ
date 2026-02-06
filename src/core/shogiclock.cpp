@@ -443,15 +443,20 @@ void ShogiClock::undo()
 
 void ShogiClock::debugCheckInvariants() const
 {
-#ifndef NDEBUG
-    Q_ASSERT(m_player1TimeMs >= 0);
-    Q_ASSERT(m_player2TimeMs >= 0);
-    if (m_byoyomi1TimeMs > 0 || m_byoyomi2TimeMs > 0) {
-        Q_ASSERT(m_bincMs == 0 && m_wincMs == 0);
+    if (m_player1TimeMs < 0 || m_player2TimeMs < 0) {
+        qWarning().noquote() << "[ShogiClock] invariant violation: negative time"
+                             << "p1=" << m_player1TimeMs << "p2=" << m_player2TimeMs;
     }
-    if (!m_byoyomi1TimeMs) Q_ASSERT(!m_byoyomi1Applied);
-    if (!m_byoyomi2TimeMs) Q_ASSERT(!m_byoyomi2Applied);
-#endif
+    if ((m_byoyomi1TimeMs > 0 || m_byoyomi2TimeMs > 0)
+        && (m_bincMs != 0 || m_wincMs != 0)) {
+        qWarning().noquote() << "[ShogiClock] invariant violation: byoyomi and increment both set";
+    }
+    if (!m_byoyomi1TimeMs && m_byoyomi1Applied) {
+        qWarning().noquote() << "[ShogiClock] invariant violation: byoyomi1Applied without byoyomi1";
+    }
+    if (!m_byoyomi2TimeMs && m_byoyomi2Applied) {
+        qWarning().noquote() << "[ShogiClock] invariant violation: byoyomi2Applied without byoyomi2";
+    }
 }
 
 // ---- 互換API ----

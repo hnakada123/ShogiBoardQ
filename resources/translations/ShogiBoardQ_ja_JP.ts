@@ -1099,33 +1099,33 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1313"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1317"/>
         <source>開始局面</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../src/widgets/engineanalysistab.cpp" line="272"/>
         <location filename="../../src/widgets/engineanalysistab.cpp" line="726"/>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1915"/>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2212"/>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2617"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1919"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2216"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2621"/>
         <source>フォントサイズを小さくする</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../src/widgets/engineanalysistab.cpp" line="281"/>
         <location filename="../../src/widgets/engineanalysistab.cpp" line="734"/>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1923"/>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2220"/>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2625"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1927"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2224"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2629"/>
         <source>フォントサイズを大きくする</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../src/widgets/engineanalysistab.cpp" line="325"/>
         <location filename="../../src/widgets/engineanalysistab.cpp" line="771"/>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2870"/>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2896"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2874"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2900"/>
         <source>経過: 0:00</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1142,34 +1142,34 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2923"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2927"/>
         <source>検討中止</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2924"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2928"/>
         <source>検討を中止してエンジンを停止します</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1992"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1996"/>
         <source>コマンドの送信先を選択</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../src/widgets/engineanalysistab.cpp" line="357"/>
         <location filename="../../src/widgets/engineanalysistab.cpp" line="798"/>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2932"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2936"/>
         <source>検討開始</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2933"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2937"/>
         <source>検討ダイアログを開いて検討を開始します</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="1996"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2000"/>
         <source>USIコマンドを入力してEnter</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1246,78 +1246,78 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2228"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2232"/>
         <source>元に戻す (Ctrl+Z)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2236"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2240"/>
         <source>やり直す (Ctrl+Y)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2244"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2248"/>
         <source>切り取り (Ctrl+X)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2252"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2256"/>
         <source>コピー (Ctrl+C)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2260"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2264"/>
         <source>貼り付け (Ctrl+V)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2266"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2270"/>
         <source>修正中</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2271"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2275"/>
         <source>コメント更新</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2272"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2276"/>
         <source>編集したコメントを棋譜に反映する</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2480"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2484"/>
         <source>未保存のコメント</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2481"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2485"/>
         <source>コメントが編集されていますが、まだ更新されていません。
 変更を破棄して移動しますか？</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2708"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2712"/>
         <source>CSAサーバーへ送信</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2717"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2721"/>
         <source>コマンドを入力してEnter</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="3051"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="3055"/>
         <source>エラー</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="3051"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="3055"/>
         <source>将棋エンジンが選択されていません。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineanalysistab.cpp" line="2967"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="2971"/>
         <source>経過: %1:%2</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2814,151 +2814,151 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>KifuExportController</name>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="157"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="158"/>
         <source>棋譜データがありません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="194"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="195"/>
         <source>棋譜を保存しました: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="245"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="246"/>
         <source>棋譜を上書き保存しました: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="248"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="249"/>
         <source>KIF Save Error</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="259"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="260"/>
         <source>自動保存先ディレクトリが指定されていません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="264"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="265"/>
         <source>棋譜データがありません（自動保存をスキップ）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="271"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="272"/>
         <source>棋譜データが空のため自動保存をスキップしました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="291"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="292"/>
         <source>棋譜を自動保存しました: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="294"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="297"/>
         <source>棋譜の自動保存に失敗しました: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="308"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="327"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="311"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="330"/>
         <source>KIF形式の棋譜データがありません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="324"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="327"/>
         <source>KIF形式の棋譜をクリップボードにコピーしました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="337"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="356"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="340"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="359"/>
         <source>KI2形式の棋譜データがありません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="353"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="356"/>
         <source>KI2形式の棋譜をクリップボードにコピーしました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="375"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="378"/>
         <source>CSA形式の棋譜データがありません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="384"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="387"/>
         <source>CSA形式の棋譜をクリップボードにコピーしました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="388"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="419"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="456"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="485"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="516"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="579"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="757"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="391"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="422"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="459"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="488"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="519"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="582"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="760"/>
         <source>クリップボードへのコピーに失敗しました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="406"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="443"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="409"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="446"/>
         <source>USI形式の棋譜データがありません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="415"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="418"/>
         <source>USI形式の棋譜をクリップボードにコピーしました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="452"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="455"/>
         <source>USI形式（現在の指し手まで）の棋譜をクリップボードにコピーしました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="472"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="475"/>
         <source>JKF形式の棋譜データがありません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="481"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="484"/>
         <source>JKF形式の棋譜をクリップボードにコピーしました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="503"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="506"/>
         <source>USEN形式の棋譜データがありません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="512"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="515"/>
         <source>USEN形式の棋譜をクリップボードにコピーしました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="567"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="570"/>
         <source>SFEN形式の局面データがありません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="574"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="577"/>
         <source>SFEN形式の局面をクリップボードにコピーしました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="739"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="742"/>
         <source>BOD形式の局面データがありません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="745"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="748"/>
         <source>SFEN形式の解析に失敗しました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="752"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="755"/>
         <source>BOD形式の局面をクリップボードにコピーしました</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2966,49 +2966,61 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>KifuLoadCoordinator</name>
     <message>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="330"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="170"/>
+        <source>棋譜ファイルの読み込みに失敗しました: %1</source>
+        <translation>棋譜ファイルの読み込みに失敗しました: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="176"/>
+        <source>棋譜の読み込みで警告があります:
+%1</source>
+        <translation>棋譜の読み込みで警告があります:
+%1</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="332"/>
         <source>貼り付けるテキストが空です。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="437"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="439"/>
         <source>一時ファイルの作成に失敗しました。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="447"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="449"/>
         <source>一時ファイルへの書き込みに失敗しました。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="502"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="504"/>
         <source>無効なSFEN形式です。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="571"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="573"/>
         <source>BOD形式の解析に失敗しました。%1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="576"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="578"/>
         <source>BOD形式から局面を取得できませんでした。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="638"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="640"/>
         <source>読み込み失敗 %1 から指し手を取得できませんでした。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="888"/>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="891"/>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="915"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="890"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="893"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="917"/>
         <source>対局情報</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="907"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="909"/>
         <source>コメント</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3450,18 +3462,18 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1762"/>
-        <location filename="../../src/app/mainwindow.cpp" line="1843"/>
-        <location filename="../../src/app/mainwindow.cpp" line="1848"/>
-        <location filename="../../src/app/mainwindow.cpp" line="1862"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1764"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1845"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1850"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1864"/>
         <source>先手</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1763"/>
-        <location filename="../../src/app/mainwindow.cpp" line="1844"/>
-        <location filename="../../src/app/mainwindow.cpp" line="1854"/>
-        <location filename="../../src/app/mainwindow.cpp" line="1863"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1765"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1846"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1856"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1865"/>
         <source>後手</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3496,39 +3508,39 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1764"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1766"/>
         <source>手合割</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1764"/>
-        <location filename="../../src/app/mainwindow.cpp" line="1870"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1766"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1872"/>
         <source>平手</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1849"/>
-        <location filename="../../src/app/mainwindow.cpp" line="1853"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1851"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1855"/>
         <source>Engine</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1858"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1860"/>
         <source>Engine1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1859"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1861"/>
         <source>Engine2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1874"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1876"/>
         <source>その他</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3862"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3864"/>
         <source>コメントなし</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3537,17 +3549,17 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">定跡</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4414"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4418"/>
         <source>棋譜を取り込みました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4416"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4420"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4420"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4424"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4747,12 +4759,12 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="495"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="496"/>
         <source>本譜に戻る</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="499"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="500"/>
         <source>現在の手数で本譜（メインライン）に戻る</source>
         <translation type="unfinished"></translation>
     </message>

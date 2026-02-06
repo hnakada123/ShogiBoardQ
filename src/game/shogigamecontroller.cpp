@@ -842,8 +842,7 @@ void ShogiGameController::applyTimeoutLossFor(int clockPlayer)
         // 後手（Player2）が時間切れ → 先手（Player1）の勝ち
         setResult(Player1Wins);
     } else {
-        // 不正値は無視（必要ならエラー通知も可）
-        // emit errorOccurred(tr("applyTimeoutLossFor: invalid player %1").arg(clockPlayer));
+        qWarning().noquote() << "[SGC] applyTimeoutLossFor: invalid clockPlayer =" << clockPlayer;
     }
 }
 
@@ -858,8 +857,7 @@ void ShogiGameController::applyResignationOfCurrentSide()
     } else if (m_currentPlayer == Player2) {
         setResult(Player1Wins);
     } else {
-        // 手番未設定時は安全側に倒して引き分け扱い（必要に応じて変更可）
-        // emit errorOccurred(tr("applyResignationOfCurrentSide: current player is invalid."));
+        qWarning().noquote() << "[SGC] applyResignationOfCurrentSide: currentPlayer is NoPlayer, defaulting to Draw";
         setResult(Draw);
     }
 }
