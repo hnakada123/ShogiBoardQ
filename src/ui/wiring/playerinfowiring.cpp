@@ -192,6 +192,68 @@ void PlayerInfoWiring::onPlayerNamesResolved(const QString& human1, const QStrin
     Q_EMIT playerNamesResolved(human1, human2, engine1, engine2, playMode);
 }
 
+void PlayerInfoWiring::resolveNamesAndSetupGameInfo(const QString& human1, const QString& human2,
+                                                     const QString& engine1, const QString& engine2,
+                                                     int playMode,
+                                                     const QString& startSfen,
+                                                     const TimeControlInfo& timeInfo)
+{
+    // まず対局者名の確定処理
+    onPlayerNamesResolved(human1, human2, engine1, engine2, playMode);
+
+    // プレイモードに応じた先手・後手名を決定
+    const PlayMode mode = static_cast<PlayMode>(playMode);
+    QString blackName, whiteName;
+    switch (mode) {
+    case PlayMode::HumanVsHuman:
+        blackName = human1.isEmpty() ? tr("先手") : human1;
+        whiteName = human2.isEmpty() ? tr("後手") : human2;
+        break;
+    case PlayMode::EvenHumanVsEngine:
+    case PlayMode::HandicapHumanVsEngine:
+        blackName = human1.isEmpty() ? tr("先手") : human1;
+        whiteName = engine2.isEmpty() ? tr("Engine") : engine2;
+        break;
+    case PlayMode::EvenEngineVsHuman:
+    case PlayMode::HandicapEngineVsHuman:
+        blackName = engine1.isEmpty() ? tr("Engine") : engine1;
+        whiteName = human2.isEmpty() ? tr("後手") : human2;
+        break;
+    case PlayMode::EvenEngineVsEngine:
+    case PlayMode::HandicapEngineVsEngine:
+        blackName = engine1.isEmpty() ? tr("Engine1") : engine1;
+        whiteName = engine2.isEmpty() ? tr("Engine2") : engine2;
+        break;
+    default:
+        blackName = tr("先手");
+        whiteName = tr("後手");
+        break;
+    }
+
+    // 手合割の判定
+    const QString sfen = startSfen.trimmed();
+    const QString initPP = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL");
+    QString handicap = tr("平手");
+    if (!sfen.isEmpty()) {
+        const QString pp = sfen.section(QLatin1Char(' '), 0, 0);
+        if (!pp.isEmpty() && pp != initPP) {
+            handicap = tr("その他");
+        }
+    }
+
+    // 対局情報を設定
+    setGameInfoForMatchStart(
+        timeInfo.gameStartDateTime,
+        blackName,
+        whiteName,
+        handicap,
+        timeInfo.hasTimeControl,
+        timeInfo.baseTimeMs,
+        timeInfo.byoyomiMs,
+        timeInfo.incrementMs
+    );
+}
+
 void PlayerInfoWiring::onGameInfoUpdated(const QList<KifGameInfoItem>& items)
 {
     qDebug().noquote() << "[PlayerInfoWiring] onGameInfoUpdated: items=" << items.size();

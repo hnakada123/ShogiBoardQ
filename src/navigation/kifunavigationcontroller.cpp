@@ -376,6 +376,90 @@ void KifuNavigationController::onLastClicked(bool checked)
     goToLast();
 }
 
+void KifuNavigationController::handleBranchNodeActivated(int row, int ply)
+{
+    qDebug().noquote() << "[KNC] handleBranchNodeActivated ENTER row=" << row << "ply=" << ply;
+
+    if (m_tree == nullptr || m_state == nullptr) {
+        qDebug().noquote() << "[KNC] handleBranchNodeActivated: tree or state is null, cannot proceed";
+        return;
+    }
+
+    QVector<BranchLine> lines = m_tree->allLines();
+    if (lines.isEmpty()) {
+        qDebug().noquote() << "[KNC] handleBranchNodeActivated: no lines available";
+        return;
+    }
+
+    // 境界チェック
+    if (row < 0 || row >= lines.size()) {
+        qDebug().noquote() << "[KNC] handleBranchNodeActivated: row out of bounds (row=" << row << ", lines=" << lines.size() << ")";
+        return;
+    }
+
+    // ply=0の場合（開始局面）は常にルートノードを使用
+    if (ply == 0) {
+        KifuBranchNode* targetNode = m_tree->root();
+        if (targetNode != nullptr) {
+            m_state->resetPreferredLineIndex();
+            goToNode(targetNode);
+            const QString sfen = targetNode->sfen().isEmpty() ? QString() : targetNode->sfen();
+            emit branchNodeHandled(0, sfen);
+        }
+        qDebug().noquote() << "[KNC] handleBranchNodeActivated LEAVE (root node)";
+        return;
+    }
+
+    // ★ 共有ノードのクリック時はライン維持
+    int effectiveRow = row;
+    const int currentLine = m_state->currentLineIndex();
+    if (currentLine > 0 && currentLine < lines.size()) {
+        const BranchLine& currentBranchLine = lines.at(currentLine);
+        if (ply < currentBranchLine.branchPly) {
+            effectiveRow = currentLine;
+            qDebug().noquote() << "[KNC] handleBranchNodeActivated: shared node clicked, keeping current line=" << currentLine;
+        }
+    }
+
+    const BranchLine& line = lines.at(effectiveRow);
+    const int maxPly = line.nodes.isEmpty() ? 0 : line.nodes.last()->ply();
+    const int selPly = qBound(0, ply, maxPly);
+
+    // ★ 分岐ラインを選択した場合、優先ラインを設定
+    if (effectiveRow > 0) {
+        m_state->setPreferredLineIndex(effectiveRow);
+        qDebug().noquote() << "[KNC] handleBranchNodeActivated: setPreferredLineIndex=" << effectiveRow;
+    } else {
+        m_state->resetPreferredLineIndex();
+        qDebug().noquote() << "[KNC] handleBranchNodeActivated: resetPreferredLineIndex (main line)";
+    }
+
+    // 対応するノードを探してナビゲート
+    KifuBranchNode* targetNode = nullptr;
+    for (KifuBranchNode* node : std::as_const(line.nodes)) {
+        if (node->ply() == selPly) {
+            targetNode = node;
+            break;
+        }
+    }
+
+    if (targetNode == nullptr && selPly == 0) {
+        targetNode = m_tree->root();
+    }
+
+    if (targetNode != nullptr) {
+        goToNode(targetNode);
+        qDebug().noquote() << "[KNC] handleBranchNodeActivated: goToNode ply=" << selPly;
+
+        const QString sfen = targetNode->sfen().isEmpty() ? QString() : targetNode->sfen();
+        emit branchNodeHandled(selPly, sfen);
+    } else {
+        qDebug().noquote() << "[KNC] handleBranchNodeActivated: node not found for ply=" << selPly;
+    }
+
+    qDebug().noquote() << "[KNC] handleBranchNodeActivated LEAVE";
+}
+
 void KifuNavigationController::emitUpdateSignals()
 {
     qDebug().noquote() << "[KNC] emitUpdateSignals ENTER";

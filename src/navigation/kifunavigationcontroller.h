@@ -102,6 +102,17 @@ public slots:
      */
     void goToMainLineAtCurrentPly();
 
+    /**
+     * @brief 分岐ツリーのノードがクリックされたときの処理
+     * @param row allLines()のインデックス
+     * @param ply 手数
+     *
+     * ナビゲーション状態の更新と各種シグナルの発行を行う。
+     * MainWindow側はbranchNodeHandledシグナルを受けて
+     * ply追跡変数とSFEN文字列を更新する。
+     */
+    void handleBranchNodeActivated(int row, int ply);
+
     // === ボタンスロット（bool引数付き） ===
     void onFirstClicked(bool checked = false);
     void onBack10Clicked(bool checked = false);
@@ -140,6 +151,13 @@ signals:
      * @brief 分岐ライン選択が変更された
      */
     void lineSelectionChanged(int newLineIndex);
+
+    /**
+     * @brief 分岐ノードが処理された（MainWindow側のply/SFEN更新用）
+     * @param ply 選択された手数
+     * @param sfen ノードのSFEN（空の場合は更新不要）
+     */
+    void branchNodeHandled(int ply, const QString& sfen);
 
 private:
     void emitUpdateSignals();

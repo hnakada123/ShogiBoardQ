@@ -3782,52 +3782,43 @@ Please restart the application to apply the changes.</translation>
         <translation>English</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="469"/>
+        <location filename="../../src/app/mainwindow.cpp" line="470"/>
         <source>Error</source>
         <translation>Error</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="676"/>
+        <location filename="../../src/app/mainwindow.cpp" line="677"/>
         <source>投了確認</source>
         <translation>Confirm Resignation</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="677"/>
+        <location filename="../../src/app/mainwindow.cpp" line="678"/>
         <source>本当に投了しますか？</source>
         <translation>Are you sure you want to resign?</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="755"/>
-        <location filename="../../src/app/mainwindow.cpp" line="769"/>
+        <location filename="../../src/app/mainwindow.cpp" line="756"/>
+        <location filename="../../src/app/mainwindow.cpp" line="770"/>
         <source>エラー</source>
         <translation>Error</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="755"/>
-        <location filename="../../src/app/mainwindow.cpp" line="769"/>
+        <location filename="../../src/app/mainwindow.cpp" line="756"/>
+        <location filename="../../src/app/mainwindow.cpp" line="770"/>
         <source>盤面データがありません。</source>
         <translation>No board data available.</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1851"/>
-        <location filename="../../src/app/mainwindow.cpp" line="1855"/>
         <source>Engine</source>
-        <translation type="unfinished">Engine</translation>
+        <translation type="obsolete">Engine</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1860"/>
         <source>Engine1</source>
-        <translation type="unfinished">Engine1</translation>
+        <translation type="obsolete">Engine1</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1861"/>
         <source>Engine2</source>
-        <translation type="unfinished">Engine2</translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1876"/>
-        <source>その他</source>
-        <translation type="unfinished"></translation>
+        <translation type="obsolete">Engine2</translation>
     </message>
     <message>
         <source>【宣言条件】</source>
@@ -3896,18 +3887,12 @@ White
 Please select &quot;24-Point Rule&quot; or &quot;27-Point Rule&quot; in the game dialog.</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1764"/>
-        <location filename="../../src/app/mainwindow.cpp" line="1845"/>
-        <location filename="../../src/app/mainwindow.cpp" line="1850"/>
-        <location filename="../../src/app/mainwindow.cpp" line="1864"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1665"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1765"/>
-        <location filename="../../src/app/mainwindow.cpp" line="1846"/>
-        <location filename="../../src/app/mainwindow.cpp" line="1856"/>
-        <location filename="../../src/app/mainwindow.cpp" line="1865"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1666"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
@@ -4022,17 +4007,17 @@ Are you sure you want to declare?</translation>
         <translation type="vanished">Entering King Declaration Result</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="266"/>
+        <location filename="../../src/app/mainwindow.cpp" line="264"/>
         <source>ドックレイアウトをリセット</source>
         <translation>Reset Dock Layout</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="271"/>
+        <location filename="../../src/app/mainwindow.cpp" line="269"/>
         <source>ドックレイアウトを保存...</source>
         <translation>Save Dock Layout...</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="276"/>
+        <location filename="../../src/app/mainwindow.cpp" line="274"/>
         <source>保存済みレイアウト</source>
         <translation>Saved Layouts</translation>
     </message>
@@ -4041,7 +4026,7 @@ Are you sure you want to declare?</translation>
         <translation type="vanished">Allow Docking</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="284"/>
+        <location filename="../../src/app/mainwindow.cpp" line="282"/>
         <source>ドックを固定</source>
         <translation>Lock Docks</translation>
     </message>
@@ -4116,23 +4101,22 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Clear Startup Layout</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1409"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1310"/>
         <source>棋譜ファイルを開く</source>
         <translation>Open Game Record File</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1410"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1311"/>
         <source>Kifu Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</source>
         <translation>Game Record Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1766"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1667"/>
         <source>手合割</source>
         <translation>Handicap</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1766"/>
-        <location filename="../../src/app/mainwindow.cpp" line="1872"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1667"/>
         <source>平手</source>
         <translation>Even Game</translation>
     </message>
@@ -4193,17 +4177,17 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Failed to auto-save game record: %1</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4418"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3929"/>
         <source>棋譜を取り込みました</source>
         <translation>Game record imported</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4420"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3931"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation>Failed to import game record</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4424"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3935"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation>Failed to import game record (internal error)</translation>
     </message>
@@ -4212,7 +4196,7 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Comment updated (move: %1)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3864"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3522"/>
         <source>コメントなし</source>
         <translation>No comment</translation>
     </message>
@@ -4692,50 +4676,78 @@ Are you sure you want to declare?</translation>
     </message>
     <message>
         <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="102"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="216"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="278"/>
         <source>対局日</source>
         <translation>Game Date</translation>
     </message>
     <message>
         <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="103"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="219"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="281"/>
         <source>開始日時</source>
         <translation>Start Time</translation>
     </message>
     <message>
         <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="104"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="222"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="209"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="214"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="228"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="284"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
         <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="105"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="225"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="210"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="220"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="229"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="287"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
     <message>
         <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="106"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="228"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="290"/>
         <source>手合割</source>
         <translation>Handicap</translation>
     </message>
     <message>
         <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="106"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="228"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="236"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="290"/>
         <source>平手</source>
         <translation>Even Game</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="250"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="319"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="326"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="215"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="219"/>
+        <source>Engine</source>
+        <translation type="unfinished">Engine</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="224"/>
+        <source>Engine1</source>
+        <translation type="unfinished">Engine1</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="225"/>
+        <source>Engine2</source>
+        <translation type="unfinished">Engine2</translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="240"/>
+        <source>その他</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="312"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="381"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="388"/>
         <source>持ち時間</source>
         <translation>Time Control</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="269"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="276"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="331"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="338"/>
         <source>終了日時</source>
         <translation>End Time</translation>
     </message>
