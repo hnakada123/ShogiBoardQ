@@ -167,11 +167,13 @@ void KifuLoadCoordinator::loadKifuCommon(
     QString parseWarn;
     if (!parseFunc(filePath, res, &parseWarn)) {
         qWarning().noquote() << "[GM] parse failed:" << filePath << parseWarn;
+        emit errorOccurred(tr("棋譜ファイルの読み込みに失敗しました: %1").arg(QFileInfo(filePath).fileName()));
         m_loadingKifu = false;
         return;
     }
     if (!parseWarn.isEmpty()) {
         qWarning().noquote() << "[GM] parse warn:" << parseWarn;
+        emit errorOccurred(tr("棋譜の読み込みで警告があります:\n%1").arg(parseWarn));
     }
     logStep("parseFunc");
 

@@ -1470,6 +1470,8 @@ void MainWindow::chooseAndLoadKifuFile()
     // ★ 追加: 対局情報の元データを保存
     connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::gameInfoPopulated,
             this, &MainWindow::setOriginalGameInfo, Qt::UniqueConnection);
+    connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::errorOccurred,
+            this, &MainWindow::displayErrorMessage, Qt::UniqueConnection);
 
     qDebug().noquote() << "[MW] chooseAndLoadKifuFile: KifuLoadCoordinator created"
                        << "m_kifuLoadCoordinator*=" << static_cast<const void*>(m_kifuLoadCoordinator)
@@ -4214,6 +4216,8 @@ void MainWindow::ensureKifuLoadCoordinatorForLive()
     // ★ 追加: 対局情報の元データを保存
     connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::gameInfoPopulated,
             this, &MainWindow::setOriginalGameInfo, Qt::UniqueConnection);
+    connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::errorOccurred,
+            this, &MainWindow::displayErrorMessage, Qt::UniqueConnection);
 }
 
 // ===== MainWindow.cpp: ライブ対局中に分岐ツリーを更新 =====
@@ -4808,6 +4812,8 @@ void MainWindow::loadKifuFile(const QString& path)
             this, &MainWindow::enableArrowButtons, Qt::UniqueConnection);
     connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::gameInfoPopulated,
             this, &MainWindow::setOriginalGameInfo, Qt::UniqueConnection);
+    connect(m_kifuLoadCoordinator, &KifuLoadCoordinator::errorOccurred,
+            this, &MainWindow::displayErrorMessage, Qt::UniqueConnection);
 
     // 拡張子に応じて読み込み
     if (path.endsWith(QLatin1String(".csa"), Qt::CaseInsensitive)) {

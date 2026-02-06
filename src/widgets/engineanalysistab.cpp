@@ -1260,7 +1260,11 @@ void EngineAnalysisTab::addEdge(QGraphicsPathItem* from, QGraphicsPathItem* to)
 // --- 追加ヘルパ：row(>=1) の分岐元となる「親行」を決める ---
 int EngineAnalysisTab::resolveParentRowForVariation(int row) const
 {
-    Q_ASSERT(row >= 1 && row < m_rows.size());
+    if (row < 1 || row >= m_rows.size()) {
+        qWarning().noquote() << "[EngineAnalysisTab] resolveParentRowForVariation: row out of range"
+                             << "row=" << row << "m_rows.size=" << m_rows.size();
+        return 0;
+    }
 
     // ★ 修正: 以前は startPly の前後関係から親を「推測」していたが、
     //    データとして渡された parent を正しく使うように変更しました。

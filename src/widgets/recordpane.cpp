@@ -261,9 +261,10 @@ void RecordPane::wireSignals()
 
 void RecordPane::setModels(KifuRecordListModel* recModel, KifuBranchListModel* brModel)
 {
-    Q_ASSERT(m_kifu);
-    Q_ASSERT(m_branch);
-    if (!m_kifu || !m_branch) buildUi();
+    if (!m_kifu || !m_branch) {
+        qWarning().noquote() << "[RecordPane] setModels: m_kifu or m_branch is null, rebuilding UI";
+        buildUi();
+    }
 
     qDebug() << "setModels called";
     qDebug() << "m_kifu styleSheet in setModels:" << m_kifu->styleSheet().left(100) << "...";
