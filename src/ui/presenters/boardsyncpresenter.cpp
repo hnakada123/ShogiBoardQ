@@ -421,3 +421,121 @@ void BoardSyncPresenter::clearHighlights() const
 {
     if (m_bic) m_bic->clearAllHighlights();
 }
+
+void BoardSyncPresenter::loadBoardWithHighlights(const QString& currentSfen, const QString& prevSfen) const
+{
+    qDebug().noquote() << "[PRESENTER] loadBoardWithHighlights ENTER"
+                       << "currentSfen=" << currentSfen.left(40)
+                       << "prevSfen=" << (prevSfen.isEmpty() ? "(empty)" : prevSfen.left(40));
+
+    if (currentSfen.isEmpty()) {
+        qWarning() << "[PRESENTER] loadBoardWithHighlights: empty currentSfen, skipping";
+        return;
+    }
+
+    // 1. 盤面を更新
+    if (m_gc && m_gc->board() && m_view) {
+        m_gc->board()->setSfen(currentSfen);
+        m_view->applyBoardAndRender(m_gc->board());
+    }
+
+    // 2. ハイライトを計算・表示
+    if (!m_bic) {
+        qWarning() << "[PRESENTER] loadBoardWithHighlights: m_bic is null, skipping highlights";
+        return;
+    }
+
+    // 開始局面（prevSfenが空）の場合はハイライトをクリア
+    if (prevSfen.isEmpty()) {
+        m_bic->clearAllHighlights();
+        qDebug() << "[PRESENTER] loadBoardWithHighlights: cleared highlights (start position)";
+        return;
+    }
+
+    // SFEN差分からfrom/toを計算
+    auto parseOneBoard = [](const QString& sfen, QString grid[9][9]) -> bool {
+        for (int y = 0; y < 9; ++y)
+            for (int x = 0; x < 9; ++x)
+                grid[y][x].clear();
+
+        if (sfen.isEmpty()) return false;
+        const QString boardField = sfen.split(QLatin1Char(' '), Qt::KeepEmptyParts).value(0);
+        const QStringList rows = boardField.split(QLatin1Char('/'), Qt::KeepEmptyParts);
+        if (rows.size() != 9) return false;
+
+        for (int r = 0; r < 9; ++r) {
+            const QString& row = rows.at(r);
+            const int y = r;
+            int x = 8;
+
+            for (qsizetype i = 0; i < row.size(); ++i) {
+                const QChar ch = row.at(i);
+                if (ch.isDigit()) {
+                    x -= (ch.toLatin1() - '0');
+                } else if (ch == QLatin1Char('+')) {
+                    if (i + 1 >= row.size() || x < 0) return false;
+                    grid[y][x] = QStringLiteral("+") + row.at(++i);
+                    --x;
+                } else {
+                    if (x < 0) return false;
+                    grid[y][x] = QString(ch);
+                    --x;
+                }
+            }
+            if (x != -1) return false;
+        }
+        return true;
+    };
+
+    auto deduceByDiff = [&](const QString& a, const QString& b,
+                            QPoint& from, QPoint& to, QChar& droppedPiece) -> bool {
+        QString ga[9][9], gb[9][9];
+        if (!parseOneBoard(a, ga) || !parseOneBoard(b, gb)) return false;
+
+        bool foundTo = false;
+        droppedPiece = QChar();
+
+        for (int y = 0; y < 9; ++y) {
+            for (int x = 0; x < 9; ++x) {
+                if (ga[y][x] == gb[y][x]) continue;
+                if (!ga[y][x].isEmpty() && gb[y][x].isEmpty()) {
+                    from = QPoint(x, y);
+                } else if (ga[y][x].isEmpty() && !gb[y][x].isEmpty()) {
+                    to = QPoint(x, y); foundTo = true;
+                    droppedPiece = gb[y][x].at(0);
+                } else {
+                    to = QPoint(x, y); foundTo = true;
+                }
+            }
+        }
+        return foundTo;
+    };
+
+    QPoint from(-1, -1), to(-1, -1);
+    QChar droppedPiece;
+    bool ok = deduceByDiff(prevSfen, currentSfen, from, to, droppedPiece);
+
+    if (!ok) {
+        qDebug() << "[PRESENTER] loadBoardWithHighlights: SFEN diff failed, clearing highlights";
+        m_bic->clearAllHighlights();
+        return;
+    }
+
+    const QPoint to1 = toOne(to);
+    const bool hasFrom = (from.x() >= 0 && from.y() >= 0);
+
+    qDebug().noquote() << "[PRESENTER] loadBoardWithHighlights: highlight"
+                       << "from=(" << from.x() << "," << from.y() << ")"
+                       << "to=(" << to.x() << "," << to.y() << ")"
+                       << "hasFrom=" << hasFrom;
+
+    if (hasFrom) {
+        const QPoint from1 = toOne(from);
+        m_bic->showMoveHighlights(from1, to1);
+    } else {
+        // 駒打ちの場合: toのみハイライト
+        m_bic->showMoveHighlights(QPoint(-1, -1), to1);
+    }
+
+    qDebug() << "[PRESENTER] loadBoardWithHighlights LEAVE";
+}

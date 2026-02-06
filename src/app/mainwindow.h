@@ -126,6 +126,8 @@ class PlayerInfoWiring;
 class PreStartCleanupHandler;
 class MenuWindowWiring;
 class UsiCommandController;
+class TestAutomationHelper;
+class RecordNavigationHandler;
 
 // ============================================================
 // MainWindow
@@ -222,14 +224,6 @@ public slots:
     void displayJosekiWindow();
     void updateJosekiWindow();  // 定跡ウィンドウの更新
     void displayMenuWindow();   // メニューウィンドウの表示
-    void resetDockLayout();     // ドックレイアウトをデフォルトにリセット
-    void saveDockLayoutAs();    // 現在のドックレイアウトを名前を付けて保存
-    void restoreSavedDockLayout(const QString& name);  // 保存したレイアウトを復元
-    void deleteSavedDockLayout(const QString& name);   // 保存したレイアウトを削除
-    void setAsStartupLayout(const QString& name);      // 起動時のレイアウトに設定
-    void clearStartupLayout();  // 起動時のレイアウト設定をクリア
-    void updateSavedLayoutsMenu();  // 保存レイアウトメニューを更新
-    void restoreStartupLayoutIfSet();  // 起動時レイアウトがあれば復元
     void displayJishogiScoreDialog();  // 持将棋の点数ダイアログ
     void handleNyugyokuDeclaration();  // 入玉宣言
     void onConsiderationEngineSettingsRequested(int engineNumber, const QString& engineName);  // 検討タブからのエンジン設定リクエスト
@@ -284,23 +278,17 @@ private slots:
     // 検討モードの時間設定確定時
     void onConsiderationTimeSettingsReady(bool unlimited, int byoyomiSec);
 
-    // 検討モード終了時
-    void onConsiderationModeEnded();
-
-    // 検討待機開始時（時間切れ後、次の局面選択待ち）
-    void onConsiderationWaitingStarted();
-
     // 検討モデル更新時に矢印を更新
     void updateConsiderationArrows();
 
     // 矢印表示チェックボックスの状態変更時
     void onShowArrowsChanged(bool checked);
 
-    // 検討中にMultiPV変更時
-    void onConsiderationMultiPVChanged(int value);
-
     // 検討ダイアログでMultiPVが設定されたとき
     void onConsiderationDialogMultiPVReady(int multiPV);
+
+    // 検討中にMultiPV変更要求
+    void onConsiderationMultiPVChangeRequested(int value);
 
     // ボタン有効/無効
     void disableArrowButtons();
@@ -350,6 +338,10 @@ private slots:
 
     // 分岐ノード活性化
     void onBranchNodeActivated(int row, int ply);
+    void onBranchNodeHandled(int ply, const QString& sfen);
+
+    // 検討モード: 選択行の局面で検討再開
+    void onBuildPositionRequired(int row);
 
     // ★ 新規: 分岐ツリー構築完了
     void onBranchTreeBuilt();
@@ -589,6 +581,8 @@ private:
     DockCreationService* m_dockCreationService = nullptr;
     CommentCoordinator* m_commentCoordinator = nullptr;
     UsiCommandController* m_usiCommandController = nullptr;
+    TestAutomationHelper* m_testHelper = nullptr;
+    RecordNavigationHandler* m_recordNavHandler = nullptr;
 
     // ★ 新規分岐ナビゲーションクラス
     KifuBranchTree* m_branchTree = nullptr;
@@ -697,6 +691,8 @@ private:
     void ensureDockCreationService();
     void ensureCommentCoordinator();
     void ensureUsiCommandController();
+    void ensureTestAutomationHelper();
+    void ensureRecordNavigationHandler();
 
     // ctor の分割先
     void setupCentralWidgetContainer();
@@ -752,10 +748,6 @@ private:
 
     // 開始局面解決
     QString resolveCurrentSfenForGameStart() const;
-
-    // ★ テスト自動化用
-    bool m_testMode = false;
-    QString extractSfenBase(const QString& sfen) const;  // SFEN文字列から局面部分を抽出
 
     // ★ 分岐ナビゲーション中の盤面同期スキップフラグ
     bool m_skipBoardSyncForBranchNav = false;

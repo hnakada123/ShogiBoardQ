@@ -34,6 +34,16 @@ public:
     // ユーティリティ：ハイライトの明示クリア
     void clearHighlights() const;
 
+    /**
+     * @brief SFEN差分から盤面を更新しハイライトを表示（分岐ナビゲーション用）
+     * @param currentSfen 現在の局面SFEN
+     * @param prevSfen 直前の局面SFEN（空の場合はハイライトクリア）
+     *
+     * m_sfenRecordを使わず、指定されたSFEN文字列から直接盤面を更新し、
+     * 差分からハイライトを計算・表示する。
+     */
+    void loadBoardWithHighlights(const QString& currentSfen, const QString& prevSfen) const;
+
 private:
     static QPoint toOne(const QPoint& z) { return QPoint(z.x() + 1, z.y() + 1); }
 

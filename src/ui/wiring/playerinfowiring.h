@@ -141,6 +141,33 @@ public:
      */
     void setTabWidget(QTabWidget* tabWidget);
 
+    /**
+     * @brief 対局開始時の時間制御情報
+     */
+    struct TimeControlInfo {
+        bool hasTimeControl = false;
+        qint64 baseTimeMs = 0;
+        qint64 byoyomiMs = 0;
+        qint64 incrementMs = 0;
+        QDateTime gameStartDateTime;
+    };
+
+    /**
+     * @brief 対局者名確定時に対局情報も設定する処理
+     * @param human1 人間1名
+     * @param human2 人間2名
+     * @param engine1 エンジン1名
+     * @param engine2 エンジン2名
+     * @param playMode プレイモード
+     * @param startSfen 開始局面SFEN文字列
+     * @param timeInfo 時間制御情報
+     */
+    void resolveNamesAndSetupGameInfo(const QString& human1, const QString& human2,
+                                      const QString& engine1, const QString& engine2,
+                                      int playMode,
+                                      const QString& startSfen,
+                                      const TimeControlInfo& timeInfo);
+
 public slots:
     /**
      * @brief 対局者名設定フック（将棋盤ラベル更新）
