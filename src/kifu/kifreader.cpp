@@ -145,10 +145,10 @@ bool readAllLinesAuto(const QString& filePath,
         }
     }
 
-    if (warn && usedEncoding) {
-        *warn += QStringLiteral("[readAllLinesAuto] encoding = %1 , bytes = %2\n")
-                    .arg(*usedEncoding)
-                    .arg(bytes.size());
+    if (usedEncoding) {
+        qDebug().noquote() << QStringLiteral("[readAllLinesAuto] encoding = %1 , bytes = %2")
+                                  .arg(*usedEncoding)
+                                  .arg(bytes.size());
     }
 
     splitByNewlines(text, outLines);
