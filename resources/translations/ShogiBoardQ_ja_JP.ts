@@ -3435,84 +3435,64 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="470"/>
+        <location filename="../../src/app/mainwindow.cpp" line="471"/>
         <source>Error</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="677"/>
+        <location filename="../../src/app/mainwindow.cpp" line="678"/>
         <source>投了確認</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="678"/>
+        <location filename="../../src/app/mainwindow.cpp" line="679"/>
         <source>本当に投了しますか？</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <location filename="../../src/app/mainwindow.cpp" line="742"/>
         <location filename="../../src/app/mainwindow.cpp" line="756"/>
-        <location filename="../../src/app/mainwindow.cpp" line="770"/>
         <source>エラー</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <location filename="../../src/app/mainwindow.cpp" line="742"/>
         <location filename="../../src/app/mainwindow.cpp" line="756"/>
-        <location filename="../../src/app/mainwindow.cpp" line="770"/>
         <source>盤面データがありません。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1665"/>
-        <source>先手</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1666"/>
-        <source>後手</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1310"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1192"/>
         <source>棋譜ファイルを開く</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="264"/>
+        <location filename="../../src/app/mainwindow.cpp" line="265"/>
         <source>ドックレイアウトをリセット</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="269"/>
+        <location filename="../../src/app/mainwindow.cpp" line="270"/>
         <source>ドックレイアウトを保存...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="274"/>
+        <location filename="../../src/app/mainwindow.cpp" line="275"/>
         <source>保存済みレイアウト</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="282"/>
+        <location filename="../../src/app/mainwindow.cpp" line="283"/>
         <source>ドックを固定</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1311"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1193"/>
         <source>Kifu Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1667"/>
-        <source>手合割</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1667"/>
-        <source>平手</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3522"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3231"/>
         <source>コメントなし</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3521,17 +3501,17 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">定跡</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3929"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3667"/>
         <source>棋譜を取り込みました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3931"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3669"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3935"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3673"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3984,85 +3964,85 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>PlayerInfoWiring</name>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="66"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="76"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="73"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="83"/>
         <source>対局情報</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="102"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="278"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="109"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="305"/>
         <source>対局日</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="103"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="281"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="110"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="308"/>
         <source>開始日時</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="104"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="209"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="214"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="228"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="284"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="111"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="227"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="232"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="246"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="311"/>
         <source>先手</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="105"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="210"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="220"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="229"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="287"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="112"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="228"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="238"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="247"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="314"/>
         <source>後手</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="106"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="290"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="113"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="317"/>
         <source>手合割</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="106"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="236"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="290"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="113"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="254"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="317"/>
         <source>平手</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="215"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="219"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="233"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="237"/>
         <source>Engine</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="224"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="242"/>
         <source>Engine1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="225"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="243"/>
         <source>Engine2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="240"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="258"/>
         <source>その他</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="312"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="381"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="388"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="339"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="408"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="415"/>
         <source>持ち時間</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="331"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="338"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="358"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="365"/>
         <source>終了日時</source>
         <translation></translation>
     </message>

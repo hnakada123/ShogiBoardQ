@@ -56,6 +56,7 @@ class NyugyokuDeclarationHandler;
 class ConsecutiveGamesController;
 class LanguageController;
 class ConsiderationModeUIController;
+class ConsiderationWiring;
 class DockLayoutManager;
 class DockCreationService;
 class CommentCoordinator;
@@ -213,7 +214,6 @@ public slots:
     void displayPromotionDialog();
     void displayEngineSettingsDialog();
     void displayVersionInformation();
-    void displayConsiderationDialog();
     void displayKifuAnalysisDialog();
     void cancelKifuAnalysis();  // 棋譜解析中止
     void onKifuAnalysisProgress(int ply, int scoreCp);  // 棋譜解析進捗
@@ -226,8 +226,6 @@ public slots:
     void displayMenuWindow();   // メニューウィンドウの表示
     void displayJishogiScoreDialog();  // 持将棋の点数ダイアログ
     void handleNyugyokuDeclaration();  // 入玉宣言
-    void onConsiderationEngineSettingsRequested(int engineNumber, const QString& engineName);  // 検討タブからのエンジン設定リクエスト
-    void onConsiderationEngineChanged(int engineIndex, const QString& engineName);  // 検討中のエンジン変更
 
     // ツールバー表示切替
     void onToolBarVisibilityToggled(bool visible);
@@ -272,23 +270,6 @@ private slots:
     // タブ選択変更
     void onTabCurrentChanged(int index);
 
-    // 検討モード開始時
-    void onConsiderationModeStarted();
-
-    // 検討モードの時間設定確定時
-    void onConsiderationTimeSettingsReady(bool unlimited, int byoyomiSec);
-
-    // 検討モデル更新時に矢印を更新
-    void updateConsiderationArrows();
-
-    // 矢印表示チェックボックスの状態変更時
-    void onShowArrowsChanged(bool checked);
-
-    // 検討ダイアログでMultiPVが設定されたとき
-    void onConsiderationDialogMultiPVReady(int multiPV);
-
-    // 検討中にMultiPV変更要求
-    void onConsiderationMultiPVChangeRequested(int value);
 
     // ボタン有効/無効
     void disableArrowButtons();
@@ -362,9 +343,6 @@ private slots:
 
     // 投了
     void onResignationTriggered();
-
-    // ★ 新規: GameInfoPaneControllerからの通知
-    void onGameInfoUpdated(const QList<KifGameInfoItem>& items);
 
     // 連続対局: 設定を受信
     void onConsecutiveGamesConfigured(int totalGames, bool switchTurn);
@@ -577,6 +555,7 @@ private:
     ConsecutiveGamesController* m_consecutiveGamesController = nullptr;
     LanguageController* m_languageController = nullptr;
     ConsiderationModeUIController* m_considerationUIController = nullptr;
+    ConsiderationWiring* m_considerationWiring = nullptr;
     DockLayoutManager* m_dockLayoutManager = nullptr;
     DockCreationService* m_dockCreationService = nullptr;
     CommentCoordinator* m_commentCoordinator = nullptr;
@@ -599,9 +578,7 @@ private:
     // UI / 表示更新
     void updateGameRecord(const QString& elapsedTime);
     void updateTurnStatus(int currentPlayer);
-    void redrawEngine1EvaluationGraph(int ply = -1);  // EvaluationGraphControllerへ委譲
-    void redrawEngine2EvaluationGraph(int ply = -1);  // EvaluationGraphControllerへ委譲
-    void ensureEvaluationGraphController();          // ★ 追加
+    void ensureEvaluationGraphController();
 
     // 初期化 / セットアップ
     void initializeComponents();
@@ -631,17 +608,6 @@ private:
     void saveWindowAndBoardSettings();
     void loadWindowSettings();
 
-    // ★ 対局情報関連（GameInfoPaneControllerへ委譲）
-    void ensureGameInfoController();
-    void addGameInfoTabAtStartup();
-    void populateDefaultGameInfo();
-    void updateGameInfoForCurrentMatch();
-
-    // ★ 互換性のため残す古い関数（GameStartCoordinatorのhooksで使用）
-    void onSetPlayersNames(const QString& p1, const QString& p2);
-    void onSetEngineNames(const QString& e1, const QString& e2);
-    void updateGameInfoPlayerNames(const QString& blackName, const QString& whiteName);
-    void setOriginalGameInfo(const QList<KifGameInfoItem>& items);
 
     // ユーティリティ
     void setPlayersNamesForMode();
@@ -687,6 +653,7 @@ private:
     void ensureConsecutiveGamesController();
     void ensureLanguageController();
     void ensureConsiderationUIController();
+    void ensureConsiderationWiring();
     void ensureDockLayoutManager();
     void ensureDockCreationService();
     void ensureCommentCoordinator();
@@ -704,12 +671,14 @@ private:
     void installAppToolTips();
     void finalizeCoordinators();
 
+    // KifuLoadCoordinator 作成・配線ヘルパー
+    void createAndWireKifuLoadCoordinator();
+    void dispatchKifuLoad(const QString& filePath);
+
     // 棋譜ナビゲーション用ヘルパー（RecordNavigationControllerから移行）
     void navigateKifuViewToRow(int ply);
 
     // hooks 用メンバー関数
-    void requestRedrawEngine1Eval();
-    void requestRedrawEngine2Eval();
     void initializeNewGameHook(const QString& s);
     void showMoveHighlights(const QPoint& from, const QPoint& to);
     void appendKifuLineHook(const QString& text, const QString& elapsed);

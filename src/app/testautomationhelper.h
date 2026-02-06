@@ -5,6 +5,7 @@
 #include <QString>
 #include <QVector>
 #include <QStringList>
+#include <functional>
 
 class RecordPane;
 class EngineAnalysisTab;
@@ -15,6 +16,7 @@ class KifuRecordListModel;
 class KifuBranchListModel;
 class ShogiGameController;
 class ShogiView;
+class LiveGameSession;
 struct ShogiMove;
 
 /**
@@ -42,6 +44,12 @@ public:
         ShogiGameController* gameController = nullptr;
         ShogiView* shogiView = nullptr;
         bool* skipBoardSyncForBranchNav = nullptr;
+        LiveGameSession* liveGameSession = nullptr;
+        QStringList* sfenRecord = nullptr;
+        QString* startSfenStr = nullptr;
+        QString* currentSfenStr = nullptr;
+        std::function<void()> performCleanup;
+        std::function<void()> ensureLiveGameSessionStarted;
     };
 
     explicit TestAutomationHelper(QObject* parent = nullptr);
@@ -63,6 +71,10 @@ public:
     void clickLastButton();
     void clickKifuRow(int row);
     void clickBranchTreeNode(int row, int ply);
+
+    // ★ テスト自動化: 対局シミュレーション
+    void startTestGame();
+    bool makeTestMove(const QString& usiMove);
 
     // ★ テスト自動化: 状態ダンプと検証
     void dumpTestState();
