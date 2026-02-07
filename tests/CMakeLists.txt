@@ -81,6 +81,8 @@ add_executable(tst_kifudisplaycoordinator
     ${SRC_DIR}/widgets/kifubranchdisplay.cpp
     ${SRC_DIR}/widgets/kifudisplay.cpp
     ${SRC_DIR}/core/shogimove.cpp
+    ${SRC_DIR}/core/shogiutils.cpp
+    ${SRC_DIR}/common/errorbus.cpp
 )
 
 target_include_directories(tst_kifudisplaycoordinator PRIVATE

@@ -438,6 +438,18 @@ QString DialogCoordinator::buildPositionStringForIndex(int moveIndex) const
 
     const QString startSfen = m_considerationCtx.startSfenStr ? *m_considerationCtx.startSfenStr : QString();
     const QStringList* sfenRecord = m_considerationCtx.sfenRecord;
+    const QString currentSfen = m_considerationCtx.currentSfenStr ? m_considerationCtx.currentSfenStr->trimmed() : QString();
+
+    // 分岐を含む現在表示局面を最優先で使用する。
+    if (!currentSfen.isEmpty()) {
+        if (currentSfen.startsWith(QStringLiteral("position "))) {
+            return currentSfen;
+        }
+        if (currentSfen.startsWith(QStringLiteral("sfen "))) {
+            return QStringLiteral("position ") + currentSfen;
+        }
+        return QStringLiteral("position sfen ") + currentSfen;
+    }
 
     if (!sfenRecord || sfenRecord->isEmpty()) {
         // sfenRecordがない場合は startpos を返す
@@ -450,10 +462,10 @@ QString DialogCoordinator::buildPositionStringForIndex(int moveIndex) const
 
     // 指定インデックスの局面が存在するか確認
     const int idx = qBound(0, moveIndex, static_cast<int>(sfenRecord->size()) - 1);
-    const QString currentSfen = sfenRecord->at(idx);
+    const QString indexedSfen = sfenRecord->at(idx);
 
     // position sfen 形式で返す（指定局面を直接SFENで送信）
-    return QStringLiteral("position sfen ") + currentSfen;
+    return QStringLiteral("position sfen ") + indexedSfen;
 }
 
 // --------------------------------------------------------

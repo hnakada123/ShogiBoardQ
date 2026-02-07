@@ -118,28 +118,36 @@ void KifuDisplayCoordinator::wireSignals()
 
 void KifuDisplayCoordinator::onBranchTreeNodeClicked(int lineIndex, int ply)
 {
+    qDebug().noquote() << "[KDC] onBranchTreeNodeClicked ENTER lineIndex=" << lineIndex << "ply=" << ply;
+
     // ラインとplyからノードを探して移動
     if (m_tree == nullptr || m_navController == nullptr) {
+        qDebug().noquote() << "[KDC] onBranchTreeNodeClicked: tree or navController is null";
         return;
     }
 
     QVector<BranchLine> lines = m_tree->allLines();
     if (lineIndex < 0 || lineIndex >= lines.size()) {
+        qDebug().noquote() << "[KDC] onBranchTreeNodeClicked: lineIndex out of range";
         return;
     }
 
     const BranchLine& line = lines.at(lineIndex);
     for (KifuBranchNode* node : std::as_const(line.nodes)) {
         if (node->ply() == ply) {
+            qDebug().noquote() << "[KDC] onBranchTreeNodeClicked: found node, sfen=" << node->sfen();
             m_navController->goToNode(node);
+            qDebug().noquote() << "[KDC] onBranchTreeNodeClicked LEAVE (goToNode done)";
             return;
         }
     }
 
     // plyが見つからない場合（開始局面）
     if (ply == 0 && m_tree->root() != nullptr) {
+        qDebug().noquote() << "[KDC] onBranchTreeNodeClicked: using root node";
         m_navController->goToNode(m_tree->root());
     }
+    qDebug().noquote() << "[KDC] onBranchTreeNodeClicked LEAVE";
 }
 
 void KifuDisplayCoordinator::onBranchCandidateActivated(const QModelIndex& index)
@@ -246,10 +254,15 @@ void KifuDisplayCoordinator::onRecordHighlightRequired(int ply)
     m_recordModel->setCurrentHighlightRow(ply);
 
     // 棋譜欄のビューで該当行を選択
+    // ★ シグナルブロック: ナビゲーション起因の行変更でonRecordRowChangedByPresenterが
+    //    再トリガーされ、本譜の局面でエンジン位置が上書きされるのを防止
     if (m_recordPane != nullptr && m_recordPane->kifuView() != nullptr) {
         QTableView* view = m_recordPane->kifuView();
         QModelIndex idx = m_recordModel->index(ply, 0);
-        view->setCurrentIndex(idx);
+        {
+            QSignalBlocker blocker(view->selectionModel());
+            view->setCurrentIndex(idx);
+        }
         view->scrollTo(idx);
     }
 }

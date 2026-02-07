@@ -2275,16 +2275,28 @@ void MainWindow::broadcastComment(const QString& text, bool asHtml)
 
 void MainWindow::onBranchNodeActivated(int row, int ply)
 {
+    qDebug().noquote() << "[MW] onBranchNodeActivated ENTER row=" << row << "ply=" << ply;
     if (m_kifuNavController == nullptr) {
+        qDebug().noquote() << "[MW] onBranchNodeActivated: kifuNavController is null";
         return;
     }
 
     // KifuNavigationControllerに委譲
     m_kifuNavController->handleBranchNodeActivated(row, ply);
+    qDebug().noquote() << "[MW] onBranchNodeActivated LEAVE";
 }
 
-void MainWindow::onBranchNodeHandled(int ply, const QString& sfen)
+void MainWindow::onBranchNodeHandled(int ply, const QString& sfen,
+                                     int previousFileTo, int previousRankTo,
+                                     const QString& lastUsiMove)
 {
+    qDebug().noquote() << "[MW] onBranchNodeHandled ENTER ply=" << ply
+                       << "sfen=" << sfen
+                       << "fileTo=" << previousFileTo << "rankTo=" << previousRankTo
+                       << "usiMove=" << lastUsiMove
+                       << "playMode=" << static_cast<int>(m_playMode)
+                       << "match=" << (m_match ? "valid" : "null");
+
     // plyインデックス変数を更新
     m_activePly = ply;
     m_currentSelectedPly = ply;
@@ -2297,6 +2309,23 @@ void MainWindow::onBranchNodeHandled(int ply, const QString& sfen)
 
     // 定跡ウィンドウを更新
     updateJosekiWindow();
+
+    // 検討モード時はエンジンに新しい局面を送信
+    if (m_playMode == PlayMode::ConsiderationMode && m_match && !sfen.isEmpty()) {
+        const QString newPosition = QStringLiteral("position sfen ") + sfen;
+        qDebug().noquote() << "[MW] onBranchNodeHandled: sending to engine:" << newPosition;
+        if (m_match->updateConsiderationPosition(newPosition, previousFileTo, previousRankTo, lastUsiMove)) {
+            qDebug().noquote() << "[MW] onBranchNodeHandled: updateConsiderationPosition returned true";
+            if (m_analysisTab) {
+                m_analysisTab->startElapsedTimer();
+            }
+        } else {
+            qDebug().noquote() << "[MW] onBranchNodeHandled: updateConsiderationPosition returned false (same position or not in consideration)";
+        }
+    } else {
+        qDebug().noquote() << "[MW] onBranchNodeHandled: NOT in consideration mode or match/sfen missing";
+    }
+    qDebug().noquote() << "[MW] onBranchNodeHandled LEAVE";
 }
 
 // ★ 新規: 分岐ツリー構築完了時のハンドラ
@@ -2552,6 +2581,7 @@ void MainWindow::ensureDialogCoordinator()
     conCtx.kifuRecordModel = m_kifuRecordModel;
     conCtx.sfenRecord = m_sfenRecord;
     conCtx.startSfenStr = &m_startSfenStr;
+    conCtx.currentSfenStr = &m_currentSfenStr;
     conCtx.considerationModel = &m_considerationModel;
     conCtx.gameUsiMoves = &m_gameUsiMoves;
     conCtx.kifuLoadCoordinator = m_kifuLoadCoordinator;
@@ -3340,11 +3370,16 @@ void MainWindow::onRecordPaneMainRowChanged(int row)
 
 void MainWindow::onBuildPositionRequired(int row)
 {
+    qDebug().noquote() << "[MW] onBuildPositionRequired ENTER row=" << row
+                       << "playMode=" << static_cast<int>(m_playMode)
+                       << "match=" << (m_match ? "valid" : "null");
     if (m_playMode != PlayMode::ConsiderationMode || !m_match) {
+        qDebug().noquote() << "[MW] onBuildPositionRequired: not in consideration mode or no match, returning";
         return;
     }
 
     const QString newPosition = buildPositionStringForIndex(row);
+    qDebug().noquote() << "[MW] onBuildPositionRequired: newPosition=" << newPosition;
     if (newPosition.isEmpty()) {
         return;
     }
@@ -3921,6 +3956,23 @@ void MainWindow::ensureConsiderationWiring()
     deps.commLogModel = m_lineEditModel1;
     deps.playMode = &m_playMode;
     deps.currentSfenStr = &m_currentSfenStr;
+    deps.ensureDialogCoordinator = [this]() {
+        ensureDialogCoordinator();
+        // 初期化後に最新の依存をConsiderationWiringへ反映
+        if (m_considerationWiring) {
+            ConsiderationWiring::Deps updated;
+            updated.parentWidget = this;
+            updated.analysisTab = m_analysisTab;
+            updated.shogiView = m_shogiView;
+            updated.match = m_match;
+            updated.dialogCoordinator = m_dialogCoordinator;
+            updated.considerationModel = m_considerationModel;
+            updated.commLogModel = m_lineEditModel1;
+            updated.playMode = &m_playMode;
+            updated.currentSfenStr = &m_currentSfenStr;
+            m_considerationWiring->updateDeps(updated);
+        }
+    };
 
     m_considerationWiring = new ConsiderationWiring(deps, this);
 

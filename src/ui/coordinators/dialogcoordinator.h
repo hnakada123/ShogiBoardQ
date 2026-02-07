@@ -160,6 +160,7 @@ public:
         KifuRecordListModel* kifuRecordModel = nullptr;
         QStringList* sfenRecord = nullptr;
         QString* startSfenStr = nullptr;
+        const QString* currentSfenStr = nullptr;             // 現在表示中の局面SFEN（分岐対応）
         ShogiEngineThinkingModel** considerationModel = nullptr;  // ダブルポインタ（遅延生成用）
         const QStringList* gameUsiMoves = nullptr;                // 対局中のUSI指し手リスト
         class KifuLoadCoordinator* kifuLoadCoordinator = nullptr; // 棋譜読み込みコーディネータ

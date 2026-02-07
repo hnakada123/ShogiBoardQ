@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QString>
+#include <functional>
 
 #include "playmode.h"
 
@@ -41,6 +42,7 @@ public:
         UsiCommLogModel* commLogModel = nullptr;
         PlayMode* playMode = nullptr;
         QString* currentSfenStr = nullptr;
+        std::function<void()> ensureDialogCoordinator;  // 遅延初期化コールバック
     };
 
     explicit ConsiderationWiring(const Deps& deps, QObject* parent = nullptr);
@@ -121,6 +123,7 @@ private:
     UsiCommLogModel* m_commLogModel = nullptr;
     PlayMode* m_playMode = nullptr;
     QString* m_currentSfenStr = nullptr;
+    std::function<void()> m_ensureDialogCoordinator;
 
     ConsiderationModeUIController* m_uiController = nullptr;
 };

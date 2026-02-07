@@ -319,7 +319,9 @@ private slots:
 
     // 分岐ノード活性化
     void onBranchNodeActivated(int row, int ply);
-    void onBranchNodeHandled(int ply, const QString& sfen);
+    void onBranchNodeHandled(int ply, const QString& sfen,
+                             int previousFileTo, int previousRankTo,
+                             const QString& lastUsiMove);
 
     // 検討モード: 選択行の局面で検討再開
     void onBuildPositionRequired(int row);
