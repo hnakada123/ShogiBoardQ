@@ -2582,6 +2582,8 @@ void MainWindow::ensureDialogCoordinator()
     conCtx.sfenRecord = m_sfenRecord;
     conCtx.startSfenStr = &m_startSfenStr;
     conCtx.currentSfenStr = &m_currentSfenStr;
+    conCtx.branchTree = m_branchTree;
+    conCtx.navState = m_navState;
     conCtx.considerationModel = &m_considerationModel;
     conCtx.gameUsiMoves = &m_gameUsiMoves;
     conCtx.kifuLoadCoordinator = m_kifuLoadCoordinator;
@@ -3399,16 +3401,37 @@ void MainWindow::onBuildPositionRequired(int row)
     // 開始局面に至った最後の指し手を取得（読み筋表示ウィンドウのハイライト用）
     QString lastUsiMove;
     if (row > 0) {
-        const int usiIdx = row - 1;
-        if (!m_gameUsiMoves.isEmpty() && usiIdx < m_gameUsiMoves.size()) {
-            lastUsiMove = m_gameUsiMoves.at(usiIdx);
-        } else if (m_kifuLoadCoordinator) {
-            const QStringList& kifuUsiMoves = m_kifuLoadCoordinator->kifuUsiMoves();
-            if (usiIdx < kifuUsiMoves.size()) {
-                lastUsiMove = kifuUsiMoves.at(usiIdx);
+        // 分岐ライン上では、現在ラインのノードを優先する。
+        if (m_navState && m_branchTree) {
+            const int lineIndex = m_navState->currentLineIndex();
+            const QVector<BranchLine> lines = m_branchTree->allLines();
+            if (lineIndex >= 0 && lineIndex < lines.size()) {
+                const BranchLine& line = lines.at(lineIndex);
+                for (KifuBranchNode* node : line.nodes) {
+                    if (!node) continue;
+                    if (node->ply() == row && node->isActualMove()) {
+                        const ShogiMove mv = node->move();
+                        if (mv.movingPiece != QLatin1Char(' ')) {
+                            lastUsiMove = ShogiUtils::moveToUsi(mv);
+                        }
+                        break;
+                    }
+                }
             }
-        } else if (usiIdx < m_gameMoves.size()) {
-            lastUsiMove = ShogiUtils::moveToUsi(m_gameMoves.at(usiIdx));
+        }
+
+        const int usiIdx = row - 1;
+        if (lastUsiMove.isEmpty() && usiIdx >= 0) {
+            if (!m_gameUsiMoves.isEmpty() && usiIdx < m_gameUsiMoves.size()) {
+                lastUsiMove = m_gameUsiMoves.at(usiIdx);
+            } else if (m_kifuLoadCoordinator) {
+                const QStringList& kifuUsiMoves = m_kifuLoadCoordinator->kifuUsiMoves();
+                if (usiIdx < kifuUsiMoves.size()) {
+                    lastUsiMove = kifuUsiMoves.at(usiIdx);
+                }
+            } else if (usiIdx < m_gameMoves.size()) {
+                lastUsiMove = ShogiUtils::moveToUsi(m_gameMoves.at(usiIdx));
+            }
         }
     }
 

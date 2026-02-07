@@ -866,18 +866,18 @@
 <context>
     <name>DialogCoordinator</name>
     <message>
-        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="318"/>
+        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="396"/>
         <source>将棋エンジンが選択されていません。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="545"/>
+        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="662"/>
         <source>Error</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="318"/>
-        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="551"/>
+        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="396"/>
+        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="668"/>
         <source>エラー</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3492,7 +3492,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3261"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3263"/>
         <source>コメントなし</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3501,17 +3501,17 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">定跡</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3702"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3725"/>
         <source>棋譜を取り込みました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3704"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3727"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3708"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3731"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation type="unfinished"></translation>
     </message>

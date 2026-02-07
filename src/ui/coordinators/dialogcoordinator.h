@@ -161,6 +161,8 @@ public:
         QStringList* sfenRecord = nullptr;
         QString* startSfenStr = nullptr;
         const QString* currentSfenStr = nullptr;             // 現在表示中の局面SFEN（分岐対応）
+        class KifuBranchTree* branchTree = nullptr;          // 分岐ツリー（分岐ラインの手取得用）
+        class KifuNavigationState* navState = nullptr;       // 現在の分岐ライン状態
         ShogiEngineThinkingModel** considerationModel = nullptr;  // ダブルポインタ（遅延生成用）
         const QStringList* gameUsiMoves = nullptr;                // 対局中のUSI指し手リスト
         class KifuLoadCoordinator* kifuLoadCoordinator = nullptr; // 棋譜読み込みコーディネータ
