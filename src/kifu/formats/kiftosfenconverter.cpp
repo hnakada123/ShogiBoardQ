@@ -896,12 +896,15 @@ bool KifToSfenConverter::parseWithVariations(const QString& kifPath,
             }
         }
 
-        // この分岐のsfenListを生成（後続の分岐がこの分岐から派生する場合に使用）
+        // この分岐のsfenListとgameMovesを生成
         if (!var.line.baseSfen.isEmpty() && !var.line.usiMoves.isEmpty()) {
             var.line.sfenList = SfenPositionTracer::buildSfenRecord(
                 var.line.baseSfen, var.line.usiMoves, false);
+            var.line.gameMoves = SfenPositionTracer::buildGameMoves(
+                var.line.baseSfen, var.line.usiMoves);
             qDebug().noquote() << "[KIF] variation startPly=" << var.startPly
-                               << "sfenList built: size=" << var.line.sfenList.size();
+                               << "sfenList built: size=" << var.line.sfenList.size()
+                               << "gameMoves built: size=" << var.line.gameMoves.size();
         }
 
         vars.push_back(var);

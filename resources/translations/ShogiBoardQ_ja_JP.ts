@@ -871,13 +871,13 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="533"/>
+        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="545"/>
         <source>Error</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="318"/>
-        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="539"/>
+        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="551"/>
         <source>エラー</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3492,7 +3492,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3231"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3261"/>
         <source>コメントなし</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3501,17 +3501,17 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">定跡</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3667"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3702"/>
         <source>棋譜を取り込みました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3669"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3704"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3673"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3708"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation type="unfinished"></translation>
     </message>

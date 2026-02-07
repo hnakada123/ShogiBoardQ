@@ -156,8 +156,13 @@ signals:
      * @brief 分岐ノードが処理された（MainWindow側のply/SFEN更新用）
      * @param ply 選択された手数
      * @param sfen ノードのSFEN（空の場合は更新不要）
+     * @param previousFileTo 移動先の筋（検討モード用、0=なし）
+     * @param previousRankTo 移動先の段（検討モード用、0=なし）
+     * @param lastUsiMove 最後の指し手のUSI表記（検討モード用）
      */
-    void branchNodeHandled(int ply, const QString& sfen);
+    void branchNodeHandled(int ply, const QString& sfen,
+                           int previousFileTo, int previousRankTo,
+                           const QString& lastUsiMove);
 
 private:
     void emitUpdateSignals();
