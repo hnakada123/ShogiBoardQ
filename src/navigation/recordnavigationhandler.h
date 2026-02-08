@@ -3,7 +3,6 @@
 
 /// @file recordnavigationhandler.h
 /// @brief 棋譜欄行変更ハンドラクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QObject>

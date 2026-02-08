@@ -3,7 +3,6 @@
 
 /// @file positioneditcontroller.h
 /// @brief 局面編集モードの開始・終了・盤操作を管理するコントローラ
-/// @todo remove コメントスタイルガイド適用済み
 
 #include <QObject>
 #include <QString>

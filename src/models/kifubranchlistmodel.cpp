@@ -1,6 +1,5 @@
 /// @file kifubranchlistmodel.cpp
 /// @brief 分岐候補リストモデルクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "kifubranchlistmodel.h"
 #include <QBrush>

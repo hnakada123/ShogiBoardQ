@@ -3,7 +3,6 @@
 
 /// @file prestartcleanuphandler.h
 /// @brief 対局開始前クリーンアップハンドラクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 #include <QObject>
 #include <QString>
@@ -46,7 +45,6 @@ class PreStartCleanupHandler : public QObject
 
 public:
     /// 依存オブジェクト構造体
-    /// @todo remove コメントスタイルガイド適用済み
     struct Dependencies {
         BoardInteractionController* boardController = nullptr;  ///< 盤面操作コントローラ（非所有）
         ShogiView* shogiView = nullptr;                         ///< 盤面ビュー（非所有）
@@ -77,7 +75,6 @@ public:
 
 public slots:
     /// 対局開始前のクリーンアップを実行する（→ GameStartCoordinator::requestPreStartCleanup）
-    /// @todo remove コメントスタイルガイド適用済み
     void performCleanup();
 
 signals:

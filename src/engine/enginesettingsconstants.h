@@ -3,7 +3,6 @@
 
 /// @file enginesettingsconstants.h
 /// @brief エンジン設定のINIファイルキー定数の定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 /**

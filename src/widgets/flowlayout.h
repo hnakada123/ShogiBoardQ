@@ -3,7 +3,6 @@
 
 /// @file flowlayout.h
 /// @brief フローレイアウトクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QLayout>

@@ -1,6 +1,5 @@
 /// @file kifuanalysisresultsdisplay.cpp
 /// @brief 棋譜解析結果表示ウィジェットクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "kifuanalysisresultsdisplay.h"
 

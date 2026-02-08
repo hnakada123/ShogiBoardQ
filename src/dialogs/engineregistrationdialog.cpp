@@ -1,6 +1,5 @@
 /// @file engineregistrationdialog.cpp
 /// @brief エンジン登録ダイアログクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "engineregistrationdialog.h"
 #include "enginesettingsconstants.h"

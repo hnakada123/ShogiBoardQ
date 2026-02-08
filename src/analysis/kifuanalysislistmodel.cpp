@@ -1,17 +1,14 @@
 /// @file kifuanalysislistmodel.cpp
 /// @brief 棋譜解析結果リストモデルクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "kifuanalysislistmodel.h"
 #include <cmath>
 #include <QColor>
 
-/// @todo remove コメントスタイルガイド適用済み
 KifuAnalysisListModel::KifuAnalysisListModel(QObject *parent) : AbstractListModel<KifuAnalysisResultsDisplay>(parent)
 {
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 int KifuAnalysisListModel::columnCount(const QModelIndex &parent) const
 {
     Q_UNUSED(parent)
@@ -117,7 +114,6 @@ static QString getJudgementString(const QString& evalStr)
     return side + advantage;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QVariant KifuAnalysisListModel::data(const QModelIndex &index, int role) const
 {
     if (!index.isValid())
@@ -182,7 +178,6 @@ QVariant KifuAnalysisListModel::data(const QModelIndex &index, int role) const
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QVariant KifuAnalysisListModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
     if (role != Qt::DisplayRole) {

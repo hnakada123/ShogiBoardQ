@@ -1,6 +1,5 @@
 /// @file boardsyncpresenter.cpp
 /// @brief 盤面同期プレゼンタクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "boardsyncpresenter.h"
 #include "shogigamecontroller.h"

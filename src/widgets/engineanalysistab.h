@@ -3,7 +3,6 @@
 
 /// @file engineanalysistab.h
 /// @brief エンジン解析タブクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QWidget>

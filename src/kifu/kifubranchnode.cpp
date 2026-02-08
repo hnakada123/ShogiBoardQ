@@ -1,6 +1,5 @@
 /// @file kifubranchnode.cpp
 /// @brief 分岐ツリーノードクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "kifubranchnode.h"
 
@@ -8,7 +7,6 @@
 // 自由関数
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 TerminalType detectTerminalType(const QString& displayText)
 {
     if (displayText.contains(QStringLiteral("投了"))) return TerminalType::Resign;
@@ -29,7 +27,6 @@ TerminalType detectTerminalType(const QString& displayText)
 // 初期化
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 KifuBranchNode::KifuBranchNode()
     : m_nodeId(-1)
     , m_ply(0)
@@ -38,7 +35,6 @@ KifuBranchNode::KifuBranchNode()
 {
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 KifuBranchNode::~KifuBranchNode()
 {
     // 子ノードは所有しない（KifuBranchTreeが一括管理）
@@ -48,7 +44,6 @@ KifuBranchNode::~KifuBranchNode()
 // ツリー構造操作
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void KifuBranchNode::addChild(KifuBranchNode* child)
 {
     if (child && !m_children.contains(child)) {
@@ -57,7 +52,6 @@ void KifuBranchNode::addChild(KifuBranchNode* child)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void KifuBranchNode::removeChild(KifuBranchNode* child)
 {
     if (child) {
@@ -68,7 +62,6 @@ void KifuBranchNode::removeChild(KifuBranchNode* child)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 KifuBranchNode* KifuBranchNode::childAt(int index) const
 {
     if (index >= 0 && index < m_children.size()) {
@@ -81,7 +74,6 @@ KifuBranchNode* KifuBranchNode::childAt(int index) const
 // クエリ
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 bool KifuBranchNode::isMainLine() const
 {
     if (m_parent == nullptr) {
@@ -92,7 +84,6 @@ bool KifuBranchNode::isMainLine() const
     return !siblings.isEmpty() && siblings.first() == this;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 int KifuBranchNode::depth() const
 {
     int d = 0;
@@ -104,7 +95,6 @@ int KifuBranchNode::depth() const
     return d;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QString KifuBranchNode::lineName() const
 {
     int idx = lineIndex();
@@ -114,7 +104,6 @@ QString KifuBranchNode::lineName() const
     return QStringLiteral("分岐%1").arg(idx);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 int KifuBranchNode::lineIndex() const
 {
     // ルートから辿って、最初の分岐点での子インデックスを返す
@@ -144,7 +133,6 @@ int KifuBranchNode::lineIndex() const
     return 0;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QVector<KifuBranchNode*> KifuBranchNode::siblings() const
 {
     QVector<KifuBranchNode*> result;

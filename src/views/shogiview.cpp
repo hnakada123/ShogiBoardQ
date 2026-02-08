@@ -1,6 +1,5 @@
 /// @file shogiview.cpp
 /// @brief 将棋盤面描画ビュークラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "shogiview.h"
 #include "shogiboard.h"

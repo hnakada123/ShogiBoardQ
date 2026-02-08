@@ -3,7 +3,6 @@
 
 /// @file gamerecordmodel.h
 /// @brief 棋譜データの中央管理クラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QObject>

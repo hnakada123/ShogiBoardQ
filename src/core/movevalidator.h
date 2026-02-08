@@ -3,7 +3,6 @@
 
 /// @file movevalidator.h
 /// @brief 合法手判定クラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 #include <bitset>
 #include <QVector>
@@ -30,7 +29,6 @@ public:
     explicit MoveValidator(QObject* parent = nullptr);
 
     /// 駒種別
-    /// @todo remove コメントスタイルガイド適用済み
     enum PieceType {
         PAWN,             ///< 歩
         LANCE,            ///< 香

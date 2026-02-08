@@ -3,7 +3,6 @@
 
 /// @file analysisresultspresenter.h
 /// @brief 解析結果表示プレゼンタクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QObject>
@@ -29,18 +28,15 @@ class AnalysisResultsPresenter : public QObject
 {
     Q_OBJECT
 public:
-    /// @todo remove コメントスタイルガイド適用済み
     explicit AnalysisResultsPresenter(QObject* parent=nullptr);
 
     /// 結果表示先のドックウィジェットを設定する
-    /// @todo remove コメントスタイルガイド適用済み
     void setDockWidget(QDockWidget* dock);
 
     /// ドックに配置するコンテナウィジェットを返す
     QWidget* containerWidget();
 
     /// 指定モデルを表示してドックを可視化する（UI構築は初回のみ）
-    /// @todo remove コメントスタイルガイド適用済み
     void showWithModel(KifuAnalysisListModel* model);
 
     /// 結果テーブルビューを返す

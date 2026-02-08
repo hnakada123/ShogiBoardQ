@@ -37,7 +37,6 @@ public:
     // --- 型定義 ---
 
     /// 依存オブジェクト
-    /// @todo remove コメントスタイルガイド適用済み
     struct Deps {
         MatchCoordinator*     match  = nullptr;  ///< 対局進行の司令塔（必須）
         ShogiClock*           clock  = nullptr;  ///< 時計（任意、時間適用リクエストを出すだけ）
@@ -46,7 +45,6 @@ public:
     };
 
     /// 片方の対局者の時間設定（ミリ秒単位）
-    /// @todo remove コメントスタイルガイド適用済み
     struct TimeSide {
         qint64 baseMs      = 0;  ///< 持ち時間
         qint64 byoyomiMs   = 0;  ///< 秒読み
@@ -54,7 +52,6 @@ public:
     };
 
     /// 時間制御の設定
-    /// @todo remove コメントスタイルガイド適用済み
     struct TimeControl {
         bool     enabled = false;  ///< 時間制御が有効か
         TimeSide p1;               ///< 先手の時間設定
@@ -62,7 +59,6 @@ public:
     };
 
     /// 対局開始パラメータ
-    /// @todo remove コメントスタイルガイド適用済み
     struct StartParams {
         MatchCoordinator::StartOptions opt;  ///< 既存のStartOptionsをそのまま注入
         TimeControl                    tc;   ///< 時計適用のために併送
@@ -70,7 +66,6 @@ public:
     };
 
     /// 開始前の適用（時計/人手前など）を依頼するための軽量入力
-    /// @todo remove コメントスタイルガイド適用済み
     struct Request {
         int       mode = 0;                    ///< PlayModeをintで受ける（enum依存を避ける）
         QString   startSfen;                   ///< "startpos ..." or "<sfen> [b|w] ..."
@@ -81,7 +76,6 @@ public:
     };
 
     /// initializeGame等の段階実行APIに渡すコンテキスト
-    /// @todo remove コメントスタイルガイド適用済み
     struct Ctx {
         ShogiView*             view = nullptr;               ///< 盤面ビュー
         ShogiGameController*   gc = nullptr;                 ///< ゲームコントローラ
@@ -110,39 +104,31 @@ public:
     explicit GameStartCoordinator(const Deps& deps, QObject* parent = nullptr);
 
     /// StartOptionsを受け取り対局を開始する
-    /// @todo remove コメントスタイルガイド適用済み
     void start(const StartParams& params);
 
     /// 開始前の時計/表示ポリシーを適用する
-    /// @todo remove コメントスタイルガイド適用済み
     void prepare(const Request& req);
 
     // --- 段階実行API ---
 
     /// 現在局面から開始する場合のデータ準備
-    /// @todo remove コメントスタイルガイド適用済み
     void prepareDataCurrentPosition(const Ctx& c);
 
     /// 初期局面（平手／手合割）で開始する場合の準備
-    /// @todo remove コメントスタイルガイド適用済み
     void prepareInitialPosition(const Ctx& c);
 
     /// ダイアログ表示→対局開始までの一連のフローを実行する
-    /// @todo remove コメントスタイルガイド適用済み
     void initializeGame(const Ctx& c);
 
     /// 時計を設定し対局を開始する
-    /// @todo remove コメントスタイルガイド適用済み
     void setTimerAndStart(const Ctx& c);
 
     // --- ユーティリティ ---
 
     /// ダイアログ状態からPlayModeを決定する
-    /// @todo remove コメントスタイルガイド適用済み
     PlayMode setPlayMode(const Ctx& c) const;
 
     /// SFENの手番とダイアログ設定を整合させてPlayModeを決定する
-    /// @todo remove コメントスタイルガイド適用済み
     static PlayMode determinePlayModeAlignedWithTurn(
         int initPositionNumber,
         bool isPlayer1Human,
@@ -154,12 +140,10 @@ public:
     /// @param deps 司令塔の依存オブジェクト
     /// @param parentForMatch 司令塔の親オブジェクト（所有権管理用）
     /// @return 生成された司令塔のポインタ
-    /// @todo remove コメントスタイルガイド適用済み
     MatchCoordinator* createAndWireMatch(const MatchCoordinator::Deps& deps,
                                          QObject* parentForMatch);
 
     /// PlayModeに応じて盤面ビューに対局者名を設定する
-    /// @todo remove コメントスタイルガイド適用済み
     void applyPlayersNamesForMode(ShogiView* view,
                                   PlayMode mode,
                                   const QString& human1,
@@ -168,7 +152,6 @@ public:
                                   const QString& engine2) const;
 
     /// 再開SFENが指定されていれば盤へ適用し、即時描画まで行う
-    /// @todo remove コメントスタイルガイド適用済み
     static void applyResumePositionIfAny(ShogiGameController* gc,
                                          ShogiView* view,
                                          const QString& resumeSfen);

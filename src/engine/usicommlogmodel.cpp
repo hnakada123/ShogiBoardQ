@@ -1,6 +1,5 @@
 /// @file usicommlogmodel.cpp
 /// @brief USI通信ログ・エンジン情報表示モデルの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "usicommlogmodel.h"
 #include <QDebug>
@@ -9,56 +8,47 @@
 // 初期化
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 UsiCommLogModel::UsiCommLogModel(QObject* parent) : QObject(parent) {}
 
 // ============================================================
 // プロパティ getter
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 QString UsiCommLogModel::engineName() const
 {
     return m_engineName;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QString UsiCommLogModel::predictiveMove() const
 {
     return m_predictiveMove;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QString UsiCommLogModel::searchedMove() const
 {
     return m_searchedMove;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QString UsiCommLogModel::searchDepth() const
 {
     return m_searchDepth;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QString UsiCommLogModel::nodeCount() const
 {
     return m_nodeCount;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QString UsiCommLogModel::nodesPerSecond() const
 {
     return m_nodesPerSecond;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QString UsiCommLogModel::hashUsage() const
 {
     return m_hashUsage;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QString UsiCommLogModel::usiCommLog() const
 {
     return m_usiCommLog;
@@ -68,7 +58,6 @@ QString UsiCommLogModel::usiCommLog() const
 // プロパティ setter
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void UsiCommLogModel::setEngineName(const QString& engineName)
 {
     qDebug().noquote() << "[UsiCommLogModel] setEngineName: old=" << m_engineName << " new=" << engineName;
@@ -79,7 +68,6 @@ void UsiCommLogModel::setEngineName(const QString& engineName)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void UsiCommLogModel::setPredictiveMove(const QString& predictiveMove)
 {
     if (m_predictiveMove != predictiveMove)
@@ -89,7 +77,6 @@ void UsiCommLogModel::setPredictiveMove(const QString& predictiveMove)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void UsiCommLogModel::setSearchedMove(const QString& searchedMove)
 {
     if (m_searchedMove != searchedMove)
@@ -99,7 +86,6 @@ void UsiCommLogModel::setSearchedMove(const QString& searchedMove)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void UsiCommLogModel::setSearchDepth(const QString& searchDepth)
 {
     if (m_searchDepth != searchDepth)
@@ -109,7 +95,6 @@ void UsiCommLogModel::setSearchDepth(const QString& searchDepth)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void UsiCommLogModel::setNodeCount(const QString& nodeCount)
 {
     if (m_nodeCount != nodeCount)
@@ -119,7 +104,6 @@ void UsiCommLogModel::setNodeCount(const QString& nodeCount)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void UsiCommLogModel::setNodesPerSecond(const QString& nodesPerSecond)
 {
     if (m_nodesPerSecond != nodesPerSecond)
@@ -129,7 +113,6 @@ void UsiCommLogModel::setNodesPerSecond(const QString& nodesPerSecond)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void UsiCommLogModel::setHashUsage(const QString& hashUsage)
 {
     if (m_hashUsage != hashUsage)
@@ -143,14 +126,12 @@ void UsiCommLogModel::setHashUsage(const QString& hashUsage)
 // ログ追加・クリア
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void UsiCommLogModel::appendUsiCommLog(const QString& usiCommLog)
 {
     m_usiCommLog = usiCommLog;
     emit usiCommLogChanged();
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void UsiCommLogModel::clear()
 {
     // 値が非空の場合のみ変更＆シグナル発火

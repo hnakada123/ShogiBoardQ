@@ -3,7 +3,6 @@
 
 /// @file shogiboard.h
 /// @brief 将棋盤の状態管理クラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 #include <QObject>
 #include <QVector>

@@ -1,6 +1,5 @@
 /// @file consecutivegamescontroller.cpp
 /// @brief 連続対局の進行管理と手番入れ替えの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "consecutivegamescontroller.h"
 #include "timecontrolcontroller.h"
@@ -14,7 +13,6 @@
 // 生成・依存設定
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 ConsecutiveGamesController::ConsecutiveGamesController(QObject* parent)
     : QObject(parent)
     , m_delayTimer(new QTimer(this))
@@ -23,13 +21,11 @@ ConsecutiveGamesController::ConsecutiveGamesController(QObject* parent)
     connect(m_delayTimer, &QTimer::timeout, this, &ConsecutiveGamesController::startNextGame);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ConsecutiveGamesController::setTimeController(TimeControlController* tc)
 {
     m_timeController = tc;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ConsecutiveGamesController::setGameStartCoordinator(GameStartCoordinator* gsc)
 {
     m_gameStart = gsc;
@@ -39,7 +35,6 @@ void ConsecutiveGamesController::setGameStartCoordinator(GameStartCoordinator* g
 // 設定・状態管理
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void ConsecutiveGamesController::configure(int totalGames, bool switchTurn)
 {
     qDebug().noquote() << "[CGC] configure: totalGames=" << totalGames
@@ -51,7 +46,6 @@ void ConsecutiveGamesController::configure(int totalGames, bool switchTurn)
     m_switchTurnEachGame = switchTurn;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ConsecutiveGamesController::onGameStarted(
     const MatchCoordinator::StartOptions& opt,
     const GameStartCoordinator::TimeControl& tc)
@@ -63,13 +57,11 @@ void ConsecutiveGamesController::onGameStarted(
     m_lastTimeControl = tc;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 bool ConsecutiveGamesController::shouldStartNextGame() const
 {
     return m_remainingGames > 0;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ConsecutiveGamesController::reset()
 {
     m_remainingGames = 0;
@@ -88,7 +80,6 @@ void ConsecutiveGamesController::reset()
 // 次局の準備・開始
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void ConsecutiveGamesController::prepareNextGameOptions()
 {
     m_remainingGames--;
@@ -102,7 +93,6 @@ void ConsecutiveGamesController::prepareNextGameOptions()
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ConsecutiveGamesController::startNextGame()
 {
     qDebug().noquote() << "[CGC] startNextGame: remaining=" << m_remainingGames

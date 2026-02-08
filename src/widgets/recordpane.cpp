@@ -1,6 +1,5 @@
 /// @file recordpane.cpp
 /// @brief 棋譜欄ペインクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "recordpane.h"
 #include "kifurecordlistmodel.h"

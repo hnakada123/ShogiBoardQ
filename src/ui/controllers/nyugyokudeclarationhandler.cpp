@@ -1,6 +1,5 @@
 /// @file nyugyokudeclarationhandler.cpp
 /// @brief 入玉宣言ハンドラクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "nyugyokudeclarationhandler.h"
 #include "shogiboard.h"

@@ -2,7 +2,6 @@
 
 /// @file kifreader.h
 /// @brief 棋譜ファイルの文字コード自動判別読み込み機能の定義
-/// @todo remove コメントスタイルガイド適用済み
 
 #include <QString>
 #include <QStringList>

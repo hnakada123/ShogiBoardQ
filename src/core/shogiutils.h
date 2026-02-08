@@ -3,7 +3,6 @@
 
 /// @file shogiutils.h
 /// @brief 将棋関連の共通ユーティリティ関数群の定義
-/// @todo remove コメントスタイルガイド適用済み
 
 #include <QString>
 #include <QElapsedTimer>
@@ -12,7 +11,6 @@ class QAbstractItemModel;
 struct ShogiMove;
 
 /// 将棋の座標変換・指し手解析等の共通ユーティリティ
-/// @todo remove コメントスタイルガイド適用済み
 namespace ShogiUtils {
 
     // --- 座標表記変換 ---

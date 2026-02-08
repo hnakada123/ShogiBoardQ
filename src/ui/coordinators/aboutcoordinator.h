@@ -3,7 +3,6 @@
 
 /// @file aboutcoordinator.h
 /// @brief バージョン情報コーディネータクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 class QWidget;

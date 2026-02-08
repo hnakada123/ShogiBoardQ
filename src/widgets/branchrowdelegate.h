@@ -3,7 +3,6 @@
 
 /// @file branchrowdelegate.h
 /// @brief 分岐行描画デリゲートクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QStyledItemDelegate>

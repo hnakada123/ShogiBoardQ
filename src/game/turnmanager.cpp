@@ -1,6 +1,5 @@
 /// @file turnmanager.cpp
 /// @brief 手番の管理と各種表現形式への変換の実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "turnmanager.h"
 #include <QString>
@@ -9,18 +8,15 @@
 // 生成・基本操作
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 TurnManager::TurnManager(QObject* parent)
     : QObject(parent)
     , m_side(ShogiGameController::NoPlayer)
 {}
 
-/// @todo remove コメントスタイルガイド適用済み
 TurnManager::Side TurnManager::side() const {
     return m_side;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void TurnManager::set(Side s) {
     // Player2 以外は Player1 として正規化
     const Side norm = (s == ShogiGameController::Player2)
@@ -32,7 +28,6 @@ void TurnManager::set(Side s) {
     emit changed(m_side);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void TurnManager::toggle() {
     set(m_side == ShogiGameController::Player1
             ? ShogiGameController::Player2
@@ -43,14 +38,12 @@ void TurnManager::toggle() {
 // SFEN "b"/"w" 変換
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 QString TurnManager::toSfenToken() const {
     return (m_side == ShogiGameController::Player2)
     ? QStringLiteral("w")
     : QStringLiteral("b");
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void TurnManager::setFromSfenToken(const QString& bw) {
     const auto s = (bw.compare(QStringLiteral("w"), Qt::CaseInsensitive) == 0)
     ? ShogiGameController::Player2
@@ -62,12 +55,10 @@ void TurnManager::setFromSfenToken(const QString& bw) {
 // Clock 1/2 変換
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 int TurnManager::toClockPlayer() const {
     return (m_side == ShogiGameController::Player2) ? 2 : 1;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void TurnManager::setFromClockPlayer(int p) {
     set(p == 2 ? ShogiGameController::Player2
                : ShogiGameController::Player1);
@@ -77,12 +68,10 @@ void TurnManager::setFromClockPlayer(int p) {
 // GameController 変換
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 ShogiGameController::Player TurnManager::toGc() const {
     return m_side;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void TurnManager::setFromGc(ShogiGameController::Player p) {
     set(p);
 }

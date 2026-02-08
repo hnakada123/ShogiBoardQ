@@ -3,7 +3,6 @@
 
 /// @file branchtreewidget.h
 /// @brief 分岐ツリーグラフウィジェットクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QWidget>

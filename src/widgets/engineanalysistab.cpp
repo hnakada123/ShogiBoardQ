@@ -1,6 +1,5 @@
 /// @file engineanalysistab.cpp
 /// @brief エンジン解析タブクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "engineanalysistab.h"
 

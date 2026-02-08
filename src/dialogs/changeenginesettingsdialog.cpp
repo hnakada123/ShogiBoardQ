@@ -1,6 +1,5 @@
 /// @file changeenginesettingsdialog.cpp
 /// @brief エンジン設定変更ダイアログクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "changeenginesettingsdialog.h"
 #include "enginesettingsconstants.h"

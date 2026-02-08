@@ -1,6 +1,5 @@
 /// @file boardimageexporter.cpp
 /// @brief 盤面画像のクリップボードコピー・ファイル保存機能の実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "boardimageexporter.h"
 #include <QClipboard>
@@ -18,7 +17,6 @@
 // ヘルパ関数
 // ======================================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 static bool hasFormat(const QSet<QString>& fmts, const QString& key) {
     if (key == "jpeg") return fmts.contains("jpeg") || fmts.contains("jpg");
     return fmts.contains(key);
@@ -28,13 +26,11 @@ static bool hasFormat(const QSet<QString>& fmts, const QString& key) {
 // 公開API
 // ======================================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void BoardImageExporter::copyToClipboard(QWidget* boardWidget) {
     if (!boardWidget) return;
     QApplication::clipboard()->setPixmap(boardWidget->grab());
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void BoardImageExporter::saveImage(QWidget* parent, QWidget* boardWidget) {
     // 処理フロー:
     // 1. サポートされている画像フォーマットを収集

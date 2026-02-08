@@ -3,7 +3,6 @@
 
 /// @file considerationmodeuicontroller.h
 /// @brief 検討モードUIコントローラクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QObject>
@@ -34,7 +33,6 @@ class ConsiderationModeUIController : public QObject
     Q_OBJECT
 
 public:
-    /// @todo remove コメントスタイルガイド適用済み
     explicit ConsiderationModeUIController(QObject* parent = nullptr);
 
     // --- 依存オブジェクト設定 ---

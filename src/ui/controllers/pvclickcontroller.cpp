@@ -1,6 +1,5 @@
 /// @file pvclickcontroller.cpp
 /// @brief 読み筋クリックコントローラクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "pvclickcontroller.h"
 

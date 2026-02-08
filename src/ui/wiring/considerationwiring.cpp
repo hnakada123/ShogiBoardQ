@@ -1,6 +1,5 @@
 /// @file considerationwiring.cpp
 /// @brief 検討モード配線クラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "considerationwiring.h"
 

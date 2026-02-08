@@ -3,7 +3,6 @@
 
 /// @file playmode.h
 /// @brief 対局モード列挙型の定義
-/// @todo remove コメントスタイルガイド適用済み
 
 /**
  * @brief アプリケーションの対局モード

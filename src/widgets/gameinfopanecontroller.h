@@ -3,7 +3,6 @@
 
 /// @file gameinfopanecontroller.h
 /// @brief 対局情報ペインコントローラクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QObject>

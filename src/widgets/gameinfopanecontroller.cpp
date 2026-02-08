@@ -1,6 +1,5 @@
 /// @file gameinfopanecontroller.cpp
 /// @brief 対局情報ペインコントローラクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "gameinfopanecontroller.h"
 #include "settingsservice.h"

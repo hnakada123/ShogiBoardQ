@@ -3,7 +3,6 @@
 
 /// @file docklayoutmanager.h
 /// @brief ドックレイアウト管理クラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QObject>

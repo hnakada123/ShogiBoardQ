@@ -3,7 +3,6 @@
 
 /// @file boardimageexporter.h
 /// @brief 盤面画像のクリップボードコピー・ファイル保存機能
-/// @todo remove コメントスタイルガイド適用済み
 
 #include <QObject>
 class QWidget;

@@ -3,7 +3,6 @@
 
 /// @file kifurecordlistmodel.h
 /// @brief 棋譜レコードリストモデルクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QVariant>

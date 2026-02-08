@@ -3,7 +3,6 @@
 
 /// @file nyugyokudeclarationhandler.h
 /// @brief 入玉宣言ハンドラクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QObject>

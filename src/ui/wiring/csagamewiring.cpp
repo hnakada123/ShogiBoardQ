@@ -1,6 +1,5 @@
 /// @file csagamewiring.cpp
 /// @brief CSA通信対局配線クラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "csagamewiring.h"
 

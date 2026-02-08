@@ -1,6 +1,5 @@
 /// @file shogigamecontroller.cpp
 /// @brief 将棋の対局進行・盤面更新・合法手検証を管理するコントローラの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "shogigamecontroller.h"
 
@@ -17,7 +16,6 @@
 // 初期化
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 ShogiGameController::ShogiGameController(QObject* parent)
     : QObject(parent), m_board(nullptr), m_result(NoResult), m_currentPlayer(NoPlayer), m_promote(false)
     , m_forcedPromotionMode(false)
@@ -27,13 +25,11 @@ ShogiGameController::ShogiGameController(QObject* parent)
 {
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 ShogiBoard* ShogiGameController::board() const
 {
     return m_board;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiGameController::newGame(QString& initialSfenString)
 {
     qDebug() << "[DEBUG] ShogiGameController::newGame called";
@@ -53,13 +49,11 @@ void ShogiGameController::newGame(QString& initialSfenString)
     previousRankTo = 0;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiGameController::setupBoard()
 {
     setBoard(new ShogiBoard(9, 9, this));
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiGameController::setBoard(ShogiBoard* board)
 {
     if (!board) {
@@ -81,7 +75,6 @@ void ShogiGameController::setBoard(ShogiBoard* board)
 // 対局結果
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiGameController::setResult(Result value)
 {
     if (result() == value) return;
@@ -99,19 +92,16 @@ void ShogiGameController::setResult(Result value)
 // 成り制御
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 bool ShogiGameController::promote() const
 {
     return m_promote;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiGameController::setPromote(bool newPromote)
 {
     m_promote = newPromote;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiGameController::setForcedPromotion(bool force, bool promote)
 {
     m_forcedPromotionMode = force;
@@ -119,7 +109,6 @@ void ShogiGameController::setForcedPromotion(bool force, bool promote)
     qDebug() << "[GC] setForcedPromotion: force=" << force << "promote=" << promote;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiGameController::clearForcedPromotion()
 {
     m_forcedPromotionMode = false;
@@ -130,7 +119,6 @@ void ShogiGameController::clearForcedPromotion()
 // 手番管理
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiGameController::setCurrentPlayer(const Player player)
 {
     if (currentPlayer() == player) return;
@@ -139,13 +127,11 @@ void ShogiGameController::setCurrentPlayer(const Player player)
     emit currentPlayerChanged(m_currentPlayer);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiGameController::changeCurrentPlayer()
 {
     setCurrentPlayer(currentPlayer() == Player1 ? Player2 : Player1);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QString ShogiGameController::getNextPlayerSfen()
 {
     QString nextPlayerColorSfen;
@@ -165,7 +151,6 @@ QString ShogiGameController::getNextPlayerSfen()
     return nextPlayerColorSfen;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 MoveValidator::Turn ShogiGameController::getCurrentTurnForValidator(MoveValidator& validator)
 {
     if (currentPlayer() == Player1) {
@@ -180,7 +165,6 @@ MoveValidator::Turn ShogiGameController::getCurrentTurnForValidator(MoveValidato
 // 棋譜文字列変換
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 QString ShogiGameController::convertMoveToKanjiStr(const QString piece, const int fileFrom, const int rankFrom, const int fileTo, const int rankTo)
 {
     if (currentPlayer() != Player1 && currentPlayer() != Player2) {
@@ -232,7 +216,6 @@ QString ShogiGameController::convertMoveToKanjiStr(const QString piece, const in
     return moveStr;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QString ShogiGameController::getPieceKanji(const QChar& piece)
 {
     static const QMap<QChar, QString> pieceKanjiNames = {
@@ -260,7 +243,6 @@ QString ShogiGameController::getPieceKanji(const QChar& piece)
 // 成り判定
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 bool ShogiGameController::decidePromotion(PlayMode& playMode, MoveValidator& validator, const MoveValidator::Turn& turnMove,
                                      int& fileFrom, int& rankFrom, int& fileTo, int& rankTo, QChar& piece,  ShogiMove& currentMove)
 {
@@ -313,7 +295,6 @@ bool ShogiGameController::decidePromotion(PlayMode& playMode, MoveValidator& val
     return true;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 bool ShogiGameController::isCurrentPlayerHumanControlled(PlayMode& playMode)
 {
     auto player = currentPlayer();
@@ -326,7 +307,6 @@ bool ShogiGameController::isCurrentPlayerHumanControlled(PlayMode& playMode)
            || (playMode == PlayMode::CsaNetworkMode);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiGameController::decidePromotionByDialog(QChar& piece, int& rankFrom, int& rankTo)
 {
     auto player = currentPlayer();
@@ -347,7 +327,6 @@ void ShogiGameController::decidePromotionByDialog(QChar& piece, int& rankFrom, i
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 bool ShogiGameController::isPromotablePiece(QChar& piece)
 {
     static const QString promotablePieces = "PLNSBRplnsbr";
@@ -358,7 +337,6 @@ bool ShogiGameController::isPromotablePiece(QChar& piece)
 // 指し手検証・盤面更新
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QString& record, PlayMode& playMode, int& moveNumber,
                                           QStringList* m_sfenRecord, QVector<ShogiMove>& gameMoves)
 {
@@ -491,7 +469,6 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
 // 局面編集
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 bool ShogiGameController::editPosition(const QPoint& outFrom, const QPoint& outTo)
 {
     if (!board()) {
@@ -529,7 +506,6 @@ bool ShogiGameController::editPosition(const QPoint& outFrom, const QPoint& outT
 // 禁じ手チェック
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 bool ShogiGameController::checkMovePiece(const QChar source, const QChar dest, const int fileFrom, const int fileTo) const
 {
     if (!checkTwoPawn(source, fileFrom, fileTo)) return false;
@@ -541,13 +517,11 @@ bool ShogiGameController::checkMovePiece(const QChar source, const QChar dest, c
     return true;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 bool ShogiGameController::checkNumberStandPiece(const QChar source, const int fileFrom) const
 {
     return board()->isPieceAvailableOnStand(source, fileFrom);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 bool ShogiGameController::checkWhetherAllyPiece(const QChar source, const QChar dest, const int fileFrom, const int fileTo) const
 {
     if (fileTo < 10) {
@@ -571,7 +545,6 @@ bool ShogiGameController::checkWhetherAllyPiece(const QChar source, const QChar 
     return true;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 bool ShogiGameController::checkTwoPawn(const QChar source, const int fileFrom, const int fileTo) const
 {
     // 同じ筋内の移動は二歩にならない
@@ -596,7 +569,6 @@ bool ShogiGameController::checkTwoPawn(const QChar source, const int fileFrom, c
     return true;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiGameController::setMandatoryPromotionFlag(const int fileTo, const int rankTo, const QChar source)
 {
     m_promote = false;
@@ -627,7 +599,6 @@ void ShogiGameController::setMandatoryPromotionFlag(const int fileTo, const int 
 // 対局結果
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiGameController::gameResult()
 {
     if (currentPlayer() == Player2) {
@@ -638,7 +609,6 @@ void ShogiGameController::gameResult()
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiGameController::switchPiecePromotionStatusOnRightClick(const int fileFrom, const int rankFrom) const
 {
     if (!board()) return;
@@ -648,7 +618,6 @@ void ShogiGameController::switchPiecePromotionStatusOnRightClick(const int fileF
 }
 
 
-/// @todo remove コメントスタイルガイド適用済み
 bool ShogiGameController::checkFromPieceStandToPieceStand(const QChar source, const QChar dest, const int fileFrom, const int fileTo) const
 {
     // 先手駒台→後手駒台: 同種の駒のみ移動可能
@@ -673,7 +642,6 @@ bool ShogiGameController::checkFromPieceStandToPieceStand(const QChar source, co
     return true;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 bool ShogiGameController::checkGetKingOpponentPiece(const QChar source, const QChar dest) const
 {
     // 後手の駒で先手玉は取れない
@@ -689,7 +657,6 @@ bool ShogiGameController::checkGetKingOpponentPiece(const QChar source, const QC
 // SFEN更新
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiGameController::updateSfenRecordAfterEdit(QStringList* m_sfenRecord)
 {
     if (!board()) {
@@ -715,7 +682,6 @@ void ShogiGameController::updateSfenRecordAfterEdit(QStringList* m_sfenRecord)
     board()->addSfenRecord(nextTurn, moveIndex, m_sfenRecord);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QPoint ShogiGameController::lastMoveTo() const
 {
     return QPoint(previousFileTo, previousRankTo);
@@ -725,7 +691,6 @@ QPoint ShogiGameController::lastMoveTo() const
 // 対局結果制御（時間切れ・投了・最終決定）
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiGameController::applyTimeoutLossFor(int clockPlayer)
 {
     if (m_result != NoResult) return;
@@ -739,7 +704,6 @@ void ShogiGameController::applyTimeoutLossFor(int clockPlayer)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiGameController::applyResignationOfCurrentSide()
 {
     if (m_result != NoResult) return;
@@ -754,7 +718,6 @@ void ShogiGameController::applyResignationOfCurrentSide()
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiGameController::finalizeGameResult()
 {
     if (m_result != NoResult) return;

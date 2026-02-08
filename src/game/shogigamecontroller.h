@@ -3,7 +3,6 @@
 
 /// @file shogigamecontroller.h
 /// @brief 将棋の対局進行・盤面更新・合法手検証を管理するコントローラ
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QObject>

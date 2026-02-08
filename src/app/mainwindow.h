@@ -3,7 +3,6 @@
 
 /// @file mainwindow.h
 /// @brief MainWindow の宣言
-/// @todo remove コメントスタイルガイド適用済み
 
 
 // --- Qt ヘッダー ---

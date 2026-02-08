@@ -3,7 +3,6 @@
 
 /// @file kifubranchtreebuilder.h
 /// @brief 分岐ツリー構築ビルダークラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QString>

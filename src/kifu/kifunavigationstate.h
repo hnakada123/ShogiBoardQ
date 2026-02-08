@@ -3,7 +3,6 @@
 
 /// @file kifunavigationstate.h
 /// @brief 棋譜ナビゲーション状態管理クラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QObject>

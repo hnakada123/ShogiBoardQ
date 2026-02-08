@@ -3,7 +3,6 @@
 
 /// @file turnmanager.h
 /// @brief 手番の管理と各種表現形式への変換を担うクラス
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QObject>

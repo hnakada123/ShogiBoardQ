@@ -3,7 +3,6 @@
 
 /// @file kifutypes.h
 /// @brief 棋譜関連の共通データ型定義
-/// @todo remove コメントスタイルガイド適用済み
 
 #include <QString>
 #include <QVector>

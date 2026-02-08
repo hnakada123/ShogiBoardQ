@@ -3,7 +3,6 @@
 
 /// @file usicommandcontroller.h
 /// @brief USIコマンド送信コントローラクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QObject>

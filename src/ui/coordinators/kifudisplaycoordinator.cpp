@@ -1,6 +1,5 @@
 /// @file kifudisplaycoordinator.cpp
 /// @brief 棋譜表示コーディネータクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "kifudisplaycoordinator.h"
 #include "kifubranchtree.h"

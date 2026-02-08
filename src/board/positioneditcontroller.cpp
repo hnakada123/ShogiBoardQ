@@ -1,6 +1,5 @@
 /// @file positioneditcontroller.cpp
 /// @brief 局面編集モードの開始・終了・盤操作の実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "positioneditcontroller.h"
 #include "shogiview.h"
@@ -86,7 +85,6 @@ static ShogiGameController::Player fromBW(const QString& bw)
 // 編集ライフサイクル
 // ======================================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void PositionEditController::beginPositionEditing(const BeginEditContext& c)
 {
     // 処理フロー:
@@ -171,7 +169,6 @@ void PositionEditController::beginPositionEditing(const BeginEditContext& c)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void PositionEditController::finishPositionEditing(const PositionEditController::FinishEditContext& c)
 {
     if (!c.gc || !c.view || !c.view->board()) return;
@@ -226,7 +223,6 @@ void PositionEditController::finishPositionEditing(const PositionEditController:
 // 盤面操作API
 // ======================================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void PositionEditController::resetPiecesToStand(ShogiView* view, BoardInteractionController* bic)
 {
     if (!view) return;
@@ -234,7 +230,6 @@ void PositionEditController::resetPiecesToStand(ShogiView* view, BoardInteractio
     view->resetAndEqualizePiecesOnStands();
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void PositionEditController::setStandardStartPosition(ShogiView* view, BoardInteractionController* bic)
 {
     if (!view) return;
@@ -242,7 +237,6 @@ void PositionEditController::setStandardStartPosition(ShogiView* view, BoardInte
     view->initializeToFlatStartingPosition();
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void PositionEditController::setTsumeShogiStartPosition(ShogiView* view, BoardInteractionController* bic)
 {
     if (!view) return;
@@ -254,7 +248,6 @@ void PositionEditController::setTsumeShogiStartPosition(ShogiView* view, BoardIn
 // 編集終了ボタン制御
 // ======================================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void PositionEditController::showEditExitButtonOnBoard(ShogiView* view, QObject* receiver, const char* finishSlot)
 {
     if (!view) return;
@@ -271,7 +264,6 @@ void PositionEditController::showEditExitButtonOnBoard(ShogiView* view, QObject*
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void PositionEditController::hideEditExitButtonOnBoard(ShogiView* view)
 {
     if (!view) return;
@@ -284,28 +276,24 @@ void PositionEditController::hideEditExitButtonOnBoard(ShogiView* view)
 // アクション用スロット
 // ======================================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void PositionEditController::onReturnAllPiecesOnStandTriggered()
 {
     if (!m_view) return;
     resetPiecesToStand(m_view, m_bic);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void PositionEditController::onFlatHandInitialPositionTriggered()
 {
     if (!m_view) return;
     setStandardStartPosition(m_view, m_bic);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void PositionEditController::onShogiProblemInitialPositionTriggered()
 {
     if (!m_view) return;
     setTsumeShogiStartPosition(m_view, m_bic);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void PositionEditController::onToggleSideToMoveTriggered()
 {
     if (!m_gc) return;
@@ -321,7 +309,6 @@ void PositionEditController::onToggleSideToMoveTriggered()
 // 編集中の着手適用
 // ======================================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 bool PositionEditController::applyEditMove(const QPoint& from,
                                            const QPoint& to,
                                            ShogiView* view,

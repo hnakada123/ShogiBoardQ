@@ -1,6 +1,5 @@
 /// @file considerationdialog.cpp
 /// @brief 検討ダイアログクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "considerationdialog.h"
 #include "changeenginesettingsdialog.h"

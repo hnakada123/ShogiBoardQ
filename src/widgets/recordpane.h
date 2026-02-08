@@ -3,7 +3,6 @@
 
 /// @file recordpane.h
 /// @brief 棋譜欄ペインクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QWidget>

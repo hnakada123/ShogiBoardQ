@@ -3,7 +3,6 @@
 
 /// @file gamelayoutbuilder.h
 /// @brief 対局画面レイアウトビルダークラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QObject>

@@ -1,6 +1,5 @@
 /// @file analysisflowcontroller.cpp
 /// @brief 棋譜解析フローコントローラクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "analysisflowcontroller.h"
 
@@ -25,13 +24,11 @@
 #include <QtGlobal>
 #include <QPointer>
 
-/// @todo remove コメントスタイルガイド適用済み
 AnalysisFlowController::AnalysisFlowController(QObject* parent)
     : QObject(parent)
 {
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 AnalysisFlowController::~AnalysisFlowController()
 {
     // 解析中の場合はリソースリーク防止のため停止処理を行う
@@ -42,7 +39,6 @@ AnalysisFlowController::~AnalysisFlowController()
     //       すべて this を親として作成されているため、Qtの親子関係により自動破棄される
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
 {
     if (!d.sfenRecord || d.sfenRecord->isEmpty()) {
@@ -221,7 +217,6 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
     m_coord->startAnalyzeRange();
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void AnalysisFlowController::stop()
 {
     qDebug().noquote() << "[AnalysisFlowController::stop] called, m_running=" << m_running;
@@ -250,7 +245,6 @@ void AnalysisFlowController::stop()
     qDebug().noquote() << "[AnalysisFlowController::stop] analysis stopped";
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void AnalysisFlowController::applyDialogOptions(KifuAnalysisDialog* dlg)
 {
     AnalysisCoordinator::Options opt;
@@ -287,7 +281,6 @@ void AnalysisFlowController::applyDialogOptions(KifuAnalysisDialog* dlg)
 //  スロット実装（非ラムダ）
 // ======================
 
-/// @todo remove コメントスタイルガイド適用済み
 void AnalysisFlowController::onUsiCommLogChanged()
 {
     if (!m_coord || !m_logModel) return;
@@ -299,7 +292,6 @@ void AnalysisFlowController::onUsiCommLogChanged()
     // bestmoveはonBestMoveReceived_で処理するため、ここでは処理しない
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void AnalysisFlowController::onBestMoveReceived()
 {
     qDebug().noquote() << "[AnalysisFlowController::onBestMoveReceived_] called, pendingPly=" << m_pendingPly;
@@ -316,7 +308,6 @@ void AnalysisFlowController::onBestMoveReceived()
     m_coord->onEngineBestmoveReceived(QString());
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void AnalysisFlowController::onInfoLineReceived(const QString& line)
 {
     // info行を受け取り、AnalysisCoordinatorに転送
@@ -330,7 +321,6 @@ void AnalysisFlowController::onInfoLineReceived(const QString& line)
     m_coord->onEngineInfoLine(line);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void AnalysisFlowController::onThinkingInfoUpdated(const QString& /*time*/, const QString& /*depth*/,
                                                     const QString& /*nodes*/, const QString& /*score*/,
                                                     const QString& pvKanjiStr, const QString& /*usiPv*/,
@@ -343,7 +333,6 @@ void AnalysisFlowController::onThinkingInfoUpdated(const QString& /*time*/, cons
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void AnalysisFlowController::onPositionPrepared(int ply, const QString& sfen)
 {
     // 各局面の解析開始時のログ
@@ -512,7 +501,6 @@ void AnalysisFlowController::onPositionPrepared(int ply, const QString& sfen)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void AnalysisFlowController::onAnalysisProgress(int ply, int /*depth*/, int /*seldepth*/,
                                                  int scoreCp, int mate,
                                                  const QString& pv, const QString& /*raw*/)
@@ -529,7 +517,6 @@ void AnalysisFlowController::onAnalysisProgress(int ply, int /*depth*/, int /*se
     qDebug().noquote() << "[AnalysisFlowController::onAnalysisProgress_] ply=" << ply << "pv=" << pv.left(30) << "pvKanji=" << m_pendingPvKanji.left(30);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void AnalysisFlowController::commitPendingResult()
 {
     if (!m_analysisModel) {
@@ -781,7 +768,6 @@ void AnalysisFlowController::commitPendingResult()
     m_lastCommittedScoreCp = curVal;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void AnalysisFlowController::onAnalysisFinished(AnalysisCoordinator::Mode /*mode*/)
 {
     qDebug().noquote() << "[AnalysisFlowController::onAnalysisFinished_] called, m_stoppedByUser=" << m_stoppedByUser;
@@ -809,7 +795,6 @@ void AnalysisFlowController::onAnalysisFinished(AnalysisCoordinator::Mode /*mode
     Q_EMIT analysisStopped();
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void AnalysisFlowController::runWithDialog(const Deps& d, QWidget* parent)
 {
     qDebug().noquote() << "[AnalysisFlowController::runWithDialog] START";
@@ -896,7 +881,6 @@ void AnalysisFlowController::runWithDialog(const Deps& d, QWidget* parent)
     start(actualDeps, &dlg);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void AnalysisFlowController::onResultRowDoubleClicked(int row)
 {
     qDebug().noquote() << "[AnalysisFlowController::onResultRowDoubleClicked_] row=" << row;
@@ -991,7 +975,6 @@ void AnalysisFlowController::onResultRowDoubleClicked(int row)
     dlg->show();
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QString AnalysisFlowController::extractUsiMoveFromKanji(const QString& kanjiMove) const
 {
     // 漢字表記からUSI形式の指し手を抽出する

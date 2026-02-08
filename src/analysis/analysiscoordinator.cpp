@@ -1,6 +1,5 @@
 /// @file analysiscoordinator.cpp
 /// @brief 局面解析コーディネータクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "analysiscoordinator.h"
 #include "engineanalysistab.h"
@@ -17,7 +16,6 @@ Q_GLOBAL_STATIC_WITH_ARGS(QRegularExpression, reScoreCp, (QStringLiteral(R"((?:^
 Q_GLOBAL_STATIC_WITH_ARGS(QRegularExpression, reScoreMate, (QStringLiteral(R"((?:^|\s)score\s+mate\s+(-?\d+))")))
 Q_GLOBAL_STATIC_WITH_ARGS(QRegularExpression, rePv, (QStringLiteral(R"((?:^|\s)pv\s+(.+)$)")))
 
-/// @todo remove コメントスタイルガイド適用済み
 AnalysisCoordinator::AnalysisCoordinator(const Deps& d, QObject* parent)
     : QObject(parent)
     , m_deps(d)
@@ -27,25 +25,21 @@ AnalysisCoordinator::AnalysisCoordinator(const Deps& d, QObject* parent)
             this, &AnalysisCoordinator::onStopTimerTimeout);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void AnalysisCoordinator::setDeps(const Deps& d)
 {
     m_deps = d;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void AnalysisCoordinator::setAnalysisTab(EngineAnalysisTab* tab)
 {
     m_analysisTab = tab;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void AnalysisCoordinator::setOptions(const Options& opt)
 {
     m_opt = opt;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void AnalysisCoordinator::startAnalyzeRange()
 {
     if (!m_deps.sfenRecord || m_deps.sfenRecord->isEmpty()) {
@@ -76,7 +70,6 @@ void AnalysisCoordinator::startAnalyzeRange()
     startRange();
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void AnalysisCoordinator::startAnalyzeSingle(int ply)
 {
     if (!m_deps.sfenRecord || m_deps.sfenRecord->isEmpty()) {
@@ -99,7 +92,6 @@ void AnalysisCoordinator::startAnalyzeSingle(int ply)
     startSingle(m_opt.startPly);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void AnalysisCoordinator::stop()
 {
     if (!m_running) return;
@@ -116,21 +108,18 @@ void AnalysisCoordinator::stop()
     emit analysisFinished(Idle);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void AnalysisCoordinator::startRange()
 {
     m_currentPly = m_opt.startPly;
     sendAnalyzeForPly(m_currentPly);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void AnalysisCoordinator::startSingle(int ply)
 {
     m_currentPly = ply;
     sendAnalyzeForPly(m_currentPly);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void AnalysisCoordinator::nextPlyOrFinish()
 {
     if (m_mode != RangePositions) {
@@ -158,7 +147,6 @@ void AnalysisCoordinator::nextPlyOrFinish()
     sendAnalyzeForPly(m_currentPly);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void AnalysisCoordinator::sendAnalyzeForPly(int ply)
 {
     if (!m_running) return;
@@ -185,7 +173,6 @@ void AnalysisCoordinator::sendAnalyzeForPly(int ply)
     emit positionPrepared(ply, sfen);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void AnalysisCoordinator::sendGoCommand()
 {
     if (!m_running) return;
@@ -210,7 +197,6 @@ void AnalysisCoordinator::sendGoCommand()
 }
 
 
-/// @todo remove コメントスタイルガイド適用済み
 void AnalysisCoordinator::onEngineInfoLine(const QString& line)
 {
     qDebug().noquote() << "[ANA::onEngineInfoLine] m_running=" << m_running << "m_currentPly=" << m_currentPly;
@@ -235,7 +221,6 @@ void AnalysisCoordinator::onEngineInfoLine(const QString& line)
                           p.scoreCp, p.mate, p.pv, line);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void AnalysisCoordinator::onEngineBestmoveReceived(const QString& /*line*/)
 {
     if (!m_running) return;
@@ -250,7 +235,6 @@ void AnalysisCoordinator::onEngineBestmoveReceived(const QString& /*line*/)
     nextPlyOrFinish();
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 bool AnalysisCoordinator::parseInfoUSI(const QString& line, ParsedInfo* out)
 {
     // ざっくりとした USI info 行のパース：
@@ -299,13 +283,11 @@ bool AnalysisCoordinator::parseInfoUSI(const QString& line, ParsedInfo* out)
     return true;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void AnalysisCoordinator::send(const QString& line)
 {
     emit requestSendUsiCommand(line);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void AnalysisCoordinator::onStopTimerTimeout()
 {
     if (!m_running) return;

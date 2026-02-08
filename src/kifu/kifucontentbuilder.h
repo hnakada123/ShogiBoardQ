@@ -3,7 +3,6 @@
 
 /// @file kifucontentbuilder.h
 /// @brief 棋譜コンテンツビルダークラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QString>

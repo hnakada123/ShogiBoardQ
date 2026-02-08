@@ -3,7 +3,6 @@
 
 /// @file shogiclock.h
 /// @brief 将棋対局用タイマー管理クラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 #include <QObject>
 #include <QTimer>

@@ -3,7 +3,6 @@
 
 /// @file thinkinginfopresenter.h
 /// @brief 思考情報GUI表示Presenterクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QObject>

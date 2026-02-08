@@ -3,7 +3,6 @@
 
 /// @file analysistabwiring.h
 /// @brief 解析タブ配線クラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QObject>

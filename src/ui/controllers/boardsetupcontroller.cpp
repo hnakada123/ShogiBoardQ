@@ -1,6 +1,5 @@
 /// @file boardsetupcontroller.cpp
 /// @brief 盤面初期設定コントローラクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "boardsetupcontroller.h"
 

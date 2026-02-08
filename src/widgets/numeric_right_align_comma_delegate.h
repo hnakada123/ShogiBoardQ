@@ -3,7 +3,6 @@
 
 /// @file numeric_right_align_comma_delegate.h
 /// @brief 数値右寄せカンマ区切りデリゲートクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QStyledItemDelegate>

@@ -1,6 +1,5 @@
 /// @file josekiwindow.cpp
 /// @brief 定跡ウィンドウクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "josekiwindow.h"
 #include "josekimovedialog.h"

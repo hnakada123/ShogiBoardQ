@@ -1,6 +1,5 @@
 /// @file longlongspinbox.cpp
 /// @brief 64bit整数対応スピンボックスクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "longlongspinbox.h"
 #include <QtWidgets/QLineEdit>

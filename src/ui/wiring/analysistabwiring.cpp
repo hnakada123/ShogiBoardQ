@@ -1,6 +1,5 @@
 /// @file analysistabwiring.cpp
 /// @brief 解析タブ配線クラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "analysistabwiring.h"
 

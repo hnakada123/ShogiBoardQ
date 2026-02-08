@@ -3,7 +3,6 @@
 
 /// @file elidelabel.h
 /// @brief テキスト省略表示ラベルクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QLabel>

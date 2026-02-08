@@ -1,6 +1,5 @@
 /// @file playerinfowiring.cpp
 /// @brief プレイヤー情報配線クラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "playerinfowiring.h"
 

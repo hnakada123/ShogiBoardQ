@@ -1,6 +1,5 @@
 /// @file timekeepingservice.cpp
 /// @brief 時間管理サービスクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "timekeepingservice.h"
 #include "shogiclock.h"
@@ -11,7 +10,6 @@
 // 秒読み・消費時間
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 QString TimekeepingService::applyByoyomiAndCollectElapsed(ShogiClock* clock, bool nextIsP1)
 {
     if (!clock) return QString();
@@ -34,7 +32,6 @@ QString TimekeepingService::applyByoyomiAndCollectElapsed(ShogiClock* clock, boo
 // 時計制御・後処理
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void TimekeepingService::finalizeTurnPresentation(ShogiClock* clock,
                                                   MatchCoordinator* match,
                                                   ShogiGameController* gc,
@@ -65,7 +62,6 @@ void TimekeepingService::finalizeTurnPresentation(ShogiClock* clock,
 // 統合 API
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void TimekeepingService::updateTurnAndTimekeepingDisplay(
     ShogiClock* clock,
     MatchCoordinator* match,

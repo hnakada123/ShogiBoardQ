@@ -1,6 +1,5 @@
 /// @file shogiutils.cpp
 /// @brief 将棋関連の共通ユーティリティ関数群の実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "shogiutils.h"
 #include "shogimove.h"
@@ -18,7 +17,6 @@ namespace ShogiUtils {
 // 座標表記変換
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 QString transRankTo(const int rankTo)
 {
     static const QStringList rankStrings = { "", "一", "二", "三", "四", "五", "六", "七", "八", "九" };
@@ -38,7 +36,6 @@ QString transRankTo(const int rankTo)
     return rankStrings.at(rankTo);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QString transFileTo(const int fileTo)
 {
     static const QStringList fileStrings = { "", "１", "２", "３", "４", "５", "６", "７", "８", "９" };
@@ -62,7 +59,6 @@ QString transFileTo(const int fileTo)
 // USI変換
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 QString moveToUsi(const ShogiMove& move)
 {
     const int fromX = move.fromSquare.x();
@@ -103,7 +99,6 @@ QString moveToUsi(const ShogiMove& move)
 // 漢字座標解析（逆変換）
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 int parseFullwidthFile(QChar ch)
 {
     // 全角数字 '１' (0xFF11) 〜 '９' (0xFF19)
@@ -113,7 +108,6 @@ int parseFullwidthFile(QChar ch)
     return 0;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 int parseKanjiRank(QChar ch)
 {
     static const QString kanjiRanks = QStringLiteral("一二三四五六七八九");
@@ -124,7 +118,6 @@ int parseKanjiRank(QChar ch)
     return 0;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 bool parseMoveLabel(const QString& moveLabel, int* outFile, int* outRank)
 {
     if (!outFile || !outRank) return false;
@@ -164,7 +157,6 @@ bool parseMoveLabel(const QString& moveLabel, int* outFile, int* outRank)
     return false;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 bool parseMoveCoordinateFromModel(const QAbstractItemModel* model, int row,
                                    int* outFile, int* outRank)
 {
@@ -207,13 +199,11 @@ QElapsedTimer g_gameEpoch;
 QAtomicInteger<bool> g_epochStarted(false);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiUtils::startGameEpoch() {
     g_gameEpoch.start();
     g_epochStarted.storeRelease(true);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 qint64 ShogiUtils::nowMs() {
     if (!g_epochStarted.loadAcquire()) return 0;
     return g_gameEpoch.elapsed();

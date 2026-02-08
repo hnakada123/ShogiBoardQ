@@ -1,6 +1,5 @@
 /// @file timecontrolutil.cpp
 /// @brief 持ち時間設定をShogiClockへ適用するユーティリティの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "timecontrolutil.h"
 #include "gamestartcoordinator.h"
@@ -13,7 +12,6 @@ namespace TimeControlUtil {
 // 適用 API
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void applyToClock(
     ShogiClock* clock,
     const GameStartCoordinator::TimeControl& tc,

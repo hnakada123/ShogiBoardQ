@@ -1,6 +1,5 @@
 /// @file csawaitingdialog.cpp
 /// @brief CSA接続待機ダイアログクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "csawaitingdialog.h"
 

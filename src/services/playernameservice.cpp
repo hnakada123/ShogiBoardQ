@@ -1,6 +1,5 @@
 /// @file playernameservice.cpp
 /// @brief プレイヤー名解決サービスクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "playernameservice.h"
 #include <QDebug>
@@ -9,7 +8,6 @@
 // 名前解決 API
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 PlayerNameMapping PlayerNameService::computePlayers(PlayMode mode,
                                                     const QString& human1,
                                                     const QString& human2,
@@ -74,7 +72,6 @@ PlayerNameMapping PlayerNameService::computePlayers(PlayMode mode,
     return out;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 EngineNameMapping PlayerNameService::computeEngineModels(PlayMode mode,
                                                          const QString& engine1,
                                                          const QString& engine2)

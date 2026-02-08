@@ -1,6 +1,5 @@
 /// @file josekimergedialog.cpp
 /// @brief 定跡統合ダイアログクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "josekimergedialog.h"
 

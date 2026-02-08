@@ -3,7 +3,6 @@
 
 /// @file versiondialog.h
 /// @brief バージョンダイアログクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QDialog>

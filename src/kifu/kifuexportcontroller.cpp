@@ -1,6 +1,5 @@
 /// @file kifuexportcontroller.cpp
 /// @brief 棋譜エクスポートコントローラクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "kifuexportcontroller.h"
 

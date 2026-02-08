@@ -1,6 +1,5 @@
 /// @file dialogcoordinator.cpp
 /// @brief ダイアログコーディネータクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "dialogcoordinator.h"
 

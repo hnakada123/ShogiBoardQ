@@ -1,6 +1,5 @@
 /// @file collapsiblegroupbox.cpp
 /// @brief 折りたたみ可能グループボックスクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "collapsiblegroupbox.h"
 #include <QStyle>

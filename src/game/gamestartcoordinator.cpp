@@ -1,6 +1,5 @@
 /// @file gamestartcoordinator.cpp
 /// @brief 対局開始コーディネータクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "gamestartcoordinator.h"
 #include "kifurecordlistmodel.h"
@@ -29,7 +28,6 @@
 // 初期化
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 GameStartCoordinator::GameStartCoordinator(const Deps& d, QObject* parent)
     : QObject(parent)
     , m_match(d.match)
@@ -42,7 +40,6 @@ GameStartCoordinator::GameStartCoordinator(const Deps& d, QObject* parent)
     qRegisterMetaType<GameStartCoordinator::Request>("GameStartCoordinator::Request");
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 bool GameStartCoordinator::validate(const StartParams& p, QString& whyNot) const
 {
     if (!m_match) {
@@ -60,7 +57,6 @@ bool GameStartCoordinator::validate(const StartParams& p, QString& whyNot) const
 // メインAPI: StartOptionsを受け取り対局を開始
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void GameStartCoordinator::start(const StartParams& params)
 {
     QString reason;
@@ -134,7 +130,6 @@ void GameStartCoordinator::start(const StartParams& params)
 // 開始前適用API（軽量リクエスト）
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void GameStartCoordinator::prepare(const Request& req)
 {
     // --- 0) 前処理（UIのプレクリア） ---
@@ -184,7 +179,6 @@ void GameStartCoordinator::prepare(const Request& req)
 // 段階実行API: 現在局面からの開始準備
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void GameStartCoordinator::prepareDataCurrentPosition(const Ctx& c)
 {
     qDebug().noquote() << "[DEBUG][GSC] prepareDataCurrentPosition: ENTER"
@@ -256,7 +250,6 @@ void GameStartCoordinator::prepareDataCurrentPosition(const Ctx& c)
 // 段階実行API: 初期局面（平手／手合割）からの開始準備
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void GameStartCoordinator::prepareInitialPosition(const Ctx& c)
 {
     // 1) 開始局面番号を取得（0=現在局面, 1..N=手合割）
@@ -386,7 +379,6 @@ void GameStartCoordinator::prepareInitialPosition(const Ctx& c)
 // 段階実行API: 時計設定と対局開始
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void GameStartCoordinator::setTimerAndStart(const Ctx& c)
 {
     if (!c.clock) {
@@ -488,7 +480,6 @@ void GameStartCoordinator::setTimerAndStart(const Ctx& c)
 // ダイアログ抽出ヘルパ
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 int GameStartCoordinator::readIntProperty(const QObject* root,
                                           const char* objectName,
                                           const char* prop,
@@ -503,7 +494,6 @@ int GameStartCoordinator::readIntProperty(const QObject* root,
     return def;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 bool GameStartCoordinator::readBoolProperty(const QObject* root,
                                             const char* objectName,
                                             const char* prop,
@@ -517,7 +507,6 @@ bool GameStartCoordinator::readBoolProperty(const QObject* root,
     return def;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 GameStartCoordinator::TimeControl
 GameStartCoordinator::extractTimeControlFromDialog(const QWidget* dlg)
 {
@@ -569,7 +558,6 @@ GameStartCoordinator::extractTimeControlFromDialog(const QWidget* dlg)
 // PlayMode 判定
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 PlayMode GameStartCoordinator::determinePlayMode(const int initPositionNumber,
                                                  const bool isPlayer1Human,
                                                  const bool isPlayer2Human) const
@@ -592,7 +580,6 @@ PlayMode GameStartCoordinator::determinePlayMode(const int initPositionNumber,
     return PlayMode::PlayModeError;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 PlayMode GameStartCoordinator::setPlayMode(const Ctx& c) const
 {
     int  initPositionNumber = 1;
@@ -643,7 +630,6 @@ PlayMode GameStartCoordinator::setPlayMode(const Ctx& c) const
 // SFEN手番抽出
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 QChar GameStartCoordinator::turnFromSfen(const QString& sfen)
 {
     const QString s = sfen.trimmed();
@@ -665,7 +651,6 @@ QChar GameStartCoordinator::turnFromSfen(const QString& sfen)
 // PlayMode判定（SFEN手番整合版）
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 PlayMode GameStartCoordinator::determinePlayModeAlignedWithTurn(
     int initPositionNumber, bool isPlayer1Human, bool isPlayer2Human, const QString& startSfen)
 {
@@ -709,7 +694,6 @@ PlayMode GameStartCoordinator::determinePlayModeAlignedWithTurn(
 // 対局開始メインフロー（ダイアログ→対局開始）
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void GameStartCoordinator::initializeGame(const Ctx& c)
 {
     qDebug().noquote() << "[DEBUG][GSC] initializeGame: ENTER"
@@ -1009,7 +993,6 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
 // 司令塔（MatchCoordinator）の生成と初期配線
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 MatchCoordinator* GameStartCoordinator::createAndWireMatch(const MatchCoordinator::Deps& deps,
                                                            QObject* parentForMatch)
 {
@@ -1066,7 +1049,6 @@ MatchCoordinator* GameStartCoordinator::createAndWireMatch(const MatchCoordinato
 // ユーティリティ
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void GameStartCoordinator::applyResumePositionIfAny(ShogiGameController* gc,
                                                     ShogiView* view,
                                                     const QString& resumeSfen)
@@ -1079,7 +1061,6 @@ void GameStartCoordinator::applyResumePositionIfAny(ShogiGameController* gc,
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void GameStartCoordinator::applyPlayersNamesForMode(ShogiView* view,
                                                     PlayMode mode,
                                                     const QString& human1,
@@ -1098,7 +1079,6 @@ void GameStartCoordinator::applyPlayersNamesForMode(ShogiView* view,
 // ダイアログからTimeControlを組み立てる
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 GameStartCoordinator::TimeControl
 GameStartCoordinator::buildTimeControlFromDialog(QDialog* startDlg) const
 {

@@ -1,6 +1,5 @@
 /// @file uiactionswiring.cpp
 /// @brief メニュー/ツールバーアクションのシグナル/スロット接続クラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "uiactionswiring.h"
 #include "ui_mainwindow.h"        // Ui::MainWindow
@@ -9,7 +8,6 @@
 #include "kifuexportcontroller.h"
 #include <QApplication>
 
-/// @todo remove コメントスタイルガイド適用済み
 void UiActionsWiring::wire()
 {
     auto* ui = m_d.ui;

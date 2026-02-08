@@ -3,7 +3,6 @@
 
 /// @file livegamesession.h
 /// @brief ライブ対局セッション管理クラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QObject>

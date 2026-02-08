@@ -3,7 +3,6 @@
 
 /// @file boardinteractioncontroller.h
 /// @brief 盤面上のクリック・ドラッグ操作とハイライト管理を担うコントローラ
-/// @todo remove コメントスタイルガイド適用済み
 
 #include <QObject>
 #include <QPoint>

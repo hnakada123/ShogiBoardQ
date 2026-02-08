@@ -1,6 +1,5 @@
 /// @file matchcoordinator.cpp
 /// @brief 対局進行コーディネータ（司令塔）クラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "matchcoordinator.h"
 #include "shogiclock.h"
@@ -100,7 +99,6 @@ using P = MatchCoordinator::Player;
 // 初期化・破棄
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 MatchCoordinator::MatchCoordinator(const Deps& d, QObject* parent)
     : QObject(parent)
     , m_gc(d.gc)
@@ -133,10 +131,8 @@ MatchCoordinator::MatchCoordinator(const Deps& d, QObject* parent)
     wireClock();
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 MatchCoordinator::~MatchCoordinator() = default;
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::updateUsiPtrs(Usi* e1, Usi* e2) {
     m_usi1 = e1;
     m_usi2 = e2;
@@ -146,7 +142,6 @@ void MatchCoordinator::updateUsiPtrs(Usi* e1, Usi* e2) {
 // 投了・終局処理
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::handleResign() {
     // すでに終局なら何もしない（中断後のタイムアウト等で呼ばれるのを防ぐ）
     if (m_gameOver.isOver) {
@@ -216,7 +211,6 @@ void MatchCoordinator::handleResign() {
     displayResultsAndUpdateGui(info);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::handleEngineResign(int idx) {
     // エンジン投了時はまず時計だけ停止（stop は送らない）
     if (m_clock) m_clock->stopClock();
@@ -246,14 +240,12 @@ void MatchCoordinator::handleEngineResign(int idx) {
     displayResultsAndUpdateGui(info);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::handleEngineWin(int idx) {
     // エンジン入玉宣言勝ち＝宣言者がエンジン、成功=true、引き分け=false
     const Player declarer = (idx == 1 ? P1 : P2);
     handleNyugyokuDeclaration(declarer, /*success=*/true, /*isDraw=*/false);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::handleNyugyokuDeclaration(Player declarer, bool success, bool isDraw)
 {
     // すでに終局なら何もしない
@@ -344,25 +336,21 @@ void MatchCoordinator::handleNyugyokuDeclaration(Player declarer, bool success, 
 // 盤面・表示ヘルパ
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::flipBoard() {
     // 実際の反転は GUI 側で実施（レイアウト/ラベル入替等を考慮）
     if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
     emit boardFlipped(true);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::setGameInProgressActions(bool inProgress) {
     if (m_hooks.setGameActions) m_hooks.setGameActions(inProgress);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::updateTurnDisplay(Player p) {
     m_cur = p;
     if (m_hooks.updateTurnDisplay) m_hooks.updateTurnDisplay(p);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::displayResultsAndUpdateGui(const GameEndInfo& info) {
     // 対局中メニューのON/OFFなどUI側の状態を更新
     setGameInProgressActions(false);
@@ -424,7 +412,6 @@ void MatchCoordinator::displayResultsAndUpdateGui(const GameEndInfo& info) {
 // エンジン管理
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::initializeAndStartEngineFor(Player side,
                                                    const QString& enginePathIn,
                                                    const QString& engineNameIn)
@@ -454,7 +441,6 @@ void MatchCoordinator::initializeAndStartEngineFor(Player side,
     wireWinToArbiter(eng, (side == P1));
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::wireResignToArbiter(Usi* engine, bool asP1)
 {
     if (!engine) return;
@@ -473,7 +459,6 @@ void MatchCoordinator::wireResignToArbiter(Usi* engine, bool asP1)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::wireWinToArbiter(Usi* engine, bool asP1)
 {
     if (!engine) return;
@@ -492,34 +477,29 @@ void MatchCoordinator::wireWinToArbiter(Usi* engine, bool asP1)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::onEngine1Resign()
 {
     // 既存のハンドラへ委譲（番号は 1 = P1）
     this->handleEngineResign(1);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::onEngine2Resign()
 {
     // 既存のハンドラへ委譲（番号は 2 = P2）
     this->handleEngineResign(2);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::onEngine1Win()
 {
     // エンジン1が入玉宣言勝ち
     this->handleEngineWin(1);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::onEngine2Win()
 {
     this->handleEngineWin(2);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::destroyEngine(int idx, bool clearThinking)
 {
     Usi*& ref = (idx == 1 ? m_usi1 : m_usi2);
@@ -534,7 +514,6 @@ void MatchCoordinator::destroyEngine(int idx, bool clearThinking)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::destroyEngines(bool clearModels)
 {
     qDebug().noquote() << "[MC::destroyEngines] called, clearModels=" << clearModels;
@@ -555,13 +534,11 @@ void MatchCoordinator::destroyEngines(bool clearModels)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::setPlayMode(PlayMode m)
 {
     m_playMode = m;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::initEnginesForEvE(const QString& engineName1,
                                          const QString& engineName2)
 {
@@ -610,7 +587,6 @@ void MatchCoordinator::initEnginesForEvE(const QString& engineName1,
     updateUsiPtrs(m_usi1, m_usi2);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 bool MatchCoordinator::engineThinkApplyMove(Usi* engine,
                                             QString& positionStr,
                                             QString& ponderStr,
@@ -668,7 +644,6 @@ bool MatchCoordinator::engineThinkApplyMove(Usi* engine,
     return true;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 bool MatchCoordinator::engineMoveOnce(Usi* eng,
                                       QString& positionStr,
                                       QString& ponderStr,
@@ -717,7 +692,6 @@ bool MatchCoordinator::engineMoveOnce(Usi* eng,
 // 対局開始フロー
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::configureAndStart(const StartOptions& opt)
 {
     // 直前の対局で更新された m_positionStr1 を履歴に反映してから保存
@@ -1065,7 +1039,6 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
 // 対局モード別の開始処理
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::startHumanVsHuman(const StartOptions& /*opt*/)
 {
     if (m_hooks.log) m_hooks.log(QStringLiteral("[Match] Start HvH"));
@@ -1087,7 +1060,6 @@ void MatchCoordinator::startHumanVsHuman(const StartOptions& /*opt*/)
 
 // HvE（人間対エンジン）
 //   engineIsP1 == true ならエンジンは先手座席、false なら後手座席
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::startHumanVsEngine(const StartOptions& opt, bool engineIsP1)
 {
     if (m_hooks.log) {
@@ -1154,7 +1126,6 @@ void MatchCoordinator::startHumanVsEngine(const StartOptions& opt, bool engineIs
 }
 
 // EvE の初手を開始する（起動・初期化済み前提）
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::startEngineVsEngine(const StartOptions& opt)
 {
     if (!m_usi1 || !m_usi2 || !m_gc) return;
@@ -1190,7 +1161,6 @@ void MatchCoordinator::startEngineVsEngine(const StartOptions& opt)
 }
 
 // 平手EvE：先手から開始
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::startEvEFirstMoveByBlack()
 {
     const GoTimes t1 = computeGoTimes();
@@ -1299,7 +1269,6 @@ void MatchCoordinator::startEvEFirstMoveByBlack()
 }
 
 // 駒落ちEvE：後手（上手）から開始
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::startEvEFirstMoveByWhite()
 {
     // 後手（上手 = m_usi2）が初手を指す
@@ -1409,19 +1378,16 @@ void MatchCoordinator::startEvEFirstMoveByWhite()
     QTimer::singleShot(std::chrono::milliseconds(0), this, &MatchCoordinator::kickNextEvETurn);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 Usi* MatchCoordinator::primaryEngine() const
 {
     return m_usi1;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 Usi* MatchCoordinator::secondaryEngine() const
 {
     return m_usi2;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::initPositionStringsForEvE(const QString& sfenStart)
 {
     m_positionStr1.clear();
@@ -1464,7 +1430,6 @@ void MatchCoordinator::initPositionStringsForEvE(const QString& sfenStart)
     m_positionStr2 = base;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::kickNextEvETurn()
 {
     if (m_playMode != PlayMode::EvenEngineVsEngine && m_playMode != PlayMode::HandicapEngineVsEngine) return;
@@ -1540,7 +1505,6 @@ void MatchCoordinator::kickNextEvETurn()
 // 時間制御の設定／照会
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::setTimeControlConfig(bool useByoyomi,
                                             int byoyomiMs1, int byoyomiMs2,
                                             int incMs1,     int incMs2,
@@ -1562,13 +1526,11 @@ const MatchCoordinator::TimeControl& MatchCoordinator::timeControl() const {
 // エポック管理（1手の開始時刻）
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::markTurnEpochNowFor(Player side, qint64 nowMs /*=-1*/) {
     if (nowMs < 0) nowMs = QDateTime::currentMSecsSinceEpoch();
     if (side == P1) m_turnEpochP1Ms = nowMs; else m_turnEpochP2Ms = nowMs;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 qint64 MatchCoordinator::turnEpochFor(Player side) const {
     return (side == P1) ? m_turnEpochP1Ms : m_turnEpochP2Ms;
 }
@@ -1577,7 +1539,6 @@ qint64 MatchCoordinator::turnEpochFor(Player side) const {
 // ターン計測（HvH用の簡易ストップウォッチ）
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::armTurnTimerIfNeeded() {
     if (!m_turnTimerArmed) {
         m_turnTimer.start();
@@ -1585,7 +1546,6 @@ void MatchCoordinator::armTurnTimerIfNeeded() {
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::finishTurnTimerAndSetConsiderationFor(Player mover) {
     if (!m_turnTimerArmed) return;
     const qint64 ms = m_turnTimer.isValid() ? m_turnTimer.elapsed() : 0;
@@ -1601,7 +1561,6 @@ void MatchCoordinator::finishTurnTimerAndSetConsiderationFor(Player mover) {
 // 人間側の計測（HvEでの人間手）
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::armHumanTimerIfNeeded() {
     if (!m_humanTimerArmed) {
         m_humanTurnTimer.start();
@@ -1609,7 +1568,6 @@ void MatchCoordinator::armHumanTimerIfNeeded() {
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::finishHumanTimerAndSetConsideration() {
     // どちらが「人間側」かは Main からのフックで取得（HvE想定）
     if (!m_hooks.humanPlayerSide) return;
@@ -1626,7 +1584,6 @@ void MatchCoordinator::finishHumanTimerAndSetConsideration() {
     m_humanTimerArmed = false;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::disarmHumanTimerIfNeeded() {
     if (!m_humanTimerArmed) return;
     m_humanTimerArmed = false;
@@ -1638,7 +1595,6 @@ void MatchCoordinator::disarmHumanTimerIfNeeded() {
 // ============================================================
 
 
-/// @todo remove コメントスタイルガイド適用済み
 MatchCoordinator::GoTimes MatchCoordinator::computeGoTimes() const {
     GoTimes t;
 
@@ -1694,14 +1650,12 @@ MatchCoordinator::GoTimes MatchCoordinator::computeGoTimes() const {
     return t;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::computeGoTimesForUSI(qint64& outB, qint64& outW) const {
     const GoTimes t = computeGoTimes();
     outB = t.btime;
     outW = t.wtime;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::refreshGoTimes() {
     qint64 b=0, w=0;
     computeGoTimesForUSI(b, w);
@@ -1710,7 +1664,6 @@ void MatchCoordinator::refreshGoTimes() {
     emit timesForUSIUpdated(b, w);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::setClock(ShogiClock* clock)
 {
     if (m_clock == clock) return;
@@ -1719,7 +1672,6 @@ void MatchCoordinator::setClock(ShogiClock* clock)
     wireClock();
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::onClockTick()
 {
     // デバッグ：ここが動いていれば Coordinator は時計を受信できている
@@ -1727,13 +1679,11 @@ void MatchCoordinator::onClockTick()
     emitTimeUpdateFromClock();
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::pokeTimeUpdateNow()
 {
     emitTimeUpdateFromClock();
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::emitTimeUpdateFromClock()
 {
     if (!m_clock || !m_gc) return;
@@ -1759,7 +1709,6 @@ void MatchCoordinator::emitTimeUpdateFromClock()
     emit timeUpdated(p1ms, p2ms, p1turn, urgencyMs);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::wireClock()
 {
     if (!m_clock) return;
@@ -1772,13 +1721,11 @@ void MatchCoordinator::wireClock()
     Q_ASSERT(m_clockConn);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::unwireClock()
 {
     if (m_clockConn) { QObject::disconnect(m_clockConn); m_clockConn = {}; }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::clearGameOverState()
 {
     const bool wasOver = m_gameOver.isOver;
@@ -1790,7 +1737,6 @@ void MatchCoordinator::clearGameOverState()
 }
 
 // 司令塔が終局を確定させる唯一の入口
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::setGameOver(const GameEndInfo& info, bool loserIsP1, bool appendMoveOnce)
 {
     if (m_gameOver.isOver) {
@@ -1819,7 +1765,6 @@ void MatchCoordinator::setGameOver(const GameEndInfo& info, bool loserIsP1, bool
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::markGameOverMoveAppended()
 {
     if (!m_gameOver.isOver) return;
@@ -1831,7 +1776,6 @@ void MatchCoordinator::markGameOverMoveAppended()
 }
 
 // 投了と同様に"対局の実体"として中断を一元処理
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::handleBreakOff()
 {
     // エンジンの投了シグナルを切断（レースコンディション防止）
@@ -1913,7 +1857,6 @@ void MatchCoordinator::handleBreakOff()
 // - 既存の HvE と同じく m_usi1 を使用し、表示モデルは #1 スロットに流す。
 // - resign シグナルは P1 扱いで司令塔（Arbiter）に配線する（検討でも安全側）。
 // 検討を開始する（単発エンジンセッション）
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::startAnalysis(const AnalysisOptions& opt)
 {
     qDebug().noquote() << "[MC] startAnalysis ENTER:"
@@ -2060,7 +2003,6 @@ void MatchCoordinator::startAnalysis(const AnalysisOptions& opt)
     qDebug().noquote() << "[MC] startAnalysis EXIT (executeAnalysisCommunication returned)";
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::stopAnalysisEngine()
 {
     qDebug().noquote() << "[MC] stopAnalysisEngine called";
@@ -2083,7 +2025,6 @@ void MatchCoordinator::stopAnalysisEngine()
     m_engineShutdownInProgress = false;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::updateConsiderationMultiPV(int multiPV)
 {
     qDebug().noquote() << "[MC] updateConsiderationMultiPV called: multiPV=" << multiPV;
@@ -2116,7 +2057,6 @@ void MatchCoordinator::updateConsiderationMultiPV(int multiPV)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 bool MatchCoordinator::updateConsiderationPosition(const QString& newPositionStr,
                                                    int previousFileTo, int previousRankTo,
                                                    const QString& lastUsiMove)
@@ -2187,7 +2127,6 @@ bool MatchCoordinator::updateConsiderationPosition(const QString& newPositionStr
     return true;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::onCheckmateSolved(const QStringList& pv)
 {
     m_inTsumeSearchMode = false;  // 完了したのでフラグをリセット
@@ -2198,7 +2137,6 @@ void MatchCoordinator::onCheckmateSolved(const QStringList& pv)
     destroyEngines(false);  // 探索完了後にエンジンを終了（思考内容を保持）
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::onCheckmateNoMate()
 {
     m_inTsumeSearchMode = false;  // 完了したのでフラグをリセット
@@ -2208,7 +2146,6 @@ void MatchCoordinator::onCheckmateNoMate()
     destroyEngines(false);  // 探索完了後にエンジンを終了（思考内容を保持）
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::onCheckmateNotImplemented()
 {
     m_inTsumeSearchMode = false;  // 完了したのでフラグをリセット
@@ -2218,7 +2155,6 @@ void MatchCoordinator::onCheckmateNotImplemented()
     destroyEngines(false);  // 探索完了後にエンジンを終了（思考内容を保持）
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::onCheckmateUnknown()
 {
     m_inTsumeSearchMode = false;  // 完了したのでフラグをリセット
@@ -2228,7 +2164,6 @@ void MatchCoordinator::onCheckmateUnknown()
     destroyEngines(false);  // 探索完了後にエンジンを終了（思考内容を保持）
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::onTsumeBestMoveReceived()
 {
     // 詰み探索モード中でない場合は無視
@@ -2241,7 +2176,6 @@ void MatchCoordinator::onTsumeBestMoveReceived()
     destroyEngines(false);  // 探索完了後にエンジンを終了（思考内容を保持）
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::onConsiderationBestMoveReceived()
 {
     qDebug().noquote() << "[MC] onConsiderationBestMoveReceived ENTER:"
@@ -2280,7 +2214,6 @@ void MatchCoordinator::onConsiderationBestMoveReceived()
     qDebug().noquote() << "[MC] onConsiderationBestMoveReceived EXIT (waiting state)";
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::restartConsiderationDeferred()
 {
     qDebug().noquote() << "[MC] restartConsiderationDeferred ENTER:"
@@ -2337,7 +2270,6 @@ void MatchCoordinator::restartConsiderationDeferred()
     qDebug().noquote() << "[MC] restartConsiderationDeferred EXIT";
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::onUsiError(const QString& msg)
 {
     // ログへ（あれば）
@@ -2351,13 +2283,11 @@ void MatchCoordinator::onUsiError(const QString& msg)
 // USI position文字列の初期化
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::initializePositionStringsForStart(const QString& sfenStart)
 {
     initPositionStringsFromSfen(sfenStart);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::initPositionStringsFromSfen(const QString& sfenBase)
 {
     // m_positionStr1/m_positionPonder1 だけ使う（単発エンジン系）
@@ -2395,7 +2325,6 @@ void MatchCoordinator::initPositionStringsFromSfen(const QString& sfenBase)
 // ---------------------------------------------
 // 初手がエンジン手番なら 1手だけ起動
 // ---------------------------------------------
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::startInitialEngineMoveIfNeeded()
 {
     if (!m_gc) return;
@@ -2413,7 +2342,6 @@ void MatchCoordinator::startInitialEngineMoveIfNeeded()
 }
 
 // （内部）指定したエンジン側で 1手だけ指す
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::startInitialEngineMoveFor(Player engineSide)
 {
     Usi* eng = primaryEngine();
@@ -2517,7 +2445,6 @@ void MatchCoordinator::startInitialEngineMoveFor(Player engineSide)
 // ---------------------------------------------
 // HvE: 人間が指した直後の 1手返しを司令塔で完結
 // ---------------------------------------------
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& humanTo)
 {
     auto extractMoveNumber = [](const QString& sfen) -> int {
@@ -2666,7 +2593,6 @@ void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& hu
 
 // 人間手直後に「考慮時間確定 → byoyomi/inc 適用 → KIF追記 → 人間手ハイライト」を済ませ、
 // その後のエンジン1手返し等は既存の2引数版へ委譲する。
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& humanTo, const QString& prettyMove)
 {
     // 0) 人間手のハイライト
@@ -2710,13 +2636,11 @@ void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& hu
     onHumanMove_HvE(humanFrom, humanTo);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::setUndoBindings(const UndoRefs& refs, const UndoHooks& hooks) {
     u_ = refs;
     h_ = hooks;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 bool MatchCoordinator::undoTwoPlies()
 {
     if (!u_.gc) return false;
@@ -2819,7 +2743,6 @@ bool MatchCoordinator::undoTwoPlies()
     return true;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 bool MatchCoordinator::tryRemoveLastItems(QObject* model, int n) {
     if (!model) return false;
 
@@ -2841,7 +2764,6 @@ bool MatchCoordinator::tryRemoveLastItems(QObject* model, int n) {
 // 対局開始オプション構築
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 MatchCoordinator::StartOptions MatchCoordinator::buildStartOptions(
     PlayMode mode,
     const QString& startSfenStr,
@@ -2947,7 +2869,6 @@ MatchCoordinator::StartOptions MatchCoordinator::buildStartOptions(
 // 盤面反転・対局準備
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::ensureHumanAtBottomIfApplicable(const StartGameDialog* dlg, bool bottomIsP1)
 {
     if (!dlg) return;
@@ -2981,7 +2902,6 @@ void MatchCoordinator::ensureHumanAtBottomIfApplicable(const StartGameDialog* dl
 // 対局開始メインエントリ
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::prepareAndStartGame(PlayMode mode,
                                            const QString& startSfenStr,
                                            const QStringList* sfenRecord,
@@ -3001,7 +2921,6 @@ void MatchCoordinator::prepareAndStartGame(PlayMode mode,
     startInitialEngineMoveIfNeeded();
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::startMatchTimingAndMaybeInitialGo()
 {
     // タイマー起動
@@ -3011,7 +2930,6 @@ void MatchCoordinator::startMatchTimingAndMaybeInitialGo()
     startInitialEngineMoveIfNeeded();
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::handleTimeUpdated()
 {
     // MainWindow::onMatchTimeUpdated → 司令塔へ
@@ -3022,7 +2940,6 @@ void MatchCoordinator::handleTimeUpdated()
     emit uiUpdateTurnAndClock(turn, p1, p2);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::handlePlayerTimeOut(int player)
 {
     if (!m_gc) return;
@@ -3032,7 +2949,6 @@ void MatchCoordinator::handlePlayerTimeOut(int player)
     handleGameEnded();
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::handleGameEnded()
 {
     if (!m_gc) return;
@@ -3041,7 +2957,6 @@ void MatchCoordinator::handleGameEnded()
 }
 
 // これに置き換え（該当関数のみ）
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::recomputeClockSnapshot(QString& turnText, QString& p1, QString& p2) const
 {
     turnText.clear(); p1.clear(); p2.clear();
@@ -3070,13 +2985,11 @@ void MatchCoordinator::recomputeClockSnapshot(QString& turnText, QString& p1, QS
     p2 = mmss(t2ms);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 PlayMode MatchCoordinator::playMode() const
 {
     return m_playMode;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::appendGameOverLineAndMark(Cause cause, Player loser)
 {
     if (!m_gameOver.isOver) return;
@@ -3155,7 +3068,6 @@ void MatchCoordinator::appendGameOverLineAndMark(Cause cause, Player loser)
     markGameOverMoveAppended();
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::onHumanMove_HvH(ShogiGameController::Player moverBefore)
 {
     const Player moverP = (moverBefore == ShogiGameController::Player1) ? P1 : P2;
@@ -3180,7 +3092,6 @@ void MatchCoordinator::onHumanMove_HvH(ShogiGameController::Player moverBefore)
     armTurnTimerIfNeeded();
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::forceImmediateMove()
 {
     if (!m_gc) return;
@@ -3207,7 +3118,6 @@ void MatchCoordinator::forceImmediateMove()
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::sendRawTo(Usi* which, const QString& cmd)
 {
     if (!which) return;
@@ -3223,7 +3133,6 @@ inline int clampMsToInt(qint64 v) {
 }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::sendGoToEngine(Usi* which, const GoTimes& t)
 {
     if (!which) return;
@@ -3242,21 +3151,18 @@ void MatchCoordinator::sendGoToEngine(Usi* which, const GoTimes& t)
         );
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::sendStopToEngine(Usi* which)
 {
     if (!which) return;
     which->sendStopCommand();
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::sendRawToEngine(Usi* which, const QString& cmd)
 {
     if (!which) return;
     which->sendRaw(cmd);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::appendBreakOffLineAndMark()
 {
     // 既に終局でなければ何もしない
@@ -3323,7 +3229,6 @@ void MatchCoordinator::appendBreakOffLineAndMark()
     markGameOverMoveAppended();
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MatchCoordinator::handleMaxMovesJishogi()
 {
     // すでに終局なら何もしない
@@ -3377,13 +3282,11 @@ void MatchCoordinator::handleMaxMovesJishogi()
     displayResultsAndUpdateGui(info);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 ShogiClock* MatchCoordinator::clock()
 {
     return m_clock;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 const ShogiClock* MatchCoordinator::clock() const
 {
     return m_clock;

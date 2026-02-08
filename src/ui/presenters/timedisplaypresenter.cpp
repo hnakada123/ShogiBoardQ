@@ -1,6 +1,5 @@
 /// @file timedisplaypresenter.cpp
 /// @brief 時刻表示プレゼンタクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "timedisplaypresenter.h"
 #include "shogiview.h"

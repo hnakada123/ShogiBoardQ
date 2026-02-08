@@ -1,6 +1,5 @@
 /// @file evalgraphpresenter.cpp
 /// @brief 評価値グラフプレゼンタクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "evalgraphpresenter.h"
 #include "matchcoordinator.h"

@@ -3,7 +3,6 @@
 
 /// @file errorbus.h
 /// @brief アプリケーション全体のエラー通知を一元管理するイベントバス
-/// @todo remove コメントスタイルガイド適用済み
 
 #include <QObject>
 #include <QString>

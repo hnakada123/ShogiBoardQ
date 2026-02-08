@@ -3,7 +3,6 @@
 
 /// @file tsumeshogisearchdialog.h
 /// @brief 詰将棋検索ダイアログクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include "considerationdialog.h"

@@ -1,6 +1,5 @@
 /// @file prestartcleanuphandler.cpp
 /// @brief 対局開始前クリーンアップハンドラクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "prestartcleanuphandler.h"
 
@@ -28,7 +27,6 @@
 // 初期化
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 PreStartCleanupHandler::PreStartCleanupHandler(const Dependencies& deps, QObject* parent)
     : QObject(parent)
     , m_boardController(deps.boardController)
@@ -56,7 +54,6 @@ PreStartCleanupHandler::PreStartCleanupHandler(const Dependencies& deps, QObject
 // メインクリーンアップ
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void PreStartCleanupHandler::performCleanup()
 {
     qDebug().noquote() << "[PreStartCleanupHandler] performCleanup: start"
@@ -115,7 +112,6 @@ void PreStartCleanupHandler::performCleanup()
 // 個別クリーンアップ処理
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 bool PreStartCleanupHandler::isStartFromCurrentPosition() const
 {
     if (!m_startSfenStr || !m_currentSfenStr) {
@@ -126,7 +122,6 @@ bool PreStartCleanupHandler::isStartFromCurrentPosition() const
     return shouldStartFromCurrentPosition(*m_startSfenStr, *m_currentSfenStr, selectedPly);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void PreStartCleanupHandler::clearBoardAndHighlights()
 {
     if (m_boardController) {
@@ -134,7 +129,6 @@ void PreStartCleanupHandler::clearBoardAndHighlights()
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void PreStartCleanupHandler::clearClockDisplay()
 {
     if (m_shogiView) {
@@ -143,7 +137,6 @@ void PreStartCleanupHandler::clearClockDisplay()
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 int PreStartCleanupHandler::cleanupKifuModel(bool startFromCurrentPos, int /*keepRow*/)
 {
     if (!m_kifuRecordModel) return 0;
@@ -182,7 +175,6 @@ int PreStartCleanupHandler::cleanupKifuModel(bool startFromCurrentPos, int /*kee
     return 0;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void PreStartCleanupHandler::updatePlyTracking(bool startFromCurrentPos, int keepRow)
 {
     if (startFromCurrentPos) {
@@ -196,7 +188,6 @@ void PreStartCleanupHandler::updatePlyTracking(bool startFromCurrentPos, int kee
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void PreStartCleanupHandler::clearBranchModel()
 {
     if (m_kifuBranchModel) {
@@ -204,7 +195,6 @@ void PreStartCleanupHandler::clearBranchModel()
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void PreStartCleanupHandler::resetUsiLogModels()
 {
     qDebug().noquote() << "[PreStartCleanupHandler] resetUsiLogModels: RESETTING ENGINE NAMES";
@@ -227,7 +217,6 @@ void PreStartCleanupHandler::resetUsiLogModels()
     qDebug().noquote() << "[PreStartCleanupHandler] resetUsiLogModels: ENGINE NAMES RESET DONE";
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void PreStartCleanupHandler::resetTimeControl()
 {
     if (m_timeController) {
@@ -235,7 +224,6 @@ void PreStartCleanupHandler::resetTimeControl()
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void PreStartCleanupHandler::resetEvaluationGraph()
 {
     const bool startFromCurrentPos = isStartFromCurrentPosition();
@@ -254,7 +242,6 @@ void PreStartCleanupHandler::resetEvaluationGraph()
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void PreStartCleanupHandler::selectStartRow()
 {
     if (!m_recordPane || !m_kifuRecordModel || m_kifuRecordModel->rowCount() <= 0) return;
@@ -272,7 +259,6 @@ void PreStartCleanupHandler::selectStartRow()
 // ライブゲームセッション
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void PreStartCleanupHandler::startLiveGameSession()
 {
     qDebug().noquote() << "[PreStartCleanupHandler] startLiveGameSession: ENTER"
@@ -375,7 +361,6 @@ void PreStartCleanupHandler::startLiveGameSession()
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void PreStartCleanupHandler::ensureBranchTreeRoot()
 {
     if (m_branchTree == nullptr) {

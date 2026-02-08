@@ -1,6 +1,5 @@
 /// @file engineprocessmanager.cpp
 /// @brief 将棋エンジンプロセス管理クラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "engineprocessmanager.h"
 #include <QDebug>
@@ -8,13 +7,11 @@
 #include <QFileInfo>
 #include <QTimer>
 
-/// @todo remove コメントスタイルガイド適用済み
 EngineProcessManager::EngineProcessManager(QObject* parent)
     : QObject(parent)
 {
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 EngineProcessManager::~EngineProcessManager()
 {
     stopProcess();
@@ -24,7 +21,6 @@ EngineProcessManager::~EngineProcessManager()
 // プロセス管理
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 bool EngineProcessManager::startProcess(const QString& engineFile)
 {
     // 処理フロー:
@@ -74,7 +70,6 @@ bool EngineProcessManager::startProcess(const QString& engineFile)
     return true;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void EngineProcessManager::stopProcess()
 {
     if (!m_process) return;
@@ -99,13 +94,11 @@ void EngineProcessManager::stopProcess()
     m_currentEnginePath.clear();
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 bool EngineProcessManager::isRunning() const
 {
     return m_process && m_process->state() == QProcess::Running;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QProcess::ProcessState EngineProcessManager::state() const
 {
     return m_process ? m_process->state() : QProcess::NotRunning;
@@ -115,7 +108,6 @@ QProcess::ProcessState EngineProcessManager::state() const
 // コマンド送信
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void EngineProcessManager::sendCommand(const QString& command)
 {
     if (!m_process || 
@@ -131,7 +123,6 @@ void EngineProcessManager::sendCommand(const QString& command)
     qDebug().nospace() << logPrefix() << " > " << command;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void EngineProcessManager::closeWriteChannel()
 {
     if (m_process) {
@@ -143,19 +134,16 @@ void EngineProcessManager::closeWriteChannel()
 // 状態管理
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void EngineProcessManager::setShutdownState(ShutdownState state)
 {
     m_shutdownState = state;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void EngineProcessManager::setPostQuitInfoStringLinesLeft(int count)
 {
     m_postQuitInfoStringLinesLeft = count;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void EngineProcessManager::decrementPostQuitLines()
 {
     if (m_postQuitInfoStringLinesLeft > 0) {
@@ -170,7 +158,6 @@ void EngineProcessManager::decrementPostQuitLines()
 // バッファ管理
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void EngineProcessManager::discardStdout()
 {
     if (m_process) {
@@ -178,7 +165,6 @@ void EngineProcessManager::discardStdout()
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void EngineProcessManager::discardStderr()
 {
     if (m_process) {
@@ -186,19 +172,16 @@ void EngineProcessManager::discardStderr()
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 bool EngineProcessManager::canReadLine() const
 {
     return m_process && m_process->canReadLine();
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QByteArray EngineProcessManager::readLine()
 {
     return m_process ? m_process->readLine() : QByteArray();
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QByteArray EngineProcessManager::readAllStderr()
 {
     return m_process ? m_process->readAllStandardError() : QByteArray();
@@ -208,7 +191,6 @@ QByteArray EngineProcessManager::readAllStderr()
 // ログ識別
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void EngineProcessManager::setLogIdentity(const QString& engineTag,
                                           const QString& sideTag,
                                           const QString& engineName)
@@ -218,7 +200,6 @@ void EngineProcessManager::setLogIdentity(const QString& engineTag,
     m_logEngineName = engineName;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QString EngineProcessManager::logPrefix() const
 {
     QString within = m_logEngineTag.isEmpty() ? "[E?]" : m_logEngineTag;
@@ -238,7 +219,6 @@ QString EngineProcessManager::logPrefix() const
 // プライベートスロット
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void EngineProcessManager::onReadyReadStdout()
 {
     // 処理フロー:
@@ -295,7 +275,6 @@ void EngineProcessManager::onReadyReadStdout()
     scheduleMoreReading();
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void EngineProcessManager::onReadyReadStderr()
 {
     if (!m_process) return;
@@ -328,7 +307,6 @@ void EngineProcessManager::onReadyReadStderr()
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void EngineProcessManager::onProcessError(QProcess::ProcessError error)
 {
     QString errorMessage;
@@ -358,7 +336,6 @@ void EngineProcessManager::onProcessError(QProcess::ProcessError error)
     emit processError(error, errorMessage);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void EngineProcessManager::onProcessFinished(int exitCode, QProcess::ExitStatus status)
 {
     // プロセス終了時にバッファに残ったデータを最後に処理する
@@ -382,7 +359,6 @@ void EngineProcessManager::onProcessFinished(int exitCode, QProcess::ExitStatus 
     emit processFinished(exitCode, status);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void EngineProcessManager::scheduleMoreReading()
 {
     if (m_process && m_process->canReadLine()) {

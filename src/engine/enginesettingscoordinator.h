@@ -3,7 +3,6 @@
 
 /// @file enginesettingscoordinator.h
 /// @brief エンジン設定ダイアログ起動コーディネータの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 class QWidget;

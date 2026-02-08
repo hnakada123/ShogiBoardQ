@@ -1,6 +1,5 @@
 /// @file shogienginethinkingmodel.cpp
 /// @brief エンジン思考結果の表示用リストモデルの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "shogienginethinkingmodel.h"
 #include <QColor>
@@ -10,7 +9,6 @@
 // 初期化
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 ShogiEngineThinkingModel::ShogiEngineThinkingModel(QObject *parent) : AbstractListModel<ShogiInfoRecord>(parent)
 {
 }
@@ -19,7 +17,6 @@ ShogiEngineThinkingModel::ShogiEngineThinkingModel(QObject *parent) : AbstractLi
 // Qtモデルインターフェース
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 int ShogiEngineThinkingModel::columnCount(const QModelIndex &parent) const
 {
     Q_UNUSED(parent)
@@ -28,7 +25,6 @@ int ShogiEngineThinkingModel::columnCount(const QModelIndex &parent) const
     return 6;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QVariant ShogiEngineThinkingModel::data(const QModelIndex &index, int role) const
 {
     if (!index.isValid()) {
@@ -72,7 +68,6 @@ QVariant ShogiEngineThinkingModel::data(const QModelIndex &index, int role) cons
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QVariant ShogiEngineThinkingModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
     if (role != Qt::DisplayRole) {
@@ -105,7 +100,6 @@ QVariant ShogiEngineThinkingModel::headerData(int section, Qt::Orientation orien
 // レコードアクセス
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 QString ShogiEngineThinkingModel::usiPvAt(int row) const
 {
     if (row < 0 || row >= list.size()) {
@@ -114,7 +108,6 @@ QString ShogiEngineThinkingModel::usiPvAt(int row) const
     return list.at(row)->usiPv();
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 const ShogiInfoRecord* ShogiEngineThinkingModel::recordAt(int row) const
 {
     if (row < 0 || row >= list.size()) {
@@ -127,7 +120,6 @@ const ShogiInfoRecord* ShogiEngineThinkingModel::recordAt(int row) const
 // MultiPV対応
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiEngineThinkingModel::updateByMultipv(ShogiInfoRecord* record, int maxMultiPV)
 {
     if (!record) return;
@@ -179,7 +171,6 @@ void ShogiEngineThinkingModel::updateByMultipv(ShogiInfoRecord* record, int maxM
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiEngineThinkingModel::sortByScore()
 {
     if (list.size() <= 1) return;

@@ -1,6 +1,5 @@
 /// @file flowlayout.cpp
 /// @brief フローレイアウトクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "flowlayout.h"
 #include <QWidget>
