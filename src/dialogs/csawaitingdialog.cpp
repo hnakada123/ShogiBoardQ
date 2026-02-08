@@ -1,3 +1,7 @@
+/// @file csawaitingdialog.cpp
+/// @brief CSA接続待機ダイアログクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "csawaitingdialog.h"
 
 #include <QLabel>
@@ -11,9 +15,8 @@
 #include <QTextCursor>
 #include <QDebug>
 
-#include "settingsservice.h"  // ★ 追加: フォントサイズ保存用
+#include "settingsservice.h"  // フォントサイズ保存用
 
-// コンストラクタ
 CsaWaitingDialog::CsaWaitingDialog(CsaGameCoordinator* coordinator, QWidget* parent)
     : QDialog(parent)
     , m_coordinator(coordinator)
@@ -45,7 +48,6 @@ CsaWaitingDialog::CsaWaitingDialog(CsaGameCoordinator* coordinator, QWidget* par
     }
 }
 
-// デストラクタ
 CsaWaitingDialog::~CsaWaitingDialog()
 {
     // 通信ログウィンドウを閉じる
@@ -252,7 +254,7 @@ void CsaWaitingDialog::createLogWindow()
     m_logTextEdit = new QPlainTextEdit(m_logWindow);
     m_logTextEdit->setReadOnly(true);
     m_logTextEdit->setLineWrapMode(QPlainTextEdit::NoWrap);
-    // ★ メモリリーク防止：ログの最大行数を制限（古いログは自動削除される）
+    // メモリリーク防止：ログの最大行数を制限（古いログは自動削除される）
     m_logTextEdit->setMaximumBlockCount(5000);
 
     // 固定幅フォントを設定

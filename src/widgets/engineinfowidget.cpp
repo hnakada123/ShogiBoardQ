@@ -1,3 +1,7 @@
+/// @file engineinfowidget.cpp
+/// @brief エンジン情報表示ウィジェットクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "engineinfowidget.h"
 #include <QHBoxLayout>
 #include <QVBoxLayout>
@@ -27,7 +31,7 @@ EngineInfoWidget::EngineInfoWidget(QWidget* parent, bool showFontButtons, bool s
     // 行ヘッダーを非表示
     m_table->verticalHeader()->setVisible(false);
     
-    // ★ 列幅設定（USIプロトコルのパラメータ内容に基づいた適切な幅）
+    // 列幅設定（USIプロトコルのパラメータ内容に基づいた適切な幅）
     // エンジン名: 可変長（長い名前もある）→ 残りスペースで伸縮
     // 予想手: 例 "△8六歩(85)" → 100ピクセル程度
     // 探索手: 例 "△同飛(82)" → 100ピクセル程度
@@ -36,15 +40,15 @@ EngineInfoWidget::EngineInfoWidget(QWidget* parent, bool showFontButtons, bool s
     // 探索局面数(NPS): 例 "8,184,682" → 85ピクセル程度
     // ハッシュ使用率: ヘッダー文字「ハッシュ使用率」が見えるように120ピクセル
     
-    // ★ StretchLastSectionを無効にしてResizeToContentsで自動調整しない
+    // StretchLastSectionを無効にしてResizeToContentsで自動調整しない
     m_table->horizontalHeader()->setStretchLastSection(false);
     
-    // ★ 全ての列をInteractive（ユーザーがリサイズ可能）に設定
+    // 全ての列をInteractive（ユーザーがリサイズ可能）に設定
     for (int col = 0; col < COL_COUNT; ++col) {
         m_table->horizontalHeader()->setSectionResizeMode(col, QHeaderView::Interactive);
     }
     
-    // ★ 列幅を設定（setStretchLastSectionの後に設定）
+    // 列幅を設定（setStretchLastSectionの後に設定）
     m_table->setColumnWidth(COL_ENGINE_NAME, 150);
     m_table->setColumnWidth(COL_PRED, 100);
     m_table->setColumnWidth(COL_SEARCHED, 100);
@@ -53,12 +57,12 @@ EngineInfoWidget::EngineInfoWidget(QWidget* parent, bool showFontButtons, bool s
     m_table->setColumnWidth(COL_NPS, 85);
     m_table->setColumnWidth(COL_HASH, 120);
 
-    // ★ 予想手列を非表示にする場合
+    // 予想手列を非表示にする場合
     if (!m_showPredictedMove) {
         m_table->setColumnHidden(COL_PRED, true);
     }
     
-    // ★ 列幅変更時のシグナルを接続
+    // 列幅変更時のシグナルを接続
     connect(m_table->horizontalHeader(), &QHeaderView::sectionResized,
             this, &EngineInfoWidget::onSectionResized);
     
@@ -93,7 +97,7 @@ EngineInfoWidget::EngineInfoWidget(QWidget* parent, bool showFontButtons, bool s
     mainLayout->setContentsMargins(0, 0, 0, 0);
     mainLayout->setSpacing(0);
 
-    // ★ フォントサイズボタンを追加（showFontButtons=trueの場合のみ）
+    // フォントサイズボタンを追加（showFontButtons=trueの場合のみ）
     // ヘッダーの上に表示するため、テーブルの上に配置
     m_buttonRowHeight = 0;
     if (m_showFontButtons) {
@@ -221,7 +225,7 @@ void EngineInfoWidget::onNameChanged() {
     setCellValue(COL_ENGINE_NAME, n.isEmpty() ? m_fallbackName : n);
 }
 
-// ★ 追加: 列幅の取得
+// 列幅の取得
 QList<int> EngineInfoWidget::columnWidths() const
 {
     QList<int> widths;
@@ -251,7 +255,7 @@ void EngineInfoWidget::applyHeaderStyle()
     m_table->setStyleSheet(headerStyle);
 }
 
-// ★ 追加: 列幅の設定
+// 列幅の設定
 void EngineInfoWidget::setColumnWidths(const QList<int>& widths)
 {
     if (!m_table || widths.size() != COL_COUNT) return;
@@ -267,11 +271,11 @@ void EngineInfoWidget::setColumnWidths(const QList<int>& widths)
     
     m_table->horizontalHeader()->blockSignals(false);
     
-    // ★ 設定ファイルから読み込まれたことを記録
+    // 設定ファイルから読み込まれたことを記録
     m_columnWidthsLoaded = true;
 }
 
-// ★ 追加: 列幅変更時のスロット
+// 列幅変更時のスロット
 void EngineInfoWidget::onSectionResized(int logicalIndex, int oldSize, int newSize)
 {
     Q_UNUSED(logicalIndex)
@@ -285,7 +289,7 @@ void EngineInfoWidget::onSectionResized(int logicalIndex, int oldSize, int newSi
     emit columnWidthChanged();
 }
 
-// ★ 追加: リサイズイベント
+// リサイズイベント
 void EngineInfoWidget::resizeEvent(QResizeEvent* event)
 {
     QWidget::resizeEvent(event);
@@ -296,7 +300,7 @@ void EngineInfoWidget::resizeEvent(QResizeEvent* event)
     }
 }
 
-// ★ 追加: 表示イベント
+// 表示イベント
 void EngineInfoWidget::showEvent(QShowEvent* event)
 {
     QWidget::showEvent(event);
@@ -306,7 +310,7 @@ void EngineInfoWidget::showEvent(QShowEvent* event)
     }
 }
 
-// ★ 追加: エンジン名列の幅を残りスペースに合わせて調整
+// エンジン名列の幅を残りスペースに合わせて調整
 void EngineInfoWidget::adjustEngineNameColumn()
 {
     if (!m_table) return;

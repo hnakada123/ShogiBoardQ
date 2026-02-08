@@ -1,11 +1,21 @@
 #ifndef ENGINESETTINGSCOORDINATOR_H
 #define ENGINESETTINGSCOORDINATOR_H
 
+/// @file enginesettingscoordinator.h
+/// @brief エンジン設定ダイアログ起動コーディネータの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 class QWidget;
 
+/**
+ * @brief エンジン設定ダイアログの表示を担当する名前空間
+ *
+ * @todo remove コメントスタイルガイド適用済み
+ */
 namespace EngineSettingsCoordinator {
 
-// エンジン設定ダイアログを表示します。
+/// エンジン登録ダイアログをモーダルで表示する
 void openDialog(QWidget* parent);
 
 } // namespace EngineSettingsCoordinator

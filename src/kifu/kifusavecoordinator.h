@@ -1,9 +1,14 @@
 #ifndef KIFUSAVECOORDINATOR_H
 #define KIFUSAVECOORDINATOR_H
 
+/// @file kifusavecoordinator.h
+/// @brief 棋譜保存コーディネータの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QString>
 #include <QStringList>
-#include "playmode.h"   // ★ 前方宣言をやめ、実体定義を取り込む
+#include "playmode.h"   // 前方宣言をやめ、実体定義を取り込む
 
 class QWidget;
 

@@ -1,6 +1,11 @@
 #ifndef MENUBUTTONWIDGET_H
 #define MENUBUTTONWIDGET_H
 
+/// @file menubuttonwidget.h
+/// @brief メニューボタンウィジェットクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QWidget>
 #include <QAction>
 #include <QLabel>

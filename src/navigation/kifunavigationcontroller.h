@@ -1,6 +1,11 @@
 #ifndef KIFUNAVIGATIONCONTROLLER_H
 #define KIFUNAVIGATIONCONTROLLER_H
 
+/// @file kifunavigationcontroller.h
+/// @brief 棋譜ナビゲーションコントローラクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QObject>
 #include <QVector>
 
@@ -10,96 +15,67 @@ class KifuNavigationState;
 class QPushButton;
 
 /**
- * @brief 統一されたナビゲーションコントローラー
+ * @brief 棋譜ナビゲーション操作を統一管理するコントローラ
  *
- * 6つのボタン、棋譜欄クリック、分岐ツリークリック、分岐候補クリック
- * の全てを統一的に処理する。
+ * 6つのナビゲーションボタン、棋譜欄クリック、分岐ツリークリック、
+ * 分岐候補クリックの全操作を統一的に処理し、
+ * 盤面/棋譜欄/分岐ツリーへの更新シグナルを発行する。
+ *
  */
 class KifuNavigationController : public QObject
 {
     Q_OBJECT
 
 public:
-    /**
-     * @brief ボタン群の構造体
-     */
+    /// ナビゲーションボタン群
     struct Buttons {
-        QPushButton* first = nullptr;
-        QPushButton* back10 = nullptr;
-        QPushButton* prev = nullptr;
-        QPushButton* next = nullptr;
-        QPushButton* fwd10 = nullptr;
-        QPushButton* last = nullptr;
+        QPushButton* first = nullptr;  ///< 開始局面ボタン（非所有）
+        QPushButton* back10 = nullptr; ///< 10手戻るボタン（非所有）
+        QPushButton* prev = nullptr;   ///< 1手戻るボタン（非所有）
+        QPushButton* next = nullptr;   ///< 1手進むボタン（非所有）
+        QPushButton* fwd10 = nullptr;  ///< 10手進むボタン（非所有）
+        QPushButton* last = nullptr;   ///< 最終手ボタン（非所有）
     };
 
     explicit KifuNavigationController(QObject* parent = nullptr);
 
-    /**
-     * @brief ツリーと状態を設定
-     */
+    /// 分岐ツリーとナビゲーション状態を設定する
     void setTreeAndState(KifuBranchTree* tree, KifuNavigationState* state);
 
-    /**
-     * @brief ボタンを接続
-     */
+    /// ナビゲーションボタンのclickedシグナルを接続する
     void connectButtons(const Buttons& buttons);
 
-    /**
-     * @brief ツリーを取得
-     */
     KifuBranchTree* tree() const { return m_tree; }
-
-    /**
-     * @brief 状態を取得
-     */
     KifuNavigationState* state() const { return m_state; }
 
 public slots:
-    // === ナビゲーション操作 ===
+    // --- ナビゲーション操作 ---
 
-    /**
-     * @brief 開始局面へ移動
-     */
+    /// 開始局面へ移動する
     void goToFirst();
 
-    /**
-     * @brief 現在ラインの最終手へ移動
-     */
+    /// 現在ラインの最終手へ移動する
     void goToLast();
 
-    /**
-     * @brief N手戻る
-     */
+    /// @param count 戻る手数（デフォルト1）
     void goBack(int count = 1);
 
-    /**
-     * @brief N手進む
-     */
+    /// @param count 進む手数（デフォルト1）
     void goForward(int count = 1);
 
-    /**
-     * @brief 指定ノードへ移動
-     */
+    /// 指定ノードへ移動する（分岐パスの選択記憶も更新）
     void goToNode(KifuBranchNode* node);
 
-    /**
-     * @brief 現在ラインの指定手数へ移動
-     */
+    /// 現在ライン上の指定手数へ移動する
     void goToPly(int ply);
 
-    /**
-     * @brief 分岐ラインを切り替え
-     */
+    /// 分岐ラインを切り替える
     void switchToLine(int lineIndex);
 
-    /**
-     * @brief 分岐候補を選択
-     */
+    /// 分岐候補を選択して移動する
     void selectBranchCandidate(int candidateIndex);
 
-    /**
-     * @brief 本譜の同じ手数に移動
-     */
+    /// 本譜の同じ手数に移動する
     void goToMainLineAtCurrentPly();
 
     /**
@@ -113,7 +89,7 @@ public slots:
      */
     void handleBranchNodeActivated(int row, int ply);
 
-    // === ボタンスロット（bool引数付き） ===
+    // --- ボタンスロット（QPushButton::clicked用） ---
     void onFirstClicked(bool checked = false);
     void onBack10Clicked(bool checked = false);
     void onPrevClicked(bool checked = false);
@@ -122,54 +98,45 @@ public slots:
     void onLastClicked(bool checked = false);
 
 signals:
-    /**
-     * @brief ナビゲーションが完了した
-     */
+    /// ナビゲーション完了を通知する（Controller → MainWindow）
     void navigationCompleted(KifuBranchNode* newNode);
 
-    /**
-     * @brief 盤面更新が必要
-     */
+    /// 盤面SFEN更新を要求する（Controller → BoardSyncPresenter）
     void boardUpdateRequired(const QString& sfen);
 
-    /**
-     * @brief 棋譜欄のハイライト更新が必要
-     */
+    /// 棋譜欄ハイライト更新を要求する（Controller → RecordPresenter）
     void recordHighlightRequired(int ply);
 
-    /**
-     * @brief 分岐ツリーのハイライト更新が必要
-     */
+    /// 分岐ツリーハイライト更新を要求する（Controller → BranchTreeWidget）
     void branchTreeHighlightRequired(int lineIndex, int ply);
 
-    /**
-     * @brief 分岐候補欄の更新が必要
-     */
+    /// 分岐候補欄の更新を要求する（Controller → KifuBranchDisplay）
     void branchCandidatesUpdateRequired(const QVector<KifuBranchNode*>& candidates);
 
-    /**
-     * @brief 分岐ライン選択が変更された
-     */
+    /// 分岐ライン選択変更を通知する（Controller → BranchTreeWidget）
     void lineSelectionChanged(int newLineIndex);
 
     /**
-     * @brief 分岐ノードが処理された（MainWindow側のply/SFEN更新用）
+     * @brief 分岐ノード処理完了を通知する（Controller → MainWindow）
      * @param ply 選択された手数
-     * @param sfen ノードのSFEN（空の場合は更新不要）
+     * @param sfen ノードのSFEN（空なら更新不要）
      * @param previousFileTo 移動先の筋（検討モード用、0=なし）
      * @param previousRankTo 移動先の段（検討モード用、0=なし）
-     * @param lastUsiMove 最後の指し手のUSI表記（検討モード用）
+     * @param lastUsiMove 最後の指し手USI表記（検討モード用）
      */
     void branchNodeHandled(int ply, const QString& sfen,
                            int previousFileTo, int previousRankTo,
                            const QString& lastUsiMove);
 
 private:
+    /// 盤面/棋譜欄/分岐ツリーへの更新シグナル群を一括発行する
     void emitUpdateSignals();
+
+    /// 次に進むべき子ノードを返す（分岐選択記憶を優先）
     KifuBranchNode* findForwardNode() const;
 
-    KifuBranchTree* m_tree = nullptr;
-    KifuNavigationState* m_state = nullptr;
+    KifuBranchTree* m_tree = nullptr;          ///< 分岐ツリー（非所有）
+    KifuNavigationState* m_state = nullptr;    ///< ナビゲーション状態（非所有）
 };
 
 #endif // KIFUNAVIGATIONCONTROLLER_H

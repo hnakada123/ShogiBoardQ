@@ -1,13 +1,18 @@
 #ifndef RECORDPANE_H
 #define RECORDPANE_H
 
+/// @file recordpane.h
+/// @brief 棋譜欄ペインクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QWidget>
 #include <QTextBrowser>
 
 class QTableView; class QPushButton; class QTextBrowser; class QSplitter;
 class KifuRecordListModel; class KifuBranchListModel;
 
-// ★ 追加: コメント表示用のラッパ（setText を提供）
+// コメント表示用のラッパ（setText を提供）
 class CommentTextAdapter {
 public:
     explicit CommentTextAdapter(QTextBrowser* tb = nullptr) : m_tb(tb) {}
@@ -77,7 +82,7 @@ private:
     QMetaObject::Connection m_connRowsInserted;
     QMetaObject::Connection m_connBranchCurrentRow;
 
-    // ★ 追加: コメント用アダプタの実体
+    // コメント用アダプタの実体
     CommentTextAdapter m_commentAdapter{nullptr};
 
 public slots:

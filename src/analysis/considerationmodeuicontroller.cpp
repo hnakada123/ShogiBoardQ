@@ -1,3 +1,7 @@
+/// @file considerationmodeuicontroller.cpp
+/// @brief 検討モードUIコントローラクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "considerationmodeuicontroller.h"
 
 #include "engineanalysistab.h"
@@ -13,47 +17,56 @@
 #include <QDebug>
 #include <QColor>
 
+/// @todo remove コメントスタイルガイド適用済み
 ConsiderationModeUIController::ConsiderationModeUIController(QObject* parent)
     : QObject(parent)
 {
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void ConsiderationModeUIController::setAnalysisTab(EngineAnalysisTab* tab)
 {
     m_analysisTab = tab;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void ConsiderationModeUIController::setShogiView(ShogiView* view)
 {
     m_shogiView = view;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void ConsiderationModeUIController::setMatchCoordinator(MatchCoordinator* match)
 {
     m_match = match;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void ConsiderationModeUIController::setConsiderationModel(ShogiEngineThinkingModel* model)
 {
     m_considerationModel = model;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void ConsiderationModeUIController::setCommLogModel(UsiCommLogModel* model)
 {
     m_commLogModel = model;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void ConsiderationModeUIController::setCurrentSfenStr(const QString& sfen)
 {
     m_currentSfenStr = sfen;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void ConsiderationModeUIController::setShowArrowsEnabled(bool enabled)
 {
     m_showArrows = enabled;
     updateArrows();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void ConsiderationModeUIController::onModeStarted()
 {
     qDebug().noquote() << "[ConsiderationModeUIController::onModeStarted] Initializing consideration mode";
@@ -82,6 +95,7 @@ void ConsiderationModeUIController::onModeStarted()
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void ConsiderationModeUIController::onTimeSettingsReady(bool unlimited, int byoyomiSec)
 {
     qDebug().noquote() << "[ConsiderationModeUIController::onTimeSettingsReady] unlimited=" << unlimited
@@ -126,6 +140,7 @@ void ConsiderationModeUIController::onTimeSettingsReady(bool unlimited, int byoy
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void ConsiderationModeUIController::onModeEnded()
 {
     qDebug().noquote() << "[ConsiderationModeUIController::onModeEnded] ENTER";
@@ -149,6 +164,7 @@ void ConsiderationModeUIController::onModeEnded()
     qDebug().noquote() << "[ConsiderationModeUIController::onModeEnded] EXIT";
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void ConsiderationModeUIController::onWaitingStarted()
 {
     qDebug().noquote() << "[ConsiderationModeUIController::onWaitingStarted] ENTER";
@@ -163,6 +179,7 @@ void ConsiderationModeUIController::onWaitingStarted()
     qDebug().noquote() << "[ConsiderationModeUIController::onWaitingStarted] EXIT";
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void ConsiderationModeUIController::onMultiPVChanged(int value)
 {
     qDebug().noquote() << "[ConsiderationModeUIController::onMultiPVChanged] value=" << value;
@@ -171,6 +188,7 @@ void ConsiderationModeUIController::onMultiPVChanged(int value)
     emit multiPVChangeRequested(value);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void ConsiderationModeUIController::onDialogMultiPVReady(int multiPV)
 {
     qDebug().noquote() << "[ConsiderationModeUIController::onDialogMultiPVReady] multiPV=" << multiPV;
@@ -181,12 +199,14 @@ void ConsiderationModeUIController::onDialogMultiPVReady(int multiPV)
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void ConsiderationModeUIController::onShowArrowsChanged(bool checked)
 {
     m_showArrows = checked;
     updateArrows();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void ConsiderationModeUIController::connectArrowUpdateSignals()
 {
     if (m_arrowSignalsConnected || !m_considerationModel) return;
@@ -204,6 +224,7 @@ void ConsiderationModeUIController::connectArrowUpdateSignals()
     m_arrowSignalsConnected = true;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 bool ConsiderationModeUIController::parseUsiMove(const QString& usiMove,
                                                   int& fromFile, int& fromRank,
                                                   int& toFile, int& toRank)
@@ -247,6 +268,7 @@ bool ConsiderationModeUIController::parseUsiMove(const QString& usiMove,
     return false;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void ConsiderationModeUIController::updateArrows()
 {
     if (!m_shogiView) return;
@@ -332,6 +354,7 @@ void ConsiderationModeUIController::updateArrows()
     m_shogiView->setArrows(arrows);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 bool ConsiderationModeUIController::updatePositionIfInConsiderationMode(
     int row, const QString& newPosition,
     const QVector<ShogiMove>* gameMoves,

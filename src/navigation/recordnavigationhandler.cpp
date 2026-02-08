@@ -1,3 +1,7 @@
+/// @file recordnavigationhandler.cpp
+/// @brief 棋譜欄行変更ハンドラクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "recordnavigationhandler.h"
 
 #include <QDebug>
@@ -13,16 +17,19 @@
 #include "evaluationgraphcontroller.h"
 #include "csagamecoordinator.h"
 
+/// @todo remove コメントスタイルガイド適用済み
 RecordNavigationHandler::RecordNavigationHandler(QObject* parent)
     : QObject(parent)
 {
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void RecordNavigationHandler::updateDeps(const Deps& deps)
 {
     m_deps = deps;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void RecordNavigationHandler::onMainRowChanged(int row)
 {
     qDebug().noquote() << "[RNH] onMainRowChanged ENTER row=" << row
@@ -38,14 +45,14 @@ void RecordNavigationHandler::onMainRowChanged(int row)
     }
     s_inProgress = true;
 
-    // ★ 分岐ナビゲーション中は盤面同期をスキップ
+    // 分岐ナビゲーション中は二重更新を防ぐため盤面同期をスキップ
     if (m_deps.skipBoardSyncForBranchNav && *m_deps.skipBoardSyncForBranchNav) {
         qDebug() << "[RNH] onMainRowChanged: SKIPPED (branch navigation in progress)";
         s_inProgress = false;
         return;
     }
 
-    // ★ CSA対局が進行中の場合のみ棋譜リストの選択変更による盤面同期をスキップ
+    // CSA対局進行中は盤面がサーバーと同期されるため、ユーザー操作による盤面変更を抑止する
     if (m_deps.csaGameCoordinator) {
         if (m_deps.csaGameCoordinator->gameState() == CsaGameCoordinator::GameState::InGame) {
             qDebug() << "[RNH] onMainRowChanged: SKIPPED (CSA game in progress)";
@@ -54,7 +61,7 @@ void RecordNavigationHandler::onMainRowChanged(int row)
         }
     }
 
-    // ★ 盤面同期とUI更新
+    // 盤面同期とUI更新
     if (row >= 0) {
         // 分岐ライン上の場合は分岐ツリーからSFENを取得して盤面を更新
         bool handledByBranchTree = false;
@@ -131,7 +138,7 @@ void RecordNavigationHandler::onMainRowChanged(int row)
         emit buildPositionRequired(row);
     }
 
-    // ★ KifuDisplayCoordinator に位置変更を通知
+    // KifuDisplayCoordinator に位置変更を通知
     if (m_deps.displayCoordinator != nullptr) {
         QString sfen;
         bool foundInBranch = false;

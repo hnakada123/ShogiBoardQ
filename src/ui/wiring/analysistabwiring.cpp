@@ -1,3 +1,7 @@
+/// @file analysistabwiring.cpp
+/// @brief 解析タブ配線クラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "analysistabwiring.h"
 
 #include "engineanalysistab.h"
@@ -18,7 +22,7 @@ EngineAnalysisTab* AnalysisTabWiring::buildUiAndWire()
 
     // 1) EngineAnalysisTabを生成（UIはMainWindowのcreateAnalysisDocks()で構築する）
     m_analysisTab = new EngineAnalysisTab(m_d.centralParent);
-    // ★ 変更: buildUi()は呼ばない（各ページは独立したドックとして作成）
+    // buildUi()は呼ばない（各ページは独立したドックとして作成）
 
     // 2) 思考モデル（先後）を生成（親=this で寿命管理）
     m_think1 = new ShogiEngineThinkingModel(this);

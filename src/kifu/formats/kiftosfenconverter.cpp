@@ -1,3 +1,7 @@
+/// @file kiftosfenconverter.cpp
+/// @brief KIF形式棋譜コンバータクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "kiftosfenconverter.h"
 #include "kifreader.h"
 #include "board/sfenpositiontracer.h"
@@ -295,7 +299,7 @@ QString KifToSfenConverter::detectInitialSfenFromFile(const QString& kifPath, QS
         return mapHandicapToSfenImpl(QStringLiteral("平手"));
     }
 
-    // ★ 先に BOD を試す
+    // 先に BOD を試す
     QString bodSfen;
     if (buildInitialSfenFromBod(lines, bodSfen, detectedLabel, &warn)) {
         qDebug().noquote() << "[detectInitialSfenFromFile] BOD detected. sfen =" << bodSfen;
@@ -375,7 +379,7 @@ QList<KifDisplayItem> KifToSfenConverter::extractMovesWithTimes(const QString& k
             continue;
         }
 
-        // ★ しおり：直前の手（out.back()）に付与。初手前は openingCommentBuf に退避。
+        // しおり：直前の手（out.back()）に付与。初手前は openingCommentBuf に退避。
         if (isBookmarkLine(lineStr)) {
             const QString name = lineStr.mid(1).trimmed();
             if (!name.isEmpty()) {
@@ -395,7 +399,7 @@ QList<KifDisplayItem> KifToSfenConverter::extractMovesWithTimes(const QString& k
 
         if (lineStr.isEmpty() || isSkippableLine(lineStr) || isBoardHeaderOrFrame(lineStr)) continue;
 
-        // ★ 変化行に到達したら本譜の抽出を終了
+        // 変化行に到達したら本譜の抽出を終了
         if (variationHeaderRe().match(lineStr).hasMatch()) {
             break;  // 変化以降は本譜ではない
         }
@@ -579,7 +583,7 @@ QStringList KifToSfenConverter::convertFile(const QString& kifPath, QString* err
         if (isCommentLine(lineStr) || isBookmarkLine(lineStr)) continue;
         if (lineStr.isEmpty() || isSkippableLine(lineStr) || isBoardHeaderOrFrame(lineStr)) continue;
 
-        // ★ 変化行に到達したら本譜の抽出を終了
+        // 変化行に到達したら本譜の抽出を終了
         if (variationHeaderRe().match(lineStr).hasMatch()) {
             break;  // 変化以降は本譜ではない
         }
@@ -753,7 +757,7 @@ bool KifToSfenConverter::parseWithVariations(const QString& kifPath,
                     continue;
                 }
 
-                // ★ 変化内のしおり：直前の手に付ける
+                // 変化内のしおり：直前の手に付ける
                 if (isBookmarkLine(lineStr)) {
                     const QString name = lineStr.mid(1).trimmed();
                     if (!name.isEmpty() && !var.line.disp.isEmpty()) {

@@ -1,14 +1,22 @@
 #ifndef SHOGIGAMECONTROLLER_H
 #define SHOGIGAMECONTROLLER_H
 
+/// @file shogigamecontroller.h
+/// @brief 将棋の対局進行・盤面更新・合法手検証を管理するコントローラ
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QObject>
 #include "movevalidator.h"
 #include "playmode.h"
 
-// 将棋盤を表すクラス
 class ShogiBoard;
 
-// 将棋の対局全体を管理し、盤面の初期化、指し手の処理、合法手の検証、対局状態の管理を行うクラス
+/**
+ * @brief 将棋の対局全体を管理し、盤面の初期化・指し手処理・合法手検証・対局状態管理を行う
+ *
+ * @todo remove コメントスタイルガイド適用済み
+ */
 class ShogiGameController : public QObject
 {
     Q_OBJECT
@@ -16,184 +24,174 @@ class ShogiGameController : public QObject
     Q_PROPERTY(Player currentPlayer READ currentPlayer NOTIFY currentPlayerChanged)
 
 public:
-    // 対局結果を表す列挙型
-    enum Result { NoResult, Player1Wins, Draw, Player2Wins };
+    // --- 列挙型 ---
 
+    /// 対局結果
+    enum Result {
+        NoResult,    ///< 未決
+        Player1Wins, ///< 先手（下手）勝ち
+        Draw,        ///< 引き分け
+        Player2Wins  ///< 後手（上手）勝ち
+    };
     Q_ENUM(Result)
 
-    // 対局者を表す列挙型
-    enum Player { NoPlayer, Player1, Player2 };
-
+    /// 対局者（手番）
+    enum Player {
+        NoPlayer, ///< 未設定
+        Player1,  ///< 先手（下手）
+        Player2   ///< 後手（上手）
+    };
     Q_ENUM(Player)
 
-    // コンストラクタ
+    // --- 生成・取得 ---
+
     explicit ShogiGameController(QObject* parent = nullptr);
 
-    // 将棋盤のポインタを返す。
     ShogiBoard* board() const;
-
-    // 対局結果を返す。
     Result result() const { return m_result; }
-
-    // 現在の手番を返す。
     Player currentPlayer() const { return m_currentPlayer; }
-
-    // 現在の対局者を設定する。
     void setCurrentPlayer(const Player);
 
-    // 将棋の指し手を検証し、合法手であれば盤面を更新する。
-    // 将棋の指し手を検証し、合法手であれば盤面を更新する。
+    // --- 指し手処理 ---
+
+    /**
+     * @brief 指し手を検証し、合法手であれば盤面を更新する
+     * @return 合法手で盤面更新できた場合 true
+     */
     bool validateAndMove(QPoint& outFrom, QPoint& outTo, QString& record, PlayMode& playMode, int& moveNumber,
                          QStringList* m_sfenRecord, QVector<ShogiMove>& gameMoves);
 
-    // 局面編集で駒移動を行い、局面を更新する。
+    /// 局面編集モードで駒を移動し、盤面を更新する
     bool editPosition(const QPoint& outFrom, const QPoint& outTo);
 
-    // 指し手を漢字の文字列に変換する。
+    /// 指し手を漢字の棋譜文字列に変換する（例: "▲７六歩(77)"）
     QString convertMoveToKanjiStr(const QString piece, const int fileFrom, const int rankFrom, const int fileTo, const int rankTo);
 
-    // 対局結果を設定する。
+    /// 投了時などの対局結果を設定する（現手番の相手を勝ちにする）
     void gameResult();
 
-    // 歩、桂馬、香車を指した場合に成りが必須になる時のフラグを設定する。
+    /// 歩・桂・香の行き所のない駒に対して成りフラグを強制設定する
     void setMandatoryPromotionFlag(const int fileTo, const int rankTo, const QChar source);
 
-    // 編集局面モードの際、右クリックで駒を成・不成に変換する。
+    /// 局面編集モードで右クリックによる成/不成を切り替える
     void switchPiecePromotionStatusOnRightClick(const int fileFrom, const int rankFrom) const;
 
-    // 二歩になるかどうかをチェックする。
+    // --- 禁じ手チェック ---
+
     bool checkTwoPawn(const QChar source, const int fileFrom, const int fileTo) const;
-
-    // 指そうとした場所に味方の駒があるかどうかチェックする。
     bool checkWhetherAllyPiece(const QChar source, const QChar dest, const int fileFrom, const int fileTo) const;
-
-    // 駒台から指そうとした場合、駒台の駒数が0以下の時は、駒台の駒は無いので指せない。
     bool checkNumberStandPiece(const QChar source, const int fileFrom) const;
-
-    // 駒台から駒台に駒を移動することが可能かどうかをチェックする。
-    // 先手の駒台の駒から後手の駒台の異種駒には、駒は移せない。
-    // また、後手の駒台の駒から先手の駒台の異種駒には、駒は移せない。
     bool checkFromPieceStandToPieceStand(const QChar source, const QChar dest, const int fileFrom, const int fileTo) const;
-
-    // 王、玉は、相手の駒で取ることはできないので、取れない場合はfalseを返す。
     bool checkGetKingOpponentPiece(const QChar source, const QChar dest) const;
-
-    // 禁じ手をチェックする。
     bool checkMovePiece(const QChar source, const QChar dest, const int fileFrom, const int fileTo) const;
 
-    // 局面編集後の局面をSFEN形式に変換し、リストに追加する。
-    void updateSfenRecordAfterEdit(QStringList* m_sfenRecord);
+    // --- SFEN・手番 ---
 
-    // 手番を変える。
+    /// 局面編集後のSFENをリストに追加する
+    void updateSfenRecordAfterEdit(QStringList* m_sfenRecord);
     void changeCurrentPlayer();
 
-    // 成り・不成のフラグを設定する。
-    void setPromote(bool newPromote);
+    // --- 成り制御 ---
 
-    // 成り・不成のフラグを返す。
+    void setPromote(bool newPromote);
     bool promote() const;
-    
+
     /**
      * @brief 強制成りモードを設定する（定跡手からの着手時に使用）
      * @param force true=強制モード有効、false=無効（通常のダイアログ表示）
      * @param promote 強制モード時の成り/不成（true=成り、false=不成）
      */
     void setForcedPromotion(bool force, bool promote = false);
-    
-    /**
-     * @brief 強制成りモードをクリアする
-     */
     void clearForcedPromotion();
 
-    QPoint lastMoveTo() const;  // 直前着手の移動先（筋, 段）を返す
+    /// 直前着手の移動先（筋, 段）を返す
+    QPoint lastMoveTo() const;
 
-    // 既存の public: メソッド群のどこか（validateAndMove などの近く）に追記
-    void applyTimeoutLossFor(int clockPlayer);     // player==1 なら先手の時間切れ→後手勝ち／player==2 なら先手勝ち
-    void applyResignationOfCurrentSide();          // 現在手番側が投了 → 相手の勝ち
-    void finalizeGameResult();                     // 結果未確定なら最終決定（未決のときは currentPlayer に基づいて勝敗をセット）
+    // --- 対局結果制御 ---
+
+    /// 時間切れによる敗北を適用する（clockPlayer: 1=先手負け, 2=後手負け）
+    void applyTimeoutLossFor(int clockPlayer);
+
+    /// 現在手番側の投了を適用する
+    void applyResignationOfCurrentSide();
+
+    /// 結果未確定の場合に最終決定する
+    void finalizeGameResult();
 
 public slots:
-    // 新規対局の準備
-    // 将棋盤、駒台を初期化（何も駒がない）し、入力のSFEN文字列の配置に将棋盤、駒台の駒を
-    // 配置し、対局結果を結果なし、現在の手番がどちらでもない状態に設定する。
+    /**
+     * @brief SFEN文字列から新規対局を準備する
+     *
+     * 盤面・駒台を初期化し、指定SFENの配置に設定する。
+     * 対局結果はNoResult、手番はNoPlayerにリセットされる。
+     */
     void newGame(QString& startsfenstr);
 
 signals:
-    // 盤面が変更されたことを通知する。
+    /// 盤面が変更された（→ ShogiView）
     void boardChanged(ShogiBoard *);
 
-    // 対局結果が変更されたことを通知する。
+    /// 対局結果が確定した（→ MatchCoordinator）
     void gameOver(ShogiGameController::Result);
 
-    // 対局者に成るかどうかを選択させるダイアログを表示する。
+    /// 成り/不成の選択ダイアログ表示を要求する（→ PromotionFlow）
     void showPromotionDialog();
 
-    // 現在の手番が変更されたことを通知する。
+    /// 手番が変更された（→ TurnManager）
     void currentPlayerChanged(ShogiGameController::Player);
 
-    // 駒のドラッグを終了したことを通知する。
+    /// 駒のドラッグ終了を通知する（→ ShogiView）
     void endDragSignal();
 
+    /// 着手が確定した（→ TurnSyncBridge）
     void moveCommitted(ShogiGameController::Player mover, int ply);
 
-    // エラーを報告するためのシグナル
+    /// エラー発生を報告する（→ ErrorBus）
     void errorOccurred(const QString& errorMessage);
 
 private:
-    // 将棋盤のポインタ
-    ShogiBoard* m_board;
+    // --- メンバー変数 ---
 
-    // 対局結果
-    Result m_result;
+    ShogiBoard* m_board;      ///< 将棋盤（所有）
+    Result m_result;          ///< 対局結果
+    Player m_currentPlayer;   ///< 現在の手番
 
-    // 現在の手番
-    Player m_currentPlayer;
+    bool m_promote;                ///< 成り/不成フラグ
+    bool m_forcedPromotionMode;    ///< 強制成りモード有効フラグ（定跡手用）
+    bool m_forcedPromotionValue;   ///< 強制成りモード時の成り/不成の値
 
-    // 成るかどうかのフラグ
-    bool m_promote;
-    
-    // 強制成りモード（定跡手からの着手時に使用）
-    bool m_forcedPromotionMode;      // 強制モードが有効かどうか
-    bool m_forcedPromotionValue;     // 強制モード時の成り/不成の値
+    int previousFileTo;  ///< 1手前の移動先の筋（「同」表記判定用）
+    int previousRankTo;  ///< 1手前の移動先の段（「同」表記判定用）
 
-    // 1手前に指した手の移動先の筋
-    int previousFileTo;
+    // --- 内部処理 ---
 
-    // 1手前に指した手の移動先の段
-    int previousRankTo;
-
-    // 将棋盤のポインタを設定する。
     void setupBoard();
-
-    // 将棋盤の81マスに空白を代入し、駒台の駒を0にする。
-    // 将棋盤を示すポインタm_boardを作成する。
     void setBoard(ShogiBoard* board);
-
-    // 対局結果を設定する。
     void setResult(Result);
 
-    // アルファベットの駒文字を漢字表記にする。
+    /// アルファベットの駒文字を漢字表記に変換する
     QString getPieceKanji(const QChar& piece);
 
-    // 指定された駒が成ることが可能な駒であるかを判定する。
+    /// 指定された駒が成り可能な駒かを判定する
     bool isPromotablePiece(QChar& piece);
 
-    // ダイアログを表示してユーザーに成るかどうかを選択させる。
+    /// 成り/不成の選択ダイアログを表示して結果を反映する
     void decidePromotionByDialog(QChar &piece, int &rankFrom, int &rankTo);
 
-    // 人間が対局者に含まれているかどうかを判定する。
+    /// 現在の手番が人間操作かどうかを判定する
     bool isCurrentPlayerHumanControlled(PlayMode& playMode);
 
-    // 人間が指した場合に指し手で成る手と不成の手が合法手であるかを判定し、GUIのダイアログで対局者に
-    // 成るか成らないかを選択させて、その結果をcurrentMove.isPromotionに保存する。
-    // 指し手が合法であればtrue、不合法であればfalseを返す。
+    /**
+     * @brief 人間の着手時に成り/不成を判定・決定する
+     * @return 合法手として成立する場合 true
+     */
     bool decidePromotion(PlayMode& playMode, MoveValidator& validator, const MoveValidator::Turn& turnMove,
                          int& fileFrom, int& rankFrom, int& fileTo, int& rankTo, QChar& piece,  ShogiMove& currentMove);
 
-    // 相手の手番をSFEN形式の手番bまたはwで取得する。
+    /// 相手の手番をSFEN形式（"b" or "w"）で取得する
     QString getNextPlayerSfen();
 
-    // 合法手生成に関するクラスで利用するための手番を設定する。
+    /// MoveValidatorに渡す手番を取得する
     MoveValidator::Turn getCurrentTurnForValidator(MoveValidator& validator);
 };
 

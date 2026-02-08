@@ -1,3 +1,7 @@
+/// @file csagamecoordinator.cpp
+/// @brief CSA通信対局コーディネータクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "csagamecoordinator.h"
 #include "shogigamecontroller.h"
 #include "shogiview.h"
@@ -15,7 +19,11 @@
 
 using namespace EngineSettingsConstants;
 
-// コンストラクタ
+// ============================================================
+// 初期化・破棄
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 CsaGameCoordinator::CsaGameCoordinator(QObject* parent)
     : QObject(parent)
     , m_client(new CsaClient(this))
@@ -38,7 +46,6 @@ CsaGameCoordinator::CsaGameCoordinator(QObject* parent)
     , m_whiteRemainingMs(0)
     , m_resignConsumedTimeMs(0)
 {
-    // CSAクライアントのシグナル接続
     connect(m_client, &CsaClient::connectionStateChanged,
             this, &CsaGameCoordinator::onConnectionStateChanged);
     connect(m_client, &CsaClient::errorOccurred,
@@ -69,13 +76,13 @@ CsaGameCoordinator::CsaGameCoordinator(QObject* parent)
             this, &CsaGameCoordinator::onRawMessageSent);
 }
 
-// デストラクタ
+/// @todo remove コメントスタイルガイド適用済み
 CsaGameCoordinator::~CsaGameCoordinator()
 {
     cleanup();
 }
 
-// 依存オブジェクト設定
+/// @todo remove コメントスタイルガイド適用済み
 void CsaGameCoordinator::setDependencies(const Dependencies& deps)
 {
     m_gameController = deps.gameController;
@@ -99,7 +106,11 @@ void CsaGameCoordinator::setDependencies(const Dependencies& deps)
     }
 }
 
-// 対局開始
+// ============================================================
+// 対局制御
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 void CsaGameCoordinator::startGame(const StartOptions& options)
 {
     if (m_gameState != GameState::Idle && m_gameState != GameState::Error) {
@@ -119,16 +130,14 @@ void CsaGameCoordinator::startGame(const StartOptions& options)
     if (m_sfenRecord) m_sfenRecord->clear();
     if (m_gameMoves) m_gameMoves->clear();
 
-    // CSAバージョン設定
     m_client->setCsaVersion(options.csaVersion);
 
-    // サーバーに接続
     setGameState(GameState::Connecting);
     emit logMessage(tr("サーバー %1:%2 に接続中...").arg(options.host).arg(options.port));
     m_client->connectToServer(options.host, options.port);
 }
 
-// 対局中断
+/// @todo remove コメントスタイルガイド適用済み
 void CsaGameCoordinator::stopGame()
 {
     if (m_gameState == GameState::InGame) {
@@ -148,19 +157,19 @@ void CsaGameCoordinator::stopGame()
     setGameState(GameState::Idle);
 }
 
-// 自分の手番かどうか
+/// @todo remove コメントスタイルガイド適用済み
 bool CsaGameCoordinator::isMyTurn() const
 {
     return m_isMyTurn;
 }
 
-// 先手側かどうか
+/// @todo remove コメントスタイルガイド適用済み
 bool CsaGameCoordinator::isBlackSide() const
 {
     return m_isBlackSide;
 }
 
-// 人間の指し手処理
+/// @todo remove コメントスタイルガイド適用済み
 void CsaGameCoordinator::onHumanMove(const QPoint& from, const QPoint& to, bool promote)
 {
     qDebug() << "[CSA-DEBUG] onHumanMove called: from=" << from << "to=" << to << "promote=" << promote;
@@ -192,7 +201,7 @@ void CsaGameCoordinator::onHumanMove(const QPoint& from, const QPoint& to, bool 
     qDebug() << "[CSA-DEBUG] Move sent to server";
 }
 
-// 投了処理
+/// @todo remove コメントスタイルガイド適用済み
 void CsaGameCoordinator::onResign()
 {
     if (m_gameState == GameState::InGame) {
@@ -209,7 +218,11 @@ void CsaGameCoordinator::onResign()
     }
 }
 
-// 接続状態変化ハンドラ
+// ============================================================
+// CSAクライアント シグナルハンドラ
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 void CsaGameCoordinator::onConnectionStateChanged(CsaClient::ConnectionState state)
 {
     switch (state) {
@@ -231,14 +244,14 @@ void CsaGameCoordinator::onConnectionStateChanged(CsaClient::ConnectionState sta
     }
 }
 
-// エラーハンドラ
+/// @todo remove コメントスタイルガイド適用済み
 void CsaGameCoordinator::onClientError(const QString& message)
 {
     emit errorOccurred(message);
     emit logMessage(tr("エラー: %1").arg(message), true);
 }
 
-// ログイン成功ハンドラ
+/// @todo remove コメントスタイルガイド適用済み
 void CsaGameCoordinator::onLoginSucceeded()
 {
     emit logMessage(tr("ログイン成功。対局待ち中..."));
@@ -249,7 +262,7 @@ void CsaGameCoordinator::onLoginSucceeded()
     }
 }
 
-// ログイン失敗ハンドラ
+/// @todo remove コメントスタイルガイド適用済み
 void CsaGameCoordinator::onLoginFailed(const QString& reason)
 {
     emit logMessage(tr("ログイン失敗: %1").arg(reason), true);
@@ -258,14 +271,14 @@ void CsaGameCoordinator::onLoginFailed(const QString& reason)
     m_client->disconnectFromServer();
 }
 
-// ログアウト完了ハンドラ
+/// @todo remove コメントスタイルガイド適用済み
 void CsaGameCoordinator::onLogoutCompleted()
 {
     emit logMessage(tr("ログアウト完了"));
     setGameState(GameState::Idle);
 }
 
-// 対局情報受信ハンドラ
+/// @todo remove コメントスタイルガイド適用済み
 void CsaGameCoordinator::onGameSummaryReceived(const CsaClient::GameSummary& summary)
 {
     m_gameSummary = summary;
@@ -284,7 +297,7 @@ void CsaGameCoordinator::onGameSummaryReceived(const CsaClient::GameSummary& sum
     m_client->agree(summary.gameId);
 }
 
-// 対局開始ハンドラ
+/// @todo remove コメントスタイルガイド適用済み
 void CsaGameCoordinator::onGameStarted(const QString& gameId)
 {
     Q_UNUSED(gameId)
@@ -294,7 +307,7 @@ void CsaGameCoordinator::onGameStarted(const QString& gameId)
 
     setupInitialPosition();
     
-    // ★ setupClock()の前にm_isMyTurnを設定
+    // setupClock()はm_isMyTurnを参照するため、先に設定する
     m_isMyTurn = (m_gameSummary.myTurn == m_gameSummary.toMove);
     
     setupClock();
@@ -307,14 +320,14 @@ void CsaGameCoordinator::onGameStarted(const QString& gameId)
     }
 }
 
-// 対局拒否ハンドラ
+/// @todo remove コメントスタイルガイド適用済み
 void CsaGameCoordinator::onGameRejected(const QString& gameId, const QString& rejector)
 {
     emit logMessage(tr("対局が拒否されました (ID: %1, 拒否者: %2)").arg(gameId, rejector), true);
     setGameState(GameState::WaitingForMatch);
 }
 
-// 相手の指し手受信ハンドラ
+/// @todo remove コメントスタイルガイド適用済み
 void CsaGameCoordinator::onMoveReceived(const QString& move, int consumedTimeMs)
 {
     emit logMessage(tr("相手の指し手: %1 (消費時間: %2ms)").arg(move).arg(consumedTimeMs));
@@ -333,7 +346,7 @@ void CsaGameCoordinator::onMoveReceived(const QString& move, int consumedTimeMs)
         if (m_whiteRemainingMs < 0) m_whiteRemainingMs = 0;
     }
     
-    // ★ 相手の指し手を受信したので、時計の残り時間を更新し、自分の手番として時計を開始
+    // サーバーが権威的な消費時間を通知するため、GUI側の時計を補正して自分の手番に切り替える
     if (m_clock) {
         // 残り時間を更新（ミリ秒→秒）
         int blackRemainSec = m_blackRemainingMs / 1000;
@@ -418,7 +431,7 @@ void CsaGameCoordinator::onMoveReceived(const QString& move, int consumedTimeMs)
     }
 }
 
-// 自分の指し手確認ハンドラ
+/// @todo remove コメントスタイルガイド適用済み
 void CsaGameCoordinator::onMoveConfirmed(const QString& move, int consumedTimeMs)
 {
     emit logMessage(tr("指し手確認: %1 (消費時間: %2ms)").arg(move).arg(consumedTimeMs));
@@ -437,7 +450,7 @@ void CsaGameCoordinator::onMoveConfirmed(const QString& move, int consumedTimeMs
         if (m_whiteRemainingMs < 0) m_whiteRemainingMs = 0;
     }
     
-    // ★ 自分の指し手が確認されたので、残り時間を更新し、相手側の時計を開始
+    // サーバー確認済みの消費時間でGUI側の時計を補正し、相手の手番に切り替える
     if (m_clock) {
         // 残り時間を更新（ミリ秒→秒）
         int blackRemainSec = m_blackRemainingMs / 1000;
@@ -518,23 +531,20 @@ void CsaGameCoordinator::onMoveConfirmed(const QString& move, int consumedTimeMs
     emit moveMade(move, usiMove, prettyMove, consumedTimeMs);
 }
 
-// 対局終了ハンドラ
+/// @todo remove コメントスタイルガイド適用済み
 void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause, int consumedTimeMs)
 {
-    // ★ デバッグ: 入力パラメータと状態を出力
     qDebug().noquote() << "[CSA-DEBUG] onClientGameEnded ENTER:"
                        << "result=" << static_cast<int>(result)
                        << "cause=" << static_cast<int>(cause)
                        << "consumedTimeMs=" << consumedTimeMs
                        << "m_isBlackSide=" << m_isBlackSide;
 
-    // ★ 修正: 時間を読み取る前にクロックを停止
-    // これにより、残り時間の計算が正確になる
+    // 残り時間の計算精度を確保するため、先にクロックを停止する
     if (m_clock) {
         m_clock->stopClock();
     }
 
-    // ★ デバッグ: クロックの状態を出力（停止後）
     if (m_clock) {
         qDebug().noquote() << "[CSA-DEBUG] Clock state:"
                            << "player1TimeMs=" << m_clock->getPlayer1TimeIntMs()
@@ -544,7 +554,6 @@ void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClie
         qDebug().noquote() << "[CSA-DEBUG] m_clock is NULL!";
     }
 
-    // ★ デバッグ: 累計消費時間を出力
     qDebug().noquote() << "[CSA-DEBUG] Total consumed times:"
                        << "m_blackTotalTimeMs=" << m_blackTotalTimeMs
                        << "m_whiteTotalTimeMs=" << m_whiteTotalTimeMs
@@ -572,7 +581,6 @@ void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClie
                 ? m_whiteTotalTimeMs
                 : m_blackTotalTimeMs;
 
-            // ★ デバッグ: 計算に使う値を出力
             qDebug().noquote() << "[CSA-DEBUG] Opponent resign calculation:"
                                << "opponentClockRemainingMs=" << opponentClockRemainingMs
                                << "opponentPreviousConsumedMs=" << opponentPreviousConsumedMs;
@@ -594,7 +602,6 @@ void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClie
         }
     }
 
-    // ★ デバッグ: 最終的な消費時間を出力
     qDebug().noquote() << "[CSA-DEBUG] Final actualConsumedTimeMs=" << actualConsumedTimeMs;
 
     QString resultStr;
@@ -657,7 +664,6 @@ void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClie
     setGameState(GameState::GameOver);
     emit gameEnded(resultStr, causeStr, actualConsumedTimeMs);
 
-    // ★ 注: クロック停止は関数冒頭で既に実行済み
 
     // エンジンにgameoverとquitコマンドを送信
     if (m_engine) {
@@ -677,14 +683,14 @@ void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClie
     }
 }
 
-// 中断ハンドラ
+/// @todo remove コメントスタイルガイド適用済み
 void CsaGameCoordinator::onGameInterrupted()
 {
     emit logMessage(tr("対局が中断されました"));
     setGameState(GameState::GameOver);
 }
 
-// 生メッセージ受信ハンドラ
+/// @todo remove コメントスタイルガイド適用済み
 void CsaGameCoordinator::onRawMessageReceived(const QString& message)
 {
     emit logMessage(tr("[RECV] %1").arg(message));
@@ -692,7 +698,7 @@ void CsaGameCoordinator::onRawMessageReceived(const QString& message)
     emit csaCommLogAppended(QStringLiteral("▶ ") + message);
 }
 
-// 生メッセージ送信ハンドラ
+/// @todo remove コメントスタイルガイド適用済み
 void CsaGameCoordinator::onRawMessageSent(const QString& message)
 {
     emit logMessage(tr("[SEND] %1").arg(message));
@@ -708,7 +714,7 @@ void CsaGameCoordinator::onRawMessageSent(const QString& message)
     emit csaCommLogAppended(QStringLiteral("◀ ") + displayMsg);
 }
 
-// エンジンのbestmoveハンドラ
+/// @todo remove コメントスタイルガイド適用済み
 // 注意: handleEngineVsHumanOrEngineMatchCommunicationがブロッキングで処理するため、
 // このスロットは startEngineThinking() が完了した後に呼ばれる。
 // 主に非同期で使う場合のためのスタブとして残す。
@@ -720,7 +726,7 @@ void CsaGameCoordinator::onEngineBestMoveReceived()
     qDebug() << "[CSA-DEBUG] onEngineBestMoveReceived_ called (handled in startEngineThinking)";
 }
 
-// エンジン投了ハンドラ
+/// @todo remove コメントスタイルガイド適用済み
 void CsaGameCoordinator::onEngineResign()
 {
     if (m_gameState == GameState::InGame) {
@@ -738,7 +744,7 @@ void CsaGameCoordinator::onEngineResign()
     }
 }
 
-// 対局状態設定
+/// @todo remove コメントスタイルガイド適用済み
 void CsaGameCoordinator::setGameState(GameState state)
 {
     if (m_gameState != state) {
@@ -747,7 +753,11 @@ void CsaGameCoordinator::setGameState(GameState state)
     }
 }
 
-// CSA→USI変換
+// ============================================================
+// CSA/USI/SFEN 形式変換
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 QString CsaGameCoordinator::csaToUsi(const QString& csaMove) const
 {
     if (csaMove.length() < 7) {
@@ -790,7 +800,7 @@ QString CsaGameCoordinator::csaToUsi(const QString& csaMove) const
     return usiMove;
 }
 
-// USI→CSA変換
+/// @todo remove コメントスタイルガイド適用済み
 QString CsaGameCoordinator::usiToCsa(const QString& usiMove, bool isBlack) const
 {
     if (usiMove.isEmpty()) {
@@ -849,7 +859,7 @@ QString CsaGameCoordinator::usiToCsa(const QString& usiMove, bool isBlack) const
     return csaMove;
 }
 
-// 盤面座標→CSA変換
+/// @todo remove コメントスタイルガイド適用済み
 QString CsaGameCoordinator::boardToCSA(const QPoint& from, const QPoint& to, bool promote) const
 {
     qDebug() << "[CSA-DEBUG] boardToCSA: from=" << from << "to=" << to << "promote=" << promote;
@@ -913,7 +923,7 @@ QString CsaGameCoordinator::boardToCSA(const QPoint& from, const QPoint& to, boo
     return result;
 }
 
-// 駒文字→CSA駒名変換
+/// @todo remove コメントスタイルガイド適用済み
 QString CsaGameCoordinator::pieceCharToCsa(QChar pieceChar, bool promote) const
 {
     // ShogiBoardの駒表現:
@@ -968,7 +978,7 @@ QString CsaGameCoordinator::pieceCharToCsa(QChar pieceChar, bool promote) const
     }
 }
 
-// CSA→表示用変換
+/// @todo remove コメントスタイルガイド適用済み
 QString CsaGameCoordinator::csaToPretty(const QString& csaMove, bool isPromotion) const
 {
     if (csaMove.length() < 7) {
@@ -1037,7 +1047,11 @@ QString CsaGameCoordinator::csaToPretty(const QString& csaMove, bool isPromotion
     return moveStr;
 }
 
-// 初期局面セットアップ
+// ============================================================
+// 局面・時計・エンジン セットアップ
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 void CsaGameCoordinator::setupInitialPosition()
 {
     if (!m_gameController || !m_gameController->board()) {
@@ -1072,7 +1086,7 @@ void CsaGameCoordinator::setupInitialPosition()
     }
 }
 
-// 時計初期化
+/// @todo remove コメントスタイルガイド適用済み
 void CsaGameCoordinator::setupClock()
 {
     if (!m_clock) {
@@ -1103,7 +1117,7 @@ void CsaGameCoordinator::setupClock()
     m_clock->startClock();
 }
 
-// エンジン初期化
+/// @todo remove コメントスタイルガイド適用済み
 void CsaGameCoordinator::initializeEngine()
 {
     if (m_playerType != PlayerType::Engine) {
@@ -1136,7 +1150,7 @@ void CsaGameCoordinator::initializeEngine()
         m_engineCommLog = new UsiCommLogModel(this);
         m_ownsCommLog = true;
     } else {
-        // ★ メモリリーク防止：既存モデルをクリア（前回対局のデータを消去）
+        // 前回対局のデータが残っているため消去する
         m_engineCommLog->clear();
     }
 
@@ -1145,7 +1159,7 @@ void CsaGameCoordinator::initializeEngine()
         m_engineThinking = new ShogiEngineThinkingModel(this);
         m_ownsThinking = true;
     } else {
-        // ★ メモリリーク防止：既存モデルをクリア（前回対局のデータを消去）
+        // 前回対局のデータが残っているため消去する
         m_engineThinking->clearAllItems();
     }
 
@@ -1171,7 +1185,7 @@ void CsaGameCoordinator::initializeEngine()
     emit logMessage(tr("エンジン %1 を起動しました").arg(m_options.engineName));
 }
 
-// エンジン思考開始
+/// @todo remove コメントスタイルガイド適用済み
 void CsaGameCoordinator::startEngineThinking()
 {
     if (!m_engine || m_playerType != PlayerType::Engine) {
@@ -1327,7 +1341,7 @@ void CsaGameCoordinator::startEngineThinking()
     m_client->sendMove(csaMove);
 }
 
-// 指し手を盤面に適用
+/// @todo remove コメントスタイルガイド適用済み
 bool CsaGameCoordinator::applyMoveToBoard(const QString& csaMove)
 {
     if (!m_gameController || !m_gameController->board()) {
@@ -1431,7 +1445,7 @@ bool CsaGameCoordinator::applyMoveToBoard(const QString& csaMove)
     return true;
 }
 
-// CSA駒種→駒台インデックス変換
+/// @todo remove コメントスタイルガイド適用済み
 int CsaGameCoordinator::pieceTypeFromCsa(const QString& csaPiece) const
 {
     if (csaPiece == QStringLiteral("FU") || csaPiece == QStringLiteral("TO")) return 1;
@@ -1445,7 +1459,7 @@ int CsaGameCoordinator::pieceTypeFromCsa(const QString& csaPiece) const
     return 0;
 }
 
-// CSA駒種→SFEN駒文字変換
+/// @todo remove コメントスタイルガイド適用済み
 QChar CsaGameCoordinator::csaPieceToSfenChar(const QString& csaPiece, bool isBlack) const
 {
     QChar c;
@@ -1462,7 +1476,7 @@ QChar CsaGameCoordinator::csaPieceToSfenChar(const QString& csaPiece, bool isBla
     return isBlack ? c.toUpper() : c.toLower();
 }
 
-// CSA駒記号→USI駒記号
+/// @todo remove コメントスタイルガイド適用済み
 QString CsaGameCoordinator::csaPieceToUsi(const QString& csaPiece) const
 {
     static const QHash<QString, QString> map = {
@@ -1484,7 +1498,7 @@ QString CsaGameCoordinator::csaPieceToUsi(const QString& csaPiece) const
     return map.value(csaPiece, QStringLiteral("P"));
 }
 
-// USI駒記号→CSA駒記号
+/// @todo remove コメントスタイルガイド適用済み
 QString CsaGameCoordinator::usiPieceToCsa(const QString& usiPiece, bool promoted) const
 {
     static const QHash<QString, QString> map = {
@@ -1512,7 +1526,7 @@ QString CsaGameCoordinator::usiPieceToCsa(const QString& usiPiece, bool promoted
     return map.value(usiPiece, QStringLiteral("FU"));
 }
 
-// CSA駒記号→漢字
+/// @todo remove コメントスタイルガイド適用済み
 QString CsaGameCoordinator::csaPieceToKanji(const QString& csaPiece) const
 {
     static const QHash<QString, QString> map = {
@@ -1534,7 +1548,7 @@ QString CsaGameCoordinator::csaPieceToKanji(const QString& csaPiece) const
     return map.value(csaPiece, csaPiece);
 }
 
-// クリーンアップ
+/// @todo remove コメントスタイルガイド適用済み
 void CsaGameCoordinator::cleanup()
 {
     if (m_engine) {
@@ -1557,7 +1571,7 @@ void CsaGameCoordinator::cleanup()
     m_client->disconnectFromServer();
 }
 
-// GUI側からCSAサーバーへコマンドを送信
+/// @todo remove コメントスタイルガイド適用済み
 void CsaGameCoordinator::sendRawCommand(const QString& command)
 {
     if (!m_client) {

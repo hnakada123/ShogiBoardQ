@@ -1,3 +1,7 @@
+/// @file kifupastedialog.cpp
+/// @brief 棋譜貼り付けダイアログクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "kifupastedialog.h"
 #include <QApplication>
 #include <QClipboard>

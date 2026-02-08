@@ -1,34 +1,50 @@
+/// @file engineoptiondescriptions.cpp
+/// @brief USIエンジンオプション説明データベースの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "engineoptiondescriptions.h"
 #include <QObject>
 
-// 静的メンバ変数の定義
+// ============================================================
+// 静的メンバ変数
+// ============================================================
+
 QHash<QString, QString> EngineOptionDescriptions::s_yaneuraouDescriptions;
 QHash<QString, EngineOptionCategory> EngineOptionDescriptions::s_yaneuraouCategories;
 QHash<QString, QString> EngineOptionDescriptions::s_gikouDescriptions;
 QHash<QString, EngineOptionCategory> EngineOptionDescriptions::s_gikouCategories;
 bool EngineOptionDescriptions::s_initialized = false;
 
+// ============================================================
+// エンジン判定
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 bool EngineOptionDescriptions::isYaneuraOuEngine(const QString& engineName)
 {
-    // エンジン名に "YaneuraOu" が含まれているかどうかで判定（大文字小文字を区別しない）
     return engineName.contains(QStringLiteral("YaneuraOu"), Qt::CaseInsensitive) ||
            engineName.contains(QStringLiteral("Yaneuraou"), Qt::CaseInsensitive) ||
            engineName.contains(QStringLiteral("やねうら王"), Qt::CaseInsensitive);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 bool EngineOptionDescriptions::isGikouEngine(const QString& engineName)
 {
-    // エンジン名に "Gikou" または "技巧" が含まれているかどうかで判定
     return engineName.contains(QStringLiteral("Gikou"), Qt::CaseInsensitive) ||
            engineName.contains(QStringLiteral("技巧"), Qt::CaseInsensitive);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 bool EngineOptionDescriptions::isEngineSupported(const QString& engineName)
 {
-    // YaneuraOuとGikouに対応
     return isYaneuraOuEngine(engineName) || isGikouEngine(engineName);
 }
 
+// ============================================================
+// 説明・カテゴリ取得
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 QString EngineOptionDescriptions::getDescription(const QString& engineName, const QString& optionName)
 {
     if (!s_initialized) {
@@ -36,20 +52,18 @@ QString EngineOptionDescriptions::getDescription(const QString& engineName, cons
         initializeCategories();
     }
 
-    // YaneuraOu系エンジンの場合
     if (isYaneuraOuEngine(engineName)) {
         return s_yaneuraouDescriptions.value(optionName, QString());
     }
 
-    // Gikou系エンジンの場合
     if (isGikouEngine(engineName)) {
         return s_gikouDescriptions.value(optionName, QString());
     }
 
-    // その他のエンジンは説明なし
     return QString();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 bool EngineOptionDescriptions::hasDescription(const QString& engineName, const QString& optionName)
 {
     if (!s_initialized) {
@@ -57,12 +71,10 @@ bool EngineOptionDescriptions::hasDescription(const QString& engineName, const Q
         initializeCategories();
     }
 
-    // YaneuraOu系エンジンの場合
     if (isYaneuraOuEngine(engineName)) {
         return s_yaneuraouDescriptions.contains(optionName);
     }
 
-    // Gikou系エンジンの場合
     if (isGikouEngine(engineName)) {
         return s_gikouDescriptions.contains(optionName);
     }
@@ -70,6 +82,7 @@ bool EngineOptionDescriptions::hasDescription(const QString& engineName, const Q
     return false;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 EngineOptionCategory EngineOptionDescriptions::getCategory(const QString& engineName, const QString& optionName)
 {
     if (!s_initialized) {
@@ -77,20 +90,18 @@ EngineOptionCategory EngineOptionDescriptions::getCategory(const QString& engine
         initializeCategories();
     }
 
-    // YaneuraOu系エンジンの場合
     if (isYaneuraOuEngine(engineName)) {
         return s_yaneuraouCategories.value(optionName, EngineOptionCategory::Other);
     }
 
-    // Gikou系エンジンの場合
     if (isGikouEngine(engineName)) {
         return s_gikouCategories.value(optionName, EngineOptionCategory::Other);
     }
 
-    // その他のエンジンは全て「その他」カテゴリ
     return EngineOptionCategory::Other;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 QString EngineOptionDescriptions::getCategoryDisplayName(EngineOptionCategory category)
 {
     switch (category) {
@@ -110,6 +121,7 @@ QString EngineOptionDescriptions::getCategoryDisplayName(EngineOptionCategory ca
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 QList<EngineOptionCategory> EngineOptionDescriptions::getAllCategories()
 {
     return {
@@ -122,11 +134,15 @@ QList<EngineOptionCategory> EngineOptionDescriptions::getAllCategories()
     };
 }
 
+// ============================================================
+// 初期化（説明テキスト）
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 void EngineOptionDescriptions::initializeDescriptions()
 {
-    // ===== YaneuraOu用の説明 =====
+    // --- YaneuraOu: 基本設定 ---
 
-    // 基本設定
     s_yaneuraouDescriptions["Threads"] = QObject::tr(
         "探索に使用するスレッド数");
 
@@ -139,28 +155,32 @@ void EngineOptionDescriptions::initializeDescriptions()
     s_yaneuraouDescriptions["EvalDir"] = QObject::tr(
         "評価関数フォルダのパス");
 
-    // Ponder関連
+    // --- YaneuraOu: Ponder ---
+
     s_yaneuraouDescriptions["USI_Ponder"] = QObject::tr(
         "相手の手番中の先読み");
 
     s_yaneuraouDescriptions["Stochastic_Ponder"] = QObject::tr(
         "Ponder時の確率的な応手予測");
 
-    // 探索制限
+    // --- YaneuraOu: 探索制限 ---
+
     s_yaneuraouDescriptions["DepthLimit"] = QObject::tr(
         "探索の最大深さ(0で無制限)");
 
     s_yaneuraouDescriptions["NodesLimit"] = QObject::tr(
         "探索ノード数の上限(0で無制限)");
 
-    // 検討モード
+    // --- YaneuraOu: 検討モード ---
+
     s_yaneuraouDescriptions["ConsiderationMode"] = QObject::tr(
         "検討モードの有効化");
 
     s_yaneuraouDescriptions["OutputFailLHPV"] = QObject::tr(
         "fail-low/fail-high時の読み筋出力");
 
-    // 時間制御
+    // --- YaneuraOu: 時間制御 ---
+
     s_yaneuraouDescriptions["NetworkDelay"] = QObject::tr(
         "通信遅延補正(ミリ秒)");
 
@@ -176,7 +196,8 @@ void EngineOptionDescriptions::initializeDescriptions()
     s_yaneuraouDescriptions["RoundUpToFullSecond"] = QObject::tr(
         "消費時間の秒単位切り上げ");
 
-    // 定跡関連
+    // --- YaneuraOu: 定跡 ---
+
     s_yaneuraouDescriptions["USI_OwnBook"] = QObject::tr(
         "エンジン内蔵定跡の使用");
 
@@ -222,7 +243,8 @@ void EngineOptionDescriptions::initializeDescriptions()
     s_yaneuraouDescriptions["FlippedBook"] = QObject::tr(
         "後手定跡の先手定跡からの反転生成");
 
-    // 対局ルール関連
+    // --- YaneuraOu: 対局ルール ---
+
     s_yaneuraouDescriptions["EnteringKingRule"] = QObject::tr(
         "入玉時の勝敗判定ルール");
 
@@ -238,7 +260,8 @@ void EngineOptionDescriptions::initializeDescriptions()
     s_yaneuraouDescriptions["DrawValueWhite"] = QObject::tr(
         "後手番での引き分けの評価値");
 
-    // その他
+    // --- YaneuraOu: その他 ---
+
     s_yaneuraouDescriptions["NumaPolicy"] = QObject::tr(
         "NUMAメモリ割り当てポリシー");
 
@@ -254,7 +277,7 @@ void EngineOptionDescriptions::initializeDescriptions()
     s_yaneuraouDescriptions["FV_SCALE"] = QObject::tr(
         "評価関数のスケーリング係数");
 
-    // ===== Gikou（技巧）用の説明 =====
+    // --- Gikou（技巧） ---
 
     s_gikouDescriptions["Threads"] = QObject::tr(
         "探索に使用するスレッド数");
@@ -299,18 +322,21 @@ void EngineOptionDescriptions::initializeDescriptions()
         "千日手の評価値");
 }
 
+// ============================================================
+// 初期化（カテゴリ分類）
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 void EngineOptionDescriptions::initializeCategories()
 {
-    // ===== YaneuraOu用のカテゴリ =====
-
-    // 基本設定
+    // --- YaneuraOu: 基本設定 ---
     s_yaneuraouCategories["Threads"] = EngineOptionCategory::Basic;
     s_yaneuraouCategories["USI_Hash"] = EngineOptionCategory::Basic;
     s_yaneuraouCategories["MultiPV"] = EngineOptionCategory::Basic;
     s_yaneuraouCategories["EvalDir"] = EngineOptionCategory::Basic;
     s_yaneuraouCategories["FV_SCALE"] = EngineOptionCategory::Basic;
 
-    // 思考設定
+    // --- YaneuraOu: 思考設定 ---
     s_yaneuraouCategories["USI_Ponder"] = EngineOptionCategory::Thinking;
     s_yaneuraouCategories["Stochastic_Ponder"] = EngineOptionCategory::Thinking;
     s_yaneuraouCategories["ConsiderationMode"] = EngineOptionCategory::Thinking;
@@ -320,14 +346,14 @@ void EngineOptionDescriptions::initializeCategories()
     s_yaneuraouCategories["GenerateAllLegalMoves"] = EngineOptionCategory::Thinking;
     s_yaneuraouCategories["PvInterval"] = EngineOptionCategory::Thinking;
 
-    // 時間制御
+    // --- YaneuraOu: 時間制御 ---
     s_yaneuraouCategories["NetworkDelay"] = EngineOptionCategory::TimeControl;
     s_yaneuraouCategories["NetworkDelay2"] = EngineOptionCategory::TimeControl;
     s_yaneuraouCategories["MinimumThinkingTime"] = EngineOptionCategory::TimeControl;
     s_yaneuraouCategories["SlowMover"] = EngineOptionCategory::TimeControl;
     s_yaneuraouCategories["RoundUpToFullSecond"] = EngineOptionCategory::TimeControl;
 
-    // 定跡設定
+    // --- YaneuraOu: 定跡設定 ---
     s_yaneuraouCategories["USI_OwnBook"] = EngineOptionCategory::Book;
     s_yaneuraouCategories["BookFile"] = EngineOptionCategory::Book;
     s_yaneuraouCategories["BookDir"] = EngineOptionCategory::Book;
@@ -344,38 +370,37 @@ void EngineOptionDescriptions::initializeCategories()
     s_yaneuraouCategories["IgnoreBookPly"] = EngineOptionCategory::Book;
     s_yaneuraouCategories["FlippedBook"] = EngineOptionCategory::Book;
 
-    // 対局ルール
+    // --- YaneuraOu: 対局ルール ---
     s_yaneuraouCategories["EnteringKingRule"] = EngineOptionCategory::GameRule;
     s_yaneuraouCategories["MaxMovesToDraw"] = EngineOptionCategory::GameRule;
     s_yaneuraouCategories["ResignValue"] = EngineOptionCategory::GameRule;
     s_yaneuraouCategories["DrawValueBlack"] = EngineOptionCategory::GameRule;
     s_yaneuraouCategories["DrawValueWhite"] = EngineOptionCategory::GameRule;
 
-    // その他（明示的に登録しなくてもOther扱いになるが、明示しておく）
+    // --- YaneuraOu: その他 ---
+    // 明示的に登録しなくてもOther扱いになるが、明示しておく
     s_yaneuraouCategories["NumaPolicy"] = EngineOptionCategory::Other;
     s_yaneuraouCategories["DebugLogFile"] = EngineOptionCategory::Other;
 
-    // ===== Gikou（技巧）用のカテゴリ =====
-
-    // 基本設定
+    // --- Gikou: 基本設定 ---
     s_gikouCategories["Threads"] = EngineOptionCategory::Basic;
     s_gikouCategories["MultiPV"] = EngineOptionCategory::Basic;
     s_gikouCategories["DepthLimit"] = EngineOptionCategory::Basic;
 
-    // 定跡設定
+    // --- Gikou: 定跡設定 ---
     s_gikouCategories["OwnBook"] = EngineOptionCategory::Book;
     s_gikouCategories["BookFile"] = EngineOptionCategory::Book;
     s_gikouCategories["BookMaxPly"] = EngineOptionCategory::Book;
     s_gikouCategories["NarrowBook"] = EngineOptionCategory::Book;
     s_gikouCategories["TinyBook"] = EngineOptionCategory::Book;
 
-    // 時間制御
+    // --- Gikou: 時間制御 ---
     s_gikouCategories["MinThinkingTime"] = EngineOptionCategory::TimeControl;
     s_gikouCategories["ByoyomiMargin"] = EngineOptionCategory::TimeControl;
     s_gikouCategories["SuddenDeathMargin"] = EngineOptionCategory::TimeControl;
     s_gikouCategories["FischerMargin"] = EngineOptionCategory::TimeControl;
 
-    // 対局ルール
+    // --- Gikou: 対局ルール ---
     s_gikouCategories["ResignScore"] = EngineOptionCategory::GameRule;
     s_gikouCategories["DrawScore"] = EngineOptionCategory::GameRule;
 

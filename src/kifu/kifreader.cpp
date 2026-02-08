@@ -1,3 +1,7 @@
+/// @file kifreader.cpp
+/// @brief 棋譜ファイルの文字コード自動判別読み込み機能の実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "kifreader.h"
 
 #include <QByteArray>

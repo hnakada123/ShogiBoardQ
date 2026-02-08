@@ -1,3 +1,7 @@
+/// @file engineregistrationdialog.cpp
+/// @brief エンジン登録ダイアログクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "engineregistrationdialog.h"
 #include "enginesettingsconstants.h"
 #include "settingsservice.h"
@@ -17,7 +21,6 @@
 using namespace EngineSettingsConstants;
 
 // 将棋エンジン登録ダイアログを表示する。
-// コンストラクタ
 EngineRegistrationDialog::EngineRegistrationDialog(QWidget *parent)
     : QDialog(parent),
     ui(new Ui::EngineRegistrationDialog),
@@ -44,7 +47,6 @@ EngineRegistrationDialog::EngineRegistrationDialog(QWidget *parent)
     }
 }
 
-// デストラクタ
 EngineRegistrationDialog::~EngineRegistrationDialog()
 {
     // ウィンドウサイズを保存

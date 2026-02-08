@@ -1,6 +1,11 @@
 #ifndef KIFUANALYSISDIALOG_H
 #define KIFUANALYSISDIALOG_H
 
+/// @file kifuanalysisdialog.h
+/// @brief 棋譜解析ダイアログクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QDialog>
 
 namespace Ui {

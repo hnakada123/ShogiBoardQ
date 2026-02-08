@@ -1,6 +1,11 @@
 #ifndef DOCKLAYOUTMANAGER_H
 #define DOCKLAYOUTMANAGER_H
 
+/// @file docklayoutmanager.h
+/// @brief ドックレイアウト管理クラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QObject>
 #include <QList>
 #include <QDockWidget>

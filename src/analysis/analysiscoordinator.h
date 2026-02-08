@@ -1,118 +1,162 @@
 #ifndef ANALYSISCOORDINATOR_H
 #define ANALYSISCOORDINATOR_H
 
+/// @file analysiscoordinator.h
+/// @brief 局面解析コーディネータクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QObject>
 #include <QPointer>
 #include <QStringList>
 #include <QVector>
 #include <QTimer>
+#include <limits>
 
-class EngineAnalysisTab; // 任意。ツリーハイライト等に使うなら setter で渡す
+class EngineAnalysisTab;
 
-// ゲーム（または任意の範囲）の位置ごとに USIエンジンで解析を回し、結果を signal で通知する司令塔。
-// - エンジンへの具体的な送信は行わず、"requestSendUsiCommand" を emit するだけ（疎結合）
-// - エンジン側の出力は onEngineInfoLine/onEngineBestmoveReceived で受け取る（slot）
-// - 盤面位置は sfenRecord（各手数に対応した "position sfen ... moves ..." の配列）を参照
+/**
+ * @brief 指定局面群のUSI解析実行を管理するコーディネータ
+ *
+ * 各手数に対応する局面コマンド列を順に処理し、エンジンからの
+ * `info`/`bestmove` を受けて解析結果を通知する。
+ * エンジン送信は `requestSendUsiCommand` シグナルへ委譲し、
+ * 実際の送信実装とは疎結合に保つ。
+ *
+ * @todo remove コメントスタイルガイド適用済み
+ */
 class AnalysisCoordinator : public QObject
 {
     Q_OBJECT
 public:
+    /// 依存オブジェクト
+    /// @todo remove コメントスタイルガイド適用済み
     struct Deps {
-        // 各 ply に対応した "position ..." コマンド列（KifuLoadCoordinator 等で構築済み想定）
-        // 例：sfenRecord[ply] が「その手数の局面を再現する position コマンド」
-        QStringList* sfenRecord = nullptr;
+        QStringList* sfenRecord = nullptr;  ///< 各plyの`position ...`コマンド列（非所有）
     };
 
+    /// 解析オプション
+    /// @todo remove コメントスタイルガイド適用済み
     struct Options {
-        int  startPly   = 0;     // 解析開始 ply（0以上）
-        int  endPly     = -1;    // 解析終了 ply（-1 は sfenRecord の末尾まで）
-        int  movetimeMs = 1000;  // 1局面あたりの思考時間（ms）
-        int  multiPV    = 1;     // MultiPV（setoption で設定）
-        bool centerTree = true;  // 解析進捗時にツリーをセンタリングするか
+        int  startPly   = 0;     ///< 解析開始手数（0以上）
+        int  endPly     = -1;    ///< 解析終了手数（-1は末尾まで）
+        int  movetimeMs = 1000;  ///< 1局面あたりの思考時間（ms）
+        int  multiPV    = 1;     ///< MultiPVの本数（`setoption`で設定）
+        bool centerTree = true;  ///< 進捗時に分岐ツリーをセンタリングするか
     };
 
+    /**
+     * @brief 解析実行モード
+     *
+     * @todo remove コメントスタイルガイド適用済み
+     */
     enum Mode {
-        Idle,
-        SinglePosition,  // 1局面のみ
-        RangePositions   // 指定範囲を順次
+        Idle,            ///< 待機中
+        SinglePosition,  ///< 単一局面解析
+        RangePositions   ///< 指定範囲の連続解析
     };
     Q_ENUM(Mode)
 
+    /// @todo remove コメントスタイルガイド適用済み
     explicit AnalysisCoordinator(const Deps& d, QObject* parent = nullptr);
 
+    /// 依存オブジェクトを更新する
+    /// @todo remove コメントスタイルガイド適用済み
     void setDeps(const Deps& d);
-    void setAnalysisTab(EngineAnalysisTab* tab); // 任意（ツリーハイライト用）
+
+    /// 解析タブ参照を設定する（非所有）
+    /// @todo remove コメントスタイルガイド適用済み
+    void setAnalysisTab(EngineAnalysisTab* tab);
+
+    /// 解析オプションを設定する
+    /// @todo remove コメントスタイルガイド適用済み
     void setOptions(const Options& opt);
 
     // --- 操作 API ---
-    void startAnalyzeRange();          // Options の startPly..endPly を順次解析
-    void startAnalyzeSingle(int ply);  // 指定 ply を 1回解析
-    void stop();                       // 現在の解析を中断
+
+    /// 設定済み範囲（startPly..endPly）を連続解析する
+    /// @todo remove コメントスタイルガイド適用済み
+    void startAnalyzeRange();
+
+    /// 指定手数の局面を1回だけ解析する
+    /// @param ply 解析対象の手数
+    /// @todo remove コメントスタイルガイド適用済み
+    void startAnalyzeSingle(int ply);
+
+    /// 現在の解析を中断する
+    /// @todo remove コメントスタイルガイド適用済み
+    void stop();
 
 signals:
-    // Coordinator → エンジン送信器（UsiEngine等）へ：USIテキストを送ってください
+    /// USIコマンド送信を要求する（→ Usi::sendRaw）
     void requestSendUsiCommand(const QString& line);
 
-    // 解析ライフサイクル
+    /// 解析開始を通知する（emitされるが現在AnalysisFlowControllerでは未接続）
     void analysisStarted(int startPly, int endPly, AnalysisCoordinator::Mode mode);
+
+    /// 解析終了を通知する（→ AnalysisFlowController::onAnalysisFinished）
     void analysisFinished(AnalysisCoordinator::Mode mode);
 
-    // 進捗（info 行をパースしたサマリ。score は cp or mate のどちらかが有効）
+    /// 解析進捗を通知する（→ AnalysisFlowController::onAnalysisProgress）
+    /// scoreCp未設定時はINT_MIN、mate=0は詰み情報なし
     void analysisProgress(int ply,
                           int depth,
                           int seldepth,
-                          int scoreCp,     // 未設定時は INT_MIN
-                          int mate,        // 未設定時は 0（詰みなし）/ 正負で手数
+                          int scoreCp,
+                          int mate,
                           const QString& pv,
                           const QString& rawInfoLine);
 
-    // 位置コマンドを発行した（デバッグ/ログ用）
+    /// 解析対象局面の準備完了を通知する（→ AnalysisFlowController::onPositionPrepared）
+    /// GUI更新後にgo送信するための2段階通知
     void positionPrepared(int ply, const QString& positionCmd);
 
 public slots:
-    // エンジン側の標準出力（"info ..."）を接続してください
+    /// エンジンの`info ...`行を受け取る（AnalysisFlowController::onInfoLineReceivedから呼出）
     void onEngineInfoLine(const QString& line);
-    // エンジン側の "bestmove ..." を接続してください
+
+    /// エンジンの`bestmove ...`を受け取る（AnalysisFlowController::onBestMoveReceivedから呼出）
     void onEngineBestmoveReceived(const QString& line);
 
-    // GUI更新完了後にgoコマンドを送信する（棋譜解析用）
+    /// 局面表示更新完了後に`position`/`go`を送信する（AnalysisFlowController::onPositionPreparedから呼出）
     void sendGoCommand();
 
-    // 現在解析中のply（定跡処理用）
+    /// 現在解析中の手数を返す
     int currentPly() const { return m_currentPly; }
 
 private:
+    /// `info`行から抽出した最小限の解析情報
     struct ParsedInfo {
-        int depth    = -1;
-        int seldepth = -1;
-        int scoreCp  = std::numeric_limits<int>::min(); // INT_MIN=未設定
-        int mate     = 0; // 0=未設定/詰み無し、正負で手数（先手勝ち:+ / 後手勝ち:- とする慣例）
-        QString pv;
+        int depth    = -1;                                ///< 深さ（未設定時-1）
+        int seldepth = -1;                                ///< 補助深さ（未設定時-1）
+        int scoreCp  = std::numeric_limits<int>::min();   ///< 評価値（未設定時INT_MIN）
+        int mate     = 0;                                 ///< 詰み手数（0は詰み情報なし）
+        QString pv;                                       ///< 読み筋（USI）
     };
 
-    Deps    m_deps;
-    Options m_opt;
+    Deps    m_deps;                  ///< 依存オブジェクト
+    Options m_opt;                   ///< 現在の解析オプション
 
-    Mode m_mode = Idle;
-    bool m_running = false;
-    int  m_currentPly = -1;
-    QString m_pendingPosCmd;  // sendGoCommand()で使用するpositionコマンド
+    Mode m_mode = Idle;              ///< 現在の解析モード
+    bool m_running = false;          ///< 解析実行中フラグ
+    int  m_currentPly = -1;          ///< 現在解析中の手数
+    QString m_pendingPosCmd;         ///< `sendGoCommand()`待機中の`position`コマンド
 
-    QPointer<EngineAnalysisTab> m_analysisTab; // 任意
-    QTimer m_stopTimer;  // go infinite後にstopを送信するためのタイマー
+    QPointer<EngineAnalysisTab> m_analysisTab;  ///< 解析タブ参照（非所有）
+    QTimer m_stopTimer;                         ///< `go infinite`後に`stop`送信するタイマー
 
-    // 内部
+    // --- 内部処理 ---
     void startRange();
     void startSingle(int ply);
     void nextPlyOrFinish();
     void sendAnalyzeForPly(int ply);
     static bool parseInfoUSI(const QString& line, ParsedInfo* out);
 
-    // USI 便利
-    void send(const QString& line); // requestSendUsiCommand をまとめる
+    /// `requestSendUsiCommand`発行をまとめるヘルパ
+    void send(const QString& line);
 
 private slots:
-    // stopタイマーのタイムアウト処理
+    /// stopタイマー満了時に`stop`を送信する
     void onStopTimerTimeout();
 };
 

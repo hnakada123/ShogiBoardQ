@@ -1,5 +1,14 @@
+/// @file kifubranchnode.cpp
+/// @brief 分岐ツリーノードクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "kifubranchnode.h"
 
+// ============================================================
+// 自由関数
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 TerminalType detectTerminalType(const QString& displayText)
 {
     if (displayText.contains(QStringLiteral("投了"))) return TerminalType::Resign;
@@ -16,6 +25,11 @@ TerminalType detectTerminalType(const QString& displayText)
     return TerminalType::None;
 }
 
+// ============================================================
+// 初期化
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 KifuBranchNode::KifuBranchNode()
     : m_nodeId(-1)
     , m_ply(0)
@@ -24,11 +38,17 @@ KifuBranchNode::KifuBranchNode()
 {
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 KifuBranchNode::~KifuBranchNode()
 {
-    // 子ノードは所有しない（KifuBranchTreeが所有）
+    // 子ノードは所有しない（KifuBranchTreeが一括管理）
 }
 
+// ============================================================
+// ツリー構造操作
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 void KifuBranchNode::addChild(KifuBranchNode* child)
 {
     if (child && !m_children.contains(child)) {
@@ -37,6 +57,7 @@ void KifuBranchNode::addChild(KifuBranchNode* child)
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void KifuBranchNode::removeChild(KifuBranchNode* child)
 {
     if (child) {
@@ -47,6 +68,7 @@ void KifuBranchNode::removeChild(KifuBranchNode* child)
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 KifuBranchNode* KifuBranchNode::childAt(int index) const
 {
     if (index >= 0 && index < m_children.size()) {
@@ -55,10 +77,14 @@ KifuBranchNode* KifuBranchNode::childAt(int index) const
     return nullptr;
 }
 
+// ============================================================
+// クエリ
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 bool KifuBranchNode::isMainLine() const
 {
     if (m_parent == nullptr) {
-        // ルートは本譜
         return true;
     }
     // 親の最初の子が自分なら本譜
@@ -66,6 +92,7 @@ bool KifuBranchNode::isMainLine() const
     return !siblings.isEmpty() && siblings.first() == this;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 int KifuBranchNode::depth() const
 {
     int d = 0;
@@ -77,6 +104,7 @@ int KifuBranchNode::depth() const
     return d;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 QString KifuBranchNode::lineName() const
 {
     int idx = lineIndex();
@@ -86,12 +114,12 @@ QString KifuBranchNode::lineName() const
     return QStringLiteral("分岐%1").arg(idx);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 int KifuBranchNode::lineIndex() const
 {
-    // ルートから辿って、分岐点での選択インデックスを計算
+    // ルートから辿って、最初の分岐点での子インデックスを返す
     // 本譜（常に最初の子）を辿っていれば0、分岐があれば1以降
 
-    // まず、自分からルートまでの経路を収集
     QVector<const KifuBranchNode*> path;
     const KifuBranchNode* node = this;
     while (node != nullptr) {
@@ -99,25 +127,24 @@ int KifuBranchNode::lineIndex() const
         node = node->parent();
     }
 
-    // ルートから辿って、最初の分岐点を見つける
     for (int i = 0; i < path.size() - 1; ++i) {
         const KifuBranchNode* current = path.at(i);
         const KifuBranchNode* next = path.at(i + 1);
 
         if (current->childCount() > 1) {
-            // 分岐点
             const auto& children = current->children();
             for (int j = 0; j < children.size(); ++j) {
                 if (children.at(j) == next) {
-                    return j;  // 0=本譜、1以降=分岐
+                    return j;
                 }
             }
         }
     }
 
-    return 0;  // 分岐なし = 本譜
+    return 0;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 QVector<KifuBranchNode*> KifuBranchNode::siblings() const
 {
     QVector<KifuBranchNode*> result;

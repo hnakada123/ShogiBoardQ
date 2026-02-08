@@ -1,3 +1,7 @@
+/// @file josekiwindowwiring.cpp
+/// @brief 定跡ウィンドウ配線クラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "josekiwindowwiring.h"
 
 #include <QDebug>

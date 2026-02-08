@@ -1,12 +1,6 @@
-/**
- * @file usi.cpp
- * @brief USIプロトコル通信ファサードクラスの実装
- *
- * 単一責任原則（SRP）に基づき、以下の3つのクラスに処理を委譲する:
- * - EngineProcessManager: QProcessの管理
- * - UsiProtocolHandler: USIプロトコルの送受信
- * - ThinkingInfoPresenter: GUIへの表示更新
- */
+/// @file usi.cpp
+/// @brief USIプロトコル通信ファサードクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
 
 #include "usi.h"
 #include "shogiboard.h"
@@ -20,6 +14,7 @@
 #include <QTimer>
 
 namespace {
+/// @todo remove コメントスタイルガイド適用済み
 void ensureMovesKeyword(QString& s)
 {
     if (!s.contains(QStringLiteral(" moves"))) {
@@ -29,8 +24,11 @@ void ensureMovesKeyword(QString& s)
 }
 } // anonymous namespace
 
-// === コンストラクタ・デストラクタ ===
+// ============================================================
+// 構築・破棄
+// ============================================================
 
+/// @todo remove コメントスタイルガイド適用済み
 Usi::Usi(UsiCommLogModel* model, ShogiEngineThinkingModel* modelThinking,
          ShogiGameController* gameController, PlayMode& playMode, QObject* parent)
     : QObject(parent)
@@ -52,6 +50,7 @@ Usi::Usi(UsiCommLogModel* model, ShogiEngineThinkingModel* modelThinking,
     m_protocolHandler->setGameController(gameController);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 Usi::~Usi()
 {
     // 停止タイマーをキャンセル
@@ -65,8 +64,14 @@ Usi::~Usi()
     // m_presenter->requestClearThinkingInfo() は呼ばない
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::setupConnections()
 {
+    // 処理フロー:
+    // 1. ProcessManager → Usi（プロセスイベント転送）
+    // 2. ProtocolHandler → Usi（USIプロトコルイベント転送）
+    // 3. Presenter → Usi（GUI表示更新の中継）
+
     // ProcessManagerからのシグナル
     connect(m_processManager.get(), &EngineProcessManager::processError,
             this, &Usi::onProcessError);
@@ -122,8 +127,11 @@ void Usi::setupConnections()
             this, &Usi::onClearThinkingInfoRequested);
 }
 
-// === スロット実装 ===
+// ============================================================
+// スロット実装
+// ============================================================
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::onProcessError(QProcess::ProcessError error, const QString& message)
 {
     Q_UNUSED(error)
@@ -132,23 +140,29 @@ void Usi::onProcessError(QProcess::ProcessError error, const QString& message)
     cancelCurrentOperation();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::onCommandSent(const QString& command)
 {
     m_presenter->logSentCommand(m_processManager->logPrefix(), command);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::onDataReceived(const QString& line)
 {
     m_presenter->logReceivedData(m_processManager->logPrefix(), line);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::onStderrReceived(const QString& line)
 {
     m_presenter->logStderrData(m_processManager->logPrefix(), line);
 }
 
-// === モデル更新スロット実装（シグナル経由で更新）===
+// ============================================================
+// モデル更新スロット実装（Presenter → CommLogModel/ThinkingModel転送）
+// ============================================================
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::onSearchedMoveUpdated(const QString& move)
 {
     if (m_commLogModel) {
@@ -156,6 +170,7 @@ void Usi::onSearchedMoveUpdated(const QString& move)
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::onSearchDepthUpdated(const QString& depth)
 {
     if (m_commLogModel) {
@@ -163,6 +178,7 @@ void Usi::onSearchDepthUpdated(const QString& depth)
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::onNodeCountUpdated(const QString& nodes)
 {
     if (m_commLogModel) {
@@ -170,6 +186,7 @@ void Usi::onNodeCountUpdated(const QString& nodes)
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::onNpsUpdated(const QString& nps)
 {
     if (m_commLogModel) {
@@ -177,6 +194,7 @@ void Usi::onNpsUpdated(const QString& nps)
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::onHashUsageUpdated(const QString& hashUsage)
 {
     if (m_commLogModel) {
@@ -184,6 +202,7 @@ void Usi::onHashUsageUpdated(const QString& hashUsage)
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::onCommLogAppended(const QString& log)
 {
     if (m_commLogModel) {
@@ -191,6 +210,7 @@ void Usi::onCommLogAppended(const QString& log)
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::onClearThinkingInfoRequested()
 {
     qDebug().noquote() << "[Usi::onClearThinkingInfoRequested] called";
@@ -200,11 +220,16 @@ void Usi::onClearThinkingInfoRequested()
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::onThinkingInfoUpdated(const QString& time, const QString& depth,
                                 const QString& nodes, const QString& score,
                                 const QString& pvKanjiStr, const QString& usiPv,
                                 const QString& baseSfen, int multipv, int scoreCp)
 {
+    // 処理フロー:
+    // 1. ShogiInfoRecordを生成して思考タブへ追記（先頭に追加）
+    // 2. 検討タブへ追記（MultiPVモードで行を更新/挿入）
+    // 3. 外部へシグナルで通知
     qDebug().noquote() << "[Usi::onThinkingInfoUpdated] m_lastUsiMove=" << m_lastUsiMove
                        << " baseSfen=" << baseSfen.left(50)
                        << " multipv=" << multipv << " scoreCp=" << scoreCp;
@@ -236,63 +261,77 @@ void Usi::onThinkingInfoUpdated(const QString& time, const QString& depth,
     emit thinkingInfoUpdated(time, depth, nodes, score, pvKanjiStr, usiPv, baseSfen, multipv, scoreCp);
 }
 
-// === 公開インターフェース実装 ===
+// ============================================================
+// 公開インターフェース実装
+// ============================================================
 
+/// @todo remove コメントスタイルガイド適用済み
 QString Usi::scoreStr() const
 {
     return m_presenter->scoreStr();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 bool Usi::isResignMove() const
 {
     return m_protocolHandler->isResignMove();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 bool Usi::isWinMove() const
 {
     return m_protocolHandler->isWinMove();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 int Usi::lastScoreCp() const
 {
     return m_presenter->lastScoreCp();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 QString Usi::pvKanjiStr() const
 {
     return m_pvKanjiStr;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::setPvKanjiStr(const QString& newPvKanjiStr)
 {
     m_pvKanjiStr = newPvKanjiStr;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 QString Usi::convertFirstPlayerPieceNumberToSymbol(int rankFrom) const
 {
     return m_protocolHandler->convertFirstPlayerPieceSymbol(rankFrom);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 QString Usi::convertSecondPlayerPieceNumberToSymbol(int rankFrom) const
 {
     return m_protocolHandler->convertSecondPlayerPieceSymbol(rankFrom);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::parseMoveCoordinates(int& fileFrom, int& rankFrom, int& fileTo, int& rankTo)
 {
     m_protocolHandler->parseMoveCoordinates(fileFrom, rankFrom, fileTo, rankTo);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 QChar Usi::rankToAlphabet(int rank) const
 {
     return UsiProtocolHandler::rankToAlphabet(rank);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 qint64 Usi::lastBestmoveElapsedMs() const
 {
     return m_protocolHandler->lastBestmoveElapsedMs();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::setPreviousFileTo(int newPreviousFileTo)
 {
     qDebug().noquote() << "[Usi::setPreviousFileTo] newPreviousFileTo=" << newPreviousFileTo
@@ -301,6 +340,7 @@ void Usi::setPreviousFileTo(int newPreviousFileTo)
     m_presenter->setPreviousMove(m_previousFileTo, m_previousRankTo);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::setPreviousRankTo(int newPreviousRankTo)
 {
     qDebug().noquote() << "[Usi::setPreviousRankTo] m_previousFileTo=" << m_previousFileTo
@@ -309,61 +349,72 @@ void Usi::setPreviousRankTo(int newPreviousRankTo)
     m_presenter->setPreviousMove(m_previousFileTo, m_previousRankTo);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::setLastUsiMove(const QString& move)
 {
     qDebug().noquote() << "[Usi::setLastUsiMove] move=" << move;
     m_lastUsiMove = move;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::setLogIdentity(const QString& engineTag, const QString& sideTag,
                          const QString& engineName)
 {
     m_processManager->setLogIdentity(engineTag, sideTag, engineName);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::setSquelchResignLogging(bool on)
 {
     Q_UNUSED(on)
     // 必要に応じて実装
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::resetResignNotified()
 {
     m_protocolHandler->resetResignNotified();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::resetWinNotified()
 {
     m_protocolHandler->resetWinNotified();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::markHardTimeout()
 {
     m_protocolHandler->markHardTimeout();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::clearHardTimeout()
 {
     m_protocolHandler->clearHardTimeout();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 bool Usi::isIgnoring() const
 {
     return m_processManager->shutdownState() !=
            EngineProcessManager::ShutdownState::Running;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 QString Usi::currentEnginePath() const
 {
     return m_processManager->currentEnginePath();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::setThinkingModel(ShogiEngineThinkingModel* m)
 {
     m_thinkingModel = m;
     // Presenterはシグナル経由で更新するため、モデル参照は不要
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::setLogModel(UsiCommLogModel* m)
 {
     m_commLogModel = m;
@@ -371,25 +422,30 @@ void Usi::setLogModel(UsiCommLogModel* m)
 }
 
 #ifdef QT_DEBUG
+/// @todo remove コメントスタイルガイド適用済み
 ShogiEngineThinkingModel* Usi::debugThinkingModel() const
 {
     return m_thinkingModel;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 UsiCommLogModel* Usi::debugLogModel() const
 {
     return m_commLogModel;
 }
 #endif
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::cancelCurrentOperation()
 {
     m_protocolHandler->cancelCurrentOperation();
 }
-// usi.cpp Part 2 - エンジン起動・コマンド送信
 
-// === エンジン起動・初期化 ===
+// ============================================================
+// エンジン起動・初期化
+// ============================================================
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::initializeAndStartEngineCommunication(QString& engineFile, QString& enginename)
 {
     if (engineFile.isEmpty()) {
@@ -403,6 +459,7 @@ void Usi::initializeAndStartEngineCommunication(QString& engineFile, QString& en
     startAndInitializeEngine(engineFile, enginename);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::changeDirectoryToEnginePath(const QString& engineFile)
 {
     const QFileInfo fileInfo(engineFile);
@@ -414,6 +471,7 @@ void Usi::changeDirectoryToEnginePath(const QString& engineFile)
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::startAndInitializeEngine(const QString& engineFile, const QString& enginename)
 {
     // プロセス起動
@@ -432,6 +490,7 @@ void Usi::startAndInitializeEngine(const QString& engineFile, const QString& eng
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::cleanupEngineProcessAndThread(bool clearThinking)
 {
     // エンジンプロセスが実行中の場合は quit コマンドを送信してから停止
@@ -444,26 +503,31 @@ void Usi::cleanupEngineProcessAndThread(bool clearThinking)
     }
 }
 
-// === コマンド送信 ===
+// ============================================================
+// コマンド送信
+// ============================================================
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::sendGameOverCommand(const QString& result)
 {
     m_protocolHandler->sendGameOver(result);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::sendQuitCommand()
 {
     m_protocolHandler->sendQuit();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::sendStopCommand()
 {
     m_protocolHandler->sendStop();
-    // ★ 検討モデルはクリアしない（再開時に必要）
+    // 検討モデルはクリアしない（再開時に必要なため）
     // モデルのクリアはエンジン破棄時に自動的に行われる
 }
 
-// ★ 追加: 検討タブ用モデルを設定
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::setConsiderationModel(ShogiEngineThinkingModel* model, int maxMultiPV)
 {
     m_considerationModel = model;
@@ -476,7 +540,7 @@ void Usi::setConsiderationModel(ShogiEngineThinkingModel* model, int maxMultiPV)
     }
 }
 
-// ★ 追加: 検討中にMultiPVを変更する
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::updateConsiderationMultiPV(int multiPV)
 {
     const int newMultiPV = qBound(1, multiPV, 10);
@@ -501,6 +565,7 @@ void Usi::updateConsiderationMultiPV(int multiPV)
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::sendGoCommand(int byoyomiMilliSec, const QString& btime, const QString& wtime,
                         int addEachMoveMilliSec1, int addEachMoveMilliSec2, bool useByoyomi)
 {
@@ -509,52 +574,61 @@ void Usi::sendGoCommand(int byoyomiMilliSec, const QString& btime, const QString
                               addEachMoveMilliSec1, addEachMoveMilliSec2, useByoyomi);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::sendGoDepthCommand(int depth)
 {
     cloneCurrentBoardData();
     m_protocolHandler->sendGoDepth(depth);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::sendGoNodesCommand(qint64 nodes)
 {
     cloneCurrentBoardData();
     m_protocolHandler->sendGoNodes(nodes);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::sendGoMovetimeCommand(int timeMs)
 {
     cloneCurrentBoardData();
     m_protocolHandler->sendGoMovetime(timeMs);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::sendGoSearchmovesCommand(const QStringList& moves, bool infinite)
 {
     cloneCurrentBoardData();
     m_protocolHandler->sendGoSearchmoves(moves, infinite);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::sendGoSearchmovesDepthCommand(const QStringList& moves, int depth)
 {
     cloneCurrentBoardData();
     m_protocolHandler->sendGoSearchmovesDepth(moves, depth);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::sendGoSearchmovesMovetimeCommand(const QStringList& moves, int timeMs)
 {
     cloneCurrentBoardData();
     m_protocolHandler->sendGoSearchmovesMovetime(moves, timeMs);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::sendRaw(const QString& command) const
 {
     m_protocolHandler->sendRaw(command);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 bool Usi::isEngineRunning() const
 {
     return m_processManager && m_processManager->isRunning();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::prepareBoardDataForAnalysis()
 {
     qDebug().noquote() << "[Usi::prepareBoardDataForAnalysis] called";
@@ -567,6 +641,7 @@ void Usi::prepareBoardDataForAnalysis()
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::setClonedBoardData(const QVector<QChar>& boardData)
 {
     m_clonedBoardData = boardData;
@@ -575,6 +650,7 @@ void Usi::setClonedBoardData(const QVector<QChar>& boardData)
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::setBaseSfen(const QString& sfen)
 {
     qDebug().noquote() << "[Usi::setBaseSfen] sfen=" << sfen.left(50);
@@ -583,6 +659,7 @@ void Usi::setBaseSfen(const QString& sfen)
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::flushThinkingInfoBuffer()
 {
     qDebug().noquote() << "[Usi::flushThinkingInfoBuffer] called";
@@ -591,6 +668,7 @@ void Usi::flushThinkingInfoBuffer()
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::requestClearThinkingInfo()
 {
     qDebug().noquote() << "[Usi::requestClearThinkingInfo] called";
@@ -599,6 +677,7 @@ void Usi::requestClearThinkingInfo()
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::sendGameOverLoseAndQuitCommands()
 {
     if (!m_processManager->isRunning()) return;
@@ -611,6 +690,7 @@ void Usi::sendGameOverLoseAndQuitCommands()
     m_protocolHandler->sendQuit();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::sendGameOverWinAndQuitCommands()
 {
     if (!m_processManager->isRunning()) return;
@@ -623,13 +703,17 @@ void Usi::sendGameOverWinAndQuitCommands()
     m_protocolHandler->sendQuit();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::waitForStopOrPonderhitCommand()
 {
     m_protocolHandler->waitForStopOrPonderhit();
 }
 
-// === 詰将棋関連 ===
+// ============================================================
+// 詰将棋関連
+// ============================================================
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::sendPositionAndGoMate(const QString& sfen, int timeMs, bool infinite)
 {
     if (!m_processManager->isRunning()) {
@@ -642,26 +726,32 @@ void Usi::sendPositionAndGoMate(const QString& sfen, int timeMs, bool infinite)
     m_protocolHandler->sendGoMate(timeMs, infinite);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::sendStopForMate()
 {
     if (!m_processManager->isRunning()) return;
     m_protocolHandler->sendStop();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::executeTsumeCommunication(QString& positionStr, int mateLimitMilliSec)
 {
     cloneCurrentBoardData();
     sendPositionAndGoMateCommands(mateLimitMilliSec, positionStr);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::sendPositionAndGoMateCommands(int mateLimitMilliSec, QString& positionStr)
 {
     m_protocolHandler->sendPosition(positionStr);
     m_protocolHandler->sendGoMate(mateLimitMilliSec);
 }
 
-// === 盤面処理 ===
+// ============================================================
+// 盤面処理
+// ============================================================
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::cloneCurrentBoardData()
 {
     qDebug().noquote() << "[Usi::cloneCurrentBoardData] m_gameController=" << m_gameController;
@@ -679,6 +769,7 @@ void Usi::cloneCurrentBoardData()
     m_presenter->setClonedBoardData(m_clonedBoardData);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::applyMovesToBoardFromBestMoveAndPonder()
 {
     ShogiEngineInfoParser info;
@@ -687,14 +778,17 @@ void Usi::applyMovesToBoardFromBestMoveAndPonder()
     m_presenter->setClonedBoardData(m_clonedBoardData);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 QString Usi::convertHumanMoveToUsiFormat(const QPoint& outFrom, const QPoint& outTo, bool promote)
 {
     return m_protocolHandler->convertHumanMoveToUsi(outFrom, outTo, promote);
 }
-// usi.cpp Part 3 - 対局通信処理
 
-// === 対局通信処理 ===
+// ============================================================
+// 対局通信処理
+// ============================================================
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::handleHumanVsEngineCommunication(QString& positionStr, QString& positionPonderStr,
                                            QPoint& outFrom, QPoint& outTo,
                                            int byoyomiMilliSec, const QString& btime,
@@ -714,6 +808,7 @@ void Usi::handleHumanVsEngineCommunication(QString& positionStr, QString& positi
                                addEachMoveMilliSec1, addEachMoveMilliSec2, useByoyomi);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::handleEngineVsHumanOrEngineMatchCommunication(QString& positionStr,
                                                         QString& positionPonderStr,
                                                         QPoint& outFrom, QPoint& outTo,
@@ -727,6 +822,7 @@ void Usi::handleEngineVsHumanOrEngineMatchCommunication(QString& positionStr,
                                addEachMoveMilliSec1, addEachMoveMilliSec2, useByoyomi);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::executeEngineCommunication(QString& positionStr, QString& positionPonderStr,
                                      QPoint& outFrom, QPoint& outTo, int byoyomiMilliSec,
                                      const QString& btime, const QString& wtime,
@@ -748,10 +844,16 @@ void Usi::executeEngineCommunication(QString& positionStr, QString& positionPond
     outTo = QPoint(fileTo, rankTo);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::processEngineResponse(QString& positionStr, QString& positionPonderStr,
                                 int byoyomiMilliSec, const QString& btime, const QString& wtime,
                                 int addEachMoveMilliSec1, int addEachMoveMilliSec2, bool useByoyomi)
 {
+    // 処理フロー:
+    // 1. ポンダー予測手がない場合 → 通常のコマンド送信
+    // 2. ポンダーヒット（bestmove == predictedMove）→ ponderhit送信して応答待ち
+    // 3. ポンダーミス → stop送信後に通常のコマンド送信
+
     const QString& predictedMove = m_protocolHandler->predictedMove();
     
     if (predictedMove.isEmpty() || !m_protocolHandler->isPonderEnabled()) {
@@ -793,11 +895,18 @@ void Usi::processEngineResponse(QString& positionStr, QString& positionPonderStr
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::sendCommandsAndProcess(int byoyomiMilliSec, QString& positionStr,
                                  const QString& btime, const QString& wtime,
                                  QString& positionPonderStr, int addEachMoveMilliSec1,
                                  int addEachMoveMilliSec2, bool useByoyomi)
 {
+    // 処理フロー:
+    // 1. 局面SFENを保存（読み筋表示用）
+    // 2. position + goコマンド送信
+    // 3. bestmove応答待ち
+    // 4. bestmoveを反映してポンダー開始
+
     // 思考開始時の局面SFENを保存（読み筋表示用）
     if (m_gameController && m_gameController->board()) {
         ShogiBoard* board = m_gameController->board();
@@ -820,6 +929,7 @@ void Usi::sendCommandsAndProcess(int byoyomiMilliSec, QString& positionStr,
     appendBestMoveAndStartPondering(positionStr, positionPonderStr);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::waitAndCheckForBestMoveRemainingTime(int byoyomiMilliSec, const QString& btime,
                                                const QString& wtime, bool useByoyomi)
 {
@@ -839,6 +949,7 @@ void Usi::waitAndCheckForBestMoveRemainingTime(int byoyomiMilliSec, const QStrin
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::startPonderingAfterBestMove(QString& positionStr, QString& positionPonderStr)
 {
     const QString& predictedMove = m_protocolHandler->predictedMove();
@@ -854,6 +965,7 @@ void Usi::startPonderingAfterBestMove(QString& positionStr, QString& positionPon
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::appendBestMoveAndStartPondering(QString& positionStr, QString& positionPonderStr)
 {
     ensureMovesKeyword(positionStr);
@@ -861,11 +973,22 @@ void Usi::appendBestMoveAndStartPondering(QString& positionStr, QString& positio
     startPonderingAfterBestMove(positionStr, positionPonderStr);
 }
 
-// === 棋譜解析 ===
+// ============================================================
+// 棋譜解析
+// ============================================================
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::executeAnalysisCommunication(QString& positionStr, int byoyomiMilliSec, int multiPV)
 {
-    // ★ 既存の停止タイマーをキャンセル
+    // 処理フロー:
+    // 1. 既存の停止タイマーをキャンセル
+    // 2. 局面SFENを保存（読み筋表示用）
+    // 3. 盤面クローン + position送信
+    // 4. MultiPV設定送信
+    // 5. go infinite送信
+    // 6. タイムアウト設定（秒読みありの場合）またはbestmove待機
+
+    // 既存の停止タイマーをキャンセル
     if (m_analysisStopTimer) {
         m_analysisStopTimer->stop();
         m_analysisStopTimer->deleteLater();
@@ -894,7 +1017,7 @@ void Usi::executeAnalysisCommunication(QString& positionStr, int byoyomiMilliSec
     if (byoyomiMilliSec <= 0) {
         m_protocolHandler->keepWaitingForBestMove();
     } else {
-        // ★ タイムアウト後にstop送信（メンバータイマーを使用）
+        // タイムアウト後にstop送信（メンバータイマーを使用）
         m_analysisStopTimer = new QTimer(this);
         m_analysisStopTimer->setSingleShot(true);
         connect(m_analysisStopTimer, &QTimer::timeout, this, [this]() {
@@ -910,6 +1033,7 @@ void Usi::executeAnalysisCommunication(QString& positionStr, int byoyomiMilliSec
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void Usi::sendAnalysisCommands(const QString& positionStr, int byoyomiMilliSec, int multiPV)
 {
     qDebug().noquote() << "[Usi] sendAnalysisCommands:"
@@ -917,7 +1041,7 @@ void Usi::sendAnalysisCommands(const QString& positionStr, int byoyomiMilliSec, 
                        << "byoyomiMilliSec=" << byoyomiMilliSec
                        << "multiPV=" << multiPV;
 
-    // ★ 既存の停止タイマーをキャンセル（前回の検討のタイマーが残っている可能性がある）
+    // 既存の停止タイマーをキャンセル（前回の検討のタイマーが残っている可能性がある）
     if (m_analysisStopTimer) {
         m_analysisStopTimer->stop();
         m_analysisStopTimer->deleteLater();
@@ -943,7 +1067,7 @@ void Usi::sendAnalysisCommands(const QString& positionStr, int byoyomiMilliSec, 
     m_presenter->requestClearThinkingInfo();
     m_protocolHandler->sendRaw("go infinite");
 
-    // ★ タイムアウト後にstop送信（byoyomiMilliSec > 0 の場合のみ）
+    // タイムアウト後にstop送信（byoyomiMilliSec > 0 の場合のみ）
     // メンバータイマーを使用して、次回の sendAnalysisCommands でキャンセル可能にする
     if (byoyomiMilliSec > 0) {
         m_analysisStopTimer = new QTimer(this);
@@ -958,6 +1082,6 @@ void Usi::sendAnalysisCommands(const QString& positionStr, int byoyomiMilliSec, 
         m_analysisStopTimer->start(byoyomiMilliSec);
     }
 
-    // ★ waitForBestMove は呼ばない（非ブロッキング）
+    // waitForBestMove は呼ばない（非ブロッキング）
     // bestmove はシグナル経由で通知される
 }

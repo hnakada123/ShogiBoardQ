@@ -1,6 +1,11 @@
 #ifndef CSAGAMECOORDINATOR_H
 #define CSAGAMECOORDINATOR_H
 
+/// @file csagamecoordinator.h
+/// @brief CSA通信対局コーディネータクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QObject>
 #include <QString>
 #include <QStringList>
@@ -69,11 +74,11 @@ public:
      * @brief 依存オブジェクト
      */
     struct Dependencies {
-        ShogiGameController* gameController = nullptr;
-        ShogiView* view = nullptr;
-        ShogiClock* clock = nullptr;
-        BoardInteractionController* boardController = nullptr;
-        KifuRecordListModel* recordModel = nullptr;
+        ShogiGameController* gameController = nullptr; ///< 対局制御（非所有）
+        ShogiView* view = nullptr;                         ///< 盤面ビュー（非所有）
+        ShogiClock* clock = nullptr;                       ///< 時計（非所有）
+        BoardInteractionController* boardController = nullptr; ///< 盤面操作制御（非所有）
+        KifuRecordListModel* recordModel = nullptr;        ///< 棋譜リストモデル（非所有）
         QStringList* sfenRecord = nullptr;           ///< SFEN記録（MainWindowと共有）
         QVector<ShogiMove>* gameMoves = nullptr;     ///< 指し手記録（MainWindowと共有）
         UsiCommLogModel* usiCommLog = nullptr;       ///< USI通信ログモデル（MainWindowと共有）
@@ -95,15 +100,8 @@ public:
         int engineNumber;       ///< エンジン番号（エンジン使用時）
     };
 
-    /**
-     * @brief コンストラクタ
-     * @param parent 親オブジェクト
-     */
     explicit CsaGameCoordinator(QObject* parent = nullptr);
 
-    /**
-     * @brief デストラクタ
-     */
     ~CsaGameCoordinator() override;
 
     /**
@@ -123,40 +121,16 @@ public:
      */
     void stopGame();
 
-    /**
-     * @brief 現在の対局状態を取得する
-     * @return 対局状態
-     */
     GameState gameState() const { return m_gameState; }
 
-    /**
-     * @brief 自分の手番かどうか
-     * @return 自分の手番の場合true
-     */
     bool isMyTurn() const;
 
-    /**
-     * @brief 先手側かどうか
-     * @return 先手側の場合true
-     */
     bool isBlackSide() const;
 
-    /**
-     * @brief 人間が操作しているかどうか
-     * @return 人間操作の場合true
-     */
     bool isHumanPlayer() const { return m_playerType == PlayerType::Human; }
 
-    /**
-     * @brief 先手の累計消費時間を取得
-     * @return 累計消費時間（ミリ秒）
-     */
     int blackTotalTimeMs() const { return m_blackTotalTimeMs; }
 
-    /**
-     * @brief 後手の累計消費時間を取得
-     * @return 累計消費時間（ミリ秒）
-     */
     int whiteTotalTimeMs() const { return m_whiteTotalTimeMs; }
 
     /**
@@ -165,34 +139,30 @@ public:
      */
     void sendRawCommand(const QString& command);
 
-    /**
-     * @brief ユーザー名（GUI側の対局者名）を取得
-     * @return ユーザー名
-     */
     QString username() const { return m_options.username; }
 
 signals:
     /**
-     * @brief 対局状態が変化した時に発行
+     * @brief 対局状態が変化した時に発行（→ CsaGameWiring::onCsaGameStateChanged）
      * @param state 新しい状態
      */
     void gameStateChanged(GameState state);
 
     /**
-     * @brief エラーが発生した時に発行
+     * @brief エラーが発生した時に発行（→ CsaGameWiring::onCsaGameError）
      * @param message エラーメッセージ
      */
     void errorOccurred(const QString& message);
 
     /**
-     * @brief 対局が開始した時に発行
+     * @brief 対局が開始した時に発行（→ CsaGameWiring::onCsaGameStarted）
      * @param blackName 先手名
      * @param whiteName 後手名
      */
     void gameStarted(const QString& blackName, const QString& whiteName);
 
     /**
-     * @brief 対局が終了した時に発行
+     * @brief 対局が終了した時に発行（→ CsaGameWiring::onCsaGameEnded）
      * @param result 結果（"勝ち", "負け", "引き分け"など）
      * @param cause 終了原因
      * @param consumedTimeMs 終局手の消費時間（ミリ秒）
@@ -200,7 +170,7 @@ signals:
     void gameEnded(const QString& result, const QString& cause, int consumedTimeMs);
 
     /**
-     * @brief 指し手が確定した時に発行
+     * @brief 指し手が確定した時に発行（→ CsaGameWiring::onCsaMoveMade）
      * @param csaMove CSA形式の指し手
      * @param usiMove USI形式の指し手
      * @param prettyMove 表示用の指し手
@@ -210,39 +180,39 @@ signals:
                   const QString& prettyMove, int consumedTimeMs);
 
     /**
-     * @brief 手番が変わった時に発行
+     * @brief 手番が変わった時に発行（→ CsaGameWiring::onCsaTurnChanged）
      * @param isMyTurn 自分の手番かどうか
      */
     void turnChanged(bool isMyTurn);
 
     /**
-     * @brief 指し手のハイライト表示を要求
+     * @brief 指し手のハイライト表示を要求（→ CsaGameWiring::onCsaMoveHighlight）
      * @param from 移動元座標
      * @param to 移動先座標
      */
     void moveHighlightRequested(const QPoint& from, const QPoint& to);
 
     /**
-     * @brief 対局情報を受信した時に発行
+     * @brief 対局情報を受信した時に発行（→ CsaGameWiring::onCsaGameSummaryReceived）
      * @param summary 対局情報
      */
     void gameSummaryReceived(const CsaClient::GameSummary& summary);
 
     /**
-     * @brief ログメッセージを発行
+     * @brief ログメッセージを発行（→ CsaGameWiring::onCsaLogMessage）
      * @param message ログメッセージ
      * @param isError エラーかどうか
      */
     void logMessage(const QString& message, bool isError = false);
 
     /**
-     * @brief CSA通信ログを発行（送受信両方）
+     * @brief CSA通信ログを発行（送受信両方）（→ CsaGameWiring::onCsaCommLogAppended）
      * @param line ログ行（"▶ " または "◀ " で始まる）
      */
     void csaCommLogAppended(const QString& line);
 
     /**
-     * @brief エンジンの評価値が更新された時に発行
+     * @brief エンジンの評価値が更新された時に発行（→ CsaGameWiring::onCsaEngineScoreUpdated）
      * @param scoreCp 評価値（センチポーン）
      * @param ply 手数
      */
@@ -263,25 +233,24 @@ public slots:
     void onResign();
 
 private slots:
-    // CSAクライアントからのシグナルハンドラ
+    /// CsaClient::connectionStateChanged に接続
     void onConnectionStateChanged(CsaClient::ConnectionState state);
-    void onClientError(const QString& message);
-    void onLoginSucceeded();
-    void onLoginFailed(const QString& reason);
-    void onLogoutCompleted();
-    void onGameSummaryReceived(const CsaClient::GameSummary& summary);
-    void onGameStarted(const QString& gameId);
-    void onGameRejected(const QString& gameId, const QString& rejector);
-    void onMoveReceived(const QString& move, int consumedTimeMs);
-    void onMoveConfirmed(const QString& move, int consumedTimeMs);
-    void onClientGameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause, int consumedTimeMs);
-    void onGameInterrupted();
-    void onRawMessageReceived(const QString& message);
-    void onRawMessageSent(const QString& message);
+    void onClientError(const QString& message);       ///< CsaClient::errorOccurred に接続
+    void onLoginSucceeded();                              ///< CsaClient::loginSucceeded に接続
+    void onLoginFailed(const QString& reason);             ///< CsaClient::loginFailed に接続
+    void onLogoutCompleted();                              ///< CsaClient::logoutCompleted に接続
+    void onGameSummaryReceived(const CsaClient::GameSummary& summary); ///< CsaClient::gameSummaryReceived に接続
+    void onGameStarted(const QString& gameId);             ///< CsaClient::gameStarted に接続
+    void onGameRejected(const QString& gameId, const QString& rejector); ///< CsaClient::gameRejected に接続
+    void onMoveReceived(const QString& move, int consumedTimeMs);   ///< CsaClient::moveReceived に接続
+    void onMoveConfirmed(const QString& move, int consumedTimeMs);  ///< CsaClient::moveConfirmed に接続
+    void onClientGameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause, int consumedTimeMs); ///< CsaClient::gameEnded に接続
+    void onGameInterrupted();                              ///< CsaClient::gameInterrupted に接続
+    void onRawMessageReceived(const QString& message);     ///< CsaClient::rawMessageReceived に接続
+    void onRawMessageSent(const QString& message);         ///< CsaClient::rawMessageSent に接続
 
-    // エンジンからのシグナルハンドラ
-    void onEngineBestMoveReceived();
-    void onEngineResign();
+    void onEngineBestMoveReceived();  ///< Usi::bestMoveReceived に接続
+    void onEngineResign();             ///< Usi::bestMoveResignReceived に接続
 
 private:
     /**
@@ -400,30 +369,25 @@ private:
     void cleanup();
 
 private:
-    // CSAクライアント
-    CsaClient* m_client;
+    CsaClient* m_client;                              ///< CSAプロトコルクライアント（thisが親、所有）
 
-    // 依存オブジェクト
-    QPointer<ShogiGameController> m_gameController;
-    QPointer<ShogiView> m_view;
-    QPointer<ShogiClock> m_clock;
-    QPointer<BoardInteractionController> m_boardController;
-    QPointer<KifuRecordListModel> m_recordModel;
+    QPointer<ShogiGameController> m_gameController;   ///< 対局制御（非所有）
+    QPointer<ShogiView> m_view;                          ///< 盤面ビュー（非所有）
+    QPointer<ShogiClock> m_clock;                        ///< 時計（非所有）
+    QPointer<BoardInteractionController> m_boardController; ///< 盤面操作制御（非所有）
+    QPointer<KifuRecordListModel> m_recordModel;          ///< 棋譜リストモデル（非所有）
 
-    // エンジン関連
-    Usi* m_engine;
+    Usi* m_engine;                                     ///< USIエンジン（thisが親、所有）
     UsiCommLogModel* m_engineCommLog;           ///< USI通信ログモデル（外部から渡されるか内部で作成）
     ShogiEngineThinkingModel* m_engineThinking; ///< 思考モデル（外部から渡されるか内部で作成）
     bool m_ownsCommLog;      ///< m_engineCommLogの所有権フラグ
     bool m_ownsThinking;     ///< m_engineThinkingの所有権フラグ
 
-    // 状態
-    GameState m_gameState;
-    PlayerType m_playerType;
-    StartOptions m_options;
+    GameState m_gameState;                             ///< 現在の対局状態
+    PlayerType m_playerType;                           ///< こちら側の対局者タイプ
+    StartOptions m_options;                             ///< 対局開始時のオプション
 
-    // 対局情報
-    CsaClient::GameSummary m_gameSummary;
+    CsaClient::GameSummary m_gameSummary;              ///< サーバーから受信した対局情報
     bool m_isBlackSide;         ///< 先手側かどうか
     bool m_isMyTurn;            ///< 自分の手番かどうか
     int m_moveCount;            ///< 指し手数
@@ -432,23 +396,22 @@ private:
     int m_prevToFile;           ///< 前の指し手の移動先筋（「同」判定用）
     int m_prevToRank;           ///< 前の指し手の移動先段（「同」判定用）
     
-    // 残り時間追跡（CSA通信対局用）
+    // --- 残り時間追跡（CSA通信対局用） ---
     int m_initialTimeMs;        ///< 初期持ち時間（ミリ秒）
     int m_blackRemainingMs;     ///< 先手残り時間（ミリ秒）
     int m_whiteRemainingMs;     ///< 後手残り時間（ミリ秒）
     int m_resignConsumedTimeMs; ///< 投了時の消費時間（ミリ秒）
 
-    // USIポジション文字列
+    // --- USIポジション文字列 ---
     QString m_positionStr;      ///< "position sfen ... moves ..."形式
     QStringList m_usiMoves;     ///< USI形式の指し手リスト
 
-    // SFEN/棋譜記録（外部から渡されたポインタを使用）
+    // --- SFEN/棋譜記録 ---
     QString m_startSfen;        ///< 開始局面SFEN
     QStringList* m_sfenRecord = nullptr;   ///< 局面SFEN記録（MainWindowと共有）
     QVector<ShogiMove>* m_gameMoves = nullptr; ///< 指し手記録（MainWindowと共有）
 
-    // 定数
-    static constexpr int kDefaultPort = 4081;
+    static constexpr int kDefaultPort = 4081;          ///< CSAサーバーのデフォルトポート
 };
 
 #endif // CSAGAMECOORDINATOR_H

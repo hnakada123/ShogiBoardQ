@@ -1,3 +1,7 @@
+/// @file replaycontroller.cpp
+/// @brief 棋譜再生コントローラクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "replaycontroller.h"
 
 #include <QDebug>

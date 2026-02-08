@@ -1,3 +1,7 @@
+/// @file dialogcoordinator.cpp
+/// @brief ダイアログコーディネータクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "dialogcoordinator.h"
 
 #include <QWidget>
@@ -307,7 +311,7 @@ void DialogCoordinator::showKifuAnalysisDialogFromContext()
 
     // USI形式の指し手リストを取得（コンテキストから、またはKifuLoadCoordinatorから）
     // 注: コンテキストのusiMovesが空の場合はKifuLoadCoordinatorから取得
-    // ★ 重要: sfenRecordとusiMovesの整合性をチェック（sfenRecord.size() == usiMoves.size() + 1）
+    // 重要: sfenRecordとusiMovesの整合性をチェック（sfenRecord.size() == usiMoves.size() + 1）
     const qsizetype sfenSize = params.sfenRecord ? params.sfenRecord->size() : 0;
 
     if (m_kifuAnalysisCtx.gameUsiMoves && !m_kifuAnalysisCtx.gameUsiMoves->isEmpty()) {

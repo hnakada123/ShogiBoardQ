@@ -1,3 +1,7 @@
+/// @file aboutcoordinator.cpp
+/// @brief バージョン情報コーディネータクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include <QDesktopServices>
 #include <QUrl>
 #include "aboutcoordinator.h"

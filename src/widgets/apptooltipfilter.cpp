@@ -1,3 +1,7 @@
+/// @file apptooltipfilter.cpp
+/// @brief アプリケーションツールチップフィルタクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "apptooltipfilter.h"
 #include "globaltooltip.h"
 

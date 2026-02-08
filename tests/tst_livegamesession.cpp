@@ -334,7 +334,7 @@ void TestLiveGameSession::testStartFromMidPosition()
                        sfen5,
                        QString());
 
-    // ★ 重要: 追加されたノードのplyが5であることを確認
+    // 重要: 追加されたノードのplyが5であることを確認
     KifuBranchNode* node5 = m_tree->findBySfen(sfen5);
     QVERIFY2(node5 != nullptr, "node5 (branch move) should exist in tree");
     QCOMPARE(node5->ply(), 5);  // Branch move should have ply=5, not ply=1
@@ -422,7 +422,7 @@ void TestLiveGameSession::testBranchFromPly4()
                        branchSfen5,
                        QString());
 
-    // ★★★ 重要: 追加されたノードのplyが5であることを確認 ★★★
+    // 重要: 追加されたノードのplyが5であることを確認
     KifuBranchNode* branchNode5 = m_tree->findBySfen(branchSfen5);
     QVERIFY2(branchNode5 != nullptr, "branchNode5 should exist in tree");
 

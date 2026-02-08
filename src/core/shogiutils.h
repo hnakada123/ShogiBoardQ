@@ -1,22 +1,34 @@
 #ifndef SHOGIUTILS_H
 #define SHOGIUTILS_H
 
+/// @file shogiutils.h
+/// @brief 将棋関連の共通ユーティリティ関数群の定義
+/// @todo remove コメントスタイルガイド適用済み
+
 #include <QString>
 #include <QElapsedTimer>
 
 class QAbstractItemModel;
 struct ShogiMove;
 
-// ShogibanQで使用する共通関数
+/// 将棋の座標変換・指し手解析等の共通ユーティリティ
+/// @todo remove コメントスタイルガイド適用済み
 namespace ShogiUtils {
-    // 指した先のマスの段を漢字表記で出力する。
+
+    // --- 座標表記変換 ---
+
+    /// 段番号（1〜9）を漢字表記（"一"〜"九"）に変換する
     QString transRankTo(const int rankTo);
 
-    // 指した先のマスの筋を漢字表記で出力する。
+    /// 筋番号（1〜9）を全角数字表記（"１"〜"９"）に変換する
     QString transFileTo(const int fileTo);
 
-    // エラーメッセージをログ出力し、例外をスローする。
+    // --- エラーハンドリング ---
+
+    /// エラーメッセージをログ出力し、例外をスローする
     void logAndThrowError(const QString& errorMessage);
+
+    // --- USI変換 ---
 
     /**
      * @brief ShogiMoveをUSI形式の文字列に変換する
@@ -30,9 +42,7 @@ namespace ShogiUtils {
      */
     QString moveToUsi(const ShogiMove& move);
 
-    // ========================================
-    // 漢字座標解析（逆変換）
-    // ========================================
+    // --- 漢字座標解析（逆変換） ---
 
     /**
      * @brief 全角数字「１」〜「９」を1-9に変換する
@@ -69,11 +79,14 @@ namespace ShogiUtils {
      */
     bool parseMoveCoordinateFromModel(const QAbstractItemModel* model, int row,
                                        int* outFile, int* outRank);
-}
 
-namespace ShogiUtils {
-    void startGameEpoch();      // 新規対局の開始時に呼ぶ
-    qint64 nowMs();             // 対局開始からの経過ms（モノトニック）
+    // --- 対局タイマー ---
+
+    /// 新規対局の開始時にエポックタイマーをリセットする
+    void startGameEpoch();
+
+    /// 対局開始からの経過時間をミリ秒で返す（モノトニック）
+    qint64 nowMs();
 }
 
 #endif // SHOGIUTILS_H

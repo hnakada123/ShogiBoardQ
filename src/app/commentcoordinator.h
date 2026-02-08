@@ -1,6 +1,11 @@
 #ifndef COMMENTCOORDINATOR_H
 #define COMMENTCOORDINATOR_H
 
+/// @file commentcoordinator.h
+/// @brief コメントコーディネータクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QObject>
 #include <QString>
 #include <QStringList>

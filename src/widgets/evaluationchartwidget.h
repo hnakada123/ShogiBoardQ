@@ -1,6 +1,11 @@
 #ifndef EVALUATIONCHARTWIDGET_H
 #define EVALUATIONCHARTWIDGET_H
 
+/// @file evaluationchartwidget.h
+/// @brief 評価値グラフウィジェットクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #pragma once
 #include <QWidget>
 

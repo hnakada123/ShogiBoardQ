@@ -1,7 +1,10 @@
+/// @file tsumeshogisearchdialog.cpp
+/// @brief 詰将棋検索ダイアログクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "tsumeshogisearchdialog.h"
 
 // 詰み探索ダイアログを表示する。
-// コンストラクタ
 TsumeShogiSearchDialog::TsumeShogiSearchDialog(QWidget *parent)
     : ConsiderationDialog(parent)
 {
@@ -9,7 +12,6 @@ TsumeShogiSearchDialog::TsumeShogiSearchDialog(QWidget *parent)
     setWindowTitle(tr("詰み探索"));
 }
 
-// デストラクタ
 TsumeShogiSearchDialog::~TsumeShogiSearchDialog()
 {
 }

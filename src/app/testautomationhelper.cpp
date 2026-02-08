@@ -1,3 +1,7 @@
+/// @file testautomationhelper.cpp
+/// @brief テスト自動化ヘルパークラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "testautomationhelper.h"
 
 #include <QDebug>
@@ -140,7 +144,7 @@ void TestAutomationHelper::clickKifuRow(int row)
 {
     qDebug() << "[TEST] clickKifuRow:" << row;
 
-    // ★ ユーザー操作（テスト）による棋譜欄クリックの前にフラグをリセット
+    // ユーザー操作（テスト）による棋譜欄クリックの前にフラグをリセット
     if (m_deps.skipBoardSyncForBranchNav != nullptr) {
         *m_deps.skipBoardSyncForBranchNav = false;
     }

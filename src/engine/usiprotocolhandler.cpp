@@ -1,7 +1,6 @@
-/**
- * @file usiprotocolhandler.cpp
- * @brief USIプロトコル処理クラスの実装
- */
+/// @file usiprotocolhandler.cpp
+/// @brief USIプロトコル送受信管理クラスの実装
+/// @todo remove コメントスタイルガイド適用済み
 
 #include "usiprotocolhandler.h"
 #include "engineprocessmanager.h"
@@ -20,8 +19,11 @@
 
 using namespace EngineSettingsConstants;
 
-// === 静的メンバ変数の定義 ===
+// ============================================================
+// 静的メンバ変数の定義
+// ============================================================
 
+/// @todo remove コメントスタイルガイド適用済み
 const QMap<int, QString>& UsiProtocolHandler::firstPlayerPieceMap()
 {
     static const auto& m = *[]() {
@@ -33,6 +35,7 @@ const QMap<int, QString>& UsiProtocolHandler::firstPlayerPieceMap()
     return m;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 const QMap<int, QString>& UsiProtocolHandler::secondPlayerPieceMap()
 {
     static const auto& m = *[]() {
@@ -44,6 +47,7 @@ const QMap<int, QString>& UsiProtocolHandler::secondPlayerPieceMap()
     return m;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 const QMap<QChar, int>& UsiProtocolHandler::pieceRankWhite()
 {
     static const auto& m = *[]() {
@@ -55,6 +59,7 @@ const QMap<QChar, int>& UsiProtocolHandler::pieceRankWhite()
     return m;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 const QMap<QChar, int>& UsiProtocolHandler::pieceRankBlack()
 {
     static const auto& m = *[]() {
@@ -67,6 +72,7 @@ const QMap<QChar, int>& UsiProtocolHandler::pieceRankBlack()
 }
 
 namespace {
+/// @todo remove コメントスタイルガイド適用済み
 const QRegularExpression& whitespaceRe()
 {
     static const auto& re = *[]() {
@@ -77,20 +83,27 @@ const QRegularExpression& whitespaceRe()
 }
 } // anonymous namespace
 
-// === コンストラクタ・デストラクタ ===
+// ============================================================
+// コンストラクタ・デストラクタ
+// ============================================================
 
+/// @todo remove コメントスタイルガイド適用済み
 UsiProtocolHandler::UsiProtocolHandler(QObject* parent)
     : QObject(parent)
 {
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 UsiProtocolHandler::~UsiProtocolHandler()
 {
     cancelCurrentOperation();
 }
 
-// === 依存関係設定 ===
+// ============================================================
+// 依存関係設定
+// ============================================================
 
+/// @todo remove コメントスタイルガイド適用済み
 void UsiProtocolHandler::setProcessManager(EngineProcessManager* manager)
 {
     m_processManager = manager;
@@ -101,47 +114,56 @@ void UsiProtocolHandler::setProcessManager(EngineProcessManager* manager)
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void UsiProtocolHandler::setPresenter(ThinkingInfoPresenter* presenter)
 {
     m_presenter = presenter;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void UsiProtocolHandler::setGameController(ShogiGameController* controller)
 {
     m_gameController = controller;
 }
 
-// === 初期化 ===
+// ============================================================
+// 初期化
+// ============================================================
 
+/// @todo remove コメントスタイルガイド適用済み
 bool UsiProtocolHandler::initializeEngine(const QString& /*engineName*/)
 {
-    // usi -> usiok
     sendUsi();
     if (!waitForUsiOk(5000)) {
         emit errorOccurred(tr("Timeout waiting for usiok"));
         return false;
     }
 
-    // setoption コマンド送信
     for (const QString& cmd : m_setOptionCommands) {
         sendCommand(cmd);
     }
 
-    // isready -> readyok
     sendIsReady();
     if (!waitForReadyOk(5000)) {
         emit errorOccurred(tr("Timeout waiting for readyok"));
         return false;
     }
 
-    // usinewgame
     sendUsiNewGame();
-    
+
     return true;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void UsiProtocolHandler::loadEngineOptions(const QString& engineName)
 {
+    // 処理フロー:
+    // 1. 設定ファイルからエンジンオプション配列を読み込み
+    // 2. 各オプションをsetoptionコマンド文字列に変換
+    //    - buttonタイプ: "on"時のみvalueなしで送信
+    //    - その他: name + valueで送信
+    // 3. USI_Ponderオプションがあればponder有効フラグを更新
+
     m_setOptionCommands.clear();
     m_isPonderEnabled = false;
 
@@ -162,7 +184,6 @@ void UsiProtocolHandler::loadEngineOptions(const QString& engineName)
             if (value == QLatin1String("on")) {
                 m_setOptionCommands.append("setoption name " + name);
             }
-            // "on"でない場合はコマンドを送信しない
         } else {
             m_setOptionCommands.append("setoption name " + name + " value " + value);
 
@@ -175,8 +196,11 @@ void UsiProtocolHandler::loadEngineOptions(const QString& engineName)
     settings.endArray();
 }
 
-// === USIコマンド送信 ===
+// ============================================================
+// USIコマンド送信
+// ============================================================
 
+/// @todo remove コメントスタイルガイド適用済み
 void UsiProtocolHandler::sendCommand(const QString& command)
 {
     if (m_processManager) {
@@ -184,26 +208,31 @@ void UsiProtocolHandler::sendCommand(const QString& command)
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void UsiProtocolHandler::sendUsi()
 {
     sendCommand("usi");
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void UsiProtocolHandler::sendIsReady()
 {
     sendCommand("isready");
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void UsiProtocolHandler::sendUsiNewGame()
 {
     sendCommand("usinewgame");
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void UsiProtocolHandler::sendPosition(const QString& positionStr)
 {
     sendCommand(positionStr);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void UsiProtocolHandler::sendGo(int byoyomiMs, const QString& btime, const QString& wtime,
                                 int bincMs, int wincMs, bool useByoyomi)
 {
@@ -228,6 +257,7 @@ void UsiProtocolHandler::sendGo(int byoyomiMs, const QString& btime, const QStri
     sendCommand(command);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void UsiProtocolHandler::sendGoPonder()
 {
     if (m_presenter) {
@@ -240,6 +270,7 @@ void UsiProtocolHandler::sendGoPonder()
     sendCommand("go ponder");
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void UsiProtocolHandler::sendGoMate(int timeMs, bool infinite)
 {
     m_modeTsume = true;
@@ -251,6 +282,7 @@ void UsiProtocolHandler::sendGoMate(int timeMs, bool infinite)
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void UsiProtocolHandler::sendGoDepth(int depth)
 {
     if (m_presenter) {
@@ -264,6 +296,7 @@ void UsiProtocolHandler::sendGoDepth(int depth)
     sendCommand(QStringLiteral("go depth %1").arg(depth));
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void UsiProtocolHandler::sendGoNodes(qint64 nodes)
 {
     if (m_presenter) {
@@ -277,6 +310,7 @@ void UsiProtocolHandler::sendGoNodes(qint64 nodes)
     sendCommand(QStringLiteral("go nodes %1").arg(nodes));
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void UsiProtocolHandler::sendGoMovetime(int timeMs)
 {
     if (m_presenter) {
@@ -290,6 +324,7 @@ void UsiProtocolHandler::sendGoMovetime(int timeMs)
     sendCommand(QStringLiteral("go movetime %1").arg(timeMs));
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void UsiProtocolHandler::sendGoSearchmoves(const QStringList& moves, bool infinite)
 {
     if (moves.isEmpty()) {
@@ -313,6 +348,7 @@ void UsiProtocolHandler::sendGoSearchmoves(const QStringList& moves, bool infini
     sendCommand(command);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void UsiProtocolHandler::sendGoSearchmovesDepth(const QStringList& moves, int depth)
 {
     if (moves.isEmpty()) {
@@ -334,6 +370,7 @@ void UsiProtocolHandler::sendGoSearchmovesDepth(const QStringList& moves, int de
     sendCommand(command);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void UsiProtocolHandler::sendGoSearchmovesMovetime(const QStringList& moves, int timeMs)
 {
     if (moves.isEmpty()) {
@@ -355,12 +392,14 @@ void UsiProtocolHandler::sendGoSearchmovesMovetime(const QStringList& moves, int
     sendCommand(command);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void UsiProtocolHandler::sendStop()
 {
     sendCommand("stop");
     emit stopOrPonderhitSent();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void UsiProtocolHandler::sendPonderHit()
 {
     m_lastGoToBestmoveMs = 0;
@@ -372,11 +411,13 @@ void UsiProtocolHandler::sendPonderHit()
     m_phase = SearchPhase::Main;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void UsiProtocolHandler::sendGameOver(const QString& result)
 {
     sendCommand("gameover " + result);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void UsiProtocolHandler::sendQuit()
 {
     cancelCurrentOperation();
@@ -396,18 +437,23 @@ void UsiProtocolHandler::sendQuit()
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void UsiProtocolHandler::sendSetOption(const QString& name, const QString& value)
 {
     sendCommand("setoption name " + name + " value " + value);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void UsiProtocolHandler::sendRaw(const QString& command)
 {
     sendCommand(command);
 }
 
-// === 待機メソッド ===
+// ============================================================
+// 待機メソッド
+// ============================================================
 
+/// @todo remove コメントスタイルガイド適用済み
 bool UsiProtocolHandler::waitForUsiOk(int timeoutMs)
 {
     if (m_usiOkReceived) return true;
@@ -427,6 +473,7 @@ bool UsiProtocolHandler::waitForUsiOk(int timeoutMs)
     return m_usiOkReceived;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 bool UsiProtocolHandler::waitForReadyOk(int timeoutMs)
 {
     if (m_readyOkReceived) return true;
@@ -446,6 +493,7 @@ bool UsiProtocolHandler::waitForReadyOk(int timeoutMs)
     return m_readyOkReceived;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 bool UsiProtocolHandler::waitForBestMove(int timeoutMs)
 {
     if (m_bestMoveReceived) return true;
@@ -478,6 +526,7 @@ bool UsiProtocolHandler::waitForBestMove(int timeoutMs)
     return true;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 bool UsiProtocolHandler::waitForBestMoveWithGrace(int budgetMs, int graceMs)
 {
     QElapsedTimer t;
@@ -498,6 +547,7 @@ bool UsiProtocolHandler::waitForBestMoveWithGrace(int budgetMs, int graceMs)
     return m_bestMoveReceived;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 bool UsiProtocolHandler::keepWaitingForBestMove()
 {
     m_bestMoveReceived = false;
@@ -519,6 +569,7 @@ bool UsiProtocolHandler::keepWaitingForBestMove()
     return true;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void UsiProtocolHandler::waitForStopOrPonderhit()
 {
     QEventLoop loop;
@@ -526,6 +577,7 @@ void UsiProtocolHandler::waitForStopOrPonderhit()
     loop.exec();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 bool UsiProtocolHandler::shouldAbortWait() const
 {
     if (m_timeoutDeclared) return true;
@@ -543,22 +595,31 @@ bool UsiProtocolHandler::shouldAbortWait() const
     return false;
 }
 
-// === データ受信ハンドラ ===
+// ============================================================
+// データ受信ハンドラ
+// ============================================================
 
+/// @todo remove コメントスタイルガイド適用済み
 void UsiProtocolHandler::onDataReceived(const QString& line)
 {
+    // 処理フロー:
+    // 1. タイムアウト宣言済みなら全行を破棄
+    // 2. checkmate行 → handleCheckmateLine（詰将棋結果）
+    // 3. bestmove行 → handleBestMoveLine（最善手解析）
+    // 4. info行 → シグナル発行 + Presenterへ転送
+    // 5. readyok → フラグ＋シグナル
+    // 6. usiok → フラグ＋シグナル
+
     if (m_timeoutDeclared) {
         qDebug() << "[USI] [drop-after-timeout]" << line;
         return;
     }
 
-    // checkmate行（詰将棋）
     if (line.startsWith(QStringLiteral("checkmate"))) {
         handleCheckmateLine(line);
         return;
     }
 
-    // bestmove行
     if (line.startsWith(QStringLiteral("bestmove"))) {
         m_bestMoveReceived = true;
         handleBestMoveLine(line);
@@ -566,24 +627,21 @@ void UsiProtocolHandler::onDataReceived(const QString& line)
         return;
     }
 
-    // info行
     if (line.startsWith(QStringLiteral("info"))) {
         qDebug().noquote() << "[UsiProtocolHandler] emitting infoLineReceived:" << line.left(60);
-        emit infoLineReceived(line);  // シグナル発行
+        emit infoLineReceived(line);
         if (m_presenter) {
             m_presenter->onInfoReceived(line);
         }
         return;
     }
 
-    // readyok
     if (line.contains(QStringLiteral("readyok"))) {
         m_readyOkReceived = true;
         emit readyOkReceived();
         return;
     }
 
-    // usiok
     if (line.contains(QStringLiteral("usiok"))) {
         m_usiOkReceived = true;
         emit usiOkReceived();
@@ -591,8 +649,16 @@ void UsiProtocolHandler::onDataReceived(const QString& line)
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void UsiProtocolHandler::handleBestMoveLine(const QString& line)
 {
+    // 処理フロー:
+    // 1. トークン分割してbestmoveキーワードの位置を特定
+    // 2. オペレーションIDの一致確認（キャンセル済みなら破棄）
+    // 3. 経過時間を記録
+    // 4. resign/win判定 → 重複防止付きでシグナル発行
+    // 5. 通常手 → ponder手があれば取得
+
     const quint64 observedId = m_seq;
 
     const QStringList tokens = line.split(whitespaceRe(), Qt::SkipEmptyParts);
@@ -604,6 +670,7 @@ void UsiProtocolHandler::handleBestMoveLine(const QString& line)
         return;
     }
 
+    // キャンセル済みオペレーションからのbestmoveは破棄
     if (observedId != m_seq) {
         qDebug() << "[USI] [drop-bestmove] (op-id-mismatch)" << line;
         return;
@@ -615,8 +682,8 @@ void UsiProtocolHandler::handleBestMoveLine(const QString& line)
     m_lastGoToBestmoveMs = (elapsed >= 0) ? elapsed : 0;
     m_bestMoveReceived = true;
 
-    // resign判定
     if (m_bestMove.compare(QStringLiteral("resign"), Qt::CaseInsensitive) == 0) {
+        // 重複シグナル防止
         if (m_resignNotified) {
             qDebug() << "[USI] [dup-resign-ignored]";
             return;
@@ -627,8 +694,8 @@ void UsiProtocolHandler::handleBestMoveLine(const QString& line)
         return;
     }
 
-    // win判定（入玉宣言勝ち）
     if (m_bestMove.compare(QStringLiteral("win"), Qt::CaseInsensitive) == 0) {
+        // 重複シグナル防止
         if (m_winNotified) {
             qDebug() << "[USI] [dup-win-ignored]";
             return;
@@ -639,7 +706,6 @@ void UsiProtocolHandler::handleBestMoveLine(const QString& line)
         return;
     }
 
-    // ponder手の取得
     const int ponderIdx = static_cast<int>(tokens.indexOf(QStringLiteral("ponder")));
     if (ponderIdx != -1 && ponderIdx + 1 < tokens.size()) {
         m_predictedOpponentMove = tokens.at(ponderIdx + 1);
@@ -648,6 +714,7 @@ void UsiProtocolHandler::handleBestMoveLine(const QString& line)
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void UsiProtocolHandler::handleCheckmateLine(const QString& line)
 {
     const QString rest = line.mid(QStringLiteral("checkmate").size()).trimmed();
@@ -673,9 +740,12 @@ void UsiProtocolHandler::handleCheckmateLine(const QString& line)
     emit checkmateSolved(pv);
 }
 
-// === 指し手処理 ===
+// ============================================================
+// 指し手処理
+// ============================================================
 
-void UsiProtocolHandler::parseMoveCoordinates(int& fileFrom, int& rankFrom, 
+/// @todo remove コメントスタイルガイド適用済み
+void UsiProtocolHandler::parseMoveCoordinates(int& fileFrom, int& rankFrom,
                                               int& fileTo, int& rankTo)
 {
     fileFrom = rankFrom = fileTo = rankTo = -1;
@@ -705,6 +775,7 @@ void UsiProtocolHandler::parseMoveCoordinates(int& fileFrom, int& rankFrom,
     parseMoveTo(move, fileTo, rankTo);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void UsiProtocolHandler::parseMoveFrom(const QString& move, int& fileFrom, int& rankFrom)
 {
     if (QStringLiteral("123456789").contains(move[0])) {
@@ -729,6 +800,7 @@ void UsiProtocolHandler::parseMoveFrom(const QString& move, int& fileFrom, int& 
     cancelCurrentOperation();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void UsiProtocolHandler::parseMoveTo(const QString& move, int& fileTo, int& rankTo)
 {
     if (!move[2].isDigit() || !move[3].isLetter()) {
@@ -741,7 +813,8 @@ void UsiProtocolHandler::parseMoveTo(const QString& move, int& fileTo, int& rank
     rankTo = alphabetToRank(move[3]);
 }
 
-QString UsiProtocolHandler::convertHumanMoveToUsi(const QPoint& from, const QPoint& to, 
+/// @todo remove コメントスタイルガイド適用済み
+QString UsiProtocolHandler::convertHumanMoveToUsi(const QPoint& from, const QPoint& to,
                                                   bool promote)
 {
     const int fileFrom = from.x();
@@ -752,7 +825,6 @@ QString UsiProtocolHandler::convertHumanMoveToUsi(const QPoint& from, const QPoi
     QString result;
 
     if (fileFrom >= 1 && fileFrom <= BOARD_SIZE) {
-        // 盤上の駒
         result = QString::number(fileFrom) + rankToAlphabet(rankFrom);
         result += QString::number(fileTo) + rankToAlphabet(rankTo);
         if (promote) result += "+";
@@ -770,40 +842,51 @@ QString UsiProtocolHandler::convertHumanMoveToUsi(const QPoint& from, const QPoi
     return result;
 }
 
-// === 座標変換ユーティリティ ===
+// ============================================================
+// 座標変換ユーティリティ
+// ============================================================
 
+/// @todo remove コメントスタイルガイド適用済み
 QChar UsiProtocolHandler::rankToAlphabet(int rank)
 {
     return QChar('a' + rank - 1);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 int UsiProtocolHandler::alphabetToRank(QChar c)
 {
     return c.toLatin1() - 'a' + 1;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 QString UsiProtocolHandler::convertFirstPlayerPieceSymbol(int rankFrom) const
 {
     return firstPlayerPieceMap().value(rankFrom, QString());
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 QString UsiProtocolHandler::convertSecondPlayerPieceSymbol(int rankFrom) const
 {
     return secondPlayerPieceMap().value(rankFrom, QString());
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 int UsiProtocolHandler::pieceToRankWhite(QChar c)
 {
     return pieceRankWhite().value(c, 0);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 int UsiProtocolHandler::pieceToRankBlack(QChar c)
 {
     return pieceRankBlack().value(c, 0);
 }
 
-// === オペレーションコンテキスト ===
+// ============================================================
+// オペレーションコンテキスト
+// ============================================================
 
+/// @todo remove コメントスタイルガイド適用済み
 quint64 UsiProtocolHandler::beginOperationContext()
 {
     if (m_opCtx) {
@@ -814,6 +897,7 @@ quint64 UsiProtocolHandler::beginOperationContext()
     return ++m_seq;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void UsiProtocolHandler::cancelCurrentOperation()
 {
     if (m_opCtx) {

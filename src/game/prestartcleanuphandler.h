@@ -1,6 +1,10 @@
 #ifndef PRESTARTCLEANUPHANDLER_H
 #define PRESTARTCLEANUPHANDLER_H
 
+/// @file prestartcleanuphandler.h
+/// @brief 対局開始前クリーンアップハンドラクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
 #include <QObject>
 #include <QString>
 #include <QHash>
@@ -32,75 +36,62 @@ class KifuNavigationState;
  * - USIログ初期化
  * - 時間制御リセット
  *
- * GameStartCoordinatorからの requestPreStartCleanup シグナルに応じて
- * クリーンアップ処理を実行する。
+ * GameStartCoordinator::requestPreStartCleanupシグナルに接続して使用する。
+ *
+ * @todo remove コメントスタイルガイド適用済み
  */
 class PreStartCleanupHandler : public QObject
 {
     Q_OBJECT
 
 public:
-    /**
-     * @brief 依存オブジェクト構造体
-     */
+    /// 依存オブジェクト構造体
+    /// @todo remove コメントスタイルガイド適用済み
     struct Dependencies {
-        BoardInteractionController* boardController = nullptr;
-        ShogiView* shogiView = nullptr;
-        KifuRecordListModel* kifuRecordModel = nullptr;
-        KifuBranchListModel* kifuBranchModel = nullptr;
-        UsiCommLogModel* lineEditModel1 = nullptr;
-        UsiCommLogModel* lineEditModel2 = nullptr;
-        TimeControlController* timeController = nullptr;
-        EvaluationChartWidget* evalChart = nullptr;
-        EvaluationGraphController* evalGraphController = nullptr;
-        RecordPane* recordPane = nullptr;
-        
-        // MainWindowの状態変数への参照
-        QString* startSfenStr = nullptr;
-        QString* currentSfenStr = nullptr;
-        int* activePly = nullptr;
-        int* currentSelectedPly = nullptr;
-        int* currentMoveIndex = nullptr;
+        BoardInteractionController* boardController = nullptr;  ///< 盤面操作コントローラ（非所有）
+        ShogiView* shogiView = nullptr;                         ///< 盤面ビュー（非所有）
+        KifuRecordListModel* kifuRecordModel = nullptr;         ///< 棋譜モデル（非所有）
+        KifuBranchListModel* kifuBranchModel = nullptr;         ///< 分岐モデル（非所有）
+        UsiCommLogModel* lineEditModel1 = nullptr;              ///< エンジン1のUSIログモデル（非所有）
+        UsiCommLogModel* lineEditModel2 = nullptr;              ///< エンジン2のUSIログモデル（非所有）
+        TimeControlController* timeController = nullptr;        ///< 時間制御コントローラ（非所有）
+        EvaluationChartWidget* evalChart = nullptr;             ///< 評価値グラフウィジェット（非所有）
+        EvaluationGraphController* evalGraphController = nullptr; ///< 評価値グラフコントローラ（非所有）
+        RecordPane* recordPane = nullptr;                       ///< 棋譜ペイン（非所有）
 
-        // 分岐ツリー関連
-        LiveGameSession* liveGameSession = nullptr;
-        KifuBranchTree* branchTree = nullptr;
-        KifuNavigationState* navState = nullptr;
+        // --- MainWindowの状態変数への参照 ---
+        QString* startSfenStr = nullptr;                        ///< 開始SFEN文字列
+        QString* currentSfenStr = nullptr;                      ///< 現在SFEN文字列
+        int* activePly = nullptr;                               ///< アクティブな手数
+        int* currentSelectedPly = nullptr;                      ///< 選択中の手数
+        int* currentMoveIndex = nullptr;                        ///< 現在の手数インデックス
+
+        // --- 分岐ツリー関連 ---
+        LiveGameSession* liveGameSession = nullptr;             ///< ライブゲームセッション（非所有）
+        KifuBranchTree* branchTree = nullptr;                   ///< 分岐ツリー（非所有）
+        KifuNavigationState* navState = nullptr;                ///< ナビゲーション状態（非所有）
     };
 
-    /**
-     * @brief コンストラクタ
-     * @param deps 依存オブジェクト
-     * @param parent 親オブジェクト
-     */
     explicit PreStartCleanupHandler(const Dependencies& deps, QObject* parent = nullptr);
-
-    /**
-     * @brief デストラクタ
-     */
     ~PreStartCleanupHandler() override = default;
 
 public slots:
-    /**
-     * @brief 対局開始前のクリーンアップを実行
-     *
-     * GameStartCoordinator::requestPreStartCleanup シグナルに接続する。
-     */
+    /// 対局開始前のクリーンアップを実行する（→ GameStartCoordinator::requestPreStartCleanup）
+    /// @todo remove コメントスタイルガイド適用済み
     void performCleanup();
 
 signals:
-    /**
-     * @brief コメント欄クリアを要求
-     * @param text 空文字列
-     * @param asHtml HTMLフラグ
-     */
+    /// コメント欄クリアを要求する（→ CommentCoordinator）
     void broadcastCommentRequested(const QString& text, bool asHtml);
 
 public:
     /**
-     * @brief 「現在の局面から開始」判定の共通ロジック
+     * @brief 「現在の局面から開始」かどうかの判定ロジック
      *
-     * テストで使用するためヘッダで公開する。
+     * テスト用に公開している。startSfenが残っていても
+     * selectedPlyが進んでいれば現在局面開始とみなす。
+     *
+     * @todo remove コメントスタイルガイド適用済み
      */
     static bool shouldStartFromCurrentPosition(const QString& startSfen,
                                                const QString& currentSfen,
@@ -126,103 +117,78 @@ public:
     }
 
 private:
-    /**
-     * @brief 盤面とハイライトを初期化
-     */
-    void clearBoardAndHighlights();
+    // --- クリーンアップ個別処理 ---
 
-    /**
-     * @brief 時計表示を初期化
-     */
+    void clearBoardAndHighlights();
     void clearClockDisplay();
 
     /**
-     * @brief 棋譜モデルをクリーンアップ
+     * @brief 棋譜モデルをクリーンアップする
      * @param startFromCurrentPos 現在の局面から開始するか
-     * @param keepRow 保持する行番号（出力）
+     * @param keepRow 保持する行番号（入力値）
      * @return 実際に保持された行番号
      */
     int cleanupKifuModel(bool startFromCurrentPos, int keepRow);
 
     /**
-     * @brief 手数トラッキングを更新
+     * @brief 手数トラッキングを更新する
      * @param startFromCurrentPos 現在の局面から開始するか
      * @param keepRow 保持する行番号
      */
     void updatePlyTracking(bool startFromCurrentPos, int keepRow);
 
-    /**
-     * @brief 分岐モデルをクリア
-     */
     void clearBranchModel();
-
-    /**
-     * @brief USIログモデルを初期化
-     */
     void resetUsiLogModels();
-
-    /**
-     * @brief 時間制御をリセット
-     */
     void resetTimeControl();
 
-    /**
-     * @brief 評価値グラフを初期化またはトリム
-     */
+    /// 評価値グラフを初期化またはトリムする
     void resetEvaluationGraph();
 
-    /**
-     * @brief 棋譜欄の開始行を選択（黄色ハイライト）
-     */
+    /// 棋譜欄の開始行を選択する（黄色ハイライト）
     void selectStartRow();
 
-    /**
-     * @brief 「現在の局面から開始」かどうかを判定
-     * @return 現在の局面から開始する場合true
-     */
     bool isStartFromCurrentPosition() const;
 
-    /**
-     * @brief ライブゲームセッションを開始
-     *
-     * 対局開始時にLiveGameSessionを開始し、分岐ツリーへの
-     * リアルタイム更新を有効にする。
-     */
+    // --- ライブゲームセッション ---
+
+    /// ライブゲームセッションを開始し、分岐ツリーへのリアルタイム更新を有効にする
     void startLiveGameSession();
 
-    /**
-     * @brief 分岐ツリーのルートノードを作成（セッションは開始しない）
-     */
+    /// 分岐ツリーのルートノードを作成する（セッションは開始しない）
     void ensureBranchTreeRoot();
 
-    // 依存オブジェクト
-    BoardInteractionController* m_boardController = nullptr;
-    ShogiView* m_shogiView = nullptr;
-    KifuRecordListModel* m_kifuRecordModel = nullptr;
-    KifuBranchListModel* m_kifuBranchModel = nullptr;
-    UsiCommLogModel* m_lineEditModel1 = nullptr;
-    UsiCommLogModel* m_lineEditModel2 = nullptr;
-    TimeControlController* m_timeController = nullptr;
-    EvaluationChartWidget* m_evalChart = nullptr;
-    EvaluationGraphController* m_evalGraphController = nullptr;
-    RecordPane* m_recordPane = nullptr;
+    // --- メンバー変数 ---
 
-    // MainWindowの状態変数への参照
-    QString* m_startSfenStr = nullptr;
-    QString* m_currentSfenStr = nullptr;
-    int* m_activePly = nullptr;
-    int* m_currentSelectedPly = nullptr;
-    int* m_currentMoveIndex = nullptr;
+    BoardInteractionController* m_boardController = nullptr;    ///< 盤面操作コントローラ（非所有）
+    ShogiView* m_shogiView = nullptr;                           ///< 盤面ビュー（非所有）
+    KifuRecordListModel* m_kifuRecordModel = nullptr;           ///< 棋譜モデル（非所有）
+    KifuBranchListModel* m_kifuBranchModel = nullptr;           ///< 分岐モデル（非所有）
+    UsiCommLogModel* m_lineEditModel1 = nullptr;                ///< エンジン1 USIログ（非所有）
+    UsiCommLogModel* m_lineEditModel2 = nullptr;                ///< エンジン2 USIログ（非所有）
+    TimeControlController* m_timeController = nullptr;          ///< 時間制御コントローラ（非所有）
+    EvaluationChartWidget* m_evalChart = nullptr;               ///< 評価値グラフ（非所有）
+    EvaluationGraphController* m_evalGraphController = nullptr; ///< 評価値グラフコントローラ（非所有）
+    RecordPane* m_recordPane = nullptr;                         ///< 棋譜ペイン（非所有）
 
-    // 分岐ツリー関連
-    LiveGameSession* m_liveGameSession = nullptr;
-    KifuBranchTree* m_branchTree = nullptr;
-    KifuNavigationState* m_navState = nullptr;
+    // --- MainWindow状態変数への参照 ---
 
-    // performCleanup() 開始時に保存する値（selectStartRow() で変更される前の値）
-    QString m_savedCurrentSfen;
-    int m_savedSelectedPly = 0;
-    KifuBranchNode* m_savedCurrentNode = nullptr;  // ユーザーが選択していたノード
+    QString* m_startSfenStr = nullptr;         ///< 開始SFEN文字列への参照
+    QString* m_currentSfenStr = nullptr;       ///< 現在SFEN文字列への参照
+    int* m_activePly = nullptr;                ///< アクティブ手数への参照
+    int* m_currentSelectedPly = nullptr;       ///< 選択中手数への参照
+    int* m_currentMoveIndex = nullptr;         ///< 手数インデックスへの参照
+
+    // --- 分岐ツリー関連 ---
+
+    LiveGameSession* m_liveGameSession = nullptr;  ///< ライブゲームセッション（非所有）
+    KifuBranchTree* m_branchTree = nullptr;        ///< 分岐ツリー（非所有）
+    KifuNavigationState* m_navState = nullptr;     ///< ナビゲーション状態（非所有）
+
+    // --- performCleanup()用の一時保存値 ---
+
+    QString m_savedCurrentSfen;                    ///< cleanup開始時のSFEN（selectStartRow前に保存）
+    int m_savedSelectedPly = 0;                    ///< cleanup開始時の選択手数
+    KifuBranchNode* m_savedCurrentNode = nullptr;  ///< cleanup開始時に選択されていたノード
 };
 
 #endif // PRESTARTCLEANUPHANDLER_H

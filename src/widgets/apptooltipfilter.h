@@ -1,5 +1,10 @@
 #ifndef APPTOOLTIPFILTER_H
 #define APPTOOLTIPFILTER_H
+
+/// @file apptooltipfilter.h
+/// @brief アプリケーションツールチップフィルタクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
 #pragma once
 
 #include <QObject>
@@ -13,17 +18,18 @@ class QPoint;
 class QString;
 class GlobalToolTip;
 
-/*
- * AppToolTipFilter
- * アプリ全体のツールチップ表示を「標準の QToolTip」から自前の GlobalToolTip に置き換えるイベントフィルタ。
- * 役割：対象ウィジェット（メニューバー／ツールバー／ツールボタン／メニュー等）に install し、
- *       ToolTip イベントの発生・消滅に合わせて GlobalToolTip を表示／非表示にする。
- * 備考：シグナルは持たないため Q_OBJECT は不要。必要になったら将来的に追加可。
+/**
+ * @brief アプリ全体のツールチップ表示を自前の GlobalToolTip に置き換えるイベントフィルタ
+ *
+ * 対象ウィジェット（メニューバー／ツールバー／ツールボタン／メニュー等）に install し、
+ * ToolTip イベントの発生・消滅に合わせて GlobalToolTip を表示／非表示にする。
+ * シグナルは持たないため Q_OBJECT は不要。
+ *
+ * @todo remove コメントスタイルガイド適用済み
  */
 class AppToolTipFilter : public QObject {
 public:
-    // コンストラクタ
-    // 役割：イベントフィルタを初期化し、内部で使用する GlobalToolTip を生成。
+    /// イベントフィルタを初期化し、内部で使用する GlobalToolTip を生成する
     explicit AppToolTipFilter(QWidget* parent = nullptr);
 
     // ツールチップの文字サイズ（pt）を調整

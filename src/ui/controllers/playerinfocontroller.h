@@ -1,6 +1,11 @@
 #ifndef PLAYERINFOCONTROLLER_H
 #define PLAYERINFOCONTROLLER_H
 
+/// @file playerinfocontroller.h
+/// @brief プレイヤー情報コントローラクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QObject>
 #include <QString>
 #include <QList>

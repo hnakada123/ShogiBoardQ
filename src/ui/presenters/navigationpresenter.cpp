@@ -1,3 +1,7 @@
+/// @file navigationpresenter.cpp
+/// @brief ナビゲーションプレゼンタクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "navigationpresenter.h"
 #include "engineanalysistab.h"
 #include <QDebug>
@@ -37,7 +41,7 @@ void NavigationPresenter::refreshBranchCandidates(int row, int ply)
 
 void NavigationPresenter::updateAfterBranchListChanged(int row, int ply)
 {
-    // ★ Coordinator 側からのみ呼ばれる“事後通知API”
+    // Coordinator 側からのみ呼ばれる“事後通知API”
     //    （ここでは Coordinator には戻らず、ハイライトと通知だけ行う）
     const int safeRow = qMax(0, row);
     const int safePly = qMax(0, ply);

@@ -1,3 +1,7 @@
+/// @file considerationdialog.cpp
+/// @brief 検討ダイアログクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "considerationdialog.h"
 #include "changeenginesettingsdialog.h"
 #include "ui_considerationdialog.h"
@@ -11,7 +15,6 @@
 using namespace EngineSettingsConstants;
 
 // 検討ダイアログを表示する。
-// コンストラクタ
 ConsiderationDialog::ConsiderationDialog(QWidget *parent)
     : QDialog(parent)
     , ui(new Ui::ConsiderationDialog)
@@ -46,7 +49,6 @@ ConsiderationDialog::ConsiderationDialog(QWidget *parent)
     connect(ui->toolButtonFontDecrease, &QToolButton::clicked, this, &ConsiderationDialog::onFontDecrease);
 }
 
-// デストラクタ
 ConsiderationDialog::~ConsiderationDialog()
 {
     // UIを削除する。

@@ -1,3 +1,7 @@
+/// @file evalgraphpresenter.cpp
+/// @brief 評価値グラフプレゼンタクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "evalgraphpresenter.h"
 #include "matchcoordinator.h"
 #include "usi.h"
@@ -19,7 +23,7 @@ void appendPrimaryScore(QList<int>& scoreCp, MatchCoordinator* match)
 }
 
 // 2ndエンジンのスコアを m_scoreCp へ追記
-// ★ HvEの場合、secondaryEngineはNULLなので、primaryEngineから取得する
+// HvEの場合、secondaryEngineはNULLなので、primaryEngineから取得する
 void appendSecondaryScore(QList<int>& scoreCp, MatchCoordinator* match)
 {
     qDebug() << "[EvalGraphPresenter] appendSecondaryScore called, match=" << (match ? "valid" : "NULL");

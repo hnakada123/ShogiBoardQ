@@ -1,3 +1,7 @@
+/// @file menuwindow.cpp
+/// @brief メニューウィンドウクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "menuwindow.h"
 #include "menubuttonwidget.h"
 #include "settingsservice.h"

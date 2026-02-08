@@ -1,16 +1,27 @@
 #ifndef TSUMEPOSITIONUTIL_H
 #define TSUMEPOSITIONUTIL_H
 
+/// @file tsumepositionutil.h
+/// @brief 詰み探索用のUSI positionコマンド構築ユーティリティ
+/// @todo remove コメントスタイルガイド適用済み
+
 #include <QString>
 #include <QStringList>
 
-// 詰み探索用に局面コマンドを構築するユーティリティ。
-// usiMovesが利用可能な場合は "position startpos moves ..." 形式を使用し、
-// そうでない場合は "position sfen <...>" 形式にフォールバックする。
+/**
+ * @brief 詰み探索用に局面コマンドを構築するユーティリティ
+ *
+ * usiMovesが利用可能な場合は "position startpos moves ..." 形式を使用し、
+ * そうでない場合は "position sfen ..." 形式にフォールバックする。
+ *
+ * @todo remove コメントスタイルガイド適用済み
+ */
 class TsumePositionUtil {
 public:
+    // --- 公開API ---
+
     /**
-     * @brief USI形式の指し手リストを使用してposition コマンドを構築（推奨）
+     * @brief USI形式の指し手リストを使用してpositionコマンドを構築（推奨）
      * @param usiMoves USI形式の指し手リスト（例: ["7g7f", "3c3d", ...]）
      * @param startPositionCmd 開始局面コマンド（"startpos" または "sfen ..."）
      * @param selectedIndex 現在の手数（0始まり）
@@ -59,12 +70,19 @@ public:
 
     /**
      * @brief SFEN形式で局面コマンドを構築（フォールバック用）
+     *
+     * 玉の有無から攻方を推定し、手番を強制設定して返す。
      */
     static QString buildPositionForMate(const QStringList* sfenRecord,
                                         const QString& startSfenStr,
                                         const QStringList& positionStrList,
                                         int selectedIndex)
     {
+        // 処理フロー:
+        // 1. 複数のデータソースから基本SFENを取得
+        // 2. 玉の有無から攻方（手番）を推定
+        // 3. 手番を強制設定してpositionコマンドを構築
+
         const int sel = qMax(0, selectedIndex);
         QString baseSfen;
 

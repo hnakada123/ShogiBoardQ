@@ -1,3 +1,7 @@
+/// @file gamestartcoordinator.cpp
+/// @brief 対局開始コーディネータクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "gamestartcoordinator.h"
 #include "kifurecordlistmodel.h"
 #include "kifuloadcoordinator.h"
@@ -21,6 +25,11 @@
 #include <QGlobalStatic>
 #include <array>
 
+// ============================================================
+// 初期化
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 GameStartCoordinator::GameStartCoordinator(const Deps& d, QObject* parent)
     : QObject(parent)
     , m_match(d.match)
@@ -33,13 +42,13 @@ GameStartCoordinator::GameStartCoordinator(const Deps& d, QObject* parent)
     qRegisterMetaType<GameStartCoordinator::Request>("GameStartCoordinator::Request");
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 bool GameStartCoordinator::validate(const StartParams& p, QString& whyNot) const
 {
     if (!m_match) {
         whyNot = QStringLiteral("MatchCoordinator が未設定です。");
         return false;
     }
-    // ★ StartOptions::mode は PlayMode。PlayMode::NotStarted を弾く
     if (p.opt.mode == PlayMode::NotStarted) {
         whyNot = QStringLiteral("対局モードが PlayMode::NotStarted のままです。");
         return false;
@@ -47,33 +56,33 @@ bool GameStartCoordinator::validate(const StartParams& p, QString& whyNot) const
     return true;
 }
 
-// ===================================================================
-// メイン API: StartOptions を受け取り対局を開始
-// ===================================================================
+// ============================================================
+// メインAPI: StartOptionsを受け取り対局を開始
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 void GameStartCoordinator::start(const StartParams& params)
 {
     QString reason;
     if (!validate(params, reason)) {
-        emit startFailed(reason);
-        qWarning().noquote() << "[GameStartCoordinator] startFailed:" << reason;
+        qWarning().noquote() << "[GameStartCoordinator] start failed:" << reason;
         return;
     }
 
-    // ★ 修正: prepare()で既にクリーンアップ済みなので、ここでは呼ばない
+    // prepare()で既にクリーンアップ済みなので、ここでは呼ばない
     // （重複呼び出しにより、playerNamesResolvedで設定された名前が消えてしまう問題を修正）
-    // emit requestPreStartCleanup();
 
     // --- 2) TimeControl を正規化して適用（enabled 補正 / byoyomi 優先で inc を落とす） ---
-    TimeControl tc = params.tc; // コピーして正規化
+    TimeControl tc = params.tc;
 
     const bool hasAny =
         (tc.p1.baseMs > 0) || (tc.p2.baseMs > 0) ||
         (tc.p1.byoyomiMs > 0) || (tc.p2.byoyomiMs > 0) ||
         (tc.p1.incrementMs > 0) || (tc.p2.incrementMs > 0);
 
+    // 秒読み指定がある場合はフィッシャー増加は使わない（衝突回避）
     const bool useByoyomi = (tc.p1.byoyomiMs > 0) || (tc.p2.byoyomiMs > 0);
     if (useByoyomi) {
-        // 秒読み指定がある場合はフィッシャー増加は使わない（衝突回避）
         tc.p1.incrementMs = 0;
         tc.p2.incrementMs = 0;
     }
@@ -89,16 +98,15 @@ void GameStartCoordinator::start(const StartParams& params)
         << " P1{base=" << tc.p1.baseMs << " byo=" << tc.p1.byoyomiMs << " inc=" << tc.p1.incrementMs << "}"
         << " P2{base=" << tc.p2.baseMs << " byo=" << tc.p2.byoyomiMs << " inc=" << tc.p2.incrementMs << "}";
 
-    // UI（時計）へ適用依頼：enabled か、もしくは何か値がある場合は必ず投げる
+    // UI（時計）へ適用依頼
     if (tc.enabled || hasAny) {
         emit requestApplyTimeControl(tc);
-        // 互換シグナル（どちらか一方だけ接続想定）
         emit applyTimeControlRequested(tc);
     }
 
-    // 司令塔にも直に反映しておく（UIシグナルの非同期順序に影響されないように）
+    // 司令塔にも直に反映（UIシグナルの非同期順序に影響されないように）
     if (m_match) {
-        const bool loseOnTimeout = tc.enabled; // 持ち時間系が有効ならタイムアウト負け扱い
+        const bool loseOnTimeout = tc.enabled;
         m_match->setTimeControlConfig(
             useByoyomi,
             static_cast<int>(tc.p1.byoyomiMs), static_cast<int>(tc.p2.byoyomiMs),
@@ -109,7 +117,6 @@ void GameStartCoordinator::start(const StartParams& params)
     }
 
     // --- 3) 対局をセットアップ & 開始 ---
-    emit willStart(params.opt);
     m_match->configureAndStart(params.opt);
 
     // --- 4) 初手がエンジン手番なら go を起動 ---
@@ -123,13 +130,15 @@ void GameStartCoordinator::start(const StartParams& params)
                        << static_cast<int>(params.opt.mode);
 }
 
-// ===================================================================
-// 追加：開始前適用 API（軽量リクエスト）
-// ===================================================================
+// ============================================================
+// 開始前適用API（軽量リクエスト）
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 void GameStartCoordinator::prepare(const Request& req)
 {
     // --- 0) 前処理（UIのプレクリア） ---
-    // ★ skipCleanup が true の場合はスキップ（既に prepareDataCurrentPosition 等で呼び出し済み）
+    // skipCleanup が true の場合はスキップ（既に prepareDataCurrentPosition 等で呼び出し済み）
     if (!req.skipCleanup) {
         emit requestPreStartCleanup();
     }
@@ -157,40 +166,41 @@ void GameStartCoordinator::prepare(const Request& req)
         return;
     }
 
-    // --- 3) 時間制御を適用（applyToClock は初期手番を 1/2 で設定する修正版を想定） ---
+    // --- 3) 時間制御を適用 ---
     TimeControlUtil::applyToClock(clock, tc, req.startSfen, QString());
 
-    // 念のため SFEN から初期手番を明示（修正版が未適用でも安全）
+    // SFENから初期手番を明示
     const int initialPlayer = (req.startSfen.contains(QLatin1String(" w ")) ? 2 : 1);
     clock->setCurrentPlayer(initialPlayer);
 
     // --- 4) 司令塔へ配線 → 起動（順序が重要） ---
     if (m_match) {
-        m_match->setClock(clock);  // 先に配線
+        m_match->setClock(clock);
     }
-    clock->startClock();           // その後で起動
+    clock->startClock();
 }
 
-// ===================================================================
-// 段階実行 API：MainWindow 側の関数差し替え先
-// ===================================================================
+// ============================================================
+// 段階実行API: 現在局面からの開始準備
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 void GameStartCoordinator::prepareDataCurrentPosition(const Ctx& c)
 {
     qDebug().noquote() << "[DEBUG][GSC] prepareDataCurrentPosition: ENTER"
                        << " c.currentSfenStr=" << (c.currentSfenStr ? c.currentSfenStr->left(50) : "null")
                        << " c.startSfenStr=" << (c.startSfenStr ? c.startSfenStr->left(50) : "null");
 
-    // 依存の軽いバリデーション
     if (!c.view || !m_match) {
         qWarning().noquote() << "[GameStartCoordinator] prepareDataCurrentPosition: missing deps:"
                              << "view=" << (c.view != nullptr) << " match=" << (m_match != nullptr);
         return;
     }
 
-    // --- 1) ベースSFENの決定（★優先: 現在SFEN → 開始SFEN → 平手） ---
-    // ★重要: requestPreStartCleanup より前に決定する。
-    //         requestPreStartCleanup 内で棋譜欄の選択が変更され、
-    //         m_currentSfenStr が上書きされる可能性があるため。
+    // --- 1) ベースSFENの決定（優先: 現在SFEN → 開始SFEN → 平手） ---
+    // 重要: requestPreStartCleanup より前に決定する。
+    //       requestPreStartCleanup 内で棋譜欄の選択が変更され、
+    //       m_currentSfenStr が上書きされる可能性があるため。
     QString baseSfen;
     if (c.currentSfenStr && !c.currentSfenStr->isEmpty()) {
         baseSfen = *(c.currentSfenStr);
@@ -203,12 +213,11 @@ void GameStartCoordinator::prepareDataCurrentPosition(const Ctx& c)
         qDebug().noquote() << "[DEBUG][GSC] prepareDataCurrentPosition: baseSfen FALLBACK to startpos";
     }
 
-    // --- 0) 開始前クリーンアップを UI 層へ依頼（ハイライト/選択/解析UI などの掃除） ---
-    // ★修正: cleanup 中に m_currentSfenStr が branchPoint の SFEN に更新される可能性がある
-    //         その場合は baseSfen を更新して正しい局面から開始する
+    // --- 0) 開始前クリーンアップをUI層へ依頼 ---
+    // cleanup中にm_currentSfenStrがbranchPointのSFENに更新される可能性がある
     emit requestPreStartCleanup();
 
-    // ★ 追加: cleanup 後に m_currentSfenStr が変更されていたら baseSfen を更新
+    // cleanup後にm_currentSfenStrが変更されていたらbaseSfenを更新
     if (c.currentSfenStr && !c.currentSfenStr->isEmpty() && *c.currentSfenStr != baseSfen) {
         qDebug().noquote() << "[DEBUG][GSC] prepareDataCurrentPosition: baseSfen updated after cleanup"
                            << "old=" << baseSfen.left(50)
@@ -217,8 +226,6 @@ void GameStartCoordinator::prepareDataCurrentPosition(const Ctx& c)
     }
 
     // --- 2) ベースSFENの適用 ---
-    //    ・"startpos" なら既定初期配置に
-    //    ・それ以外の SFEN 文字列ならその局面を盤へセット
     if (baseSfen == QLatin1String("startpos")) {
         qDebug().noquote() << "[DEBUG][GSC] prepareDataCurrentPosition: applying startpos";
         c.view->initializeToFlatStartingPosition();
@@ -228,14 +235,11 @@ void GameStartCoordinator::prepareDataCurrentPosition(const Ctx& c)
             *c.currentSfenStr = QStringLiteral("startpos");
     } else {
         qDebug().noquote() << "[DEBUG][GSC] prepareDataCurrentPosition: applying baseSfen=" << baseSfen.left(50);
-        // 既存の「SFENを盤へ反映する」系ユーティリティを使用
-        // ※ applyResumePositionIfAny は空でなければ SFEN を即適用し描画も反映
         GameStartCoordinator::applyResumePositionIfAny(c.gc, c.view, baseSfen);
 
-        // 共有文字列の同期（GUI側の補助）
         if (c.currentSfenStr) *c.currentSfenStr = baseSfen;
         if (c.startSfenStr   && c.startSfenStr->isEmpty())
-            *c.startSfenStr = QString(); // 「現在局面」開始の意図を保つ
+            *c.startSfenStr = QString();
     }
 
     // --- 3) 直前の終局状態を必ずクリア ---
@@ -248,16 +252,19 @@ void GameStartCoordinator::prepareDataCurrentPosition(const Ctx& c)
                        << " FINAL c.currentSfenStr=" << (c.currentSfenStr ? c.currentSfenStr->left(50) : "null");
 }
 
-// 初期局面（平手／手合割）で開始する場合の準備を行う。
+// ============================================================
+// 段階実行API: 初期局面（平手／手合割）からの開始準備
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 void GameStartCoordinator::prepareInitialPosition(const Ctx& c)
 {
-    // 1) 開始局面番号を取得（0=現在局面, 1..N=手合割）。0 の場合でも安全側で平手にフォールバック。
-    int startingPosNumber = 1; // 1=平手を既定
+    // 1) 開始局面番号を取得（0=現在局面, 1..N=手合割）
+    int startingPosNumber = 1;
     if (c.startDlg) {
         if (auto dlg = qobject_cast<StartGameDialog*>(c.startDlg)) {
             startingPosNumber = dlg->startingPositionNumber();
         } else {
-            // 互換：property で持っていれば使う
             bool ok = false;
             const int v = c.startDlg->property("startingPositionNumber").toInt(&ok);
             if (ok) startingPosNumber = v;
@@ -265,7 +272,7 @@ void GameStartCoordinator::prepareInitialPosition(const Ctx& c)
     }
     if (startingPosNumber <= 0) startingPosNumber = 1;
 
-    // 2) 手合割 → 文字列テーブル（MainWindow 実装と同値を保持）
+    // 2) 手合割 → SFEN文字列テーブル
     // exit-time destructor回避のためローカル静的配列はstd::arrayを使用
     static const auto& kStartingPositionStr = *[]() {
         static const std::array<QString, 14> arr = {{
@@ -301,21 +308,18 @@ void GameStartCoordinator::prepareInitialPosition(const Ctx& c)
         return &arr;
     }();
 
-    // 範囲ガード（1..14 を想定）
     const int idx = qBound(1, startingPosNumber, 14) - 1;
     const QString startPositionStr = kStartingPositionStr[static_cast<size_t>(idx)];
 
-    // 3) "startpos" / "sfen ..." → 純 SFEN へ正規化
+    // 3) "startpos" / "sfen ..." → 純SFENへ正規化
     auto toPureSfen = [](QString s) -> QString {
         if (s == QLatin1String("startpos")) {
-            // 平手の完全 SFEN へ正規化
             return QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
         }
         if (s.startsWith(QLatin1String("sfen "))) {
-            s.remove(0, 5); // "sfen " を除去
+            s.remove(0, 5);
             return s;
         }
-        // それ以外（既に純 SFEN など）の場合は、そのまま返す
         return s;
     };
 
@@ -328,9 +332,9 @@ void GameStartCoordinator::prepareInitialPosition(const Ctx& c)
 
     // 4) 参照を通して MainWindow 側の文字列を更新
     if (c.startSfenStr)   *c.startSfenStr   = sfen;
-    if (c.currentSfenStr) *c.currentSfenStr = sfen; // 同期しておくと後段の利用が楽
+    if (c.currentSfenStr) *c.currentSfenStr = sfen;
 
-    // 5) 棋譜欄に「=== 開始局面 ===」ヘッダを追加（必要時のみ・重複防止）
+    // 5) 棋譜欄に「=== 開始局面 ===」ヘッダを追加（重複防止）
     if (c.kifuModel) {
         const int rows = c.kifuModel->rowCount();
         bool need = true;
@@ -369,19 +373,22 @@ void GameStartCoordinator::prepareInitialPosition(const Ctx& c)
         qDebug().noquote() << "[GSC][prepareInitial] sfenRecord is null";
     }
 
-    // 7) 見た目のノイズを避けるため、開幕時のハイライトはクリアしておく（存在時のみ）
+    // 7) 開幕時のハイライトはクリア
     if (c.view) {
         c.view->removeHighlightAllData();
     }
 
-    // 末尾ログ（既存ログに加筆）
     qDebug().noquote() << "[GameStartCoordinator] prepareInitialPosition: sfen=" << sfen
                        << " sfenRecord*=" << static_cast<const void*>(c.sfenRecord);
 }
 
+// ============================================================
+// 段階実行API: 時計設定と対局開始
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 void GameStartCoordinator::setTimerAndStart(const Ctx& c)
 {
-    // 依存チェック
     if (!c.clock) {
         qWarning().noquote() << "[GameStartCoordinator] setTimerAndStart: clock is null.";
         return;
@@ -425,7 +432,7 @@ void GameStartCoordinator::setTimerAndStart(const Ctx& c)
         }
     }
 
-    // --- 2) 秒へ統一（内部は秒でセット、UI表示は Clock 側でms等に変換） ---
+    // --- 2) 秒へ統一 ---
     const int remainingTime1 = basicTimeHour1 * 3600 + basicTimeMinutes1 * 60;
     const int remainingTime2 = basicTimeHour2 * 3600 + basicTimeMinutes2 * 60;
 
@@ -446,13 +453,12 @@ void GameStartCoordinator::setTimerAndStart(const Ctx& c)
     if (c.initialTimeP2MsOut) *c.initialTimeP2MsOut = c.clock->getPlayer2TimeIntMs();
 
     // --- 5) 表示更新＆起動制御 ---
-    emit requestUpdateTurnDisplay();
     c.clock->updateClock();
     if (!c.isReplayMode) {
         c.clock->startClock();
     }
 
-    // ★★ 追加：司令塔に TimeControl（秒読み/増加/負け扱い）を設定
+    // 司令塔に TimeControl（秒読み/増加/負け扱い）を設定
     if (m_match) {
         const bool useByoyomi = (byoyomi1 > 0 || byoyomi2 > 0);
         m_match->setTimeControlConfig(
@@ -478,9 +484,11 @@ void GameStartCoordinator::setTimerAndStart(const Ctx& c)
                        << " replay=" << c.isReplayMode;
 }
 
-// ===================================================================
+// ============================================================
 // ダイアログ抽出ヘルパ
-// ===================================================================
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 int GameStartCoordinator::readIntProperty(const QObject* root,
                                           const char* objectName,
                                           const char* prop,
@@ -495,6 +503,7 @@ int GameStartCoordinator::readIntProperty(const QObject* root,
     return def;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 bool GameStartCoordinator::readBoolProperty(const QObject* root,
                                             const char* objectName,
                                             const char* prop,
@@ -508,12 +517,12 @@ bool GameStartCoordinator::readBoolProperty(const QObject* root,
     return def;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 GameStartCoordinator::TimeControl
 GameStartCoordinator::extractTimeControlFromDialog(const QWidget* dlg)
 {
     TimeControl tc;
 
-    // 既定の objectName（あなたのUIに合わせて必要ならここを調整）
     const int p1h  = readIntProperty (dlg, "p1HoursSpin");
     const int p1m  = readIntProperty (dlg, "p1MinutesSpin");
     const int p2h  = readIntProperty (dlg, "p2HoursSpin");
@@ -547,7 +556,6 @@ GameStartCoordinator::extractTimeControlFromDialog(const QWidget* dlg)
         tc.p2.incrementMs = 0;
     }
 
-    // 時計の有効/無制限フラグ
     if (dlg) {
         tc.enabled = limited;
     } else {
@@ -557,11 +565,16 @@ GameStartCoordinator::extractTimeControlFromDialog(const QWidget* dlg)
     return tc;
 }
 
+// ============================================================
+// PlayMode 判定
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 PlayMode GameStartCoordinator::determinePlayMode(const int initPositionNumber,
                                                  const bool isPlayer1Human,
                                                  const bool isPlayer2Human) const
 {
-    // 平手（=1）と駒落ち（!=1）で分岐は同じ構造。元コードを忠実移植。
+    // 平手（=1）と駒落ち（!=1）で分岐
     const bool isEven = (initPositionNumber == 1);
 
     if (isEven) {
@@ -579,9 +592,9 @@ PlayMode GameStartCoordinator::determinePlayMode(const int initPositionNumber,
     return PlayMode::PlayModeError;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 PlayMode GameStartCoordinator::setPlayMode(const Ctx& c) const
 {
-    // StartGameDialog から値を取得（MainWindow::setPlayMode の移管）
     int  initPositionNumber = 1;
     bool isHuman1 = false, isHuman2 = false;
     bool isEngine1 = false, isEngine2 = false;
@@ -594,7 +607,6 @@ PlayMode GameStartCoordinator::setPlayMode(const Ctx& c) const
             isEngine1          = dlg->isEngine1();
             isEngine2          = dlg->isEngine2();
         } else {
-            // 互換: property 経由のフェールセーフ
             bool ok=false;
             const QVariant pn = c.startDlg->property("startingPositionNumber");
             initPositionNumber = pn.isValid() ? pn.toInt(&ok) : 1;
@@ -607,14 +619,13 @@ PlayMode GameStartCoordinator::setPlayMode(const Ctx& c) const
         }
     }
 
-    // 「Human と Engine の排他」を元コードと同じくここで整形
+    // 「Human と Engine の排他」を整形
     const bool p1Human = (isHuman1  && !isEngine1);
     const bool p2Human = (isHuman2  && !isEngine2);
 
     const PlayMode mode = determinePlayMode(initPositionNumber, p1Human, p2Human);
 
     if (mode == PlayMode::PlayModeError) {
-        // 元のメッセージに近い文面で、UI へ委譲（MainWindow::displayErrorMessage 相当）
         emit requestDisplayError(tr("An error occurred in GameStartCoordinator::determinePlayMode. "
                                     "There is a mistake in the game options."));
         qWarning().noquote() << "[GameStartCoordinator] setPlayMode: PlayMode::PlayModeError"
@@ -628,6 +639,11 @@ PlayMode GameStartCoordinator::setPlayMode(const Ctx& c) const
     return mode;
 }
 
+// ============================================================
+// SFEN手番抽出
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 QChar GameStartCoordinator::turnFromSfen(const QString& sfen)
 {
     const QString s = sfen.trimmed();
@@ -640,38 +656,33 @@ QChar GameStartCoordinator::turnFromSfen(const QString& sfen)
         if (t == QLatin1String("b")) return QLatin1Char('b');
         if (t == QLatin1String("w")) return QLatin1Char('w');
     }
-    // "startpos b 1" 形式の保険
     if (s.contains(QLatin1String(" b "))) return QLatin1Char('b');
     if (s.contains(QLatin1String(" w "))) return QLatin1Char('w');
     return QChar();
 }
 
-// src/app/gamestartcoordinator.cpp
+// ============================================================
+// PlayMode判定（SFEN手番整合版）
+// ============================================================
 
+/// @todo remove コメントスタイルガイド適用済み
 PlayMode GameStartCoordinator::determinePlayModeAlignedWithTurn(
     int initPositionNumber, bool isPlayer1Human, bool isPlayer2Human, const QString& startSfen)
 {
-    const QChar turn = turnFromSfen(startSfen); // 'b' or 'w'
+    const QChar turn = turnFromSfen(startSfen);
     const bool isEven = (initPositionNumber == 1);
     const bool hvh = (isPlayer1Human && isPlayer2Human);
     const bool eve = (!isPlayer1Human && !isPlayer2Human);
     const bool oneVsEngine = !hvh && !eve;
 
     if (isEven) {
-        // --- 平手 ---
         if (hvh) return PlayMode::HumanVsHuman;
         if (eve) return PlayMode::EvenEngineVsEngine;
         if (oneVsEngine) {
             if (turn == QLatin1Char('b')) {
-                // 先手＝P1手番
-                // P1がHumanなら「Human(先手) vs Engine(後手)」
-                // P1がEngineなら「Engine(先手) vs Human(後手)」
                 return isPlayer1Human ? PlayMode::EvenHumanVsEngine : PlayMode::EvenEngineVsHuman;
             }
             if (turn == QLatin1Char('w')) {
-                // 後手＝P2手番
-                // P2がHumanなら「Engine(先手) vs Human(後手)」
-                // P2がEngineなら「Human(先手) vs Engine(後手)」
                 return isPlayer2Human ? PlayMode::EvenEngineVsHuman : PlayMode::EvenHumanVsEngine;
             }
             // turnが取れない場合は座席で決定
@@ -679,7 +690,6 @@ PlayMode GameStartCoordinator::determinePlayModeAlignedWithTurn(
         }
         return PlayMode::NotStarted;
     } else {
-        // --- 駒落ち（参考：前回と同じロジック） ---
         if (hvh) return PlayMode::HumanVsHuman;
         if (eve) return PlayMode::HandicapEngineVsEngine;
         if (oneVsEngine) {
@@ -695,6 +705,11 @@ PlayMode GameStartCoordinator::determinePlayModeAlignedWithTurn(
     }
 }
 
+// ============================================================
+// 対局開始メインフロー（ダイアログ→対局開始）
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 void GameStartCoordinator::initializeGame(const Ctx& c)
 {
     qDebug().noquote() << "[DEBUG][GSC] initializeGame: ENTER"
@@ -712,17 +727,17 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
         return;
     }
 
-    // --- 2) ダイアログから必要情報を先に取得（この後の準備で使う） ---
-    const int  initPosNo = dlg->startingPositionNumber(); // 平手=1, 現局面=0 など
+    // --- 2) ダイアログから必要情報を先に取得 ---
+    const int  initPosNo = dlg->startingPositionNumber();
     const bool p1Human   = dlg->isHuman1();
     const bool p2Human   = dlg->isHuman2();
 
     qDebug().noquote() << "[DEBUG][GSC] initializeGame: after dialog, initPosNo=" << initPosNo;
 
-    // --- 3) 開始SFENの決定（既存ロジック踏襲） ---
+    // --- 3) 開始SFENの決定 ---
     const int startingPosNumber = initPosNo;
 
-    // ★ 対局開始後に選択すべき棋譜行（現在局面から開始時に使用）
+    // 対局開始後に選択すべき棋譜行（現在局面から開始時に使用）
     int startingRow = -1;
 
     QString startSfen;
@@ -736,9 +751,8 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
     if (startingPosNumber == 0) {
         // 現在局面から開始
 
-        // ★ 重要：分岐設定に必要な情報を事前に取得
-        // prepareDataCurrentPosition が cleanup をトリガーし、分岐モデルがクリアされるため、
-        // その前にオリジナルの行数を確認し、cleanup後に分岐を設定する
+        // 分岐設定に必要な情報を事前に取得
+        // prepareDataCurrentPosition が cleanup をトリガーし、分岐モデルがクリアされるため
         int effectivePly = 0;
         QString terminalLabel;
         bool needBranchSetup = false;
@@ -753,10 +767,8 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
                                << " effectivePly=" << effectivePly
                                << " originalRowCount=" << originalRowCount;
 
-            // effectivePlyより後の行があれば、分岐として設定する必要がある
             const int rowsAfter = originalRowCount - effectivePly - 1;
             if (rowsAfter > 0) {
-                // 終了手のラベルを取得（投了、詰み、千日手など）
                 if (KifuDisplay* lastItem = c.kifuModel->item(originalRowCount - 1)) {
                     terminalLabel = lastItem->currentMove();
                 }
@@ -774,8 +786,7 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
         c2.startDlg = dlg;
         prepareDataCurrentPosition(c2);
 
-        // ★ 新システム: 分岐セットアップは LiveGameSession::startFromNode で行う
-        // KifuLoadCoordinator::setupBranchForResumeFromCurrent は削除済み
+        // 分岐セットアップは LiveGameSession::startFromNode で行う
         Q_UNUSED(needBranchSetup)
         Q_UNUSED(effectivePly)
         Q_UNUSED(terminalLabel)
@@ -795,21 +806,21 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
         // 平手/駒落ちプリセット
         static const auto& presets = *[]() {
             static const std::array<QString, 15> arr = {{
-                QString(), // 0: 未使用（現在局面）
-                QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"), // 1: 平手
-                QStringLiteral("lnsgkgsn1/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"), // 2: 香落ち
-                QStringLiteral("1nsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"), // 3: 右香落ち
-                QStringLiteral("lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),   // 4: 角落ち
-                QStringLiteral("lnsgkgsnl/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),   // 5: 飛車落ち
-                QStringLiteral("lnsgkgsn1/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),   // 6: 飛香落ち
-                QStringLiteral("lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),     // 7: 二枚落ち
-                QStringLiteral("lnsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),     // 8: 三枚落ち
-                QStringLiteral("1nsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),     // 9: 四枚落ち
-                QStringLiteral("2sgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),      // 10: 五枚落ち
-                QStringLiteral("1nsgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),      // 11: 左五枚落ち
-                QStringLiteral("2sgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),       // 12: 六枚落ち
-                QStringLiteral("3gkg3/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),         // 13: 八枚落ち
-                QStringLiteral("4k4/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1")            // 14: 十枚落ち
+                QString(),
+                QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"),
+                QStringLiteral("lnsgkgsn1/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
+                QStringLiteral("1nsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
+                QStringLiteral("lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
+                QStringLiteral("lnsgkgsnl/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
+                QStringLiteral("lnsgkgsn1/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
+                QStringLiteral("lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
+                QStringLiteral("lnsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
+                QStringLiteral("1nsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
+                QStringLiteral("2sgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
+                QStringLiteral("1nsgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
+                QStringLiteral("2sgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
+                QStringLiteral("3gkg3/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
+                QStringLiteral("4k4/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1")
             }};
             return &arr;
         }();
@@ -818,22 +829,19 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
         if (idx >= static_cast<int>(presets.size())) idx = static_cast<int>(presets.size()) - 1;
         startSfen = presets[static_cast<size_t>(idx)];
 
-        // 駒落ち開始の内部状態整備（既存メソッド）
         Ctx c2 = c; c2.startDlg = dlg;
         prepareInitialPosition(c2);
 
-        // ★ 追加：平手/駒落ちから新規対局を開始する場合、分岐ツリーを完全リセット
-        // これにより、前の対局の分岐データがクリアされる
+        // 平手/駒落ちから新規対局を開始する場合、分岐ツリーを完全リセット
         if (c.kifuLoadCoordinator) {
             c.kifuLoadCoordinator->resetBranchTreeForNewGame();
         }
     }
 
-    // --- 3.5) ★開始SFENを正規化して共有リストに seed ---
+    // --- 3.5) 開始SFENを正規化してsfenRecordにseed ---
     auto canonicalizeStart = [](const QString& sfen)->QString {
         const QString t = sfen.trimmed();
         if (t.isEmpty() || t == QLatin1String("startpos")) {
-            // 平手のフルSFENに正規化
             return QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
         }
         return t;
@@ -841,13 +849,12 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
     const QString seedSfen = canonicalizeStart(startSfen);
 
     if (c.sfenRecord) {
-        // ★ 現在局面から開始（startingPosNumber==0）の場合は
-        // 0..selectedPly を保全し、末尾（選択行）だけ seedSfen に置換してから入れ直す。
+        // 現在局面から開始（startingPosNumber==0）の場合は
+        // 0..selectedPly を保全し、末尾を seedSfen に置換
         if (startingPosNumber == 0 && !c.sfenRecord->isEmpty() && c.selectedPly >= 0) {
-            // ★ 修正: c.selectedPly を常に基準として使用する。
+            // c.selectedPly を常に基準として使用する。
             // 分岐ツリーから特定の手を選択して対局開始する場合、
-            // 棋譜モデルの行数（actualKifuRowCount）は前の対局の値を反映している可能性があるため、
-            // c.selectedPly を優先的に使用し、sfenRecord の範囲にクランプする。
+            // 棋譜モデルの行数は前の対局の値を反映している可能性があるため。
             int keepIdx = static_cast<int>(qBound(qsizetype(0), qsizetype(c.selectedPly), c.sfenRecord->size() - 1));
             const int takeLen = keepIdx + 1;
 
@@ -857,20 +864,18 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
                 preserved.append(c.sfenRecord->at(i));
             }
             if (!preserved.isEmpty()) {
-                preserved[preserved.size() - 1] = seedSfen; // 末尾だけ正規化した現在局面で置換
+                preserved[preserved.size() - 1] = seedSfen;
             }
 
             c.sfenRecord->clear();
             c.sfenRecord->append(preserved);
 
-            // ★ 対局開始後に選択すべき行を記録
             startingRow = keepIdx;
 
             qInfo().noquote()
                 << "[GSC][seed-resume] kept(0.." << keepIdx << ") size=" << c.sfenRecord->size()
                 << " head=" << (c.sfenRecord->isEmpty() ? QString("<empty>") : c.sfenRecord->first());
         } else {
-            // 新規開始や保全対象なし：従来どおり seed のみ
             c.sfenRecord->clear();
             c.sfenRecord->append(seedSfen);
 
@@ -887,7 +892,7 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
     PlayMode mode = determinePlayModeAlignedWithTurn(initPosNo, p1Human, p2Human, seedSfen);
     qInfo() << "[GameStart] Final PlayMode =" << static_cast<int>(mode) << "  startSfen=" << seedSfen;
 
-    // --- 5) StartOptions 構築（司令塔依存） ---
+    // --- 5) StartOptions 構築 ---
     if (!m_match) {
         delete dlg;
         return;
@@ -895,10 +900,9 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
     MatchCoordinator::StartOptions opt =
         m_match->buildStartOptions(mode, seedSfen, c.sfenRecord, dlg);
 
-    // 人を手前に（必要時のみ反転）
     m_match->ensureHumanAtBottomIfApplicable(dlg, c.bottomIsP1);
 
-    // --- 6) TimeControl を ms で構築（ダイアログ値 → ミリ秒） ---
+    // --- 6) TimeControl を ms で構築 ---
     auto hms_to_ms = [](int h, int m)->qint64 {
         const qint64 hh = qMax(0, h);
         const qint64 mm = qMax(0, m);
@@ -932,7 +936,6 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
         tc.p2.incrementMs = 0;
     }
 
-    // どれか値が入っていれば enabled = true
     const bool hasAny =
         (tc.p1.baseMs > 0) || (tc.p2.baseMs > 0) ||
         (tc.p1.byoyomiMs > 0) || (tc.p2.byoyomiMs > 0) ||
@@ -945,22 +948,22 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
         << " P1{base=" << tc.p1.baseMs << " byo=" << tc.p1.byoyomiMs << " inc=" << tc.p1.incrementMs << "}"
         << " P2{base=" << tc.p2.baseMs << " byo=" << tc.p2.byoyomiMs << " inc=" << tc.p2.incrementMs << "}";
 
-    // --- 7) 時計の準備と配線・起動は prepare(...) に委譲 ---
+    // --- 7) 時計の準備と配線・起動は prepare() に委譲 ---
     Request req;
     req.startDialog = dlg;
-    req.startSfen   = seedSfen;                         // ★ 手番確定に使用（正規化済み）
+    req.startSfen   = seedSfen;
     req.clock       = c.clock ? c.clock : m_match->clock();
-    // ★ 現在局面からの開始時は prepareDataCurrentPosition() で既にクリーンアップ済み
+    // 現在局面からの開始時は prepareDataCurrentPosition() で既にクリーンアップ済み
     req.skipCleanup = (startingPosNumber == 0);
 
-    prepare(req); // requestPreStartCleanup / 時間適用シグナル / setClock→startClock など
+    prepare(req);
 
-    // --- 8) ★ 対局者名をMainWindowに通知（startの前に！EvE初手で評価値グラフが動くため） ---
+    // --- 8) 対局者名をMainWindowに通知（startの前に。EvE初手で評価値グラフが動くため） ---
     const QString human1 = dlg->humanName1();
     const QString human2 = dlg->humanName2();
     const QString engine1 = opt.engineName1;
     const QString engine2 = opt.engineName2;
-    qDebug().noquote() << "[GSC] ★★★ startGameAfterDialog: BEFORE playerNamesResolved ★★★";
+    qDebug().noquote() << "[GSC] startGameAfterDialog: BEFORE playerNamesResolved";
     qDebug().noquote() << "[GSC] human1=" << human1 << " human2=" << human2 << " engine1=" << engine1 << " engine2=" << engine2;
     emit playerNamesResolved(human1, human2, engine1, engine2, static_cast<int>(mode));
 
@@ -970,30 +973,28 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
     emit consecutiveGamesConfigured(consecutiveGames, switchTurn);
     qDebug().noquote() << "[GSC] consecutiveGames=" << consecutiveGames << " switchTurn=" << switchTurn;
 
-    qDebug().noquote() << "[GSC] ★★★ startGameAfterDialog: AFTER playerNamesResolved, BEFORE start() ★★★";
+    qDebug().noquote() << "[GSC] startGameAfterDialog: AFTER playerNamesResolved, BEFORE start()";
 
     // --- 9) 対局開始（時計設定のみ、初手goはまだ呼ばない） ---
     StartParams params;
     params.opt  = opt;
-    params.tc   = tc;                 // 司令塔側の go 計算にも使用
-    params.autoStartEngineMove = false;  // ここでは呼ばない（順序制御のため）
+    params.tc   = tc;
+    params.autoStartEngineMove = false;
 
     start(params);
-    qDebug().noquote() << "[GSC] ★★★ startGameAfterDialog: AFTER start() ★★★";
+    qDebug().noquote() << "[GSC] startGameAfterDialog: AFTER start()";
 
-    // --- 9.5) ★ 現在局面から開始の場合、開始行を選択するよう通知 ---
+    // --- 9.5) 現在局面から開始の場合、開始行を選択するよう通知 ---
     if (startingRow >= 0) {
         qDebug().noquote() << "[GSC] emit requestSelectKifuRow(" << startingRow << ")";
         emit requestSelectKifuRow(startingRow);
     }
 
     // --- 10) 時計の関連付けと開始、その後エンジン初手 ---
-    // 順序: 1) 時計開始 → 2) 初手go（元のstartMatchTimingAndMaybeInitialGoと同じ順序）
     if (m_match) {
         if (c.clock && m_match->clock() != c.clock) {
             m_match->setClock(c.clock);
         }
-        // 時計を開始
         if (ShogiClock* clk = m_match->clock()) {
             clk->startClock();
         }
@@ -1004,11 +1005,15 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
     delete dlg;
 }
 
-// ★追加：司令塔（MatchCoordinator）の生成と初期配線を一括で実施
+// ============================================================
+// 司令塔（MatchCoordinator）の生成と初期配線
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 MatchCoordinator* GameStartCoordinator::createAndWireMatch(const MatchCoordinator::Deps& deps,
                                                            QObject* parentForMatch)
 {
-    // 既存があれば破棄（親を MainWindow にぶら下げ直すため）
+    // 既存があれば破棄
     if (m_match) {
         m_match->disconnect(this);
         if (m_match->parent() == parentForMatch) {
@@ -1020,55 +1025,48 @@ MatchCoordinator* GameStartCoordinator::createAndWireMatch(const MatchCoordinato
         m_match = nullptr;
     }
 
-    // 生成
     m_match = new MatchCoordinator(deps, parentForMatch);
 
-    // --- 司令塔→Coordinator へ受け、Coordinator から re-emit ---
-    // timeUpdated(p1ms, p2ms, p1turn, urgencyMs)
+    // 司令塔→Coordinator へ受け、Coordinator から re-emit
     QObject::connect(
         m_match, &MatchCoordinator::timeUpdated,
         this, &GameStartCoordinator::timeUpdated,
         Qt::UniqueConnection
         );
-
-    // requestAppendGameOverMove(const GameEndInfo&)
     QObject::connect(
         m_match, &MatchCoordinator::requestAppendGameOverMove,
         this,    &GameStartCoordinator::requestAppendGameOverMove,
         Qt::UniqueConnection
         );
-
-    // boardFlipped(bool)
     QObject::connect(
         m_match, &MatchCoordinator::boardFlipped,
         this,    &GameStartCoordinator::boardFlipped,
         Qt::UniqueConnection
         );
-
-    // gameOverStateChanged(const GameOverState&)
     QObject::connect(
         m_match, &MatchCoordinator::gameOverStateChanged,
         this,    &GameStartCoordinator::gameOverStateChanged,
         Qt::UniqueConnection
         );
-
-    // gameEnded(const GameEndInfo&)
     QObject::connect(
         m_match, &MatchCoordinator::gameEnded,
         this, &GameStartCoordinator::matchGameEnded,
         Qt::UniqueConnection
         );
 
-    // USI ポインタの初期注入（nullptr 可）
     m_match->updateUsiPtrs(deps.usi1, deps.usi2);
 
-    // デバッグ：シグナル存在確認（既存ログと同等）
     qDebug() << "[DBG] signal index:"
              << m_match->metaObject()->indexOfSignal("timeUpdated(long long,long long,bool,long long)");
 
     return m_match;
 }
 
+// ============================================================
+// ユーティリティ
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 void GameStartCoordinator::applyResumePositionIfAny(ShogiGameController* gc,
                                                     ShogiView* view,
                                                     const QString& resumeSfen)
@@ -1081,6 +1079,7 @@ void GameStartCoordinator::applyResumePositionIfAny(ShogiGameController* gc,
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void GameStartCoordinator::applyPlayersNamesForMode(ShogiView* view,
                                                     PlayMode mode,
                                                     const QString& human1,
@@ -1095,14 +1094,15 @@ void GameStartCoordinator::applyPlayersNamesForMode(ShogiView* view,
     view->setWhitePlayerName(names.p2);
 }
 
-// src/app/gamestartcoordinator.cpp
+// ============================================================
+// ダイアログからTimeControlを組み立てる
+// ============================================================
 
-// ダイアログから TimeControl を組み立てるユーティリティ。
-// ※ StartGameDialog が無い場合でも QObject::property でフォールバックします。
+/// @todo remove コメントスタイルガイド適用済み
 GameStartCoordinator::TimeControl
 GameStartCoordinator::buildTimeControlFromDialog(QDialog* startDlg) const
 {
-    TimeControl tc; // すべて 0 で初期化される前提の構造体
+    TimeControl tc;
 
     int h1=0, m1=0, h2=0, m2=0;
     int byo1=0, byo2=0;
@@ -1125,7 +1125,7 @@ GameStartCoordinator::buildTimeControlFromDialog(QDialog* startDlg) const
         inc1 = dlg->addEachMoveSec1();
         inc2 = dlg->addEachMoveSec2();
     } else {
-        // フォールバック：プロパティ名で取得
+        // フォールバック: プロパティ名で取得
         h1   = propInt("basicTimeHour1");
         m1   = propInt("basicTimeMinutes1");
         h2   = propInt("basicTimeHour2");
@@ -1136,7 +1136,6 @@ GameStartCoordinator::buildTimeControlFromDialog(QDialog* startDlg) const
         inc2 = propInt("addEachMoveSec2");
     }
 
-    // (時間, 分) → ms
     const qint64 base1Ms = qMax<qint64>(0, (static_cast<qint64>(h1)*3600 + m1*60) * 1000);
     const qint64 base2Ms = qMax<qint64>(0, (static_cast<qint64>(h2)*3600 + m2*60) * 1000);
 
@@ -1146,7 +1145,7 @@ GameStartCoordinator::buildTimeControlFromDialog(QDialog* startDlg) const
     const qint64 inc1Ms  = qMax<qint64>(0, static_cast<qint64>(inc1) * 1000);
     const qint64 inc2Ms  = qMax<qint64>(0, static_cast<qint64>(inc2) * 1000);
 
-    // byoyomi と increment は排他運用（byoyomi 優先）。両方入っていたら inc は無視。
+    // byoyomi と increment は排他運用（byoyomi 優先）
     const bool useByoyomi = (byo1Ms > 0) || (byo2Ms > 0);
 
     tc.p1.baseMs      = base1Ms;
@@ -1156,7 +1155,6 @@ GameStartCoordinator::buildTimeControlFromDialog(QDialog* startDlg) const
     tc.p1.incrementMs = useByoyomi ? 0      : inc1Ms;
     tc.p2.incrementMs = useByoyomi ? 0      : inc2Ms;
 
-    // どれか一つでも値が入っていれば enabled = true
     tc.enabled = (tc.p1.baseMs > 0) || (tc.p2.baseMs > 0) ||
                  (tc.p1.byoyomiMs > 0) || (tc.p2.byoyomiMs > 0) ||
                  (tc.p1.incrementMs > 0) || (tc.p2.incrementMs > 0);

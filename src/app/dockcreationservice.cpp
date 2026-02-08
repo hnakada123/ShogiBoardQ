@@ -1,3 +1,7 @@
+/// @file dockcreationservice.cpp
+/// @brief ドック生成サービスクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "dockcreationservice.h"
 
 #include <QMenu>

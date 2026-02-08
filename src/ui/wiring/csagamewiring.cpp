@@ -1,3 +1,7 @@
+/// @file csagamewiring.cpp
+/// @brief CSA通信対局配線クラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "csagamewiring.h"
 
 #include <QDebug>
@@ -141,7 +145,7 @@ void CsaGameWiring::onGameEnded(const QString& result, const QString& cause, int
     const bool isBlackSide = m_coordinator->isBlackSide();
     const bool loserIsBlack = (iAmLoser == isBlackSide);
 
-    // ★ デバッグ: 敗者判定の詳細を出力
+    // デバッグ: 敗者判定の詳細を出力
     qDebug().noquote() << "[CSA-DEBUG] onGameEnded judgment:"
                        << "iAmLoser=" << iAmLoser
                        << "isBlackSide=" << isBlackSide
@@ -156,7 +160,7 @@ void CsaGameWiring::onGameEnded(const QString& result, const QString& cause, int
     const int totalMs = loserIsBlack ? m_coordinator->blackTotalTimeMs()
                                      : m_coordinator->whiteTotalTimeMs();
 
-    // ★ デバッグ: 消費時間の計算詳細を出力
+    // デバッグ: 消費時間の計算詳細を出力
     qDebug().noquote() << "[CSA-DEBUG] Time calculation:"
                        << "blackTotalTimeMs=" << m_coordinator->blackTotalTimeMs()
                        << "whiteTotalTimeMs=" << m_coordinator->whiteTotalTimeMs()

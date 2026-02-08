@@ -1,6 +1,11 @@
 #ifndef PVBOARDDIALOG_H
 #define PVBOARDDIALOG_H
 
+/// @file pvboarddialog.h
+/// @brief 読み筋盤面ダイアログクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QDialog>
 #include <QStringList>
 #include <QVector>

@@ -1,12 +1,14 @@
+/// @file shogiinforecord.cpp
+/// @brief USIエンジン思考情報レコードクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "shogiinforecord.h"
 
 // GUIの思考タブの表に「時間」「深さ」「ノード数」「評価値」「読み筋」をセットするためのクラス
-// コンストラクタ
 ShogiInfoRecord::ShogiInfoRecord(QObject* parent) : QObject(parent)
 {
 }
 
-// コンストラクタ
 ShogiInfoRecord::ShogiInfoRecord(const QString& time, const QString& depth, const QString& nodes,
                                 const QString& score, const QString& pv, QObject* parent)
     : ShogiInfoRecord(parent)

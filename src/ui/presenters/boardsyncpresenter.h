@@ -1,6 +1,11 @@
 #ifndef BOARDSYNCPRESENTER_H
 #define BOARDSYNCPRESENTER_H
 
+/// @file boardsyncpresenter.h
+/// @brief 盤面同期プレゼンタクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QObject>
 #include <QStringList>
 #include <QVector>

@@ -1,6 +1,11 @@
 #ifndef LANGUAGECONTROLLER_H
 #define LANGUAGECONTROLLER_H
 
+/// @file languagecontroller.h
+/// @brief 言語切替コントローラクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QObject>
 #include <QActionGroup>
 

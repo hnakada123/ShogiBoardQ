@@ -1,6 +1,11 @@
 #ifndef CSAGAMEWIRING_H
 #define CSAGAMEWIRING_H
 
+/// @file csagamewiring.h
+/// @brief CSA通信対局配線クラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QObject>
 #include <QString>
 #include <QPoint>

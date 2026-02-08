@@ -1,10 +1,17 @@
+/// @file csatosfenconverter.cpp
+/// @brief CSA形式棋譜コンバータクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "csatosfenconverter.h"
 #include "kifdisplayitem.h"
 #include "shogimove.h"
 
 #include <QStringDecoder>
 
-// ====== NEW: CSA P 行（初期局面）と SFEN 補助 ======
+// ============================================================
+// CSA P行（初期局面）と SFEN 補助
+// ============================================================
+
 namespace {
 
 using Piece = CsaToSfenConverter::Piece;
@@ -50,9 +57,7 @@ static bool isPromotedLocal(Piece p)
     return (p == C::TO || p == C::NY || p == C::NK || p == C::NG || p == C::UM || p == C::RY);
 }
 
-// --- CSA終局語を日本語ラベルに変換 ---
-// CSA形式の終局コード（%TORYO等）から日本語表記を返す
-// マッチしない場合は空文字列を返す
+// CSA形式の終局コード（%TORYO等）から日本語表記を返す（マッチしない場合は空文字列）
 static QString csaResultToLabel(const QString& token)
 {
     if      (token.startsWith(QLatin1String("%TORYO")))            return QStringLiteral("投了");
@@ -250,7 +255,7 @@ static QString handsToSfen(const int bH[7], const int wH[7])
 
 } // namespace
 
-// コメント正規化（'、'*'、'** 読み筋/Floodgate）
+// CSAコメント行を正規化（'先頭を除去、**読み筋/Floodgate形式を整形）
 static QString normalizeCsaCommentLine(const QString& line)
 {
     if (line.isEmpty() || line.at(0) != QLatin1Char('\'')) return QString();
@@ -275,7 +280,11 @@ static QString normalizeCsaCommentLine(const QString& line)
     return t;
 }
 
-// ---- Board: 平手初期配置 ----
+// ============================================================
+// Board: 平手初期配置
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 void CsaToSfenConverter::Board::setHirate()
 {
     // クリア
@@ -300,7 +309,11 @@ void CsaToSfenConverter::Board::setHirate()
     for (int x = 1; x <= 9; ++x) { sq[x][9].p = back[x-1]; sq[x][9].c = Black; }
 }
 
-// ---- ファイル読込 ----
+// ============================================================
+// ファイル読込
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 bool CsaToSfenConverter::readAllLinesDetectEncoding(const QString& path, QStringList& outLines, QString* warn)
 {
     QFile f(path);
@@ -350,6 +363,7 @@ bool CsaToSfenConverter::readAllLinesDetectEncoding(const QString& path, QString
     return true;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 bool CsaToSfenConverter::isMoveLine(const QString& s)
 {
     if (s.isEmpty()) return false;
@@ -357,11 +371,13 @@ bool CsaToSfenConverter::isMoveLine(const QString& s)
     return (c == QLatin1Char('+') || c == QLatin1Char('-'));
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 bool CsaToSfenConverter::isResultLine(const QString& s)
 {
     return s.startsWith(QLatin1Char('%'));
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 bool CsaToSfenConverter::isMetaLine(const QString& s)
 {
     if (s.isEmpty()) return false;
@@ -369,13 +385,18 @@ bool CsaToSfenConverter::isMetaLine(const QString& s)
     return (c == QLatin1Char('V') || c == QLatin1Char('$') || c == QLatin1Char('N'));
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 bool CsaToSfenConverter::isCommentLine(const QString& s)
 {
     if (s.isEmpty()) return false;
     return s.startsWith(QLatin1Char('\''));
 }
 
-// ---- 開始局面解析（CSA v3: PI / P1..P9 / P+ / P- / + or - 対応）----
+// ============================================================
+// 開始局面解析（CSA v3: PI / P1..P9 / P+ / P- / + or - 対応）
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 bool CsaToSfenConverter::parseStartPos(const QStringList& lines, int& idx,
                                         QString& baseSfen, Color& stm, Board& board)
 {
@@ -468,7 +489,11 @@ bool CsaToSfenConverter::parseStartPos(const QStringList& lines, int& idx,
     return true;
 }
 
-// ---- CSAトークンを USI 1手 にして盤も更新 ----
+// ============================================================
+// CSAトークン → USI 1手変換（盤面も更新）
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 bool CsaToSfenConverter::parseMoveLine(const QString& line, Color mover, Board& b,
                                         int& prevTx, int& prevTy,
                                         QString& usiMoveOut, QString& prettyOut, QString* warn)
@@ -561,6 +586,7 @@ bool CsaToSfenConverter::parseMoveLine(const QString& line, Color mover, Board& 
     return true;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 bool CsaToSfenConverter::parseCsaMoveToken(const QString& token,
                                             int& fx, int& fy, int& tx, int& ty,
                                             Piece& afterPiece)
@@ -599,7 +625,11 @@ bool CsaToSfenConverter::parseCsaMoveToken(const QString& token,
     return true;
 }
 
-// ---- 文字変換 ----
+// ============================================================
+// 文字変換ユーティリティ
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 QChar CsaToSfenConverter::usiRankLetter(int y)
 {
     static const char table[10] = {0,'a','b','c','d','e','f','g','h','i'};
@@ -607,16 +637,19 @@ QChar CsaToSfenConverter::usiRankLetter(int y)
     return QLatin1Char(table[y]);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 QString CsaToSfenConverter::toUsiSquare(int x, int y)
 {
     return QString::number(x) + usiRankLetter(y);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 bool CsaToSfenConverter::isPromotedPiece(Piece p)
 {
     return (p == TO || p == NY || p == NK || p == NG || p == UM || p == RY);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 CsaToSfenConverter::Piece CsaToSfenConverter::basePieceOf(Piece p)
 {
     switch (p) {
@@ -626,6 +659,7 @@ CsaToSfenConverter::Piece CsaToSfenConverter::basePieceOf(Piece p)
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 QString CsaToSfenConverter::pieceKanji(Piece p)
 {
     switch (p) {
@@ -647,6 +681,7 @@ QString CsaToSfenConverter::pieceKanji(Piece p)
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 QString CsaToSfenConverter::zenkakuDigit(int d)
 {
     static const QChar map[] = { QChar(u'０'),QChar(u'１'),QChar(u'２'),QChar(u'３'),QChar(u'４'),
@@ -655,6 +690,7 @@ QString CsaToSfenConverter::zenkakuDigit(int d)
     return QString(QChar(u'？'));
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 QString CsaToSfenConverter::kanjiRank(int y)
 {
     static const QChar map[10] = { QChar(), QChar(u'一'), QChar(u'二'), QChar(u'三'), QChar(u'四'),
@@ -663,12 +699,17 @@ QString CsaToSfenConverter::kanjiRank(int y)
     return QString(QChar(u'？'));
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 bool CsaToSfenConverter::inside(int v)
 {
     return (v >= 1) && (v <= 9);
 }
 
-// CSAファイルからヘッダー情報を抽出する
+// ============================================================
+// 対局情報抽出
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 QList<KifGameInfoItem> CsaToSfenConverter::extractGameInfo(const QString& filePath)
 {
     QList<KifGameInfoItem> items;
@@ -769,8 +810,19 @@ static QString composeTimeText(qint64 moveMs, qint64 cumMs)
     return mmssFromMs(moveMs) + QStringLiteral("/") + hhmmssFromMs(cumMs);
 }
 
+// ============================================================
+// メインパーサ
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QString* warn)
 {
+    // 処理フロー:
+    // 1. ファイル読み込み・エンコーディング検出
+    // 2. 開始局面の解析（PI/P行/手番）
+    // 3. 指し手・コメント・終局コードのループ処理
+    // 4. 残コメントの付与
+
     QStringList lines;
     if (!readAllLinesDetectEncoding(filePath, lines, warn)) return false;
 

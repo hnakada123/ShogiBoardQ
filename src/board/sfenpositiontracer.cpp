@@ -1,10 +1,20 @@
+/// @file sfenpositiontracer.cpp
+/// @brief USI手列を順に適用して各手後のSFEN局面を生成する簡易トレーサの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "sfenpositiontracer.h"
 #include <QtGlobal>
 #include <QHash>
 #include <QPoint>
 
+// ======================================================================
+// コンストラクタ・初期化
+// ======================================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 SfenPositionTracer::SfenPositionTracer() { resetToStartpos(); }
 
+/// @todo remove コメントスタイルガイド適用済み
 void SfenPositionTracer::resetToStartpos() {
     clearBoard();
     setStartposBoard();
@@ -14,6 +24,11 @@ void SfenPositionTracer::resetToStartpos() {
     m_handW.fill(0);
 }
 
+// ======================================================================
+// 手の適用・SFEN生成
+// ======================================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 QStringList SfenPositionTracer::generateSfensForMoves(const QStringList& usiMoves) {
     resetToStartpos();
     QStringList out;
@@ -25,10 +40,11 @@ QStringList SfenPositionTracer::generateSfensForMoves(const QStringList& usiMove
     return out;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 bool SfenPositionTracer::applyUsiMove(const QString& usiIn) {
     QString usi = usiIn.trimmed();
 
-    // Drop: "P*5e"
+    // 駒打ち: "P*5e"
     if (usi.contains(QLatin1Char('*'))) {
         const qsizetype star = usi.indexOf('*');
         if (star != 1 || usi.size() < 4) return false;
@@ -40,13 +56,12 @@ bool SfenPositionTracer::applyUsiMove(const QString& usiIn) {
         Kind k = letterToKind(up);
         if (k == KIND_N) return false;
         if (!subHand(m_blackToMove, k, 1)) {
-            // 枚数チェックは緩めにしておく（0でも続行したい場合はtrueに）
-            // return false;
+            // 枚数チェックは緩めにしておく（0でも続行したい場合がある）
         }
         m_board[row][col] = makeToken(up, m_blackToMove, false);
 
     } else {
-        // Normal: "7g7f" or "2b3c+"
+        // 通常手: "7g7f" or "2b3c+"
         if (usi.size() < 4) return false;
         const int colFrom = fileToCol(usi.at(0).toLatin1() - '0');
         const int rowFrom = rankLetterToRow(usi.at(1));
@@ -58,7 +73,7 @@ bool SfenPositionTracer::applyUsiMove(const QString& usiIn) {
         const QString fromTok = m_board[rowFrom][colFrom];
         if (fromTok.isEmpty()) return false;
 
-        // 捕獲
+        // 捕獲処理
         const QString toTok = m_board[rowTo][colTo];
         if (!toTok.isEmpty()) {
             const QChar capBase = baseUpperFromToken(toTok);
@@ -80,6 +95,7 @@ bool SfenPositionTracer::applyUsiMove(const QString& usiIn) {
     return true;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 QString SfenPositionTracer::toSfenString() const {
     const QString board = boardToSfenField();
     const QString stm = m_blackToMove ? QStringLiteral("b") : QStringLiteral("w");
@@ -88,19 +104,24 @@ QString SfenPositionTracer::toSfenString() const {
     return QStringLiteral("%1 %2 %3 %4").arg(board, stm, hands, ply);
 }
 
-// ---------- ユーティリティ実装 ----------
+// ======================================================================
+// 座標変換・トークン操作ユーティリティ
+// ======================================================================
 
+/// @todo remove コメントスタイルガイド適用済み
 int SfenPositionTracer::fileToCol(int file) { // 1..9 -> 0..8 (9筋が左端)
     if (file < 1 || file > 9) return -1;
     return 9 - file;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 int SfenPositionTracer::rankLetterToRow(QChar r) { // a..i -> 0..8
     const ushort u = r.toLower().unicode();
     if (u < 'a' || u > 'i') return -1;
     return u - 'a';
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 QChar SfenPositionTracer::kindToLetter(Kind k) {
     switch (k) {
     case P: return QLatin1Char('P');
@@ -113,6 +134,8 @@ QChar SfenPositionTracer::kindToLetter(Kind k) {
     default: return QChar();
     }
 }
+
+/// @todo remove コメントスタイルガイド適用済み
 SfenPositionTracer::Kind SfenPositionTracer::letterToKind(QChar upper) {
     switch (upper.toUpper().unicode()) {
     case 'P': return P;
@@ -125,28 +148,42 @@ SfenPositionTracer::Kind SfenPositionTracer::letterToKind(QChar upper) {
     default:  return KIND_N;
     }
 }
+
+/// @todo remove コメントスタイルガイド適用済み
 QChar SfenPositionTracer::toSideCase(QChar upper, bool black) {
     return black ? upper.toUpper() : upper.toLower();
 }
+
+/// @todo remove コメントスタイルガイド適用済み
 QString SfenPositionTracer::makeToken(QChar upper, bool black, bool promoted) {
     const QChar s = toSideCase(upper, black);
     return promoted ? (QString(QLatin1Char('+')) + s) : QString(s);
 }
+
+/// @todo remove コメントスタイルガイド適用済み
 bool SfenPositionTracer::isPromotedToken(const QString& t) {
     return (!t.isEmpty() && t.at(0) == QLatin1Char('+'));
 }
+
+/// @todo remove コメントスタイルガイド適用済み
 QChar SfenPositionTracer::baseUpperFromToken(const QString& t) {
     if (t.isEmpty()) return QChar();
     const QChar c = isPromotedToken(t) ? t.at(1) : t.at(0);
     return c.toUpper();
 }
 
+// ======================================================================
+// 盤面操作（内部）
+// ======================================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 void SfenPositionTracer::clearBoard() {
     for (int r=0; r<9; ++r)
         for (int c=0; c<9; ++c)
             m_board[r][c].clear();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void SfenPositionTracer::setStartposBoard() {
     // 平手初期配置（SFEN: lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1）
     // 上段(a)は後手の駒（小文字）、下段(i)は先手の駒（大文字）
@@ -180,15 +217,23 @@ void SfenPositionTracer::setStartposBoard() {
     fillFromPattern(8, row8);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void SfenPositionTracer::addHand(bool black, Kind k, int n) {
     (black ? m_handB : m_handW)[k] += n;
 }
+
+/// @todo remove コメントスタイルガイド適用済み
 bool SfenPositionTracer::subHand(bool black, Kind k, int n) {
     auto& v = (black ? m_handB : m_handW)[k];
     if (v < n) { v = 0; return false; }
     v -= n; return true;
 }
 
+// ======================================================================
+// SFEN文字列生成
+// ======================================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 QString SfenPositionTracer::boardToSfenField() const {
     QString s;
     s.reserve(90);
@@ -209,9 +254,10 @@ QString SfenPositionTracer::boardToSfenField() const {
     return s;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 QString SfenPositionTracer::handsToSfenField() const {
     auto appendSide = [](QString& out, const std::array<int,KIND_N>& h, bool black) {
-        // 推奨順: R B G S N L P
+        // SFEN仕様の推奨順: R B G S N L P
         const Kind order[] = { R, B, G, S, N, L, P };
         for (Kind k : order) {
             int n = h[k];
@@ -227,6 +273,11 @@ QString SfenPositionTracer::handsToSfenField() const {
     return out.isEmpty() ? QStringLiteral("-") : out;
 }
 
+// ======================================================================
+// SFEN読み込み
+// ======================================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 bool SfenPositionTracer::setFromSfen(const QString& sfen) {
     m_handB.fill(0);
     m_handW.fill(0);
@@ -235,7 +286,7 @@ bool SfenPositionTracer::setFromSfen(const QString& sfen) {
     const QStringList parts = sfen.split(QLatin1Char(' '), Qt::SkipEmptyParts);
     if (parts.size() < 4) return false;
 
-    // --- board ---
+    // 盤面パース
     const QString board = parts[0];
     const QStringList ranks = board.split(QLatin1Char('/'));
     if (ranks.size() != 9) return false;
@@ -259,10 +310,10 @@ bool SfenPositionTracer::setFromSfen(const QString& sfen) {
         while (c < 9) m_board[r][c++].clear();
     }
 
-    // --- stm ---
+    // 手番
     m_blackToMove = (parts[1] == QStringLiteral("b"));
 
-    // --- hands ---
+    // 持ち駒
     const QString hands = parts[2];
     if (hands != QStringLiteral("-")) {
         int num = 0;
@@ -279,7 +330,7 @@ bool SfenPositionTracer::setFromSfen(const QString& sfen) {
         }
     }
 
-    // --- ply ---
+    // 手数
     bool ok = false;
     int ply = parts[3].toInt(&ok);
     m_plyNext = ok && ply > 0 ? ply : 1;
@@ -287,6 +338,7 @@ bool SfenPositionTracer::setFromSfen(const QString& sfen) {
     return true;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 QString SfenPositionTracer::tokenAtFileRank(int file, QChar rankLetter) const {
     int col = fileToCol(file);
     int row = rankLetterToRow(rankLetter);
@@ -294,8 +346,11 @@ QString SfenPositionTracer::tokenAtFileRank(int file, QChar rankLetter) const {
     return m_board[row][col];
 }
 
-// ========== 新設ユーティリティ（宣言はヘッダに追加） ==========
+// ======================================================================
+// 局面列構築ユーティリティ
+// ======================================================================
 
+/// @todo remove コメントスタイルガイド適用済み
 QStringList SfenPositionTracer::buildSfenRecord(const QString& initialSfen,
                                                 const QStringList& usiMoves,
                                                 bool hasTerminal)
@@ -308,19 +363,20 @@ QStringList SfenPositionTracer::buildSfenRecord(const QString& initialSfen,
     }
 
     QStringList list;
-    list << tracer.toSfenString(); // 0) 開始局面
+    list << tracer.toSfenString(); // 開始局面
 
     for (const QString& mv : usiMoves) {
         tracer.applyUsiMove(mv);
-        list << tracer.toSfenString(); // 1..N) 各手後
+        list << tracer.toSfenString(); // 各手後の局面
     }
     if (hasTerminal) {
-        // 終局/中断の表示を楽にするため、末尾に同一局面をもう1つ
+        // 終局/中断の表示を楽にするため、末尾に同一局面をもう1つ追加
         list << tracer.toSfenString();
     }
     return list;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 QVector<ShogiMove> SfenPositionTracer::buildGameMoves(const QString& initialSfen,
                                                       const QStringList& usiMoves)
 {
@@ -334,12 +390,12 @@ QVector<ShogiMove> SfenPositionTracer::buildGameMoves(const QString& initialSfen
         // 駒打ち: "P*5e"
         if (usi.size() >= 4 && usi.at(1) == QLatin1Char('*')) {
             const bool black     = tracer.blackToMove();
-            const QChar dropUp   = usi.at(0).toUpper();          // P/L/N/S/G/B/R
-            const int  file      = usi.at(2).toLatin1() - '0';   // '1'..'9'
-            const int  rank      = rankLetterToNum(usi.at(3));   // 1..9
+            const QChar dropUp   = usi.at(0).toUpper();
+            const int  file      = usi.at(2).toLatin1() - '0';
+            const int  rank      = rankLetterToNum(usi.at(3));
             if (file < 1 || file > 9 || rank < 1 || rank > 9) { tracer.applyUsiMove(usi); continue; }
 
-            const QPoint from    = dropFromSquare(dropUp, black); // 駒台の擬似座標
+            const QPoint from    = dropFromSquare(dropUp, black);
             const QPoint to      = QPoint(file - 1, rank - 1);
             const QChar  moving  = dropLetterWithSide(dropUp, black);
             const QChar  captured= QLatin1Char(' ');
@@ -360,8 +416,8 @@ QVector<ShogiMove> SfenPositionTracer::buildGameMoves(const QString& initialSfen
         const bool isProm = (usi.size() >= 5 && usi.at(4) == QLatin1Char('+'));
         if (ff<1||ff>9||rf<1||rf>9||ft<1||ft>9||rt<1||rt>9) { tracer.applyUsiMove(usi); continue; }
 
-        // 動く前の盤面から取る/動く駒を決定
-        const QString fromTok = tracer.tokenAtFileRank(ff, usi.at(1)); // "+p" 等もありえる
+        // 動く前の盤面から移動駒・取った駒を決定
+        const QString fromTok = tracer.tokenAtFileRank(ff, usi.at(1));
         const QString toTok   = tracer.tokenAtFileRank(ft, usi.at(3));
 
         const QPoint from(ff - 1, rf - 1);
@@ -377,13 +433,17 @@ QVector<ShogiMove> SfenPositionTracer::buildGameMoves(const QString& initialSfen
     return out;
 }
 
-// ========== 既存補助の移設（MainWindow / KifuLoadCoordinator からの共通化） ==========
+// ======================================================================
+// USI座標ヘルパ
+// ======================================================================
 
+/// @todo remove コメントスタイルガイド適用済み
 int SfenPositionTracer::rankLetterToNum(QChar r) { // 'a'..'i' -> 1..9
     const ushort u = r.toLower().unicode();
     return (u < 'a' || u > 'i') ? -1 : (u - 'a') + 1;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 QPoint SfenPositionTracer::dropFromSquare(QChar dropUpper, bool black) {
     const int x = black ? 9 : 10; // 先手=9, 後手=10（UI内の「駒台」側レーン）
     int y = -1;
@@ -400,10 +460,12 @@ QPoint SfenPositionTracer::dropFromSquare(QChar dropUpper, bool black) {
     return QPoint(x, y);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 QChar SfenPositionTracer::dropLetterWithSide(QChar upper, bool black) {
     return black ? upper.toUpper() : upper.toLower();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 QChar SfenPositionTracer::tokenToOneChar(const QString& tok) {
     if (tok.isEmpty()) return QLatin1Char(' ');
     if (tok.size() == 1) return tok.at(0);

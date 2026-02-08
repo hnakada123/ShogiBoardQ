@@ -1,6 +1,11 @@
 #ifndef REPLAYCONTROLLER_H
 #define REPLAYCONTROLLER_H
 
+/// @file replaycontroller.h
+/// @brief 棋譜再生コントローラクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QObject>
 
 class ShogiClock;

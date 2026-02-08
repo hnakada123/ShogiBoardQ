@@ -1,11 +1,24 @@
+/// @file jishogicalculator.cpp
+/// @brief 持将棋（入玉宣言法）の点数計算・判定ロジックの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "jishogicalculator.h"
 #include <QObject>
 
-// 盤面データと駒台データから点数を計算する
+// ============================================================================
+// 点数計算
+// ============================================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 JishogiCalculator::JishogiResult JishogiCalculator::calculate(
     const QVector<QChar>& boardData,
     const QMap<QChar, int>& pieceStand)
 {
+    // 処理フロー:
+    // 1. 盤面を走査して各駒の点数を集計
+    // 2. 敵陣判定（先手: 1-3段目、後手: 7-9段目）
+    // 3. 駒台の持ち駒を加算
+
     JishogiResult result;
     result.sente = {0, 0, 0, false};
     result.gote = {0, 0, 0, false};
@@ -27,10 +40,8 @@ JishogiCalculator::JishogiResult JishogiCalculator::calculate(
             int points = getPiecePoints(piece);
 
             if (isSentePiece(piece)) {
-                // 先手の駒
                 result.sente.totalPoints += points;
 
-                // 玉かどうかチェック（K = King）
                 if (piece == 'K') {
                     // 先手の玉が敵陣（1-3段目）にいるか
                     if (rank <= 3) {
@@ -44,10 +55,8 @@ JishogiCalculator::JishogiResult JishogiCalculator::calculate(
                     }
                 }
             } else if (isGotePiece(piece)) {
-                // 後手の駒
                 result.gote.totalPoints += points;
 
-                // 玉かどうかチェック（k = King）
                 if (piece == 'k') {
                     // 後手の玉が敵陣（7-9段目）にいるか
                     if (rank >= 7) {
@@ -84,7 +93,11 @@ JishogiCalculator::JishogiResult JishogiCalculator::calculate(
     return result;
 }
 
-// 宣言条件を満たしているか（玉が敵陣、敵陣に10枚以上、王手がかかっていない）
+// ============================================================================
+// 宣言条件判定
+// ============================================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 bool JishogiCalculator::meetsDeclarationConditions(const PlayerScore& score, bool kingInCheck)
 {
     // 王手がかかっている場合は宣言できない
@@ -94,18 +107,18 @@ bool JishogiCalculator::meetsDeclarationConditions(const PlayerScore& score, boo
     return score.kingInEnemyTerritory && score.piecesInEnemyTerritory >= 10;
 }
 
-// 24点法での判定結果文字列を取得する
+// ============================================================================
+// 判定結果文字列
+// ============================================================================
+
+/// @todo remove コメントスタイルガイド適用済み
+/// 24点法: 31点以上→勝ち、24〜30点→引き分け、24点未満→負け
 QString JishogiCalculator::getResult24(const PlayerScore& score, bool kingInCheck)
 {
-    // 宣言条件（玉が敵陣、敵陣に10枚以上、王手なし）を満たしていない場合は負け
     if (!meetsDeclarationConditions(score, kingInCheck)) {
         return QObject::tr("負け");
     }
 
-    // 点数に基づく結果を判定
-    // 31点以上: 勝ち
-    // 24〜30点: 引き分け（持将棋成立）
-    // 24点未満: 負け
     if (score.declarationPoints >= 31) {
         return QObject::tr("勝ち");
     } else if (score.declarationPoints >= 24) {
@@ -115,17 +128,14 @@ QString JishogiCalculator::getResult24(const PlayerScore& score, bool kingInChec
     }
 }
 
-// 27点法での判定結果文字列を取得する
+/// @todo remove コメントスタイルガイド適用済み
+/// 27点法: 先手28点以上、後手27点以上で勝ち
 QString JishogiCalculator::getResult27(const PlayerScore& score, bool isSente, bool kingInCheck)
 {
-    // 宣言条件（玉が敵陣、敵陣に10枚以上、王手なし）を満たしていない場合は負け
     if (!meetsDeclarationConditions(score, kingInCheck)) {
         return QObject::tr("負け");
     }
 
-    // 点数に基づく結果を判定
-    // 先手: 28点以上で勝ち
-    // 後手: 27点以上で勝ち
     int requiredPoints = isSente ? 28 : 27;
 
     if (score.declarationPoints >= requiredPoints) {
@@ -135,8 +145,12 @@ QString JishogiCalculator::getResult27(const PlayerScore& score, bool isSente, b
     }
 }
 
-// 駒の点数を取得する
-// 成駒は成る前の駒と同じ点数
+// ============================================================================
+// 内部ヘルパー
+// ============================================================================
+
+/// @todo remove コメントスタイルガイド適用済み
+/// 成駒は成る前の駒と同じ点数
 int JishogiCalculator::getPiecePoints(QChar piece)
 {
     // 大駒（飛車・角・龍・馬）: 5点
@@ -144,7 +158,6 @@ int JishogiCalculator::getPiecePoints(QChar piece)
     // 玉: 0点
     QChar upper = piece.toUpper();
 
-    // 玉は0点
     if (upper == 'K') {
         return 0;
     }
@@ -160,22 +173,21 @@ int JishogiCalculator::getPiecePoints(QChar piece)
     return 1;
 }
 
-// 駒が大駒かどうかを判定する
+/// @todo remove コメントスタイルガイド適用済み
 bool JishogiCalculator::isMajorPiece(QChar piece)
 {
     QChar upper = piece.toUpper();
-    // R: 飛車, U: 龍（成り飛車）
-    // B: 角, C: 馬（成り角）
+    // R: 飛車, U: 龍（成り飛車）, B: 角, C: 馬（成り角）
     return upper == 'R' || upper == 'B' || upper == 'U' || upper == 'C';
 }
 
-// 先手の駒かどうかを判定する（大文字）
+/// @todo remove コメントスタイルガイド適用済み
 bool JishogiCalculator::isSentePiece(QChar piece)
 {
     return piece.isUpper();
 }
 
-// 後手の駒かどうかを判定する（小文字）
+/// @todo remove コメントスタイルガイド適用済み
 bool JishogiCalculator::isGotePiece(QChar piece)
 {
     return piece.isLower();

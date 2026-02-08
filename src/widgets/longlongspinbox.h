@@ -1,6 +1,11 @@
 #ifndef LONGLONGSPINBOX_H
 #define LONGLONGSPINBOX_H
 
+/// @file longlongspinbox.h
+/// @brief 64bit整数対応スピンボックスクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QtWidgets/QAbstractSpinBox>
 
 // Qtには、long long型の値を直接扱うためのQSpinBoxは存在しない。

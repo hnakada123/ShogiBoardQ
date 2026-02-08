@@ -1,6 +1,11 @@
 #ifndef BRANCHTREEWIDGET_H
 #define BRANCHTREEWIDGET_H
 
+/// @file branchtreewidget.h
+/// @brief 分岐ツリーグラフウィジェットクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QWidget>
 #include <QHash>
 #include <QPair>

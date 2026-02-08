@@ -1,6 +1,11 @@
 #ifndef SHOGIINFORECORD_H
 #define SHOGIINFORECORD_H
 
+/// @file shogiinforecord.h
+/// @brief USIエンジン思考情報レコードクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QObject>
 #include <QString>
 

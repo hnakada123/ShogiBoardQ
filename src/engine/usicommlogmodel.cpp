@@ -1,71 +1,85 @@
+/// @file usicommlogmodel.cpp
+/// @brief USI通信ログ・エンジン情報表示モデルの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "usicommlogmodel.h"
 #include <QDebug>
 
-// エンジン名、予想手、探索手、深さ、ノード数、局面探索数、ハッシュ使用率の更新に関するクラス
-// コンストラクタ
+// ============================================================
+// 初期化
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 UsiCommLogModel::UsiCommLogModel(QObject* parent) : QObject(parent) {}
 
-// 将棋エンジン名を取得する。
+// ============================================================
+// プロパティ getter
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 QString UsiCommLogModel::engineName() const
 {
     return m_engineName;
 }
 
-// 予想手を取得する。
+/// @todo remove コメントスタイルガイド適用済み
 QString UsiCommLogModel::predictiveMove() const
 {
     return m_predictiveMove;
 }
 
-// 探索手を取得する。
+/// @todo remove コメントスタイルガイド適用済み
 QString UsiCommLogModel::searchedMove() const
 {
     return m_searchedMove;
 }
 
-// 深さを取得する。
+/// @todo remove コメントスタイルガイド適用済み
 QString UsiCommLogModel::searchDepth() const
 {
     return m_searchDepth;
 }
 
-// ノード数を取得する。
+/// @todo remove コメントスタイルガイド適用済み
 QString UsiCommLogModel::nodeCount() const
 {
     return m_nodeCount;
 }
 
-// 探索局面数を取得する。
+/// @todo remove コメントスタイルガイド適用済み
 QString UsiCommLogModel::nodesPerSecond() const
 {
     return m_nodesPerSecond;
 }
 
-// ハッシュ使用率を取得する。
+/// @todo remove コメントスタイルガイド適用済み
 QString UsiCommLogModel::hashUsage() const
 {
     return m_hashUsage;
 }
 
-// 将棋GUIと将棋エンジン間のUSIプロトコル通信コマンド行を取得する。
+/// @todo remove コメントスタイルガイド適用済み
 QString UsiCommLogModel::usiCommLog() const
 {
     return m_usiCommLog;
 }
 
-// 将棋エンジン名をセットし、GUIの表示を更新する。
+// ============================================================
+// プロパティ setter
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 void UsiCommLogModel::setEngineName(const QString& engineName)
 {
-    qDebug().noquote() << "[UsiCommLogModel] ★ setEngineName: old=" << m_engineName << " new=" << engineName;
+    qDebug().noquote() << "[UsiCommLogModel] setEngineName: old=" << m_engineName << " new=" << engineName;
     if (m_engineName != engineName)
     {
         m_engineName = engineName;
         emit engineNameChanged();
-        qDebug().noquote() << "[UsiCommLogModel] ★ setEngineName: emitted engineNameChanged()";
     }
 }
 
-// 予想手をセットし、GUIの表示を更新する。
+/// @todo remove コメントスタイルガイド適用済み
 void UsiCommLogModel::setPredictiveMove(const QString& predictiveMove)
 {
     if (m_predictiveMove != predictiveMove)
@@ -75,7 +89,7 @@ void UsiCommLogModel::setPredictiveMove(const QString& predictiveMove)
     }
 }
 
-// 探索手をセットし、GUIの表示を更新する。
+/// @todo remove コメントスタイルガイド適用済み
 void UsiCommLogModel::setSearchedMove(const QString& searchedMove)
 {
     if (m_searchedMove != searchedMove)
@@ -85,7 +99,7 @@ void UsiCommLogModel::setSearchedMove(const QString& searchedMove)
     }
 }
 
-// 深さをセットし、GUIの表示を更新する。
+/// @todo remove コメントスタイルガイド適用済み
 void UsiCommLogModel::setSearchDepth(const QString& searchDepth)
 {
     if (m_searchDepth != searchDepth)
@@ -95,7 +109,7 @@ void UsiCommLogModel::setSearchDepth(const QString& searchDepth)
     }
 }
 
-// ノード数をセットし、GUIの表示を更新する。
+/// @todo remove コメントスタイルガイド適用済み
 void UsiCommLogModel::setNodeCount(const QString& nodeCount)
 {
     if (m_nodeCount != nodeCount)
@@ -105,7 +119,7 @@ void UsiCommLogModel::setNodeCount(const QString& nodeCount)
     }
 }
 
-// 探索局面数をセットし、GUIの表示を更新する。
+/// @todo remove コメントスタイルガイド適用済み
 void UsiCommLogModel::setNodesPerSecond(const QString& nodesPerSecond)
 {
     if (m_nodesPerSecond != nodesPerSecond)
@@ -115,7 +129,7 @@ void UsiCommLogModel::setNodesPerSecond(const QString& nodesPerSecond)
     }
 }
 
-// ハッシュ使用率をセットし、GUIの表示を更新する。
+/// @todo remove コメントスタイルガイド適用済み
 void UsiCommLogModel::setHashUsage(const QString& hashUsage)
 {
     if (m_hashUsage != hashUsage)
@@ -125,16 +139,21 @@ void UsiCommLogModel::setHashUsage(const QString& hashUsage)
     }
 }
 
-// 将棋GUIと将棋エンジン間のUSIプロトコル通信コマンド行をセットし、GUIに追記する。
+// ============================================================
+// ログ追加・クリア
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 void UsiCommLogModel::appendUsiCommLog(const QString& usiCommLog)
 {
     m_usiCommLog = usiCommLog;
     emit usiCommLogChanged();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void UsiCommLogModel::clear()
 {
-    // それぞれ値が非空のときのみ変更＆シグナル発火
+    // 値が非空の場合のみ変更＆シグナル発火
     if (!m_engineName.isEmpty())       { m_engineName.clear();       emit engineNameChanged(); }
     if (!m_predictiveMove.isEmpty())   { m_predictiveMove.clear();   emit predictiveMoveChanged(); }
     if (!m_searchedMove.isEmpty())     { m_searchedMove.clear();     emit searchedMoveChanged(); }

@@ -1,3 +1,7 @@
+/// @file elidelabel.cpp
+/// @brief テキスト省略表示ラベルクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "elidelabel.h"
 #include <QPainter>
 #include <QMouseEvent>

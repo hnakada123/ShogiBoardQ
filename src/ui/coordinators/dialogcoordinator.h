@@ -1,6 +1,11 @@
 #ifndef DIALOGCOORDINATOR_H
 #define DIALOGCOORDINATOR_H
 
+/// @file dialogcoordinator.h
+/// @brief ダイアログコーディネータクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QObject>
 #include <QString>
 #include <QStringList>

@@ -1,37 +1,34 @@
 #ifndef SHOGIMOVE_H
 #define SHOGIMOVE_H
 
+/// @file shogimove.h
+/// @brief 将棋の指し手データ構造体の定義
+/// @todo remove コメントスタイルガイド適用済み
+
 #include <QPoint>
 #include <iostream>
 #include <QVector>
 #include <QDebug>
 
+/**
+ * @brief 1手分の指し手情報を保持する構造体
+ *
+ * 移動元・移動先の座標、動かした駒、取った駒、成りの有無を記録する。
+ * 座標は0-indexed（0〜8が盤上、9/10が先手/後手の駒台）。
+ *
+ * @todo remove コメントスタイルガイド適用済み
+ */
 struct ShogiMove {
-    // 駒の移動元のマス
-    QPoint fromSquare;
+    QPoint fromSquare;      ///< 移動元の座標（盤上:0-8、駒台:9=先手,10=後手）
+    QPoint toSquare;        ///< 移動先の座標（0-8）
+    QChar movingPiece;      ///< 動かした自分の駒（SFEN表記）
+    QChar capturedPiece;    ///< 取った相手の駒（なければ空白 ' '）
+    bool isPromotion;       ///< 成りフラグ
 
-    // 駒の移動先のマス
-    QPoint toSquare;
-
-    // 指した自分の駒情報
-    QChar movingPiece;
-
-    // 捕獲した駒情報（駒が無ければ、空文字（' '）で初期化）
-    QChar capturedPiece;
-
-    // 駒が成るかどうかを示す情報（成る: true、不成: false）
-    bool isPromotion;
-
-    // デフォルトコンストラクタ
     ShogiMove();
-
-    // コンストラクタ
     ShogiMove(const QPoint &from, const QPoint &to, QChar moving, QChar captured, bool promotion);
 
-    // 構造体ShogiMoveの比較演算子定義
     bool operator==(const ShogiMove& other) const;
-
-    // 構造体ShogiMoveのデバッグプリント用演算子"<<"の定義
     friend std::ostream& operator<<(std::ostream& os, const ShogiMove& move);
 };
 

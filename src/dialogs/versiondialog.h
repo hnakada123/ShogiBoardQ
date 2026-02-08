@@ -1,6 +1,11 @@
 #ifndef VERSIONDIALOG_H
 #define VERSIONDIALOG_H
 
+/// @file versiondialog.h
+/// @brief バージョンダイアログクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QDialog>
 
 namespace Ui {

@@ -1,6 +1,11 @@
 #ifndef KIFUCONTENTBUILDER_H
 #define KIFUCONTENTBUILDER_H
 
+/// @file kifucontentbuilder.h
+/// @brief 棋譜コンテンツビルダークラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QString>
 #include <QStringList>
 #include <QList>
@@ -21,7 +26,7 @@ struct KifuExportContext {
     const QVector<ResolvedRow>* resolvedRows = nullptr;
     const QList<KifDisplayItem>* liveDisp = nullptr;
 
-    // ★ 追加: 編集されたコメント配列（MainWindow::m_commentsByRow）
+    // 編集されたコメント配列（MainWindow::m_commentsByRow）
     const QVector<QString>* commentsByRow = nullptr;
 
     // アクティブな行インデックス（分岐選択時に使用）

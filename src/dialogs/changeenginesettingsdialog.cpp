@@ -1,4 +1,8 @@
-﻿#include "changeenginesettingsdialog.h"
+/// @file changeenginesettingsdialog.cpp
+/// @brief エンジン設定変更ダイアログクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
+#include "changeenginesettingsdialog.h"
 #include "enginesettingsconstants.h"
 #include "engineoptiondescriptions.h"
 #include "settingsservice.h"
@@ -14,7 +18,6 @@
 using namespace EngineSettingsConstants;
 
 // 将棋エンジンの設定を変更するダイアログ
-// コンストラクタ
 ChangeEngineSettingsDialog::ChangeEngineSettingsDialog(QWidget *parent)
     : QDialog(parent)
     , ui(new Ui::ChangeEngineSettingsDialog)
@@ -23,7 +26,6 @@ ChangeEngineSettingsDialog::ChangeEngineSettingsDialog(QWidget *parent)
     ui->setupUi(this);
 }
 
-// デストラクタ
 ChangeEngineSettingsDialog::~ChangeEngineSettingsDialog()
 {
     // ウィンドウサイズを保存

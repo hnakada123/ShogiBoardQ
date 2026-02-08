@@ -1,3 +1,7 @@
+/// @file analysisflowcontroller.cpp
+/// @brief 棋譜解析フローコントローラクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "analysisflowcontroller.h"
 
 #include "analysiscoordinator.h"
@@ -21,14 +25,16 @@
 #include <QtGlobal>
 #include <QPointer>
 
+/// @todo remove コメントスタイルガイド適用済み
 AnalysisFlowController::AnalysisFlowController(QObject* parent)
     : QObject(parent)
 {
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 AnalysisFlowController::~AnalysisFlowController()
 {
-    // ★ メモリリーク防止：解析中の場合は停止処理を行う
+    // 解析中の場合はリソースリーク防止のため停止処理を行う
     if (m_running) {
         stop();
     }
@@ -36,6 +42,7 @@ AnalysisFlowController::~AnalysisFlowController()
     //       すべて this を親として作成されているため、Qtの親子関係により自動破棄される
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
 {
     if (!d.sfenRecord || d.sfenRecord->isEmpty()) {
@@ -66,12 +73,12 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
     m_usiMoves      = d.usiMoves;
     m_err           = d.displayError;
 
-    // ★ メモリリーク防止：新しい解析開始時に前回の解析結果をクリア
+    // 前回の解析結果をクリア
     if (m_analysisModel) {
         m_analysisModel->clearAllItems();
     }
 
-    // ★ sfenRecordとusiMovesの整合性をチェック（デバッグ用）
+    // sfenRecordとusiMovesの整合性をチェック（デバッグ用）
     const qsizetype sfenSize = m_sfenRecord ? m_sfenRecord->size() : 0;
     const qsizetype usiSize = m_usiMoves ? m_usiMoves->size() : 0;
     qDebug().noquote() << "[AnalysisFlowController::start] sfenRecord.size=" << sfenSize
@@ -90,11 +97,11 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
 
     // Coordinator（初回のみ作成、シグナル接続は毎回）
     AnalysisCoordinator::Deps cd;
-    cd.sfenRecord = m_sfenRecord;       // ★ 解析対象のSFEN列
+    cd.sfenRecord = m_sfenRecord;
     if (!m_coord) {
         m_coord = new AnalysisCoordinator(cd, this);
     } else {
-        // ★ 2回目以降の解析では依存関係を更新（sfenRecordが変わっている可能性あり）
+        // 2回目以降の解析では依存関係を更新（sfenRecordが変わっている可能性あり）
         m_coord->setDeps(cd);
     }
 
@@ -206,7 +213,7 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
 
     m_usi->startAndInitializeEngine(enginePath, engineName); // usi→usiok/setoption/isready→readyok
 
-    // ★ 解析用の盤面データを初期化（info行のPV解析に必要）
+    // 解析用の盤面データを初期化（info行のPV解析に必要）
     m_usi->prepareBoardDataForAnalysis();
 
     // 解析開始
@@ -214,6 +221,7 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
     m_coord->startAnalyzeRange();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void AnalysisFlowController::stop()
 {
     qDebug().noquote() << "[AnalysisFlowController::stop] called, m_running=" << m_running;
@@ -225,27 +233,24 @@ void AnalysisFlowController::stop()
     m_running = false;
     m_stoppedByUser = true;  // ユーザーによる中止を記録
     
-    // AnalysisCoordinatorを停止
     if (m_coord) {
         m_coord->stop();
     }
     
-    // Usiにquitコマンドを送信してエンジンを停止
     if (m_usi) {
         m_usi->sendQuitCommand();
     }
     
-    // 中止ボタンを無効化
     if (m_presenter) {
         m_presenter->setStopButtonEnabled(false);
     }
     
-    // 停止シグナルを発行
     Q_EMIT analysisStopped();
     
     qDebug().noquote() << "[AnalysisFlowController::stop] analysis stopped";
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void AnalysisFlowController::applyDialogOptions(KifuAnalysisDialog* dlg)
 {
     AnalysisCoordinator::Options opt;
@@ -282,6 +287,7 @@ void AnalysisFlowController::applyDialogOptions(KifuAnalysisDialog* dlg)
 //  スロット実装（非ラムダ）
 // ======================
 
+/// @todo remove コメントスタイルガイド適用済み
 void AnalysisFlowController::onUsiCommLogChanged()
 {
     if (!m_coord || !m_logModel) return;
@@ -293,6 +299,7 @@ void AnalysisFlowController::onUsiCommLogChanged()
     // bestmoveはonBestMoveReceived_で処理するため、ここでは処理しない
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void AnalysisFlowController::onBestMoveReceived()
 {
     qDebug().noquote() << "[AnalysisFlowController::onBestMoveReceived_] called, pendingPly=" << m_pendingPly;
@@ -309,6 +316,7 @@ void AnalysisFlowController::onBestMoveReceived()
     m_coord->onEngineBestmoveReceived(QString());
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void AnalysisFlowController::onInfoLineReceived(const QString& line)
 {
     // info行を受け取り、AnalysisCoordinatorに転送
@@ -322,6 +330,7 @@ void AnalysisFlowController::onInfoLineReceived(const QString& line)
     m_coord->onEngineInfoLine(line);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void AnalysisFlowController::onThinkingInfoUpdated(const QString& /*time*/, const QString& /*depth*/,
                                                     const QString& /*nodes*/, const QString& /*score*/,
                                                     const QString& pvKanjiStr, const QString& /*usiPv*/,
@@ -334,6 +343,7 @@ void AnalysisFlowController::onThinkingInfoUpdated(const QString& /*time*/, cons
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void AnalysisFlowController::onPositionPrepared(int ply, const QString& sfen)
 {
     // 各局面の解析開始時のログ
@@ -360,7 +370,7 @@ void AnalysisFlowController::onPositionPrepared(int ply, const QString& sfen)
         m_usi->setBaseSfen(pureSfen);
         qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] called setBaseSfen with pureSfen=" << pureSfen.left(50);
         
-        // ★ 開始局面に至った最後のUSI指し手を設定（読み筋表示ウィンドウのハイライト用）
+        // 開始局面に至った最後のUSI指し手を設定（読み筋表示ウィンドウのハイライト用）
         // ply=0は開始局面なので指し手なし、ply>=1はm_usiMoves[ply-1]が最後の指し手
         QString lastUsiMove;
         qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] ply=" << ply
@@ -469,7 +479,7 @@ void AnalysisFlowController::onPositionPrepared(int ply, const QString& sfen)
         qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] m_usi is null!";
     }
     
-    // ★ 通常対局と同じ流れ：
+    // 通常対局と同じ流れ：
     // 1. 局面と指し手を確定（上記で完了）
     // 2. GUI更新（棋譜欄ハイライト、将棋盤更新）
     // 3. エンジンにコマンド送信
@@ -485,23 +495,24 @@ void AnalysisFlowController::onPositionPrepared(int ply, const QString& sfen)
         m_lastCommittedPly = -1;
     }
     
-    // ★ 現在解析する局面に将棋盤を移動（INT_MINで評価値追加をスキップ）
+    // INT_MINは評価値追加スキップのマーカー（盤面移動のみ実行）
     static constexpr int POSITION_ONLY_MARKER = std::numeric_limits<int>::min();
     qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] moving board to ply=" << ply;
     Q_EMIT analysisProgressReported(ply, POSITION_ONLY_MARKER);
     
-    // ★ 思考タブをクリアしてからgoコマンドを送信
+    // 思考タブをクリアしてからgoコマンドを送信
     if (m_usi) {
         m_usi->requestClearThinkingInfo();
     }
     
-    // ★ GUI更新後にgoコマンドを送信
+    // GUI更新後にgoコマンドを送信
     if (m_coord) {
         qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] calling sendGoCommand";
         m_coord->sendGoCommand();
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void AnalysisFlowController::onAnalysisProgress(int ply, int /*depth*/, int /*seldepth*/,
                                                  int scoreCp, int mate,
                                                  const QString& pv, const QString& /*raw*/)
@@ -518,6 +529,7 @@ void AnalysisFlowController::onAnalysisProgress(int ply, int /*depth*/, int /*se
     qDebug().noquote() << "[AnalysisFlowController::onAnalysisProgress_] ply=" << ply << "pv=" << pv.left(30) << "pvKanji=" << m_pendingPvKanji.left(30);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void AnalysisFlowController::commitPendingResult()
 {
     if (!m_analysisModel) {
@@ -598,7 +610,7 @@ void AnalysisFlowController::commitPendingResult()
 
     qDebug().noquote() << "[AnalysisFlowController::commitPendingResult_] ply=" << ply << "moveLabel=" << moveLabel << "evalStr=" << evalStr << "pv=" << pv.left(30);
     
-    // ★ KifuAnalysisResultsDisplay は (Move, Eval, Diff, PV) の4引数
+    // KifuAnalysisResultsDisplay は (Move, Eval, Diff, PV) の4引数
     KifuAnalysisResultsDisplay* resultItem = new KifuAnalysisResultsDisplay(
         moveLabel,
         evalStr,
@@ -764,11 +776,12 @@ void AnalysisFlowController::commitPendingResult()
     
     m_analysisModel->appendItem(resultItem);
     
-    // ★ GUI更新用に結果を保存（次のonPositionPrepared_でシグナルを発行）
+    // GUI更新用に結果を保存（次のonPositionPreparedでシグナルを発行）
     m_lastCommittedPly = ply;
     m_lastCommittedScoreCp = curVal;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void AnalysisFlowController::onAnalysisFinished(AnalysisCoordinator::Mode /*mode*/)
 {
     qDebug().noquote() << "[AnalysisFlowController::onAnalysisFinished_] called, m_stoppedByUser=" << m_stoppedByUser;
@@ -781,10 +794,8 @@ void AnalysisFlowController::onAnalysisFinished(AnalysisCoordinator::Mode /*mode
         m_lastCommittedPly = -1;
     }
     
-    // 解析中フラグをリセット
     m_running = false;
     
-    // 中止ボタンを無効化
     if (m_presenter) {
         m_presenter->setStopButtonEnabled(false);
     }
@@ -798,6 +809,7 @@ void AnalysisFlowController::onAnalysisFinished(AnalysisCoordinator::Mode /*mode
     Q_EMIT analysisStopped();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void AnalysisFlowController::runWithDialog(const Deps& d, QWidget* parent)
 {
     qDebug().noquote() << "[AnalysisFlowController::runWithDialog] START";
@@ -838,7 +850,7 @@ void AnalysisFlowController::runWithDialog(const Deps& d, QWidget* parent)
     if (!actualDeps.usi) {
         qDebug().noquote() << "[AnalysisFlowController::runWithDialog] Creating internal Usi instance...";
 
-        // ★ メモリリーク防止：既存の内部Usiを破棄
+        // 既存の内部Usiを破棄（メモリリーク防止）
         if (m_ownsUsi && m_usi) {
             m_usi->disconnect();
             m_usi->deleteLater();
@@ -852,7 +864,6 @@ void AnalysisFlowController::runWithDialog(const Deps& d, QWidget* parent)
             if (!m_ownedLogModel) {
                 m_ownedLogModel = new UsiCommLogModel(this);
             } else {
-                // ★ 既存モデルをクリア
                 m_ownedLogModel->clear();
             }
             logModelToUse = m_ownedLogModel;
@@ -864,7 +875,6 @@ void AnalysisFlowController::runWithDialog(const Deps& d, QWidget* parent)
             if (!m_ownedThinkingModel) {
                 m_ownedThinkingModel = new ShogiEngineThinkingModel(this);
             } else {
-                // ★ 既存モデルをクリア
                 m_ownedThinkingModel->clearAllItems();
             }
             thinkingModelToUse = m_ownedThinkingModel;
@@ -886,6 +896,7 @@ void AnalysisFlowController::runWithDialog(const Deps& d, QWidget* parent)
     start(actualDeps, &dlg);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void AnalysisFlowController::onResultRowDoubleClicked(int row)
 {
     qDebug().noquote() << "[AnalysisFlowController::onResultRowDoubleClicked_] row=" << row;
@@ -980,6 +991,7 @@ void AnalysisFlowController::onResultRowDoubleClicked(int row)
     dlg->show();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 QString AnalysisFlowController::extractUsiMoveFromKanji(const QString& kanjiMove) const
 {
     // 漢字表記からUSI形式の指し手を抽出する

@@ -1,6 +1,11 @@
 #ifndef CONSIDERATIONMODEUICONTROLLER_H
 #define CONSIDERATIONMODEUICONTROLLER_H
 
+/// @file considerationmodeuicontroller.h
+/// @brief 検討モードUIコントローラクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QObject>
 #include <QVector>
 #include <QString>
@@ -21,24 +26,43 @@ struct ShogiMove;
  * - 矢印表示の更新
  * - MultiPV変更の処理
  * - 検討タブとの連携
+ *
+ * @todo remove コメントスタイルガイド適用済み
  */
 class ConsiderationModeUIController : public QObject
 {
     Q_OBJECT
 
 public:
+    /// @todo remove コメントスタイルガイド適用済み
     explicit ConsiderationModeUIController(QObject* parent = nullptr);
 
-    // 依存オブジェクトの設定
+    // --- 依存オブジェクト設定 ---
+
+    /// 解析タブ参照を設定する（非所有）
     void setAnalysisTab(EngineAnalysisTab* tab);
+
+    /// 盤面ビュー参照を設定する（非所有）
     void setShogiView(ShogiView* view);
+
+    /// 対局司令塔参照を設定する（非所有）
     void setMatchCoordinator(MatchCoordinator* match);
+
+    /// 検討思考モデル参照を設定する（非所有）
     void setConsiderationModel(ShogiEngineThinkingModel* model);
+
+    /// 通信ログモデル参照を設定する（非所有）
     void setCommLogModel(UsiCommLogModel* model);
+
+    /// 現在局面のSFEN文字列を設定する
     void setCurrentSfenStr(const QString& sfen);
 
-    // 矢印表示設定
+    // --- 表示設定 ---
+
+    /// 矢印表示が有効か返す
     bool isShowArrowsEnabled() const { return m_showArrows; }
+
+    /// 矢印表示の有効/無効を切り替える
     void setShowArrowsEnabled(bool enabled);
 
 public slots:
@@ -104,17 +128,17 @@ public slots:
 
 signals:
     /**
-     * @brief 検討中止が要求されたとき（MainWindow::stopTsumeSearchへ転送）
+     * @brief 検討中止が要求されたとき（→ ConsiderationWiring::stopRequested）
      */
     void stopRequested();
 
     /**
-     * @brief 検討開始が要求されたとき（MainWindow::displayConsiderationDialogへ転送）
+     * @brief 検討開始が要求されたとき（→ ConsiderationWiring経由でMainWindowへ）
      */
     void startRequested();
 
     /**
-     * @brief 検討中にMultiPV変更が要求されたとき
+     * @brief 検討中にMultiPV変更が要求されたとき（→ ConsiderationWiring経由でMatchCoordinatorへ）
      * @param value 新しいMultiPV値
      */
     void multiPVChangeRequested(int value);
@@ -138,14 +162,14 @@ private:
      */
     void connectArrowUpdateSignals();
 
-    EngineAnalysisTab* m_analysisTab = nullptr;
-    ShogiView* m_shogiView = nullptr;
-    MatchCoordinator* m_match = nullptr;
-    ShogiEngineThinkingModel* m_considerationModel = nullptr;
-    UsiCommLogModel* m_commLogModel = nullptr;
-    QString m_currentSfenStr;
-    bool m_showArrows = true;
-    bool m_arrowSignalsConnected = false;
+    EngineAnalysisTab* m_analysisTab = nullptr;  ///< 解析タブ（非所有）
+    ShogiView* m_shogiView = nullptr;  ///< 盤面ビュー（非所有）
+    MatchCoordinator* m_match = nullptr;  ///< 対局司令塔（非所有）
+    ShogiEngineThinkingModel* m_considerationModel = nullptr;  ///< 検討モデル（非所有）
+    UsiCommLogModel* m_commLogModel = nullptr;  ///< 通信ログモデル（非所有）
+    QString m_currentSfenStr;  ///< 現在局面のSFEN（手番判定に使用）
+    bool m_showArrows = true;  ///< 矢印表示設定
+    bool m_arrowSignalsConnected = false;  ///< 矢印更新シグナル接続済みフラグ
 };
 
 #endif // CONSIDERATIONMODEUICONTROLLER_H

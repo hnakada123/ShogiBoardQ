@@ -1,3 +1,7 @@
+/// @file playerinfocontroller.cpp
+/// @brief プレイヤー情報コントローラクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "playerinfocontroller.h"
 
 #include <QDebug>
@@ -219,7 +223,7 @@ void PlayerInfoController::onSetPlayersNames(const QString& p1, const QString& p
 
 void PlayerInfoController::onSetEngineNames(const QString& e1, const QString& e2)
 {
-    qDebug().noquote() << "[PlayerInfo] ★★★ onSetEngineNames CALLED ★★★";
+    qDebug().noquote() << "[PlayerInfo] onSetEngineNames CALLED";
     qDebug().noquote() << "[PlayerInfo] onSetEngineNames: e1=" << e1 << " e2=" << e2;
     qDebug().noquote() << "[PlayerInfo] onSetEngineNames: current m_engineName1=" << m_engineName1 << " m_engineName2=" << m_engineName2;
     qDebug().noquote() << "[PlayerInfo] onSetEngineNames: current m_playMode=" << static_cast<int>(m_playMode);
@@ -253,7 +257,7 @@ void PlayerInfoController::onSetEngineNames(const QString& e1, const QString& e2
 
     Q_EMIT engineNamesUpdated(e1, e2);
 
-    qDebug().noquote() << "[PlayerInfo] ★★★ onSetEngineNames END ★★★";
+    qDebug().noquote() << "[PlayerInfo] onSetEngineNames END";
 }
 
 void PlayerInfoController::onPlayerNamesResolved(const QString& human1, const QString& human2,

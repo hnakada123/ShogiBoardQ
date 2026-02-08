@@ -1,3 +1,7 @@
+/// @file gamelayoutbuilder.cpp
+/// @brief 対局画面レイアウトビルダークラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "gamelayoutbuilder.h"
 #include <QSplitter>
 #include <QVBoxLayout>

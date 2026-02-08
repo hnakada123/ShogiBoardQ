@@ -1,6 +1,11 @@
 #ifndef CSAWAITINGDIALOG_H
 #define CSAWAITINGDIALOG_H
 
+/// @file csawaitingdialog.h
+/// @brief CSA接続待機ダイアログクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QDialog>
 #include "csagamecoordinator.h"
 

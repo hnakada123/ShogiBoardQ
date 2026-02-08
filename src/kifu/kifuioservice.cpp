@@ -1,3 +1,7 @@
+/// @file kifuioservice.cpp
+/// @brief 棋譜ファイルI/Oサービスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "kifuioservice.h"
 
 #include <QFile>

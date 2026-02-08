@@ -1,3 +1,7 @@
+/// @file menuwindowwiring.cpp
+/// @brief メニューウィンドウ配線クラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "menuwindowwiring.h"
 #include "menuwindow.h"
 

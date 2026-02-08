@@ -1,3 +1,7 @@
+/// @file kifucontentbuilder.cpp
+/// @brief 棋譜コンテンツビルダークラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "kifucontentbuilder.h"
 #include "kifurecordlistmodel.h"
 #include <QTableWidget>
@@ -111,14 +115,14 @@ QList<KifDisplayItem> KifuContentBuilder::collectMainline(const KifuExportContex
         const ResolvedRow& rr = ctx.resolvedRows->at(targetRow);
         result = rr.disp;
 
-        // ★ ResolvedRow::comments から編集済みコメントをマージ
+        // ResolvedRow::comments から編集済みコメントをマージ
         for (qsizetype i = 0; i < result.size() && i < rr.comments.size(); ++i) {
             if (!rr.comments[i].isEmpty()) {
                 result[i].comment = rr.comments[i];
             }
         }
 
-        // ★ さらに ctx.commentsByRow から最新のコメントをマージ（優先度最高）
+        // さらに ctx.commentsByRow から最新のコメントをマージ（優先度最高）
         if (ctx.commentsByRow) {
             for (qsizetype i = 0; i < result.size() && i < ctx.commentsByRow->size(); ++i) {
                 if (!ctx.commentsByRow->at(i).isEmpty()) {
@@ -134,7 +138,7 @@ QList<KifDisplayItem> KifuContentBuilder::collectMainline(const KifuExportContex
     if (ctx.liveDisp && !ctx.liveDisp->isEmpty()) {
         result = *ctx.liveDisp;
 
-        // ★ ctx.commentsByRow からコメントをマージ
+        // ctx.commentsByRow からコメントをマージ
         if (ctx.commentsByRow) {
             for (qsizetype i = 0; i < result.size() && i < ctx.commentsByRow->size(); ++i) {
                 if (!ctx.commentsByRow->at(i).isEmpty()) {
@@ -159,7 +163,7 @@ QList<KifDisplayItem> KifuContentBuilder::collectMainline(const KifuExportContex
             it.prettyMove = t;
             it.timeText   = time.isEmpty() ? QStringLiteral("00:00/00:00:00") : time;
 
-            // ★ ctx.commentsByRow からコメントを取得
+            // ctx.commentsByRow からコメントを取得
             const qsizetype idx = result.size();
             if (ctx.commentsByRow && idx < ctx.commentsByRow->size()) {
                 it.comment = ctx.commentsByRow->at(idx);

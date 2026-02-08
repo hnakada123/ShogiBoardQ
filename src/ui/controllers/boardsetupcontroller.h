@@ -1,6 +1,11 @@
 #ifndef BOARDSETUPCONTROLLER_H
 #define BOARDSETUPCONTROLLER_H
 
+/// @file boardsetupcontroller.h
+/// @brief 盤面初期設定コントローラクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QObject>
 #include <QPoint>
 #include <functional>

@@ -1,3 +1,7 @@
+/// @file kifuloadcoordinator.cpp
+/// @brief 棋譜読み込みコーディネータクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "kifuloadcoordinator.h"
 #include "kiftosfenconverter.h"
 #include "sfenpositiontracer.h"
@@ -132,7 +136,7 @@ void KifuLoadCoordinator::loadKifuCommon(
     const KifuExtractGameInfoFunc& extractGameInfoFunc,
     bool dumpVariations)
 {
-    // ★ パフォーマンス計測用
+    // パフォーマンス計測用
     QElapsedTimer totalTimer;
     totalTimer.start();
     QElapsedTimer stepTimer;
@@ -145,7 +149,7 @@ void KifuLoadCoordinator::loadKifuCommon(
     // --- IN ログ ---
     qDebug().noquote() << "[MAIN]" << funcName << "IN file=" << filePath;
 
-    // ★ ロード中フラグ（分岐更新を抑止）
+    // ロード中フラグ（分岐更新を抑止）
     m_loadingKifu = true;
 
     // 1) 初期局面（手合割）を決定
@@ -325,7 +329,7 @@ void KifuLoadCoordinator::loadUsiFromFile(const QString& filePath)
     );
 }
 
-// ★ 追加: 文字列から棋譜を読み込む（棋譜貼り付け機能用）
+// 文字列から棋譜を読み込む（棋譜貼り付け機能用）
 bool KifuLoadCoordinator::loadKifuFromString(const QString& content)
 {
     if (content.trimmed().isEmpty()) {
@@ -486,7 +490,7 @@ bool KifuLoadCoordinator::loadKifuFromString(const QString& content)
     return true;
 }
 
-// ★ 追加: SFEN形式の局面を読み込む
+// SFEN形式の局面を読み込む
 bool KifuLoadCoordinator::loadPositionFromSfen(const QString& sfenStr)
 {
     qDebug().noquote() << "[PASTE] loadPositionFromSfen:" << sfenStr;
@@ -522,7 +526,7 @@ bool KifuLoadCoordinator::loadPositionFromSfen(const QString& sfenStr)
     startItem.comment = QString();
     disp.append(startItem);
 
-    // ★ KifuBranchTree をセットアップ
+    // KifuBranchTree をセットアップ
     if (m_branchTree == nullptr) {
         m_branchTree = new KifuBranchTree(this);
     } else {
@@ -557,7 +561,7 @@ bool KifuLoadCoordinator::loadPositionFromSfen(const QString& sfenStr)
     return true;
 }
 
-// ★ 追加: BOD形式の局面を読み込む
+// BOD形式の局面を読み込む
 bool KifuLoadCoordinator::loadPositionFromBod(const QString& bodStr)
 {
     qDebug().noquote() << "[PASTE] loadPositionFromBod: length =" << bodStr.size();
@@ -604,7 +608,7 @@ void KifuLoadCoordinator::applyParsedResultCommon(
     const QString& parseWarn,
     const char* callerTag)
 {
-    // ★ パフォーマンス計測用
+    // パフォーマンス計測用
     QElapsedTimer totalTimer;
     totalTimer.start();
     QElapsedTimer stepTimer;
@@ -748,7 +752,7 @@ void KifuLoadCoordinator::applyParsedResultCommon(
     }
     logStep("buildKifuBranchTree");
 
-    // ★ 追加：読み込み直後に "+付与 & 行着色" をまとめて反映（Main 行が表示中）
+    // 読み込み直後に "+付与 & 行着色" をまとめて反映（Main 行が表示中）
     applyBranchMarksForCurrentLine();
     logStep("applyBranchMarksForCurrentLine");
 
@@ -796,7 +800,7 @@ void KifuLoadCoordinator::applyParsedResultCommon(
         }
     }
 
-    // ★ ロード完了 → 抑止解除
+    // ロード完了 → 抑止解除
     m_loadingKifu = false;
 
     qDebug().noquote() << QStringLiteral("[PERF] applyParsedResultCommon TOTAL: %1 ms").arg(totalTimer.elapsed());
@@ -813,15 +817,15 @@ QString KifuLoadCoordinator::prepareInitialSfen(const QString& filePath, QString
 
 void KifuLoadCoordinator::populateGameInfo(const QList<KifGameInfoItem>& items)
 {
-    // ★ nullチェック: m_gameInfoTableがnullptrの場合は処理をスキップ
+    // nullチェック: m_gameInfoTableがnullptrの場合は処理をスキップ
     if (!m_gameInfoTable) {
         qWarning().noquote() << "[KifuLoadCoordinator] populateGameInfo: m_gameInfoTable is null, skipping table update";
-        // ★ 追加: 元の対局情報を保存するためのシグナルは発行する
+        // 元の対局情報を保存するためのシグナルは発行する
         emit gameInfoPopulated(items);
         return;
     }
 
-    // ★ セル変更シグナルを一時的にブロック
+    // セル変更シグナルを一時的にブロック
     m_gameInfoTable->blockSignals(true);
     
     m_gameInfoTable->clearContents();
@@ -831,7 +835,7 @@ void KifuLoadCoordinator::populateGameInfo(const QList<KifGameInfoItem>& items)
         const auto& it = items.at(row);
         auto *keyItem   = new QTableWidgetItem(it.key);
         auto *valueItem = new QTableWidgetItem(it.value);
-        // ★ 修正: 項目名は編集不可、内容は編集可能
+        // 項目名は編集不可、内容は編集可能
         keyItem->setFlags(keyItem->flags() & ~Qt::ItemIsEditable);
         // valueItemはデフォルトで編集可能（フラグを変更しない）
         m_gameInfoTable->setItem(row, 0, keyItem);
@@ -840,13 +844,13 @@ void KifuLoadCoordinator::populateGameInfo(const QList<KifGameInfoItem>& items)
 
     m_gameInfoTable->resizeColumnToContents(0);
     
-    // ★ シグナルを再開
+    // シグナルを再開
     m_gameInfoTable->blockSignals(false);
 
     // まだタブに載ってなければ、このタイミングで追加しておくと確実
     addGameInfoTabIfMissing();
     
-    // ★ 追加: 元の対局情報を保存するためのシグナルを発行
+    // 元の対局情報を保存するためのシグナルを発行
     emit gameInfoPopulated(items);
 }
 
@@ -854,7 +858,7 @@ void KifuLoadCoordinator::addGameInfoTabIfMissing()
 {
     if (!m_tab) return;
     
-    // ★ 追加: m_gameInfoTableがnullの場合は処理をスキップ
+    // m_gameInfoTableがnullの場合は処理をスキップ
     if (!m_gameInfoTable) {
         qDebug().noquote() << "[KifuLoadCoordinator] addGameInfoTabIfMissing: m_gameInfoTable is null, skipping";
         return;
@@ -867,7 +871,7 @@ void KifuLoadCoordinator::addGameInfoTabIfMissing()
         m_gameInfoDock = nullptr;
     }
 
-    // ★ 修正: テーブルの親ウィジェット（コンテナ）を取得
+    // テーブルの親ウィジェット（コンテナ）を取得
     // MainWindowで m_gameInfoContainer に m_gameInfoTable が配置されている
     QWidget* widgetToAdd = m_gameInfoTable;
     if (m_gameInfoTable && m_gameInfoTable->parentWidget()) {
@@ -878,7 +882,7 @@ void KifuLoadCoordinator::addGameInfoTabIfMissing()
         }
     }
 
-    // ★ 修正: 既に「対局情報」タブがあるか、同じウィジェットがタブに含まれているか確認
+    // 既に「対局情報」タブがあるか、同じウィジェットがタブに含まれているか確認
     // ウィジェットで検索
     if (m_tab->indexOf(widgetToAdd) != -1) {
         // 既にタブに含まれている場合は何もしない
@@ -913,7 +917,7 @@ void KifuLoadCoordinator::addGameInfoTabIfMissing()
         }
     }
 
-    // ★ 対局情報タブは最初（インデックス0）に挿入する
+    // 対局情報タブは最初（インデックス0）に挿入する
     m_tab->insertTab(0, widgetToAdd, tr("対局情報"));
 }
 
@@ -1158,7 +1162,7 @@ void KifuLoadCoordinator::applyBranchMarksForCurrentLine()
     m_kifuRecordModel->setBranchPlyMarks(marks);
 }
 
-// ★ 追加：分岐コンテキストをリセット（対局終了時に使用）
+// 分岐コンテキストをリセット（対局終了時に使用）
 void KifuLoadCoordinator::resetBranchContext()
 {
     m_branchPlyContext = -1;
@@ -1169,7 +1173,7 @@ void KifuLoadCoordinator::resetBranchContext()
     }
 }
 
-// ★ 追加：分岐ツリーを完全リセット（新規対局開始時に使用）
+// 分岐ツリーを完全リセット（新規対局開始時に使用）
 void KifuLoadCoordinator::resetBranchTreeForNewGame()
 {
     qDebug().noquote() << "[KLC] resetBranchTreeForNewGame: clearing all branch data";
@@ -1177,7 +1181,7 @@ void KifuLoadCoordinator::resetBranchTreeForNewGame()
     // 1) 分岐コンテキストを完全リセット
     m_branchPlyContext = -1;
 
-    // ★ ツリーをクリアする前にcurrentNodeをnullに設定
+    // ツリーをクリアする前にcurrentNodeをnullに設定
     // setRootSfen()がtreeChangedシグナルを同期的に発火するため、
     // 旧ノード削除後にダングリングポインタで不正メモリアクセスが発生するのを防止
     if (m_navState != nullptr) {
@@ -1185,7 +1189,7 @@ void KifuLoadCoordinator::resetBranchTreeForNewGame()
         m_navState->resetPreferredLineIndex();
     }
 
-    // ★ 新システム: KifuBranchTree を初期化（開始局面で再作成）
+    // 新システム: KifuBranchTree を初期化（開始局面で再作成）
     if (m_branchTree == nullptr) {
         m_branchTree = new KifuBranchTree(this);
     } else {
@@ -1196,7 +1200,7 @@ void KifuLoadCoordinator::resetBranchTreeForNewGame()
         "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
     m_branchTree->setRootSfen(kHirateStartSfen);
 
-    // ★ ツリー再構築後にナビゲーション状態を新しいルートに設定
+    // ツリー再構築後にナビゲーション状態を新しいルートに設定
     if (m_navState != nullptr) {
         m_navState->goToRoot();
     }

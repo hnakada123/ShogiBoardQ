@@ -1,3 +1,7 @@
+/// @file gamerecordmodel.cpp
+/// @brief 棋譜データ中央管理クラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "gamerecordmodel.h"
 #include "kifubranchtree.h"
 #include "kifunavigationstate.h"
@@ -471,7 +475,7 @@ QList<KifDisplayItem> GameRecordModel::collectMainlineForExport() const
 {
     QList<KifDisplayItem> result;
 
-    // ★ 優先0: KifuBranchTree から取得（新システム）
+    // 優先0: KifuBranchTree から取得（新システム）
     if (m_branchTree != nullptr && !m_branchTree->isEmpty()) {
         // 現在のラインインデックスを取得（デフォルトは本譜=0）
         int lineIndex = 0;
@@ -1193,7 +1197,7 @@ QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringL
 {
     QStringList out;
     
-    // ★★★ デバッグ: 入力データの確認 ★★★
+    // デバッグ: 入力データの確認
     qDebug().noquote() << "[toCsaLines] ========== CSA出力開始 ==========";
     qDebug().noquote() << "[toCsaLines] usiMoves.size() =" << usiMoves.size();
     if (!usiMoves.isEmpty()) {
@@ -1341,7 +1345,7 @@ QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringL
     // 7) 本譜の指し手を収集
     const QList<KifDisplayItem> disp = collectMainlineForExport();
     
-    // ★★★ デバッグ: disp の確認 ★★★
+    // デバッグ: disp の確認
     qDebug().noquote() << "[toCsaLines] disp.size() =" << disp.size();
     for (qsizetype dbgIdx = 0; dbgIdx < qMin(qsizetype(10), disp.size()); ++dbgIdx) {
         qDebug().noquote() << "[toCsaLines] disp[" << dbgIdx << "].prettyMove ="
@@ -1373,7 +1377,7 @@ QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringL
         qDebug().noquote() << "[toCsaLines] 開始局面エントリあり、startIdx = 1";
     }
     
-    // ★★★ デバッグ: ループ開始前（詳細版） ★★★
+    // デバッグ: ループ開始前（詳細版）
     qDebug().noquote() << "[toCsaLines] ========== CSA変換ループ開始 ==========";
     qDebug().noquote() << "[toCsaLines] startIdx =" << startIdx
                        << ", disp.size() =" << disp.size()
@@ -1429,7 +1433,7 @@ QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringL
             usiMove = usiMoves.at(moveNo - 1);
         }
         
-        // ★★★ デバッグ: 各指し手の詳細（全ての手を出力） ★★★
+        // デバッグ: 各指し手の詳細（全ての手を出力）
         qDebug().noquote() << "[toCsaLines] LOOP: i=" << i
                            << " moveNo=" << moveNo
                            << " isSente=" << isSente
@@ -1522,7 +1526,7 @@ QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringL
         isSente = !isSente;
     }
     
-    // ★★★ デバッグ: 結果サマリ ★★★
+    // デバッグ: 結果サマリ
     qDebug().noquote() << "[toCsaLines] ========== CSA出力終了 ==========";
     qDebug().noquote() << "[toCsaLines] processedMoves =" << processedMoves
                        << ", skippedEmpty =" << skippedEmpty
@@ -2556,7 +2560,7 @@ QStringList GameRecordModel::toUsenLines(const ExportContext& ctx, const QString
     }
     
     // 3) 分岐を追加
-    // ★ 新システム: KifuBranchTree から出力
+    // 新システム: KifuBranchTree から出力
     if (m_branchTree != nullptr && !m_branchTree->isEmpty()) {
         QVector<BranchLine> lines = m_branchTree->allLines();
         // lineIndex = 0 は本譜なのでスキップ、1以降が分岐

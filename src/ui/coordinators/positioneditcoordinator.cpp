@@ -1,3 +1,7 @@
+/// @file positioneditcoordinator.cpp
+/// @brief 局面編集コーディネータクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "positioneditcoordinator.h"
 
 #include <QDebug>

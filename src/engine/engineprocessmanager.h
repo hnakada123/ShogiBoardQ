@@ -1,6 +1,10 @@
 #ifndef ENGINEPROCESSMANAGER_H
 #define ENGINEPROCESSMANAGER_H
 
+/// @file engineprocessmanager.h
+/// @brief 将棋エンジンプロセス管理クラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
 #include <QObject>
 #include <QProcess>
 #include <QElapsedTimer>
@@ -10,6 +14,8 @@
 
 /**
  * @brief 将棋エンジンプロセスの管理クラス
+ *
+ * @todo remove コメントスタイルガイド適用済み
  *
  * 責務:
  * - QProcessの起動・終了
@@ -35,91 +41,67 @@ public:
     explicit EngineProcessManager(QObject* parent = nullptr);
     ~EngineProcessManager() override;
 
-    // === プロセス管理 ===
+    // --- プロセス管理 ---
     
-    /// エンジンプロセスを起動する
+    /// エンジンプロセスを起動し、シグナル接続を行う
     bool startProcess(const QString& engineFile);
-    
-    /// エンジンプロセスを終了する
+
     void stopProcess();
-    
-    /// プロセスが実行中かどうか
     bool isRunning() const;
-
-    /// プロセスの状態を取得
     QProcess::ProcessState state() const;
-
-    /// 現在実行中のエンジンファイルパスを取得
     QString currentEnginePath() const { return m_currentEnginePath; }
 
-    // === コマンド送信 ===
+    // --- コマンド送信 ---
     
-    /// コマンドを送信する
+    /// USIコマンド文字列をプロセスへ送信し、commandSentシグナルを発行
     void sendCommand(const QString& command);
-    
-    /// 書き込みチャネルを閉じる
+
     void closeWriteChannel();
 
-    // === 状態管理 ===
+    // --- 状態管理 ---
     
-    /// シャットダウン状態を設定
     void setShutdownState(ShutdownState state);
-    
-    /// シャットダウン状態を取得
     ShutdownState shutdownState() const { return m_shutdownState; }
-    
-    /// quit後に許可するinfo stringの行数を設定
+
     void setPostQuitInfoStringLinesLeft(int count);
-    
-    /// quit後に許可するinfo stringの行数を取得
     int postQuitInfoStringLinesLeft() const { return m_postQuitInfoStringLinesLeft; }
-    
-    /// quit後の行数をデクリメント
+
+    /// quit後の残行数をデクリメントし、0になったらIgnoreAllへ遷移
     void decrementPostQuitLines();
 
-    // === バッファ管理 ===
+    // --- バッファ管理 ---
     
-    /// 標準出力バッファを読み取って破棄
     void discardStdout();
-    
-    /// 標準エラーバッファを読み取って破棄
     void discardStderr();
-    
-    /// 1行読み取り可能かどうか
     bool canReadLine() const;
-    
-    /// 1行読み取る
     QByteArray readLine();
-    
-    /// 標準エラーを全て読み取る
     QByteArray readAllStderr();
 
-    // === ログ識別 ===
+    // --- ログ識別 ---
     
-    /// ログ用識別子を設定
-    void setLogIdentity(const QString& engineTag, const QString& sideTag, 
+    /// ログ出力用の識別情報（エンジンタグ・手番タグ・エンジン名）を設定
+    void setLogIdentity(const QString& engineTag, const QString& sideTag,
                         const QString& engineName = QString());
-    
-    /// ログ用プレフィックスを取得
+
     QString logPrefix() const;
 
 signals:
-    /// データ受信シグナル（標準出力）
+    /// 標準出力から1行受信（→ USIProtocolHandler）
     void dataReceived(const QString& line);
-    
-    /// データ受信シグナル（標準エラー）
+
+    /// 標準エラーから1行受信（→ USIProtocolHandler）
     void stderrReceived(const QString& line);
-    
-    /// コマンド送信シグナル（ログ用）
+
+    /// コマンド送信通知（→ UsiCommLogModel：ログ記録用）
     void commandSent(const QString& command);
-    
-    /// プロセスエラーシグナル
+
+    /// プロセスエラー発生（→ USIProtocolHandler）
     void processError(QProcess::ProcessError error, const QString& errorMessage);
-    
-    /// プロセス終了シグナル
+
+    /// プロセス終了通知（→ USIProtocolHandler）
     void processFinished(int exitCode, QProcess::ExitStatus status);
-    
-    /// エンジン名検出シグナル
+
+    /// エンジン名を"id name"応答から検出（→ USIProtocolHandler）
     void engineNameDetected(const QString& name);
 
 private slots:
@@ -129,26 +111,21 @@ private slots:
     void onProcessFinished(int exitCode, QProcess::ExitStatus status);
 
 private:
-    QProcess* m_process = nullptr;
-    ShutdownState m_shutdownState = ShutdownState::Running;
-    int m_postQuitInfoStringLinesLeft = 0;
-    
-    /// ログ識別用
-    QString m_logEngineTag;
-    QString m_logSideTag;
-    QString m_logEngineName;
-    
-    /// 1回の読み取りで処理する最大行数
-    static constexpr int kMaxLinesPerChunk = 64;
-    
-    /// 未処理の行数カウンタ
-    int m_processedLines = 0;
-    
-    /// データ受信継続用
-    void scheduleMoreReading();
+    QProcess* m_process = nullptr;              ///< エンジンプロセス（所有、this親）
+    ShutdownState m_shutdownState = ShutdownState::Running; ///< 現在のシャットダウン状態
+    int m_postQuitInfoStringLinesLeft = 0;      ///< quit後に許可するinfo string残行数
 
-    /// 現在のエンジンファイルパス
-    QString m_currentEnginePath;
+    QString m_logEngineTag;                     ///< ログ用エンジン識別タグ
+    QString m_logSideTag;                       ///< ログ用手番識別タグ
+    QString m_logEngineName;                    ///< ログ用エンジン名
+
+    static constexpr int kMaxLinesPerChunk = 64; ///< 1回の読み取りで処理する最大行数
+    int m_processedLines = 0;                   ///< 今回チャンクで処理済みの行数
+
+    QString m_currentEnginePath;                ///< 現在のエンジンファイルパス
+
+    /// 未読データが残っている場合にイベントループ経由で再読み取りを予約
+    void scheduleMoreReading();
 };
 
 #endif // ENGINEPROCESSMANAGER_H

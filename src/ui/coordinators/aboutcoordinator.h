@@ -1,6 +1,11 @@
 #ifndef ABOUTCOORDINATOR_H
 #define ABOUTCOORDINATOR_H
 
+/// @file aboutcoordinator.h
+/// @brief バージョン情報コーディネータクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 class QWidget;
 
 namespace AboutCoordinator {

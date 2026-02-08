@@ -1,6 +1,11 @@
 #ifndef TESTAUTOMATIONHELPER_H
 #define TESTAUTOMATIONHELPER_H
 
+/// @file testautomationhelper.h
+/// @brief テスト自動化ヘルパークラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QObject>
 #include <QString>
 #include <QVector>
@@ -59,7 +64,7 @@ public:
      */
     void updateDeps(const Deps& deps);
 
-    // ★ テスト自動化: UI操作シミュレーション
+    // テスト自動化: UI操作シミュレーション
     void setTestMode(bool enabled);
     bool isTestMode() const { return m_testMode; }
 
@@ -72,17 +77,17 @@ public:
     void clickKifuRow(int row);
     void clickBranchTreeNode(int row, int ply);
 
-    // ★ テスト自動化: 対局シミュレーション
+    // テスト自動化: 対局シミュレーション
     void startTestGame();
     bool makeTestMove(const QString& usiMove);
 
-    // ★ テスト自動化: 状態ダンプと検証
+    // テスト自動化: 状態ダンプと検証
     void dumpTestState();
     bool verify4WayConsistency();
     int getBranchTreeNodeCount();
     bool verifyBranchTreeNodeCount(int minExpected);
 
-    // ★ ユーティリティ
+    // ユーティリティ
     QString extractSfenBase(const QString& sfen) const;
 
 private:

@@ -1,3 +1,7 @@
+/// @file prestartcleanuphandler.cpp
+/// @brief 対局開始前クリーンアップハンドラクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "prestartcleanuphandler.h"
 
 #include <QDebug>
@@ -20,6 +24,11 @@
 #include "kifubranchnode.h"
 #include "kifunavigationstate.h"
 
+// ============================================================
+// 初期化
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 PreStartCleanupHandler::PreStartCleanupHandler(const Dependencies& deps, QObject* parent)
     : QObject(parent)
     , m_boardController(deps.boardController)
@@ -43,6 +52,11 @@ PreStartCleanupHandler::PreStartCleanupHandler(const Dependencies& deps, QObject
 {
 }
 
+// ============================================================
+// メインクリーンアップ
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 void PreStartCleanupHandler::performCleanup()
 {
     qDebug().noquote() << "[PreStartCleanupHandler] performCleanup: start"
@@ -50,12 +64,12 @@ void PreStartCleanupHandler::performCleanup()
                        << "m_currentSfenStr=" << (m_currentSfenStr ? m_currentSfenStr->left(50) : "(null)")
                        << "m_currentSelectedPly=" << (m_currentSelectedPly ? *m_currentSelectedPly : -1);
 
-    // ★ 重要: m_currentSfenStr を保存（selectStartRow() で変更される前に）
+    // m_currentSfenStr を保存（selectStartRow() で変更される前に）
     // この値は startLiveGameSession() で分岐点を探すために使用される
     m_savedCurrentSfen = m_currentSfenStr ? *m_currentSfenStr : QString();
     m_savedSelectedPly = m_currentSelectedPly ? *m_currentSelectedPly : 0;
 
-    // ★ 重要: ユーザーが選択しているノードを直接保存
+    // ユーザーが選択しているノードを直接保存
     // SFENで検索すると、同じ局面が複数存在する場合に誤ったノードが返される可能性がある
     m_savedCurrentNode = (m_navState != nullptr) ? m_navState->currentNode() : nullptr;
 
@@ -63,60 +77,45 @@ void PreStartCleanupHandler::performCleanup()
                        << "saved ply=" << m_savedSelectedPly
                        << "saved node=" << (m_savedCurrentNode ? m_savedCurrentNode->displayText() : "(null)");
 
-    // 盤/ハイライト等のビジュアル初期化
     clearBoardAndHighlights();
     clearClockDisplay();
 
-    // 「現在の局面」から開始かどうかを判定
     const bool startFromCurrentPos = isStartFromCurrentPosition();
 
-    // 安全な keepRow（保持したい最終行＝選択中の行）を算出
     int keepRow = m_currentSelectedPly ? qMax(0, *m_currentSelectedPly) : 0;
-
-    // 棋譜モデルのクリーンアップ
     keepRow = cleanupKifuModel(startFromCurrentPos, keepRow);
-
-    // 手数トラッキングの更新
     updatePlyTracking(startFromCurrentPos, keepRow);
-
-    // 分岐モデルをクリア
     clearBranchModel();
 
-    // コメント欄をクリア
     Q_EMIT broadcastCommentRequested(QString(), true);
 
-    // USIログの初期化
     resetUsiLogModels();
-
-    // 時間制御のリセット
     resetTimeControl();
-
-    // 評価値グラフの初期化/トリム
     resetEvaluationGraph();
-
-    // 棋譜欄の開始行を選択
     selectStartRow();
 
-    // ★ 分岐ツリーのルートノードを作成
     ensureBranchTreeRoot();
 
-    // ★ 分岐ツリーの状態をログ出力
     if (m_branchTree != nullptr && m_branchTree->root() != nullptr) {
         qDebug().noquote() << "[PreStartCleanupHandler] performCleanup: branchTree has"
                            << m_branchTree->root()->childCount() << "children"
                            << "lineCount=" << m_branchTree->lineCount();
     }
 
-    // ★ ライブゲームセッションを開始（途中局面からの場合は分岐点を設定）
+    // ライブゲームセッションを開始（途中局面からの場合は分岐点を設定）
     startLiveGameSession();
 
-    // デバッグログ
     qDebug().noquote()
         << "[PreStartCleanupHandler] performCleanup: startFromCurrentPos=" << startFromCurrentPos
         << " keepRow=" << keepRow
         << " rows(after)=" << (m_kifuRecordModel ? m_kifuRecordModel->rowCount() : -1);
 }
 
+// ============================================================
+// 個別クリーンアップ処理
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 bool PreStartCleanupHandler::isStartFromCurrentPosition() const
 {
     if (!m_startSfenStr || !m_currentSfenStr) {
@@ -127,6 +126,7 @@ bool PreStartCleanupHandler::isStartFromCurrentPosition() const
     return shouldStartFromCurrentPosition(*m_startSfenStr, *m_currentSfenStr, selectedPly);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void PreStartCleanupHandler::clearBoardAndHighlights()
 {
     if (m_boardController) {
@@ -134,6 +134,7 @@ void PreStartCleanupHandler::clearBoardAndHighlights()
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void PreStartCleanupHandler::clearClockDisplay()
 {
     if (m_shogiView) {
@@ -142,12 +143,13 @@ void PreStartCleanupHandler::clearClockDisplay()
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 int PreStartCleanupHandler::cleanupKifuModel(bool startFromCurrentPos, int /*keepRow*/)
 {
     if (!m_kifuRecordModel) return 0;
 
     if (startFromCurrentPos && m_branchTree) {
-        // ★ 優先: ユーザーが選択していたノードを直接使用
+        // ユーザーが選択していたノードを直接使用
         KifuBranchNode* branchPoint = m_savedCurrentNode;
 
         // savedNode が利用できない場合のみ、SFENで検索（フォールバック）
@@ -170,10 +172,9 @@ int PreStartCleanupHandler::cleanupKifuModel(bool startFromCurrentPos, int /*kee
             }
             return branchPoint->ply();
         }
-        // ノードが見つからない場合は、フォールバックとして全クリア
     }
 
-    // 平手/手合割など「新規初期局面から開始」またはフォールバックの場合
+    // 平手/手合割など「新規初期局面から開始」またはフォールバック
     m_kifuRecordModel->clearAllItems();
     m_kifuRecordModel->appendItem(
         new KifuDisplay(QStringLiteral("=== 開始局面 ==="),
@@ -181,6 +182,7 @@ int PreStartCleanupHandler::cleanupKifuModel(bool startFromCurrentPos, int /*kee
     return 0;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void PreStartCleanupHandler::updatePlyTracking(bool startFromCurrentPos, int keepRow)
 {
     if (startFromCurrentPos) {
@@ -194,6 +196,7 @@ void PreStartCleanupHandler::updatePlyTracking(bool startFromCurrentPos, int kee
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void PreStartCleanupHandler::clearBranchModel()
 {
     if (m_kifuBranchModel) {
@@ -201,6 +204,7 @@ void PreStartCleanupHandler::clearBranchModel()
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void PreStartCleanupHandler::resetUsiLogModels()
 {
     qDebug().noquote() << "[PreStartCleanupHandler] resetUsiLogModels: RESETTING ENGINE NAMES";
@@ -223,6 +227,7 @@ void PreStartCleanupHandler::resetUsiLogModels()
     qDebug().noquote() << "[PreStartCleanupHandler] resetUsiLogModels: ENGINE NAMES RESET DONE";
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void PreStartCleanupHandler::resetTimeControl()
 {
     if (m_timeController) {
@@ -230,6 +235,7 @@ void PreStartCleanupHandler::resetTimeControl()
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void PreStartCleanupHandler::resetEvaluationGraph()
 {
     const bool startFromCurrentPos = isStartFromCurrentPosition();
@@ -248,6 +254,7 @@ void PreStartCleanupHandler::resetEvaluationGraph()
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void PreStartCleanupHandler::selectStartRow()
 {
     if (!m_recordPane || !m_kifuRecordModel || m_kifuRecordModel->rowCount() <= 0) return;
@@ -261,6 +268,11 @@ void PreStartCleanupHandler::selectStartRow()
     m_kifuRecordModel->setCurrentHighlightRow(0);
 }
 
+// ============================================================
+// ライブゲームセッション
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 void PreStartCleanupHandler::startLiveGameSession()
 {
     qDebug().noquote() << "[PreStartCleanupHandler] startLiveGameSession: ENTER"
@@ -280,11 +292,10 @@ void PreStartCleanupHandler::startLiveGameSession()
         m_liveGameSession->discard();
     }
 
-    // 平手初期局面SFEN
     static const QString kHirateStartSfen = QStringLiteral(
         "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
 
-    // ★ 保存した値を使用（selectStartRow() で変更される前の値）
+    // 保存した値を使用（selectStartRow() で変更される前の値）
     const QString savedSfen = m_savedCurrentSfen.trimmed();
     const int savedPly = m_savedSelectedPly;
     KifuBranchNode* savedNode = m_savedCurrentNode;
@@ -302,11 +313,10 @@ void PreStartCleanupHandler::startLiveGameSession()
                        << "isNewGame=" << isNewGame
                        << "savedPly=" << savedPly;
 
-    // 既存のツリーに指し手がある場合は、途中局面からの再対局かどうかを判定
     bool hasExistingMoves = m_branchTree->root() != nullptr && m_branchTree->root()->childCount() > 0;
 
     if (!isNewGame && hasExistingMoves && savedPly > 0) {
-        // ★ 優先: ユーザーが選択していたノードを直接使用
+        // ユーザーが選択していたノードを直接使用
         // SFENで検索すると、同じ局面が複数存在する場合に誤ったノードが返される
         KifuBranchNode* branchPoint = savedNode;
 
@@ -332,12 +342,10 @@ void PreStartCleanupHandler::startLiveGameSession()
         }
 
         if (branchPoint != nullptr && branchPoint->ply() > 0) {
-            // 途中局面のノードが見つかった場合
             m_liveGameSession->startFromNode(branchPoint);
 
-            // ★ 重要: m_currentSfenStr を branchPoint の SFEN で更新
-            // これにより、GameStartCoordinator::prepareDataCurrentPosition() で
-            // 盤面が正しい位置にリセットされる
+            // m_currentSfenStr を branchPoint の SFEN で更新
+            // GameStartCoordinator::prepareDataCurrentPosition() で盤面が正しい位置にリセットされる
             if (m_currentSfenStr != nullptr) {
                 *m_currentSfenStr = branchPoint->sfen();
                 qDebug().noquote() << "[PreStartCleanupHandler] startLiveGameSession: updated m_currentSfenStr to branchPoint sfen="
@@ -346,23 +354,18 @@ void PreStartCleanupHandler::startLiveGameSession()
 
             qDebug().noquote() << "[PreStartCleanupHandler] startLiveGameSession: started from node, ply=" << branchPoint->ply()
                                << "displayText=" << branchPoint->displayText();
-            return;  // 早期リターン
+            return;
         }
-        // ノードが見つからない場合、またはルートノードの場合は、新規対局として扱う
         qDebug().noquote() << "[PreStartCleanupHandler] startLiveGameSession: branchPoint not found or is root, treating as new game";
     }
 
     // 新規対局または途中局面が見つからない場合
     {
-        // 新規対局: ルートが存在しない場合は平手初期局面で設定
         if (m_branchTree->root() == nullptr) {
             QString rootSfen = kHirateStartSfen;
-
-            // m_startSfenStr に値があればそれを使用（手合割など）
             if (m_startSfenStr != nullptr && !m_startSfenStr->trimmed().isEmpty()) {
                 rootSfen = *m_startSfenStr;
             }
-
             m_branchTree->setRootSfen(rootSfen);
             qDebug().noquote() << "[PreStartCleanupHandler] startLiveGameSession: created root node with sfen=" << rootSfen;
         }
@@ -372,25 +375,22 @@ void PreStartCleanupHandler::startLiveGameSession()
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void PreStartCleanupHandler::ensureBranchTreeRoot()
 {
     if (m_branchTree == nullptr) {
         return;
     }
 
-    // 既にルートがあれば何もしない
     if (m_branchTree->root() != nullptr) {
         qDebug().noquote() << "[PreStartCleanupHandler] ensureBranchTreeRoot: root already exists";
         return;
     }
 
-    // 平手初期局面SFEN
     static const QString kHirateStartSfen = QStringLiteral(
         "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
 
     QString rootSfen = kHirateStartSfen;
-
-    // m_startSfenStr に値があればそれを使用（手合割など）
     if (m_startSfenStr != nullptr && !m_startSfenStr->trimmed().isEmpty()) {
         rootSfen = *m_startSfenStr;
     }

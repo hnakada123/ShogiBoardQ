@@ -1,3 +1,7 @@
+/// @file recordpanewiring.cpp
+/// @brief 棋譜欄配線クラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "recordpanewiring.h"
 #include "recordpane.h"
 #include "kifurecordlistmodel.h"
@@ -24,7 +28,7 @@ void RecordPaneWiring::buildUiAndWire()
                              Qt::UniqueConnection);
         }
 
-        // ★重要★
+        //重要
         // branchActivated は KifuDisplayCoordinator 側で配線する設計なので、
         // ここ（RecordPaneWiring）では接続しません。
     }
@@ -32,7 +36,7 @@ void RecordPaneWiring::buildUiAndWire()
     // RecordPane へのモデル割当て
     m_pane->setModels(m_d.recordModel, m_d.branchModel);
 
-    // ★ 旧NavigationControllerは廃止。新システム（KifuNavigationController）がボタン接続を担当する。
+    // 旧NavigationControllerは廃止。新システム（KifuNavigationController）がボタン接続を担当する。
     // ボタン接続は MainWindow::initializeBranchNavigationClasses() で行われる。
 
     // 起動直後の「=== 開始局面 ===」ヘッダを重複なく用意（任意）
@@ -54,10 +58,10 @@ void RecordPaneWiring::buildUiAndWire()
             }
         }
 
-        // ★ 追加：開始局面（行0）をハイライト
+        // 開始局面（行0）をハイライト
         m_d.recordModel->setCurrentHighlightRow(0);
 
-        // ★ 追加：QTableViewの選択モデルで行0を選択（黄色表示のため）
+        // QTableViewの選択モデルで行0を選択（黄色表示のため）
         if (auto* kifuView = m_pane->kifuView()) {
             if (auto* sel = kifuView->selectionModel()) {
                 const QModelIndex idx0 = m_d.recordModel->index(0, 0);

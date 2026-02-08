@@ -1,3 +1,7 @@
+/// @file pvclickcontroller.cpp
+/// @brief 読み筋クリックコントローラクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "pvclickcontroller.h"
 
 #include <QDebug>
@@ -178,7 +182,7 @@ void PvClickController::onPvRowClicked(int engineIndex, int row)
         usiMoves = searchUsiMovesFromLog(logModel);
     }
 
-    // ★重要: 読み筋（PV）が生成された時点の局面を使用する
+    //重要: 読み筋（PV）が生成された時点の局面を使用する
     // record->baseSfen() は読み筋生成時の局面SFENを保持している
     // m_currentRecordIndex は棋譜欄で選択中の位置なので、PV表示には使用しない
     QString currentSfen = resolveCurrentSfen(record->baseSfen());
@@ -193,7 +197,7 @@ void PvClickController::onPvRowClicked(int engineIndex, int row)
     QString prevSfenForHighlight;
     qDebug() << "[PvClick] onPvRowClicked: lastUsiMove from record=" << lastUsiMove;
 
-    // ★重要: 読み筋生成時の局面に基づいてprevSfenを検索する
+    //重要: 読み筋生成時の局面に基づいてprevSfenを検索する
     // m_currentRecordIndex（棋譜欄で選択中の位置）ではなく、
     // currentSfen（読み筋生成時の局面）に一致する位置を検索
     int matchedIndexInRecord = -1;
