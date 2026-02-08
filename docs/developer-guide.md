@@ -38,9 +38,8 @@
 | [第14章](#第14章-mainwindowの役割と構造) | MainWindowの役割と構造 | ensure*()群、委譲パターン、リファクタリング経緯 |
 | [第15章](#第15章-機能フロー詳解) | 機能フロー詳解 | 5大ユースケースのシーケンス図 |
 | [第16章](#第16章-国際化i18nと翻訳) | 国際化（i18n）と翻訳 | Qt Linguist、LanguageController |
-| [第17章](#第17章-テストとデバッグ) | テストとデバッグ | テスト実行、TestAutomationHelper、整合性検証 |
-| [第18章](#第18章-新機能の追加ガイド) | 新機能の追加ガイド | 実践チュートリアル |
-| [第19章](#第19章-用語集索引) | 用語集・索引 | 将棋用語日英対応、クラス名逆引き |
+| [第17章](#第17章-新機能の追加ガイド) | 新機能の追加ガイド | 実践チュートリアル |
+| [第18章](#第18章-用語集索引) | 用語集・索引 | 将棋用語日英対応、クラス名逆引き |
 
 ---
 
@@ -64,6 +63,8 @@
 | 2026-02-08 | 第14章「MainWindowの役割と構造」作成 |
 | 2026-02-08 | 第15章「機能フロー詳解」作成 |
 | 2026-02-08 | 第16章「国際化（i18n）と翻訳」作成 |
+| 2026-02-08 | 第17章「新機能の追加ガイド」作成 |
+| 2026-02-08 | 第18章「用語集・索引」作成 |
 
 <!-- chapter-0-end -->
 
@@ -455,7 +456,7 @@ tests/
 └── tst_prestartcleanuphandler.cpp      # 対局前クリーンアップテスト
 ```
 
-テストの詳細は[第17章](#第17章-テストとデバッグ)で解説する。
+テストの詳細はテストファイル（`tests/`）を参照。
 
 ### 1.9 開発環境
 
@@ -8309,26 +8310,1170 @@ statusBar()->showMessage(tr("手数: %1").arg(moveCount));
 ---
 
 <!-- chapter-17-start -->
-## 第17章 テストとデバッグ
+## 第17章 新機能の追加ガイド
 
-*（後続セッションで作成予定）*
+本章では、ShogiBoardQに新機能を追加する際の標準的な手順を、実践チュートリアル形式で解説する。仮の新機能「棋譜にタグを付ける機能」（棋譜ファイルに「急戦」「居飛車」等のタグを付与し、検索・フィルタリングを可能にする）を題材として、ファイル配置からビルド確認までの全工程を一通り示す。
+
+### 17.1 ファイル配置先の選定
+
+新しいクラスをどのディレクトリに配置するかは、そのクラスの責務で決まる。判断基準を以下にまとめる。
+
+#### ディレクトリ選定フローチャート
+
+```
+新クラスの主な責務は？
+│
+├─ 将棋のルール・盤面ロジック ──→ src/core/
+│
+├─ 対局進行・ゲーム管理 ──→ src/game/
+│
+├─ 棋譜データ・フォーマット変換 ──→ src/kifu/
+│    └─ フォーマット変換器 ──→ src/kifu/formats/
+│
+├─ エンジン通信・USIプロトコル ──→ src/engine/
+│
+├─ 解析（検討・棋譜解析・詰将棋） ──→ src/analysis/
+│
+├─ ネットワーク通信（CSA） ──→ src/network/
+│
+├─ ナビゲーション（棋譜移動・分岐） ──→ src/navigation/
+│
+├─ 盤面操作（編集・画像出力） ──→ src/board/
+│
+├─ UI関連
+│    ├─ データ表示の同期 ──→ src/ui/presenters/
+│    ├─ ユーザー操作のハンドリング ──→ src/ui/controllers/
+│    ├─ シグナル/スロット接続 ──→ src/ui/wiring/
+│    └─ 複数コンポーネントの調整 ──→ src/ui/coordinators/
+│
+├─ ウィジェット（再利用可能なUI部品） ──→ src/widgets/
+│
+├─ ダイアログ（モーダル/モードレス） ──→ src/dialogs/
+│
+├─ Qtモデル（QAbstractListModel等） ──→ src/models/
+│
+├─ 設定・永続化・横断サービス ──→ src/services/
+│
+└─ 共通ユーティリティ ──→ src/common/
+```
+
+#### 今回の例: 棋譜タグ機能
+
+棋譜タグ機能は以下の3つのクラスで構成すると仮定する。
+
+| クラス | 責務 | 配置先 |
+|-------|------|--------|
+| `KifuTagModel` | タグデータの管理（追加・削除・検索） | `src/models/` |
+| `KifuTagWiring` | MainWindowとタグUIの接続 | `src/ui/wiring/` |
+| `KifuTagDialog` | タグ編集ダイアログのUI | `src/dialogs/` |
+
+> **ポイント**: ヘッダファイル（`.h`）は対応するソースファイル（`.cpp`）と同じディレクトリに配置する。CMakeの `GLOB_RECURSE` によって `src/` 配下のソースファイルは自動的にビルド対象に含まれるため、`CMakeLists.txt` の変更は不要である。
+
+### 17.2 Deps構造体を持つ新クラスの作成
+
+Wiringクラスは第4章で解説した「Deps構造体パターン」に従う。ここでは `KifuTagWiring` の実装例を示す。
+
+#### ヘッダファイル
+
+```cpp
+// src/ui/wiring/kifutagwiring.h
+
+#ifndef KIFUTAGWIRING_H
+#define KIFUTAGWIRING_H
+
+/// @file kifutagwiring.h
+/// @brief 棋譜タグ機能の配線クラスの定義
+
+#include <QObject>
+#include <functional>
+
+class QWidget;
+class KifuTagModel;
+class KifuTagDialog;
+
+/**
+ * @brief 棋譜タグ機能のUI配線を担当するクラス
+ *
+ * 責務:
+ * - タグ編集ダイアログの表示制御
+ * - タグモデルとUIの接続
+ *
+ * Deps構造体で必要なオブジェクトを受け取り、updateDeps()で再設定可能。
+ */
+class KifuTagWiring : public QObject
+{
+    Q_OBJECT
+
+public:
+    /// 依存オブジェクト
+    struct Deps {
+        QWidget* parentWidget = nullptr;       ///< 親ウィジェット（非所有）
+        KifuTagModel* tagModel = nullptr;      ///< タグモデル（非所有）
+        std::function<void()> ensureTagModel;   ///< 遅延初期化コールバック
+    };
+
+    explicit KifuTagWiring(const Deps& deps, QObject* parent = nullptr);
+    ~KifuTagWiring() override = default;
+
+    /// 依存オブジェクトを再設定する
+    void updateDeps(const Deps& deps);
+
+public slots:
+    /// タグ編集ダイアログを表示する（MainWindow::actionEditTags に接続）
+    void showTagEditDialog();
+
+    /// タグが変更されたときの処理（KifuTagModel::tagsChanged に接続）
+    void onTagsChanged();
+
+signals:
+    /// タグ変更の保存を要求する（→ MainWindow）
+    void saveRequested();
+
+private:
+    QWidget* m_parentWidget = nullptr;
+    KifuTagModel* m_tagModel = nullptr;
+    std::function<void()> m_ensureTagModel;
+};
+
+#endif // KIFUTAGWIRING_H
+```
+
+#### ソースファイル
+
+```cpp
+// src/ui/wiring/kifutagwiring.cpp
+
+/// @file kifutagwiring.cpp
+/// @brief 棋譜タグ機能の配線クラスの実装
+
+#include "kifutagwiring.h"
+
+#include "kifutagmodel.h"
+#include "kifutagdialog.h"
+
+// ============================================================
+// 初期化
+// ============================================================
+
+KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
+    : QObject(parent)
+    , m_parentWidget(deps.parentWidget)
+    , m_tagModel(deps.tagModel)
+    , m_ensureTagModel(deps.ensureTagModel)
+{
+}
+
+void KifuTagWiring::updateDeps(const Deps& deps)
+{
+    m_parentWidget = deps.parentWidget;
+    m_tagModel = deps.tagModel;
+    if (deps.ensureTagModel) {
+        m_ensureTagModel = deps.ensureTagModel;
+    }
+}
+
+// ============================================================
+// スロット
+// ============================================================
+
+void KifuTagWiring::showTagEditDialog()
+{
+    // タグモデルが未初期化の場合、コールバックで遅延初期化を実行
+    if (!m_tagModel && m_ensureTagModel) {
+        m_ensureTagModel();
+    }
+    if (!m_tagModel) return;
+
+    KifuTagDialog dialog(m_tagModel, m_parentWidget);
+    if (dialog.exec() == QDialog::Accepted) {
+        emit saveRequested();
+    }
+}
+
+void KifuTagWiring::onTagsChanged()
+{
+    // タグ変更時の処理（例: ステータスバー更新、棋譜モデルへの反映）
+}
+```
+
+**テンプレートの要点**:
+
+| 要素 | ルール |
+|------|--------|
+| **Deps のフィールド** | 全て `nullptr` または適切なデフォルト値で初期化 |
+| **コンストラクタ** | 初期化リストで `Deps` の値をメンバーにコピー |
+| **updateDeps()** | 全フィールドを上書き。`std::function` は有効な場合のみ更新 |
+| **ファイルヘッダー** | `@file` と `@brief` の2行（commenting-style-guide.md §2） |
+| **クラスコメント** | `@brief` + 責務の箇条書き（commenting-style-guide.md §3） |
+
+### 17.3 MainWindowにensure*()メソッドを追加
+
+MainWindowの遅延初期化パターンに従い、新しいWiringクラスのインスタンス化を行う。
+
+#### 1. mainwindow.h にメンバーとメソッドを宣言
+
+```cpp
+// src/app/mainwindow.h に追加
+
+private:
+    // --- 棋譜タグ ---
+    KifuTagWiring* m_kifuTagWiring = nullptr;
+
+    void ensureKifuTagWiring();
+```
+
+> **ポイント**: 前方宣言 `class KifuTagWiring;` をヘッダ冒頭の前方宣言セクションに追加する。`#include` ではなく前方宣言を使うことで、ヘッダの依存関係を最小化する。
+
+#### 2. mainwindow.cpp に ensure*() を実装
+
+```cpp
+// src/app/mainwindow.cpp に追加
+
+void MainWindow::ensureKifuTagWiring()
+{
+    if (m_kifuTagWiring) return;  // ガード
+
+    KifuTagWiring::Deps deps;
+    deps.parentWidget = this;
+    deps.tagModel = m_kifuTagModel;  // 既存のタグモデル（あれば）
+    deps.ensureTagModel = [this]() {
+        // タグモデルの遅延初期化
+        if (!m_kifuTagModel) {
+            m_kifuTagModel = new KifuTagModel(this);
+        }
+        // 初期化後に最新の依存を反映
+        if (m_kifuTagWiring) {
+            KifuTagWiring::Deps updated;
+            updated.parentWidget = this;
+            updated.tagModel = m_kifuTagModel;
+            m_kifuTagWiring->updateDeps(updated);
+        }
+    };
+
+    m_kifuTagWiring = new KifuTagWiring(deps, this);
+}
+```
+
+`ensure*()` メソッドの3ステップ:
+
+| ステップ | 処理 | 対応するコード |
+|---------|------|-------------|
+| ① ガード | 既に生成済みなら即 return | `if (m_kifuTagWiring) return;` |
+| ② 生成 | `new` で生成（`this` を親にして寿命管理） | `new KifuTagWiring(deps, this)` |
+| ③ 依存設定 | `Deps` で依存を注入 | `deps.parentWidget = this;` 等 |
+
+#### 3. 呼び出し箇所の追加
+
+`ensure*()` は必要になった時点で呼ぶ。典型的には、メニューアクションのハンドラやWiringの接続時に呼ぶ。
+
+```cpp
+// 例: メニューアクション「タグ編集」がトリガーされたとき
+void MainWindow::onEditTagsTriggered()
+{
+    ensureKifuTagWiring();
+    m_kifuTagWiring->showTagEditDialog();
+}
+```
+
+### 17.4 Wiringクラスでシグナル/スロット接続
+
+シグナル/スロット接続は **`connect()` のメンバー関数ポインタ構文** を使用する。ラムダ式は禁止である（CLAUDE.md の Code Style 参照）。
+
+#### 接続コードの例
+
+```cpp
+// MainWindow のセットアップ内（ensureKifuTagWiring() 内、または初期化コードで）
+
+// メニューアクション → KifuTagWiring のスロット
+connect(ui->actionEditTags, &QAction::triggered,
+        m_kifuTagWiring, &KifuTagWiring::showTagEditDialog);
+
+// KifuTagWiring のシグナル → MainWindow のスロット
+connect(m_kifuTagWiring, &KifuTagWiring::saveRequested,
+        this, &MainWindow::saveKifuToFile);
+```
+
+#### 接続時の注意事項
+
+| ルール | 理由 | 例 |
+|--------|------|-----|
+| ラムダ禁止 | 接続の追跡を困難にするため | `connect(a, &A::sig, [this](){...})` は使わない |
+| `Qt::UniqueConnection` | 重複接続を防ぐ（`wire()` で一括接続する場合） | `connect(..., Qt::UniqueConnection)` |
+| 接続先のコメント | コードを追わずに接続関係を把握できるようにする | `/// タグ変更の保存を要求（→ MainWindow）` |
+
+#### Wiringクラス内の内部接続
+
+Wiringクラスが内部にコントローラを持つ場合、`ensure*()` 内でコントローラのシグナルを接続する。
+
+```cpp
+void KifuTagWiring::ensureTagController()
+{
+    if (m_tagController) return;
+
+    m_tagController = new KifuTagController(this);
+
+    // コントローラからのシグナルをWiringのシグナルに中継
+    connect(m_tagController, &KifuTagController::tagAdded,
+            this, &KifuTagWiring::onTagsChanged);
+}
+```
+
+### 17.5 SettingsServiceに設定項目を追加
+
+ダイアログの状態（ウィンドウサイズ、フォントサイズ等）を永続化する場合は、`SettingsService` に getter/setter を追加する。
+
+#### 1. settingsservice.h に宣言を追加
+
+```cpp
+// src/services/settingsservice.h — namespace SettingsService 内に追加
+
+/// 棋譜タグダイアログのフォントサイズを取得（デフォルト: 10）
+int kifuTagDialogFontSize();
+/// 棋譜タグダイアログのフォントサイズを保存
+void setKifuTagDialogFontSize(int size);
+
+/// 棋譜タグダイアログのウィンドウサイズを取得（デフォルト: 400x300）
+QSize kifuTagDialogSize();
+/// 棋譜タグダイアログのウィンドウサイズを保存
+void setKifuTagDialogSize(const QSize& size);
+```
+
+#### 2. settingsservice.cpp に実装を追加
+
+```cpp
+// src/services/settingsservice.cpp — namespace SettingsService 内に追加
+
+int kifuTagDialogFontSize()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("FontSize/kifuTag", 10).toInt();
+}
+
+void setKifuTagDialogFontSize(int size)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("FontSize/kifuTag", size);
+}
+
+QSize kifuTagDialogSize()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("KifuTagDialog/size", QSize(400, 300)).toSize();
+}
+
+void setKifuTagDialogSize(const QSize& size)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("KifuTagDialog/size", size);
+}
+```
+
+#### 3. ダイアログ側で読み込み・保存
+
+```cpp
+// src/dialogs/kifutagdialog.cpp
+
+KifuTagDialog::KifuTagDialog(KifuTagModel* model, QWidget* parent)
+    : QDialog(parent)
+    , m_model(model)
+{
+    // 設定の読み込み
+    resize(SettingsService::kifuTagDialogSize());
+
+    const int fontSize = SettingsService::kifuTagDialogFontSize();
+    QFont f = font();
+    f.setPointSize(fontSize);
+    setFont(f);
+}
+
+void KifuTagDialog::closeEvent(QCloseEvent* event)
+{
+    // 設定の保存
+    SettingsService::setKifuTagDialogSize(size());
+    SettingsService::setKifuTagDialogFontSize(font().pointSize());
+    QDialog::closeEvent(event);
+}
+```
+
+#### SettingsService 追加時の規約
+
+| 項目 | 規約 |
+|------|------|
+| **INIキー命名** | `グループ名/キー名` 形式（例: `FontSize/kifuTag`） |
+| **デフォルト値** | `.toInt()` / `.toSize()` の第2引数に指定 |
+| **パス設定** | 毎回 `QDir::setCurrent(QApplication::applicationDirPath())` を呼ぶ |
+| **INIファイル名** | `kIniName`（= `"ShogiBoardQ.ini"`）を使用 |
+| **永続化対象の判断** | ウィンドウサイズ、フォントサイズ、列幅、最後の選択状態など |
+
+### 17.6 tr()による翻訳対応
+
+ユーザーに表示する文字列は全て `tr()` でラップし、翻訳可能にする。
+
+#### tr() の使い方
+
+```cpp
+// 基本形: QObject 派生クラス内
+setWindowTitle(tr("タグ編集"));
+
+// パラメータ付き
+statusBar()->showMessage(tr("%1 件のタグを追加しました").arg(count));
+
+// コンテキスト付き（同じ文字列でも異なるクラスで別の翻訳が必要な場合）
+// tr() は自動的にクラス名をコンテキストとして使用する
+
+// QObject 非派生クラスの場合
+QCoreApplication::translate("KifuTagDialog", "タグ編集");
+```
+
+#### 翻訳で避けるべきパターン
+
+```cpp
+// 悪い例: 文字列の連結
+label->setText(tr("合計") + ": " + QString::number(count) + tr("件"));
+
+// 良い例: %1 プレースホルダを使う
+label->setText(tr("合計: %1 件").arg(count));
+
+// 悪い例: 翻訳不要な文字列を tr() で囲む
+qDebug() << tr("Debug message");   // デバッグログは翻訳不要
+
+// 良い例: tr() を付けない
+qDebug() << "Debug message";
+```
+
+#### lupdate の実行
+
+`tr()` でラップした文字列を追加・変更したら、翻訳ファイルを更新する。
+
+```bash
+lupdate src -ts resources/translations/ShogiBoardQ_ja_JP.ts resources/translations/ShogiBoardQ_en.ts
+```
+
+#### .ts ファイルの編集
+
+`lupdate` 実行後、`.ts` ファイル内の `type="unfinished"` エントリに翻訳を追加する。
+
+```xml
+<!-- resources/translations/ShogiBoardQ_en.ts に追加されるエントリ例 -->
+<context>
+    <name>KifuTagDialog</name>
+    <message>
+        <source>タグ編集</source>
+        <translation type="unfinished"></translation>  <!-- ← 翻訳を追加 -->
+    </message>
+</context>
+```
+
+翻訳を追加した後:
+
+```xml
+<message>
+    <source>タグ編集</source>
+    <translation>Edit Tags</translation>  <!-- type属性を削除 -->
+</message>
+```
+
+> **参考**: 翻訳ワークフローの詳細は [第16章](#第16章-国際化i18nと翻訳) を参照。
+
+### 17.7 コメントの記述
+
+[commenting-style-guide.md](commenting-style-guide.md) に従ってコメントを記述する。ここでは新機能追加時に必要なコメントの種類と具体例をまとめる。
+
+#### ファイルヘッダー（§2）
+
+全ての `.h` / `.cpp` ファイルに `@file` と `@brief` を付ける。
+
+```cpp
+// .h ファイル
+/// @file kifutagwiring.h
+/// @brief 棋譜タグ機能の配線クラスの定義
+
+// .cpp ファイル
+/// @file kifutagwiring.cpp
+/// @brief 棋譜タグ機能の配線クラスの実装
+```
+
+#### クラスコメント（§3）
+
+クラス宣言の直前に `@brief` + 責務を記述する。Deps構造体を持つクラスでは、Depsパターンの使用を明記する。
+
+```cpp
+/**
+ * @brief 棋譜タグ機能のUI配線を担当するクラス
+ *
+ * 責務:
+ * - タグ編集ダイアログの表示制御
+ * - タグモデルとUIの接続
+ *
+ * Deps構造体で必要なオブジェクトを受け取り、updateDeps()で再設定可能。
+ */
+class KifuTagWiring : public QObject
+```
+
+#### シグナル・スロットコメント（§5）
+
+接続元または接続先を明示する。
+
+```cpp
+signals:
+    /// タグ変更の保存を要求する（→ MainWindow::saveKifuToFile）
+    void saveRequested();
+
+public slots:
+    /// タグ編集ダイアログを表示する（MainWindow::actionEditTags に接続）
+    void showTagEditDialog();
+```
+
+#### メンバー変数（§6）
+
+`///<` で行末コメントを付ける。ポインタは所有権を明記する。
+
+```cpp
+private:
+    QWidget* m_parentWidget = nullptr;     ///< 親ウィジェット（非所有）
+    KifuTagModel* m_tagModel = nullptr;    ///< タグモデル（非所有）
+    std::function<void()> m_ensureTagModel; ///< タグモデル遅延初期化コールバック
+```
+
+#### .cpp 内のインラインコメント（§9）
+
+**Why（なぜ）** を書く。コードの繰り返しは書かない。
+
+```cpp
+// 良い例: なぜそうするかを説明
+// タグモデルが未初期化の場合、コールバックで遅延初期化を実行
+if (!m_tagModel && m_ensureTagModel) {
+    m_ensureTagModel();
+}
+
+// 悪い例: コードの繰り返し
+// タグモデルがnullかチェックする  ← 見れば分かる
+if (!m_tagModel) return;
+```
+
+#### セクション区切り（§8）
+
+```cpp
+// .h 内
+public:
+    // --- 初期化 ---
+    void updateDeps(const Deps& deps);
+
+    // --- 操作 ---
+    void showTagEditDialog();
+
+// .cpp 内
+// ============================================================
+// 初期化
+// ============================================================
+
+KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
+```
+
+### 17.8 チェックリスト
+
+新機能の追加が完了したら、以下の項目を確認する。
+
+#### コーディング規約チェック
+
+| # | 確認項目 | 参照 |
+|---|---------|------|
+| 1 | `connect()` でラムダ式を使っていないか | CLAUDE.md Code Style |
+| 2 | `std::as_const()` でQt コンテナの detach を防いでいるか | CLAUDE.md Code Style |
+| 3 | コンパイラ警告が出ていないか（`-Wall -Wextra -Wpedantic -Wshadow -Wconversion`） | CLAUDE.md Code Style |
+| 4 | `tr()` でユーザー向け文字列をラップしているか | 第16章、§17.6 |
+| 5 | commenting-style-guide.md に従ったコメントを書いたか | §17.7 |
+
+#### 設計パターンチェック
+
+| # | 確認項目 | 参照 |
+|---|---------|------|
+| 6 | `Deps` 構造体で依存を注入しているか | 第4章 §4.1 |
+| 7 | `ensure*()` メソッドにガードを入れているか | 第4章 §4.2 |
+| 8 | 遅延初期化の依存ギャップに対処しているか（`std::function` コールバック） | 第4章 §4.2 |
+| 9 | MainWindowへのロジック追加を最小限にしているか | CLAUDE.md Design Principles |
+| 10 | ポインタの所有権をコメントで明記しているか | commenting-style-guide.md §6 |
+
+#### SettingsService チェック
+
+| # | 確認項目 | 参照 |
+|---|---------|------|
+| 11 | ダイアログのウィンドウサイズを保存しているか | CLAUDE.md SettingsService Guidelines |
+| 12 | フォントサイズ調整機能がある場合、サイズを保存しているか | CLAUDE.md SettingsService Guidelines |
+| 13 | テーブル/リストの列幅を保存しているか（該当する場合） | CLAUDE.md SettingsService Guidelines |
+| 14 | コンボボックス等の選択状態を保存しているか（該当する場合） | CLAUDE.md SettingsService Guidelines |
+
+#### 翻訳チェック
+
+| # | 確認項目 | 参照 |
+|---|---------|------|
+| 15 | `lupdate` を実行して `.ts` ファイルを更新したか | CLAUDE.md Translation Guidelines |
+| 16 | `.ts` ファイルの `type="unfinished"` エントリに翻訳を追加したか | 第16章 §16.2 |
+| 17 | デバッグログやINIキー等の翻訳不要な文字列に `tr()` を付けていないか | §17.6 |
+
+#### ビルド・動作確認チェック
+
+| # | 確認項目 | 手順 |
+|---|---------|------|
+| 18 | ビルドが通るか | `cmake --build build` |
+| 19 | clang-tidy の警告が出ていないか | `cmake -B build -DENABLE_CLANG_TIDY=ON && cmake --build build` |
+| 20 | 追加した機能が正常に動作するか | `./build/ShogiBoardQ` で手動確認 |
+
+#### 全手順のまとめ
+
+```
+新機能の追加手順
+
+① ファイル配置先を決定（§17.1 のフローチャート参照）
+     │
+② ヘッダ / ソースファイルを作成（§17.2）
+   ├─ Deps 構造体を定義
+   ├─ コンストラクタ / updateDeps() を実装
+   └─ スロットメソッドを実装
+     │
+③ MainWindow に ensure*() メソッドを追加（§17.3）
+   ├─ mainwindow.h にメンバー・メソッド宣言
+   └─ mainwindow.cpp に実装（ガード → 生成 → 依存設定）
+     │
+④ シグナル / スロット接続を追加（§17.4）
+   └─ connect() はメンバー関数ポインタ構文のみ
+     │
+⑤ SettingsService に設定項目を追加（§17.5）
+   ├─ settingsservice.h に getter / setter 宣言
+   ├─ settingsservice.cpp に実装
+   └─ ダイアログで読み込み / 保存
+     │
+⑥ tr() で翻訳対応（§17.6）
+   ├─ ユーザー向け文字列を tr() でラップ
+   ├─ lupdate を実行
+   └─ .ts ファイルに翻訳を追加
+     │
+⑦ コメントを記述（§17.7）
+   └─ commenting-style-guide.md に準拠
+     │
+⑧ チェックリストで最終確認（§17.8）
+   └─ ビルド → clang-tidy → 動作確認
+```
 
 <!-- chapter-17-end -->
 
 ---
 
 <!-- chapter-18-start -->
-## 第18章 新機能の追加ガイド
+## 第18章 用語集・索引
 
-*（後続セッションで作成予定）*
-
-<!-- chapter-18-end -->
+本章は、ShogiBoardQの開発において頻出する将棋用語・技術略語を整理し、全クラスとファイルの逆引き索引を提供する。
 
 ---
 
-<!-- chapter-19-start -->
-## 第19章 用語集・索引
+### 18.1 将棋用語 日英対応表
 
-*（後続セッションで作成予定）*
+| 日本語 | 英語 | SFEN/USI表記 | 補足 |
+|--------|------|-------------|------|
+| 先手（せんて） | Black / First player | `b` | SFEN手番表記。先に指す側 |
+| 後手（ごて） | White / Second player | `w` | SFEN手番表記 |
+| 玉将（ぎょくしょう） | King | `K` / `k` | 先手=`K`、後手=`k` |
+| 飛車（ひしゃ） | Rook | `R` / `r` | 成ると竜王（`+R`） |
+| 角行（かくぎょう） | Bishop | `B` / `b` | 成ると竜馬（`+B`） |
+| 金将（きんしょう） | Gold | `G` / `g` | 成りなし |
+| 銀将（ぎんしょう） | Silver | `S` / `s` | 成ると成銀（`+S`） |
+| 桂馬（けいま） | Knight | `N` / `n` | 成ると成桂（`+N`） |
+| 香車（きょうしゃ） | Lance | `L` / `l` | 成ると成香（`+L`） |
+| 歩兵（ふひょう） | Pawn | `P` / `p` | 成ると「と金」（`+P`） |
+| 成る（なる） | Promote | `+`（USI末尾） | 例: `7c7b+` |
+| 不成（ならず） | Non-promote | （`+`なし） | 例: `7c7b` |
+| 持ち駒（もちごま） | Hand pieces / Pieces in hand | SFEN第3フィールド | 例: `S2Pb2p` |
+| 王手（おうて） | Check | — | 玉が取られる状態 |
+| 詰み（つみ） | Checkmate | `mate` | USIの`score mate N` |
+| 千日手（せんにちて） | Repetition | — | 同一局面4回で引き分け |
+| 入玉（にゅうぎょく） | Entering King | — | 玉が敵陣に入ること |
+| 持将棋（じしょうぎ） | Impasse / Jishogi | — | 両玉入玉で点数判定 |
+| 投了（とうりょう） | Resignation | — | 負けを宣言 |
+| 中断（ちゅうだん） | Adjournment / Break | — | 対局の一時停止 |
+| 筋（すじ） | File | 1〜9（右→左） | 縦の列。9が左端 |
+| 段（だん） | Rank | 1〜9 / a〜i | 横の行。1（a）が先手側 |
+| 棋譜（きふ） | Kifu / Game record | — | 指し手の記録 |
+| 定跡（じょうせき） | Joseki / Opening book | — | 定番の序盤手順 |
+| 検討（けんとう） | Consideration / Analysis | — | エンジンによる局面分析 |
+| 読み筋（よみすじ） | Principal Variation (PV) | `pv`（USI info） | エンジンの最善手順 |
+| 評価値（ひょうかち） | Evaluation score | `score cp N` | センチポーン単位 |
+| 秒読み（びょうよみ） | Byoyomi | `byoyomi` | 持ち時間後の秒数制限 |
+| 手数（てすう） | Move number / Ply | SFEN第4フィールド | 何手目かの番号 |
+| 駒台（こまだい） | Piece stand | — | 持ち駒の置き場 |
+| 打つ（うつ） | Drop | `P*3d`（USI） | 持ち駒を盤上に置く |
 
-<!-- chapter-19-end -->
+---
+
+### 18.2 略語一覧
+
+| 略語 | 正式名称 | 意味 | 参照章 |
+|------|---------|------|--------|
+| **SFEN** | Shogi Forsyth-Edwards Notation | 局面を1行テキストで表現する記法。FEN（チェス）の将棋版 | 第2章 §2.2 |
+| **USI** | Universal Shogi Interface | 将棋エンジンとGUI間の通信プロトコル。UCI（チェス）の将棋版 | 第2章 §2.3, 第7章 |
+| **CSA** | Computer Shogi Association | コンピュータ将棋協会。ネットワーク対局プロトコルおよび棋譜形式の名称 | 第2章 §2.5, 第12章 |
+| **PV** | Principal Variation | エンジンが示す最善手順（読み筋） | 第7章 §7.4, 第9章 |
+| **MultiPV** | Multiple Principal Variations | 複数の候補手を同時に表示する機能 | 第9章 §9.2 |
+| **KIF** | 棋譜ファイル（Kifu File） | 日本語表記の棋譜形式。柿木将棋が起源 | 第2章 §2.5 |
+| **KI2** | 棋譜ファイル2（Kifu File 2） | KIFの改良版。座標を省略し日本語のみで表記 | 第2章 §2.5 |
+| **JKF** | JSON Kifu Format | JSON形式の棋譜フォーマット | 第2章 §2.5 |
+| **USEN** | URL-Safe Encoded Notation | URL安全な棋譜エンコード形式 | 第2章 §2.5 |
+| **MVP** | Model-View-Presenter | UI設計パターン。Model→Viewの同期をPresenterが担当 | 第4章 §4.4 |
+| **Deps** | Dependencies（依存構造体） | 依存注入用のPOD構造体パターン | 第4章 §4.1 |
+| **MOC** | Meta-Object Compiler | Qtのメタオブジェクトコンパイラ。シグナル/スロットを処理 | 第4章 |
+| **INI** | Initialization File | Windows形式の設定ファイル。SettingsServiceが使用 | 第12章 §12.3 |
+
+---
+
+### 18.3 クラス名逆引き一覧
+
+全主要クラス・名前空間をアルファベット順に掲載する。「種別」列の凡例: C=クラス, NS=名前空間。
+
+| 名前 | 種別 | ディレクトリ | 説明 | 解説章 |
+|------|------|-------------|------|--------|
+| AboutCoordinator | NS | ui/coordinators | バージョン情報ダイアログの表示 | 第10章 |
+| AbstractListModel | C | models | ポインタ所有リストモデルのテンプレート基底 | 第11章 |
+| AnalysisCoordinator | C | analysis | 局面解析の低レベル制御（Idle/SinglePosition/RangePositions） | 第9章 |
+| AnalysisFlowController | C | analysis | 棋譜解析フローの制御 | 第9章 |
+| AnalysisResultsPresenter | C | analysis | 解析結果の表示プレゼンター | 第9章 |
+| AnalysisTabWiring | C | ui/wiring | 解析タブのシグナル/スロット配線 | 第10章 |
+| AppToolTipFilter | C | widgets | アプリ全体のツールチップフィルタ | 第11章 |
+| BoardImageExporter | C | board | 盤面画像のクリップボードコピー・ファイル保存 | 第13章 |
+| BoardInteractionController | C | board | 盤面クリック・ドラッグ操作とハイライト制御 | 第13章 |
+| BoardSetupController | C | ui/controllers | 盤面初期配置のセットアップ | 第10章 |
+| BoardSyncPresenter | C | ui/presenters | 盤面状態の同期プレゼンター | 第10章 |
+| BranchRowDelegate | C | widgets | 分岐行の描画デリゲート | 第11章 |
+| BranchTreeWidget | C | widgets | 分岐ツリーのグラフ描画ウィジェット | 第11章 |
+| ChangeEngineSettingsDialog | C | dialogs | エンジン設定変更ダイアログ | 第11章 |
+| CollapsibleGroupBox | C | widgets | 折りたたみ可能なグループボックス | 第11章 |
+| CommentCoordinator | C | app | コメント編集の統合調整 | 第14章 |
+| CommentTextAdapter | C | widgets | コメントテキストの変換アダプタ | 第11章 |
+| ConsecutiveGamesController | C | game | 連続対局の進行管理 | 第6章 |
+| ConsiderationDialog | C | dialogs | 検討モード設定ダイアログ | 第11章 |
+| ConsiderationFlowController | C | analysis | 検討モードのフロー制御 | 第9章 |
+| ConsiderationModeUIController | C | analysis | 検討モードUI状態の制御 | 第9章 |
+| ConsiderationWiring | C | ui/wiring | 検討モードのシグナル/スロット配線 | 第10章 |
+| CsaClient | C | network | CSAプロトコル通信クライアント | 第12章 |
+| CsaGameCoordinator | C | network | CSAネットワーク対局の統合調整 | 第12章 |
+| CsaGameDialog | C | dialogs | CSA対局接続ダイアログ | 第11章 |
+| CsaGameWiring | C | ui/wiring | CSA対局のシグナル/スロット配線 | 第10章 |
+| CsaToSfenConverter | C | kifu/formats | CSA形式→SFEN変換器 | 第8章 |
+| CsaWaitingDialog | C | dialogs | CSA接続待機ダイアログ | 第11章 |
+| DialogCoordinator | C | ui/coordinators | ダイアログ生成・管理の統合調整 | 第10章 |
+| DockCreationService | C | app | ドックウィジェット生成サービス | 第14章 |
+| DockLayoutManager | C | ui/coordinators | ドックレイアウト状態の管理 | 第10章 |
+| ElideLabel | C | widgets | テキスト省略表示ラベル | 第11章 |
+| EngineAnalysisTab | C | widgets | エンジン解析結果タブウィジェット | 第11章 |
+| EngineInfoWidget | C | widgets | エンジン情報表示ウィジェット | 第11章 |
+| EngineOptionDescriptions | C | engine | USIエンジンオプション説明データベース | 第7章 |
+| EngineProcessManager | C | engine | エンジンプロセスのライフサイクル管理 | 第7章 |
+| EngineRegistrationDialog | C | dialogs | エンジン登録・設定ダイアログ | 第11章 |
+| EngineSettingsConstants | NS | engine | エンジン設定の定数定義 | 第7章 |
+| EngineSettingsCoordinator | NS | engine | エンジン設定の統合調整 | 第7章 |
+| ErrorBus | C | common | アプリ全体のエラー通知イベントバス（シングルトン） | 第4章, 第12章 |
+| EvalGraphPresenter | NS | ui/presenters | 評価値グラフの表示フック | 第10章 |
+| EvaluationChartWidget | C | widgets | 評価値グラフチャートウィジェット | 第11章 |
+| EvaluationGraphController | C | ui/controllers | 評価値グラフの表示制御 | 第10章 |
+| FlowLayout | C | widgets | フロー（折り返し）レイアウトマネージャ | 第11章 |
+| GameInfoPaneController | C | widgets | 対局情報ペインの制御 | 第11章 |
+| GameLayoutBuilder | C | ui/coordinators | 対局画面レイアウトの構築 | 第10章 |
+| GameRecordModel | C | kifu | 棋譜データモデル（コメントのSingle Source of Truth） | 第8章 |
+| GameRecordPresenter | C | ui/presenters | 棋譜表示プレゼンター | 第10章 |
+| GameStartCoordinator | C | game | 対局開始フローの統合調整 | 第6章 |
+| GameStateController | C | game | 対局状態・終局処理の管理 | 第6章 |
+| GlobalToolTip | C | widgets | グローバルツールチップ表示ウィジェット | 第11章 |
+| JishogiCalculator | C | common | 持将棋の点数計算・判定 | 第12章 |
+| JishogiScoreDialogController | C | ui/controllers | 持将棋点数ダイアログの制御 | 第10章 |
+| JkfToSfenConverter | C | kifu/formats | JKF形式→SFEN変換器 | 第8章 |
+| JosekiMergeDialog | C | dialogs | 定跡結合ダイアログ | 第11章 |
+| JosekiMoveDialog | C | dialogs | 定跡手入力ダイアログ | 第11章 |
+| JosekiWindow | C | dialogs | 定跡管理ウィンドウ | 第11章 |
+| JosekiWindowWiring | C | ui/wiring | 定跡ウィンドウのシグナル/スロット配線 | 第10章 |
+| Ki2ToSfenConverter | C | kifu/formats | KI2形式→SFEN変換器 | 第8章 |
+| KifReader | NS | kifu | KIF形式ファイルの読み込み | 第8章 |
+| KifToSfenConverter | C | kifu/formats | KIF形式→SFEN変換器 | 第8章 |
+| KifuAnalysisDialog | C | dialogs | 棋譜解析設定ダイアログ | 第11章 |
+| KifuAnalysisListModel | C | analysis | 棋譜解析結果リストモデル（8列テーブル） | 第9章 |
+| KifuAnalysisResultsDisplay | C | widgets | 棋譜解析結果表示ウィジェット | 第9章, 第11章 |
+| KifuBranchDisplay | C | widgets | 分岐候補手表示ウィジェット | 第11章 |
+| KifuBranchListModel | C | models | 分岐候補リストモデル | 第11章 |
+| KifuBranchNode | C | kifu | 分岐ツリーのノード構造体 | 第8章 |
+| KifuBranchTree | C | kifu | 分岐ツリーデータモデル | 第8章 |
+| KifuBranchTreeBuilder | C | kifu | 分岐ツリー構築ビルダー | 第8章 |
+| KifuClipboardService | NS | kifu | クリップボード棋譜操作（形式自動検出） | 第8章 |
+| KifuContentBuilder | C | kifu | 棋譜コンテンツ文字列の構築 | 第8章 |
+| KifuDisplay | C | widgets | 棋譜指し手表示ウィジェット | 第11章 |
+| KifuDisplayCoordinator | C | ui/coordinators | 棋譜表示の統合調整 | 第10章 |
+| KifuExportController | C | kifu | 棋譜エクスポートの制御 | 第8章 |
+| KifuIoService | NS | kifu | 棋譜ファイルI/Oサービス | 第8章 |
+| KifuLoadCoordinator | C | kifu | 棋譜ファイル読み込みの統合調整（形式自動検出） | 第8章 |
+| KifuNavigationController | C | navigation | 棋譜ナビゲーション制御 | 第13章 |
+| KifuNavigationState | C | kifu | 棋譜ナビゲーション状態の管理 | 第8章, 第13章 |
+| KifuPasteDialog | C | dialogs | 棋譜ペーストダイアログ | 第11章 |
+| KifuRecordListModel | C | models | 棋譜レコードリストモデル | 第11章 |
+| KifuSaveCoordinator | NS | kifu | 棋譜ファイル保存の統合調整 | 第8章 |
+| LanguageController | C | ui/controllers | アプリ言語切替の制御 | 第10章, 第16章 |
+| LiveGameSession | C | kifu | 対局中の棋譜一時記録セッション | 第8章 |
+| LongLongSpinBox | C | widgets | 64ビット整数スピンボックス | 第11章 |
+| MainWindow | C | app | メインウィンドウ（ファサード/ハブ） | 第3章, 第10章, 第14章 |
+| MatchCoordinator | C | game | 対局進行の司令塔（マスターコントローラ） | 第6章 |
+| MenuButtonWidget | C | widgets | メニューボタンウィジェット | 第11章 |
+| MenuWindow | C | dialogs | 対局開始メニューウィンドウ | 第11章 |
+| MenuWindowWiring | C | ui/wiring | メニューウィンドウのシグナル/スロット配線 | 第10章 |
+| MoveValidator | C | core | 合法手判定・バリデーション | 第5章 |
+| NavigationPresenter | C | ui/presenters | ナビゲーション状態表示プレゼンター | 第10章 |
+| NumericRightAlignCommaDelegate | C | widgets | 数値右寄せカンマ区切りデリゲート | 第11章 |
+| NyugyokuDeclarationHandler | C | ui/controllers | 入玉宣言の処理ハンドラ | 第10章 |
+| PlayerInfoController | C | ui/controllers | プレイヤー情報表示の制御 | 第10章 |
+| PlayerInfoWiring | C | ui/wiring | プレイヤー情報のシグナル/スロット配線 | 第10章 |
+| PlayerNameService | C | services | プレイヤー名解決サービス | 第12章 |
+| PositionEditController | C | board | 局面編集モードの制御 | 第13章 |
+| PositionEditCoordinator | C | ui/coordinators | 局面編集の統合調整 | 第10章 |
+| PreStartCleanupHandler | C | game | 対局開始前クリーンアップ処理 | 第6章 |
+| PromoteDialog | C | dialogs | 成/不成確認ダイアログ | 第11章 |
+| PromotionFlow | C | game | 成/不成選択フロー | 第6章 |
+| PvBoardDialog | C | dialogs | 読み筋盤面表示ダイアログ | 第11章 |
+| PvClickController | C | ui/controllers | 読み筋クリックの制御 | 第10章 |
+| RecordNavigationHandler | C | navigation | 棋譜ペイン行変更ハンドラ | 第13章 |
+| RecordPane | C | widgets | 棋譜ペインウィジェット | 第11章 |
+| RecordPaneWiring | C | ui/wiring | 棋譜ペインのシグナル/スロット配線 | 第10章 |
+| ReplayController | C | ui/controllers | 棋譜再生・自動再生の制御 | 第10章 |
+| SettingsService | NS | services | INI設定ファイルの永続化サービス | 第12章 |
+| SfenPositionTracer | C | board | SFEN局面状態のトレーサー | 第13章 |
+| SfenUtils | NS | core | SFEN文字列のユーティリティ（ヘッダーオンリー） | 第2章, 第5章 |
+| ShogiBoard | C | core | 将棋盤・駒台の状態管理 | 第5章 |
+| ShogiClock | C | core | 対局時計・時間管理 | 第5章 |
+| ShogiEngineInfoParser | C | engine | USIエンジンinfo行のパーサー | 第7章 |
+| ShogiEngineThinkingModel | C | engine | エンジン思考結果リストモデル（6列） | 第7章 |
+| ShogiGameController | C | game | 対局進行・盤面更新・合法手検証 | 第6章 |
+| ShogiInfoRecord | C | kifu | USIエンジン思考情報レコード | 第7章, 第8章 |
+| ShogiUtils | NS | core | 座標変換・USI変換等の共通ユーティリティ | 第2章, 第5章 |
+| ShogiView | C | views | 将棋盤の描画・レンダリングビュー | 第11章 |
+| StartGameDialog | C | dialogs | 対局開始設定ダイアログ | 第11章 |
+| ThinkingInfoPresenter | C | engine | 思考情報のGUI表示プレゼンター | 第7章 |
+| TimeControlController | C | ui/controllers | 持ち時間・時計表示の制御 | 第10章 |
+| TimeControlUtil | NS | services | 持ち時間設定のユーティリティ | 第12章 |
+| TimeDisplayPresenter | C | ui/presenters | 時間表示更新プレゼンター | 第10章 |
+| TimekeepingService | C | services | 時間管理サービス | 第12章 |
+| TsumePositionUtil | C | common | 詰将棋局面のユーティリティ | 第9章, 第12章 |
+| TsumeSearchFlowController | C | analysis | 詰将棋探索フローの制御 | 第9章 |
+| TsumeShogiSearchDialog | C | dialogs | 詰将棋探索ダイアログ | 第11章 |
+| TurnManager | C | game | 手番管理・形式変換 | 第6章 |
+| TurnSyncBridge | C | game | GameController/TurnManager/UI間の手番同期 | 第6章 |
+| UiActionsWiring | C | ui/wiring | メニュー・ツールバーアクションのシグナル/スロット配線 | 第10章 |
+| UsenToSfenConverter | C | kifu/formats | USEN形式→SFEN変換器 | 第8章 |
+| Usi | C | engine | USIプロトコル通信ファサード | 第7章 |
+| UsiCommLogModel | C | engine | USI通信ログ・エンジン情報モデル | 第7章 |
+| UsiCommandController | C | ui/controllers | USIエンジンコマンド送信の制御 | 第10章 |
+| UsiProtocolHandler | C | engine | USIプロトコルの送受信管理 | 第7章 |
+| UsiToSfenConverter | C | kifu/formats | USI形式→SFEN変換器 | 第8章 |
+| VersionDialog | C | dialogs | バージョン情報ダイアログ | 第11章 |
+
+---
+
+### 18.4 ファイル→章 対応表（逆引き）
+
+主要ソースファイルがどの章で解説されているかの逆引き一覧。ヘッダー（`.h`）と実装（`.cpp`）は同一ディレクトリに配置されているため、ファイル名部分のみ記載する。
+
+#### core/（第2章, 第5章）
+
+| ファイル | 解説章 | 内容 |
+|---------|--------|------|
+| shogiboard | 第2章, 第5章 | 盤面・駒台の状態管理 |
+| shogimove | 第2章, 第5章 | 指し手データ構造 |
+| movevalidator | 第2章, 第5章 | 合法手判定 |
+| shogiclock | 第5章 | 対局時計 |
+| playmode | 第3章, 第5章 | 動作モード列挙体 |
+| sfenutils | 第2章, 第5章 | SFENユーティリティ |
+| shogiutils | 第2章, 第5章 | 座標変換・USI変換 |
+| legalmovestatus | 第5章 | 合法手ステータス |
+
+#### game/（第6章）
+
+| ファイル | 解説章 | 内容 |
+|---------|--------|------|
+| matchcoordinator | 第4章, 第6章 | 対局進行の司令塔 |
+| shogigamecontroller | 第6章 | 対局フロー制御 |
+| gamestartcoordinator | 第6章 | 対局開始フロー |
+| gamestatecontroller | 第6章 | 対局状態・終局処理 |
+| turnmanager | 第6章 | 手番管理 |
+| turnsyncbridge | 第6章 | 手番同期ブリッジ |
+| promotionflow | 第6章 | 成/不成フロー |
+| prestartcleanuphandler | 第6章 | 対局前クリーンアップ |
+| consecutivegamescontroller | 第6章 | 連続対局制御 |
+
+#### engine/（第7章）
+
+| ファイル | 解説章 | 内容 |
+|---------|--------|------|
+| usi | 第7章 | エンジンファサード |
+| usiprotocolhandler | 第7章 | USIプロトコル処理 |
+| engineprocessmanager | 第7章 | エンジンプロセス管理 |
+| thinkinginfopresenter | 第7章 | 思考情報表示 |
+| shogiengineinfoparser | 第7章 | info行パーサー |
+| shogienginethinkingmodel | 第7章 | 思考結果モデル |
+| usicommlogmodel | 第7章 | 通信ログモデル |
+| enginesettingscoordinator | 第7章 | エンジン設定調整 |
+| engineoptiondescriptions | 第7章 | オプション説明 |
+| engineoptions | 第7章 | オプション定義 |
+| enginesettingsconstants | 第1章, 第7章 | 設定定数 |
+
+#### kifu/（第8章）
+
+| ファイル | 解説章 | 内容 |
+|---------|--------|------|
+| gamerecordmodel | 第8章 | 棋譜データモデル |
+| kifubranchtree | 第8章 | 分岐ツリー |
+| kifubranchnode | 第8章 | 分岐ノード |
+| kifubranchtreebuilder | 第8章 | ツリー構築 |
+| kifuloadcoordinator | 第8章 | 棋譜読み込み |
+| kifusavecoordinator | 第8章 | 棋譜保存 |
+| kifuioservice | 第8章 | ファイルI/O |
+| kifuexportcontroller | 第8章 | エクスポート制御 |
+| kifunavigationstate | 第8章, 第13章 | ナビゲーション状態 |
+| livegamesession | 第8章 | 対局中セッション |
+| kifuclipboardservice | 第8章 | クリップボード操作 |
+| kifucontentbuilder | 第8章 | コンテンツ構築 |
+| shogiinforecord | 第7章, 第8章 | 思考情報レコード |
+| kifreader | 第8章 | KIFファイル読み込み |
+| kifdisplayitem | 第8章 | 表示アイテム定義 |
+| kifparsetypes | 第8章 | パース型定義 |
+| kifutypes | 第8章 | 共通型定義 |
+
+#### kifu/formats/（第8章）
+
+| ファイル | 解説章 | 内容 |
+|---------|--------|------|
+| kiftosfenconverter | 第8章 | KIF→SFEN変換 |
+| ki2tosfenconverter | 第8章 | KI2→SFEN変換 |
+| csatosfenconverter | 第8章 | CSA→SFEN変換 |
+| jkftosfenconverter | 第8章 | JKF→SFEN変換 |
+| usentosfenconverter | 第8章 | USEN→SFEN変換 |
+| usitosfenconverter | 第8章 | USI→SFEN変換 |
+
+#### analysis/（第9章）
+
+| ファイル | 解説章 | 内容 |
+|---------|--------|------|
+| analysiscoordinator | 第9章 | 解析の低レベル制御 |
+| analysisflowcontroller | 第9章 | 棋譜解析フロー |
+| considerationflowcontroller | 第9章 | 検討モードフロー |
+| considerationmodeuicontroller | 第9章 | 検討モードUI |
+| tsumesearchflowcontroller | 第9章 | 詰将棋探索フロー |
+| analysisresultspresenter | 第9章 | 解析結果表示 |
+| kifuanalysislistmodel | 第9章 | 解析結果リストモデル |
+
+#### network/（第12章）
+
+| ファイル | 解説章 | 内容 |
+|---------|--------|------|
+| csaclient | 第12章 | CSAプロトコルクライアント |
+| csagamecoordinator | 第12章 | CSA対局調整 |
+
+#### navigation/（第13章）
+
+| ファイル | 解説章 | 内容 |
+|---------|--------|------|
+| kifunavigationcontroller | 第13章 | ナビゲーション制御 |
+| recordnavigationhandler | 第13章 | 棋譜ペイン行変更 |
+
+#### board/（第13章）
+
+| ファイル | 解説章 | 内容 |
+|---------|--------|------|
+| boardinteractioncontroller | 第13章 | 盤面操作制御 |
+| positioneditcontroller | 第13章 | 局面編集制御 |
+| boardimageexporter | 第13章 | 盤面画像出力 |
+| sfenpositiontracer | 第13章 | SFEN局面トレース |
+
+#### ui/presenters/（第10章）
+
+| ファイル | 解説章 | 内容 |
+|---------|--------|------|
+| boardsyncpresenter | 第4章, 第10章 | 盤面同期 |
+| evalgraphpresenter | 第10章 | 評価値グラフフック |
+| gamerecordpresenter (recordpresenter) | 第4章, 第10章 | 棋譜表示 |
+| navigationpresenter | 第10章 | ナビゲーション状態 |
+| timedisplaypresenter | 第10章 | 時間表示更新 |
+
+#### ui/controllers/（第10章）
+
+| ファイル | 解説章 | 内容 |
+|---------|--------|------|
+| boardsetupcontroller | 第10章 | 初期配置セットアップ |
+| evaluationgraphcontroller | 第10章 | 評価値グラフ制御 |
+| jishogiscoredialogcontroller | 第10章 | 持将棋点数ダイアログ |
+| languagecontroller | 第10章, 第16章 | 言語切替 |
+| nyugyokudeclarationhandler | 第10章 | 入玉宣言 |
+| playerinfocontroller | 第10章 | プレイヤー情報 |
+| pvclickcontroller | 第10章 | 読み筋クリック |
+| replaycontroller | 第10章 | 棋譜再生 |
+| timecontrolcontroller | 第10章 | 持ち時間制御 |
+| usicommandcontroller | 第10章 | USIコマンド送信 |
+
+#### ui/wiring/（第10章）
+
+| ファイル | 解説章 | 内容 |
+|---------|--------|------|
+| uiactionswiring | 第4章, 第10章 | メニュー・ツールバー配線 |
+| considerationwiring | 第4章, 第10章 | 検討モード配線 |
+| csagamewiring | 第10章 | CSA対局配線 |
+| playerinfowiring | 第10章 | プレイヤー情報配線 |
+| analysistabwiring | 第10章 | 解析タブ配線 |
+| recordpanewiring | 第10章 | 棋譜ペイン配線 |
+| menuwindowwiring | 第10章 | メニューウィンドウ配線 |
+| josekiwindowwiring | 第10章 | 定跡ウィンドウ配線 |
+
+#### ui/coordinators/（第10章）
+
+| ファイル | 解説章 | 内容 |
+|---------|--------|------|
+| dialogcoordinator | 第4章, 第10章 | ダイアログ管理 |
+| gamelayoutbuilder | 第10章 | レイアウト構築 |
+| docklayoutmanager | 第10章 | ドックレイアウト |
+| kifudisplaycoordinator | 第10章 | 棋譜表示調整 |
+| positioneditcoordinator | 第10章 | 局面編集調整 |
+| aboutcoordinator | 第10章 | バージョン情報 |
+
+#### views/（第11章）
+
+| ファイル | 解説章 | 内容 |
+|---------|--------|------|
+| shogiview | 第11章 | 将棋盤レンダリング |
+
+#### widgets/（第11章）
+
+| ファイル | 解説章 | 内容 |
+|---------|--------|------|
+| recordpane | 第11章 | 棋譜ペイン |
+| engineanalysistab | 第11章 | エンジン解析タブ |
+| evaluationchartwidget | 第11章 | 評価値チャート |
+| kifudisplay | 第11章 | 棋譜表示 |
+| kifubranchdisplay | 第11章 | 分岐候補表示 |
+| branchtreewidget | 第11章 | 分岐ツリーグラフ |
+| gameinfopanecontroller | 第11章 | 対局情報ペイン |
+| engineinfowidget | 第11章 | エンジン情報 |
+| kifuanalysisresultsdisplay | 第9章, 第11章 | 解析結果表示 |
+| menubuttonwidget | 第11章 | メニューボタン |
+| collapsiblegroupbox | 第11章 | 折りたたみボックス |
+| elidelabel | 第11章 | テキスト省略ラベル |
+| flowlayout | 第11章 | フローレイアウト |
+| globaltooltip | 第11章 | ツールチップ |
+| apptooltipfilter | 第11章 | ツールチップフィルタ |
+| branchrowdelegate | 第11章 | 分岐行デリゲート |
+| longlongspinbox | 第11章 | 64bit スピンボックス |
+| numeric_right_align_comma_delegate | 第11章 | 数値デリゲート |
+
+#### dialogs/（第11章）
+
+| ファイル | 解説章 | 内容 |
+|---------|--------|------|
+| startgamedialog | 第11章 | 対局開始 |
+| considerationdialog | 第11章 | 検討モード |
+| kifuanalysisdialog | 第11章 | 棋譜解析 |
+| csagamedialog | 第11章 | CSA対局 |
+| engineregistrationdialog | 第11章 | エンジン登録 |
+| changeenginesettingsdialog | 第11章 | エンジン設定変更 |
+| promotedialog | 第11章 | 成/不成確認 |
+| versiondialog | 第11章 | バージョン情報 |
+| tsumeshogisearchdialog | 第11章 | 詰将棋探索 |
+| pvboarddialog | 第11章 | 読み筋盤面 |
+| kifupastedialog | 第11章 | 棋譜ペースト |
+| csawaitingdialog | 第11章 | CSA待機 |
+| menuwindow | 第11章 | メニューウィンドウ |
+| josekiwindow | 第11章 | 定跡ウィンドウ |
+| josekimergedialog | 第11章 | 定跡結合 |
+| josekimovedialog | 第11章 | 定跡手入力 |
+
+#### models/（第11章）
+
+| ファイル | 解説章 | 内容 |
+|---------|--------|------|
+| abstractlistmodel | 第11章 | リストモデル基底テンプレート |
+| kifurecordlistmodel | 第11章 | 棋譜レコードモデル |
+| kifubranchlistmodel | 第11章 | 分岐候補モデル |
+
+#### services/（第12章）
+
+| ファイル | 解説章 | 内容 |
+|---------|--------|------|
+| settingsservice | 第12章 | INI設定永続化 |
+| timekeepingservice | 第12章 | 時間管理 |
+| playernameservice | 第12章 | プレイヤー名解決 |
+| timecontrolutil | 第12章 | 持ち時間ユーティリティ |
+
+#### common/（第4章, 第12章）
+
+| ファイル | 解説章 | 内容 |
+|---------|--------|------|
+| errorbus | 第4章, 第12章 | エラー通知バス |
+| jishogicalculator | 第12章 | 持将棋点数計算 |
+| tsumepositionutil | 第9章, 第12章 | 詰将棋局面ユーティリティ |
+
+#### app/（第1章, 第3章, 第14章）
+
+| ファイル | 解説章 | 内容 |
+|---------|--------|------|
+| main | 第1章 | アプリケーションエントリーポイント |
+| mainwindow | 第3章, 第10章, 第14章 | メインウィンドウ（ハブ） |
+| commentcoordinator | 第14章 | コメント調整 |
+| dockcreationservice | 第14章 | ドック生成サービス |
+
+#### resources/（第1章, 第16章）
+
+| ファイル | 解説章 | 内容 |
+|---------|--------|------|
+| shogiboardq.qrc | 第1章 | Qtリソース定義 |
+| translations/ShogiBoardQ_ja_JP.ts | 第1章, 第16章 | 日本語翻訳 |
+| translations/ShogiBoardQ_en.ts | 第1章, 第16章 | 英語翻訳 |
+
+#### その他
+
+| ファイル | 解説章 | 内容 |
+|---------|--------|------|
+| CMakeLists.txt | 第1章 | CMakeビルド設定 |
+| CLAUDE.md | 第1章, 第4章 | 開発ガイドライン |
+
+---
+
+### 18.5 章別 主要トピック索引
+
+各章の主要トピックへのクイックリファレンス。
+
+| トピック | 章 | 節 |
+|---------|----|----|
+| SFEN記法 | 第2章 | §2.2 |
+| USI指し手記法 | 第2章 | §2.3 |
+| 棋譜フォーマット比較 | 第2章 | §2.5 |
+| 5層アーキテクチャ | 第3章 | §3.1 |
+| PlayMode列挙体（13モード） | 第3章 | §3.3 |
+| Deps構造体パターン | 第4章 | §4.1 |
+| ensure*()遅延初期化 | 第4章 | §4.2 |
+| Hooks/std::functionコールバック | 第4章 | §4.3 |
+| Wiringパターン | 第4章 | §4.3 |
+| MVP分割（Presenter/Controller/Coordinator） | 第4章 | §4.4 |
+| ErrorBusシングルトン | 第4章 | §4.5 |
+| connect()でのラムダ禁止 | 第4章 | §4.6 |
+| m_boardData（81要素QVector） | 第5章 | §5.1 |
+| MatchCoordinator（対局司令塔） | 第6章 | §6.1 |
+| Player列挙体（P1/P2） | 第6章 | §6.1 |
+| TerminalType（10種の終局型） | 第8章 | §8.2 |
+| エンジン3層構造（Usi/ProtocolHandler/ProcessManager） | 第7章 | §7.1 |
+| SearchPhase（Idle/Main/Ponder） | 第7章 | §7.2 |
+| 分岐ツリー（KifuBranchTree/Node） | 第8章 | §8.1 |
+| 検討モード（Consideration） | 第9章 | §9.2 |
+| 棋譜解析（KifuAnalysis） | 第9章 | §9.3 |
+| 詰将棋探索（TsumeSearch） | 第9章 | §9.4 |
+| ShogiViewの描画パイプライン | 第11章 | §11.1 |
+| CSAプロトコル状態遷移 | 第12章 | §12.1 |
+| SettingsServiceのINI永続化 | 第12章 | §12.3 |
+| MainWindowのensure*()群（約40メソッド） | 第14章 | §14.2 |
+| リファクタリング経緯 | 第14章 | §14.4 |
+| ユースケースシーケンス図（5パターン） | 第15章 | §15.1–§15.5 |
+| Qt Linguistワークフロー | 第16章 | §16.1 |
+| 新機能追加チェックリスト | 第17章 | §17.8 |
+
+<!-- chapter-18-end -->

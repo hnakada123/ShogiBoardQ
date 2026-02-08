@@ -477,58 +477,39 @@ docs/developer-guide.md に第15章「機能フロー詳解」を作成してく
 
 ---
 
-## Session 16: 第16章 + 第17章（国際化 + テスト）
+## Session 16: 第16章 国際化（i18n）と翻訳
 
 ```
-docs/developer-guide.md に第16章「国際化（i18n）と翻訳」と第17章「テストとデバッグ」を作成してください。
+docs/developer-guide.md に第16章「国際化（i18n）と翻訳」を作成してください。
 
-<!-- chapter-16-start --> 〜 <!-- chapter-16-end --> と
-<!-- chapter-17-start --> 〜 <!-- chapter-17-end --> の間のプレースホルダを
-それぞれ実際の内容で置き換えてください。
+<!-- chapter-16-start --> と <!-- chapter-16-end --> の間のプレースホルダを
+実際の内容で置き換えてください。
 
 主要参照ファイル:
-【第16章】
 - src/ui/controllers/languagecontroller.h
 - src/ui/controllers/languagecontroller.cpp
 - resources/translations/ShogiBoardQ_ja_JP.ts（冒頭部分の構造確認のみ）
 - CLAUDE.md（Internationalization セクション）
 
-【第17章】
-- src/app/testautomationhelper.h
-- src/app/testautomationhelper.cpp
-- tests/tst_kifudisplaycoordinator.cpp（冒頭〜100行程度で構造把握）
-- tests/tst_livegamesession.cpp（冒頭〜100行程度で構造把握）
-- tests/tst_prestartcleanuphandler.cpp（冒頭〜100行程度で構造把握）
-- tests/CMakeLists.txt
-
 記述してほしい内容:
-【第16章】
 - tr() → lupdate → .ts編集 → lrelease → .qm のワークフロー図
 - LanguageController: 実行時言語切替の仕組み
 - 翻訳追加の手順（新しいtr()文字列を追加してから翻訳が反映されるまで）
 - .tsファイルの構造（XML形式の簡単な説明）
 
-【第17章】
-- テストファイル一覧と各テストの概要
-- テストのビルド・実行方法（BUILD_TESTING=ON、ctest）
-- fakes/ディレクトリの役割（モック/フェイク実装）
-- TestAutomationHelper: コマンドラインからのテスト自動実行の仕組み
-- verify4WayConsistency()（もし存在すれば）: 盤面/棋譜/分岐/SFENの整合性検証
-
 注意:
-- テストファイルは大きいので冒頭部分の構造確認のみで十分です
 - 他の章の内容は変更しないでください
 - 改訂履歴テーブルに日付と作成した章を追記してください
 ```
 
 ---
 
-## Session 17: 第18章 新機能の追加ガイド
+## Session 17: 第17章 新機能の追加ガイド
 
 ```
-docs/developer-guide.md に第18章「新機能の追加ガイド」を作成してください。
+docs/developer-guide.md に第17章「新機能の追加ガイド」を作成してください。
 
-<!-- chapter-18-start --> と <!-- chapter-18-end --> の間のプレースホルダを
+<!-- chapter-17-start --> と <!-- chapter-17-end --> の間のプレースホルダを
 実際の内容で置き換えてください。
 
 主要参照ファイル:
@@ -558,12 +539,12 @@ docs/developer-guide.md に第18章「新機能の追加ガイド」を作成し
 
 ---
 
-## Session 18: 第19章 用語集・索引
+## Session 18: 第18章 用語集・索引
 
 ```
-docs/developer-guide.md に第19章「用語集・索引」を作成してください。
+docs/developer-guide.md に第18章「用語集・索引」を作成してください。
 
-<!-- chapter-19-start --> と <!-- chapter-19-end --> の間のプレースホルダを
+<!-- chapter-18-start --> と <!-- chapter-18-end --> の間のプレースホルダを
 実際の内容で置き換えてください。
 
 主要参照ファイル:
