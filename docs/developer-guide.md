@@ -59,6 +59,11 @@
 | 2026-02-08 | 第9章「analysis層：解析機能」作成 |
 | 2026-02-08 | 第10章「UI層：プレゼンテーション」作成 |
 | 2026-02-08 | 第11章「views/widgets/dialogs層：Qt UI部品」作成 |
+| 2026-02-08 | 第12章「network層とservices層」作成 |
+| 2026-02-08 | 第13章「navigation層とboard層」作成 |
+| 2026-02-08 | 第14章「MainWindowの役割と構造」作成 |
+| 2026-02-08 | 第15章「機能フロー詳解」作成 |
+| 2026-02-08 | 第16章「国際化（i18n）と翻訳」作成 |
 
 <!-- chapter-0-end -->
 
@@ -6630,7 +6635,471 @@ ShogiClock::setCurrentPlayer(1 or 2)  ← SFENから推定
 <!-- chapter-13-start -->
 ## 第13章 navigation層とboard層
 
-*（後続セッションで作成予定）*
+本章では棋譜ナビゲーション（`src/navigation/`）と盤面操作（`src/board/`）の2層を解説する。ナビゲーション層は棋譜の手を辿るUI操作を統一管理し、盤面層はクリックによる駒操作・局面編集・画像エクスポート・SFEN追跡を担う。
+
+### 13.1 KifuNavigationController — 棋譜ナビゲーションコントローラ
+
+**ソース**: `src/navigation/kifunavigationcontroller.h/.cpp`
+
+棋譜の閲覧操作（ボタン・クリック・分岐選択）を統一的に処理するコントローラ。ナビゲーション後は `emitUpdateSignals()` で盤面・棋譜欄・分岐ツリーへの更新シグナルを一括発行する。
+
+#### 依存オブジェクト
+
+| オブジェクト | 設定方法 | 役割 |
+|-------------|---------|------|
+| `KifuBranchTree` | `setTreeAndState()` | 分岐ツリーデータ（非所有） |
+| `KifuNavigationState` | `setTreeAndState()` | 現在位置・分岐選択記憶の管理（非所有） |
+
+#### 6つのナビゲーションボタン
+
+`connectButtons()` で6つの `QPushButton` の `clicked` シグナルを対応スロットに接続する。
+
+| ボタン | スロット | 動作 |
+|-------|---------|------|
+| 先頭（`|◁`） | `onFirstClicked` → `goToFirst()` | ルートノード（0手目）へ移動 |
+| 10手戻る（`◁◁`） | `onBack10Clicked` → `goBack(10)` | 親ノードを10回辿る |
+| 1手戻る（`◁`） | `onPrevClicked` → `goBack(1)` | 親ノードへ移動 |
+| 1手進む（`▷`） | `onNextClicked` → `goForward(1)` | 子ノードへ移動（分岐選択記憶を優先） |
+| 10手進む（`▷▷`） | `onFwd10Clicked` → `goForward(10)` | 子ノードを10回辿る |
+| 末尾（`▷|`） | `onLastClicked` → `goToLast()` | 現在ラインの終端まで進む |
+
+#### goForward() の分岐選択ロジック
+
+「1手進む」/「10手進む」/「末尾」では、分岐がある場合に `findForwardNode()` で次のノードを決定する。
+
+```
+findForwardNode():
+  1. currentNode の子ノード数が 0 → null（末尾）
+  2. lastSelectedLineAt(currentNode) で以前の分岐選択を取得
+     → 有効なインデックスなら、そのラインの子ノードを返す
+  3. フォールバック: childAt(0)（本譜）を返す
+```
+
+この仕組みにより、一度分岐を選択してから「戻る→進む」した場合、以前選択した分岐パスを辿り直すことができる。
+
+#### goToNode() — 分岐選択記憶の更新
+
+指定ノードへ直接移動する際、ノードからルートまで遡って全分岐点での選択を `rememberLineSelection()` で記憶する。これにより後続の `goForward()` が正しいパスを辿れるようになる。
+
+#### その他のナビゲーション操作
+
+| メソッド | 動作 |
+|---------|------|
+| `goToPly(int ply)` | 現在ライン上の指定手数へ移動（内部で `goBack`/`goForward` を呼ぶ） |
+| `switchToLine(int lineIndex)` | 全ライン一覧から指定ラインへ切替（同じ手数のノードを探索） |
+| `selectBranchCandidate(int idx)` | 分岐候補欄から選択して移動、優先ラインを設定 |
+| `goToMainLineAtCurrentPly()` | 本譜の同手数ノードへ戻る（優先ライン・選択記憶をリセット） |
+
+#### handleBranchNodeActivated() — 分岐ツリークリック処理
+
+分岐ツリーウィジェットのセルがクリックされたときに呼ばれるスロット。
+
+```
+handleBranchNodeActivated(row, ply):
+  1. ply == 0 → ルートノードへ移動して終了
+  2. 分岐前の共有ノードかチェック
+     → 現在のラインの branchPly より前なら effectiveRow を現在ラインに維持
+  3. effectiveRow > 0 → setPreferredLineIndex() で優先ラインを設定
+  4. line.nodes から ply に一致するノードを検索
+  5. goToNode() で移動
+  6. branchNodeHandled シグナルで ply, sfen, 移動先座標, USI表記を通知
+```
+
+#### emitUpdateSignals() — 更新シグナルの一括発行
+
+全ナビゲーション操作の末尾で呼ばれ、5つのシグナルを発行する。
+
+| シグナル | 接続先 | 内容 |
+|---------|-------|------|
+| `navigationCompleted(node)` | MainWindow | ナビゲーション完了通知 |
+| `boardUpdateRequired(sfen)` | BoardSyncPresenter | 盤面SFEN更新 |
+| `recordHighlightRequired(ply)` | RecordPresenter | 棋譜欄ハイライト |
+| `branchTreeHighlightRequired(lineIdx, ply)` | BranchTreeWidget | 分岐ツリーハイライト |
+| `branchCandidatesUpdateRequired(candidates)` | KifuBranchDisplay | 分岐候補欄更新 |
+
+### 13.2 KifuNavigationState — ナビゲーション状態管理
+
+**ソース**: `src/kifu/kifunavigationstate.h/.cpp`
+
+ナビゲーションの現在位置と分岐選択履歴を保持する状態オブジェクト。KifuNavigationController の操作対象となる。
+
+#### 主要な状態
+
+| メンバ | 型 | 役割 |
+|-------|---|------|
+| `m_currentNode` | `KifuBranchNode*` | 現在位置のノード |
+| `m_tree` | `KifuBranchTree*` | 分岐ツリーへの参照 |
+| `m_lastSelectedLineAtBranch` | `QHash<int, int>` | 分岐点ごとの選択記憶 |
+| `m_preferredLineIndex` | `int` | 優先ラインインデックス（-1=未設定） |
+
+#### 主要メソッド
+
+| メソッド | 説明 |
+|---------|------|
+| `currentPly()` | 現在の手数 |
+| `currentLineIndex()` | 現在のラインインデックス（0=本譜、1以上=分岐） |
+| `isOnMainLine()` | 本譜上にいるか |
+| `canGoForward()` / `canGoBack()` | 前進/後退可能か |
+| `branchCandidatesAtCurrent()` | 現在位置の分岐候補ノード一覧 |
+| `rememberLineSelection(node, idx)` | 分岐点での選択を記憶 |
+| `lastSelectedLineAt(node)` | 記憶された選択を返す |
+
+### 13.3 RecordNavigationHandler — 棋譜欄行変更ハンドラ
+
+**ソース**: `src/navigation/recordnavigationhandler.h/.cpp`
+
+棋譜欄（RecordPane）の行選択が変わったときの処理を担当する。MainWindow の `onRecordPaneMainRowChanged` から分離されたロジック。
+
+#### Deps構造体
+
+```cpp
+struct Deps {
+    KifuNavigationState* navState;          // ナビゲーション状態
+    KifuBranchTree* branchTree;              // 分岐ツリー
+    KifuDisplayCoordinator* displayCoordinator; // 棋譜表示調整
+    KifuRecordListModel* kifuRecordModel;    // 棋譜リストモデル
+    ShogiView* shogiView;                    // 盤面ビュー
+    EvaluationGraphController* evalGraphController; // 評価値グラフ
+    QStringList* sfenRecord;                  // SFEN記録
+    int* activePly;                           // アクティブ手数
+    int* currentSelectedPly;                  // 選択中手数
+    int* currentMoveIndex;                    // 現在の手インデックス
+    QString* currentSfenStr;                  // 現在局面SFEN
+    bool* skipBoardSyncForBranchNav;          // 分岐ナビ同期スキップフラグ
+    CsaGameCoordinator* csaGameCoordinator;  // CSA対局
+    PlayMode* playMode;                       // 対局モード
+    MatchCoordinator* match;                  // 対局調整
+};
+```
+
+#### onMainRowChanged() の処理フロー
+
+```
+onMainRowChanged(row):
+  1. 再入ガード（static bool でスキップ）
+  2. 分岐ナビゲーション中フラグチェック → スキップ
+  3. CSA対局進行中チェック → スキップ
+  4. 盤面同期:
+     a. 分岐ライン上 → branchBoardSyncRequired(sfen, prevSfen) を emit
+     b. 本譜 → boardSyncRequired(row) を emit
+  5. 手数トラッキング変数を更新（activePly, currentSelectedPly, currentMoveIndex）
+  6. 棋譜モデルのハイライト行を更新
+  7. 手番表示・評価値グラフカーソルを更新
+  8. 矢印ボタン有効化を要求
+  9. m_currentSfenStr を更新（本譜の場合）
+  10. 定跡ウィンドウ更新を要求
+  11. 検討モード中なら buildPositionRequired を emit
+  12. KifuDisplayCoordinator に位置変更を通知
+```
+
+#### 発行するシグナル
+
+| シグナル | 接続先 | 発火条件 |
+|---------|-------|---------|
+| `boardSyncRequired(ply)` | MainWindow | 本譜の盤面同期 |
+| `branchBoardSyncRequired(sfen, prevSfen)` | MainWindow | 分岐ラインの盤面同期 |
+| `enableArrowButtonsRequired()` | MainWindow | 矢印ボタンの有効化 |
+| `turnUpdateRequired()` | MainWindow | 手番表示の更新 |
+| `josekiUpdateRequired()` | MainWindow | 定跡ウィンドウの更新 |
+| `buildPositionRequired(row)` | MainWindow | 検討モード用局面構築 |
+
+### 13.4 ナビゲーションフロー図
+
+ユーザの操作から盤面更新までの全体的なデータフローを示す。
+
+```mermaid
+flowchart TD
+    subgraph "ユーザ操作"
+        A1["ナビゲーションボタン<br/>（先頭/前/次/末尾/10手前/10手後）"]
+        A2["棋譜欄クリック"]
+        A3["分岐ツリークリック"]
+        A4["分岐候補クリック"]
+    end
+
+    subgraph "Controller層"
+        B1["KifuNavigationController<br/>goToFirst/goBack/goForward/goToLast"]
+        B2["RecordNavigationHandler<br/>onMainRowChanged"]
+        B3["KifuNavigationController<br/>handleBranchNodeActivated"]
+        B4["KifuNavigationController<br/>selectBranchCandidate"]
+    end
+
+    subgraph "State層"
+        C["KifuNavigationState<br/>currentNode / currentLineIndex<br/>分岐選択記憶"]
+    end
+
+    subgraph "UI更新"
+        D1["BoardSyncPresenter<br/>盤面SFEN更新"]
+        D2["RecordPresenter<br/>棋譜欄ハイライト"]
+        D3["BranchTreeWidget<br/>分岐ツリーハイライト"]
+        D4["KifuBranchDisplay<br/>分岐候補欄更新"]
+        D5["EvaluationGraphController<br/>カーソルライン更新"]
+    end
+
+    A1 --> B1
+    A2 --> B2
+    A3 --> B3
+    A4 --> B4
+
+    B1 -->|"setCurrentNode()"| C
+    B3 -->|"goToNode()"| C
+    B4 -->|"goToNode()"| C
+
+    B1 -->|"emitUpdateSignals()"| D1
+    B1 -->|"emitUpdateSignals()"| D2
+    B1 -->|"emitUpdateSignals()"| D3
+    B1 -->|"emitUpdateSignals()"| D4
+
+    B2 -->|"boardSyncRequired"| D1
+    B2 -->|"setCurrentPly()"| D5
+    B2 -->|"setCurrentHighlightRow()"| D2
+
+    B3 -->|"emitUpdateSignals()"| D1
+    B3 -->|"emitUpdateSignals()"| D2
+    B3 -->|"emitUpdateSignals()"| D3
+
+    B4 -->|"emitUpdateSignals()"| D1
+    B4 -->|"emitUpdateSignals()"| D2
+    B4 -->|"emitUpdateSignals()"| D3
+    B4 -->|"emitUpdateSignals()"| D4
+```
+
+**ポイント**: KifuNavigationController 経由の操作（ボタン・分岐ツリー・分岐候補）はすべて `emitUpdateSignals()` で統一的に更新シグナルを発行する。一方、棋譜欄クリックは RecordNavigationHandler が個別にシグナルを発行する。
+
+### 13.5 BoardInteractionController — 盤面操作コントローラ
+
+**ソース**: `src/board/boardinteractioncontroller.h/.cpp`
+
+盤面上のマウスクリック操作とハイライト描画を制御するコントローラ。
+
+#### 操作モード
+
+```cpp
+enum class Mode {
+    HumanVsHuman,   // 対人対局
+    HumanVsEngine,  // 対エンジン対局
+    Edit             // 局面編集
+};
+```
+
+モードに応じてクリック時の挙動が変わる。`Edit` モード以外では人間の手番判定コールバック（`IsHumanTurnCallback`）でガードされる。
+
+#### 2クリック方式の駒移動
+
+駒の移動は2段階のクリックで実行される。
+
+```
+1stクリック（onLeftClick）:
+  1. 人間の手番チェック（Editモード以外）
+  2. 駒台の枚数0チェック
+  3. startDrag() でドラッグ開始
+  4. selectPieceAndHighlight() で選択マスをオレンジハイライト
+  5. m_waitingSecondClick = true
+
+2ndクリック（onLeftClick）:
+  1. m_waitingSecondClick = false
+  2. 同一マスクリック → キャンセル（finalizeDrag）
+  3. 異なるマス → moveRequested(from, to) シグナルを発火
+```
+
+右クリックは2クリック待ち中のキャンセル、または編集モード時の成/不成トグルに使用される。
+
+#### ハイライト管理
+
+3種類のハイライトを独立に管理する。
+
+| ハイライト | 色 | 意味 | メンバ変数 |
+|-----------|---|------|-----------|
+| 選択中 | オレンジ（`rgba(255,128,0,70)`） | 現在選択中の駒 | `m_selectedField` |
+| 移動元 | 薄い赤（`rgba(255,0,0,50)`） | 直前の着手の移動元 | `m_selectedField2` |
+| 移動先 | 黄色（`rgb(255,255,0)`） | 直前の着手の移動先 | `m_movedField` |
+
+```
+onMoveApplied(from, to, success):
+  成功時 → 移動元を赤、移動先を黄色で表示、選択ハイライトをクリア
+  失敗時 → 全選択状態をクリア（finalizeDrag）
+```
+
+#### ダングリングポインタ防止
+
+`ShogiView::highlightsCleared` シグナルに `onHighlightsCleared()` を接続し、`ShogiView::removeHighlightAllData()` が呼ばれた際にポインタを `nullptr` にリセットする。これにより、外部からハイライトが一括削除された場合の二重 `delete` を防止する。
+
+#### 駒台の座標規約
+
+| 定数 | 値 | 意味 |
+|------|---|------|
+| `kBlackStandFile` | 10 | 先手駒台のファイル番号 |
+| `kWhiteStandFile` | 11 | 後手駒台のファイル番号 |
+
+盤上は `file: 1-9`、`rank: 1-9` の座標を使用し、駒台は `file: 10-11` で区別する。
+
+### 13.6 PositionEditController — 局面編集コントローラ
+
+**ソース**: `src/board/positioneditcontroller.h/.cpp`
+
+局面編集モードのライフサイクル（開始・終了）と盤面操作APIを提供する。
+
+#### 編集開始 — beginPositionEditing()
+
+`BeginEditContext` 構造体で必要な情報を受け取り、以下の手順で編集モードに入る。
+
+```
+beginPositionEditing(context):
+  1. 編集開始SFENの決定:
+     sfenRecord → currentSfenStr → resumeSfenStr → 盤面状態
+     の優先順位で取得
+  2. SFEN正規化: toMinimalSfen() で4フィールド形式に統一
+  3. 手番/手数の強制上書き: forceTurnAndPly() で現在GCの手番に合わせる
+  4. 盤面適用: board->setSfen(adjusted)
+  5. 編集モード遷移: setPositionEditMode(true), setMouseClickMode(true)
+  6. BIC を Edit モードに設定、ハイライトクリア
+  7. GC の手番を盤面の手番に同期
+  8. 「編集終了」ボタンを表示（コールバック）
+```
+
+#### 編集終了 — finishPositionEditing()
+
+`FinishEditContext` 構造体で必要な情報を受け取り、編集結果を確定する。
+
+```
+finishPositionEditing(context):
+  1. 盤面モデルから SFEN を再構成（convertBoardToSfen + convertStandToSfen）
+  2. board->setSfen() で反映
+  3. setPositionEditMode(false) で通常モードへ復帰
+  4. sfenRecord を 0手局面として再保存（既存の棋譜をクリア）
+  5. startSfenStr を更新
+  6. ハイライトクリア、「編集終了」ボタン非表示
+```
+
+#### 盤面操作API
+
+| メソッド | 対応アクション | 動作 |
+|---------|-------------|------|
+| `resetPiecesToStand()` | 「全駒台へ」 | `resetAndEqualizePiecesOnStands()` を呼ぶ |
+| `setStandardStartPosition()` | 「平手初期配置」 | `initializeToFlatStartingPosition()` を呼ぶ |
+| `setTsumeShogiStartPosition()` | 「詰将棋初期配置」 | `shogiProblemInitialPosition()` を呼ぶ |
+| `onToggleSideToMoveTriggered()` | 「手番切替」 | Player1 ⇔ Player2 をトグル |
+
+各操作はメニューアクションのスロットとしても提供され、編集セッション中に保持した `m_view`/`m_gc`/`m_bic` を利用する。
+
+#### applyEditMove() — 編集中の着手適用
+
+局面編集モードでの駒移動を処理する。
+
+```cpp
+bool applyEditMove(from, to, view, gc, bic):
+  1. gc->editPosition(from, to) で駒を移動
+  2. view->endDrag() でドラッグ状態を解除
+  3. bic->onMoveApplied() でハイライトを更新
+  4. 成功時は view->update() で再描画
+```
+
+### 13.7 BoardImageExporter — 盤面画像エクスポータ
+
+**ソース**: `src/board/boardimageexporter.h/.cpp`
+
+盤面ウィジェットのキャプチャ画像をクリップボードまたはファイルに保存する静的ユーティリティ。インスタンスを持たず、全メソッドが `static` である。
+
+#### copyToClipboard()
+
+```cpp
+static void copyToClipboard(QWidget* boardWidget);
+```
+
+`boardWidget->grab()` で `QPixmap` を取得し、`QApplication::clipboard()->setPixmap()` でクリップボードにコピーする。
+
+#### saveImage()
+
+```cpp
+static void saveImage(QWidget* parent, QWidget* boardWidget);
+```
+
+処理フロー:
+
+1. `QImageWriter::supportedImageFormats()` でサポートフォーマットを収集
+2. PNG/TIFF/JPEG/WebP/BMP 等からフィルタリスト作成
+3. `QFileDialog::getSaveFileName()` でファイル名を取得（デフォルト名: `ShogiBoard_yyyyMMdd_HHmmss.png`）
+4. 拡張子からフォーマットを決定（JPEG/WebP は品質95で書き出し）
+5. `QImageWriter` で画像を保存
+
+### 13.8 SfenPositionTracer — SFEN局面トレーサ
+
+**ソース**: `src/board/sfenpositiontracer.h/.cpp`
+
+USI形式の手を順に適用して各手後のSFEN局面文字列を生成する軽量トレーサ。合法手チェックを行わない簡易実装で、棋譜読み込み時のSFEN列構築に使用される。
+
+#### 内部データ構造
+
+```
+盤面: m_board[9][9] — 各マスのトークン文字列
+  空白 = ""
+  先手歩 = "P"、後手歩 = "p"
+  先手成銀 = "+S"、後手成桂 = "+n"
+
+持ち駒: m_handB[7], m_handW[7] — P/L/N/S/G/B/R の枚数
+
+手番: m_blackToMove（true=先手）
+手数: m_plyNext（SFENの第4フィールド）
+```
+
+#### applyUsiMove() — USI手の適用
+
+```
+applyUsiMove(usi):
+  駒打ち（"P*5e"形式）:
+    1. '*' の位置で判定
+    2. 持ち駒から1枚減らす（subHand）
+    3. 指定マスにトークンを配置
+
+  通常手（"7g7f" / "2b3c+"形式）:
+    1. 移動元・移動先の座標を解析
+    2. 移動先に駒があれば捕獲（addHand）
+    3. 成り指定があれば成駒トークンに変換
+    4. 移動元を空、移動先にトークン配置
+
+  共通: 手番反転、手数インクリメント
+```
+
+#### 座標変換
+
+```
+SFEN座標 → 内部配列:
+  file (1-9) → col: 9 - file  （9筋が左端 = col 0）
+  rank (a-i) → row: 0-8
+
+USI座標例: "7g" → file=7, rank='g' → col=2, row=6
+```
+
+#### 静的ユーティリティメソッド
+
+| メソッド | 用途 |
+|---------|------|
+| `buildSfenRecord(initialSfen, usiMoves, hasTerminal)` | 初期SFENとUSI手列から局面列を構築。`hasTerminal` が `true` のとき末尾に同一局面を複製（終局/中断表示用） |
+| `buildGameMoves(initialSfen, usiMoves)` | USI手列から可視化用の `ShogiMove` 列を構築。各手の移動元/先・移動駒・取った駒を解析 |
+| `dropFromSquare(dropUpper, black)` | 駒打ち時の擬似座標を返す（先手駒台: x=9、後手駒台: x=10） |
+| `tokenToOneChar(tok)` | `"+P"` → `'Q'` 等、複数文字の成駒トークンを1文字にマップ |
+
+#### buildSfenRecord() の処理フロー
+
+```
+buildSfenRecord(initialSfen, usiMoves, hasTerminal):
+  1. SfenPositionTracer を作成、initialSfen をセット
+  2. 開始局面の SFEN を list に追加
+  3. usiMoves を順に applyUsiMove() → toSfenString() で局面列を構築
+  4. hasTerminal → 末尾局面をもう1つ追加
+  戻り値: [開始局面, 1手目後, 2手目後, ..., (終局複製)]
+```
+
+### 13.9 navigation層とboard層の協調
+
+ナビゲーションと盤面操作は独立した層だが、以下の箇所で協調する。
+
+| 協調ポイント | 関与クラス | 内容 |
+|-------------|-----------|------|
+| 盤面SFEN更新 | KifuNavigationController → BoardSyncPresenter | ナビゲーション完了時に `boardUpdateRequired(sfen)` で盤面を更新 |
+| ハイライト同期 | RecordNavigationHandler → BoardInteractionController | 行変更時に直前手のハイライトを `showMoveHighlights()` で表示 |
+| 局面編集↔通常モード切替 | PositionEditController → BoardInteractionController | 編集開始で `setMode(Edit)`、終了で通常モードに復帰 |
+| SFEN追跡 | SfenPositionTracer → KifuNavigationState | 棋譜読み込み時に局面列を構築し、ナビゲーション可能にする |
+| 分岐ナビ二重更新防止 | RecordNavigationHandler | `skipBoardSyncForBranchNav` フラグで分岐ツリー経由の更新と棋譜欄の更新が重複しないよう制御 |
 
 <!-- chapter-13-end -->
 
@@ -6639,7 +7108,446 @@ ShogiClock::setCurrentPlayer(1 or 2)  ← SFENから推定
 <!-- chapter-14-start -->
 ## 第14章 MainWindowの役割と構造
 
-*（後続セッションで作成予定）*
+### 14.1 設計思想: "MainWindow should stay lean"
+
+CLAUDE.md に明記されているとおり、ShogiBoardQ の設計原則は **「MainWindow は痩せた状態を保つ」** ことである。MainWindow は UI 表示の起点であり、各コントローラ/コーディネータへの処理委譲のハブとして機能する。直接ロジックは最小限にとどめ、具体的な処理は専用クラスへ移譲する。
+
+```
+MainWindow（ハブ / ファサード）
+  ├─ ensure*() で遅延生成 → 専用コントローラ/コーディネータ
+  ├─ connect() でシグナル配線 → 委譲先クラスのスロット
+  └─ UI骨格の構築（ドック、タブ、ツールバー）
+```
+
+この原則に基づき、当初 5,368 行あった `mainwindow.cpp` はリファクタリングにより約 4,500 行まで削減されている（詳細は [14.7節](#147-リファクタリング経緯) を参照）。
+
+---
+
+### 14.2 メンバ変数のグループ分け
+
+`mainwindow.h` のメンバ変数は機能別にグループ化されている。以下に主要なカテゴリを示す。
+
+#### 基本状態 / ゲーム状態
+
+対局の進行状況を追跡する変数群。
+
+| 変数 | 型 | 役割 |
+|------|----|------|
+| `m_startSfenStr` | `QString` | 開始局面の SFEN 文字列 |
+| `m_currentSfenStr` | `QString` | 現在の局面の SFEN 文字列 |
+| `m_playMode` | `PlayMode` | 現在のプレイモード（NotStarted, HvE 等） |
+| `m_currentMoveIndex` | `int` | 現在の手数インデックス |
+| `m_lastMove` | `QString` | 直近の指し手（USI 形式） |
+| `m_gameMoves` | `QVector<ShogiMove>` | 対局中の指し手列 |
+| `m_gameUsiMoves` | `QStringList` | 対局中に生成した USI 指し手列 |
+
+#### コントローラ / コーディネータ群
+
+`ensure*()` で遅延生成される委譲先クラス群。すべて MainWindow が所有し（`this` を親に指定）、Qt の親子関係で寿命が管理される。代表的なものを以下に示す。
+
+| 変数 | クラス | 責務 |
+|------|--------|------|
+| `m_gameStart` | `GameStartCoordinator` | 対局開始フロー全体の調整 |
+| `m_dialogCoordinator` | `DialogCoordinator` | 各種ダイアログの表示と管理 |
+| `m_kifuLoadCoordinator` | `KifuLoadCoordinator` | 棋譜読み込みフロー |
+| `m_gameStateController` | `GameStateController` | ゲーム状態遷移の管理 |
+| `m_evalGraphController` | `EvaluationGraphController` | 評価値グラフの管理 |
+| `m_boardSync` | `BoardSyncPresenter` | 盤面と内部状態の同期 |
+| `m_recordPresenter` | `GameRecordPresenter` | 棋譜表示の管理 |
+| `m_csaGameWiring` | `CsaGameWiring` | CSA 通信対局の UI 配線 |
+| `m_considerationWiring` | `ConsiderationWiring` | 検討モードの UI 配線 |
+| `m_playerInfoWiring` | `PlayerInfoWiring` | 対局者情報の UI 配線 |
+| `m_testHelper` | `TestAutomationHelper` | テスト自動化ヘルパー |
+| `m_dockCreationService` | `DockCreationService` | ドックウィジェット生成 |
+| `m_commentCoordinator` | `CommentCoordinator` | コメント機能の管理 |
+
+#### モデル群
+
+データバインディングに使用される Qt モデル。
+
+| 変数 | クラス | 役割 |
+|------|--------|------|
+| `m_kifuRecordModel` | `KifuRecordListModel` | 棋譜レコードリスト |
+| `m_kifuBranchModel` | `KifuBranchListModel` | 分岐リスト |
+| `m_modelThinking1/2` | `ShogiEngineThinkingModel` | エンジン思考情報 |
+| `m_considerationModel` | `ShogiEngineThinkingModel` | 検討タブ専用モデル |
+| `m_analysisModel` | `KifuAnalysisListModel` | 棋譜解析結果 |
+| `m_gameRecord` | `GameRecordModel` | 棋譜データの中央管理 |
+
+#### UI ウィジェット / ドック
+
+画面に表示される UI 部品とドックウィジェット。
+
+| 変数 | 役割 |
+|------|------|
+| `m_shogiView` | 将棋盤ビュー |
+| `m_tab` | メインタブウィジェット |
+| `m_recordPane` | 棋譜欄ウィジェット |
+| `m_analysisTab` | エンジン解析タブ |
+| `m_evalChart` | 評価値グラフ |
+| `m_evalChartDock` | 評価値グラフ用ドック |
+| `m_recordPaneDock` | 棋譜欄用ドック |
+| `m_gameInfoDock` | 対局情報ドック |
+| `m_thinkingDock` | 思考ドック |
+| `m_commentDock` | 棋譜コメントドック |
+| `m_branchTreeDock` | 分岐ツリードック |
+
+ドックウィジェットは合計 12 個あり、それぞれ `QDockWidget*` として保持される。
+
+#### 分岐ナビゲーション
+
+棋譜の分岐構造を管理するクラス群。
+
+| 変数 | クラス | 役割 |
+|------|--------|------|
+| `m_branchTree` | `KifuBranchTree` | 分岐ツリーデータ |
+| `m_navState` | `KifuNavigationState` | ナビゲーション状態 |
+| `m_kifuNavController` | `KifuNavigationController` | ナビゲーション操作 |
+| `m_displayCoordinator` | `KifuDisplayCoordinator` | 棋譜表示調整 |
+| `m_liveGameSession` | `LiveGameSession` | リアルタイム対局セッション |
+
+---
+
+### 14.3 ensure*() による遅延生成パターン
+
+MainWindow の設計で最も特徴的なパターンが `ensure*()` メソッドによる遅延初期化（Lazy Initialization）である。現在 **36 個**の `ensure*()` メソッドが存在する。
+
+#### 基本形
+
+最もシンプルなパターン。null チェック後にオブジェクトを生成する。
+
+```cpp
+// src/app/mainwindow.cpp — ensurePositionEditController
+void MainWindow::ensurePositionEditController()
+{
+    if (m_posEdit) return;
+    m_posEdit = new PositionEditController(this);
+}
+```
+
+#### 依存注入型
+
+生成後に依存オブジェクトを setter で設定するパターン。
+
+```cpp
+// src/app/mainwindow.cpp — ensureEvaluationGraphController
+void MainWindow::ensureEvaluationGraphController()
+{
+    if (m_evalGraphController) return;
+
+    m_evalGraphController = new EvaluationGraphController(this);
+    m_evalGraphController->setEvalChart(m_evalChart);
+    m_evalGraphController->setMatchCoordinator(m_match);
+    m_evalGraphController->setSfenRecord(m_sfenRecord);
+    m_evalGraphController->setEngine1Name(m_engineName1);
+    m_evalGraphController->setEngine2Name(m_engineName2);
+
+    if (m_playerInfoController) {
+        m_playerInfoController->setEvalGraphController(m_evalGraphController);
+    }
+}
+```
+
+#### Deps 構造体 + updateDeps() 型
+
+複雑な依存関係を持つクラスでは、`Deps` 構造体にまとめて渡す。
+
+```cpp
+// src/app/mainwindow.cpp — ensureBoardSyncPresenter
+void MainWindow::ensureBoardSyncPresenter()
+{
+    if (m_boardSync) return;
+
+    BoardSyncPresenter::Deps d;
+    d.gc         = m_gameController;
+    d.view       = m_shogiView;
+    d.bic        = m_boardController;
+    d.sfenRecord = m_sfenRecord;
+    d.gameMoves  = &m_gameMoves;
+
+    m_boardSync = new BoardSyncPresenter(d, this);
+}
+```
+
+#### コンテキスト構造体型
+
+`DialogCoordinator` のように複数のコンテキスト（検討・詰み探索・棋譜解析）を持つ場合、専用のコンテキスト構造体を使い分ける。
+
+```cpp
+// src/app/mainwindow.cpp — ensureDialogCoordinator（簡略版）
+void MainWindow::ensureDialogCoordinator()
+{
+    if (m_dialogCoordinator) return;
+
+    m_dialogCoordinator = new DialogCoordinator(this, this);
+    m_dialogCoordinator->setMatchCoordinator(m_match);
+    m_dialogCoordinator->setGameController(m_gameController);
+
+    // 検討コンテキストを設定
+    DialogCoordinator::ConsiderationContext conCtx;
+    conCtx.gameController = m_gameController;
+    conCtx.gameMoves = &m_gameMoves;
+    // ... 他のフィールド設定 ...
+    m_dialogCoordinator->setConsiderationContext(conCtx);
+
+    // 詰み探索コンテキスト、棋譜解析コンテキストも同様に設定
+    // ...
+
+    // シグナル/スロット接続
+    ensureConsiderationWiring();
+    connect(m_dialogCoordinator, &DialogCoordinator::considerationModeStarted,
+            m_considerationWiring, &ConsiderationWiring::onModeStarted);
+    // ...
+}
+```
+
+#### std::function コールバック型（遅延初期化ギャップの解決）
+
+Wiring クラスなど外部に抽出したクラスが、MainWindow の `ensure*()` を呼び出す必要がある場合、`std::function` コールバックを `Deps` に含める。
+
+```cpp
+// src/app/mainwindow.cpp — ensureConsiderationWiring（抜粋）
+void MainWindow::ensureConsiderationWiring()
+{
+    if (m_considerationWiring) return;
+
+    ConsiderationWiring::Deps deps;
+    deps.parentWidget = this;
+    deps.analysisTab = m_analysisTab;
+    // ... 他の依存 ...
+    deps.ensureDialogCoordinator = [this]() {
+        ensureDialogCoordinator();
+        // 初期化後に最新の依存を反映
+        if (m_considerationWiring) {
+            ConsiderationWiring::Deps updated;
+            // ... 最新ポインタを再設定 ...
+            m_considerationWiring->updateDeps(updated);
+        }
+    };
+
+    m_considerationWiring = new ConsiderationWiring(deps, this);
+}
+```
+
+> **注意**: `connect()` 内のラムダ式は CLAUDE.md で禁止されているが、`Deps` 構造体内のコールバック設定は `connect()` とは無関係なため許可されている。
+
+#### 呼び出しパターン
+
+`ensure*()` は典型的に以下の3箇所から呼ばれる。
+
+1. **コンストラクタ** — 起動時に必須なコンポーネント（`ensureTimeController()`, `ensureLanguageController()` 等）
+2. **他の ensure*() メソッド内** — 依存する先行コンポーネントの確保（`ensureConsiderationUIController()` → `ensureConsiderationWiring()`）
+3. **スロット / 公開メソッド内** — ユーザー操作時のオンデマンド生成（`displayVersionInformation()` → `ensureDialogCoordinator()`）
+
+---
+
+### 14.4 コンストラクタの処理フロー
+
+MainWindow のコンストラクタは、依存関係の順序を厳守して初期化を行う。コメントにも「この順序を崩すと null 参照や初期表示不整合が起きやすい」と明記されている。
+
+```
+MainWindow::MainWindow()
+ │
+ ├─ 1. ui->setupUi(this)                      // Qt Designer フォーム適用
+ ├─ 2. setupCentralWidgetContainer()           // セントラルウィジェットのレイアウト
+ ├─ 3. configureToolBarFromUi()                // ツールバー設定
+ ├─ 4. initializeComponents()                  // コア部品（GC, View, Board 等）
+ ├─ 5. TimeDisplayPresenter 生成               // 時間表示プレゼンタ
+ ├─ 6. ensureTimeController()                  // 時間制御コントローラ
+ │     └─ TimeDisplayPresenter に Clock を設定
+ ├─ 7. buildGamePanels()                       // 棋譜/分岐/タブ/ドックの構築
+ ├─ 8. restoreWindowAndSync()                  // ウィンドウ設定の復元
+ ├─ 9. connectAllActions()                     // メニューアクションの配線
+ ├─ 10. connectCoreSignals()                   // コアシグナルの配線
+ ├─ 11. installAppToolTips()                   // ツールチップフィルタ
+ ├─ 12. finalizeCoordinators()                 // コーディネータの最終初期化
+ ├─ 13. initializeEditMenuForStartup()         // 編集メニューの初期状態
+ ├─ 14. ensureLanguageController()             // 言語設定
+ ├─ 15. ensureDockLayoutManager()              // ドックレイアウト管理
+ └─ 16. evalChartResizeTimer 初期化            // 評価値グラフ高さ調整用タイマー
+```
+
+初期化順序の原則:
+1. **UI 骨格**（central / toolbar）を最初に構築
+2. **コア部品**（GameController / ShogiView / Clock）を生成
+3. **ドック・各タブ**を構築
+4. **設定復元とシグナル配線**を最後に実行
+
+この順序により、シグナル配線時にはすべての UI 部品が存在することが保証される。
+
+---
+
+### 14.5 委譲先クラスの詳細
+
+#### 14.5.1 TestAutomationHelper
+
+**ファイル**: `src/app/testautomationhelper.h/.cpp`
+
+テスト自動化メソッドを MainWindow から分離したクラス。UI 操作のシミュレーションと状態検証を担当する。
+
+**提供機能**:
+- UI 操作シミュレーション: `navigateToPly()`, `clickBranchCandidate()`, `clickNextButton()` 等
+- 対局シミュレーション: `startTestGame()`, `makeTestMove()`
+- 状態検証: `dumpTestState()`, `verify4WayConsistency()`, `verifyBranchTreeNodeCount()`
+
+**std::function コールバックパターン**:
+
+TestAutomationHelper は MainWindow の内部機能（対局開始前クリーンアップ、LiveGameSession の起動）にアクセスする必要がある。直接依存を避けるため、`Deps` 構造体に `std::function` コールバックを含める設計となっている。
+
+```cpp
+// TestAutomationHelper::Deps（抜粋）
+struct Deps {
+    // ... 各種ポインタ ...
+    std::function<void()> performCleanup;              // クリーンアップ処理
+    std::function<void()> ensureLiveGameSessionStarted; // セッション起動
+};
+```
+
+MainWindow 側でコールバックを設定する:
+
+```cpp
+// ensureTestAutomationHelper() 内
+deps.performCleanup = [this]() {
+    ensurePreStartCleanupHandler();
+    if (m_preStartCleanupHandler != nullptr) {
+        m_preStartCleanupHandler->performCleanup();
+    }
+};
+deps.ensureLiveGameSessionStarted = [this]() {
+    ensureLiveGameSessionStarted();
+};
+```
+
+TestAutomationHelper 側では、MainWindow を一切知らずにコールバック経由で必要な処理を呼び出す:
+
+```cpp
+// startTestGame() 内
+if (m_deps.performCleanup) {
+    m_deps.performCleanup();
+}
+```
+
+```cpp
+// makeTestMove() 内
+if (!m_deps.liveGameSession->isActive()) {
+    if (m_deps.ensureLiveGameSessionStarted) {
+        m_deps.ensureLiveGameSessionStarted();
+    }
+}
+```
+
+#### 14.5.2 DockCreationService
+
+**ファイル**: `src/app/dockcreationservice.h/.cpp`
+
+MainWindow からドックウィジェットの生成ロジックを分離したクラス。12 種類のドック（評価値グラフ、棋譜欄、対局情報、思考、検討、USI ログ、CSA ログ、コメント、分岐ツリー、メニューウィンドウ、定跡ウィンドウ、棋譜解析結果）の作成・設定復元・メニュー登録を担当する。
+
+```
+DockCreationService
+  ├─ createEvalChartDock()        → 評価値グラフドック
+  ├─ createRecordPaneDock()       → 棋譜欄ドック
+  ├─ createAnalysisDocks()        → 解析系ドック一括生成
+  │     ├─ 対局情報、思考、検討
+  │     ├─ USIログ、CSAログ
+  │     ├─ コメント、分岐ツリー
+  │     └─ ※ 検討タブ用のモデルも設定
+  ├─ createMenuWindowDock()       → メニューウィンドウドック
+  ├─ createJosekiWindowDock()     → 定跡ウィンドウドック
+  └─ createAnalysisResultsDock()  → 棋譜解析結果ドック
+```
+
+**依存設定**: setter メソッドで個別に設定する方式。
+
+```cpp
+m_dockCreationService->setDisplayMenu(ui->Display);
+m_dockCreationService->setEvalChart(m_evalChart);
+m_dockCreationService->setRecordPane(m_recordPane);
+// ...
+```
+
+各 `create*()` メソッドは共通のヘルパー `setupDockFeatures()`, `addToggleActionToMenu()`, `restoreDockState()` を使い、ドック機能設定・メニュー登録・状態復元を統一的に処理する。
+
+#### 14.5.3 CommentCoordinator
+
+**ファイル**: `src/app/commentcoordinator.h/.cpp`
+
+棋譜コメントの表示更新・保存・同期処理を MainWindow から分離したクラス。
+
+**提供機能**:
+- `broadcastComment()` — コメントを EngineAnalysisTab と RecordPane に配信
+- `onCommentUpdated()` — UI からのコメント更新を処理
+- `onGameRecordCommentChanged()` — GameRecordModel の変更を検知して反映
+- `onCommentUpdateCallback()` — GameRecordModel からのコールバック処理
+
+**遅延初期化ギャップの解決**:
+
+CommentCoordinator は `GameRecordModel` が必要になることがあるが、`GameRecordModel` は遅延生成される。この問題を解決するため、`ensureGameRecordModelRequested` シグナルを定義し、MainWindow 側で接続する。
+
+```cpp
+// ensureCommentCoordinator() 内
+connect(m_commentCoordinator, &CommentCoordinator::ensureGameRecordModelRequested,
+        this, &MainWindow::ensureGameRecordModel);
+```
+
+CommentCoordinator は `GameRecordModel` の生成方法を知らないが、シグナル発行により MainWindow 側の `ensure*()` を間接的に呼び出せる。
+
+---
+
+### 14.6 MainWindow のスロット構造
+
+MainWindow のスロットは以下のカテゴリに分類される。
+
+| カテゴリ | 代表的なスロット | 接続元 |
+|----------|-----------------|--------|
+| ファイル I/O | `chooseAndLoadKifuFile()`, `saveKifuToFile()` | メニューアクション |
+| 対局制御 | `initializeGame()`, `handleResignation()` | メニューアクション / GameStartCoordinator |
+| 対局終了 | `onMatchGameEnded()`, `onGameOverStateChanged()` | MatchCoordinator |
+| ナビゲーション | `disableArrowButtons()`, `enableArrowButtons()` | GameStartCoordinator / GameStateController 等 |
+| 棋譜同期 | `onMoveCommitted()`, `displayGameRecord()` | ShogiGameController / RecordPresenter |
+| 分岐ナビゲーション | `onBranchNodeActivated()`, `onLineSelectionChanged()` | BranchTreeWidget |
+| CSA 通信 | `onCsaPlayModeChanged()`, `onCsaShowGameEndDialog()` | CsaGameWiring |
+| テスト自動化 | `startTestGame()`, `makeTestMove()` | 外部テストスクリプト |
+| ダイアログ | `displayEngineSettingsDialog()`, `displayCsaGameDialog()` | メニューアクション |
+
+ナビゲーション関連のスロット（`enableArrowButtons()`, `disableArrowButtons()` 等）は、CsaGameWiring、GameStartCoordinator、GameStateController、KifuLoadCoordinator など多数のクラスからシグナル接続されているため、他クラスへの移譲が困難である。
+
+---
+
+### 14.7 リファクタリング経緯
+
+MainWindow は段階的にリファクタリングされ、ロジックが専用クラスへ移譲されてきた。
+
+#### 行数の推移
+
+| 時期 | mainwindow.cpp 行数 | mainwindow.h 行数 |
+|------|---------------------|-------------------|
+| リファクタリング前 | 5,368 行 | 765 行 |
+| 第1次完了後 | 4,388 行 | 721 行 |
+| 第2次完了後 | 約 4,180 行 | 725 行 |
+| 現在 | 約 4,550 行 | 849 行 |
+
+> 現在の行数が増加しているのは、新機能追加（分岐ナビゲーション強化、コメント機能等）による。リファクタリングによる削減がなければさらに大きくなっていた。
+
+#### 主な移譲先と内容
+
+| 移譲先クラス | 移譲された責務 |
+|-------------|---------------|
+| `TestAutomationHelper` | `startTestGame()`, `makeTestMove()` 等のテスト自動化メソッド |
+| `DockCreationService` | ドックウィジェットの生成・設定復元・メニュー登録 |
+| `CommentCoordinator` | `broadcastComment()`, コメント更新・同期処理 |
+| `ConsiderationWiring` | 検討モードの UI 配線（ダイアログ↔エンジン間の接続） |
+| `PlayerInfoWiring` | 対局者名の解決、ゲーム情報の設定、エンジン名タブ更新 |
+| `RecordNavigationHandler` | 棋譜欄の行選択変更ハンドラ |
+| `BoardSyncPresenter` | 盤面とハイライトの同期（`loadBoardWithHighlights()` 等） |
+| `KifuNavigationController` | 分岐ノード活性化ハンドラ |
+| `KifuLoadCoordinator` | 棋譜読み込みフローの重複排除 |
+
+#### リファクタリングの方針
+
+1. **ラッパーメソッドの除去**: MainWindow が単にメソッド呼び出しを中継するだけのラッパーは、`connect()` を委譲先クラスへ直接接続することで削除
+2. **デッドコードの除去**: どのシグナルにも接続されておらず、直接呼び出しもないスロットを特定して削除
+3. **コールバックによる間接呼び出し**: 委譲先クラスが MainWindow の `ensure*()` を呼ぶ必要がある場合、`std::function` コールバックを Deps に含めて解決
+4. **移譲しにくいメソッドの温存**: `enableArrowButtons()` のように多数のクラスから `connect()` のスロットターゲットとして使われているメソッドは、移譲コストが高いため現状維持
 
 <!-- chapter-14-end -->
 
@@ -6648,7 +7556,376 @@ ShogiClock::setCurrentPlayer(1 or 2)  ← SFENから推定
 <!-- chapter-15-start -->
 ## 第15章 機能フロー詳解
 
-*（後続セッションで作成予定）*
+本章では、ShogiBoardQの主要な5つのユースケースについて、シーケンス図と解説を通じてデータと制御の流れを追う。各フローは実際のクラス名・メソッド名に対応しており、コードリーディングの導線として活用できる。
+
+---
+
+### 15.1 対局開始フロー
+
+対局開始は、ユーザーがメニューから「新規対局」を選択し、ダイアログで設定を行ってから、盤面・時計・エンジンが初期化されるまでの一連の処理である。
+
+```mermaid
+sequenceDiagram
+    participant User as ユーザー
+    participant MW as MainWindow
+    participant SGD as StartGameDialog
+    participant GSC as GameStartCoordinator
+    participant PSCH as PreStartCleanupHandler
+    participant MC as MatchCoordinator
+    participant USI as Usi
+
+    User->>MW: メニュー「新規対局」選択
+    MW->>SGD: ダイアログ表示
+    User->>SGD: 対局設定を入力しOK
+    SGD->>MW: ダイアログ結果を返却
+    MW->>GSC: prepare(Request)
+    GSC-->>PSCH: requestPreStartCleanup シグナル
+    PSCH->>PSCH: performCleanup()
+    Note over PSCH: 盤面/ハイライト初期化<br/>棋譜モデルクリア<br/>USIログリセット<br/>時計リセット<br/>評価値グラフ初期化
+    MW->>GSC: start(StartParams)
+    GSC->>MC: configureAndStart(StartOptions)
+    MC->>MC: initializePositionStringsForStart(sfen)
+    MC->>USI: initializeAndStartEngineCommunication()
+    Note over USI: エンジンプロセス起動<br/>usi → usiok<br/>isready → readyok
+    MC->>MC: startInitialEngineMoveIfNeeded()
+    alt エンジンが先手の場合
+        MC->>USI: go (時間パラメータ)
+    end
+    GSC-->>MW: started シグナル
+    Note over MW: ナビゲーション無効化<br/>対局中UI状態へ遷移
+```
+
+**主要クラスの役割:**
+
+| クラス | 責務 |
+|--------|------|
+| `StartGameDialog` | 対局モード・エンジン・時間設定のUI入力を収集 |
+| `GameStartCoordinator` | 対局開始フロー全体のオーケストレーション |
+| `PreStartCleanupHandler` | 前回の対局状態をクリーンアップ（盤面・棋譜・時計・評価値等） |
+| `MatchCoordinator` | 対局進行の司令塔。エンジン初期化、position文字列管理、初手goを制御 |
+| `Usi` | USIプロトコル通信ファサード。エンジンプロセスの起動と初期化を実行 |
+
+**補足:**
+- `GameStartCoordinator::prepare()` は時計の適用と`requestPreStartCleanup`シグナルの発行を行う。クリーンアップの実体は`PreStartCleanupHandler`に完全委譲されている
+- `configureAndStart()` 内部では対局モード（HvH / HvE / EvE）に応じて `startHumanVsHuman()` / `startHumanVsEngine()` / `startEngineVsEngine()` に分岐する
+- EvEモードでは2つの`Usi`インスタンスが生成され、交互にgo/bestmoveを繰り返す
+
+---
+
+### 15.2 指し手実行フロー
+
+人間が盤面をクリックして駒を移動し、合法手判定・盤面更新・棋譜記録・エンジン応答までを含む一連の処理。
+
+```mermaid
+sequenceDiagram
+    participant User as ユーザー
+    participant SV as ShogiView
+    participant BIC as BoardInteractionController
+    participant MW as MainWindow
+    participant SGC as ShogiGameController
+    participant MV as MoveValidator
+    participant SB as ShogiBoard
+    participant KRM as KifuRecordListModel
+    participant MC as MatchCoordinator
+    participant USI as Usi
+
+    User->>SV: 盤面クリック（1回目: 駒選択）
+    SV-->>BIC: leftClicked シグナル
+    BIC->>BIC: selectPieceAndHighlight()
+    Note over BIC: オレンジ色でハイライト表示
+
+    User->>SV: 盤面クリック（2回目: 移動先指定）
+    SV-->>BIC: leftClicked シグナル
+    BIC-->>MW: moveRequested(from, to) シグナル
+
+    MW->>SGC: validateAndMove()
+    SGC->>MV: 合法手チェック
+    MV->>SB: 盤面状態を参照
+    MV-->>SGC: 合法/違法を返却
+
+    alt 合法手の場合
+        SGC->>SB: 駒移動・盤面更新
+        SGC-->>SV: boardChanged シグナル
+        SV->>SV: 盤面再描画
+        SGC-->>MW: moveCommitted シグナル
+        MW->>KRM: 棋譜1行追記
+        MW->>BIC: showMoveHighlights(from, to)
+        Note over BIC: 赤(移動元)/黄(移動先)ハイライト
+
+        alt エンジン手番（HvEモード）
+            MC->>MC: onHumanMove_HvE(from, to)
+            MC->>USI: go (時間パラメータ)
+            USI-->>MC: bestMoveReceived シグナル
+            MC->>SGC: 盤面にエンジン手を適用
+            MC->>KRM: エンジン手を棋譜追記
+        end
+    else 違法手の場合
+        SGC-->>MW: エラー通知
+    end
+```
+
+**主要クラスの役割:**
+
+| クラス | 責務 |
+|--------|------|
+| `ShogiView` | Qt Graphics Viewベースの盤面描画とマウスイベントの発行 |
+| `BoardInteractionController` | 2クリック方式の駒選択・移動要求、ハイライト管理 |
+| `ShogiGameController` | 指し手の検証と盤面更新の実行 |
+| `MoveValidator` | 合法手判定ロジック（王手放置、二歩、行き所のない駒等を検査） |
+| `ShogiBoard` | 9x9盤面 + 駒台のデータモデル |
+| `KifuRecordListModel` | 棋譜欄の表示モデル |
+
+**補足:**
+- 成り/不成の判定は `ShogiGameController::decidePromotion()` が担当する。成り可能な移動の場合、ダイアログで選択を促す
+- HvEモードでは `MatchCoordinator::onHumanMove_HvE()` が人間の着手後にエンジンへgoコマンドを送信し、`bestMoveReceived`シグナルでエンジンの応手を受け取る
+- HvHモードでは手番が交互に切り替わるのみで、エンジン通信は発生しない
+
+---
+
+### 15.3 棋譜読み込みフロー
+
+棋譜ファイル（KIF / KI2 / CSA / JKF / USEN / USI形式）を読み込み、内部データモデルを構築してUIに反映するまでのフロー。
+
+```mermaid
+sequenceDiagram
+    participant User as ユーザー
+    participant MW as MainWindow
+    participant KLC as KifuLoadCoordinator
+    participant Conv as KifToSfenConverter
+    participant KBT as KifuBranchTree
+    participant KRM as KifuRecordListModel
+    participant SV as ShogiView
+
+    User->>MW: ファイル選択（メニュー「棋譜を開く」）
+    MW->>KLC: loadKifuFromFile(filePath)
+    KLC->>KLC: loadKifuCommon(filePath, parseFunc, ...)
+
+    KLC->>Conv: parseWithVariations(filePath)
+    Note over Conv: KIF行を解析<br/>本譜のUSI指し手列を構築<br/>変化手順を抽出<br/>コメント・時間情報を保持
+    Conv-->>KLC: KifParseResult(usiMoves, dispItems, variations)
+
+    KLC->>Conv: detectInitialSfenFromFile(filePath)
+    Conv-->>KLC: 初期局面SFEN（手合割から判定）
+
+    KLC->>Conv: extractGameInfo(filePath)
+    Conv-->>KLC: 対局情報リスト（棋戦名、対局者名等）
+
+    KLC->>KLC: rebuildSfenRecord(initialSfen, usiMoves)
+    Note over KLC: 各手数のSFEN文字列を生成<br/>（ナビゲーション用）
+
+    KLC->>KLC: rebuildGameMoves(initialSfen, usiMoves)
+    Note over KLC: ShogiMoveリストを構築<br/>（ハイライト座標用）
+
+    KLC->>KBT: 分岐ツリーを構築
+    Note over KBT: 本譜ラインをルートに設定<br/>変化手順を子ノードとして追加
+
+    KLC-->>KRM: displayGameRecord シグナル
+    KRM->>KRM: 表示データを設定
+
+    KLC-->>SV: syncBoardAndHighlightsAtRow シグナル
+    SV->>SV: 最終局面を盤面に描画
+
+    KLC-->>MW: enableArrowButtons シグナル
+    Note over MW: ナビゲーション矢印を有効化
+```
+
+**主要クラスの役割:**
+
+| クラス | 責務 |
+|--------|------|
+| `KifuLoadCoordinator` | 棋譜読み込みの統括。形式判定・パーサー呼び出し・データ構築・UI通知 |
+| `KifToSfenConverter` | KIF形式の解析。手合割→SFEN変換、指し手→USI変換、変化抽出 |
+| `KifuBranchTree` | 分岐棋譜のツリー構造。本譜と変化を木構造で管理 |
+| `KifuRecordListModel` | 棋譜欄表示用のQtモデル |
+
+**補足:**
+- `loadKifuCommon()` は形式非依存の共通フローを提供する。形式ごとの解析関数（`parseFunc`）、SFEN検出関数（`detectSfenFunc`）、対局情報抽出関数（`extractGameInfoFunc`）をラムダで受け取り、統一的に処理する
+- KIF以外の形式も同様のパターンで処理される: `Ki2ToSfenConverter`（KI2形式）、`CsaToSfenConverter`（CSA形式）等
+- 分岐ツリー構築後、棋譜欄の分岐あり手数に対して `BranchRowDelegate` がオレンジ背景マーカーを描画する
+- 文字列からの読み込み（`loadKifuFromString()`）はクリップボード貼り付け機能で使用され、形式を自動判定する
+
+---
+
+### 15.4 検討モードフロー
+
+検討モードは、現在の局面をエンジンに解析させ、候補手と評価値をリアルタイム表示する機能。局面移動に追従して再解析する動作も含む。
+
+```mermaid
+sequenceDiagram
+    participant User as ユーザー
+    participant EAT as EngineAnalysisTab
+    participant CW as ConsiderationWiring
+    participant CFC as ConsiderationFlowController
+    participant MC as MatchCoordinator
+    participant USI as Usi
+    participant TIP as ThinkingInfoPresenter
+    participant SETM as ShogiEngineThinkingModel
+    participant CMUIC as ConsiderationModeUIController
+
+    User->>EAT: 検討ボタンクリック
+    EAT-->>CW: 検討開始リクエスト
+    CW->>CW: displayConsiderationDialog()
+    CW->>CFC: runDirect(deps, params, positionStr)
+
+    CFC->>MC: startAnalysis(AnalysisOptions)
+    MC->>USI: startAndInitializeEngine(enginePath)
+    Note over USI: エンジンプロセス起動<br/>usi → usiok<br/>isready → readyok
+    MC->>USI: sendAnalysisCommands(positionStr, byoyomiMs, multiPV)
+    Note over USI: position ... を送信<br/>go infinite を送信
+
+    loop エンジン思考中
+        USI-->>TIP: info行受信
+        TIP->>TIP: processInfoLine()
+        Note over TIP: 評価値・読み筋・深さ等を解析<br/>USI指し手を漢字棋譜に変換
+        TIP-->>USI: thinkingInfoUpdated シグナル
+        USI-->>SETM: 思考モデルに行追加
+        CMUIC->>CMUIC: updateArrows()
+        Note over CMUIC: 候補手を盤面に矢印表示
+    end
+
+    alt 時間制限あり
+        USI->>USI: タイマー発火 → stop送信
+        USI-->>MC: bestMoveReceived シグナル
+        MC-->>CMUIC: considerationWaitingStarted シグナル
+        Note over CMUIC: 待機状態へ（次の局面選択待ち）
+    end
+
+    alt ユーザーが局面を移動
+        User->>CW: 棋譜欄で別の手を選択
+        CW->>MC: updateConsiderationPosition(newPositionStr)
+        MC->>USI: stop → bestmove待ち
+        MC->>USI: sendAnalysisCommands(newPositionStr)
+        Note over MC: 新しい局面で検討を再開
+    end
+
+    User->>EAT: 検討中止ボタンクリック
+    EAT-->>CW: stopRequested シグナル
+    MC->>USI: stop
+    MC->>MC: stopAnalysisEngine()
+    MC-->>CMUIC: considerationModeEnded シグナル
+    Note over CMUIC: 矢印クリア<br/>UI状態を復元
+```
+
+**主要クラスの役割:**
+
+| クラス | 責務 |
+|--------|------|
+| `EngineAnalysisTab` | 検討タブUI。エンジン選択・時間設定・MultiPV設定・検討開始/中止ボタン |
+| `ConsiderationWiring` | 検討モード関連のシグナル/スロット配線。UIコントローラの管理 |
+| `ConsiderationFlowController` | 検討パラメータの組み立てと`MatchCoordinator`への委譲 |
+| `MatchCoordinator` | 検討エンジンの起動・停止・局面変更時の再起動を管理 |
+| `Usi` | エンジンへのposition/goコマンド送信、info行の受信 |
+| `ThinkingInfoPresenter` | info行を解析し、評価値・読み筋（漢字変換含む）をシグナルで通知 |
+| `ShogiEngineThinkingModel` | 思考情報の表示モデル（MultiPV対応） |
+| `ConsiderationModeUIController` | 検討モードのUI状態管理。矢印描画・タイマー表示・ボタン制御 |
+
+**補足:**
+- 検討モードのMultiPVは動的に変更可能。`ConsiderationModeUIController::onMultiPVChanged()` → `MatchCoordinator::updateConsiderationMultiPV()` → `Usi::updateConsiderationMultiPV()` の経路で伝播する
+- 局面変更時は `updateConsiderationPosition()` が呼ばれ、現在の検討をstopしてから新局面で再開する。二重再開を防ぐ `m_considerationRestartInProgress` フラグがある
+- 矢印表示は `ConsiderationModeUIController::updateArrows()` が `ShogiEngineThinkingModel` からUSI形式の候補手を読み取り、`ShogiView` に矢印オーバーレイを描画する
+
+---
+
+### 15.5 CSA通信対局フロー
+
+CSAプロトコルを使用したネットワーク対局の、接続からログイン、対局開始、指し手交換、対局終了までの一連のフロー。
+
+```mermaid
+sequenceDiagram
+    participant User as ユーザー
+    participant CGD as CsaGameDialog
+    participant CGC as CsaGameCoordinator
+    participant CC as CsaClient
+    participant Srv as CSAサーバー
+    participant SGC as ShogiGameController
+    participant SV as ShogiView
+    participant USI as Usi
+
+    User->>CGD: 接続情報を入力しOK
+    CGD->>CGC: startGame(StartOptions)
+    CGC->>CC: connectToServer(host, port)
+    CC->>Srv: TCP接続
+    Srv-->>CC: 接続確立
+    CC-->>CGC: connectionStateChanged(Connected)
+
+    CGC->>CC: login(username, password)
+    CC->>Srv: LOGIN username password
+    Srv-->>CC: LOGIN:username OK
+    CC-->>CGC: loginSucceeded シグナル
+
+    Note over Srv: マッチング処理
+    Srv-->>CC: BEGIN Game_Summary
+    CC->>CC: processGameSummary()
+    Note over CC: 対局ID・対局者名<br/>手番・時間設定<br/>初期局面を解析
+    Srv-->>CC: END Game_Summary
+    CC-->>CGC: gameSummaryReceived シグナル
+
+    CGC->>CGC: setupInitialPosition()
+    CGC->>SGC: 初期局面を設定
+    CGC->>SV: 盤面描画
+
+    CGC->>CC: agree(gameId)
+    CC->>Srv: AGREE gameId
+    Srv-->>CC: START:gameId
+    CC-->>CGC: gameStarted シグナル
+    CGC-->>User: gameStarted(blackName, whiteName)
+
+    alt 人間が操作する場合
+        loop 対局中
+            alt 自分の手番
+                User->>SV: 盤面クリック（指し手）
+                SV-->>CGC: onHumanMove(from, to, promote)
+                CGC->>CC: sendMove("+7776FU")
+                CC->>Srv: +7776FU
+                Srv-->>CC: +7776FU,T3
+                CC-->>CGC: moveConfirmed シグナル
+                CGC-->>SV: 盤面更新・ハイライト
+            else 相手の手番
+                Srv-->>CC: -3334FU,T5
+                CC-->>CGC: moveReceived(move, consumedTimeMs)
+                CGC->>CGC: applyMoveToBoard(csaMove)
+                CGC->>SGC: 盤面に指し手を適用
+                CGC-->>SV: 盤面更新・ハイライト
+            end
+        end
+    else エンジンが操作する場合
+        CGC->>USI: initializeEngine()
+        loop 対局中
+            alt 自分の手番
+                CGC->>USI: startEngineThinking()
+                USI-->>CGC: bestMoveReceived シグナル
+                CGC->>CC: sendMove(usiToCsa(bestmove))
+            else 相手の手番
+                Srv-->>CC: 相手の指し手
+                CC-->>CGC: moveReceived シグナル
+                CGC->>SGC: 盤面に適用
+            end
+        end
+    end
+
+    Srv-->>CC: #RESIGN or #TIME_UP etc.
+    CC->>CC: processResultLine()
+    CC-->>CGC: gameEnded(result, cause, consumedTimeMs)
+    CGC-->>User: gameEnded シグナル
+    CGC->>CGC: cleanup()
+    CC->>Srv: LOGOUT
+```
+
+**主要クラスの役割:**
+
+| クラス | 責務 |
+|--------|------|
+| `CsaGameDialog` | CSA通信対局の接続設定UI（ホスト・ポート・ユーザー名・パスワード・エンジン選択） |
+| `CsaGameCoordinator` | CSA通信対局の進行管理。CsaClientとGUIコンポーネントの橋渡し |
+| `CsaClient` | CSAプロトコルのTCP/IP通信実装。メッセージの送受信と状態管理 |
+| `ShogiGameController` | 盤面データの更新 |
+| `Usi` | エンジン対局時のUSIエンジン通信（オプション） |
+
+**補足:**
+- `CsaClient`は状態マシンパターンで実装されており、`ConnectionState`が `Disconnected → Connecting → Connected → LoggedIn → WaitingForGame → GameReady → InGame → GameOver` と遷移する
+- CSA形式の指し手（例: `+7776FU`）とUSI形式の指し手（例: `7g7f`）の変換は`CsaGameCoordinator`内の `csaToUsi()` / `usiToCsa()` が担当する
+- エンジン対局時は `CsaGameCoordinator` が `Usi` インスタンスを所有し、`bestMoveReceived` シグナルで応手を受け取ってCSAサーバーに送信する
+- 終局原因（投了・時間切れ・千日手・入玉宣言等）は `CsaClient::GameEndCause` 列挙型で分類され、対応する結果表示が行われる
 
 <!-- chapter-15-end -->
 
@@ -6657,7 +7934,375 @@ ShogiClock::setCurrentPlayer(1 or 2)  ← SFENから推定
 <!-- chapter-16-start -->
 ## 第16章 国際化（i18n）と翻訳
 
-*（後続セッションで作成予定）*
+ShogiBoardQは日本語と英語の2言語をサポートしている。本章ではQtの国際化フレームワークを活用した翻訳の仕組みと、実行時の言語切替メカニズムについて解説する。
+
+### 16.1 翻訳ワークフローの全体像
+
+ソースコード中の `tr()` マクロで囲まれた文字列が翻訳対象となり、以下のパイプラインで処理される。
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     翻訳ワークフロー                              │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ① ソースコード (.cpp / .h / .ui)                                │
+│      tr("言語設定") / tr("棋譜解析完了")                           │
+│            │                                                    │
+│            ▼                                                    │
+│  ② lupdate（文字列抽出）                                         │
+│      lupdate src -ts resources/translations/*.ts                │
+│            │                                                    │
+│            ▼                                                    │
+│  ③ .ts ファイル編集（XML形式）                                    │
+│      <source> に対する <translation> を記述                       │
+│            │                                                    │
+│            ▼                                                    │
+│  ④ lrelease / cmake ビルド（バイナリ変換）                        │
+│      qt_create_translation() が .ts → .qm を自動生成             │
+│            │                                                    │
+│            ▼                                                    │
+│  ⑤ .qm ファイル（コンパクトなバイナリ翻訳）                       │
+│      実行時に QTranslator::load() で読み込み                      │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+各ステップの概要を以下にまとめる。
+
+| ステップ | ツール/ファイル | 役割 |
+|----------|----------------|------|
+| ① `tr()` | ソースコード中のマクロ | 翻訳対象の文字列をマーク |
+| ② `lupdate` | Qt Linguist ツール | ソースから `.ts` ファイルへ文字列を抽出・同期 |
+| ③ `.ts` 編集 | テキストエディタ or Qt Linguist | 翻訳テキストを入力 |
+| ④ `lrelease` | CMakeビルド時に自動実行 | `.ts` → `.qm` バイナリ変換 |
+| ⑤ `.qm` ロード | `QTranslator` + `QApplication` | 実行時に翻訳を適用 |
+
+### 16.2 翻訳ファイルの構造
+
+翻訳ファイルは `resources/translations/` に格納されるXML形式の `.ts` ファイルである。
+
+| ファイル | 言語 |
+|---------|------|
+| `ShogiBoardQ_ja_JP.ts` | 日本語 |
+| `ShogiBoardQ_en.ts` | 英語 |
+
+#### .ts ファイルのXML構造
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE TS>
+<TS version="2.1" language="ja_JP">
+  <context>
+    <name>AnalysisFlowController</name>       <!-- クラス名 -->
+    <message>
+      <location filename="../../src/analysis/analysisflowcontroller.cpp" line="49"/>
+      <source>内部エラー: sfenRecord が未準備です。</source>  <!-- 原文 -->
+      <translation type="unfinished"></translation>           <!-- 翻訳 -->
+    </message>
+    ...
+  </context>
+  <context>
+    <name>BranchTreeWidget</name>
+    ...
+  </context>
+</TS>
+```
+
+主要なXML要素を以下に示す。
+
+| 要素 | 説明 |
+|------|------|
+| `<TS>` | ルート要素。`version` と `language` 属性を持つ |
+| `<context>` | クラス単位のグルーピング。`<name>` でクラス名を示す |
+| `<message>` | 翻訳単位。1つの `tr()` 呼び出しに対応 |
+| `<location>` | ソースファイルのパスと行番号（`lupdate` が自動設定） |
+| `<source>` | 翻訳元の文字列（`tr()` に渡された文字列） |
+| `<translation>` | 翻訳先の文字列。未翻訳の場合は `type="unfinished"` |
+
+`<translation>` 要素の `type` 属性の意味は以下の通り。
+
+| type属性 | 意味 |
+|----------|------|
+| `type="unfinished"` | 未翻訳。翻訳テキストを追加する必要がある |
+| `type="obsolete"` | ソースコードから該当する `tr()` が削除された |
+| （属性なし） | 翻訳済み。正常状態 |
+
+### 16.3 CMakeによるビルド統合
+
+`CMakeLists.txt` で翻訳ファイルのビルドパイプラインが定義されている。
+
+```cmake
+# ==== Translations (.ts) ====
+set(TS_FILES
+    resources/translations/ShogiBoardQ_ja_JP.ts
+    resources/translations/ShogiBoardQ_en.ts
+)
+
+# .qm 生成（src ディレクトリのみをスキャン対象とする）
+qt_create_translation(QM_FILES
+    ${CMAKE_SOURCE_DIR}/src
+    ${TS_FILES}
+)
+
+# .qm ファイルをビルドターゲットとして追加
+add_custom_target(translations ALL DEPENDS ${QM_FILES})
+add_dependencies(ShogiBoardQ translations)
+
+# .qm ファイルを実行可能ファイルと同じディレクトリにコピー
+foreach(QM_FILE ${QM_FILES})
+    add_custom_command(TARGET ShogiBoardQ POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${QM_FILE}
+            $<TARGET_FILE_DIR:ShogiBoardQ>
+    )
+endforeach()
+```
+
+ポイント:
+
+- `qt_create_translation()` は `lupdate` と `lrelease` の両方を内部で呼び出す
+- スキャン対象を `${CMAKE_SOURCE_DIR}/src` に限定することで、`build/` 配下の autogen ファイルとの循環依存を回避している
+- 生成された `.qm` ファイルはビルド後に実行ファイルと同じディレクトリへコピーされる
+
+### 16.4 起動時の翻訳ロード
+
+`main.cpp` でアプリケーション起動時に翻訳ファイルがロードされる。SettingsServiceに保存された言語設定に基づいて、適切な `.qm` ファイルを選択する。
+
+```
+┌─────────────────────────────────────────────┐
+│            翻訳ロードのフロー                  │
+├─────────────────────────────────────────────┤
+│                                             │
+│  SettingsService::language() で設定値を取得    │
+│         │                                   │
+│         ├── "ja_JP"                          │
+│         │     └→ ShogiBoardQ_ja_JP.qm ロード │
+│         │                                   │
+│         ├── "en"                             │
+│         │     └→ ShogiBoardQ_en.qm ロード    │
+│         │                                   │
+│         └── "system"（デフォルト）             │
+│               └→ QLocale::system() から       │
+│                  ロケールを判定し自動選択       │
+│                                             │
+└─────────────────────────────────────────────┘
+```
+
+`main.cpp` の該当部分（簡略化）:
+
+```cpp
+QTranslator translator;
+QString langSetting = SettingsService::language();  // "system", "ja_JP", "en"
+
+if (langSetting == "ja_JP") {
+    // 日本語を明示的にロード
+    loaded = translator.load(":/i18n/ShogiBoardQ_ja_JP");
+    if (!loaded)
+        loaded = translator.load(appDir + "/ShogiBoardQ_ja_JP.qm");
+    if (loaded)
+        a.installTranslator(&translator);
+
+} else if (langSetting == "en") {
+    // 英語翻訳をロード
+    loaded = translator.load(":/i18n/ShogiBoardQ_en");
+    if (!loaded)
+        loaded = translator.load(appDir + "/ShogiBoardQ_en.qm");
+    if (loaded)
+        a.installTranslator(&translator);
+
+} else {
+    // "system": システムロケールに従い自動選択
+    for (const QString &locale : QLocale::system().uiLanguages()) {
+        const QString baseName = "ShogiBoardQ_" + QLocale(locale).name();
+        if (translator.load(":/i18n/" + baseName)) {
+            a.installTranslator(&translator);
+            break;
+        }
+    }
+}
+```
+
+翻訳ファイルの読み込みは2段階のフォールバックで行われる:
+
+1. **Qtリソースシステム** (`:/i18n/...`) — `.qrc` に埋め込まれている場合
+2. **ファイルシステム** (実行ファイルと同じディレクトリ) — ビルド時にコピーされた `.qm` ファイル
+
+### 16.5 LanguageController: 実行時言語切替
+
+LanguageControllerは、メニューからの言語選択をハンドリングし、設定の保存と再起動の案内を行うコントローラである。
+
+**ファイル**: `src/ui/controllers/languagecontroller.h`, `src/ui/controllers/languagecontroller.cpp`
+
+#### クラス構成
+
+```
+LanguageController (QObject)
+├── メンバ
+│   ├── m_actionGroup: QActionGroup*    排他選択グループ
+│   ├── m_systemAction: QAction*        「システム言語」メニュー項目
+│   ├── m_japaneseAction: QAction*      「日本語」メニュー項目
+│   ├── m_englishAction: QAction*       「英語」メニュー項目
+│   └── m_parentWidget: QWidget*        ダイアログ表示用の親ウィジェット
+├── public メソッド
+│   ├── setActions()                    メニューアクションの登録
+│   ├── setParentWidget()               親ウィジェットの設定
+│   └── updateMenuState()               現在の設定でチェック状態を更新
+├── public slots
+│   ├── onSystemLanguageTriggered()     「システム言語」選択時
+│   ├── onJapaneseTriggered()           「日本語」選択時
+│   └── onEnglishTriggered()            「英語」選択時
+├── signals
+│   └── languageChanged(const QString&) 言語変更通知
+└── private メソッド
+    └── changeLanguage(const QString&)  設定保存＋通知
+```
+
+#### 言語切替のシーケンス
+
+```mermaid
+sequenceDiagram
+    participant User as ユーザー
+    participant Menu as 言語メニュー
+    participant LC as LanguageController
+    participant SS as SettingsService
+    participant MB as QMessageBox
+
+    User->>Menu: 「日本語」を選択
+    Menu->>LC: onJapaneseTriggered()
+    LC->>LC: changeLanguage("ja_JP")
+    LC->>SS: language() で現在値を確認
+    SS-->>LC: "system"（変更前の値）
+    LC->>SS: setLanguage("ja_JP")
+    LC->>MB: information("再起動してください")
+    MB-->>User: ダイアログ表示
+    LC-->>LC: emit languageChanged("ja_JP")
+    LC->>LC: updateMenuState()
+    LC->>Menu: 「日本語」にチェックマーク
+```
+
+重要な設計上のポイント:
+
+- **再起動が必要**: 言語変更は即座には反映されない。`QTranslator` のロードは `main.cpp` の起動時に行われるため、変更を反映するにはアプリケーションの再起動が必要
+- **排他選択**: `QActionGroup` により、3つの言語オプション（システム/日本語/英語）は常に1つだけが選択される
+- **同一言語の再選択を無視**: `changeLanguage()` は現在の設定と同じ値が指定された場合、何もしない
+
+#### MainWindowとの統合
+
+LanguageControllerはMainWindowの `ensureLanguageController()` で遅延生成される。
+
+```cpp
+void MainWindow::ensureLanguageController()
+{
+    if (m_languageController) return;
+
+    m_languageController = new LanguageController(this);
+    m_languageController->setParentWidget(this);
+    m_languageController->setActions(
+        ui->actionLanguageSystem,
+        ui->actionLanguageJapanese,
+        ui->actionLanguageEnglish);
+}
+```
+
+`setActions()` の内部で各アクションの `triggered` シグナルと対応するスロットが接続されるため、MainWindow側での追加的な `connect()` は不要である。
+
+### 16.6 SettingsServiceによる言語設定の永続化
+
+言語設定は `SettingsService` を通じてINIファイルに保存される。
+
+```cpp
+// settingsservice.h
+QString language();
+void setLanguage(const QString& lang);
+
+// settingsservice.cpp
+QString language()
+{
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("General/language", "system").toString();
+}
+
+void setLanguage(const QString& lang)
+{
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("General/language", lang);
+}
+```
+
+| 設定キー | 取りうる値 | デフォルト | 説明 |
+|---------|-----------|-----------|------|
+| `General/language` | `"system"`, `"ja_JP"`, `"en"` | `"system"` | 表示言語の設定 |
+
+### 16.7 翻訳追加の手順
+
+新しい翻訳可能文字列を追加してから翻訳が反映されるまでの具体的な手順を示す。
+
+#### ステップ1: ソースコードで `tr()` を使用
+
+```cpp
+// 新しいダイアログメッセージを追加する例
+QMessageBox::information(this,
+    tr("エクスポート完了"),
+    tr("棋譜のエクスポートが完了しました。"));
+```
+
+#### ステップ2: `lupdate` で翻訳ファイルを更新
+
+```bash
+lupdate src -ts resources/translations/ShogiBoardQ_ja_JP.ts resources/translations/ShogiBoardQ_en.ts
+```
+
+このコマンドにより、新しい `tr()` 文字列が `.ts` ファイルに `type="unfinished"` として追加される。既存の翻訳は保持される。
+
+#### ステップ3: `.ts` ファイルを編集して翻訳を入力
+
+日本語が原文の場合、英語翻訳ファイル（`ShogiBoardQ_en.ts`）に翻訳を追加する:
+
+```xml
+<message>
+    <source>エクスポート完了</source>
+    <translation>Export Complete</translation>   <!-- type="unfinished" を削除 -->
+</message>
+<message>
+    <source>棋譜のエクスポートが完了しました。</source>
+    <translation>Kifu export has been completed.</translation>
+</message>
+```
+
+翻訳を入力したら `type="unfinished"` 属性を削除する（または Qt Linguist で翻訳済みにマークする）。
+
+#### ステップ4: ビルドして .qm を生成
+
+```bash
+cmake --build build
+```
+
+CMakeの `qt_create_translation()` が自動的に `lrelease` を実行し、`.ts` → `.qm` の変換が行われる。
+
+#### ステップ5: 動作確認
+
+アプリケーションを起動し、言語メニューから対象言語を選択（→再起動）して翻訳が反映されていることを確認する。
+
+### 16.8 `tr()` マクロの使い方
+
+#### 基本的な使い方
+
+```cpp
+// QObject を継承するクラス内で使用
+setWindowTitle(tr("対局設定"));
+
+// 引数を含む文字列
+statusBar()->showMessage(tr("手数: %1").arg(moveCount));
+```
+
+#### 注意事項
+
+| 項目 | 説明 |
+|------|------|
+| QObject派生クラス内で使用 | `tr()` は `QObject::tr()` のマクロであり、QObject派生クラスのメンバ関数内で使用する |
+| リテラル文字列のみ | `tr(variable)` はNG。`lupdate` は静的にソースを解析するため、リテラル文字列のみ抽出できる |
+| `%1`, `%2` で引数 | `QString::arg()` と組み合わせて動的な値を埋め込む |
+| `.ui` ファイル | Qt Designer で設定した文字列は自動的に `tr()` でラップされる |
 
 <!-- chapter-16-end -->
 
