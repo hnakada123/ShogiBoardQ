@@ -1,6 +1,11 @@
 #ifndef POSITIONEDITCOORDINATOR_H
 #define POSITIONEDITCOORDINATOR_H
 
+/// @file positioneditcoordinator.h
+/// @brief 局面編集コーディネータクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QObject>
 #include <QString>
 #include <QStringList>

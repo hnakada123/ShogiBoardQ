@@ -1,3 +1,7 @@
+/// @file gamestatecontroller.cpp
+/// @brief 終局処理・投了/中断・人間/エンジン判定の実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "gamestatecontroller.h"
 
 #include <QDebug>
@@ -11,85 +15,104 @@
 #include "kifurecordlistmodel.h"
 #include "shogiclock.h"
 
+// ============================================================
+// 生成・破棄
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 GameStateController::GameStateController(QObject* parent)
     : QObject(parent)
 {
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 GameStateController::~GameStateController() = default;
 
-// --------------------------------------------------------
+// ============================================================
 // 依存オブジェクトの設定
-// --------------------------------------------------------
+// ============================================================
 
+/// @todo remove コメントスタイルガイド適用済み
 void GameStateController::setMatchCoordinator(MatchCoordinator* match)
 {
     m_match = match;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void GameStateController::setShogiView(ShogiView* view)
 {
     m_shogiView = view;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void GameStateController::setRecordPane(RecordPane* pane)
 {
     m_recordPane = pane;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void GameStateController::setReplayController(ReplayController* replay)
 {
     m_replayController = replay;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void GameStateController::setTimeController(TimeControlController* tc)
 {
     m_timeController = tc;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void GameStateController::setKifuLoadCoordinator(KifuLoadCoordinator* kc)
 {
     m_kifuLoadCoordinator = kc;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void GameStateController::setKifuRecordModel(KifuRecordListModel* model)
 {
     m_kifuRecordModel = model;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void GameStateController::setPlayMode(PlayMode mode)
 {
     m_playMode = mode;
 }
 
-// --------------------------------------------------------
+// ============================================================
 // コールバック設定
-// --------------------------------------------------------
+// ============================================================
 
+/// @todo remove コメントスタイルガイド適用済み
 void GameStateController::setEnableArrowButtonsCallback(EnableArrowButtonsCallback cb)
 {
     m_enableArrowButtons = std::move(cb);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void GameStateController::setSetReplayModeCallback(SetReplayModeCallback cb)
 {
     m_setReplayMode = std::move(cb);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void GameStateController::setRefreshBranchTreeCallback(RefreshBranchTreeCallback cb)
 {
     m_refreshBranchTree = std::move(cb);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void GameStateController::setUpdatePlyStateCallback(UpdatePlyStateCallback cb)
 {
     m_updatePlyState = std::move(cb);
 }
 
-// --------------------------------------------------------
+// ============================================================
 // 投了・中断処理
-// --------------------------------------------------------
+// ============================================================
 
+/// @todo remove コメントスタイルガイド適用済み
 void GameStateController::handleResignation()
 {
     if (m_match) {
@@ -97,16 +120,18 @@ void GameStateController::handleResignation()
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void GameStateController::handleBreakOffGame()
 {
     if (!m_match || m_match->gameOverState().isOver) return;
     m_match->handleBreakOff();
 }
 
-// --------------------------------------------------------
+// ============================================================
 // 終局処理
-// --------------------------------------------------------
+// ============================================================
 
+/// @todo remove コメントスタイルガイド適用済み
 void GameStateController::setGameOverMove(MatchCoordinator::Cause cause, bool loserIsPlayerOne)
 {
     if (!m_match || !m_match->gameOverState().isOver) return;
@@ -132,15 +157,17 @@ void GameStateController::setGameOverMove(MatchCoordinator::Cause cause, bool lo
     }
 }
 
-// --------------------------------------------------------
+// ============================================================
 // 人間/エンジン判定
-// --------------------------------------------------------
+// ============================================================
 
+/// @todo remove コメントスタイルガイド適用済み
 bool GameStateController::isHvH() const
 {
     return (m_playMode == PlayMode::HumanVsHuman);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 bool GameStateController::isHumanSide(ShogiGameController::Player p) const
 {
     switch (m_playMode) {
@@ -160,17 +187,25 @@ bool GameStateController::isHumanSide(ShogiGameController::Player p) const
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 bool GameStateController::isGameOver() const
 {
     return m_match && m_match->gameOverState().isOver;
 }
 
-// --------------------------------------------------------
+// ============================================================
 // シグナルハンドラ
-// --------------------------------------------------------
+// ============================================================
 
+/// @todo remove コメントスタイルガイド適用済み
 void GameStateController::onMatchGameEnded(const MatchCoordinator::GameEndInfo& info)
 {
+    // 処理フロー:
+    // 1. 対局終了スタイルロック
+    // 2. タイマー停止・マウス操作無効化
+    // 3. 棋譜追記
+    // 4. UI後処理（矢印ボタン有効化・選択モード設定）
+
     qDebug().nospace()
         << "[GameState] onMatchGameEnded ENTER cause="
         << ((info.cause == MatchCoordinator::Cause::Timeout) ? "Timeout" : "Resign")
@@ -207,8 +242,15 @@ void GameStateController::onMatchGameEnded(const MatchCoordinator::GameEndInfo& 
     qDebug() << "[GameState] onMatchGameEnded LEAVE";
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void GameStateController::onGameOverStateChanged(const MatchCoordinator::GameOverState& st)
 {
+    // 処理フロー:
+    // 1. 投了行の有無チェック
+    // 2. ライブ追記モード終了・分岐リセット
+    // 3. 手数状態の更新
+    // 4. UI遷移（閲覧モードへ）・ハイライト消去
+
     if (!st.isOver) return;
 
     // 投了行がまだ追加されていない場合は何もしない
@@ -258,6 +300,7 @@ void GameStateController::onGameOverStateChanged(const MatchCoordinator::GameOve
     Q_EMIT gameOverProcessed();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void GameStateController::onRequestAppendGameOverMove(const MatchCoordinator::GameEndInfo& info)
 {
     const bool loserIsP1 = (info.loser == MatchCoordinator::P1);

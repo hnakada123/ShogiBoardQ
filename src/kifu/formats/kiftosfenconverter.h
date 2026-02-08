@@ -1,6 +1,11 @@
 #ifndef KIFTOSFENCONVERTER_H
 #define KIFTOSFENCONVERTER_H
 
+/// @file kiftosfenconverter.h
+/// @brief KIF形式棋譜コンバータクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QString>
 #include <QStringList>
 #include <QList>

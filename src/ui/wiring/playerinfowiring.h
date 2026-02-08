@@ -1,6 +1,11 @@
 #ifndef PLAYERINFOWIRING_H
 #define PLAYERINFOWIRING_H
 
+/// @file playerinfowiring.h
+/// @brief プレイヤー情報配線クラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QObject>
 #include <QString>
 #include <QList>

@@ -1,15 +1,17 @@
+/// @file promotedialog.cpp
+/// @brief 成り確認ダイアログクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "promotedialog.h"
 
 #include "ui_promotedialog.h"
 
 // 成る・不成の選択ダイアログを表示するクラス
-// コンストラクタ
 PromoteDialog::PromoteDialog(QWidget *parent) : QDialog(parent), ui(new Ui::PromoteDialog)
 {
     ui->setupUi(this);
 }
 
-// デストラクタ
 PromoteDialog::~PromoteDialog()
 {
     delete ui;

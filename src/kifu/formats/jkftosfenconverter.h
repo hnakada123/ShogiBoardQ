@@ -1,6 +1,11 @@
 #ifndef JKFTOSFENCONVERTER_H
 #define JKFTOSFENCONVERTER_H
 
+/// @file jkftosfenconverter.h
+/// @brief JKF形式棋譜コンバータクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QString>
 #include <QStringList>
 #include <QList>

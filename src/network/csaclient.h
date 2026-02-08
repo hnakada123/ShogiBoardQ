@@ -1,6 +1,11 @@
 #ifndef CSACLIENT_H
 #define CSACLIENT_H
 
+/// @file csaclient.h
+/// @brief CSAプロトコルクライアントクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QObject>
 #include <QString>
 #include <QStringList>
@@ -113,18 +118,11 @@ public:
         int timeUnitMs() const;     ///< 時間単位をミリ秒に変換
     };
 
-    /**
-     * @brief コンストラクタ
-     * @param parent 親オブジェクト
-     */
     explicit CsaClient(QObject* parent = nullptr);
 
-    /**
-     * @brief デストラクタ
-     */
     ~CsaClient() override;
 
-    // ========== 接続管理 ==========
+    // --- 接続管理 ---
 
     /**
      * @brief サーバーに接続する
@@ -138,19 +136,11 @@ public:
      */
     void disconnectFromServer();
 
-    /**
-     * @brief 現在の接続状態を取得する
-     * @return 接続状態
-     */
     ConnectionState connectionState() const { return m_connectionState; }
 
-    /**
-     * @brief 接続中かどうか
-     * @return 接続中の場合true
-     */
     bool isConnected() const;
 
-    // ========== ログイン/ログアウト ==========
+    // --- ログイン/ログアウト ---
 
     /**
      * @brief サーバーにログインする
@@ -164,7 +154,7 @@ public:
      */
     void logout();
 
-    // ========== 対局制御 ==========
+    // --- 対局制御 ---
 
     /**
      * @brief 対局条件に同意する
@@ -205,136 +195,70 @@ public:
      */
     void requestChudan();
 
-    /**
-     * @brief 現在の対局情報を取得する
-     * @return 対局情報
-     */
     const GameSummary& gameSummary() const { return m_gameSummary; }
 
-    /**
-     * @brief 自分の手番かどうか
-     * @return 自分の手番の場合true
-     */
     bool isMyTurn() const { return m_isMyTurn; }
 
-    /**
-     * @brief CSAプロトコルバージョンを設定する
-     * @param version バージョン文字列
-     */
     void setCsaVersion(const QString& version) { m_csaVersion = version; }
 
 signals:
-    /**
-     * @brief 接続状態が変化した時に発行
-     * @param state 新しい接続状態
-     */
+    /// 接続状態が変化した時に発行する（→ CsaGameCoordinator::onConnectionStateChanged）
     void connectionStateChanged(ConnectionState state);
 
-    /**
-     * @brief エラーが発生した時に発行
-     * @param message エラーメッセージ
-     */
+
+    /// エラーが発生した時に発行する（→ CsaGameCoordinator::onClientError）
     void errorOccurred(const QString& message);
 
-    /**
-     * @brief ログインに成功した時に発行
-     */
+    /// ログインに成功した時に発行する（→ CsaGameCoordinator::onLoginSucceeded）
     void loginSucceeded();
 
-    /**
-     * @brief ログインに失敗した時に発行
-     * @param reason 失敗理由
-     */
+    /// ログインに失敗した時に発行する（→ CsaGameCoordinator::onLoginFailed）
     void loginFailed(const QString& reason);
 
-    /**
-     * @brief ログアウトが完了した時に発行
-     */
+    /// ログアウトが完了した時に発行する（→ CsaGameCoordinator::onLogoutCompleted）
     void logoutCompleted();
 
-    /**
-     * @brief 対局条件を受信した時に発行
-     * @param summary 対局情報
-     */
+    /// 対局条件（Game_Summary）を受信した時に発行する（→ CsaGameCoordinator::onGameSummaryReceived）
     void gameSummaryReceived(const GameSummary& summary);
 
-    /**
-     * @brief 対局が開始した時に発行
-     * @param gameId 対局ID
-     */
+    /// 対局が開始した時（START:受信時）に発行する（→ CsaGameCoordinator::onGameStarted）
     void gameStarted(const QString& gameId);
 
-    /**
-     * @brief 対局が拒否された時に発行
-     * @param gameId 対局ID
-     * @param rejector 拒否したプレイヤー名
-     */
+    /// 対局が拒否された時に発行する（→ CsaGameCoordinator::onGameRejected）
     void gameRejected(const QString& gameId, const QString& rejector);
 
-    /**
-     * @brief 相手の指し手を受信した時に発行
-     * @param move CSA形式の指し手（例: "+7776FU"）
-     * @param consumedTimeMs 消費時間（ミリ秒）
-     */
+    /// 相手の指し手を受信した時に発行する（→ CsaGameCoordinator::onMoveReceived）
     void moveReceived(const QString& move, int consumedTimeMs);
 
-    /**
-     * @brief 自分の指し手が確認された時に発行
-     * @param move CSA形式の指し手
-     * @param consumedTimeMs 消費時間（ミリ秒）
-     */
+    /// 自分の指し手がサーバーで確認された時に発行する（→ CsaGameCoordinator::onMoveConfirmed）
     void moveConfirmed(const QString& move, int consumedTimeMs);
 
-    /**
-     * @brief 対局が終了した時に発行
-     * @param result 対局結果
-     * @param cause 終了原因
-     * @param consumedTimeMs 終局手の消費時間（ミリ秒）
-     */
+    /// 対局が終了した時に発行する（→ CsaGameCoordinator::onClientGameEnded）
     void gameEnded(GameResult result, GameEndCause cause, int consumedTimeMs);
 
-    /**
-     * @brief 中断が通知された時に発行
-     */
+    /// 中断が通知された時に発行する（→ CsaGameCoordinator::onGameInterrupted）
     void gameInterrupted();
 
-    /**
-     * @brief 生のメッセージを受信した時に発行（デバッグ用）
-     * @param message 受信メッセージ
-     */
+    /// 生のメッセージを受信した時に発行する（→ CsaGameCoordinator::onRawMessageReceived）
     void rawMessageReceived(const QString& message);
 
-    /**
-     * @brief 生のメッセージを送信した時に発行（デバッグ用）
-     * @param message 送信メッセージ
-     */
+    /// 生のメッセージを送信した時に発行する（→ CsaGameCoordinator::onRawMessageSent）
     void rawMessageSent(const QString& message);
 
 private slots:
-    /**
-     * @brief ソケット接続時の処理
-     */
+    /// ソケット接続時の処理（QTcpSocket::connected に接続）
     void onSocketConnected();
 
-    /**
-     * @brief ソケット切断時の処理
-     */
+    /// ソケット切断時の処理（QTcpSocket::disconnected に接続）
     void onSocketDisconnected();
 
-    /**
-     * @brief ソケットエラー時の処理
-     * @param error エラーコード
-     */
+    /// ソケットエラー時の処理（QTcpSocket::errorOccurred に接続）
     void onSocketError(QAbstractSocket::SocketError error);
 
-    /**
-     * @brief データ受信時の処理
-     */
+    /// データ受信時の処理（QTcpSocket::readyRead に接続）
     void onReadyRead();
 
-    /**
-     * @brief 接続タイムアウト時の処理
-     */
+    /// 接続タイムアウト時の処理（m_connectionTimer::timeout に接続）
     void onConnectionTimeout();
 
 private:

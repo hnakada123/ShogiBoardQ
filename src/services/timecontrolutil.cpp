@@ -1,3 +1,7 @@
+/// @file timecontrolutil.cpp
+/// @brief 持ち時間設定をShogiClockへ適用するユーティリティの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "timecontrolutil.h"
 #include "gamestartcoordinator.h"
 #include "shogiclock.h"
@@ -5,6 +9,11 @@
 
 namespace TimeControlUtil {
 
+// ============================================================
+// 適用 API
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 void applyToClock(
     ShogiClock* clock,
     const GameStartCoordinator::TimeControl& tc,
@@ -26,7 +35,7 @@ void applyToClock(
     const int p1BaseSec = limited ? msToSecFloor(tc.p1.baseMs) : 0;
     const int p2BaseSec = limited ? msToSecFloor(tc.p2.baseMs) : 0;
 
-    // byoyomi 指定があれば byoyomi 優先（inc は 0 扱い）
+    // byoyomi 指定があれば byoyomi 優先（increment は 0 扱い）
     const int byo1Sec = msToSecFloor(tc.p1.byoyomiMs);
     const int byo2Sec = msToSecFloor(tc.p2.byoyomiMs);
     const int inc1Sec = msToSecFloor(tc.p1.incrementMs);
@@ -51,9 +60,8 @@ void applyToClock(
         finalInc1, finalInc2,
         /*isLimitedTime=*/limited);
 
-    // --- 初期手番を SFEN から 1/2 で渡す（bool は渡さない！） ---
+    // 初期手番を SFEN から推定する（1=先手, 2=後手）
     auto sideFromSfen = [](const QString& sfen)->int {
-        // " b " → 先手(1) / " w " → 後手(2)
         const qsizetype b = sfen.indexOf(QLatin1String(" b "));
         const qsizetype w = sfen.indexOf(QLatin1String(" w "));
         if (b >= 0 && w < 0) return 1;

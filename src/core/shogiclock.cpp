@@ -1,9 +1,18 @@
+/// @file shogiclock.cpp
+/// @brief 将棋対局用タイマー管理クラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "shogiclock.h"
 #include <QtGlobal>
 #include <QDebug>
 
 Q_LOGGING_CATEGORY(lcShogiClock, "shogi.clock")
 
+// ============================================================
+// 構築
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 ShogiClock::ShogiClock(QObject *parent)
     : QObject(parent)
 {
@@ -13,8 +22,14 @@ ShogiClock::ShogiClock(QObject *parent)
     connect(m_timer, &QTimer::timeout, this, &ShogiClock::updateClock);
 }
 
+// ============================================================
+// 設定
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 void ShogiClock::setLoseOnTimeout(bool v) { m_loseOnTimeout = v; }
 
+/// @todo remove コメントスタイルガイド適用済み
 void ShogiClock::setPlayerTimes(int player1Seconds, int player2Seconds,
                                 int byoyomi1Seconds, int byoyomi2Seconds,
                                 int bincSeconds, int wincSeconds,
@@ -24,7 +39,7 @@ void ShogiClock::setPlayerTimes(int player1Seconds, int player2Seconds,
             player1Seconds, player2Seconds, byoyomi1Seconds, byoyomi2Seconds,
             bincSeconds, wincSeconds, isLimitedTime ? 1 : 0);
 
-    // byoyomi と increment は排他扱い
+    // 秒読みとインクリメントは排他
     if (byoyomi1Seconds > 0 || byoyomi2Seconds > 0) {
         m_byoyomi1TimeMs = qMax(0, byoyomi1Seconds) * 1000LL;
         m_byoyomi2TimeMs = qMax(0, byoyomi2Seconds) * 1000LL;
@@ -47,56 +62,59 @@ void ShogiClock::setPlayerTimes(int player1Seconds, int player2Seconds,
     m_clockRunning = false;
     m_gameOver = false;
 
-    // 考慮の初期化
     m_player1ConsiderationTimeMs = 0;
     m_player2ConsiderationTimeMs = 0;
     m_player1TotalConsiderationTimeMs = 0;
     m_player2TotalConsiderationTimeMs = 0;
 
-    // GUI表示用の直近/前回値も初期化
     m_p1LastMoveShownSec = m_p2LastMoveShownSec = 0;
     m_p1PrevShownTotalSec = m_p2PrevShownTotalSec = 0;
 
-    // 表示キャッシュを初期化して即反映（残りは切り上げ秒）
     m_prevShownSecP1 = remainingDisplaySecP1();
     m_prevShownSecP2 = remainingDisplaySecP2();
     emit timeUpdated();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void ShogiClock::setCurrentPlayer(int player)
 {
     m_currentPlayer = (player == 2 ? 2 : 1);
 }
 
+// ============================================================
+// クロック制御
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 void ShogiClock::startClock()
 {
     if (m_clockRunning) return;
 
-    saveState(); // undo用
+    saveState();
 
     m_elapsedTimer.restart();
     m_lastTickMs = m_elapsedTimer.elapsed();
 
-    // 残り時間の秒表示キャッシュをセットして一旦描画
     m_prevShownSecP1 = remainingDisplaySecP1();
     m_prevShownSecP2 = remainingDisplaySecP2();
-    
-    // デバッグ: 開始時の状態を記録
+
     qCDebug(lcShogiClock, "[DEBUG] startClock: p1Ms=%lld (%d sec), p2Ms=%lld (%d sec), currentPlayer=%d",
             m_player1TimeMs, m_prevShownSecP1,
             m_player2TimeMs, m_prevShownSecP2,
             m_currentPlayer);
-    
+
     emit timeUpdated();
 
     m_timer->start();
     m_clockRunning = true;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void ShogiClock::stopClock()
 {
     if (!m_clockRunning) return;
 
+    // 停止前に経過分を手番側の残時間・考慮時間に反映
     const qint64 now = m_elapsedTimer.elapsed();
     const qint64 elapsed = now - m_lastTickMs;
     if (elapsed > 0) {
@@ -120,23 +138,25 @@ void ShogiClock::stopClock()
     emit timeUpdated();
 }
 
-// ---- 残り秒（切り上げ） ----
+/// @todo remove コメントスタイルガイド適用済み
 int ShogiClock::remainingDisplaySecP1() const
 {
     qint64 ms = qMax<qint64>(0, m_player1TimeMs);
     return static_cast<int>((ms + 999) / 1000);
 }
+
+/// @todo remove コメントスタイルガイド適用済み
 int ShogiClock::remainingDisplaySecP2() const
 {
     qint64 ms = qMax<qint64>(0, m_player2TimeMs);
     return static_cast<int>((ms + 999) / 1000);
 }
 
-// ---- 直近考慮(秒)の更新（着手確定時に呼ぶ） ----
+/// @todo remove コメントスタイルガイド適用済み
 void ShogiClock::updateShownConsiderationForPlayer(int player)
 {
+    // 総考慮ms → 秒（切り捨て）の差分から直近手の考慮秒数を算出
     if (player == 1) {
-        // 総考慮ms → 秒（切り捨て）
         const int totalSec = static_cast<int>(qMax<qint64>(0, m_player1TotalConsiderationTimeMs) / 1000);
         const int diff = totalSec - m_p1PrevShownTotalSec;
         m_p1LastMoveShownSec = qMax(0, diff);
@@ -149,9 +169,14 @@ void ShogiClock::updateShownConsiderationForPlayer(int player)
     }
 }
 
+// ============================================================
+// 着手確定時処理
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 void ShogiClock::applyByoyomiAndResetConsideration1()
 {
-    // 終局後：秒読み/加算は行わず、表示更新のみ
+    // 終局後は秒読み/加算は行わず、表示更新のみ
     if (m_gameOver) {
         m_player1TotalConsiderationTimeMs += m_player1ConsiderationTimeMs;
         updateShownConsiderationForPlayer(1);
@@ -159,23 +184,24 @@ void ShogiClock::applyByoyomiAndResetConsideration1()
         return;
     }
 
-    // 総考慮（実測ms）に今手分を加算 → 表示用の直近考慮(秒)を確定
     m_player1TotalConsiderationTimeMs += m_player1ConsiderationTimeMs;
     updateShownConsiderationForPlayer(1);
 
-    // 秒読み or インクリメント適用（先手が指し終えた直後）
+    // 秒読み適用: 残り0以下 or 既に秒読み中なら秒読み時間をリセット
     if (m_byoyomi1TimeMs > 0) {
         if (m_player1TimeMs <= 0 || m_byoyomi1Applied) {
             m_player1TimeMs = m_byoyomi1TimeMs;
             m_byoyomi1Applied = true;
         }
     } else if (m_bincMs > 0) {
-        if (m_player1TimeMs > 0) m_player1TimeMs += m_bincMs; // 0なら加算しない
+        // インクリメント加算（残り0なら加算しない）
+        if (m_player1TimeMs > 0) m_player1TimeMs += m_bincMs;
     }
 
     emit timeUpdated();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void ShogiClock::applyByoyomiAndResetConsideration2()
 {
     if (m_gameOver) {
@@ -200,8 +226,20 @@ void ShogiClock::applyByoyomiAndResetConsideration2()
     emit timeUpdated();
 }
 
+// ============================================================
+// タイマー更新
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 void ShogiClock::updateClock()
 {
+    // 処理フロー:
+    // 1. 前回tickからの経過時間を算出
+    // 2. 持ち時間制限ありなら手番側の残り時間を減算
+    //    - 残り0以下になったら秒読み遷移 or 時間切れ判定
+    // 3. 制限なしなら考慮時間のみ加算
+    // 4. 秒表示が変わった場合のみtimeUpdatedを通知
+
     if (!m_clockRunning) return;
     if (m_gameOver)      return;
 
@@ -210,8 +248,7 @@ void ShogiClock::updateClock()
     if (elapsed <= 0) return;
     m_lastTickMs = now;
 
-    // デバッグ: タイマー精度を確認（50ms想定だが実際の経過時間を表示）
-    if (elapsed > 60) { // 60ms以上経過した場合（異常）
+    if (elapsed > 60) {
         qCWarning(lcShogiClock, "[DEBUG] updateClock elapsed=%lldms (expected ~50ms) - Timer delayed!", elapsed);
     }
 
@@ -229,15 +266,14 @@ void ShogiClock::updateClock()
                 if (byoMs > 0) {
                     const qint64 overshoot = -remMs;
                     if (!byoApplied) {
-                        // メイン→秒読みへ
+                        // メイン時間→秒読みへ遷移
                         remMs = byoMs - overshoot;
                         byoApplied = true;
                     } else {
-                        // 既に秒読み中で0を割った→秒読み尽き
+                        // 既に秒読み中で時間切れ
                         remMs = 0;
                     }
                     if (remMs <= 0) {
-                        // 秒読みも尽きた
                         if (m_loseOnTimeout) {
                             m_gameOver = true;
                             m_timer->stop();
@@ -246,13 +282,12 @@ void ShogiClock::updateClock()
                             else             emit player2TimeOut();
                             emit resignationTriggered();
                         } else {
-                            remMs = 0; // 表示は0のまま継続
+                            remMs = 0;
                         }
                         emit timeUpdated();
-                        return true; // 停止 or 0で維持
+                        return true;
                     }
                 } else {
-                    // 秒読みなし
                     remMs = 0;
                     if (m_loseOnTimeout) {
                         m_gameOver = true;
@@ -285,7 +320,6 @@ void ShogiClock::updateClock()
     const int sec1 = remainingDisplaySecP1();
     const int sec2 = remainingDisplaySecP2();
     if (sec1 != m_prevShownSecP1 || sec2 != m_prevShownSecP2) {
-        // デバッグ: 秒表示の変化を詳細に記録
         const int diff1 = m_prevShownSecP1 - sec1;
         const int diff2 = m_prevShownSecP2 - sec2;
         if (diff1 > 1 || diff2 > 1) {
@@ -300,13 +334,19 @@ void ShogiClock::updateClock()
     }
 }
 
-// ---- GUI文字列 ----
+// ============================================================
+// GUI文字列
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 QString ShogiClock::getPlayer1TimeString() const
 {
     const int rs = remainingDisplaySecP1();
     const int h = rs / 3600, m = (rs % 3600) / 60, s = rs % 60;
     return QString::asprintf("%02d:%02d:%02d", h, m, s);
 }
+
+/// @todo remove コメントスタイルガイド適用済み
 QString ShogiClock::getPlayer2TimeString() const
 {
     const int rs = remainingDisplaySecP2();
@@ -314,16 +354,17 @@ QString ShogiClock::getPlayer2TimeString() const
     return QString::asprintf("%02d:%02d:%02d", h, m, s);
 }
 
-// 直近考慮（MM:SS）＝ 総考慮(秒)差分（切り捨て）
+/// @todo remove コメントスタイルガイド適用済み
 QString ShogiClock::getPlayer1ConsiderationTime() const
 {
     int totalSec = static_cast<int>(qMax<qint64>(0, m_player1TotalConsiderationTimeMs) / 1000);
-    // m_p1LastMoveShownSec は「直近手の差分(秒)」を保持
     Q_UNUSED(totalSec);
     const int mm = m_p1LastMoveShownSec / 60;
     const int ss = m_p1LastMoveShownSec % 60;
     return QString::asprintf("%02d:%02d", mm, ss);
 }
+
+/// @todo remove コメントスタイルガイド適用済み
 QString ShogiClock::getPlayer2ConsiderationTime() const
 {
     int totalSec = static_cast<int>(qMax<qint64>(0, m_player2TotalConsiderationTimeMs) / 1000);
@@ -333,13 +374,15 @@ QString ShogiClock::getPlayer2ConsiderationTime() const
     return QString::asprintf("%02d:%02d", mm, ss);
 }
 
-// 総考慮（HH:MM:SS）＝ 実測総考慮ms → 秒は切り捨て
+/// @todo remove コメントスタイルガイド適用済み
 QString ShogiClock::getPlayer1TotalConsiderationTime() const
 {
     const int totalSec = static_cast<int>(qMax<qint64>(0, m_player1TotalConsiderationTimeMs) / 1000);
     const int h = totalSec / 3600, m = (totalSec % 3600) / 60, s = totalSec % 60;
     return QString::asprintf("%02d:%02d:%02d", h, m, s);
 }
+
+/// @todo remove コメントスタイルガイド適用済み
 QString ShogiClock::getPlayer2TotalConsiderationTime() const
 {
     const int totalSec = static_cast<int>(qMax<qint64>(0, m_player2TotalConsiderationTimeMs) / 1000);
@@ -347,16 +390,23 @@ QString ShogiClock::getPlayer2TotalConsiderationTime() const
     return QString::asprintf("%02d:%02d:%02d", h, m, s);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 QString ShogiClock::getPlayer1ConsiderationAndTotalTime() const
 {
     return getPlayer1ConsiderationTime() + "/" + getPlayer1TotalConsiderationTime();
 }
+
+/// @todo remove コメントスタイルガイド適用済み
 QString ShogiClock::getPlayer2ConsiderationAndTotalTime() const
 {
     return getPlayer2ConsiderationTime() + "/" + getPlayer2TotalConsiderationTime();
 }
 
-// ---- undo用 ----
+// ============================================================
+// undo
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 void ShogiClock::saveState()
 {
     qCDebug(lcShogiClock, "saveState p1=%lld p2=%lld c1=%lld c2=%lld t1=%lld t2=%lld byo1Applied=%d byo2Applied=%d p1PrevShownTot=%d p2PrevShownTot=%d p1Last=%d p2Last=%d",
@@ -381,9 +431,10 @@ void ShogiClock::saveState()
     m_p2LastMoveShownSecHistory.push(m_p2LastMoveShownSec);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void ShogiClock::undo()
 {
-    // あなたの既存実装に合わせて「2手戻す」
+    // 「待った」は2手分の状態を巻き戻す
     auto enough = [&]{
         return m_player1TimeHistory.size() >= 3 &&
                m_player2TimeHistory.size() >= 3 &&
@@ -441,6 +492,11 @@ void ShogiClock::undo()
     emit timeUpdated();
 }
 
+// ============================================================
+// 内部ヘルパ
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 void ShogiClock::debugCheckInvariants() const
 {
     if (m_player1TimeMs < 0 || m_player2TimeMs < 0) {
@@ -459,14 +515,20 @@ void ShogiClock::debugCheckInvariants() const
     }
 }
 
-// ---- 互換API ----
+/// @todo remove コメントスタイルガイド適用済み
 void ShogiClock::setPlayer1ConsiderationTime(int ms)
 {
     m_player1ConsiderationTimeMs = static_cast<qint64>(qMax(0, ms));
 }
+
+/// @todo remove コメントスタイルガイド適用済み
 void ShogiClock::setPlayer2ConsiderationTime(int ms)
 {
     m_player2ConsiderationTimeMs = static_cast<qint64>(qMax(0, ms));
 }
+
+/// @todo remove コメントスタイルガイド適用済み
 int ShogiClock::getPlayer1ConsiderationTimeMs() const { return static_cast<int>(m_player1ConsiderationTimeMs); }
+
+/// @todo remove コメントスタイルガイド適用済み
 int ShogiClock::getPlayer2ConsiderationTimeMs() const { return static_cast<int>(m_player2ConsiderationTimeMs); }

@@ -1,3 +1,7 @@
+/// @file main.cpp
+/// @brief アプリケーションエントリーポイントの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "mainwindow.h"
 #include "settingsservice.h"
 
@@ -301,7 +305,7 @@ int main(int argc, char *argv[])
 
     // 分岐候補クリックの自動実行
     // click-tree-nodeまたはclick-kifu-rowが設定されている場合は、それらの後に実行
-    // ★ 手動操作をシミュレートするため、他の操作後に十分な遅延を設ける
+    // 手動操作をシミュレートするため、他の操作後に十分な遅延を設ける
     int branchClickTime;
     if (parser.isSet(clickKifuRowOption)) {
         // kifu-rowクリック後に分岐候補クリック
@@ -564,7 +568,7 @@ int main(int argc, char *argv[])
         });
     }
 
-    // ★ 対局シミュレーションテスト
+    // 対局シミュレーションテスト
     if (parser.isSet(testLiveGameOption)) {
         qDebug() << "[TEST] Live game simulation test starting...";
 
@@ -599,7 +603,7 @@ int main(int argc, char *argv[])
             qDebug() << "[TEST] Branch tree node count:" << nodeCount;
             qDebug() << "[TEST] Expected: >= 2 nodes (root + 1 move)";
             if (pass) {
-                qDebug() << "[TEST] ★★★ PASS ★★★";
+                qDebug() << "[TEST] PASS";
                 qDebug() << "[TEST] Branch tree correctly shows moves during live game.";
             } else {
                 qWarning() << "[TEST] ✗✗✗ FAIL ✗✗✗";

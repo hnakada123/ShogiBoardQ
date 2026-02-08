@@ -1,6 +1,11 @@
 #ifndef PROMOTEDIALOG_H
 #define PROMOTEDIALOG_H
 
+/// @file promotedialog.h
+/// @brief 成り確認ダイアログクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QDialog>
 
 namespace Ui {

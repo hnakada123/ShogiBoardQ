@@ -1,6 +1,11 @@
 #ifndef CSAGAMEDIALOG_H
 #define CSAGAMEDIALOG_H
 
+/// @file csagamedialog.h
+/// @brief CSA対局ダイアログクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QDialog>
 #include <QList>
 

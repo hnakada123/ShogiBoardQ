@@ -1,3 +1,7 @@
+/// @file kifunavigationcontroller.cpp
+/// @brief 棋譜ナビゲーションコントローラクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "kifunavigationcontroller.h"
 #include "kifubranchtree.h"
 #include "kifubranchnode.h"
@@ -6,6 +10,11 @@
 
 #include <QPushButton>
 
+// ============================================================
+// 初期化
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 KifuNavigationController::KifuNavigationController(QObject* parent)
     : QObject(parent)
     , m_tree(nullptr)
@@ -13,6 +22,7 @@ KifuNavigationController::KifuNavigationController(QObject* parent)
 {
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void KifuNavigationController::setTreeAndState(KifuBranchTree* tree, KifuNavigationState* state)
 {
     m_tree = tree;
@@ -23,6 +33,7 @@ void KifuNavigationController::setTreeAndState(KifuBranchTree* tree, KifuNavigat
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void KifuNavigationController::connectButtons(const Buttons& buttons)
 {
     if (buttons.first != nullptr) {
@@ -51,6 +62,11 @@ void KifuNavigationController::connectButtons(const Buttons& buttons)
     }
 }
 
+// ============================================================
+// ナビゲーション操作
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 void KifuNavigationController::goToFirst()
 {
     if (m_state == nullptr || m_tree == nullptr) {
@@ -61,6 +77,7 @@ void KifuNavigationController::goToFirst()
     emitUpdateSignals();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void KifuNavigationController::goToLast()
 {
     if (m_state == nullptr || m_tree == nullptr) {
@@ -87,6 +104,7 @@ void KifuNavigationController::goToLast()
     emitUpdateSignals();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void KifuNavigationController::goBack(int count)
 {
     if (m_state == nullptr || m_tree == nullptr || count <= 0) {
@@ -106,6 +124,7 @@ void KifuNavigationController::goBack(int count)
     emitUpdateSignals();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void KifuNavigationController::goForward(int count)
 {
     qDebug().noquote() << "[KNC] goForward ENTER count=" << count;
@@ -141,6 +160,7 @@ void KifuNavigationController::goForward(int count)
     emitUpdateSignals();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 KifuBranchNode* KifuNavigationController::findForwardNode() const
 {
     qDebug().noquote() << "[KNC] findForwardNode ENTER";
@@ -179,14 +199,14 @@ KifuBranchNode* KifuNavigationController::findForwardNode() const
     return firstChild;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void KifuNavigationController::goToNode(KifuBranchNode* node)
 {
     if (m_state == nullptr || node == nullptr) {
         return;
     }
 
-    // ★ ルートからこのノードまでの全分岐点で選択を記憶
-    // これにより、戻る→進むナビゲーション時に正しいパスを辿れる
+    // 戻る→進むナビゲーション時に正しいパスを辿れるよう、全分岐点で選択を記憶する
     KifuBranchNode* current = node;
     while (current != nullptr) {
         KifuBranchNode* parent = current->parent();
@@ -206,6 +226,7 @@ void KifuNavigationController::goToNode(KifuBranchNode* node)
     emitUpdateSignals();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void KifuNavigationController::goToPly(int ply)
 {
     if (m_state == nullptr || m_tree == nullptr) {
@@ -229,6 +250,7 @@ void KifuNavigationController::goToPly(int ply)
     // 同じplyなら何もしない
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void KifuNavigationController::switchToLine(int lineIndex)
 {
     if (m_state == nullptr || m_tree == nullptr) {
@@ -277,6 +299,7 @@ void KifuNavigationController::switchToLine(int lineIndex)
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void KifuNavigationController::selectBranchCandidate(int candidateIndex)
 {
     qDebug().noquote() << "[KNC] selectBranchCandidate ENTER candidateIndex=" << candidateIndex;
@@ -301,33 +324,33 @@ void KifuNavigationController::selectBranchCandidate(int candidateIndex)
                        << "ply=" << candidate->ply()
                        << "displayText=" << candidate->displayText();
 
-    // ★ 分岐を選択した場合、そのラインを優先ラインとして記憶
     // node->lineIndex()は最初の分岐点のインデックスしか返さないため、
-    // ツリーから実際のラインインデックスを取得する
+    // ツリーから実際のラインインデックスを取得して優先ラインとして記憶する
     const int lineIndex = m_tree ? m_tree->findLineIndexForNode(candidate) : candidate->lineIndex();
     if (lineIndex > 0) {
         m_state->setPreferredLineIndex(lineIndex);
         qDebug().noquote() << "[KNC] selectBranchCandidate: setPreferredLineIndex=" << lineIndex;
     } else {
-        // ★ 本譜の手を選択した場合は優先ラインをリセット
+        // 本譜の手を選択した場合は優先ラインをリセット
         m_state->resetPreferredLineIndex();
         qDebug().noquote() << "[KNC] selectBranchCandidate: resetPreferredLineIndex (main line selected)";
     }
 
-    // ★ ライン選択変更を通知
+    // ライン選択変更を通知
     emit lineSelectionChanged(lineIndex);
     qDebug().noquote() << "[KNC] selectBranchCandidate: emitted lineSelectionChanged=" << lineIndex;
 
     goToNode(candidate);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void KifuNavigationController::goToMainLineAtCurrentPly()
 {
     if (m_state == nullptr || m_tree == nullptr) {
         return;
     }
 
-    // ★ 本譜に戻る場合、優先ラインと選択記憶をリセット
+    // 本譜に戻る場合、優先ラインと選択記憶をリセット
     m_state->resetPreferredLineIndex();
     m_state->clearLineSelectionMemory();
     qDebug().noquote() << "[KNC] goToMainLineAtCurrentPly: resetPreferredLineIndex and clearLineSelectionMemory";
@@ -341,6 +364,11 @@ void KifuNavigationController::goToMainLineAtCurrentPly()
     }
 }
 
+// ============================================================
+// ボタンスロット
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 void KifuNavigationController::onFirstClicked(bool checked)
 {
     Q_UNUSED(checked)
@@ -377,6 +405,11 @@ void KifuNavigationController::onLastClicked(bool checked)
     goToLast();
 }
 
+// ============================================================
+// 分岐ツリー操作
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 void KifuNavigationController::handleBranchNodeActivated(int row, int ply)
 {
     qDebug().noquote() << "[KNC] handleBranchNodeActivated ENTER row=" << row << "ply=" << ply;
@@ -411,7 +444,7 @@ void KifuNavigationController::handleBranchNodeActivated(int row, int ply)
         return;
     }
 
-    // ★ 共有ノードのクリック時はライン維持
+    // 分岐前の共有ノードをクリックした場合は現在のライン上にとどまる
     int effectiveRow = row;
     const int currentLine = m_state->currentLineIndex();
     if (currentLine > 0 && currentLine < lines.size()) {
@@ -426,7 +459,7 @@ void KifuNavigationController::handleBranchNodeActivated(int row, int ply)
     const int maxPly = line.nodes.isEmpty() ? 0 : line.nodes.last()->ply();
     const int selPly = qBound(0, ply, maxPly);
 
-    // ★ 分岐ラインを選択した場合、優先ラインを設定
+    // 分岐ラインを選択した場合、以降のナビゲーションで優先されるよう設定する
     if (effectiveRow > 0) {
         m_state->setPreferredLineIndex(effectiveRow);
         qDebug().noquote() << "[KNC] handleBranchNodeActivated: setPreferredLineIndex=" << effectiveRow;

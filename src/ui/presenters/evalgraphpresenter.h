@@ -1,6 +1,11 @@
 #ifndef EVALGRAPHPRESENTER_H
 #define EVALGRAPHPRESENTER_H
 
+/// @file evalgraphpresenter.h
+/// @brief 評価値グラフプレゼンタクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QtCore/QList>
 
 class MatchCoordinator;  // 前方宣言（ポインタ使用のみ／重い依存を避ける）

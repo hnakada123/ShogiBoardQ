@@ -1,6 +1,11 @@
 #ifndef TIMEDISPLAYPRESENTER_H
 #define TIMEDISPLAYPRESENTER_H
 
+/// @file timedisplaypresenter.h
+/// @brief 時刻表示プレゼンタクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QObject>
 #include <QString>
 

@@ -1,6 +1,11 @@
 #ifndef ENGINEINFOWIDGET_H
 #define ENGINEINFOWIDGET_H
 
+/// @file engineinfowidget.h
+/// @brief エンジン情報表示ウィジェットクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QWidget>
 #include <QList>
 class QTableWidget;
@@ -15,31 +20,31 @@ public:
     void setModel(UsiCommLogModel* model);
     void setDisplayNameFallback(const QString& name);
     
-    // ★ 追加: フォントサイズ設定
+    // フォントサイズ設定
     void setFontSize(int pointSize);
     int fontSize() const { return m_fontSize; }
     
-    // ★ 追加: ウィジェットインデックス（設定保存用）
+    // ウィジェットインデックス（設定保存用）
     void setWidgetIndex(int index) { m_widgetIndex = index; }
     int widgetIndex() const { return m_widgetIndex; }
     
-    // ★ 追加: 列幅の取得・設定
+    // 列幅の取得・設定
     QList<int> columnWidths() const;
     void setColumnWidths(const QList<int>& widths);
     
-    // ★ 追加: 列数の取得
+    // 列数の取得
     int columnCount() const { return COL_COUNT; }
 
 signals:
-    // ★ 追加: フォントサイズ変更シグナル
+    // フォントサイズ変更シグナル
     void fontSizeIncreaseRequested();
     void fontSizeDecreaseRequested();
     
-    // ★ 追加: 列幅変更シグナル
+    // 列幅変更シグナル
     void columnWidthChanged();
 
 protected:
-    // ★ 追加: リサイズイベント（エンジン名列の自動調整用）
+    // リサイズイベント（エンジン名列の自動調整用）
     void resizeEvent(QResizeEvent* event) override;
     void showEvent(QShowEvent* event) override;
 
@@ -52,7 +57,7 @@ private slots:
     void onNpsChanged();
     void onHashChanged();
     
-    // ★ 追加: 列幅変更時のスロット
+    // 列幅変更時のスロット
     void onSectionResized(int logicalIndex, int oldSize, int newSize);
 
 private:
@@ -60,11 +65,11 @@ private:
     QTableWidget* m_table=nullptr;
     QString m_fallbackName;
     int m_fontSize=10;
-    int m_widgetIndex=0;  // ★ 追加: ウィジェットインデックス
-    bool m_columnWidthsLoaded=false;  // ★ 追加: 列幅が設定ファイルから読み込まれたか
-    int m_buttonRowHeight=0;  // ★ 追加: ボタン行の高さ（ボタン非表示時は0）
+    int m_widgetIndex=0;  // ウィジェットインデックス
+    bool m_columnWidthsLoaded=false;  // 列幅が設定ファイルから読み込まれたか
+    int m_buttonRowHeight=0;  // ボタン行の高さ（ボタン非表示時は0）
 
-    // ★ 追加: フォントサイズボタン
+    // フォントサイズボタン
     QToolButton* m_btnFontDecrease=nullptr;
     QToolButton* m_btnFontIncrease=nullptr;
     bool m_showFontButtons=false;
@@ -84,10 +89,10 @@ private:
     
     void setCellValue(int col, const QString& value);
     
-    // ★ 追加: エンジン名列の幅を残りスペースに合わせて調整
+    // エンジン名列の幅を残りスペースに合わせて調整
     void adjustEngineNameColumn();
 
-    // ★ 追加: ヘッダースタイルの再適用（フォントサイズ反映用）
+    // ヘッダースタイルの再適用（フォントサイズ反映用）
     void applyHeaderStyle();
 };
 

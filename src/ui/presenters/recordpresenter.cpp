@@ -1,3 +1,7 @@
+/// @file recordpresenter.cpp
+/// @brief 棋譜表示プレゼンタクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "recordpresenter.h"
 #include "kifdisplayitem.h"
 #include "kifurecordlistmodel.h"
@@ -36,7 +40,7 @@ void GameRecordPresenter::presentGameRecord(const QList<KifDisplayItem>& disp) {
         openingComment = disp.at(0).comment;
     }
 
-    // ★ パフォーマンス改善: 全アイテムを一括追加
+    // パフォーマンス改善: 全アイテムを一括追加
     QList<KifuDisplay*> items;
     items.reserve(disp.size());
 
@@ -74,7 +78,7 @@ void GameRecordPresenter::presentGameRecord(const QList<KifDisplayItem>& disp) {
     // 現在の手数インデックスを更新
     m_currentMoveIndex = static_cast<int>(items.size()) - 1;
 
-    // ★ ハイライトは最後に1回だけ設定（開始局面）
+    // ハイライトは最後に1回だけ設定（開始局面）
     m_d.model->setCurrentHighlightRow(0);
 
     // 初期選択位置は先頭に寄せる（任意）
@@ -144,7 +148,7 @@ void GameRecordPresenter::appendMoveLine(const QString& prettyMove, const QStrin
         const int newRow = m_d.model->rowCount() - 1;
         m_d.model->setCurrentHighlightRow(newRow);
 
-        // ★ 追加：QTableViewの選択モデルでも新しい行を選択（黄色表示のため）
+        // QTableViewの選択モデルでも新しい行を選択（黄色表示のため）
         if (m_kifuView) {
             if (auto* sel = m_kifuView->selectionModel()) {
                 const QModelIndex idx = m_d.model->index(newRow, 0);
@@ -206,7 +210,7 @@ void GameRecordPresenter::appendMoveLineWithComment(const QString& prettyMove, c
         const int newRow = m_d.model->rowCount() - 1;
         m_d.model->setCurrentHighlightRow(newRow);
 
-        // ★ 追加：QTableViewの選択モデルでも新しい行を選択（黄色表示のため）
+        // QTableViewの選択モデルでも新しい行を選択（黄色表示のため）
         if (m_kifuView) {
             if (auto* sel = m_kifuView->selectionModel()) {
                 const QModelIndex idx = m_d.model->index(newRow, 0);
@@ -271,7 +275,7 @@ void GameRecordPresenter::onKifuCurrentRowChanged(const QModelIndex& current,
     Q_UNUSED(previous)
     const int row = current.isValid() ? current.row() : -1;
 
-    // ★ 追加：選択行が変わったらモデルのハイライト行も更新
+    // 選択行が変わったらモデルのハイライト行も更新
     if (m_d.model && row >= 0) {
         m_d.model->setCurrentHighlightRow(row);
     }

@@ -1,3 +1,7 @@
+/// @file shogiview.cpp
+/// @brief 将棋盤面描画ビュークラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "shogiview.h"
 #include "shogiboard.h"
 #include "enginesettingsconstants.h"
@@ -64,7 +68,6 @@ ShogiView::Highlight::~Highlight() {}
 // FieldHighlightクラスのデストラクタ
 ShogiView::FieldHighlight::~FieldHighlight() {}
 
-// コンストラクタ
 // ・描画/レイアウトに関わる初期値をメンバ初期化子で明示
 // ・設定ファイルからマス（square）サイズを読み込み
 // ・盤・駒台・時計/名前ラベルを生成し、見た目と挙動を初期化する
@@ -185,7 +188,7 @@ ShogiView::ShogiView(QWidget *parent)
     updateBlackClockLabelGeometry();
     updateWhiteClockLabelGeometry();
 
-    // ★ 起動直後の見た目を整える（両側とも font-weight:400）
+    // 起動直後の見た目を整える（両側とも font-weight:400）
     applyStartupTypography();
 
     // 【イベントフック】
@@ -1692,14 +1695,14 @@ void ShogiView::removeHighlight(ShogiView::Highlight* hl)
 
 // すべてのハイライトを削除する（コンテナを空にする）。
 // 役割：実体を破棄 → クリア → 再描画要求。
-// ★ メモリリーク防止：ハイライトの実体を破棄してからクリアする。
+// メモリリーク防止：ハイライトの実体を破棄してからクリアする。
 //    removeHighlight() で個別に削除されたハイライトはリストに残っていないため、
 //    二重解放は発生しない。
 void ShogiView::removeHighlightAllData()
 {
-    qDeleteAll(m_highlights); // ★ 実体を破棄
+    qDeleteAll(m_highlights); // 実体を破棄
     m_highlights.clear();     // コンテナをクリア
-    emit highlightsCleared(); // ★ 外部に通知（ダングリングポインタ防止）
+    emit highlightsCleared(); // 外部に通知（ダングリングポインタ防止）
     update();                 // 反映のため再描画を要求
 }
 
@@ -1950,7 +1953,7 @@ void ShogiView::setFlipMode(bool newFlipMode)
     updateBlackClockLabelGeometry();
     updateWhiteClockLabelGeometry();
 
-    // ★ 手番ラベルも「反転後の名前/時計の最終ジオメトリ」に追従させる
+    // 手番ラベルも「反転後の名前/時計の最終ジオメトリ」に追従させる
     //    （フォント/スタイルのコピーと角丸無効化も relayout 内で同期されます）
     relayoutTurnLabels();
 
@@ -2175,7 +2178,7 @@ void ShogiView::resizeEvent(QResizeEvent* e)
     updateBlackClockLabelGeometry();
     updateWhiteClockLabelGeometry();
 
-    // ★ 手番ラベルの再配置（名前/時計の確定ジオメトリに追従）
+    // 手番ラベルの再配置（名前/時計の確定ジオメトリに追従）
     relayoutTurnLabels();
 }
 
@@ -2550,7 +2553,7 @@ QString ShogiView::stripMarks(const QString& s)
 //  - 表示用ラベル（向き/手番/反転などに依存）を refreshNameLabels() で更新
 void ShogiView::setBlackPlayerName(const QString& name)
 {
-    qDebug().noquote() << "[ShogiView] ★ setBlackPlayerName: name=" << name;
+    qDebug().noquote() << "[ShogiView] setBlackPlayerName: name=" << name;
     m_blackNameBase = stripMarks(name);  // 装飾を除いた素の名前を保存
     refreshNameLabels();                 // ラベル表示を更新（向き/手番表示などは内部で決定）
 }
@@ -2559,7 +2562,7 @@ void ShogiView::setBlackPlayerName(const QString& name)
 // 役割は黒側と同様：装飾マークを除去して m_whiteNameBase に保存し、表示を更新。
 void ShogiView::setWhitePlayerName(const QString& name)
 {
-    qDebug().noquote() << "[ShogiView] ★ setWhitePlayerName: name=" << name;
+    qDebug().noquote() << "[ShogiView] setWhitePlayerName: name=" << name;
     m_whiteNameBase = stripMarks(name);
     refreshNameLabels();
 }
@@ -2685,7 +2688,7 @@ void ShogiView::recalcLayoutParams()
     // 実効ギャップの px 値（後続の計算や描画に利用）
     m_standGapPx = qRound(effCols * m_squareSize);
 
-    // ★ 手番ラベルも最新レイアウトに追従
+    // 手番ラベルも最新レイアウトに追従
     relayoutTurnLabels();
 }
 
@@ -2907,7 +2910,7 @@ void ShogiView::updateBoardSize()
     setFieldSize(QSize(m_squareSize, qRound(m_squareSize * kSquareAspectRatio))); // 1 マスのサイズを更新（内部で再レイアウトも行う）
     updateGeometry();                                // 冗長だが安全側の再通知
 
-    // ★ 盤マスサイズ変更に伴い、手番ラベルの位置/フォントも追従
+    // 盤マスサイズ変更に伴い、手番ラベルの位置/フォントも追従
     relayoutTurnLabels();
 }
 
@@ -2926,7 +2929,7 @@ void ShogiView::setLabelStyle(QLabel* lbl,
 {
     if (!lbl) return;
 
-    // ★ 角丸を 0px に
+    // 角丸を 0px に
     const QString css = QStringLiteral(
                             "color:%1; background:%2; border:%3px solid %4; font-weight:%5; "
                             "padding:2px; border-radius:0px;")
@@ -3341,7 +3344,7 @@ void ShogiView::updateTurnIndicator(ShogiGameController::Player now)
     // 配置更新（黒は駒台直上アンカー／白は従来）。内部で角丸無効化・スタイル同期も実施。
     relayoutTurnLabels();
 
-    // ★ 起動直後など now==NoPlayer の場合でも先手を既定表示にする
+    // 起動直後など now==NoPlayer の場合でも先手を既定表示にする
     const auto side = (now == ShogiGameController::Player1 || now == ShogiGameController::Player2)
                           ? now : ShogiGameController::Player1;
 
@@ -3450,7 +3453,7 @@ void ShogiView::ensureAndPlaceEditExitButton()
         const QRect boardRect(m_offsetX, m_offsetY,
                               fs.width() * m_board->files(),
                               fs.height() * m_board->ranks());
-        y = boardRect.top();        // ★1段目のY
+        y = boardRect.top();        //1段目のY
         yFixed = true;
     }
 

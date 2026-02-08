@@ -1,6 +1,11 @@
 #ifndef JISHOGISCOREDIALOGCONTROLLER_H
 #define JISHOGISCOREDIALOGCONTROLLER_H
 
+/// @file jishogiscoredialogcontroller.h
+/// @brief 持将棋スコアダイアログコントローラクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QObject>
 #include <QWidget>
 

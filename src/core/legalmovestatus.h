@@ -1,11 +1,16 @@
 #ifndef LEGALMOVESTATUS_H
 #define LEGALMOVESTATUS_H
 
-struct LegalMoveStatus {
-    bool nonPromotingMoveExists;  // 成らない状態での合法手が存在するかどうか
-    bool promotingMoveExists;     // 成る状態での合法手が存在するかどうか
+/// @file legalmovestatus.h
+/// @brief 合法手存在判定ステータス構造体の定義
+/// @todo remove コメントスタイルガイド適用済み
 
-    // コンストラクタ
+/// 指定マスへの合法手の成り/不成の存在状態
+/// @todo remove コメントスタイルガイド適用済み
+struct LegalMoveStatus {
+    bool nonPromotingMoveExists;  ///< 不成での合法手が存在するか
+    bool promotingMoveExists;     ///< 成りでの合法手が存在するか
+
     LegalMoveStatus(bool nonPromoting = false, bool promoting = false)
         : nonPromotingMoveExists(nonPromoting), promotingMoveExists(promoting) {}
 };

@@ -1,3 +1,7 @@
+/// @file boardsyncpresenter.cpp
+/// @brief 盤面同期プレゼンタクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "boardsyncpresenter.h"
 #include "shogigamecontroller.h"
 #include "shogiview.h"
@@ -42,10 +46,10 @@ void BoardSyncPresenter::applySfenAtPly(int ply) const
     const int size   = static_cast<int>(m_sfenRecord->size());
     const int maxIdx = size - 1;
 
-    // ★ 終局（投了など）行の判定：SFEN は増えないため reqPly > maxIdx になる
+    // 終局（投了など）行の判定：SFEN は増えないため reqPly > maxIdx になる
     const bool isTerminalRow = (ply > maxIdx);
 
-    // ★ 実際に適用するインデックスはクランプ（終局行なら常に末尾の SFEN を使う）
+    // 実際に適用するインデックスはクランプ（終局行なら常に末尾の SFEN を使う）
     const int idx = qBound(0, ply, maxIdx);
 
     qInfo().noquote()
@@ -140,7 +144,7 @@ void BoardSyncPresenter::applySfenAtPly(int ply) const
             }
         }
 
-        // ★ 終局行の場合、最後の SFEN の move 番号と reqPly の関係をメモ
+        // 終局行の場合、最後の SFEN の move 番号と reqPly の関係をメモ
         if (isTerminalRow) {
             qInfo().noquote()
             << QString("[PRESENTER] terminal note: last SFEN's move=%1, reqPly=%2 (no new SFEN for resignation)")
@@ -162,7 +166,7 @@ void BoardSyncPresenter::applySfenAtPly(int ply) const
         qInfo() << "[PRESENTER] view->applyBoardAndRender() done";
     }
 
-    // ★ トレーラ：この関数は「盤面適用」担当。
+    // トレーラ：この関数は「盤面適用」担当。
     // 投了など終局行のハイライト消去は syncBoardAndHighlightsAtRow() 側で行う想定。
     qInfo().noquote() << "[PRESENTER] applySfenAtPly leave"
                       << " reqPly=" << ply
@@ -215,7 +219,7 @@ void BoardSyncPresenter::syncBoardAndHighlightsAtRow(int ply) const
         }
     }
 
-    // ★重要：先に盤面を適用（元の実装と同じ順序を維持）
+    //重要：先に盤面を適用（元の実装と同じ順序を維持）
     // applySfenAtPly 内でクランプされる想定のため reqPly のまま渡す
     applySfenAtPly(ply);
 
@@ -242,7 +246,7 @@ void BoardSyncPresenter::syncBoardAndHighlightsAtRow(int ply) const
     const QString curr = sfenAt(safePly);
 
     // 1局面分の SFEN（盤面部）を 9x9 のトークングリッドへ展開
-    // ★FIX：段(y)は「後手側=上」を原点(0)にする → y = r
+    //FIX：段(y)は「後手側=上」を原点(0)にする → y = r
     auto parseOneBoard = [](const QString& sfen, QString grid[9][9])->bool {
         for (int y=0; y<9; ++y) for (int x=0; x<9; ++x) grid[y][x].clear();
 

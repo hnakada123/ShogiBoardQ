@@ -1,3 +1,7 @@
+/// @file considerationflowcontroller.cpp
+/// @brief 検討フローコントローラクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "considerationflowcontroller.h"
 
 #include "matchcoordinator.h"
@@ -9,11 +13,13 @@
 #include <QDir>
 #include <QApplication>
 
+/// @todo remove コメントスタイルガイド適用済み
 ConsiderationFlowController::ConsiderationFlowController(QObject* parent)
     : QObject(parent)
 {
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void ConsiderationFlowController::runDirect(const Deps& d, const DirectParams& params, const QString& positionStr)
 {
     using namespace EngineSettingsConstants;
@@ -68,6 +74,7 @@ void ConsiderationFlowController::runDirect(const Deps& d, const DirectParams& p
                   params.previousFileTo, params.previousRankTo, params.lastUsiMove);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void ConsiderationFlowController::startAnalysis(MatchCoordinator* match,
                                                  const QString& enginePath,
                                                  const QString& engineName,
@@ -86,10 +93,10 @@ void ConsiderationFlowController::startAnalysis(MatchCoordinator* match,
     opt.byoyomiMs   = byoyomiMs;
     opt.multiPV     = multiPV;
     opt.mode        = PlayMode::ConsiderationMode;  // 既存の PlayMode
-    opt.considerationModel = considerationModel;    // ★ 追加: 検討タブ用モデル
-    opt.previousFileTo = previousFileTo;            // ★ 追加: 前回の移動先の筋
-    opt.previousRankTo = previousRankTo;            // ★ 追加: 前回の移動先の段
-    opt.lastUsiMove = lastUsiMove;                  // ★ 追加: 最後の指し手（USI形式）
+    opt.considerationModel = considerationModel;
+    opt.previousFileTo = previousFileTo;
+    opt.previousRankTo = previousRankTo;
+    opt.lastUsiMove = lastUsiMove;
 
     match->startAnalysis(opt);
 }

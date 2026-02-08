@@ -1,14 +1,17 @@
+/// @file kifuanalysislistmodel.cpp
+/// @brief 棋譜解析結果リストモデルクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "kifuanalysislistmodel.h"
 #include <cmath>
 #include <QColor>
 
-//将棋の棋譜解析結果をGUI上で表示するためのモデルクラス
-// コンストラクタ
+/// @todo remove コメントスタイルガイド適用済み
 KifuAnalysisListModel::KifuAnalysisListModel(QObject *parent) : AbstractListModel<KifuAnalysisResultsDisplay>(parent)
 {
 }
 
-// 列数を返す。
+/// @todo remove コメントスタイルガイド適用済み
 int KifuAnalysisListModel::columnCount(const QModelIndex &parent) const
 {
     Q_UNUSED(parent)
@@ -17,8 +20,8 @@ int KifuAnalysisListModel::columnCount(const QModelIndex &parent) const
     return 8;
 }
 
-// 指し手と候補手が一致するか判定する
-// 「同　」（同＋全角空白）と「同」（空白なし）の表記を考慮して比較
+// 指し手と候補手の一致判定
+// 「同　」と「同」の表記揺れを正規化して比較する
 static bool isMoveMatch(const QString& currentMove, const QString& candidateMove)
 {
     if (currentMove.isEmpty() || candidateMove.isEmpty()) {
@@ -67,8 +70,8 @@ static bool isMoveMatch(const QString& currentMove, const QString& candidateMove
     return normalizedCurrent == normalizedCandidate;
 }
 
-// 評価値から形勢文字列を生成する
-// 評価値は先手視点（正=先手有利、負=後手有利）
+// 評価値を将棋の形勢表現（互角/やや有利/有利/優勢/勝勢）に変換する
+// 評価値は先手視点の値を前提とする（正=先手有利、負=後手有利）
 static QString getJudgementString(const QString& evalStr)
 {
     if (evalStr.isEmpty() || evalStr == QStringLiteral("-")) {
@@ -114,7 +117,7 @@ static QString getJudgementString(const QString& evalStr)
     return side + advantage;
 }
 
-// データを返す。
+/// @todo remove コメントスタイルガイド適用済み
 QVariant KifuAnalysisListModel::data(const QModelIndex &index, int role) const
 {
     if (!index.isValid())
@@ -179,15 +182,13 @@ QVariant KifuAnalysisListModel::data(const QModelIndex &index, int role) const
     }
 }
 
-// ヘッダを返す。
+/// @todo remove コメントスタイルガイド適用済み
 QVariant KifuAnalysisListModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
-    // roleが表示用のデータを要求していない場合、空のQVariantを返す。
     if (role != Qt::DisplayRole) {
         return QVariant();
     }
 
-    // // 横方向のヘッダが要求された場合
     if (orientation == Qt::Horizontal) {
         switch (section) {
         case 0:
@@ -207,11 +208,9 @@ QVariant KifuAnalysisListModel::headerData(int section, Qt::Orientation orientat
         case 7:
             return tr("読み筋");
         default:
-            // それ以外の場合、空のQVariantを返す。
             return QVariant();
         }
     } else {
-        // 縦方向のヘッダが要求された場合、セクション番号を返す。
         return QVariant(section + 1);
     }
 }

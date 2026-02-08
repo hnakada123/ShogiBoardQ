@@ -1,6 +1,11 @@
 #ifndef NAVIGATIONPRESENTER_H
 #define NAVIGATIONPRESENTER_H
 
+/// @file navigationpresenter.h
+/// @brief ナビゲーションプレゼンタクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QObject>
 #include <QPointer>
 
@@ -25,7 +30,7 @@ public:
     // 分岐候補だけを再構築したいとき（refreshAll と同じで OK）
     void refreshBranchCandidates(int row, int ply);
 
-    // ★ 再帰対策用：Coordinator が「候補モデル更新を完了」した直後に呼ぶ“事後通知”
+    // 再帰対策用：Coordinator が「候補モデル更新を完了」した直後に呼ぶ“事後通知”
     //    （Coordinator 内から呼び出すのはコレだけ。refresh* は呼ばない。）
     void updateAfterBranchListChanged(int row, int ply);
 

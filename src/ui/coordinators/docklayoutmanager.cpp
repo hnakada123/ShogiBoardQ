@@ -1,3 +1,7 @@
+/// @file docklayoutmanager.cpp
+/// @brief ドックレイアウト管理クラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "docklayoutmanager.h"
 #include "settingsservice.h"
 

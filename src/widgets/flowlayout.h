@@ -1,6 +1,11 @@
 #ifndef FLOWLAYOUT_H
 #define FLOWLAYOUT_H
 
+/// @file flowlayout.h
+/// @brief フローレイアウトクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QLayout>
 #include <QRect>
 #include <QStyle>

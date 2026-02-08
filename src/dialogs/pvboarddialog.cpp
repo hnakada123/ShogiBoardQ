@@ -1,3 +1,7 @@
+/// @file pvboarddialog.cpp
+/// @brief 読み筋盤面ダイアログクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "pvboarddialog.h"
 #include "shogiview.h"
 #include "shogiboard.h"

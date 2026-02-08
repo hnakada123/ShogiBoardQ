@@ -1,6 +1,11 @@
 #ifndef GAMESTATECONTROLLER_H
 #define GAMESTATECONTROLLER_H
 
+/// @file gamestatecontroller.h
+/// @brief 終局処理・投了/中断・人間/エンジン判定を統括するゲーム状態コントローラ
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QObject>
 #include <functional>
 
@@ -17,13 +22,11 @@ class KifuLoadCoordinator;
 class KifuRecordListModel;
 
 /**
- * @brief GameStateController - ゲーム状態管理クラス
+ * @brief 終局処理・投了/中断・人間エンジン判定を担うゲーム状態コントローラ
+ * @todo remove コメントスタイルガイド適用済み
  *
  * MainWindowから終局処理・ゲーム状態管理を分離したクラス。
- * 以下の責務を担当:
- * - 投了/中断処理
- * - 終局状態の遷移管理
- * - 人間/エンジン判定
+ * 投了/中断処理、終局状態の遷移管理、人間/エンジン判定を担当する。
  */
 class GameStateController : public QObject
 {
@@ -33,9 +36,7 @@ public:
     explicit GameStateController(QObject* parent = nullptr);
     ~GameStateController() override;
 
-    // --------------------------------------------------------
-    // 依存オブジェクトの設定
-    // --------------------------------------------------------
+    // --- 依存オブジェクトの設定 ---
     void setMatchCoordinator(MatchCoordinator* match);
     void setShogiView(ShogiView* view);
     void setRecordPane(RecordPane* pane);
@@ -44,59 +45,29 @@ public:
     void setKifuLoadCoordinator(KifuLoadCoordinator* kc);
     void setKifuRecordModel(KifuRecordListModel* model);
 
-    // --------------------------------------------------------
-    // 状態設定（呼び出し元から更新）
-    // --------------------------------------------------------
+    // --- 状態設定 ---
     void setPlayMode(PlayMode mode);
     PlayMode playMode() const { return m_playMode; }
 
-    // --------------------------------------------------------
-    // 投了・中断処理
-    // --------------------------------------------------------
-
-    /**
-     * @brief 投了処理を実行
-     */
+    // --- 投了・中断処理 ---
     void handleResignation();
-
-    /**
-     * @brief 対局を中断
-     */
     void handleBreakOffGame();
 
-    // --------------------------------------------------------
-    // 終局処理
-    // --------------------------------------------------------
+    // --- 終局処理 ---
 
     /**
-     * @brief 終局手を追加
+     * @brief 終局手を棋譜に追加し、UI後処理を行う
      * @param cause 終局原因
      * @param loserIsPlayerOne 敗者がPlayer1かどうか
      */
     void setGameOverMove(MatchCoordinator::Cause cause, bool loserIsPlayerOne);
 
-    // --------------------------------------------------------
-    // 人間/エンジン判定
-    // --------------------------------------------------------
-
-    /**
-     * @brief 人間対人間かどうかを判定
-     */
+    // --- 人間/エンジン判定 ---
     bool isHvH() const;
-
-    /**
-     * @brief 指定プレイヤーが人間側かどうかを判定
-     */
     bool isHumanSide(ShogiGameController::Player p) const;
-
-    /**
-     * @brief 対局終了状態かどうかを判定
-     */
     bool isGameOver() const;
 
-    // --------------------------------------------------------
-    // コールバック設定（MainWindowへの委譲用）
-    // --------------------------------------------------------
+    // --- コールバック設定（MainWindowへの委譲用） ---
     using EnableArrowButtonsCallback = std::function<void()>;
     using SetReplayModeCallback = std::function<void(bool)>;
     using RefreshBranchTreeCallback = std::function<void()>;
@@ -108,43 +79,35 @@ public:
     void setUpdatePlyStateCallback(UpdatePlyStateCallback cb);
 
 public Q_SLOTS:
-    /**
-     * @brief 対局終了シグナルのハンドラ
-     */
+    /// 対局終了シグナルのハンドラ（→ MatchCoordinator::gameEnded から接続）
     void onMatchGameEnded(const MatchCoordinator::GameEndInfo& info);
 
-    /**
-     * @brief 終局状態変更シグナルのハンドラ
-     */
+    /// 終局状態変更シグナルのハンドラ（→ MatchCoordinator::gameOverStateChanged から接続）
     void onGameOverStateChanged(const MatchCoordinator::GameOverState& st);
 
-    /**
-     * @brief 終局手追加要求のハンドラ
-     */
+    /// 終局手追加要求のハンドラ（→ MatchCoordinator::requestAppendGameOverMove から接続）
     void onRequestAppendGameOverMove(const MatchCoordinator::GameEndInfo& info);
 
 Q_SIGNALS:
-    /**
-     * @brief 終局処理完了
-     */
+    /// 終局処理完了を通知
     void gameOverProcessed();
 
 private:
-    MatchCoordinator* m_match = nullptr;
-    ShogiView* m_shogiView = nullptr;
-    RecordPane* m_recordPane = nullptr;
-    ReplayController* m_replayController = nullptr;
-    TimeControlController* m_timeController = nullptr;
-    KifuLoadCoordinator* m_kifuLoadCoordinator = nullptr;
-    KifuRecordListModel* m_kifuRecordModel = nullptr;
+    MatchCoordinator* m_match = nullptr;                ///< 非所有
+    ShogiView* m_shogiView = nullptr;                   ///< 非所有
+    RecordPane* m_recordPane = nullptr;                 ///< 非所有
+    ReplayController* m_replayController = nullptr;     ///< 非所有
+    TimeControlController* m_timeController = nullptr;  ///< 非所有
+    KifuLoadCoordinator* m_kifuLoadCoordinator = nullptr; ///< 非所有
+    KifuRecordListModel* m_kifuRecordModel = nullptr;   ///< 非所有
 
-    PlayMode m_playMode = PlayMode::NotStarted;
+    PlayMode m_playMode = PlayMode::NotStarted; ///< 現在のプレイモード
 
-    // コールバック
-    EnableArrowButtonsCallback m_enableArrowButtons;
-    SetReplayModeCallback m_setReplayMode;
-    RefreshBranchTreeCallback m_refreshBranchTree;
-    UpdatePlyStateCallback m_updatePlyState;
+    // --- コールバック ---
+    EnableArrowButtonsCallback m_enableArrowButtons;   ///< 矢印ボタン有効化
+    SetReplayModeCallback m_setReplayMode;             ///< リプレイモード切替
+    RefreshBranchTreeCallback m_refreshBranchTree;     ///< 分岐ツリー再構築
+    UpdatePlyStateCallback m_updatePlyState;           ///< 手数状態更新
 };
 
 #endif // GAMESTATECONTROLLER_H

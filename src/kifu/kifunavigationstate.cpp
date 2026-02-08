@@ -1,3 +1,7 @@
+/// @file kifunavigationstate.cpp
+/// @brief 棋譜ナビゲーション状態管理クラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "kifunavigationstate.h"
 #include "kifubranchtree.h"
 #include "kifubranchnode.h"
@@ -14,7 +18,7 @@ void KifuNavigationState::setTree(KifuBranchTree* tree)
     m_tree = tree;
     m_currentNode = nullptr;
     m_lastSelectedLineAtBranch.clear();
-    m_preferredLineIndex = -1;  // ★ ツリー設定時にリセット
+    m_preferredLineIndex = -1;  // ツリー設定時にリセット
 
     if (m_tree != nullptr && m_tree->root() != nullptr) {
         setCurrentNode(m_tree->root());

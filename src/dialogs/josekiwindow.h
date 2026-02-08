@@ -1,6 +1,11 @@
 #ifndef JOSEKIWINDOW_H
 #define JOSEKIWINDOW_H
 
+/// @file josekiwindow.h
+/// @brief 定跡ウィンドウクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QWidget>
 #include <QPushButton>
 #include <QToolButton>

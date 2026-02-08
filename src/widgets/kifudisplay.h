@@ -1,6 +1,11 @@
 #ifndef KIFUDISPLAY_H
 #define KIFUDISPLAY_H
 
+/// @file kifudisplay.h
+/// @brief 棋譜表示ウィジェットクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QObject>
 #include <QString>
 

@@ -1,3 +1,7 @@
+/// @file branchtreewidget.cpp
+/// @brief 分岐ツリーグラフウィジェットクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "branchtreewidget.h"
 #include "kifubranchtree.h"
 #include "kifubranchnode.h"

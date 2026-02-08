@@ -1,3 +1,7 @@
+/// @file languagecontroller.cpp
+/// @brief 言語切替コントローラクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "languagecontroller.h"
 #include "settingsservice.h"
 

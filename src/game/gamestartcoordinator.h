@@ -1,11 +1,13 @@
 #ifndef GAMESTARTCOORDINATOR_H
 #define GAMESTARTCOORDINATOR_H
 
+/// @file gamestartcoordinator.h
+/// @brief 対局開始コーディネータクラスの定義
+
 #include <QObject>
 #include <QString>
 #include <QDialog>
 
-// 既存の司令塔
 #include "matchcoordinator.h"
 
 class QWidget;
@@ -15,105 +17,132 @@ class ShogiView;
 class KifuLoadCoordinator;
 
 /**
- * @brief 対局開始を司るコーディネータ
+ * @brief 対局開始フローを司るコーディネータ
  *
  * 責務:
- *  - （MainWindow 等で構築済みの）StartOptions を受け取り、対局を開始する
- *  - 将棋時計の初期化を “依頼シグナル” で通知（具体的なセットは UI 層に委譲）
- *  - 対局開始前の UI/内部状態クリアを “依頼シグナル” で通知
- *  - 必要に応じて初手 go（エンジン初手）をトリガ
+ *  - StartOptionsを受け取り、MatchCoordinatorへ対局開始を指示する
+ *  - 将棋時計の初期化を依頼シグナルで通知（具体的なセットはUI層に委譲）
+ *  - 対局開始前のUI/内部状態クリアを依頼シグナルで通知
+ *  - 必要に応じて初手go（エンジン初手）をトリガ
  *
- * 注意:
- *  - ここでは具体的な ShogiClock API を呼びません（プロジェクト差異を吸収するため）
- *    → MainWindow 側で既存ロジックをスロット接続してください（ラムダ禁止）
+ * @note 具体的なShogiClock APIは呼ばない（プロジェクト差異を吸収するため）。
+ *       MainWindow側で既存ロジックをスロット接続する。
+ *
+ * @todo remove コメントスタイルガイド適用済み
  */
 class GameStartCoordinator : public QObject
 {
     Q_OBJECT
 public:
+    // --- 型定義 ---
+
+    /// 依存オブジェクト
+    /// @todo remove コメントスタイルガイド適用済み
     struct Deps {
-        MatchCoordinator*     match  = nullptr;  // 必須
-        ShogiClock*           clock  = nullptr;  // 任意（時間適用リクエストを出すだけ）
-        ShogiGameController*  gc     = nullptr;  // 任意（開始前の状態同期で使う場合）
-        ShogiView*            view   = nullptr;  // 任意（開始前の表示更新で使う場合）
+        MatchCoordinator*     match  = nullptr;  ///< 対局進行の司令塔（必須）
+        ShogiClock*           clock  = nullptr;  ///< 時計（任意、時間適用リクエストを出すだけ）
+        ShogiGameController*  gc     = nullptr;  ///< ゲームコントローラ（任意、開始前の状態同期用）
+        ShogiView*            view   = nullptr;  ///< 盤面ビュー（任意、開始前の表示更新用）
     };
 
-    // 時間設定（必要分だけ。単位はミリ秒）
+    /// 片方の対局者の時間設定（ミリ秒単位）
+    /// @todo remove コメントスタイルガイド適用済み
     struct TimeSide {
-        qint64 baseMs      = 0;  // 持ち時間
-        qint64 byoyomiMs   = 0;  // 秒読み
-        qint64 incrementMs = 0;  // フィッシャー（1手加算）
+        qint64 baseMs      = 0;  ///< 持ち時間
+        qint64 byoyomiMs   = 0;  ///< 秒読み
+        qint64 incrementMs = 0;  ///< フィッシャー加算
     };
+
+    /// 時間制御の設定
+    /// @todo remove コメントスタイルガイド適用済み
     struct TimeControl {
-        bool    enabled = false;
-        TimeSide p1;
-        TimeSide p2;
+        bool     enabled = false;  ///< 時間制御が有効か
+        TimeSide p1;               ///< 先手の時間設定
+        TimeSide p2;               ///< 後手の時間設定
     };
 
-    // 起動パラメータ
+    /// 対局開始パラメータ
+    /// @todo remove コメントスタイルガイド適用済み
     struct StartParams {
-        MatchCoordinator::StartOptions opt;     // 既存の StartOptions をそのまま注入
-        TimeControl                    tc;      // 時計適用のために併送
-        bool autoStartEngineMove = true;        // 先手がエンジンなら初手 go を起動
+        MatchCoordinator::StartOptions opt;  ///< 既存のStartOptionsをそのまま注入
+        TimeControl                    tc;   ///< 時計適用のために併送
+        bool autoStartEngineMove = true;     ///< 先手がエンジンなら初手goを起動
     };
 
-    // ★ MainWindow から「開始前の適用（時計/人手前など）」を依頼するための軽量入力
+    /// 開始前の適用（時計/人手前など）を依頼するための軽量入力
+    /// @todo remove コメントスタイルガイド適用済み
     struct Request {
-        int       mode = 0;           // PlayMode を int で受ける（enum 依存を避ける）
-        QString   startSfen;          // "startpos ..." or "<sfen> [b|w] ..."
-        bool      bottomIsP1 = true;  // 「人を手前」初期希望
-        QWidget*  startDialog = nullptr; // 持ち時間UI（QWidgetなら型不問：objectNameとproperty参照）
-        ShogiClock* clock = nullptr;     // 任意（参照のみ）
-        bool      skipCleanup = false;   // trueなら requestPreStartCleanup をスキップ（既に呼び出し済みの場合）
+        int       mode = 0;                    ///< PlayModeをintで受ける（enum依存を避ける）
+        QString   startSfen;                   ///< "startpos ..." or "<sfen> [b|w] ..."
+        bool      bottomIsP1 = true;           ///< 手前が先手か
+        QWidget*  startDialog = nullptr;       ///< 持ち時間UI（型不問、objectName/property参照）
+        ShogiClock* clock = nullptr;           ///< 時計への参照（任意）
+        bool      skipCleanup = false;         ///< trueならクリーンアップをスキップ（呼び出し済みの場合）
     };
 
+    /// initializeGame等の段階実行APIに渡すコンテキスト
+    /// @todo remove コメントスタイルガイド適用済み
     struct Ctx {
-        ShogiView*             view = nullptr;
-        ShogiGameController*   gc = nullptr;
-        ShogiClock*            clock = nullptr;
-        QDialog*               startDlg = nullptr;
-        QString*               startSfenStr = nullptr;
-        QString*               currentSfenStr = nullptr;
+        ShogiView*             view = nullptr;               ///< 盤面ビュー
+        ShogiGameController*   gc = nullptr;                 ///< ゲームコントローラ
+        ShogiClock*            clock = nullptr;              ///< 時計
+        QDialog*               startDlg = nullptr;           ///< 対局開始ダイアログ
+        QString*               startSfenStr = nullptr;       ///< 開始SFEN文字列への参照
+        QString*               currentSfenStr = nullptr;     ///< 現在SFEN文字列への参照
 
-        // 追加（元MainWindowの状態を渡すため）
-        int   selectedPly = -1;       // 例: qMax(0, m_currentMoveIndex)
-        bool  resumeFromCurrent = true;
+        int   selectedPly = -1;                              ///< 選択中の手数
+        bool  resumeFromCurrent = true;                      ///< 現在局面から再開するか
 
-        // ★ 追加：棋譜欄モデル／SFEN履歴（MainWindow が持っていたものを注入）
-        KifuRecordListModel* kifuModel  = nullptr;
-        QStringList*         sfenRecord = nullptr;
-        KifuLoadCoordinator* kifuLoadCoordinator = nullptr;  // ★ 追加：分岐構造の設定用
+        KifuRecordListModel* kifuModel  = nullptr;           ///< 棋譜欄モデル
+        QStringList*         sfenRecord = nullptr;           ///< SFEN履歴リスト
+        KifuLoadCoordinator* kifuLoadCoordinator = nullptr;  ///< 分岐構造の設定用
 
-        // 追加：この関数で使う情報
-        bool                 isReplayMode = false;     // 再生モード中は時計を動かさない
+        bool                 isReplayMode = false;           ///< 再生モード中は時計を動かさない
 
-        // MainWindow 側へ初期msを戻したい場合（NULLなら無視）
-        qint64*                 initialTimeP1MsOut = nullptr;
-        qint64*                 initialTimeP2MsOut = nullptr;
+        qint64*              initialTimeP1MsOut = nullptr;   ///< 先手初期ms出力先（NULLなら無視）
+        qint64*              initialTimeP2MsOut = nullptr;   ///< 後手初期ms出力先（NULLなら無視）
 
-        bool bottomIsP1 = true;  // 手前が先手なら true（MainWindow の m_bottomIsP1 をそのまま渡す）
+        bool bottomIsP1 = true;                              ///< 手前が先手か
     };
 
+    // --- メインAPI ---
 
-public:
     explicit GameStartCoordinator(const Deps& deps, QObject* parent = nullptr);
 
-    // メイン API: StartOptions を受け取り対局を開始
+    /// StartOptionsを受け取り対局を開始する
+    /// @todo remove コメントスタイルガイド適用済み
     void start(const StartParams& params);
 
-    // 開始前の時計/表示ポリシー適用（MainWindow::startGameBasedOnMode 内から呼ぶ）
+    /// 開始前の時計/表示ポリシーを適用する
+    /// @todo remove コメントスタイルガイド適用済み
     void prepare(const Request& req);
 
-    // ★ 段階実行 API（MainWindow から逐次呼び出し可能）
+    // --- 段階実行API ---
+
+    /// 現在局面から開始する場合のデータ準備
+    /// @todo remove コメントスタイルガイド適用済み
     void prepareDataCurrentPosition(const Ctx& c);
+
+    /// 初期局面（平手／手合割）で開始する場合の準備
+    /// @todo remove コメントスタイルガイド適用済み
     void prepareInitialPosition(const Ctx& c);
+
+    /// ダイアログ表示→対局開始までの一連のフローを実行する
+    /// @todo remove コメントスタイルガイド適用済み
     void initializeGame(const Ctx& c);
+
+    /// 時計を設定し対局を開始する
+    /// @todo remove コメントスタイルガイド適用済み
     void setTimerAndStart(const Ctx& c);
 
-    // ダイアログ状態を読み、対局モードを返す（MainWindow::setPlayMode の移管）
+    // --- ユーティリティ ---
+
+    /// ダイアログ状態からPlayModeを決定する
+    /// @todo remove コメントスタイルガイド適用済み
     PlayMode setPlayMode(const Ctx& c) const;
 
-    // これを追加：SFENの手番とダイアログ設定を整合させて PlayMode を決定
+    /// SFENの手番とダイアログ設定を整合させてPlayModeを決定する
+    /// @todo remove コメントスタイルガイド適用済み
     static PlayMode determinePlayModeAlignedWithTurn(
         int initPositionNumber,
         bool isPlayer1Human,
@@ -121,11 +150,16 @@ public:
         const QString& startSfen
         );
 
-    // ★追加：司令塔の生成＆初期配線をまとめて実施（所有は parent にぶら下げます）
+    /// MatchCoordinatorの生成＆初期配線をまとめて実施する
+    /// @param deps 司令塔の依存オブジェクト
+    /// @param parentForMatch 司令塔の親オブジェクト（所有権管理用）
+    /// @return 生成された司令塔のポインタ
+    /// @todo remove コメントスタイルガイド適用済み
     MatchCoordinator* createAndWireMatch(const MatchCoordinator::Deps& deps,
                                          QObject* parentForMatch);
 
-    // GameStartCoordinator.h （public: セクションに追加）
+    /// PlayModeに応じて盤面ビューに対局者名を設定する
+    /// @todo remove コメントスタイルガイド適用済み
     void applyPlayersNamesForMode(ShogiView* view,
                                   PlayMode mode,
                                   const QString& human1,
@@ -133,46 +167,62 @@ public:
                                   const QString& engine1,
                                   const QString& engine2) const;
 
+    /// 再開SFENが指定されていれば盤へ適用し、即時描画まで行う
+    /// @todo remove コメントスタイルガイド適用済み
+    static void applyResumePositionIfAny(ShogiGameController* gc,
+                                         ShogiView* view,
+                                         const QString& resumeSfen);
+
 signals:
-    // （開始前フック）UI/状態を初期化してほしい
+    // --- 開始前フック ---
+
+    /// UI/状態を初期化してほしい（PreStartCleanupHandler::performCleanupに接続）
     void requestPreStartCleanup();
 
-    // 時計適用の依頼（MainWindow 側の既存ロジックへ接続してください）
+    /// 時計適用の依頼（MainWindow側の既存ロジックへ接続）
     void requestApplyTimeControl(const GameStartCoordinator::TimeControl& tc);
 
-    // 互換用エイリアス（どちらか一方だけ接続してください：ラムダ不要）
+    /// 互換用エイリアス（requestApplyTimeControlと同時には使用しない）
     void applyTimeControlRequested(const GameStartCoordinator::TimeControl& tc);
 
-    // 進捗通知
-    void willStart(const MatchCoordinator::StartOptions& opt);
+    // --- 進捗通知 ---
+
+    /// 対局開始完了の通知（→ MainWindow::disableNavigationForGame, onGameStarted）
     void started(const MatchCoordinator::StartOptions& opt);
-    void startFailed(const QString& reason);
 
-    void requestUpdateTurnDisplay();
-
-    // ★追加：対局者名が確定した時に発行（human1/2, engine1/2, playMode）
+    /// 対局者名が確定した時に発行される（GameStartCoordinator → MainWindow）
     void playerNamesResolved(const QString& human1, const QString& human2,
                              const QString& engine1, const QString& engine2,
                              int playMode);
 
-    // ★追加：MatchCoordinator の主要シグナルを転送（re-emit）する
+    // --- MatchCoordinatorシグナルの転送 ---
+
+    /// 時計更新（MatchCoordinator::timeUpdated の再送出）
     void timeUpdated(qint64 p1ms, qint64 p2ms, bool p1turn, qint64 urgencyMs);
+
+    /// 終局手の棋譜追記要求（MatchCoordinator::requestAppendGameOverMove の再送出）
     void requestAppendGameOverMove(const MatchCoordinator::GameEndInfo& info);
+
+    /// 盤面反転通知（MatchCoordinator::boardFlipped の再送出）
     void boardFlipped(bool nowFlipped);
+
+    /// 終局状態変更通知（MatchCoordinator::gameOverStateChanged の再送出）
     void gameOverStateChanged(const MatchCoordinator::GameOverState& st);
+
+    /// 対局終了通知（MatchCoordinator::gameEnded の再送出）
     void matchGameEnded(const MatchCoordinator::GameEndInfo& info);
 
-    // ★追加：連続対局設定（EvE対局時のみ使用）
-    // totalGames: 連続対局数（合計）, switchTurn: 1局ごとに手番を入れ替えるか
+    /// 連続対局設定（EvE対局時のみ、totalGames=合計数, switchTurn=手番入替）
     void consecutiveGamesConfigured(int totalGames, bool switchTurn);
 
-    // ★追加：対局開始後に棋譜欄の指定行を選択する（現在局面から開始時に使用）
+    /// 対局開始後に棋譜欄の指定行を選択する（現在局面から開始時に使用）
     void requestSelectKifuRow(int row);
 
 private:
     bool validate(const StartParams& params, QString& whyNot) const;
 
-    // ダイアログからの抽出ヘルパ（型非依存：objectName + property 読み）
+    // --- ダイアログ抽出ヘルパ（型非依存：objectName + property 読み） ---
+
     static int  readIntProperty (const QObject* root, const char* objectName,
                                const char* prop = "value",   int  def = 0);
     static bool readBoolProperty(const QObject* root, const char* objectName,
@@ -180,31 +230,25 @@ private:
     static TimeControl extractTimeControlFromDialog(const QWidget* dlg);
 
 private:
-    MatchCoordinator*    m_match = nullptr;
-    ShogiClock*          m_clock = nullptr;
-    ShogiGameController* m_gc    = nullptr;
-    ShogiView*           m_view  = nullptr;
+    MatchCoordinator*    m_match = nullptr;  ///< 対局進行の司令塔（非所有）
+    ShogiClock*          m_clock = nullptr;  ///< 将棋時計（非所有）
+    ShogiGameController* m_gc    = nullptr;  ///< ゲームコントローラ（非所有）
+    ShogiView*           m_view  = nullptr;  ///< 盤面ビュー（非所有）
 
-    // 対局モード判定（MainWindow から移管）
+    /// 対局モードを判定する
     PlayMode determinePlayMode(int initPositionNumber,
                                bool isPlayer1Human,
                                bool isPlayer2Human) const;
 
 signals:
-    // エラー表示を UI に委譲（MainWindow::displayErrorMessage 相当）
+    /// エラー表示をUI層に委譲する
     void requestDisplayError(const QString& message) const;
 
 private:
-    // これを追加：SFENから手番('b' or 'w')を抽出
+    /// SFENから手番（'b' or 'w'）を抽出する
     static QChar turnFromSfen(const QString& sfen);
 
-public:
-    // 再開 SFEN が指定されていれば盤へ適用し、必要なら即時描画まで行う軽量ユーティリティ
-    static void applyResumePositionIfAny(ShogiGameController* gc,
-                                         ShogiView* view,
-                                         const QString& resumeSfen);
-
-private:
+    /// ダイアログからTimeControlを組み立てるユーティリティ
     TimeControl buildTimeControlFromDialog(QDialog* startDlg) const;
 };
 

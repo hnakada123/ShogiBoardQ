@@ -1,18 +1,25 @@
 #ifndef ELIDELABEL_H
 #define ELIDELABEL_H
 
+/// @file elidelabel.h
+/// @brief テキスト省略表示ラベルクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QLabel>
 #include <QTimer>
 
-/*
- * ElideLabel
- * ラベル内テキストが「幅に収まらない場合だけ」視認性を高める工夫を行う QLabel 派生。
- * 役割：
- *  - 通常はエリプシス（…）で省略表示
- *  - ホバー中は自動で横スクロール（任意）
- *  - 左ドラッグで手動パン（任意）
- *  - 下線の簡易装飾（任意）
- * 備考：スクロールは QTimer による一定ピクセル移動（m_pxPerTick / m_intervalMs）。
+/**
+ * @brief ラベル内テキストが幅に収まらない場合に視認性を高める QLabel 派生クラス
+ *
+ * - 通常はエリプシス（…）で省略表示
+ * - ホバー中は自動で横スクロール（任意）
+ * - 左ドラッグで手動パン（任意）
+ * - 下線の簡易装飾（任意）
+ *
+ * スクロールは QTimer による一定ピクセル移動（m_pxPerTick / m_intervalMs）。
+ *
+ * @todo remove コメントスタイルガイド適用済み
  */
 class ElideLabel : public QLabel
 {

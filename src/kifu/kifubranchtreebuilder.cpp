@@ -1,3 +1,7 @@
+/// @file kifubranchtreebuilder.cpp
+/// @brief 分岐ツリー構築ビルダークラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "kifubranchtreebuilder.h"
 #include "kifubranchtree.h"
 #include "kifubranchnode.h"

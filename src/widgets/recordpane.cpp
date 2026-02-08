@@ -1,3 +1,7 @@
+/// @file recordpane.cpp
+/// @brief 棋譜欄ペインクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "recordpane.h"
 #include "kifurecordlistmodel.h"
 #include "kifubranchlistmodel.h"
@@ -49,7 +53,7 @@ void RecordPane::buildUi()
     m_kifu->setTextElideMode(Qt::ElideRight);
 
     // ヘッダーを青色にスタイル設定
-    // ★ 修正: QTableView::item の固定 background-color を削除し、モデルの BackgroundRole を使用
+    // QTableView::item の固定 background-color を削除し、モデルの BackgroundRole を使用
     // ただし選択行のスタイルは明示的に黄色に設定（Qtデフォルトの青/紫を防ぐ）
     m_kifu->setStyleSheet(QStringLiteral(
         "QTableView {"
@@ -245,17 +249,17 @@ void RecordPane::wireSignals()
     connect(m_branch, &QTableView::activated, this, &RecordPane::branchActivated, Qt::UniqueConnection);
     connect(m_branch, &QTableView::clicked, this, &RecordPane::branchActivated, Qt::UniqueConnection);
 
-    // ★ 追加：文字サイズ変更ボタンの接続
+    // 文字サイズ変更ボタンの接続
     connect(m_btnFontUp, &QPushButton::clicked, this, &RecordPane::onFontIncrease);
     connect(m_btnFontDown, &QPushButton::clicked, this, &RecordPane::onFontDecrease);
 
-    // ★ 追加：棋譜表の選択ハイライトを黄色に
+    // 棋譜表の選択ハイライトを黄色に
     setupKifuSelectionAppearance();
 
-    // ★ 追加：分岐候補欄の選択ハイライトを黄色に
+    // 分岐候補欄の選択ハイライトを黄色に
     setupBranchViewSelectionAppearance();
 
-    // ★ 追加：初期フォントサイズを適用
+    // 初期フォントサイズを適用
     applyFontSize(m_fontSize);
 }
 
@@ -296,7 +300,7 @@ void RecordPane::setModels(KifuRecordListModel* recModel, KifuBranchListModel* b
                                      });
     }
 
-    // ★ 注意: 行選択の中継は後続の connectCurrentRow で行うため、ここでは接続しない
+    // 注意: 行選択の中継は後続の connectCurrentRow で行うため、ここでは接続しない
     // （二重接続によるシグナル二重発火を防止）
     if (m_connRowChanged) {
         disconnect(m_connRowChanged);
@@ -322,7 +326,7 @@ void RecordPane::setModels(KifuRecordListModel* recModel, KifuBranchListModel* b
     }
 
     // ② selectionModel() が確実にできてから接続（即時にあれば即時、なければ次のイベントループで）
-    // ★ ラムダを使用せず、メンバ関数を使用（CLAUDE.md準拠）
+    // ラムダを使用せず、メンバ関数を使用（CLAUDE.md準拠）
     if (auto* sel = m_kifu->selectionModel()) {
         m_connKifuCurrentRow =
             connect(sel, &QItemSelectionModel::currentRowChanged,
@@ -366,7 +370,7 @@ void RecordPane::setArrowButtonsEnabled(bool on)
 void RecordPane::setKifuViewEnabled(bool on)
 {
     // 共通のスタイルシート（ヘッダー青色、選択行黄色）
-    // ★ 修正: QTableView::item の固定 background-color を削除し、モデルの BackgroundRole を使用
+    // QTableView::item の固定 background-color を削除し、モデルの BackgroundRole を使用
     static const QString kBaseStyleSheet = QStringLiteral(
         "QTableView {"
         "  background-color: #fefcf6;"
@@ -476,7 +480,7 @@ void RecordPane::setBranchCommentHtml(const QString& html)
     // コメントは棋譜欄のコメント列に表示するため、ここでは何もしない
 }
 
-// ★ 追加: MainWindow から呼ばれる getter 実装
+// MainWindow から呼ばれる getter 実装
 CommentTextAdapter* RecordPane::commentLabel()
 {
     return &m_commentAdapter;

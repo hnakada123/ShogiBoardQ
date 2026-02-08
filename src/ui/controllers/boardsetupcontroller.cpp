@@ -1,3 +1,7 @@
+/// @file boardsetupcontroller.cpp
+/// @brief 盤面初期設定コントローラクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "boardsetupcontroller.h"
 
 #include <QDebug>
@@ -285,7 +289,7 @@ void BoardSetupController::onMoveRequested(const QPoint& from, const QPoint& to)
             m_updateGameRecord(m_lastMove, elapsed);
         }
 
-        // ★ 最大手数チェック
+        // 最大手数チェック
         if (m_match && m_sfenRecord) {
             const int maxMoves = m_match->maxMoves();
             const int currentMoveIdx = static_cast<int>(m_sfenRecord->size() - 1);

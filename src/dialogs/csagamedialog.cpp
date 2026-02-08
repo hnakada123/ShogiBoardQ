@@ -1,3 +1,7 @@
+/// @file csagamedialog.cpp
+/// @brief CSA対局ダイアログクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "csagamedialog.h"
 #include "ui_csagamedialog.h"
 #include "changeenginesettingsdialog.h"
@@ -9,7 +13,6 @@
 
 using namespace EngineSettingsConstants;
 
-// コンストラクタ
 CsaGameDialog::CsaGameDialog(QWidget *parent)
     : QDialog(parent)
     , ui(new Ui::CsaGameDialog)
@@ -43,7 +46,6 @@ CsaGameDialog::CsaGameDialog(QWidget *parent)
     connectSignalsAndSlots();
 }
 
-// デストラクタ
 CsaGameDialog::~CsaGameDialog()
 {
     delete ui;

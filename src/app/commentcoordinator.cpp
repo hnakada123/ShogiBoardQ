@@ -1,3 +1,7 @@
+/// @file commentcoordinator.cpp
+/// @brief コメントコーディネータクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "commentcoordinator.h"
 
 #include <QDebug>

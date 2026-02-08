@@ -1,3 +1,7 @@
+/// @file kifudisplaycoordinator.cpp
+/// @brief 棋譜表示コーディネータクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "kifudisplaycoordinator.h"
 #include "kifubranchtree.h"
 #include "kifubranchnode.h"
@@ -187,7 +191,7 @@ void KifuDisplayCoordinator::onNavigationCompleted(KifuBranchNode* node)
                            << "m_lastLineIndex=" << m_lastLineIndex
                            << "m_lastModelLineIndex=" << m_lastModelLineIndex;
 
-        // ★ 重要: 棋譜モデルが実際に表示しているラインと一致しているかも確認
+        // 重要: 棋譜モデルが実際に表示しているラインと一致しているかも確認
         // onPositionChanged() でm_lastLineIndexが先に更新されてしまう場合があるため、
         // m_lastModelLineIndex を使って実際のモデル内容との不一致を検出する
         const bool lineIndexChanged = (newLineIndex != m_lastLineIndex);
@@ -243,7 +247,7 @@ void KifuDisplayCoordinator::onRecordHighlightRequired(int ply)
                        << "lastModelLineIndex=" << m_lastModelLineIndex
                        << "stateLineIndex=" << (m_state ? m_state->currentLineIndex() : -1);
 
-    // ★ 重要: モデルのラインとナビゲーション状態のラインが一致しない場合、モデルを再構築
+    // 重要: モデルのラインとナビゲーション状態のラインが一致しない場合、モデルを再構築
     if (m_state != nullptr && m_lastModelLineIndex >= 0 && m_lastModelLineIndex != m_state->currentLineIndex()) {
         qDebug().noquote() << "[KDC] onRecordHighlightRequired: Line mismatch detected, rebuilding model";
         updateRecordView();
@@ -254,7 +258,7 @@ void KifuDisplayCoordinator::onRecordHighlightRequired(int ply)
     m_recordModel->setCurrentHighlightRow(ply);
 
     // 棋譜欄のビューで該当行を選択
-    // ★ シグナルブロック: ナビゲーション起因の行変更でonRecordRowChangedByPresenterが
+    // シグナルブロック: ナビゲーション起因の行変更でonRecordRowChangedByPresenterが
     //    再トリガーされ、本譜の局面でエンジン位置が上書きされるのを防止
     if (m_recordPane != nullptr && m_recordPane->kifuView() != nullptr) {
         QTableView* view = m_recordPane->kifuView();
@@ -367,7 +371,7 @@ void KifuDisplayCoordinator::updateRecordView()
     populateRecordModel();
     populateBranchMarks();
 
-    // ★ 追加: ビューの明示的な更新を強制（モデル変更後にビューが更新されない問題の対策）
+    // ビューの明示的な更新を強制（モデル変更後にビューが更新されない問題の対策）
     if (m_recordPane != nullptr && m_recordPane->kifuView() != nullptr) {
         QTableView* view = m_recordPane->kifuView();
         view->viewport()->update();
@@ -485,13 +489,13 @@ void KifuDisplayCoordinator::populateRecordModel()
         m_recordModel->appendItem(item);
     }
 
-    // ★ 重要: 棋譜モデルが実際に表示しているラインインデックスを記録
+    // 重要: 棋譜モデルが実際に表示しているラインインデックスを記録
     m_lastModelLineIndex = currentLineIndex;
 
     qDebug().noquote() << "[KDC] populateRecordModel: DONE, final rowCount=" << m_recordModel->rowCount()
                        << "m_lastModelLineIndex=" << m_lastModelLineIndex;
 
-    // ★ デバッグ: 棋譜欄の3手目の内容を出力（不一致検出用）
+    // デバッグ: 棋譜欄の3手目の内容を出力（不一致検出用）
     if (m_recordModel->rowCount() > 3) {
         KifuDisplay* item = m_recordModel->item(3);
         if (item) {
@@ -572,7 +576,7 @@ void KifuDisplayCoordinator::populateRecordModelFromPath(const QVector<KifuBranc
 
     m_recordModel->setBranchPlyMarks(branchPlys);
 
-    // ★ 重要: 棋譜モデルが実際に表示しているラインインデックスを記録
+    // 重要: 棋譜モデルが実際に表示しているラインインデックスを記録
     // パスの最後のノードからラインインデックスを取得
     // 注意: node->lineIndex() は最初の分岐点での選択インデックスのみを返すため、
     // allLines() の DFS順と一致しない。findLineIndexForNode() を使用する必要がある。
@@ -584,7 +588,7 @@ void KifuDisplayCoordinator::populateRecordModelFromPath(const QVector<KifuBranc
                            << "treeLineIndex=" << treeLineIndex
                            << "pathSize=" << path.size()
                            << "lastNodePly=" << path.last()->ply();
-        // ★ 修正: findLineIndexForNode() を使用して正確なラインインデックスを取得
+        // findLineIndexForNode() を使用して正確なラインインデックスを取得
         m_lastModelLineIndex = (treeLineIndex >= 0) ? treeLineIndex : 0;
     } else {
         m_lastModelLineIndex = 0;  // 空のパスは本譜として扱う
@@ -616,7 +620,7 @@ void KifuDisplayCoordinator::onPositionChanged(int lineIndex, int ply, const QSt
         targetNode = m_tree->root();
         qDebug().noquote() << "[KDC] ply=0: using root node";
     } else if (!lines.isEmpty()) {
-        // ★ 現在表示中のラインからplyで探す
+        // 現在表示中のラインからplyで探す
         // m_state->currentLineIndex() を使用して、棋譜欄が表示中のラインを特定
         int currentLine = m_state->currentLineIndex();
         if (currentLine < 0 || currentLine >= lines.size()) {
@@ -662,7 +666,7 @@ void KifuDisplayCoordinator::onPositionChanged(int lineIndex, int ply, const QSt
                        << "childCount=" << targetNode->childCount()
                        << "parent=" << (targetNode->parent() ? "yes" : "null");
 
-    // ★ 分岐点での選択を記憶（次回のナビゲーションで正しい子を選択するため）
+    // 分岐点での選択を記憶（次回のナビゲーションで正しい子を選択するため）
     // goToNodeと同様のロジックで、現在ノードが分岐の子である場合に記憶
     KifuBranchNode* nodeParent = targetNode->parent();
     if (nodeParent != nullptr && nodeParent->childCount() > 1) {
@@ -676,13 +680,13 @@ void KifuDisplayCoordinator::onPositionChanged(int lineIndex, int ply, const QSt
         }
     }
 
-    // ★ 状態を更新（次回の検索で正しいラインを使用するため）
+    // 状態を更新（次回の検索で正しいラインを使用するため）
     // この呼び出しはシグナルを発火するが、UI側での二重ナビゲーションは発生しない
     // （MainWindowが既にUIを管理しているため）
     m_state->setCurrentNode(targetNode);
 
     // 分岐候補を直接計算（m_state を経由しない）
-    // ★ 新システム専用のメソッドを使用し、設定後はロックする
+    // 新システム専用のメソッドを使用し、設定後はロックする
     if (m_branchModel != nullptr) {
         m_branchModel->resetBranchCandidates();
 
@@ -737,7 +741,7 @@ void KifuDisplayCoordinator::onPositionChanged(int lineIndex, int ply, const QSt
     int highlightLineIndex = m_state->currentLineIndex();
     QVector<BranchLine> allLines = m_tree->allLines();
 
-    // ★ 重要: m_lastLineIndex を同期しておく（新システムとの整合性を保つため）
+    // 重要: m_lastLineIndex を同期しておく（新システムとの整合性を保つため）
     // 分岐ツリーから直接クリックした場合など、onNavigationCompleted を経由しない
     // 場合でもラインインデックスを追跡する
     const int oldLastLineIndex = m_lastLineIndex;
@@ -774,7 +778,7 @@ void KifuDisplayCoordinator::onPositionChanged(int lineIndex, int ply, const QSt
         m_analysisTab->highlightBranchTreeAt(highlightLineIndex, ply, /*centerOn=*/false);
     }
 
-    // ★ 重要: onRecordHighlightRequired() は呼び出さない
+    // 重要: onRecordHighlightRequired() は呼び出さない
     // MainWindowが既にビューの選択を管理しているため
 
     // 位置変更完了時の一致性チェック
@@ -899,7 +903,7 @@ void KifuDisplayCoordinator::onLiveGameMoveAdded(int ply, const QString& display
             EngineAnalysisTab::ResolvedRowLite row;
             row.startPly = (line.branchPly > 0) ? line.branchPly : 1;
 
-            // ★ 修正: branchPointから親行インデックスを正しく計算する
+            // branchPointから親行インデックスを正しく計算する
             // branchPointが含まれる他のラインのインデックスを探す
             row.parent = -1;
             if (line.branchPoint != nullptr) {
@@ -998,7 +1002,7 @@ void KifuDisplayCoordinator::onLiveGameSessionStarted(KifuBranchNode* branchPoin
 
     const QVector<KifuBranchNode*> path = m_tree->pathToNode(branchPoint);
 
-    // ★ 修正: branchPoint までのパスの分岐選択を記憶
+    // branchPoint までのパスの分岐選択を記憶
     // これにより、開始局面から1手ずつ進む際に正しい子を選択できる
     // goToNode() と同様のロジックで、各分岐点での選択をm_lastSelectedLineAtBranch に記憶する
     if (m_state != nullptr && !path.isEmpty()) {

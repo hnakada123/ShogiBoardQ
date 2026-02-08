@@ -341,7 +341,7 @@ void TestKifuDisplayCoordinator::testThirdGameFromFirstGamePosition()
     // 検証: この時点でライン1のデータが表示されている
     QVERIFY(recordModel.item(3)->currentMove().contains(QStringLiteral("１六歩")));  // ライン1の3手目
 
-    // ★ ここからが3局目の開始シミュレーション ★
+    // ここからが3局目の開始シミュレーション
 
     // 本譜の6手目にナビゲート（ユーザーが分岐ツリーの本譜をクリック）
     state.resetPreferredLineIndex();  // 本譜へ移動するのでリセット
@@ -354,7 +354,7 @@ void TestKifuDisplayCoordinator::testThirdGameFromFirstGamePosition()
     qDebug() << "Starting live session from main6, sfen:" << main6->sfen();
     coordinator.onLiveGameSessionStarted(main6);
 
-    // ★ 検証: 棋譜欄が本譜の1-6手目を表示していること ★
+    // 検証: 棋譜欄が本譜の1-6手目を表示していること
     qDebug() << "Record model after session start:" << recordModel.rowCount() << "rows";
     QCOMPARE(recordModel.rowCount(), 7);  // 開始局面 + 6手
 
@@ -491,7 +491,7 @@ void TestKifuDisplayCoordinator::testClickMainLineWhileOnBranch()
     QCOMPARE(state.currentNode(), main6);
     QCOMPARE(state.currentLineIndex(), 0);  // 本譜は常にline 0
 
-    // ★ 重要な検証: 棋譜欄が本譜の手を表示していること
+    // 重要な検証: 棋譜欄が本譜の手を表示していること
     qDebug() << "After navigating to main6, record model:";
     for (int i = 0; i < recordModel.rowCount(); ++i) {
         qDebug() << "  Row" << i << ":" << recordModel.item(i)->currentMove();
@@ -540,7 +540,7 @@ void TestKifuDisplayCoordinator::testThreeBranchesSelectSecondBranch()
     tree.addTerminalMove(br1_10, TerminalType::Resign, QStringLiteral("▲投了"), QString());
 
     // 分岐2（本譜の7手目から）: 7.▲7八金(69) 8.△6二銀(71) 9.▲投了
-    // ★注意: 本譜と同じ7手目だが、異なるノードとして追加される
+    //注意: 本譜と同じ7手目だが、異なるノードとして追加される
     KifuBranchNode* br2_7 = tree.addMove(main6, ShogiMove(), QStringLiteral("▲７八金(69)"), QStringLiteral("br2_7"), QString());
     KifuBranchNode* br2_8 = tree.addMove(br2_7, ShogiMove(), QStringLiteral("△６二銀(71)"), QStringLiteral("br2_8"), QString());
     tree.addTerminalMove(br2_8, TerminalType::Resign, QStringLiteral("▲投了"), QString());
@@ -592,7 +592,7 @@ void TestKifuDisplayCoordinator::testThreeBranchesSelectSecondBranch()
         qDebug() << "  Row" << i << ":" << recordModel.item(i)->currentMove();
     }
 
-    // ★ 重要な検証: 3手目が本譜の▲2六歩であること（分岐1の▲1六歩ではない）
+    // 重要な検証: 3手目が本譜の▲2六歩であること（分岐1の▲1六歩ではない）
     KifuDisplay* item3 = recordModel.item(3);
     QVERIFY(item3 != nullptr);
     qDebug() << "Move 3 in record model:" << item3->currentMove();
@@ -793,7 +793,7 @@ void TestKifuDisplayCoordinator::testBranchParentIndexPreservedAfterRematch()
     liveSession.addMove(ShogiMove(), QStringLiteral("▲５八金(49)"), QStringLiteral("new_5"), QString());
     liveSession.addMove(ShogiMove(), QStringLiteral("△８五歩(84)"), QStringLiteral("new_6"), QString());
 
-    // ★ 検証: 分岐ツリーのライン構造が正しいことを確認
+    // 検証: 分岐ツリーのライン構造が正しいことを確認
     lines = tree.allLines();
     qDebug() << "After addMove, lines.size()=" << lines.size();
 
@@ -808,7 +808,7 @@ void TestKifuDisplayCoordinator::testBranchParentIndexPreservedAfterRematch()
                  << "nodes.size=" << line.nodes.size();
     }
 
-    // ★ 重要な検証: 分岐2のbranchPointが依然として△9四歩(93)であること
+    // 重要な検証: 分岐2のbranchPointが依然として△9四歩(93)であること
     // （本譜の△8四歩(83)に変わっていないこと）
     // 分岐2は lines.at(2) または lines.at(3) のどちらかに配置される可能性があるため、
     // branchPly==5 かつ displayText に「５六歩」を含むラインを探す
@@ -829,7 +829,7 @@ void TestKifuDisplayCoordinator::testBranchParentIndexPreservedAfterRematch()
     }
     QVERIFY2(foundBranch2, "Could not find branch 2 (line with ▲5六歩 at ply 5)");
 
-    // ★ 追加検証: ResolvedRowLiteに変換した場合のparent値を確認
+    // 追加検証: ResolvedRowLiteに変換した場合のparent値を確認
     // これはKifuDisplayCoordinator::onLiveGameMoveAdded()で行われる変換をテストする
     QVector<int> expectedParents;
     for (int i = 0; i < lines.size(); ++i) {
@@ -947,7 +947,7 @@ void TestKifuDisplayCoordinator::testRematchFromBranchLineAddsMoveToCorrectLine(
     liveSession.setTree(&tree);
     coordinator.setLiveGameSession(&liveSession);
 
-    // ★ 重要: 分岐1の4手目「△9四歩」にナビゲート
+    // 重要: 分岐1の4手目「△9四歩」にナビゲート
     int br1LineIndex = tree.findLineIndexForNode(br1_4);
     qDebug() << "br1_4 belongs to line index:" << br1LineIndex;
 
@@ -957,7 +957,7 @@ void TestKifuDisplayCoordinator::testRematchFromBranchLineAddsMoveToCorrectLine(
     QCOMPARE(state.currentNode(), br1_4);
     QCOMPARE(state.currentLineIndex(), br1LineIndex);
 
-    // ★ 分岐1の4手目からライブセッション開始
+    // 分岐1の4手目からライブセッション開始
     qDebug() << "Starting live session from br1_4 (△９四歩)";
     liveSession.startFromNode(br1_4);
 
@@ -966,7 +966,7 @@ void TestKifuDisplayCoordinator::testRematchFromBranchLineAddsMoveToCorrectLine(
     liveSession.addMove(ShogiMove(), QStringLiteral("▲６八玉(59)"), QStringLiteral("new_5_from_br1"), QString());
     liveSession.addMove(ShogiMove(), QStringLiteral("△８四歩(83)"), QStringLiteral("new_6_from_br1"), QString());
 
-    // ★ 検証: 分岐ツリーのライン構造が正しいことを確認
+    // 検証: 分岐ツリーのライン構造が正しいことを確認
     lines = tree.allLines();
     qDebug() << "After addMove, lines.size()=" << lines.size();
 
@@ -985,7 +985,7 @@ void TestKifuDisplayCoordinator::testRematchFromBranchLineAddsMoveToCorrectLine(
         }
     }
 
-    // ★ 重要な検証: 新しい分岐のbranchPointが△9四歩(93)（分岐1の4手目）であること
+    // 重要な検証: 新しい分岐のbranchPointが△9四歩(93)（分岐1の4手目）であること
     // （本譜の△8四歩(83)ではない）
     bool foundNewBranch = false;
     for (int i = 0; i < lines.size(); ++i) {
@@ -1003,10 +1003,10 @@ void TestKifuDisplayCoordinator::testRematchFromBranchLineAddsMoveToCorrectLine(
                      qPrintable(QString("New branch branchPoint should be △9四歩(93) but got: %1")
                                 .arg(line.branchPoint->displayText())));
 
-            // ★ 追加検証: branchPointのSFENが分岐1の4手目のSFENと一致すること
+            // 追加検証: branchPointのSFENが分岐1の4手目のSFENと一致すること
             QCOMPARE(line.branchPoint->sfen(), br1_4->sfen());
 
-            // ★ 追加検証: branchPointが本譜の4手目ではないこと
+            // 追加検証: branchPointが本譜の4手目ではないこと
             QVERIFY2(line.branchPoint != main4,
                      "New branch branchPoint should be br1_4, not main4");
             break;
@@ -1014,7 +1014,7 @@ void TestKifuDisplayCoordinator::testRematchFromBranchLineAddsMoveToCorrectLine(
     }
     QVERIFY2(foundNewBranch, "Could not find new branch (line with ▲6八玉 at ply 5)");
 
-    // ★ 追加検証: 新しい指し手が br1_4 の子として追加されていること
+    // 追加検証: 新しい指し手が br1_4 の子として追加されていること
     // br1_4 の子ノードに「▲6八玉」があるはず
     bool foundAsChild = false;
     for (int i = 0; i < br1_4->childCount(); ++i) {
@@ -1129,7 +1129,7 @@ void TestKifuDisplayCoordinator::testBoardAndKifuListSyncOnBranch()
     qDebug() << "Current line index:" << lineIndex;
     qDebug() << "Expected SFEN (from branch):" << expectedSfen;
 
-    // ★ 重要な検証: 分岐ライン上では分岐のSFENが取得されること（本譜のSFENではない）
+    // 重要な検証: 分岐ライン上では分岐のSFENが取得されること（本譜のSFENではない）
     QCOMPARE(expectedSfen, QStringLiteral("branch_sfen_3"));
     QVERIFY2(expectedSfen != QStringLiteral("main_sfen_3"),
              "On branch line, should get branch SFEN, not main line SFEN");
@@ -1218,12 +1218,12 @@ void TestKifuDisplayCoordinator::testGoForwardAfterBranchSelection()
              << "sfen=" << state.currentNode()->sfen()
              << "displayText=" << state.currentNode()->displayText();
 
-    // ★ 重要な検証: 「1手進む」で分岐ライン1の4手目に移動していること
+    // 重要な検証: 「1手進む」で分岐ライン1の4手目に移動していること
     QCOMPARE(state.currentNode()->ply(), 4);
     QCOMPARE(state.currentNode()->sfen(), QStringLiteral("sfen_br1_4"));
     QCOMPARE(state.currentNode(), br1_4);
 
-    // ★ 本譜の4手目ではないことを確認
+    // 本譜の4手目ではないことを確認
     QVERIFY2(state.currentNode() != main4,
              "After goForward from branch, should be on br1_4, not main4");
 
@@ -1316,7 +1316,7 @@ void TestKifuDisplayCoordinator::testGoForwardAfterSwitchingBetweenMainAndBranch
     qDebug() << "Step 4: goForward (1手進む)";
     nav.goForward(1);
 
-    // ★ 重要な検証: 本譜の4手目に進んでいること（分岐の4手目ではない）
+    // 重要な検証: 本譜の4手目に進んでいること（分岐の4手目ではない）
     qDebug() << "After goForward: ply=" << state.currentPly()
              << "sfen=" << state.currentNode()->sfen()
              << "displayText=" << state.currentNode()->displayText();
@@ -1325,7 +1325,7 @@ void TestKifuDisplayCoordinator::testGoForwardAfterSwitchingBetweenMainAndBranch
     QCOMPARE(state.currentNode(), main4);
     QCOMPARE(state.currentNode()->sfen(), QStringLiteral("sfen_main_4"));
 
-    // ★ 分岐1の4手目ではないことを確認
+    // 分岐1の4手目ではないことを確認
     QVERIFY2(state.currentNode() != br1_4,
              "After goToMainLine and goBack, goForward should stay on main line, not branch");
     QVERIFY2(state.currentNode()->sfen() != QStringLiteral("sfen_br1_4"),
@@ -1431,12 +1431,12 @@ void TestKifuDisplayCoordinator::testGoForwardAfterRematch()
                  << "sfen=" << state.currentNode()->sfen()
                  << "displayText=" << state.currentNode()->displayText();
 
-        // ★ 重要な検証: 本譜のi+1手目に進んでいること
+        // 重要な検証: 本譜のi+1手目に進んでいること
         QCOMPARE(state.currentNode()->ply(), i + 1);
         QCOMPARE(state.currentNode(), mainLineNodes.at(i));
         QCOMPARE(state.currentNode()->sfen(), mainLineSfens.at(i));
 
-        // ★ 分岐の指し手が混入していないことを確認（3手目以降）
+        // 分岐の指し手が混入していないことを確認（3手目以降）
         if (i >= 2) {
             KifuBranchNode* branchNode = (i == 2) ? br1_3 :
                                          (i == 3) ? br1_4 :
@@ -1607,7 +1607,7 @@ void TestKifuDisplayCoordinator::testFourDisplayConsistencyFromScreenshot()
     qDebug() << "Testing goForward from main4 (should go to br1_5, not main5)...";
     nav.goForward(1);
 
-    // ★ 重要: 分岐を選択していた場合、その分岐の続きに進むこと
+    // 重要: 分岐を選択していた場合、その分岐の続きに進むこと
     QCOMPARE(state.currentNode(), br1_5);
     QCOMPARE(state.currentNode()->displayText(), QStringLiteral("▲４八銀(39)"));
     QVERIFY2(state.currentNode() != main5,
@@ -1660,7 +1660,7 @@ void TestKifuDisplayCoordinator::testBoardPositionMatchesKifuPath()
         QStringLiteral("lnsgkgsnl/1r5b1/p1pppp1pp/1p4p2/7P1/2P6/PP1PPPP1P/1B5R1/LNSGKGSNL w - 6"), QString());
 
     // 分岐1（4手目から）: 5.▲4八銀 - 3九の銀が4八に移動
-    // ★重要: このSFENには3手目の▲2六歩が反映されている必要がある（2六に歩がある）
+    //重要: このSFENには3手目の▲2六歩が反映されている必要がある（2六に歩がある）
     // 4八 = 4筋8段: SFENでは 9筋=col0, 8筋=col1, ..., 4筋=col5, ..., 1筋=col8
     // rank8は "1B3S1R1"（9筋空、8筋角、7-5筋空(3マス)、4筋銀、3筋空、2筋飛、1筋空）
     KifuBranchNode* br1_5 = tree.addMove(main4, ShogiMove(), QStringLiteral("▲４八銀(39)"),
@@ -1689,7 +1689,7 @@ void TestKifuDisplayCoordinator::testBoardPositionMatchesKifuPath()
     qDebug() << "Current SFEN at br1_5:" << currentSfen;
 
     // ========================================
-    // ★最重要検証: SFENが棋譜欄の全ての指し手を反映しているか
+    //最重要検証: SFENが棋譜欄の全ての指し手を反映しているか
     // ========================================
 
     // SFENのボード部分を解析（"/"で区切られた最初の9つのランク）
@@ -1722,7 +1722,7 @@ void TestKifuDisplayCoordinator::testBoardPositionMatchesKifuPath()
 
     // --- 検証3: 3手目 ▲2六歩 が反映されているか ---
     // 2六 = 2筋、6段 = rank[5]
-    // ★これが最重要！スクリーンショットのバグでは2六に歩がなかった
+    //これが最重要！スクリーンショットのバグでは2六に歩がなかった
     // SFENで2筋6段に歩があることを確認
     // rank6 = "2P4P1" の場合、右から2番目の位置にPがあるはず
     qDebug() << "Checking if 2六 has a pawn (3手目▲2六歩)...";
@@ -1902,7 +1902,7 @@ void TestKifuDisplayCoordinator::testLiveGameRematchBoardSfenConsistency()
     coordinator.onLiveGameSessionStarted(node4);
 
     // 5手目: ▲4八銀（3九の銀が4八に移動）
-    // ★重要: このSFENには1-4手目の全ての指し手が反映されている必要がある
+    //重要: このSFENには1-4手目の全ての指し手が反映されている必要がある
     // 特に3手目の▲2六歩（2六に歩がある）
     const QString sfen5_br = QStringLiteral("lnsgkgsnl/1r5b1/p1pppp1pp/1p4p2/9/2P4P1/PP1PPPP1P/1B3S1R1/LN1GKGSNL w - 6");
     liveSession.addMove(ShogiMove(), QStringLiteral("▲４八銀(39)"), sfen5_br, QString());
@@ -1948,7 +1948,7 @@ void TestKifuDisplayCoordinator::testLiveGameRematchBoardSfenConsistency()
     nav.goToNode(br1_node5);
 
     // ========================================
-    // ★最重要検証: ナビゲーション後のSFENが正しいか
+    //最重要検証: ナビゲーション後のSFENが正しいか
     // ========================================
     QString actualSfen = state.currentNode()->sfen();
     qDebug() << "ナビゲーション後のSFEN:" << actualSfen;

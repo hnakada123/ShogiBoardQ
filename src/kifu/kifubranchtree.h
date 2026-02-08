@@ -1,6 +1,11 @@
 #ifndef KIFUBRANCHTREE_H
 #define KIFUBRANCHTREE_H
 
+/// @file kifubranchtree.h
+/// @brief 分岐ツリーデータモデルクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QObject>
 #include <QHash>
 #include <QVector>

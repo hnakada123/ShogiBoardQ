@@ -1,7 +1,6 @@
-/**
- * @file engineprocessmanager.cpp
- * @brief 将棋エンジンプロセス管理クラスの実装
- */
+/// @file engineprocessmanager.cpp
+/// @brief 将棋エンジンプロセス管理クラスの実装
+/// @todo remove コメントスタイルガイド適用済み
 
 #include "engineprocessmanager.h"
 #include <QDebug>
@@ -9,41 +8,47 @@
 #include <QFileInfo>
 #include <QTimer>
 
+/// @todo remove コメントスタイルガイド適用済み
 EngineProcessManager::EngineProcessManager(QObject* parent)
     : QObject(parent)
 {
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 EngineProcessManager::~EngineProcessManager()
 {
     stopProcess();
 }
 
-// === プロセス管理 ===
+// ============================================================
+// プロセス管理
+// ============================================================
 
+/// @todo remove コメントスタイルガイド適用済み
 bool EngineProcessManager::startProcess(const QString& engineFile)
 {
-    // ファイル存在チェック
+    // 処理フロー:
+    // 1. ファイル存在チェック
+    // 2. 既存プロセスの終了
+    // 3. QProcess作成・作業ディレクトリ設定・シグナル接続
+    // 4. プロセス起動・起動確認
+
     if (engineFile.isEmpty() || !QFile::exists(engineFile)) {
         emit processError(QProcess::FailedToStart,
                           tr("Engine file does not exist: %1").arg(engineFile));
         return false;
     }
 
-    // 既存プロセスがあれば終了
     if (m_process) {
         stopProcess();
     }
 
-    // 新規プロセス作成
     m_process = new QProcess(this);
-    
-    // エンジンファイルのディレクトリを作業ディレクトリに設定
-    // （エンジンが相対パスで定跡ファイルや評価関数ファイルを読み込むため）
+
+    // エンジンが相対パスで定跡ファイルや評価関数ファイルを読み込むため
     QFileInfo engineFileInfo(engineFile);
     m_process->setWorkingDirectory(engineFileInfo.absolutePath());
-    
-    // シグナル接続
+
     connect(m_process, &QProcess::readyReadStandardOutput,
             this, &EngineProcessManager::onReadyReadStdout);
     connect(m_process, &QProcess::readyReadStandardError,
@@ -53,29 +58,29 @@ bool EngineProcessManager::startProcess(const QString& engineFile)
     connect(m_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
             this, &EngineProcessManager::onProcessFinished);
 
-    // プロセス起動
     m_process->start(engineFile, QStringList(), QIODevice::ReadWrite);
-    
+
     if (!m_process->waitForStarted()) {
         const QString errorMsg = tr("Failed to start engine: %1").arg(engineFile);
         emit processError(QProcess::FailedToStart, errorMsg);
-        
+
         delete m_process;
         m_process = nullptr;
         return false;
     }
 
     m_shutdownState = ShutdownState::Running;
-    m_currentEnginePath = engineFile;  // エンジンパスを記録
+    m_currentEnginePath = engineFile;
     return true;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void EngineProcessManager::stopProcess()
 {
     if (!m_process) return;
 
     if (m_process->state() == QProcess::Running) {
-        // quitコマンドは上位クラスから送信済みと想定
+        // quitコマンドは上位クラス（USIProtocolHandler）から送信済みと想定
         if (!m_process->waitForFinished(3000)) {
             m_process->terminate();
             if (!m_process->waitForFinished(1000)) {
@@ -91,21 +96,26 @@ void EngineProcessManager::stopProcess()
 
     m_shutdownState = ShutdownState::Running;
     m_postQuitInfoStringLinesLeft = 0;
-    m_currentEnginePath.clear();  // エンジンパスをクリア
+    m_currentEnginePath.clear();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 bool EngineProcessManager::isRunning() const
 {
     return m_process && m_process->state() == QProcess::Running;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 QProcess::ProcessState EngineProcessManager::state() const
 {
     return m_process ? m_process->state() : QProcess::NotRunning;
 }
 
-// === コマンド送信 ===
+// ============================================================
+// コマンド送信
+// ============================================================
 
+/// @todo remove コメントスタイルガイド適用済み
 void EngineProcessManager::sendCommand(const QString& command)
 {
     if (!m_process || 
@@ -121,6 +131,7 @@ void EngineProcessManager::sendCommand(const QString& command)
     qDebug().nospace() << logPrefix() << " > " << command;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void EngineProcessManager::closeWriteChannel()
 {
     if (m_process) {
@@ -128,18 +139,23 @@ void EngineProcessManager::closeWriteChannel()
     }
 }
 
-// === 状態管理 ===
+// ============================================================
+// 状態管理
+// ============================================================
 
+/// @todo remove コメントスタイルガイド適用済み
 void EngineProcessManager::setShutdownState(ShutdownState state)
 {
     m_shutdownState = state;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void EngineProcessManager::setPostQuitInfoStringLinesLeft(int count)
 {
     m_postQuitInfoStringLinesLeft = count;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void EngineProcessManager::decrementPostQuitLines()
 {
     if (m_postQuitInfoStringLinesLeft > 0) {
@@ -150,8 +166,11 @@ void EngineProcessManager::decrementPostQuitLines()
     }
 }
 
-// === バッファ管理 ===
+// ============================================================
+// バッファ管理
+// ============================================================
 
+/// @todo remove コメントスタイルガイド適用済み
 void EngineProcessManager::discardStdout()
 {
     if (m_process) {
@@ -159,6 +178,7 @@ void EngineProcessManager::discardStdout()
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void EngineProcessManager::discardStderr()
 {
     if (m_process) {
@@ -166,24 +186,30 @@ void EngineProcessManager::discardStderr()
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 bool EngineProcessManager::canReadLine() const
 {
     return m_process && m_process->canReadLine();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 QByteArray EngineProcessManager::readLine()
 {
     return m_process ? m_process->readLine() : QByteArray();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 QByteArray EngineProcessManager::readAllStderr()
 {
     return m_process ? m_process->readAllStandardError() : QByteArray();
 }
 
-// === ログ識別 ===
+// ============================================================
+// ログ識別
+// ============================================================
 
-void EngineProcessManager::setLogIdentity(const QString& engineTag, 
+/// @todo remove コメントスタイルガイド適用済み
+void EngineProcessManager::setLogIdentity(const QString& engineTag,
                                           const QString& sideTag,
                                           const QString& engineName)
 {
@@ -192,6 +218,7 @@ void EngineProcessManager::setLogIdentity(const QString& engineTag,
     m_logEngineName = engineName;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 QString EngineProcessManager::logPrefix() const
 {
     QString within = m_logEngineTag.isEmpty() ? "[E?]" : m_logEngineTag;
@@ -207,10 +234,19 @@ QString EngineProcessManager::logPrefix() const
     return head;
 }
 
-// === プライベートスロット ===
+// ============================================================
+// プライベートスロット
+// ============================================================
 
+/// @todo remove コメントスタイルガイド適用済み
 void EngineProcessManager::onReadyReadStdout()
 {
+    // 処理フロー:
+    // 1. チャンク上限まで行単位で読み取り
+    // 2. "id name"応答からエンジン名を検出
+    // 3. シャットダウン状態に応じてフィルタリング
+    // 4. 読み残しがあればイベントループ経由で再スケジュール
+
     if (!m_process) return;
 
     m_processedLines = 0;
@@ -218,13 +254,12 @@ void EngineProcessManager::onReadyReadStdout()
     while (m_process && m_process->canReadLine() && m_processedLines < kMaxLinesPerChunk) {
         const QByteArray data = m_process->readLine();
         QString line = QString::fromUtf8(data).trimmed();
-        
+
         if (line.isEmpty()) {
             ++m_processedLines;
             continue;
         }
 
-        // エンジン名の検出
         if (line.startsWith(QStringLiteral("id name "))) {
             const QString name = line.mid(8).trimmed();
             if (!name.isEmpty() && m_logEngineName.isEmpty()) {
@@ -233,7 +268,6 @@ void EngineProcessManager::onReadyReadStdout()
             }
         }
 
-        // シャットダウン状態による遮断
         if (m_shutdownState == ShutdownState::IgnoreAll) {
             qDebug().nospace() << logPrefix() << " [drop-ignore-all] " << line;
             ++m_processedLines;
@@ -252,17 +286,16 @@ void EngineProcessManager::onReadyReadStdout()
             continue;
         }
 
-        // 通常時：データ受信シグナルを発行
         emit dataReceived(line);
         qDebug().nospace() << logPrefix() << " < " << line;
-        
+
         ++m_processedLines;
     }
 
-    // まだ読み残しがある場合は継続
     scheduleMoreReading();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void EngineProcessManager::onReadyReadStderr()
 {
     if (!m_process) return;
@@ -295,6 +328,7 @@ void EngineProcessManager::onReadyReadStderr()
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void EngineProcessManager::onProcessError(QProcess::ProcessError error)
 {
     QString errorMessage;
@@ -324,14 +358,14 @@ void EngineProcessManager::onProcessError(QProcess::ProcessError error)
     emit processError(error, errorMessage);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void EngineProcessManager::onProcessFinished(int exitCode, QProcess::ExitStatus status)
 {
-    // 残りのデータを読み取り
+    // プロセス終了時にバッファに残ったデータを最後に処理する
     if (m_process) {
         const QByteArray outTail = m_process->readAllStandardOutput();
         const QByteArray errTail = m_process->readAllStandardError();
 
-        // 残りのデータをシグナルで通知（必要に応じて）
         if (!outTail.isEmpty()) {
             const QStringList lines = QString::fromUtf8(outTail).split('\n', Qt::SkipEmptyParts);
             for (const QString& line : lines) {
@@ -348,6 +382,7 @@ void EngineProcessManager::onProcessFinished(int exitCode, QProcess::ExitStatus 
     emit processFinished(exitCode, status);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void EngineProcessManager::scheduleMoreReading()
 {
     if (m_process && m_process->canReadLine()) {

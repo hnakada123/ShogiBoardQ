@@ -1,13 +1,15 @@
+/// @file csaclient.cpp
+/// @brief CSAプロトコルクライアントクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "csaclient.h"
 #include <QDebug>
 
-// GameSummaryコンストラクタ
 CsaClient::GameSummary::GameSummary()
 {
     clear();
 }
 
-// GameSummary初期化
 void CsaClient::GameSummary::clear()
 {
     protocolVersion.clear();
@@ -40,7 +42,6 @@ void CsaClient::GameSummary::clear()
     byoyomiWhite = 0;
 }
 
-// 時間単位をミリ秒に変換
 int CsaClient::GameSummary::timeUnitMs() const
 {
     if (timeUnit == QStringLiteral("1msec") || timeUnit == QStringLiteral("msec")) {
@@ -52,7 +53,10 @@ int CsaClient::GameSummary::timeUnitMs() const
     return 1000;
 }
 
-// コンストラクタ
+// ============================================================
+// 初期化
+// ============================================================
+
 CsaClient::CsaClient(QObject* parent)
     : QObject(parent)
     , m_socket(new QTcpSocket(this))
@@ -65,7 +69,6 @@ CsaClient::CsaClient(QObject* parent)
     , m_moveCount(0)
     , m_endMoveConsumedTimeMs(0)
 {
-    // ソケットのシグナル接続
     connect(m_socket, &QTcpSocket::connected,
             this, &CsaClient::onSocketConnected);
     connect(m_socket, &QTcpSocket::disconnected,
@@ -75,13 +78,11 @@ CsaClient::CsaClient(QObject* parent)
     connect(m_socket, &QTcpSocket::readyRead,
             this, &CsaClient::onReadyRead);
 
-    // タイムアウトタイマー設定
     m_connectionTimer->setSingleShot(true);
     connect(m_connectionTimer, &QTimer::timeout,
             this, &CsaClient::onConnectionTimeout);
 }
 
-// デストラクタ
 CsaClient::~CsaClient()
 {
     if (m_socket->state() != QAbstractSocket::UnconnectedState) {
@@ -89,7 +90,7 @@ CsaClient::~CsaClient()
     }
 }
 
-// サーバーに接続
+/// @todo remove コメントスタイルガイド適用済み
 void CsaClient::connectToServer(const QString& host, int port)
 {
     if (m_connectionState != ConnectionState::Disconnected) {
@@ -106,14 +107,14 @@ void CsaClient::connectToServer(const QString& host, int port)
     m_socket->connectToHost(host, static_cast<quint16>(port));
 }
 
-// サーバーから切断
+/// @todo remove コメントスタイルガイド適用済み
 void CsaClient::disconnectFromServer()
 {
     m_connectionTimer->stop();
 
     if (m_connectionState == ConnectionState::LoggedIn ||
         m_connectionState == ConnectionState::WaitingForGame) {
-        // ログアウトコマンドを送信
+        // ログイン済みなら切断前にログアウトを送る（サーバー側でセッションを正常終了させるため）
         logout();
     }
 
@@ -122,13 +123,12 @@ void CsaClient::disconnectFromServer()
     }
 }
 
-// 接続中かどうか
 bool CsaClient::isConnected() const
 {
     return m_socket->state() == QAbstractSocket::ConnectedState;
 }
 
-// ログイン
+/// @todo remove コメントスタイルガイド適用済み
 void CsaClient::login(const QString& username, const QString& password)
 {
     if (m_connectionState != ConnectionState::Connected) {
@@ -141,7 +141,6 @@ void CsaClient::login(const QString& username, const QString& password)
     sendMessage(loginCmd);
 }
 
-// ログアウト
 void CsaClient::logout()
 {
     if (m_connectionState != ConnectionState::LoggedIn &&
@@ -152,7 +151,7 @@ void CsaClient::logout()
     sendMessage(QStringLiteral("LOGOUT"));
 }
 
-// 対局条件に同意
+/// @todo remove コメントスタイルガイド適用済み
 void CsaClient::agree(const QString& gameId)
 {
     if (m_connectionState != ConnectionState::GameReady) {
@@ -167,7 +166,6 @@ void CsaClient::agree(const QString& gameId)
     sendMessage(cmd);
 }
 
-// 対局条件を拒否
 void CsaClient::reject(const QString& gameId)
 {
     if (m_connectionState != ConnectionState::GameReady) {
@@ -181,7 +179,7 @@ void CsaClient::reject(const QString& gameId)
     sendMessage(cmd);
 }
 
-// 指し手を送信
+/// @todo remove コメントスタイルガイド適用済み
 void CsaClient::sendMove(const QString& move)
 {
     qDebug() << "[CSA-DEBUG] CsaClient::sendMove called with:" << move;
@@ -204,13 +202,11 @@ void CsaClient::sendMove(const QString& move)
     sendMessage(move);
 }
 
-// 生のコマンドを送信（デバッグ/テスト用）
 void CsaClient::sendRawCommand(const QString& command)
 {
     sendMessage(command);
 }
 
-// 投了
 void CsaClient::resign()
 {
     if (m_connectionState != ConnectionState::InGame) {
@@ -220,7 +216,6 @@ void CsaClient::resign()
     sendMessage(QStringLiteral("%TORYO"));
 }
 
-// 勝利宣言
 void CsaClient::declareWin()
 {
     if (m_connectionState != ConnectionState::InGame) {
@@ -230,7 +225,6 @@ void CsaClient::declareWin()
     sendMessage(QStringLiteral("%KACHI"));
 }
 
-// 中断要請
 void CsaClient::requestChudan()
 {
     if (m_connectionState != ConnectionState::InGame) {
@@ -240,7 +234,7 @@ void CsaClient::requestChudan()
     sendMessage(QStringLiteral("%CHUDAN"));
 }
 
-// ソケット接続時
+/// @todo remove コメントスタイルガイド適用済み
 void CsaClient::onSocketConnected()
 {
     m_connectionTimer->stop();
@@ -248,7 +242,7 @@ void CsaClient::onSocketConnected()
     setConnectionState(ConnectionState::Connected);
 }
 
-// ソケット切断時
+/// @todo remove コメントスタイルガイド適用済み
 void CsaClient::onSocketDisconnected()
 {
     m_connectionTimer->stop();
@@ -256,7 +250,7 @@ void CsaClient::onSocketDisconnected()
     setConnectionState(ConnectionState::Disconnected);
 }
 
-// ソケットエラー時
+/// @todo remove コメントスタイルガイド適用済み
 void CsaClient::onSocketError(QAbstractSocket::SocketError error)
 {
     m_connectionTimer->stop();
@@ -277,10 +271,10 @@ void CsaClient::onSocketError(QAbstractSocket::SocketError error)
     setConnectionState(ConnectionState::Disconnected);
 }
 
-// データ受信時
+/// @todo remove コメントスタイルガイド適用済み
 void CsaClient::onReadyRead()
 {
-    // 受信データをバッファに追加
+    // TCP受信データはパケット境界と行境界が一致しないため、バッファに蓄積して行単位に分割する
     m_receiveBuffer += QString::fromUtf8(m_socket->readAll());
 
     // 行単位で処理
@@ -301,7 +295,7 @@ void CsaClient::onReadyRead()
     }
 }
 
-// 接続タイムアウト時
+/// @todo remove コメントスタイルガイド適用済み
 void CsaClient::onConnectionTimeout()
 {
     qWarning().noquote() << "[CSA] Connection timeout";
@@ -310,7 +304,7 @@ void CsaClient::onConnectionTimeout()
     setConnectionState(ConnectionState::Disconnected);
 }
 
-// メッセージ送信
+/// @todo remove コメントスタイルガイド適用済み
 void CsaClient::sendMessage(const QString& message)
 {
     if (!isConnected()) {
@@ -325,7 +319,7 @@ void CsaClient::sendMessage(const QString& message)
     qDebug().noquote() << "[CSA] Sent:" << message;
 }
 
-// 受信行を処理
+/// @todo remove コメントスタイルガイド適用済み
 void CsaClient::processLine(const QString& line)
 {
     qDebug().noquote() << "[CSA] Recv:" << line;
@@ -378,7 +372,7 @@ void CsaClient::processLine(const QString& line)
     }
 }
 
-// ログイン応答処理
+/// @todo remove コメントスタイルガイド適用済み
 void CsaClient::processLoginResponse(const QString& line)
 {
     if (line.startsWith(QStringLiteral("LOGIN:"))) {
@@ -395,7 +389,7 @@ void CsaClient::processLoginResponse(const QString& line)
     }
 }
 
-// Game_Summary処理
+/// @todo remove コメントスタイルガイド適用済み
 void CsaClient::processGameSummary(const QString& line)
 {
     // セクション終了チェック
@@ -534,7 +528,7 @@ void CsaClient::processGameSummary(const QString& line)
     }
 }
 
-// 対局中メッセージ処理
+/// @todo remove コメントスタイルガイド適用済み
 void CsaClient::processGameMessage(const QString& line)
 {
     qDebug() << "[CSA-DEBUG] processGameMessage:" << line;
@@ -573,7 +567,7 @@ void CsaClient::processGameMessage(const QString& line)
     }
 }
 
-// 結果行処理
+/// @todo remove コメントスタイルガイド適用済み
 void CsaClient::processResultLine(const QString& line)
 {
     qDebug() << "[CSA-DEBUG] processResultLine:" << line;
@@ -643,7 +637,7 @@ void CsaClient::processResultLine(const QString& line)
     // 再接続や次の対局開始時に適切な状態に遷移する
 }
 
-// 指し手行処理
+/// @todo remove コメントスタイルガイド適用済み
 void CsaClient::processMoveLine(const QString& line)
 {
     // 形式: +7776FU,T12
@@ -680,7 +674,7 @@ void CsaClient::processMoveLine(const QString& line)
     }
 }
 
-// 接続状態設定
+/// @todo remove コメントスタイルガイド適用済み
 void CsaClient::setConnectionState(ConnectionState state)
 {
     if (m_connectionState != state) {
@@ -689,7 +683,6 @@ void CsaClient::setConnectionState(ConnectionState state)
     }
 }
 
-// 消費時間解析
 int CsaClient::parseConsumedTime(const QString& timeStr) const
 {
     return timeStr.toInt();

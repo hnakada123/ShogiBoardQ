@@ -1,3 +1,7 @@
+/// @file globaltooltip.cpp
+/// @brief グローバルツールチップクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "globaltooltip.h"
 
 #include <QHBoxLayout>

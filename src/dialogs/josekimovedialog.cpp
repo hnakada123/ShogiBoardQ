@@ -1,3 +1,7 @@
+/// @file josekimovedialog.cpp
+/// @brief 定跡手入力ダイアログクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "josekimovedialog.h"
 #include "settingsservice.h"
 

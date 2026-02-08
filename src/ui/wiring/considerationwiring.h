@@ -1,6 +1,11 @@
 #ifndef CONSIDERATIONWIRING_H
 #define CONSIDERATIONWIRING_H
 
+/// @file considerationwiring.h
+/// @brief 検討モード配線クラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QObject>
 #include <QString>
 #include <functional>

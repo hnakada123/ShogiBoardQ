@@ -1,72 +1,79 @@
 #ifndef ENGINEOPTIONDESCRIPTIONS_H
 #define ENGINEOPTIONDESCRIPTIONS_H
 
+/// @file engineoptiondescriptions.h
+/// @brief USIエンジンオプション説明データベースの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QString>
 #include <QHash>
 #include <QList>
 
-// オプションカテゴリの列挙型
+/**
+ * @brief エンジンオプションのカテゴリ分類
+ *
+ * @todo remove コメントスタイルガイド適用済み
+ */
 enum class EngineOptionCategory {
-    Basic,          // 基本設定
-    Thinking,       // 思考設定
-    TimeControl,    // 時間制御
-    Book,           // 定跡設定
-    GameRule,       // 対局ルール
-    Other           // その他
+    Basic,          ///< 基本設定
+    Thinking,       ///< 思考設定
+    TimeControl,    ///< 時間制御
+    Book,           ///< 定跡設定
+    GameRule,       ///< 対局ルール
+    Other           ///< その他
 };
 
-// USIエンジンオプションの説明を提供するクラス
-// エンジン名に基づいて適切な説明を返す
+/**
+ * @brief USIエンジンオプションの説明とカテゴリを提供する静的クラス
+ *
+ * エンジン名に基づいて適切な説明を返す。
+ * 対応エンジン: YaneuraOu系、Gikou系。
+ *
+ * @todo remove コメントスタイルガイド適用済み
+ */
 class EngineOptionDescriptions
 {
 public:
-    // 指定されたエンジン名とオプション名に対する説明を取得する
-    // エンジンが対応していない場合やオプション名が見つからない場合は空文字列を返す
+    /**
+     * @brief 指定エンジン・オプションに対する説明を取得する
+     * @return 対応するエンジンが未登録またはオプション名が未登録の場合は空文字列
+     */
     static QString getDescription(const QString& engineName, const QString& optionName);
 
-    // 指定されたエンジン名とオプション名に対する説明が存在するかどうかを確認する
+    /// エンジン・オプションに対する説明が存在するかを確認する
     static bool hasDescription(const QString& engineName, const QString& optionName);
 
-    // 指定されたエンジン名とオプション名に対するカテゴリを取得する
-    // 対応していないエンジンの場合は Other を返す
+    /**
+     * @brief 指定エンジン・オプションに対するカテゴリを取得する
+     * @return 未対応エンジンの場合は Other
+     */
     static EngineOptionCategory getCategory(const QString& engineName, const QString& optionName);
 
-    // カテゴリの表示名を取得する
+    /// カテゴリの表示名を取得する
     static QString getCategoryDisplayName(EngineOptionCategory category);
 
-    // 定義されている全カテゴリのリストを取得する（表示順）
+    /// 定義されている全カテゴリのリストを表示順で取得する
     static QList<EngineOptionCategory> getAllCategories();
 
-    // エンジンが説明文データベースに対応しているかどうかを確認する
+    /// エンジンが説明文データベースに対応しているかを確認する
     static bool isEngineSupported(const QString& engineName);
 
 private:
-    // オプション説明のマップを初期化する
     static void initializeDescriptions();
-
-    // オプションカテゴリのマップを初期化する
     static void initializeCategories();
 
-    // エンジン名がYaneuraOu系かどうかを判定する
+    /// エンジン名がYaneuraOu系かどうかを判定する（大文字小文字を区別しない）
     static bool isYaneuraOuEngine(const QString& engineName);
 
-    // エンジン名がGikou系かどうかを判定する
+    /// エンジン名がGikou系かどうかを判定する
     static bool isGikouEngine(const QString& engineName);
 
-    // オプション名と説明のマップ（YaneuraOu用）
-    static QHash<QString, QString> s_yaneuraouDescriptions;
-
-    // オプション名とカテゴリのマップ（YaneuraOu用）
-    static QHash<QString, EngineOptionCategory> s_yaneuraouCategories;
-
-    // オプション名と説明のマップ（Gikou用）
-    static QHash<QString, QString> s_gikouDescriptions;
-
-    // オプション名とカテゴリのマップ（Gikou用）
-    static QHash<QString, EngineOptionCategory> s_gikouCategories;
-
-    // 初期化済みフラグ
-    static bool s_initialized;
+    static QHash<QString, QString> s_yaneuraouDescriptions;             ///< YaneuraOu用オプション説明マップ
+    static QHash<QString, EngineOptionCategory> s_yaneuraouCategories;  ///< YaneuraOu用カテゴリマップ
+    static QHash<QString, QString> s_gikouDescriptions;                 ///< Gikou用オプション説明マップ
+    static QHash<QString, EngineOptionCategory> s_gikouCategories;      ///< Gikou用カテゴリマップ
+    static bool s_initialized;                                          ///< 初期化済みフラグ
 };
 
 #endif // ENGINEOPTIONDESCRIPTIONS_H

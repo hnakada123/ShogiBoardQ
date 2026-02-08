@@ -1,7 +1,10 @@
+/// @file kifudisplay.cpp
+/// @brief 棋譜表示ウィジェットクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "kifudisplay.h"
 
 // 棋譜欄を表示するクラス
-// コンストラクタ
 KifuDisplay::KifuDisplay(QObject *parent) : QObject(parent) { }
 
 // コンストラクタ（2引数）

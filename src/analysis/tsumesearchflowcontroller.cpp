@@ -1,3 +1,7 @@
+/// @file tsumesearchflowcontroller.cpp
+/// @brief 詰み探索フローコントローラクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "tsumesearchflowcontroller.h"
 
 #include "tsumeshogisearchdialog.h"
@@ -8,11 +12,13 @@
 #include <QDialog>
 #include <QtGlobal>
 
+/// @todo remove コメントスタイルガイド適用済み
 TsumeSearchFlowController::TsumeSearchFlowController(QObject* parent)
     : QObject(parent)
 {
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void TsumeSearchFlowController::runWithDialog(const Deps& d, QWidget* parent)
 {
     if (!d.match) {
@@ -46,6 +52,7 @@ void TsumeSearchFlowController::runWithDialog(const Deps& d, QWidget* parent)
     startAnalysis(d.match, engine.path, engine.name, pos, byoyomiMs);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 QString TsumeSearchFlowController::buildPositionForMate(const Deps& d) const
 {
     qDebug().noquote() << "[TsumeSearch] buildPositionForMate:"
@@ -66,6 +73,7 @@ QString TsumeSearchFlowController::buildPositionForMate(const Deps& d) const
         d.sfenRecord, d.startSfenStr, d.positionStrList, qMax(0, d.currentMoveIndex));
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void TsumeSearchFlowController::startAnalysis(MatchCoordinator* match,
                                                const QString& enginePath,
                                                const QString& engineName,

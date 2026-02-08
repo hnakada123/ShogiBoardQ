@@ -1,6 +1,11 @@
 #ifndef ENGINEANALYSISTAB_H
 #define ENGINEANALYSISTAB_H
 
+/// @file engineanalysistab.h
+/// @brief エンジン解析タブクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QWidget>
 #include <QVector>
 #include <QList>
@@ -23,13 +28,13 @@ class QGraphicsPathItem;
 class QHeaderView;
 class QToolButton;
 class QPushButton;
-class QLabel;  // ★ 追加
-class QLineEdit;      // ★ 追加
-class QComboBox;      // ★ 追加: USIコマンド送信先選択用
-class QSpinBox;       // ★ 追加: 候補手の数用
-class QTimer;         // ★ 追加: 経過時間用
-class QRadioButton;   // ★ 追加: 思考時間設定用
-class QCheckBox;      // ★ 追加: 矢印表示チェックボックス用
+class QLabel;  // 追加
+class QLineEdit;      // 追加
+class QComboBox;      // USIコマンド送信先選択用
+class QSpinBox;       // 候補手の数用
+class QTimer;         // 経過時間用
+class QRadioButton;   // 思考時間設定用
+class QCheckBox;      // 矢印表示チェックボックス用
 
 class EngineInfoWidget;
 class ShogiEngineThinkingModel;
@@ -47,7 +52,7 @@ public:
 
     void buildUi();
 
-    // ★ 追加: 独立したドック用にページを作成
+    // 独立したドック用にページを作成
     // 各メソッドは独立したQWidgetを作成して返す（呼び出し側が親を設定）
     QWidget* createThinkingPage(QWidget* parent);
     QWidget* createConsiderationPage(QWidget* parent);
@@ -65,7 +70,7 @@ public:
     // --- 分岐ツリー：MainWindow から供給する軽量行データ ---
     struct ResolvedRowLite {
         int startPly = 1;                  // 行の開始手（本譜は常に1）
-        int parent   = -1;                 // ★ 追加: 親行のインデックス（-1=なし/本譜）
+        int parent   = -1;                 // 親行のインデックス（-1=なし/本譜）
         QList<KifDisplayItem> disp;        // 表示テキスト列（「▲７六歩(77)」など）
         QStringList sfen;                  // 0..N の局面列（未使用でもOK）
     };
@@ -89,12 +94,12 @@ public:
     // 旧API（プレーンテキストでコメントを設定）
     void setCommentText(const QString& text);
 
-    // ★ 追加: CSA通信ログ追記
+    // CSA通信ログ追記
     void appendCsaLog(const QString& line);
-    // ★ 追加: CSA通信ログクリア
+    // CSA通信ログクリア
     void clearCsaLog();
 
-    // ★ 追加: USI通信ログにステータスメッセージを追記
+    // USI通信ログにステータスメッセージを追記
     void appendUsiLogStatus(const QString& message);
 
     // 分岐ツリー用の種類とロール
@@ -108,7 +113,7 @@ public:
     static constexpr int ROLE_ROW = 0x501;
     static constexpr int ROLE_PLY = 0x502;
     static constexpr int ROLE_ORIGINAL_BRUSH = 0x503;
-    static constexpr int ROLE_NODE_ID = 0x504;     // ★ 追加：グラフノードID
+    static constexpr int ROLE_NODE_ID = 0x504;     // グラフノードID
 
     // ===== 追加：分岐ツリー・グラフAPI（初期構築時に使用） =====
     // 再構築の先頭で呼ぶ（内部グラフをクリア）
@@ -126,79 +131,79 @@ public:
         return m_nodeIdByRowPly.value(qMakePair(row, ply), -1);
     }
 
-    // ★ 追加（HvE/EvE の配線で使う）
+    // 追加（HvE/EvE の配線で使う）
     EngineInfoWidget* info1() const { return m_info1; }
     EngineInfoWidget* info2() const { return m_info2; }
     QTableView*       view1() const { return m_view1; }
     QTableView*       view2() const { return m_view2; }
 
-    // ★ 追加: 検討タブ用アクセサ
+    // 検討タブ用アクセサ
     EngineInfoWidget* considerationInfo() const { return m_considerationInfo; }
     QTableView*       considerationView() const { return m_considerationView; }
 
-    // ★ 追加: 検討タブ用モデル設定
+    // 検討タブ用モデル設定
     void setConsiderationThinkingModel(ShogiEngineThinkingModel* m);
 
-    // ★ 追加: 検討タブに切り替える
+    // 検討タブに切り替える
     void switchToConsiderationTab();
 
-    // ★ 追加: 思考タブに切り替える
+    // 思考タブに切り替える
     void switchToThinkingTab();
 
-    // ★ 追加: 検討タブの候補手の数を取得
+    // 検討タブの候補手の数を取得
     int considerationMultiPV() const;
 
-    // ★ 追加: 検討タブの候補手の数を設定
+    // 検討タブの候補手の数を設定
     void setConsiderationMultiPV(int value);
     void clearThinkingViewSelection(int engineIndex);
 
-    // ★ 追加: 検討タブの時間設定を表示
+    // 検討タブの時間設定を表示
     void setConsiderationTimeLimit(bool unlimited, int byoyomiSec);
 
-    // ★ 追加: 検討タブのエンジン名を設定
+    // 検討タブのエンジン名を設定
     void setConsiderationEngineName(const QString& name);
 
-    // ★ 追加: 検討タブの経過時間タイマー制御
+    // 検討タブの経過時間タイマー制御
     void startElapsedTimer();
     void stopElapsedTimer();
     void resetElapsedTimer();
 
-    // ★ 追加: 検討実行状態の設定（ボタン表示切替用）
+    // 検討実行状態の設定（ボタン表示切替用）
     void setConsiderationRunning(bool running);
 
-    // ★ 追加: エンジンリストを読み込み
+    // エンジンリストを読み込み
     void loadEngineList();
 
-    // ★ 追加: エンジン選択を取得
+    // エンジン選択を取得
     int selectedEngineIndex() const;
     QString selectedEngineName() const;
 
-    // ★ 追加: 時間設定を取得
+    // 時間設定を取得
     bool isUnlimitedTime() const;
     int byoyomiSec() const;
 
-    // ★ 追加: 検討タブの設定を復元
+    // 検討タブの設定を復元
     void loadConsiderationTabSettings();
 
-    // ★ 追加: 検討タブの設定を保存
+    // 検討タブの設定を保存
     void saveConsiderationTabSettings();
 
-    // ★ 追加: 矢印表示チェックボックスの状態を取得
+    // 矢印表示チェックボックスの状態を取得
     bool isShowArrowsChecked() const;
 
 public slots:
     void setAnalysisVisible(bool on);
     void setCommentHtml(const QString& html);
-    // ★ 追加: 現在の手数インデックスを設定/取得
+    // 現在の手数インデックスを設定/取得
     void setCurrentMoveIndex(int index);
     int currentMoveIndex() const { return m_currentMoveIndex; }
 
 private slots:
-    // ★ 追加: コメント編集用スロット
+    // コメント編集用スロット
     void onFontIncrease();
     void onFontDecrease();
     void onUpdateCommentClicked();
-    // ★ 追加: 読み筋テーブルのクリック処理
+    // 読み筋テーブルのクリック処理
     void onView1Clicked(const QModelIndex& index);
     void onView2Clicked(const QModelIndex& index);
     void onConsiderationViewClicked(const QModelIndex& index);
@@ -211,44 +216,44 @@ signals:
     void requestApplyStart();                         // 開始局面へ
     void requestApplyMainAtPly(int ply);             // 本譜の ply 手へ
 
-    // ★ 追加: コメント更新シグナル
+    // コメント更新シグナル
     void commentUpdated(int moveIndex, const QString& newComment);
 
-    // ★ 追加: 読み筋がクリックされた時のシグナル
+    // 読み筋がクリックされた時のシグナル
     // engineIndex: 0=エンジン1, 1=エンジン2
     // row: クリックされた行のインデックス
     void pvRowClicked(int engineIndex, int row);
 
-    // ★ 追加: CSAコマンド送信シグナル
+    // CSAコマンド送信シグナル
     void csaRawCommandRequested(const QString& command);
 
-    // ★ 追加: USIコマンド送信シグナル
+    // USIコマンド送信シグナル
     // target: 0=E1, 1=E2, 2=両方
     void usiCommandRequested(int target, const QString& command);
 
-    // ★ 追加: 検討タブの候補手の数変更シグナル
+    // 検討タブの候補手の数変更シグナル
     void considerationMultiPVChanged(int value);
 
-    // ★ 追加: 検討中止シグナル
+    // 検討中止シグナル
     void stopConsiderationRequested();
 
-    // ★ 追加: 検討開始シグナル
+    // 検討開始シグナル
     void startConsiderationRequested();
 
-    // ★ 追加: エンジン設定ボタンが押されたシグナル
+    // エンジン設定ボタンが押されたシグナル
     void engineSettingsRequested(int engineNumber, const QString& engineName);
 
-    // ★ 追加: 思考時間設定が変更されたシグナル
+    // 思考時間設定が変更されたシグナル
     void considerationTimeSettingsChanged(bool unlimited, int byoyomiSec);
 
-    // ★ 追加: 矢印表示設定が変更されたシグナル
+    // 矢印表示設定が変更されたシグナル
     void showArrowsChanged(bool checked);
 
-    // ★ 追加: 検討中にエンジン選択が変更されたシグナル
+    // 検討中にエンジン選択が変更されたシグナル
     void considerationEngineChanged(int index, const QString& name);
 
 private:
-    // ★ 追加: 分岐ツリーのクリック有効フラグ（対局中は無効にする）
+    // 分岐ツリーのクリック有効フラグ（対局中は無効にする）
     bool m_branchTreeClickEnabled = true;
 
     // --- 内部：ツリー描画 ---
@@ -269,11 +274,11 @@ private:
     QGraphicsView* m_branchTree=nullptr;
     QGraphicsScene* m_scene=nullptr;
 
-    // ★ 追加: イベントフィルターをインストールしたviewportへのポインタ（削除時の安全な解除用）
+    // イベントフィルターをインストールしたviewportへのポインタ（削除時の安全な解除用）
     QWidget* m_commentViewport=nullptr;
     QWidget* m_branchTreeViewport=nullptr;
 
-    // ★ 追加: 検討タブ用UI
+    // 検討タブ用UI
     EngineInfoWidget* m_considerationInfo=nullptr;
     QTableView* m_considerationView=nullptr;
     ShogiEngineThinkingModel* m_considerationModel=nullptr;
@@ -294,25 +299,25 @@ private:
     QLabel* m_multiPVLabel=nullptr;           // 「候補手の数」ラベル
     QComboBox* m_multiPVComboBox=nullptr;     // 候補手の数コンボボックス
     QToolButton* m_btnStopConsideration=nullptr;  // 検討中止ボタン
-    QCheckBox* m_showArrowsCheckBox=nullptr;      // ★ 追加: 矢印表示チェックボックス
+    QCheckBox* m_showArrowsCheckBox=nullptr;      // 矢印表示チェックボックス
     int m_considerationFontSize=10;           // 検討タブフォントサイズ
-    bool m_considerationRunning=false;        // ★ 追加: 検討実行中フラグ
+    bool m_considerationRunning=false;        // 検討実行中フラグ
 
-    // ★ 追加: USI通信ログ編集用UI
+    // USI通信ログ編集用UI
     QWidget* m_usiLogContainer=nullptr;
     QWidget* m_usiLogToolbar=nullptr;
-    QLabel* m_usiLogEngine1Label=nullptr;   // ★ 追加: エンジン1名ラベル
-    QLabel* m_usiLogEngine2Label=nullptr;   // ★ 追加: エンジン2名ラベル
+    QLabel* m_usiLogEngine1Label=nullptr;   // エンジン1名ラベル
+    QLabel* m_usiLogEngine2Label=nullptr;   // エンジン2名ラベル
     QToolButton* m_btnUsiLogFontIncrease=nullptr;
     QToolButton* m_btnUsiLogFontDecrease=nullptr;
     int m_usiLogFontSize=10;
 
-    // ★ 追加: USI通信ログコマンド入力UI
+    // USI通信ログコマンド入力UI
     QWidget* m_usiCommandBar=nullptr;
     QComboBox* m_usiTargetCombo=nullptr;
     QLineEdit* m_usiCommandInput=nullptr;
 
-    // ★ 追加: CSA通信ログ用UI
+    // CSA通信ログ用UI
     QWidget* m_csaLogContainer=nullptr;
     QWidget* m_csaLogToolbar=nullptr;
     QPlainTextEdit* m_csaLog=nullptr;
@@ -320,15 +325,15 @@ private:
     QToolButton* m_btnCsaLogFontDecrease=nullptr;
     int m_csaLogFontSize=10;
 
-    // ★ 追加: CSA通信ログコマンド入力UI
+    // CSA通信ログコマンド入力UI
     QWidget* m_csaCommandBar=nullptr;
     QPushButton* m_btnCsaSendToServer=nullptr;
     QLineEdit* m_csaCommandInput=nullptr;
 
-    // ★ 追加: 思考タブフォントサイズ
+    // 思考タブフォントサイズ
     int m_thinkingFontSize=10;
 
-    // ★ 追加: コメント編集用UI
+    // コメント編集用UI
     QWidget* m_commentToolbar=nullptr;
     QToolButton* m_btnFontIncrease=nullptr;
     QToolButton* m_btnFontDecrease=nullptr;
@@ -344,32 +349,32 @@ private:
     QString m_originalComment;       // 元のコメント（変更検知用）
     bool m_isCommentDirty=false;     // コメントが変更されたか
 
-    void buildUsiLogToolbar();       // ★ 追加: USI通信ログツールバー構築
-    void updateUsiLogFontSize(int delta);  // ★ 追加: USI通信ログフォントサイズ変更
-    void onUsiLogFontIncrease();     // ★ 追加
-    void onUsiLogFontDecrease();     // ★ 追加
-    void appendColoredUsiLog(const QString& logLine, const QColor& lineColor);  // ★ 追加: 色付きログ追加
-    void buildUsiCommandBar();       // ★ 追加: USIコマンドバー構築
-    void onUsiCommandEntered();      // ★ 追加: USIコマンド入力処理
-    void onEngine1NameChanged();     // ★ 追加: エンジン1名変更時
-    void onEngine2NameChanged();     // ★ 追加: エンジン2名変更時
-    void buildCsaLogToolbar();       // ★ 追加: CSA通信ログツールバー構築
-    void updateCsaLogFontSize(int delta);  // ★ 追加: CSA通信ログフォントサイズ変更
-    void onCsaLogFontIncrease();     // ★ 追加
-    void onCsaLogFontDecrease();     // ★ 追加
-    void buildCsaCommandBar();       // ★ 追加: CSAコマンド入力バー構築
-    void onCsaCommandEntered();      // ★ 追加: CSAコマンド入力処理
-    void updateThinkingFontSize(int delta);  // ★ 追加: 思考タブフォントサイズ変更
-    void onThinkingFontIncrease();   // ★ 追加
-    void onThinkingFontDecrease();   // ★ 追加
-    void updateConsiderationFontSize(int delta);  // ★ 追加: 検討タブフォントサイズ変更
-    void onConsiderationFontIncrease();  // ★ 追加
-    void onConsiderationFontDecrease();  // ★ 追加
-    void onMultiPVComboBoxChanged(int index);  // ★ 追加: コンボボックス値変更
-    void onElapsedTimerTick();           // ★ 追加: 経過時間更新
-    void onEngineSettingsClicked();      // ★ 追加: エンジン設定ボタンクリック
-    void onTimeSettingChanged();         // ★ 追加: 時間設定変更
-    void onEngineComboBoxChanged(int index);  // ★ 追加: エンジン選択変更
+    void buildUsiLogToolbar();       // USI通信ログツールバー構築
+    void updateUsiLogFontSize(int delta);  // USI通信ログフォントサイズ変更
+    void onUsiLogFontIncrease();     // 追加
+    void onUsiLogFontDecrease();     // 追加
+    void appendColoredUsiLog(const QString& logLine, const QColor& lineColor);  // 色付きログ追加
+    void buildUsiCommandBar();       // USIコマンドバー構築
+    void onUsiCommandEntered();      // USIコマンド入力処理
+    void onEngine1NameChanged();     // エンジン1名変更時
+    void onEngine2NameChanged();     // エンジン2名変更時
+    void buildCsaLogToolbar();       // CSA通信ログツールバー構築
+    void updateCsaLogFontSize(int delta);  // CSA通信ログフォントサイズ変更
+    void onCsaLogFontIncrease();     // 追加
+    void onCsaLogFontDecrease();     // 追加
+    void buildCsaCommandBar();       // CSAコマンド入力バー構築
+    void onCsaCommandEntered();      // CSAコマンド入力処理
+    void updateThinkingFontSize(int delta);  // 思考タブフォントサイズ変更
+    void onThinkingFontIncrease();   // 追加
+    void onThinkingFontDecrease();   // 追加
+    void updateConsiderationFontSize(int delta);  // 検討タブフォントサイズ変更
+    void onConsiderationFontIncrease();  // 追加
+    void onConsiderationFontDecrease();  // 追加
+    void onMultiPVComboBoxChanged(int index);  // コンボボックス値変更
+    void onElapsedTimerTick();           // 経過時間更新
+    void onEngineSettingsClicked();      // エンジン設定ボタンクリック
+    void onTimeSettingChanged();         // 時間設定変更
+    void onEngineComboBoxChanged(int index);  // エンジン選択変更
     void buildCommentToolbar();
     void updateCommentFontSize(int delta);
     QString convertUrlsToLinks(const QString& text);
@@ -380,20 +385,20 @@ private:
     void onCommentCut();             // 切り取り
     void onCommentCopy();            // コピー
     void onCommentPaste();           // 貼り付け
-    void onEngineInfoColumnWidthChanged();  // ★ 追加: 列幅変更時の保存
-    void onThinkingViewColumnWidthChanged(int viewIndex);  // ★ 追加: 思考タブ下段の列幅変更時の保存
+    void onEngineInfoColumnWidthChanged();  // 列幅変更時の保存
+    void onThinkingViewColumnWidthChanged(int viewIndex);  // 思考タブ下段の列幅変更時の保存
 
 public:
-    // ★ 追加: 未保存の編集があるかチェック
+    // 未保存の編集があるかチェック
     bool hasUnsavedComment() const { return m_isCommentDirty; }
 
-    // ★ 追加: 未保存編集の警告ダイアログを表示（移動を続けるならtrue）
+    // 未保存編集の警告ダイアログを表示（移動を続けるならtrue）
     bool confirmDiscardUnsavedComment();
 
-    // ★ 追加: 編集状態をクリア（コメント更新後に呼ぶ）
+    // 編集状態をクリア（コメント更新後に呼ぶ）
     void clearCommentDirty();
 
-    // ★ 追加: 分岐ツリーのクリック有効/無効を設定（対局中は無効にする）
+    // 分岐ツリーのクリック有効/無効を設定（対局中は無効にする）
     void setBranchTreeClickEnabled(bool enabled) { m_branchTreeClickEnabled = enabled; }
     bool isBranchTreeClickEnabled() const { return m_branchTreeClickEnabled; }
 
@@ -432,7 +437,7 @@ public:
     // 直前に黄色にした item
     QGraphicsPathItem* m_prevSelected = nullptr;
 
-    // ★ 追加: 思考タブ下段の列幅が設定から読み込まれたか
+    // 思考タブ下段の列幅が設定から読み込まれたか
     bool m_thinkingView1WidthsLoaded = false;
     bool m_thinkingView2WidthsLoaded = false;
 
@@ -447,16 +452,16 @@ private slots:
     void onModel2Reset();
     void onLog1Changed();
     void onLog2Changed();
-    void onView1SectionResized(int logicalIndex, int oldSize, int newSize);  // ★ 追加
-    void onView2SectionResized(int logicalIndex, int oldSize, int newSize);  // ★ 追加
+    void onView1SectionResized(int logicalIndex, int oldSize, int newSize);  // 追加
+    void onView2SectionResized(int logicalIndex, int oldSize, int newSize);  // 追加
 
 private:
     void reapplyViewTuning(QTableView* v, QAbstractItemModel* m);
 
     // 既に導入済みのヘルパ（前回案）
 private:
-    void setupThinkingViewHeader(QTableView* v);  // ★ 変更: ヘッダ基本設定
-    void applyThinkingViewColumnWidths(QTableView* v, int viewIndex);  // ★ 追加: 列幅適用
+    void setupThinkingViewHeader(QTableView* v);  // ヘッダ基本設定
+    void applyThinkingViewColumnWidths(QTableView* v, int viewIndex);  // 列幅適用
     void applyNumericFormattingTo(QTableView* view, QAbstractItemModel* model);
     static int findColumnByHeader(QAbstractItemModel* model, const QString& title);
 };

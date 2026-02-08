@@ -1,3 +1,7 @@
+/// @file longlongspinbox.cpp
+/// @brief 64bit整数対応スピンボックスクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "longlongspinbox.h"
 #include <QtWidgets/QLineEdit>
 #include <QEvent>
@@ -5,7 +9,6 @@
 
 // Qtには、long long型の値を直接扱うためのQSpinBoxは存在しない。
 // このため、QAbstractSpinBoxを継承して、long long型の値を扱うクラス
-// コンストラクタ
 LongLongSpinBox::LongLongSpinBox(QWidget *parent) :
     QAbstractSpinBox(parent),
 

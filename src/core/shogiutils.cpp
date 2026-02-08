@@ -1,3 +1,7 @@
+/// @file shogiutils.cpp
+/// @brief 将棋関連の共通ユーティリティ関数群の実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "shogiutils.h"
 #include "shogimove.h"
 #include "errorbus.h"
@@ -10,7 +14,11 @@
 
 namespace ShogiUtils {
 
-// 指した先のマスの段を漢字表記で出力する。
+// ============================================================
+// 座標表記変換
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 QString transRankTo(const int rankTo)
 {
     static const QStringList rankStrings = { "", "一", "二", "三", "四", "五", "六", "七", "八", "九" };
@@ -24,13 +32,13 @@ QString transRankTo(const int rankTo)
         const QString msg = QObject::tr("The rank must be a value between 1 and 9. (got %1)")
         .arg(rankTo);
         qWarning().noquote() << "[ShogiUtils]" << msg;
-        ErrorBus::instance().postError(msg);     // ← ここで通知
-        return QString();                        // 呼び出し側で空チェックして早期return
+        ErrorBus::instance().postError(msg);
+        return QString();
     }
-    return rankStrings.at(rankTo);               // 範囲内なので at() でも安全
+    return rankStrings.at(rankTo);
 }
 
-// 指した先のマスの筋を漢字表記で出力する。
+/// @todo remove コメントスタイルガイド適用済み
 QString transFileTo(const int fileTo)
 {
     static const QStringList fileStrings = { "", "１", "２", "３", "４", "５", "６", "７", "８", "９" };
@@ -44,46 +52,46 @@ QString transFileTo(const int fileTo)
         const QString msg = QObject::tr("The file must be a value between 1 and 9. (got %1)")
         .arg(fileTo);
         qWarning().noquote() << "[ShogiUtils]" << msg;
-        ErrorBus::instance().postError(msg);     // ← 通知
+        ErrorBus::instance().postError(msg);
         return QString();
     }
     return fileStrings.at(fileTo);
 }
 
+// ============================================================
+// USI変換
+// ============================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 QString moveToUsi(const ShogiMove& move)
 {
-    const int fromX = move.fromSquare.x();  // 0-indexed (0-8 for board, 9/10 for piece stands)
-    const int fromY = move.fromSquare.y();  // 0-indexed (0-8)
-    const int toX = move.toSquare.x();      // 0-indexed (0-8)
-    const int toY = move.toSquare.y();      // 0-indexed (0-8)
+    const int fromX = move.fromSquare.x();
+    const int fromY = move.fromSquare.y();
+    const int toX = move.toSquare.x();
+    const int toY = move.toSquare.y();
 
-    // 移動先が盤外なら無効
     if (toX < 0 || toX > 8 || toY < 0 || toY > 8) {
         return QString();
     }
 
-    // USI形式: file=1-9, rank=a-i
-    const int toFile = toX + 1;             // 1-9
-    const QChar toRank = QChar('a' + toY);  // a-i
+    const int toFile = toX + 1;
+    const QChar toRank = QChar('a' + toY);
 
-    // 駒打ち判定: fromX が 9（先手駒台）または 10（後手駒台）の場合
+    // 駒打ち: fromXが9（先手駒台）または10（後手駒台）
     if (fromX == 9 || fromX == 10) {
-        // 駒種（大文字に変換）
         QChar piece = move.movingPiece.toUpper();
         return QStringLiteral("%1*%2%3").arg(piece).arg(toFile).arg(toRank);
     }
 
-    // 通常の盤上移動
     if (fromX < 0 || fromX > 8 || fromY < 0 || fromY > 8) {
         return QString();
     }
 
-    const int fromFile = fromX + 1;           // 1-9
-    const QChar fromRank = QChar('a' + fromY);// a-i
+    const int fromFile = fromX + 1;
+    const QChar fromRank = QChar('a' + fromY);
 
     QString usi = QStringLiteral("%1%2%3%4").arg(fromFile).arg(fromRank).arg(toFile).arg(toRank);
 
-    // 成りの場合は "+" を追加
     if (move.isPromotion) {
         usi += QLatin1Char('+');
     }
@@ -91,37 +99,38 @@ QString moveToUsi(const ShogiMove& move)
     return usi;
 }
 
-// ========================================
+// ============================================================
 // 漢字座標解析（逆変換）
-// ========================================
+// ============================================================
 
+/// @todo remove コメントスタイルガイド適用済み
 int parseFullwidthFile(QChar ch)
 {
-    // 全角数字 '１' (0xFF11) 〜 '９' (0xFF19) を 1-9 に変換
+    // 全角数字 '１' (0xFF11) 〜 '９' (0xFF19)
     if (ch >= QChar(0xFF11) && ch <= QChar(0xFF19)) {
         return ch.unicode() - 0xFF11 + 1;
     }
-    return 0;  // 無効
+    return 0;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 int parseKanjiRank(QChar ch)
 {
-    // 漢数字「一」〜「九」を 1-9 に変換
     static const QString kanjiRanks = QStringLiteral("一二三四五六七八九");
     const auto idx = kanjiRanks.indexOf(ch);
     if (idx >= 0) {
         return static_cast<int>(idx) + 1;
     }
-    return 0;  // 無効
+    return 0;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 bool parseMoveLabel(const QString& moveLabel, int* outFile, int* outRank)
 {
     if (!outFile || !outRank) return false;
     *outFile = 0;
     *outRank = 0;
 
-    // 手番マーク（▲/△）を探す
     static const QString senteMark = QStringLiteral("▲");
     static const QString goteMark = QStringLiteral("△");
 
@@ -130,10 +139,9 @@ bool parseMoveLabel(const QString& moveLabel, int* outFile, int* outRank)
         markPos = moveLabel.indexOf(goteMark);
     }
     if (markPos < 0 || moveLabel.length() <= markPos + 2) {
-        return false;  // マークが見つからない、または文字列が短すぎる
+        return false;
     }
 
-    // マーク後の文字列を取得
     const QString afterMark = moveLabel.mid(markPos + 1);
 
     // 「同」で始まる場合は前の手を参照する必要がある
@@ -141,9 +149,8 @@ bool parseMoveLabel(const QString& moveLabel, int* outFile, int* outRank)
         return false;
     }
 
-    // 「７六」のような漢字座標を解析
-    const QChar fileChar = afterMark.at(0);  // 全角数字 '１'〜'９'
-    const QChar rankChar = afterMark.at(1);  // 漢数字 '一'〜'九'
+    const QChar fileChar = afterMark.at(0);
+    const QChar rankChar = afterMark.at(1);
 
     const int file = parseFullwidthFile(fileChar);
     const int rank = parseKanjiRank(rankChar);
@@ -157,6 +164,7 @@ bool parseMoveLabel(const QString& moveLabel, int* outFile, int* outRank)
     return false;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 bool parseMoveCoordinateFromModel(const QAbstractItemModel* model, int row,
                                    int* outFile, int* outRank)
 {
@@ -168,11 +176,9 @@ bool parseMoveCoordinateFromModel(const QAbstractItemModel* model, int row,
         return false;
     }
 
-    // 指定行のラベルを取得
     const QModelIndex idx = model->index(row, 0);
     const QString moveLabel = model->data(idx, Qt::DisplayRole).toString();
 
-    // まず直接座標を解析
     if (parseMoveLabel(moveLabel, outFile, outRank)) {
         return true;
     }
@@ -192,16 +198,22 @@ bool parseMoveCoordinateFromModel(const QAbstractItemModel* model, int row,
 
 } // namespace ShogiUtils
 
+// ============================================================
+// 対局タイマー
+// ============================================================
+
 namespace {
 QElapsedTimer g_gameEpoch;
 QAtomicInteger<bool> g_epochStarted(false);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void ShogiUtils::startGameEpoch() {
     g_gameEpoch.start();
     g_epochStarted.storeRelease(true);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 qint64 ShogiUtils::nowMs() {
     if (!g_epochStarted.loadAcquire()) return 0;
     return g_gameEpoch.elapsed();

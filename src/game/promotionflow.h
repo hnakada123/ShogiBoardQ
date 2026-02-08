@@ -1,11 +1,20 @@
 #ifndef PROMOTIONFLOW_H
 #define PROMOTIONFLOW_H
 
+/// @file promotionflow.h
+/// @brief 成り・不成の選択フローを提供するユーティリティクラス
+/// @todo remove コメントスタイルガイド適用済み
+
+
 class QWidget;
 
+/**
+ * @brief 駒の成り・不成をユーザーに問い合わせるフロー
+ * @todo remove コメントスタイルガイド適用済み
+ */
 class PromotionFlow final {
 public:
-    // 成る: true / 不成: false を返す
+    /// @return 成る: true / 不成: false
     static bool askPromote(QWidget* parent);
 };
 

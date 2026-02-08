@@ -1,15 +1,25 @@
 #ifndef TURNMANAGER_H
 #define TURNMANAGER_H
 
+/// @file turnmanager.h
+/// @brief 手番の管理と各種表現形式への変換を担うクラス
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QObject>
 #include "shogigamecontroller.h"
 
-// 薄い手番マネージャ：手番の単一ソース＋表現変換＋シグナル配信
+/**
+ * @brief 手番の単一ソースとして、表現形式の変換とシグナル配信を行う
+ * @todo remove コメントスタイルガイド適用済み
+ *
+ * GC・SFEN・Clock 間の手番表現を相互変換する。
+ */
 class TurnManager : public QObject
 {
     Q_OBJECT
 public:
-    using Side = ShogiGameController::Player; // Player1 / Player2 / NoPlayer
+    using Side = ShogiGameController::Player; ///< Player1 / Player2 / NoPlayer
 
     explicit TurnManager(QObject* parent=nullptr);
 
@@ -17,23 +27,24 @@ public:
     void set(Side s);
     void toggle();
 
-    // ---- 変換：SFEN "b"/"w"
+    // --- SFEN "b"/"w" 変換 ---
     QString toSfenToken() const;
     void setFromSfenToken(const QString& bw);
 
-    // ---- 変換：Clock 1/2
+    // --- Clock 1/2 変換 ---
     int  toClockPlayer() const;
     void setFromClockPlayer(int p);
 
-    // ---- 変換：GC
+    // --- GameController 変換 ---
     ShogiGameController::Player toGc() const;
     void setFromGc(ShogiGameController::Player p);
 
 signals:
+    /// 手番変更を通知（→ MainWindow::onTurnManagerChanged）
     void changed(ShogiGameController::Player now);
 
 private:
-    Side m_side;
+    Side m_side; ///< 現在の手番
 };
 
 #endif // TURNMANAGER_H

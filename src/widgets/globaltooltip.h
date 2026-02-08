@@ -1,5 +1,10 @@
 #ifndef GLOBALTOOLTIP_H
 #define GLOBALTOOLTIP_H
+
+/// @file globaltooltip.h
+/// @brief グローバルツールチップクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
 #pragma once
 
 #include <QFrame>
@@ -8,23 +13,23 @@ class QLabel;
 class QPoint;
 class QString;
 
-/*
- * GlobalToolTip
- * 軽量なツールチップ風ポップアップ（QFrame 派生）。
- * 役割：任意のグローバル座標付近にプレーンテキストを表示する小さなフローティング UI を提供。
- * 特徴：
- *  - Qt::ToolTip | Qt::FramelessWindowHint（実装側）により枠なし・フォーカス奪取なしで表示
- *  - HTML は無効化し、文字列は HTML エスケープして安全に表示（XSS 対策）
- *  - setCompact(true) で余白・角丸・フォントを小さめに一括変更可能
- * 注意：シグナル/スロットは持たない。必要に応じて Q_OBJECT 化やアニメーションの拡張を検討。
+/**
+ * @brief 軽量なツールチップ風ポップアップ（QFrame 派生）
+ *
+ * 任意のグローバル座標付近にプレーンテキストを表示する小さなフローティング UI を提供する。
+ * - Qt::ToolTip | Qt::FramelessWindowHint により枠なし・フォーカス奪取なしで表示
+ * - HTML は無効化し、文字列は HTML エスケープして安全に表示（XSS 対策）
+ * - setCompact(true) で余白・角丸・フォントを小さめに一括変更可能
+ *
+ * シグナル/スロットは持たない。必要に応じて Q_OBJECT 化やアニメーションの拡張を検討。
+ *
+ * @todo remove コメントスタイルガイド適用済み
  */
 class GlobalToolTip : public QFrame {
 public:
-    // コンストラクタ
-    // 役割：基本スタイルと内部レイアウト（QLabel）を構築。
+    /// 基本スタイルと内部レイアウト（QLabel）を構築する
     explicit GlobalToolTip(QWidget* parent = nullptr);
 
-    // デストラクタ
     ~GlobalToolTip() override;
 
     // ツールチップを表示

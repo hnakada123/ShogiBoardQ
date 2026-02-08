@@ -1,3 +1,7 @@
+/// @file kifuclipboardservice.cpp
+/// @brief 棋譜クリップボードサービスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "kifuclipboardservice.h"
 #include "gamerecordmodel.h"
 #include "shogimove.h"

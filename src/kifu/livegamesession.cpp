@@ -1,3 +1,7 @@
+/// @file livegamesession.cpp
+/// @brief ライブ対局セッション管理クラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "livegamesession.h"
 #include "kifubranchtree.h"
 

@@ -1,3 +1,7 @@
+/// @file kifuanalysisdialog.cpp
+/// @brief 棋譜解析ダイアログクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "kifuanalysisdialog.h"
 #include "changeenginesettingsdialog.h"
 #include "ui_kifuanalysisdialog.h"
@@ -12,7 +16,6 @@
 using namespace EngineSettingsConstants;
 
 // 棋譜解析ダイアログのUIを設定する。
-// コンストラクタ
 KifuAnalysisDialog::KifuAnalysisDialog(QWidget *parent)
     : QDialog(parent), ui(new Ui::KifuAnalysisDialog), m_engineNumber(0), 
       m_initPosition(true), m_startPly(0), m_endPly(0), m_maxPly(0), 
@@ -62,7 +65,7 @@ KifuAnalysisDialog::KifuAnalysisDialog(QWidget *parent)
     connect(ui->engineSetting, &QPushButton::clicked, this, &KifuAnalysisDialog::showEngineSettingsDialog);
 
     // OKボタンが押された場合、エンジン名、エンジン番号、解析局面フラグ、思考時間を取得する。
-    // ★ 重要: accept()より先に接続し、メンバー変数が確実に更新されるようにする
+    // 重要: accept()より先に接続し、メンバー変数が確実に更新されるようにする
     connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &KifuAnalysisDialog::processEngineSettings);
 
     // OKボタンが押された場合、ダイアログを受け入れたとして閉じる動作を行う。

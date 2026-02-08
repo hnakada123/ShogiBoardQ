@@ -1,3 +1,7 @@
+/// @file kifurecordlistmodel.cpp
+/// @brief 棋譜レコードリストモデルクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "kifurecordlistmodel.h"
 #include <QDebug> // 必要なら
 #include <QColor>
@@ -5,7 +9,7 @@
 
 KifuRecordListModel::KifuRecordListModel(QObject *parent)
     : AbstractListModel<KifuDisplay>(parent)
-    , m_currentHighlightRow(0)  // ★ 起動時は開始局面（行0）をハイライト
+    , m_currentHighlightRow(0)  // 起動時は開始局面（行0）をハイライト
 {
 }
 

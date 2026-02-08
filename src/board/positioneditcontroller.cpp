@@ -1,3 +1,7 @@
+/// @file positioneditcontroller.cpp
+/// @brief 局面編集モードの開始・終了・盤操作の実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "positioneditcontroller.h"
 #include "shogiview.h"
 #include "shogiboard.h"
@@ -8,14 +12,18 @@
 #include <QRegularExpression>
 #include <Qt>
 
+// ======================================================================
+// 無名名前空間ヘルパ
+// ======================================================================
+
 namespace {
 
-// 将棋の平手初期配置（board部分）
+/// 将棋の平手初期配置（board部分）
 static const QString kInitialBoard =
     QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL");
 static const QString kInitialStand = QStringLiteral("-");
 
-// 入力文字列（startpos / sfen ... / すでに最小SFEN / それ以外）を最小SFENに正規化
+/// 入力文字列（startpos / sfen ... / 最小SFEN / 不明形式）を最小SFENに正規化する
 static QString toMinimalSfen(const QString& in)
 {
     const QString s = in.trimmed();
@@ -28,31 +36,29 @@ static QString toMinimalSfen(const QString& in)
         return QStringLiteral("%1 %2 %3 %4").arg(kInitialBoard, "b", kInitialStand, "1");
     }
 
-    // 1) "startpos"（moves は編集開始では無視）
+    // "startpos"（moves は編集開始では無視）
     if (parts[0] == QStringLiteral("startpos")) {
         return QStringLiteral("%1 %2 %3 %4").arg(kInitialBoard, "b", kInitialStand, "1");
     }
 
-    // 2) "sfen <board> <turn> <stand> <ply> (moves ...)?"
+    // "sfen <board> <turn> <stand> <ply> (moves ...)?"
     if (parts[0] == QStringLiteral("sfen")) {
         if (parts.size() >= 5) {
-            // moves は無視、最小SFENを返す
             return QStringLiteral("%1 %2 %3 %4").arg(parts[1], parts[2], parts[3], parts[4]);
         }
-        // 壊れていれば平手へ
         return QStringLiteral("%1 %2 %3 %4").arg(kInitialBoard, "b", kInitialStand, "1");
     }
 
-    // 3) 既に最小SFEN（board に / を含む）
+    // 既に最小SFEN（board に / を含む）
     if (parts.size() >= 4 && parts[0].contains(QLatin1Char('/'))) {
         return QStringLiteral("%1 %2 %3 %4").arg(parts[0], parts[1], parts[2], parts[3]);
     }
 
-    // 4) 不明形式は平手へ
+    // 不明形式は平手へフォールバック
     return QStringLiteral("%1 %2 %3 %4").arg(kInitialBoard, "b", kInitialStand, "1");
 }
 
-// 最小SFEN（board turn stand ply）を受け取り、手番と手数を上書きして返す
+/// 最小SFENの手番と手数を上書きして返す
 static QString forceTurnAndPly(const QString& minimalSfen, QChar turnBW, int ply = 1)
 {
     QStringList t = minimalSfen.split(QLatin1Char(' '), Qt::SkipEmptyParts);
@@ -64,7 +70,6 @@ static QString forceTurnAndPly(const QString& minimalSfen, QChar turnBW, int ply
 
 static QChar toBW(ShogiGameController::Player p)
 {
-    // Player1=先手(b), Player2=後手(w)
     return (p == ShogiGameController::Player2) ? QLatin1Char('w') : QLatin1Char('b');
 }
 
@@ -77,24 +82,33 @@ static ShogiGameController::Player fromBW(const QString& bw)
 
 } // namespace
 
+// ======================================================================
+// 編集ライフサイクル
+// ======================================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 void PositionEditController::beginPositionEditing(const BeginEditContext& c)
 {
+    // 処理フロー:
+    // 1. 編集開始SFENを既存の棋譜/局面状態から決定
+    // 2. SFENを正規化して盤面に適用、編集モードへ遷移
+    // 3. ハイライト初期化、GC手番同期、UIコールバック呼び出し
+
     if (!c.view || !c.gc) return;
     if (!c.view->board()) return;
 
-    // 編集セッションの参照を保持
     m_view = c.view;
     m_gc   = c.gc;
     m_bic  = c.bic;
 
     ShogiBoard* board = c.view->board();
 
-    // 0) 既存 GC 手番から desiredTurn を決める（未設定なら先手扱い）
+    // GCの手番から desiredTurn を決める（未設定なら先手扱い）
     ShogiGameController::Player preSide = c.gc->currentPlayer();
     if (preSide == ShogiGameController::NoPlayer) preSide = ShogiGameController::Player1;
     const QChar desiredTurn = toBW(preSide);
 
-    // 1) 編集開始SFENの決定（record / current / resume / 盤 から）
+    // 編集開始SFENの決定（record / current / resume / 盤面 から）
     QString baseSfen;
     if (c.sfenRecord && !c.sfenRecord->isEmpty()) {
         const qsizetype lastIdx = c.sfenRecord->size() - 1;
@@ -116,7 +130,6 @@ void PositionEditController::beginPositionEditing(const BeginEditContext& c)
         } else if (c.resumeSfenStr && !c.resumeSfenStr->isEmpty()) {
             baseSfen = *c.resumeSfenStr;
         } else {
-            // 盤の現在状態から最小SFENを組み立てる
             baseSfen = QStringLiteral("%1 %2 %3 %4")
                            .arg(board->convertBoardToSfen(),
                                 board->currentPlayer(),
@@ -125,39 +138,40 @@ void PositionEditController::beginPositionEditing(const BeginEditContext& c)
         }
     }
 
-    // 2) 最小SFENへ正規化し、手番/手数を強制上書き
+    // 最小SFENへ正規化し、手番/手数を強制上書き
     const QString minimal  = toMinimalSfen(baseSfen);
     const QString adjusted = forceTurnAndPly(minimal, desiredTurn, /*ply*/1);
 
-    // 3) 盤へ適用し、編集モードへ
+    // 盤へ適用し、編集モードへ
     board->setSfen(adjusted);
     c.view->setPositionEditMode(true);
     c.view->setMouseClickMode(true);
     c.view->update();
 
-    // ★ 3.5) メニュー切替（MainWindow へ通知）
+    // メニュー切替（MainWindow へ通知）
     if (c.onEnterEditMenu) c.onEnterEditMenu();
 
-    // 4) ハイライト等の初期化
+    // ハイライト等の初期化
     if (c.bic) {
         c.bic->setMode(BoardInteractionController::Mode::Edit);
         c.bic->clearAllHighlights();
     }
 
-    // 5) GC の手番を盤へ同期
+    // GC の手番を盤へ同期
     const QString bw = board->currentPlayer();
     c.gc->setCurrentPlayer(fromBW(bw));
 
-    // 6) 「編集終了」ボタン表示
+    // 「編集終了」ボタン表示
     if (c.onShowEditExitButton) c.onShowEditExitButton();
 
-    // 7) 任意: startSfenStr にも記録（必要なら）
+    // startSfenStr にも記録
     if (c.sfenRecord && c.startSfenStr) {
         if (!c.sfenRecord->isEmpty()) *c.startSfenStr = c.sfenRecord->first();
         else                          *c.startSfenStr = adjusted;
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void PositionEditController::finishPositionEditing(const PositionEditController::FinishEditContext& c)
 {
     if (!c.gc || !c.view || !c.view->board()) return;
@@ -199,18 +213,20 @@ void PositionEditController::finishPositionEditing(const PositionEditController:
     }
     if (c.onHideEditExitButton) c.onHideEditExitButton();
 
-    // 追加: メニュー非表示（MainWindow 実装のコールバック）
+    // メニュー非表示（MainWindow 実装のコールバック）
     if (c.onLeaveEditMenu) c.onLeaveEditMenu();
 
-    // ★ 追加: 編集セッションの参照を保持（アクション用スロットで利用）
+    // 編集セッションの参照を保持（アクション用スロットで利用）
     m_view = c.view;
     m_gc   = c.gc;
     m_bic  = c.bic;
 }
 
-// ─────────────────────────────────────────────────────────────
-// 追加: 盤操作 API
-// ─────────────────────────────────────────────────────────────
+// ======================================================================
+// 盤面操作API
+// ======================================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 void PositionEditController::resetPiecesToStand(ShogiView* view, BoardInteractionController* bic)
 {
     if (!view) return;
@@ -218,6 +234,7 @@ void PositionEditController::resetPiecesToStand(ShogiView* view, BoardInteractio
     view->resetAndEqualizePiecesOnStands();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void PositionEditController::setStandardStartPosition(ShogiView* view, BoardInteractionController* bic)
 {
     if (!view) return;
@@ -225,6 +242,7 @@ void PositionEditController::setStandardStartPosition(ShogiView* view, BoardInte
     view->initializeToFlatStartingPosition();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void PositionEditController::setTsumeShogiStartPosition(ShogiView* view, BoardInteractionController* bic)
 {
     if (!view) return;
@@ -232,9 +250,11 @@ void PositionEditController::setTsumeShogiStartPosition(ShogiView* view, BoardIn
     view->shogiProblemInitialPosition();
 }
 
-// ─────────────────────────────────────────────────────────────
-// 追加: 「編集終了」ボタンの出し入れ（ShogiView 内の既存ボタンを利用）
-// ─────────────────────────────────────────────────────────────
+// ======================================================================
+// 編集終了ボタン制御
+// ======================================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 void PositionEditController::showEditExitButtonOnBoard(ShogiView* view, QObject* receiver, const char* finishSlot)
 {
     if (!view) return;
@@ -242,17 +262,16 @@ void PositionEditController::showEditExitButtonOnBoard(ShogiView* view, QObject*
     // ShogiView 側で作成&配置（必要なら内部で生成）
     view->relayoutEditExitButton();
 
-    // ボタン取得
     if (QPushButton* exitBtn = view->findChild<QPushButton*>(QStringLiteral("editExitButton"))) {
         // 重複接続防止
         QObject::disconnect(exitBtn, SIGNAL(clicked()), receiver, finishSlot);
-        // 旧式シグナル（ラムダ不使用ポリシーに合わせる）
         QObject::connect(exitBtn, SIGNAL(clicked()), receiver, finishSlot);
         exitBtn->show();
         exitBtn->raise();
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void PositionEditController::hideEditExitButtonOnBoard(ShogiView* view)
 {
     if (!view) return;
@@ -261,24 +280,32 @@ void PositionEditController::hideEditExitButtonOnBoard(ShogiView* view)
     }
 }
 
+// ======================================================================
+// アクション用スロット
+// ======================================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 void PositionEditController::onReturnAllPiecesOnStandTriggered()
 {
     if (!m_view) return;
     resetPiecesToStand(m_view, m_bic);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void PositionEditController::onFlatHandInitialPositionTriggered()
 {
     if (!m_view) return;
     setStandardStartPosition(m_view, m_bic);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void PositionEditController::onShogiProblemInitialPositionTriggered()
 {
     if (!m_view) return;
     setTsumeShogiStartPosition(m_view, m_bic);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void PositionEditController::onToggleSideToMoveTriggered()
 {
     if (!m_gc) return;
@@ -290,6 +317,11 @@ void PositionEditController::onToggleSideToMoveTriggered()
     if (m_view) m_view->update();
 }
 
+// ======================================================================
+// 編集中の着手適用
+// ======================================================================
+
+/// @todo remove コメントスタイルガイド適用済み
 bool PositionEditController::applyEditMove(const QPoint& from,
                                            const QPoint& to,
                                            ShogiView* view,
@@ -298,7 +330,6 @@ bool PositionEditController::applyEditMove(const QPoint& from,
 {
     if (!view || !gc || !bic) return false;
 
-    // validate & apply in edit-mode
     QPoint hFrom = from, hTo = to;
     const bool ok = gc->editPosition(hFrom, hTo);
 

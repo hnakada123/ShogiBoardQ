@@ -1,6 +1,11 @@
 #ifndef CHANGEENGINESETTINGSDIALOG_H
 #define CHANGEENGINESETTINGSDIALOG_H
 
+/// @file changeenginesettingsdialog.h
+/// @brief エンジン設定変更ダイアログクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QDialog>
 #include <QVBoxLayout>
 #include <QLabel>

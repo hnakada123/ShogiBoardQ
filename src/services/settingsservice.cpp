@@ -1,3 +1,7 @@
+/// @file settingsservice.cpp
+/// @brief アプリケーション設定の永続化サービスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include <QSettings>
 #include <QApplication>
 #include <QDir>
@@ -43,7 +47,7 @@ void setLastKifuDirectory(const QString& dir)
     s.setValue("General/lastKifuDirectory", dir);
 }
 
-// ★ 追加: USI通信ログタブのフォントサイズを取得
+// USI通信ログタブのフォントサイズを取得
 int usiLogFontSize()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -51,7 +55,7 @@ int usiLogFontSize()
     return s.value("FontSize/usiLog", 10).toInt();
 }
 
-// ★ 追加: USI通信ログタブのフォントサイズを保存
+// USI通信ログタブのフォントサイズを保存
 void setUsiLogFontSize(int size)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -59,7 +63,7 @@ void setUsiLogFontSize(int size)
     s.setValue("FontSize/usiLog", size);
 }
 
-// ★ 追加: 棋譜コメントタブのフォントサイズを取得
+// 棋譜コメントタブのフォントサイズを取得
 int commentFontSize()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -67,7 +71,7 @@ int commentFontSize()
     return s.value("FontSize/comment", 10).toInt();
 }
 
-// ★ 追加: 棋譜コメントタブのフォントサイズを保存
+// 棋譜コメントタブのフォントサイズを保存
 void setCommentFontSize(int size)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -75,7 +79,7 @@ void setCommentFontSize(int size)
     s.setValue("FontSize/comment", size);
 }
 
-// ★ 追加: 対局情報タブのフォントサイズを取得
+// 対局情報タブのフォントサイズを取得
 int gameInfoFontSize()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -83,7 +87,7 @@ int gameInfoFontSize()
     return s.value("FontSize/gameInfo", 10).toInt();
 }
 
-// ★ 追加: 対局情報タブのフォントサイズを保存
+// 対局情報タブのフォントサイズを保存
 void setGameInfoFontSize(int size)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -91,7 +95,7 @@ void setGameInfoFontSize(int size)
     s.setValue("FontSize/gameInfo", size);
 }
 
-// ★ 追加: 思考タブのフォントサイズを取得
+// 思考タブのフォントサイズを取得
 int thinkingFontSize()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -99,7 +103,7 @@ int thinkingFontSize()
     return s.value("FontSize/thinking", 10).toInt();
 }
 
-// ★ 追加: 思考タブのフォントサイズを保存
+// 思考タブのフォントサイズを保存
 void setThinkingFontSize(int size)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -107,7 +111,7 @@ void setThinkingFontSize(int size)
     s.setValue("FontSize/thinking", size);
 }
 
-// ★ 追加: 最後に選択されたタブインデックスを取得
+// 最後に選択されたタブインデックスを取得
 int lastSelectedTabIndex()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -115,7 +119,7 @@ int lastSelectedTabIndex()
     return s.value("UI/lastSelectedTabIndex", 0).toInt();
 }
 
-// ★ 追加: 最後に選択されたタブインデックスを保存
+// 最後に選択されたタブインデックスを保存
 void setLastSelectedTabIndex(int index)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -123,7 +127,7 @@ void setLastSelectedTabIndex(int index)
     s.setValue("UI/lastSelectedTabIndex", index);
 }
 
-// ★ 追加: 読み筋表示ウィンドウのサイズを取得
+// 読み筋表示ウィンドウのサイズを取得
 QSize pvBoardDialogSize()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -131,7 +135,7 @@ QSize pvBoardDialogSize()
     return s.value("SizeRelated/pvBoardDialogSize", QSize(620, 720)).toSize();
 }
 
-// ★ 追加: 読み筋表示ウィンドウのサイズを保存
+// 読み筋表示ウィンドウのサイズを保存
 void setPvBoardDialogSize(const QSize& size)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -139,7 +143,7 @@ void setPvBoardDialogSize(const QSize& size)
     s.setValue("SizeRelated/pvBoardDialogSize", size);
 }
 
-// ★ 追加: 評価値グラフの設定
+// 評価値グラフの設定
 int evalChartYLimit()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -196,7 +200,7 @@ void setEvalChartLabelFontSize(int size)
     s.setValue("EvalChart/labelFontSize", size);
 }
 
-// ★ 追加: エンジン情報ウィジェットの列幅を取得
+// エンジン情報ウィジェットの列幅を取得
 QList<int> engineInfoColumnWidths(int widgetIndex)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -214,7 +218,7 @@ QList<int> engineInfoColumnWidths(int widgetIndex)
     return widths;
 }
 
-// ★ 追加: エンジン情報ウィジェットの列幅を保存
+// エンジン情報ウィジェットの列幅を保存
 void setEngineInfoColumnWidths(int widgetIndex, const QList<int>& widths)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -232,7 +236,7 @@ void setEngineInfoColumnWidths(int widgetIndex, const QList<int>& widths)
     s.sync();
 }
 
-// ★ 追加: 思考タブ下段（読み筋テーブル）の列幅を取得
+// 思考タブ下段（読み筋テーブル）の列幅を取得
 QList<int> thinkingViewColumnWidths(int viewIndex)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -250,7 +254,7 @@ QList<int> thinkingViewColumnWidths(int viewIndex)
     return widths;
 }
 
-// ★ 追加: 思考タブ下段（読み筋テーブル）の列幅を保存
+// 思考タブ下段（読み筋テーブル）の列幅を保存
 void setThinkingViewColumnWidths(int viewIndex, const QList<int>& widths)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -268,7 +272,7 @@ void setThinkingViewColumnWidths(int viewIndex, const QList<int>& widths)
     s.sync();
 }
 
-// ★ 追加: 棋譜欄・分岐候補欄のフォントサイズを取得
+// 棋譜欄・分岐候補欄のフォントサイズを取得
 int kifuPaneFontSize()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -276,7 +280,7 @@ int kifuPaneFontSize()
     return s.value("FontSize/kifuPane", 10).toInt();
 }
 
-// ★ 追加: 棋譜欄・分岐候補欄のフォントサイズを保存
+// 棋譜欄・分岐候補欄のフォントサイズを保存
 void setKifuPaneFontSize(int size)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -284,7 +288,7 @@ void setKifuPaneFontSize(int size)
     s.setValue("FontSize/kifuPane", size);
 }
 
-// ★ 追加: 棋譜解析ダイアログのフォントサイズを取得
+// 棋譜解析ダイアログのフォントサイズを取得
 int kifuAnalysisFontSize()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -292,7 +296,7 @@ int kifuAnalysisFontSize()
     return s.value("KifuAnalysis/fontSize", 10).toInt();
 }
 
-// ★ 追加: 棋譜解析ダイアログのフォントサイズを保存
+// 棋譜解析ダイアログのフォントサイズを保存
 void setKifuAnalysisFontSize(int size)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -300,7 +304,7 @@ void setKifuAnalysisFontSize(int size)
     s.setValue("KifuAnalysis/fontSize", size);
 }
 
-// ★ 追加: 棋譜解析結果ウィンドウのサイズを取得
+// 棋譜解析結果ウィンドウのサイズを取得
 QSize kifuAnalysisResultsWindowSize()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -308,7 +312,7 @@ QSize kifuAnalysisResultsWindowSize()
     return s.value("KifuAnalysis/resultsWindowSize", QSize(1100, 600)).toSize();
 }
 
-// ★ 追加: 棋譜解析結果ウィンドウのサイズを保存
+// 棋譜解析結果ウィンドウのサイズを保存
 void setKifuAnalysisResultsWindowSize(const QSize& size)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -316,7 +320,7 @@ void setKifuAnalysisResultsWindowSize(const QSize& size)
     s.setValue("KifuAnalysis/resultsWindowSize", size);
 }
 
-// ★ 追加: 棋譜解析ダイアログの1手あたりの思考時間（秒）を取得
+// 棋譜解析ダイアログの1手あたりの思考時間（秒）を取得
 int kifuAnalysisByoyomiSec()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -324,7 +328,7 @@ int kifuAnalysisByoyomiSec()
     return s.value("KifuAnalysis/byoyomiSec", 3).toInt();
 }
 
-// ★ 追加: 棋譜解析ダイアログの1手あたりの思考時間（秒）を保存
+// 棋譜解析ダイアログの1手あたりの思考時間（秒）を保存
 void setKifuAnalysisByoyomiSec(int sec)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -332,7 +336,7 @@ void setKifuAnalysisByoyomiSec(int sec)
     s.setValue("KifuAnalysis/byoyomiSec", sec);
 }
 
-// ★ 追加: 棋譜解析ダイアログの最後に選択したエンジン番号を取得
+// 棋譜解析ダイアログの最後に選択したエンジン番号を取得
 int kifuAnalysisEngineIndex()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -340,7 +344,7 @@ int kifuAnalysisEngineIndex()
     return s.value("KifuAnalysis/engineIndex", 0).toInt();
 }
 
-// ★ 追加: 棋譜解析ダイアログの最後に選択したエンジン番号を保存
+// 棋譜解析ダイアログの最後に選択したエンジン番号を保存
 void setKifuAnalysisEngineIndex(int index)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -348,7 +352,7 @@ void setKifuAnalysisEngineIndex(int index)
     s.setValue("KifuAnalysis/engineIndex", index);
 }
 
-// ★ 追加: 棋譜解析ダイアログの解析範囲（全局面解析かどうか）を取得
+// 棋譜解析ダイアログの解析範囲（全局面解析かどうか）を取得
 bool kifuAnalysisFullRange()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -356,7 +360,7 @@ bool kifuAnalysisFullRange()
     return s.value("KifuAnalysis/fullRange", true).toBool();
 }
 
-// ★ 追加: 棋譜解析ダイアログの解析範囲（全局面解析かどうか）を保存
+// 棋譜解析ダイアログの解析範囲（全局面解析かどうか）を保存
 void setKifuAnalysisFullRange(bool fullRange)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -364,7 +368,7 @@ void setKifuAnalysisFullRange(bool fullRange)
     s.setValue("KifuAnalysis/fullRange", fullRange);
 }
 
-// ★ 追加: 棋譜解析ダイアログの解析範囲（開始手数）を取得
+// 棋譜解析ダイアログの解析範囲（開始手数）を取得
 int kifuAnalysisStartPly()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -372,7 +376,7 @@ int kifuAnalysisStartPly()
     return s.value("KifuAnalysis/startPly", 0).toInt();
 }
 
-// ★ 追加: 棋譜解析ダイアログの解析範囲（開始手数）を保存
+// 棋譜解析ダイアログの解析範囲（開始手数）を保存
 void setKifuAnalysisStartPly(int ply)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -380,7 +384,7 @@ void setKifuAnalysisStartPly(int ply)
     s.setValue("KifuAnalysis/startPly", ply);
 }
 
-// ★ 追加: 棋譜解析ダイアログの解析範囲（終了手数）を取得
+// 棋譜解析ダイアログの解析範囲（終了手数）を取得
 int kifuAnalysisEndPly()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -388,7 +392,7 @@ int kifuAnalysisEndPly()
     return s.value("KifuAnalysis/endPly", 0).toInt();
 }
 
-// ★ 追加: 棋譜解析ダイアログの解析範囲（終了手数）を保存
+// 棋譜解析ダイアログの解析範囲（終了手数）を保存
 void setKifuAnalysisEndPly(int ply)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -396,7 +400,7 @@ void setKifuAnalysisEndPly(int ply)
     s.setValue("KifuAnalysis/endPly", ply);
 }
 
-// ★ 追加: 定跡ウィンドウのフォントサイズを取得
+// 定跡ウィンドウのフォントサイズを取得
 int josekiWindowFontSize()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -404,7 +408,7 @@ int josekiWindowFontSize()
     return s.value("JosekiWindow/fontSize", 10).toInt();
 }
 
-// ★ 追加: 定跡ウィンドウのフォントサイズを保存
+// 定跡ウィンドウのフォントサイズを保存
 void setJosekiWindowFontSize(int size)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -412,7 +416,7 @@ void setJosekiWindowFontSize(int size)
     s.setValue("JosekiWindow/fontSize", size);
 }
 
-// ★ 追加: 定跡ウィンドウのSFEN表示フォントサイズを取得
+// 定跡ウィンドウのSFEN表示フォントサイズを取得
 int josekiWindowSfenFontSize()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -420,7 +424,7 @@ int josekiWindowSfenFontSize()
     return s.value("JosekiWindow/sfenFontSize", 9).toInt();
 }
 
-// ★ 追加: 定跡ウィンドウのSFEN表示フォントサイズを保存
+// 定跡ウィンドウのSFEN表示フォントサイズを保存
 void setJosekiWindowSfenFontSize(int size)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -428,7 +432,7 @@ void setJosekiWindowSfenFontSize(int size)
     s.setValue("JosekiWindow/sfenFontSize", size);
 }
 
-// ★ 追加: 定跡ウィンドウの最後に開いた定跡ファイルパスを取得
+// 定跡ウィンドウの最後に開いた定跡ファイルパスを取得
 QString josekiWindowLastFilePath()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -436,7 +440,7 @@ QString josekiWindowLastFilePath()
     return s.value("JosekiWindow/lastFilePath", QString()).toString();
 }
 
-// ★ 追加: 定跡ウィンドウの最後に開いた定跡ファイルパスを保存
+// 定跡ウィンドウの最後に開いた定跡ファイルパスを保存
 void setJosekiWindowLastFilePath(const QString& path)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -444,7 +448,7 @@ void setJosekiWindowLastFilePath(const QString& path)
     s.setValue("JosekiWindow/lastFilePath", path);
 }
 
-// ★ 追加: 定跡ウィンドウのサイズを取得
+// 定跡ウィンドウのサイズを取得
 QSize josekiWindowSize()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -452,7 +456,7 @@ QSize josekiWindowSize()
     return s.value("JosekiWindow/size", QSize(800, 500)).toSize();
 }
 
-// ★ 追加: 定跡ウィンドウのサイズを保存
+// 定跡ウィンドウのサイズを保存
 void setJosekiWindowSize(const QSize& size)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -460,7 +464,7 @@ void setJosekiWindowSize(const QSize& size)
     s.setValue("JosekiWindow/size", size);
 }
 
-// ★ 追加: 定跡ファイル自動読込が有効かどうかを取得
+// 定跡ファイル自動読込が有効かどうかを取得
 bool josekiWindowAutoLoadEnabled()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -468,7 +472,7 @@ bool josekiWindowAutoLoadEnabled()
     return s.value("JosekiWindow/autoLoadEnabled", true).toBool();
 }
 
-// ★ 追加: 定跡ファイル自動読込が有効かどうかを保存
+// 定跡ファイル自動読込が有効かどうかを保存
 void setJosekiWindowAutoLoadEnabled(bool enabled)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -476,7 +480,7 @@ void setJosekiWindowAutoLoadEnabled(bool enabled)
     s.setValue("JosekiWindow/autoLoadEnabled", enabled);
 }
 
-// ★ 追加: 定跡ウィンドウの最近使ったファイルリストを取得
+// 定跡ウィンドウの最近使ったファイルリストを取得
 QStringList josekiWindowRecentFiles()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -484,7 +488,7 @@ QStringList josekiWindowRecentFiles()
     return s.value("JosekiWindow/recentFiles", QStringList()).toStringList();
 }
 
-// ★ 追加: 定跡ウィンドウの最近使ったファイルリストを保存
+// 定跡ウィンドウの最近使ったファイルリストを保存
 void setJosekiWindowRecentFiles(const QStringList& files)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -492,7 +496,7 @@ void setJosekiWindowRecentFiles(const QStringList& files)
     s.setValue("JosekiWindow/recentFiles", files);
 }
 
-// ★ 追加: 定跡手編集ダイアログのフォントサイズを取得
+// 定跡手編集ダイアログのフォントサイズを取得
 int josekiMoveDialogFontSize()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -500,7 +504,7 @@ int josekiMoveDialogFontSize()
     return s.value("JosekiWindow/moveDialogFontSize", 10).toInt();
 }
 
-// ★ 追加: 定跡手編集ダイアログのフォントサイズを保存
+// 定跡手編集ダイアログのフォントサイズを保存
 void setJosekiMoveDialogFontSize(int size)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -508,7 +512,7 @@ void setJosekiMoveDialogFontSize(int size)
     s.setValue("JosekiWindow/moveDialogFontSize", size);
 }
 
-// ★ 追加: CSA通信ログのフォントサイズを取得
+// CSA通信ログのフォントサイズを取得
 int csaLogFontSize()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -516,7 +520,7 @@ int csaLogFontSize()
     return s.value("FontSize/csaLog", 10).toInt();
 }
 
-// ★ 追加: CSA通信ログのフォントサイズを保存
+// CSA通信ログのフォントサイズを保存
 void setCsaLogFontSize(int size)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -524,7 +528,7 @@ void setCsaLogFontSize(int size)
     s.setValue("FontSize/csaLog", size);
 }
 
-// ★ 追加: CSA待機ダイアログのフォントサイズを取得
+// CSA待機ダイアログのフォントサイズを取得
 int csaWaitingDialogFontSize()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -532,7 +536,7 @@ int csaWaitingDialogFontSize()
     return s.value("FontSize/csaWaitingDialog", 10).toInt();
 }
 
-// ★ 追加: CSA待機ダイアログのフォントサイズを保存
+// CSA待機ダイアログのフォントサイズを保存
 void setCsaWaitingDialogFontSize(int size)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -540,7 +544,7 @@ void setCsaWaitingDialogFontSize(int size)
     s.setValue("FontSize/csaWaitingDialog", size);
 }
 
-// ★ 追加: CSA通信対局ダイアログのフォントサイズを取得
+// CSA通信対局ダイアログのフォントサイズを取得
 int csaGameDialogFontSize()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -548,7 +552,7 @@ int csaGameDialogFontSize()
     return s.value("FontSize/csaGameDialog", 10).toInt();
 }
 
-// ★ 追加: CSA通信対局ダイアログのフォントサイズを保存
+// CSA通信対局ダイアログのフォントサイズを保存
 void setCsaGameDialogFontSize(int size)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -556,7 +560,7 @@ void setCsaGameDialogFontSize(int size)
     s.setValue("FontSize/csaGameDialog", size);
 }
 
-// ★ 追加: 持将棋の点数ダイアログのフォントサイズを取得
+// 持将棋の点数ダイアログのフォントサイズを取得
 int jishogiScoreFontSize()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -564,7 +568,7 @@ int jishogiScoreFontSize()
     return s.value("FontSize/jishogiScore", 10).toInt();
 }
 
-// ★ 追加: 持将棋の点数ダイアログのフォントサイズを保存
+// 持将棋の点数ダイアログのフォントサイズを保存
 void setJishogiScoreFontSize(int size)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -572,7 +576,7 @@ void setJishogiScoreFontSize(int size)
     s.setValue("FontSize/jishogiScore", size);
 }
 
-// ★ 追加: 持将棋の点数ダイアログのウィンドウサイズを取得
+// 持将棋の点数ダイアログのウィンドウサイズを取得
 QSize jishogiScoreDialogSize()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -580,7 +584,7 @@ QSize jishogiScoreDialogSize()
     return s.value("JishogiScore/dialogSize", QSize(250, 280)).toSize();
 }
 
-// ★ 追加: 持将棋の点数ダイアログのウィンドウサイズを保存
+// 持将棋の点数ダイアログのウィンドウサイズを保存
 void setJishogiScoreDialogSize(const QSize& size)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -588,7 +592,7 @@ void setJishogiScoreDialogSize(const QSize& size)
     s.setValue("JishogiScore/dialogSize", size);
 }
 
-// ★ 追加: 言語コードを取得
+// 言語コードを取得
 QString language()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -596,7 +600,7 @@ QString language()
     return s.value("General/language", "system").toString();
 }
 
-// ★ 追加: 言語コードを保存
+// 言語コードを保存
 void setLanguage(const QString& lang)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -604,7 +608,7 @@ void setLanguage(const QString& lang)
     s.setValue("General/language", lang);
 }
 
-// ★ 追加: メニューウィンドウのお気に入りアクションリストを取得
+// メニューウィンドウのお気に入りアクションリストを取得
 QStringList menuWindowFavorites()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -612,7 +616,7 @@ QStringList menuWindowFavorites()
     return s.value("MenuWindow/favorites", QStringList()).toStringList();
 }
 
-// ★ 追加: メニューウィンドウのお気に入りアクションリストを保存
+// メニューウィンドウのお気に入りアクションリストを保存
 void setMenuWindowFavorites(const QStringList& favorites)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -620,7 +624,7 @@ void setMenuWindowFavorites(const QStringList& favorites)
     s.setValue("MenuWindow/favorites", favorites);
 }
 
-// ★ 追加: メニューウィンドウのサイズを取得
+// メニューウィンドウのサイズを取得
 QSize menuWindowSize()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -628,7 +632,7 @@ QSize menuWindowSize()
     return s.value("MenuWindow/size", QSize(500, 400)).toSize();
 }
 
-// ★ 追加: メニューウィンドウのサイズを保存
+// メニューウィンドウのサイズを保存
 void setMenuWindowSize(const QSize& size)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -636,7 +640,7 @@ void setMenuWindowSize(const QSize& size)
     s.setValue("MenuWindow/size", size);
 }
 
-// ★ 追加: メニューウィンドウのボタンサイズを取得
+// メニューウィンドウのボタンサイズを取得
 int menuWindowButtonSize()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -644,7 +648,7 @@ int menuWindowButtonSize()
     return s.value("MenuWindow/buttonSize", 72).toInt();
 }
 
-// ★ 追加: メニューウィンドウのボタンサイズを保存
+// メニューウィンドウのボタンサイズを保存
 void setMenuWindowButtonSize(int size)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -652,7 +656,7 @@ void setMenuWindowButtonSize(int size)
     s.setValue("MenuWindow/buttonSize", size);
 }
 
-// ★ 追加: メニューウィンドウのフォントサイズを取得
+// メニューウィンドウのフォントサイズを取得
 int menuWindowFontSize()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -660,7 +664,7 @@ int menuWindowFontSize()
     return s.value("MenuWindow/fontSize", 9).toInt();
 }
 
-// ★ 追加: メニューウィンドウのフォントサイズを保存
+// メニューウィンドウのフォントサイズを保存
 void setMenuWindowFontSize(int size)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -668,7 +672,7 @@ void setMenuWindowFontSize(int size)
     s.setValue("MenuWindow/fontSize", size);
 }
 
-// ★ 追加: ツールバーの表示状態を取得
+// ツールバーの表示状態を取得
 bool toolbarVisible()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -676,7 +680,7 @@ bool toolbarVisible()
     return s.value("UI/toolbarVisible", true).toBool();
 }
 
-// ★ 追加: ツールバーの表示状態を保存
+// ツールバーの表示状態を保存
 void setToolbarVisible(bool visible)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -684,7 +688,7 @@ void setToolbarVisible(bool visible)
     s.setValue("UI/toolbarVisible", visible);
 }
 
-// ★ 追加: エンジン設定ダイアログのフォントサイズを取得
+// エンジン設定ダイアログのフォントサイズを取得
 int engineSettingsFontSize()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -692,7 +696,7 @@ int engineSettingsFontSize()
     return s.value("FontSize/engineSettings", 12).toInt();
 }
 
-// ★ 追加: エンジン設定ダイアログのフォントサイズを保存
+// エンジン設定ダイアログのフォントサイズを保存
 void setEngineSettingsFontSize(int size)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -700,7 +704,7 @@ void setEngineSettingsFontSize(int size)
     s.setValue("FontSize/engineSettings", size);
 }
 
-// ★ 追加: エンジン設定ダイアログのウィンドウサイズを取得
+// エンジン設定ダイアログのウィンドウサイズを取得
 QSize engineSettingsDialogSize()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -708,7 +712,7 @@ QSize engineSettingsDialogSize()
     return s.value("EngineSettings/dialogSize", QSize(800, 800)).toSize();
 }
 
-// ★ 追加: エンジン設定ダイアログのウィンドウサイズを保存
+// エンジン設定ダイアログのウィンドウサイズを保存
 void setEngineSettingsDialogSize(const QSize& size)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -716,7 +720,7 @@ void setEngineSettingsDialogSize(const QSize& size)
     s.setValue("EngineSettings/dialogSize", size);
 }
 
-// ★ 追加: エンジン登録ダイアログのフォントサイズを取得
+// エンジン登録ダイアログのフォントサイズを取得
 int engineRegistrationFontSize()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -724,7 +728,7 @@ int engineRegistrationFontSize()
     return s.value("FontSize/engineRegistration", 12).toInt();
 }
 
-// ★ 追加: エンジン登録ダイアログのフォントサイズを保存
+// エンジン登録ダイアログのフォントサイズを保存
 void setEngineRegistrationFontSize(int size)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -732,7 +736,7 @@ void setEngineRegistrationFontSize(int size)
     s.setValue("FontSize/engineRegistration", size);
 }
 
-// ★ 追加: エンジン登録ダイアログのウィンドウサイズを取得
+// エンジン登録ダイアログのウィンドウサイズを取得
 QSize engineRegistrationDialogSize()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -740,7 +744,7 @@ QSize engineRegistrationDialogSize()
     return s.value("EngineRegistration/dialogSize", QSize(647, 421)).toSize();
 }
 
-// ★ 追加: エンジン登録ダイアログのウィンドウサイズを保存
+// エンジン登録ダイアログのウィンドウサイズを保存
 void setEngineRegistrationDialogSize(const QSize& size)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -748,7 +752,7 @@ void setEngineRegistrationDialogSize(const QSize& size)
     s.setValue("EngineRegistration/dialogSize", size);
 }
 
-// ★ 追加: 検討ダイアログのフォントサイズを取得
+// 検討ダイアログのフォントサイズを取得
 int considerationDialogFontSize()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -756,7 +760,7 @@ int considerationDialogFontSize()
     return s.value("FontSize/considerationDialog", 10).toInt();
 }
 
-// ★ 追加: 検討ダイアログのフォントサイズを保存
+// 検討ダイアログのフォントサイズを保存
 void setConsiderationDialogFontSize(int size)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -764,7 +768,7 @@ void setConsiderationDialogFontSize(int size)
     s.setValue("FontSize/considerationDialog", size);
 }
 
-// ★ 追加: 検討ダイアログの最後に選択したエンジン番号を取得
+// 検討ダイアログの最後に選択したエンジン番号を取得
 int considerationEngineIndex()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -772,7 +776,7 @@ int considerationEngineIndex()
     return s.value("Consideration/engineIndex", 0).toInt();
 }
 
-// ★ 追加: 検討ダイアログの最後に選択したエンジン番号を保存
+// 検討ダイアログの最後に選択したエンジン番号を保存
 void setConsiderationEngineIndex(int index)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -780,7 +784,7 @@ void setConsiderationEngineIndex(int index)
     s.setValue("Consideration/engineIndex", index);
 }
 
-// ★ 追加: 検討ダイアログの時間無制限フラグを取得
+// 検討ダイアログの時間無制限フラグを取得
 bool considerationUnlimitedTime()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -788,7 +792,7 @@ bool considerationUnlimitedTime()
     return s.value("Consideration/unlimitedTime", true).toBool();
 }
 
-// ★ 追加: 検討ダイアログの時間無制限フラグを保存
+// 検討ダイアログの時間無制限フラグを保存
 void setConsiderationUnlimitedTime(bool unlimited)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -796,7 +800,7 @@ void setConsiderationUnlimitedTime(bool unlimited)
     s.setValue("Consideration/unlimitedTime", unlimited);
 }
 
-// ★ 追加: 検討ダイアログの検討時間（秒）を取得
+// 検討ダイアログの検討時間（秒）を取得
 int considerationByoyomiSec()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -804,7 +808,7 @@ int considerationByoyomiSec()
     return s.value("Consideration/byoyomiSec", 0).toInt();
 }
 
-// ★ 追加: 検討ダイアログの検討時間（秒）を保存
+// 検討ダイアログの検討時間（秒）を保存
 void setConsiderationByoyomiSec(int sec)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -812,7 +816,7 @@ void setConsiderationByoyomiSec(int sec)
     s.setValue("Consideration/byoyomiSec", sec);
 }
 
-// ★ 追加: 検討の候補手の数を取得
+// 検討の候補手の数を取得
 int considerationMultiPV()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -820,7 +824,7 @@ int considerationMultiPV()
     return s.value("Consideration/multiPV", 1).toInt();
 }
 
-// ★ 追加: 検討の候補手の数を保存
+// 検討の候補手の数を保存
 void setConsiderationMultiPV(int multiPV)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -828,7 +832,7 @@ void setConsiderationMultiPV(int multiPV)
     s.setValue("Consideration/multiPV", multiPV);
 }
 
-// ★ 追加: 検討タブのフォントサイズを取得
+// 検討タブのフォントサイズを取得
 int considerationFontSize()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -836,7 +840,7 @@ int considerationFontSize()
     return s.value("ConsiderationTab/fontSize", 10).toInt();
 }
 
-// ★ 追加: 検討タブのフォントサイズを保存
+// 検討タブのフォントサイズを保存
 void setConsiderationFontSize(int size)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -844,7 +848,7 @@ void setConsiderationFontSize(int size)
     s.setValue("ConsiderationTab/fontSize", size);
 }
 
-// ★ 追加: 評価値グラフドックの状態を取得
+// 評価値グラフドックの状態を取得
 QByteArray evalChartDockState()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -852,7 +856,7 @@ QByteArray evalChartDockState()
     return s.value("EvalChartDock/state", QByteArray()).toByteArray();
 }
 
-// ★ 追加: 評価値グラフドックの状態を保存
+// 評価値グラフドックの状態を保存
 void setEvalChartDockState(const QByteArray& state)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -860,7 +864,7 @@ void setEvalChartDockState(const QByteArray& state)
     s.setValue("EvalChartDock/state", state);
 }
 
-// ★ 追加: 評価値グラフドックのフローティング状態を取得
+// 評価値グラフドックのフローティング状態を取得
 bool evalChartDockFloating()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -868,7 +872,7 @@ bool evalChartDockFloating()
     return s.value("EvalChartDock/floating", false).toBool();
 }
 
-// ★ 追加: 評価値グラフドックのフローティング状態を保存
+// 評価値グラフドックのフローティング状態を保存
 void setEvalChartDockFloating(bool floating)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -876,7 +880,7 @@ void setEvalChartDockFloating(bool floating)
     s.setValue("EvalChartDock/floating", floating);
 }
 
-// ★ 追加: 評価値グラフドックのジオメトリを取得
+// 評価値グラフドックのジオメトリを取得
 QByteArray evalChartDockGeometry()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -884,7 +888,7 @@ QByteArray evalChartDockGeometry()
     return s.value("EvalChartDock/geometry", QByteArray()).toByteArray();
 }
 
-// ★ 追加: 評価値グラフドックのジオメトリを保存
+// 評価値グラフドックのジオメトリを保存
 void setEvalChartDockGeometry(const QByteArray& geometry)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -892,7 +896,7 @@ void setEvalChartDockGeometry(const QByteArray& geometry)
     s.setValue("EvalChartDock/geometry", geometry);
 }
 
-// ★ 追加: 評価値グラフドックの表示状態を取得
+// 評価値グラフドックの表示状態を取得
 bool evalChartDockVisible()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -900,7 +904,7 @@ bool evalChartDockVisible()
     return s.value("EvalChartDock/visible", true).toBool();
 }
 
-// ★ 追加: 評価値グラフドックの表示状態を保存
+// 評価値グラフドックの表示状態を保存
 void setEvalChartDockVisible(bool visible)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -908,7 +912,7 @@ void setEvalChartDockVisible(bool visible)
     s.setValue("EvalChartDock/visible", visible);
 }
 
-// ★ 追加: 棋譜欄ドックのフローティング状態を取得
+// 棋譜欄ドックのフローティング状態を取得
 bool recordPaneDockFloating()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -916,7 +920,7 @@ bool recordPaneDockFloating()
     return s.value("RecordPaneDock/floating", false).toBool();
 }
 
-// ★ 追加: 棋譜欄ドックのフローティング状態を保存
+// 棋譜欄ドックのフローティング状態を保存
 void setRecordPaneDockFloating(bool floating)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -924,7 +928,7 @@ void setRecordPaneDockFloating(bool floating)
     s.setValue("RecordPaneDock/floating", floating);
 }
 
-// ★ 追加: 棋譜欄ドックのジオメトリを取得
+// 棋譜欄ドックのジオメトリを取得
 QByteArray recordPaneDockGeometry()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -932,7 +936,7 @@ QByteArray recordPaneDockGeometry()
     return s.value("RecordPaneDock/geometry", QByteArray()).toByteArray();
 }
 
-// ★ 追加: 棋譜欄ドックのジオメトリを保存
+// 棋譜欄ドックのジオメトリを保存
 void setRecordPaneDockGeometry(const QByteArray& geometry)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -940,7 +944,7 @@ void setRecordPaneDockGeometry(const QByteArray& geometry)
     s.setValue("RecordPaneDock/geometry", geometry);
 }
 
-// ★ 追加: 棋譜欄ドックの表示状態を取得
+// 棋譜欄ドックの表示状態を取得
 bool recordPaneDockVisible()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -948,7 +952,7 @@ bool recordPaneDockVisible()
     return s.value("RecordPaneDock/visible", true).toBool();
 }
 
-// ★ 追加: 棋譜欄ドックの表示状態を保存
+// 棋譜欄ドックの表示状態を保存
 void setRecordPaneDockVisible(bool visible)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -956,7 +960,7 @@ void setRecordPaneDockVisible(bool visible)
     s.setValue("RecordPaneDock/visible", visible);
 }
 
-// ★ 追加: 解析タブドックのフローティング状態を取得
+// 解析タブドックのフローティング状態を取得
 bool analysisTabDockFloating()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -964,7 +968,7 @@ bool analysisTabDockFloating()
     return s.value("AnalysisTabDock/floating", false).toBool();
 }
 
-// ★ 追加: 解析タブドックのフローティング状態を保存
+// 解析タブドックのフローティング状態を保存
 void setAnalysisTabDockFloating(bool floating)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -972,7 +976,7 @@ void setAnalysisTabDockFloating(bool floating)
     s.setValue("AnalysisTabDock/floating", floating);
 }
 
-// ★ 追加: 解析タブドックのジオメトリを取得
+// 解析タブドックのジオメトリを取得
 QByteArray analysisTabDockGeometry()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -980,7 +984,7 @@ QByteArray analysisTabDockGeometry()
     return s.value("AnalysisTabDock/geometry", QByteArray()).toByteArray();
 }
 
-// ★ 追加: 解析タブドックのジオメトリを保存
+// 解析タブドックのジオメトリを保存
 void setAnalysisTabDockGeometry(const QByteArray& geometry)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -988,7 +992,7 @@ void setAnalysisTabDockGeometry(const QByteArray& geometry)
     s.setValue("AnalysisTabDock/geometry", geometry);
 }
 
-// ★ 追加: 解析タブドックの表示状態を取得
+// 解析タブドックの表示状態を取得
 bool analysisTabDockVisible()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -996,7 +1000,7 @@ bool analysisTabDockVisible()
     return s.value("AnalysisTabDock/visible", true).toBool();
 }
 
-// ★ 追加: 解析タブドックの表示状態を保存
+// 解析タブドックの表示状態を保存
 void setAnalysisTabDockVisible(bool visible)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -1004,7 +1008,7 @@ void setAnalysisTabDockVisible(bool visible)
     s.setValue("AnalysisTabDock/visible", visible);
 }
 
-// ★ 追加: 将棋盤ドックのフローティング状態を取得
+// 将棋盤ドックのフローティング状態を取得
 bool boardDockFloating()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -1012,7 +1016,7 @@ bool boardDockFloating()
     return s.value("BoardDock/floating", false).toBool();
 }
 
-// ★ 追加: 将棋盤ドックのフローティング状態を保存
+// 将棋盤ドックのフローティング状態を保存
 void setBoardDockFloating(bool floating)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -1020,7 +1024,7 @@ void setBoardDockFloating(bool floating)
     s.setValue("BoardDock/floating", floating);
 }
 
-// ★ 追加: 将棋盤ドックのジオメトリを取得
+// 将棋盤ドックのジオメトリを取得
 QByteArray boardDockGeometry()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -1028,7 +1032,7 @@ QByteArray boardDockGeometry()
     return s.value("BoardDock/geometry", QByteArray()).toByteArray();
 }
 
-// ★ 追加: 将棋盤ドックのジオメトリを保存
+// 将棋盤ドックのジオメトリを保存
 void setBoardDockGeometry(const QByteArray& geometry)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -1036,7 +1040,7 @@ void setBoardDockGeometry(const QByteArray& geometry)
     s.setValue("BoardDock/geometry", geometry);
 }
 
-// ★ 追加: 将棋盤ドックの表示状態を取得
+// 将棋盤ドックの表示状態を取得
 bool boardDockVisible()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -1044,7 +1048,7 @@ bool boardDockVisible()
     return s.value("BoardDock/visible", true).toBool();
 }
 
-// ★ 追加: 将棋盤ドックの表示状態を保存
+// 将棋盤ドックの表示状態を保存
 void setBoardDockVisible(bool visible)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -1052,7 +1056,7 @@ void setBoardDockVisible(bool visible)
     s.setValue("BoardDock/visible", visible);
 }
 
-// ★ 追加: メニューウィンドウドックのフローティング状態を取得
+// メニューウィンドウドックのフローティング状態を取得
 bool menuWindowDockFloating()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -1060,7 +1064,7 @@ bool menuWindowDockFloating()
     return s.value("MenuWindowDock/floating", false).toBool();
 }
 
-// ★ 追加: メニューウィンドウドックのフローティング状態を保存
+// メニューウィンドウドックのフローティング状態を保存
 void setMenuWindowDockFloating(bool floating)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -1068,7 +1072,7 @@ void setMenuWindowDockFloating(bool floating)
     s.setValue("MenuWindowDock/floating", floating);
 }
 
-// ★ 追加: メニューウィンドウドックのジオメトリを取得
+// メニューウィンドウドックのジオメトリを取得
 QByteArray menuWindowDockGeometry()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -1076,7 +1080,7 @@ QByteArray menuWindowDockGeometry()
     return s.value("MenuWindowDock/geometry", QByteArray()).toByteArray();
 }
 
-// ★ 追加: メニューウィンドウドックのジオメトリを保存
+// メニューウィンドウドックのジオメトリを保存
 void setMenuWindowDockGeometry(const QByteArray& geometry)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -1084,7 +1088,7 @@ void setMenuWindowDockGeometry(const QByteArray& geometry)
     s.setValue("MenuWindowDock/geometry", geometry);
 }
 
-// ★ 追加: メニューウィンドウドックの表示状態を取得
+// メニューウィンドウドックの表示状態を取得
 bool menuWindowDockVisible()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -1092,7 +1096,7 @@ bool menuWindowDockVisible()
     return s.value("MenuWindowDock/visible", false).toBool();  // デフォルトは非表示
 }
 
-// ★ 追加: メニューウィンドウドックの表示状態を保存
+// メニューウィンドウドックの表示状態を保存
 void setMenuWindowDockVisible(bool visible)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -1100,7 +1104,7 @@ void setMenuWindowDockVisible(bool visible)
     s.setValue("MenuWindowDock/visible", visible);
 }
 
-// ★ 追加: 定跡ウィンドウドックのフローティング状態を取得
+// 定跡ウィンドウドックのフローティング状態を取得
 bool josekiWindowDockFloating()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -1108,7 +1112,7 @@ bool josekiWindowDockFloating()
     return s.value("JosekiWindowDock/floating", false).toBool();
 }
 
-// ★ 追加: 定跡ウィンドウドックのフローティング状態を保存
+// 定跡ウィンドウドックのフローティング状態を保存
 void setJosekiWindowDockFloating(bool floating)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -1116,7 +1120,7 @@ void setJosekiWindowDockFloating(bool floating)
     s.setValue("JosekiWindowDock/floating", floating);
 }
 
-// ★ 追加: 定跡ウィンドウドックのジオメトリを取得
+// 定跡ウィンドウドックのジオメトリを取得
 QByteArray josekiWindowDockGeometry()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -1124,7 +1128,7 @@ QByteArray josekiWindowDockGeometry()
     return s.value("JosekiWindowDock/geometry", QByteArray()).toByteArray();
 }
 
-// ★ 追加: 定跡ウィンドウドックのジオメトリを保存
+// 定跡ウィンドウドックのジオメトリを保存
 void setJosekiWindowDockGeometry(const QByteArray& geometry)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -1132,7 +1136,7 @@ void setJosekiWindowDockGeometry(const QByteArray& geometry)
     s.setValue("JosekiWindowDock/geometry", geometry);
 }
 
-// ★ 追加: 定跡ウィンドウドックの表示状態を取得
+// 定跡ウィンドウドックの表示状態を取得
 bool josekiWindowDockVisible()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -1140,7 +1144,7 @@ bool josekiWindowDockVisible()
     return s.value("JosekiWindowDock/visible", false).toBool();  // デフォルトは非表示
 }
 
-// ★ 追加: 定跡ウィンドウドックの表示状態を保存
+// 定跡ウィンドウドックの表示状態を保存
 void setJosekiWindowDockVisible(bool visible)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -1148,7 +1152,7 @@ void setJosekiWindowDockVisible(bool visible)
     s.setValue("JosekiWindowDock/visible", visible);
 }
 
-// ★ 追加: 保存されているカスタムドックレイアウト名のリストを取得
+// 保存されているカスタムドックレイアウト名のリストを取得
 QStringList savedDockLayoutNames()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -1159,7 +1163,7 @@ QStringList savedDockLayoutNames()
     return names;
 }
 
-// ★ 追加: 指定した名前でドックレイアウトを保存
+// 指定した名前でドックレイアウトを保存
 void saveDockLayout(const QString& name, const QByteArray& state)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -1167,7 +1171,7 @@ void saveDockLayout(const QString& name, const QByteArray& state)
     s.setValue("CustomDockLayouts/" + name, state);
 }
 
-// ★ 追加: 指定した名前のドックレイアウトを取得
+// 指定した名前のドックレイアウトを取得
 QByteArray loadDockLayout(const QString& name)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -1175,7 +1179,7 @@ QByteArray loadDockLayout(const QString& name)
     return s.value("CustomDockLayouts/" + name, QByteArray()).toByteArray();
 }
 
-// ★ 追加: 指定した名前のドックレイアウトを削除
+// 指定した名前のドックレイアウトを削除
 void deleteDockLayout(const QString& name)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -1183,7 +1187,7 @@ void deleteDockLayout(const QString& name)
     s.remove("CustomDockLayouts/" + name);
 }
 
-// ★ 追加: 起動時に使用するレイアウト名を取得
+// 起動時に使用するレイアウト名を取得
 QString startupDockLayoutName()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -1191,7 +1195,7 @@ QString startupDockLayoutName()
     return s.value("DockLayout/startupLayoutName", QString()).toString();
 }
 
-// ★ 追加: 起動時に使用するレイアウト名を保存
+// 起動時に使用するレイアウト名を保存
 void setStartupDockLayoutName(const QString& name)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -1199,7 +1203,7 @@ void setStartupDockLayoutName(const QString& name)
     s.setValue("DockLayout/startupLayoutName", name);
 }
 
-// ★ 追加: 棋譜解析結果ドックのフローティング状態を取得
+// 棋譜解析結果ドックのフローティング状態を取得
 bool kifuAnalysisResultsDockFloating()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -1207,7 +1211,7 @@ bool kifuAnalysisResultsDockFloating()
     return s.value("KifuAnalysisResultsDock/floating", false).toBool();
 }
 
-// ★ 追加: 棋譜解析結果ドックのフローティング状態を保存
+// 棋譜解析結果ドックのフローティング状態を保存
 void setKifuAnalysisResultsDockFloating(bool floating)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -1215,7 +1219,7 @@ void setKifuAnalysisResultsDockFloating(bool floating)
     s.setValue("KifuAnalysisResultsDock/floating", floating);
 }
 
-// ★ 追加: 棋譜解析結果ドックのジオメトリを取得
+// 棋譜解析結果ドックのジオメトリを取得
 QByteArray kifuAnalysisResultsDockGeometry()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -1223,7 +1227,7 @@ QByteArray kifuAnalysisResultsDockGeometry()
     return s.value("KifuAnalysisResultsDock/geometry", QByteArray()).toByteArray();
 }
 
-// ★ 追加: 棋譜解析結果ドックのジオメトリを保存
+// 棋譜解析結果ドックのジオメトリを保存
 void setKifuAnalysisResultsDockGeometry(const QByteArray& geometry)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -1231,7 +1235,7 @@ void setKifuAnalysisResultsDockGeometry(const QByteArray& geometry)
     s.setValue("KifuAnalysisResultsDock/geometry", geometry);
 }
 
-// ★ 追加: 棋譜解析結果ドックの表示状態を取得
+// 棋譜解析結果ドックの表示状態を取得
 bool kifuAnalysisResultsDockVisible()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -1239,7 +1243,7 @@ bool kifuAnalysisResultsDockVisible()
     return s.value("KifuAnalysisResultsDock/visible", false).toBool();  // デフォルトは非表示
 }
 
-// ★ 追加: 棋譜解析結果ドックの表示状態を保存
+// 棋譜解析結果ドックの表示状態を保存
 void setKifuAnalysisResultsDockVisible(bool visible)
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -1247,7 +1251,7 @@ void setKifuAnalysisResultsDockVisible(bool visible)
     s.setValue("KifuAnalysisResultsDock/visible", visible);
 }
 
-// ★ 追加: 全ドックの固定設定を取得
+// 全ドックの固定設定を取得
 bool docksLocked()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -1255,7 +1259,7 @@ bool docksLocked()
     return s.value("Dock/docksLocked", false).toBool();  // デフォルトは非固定
 }
 
-// ★ 追加: 全ドックの固定設定を保存
+// 全ドックの固定設定を保存
 void setDocksLocked(bool locked)
 {
     QDir::setCurrent(QApplication::applicationDirPath());

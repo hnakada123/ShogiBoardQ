@@ -1,6 +1,11 @@
 #ifndef THINKINGINFOPRESENTER_H
 #define THINKINGINFOPRESENTER_H
 
+/// @file thinkinginfopresenter.h
+/// @brief 思考情報GUI表示Presenterクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QObject>
 #include <QLocale>
 #include <QStringList>
@@ -24,6 +29,8 @@ class ShogiGameController;
  * - View層（モデル）への直接依存を排除
  * - 全ての更新をシグナル経由で行う
  * - 疎結合な設計によりテスタビリティを向上
+ *
+ * @todo remove コメントスタイルガイド適用済み
  */
 class ThinkingInfoPresenter : public QObject
 {
@@ -33,12 +40,12 @@ public:
     explicit ThinkingInfoPresenter(QObject* parent = nullptr);
     ~ThinkingInfoPresenter() override = default;
 
-    // === 依存関係設定 ===
+    // --- 依存関係設定 ---
     
     /// ゲームコントローラを設定
     void setGameController(ShogiGameController* controller);
 
-    // === 状態設定 ===
+    // --- 状態設定 ---
     
     /// 棋譜解析モードを設定
     void setAnalysisMode(bool mode);
@@ -58,7 +65,7 @@ public:
     /// 思考開始時の局面SFENを取得
     QString baseSfen() const;
 
-    // === info処理 ===
+    // --- info処理 ---
     
     /// info行を処理してシグナルを発行
     void processInfoLine(const QString& line);
@@ -69,7 +76,7 @@ public:
     /// バッファリングされたinfo行をフラッシュ
     void flushInfoBuffer();
 
-    // === 通信ログ ===
+    // --- 通信ログ ---
     
     /// 送信コマンドをログに通知
     void logSentCommand(const QString& prefix, const QString& command);
@@ -80,7 +87,7 @@ public:
     /// 標準エラーデータをログに通知
     void logStderrData(const QString& prefix, const QString& data);
 
-    // === 評価値取得 ===
+    // --- 評価値取得 ---
     
     /// 最後の評価値を取得
     int lastScoreCp() const { return m_lastScoreCp; }
@@ -96,9 +103,9 @@ public slots:
     void onInfoReceived(const QString& line);
 
 signals:
-    // === 思考情報関連シグナル ===
+    // --- 思考情報関連シグナル ---
     
-    /// 思考情報更新シグナル（思考タブへの追加用）
+    /// 思考情報更新シグナル（→ Usi::onThinkingInfoUpdated）
     /// pvKanjiStr: 漢字表記の読み筋
     /// usiPv: USI形式の読み筋（スペース区切り）
     /// baseSfen: 思考開始時の局面SFEN
@@ -109,34 +116,34 @@ signals:
                              const QString& pvKanjiStr, const QString& usiPv,
                              const QString& baseSfen, int multipv, int scoreCp);
     
-    /// 思考情報クリアリクエストシグナル
+    /// 思考情報クリアリクエストシグナル（→ Usi::onClearThinkingInfoRequested）
     void clearThinkingInfoRequested();
     
-    // === 評価値関連シグナル ===
+    // --- 評価値関連シグナル ---
     
-    /// 評価値更新シグナル
+    /// 評価値更新シグナル（未接続）
     void scoreUpdated(int scoreCp, const QString& scoreStr);
     
-    // === エンジン情報関連シグナル ===
+    // --- エンジン情報関連シグナル ---
     
-    /// 探索手更新シグナル
+    /// 探索手更新シグナル（→ Usi::onSearchedMoveUpdated）
     void searchedMoveUpdated(const QString& move);
     
-    /// 探索深さ更新シグナル
+    /// 探索深さ更新シグナル（→ Usi::onSearchDepthUpdated）
     void searchDepthUpdated(const QString& depth);
     
-    /// ノード数更新シグナル
+    /// ノード数更新シグナル（→ Usi::onNodeCountUpdated）
     void nodeCountUpdated(const QString& nodes);
     
-    /// NPS更新シグナル
+    /// NPS更新シグナル（→ Usi::onNpsUpdated）
     void npsUpdated(const QString& nps);
     
-    /// ハッシュ使用率更新シグナル
+    /// ハッシュ使用率更新シグナル（→ Usi::onHashUsageUpdated）
     void hashUsageUpdated(const QString& hashUsage);
     
-    // === 通信ログ関連シグナル ===
+    // --- 通信ログ関連シグナル ---
     
-    /// 通信ログ追加シグナル
+    /// 通信ログ追加シグナル（→ Usi::onCommLogAppended）
     void commLogAppended(const QString& log);
 
 private:
@@ -157,35 +164,27 @@ private:
     void updateEvaluationInfo(ShogiEngineInfoParser* info, int& scoreInt);
 
 private:
-    /// ゲームコントローラ参照
-    ShogiGameController* m_gameController = nullptr;
+    ShogiGameController* m_gameController = nullptr; ///< 非所有。ゲームコントローラ参照
 
-    /// 状態
-    bool m_analysisMode = false;
-    int m_previousFileTo = 0;
-    int m_previousRankTo = 0;
-    bool m_ponderEnabled = false;
-    
-    /// 思考開始時の局面SFEN
-    QString m_baseSfen;
-    
-    /// 思考開始時の手番（true=先手(Player1), false=後手(Player2)）
-    bool m_thinkingStartPlayerIsP1 = true;
-    
-    /// クローンした盤面データ
-    QVector<QChar> m_clonedBoardData;
+    bool m_analysisMode = false;       ///< 棋譜解析モードフラグ
+    int m_previousFileTo = 0;           ///< 前回の指し手の筋
+    int m_previousRankTo = 0;           ///< 前回の指し手の段
+    bool m_ponderEnabled = false;       ///< ponderモード有効フラグ
 
-    /// 評価値
-    int m_lastScoreCp = 0;
-    QString m_scoreStr;
-    QString m_pvKanjiStr;
+    QString m_baseSfen;                 ///< 思考開始時の局面SFEN
 
-    /// ロケール（カンマ区切り表示用）
-    QLocale m_locale;
+    bool m_thinkingStartPlayerIsP1 = true; ///< 思考開始時の手番（true=先手, false=後手）
 
-    /// バッファリング
-    QStringList m_infoBuffer;
-    bool m_flushScheduled = false;
+    QVector<QChar> m_clonedBoardData;   ///< クローンした盤面データ
+
+    int m_lastScoreCp = 0;              ///< 最後の評価値（センチポーン）
+    QString m_scoreStr;                 ///< 評価値文字列
+    QString m_pvKanjiStr;               ///< 漢字PV文字列
+
+    QLocale m_locale;                   ///< ロケール（カンマ区切り表示用）
+
+    QStringList m_infoBuffer;           ///< info行バッファ
+    bool m_flushScheduled = false;      ///< フラッシュ予約済みフラグ
 };
 
 #endif // THINKINGINFOPRESENTER_H

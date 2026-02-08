@@ -1,11 +1,17 @@
 #ifndef SFENUTILS_H
 #define SFENUTILS_H
 
+/// @file sfenutils.h
+/// @brief SFEN文字列操作ユーティリティの定義
+/// @todo remove コメントスタイルガイド適用済み
+
 #include <QString>
 
+/// SFEN文字列の正規化・変換ユーティリティ
+/// @todo remove コメントスタイルガイド適用済み
 namespace SfenUtils {
 
-// "startpos" を完全SFENへ正規化。既に完全SFENならそのまま返す。
+/// "startpos" を標準初期配置のSFEN文字列に展開する（既にSFENならそのまま返す）
 inline QString normalizeStart(const QString& startPositionStr)
 {
     if (startPositionStr == QStringLiteral("startpos")) {

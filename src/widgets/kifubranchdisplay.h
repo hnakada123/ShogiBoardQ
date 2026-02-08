@@ -1,6 +1,11 @@
 #ifndef KIFUBRANCHDISPLAY_H
 #define KIFUBRANCHDISPLAY_H
 
+/// @file kifubranchdisplay.h
+/// @brief 棋譜分岐候補表示ウィジェットクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QObject>
 #include <QString>
 

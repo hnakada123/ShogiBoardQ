@@ -1,6 +1,9 @@
 #ifndef USI_H
 #define USI_H
 
+/// @file usi.h
+/// @brief USIプロトコル通信ファサードクラスの定義
+
 #include <QObject>
 #include <QPoint>
 #include <QString>
@@ -32,13 +35,15 @@
  * - 単一責任原則（SRP）に基づくクラス分割
  * - シグナル/スロットによる疎結合な設計
  * - 既存コードとの後方互換性を維持
+ *
+ * @todo remove コメントスタイルガイド適用済み
  */
 class Usi : public QObject
 {
     Q_OBJECT
 
 public:
-    // === 定数定義（後方互換性のため維持）===
+    // --- 定数定義（後方互換性のため維持）---
     
     static constexpr int SENTE_HAND_FILE = 10;
     static constexpr int GOTE_HAND_FILE = 11;
@@ -47,18 +52,23 @@ public:
 
     /// 詰み探索結果
     struct TsumeResult {
-        enum Kind { Solved, NoMate, NotImplemented, Unknown } kind = Unknown;
-        QStringList pvMoves;
+        enum Kind {
+            Solved,          ///< 詰みあり
+            NoMate,          ///< 詰みなし
+            NotImplemented,  ///< エンジンが詰探索未対応
+            Unknown          ///< 不明（初期値）
+        } kind = Unknown;
+        QStringList pvMoves; ///< 詰み手順（USI形式）
     };
 
-    // === コンストラクタ・デストラクタ ===
+    // --- 構築・破棄 ---
     
     explicit Usi(UsiCommLogModel* model, ShogiEngineThinkingModel* modelThinking,
                  ShogiGameController* algorithm, PlayMode& playMode, 
                  QObject* parent = nullptr);
     ~Usi() override;
 
-    // === 公開インターフェース（後方互換性のため維持）===
+    // --- 公開インターフェース（後方互換性のため維持）---
     
     QString scoreStr() const;
     bool isResignMove() const;
@@ -119,11 +129,11 @@ public:
 
     void setSquelchResignLogging(bool on);
 
-    // ★ 追加: 検討タブ用モデルを設定
-    // このモデルはMultiPVモード（updateByMultipv）で更新される
+    /// 検討タブ用モデルを設定する
+    /// このモデルはMultiPVモード（updateByMultipv）で更新される
     void setConsiderationModel(ShogiEngineThinkingModel* model, int maxMultiPV = 1);
 
-    // ★ 追加: 検討中にMultiPVを変更する
+    /// 検討中にMultiPVを変更する
     void updateConsiderationMultiPV(int multiPV);
 
     void resetResignNotified();
@@ -215,52 +225,52 @@ public:
 #endif
 
 signals:
-    void stopOrPonderhitCommandSent();
-    void bestMoveResignReceived();
-    void bestMoveWinReceived();      ///< bestmove win（入玉宣言勝ち）を受信
-    void sigTsumeCheckmate(const Usi::TsumeResult& result);
-    void checkmateSolved(const QStringList& pvMoves);
-    void checkmateNoMate();
-    void checkmateNotImplemented();
-    void checkmateUnknown();
-    void errorOccurred(const QString& message);
-    void usiOkReceived();
-    void readyOkReceived();
-    void bestMoveReceived();
-    void infoLineReceived(const QString& line);  // info行受信通知
+    void stopOrPonderhitCommandSent();                ///< stop/ponderhit送信完了（ProtocolHandler → 外部）
+    void bestMoveResignReceived();                    ///< bestmove resign受信（ProtocolHandler → 外部）
+    void bestMoveWinReceived();                       ///< bestmove win（入玉宣言勝ち）受信（ProtocolHandler → 外部）
+    void sigTsumeCheckmate(const Usi::TsumeResult& result); ///< 詰探索結果通知
+    void checkmateSolved(const QStringList& pvMoves); ///< 詰みあり（ProtocolHandler → TsumeSearchFlowController）
+    void checkmateNoMate();                           ///< 詰みなし（ProtocolHandler → TsumeSearchFlowController）
+    void checkmateNotImplemented();                   ///< 詰探索未対応（ProtocolHandler → TsumeSearchFlowController）
+    void checkmateUnknown();                          ///< 詰探索結果不明（ProtocolHandler → TsumeSearchFlowController）
+    void errorOccurred(const QString& message);       ///< エンジンエラー発生（ProcessManager → 外部）
+    void usiOkReceived();                             ///< usiok受信完了（ProtocolHandler → 外部）
+    void readyOkReceived();                           ///< readyok受信完了（ProtocolHandler → 外部）
+    void bestMoveReceived();                          ///< bestmove受信（ProtocolHandler → 外部）
+    void infoLineReceived(const QString& line);       ///< info行受信通知（ProtocolHandler → 外部）
     void thinkingInfoUpdated(const QString& time, const QString& depth,
                              const QString& nodes, const QString& score,
                              const QString& pvKanjiStr, const QString& usiPv,
-                             const QString& baseSfen, int multipv, int scoreCp);
+                             const QString& baseSfen, int multipv, int scoreCp); ///< 思考情報更新（Presenter → 外部）
 
 private:
-    // === 内部コンポーネント ===
-    
-    std::unique_ptr<EngineProcessManager> m_processManager;
-    std::unique_ptr<UsiProtocolHandler> m_protocolHandler;
-    std::unique_ptr<ThinkingInfoPresenter> m_presenter;
+    // --- 内部コンポーネント ---
 
-    // === 外部参照（QPointerで生存を追跡）===
-    
-    QPointer<UsiCommLogModel> m_commLogModel;
-    QPointer<ShogiEngineThinkingModel> m_thinkingModel;
-    ShogiGameController* m_gameController = nullptr;
-    PlayMode& m_playMode;
+    std::unique_ptr<EngineProcessManager> m_processManager;  ///< エンジンプロセス管理（所有）
+    std::unique_ptr<UsiProtocolHandler> m_protocolHandler;    ///< USIプロトコル送受信（所有）
+    std::unique_ptr<ThinkingInfoPresenter> m_presenter;       ///< GUI表示更新（所有）
 
-    // === 状態 ===
+    // --- 外部参照（QPointerで生存を追跡）---
 
-    int m_previousFileTo = 0;
-    int m_previousRankTo = 0;
-    QString m_lastUsiMove;  // 開始局面に至った最後の指し手（USI形式）
-    QVector<QChar> m_clonedBoardData;
-    bool m_analysisMode = false;
-    bool m_gameoverSent = false;
-    QString m_pvKanjiStr;
-    QPointer<ShogiEngineThinkingModel> m_considerationModel;  // ★ 追加: 検討タブ用モデル
-    int m_considerationMaxMultiPV = 1;                        // ★ 追加: 検討タブの最大MultiPV値
-    QTimer* m_analysisStopTimer = nullptr;                    // ★ 追加: 検討停止タイマー
+    QPointer<UsiCommLogModel> m_commLogModel;        ///< USI通信ログモデルへの参照（非所有）
+    QPointer<ShogiEngineThinkingModel> m_thinkingModel; ///< 思考情報モデルへの参照（非所有）
+    ShogiGameController* m_gameController = nullptr;  ///< ゲームコントローラへの参照（非所有）
+    PlayMode& m_playMode;                             ///< 現在の対局モード
 
-    // === プライベートメソッド ===
+    // --- 状態 ---
+
+    int m_previousFileTo = 0;                        ///< 前回の指し手の移動先筋
+    int m_previousRankTo = 0;                        ///< 前回の指し手の移動先段
+    QString m_lastUsiMove;                           ///< 開始局面に至った最後の指し手（USI形式、読み筋ハイライト用）
+    QVector<QChar> m_clonedBoardData;                ///< 読み筋変換用にクローンした盤面データ
+    bool m_analysisMode = false;                     ///< 解析モード中かどうか
+    bool m_gameoverSent = false;                     ///< gameover送信済みフラグ（重複送信防止）
+    QString m_pvKanjiStr;                            ///< 読み筋の漢字表記
+    QPointer<ShogiEngineThinkingModel> m_considerationModel; ///< 検討タブ用モデルへの参照（非所有）
+    int m_considerationMaxMultiPV = 1;               ///< 検討タブの最大MultiPV値
+    QTimer* m_analysisStopTimer = nullptr;           ///< 検討停止タイマー（所有、動的生成）
+
+    // --- プライベートメソッド ---
     
     void setupConnections();
     void changeDirectoryToEnginePath(const QString& engineFile);
@@ -291,12 +301,13 @@ private:
                                               const QString& wtime, bool useByoyomi);
 
 private slots:
+    /// エンジンプロセスエラー時のクリーンアップ処理
     void onProcessError(QProcess::ProcessError error, const QString& message);
     void onCommandSent(const QString& command);
     void onDataReceived(const QString& line);
     void onStderrReceived(const QString& line);
-    
-    // === モデル更新スロット（シグナル経由で更新）===
+
+    // --- モデル更新スロット（Presenter → CommLogModel/ThinkingModel転送）---
     void onSearchedMoveUpdated(const QString& move);
     void onSearchDepthUpdated(const QString& depth);
     void onNodeCountUpdated(const QString& nodes);
@@ -304,6 +315,7 @@ private slots:
     void onHashUsageUpdated(const QString& hashUsage);
     void onCommLogAppended(const QString& log);
     void onClearThinkingInfoRequested();
+    /// 思考情報を思考タブ・検討タブ・外部へ中継する
     void onThinkingInfoUpdated(const QString& time, const QString& depth,
                                const QString& nodes, const QString& score,
                                const QString& pvKanjiStr, const QString& usiPv,

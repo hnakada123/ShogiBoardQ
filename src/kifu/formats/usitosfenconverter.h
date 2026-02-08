@@ -1,6 +1,11 @@
 #ifndef USITOSFENCONVERTER_H
 #define USITOSFENCONVERTER_H
 
+/// @file usitosfenconverter.h
+/// @brief USI形式棋譜コンバータクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QString>
 #include <QStringList>
 #include <QList>

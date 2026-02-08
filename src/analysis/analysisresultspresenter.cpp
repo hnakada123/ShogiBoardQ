@@ -1,3 +1,7 @@
+/// @file analysisresultspresenter.cpp
+/// @brief 解析結果表示プレゼンタクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "analysisresultspresenter.h"
 #include <QDockWidget>
 #include <QTableView>
@@ -14,7 +18,8 @@
 #include "numeric_right_align_comma_delegate.h"
 #include "kifuanalysislistmodel.h"
 
-// 「表示」ボタン列用のデリゲート（選択時も色を維持）
+/// 「表示」ボタン列用のデリゲート
+/// 選択状態に関わらず青背景・白文字を維持する
 class BoardButtonDelegate : public QStyledItemDelegate
 {
 public:
@@ -37,6 +42,7 @@ public:
     }
 };
 
+/// @todo remove コメントスタイルガイド適用済み
 AnalysisResultsPresenter::AnalysisResultsPresenter(QObject* parent)
     : QObject(parent)
     , m_reflowTimer(new QTimer(this))
@@ -46,19 +52,19 @@ AnalysisResultsPresenter::AnalysisResultsPresenter(QObject* parent)
     connect(m_reflowTimer, &QTimer::timeout, this, &AnalysisResultsPresenter::reflowNow);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void AnalysisResultsPresenter::setDockWidget(QDockWidget* dock)
 {
     m_dock = dock;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 QWidget* AnalysisResultsPresenter::containerWidget()
 {
-    // コンテナウィジェットが未作成なら作成
     if (!m_container) {
         m_container = new QWidget;
     }
 
-    // UIが未構築なら構築（モデルなしで）
     if (!m_uiBuilt) {
         buildUi(nullptr);
         m_uiBuilt = true;
@@ -67,9 +73,9 @@ QWidget* AnalysisResultsPresenter::containerWidget()
     return m_container;
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void AnalysisResultsPresenter::showWithModel(KifuAnalysisListModel* model)
 {
-    // UIが未構築なら構築
     if (!m_uiBuilt) {
         buildUi(nullptr);
         m_uiBuilt = true;
@@ -99,19 +105,17 @@ void AnalysisResultsPresenter::showWithModel(KifuAnalysisListModel* model)
         }
     }
 
-    // ドックを表示
     if (m_dock) {
         m_dock->setVisible(true);
         m_dock->raise();
     }
 
-    // レイアウト調整
     m_reflowTimer->start();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void AnalysisResultsPresenter::buildUi(KifuAnalysisListModel* /*model*/)
 {
-    // コンテナウィジェットが未作成なら作成
     if (!m_container) {
         m_container = new QWidget;
     }
@@ -213,6 +217,7 @@ void AnalysisResultsPresenter::buildUi(KifuAnalysisListModel* /*model*/)
     restoreFontSize();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void AnalysisResultsPresenter::connectModelSignals(KifuAnalysisListModel* model)
 {
     if (!model) return;
@@ -222,6 +227,7 @@ void AnalysisResultsPresenter::connectModelSignals(KifuAnalysisListModel* model)
     connect(model, &QAbstractItemModel::layoutChanged,this, &AnalysisResultsPresenter::onLayoutChanged);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void AnalysisResultsPresenter::setupHeaderConfiguration()
 {
     if (!m_header) return;
@@ -239,6 +245,7 @@ void AnalysisResultsPresenter::setupHeaderConfiguration()
     m_header->setStretchLastSection(true);  // 最後の列を引き伸ばす
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void AnalysisResultsPresenter::reflowNow()
 {
     if (!m_view || !m_header) return;
@@ -261,8 +268,10 @@ void AnalysisResultsPresenter::reflowNow()
     m_header->setStretchLastSection(true);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void AnalysisResultsPresenter::onModelReset() { m_reflowTimer->start(); }
 
+/// @todo remove コメントスタイルガイド適用済み
 void AnalysisResultsPresenter::onRowsInserted(const QModelIndex&, int, int)
 {
     m_reflowTimer->start();
@@ -293,10 +302,14 @@ void AnalysisResultsPresenter::onRowsInserted(const QModelIndex&, int, int)
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void AnalysisResultsPresenter::onDataChanged(const QModelIndex&, const QModelIndex&, const QList<int>&) { m_reflowTimer->start(); }
+/// @todo remove コメントスタイルガイド適用済み
 void AnalysisResultsPresenter::onLayoutChanged() { m_reflowTimer->start(); }
+/// @todo remove コメントスタイルガイド適用済み
 void AnalysisResultsPresenter::onScrollRangeChanged(int, int) { m_reflowTimer->start(); }
 
+/// @todo remove コメントスタイルガイド適用済み
 void AnalysisResultsPresenter::setStopButtonEnabled(bool enabled)
 {
     if (m_stopButton) {
@@ -318,6 +331,7 @@ void AnalysisResultsPresenter::setStopButtonEnabled(bool enabled)
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void AnalysisResultsPresenter::onTableClicked(const QModelIndex& index)
 {
     if (!index.isValid()) return;
@@ -336,6 +350,7 @@ void AnalysisResultsPresenter::onTableClicked(const QModelIndex& index)
     Q_EMIT rowDoubleClicked(index.row());
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void AnalysisResultsPresenter::onTableSelectionChanged(const QModelIndex& current, const QModelIndex& /*previous*/)
 {
     if (!current.isValid()) return;
@@ -356,9 +371,9 @@ void AnalysisResultsPresenter::onTableSelectionChanged(const QModelIndex& curren
     Q_EMIT rowSelected(row);
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void AnalysisResultsPresenter::showAnalysisComplete(int totalMoves)
 {
-    // 中止ボタンを無効化
     setStopButtonEnabled(false);
 
     // 完了メッセージを表示（イベント処理完了後に遅延実行）
@@ -374,6 +389,7 @@ void AnalysisResultsPresenter::showAnalysisComplete(int totalMoves)
     });
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void AnalysisResultsPresenter::increaseFontSize()
 {
     if (!m_view) return;
@@ -405,6 +421,7 @@ void AnalysisResultsPresenter::increaseFontSize()
     m_reflowTimer->start();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void AnalysisResultsPresenter::decreaseFontSize()
 {
     if (!m_view) return;
@@ -436,6 +453,7 @@ void AnalysisResultsPresenter::decreaseFontSize()
     m_reflowTimer->start();
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void AnalysisResultsPresenter::restoreFontSize()
 {
     if (!m_view) return;
@@ -469,6 +487,7 @@ void AnalysisResultsPresenter::restoreFontSize()
     }
 }
 
+/// @todo remove コメントスタイルガイド適用済み
 void AnalysisResultsPresenter::saveWindowSize()
 {
     // ドックのサイズを保存

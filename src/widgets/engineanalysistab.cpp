@@ -1,3 +1,7 @@
+/// @file engineanalysistab.cpp
+/// @brief エンジン解析タブクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "engineanalysistab.h"
 
 #include <QTabWidget>
@@ -24,31 +28,31 @@
 #include <QPushButton>
 #include <QDesktopServices>
 #include <QUrl>
-#include <QLabel>       // ★ 追加
-#include <QMessageBox>  // ★ 追加
-#include <QTimer>       // ★ 追加: 列幅設定の遅延用
-#include <QLineEdit>    // ★ 追加: CSAコマンド入力用
-#include <QComboBox>    // ★ 追加: USIコマンド送信先選択用
-#include <QSpinBox>     // ★ 追加: 候補手の数用
-#include <QRadioButton> // ★ 追加: 思考時間設定用
-#include <QCheckBox>    // ★ 追加: 矢印表示チェックボックス用
-#include <QPalette>     // ★ 追加: 経過時間ラベル色変更用
-#include <QTextCursor>      // ★ 追加: ログ色付け用
-#include <QTextCharFormat>  // ★ 追加: ログ色付け用
+#include <QLabel>
+#include <QMessageBox>
+#include <QTimer>       // 列幅設定の遅延用
+#include <QLineEdit>    // CSAコマンド入力用
+#include <QComboBox>    // USIコマンド送信先選択用
+#include <QSpinBox>     // 候補手の数用
+#include <QRadioButton> // 思考時間設定用
+#include <QCheckBox>    // 矢印表示チェックボックス用
+#include <QPalette>     // 経過時間ラベル色変更用
+#include <QTextCursor>      // ログ色付け用
+#include <QTextCharFormat>  // ログ色付け用
 #include <QItemSelectionModel>
-#include <QSettings>        // ★ 追加: エンジンリスト読み込み用
-#include <QDir>             // ★ 追加: エンジンリスト読み込み用
+#include <QSettings>        // エンジンリスト読み込み用
+#include <QDir>             // エンジンリスト読み込み用
 #include <QSizePolicy>
-#include <QApplication>     // ★ 追加: エンジンリスト読み込み用
-#include "enginesettingsconstants.h"  // ★ 追加: エンジン設定定数
+#include <QApplication>     // エンジンリスト読み込み用
+#include "enginesettingsconstants.h"  // エンジン設定定数
 
-#include "settingsservice.h"  // ★ 追加: フォントサイズ保存用
-#include <QFontDatabase>      // ★ 追加: フォント検索用
-#include <QFontInfo>          // ★ 追加: フォントデバッグ用
-#include <QDebug>             // ★ 追加: デバッグ出力用
+#include "settingsservice.h"  // フォントサイズ保存用
+#include <QFontDatabase>      // フォント検索用
+#include <QFontInfo>          // フォントデバッグ用
+#include <QDebug>             // デバッグ出力用
 #include "numeric_right_align_comma_delegate.h"
 #include "engineinfowidget.h"
-#include "flowlayout.h"  // ★ 追加: 自動折り返しレイアウト
+#include "flowlayout.h"  // 自動折り返しレイアウト
 #include "shogienginethinkingmodel.h"
 #include "usicommlogmodel.h"
 
@@ -189,27 +193,27 @@ void EngineAnalysisTab::buildUi()
     v->setContentsMargins(4,4,4,4);
     v->setSpacing(4);
 
-    // ★ 変更: 最初のEngineInfoWidgetにフォントサイズボタンを表示
+    // 最初のEngineInfoWidgetにフォントサイズボタンを表示
     m_info1 = new EngineInfoWidget(page, true);  // showFontButtons=true
-    m_info1->setWidgetIndex(0);  // ★ 追加: インデックス設定
+    m_info1->setWidgetIndex(0);  // インデックス設定
     m_view1 = new QTableView(page);
     m_info2 = new EngineInfoWidget(page, false); // showFontButtons=false
-    m_info2->setWidgetIndex(1);  // ★ 追加: インデックス設定
+    m_info2->setWidgetIndex(1);  // インデックス設定
     m_view2 = new QTableView(page);
     
-    // ★ 追加: フォントサイズ変更シグナルを接続
+    // フォントサイズ変更シグナルを接続
     connect(m_info1, &EngineInfoWidget::fontSizeIncreaseRequested,
             this, &EngineAnalysisTab::onThinkingFontIncrease);
     connect(m_info1, &EngineInfoWidget::fontSizeDecreaseRequested,
             this, &EngineAnalysisTab::onThinkingFontDecrease);
     
-    // ★ 追加: 列幅変更シグナルを接続
+    // 列幅変更シグナルを接続
     connect(m_info1, &EngineInfoWidget::columnWidthChanged,
             this, &EngineAnalysisTab::onEngineInfoColumnWidthChanged);
     connect(m_info2, &EngineInfoWidget::columnWidthChanged,
             this, &EngineAnalysisTab::onEngineInfoColumnWidthChanged);
     
-    // ★ 追加: 設定ファイルから列幅を読み込んで適用
+    // 設定ファイルから列幅を読み込んで適用
     QList<int> widths0 = SettingsService::engineInfoColumnWidths(0);
     if (!widths0.isEmpty() && widths0.size() == m_info1->columnCount()) {
         m_info1->setColumnWidths(widths0);
@@ -219,17 +223,17 @@ void EngineAnalysisTab::buildUi()
         m_info2->setColumnWidths(widths1);
     }
 
-    // ★ ヘッダの基本設定のみ（列幅はsetModels後に適用）
+    // ヘッダの基本設定のみ（列幅はsetModels後に適用）
     setupThinkingViewHeader(m_view1);
     setupThinkingViewHeader(m_view2);
     
-    // ★ 追加: 列幅変更シグナルを接続
+    // 列幅変更シグナルを接続
     connect(m_view1->horizontalHeader(), &QHeaderView::sectionResized,
             this, &EngineAnalysisTab::onView1SectionResized);
     connect(m_view2->horizontalHeader(), &QHeaderView::sectionResized,
             this, &EngineAnalysisTab::onView2SectionResized);
 
-    // ★ 追加: 読み筋テーブルのクリックシグナルを接続
+    // 読み筋テーブルのクリックシグナルを接続
     connect(m_view1, &QTableView::clicked,
             this, &EngineAnalysisTab::onView1Clicked);
     connect(m_view2, &QTableView::clicked,
@@ -345,7 +349,7 @@ void EngineAnalysisTab::buildUi()
     m_multiPVComboBox->setCurrentIndex(0);  // デフォルト1手
     m_multiPVComboBox->setToolTip(tr("評価値が大きい順に表示する候補手の数を指定します"));
 
-    // ★ 追加: 矢印表示チェックボックス
+    // 矢印表示チェックボックス
     m_showArrowsCheckBox = new QCheckBox(tr("矢印表示"), m_considerationToolbar);
     m_showArrowsCheckBox->setToolTip(tr("最善手の矢印を盤面に表示します"));
     m_showArrowsCheckBox->setChecked(true);  // デフォルトは表示
@@ -394,7 +398,7 @@ void EngineAnalysisTab::buildUi()
     // 検討タブのヘッダ設定
     setupThinkingViewHeader(m_considerationView);
 
-    // ★ 追加: 検討タブの読み筋テーブルのクリックシグナルを接続
+    // 検討タブの読み筋テーブルのクリックシグナルを接続
     connect(m_considerationView, &QTableView::clicked,
             this, &EngineAnalysisTab::onConsiderationViewClicked);
 
@@ -443,7 +447,7 @@ void EngineAnalysisTab::buildUi()
     m_considerationTabIndex = m_tab->addTab(considerationPage, tr("検討"));
 
     // --- USI通信ログ ---
-    // ★ 修正: ツールバー付きコンテナに変更
+    // ツールバー付きコンテナに変更
     m_usiLogContainer = new QWidget(m_tab);
     QVBoxLayout* usiLogLayout = new QVBoxLayout(m_usiLogContainer);
     usiLogLayout->setContentsMargins(4, 4, 4, 4);
@@ -453,7 +457,7 @@ void EngineAnalysisTab::buildUi()
     buildUsiLogToolbar();
     usiLogLayout->addWidget(m_usiLogToolbar);
 
-    // ★ 追加: コマンド入力バーを構築
+    // コマンド入力バーを構築
     buildUsiCommandBar();
     usiLogLayout->addWidget(m_usiCommandBar);
 
@@ -509,13 +513,13 @@ void EngineAnalysisTab::buildUi()
     m_comment->setPlaceholderText(tr("コメントを表示・編集"));
     commentLayout->addWidget(m_comment);
 
-    // ★ 追加: コメントのURLクリックを処理するためのイベントフィルター
+    // コメントのURLクリックを処理するためのイベントフィルター
     if (m_comment->viewport()) {
         m_commentViewport = m_comment->viewport();
         m_commentViewport->installEventFilter(this);
     }
 
-    // ★ 追加: コメント変更時の検知
+    // コメント変更時の検知
     connect(m_comment, &QTextEdit::textChanged,
             this, &EngineAnalysisTab::onCommentTextChanged);
 
@@ -524,8 +528,8 @@ void EngineAnalysisTab::buildUi()
     // --- 分岐ツリー ---
     m_branchTree = new QGraphicsView(m_tab);
     m_branchTree->setRenderHint(QPainter::Antialiasing, true);
-    m_branchTree->setRenderHint(QPainter::TextAntialiasing, true);  // ★ テキストのアンチエイリアス
-    m_branchTree->setRenderHint(QPainter::SmoothPixmapTransform, true);  // ★ 滑らかな変換
+    m_branchTree->setRenderHint(QPainter::TextAntialiasing, true);  // テキストのアンチエイリアス
+    m_branchTree->setRenderHint(QPainter::SmoothPixmapTransform, true);  // 滑らかな変換
     m_branchTree->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     m_branchTree->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     m_branchTree->setAlignment(Qt::AlignLeft | Qt::AlignTop);
@@ -540,7 +544,7 @@ void EngineAnalysisTab::buildUi()
 
     m_tab->addTab(m_branchTree, tr("分岐ツリー"));
 
-    // ★ 初回起動時（あるいは再構築時）にモデルが既にあるなら即時適用
+    // 初回起動時（あるいは再構築時）にモデルが既にあるなら即時適用
     reapplyViewTuning(m_view1, m_model1);  // 右寄せ＋3桁カンマ＆列幅チューニング
     reapplyViewTuning(m_view2, m_model2);
 
@@ -554,7 +558,7 @@ void EngineAnalysisTab::buildUi()
         }
     }
 
-    // ★ 追加: 設定ファイルからフォントサイズを読み込んで適用
+    // 設定ファイルからフォントサイズを読み込んで適用
     m_usiLogFontSize = SettingsService::usiLogFontSize();
     if (m_usiLog) {
         QFont font = m_usiLog->font();
@@ -569,7 +573,7 @@ void EngineAnalysisTab::buildUi()
         m_comment->setFont(font);
     }
     
-    // ★ 追加: 思考タブのフォントサイズを読み込んで適用
+    // 思考タブのフォントサイズを読み込んで適用
     m_thinkingFontSize = SettingsService::thinkingFontSize();
     if (m_thinkingFontSize != 10) {  // デフォルト以外の場合のみ適用
         QFont font;
@@ -607,11 +611,11 @@ void EngineAnalysisTab::buildUi()
         }
     }
 
-    // ★ 追加：起動直後でも「開始局面」だけは描く
+    // 起動直後でも「開始局面」だけは描く
     rebuildBranchTree();
 }
 
-// ★ 追加: 思考ページを独立したウィジェットとして作成
+// 思考ページを独立したウィジェットとして作成
 QWidget* EngineAnalysisTab::createThinkingPage(QWidget* parent)
 {
     QWidget* page = new QWidget(parent);
@@ -697,7 +701,7 @@ QWidget* EngineAnalysisTab::createThinkingPage(QWidget* parent)
     return page;
 }
 
-// ★ 追加: 検討ページを独立したウィジェットとして作成
+// 検討ページを独立したウィジェットとして作成
 QWidget* EngineAnalysisTab::createConsiderationPage(QWidget* parent)
 {
     m_considerationFontSize = SettingsService::considerationFontSize();
@@ -860,7 +864,7 @@ QWidget* EngineAnalysisTab::createConsiderationPage(QWidget* parent)
     return considerationPage;
 }
 
-// ★ 追加: USI通信ログページを独立したウィジェットとして作成
+// USI通信ログページを独立したウィジェットとして作成
 QWidget* EngineAnalysisTab::createUsiLogPage(QWidget* parent)
 {
     m_usiLogContainer = new QWidget(parent);
@@ -888,7 +892,7 @@ QWidget* EngineAnalysisTab::createUsiLogPage(QWidget* parent)
     return m_usiLogContainer;
 }
 
-// ★ 追加: CSA通信ログページを独立したウィジェットとして作成
+// CSA通信ログページを独立したウィジェットとして作成
 QWidget* EngineAnalysisTab::createCsaLogPage(QWidget* parent)
 {
     m_csaLogFontSize = SettingsService::csaLogFontSize();
@@ -916,7 +920,7 @@ QWidget* EngineAnalysisTab::createCsaLogPage(QWidget* parent)
     return m_csaLogContainer;
 }
 
-// ★ 追加: 棋譜コメントページを独立したウィジェットとして作成
+// 棋譜コメントページを独立したウィジェットとして作成
 QWidget* EngineAnalysisTab::createCommentPage(QWidget* parent)
 {
     QWidget* commentContainer = new QWidget(parent);
@@ -951,7 +955,7 @@ QWidget* EngineAnalysisTab::createCommentPage(QWidget* parent)
     return commentContainer;
 }
 
-// ★ 追加: 分岐ツリーページを独立したウィジェットとして作成
+// 分岐ツリーページを独立したウィジェットとして作成
 QWidget* EngineAnalysisTab::createBranchTreePage(QWidget* parent)
 {
     m_branchTree = new QGraphicsView(parent);
@@ -1054,7 +1058,7 @@ void EngineAnalysisTab::setModels(ShogiEngineThinkingModel* m1, ShogiEngineThink
     if (m_info1) m_info1->setModel(log1);
     if (m_info2) m_info2->setModel(log2);
 
-    // ★ モデル設定後に列幅を適用（モデルがないと列幅が適用されない）
+    // モデル設定後に列幅を適用（モデルがないと列幅が適用されない）
     applyThinkingViewColumnWidths(m_view1, 0);
     applyThinkingViewColumnWidths(m_view2, 1);
 
@@ -1076,7 +1080,7 @@ void EngineAnalysisTab::setModels(ShogiEngineThinkingModel* m1, ShogiEngineThink
     if (m_log1) {
         QObject::connect(m_log1, &UsiCommLogModel::usiCommLogChanged,
                          this, &EngineAnalysisTab::onLog1Changed, Qt::UniqueConnection);
-        // ★ 追加: エンジン名変更シグナルを接続
+        // エンジン名変更シグナルを接続
         QObject::connect(m_log1, &UsiCommLogModel::engineNameChanged,
                          this, &EngineAnalysisTab::onEngine1NameChanged, Qt::UniqueConnection);
         // 初期値を設定
@@ -1085,7 +1089,7 @@ void EngineAnalysisTab::setModels(ShogiEngineThinkingModel* m1, ShogiEngineThink
     if (m_log2) {
         QObject::connect(m_log2, &UsiCommLogModel::usiCommLogChanged,
                          this, &EngineAnalysisTab::onLog2Changed, Qt::UniqueConnection);
-        // ★ 追加: エンジン名変更シグナルを接続
+        // エンジン名変更シグナルを接続
         QObject::connect(m_log2, &UsiCommLogModel::engineNameChanged,
                          this, &EngineAnalysisTab::onEngine2NameChanged, Qt::UniqueConnection);
         // 初期値を設定
@@ -1108,7 +1112,7 @@ void EngineAnalysisTab::setCommentHtml(const QString& html)
             << " html.len=" << html.size()
             << " m_isCommentDirty(before)=" << m_isCommentDirty;
         
-        // ★ 元のコメントを保存（変更検知用）
+        // 元のコメントを保存（変更検知用）
         // HTMLからプレーンテキストを取得して保存
         QString processedHtml = convertUrlsToLinks(html);
         m_comment->setHtml(processedHtml);
@@ -1118,7 +1122,7 @@ void EngineAnalysisTab::setCommentHtml(const QString& html)
             << "[EngineAnalysisTab] setCommentHtml:"
             << " m_originalComment.len=" << m_originalComment.size();
         
-        // ★ 編集状態をリセット
+        // 編集状態をリセット
         m_isCommentDirty = false;
         updateEditingIndicator();
         
@@ -1177,7 +1181,7 @@ QGraphicsPathItem* EngineAnalysisTab::addNode(int row, int ply, const QString& r
 
     const bool odd = (ply % 2) == 1; // 奇数=先手、偶数=後手
 
-    // ★ 分岐も本譜と同じ配色に統一
+    // 分岐も本譜と同じ配色に統一
     const QColor mainOdd (196, 230, 255); // 先手=水色
     const QColor mainEven(255, 223, 196); // 後手=ピーチ
     const QColor fill = odd ? mainOdd : mainEven;
@@ -1213,7 +1217,7 @@ QGraphicsPathItem* EngineAnalysisTab::addNode(int row, int ply, const QString& r
     textItem->setPos(rect.center().x() - br.width() / 2.0,
                      rect.center().y() - br.height() / 2.0);
 
-    // ★ 「n手目」ラベルは本譜の上だけに表示（分岐 row!=0 では表示しない）
+    // 「n手目」ラベルは本譜の上だけに表示（分岐 row!=0 では表示しない）
     if (row == 0) {
         const QString moveNo = QString::number(ply) + QStringLiteral("手目");
         auto* noItem = m_scene->addSimpleText(moveNo, MOVE_NO_FONT);
@@ -1227,7 +1231,7 @@ QGraphicsPathItem* EngineAnalysisTab::addNode(int row, int ply, const QString& r
     // クリック解決用（従来）
     m_nodeIndex.insert(qMakePair(row, ply), item);
 
-    // ★ グラフ登録（vid はここでは row と同義で十分）
+    // グラフ登録（vid はここでは row と同義で十分）
     const int nodeId = registerNode(/*vid*/row, row, ply, item);
     item->setData(ROLE_NODE_ID, nodeId);
 
@@ -1251,7 +1255,7 @@ void EngineAnalysisTab::addEdge(QGraphicsPathItem* from, QGraphicsPathItem* to)
     auto* edge = m_scene->addPath(path, QPen(QColor(90, 90, 90), 1.0));
     edge->setZValue(0); // ← 線は常に背面（長方形の中に罫線が見えなくなる）
 
-    // ★ グラフ接続
+    // グラフ接続
     const int prevId = from->data(ROLE_NODE_ID).toInt();
     const int nextId = to  ->data(ROLE_NODE_ID).toInt();
     if (prevId > 0 && nextId > 0) linkEdge(prevId, nextId);
@@ -1266,7 +1270,7 @@ int EngineAnalysisTab::resolveParentRowForVariation(int row) const
         return 0;
     }
 
-    // ★ 修正: 以前は startPly の前後関係から親を「推測」していたが、
+    // 以前は startPly の前後関係から親を「推測」していたが、
     //    データとして渡された parent を正しく使うように変更しました。
     //    これにより、2局目の後に1局目の途中から分岐した3局目（row=2）が来た場合でも、
     //    parent=0（1局目）を正しく参照できるようになります。
@@ -1287,7 +1291,7 @@ void EngineAnalysisTab::rebuildBranchTree()
     m_scene->clear();
     m_nodeIndex.clear();
 
-    // ★ グラフもクリア
+    // グラフもクリア
     clearBranchGraph();
     m_prevSelected = nullptr;
 
@@ -1380,7 +1384,7 @@ void EngineAnalysisTab::rebuildBranchTree()
         const int joinPly = startPly - 1;
 
         // 親の joinPly ノードを取得。無ければ本譜→開始局面へフォールバック。
-        // ★修正: ターミナルノード（投了など）への接続は避ける
+        //修正: ターミナルノード（投了など）への接続は避ける
         static const QStringList kTerminalKeywords = {
             QStringLiteral("投了"), QStringLiteral("中断"), QStringLiteral("持将棋"),
             QStringLiteral("千日手"), QStringLiteral("切れ負け"),
@@ -1560,7 +1564,7 @@ bool EngineAnalysisTab::eventFilter(QObject* obj, QEvent* ev)
         return QWidget::eventFilter(obj, ev);
     }
 
-    // ★ コメント内のURLクリック処理
+    // コメント内のURLクリック処理
     // 保存したviewportポインタを使用（viewport()の呼び出しを避ける）
     if (m_commentViewport && obj == m_commentViewport
         && ev->type() == QEvent::MouseButtonRelease)
@@ -1768,7 +1772,7 @@ int EngineAnalysisTab::graphFallbackToPly(int row, int targetPly) const
     return -1;
 }
 
-// ★ ヘッダの基本設定（モデル設定前でもOK）
+// ヘッダの基本設定（モデル設定前でもOK）
 void EngineAnalysisTab::setupThinkingViewHeader(QTableView* v)
 {
     if (!v) return;
@@ -1787,7 +1791,7 @@ void EngineAnalysisTab::setupThinkingViewHeader(QTableView* v)
         "  border-bottom: 1px solid #209cee;"
         "}"));
 
-    // ★ 全ての列をInteractive（ユーザーがリサイズ可能）に設定
+    // 全ての列をInteractive（ユーザーがリサイズ可能）に設定
     h->setDefaultSectionSize(100);
     h->setMinimumSectionSize(24);
     h->setStretchLastSection(true);
@@ -1803,7 +1807,7 @@ void EngineAnalysisTab::setupThinkingViewHeader(QTableView* v)
     v->setWordWrap(false);
 }
 
-// ★ 列幅の適用（モデル設定後に呼ぶ）
+// 列幅の適用（モデル設定後に呼ぶ）
 void EngineAnalysisTab::applyThinkingViewColumnWidths(QTableView* v, int viewIndex)
 {
     if (!v || !v->model()) return;
@@ -1823,7 +1827,7 @@ void EngineAnalysisTab::applyThinkingViewColumnWidths(QTableView* v, int viewInd
     const int defaultWidths[] = {50, 40, 80, 60, 45, 100};
     constexpr int kMaxTotalWidth = 450;  // 読み筋以外の列幅合計の上限
 
-    // ★ 設定ファイルから列幅を読み込む
+    // 設定ファイルから列幅を読み込む
     QList<int> savedWidths = SettingsService::thinkingViewColumnWidths(viewIndex);
 
     // 保存された列幅の合計をチェック（読み筋列を除く）
@@ -1853,7 +1857,7 @@ void EngineAnalysisTab::applyThinkingViewColumnWidths(QTableView* v, int viewInd
     }
     h->blockSignals(false);
 
-    // ★ 列幅読み込み済みフラグを遅延で設定
+    // 列幅読み込み済みフラグを遅延で設定
     QTimer::singleShot(500, this, [this, viewIndex]() {
         if (viewIndex == 0) {
             m_thinkingView1WidthsLoaded = true;
@@ -1899,7 +1903,7 @@ void EngineAnalysisTab::applyNumericFormattingTo(QTableView* view, QAbstractItem
     }
 }
 
-// ★ 追加: USI通信ログツールバーを構築
+// USI通信ログツールバーを構築
 void EngineAnalysisTab::buildUsiLogToolbar()
 {
     m_usiLogToolbar = new QWidget(m_usiLogContainer);
@@ -1929,7 +1933,7 @@ void EngineAnalysisTab::buildUsiLogToolbar()
     m_btnUsiLogFontIncrease->setStyleSheet(fontBtnStyle);
     connect(m_btnUsiLogFontIncrease, &QToolButton::clicked, this, &EngineAnalysisTab::onUsiLogFontIncrease);
 
-    // ★ 追加: エンジン名ラベル（E1: xxx, E2: xxx）
+    // エンジン名ラベル（E1: xxx, E2: xxx）
     m_usiLogEngine1Label = new QLabel(QStringLiteral("E1: ---"), m_usiLogToolbar);
     m_usiLogEngine1Label->setStyleSheet(QStringLiteral("QLabel { color: #2060a0; font-weight: bold; }"));
     m_usiLogEngine2Label = new QLabel(QStringLiteral("E2: ---"), m_usiLogToolbar);
@@ -1947,7 +1951,7 @@ void EngineAnalysisTab::buildUsiLogToolbar()
     relaxToolbarWidth(m_usiLogToolbar);
 }
 
-// ★ 追加: USI通信ログフォントサイズ変更
+// USI通信ログフォントサイズ変更
 void EngineAnalysisTab::updateUsiLogFontSize(int delta)
 {
     m_usiLogFontSize += delta;
@@ -1961,11 +1965,11 @@ void EngineAnalysisTab::updateUsiLogFontSize(int delta)
         m_usiLog->setFont(font);
     }
 
-    // ★ 追加: コマンドバーのフォントサイズも更新
+    // コマンドバーのフォントサイズも更新
     if (m_usiTargetCombo) m_usiTargetCombo->setFont(font);
     if (m_usiCommandInput) m_usiCommandInput->setFont(font);
 
-    // ★ 追加: 設定ファイルに保存
+    // 設定ファイルに保存
     SettingsService::setUsiLogFontSize(m_usiLogFontSize);
 }
 
@@ -1979,7 +1983,7 @@ void EngineAnalysisTab::onUsiLogFontDecrease()
     updateUsiLogFontSize(-1);
 }
 
-// ★ 追加: USIコマンドバーを構築
+// USIコマンドバーを構築
 void EngineAnalysisTab::buildUsiCommandBar()
 {
     m_usiCommandBar = new QWidget(m_usiLogContainer);
@@ -2018,7 +2022,7 @@ void EngineAnalysisTab::buildUsiCommandBar()
             this, &EngineAnalysisTab::onUsiCommandEntered);
 }
 
-// ★ 追加: USIコマンド入力処理（Enterキー）
+// USIコマンド入力処理（Enterキー）
 void EngineAnalysisTab::onUsiCommandEntered()
 {
     if (!m_usiCommandInput || !m_usiTargetCombo) {
@@ -2037,7 +2041,7 @@ void EngineAnalysisTab::onUsiCommandEntered()
     m_usiCommandInput->clear();
 }
 
-// ★ 追加: エンジン1名変更時のスロット
+// エンジン1名変更時のスロット
 void EngineAnalysisTab::onEngine1NameChanged()
 {
     if (m_usiLogEngine1Label && m_log1) {
@@ -2049,7 +2053,7 @@ void EngineAnalysisTab::onEngine1NameChanged()
     }
 }
 
-// ★ 追加: エンジン2名変更時のスロット
+// エンジン2名変更時のスロット
 void EngineAnalysisTab::onEngine2NameChanged()
 {
     if (m_usiLogEngine2Label && m_log2) {
@@ -2061,7 +2065,7 @@ void EngineAnalysisTab::onEngine2NameChanged()
     }
 }
 
-// ★ 追加: 思考タブフォントサイズ変更
+// 思考タブフォントサイズ変更
 void EngineAnalysisTab::updateThinkingFontSize(int delta)
 {
     m_thinkingFontSize += delta;
@@ -2105,7 +2109,7 @@ void EngineAnalysisTab::updateThinkingFontSize(int delta)
         m_view2->verticalHeader()->setDefaultSectionSize(rowHeight);
     }
 
-    // ★ 追加: 設定ファイルに保存
+    // 設定ファイルに保存
     SettingsService::setThinkingFontSize(m_thinkingFontSize);
 }
 
@@ -2119,7 +2123,7 @@ void EngineAnalysisTab::onThinkingFontDecrease()
     updateThinkingFontSize(-1);
 }
 
-// ★ 追加: 検討タブのフォントサイズを変更
+// 検討タブのフォントサイズを変更
 void EngineAnalysisTab::updateConsiderationFontSize(int delta)
 {
     m_considerationFontSize += delta;
@@ -2184,7 +2188,7 @@ void EngineAnalysisTab::onConsiderationFontDecrease()
     updateConsiderationFontSize(-1);
 }
 
-// ★ 追加: コメントツールバーを構築
+// コメントツールバーを構築
 void EngineAnalysisTab::buildCommentToolbar()
 {
     m_commentToolbar = new QWidget(this);
@@ -2234,7 +2238,7 @@ void EngineAnalysisTab::buildCommentToolbar()
     m_btnCommentUndo->setStyleSheet(undoRedoBtnStyle);
     connect(m_btnCommentUndo, &QToolButton::clicked, this, &EngineAnalysisTab::onCommentUndo);
 
-    // ★ 追加: redoボタン（やり直す）
+    // redoボタン（やり直す）
     m_btnCommentRedo = new QToolButton(m_commentToolbar);
     m_btnCommentRedo->setText(QStringLiteral("↪"));
     m_btnCommentRedo->setToolTip(tr("やり直す (Ctrl+Y)"));
@@ -2242,7 +2246,7 @@ void EngineAnalysisTab::buildCommentToolbar()
     m_btnCommentRedo->setStyleSheet(undoRedoBtnStyle);
     connect(m_btnCommentRedo, &QToolButton::clicked, this, &EngineAnalysisTab::onCommentRedo);
 
-    // ★ 追加: 切り取りボタン
+    // 切り取りボタン
     m_btnCommentCut = new QToolButton(m_commentToolbar);
     m_btnCommentCut->setText(QStringLiteral("✂"));
     m_btnCommentCut->setToolTip(tr("切り取り (Ctrl+X)"));
@@ -2250,7 +2254,7 @@ void EngineAnalysisTab::buildCommentToolbar()
     m_btnCommentCut->setStyleSheet(editBtnStyle);
     connect(m_btnCommentCut, &QToolButton::clicked, this, &EngineAnalysisTab::onCommentCut);
 
-    // ★ 追加: コピーボタン
+    // コピーボタン
     m_btnCommentCopy = new QToolButton(m_commentToolbar);
     m_btnCommentCopy->setText(QStringLiteral("📋"));
     m_btnCommentCopy->setToolTip(tr("コピー (Ctrl+C)"));
@@ -2258,7 +2262,7 @@ void EngineAnalysisTab::buildCommentToolbar()
     m_btnCommentCopy->setStyleSheet(editBtnStyle);
     connect(m_btnCommentCopy, &QToolButton::clicked, this, &EngineAnalysisTab::onCommentCopy);
 
-    // ★ 追加: 貼り付けボタン
+    // 貼り付けボタン
     m_btnCommentPaste = new QToolButton(m_commentToolbar);
     m_btnCommentPaste->setText(QStringLiteral("📄"));
     m_btnCommentPaste->setToolTip(tr("貼り付け (Ctrl+V)"));
@@ -2296,7 +2300,7 @@ void EngineAnalysisTab::buildCommentToolbar()
     relaxToolbarWidth(m_commentToolbar);
 }
 
-// ★ 追加: フォントサイズ更新
+// フォントサイズ更新
 void EngineAnalysisTab::updateCommentFontSize(int delta)
 {
     m_currentFontSize += delta;
@@ -2309,46 +2313,46 @@ void EngineAnalysisTab::updateCommentFontSize(int delta)
         m_comment->setFont(font);
     }
     
-    // ★ 追加: 設定ファイルに保存
+    // 設定ファイルに保存
     SettingsService::setCommentFontSize(m_currentFontSize);
 }
 
-// ★ 追加: コメントのundo（QTextEditのundo機能を使用）
+// コメントのundo（QTextEditのundo機能を使用）
 void EngineAnalysisTab::onCommentUndo()
 {
     if (!m_comment) return;
     m_comment->undo();
 }
 
-// ★ 追加: コメントのredo（やり直す）
+// コメントのredo（やり直す）
 void EngineAnalysisTab::onCommentRedo()
 {
     if (!m_comment) return;
     m_comment->redo();
 }
 
-// ★ 追加: コメントの切り取り
+// コメントの切り取り
 void EngineAnalysisTab::onCommentCut()
 {
     if (!m_comment) return;
     m_comment->cut();
 }
 
-// ★ 追加: コメントのコピー
+// コメントのコピー
 void EngineAnalysisTab::onCommentCopy()
 {
     if (!m_comment) return;
     m_comment->copy();
 }
 
-// ★ 追加: コメントの貼り付け
+// コメントの貼り付け
 void EngineAnalysisTab::onCommentPaste()
 {
     if (!m_comment) return;
     m_comment->paste();
 }
 
-// ★ 追加: URLをHTMLリンクに変換
+// URLをHTMLリンクに変換
 QString EngineAnalysisTab::convertUrlsToLinks(const QString& text)
 {
     QString result = text;
@@ -2393,19 +2397,19 @@ QString EngineAnalysisTab::convertUrlsToLinks(const QString& text)
     return result;
 }
 
-// ★ 追加: フォントサイズ増加スロット
+// フォントサイズ増加スロット
 void EngineAnalysisTab::onFontIncrease()
 {
     updateCommentFontSize(1);
 }
 
-// ★ 追加: フォントサイズ減少スロット
+// フォントサイズ減少スロット
 void EngineAnalysisTab::onFontDecrease()
 {
     updateCommentFontSize(-1);
 }
 
-// ★ 追加: コメント更新ボタンクリック時のスロット
+// コメント更新ボタンクリック時のスロット
 void EngineAnalysisTab::onUpdateCommentClicked()
 {
     if (!m_comment) return;
@@ -2416,13 +2420,13 @@ void EngineAnalysisTab::onUpdateCommentClicked()
     // シグナルを発行
     emit commentUpdated(m_currentMoveIndex, newComment);
     
-    // ★ 編集状態をクリア
+    // 編集状態をクリア
     m_originalComment = newComment;
     m_isCommentDirty = false;
     updateEditingIndicator();
 }
 
-// ★ 追加: 現在の手数インデックスを設定
+// 現在の手数インデックスを設定
 void EngineAnalysisTab::setCurrentMoveIndex(int index)
 {
     qDebug().noquote()
@@ -2432,7 +2436,7 @@ void EngineAnalysisTab::setCurrentMoveIndex(int index)
     m_currentMoveIndex = index;
 }
 
-// ★ 追加: コメントテキスト変更時のスロット
+// コメントテキスト変更時のスロット
 void EngineAnalysisTab::onCommentTextChanged()
 {
     if (!m_comment) return;
@@ -2441,7 +2445,7 @@ void EngineAnalysisTab::onCommentTextChanged()
     QString currentText = m_comment->toPlainText();
     bool isDirty = (currentText != m_originalComment);
     
-    // ★ デバッグ出力
+    // デバッグ出力
     qDebug().noquote()
         << "[EngineAnalysisTab] onCommentTextChanged:"
         << " currentText.len=" << currentText.size()
@@ -2456,7 +2460,7 @@ void EngineAnalysisTab::onCommentTextChanged()
     }
 }
 
-// ★ 追加: 「修正中」表示の更新
+// 「修正中」表示の更新
 void EngineAnalysisTab::updateEditingIndicator()
 {
     if (m_editingLabel) {
@@ -2465,7 +2469,7 @@ void EngineAnalysisTab::updateEditingIndicator()
     }
 }
 
-// ★ 追加: 未保存編集の警告ダイアログ
+// 未保存編集の警告ダイアログ
 bool EngineAnalysisTab::confirmDiscardUnsavedComment()
 {
     qDebug().noquote()
@@ -2502,7 +2506,7 @@ bool EngineAnalysisTab::confirmDiscardUnsavedComment()
     return false;  // 移動をキャンセル
 }
 
-// ★ 追加: 編集状態をクリア
+// 編集状態をクリア
 void EngineAnalysisTab::clearCommentDirty()
 {
     if (m_comment) {
@@ -2512,7 +2516,7 @@ void EngineAnalysisTab::clearCommentDirty()
     updateEditingIndicator();
 }
 
-// ★ 追加: エンジン1の読み筋テーブルクリック処理
+// エンジン1の読み筋テーブルクリック処理
 void EngineAnalysisTab::onView1Clicked(const QModelIndex& index)
 {
     if (!index.isValid()) return;
@@ -2523,7 +2527,7 @@ void EngineAnalysisTab::onView1Clicked(const QModelIndex& index)
     }
 }
 
-// ★ 追加: エンジン2の読み筋テーブルクリック処理
+// エンジン2の読み筋テーブルクリック処理
 void EngineAnalysisTab::onView2Clicked(const QModelIndex& index)
 {
     if (!index.isValid()) return;
@@ -2534,7 +2538,7 @@ void EngineAnalysisTab::onView2Clicked(const QModelIndex& index)
     }
 }
 
-// ★ 追加: 検討タブの読み筋テーブルクリック処理
+// 検討タブの読み筋テーブルクリック処理
 void EngineAnalysisTab::onConsiderationViewClicked(const QModelIndex& index)
 {
     if (!index.isValid()) return;
@@ -2545,7 +2549,7 @@ void EngineAnalysisTab::onConsiderationViewClicked(const QModelIndex& index)
     }
 }
 
-// ★ 追加: エンジン情報ウィジェットの列幅変更時の保存
+// エンジン情報ウィジェットの列幅変更時の保存
 void EngineAnalysisTab::onEngineInfoColumnWidthChanged()
 {
     EngineInfoWidget* sender = qobject_cast<EngineInfoWidget*>(QObject::sender());
@@ -2558,7 +2562,7 @@ void EngineAnalysisTab::onEngineInfoColumnWidthChanged()
     SettingsService::setEngineInfoColumnWidths(widgetIndex, widths);
 }
 
-// ★ 追加: 思考タブ下段（読み筋テーブル）の列幅変更時の保存
+// 思考タブ下段（読み筋テーブル）の列幅変更時の保存
 void EngineAnalysisTab::onThinkingViewColumnWidthChanged(int viewIndex)
 {
     QTableView* view = (viewIndex == 0) ? m_view1 : m_view2;
@@ -2574,7 +2578,7 @@ void EngineAnalysisTab::onThinkingViewColumnWidthChanged(int viewIndex)
     SettingsService::setThinkingViewColumnWidths(viewIndex, widths);
 }
 
-// ★ 追加: view1の列幅変更スロット
+// view1の列幅変更スロット
 void EngineAnalysisTab::onView1SectionResized(int logicalIndex, int oldSize, int newSize)
 {
     Q_UNUSED(logicalIndex)
@@ -2589,7 +2593,7 @@ void EngineAnalysisTab::onView1SectionResized(int logicalIndex, int oldSize, int
     }
 }
 
-// ★ 追加: view2の列幅変更スロット
+// view2の列幅変更スロット
 void EngineAnalysisTab::onView2SectionResized(int logicalIndex, int oldSize, int newSize)
 {
     Q_UNUSED(logicalIndex)
@@ -2601,7 +2605,7 @@ void EngineAnalysisTab::onView2SectionResized(int logicalIndex, int oldSize, int
     }
 }
 
-// ★ 追加: CSA通信ログツールバーを構築
+// CSA通信ログツールバーを構築
 void EngineAnalysisTab::buildCsaLogToolbar()
 {
     m_csaLogToolbar = new QWidget(m_csaLogContainer);
@@ -2639,7 +2643,7 @@ void EngineAnalysisTab::buildCsaLogToolbar()
     relaxToolbarWidth(m_csaLogToolbar);
 }
 
-// ★ 追加: CSA通信ログフォントサイズ変更
+// CSA通信ログフォントサイズ変更
 void EngineAnalysisTab::updateCsaLogFontSize(int delta)
 {
     m_csaLogFontSize += delta;
@@ -2680,7 +2684,7 @@ void EngineAnalysisTab::onCsaLogFontDecrease()
     updateCsaLogFontSize(-1);
 }
 
-// ★ 追加: CSA通信ログ追記
+// CSA通信ログ追記
 void EngineAnalysisTab::appendCsaLog(const QString& line)
 {
     if (m_csaLog) {
@@ -2692,7 +2696,7 @@ void EngineAnalysisTab::appendCsaLog(const QString& line)
     }
 }
 
-// ★ 追加: CSA通信ログクリア
+// CSA通信ログクリア
 void EngineAnalysisTab::clearCsaLog()
 {
     if (m_csaLog) {
@@ -2700,7 +2704,7 @@ void EngineAnalysisTab::clearCsaLog()
     }
 }
 
-// ★ 追加: CSAコマンド入力バーを構築
+// CSAコマンド入力バーを構築
 void EngineAnalysisTab::buildCsaCommandBar()
 {
     m_csaCommandBar = new QWidget(m_csaLogContainer);
@@ -2737,7 +2741,7 @@ void EngineAnalysisTab::buildCsaCommandBar()
             this, &EngineAnalysisTab::onCsaCommandEntered);
 }
 
-// ★ 追加: CSAコマンド入力処理
+// CSAコマンド入力処理
 void EngineAnalysisTab::onCsaCommandEntered()
 {
     if (!m_csaCommandInput) {
@@ -2756,7 +2760,7 @@ void EngineAnalysisTab::onCsaCommandEntered()
     m_csaCommandInput->clear();
 }
 
-// ★ 追加: 検討タブ用モデル設定
+// 検討タブ用モデル設定
 void EngineAnalysisTab::setConsiderationThinkingModel(ShogiEngineThinkingModel* m)
 {
     m_considerationModel = m;
@@ -2766,7 +2770,7 @@ void EngineAnalysisTab::setConsiderationThinkingModel(ShogiEngineThinkingModel* 
     }
 }
 
-// ★ 追加: 検討タブに切り替える
+// 検討タブに切り替える
 void EngineAnalysisTab::switchToConsiderationTab()
 {
     if (m_tab && m_considerationTabIndex >= 0) {
@@ -2774,7 +2778,7 @@ void EngineAnalysisTab::switchToConsiderationTab()
     }
 }
 
-// ★ 追加: 思考タブに切り替える
+// 思考タブに切り替える
 void EngineAnalysisTab::switchToThinkingTab()
 {
     if (m_tab) {
@@ -2783,7 +2787,7 @@ void EngineAnalysisTab::switchToThinkingTab()
     }
 }
 
-// ★ 追加: 検討タブの候補手の数を取得
+// 検討タブの候補手の数を取得
 int EngineAnalysisTab::considerationMultiPV() const
 {
     if (m_multiPVComboBox) {
@@ -2792,7 +2796,7 @@ int EngineAnalysisTab::considerationMultiPV() const
     return 1;  // デフォルト
 }
 
-// ★ 追加: 検討タブの候補手の数を設定
+// 検討タブの候補手の数を設定
 void EngineAnalysisTab::setConsiderationMultiPV(int value)
 {
     if (m_multiPVComboBox) {
@@ -2821,7 +2825,7 @@ void EngineAnalysisTab::clearThinkingViewSelection(int engineIndex)
     }
 }
 
-// ★ 追加: コンボボックスの値変更スロット
+// コンボボックスの値変更スロット
 void EngineAnalysisTab::onMultiPVComboBoxChanged(int index)
 {
     Q_UNUSED(index);
@@ -2831,7 +2835,7 @@ void EngineAnalysisTab::onMultiPVComboBoxChanged(int index)
     }
 }
 
-// ★ 追加: 検討タブの時間設定を表示
+// 検討タブの時間設定を表示
 void EngineAnalysisTab::setConsiderationTimeLimit(bool unlimited, int byoyomiSec)
 {
     // 時間制限を保存（経過時間タイマーの自動停止用）
@@ -2857,7 +2861,7 @@ void EngineAnalysisTab::setConsiderationTimeLimit(bool unlimited, int byoyomiSec
     }
 }
 
-// ★ 追加: 検討タブのエンジン名を設定
+// 検討タブのエンジン名を設定
 void EngineAnalysisTab::setConsiderationEngineName(const QString& name)
 {
     if (m_considerationInfo) {
@@ -2865,7 +2869,7 @@ void EngineAnalysisTab::setConsiderationEngineName(const QString& name)
     }
 }
 
-// ★ 追加: 経過時間タイマー開始
+// 経過時間タイマー開始
 void EngineAnalysisTab::startElapsedTimer()
 {
     if (m_elapsedTimer) {
@@ -2881,7 +2885,7 @@ void EngineAnalysisTab::startElapsedTimer()
     }
 }
 
-// ★ 追加: 経過時間タイマー停止
+// 経過時間タイマー停止
 void EngineAnalysisTab::stopElapsedTimer()
 {
     if (m_elapsedTimer) {
@@ -2889,7 +2893,7 @@ void EngineAnalysisTab::stopElapsedTimer()
     }
 }
 
-// ★ 追加: 経過時間リセット
+// 経過時間リセット
 void EngineAnalysisTab::resetElapsedTimer()
 {
     if (m_elapsedTimer) {
@@ -2901,12 +2905,12 @@ void EngineAnalysisTab::resetElapsedTimer()
     }
 }
 
-// ★ 追加: 検討実行状態の設定（ボタン表示切替用）
+// 検討実行状態の設定（ボタン表示切替用）
 void EngineAnalysisTab::setConsiderationRunning(bool running)
 {
     qDebug().noquote() << "[EngineAnalysisTab::setConsiderationRunning] ENTER running=" << running;
 
-    // ★ 検討実行中フラグを更新
+    // 検討実行中フラグを更新
     m_considerationRunning = running;
 
     if (!m_btnStopConsideration) {
@@ -2914,7 +2918,7 @@ void EngineAnalysisTab::setConsiderationRunning(bool running)
         return;
     }
 
-    // ★ ボタンを無効化（切り替え中のクリックを防止）
+    // ボタンを無効化（切り替え中のクリックを防止）
     m_btnStopConsideration->setEnabled(false);
 
     // 既存のシグナル接続を切断
@@ -2937,7 +2941,7 @@ void EngineAnalysisTab::setConsiderationRunning(bool running)
         m_btnStopConsideration->setToolTip(tr("検討ダイアログを開いて検討を開始します"));
         connect(m_btnStopConsideration, &QToolButton::clicked,
                 this, &EngineAnalysisTab::startConsiderationRequested);
-        // ★ 検討停止時はボタンの再有効化を次のイベントループに遅延
+        // 検討停止時はボタンの再有効化を次のイベントループに遅延
         // これにより、シグナルチェーン完了後まで新しいクリックを受け付けない
         QTimer::singleShot(0, this, [this]() {
             if (m_btnStopConsideration) {
@@ -2950,7 +2954,7 @@ void EngineAnalysisTab::setConsiderationRunning(bool running)
     qDebug().noquote() << "[EngineAnalysisTab::setConsiderationRunning] EXIT";
 }
 
-// ★ 追加: 経過時間タイマー更新
+// 経過時間タイマー更新
 void EngineAnalysisTab::onElapsedTimerTick()
 {
     m_elapsedSeconds++;
@@ -2974,7 +2978,7 @@ void EngineAnalysisTab::onElapsedTimerTick()
     }
 }
 
-// ★ 追加: エンジンリストを設定ファイルから読み込む
+// エンジンリストを設定ファイルから読み込む
 void EngineAnalysisTab::loadEngineList()
 {
     if (!m_engineComboBox) return;
@@ -2994,7 +2998,7 @@ void EngineAnalysisTab::loadEngineList()
     settings.endArray();
 }
 
-// ★ 追加: 検討タブの設定を復元
+// 検討タブの設定を復元
 void EngineAnalysisTab::loadConsiderationTabSettings()
 {
     // エンジン選択を復元
@@ -3023,7 +3027,7 @@ void EngineAnalysisTab::loadConsiderationTabSettings()
     }
 }
 
-// ★ 追加: 検討タブの設定を保存
+// 検討タブの設定を保存
 void EngineAnalysisTab::saveConsiderationTabSettings()
 {
     // エンジン選択を保存
@@ -3043,7 +3047,7 @@ void EngineAnalysisTab::saveConsiderationTabSettings()
     }
 }
 
-// ★ 追加: エンジン設定ボタンクリック
+// エンジン設定ボタンクリック
 void EngineAnalysisTab::onEngineSettingsClicked()
 {
     if (!m_engineComboBox) return;
@@ -3059,7 +3063,7 @@ void EngineAnalysisTab::onEngineSettingsClicked()
     emit engineSettingsRequested(engineNumber, engineName);
 }
 
-// ★ 追加: 時間設定変更スロット
+// 時間設定変更スロット
 void EngineAnalysisTab::onTimeSettingChanged()
 {
     // 設定を保存
@@ -3074,7 +3078,7 @@ void EngineAnalysisTab::onTimeSettingChanged()
     emit considerationTimeSettingsChanged(unlimited, sec);
 }
 
-// ★ 追加: エンジン選択変更スロット
+// エンジン選択変更スロット
 void EngineAnalysisTab::onEngineComboBoxChanged(int index)
 {
     qDebug().noquote() << "[EngineAnalysisTab::onEngineComboBoxChanged] index=" << index
@@ -3092,7 +3096,7 @@ void EngineAnalysisTab::onEngineComboBoxChanged(int index)
     }
 }
 
-// ★ 追加: 選択されたエンジンのインデックスを取得
+// 選択されたエンジンのインデックスを取得
 int EngineAnalysisTab::selectedEngineIndex() const
 {
     if (m_engineComboBox) {
@@ -3101,7 +3105,7 @@ int EngineAnalysisTab::selectedEngineIndex() const
     return 0;
 }
 
-// ★ 追加: 選択されたエンジンの名前を取得
+// 選択されたエンジンの名前を取得
 QString EngineAnalysisTab::selectedEngineName() const
 {
     if (m_engineComboBox) {
@@ -3110,7 +3114,7 @@ QString EngineAnalysisTab::selectedEngineName() const
     return QString();
 }
 
-// ★ 追加: 時間無制限かどうかを取得
+// 時間無制限かどうかを取得
 bool EngineAnalysisTab::isUnlimitedTime() const
 {
     if (m_unlimitedTimeRadioButton) {
@@ -3119,7 +3123,7 @@ bool EngineAnalysisTab::isUnlimitedTime() const
     return true;
 }
 
-// ★ 追加: 検討時間（秒）を取得
+// 検討時間（秒）を取得
 int EngineAnalysisTab::byoyomiSec() const
 {
     if (m_byoyomiSecSpinBox) {
@@ -3128,7 +3132,7 @@ int EngineAnalysisTab::byoyomiSec() const
     return 20;
 }
 
-// ★ 追加: 矢印表示チェックボックスの状態を取得
+// 矢印表示チェックボックスの状態を取得
 bool EngineAnalysisTab::isShowArrowsChecked() const
 {
     if (m_showArrowsCheckBox) {

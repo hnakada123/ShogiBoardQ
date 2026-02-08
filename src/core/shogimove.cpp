@@ -1,13 +1,18 @@
+/// @file shogimove.cpp
+/// @brief 将棋の指し手データ構造体の実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "shogimove.h"
 
+/// @todo remove コメントスタイルガイド適用済み
 ShogiMove::ShogiMove()
     : fromSquare(0, 0), toSquare(0, 0), movingPiece(' '), capturedPiece(' '), isPromotion(false) {}
 
+/// @todo remove コメントスタイルガイド適用済み
 ShogiMove::ShogiMove(const QPoint& from, const QPoint& to, QChar moving, QChar captured, bool promotion)
     : fromSquare(from), toSquare(to), movingPiece(moving), capturedPiece(captured), isPromotion(promotion) {}
 
-// 構造体ShogiMoveの比較演算子定義
-// これにより直接"=="で指し手を比較できる。
+/// @todo remove コメントスタイルガイド適用済み
 bool ShogiMove::operator==(const ShogiMove& other) const {
     return fromSquare == other.fromSquare
             && toSquare == other.toSquare
@@ -16,7 +21,7 @@ bool ShogiMove::operator==(const ShogiMove& other) const {
             && isPromotion == other.isPromotion;
 }
 
-// 構造体ShogiMoveのデバッグプリント用演算子"<<"の定義
+/// @todo remove コメントスタイルガイド適用済み
 std::ostream& operator<<(std::ostream& os, const ShogiMove& move) {
     os << "From: (" << move.fromSquare.x() + 1 << ", " << move.fromSquare.y() + 1 << ')';
     os << " To: (" << move.toSquare.x() + 1 << ", " << move.toSquare.y() + 1 << ')';
@@ -26,11 +31,11 @@ std::ostream& operator<<(std::ostream& os, const ShogiMove& move) {
     return os;
 }
 
-// ...既存コードの下に追加
+/// @todo remove コメントスタイルガイド適用済み
 QDebug operator<<(QDebug dbg, const ShogiMove& move) {
     QDebugStateSaver saver(dbg);
     auto disp = [](int v) -> int {
-        // 盤上(0..8)は +1 表示、駒台(9,10など)はそのまま
+        // 盤上(0..8)は1-indexed表示、駒台(9,10)はそのまま
         return (0 <= v && v <= 8) ? (v + 1) : v;
     };
 

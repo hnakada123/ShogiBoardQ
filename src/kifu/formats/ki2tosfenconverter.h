@@ -1,6 +1,11 @@
 #ifndef KI2TOSFENCONVERTER_H
 #define KI2TOSFENCONVERTER_H
 
+/// @file ki2tosfenconverter.h
+/// @brief KI2形式棋譜コンバータクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QString>
 #include <QStringList>
 #include <QList>

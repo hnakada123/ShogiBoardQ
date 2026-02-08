@@ -1,6 +1,11 @@
 #ifndef EVALUATIONGRAPHCONTROLLER_H
 #define EVALUATIONGRAPHCONTROLLER_H
 
+/// @file evaluationgraphcontroller.h
+/// @brief 評価値グラフコントローラクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QObject>
 #include <QList>
 

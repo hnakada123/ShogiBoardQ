@@ -1,6 +1,11 @@
 #ifndef PVCLICKCONTROLLER_H
 #define PVCLICKCONTROLLER_H
 
+/// @file pvclickcontroller.h
+/// @brief 読み筋クリックコントローラクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QObject>
 #include <QString>
 #include <QStringList>

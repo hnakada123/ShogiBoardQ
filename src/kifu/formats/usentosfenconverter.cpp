@@ -1,3 +1,7 @@
+/// @file usentosfenconverter.cpp
+/// @brief USEN形式棋譜コンバータクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "usentosfenconverter.h"
 #include "sfenpositiontracer.h"
 

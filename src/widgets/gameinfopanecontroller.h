@@ -1,6 +1,11 @@
 #ifndef GAMEINFOPANECONTROLLER_H
 #define GAMEINFOPANECONTROLLER_H
 
+/// @file gameinfopanecontroller.h
+/// @brief 対局情報ペインコントローラクラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QObject>
 #include <QList>
 #include <QString>

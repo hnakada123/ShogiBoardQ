@@ -1,10 +1,12 @@
+/// @file kifuanalysisresultsdisplay.cpp
+/// @brief 棋譜解析結果表示ウィジェットクラスの実装
+/// @todo remove コメントスタイルガイド適用済み
+
 #include "kifuanalysisresultsdisplay.h"
 
 // 棋譜解析結果を表示するクラス
-// コンストラクタ
 KifuAnalysisResultsDisplay::KifuAnalysisResultsDisplay(QObject *parent) : QObject(parent) { }
 
-// コンストラクタ
 KifuAnalysisResultsDisplay::KifuAnalysisResultsDisplay(const QString &currentMove, const QString &evaluationValue,
                                      const QString &evaluationDifference, const QString &principalVariation, QObject *parent)
     : KifuAnalysisResultsDisplay(parent)

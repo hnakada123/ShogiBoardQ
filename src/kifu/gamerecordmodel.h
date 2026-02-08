@@ -1,6 +1,11 @@
 #ifndef GAMERECORDMODEL_H
 #define GAMERECORDMODEL_H
 
+/// @file gamerecordmodel.h
+/// @brief 棋譜データの中央管理クラスの定義
+/// @todo remove コメントスタイルガイド適用済み
+
+
 #include <QObject>
 #include <QString>
 #include <QStringList>
@@ -23,14 +28,16 @@ class KifuNavigationState;
 
 /**
  * @brief 棋譜データの中央管理クラス
- * 
+ *
  * 棋譜のコメント編集、保存、読み込みを一元管理し、
- * データの整合性を保証します。
- * 
+ * データの整合性を保証する。
+ *
  * 設計方針:
  * - Single Source of Truth: コメントデータはこのクラスが権威を持つ
  * - 既存データへの参照を保持し、必要に応じて同期更新を行う
- * - KIF/CSA/JKF形式への出力機能を提供
+ * - KIF/CSA/JKF/USEN/USI形式への出力機能を提供
+ *
+ * @todo remove コメントスタイルガイド適用済み
  */
 class GameRecordModel : public QObject
 {
@@ -40,9 +47,7 @@ public:
     explicit GameRecordModel(QObject* parent = nullptr);
     ~GameRecordModel() override = default;
 
-    // ========================================
-    // 初期化・バインド
-    // ========================================
+    // --- 初期化・バインド ---
 
     /**
      * @brief 既存のデータストアをバインド（参照を保持、所有しない）
@@ -71,9 +76,7 @@ public:
      */
     void clear();
 
-    // ========================================
-    // コメント操作（Single Source of Truth）
-    // ========================================
+    // --- コメント操作（Single Source of Truth） ---
 
     /**
      * @brief 指定手数のコメントを設定
@@ -120,9 +123,7 @@ public:
      */
     int commentCount() const { return static_cast<int>(m_comments.size()); }
 
-    // ========================================
-    // 棋譜出力
-    // ========================================
+    // --- 棋譜出力 ---
 
     /**
      * @brief 出力に必要なコンテキスト情報
@@ -137,13 +138,13 @@ public:
         QString engine1;
         QString engine2;
         
-        // ★ 追加: 時間制御情報（CSA出力用）
-        bool hasTimeControl = false;           // 時間制御が有効かどうか
-        int initialTimeMs = 0;                 // 初期持ち時間（ミリ秒）
-        int byoyomiMs = 0;                     // 秒読み（ミリ秒）
-        int fischerIncrementMs = 0;            // フィッシャー加算（ミリ秒）
-        QDateTime gameStartDateTime;           // 対局開始日時
-        QDateTime gameEndDateTime;             // 対局終了日時
+        // --- 時間制御情報（CSA出力用） ---
+        bool hasTimeControl = false;           ///< 時間制御が有効かどうか
+        int initialTimeMs = 0;                 ///< 初期持ち時間（ミリ秒）
+        int byoyomiMs = 0;                     ///< 秒読み（ミリ秒）
+        int fischerIncrementMs = 0;            ///< フィッシャー加算（ミリ秒）
+        QDateTime gameStartDateTime;           ///< 対局開始日時
+        QDateTime gameEndDateTime;             ///< 対局終了日時
     };
 
     /**
@@ -209,9 +210,7 @@ public:
      */
     QStringList toUsiLines(const ExportContext& ctx, const QStringList& usiMoves) const;
 
-    // ========================================
-    // ライブ対局用
-    // ========================================
+    // --- ライブ対局用 ---
 
     /**
      * @brief ライブ対局で1手追加時にコメント配列を拡張
@@ -219,9 +218,7 @@ public:
      */
     void ensureCommentCapacity(int ply);
 
-    // ========================================
-    // 状態取得
-    // ========================================
+    // --- 状態取得 ---
 
     /**
      * @brief 変更があったか（未保存の変更があるか）
