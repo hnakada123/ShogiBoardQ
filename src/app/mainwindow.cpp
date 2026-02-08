@@ -36,7 +36,6 @@
 #include <QRegularExpression>
 
 #include "mainwindow.h"
-#include "changeenginesettingsdialog.h"
 #include "considerationflowcontroller.h"
 #include "shogiutils.h"
 #include "gamelayoutbuilder.h"
@@ -122,7 +121,6 @@
 #include "dockcreationservice.h"
 #include "commentcoordinator.h"
 #include "usicommandcontroller.h"
-#include "testautomationhelper.h"
 #include "recordnavigationhandler.h"
 
 // MainWindow を初期化し、主要コンポーネントを構築する。
@@ -4321,41 +4319,6 @@ void MainWindow::ensureUsiCommandController()
     m_usiCommandController->setAnalysisTab(m_analysisTab);
 }
 
-// `ensureTestAutomationHelper`: Test Automation Helper を必要に応じて生成し、依存関係を更新する。
-/// @todo remove コメントスタイルガイド適用済み
-void MainWindow::ensureTestAutomationHelper()
-{
-    if (!m_testHelper) {
-        m_testHelper = new TestAutomationHelper(this);
-    }
-
-    TestAutomationHelper::Deps deps;
-    deps.recordPane = m_recordPane;
-    deps.analysisTab = m_analysisTab;
-    deps.branchTree = m_branchTree;
-    deps.navState = m_navState;
-    deps.displayCoordinator = m_displayCoordinator;
-    deps.kifuRecordModel = m_kifuRecordModel;
-    deps.kifuBranchModel = m_kifuBranchModel;
-    deps.gameController = m_gameController;
-    deps.shogiView = m_shogiView;
-    deps.skipBoardSyncForBranchNav = &m_skipBoardSyncForBranchNav;
-    deps.liveGameSession = m_liveGameSession;
-    deps.sfenRecord = m_sfenRecord;
-    deps.startSfenStr = &m_startSfenStr;
-    deps.currentSfenStr = &m_currentSfenStr;
-    deps.performCleanup = [this]() {
-        ensurePreStartCleanupHandler();
-        if (m_preStartCleanupHandler != nullptr) {
-            m_preStartCleanupHandler->performCleanup();
-        }
-    };
-    deps.ensureLiveGameSessionStarted = [this]() {
-        ensureLiveGameSessionStarted();
-    };
-    m_testHelper->updateDeps(deps);
-}
-
 // `ensureRecordNavigationHandler`: Record Navigation Handler を必要に応じて生成し、依存関係を更新する。
 /// @todo remove コメントスタイルガイド適用済み
 void MainWindow::ensureRecordNavigationHandler()
@@ -4395,155 +4358,4 @@ void MainWindow::ensureRecordNavigationHandler()
     deps.playMode = &m_playMode;
     deps.match = m_match;
     m_recordNavHandler->updateDeps(deps);
-}
-
-// 検討モデルから矢印を更新（コントローラに委譲）
-// ============================================================
-// テスト自動化用メソッド（TestAutomationHelperへ委譲）
-// ============================================================
-
-/// @todo remove コメントスタイルガイド適用済み
-void MainWindow::setTestMode(bool enabled)
-{
-    ensureTestAutomationHelper();
-    m_testHelper->setTestMode(enabled);
-}
-
-// `loadKifuFile`: Kifu File を読み込む。
-/// @todo remove コメントスタイルガイド適用済み
-void MainWindow::loadKifuFile(const QString& path)
-{
-    qDebug() << "[TEST] loadKifuFile:" << path;
-
-    if (!QFile::exists(path)) {
-        qWarning() << "[TEST] File not found:" << path;
-        return;
-    }
-
-    setReplayMode(true);
-    ensurePlayerInfoWiring();
-    if (m_playerInfoWiring) {
-        m_playerInfoWiring->ensureGameInfoController();
-        m_gameInfoController = m_playerInfoWiring->gameInfoController();
-    }
-
-    createAndWireKifuLoadCoordinator();
-    dispatchKifuLoad(path);
-
-    qDebug() << "[TEST] loadKifuFile completed";
-}
-
-// `navigateToPly`: テスト支援用に指定手数へ移動する。
-/// @todo remove コメントスタイルガイド適用済み
-void MainWindow::navigateToPly(int ply)
-{
-    ensureTestAutomationHelper();
-    m_testHelper->navigateToPly(ply);
-}
-
-// `clickBranchCandidate`: Branch Candidate のクリック操作を実行する。
-/// @todo remove コメントスタイルガイド適用済み
-void MainWindow::clickBranchCandidate(int index)
-{
-    ensureTestAutomationHelper();
-    m_testHelper->clickBranchCandidate(index);
-}
-
-// `clickNextButton`: Next Button のクリック操作を実行する。
-/// @todo remove コメントスタイルガイド適用済み
-void MainWindow::clickNextButton()
-{
-    ensureTestAutomationHelper();
-    m_testHelper->clickNextButton();
-}
-
-// `clickPrevButton`: Prev Button のクリック操作を実行する。
-/// @todo remove コメントスタイルガイド適用済み
-void MainWindow::clickPrevButton()
-{
-    ensureTestAutomationHelper();
-    m_testHelper->clickPrevButton();
-}
-
-// `clickFirstButton`: First Button のクリック操作を実行する。
-/// @todo remove コメントスタイルガイド適用済み
-void MainWindow::clickFirstButton()
-{
-    ensureTestAutomationHelper();
-    m_testHelper->clickFirstButton();
-}
-
-// `clickLastButton`: Last Button のクリック操作を実行する。
-/// @todo remove コメントスタイルガイド適用済み
-void MainWindow::clickLastButton()
-{
-    ensureTestAutomationHelper();
-    m_testHelper->clickLastButton();
-}
-
-// `clickKifuRow`: Kifu Row のクリック操作を実行する。
-/// @todo remove コメントスタイルガイド適用済み
-void MainWindow::clickKifuRow(int row)
-{
-    ensureTestAutomationHelper();
-    m_testHelper->clickKifuRow(row);
-}
-
-// `clickBranchTreeNode`: Branch Tree Node のクリック操作を実行する。
-/// @todo remove コメントスタイルガイド適用済み
-void MainWindow::clickBranchTreeNode(int row, int ply)
-{
-    ensureTestAutomationHelper();
-    m_testHelper->clickBranchTreeNode(row, ply);
-}
-
-// `dumpTestState`: Test State を出力する。
-/// @todo remove コメントスタイルガイド適用済み
-void MainWindow::dumpTestState()
-{
-    ensureTestAutomationHelper();
-    m_testHelper->dumpTestState();
-}
-
-// `verify4WayConsistency`: 4 Way Consistency を検証する。
-/// @todo remove コメントスタイルガイド適用済み
-bool MainWindow::verify4WayConsistency()
-{
-    ensureTestAutomationHelper();
-    return m_testHelper->verify4WayConsistency();
-}
-
-// ============================================================
-// 対局シミュレーション用テストメソッド
-// ============================================================
-
-/// @todo remove コメントスタイルガイド適用済み
-void MainWindow::startTestGame()
-{
-    ensureTestAutomationHelper();
-    m_testHelper->startTestGame();
-}
-
-// `makeTestMove`: テスト支援用にUSI指し手を1手適用する。
-/// @todo remove コメントスタイルガイド適用済み
-bool MainWindow::makeTestMove(const QString& usiMove)
-{
-    ensureTestAutomationHelper();
-    return m_testHelper->makeTestMove(usiMove);
-}
-
-// `getBranchTreeNodeCount`: Branch Tree Node Count を取得する。
-/// @todo remove コメントスタイルガイド適用済み
-int MainWindow::getBranchTreeNodeCount()
-{
-    ensureTestAutomationHelper();
-    return m_testHelper->getBranchTreeNodeCount();
-}
-
-// `verifyBranchTreeNodeCount`: Branch Tree Node Count を検証する。
-/// @todo remove コメントスタイルガイド適用済み
-bool MainWindow::verifyBranchTreeNodeCount(int minExpected)
-{
-    ensureTestAutomationHelper();
-    return m_testHelper->verifyBranchTreeNodeCount(minExpected);
 }
