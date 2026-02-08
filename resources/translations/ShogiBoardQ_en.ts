@@ -6013,7 +6013,7 @@ Are you sure you want to declare?</translation>
         <translation>USI engine is not running.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="864"/>
+        <location filename="../../src/engine/usi.cpp" line="956"/>
         <source>Timeout waiting for bestmove.</source>
         <translation>Timeout waiting for bestmove.</translation>
     </message>
