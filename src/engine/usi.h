@@ -294,6 +294,9 @@ private:
     
     void startPonderingAfterBestMove(QString& positionStr, QString& positionPonderStr);
     void appendBestMoveAndStartPondering(QString& positionStr, QString& positionPonderStr);
+
+    QString computeBaseSfenFromBoard() const;
+    void updateBaseSfenForPonder();
     
     QString convertHumanMoveToUsiFormat(const QPoint& outFrom, const QPoint& outTo, bool promote);
     

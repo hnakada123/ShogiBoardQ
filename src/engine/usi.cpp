@@ -702,6 +702,79 @@ void Usi::applyMovesToBoardFromBestMoveAndPonder()
     m_presenter->setClonedBoardData(m_clonedBoardData);
 }
 
+QString Usi::computeBaseSfenFromBoard() const
+{
+    if (!m_gameController || !m_gameController->board()) return QString();
+
+    ShogiBoard* board = m_gameController->board();
+    QString turn = (m_gameController->currentPlayer() == ShogiGameController::Player1)
+                   ? QStringLiteral("b") : QStringLiteral("w");
+    return board->convertBoardToSfen() + QStringLiteral(" ") + turn +
+           QStringLiteral(" ") + board->convertStandToSfen() + QStringLiteral(" 1");
+}
+
+/// USI形式の指し手をShogiBoard上に適用するローカルヘルパ
+static void applyUsiMoveToBoard(ShogiBoard* board, const QString& usiMove, bool isSenteMove)
+{
+    if (usiMove.length() < 4) return;
+
+    bool promote = (usiMove.length() >= 5 && usiMove.at(4) == QLatin1Char('+'));
+
+    if (usiMove.at(1) == QLatin1Char('*')) {
+        // 駒打ち: "P*5e"
+        int fileTo = usiMove.at(2).digitValue();
+        int rankTo = usiMove.at(3).toLatin1() - 'a' + 1;
+        QChar pieceChar = isSenteMove ? usiMove.at(0).toUpper() : usiMove.at(0).toLower();
+
+        board->decrementPieceOnStand(pieceChar);
+        board->movePieceToSquare(pieceChar, 10, 0, fileTo, rankTo, false);
+    } else {
+        // 盤上の移動: "8c8d" or "8c8d+"
+        int fileFrom = usiMove.at(0).digitValue();
+        int rankFrom = usiMove.at(1).toLatin1() - 'a' + 1;
+        int fileTo = usiMove.at(2).digitValue();
+        int rankTo = usiMove.at(3).toLatin1() - 'a' + 1;
+
+        QChar movingPiece = board->getPieceCharacter(fileFrom, rankFrom);
+        QChar capturedPiece = board->getPieceCharacter(fileTo, rankTo);
+
+        if (!capturedPiece.isNull() && capturedPiece != QLatin1Char(' ')) {
+            board->addPieceToStand(capturedPiece);
+        }
+
+        board->movePieceToSquare(movingPiece, fileFrom, rankFrom, fileTo, rankTo, promote);
+    }
+}
+
+void Usi::updateBaseSfenForPonder()
+{
+    QString currentSfen = m_presenter->baseSfen();
+    if (currentSfen.isEmpty()) return;
+
+    // 現在のbaseSfenから手番を取得
+    QStringList sfenParts = currentSfen.split(QLatin1Char(' '));
+    if (sfenParts.size() < 2) return;
+    bool isSente = (sfenParts.at(1) == QStringLiteral("b"));
+
+    // 一時的なShogiBoardを作成し、現在のbaseSfenを設定
+    ShogiBoard tempBoard;
+    tempBoard.setSfen(currentSfen);
+
+    // bestmove（現在の手番のプレイヤーの指し手）を適用
+    applyUsiMoveToBoard(&tempBoard, m_protocolHandler->bestMove(), isSente);
+
+    // predictedMove（相手の予測手）を適用
+    applyUsiMoveToBoard(&tempBoard, m_protocolHandler->predictedMove(), !isSente);
+
+    // ポンダー局面のSFENを生成（2手適用後なので手番は元と同じ）
+    QString ponderTurn = isSente ? QStringLiteral("b") : QStringLiteral("w");
+    QString ponderBaseSfen = tempBoard.convertBoardToSfen() + QStringLiteral(" ") + ponderTurn +
+                             QStringLiteral(" ") + tempBoard.convertStandToSfen() + QStringLiteral(" 1");
+
+    qDebug().noquote() << "[Usi::updateBaseSfenForPonder] ponderBaseSfen=" << ponderBaseSfen.left(80);
+    m_presenter->setBaseSfen(ponderBaseSfen);
+}
+
 QString Usi::convertHumanMoveToUsiFormat(const QPoint& outFrom, const QPoint& outTo, bool promote)
 {
     return m_protocolHandler->convertHumanMoveToUsi(outFrom, outTo, promote);
@@ -786,6 +859,20 @@ void Usi::processEngineResponse(QString& positionStr, QString& positionPonderStr
     if (bestMove == predictedMove) {
         // ポンダーヒット
         cloneCurrentBoardData();
+
+        // ポンダーヒット時のbaseSfenと最終指し手を更新（現在の盤面から）
+        QString baseSfen = computeBaseSfenFromBoard();
+        if (!baseSfen.isEmpty()) {
+            m_presenter->setBaseSfen(baseSfen);
+        }
+        // positionStrの最後のトークンがヒットした指し手
+        if (positionStr.contains(QStringLiteral(" moves "))) {
+            const QStringList tokens = positionStr.split(QLatin1Char(' '));
+            if (!tokens.isEmpty()) {
+                m_lastUsiMove = tokens.last();
+            }
+        }
+
         m_protocolHandler->sendPonderHit();
 
         if (byoyomiMilliSec == 0) {
@@ -826,13 +913,18 @@ void Usi::sendCommandsAndProcess(int byoyomiMilliSec, QString& positionStr,
     // 4. bestmoveを反映してポンダー開始
 
     // 思考開始時の局面SFENを保存（読み筋表示用）
-    if (m_gameController && m_gameController->board()) {
-        ShogiBoard* board = m_gameController->board();
-        QString turn = (m_gameController->currentPlayer() == ShogiGameController::Player1)
-                       ? QStringLiteral("b") : QStringLiteral("w");
-        QString baseSfen = board->convertBoardToSfen() + QStringLiteral(" ") + turn +
-                          QStringLiteral(" ") + board->convertStandToSfen() + QStringLiteral(" 1");
+    QString baseSfen = computeBaseSfenFromBoard();
+    if (!baseSfen.isEmpty()) {
         m_presenter->setBaseSfen(baseSfen);
+    }
+
+    // 思考開始局面に至った最後の指し手を更新（読み筋表示ウィンドウのハイライト用）
+    // positionStrの最後のトークンが最終指し手（"position startpos moves 7g7f 8c8d" → "8c8d"）
+    if (positionStr.contains(QStringLiteral(" moves "))) {
+        const QStringList tokens = positionStr.split(QLatin1Char(' '));
+        if (!tokens.isEmpty()) {
+            m_lastUsiMove = tokens.last();
+        }
     }
 
     m_protocolHandler->sendPosition(positionStr);
@@ -869,12 +961,16 @@ void Usi::waitAndCheckForBestMoveRemainingTime(int byoyomiMilliSec, const QStrin
 void Usi::startPonderingAfterBestMove(QString& positionStr, QString& positionPonderStr)
 {
     const QString& predictedMove = m_protocolHandler->predictedMove();
-    
+
     if (!predictedMove.isEmpty() && m_protocolHandler->isPonderEnabled()) {
         applyMovesToBoardFromBestMoveAndPonder();
 
         ensureMovesKeyword(positionStr);
         positionPonderStr = positionStr + " " + predictedMove;
+
+        // ポンダー先読み開始時の局面SFENと最終指し手を更新（読み筋表示用）
+        updateBaseSfenForPonder();
+        m_lastUsiMove = predictedMove;
 
         m_protocolHandler->sendPosition(positionPonderStr);
         m_protocolHandler->sendGoPonder();
