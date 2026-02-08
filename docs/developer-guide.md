@@ -53,6 +53,7 @@
 | 2026-02-08 | 第3章「アーキテクチャ全体図」作成 |
 | 2026-02-08 | 第4章「設計パターンとコーディング規約」作成 |
 | 2026-02-08 | 第5章「core層：純粋なゲームロジック」作成 |
+| 2026-02-08 | 第6章「game層：対局管理」作成 |
 
 <!-- chapter-0-end -->
 
@@ -2398,7 +2399,712 @@ core層は他の全層から参照されるが、core層自身は他層を参照
 <!-- chapter-6-start -->
 ## 第6章 game層：対局管理
 
-*（後続セッションで作成予定）*
+game層（`src/game/`）は対局のライフサイクル全体を管理する層である。対局開始の準備から、指し手の実行、手番の切替、終局判定、連続対局まで、対局に関わるすべてのフローをこの層のクラス群が担う。
+
+### 6.1 game層の全体像
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        game 層                                  │
+│                                                                 │
+│  ┌───────────────────────┐    ┌──────────────────────┐         │
+│  │  GameStartCoordinator │───▶│  PreStartCleanup     │         │
+│  │  (対局開始フロー)      │    │  Handler             │         │
+│  └───────────┬───────────┘    │  (開始前クリーンアップ)│         │
+│              │                └──────────────────────┘         │
+│              ▼                                                  │
+│  ┌───────────────────────┐    ┌──────────────────────┐         │
+│  │  MatchCoordinator     │◀──▶│  ShogiGameController │         │
+│  │  (司令塔)             │    │  (盤面・ルール管理)   │         │
+│  └───────────┬───────────┘    └──────────┬───────────┘         │
+│              │                           │                      │
+│     ┌────────┼────────┐                  │                      │
+│     ▼        ▼        ▼                  ▼                      │
+│  ┌──────┐┌──────┐┌──────────────┐ ┌──────────────┐             │
+│  │ Usi  ││Clock ││GameState     │ │PromotionFlow │             │
+│  │(E/G) ││(時計)││Controller    │ │(成/不成選択) │             │
+│  └──────┘└──────┘│(終局処理)    │ └──────────────┘             │
+│                  └──────────────┘                               │
+│                                                                 │
+│  ┌──────────────────────┐    ┌──────────────────────┐          │
+│  │  TurnManager         │◀──▶│  TurnSyncBridge      │          │
+│  │  (手番の単一ソース)   │    │  (手番同期配線)       │          │
+│  └──────────────────────┘    └──────────────────────┘          │
+│                                                                 │
+│  ┌──────────────────────────────┐                               │
+│  │  ConsecutiveGamesController  │                               │
+│  │  (連続対局制御)              │                               │
+│  └──────────────────────────────┘                               │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+| クラス | ソース | 責務 |
+|--------|--------|------|
+| **MatchCoordinator** | `matchcoordinator.h/.cpp` | 対局進行の司令塔。エンジン通信・時計・棋譜記録・終局判定を統括 |
+| **ShogiGameController** | `shogigamecontroller.h/.cpp` | 盤面状態の管理、指し手の合法性検証と適用 |
+| **GameStartCoordinator** | `gamestartcoordinator.h/.cpp` | 対局開始フローのオーケストレーション |
+| **PreStartCleanupHandler** | `prestartcleanuphandler.h/.cpp` | 対局開始前のUI/状態クリーンアップ |
+| **GameStateController** | `gamestatecontroller.h/.cpp` | 終局処理・投了/中断・人間/エンジン判定 |
+| **TurnManager** | `turnmanager.h/.cpp` | 手番の単一ソース（Single Source of Truth） |
+| **TurnSyncBridge** | `turnsyncbridge.h/.cpp` | GC ↔ TurnManager ↔ UI の手番同期配線 |
+| **PromotionFlow** | `promotionflow.h/.cpp` | 成り/不成の選択ダイアログ表示 |
+| **ConsecutiveGamesController** | `consecutivegamescontroller.h/.cpp` | 連続対局の進行管理と手番入れ替え |
+
+### 6.2 MatchCoordinator — 司令塔
+
+`MatchCoordinator` は対局全体のライフサイクルを管理するハブクラスであり、game層の中核を成す。寿命は MainWindow 側で管理される。
+
+**ソース**: `src/game/matchcoordinator.h`, `src/game/matchcoordinator.cpp`
+
+#### 司令塔の責務
+
+| 責務 | 内容 |
+|------|------|
+| **対局開始** | `configureAndStart()` でモード別の初期化と開始処理を実行 |
+| **エンジン管理** | USIエンジンの生成・初期化・破棄（`initializeAndStartEngineFor()`, `destroyEngines()`） |
+| **手番管理** | 内部手番 `m_cur`（P1/P2）の管理と表示更新 |
+| **時間管理** | ShogiClock との連携、USI go コマンド用の時間計算 |
+| **指し手進行** | エンジン着手の適用（`engineMoveOnce()`）、人間着手後の処理（`onHumanMove_HvE()`, `onHumanMove_HvH()`） |
+| **終局判定** | 投了・時間切れ・中断・入玉宣言・持将棋の各終局パターンの処理 |
+| **棋譜記録** | 着手ごとの棋譜行追記、評価値追記の委譲 |
+| **UNDO** | 2手分（自分＋相手）の巻き戻し |
+| **検討モード** | 検討/詰み探索エンジンの開始・停止・MultiPV変更 |
+
+#### 内部型定義
+
+MatchCoordinator は多くの内部型を定義しており、対局に関する設定・状態・コールバックを構造化している。
+
+```cpp
+// 対局者を表す列挙値
+enum Player : int { P1 = 1, P2 = 2 };
+
+// 終局原因
+enum class Cause : int {
+    Resignation = 0,  // 投了
+    Timeout     = 1,  // 時間切れ
+    BreakOff    = 2,  // 中断
+    Jishogi     = 3,  // 持将棋／最大手数到達
+    NyugyokuWin = 4,  // 入玉宣言勝ち
+    IllegalMove = 5   // 反則負け
+};
+```
+
+**StartOptions** — 対局開始のための設定パラメータ:
+
+| フィールド | 説明 |
+|-----------|------|
+| `mode` | 対局モード（`PlayMode`） |
+| `sfenStart` | 開始局面のSFEN文字列 |
+| `engineName1/2`, `enginePath1/2` | エンジンの表示名と実行パス |
+| `engineIsP1`, `engineIsP2` | エンジンの先手/後手フラグ（HvE用） |
+| `maxMoves` | 最大手数（0＝無制限） |
+| `autoSaveKifu`, `kifuSaveDir` | 棋譜自動保存の設定 |
+| `humanName1/2` | 人間対局者名 |
+
+**GameEndInfo** — 終局情報:
+
+```cpp
+struct GameEndInfo {
+    Cause  cause = Cause::Resignation;  // 終局原因
+    Player loser = P1;                  // 敗者
+};
+```
+
+**GameOverState** — 直近の終局状態:
+
+```cpp
+struct GameOverState {
+    bool        isOver       = false;   // 終局済みか
+    bool        moveAppended = false;   // 棋譜に終局手を追記済みか
+    bool        hasLast      = false;   // 直近の終局情報があるか
+    bool        lastLoserIsP1= false;   // 直近の敗者が先手か
+    GameEndInfo lastInfo;               // 直近の終局情報
+    QDateTime   when;                   // 終局日時
+};
+```
+
+`moveAppended` フラグは棋譜への終局手（「投了」「中断」等）の二重追記を防ぐガードとして機能する。
+
+#### Hooks — コールバック注入パターン
+
+MatchCoordinator は UI 層やその他の層への依存を `Hooks` 構造体に定義された `std::function` コールバック群で解決する。これにより司令塔自体は UI の具象型に依存しない。
+
+```cpp
+struct Hooks {
+    // UI/描画系
+    std::function<void(Player cur)> updateTurnDisplay;       // 手番表示更新
+    std::function<void(const QString&, const QString&)> setPlayersNames; // 対局者名設定
+    std::function<void(const QString&, const QString&)> setEngineNames;  // エンジン名設定
+    std::function<void(bool)> setGameActions;                // UI操作の有効/無効切替
+    std::function<void()> renderBoardFromGc;                 // GC→盤面ビューの反映
+    std::function<void(const QString&, const QString&)> showGameOverDialog; // 終局ダイアログ
+
+    // 時計読み出し（ShogiClock API差異の吸収）
+    std::function<qint64(Player)> remainingMsFor;            // 残り時間
+    std::function<qint64(Player)> incrementMsFor;            // フィッシャー加算
+    std::function<qint64()> byoyomiMs;                       // 秒読み
+
+    // USI送受
+    std::function<void(Usi*, const GoTimes&)> sendGoToEngine;   // go送信
+    std::function<void(Usi*)> sendStopToEngine;                 // stop送信
+    std::function<void(Usi*, const QString&)> sendRawToEngine;  // 任意コマンド送信
+
+    // 棋譜関連
+    std::function<void(const QString&)> initializeNewGame;      // 新規対局GUI初期化
+    std::function<void(const QString&, const QString&)> appendKifuLine; // 棋譜行追記
+    std::function<void()> appendEvalP1;  // P1着手後に評価値追記
+    std::function<void()> appendEvalP2;  // P2着手後に評価値追記
+    std::function<void(...)> autoSaveKifu; // 棋譜自動保存
+};
+```
+
+Hooks はコンストラクタで `Deps` 構造体経由で注入される。MainWindow が司令塔を生成する際に、自身のメソッドやUIオブジェクトへの参照をラップして設定する。
+
+> **Note**: `Hooks` の `std::function` はシグナル/スロットの `connect()` とは異なるコールバック注入パターンである。CLAUDE.md の「connect() でラムダを使わない」ルールは `connect()` の話であり、Deps/Hooks 構造体への `std::function` 注入は許容されている。
+
+#### Deps — 依存オブジェクト
+
+```cpp
+struct Deps {
+    ShogiGameController* gc = nullptr;    // ゲームコントローラ
+    ShogiClock*          clock = nullptr; // 将棋時計
+    ShogiView*           view = nullptr;  // 盤面ビュー
+    Usi*                 usi1 = nullptr;   // エンジン1
+    Usi*                 usi2 = nullptr;   // エンジン2
+    UsiCommLogModel*     comm1 = nullptr;  // エンジン1通信ログ
+    ShogiEngineThinkingModel* think1 = nullptr; // エンジン1思考情報
+    UsiCommLogModel*     comm2 = nullptr;  // エンジン2通信ログ
+    ShogiEngineThinkingModel* think2 = nullptr; // エンジン2思考情報
+    Hooks                hooks;            // UIコールバック群
+    QStringList*         sfenRecord = nullptr; // SFEN履歴（共有）
+};
+```
+
+すべてのポインタは非所有（non-owning）であり、寿命は MainWindow 側で管理される。
+
+#### configureAndStart() — モード別起動ルーティング
+
+`configureAndStart()` は `StartOptions` を受け取り、対局モードに応じて適切な起動処理に分岐する中核メソッドである。
+
+```
+configureAndStart(opt)
+  │
+  ├── 1. 前回対局の position 履歴を保存
+  ├── 2. 過去対局履歴から一致する開始局面を探索
+  ├── 3. GameOverState をクリア
+  ├── 4. Hooks 経由で GUI 初期化
+  │     ├── initializeNewGame(sfenStart)
+  │     ├── setPlayersNames()
+  │     ├── setEngineNames()
+  │     └── setGameActions(true)
+  ├── 5. SFEN から開始手番を決定 → GC に設定
+  ├── 6. position 文字列の初期化
+  │
+  └── 7. PlayMode に応じた起動ルート
+        ├── EvE → initEnginesForEvE() → startEngineVsEngine()
+        ├── HvE → startHumanVsEngine(engineIsP1)
+        ├── EvH → startHumanVsEngine(engineIsP1=true)
+        └── HvH → startHumanVsHuman()
+```
+
+各起動ルートの処理内容:
+
+| 起動ルート | メソッド | 処理内容 |
+|-----------|---------|---------|
+| **HvH** | `startHumanVsHuman()` | GC の手番を確認し、盤面描画と手番表示を更新するだけ |
+| **HvE** | `startHumanVsEngine()` | 既存エンジン破棄→USI生成→投了/宣言勝ち配線→エンジン起動→手番設定 |
+| **EvE** | `startEngineVsEngine()` | 両エンジン起動→時計開始→手番に応じて先手/後手から初手 go を送信 |
+
+#### 主要シグナル
+
+| シグナル | 接続先 | 用途 |
+|---------|-------|------|
+| `gameEnded(GameEndInfo)` | GameStartCoordinator, GameStateController | 終局通知 |
+| `gameOverStateChanged(GameOverState)` | GameStateController | 終局状態変更通知 |
+| `timeUpdated(p1ms, p2ms, p1turn, urgencyMs)` | UI層（時計表示） | 残り時間の定期更新 |
+| `timesForUSIUpdated(bMs, wMs)` | MainWindow | USI計算時間の更新 |
+| `boardFlipped(bool)` | GameStartCoordinator | 盤面反転通知 |
+| `requestAppendGameOverMove(GameEndInfo)` | GameStateController | 終局手の棋譜追記要求 |
+| `considerationModeEnded()` | UI層 | 検討モード終了通知 |
+
+### 6.3 対局開始シーケンス
+
+対局開始は `GameStartCoordinator` → `PreStartCleanupHandler` → `MatchCoordinator` の3段階で進行する。
+
+```mermaid
+sequenceDiagram
+    participant UI as MainWindow / StartGameDialog
+    participant GSC as GameStartCoordinator
+    participant PCH as PreStartCleanupHandler
+    participant MC as MatchCoordinator
+    participant GC as ShogiGameController
+    participant Clock as ShogiClock
+    participant USI as Usi (Engine)
+
+    UI->>GSC: prepare(Request)
+    GSC-->>PCH: requestPreStartCleanup [signal]
+    PCH->>PCH: performCleanup()
+    Note over PCH: 盤面クリア, 棋譜モデルリセット,<br/>時計リセット, 評価値グラフ初期化,<br/>分岐ツリーのルート作成,<br/>ライブゲームセッション開始
+
+    GSC-->>UI: requestApplyTimeControl(tc) [signal]
+    UI->>Clock: setPlayerTimes(...)
+
+    UI->>GSC: start(StartParams)
+    GSC->>MC: setTimeControlConfig(...)
+    GSC->>MC: configureAndStart(opt)
+
+    MC->>MC: clearGameOverState()
+    MC->>GC: newGame(sfenStart) [via Hooks.initializeNewGame]
+    MC->>GC: setCurrentPlayer(startSide)
+
+    alt HvH
+        MC->>MC: startHumanVsHuman()
+    else HvE
+        MC->>MC: startHumanVsEngine(opt, engineIsP1)
+        MC->>USI: new Usi(...)
+        MC->>USI: initializeAndStartEngineFor(side, path, name)
+    else EvE
+        MC->>MC: startEngineVsEngine(opt)
+        MC->>USI: initEnginesForEvE()
+        MC->>Clock: startClock()
+        MC->>USI: go (先手エンジンへ)
+    end
+
+    GSC->>MC: startInitialEngineMoveIfNeeded()
+    Note over MC: 初手がエンジン手番なら go を発行
+
+    GSC-->>UI: started(opt) [signal]
+    Note over UI: ナビゲーション無効化、<br/>対局中UIに切替
+```
+
+### 6.4 GameStartCoordinator — 対局開始コーディネータ
+
+`GameStartCoordinator` は対局開始フロー全体を司るコーディネータである。
+
+**ソース**: `src/game/gamestartcoordinator.h`, `src/game/gamestartcoordinator.cpp`
+
+#### 責務
+
+- `StartOptions` を受け取り、`MatchCoordinator` へ対局開始を指示する
+- 時計の初期化をシグナルで UI 層に依頼する（自身は `ShogiClock` API を直接呼ばない）
+- 対局開始前の UI/内部状態クリアをシグナルで通知する
+- 初手がエンジン手番の場合に go をトリガする
+
+#### 主要な型定義
+
+**StartParams** — 対局開始パラメータ:
+
+```cpp
+struct StartParams {
+    MatchCoordinator::StartOptions opt;  // 対局設定
+    TimeControl                    tc;   // 時計設定
+    bool autoStartEngineMove = true;     // 先手がエンジンなら初手 go を起動
+};
+```
+
+**TimeControl** — 時間制御:
+
+```cpp
+struct TimeControl {
+    bool     enabled = false;  // 時間制御が有効か
+    TimeSide p1;               // 先手: { baseMs, byoyomiMs, incrementMs }
+    TimeSide p2;               // 後手: 同上
+};
+```
+
+**Ctx** — 段階実行 API 用のコンテキスト:
+
+`Ctx` は `initializeGame()` や `setTimerAndStart()` などの段階実行 API に渡される。ビュー、GC、時計、ダイアログ、SFEN文字列への参照をまとめて保持する。「現在の局面から開始」のケースも `selectedPly` / `resumeFromCurrent` フラグで扱う。
+
+#### API
+
+| メソッド | 説明 |
+|---------|------|
+| `prepare(Request)` | 開始前の時計/表示ポリシーを適用。`requestPreStartCleanup` シグナルを発行 |
+| `start(StartParams)` | バリデーション→TimeControl正規化→時計適用→`configureAndStart()`→完了通知 |
+| `initializeGame(Ctx)` | ダイアログ表示→対局開始までの一連のフロー |
+| `setTimerAndStart(Ctx)` | 時計を設定し対局を開始 |
+| `createAndWireMatch(Deps, parent)` | MatchCoordinatorの生成と初期配線をまとめて実施 |
+
+`start()` メソッドの時間制御正規化では、秒読みとフィッシャーが同時に指定された場合に秒読みを優先してフィッシャー加算を0にクリアする。
+
+### 6.5 PreStartCleanupHandler — 対局開始前クリーンアップ
+
+`PreStartCleanupHandler` は対局開始前に UI とデータモデルを初期状態にリセットする。
+
+**ソース**: `src/game/prestartcleanuphandler.h`, `src/game/prestartcleanuphandler.cpp`
+
+#### 接続方法
+
+```
+GameStartCoordinator::requestPreStartCleanup [signal]
+    └──▶ PreStartCleanupHandler::performCleanup() [slot]
+```
+
+#### performCleanup() の処理フロー
+
+```
+performCleanup()
+  │
+  ├── 現在の SFEN・選択手数・選択ノードを一時保存
+  │    （後続の selectStartRow() で上書きされる前に保存）
+  │
+  ├── clearBoardAndHighlights()
+  │     盤面のハイライトをすべて消去
+  │
+  ├── clearClockDisplay()
+  │     時計表示を "00:00:00" にリセット
+  │
+  ├── cleanupKifuModel(startFromCurrentPos, keepRow)
+  │     ├── 途中局面から開始 → 分岐ツリーのパスを辿り棋譜を再構築
+  │     └── 新規対局          → 棋譜モデルを全消去し「=== 開始局面 ===」を追加
+  │
+  ├── updatePlyTracking(startFromCurrentPos, keepRow)
+  │     手数インデックス（activePly, selectedPly, moveIndex）を更新
+  │
+  ├── clearBranchModel()
+  │     分岐モデルをクリア
+  │
+  ├── broadcastCommentRequested("", true) [signal]
+  │     コメント欄をクリア
+  │
+  ├── resetUsiLogModels()
+  │     エンジン通信ログ・思考情報・予測手等をすべて初期化
+  │
+  ├── resetTimeControl()
+  │     時間制御コントローラの開始時刻をクリア
+  │
+  ├── resetEvaluationGraph()
+  │     ├── 新規対局          → 評価値グラフを全消去
+  │     └── 途中局面から開始 → 指定手数でトリム
+  │
+  ├── selectStartRow()
+  │     棋譜欄の先頭行を選択（黄色ハイライト）
+  │
+  ├── ensureBranchTreeRoot()
+  │     分岐ツリーのルートノードが存在しなければ作成
+  │
+  └── startLiveGameSession()
+        ├── 途中局面から → 保存したノードを分岐点としてセッション開始
+        └── 新規対局     → ルートからセッション開始
+```
+
+#### 「現在の局面から開始」の判定
+
+```cpp
+static bool shouldStartFromCurrentPosition(
+    const QString& startSfen,
+    const QString& currentSfen,
+    int selectedPly)
+{
+    // currentSfen が空なら false
+    // startSfen が空なら true（何らかの棋譜が読み込まれている）
+    // selectedPly > 0 かつ currentSfen != "startpos" なら true
+}
+```
+
+この判定により、棋譜を途中まで進めた局面から対局を開始する場合と、初手から新規に開始する場合を区別する。
+
+### 6.6 ShogiGameController — 盤面とルールの橋渡し
+
+`ShogiGameController` は `ShogiBoard`（盤面状態）と `MoveValidator`（合法性検証）を統合し、指し手の実行を管理するコントローラである。
+
+**ソース**: `src/game/shogigamecontroller.h`, `src/game/shogigamecontroller.cpp`
+
+#### 指し手実行フロー
+
+人間の着手時、`validateAndMove()` が呼ばれる。
+
+```
+validateAndMove(outFrom, outTo, record, playMode, moveNumber, sfenRecord, gameMoves)
+  │
+  ├── 1. 禁じ手チェック
+  │     ├── checkTwoPawn()         — 二歩の検出
+  │     ├── checkWhetherAllyPiece() — 味方駒への着手
+  │     ├── checkNumberStandPiece() — 駒台の駒数チェック
+  │     └── checkGetKingOpponentPiece() — 相手玉の取得禁止
+  │
+  ├── 2. MoveValidator で合法性を検証
+  │     getCurrentTurnForValidator() → validator.isLegalMove()
+  │
+  ├── 3. 成り判定
+  │     decidePromotion()
+  │       ├── 行き所なし → setMandatoryPromotionFlag() で強制成り
+  │       ├── 強制成りモード → setForcedPromotion() の値を使用
+  │       └── 成り可能ゾーン → showPromotionDialog シグナル → PromotionFlow
+  │
+  ├── 4. 盤面を更新
+  │     board()->movePiece(from, to)
+  │
+  ├── 5. ShogiMove を構築して gameMoves に追加
+  │
+  ├── 6. SFEN 履歴を更新
+  │     sfenRecord->append(board()->boardToSfen(...))
+  │
+  ├── 7. 棋譜文字列を生成
+  │     record = convertMoveToKanjiStr(piece, from, to)
+  │
+  ├── 8. 手番を切替
+  │     changeCurrentPlayer()
+  │     emit currentPlayerChanged(newPlayer)
+  │     emit moveCommitted(mover, ply)
+  │
+  └── return true（成功）
+```
+
+#### 主要なシグナル
+
+| シグナル | 接続先 | 用途 |
+|---------|-------|------|
+| `boardChanged(ShogiBoard*)` | ShogiView | 盤面変更後の描画更新 |
+| `gameOver(Result)` | MatchCoordinator | 対局結果確定 |
+| `showPromotionDialog()` | PromotionFlow | 成り/不成選択の表示要求 |
+| `currentPlayerChanged(Player)` | TurnManager | 手番変更通知 |
+| `moveCommitted(Player, int)` | TurnSyncBridge | 着手確定通知 |
+
+### 6.7 TurnManager / TurnSyncBridge — 手番管理
+
+#### TurnManager — 手番の単一ソース
+
+`TurnManager` は手番の「Single Source of Truth」として機能し、異なるサブシステム間の手番表現を変換する。
+
+**ソース**: `src/game/turnmanager.h`, `src/game/turnmanager.cpp`
+
+```
+                    ┌───────────────────┐
+  GC.Player ─set()──▶│   TurnManager    │──toSfenToken()──▶ "b" / "w"
+                    │                   │
+  GC.Player ◀─toGc()─│   m_side         │──toClockPlayer()─▶ 1 / 2
+                    │ (Player1/Player2) │
+                    └─────────┬─────────┘
+                              │
+                         changed() [signal]
+                              │
+                              ▼
+                         MainWindow::onTurnManagerChanged()
+```
+
+各変換メソッド:
+
+| メソッド | 方向 | 変換内容 |
+|---------|------|---------|
+| `setFromGc(Player)` | GC → TM | GC の Player 値を設定 |
+| `toGc()` | TM → GC | TM の値を GC の Player 形式で取得 |
+| `setFromSfenToken("b"/"w")` | SFEN → TM | SFEN の手番文字から設定 |
+| `toSfenToken()` | TM → SFEN | `"b"` または `"w"` を返す |
+| `setFromClockPlayer(1/2)` | Clock → TM | 時計の player 番号から設定 |
+| `toClockPlayer()` | TM → Clock | 1 または 2 を返す |
+| `toggle()` | — | 手番を反転（Player1 ↔ Player2） |
+
+`set()` メソッドは Player2 以外を Player1 に正規化し、変更があった場合のみ `changed()` シグナルを発行する。
+
+#### TurnSyncBridge — 手番同期の配線
+
+`TurnSyncBridge` は GC・TurnManager・MainWindow 間の手番同期を一箇所に集約する静的ユーティリティクラスである。
+
+**ソース**: `src/game/turnsyncbridge.h`, `src/game/turnsyncbridge.cpp`
+
+```cpp
+// TurnSyncBridge::wire() が構築する接続
+GC::currentPlayerChanged ──▶ TurnManager::setFromGc
+TurnManager::changed     ──▶ MainWindow::onTurnManagerChanged
+```
+
+`wire()` は `Qt::UniqueConnection` を使用して重複接続を防止し、呼び出し時に初期同期（`tm->setFromGc(gc->currentPlayer())`）も行う。
+
+#### 人間/エンジンの手番切替
+
+人間とエンジンの手番切替は MatchCoordinator が `PlayMode` に基づいて制御する。
+
+```
+                         対局中の指し手進行
+                              │
+                   ┌──────────┴──────────┐
+                   │                     │
+              人間の着手              エンジンの着手
+                   │                     │
+          validateAndMove()      engineMoveOnce()
+                   │                     │
+          changeCurrentPlayer()   changeCurrentPlayer()
+                   │                     │
+          GC::currentPlayerChanged  GC::currentPlayerChanged
+                   │                     │
+          TurnManager::setFromGc    TurnManager::setFromGc
+                   │                     │
+                   └──────────┬──────────┘
+                              │
+               次の手番は誰か？（PlayMode で判定）
+                              │
+                   ┌──────────┴──────────┐
+                   │                     │
+              人間の手番            エンジンの手番
+                   │                     │
+          盤面クリック待ち      go コマンド送信
+          タイマー起動          bestmove 待ち
+```
+
+### 6.8 PromotionFlow — 成り/不成の選択
+
+`PromotionFlow` は駒の成り/不成をユーザーに問い合わせるシンプルなユーティリティクラスである。
+
+**ソース**: `src/game/promotionflow.h`, `src/game/promotionflow.cpp`
+
+```cpp
+class PromotionFlow final {
+public:
+    /// @return 成る: true / 不成: false
+    static bool askPromote(QWidget* parent);
+};
+```
+
+実装は `PromoteDialog`（成り/不成選択ダイアログ）を表示し、ユーザーの選択結果を返す。`QDialog::Accepted`（OK/成る）なら `true`、それ以外（Cancel/不成）なら `false` を返す。
+
+このクラスは `ShogiGameController` の `decidePromotion()` から呼ばれる。ただし以下の場合はダイアログを表示せずに自動判定される:
+
+- **行き所のない駒**: 歩・桂・香が進めなくなる段に到達した場合は強制成り（`setMandatoryPromotionFlag()`）
+- **強制成りモード**: 定跡手からの着手時など、`setForcedPromotion()` で事前に成り/不成が決定されている場合
+
+### 6.9 GameStateController — ゲーム状態管理
+
+`GameStateController` は終局処理・投了/中断・人間/エンジン判定を担うコントローラである。MainWindow から終局関連の処理を分離する目的で作られた。
+
+**ソース**: `src/game/gamestatecontroller.h`, `src/game/gamestatecontroller.cpp`
+
+#### 責務
+
+| 責務 | 内容 |
+|------|------|
+| **投了処理** | `handleResignation()` → `MatchCoordinator::handleResign()` に委譲 |
+| **中断処理** | `handleBreakOffGame()` → `MatchCoordinator::handleBreakOff()` に委譲 |
+| **終局後処理** | 棋譜追記、UIの閲覧モードへの遷移、矢印ボタン有効化 |
+| **人間/エンジン判定** | `isHvH()`, `isHumanSide(Player)` を `PlayMode` から判定 |
+| **終局判定** | `isGameOver()` で `MatchCoordinator` の状態を参照 |
+
+#### シグナル接続
+
+```
+MatchCoordinator::gameEnded
+    └──▶ GameStateController::onMatchGameEnded()
+            ├── gameOverStyleLock を有効化
+            ├── タイマー停止・マウス操作無効化
+            ├── setGameOverMove() で棋譜追記
+            └── 矢印ボタン有効化
+
+MatchCoordinator::gameOverStateChanged
+    └──▶ GameStateController::onGameOverStateChanged()
+            ├── ライブ追記モード終了
+            ├── 分岐コンテキストリセット
+            ├── 分岐ツリー再構築
+            ├── 手数状態更新
+            └── UIを閲覧モードへ遷移
+
+MatchCoordinator::requestAppendGameOverMove
+    └──▶ GameStateController::onRequestAppendGameOverMove()
+            └── setGameOverMove() で棋譜追記
+```
+
+#### コールバック設定
+
+GameStateController は MainWindow への委譲を4種類の `std::function` コールバックで行う:
+
+| コールバック | 用途 |
+|-------------|------|
+| `EnableArrowButtonsCallback` | 矢印ボタン（前の手/次の手）の有効化 |
+| `SetReplayModeCallback` | リプレイモードへの切替 |
+| `RefreshBranchTreeCallback` | 分岐ツリーの再構築 |
+| `UpdatePlyStateCallback` | 手数状態（activePly, selectedPly, moveIndex）の更新 |
+
+#### isHumanSide() の判定ロジック
+
+```cpp
+bool isHumanSide(ShogiGameController::Player p) const {
+    switch (m_playMode) {
+    case HumanVsHuman:          return true;           // 両方人間
+    case EvenHumanVsEngine:
+    case HandicapHumanVsEngine: return (p == Player1); // 先手のみ人間
+    case EvenEngineVsHuman:
+    case HandicapEngineVsHuman: return (p == Player2); // 後手のみ人間
+    case EvenEngineVsEngine:
+    case HandicapEngineVsEngine:return false;           // 両方エンジン
+    default:                    return true;
+    }
+}
+```
+
+### 6.10 ConsecutiveGamesController — 連続対局制御
+
+`ConsecutiveGamesController` はエンジン同士（EvE）の連続対局を管理する。
+
+**ソース**: `src/game/consecutivegamescontroller.h`, `src/game/consecutivegamescontroller.cpp`
+
+#### 仕組み
+
+```
+GameStartCoordinator::consecutiveGamesConfigured(totalGames, switchTurn)
+    └──▶ ConsecutiveGamesController::configure(totalGames, switchTurn)
+
+MatchCoordinator::gameEnded
+    └──▶ shouldStartNextGame() ? → startNextGame()
+
+startNextGame()
+  │
+  ├── prepareNextGameOptions()
+  │     ├── m_remainingGames--
+  │     ├── m_gameNumber++
+  │     └── switchTurn → swap(engineName1, engineName2), swap(enginePath1, enginePath2)
+  │
+  ├── emit requestPreStartCleanup()
+  │
+  └── QTimer::singleShot(100ms)
+        ├── TimeControlUtil::applyToClock(clock, lastTimeControl, ...)
+        └── emit requestStartNextGame(lastStartOptions, lastTimeControl)
+```
+
+連続対局では `m_lastStartOptions` と `m_lastTimeControl` を保存しておき、次局開始時に再利用する。手番入れ替え（`m_switchTurnEachGame`）が有効な場合、`prepareNextGameOptions()` でエンジン1とエンジン2の名前・パスを `std::swap()` で入れ替える。
+
+次局開始前に 100ms の遅延を入れるのは、UI更新（クリーンアップ結果の描画）を確実に完了させるためである。
+
+| メソッド | 説明 |
+|---------|------|
+| `configure(totalGames, switchTurn)` | 合計対局数と手番入替の設定を受け取る |
+| `onGameStarted(opt, tc)` | 対局開始時のオプションを保存 |
+| `shouldStartNextGame()` | 残り対局数 > 0 なら true |
+| `startNextGame()` | 次の対局を開始する |
+| `reset()` | 全状態をリセット（連続対局の中断時） |
+
+### 6.11 game層のクラス間関係まとめ
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│                                                                      │
+│  UI (MainWindow)                                                     │
+│    │ ensure*() で生成                                                 │
+│    │                                                                  │
+│    ├── GameStartCoordinator                                          │
+│    │     │                                                            │
+│    │     ├── requestPreStartCleanup ──▶ PreStartCleanupHandler       │
+│    │     │                                                            │
+│    │     ├── start() ──▶ MatchCoordinator.configureAndStart()        │
+│    │     │                                                            │
+│    │     └── started ──▶ MainWindow (UI切替)                          │
+│    │                                                                  │
+│    ├── MatchCoordinator  (司令塔)                                     │
+│    │     ├── ShogiGameController (盤面/ルール)                        │
+│    │     ├── ShogiClock (時計)                                        │
+│    │     ├── Usi × 2 (エンジン)                                       │
+│    │     └── gameEnded ──▶ GameStateController, ConsecutiveGamesCtl  │
+│    │                                                                  │
+│    ├── GameStateController (終局処理)                                  │
+│    │     └── MatchCoordinator の終局シグナルをハンドリング             │
+│    │                                                                  │
+│    ├── TurnManager / TurnSyncBridge (手番同期)                        │
+│    │     └── GC ↔ TurnManager ↔ MainWindow                           │
+│    │                                                                  │
+│    └── ConsecutiveGamesController (連続対局)                           │
+│          └── shouldStartNextGame() で次局判定                          │
+│                                                                      │
+└──────────────────────────────────────────────────────────────────────┘
+```
 
 <!-- chapter-6-end -->
 
