@@ -3,7 +3,6 @@
 
 /// @file considerationflowcontroller.h
 /// @brief 検討フローコントローラクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QObject>
@@ -25,7 +24,6 @@ class ConsiderationFlowController : public QObject
     Q_OBJECT
 public:
     /// 依存オブジェクト
-    /// @todo remove コメントスタイルガイド適用済み
     struct Deps {
         MatchCoordinator* match = nullptr;  ///< 司令塔（必須、非所有）
         std::function<void(const QString&)> onError;  ///< エラー表示コールバック（任意）
@@ -35,7 +33,6 @@ public:
         std::function<void(int multiPV)> onMultiPVReady;  ///< MultiPV確定通知（任意）
     };
 
-    /// @todo remove コメントスタイルガイド適用済み
     explicit ConsiderationFlowController(QObject* parent=nullptr);
 
     /**

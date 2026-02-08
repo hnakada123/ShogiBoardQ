@@ -1,6 +1,5 @@
 /// @file kifubranchtree.cpp
 /// @brief 分岐ツリーデータモデルクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "kifubranchtree.h"
 

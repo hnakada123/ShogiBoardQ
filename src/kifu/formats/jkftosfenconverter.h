@@ -3,7 +3,6 @@
 
 /// @file jkftosfenconverter.h
 /// @brief JKF形式棋譜コンバータクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QString>

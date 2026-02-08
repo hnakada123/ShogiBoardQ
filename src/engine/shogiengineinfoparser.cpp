@@ -1,6 +1,5 @@
 /// @file shogiengineinfoparser.cpp
 /// @brief USIエンジンのinfo行パーサの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "shogiengineinfoparser.h"
 #include <QStringList>
@@ -15,7 +14,6 @@
 // 初期化
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 ShogiEngineInfoParser::ShogiEngineInfoParser()
 {
     m_pieceMap = {{1, 'P'}, {2, 'L'}, {3, 'N'}, {4, 'S'}, {5, 'G'}, {6, 'B'}, {7, 'R'}};
@@ -35,79 +33,66 @@ ShogiEngineInfoParser::ShogiEngineInfoParser()
 // アクセサ
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 QString ShogiEngineInfoParser::searchedHand() const
 {
     return m_searchedHand;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiEngineInfoParser::setScoreMate(const QString& newScoremate)
 {
     m_scoreMate = newScoremate;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QString ShogiEngineInfoParser::hashfull() const
 {
     return m_hashfull;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QString ShogiEngineInfoParser::pvKanjiStr() const
 {
     return m_pvKanjiStr;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QString ShogiEngineInfoParser::pvUsiStr() const
 {
     return m_pvUsiStr;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QString ShogiEngineInfoParser::scoreMate() const
 {
     return m_scoreMate;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QString ShogiEngineInfoParser::scoreCp() const
 {
     return m_scoreCp;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QString ShogiEngineInfoParser::time() const
 {
     return m_time;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QString ShogiEngineInfoParser::nps() const
 {
     return m_nps;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QString ShogiEngineInfoParser::nodes() const
 {
     return m_nodes;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QString ShogiEngineInfoParser::multipv() const
 {
     return m_multipv;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QString ShogiEngineInfoParser::seldepth() const
 {
     return m_seldepth;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QString ShogiEngineInfoParser::depth() const
 {
     return m_depth;
@@ -117,7 +102,6 @@ QString ShogiEngineInfoParser::depth() const
 // 指し手の漢字変換
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 QString ShogiEngineInfoParser::getMoveSymbol(const int moveIndex, const ShogiGameController* algorithm, const bool isPondering) const
 {
     Q_UNUSED(algorithm)  // 局面更新の影響を避けるため、currentPlayer()は使用しない
@@ -139,7 +123,6 @@ QString ShogiEngineInfoParser::getMoveSymbol(const int moveIndex, const ShogiGam
     return symbol;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QString ShogiEngineInfoParser::getFormattedMove(int fileTo, int rankTo, const QString& kanji) const
 {
     qDebug().noquote() << "[ShogiEngineInfoParser::getFormattedMove] fileTo=" << fileTo
@@ -155,7 +138,6 @@ QString ShogiEngineInfoParser::getFormattedMove(int fileTo, int rankTo, const QS
     return ShogiUtils::transFileTo(fileTo) + ShogiUtils::transRankTo(rankTo) + kanji;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QString ShogiEngineInfoParser::convertMoveToShogiString(const QString& kanji, const int fileFrom, const int rankFrom, const int fileTo, const int rankTo,
                                                         const bool promote, const ShogiGameController* algorithm, const int moveIndex, const bool isPondering)
 {
@@ -181,7 +163,6 @@ QString ShogiEngineInfoParser::convertMoveToShogiString(const QString& kanji, co
 // 座標解析ユーティリティ
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 int ShogiEngineInfoParser::convertRankCharToInt(const QChar rankChar)
 {
     if (rankChar.isLetter() && rankChar.toLatin1() <= 'i') {
@@ -194,7 +175,6 @@ int ShogiEngineInfoParser::convertRankCharToInt(const QChar rankChar)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 int ShogiEngineInfoParser::convertPieceToStandRank(const QChar pieceChar)
 {
     if (m_pieceCharToIntMap.contains(pieceChar)) {
@@ -204,13 +184,11 @@ int ShogiEngineInfoParser::convertPieceToStandRank(const QChar pieceChar)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 bool ShogiEngineInfoParser::isBoardRankChar(const QChar rankChar) const
 {
     return rankChar.isLetter() && rankChar.toLatin1() <= 'i';
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 int ShogiEngineInfoParser::parseMoveString(const QString& moveStr, int& fileFrom, int& rankFrom, int& fileTo, int& rankTo, bool& promote)
 {
     fileFrom = rankFrom = fileTo = rankTo = 0;
@@ -305,37 +283,31 @@ int ShogiEngineInfoParser::parseMoveString(const QString& moveStr, int& fileFrom
 // 直前の指し手座標
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 int ShogiEngineInfoParser::previousFileTo() const
 {
     return m_previousFileTo;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiEngineInfoParser::setPreviousFileTo(int newPreviousFileTo)
 {
     m_previousFileTo = newPreviousFileTo;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 int ShogiEngineInfoParser::previousRankTo() const
 {
     return m_previousRankTo;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiEngineInfoParser::setPreviousRankTo(int newPreviousRankTo)
 {
     m_previousRankTo = newPreviousRankTo;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiEngineInfoParser::setThinkingStartPlayer(ShogiGameController::Player player)
 {
     m_thinkingStartPlayer = player;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 ShogiGameController::Player ShogiEngineInfoParser::thinkingStartPlayer() const
 {
     return m_thinkingStartPlayer;
@@ -345,7 +317,6 @@ ShogiGameController::Player ShogiEngineInfoParser::thinkingStartPlayer() const
 // 駒文字変換
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 QString ShogiEngineInfoParser::getPieceKanjiName(QChar symbol)
 {
     symbol = symbol.toUpper();
@@ -360,7 +331,6 @@ QString ShogiEngineInfoParser::getPieceKanjiName(QChar symbol)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QChar ShogiEngineInfoParser::getPieceCharacter(const QVector<QChar>& boardData, const int file, const int rank)
 {
     if ((file >= 1) && (file <= 9)) {
@@ -390,7 +360,6 @@ QChar ShogiEngineInfoParser::getPieceCharacter(const QVector<QChar>& boardData, 
 // 盤面操作
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 bool ShogiEngineInfoParser::setData(QVector<QChar>& boardData, const int file, const int rank, const QChar piece) const
 {
     int index = (rank - 1) * BOARD_SIZE + (file - 1);
@@ -402,7 +371,6 @@ bool ShogiEngineInfoParser::setData(QVector<QChar>& boardData, const int file, c
     return true;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiEngineInfoParser::movePieceToSquare(QVector<QChar>& boardData, QChar movingPiece, int fileFrom, int rankFrom,
                                               int fileTo, int rankTo, bool promote) const
 {
@@ -430,7 +398,6 @@ void ShogiEngineInfoParser::movePieceToSquare(QVector<QChar>& boardData, QChar m
 // info行解析
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 QString ShogiEngineInfoParser::convertCurrMoveToKanjiNotation(const QString& str, const ShogiGameController* algorithm, QVector<QChar>& clonedBoardData,
                                                               const bool isPondering)
 {
@@ -454,7 +421,6 @@ QString ShogiEngineInfoParser::convertCurrMoveToKanjiNotation(const QString& str
     return convertMoveToShogiString(kanjiMovePiece, fileFrom, rankFrom, fileTo, rankTo, promote, algorithm, 0, isPondering);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiEngineInfoParser::parseEngineInfoTokens(const QStringList& tokens, const ShogiGameController* algorithm, QVector<QChar>& clonedBoardData,
                                                   const bool isPondering)
 {
@@ -484,7 +450,6 @@ void ShogiEngineInfoParser::parseEngineInfoTokens(const QStringList& tokens, con
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiEngineInfoParser::parseScore(const QStringList &tokens, int index)
 {
     const QString& type = tokens.at(index + 1);
@@ -506,13 +471,11 @@ void ShogiEngineInfoParser::parseScore(const QStringList &tokens, int index)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 ShogiEngineInfoParser::EvaluationBound ShogiEngineInfoParser::evaluationBound() const
 {
     return m_evaluationBound;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiEngineInfoParser::setEvaluationBound(EvaluationBound newEvaluationBound)
 {
     m_evaluationBound = newEvaluationBound;
@@ -522,7 +485,6 @@ void ShogiEngineInfoParser::setEvaluationBound(EvaluationBound newEvaluationBoun
 // PV解析・盤面シミュレーション
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 int ShogiEngineInfoParser::parsePvAndSimulateMoves(const QStringList& pvTokens, const ShogiGameController* algorithm, QVector<QChar> clonedBoardData,
                                                    const bool isPondering)
 {
@@ -570,7 +532,6 @@ int ShogiEngineInfoParser::parsePvAndSimulateMoves(const QStringList& pvTokens, 
     return 0;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiEngineInfoParser::parseAndApplyMoveToClonedBoard(const QString& str, QVector<QChar>& clonedBoardData)
 {
     int fileFrom = 0, rankFrom = 0, fileTo = 0, rankTo = 0;
@@ -592,7 +553,6 @@ void ShogiEngineInfoParser::parseAndApplyMoveToClonedBoard(const QString& str, Q
 // メインエントリ: info行全体の解析
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiEngineInfoParser::parseEngineOutputAndUpdateState(QString& line, const ShogiGameController* algorithm, QVector<QChar>& clonedBoardData,
                                                            const bool isPondering)
 {
@@ -627,7 +587,6 @@ void ShogiEngineInfoParser::parseEngineOutputAndUpdateState(QString& line, const
 // bestmove予想手の変換
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 QString ShogiEngineInfoParser::convertPredictedMoveToKanjiString(const ShogiGameController* algorithm, QString& predictedOpponentMove, QVector<QChar>& clonedBoardData)
 {
     int fileFrom = 0, rankFrom = 0, fileTo = 0, rankTo = 0;
@@ -660,7 +619,6 @@ QString ShogiEngineInfoParser::convertPredictedMoveToKanjiString(const ShogiGame
 // デバッグ出力
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiEngineInfoParser::printShogiBoard(const QVector<QChar>& boardData) const
 {
     if (boardData.size() != NUM_BOARD_SQUARES) {
@@ -687,13 +645,11 @@ void ShogiEngineInfoParser::printShogiBoard(const QVector<QChar>& boardData) con
 // 評価値
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiEngineInfoParser::setScore(const QString &newScore)
 {
     m_score = newScore;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QString ShogiEngineInfoParser::score() const
 {
     return m_score;

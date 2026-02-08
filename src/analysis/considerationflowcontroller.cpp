@@ -1,6 +1,5 @@
 /// @file considerationflowcontroller.cpp
 /// @brief 検討フローコントローラクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "considerationflowcontroller.h"
 
@@ -13,13 +12,11 @@
 #include <QDir>
 #include <QApplication>
 
-/// @todo remove コメントスタイルガイド適用済み
 ConsiderationFlowController::ConsiderationFlowController(QObject* parent)
     : QObject(parent)
 {
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ConsiderationFlowController::runDirect(const Deps& d, const DirectParams& params, const QString& positionStr)
 {
     using namespace EngineSettingsConstants;
@@ -74,7 +71,6 @@ void ConsiderationFlowController::runDirect(const Deps& d, const DirectParams& p
                   params.previousFileTo, params.previousRankTo, params.lastUsiMove);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ConsiderationFlowController::startAnalysis(MatchCoordinator* match,
                                                  const QString& enginePath,
                                                  const QString& engineName,

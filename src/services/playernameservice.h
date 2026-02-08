@@ -3,7 +3,6 @@
 
 /// @file playernameservice.h
 /// @brief プレイヤー名解決サービスクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 #include <QString>
 #include "playmode.h"

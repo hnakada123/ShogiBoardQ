@@ -3,7 +3,6 @@
 
 /// @file usicommlogmodel.h
 /// @brief USI通信ログ・エンジン情報表示モデルの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QObject>

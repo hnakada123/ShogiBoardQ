@@ -1,6 +1,5 @@
 /// @file engineoptiondescriptions.cpp
 /// @brief USIエンジンオプション説明データベースの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "engineoptiondescriptions.h"
 #include <QObject>
@@ -19,7 +18,6 @@ bool EngineOptionDescriptions::s_initialized = false;
 // エンジン判定
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 bool EngineOptionDescriptions::isYaneuraOuEngine(const QString& engineName)
 {
     return engineName.contains(QStringLiteral("YaneuraOu"), Qt::CaseInsensitive) ||
@@ -27,14 +25,12 @@ bool EngineOptionDescriptions::isYaneuraOuEngine(const QString& engineName)
            engineName.contains(QStringLiteral("やねうら王"), Qt::CaseInsensitive);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 bool EngineOptionDescriptions::isGikouEngine(const QString& engineName)
 {
     return engineName.contains(QStringLiteral("Gikou"), Qt::CaseInsensitive) ||
            engineName.contains(QStringLiteral("技巧"), Qt::CaseInsensitive);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 bool EngineOptionDescriptions::isEngineSupported(const QString& engineName)
 {
     return isYaneuraOuEngine(engineName) || isGikouEngine(engineName);
@@ -44,7 +40,6 @@ bool EngineOptionDescriptions::isEngineSupported(const QString& engineName)
 // 説明・カテゴリ取得
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 QString EngineOptionDescriptions::getDescription(const QString& engineName, const QString& optionName)
 {
     if (!s_initialized) {
@@ -63,7 +58,6 @@ QString EngineOptionDescriptions::getDescription(const QString& engineName, cons
     return QString();
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 bool EngineOptionDescriptions::hasDescription(const QString& engineName, const QString& optionName)
 {
     if (!s_initialized) {
@@ -82,7 +76,6 @@ bool EngineOptionDescriptions::hasDescription(const QString& engineName, const Q
     return false;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 EngineOptionCategory EngineOptionDescriptions::getCategory(const QString& engineName, const QString& optionName)
 {
     if (!s_initialized) {
@@ -101,7 +94,6 @@ EngineOptionCategory EngineOptionDescriptions::getCategory(const QString& engine
     return EngineOptionCategory::Other;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QString EngineOptionDescriptions::getCategoryDisplayName(EngineOptionCategory category)
 {
     switch (category) {
@@ -121,7 +113,6 @@ QString EngineOptionDescriptions::getCategoryDisplayName(EngineOptionCategory ca
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QList<EngineOptionCategory> EngineOptionDescriptions::getAllCategories()
 {
     return {
@@ -138,7 +129,6 @@ QList<EngineOptionCategory> EngineOptionDescriptions::getAllCategories()
 // 初期化（説明テキスト）
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void EngineOptionDescriptions::initializeDescriptions()
 {
     // --- YaneuraOu: 基本設定 ---
@@ -326,7 +316,6 @@ void EngineOptionDescriptions::initializeDescriptions()
 // 初期化（カテゴリ分類）
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void EngineOptionDescriptions::initializeCategories()
 {
     // --- YaneuraOu: 基本設定 ---

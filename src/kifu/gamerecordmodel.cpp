@@ -1,6 +1,5 @@
 /// @file gamerecordmodel.cpp
 /// @brief 棋譜データ中央管理クラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "gamerecordmodel.h"
 #include "kifubranchtree.h"

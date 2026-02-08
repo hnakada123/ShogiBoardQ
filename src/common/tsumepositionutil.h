@@ -3,7 +3,6 @@
 
 /// @file tsumepositionutil.h
 /// @brief 詰み探索用のUSI positionコマンド構築ユーティリティ
-/// @todo remove コメントスタイルガイド適用済み
 
 #include <QString>
 #include <QStringList>

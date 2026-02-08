@@ -3,7 +3,6 @@
 
 /// @file kifuloadcoordinator.h
 /// @brief 棋譜読み込みコーディネータクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QObject>

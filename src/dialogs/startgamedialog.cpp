@@ -1,6 +1,5 @@
 /// @file startgamedialog.cpp
 /// @brief 対局開始ダイアログクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "startgamedialog.h"
 #include "ui_startgamedialog.h"
@@ -18,7 +17,6 @@ using namespace EngineSettingsConstants;
 // 初期化
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 StartGameDialog::StartGameDialog(QWidget *parent) : QDialog(parent), ui(new Ui::StartGameDialog), m_fontSize(DefaultFontSize)
 {
     ui->setupUi(this);
@@ -36,7 +34,6 @@ StartGameDialog::StartGameDialog(QWidget *parent) : QDialog(parent), ui(new Ui::
     connectSignalsAndSlots();
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 StartGameDialog::~StartGameDialog()
 {
     delete ui;
@@ -46,7 +43,6 @@ StartGameDialog::~StartGameDialog()
 // シグナル接続
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void StartGameDialog::connectSignalsAndSlots() const
 {
     // エンジン設定ボタン・先後入れ替え・リセット・保存
@@ -92,7 +88,6 @@ void StartGameDialog::connectSignalsAndSlots() const
 // UIハンドラ
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void StartGameDialog::handleByoyomiSecChanged(int value)
 {
     // 秒読みと加算時間は排他: 秒読みが入ったら加算時間を0に
@@ -102,7 +97,6 @@ void StartGameDialog::handleByoyomiSecChanged(int value)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void StartGameDialog::handleAddEachMoveSecChanged(int value)
 {
     // 秒読みと加算時間は排他: 加算時間が入ったら秒読みを0に
@@ -116,7 +110,6 @@ void StartGameDialog::handleAddEachMoveSecChanged(int value)
 // 設定保存・読込
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void StartGameDialog::saveGameSettings()
 {
     QSettings settings(SettingsFileName, QSettings::IniFormat);
@@ -171,7 +164,6 @@ void StartGameDialog::saveGameSettings()
     settings.endGroup();
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void StartGameDialog::loadGameSettings()
 {
     QSettings settings(SettingsFileName, QSettings::IniFormat);
@@ -234,7 +226,6 @@ void StartGameDialog::loadGameSettings()
     updateConsecutiveGamesEnabled();
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void StartGameDialog::resetSettingsToDefault()
 {
     // 先手: 人間をデフォルトに
@@ -276,7 +267,6 @@ void StartGameDialog::resetSettingsToDefault()
 // 先後入れ替え
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void StartGameDialog::swapSides()
 {
     int player1Index = ui->comboBoxPlayer1->currentIndex();
@@ -315,7 +305,6 @@ void StartGameDialog::swapSides()
 // エンジン設定読み込み
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void StartGameDialog::loadEngineConfigurations()
 {
     QDir::setCurrent(QApplication::applicationDirPath());
@@ -335,7 +324,6 @@ void StartGameDialog::loadEngineConfigurations()
     settings.endArray();
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void StartGameDialog::populatePlayerComboBoxes()
 {
     ui->comboBoxPlayer1->clear();
@@ -356,70 +344,40 @@ void StartGameDialog::populatePlayerComboBoxes()
 // Getter
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 bool StartGameDialog::isHuman1() const { return m_isHuman1; }
-/// @todo remove コメントスタイルガイド適用済み
 bool StartGameDialog::isHuman2() const { return m_isHuman2; }
-/// @todo remove コメントスタイルガイド適用済み
 bool StartGameDialog::isEngine1() const { return m_isEngine1; }
-/// @todo remove コメントスタイルガイド適用済み
 bool StartGameDialog::isEngine2() const { return m_isEngine2; }
-/// @todo remove コメントスタイルガイド適用済み
 const QString& StartGameDialog::engineName1() const { return m_engineName1; }
-/// @todo remove コメントスタイルガイド適用済み
 const QString& StartGameDialog::engineName2() const { return m_engineName2; }
-/// @todo remove コメントスタイルガイド適用済み
 const QString& StartGameDialog::humanName1() const { return m_humanName1; }
-/// @todo remove コメントスタイルガイド適用済み
 const QString& StartGameDialog::humanName2() const { return m_humanName2; }
-/// @todo remove コメントスタイルガイド適用済み
 int StartGameDialog::engineNumber1() const { return m_engineNumber1; }
-/// @todo remove コメントスタイルガイド適用済み
 int StartGameDialog::engineNumber2() const { return m_engineNumber2; }
-/// @todo remove コメントスタイルガイド適用済み
 int StartGameDialog::basicTimeHour1() const { return m_basicTimeHour1; }
-/// @todo remove コメントスタイルガイド適用済み
 int StartGameDialog::basicTimeMinutes1() const { return m_basicTimeMinutes1; }
-/// @todo remove コメントスタイルガイド適用済み
 int StartGameDialog::addEachMoveSec1() const { return m_addEachMoveSec1; }
-/// @todo remove コメントスタイルガイド適用済み
 int StartGameDialog::byoyomiSec1() const { return m_byoyomiSec1; }
-/// @todo remove コメントスタイルガイド適用済み
 int StartGameDialog::basicTimeHour2() const { return m_basicTimeHour2; }
-/// @todo remove コメントスタイルガイド適用済み
 int StartGameDialog::basicTimeMinutes2() const { return m_basicTimeMinutes2; }
-/// @todo remove コメントスタイルガイド適用済み
 int StartGameDialog::addEachMoveSec2() const { return m_addEachMoveSec2; }
-/// @todo remove コメントスタイルガイド適用済み
 int StartGameDialog::byoyomiSec2() const { return m_byoyomiSec2; }
-/// @todo remove コメントスタイルガイド適用済み
 const QString &StartGameDialog::startingPositionName() const { return m_startingPositionName; }
-/// @todo remove コメントスタイルガイド適用済み
 int StartGameDialog::startingPositionNumber() const { return m_startingPositionNumber; }
-/// @todo remove コメントスタイルガイド適用済み
 const QList<StartGameDialog::Engine> &StartGameDialog::getEngineList() const { return engineList; }
-/// @todo remove コメントスタイルガイド適用済み
 int StartGameDialog::maxMoves() const { return m_maxMoves; }
-/// @todo remove コメントスタイルガイド適用済み
 int StartGameDialog::consecutiveGames() const { return m_consecutiveGames; }
-/// @todo remove コメントスタイルガイド適用済み
 bool StartGameDialog::isShowHumanInFront() const { return m_isShowHumanInFront; }
-/// @todo remove コメントスタイルガイド適用済み
 bool StartGameDialog::isAutoSaveKifu() const { return m_isAutoSaveKifu; }
-/// @todo remove コメントスタイルガイド適用済み
 const QString& StartGameDialog::kifuSaveDir() const { return m_kifuSaveDir; }
-/// @todo remove コメントスタイルガイド適用済み
 bool StartGameDialog::isLoseOnTimeout() const { return m_isLoseOnTimeout; }
-/// @todo remove コメントスタイルガイド適用済み
 bool StartGameDialog::isSwitchTurnEachGame() const { return m_isSwitchTurnEachGame; }
-/// @todo remove コメントスタイルガイド適用済み
 int StartGameDialog::jishogiRule() const { return m_jishogiRule; }
 
 // ============================================================
 // パラメータ取得（OK押下時）
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void StartGameDialog::updateGameSettingsFromDialog()
 {
     // 先手の設定を取得
@@ -489,7 +447,6 @@ void StartGameDialog::updateGameSettingsFromDialog()
 // エンジン設定ダイアログ
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void StartGameDialog::showEngineSettingsDialog(int playerNumber)
 {
     QComboBox* comboBox = (playerNumber == 1) ? ui->comboBoxPlayer1 : ui->comboBoxPlayer2;
@@ -519,13 +476,11 @@ void StartGameDialog::showEngineSettingsDialog(int playerNumber)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void StartGameDialog::onFirstPlayerSettingsClicked()
 {
     showEngineSettingsDialog(1);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void StartGameDialog::onSecondPlayerSettingsClicked()
 {
     showEngineSettingsDialog(2);
@@ -535,7 +490,6 @@ void StartGameDialog::onSecondPlayerSettingsClicked()
 // フォント設定
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void StartGameDialog::increaseFontSize()
 {
     if (m_fontSize < MaxFontSize) {
@@ -545,7 +499,6 @@ void StartGameDialog::increaseFontSize()
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void StartGameDialog::decreaseFontSize()
 {
     if (m_fontSize > MinFontSize) {
@@ -555,7 +508,6 @@ void StartGameDialog::decreaseFontSize()
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void StartGameDialog::applyFontSize(int size)
 {
     QFont font = this->font();
@@ -563,7 +515,6 @@ void StartGameDialog::applyFontSize(int size)
     this->setFont(font);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void StartGameDialog::loadFontSizeSettings()
 {
     QSettings settings(SettingsFileName, QSettings::IniFormat);
@@ -578,7 +529,6 @@ void StartGameDialog::loadFontSizeSettings()
     applyFontSize(m_fontSize);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void StartGameDialog::saveFontSizeSettings()
 {
     QSettings settings(SettingsFileName, QSettings::IniFormat);
@@ -591,7 +541,6 @@ void StartGameDialog::saveFontSizeSettings()
 // 対局者選択UI更新
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void StartGameDialog::updatePlayerUI(int playerNumber, int index)
 {
     // QStackedWidgetのページ: 0=人間名入力欄, 1=エンジン設定ボタン
@@ -606,21 +555,18 @@ void StartGameDialog::updatePlayerUI(int playerNumber, int index)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void StartGameDialog::onPlayer1SelectionChanged(int index)
 {
     updatePlayerUI(1, index);
     updateConsecutiveGamesEnabled();
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void StartGameDialog::onPlayer2SelectionChanged(int index)
 {
     updatePlayerUI(2, index);
     updateConsecutiveGamesEnabled();
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void StartGameDialog::updateConsecutiveGamesEnabled()
 {
     // 両方がエンジンの場合のみ連続対局を有効にする
@@ -636,7 +582,6 @@ void StartGameDialog::updateConsecutiveGamesEnabled()
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void StartGameDialog::onSelectKifuDirClicked()
 {
     // 空の場合はドキュメントフォルダをデフォルトに

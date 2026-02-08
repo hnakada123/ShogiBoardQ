@@ -3,7 +3,6 @@
 
 /// @file boardsetupcontroller.h
 /// @brief 盤面初期設定コントローラクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QObject>

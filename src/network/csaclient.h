@@ -3,7 +3,6 @@
 
 /// @file csaclient.h
 /// @brief CSAプロトコルクライアントクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QObject>

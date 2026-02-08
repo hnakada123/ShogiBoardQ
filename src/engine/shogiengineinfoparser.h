@@ -3,7 +3,6 @@
 
 /// @file shogiengineinfoparser.h
 /// @brief USIエンジンのinfo行パーサの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QString>

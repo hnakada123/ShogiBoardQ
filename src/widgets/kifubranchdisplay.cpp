@@ -1,6 +1,5 @@
 /// @file kifubranchdisplay.cpp
 /// @brief 棋譜分岐候補表示ウィジェットクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "kifubranchdisplay.h"
 

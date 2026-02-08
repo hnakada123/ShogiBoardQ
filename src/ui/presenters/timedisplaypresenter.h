@@ -3,7 +3,6 @@
 
 /// @file timedisplaypresenter.h
 /// @brief 時刻表示プレゼンタクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QObject>

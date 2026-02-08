@@ -1,6 +1,5 @@
 /// @file playerinfocontroller.cpp
 /// @brief プレイヤー情報コントローラクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "playerinfocontroller.h"
 

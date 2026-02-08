@@ -1,6 +1,5 @@
 /// @file engineinfowidget.cpp
 /// @brief エンジン情報表示ウィジェットクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "engineinfowidget.h"
 #include <QHBoxLayout>

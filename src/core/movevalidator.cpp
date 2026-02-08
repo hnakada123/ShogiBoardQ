@@ -1,6 +1,5 @@
 /// @file movevalidator.cpp
 /// @brief 指し手の合法性判定・ビットボードによる合法手生成の実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "movevalidator.h"
 #include "shogimove.h"
@@ -16,7 +15,6 @@
 // 初期化
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 MoveValidator::MoveValidator(QObject* parent) : QObject(parent)
 {
     m_allPieces = {'P', 'L', 'N', 'S', 'G', 'B', 'R', 'K', 'Q', 'M', 'O', 'T', 'C', 'U',
@@ -30,7 +28,6 @@ MoveValidator::MoveValidator(QObject* parent) : QObject(parent)
 // 盤面バリデーション
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void MoveValidator::checkDoublePawn(const QVector<QChar>& boardData)
 {
     for (int file = 0; file < BOARD_SIZE; ++file) {
@@ -50,7 +47,6 @@ void MoveValidator::checkDoublePawn(const QVector<QChar>& boardData)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MoveValidator::checkPieceCount(const QVector<QChar>& boardData, const QMap<QChar, int>& pieceStand)
 {
     QMap<QChar, int> currentPieceCount;
@@ -79,7 +75,6 @@ void MoveValidator::checkPieceCount(const QVector<QChar>& boardData, const QMap<
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MoveValidator::checkKingPresence(const QVector<QChar>& boardData, const QMap<QChar, int>& pieceStand)
 {
     Q_UNUSED(pieceStand);  // 玉は持ち駒にできないため使用しない
@@ -100,7 +95,6 @@ void MoveValidator::checkKingPresence(const QVector<QChar>& boardData, const QMa
 }
 
 // 歩/香/桂が行き場のない段に不成で存在しないか検証する。
-/// @todo remove コメントスタイルガイド適用済み
 void MoveValidator::checkCorrectPosition(const QVector<QChar>& boardData)
 {
     for (qsizetype i = 0; i < boardData.size(); ++i) {
@@ -118,7 +112,6 @@ void MoveValidator::checkCorrectPosition(const QVector<QChar>& boardData)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MoveValidator::validateBoardAndPieces(const QVector<QChar>& boardData, const QMap<QChar, int>& pieceStand)
 {
     checkDoublePawn(boardData);
@@ -131,7 +124,6 @@ void MoveValidator::validateBoardAndPieces(const QVector<QChar>& boardData, cons
 // 指し手バリデーション
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void MoveValidator::validateMoveFileValue(int fromSquareX)
 {
     // 筋の値が10より大きい場合は無効（10=先手駒台, 11=後手駒台まで有効）
@@ -143,7 +135,6 @@ void MoveValidator::validateMoveFileValue(int fromSquareX)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MoveValidator::validateMovingPiece(const ShogiMove& currentMove, const QVector<QChar>& boardData)
 {
     if (currentMove.fromSquare.x() < BOARD_SIZE) {
@@ -173,7 +164,6 @@ void MoveValidator::validateMovingPiece(const ShogiMove& currentMove, const QVec
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MoveValidator::logAndShowPieceStandError(const QString& errorMessage, QChar piece, const QMap<QChar, int>& pieceStand)
 {
     qWarning() << errorMessage;
@@ -182,7 +172,6 @@ void MoveValidator::logAndShowPieceStandError(const QString& errorMessage, QChar
     emit errorOccurred(errorMessage);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MoveValidator::validatePieceStand(Turn turn, const ShogiMove& currentMove, const QMap<QChar, int>& pieceStand)
 {
     // 先手の駒台から打つ場合
@@ -217,7 +206,6 @@ void MoveValidator::validatePieceStand(Turn turn, const ShogiMove& currentMove, 
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MoveValidator::validateCapturedPiece(const ShogiMove& currentMove, const QVector<QChar>& boardData)
 {
     int toIndex = currentMove.toSquare.y() * BOARD_SIZE + currentMove.toSquare.x();
@@ -232,7 +220,6 @@ void MoveValidator::validateCapturedPiece(const ShogiMove& currentMove, const QV
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MoveValidator::validateMoveComponents(const Turn& turn, const QVector<QChar>& boardData, const QMap<QChar, int>& pieceStand, const ShogiMove& currentMove)
 {
     validateBoardAndPieces(boardData, pieceStand);
@@ -246,7 +233,6 @@ void MoveValidator::validateMoveComponents(const Turn& turn, const QVector<QChar
 // 合法手判定メイン
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 LegalMoveStatus MoveValidator::isLegalMove(const Turn& turn, const QVector<QChar>& boardData, const QMap<QChar, int>& pieceStand, ShogiMove& currentMove)
 {
     // 処理フロー:
@@ -307,7 +293,6 @@ LegalMoveStatus MoveValidator::isLegalMove(const Turn& turn, const QVector<QChar
 // 盤上の駒移動の合法手判定
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 LegalMoveStatus MoveValidator::isBoardMoveValid(const Turn& turn, const QVector<QChar>& boardData, const ShogiMove& currentMove,
                                                 const int& numChecks, const QChar& piece, const std::bitset<NUM_BOARD_SQUARES>& attackBitboard,
                                                 const std::bitset<NUM_BOARD_SQUARES>& pieceBitboard, const std::bitset<NUM_BOARD_SQUARES>& necessaryMovesBitboard,
@@ -347,7 +332,6 @@ LegalMoveStatus MoveValidator::isBoardMoveValid(const Turn& turn, const QVector<
 // 駒台からの打ち手の合法手判定
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 bool MoveValidator::isHandPieceMoveValid(const Turn& turn, const QVector<QChar>& boardData, const QMap<QChar, int>& pieceStand, const ShogiMove& currentMove,
                                          const int& numChecks, const std::bitset<NUM_BOARD_SQUARES>& emptySquareBitboard, QVector<ShogiMove>& legalMovesList)
 {
@@ -388,7 +372,6 @@ bool MoveValidator::isHandPieceMoveValid(const Turn& turn, const QVector<QChar>&
     return isMoveInList(currentMove, legalMovesList);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 bool MoveValidator::generateLegalMovesForPiece(const Turn& turn, const QVector<QChar>& boardData, const QMap<QChar, int>& pieceStand, const ShogiMove& currentMove,
                                                const std::bitset<NUM_BOARD_SQUARES>& emptySquareBitboard, QVector<ShogiMove>& legalMovesList)
 {
@@ -425,7 +408,6 @@ bool MoveValidator::generateLegalMovesForPiece(const Turn& turn, const QVector<Q
     return true;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MoveValidator::generateDropMoveForPawn(QVector<ShogiMove>& legalMovesList, const QMap<QChar, int>& pieceStand, const std::bitset<NUM_BOARD_SQUARES>& emptySquareBitboard,
                                             const Turn& turn, const QVector<QChar>& boardData) const
 {
@@ -443,7 +425,6 @@ void MoveValidator::generateDropMoveForPawn(QVector<ShogiMove>& legalMovesList, 
 // 全合法手生成
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 int MoveValidator::generateLegalMoves(const Turn& turn, const QVector<QChar>& boardData, const QMap<QChar, int>& pieceStand)
 {
     // 処理フロー:
@@ -520,7 +501,6 @@ int MoveValidator::generateLegalMoves(const Turn& turn, const QVector<QChar>& bo
 // ビットボード生成
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void MoveValidator::generateBitboard(const QVector<QChar>& boardData, BoardStateArray& piecePlacedBitboard) const
 {
     for (qsizetype i = 0; i < boardData.size(); ++i) {
@@ -575,7 +555,6 @@ void MoveValidator::generateBitboard(const QVector<QChar>& boardData, BoardState
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 bool MoveValidator::isPieceOnSquare(int index, const std::array<std::bitset<NUM_BOARD_SQUARES>, NUM_PIECE_TYPES>& turnBitboards) const
 {
     for (int pieceType = 0; pieceType < NUM_PIECE_TYPES; ++pieceType) {
@@ -587,7 +566,6 @@ bool MoveValidator::isPieceOnSquare(int index, const std::array<std::bitset<NUM_
     return false;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QVector<std::bitset<MoveValidator::NUM_BOARD_SQUARES>> MoveValidator::generateIndividualPieceBitboards(const QVector<QChar>& boardData, const QChar& targetPiece) const
 {
     QVector<std::bitset<NUM_BOARD_SQUARES>> individualPieceBitboards;
@@ -608,7 +586,6 @@ QVector<std::bitset<MoveValidator::NUM_BOARD_SQUARES>> MoveValidator::generateIn
 }
 
 // 全28種類の駒について、各個別駒のビットボードを生成する。
-/// @todo remove コメントスタイルガイド適用済み
 void MoveValidator::generateAllPieceBitboards(QVector<QVector<std::bitset<NUM_BOARD_SQUARES>>>& allPieceBitboards, const QVector<QChar>& boardData) const
 {
     allPieceBitboards.clear();
@@ -619,7 +596,6 @@ void MoveValidator::generateAllPieceBitboards(QVector<QVector<std::bitset<NUM_BO
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MoveValidator::generateAllIndividualPieceAttackBitboards(const QVector<QVector<std::bitset<NUM_BOARD_SQUARES>>>& allPieceBitboards, const BoardStateArray& piecePlacedBitboard,
                                                               QVector<QVector<std::bitset<NUM_BOARD_SQUARES>>>& allPieceAttackBitboards) const
 {
@@ -640,7 +616,6 @@ void MoveValidator::generateAllIndividualPieceAttackBitboards(const QVector<QVec
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MoveValidator::generateBitboardForEmptyFiles(const Turn& turn, const QVector<QChar>& boardData, std::bitset<NUM_BOARD_SQUARES>& emptyFilePawnBitboard) const
 {
     const QChar pawn = (turn == BLACK) ? 'P' : 'p';
@@ -663,7 +638,6 @@ void MoveValidator::generateBitboardForEmptyFiles(const Turn& turn, const QVecto
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MoveValidator::generateEmptySquareBitboard(const QVector<QChar>& boardData, std::bitset<MoveValidator::NUM_BOARD_SQUARES>& emptySquareBitboard) const
 {
     for (int rank = 0; rank < BOARD_SIZE; ++rank) {
@@ -676,7 +650,6 @@ void MoveValidator::generateEmptySquareBitboard(const QVector<QChar>& boardData,
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MoveValidator::performAndOperation(const std::bitset<NUM_BOARD_SQUARES>& emptySquareBitboard, const std::bitset<NUM_BOARD_SQUARES>& emptyFilePawnBitboard,
                          std::bitset<NUM_BOARD_SQUARES>& emptySquaresNoPawnsFilesBitboard) const
 {
@@ -688,7 +661,6 @@ void MoveValidator::performAndOperation(const std::bitset<NUM_BOARD_SQUARES>& em
 // ============================================================
 
 // 各駒の移動方向に基づいて攻撃可能マスのビットボードを生成する。
-/// @todo remove コメントスタイルガイド適用済み
 void MoveValidator::generateSinglePieceAttackBitboard(std::bitset<MoveValidator::NUM_BOARD_SQUARES>& attackBitboard,
                                                       const std::bitset<MoveValidator::NUM_BOARD_SQUARES>& singlePieceBitboard,
                                                       const Turn& turn, QChar pieceType, const BoardStateArray& piecePlacedBitboard) const
@@ -765,7 +737,6 @@ void MoveValidator::generateSinglePieceAttackBitboard(std::bitset<MoveValidator:
 // 指定方向への攻撃範囲ビットボードを生成する。
 // continuous: 飛車・角・馬・龍など連続移動する駒かどうか
 // enemyOccupiedStop: 敵駒に到達したら停止するか
-/// @todo remove コメントスタイルガイド適用済み
 void MoveValidator::generateAttackBitboard(std::bitset<NUM_BOARD_SQUARES>& attackBitboard, const Turn& turn,
                                            const BoardStateArray& piecePlacedBitboard, const std::bitset<NUM_BOARD_SQUARES>& pieceBitboard,
                                            const QList<QPoint>& directions, bool continuous, bool enemyOccupiedStop) const
@@ -818,7 +789,6 @@ void MoveValidator::generateAttackBitboard(std::bitset<NUM_BOARD_SQUARES>& attac
 // ============================================================
 
 // 盤上の全駒の指し手を一括生成する。
-/// @todo remove コメントスタイルガイド適用済み
 void MoveValidator::generateShogiMoveFromBitboards(const Turn& turn, const QVector<QVector<std::bitset<NUM_BOARD_SQUARES>>>& allPieceBitboards,
                                                    const QVector<QVector<std::bitset<NUM_BOARD_SQUARES>>>& allPieceAttackBitboards,
                                                    QVector<ShogiMove>& allMovesList, const QVector<QChar>& boardData) const
@@ -873,7 +843,6 @@ void MoveValidator::generateShogiMoveFromBitboards(const Turn& turn, const QVect
 }
 
 // 指定した1つの駒の指し手を生成する。
-/// @todo remove コメントスタイルガイド適用済み
 void MoveValidator::generateShogiMoveFromBitboard(const QChar piece, const std::bitset<NUM_BOARD_SQUARES>& bitboard,
                                                   const std::bitset<NUM_BOARD_SQUARES>& attackBitboard,
                                                   QVector<ShogiMove>& allMovesList, const QVector<QChar>& boardData) const
@@ -919,7 +888,6 @@ void MoveValidator::generateShogiMoveFromBitboard(const QChar piece, const std::
 // 成り手生成
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void MoveValidator::generateAllPromotions(ShogiMove& move, QVector<ShogiMove>& promotions) const
 {
     bool canPromote = false;
@@ -951,7 +919,6 @@ void MoveValidator::generateAllPromotions(ShogiMove& move, QVector<ShogiMove>& p
 // 駒台から打つ手の生成
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void MoveValidator::generateDropMoveForPiece(QVector<ShogiMove>& allMovesList, const QMap<QChar, int>& pieceStand, const std::bitset<NUM_BOARD_SQUARES>& emptySquareBitboard,
                                              const Turn& turn, const QChar& piece) const
 {
@@ -980,7 +947,6 @@ void MoveValidator::generateDropMoveForPiece(QVector<ShogiMove>& allMovesList, c
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MoveValidator::generateDropNonPawnMoves(QVector<ShogiMove>& allMovesList, const QMap<QChar, int>& pieceStand, const std::bitset<NUM_BOARD_SQUARES>& emptySquareBitboard, const Turn& turn) const
 {
     QList<QChar> pieces = turn == BLACK ? QList<QChar>({'L', 'N', 'S', 'G', 'B', 'R'}) : QList<QChar>({'l', 'n', 's', 'g', 'b', 'r'});
@@ -990,7 +956,6 @@ void MoveValidator::generateDropNonPawnMoves(QVector<ShogiMove>& allMovesList, c
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MoveValidator::generateDropPawnMoves(QVector<ShogiMove>& allMovesList, const QMap<QChar, int>& pieceStand, const std::bitset<NUM_BOARD_SQUARES>& emptySquaresNoPawnsFilesBitboard,
                                           const Turn& turn) const
 {
@@ -1023,7 +988,6 @@ void MoveValidator::generateDropPawnMoves(QVector<ShogiMove>& allMovesList, cons
 // 王手判定・王手回避
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 int MoveValidator::isKingInCheck(const Turn& turn, const QVector<QVector<std::bitset<NUM_BOARD_SQUARES>>>& allPieceBitboards,
                                   const QVector<QVector<std::bitset<NUM_BOARD_SQUARES>>>& allPieceAttackBitboards,
                                   std::bitset<NUM_BOARD_SQUARES>& necessaryMovesBitboard,
@@ -1070,7 +1034,6 @@ int MoveValidator::isKingInCheck(const Turn& turn, const QVector<QVector<std::bi
 }
 
 // 王手されているときに王手を避ける指し手候補を生成する。
-/// @todo remove コメントスタイルガイド適用済み
 void MoveValidator::filterMovesThatBlockThreat(const Turn& turn, const QVector<ShogiMove>& allMovesList, const std::bitset<NUM_BOARD_SQUARES>& necessaryMovesBitboard,
                                                QVector<ShogiMove>& kingBlockingMovesList) const
 {
@@ -1087,7 +1050,6 @@ void MoveValidator::filterMovesThatBlockThreat(const Turn& turn, const QVector<S
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 int MoveValidator::checkIfKingInCheck(const Turn& turn, const QVector<QChar>& boardData)
 {
     BoardStateArray piecePlacedBitboards;
@@ -1110,7 +1072,6 @@ int MoveValidator::checkIfKingInCheck(const Turn& turn, const QVector<QChar>& bo
 // ============================================================
 
 // 指し手リストの各指し手について、指した直後に自玉が王手されていない手だけを合法手リストに加える。
-/// @todo remove コメントスタイルガイド適用済み
 void MoveValidator::filterLegalMovesList(const Turn& turn, const QVector<ShogiMove>& moveList, const QVector<QChar>& boardData, QVector<ShogiMove>& legalMovesList)
 {
     legalMovesList.clear();
@@ -1151,7 +1112,6 @@ void MoveValidator::filterLegalMovesList(const Turn& turn, const QVector<ShogiMo
 // 合法手照合
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 bool MoveValidator::isMoveInList(const ShogiMove& currentMove, const QVector<ShogiMove>& movesList) const
 {
     for (const auto& move : std::as_const(movesList)) {
@@ -1163,7 +1123,6 @@ bool MoveValidator::isMoveInList(const ShogiMove& currentMove, const QVector<Sho
     return false;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 LegalMoveStatus MoveValidator::checkLegalMoveStatus(const ShogiMove& currentMove, const QVector<ShogiMove>& movesList) const
 {
     LegalMoveStatus legalMoveStatus;
@@ -1181,7 +1140,6 @@ LegalMoveStatus MoveValidator::checkLegalMoveStatus(const ShogiMove& currentMove
 // 指し手の合法手判定（振り分け）
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 LegalMoveStatus MoveValidator::validateMove(const int& numChecks, const QVector<QChar>& boardData, const ShogiMove& currentMove, const Turn& turn, BoardStateArray& piecePlacedBitboards,
                                  const QMap<QChar, int>& pieceStand, std::bitset<NUM_BOARD_SQUARES>& necessaryMovesBitboard, QVector<ShogiMove>& legalMovesList,
                                  const Turn& opponentTurn, const std::bitset<NUM_BOARD_SQUARES>& attackWithoutKingBitboard)
@@ -1204,7 +1162,6 @@ LegalMoveStatus MoveValidator::validateMove(const int& numChecks, const QVector<
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 LegalMoveStatus MoveValidator::generateBitboardAndValidateMove(const int& numChecks, const QVector<QChar>& boardData, BoardStateArray& piecePlacedBitboards, const ShogiMove& currentMove,
                                                     const Turn& turn, std::bitset<NUM_BOARD_SQUARES>& necessaryMovesBitboard,
                                                     QVector<ShogiMove>& legalMovesList)
@@ -1222,7 +1179,6 @@ LegalMoveStatus MoveValidator::generateBitboardAndValidateMove(const int& numChe
     return isBoardMoveValid(turn, boardData, currentMove, numChecks, piece, attackBitboard, pieceBitboard, necessaryMovesBitboard, legalMovesList);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 bool MoveValidator::validateMoveWithChecks(const ShogiMove& currentMove, const Turn& turn, const QVector<QChar>& boardData, const QMap<QChar, int>& pieceStand,
                                                       const int& numChecks, const std::bitset<NUM_BOARD_SQUARES>& attackWithoutKingBitboard, QVector<ShogiMove>& legalMovesList)
 {
@@ -1230,7 +1186,6 @@ bool MoveValidator::validateMoveWithChecks(const ShogiMove& currentMove, const T
 }
 
 // 自玉が王手されていない場合の打ち手判定（打ち歩詰めチェックを含む）。
-/// @todo remove コメントスタイルガイド適用済み
 bool MoveValidator::validateMoveWithoutChecks(const ShogiMove& currentMove, const Turn& turn, const QVector<QChar>& boardData, const QMap<QChar, int>& pieceStand,
                                               const int& numChecks, QVector<ShogiMove>& legalMovesList, const Turn& opponentTurn)
 {
@@ -1260,7 +1215,6 @@ bool MoveValidator::validateMoveWithoutChecks(const ShogiMove& currentMove, cons
     return isLegal;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 bool MoveValidator::isPawnInFrontOfKing(const ShogiMove& currentMove, const Turn& turn, const QVector<QChar>& boardData) const
 {
     QChar opponentKingPiece = (turn == BLACK) ? 'k' : 'K';
@@ -1290,7 +1244,6 @@ bool MoveValidator::isPawnInFrontOfKing(const ShogiMove& currentMove, const Turn
 // 盤面シミュレーション
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void MoveValidator::applyMovesToBoard(const ShogiMove& move, const QVector<QChar>& boardData, QVector<QChar>& boardDataAfterMove) const
 {
     int fromIndex = move.fromSquare.y() * MoveValidator::BOARD_SIZE + move.fromSquare.x();
@@ -1306,7 +1259,6 @@ void MoveValidator::applyMovesToBoard(const ShogiMove& move, const QVector<QChar
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MoveValidator::applyPromotionMovesToBoard(const ShogiMove& move, int toIndex, QVector<QChar>& boardDataAfterMove) const
 {
     static const QMap<QChar, QChar> promotionMap = {
@@ -1328,13 +1280,11 @@ void MoveValidator::applyPromotionMovesToBoard(const ShogiMove& move, int toInde
     boardDataAfterMove[toIndex] = promotedPiece;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MoveValidator::applyStandardMovesToBoard(const ShogiMove& move, int toIndex, QVector<QChar>& boardDataAfterMove) const
 {
     boardDataAfterMove[toIndex] = move.movingPiece;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MoveValidator::decreasePieceCount(const ShogiMove& move, const QMap<QChar, int>& pieceStand, QMap<QChar, int>& pieceStandAfterMove)
 {
     pieceStandAfterMove = pieceStand;
@@ -1360,7 +1310,6 @@ void MoveValidator::decreasePieceCount(const ShogiMove& move, const QMap<QChar, 
 // デバッグ出力
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void MoveValidator::printBitboards(const BoardStateArray& piecePlacedBitboard) const
 {
     static const QStringList pieceName = { "歩", "香車", "桂馬", "銀", "金", "角", "飛車", "玉", "と金", "成香", "成桂", "成銀", "馬", "龍" };
@@ -1384,7 +1333,6 @@ void MoveValidator::printBitboards(const BoardStateArray& piecePlacedBitboard) c
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MoveValidator::printAllPieceBitboards(const QVector<QVector<std::bitset<NUM_BOARD_SQUARES>>>& allPieceBitboards) const
 {
     for (qsizetype i = 0; i < allPieceBitboards.size(); ++i) {
@@ -1405,7 +1353,6 @@ void MoveValidator::printAllPieceBitboards(const QVector<QVector<std::bitset<NUM
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MoveValidator::printIndividualPieceAttackBitboards(const QVector<QVector<std::bitset<NUM_BOARD_SQUARES>>>& allPieceBitboards,
                                                         const QVector<QVector<std::bitset<NUM_BOARD_SQUARES>>>& allPieceAttackBitboards) const
 {
@@ -1426,7 +1373,6 @@ void MoveValidator::printIndividualPieceAttackBitboards(const QVector<QVector<st
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MoveValidator::printBitboardContent(const QVector<std::bitset<NUM_BOARD_SQUARES>>& bitboards) const
 {
     for (const auto& bitboard : std::as_const(bitboards)) {
@@ -1434,7 +1380,6 @@ void MoveValidator::printBitboardContent(const QVector<std::bitset<NUM_BOARD_SQU
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MoveValidator::printSingleBitboard(const std::bitset<NUM_BOARD_SQUARES>& bitboard) const
 {
     for (int rank = 0; rank < BOARD_SIZE; ++rank) {
@@ -1448,7 +1393,6 @@ void MoveValidator::printSingleBitboard(const std::bitset<NUM_BOARD_SQUARES>& bi
     qDebug() << "";
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MoveValidator::printShogiMoveList(const QVector<ShogiMove>& moveList) const
 {
     int i = 0;
@@ -1457,7 +1401,6 @@ void MoveValidator::printShogiMoveList(const QVector<ShogiMove>& moveList) const
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MoveValidator::printShogiBoard(const QVector<QChar>& boardData)
 {
     QString boardString;
@@ -1476,7 +1419,6 @@ void MoveValidator::printShogiBoard(const QVector<QChar>& boardData)
     qDebug().noquote() << boardString;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MoveValidator::printBoardAndPieces(const QVector<QChar>& boardData, const QMap<QChar, int>& pieceStand) const
 {
     QString row;

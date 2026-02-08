@@ -1,6 +1,5 @@
 /// @file tsumeshogisearchdialog.cpp
 /// @brief 詰将棋検索ダイアログクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "tsumeshogisearchdialog.h"
 

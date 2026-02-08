@@ -3,7 +3,6 @@
 
 /// @file kifubranchnode.h
 /// @brief 分岐ツリーノードクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 #include <QString>
 #include <QVector>

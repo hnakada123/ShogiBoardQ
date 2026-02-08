@@ -3,7 +3,6 @@
 
 /// @file dialogcoordinator.h
 /// @brief ダイアログコーディネータクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QObject>

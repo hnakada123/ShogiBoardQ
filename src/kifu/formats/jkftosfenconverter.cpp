@@ -1,6 +1,5 @@
 /// @file jkftosfenconverter.cpp
 /// @brief JKF形式棋譜コンバータクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "jkftosfenconverter.h"
 

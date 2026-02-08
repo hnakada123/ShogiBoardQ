@@ -3,7 +3,6 @@
 
 /// @file pvclickcontroller.h
 /// @brief 読み筋クリックコントローラクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QObject>

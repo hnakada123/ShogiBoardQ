@@ -1,6 +1,5 @@
 /// @file promotedialog.cpp
 /// @brief 成り確認ダイアログクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "promotedialog.h"
 

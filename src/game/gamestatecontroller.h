@@ -3,7 +3,6 @@
 
 /// @file gamestatecontroller.h
 /// @brief 終局処理・投了/中断・人間/エンジン判定を統括するゲーム状態コントローラ
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QObject>

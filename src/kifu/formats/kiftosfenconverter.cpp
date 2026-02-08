@@ -1,6 +1,5 @@
 /// @file kiftosfenconverter.cpp
 /// @brief KIF形式棋譜コンバータクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "kiftosfenconverter.h"
 #include "kifreader.h"

@@ -1,6 +1,5 @@
 /// @file kifucontentbuilder.cpp
 /// @brief 棋譜コンテンツビルダークラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "kifucontentbuilder.h"
 #include "kifurecordlistmodel.h"

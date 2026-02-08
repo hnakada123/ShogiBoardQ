@@ -1,6 +1,5 @@
 /// @file csagamedialog.cpp
 /// @brief CSA対局ダイアログクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "csagamedialog.h"
 #include "ui_csagamedialog.h"

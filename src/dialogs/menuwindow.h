@@ -3,7 +3,6 @@
 
 /// @file menuwindow.h
 /// @brief メニューウィンドウクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QWidget>

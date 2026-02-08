@@ -3,7 +3,6 @@
 
 /// @file consecutivegamescontroller.h
 /// @brief 連続対局の進行管理と手番入れ替えを制御するコントローラ
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QObject>

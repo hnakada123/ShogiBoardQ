@@ -1,6 +1,5 @@
 /// @file recordpresenter.cpp
 /// @brief 棋譜表示プレゼンタクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "recordpresenter.h"
 #include "kifdisplayitem.h"

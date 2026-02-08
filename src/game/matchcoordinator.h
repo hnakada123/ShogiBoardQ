@@ -3,7 +3,6 @@
 
 /// @file matchcoordinator.h
 /// @brief 対局進行コーディネータ（司令塔）クラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 #include <QObject>
 #include <QString>
@@ -58,7 +57,6 @@ public:
     };
 
     /// USI goコマンドに渡す時間パラメータ（ミリ秒）
-    /// @todo remove コメントスタイルガイド適用済み
     struct GoTimes {
         qint64 btime = 0;    ///< 先手残り時間（ms）
         qint64 wtime = 0;    ///< 後手残り時間（ms）
@@ -68,14 +66,12 @@ public:
     };
 
     /// 終局情報
-    /// @todo remove コメントスタイルガイド適用済み
     struct GameEndInfo {
         Cause  cause = Cause::Resignation;  ///< 終局原因
         Player loser = P1;                  ///< 敗者
     };
 
     /// 直近の終局状態
-    /// @todo remove コメントスタイルガイド適用済み
     struct GameOverState {
         bool        isOver       = false;   ///< 終局済みか
         bool        moveAppended = false;   ///< 棋譜に終局手を追記済みか
@@ -86,7 +82,6 @@ public:
     };
 
     /// UI/描画系の委譲コールバック群
-    /// @todo remove コメントスタイルガイド適用済み
     struct Hooks {
         // --- UI/描画系 ---
         std::function<void(Player cur)> updateTurnDisplay;      ///< 手番表示/ハイライト更新
@@ -127,7 +122,6 @@ public:
     };
 
     /// 依存オブジェクト
-    /// @todo remove コメントスタイルガイド適用済み
     struct Deps {
         ShogiGameController* gc = nullptr;         ///< ゲームコントローラ（非所有）
         ShogiClock*          clock = nullptr;       ///< 将棋時計（非所有）
@@ -145,7 +139,6 @@ public:
     // --- 対局開始オプション ---
 
     /// 対局開始のための設定パラメータ
-    /// @todo remove コメントスタイルガイド適用済み
     struct StartOptions {
         PlayMode mode = PlayMode::NotStarted;  ///< 対局モード
         QString  sfenStart;                    ///< 開始SFEN

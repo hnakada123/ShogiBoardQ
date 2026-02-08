@@ -3,7 +3,6 @@
 
 /// @file timecontrolcontroller.h
 /// @brief 持ち時間制御コントローラクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QObject>

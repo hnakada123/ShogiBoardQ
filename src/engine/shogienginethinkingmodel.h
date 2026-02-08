@@ -3,7 +3,6 @@
 
 /// @file shogienginethinkingmodel.h
 /// @brief エンジン思考結果の表示用リストモデルの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QVariant>

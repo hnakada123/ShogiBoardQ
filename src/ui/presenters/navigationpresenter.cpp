@@ -1,6 +1,5 @@
 /// @file navigationpresenter.cpp
 /// @brief ナビゲーションプレゼンタクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "navigationpresenter.h"
 #include "engineanalysistab.h"

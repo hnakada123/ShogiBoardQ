@@ -3,7 +3,6 @@
 
 /// @file recordpresenter.h
 /// @brief 棋譜表示プレゼンタクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QObject>

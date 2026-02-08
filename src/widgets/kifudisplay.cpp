@@ -1,6 +1,5 @@
 /// @file kifudisplay.cpp
 /// @brief 棋譜表示ウィジェットクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "kifudisplay.h"
 

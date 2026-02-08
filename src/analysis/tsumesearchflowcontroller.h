@@ -3,7 +3,6 @@
 
 /// @file tsumesearchflowcontroller.h
 /// @brief 詰み探索フローコントローラクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QObject>
@@ -26,7 +25,6 @@ class TsumeSearchFlowController : public QObject
     Q_OBJECT
 public:
     /// 依存オブジェクト
-    /// @todo remove コメントスタイルガイド適用済み
     struct Deps {
         MatchCoordinator* match = nullptr;  ///< 司令塔（必須、非所有）
         const QStringList* sfenRecord = nullptr;  ///< 棋譜のSFEN列（任意、非所有）
@@ -38,11 +36,9 @@ public:
         std::function<void(const QString&)> onError;  ///< エラー表示コールバック（任意）
     };
 
-    /// @todo remove コメントスタイルガイド適用済み
     explicit TsumeSearchFlowController(QObject* parent=nullptr);
 
     /// ダイアログ表示後、詰み探索を開始する
-    /// @todo remove コメントスタイルガイド適用済み
     void runWithDialog(const Deps& d, QWidget* parent);
 
 private:

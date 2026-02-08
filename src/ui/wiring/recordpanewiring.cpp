@@ -1,6 +1,5 @@
 /// @file recordpanewiring.cpp
 /// @brief 棋譜欄配線クラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "recordpanewiring.h"
 #include "recordpane.h"

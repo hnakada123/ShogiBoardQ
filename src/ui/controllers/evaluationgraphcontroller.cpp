@@ -1,6 +1,5 @@
 /// @file evaluationgraphcontroller.cpp
 /// @brief 評価値グラフコントローラクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "evaluationgraphcontroller.h"
 

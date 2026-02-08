@@ -1,6 +1,5 @@
 /// @file shogiboard.cpp
 /// @brief 将棋盤の状態管理・SFEN変換・駒台操作の実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "shogiboard.h"
 #include "qdebug.h"
@@ -9,7 +8,6 @@
 // 初期化
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 ShogiBoard::ShogiBoard(int ranks, int files, QObject *parent)
     : QObject(parent), m_ranks(ranks), m_files(files)
 {
@@ -17,13 +15,11 @@ ShogiBoard::ShogiBoard(int ranks, int files, QObject *parent)
     initStand();
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiBoard::initBoard()
 {
     m_boardData.fill(' ', ranks() * files());
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiBoard::initStand()
 {
     m_pieceStand.clear();
@@ -40,19 +36,16 @@ void ShogiBoard::initStand()
 // 盤面アクセス
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 const QVector<QChar>& ShogiBoard::boardData() const
 {
     return m_boardData;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 const QMap<QChar, int>& ShogiBoard::getPieceStand() const
 {
     return m_pieceStand;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QString ShogiBoard::currentPlayer() const
 {
     return m_currentPlayer;
@@ -61,7 +54,6 @@ QString ShogiBoard::currentPlayer() const
 // 指定した位置の駒を表す文字を返す。
 // file: 筋（1〜9は盤上、10と11は先手と後手の駒台）
 // rank: 段（先手は1〜7「歩、香車、桂馬、銀、金、角、飛車」、後手は3〜9「飛車、角、金、銀、桂馬、香車、歩」を使用）
-/// @todo remove コメントスタイルガイド適用済み
 QChar ShogiBoard::getPieceCharacter(const int file, const int rank)
 {
     static const QMap<int, QChar> pieceMapBlack = {{1,'P'},{2,'L'},{3,'N'},{4,'S'},{5,'G'},{6,'B'},{7,'R'},{8,'K'}};
@@ -96,7 +88,6 @@ QChar ShogiBoard::getPieceCharacter(const int file, const int rank)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 bool ShogiBoard::setDataInternal(const int file, const int rank, const QChar piece)
 {
     int index = (rank - 1) * files() + (file - 1);
@@ -112,7 +103,6 @@ bool ShogiBoard::setDataInternal(const int file, const int rank, const QChar pie
 // 盤面操作
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiBoard::setData(const int file, const int rank, const QChar piece)
 {
     if (setDataInternal(file, rank, piece)) {
@@ -122,7 +112,6 @@ void ShogiBoard::setData(const int file, const int rank, const QChar piece)
 }
 
 // 編集局面でも使用されるため、歩/桂/香の禁置き段では自動で成駒に置き換える（必成）。
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiBoard::movePieceToSquare(QChar selectedPiece, const int fileFrom, const int rankFrom,
                                    const int fileTo, const int rankTo, const bool promote)
 {
@@ -175,7 +164,6 @@ void ShogiBoard::movePieceToSquare(QChar selectedPiece, const int fileFrom, cons
 // ============================================================
 
 // 将棋盤内のみのSFEN文字列を入力し、エラーチェックを行い、成り駒を1文字に変換したSFEN文字列を返す。
-/// @todo remove コメントスタイルガイド適用済み
 QString ShogiBoard::validateAndConvertSfenBoardStr(QString initialSfenStr)
 {
     // 処理フロー:
@@ -251,7 +239,6 @@ QString ShogiBoard::validateAndConvertSfenBoardStr(QString initialSfenStr)
 }
 
 // SFEN文字列の持ち駒部分を解析し、駒台に各駒の枚数をセットする。
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiBoard::setPieceStandFromSfen(const QString& str)
 {
     // 処理フロー:
@@ -336,7 +323,6 @@ void ShogiBoard::setPieceStandFromSfen(const QString& str)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiBoard::setPiecePlacementFromSfen(QString& initialSfenStr)
 {
     QString sfenStr = validateAndConvertSfenBoardStr(initialSfenStr);
@@ -369,7 +355,6 @@ void ShogiBoard::setPiecePlacementFromSfen(QString& initialSfenStr)
 }
 
 // SFEN文字列を検証し、盤面・手番・持ち駒・手数の各要素に分解する。
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiBoard::validateSfenString(const QString& sfenStr, QString& sfenBoardStr, QString& sfenStandStr)
 {
     QStringList sfenComponents = sfenStr.split(" ");
@@ -417,7 +402,6 @@ void ShogiBoard::validateSfenString(const QString& sfenStr, QString& sfenBoardSt
 }
 
 // SFEN文字列で将棋盤全体（盤面＋駒台）を更新し再描画する。
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiBoard::setSfen(const QString& sfenStr)
 {
     // 処理フロー:
@@ -451,7 +435,6 @@ void ShogiBoard::setSfen(const QString& sfenStr)
 // SFEN出力
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 QString ShogiBoard::convertPieceToSfen(const QChar piece) const
 {
     static const QMap<QChar, QString> sfenMap = {{'Q', "+P"}, {'M', "+L"}, {'O', "+N"}, {'T', "+S"},
@@ -461,7 +444,6 @@ QString ShogiBoard::convertPieceToSfen(const QChar piece) const
     return sfenMap.contains(piece) ? sfenMap.value(piece) : QString(piece);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QString ShogiBoard::convertBoardToSfen()
 {
     QString str = "";
@@ -494,7 +476,6 @@ QString ShogiBoard::convertBoardToSfen()
     return str;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QString ShogiBoard::convertStandToSfen() const
 {
     QString handPiece = "";
@@ -524,7 +505,6 @@ QString ShogiBoard::convertStandToSfen() const
 
 #include <QDebug>
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiBoard::addSfenRecord(const QString& nextTurn, int moveIndex, QStringList* sfenRecord)
 {
     if (!sfenRecord) {
@@ -584,7 +564,6 @@ void ShogiBoard::addSfenRecord(const QString& nextTurn, int moveIndex, QStringLi
 // ============================================================
 
 // 成駒は相手の生駒に変換し、それ以外は大文字/小文字を反転する。
-/// @todo remove コメントスタイルガイド適用済み
 QChar ShogiBoard::convertPieceChar(const QChar c) const
 {
     static const QMap<QChar, QChar> conversionMap = {
@@ -600,7 +579,6 @@ QChar ShogiBoard::convertPieceChar(const QChar c) const
 }
 
 // 指したマスに相手の駒があった場合、自分の駒台の枚数に1加える。
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiBoard::addPieceToStand(QChar dest)
 {
     QChar pieceChar = convertPieceChar(dest);
@@ -610,7 +588,6 @@ void ShogiBoard::addPieceToStand(QChar dest)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiBoard::decrementPieceOnStand(QChar source)
 {
     if (m_pieceStand.contains(source)) {
@@ -619,7 +596,6 @@ void ShogiBoard::decrementPieceOnStand(QChar source)
 }
 
 // 駒台から指そうとした場合、駒台の駒数が0以下なら指せない。
-/// @todo remove コメントスタイルガイド適用済み
 bool ShogiBoard::isPieceAvailableOnStand(const QChar source, const int fileFrom) const
 {
     if (fileFrom == 10 || fileFrom == 11) {
@@ -636,7 +612,6 @@ bool ShogiBoard::isPieceAvailableOnStand(const QChar source, const int fileFrom)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QChar ShogiBoard::convertPromotedPieceToOriginal(const QChar dest) const
 {
     static const QMap<QChar, QChar> promotedToOriginalMap = {
@@ -648,7 +623,6 @@ QChar ShogiBoard::convertPromotedPieceToOriginal(const QChar dest) const
 }
 
 // 自分の駒台に駒を置いた場合、自分の駒台の枚数に1加える。
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiBoard::incrementPieceOnStand(const QChar dest)
 {
     QChar originalPiece = convertPromotedPieceToOriginal(dest);
@@ -663,7 +637,6 @@ void ShogiBoard::incrementPieceOnStand(const QChar dest)
 // ============================================================
 
 // 局面編集中に使用される。将棋盤と駒台の駒を更新する。
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiBoard::updateBoardAndPieceStand(const QChar source, const QChar dest, const int fileFrom, const int rankFrom, const int fileTo, const int rankTo, const bool promote)
 {
     if (fileTo < 10) {
@@ -681,7 +654,6 @@ void ShogiBoard::updateBoardAndPieceStand(const QChar source, const QChar dest, 
     movePieceToSquare(source, fileFrom, rankFrom, fileTo, rankTo, promote);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiBoard::setInitialPieceStandValues()
 {
     static const QList<QPair<QChar, int>> initialValues = {
@@ -695,7 +667,6 @@ void ShogiBoard::setInitialPieceStandValues()
 }
 
 // 先手と後手の駒を同じ枚数にして全ての駒を駒台に載せる。
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiBoard::resetGameBoard()
 {
     m_boardData.fill(' ', ranks() * files());
@@ -703,7 +674,6 @@ void ShogiBoard::resetGameBoard()
 }
 
 // 先手の配置を後手の配置に変更し、後手の配置を先手の配置に変更する。
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiBoard::flipSides()
 {
     QVector<QChar> originalBoardData = m_boardData;
@@ -732,7 +702,6 @@ void ShogiBoard::flipSides()
 // ============================================================
 
 // 局面編集中に右クリックで成駒/不成駒/先後を巡回変換する（禁置き段＋二歩をスキップ）。
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiBoard::promoteOrDemotePiece(const int fileFrom, const int rankFrom)
 {
     // 処理フロー:
@@ -822,7 +791,6 @@ void ShogiBoard::promoteOrDemotePiece(const int fileFrom, const int rankFrom)
 // デバッグ出力
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiBoard::printPlayerPieces(const QString& player, const QString& pieceSet) const
 {
     static const QMap<QChar, QString> pieceNames = {
@@ -837,14 +805,12 @@ void ShogiBoard::printPlayerPieces(const QString& player, const QString& pieceSe
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiBoard::printPieceStand()
 {
     printPlayerPieces("先手", "KRGBSNLP");
     printPlayerPieces("後手", "krgbsnlp");
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ShogiBoard::printPieceCount() const
 {
     qDebug() << "先手の持ち駒:";

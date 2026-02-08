@@ -1,6 +1,5 @@
 /// @file versiondialog.cpp
 /// @brief バージョンダイアログクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "versiondialog.h"
 #include "ui_versiondialog.h"

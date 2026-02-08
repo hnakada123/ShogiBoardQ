@@ -1,6 +1,5 @@
 /// @file usitosfenconverter.cpp
 /// @brief USI形式棋譜コンバータクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "usitosfenconverter.h"
 #include "sfenpositiontracer.h"

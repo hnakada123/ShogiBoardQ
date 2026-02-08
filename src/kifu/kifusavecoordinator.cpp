@@ -1,6 +1,5 @@
 /// @file kifusavecoordinator.cpp
 /// @brief 棋譜保存コーディネータの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "kifusavecoordinator.h"
 

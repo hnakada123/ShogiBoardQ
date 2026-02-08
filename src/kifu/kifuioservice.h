@@ -3,7 +3,6 @@
 
 /// @file kifuioservice.h
 /// @brief 棋譜ファイルI/Oサービスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QString>

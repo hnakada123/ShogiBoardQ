@@ -3,7 +3,6 @@
 
 /// @file promotionflow.h
 /// @brief 成り・不成の選択フローを提供するユーティリティクラス
-/// @todo remove コメントスタイルガイド適用済み
 
 
 class QWidget;

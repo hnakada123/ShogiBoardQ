@@ -1,6 +1,5 @@
 /// @file jishogiscoredialogcontroller.cpp
 /// @brief 持将棋スコアダイアログコントローラクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "jishogiscoredialogcontroller.h"
 #include "shogiboard.h"

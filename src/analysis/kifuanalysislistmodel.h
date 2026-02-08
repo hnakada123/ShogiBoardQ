@@ -3,7 +3,6 @@
 
 /// @file kifuanalysislistmodel.h
 /// @brief 棋譜解析結果リストモデルクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QVariant>
@@ -23,7 +22,6 @@ class KifuAnalysisListModel : public AbstractListModel<KifuAnalysisResultsDispla
     Q_OBJECT
 
 public:
-    /// @todo remove コメントスタイルガイド適用済み
     explicit KifuAnalysisListModel(QObject *parent = nullptr);
 
     /// 列数を返す

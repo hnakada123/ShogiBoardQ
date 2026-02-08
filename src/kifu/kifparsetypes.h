@@ -3,7 +3,6 @@
 
 /// @file kifparsetypes.h
 /// @brief KIF棋譜パース用データ型の定義
-/// @todo remove コメントスタイルガイド適用済み
 
 #include <QString>
 #include <QStringList>
@@ -18,7 +17,6 @@ struct KifDisplayItem;
 
 /// KIFの「(キーワード)：(内容)」行を表すペア
 ///
-/// @todo remove コメントスタイルガイド適用済み
 struct KifGameInfoItem {
     QString key;    ///< キーワード（例: "開始日時"）
     QString value;  ///< 内容（例: "2025/03/02 09:00"）

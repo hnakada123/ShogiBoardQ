@@ -3,7 +3,6 @@
 
 /// @file considerationdialog.h
 /// @brief 検討ダイアログクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QDialog>

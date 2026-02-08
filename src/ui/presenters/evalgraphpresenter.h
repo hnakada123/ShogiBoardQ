@@ -3,7 +3,6 @@
 
 /// @file evalgraphpresenter.h
 /// @brief 評価値グラフプレゼンタクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QtCore/QList>

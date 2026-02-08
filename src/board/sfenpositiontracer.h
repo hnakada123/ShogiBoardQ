@@ -3,7 +3,6 @@
 
 /// @file sfenpositiontracer.h
 /// @brief USI手列を順に適用して各手後のSFEN局面を生成する簡易トレーサ
-/// @todo remove コメントスタイルガイド適用済み
 
 #include <QString>
 #include <QStringList>

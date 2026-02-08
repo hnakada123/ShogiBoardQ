@@ -3,7 +3,6 @@
 
 /// @file longlongspinbox.h
 /// @brief 64bit整数対応スピンボックスクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QtWidgets/QAbstractSpinBox>

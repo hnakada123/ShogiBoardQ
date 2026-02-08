@@ -1,6 +1,5 @@
 /// @file settingsservice.cpp
 /// @brief アプリケーション設定の永続化サービスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include <QSettings>
 #include <QApplication>

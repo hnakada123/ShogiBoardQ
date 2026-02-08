@@ -1,6 +1,5 @@
 /// @file kifuloadcoordinator.cpp
 /// @brief 棋譜読み込みコーディネータクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "kifuloadcoordinator.h"
 #include "kiftosfenconverter.h"

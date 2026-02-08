@@ -1,6 +1,5 @@
 /// @file boardinteractioncontroller.cpp
 /// @brief 盤面上のクリック・ドラッグ操作とハイライト管理の実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "boardinteractioncontroller.h"
 
@@ -16,7 +15,6 @@
 // 初期化
 // ======================================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 BoardInteractionController::BoardInteractionController(ShogiView* view,
                                                        ShogiGameController* gc,
                                                        QObject* parent)
@@ -34,7 +32,6 @@ BoardInteractionController::BoardInteractionController(ShogiView* view,
 // 公開スロット
 // ======================================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void BoardInteractionController::onLeftClick(const QPoint& pt)
 {
     // 編集モード以外では、人間の手番かどうかをチェック
@@ -87,7 +84,6 @@ void BoardInteractionController::onLeftClick(const QPoint& pt)
     emit moveRequested(from, to);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void BoardInteractionController::onRightClick(const QPoint& pt)
 {
     // 2ndクリック待ち中ならキャンセル
@@ -102,7 +98,6 @@ void BoardInteractionController::onRightClick(const QPoint& pt)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void BoardInteractionController::onMoveApplied(const QPoint& from, const QPoint& to, bool success)
 {
     if (!success) {
@@ -121,7 +116,6 @@ void BoardInteractionController::onMoveApplied(const QPoint& from, const QPoint&
     resetSelectionAndHighlight();
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void BoardInteractionController::showMoveHighlights(const QPoint& from, const QPoint& to)
 {
     // from が有効な座標かチェック（盤上: 1-9, 駒台: 10-11）
@@ -135,7 +129,6 @@ void BoardInteractionController::showMoveHighlights(const QPoint& from, const QP
     updateHighlight(m_movedField, to, QColor(255, 255, 0));
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void BoardInteractionController::clearAllHighlights()
 {
     deleteHighlight(m_selectedField);
@@ -143,7 +136,6 @@ void BoardInteractionController::clearAllHighlights()
     deleteHighlight(m_movedField);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void BoardInteractionController::onHighlightsCleared()
 {
     // ShogiView::removeHighlightAllData() が呼ばれた
@@ -153,7 +145,6 @@ void BoardInteractionController::onHighlightsCleared()
     m_movedField     = nullptr;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void BoardInteractionController::clearSelectionHighlight()
 {
     m_clickPoint = QPoint();
@@ -165,7 +156,6 @@ void BoardInteractionController::clearSelectionHighlight()
 // プライベートヘルパ
 // ======================================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void BoardInteractionController::selectPieceAndHighlight(const QPoint& field)
 {
     auto* board = m_view->board();
@@ -206,7 +196,6 @@ void BoardInteractionController::selectPieceAndHighlight(const QPoint& field)
     m_view->addHighlight(m_selectedField);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void BoardInteractionController::updateHighlight(ShogiView::FieldHighlight*& hl,
                                                  const QPoint& field,
                                                  const QColor& color)
@@ -215,7 +204,6 @@ void BoardInteractionController::updateHighlight(ShogiView::FieldHighlight*& hl,
     addNewHighlight(hl, field, color);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void BoardInteractionController::deleteHighlight(ShogiView::FieldHighlight*& hl)
 {
     if (!hl) return;
@@ -224,7 +212,6 @@ void BoardInteractionController::deleteHighlight(ShogiView::FieldHighlight*& hl)
     hl = nullptr;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void BoardInteractionController::addNewHighlight(ShogiView::FieldHighlight*& hl,
                                                  const QPoint& pos,
                                                  const QColor& color)
@@ -233,7 +220,6 @@ void BoardInteractionController::addNewHighlight(ShogiView::FieldHighlight*& hl,
     m_view->addHighlight(hl);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void BoardInteractionController::resetSelectionAndHighlight()
 {
     m_clickPoint = QPoint();
@@ -241,7 +227,6 @@ void BoardInteractionController::resetSelectionAndHighlight()
     // m_selectedField2（赤）と m_movedField（黄）は残す
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void BoardInteractionController::finalizeDrag()
 {
     m_view->endDrag();
@@ -249,7 +234,6 @@ void BoardInteractionController::finalizeDrag()
     resetSelectionAndHighlight();
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void BoardInteractionController::togglePiecePromotionOnClick(const QPoint& field)
 {
     auto* board = m_view->board();

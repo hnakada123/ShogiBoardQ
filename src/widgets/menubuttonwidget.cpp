@@ -1,6 +1,5 @@
 /// @file menubuttonwidget.cpp
 /// @brief メニューボタンウィジェットクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "menubuttonwidget.h"
 

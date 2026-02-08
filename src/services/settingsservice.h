@@ -3,7 +3,6 @@
 
 /// @file settingsservice.h
 /// @brief アプリケーション設定の永続化サービスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QString>

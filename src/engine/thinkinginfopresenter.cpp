@@ -1,6 +1,5 @@
 /// @file thinkinginfopresenter.cpp
 /// @brief 思考情報GUI表示Presenterクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "thinkinginfopresenter.h"
 #include "shogiengineinfoparser.h"
@@ -10,7 +9,6 @@
 #include <QDebug>
 #include <memory>
 
-/// @todo remove コメントスタイルガイド適用済み
 ThinkingInfoPresenter::ThinkingInfoPresenter(QObject* parent)
     : QObject(parent)
     , m_locale(QLocale::English)
@@ -21,7 +19,6 @@ ThinkingInfoPresenter::ThinkingInfoPresenter(QObject* parent)
 // 依存関係設定
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void ThinkingInfoPresenter::setGameController(ShogiGameController* controller)
 {
     m_gameController = controller;
@@ -31,32 +28,27 @@ void ThinkingInfoPresenter::setGameController(ShogiGameController* controller)
 // 状態設定
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void ThinkingInfoPresenter::setAnalysisMode(bool mode)
 {
     m_analysisMode = mode;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ThinkingInfoPresenter::setPreviousMove(int fileTo, int rankTo)
 {
     m_previousFileTo = fileTo;
     m_previousRankTo = rankTo;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ThinkingInfoPresenter::setClonedBoardData(const QVector<QChar>& boardData)
 {
     m_clonedBoardData = boardData;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ThinkingInfoPresenter::setPonderEnabled(bool enabled)
 {
     m_ponderEnabled = enabled;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ThinkingInfoPresenter::setBaseSfen(const QString& sfen)
 {
     m_baseSfen = sfen;
@@ -75,7 +67,6 @@ void ThinkingInfoPresenter::setBaseSfen(const QString& sfen)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 QString ThinkingInfoPresenter::baseSfen() const
 {
     return m_baseSfen;
@@ -85,7 +76,6 @@ QString ThinkingInfoPresenter::baseSfen() const
 // info処理
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void ThinkingInfoPresenter::onInfoReceived(const QString& line)
 {
     m_infoBuffer.append(line);
@@ -96,7 +86,6 @@ void ThinkingInfoPresenter::onInfoReceived(const QString& line)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ThinkingInfoPresenter::flushInfoBuffer()
 {
     m_flushScheduled = false;
@@ -111,13 +100,11 @@ void ThinkingInfoPresenter::flushInfoBuffer()
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ThinkingInfoPresenter::processInfoLine(const QString& line)
 {
     processInfoLineInternal(line);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ThinkingInfoPresenter::processInfoLineInternal(const QString& line)
 {
     // 処理フロー:
@@ -187,7 +174,6 @@ void ThinkingInfoPresenter::processInfoLineInternal(const QString& line)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ThinkingInfoPresenter::requestClearThinkingInfo()
 {
     qDebug().noquote() << "[ThinkingInfoPresenter::requestClearThinkingInfo] called";
@@ -200,7 +186,6 @@ void ThinkingInfoPresenter::requestClearThinkingInfo()
 // ============================================================
 
 /// プレフィックス文字列（"[E1]..."等）からエンジン番号タグを抽出する
-/// @todo remove コメントスタイルガイド適用済み
 static QString extractEngineTag(const QString& prefix)
 {
     // プレフィックスは "[E1]..." や "[E2]..." の形式
@@ -213,7 +198,6 @@ static QString extractEngineTag(const QString& prefix)
     return QStringLiteral("E?");
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ThinkingInfoPresenter::logSentCommand(const QString& prefix, const QString& command)
 {
     // エンジンタグ付きフォーマットで送信ログを通知
@@ -221,7 +205,6 @@ void ThinkingInfoPresenter::logSentCommand(const QString& prefix, const QString&
     emit commLogAppended(QStringLiteral("▶ ") + tag + QStringLiteral(": ") + command);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ThinkingInfoPresenter::logReceivedData(const QString& prefix, const QString& data)
 {
     // エンジンタグ付きフォーマットで受信ログを通知
@@ -229,7 +212,6 @@ void ThinkingInfoPresenter::logReceivedData(const QString& prefix, const QString
     emit commLogAppended(QStringLiteral("◀ ") + tag + QStringLiteral(": ") + data);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ThinkingInfoPresenter::logStderrData(const QString& prefix, const QString& data)
 {
     // エンジンタグ付きフォーマットで標準エラーログを通知
@@ -241,7 +223,6 @@ void ThinkingInfoPresenter::logStderrData(const QString& prefix, const QString& 
 // シグナル発行ヘルパメソッド
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void ThinkingInfoPresenter::emitSearchedHand(const ShogiEngineInfoParser* info)
 {
     if (!info->searchedHand().isEmpty()) {
@@ -249,7 +230,6 @@ void ThinkingInfoPresenter::emitSearchedHand(const ShogiEngineInfoParser* info)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ThinkingInfoPresenter::emitDepth(const ShogiEngineInfoParser* info)
 {
     if (info->depth().isEmpty()) return;
@@ -263,7 +243,6 @@ void ThinkingInfoPresenter::emitDepth(const ShogiEngineInfoParser* info)
     emit searchDepthUpdated(depthStr);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ThinkingInfoPresenter::emitNodes(const ShogiEngineInfoParser* info)
 {
     if (info->nodes().isEmpty()) return;
@@ -272,7 +251,6 @@ void ThinkingInfoPresenter::emitNodes(const ShogiEngineInfoParser* info)
     emit nodeCountUpdated(m_locale.toString(nodes));
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ThinkingInfoPresenter::emitNps(const ShogiEngineInfoParser* info)
 {
     if (info->nps().isEmpty()) return;
@@ -281,7 +259,6 @@ void ThinkingInfoPresenter::emitNps(const ShogiEngineInfoParser* info)
     emit npsUpdated(m_locale.toString(nps));
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ThinkingInfoPresenter::emitHashfull(const ShogiEngineInfoParser* info)
 {
     if (info->hashfull().isEmpty()) {
@@ -300,7 +277,6 @@ void ThinkingInfoPresenter::emitHashfull(const ShogiEngineInfoParser* info)
 // VALUE_SUPERIOR == 28000, PawnValue == 90, centi-pawn換算で100/90倍 → 約31111
 static constexpr int SCORE_MATE_VALUE = 31111;
 
-/// @todo remove コメントスタイルガイド適用済み
 int ThinkingInfoPresenter::calculateScoreInt(const ShogiEngineInfoParser* info) const
 {
     int scoreInt = 0;
@@ -317,7 +293,6 @@ int ThinkingInfoPresenter::calculateScoreInt(const ShogiEngineInfoParser* info) 
     return scoreInt;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ThinkingInfoPresenter::updateAnalysisModeAndScore(const ShogiEngineInfoParser* info, int& scoreInt)
 {
     if (!m_gameController) {
@@ -346,7 +321,6 @@ void ThinkingInfoPresenter::updateAnalysisModeAndScore(const ShogiEngineInfoPars
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ThinkingInfoPresenter::updateLastScore(int scoreInt)
 {
     qDebug() << "[TIP] updateLastScore: scoreInt=" << scoreInt << "m_lastScoreCp(before)=" << m_lastScoreCp;
@@ -367,7 +341,6 @@ void ThinkingInfoPresenter::updateLastScore(int scoreInt)
     emit scoreUpdated(m_lastScoreCp, m_scoreStr);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void ThinkingInfoPresenter::updateEvaluationInfo(ShogiEngineInfoParser* info, int& scoreInt)
 {
     // 処理フロー:

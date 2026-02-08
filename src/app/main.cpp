@@ -1,6 +1,5 @@
 /// @file main.cpp
 /// @brief アプリケーションエントリーポイントの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "mainwindow.h"
 #include "settingsservice.h"

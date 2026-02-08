@@ -1,6 +1,5 @@
 /// @file recordnavigationhandler.cpp
 /// @brief 棋譜欄行変更ハンドラクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "recordnavigationhandler.h"
 
@@ -17,19 +16,16 @@
 #include "evaluationgraphcontroller.h"
 #include "csagamecoordinator.h"
 
-/// @todo remove コメントスタイルガイド適用済み
 RecordNavigationHandler::RecordNavigationHandler(QObject* parent)
     : QObject(parent)
 {
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void RecordNavigationHandler::updateDeps(const Deps& deps)
 {
     m_deps = deps;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void RecordNavigationHandler::onMainRowChanged(int row)
 {
     qDebug().noquote() << "[RNH] onMainRowChanged ENTER row=" << row

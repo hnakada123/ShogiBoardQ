@@ -1,6 +1,5 @@
 /// @file jishogicalculator.cpp
 /// @brief 持将棋（入玉宣言法）の点数計算・判定ロジックの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "jishogicalculator.h"
 #include <QObject>
@@ -9,7 +8,6 @@
 // 点数計算
 // ============================================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 JishogiCalculator::JishogiResult JishogiCalculator::calculate(
     const QVector<QChar>& boardData,
     const QMap<QChar, int>& pieceStand)
@@ -97,7 +95,6 @@ JishogiCalculator::JishogiResult JishogiCalculator::calculate(
 // 宣言条件判定
 // ============================================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 bool JishogiCalculator::meetsDeclarationConditions(const PlayerScore& score, bool kingInCheck)
 {
     // 王手がかかっている場合は宣言できない
@@ -111,7 +108,6 @@ bool JishogiCalculator::meetsDeclarationConditions(const PlayerScore& score, boo
 // 判定結果文字列
 // ============================================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 /// 24点法: 31点以上→勝ち、24〜30点→引き分け、24点未満→負け
 QString JishogiCalculator::getResult24(const PlayerScore& score, bool kingInCheck)
 {
@@ -128,7 +124,6 @@ QString JishogiCalculator::getResult24(const PlayerScore& score, bool kingInChec
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 /// 27点法: 先手28点以上、後手27点以上で勝ち
 QString JishogiCalculator::getResult27(const PlayerScore& score, bool isSente, bool kingInCheck)
 {
@@ -149,7 +144,6 @@ QString JishogiCalculator::getResult27(const PlayerScore& score, bool isSente, b
 // 内部ヘルパー
 // ============================================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 /// 成駒は成る前の駒と同じ点数
 int JishogiCalculator::getPiecePoints(QChar piece)
 {
@@ -173,7 +167,6 @@ int JishogiCalculator::getPiecePoints(QChar piece)
     return 1;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 bool JishogiCalculator::isMajorPiece(QChar piece)
 {
     QChar upper = piece.toUpper();
@@ -181,13 +174,11 @@ bool JishogiCalculator::isMajorPiece(QChar piece)
     return upper == 'R' || upper == 'B' || upper == 'U' || upper == 'C';
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 bool JishogiCalculator::isSentePiece(QChar piece)
 {
     return piece.isUpper();
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 bool JishogiCalculator::isGotePiece(QChar piece)
 {
     return piece.isLower();

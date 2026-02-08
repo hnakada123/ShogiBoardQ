@@ -1,6 +1,5 @@
 /// @file timecontrolcontroller.cpp
 /// @brief 持ち時間制御コントローラクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "timecontrolcontroller.h"
 

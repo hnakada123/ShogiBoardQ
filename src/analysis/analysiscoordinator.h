@@ -3,7 +3,6 @@
 
 /// @file analysiscoordinator.h
 /// @brief 局面解析コーディネータクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QObject>
@@ -30,13 +29,11 @@ class AnalysisCoordinator : public QObject
     Q_OBJECT
 public:
     /// 依存オブジェクト
-    /// @todo remove コメントスタイルガイド適用済み
     struct Deps {
         QStringList* sfenRecord = nullptr;  ///< 各plyの`position ...`コマンド列（非所有）
     };
 
     /// 解析オプション
-    /// @todo remove コメントスタイルガイド適用済み
     struct Options {
         int  startPly   = 0;     ///< 解析開始手数（0以上）
         int  endPly     = -1;    ///< 解析終了手数（-1は末尾まで）
@@ -57,34 +54,27 @@ public:
     };
     Q_ENUM(Mode)
 
-    /// @todo remove コメントスタイルガイド適用済み
     explicit AnalysisCoordinator(const Deps& d, QObject* parent = nullptr);
 
     /// 依存オブジェクトを更新する
-    /// @todo remove コメントスタイルガイド適用済み
     void setDeps(const Deps& d);
 
     /// 解析タブ参照を設定する（非所有）
-    /// @todo remove コメントスタイルガイド適用済み
     void setAnalysisTab(EngineAnalysisTab* tab);
 
     /// 解析オプションを設定する
-    /// @todo remove コメントスタイルガイド適用済み
     void setOptions(const Options& opt);
 
     // --- 操作 API ---
 
     /// 設定済み範囲（startPly..endPly）を連続解析する
-    /// @todo remove コメントスタイルガイド適用済み
     void startAnalyzeRange();
 
     /// 指定手数の局面を1回だけ解析する
     /// @param ply 解析対象の手数
-    /// @todo remove コメントスタイルガイド適用済み
     void startAnalyzeSingle(int ply);
 
     /// 現在の解析を中断する
-    /// @todo remove コメントスタイルガイド適用済み
     void stop();
 
 signals:

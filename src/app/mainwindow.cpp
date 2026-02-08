@@ -1,6 +1,5 @@
 /// @file mainwindow.cpp
 /// @brief アプリケーションのメインウィンドウ実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include <QMessageBox>
 #include <QInputDialog>
@@ -124,7 +123,6 @@
 #include "recordnavigationhandler.h"
 
 // MainWindow を初期化し、主要コンポーネントを構築する。
-/// @todo remove コメントスタイルガイド適用済み
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -201,7 +199,6 @@ MainWindow::MainWindow(QWidget *parent)
 }
 
 // `setupCentralWidgetContainer`: Central Widget Container をセットアップする。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::setupCentralWidgetContainer()
 {
     m_central = ui->centralwidget;
@@ -211,7 +208,6 @@ void MainWindow::setupCentralWidgetContainer()
 }
 
 // `configureToolBarFromUi`: Tool Bar From Ui を設定する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::configureToolBarFromUi()
 {
     if (QToolBar* tb = ui->toolBar) {
@@ -233,7 +229,6 @@ void MainWindow::configureToolBarFromUi()
 }
 
 // `buildGamePanels`: Game Panels を構築する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::buildGamePanels()
 {
     // MainWindow が管理する主要パネルを依存順に構築する。
@@ -321,7 +316,6 @@ void MainWindow::buildGamePanels()
 }
 
 // `restoreWindowAndSync`: Window And Sync を復元する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::restoreWindowAndSync()
 {
     loadWindowSettings();
@@ -334,7 +328,6 @@ void MainWindow::restoreWindowAndSync()
 }
 
 // `connectAllActions`: All Actions のシグナル接続を行う。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::connectAllActions()
 {
     // 既存があれば使い回し
@@ -349,7 +342,6 @@ void MainWindow::connectAllActions()
 }
 
 // `connectCoreSignals`: Core Signals のシグナル接続を行う。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::connectCoreSignals()
 {
     qDebug() << "[CONNECT] connectCoreSignals_ called";
@@ -382,7 +374,6 @@ void MainWindow::connectCoreSignals()
 }
 
 // `installAppToolTips`: ツールバー配下ボタンにツールチップ用イベントフィルタを導入する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::installAppToolTips()
 {
     auto* tipFilter = new AppToolTipFilter(this);
@@ -399,7 +390,6 @@ void MainWindow::installAppToolTips()
 }
 
 // `finalizeCoordinators`: Coordinators の最終初期化を行う。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::finalizeCoordinators()
 {
     initMatchCoordinator();
@@ -410,14 +400,12 @@ void MainWindow::finalizeCoordinators()
 }
 
 // `onErrorBusOccurred`: Error Bus Occurred のイベント受信時処理を行う。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onErrorBusOccurred(const QString& msg)
 {
     displayErrorMessage(msg);
 }
 
 // GUIを構成するWidgetなどを生成する。（リファクタ後）
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::initializeComponents()
 {
     // --- Core models ---
@@ -491,7 +479,6 @@ void MainWindow::initializeComponents()
     updateSecondEngineVisibility();
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::displayErrorMessage(const QString& errorMessage)
 {
     m_errorOccurred = true;
@@ -503,7 +490,6 @@ void MainWindow::displayErrorMessage(const QString& errorMessage)
 
 
 // 待ったボタンを押すと、2手戻る。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::undoLastTwoMoves()
 {
     if (m_match) {
@@ -547,7 +533,6 @@ void MainWindow::undoLastTwoMoves()
 }
 
 // `initializeNewGame`: New Game を初期化する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::initializeNewGame(QString& startSfenStr)
 {
     if (m_gameController) {
@@ -558,7 +543,6 @@ void MainWindow::initializeNewGame(QString& startSfenStr)
 }
 
 // 対局モードに応じて将棋盤上部に表示される対局者名をセットする。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::setPlayersNamesForMode()
 {
     ensurePlayerInfoController();
@@ -571,21 +555,18 @@ void MainWindow::setPlayersNamesForMode()
 }
 
 // 駒台を含む将棋盤全体の画像をクリップボードにコピーする。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::copyBoardToClipboard()
 {
     BoardImageExporter::copyToClipboard(m_shogiView);
 }
 
 // `saveShogiBoardImage`: Shogi Board Image を保存する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::saveShogiBoardImage()
 {
     BoardImageExporter::saveImage(this, m_shogiView);
 }
 
 // 対局モードに応じて将棋盤下部に表示されるエンジン名をセットする。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::setEngineNamesBasedOnMode()
 {
     ensurePlayerInfoController();
@@ -596,7 +577,6 @@ void MainWindow::setEngineNamesBasedOnMode()
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::updateSecondEngineVisibility()
 {
     ensurePlayerInfoController();
@@ -607,14 +587,12 @@ void MainWindow::updateSecondEngineVisibility()
 }
 
 // 以前は対局者名と残り時間、将棋盤のレイアウトを構築していた。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::setupHorizontalGameLayout()
 {
     // 何もしない（すべてのウィジェットはドックに移動）
 }
 
 // `initializeCentralGameDisplay`: Central Game Display を初期化する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::initializeCentralGameDisplay()
 {
     // セントラルウィジェットには将棋盤が配置されている
@@ -629,7 +607,6 @@ void MainWindow::initializeCentralGameDisplay()
 }
 
 // `startNewShogiGame`: New Shogi Game を開始する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::startNewShogiGame(QString& startSfenStr)
 {
     ensureReplayController();
@@ -668,21 +645,18 @@ void MainWindow::startNewShogiGame(QString& startSfenStr)
 }
 
 // 棋譜欄の下の矢印ボタンを無効にする。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::disableArrowButtons()
 {
     if (m_recordPane) m_recordPane->setArrowButtonsEnabled(false);
 }
 
 // 棋譜欄の下の矢印ボタンを有効にする。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::enableArrowButtons()
 {
     if (m_recordPane) m_recordPane->setArrowButtonsEnabled(true);
 }
 
 // 棋譜欄と矢印ボタンの有効/無効を設定する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::setNavigationEnabled(bool on)
 {
     if (m_recordPane) m_recordPane->setNavigationEnabled(on);
@@ -691,21 +665,18 @@ void MainWindow::setNavigationEnabled(bool on)
 }
 
 // 対局中にナビゲーション（棋譜欄と矢印ボタン）を無効にする。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::disableNavigationForGame()
 {
     setNavigationEnabled(false);
 }
 
 // 対局終了後にナビゲーション（棋譜欄と矢印ボタン）を有効にする。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::enableNavigationAfterGame()
 {
     setNavigationEnabled(true);
 }
 
 // メニューで「投了」をクリックした場合の処理を行う。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::handleResignation()
 {
     // CSA通信対局モードの場合
@@ -732,7 +703,6 @@ void MainWindow::handleResignation()
 }
 
 
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::ensureEvaluationGraphController()
 {
     if (m_evalGraphController) return;
@@ -751,7 +721,6 @@ void MainWindow::ensureEvaluationGraphController()
 }
 
 // 将棋クロックの手番を設定する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::updateTurnStatus(int currentPlayer)
 {
     if (!m_shogiView) return;
@@ -768,7 +737,6 @@ void MainWindow::updateTurnStatus(int currentPlayer)
 }
 
 // `displayVersionInformation`: Version Information を表示する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::displayVersionInformation()
 {
     ensureDialogCoordinator();
@@ -778,7 +746,6 @@ void MainWindow::displayVersionInformation()
 }
 
 // `displayJishogiScoreDialog`: Jishogi Score Dialog を表示する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::displayJishogiScoreDialog()
 {
     if (!m_shogiView || !m_shogiView->board()) {
@@ -793,7 +760,6 @@ void MainWindow::displayJishogiScoreDialog()
 }
 
 // `handleNyugyokuDeclaration`: Nyugyoku Declaration を処理する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::handleNyugyokuDeclaration()
 {
     // 盤面データの確認
@@ -811,7 +777,6 @@ void MainWindow::handleNyugyokuDeclaration()
 }
 
 // `openWebsiteInExternalBrowser`: Website In External Browser を開く。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::openWebsiteInExternalBrowser()
 {
     ensureDialogCoordinator();
@@ -821,7 +786,6 @@ void MainWindow::openWebsiteInExternalBrowser()
 }
 
 // `displayEngineSettingsDialog`: Engine Settings Dialog を表示する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::displayEngineSettingsDialog()
 {
     ensureDialogCoordinator();
@@ -831,7 +795,6 @@ void MainWindow::displayEngineSettingsDialog()
 }
 
 // 成る・不成の選択ダイアログを起動する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::displayPromotionDialog()
 {
     if (!m_gameController) return;
@@ -843,7 +806,6 @@ void MainWindow::displayPromotionDialog()
 }
 
 // 定跡ウィンドウ（ドック）を表示/非表示にトグルする。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::displayJosekiWindow()
 {
     // ドックが未作成の場合は作成
@@ -865,7 +827,6 @@ void MainWindow::displayJosekiWindow()
 }
 
 // `updateJosekiWindow`: Joseki Window を更新する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::updateJosekiWindow()
 {
     // ドックが非表示の場合は更新をスキップ
@@ -878,7 +839,6 @@ void MainWindow::updateJosekiWindow()
 }
 
 // `displayMenuWindow`: Menu Window を表示する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::displayMenuWindow()
 {
     // ドックが未作成の場合は作成
@@ -898,7 +858,6 @@ void MainWindow::displayMenuWindow()
 }
 
 // `displayCsaGameDialog`: Csa Game Dialog を表示する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::displayCsaGameDialog()
 {
     // ダイアログが未作成の場合は作成する
@@ -939,7 +898,6 @@ void MainWindow::displayCsaGameDialog()
 }
 
 // `displayTsumeShogiSearchDialog`: Tsume Shogi Search Dialog を表示する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::displayTsumeShogiSearchDialog()
 {
     // 解析モード切替
@@ -952,7 +910,6 @@ void MainWindow::displayTsumeShogiSearchDialog()
 }
 
 // 詰み探索エンジンを終了する
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::stopTsumeSearch()
 {
     qDebug().noquote() << "[MainWindow] stopTsumeSearch called";
@@ -962,7 +919,6 @@ void MainWindow::stopTsumeSearch()
 }
 
 // 棋譜解析ダイアログを表示する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::displayKifuAnalysisDialog()
 {
     qDebug().noquote() << "[MainWindow::displayKifuAnalysisDialog] START";
@@ -1012,7 +968,6 @@ void MainWindow::displayKifuAnalysisDialog()
 }
 
 // `cancelKifuAnalysis`: Kifu Analysis を中止する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::cancelKifuAnalysis()
 {
     qDebug().noquote() << "[MainWindow::cancelKifuAnalysis] called";
@@ -1033,7 +988,6 @@ void MainWindow::cancelKifuAnalysis()
 }
 
 // `onKifuAnalysisProgress`: Kifu Analysis Progress のイベント受信時処理を行う。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onKifuAnalysisProgress(int ply, int scoreCp)
 {
     qDebug().noquote() << "[MainWindow::onKifuAnalysisProgress] ply=" << ply << "scoreCp=" << scoreCp;
@@ -1057,7 +1011,6 @@ void MainWindow::onKifuAnalysisProgress(int ply, int scoreCp)
 }
 
 // `onKifuAnalysisResultRowSelected`: Kifu Analysis Result Row Selected のイベント受信時処理を行う。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onKifuAnalysisResultRowSelected(int row)
 {
     qDebug().noquote() << "[MainWindow::onKifuAnalysisResultRowSelected] row=" << row;
@@ -1076,7 +1029,6 @@ void MainWindow::onKifuAnalysisResultRowSelected(int row)
 }
 
 // TurnManager::changed を受けて UI/Clock を更新（＋手番を GameController に同期）
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onTurnManagerChanged(ShogiGameController::Player now)
 {
     // 1) UI側（先手=1, 後手=2）に反映
@@ -1096,7 +1048,6 @@ void MainWindow::onTurnManagerChanged(ShogiGameController::Player now)
 }
 
 // 現在の手番を設定する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::setCurrentTurn()
 {
     // TurnManager を確保
@@ -1123,7 +1074,6 @@ void MainWindow::setCurrentTurn()
 }
 
 // `resolveCurrentSfenForGameStart`: Current Sfen For Game Start を解決する。
-/// @todo remove コメントスタイルガイド適用済み
 QString MainWindow::resolveCurrentSfenForGameStart() const
 {
     qDebug().noquote() << "[DEBUG] resolveCurrentSfenForGameStart: m_currentSelectedPly=" << m_currentSelectedPly
@@ -1159,7 +1109,6 @@ QString MainWindow::resolveCurrentSfenForGameStart() const
 }
 
 // 対局を開始する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::initializeGame()
 {
     ensureGameStartCoordinator();
@@ -1224,7 +1173,6 @@ void MainWindow::initializeGame()
 
 // 設定ファイルにGUI全体のウィンドウサイズを書き込む。
 // また、将棋盤のマスサイズも書き込む。その後、GUIを終了する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::saveSettingsAndClose()
 {
     saveWindowAndBoardSettings();
@@ -1238,7 +1186,6 @@ void MainWindow::saveSettingsAndClose()
 }
 
 // GUIを初期画面表示に戻す。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::resetToInitialState()
 {
     // 既存呼び出し互換のため残し、内部は司令塔フックへ集約
@@ -1246,7 +1193,6 @@ void MainWindow::resetToInitialState()
 }
 
 // 棋譜ファイルをダイアログから選択し、そのファイルを開く。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::chooseAndLoadKifuFile()
 {
     qDebug().noquote() << "[MW] chooseAndLoadKifuFile ENTER"
@@ -1299,7 +1245,6 @@ void MainWindow::chooseAndLoadKifuFile()
 }
 
 // `displayGameRecord`: Game Record を表示する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::displayGameRecord(const QList<KifDisplayItem> disp)
 {
     QElapsedTimer timer;
@@ -1342,14 +1287,12 @@ void MainWindow::displayGameRecord(const QList<KifDisplayItem> disp)
 }
 
 // `loadWindowSettings`: Window Settings を読み込む。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::loadWindowSettings()
 {
     SettingsService::loadWindowSize(this);
 }
 
 // `saveWindowAndBoardSettings`: Window And Board Settings を保存する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::saveWindowAndBoardSettings()
 {
     SettingsService::saveWindowAndBoard(this, m_shogiView);
@@ -1361,7 +1304,6 @@ void MainWindow::saveWindowAndBoardSettings()
 }
 
 // `closeEvent`: 終了時に設定保存とエンジン停止を行ってから親クラス処理へ委譲する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::closeEvent(QCloseEvent* e)
 {
     saveWindowAndBoardSettings();
@@ -1375,14 +1317,12 @@ void MainWindow::closeEvent(QCloseEvent* e)
 }
 
 // `onReverseTriggered`: Reverse Triggered のイベント受信時処理を行う。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onReverseTriggered()
 {
     if (m_match) m_match->flipBoard();
 }
 
 // `onDocksLockToggled`: Docks Lock Toggled のイベント受信時処理を行う。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onDocksLockToggled(bool locked)
 {
     ensureDockLayoutManager();
@@ -1397,7 +1337,6 @@ void MainWindow::onDocksLockToggled(bool locked)
 }
 
 // 起動時用：編集メニューを"編集前（未編集）"の初期状態にする
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::initializeEditMenuForStartup()
 {
     // 未編集状態（＝編集モードではない）でメニューを整える
@@ -1407,7 +1346,6 @@ void MainWindow::initializeEditMenuForStartup()
 // 共通ユーティリティ：編集モードかどうかで可視/不可視を一括切り替え
 // editing == true  : 編集モード中 → 「局面編集終了」などを表示／「編集局面開始」は隠す
 // editing == false : 未編集（通常）→ 「編集局面開始」を表示／それ以外を隠す
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::applyEditMenuEditingState(bool editing)
 {
     if (!ui) {
@@ -1432,7 +1370,6 @@ void MainWindow::applyEditMenuEditingState(bool editing)
 }
 
 // `beginPositionEditing`: 局面編集モードへの遷移処理をコーディネータへ委譲する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::beginPositionEditing()
 {
     ensurePositionEditCoordinator();
@@ -1446,7 +1383,6 @@ void MainWindow::beginPositionEditing()
 }
 
 // `finishPositionEditing`: 局面編集モード終了処理をコーディネータへ委譲する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::finishPositionEditing()
 {
     ensurePositionEditCoordinator();
@@ -1459,7 +1395,6 @@ void MainWindow::finishPositionEditing()
 }
 
 // 「すぐ指させる」
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::movePieceImmediately()
 {
     if (m_match) {
@@ -1468,7 +1403,6 @@ void MainWindow::movePieceImmediately()
 }
 
 // `setGameOverMove`: Game Over Move を設定する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::setGameOverMove(MatchCoordinator::Cause cause, bool loserIsPlayerOne)
 {
     ensureGameStateController();
@@ -1478,7 +1412,6 @@ void MainWindow::setGameOverMove(MatchCoordinator::Cause cause, bool loserIsPlay
 }
 
 // `appendKifuLine`: 棋譜1行の追記を記録更新フローへ橋渡しする。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::appendKifuLine(const QString& text, const QString& elapsedTime)
 {
     qDebug().noquote() << "[MW-DEBUG] appendKifuLine ENTER: text=" << text
@@ -1499,7 +1432,6 @@ void MainWindow::appendKifuLine(const QString& text, const QString& elapsedTime)
 
 // 人間の手番かどうかを判定するヘルパー
 // 対局中で、現在手番が人間なら true を返す
-/// @todo remove コメントスタイルガイド適用済み
 bool MainWindow::isHumanTurnNow() const
 {
     // 対局中でなければ常に true（編集等では制限しない）
@@ -1537,7 +1469,6 @@ bool MainWindow::isHumanTurnNow() const
 }
 
 // 対局者名確定時のスロット（PlayerInfoWiring経由）
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onPlayerNamesResolved(const QString& human1, const QString& human2,
                                         const QString& engine1, const QString& engine2,
                                         int playMode)
@@ -1568,7 +1499,6 @@ void MainWindow::onPlayerNamesResolved(const QString& human1, const QString& hum
 }
 
 // 連続対局設定を受信
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onConsecutiveGamesConfigured(int totalGames, bool switchTurn)
 {
     qDebug().noquote() << "[MW] onConsecutiveGamesConfigured_: totalGames=" << totalGames << " switchTurn=" << switchTurn;
@@ -1579,7 +1509,6 @@ void MainWindow::onConsecutiveGamesConfigured(int totalGames, bool switchTurn)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onGameStarted(const MatchCoordinator::StartOptions& opt)
 {
     qDebug().noquote() << "[MW] onGameStarted_: mode=" << static_cast<int>(opt.mode)
@@ -1591,7 +1520,6 @@ void MainWindow::onGameStarted(const MatchCoordinator::StartOptions& opt)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::startNextConsecutiveGame()
 {
     qDebug().noquote() << "[MW] startNextConsecutiveGame_ (delegated to controller)";
@@ -1603,7 +1531,6 @@ void MainWindow::startNextConsecutiveGame()
 }
 
 // `onRequestSelectKifuRow`: Request Select Kifu Row のイベント受信時処理を行う。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onRequestSelectKifuRow(int row)
 {
     qDebug().noquote() << "[MW] onRequestSelectKifuRow: row=" << row;
@@ -1624,7 +1551,6 @@ void MainWindow::onRequestSelectKifuRow(int row)
 }
 
 // `syncBoardAndHighlightsAtRow`: 指定手数の盤面・ハイライト・関連UI状態を同期する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::syncBoardAndHighlightsAtRow(int ply)
 {
     qDebug() << "[MW-DEBUG] syncBoardAndHighlightsAtRow ENTER ply=" << ply;
@@ -1680,7 +1606,6 @@ void MainWindow::syncBoardAndHighlightsAtRow(int ply)
 }
 
 // `navigateKifuViewToRow`: 棋譜表の対象行へ移動し、盤面と手番表示を追従更新する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::navigateKifuViewToRow(int ply)
 {
     qDebug().noquote() << "[MW] navigateKifuViewToRow ENTER ply=" << ply;
@@ -1731,7 +1656,6 @@ void MainWindow::navigateKifuViewToRow(int ply)
 }
 
 // `kifuExportController`: 棋譜エクスポートコントローラを取得する。
-/// @todo remove コメントスタイルガイド適用済み
 KifuExportController* MainWindow::kifuExportController()
 {
     ensureKifuExportController();
@@ -1739,7 +1663,6 @@ KifuExportController* MainWindow::kifuExportController()
 }
 
 // `initializeBranchNavigationClasses`: Branch Navigation Classes を初期化する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::initializeBranchNavigationClasses()
 {
     // ツリーの作成
@@ -1822,7 +1745,6 @@ void MainWindow::initializeBranchNavigationClasses()
 }
 
 // `setupRecordPane`: Record Pane をセットアップする。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::setupRecordPane()
 {
     // モデルの用意（従来どおり）
@@ -1849,7 +1771,6 @@ void MainWindow::setupRecordPane()
 }
 
 // `setupEngineAnalysisTab`: Engine Analysis Tab をセットアップする。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::setupEngineAnalysisTab()
 {
     // 既に配線クラスがあれば再利用し、タブ取得だけを行う
@@ -1936,7 +1857,6 @@ void MainWindow::setupEngineAnalysisTab()
 }
 
 // `createEvalChartDock`: Eval Chart Dock を作成する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::createEvalChartDock()
 {
     // 評価値グラフウィジェットを作成
@@ -1954,7 +1874,6 @@ void MainWindow::createEvalChartDock()
 }
 
 // `createRecordPaneDock`: Record Pane Dock を作成する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::createRecordPaneDock()
 {
     if (!m_recordPane) {
@@ -1969,7 +1888,6 @@ void MainWindow::createRecordPaneDock()
 }
 
 // `createAnalysisDocks`: Analysis Docks を作成する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::createAnalysisDocks()
 {
     if (!m_analysisTab) {
@@ -2002,7 +1920,6 @@ void MainWindow::createAnalysisDocks()
 }
 
 // `setupBoardInCenter`: Board In Center をセットアップする。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::setupBoardInCenter()
 {
     if (!m_shogiView) {
@@ -2030,7 +1947,6 @@ void MainWindow::setupBoardInCenter()
 }
 
 // `createMenuWindowDock`: Menu Window Dock を作成する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::createMenuWindowDock()
 {
     // MenuWindowWiringを確保
@@ -2047,7 +1963,6 @@ void MainWindow::createMenuWindowDock()
 }
 
 // `createJosekiWindowDock`: Joseki Window Dock を作成する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::createJosekiWindowDock()
 {
     // JosekiWindowWiringを確保
@@ -2064,7 +1979,6 @@ void MainWindow::createJosekiWindowDock()
 }
 
 // `createAnalysisResultsDock`: Analysis Results Dock を作成する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::createAnalysisResultsDock()
 {
     // AnalysisResultsPresenterを確保
@@ -2081,7 +1995,6 @@ void MainWindow::createAnalysisResultsDock()
 }
 
 // MatchCoordinator 構築と配線の集約ポイント。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::initMatchCoordinator()
 {
     // 依存が揃っていない場合は何もしない
@@ -2241,7 +2154,6 @@ void MainWindow::initMatchCoordinator()
 }
 
 // `ensureTimeController`: Time Controller を必要に応じて生成し、依存関係を更新する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::ensureTimeController()
 {
     if (m_timeController) return;
@@ -2252,7 +2164,6 @@ void MainWindow::ensureTimeController()
 }
 
 // `onMatchGameEnded`: Match Game Ended のイベント受信時処理を行う。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onMatchGameEnded(const MatchCoordinator::GameEndInfo& info)
 {
     ensureGameStateController();
@@ -2283,14 +2194,12 @@ void MainWindow::onMatchGameEnded(const MatchCoordinator::GameEndInfo& info)
 }
 
 // `onActionFlipBoardTriggered`: Action Flip Board Triggered のイベント受信時処理を行う。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onActionFlipBoardTriggered(bool /*checked*/)
 {
     if (m_match) m_match->flipBoard();
 }
 
 // `onActionEnlargeBoardTriggered`: Action Enlarge Board Triggered のイベント受信時処理を行う。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onActionEnlargeBoardTriggered(bool /*checked*/)
 {
     if (!m_shogiView) return;
@@ -2298,7 +2207,6 @@ void MainWindow::onActionEnlargeBoardTriggered(bool /*checked*/)
 }
 
 // `onActionShrinkBoardTriggered`: Action Shrink Board Triggered のイベント受信時処理を行う。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onActionShrinkBoardTriggered(bool /*checked*/)
 {
     if (!m_shogiView) return;
@@ -2306,7 +2214,6 @@ void MainWindow::onActionShrinkBoardTriggered(bool /*checked*/)
 }
 
 // `onRequestAppendGameOverMove`: Request Append Game Over Move のイベント受信時処理を行う。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onRequestAppendGameOverMove(const MatchCoordinator::GameEndInfo& info)
 {
     ensureGameStateController();
@@ -2321,7 +2228,6 @@ void MainWindow::onRequestAppendGameOverMove(const MatchCoordinator::GameEndInfo
 }
 
 // `setupBoardInteractionController`: Board Interaction Controller をセットアップする。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::setupBoardInteractionController()
 {
     ensureBoardSetupController();
@@ -2339,7 +2245,6 @@ void MainWindow::setupBoardInteractionController()
 }
 
 // `connectBoardClicks`: Board Clicks のシグナル接続を行う。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::connectBoardClicks()
 {
     ensureBoardSetupController();
@@ -2349,7 +2254,6 @@ void MainWindow::connectBoardClicks()
 }
 
 // `connectMoveRequested`: Move Requested のシグナル接続を行う。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::connectMoveRequested()
 {
     // BoardInteractionControllerからのシグナルをMainWindow経由で処理
@@ -2362,7 +2266,6 @@ void MainWindow::connectMoveRequested()
 }
 
 // `onMoveRequested`: Move Requested のイベント受信時処理を行う。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onMoveRequested(const QPoint& from, const QPoint& to)
 {
     qDebug().noquote() << "[MW] onMoveRequested_: from=" << from << " to=" << to
@@ -2382,7 +2285,6 @@ void MainWindow::onMoveRequested(const QPoint& from, const QPoint& to)
 }
 
 // 再生モードの切替を ReplayController へ委譲
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::setReplayMode(bool on)
 {
     ensureReplayController();
@@ -2392,7 +2294,6 @@ void MainWindow::setReplayMode(bool on)
 }
 
 // `broadcastComment`: コメント表示先（棋譜欄/解析タブ）へ同報する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::broadcastComment(const QString& text, bool asHtml)
 {
     ensureCommentCoordinator();
@@ -2405,7 +2306,6 @@ void MainWindow::broadcastComment(const QString& text, bool asHtml)
 }
 
 // `onBranchNodeActivated`: Branch Node Activated のイベント受信時処理を行う。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onBranchNodeActivated(int row, int ply)
 {
     qDebug().noquote() << "[MW] onBranchNodeActivated ENTER row=" << row << "ply=" << ply;
@@ -2420,7 +2320,6 @@ void MainWindow::onBranchNodeActivated(int row, int ply)
 }
 
 // `onBranchNodeHandled`: Branch Node Handled のイベント受信時処理を行う。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onBranchNodeHandled(int ply, const QString& sfen,
                                      int previousFileTo, int previousRankTo,
                                      const QString& lastUsiMove)
@@ -2463,7 +2362,6 @@ void MainWindow::onBranchNodeHandled(int ply, const QString& sfen,
     qDebug().noquote() << "[MW] onBranchNodeHandled LEAVE";
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onBranchTreeBuilt()
 {
     qDebug() << "[MW] onBranchTreeBuilt: updating new navigation system";
@@ -2491,7 +2389,6 @@ void MainWindow::onBranchTreeBuilt()
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::loadBoardFromSfen(const QString& sfen)
 {
     qDebug().noquote() << "[MW] loadBoardFromSfen: sfen=" << sfen.left(60);
@@ -2521,7 +2418,6 @@ void MainWindow::loadBoardFromSfen(const QString& sfen)
 }
 
 // 新システム（KifuNavigationState）が管理
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onLineSelectionChanged(int newLineIndex)
 {
     Q_UNUSED(newLineIndex)
@@ -2529,7 +2425,6 @@ void MainWindow::onLineSelectionChanged(int newLineIndex)
 }
 
 // SFENから盤面とハイライトを更新（分岐ナビゲーション用）
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::loadBoardWithHighlights(const QString& currentSfen, const QString& prevSfen)
 {
     // 分岐由来の局面切替では通常同期との競合を避けるため、ガードを立てる。
@@ -2554,7 +2449,6 @@ void MainWindow::loadBoardWithHighlights(const QString& currentSfen, const QStri
 }
 
 // 毎手の着手確定時：ライブ分岐ツリー更新をイベントループ後段に遅延
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onMoveCommitted(ShogiGameController::Player mover, int ply)
 {
     ensureBoardSetupController();
@@ -2594,7 +2488,6 @@ void MainWindow::onMoveCommitted(ShogiGameController::Player mover, int ply)
 }
 
 // `flipBoardAndUpdatePlayerInfo`: 盤面向きを反転し、名前/時計表示を再描画する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::flipBoardAndUpdatePlayerInfo()
 {
     qDebug() << "[UI] flipBoardAndUpdatePlayerInfo ENTER";
@@ -2616,7 +2509,6 @@ void MainWindow::flipBoardAndUpdatePlayerInfo()
 }
 
 // `setupNameAndClockFonts`: Name And Clock Fonts をセットアップする。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::setupNameAndClockFonts()
 {
     if (!m_shogiView) return;
@@ -2642,7 +2534,6 @@ void MainWindow::setupNameAndClockFonts()
 }
 
 // 盤反転の通知を受けたら、手前が先手かどうかのフラグをトグル
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onBoardFlipped(bool /*flipped*/)
 {
     m_bottomIsP1 = !m_bottomIsP1;
@@ -2652,7 +2543,6 @@ void MainWindow::onBoardFlipped(bool /*flipped*/)
 }
 
 // `onBoardSizeChanged`: Board Size Changed のイベント受信時処理を行う。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onBoardSizeChanged(QSize fieldSize)
 {
     // 将棋盤サイズ変更通知のハンドラ
@@ -2670,7 +2560,6 @@ void MainWindow::onBoardSizeChanged(QSize fieldSize)
 }
 
 // `performDeferredEvalChartResize`: Deferred Eval Chart Resize を実行する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::performDeferredEvalChartResize()
 {
     // デバウンス後の評価値グラフ高さ調整
@@ -2681,7 +2570,6 @@ void MainWindow::performDeferredEvalChartResize()
 }
 
 // `onGameOverStateChanged`: Game Over State Changed のイベント受信時処理を行う。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onGameOverStateChanged(const MatchCoordinator::GameOverState& st)
 {
     ensureGameStateController();
@@ -2691,7 +2579,6 @@ void MainWindow::onGameOverStateChanged(const MatchCoordinator::GameOverState& s
 }
 
 // `handleBreakOffGame`: Break Off Game を処理する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::handleBreakOffGame()
 {
     ensureGameStateController();
@@ -2701,7 +2588,6 @@ void MainWindow::handleBreakOffGame()
 }
 
 // `ensureReplayController`: Replay Controller を必要に応じて生成し、依存関係を更新する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::ensureReplayController()
 {
     if (m_replayController) return;
@@ -2715,7 +2601,6 @@ void MainWindow::ensureReplayController()
 }
 
 // `ensureDialogCoordinator`: Dialog Coordinator を必要に応じて生成し、依存関係を更新する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::ensureDialogCoordinator()
 {
     if (m_dialogCoordinator) return;
@@ -2783,7 +2668,6 @@ void MainWindow::ensureDialogCoordinator()
 }
 
 // `ensureKifuExportController`: Kifu Export Controller を必要に応じて生成し、依存関係を更新する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::ensureKifuExportController()
 {
     if (m_kifuExportController) return;
@@ -2806,7 +2690,6 @@ void MainWindow::ensureKifuExportController()
 }
 
 // KifuExportControllerに依存を設定するヘルパー
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::updateKifuExportDependencies()
 {
     if (!m_kifuExportController) return;
@@ -2841,7 +2724,6 @@ void MainWindow::updateKifuExportDependencies()
 }
 
 // `ensureGameStateController`: Game State Controller を必要に応じて生成し、依存関係を更新する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::ensureGameStateController()
 {
     if (m_gameStateController) return;
@@ -2875,7 +2757,6 @@ void MainWindow::ensureGameStateController()
 }
 
 // `ensurePlayerInfoController`: Player Info Controller を必要に応じて生成し、依存関係を更新する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::ensurePlayerInfoController()
 {
     if (m_playerInfoController) return;
@@ -2895,7 +2776,6 @@ void MainWindow::ensurePlayerInfoController()
 }
 
 // `ensureBoardSetupController`: Board Setup Controller を必要に応じて生成し、依存関係を更新する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::ensureBoardSetupController()
 {
     if (m_boardSetupController) return;
@@ -2936,7 +2816,6 @@ void MainWindow::ensureBoardSetupController()
 }
 
 // `ensurePvClickController`: Pv Click Controller を必要に応じて生成し、依存関係を更新する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::ensurePvClickController()
 {
     if (m_pvClickController) return;
@@ -2958,7 +2837,6 @@ void MainWindow::ensurePvClickController()
 
 
 // `ensurePositionEditCoordinator`: Position Edit Coordinator を必要に応じて生成し、依存関係を更新する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::ensurePositionEditCoordinator()
 {
     if (m_posEditCoordinator) return;
@@ -3010,7 +2888,6 @@ void MainWindow::ensurePositionEditCoordinator()
 }
 
 // `ensureCsaGameWiring`: Csa Game Wiring を必要に応じて生成し、依存関係を更新する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::ensureCsaGameWiring()
 {
     if (m_csaGameWiring) return;
@@ -3054,7 +2931,6 @@ void MainWindow::ensureCsaGameWiring()
 }
 
 // `ensureJosekiWiring`: Joseki Wiring を必要に応じて生成し、依存関係を更新する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::ensureJosekiWiring()
 {
     if (m_josekiWiring) return;
@@ -3082,7 +2958,6 @@ void MainWindow::ensureJosekiWiring()
 }
 
 // `ensureMenuWiring`: Menu Wiring を必要に応じて生成し、依存関係を更新する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::ensureMenuWiring()
 {
     if (m_menuWiring) return;
@@ -3097,7 +2972,6 @@ void MainWindow::ensureMenuWiring()
 }
 
 // `ensurePlayerInfoWiring`: Player Info Wiring を必要に応じて生成し、依存関係を更新する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::ensurePlayerInfoWiring()
 {
     if (m_playerInfoWiring) return;
@@ -3130,7 +3004,6 @@ void MainWindow::ensurePlayerInfoWiring()
 }
 
 // `ensurePreStartCleanupHandler`: Pre Start Cleanup Handler を必要に応じて生成し、依存関係を更新する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::ensurePreStartCleanupHandler()
 {
     if (m_preStartCleanupHandler) return;
@@ -3165,7 +3038,6 @@ void MainWindow::ensurePreStartCleanupHandler()
 }
 
 // `ensureTurnSyncBridge`: Turn Sync Bridge を必要に応じて生成し、依存関係を更新する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::ensureTurnSyncBridge()
 {
     auto* gc = m_gameController;
@@ -3176,7 +3048,6 @@ void MainWindow::ensureTurnSyncBridge()
 }
 
 // `ensurePositionEditController`: Position Edit Controller を必要に応じて生成し、依存関係を更新する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::ensurePositionEditController()
 {
     if (m_posEdit) return;
@@ -3184,7 +3055,6 @@ void MainWindow::ensurePositionEditController()
 }
 
 // `ensureBoardSyncPresenter`: Board Sync Presenter を必要に応じて生成し、依存関係を更新する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::ensureBoardSyncPresenter()
 {
     if (m_boardSync) return;
@@ -3206,7 +3076,6 @@ void MainWindow::ensureBoardSyncPresenter()
 }
 
 // `ensureAnalysisPresenter`: Analysis Presenter を必要に応じて生成し、依存関係を更新する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::ensureAnalysisPresenter()
 {
     if (!m_analysisPresenter)
@@ -3214,7 +3083,6 @@ void MainWindow::ensureAnalysisPresenter()
 }
 
 // `ensureGameStartCoordinator`: Game Start Coordinator を必要に応じて生成し、依存関係を更新する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::ensureGameStartCoordinator()
 {
     if (m_gameStart) return;
@@ -3262,7 +3130,6 @@ void MainWindow::ensureGameStartCoordinator()
 }
 
 // `onPreStartCleanupRequested`: Pre Start Cleanup Requested のイベント受信時処理を行う。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onPreStartCleanupRequested()
 {
     ensurePreStartCleanupHandler();
@@ -3272,7 +3139,6 @@ void MainWindow::onPreStartCleanupRequested()
 }
 
 // `onApplyTimeControlRequested`: Apply Time Control Requested のイベント受信時処理を行う。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onApplyTimeControlRequested(const GameStartCoordinator::TimeControl& tc)
 {
     qDebug().noquote()
@@ -3302,7 +3168,6 @@ void MainWindow::onApplyTimeControlRequested(const GameStartCoordinator::TimeCon
 }
 
 // `ensureRecordPresenter`: Record Presenter を必要に応じて生成し、依存関係を更新する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::ensureRecordPresenter()
 {
     if (m_recordPresenter) return;
@@ -3324,7 +3189,6 @@ void MainWindow::ensureRecordPresenter()
 }
 
 // `ensureLiveGameSessionStarted`: Live Game Session Started を必要に応じて生成し、依存関係を更新する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::ensureLiveGameSessionStarted()
 {
     if (m_liveGameSession == nullptr || m_branchTree == nullptr) {
@@ -3370,7 +3234,6 @@ void MainWindow::ensureLiveGameSessionStarted()
 }
 
 // UIスレッド安全のため queued 呼び出しにしています
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::initializeNewGameHook(const QString& s)
 {
     // --- デバッグ：誰がこの関数を呼び出したか追跡 ---
@@ -3398,14 +3261,12 @@ void MainWindow::initializeNewGameHook(const QString& s)
 }
 
 // `showMoveHighlights`: 指し手ハイライト表示を盤面コントローラに委譲する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::showMoveHighlights(const QPoint& from, const QPoint& to)
 {
     if (m_boardController) m_boardController->showMoveHighlights(from, to);
 }
 
 // ============================================================
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::appendKifuLineHook(const QString& text, const QString& elapsed)
 {
     // 既存：棋譜欄へ 1手追記（Presenter がモデルへ反映）
@@ -3415,7 +3276,6 @@ void MainWindow::appendKifuLineHook(const QString& text, const QString& elapsed)
 }
 
 // `onRecordRowChangedByPresenter`: Record Row Changed By Presenter のイベント受信時処理を行う。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onRecordRowChangedByPresenter(int row, const QString& comment)
 {
     qDebug() << "[MW-DEBUG] onRecordRowChangedByPresenter called: row=" << row
@@ -3471,7 +3331,6 @@ void MainWindow::onRecordRowChangedByPresenter(int row, const QString& comment)
 }
 
 // `onFlowError`: Flow Error のイベント受信時処理を行う。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onFlowError(const QString& msg)
 {
     // 既存のエラー表示に委譲（UI 専用）
@@ -3479,7 +3338,6 @@ void MainWindow::onFlowError(const QString& msg)
 }
 
 // `onResignationTriggered`: Resignation Triggered のイベント受信時処理を行う。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onResignationTriggered()
 {
     // 既存の投了処理に委譲（m_matchの有無は中で判定）
@@ -3487,7 +3345,6 @@ void MainWindow::onResignationTriggered()
 }
 
 // `getRemainingMsFor`: Remaining Ms For を取得する。
-/// @todo remove コメントスタイルガイド適用済み
 qint64 MainWindow::getRemainingMsFor(MatchCoordinator::Player p) const
 {
     if (!m_timeController) {
@@ -3499,7 +3356,6 @@ qint64 MainWindow::getRemainingMsFor(MatchCoordinator::Player p) const
 }
 
 // `getIncrementMsFor`: Increment Ms For を取得する。
-/// @todo remove コメントスタイルガイド適用済み
 qint64 MainWindow::getIncrementMsFor(MatchCoordinator::Player p) const
 {
     if (!m_timeController) {
@@ -3511,7 +3367,6 @@ qint64 MainWindow::getIncrementMsFor(MatchCoordinator::Player p) const
 }
 
 // `buildPositionStringForIndex`: Position String For Index を構築する。
-/// @todo remove コメントスタイルガイド適用済み
 QString MainWindow::buildPositionStringForIndex(int moveIndex) const
 {
     // 1) m_positionStrList に該当インデックスがあればそれを使用（棋譜読み込み時）
@@ -3551,7 +3406,6 @@ QString MainWindow::buildPositionStringForIndex(int moveIndex) const
 }
 
 // `getByoyomiMs`: Byoyomi Ms を取得する。
-/// @todo remove コメントスタイルガイド適用済み
 qint64 MainWindow::getByoyomiMs() const
 {
     if (!m_timeController) {
@@ -3562,7 +3416,6 @@ qint64 MainWindow::getByoyomiMs() const
 }
 
 // 対局終了時のタイトルと本文を受け取り、情報ダイアログを表示するだけのヘルパ
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::showGameOverMessageBox(const QString& title, const QString& message)
 {
     ensureDialogCoordinator();
@@ -3572,7 +3425,6 @@ void MainWindow::showGameOverMessageBox(const QString& title, const QString& mes
 }
 
 // `onRecordPaneMainRowChanged`: Record Pane Main Row Changed のイベント受信時処理を行う。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onRecordPaneMainRowChanged(int row)
 {
     ensureRecordNavigationHandler();
@@ -3580,7 +3432,6 @@ void MainWindow::onRecordPaneMainRowChanged(int row)
 }
 
 // `onBuildPositionRequired`: Build Position Required のイベント受信時処理を行う。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onBuildPositionRequired(int row)
 {
     qDebug().noquote() << "[MW] onBuildPositionRequired ENTER row=" << row
@@ -3655,7 +3506,6 @@ void MainWindow::onBuildPositionRequired(int row)
 }
 
 // ============================================================
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::createAndWireKifuLoadCoordinator()
 {
     // 既存があれば即座に破棄（多重生成対策）
@@ -3712,7 +3562,6 @@ void MainWindow::createAndWireKifuLoadCoordinator()
 }
 
 // ============================================================
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::dispatchKifuLoad(const QString& filePath)
 {
     if (filePath.endsWith(QLatin1String(".csa"), Qt::CaseInsensitive)) {
@@ -3731,7 +3580,6 @@ void MainWindow::dispatchKifuLoad(const QString& filePath)
 }
 
 // ============================================================
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::ensureKifuLoadCoordinatorForLive()
 {
     if (m_kifuLoadCoordinator) {
@@ -3742,7 +3590,6 @@ void MainWindow::ensureKifuLoadCoordinatorForLive()
 }
 
 // ライブ対局中の分岐ツリー更新エントリポイント（互換用）。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::refreshBranchTreeLive()
 {
     // 現行実装では LiveGameSession + KifuDisplayCoordinator が自動更新する。
@@ -3752,21 +3599,18 @@ void MainWindow::refreshBranchTreeLive()
 
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 bool MainWindow::getMainRowGuard() const
 {
     return m_onMainRowGuard;
 }
 
 // `setMainRowGuard`: Main Row Guard を設定する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::setMainRowGuard(bool on)
 {
     m_onMainRowGuard = on;
 }
 
 // `isHvH`: Hv H かどうかを判定する。
-/// @todo remove コメントスタイルガイド適用済み
 bool MainWindow::isHvH() const
 {
     if (m_gameStateController) {
@@ -3776,7 +3620,6 @@ bool MainWindow::isHvH() const
 }
 
 // `isHumanSide`: Human Side かどうかを判定する。
-/// @todo remove コメントスタイルガイド適用済み
 bool MainWindow::isHumanSide(ShogiGameController::Player p) const
 {
     if (m_gameStateController) {
@@ -3801,7 +3644,6 @@ bool MainWindow::isHumanSide(ShogiGameController::Player p) const
 }
 
 // `updateTurnAndTimekeepingDisplay`: Turn And Timekeeping Display を更新する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::updateTurnAndTimekeepingDisplay()
 {
     // 手番ラベルなど
@@ -3819,7 +3661,6 @@ void MainWindow::updateTurnAndTimekeepingDisplay()
 }
 
 // `updateGameRecord`: Game Record を更新する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::updateGameRecord(const QString& elapsedTime)
 {
     const bool gameOverAppended =
@@ -3878,7 +3719,6 @@ void MainWindow::updateGameRecord(const QString& elapsedTime)
 }
 
 // 新しい保存関数
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::saveKifuToFile()
 {
     ensureGameRecordModel();
@@ -3892,7 +3732,6 @@ void MainWindow::saveKifuToFile()
 }
 
 // 棋譜自動保存
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::autoSaveKifuToFile(const QString& saveDir, PlayMode playMode,
                                       const QString& humanName1, const QString& humanName2,
                                       const QString& engineName1, const QString& engineName2)
@@ -3923,7 +3762,6 @@ void MainWindow::autoSaveKifuToFile(const QString& saveDir, PlayMode playMode,
 }
 
 // KIF形式で棋譜をクリップボードにコピー
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::pasteKifuFromClipboard()
 {
     KifuPasteDialog* dlg = new KifuPasteDialog(this);
@@ -3937,7 +3775,6 @@ void MainWindow::pasteKifuFromClipboard()
 }
 
 // `onKifuPasteImportRequested`: Kifu Paste Import Requested のイベント受信時処理を行う。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onKifuPasteImportRequested(const QString& content)
 {
     qDebug().noquote() << "[MW] onKifuPasteImportRequested_: content length =" << content.size();
@@ -3960,7 +3797,6 @@ void MainWindow::onKifuPasteImportRequested(const QString& content)
 }
 
 // `overwriteKifuFile`: 既存保存先への上書き保存を行う（保存先未確定なら通常保存へフォールバック）。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::overwriteKifuFile()
 {
     if (kifuSaveFileName.isEmpty()) {
@@ -3974,7 +3810,6 @@ void MainWindow::overwriteKifuFile()
     m_kifuExportController->overwriteFile(kifuSaveFileName);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onCommentUpdated(int moveIndex, const QString& newComment)
 {
     ensureCommentCoordinator();
@@ -3984,7 +3819,6 @@ void MainWindow::onCommentUpdated(int moveIndex, const QString& newComment)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::ensureGameRecordModel()
 {
     if (m_gameRecord) return;
@@ -4020,7 +3854,6 @@ void MainWindow::ensureGameRecordModel()
     qDebug().noquote() << "[MW] ensureGameRecordModel_: created and bound";
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onGameRecordCommentChanged(int ply, const QString& comment)
 {
     ensureCommentCoordinator();
@@ -4030,7 +3863,6 @@ void MainWindow::onGameRecordCommentChanged(int ply, const QString& comment)
 }
 
 // コメント更新コールバック（GameRecordModel から呼ばれる、CommentCoordinatorに委譲）
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onCommentUpdateCallback(int ply, const QString& comment)
 {
     ensureCommentCoordinator();
@@ -4040,7 +3872,6 @@ void MainWindow::onCommentUpdateCallback(int ply, const QString& comment)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onPvRowClicked(int engineIndex, int row)
 {
     ensurePvClickController();
@@ -4059,7 +3890,6 @@ void MainWindow::onPvRowClicked(int engineIndex, int row)
 }
 
 // `onPvDialogClosed`: Pv Dialog Closed のイベント受信時処理を行う。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onPvDialogClosed(int engineIndex)
 {
     if (m_analysisTab) {
@@ -4067,7 +3897,6 @@ void MainWindow::onPvDialogClosed(int engineIndex)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onTabCurrentChanged(int index)
 {
     // タブインデックスを設定ファイルに保存
@@ -4079,7 +3908,6 @@ void MainWindow::onTabCurrentChanged(int index)
 // CSA通信対局関連のスロット（CsaGameWiring経由）
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onCsaPlayModeChanged(int mode)
 {
     m_playMode = static_cast<PlayMode>(mode);
@@ -4087,14 +3915,12 @@ void MainWindow::onCsaPlayModeChanged(int mode)
 }
 
 // `onCsaShowGameEndDialog`: Csa Show Game End Dialog のイベント受信時処理を行う。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onCsaShowGameEndDialog(const QString& title, const QString& message)
 {
     QMessageBox::information(this, title, message);
 }
 
 // `onCsaEngineScoreUpdated`: Csa Engine Score Updated のイベント受信時処理を行う。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onCsaEngineScoreUpdated(int scoreCp, int ply)
 {
     qDebug().noquote() << "[MW] onCsaEngineScoreUpdated_: scoreCp=" << scoreCp << "ply=" << ply;
@@ -4123,7 +3949,6 @@ void MainWindow::onCsaEngineScoreUpdated(int scoreCp, int ply)
 }
 
 // `onJosekiForcedPromotion`: Joseki Forced Promotion のイベント受信時処理を行う。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onJosekiForcedPromotion(bool forced, bool promote)
 {
     if (m_gameController) {
@@ -4135,7 +3960,6 @@ void MainWindow::onJosekiForcedPromotion(bool forced, bool promote)
 // 言語設定
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::onToolBarVisibilityToggled(bool visible)
 {
     if (ui->toolBar) {
@@ -4148,7 +3972,6 @@ void MainWindow::onToolBarVisibilityToggled(bool visible)
 // 新規コントローラのensure関数
 // ============================================================
 
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::ensureJishogiController()
 {
     if (m_jishogiController) return;
@@ -4156,7 +3979,6 @@ void MainWindow::ensureJishogiController()
 }
 
 // `ensureNyugyokuHandler`: Nyugyoku Handler を必要に応じて生成し、依存関係を更新する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::ensureNyugyokuHandler()
 {
     if (m_nyugyokuHandler) return;
@@ -4164,7 +3986,6 @@ void MainWindow::ensureNyugyokuHandler()
 }
 
 // `ensureConsecutiveGamesController`: Consecutive Games Controller を必要に応じて生成し、依存関係を更新する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::ensureConsecutiveGamesController()
 {
     if (m_consecutiveGamesController) return;
@@ -4190,7 +4011,6 @@ void MainWindow::ensureConsecutiveGamesController()
 }
 
 // `ensureLanguageController`: Language Controller を必要に応じて生成し、依存関係を更新する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::ensureLanguageController()
 {
     if (m_languageController) return;
@@ -4204,7 +4024,6 @@ void MainWindow::ensureLanguageController()
 }
 
 // `ensureConsiderationUIController`: Consideration UIController を必要に応じて生成し、依存関係を更新する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::ensureConsiderationUIController()
 {
     ensureConsiderationWiring();
@@ -4214,7 +4033,6 @@ void MainWindow::ensureConsiderationUIController()
 }
 
 // `ensureConsiderationWiring`: Consideration Wiring を必要に応じて生成し、依存関係を更新する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::ensureConsiderationWiring()
 {
     if (m_considerationWiring) return;
@@ -4255,7 +4073,6 @@ void MainWindow::ensureConsiderationWiring()
 }
 
 // `ensureDockLayoutManager`: Dock Layout Manager を必要に応じて生成し、依存関係を更新する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::ensureDockLayoutManager()
 {
     if (m_dockLayoutManager) return;
@@ -4280,7 +4097,6 @@ void MainWindow::ensureDockLayoutManager()
 }
 
 // `ensureDockCreationService`: Dock Creation Service を必要に応じて生成し、依存関係を更新する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::ensureDockCreationService()
 {
     if (m_dockCreationService) return;
@@ -4290,7 +4106,6 @@ void MainWindow::ensureDockCreationService()
 }
 
 // `ensureCommentCoordinator`: Comment Coordinator を必要に応じて生成し、依存関係を更新する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::ensureCommentCoordinator()
 {
     if (m_commentCoordinator) return;
@@ -4309,7 +4124,6 @@ void MainWindow::ensureCommentCoordinator()
 }
 
 // `ensureUsiCommandController`: Usi Command Controller を必要に応じて生成し、依存関係を更新する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::ensureUsiCommandController()
 {
     if (!m_usiCommandController) {
@@ -4320,7 +4134,6 @@ void MainWindow::ensureUsiCommandController()
 }
 
 // `ensureRecordNavigationHandler`: Record Navigation Handler を必要に応じて生成し、依存関係を更新する。
-/// @todo remove コメントスタイルガイド適用済み
 void MainWindow::ensureRecordNavigationHandler()
 {
     if (!m_recordNavHandler) {

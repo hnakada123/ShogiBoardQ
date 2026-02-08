@@ -3,7 +3,6 @@
 
 /// @file timekeepingservice.h
 /// @brief 時間管理サービスクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 #include <QString>
 

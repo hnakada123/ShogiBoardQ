@@ -1,6 +1,5 @@
 /// @file evaluationchartwidget.cpp
 /// @brief 評価値グラフウィジェットクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "evaluationchartwidget.h"
 #include "settingsservice.h"

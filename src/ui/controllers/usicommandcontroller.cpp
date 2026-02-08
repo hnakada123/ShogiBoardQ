@@ -1,6 +1,5 @@
 /// @file usicommandcontroller.cpp
 /// @brief USIコマンド送信コントローラクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "usicommandcontroller.h"
 

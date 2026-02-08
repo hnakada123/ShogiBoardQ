@@ -3,7 +3,6 @@
 
 /// @file engineregistrationdialog.h
 /// @brief エンジン登録ダイアログクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QDialog>

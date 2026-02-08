@@ -3,7 +3,6 @@
 
 /// @file engineprocessmanager.h
 /// @brief 将棋エンジンプロセス管理クラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 #include <QObject>
 #include <QProcess>

@@ -3,7 +3,6 @@
 
 /// @file collapsiblegroupbox.h
 /// @brief 折りたたみ可能グループボックスクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QWidget>

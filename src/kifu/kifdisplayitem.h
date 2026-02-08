@@ -3,7 +3,6 @@
 
 /// @file kifdisplayitem.h
 /// @brief 棋譜表示用アイテム構造体の定義
-/// @todo remove コメントスタイルガイド適用済み
 
 #include <QString>
 #include <QtGlobal>

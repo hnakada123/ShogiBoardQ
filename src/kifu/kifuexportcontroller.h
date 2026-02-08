@@ -3,7 +3,6 @@
 
 /// @file kifuexportcontroller.h
 /// @brief 棋譜エクスポートコントローラクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QObject>

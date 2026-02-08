@@ -21,7 +21,6 @@ class UiActionsWiring : public QObject {
     Q_OBJECT
 public:
     /// 依存オブジェクト
-    /// @todo remove コメントスタイルガイド適用済み
     struct Deps {
         Ui::MainWindow* ui = nullptr;       ///< UIオブジェクト
         ShogiView*      shogiView = nullptr; ///< 盤面ビュー（拡大/縮小を直結）
@@ -32,7 +31,6 @@ public:
         : QObject(parent), m_d(d) {}
 
     /// 全アクションのシグナル/スロット接続を実行する（多重接続を避けるため1回だけ呼ぶ）
-    /// @todo remove コメントスタイルガイド適用済み
     void wire();
 
 private:

@@ -3,7 +3,6 @@
 
 /// @file kifuclipboardservice.h
 /// @brief 棋譜クリップボードサービスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QString>

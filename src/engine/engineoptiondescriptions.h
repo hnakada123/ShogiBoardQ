@@ -3,7 +3,6 @@
 
 /// @file engineoptiondescriptions.h
 /// @brief USIエンジンオプション説明データベースの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QString>

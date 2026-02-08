@@ -3,7 +3,6 @@
 
 /// @file apptooltipfilter.h
 /// @brief アプリケーションツールチップフィルタクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 #pragma once
 

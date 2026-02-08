@@ -59,7 +59,6 @@ public:
     // --- エンジン情報 ---
 
     /// エンジンの名前とディレクトリを格納する構造体
-    /// @todo remove コメントスタイルガイド適用済み
     struct Engine
     {
         QString name;  ///< エンジン表示名

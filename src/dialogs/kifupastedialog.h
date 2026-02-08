@@ -3,7 +3,6 @@
 
 /// @file kifupastedialog.h
 /// @brief 棋譜貼り付けダイアログクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QDialog>

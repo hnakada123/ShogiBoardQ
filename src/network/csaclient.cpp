@@ -1,6 +1,5 @@
 /// @file csaclient.cpp
 /// @brief CSAプロトコルクライアントクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "csaclient.h"
 #include <QDebug>
@@ -90,7 +89,6 @@ CsaClient::~CsaClient()
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void CsaClient::connectToServer(const QString& host, int port)
 {
     if (m_connectionState != ConnectionState::Disconnected) {
@@ -107,7 +105,6 @@ void CsaClient::connectToServer(const QString& host, int port)
     m_socket->connectToHost(host, static_cast<quint16>(port));
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void CsaClient::disconnectFromServer()
 {
     m_connectionTimer->stop();
@@ -128,7 +125,6 @@ bool CsaClient::isConnected() const
     return m_socket->state() == QAbstractSocket::ConnectedState;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void CsaClient::login(const QString& username, const QString& password)
 {
     if (m_connectionState != ConnectionState::Connected) {
@@ -151,7 +147,6 @@ void CsaClient::logout()
     sendMessage(QStringLiteral("LOGOUT"));
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void CsaClient::agree(const QString& gameId)
 {
     if (m_connectionState != ConnectionState::GameReady) {
@@ -179,7 +174,6 @@ void CsaClient::reject(const QString& gameId)
     sendMessage(cmd);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void CsaClient::sendMove(const QString& move)
 {
     qDebug() << "[CSA-DEBUG] CsaClient::sendMove called with:" << move;
@@ -234,7 +228,6 @@ void CsaClient::requestChudan()
     sendMessage(QStringLiteral("%CHUDAN"));
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void CsaClient::onSocketConnected()
 {
     m_connectionTimer->stop();
@@ -242,7 +235,6 @@ void CsaClient::onSocketConnected()
     setConnectionState(ConnectionState::Connected);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void CsaClient::onSocketDisconnected()
 {
     m_connectionTimer->stop();
@@ -250,7 +242,6 @@ void CsaClient::onSocketDisconnected()
     setConnectionState(ConnectionState::Disconnected);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void CsaClient::onSocketError(QAbstractSocket::SocketError error)
 {
     m_connectionTimer->stop();
@@ -271,7 +262,6 @@ void CsaClient::onSocketError(QAbstractSocket::SocketError error)
     setConnectionState(ConnectionState::Disconnected);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void CsaClient::onReadyRead()
 {
     // TCP受信データはパケット境界と行境界が一致しないため、バッファに蓄積して行単位に分割する
@@ -295,7 +285,6 @@ void CsaClient::onReadyRead()
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void CsaClient::onConnectionTimeout()
 {
     qWarning().noquote() << "[CSA] Connection timeout";
@@ -304,7 +293,6 @@ void CsaClient::onConnectionTimeout()
     setConnectionState(ConnectionState::Disconnected);
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void CsaClient::sendMessage(const QString& message)
 {
     if (!isConnected()) {
@@ -319,7 +307,6 @@ void CsaClient::sendMessage(const QString& message)
     qDebug().noquote() << "[CSA] Sent:" << message;
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void CsaClient::processLine(const QString& line)
 {
     qDebug().noquote() << "[CSA] Recv:" << line;
@@ -372,7 +359,6 @@ void CsaClient::processLine(const QString& line)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void CsaClient::processLoginResponse(const QString& line)
 {
     if (line.startsWith(QStringLiteral("LOGIN:"))) {
@@ -389,7 +375,6 @@ void CsaClient::processLoginResponse(const QString& line)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void CsaClient::processGameSummary(const QString& line)
 {
     // セクション終了チェック
@@ -528,7 +513,6 @@ void CsaClient::processGameSummary(const QString& line)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void CsaClient::processGameMessage(const QString& line)
 {
     qDebug() << "[CSA-DEBUG] processGameMessage:" << line;
@@ -567,7 +551,6 @@ void CsaClient::processGameMessage(const QString& line)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void CsaClient::processResultLine(const QString& line)
 {
     qDebug() << "[CSA-DEBUG] processResultLine:" << line;
@@ -637,7 +620,6 @@ void CsaClient::processResultLine(const QString& line)
     // 再接続や次の対局開始時に適切な状態に遷移する
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void CsaClient::processMoveLine(const QString& line)
 {
     // 形式: +7776FU,T12
@@ -674,7 +656,6 @@ void CsaClient::processMoveLine(const QString& line)
     }
 }
 
-/// @todo remove コメントスタイルガイド適用済み
 void CsaClient::setConnectionState(ConnectionState state)
 {
     if (m_connectionState != state) {

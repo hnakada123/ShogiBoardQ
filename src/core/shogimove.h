@@ -3,7 +3,6 @@
 
 /// @file shogimove.h
 /// @brief 将棋の指し手データ構造体の定義
-/// @todo remove コメントスタイルガイド適用済み
 
 #include <QPoint>
 #include <iostream>

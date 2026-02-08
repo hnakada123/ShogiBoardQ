@@ -1,6 +1,5 @@
 /// @file branchrowdelegate.cpp
 /// @brief 分岐行描画デリゲートクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "branchrowdelegate.h"
 

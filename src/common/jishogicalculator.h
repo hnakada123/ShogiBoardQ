@@ -3,7 +3,6 @@
 
 /// @file jishogicalculator.h
 /// @brief 持将棋（入玉宣言法）の点数計算・判定ロジック
-/// @todo remove コメントスタイルガイド適用済み
 
 #include <QVector>
 #include <QMap>

@@ -1,6 +1,5 @@
 /// @file kifuanalysisdialog.cpp
 /// @brief 棋譜解析ダイアログクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "kifuanalysisdialog.h"
 #include "changeenginesettingsdialog.h"

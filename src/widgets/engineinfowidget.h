@@ -3,7 +3,6 @@
 
 /// @file engineinfowidget.h
 /// @brief エンジン情報表示ウィジェットクラスの定義
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QWidget>

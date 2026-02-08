@@ -1,6 +1,5 @@
 /// @file kifunavigationstate.cpp
 /// @brief 棋譜ナビゲーション状態管理クラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "kifunavigationstate.h"
 #include "kifubranchtree.h"

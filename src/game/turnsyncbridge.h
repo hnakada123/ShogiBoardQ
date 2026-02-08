@@ -3,7 +3,6 @@
 
 /// @file turnsyncbridge.h
 /// @brief GC・TurnManager・UI間の手番同期配線を集約するブリッジ
-/// @todo remove コメントスタイルガイド適用済み
 
 
 #include <QObject>

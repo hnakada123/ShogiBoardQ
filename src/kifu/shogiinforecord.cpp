@@ -1,6 +1,5 @@
 /// @file shogiinforecord.cpp
 /// @brief USIエンジン思考情報レコードクラスの実装
-/// @todo remove コメントスタイルガイド適用済み
 
 #include "shogiinforecord.h"
 
