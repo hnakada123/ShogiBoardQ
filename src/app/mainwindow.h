@@ -120,7 +120,6 @@ class PlayerInfoWiring;
 class PreStartCleanupHandler;
 class MenuWindowWiring;
 class UsiCommandController;
-class TestAutomationHelper;
 class RecordNavigationHandler;
 
 /**
@@ -162,30 +161,6 @@ public slots:
     // --- クリップボード操作 ---
     /// クリップボード上の棋譜テキストを読み込む
     void pasteKifuFromClipboard();
-
-    // --- テスト自動化 ---
-    void setTestMode(bool enabled);
-    void loadKifuFile(const QString& path);
-    void navigateToPly(int ply);
-    void clickBranchCandidate(int index);
-    void clickNextButton();
-    void clickPrevButton();
-    void clickFirstButton();
-    void clickLastButton();
-    void clickKifuRow(int row);
-    void clickBranchTreeNode(int row, int ply);
-    void dumpTestState();
-    /// 盤面・棋譜・分岐・SFEN の4方向一致を検証する
-    bool verify4WayConsistency();
-
-    // --- 対局シミュレーション用テスト ---
-    /// テスト用対局を開始する（平手、人間vs人間）
-    void startTestGame();
-    /// USI形式の指し手を入力して局面を進める
-    bool makeTestMove(const QString& usiMove);
-    int getBranchTreeNodeCount();
-    /// 分岐ツリーのノード数が期待値以上か検証する
-    bool verifyBranchTreeNodeCount(int minExpected);
 
     // --- エラー / 一般UI ---
     void displayErrorMessage(const QString& message);
@@ -595,7 +570,6 @@ private:
     DockCreationService* m_dockCreationService = nullptr;              ///< ドック生成サービス（非所有）
     CommentCoordinator* m_commentCoordinator = nullptr;                ///< コメントコーディネータ（非所有）
     UsiCommandController* m_usiCommandController = nullptr;            ///< USIコマンドコントローラ（非所有）
-    TestAutomationHelper* m_testHelper = nullptr;                      ///< テスト自動化ヘルパー（非所有）
     RecordNavigationHandler* m_recordNavHandler = nullptr;             ///< 棋譜ナビゲーションハンドラ（非所有）
 
     // --- 分岐ナビゲーション ---
@@ -755,8 +729,6 @@ private:
     void ensureCommentCoordinator();
     /// 遅延初期化: UsiCommandControllerを生成し依存を設定する
     void ensureUsiCommandController();
-    /// 遅延初期化: TestAutomationHelperを生成し依存を設定する
-    void ensureTestAutomationHelper();
     /// 遅延初期化: RecordNavigationHandlerを生成し依存を設定する
     void ensureRecordNavigationHandler();
 
