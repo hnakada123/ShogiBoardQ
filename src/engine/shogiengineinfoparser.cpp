@@ -567,14 +567,7 @@ void ShogiEngineInfoParser::parseEngineOutputAndUpdateState(QString& line, const
     QStringList pvLineTokens = line.split(" pv ");
 
     if (pvLineTokens.size() != 2) {
-        // pvが含まれていない場合、stringサブコマンドの値を確認
-        QStringList stringTokens = line.split(" string ", Qt::KeepEmptyParts);
-
-        if (stringTokens.size() == 2) {
-            // stringサブコマンドの値を読み筋として表示する
-            m_pvKanjiStr = stringTokens.at(1).trimmed();
-        }
-
+        // pvが含まれていない場合（info stringなど）は読み筋として表示しない
         return;
     }
 
