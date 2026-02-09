@@ -8,7 +8,7 @@
 #include <QTableWidget>
 #include <QDateTime>
 #include <QRegularExpression>
-#include <QDebug>
+#include "kifulogging.h"
 #include <QPair>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -247,20 +247,20 @@ void GameRecordModel::bind(QList<KifDisplayItem>* liveDisp)
 {
     m_liveDisp = liveDisp;
 
-    qDebug().noquote() << "[GameRecordModel] bind:"
-                       << " liveDisp=" << (liveDisp ? "valid" : "null");
+    qCDebug(lcKifu).noquote() << "bind:"
+                              << " liveDisp=" << (liveDisp ? "valid" : "null");
 }
 
 void GameRecordModel::setBranchTree(KifuBranchTree* tree)
 {
     m_branchTree = tree;
-    qDebug().noquote() << "[GameRecordModel] setBranchTree:" << (tree ? "valid" : "null");
+    qCDebug(lcKifu).noquote() << "setBranchTree:" << (tree ? "valid" : "null");
 }
 
 void GameRecordModel::setNavigationState(KifuNavigationState* state)
 {
     m_navState = state;
-    qDebug().noquote() << "[GameRecordModel] setNavigationState:" << (state ? "valid" : "null");
+    qCDebug(lcKifu).noquote() << "setNavigationState:" << (state ? "valid" : "null");
 }
 
 void GameRecordModel::initializeFromDisplayItems(const QList<KifDisplayItem>& disp, int rowCount)
@@ -275,10 +275,10 @@ void GameRecordModel::initializeFromDisplayItems(const QList<KifDisplayItem>& di
 
     m_isDirty = false;
 
-    qDebug().noquote() << "[GameRecordModel] initializeFromDisplayItems:"
-                       << " disp.size=" << disp.size()
-                       << " rowCount=" << rowCount
-                       << " m_comments.size=" << m_comments.size();
+    qCDebug(lcKifu).noquote() << "initializeFromDisplayItems:"
+                              << " disp.size=" << disp.size()
+                              << " rowCount=" << rowCount
+                              << " m_comments.size=" << m_comments.size();
 }
 
 void GameRecordModel::clear()
@@ -286,7 +286,7 @@ void GameRecordModel::clear()
     m_comments.clear();
     m_isDirty = false;
 
-    qDebug().noquote() << "[GameRecordModel] clear";
+    qCDebug(lcKifu).noquote() << "clear";
 }
 
 // ========================================
@@ -296,7 +296,7 @@ void GameRecordModel::clear()
 void GameRecordModel::setComment(int ply, const QString& comment)
 {
     if (ply < 0) {
-        qWarning().noquote() << "[GameRecordModel] setComment: invalid ply=" << ply;
+        qCWarning(lcKifu).noquote() << "setComment: invalid ply=" << ply;
         return;
     }
 
@@ -320,10 +320,10 @@ void GameRecordModel::setComment(int ply, const QString& comment)
         }
     }
 
-    qDebug().noquote() << "[GameRecordModel] setComment:"
-                       << " ply=" << ply
-                       << " comment.len=" << comment.size()
-                       << " isDirty=" << m_isDirty;
+    qCDebug(lcKifu).noquote() << "setComment:"
+                              << " ply=" << ply
+                              << " comment.len=" << comment.size()
+                              << " isDirty=" << m_isDirty;
 }
 
 void GameRecordModel::setCommentUpdateCallback(const CommentUpdateCallback& callback)
@@ -365,8 +365,8 @@ void GameRecordModel::syncToExternalStores(int ply, const QString& comment)
     if (m_liveDisp) {
         if (ply >= 0 && ply < m_liveDisp->size()) {
             (*m_liveDisp)[ply].comment = comment;
-            qDebug().noquote() << "[GameRecordModel] syncToExternalStores:"
-                               << " updated liveDisp[" << ply << "]";
+            qCDebug(lcKifu).noquote() << "syncToExternalStores:"
+                                      << " updated liveDisp[" << ply << "]";
         }
     }
 }
@@ -462,10 +462,10 @@ QStringList GameRecordModel::toKifLines(const ExportContext& ctx) const
         }
     }
 
-    qDebug().noquote() << "[GameRecordModel] toKifLines (WITH VARIATIONS): generated"
-                       << out.size() << "lines,"
-                       << (moveNo - 1) << "moves, lastActualMoveNo=" << lastActualMoveNo
-                       << "branchPoints=" << branchPoints.size();
+    qCDebug(lcKifu).noquote() << "toKifLines (WITH VARIATIONS): generated"
+                              << out.size() << "lines,"
+                              << (moveNo - 1) << "moves, lastActualMoveNo=" << lastActualMoveNo
+                              << "branchPoints=" << branchPoints.size();
 
     return out;
 }
@@ -483,8 +483,8 @@ QList<KifDisplayItem> GameRecordModel::collectMainlineForExport() const
         }
 
         result = m_branchTree->getDisplayItemsForLine(lineIndex);
-        qDebug().noquote() << "[GameRecordModel] collectMainlineForExport: from BranchTree"
-                           << "lineIndex=" << lineIndex << "items=" << result.size();
+        qCDebug(lcKifu).noquote() << "collectMainlineForExport: from BranchTree"
+                                  << "lineIndex=" << lineIndex << "items=" << result.size();
 
         // コメントをマージ（ツリーのコメントが空の場合は m_comments から補完）
         QStringList treeComments = m_branchTree->getCommentsForLine(lineIndex);
@@ -821,9 +821,9 @@ QStringList GameRecordModel::toKi2Lines(const ExportContext& ctx) const
         }
     }
 
-    qDebug().noquote() << "[GameRecordModel] toKi2Lines: generated"
-                       << out.size() << "lines,"
-                       << lastActualMoveNo << "moves";
+    qCDebug(lcKifu).noquote() << "toKi2Lines: generated"
+                              << out.size() << "lines,"
+                              << lastActualMoveNo << "moves";
 
     return out;
 }
@@ -1197,11 +1197,11 @@ QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringL
     QStringList out;
     
     // デバッグ: 入力データの確認
-    qDebug().noquote() << "[toCsaLines] ========== CSA出力開始 ==========";
-    qDebug().noquote() << "[toCsaLines] usiMoves.size() =" << usiMoves.size();
+    qCDebug(lcKifu).noquote() << "toCsaLines: ========== CSA出力開始 ==========";
+    qCDebug(lcKifu).noquote() << "toCsaLines: usiMoves.size() =" << usiMoves.size();
     if (!usiMoves.isEmpty()) {
-        qDebug().noquote() << "[toCsaLines] usiMoves[0..min(5,size)] ="
-                           << usiMoves.mid(0, qMin(5, usiMoves.size()));
+        qCDebug(lcKifu).noquote() << "toCsaLines: usiMoves[0..min(5,size)] ="
+                                  << usiMoves.mid(0, qMin(5, usiMoves.size()));
     }
     
     // 盤面追跡用オブジェクト
@@ -1345,10 +1345,10 @@ QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringL
     const QList<KifDisplayItem> disp = collectMainlineForExport();
     
     // デバッグ: disp の確認
-    qDebug().noquote() << "[toCsaLines] disp.size() =" << disp.size();
+    qCDebug(lcKifu).noquote() << "toCsaLines: disp.size() =" << disp.size();
     for (qsizetype dbgIdx = 0; dbgIdx < qMin(qsizetype(10), disp.size()); ++dbgIdx) {
-        qDebug().noquote() << "[toCsaLines] disp[" << dbgIdx << "].prettyMove ="
-                           << disp[dbgIdx].prettyMove;
+        qCDebug(lcKifu).noquote() << "toCsaLines: disp[" << dbgIdx << "].prettyMove ="
+                                  << disp[dbgIdx].prettyMove;
     }
     
     // 開始局面のコメントを出力
@@ -1373,25 +1373,25 @@ QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringL
             }
         }
         startIdx = 1;
-        qDebug().noquote() << "[toCsaLines] 開始局面エントリあり、startIdx = 1";
+        qCDebug(lcKifu).noquote() << "toCsaLines: 開始局面エントリあり、startIdx = 1";
     }
     
     // デバッグ: ループ開始前（詳細版）
-    qDebug().noquote() << "[toCsaLines] ========== CSA変換ループ開始 ==========";
-    qDebug().noquote() << "[toCsaLines] startIdx =" << startIdx
-                       << ", disp.size() =" << disp.size()
-                       << ", usiMoves.size() =" << usiMoves.size()
-                       << ", ループ回数予定 =" << (disp.size() - startIdx);
+    qCDebug(lcKifu).noquote() << "toCsaLines: ========== CSA変換ループ開始 ==========";
+    qCDebug(lcKifu).noquote() << "toCsaLines: startIdx =" << startIdx
+                              << ", disp.size() =" << disp.size()
+                              << ", usiMoves.size() =" << usiMoves.size()
+                              << ", ループ回数予定 =" << (disp.size() - startIdx);
     
     // dispの内容を出力
     for (qsizetype dbg = 0; dbg < qMin(disp.size(), qsizetype(25)); ++dbg) {
-        qDebug().noquote() << "[toCsaLines] disp[" << dbg << "].prettyMove =" << disp[dbg].prettyMove.trimmed()
-                           << ", timeText =" << disp[dbg].timeText;
+        qCDebug(lcKifu).noquote() << "toCsaLines: disp[" << dbg << "].prettyMove =" << disp[dbg].prettyMove.trimmed()
+                                  << ", timeText =" << disp[dbg].timeText;
     }
     
     // usiMovesの内容を出力
     for (qsizetype dbg = 0; dbg < qMin(usiMoves.size(), qsizetype(25)); ++dbg) {
-        qDebug().noquote() << "[toCsaLines] usiMoves[" << dbg << "] =" << usiMoves[dbg];
+        qCDebug(lcKifu).noquote() << "toCsaLines: usiMoves[" << dbg << "] =" << usiMoves[dbg];
     }
     
     // 6) 各指し手を出力
@@ -1413,7 +1413,7 @@ QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringL
         
         // 終局語の判定
         if (isTerminalMove(moveText)) {
-            qDebug().noquote() << "[toCsaLines] 終局語検出: moveText =" << moveText;
+            qCDebug(lcKifu).noquote() << "toCsaLines: 終局語検出: moveText =" << moveText;
             terminalMove = moveText;
             const QString resultCode = getCsaResultCode(moveText);
             if (!resultCode.isEmpty()) {
@@ -1433,12 +1433,12 @@ QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringL
         }
         
         // デバッグ: 各指し手の詳細（全ての手を出力）
-        qDebug().noquote() << "[toCsaLines] LOOP: i=" << i
-                           << " moveNo=" << moveNo
-                           << " isSente=" << isSente
-                           << " moveText='" << moveText << "'"
-                           << " usiMove='" << usiMove << "'"
-                           << " (usiMoves.size=" << usiMoves.size() << ")";
+        qCDebug(lcKifu).noquote() << "toCsaLines: LOOP: i=" << i
+                                  << " moveNo=" << moveNo
+                                  << " isSente=" << isSente
+                                  << " moveText='" << moveText << "'"
+                                  << " usiMove='" << usiMove << "'"
+                                  << " (usiMoves.size=" << usiMoves.size() << ")";
         
         // CSA形式の指し手を構築
         QString csaMove;
@@ -1485,9 +1485,9 @@ QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringL
             // USI指し手がない場合はスキップ
             ++skippedNoUsi;
             if (skippedNoUsi <= 5) {
-                qDebug().noquote() << "[toCsaLines] スキップ(USIなし): i=" << i
-                                   << " moveNo=" << moveNo
-                                   << " moveText=" << moveText;
+                qCDebug(lcKifu).noquote() << "toCsaLines: スキップ(USIなし): i=" << i
+                                          << " moveNo=" << moveNo
+                                          << " moveText=" << moveText;
             }
             ++moveNo;
             isSente = !isSente;
@@ -1526,13 +1526,13 @@ QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringL
     }
     
     // デバッグ: 結果サマリ
-    qDebug().noquote() << "[toCsaLines] ========== CSA出力終了 ==========";
-    qDebug().noquote() << "[toCsaLines] processedMoves =" << processedMoves
-                       << ", skippedEmpty =" << skippedEmpty
-                       << ", skippedNoUsi =" << skippedNoUsi;
-    qDebug().noquote() << "[GameRecordModel] toCsaLines: generated"
-                       << out.size() << "lines,"
-                       << (moveNo - 1) << "moves";
+    qCDebug(lcKifu).noquote() << "toCsaLines: ========== CSA出力終了 ==========";
+    qCDebug(lcKifu).noquote() << "toCsaLines: processedMoves =" << processedMoves
+                              << ", skippedEmpty =" << skippedEmpty
+                              << ", skippedNoUsi =" << skippedNoUsi;
+    qCDebug(lcKifu).noquote() << "toCsaLines: generated"
+                              << out.size() << "lines,"
+                              << (moveNo - 1) << "moves";
     
     return out;
 }
@@ -2228,8 +2228,8 @@ QStringList GameRecordModel::toJkfLines(const ExportContext& ctx) const
     const QJsonDocument doc(root);
     out << QString::fromUtf8(doc.toJson(QJsonDocument::Compact));
     
-    qDebug().noquote() << "[GameRecordModel] toJkfLines: generated JKF with"
-                       << movesArray.size() << "moves";
+    qCDebug(lcKifu).noquote() << "toJkfLines: generated JKF with"
+                              << movesArray.size() << "moves";
     
     return out;
 }
@@ -2267,7 +2267,7 @@ QString GameRecordModel::intToBase36(int moveCode)
 {
     // 3文字のbase36に変換（範囲: 0-46655）
     if (moveCode < 0 || moveCode > 46655) {
-        qWarning() << "[USEN] moveCode out of range:" << moveCode;
+        qCWarning(lcKifu) << "moveCode out of range:" << moveCode;
         return QStringLiteral("000");
     }
     
@@ -2304,7 +2304,7 @@ QString GameRecordModel::encodeUsiMoveToUsen(const QString& usiMove)
         QChar pieceChar = usiMove.at(0);
         int pieceCode = usiPieceToUsenDropCode(pieceChar);
         if (pieceCode < 0) {
-            qWarning() << "[USEN] Unknown drop piece:" << pieceChar;
+            qCWarning(lcKifu) << "Unknown drop piece:" << pieceChar;
             return QString();
         }
         from_sq = 81 + pieceCode;
@@ -2614,9 +2614,9 @@ QStringList GameRecordModel::toUsenLines(const ExportContext& ctx, const QString
     out << usen;
 
     const int branchCount = (m_branchTree != nullptr) ? (m_branchTree->lineCount() - 1) : 0;
-    qDebug().noquote() << "[GameRecordModel] toUsenLines: generated USEN with"
-                       << mainMoves.size() / 3 << "mainline moves,"
-                       << branchCount << "variations";
+    qCDebug(lcKifu).noquote() << "toUsenLines: generated USEN with"
+                              << mainMoves.size() / 3 << "mainline moves,"
+                              << branchCount << "variations";
     
     return out;
 }
@@ -2732,9 +2732,9 @@ QStringList GameRecordModel::toUsiLines(const ExportContext& ctx, const QStringL
     
     out << usiLine;
     
-    qDebug().noquote() << "[GameRecordModel] toUsiLines: generated USI position command with"
-                       << mainlineUsi.size() << "moves,"
-                       << "terminal:" << terminalCode;
+    qCDebug(lcKifu).noquote() << "toUsiLines: generated USI position command with"
+                              << mainlineUsi.size() << "moves,"
+                              << "terminal:" << terminalCode;
     
     return out;
 }

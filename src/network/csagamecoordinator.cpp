@@ -12,7 +12,6 @@
 #include "shogienginethinkingmodel.h"
 #include "enginesettingsconstants.h"
 
-#include <QDebug>
 #include <QSettings>
 #include <QRegularExpression>
 
@@ -142,7 +141,7 @@ void CsaGameCoordinator::stopGame()
             m_resignConsumedTimeMs = m_isBlackSide
                 ? m_clock->getPlayer1ConsiderationTimeMs()
                 : m_clock->getPlayer2ConsiderationTimeMs();
-            qDebug() << "[CSA] StopGame consumed time from clock:" << m_resignConsumedTimeMs << "ms";
+            qCDebug(lcNetwork) << "StopGame consumed time from clock:" << m_resignConsumedTimeMs << "ms";
         }
         m_client->resign();
     }
@@ -163,33 +162,33 @@ bool CsaGameCoordinator::isBlackSide() const
 
 void CsaGameCoordinator::onHumanMove(const QPoint& from, const QPoint& to, bool promote)
 {
-    qDebug() << "[CSA-DEBUG] onHumanMove called: from=" << from << "to=" << to << "promote=" << promote;
-    qDebug() << "[CSA-DEBUG] gameState=" << static_cast<int>(m_gameState) 
-             << "isMyTurn=" << m_isMyTurn 
-             << "playerType=" << static_cast<int>(m_playerType)
-             << "isBlackSide=" << m_isBlackSide;
+    qCDebug(lcNetwork) << "onHumanMove called: from=" << from << "to=" << to << "promote=" << promote;
+    qCDebug(lcNetwork) << "gameState=" << static_cast<int>(m_gameState)
+                       << "isMyTurn=" << m_isMyTurn
+                       << "playerType=" << static_cast<int>(m_playerType)
+                       << "isBlackSide=" << m_isBlackSide;
 
     if (m_gameState != GameState::InGame) {
-        qDebug() << "[CSA-DEBUG] Not in game state, returning";
+        qCDebug(lcNetwork) << "Not in game state, returning";
         return;
     }
 
     if (!m_isMyTurn) {
-        qDebug() << "[CSA-DEBUG] Not my turn, returning";
+        qCDebug(lcNetwork) << "Not my turn, returning";
         emit errorOccurred(tr("相手の手番です"));
         return;
     }
 
     if (m_playerType != PlayerType::Human) {
-        qDebug() << "[CSA-DEBUG] Not human player, returning";
+        qCDebug(lcNetwork) << "Not human player, returning";
         return;
     }
 
     QString csaMove = boardToCSA(from, to, promote);
-    qDebug() << "[CSA-DEBUG] Generated CSA move:" << csaMove;
-    
+    qCDebug(lcNetwork) << "Generated CSA move:" << csaMove;
+
     m_client->sendMove(csaMove);
-    qDebug() << "[CSA-DEBUG] Move sent to server";
+    qCDebug(lcNetwork) << "Move sent to server";
 }
 
 void CsaGameCoordinator::onResign()
@@ -202,7 +201,7 @@ void CsaGameCoordinator::onResign()
             m_resignConsumedTimeMs = m_isBlackSide
                 ? m_clock->getPlayer1ConsiderationTimeMs()
                 : m_clock->getPlayer2ConsiderationTimeMs();
-            qDebug() << "[CSA] Resign consumed time from clock:" << m_resignConsumedTimeMs << "ms";
+            qCDebug(lcNetwork) << "Resign consumed time from clock:" << m_resignConsumedTimeMs << "ms";
         }
         m_client->resign();
     }
@@ -513,11 +512,11 @@ void CsaGameCoordinator::onMoveConfirmed(const QString& move, int consumedTimeMs
 
 void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause, int consumedTimeMs)
 {
-    qDebug().noquote() << "[CSA-DEBUG] onClientGameEnded ENTER:"
-                       << "result=" << static_cast<int>(result)
-                       << "cause=" << static_cast<int>(cause)
-                       << "consumedTimeMs=" << consumedTimeMs
-                       << "m_isBlackSide=" << m_isBlackSide;
+    qCDebug(lcNetwork).noquote() << "onClientGameEnded ENTER:"
+                                << "result=" << static_cast<int>(result)
+                                << "cause=" << static_cast<int>(cause)
+                                << "consumedTimeMs=" << consumedTimeMs
+                                << "m_isBlackSide=" << m_isBlackSide;
 
     // 残り時間の計算精度を確保するため、先にクロックを停止する
     if (m_clock) {
@@ -525,18 +524,18 @@ void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClie
     }
 
     if (m_clock) {
-        qDebug().noquote() << "[CSA-DEBUG] Clock state:"
-                           << "player1TimeMs=" << m_clock->getPlayer1TimeIntMs()
-                           << "player2TimeMs=" << m_clock->getPlayer2TimeIntMs()
-                           << "currentPlayer=" << m_clock->currentPlayer();
+        qCDebug(lcNetwork).noquote() << "Clock state:"
+                                    << "player1TimeMs=" << m_clock->getPlayer1TimeIntMs()
+                                    << "player2TimeMs=" << m_clock->getPlayer2TimeIntMs()
+                                    << "currentPlayer=" << m_clock->currentPlayer();
     } else {
-        qDebug().noquote() << "[CSA-DEBUG] m_clock is NULL!";
+        qCDebug(lcNetwork).noquote() << "m_clock is NULL!";
     }
 
-    qDebug().noquote() << "[CSA-DEBUG] Total consumed times:"
-                       << "m_blackTotalTimeMs=" << m_blackTotalTimeMs
-                       << "m_whiteTotalTimeMs=" << m_whiteTotalTimeMs
-                       << "m_initialTimeMs=" << m_initialTimeMs;
+    qCDebug(lcNetwork).noquote() << "Total consumed times:"
+                                << "m_blackTotalTimeMs=" << m_blackTotalTimeMs
+                                << "m_whiteTotalTimeMs=" << m_whiteTotalTimeMs
+                                << "m_initialTimeMs=" << m_initialTimeMs;
 
     // サーバーからの消費時間が0の場合、クロックから計算する
     int actualConsumedTimeMs = consumedTimeMs;
@@ -545,7 +544,7 @@ void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClie
         if (cause == CsaClient::GameEndCause::Resign &&
             result == CsaClient::GameResult::Lose && m_resignConsumedTimeMs > 0) {
             actualConsumedTimeMs = m_resignConsumedTimeMs;
-            qDebug().noquote() << "[CSA-DEBUG] Using saved resign consumed time (my resign):" << actualConsumedTimeMs << "ms";
+            qCDebug(lcNetwork).noquote() << "Using saved resign consumed time (my resign):" << actualConsumedTimeMs << "ms";
         }
         // 相手が投了した場合（自分が勝ち）はクロックから消費時間を計算
         else if (cause == CsaClient::GameEndCause::Resign &&
@@ -560,28 +559,28 @@ void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClie
                 ? m_whiteTotalTimeMs
                 : m_blackTotalTimeMs;
 
-            qDebug().noquote() << "[CSA-DEBUG] Opponent resign calculation:"
-                               << "opponentClockRemainingMs=" << opponentClockRemainingMs
-                               << "opponentPreviousConsumedMs=" << opponentPreviousConsumedMs;
+            qCDebug(lcNetwork).noquote() << "Opponent resign calculation:"
+                                        << "opponentClockRemainingMs=" << opponentClockRemainingMs
+                                        << "opponentPreviousConsumedMs=" << opponentPreviousConsumedMs;
 
             // 消費時間 = 初期時間 - クロック残り時間 - 既に消費した時間
             actualConsumedTimeMs = static_cast<int>(m_initialTimeMs - opponentClockRemainingMs - opponentPreviousConsumedMs);
             if (actualConsumedTimeMs < 0) actualConsumedTimeMs = 0;
 
-            qDebug().noquote() << "[CSA-DEBUG] Calculated opponent resign consumed time:"
-                               << "initialTime=" << m_initialTimeMs
-                               << "clockRemaining=" << opponentClockRemainingMs
-                               << "previousConsumed=" << opponentPreviousConsumedMs
-                               << "calculated=" << actualConsumedTimeMs << "ms";
+            qCDebug(lcNetwork).noquote() << "Calculated opponent resign consumed time:"
+                                        << "initialTime=" << m_initialTimeMs
+                                        << "clockRemaining=" << opponentClockRemainingMs
+                                        << "previousConsumed=" << opponentPreviousConsumedMs
+                                        << "calculated=" << actualConsumedTimeMs << "ms";
         } else {
-            qDebug().noquote() << "[CSA-DEBUG] consumedTimeMs=0 but no calculation done:"
-                               << "cause=" << static_cast<int>(cause)
-                               << "result=" << static_cast<int>(result)
-                               << "m_clock=" << (m_clock ? "valid" : "null");
+            qCDebug(lcNetwork).noquote() << "consumedTimeMs=0 but no calculation done:"
+                                        << "cause=" << static_cast<int>(cause)
+                                        << "result=" << static_cast<int>(result)
+                                        << "m_clock=" << (m_clock ? "valid" : "null");
         }
     }
 
-    qDebug().noquote() << "[CSA-DEBUG] Final actualConsumedTimeMs=" << actualConsumedTimeMs;
+    qCDebug(lcNetwork).noquote() << "Final actualConsumedTimeMs=" << actualConsumedTimeMs;
 
     QString resultStr;
     switch (result) {
@@ -698,7 +697,7 @@ void CsaGameCoordinator::onEngineBestMoveReceived()
     // handleEngineVsHumanOrEngineMatchCommunication がブロッキングで処理するため、
     // このスロットが呼ばれる時点では既に startEngineThinking() 内で処理済み。
     // ここでは追加のログのみ出力
-    qDebug() << "[CSA-DEBUG] onEngineBestMoveReceived_ called (handled in startEngineThinking)";
+    qCDebug(lcNetwork) << "onEngineBestMoveReceived_ called (handled in startEngineThinking)";
 }
 
 void CsaGameCoordinator::onEngineResign()
@@ -712,7 +711,7 @@ void CsaGameCoordinator::onEngineResign()
             m_resignConsumedTimeMs = m_isBlackSide
                 ? m_clock->getPlayer1ConsiderationTimeMs()
                 : m_clock->getPlayer2ConsiderationTimeMs();
-            qDebug() << "[CSA] Engine resign consumed time from clock:" << m_resignConsumedTimeMs << "ms";
+            qCDebug(lcNetwork) << "Engine resign consumed time from clock:" << m_resignConsumedTimeMs << "ms";
         }
         m_client->resign();
     }
@@ -832,8 +831,8 @@ QString CsaGameCoordinator::usiToCsa(const QString& usiMove, bool isBlack) const
 
 QString CsaGameCoordinator::boardToCSA(const QPoint& from, const QPoint& to, bool promote) const
 {
-    qDebug() << "[CSA-DEBUG] boardToCSA: from=" << from << "to=" << to << "promote=" << promote;
-    qDebug() << "[CSA-DEBUG] isBlackSide=" << m_isBlackSide;
+    qCDebug(lcNetwork) << "boardToCSA: from=" << from << "to=" << to << "promote=" << promote;
+    qCDebug(lcNetwork) << "isBlackSide=" << m_isBlackSide;
 
     QChar turnSign = m_isBlackSide ? QLatin1Char('+') : QLatin1Char('-');
 
@@ -845,14 +844,14 @@ QString CsaGameCoordinator::boardToCSA(const QPoint& from, const QPoint& to, boo
     int toFile = to.x();
     int toRank = to.y();
 
-    qDebug() << "[CSA-DEBUG] Calculated: fromFile=" << fromFile << "fromRank=" << fromRank
-             << "toFile=" << toFile << "toRank=" << toRank;
+    qCDebug(lcNetwork) << "Calculated: fromFile=" << fromFile << "fromRank=" << fromRank
+                       << "toFile=" << toFile << "toRank=" << toRank;
 
     bool isDrop = (from.x() >= 10);  // 駒台からの打ち駒 (file=10 or 11)
     if (isDrop) {
         fromFile = 0;
         fromRank = 0;
-        qDebug() << "[CSA-DEBUG] This is a drop move";
+        qCDebug(lcNetwork) << "This is a drop move";
     }
 
     QString csaPiece;
@@ -862,23 +861,23 @@ QString CsaGameCoordinator::boardToCSA(const QPoint& from, const QPoint& to, boo
             // 駒台からの打ち駒の場合: from.x()=10(先手駒台) or 11(後手駒台)
             // from.y() は駒種インデックス (1=P, 2=L, 3=N, 4=S, 5=G, 6=B, 7=R, 8=K)
             pieceChar = m_gameController->board()->getPieceCharacter(from.x(), from.y());
-            qDebug() << "[CSA-DEBUG] Got pieceChar from stand:" << pieceChar
-                     << "at file=" << from.x() << "rank=" << from.y();
+            qCDebug(lcNetwork) << "Got pieceChar from stand:" << pieceChar
+                               << "at file=" << from.x() << "rank=" << from.y();
         } else {
             // 通常の移動: validateAndMoveで既に盤面が更新されているので、
             // 移動先(to)から駒を取得する
             pieceChar = m_gameController->board()->getPieceCharacter(toFile, toRank);
-            qDebug() << "[CSA-DEBUG] Got pieceChar from board (at destination):" << pieceChar
-                     << "at file=" << toFile << "rank=" << toRank;
+            qCDebug(lcNetwork) << "Got pieceChar from board (at destination):" << pieceChar
+                               << "at file=" << toFile << "rank=" << toRank;
         }
         csaPiece = pieceCharToCsa(pieceChar, promote);
-        qDebug() << "[CSA-DEBUG] Converted to CSA piece:" << csaPiece;
+        qCDebug(lcNetwork) << "Converted to CSA piece:" << csaPiece;
     } else {
-        qDebug() << "[CSA-DEBUG] WARNING: gameController or board is null!";
+        qCDebug(lcNetwork) << "WARNING: gameController or board is null!";
     }
     if (csaPiece.isEmpty()) {
         csaPiece = QStringLiteral("FU");
-        qDebug() << "[CSA-DEBUG] csaPiece was empty, defaulting to FU";
+        qCDebug(lcNetwork) << "csaPiece was empty, defaulting to FU";
     }
 
     QString result = QString("%1%2%3%4%5%6")
@@ -889,7 +888,7 @@ QString CsaGameCoordinator::boardToCSA(const QPoint& from, const QPoint& to, boo
         .arg(toRank)
         .arg(csaPiece);
 
-    qDebug() << "[CSA-DEBUG] Final CSA move string:" << result;
+    qCDebug(lcNetwork) << "Final CSA move string:" << result;
     return result;
 }
 
@@ -942,7 +941,7 @@ QString CsaGameCoordinator::pieceCharToCsa(QChar pieceChar, bool promote) const
     case 'k': return QStringLiteral("OU");
 
     default:
-        qWarning() << "[CSA-DEBUG] Unknown piece character:" << pieceChar;
+        qCWarning(lcNetwork) << "Unknown piece character:" << pieceChar;
         return QStringLiteral("FU");
     }
 }
@@ -1298,7 +1297,7 @@ void CsaGameCoordinator::startEngineThinking()
     // 手数は現在の手数（1から始まる）
     int ply = m_moveCount + 1;
     int scoreCp = m_engine->lastScoreCp();
-    qDebug() << "[CSA] Engine score updated: scoreCp=" << scoreCp << "ply=" << ply;
+    qCDebug(lcNetwork) << "Engine score updated: scoreCp=" << scoreCp << "ply=" << ply;
     emit engineScoreUpdated(scoreCp, ply);
 
     // サーバーに送信
@@ -1531,10 +1530,10 @@ void CsaGameCoordinator::cleanup()
 void CsaGameCoordinator::sendRawCommand(const QString& command)
 {
     if (!m_client) {
-        qWarning() << "[CSA] sendRawCommand: client is null";
+        qCWarning(lcNetwork) << "sendRawCommand: client is null";
         return;
     }
 
-    qInfo().noquote() << "[CSA] Sending raw command:" << command;
+    qCInfo(lcNetwork) << "Sending raw command:" << command;
     m_client->sendRawCommand(command);
 }

@@ -57,7 +57,7 @@ static void enforceSquareCorners(QLabel* lab)
     lab->setStyleSheet(ensureNoBorderRadiusStyle(lab->styleSheet()));
 }
 
-Q_LOGGING_CATEGORY(ClockLog, "clock")
+Q_LOGGING_CATEGORY(lcView, "shogi.view")
 
 using namespace EngineSettingsConstants;
 
@@ -206,14 +206,12 @@ ShogiView::ShogiView(QWidget *parent)
 void ShogiView::setBoard(ShogiBoard* board)
 {
     // デバッグログ：board設定の追跡
-    qDebug() << "[DEBUG] ShogiView::setBoard called";
-    qDebug() << "[DEBUG]   Old board:" << m_board;
-    qDebug() << "[DEBUG]   New board:" << board;
+    qCDebug(lcView) << "setBoard called, old:" << m_board << "new:" << board;
     
     // 【無駄な再設定の回避】
     // すでに同じ ShogiBoard を保持しているなら処理不要。
     if (m_board == board) {
-        qDebug() << "[DEBUG]   Same board, skipping";
+        qCDebug(lcView) << "setBoard: same board, skipping";
         return;
     }
 
@@ -243,7 +241,7 @@ void ShogiView::setBoard(ShogiBoard* board)
     // 親レイアウトに再レイアウトを促し、必要ならば再配置/再サイズを行う。
     updateGeometry();
     
-    qDebug() << "[DEBUG]   setBoard complete, m_board now:" << m_board;
+    qCDebug(lcView) << "setBoard complete, m_board now:" << m_board;
 }
 
 // イベントフィルタ
@@ -1656,10 +1654,6 @@ void ShogiView::mouseReleaseEvent(QMouseEvent *event)
     if (event->button() == Qt::LeftButton) {
         QPoint pt = getClickedSquare(event->pos());     // クリック位置を盤/駒台のマス座標に変換
 
-        //begin
-        qDebug() << "----mouseReleaseEvent: pos=" << event->pos() << " -> square=" << pt;
-        qDebug() << "pt.x()=" << pt.x() << ", pt.y()=" << pt.y();
-        //end
 
         if (pt.isNull()) return;                        // 盤外等は無視
         if (m_errorOccurred) return;                    // 異常時はシグナル送出を抑止
@@ -2552,7 +2546,7 @@ QString ShogiView::stripMarks(const QString& s)
 //  - 表示用ラベル（向き/手番/反転などに依存）を refreshNameLabels() で更新
 void ShogiView::setBlackPlayerName(const QString& name)
 {
-    qDebug().noquote() << "[ShogiView] setBlackPlayerName: name=" << name;
+    qCDebug(lcView).noquote() << "setBlackPlayerName:" << name;
     m_blackNameBase = stripMarks(name);  // 装飾を除いた素の名前を保存
     refreshNameLabels();                 // ラベル表示を更新（向き/手番表示などは内部で決定）
 }
@@ -2561,7 +2555,7 @@ void ShogiView::setBlackPlayerName(const QString& name)
 // 役割は黒側と同様：装飾マークを除去して m_whiteNameBase に保存し、表示を更新。
 void ShogiView::setWhitePlayerName(const QString& name)
 {
-    qDebug().noquote() << "[ShogiView] setWhitePlayerName: name=" << name;
+    qCDebug(lcView).noquote() << "setWhitePlayerName:" << name;
     m_whiteNameBase = stripMarks(name);
     refreshNameLabels();
 }
@@ -2863,8 +2857,8 @@ void ShogiView::setRankFontScale(double scale)
 
 void ShogiView::applyTurnHighlight(bool blackIsActive)
 {
-    qDebug() << "[SHOGIVIEW-DEBUG] applyTurnHighlight ENTER: blackIsActive=" << blackIsActive
-             << "m_blackActive(before)=" << m_blackActive;
+    qCDebug(lcView) << "applyTurnHighlight: blackIsActive=" << blackIsActive
+                     << "m_blackActive(before)=" << m_blackActive;
     
     // 手番を更新
     m_blackActive = blackIsActive;
@@ -2874,19 +2868,16 @@ void ShogiView::applyTurnHighlight(bool blackIsActive)
     m_urgency = Urgency::Normal;
 
     // setUrgencyVisuals() 内で手番側を通常配色に、非手番側を font-weight=400 に統一
-    qDebug() << "[SHOGIVIEW-DEBUG] applyTurnHighlight: calling setUrgencyVisuals(Normal)";
     setUrgencyVisuals(Urgency::Normal);
-    qDebug() << "[SHOGIVIEW-DEBUG] applyTurnHighlight LEAVE";
 }
 
 // 手番（アクティブサイド）を設定するセッター。
 // 役割：内部フラグを更新し、名前/時計ラベルに手番ハイライトを反映。
 void ShogiView::setActiveSide(bool blackTurn)
 {
-    qDebug() << "[SHOGIVIEW-DEBUG] setActiveSide ENTER: blackTurn=" << blackTurn;
+    qCDebug(lcView) << "setActiveSide: blackTurn=" << blackTurn;
     m_blackActive = blackTurn;              // 先手が手番なら true
     applyTurnHighlight(m_blackActive);      // 背景/前景色を手番に合わせて適用
-    qDebug() << "[SHOGIVIEW-DEBUG] setActiveSide LEAVE";
 }
 
 // 手番ハイライトの配色スタイルを設定する。
@@ -2946,26 +2937,19 @@ void ShogiView::setLabelStyle(QLabel* lbl,
 
 void ShogiView::setUrgencyVisuals(Urgency u)
 {
-    qDebug() << "[SHOGIVIEW-DEBUG] setUrgencyVisuals ENTER: urgency=" << static_cast<int>(u)
-             << "m_blackActive=" << m_blackActive;
-    
+    qCDebug(lcView) << "setUrgencyVisuals: urgency=" << static_cast<int>(u)
+                     << "m_blackActive=" << m_blackActive;
+
     QLabel* actName    = m_blackActive ? m_blackNameLabel  : m_whiteNameLabel;
     QLabel* actClock   = m_blackActive ? m_blackClockLabel : m_whiteClockLabel;
     QLabel* inactName  = m_blackActive ? m_whiteNameLabel  : m_blackNameLabel;
     QLabel* inactClock = m_blackActive ? m_whiteClockLabel : m_blackClockLabel;
-
-    qDebug() << "[SHOGIVIEW-DEBUG] setUrgencyVisuals: actName=" << actName
-             << "actClock=" << actClock
-             << "inactName=" << inactName
-             << "inactClock=" << inactClock;
 
     // 「次の手番」ラベルを取得
     QLabel* actTurnLabel   = m_blackActive
                              ? this->findChild<QLabel*>(QStringLiteral("turnLabelBlack"))
                              : this->findChild<QLabel*>(QStringLiteral("turnLabelWhite"));
 
-    qDebug() << "[SHOGIVIEW-DEBUG] setUrgencyVisuals: actTurnLabel=" << actTurnLabel
-             << "(looking for" << (m_blackActive ? "turnLabelBlack" : "turnLabelWhite") << ")";
 
     // 非手番は font-weight=400 固定、背景は畳色
     auto setInactive = [&](QLabel* name, QLabel* clock){
@@ -2977,7 +2961,6 @@ void ShogiView::setUrgencyVisuals(Urgency u)
 
     switch (u) {
     case Urgency::Normal:
-        qDebug() << "[SHOGIVIEW-DEBUG] setUrgencyVisuals: applying Normal style";
         // 秒読み前：手番は黄背景＋青文字、枠なし、太字
         setLabelStyle(actName,  kTurnFg,   kTurnBg,   0, QColor(0,0,0,0), /*bold=*/true);
         setLabelStyle(actClock, kTurnFg,   kTurnBg,   0, QColor(0,0,0,0), /*bold=*/true);
@@ -3013,7 +2996,6 @@ void ShogiView::setUrgencyVisuals(Urgency u)
     default:
         break;
     }
-    qDebug() << "[SHOGIVIEW-DEBUG] setUrgencyVisuals LEAVE";
 }
 
 void ShogiView::applyStartupTypography()

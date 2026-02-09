@@ -7,7 +7,7 @@
 #include <QAbstractItemModel>
 #include <QModelIndex>
 #include <QStringList>
-#include <QDebug>
+#include "shogiboard.h"
 #include <QAtomicInteger>
 #include <QObject>
 
@@ -24,12 +24,12 @@ QString transRankTo(const int rankTo)
     if (rankTo < 1 || rankTo > 9) {
         // -1 はセンチネル値（未設定/無効）として使われるため、エラーダイアログは表示しない
         if (rankTo == -1) {
-            qDebug().noquote() << "[ShogiUtils] transRankTo: sentinel value -1 (no valid coordinate)";
+            qCDebug(lcCore, "transRankTo: sentinel value -1 (no valid coordinate)");
             return QString();
         }
         const QString msg = QObject::tr("The rank must be a value between 1 and 9. (got %1)")
         .arg(rankTo);
-        qWarning().noquote() << "[ShogiUtils]" << msg;
+        qCWarning(lcCore, "%s", qUtf8Printable(msg));
         ErrorBus::instance().postError(msg);
         return QString();
     }
@@ -43,12 +43,12 @@ QString transFileTo(const int fileTo)
     if (fileTo < 1 || fileTo > 9) {
         // -1 はセンチネル値（未設定/無効）として使われるため、エラーダイアログは表示しない
         if (fileTo == -1) {
-            qDebug().noquote() << "[ShogiUtils] transFileTo: sentinel value -1 (no valid coordinate)";
+            qCDebug(lcCore, "transFileTo: sentinel value -1 (no valid coordinate)");
             return QString();
         }
         const QString msg = QObject::tr("The file must be a value between 1 and 9. (got %1)")
         .arg(fileTo);
-        qWarning().noquote() << "[ShogiUtils]" << msg;
+        qCWarning(lcCore, "%s", qUtf8Printable(msg));
         ErrorBus::instance().postError(msg);
         return QString();
     }

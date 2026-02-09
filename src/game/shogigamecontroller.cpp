@@ -5,6 +5,8 @@
 
 #include <QPoint>
 #include <QDebug>
+
+#include "matchcoordinator.h"
 #include "shogiboard.h"
 #include "shogimove.h"
 #include "movevalidator.h"
@@ -32,13 +34,13 @@ ShogiBoard* ShogiGameController::board() const
 
 void ShogiGameController::newGame(QString& initialSfenString)
 {
-    qDebug() << "[DEBUG] ShogiGameController::newGame called";
-    qDebug() << "[DEBUG]   Initial SFEN:" << initialSfenString;
-    qDebug() << "[DEBUG]   Current board ptr:" << m_board;
+    qCDebug(lcGame) << "ShogiGameController::newGame called";
+    qCDebug(lcGame) << "  Initial SFEN:" << initialSfenString;
+    qCDebug(lcGame) << "  Current board ptr:" << m_board;
 
     setupBoard();
 
-    qDebug() << "[DEBUG]   New board ptr after setupBoard:" << m_board;
+    qCDebug(lcGame) << "  New board ptr after setupBoard:" << m_board;
 
     board()->setSfen(initialSfenString);
     setResult(NoResult);
@@ -106,7 +108,7 @@ void ShogiGameController::setForcedPromotion(bool force, bool promote)
 {
     m_forcedPromotionMode = force;
     m_forcedPromotionValue = promote;
-    qDebug() << "[GC] setForcedPromotion: force=" << force << "promote=" << promote;
+    qCDebug(lcGame) << "setForcedPromotion: force=" << force << "promote=" << promote;
 }
 
 void ShogiGameController::clearForcedPromotion()
@@ -143,7 +145,7 @@ QString ShogiGameController::getNextPlayerSfen()
     } else {
         const QString errorMessage =
             tr("An error occurred in ShogiGameController::getNextPlayerSfen: Invalid player state.");
-        qDebug() << "currentPlayer() =" << currentPlayer();
+        qCDebug(lcGame) << "currentPlayer() =" << currentPlayer();
         emit errorOccurred(errorMessage);
         return QString();
     }
@@ -263,7 +265,7 @@ bool ShogiGameController::decidePromotion(PlayMode& playMode, MoveValidator& val
                 if (fileFrom <= 9) {
                     // 強制成りモードの場合はダイアログをスキップ
                     if (m_forcedPromotionMode) {
-                        qDebug() << "[GC] decidePromotion: using forced promotion value=" << m_forcedPromotionValue;
+                        qCDebug(lcGame) << "decidePromotion: using forced promotion value=" << m_forcedPromotionValue;
                         m_promote = m_forcedPromotionValue;
                         currentMove.isPromotion = m_forcedPromotionValue;
                         // 強制モードは1回使用したらクリア
@@ -347,7 +349,7 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
     // 4. 棋譜文字列生成
     // 5. 着手確定シグナル発行・手番切替
 
-    qInfo().noquote() << "[IDX][VAL] enter argMove=" << moveNumber
+    qCInfo(lcGame).noquote() << "validateAndMove enter argMove=" << moveNumber
                       << " recPtr=" << static_cast<const void*>(m_sfenRecord)
                       << " recSize(before)=" << (m_sfenRecord ? m_sfenRecord->size() : -1);
 
@@ -364,16 +366,14 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
     int fileTo   = outTo.x();
     int rankTo   = outTo.y();
 
-    //begin debug
-    qDebug() << "in ShogiGameController::validateAndMove";
-    qDebug() << "playMode = " << static_cast<int>(playMode);
-    qDebug() << "promote = " << m_promote;
-    qDebug() << "fileFrom = " << fileFrom;
-    qDebug() << "rankFrom = " << rankFrom;
-    qDebug() << "fileTo = " << fileTo;
-    qDebug() << "rankTo = " << rankTo;
-    qDebug() << "currentPlayer() = " << currentPlayer();
-    //end debug
+    qCDebug(lcGame) << "in ShogiGameController::validateAndMove";
+    qCDebug(lcGame) << "playMode = " << static_cast<int>(playMode);
+    qCDebug(lcGame) << "promote = " << m_promote;
+    qCDebug(lcGame) << "fileFrom = " << fileFrom;
+    qCDebug(lcGame) << "rankFrom = " << rankFrom;
+    qCDebug(lcGame) << "fileTo = " << fileTo;
+    qCDebug(lcGame) << "rankTo = " << rankTo;
+    qCDebug(lcGame) << "currentPlayer() = " << currentPlayer();
 
     MoveValidator validator;
     MoveValidator::Turn turn = getCurrentTurnForValidator(validator);
@@ -413,14 +413,14 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
     board()->updateBoardAndPieceStand(movingPiece, capturedPiece, fileFrom, rankFrom, fileTo, rankTo, m_promote);
 
 
-    qDebug().noquote() << "[GC][pre-add] nextTurn=" << nextPlayerColorSfen
+    qCDebug(lcGame).noquote() << "pre-add: nextTurn=" << nextPlayerColorSfen
                        << " moveIndex=" << moveNumber
                        << " rec*=" << static_cast<const void*>(m_sfenRecord)
                        << " size(before)=" << (m_sfenRecord ? m_sfenRecord->size() : -1);
 
     board()->addSfenRecord(nextPlayerColorSfen, moveNumber, m_sfenRecord);
 
-    qDebug().noquote() << "[GC][post-add] size(after)=" << (m_sfenRecord ? m_sfenRecord->size() : -1)
+    qCDebug(lcGame).noquote() << "post-add: size(after)=" << (m_sfenRecord ? m_sfenRecord->size() : -1)
                        << " head=" << (m_sfenRecord && !m_sfenRecord->isEmpty() ? m_sfenRecord->first() : QString())
                        << " tail=" << (m_sfenRecord && !m_sfenRecord->isEmpty() ? m_sfenRecord->last()  : QString());
 
@@ -428,11 +428,11 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
         const qsizetype n = m_sfenRecord->size();
         const QString last = (n > 0) ? m_sfenRecord->at(n - 1) : QString();
         const QString preview = (last.size() > 200) ? last.left(200) + " ..." : last;
-        qInfo() << "[GC] validateAndMove: sfenRecord size =" << n
+        qCInfo(lcGame) << "validateAndMove: sfenRecord size =" << n
                 << " moveNumber =" << moveNumber;
-        qInfo().noquote() << "[GC] last sfen = " << preview;
+        qCInfo(lcGame).noquote() << "last sfen = " << preview;
         if (last.startsWith(QLatin1String("position "))) {
-            qWarning() << "[GC] *** NON-SFEN stored into sfenRecord! (bug)";
+            qCWarning(lcGame) << "*** NON-SFEN stored into sfenRecord! (bug)";
         }
     }
 
@@ -446,18 +446,18 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
     // 着手確定シグナル: 手番切替の「前」に出す
     const Player moverBefore   = currentPlayer();
     const int confirmedPly     = static_cast<int>(gameMoves.size());
-    qDebug() << "[GC] emit moveCommitted mover=" << moverBefore << "ply=" << confirmedPly;
+    qCDebug(lcGame) << "emit moveCommitted mover=" << moverBefore << "ply=" << confirmedPly;
     emit moveCommitted(moverBefore, confirmedPly);
 
     setCurrentPlayer(currentPlayer() == Player1 ? Player2 : Player1);
 
     if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
         const QString tail = m_sfenRecord->last();
-        qInfo().noquote() << "[IDX][VAL] exit  argMove=" << moveNumber
+        qCInfo(lcGame).noquote() << "validateAndMove exit argMove=" << moveNumber
                           << " recSize(after)=" << m_sfenRecord->size()
                           << " tail='" << tail << "'";
     } else {
-        qInfo().noquote() << "[IDX][VAL] exit  argMove=" << moveNumber
+        qCInfo(lcGame).noquote() << "validateAndMove exit argMove=" << moveNumber
                           << " recSize(after)=" << (m_sfenRecord ? m_sfenRecord->size() : -1)
                           << " tail=<empty>";
     }
@@ -700,7 +700,7 @@ void ShogiGameController::applyTimeoutLossFor(int clockPlayer)
     } else if (clockPlayer == 2) {
         setResult(Player1Wins);
     } else {
-        qWarning().noquote() << "[SGC] applyTimeoutLossFor: invalid clockPlayer =" << clockPlayer;
+        qCWarning(lcGame).noquote() << "applyTimeoutLossFor: invalid clockPlayer =" << clockPlayer;
     }
 }
 
@@ -713,7 +713,7 @@ void ShogiGameController::applyResignationOfCurrentSide()
     } else if (m_currentPlayer == Player2) {
         setResult(Player1Wins);
     } else {
-        qWarning().noquote() << "[SGC] applyResignationOfCurrentSide: currentPlayer is NoPlayer, defaulting to Draw";
+        qCWarning(lcGame).noquote() << "applyResignationOfCurrentSide: currentPlayer is NoPlayer, defaulting to Draw";
         setResult(Draw);
     }
 }

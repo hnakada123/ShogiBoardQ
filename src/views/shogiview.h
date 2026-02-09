@@ -26,7 +26,7 @@
 #include <QLoggingCategory>
 #include <QPushButton>
 
-Q_DECLARE_LOGGING_CATEGORY(ClockLog)
+Q_DECLARE_LOGGING_CATEGORY(lcView)
 
 // 前方宣言（ヘッダ依存を軽減）
 class ShogiBoard;

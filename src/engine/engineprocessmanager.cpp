@@ -2,7 +2,7 @@
 /// @brief 将棋エンジンプロセス管理クラスの実装
 
 #include "engineprocessmanager.h"
-#include <QDebug>
+#include "usi.h"
 #include <QFile>
 #include <QFileInfo>
 #include <QTimer>
@@ -113,14 +113,14 @@ void EngineProcessManager::sendCommand(const QString& command)
     if (!m_process || 
         (m_process->state() != QProcess::Running && 
          m_process->state() != QProcess::Starting)) {
-        qWarning() << "[EngineProcessManager] Process not ready; command ignored:" << command;
+        qCWarning(lcEngine) << logPrefix() << "プロセス未準備、コマンド無視:" << command;
         return;
     }
 
     m_process->write((command + "\n").toUtf8());
     
     emit commandSent(command);
-    qDebug().nospace() << logPrefix() << " > " << command;
+    qCDebug(lcEngine).nospace() << logPrefix() << " 送信: " << command;
 }
 
 void EngineProcessManager::closeWriteChannel()
@@ -249,7 +249,7 @@ void EngineProcessManager::onReadyReadStdout()
         }
 
         if (m_shutdownState == ShutdownState::IgnoreAll) {
-            qDebug().nospace() << logPrefix() << " [drop-ignore-all] " << line;
+            qCDebug(lcEngine).nospace() << logPrefix() << " [drop-ignore-all] " << line;
             ++m_processedLines;
             continue;
         }
@@ -260,14 +260,14 @@ void EngineProcessManager::onReadyReadStdout()
                 emit dataReceived(line);
                 decrementPostQuitLines();
             } else {
-                qDebug().nospace() << logPrefix() << " [drop-after-quit] " << line;
+                qCDebug(lcEngine).nospace() << logPrefix() << " [drop-after-quit] " << line;
             }
             ++m_processedLines;
             continue;
         }
 
         emit dataReceived(line);
-        qDebug().nospace() << logPrefix() << " < " << line;
+        qCDebug(lcEngine).nospace() << logPrefix() << " 受信: " << line;
 
         ++m_processedLines;
     }
@@ -303,7 +303,7 @@ void EngineProcessManager::onReadyReadStderr()
         }
 
         emit stderrReceived(line);
-        qDebug().nospace() << logPrefix() << " <stderr> " << line;
+        qCDebug(lcEngine).nospace() << logPrefix() << " stderr: " << line;
     }
 }
 

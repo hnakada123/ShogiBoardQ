@@ -8,7 +8,7 @@
 #include <QApplication>
 #include <QStatusBar>
 #include <QTableWidget>
-#include <QDebug>
+#include "kifulogging.h"
 #include <QMessageBox>
 #include <QDir>
 #include <QDateTime>
@@ -80,7 +80,7 @@ QStringList KifuExportController::resolveUsiMoves() const
     if (m_deps.kifuLoadCoordinator) {
         QStringList moves = m_deps.kifuLoadCoordinator->kifuUsiMoves();
         if (!moves.isEmpty()) {
-            qDebug().noquote() << "[KifuExport] kifuUsiMoves from KifuLoadCoordinator, size =" << moves.size();
+            qCDebug(lcKifu).noquote() << "kifuUsiMoves from KifuLoadCoordinator, size =" << moves.size();
             return moves;
         }
     }
@@ -88,7 +88,7 @@ QStringList KifuExportController::resolveUsiMoves() const
     // 3. SFENレコードから生成
     if (m_deps.sfenRecord && m_deps.sfenRecord->size() > 1) {
         QStringList moves = sfenRecordToUsiMoves();
-        qDebug().noquote() << "[KifuExport] usiMoves from sfenRecord, size =" << moves.size();
+        qCDebug(lcKifu).noquote() << "usiMoves from sfenRecord, size =" << moves.size();
         return moves;
     }
     
@@ -173,13 +173,13 @@ QString KifuExportController::saveToFile()
     QStringList usenLines = m_deps.gameRecord->toUsenLines(ctx, usiMovesForExport);
     QStringList usiLines = m_deps.gameRecord->toUsiLines(ctx, usiMovesForExport);
     
-    qDebug().noquote() << "[KifuExport] saveToFile: generated"
-                       << kifLines.size() << "KIF,"
-                       << ki2Lines.size() << "KI2,"
-                       << csaLines.size() << "CSA,"
-                       << jkfLines.size() << "JKF,"
-                       << usenLines.size() << "USEN,"
-                       << usiLines.size() << "USI lines";
+    qCDebug(lcKifu).noquote() << "saveToFile: generated"
+                              << kifLines.size() << "KIF,"
+                              << ki2Lines.size() << "KI2,"
+                              << csaLines.size() << "CSA,"
+                              << jkfLines.size() << "JKF,"
+                              << usenLines.size() << "USEN,"
+                              << usiLines.size() << "USI lines";
     
     m_kifuDataList = kifLines;
     
@@ -215,7 +215,7 @@ bool KifuExportController::overwriteFile(const QString& filePath)
     if (m_deps.gameRecord) {
         GameRecordModel::ExportContext ctx = buildExportContext();
         kifLines = m_deps.gameRecord->toKifLines(ctx);
-        qDebug().noquote() << "[KifuExport] overwriteFile: generated" << kifLines.size() << "lines";
+        qCDebug(lcKifu).noquote() << "overwriteFile: generated" << kifLines.size() << "lines";
     } else {
         // フォールバック
         KifuExportContext ctx;
@@ -295,7 +295,7 @@ bool KifuExportController::autoSaveToDir(const QString& saveDir, QString* outPat
         Q_EMIT statusMessage(tr("棋譜を自動保存しました: %1").arg(filePath), 5000);
         Q_EMIT fileSaved(filePath);
     } else {
-        qWarning().noquote() << "[KifuExport] autoSaveToDir failed:" << errorText;
+        qCWarning(lcKifu).noquote() << "autoSaveToDir failed:" << errorText;
         ErrorBus::instance().postError(
             tr("棋譜の自動保存に失敗しました: %1").arg(errorText));
     }
@@ -374,7 +374,7 @@ bool KifuExportController::copyCsaToClipboard()
     if (m_deps.gameRecord) {
         GameRecordModel::ExportContext ctx = buildExportContext();
         csaLines = m_deps.gameRecord->toCsaLines(ctx, usiMovesForCsa);
-        qDebug().noquote() << "[KifuExport] copyCsaToClipboard: generated" << csaLines.size() << "lines";
+        qCDebug(lcKifu).noquote() << "copyCsaToClipboard: generated" << csaLines.size() << "lines";
     }
     
     if (csaLines.isEmpty()) {
@@ -405,7 +405,7 @@ bool KifuExportController::copyUsiToClipboard()
     if (m_deps.gameRecord) {
         GameRecordModel::ExportContext ctx = buildExportContext();
         usiLines = m_deps.gameRecord->toUsiLines(ctx, usiMovesForOutput);
-        qDebug().noquote() << "[KifuExport] copyUsiToClipboard: generated" << usiLines.size() << "lines";
+        qCDebug(lcKifu).noquote() << "copyUsiToClipboard: generated" << usiLines.size() << "lines";
     }
     
     if (usiLines.isEmpty()) {
@@ -436,7 +436,7 @@ bool KifuExportController::copyUsiCurrentToClipboard()
     const int limit = m_deps.currentMoveIndex;
     if (limit >= 0 && limit < usiMovesForOutput.size()) {
         usiMovesForOutput = usiMovesForOutput.mid(0, limit);
-        qDebug().noquote() << "[KifuExport] copyUsiCurrentToClipboard: limited to" << limit << "moves";
+        qCDebug(lcKifu).noquote() << "copyUsiCurrentToClipboard: limited to" << limit << "moves";
     }
     
     QStringList usiLines;
@@ -471,7 +471,7 @@ bool KifuExportController::copyJkfToClipboard()
     if (m_deps.gameRecord) {
         GameRecordModel::ExportContext ctx = buildExportContext();
         jkfLines = m_deps.gameRecord->toJkfLines(ctx);
-        qDebug().noquote() << "[KifuExport] copyJkfToClipboard: generated" << jkfLines.size() << "lines";
+        qCDebug(lcKifu).noquote() << "copyJkfToClipboard: generated" << jkfLines.size() << "lines";
     }
     
     if (jkfLines.isEmpty()) {
@@ -502,7 +502,7 @@ bool KifuExportController::copyUsenToClipboard()
     if (m_deps.gameRecord) {
         GameRecordModel::ExportContext ctx = buildExportContext();
         usenLines = m_deps.gameRecord->toUsenLines(ctx, usiMovesForOutput);
-        qDebug().noquote() << "[KifuExport] copyUsenToClipboard: generated" << usenLines.size() << "lines";
+        qCDebug(lcKifu).noquote() << "copyUsenToClipboard: generated" << usenLines.size() << "lines";
     }
     
     if (usenLines.isEmpty()) {
@@ -578,7 +578,7 @@ bool KifuExportController::copySfenToClipboard()
     if (clipboard) {
         clipboard->setText(pos.sfenStr);
         Q_EMIT statusMessage(tr("SFEN形式の局面をクリップボードにコピーしました"), 3000);
-        qDebug().noquote() << "[KifuExport] copySfenToClipboard: copied" << pos.sfenStr.size() << "chars";
+        qCDebug(lcKifu).noquote() << "copySfenToClipboard: copied" << pos.sfenStr.size() << "chars";
         return true;
     }
     
@@ -756,7 +756,7 @@ bool KifuExportController::copyBodToClipboard()
     if (clipboard) {
         clipboard->setText(bodText);
         Q_EMIT statusMessage(tr("BOD形式の局面をクリップボードにコピーしました"), 3000);
-        qDebug().noquote() << "[KifuExport] copyBodToClipboard: copied" << bodText.size() << "chars";
+        qCDebug(lcKifu).noquote() << "copyBodToClipboard: copied" << bodText.size() << "chars";
         return true;
     }
     

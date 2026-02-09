@@ -2,7 +2,7 @@
 /// @brief USI通信ログ・エンジン情報表示モデルの実装
 
 #include "usicommlogmodel.h"
-#include <QDebug>
+#include "usi.h"
 
 // ============================================================
 // 初期化
@@ -60,7 +60,7 @@ QString UsiCommLogModel::usiCommLog() const
 
 void UsiCommLogModel::setEngineName(const QString& engineName)
 {
-    qDebug().noquote() << "[UsiCommLogModel] setEngineName: old=" << m_engineName << " new=" << engineName;
+    qCDebug(lcEngine) << "setEngineName: old=" << m_engineName << "new=" << engineName;
     if (m_engineName != engineName)
     {
         m_engineName = engineName;

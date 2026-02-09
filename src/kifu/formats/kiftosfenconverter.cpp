@@ -6,7 +6,7 @@
 #include "board/sfenpositiontracer.h"
 
 #include <QRegularExpression>
-#include <QDebug>
+#include "kifulogging.h"
 #include <QMap>
 #include <array>
 
@@ -301,7 +301,7 @@ QString KifToSfenConverter::detectInitialSfenFromFile(const QString& kifPath, QS
     // 先に BOD を試す
     QString bodSfen;
     if (buildInitialSfenFromBod(lines, bodSfen, detectedLabel, &warn)) {
-        qDebug().noquote() << "[detectInitialSfenFromFile] BOD detected. sfen =" << bodSfen;
+        qCDebug(lcKifu).noquote() << "BOD detected. sfen =" << bodSfen;
         return bodSfen;
     }
 
@@ -642,7 +642,7 @@ QStringList KifToSfenConverter::convertFile(const QString& kifPath, QString* err
         }
     }
 
-    qDebug().noquote() << QStringLiteral("[convertFile] moves = %1").arg(out.size());
+    qCDebug(lcKifu).noquote() << QStringLiteral("moves = %1").arg(out.size());
     return out;
 }
 
@@ -662,7 +662,7 @@ bool KifToSfenConverter::parseWithVariations(const QString& kifPath,
     // sfenList[0] = baseSfen, sfenList[i] = i手目後の局面
     out.mainline.sfenList = SfenPositionTracer::buildSfenRecord(
         out.mainline.baseSfen, out.mainline.usiMoves, false);
-    qDebug().noquote() << "[KIF] mainline sfenList built: size=" << out.mainline.sfenList.size();
+    qCDebug(lcKifu).noquote() << "mainline sfenList built: size=" << out.mainline.sfenList.size();
 
     // 変化抽出
     QString usedEnc;
@@ -720,11 +720,11 @@ bool KifToSfenConverter::parseWithVariations(const QString& kifPath,
 
         if (!foundBaseSfen.isEmpty()) {
             var.line.baseSfen = foundBaseSfen;
-            qDebug().noquote() << "[KIF] variation startPly=" << startPly
+            qCDebug(lcKifu).noquote() << "variation startPly=" << startPly
                                << "baseSfen from" << foundSource
                                << "=" << var.line.baseSfen.left(60);
         } else {
-            qDebug().noquote() << "[KIF] variation startPly=" << startPly
+            qCDebug(lcKifu).noquote() << "variation startPly=" << startPly
                                << "baseSfen: NOT FOUND";
         }
 
@@ -905,7 +905,7 @@ bool KifToSfenConverter::parseWithVariations(const QString& kifPath,
                 var.line.baseSfen, var.line.usiMoves, false);
             var.line.gameMoves = SfenPositionTracer::buildGameMoves(
                 var.line.baseSfen, var.line.usiMoves);
-            qDebug().noquote() << "[KIF] variation startPly=" << var.startPly
+            qCDebug(lcKifu).noquote() << "variation startPly=" << var.startPly
                                << "sfenList built: size=" << var.line.sfenList.size()
                                << "gameMoves built: size=" << var.line.gameMoves.size();
         }
@@ -1208,11 +1208,11 @@ QList<KifGameInfoItem> KifToSfenConverter::extractGameInfo(const QString& filePa
     QString usedEnc, warn;
     QStringList lines;
     if (!KifReader::readLinesAuto(filePath, lines, &usedEnc, &warn)) {
-        qWarning().noquote() << "[KIF] read failed:" << filePath << "warn:" << warn;
+        qCWarning(lcKifu).noquote() << "read failed:" << filePath << "warn:" << warn;
         return ordered;
     }
-    qDebug().noquote()
-        << QStringLiteral("[KIF] encoding = %1 , lines = %2").arg(usedEnc).arg(lines.size());
+    qCDebug(lcKifu).noquote()
+        << QStringLiteral("encoding = %1 , lines = %2").arg(usedEnc).arg(lines.size());
 
     // 行種別の判定用パターン
     static const QRegularExpression kHeaderLine(
@@ -1589,7 +1589,7 @@ QString KifToSfenConverter::extractOpeningComment(const QString& filePath)
     QString usedEnc, warn;
     QStringList lines;
     if (!KifReader::readLinesAuto(filePath, lines, &usedEnc, &warn)) {
-        qWarning().noquote() << "[KIF] read failed for opening comment:" << filePath << "warn:" << warn;
+        qCWarning(lcKifu).noquote() << "read failed for opening comment:" << filePath << "warn:" << warn;
         return QString();
     }
 

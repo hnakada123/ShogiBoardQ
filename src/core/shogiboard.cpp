@@ -2,7 +2,9 @@
 /// @brief 将棋盤の状態管理・SFEN変換・駒台操作の実装
 
 #include "shogiboard.h"
-#include "qdebug.h"
+#include <QLoggingCategory>
+
+Q_LOGGING_CATEGORY(lcCore, "shogi.core")
 
 // ============================================================
 // 初期化
@@ -67,7 +69,7 @@ QChar ShogiBoard::getPieceCharacter(const int file, const int rank)
 
         const QString errorMessage =
             tr("An error occurred in ShogiBoard::getPieceCharacter. Invalid rank for the black player's stand.");
-        qDebug() << "rank:" << rank;
+        qCWarning(lcCore, "Invalid rank for black stand: %d", rank);
         emit errorOccurred(errorMessage);
         return QChar();
     } else if (file == 11) {
@@ -76,13 +78,13 @@ QChar ShogiBoard::getPieceCharacter(const int file, const int rank)
 
         const QString errorMessage =
             tr("An error occurred in ShogiBoard::getPieceCharacter. Invalid rank for the white player's stand.");
-        qDebug() << "rank:" << rank;
+        qCWarning(lcCore, "Invalid rank for white stand: %d", rank);
         emit errorOccurred(errorMessage);
         return QChar();
     } else {
         const QString errorMessage =
             tr("An error occurred in ShogiBoard::getPieceCharacter. Invalid file value.");
-        qDebug() << "file:" << file;
+        qCWarning(lcCore, "Invalid file value: %d", file);
         emit errorOccurred(errorMessage);
         return QChar();
     }
@@ -185,7 +187,7 @@ QString ShogiBoard::validateAndConvertSfenBoardStr(QString initialSfenStr)
     if (sfenParts.size() != 9) {
         const QString errorMessage = tr("An error occurred in ShogiBoard::validateAndConvertSfenBoardStr. SFEN string must contain exactly 9 parts.");
 
-        qDebug() << "initialSfenStr: " << initialSfenStr;
+        qCWarning(lcCore, "SFEN parts != 9: %s", qUtf8Printable(initialSfenStr));
         emit errorOccurred(errorMessage);
         return QString();
     }
@@ -214,10 +216,8 @@ QString ShogiBoard::validateAndConvertSfenBoardStr(QString initialSfenStr)
             } else {
                 const QString errorMessage = tr("An error occurred in ShogiBoard::validateAndConvertSfenBoardStr. Unexpected character in SFEN string.");
 
-                qDebug() << "sfenStr: " << initialSfenStr;
-                qDebug() << "i: " << i;
-                qDebug() << "rankStr: " << rankStr;
-                qDebug() << "ch: " << ch;
+                qCWarning(lcCore, "Unexpected SFEN char: %s at rank %d in %s",
+                         qUtf8Printable(QString(ch)), i, qUtf8Printable(rankStr));
 
                 emit errorOccurred(errorMessage);
                 return QString();
@@ -227,8 +227,7 @@ QString ShogiBoard::validateAndConvertSfenBoardStr(QString initialSfenStr)
         if (pieceCount != 9) {
             const QString errorMessage = tr("An error occurred in ShogiBoard::validateAndConvertSfenBoardStr. Each rank must contain exactly 9 pieces or empty squares.");
 
-            qDebug() << "sfenStr: " << initialSfenStr;
-            qDebug() << "pieceCount: " << pieceCount;
+            qCWarning(lcCore, "SFEN rank piece count: %d in %s", pieceCount, qUtf8Printable(initialSfenStr));
 
             emit errorOccurred(errorMessage);
             return QString();
@@ -253,7 +252,7 @@ void ShogiBoard::setPieceStandFromSfen(const QString& str)
     if (str.contains(' ')) {
         const QString errorMessage = tr("An error occurred in ShogiBoard::setPieceStandFromSFEN. The piece stand string contains a space.");
 
-        qDebug() << "str: " << str;
+        qCWarning(lcCore, "Piece stand string contains space: %s", qUtf8Printable(str));
 
         emit errorOccurred(errorMessage);
         return;
@@ -277,9 +276,8 @@ void ShogiBoard::setPieceStandFromSfen(const QString& str)
                 else {
                     const QString errorMessage = tr("An error occurred in ShogiBoard::setPieceStandFromSFEN. Invalid piece type after number.");
 
-                    qDebug() << "str: " << str;
-                    qDebug() << "i: " << i;
-                    qDebug() << "str[i]: " << str[i];
+                    qCWarning(lcCore, "Invalid piece after number at %d: %s in %s",
+                             i, qUtf8Printable(QString(str[i])), qUtf8Printable(str));
 
                     emit errorOccurred(errorMessage);
                     return;
@@ -299,9 +297,8 @@ void ShogiBoard::setPieceStandFromSfen(const QString& str)
                 else {
                     const QString errorMessage = tr("An error occurred in ShogiBoard::setPieceStandFromSFEN. Invalid piece type after number.");
 
-                    qDebug() << "str: " << str;
-                    qDebug() << "i: " << i;
-                    qDebug() << "str[i]: " << str[i];
+                    qCWarning(lcCore, "Invalid piece after number at %d: %s in %s",
+                             i, qUtf8Printable(QString(str[i])), qUtf8Printable(str));
 
                     emit errorOccurred(errorMessage);
                     return;
@@ -315,7 +312,7 @@ void ShogiBoard::setPieceStandFromSfen(const QString& str)
         else {
             const QString errorMessage = tr("An error occurred in ShogiBoard::setPieceStandFromSFEN. Invalid piece type in piece stand string.");
 
-            qDebug() << "str: " << str;
+            qCWarning(lcCore, "Invalid piece type in stand string: %s", qUtf8Printable(str));
 
             emit errorOccurred(errorMessage);
             return;
@@ -362,8 +359,8 @@ void ShogiBoard::validateSfenString(const QString& sfenStr, QString& sfenBoardSt
     if (sfenComponents.size() != 4) {
         const QString errorMessage = tr("An error occurred in ShogiBoard::validateSfenString. SFEN string must be separated by exactly 3 spaces.");
 
-        qDebug() << "sfenStr: " << sfenStr;
-        qDebug() << "sfenComponents.size(): " << sfenComponents.size();
+        qCWarning(lcCore, "SFEN components: %lld in %s",
+                 static_cast<long long>(sfenComponents.size()), qUtf8Printable(sfenStr));
 
         emit errorOccurred(errorMessage);
         return;
@@ -379,8 +376,8 @@ void ShogiBoard::validateSfenString(const QString& sfenStr, QString& sfenBoardSt
     else {
         const QString errorMessage = tr("An error occurred in ShogiBoard::validateSfenString. SFEN string must specify either black 'b' or white 'w'.");
 
-        qDebug() << "sfenStr: " << sfenStr;
-        qDebug() << "playerTurnStr: " << playerTurnStr;
+        qCWarning(lcCore, "Invalid turn: %s in %s",
+                 qUtf8Printable(playerTurnStr), qUtf8Printable(sfenStr));
 
         emit errorOccurred(errorMessage);
         return;
@@ -394,7 +391,7 @@ void ShogiBoard::validateSfenString(const QString& sfenStr, QString& sfenBoardSt
     if (!conversionSuccessful || m_currentMoveNumber <= 0) {
         const QString errorMessage = tr("An error occurred in ShogiBoard::validateSfenString. The last part of the SFEN string must be a positive integer (indicating the next move number).");
 
-        qDebug() << "sfenStr: " << sfenStr;
+        qCWarning(lcCore, "Invalid move number in SFEN: %s", qUtf8Printable(sfenStr));
 
         emit errorOccurred(errorMessage);
         return;
@@ -412,9 +409,9 @@ void ShogiBoard::setSfen(const QString& sfenStr)
 
     {
         const QString preview = (sfenStr.size() > 200) ? sfenStr.left(200) + " ..." : sfenStr;
-        qInfo().noquote() << "[BOARD] setSfen: " << preview;
+        qCInfo(lcCore, "setSfen: %s", qUtf8Printable(preview));
         if (sfenStr.startsWith(QLatin1String("position "))) {
-            qWarning() << "[BOARD] *** NON-SFEN passed to setSfen (caller bug)";
+            qCWarning(lcCore, "NON-SFEN passed to setSfen (caller bug)");
         }
     }
 
@@ -503,12 +500,10 @@ QString ShogiBoard::convertStandToSfen() const
 // SFEN記録
 // ============================================================
 
-#include <QDebug>
-
 void ShogiBoard::addSfenRecord(const QString& nextTurn, int moveIndex, QStringList* sfenRecord)
 {
     if (!sfenRecord) {
-        qDebug() << "[SFEN][add] sfenRecord is null";
+        qCWarning(lcCore, "addSfenRecord: sfenRecord is null");
         return;
     }
 
@@ -522,23 +517,21 @@ void ShogiBoard::addSfenRecord(const QString& nextTurn, int moveIndex, QStringLi
     QString stand = convertStandToSfen();
     if (stand.isEmpty()) stand = QStringLiteral("-");
 
-    qDebug().noquote() << "[SFEN][add] BEFORE size=" << before
-                       << " rec*=" << static_cast<const void*>(sfenRecord)
-                       << " nextTurn=" << nextTurn
-                       << " moveIndex=" << moveIndex
-                       << " => field=" << moveCountField;
-    qDebug().noquote() << "[SFEN][add] board=" << boardSfen << " stand=" << stand;
+    qCDebug(lcCore, "addSfenRecord BEFORE size= %lld nextTurn= %s moveIndex= %d => field= %d",
+            static_cast<long long>(before), qUtf8Printable(nextTurn), moveIndex, moveCountField);
+    qCDebug(lcCore, "addSfenRecord board= %s stand= %s",
+            qUtf8Printable(boardSfen), qUtf8Printable(stand));
 
     const QString sfen = QStringLiteral("%1 %2 %3 %4")
                              .arg(boardSfen, nextTurn, stand, QString::number(moveCountField));
     sfenRecord->append(sfen);
 
-    qDebug().noquote() << "[SFEN][add] AFTER  size=" << sfenRecord->size()
-                       << " appended=" << sfen;
+    qCDebug(lcCore, "addSfenRecord AFTER size= %lld appended= %s",
+            static_cast<long long>(sfenRecord->size()), qUtf8Printable(sfen));
 
     if (!sfenRecord->isEmpty()) {
-        qDebug().noquote() << "[SFEN][add] head[0]=" << sfenRecord->first();
-        qDebug().noquote() << "[SFEN][add] tail[last]=" << sfenRecord->last();
+        qCDebug(lcCore, "addSfenRecord head[0]= %s", qUtf8Printable(sfenRecord->first()));
+        qCDebug(lcCore, "addSfenRecord tail[last]= %s", qUtf8Printable(sfenRecord->last()));
     }
 
     // 先頭が破壊されてないか簡易チェック
@@ -548,13 +541,13 @@ void ShogiBoard::addSfenRecord(const QString& nextTurn, int moveIndex, QStringLi
             const QString turn0 = parts[1];
             const QString move0 = parts[3];
             if (move0 != QLatin1String("1")) {
-                qDebug().noquote() << "[WARN][SFEN][add] head[0] moveCount != 1  head=" << sfenRecord->first();
+                qCWarning(lcCore, "addSfenRecord head[0] moveCount != 1  head= %s", qUtf8Printable(sfenRecord->first()));
             }
             if (turn0 != QLatin1String("b") && turn0 != QLatin1String("w")) {
-                qDebug().noquote() << "[WARN][SFEN][add] head[0] turn invalid  head=" << sfenRecord->first();
+                qCWarning(lcCore, "addSfenRecord head[0] turn invalid  head= %s", qUtf8Printable(sfenRecord->first()));
             }
         } else {
-            qDebug().noquote() << "[WARN][SFEN][add] head[0] malformed  head=" << sfenRecord->first();
+            qCWarning(lcCore, "addSfenRecord head[0] malformed  head= %s", qUtf8Printable(sfenRecord->first()));
         }
     }
 }
@@ -798,10 +791,10 @@ void ShogiBoard::printPlayerPieces(const QString& player, const QString& pieceSe
         {'k', "玉"}, {'r', "飛"}, {'b', "角"}, {'g', "金"}, {'s', "銀"}, {'n', "桂"}, {'l', "香"}, {'p', "歩"}
     };
 
-    qDebug() << player << "の持ち駒";
+    qCDebug(lcCore, "%s の持ち駒", qUtf8Printable(player));
 
     for (const QChar& piece : pieceSet) {
-        qDebug() << pieceNames[piece] << " " << m_pieceStand[piece];
+        qCDebug(lcCore, "%s  %d", qUtf8Printable(pieceNames[piece]), m_pieceStand[piece]);
     }
 }
 
@@ -813,21 +806,21 @@ void ShogiBoard::printPieceStand()
 
 void ShogiBoard::printPieceCount() const
 {
-    qDebug() << "先手の持ち駒:";
-    qDebug() << "歩: " << m_pieceStand['P'];
-    qDebug() << "香車: " << m_pieceStand['L'];
-    qDebug() << "桂馬: " << m_pieceStand['N'];
-    qDebug() << "銀: " << m_pieceStand['S'];
-    qDebug() << "金: " << m_pieceStand['G'];
-    qDebug() << "角: " << m_pieceStand['B'];
-    qDebug() << "飛車: " << m_pieceStand['R'];
+    qCDebug(lcCore, "先手の持ち駒:");
+    qCDebug(lcCore, "歩:  %d", m_pieceStand['P']);
+    qCDebug(lcCore, "香車:  %d", m_pieceStand['L']);
+    qCDebug(lcCore, "桂馬:  %d", m_pieceStand['N']);
+    qCDebug(lcCore, "銀:  %d", m_pieceStand['S']);
+    qCDebug(lcCore, "金:  %d", m_pieceStand['G']);
+    qCDebug(lcCore, "角:  %d", m_pieceStand['B']);
+    qCDebug(lcCore, "飛車:  %d", m_pieceStand['R']);
 
-    qDebug() << "後手の持ち駒:";
-    qDebug() << "歩: " << m_pieceStand['p'];
-    qDebug() << "香車: " << m_pieceStand['l'];
-    qDebug() << "桂馬: " << m_pieceStand['n'];
-    qDebug() << "銀: " << m_pieceStand['s'];
-    qDebug() << "金: " << m_pieceStand['g'];
-    qDebug() << "角: " << m_pieceStand['b'];
-    qDebug() << "飛車: " << m_pieceStand['r'];
+    qCDebug(lcCore, "後手の持ち駒:");
+    qCDebug(lcCore, "歩:  %d", m_pieceStand['p']);
+    qCDebug(lcCore, "香車:  %d", m_pieceStand['l']);
+    qCDebug(lcCore, "桂馬:  %d", m_pieceStand['n']);
+    qCDebug(lcCore, "銀:  %d", m_pieceStand['s']);
+    qCDebug(lcCore, "金:  %d", m_pieceStand['g']);
+    qCDebug(lcCore, "角:  %d", m_pieceStand['b']);
+    qCDebug(lcCore, "飛車:  %d", m_pieceStand['r']);
 }

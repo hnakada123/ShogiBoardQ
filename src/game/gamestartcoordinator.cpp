@@ -16,6 +16,7 @@
 
 #include <QPointer>
 #include <QDebug>
+#include <QLoggingCategory>
 #include <QWidget>
 #include <QObject>
 #include <QVariant>
@@ -61,7 +62,7 @@ void GameStartCoordinator::start(const StartParams& params)
 {
     QString reason;
     if (!validate(params, reason)) {
-        qWarning().noquote() << "[GameStartCoordinator] start failed:" << reason;
+        qCWarning(lcGame).noquote() << "start failed:" << reason;
         return;
     }
 
@@ -88,8 +89,8 @@ void GameStartCoordinator::start(const StartParams& params)
         tc.enabled = true;
     }
 
-    qDebug().noquote()
-        << "[GameStartCoordinator] normalized TimeControl:"
+    qCDebug(lcGame).noquote()
+        << "normalized TimeControl:"
         << " enabled=" << tc.enabled
         << " P1{base=" << tc.p1.baseMs << " byo=" << tc.p1.byoyomiMs << " inc=" << tc.p1.incrementMs << "}"
         << " P2{base=" << tc.p2.baseMs << " byo=" << tc.p2.byoyomiMs << " inc=" << tc.p2.incrementMs << "}";
@@ -122,7 +123,7 @@ void GameStartCoordinator::start(const StartParams& params)
 
     // --- 5) 完了通知 ---
     emit started(params.opt);
-    qDebug().noquote() << "[GameStartCoordinator] started: mode="
+    qCInfo(lcGame).noquote() << "started: mode="
                        << static_cast<int>(params.opt.mode);
 }
 
@@ -145,8 +146,8 @@ void GameStartCoordinator::prepare(const Request& req)
     emit requestApplyTimeControl(tc);
     emit applyTimeControlRequested(tc);
 
-    qInfo().noquote()
-        << "[GameStartCoordinator] normalized TimeControl: "
+    qCInfo(lcGame).noquote()
+        << "normalized TimeControl: "
         << " enabled=" << tc.enabled
         << " P1{base=" << tc.p1.baseMs << "  byo=" << tc.p1.byoyomiMs << "  inc=" << tc.p1.incrementMs << " }"
         << " P2{base=" << tc.p2.baseMs << "  byo=" << tc.p2.byoyomiMs << "  inc=" << tc.p2.incrementMs << " }";
@@ -157,7 +158,7 @@ void GameStartCoordinator::prepare(const Request& req)
         clock = m_match->clock();
     }
     if (!clock) {
-        qWarning() << "[GSC] prepare: no ShogiClock (req.clock is null and m_match has no clock)";
+        qCWarning(lcGame) << "prepare: no ShogiClock (req.clock is null and m_match has no clock)";
         return;
     }
 
@@ -181,12 +182,12 @@ void GameStartCoordinator::prepare(const Request& req)
 
 void GameStartCoordinator::prepareDataCurrentPosition(const Ctx& c)
 {
-    qDebug().noquote() << "[DEBUG][GSC] prepareDataCurrentPosition: ENTER"
+    qCDebug(lcGame).noquote() << "prepareDataCurrentPosition: ENTER"
                        << " c.currentSfenStr=" << (c.currentSfenStr ? c.currentSfenStr->left(50) : "null")
                        << " c.startSfenStr=" << (c.startSfenStr ? c.startSfenStr->left(50) : "null");
 
     if (!c.view || !m_match) {
-        qWarning().noquote() << "[GameStartCoordinator] prepareDataCurrentPosition: missing deps:"
+        qCWarning(lcGame).noquote() << "prepareDataCurrentPosition: missing deps:"
                              << "view=" << (c.view != nullptr) << " match=" << (m_match != nullptr);
         return;
     }
@@ -198,13 +199,13 @@ void GameStartCoordinator::prepareDataCurrentPosition(const Ctx& c)
     QString baseSfen;
     if (c.currentSfenStr && !c.currentSfenStr->isEmpty()) {
         baseSfen = *(c.currentSfenStr);
-        qDebug().noquote() << "[DEBUG][GSC] prepareDataCurrentPosition: baseSfen from currentSfenStr=" << baseSfen.left(50);
+        qCDebug(lcGame).noquote() << "prepareDataCurrentPosition: baseSfen from currentSfenStr=" << baseSfen.left(50);
     } else if (c.startSfenStr && !c.startSfenStr->isEmpty()) {
         baseSfen = *(c.startSfenStr);
-        qDebug().noquote() << "[DEBUG][GSC] prepareDataCurrentPosition: baseSfen from startSfenStr=" << baseSfen.left(50);
+        qCDebug(lcGame).noquote() << "prepareDataCurrentPosition: baseSfen from startSfenStr=" << baseSfen.left(50);
     } else {
         baseSfen = QStringLiteral("startpos");
-        qDebug().noquote() << "[DEBUG][GSC] prepareDataCurrentPosition: baseSfen FALLBACK to startpos";
+        qCDebug(lcGame).noquote() << "prepareDataCurrentPosition: baseSfen FALLBACK to startpos";
     }
 
     // --- 0) 開始前クリーンアップをUI層へ依頼 ---
@@ -213,7 +214,7 @@ void GameStartCoordinator::prepareDataCurrentPosition(const Ctx& c)
 
     // cleanup後にm_currentSfenStrが変更されていたらbaseSfenを更新
     if (c.currentSfenStr && !c.currentSfenStr->isEmpty() && *c.currentSfenStr != baseSfen) {
-        qDebug().noquote() << "[DEBUG][GSC] prepareDataCurrentPosition: baseSfen updated after cleanup"
+        qCDebug(lcGame).noquote() << "prepareDataCurrentPosition: baseSfen updated after cleanup"
                            << "old=" << baseSfen.left(50)
                            << "new=" << c.currentSfenStr->left(50);
         baseSfen = *(c.currentSfenStr);
@@ -221,14 +222,14 @@ void GameStartCoordinator::prepareDataCurrentPosition(const Ctx& c)
 
     // --- 2) ベースSFENの適用 ---
     if (baseSfen == QLatin1String("startpos")) {
-        qDebug().noquote() << "[DEBUG][GSC] prepareDataCurrentPosition: applying startpos";
+        qCDebug(lcGame).noquote() << "prepareDataCurrentPosition: applying startpos";
         c.view->initializeToFlatStartingPosition();
         if (c.startSfenStr && c.startSfenStr->isEmpty())
             *c.startSfenStr = QStringLiteral("startpos");
         if (c.currentSfenStr)
             *c.currentSfenStr = QStringLiteral("startpos");
     } else {
-        qDebug().noquote() << "[DEBUG][GSC] prepareDataCurrentPosition: applying baseSfen=" << baseSfen.left(50);
+        qCDebug(lcGame).noquote() << "prepareDataCurrentPosition: applying baseSfen=" << baseSfen.left(50);
         GameStartCoordinator::applyResumePositionIfAny(c.gc, c.view, baseSfen);
 
         if (c.currentSfenStr) *c.currentSfenStr = baseSfen;
@@ -242,7 +243,7 @@ void GameStartCoordinator::prepareDataCurrentPosition(const Ctx& c)
     // --- 4) ハイライトを確実に空へ ---
     c.view->removeHighlightAllData();
 
-    qDebug().noquote() << "[GameStartCoordinator] prepareDataCurrentPosition: done."
+    qCDebug(lcGame).noquote() << "prepareDataCurrentPosition: done."
                        << " FINAL c.currentSfenStr=" << (c.currentSfenStr ? c.currentSfenStr->left(50) : "null");
 }
 
@@ -318,8 +319,8 @@ void GameStartCoordinator::prepareInitialPosition(const Ctx& c)
 
     const QString sfen = toPureSfen(startPositionStr);
 
-    qDebug().noquote()
-        << "[GSC][prepareInitial] startingPosNumber=" << startingPosNumber
+    qCDebug(lcGame).noquote()
+        << "prepareInitial: startingPosNumber=" << startingPosNumber
         << " sfen=" << sfen
         << " sfenRecord*=" << static_cast<const void*>(c.sfenRecord);
 
@@ -353,17 +354,17 @@ void GameStartCoordinator::prepareInitialPosition(const Ctx& c)
     // 6) SFEN履歴に開始SFEN（0手目）を積む
     if (c.sfenRecord) {
         const int before = static_cast<int>(c.sfenRecord->size());
-        qDebug().noquote() << "[GSC][prepareInitial] sfenRecord BEFORE size=" << before;
+        qCDebug(lcGame).noquote() << "prepareInitial: sfenRecord BEFORE size=" << before;
 
         c.sfenRecord->clear();
         c.sfenRecord->append(sfen);
 
-        qDebug().noquote() << "[GSC][prepareInitial] sfenRecord AFTER  size=" << c.sfenRecord->size();
+        qCDebug(lcGame).noquote() << "prepareInitial: sfenRecord AFTER  size=" << c.sfenRecord->size();
         if (!c.sfenRecord->isEmpty()) {
-            qDebug().noquote() << "[GSC][prepareInitial] head[0]=" << c.sfenRecord->first();
+            qCDebug(lcGame).noquote() << "prepareInitial: head[0]=" << c.sfenRecord->first();
         }
     } else {
-        qDebug().noquote() << "[GSC][prepareInitial] sfenRecord is null";
+        qCDebug(lcGame).noquote() << "prepareInitial: sfenRecord is null";
     }
 
     // 7) 開幕時のハイライトはクリア
@@ -371,7 +372,7 @@ void GameStartCoordinator::prepareInitialPosition(const Ctx& c)
         c.view->removeHighlightAllData();
     }
 
-    qDebug().noquote() << "[GameStartCoordinator] prepareInitialPosition: sfen=" << sfen
+    qCDebug(lcGame).noquote() << "prepareInitialPosition: sfen=" << sfen
                        << " sfenRecord*=" << static_cast<const void*>(c.sfenRecord);
 }
 
@@ -382,7 +383,7 @@ void GameStartCoordinator::prepareInitialPosition(const Ctx& c)
 void GameStartCoordinator::setTimerAndStart(const Ctx& c)
 {
     if (!c.clock) {
-        qWarning().noquote() << "[GameStartCoordinator] setTimerAndStart: clock is null.";
+        qCWarning(lcGame).noquote() << "setTimerAndStart: clock is null.";
         return;
     }
 
@@ -467,7 +468,7 @@ void GameStartCoordinator::setTimerAndStart(const Ctx& c)
         m_match->pokeTimeUpdateNow();
     }
 
-    qDebug().noquote() << "[GameStartCoordinator] setTimerAndStart: "
+    qCDebug(lcGame).noquote() << "setTimerAndStart: "
                        << "t1=" << remainingTime1 << "s"
                        << " t2=" << remainingTime2 << "s"
                        << " byo=" << byoyomi1 << "/" << byoyomi2
@@ -615,7 +616,7 @@ PlayMode GameStartCoordinator::setPlayMode(const Ctx& c) const
     if (mode == PlayMode::PlayModeError) {
         emit requestDisplayError(tr("An error occurred in GameStartCoordinator::determinePlayMode. "
                                     "There is a mistake in the game options."));
-        qWarning().noquote() << "[GameStartCoordinator] setPlayMode: PlayMode::PlayModeError"
+        qCWarning(lcGame).noquote() << "setPlayMode: PlayMode::PlayModeError"
                              << "initPos=" << initPositionNumber
                              << " p1Human=" << p1Human << " p2Human=" << p2Human
                              << " (raw human/engine: "
@@ -696,7 +697,7 @@ PlayMode GameStartCoordinator::determinePlayModeAlignedWithTurn(
 
 void GameStartCoordinator::initializeGame(const Ctx& c)
 {
-    qDebug().noquote() << "[DEBUG][GSC] initializeGame: ENTER"
+    qCDebug(lcGame).noquote() << "initializeGame: ENTER"
                        << " c.currentSfenStr=" << (c.currentSfenStr ? c.currentSfenStr->left(50) : "null")
                        << " c.startSfenStr=" << (c.startSfenStr ? c.startSfenStr->left(50) : "null")
                        << " c.selectedPly=" << c.selectedPly
@@ -716,7 +717,7 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
     const bool p1Human   = dlg->isHuman1();
     const bool p2Human   = dlg->isHuman2();
 
-    qDebug().noquote() << "[DEBUG][GSC] initializeGame: after dialog, initPosNo=" << initPosNo;
+    qCDebug(lcGame).noquote() << "initializeGame: after dialog, initPosNo=" << initPosNo;
 
     // --- 3) 開始SFENの決定 ---
     const int startingPosNumber = initPosNo;
@@ -728,7 +729,7 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
     if (c.startSfenStr && !c.startSfenStr->isEmpty()) {
         startSfen = *(c.startSfenStr);
     }
-    qDebug().noquote() << "[DEBUG][GSC] initializeGame: BEFORE prepareDataCurrentPosition"
+    qCDebug(lcGame).noquote() << "initializeGame: BEFORE prepareDataCurrentPosition"
                        << " startSfen=" << startSfen.left(50)
                        << " c.currentSfenStr=" << (c.currentSfenStr ? c.currentSfenStr->left(50) : "null");
 
@@ -746,7 +747,7 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
             const int sfenMaxIdx = static_cast<int>(c.sfenRecord->size()) - 1;
             effectivePly = qMin(c.selectedPly, sfenMaxIdx);
 
-            qDebug().noquote() << "[GSC] Pre-cleanup terminal row check: selectedPly=" << c.selectedPly
+            qCDebug(lcGame).noquote() << "Pre-cleanup terminal row check: selectedPly=" << c.selectedPly
                                << " sfenMaxIdx=" << sfenMaxIdx
                                << " effectivePly=" << effectivePly
                                << " originalRowCount=" << originalRowCount;
@@ -757,7 +758,7 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
                     terminalLabel = lastItem->currentMove();
                 }
 
-                qDebug().noquote() << "[GSC] Setting up branch for terminal move:"
+                qCDebug(lcGame).noquote() << "Setting up branch for terminal move:"
                                    << " effectivePly=" << effectivePly
                                    << " terminalLabel=" << terminalLabel
                                    << " rowsAfter=" << rowsAfter;
@@ -774,17 +775,17 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
         Q_UNUSED(needBranchSetup)
         Q_UNUSED(effectivePly)
         Q_UNUSED(terminalLabel)
-        qDebug().noquote() << "[GSC] Branch setup is now handled by LiveGameSession";
+        qCDebug(lcGame).noquote() << "Branch setup is now handled by LiveGameSession";
 
-        qDebug().noquote() << "[DEBUG][GSC] initializeGame: AFTER prepareDataCurrentPosition"
+        qCDebug(lcGame).noquote() << "initializeGame: AFTER prepareDataCurrentPosition"
                            << " c.currentSfenStr=" << (c.currentSfenStr ? c.currentSfenStr->left(50) : "null");
 
         if (c.currentSfenStr && !c.currentSfenStr->isEmpty()) {
             startSfen = *(c.currentSfenStr);
-            qDebug().noquote() << "[DEBUG][GSC] initializeGame: SET startSfen from currentSfenStr=" << startSfen.left(50);
+            qCDebug(lcGame).noquote() << "initializeGame: SET startSfen from currentSfenStr=" << startSfen.left(50);
         } else if (startSfen.isEmpty()) {
             startSfen = QStringLiteral("startpos");
-            qDebug().noquote() << "[DEBUG][GSC] initializeGame: FALLBACK to startpos";
+            qCDebug(lcGame).noquote() << "initializeGame: FALLBACK to startpos";
         }
     } else if (startSfen.isEmpty()) {
         // 平手/駒落ちプリセット
@@ -856,25 +857,25 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
 
             startingRow = keepIdx;
 
-            qInfo().noquote()
-                << "[GSC][seed-resume] kept(0.." << keepIdx << ") size=" << c.sfenRecord->size()
+            qCInfo(lcGame).noquote()
+                << "seed-resume: kept(0.." << keepIdx << ") size=" << c.sfenRecord->size()
                 << " head=" << (c.sfenRecord->isEmpty() ? QString("<empty>") : c.sfenRecord->first());
         } else {
             c.sfenRecord->clear();
             c.sfenRecord->append(seedSfen);
 
-            qInfo().noquote()
-                << "[GSC][seed] sfenRecord*=" << static_cast<const void*>(c.sfenRecord)
+            qCInfo(lcGame).noquote()
+                << "seed: sfenRecord*=" << static_cast<const void*>(c.sfenRecord)
                 << " size=" << c.sfenRecord->size()
                 << " head=" << (c.sfenRecord->isEmpty() ? QString("<empty>") : c.sfenRecord->first());
         }
     } else {
-        qWarning() << "[GSC][seed] sfenRecord is null (cannot seed)";
+        qCWarning(lcGame) << "seed: sfenRecord is null (cannot seed)";
     }
 
     // --- 4) PlayMode を SFEN手番と整合させて最終決定 ---
     PlayMode mode = determinePlayModeAlignedWithTurn(initPosNo, p1Human, p2Human, seedSfen);
-    qInfo() << "[GameStart] Final PlayMode =" << static_cast<int>(mode) << "  startSfen=" << seedSfen;
+    qCInfo(lcGame) << "Final PlayMode =" << static_cast<int>(mode) << "  startSfen=" << seedSfen;
 
     // --- 5) StartOptions 構築 ---
     if (!m_match) {
@@ -926,8 +927,8 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
         (tc.p1.incrementMs > 0) || (tc.p2.incrementMs > 0);
     tc.enabled = hasAny;
 
-    qDebug().noquote()
-        << "[GSC] initializeGame tc:"
+    qCDebug(lcGame).noquote()
+        << "initializeGame tc:"
         << " enabled=" << tc.enabled
         << " P1{base=" << tc.p1.baseMs << " byo=" << tc.p1.byoyomiMs << " inc=" << tc.p1.incrementMs << "}"
         << " P2{base=" << tc.p2.baseMs << " byo=" << tc.p2.byoyomiMs << " inc=" << tc.p2.incrementMs << "}";
@@ -947,17 +948,17 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
     const QString human2 = dlg->humanName2();
     const QString engine1 = opt.engineName1;
     const QString engine2 = opt.engineName2;
-    qDebug().noquote() << "[GSC] startGameAfterDialog: BEFORE playerNamesResolved";
-    qDebug().noquote() << "[GSC] human1=" << human1 << " human2=" << human2 << " engine1=" << engine1 << " engine2=" << engine2;
+    qCDebug(lcGame).noquote() << "startGameAfterDialog: BEFORE playerNamesResolved";
+    qCDebug(lcGame).noquote() << "human1=" << human1 << " human2=" << human2 << " engine1=" << engine1 << " engine2=" << engine2;
     emit playerNamesResolved(human1, human2, engine1, engine2, static_cast<int>(mode));
 
     // --- 8.5) 連続対局設定を通知（EvE対局時のみ有効） ---
     const int consecutiveGames = dlg->consecutiveGames();
     const bool switchTurn = dlg->isSwitchTurnEachGame();
     emit consecutiveGamesConfigured(consecutiveGames, switchTurn);
-    qDebug().noquote() << "[GSC] consecutiveGames=" << consecutiveGames << " switchTurn=" << switchTurn;
+    qCDebug(lcGame).noquote() << "consecutiveGames=" << consecutiveGames << " switchTurn=" << switchTurn;
 
-    qDebug().noquote() << "[GSC] startGameAfterDialog: AFTER playerNamesResolved, BEFORE start()";
+    qCDebug(lcGame).noquote() << "startGameAfterDialog: AFTER playerNamesResolved, BEFORE start()";
 
     // --- 9) 対局開始（時計設定のみ、初手goはまだ呼ばない） ---
     StartParams params;
@@ -966,11 +967,11 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
     params.autoStartEngineMove = false;
 
     start(params);
-    qDebug().noquote() << "[GSC] startGameAfterDialog: AFTER start()";
+    qCDebug(lcGame).noquote() << "startGameAfterDialog: AFTER start()";
 
     // --- 9.5) 現在局面から開始の場合、開始行を選択するよう通知 ---
     if (startingRow >= 0) {
-        qDebug().noquote() << "[GSC] emit requestSelectKifuRow(" << startingRow << ")";
+        qCDebug(lcGame).noquote() << "emit requestSelectKifuRow(" << startingRow << ")";
         emit requestSelectKifuRow(startingRow);
     }
 
@@ -1039,7 +1040,7 @@ MatchCoordinator* GameStartCoordinator::createAndWireMatch(const MatchCoordinato
 
     m_match->updateUsiPtrs(deps.usi1, deps.usi2);
 
-    qDebug() << "[DBG] signal index:"
+    qCDebug(lcGame) << "signal index:"
              << m_match->metaObject()->indexOfSignal("timeUpdated(long long,long long,bool,long long)");
 
     return m_match;
@@ -1139,8 +1140,8 @@ GameStartCoordinator::buildTimeControlFromDialog(QDialog* startDlg) const
                  (tc.p1.byoyomiMs > 0) || (tc.p2.byoyomiMs > 0) ||
                  (tc.p1.incrementMs > 0) || (tc.p2.incrementMs > 0);
 
-    qDebug().noquote()
-        << "[GSC] buildTimeControlFromDialog_:"
+    qCDebug(lcGame).noquote()
+        << "buildTimeControlFromDialog:"
         << " enabled=" << tc.enabled
         << " P1{base=" << tc.p1.baseMs << " byo=" << tc.p1.byoyomiMs << " inc=" << tc.p1.incrementMs << "}"
         << " P2{base=" << tc.p2.baseMs << " byo=" << tc.p2.byoyomiMs << " inc=" << tc.p2.incrementMs << "}";

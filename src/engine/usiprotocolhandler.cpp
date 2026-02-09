@@ -2,6 +2,7 @@
 /// @brief USIプロトコル送受信管理クラスの実装
 
 #include "usiprotocolhandler.h"
+#include "usi.h"
 #include "engineprocessmanager.h"
 #include "thinkinginfopresenter.h"
 #include "shogigamecontroller.h"
@@ -12,7 +13,6 @@
 #include <QTimer>
 #include <QSettings>
 #include <QDir>
-#include <QDebug>
 #include <QRegularExpression>
 #include <QThread>
 
@@ -303,7 +303,7 @@ void UsiProtocolHandler::sendGoMovetime(int timeMs)
 void UsiProtocolHandler::sendGoSearchmoves(const QStringList& moves, bool infinite)
 {
     if (moves.isEmpty()) {
-        qWarning() << "[USI] sendGoSearchmoves: moves list is empty, sending go infinite instead";
+        qCWarning(lcEngine) << "sendGoSearchmoves: 手リストが空、go infiniteを送信";
         sendCommand(QStringLiteral("go infinite"));
         return;
     }
@@ -326,7 +326,7 @@ void UsiProtocolHandler::sendGoSearchmoves(const QStringList& moves, bool infini
 void UsiProtocolHandler::sendGoSearchmovesDepth(const QStringList& moves, int depth)
 {
     if (moves.isEmpty()) {
-        qWarning() << "[USI] sendGoSearchmovesDepth: moves list is empty, sending go depth instead";
+        qCWarning(lcEngine) << "sendGoSearchmovesDepth: 手リストが空、go depthを送信";
         sendGoDepth(depth);
         return;
     }
@@ -347,7 +347,7 @@ void UsiProtocolHandler::sendGoSearchmovesDepth(const QStringList& moves, int de
 void UsiProtocolHandler::sendGoSearchmovesMovetime(const QStringList& moves, int timeMs)
 {
     if (moves.isEmpty()) {
-        qWarning() << "[USI] sendGoSearchmovesMovetime: moves list is empty, sending go movetime instead";
+        qCWarning(lcEngine) << "sendGoSearchmovesMovetime: 手リストが空、go movetimeを送信";
         sendGoMovetime(timeMs);
         return;
     }
@@ -570,7 +570,7 @@ void UsiProtocolHandler::onDataReceived(const QString& line)
     // 6. usiok → フラグ＋シグナル
 
     if (m_timeoutDeclared) {
-        qDebug() << "[USI] [drop-after-timeout]" << line;
+        qCDebug(lcEngine) << "[drop-after-timeout]" << line;
         return;
     }
 
@@ -587,7 +587,7 @@ void UsiProtocolHandler::onDataReceived(const QString& line)
     }
 
     if (line.startsWith(QStringLiteral("info"))) {
-        qDebug().noquote() << "[UsiProtocolHandler] emitting infoLineReceived:" << line.left(60);
+        qCDebug(lcEngine) << "info行受信:" << line.left(60);
         emit infoLineReceived(line);
         if (m_presenter) {
             m_presenter->onInfoReceived(line);
@@ -630,7 +630,7 @@ void UsiProtocolHandler::handleBestMoveLine(const QString& line)
 
     // キャンセル済みオペレーションからのbestmoveは破棄
     if (observedId != m_seq) {
-        qDebug() << "[USI] [drop-bestmove] (op-id-mismatch)" << line;
+        qCDebug(lcEngine) << "[drop-bestmove] (op-id-mismatch)" << line;
         return;
     }
 
@@ -643,7 +643,7 @@ void UsiProtocolHandler::handleBestMoveLine(const QString& line)
     if (m_bestMove.compare(QStringLiteral("resign"), Qt::CaseInsensitive) == 0) {
         // 重複シグナル防止
         if (m_resignNotified) {
-            qDebug() << "[USI] [dup-resign-ignored]";
+            qCDebug(lcEngine) << "[dup-resign-ignored]";
             return;
         }
         m_resignNotified = true;
@@ -655,7 +655,7 @@ void UsiProtocolHandler::handleBestMoveLine(const QString& line)
     if (m_bestMove.compare(QStringLiteral("win"), Qt::CaseInsensitive) == 0) {
         // 重複シグナル防止
         if (m_winNotified) {
-            qDebug() << "[USI] [dup-win-ignored]";
+            qCDebug(lcEngine) << "[dup-win-ignored]";
             return;
         }
         m_winNotified = true;

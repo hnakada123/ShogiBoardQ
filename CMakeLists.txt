@@ -260,6 +260,11 @@ target_link_libraries(ShogiBoardQ PRIVATE
     Qt6::Network
 )
 
+# リリースビルドではqDebug()出力を無効化
+target_compile_definitions(ShogiBoardQ PRIVATE
+    $<$<NOT:$<CONFIG:Debug>>:QT_NO_DEBUG_OUTPUT>
+)
+
 # ==== Bundle properties ====
 set_target_properties(ShogiBoardQ PROPERTIES
     MACOSX_BUNDLE_GUI_IDENTIFIER com.example.ShogiBoardQ

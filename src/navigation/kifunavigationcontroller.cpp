@@ -7,7 +7,10 @@
 #include "kifunavigationstate.h"
 #include "shogiutils.h"
 
+#include <QLoggingCategory>
 #include <QPushButton>
+
+Q_LOGGING_CATEGORY(lcNavigation, "shogi.navigation")
 
 // ============================================================
 // 初期化
@@ -119,74 +122,74 @@ void KifuNavigationController::goBack(int count)
 
 void KifuNavigationController::goForward(int count)
 {
-    qDebug().noquote() << "[KNC] goForward ENTER count=" << count;
+    qCDebug(lcNavigation).noquote() << "goForward ENTER count=" << count;
 
     if (m_state == nullptr || m_tree == nullptr || count <= 0) {
-        qDebug().noquote() << "[KNC] goForward: early return (null state/tree or count<=0)";
+        qCDebug(lcNavigation).noquote() << "goForward: early return (null state/tree or count<=0)";
         return;
     }
 
     KifuBranchNode* node = m_state->currentNode();
     if (node == nullptr) {
-        qDebug().noquote() << "[KNC] goForward: currentNode is null, returning";
+        qCDebug(lcNavigation).noquote() << "goForward: currentNode is null, returning";
         return;
     }
 
-    qDebug().noquote() << "[KNC] goForward: starting from ply=" << node->ply()
-                       << "sfen=" << node->sfen().left(40)
-                       << "childCount=" << node->childCount();
+    qCDebug(lcNavigation).noquote() << "goForward: starting from ply=" << node->ply()
+                                    << "sfen=" << node->sfen().left(40)
+                                    << "childCount=" << node->childCount();
 
     for (int i = 0; i < count && node->childCount() > 0; ++i) {
         node = findForwardNode();
         if (node == nullptr) {
-            qDebug().noquote() << "[KNC] goForward: findForwardNode returned null at step" << i;
+            qCDebug(lcNavigation).noquote() << "goForward: findForwardNode returned null at step" << i;
             break;
         }
-        qDebug().noquote() << "[KNC] goForward: step" << i << "-> ply=" << node->ply()
-                           << "sfen=" << node->sfen().left(40)
-                           << "displayText=" << node->displayText();
+        qCDebug(lcNavigation).noquote() << "goForward: step" << i << "-> ply=" << node->ply()
+                                        << "sfen=" << node->sfen().left(40)
+                                        << "displayText=" << node->displayText();
         m_state->setCurrentNode(node);
     }
 
-    qDebug().noquote() << "[KNC] goForward LEAVE";
+    qCDebug(lcNavigation).noquote() << "goForward LEAVE";
     emitUpdateSignals();
 }
 
 KifuBranchNode* KifuNavigationController::findForwardNode() const
 {
-    qDebug().noquote() << "[KNC] findForwardNode ENTER";
+    qCDebug(lcNavigation).noquote() << "findForwardNode ENTER";
 
     if (m_state == nullptr) {
-        qDebug().noquote() << "[KNC] findForwardNode: m_state is null";
+        qCDebug(lcNavigation).noquote() << "findForwardNode: m_state is null";
         return nullptr;
     }
 
     KifuBranchNode* current = m_state->currentNode();
     if (current == nullptr || current->childCount() == 0) {
-        qDebug().noquote() << "[KNC] findForwardNode: current is null or no children";
+        qCDebug(lcNavigation).noquote() << "findForwardNode: current is null or no children";
         return nullptr;
     }
 
-    qDebug().noquote() << "[KNC] findForwardNode: current ply=" << current->ply()
-                       << "childCount=" << current->childCount();
+    qCDebug(lcNavigation).noquote() << "findForwardNode: current ply=" << current->ply()
+                                    << "childCount=" << current->childCount();
 
     // 分岐がある場合、最後に選択したラインを優先
     int selectedLine = m_state->lastSelectedLineAt(current);
-    qDebug().noquote() << "[KNC] findForwardNode: lastSelectedLineAt=" << selectedLine;
+    qCDebug(lcNavigation).noquote() << "findForwardNode: lastSelectedLineAt=" << selectedLine;
 
     if (selectedLine < current->childCount()) {
         KifuBranchNode* child = current->childAt(selectedLine);
-        qDebug().noquote() << "[KNC] findForwardNode: using selectedLine"
-                           << "childPly=" << (child ? child->ply() : -1)
-                           << "childSfen=" << (child ? child->sfen().left(40) : "(null)");
+        qCDebug(lcNavigation).noquote() << "findForwardNode: using selectedLine"
+                                        << "childPly=" << (child ? child->ply() : -1)
+                                        << "childSfen=" << (child ? child->sfen().left(40) : "(null)");
         return child;
     }
 
     // フォールバック: 最初の子（本譜）
     KifuBranchNode* firstChild = current->childAt(0);
-    qDebug().noquote() << "[KNC] findForwardNode: fallback to child(0)"
-                       << "childPly=" << (firstChild ? firstChild->ply() : -1)
-                       << "childSfen=" << (firstChild ? firstChild->sfen().left(40) : "(null)");
+    qCDebug(lcNavigation).noquote() << "findForwardNode: fallback to child(0)"
+                                    << "childPly=" << (firstChild ? firstChild->ply() : -1)
+                                    << "childSfen=" << (firstChild ? firstChild->sfen().left(40) : "(null)");
     return firstChild;
 }
 
@@ -289,43 +292,43 @@ void KifuNavigationController::switchToLine(int lineIndex)
 
 void KifuNavigationController::selectBranchCandidate(int candidateIndex)
 {
-    qDebug().noquote() << "[KNC] selectBranchCandidate ENTER candidateIndex=" << candidateIndex;
+    qCDebug(lcNavigation).noquote() << "selectBranchCandidate ENTER candidateIndex=" << candidateIndex;
 
     if (m_state == nullptr) {
-        qDebug().noquote() << "[KNC] selectBranchCandidate: m_state is null, returning";
+        qCDebug(lcNavigation).noquote() << "selectBranchCandidate: m_state is null, returning";
         return;
     }
 
     QVector<KifuBranchNode*> candidates = m_state->branchCandidatesAtCurrent();
-    qDebug().noquote() << "[KNC] selectBranchCandidate: candidates.size()=" << candidates.size()
-                       << "currentNode=" << (m_state->currentNode() ? "yes" : "null")
-                       << "currentPly=" << m_state->currentPly();
+    qCDebug(lcNavigation).noquote() << "selectBranchCandidate: candidates.size()=" << candidates.size()
+                                    << "currentNode=" << (m_state->currentNode() ? "yes" : "null")
+                                    << "currentPly=" << m_state->currentPly();
 
     if (candidateIndex < 0 || candidateIndex >= candidates.size()) {
-        qDebug().noquote() << "[KNC] selectBranchCandidate: candidateIndex out of range, returning";
+        qCDebug(lcNavigation).noquote() << "selectBranchCandidate: candidateIndex out of range, returning";
         return;
     }
 
     KifuBranchNode* candidate = candidates.at(candidateIndex);
-    qDebug().noquote() << "[KNC] selectBranchCandidate: navigating to candidate"
-                       << "ply=" << candidate->ply()
-                       << "displayText=" << candidate->displayText();
+    qCDebug(lcNavigation).noquote() << "selectBranchCandidate: navigating to candidate"
+                                    << "ply=" << candidate->ply()
+                                    << "displayText=" << candidate->displayText();
 
     // node->lineIndex()は最初の分岐点のインデックスしか返さないため、
     // ツリーから実際のラインインデックスを取得して優先ラインとして記憶する
     const int lineIndex = m_tree ? m_tree->findLineIndexForNode(candidate) : candidate->lineIndex();
     if (lineIndex > 0) {
         m_state->setPreferredLineIndex(lineIndex);
-        qDebug().noquote() << "[KNC] selectBranchCandidate: setPreferredLineIndex=" << lineIndex;
+        qCDebug(lcNavigation).noquote() << "selectBranchCandidate: setPreferredLineIndex=" << lineIndex;
     } else {
         // 本譜の手を選択した場合は優先ラインをリセット
         m_state->resetPreferredLineIndex();
-        qDebug().noquote() << "[KNC] selectBranchCandidate: resetPreferredLineIndex (main line selected)";
+        qCDebug(lcNavigation).noquote() << "selectBranchCandidate: resetPreferredLineIndex (main line selected)";
     }
 
     // ライン選択変更を通知
     emit lineSelectionChanged(lineIndex);
-    qDebug().noquote() << "[KNC] selectBranchCandidate: emitted lineSelectionChanged=" << lineIndex;
+    qCDebug(lcNavigation).noquote() << "selectBranchCandidate: emitted lineSelectionChanged=" << lineIndex;
 
     goToNode(candidate);
 }
@@ -339,7 +342,7 @@ void KifuNavigationController::goToMainLineAtCurrentPly()
     // 本譜に戻る場合、優先ラインと選択記憶をリセット
     m_state->resetPreferredLineIndex();
     m_state->clearLineSelectionMemory();
-    qDebug().noquote() << "[KNC] goToMainLineAtCurrentPly: resetPreferredLineIndex and clearLineSelectionMemory";
+    qCDebug(lcNavigation).noquote() << "goToMainLineAtCurrentPly: resetPreferredLineIndex and clearLineSelectionMemory";
 
     int currentPly = m_state->currentPly();
     KifuBranchNode* mainNode = m_tree->findByPlyOnMainLine(currentPly);
@@ -396,22 +399,22 @@ void KifuNavigationController::onLastClicked(bool checked)
 
 void KifuNavigationController::handleBranchNodeActivated(int row, int ply)
 {
-    qDebug().noquote() << "[KNC] handleBranchNodeActivated ENTER row=" << row << "ply=" << ply;
+    qCDebug(lcNavigation).noquote() << "handleBranchNodeActivated ENTER row=" << row << "ply=" << ply;
 
     if (m_tree == nullptr || m_state == nullptr) {
-        qDebug().noquote() << "[KNC] handleBranchNodeActivated: tree or state is null, cannot proceed";
+        qCDebug(lcNavigation).noquote() << "handleBranchNodeActivated: tree or state is null, cannot proceed";
         return;
     }
 
     QVector<BranchLine> lines = m_tree->allLines();
     if (lines.isEmpty()) {
-        qDebug().noquote() << "[KNC] handleBranchNodeActivated: no lines available";
+        qCDebug(lcNavigation).noquote() << "handleBranchNodeActivated: no lines available";
         return;
     }
 
     // 境界チェック
     if (row < 0 || row >= lines.size()) {
-        qDebug().noquote() << "[KNC] handleBranchNodeActivated: row out of bounds (row=" << row << ", lines=" << lines.size() << ")";
+        qCDebug(lcNavigation).noquote() << "handleBranchNodeActivated: row out of bounds (row=" << row << ", lines=" << lines.size() << ")";
         return;
     }
 
@@ -424,7 +427,7 @@ void KifuNavigationController::handleBranchNodeActivated(int row, int ply)
             const QString sfen = targetNode->sfen().isEmpty() ? QString() : targetNode->sfen();
             emit branchNodeHandled(0, sfen, 0, 0, QString());
         }
-        qDebug().noquote() << "[KNC] handleBranchNodeActivated LEAVE (root node)";
+        qCDebug(lcNavigation).noquote() << "handleBranchNodeActivated LEAVE (root node)";
         return;
     }
 
@@ -435,7 +438,7 @@ void KifuNavigationController::handleBranchNodeActivated(int row, int ply)
         const BranchLine& currentBranchLine = lines.at(currentLine);
         if (ply < currentBranchLine.branchPly) {
             effectiveRow = currentLine;
-            qDebug().noquote() << "[KNC] handleBranchNodeActivated: shared node clicked, keeping current line=" << currentLine;
+            qCDebug(lcNavigation).noquote() << "handleBranchNodeActivated: shared node clicked, keeping current line=" << currentLine;
         }
     }
 
@@ -446,10 +449,10 @@ void KifuNavigationController::handleBranchNodeActivated(int row, int ply)
     // 分岐ラインを選択した場合、以降のナビゲーションで優先されるよう設定する
     if (effectiveRow > 0) {
         m_state->setPreferredLineIndex(effectiveRow);
-        qDebug().noquote() << "[KNC] handleBranchNodeActivated: setPreferredLineIndex=" << effectiveRow;
+        qCDebug(lcNavigation).noquote() << "handleBranchNodeActivated: setPreferredLineIndex=" << effectiveRow;
     } else {
         m_state->resetPreferredLineIndex();
-        qDebug().noquote() << "[KNC] handleBranchNodeActivated: resetPreferredLineIndex (main line)";
+        qCDebug(lcNavigation).noquote() << "handleBranchNodeActivated: resetPreferredLineIndex (main line)";
     }
 
     // 対応するノードを探してナビゲート
@@ -467,7 +470,7 @@ void KifuNavigationController::handleBranchNodeActivated(int row, int ply)
 
     if (targetNode != nullptr) {
         goToNode(targetNode);
-        qDebug().noquote() << "[KNC] handleBranchNodeActivated: goToNode ply=" << selPly;
+        qCDebug(lcNavigation).noquote() << "handleBranchNodeActivated: goToNode ply=" << selPly;
 
         const QString sfen = targetNode->sfen().isEmpty() ? QString() : targetNode->sfen();
 
@@ -487,31 +490,31 @@ void KifuNavigationController::handleBranchNodeActivated(int row, int ply)
 
         emit branchNodeHandled(selPly, sfen, fileTo, rankTo, usiMove);
     } else {
-        qDebug().noquote() << "[KNC] handleBranchNodeActivated: node not found for ply=" << selPly;
+        qCDebug(lcNavigation).noquote() << "handleBranchNodeActivated: node not found for ply=" << selPly;
     }
 
-    qDebug().noquote() << "[KNC] handleBranchNodeActivated LEAVE";
+    qCDebug(lcNavigation).noquote() << "handleBranchNodeActivated LEAVE";
 }
 
 void KifuNavigationController::emitUpdateSignals()
 {
-    qDebug().noquote() << "[KNC] emitUpdateSignals ENTER";
+    qCDebug(lcNavigation).noquote() << "emitUpdateSignals ENTER";
 
     if (m_state == nullptr) {
-        qDebug().noquote() << "[KNC] emitUpdateSignals: m_state is null, returning";
+        qCDebug(lcNavigation).noquote() << "emitUpdateSignals: m_state is null, returning";
         return;
     }
 
     KifuBranchNode* node = m_state->currentNode();
     if (node == nullptr) {
-        qDebug().noquote() << "[KNC] emitUpdateSignals: currentNode is null, returning";
+        qCDebug(lcNavigation).noquote() << "emitUpdateSignals: currentNode is null, returning";
         return;
     }
 
-    qDebug().noquote() << "[KNC] emitUpdateSignals: node ply=" << node->ply()
-                       << "sfen=" << node->sfen()
-                       << "displayText=" << node->displayText()
-                       << "lineIndex=" << m_state->currentLineIndex();
+    qCDebug(lcNavigation).noquote() << "emitUpdateSignals: node ply=" << node->ply()
+                                    << "sfen=" << node->sfen()
+                                    << "displayText=" << node->displayText()
+                                    << "lineIndex=" << m_state->currentLineIndex();
 
     emit navigationCompleted(node);
     emit boardUpdateRequired(node->sfen());
@@ -519,5 +522,5 @@ void KifuNavigationController::emitUpdateSignals()
     emit branchTreeHighlightRequired(m_state->currentLineIndex(), node->ply());
     emit branchCandidatesUpdateRequired(m_state->branchCandidatesAtCurrent());
 
-    qDebug().noquote() << "[KNC] emitUpdateSignals LEAVE";
+    qCDebug(lcNavigation).noquote() << "emitUpdateSignals LEAVE";
 }

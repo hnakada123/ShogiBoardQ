@@ -7,6 +7,9 @@
 
 #include <QObject>
 #include <QVector>
+#include <QLoggingCategory>
+
+Q_DECLARE_LOGGING_CATEGORY(lcNavigation)
 
 class KifuBranchTree;
 class KifuBranchNode;

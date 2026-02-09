@@ -4,6 +4,8 @@
 #include "gamestatecontroller.h"
 
 #include <QDebug>
+
+#include "matchcoordinator.h"
 #include <QAbstractItemView>
 
 #include "shogiview.h"
@@ -184,8 +186,8 @@ void GameStateController::onMatchGameEnded(const MatchCoordinator::GameEndInfo& 
     // 3. 棋譜追記
     // 4. UI後処理（矢印ボタン有効化・選択モード設定）
 
-    qDebug().nospace()
-        << "[GameState] onMatchGameEnded ENTER cause="
+    qCDebug(lcGame).nospace()
+        << "onMatchGameEnded ENTER cause="
         << ((info.cause == MatchCoordinator::Cause::Timeout) ? "Timeout" : "Resign")
         << " loser=" << ((info.loser == MatchCoordinator::P1) ? "P1" : "P2");
 
@@ -217,7 +219,7 @@ void GameStateController::onMatchGameEnded(const MatchCoordinator::GameEndInfo& 
         m_recordPane->kifuView()->setSelectionMode(QAbstractItemView::SingleSelection);
     }
 
-    qDebug() << "[GameState] onMatchGameEnded LEAVE";
+    qCDebug(lcGame) << "onMatchGameEnded LEAVE";
 }
 
 void GameStateController::onGameOverStateChanged(const MatchCoordinator::GameOverState& st)
