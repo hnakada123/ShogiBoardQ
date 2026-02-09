@@ -9,9 +9,12 @@
 #include <QPointer>
 #include <QVector>
 #include <functional>
+#include <QLoggingCategory>
 
 #include "playmode.h"
 #include "analysiscoordinator.h"
+
+Q_DECLARE_LOGGING_CATEGORY(lcAnalysis)
 
 class KifuAnalysisDialog;
 class EngineAnalysisTab;

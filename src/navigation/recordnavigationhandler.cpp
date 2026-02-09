@@ -3,8 +3,7 @@
 
 #include "recordnavigationhandler.h"
 
-#include <QDebug>
-
+#include "kifunavigationcontroller.h"
 #include "kifunavigationstate.h"
 #include "kifubranchtree.h"
 #include "kifubranchnode.h"
@@ -28,22 +27,22 @@ void RecordNavigationHandler::updateDeps(const Deps& deps)
 
 void RecordNavigationHandler::onMainRowChanged(int row)
 {
-    qDebug().noquote() << "[RNH] onMainRowChanged ENTER row=" << row
-                       << "navState lineIndex=" << (m_deps.navState ? m_deps.navState->currentLineIndex() : -1)
-                       << "isOnMainLine=" << (m_deps.navState ? m_deps.navState->isOnMainLine() : true)
-                       << "m_sfenRecord.size=" << (m_deps.sfenRecord ? m_deps.sfenRecord->size() : -1);
+    qCDebug(lcNavigation).noquote() << "onMainRowChanged ENTER row=" << row
+                                    << "navState lineIndex=" << (m_deps.navState ? m_deps.navState->currentLineIndex() : -1)
+                                    << "isOnMainLine=" << (m_deps.navState ? m_deps.navState->isOnMainLine() : true)
+                                    << "m_sfenRecord.size=" << (m_deps.sfenRecord ? m_deps.sfenRecord->size() : -1);
 
     // 再入防止
     static bool s_inProgress = false;
     if (s_inProgress) {
-        qDebug() << "[RNH] onMainRowChanged: SKIPPED (re-entry guard)";
+        qCDebug(lcNavigation) << "onMainRowChanged: SKIPPED (re-entry guard)";
         return;
     }
     s_inProgress = true;
 
     // 分岐ナビゲーション中は二重更新を防ぐため盤面同期をスキップ
     if (m_deps.skipBoardSyncForBranchNav && *m_deps.skipBoardSyncForBranchNav) {
-        qDebug() << "[RNH] onMainRowChanged: SKIPPED (branch navigation in progress)";
+        qCDebug(lcNavigation) << "onMainRowChanged: SKIPPED (branch navigation in progress)";
         s_inProgress = false;
         return;
     }
@@ -51,7 +50,7 @@ void RecordNavigationHandler::onMainRowChanged(int row)
     // CSA対局進行中は盤面がサーバーと同期されるため、ユーザー操作による盤面変更を抑止する
     if (m_deps.csaGameCoordinator) {
         if (m_deps.csaGameCoordinator->gameState() == CsaGameCoordinator::GameState::InGame) {
-            qDebug() << "[RNH] onMainRowChanged: SKIPPED (CSA game in progress)";
+            qCDebug(lcNavigation) << "onMainRowChanged: SKIPPED (CSA game in progress)";
             s_inProgress = false;
             return;
         }
@@ -72,9 +71,9 @@ void RecordNavigationHandler::onMainRowChanged(int row)
                     if (row > 0 && (row - 1) < line.nodes.size()) {
                         prevSfen = line.nodes.at(row - 1)->sfen();
                     }
-                    qDebug().noquote() << "[RNH] onMainRowChanged: using branch tree SFEN"
-                                       << "lineIndex=" << lineIndex << "row=" << row
-                                       << "sfen=" << currentSfen.left(40);
+                    qCDebug(lcNavigation).noquote() << "onMainRowChanged: using branch tree SFEN"
+                                                    << "lineIndex=" << lineIndex << "row=" << row
+                                                    << "sfen=" << currentSfen.left(40);
                     emit branchBoardSyncRequired(currentSfen, prevSfen);
                     handledByBranchTree = true;
                 }
@@ -162,6 +161,6 @@ void RecordNavigationHandler::onMainRowChanged(int row)
         }
     }
 
-    qDebug() << "[RNH] onMainRowChanged LEAVE row=" << row;
+    qCDebug(lcNavigation) << "onMainRowChanged LEAVE row=" << row;
     s_inProgress = false;
 }

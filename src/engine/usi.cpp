@@ -8,9 +8,10 @@
 
 #include <QFileInfo>
 #include <QDir>
-#include <QDebug>
 #include <QApplication>
 #include <QTimer>
+
+Q_LOGGING_CATEGORY(lcEngine, "shogi.engine")
 
 namespace {
 void ensureMovesKeyword(QString& s)
@@ -197,9 +198,9 @@ void Usi::onCommLogAppended(const QString& log)
 
 void Usi::onClearThinkingInfoRequested()
 {
-    qDebug().noquote() << "[Usi::onClearThinkingInfoRequested] called";
+    qCDebug(lcEngine) << "思考情報クリア要求";
     if (m_thinkingModel) {
-        qDebug().noquote() << "[Usi::onClearThinkingInfoRequested] clearing thinking model";
+        qCDebug(lcEngine) << "思考モデルクリア実行";
         m_thinkingModel->clearAllItems();
     }
 }
@@ -213,9 +214,9 @@ void Usi::onThinkingInfoUpdated(const QString& time, const QString& depth,
     // 1. ShogiInfoRecordを生成して思考タブへ追記（先頭に追加）
     // 2. 検討タブへ追記（MultiPVモードで行を更新/挿入）
     // 3. 外部へシグナルで通知
-    qDebug().noquote() << "[Usi::onThinkingInfoUpdated] m_lastUsiMove=" << m_lastUsiMove
-                       << " baseSfen=" << baseSfen.left(50)
-                       << " multipv=" << multipv << " scoreCp=" << scoreCp;
+    qCDebug(lcEngine) << "思考情報更新: m_lastUsiMove=" << m_lastUsiMove
+                      << "baseSfen=" << baseSfen.left(50)
+                      << "multipv=" << multipv << "scoreCp=" << scoreCp;
 
     // 思考タブへ追記（通常モード: 先頭に追加）
     if (m_thinkingModel) {
@@ -225,7 +226,7 @@ void Usi::onThinkingInfoUpdated(const QString& time, const QString& depth,
         record->setLastUsiMove(m_lastUsiMove);
         record->setMultipv(multipv);
         record->setScoreCp(scoreCp);
-        qDebug().noquote() << "[Usi::onThinkingInfoUpdated] record->lastUsiMove() after set=" << record->lastUsiMove();
+        qCDebug(lcEngine) << "record->lastUsiMove()=" << record->lastUsiMove();
         m_thinkingModel->prependItem(record);
     }
 
@@ -305,23 +306,23 @@ qint64 Usi::lastBestmoveElapsedMs() const
 
 void Usi::setPreviousFileTo(int newPreviousFileTo)
 {
-    qDebug().noquote() << "[Usi::setPreviousFileTo] newPreviousFileTo=" << newPreviousFileTo
-                       << "m_previousRankTo=" << m_previousRankTo;
+    qCDebug(lcEngine) << "setPreviousFileTo:" << newPreviousFileTo
+                      << "m_previousRankTo=" << m_previousRankTo;
     m_previousFileTo = newPreviousFileTo;
     m_presenter->setPreviousMove(m_previousFileTo, m_previousRankTo);
 }
 
 void Usi::setPreviousRankTo(int newPreviousRankTo)
 {
-    qDebug().noquote() << "[Usi::setPreviousRankTo] m_previousFileTo=" << m_previousFileTo
-                       << "newPreviousRankTo=" << newPreviousRankTo;
+    qCDebug(lcEngine) << "setPreviousRankTo: m_previousFileTo=" << m_previousFileTo
+                      << "newPreviousRankTo=" << newPreviousRankTo;
     m_previousRankTo = newPreviousRankTo;
     m_presenter->setPreviousMove(m_previousFileTo, m_previousRankTo);
 }
 
 void Usi::setLastUsiMove(const QString& move)
 {
-    qDebug().noquote() << "[Usi::setLastUsiMove] move=" << move;
+    qCDebug(lcEngine) << "setLastUsiMove:" << move;
     m_lastUsiMove = move;
 }
 
@@ -480,7 +481,7 @@ void Usi::setConsiderationModel(ShogiEngineThinkingModel* model, int maxMultiPV)
 {
     m_considerationModel = model;
     m_considerationMaxMultiPV = qBound(1, maxMultiPV, 10);
-    qDebug().noquote() << "[Usi::setConsiderationModel] model=" << model << " maxMultiPV=" << m_considerationMaxMultiPV;
+    qCDebug(lcEngine) << "setConsiderationModel: model=" << model << "maxMultiPV=" << m_considerationMaxMultiPV;
 
     // モデルをクリア
     if (m_considerationModel) {
@@ -491,8 +492,8 @@ void Usi::setConsiderationModel(ShogiEngineThinkingModel* model, int maxMultiPV)
 void Usi::updateConsiderationMultiPV(int multiPV)
 {
     const int newMultiPV = qBound(1, multiPV, 10);
-    qDebug().noquote() << "[Usi::updateConsiderationMultiPV] old=" << m_considerationMaxMultiPV
-                       << " new=" << newMultiPV;
+    qCDebug(lcEngine) << "updateConsiderationMultiPV: old=" << m_considerationMaxMultiPV
+                      << "new=" << newMultiPV;
 
     // 変更がない場合は何もしない
     if (m_considerationMaxMultiPV == newMultiPV) {
@@ -568,13 +569,13 @@ bool Usi::isEngineRunning() const
 
 void Usi::prepareBoardDataForAnalysis()
 {
-    qDebug().noquote() << "[Usi::prepareBoardDataForAnalysis] called";
+    qCDebug(lcEngine) << "prepareBoardDataForAnalysis";
     if (m_gameController && m_gameController->board()) {
         m_clonedBoardData = m_gameController->board()->boardData();
-        qDebug().noquote() << "[Usi::prepareBoardDataForAnalysis] m_clonedBoardData.size()=" << m_clonedBoardData.size();
+        qCDebug(lcEngine) << "盤面クローン完了: size=" << m_clonedBoardData.size();
         m_presenter->setClonedBoardData(m_clonedBoardData);
     } else {
-        qWarning().noquote() << "[Usi::prepareBoardDataForAnalysis] ERROR: gameController or board is null!";
+        qCWarning(lcEngine) << "prepareBoardDataForAnalysis: gameControllerまたはboardがnull";
     }
 }
 
@@ -588,7 +589,7 @@ void Usi::setClonedBoardData(const QVector<QChar>& boardData)
 
 void Usi::setBaseSfen(const QString& sfen)
 {
-    qDebug().noquote() << "[Usi::setBaseSfen] sfen=" << sfen.left(50);
+    qCDebug(lcEngine) << "setBaseSfen:" << sfen.left(50);
     if (m_presenter) {
         m_presenter->setBaseSfen(sfen);
     }
@@ -596,7 +597,7 @@ void Usi::setBaseSfen(const QString& sfen)
 
 void Usi::flushThinkingInfoBuffer()
 {
-    qDebug().noquote() << "[Usi::flushThinkingInfoBuffer] called";
+    qCDebug(lcEngine) << "flushThinkingInfoBuffer";
     if (m_presenter) {
         m_presenter->flushInfoBuffer();
     }
@@ -604,7 +605,7 @@ void Usi::flushThinkingInfoBuffer()
 
 void Usi::requestClearThinkingInfo()
 {
-    qDebug().noquote() << "[Usi::requestClearThinkingInfo] called";
+    qCDebug(lcEngine) << "requestClearThinkingInfo";
     if (m_presenter) {
         m_presenter->requestClearThinkingInfo();
     }
@@ -679,18 +680,18 @@ void Usi::sendPositionAndGoMateCommands(int mateLimitMilliSec, QString& position
 
 void Usi::cloneCurrentBoardData()
 {
-    qDebug().noquote() << "[Usi::cloneCurrentBoardData] m_gameController=" << m_gameController;
+    qCDebug(lcEngine) << "cloneCurrentBoardData: gameController=" << m_gameController;
     if (!m_gameController) {
-        qWarning().noquote() << "[Usi::cloneCurrentBoardData] ERROR: m_gameController is nullptr!";
+        qCWarning(lcEngine) << "cloneCurrentBoardData: gameControllerがnull";
         return;
     }
-    qDebug().noquote() << "[Usi::cloneCurrentBoardData] m_gameController->board()=" << m_gameController->board();
+    qCDebug(lcEngine) << "cloneCurrentBoardData: board=" << m_gameController->board();
     if (!m_gameController->board()) {
-        qWarning().noquote() << "[Usi::cloneCurrentBoardData] ERROR: m_gameController->board() is nullptr!";
+        qCWarning(lcEngine) << "cloneCurrentBoardData: boardがnull";
         return;
     }
     m_clonedBoardData = m_gameController->board()->boardData();
-    qDebug().noquote() << "[Usi::cloneCurrentBoardData] m_clonedBoardData.size()=" << m_clonedBoardData.size();
+    qCDebug(lcEngine) << "cloneCurrentBoardData: size=" << m_clonedBoardData.size();
     m_presenter->setClonedBoardData(m_clonedBoardData);
 }
 
@@ -771,7 +772,7 @@ void Usi::updateBaseSfenForPonder()
     QString ponderBaseSfen = tempBoard.convertBoardToSfen() + QStringLiteral(" ") + ponderTurn +
                              QStringLiteral(" ") + tempBoard.convertStandToSfen() + QStringLiteral(" 1");
 
-    qDebug().noquote() << "[Usi::updateBaseSfenForPonder] ponderBaseSfen=" << ponderBaseSfen.left(80);
+    qCDebug(lcEngine) << "updateBaseSfenForPonder:" << ponderBaseSfen.left(80);
     m_presenter->setBaseSfen(ponderBaseSfen);
 }
 
@@ -1031,7 +1032,7 @@ void Usi::executeAnalysisCommunication(QString& positionStr, int byoyomiMilliSec
         m_analysisStopTimer = new QTimer(this);
         m_analysisStopTimer->setSingleShot(true);
         connect(m_analysisStopTimer, &QTimer::timeout, this, [this]() {
-            qDebug().noquote() << "[Usi] executeAnalysisCommunication stop timer fired";
+            qCDebug(lcEngine) << "解析停止タイマー発火";
             m_protocolHandler->sendStop();
             m_analysisStopTimer = nullptr;
         });
@@ -1045,10 +1046,10 @@ void Usi::executeAnalysisCommunication(QString& positionStr, int byoyomiMilliSec
 
 void Usi::sendAnalysisCommands(const QString& positionStr, int byoyomiMilliSec, int multiPV)
 {
-    qDebug().noquote() << "[Usi] sendAnalysisCommands:"
-                       << "positionStr=" << positionStr
-                       << "byoyomiMilliSec=" << byoyomiMilliSec
-                       << "multiPV=" << multiPV;
+    qCDebug(lcEngine) << "sendAnalysisCommands:"
+                      << "positionStr=" << positionStr
+                      << "byoyomiMilliSec=" << byoyomiMilliSec
+                      << "multiPV=" << multiPV;
 
     // 既存の停止タイマーをキャンセル（前回の検討のタイマーが残っている可能性がある）
     if (m_analysisStopTimer) {
@@ -1083,7 +1084,7 @@ void Usi::sendAnalysisCommands(const QString& positionStr, int byoyomiMilliSec, 
         m_analysisStopTimer->setSingleShot(true);
         connect(m_analysisStopTimer, &QTimer::timeout, this, [this]() {
             if (m_processManager && m_processManager->isRunning()) {
-                qDebug().noquote() << "[Usi] Analysis stop timer fired, sending stop";
+                qCDebug(lcEngine) << "検討停止タイマー発火";
                 m_protocolHandler->sendStop();
             }
             m_analysisStopTimer = nullptr;  // タイマーは自動削除される（deleteLater済み）

@@ -7,6 +7,9 @@
 #include <QObject>
 #include <QVector>
 #include <QMap>
+#include <QLoggingCategory>
+
+Q_DECLARE_LOGGING_CATEGORY(lcCore)
 
 /**
  * @brief 将棋盤の盤面データと駒台を管理するクラス

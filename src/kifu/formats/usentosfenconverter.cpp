@@ -7,7 +7,7 @@
 #include <QFile>
 #include <QTextStream>
 #include <QRegularExpression>
-#include <QDebug>
+#include "kifulogging.h"
 
 // ============================================================================
 // USEN (Url Safe sfen-Extended Notation) デコーダ
@@ -599,7 +599,7 @@ QStringList UsenToSfenConverter::decodeUsenMoves(const QString& usenStr, QString
         } else {
             // デコードできなかった場合はプレースホルダーを追加
             QString placeholder = QStringLiteral("?%1").arg(moveCount + 1);
-            qDebug() << "[USEN] Move" << (moveCount + 1) << "'" << threeChars 
+            qCDebug(lcKifu) << "Move" << (moveCount + 1) << "'" << threeChars
                      << "' could not be decoded, using placeholder";
             usiMoves.append(placeholder);
         }
@@ -608,7 +608,7 @@ QStringList UsenToSfenConverter::decodeUsenMoves(const QString& usenStr, QString
         i += 3;
     }
 
-    qDebug() << "[USEN] Decoded" << usiMoves.size() << "moves from USEN string";
+    qCDebug(lcKifu) << "Decoded" << usiMoves.size() << "moves from USEN string";
     return usiMoves;
 }
 
@@ -667,7 +667,7 @@ QString UsenToSfenConverter::decodeBase36Move(const QString& base36str)
         QChar pieceChar = dropTypeToUsiChar(pieceType);
         
         if (pieceChar == QChar('?')) {
-            qWarning() << "[USEN] Unknown drop piece type:" << pieceType;
+            qCWarning(lcKifu) << "Unknown drop piece type:" << pieceType;
             return QString();
         }
 

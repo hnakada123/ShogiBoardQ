@@ -4,7 +4,7 @@
 #include "kifreader.h"
 
 #include <QByteArray>
-#include <QDebug>
+#include "kifulogging.h"
 #include <QFile>
 #include <QStringDecoder>
 
@@ -149,9 +149,9 @@ bool readAllLinesAuto(const QString& filePath,
     }
 
     if (usedEncoding) {
-        qDebug().noquote() << QStringLiteral("[readAllLinesAuto] encoding = %1 , bytes = %2")
-                                  .arg(*usedEncoding)
-                                  .arg(bytes.size());
+        qCDebug(lcKifu).noquote() << QStringLiteral("readAllLinesAuto: encoding = %1, bytes = %2")
+                                          .arg(*usedEncoding)
+                                          .arg(bytes.size());
     }
 
     splitByNewlines(text, outLines);

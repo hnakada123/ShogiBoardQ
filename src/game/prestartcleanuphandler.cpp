@@ -2,6 +2,7 @@
 /// @brief 対局開始前クリーンアップハンドラクラスの実装
 
 #include "prestartcleanuphandler.h"
+#include "matchcoordinator.h"
 
 #include <QDebug>
 #include <QLabel>
@@ -56,7 +57,7 @@ PreStartCleanupHandler::PreStartCleanupHandler(const Dependencies& deps, QObject
 
 void PreStartCleanupHandler::performCleanup()
 {
-    qDebug().noquote() << "[PreStartCleanupHandler] performCleanup: start"
+    qCDebug(lcGame).noquote() << "performCleanup: start"
                        << "m_startSfenStr=" << (m_startSfenStr ? m_startSfenStr->left(50) : "(null)")
                        << "m_currentSfenStr=" << (m_currentSfenStr ? m_currentSfenStr->left(50) : "(null)")
                        << "m_currentSelectedPly=" << (m_currentSelectedPly ? *m_currentSelectedPly : -1);
@@ -70,7 +71,7 @@ void PreStartCleanupHandler::performCleanup()
     // SFENで検索すると、同じ局面が複数存在する場合に誤ったノードが返される可能性がある
     m_savedCurrentNode = (m_navState != nullptr) ? m_navState->currentNode() : nullptr;
 
-    qDebug().noquote() << "[PreStartCleanupHandler] performCleanup: saved sfen=" << m_savedCurrentSfen.left(50)
+    qCDebug(lcGame).noquote() << "performCleanup: saved sfen=" << m_savedCurrentSfen.left(50)
                        << "saved ply=" << m_savedSelectedPly
                        << "saved node=" << (m_savedCurrentNode ? m_savedCurrentNode->displayText() : "(null)");
 
@@ -94,7 +95,7 @@ void PreStartCleanupHandler::performCleanup()
     ensureBranchTreeRoot();
 
     if (m_branchTree != nullptr && m_branchTree->root() != nullptr) {
-        qDebug().noquote() << "[PreStartCleanupHandler] performCleanup: branchTree has"
+        qCDebug(lcGame).noquote() << "performCleanup: branchTree has"
                            << m_branchTree->root()->childCount() << "children"
                            << "lineCount=" << m_branchTree->lineCount();
     }
@@ -102,8 +103,8 @@ void PreStartCleanupHandler::performCleanup()
     // ライブゲームセッションを開始（途中局面からの場合は分岐点を設定）
     startLiveGameSession();
 
-    qDebug().noquote()
-        << "[PreStartCleanupHandler] performCleanup: startFromCurrentPos=" << startFromCurrentPos
+    qCDebug(lcGame).noquote()
+        << "performCleanup: startFromCurrentPos=" << startFromCurrentPos
         << " keepRow=" << keepRow
         << " rows(after)=" << (m_kifuRecordModel ? m_kifuRecordModel->rowCount() : -1);
 }
@@ -197,7 +198,7 @@ void PreStartCleanupHandler::clearBranchModel()
 
 void PreStartCleanupHandler::resetUsiLogModels()
 {
-    qDebug().noquote() << "[PreStartCleanupHandler] resetUsiLogModels: RESETTING ENGINE NAMES";
+    qCDebug(lcGame).noquote() << "resetUsiLogModels: RESETTING ENGINE NAMES";
 
     auto resetInfo = [](UsiCommLogModel* m) {
         if (!m) return;
@@ -214,7 +215,7 @@ void PreStartCleanupHandler::resetUsiLogModels()
     resetInfo(m_lineEditModel1);
     resetInfo(m_lineEditModel2);
 
-    qDebug().noquote() << "[PreStartCleanupHandler] resetUsiLogModels: ENGINE NAMES RESET DONE";
+    qCDebug(lcGame).noquote() << "resetUsiLogModels: ENGINE NAMES RESET DONE";
 }
 
 void PreStartCleanupHandler::resetTimeControl()
@@ -261,16 +262,16 @@ void PreStartCleanupHandler::selectStartRow()
 
 void PreStartCleanupHandler::startLiveGameSession()
 {
-    qDebug().noquote() << "[PreStartCleanupHandler] startLiveGameSession: ENTER"
+    qCDebug(lcGame).noquote() << "startLiveGameSession: ENTER"
                        << "liveGameSession=" << static_cast<void*>(m_liveGameSession)
                        << "branchTree=" << static_cast<void*>(m_branchTree);
 
     if (m_liveGameSession == nullptr || m_branchTree == nullptr) {
-        qDebug().noquote() << "[PreStartCleanupHandler] startLiveGameSession: liveGameSession or branchTree is null";
+        qCDebug(lcGame).noquote() << "startLiveGameSession: liveGameSession or branchTree is null";
         return;
     }
 
-    qDebug().noquote() << "[PreStartCleanupHandler] startLiveGameSession: branchTree->root()="
+    qCDebug(lcGame).noquote() << "startLiveGameSession: branchTree->root()="
                        << static_cast<void*>(m_branchTree->root());
 
     // アクティブなセッションがあれば破棄
@@ -286,7 +287,7 @@ void PreStartCleanupHandler::startLiveGameSession()
     const int savedPly = m_savedSelectedPly;
     KifuBranchNode* savedNode = m_savedCurrentNode;
 
-    qDebug().noquote() << "[PreStartCleanupHandler] startLiveGameSession: using saved sfen=" << savedSfen.left(50)
+    qCDebug(lcGame).noquote() << "startLiveGameSession: using saved sfen=" << savedSfen.left(50)
                        << "savedPly=" << savedPly
                        << "savedNode=" << (savedNode ? savedNode->displayText() : "(null)");
 
@@ -295,7 +296,7 @@ void PreStartCleanupHandler::startLiveGameSession()
                      savedSfen == QStringLiteral("startpos") ||
                      savedSfen.startsWith(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL"));
 
-    qDebug().noquote() << "[PreStartCleanupHandler] startLiveGameSession:"
+    qCDebug(lcGame).noquote() << "startLiveGameSession:"
                        << "isNewGame=" << isNewGame
                        << "savedPly=" << savedPly;
 
@@ -309,12 +310,12 @@ void PreStartCleanupHandler::startLiveGameSession()
         // savedNode が利用できない場合のみ、SFENで検索（フォールバック）
         if (branchPoint == nullptr && !savedSfen.isEmpty()) {
             branchPoint = m_branchTree->findBySfen(savedSfen);
-            qDebug().noquote() << "[PreStartCleanupHandler] startLiveGameSession: fallback to findBySfen, result="
+            qCDebug(lcGame).noquote() << "startLiveGameSession: fallback to findBySfen, result="
                                << static_cast<void*>(branchPoint)
                                << "ply=" << (branchPoint ? branchPoint->ply() : -1);
         }
 
-        qDebug().noquote() << "[PreStartCleanupHandler] startLiveGameSession: branchPoint="
+        qCDebug(lcGame).noquote() << "startLiveGameSession: branchPoint="
                            << static_cast<void*>(branchPoint)
                            << "ply=" << (branchPoint ? branchPoint->ply() : -1)
                            << "isTerminal=" << (branchPoint ? branchPoint->isTerminal() : false);
@@ -322,7 +323,7 @@ void PreStartCleanupHandler::startLiveGameSession()
         // 終局手の場合は親ノードを分岐点として使用
         if (branchPoint != nullptr && branchPoint->isTerminal()) {
             branchPoint = branchPoint->parent();
-            qDebug().noquote() << "[PreStartCleanupHandler] startLiveGameSession: terminal node, using parent="
+            qCDebug(lcGame).noquote() << "startLiveGameSession: terminal node, using parent="
                                << static_cast<void*>(branchPoint)
                                << "ply=" << (branchPoint ? branchPoint->ply() : -1);
         }
@@ -334,15 +335,15 @@ void PreStartCleanupHandler::startLiveGameSession()
             // GameStartCoordinator::prepareDataCurrentPosition() で盤面が正しい位置にリセットされる
             if (m_currentSfenStr != nullptr) {
                 *m_currentSfenStr = branchPoint->sfen();
-                qDebug().noquote() << "[PreStartCleanupHandler] startLiveGameSession: updated m_currentSfenStr to branchPoint sfen="
+                qCDebug(lcGame).noquote() << "startLiveGameSession: updated m_currentSfenStr to branchPoint sfen="
                                    << branchPoint->sfen().left(60);
             }
 
-            qDebug().noquote() << "[PreStartCleanupHandler] startLiveGameSession: started from node, ply=" << branchPoint->ply()
+            qCDebug(lcGame).noquote() << "startLiveGameSession: started from node, ply=" << branchPoint->ply()
                                << "displayText=" << branchPoint->displayText();
             return;
         }
-        qDebug().noquote() << "[PreStartCleanupHandler] startLiveGameSession: branchPoint not found or is root, treating as new game";
+        qCDebug(lcGame).noquote() << "startLiveGameSession: branchPoint not found or is root, treating as new game";
     }
 
     // 新規対局または途中局面が見つからない場合
@@ -353,11 +354,11 @@ void PreStartCleanupHandler::startLiveGameSession()
                 rootSfen = *m_startSfenStr;
             }
             m_branchTree->setRootSfen(rootSfen);
-            qDebug().noquote() << "[PreStartCleanupHandler] startLiveGameSession: created root node with sfen=" << rootSfen;
+            qCDebug(lcGame).noquote() << "startLiveGameSession: created root node with sfen=" << rootSfen;
         }
 
         m_liveGameSession->startFromRoot();
-        qDebug().noquote() << "[PreStartCleanupHandler] startLiveGameSession: started from root (new game)";
+        qCDebug(lcGame).noquote() << "startLiveGameSession: started from root (new game)";
     }
 }
 
@@ -368,7 +369,7 @@ void PreStartCleanupHandler::ensureBranchTreeRoot()
     }
 
     if (m_branchTree->root() != nullptr) {
-        qDebug().noquote() << "[PreStartCleanupHandler] ensureBranchTreeRoot: root already exists";
+        qCDebug(lcGame).noquote() << "ensureBranchTreeRoot: root already exists";
         return;
     }
 
@@ -381,5 +382,5 @@ void PreStartCleanupHandler::ensureBranchTreeRoot()
     }
 
     m_branchTree->setRootSfen(rootSfen);
-    qDebug().noquote() << "[PreStartCleanupHandler] ensureBranchTreeRoot: created root with sfen=" << rootSfen;
+    qCDebug(lcGame).noquote() << "ensureBranchTreeRoot: created root with sfen=" << rootSfen;
 }

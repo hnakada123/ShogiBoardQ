@@ -2,9 +2,9 @@
 /// @brief 局面解析コーディネータクラスの実装
 
 #include "analysiscoordinator.h"
+#include "analysisflowcontroller.h"
 #include "engineanalysistab.h"
 
-#include <QDebug>
 #include <QRegularExpression>
 #include <QGlobalStatic>
 #include <limits>
@@ -43,7 +43,7 @@ void AnalysisCoordinator::setOptions(const Options& opt)
 void AnalysisCoordinator::startAnalyzeRange()
 {
     if (!m_deps.sfenRecord || m_deps.sfenRecord->isEmpty()) {
-        qWarning() << "[ANA] startAnalyzeRange: sfenRecord not ready";
+        qCWarning(lcAnalysis) << "startAnalyzeRange: sfenRecord not ready";
         return;
     }
     if (m_running) stop();
@@ -73,7 +73,7 @@ void AnalysisCoordinator::startAnalyzeRange()
 void AnalysisCoordinator::startAnalyzeSingle(int ply)
 {
     if (!m_deps.sfenRecord || m_deps.sfenRecord->isEmpty()) {
-        qWarning() << "[ANA] startAnalyzeSingle: sfenRecord not ready";
+        qCWarning(lcAnalysis) << "startAnalyzeSingle: sfenRecord not ready";
         return;
     }
     if (m_running) stop();
@@ -95,9 +95,9 @@ void AnalysisCoordinator::startAnalyzeSingle(int ply)
 void AnalysisCoordinator::stop()
 {
     if (!m_running) return;
-    
+
     m_stopTimer.stop();
-    
+
     // USI の明示停止
     send(QStringLiteral("stop"));
 
@@ -152,13 +152,13 @@ void AnalysisCoordinator::sendAnalyzeForPly(int ply)
     if (!m_running) return;
     if (!m_deps.sfenRecord) return;
     if (ply < 0 || ply >= m_deps.sfenRecord->size()) {
-        qWarning() << "[ANA] sendAnalyzeForPly_: index out of range" << ply;
+        qCWarning(lcAnalysis) << "sendAnalyzeForPly: index out of range" << ply;
         nextPlyOrFinish();
         return;
     }
 
     const QString sfen = m_deps.sfenRecord->at(ply);
-    
+
     // 1) position sfen ... の形式でコマンドを準備
     //    startpos の場合はそのまま、それ以外は "position sfen ..." で送る
     if (sfen == QStringLiteral("startpos") || sfen.startsWith(QStringLiteral("position "))) {
@@ -166,8 +166,8 @@ void AnalysisCoordinator::sendAnalyzeForPly(int ply)
     } else {
         m_pendingPosCmd = QStringLiteral("position sfen %1").arg(sfen);
     }
-    qDebug().noquote() << "[ANA] sendAnalyzeForPly_: ply=" << ply << "posCmd=" << m_pendingPosCmd;
-    
+    qCDebug(lcAnalysis).noquote() << "sendAnalyzeForPly: ply=" << ply << "posCmd=" << m_pendingPosCmd;
+
     // 2) positionPreparedシグナルを発行（GUI更新用）
     //    sendGoCommand()が呼ばれるまでgoコマンドは送信しない
     emit positionPrepared(ply, sfen);
@@ -177,16 +177,16 @@ void AnalysisCoordinator::sendGoCommand()
 {
     if (!m_running) return;
     if (m_pendingPosCmd.isEmpty()) return;
-    
-    qDebug().noquote() << "[ANA] sendGoCommand: sending position and go infinite commands";
-    
+
+    qCDebug(lcAnalysis).noquote() << "sendGoCommand: sending position and go infinite commands";
+
     // positionコマンドを送信
     send(m_pendingPosCmd);
     m_pendingPosCmd.clear();
-    
+
     // go infiniteコマンドを送信（USIプロトコル準拠）
     send(QStringLiteral("go infinite"));
-    
+
     // 設定された思考時間後にstopを送信するタイマーを開始
     m_stopTimer.start(m_opt.movetimeMs);
 
@@ -199,7 +199,7 @@ void AnalysisCoordinator::sendGoCommand()
 
 void AnalysisCoordinator::onEngineInfoLine(const QString& line)
 {
-    qDebug().noquote() << "[ANA::onEngineInfoLine] m_running=" << m_running << "m_currentPly=" << m_currentPly;
+    qCDebug(lcAnalysis).noquote() << "onEngineInfoLine: m_running=" << m_running << "m_currentPly=" << m_currentPly;
     if (!m_running) return;
     if (m_currentPly < 0) return;
 
@@ -209,14 +209,14 @@ void AnalysisCoordinator::onEngineInfoLine(const QString& line)
     ParsedInfo p;
     if (!parseInfoUSI(line, &p)) {
         // パース不能でも raw を進捗として流しておくと UI 側で全文表示に使える
-        qDebug().noquote() << "[ANA::onEngineInfoLine] parse failed, emitting raw";
+        qCDebug(lcAnalysis).noquote() << "onEngineInfoLine: parse failed, emitting raw";
         emit analysisProgress(m_currentPly, -1, -1,
                               std::numeric_limits<int>::min(), 0,
                               QString(), line);
         return;
     }
 
-    qDebug().noquote() << "[ANA::onEngineInfoLine] emitting analysisProgress: ply=" << m_currentPly << "scoreCp=" << p.scoreCp << "pv=" << p.pv.left(30);
+    qCDebug(lcAnalysis).noquote() << "emitting analysisProgress: ply=" << m_currentPly << "scoreCp=" << p.scoreCp << "pv=" << p.pv.left(30);
     emit analysisProgress(m_currentPly, p.depth, p.seldepth,
                           p.scoreCp, p.mate, p.pv, line);
 }
@@ -230,7 +230,7 @@ void AnalysisCoordinator::onEngineBestmoveReceived(const QString& /*line*/)
     // 通常の解析では onEngineInfoLine でanalysisProgressが発行済みだが、
     // 定跡の場合は発行されていないので、空の結果を通知
     // （AnalysisFlowController側で定跡かどうかを判断できるようにする）
-    
+
     // "bestmove ..." を受けたら次へ
     nextPlyOrFinish();
 }
@@ -291,10 +291,10 @@ void AnalysisCoordinator::send(const QString& line)
 void AnalysisCoordinator::onStopTimerTimeout()
 {
     if (!m_running) return;
-    
-    qDebug().noquote() << "[ANA] onStopTimerTimeout_: sending stop command after"
-                       << m_opt.movetimeMs << "ms";
-    
+
+    qCDebug(lcAnalysis).noquote() << "onStopTimerTimeout: sending stop command after"
+                                  << m_opt.movetimeMs << "ms";
+
     // stopコマンドを送信（bestmoveが返ってきたらonEngineBestmoveReceived_で処理される）
     send(QStringLiteral("stop"));
 }

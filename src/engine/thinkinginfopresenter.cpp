@@ -2,11 +2,11 @@
 /// @brief 思考情報GUI表示Presenterクラスの実装
 
 #include "thinkinginfopresenter.h"
+#include "usi.h"
 #include "shogiengineinfoparser.h"
 #include "shogigamecontroller.h"
 
 #include <QTimer>
-#include <QDebug>
 #include <memory>
 
 ThinkingInfoPresenter::ThinkingInfoPresenter(QObject* parent)
@@ -60,10 +60,10 @@ void ThinkingInfoPresenter::setBaseSfen(const QString& sfen)
         const QString turn = parts.at(1);
         // b=先手(Player1), w=後手(Player2)
         m_thinkingStartPlayerIsP1 = (turn == QStringLiteral("b"));
-        qDebug().noquote() << "[ThinkingInfoPresenter::setBaseSfen] turn=" << turn 
-                           << "m_thinkingStartPlayerIsP1=" << m_thinkingStartPlayerIsP1;
+        qCDebug(lcEngine) << "setBaseSfen: turn=" << turn
+                          << "isP1=" << m_thinkingStartPlayerIsP1;
     } else {
-        qDebug().noquote() << "[ThinkingInfoPresenter::setBaseSfen] WARNING: could not parse turn from sfen=" << sfen.left(50);
+        qCWarning(lcEngine) << "setBaseSfen: SFENから手番をパースできず:" << sfen.left(50);
     }
 }
 
@@ -114,11 +114,9 @@ void ThinkingInfoPresenter::processInfoLineInternal(const QString& line)
     // 4. 評価値/詰み手数を更新
     // 5. 有効な情報があれば思考タブ向けの統合シグナルを発行
 
-    qDebug().noquote() << "[ThinkingInfoPresenter::processInfoLineInternal] m_clonedBoardData.size()=" << m_clonedBoardData.size();
-    qDebug().noquote() << "[ThinkingInfoPresenter::processInfoLineInternal] m_gameController=" << m_gameController;
-    qDebug().noquote() << "[ThinkingInfoPresenter::processInfoLineInternal] m_thinkingStartPlayerIsP1=" << m_thinkingStartPlayerIsP1;
-    qDebug().noquote() << "[ThinkingInfoPresenter::processInfoLineInternal] m_previousFileTo=" << m_previousFileTo
-                       << "m_previousRankTo=" << m_previousRankTo;
+    qCDebug(lcEngine) << "processInfoLine: boardSize=" << m_clonedBoardData.size()
+                      << "isP1=" << m_thinkingStartPlayerIsP1
+                      << "prevFile=" << m_previousFileTo << "prevRank=" << m_previousRankTo;
 
     int scoreInt = 0;
 
@@ -133,8 +131,6 @@ void ThinkingInfoPresenter::processInfoLineInternal(const QString& line)
         ? ShogiGameController::Player1 
         : ShogiGameController::Player2;
     info->setThinkingStartPlayer(startPlayer);
-    qDebug().noquote() << "[ThinkingInfoPresenter::processInfoLineInternal] startPlayer=" 
-                       << (m_thinkingStartPlayerIsP1 ? "P1(sente)" : "P2(gote)");
 
     // const_castを避けるためlineをコピー
     QString lineCopy = line;
@@ -176,7 +172,7 @@ void ThinkingInfoPresenter::processInfoLineInternal(const QString& line)
 
 void ThinkingInfoPresenter::requestClearThinkingInfo()
 {
-    qDebug().noquote() << "[ThinkingInfoPresenter::requestClearThinkingInfo] called";
+    qCDebug(lcEngine) << "requestClearThinkingInfo";
     m_infoBuffer.clear();
     emit clearThinkingInfoRequested();
 }
@@ -323,7 +319,7 @@ void ThinkingInfoPresenter::updateAnalysisModeAndScore(const ShogiEngineInfoPars
 
 void ThinkingInfoPresenter::updateLastScore(int scoreInt)
 {
-    qDebug() << "[TIP] updateLastScore: scoreInt=" << scoreInt << "m_lastScoreCp(before)=" << m_lastScoreCp;
+    qCDebug(lcEngine) << "updateLastScore: scoreInt=" << scoreInt << "before=" << m_lastScoreCp;
     
     // 評価値グラフの表示上限に合わせてクリッピング
     // 詰み評価値（±31111）を考慮した上限を設定
@@ -337,7 +333,7 @@ void ThinkingInfoPresenter::updateLastScore(int scoreInt)
         m_lastScoreCp = scoreInt;
     }
     
-    qDebug() << "[TIP] updateLastScore: m_lastScoreCp(after)=" << m_lastScoreCp;
+    qCDebug(lcEngine) << "updateLastScore: after=" << m_lastScoreCp;
     emit scoreUpdated(m_lastScoreCp, m_scoreStr);
 }
 
@@ -356,9 +352,9 @@ void ThinkingInfoPresenter::updateEvaluationInfo(ShogiEngineInfoParser* info, in
     const QString multipv = info->multipv();
     const QString scoreCp = info->scoreCp();
     
-    qDebug() << "[TIP] updateEvaluationInfo: multipv=" << multipv 
-             << "scoreCp=" << scoreCp 
-             << "m_lastScoreCp(before)=" << m_lastScoreCp;
+    qCDebug(lcEngine) << "updateEvaluationInfo: multipv=" << multipv
+                      << "scoreCp=" << scoreCp
+                      << "before=" << m_lastScoreCp;
     
     // multipv 2以降の場合は、思考タブの表示用にscoreをセットするが、
     // 評価値グラフ（m_lastScoreCp）は更新しない
@@ -396,12 +392,12 @@ void ThinkingInfoPresenter::updateEvaluationInfo(ShogiEngineInfoParser* info, in
         // multipv 1 の場合のみ評価値グラフを更新
         if (isMultipv1) {
             m_pvKanjiStr = info->pvKanjiStr();
-            qDebug() << "[TIP] UPDATING score: scoreInt=" << scoreInt << "m_scoreStr=" << m_scoreStr;
+            qCDebug(lcEngine) << "評価値更新: scoreInt=" << scoreInt << "scoreStr=" << m_scoreStr;
             updateLastScore(scoreInt);
         } else {
-            qDebug() << "[TIP] SKIPPING graph update for multipv=" << multipv << "(score set for display only)";
+            qCDebug(lcEngine) << "multipv=" << multipv << "グラフ更新スキップ（表示用のみ）";
         }
     }
     
-    qDebug() << "[TIP] updateEvaluationInfo done: m_lastScoreCp(after)=" << m_lastScoreCp;
+    qCDebug(lcEngine) << "updateEvaluationInfo完了: lastScoreCp=" << m_lastScoreCp;
 }

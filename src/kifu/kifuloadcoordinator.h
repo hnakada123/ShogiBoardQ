@@ -11,6 +11,7 @@
 #include <QStyledItemDelegate>
 #include <functional>
 
+#include "kifulogging.h"
 #include "kiftosfenconverter.h"
 #include "engineanalysistab.h"
 #include "shogiview.h"

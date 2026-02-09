@@ -3,12 +3,12 @@
 
 #include "kifuclipboardservice.h"
 #include "gamerecordmodel.h"
+#include "kifulogging.h"
 #include "shogimove.h"
 
 #include <QApplication>
 #include <QClipboard>
 #include <QTableWidget>
-#include <QDebug>
 
 namespace KifuClipboardService {
 
@@ -46,7 +46,7 @@ QStringList resolveUsiMoves(const ExportContext& ctx)
     QStringList moves = ctx.usiMoves;
     if (moves.isEmpty() && ctx.sfenRecord && ctx.sfenRecord->size() > 1) {
         moves = sfenRecordToUsiMoves(*ctx.sfenRecord);
-        qDebug().noquote() << "[KifuClipboard] generated" << moves.size() << "USI moves from sfenRecord";
+        qCDebug(lcKifu).noquote() << "generated" << moves.size() << "USI moves from sfenRecord";
     }
     return moves;
 }
@@ -56,7 +56,7 @@ QStringList resolveUsiMoves(const ExportContext& ctx)
 bool copyKif(const ExportContext& ctx)
 {
     if (!ctx.gameRecord) {
-        qWarning() << "[KifuClipboard] copyKif: gameRecord is null";
+        qCWarning(lcKifu) << "copyKif: gameRecord is null";
         return false;
     }
 
@@ -64,13 +64,13 @@ bool copyKif(const ExportContext& ctx)
     QStringList kifLines = ctx.gameRecord->toKifLines(modelCtx);
 
     if (kifLines.isEmpty()) {
-        qDebug().noquote() << "[KifuClipboard] copyKif: no KIF data";
+        qCDebug(lcKifu).noquote() << "copyKif: no KIF data";
         return false;
     }
 
     const QString kifText = kifLines.join(QStringLiteral("\n"));
     if (setClipboardText(kifText)) {
-        qDebug().noquote() << "[KifuClipboard] copyKif: copied" << kifText.size() << "chars";
+        qCDebug(lcKifu).noquote() << "copyKif: copied" << kifText.size() << "chars";
         return true;
     }
     return false;
@@ -79,7 +79,7 @@ bool copyKif(const ExportContext& ctx)
 bool copyKi2(const ExportContext& ctx)
 {
     if (!ctx.gameRecord) {
-        qWarning() << "[KifuClipboard] copyKi2: gameRecord is null";
+        qCWarning(lcKifu) << "copyKi2: gameRecord is null";
         return false;
     }
 
@@ -87,13 +87,13 @@ bool copyKi2(const ExportContext& ctx)
     QStringList ki2Lines = ctx.gameRecord->toKi2Lines(modelCtx);
 
     if (ki2Lines.isEmpty()) {
-        qDebug().noquote() << "[KifuClipboard] copyKi2: no KI2 data";
+        qCDebug(lcKifu).noquote() << "copyKi2: no KI2 data";
         return false;
     }
 
     const QString ki2Text = ki2Lines.join(QStringLiteral("\n"));
     if (setClipboardText(ki2Text)) {
-        qDebug().noquote() << "[KifuClipboard] copyKi2: copied" << ki2Text.size() << "chars";
+        qCDebug(lcKifu).noquote() << "copyKi2: copied" << ki2Text.size() << "chars";
         return true;
     }
     return false;
@@ -102,7 +102,7 @@ bool copyKi2(const ExportContext& ctx)
 bool copyCsa(const ExportContext& ctx)
 {
     if (!ctx.gameRecord) {
-        qWarning() << "[KifuClipboard] copyCsa: gameRecord is null";
+        qCWarning(lcKifu) << "copyCsa: gameRecord is null";
         return false;
     }
 
@@ -111,13 +111,13 @@ bool copyCsa(const ExportContext& ctx)
     QStringList csaLines = ctx.gameRecord->toCsaLines(modelCtx, usiMoves);
 
     if (csaLines.isEmpty()) {
-        qDebug().noquote() << "[KifuClipboard] copyCsa: no CSA data";
+        qCDebug(lcKifu).noquote() << "copyCsa: no CSA data";
         return false;
     }
 
     const QString csaText = csaLines.join(QStringLiteral("\n"));
     if (setClipboardText(csaText)) {
-        qDebug().noquote() << "[KifuClipboard] copyCsa: copied" << csaText.size() << "chars";
+        qCDebug(lcKifu).noquote() << "copyCsa: copied" << csaText.size() << "chars";
         return true;
     }
     return false;
@@ -126,7 +126,7 @@ bool copyCsa(const ExportContext& ctx)
 bool copyUsi(const ExportContext& ctx)
 {
     if (!ctx.gameRecord) {
-        qWarning() << "[KifuClipboard] copyUsi: gameRecord is null";
+        qCWarning(lcKifu) << "copyUsi: gameRecord is null";
         return false;
     }
 
@@ -135,13 +135,13 @@ bool copyUsi(const ExportContext& ctx)
     QStringList usiLines = ctx.gameRecord->toUsiLines(modelCtx, usiMoves);
 
     if (usiLines.isEmpty()) {
-        qDebug().noquote() << "[KifuClipboard] copyUsi: no USI data";
+        qCDebug(lcKifu).noquote() << "copyUsi: no USI data";
         return false;
     }
 
     const QString usiText = usiLines.join(QStringLiteral("\n"));
     if (setClipboardText(usiText)) {
-        qDebug().noquote() << "[KifuClipboard] copyUsi: copied" << usiText.size() << "chars";
+        qCDebug(lcKifu).noquote() << "copyUsi: copied" << usiText.size() << "chars";
         return true;
     }
     return false;
@@ -150,7 +150,7 @@ bool copyUsi(const ExportContext& ctx)
 bool copyUsiCurrent(const ExportContext& ctx, int currentMoveIndex)
 {
     if (!ctx.gameRecord) {
-        qWarning() << "[KifuClipboard] copyUsiCurrent: gameRecord is null";
+        qCWarning(lcKifu) << "copyUsiCurrent: gameRecord is null";
         return false;
     }
 
@@ -159,20 +159,20 @@ bool copyUsiCurrent(const ExportContext& ctx, int currentMoveIndex)
     // 現在の手数まで制限
     if (currentMoveIndex >= 0 && currentMoveIndex < usiMoves.size()) {
         usiMoves = usiMoves.mid(0, currentMoveIndex);
-        qDebug().noquote() << "[KifuClipboard] copyUsiCurrent: limited to" << currentMoveIndex << "moves";
+        qCDebug(lcKifu).noquote() << "copyUsiCurrent: limited to" << currentMoveIndex << "moves";
     }
 
     GameRecordModel::ExportContext modelCtx = buildModelContext(ctx);
     QStringList usiLines = ctx.gameRecord->toUsiLines(modelCtx, usiMoves);
 
     if (usiLines.isEmpty()) {
-        qDebug().noquote() << "[KifuClipboard] copyUsiCurrent: no USI data";
+        qCDebug(lcKifu).noquote() << "copyUsiCurrent: no USI data";
         return false;
     }
 
     const QString usiText = usiLines.join(QStringLiteral("\n"));
     if (setClipboardText(usiText)) {
-        qDebug().noquote() << "[KifuClipboard] copyUsiCurrent: copied" << usiText.size() << "chars";
+        qCDebug(lcKifu).noquote() << "copyUsiCurrent: copied" << usiText.size() << "chars";
         return true;
     }
     return false;
@@ -181,7 +181,7 @@ bool copyUsiCurrent(const ExportContext& ctx, int currentMoveIndex)
 bool copyJkf(const ExportContext& ctx)
 {
     if (!ctx.gameRecord) {
-        qWarning() << "[KifuClipboard] copyJkf: gameRecord is null";
+        qCWarning(lcKifu) << "copyJkf: gameRecord is null";
         return false;
     }
 
@@ -189,13 +189,13 @@ bool copyJkf(const ExportContext& ctx)
     QStringList jkfLines = ctx.gameRecord->toJkfLines(modelCtx);
 
     if (jkfLines.isEmpty()) {
-        qDebug().noquote() << "[KifuClipboard] copyJkf: no JKF data";
+        qCDebug(lcKifu).noquote() << "copyJkf: no JKF data";
         return false;
     }
 
     const QString jkfText = jkfLines.join(QStringLiteral("\n"));
     if (setClipboardText(jkfText)) {
-        qDebug().noquote() << "[KifuClipboard] copyJkf: copied" << jkfText.size() << "chars";
+        qCDebug(lcKifu).noquote() << "copyJkf: copied" << jkfText.size() << "chars";
         return true;
     }
     return false;
@@ -204,7 +204,7 @@ bool copyJkf(const ExportContext& ctx)
 bool copyUsen(const ExportContext& ctx)
 {
     if (!ctx.gameRecord) {
-        qWarning() << "[KifuClipboard] copyUsen: gameRecord is null";
+        qCWarning(lcKifu) << "copyUsen: gameRecord is null";
         return false;
     }
 
@@ -213,13 +213,13 @@ bool copyUsen(const ExportContext& ctx)
     QStringList usenLines = ctx.gameRecord->toUsenLines(modelCtx, usiMoves);
 
     if (usenLines.isEmpty()) {
-        qDebug().noquote() << "[KifuClipboard] copyUsen: no USEN data";
+        qCDebug(lcKifu).noquote() << "copyUsen: no USEN data";
         return false;
     }
 
     const QString usenText = usenLines.join(QStringLiteral("\n"));
     if (setClipboardText(usenText)) {
-        qDebug().noquote() << "[KifuClipboard] copyUsen: copied" << usenText.size() << "chars";
+        qCDebug(lcKifu).noquote() << "copyUsen: copied" << usenText.size() << "chars";
         return true;
     }
     return false;
@@ -242,16 +242,16 @@ bool copySfen(const ExportContext& ctx)
         }
 
         sfenStr = ctx.sfenRecord->at(idx);
-        qDebug().noquote() << "[KifuClipboard] copySfen: idx=" << idx << "sfen=" << sfenStr;
+        qCDebug(lcKifu).noquote() << "copySfen: idx=" << idx << "sfen=" << sfenStr;
     }
 
     if (sfenStr.isEmpty()) {
-        qDebug().noquote() << "[KifuClipboard] copySfen: no SFEN data";
+        qCDebug(lcKifu).noquote() << "copySfen: no SFEN data";
         return false;
     }
 
     if (setClipboardText(sfenStr)) {
-        qDebug().noquote() << "[KifuClipboard] copySfen: copied" << sfenStr.size() << "chars";
+        qCDebug(lcKifu).noquote() << "copySfen: copied" << sfenStr.size() << "chars";
         return true;
     }
     return false;
@@ -261,7 +261,7 @@ bool copyBod(const ExportContext& ctx)
 {
     // BOD形式はMainWindow側で直接処理する（toBodLinesメソッドがGameRecordModelにないため）
     Q_UNUSED(ctx);
-    qDebug().noquote() << "[KifuClipboard] copyBod: not implemented in service, use MainWindow directly";
+    qCDebug(lcKifu).noquote() << "copyBod: not implemented in service, use MainWindow directly";
     return false;
 }
 

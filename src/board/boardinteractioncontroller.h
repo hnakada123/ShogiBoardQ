@@ -7,8 +7,11 @@
 #include <QObject>
 #include <QPoint>
 #include <QColor>
+#include <QLoggingCategory>
 #include <functional>
 #include "shogiview.h"
+
+Q_DECLARE_LOGGING_CATEGORY(lcBoard)
 
 class ShogiGameController;
 

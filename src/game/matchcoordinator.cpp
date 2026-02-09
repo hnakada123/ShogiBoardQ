@@ -15,6 +15,8 @@
 #include "kifurecordlistmodel.h"
 #include "sfenpositiontracer.h"
 
+Q_LOGGING_CATEGORY(lcGame, "shogi.game")
+
 #include <limits>
 #include <QObject>
 #include <QDebug>
@@ -119,13 +121,13 @@ MatchCoordinator::MatchCoordinator(const Deps& d, QObject* parent)
     m_sfenRecord = d.sfenRecord;
 
     // デバッグ：どのリストを使うか明示
-    qInfo().noquote()
-        << "[MC][init] shared sfenRecord*=" << static_cast<const void*>(m_sfenRecord)
+    qCInfo(lcGame).noquote()
+        << "shared sfenRecord*=" << static_cast<const void*>(m_sfenRecord)
         << " eveSfenRecord@=" << static_cast<const void*>(&m_eveSfenRecord);
 
     // 念のため NPE ガード（無いと困る設計なのでログだけ）
     if (!m_sfenRecord) {
-        qWarning() << "[MC][init] sfenRecord is null! Presenterと同期できません。Deps.sfenRecordを渡してください。";
+        qCWarning(lcGame) << "sfenRecord is null! Presenterと同期できません。Deps.sfenRecordを渡してください。";
     }
 
     wireClock();
@@ -145,7 +147,7 @@ void MatchCoordinator::updateUsiPtrs(Usi* e1, Usi* e2) {
 void MatchCoordinator::handleResign() {
     // すでに終局なら何もしない（中断後のタイムアウト等で呼ばれるのを防ぐ）
     if (m_gameOver.isOver) {
-        qDebug() << "[MC] handleResign: already game over, ignoring";
+        qCDebug(lcGame) << "handleResign: already game over, ignoring";
         return;
     }
 
@@ -251,8 +253,8 @@ void MatchCoordinator::handleNyugyokuDeclaration(Player declarer, bool success, 
     // すでに終局なら何もしない
     if (m_gameOver.isOver) return;
 
-    qDebug() << "[MC] handleNyugyokuDeclaration(): declarer=" << (declarer == P1 ? "P1" : "P2")
-             << " success=" << success << " isDraw=" << isDraw;
+    qCInfo(lcGame) << "handleNyugyokuDeclaration(): declarer=" << (declarer == P1 ? "P1" : "P2")
+                    << " success=" << success << " isDraw=" << isDraw;
 
     // 進行系タイマを停止
     disarmHumanTimerIfNeeded();
@@ -399,7 +401,7 @@ void MatchCoordinator::displayResultsAndUpdateGui(const GameEndInfo& info) {
 
     // 棋譜自動保存
     if (m_autoSaveKifu && !m_kifuSaveDir.isEmpty() && m_hooks.autoSaveKifu) {
-        qDebug() << "[MC] Calling autoSaveKifu hook: dir=" << m_kifuSaveDir;
+        qCInfo(lcGame) << "Calling autoSaveKifu hook: dir=" << m_kifuSaveDir;
         m_hooks.autoSaveKifu(m_kifuSaveDir, m_playMode,
                              m_humanName1, m_humanName2,
                              m_engineNameForSave1, m_engineNameForSave2);
@@ -516,7 +518,7 @@ void MatchCoordinator::destroyEngine(int idx, bool clearThinking)
 
 void MatchCoordinator::destroyEngines(bool clearModels)
 {
-    qDebug().noquote() << "[MC::destroyEngines] called, clearModels=" << clearModels;
+    qCDebug(lcGame).noquote() << "destroyEngines called, clearModels=" << clearModels;
     destroyEngine(1, clearModels);
     destroyEngine(2, clearModels);
 
@@ -524,13 +526,13 @@ void MatchCoordinator::destroyEngines(bool clearModels)
     // これにより、対局を繰り返してもデータが蓄積しない
     // clearModels=false の場合はクリアしない（詰み探索完了後などで思考内容を保持したい場合）
     if (clearModels) {
-        qDebug().noquote() << "[MC::destroyEngines] clearing models";
+        qCDebug(lcGame).noquote() << "destroyEngines clearing models";
         if (m_comm1)  m_comm1->clear();
         if (m_think1) m_think1->clearAllItems();
         if (m_comm2)  m_comm2->clear();
         if (m_think2) m_think2->clearAllItems();
     } else {
-        qDebug().noquote() << "[MC::destroyEngines] preserving models (clearModels=false)";
+        qCDebug(lcGame).noquote() << "destroyEngines preserving models (clearModels=false)";
     }
 }
 
@@ -551,10 +553,10 @@ void MatchCoordinator::initEnginesForEvE(const QString& engineName1,
     UsiCommLogModel*          comm2  = m_comm2 ? m_comm2 : new UsiCommLogModel(this);
     ShogiEngineThinkingModel* think2 = m_think2 ? m_think2 : new ShogiEngineThinkingModel(this);
 
-    if (!m_comm1)  { m_comm1  = comm1;  qWarning() << "[EvE] comm1 fallback created"; }
-    if (!m_think1) { m_think1 = think1; qWarning() << "[EvE] think1 fallback created"; }
-    if (!m_comm2)  { m_comm2  = comm2;  qWarning() << "[EvE] comm2 fallback created"; }
-    if (!m_think2) { m_think2 = think2; qWarning() << "[EvE] think2 fallback created"; }
+    if (!m_comm1)  { m_comm1  = comm1;  qCWarning(lcGame) << "EvE comm1 fallback created"; }
+    if (!m_think1) { m_think1 = think1; qCWarning(lcGame) << "EvE think1 fallback created"; }
+    if (!m_comm2)  { m_comm2  = comm2;  qCWarning(lcGame) << "EvE comm2 fallback created"; }
+    if (!m_think2) { m_think2 = think2; qCWarning(lcGame) << "EvE think2 fallback created"; }
 
     // 思考タブのエンジン名表示用（EngineAnalysisTab は log model を参照）
     const QString dispName1 = engineName1.isEmpty() ? QStringLiteral("Engine") : engineName1;
@@ -634,8 +636,8 @@ bool MatchCoordinator::engineThinkApplyMove(Usi* engine,
         return (p.x() >= 1 && p.x() <= 9 && p.y() >= 1 && p.y() <= 9);
     };
     if (!isValidTo(to)) {
-        qInfo() << "[Match] engineThinkApplyMove: no legal 'to' returned (resign/abort?). from="
-                << from << "to=" << to;
+        qCDebug(lcGame) << "engineThinkApplyMove: no legal 'to' returned (resign/abort?). from="
+                        << from << "to=" << to;
         if (m_hooks.log) m_hooks.log(QStringLiteral("[Match] engineThinkApplyMove: no legal move (resign/abort?)"));
         return false;
     }
@@ -654,33 +656,33 @@ bool MatchCoordinator::engineMoveOnce(Usi* eng,
     if (!m_gc) return false;
 
     const auto moverBefore = m_gc->currentPlayer();
-    qDebug() << "[EVE] engineMoveOnce enter"
-             << "engineIndex=" << engineIndex
-             << "moverBefore=" << int(moverBefore)
-             << "thread=" << QThread::currentThread();
+    qCDebug(lcGame) << "engineMoveOnce enter"
+                     << "engineIndex=" << engineIndex
+                     << "moverBefore=" << int(moverBefore)
+                     << "thread=" << QThread::currentThread();
 
     QPoint from, to;
     if (!engineThinkApplyMove(eng, positionStr, ponderStr, &from, &to)) {
-        qDebug() << "[EVE] engineThinkApplyMove FAILED";
+        qCWarning(lcGame) << "engineThinkApplyMove FAILED";
         return false;
     }
-    qDebug() << "[EVE] engineThinkApplyMove OK from=" << from << "to=" << to;
+    qCDebug(lcGame) << "engineThinkApplyMove OK from=" << from << "to=" << to;
 
     if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
 
     switch (moverBefore) {
     case ShogiGameController::Player1:
-        qDebug() << "[EVE] calling appendEvalP1";
+        qCDebug(lcGame) << "calling appendEvalP1";
         if (m_hooks.appendEvalP1) m_hooks.appendEvalP1();
-        else qDebug() << "[EVE][WARN] appendEvalP1 NOT set";
+        else qCWarning(lcGame) << "appendEvalP1 NOT set";
         break;
     case ShogiGameController::Player2:
-        qDebug() << "[EVE] calling appendEvalP2";
+        qCDebug(lcGame) << "calling appendEvalP2";
         if (m_hooks.appendEvalP2) m_hooks.appendEvalP2();
-        else qDebug() << "[EVE][WARN] appendEvalP2 NOT set";
+        else qCWarning(lcGame) << "appendEvalP2 NOT set";
         break;
     default:
-        qDebug() << "[EVE][WARN] moverBefore=NoPlayer -> skip eval append";
+        qCWarning(lcGame) << "moverBefore=NoPlayer -> skip eval append";
         break;
     }
 
@@ -705,7 +707,7 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
             // 最後の要素を最新の m_positionStr1 で置き換え
             m_positionStrHistory[m_positionStrHistory.size() - 1] = m_positionStr1;
         }
-        qDebug().noquote() << "[MC][configureAndStart] synced m_positionStrHistory with m_positionStr1=" << m_positionStr1;
+        qCDebug(lcGame).noquote() << "configureAndStart: synced m_positionStrHistory with m_positionStr1=" << m_positionStr1;
     }
 
     // 直前の対局履歴が残っていれば、それを確定した過去の対局として蓄積
@@ -734,16 +736,16 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
     int      bestMatchPly = -1;           // 見つかった手数（デバッグ用）
 
     if (!m_allGameHistories.isEmpty()) {
-        qDebug() << "=== Accumulated Game Histories (Count:" << m_allGameHistories.size() << ") ===";
+        qCDebug(lcGame) << "=== Accumulated Game Histories (Count:" << m_allGameHistories.size() << ") ===";
         for (qsizetype i = 0; i < m_allGameHistories.size(); ++i) {
-            qDebug() << " [Game" << (i + 1) << "]";
+            qCDebug(lcGame) << " [Game" << (i + 1) << "]";
             const QStringList& rec = m_allGameHistories.at(i);
             for (const QString& pos : rec) {
-                qDebug().noquote() << "  " << pos;
+                qCDebug(lcGame).noquote() << "  " << pos;
             }
         }
-        qDebug() << "=======================================================";
-        qDebug() << "--- Searching for start position in previous games ---";
+        qCDebug(lcGame) << "=======================================================";
+        qCDebug(lcGame) << "--- Searching for start position in previous games ---";
 
         for (qsizetype i = 0; i < m_allGameHistories.size(); ++i) {
             const QStringList& hist = m_allGameHistories.at(i);
@@ -772,7 +774,7 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
 
             // 2) 0手目（開始局面）の比較
             if (tracer.toSfenString() == targetSfen) {
-                qDebug().noquote()
+                qCDebug(lcGame).noquote()
                 << QString(" -> MATCH FOUND: [Game %1] Start Position (Move 0)").arg(i + 1);
                 if (bestGameIdx == -1) { // 最初の一致を採用
                     bestGameIdx  = static_cast<int>(i);
@@ -785,7 +787,7 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
             for (qsizetype m = 0; m < moves.size(); ++m) {
                 tracer.applyUsiMove(moves[m]);
                 if (tracer.toSfenString() == targetSfen) {
-                    qDebug().noquote()
+                    qCDebug(lcGame).noquote()
                     << QString(" -> MATCH FOUND: [Game %1] Move %2").arg(i + 1).arg(m + 1);
                     if (bestGameIdx == -1) { // 最初の一致を採用
                         bestGameIdx  = static_cast<int>(i);
@@ -795,7 +797,7 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
                 }
             }
         }
-        qDebug() << "----------------------------------------------------";
+        qCDebug(lcGame) << "----------------------------------------------------";
     }
 
     // 前回の対局終了状態をクリア（再対局時に棋譜追加がブロックされる問題を修正）
@@ -813,19 +815,19 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
     m_engineNameForSave2 = opt.engineName2;
 
     // 盤・名前などの初期化（GUI側へ委譲）
-    qDebug().noquote() << "[MC] configureAndStart: calling hooks";
-    qDebug().noquote() << "[MC] configureAndStart: opt.engineName1=" << opt.engineName1 << " opt.engineName2=" << opt.engineName2;
+    qCDebug(lcGame).noquote() << "configureAndStart: calling hooks";
+    qCDebug(lcGame).noquote() << "configureAndStart: opt.engineName1=" << opt.engineName1 << " opt.engineName2=" << opt.engineName2;
     if (m_hooks.initializeNewGame) m_hooks.initializeNewGame(opt.sfenStart);
     if (m_hooks.setPlayersNames) {
-        qDebug().noquote() << "[MC] configureAndStart: calling setPlayersNames(\"\", \"\")";
+        qCDebug(lcGame).noquote() << "configureAndStart: calling setPlayersNames(\"\", \"\")";
         m_hooks.setPlayersNames(QString(), QString());
     }
     if (m_hooks.setEngineNames) {
-        qDebug().noquote() << "[MC] configureAndStart: calling setEngineNames(" << opt.engineName1 << "," << opt.engineName2 << ")";
+        qCDebug(lcGame).noquote() << "configureAndStart: calling setEngineNames(" << opt.engineName1 << "," << opt.engineName2 << ")";
         m_hooks.setEngineNames(opt.engineName1, opt.engineName2);
     }
     if (m_hooks.setGameActions)    m_hooks.setGameActions(true);
-    qDebug().noquote() << "[MC] configureAndStart: hooks done";
+    qCDebug(lcGame).noquote() << "configureAndStart: hooks done";
 
     // ---- 開始手番の決定（SFEN 解析：position sfen ... / 素のSFEN の両対応）
     auto decideStartSideFromSfen = [](const QString& sfen) -> ShogiGameController::Player {
@@ -904,7 +906,7 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
     };
 
     const int keepMoves = parseKeepMovesFromSfen(opt.sfenStart);
-    qDebug().noquote() << "[MC][configureAndStart] keepMoves(from sfenStart)=" << keepMoves;
+    qCDebug(lcGame).noquote() << "configureAndStart: keepMoves(from sfenStart)=" << keepMoves;
 
     // --- ベース候補：探索一致ゲームのみ採用
     // マッチしなかった場合は履歴からの再利用をスキップ
@@ -912,8 +914,8 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
     QString candidateBase;
     if (!bestBaseFull.isEmpty()) {
         candidateBase = bestBaseFull;
-        qDebug().noquote()
-            << "[MC][configureAndStart] base=matched game"
+        qCDebug(lcGame).noquote()
+            << "configureAndStart: base=matched game"
             << "gameIdx=" << (bestGameIdx + 1) << "matchPly=" << bestMatchPly
             << "full=" << candidateBase;
     }
@@ -922,7 +924,7 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
     if (!candidateBase.isEmpty() && keepMoves >= 0) {
         if (candidateBase.startsWith(QLatin1String("position "))) {
             const QString trimmed = trimMovesPreserveHeader(candidateBase, keepMoves);
-            qDebug().noquote() << "[MC][configureAndStart] trimmed(base, keep=" << keepMoves << ")=" << trimmed;
+            qCDebug(lcGame).noquote() << "configureAndStart: trimmed(base, keep=" << keepMoves << ")=" << trimmed;
 
             // trimmedがkeepMoves分の手を持っているか確認
             // candidateBase に十分な手数がない場合は、フォールバックに任せる
@@ -944,13 +946,13 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
                 m_positionStrHistory.append(trimmed);
 
                 applied = true;
-                qDebug().noquote() << "[MC][configureAndStart] applied=true (actualMoves=" << actualMoves << " >= keepMoves=" << keepMoves << ")";
+                qCDebug(lcGame).noquote() << "configureAndStart: applied=true (actualMoves=" << actualMoves << " >= keepMoves=" << keepMoves << ")";
             } else {
-                qDebug().noquote() << "[MC][configureAndStart] candidateBase has insufficient moves (actualMoves=" << actualMoves << " < keepMoves=" << keepMoves << "), falling back to SFEN";
+                qCDebug(lcGame).noquote() << "configureAndStart: candidateBase has insufficient moves (actualMoves=" << actualMoves << " < keepMoves=" << keepMoves << "), falling back to SFEN";
             }
         } else {
-            qWarning().noquote()
-            << "[MC][configureAndStart] candidateBase is not 'position ...' :" << candidateBase;
+            qCWarning(lcGame).noquote()
+            << "configureAndStart: candidateBase is not 'position ...' :" << candidateBase;
         }
     }
 
@@ -1023,14 +1025,14 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
         break;
 
     default:
-        qWarning().noquote()
-            << "[Match] configureAndStart: unexpected playMode="
+        qCWarning(lcGame).noquote()
+            << "configureAndStart: unexpected playMode="
             << static_cast<int>(m_playMode);
         break;
     }
 
     // ===== デバッグ: 退出時点の m_positionStr1 を記録 =====
-    qDebug().noquote() << "[MC][configureAndStart] LEAVE m_positionStr1(final)=" << m_positionStr1
+    qCDebug(lcGame).noquote() << "configureAndStart: LEAVE m_positionStr1(final)=" << m_positionStr1
                        << "hist.size=" << m_positionStrHistory.size()
                        << "hist.last=" << (m_positionStrHistory.isEmpty() ? QString("<empty>") : m_positionStrHistory.constLast());
 }
@@ -1133,7 +1135,7 @@ void MatchCoordinator::startEngineVsEngine(const StartOptions& opt)
     // EvE対局で初手からタイマーを動作させるため、ここで時計を開始する
     if (m_clock) {
         m_clock->startClock();
-        qDebug() << "[EvE] Clock started";
+        qCDebug(lcGame) << "Clock started";
     }
 
     // 駒落ちの場合、SFENで手番が「w」（後手番）になっている
@@ -1607,8 +1609,8 @@ MatchCoordinator::GoTimes MatchCoordinator::computeGoTimes() const {
     const qint64 rawW = hasRemainHook ? qMax<qint64>(0, m_hooks.remainingMsFor(P2)) : 0;
 
     // デバッグ（入力値）
-    qDebug().noquote()
-        << "[Match] computeGoTimes_: hooks{remain=" << hasRemainHook
+    qCDebug(lcGame).noquote()
+        << "computeGoTimes_: hooks{remain=" << hasRemainHook
         << ", inc=" << hasIncHook
         << ", byo=" << hasByoHook
         << "} rawB=" << rawB << " rawW=" << rawW
@@ -1624,8 +1626,8 @@ MatchCoordinator::GoTimes MatchCoordinator::computeGoTimes() const {
         t.byoyomi = (hasByoHook ? m_hooks.byoyomiMs() : 0);
         t.binc = t.winc = 0;
 
-        qDebug().noquote()
-            << "[Match] computeGoTimes_: BYO"
+        qCDebug(lcGame).noquote()
+            << "computeGoTimes_: BYO"
             << " bApplied=" << bApplied << " wApplied=" << wApplied
             << " => btime=" << t.btime << " wtime=" << t.wtime
             << " byoyomi=" << t.byoyomi;
@@ -1641,8 +1643,8 @@ MatchCoordinator::GoTimes MatchCoordinator::computeGoTimes() const {
         if (t.binc > 0) t.btime = qMax<qint64>(0, t.btime - t.binc);
         if (t.winc > 0) t.wtime = qMax<qint64>(0, t.wtime - t.winc);
 
-        qDebug().noquote()
-            << "[Match] computeGoTimes_: FISCHER"
+        qCDebug(lcGame).noquote()
+            << "computeGoTimes_: FISCHER"
             << " => btime=" << t.btime << " wtime=" << t.wtime
             << " binc=" << t.binc << " winc=" << t.winc;
     }
@@ -1675,7 +1677,7 @@ void MatchCoordinator::setClock(ShogiClock* clock)
 void MatchCoordinator::onClockTick()
 {
     // デバッグ：ここが動いていれば Coordinator は時計を受信できている
-    qDebug() << "[Match] onClockTick()";
+    qCDebug(lcGame) << "onClockTick()";
     emitTimeUpdateFromClock();
 }
 
@@ -1703,7 +1705,7 @@ void MatchCoordinator::emitTimeUpdateFromClock()
                                            : std::numeric_limits<qint64>::max();
 
     // デバッグ：UI へ送る値を確認
-    qDebug() << "[Match] emit timeUpdated p1ms=" << p1ms << " p2ms=" << p2ms
+    qCDebug(lcGame) << "emit timeUpdated p1ms=" << p1ms << " p2ms=" << p2ms
              << " p1turn=" << p1turn << " urgencyMs=" << urgencyMs;
 
     emit timeUpdated(p1ms, p2ms, p1turn, urgencyMs);
@@ -1732,7 +1734,7 @@ void MatchCoordinator::clearGameOverState()
     m_gameOver = GameOverState{}; // 全クリア
     if (wasOver) {
         emit gameOverStateChanged(m_gameOver);
-        qDebug() << "[Match] clearGameOverState()";
+        qCDebug(lcGame) << "clearGameOverState()";
     }
 }
 
@@ -1740,12 +1742,12 @@ void MatchCoordinator::clearGameOverState()
 void MatchCoordinator::setGameOver(const GameEndInfo& info, bool loserIsP1, bool appendMoveOnce)
 {
     if (m_gameOver.isOver) {
-        qDebug() << "[MC] setGameOver() ignored: already over";
+        qCDebug(lcGame) << "setGameOver() ignored: already over";
         return;
     }
 
-    qDebug().nospace()
-        << "[MC] setGameOver cause="
+    qCDebug(lcGame).nospace()
+        << "setGameOver cause="
         << ((info.cause==Cause::Timeout)?"Timeout":"Resign")
         << " loser=" << ((info.loser==P1)?"P1":"P2")
         << " appendMoveOnce=" << appendMoveOnce;
@@ -1760,7 +1762,7 @@ void MatchCoordinator::setGameOver(const GameEndInfo& info, bool loserIsP1, bool
     emit gameEnded(info);
 
     if (appendMoveOnce && !m_gameOver.moveAppended) {
-        qDebug() << "[MC] emit requestAppendGameOverMove";
+        qCDebug(lcGame) << "emit requestAppendGameOverMove";
         emit requestAppendGameOverMove(info);
     }
 }
@@ -1772,7 +1774,7 @@ void MatchCoordinator::markGameOverMoveAppended()
 
     m_gameOver.moveAppended = true;
     emit gameOverStateChanged(m_gameOver);
-    qDebug() << "[Match] markGameOverMoveAppended()";
+    qCDebug(lcGame) << "markGameOverMoveAppended()";
 }
 
 // 投了と同様に"対局の実体"として中断を一元処理
@@ -1859,7 +1861,7 @@ void MatchCoordinator::handleBreakOff()
 // 検討を開始する（単発エンジンセッション）
 void MatchCoordinator::startAnalysis(const AnalysisOptions& opt)
 {
-    qDebug().noquote() << "[MC] startAnalysis ENTER:"
+    qCDebug(lcGame).noquote() << "startAnalysis ENTER:"
                        << "mode=" << static_cast<int>(opt.mode)
                        << "byoyomiMs=" << opt.byoyomiMs
                        << "multiPV=" << opt.multiPV
@@ -1868,7 +1870,7 @@ void MatchCoordinator::startAnalysis(const AnalysisOptions& opt)
 
     // エンジン破棄中の場合は検討開始を拒否（再入防止）
     if (m_engineShutdownInProgress) {
-        qDebug().noquote() << "[MC] startAnalysis: engine shutdown in progress, ignoring request";
+        qCDebug(lcGame).noquote() << "startAnalysis: engine shutdown in progress, ignoring request";
         return;
     }
 
@@ -1876,7 +1878,7 @@ void MatchCoordinator::startAnalysis(const AnalysisOptions& opt)
     setPlayMode(opt.mode); // PlayMode::ConsiderationMode or PlayMode::TsumiSearchMode
 
     // 2) 既存エンジンを破棄して新規作成（毎回エンジンを起動する）
-    qDebug().noquote() << "[MC] startAnalysis: destroying old engines and starting new:" << opt.enginePath;
+    qCDebug(lcGame).noquote() << "startAnalysis: destroying old engines and starting new:" << opt.enginePath;
     destroyEngines();
 
     // deleteLater()で予約された削除を処理してから新エンジンを作成
@@ -1949,15 +1951,15 @@ void MatchCoordinator::startAnalysis(const AnalysisOptions& opt)
     }
 
     // 10.1) 前回の移動先を設定（「同」表記のため）
-    qDebug().noquote() << "[MC] startAnalysis: opt.previousFileTo=" << opt.previousFileTo
+    qCDebug(lcGame).noquote() << "startAnalysis: opt.previousFileTo=" << opt.previousFileTo
                        << "opt.previousRankTo=" << opt.previousRankTo;
     if (opt.previousFileTo > 0 && opt.previousRankTo > 0) {
         m_usi1->setPreviousFileTo(opt.previousFileTo);
         m_usi1->setPreviousRankTo(opt.previousRankTo);
-        qDebug().noquote() << "[MC] startAnalysis: setPreviousFileTo/RankTo:"
+        qCDebug(lcGame).noquote() << "startAnalysis: setPreviousFileTo/RankTo:"
                            << opt.previousFileTo << "/" << opt.previousRankTo;
     } else {
-        qDebug().noquote() << "[MC] startAnalysis: WARNING: previousFileTo/RankTo not set (values are 0)";
+        qCWarning(lcGame).noquote() << "startAnalysis: previousFileTo/RankTo not set (values are 0)";
     }
 
     // 10.5) 検討モードの場合、フラグを設定し bestmove を接続
@@ -1985,27 +1987,27 @@ void MatchCoordinator::startAnalysis(const AnalysisOptions& opt)
 
     // 11) 解析/詰み探索の実行
     QString pos = opt.positionStr; // "position sfen <...>"
-    qDebug().noquote() << "[MC] startAnalysis: about to start analysis communication, byoyomiMs=" << opt.byoyomiMs;
+    qCDebug(lcGame).noquote() << "startAnalysis: about to start analysis communication, byoyomiMs=" << opt.byoyomiMs;
     if (opt.mode == PlayMode::TsumiSearchMode) {
         m_usi1->executeTsumeCommunication(pos, opt.byoyomiMs);
-        qDebug().noquote() << "[MC] startAnalysis EXIT (executeTsumeCommunication returned)";
+        qCDebug(lcGame).noquote() << "startAnalysis EXIT (executeTsumeCommunication returned)";
         return;
     }
 
     if (opt.mode == PlayMode::ConsiderationMode) {
         // 検討は非ブロッキングで開始し、UIフリーズを避ける
         m_usi1->sendAnalysisCommands(pos, opt.byoyomiMs, opt.multiPV);
-        qDebug().noquote() << "[MC] startAnalysis EXIT (sendAnalysisCommands queued)";
+        qCDebug(lcGame).noquote() << "startAnalysis EXIT (sendAnalysisCommands queued)";
         return;
     }
 
     m_usi1->executeAnalysisCommunication(pos, opt.byoyomiMs, opt.multiPV);
-    qDebug().noquote() << "[MC] startAnalysis EXIT (executeAnalysisCommunication returned)";
+    qCDebug(lcGame).noquote() << "startAnalysis EXIT (executeAnalysisCommunication returned)";
 }
 
 void MatchCoordinator::stopAnalysisEngine()
 {
-    qDebug().noquote() << "[MC] stopAnalysisEngine called";
+    qCDebug(lcGame).noquote() << "stopAnalysisEngine called";
 
     // エンジン破棄中フラグをセット（検討再開の再入防止）
     m_engineShutdownInProgress = true;
@@ -2027,17 +2029,17 @@ void MatchCoordinator::stopAnalysisEngine()
 
 void MatchCoordinator::updateConsiderationMultiPV(int multiPV)
 {
-    qDebug().noquote() << "[MC] updateConsiderationMultiPV called: multiPV=" << multiPV;
+    qCDebug(lcGame).noquote() << "updateConsiderationMultiPV called: multiPV=" << multiPV;
 
     // 検討モード中でない場合は無視
     if (!m_inConsiderationMode) {
-        qDebug().noquote() << "[MC] updateConsiderationMultiPV: not in consideration mode, ignoring";
+        qCDebug(lcGame).noquote() << "updateConsiderationMultiPV: not in consideration mode, ignoring";
         return;
     }
 
     // 値が同じなら何もしない
     if (m_considerationMultiPV == multiPV) {
-        qDebug().noquote() << "[MC] updateConsiderationMultiPV: same value, ignoring";
+        qCDebug(lcGame).noquote() << "updateConsiderationMultiPV: same value, ignoring";
         return;
     }
 
@@ -2052,7 +2054,7 @@ void MatchCoordinator::updateConsiderationMultiPV(int multiPV)
 
     // エンジンを停止（bestmove を受信後に再開する）
     if (m_usi1) {
-        qDebug().noquote() << "[MC] updateConsiderationMultiPV: sending stop to restart with new MultiPV";
+        qCDebug(lcGame).noquote() << "updateConsiderationMultiPV: sending stop to restart with new MultiPV";
         m_usi1->sendStopCommand();
     }
 }
@@ -2061,7 +2063,7 @@ bool MatchCoordinator::updateConsiderationPosition(const QString& newPositionStr
                                                    int previousFileTo, int previousRankTo,
                                                    const QString& lastUsiMove)
 {
-    qDebug().noquote() << "[MC] updateConsiderationPosition called:"
+    qCDebug(lcGame).noquote() << "updateConsiderationPosition called:"
                        << "m_inConsiderationMode=" << m_inConsiderationMode
                        << "m_considerationWaiting=" << m_considerationWaiting
                        << "m_considerationRestartPending=" << m_considerationRestartPending
@@ -2072,13 +2074,13 @@ bool MatchCoordinator::updateConsiderationPosition(const QString& newPositionStr
 
     // 検討モード中でない場合は無視
     if (!m_inConsiderationMode) {
-        qDebug().noquote() << "[MC] updateConsiderationPosition: not in consideration mode, ignoring";
+        qCDebug(lcGame).noquote() << "updateConsiderationPosition: not in consideration mode, ignoring";
         return false;
     }
 
     // 同じポジションなら何もしない
     if (m_considerationPositionStr == newPositionStr) {
-        qDebug().noquote() << "[MC] updateConsiderationPosition: same position, ignoring";
+        qCDebug(lcGame).noquote() << "updateConsiderationPosition: same position, ignoring";
         return false;
     }
 
@@ -2095,7 +2097,7 @@ bool MatchCoordinator::updateConsiderationPosition(const QString& newPositionStr
 
     // エンジンが待機状態の場合、直接新しい局面で検討を再開（stop不要）
     if (m_considerationWaiting && m_usi1) {
-        qDebug().noquote() << "[MC] updateConsiderationPosition: engine is waiting, resuming with new position";
+        qCDebug(lcGame).noquote() << "updateConsiderationPosition: engine is waiting, resuming with new position";
         m_considerationWaiting = false;  // 待機状態を解除
 
         // 前回の移動先を設定（「同」表記のため）
@@ -2116,11 +2118,11 @@ bool MatchCoordinator::updateConsiderationPosition(const QString& newPositionStr
 
     // エンジンが稼働中の場合、停止して再開フラグを設定
     m_considerationRestartPending = true;
-    qDebug().noquote() << "[MC] updateConsiderationPosition: set m_considerationRestartPending=true";
+    qCDebug(lcGame).noquote() << "updateConsiderationPosition: set m_considerationRestartPending=true";
 
     // エンジンを停止（bestmove を受信後に再開する）
     if (m_usi1) {
-        qDebug().noquote() << "[MC] updateConsiderationPosition: sending stop to restart with new position";
+        qCDebug(lcGame).noquote() << "updateConsiderationPosition: sending stop to restart with new position";
         m_usi1->sendStopCommand();
     }
 
@@ -2178,14 +2180,14 @@ void MatchCoordinator::onTsumeBestMoveReceived()
 
 void MatchCoordinator::onConsiderationBestMoveReceived()
 {
-    qDebug().noquote() << "[MC] onConsiderationBestMoveReceived ENTER:"
+    qCDebug(lcGame).noquote() << "onConsiderationBestMoveReceived ENTER:"
                        << "m_inConsiderationMode=" << m_inConsiderationMode
                        << "m_considerationRestartPending=" << m_considerationRestartPending
                        << "m_considerationWaiting=" << m_considerationWaiting;
 
     // 検討モード中でない場合は無視
     if (!m_inConsiderationMode) {
-        qDebug().noquote() << "[MC] onConsiderationBestMoveReceived: not in consideration mode, ignoring";
+        qCDebug(lcGame).noquote() << "onConsiderationBestMoveReceived: not in consideration mode, ignoring";
         return;
     }
 
@@ -2195,7 +2197,7 @@ void MatchCoordinator::onConsiderationBestMoveReceived()
     // QTimer::singleShot で次のイベントループに遅延させる。
     if (m_considerationRestartPending) {
         m_considerationRestartPending = false;
-        qDebug().noquote() << "[MC] onConsiderationBestMoveReceived: scheduling restart (restart was pending)";
+        qCDebug(lcGame).noquote() << "onConsiderationBestMoveReceived: scheduling restart (restart was pending)";
 
         // 再開処理を次のイベントループに遅延
         QTimer::singleShot(0, this, &MatchCoordinator::restartConsiderationDeferred);
@@ -2204,19 +2206,19 @@ void MatchCoordinator::onConsiderationBestMoveReceived()
 
     // 検討時間が経過した場合、エンジンを待機状態にして次の局面選択を待つ
     // エンジンを終了せず、検討モードも維持する
-    qDebug().noquote() << "[MC] onConsiderationBestMoveReceived: entering waiting state (engine idle)";
+    qCDebug(lcGame).noquote() << "onConsiderationBestMoveReceived: entering waiting state (engine idle)";
     m_considerationWaiting = true;  // 待機状態に移行
     m_considerationRestartInProgress = false;  // 再入防止フラグをリセット
     // 検討モードは維持（m_inConsiderationMode = true のまま）
     // エンジンは終了しない（destroyEngines を呼ばない）
     // considerationModeEnded も発火しない（ボタンは「検討中止」のまま）
     emit considerationWaitingStarted();  // UIに待機開始を通知（経過タイマー停止用）
-    qDebug().noquote() << "[MC] onConsiderationBestMoveReceived EXIT (waiting state)";
+    qCDebug(lcGame).noquote() << "onConsiderationBestMoveReceived EXIT (waiting state)";
 }
 
 void MatchCoordinator::restartConsiderationDeferred()
 {
-    qDebug().noquote() << "[MC] restartConsiderationDeferred ENTER:"
+    qCDebug(lcGame).noquote() << "restartConsiderationDeferred ENTER:"
                        << "m_inConsiderationMode=" << m_inConsiderationMode
                        << "m_considerationRestartPending=" << m_considerationRestartPending
                        << "m_considerationRestartInProgress=" << m_considerationRestartInProgress
@@ -2224,19 +2226,19 @@ void MatchCoordinator::restartConsiderationDeferred()
 
     // 検討モード中でなければ何もしない
     if (!m_inConsiderationMode) {
-        qDebug().noquote() << "[MC] restartConsiderationDeferred: not in consideration mode, ignoring";
+        qCDebug(lcGame).noquote() << "restartConsiderationDeferred: not in consideration mode, ignoring";
         return;
     }
 
     // エンジンがなければ何もしない
     if (!m_usi1) {
-        qDebug().noquote() << "[MC] restartConsiderationDeferred: no engine, ignoring";
+        qCDebug(lcGame).noquote() << "restartConsiderationDeferred: no engine, ignoring";
         return;
     }
 
     // 既存エンジンに直接コマンドを送信（非ブロッキング）
     // エンジンは bestmove 送信後アイドル状態なので、そのまま新しいコマンドを送れる
-    qDebug().noquote() << "[MC] restartConsiderationDeferred: sending commands to existing engine"
+    qCDebug(lcGame).noquote() << "restartConsiderationDeferred: sending commands to existing engine"
                        << "position=" << m_considerationPositionStr
                        << "byoyomiMs=" << m_considerationByoyomiMs
                        << "multiPV=" << m_considerationMultiPV;
@@ -2253,21 +2255,21 @@ void MatchCoordinator::restartConsiderationDeferred()
     if (m_considerationPreviousFileTo > 0 && m_considerationPreviousRankTo > 0) {
         m_usi1->setPreviousFileTo(m_considerationPreviousFileTo);
         m_usi1->setPreviousRankTo(m_considerationPreviousRankTo);
-        qDebug().noquote() << "[MC] restartConsiderationDeferred: setPreviousFileTo/RankTo:"
+        qCDebug(lcGame).noquote() << "restartConsiderationDeferred: setPreviousFileTo/RankTo:"
                            << m_considerationPreviousFileTo << "/" << m_considerationPreviousRankTo;
     }
 
     // 最後の指し手を設定（読み筋表示ウィンドウのハイライト用）
     if (!m_considerationLastUsiMove.isEmpty()) {
         m_usi1->setLastUsiMove(m_considerationLastUsiMove);
-        qDebug().noquote() << "[MC] restartConsiderationDeferred: setLastUsiMove:"
+        qCDebug(lcGame).noquote() << "restartConsiderationDeferred: setLastUsiMove:"
                            << m_considerationLastUsiMove;
     }
 
     // 既存エンジンにコマンドを送信
     m_usi1->sendAnalysisCommands(m_considerationPositionStr, m_considerationByoyomiMs, m_considerationMultiPV);
 
-    qDebug().noquote() << "[MC] restartConsiderationDeferred EXIT";
+    qCDebug(lcGame).noquote() << "restartConsiderationDeferred EXIT";
 }
 
 void MatchCoordinator::onUsiError(const QString& msg)
@@ -2363,9 +2365,9 @@ void MatchCoordinator::startInitialEngineMoveFor(Player engineSide)
     const int mcCur = m_currentMoveIndex;
     const qsizetype recSizeBefore = m_sfenRecord ? m_sfenRecord->size() : -1;
     const QString recTailBefore = (m_sfenRecord && !m_sfenRecord->isEmpty()) ? m_sfenRecord->last() : QString();
-    qInfo().noquote() << "[IDX][HvE:init] enter  mcCur=" << mcCur
-                      << " recSizeBefore=" << recSizeBefore
-                      << " recTailBefore='" << recTailBefore << "'";
+    qCDebug(lcGame).noquote() << "HvE:init enter  mcCur=" << mcCur
+                             << " recSizeBefore=" << recSizeBefore
+                             << " recTailBefore='" << recTailBefore << "'";
 
     qint64 bMs = 0, wMs = 0;
     computeGoTimesForUSI(bMs, wMs);
@@ -2397,9 +2399,9 @@ void MatchCoordinator::startInitialEngineMoveFor(Player engineSide)
     const QString recTailAfter = (m_sfenRecord && !m_sfenRecord->isEmpty()) ? m_sfenRecord->last() : QString();
     const int recTailNum = recTailAfter.isEmpty() ? -1 : extractMoveNumber(recTailAfter);
 
-    qInfo().noquote() << "[IDX][HvE:init] v&m=" << ok
-                      << " nextIdx=" << nextIdx
-                      << " recTailAfter='" << recTailAfter << "' num=" << recTailNum;
+    qCDebug(lcGame).noquote() << "HvE:init v&m=" << ok
+                             << " nextIdx=" << nextIdx
+                             << " recTailAfter='" << recTailAfter << "' num=" << recTailNum;
 
     if (!ok) return;
 
@@ -2426,12 +2428,12 @@ void MatchCoordinator::startInitialEngineMoveFor(Player engineSide)
 
     armHumanTimerIfNeeded();
 
-    qDebug() << "[HvE] about to call appendEval, engineSide=" << (engineSide == P1 ? "P1" : "P2");
+    qCDebug(lcGame) << "about to call appendEval, engineSide=" << (engineSide == P1 ? "P1" : "P2");
     if (engineSide == P1) {
-        qDebug() << "[HvE] calling appendEvalP1, hook set=" << (m_hooks.appendEvalP1 ? "YES" : "NO");
+        qCDebug(lcGame) << "calling appendEvalP1, hook set=" << (m_hooks.appendEvalP1 ? "YES" : "NO");
         if (m_hooks.appendEvalP1) m_hooks.appendEvalP1();
     } else {
-        qDebug() << "[HvE] calling appendEvalP2, hook set=" << (m_hooks.appendEvalP2 ? "YES" : "NO");
+        qCDebug(lcGame) << "calling appendEvalP2, hook set=" << (m_hooks.appendEvalP2 ? "YES" : "NO");
         if (m_hooks.appendEvalP2) m_hooks.appendEvalP2();
     }
 
@@ -2459,8 +2461,8 @@ void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& hu
     if (m_sfenRecord) {
         const int fromRec = static_cast<int>(qMax(qsizetype(0), m_sfenRecord->size() - 1));
         if (fromRec != mcCur) {
-            qInfo() << "[IDX][HvE] sync mcCur" << mcCur << "->" << fromRec
-                    << "(by recSize=" << m_sfenRecord->size() << ")";
+            qCDebug(lcGame) << "HvE sync mcCur" << mcCur << "->" << fromRec
+                            << "(by recSize=" << m_sfenRecord->size() << ")";
             mcCur = fromRec;
             m_currentMoveIndex = fromRec;
         }
@@ -2468,10 +2470,10 @@ void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& hu
 
     const qsizetype recSizeBefore = m_sfenRecord ? m_sfenRecord->size() : -1;
     const QString recTailBefore = (m_sfenRecord && !m_sfenRecord->isEmpty()) ? m_sfenRecord->last() : QString();
-    qInfo().noquote() << "[IDX][HvE] enter  mcCur=" << mcCur
-                      << " recSizeBefore=" << recSizeBefore
-                      << " recTailBefore='" << recTailBefore << "'"
-                      << " humanFrom=" << humanFrom << " humanTo=" << humanTo;
+    qCDebug(lcGame).noquote() << "HvE enter  mcCur=" << mcCur
+                             << " recSizeBefore=" << recSizeBefore
+                             << " recTailBefore='" << recTailBefore << "'"
+                             << " humanFrom=" << humanFrom << " humanTo=" << humanTo;
 
     // 人間側のストップウォッチ締め＆考慮確定（既存）
     finishHumanTimerAndSetConsideration();
@@ -2493,8 +2495,8 @@ void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& hu
         engineIsP1 ? ShogiGameController::Player1 : ShogiGameController::Player2;
 
     const bool engineTurnNow = (m_gc && (m_gc->currentPlayer() == engineSeat));
-    qInfo().noquote() << "[IDX][HvE] engineTurnNow=" << engineTurnNow
-                      << " engineSeat=" << int(engineSeat);
+    qCDebug(lcGame).noquote() << "HvE engineTurnNow=" << engineTurnNow
+                             << " engineSeat=" << int(engineSeat);
     if (!engineTurnNow) { if (!gameOverState().isOver) armHumanTimerIfNeeded(); return; }
 
     Usi* eng = primaryEngine();
@@ -2530,14 +2532,14 @@ void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& hu
     const QString recTailAfter = (m_sfenRecord && !m_sfenRecord->isEmpty()) ? m_sfenRecord->last() : QString();
     const int recTailNum = recTailAfter.isEmpty() ? -1 : extractMoveNumber(recTailAfter);
 
-    qInfo().noquote() << "[IDX][HvE] v&m=" << ok
-                      << " argMove(nextIdx)=" << nextIdx
-                      << " mcCur(before sync calc)=" << mcCur
-                      << " recTailAfter='" << recTailAfter << "' num=" << recTailNum;
+    qCDebug(lcGame).noquote() << "HvE v&m=" << ok
+                             << " argMove(nextIdx)=" << nextIdx
+                             << " mcCur(before sync calc)=" << mcCur
+                             << " recTailAfter='" << recTailAfter << "' num=" << recTailNum;
 
     if (ok) {
         m_currentMoveIndex = nextIdx;
-        qInfo().noquote() << "[IDX][HvE] mcCur ->" << m_currentMoveIndex;
+        qCDebug(lcGame).noquote() << "HvE mcCur ->" << m_currentMoveIndex;
     } else {
         if (!gameOverState().isOver) armHumanTimerIfNeeded();
         return;
@@ -2573,12 +2575,12 @@ void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& hu
     // エンジン着手後の評価値追加
     // engineIsP1: エンジンがP1（先手）の場合 → appendEvalP1
     //             エンジンがP2（後手）の場合 → appendEvalP2
-    qDebug() << "[HvE][onHumanMove] about to call appendEval, engineIsP1=" << engineIsP1;
+    qCDebug(lcGame) << "onHumanMove: about to call appendEval, engineIsP1=" << engineIsP1;
     if (engineIsP1) {
-        qDebug() << "[HvE][onHumanMove] calling appendEvalP1, hook set=" << (m_hooks.appendEvalP1 ? "YES" : "NO");
+        qCDebug(lcGame) << "onHumanMove: calling appendEvalP1, hook set=" << (m_hooks.appendEvalP1 ? "YES" : "NO");
         if (m_hooks.appendEvalP1) m_hooks.appendEvalP1();
     } else {
-        qDebug() << "[HvE][onHumanMove] calling appendEvalP2, hook set=" << (m_hooks.appendEvalP2 ? "YES" : "NO");
+        qCDebug(lcGame) << "onHumanMove: calling appendEvalP2, hook set=" << (m_hooks.appendEvalP2 ? "YES" : "NO");
         if (m_hooks.appendEvalP2) m_hooks.appendEvalP2();
     }
 
@@ -3234,7 +3236,7 @@ void MatchCoordinator::handleMaxMovesJishogi()
     // すでに終局なら何もしない
     if (m_gameOver.isOver) return;
 
-    qDebug() << "[MC] handleMaxMovesJishogi(): max moves reached";
+    qCInfo(lcGame) << "handleMaxMovesJishogi(): max moves reached";
 
     // 進行系タイマを停止
     disarmHumanTimerIfNeeded();

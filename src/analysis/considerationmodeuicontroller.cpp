@@ -3,6 +3,7 @@
 
 #include "considerationmodeuicontroller.h"
 
+#include "analysisflowcontroller.h"
 #include "engineanalysistab.h"
 #include "engineinfowidget.h"
 #include "shogiview.h"
@@ -13,7 +14,6 @@
 #include "kifurecordlistmodel.h"
 #include "shogiutils.h"
 
-#include <QDebug>
 #include <QColor>
 
 ConsiderationModeUIController::ConsiderationModeUIController(QObject* parent)
@@ -59,7 +59,7 @@ void ConsiderationModeUIController::setShowArrowsEnabled(bool enabled)
 
 void ConsiderationModeUIController::onModeStarted()
 {
-    qDebug().noquote() << "[ConsiderationModeUIController::onModeStarted] Initializing consideration mode";
+    qCInfo(lcAnalysis).noquote() << "Initializing consideration mode";
 
     if (m_analysisTab && m_considerationModel) {
         // 検討タブに専用モデルを設定
@@ -87,8 +87,8 @@ void ConsiderationModeUIController::onModeStarted()
 
 void ConsiderationModeUIController::onTimeSettingsReady(bool unlimited, int byoyomiSec)
 {
-    qDebug().noquote() << "[ConsiderationModeUIController::onTimeSettingsReady] unlimited=" << unlimited
-                       << " byoyomiSec=" << byoyomiSec;
+    qCDebug(lcAnalysis).noquote() << "onTimeSettingsReady: unlimited=" << unlimited
+                                  << "byoyomiSec=" << byoyomiSec;
 
     if (m_analysisTab) {
         // 時間設定を検討タブに反映
@@ -131,44 +131,40 @@ void ConsiderationModeUIController::onTimeSettingsReady(bool unlimited, int byoy
 
 void ConsiderationModeUIController::onModeEnded()
 {
-    qDebug().noquote() << "[ConsiderationModeUIController::onModeEnded] ENTER";
+    qCInfo(lcAnalysis).noquote() << "consideration mode ended";
 
     if (m_analysisTab) {
         // 経過時間タイマーを停止
-        qDebug().noquote() << "[ConsiderationModeUIController::onModeEnded] Stopping elapsed timer";
+        qCDebug(lcAnalysis).noquote() << "Stopping elapsed timer";
         m_analysisTab->stopElapsedTimer();
 
         // ボタンを「検討開始」に切り替え
-        qDebug().noquote() << "[ConsiderationModeUIController::onModeEnded] Calling setConsiderationRunning(false)";
+        qCDebug(lcAnalysis).noquote() << "Calling setConsiderationRunning(false)";
         m_analysisTab->setConsiderationRunning(false);
-        qDebug().noquote() << "[ConsiderationModeUIController::onModeEnded] setConsiderationRunning(false) returned";
+        qCDebug(lcAnalysis).noquote() << "setConsiderationRunning(false) returned";
     }
 
     // 検討終了時に矢印をクリア
     if (m_shogiView) {
         m_shogiView->clearArrows();
     }
-
-    qDebug().noquote() << "[ConsiderationModeUIController::onModeEnded] EXIT";
 }
 
 void ConsiderationModeUIController::onWaitingStarted()
 {
-    qDebug().noquote() << "[ConsiderationModeUIController::onWaitingStarted] ENTER";
+    qCDebug(lcAnalysis).noquote() << "onWaitingStarted";
 
     if (m_analysisTab) {
         // 経過時間タイマーを停止（ボタンは「検討中止」のまま）
-        qDebug().noquote() << "[ConsiderationModeUIController::onWaitingStarted] Stopping elapsed timer";
+        qCDebug(lcAnalysis).noquote() << "Stopping elapsed timer";
         m_analysisTab->stopElapsedTimer();
         // setConsiderationRunning(false) は呼ばない（ボタンは「検討中止」のまま）
     }
-
-    qDebug().noquote() << "[ConsiderationModeUIController::onWaitingStarted] EXIT";
 }
 
 void ConsiderationModeUIController::onMultiPVChanged(int value)
 {
-    qDebug().noquote() << "[ConsiderationModeUIController::onMultiPVChanged] value=" << value;
+    qCDebug(lcAnalysis).noquote() << "onMultiPVChanged: value=" << value;
 
     // 検討中の場合のみMatchCoordinatorに転送
     emit multiPVChangeRequested(value);
@@ -176,7 +172,7 @@ void ConsiderationModeUIController::onMultiPVChanged(int value)
 
 void ConsiderationModeUIController::onDialogMultiPVReady(int multiPV)
 {
-    qDebug().noquote() << "[ConsiderationModeUIController::onDialogMultiPVReady] multiPV=" << multiPV;
+    qCDebug(lcAnalysis).noquote() << "onDialogMultiPVReady: multiPV=" << multiPV;
 
     // 検討タブのMultiPVコンボボックスを更新
     if (m_analysisTab) {
@@ -343,9 +339,9 @@ bool ConsiderationModeUIController::updatePositionIfInConsiderationMode(
     // 検討モード中でなければ何もしない
     if (!m_match) return false;
 
-    qDebug().noquote() << "[ConsiderationUIController] updatePositionIfInConsiderationMode: row=" << row
-                       << "newPosition.isEmpty=" << newPosition.isEmpty()
-                       << "newPosition=" << newPosition.left(80);
+    qCDebug(lcAnalysis).noquote() << "updatePositionIfInConsiderationMode: row=" << row
+                                  << "newPosition.isEmpty=" << newPosition.isEmpty()
+                                  << "newPosition=" << newPosition.left(80);
 
     if (newPosition.isEmpty()) return false;
 
@@ -363,8 +359,8 @@ bool ConsiderationModeUIController::updatePositionIfInConsiderationMode(
     }
 
     const bool updated = m_match->updateConsiderationPosition(newPosition, previousFileTo, previousRankTo);
-    qDebug().noquote() << "[ConsiderationUIController] updateConsiderationPosition returned:" << updated
-                       << "previousFileTo=" << previousFileTo << "previousRankTo=" << previousRankTo;
+    qCDebug(lcAnalysis).noquote() << "updateConsiderationPosition returned:" << updated
+                                  << "previousFileTo=" << previousFileTo << "previousRankTo=" << previousRankTo;
 
     // ポジションが変更された場合、経過時間タイマーをリセットして再開
     if (updated && m_analysisTab) {

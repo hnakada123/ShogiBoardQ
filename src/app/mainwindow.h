@@ -65,9 +65,6 @@ class KifuDisplayCoordinator;
 class BranchTreeWidget;
 class LiveGameSession;
 
-// --- マクロ ---
-#define SHOGIBOARDQ_DEBUG_KIF 1  ///< 棋譜デバッグ出力の有効化フラグ
-
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE

@@ -2,7 +2,9 @@
 /// @brief CSAプロトコルクライアントクラスの実装
 
 #include "csaclient.h"
-#include <QDebug>
+#include <QLoggingCategory>
+
+Q_LOGGING_CATEGORY(lcNetwork, "shogi.network")
 
 CsaClient::GameSummary::GameSummary()
 {
@@ -96,7 +98,7 @@ void CsaClient::connectToServer(const QString& host, int port)
         return;
     }
 
-    qInfo().noquote() << "[CSA] Connecting to" << host << ":" << port;
+    qCInfo(lcNetwork) << "Connecting to" << host << ":" << port;
 
     setConnectionState(ConnectionState::Connecting);
     m_receiveBuffer.clear();
@@ -176,23 +178,23 @@ void CsaClient::reject(const QString& gameId)
 
 void CsaClient::sendMove(const QString& move)
 {
-    qDebug() << "[CSA-DEBUG] CsaClient::sendMove called with:" << move;
-    qDebug() << "[CSA-DEBUG] connectionState=" << static_cast<int>(m_connectionState)
-             << "isMyTurn=" << m_isMyTurn;
+    qCDebug(lcNetwork) << "CsaClient::sendMove called with:" << move;
+    qCDebug(lcNetwork) << "connectionState=" << static_cast<int>(m_connectionState)
+                       << "isMyTurn=" << m_isMyTurn;
 
     if (m_connectionState != ConnectionState::InGame) {
-        qDebug() << "[CSA-DEBUG] Not in game, rejecting move";
+        qCDebug(lcNetwork) << "Not in game, rejecting move";
         emit errorOccurred(tr("対局中ではありません"));
         return;
     }
 
     if (!m_isMyTurn) {
-        qDebug() << "[CSA-DEBUG] Not my turn, rejecting move";
+        qCDebug(lcNetwork) << "Not my turn, rejecting move";
         emit errorOccurred(tr("自分の手番ではありません"));
         return;
     }
 
-    qDebug() << "[CSA-DEBUG] Sending move to server:" << move;
+    qCDebug(lcNetwork) << "Sending move to server:" << move;
     sendMessage(move);
 }
 
@@ -231,14 +233,14 @@ void CsaClient::requestChudan()
 void CsaClient::onSocketConnected()
 {
     m_connectionTimer->stop();
-    qInfo().noquote() << "[CSA] Connected to server";
+    qCInfo(lcNetwork) << "Connected to server";
     setConnectionState(ConnectionState::Connected);
 }
 
 void CsaClient::onSocketDisconnected()
 {
     m_connectionTimer->stop();
-    qInfo().noquote() << "[CSA] Disconnected from server";
+    qCInfo(lcNetwork) << "Disconnected from server";
     setConnectionState(ConnectionState::Disconnected);
 }
 
@@ -251,12 +253,12 @@ void CsaClient::onSocketError(QAbstractSocket::SocketError error)
     // 対局終了後のリモートホスト切断は正常動作として扱う
     if (m_connectionState == ConnectionState::GameOver &&
         error == QAbstractSocket::RemoteHostClosedError) {
-        qInfo().noquote() << "[CSA] Connection closed by server after game end (normal)";
+        qCInfo(lcNetwork) << "Connection closed by server after game end (normal)";
         setConnectionState(ConnectionState::Disconnected);
         return;
     }
 
-    qWarning().noquote() << "[CSA] Socket error:" << errorMessage;
+    qCWarning(lcNetwork) << "Socket error:" << errorMessage;
 
     emit errorOccurred(errorMessage);
     setConnectionState(ConnectionState::Disconnected);
@@ -287,7 +289,7 @@ void CsaClient::onReadyRead()
 
 void CsaClient::onConnectionTimeout()
 {
-    qWarning().noquote() << "[CSA] Connection timeout";
+    qCWarning(lcNetwork) << "Connection timeout";
     m_socket->abort();
     emit errorOccurred(tr("接続がタイムアウトしました"));
     setConnectionState(ConnectionState::Disconnected);
@@ -304,12 +306,12 @@ void CsaClient::sendMessage(const QString& message)
     m_socket->flush();
 
     emit rawMessageSent(message);
-    qDebug().noquote() << "[CSA] Sent:" << message;
+    qCDebug(lcNetwork).noquote() << "Sent:" << message;
 }
 
 void CsaClient::processLine(const QString& line)
 {
-    qDebug().noquote() << "[CSA] Recv:" << line;
+    qCDebug(lcNetwork).noquote() << "Recv:" << line;
 
     // Game_Summary解析中
     if (m_inGameSummary) {
@@ -364,12 +366,12 @@ void CsaClient::processLoginResponse(const QString& line)
     if (line.startsWith(QStringLiteral("LOGIN:"))) {
         if (line.contains(QStringLiteral(" OK"))) {
             // ログイン成功
-            qInfo().noquote() << "[CSA] Login successful";
+            qCInfo(lcNetwork) << "Login successful";
             setConnectionState(ConnectionState::LoggedIn);
             emit loginSucceeded();
         } else if (line.contains(QStringLiteral("incorrect"))) {
             // ログイン失敗
-            qWarning().noquote() << "[CSA] Login failed";
+            qCWarning(lcNetwork) << "Login failed";
             emit loginFailed(tr("ユーザー名またはパスワードが正しくありません"));
         }
     }
@@ -515,18 +517,18 @@ void CsaClient::processGameSummary(const QString& line)
 
 void CsaClient::processGameMessage(const QString& line)
 {
-    qDebug() << "[CSA-DEBUG] processGameMessage:" << line;
+    qCDebug(lcNetwork) << "processGameMessage:" << line;
 
     // #で始まる行は結果行
     if (line.startsWith(QLatin1Char('#'))) {
-        qDebug() << "[CSA-DEBUG] Result line detected";
+        qCDebug(lcNetwork) << "Result line detected";
         processResultLine(line);
         return;
     }
 
     // %で始まる行は特殊コマンド（投了、勝利宣言など）の確認
     if (line.startsWith(QLatin1Char('%'))) {
-        qDebug() << "[CSA-DEBUG] Special command line detected";
+        qCDebug(lcNetwork) << "Special command line detected";
         // %TORYO,T4 形式
         qsizetype commaPos = line.indexOf(QLatin1Char(','));
         QString cmd = (commaPos > 0) ? line.left(static_cast<int>(commaPos)) : line;
@@ -537,7 +539,7 @@ void CsaClient::processGameMessage(const QString& line)
 
         // 終局手の消費時間を保存（ミリ秒に変換）
         m_endMoveConsumedTimeMs = consumedTime * m_gameSummary.timeUnitMs();
-        qDebug() << "[CSA-DEBUG] End move consumed time:" << m_endMoveConsumedTimeMs << "ms";
+        qCDebug(lcNetwork) << "End move consumed time:" << m_endMoveConsumedTimeMs << "ms";
 
         Q_UNUSED(cmd)
         return;
@@ -546,14 +548,14 @@ void CsaClient::processGameMessage(const QString& line)
     // 指し手行の処理
     if ((line.startsWith(QLatin1Char('+')) || line.startsWith(QLatin1Char('-'))) &&
         line.length() > 1) {
-        qDebug() << "[CSA-DEBUG] Move line detected, calling processMoveLine";
+        qCDebug(lcNetwork) << "Move line detected, calling processMoveLine";
         processMoveLine(line);
     }
 }
 
 void CsaClient::processResultLine(const QString& line)
 {
-    qDebug() << "[CSA-DEBUG] processResultLine:" << line;
+    qCDebug(lcNetwork) << "processResultLine:" << line;
 
     // 結果行は2行連続で来る
     // 1行目: 事象（#RESIGN, #SENNICHITE, #TIME_UP など）
@@ -561,7 +563,7 @@ void CsaClient::processResultLine(const QString& line)
 
     if (m_pendingFirstResultLine.isEmpty()) {
         // 最初の結果行を保存
-        qDebug() << "[CSA-DEBUG] First result line, saving:" << line;
+        qCDebug(lcNetwork) << "First result line, saving:" << line;
         m_pendingFirstResultLine = line;
         return;
     }
@@ -571,7 +573,7 @@ void CsaClient::processResultLine(const QString& line)
     QString secondLine = line;
     m_pendingFirstResultLine.clear();
 
-    qDebug() << "[CSA-DEBUG] Processing result: cause=" << firstLine << "result=" << secondLine;
+    qCDebug(lcNetwork) << "Processing result: cause=" << firstLine << "result=" << secondLine;
 
     GameResult result = GameResult::Unknown;
     GameEndCause cause = GameEndCause::Unknown;
@@ -609,9 +611,9 @@ void CsaClient::processResultLine(const QString& line)
         cause = GameEndCause::IllegalAction;
     }
 
-    qDebug() << "[CSA-DEBUG] Game ended with result=" << static_cast<int>(result)
-             << "cause=" << static_cast<int>(cause)
-             << "consumedTimeMs=" << m_endMoveConsumedTimeMs;
+    qCDebug(lcNetwork) << "Game ended with result=" << static_cast<int>(result)
+                       << "cause=" << static_cast<int>(cause)
+                       << "consumedTimeMs=" << m_endMoveConsumedTimeMs;
 
     setConnectionState(ConnectionState::GameOver);
     emit gameEnded(result, cause, m_endMoveConsumedTimeMs);

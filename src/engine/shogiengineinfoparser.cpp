@@ -2,9 +2,9 @@
 /// @brief USIエンジンのinfo行パーサの実装
 
 #include "shogiengineinfoparser.h"
+#include "usi.h"
 #include <QStringList>
 #include <QString>
-#include <QDebug>
 #include <QObject>
 #include <QMessageBox>
 #include "shogigamecontroller.h"
@@ -125,13 +125,13 @@ QString ShogiEngineInfoParser::getMoveSymbol(const int moveIndex, const ShogiGam
 
 QString ShogiEngineInfoParser::getFormattedMove(int fileTo, int rankTo, const QString& kanji) const
 {
-    qDebug().noquote() << "[ShogiEngineInfoParser::getFormattedMove] fileTo=" << fileTo
-                       << "rankTo=" << rankTo
-                       << "previousFileTo()=" << previousFileTo()
-                       << "previousRankTo()=" << previousRankTo()
-                       << "kanji=" << kanji;
+    qCDebug(lcEngine) << "getFormattedMove: fileTo=" << fileTo
+                      << "rankTo=" << rankTo
+                      << "prevFile=" << previousFileTo()
+                      << "prevRank=" << previousRankTo()
+                      << "kanji=" << kanji;
     if ((fileTo == previousFileTo()) && (rankTo == previousRankTo())) {
-        qDebug().noquote() << "[ShogiEngineInfoParser::getFormattedMove] -> returning 同" << kanji;
+        qCDebug(lcEngine) << "getFormattedMove: 同" << kanji;
         return "同" + kanji;
     }
 
@@ -268,7 +268,7 @@ int ShogiEngineInfoParser::parseMoveString(const QString& moveStr, int& fileFrom
     } else {
         const QString errorMessage =
             tr("An error occurred in ShogiEngineInfoParser::parseMoveString. The coordinates of the destination square are invalid.");
-        qDebug() << "moveChars[3] = " << moveChars[3];
+        qCDebug(lcEngine) << "moveChars[3]=" << moveChars[3];
         emit errorOccurred(errorMessage);
         return -1;
     }
@@ -343,14 +343,14 @@ QChar ShogiEngineInfoParser::getPieceCharacter(const QVector<QChar>& boardData, 
             return iter.value();
         } else {
             QString errorMessage = tr("An error occurred in ShogiEngineInfoParser::getPieceCharacter. The rank value is invalid.");
-            qDebug() << "rank = " << rank;
+            qCDebug(lcEngine) << "rank=" << rank;
             emit errorOccurred(errorMessage);
             return QChar();
         }
     }
     else {
         QString errorMessage = tr("An error occurred in ShogiEngineInfoParser::getPieceCharacter. The file value is invalid.");
-        qDebug() << "file = " << file;
+        qCDebug(lcEngine) << "file=" << file;
         emit errorOccurred(errorMessage);
         return QChar();
     }
@@ -622,7 +622,7 @@ QString ShogiEngineInfoParser::convertPredictedMoveToKanjiString(const ShogiGame
 void ShogiEngineInfoParser::printShogiBoard(const QVector<QChar>& boardData) const
 {
     if (boardData.size() != NUM_BOARD_SQUARES) {
-        qDebug() << "無効な盤面データ";
+        qCDebug(lcEngine) << "無効な盤面データ";
         return;
     }
 
@@ -636,9 +636,9 @@ void ShogiEngineInfoParser::printShogiBoard(const QVector<QChar>& boardData) con
                 row.append(piece.toLatin1()).append(' ');
             }
         }
-        qDebug() << row;
+        qCDebug(lcEngine) << row;
     }
-    qDebug() << "----------------------------------------";
+    qCDebug(lcEngine) << "----------------------------------------";
 }
 
 // ============================================================

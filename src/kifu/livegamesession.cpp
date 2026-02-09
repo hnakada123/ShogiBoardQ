@@ -4,7 +4,7 @@
 #include "livegamesession.h"
 #include "kifubranchtree.h"
 
-#include <QDebug>
+#include "kifulogging.h"
 #include <QSet>
 
 LiveGameSession::LiveGameSession(QObject* parent)
@@ -19,18 +19,18 @@ void LiveGameSession::setTree(KifuBranchTree* tree)
 
 void LiveGameSession::startFromNode(KifuBranchNode* branchPoint)
 {
-    qDebug().noquote() << "[LGS] startFromNode ENTER branchPoint="
+    qCDebug(lcKifu).noquote() << "startFromNode ENTER branchPoint="
                        << (branchPoint ? "yes" : "null")
                        << "branchPointPly=" << (branchPoint ? branchPoint->ply() : -1)
                        << "branchPointSfen=" << (branchPoint ? branchPoint->sfen().left(60) : "(null)");
 
     if (m_active) {
-        qWarning() << "[LiveGameSession] Session already active";
+        qCWarning(lcKifu) << "Session already active";
         return;
     }
 
     if (branchPoint != nullptr && !canStartFrom(branchPoint)) {
-        qWarning() << "[LiveGameSession] Cannot start from terminal node";
+        qCWarning(lcKifu) << "Cannot start from terminal node";
         return;
     }
 
@@ -41,17 +41,17 @@ void LiveGameSession::startFromNode(KifuBranchNode* branchPoint)
     // 起点のSFENを記録
     if (m_branchPoint != nullptr) {
         m_sfens.append(m_branchPoint->sfen());
-        qDebug().noquote() << "[LGS] startFromNode: recorded anchor sfen from branchPoint";
+        qCDebug(lcKifu).noquote() << "startFromNode: recorded anchor sfen from branchPoint";
     } else if (m_tree != nullptr && m_tree->root() != nullptr) {
         m_sfens.append(m_tree->root()->sfen());
-        qDebug().noquote() << "[LGS] startFromNode: recorded anchor sfen from root";
+        qCDebug(lcKifu).noquote() << "startFromNode: recorded anchor sfen from root";
     }
 
-    qDebug().noquote() << "[LGS] startFromNode: anchorSfen=" << anchorSfen().left(60);
+    qCDebug(lcKifu).noquote() << "startFromNode: anchorSfen=" << anchorSfen().left(60);
 
     emit sessionStarted(m_branchPoint);
 
-    qDebug().noquote() << "[LGS] startFromNode LEAVE";
+    qCDebug(lcKifu).noquote() << "startFromNode LEAVE";
 }
 
 void LiveGameSession::startFromRoot()
@@ -86,16 +86,16 @@ bool LiveGameSession::canStartFrom(KifuBranchNode* node)
 void LiveGameSession::addMove(const ShogiMove& move, const QString& displayText,
                                const QString& sfen, const QString& elapsed)
 {
-    qDebug().noquote() << "[LGS] addMove ENTER displayText=" << displayText
+    qCDebug(lcKifu).noquote() << "addMove ENTER displayText=" << displayText
                        << "sfen=" << sfen.left(60);
 
     if (!canAddMove()) {
-        qWarning() << "[LiveGameSession] Cannot add move - session not active or already terminated";
+        qCWarning(lcKifu) << "Cannot add move - session not active or already terminated";
         return;
     }
 
     const int ply = anchorPly() + static_cast<int>(m_moves.size()) + 1;
-    qDebug().noquote() << "[LGS] addMove: ply=" << ply
+    qCDebug(lcKifu).noquote() << "addMove: ply=" << ply
                        << "anchorPly=" << anchorPly()
                        << "movesSize=" << m_moves.size();
 
@@ -108,7 +108,7 @@ void LiveGameSession::addMove(const ShogiMove& move, const QString& displayText,
             parent = (m_branchPoint != nullptr) ? m_branchPoint : m_tree->root();
         }
 
-        qDebug().noquote() << "[LGS] addMove: parent node ply="
+        qCDebug(lcKifu).noquote() << "addMove: parent node ply="
                            << (parent ? parent->ply() : -1)
                            << "branchPoint ply="
                            << (m_branchPoint ? m_branchPoint->ply() : -1);
@@ -116,7 +116,7 @@ void LiveGameSession::addMove(const ShogiMove& move, const QString& displayText,
         if (parent != nullptr) {
             // addMoveQuiet() を使用: nodeAdded のみ発火、treeChanged は発火しない
             m_liveParent = m_tree->addMoveQuiet(parent, move, displayText, sfen, elapsed);
-            qDebug().noquote() << "[LGS] addMove: added to tree, m_liveParent ply="
+            qCDebug(lcKifu).noquote() << "addMove: added to tree, m_liveParent ply="
                                << (m_liveParent ? m_liveParent->ply() : -1)
                                << "sfen stored in node="
                                << (m_liveParent ? m_liveParent->sfen().left(60) : "(null)");
@@ -140,14 +140,14 @@ void LiveGameSession::addMove(const ShogiMove& move, const QString& displayText,
     // 棋譜欄モデルの更新が必要
     emit recordModelUpdateRequired();
 
-    qDebug().noquote() << "[LGS] addMove LEAVE";
+    qCDebug(lcKifu).noquote() << "addMove LEAVE";
 }
 
 void LiveGameSession::addTerminalMove(TerminalType type, const QString& displayText,
                                        const QString& elapsed)
 {
     if (!canAddMove()) {
-        qWarning() << "[LiveGameSession] Cannot add terminal - session not active or already terminated";
+        qCWarning(lcKifu) << "Cannot add terminal - session not active or already terminated";
         return;
     }
 
@@ -175,12 +175,12 @@ void LiveGameSession::addTerminalMove(TerminalType type, const QString& displayT
 KifuBranchNode* LiveGameSession::commit()
 {
     if (!m_active) {
-        qWarning() << "[LiveGameSession] Cannot commit - session not active";
+        qCWarning(lcKifu) << "Cannot commit - session not active";
         return nullptr;
     }
 
     if (m_tree == nullptr) {
-        qWarning() << "[LiveGameSession] Cannot commit - no tree set";
+        qCWarning(lcKifu) << "Cannot commit - no tree set";
         discard();
         return nullptr;
     }
@@ -206,7 +206,7 @@ KifuBranchNode* LiveGameSession::commit()
     }
 
     if (parent == nullptr) {
-        qWarning() << "[LiveGameSession] Cannot commit - no root node";
+        qCWarning(lcKifu) << "Cannot commit - no root node";
         discard();
         return nullptr;
     }

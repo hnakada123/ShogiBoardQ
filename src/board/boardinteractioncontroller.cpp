@@ -9,7 +9,9 @@
 #include <QColor>
 #include <QClipboard>
 #include <QApplication>
-#include <QDebug>
+#include <QLoggingCategory>
+
+Q_LOGGING_CATEGORY(lcBoard, "shogi.board")
 
 // ======================================================================
 // 初期化
@@ -37,7 +39,7 @@ void BoardInteractionController::onLeftClick(const QPoint& pt)
     // 編集モード以外では、人間の手番かどうかをチェック
     // コールバックがtrueを返すと人間の手番、falseなら相手の手番なのでクリックを無視
     if (m_mode != Mode::Edit && m_isHumanTurnCb && !m_isHumanTurnCb()) {
-        qDebug() << "[BoardInteraction] onLeftClick ignored: not human's turn";
+        qCDebug(lcBoard) << "onLeftClick ignored: not human's turn";
         return;
     }
 

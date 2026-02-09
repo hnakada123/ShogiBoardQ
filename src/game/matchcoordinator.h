@@ -11,8 +11,11 @@
 #include <QVector>
 #include <QDateTime>
 #include <QElapsedTimer>
+#include <QLoggingCategory>
 
 #include "shogigamecontroller.h"
+
+Q_DECLARE_LOGGING_CATEGORY(lcGame)
 #include "shogimove.h"
 #include "playmode.h"
 

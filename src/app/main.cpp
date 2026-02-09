@@ -21,7 +21,6 @@ static QFile *logFile = nullptr;
 
 static void messageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
-    Q_UNUSED(context)
     if (!logFile) return;
 
     QTextStream out(logFile);
@@ -34,7 +33,27 @@ static void messageHandler(QtMsgType type, const QMessageLogContext &context, co
     case QtCriticalMsg: level = "ERROR"; break;
     case QtFatalMsg:    level = "FATAL"; break;
     }
-    out << timestamp << " [" << level << "] " << msg << "\n";
+
+    // カテゴリ（QLoggingCategory使用時のみ出力）
+    QString category;
+    if (context.category && qstrcmp(context.category, "default") != 0) {
+        category = QString(" [%1]").arg(context.category);
+    }
+
+    // ソース位置（デバッグビルドでのみ利用可能）
+    QString location;
+    if (context.file) {
+        const char *file = context.file;
+        if (const char *slash = strrchr(file, '/'))
+            file = slash + 1;
+        else if (const char *bslash = strrchr(file, '\\'))
+            file = bslash + 1;
+        location = QString(" %1:%2").arg(file).arg(context.line);
+        if (context.function)
+            location += QString(" (%1)").arg(context.function);
+    }
+
+    out << timestamp << " [" << level << "]" << category << location << " " << msg << "\n";
     out.flush();
 }
 

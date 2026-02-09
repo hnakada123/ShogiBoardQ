@@ -7,6 +7,8 @@
 #include "timecontrolutil.h"
 
 #include <QDebug>
+
+#include "matchcoordinator.h"
 #include <utility>
 
 // ============================================================
@@ -37,7 +39,7 @@ void ConsecutiveGamesController::setGameStartCoordinator(GameStartCoordinator* g
 
 void ConsecutiveGamesController::configure(int totalGames, bool switchTurn)
 {
-    qDebug().noquote() << "[CGC] configure: totalGames=" << totalGames
+    qCDebug(lcGame).noquote() << "configure: totalGames=" << totalGames
                        << " switchTurn=" << switchTurn;
 
     m_totalGames = totalGames;
@@ -50,7 +52,7 @@ void ConsecutiveGamesController::onGameStarted(
     const MatchCoordinator::StartOptions& opt,
     const GameStartCoordinator::TimeControl& tc)
 {
-    qDebug().noquote() << "[CGC] onGameStarted: mode=" << static_cast<int>(opt.mode)
+    qCDebug(lcGame).noquote() << "onGameStarted: mode=" << static_cast<int>(opt.mode)
                        << " sfenStart=" << opt.sfenStart;
 
     m_lastStartOptions = opt;
@@ -89,17 +91,17 @@ void ConsecutiveGamesController::prepareNextGameOptions()
     if (m_switchTurnEachGame) {
         std::swap(m_lastStartOptions.engineName1, m_lastStartOptions.engineName2);
         std::swap(m_lastStartOptions.enginePath1, m_lastStartOptions.enginePath2);
-        qDebug() << "[CGC] Switched engine sides for next game";
+        qCDebug(lcGame) << "Switched engine sides for next game";
     }
 }
 
 void ConsecutiveGamesController::startNextGame()
 {
-    qDebug().noquote() << "[CGC] startNextGame: remaining=" << m_remainingGames
+    qCDebug(lcGame).noquote() << "startNextGame: remaining=" << m_remainingGames
                        << " gameNumber=" << m_gameNumber;
 
     if (m_remainingGames <= 0) {
-        qDebug() << "[CGC] No more consecutive games remaining.";
+        qCDebug(lcGame) << "No more consecutive games remaining.";
         return;
     }
 

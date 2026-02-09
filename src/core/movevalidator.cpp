@@ -9,7 +9,7 @@
 #include <iomanip>
 #include <QMap>
 #include <array>
-#include <QDebug>
+#include "shogiboard.h"
 
 // ============================================================
 // 初期化
@@ -129,7 +129,7 @@ void MoveValidator::validateMoveFileValue(int fromSquareX)
     // 筋の値が10より大きい場合は無効（10=先手駒台, 11=後手駒台まで有効）
     if (fromSquareX > 10) {
         const QString errorMessage = tr("An error occurred in MoveValidator::validateMoveFileValue. Validation Error: The file value of the move is incorrect.");
-        qDebug() << "Move file value: " << fromSquareX;
+        qCWarning(lcCore, "Invalid move file value: %d", fromSquareX);
         emit errorOccurred(errorMessage);
         return;
     }
@@ -140,7 +140,7 @@ void MoveValidator::validateMovingPiece(const ShogiMove& currentMove, const QVec
     if (currentMove.fromSquare.x() < BOARD_SIZE) {
         if (currentMove.fromSquare.y() < 0 || currentMove.fromSquare.y() >= BOARD_SIZE) {
             const QString errorMessage = tr("An error occurred in MoveValidator::validateMovingPiece. Validation Error: The rank value of the move is out of bounds.");
-            qDebug() << "Move rank value: " << currentMove.fromSquare.y();
+            qCWarning(lcCore, "Move rank out of bounds: %d", currentMove.fromSquare.y());
             emit errorOccurred(errorMessage);
             return;
         }
@@ -149,15 +149,17 @@ void MoveValidator::validateMovingPiece(const ShogiMove& currentMove, const QVec
 
         if (fromIndex < 0 || fromIndex >= boardData.size()) {
             const QString errorMessage = tr("An error occurred in MoveValidator::validateMovingPiece. Validation Error: The board index is out of bounds.");
-            qDebug() << "Board index: " << fromIndex << ", Board data size: " << boardData.size();
+            qCWarning(lcCore, "Board index out of bounds: %d size: %lld",
+                     fromIndex, static_cast<long long>(boardData.size()));
             emit errorOccurred(errorMessage);
             return;
         }
 
         if (currentMove.movingPiece != boardData[fromIndex]) {
             const QString errorMessage = tr("An error occurred in MoveValidator::validateMovingPiece. Validation Error: The piece in the move does not match the piece on the square.");
-            qDebug() << "Move piece: " << currentMove.movingPiece;
-            qDebug() << "Piece on the square: " << boardData[fromIndex];
+            qCWarning(lcCore, "Piece mismatch: move= %s board= %s",
+                     qUtf8Printable(QString(currentMove.movingPiece)),
+                     qUtf8Printable(QString(boardData[fromIndex])));
             emit errorOccurred(errorMessage);
             return;
         }
@@ -166,9 +168,9 @@ void MoveValidator::validateMovingPiece(const ShogiMove& currentMove, const QVec
 
 void MoveValidator::logAndShowPieceStandError(const QString& errorMessage, QChar piece, const QMap<QChar, int>& pieceStand)
 {
-    qWarning() << errorMessage;
-    qDebug() << "Piece: " << piece;
-    qDebug() << "Number of pieces in the stand: " << pieceStand[piece];
+    qCWarning(lcCore, "%s", qUtf8Printable(errorMessage));
+    qCDebug(lcCore, "Piece: %s count: %d",
+            qUtf8Printable(QString(piece)), pieceStand[piece]);
     emit errorOccurred(errorMessage);
 }
 
@@ -212,9 +214,10 @@ void MoveValidator::validateCapturedPiece(const ShogiMove& currentMove, const QV
 
     if (currentMove.capturedPiece != boardData[toIndex]) {
         const QString errorMessage = tr("An error occurred in MoveValidator::validateCapturedPiece. The captured piece does not match the piece on the destination square of the board.");
-        qWarning() << errorMessage;
-        qDebug() << "Captured piece: " << currentMove.capturedPiece;
-        qDebug() << "Piece on the square: " << boardData[toIndex];
+        qCWarning(lcCore, "%s", qUtf8Printable(errorMessage));
+        qCDebug(lcCore, "Captured: %s board: %s",
+                qUtf8Printable(QString(currentMove.capturedPiece)),
+                qUtf8Printable(QString(boardData[toIndex])));
         emit errorOccurred(errorMessage);
         return;
     }
@@ -270,7 +273,7 @@ LegalMoveStatus MoveValidator::isLegalMove(const Turn& turn, const QVector<QChar
     // 王手をかけている局面でさらに指すのは不正
     if (numOpponentChecks) {
         const QString errorMessage = tr("An error occurred in MoveValidator::isLegalMove. Validation Error: The position is already in check. Making another move is incorrect.");
-        qDebug() << "numOpponentChecks = " << numOpponentChecks;
+        qCWarning(lcCore, "Position already in check: numOpponentChecks = %d", numOpponentChecks);
         printBoardAndPieces(boardData, pieceStand);
         emit errorOccurred(errorMessage);
 
@@ -309,7 +312,8 @@ LegalMoveStatus MoveValidator::isBoardMoveValid(const Turn& turn, const QVector<
         // 両王手の場合、玉以外の駒では対処できない
         if (numChecks == 2 && currentMove.movingPiece != ((turn == BLACK) ? 'K' : 'k')) {
             const QString errorMessage = tr("An error occurred in MoveValidator::isBoardMoveValid. The piece in the move is not a king.");
-            qDebug() << "Piece: " << currentMove.movingPiece;
+            qCWarning(lcCore, "Double check but piece is not king: %s",
+                     qUtf8Printable(QString(currentMove.movingPiece)));
             emit errorOccurred(errorMessage);
             LegalMoveStatus legalMoveStatus;
             legalMoveStatus.promotingMoveExists = false;
@@ -363,7 +367,7 @@ bool MoveValidator::isHandPieceMoveValid(const Turn& turn, const QVector<QChar>&
     default: {
         // 王手数が3以上は不正局面
         const QString errorMessage = tr("An error occurred in MoveValidator::isHandPieceMoveValid. The number of pieces putting the player's king in check is 3 or more.");
-        qDebug() << "Number of pieces putting the player's king in check: " << numChecks;
+        qCWarning(lcCore, "Checks >= 3: %d", numChecks);
         emit errorOccurred(errorMessage);
         return false;
     }
@@ -379,7 +383,7 @@ bool MoveValidator::generateLegalMovesForPiece(const Turn& turn, const QVector<Q
 
     if (pieceStand[dropPiece] <= 0) {
         const QString errorMessage = tr("An error occurred in MoveValidator::generateLegalMovesForPiece. The piece to be dropped does not exist in the piece stand.");
-        qDebug() << "Piece: " << dropPiece;
+        qCWarning(lcCore, "Piece not in stand: %s", qUtf8Printable(QString(dropPiece)));
         emit errorOccurred(errorMessage);
         return false;
     }
@@ -400,7 +404,7 @@ bool MoveValidator::generateLegalMovesForPiece(const Turn& turn, const QVector<Q
 
     default:
         const QString errorMessage = tr("An error occurred in MoveValidator::generateLegalMovesForPiece. The character representing the piece to be dropped is incorrect.");
-        qDebug() << "Piece: " << dropPiece;
+        qCWarning(lcCore, "Invalid drop piece char: %s", qUtf8Printable(QString(dropPiece)));
         emit errorOccurred(errorMessage);
         return false;
     }
@@ -1207,7 +1211,7 @@ bool MoveValidator::validateMoveWithoutChecks(const ShogiMove& currentMove, cons
             return true;
         } else {
             // 合法手が無ければ打ち歩詰め（禁手）
-            qDebug() << tr("An error occurred in MoveValidator::validateMoveWithoutChecks. Dropping a pawn to give checkmate is not allowed.");
+            qCDebug(lcCore, "%s", qUtf8Printable(tr("Dropping a pawn to give checkmate is not allowed.")));
             return false;
         }
     }
@@ -1316,8 +1320,8 @@ void MoveValidator::printBitboards(const BoardStateArray& piecePlacedBitboard) c
 
     for (int turnNumber = 0; turnNumber < NUM_PLAYERS; ++turnNumber) {
         for (int pieceType = 0; pieceType < NUM_PIECE_TYPES; ++pieceType) {
-            qDebug() << (turnNumber == 0 ? "先手:" : "後手:");
-            qDebug() << "Piece type" << pieceName.at(pieceType) << ":";
+            qCDebug(lcCore, "%s", turnNumber == 0 ? "先手:" : "後手:");
+            qCDebug(lcCore, "Piece type %s:", qUtf8Printable(pieceName.at(pieceType)));
             const std::bitset<NUM_BOARD_SQUARES>& bitboard = piecePlacedBitboard[static_cast<size_t>(turnNumber)][static_cast<size_t>(pieceType)];
             QString bitboardRow;
             for (int rank = 0; rank < BOARD_SIZE; ++rank) {
@@ -1326,9 +1330,9 @@ void MoveValidator::printBitboards(const BoardStateArray& piecePlacedBitboard) c
                     int index = rank * BOARD_SIZE + file;
                     bitboardRow.append(QString::number(bitboard.test(static_cast<size_t>(index))) + ' ');
                 }
-                qDebug() << bitboardRow;
+                qCDebug(lcCore, "%s", qUtf8Printable(bitboardRow));
             }
-            qDebug() << "";
+            qCDebug(lcCore, "%s", "");
         }
     }
 }
@@ -1336,7 +1340,7 @@ void MoveValidator::printBitboards(const BoardStateArray& piecePlacedBitboard) c
 void MoveValidator::printAllPieceBitboards(const QVector<QVector<std::bitset<NUM_BOARD_SQUARES>>>& allPieceBitboards) const
 {
     for (qsizetype i = 0; i < allPieceBitboards.size(); ++i) {
-        qDebug() << "Piece:" << m_allPieces.at(i);
+        qCDebug(lcCore, "Piece: %s", qUtf8Printable(QString(m_allPieces.at(i))));
         const auto& currentBitboards = allPieceBitboards.at(i);
         for (const auto& bitboard : std::as_const(currentBitboards)) {
             QString bitboardString;
@@ -1348,7 +1352,7 @@ void MoveValidator::printAllPieceBitboards(const QVector<QVector<std::bitset<NUM
                 bitboardString.append('\n');
             }
             bitboardString.append('\n');
-            qDebug().noquote() << bitboardString;
+            qCDebug(lcCore, "%s", qUtf8Printable(bitboardString));
         }
     }
 }
@@ -1366,9 +1370,9 @@ void MoveValidator::printIndividualPieceAttackBitboards(const QVector<QVector<st
                     int index = rank * BOARD_SIZE + file;
                     bitboardRow.append(QString::number(bitboard.test(static_cast<size_t>(index))) + ' ');
                 }
-                qDebug() << bitboardRow;
+                qCDebug(lcCore, "%s", qUtf8Printable(bitboardRow));
             }
-            qDebug() << "";
+            qCDebug(lcCore, "%s", "");
         }
     }
 }
@@ -1388,9 +1392,9 @@ void MoveValidator::printSingleBitboard(const std::bitset<NUM_BOARD_SQUARES>& bi
             int index = rank * BOARD_SIZE + file;
             bitboardRow.append(QString::number(bitboard.test(static_cast<size_t>(index))) + ' ');
         }
-        qDebug() << bitboardRow;
+        qCDebug(lcCore, "%s", qUtf8Printable(bitboardRow));
     }
-    qDebug() << "";
+    qCDebug(lcCore, "%s", "");
 }
 
 void MoveValidator::printShogiMoveList(const QVector<ShogiMove>& moveList) const
@@ -1416,7 +1420,7 @@ void MoveValidator::printShogiBoard(const QVector<QChar>& boardData)
         boardString.append('\n');
     }
     boardString.append('\n');
-    qDebug().noquote() << boardString;
+    qCDebug(lcCore, "%s", qUtf8Printable(boardString));
 }
 
 void MoveValidator::printBoardAndPieces(const QVector<QChar>& boardData, const QMap<QChar, int>& pieceStand) const
@@ -1438,21 +1442,21 @@ void MoveValidator::printBoardAndPieces(const QVector<QChar>& boardData, const Q
             gotePieces += pieceKanjiNames[piece] + " " + QString::number(pieceStand[piece]) + " ";
         }
     }
-    qDebug() << gotePieces;
+    qCDebug(lcCore, "%s", qUtf8Printable(gotePieces));
 
     static const QVector<QString> rowKanjiNames = {"一", "二", "三", "四", "五", "六", "七", "八", "九"};
 
-    qDebug() << "  ９ ８ ７ ６ ５ ４ ３ ２ １";
-    qDebug() << "+------------------------+";
+    qCDebug(lcCore, "  ９ ８ ７ ６ ５ ４ ３ ２ １");
+    qCDebug(lcCore, "+------------------------+");
     for (int rank = 0; rank < BOARD_SIZE; ++rank) {
         for (int file = BOARD_SIZE - 1; file >= 0; --file) {
             int index = rank * BOARD_SIZE + file;
             row.append(pieceKanjiNames[boardData[index]]);
         }
-        qDebug() << "|" << row << "|" << rowKanjiNames[rank];
+        qCDebug(lcCore, "| %s | %s", qUtf8Printable(row), qUtf8Printable(rowKanjiNames[rank]));
         row.clear();
     }
-    qDebug() << "+------------------------+";
+    qCDebug(lcCore, "+------------------------+");
 
     QString sentePieces = "持ち駒：";
     for (const auto& piece : std::as_const(pieceOrder)) {
@@ -1460,5 +1464,5 @@ void MoveValidator::printBoardAndPieces(const QVector<QChar>& boardData, const Q
             sentePieces += pieceKanjiNames[piece] + " " + QString::number(pieceStand[piece]) + " ";
         }
     }
-    qDebug() << sentePieces;
+    qCDebug(lcCore, "%s", qUtf8Printable(sentePieces));
 }

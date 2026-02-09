@@ -24,6 +24,8 @@
 #include <QtGlobal>
 #include <QPointer>
 
+Q_LOGGING_CATEGORY(lcAnalysis, "shogi.analysis")
+
 AnalysisFlowController::AnalysisFlowController(QObject* parent)
     : QObject(parent)
 {
@@ -77,12 +79,12 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
     // sfenRecordとusiMovesの整合性をチェック（デバッグ用）
     const qsizetype sfenSize = m_sfenRecord ? m_sfenRecord->size() : 0;
     const qsizetype usiSize = m_usiMoves ? m_usiMoves->size() : 0;
-    qDebug().noquote() << "[AnalysisFlowController::start] sfenRecord.size=" << sfenSize
-                       << " usiMoves.size=" << usiSize
-                       << " (expected: sfenSize == usiSize + 1)";
+    qCDebug(lcAnalysis).noquote() << "sfenRecord.size=" << sfenSize
+                                  << "usiMoves.size=" << usiSize
+                                  << "(expected: sfenSize == usiSize + 1)";
     if (m_usiMoves && sfenSize != usiSize + 1) {
-        qWarning().noquote() << "[AnalysisFlowController::start] WARNING: sfenRecord and usiMoves size mismatch!"
-                             << " Will use recordModel fallback for lastUsiMove extraction.";
+        qCWarning(lcAnalysis).noquote() << "sfenRecord and usiMoves size mismatch!"
+                                        << "Will use recordModel fallback for lastUsiMove extraction.";
         // 注意: m_usiMovesをnullptrにしない。境界チェックで対応し、範囲外の場合は棋譜表記から抽出する
     }
 
@@ -198,7 +200,7 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
     }
     const QString enginePath = engines.at(engineIdx).path;
     const QString engineName = dlg->engineName();
-    
+
     // 思考タブのエンジン名を設定
     if (m_logModel) {
         m_logModel->setEngineName(engineName);
@@ -219,30 +221,30 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
 
 void AnalysisFlowController::stop()
 {
-    qDebug().noquote() << "[AnalysisFlowController::stop] called, m_running=" << m_running;
-    
+    qCInfo(lcAnalysis).noquote() << "stop called, m_running=" << m_running;
+
     if (!m_running) {
         return;
     }
-    
+
     m_running = false;
     m_stoppedByUser = true;  // ユーザーによる中止を記録
-    
+
     if (m_coord) {
         m_coord->stop();
     }
-    
+
     if (m_usi) {
         m_usi->sendQuitCommand();
     }
-    
+
     if (m_presenter) {
         m_presenter->setStopButtonEnabled(false);
     }
-    
+
     Q_EMIT analysisStopped();
-    
-    qDebug().noquote() << "[AnalysisFlowController::stop] analysis stopped";
+
+    qCInfo(lcAnalysis).noquote() << "analysis stopped";
 }
 
 void AnalysisFlowController::applyDialogOptions(KifuAnalysisDialog* dlg)
@@ -251,12 +253,12 @@ void AnalysisFlowController::applyDialogOptions(KifuAnalysisDialog* dlg)
     opt.movetimeMs = dlg->byoyomiSec() * 1000;
 
     const int sfenSize = static_cast<int>(m_sfenRecord->size());
-    
+
     // 解析範囲の最大値を設定
     // 注: sfenRecordには終局指し手（投了、中断など）は含まれないため、
     //     sfenSize - 1 が最後の指し手の局面インデックスとなる
     int maxEndPly = sfenSize - 1;
-    
+
     // ダイアログの設定に基づいて範囲を決定
     if (dlg->initPosition()) {
         // "開始局面から最終手まで"が選択された場合
@@ -267,9 +269,9 @@ void AnalysisFlowController::applyDialogOptions(KifuAnalysisDialog* dlg)
         opt.startPly = qBound(0, dlg->startPly(), maxEndPly);
         opt.endPly = qBound(opt.startPly, dlg->endPly(), maxEndPly);
     }
-    
-    qDebug().noquote() << "[AnalysisFlowController::applyDialogOptions_] startPly=" << opt.startPly
-                       << "endPly=" << opt.endPly << "maxEndPly=" << maxEndPly;
+
+    qCDebug(lcAnalysis).noquote() << "applyDialogOptions: startPly=" << opt.startPly
+                                  << "endPly=" << opt.endPly << "maxEndPly=" << maxEndPly;
 
     opt.multiPV    = 1;    // ダイアログ未対応なら 1 固定
     opt.centerTree = true;
@@ -294,16 +296,16 @@ void AnalysisFlowController::onUsiCommLogChanged()
 
 void AnalysisFlowController::onBestMoveReceived()
 {
-    qDebug().noquote() << "[AnalysisFlowController::onBestMoveReceived_] called, pendingPly=" << m_pendingPly;
-    
+    qCDebug(lcAnalysis).noquote() << "onBestMoveReceived: pendingPly=" << m_pendingPly;
+
     // ThinkingInfoPresenterのバッファをフラッシュして、最新の漢字PVを取得
     if (m_usi) {
         m_usi->flushThinkingInfoBuffer();
     }
-    
+
     // 一時保存した結果を確定
     commitPendingResult();
-    
+
     if (!m_coord) return;
     m_coord->onEngineBestmoveReceived(QString());
 }
@@ -312,12 +314,12 @@ void AnalysisFlowController::onInfoLineReceived(const QString& line)
 {
     // info行を受け取り、AnalysisCoordinatorに転送
     // 漢字PV変換はThinkingInfoPresenterが行い、onThinkingInfoUpdated_で受け取る
-    qDebug().noquote() << "[AnalysisFlowController::onInfoLineReceived_] line=" << line.left(80);
+    qCDebug(lcAnalysis).noquote() << "onInfoLineReceived: line=" << line.left(80);
     if (!m_coord) {
-        qDebug().noquote() << "[AnalysisFlowController::onInfoLineReceived_] m_coord is null!";
+        qCDebug(lcAnalysis).noquote() << "onInfoLineReceived: m_coord is null!";
         return;
     }
-    
+
     m_coord->onEngineInfoLine(line);
 }
 
@@ -329,15 +331,15 @@ void AnalysisFlowController::onThinkingInfoUpdated(const QString& /*time*/, cons
     // ThinkingInfoPresenterからの漢字PVを保存（思考タブと同じ内容を棋譜解析結果に使用）
     if (!pvKanjiStr.isEmpty()) {
         m_pendingPvKanji = pvKanjiStr;
-        qDebug().noquote() << "[AnalysisFlowController::onThinkingInfoUpdated_] saved pvKanjiStr=" << pvKanjiStr.left(50);
+        qCDebug(lcAnalysis).noquote() << "saved pvKanjiStr=" << pvKanjiStr.left(50);
     }
 }
 
 void AnalysisFlowController::onPositionPrepared(int ply, const QString& sfen)
 {
     // 各局面の解析開始時のログ
-    qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] ply=" << ply << "sfen=" << sfen.left(50);
-    
+    qCDebug(lcAnalysis).noquote() << "onPositionPrepared: ply=" << ply << "sfen=" << sfen.left(50);
+
     // Usiにも設定（ThinkingInfoPresenter経由での変換用）
     if (m_usi) {
         // SFENから盤面データを生成
@@ -347,43 +349,43 @@ void AnalysisFlowController::onPositionPrepared(int ply, const QString& sfen)
         } else if (pureSfen.startsWith(QStringLiteral("position "))) {
             pureSfen = pureSfen.mid(9);
         }
-        
+
         ShogiBoard tempBoard;
         tempBoard.setSfen(pureSfen);
         QVector<QChar> boardData = tempBoard.boardData();
         if (boardData.size() == 81) {
             m_usi->setClonedBoardData(boardData);
         }
-        
+
         // ThinkingInfoPresenterに基準SFENを設定（手番情報用）
         m_usi->setBaseSfen(pureSfen);
-        qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] called setBaseSfen with pureSfen=" << pureSfen.left(50);
-        
+        qCDebug(lcAnalysis).noquote() << "setBaseSfen: pureSfen=" << pureSfen.left(50);
+
         // 開始局面に至った最後のUSI指し手を設定（読み筋表示ウィンドウのハイライト用）
         // ply=0は開始局面なので指し手なし、ply>=1はm_usiMoves[ply-1]が最後の指し手
         QString lastUsiMove;
-        qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] ply=" << ply
-                           << " m_usiMoves=" << m_usiMoves
-                           << " m_usiMoves->size()=" << (m_usiMoves ? m_usiMoves->size() : -1);
+        qCDebug(lcAnalysis).noquote() << "ply=" << ply
+                                      << "m_usiMoves=" << m_usiMoves
+                                      << "m_usiMoves->size()=" << (m_usiMoves ? m_usiMoves->size() : -1);
         if (m_usiMoves && ply > 0 && ply <= m_usiMoves->size()) {
             lastUsiMove = m_usiMoves->at(ply - 1);
-            qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] extracted lastUsiMove from m_usiMoves[" << (ply - 1) << "]=" << lastUsiMove;
+            qCDebug(lcAnalysis).noquote() << "extracted lastUsiMove from m_usiMoves[" << (ply - 1) << "]=" << lastUsiMove;
         } else if (m_recordModel && ply > 0 && ply < m_recordModel->rowCount()) {
             // フォールバック: 棋譜表記からUSI形式の指し手を抽出
             // 形式: 「▲７六歩(77)」または「△５五角打」など
             KifuDisplay* moveDisp = m_recordModel->item(ply);
             if (moveDisp) {
                 QString moveLabel = moveDisp->currentMove();
-                qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] extracting USI move from kanji:" << moveLabel;
+                qCDebug(lcAnalysis).noquote() << "extracting USI move from kanji:" << moveLabel;
                 lastUsiMove = extractUsiMoveFromKanji(moveLabel);
-                qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] extracted lastUsiMove from kanji:" << lastUsiMove;
+                qCDebug(lcAnalysis).noquote() << "extracted lastUsiMove from kanji:" << lastUsiMove;
             }
         } else {
-            qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] no lastUsiMove: ply=" << ply << " is out of range or m_usiMoves/m_recordModel is null";
+            qCDebug(lcAnalysis).noquote() << "no lastUsiMove: ply=" << ply << "is out of range or m_usiMoves/m_recordModel is null";
         }
         m_usi->setLastUsiMove(lastUsiMove);
-        qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] setLastUsiMove called with:" << lastUsiMove;
-        
+        qCDebug(lcAnalysis).noquote() << "setLastUsiMove:" << lastUsiMove;
+
         // 直前の指し手の移動先を設定（読み筋の最初の指し手で「同」表記を正しく判定するため）
         // ply=0は開始局面なので直前の指し手なし
         // ply>=1の場合、その局面に至った指し手はrecordModel->item(ply)（ply番目の指し手）
@@ -392,33 +394,33 @@ void AnalysisFlowController::onPositionPrepared(int ply, const QString& sfen)
             KifuDisplay* prevDisp = m_recordModel->item(ply);  // plyの指し手（その局面に至った指し手）
             if (prevDisp) {
                 QString prevMoveLabel = prevDisp->currentMove();
-                qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] prevMoveLabel from recordModel[" << ply << "]:" << prevMoveLabel;
-                
+                qCDebug(lcAnalysis).noquote() << "prevMoveLabel from recordModel[" << ply << "]:" << prevMoveLabel;
+
                 // 漢字の移動先を抽出して整数座標に変換
                 // 形式: 「▲７六歩(77)」または「△同　銀(31)」
                 static const QString senteMark = QStringLiteral("▲");
                 static const QString goteMark = QStringLiteral("△");
-                
+
                 qsizetype markPos = prevMoveLabel.indexOf(senteMark);
                 if (markPos < 0) {
                     markPos = prevMoveLabel.indexOf(goteMark);
                 }
-                
+
                 if (markPos >= 0 && prevMoveLabel.length() > markPos + 2) {
                     QString afterMark = prevMoveLabel.mid(markPos + 1);
-                    
+
                     // 「同」の場合はスキップ（前回の移動先をそのまま使用）
                     if (!afterMark.startsWith(QStringLiteral("同"))) {
                         // 「７六」のような漢字座標を取得
                         QChar fileChar = afterMark.at(0);  // 全角数字 '１'〜'９'
                         QChar rankChar = afterMark.at(1);  // 漢数字 '一'〜'九'
-                        
+
                         // 全角数字を整数に変換（'１'=0xFF11 → 1）
                         int fileTo = 0;
                         if (fileChar >= QChar(0xFF11) && fileChar <= QChar(0xFF19)) {
                             fileTo = fileChar.unicode() - 0xFF11 + 1;
                         }
-                        
+
                         // 漢数字を整数に変換
                         int rankTo = 0;
                         static const QString kanjiRanks = QStringLiteral("一二三四五六七八九");
@@ -426,77 +428,77 @@ void AnalysisFlowController::onPositionPrepared(int ply, const QString& sfen)
                         if (rankIdxPos >= 0) {
                             rankTo = static_cast<int>(rankIdxPos) + 1;
                         }
-                        
+
                         if (fileTo >= 1 && fileTo <= 9 && rankTo >= 1 && rankTo <= 9) {
                             m_usi->setPreviousFileTo(fileTo);
                             m_usi->setPreviousRankTo(rankTo);
                             previousMoveSet = true;
-                            qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] setPreviousMove from recordModel:"
-                                               << "fileTo=" << fileTo << "rankTo=" << rankTo;
+                            qCDebug(lcAnalysis).noquote() << "setPreviousMove from recordModel:"
+                                                          << "fileTo=" << fileTo << "rankTo=" << rankTo;
                         }
                     } else {
                         // 「同」の場合は、前回設定した座標をそのまま維持
                         previousMoveSet = true;
-                        qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] previousMove kept (同 notation)";
+                        qCDebug(lcAnalysis).noquote() << "previousMove kept (同 notation)";
                     }
                 }
             }
         }
-        
+
         if (!previousMoveSet) {
             // 開始局面（ply=0）または取得失敗の場合は移動先をリセット
             m_usi->setPreviousFileTo(0);
             m_usi->setPreviousRankTo(0);
-            qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] reset previousMove";
+            qCDebug(lcAnalysis).noquote() << "reset previousMove";
         }
-        
+
         // SFENから手番を抽出してGameControllerに設定
         // 形式: "盤面 手番 駒台 手数" 例: "lnsgkgsnl/... b - 1"
         if (m_gameController) {
             // " b " または " w " を探す
             bool isPlayer1Turn = pureSfen.contains(QStringLiteral(" b "));
-            ShogiGameController::Player player = isPlayer1Turn 
-                ? ShogiGameController::Player1 
+            ShogiGameController::Player player = isPlayer1Turn
+                ? ShogiGameController::Player1
                 : ShogiGameController::Player2;
             m_gameController->setCurrentPlayer(player);
-            qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] set player=" 
-                               << (isPlayer1Turn ? "P1(sente)" : "P2(gote)");
+            qCDebug(lcAnalysis).noquote() << "set player="
+                                          << (isPlayer1Turn ? "P1(sente)" : "P2(gote)");
         } else {
-            qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] m_gameController is null!";
+            qCDebug(lcAnalysis).noquote() << "m_gameController is null!";
         }
     } else {
-        qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] m_usi is null!";
+        qCDebug(lcAnalysis).noquote() << "m_usi is null!";
     }
-    
+
     // 通常対局と同じ流れ：
     // 1. 局面と指し手を確定（上記で完了）
     // 2. GUI更新（棋譜欄ハイライト、将棋盤更新）
     // 3. エンジンにコマンド送信
     // 4. 思考タブ更新（info行受信時）
-    
+
     // 前の手の評価値をGUIに反映（m_lastCommittedPlyが確定した手数）
     if (m_lastCommittedPly >= 0) {
-        qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] emitting analysisProgressReported: ply=" 
-                           << m_lastCommittedPly << ", scoreCp=" << m_lastCommittedScoreCp;
+        qCDebug(lcAnalysis).noquote() << "emitting analysisProgressReported: ply="
+                                      << m_lastCommittedPly << "scoreCp=" << m_lastCommittedScoreCp;
         Q_EMIT analysisProgressReported(m_lastCommittedPly, m_lastCommittedScoreCp);
-        
+
         // リセット
         m_lastCommittedPly = -1;
     }
-    
+
     // INT_MINは評価値追加スキップのマーカー（盤面移動のみ実行）
     static constexpr int POSITION_ONLY_MARKER = std::numeric_limits<int>::min();
-    qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] moving board to ply=" << ply;
+    qCDebug(lcAnalysis).noquote() << "moving board to ply=" << ply;
     Q_EMIT analysisProgressReported(ply, POSITION_ONLY_MARKER);
-    
+
     // 思考タブをクリアしてからgoコマンドを送信
     if (m_usi) {
         m_usi->requestClearThinkingInfo();
     }
-    
+
     // GUI更新後にgoコマンドを送信
     if (m_coord) {
-        qDebug().noquote() << "[AnalysisFlowController::onPositionPrepared_] calling sendGoCommand";
+        qCDebug(lcAnalysis).noquote() << "calling sendGoCommand";
         m_coord->sendGoCommand();
     }
 }
@@ -513,14 +515,14 @@ void AnalysisFlowController::onAnalysisProgress(int ply, int /*depth*/, int /*se
     m_pendingScoreCp = scoreCp;
     m_pendingMate = mate;
     m_pendingPv = pv;
-    
-    qDebug().noquote() << "[AnalysisFlowController::onAnalysisProgress_] ply=" << ply << "pv=" << pv.left(30) << "pvKanji=" << m_pendingPvKanji.left(30);
+
+    qCDebug(lcAnalysis).noquote() << "onAnalysisProgress: ply=" << ply << "pv=" << pv.left(30) << "pvKanji=" << m_pendingPvKanji.left(30);
 }
 
 void AnalysisFlowController::commitPendingResult()
 {
     if (!m_analysisModel) {
-        qDebug().noquote() << "[AnalysisFlowController::commitPendingResult_] m_analysisModel is null";
+        qCDebug(lcAnalysis).noquote() << "commitPendingResult: m_analysisModel is null";
         return;
     }
 
@@ -531,11 +533,11 @@ void AnalysisFlowController::commitPendingResult()
     if (ply < 0 && m_coord) {
         ply = m_coord->currentPly();
         isBook = true;
-        qDebug().noquote() << "[AnalysisFlowController::commitPendingResult_] book move detected, ply=" << ply;
+        qCDebug(lcAnalysis).noquote() << "book move detected, ply=" << ply;
     }
-    
+
     if (ply < 0) {
-        qDebug().noquote() << "[AnalysisFlowController::commitPendingResult_] skipped: ply=" << ply;
+        qCDebug(lcAnalysis).noquote() << "commitPendingResult skipped: ply=" << ply;
         return;
     }
 
@@ -572,7 +574,7 @@ void AnalysisFlowController::commitPendingResult()
     // エンジンの評価値は「手番側から見た評価値」なので、
     // 先手視点で統一するために後手番（奇数ply）の場合は符号を反転
     bool isGoteTurn = (ply % 2 == 1);  // 奇数plyは後手番
-    
+
     QString evalStr;
     int curVal = 0;
     if (isBook) {
@@ -595,8 +597,8 @@ void AnalysisFlowController::commitPendingResult()
     const QString diff = isBook ? QStringLiteral("-") : QString::number(curVal - m_prevEvalCp);
     m_prevEvalCp = curVal;
 
-    qDebug().noquote() << "[AnalysisFlowController::commitPendingResult_] ply=" << ply << "moveLabel=" << moveLabel << "evalStr=" << evalStr << "pv=" << pv.left(30);
-    
+    qCDebug(lcAnalysis).noquote() << "commitPendingResult: ply=" << ply << "moveLabel=" << moveLabel << "evalStr=" << evalStr << "pv=" << pv.left(30);
+
     // KifuAnalysisResultsDisplay は (Move, Eval, Diff, PV) の4引数
     KifuAnalysisResultsDisplay* resultItem = new KifuAnalysisResultsDisplay(
         moveLabel,
@@ -604,7 +606,7 @@ void AnalysisFlowController::commitPendingResult()
         diff,
         pv
         );
-    
+
     // USI形式PVを設定（括弧で囲まれた確率情報を除去）
     QString usiPv = m_pendingPv;
     // 末尾の括弧部分（例: "(100.00%)"）を除去
@@ -613,7 +615,7 @@ void AnalysisFlowController::commitPendingResult()
         usiPv = usiPv.left(parenPos).trimmed();
     }
     resultItem->setUsiPv(usiPv);
-    
+
     // 局面SFENを設定
     if (m_sfenRecord && ply >= 0 && ply < m_sfenRecord->size()) {
         QString sfen = m_sfenRecord->at(ply);
@@ -625,31 +627,31 @@ void AnalysisFlowController::commitPendingResult()
         }
         resultItem->setSfen(sfen);
     }
-    
+
     // 最後の指し手（USI形式）を設定（読み筋表示ウィンドウのハイライト用）
     // ply=0 は開始局面なので指し手なし、ply>=1 は usiMoves[ply-1] が最後の指し手
     QString lastMove;
     if (m_usiMoves && ply > 0 && ply <= m_usiMoves->size()) {
         lastMove = m_usiMoves->at(ply - 1);
-        qDebug().noquote() << "[AnalysisFlowController::commitPendingResult_] lastMove from m_usiMoves[" << (ply - 1) << "]=" << lastMove;
+        qCDebug(lcAnalysis).noquote() << "lastMove from m_usiMoves[" << (ply - 1) << "]=" << lastMove;
     } else if (m_recordModel && ply > 0 && ply < m_recordModel->rowCount()) {
         // フォールバック: 棋譜表記からUSI形式の指し手を抽出
         KifuDisplay* moveDisp = m_recordModel->item(ply);
         if (moveDisp) {
             QString kanjiMoveStr = moveDisp->currentMove();
             lastMove = extractUsiMoveFromKanji(kanjiMoveStr);
-            qDebug().noquote() << "[AnalysisFlowController::commitPendingResult_] lastMove from kanji:" << kanjiMoveStr << "->" << lastMove;
+            qCDebug(lcAnalysis).noquote() << "lastMove from kanji:" << kanjiMoveStr << "->" << lastMove;
         }
     } else {
-        qDebug().noquote() << "[AnalysisFlowController::commitPendingResult_] no lastMove: m_usiMoves=" << m_usiMoves
-                           << "ply=" << ply
-                           << "usiMoves.size=" << (m_usiMoves ? m_usiMoves->size() : -1);
+        qCDebug(lcAnalysis).noquote() << "no lastMove: m_usiMoves=" << m_usiMoves
+                                      << "ply=" << ply
+                                      << "usiMoves.size=" << (m_usiMoves ? m_usiMoves->size() : -1);
     }
     if (!lastMove.isEmpty()) {
         resultItem->setLastUsiMove(lastMove);
-        qDebug().noquote() << "[AnalysisFlowController::commitPendingResult_] setLastUsiMove: ply=" << ply << "lastMove=" << lastMove;
+        qCDebug(lcAnalysis).noquote() << "setLastUsiMove: ply=" << ply << "lastMove=" << lastMove;
     }
-    
+
     // 候補手を設定（前の行の読み筋の最初の指し手）
     int prevRow = m_analysisModel->rowCount() - 1;  // 今追加しようとしている行の1つ前
     if (prevRow >= 0) {
@@ -660,18 +662,18 @@ void AnalysisFlowController::commitPendingResult()
                 // 最初の指し手を取得（スペース区切りまたは末尾まで）
                 // 読み筋は "▲７六歩(77)△８四歩(83)..." のような形式
                 QString candidateMove;
-                
+
                 // 先手/後手を示す記号
                 static const QString senteMark = QStringLiteral("▲");
                 static const QString goteMark = QStringLiteral("△");
-                
+
                 // 漢字表記の場合: 先頭から次の△/▲の前までを取得
                 qsizetype nextMark = -1;
                 if (prevPv.startsWith(senteMark) || prevPv.startsWith(goteMark)) {
                     // 2文字目以降で次の△/▲を探す
                     qsizetype sentePos = prevPv.indexOf(senteMark, 1);
                     qsizetype gotePos = prevPv.indexOf(goteMark, 1);
-                    
+
                     if (sentePos > 0 && gotePos > 0) {
                         nextMark = qMin(sentePos, gotePos);
                     } else if (sentePos > 0) {
@@ -680,20 +682,20 @@ void AnalysisFlowController::commitPendingResult()
                         nextMark = gotePos;
                     }
                 }
-                
+
                 if (nextMark > 0) {
                     candidateMove = prevPv.left(nextMark);
                 } else {
                     // △/▲が見つからなければ全体（1手のみの読み筋）
                     candidateMove = prevPv;
                 }
-                
+
                 // 前の行の指し手の移動先と候補手の移動先が同じ場合は「同」表記に変換
                 // 例: 前の指し手「△８八角成(22)」、候補手「▲８八銀(79)」→「▲同　銀(79)」
                 // 注: prevMoveLabelは「   3 ▲２二角成(88)」のように行番号が先頭についている場合がある
                 QString prevMoveLabel = prevItem->currentMove();
-                qDebug().noquote() << "[AnalysisFlowController::commitPendingResult_] prevMoveLabel=" << prevMoveLabel << "candidateMove=" << candidateMove;
-                
+                qCDebug(lcAnalysis).noquote() << "prevMoveLabel=" << prevMoveLabel << "candidateMove=" << candidateMove;
+
                 if (candidateMove.length() >= 3) {
                     // 前の指し手から移動先を抽出
                     // 行番号を除去して▲/△の位置を見つける
@@ -702,7 +704,7 @@ void AnalysisFlowController::commitPendingResult()
                     if (prevMarkPos < 0) {
                         prevMarkPos = prevMoveLabel.indexOf(goteMark);
                     }
-                    
+
                     if (prevMarkPos >= 0) {
                         // ▲/△の後の文字が「同」でなければ移動先を抽出
                         QString afterMark = prevMoveLabel.mid(prevMarkPos + 1);
@@ -713,14 +715,14 @@ void AnalysisFlowController::commitPendingResult()
                             }
                         }
                     }
-                    
+
                     // 候補手から移動先を抽出
                     QString candDestination;
                     qsizetype candMarkPos = candidateMove.indexOf(senteMark);
                     if (candMarkPos < 0) {
                         candMarkPos = candidateMove.indexOf(goteMark);
                     }
-                    
+
                     if (candMarkPos >= 0) {
                         QString afterMark = candidateMove.mid(candMarkPos + 1);
                         if (!afterMark.startsWith(QStringLiteral("同"))) {
@@ -729,9 +731,9 @@ void AnalysisFlowController::commitPendingResult()
                             }
                         }
                     }
-                    
-                    qDebug().noquote() << "[AnalysisFlowController::commitPendingResult_] prevDestination=" << prevDestination << "candDestination=" << candDestination;
-                    
+
+                    qCDebug(lcAnalysis).noquote() << "prevDestination=" << prevDestination << "candDestination=" << candDestination;
+
                     // 移動先が同じなら「同」表記に変換
                     if (!prevDestination.isEmpty() && !candDestination.isEmpty() &&
                         prevDestination == candDestination) {
@@ -740,10 +742,10 @@ void AnalysisFlowController::commitPendingResult()
                         QString prefix = candidateMove.left(candMarkPos + 1);  // "▲" or "△"まで
                         QString suffix = candidateMove.mid(candMarkPos + 3);    // 駒種以降（銀(79)など）
                         candidateMove = prefix + QStringLiteral("同　") + suffix;
-                        qDebug().noquote() << "[AnalysisFlowController::commitPendingResult_] converted to 同 notation:" << candidateMove;
+                        qCDebug(lcAnalysis).noquote() << "converted to 同 notation:" << candidateMove;
                     }
                 }
-                
+
                 // 候補手に「同」が含まれている場合、「同　」（同＋全角空白）に統一
                 // 「△同銀(31)」→「△同　銀(31)」
                 if (candidateMove.contains(QStringLiteral("同"))) {
@@ -751,18 +753,18 @@ void AnalysisFlowController::commitPendingResult()
                     // ただし「同　」は既にあるのでスキップ
                     if (!candidateMove.contains(QStringLiteral("同　"))) {
                         candidateMove.replace(QStringLiteral("同"), QStringLiteral("同　"));
-                        qDebug().noquote() << "[AnalysisFlowController::commitPendingResult_] added space after 同:" << candidateMove;
+                        qCDebug(lcAnalysis).noquote() << "added space after 同:" << candidateMove;
                     }
                 }
-                
+
                 resultItem->setCandidateMove(candidateMove);
-                qDebug().noquote() << "[AnalysisFlowController::commitPendingResult_] setCandidateMove:" << candidateMove;
+                qCDebug(lcAnalysis).noquote() << "setCandidateMove:" << candidateMove;
             }
         }
     }
-    
+
     m_analysisModel->appendItem(resultItem);
-    
+
     // GUI更新用に結果を保存（次のonPositionPreparedでシグナルを発行）
     m_lastCommittedPly = ply;
     m_lastCommittedScoreCp = curVal;
@@ -770,37 +772,37 @@ void AnalysisFlowController::commitPendingResult()
 
 void AnalysisFlowController::onAnalysisFinished(AnalysisCoordinator::Mode /*mode*/)
 {
-    qDebug().noquote() << "[AnalysisFlowController::onAnalysisFinished_] called, m_stoppedByUser=" << m_stoppedByUser;
-    
+    qCInfo(lcAnalysis).noquote() << "analysis finished, m_stoppedByUser=" << m_stoppedByUser;
+
     // 最後の結果をGUIに反映
     if (m_lastCommittedPly >= 0) {
-        qDebug().noquote() << "[AnalysisFlowController::onAnalysisFinished_] emitting analysisProgressReported for final ply=" 
-                           << m_lastCommittedPly << "scoreCp=" << m_lastCommittedScoreCp;
+        qCDebug(lcAnalysis).noquote() << "emitting final analysisProgressReported: ply="
+                                      << m_lastCommittedPly << "scoreCp=" << m_lastCommittedScoreCp;
         Q_EMIT analysisProgressReported(m_lastCommittedPly, m_lastCommittedScoreCp);
         m_lastCommittedPly = -1;
     }
-    
+
     m_running = false;
-    
+
     if (m_presenter) {
         m_presenter->setStopButtonEnabled(false);
     }
-    
+
     // ユーザーによる中止でなければ（正常完了なら）完了メッセージを表示
     if (!m_stoppedByUser && m_presenter && m_analysisModel) {
         int totalMoves = m_analysisModel->rowCount();
         m_presenter->showAnalysisComplete(totalMoves);
     }
-    
+
     Q_EMIT analysisStopped();
 }
 
 void AnalysisFlowController::runWithDialog(const Deps& d, QWidget* parent)
 {
-    qDebug().noquote() << "[AnalysisFlowController::runWithDialog] START";
-    qDebug().noquote() << "[AnalysisFlowController::runWithDialog] d.gameController=" << d.gameController;
-    qDebug().noquote() << "[AnalysisFlowController::runWithDialog] d.usi=" << d.usi;
-    
+    qCInfo(lcAnalysis).noquote() << "runWithDialog START";
+    qCDebug(lcAnalysis).noquote() << "d.gameController=" << d.gameController;
+    qCDebug(lcAnalysis).noquote() << "d.usi=" << d.usi;
+
     // 依存の必須チェック（usi以外）
     if (!d.sfenRecord || d.sfenRecord->isEmpty()) {
         if (d.displayError) d.displayError(tr("内部エラー: sfenRecord が未準備です。棋譜読み込み後に実行してください。"));
@@ -813,27 +815,27 @@ void AnalysisFlowController::runWithDialog(const Deps& d, QWidget* parent)
 
     // ダイアログを生成してユーザに選択してもらう
     KifuAnalysisDialog dlg(parent);
-    
+
     // 最大手数を設定
     // 注: sfenRecordには終局指し手（投了、中断など）は含まれないため、
     //     sfenSize - 1 が最後の指し手の局面インデックスとなる
     int maxPly = static_cast<int>(d.sfenRecord->size()) - 1;
     dlg.setMaxPly(qMax(0, maxPly));
-    
+
     const int result = dlg.exec();
     if (result != QDialog::Accepted) return;
 
     // GameControllerを保持
     m_gameController = d.gameController;
-    qDebug().noquote() << "[AnalysisFlowController::runWithDialog] m_gameController=" << m_gameController;
+    qCDebug(lcAnalysis).noquote() << "m_gameController=" << m_gameController;
     if (m_gameController) {
-        qDebug().noquote() << "[AnalysisFlowController::runWithDialog] m_gameController->board()=" << m_gameController->board();
+        qCDebug(lcAnalysis).noquote() << "m_gameController->board()=" << m_gameController->board();
     }
 
     // Usiが渡されていない場合は内部で生成
     Deps actualDeps = d;
     if (!actualDeps.usi) {
-        qDebug().noquote() << "[AnalysisFlowController::runWithDialog] Creating internal Usi instance...";
+        qCDebug(lcAnalysis).noquote() << "Creating internal Usi instance...";
 
         // 既存の内部Usiを破棄（メモリリーク防止）
         if (m_ownsUsi && m_usi) {
@@ -872,9 +874,9 @@ void AnalysisFlowController::runWithDialog(const Deps& d, QWidget* parent)
         actualDeps.usi = m_usi;
         actualDeps.logModel = logModelToUse;
         actualDeps.thinkingModel = thinkingModelToUse;
-        qDebug().noquote() << "[AnalysisFlowController::runWithDialog] Internal Usi created:" << m_usi;
-        qDebug().noquote() << "[AnalysisFlowController::runWithDialog] Using logModel:" << logModelToUse;
-        qDebug().noquote() << "[AnalysisFlowController::runWithDialog] Using thinkingModel:" << thinkingModelToUse;
+        qCDebug(lcAnalysis).noquote() << "Internal Usi created:" << m_usi;
+        qCDebug(lcAnalysis).noquote() << "Using logModel:" << logModelToUse;
+        qCDebug(lcAnalysis).noquote() << "Using thinkingModel:" << thinkingModelToUse;
     }
 
     // 以降は既存の start(...) に委譲（Presenter への表示や接続も start 側で実施）
@@ -883,33 +885,33 @@ void AnalysisFlowController::runWithDialog(const Deps& d, QWidget* parent)
 
 void AnalysisFlowController::onResultRowDoubleClicked(int row)
 {
-    qDebug().noquote() << "[AnalysisFlowController::onResultRowDoubleClicked_] row=" << row;
-    
+    qCDebug(lcAnalysis).noquote() << "onResultRowDoubleClicked: row=" << row;
+
     if (!m_analysisModel) {
-        qDebug().noquote() << "[AnalysisFlowController::onResultRowDoubleClicked_] m_analysisModel is null";
+        qCDebug(lcAnalysis).noquote() << "onResultRowDoubleClicked: m_analysisModel is null";
         return;
     }
-    
+
     if (row < 0 || row >= m_analysisModel->rowCount()) {
-        qDebug().noquote() << "[AnalysisFlowController::onResultRowDoubleClicked_] row out of range";
+        qCDebug(lcAnalysis).noquote() << "onResultRowDoubleClicked: row out of range";
         return;
     }
-    
+
     // KifuAnalysisResultsDisplayから読み筋を取得
     KifuAnalysisResultsDisplay* item = m_analysisModel->item(row);
     if (!item) {
-        qDebug().noquote() << "[AnalysisFlowController::onResultRowDoubleClicked_] item is null";
+        qCDebug(lcAnalysis).noquote() << "onResultRowDoubleClicked: item is null";
         return;
     }
-    
+
     QString kanjiPv = item->principalVariation();
-    qDebug().noquote() << "[AnalysisFlowController::onResultRowDoubleClicked_] kanjiPv=" << kanjiPv.left(50);
-    
+    qCDebug(lcAnalysis).noquote() << "kanjiPv=" << kanjiPv.left(50);
+
     if (kanjiPv.isEmpty()) {
-        qDebug().noquote() << "[AnalysisFlowController::onResultRowDoubleClicked_] kanjiPv is empty";
+        qCDebug(lcAnalysis).noquote() << "kanjiPv is empty";
         return;
     }
-    
+
     // 局面SFENを取得（itemから）
     QString baseSfen = item->sfen();
     if (baseSfen.isEmpty()) {
@@ -927,30 +929,30 @@ void AnalysisFlowController::onResultRowDoubleClicked(int row)
     if (baseSfen.isEmpty()) {
         baseSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
     }
-    qDebug().noquote() << "[AnalysisFlowController::onResultRowDoubleClicked_] baseSfen=" << baseSfen.left(50);
-    
+    qCDebug(lcAnalysis).noquote() << "baseSfen=" << baseSfen.left(50);
+
     // USI形式の読み筋を取得（itemから）
     QString usiPvStr = item->usiPv();
     QStringList usiMoves;
     if (!usiPvStr.isEmpty()) {
         usiMoves = usiPvStr.split(' ', Qt::SkipEmptyParts);
-        qDebug().noquote() << "[AnalysisFlowController::onResultRowDoubleClicked_] usiMoves from item:" << usiMoves;
+        qCDebug(lcAnalysis).noquote() << "usiMoves from item:" << usiMoves;
     }
-    
+
     // PvBoardDialogを表示
     QWidget* parentWidget = nullptr;
     if (m_presenter && m_presenter->container()) {
         parentWidget = m_presenter->container();
     }
-    
+
     PvBoardDialog* dlg = new PvBoardDialog(baseSfen, usiMoves, parentWidget);
     dlg->setKanjiPv(kanjiPv);
-    
+
     // 対局者名を設定（Depsから取得した名前を使用）
     QString blackName = m_blackPlayerName.isEmpty() ? tr("先手") : m_blackPlayerName;
     QString whiteName = m_whitePlayerName.isEmpty() ? tr("後手") : m_whitePlayerName;
     dlg->setPlayerNames(blackName, whiteName);
-    
+
     // 最後の指し手を設定（初期局面のハイライト用）
     QString lastMove = item->lastUsiMove();
     if (lastMove.isEmpty()) {
@@ -962,15 +964,15 @@ void AnalysisFlowController::onResultRowDoubleClicked(int row)
             if (moveDisp) {
                 QString moveLabel = moveDisp->currentMove();
                 lastMove = extractUsiMoveFromKanji(moveLabel);
-                qDebug().noquote() << "[AnalysisFlowController::onResultRowDoubleClicked_] lastMove from kanji:" << moveLabel << "->" << lastMove;
+                qCDebug(lcAnalysis).noquote() << "lastMove from kanji:" << moveLabel << "->" << lastMove;
             }
         }
     }
     if (!lastMove.isEmpty()) {
-        qDebug().noquote() << "[AnalysisFlowController::onResultRowDoubleClicked_] setting lastMove:" << lastMove;
+        qCDebug(lcAnalysis).noquote() << "setting lastMove:" << lastMove;
         dlg->setLastMove(lastMove);
     }
-    
+
     dlg->setAttribute(Qt::WA_DeleteOnClose);
     dlg->show();
 }
@@ -1004,7 +1006,7 @@ QString AnalysisFlowController::extractUsiMoveFromKanji(const QString& kanjiMove
 
     // 「同」表記の場合は前回の移動先が必要なのでスキップ
     if (afterMark.startsWith(QStringLiteral("同"))) {
-        qDebug().noquote() << "[extractUsiMoveFromKanji_] 同 notation, cannot extract USI move";
+        qCDebug(lcAnalysis).noquote() << "extractUsiMoveFromKanji: 同 notation, cannot extract USI move";
         return QString();
     }
 
@@ -1033,7 +1035,7 @@ QString AnalysisFlowController::extractUsiMoveFromKanji(const QString& kanjiMove
     }
 
     if (fileTo < 1 || fileTo > 9 || rankTo < 1 || rankTo > 9) {
-        qDebug().noquote() << "[extractUsiMoveFromKanji_] invalid destination:" << fileTo << rankTo;
+        qCDebug(lcAnalysis).noquote() << "extractUsiMoveFromKanji: invalid destination:" << fileTo << rankTo;
         return QString();
     }
 
@@ -1054,7 +1056,7 @@ QString AnalysisFlowController::extractUsiMoveFromKanji(const QString& kanjiMove
         }
 
         if (pieceUsi.isNull()) {
-            qDebug().noquote() << "[extractUsiMoveFromKanji_] could not identify piece for drop";
+            qCDebug(lcAnalysis).noquote() << "extractUsiMoveFromKanji: could not identify piece for drop";
             return QString();
         }
 
@@ -1065,13 +1067,13 @@ QString AnalysisFlowController::extractUsiMoveFromKanji(const QString& kanjiMove
         qsizetype parenEnd = afterMark.indexOf(')');
 
         if (parenStart < 0 || parenEnd < 0 || parenEnd <= parenStart + 1) {
-            qDebug().noquote() << "[extractUsiMoveFromKanji_] could not find source position in parentheses";
+            qCDebug(lcAnalysis).noquote() << "extractUsiMoveFromKanji: could not find source position in parentheses";
             return QString();
         }
 
         QString srcStr = afterMark.mid(parenStart + 1, parenEnd - parenStart - 1);
         if (srcStr.length() != 2) {
-            qDebug().noquote() << "[extractUsiMoveFromKanji_] invalid source string:" << srcStr;
+            qCDebug(lcAnalysis).noquote() << "extractUsiMoveFromKanji: invalid source string:" << srcStr;
             return QString();
         }
 
@@ -1079,7 +1081,7 @@ QString AnalysisFlowController::extractUsiMoveFromKanji(const QString& kanjiMove
         int rankFrom = srcStr.at(1).digitValue();
 
         if (fileFrom < 1 || fileFrom > 9 || rankFrom < 1 || rankFrom > 9) {
-            qDebug().noquote() << "[extractUsiMoveFromKanji_] invalid source coordinates:" << fileFrom << rankFrom;
+            qCDebug(lcAnalysis).noquote() << "extractUsiMoveFromKanji: invalid source coordinates:" << fileFrom << rankFrom;
             return QString();
         }
 

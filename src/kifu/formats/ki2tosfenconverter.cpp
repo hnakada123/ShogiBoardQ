@@ -5,7 +5,7 @@
 #include "kifreader.h"
 
 #include <QRegularExpression>
-#include <QDebug>
+#include "kifulogging.h"
 #include <QMap>
 #include <array>
 
@@ -1147,7 +1147,7 @@ QString Ki2ToSfenConverter::convertKi2MoveToUsi(const QString& moveText,
     if (isDrop) {
         // 駒打ち
         if (!hasInHand) {
-            qWarning() << "[Ki2] No piece in hand for drop:" << pieceUpper << "move:" << moveText;
+            qCWarning(lcKifu) << "No piece in hand for drop:" << pieceUpper << "move:" << moveText;
             return QString();
         }
         
@@ -1156,7 +1156,7 @@ QString Ki2ToSfenConverter::convertKi2MoveToUsi(const QString& moveText,
     } else {
         // 盤上の移動
         if (!canMoveFromBoard) {
-            qWarning() << "[Ki2] Cannot infer source square for:" << moveText;
+            qCWarning(lcKifu) << "Cannot infer source square for:" << moveText;
             return QString();
         }
         
@@ -1192,7 +1192,7 @@ QString Ki2ToSfenConverter::detectInitialSfenFromFile(const QString& ki2Path, QS
     // BODを試す
     QString bodSfen;
     if (buildInitialSfenFromBod(lines, bodSfen, detectedLabel, &warn)) {
-        qDebug().noquote() << "[Ki2] BOD detected. sfen =" << bodSfen;
+        qCDebug(lcKifu).noquote() << "BOD detected. sfen =" << bodSfen;
         return bodSfen;
     }
 
@@ -1230,8 +1230,8 @@ QStringList Ki2ToSfenConverter::convertFile(const QString& ki2Path, QString* err
         return out;
     }
 
-    qDebug().noquote() << QStringLiteral("[Ki2 convertFile] encoding = %1 , lines = %2")
-                              .arg(usedEnc).arg(lines.size());
+    qCDebug(lcKifu).noquote() << QStringLiteral("convertFile: encoding = %1 , lines = %2")
+                                    .arg(usedEnc).arg(lines.size());
 
     // 初期SFENを取得
     const QString initialSfen = detectInitialSfenFromFile(ki2Path);
@@ -1286,7 +1286,7 @@ QStringList Ki2ToSfenConverter::convertFile(const QString& ki2Path, QString* err
                                                      blackToMove, prevToFile, prevToRank);
             if (!usi.isEmpty()) {
                 out << usi;
-                qDebug().noquote() << QStringLiteral("[USI %1] %2").arg(out.size()).arg(usi);
+                qCDebug(lcKifu).noquote() << QStringLiteral("USI [%1] %2").arg(out.size()).arg(usi);
 
                 // 盤面を更新
                 applyMoveToBoard(usi, boardState, blackHands, whiteHands, blackToMove);
@@ -1297,7 +1297,7 @@ QStringList Ki2ToSfenConverter::convertFile(const QString& ki2Path, QString* err
         }
     }
 
-    qDebug().noquote() << QStringLiteral("[Ki2 convertFile] moves = %1").arg(out.size());
+    qCDebug(lcKifu).noquote() << QStringLiteral("convertFile: moves = %1").arg(out.size());
     return out;
 }
 
@@ -1601,7 +1601,7 @@ QList<KifGameInfoItem> Ki2ToSfenConverter::extractGameInfo(const QString& filePa
     QString usedEnc, warn;
     QStringList lines;
     if (!KifReader::readLinesAuto(filePath, lines, &usedEnc, &warn)) {
-        qWarning().noquote() << "[Ki2] read failed:" << filePath << "warn:" << warn;
+        qCWarning(lcKifu).noquote() << "read failed:" << filePath << "warn:" << warn;
         return ordered;
     }
 
@@ -1664,7 +1664,7 @@ QString Ki2ToSfenConverter::extractOpeningComment(const QString& filePath)
     QString usedEnc, warn;
     QStringList lines;
     if (!KifReader::readLinesAuto(filePath, lines, &usedEnc, &warn)) {
-        qWarning().noquote() << "[Ki2] read failed for opening comment:" << filePath << "warn:" << warn;
+        qCWarning(lcKifu).noquote() << "read failed for opening comment:" << filePath << "warn:" << warn;
         return QString();
     }
 

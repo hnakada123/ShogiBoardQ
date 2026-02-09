@@ -7,6 +7,7 @@
 #include "kifutypes.h"
 #include "kifparsetypes.h"
 #include "kifdisplayitem.h"
+#include "kifulogging.h"
 
 KifuBranchTree* KifuBranchTreeBuilder::fromResolvedRows(const QVector<ResolvedRow>& rows,
                                                         const QString& startSfen)
@@ -45,8 +46,8 @@ KifuBranchTree* KifuBranchTreeBuilder::fromResolvedRows(const QVector<ResolvedRo
     for (int rowIdx = 1; rowIdx < rows.size(); ++rowIdx) {
         const ResolvedRow& row = rows.at(rowIdx);
         int parentRowIdx = row.parent;
-        qDebug().noquote() << "[TreeBuilder] row" << rowIdx << ": parent=" << row.parent
-                           << "startPly=" << row.startPly << "disp.size=" << row.disp.size();
+        qCDebug(lcKifu).noquote() << "row" << rowIdx << ": parent=" << row.parent
+                                  << "startPly=" << row.startPly << "disp.size=" << row.disp.size();
         if (parentRowIdx < 0) {
             parentRowIdx = 0;  // 親がなければ本譜から
         }
@@ -58,15 +59,15 @@ KifuBranchTree* KifuBranchTreeBuilder::fromResolvedRows(const QVector<ResolvedRo
         // 親行から分岐点を探す
         if (parentRowIdx < rowEndNodes.size() && rowEndNodes[parentRowIdx] != nullptr) {
             branchPoint = tree->findByPlyOnLine(rowEndNodes[parentRowIdx], branchPly - 1);
-            qDebug().noquote() << "[TreeBuilder]   findByPlyOnLine(rowEndNodes[" << parentRowIdx << "], "
-                               << (branchPly - 1) << ") = " << (branchPoint ? branchPoint->displayText() : "null");
+            qCDebug(lcKifu).noquote() << "findByPlyOnLine(rowEndNodes[" << parentRowIdx << "], "
+                                      << (branchPly - 1) << ") = " << (branchPoint ? branchPoint->displayText() : "null");
         }
 
         if (branchPoint == nullptr) {
             // フォールバック: 本譜から探す
             branchPoint = tree->findByPlyOnMainLine(branchPly - 1);
-            qDebug().noquote() << "[TreeBuilder]   FALLBACK findByPlyOnMainLine(" << (branchPly - 1) << ") = "
-                               << (branchPoint ? branchPoint->displayText() : "null");
+            qCDebug(lcKifu).noquote() << "FALLBACK findByPlyOnMainLine(" << (branchPly - 1) << ") = "
+                                      << (branchPoint ? branchPoint->displayText() : "null");
         }
 
         if (branchPoint == nullptr) {
@@ -146,18 +147,18 @@ void KifuBranchTreeBuilder::addKifLineToTree(KifuBranchTree* tree,
         return;
     }
 
-    qDebug().noquote() << "[TreeBuilder] addKifLineToTree: startPly=" << startPly
-                       << "disp.size=" << line.disp.size();
+    qCDebug(lcKifu).noquote() << "addKifLineToTree: startPly=" << startPly
+                              << "disp.size=" << line.disp.size();
     if (!line.disp.isEmpty()) {
-        qDebug().noquote() << "[TreeBuilder]   first disp: ply=" << line.disp.at(0).ply
-                           << "prettyMove=" << line.disp.at(0).prettyMove;
+        qCDebug(lcKifu).noquote() << "first disp: ply=" << line.disp.at(0).ply
+                                  << "prettyMove=" << line.disp.at(0).prettyMove;
     }
 
     // 分岐開始点を見つける
     KifuBranchNode* branchPoint = nullptr;
     if (startPly <= 1) {
         branchPoint = tree->root();
-        qDebug().noquote() << "[TreeBuilder]   branchPoint = root";
+        qCDebug(lcKifu).noquote() << "branchPoint = root";
     } else {
         // 分岐点を探す：baseSfen が分岐前の局面なので、それを使って正しいノードを見つける
         // sfenList[0] が空の場合は line.baseSfen を使用する
@@ -176,27 +177,27 @@ void KifuBranchTreeBuilder::addKifLineToTree(KifuBranchTree* tree,
             }
         }
 
-        qDebug().noquote() << "[TreeBuilder]   baseSfen=" << baseSfen
-                           << "(sfenList.size=" << line.sfenList.size()
-                           << "line.baseSfen=" << line.baseSfen << ")";
+        qCDebug(lcKifu).noquote() << "baseSfen=" << baseSfen
+                                  << "(sfenList.size=" << line.sfenList.size()
+                                  << "line.baseSfen=" << line.baseSfen << ")";
 
         // まず SFEN で分岐点を探す
         if (!baseSfen.isEmpty()) {
             branchPoint = tree->findBySfen(baseSfen);
-            qDebug().noquote() << "[TreeBuilder]   findBySfen() = "
-                               << (branchPoint ? branchPoint->displayText() : "null");
+            qCDebug(lcKifu).noquote() << "findBySfen() = "
+                                      << (branchPoint ? branchPoint->displayText() : "null");
         }
 
         // SFEN で見つからない場合は本譜から探す（フォールバック）
         if (branchPoint == nullptr) {
             branchPoint = tree->findByPlyOnMainLine(startPly - 1);
-            qDebug().noquote() << "[TreeBuilder]   findByPlyOnMainLine(" << (startPly - 1) << ") = "
-                               << (branchPoint ? branchPoint->displayText() : "null");
+            qCDebug(lcKifu).noquote() << "findByPlyOnMainLine(" << (startPly - 1) << ") = "
+                                      << (branchPoint ? branchPoint->displayText() : "null");
         }
 
         if (branchPoint == nullptr) {
             branchPoint = tree->root();
-            qDebug().noquote() << "[TreeBuilder]   fallback to root";
+            qCDebug(lcKifu).noquote() << "fallback to root";
         }
     }
 

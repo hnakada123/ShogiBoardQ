@@ -17,12 +17,11 @@
 #include "kifubranchtreebuilder.h"
 #include "kifunavigationstate.h"
 
-#include <QDebug>
+#include <QLoggingCategory>
 #include <QStyledItemDelegate>
 #include <QAbstractItemView>         // view->model() を使うなら
 #include <QFile>
 #include <QTextStream>
-#include <QDebug>
 #include <QTableWidget>
 #include <QPainter>
 #include <QFileInfo>
@@ -31,8 +30,7 @@
 #include <QElapsedTimer>
 #include <functional>
 
-// デバッグのオン/オフ（必要に応じて true に）
-static bool kGM_VERBOSE = false;
+Q_LOGGING_CATEGORY(lcKifu, "shogi.kifu")
 
 KifuLoadCoordinator::KifuLoadCoordinator(QVector<ShogiMove>& gameMoves,
                                          QStringList& positionStrList,
@@ -74,22 +72,20 @@ KifuLoadCoordinator::KifuLoadCoordinator(QVector<ShogiMove>& gameMoves,
 // 本譜（メインライン）のデバッグダンプ
 static void dumpMainline(const KifParseResult& res, const QString& parseWarn)
 {
-    if (!kGM_VERBOSE) return;
-
-    qDebug().noquote() << "[GM] KifParseResult dump:";
+    qCDebug(lcKifu).noquote() << "KifParseResult dump:";
     if (!parseWarn.isEmpty()) {
-        qDebug().noquote() << "  [parseWarn]" << parseWarn;
+        qCDebug(lcKifu).noquote() << "  [parseWarn]" << parseWarn;
     }
 
-    qDebug().noquote() << "  Mainline:";
-    qDebug().noquote() << "    baseSfen: " << res.mainline.baseSfen;
-    qDebug().noquote() << "    usiMoves: " << res.mainline.usiMoves;
-    qDebug().noquote() << "    disp:";
+    qCDebug(lcKifu).noquote() << "  Mainline:";
+    qCDebug(lcKifu).noquote() << "    baseSfen: " << res.mainline.baseSfen;
+    qCDebug(lcKifu).noquote() << "    usiMoves: " << res.mainline.usiMoves;
+    qCDebug(lcKifu).noquote() << "    disp:";
     int mainIdx = 0;
     for (const auto& d : std::as_const(res.mainline.disp)) {
-        qDebug().noquote() << "      [" << mainIdx << "] prettyMove: " << d.prettyMove;
-        qDebug().noquote() << "           comment: " << (d.comment.isEmpty() ? "<none>" : d.comment);
-        qDebug().noquote() << "           timeText: " << d.timeText;
+        qCDebug(lcKifu).noquote() << "      [" << mainIdx << "] prettyMove: " << d.prettyMove;
+        qCDebug(lcKifu).noquote() << "           comment: " << (d.comment.isEmpty() ? "<none>" : d.comment);
+        qCDebug(lcKifu).noquote() << "           timeText: " << d.timeText;
         ++mainIdx;
     }
 }
@@ -97,21 +93,19 @@ static void dumpMainline(const KifParseResult& res, const QString& parseWarn)
 // 変化（バリエーション）のデバッグダンプ
 static void dumpVariationsDebug(const KifParseResult& res)
 {
-    if (!kGM_VERBOSE) return;
-
-    qDebug().noquote() << "  Variations:";
+    qCDebug(lcKifu).noquote() << "  Variations:";
     int varNo = 0;
     for (const KifVariation& var : std::as_const(res.variations)) {
-        qDebug().noquote() << "  [Var " << varNo << "]";
-        qDebug().noquote() << "    startPly: " << var.startPly;
-        qDebug().noquote() << "    baseSfen: " << var.line.baseSfen;
-        qDebug().noquote() << "    usiMoves: " << var.line.usiMoves;
-        qDebug().noquote() << "    disp:";
+        qCDebug(lcKifu).noquote() << "  [Var " << varNo << "]";
+        qCDebug(lcKifu).noquote() << "    startPly: " << var.startPly;
+        qCDebug(lcKifu).noquote() << "    baseSfen: " << var.line.baseSfen;
+        qCDebug(lcKifu).noquote() << "    usiMoves: " << var.line.usiMoves;
+        qCDebug(lcKifu).noquote() << "    disp:";
         int dispIdx = 0;
         for (const auto& d : std::as_const(var.line.disp)) {
-            qDebug().noquote() << "      [" << dispIdx << "] prettyMove: " << d.prettyMove;
-            qDebug().noquote() << "           comment: " << (d.comment.isEmpty() ? "<none>" : d.comment);
-            qDebug().noquote() << "           timeText: " << d.timeText;
+            qCDebug(lcKifu).noquote() << "      [" << dispIdx << "] prettyMove: " << d.prettyMove;
+            qCDebug(lcKifu).noquote() << "           comment: " << (d.comment.isEmpty() ? "<none>" : d.comment);
+            qCDebug(lcKifu).noquote() << "           timeText: " << d.timeText;
             ++dispIdx;
         }
         ++varNo;
@@ -140,13 +134,13 @@ void KifuLoadCoordinator::loadKifuCommon(
     totalTimer.start();
     QElapsedTimer stepTimer;
     auto logStep = [&](const char* stepName) {
-        qDebug().noquote() << QStringLiteral("[PERF] %1: %2 ms").arg(stepName).arg(stepTimer.elapsed());
+        qCDebug(lcKifu).noquote() << QStringLiteral("%1: %2 ms").arg(stepName).arg(stepTimer.elapsed());
         stepTimer.restart();
     };
     stepTimer.start();
 
     // --- IN ログ ---
-    qDebug().noquote() << "[MAIN]" << funcName << "IN file=" << filePath;
+    qCDebug(lcKifu).noquote() << funcName << "IN file=" << filePath;
 
     // ロード中フラグ（分岐更新を抑止）
     m_loadingKifu = true;
@@ -169,13 +163,13 @@ void KifuLoadCoordinator::loadKifuCommon(
     KifParseResult res;
     QString parseWarn;
     if (!parseFunc(filePath, res, &parseWarn)) {
-        qWarning().noquote() << "[GM] parse failed:" << filePath << parseWarn;
+        qCWarning(lcKifu).noquote() << "parse failed:" << filePath << parseWarn;
         emit errorOccurred(tr("棋譜ファイルの読み込みに失敗しました: %1").arg(QFileInfo(filePath).fileName()));
         m_loadingKifu = false;
         return;
     }
     if (!parseWarn.isEmpty()) {
-        qWarning().noquote() << "[GM] parse warn:" << parseWarn;
+        qCWarning(lcKifu).noquote() << "parse warn:" << parseWarn;
         emit errorOccurred(tr("棋譜の読み込みで警告があります:\n%1").arg(parseWarn));
     }
     logStep("parseFunc");
@@ -197,7 +191,7 @@ void KifuLoadCoordinator::loadKifuCommon(
 
     // 5) 共通の後処理に委譲
     applyParsedResultCommon(filePath, initialSfen, teaiLabel, res, parseWarn, funcName);
-    qDebug().noquote() << QStringLiteral("[PERF] loadKifuCommon TOTAL: %1 ms").arg(totalTimer.elapsed());
+    qCDebug(lcKifu).noquote() << QStringLiteral("loadKifuCommon TOTAL: %1 ms").arg(totalTimer.elapsed());
 }
 
 // ============================================================
@@ -336,7 +330,7 @@ bool KifuLoadCoordinator::loadKifuFromString(const QString& content)
         return false;
     }
 
-    qDebug().noquote() << "[PASTE] loadKifuFromString: content length =" << content.size();
+    qCDebug(lcKifu).noquote() << "loadKifuFromString: content length =" << content.size();
 
     // 形式を自動判定
     // 判定基準:
@@ -362,7 +356,7 @@ bool KifuLoadCoordinator::loadKifuFromString(const QString& content)
     );
     if (sfenPattern.match(trimmed).hasMatch()) {
         fmt = FMT_SFEN;
-        qDebug().noquote() << "[PASTE] detected format: SFEN";
+        qCDebug(lcKifu).noquote() << "detected format: SFEN";
     }
     // BOD判定（局面図: "後手の持駒" や "+--" で始まる罫線）
     else if (trimmed.contains(QStringLiteral("後手の持駒")) ||
@@ -371,22 +365,22 @@ bool KifuLoadCoordinator::loadKifuFromString(const QString& content)
              trimmed.contains(QStringLiteral("|v")) ||
              trimmed.contains(QStringLiteral("| ・"))) {
         fmt = FMT_BOD;
-        qDebug().noquote() << "[PASTE] detected format: BOD";
+        qCDebug(lcKifu).noquote() << "detected format: BOD";
     }
     // JSON判定（JKF）
     else if (trimmed.startsWith(QLatin1Char('{'))) {
         fmt = FMT_JKF;
-        qDebug().noquote() << "[PASTE] detected format: JKF (JSON)";
+        qCDebug(lcKifu).noquote() << "detected format: JKF (JSON)";
     }
     // USI判定
     else if (trimmed.startsWith(QLatin1String("position"))) {
         fmt = FMT_USI;
-        qDebug().noquote() << "[PASTE] detected format: USI";
+        qCDebug(lcKifu).noquote() << "detected format: USI";
     }
     // USEN判定（チルダを含む）
     else if (trimmed.contains(QLatin1Char('~'))) {
         fmt = FMT_USEN;
-        qDebug().noquote() << "[PASTE] detected format: USEN";
+        qCDebug(lcKifu).noquote() << "detected format: USEN";
     }
     // CSA判定（V2ヘッダまたは +/- で始まる指し手行）
     else if (trimmed.startsWith(QLatin1String("V2")) ||
@@ -394,24 +388,24 @@ bool KifuLoadCoordinator::loadKifuFromString(const QString& content)
              QRegularExpression(QStringLiteral("^[+-][0-9]")).match(trimmed).hasMatch() ||
              content.contains(QRegularExpression(QStringLiteral("\\n[+-][0-9]")))) {
         fmt = FMT_CSA;
-        qDebug().noquote() << "[PASTE] detected format: CSA";
+        qCDebug(lcKifu).noquote() << "detected format: CSA";
     }
     // KIF判定（"手数----" ヘッダまたは数字で始まる行）
     else if (content.contains(QStringLiteral("手数----")) ||
              content.contains(QRegularExpression(QStringLiteral("^\\s*\\d+\\s+[０-９一二三四五六七八九同]")))) {
         fmt = FMT_KIF;
-        qDebug().noquote() << "[PASTE] detected format: KIF";
+        qCDebug(lcKifu).noquote() << "detected format: KIF";
     }
     // KI2判定（▲△で始まる指し手）
     else if (content.contains(QRegularExpression(QStringLiteral("[▲△][０-９一二三四五六七八九同]")))) {
         fmt = FMT_KI2;
-        qDebug().noquote() << "[PASTE] detected format: KI2";
+        qCDebug(lcKifu).noquote() << "detected format: KI2";
     }
 
     if (fmt == FMT_UNKNOWN) {
         // 最後にKIFとして試す
         fmt = FMT_KIF;
-        qDebug().noquote() << "[PASTE] format unknown, trying KIF";
+        qCDebug(lcKifu).noquote() << "format unknown, trying KIF";
     }
 
     // SFEN形式の場合は直接処理
@@ -455,7 +449,7 @@ bool KifuLoadCoordinator::loadKifuFromString(const QString& content)
     }
     tempFile.close();
 
-    qDebug().noquote() << "[PASTE] created temp file:" << tempFilePath;
+    qCDebug(lcKifu).noquote() << "created temp file:" << tempFilePath;
 
     // 形式に応じた読み込み関数を呼び出し
     switch (fmt) {
@@ -484,7 +478,7 @@ bool KifuLoadCoordinator::loadKifuFromString(const QString& content)
 
     // 一時ファイルを削除
     QFile::remove(tempFilePath);
-    qDebug().noquote() << "[PASTE] removed temp file:" << tempFilePath;
+    qCDebug(lcKifu).noquote() << "removed temp file:" << tempFilePath;
 
     return true;
 }
@@ -492,7 +486,7 @@ bool KifuLoadCoordinator::loadKifuFromString(const QString& content)
 // SFEN形式の局面を読み込む
 bool KifuLoadCoordinator::loadPositionFromSfen(const QString& sfenStr)
 {
-    qDebug().noquote() << "[PASTE] loadPositionFromSfen:" << sfenStr;
+    qCDebug(lcKifu).noquote() << "loadPositionFromSfen:" << sfenStr;
 
     QString sfen = sfenStr.trimmed();
     
@@ -550,20 +544,20 @@ bool KifuLoadCoordinator::loadPositionFromSfen(const QString& sfenStr)
     // シグナルを発行（displayGameRecordでモデルが更新される）
     emit setReplayMode(true);
     emit displayGameRecord(disp);
-    qDebug() << "[KLC-DEBUG] emitting syncBoardAndHighlightsAtRow(0) from loadPositionFromSfen";
+    qCDebug(lcKifu) << "emitting syncBoardAndHighlightsAtRow(0) from loadPositionFromSfen";
     emit syncBoardAndHighlightsAtRow(0);
     emit enableArrowButtons();
 
     m_loadingKifu = false;
 
-    qDebug().noquote() << "[PASTE] loadPositionFromSfen: completed";
+    qCDebug(lcKifu).noquote() << "loadPositionFromSfen: completed";
     return true;
 }
 
 // BOD形式の局面を読み込む
 bool KifuLoadCoordinator::loadPositionFromBod(const QString& bodStr)
 {
-    qDebug().noquote() << "[PASTE] loadPositionFromBod: length =" << bodStr.size();
+    qCDebug(lcKifu).noquote() << "loadPositionFromBod: length =" << bodStr.size();
 
     // BOD形式をSFEN形式に変換
     QString sfen;
@@ -582,7 +576,7 @@ bool KifuLoadCoordinator::loadPositionFromBod(const QString& bodStr)
         return false;
     }
 
-    qDebug().noquote() << "[PASTE] loadPositionFromBod: converted SFEN =" << sfen;
+    qCDebug(lcKifu).noquote() << "loadPositionFromBod: converted SFEN =" << sfen;
 
     // 手番情報を追加（BODから取得できなかった場合のデフォルト）
     // buildInitialSfenFromBodは盤面部分のみを返すので、手番と手数を補完
@@ -612,7 +606,7 @@ void KifuLoadCoordinator::applyParsedResultCommon(
     totalTimer.start();
     QElapsedTimer stepTimer;
     auto logStep = [&](const char* stepName) {
-        qDebug().noquote() << QStringLiteral("[PERF] %1: %2 ms").arg(stepName).arg(stepTimer.elapsed());
+        qCDebug(lcKifu).noquote() << QStringLiteral("%1: %2 ms").arg(stepName).arg(stepTimer.elapsed());
         stepTimer.restart();
     };
     stepTimer.start();
@@ -642,27 +636,27 @@ void KifuLoadCoordinator::applyParsedResultCommon(
         const QString errorMessage =
             tr("読み込み失敗 %1 から指し手を取得できませんでした。").arg(filePath);
         emit errorOccurred(errorMessage);
-        qDebug().noquote() << "[MAIN]" << callerTag << "OUT (no moves)";
+        qCDebug(lcKifu).noquote() << callerTag << "OUT (no moves)";
         m_loadingKifu = false; // 早期return時も必ず解除
         return;
     }
 
     // 3) 本譜の SFEN 列と m_gameMoves を再構築
-    qDebug().noquote() << "[KLC] applyParsedResultCommon: calling rebuildSfenRecord"
-                       << "initialSfen=" << initialSfen.left(60)
-                       << "usiMoves.size=" << m_kifuUsiMoves.size()
-                       << "hasTerminal=" << hasTerminal;
+    qCDebug(lcKifu).noquote() << "applyParsedResultCommon: calling rebuildSfenRecord"
+                             << "initialSfen=" << initialSfen.left(60)
+                             << "usiMoves.size=" << m_kifuUsiMoves.size()
+                             << "hasTerminal=" << hasTerminal;
     rebuildSfenRecord(initialSfen, m_kifuUsiMoves, hasTerminal);
-    qDebug().noquote() << "[KLC] applyParsedResultCommon: after rebuildSfenRecord"
-                       << "m_sfenRecord*=" << static_cast<const void*>(m_sfenRecord)
-                       << "m_sfenRecord.size=" << (m_sfenRecord ? m_sfenRecord->size() : -1);
+    qCDebug(lcKifu).noquote() << "applyParsedResultCommon: after rebuildSfenRecord"
+                             << "m_sfenRecord*=" << static_cast<const void*>(m_sfenRecord)
+                             << "m_sfenRecord.size=" << (m_sfenRecord ? m_sfenRecord->size() : -1);
     if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
-        qDebug().noquote() << "[KLC] m_sfenRecord[0]=" << m_sfenRecord->first().left(60);
+        qCDebug(lcKifu).noquote() << "m_sfenRecord[0]=" << m_sfenRecord->first().left(60);
         if (m_sfenRecord->size() > 1) {
-            qDebug().noquote() << "[KLC] m_sfenRecord[1]=" << m_sfenRecord->at(1).left(60);
+            qCDebug(lcKifu).noquote() << "m_sfenRecord[1]=" << m_sfenRecord->at(1).left(60);
         }
         if (m_sfenRecord->size() > 2) {
-            qDebug().noquote() << "[KLC] m_sfenRecord[last]=" << m_sfenRecord->last().left(60);
+            qCDebug(lcKifu).noquote() << "m_sfenRecord[last]=" << m_sfenRecord->last().left(60);
         }
     }
     logStep("rebuildSfenRecord");
@@ -687,11 +681,11 @@ void KifuLoadCoordinator::applyParsedResultCommon(
     }
 
     // （任意）ログで確認
-    qDebug().noquote() << "[USI] position list built. count=" << m_positionStrList.size();
+    qCDebug(lcKifu).noquote() << "position list built. count=" << m_positionStrList.size();
     if (!m_positionStrList.isEmpty()) {
-        qDebug().noquote() << "[USI] pos[0]=" << m_positionStrList.first();
+        qCDebug(lcKifu).noquote() << "pos[0]=" << m_positionStrList.first();
         if (m_positionStrList.size() > 1) {
-            qDebug().noquote() << "[USI] pos[1]=" << m_positionStrList.at(1);
+            qCDebug(lcKifu).noquote() << "pos[1]=" << m_positionStrList.at(1);
         }
     }
 
@@ -745,8 +739,8 @@ void KifuLoadCoordinator::applyParsedResultCommon(
     if (m_branchTree != nullptr) {
         // KifuBranchTreeBuilder を使用してツリーを構築
         KifuBranchTreeBuilder::buildFromKifParseResult(m_branchTree, res, initialSfen);
-        qDebug().noquote() << "[KLC] KifuBranchTree built: nodeCount=" << m_branchTree->nodeCount()
-                           << "lineCount=" << m_branchTree->lineCount();
+        qCDebug(lcKifu).noquote() << "KifuBranchTree built: nodeCount=" << m_branchTree->nodeCount()
+                                 << "lineCount=" << m_branchTree->lineCount();
         emit branchTreeBuilt();
     }
     logStep("buildKifuBranchTree");
@@ -802,8 +796,8 @@ void KifuLoadCoordinator::applyParsedResultCommon(
     // ロード完了 → 抑止解除
     m_loadingKifu = false;
 
-    qDebug().noquote() << QStringLiteral("[PERF] applyParsedResultCommon TOTAL: %1 ms").arg(totalTimer.elapsed());
-    qDebug().noquote() << "[MAIN]" << callerTag << "OUT";
+    qCDebug(lcKifu).noquote() << QStringLiteral("applyParsedResultCommon TOTAL: %1 ms").arg(totalTimer.elapsed());
+    qCDebug(lcKifu).noquote() << callerTag << "OUT";
 }
 
 QString KifuLoadCoordinator::prepareInitialSfen(const QString& filePath, QString& teaiLabel) const
@@ -818,7 +812,7 @@ void KifuLoadCoordinator::populateGameInfo(const QList<KifGameInfoItem>& items)
 {
     // nullチェック: m_gameInfoTableがnullptrの場合は処理をスキップ
     if (!m_gameInfoTable) {
-        qWarning().noquote() << "[KifuLoadCoordinator] populateGameInfo: m_gameInfoTable is null, skipping table update";
+        qCWarning(lcKifu).noquote() << "populateGameInfo: m_gameInfoTable is null, skipping table update";
         // 元の対局情報を保存するためのシグナルは発行する
         emit gameInfoPopulated(items);
         return;
@@ -859,7 +853,7 @@ void KifuLoadCoordinator::addGameInfoTabIfMissing()
     
     // m_gameInfoTableがnullの場合は処理をスキップ
     if (!m_gameInfoTable) {
-        qDebug().noquote() << "[KifuLoadCoordinator] addGameInfoTabIfMissing: m_gameInfoTable is null, skipping";
+        qCDebug(lcKifu).noquote() << "addGameInfoTabIfMissing: m_gameInfoTable is null, skipping";
         return;
     }
 
@@ -968,31 +962,31 @@ void KifuLoadCoordinator::rebuildSfenRecord(const QString& initialSfen,
                                             const QStringList& usiMoves,
                                             bool hasTerminal)
 {
-    qDebug().noquote() << "[KLC] rebuildSfenRecord ENTER"
-                       << "initialSfen=" << initialSfen.left(60)
-                       << "usiMoves.size=" << usiMoves.size()
-                       << "hasTerminal=" << hasTerminal
-                       << "m_sfenRecord*=" << static_cast<const void*>(m_sfenRecord);
+    qCDebug(lcKifu).noquote() << "rebuildSfenRecord ENTER"
+                             << "initialSfen=" << initialSfen.left(60)
+                             << "usiMoves.size=" << usiMoves.size()
+                             << "hasTerminal=" << hasTerminal
+                             << "m_sfenRecord*=" << static_cast<const void*>(m_sfenRecord);
 
     const QStringList list = SfenPositionTracer::buildSfenRecord(initialSfen, usiMoves, hasTerminal);
 
-    qDebug().noquote() << "[KLC] rebuildSfenRecord: built list.size=" << list.size();
+    qCDebug(lcKifu).noquote() << "rebuildSfenRecord: built list.size=" << list.size();
     if (!list.isEmpty()) {
-        qDebug().noquote() << "[KLC] rebuildSfenRecord: head[0]=" << list.first().left(60);
+        qCDebug(lcKifu).noquote() << "rebuildSfenRecord: head[0]=" << list.first().left(60);
         if (list.size() > 1) {
-            qDebug().noquote() << "[KLC] rebuildSfenRecord: tail[last]=" << list.last().left(60);
+            qCDebug(lcKifu).noquote() << "rebuildSfenRecord: tail[last]=" << list.last().left(60);
         }
     }
 
     if (!m_sfenRecord) {
-        qWarning() << "[KLC] rebuildSfenRecord: m_sfenRecord was NULL! Creating new QStringList.";
+        qCWarning(lcKifu) << "rebuildSfenRecord: m_sfenRecord was NULL! Creating new QStringList.";
         m_sfenRecord = new QStringList;
     }
     *m_sfenRecord = list; // COW
 
-    qDebug().noquote() << "[KLC] rebuildSfenRecord LEAVE"
-                       << "m_sfenRecord*=" << static_cast<const void*>(m_sfenRecord)
-                       << "m_sfenRecord->size=" << m_sfenRecord->size();
+    qCDebug(lcKifu).noquote() << "rebuildSfenRecord LEAVE"
+                             << "m_sfenRecord*=" << static_cast<const void*>(m_sfenRecord)
+                             << "m_sfenRecord->size=" << m_sfenRecord->size();
 }
 
 void KifuLoadCoordinator::rebuildGameMoves(const QString& initialSfen,
@@ -1081,49 +1075,49 @@ void KifuLoadCoordinator::logImportSummary(const QString& filePath,
                                   const QString& warnConvert) const
 {
     if (!warnParse.isEmpty())
-        qWarning().noquote() << "[KIF parse warnings]\n" << warnParse.trimmed();
+        qCWarning(lcKifu).noquote() << "parse warnings:\n" << warnParse.trimmed();
     if (!warnConvert.isEmpty())
-        qWarning().noquote() << "[KIF convert warnings]\n" << warnConvert.trimmed();
+        qCWarning(lcKifu).noquote() << "convert warnings:\n" << warnConvert.trimmed();
 
-    qDebug().noquote() << QStringLiteral("KIF読込: %1手（%2）")
-                              .arg(usiMoves.size())
-                              .arg(QFileInfo(filePath).fileName());
+    qCDebug(lcKifu).noquote() << QStringLiteral("KIF読込: %1手（%2）")
+                                     .arg(usiMoves.size())
+                                     .arg(QFileInfo(filePath).fileName());
     for (qsizetype i = 0; i < qMin(qsizetype(5), usiMoves.size()); ++i) {
-        qDebug().noquote() << QStringLiteral("USI[%1]: %2")
+        qCDebug(lcKifu).noquote() << QStringLiteral("USI[%1]: %2")
         .arg(i + 1)
             .arg(usiMoves.at(i));
     }
 
-    qDebug().noquote() << QStringLiteral("手合割: %1")
-                              .arg(teaiLabel.isEmpty()
-                                       ? QStringLiteral("平手(既定)")
-                                       : teaiLabel);
+    qCDebug(lcKifu).noquote() << QStringLiteral("手合割: %1")
+                                     .arg(teaiLabel.isEmpty()
+                                              ? QStringLiteral("平手(既定)")
+                                              : teaiLabel);
 
     // 本譜（表示用）。コメントがあれば直後に出力。
     for (const auto& it : disp) {
         const QString time = it.timeText.isEmpty()
         ? QStringLiteral("00:00/00:00:00")
         : it.timeText;
-        qDebug().noquote() << QStringLiteral("「%1」「%2」").arg(it.prettyMove, time);
+        qCDebug(lcKifu).noquote() << QStringLiteral("「%1」「%2」").arg(it.prettyMove, time);
         if (!it.comment.trimmed().isEmpty()) {
-            qDebug().noquote() << QStringLiteral("  └ コメント: %1")
-                                      .arg(it.comment.trimmed());
+            qCDebug(lcKifu).noquote() << QStringLiteral("  └ コメント: %1")
+                                             .arg(it.comment.trimmed());
         }
     }
 
     // SFEN（抜粋）
     if (m_sfenRecord) {
         for (int i = 0; i < qMin(12, m_sfenRecord->size()); ++i) {
-            qDebug().noquote() << QStringLiteral("%1) %2")
+            qCDebug(lcKifu).noquote() << QStringLiteral("%1) %2")
             .arg(i)
                 .arg(m_sfenRecord->at(i));
         }
     }
 
     // m_gameMoves（従来通り）
-    qDebug() << "m_gameMoves size:" << m_gameMoves.size();
+    qCDebug(lcKifu) << "m_gameMoves size:" << m_gameMoves.size();
     for (qsizetype i = 0; i < m_gameMoves.size(); ++i) {
-        qDebug().noquote() << QString("%1) ").arg(i + 1) << m_gameMoves[i];
+        qCDebug(lcKifu).noquote() << QString("%1) ").arg(i + 1) << m_gameMoves[i];
     }
 }
 
@@ -1141,7 +1135,7 @@ void KifuLoadCoordinator::applyBranchMarksForCurrentLine()
     QSet<int> marks; // ply1=1..N（モデルの行番号と一致。0は開始局面なので除外）
 
     const int currentLineIdx = (m_navState != nullptr) ? m_navState->currentLineIndex() : 0;
-    qDebug().noquote() << "[KLC] applyBranchMarksForCurrentLine: currentLineIndex=" << currentLineIdx;
+    qCDebug(lcKifu).noquote() << "applyBranchMarksForCurrentLine: currentLineIndex=" << currentLineIdx;
 
     // KifuBranchTree から分岐点を取得
     if (m_branchTree != nullptr && !m_branchTree->isEmpty()) {
@@ -1152,10 +1146,10 @@ void KifuLoadCoordinator::applyBranchMarksForCurrentLine()
             const BranchLine& line = lines.at(active);
             marks = m_branchTree->branchablePlysOnLine(line);
         }
-        qDebug().noquote() << "[KLC] applyBranchMarksForCurrentLine: marks=" << marks;
+        qCDebug(lcKifu).noquote() << "applyBranchMarksForCurrentLine: marks=" << marks;
     } else {
         // KifuBranchTree がない場合は空のマークを設定して終了
-        qDebug().noquote() << "[KLC] applyBranchMarksForCurrentLine: no BranchTree available";
+        qCDebug(lcKifu).noquote() << "applyBranchMarksForCurrentLine: no BranchTree available";
     }
 
     m_kifuRecordModel->setBranchPlyMarks(marks);
@@ -1175,7 +1169,7 @@ void KifuLoadCoordinator::resetBranchContext()
 // 分岐ツリーを完全リセット（新規対局開始時に使用）
 void KifuLoadCoordinator::resetBranchTreeForNewGame()
 {
-    qDebug().noquote() << "[KLC] resetBranchTreeForNewGame: clearing all branch data";
+    qCDebug(lcKifu).noquote() << "resetBranchTreeForNewGame: clearing all branch data";
 
     // 1) 分岐コンテキストを完全リセット
     m_branchPlyContext = -1;
@@ -1213,6 +1207,6 @@ void KifuLoadCoordinator::resetBranchTreeForNewGame()
         m_analysisTab->setBranchTreeRows(emptyRows);
     }
 
-    qDebug().noquote() << "[KLC] resetBranchTreeForNewGame: done";
+    qCDebug(lcKifu).noquote() << "resetBranchTreeForNewGame: done";
 }
 

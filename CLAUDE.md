@@ -207,3 +207,4 @@ void setMyDialogSize(const QSize& size)
   // Warning: clazy-range-loop-detach
   for (const auto &item : list) { ... }
   ```
+- **Debug logging**: `docs/debug-logging-guidelines.md` に従う。`qDebug()` はデバッグビルド専用。リリースビルドでは `QT_NO_DEBUG_OUTPUT` により無効化される
