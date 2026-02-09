@@ -261,30 +261,25 @@ void MainWindow::buildGamePanels()
     // 8) 評価値グラフのQDockWidget作成
     createEvalChartDock();
 
-    // 9) メニューウィンドウのQDockWidget作成（デフォルトは非表示）
-    createMenuWindowDock();
-
-    // 10) 定跡ウィンドウのQDockWidget作成（デフォルトは非表示）
-    createJosekiWindowDock();
-
-    // 11) 棋譜解析結果のQDockWidget作成（初期状態は非表示）
-    createAnalysisResultsDock();
-
-    // 12) central への初期化（主要ウィジェットはドックへ移行済み）
-    initializeCentralGameDisplay();
-
-    // 13) 表示メニューにドックレイアウト関連アクションを追加
+    // 9) 表示メニューにドックレイアウト関連アクションを追加
+    //    メニューウィンドウドック作成時にメニューバーからアクションを収集するため、
+    //    ドック作成前にアクションを追加しておく必要がある
+    QAction* resetLayoutAction = nullptr;
+    QAction* saveLayoutAction = nullptr;
+    QAction* lockDocksAction = nullptr;
     if (ui->Display) {
         ui->Display->addSeparator();
 
         // ドックレイアウトをリセット
-        QAction* resetLayoutAction = new QAction(tr("ドックレイアウトをリセット"), this);
+        resetLayoutAction = new QAction(tr("ドックレイアウトをリセット"), this);
         resetLayoutAction->setObjectName(QStringLiteral("actionResetDockLayout"));
+        resetLayoutAction->setIcon(QIcon(QStringLiteral(":/images/actions/actionResetDockLayout.svg")));
         ui->Display->addAction(resetLayoutAction);
 
         // ドックレイアウトを保存
-        QAction* saveLayoutAction = new QAction(tr("ドックレイアウトを保存..."), this);
+        saveLayoutAction = new QAction(tr("ドックレイアウトを保存..."), this);
         saveLayoutAction->setObjectName(QStringLiteral("actionSaveDockLayout"));
+        saveLayoutAction->setIcon(QIcon(QStringLiteral(":/images/actions/actionSaveDockLayout.svg")));
         ui->Display->addAction(saveLayoutAction);
 
         // 保存済みレイアウトのサブメニュー
@@ -292,19 +287,30 @@ void MainWindow::buildGamePanels()
         m_savedLayoutsMenu->setObjectName(QStringLiteral("menuSavedLayouts"));
         ui->Display->addMenu(m_savedLayoutsMenu);
 
-        // サブメニュー設定はDockLayoutManagerに委譲
-
         // ドック固定のチェックボックスアクションを追加
         ui->Display->addSeparator();
-        QAction* lockDocksAction = new QAction(tr("ドックを固定"), this);
+        lockDocksAction = new QAction(tr("ドックを固定"), this);
         lockDocksAction->setObjectName(QStringLiteral("actionLockDocks"));
         lockDocksAction->setCheckable(true);
         const bool docksLocked = SettingsService::docksLocked();
         lockDocksAction->setChecked(docksLocked);
         ui->Display->addAction(lockDocksAction);
-        // onDocksLockToggled への接続は DockLayoutManager.wireMenuActions で実施
+    }
 
-        // ドックレイアウト関連アクションをDockLayoutManagerに配線
+    // 10) メニューウィンドウのQDockWidget作成（デフォルトは非表示）
+    createMenuWindowDock();
+
+    // 11) 定跡ウィンドウのQDockWidget作成（デフォルトは非表示）
+    createJosekiWindowDock();
+
+    // 12) 棋譜解析結果のQDockWidget作成（初期状態は非表示）
+    createAnalysisResultsDock();
+
+    // 13) central への初期化（主要ウィジェットはドックへ移行済み）
+    initializeCentralGameDisplay();
+
+    // 14) ドックレイアウト関連アクションをDockLayoutManagerに配線
+    if (resetLayoutAction) {
         ensureDockLayoutManager();
         if (m_dockLayoutManager) {
             m_dockLayoutManager->wireMenuActions(

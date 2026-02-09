@@ -70,7 +70,10 @@
         <file>images/actions/actionOpenKifuFile.svg</file>
         <file>images/actions/actionOpenWebsite.svg</file>
         <file>images/actions/actionPasteKifu.svg</file>
+        <file>images/actions/actionPositionViewer.svg</file>
         <file>images/actions/actionQuit.svg</file>
+        <file>images/actions/actionResetDockLayout.svg</file>
+        <file>images/actions/actionSaveDockLayout.svg</file>
         <file>images/actions/actionResign.svg</file>
         <file>images/actions/actionReturnAllPiecesToStand.svg</file>
         <file>images/actions/actionSave.svg</file>
