@@ -689,17 +689,7 @@ void MainWindow::handleResignation()
 {
     // CSA通信対局モードの場合
     if (m_playMode == PlayMode::CsaNetworkMode && m_csaGameCoordinator) {
-        // 投了確認ダイアログ
-        QMessageBox::StandardButton reply = QMessageBox::question(
-            this,
-            tr("投了確認"),
-            tr("本当に投了しますか？"),
-            QMessageBox::Yes | QMessageBox::No,
-            QMessageBox::No);
-
-        if (reply == QMessageBox::Yes) {
-            m_csaGameCoordinator->onResign();
-        }
+        m_csaGameCoordinator->onResign();
         return;
     }
 

@@ -3792,39 +3792,37 @@ Please restart the application to apply the changes.</translation>
         <translation>Error</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="695"/>
         <source>投了確認</source>
-        <translation>Confirm Resignation</translation>
+        <translation type="vanished">Confirm Resignation</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="696"/>
         <source>本当に投了しますか？</source>
-        <translation>Are you sure you want to resign?</translation>
+        <translation type="vanished">Are you sure you want to resign?</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="760"/>
-        <location filename="../../src/app/mainwindow.cpp" line="775"/>
+        <location filename="../../src/app/mainwindow.cpp" line="750"/>
+        <location filename="../../src/app/mainwindow.cpp" line="765"/>
         <source>エラー</source>
         <translation>Error</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="760"/>
-        <location filename="../../src/app/mainwindow.cpp" line="775"/>
+        <location filename="../../src/app/mainwindow.cpp" line="750"/>
+        <location filename="../../src/app/mainwindow.cpp" line="765"/>
         <source>盤面データがありません。</source>
         <translation>No board data available.</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3823"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3813"/>
         <source>局面を反映しました</source>
         <translation>Position applied</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3825"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3815"/>
         <source>局面の反映に失敗しました</source>
         <translation>Failed to apply position</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3828"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3818"/>
         <source>局面の反映に失敗しました（内部エラー）</source>
         <translation>Failed to apply position (internal error)</translation>
     </message>
@@ -4119,12 +4117,12 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Clear Startup Layout</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1216"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1206"/>
         <source>棋譜ファイルを開く</source>
         <translation>Open Game Record File</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1217"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1207"/>
         <source>Kifu Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</source>
         <translation>Game Record Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</translation>
     </message>
@@ -4193,17 +4191,17 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Failed to auto-save game record: %1</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3797"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3787"/>
         <source>棋譜を取り込みました</source>
         <translation>Game record imported</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3799"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3789"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation>Failed to import game record</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3803"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3793"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation>Failed to import game record (internal error)</translation>
     </message>
@@ -4212,7 +4210,7 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Comment updated (move: %1)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3325"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3315"/>
         <source>コメントなし</source>
         <translation>No comment</translation>
     </message>
