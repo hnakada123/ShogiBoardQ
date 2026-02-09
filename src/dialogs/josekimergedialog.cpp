@@ -7,7 +7,7 @@
 #include <QHBoxLayout>
 #include <QMessageBox>
 #include <QFileInfo>
-#include <QDebug>
+#include "loggingcategory.h"
 
 JosekiMergeDialog::JosekiMergeDialog(QWidget *parent)
     : QDialog(parent)
@@ -228,7 +228,7 @@ void JosekiMergeDialog::onRegisterButtonClicked()
     // SFENを正規化
     QString normalizedSfen = normalizeSfen(entry.sfen);
     
-    qDebug() << "[JosekiMergeDialog] Registering move:" << entry.usiMove 
+    qCDebug(lcUi) << "Registering move:" << entry.usiMove
              << "at ply" << entry.ply
              << "sfen:" << normalizedSfen;
     

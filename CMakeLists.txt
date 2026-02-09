@@ -76,6 +76,11 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
         -Wunused-variable
         -Wunused-parameter
     )
+    # Qt6のqCDebug/qCInfo/qCWarningマクロはstream構文（<< "..."）で
+    # variadic引数が空になるため、C++17では警告が出る。Qt側のマクロ設計の問題。
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        add_compile_options(-Wno-variadic-macro-arguments-omitted)
+    endif()
     # -Wnull-dereference は GCC の最適化（特にインライン展開）により
     # Qt ヘッダやメンバ変数アクセスで誤検知が多発するため無効化
 endif()
@@ -242,6 +247,7 @@ target_include_directories(ShogiBoardQ PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/network
     ${CMAKE_CURRENT_SOURCE_DIR}/src/navigation
     ${CMAKE_CURRENT_SOURCE_DIR}/src/board
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ui
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/controllers
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/coordinators
     ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/presenters

@@ -4,7 +4,7 @@
 #include "engineregistrationdialog.h"
 #include "enginesettingsconstants.h"
 #include "settingsservice.h"
-#include "qdebug.h"
+#include "loggingcategory.h"
 #include "ui_engineregistrationdialog.h"
 #include "changeenginesettingsdialog.h"
 #include <QApplication>
@@ -116,7 +116,7 @@ void EngineRegistrationDialog::processEngineErrorOutput()
 
     if (!stderrString.isEmpty()) {
         // エラーメッセージと発生時刻をログに記録
-        qDebug() << QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss") << " - Engine Error Output:" << stderrString;
+        qCDebug(lcUi) << QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss") << " - Engine Error Output:" << stderrString;
 
         // エラーメッセージを通知する。
         showErrorMessage(tr("エンジンからエラー出力がありました: %1").arg(stderrString));
@@ -541,7 +541,7 @@ void EngineRegistrationDialog::saveEngineOptionsToSettings() const
 {
     // 並列配列のサイズ整合性を確認
     if (m_engineOptions.size() != m_concatenatedOptionValuesList.size()) {
-        qWarning() << "saveEngineOptionsToSettings: リストサイズ不一致 - "
+        qCWarning(lcUi) << "saveEngineOptionsToSettings: リストサイズ不一致 - "
                    << "m_engineOptions:" << m_engineOptions.size()
                    << "m_concatenatedOptionValuesList:" << m_concatenatedOptionValuesList.size();
         return;
@@ -598,7 +598,7 @@ void EngineRegistrationDialog::parseEngineOptionsFromUsiOutput()
     if (usiHashIt == m_engineOptions.end()) {
         addOption("USI_Hash", OptionTypeSpin, "1024", "1", "2000", "1024");
 
-        qInfo() << tr("USI_Hash option added.");
+        qCDebug(lcUi) << tr("USI_Hash option added.");
     }
 
     // USI_Ponderオプションが存在するかを確認
@@ -610,7 +610,7 @@ void EngineRegistrationDialog::parseEngineOptionsFromUsiOutput()
     if (usiPonderIt == m_engineOptions.end()) {
         addOption("USI_Ponder", OptionTypeCheck, "false", "", "", "false");
 
-        qInfo() <<  tr("USI_Ponder option added.");
+        qCDebug(lcUi) << tr("USI_Ponder option added.");
     }
 }
 
@@ -711,7 +711,7 @@ void EngineRegistrationDialog::parseOptionLine(const QString& line)
 
     // インデックスの範囲チェック
     if (parts.size() < 5) {
-        qWarning() << "parseOptionLine: 不正なオプション行（トークン数不足）:" << line;
+        qCWarning(lcUi) << "parseOptionLine: 不正なオプション行（トークン数不足）:" << line;
         showErrorMessage(tr("オプション行の形式が無効です。"));
         return;
     }

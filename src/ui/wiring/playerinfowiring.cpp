@@ -3,7 +3,7 @@
 
 #include "playerinfowiring.h"
 
-#include <QDebug>
+#include "loggingcategory.h"
 #include <QTabWidget>
 
 #include "gameinfopanecontroller.h"
@@ -36,7 +36,7 @@ void PlayerInfoWiring::ensureGameInfoController()
     connect(m_gameInfoController, &GameInfoPaneController::gameInfoUpdated,
             this, &PlayerInfoWiring::onGameInfoUpdated);
 
-    qDebug().noquote() << "[PlayerInfoWiring] GameInfoPaneController created";
+    qCDebug(lcUi) << "GameInfoPaneController created";
 }
 
 void PlayerInfoWiring::setTabWidget(QTabWidget* tabWidget)
@@ -59,7 +59,7 @@ void PlayerInfoWiring::ensurePlayerInfoController()
     m_playerInfoController->setShogiView(m_shogiView);
     m_playerInfoController->setGameInfoController(m_gameInfoController);
 
-    qDebug().noquote() << "[PlayerInfoWiring] PlayerInfoController created";
+    qCDebug(lcUi) << "PlayerInfoController created";
 }
 
 void PlayerInfoWiring::addGameInfoTabAtStartup()
@@ -98,7 +98,7 @@ void PlayerInfoWiring::addGameInfoTabAtStartup()
             this, &PlayerInfoWiring::tabCurrentChanged,
             Qt::UniqueConnection);
 
-    qDebug().noquote() << "[PlayerInfoWiring] addGameInfoTabAtStartup completed";
+    qCDebug(lcUi) << "addGameInfoTabAtStartup completed";
 }
 
 void PlayerInfoWiring::populateDefaultGameInfo()
@@ -195,7 +195,7 @@ void PlayerInfoWiring::onPlayerNamesResolved(const QString& human1, const QStrin
                                               const QString& engine1, const QString& engine2,
                                               int playMode)
 {
-    qDebug().noquote() << "[PlayerInfoWiring] onPlayerNamesResolved: playMode=" << playMode;
+    qCDebug(lcUi) << "onPlayerNamesResolved: playMode=" << playMode;
 
     // 外部参照を更新
     if (m_humanName1) *m_humanName1 = human1;
@@ -286,7 +286,7 @@ void PlayerInfoWiring::onPlayerNamesResolvedWithTime(const QString& human1, cons
 
 void PlayerInfoWiring::onGameInfoUpdated(const QList<KifGameInfoItem>& items)
 {
-    qDebug().noquote() << "[PlayerInfoWiring] onGameInfoUpdated: items=" << items.size();
+    qCDebug(lcUi) << "onGameInfoUpdated: items=" << items.size();
     Q_EMIT gameInfoUpdated(items);
 }
 
@@ -344,8 +344,8 @@ void PlayerInfoWiring::setGameInfoForMatchStart(const QDateTime& startDateTime,
 
     m_gameInfoController->setGameInfo(items);
 
-    qDebug().noquote() << "[PlayerInfoWiring] setGameInfoForMatchStart: items=" << items.size()
-                       << " hasTimeControl=" << hasTimeControl;
+    qCDebug(lcUi) << "setGameInfoForMatchStart: items=" << items.size()
+                   << " hasTimeControl=" << hasTimeControl;
 }
 
 void PlayerInfoWiring::updateGameInfoWithEndTime(const QDateTime& endDateTime)
@@ -370,8 +370,8 @@ void PlayerInfoWiring::updateGameInfoWithEndTime(const QDateTime& endDateTime)
 
     m_gameInfoController->setGameInfo(items);
 
-    qDebug().noquote() << "[PlayerInfoWiring] updateGameInfoWithEndTime:"
-                       << endDateTime.toString(Qt::ISODate);
+    qCDebug(lcUi) << "updateGameInfoWithEndTime:"
+                   << endDateTime.toString(Qt::ISODate);
 }
 
 void PlayerInfoWiring::updateGameInfoWithTimeControl(bool hasTimeControl,
@@ -420,6 +420,6 @@ void PlayerInfoWiring::updateGameInfoWithTimeControl(bool hasTimeControl,
 
     m_gameInfoController->setGameInfo(items);
 
-    qDebug().noquote() << "[PlayerInfoWiring] updateGameInfoWithTimeControl:"
-                       << timeStr;
+    qCDebug(lcUi) << "updateGameInfoWithTimeControl:"
+                   << timeStr;
 }

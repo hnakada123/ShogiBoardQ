@@ -3,7 +3,7 @@
 
 #include "replaycontroller.h"
 
-#include <QDebug>
+#include "loggingcategory.h"
 #include <QTableView>
 #include <QAbstractItemView>
 
@@ -59,7 +59,7 @@ void ReplayController::setReplayMode(bool on)
 
     m_isReplayMode = on;
 
-    qDebug().noquote() << "[ReplayCtrl] setReplayMode:" << on;
+    qCDebug(lcUi).noquote() << "setReplayMode:" << on;
 
     // 再生中は時計を止め、表示だけ整える
     if (m_clock) {
@@ -107,7 +107,7 @@ void ReplayController::enterLiveAppendMode()
 
     m_isLiveAppendMode = true;
 
-    qDebug().noquote() << "[ReplayCtrl] enterLiveAppendMode";
+    qCDebug(lcUi).noquote() << "enterLiveAppendMode";
 
     // 棋譜ビューの選択を無効化（ライブ中はスクロール追従のみ）
     if (m_recordPane) {
@@ -126,7 +126,7 @@ void ReplayController::exitLiveAppendMode()
 
     m_isLiveAppendMode = false;
 
-    qDebug().noquote() << "[ReplayCtrl] exitLiveAppendMode";
+    qCDebug(lcUi).noquote() << "exitLiveAppendMode";
 
     // 棋譜ビューの選択を再有効化
     if (m_recordPane) {
@@ -151,7 +151,7 @@ bool ReplayController::isLiveAppendMode() const
 void ReplayController::setResumeFromCurrent(bool on)
 {
     m_isResumeFromCurrent = on;
-    qDebug().noquote() << "[ReplayCtrl] setResumeFromCurrent:" << on;
+    qCDebug(lcUi).noquote() << "setResumeFromCurrent:" << on;
 }
 
 bool ReplayController::isResumeFromCurrent() const

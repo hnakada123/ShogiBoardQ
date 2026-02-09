@@ -8,7 +8,7 @@
 #include "recordpane.h"
 
 #include <QAbstractItemView>
-#include <QDebug>
+#include "loggingcategory.h"
 #include <QTableView>
 #include <QItemSelectionModel>
 
@@ -168,7 +168,7 @@ void GameRecordPresenter::appendMoveLineWithComment(const QString& prettyMove, c
 {
     const QString last = prettyMove.trimmed();
     if (last.isEmpty()) {
-        qDebug() << "[RecordPresenter] skip empty move line";
+        qCDebug(lcUi) << "skip empty move line";
         return;
     }
 
@@ -286,7 +286,7 @@ void GameRecordPresenter::onKifuCurrentRowChanged(const QModelIndex& current,
 void GameRecordPresenter::bindKifuSelection(QTableView* kifuView)
 {
     if (!kifuView) {
-        qWarning() << "[RecordPresenter] bindKifuSelection: view is null";
+        qCWarning(lcUi) << "bindKifuSelection: view is null";
         return;
     }
     m_kifuView = kifuView;
@@ -297,7 +297,7 @@ void GameRecordPresenter::bindKifuSelection(QTableView* kifuView)
 
     auto* sel = m_kifuView->selectionModel();
     if (!sel) {
-        qWarning() << "[RecordPresenter] selectionModel is null";
+        qCWarning(lcUi) << "selectionModel is null";
         return;
     }
 

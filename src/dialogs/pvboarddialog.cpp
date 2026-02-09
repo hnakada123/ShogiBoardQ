@@ -11,7 +11,7 @@
 #include <QHBoxLayout>
 #include <QPushButton>
 #include <QLabel>
-#include <QDebug>
+#include "loggingcategory.h"
 #include <QRegularExpression>
 #include <QCloseEvent>
 #include <QWheelEvent>
@@ -127,11 +127,11 @@ void PvBoardDialog::setPlayerNames(const QString& blackName, const QString& whit
 void PvBoardDialog::setLastMove(const QString& lastMove)
 {
     m_lastMove = lastMove;
-    qDebug() << "[PvBoardDialog] setLastMove: lastMove=" << lastMove 
+    qCDebug(lcUi) << "setLastMove: lastMove=" << lastMove
              << " m_currentPly=" << m_currentPly;
     // 現在が開始局面（手数0）であれば、ハイライトを更新
     if (m_currentPly == 0) {
-        qDebug() << "[PvBoardDialog] setLastMove: calling updateMoveHighlights()";
+        qCDebug(lcUi) << "setLastMove: calling updateMoveHighlights()";
         updateMoveHighlights();
     }
 }
@@ -139,9 +139,9 @@ void PvBoardDialog::setLastMove(const QString& lastMove)
 void PvBoardDialog::setPrevSfenForHighlight(const QString& prevSfen)
 {
     m_prevSfen = prevSfen;
-    qDebug() << "[PvBoardDialog] setPrevSfenForHighlight: prevSfen=" << m_prevSfen.left(60);
+    qCDebug(lcUi) << "setPrevSfenForHighlight: prevSfen=" << m_prevSfen.left(60);
     if (m_currentPly == 0) {
-        qDebug() << "[PvBoardDialog] setPrevSfenForHighlight: calling updateMoveHighlights()";
+        qCDebug(lcUi) << "setPrevSfenForHighlight: calling updateMoveHighlights()";
         updateMoveHighlights();
     }
 }
@@ -633,7 +633,7 @@ static bool diffSfenForHighlight(const QString& prevSfen, const QString& currSfe
                      (emptyCount == 0 && changedCount == 0 && filledCount == 1);
 
     if (!validMove) {
-        qDebug() << "[diffSfenForHighlight] Invalid diff pattern:"
+        qCDebug(lcUi) << "Invalid diff pattern:"
                  << " emptyCount=" << emptyCount
                  << " filledCount=" << filledCount
                  << " changedCount=" << changedCount;
@@ -658,17 +658,17 @@ static bool diffSfenForHighlight(const QString& prevSfen, const QString& currSfe
 
 void PvBoardDialog::updateMoveHighlights()
 {
-    qDebug() << "[PvBoardDialog] updateMoveHighlights: m_currentPly=" << m_currentPly
+    qCDebug(lcUi) << "updateMoveHighlights: m_currentPly=" << m_currentPly
              << " m_lastMove=" << m_lastMove
              << " m_pvMoves.size()=" << m_pvMoves.size();
-    qDebug() << "[PvBoardDialog] updateMoveHighlights: baseSfen=" << m_baseSfen.left(60)
+    qCDebug(lcUi) << "updateMoveHighlights: baseSfen=" << m_baseSfen.left(60)
              << " prevSfen=" << m_prevSfen.left(60);
     
     // 既存のハイライトをクリア
     clearMoveHighlights();
 
     if (!m_shogiView) {
-        qDebug() << "[PvBoardDialog] updateMoveHighlights: m_shogiView is null!";
+        qCDebug(lcUi) << "updateMoveHighlights: m_shogiView is null!";
         return;
     }
 
@@ -680,7 +680,7 @@ void PvBoardDialog::updateMoveHighlights()
         if (!m_lastMove.isEmpty() && m_lastMove.length() >= 4) {
             usiMove = m_lastMove;
             isBasePosition = true;
-            qDebug() << "[PvBoardDialog] updateMoveHighlights: using m_lastMove=" << usiMove;
+            qCDebug(lcUi) << "updateMoveHighlights: using m_lastMove=" << usiMove;
         } else if (!m_prevSfen.isEmpty()) {
             int fromFile = 0;
             int fromRank = 0;
@@ -688,7 +688,7 @@ void PvBoardDialog::updateMoveHighlights()
             int toRank = 0;
             QChar droppedPiece;
             if (diffSfenForHighlight(m_prevSfen, m_baseSfen, fromFile, fromRank, toFile, toRank, droppedPiece)) {
-                qDebug() << "[PvBoardDialog] updateMoveHighlights: diff ok"
+                qCDebug(lcUi) << "updateMoveHighlights: diff ok"
                          << " from=" << fromFile << fromRank
                          << " to=" << toFile << toRank
                          << " drop=" << droppedPiece;
@@ -709,30 +709,30 @@ void PvBoardDialog::updateMoveHighlights()
                     m_shogiView->addHighlight(m_toHighlight);
                 }
                 m_shogiView->update();
-                qDebug() << "[PvBoardDialog] updateMoveHighlights: diff highlight applied";
+                qCDebug(lcUi) << "updateMoveHighlights: diff highlight applied";
                 return;
             } else {
-                qDebug() << "[PvBoardDialog] updateMoveHighlights: diff failed";
+                qCDebug(lcUi) << "updateMoveHighlights: diff failed";
             }
         } else if (!m_pvMoves.isEmpty() && m_pvMoves.first().length() >= 4 && isStartposSfen(m_baseSfen)) {
             usiMove = m_pvMoves.first();
             isBasePosition = false;
-            qDebug() << "[PvBoardDialog] updateMoveHighlights: using first pvMove(startpos)=" << usiMove;
+            qCDebug(lcUi) << "updateMoveHighlights: using first pvMove(startpos)=" << usiMove;
         } else {
-            qDebug() << "[PvBoardDialog] updateMoveHighlights: no usable move for base position";
+            qCDebug(lcUi) << "updateMoveHighlights: no usable move for base position";
             return;  // ハイライトなし
         }
     } else if (m_currentPly > m_pvMoves.size()) {
-        qDebug() << "[PvBoardDialog] updateMoveHighlights: m_currentPly > m_pvMoves.size(), no highlight";
+        qCDebug(lcUi) << "updateMoveHighlights: m_currentPly > m_pvMoves.size(), no highlight";
         return;
     } else {
         // 現在表示している局面に至った手を取得
         usiMove = m_pvMoves.at(m_currentPly - 1);
-        qDebug() << "[PvBoardDialog] updateMoveHighlights: using pvMove=" << usiMove;
+        qCDebug(lcUi) << "updateMoveHighlights: using pvMove=" << usiMove;
     }
 
     if (usiMove.length() < 4) {
-        qDebug() << "[PvBoardDialog] updateMoveHighlights: usiMove too short:" << usiMove;
+        qCDebug(lcUi) << "updateMoveHighlights: usiMove too short:" << usiMove;
         return;
     }
 
@@ -743,7 +743,7 @@ void PvBoardDialog::updateMoveHighlights()
         QChar pieceChar = usiMove.at(0);
         toFile = usiMove.at(2).toLatin1() - '0';
         toRank = usiMove.at(3).toLatin1() - 'a' + 1;
-        qDebug() << "[PvBoardDialog] updateMoveHighlights: drop move, pieceChar=" << pieceChar
+        qCDebug(lcUi) << "updateMoveHighlights: drop move, pieceChar=" << pieceChar
                  << " toFile=" << toFile << " toRank=" << toRank;
 
         // 手番を取得
@@ -770,14 +770,14 @@ void PvBoardDialog::updateMoveHighlights()
         // 移動先（盤上）を黄色でハイライト
         m_toHighlight = new ShogiView::FieldHighlight(toFile, toRank, QColor(255, 255, 0));
         m_shogiView->addHighlight(m_toHighlight);
-        qDebug() << "[PvBoardDialog] updateMoveHighlights: added drop highlights";
+        qCDebug(lcUi) << "updateMoveHighlights: added drop highlights";
     } else {
         // 通常の移動（例: "7g7f" または "7g7f+"）
         int fromFile = usiMove.at(0).toLatin1() - '0';
         int fromRank = usiMove.at(1).toLatin1() - 'a' + 1;
         toFile = usiMove.at(2).toLatin1() - '0';
         toRank = usiMove.at(3).toLatin1() - 'a' + 1;
-        qDebug() << "[PvBoardDialog] updateMoveHighlights: normal move, fromFile=" << fromFile
+        qCDebug(lcUi) << "updateMoveHighlights: normal move, fromFile=" << fromFile
                  << " fromRank=" << fromRank << " toFile=" << toFile << " toRank=" << toRank;
 
         // 移動元（薄いピンク/赤）
@@ -787,11 +787,11 @@ void PvBoardDialog::updateMoveHighlights()
         // 移動先（黄色）
         m_toHighlight = new ShogiView::FieldHighlight(toFile, toRank, QColor(255, 255, 0));
         m_shogiView->addHighlight(m_toHighlight);
-        qDebug() << "[PvBoardDialog] updateMoveHighlights: added normal move highlights";
+        qCDebug(lcUi) << "updateMoveHighlights: added normal move highlights";
     }
 
     m_shogiView->update();
-    qDebug() << "[PvBoardDialog] updateMoveHighlights: done, called m_shogiView->update()";
+    qCDebug(lcUi) << "updateMoveHighlights: done, called m_shogiView->update()";
 }
 
 void PvBoardDialog::parseKanjiMoves()
@@ -816,7 +816,7 @@ void PvBoardDialog::parseKanjiMoves()
         }
     }
     
-    qDebug() << "[PvBoardDialog] parseKanjiMoves: parsed" << m_kanjiMoves.size() << "moves from kanjiPv";
+    qCDebug(lcUi) << "parseKanjiMoves: parsed" << m_kanjiMoves.size() << "moves from kanjiPv";
 }
 
 void PvBoardDialog::saveWindowSize()

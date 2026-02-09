@@ -5,8 +5,6 @@
 #include "shogimove.h"
 #include "legalmovestatus.h"
 
-#include <iostream>
-#include <iomanip>
 #include <QMap>
 #include <array>
 #include "shogiboard.h"
@@ -1401,7 +1399,7 @@ void MoveValidator::printShogiMoveList(const QVector<ShogiMove>& moveList) const
 {
     int i = 0;
     for (const auto& move : std::as_const(moveList)) {
-        std::cout << std::setw(3) << std::setfill(' ') << ++i << " Shogi move: " << move << std::endl;
+        qCDebug(lcCore) << "Shogi move" << ++i << ":" << move;
     }
 }
 

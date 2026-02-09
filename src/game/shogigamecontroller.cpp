@@ -349,7 +349,7 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
     // 4. 棋譜文字列生成
     // 5. 着手確定シグナル発行・手番切替
 
-    qCInfo(lcGame).noquote() << "validateAndMove enter argMove=" << moveNumber
+    qCDebug(lcGame).noquote() << "validateAndMove enter argMove=" << moveNumber
                       << " recPtr=" << static_cast<const void*>(m_sfenRecord)
                       << " recSize(before)=" << (m_sfenRecord ? m_sfenRecord->size() : -1);
 
@@ -428,9 +428,9 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
         const qsizetype n = m_sfenRecord->size();
         const QString last = (n > 0) ? m_sfenRecord->at(n - 1) : QString();
         const QString preview = (last.size() > 200) ? last.left(200) + " ..." : last;
-        qCInfo(lcGame) << "validateAndMove: sfenRecord size =" << n
+        qCDebug(lcGame) << "validateAndMove: sfenRecord size =" << n
                 << " moveNumber =" << moveNumber;
-        qCInfo(lcGame).noquote() << "last sfen = " << preview;
+        qCDebug(lcGame).noquote() << "last sfen = " << preview;
         if (last.startsWith(QLatin1String("position "))) {
             qCWarning(lcGame) << "*** NON-SFEN stored into sfenRecord! (bug)";
         }
@@ -453,11 +453,11 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
 
     if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
         const QString tail = m_sfenRecord->last();
-        qCInfo(lcGame).noquote() << "validateAndMove exit argMove=" << moveNumber
+        qCDebug(lcGame).noquote() << "validateAndMove exit argMove=" << moveNumber
                           << " recSize(after)=" << m_sfenRecord->size()
                           << " tail='" << tail << "'";
     } else {
-        qCInfo(lcGame).noquote() << "validateAndMove exit argMove=" << moveNumber
+        qCDebug(lcGame).noquote() << "validateAndMove exit argMove=" << moveNumber
                           << " recSize(after)=" << (m_sfenRecord ? m_sfenRecord->size() : -1)
                           << " tail=<empty>";
     }

@@ -2,7 +2,7 @@
 /// @brief プレイヤー名解決サービスクラスの実装
 
 #include "playernameservice.h"
-#include <QDebug>
+#include "loggingcategory.h"
 
 // ============================================================
 // 名前解決 API
@@ -14,9 +14,9 @@ PlayerNameMapping PlayerNameService::computePlayers(PlayMode mode,
                                                     const QString& engine1,
                                                     const QString& engine2)
 {
-    qDebug().noquote() << "[PlayerNameService] computePlayers: mode=" << static_cast<int>(mode)
-                       << " human1=" << human1 << " human2=" << human2
-                       << " engine1=" << engine1 << " engine2=" << engine2;
+    qCDebug(lcUi).noquote() << "computePlayers: mode=" << static_cast<int>(mode)
+                            << " human1=" << human1 << " human2=" << human2
+                            << " engine1=" << engine1 << " engine2=" << engine2;
 
     PlayerNameMapping out;
 
@@ -68,7 +68,7 @@ PlayerNameMapping PlayerNameService::computePlayers(PlayMode mode,
         break;
     }
 
-    qDebug().noquote() << "[PlayerNameService] computePlayers: result p1=" << out.p1 << " p2=" << out.p2;
+    qCDebug(lcUi).noquote() << "computePlayers: result p1=" << out.p1 << " p2=" << out.p2;
     return out;
 }
 

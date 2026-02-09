@@ -3,7 +3,7 @@
 
 #include "playerinfocontroller.h"
 
-#include <QDebug>
+#include "loggingcategory.h"
 
 #include "shogiview.h"
 #include "gameinfopanecontroller.h"
@@ -120,20 +120,20 @@ void PlayerInfoController::applyPlayersNamesForMode()
 
 void PlayerInfoController::applyEngineNamesToLogModels()
 {
-    qDebug().noquote() << "[PlayerInfo] applyEngineNamesToLogModels: m_playMode=" << static_cast<int>(m_playMode)
-                       << " m_engineName1=" << m_engineName1 << " m_engineName2=" << m_engineName2;
+    qCDebug(lcUi).noquote() << "applyEngineNamesToLogModels: m_playMode=" << static_cast<int>(m_playMode)
+                            << " m_engineName1=" << m_engineName1 << " m_engineName2=" << m_engineName2;
 
     const EngineNameMapping e =
         PlayerNameService::computeEngineModels(m_playMode, m_engineName1, m_engineName2);
 
-    qDebug().noquote() << "[PlayerInfo] applyEngineNamesToLogModels: computed model1=" << e.model1 << " model2=" << e.model2;
+    qCDebug(lcUi).noquote() << "applyEngineNamesToLogModels: computed model1=" << e.model1 << " model2=" << e.model2;
 
     if (m_lineEditModel1) {
-        qDebug().noquote() << "[PlayerInfo] setting m_lineEditModel1 to" << e.model1;
+        qCDebug(lcUi).noquote() << "setting m_lineEditModel1 to" << e.model1;
         m_lineEditModel1->setEngineName(e.model1);
     }
     if (m_lineEditModel2) {
-        qDebug().noquote() << "[PlayerInfo] setting m_lineEditModel2 to" << e.model2;
+        qCDebug(lcUi).noquote() << "setting m_lineEditModel2 to" << e.model2;
         m_lineEditModel2->setEngineName(e.model2);
     }
 }
@@ -206,7 +206,7 @@ void PlayerInfoController::setOriginalGameInfo(const QList<KifGameInfoItem>& ite
 
 void PlayerInfoController::onSetPlayersNames(const QString& p1, const QString& p2)
 {
-    qDebug().noquote() << "[PlayerInfo] onSetPlayersNames: p1=" << p1 << " p2=" << p2;
+    qCDebug(lcUi).noquote() << "onSetPlayersNames: p1=" << p1 << " p2=" << p2;
 
     // 将棋盤の対局者名ラベルを更新
     if (m_shogiView) {
@@ -222,16 +222,16 @@ void PlayerInfoController::onSetPlayersNames(const QString& p1, const QString& p
 
 void PlayerInfoController::onSetEngineNames(const QString& e1, const QString& e2)
 {
-    qDebug().noquote() << "[PlayerInfo] onSetEngineNames CALLED";
-    qDebug().noquote() << "[PlayerInfo] onSetEngineNames: e1=" << e1 << " e2=" << e2;
-    qDebug().noquote() << "[PlayerInfo] onSetEngineNames: current m_engineName1=" << m_engineName1 << " m_engineName2=" << m_engineName2;
-    qDebug().noquote() << "[PlayerInfo] onSetEngineNames: current m_playMode=" << static_cast<int>(m_playMode);
+    qCDebug(lcUi).noquote() << "onSetEngineNames CALLED";
+    qCDebug(lcUi).noquote() << "onSetEngineNames: e1=" << e1 << " e2=" << e2;
+    qCDebug(lcUi).noquote() << "onSetEngineNames: current m_engineName1=" << m_engineName1 << " m_engineName2=" << m_engineName2;
+    qCDebug(lcUi).noquote() << "onSetEngineNames: current m_playMode=" << static_cast<int>(m_playMode);
 
     // メンバ変数に保存
     m_engineName1 = e1;
     m_engineName2 = e2;
 
-    qDebug().noquote() << "[PlayerInfo] onSetEngineNames: after save m_engineName1=" << m_engineName1 << " m_engineName2=" << m_engineName2;
+    qCDebug(lcUi).noquote() << "onSetEngineNames: after save m_engineName1=" << m_engineName1 << " m_engineName2=" << m_engineName2;
 
     // ログモデル名を更新
     applyEngineNamesToLogModels();
@@ -247,28 +247,28 @@ void PlayerInfoController::onSetEngineNames(const QString& e1, const QString& e2
 
     // 評価値グラフコントローラにもエンジン名を設定
     if (m_evalGraphController) {
-        qDebug().noquote() << "[PlayerInfo] onSetEngineNames: m_evalGraphController is valid, calling setEngine1Name/setEngine2Name";
+        qCDebug(lcUi).noquote() << "onSetEngineNames: m_evalGraphController is valid, calling setEngine1Name/setEngine2Name";
         m_evalGraphController->setEngine1Name(m_engineName1);
         m_evalGraphController->setEngine2Name(m_engineName2);
     } else {
-        qDebug().noquote() << "[PlayerInfo] onSetEngineNames: m_evalGraphController is NULL!";
+        qCDebug(lcUi).noquote() << "onSetEngineNames: m_evalGraphController is NULL!";
     }
 
     Q_EMIT engineNamesUpdated(e1, e2);
 
-    qDebug().noquote() << "[PlayerInfo] onSetEngineNames END";
+    qCDebug(lcUi).noquote() << "onSetEngineNames END";
 }
 
 void PlayerInfoController::onPlayerNamesResolved(const QString& human1, const QString& human2,
                                                   const QString& engine1, const QString& engine2,
                                                   int playMode)
 {
-    qDebug().noquote() << "[PlayerInfo] onPlayerNamesResolved:"
-                       << " human1=" << human1
-                       << " human2=" << human2
-                       << " engine1=" << engine1
-                       << " engine2=" << engine2
-                       << " playMode=" << playMode;
+    qCDebug(lcUi).noquote() << "onPlayerNamesResolved:"
+                            << " human1=" << human1
+                            << " human2=" << human2
+                            << " engine1=" << engine1
+                            << " engine2=" << engine2
+                            << " playMode=" << playMode;
 
     // メンバ変数に保存
     m_humanName1 = human1;

@@ -14,7 +14,7 @@
 #include <QPen>
 #include <QFont>
 #include <QColor>
-#include <QDebug>
+#include "loggingcategory.h"
 #include <QtGlobal>
 #include <QThread>
 #include <QLabel>
@@ -192,7 +192,7 @@ void EvaluationChartWidget::updateZeroLine()
 
 void EvaluationChartWidget::setupCursorLine()
 {
-    qDebug() << "[CHART] setupCursorLine called: m_currentPly=" << m_currentPly << "m_yLimit=" << m_yLimit;
+    qCDebug(lcUi) << "setupCursorLine called: m_currentPly=" << m_currentPly << "m_yLimit=" << m_yLimit;
     
     m_cursorLine = new QLineSeries(this);
 
@@ -210,7 +210,7 @@ void EvaluationChartWidget::setupCursorLine()
     m_cursorLine->attachAxis(m_axX);
     m_cursorLine->attachAxis(m_axY);
     
-    qDebug() << "[CHART] setupCursorLine done";
+    qCDebug(lcUi) << "setupCursorLine done";
 }
 
 void EvaluationChartWidget::updateCursorLine()
@@ -224,10 +224,10 @@ void EvaluationChartWidget::updateCursorLine()
 
 void EvaluationChartWidget::setCurrentPly(int ply)
 {
-    qDebug() << "[CHART] setCurrentPly called: ply=" << ply << "m_currentPly(before)=" << m_currentPly;
+    qCDebug(lcUi) << "setCurrentPly called: ply=" << ply << "m_currentPly(before)=" << m_currentPly;
     
     if (m_currentPly == ply) {
-        qDebug() << "[CHART] setCurrentPly: same value, skipping";
+        qCDebug(lcUi) << "setCurrentPly: same value, skipping";
         return;
     }
 
@@ -238,7 +238,7 @@ void EvaluationChartWidget::setCurrentPly(int ply)
         m_chartView->update();
     }
     
-    qDebug() << "[CHART] setCurrentPly done: m_currentPly(after)=" << m_currentPly;
+    qCDebug(lcUi) << "setCurrentPly done: m_currentPly(after)=" << m_currentPly;
 }
 
 void EvaluationChartWidget::setupTooltip()
@@ -276,11 +276,11 @@ void EvaluationChartWidget::onSeriesHovered(const QPointF& point, bool state)
         if (series == m_s1) {
             engineName = m_engine1Name;
             sideMarker = QStringLiteral("▲");
-            qDebug() << "[CHART] onSeriesHovered: series=m_s1, m_engine1Name=" << m_engine1Name;
+            qCDebug(lcUi) << "onSeriesHovered: series=m_s1, m_engine1Name=" << m_engine1Name;
         } else if (series == m_s2) {
             engineName = m_engine2Name;
             sideMarker = QStringLiteral("△");
-            qDebug() << "[CHART] onSeriesHovered: series=m_s2, m_engine2Name=" << m_engine2Name;
+            qCDebug(lcUi) << "onSeriesHovered: series=m_s2, m_engine2Name=" << m_engine2Name;
         }
         
         // 最も近いデータポイントを探す
@@ -318,7 +318,7 @@ void EvaluationChartWidget::onSeriesHovered(const QPointF& point, bool state)
             const QString sideName = (series == m_s1) ? tr("先手") : tr("後手");
             text = tr("%1%2\nMove %3: %4").arg(sideMarker, sideName).arg(ply).arg(cp);
         }
-        qDebug() << "[CHART] onSeriesHovered: tooltip text=" << text;
+        qCDebug(lcUi) << "onSeriesHovered: tooltip text=" << text;
         m_tooltip->setText(text);
         m_tooltip->adjustSize();
         
@@ -823,13 +823,13 @@ void EvaluationChartWidget::autoExpandXAxisIfNeeded(int ply)
 
 void EvaluationChartWidget::appendScoreP1(int ply, int cp, bool invert)
 {
-    if (!m_s1) { qDebug() << "[CHART][P1][ERR] series null"; return; }
+    if (!m_s1) { qCWarning(lcUi) << "P1 series null"; return; }
 
     const qreal y = invert ? -cp : cp;
-    if (!qIsFinite(y)) qDebug() << "[CHART][P1][WARN] non-finite y" << y << "from cp=" << cp;
+    if (!qIsFinite(y)) qCWarning(lcUi) << "P1 non-finite y" << y << "from cp=" << cp;
 
     const int before = m_s1->count();
-    qDebug() << "[CHART][P1] append"
+    qCDebug(lcUi) << "P1 append"
              << "ply=" << ply
              << "cp=" << cp
              << "invert=" << invert
@@ -849,7 +849,7 @@ void EvaluationChartWidget::appendScoreP1(int ply, int cp, bool invert)
     // エンジン情報を更新
     m_engine1Ply = ply;
     m_engine1Cp = invert ? -cp : cp;
-    qDebug() << "[CHART][P1] updating engine info: ply=" << m_engine1Ply << "cp=" << m_engine1Cp << "name=" << m_engine1Name;
+    qCDebug(lcUi) << "P1 updating engine info: ply=" << m_engine1Ply << "cp=" << m_engine1Cp << "name=" << m_engine1Name;
     updateEngineInfoLabel();
 
     // 対局中は最新のプロット位置に縦線を更新
@@ -859,27 +859,27 @@ void EvaluationChartWidget::appendScoreP1(int ply, int cp, bool invert)
     QPointF lastPt;
     if (after > 0) lastPt = m_s1->at(after - 1);
 
-    qDebug() << "[CHART][P1] appended"
+    qCDebug(lcUi) << "P1 appended"
              << "afterCount=" << after
              << "lastPoint=" << lastPt;
 
     if (m_chartView) {
         m_chartView->update();
-        qDebug() << "[CHART][P1] chartView updated";
+        qCDebug(lcUi) << "P1 chartView updated";
     } else {
-        qDebug() << "[CHART][P1][WARN] chartView is null; not updated";
+        qCWarning(lcUi) << "P1 chartView is null; not updated";
     }
 }
 
 void EvaluationChartWidget::appendScoreP2(int ply, int cp, bool invert)
 {
-    if (!m_s2) { qDebug() << "[CHART][P2][ERR] series null"; return; }
+    if (!m_s2) { qCWarning(lcUi) << "P2 series null"; return; }
 
     const qreal y = invert ? -cp : cp;
-    if (!qIsFinite(y)) qDebug() << "[CHART][P2][WARN] non-finite y" << y << "from cp=" << cp;
+    if (!qIsFinite(y)) qCWarning(lcUi) << "P2 non-finite y" << y << "from cp=" << cp;
 
     const int before = m_s2->count();
-    qDebug() << "[CHART][P2] append"
+    qCDebug(lcUi) << "P2 append"
              << "ply=" << ply
              << "cp=" << cp
              << "invert=" << invert
@@ -899,7 +899,7 @@ void EvaluationChartWidget::appendScoreP2(int ply, int cp, bool invert)
     // エンジン情報を更新
     m_engine2Ply = ply;
     m_engine2Cp = invert ? -cp : cp;
-    qDebug() << "[CHART][P2] updating engine info: ply=" << m_engine2Ply << "cp=" << m_engine2Cp << "name=" << m_engine2Name;
+    qCDebug(lcUi) << "P2 updating engine info: ply=" << m_engine2Ply << "cp=" << m_engine2Cp << "name=" << m_engine2Name;
     updateEngineInfoLabel();
 
     // 対局中は最新のプロット位置に縦線を更新
@@ -909,15 +909,15 @@ void EvaluationChartWidget::appendScoreP2(int ply, int cp, bool invert)
     QPointF lastPt;
     if (after > 0) lastPt = m_s2->at(after - 1);
 
-    qDebug() << "[CHART][P2] appended"
+    qCDebug(lcUi) << "P2 appended"
              << "afterCount=" << after
              << "lastPoint=" << lastPt;
 
     if (m_chartView) {
         m_chartView->update();
-        qDebug() << "[CHART][P2] chartView updated";
+        qCDebug(lcUi) << "P2 chartView updated";
     } else {
-        qDebug() << "[CHART][P2][WARN] chartView is null; not updated";
+        qCWarning(lcUi) << "P2 chartView is null; not updated";
     }
 }
 
@@ -980,7 +980,7 @@ int EvaluationChartWidget::countP2() const { return m_s2 ? m_s2->count() : 0; }
 
 void EvaluationChartWidget::setEngine1Info(const QString& name, int ply, int cp)
 {
-    qDebug() << "[ENGINE_INFO] setEngine1Info called: name=" << name << "ply=" << ply << "cp=" << cp;
+    qCDebug(lcUi) << "setEngine1Info called: name=" << name << "ply=" << ply << "cp=" << cp;
     m_engine1Name = name;
     m_engine1Ply = ply;
     m_engine1Cp = cp;
@@ -989,7 +989,7 @@ void EvaluationChartWidget::setEngine1Info(const QString& name, int ply, int cp)
 
 void EvaluationChartWidget::setEngine2Info(const QString& name, int ply, int cp)
 {
-    qDebug() << "[ENGINE_INFO] setEngine2Info called: name=" << name << "ply=" << ply << "cp=" << cp;
+    qCDebug(lcUi) << "setEngine2Info called: name=" << name << "ply=" << ply << "cp=" << cp;
     m_engine2Name = name;
     m_engine2Ply = ply;
     m_engine2Cp = cp;
@@ -998,14 +998,14 @@ void EvaluationChartWidget::setEngine2Info(const QString& name, int ply, int cp)
 
 void EvaluationChartWidget::setEngine1Name(const QString& name)
 {
-    qDebug() << "[ENGINE_INFO] setEngine1Name called: name=" << name;
+    qCDebug(lcUi) << "setEngine1Name called: name=" << name;
     m_engine1Name = name;
     updateEngineInfoLabel();
 }
 
 void EvaluationChartWidget::setEngine2Name(const QString& name)
 {
-    qDebug() << "[ENGINE_INFO] setEngine2Name called: name=" << name;
+    qCDebug(lcUi) << "setEngine2Name called: name=" << name;
     m_engine2Name = name;
     updateEngineInfoLabel();
 }

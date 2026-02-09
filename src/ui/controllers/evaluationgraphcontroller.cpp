@@ -3,7 +3,7 @@
 
 #include "evaluationgraphcontroller.h"
 
-#include <QDebug>
+#include "loggingcategory.h"
 #include <QTimer>
 
 #include "evalgraphpresenter.h"
@@ -42,29 +42,29 @@ void EvaluationGraphController::setSfenRecord(QStringList* sfenRecord)
 
 void EvaluationGraphController::setEngine1Name(const QString& name)
 {
-    qDebug() << "[EVAL_GRAPH_CTRL] setEngine1Name called: name=" << name;
+    qCDebug(lcUi) << "setEngine1Name called: name=" << name;
     m_engine1Name = name;
 
     // EvaluationChartWidgetにも即座に設定
     if (m_evalChart) {
-        qDebug() << "[EVAL_GRAPH_CTRL] setEngine1Name: forwarding to EvaluationChartWidget";
+        qCDebug(lcUi) << "setEngine1Name: forwarding to EvaluationChartWidget";
         m_evalChart->setEngine1Name(name);
     } else {
-        qDebug() << "[EVAL_GRAPH_CTRL] setEngine1Name: m_evalChart is NULL!";
+        qCDebug(lcUi) << "setEngine1Name: m_evalChart is NULL!";
     }
 }
 
 void EvaluationGraphController::setEngine2Name(const QString& name)
 {
-    qDebug() << "[EVAL_GRAPH_CTRL] setEngine2Name called: name=" << name;
+    qCDebug(lcUi) << "setEngine2Name called: name=" << name;
     m_engine2Name = name;
 
     // EvaluationChartWidgetにも即座に設定
     if (m_evalChart) {
-        qDebug() << "[EVAL_GRAPH_CTRL] setEngine2Name: forwarding to EvaluationChartWidget";
+        qCDebug(lcUi) << "setEngine2Name: forwarding to EvaluationChartWidget";
         m_evalChart->setEngine2Name(name);
     } else {
-        qDebug() << "[EVAL_GRAPH_CTRL] setEngine2Name: m_evalChart is NULL!";
+        qCDebug(lcUi) << "setEngine2Name: m_evalChart is NULL!";
     }
 }
 
@@ -109,7 +109,7 @@ QList<int>& EvaluationGraphController::scoresRef()
 
 void EvaluationGraphController::redrawEngine1Graph(int ply)
 {
-    qDebug() << "[EVAL_GRAPH] redrawEngine1Graph() called with ply=" << ply;
+    qCDebug(lcUi) << "redrawEngine1Graph() called with ply=" << ply;
 
     // EvEモードでplyが渡された場合は保存しておく
     m_pendingPlyForEngine1 = ply;
@@ -120,7 +120,7 @@ void EvaluationGraphController::redrawEngine1Graph(int ply)
 
 void EvaluationGraphController::redrawEngine2Graph(int ply)
 {
-    qDebug() << "[EVAL_GRAPH] redrawEngine2Graph() called with ply=" << ply;
+    qCDebug(lcUi) << "redrawEngine2Graph() called with ply=" << ply;
 
     // EvEモードでplyが渡された場合は保存しておく
     m_pendingPlyForEngine2 = ply;
@@ -135,7 +135,7 @@ void EvaluationGraphController::redrawEngine2Graph(int ply)
 
 void EvaluationGraphController::doRedrawEngine1Graph()
 {
-    qDebug() << "[EVAL_GRAPH] doRedrawEngine1Graph() delayed execution";
+    qCDebug(lcUi) << "doRedrawEngine1Graph() delayed execution";
 
     // 手数を取得：EvEモードでplyが渡された場合はそれを使用、それ以外はsfenRecordから計算
     int ply;
@@ -143,37 +143,37 @@ void EvaluationGraphController::doRedrawEngine1Graph()
         // EvEモードで渡されたplyを使用
         ply = m_pendingPlyForEngine1;
         m_pendingPlyForEngine1 = -1;  // 使用後リセット
-        qDebug() << "[EVAL_GRAPH] P1: using pending ply =" << ply;
+        qCDebug(lcUi) << "P1: using pending ply =" << ply;
     } else {
         // sfenRecordから計算（従来の動作）
         ply = m_sfenRecord ? qMax(0, static_cast<int>(m_sfenRecord->size() - 1)) : 0;
-        qDebug() << "[EVAL_GRAPH] P1: actual ply (from sfenRecord) =" << ply
-                 << ", sfenRecord size =" << (m_sfenRecord ? m_sfenRecord->size() : -1);
+        qCDebug(lcUi) << "P1: actual ply (from sfenRecord) =" << ply
+                      << ", sfenRecord size =" << (m_sfenRecord ? m_sfenRecord->size() : -1);
     }
 
     EvalGraphPresenter::appendPrimaryScore(m_scoreCp, m_match);
 
     const int cpAfter = m_scoreCp.isEmpty() ? 0 : m_scoreCp.last();
-    qDebug() << "[EVAL_GRAPH] P1: after appendPrimaryScore, m_scoreCp.size() =" << m_scoreCp.size()
-             << ", last cp =" << cpAfter;
+    qCDebug(lcUi) << "P1: after appendPrimaryScore, m_scoreCp.size() =" << m_scoreCp.size()
+                  << ", last cp =" << cpAfter;
 
     // 実際のチャートウィジェットにも描画
     if (!m_evalChart) {
-        qDebug() << "[EVAL_GRAPH] P1: m_evalChart is NULL!";
+        qCDebug(lcUi) << "P1: m_evalChart is NULL!";
         return;
     }
 
     // エンジン名を設定
     m_evalChart->setEngine1Name(m_engine1Name);
 
-    qDebug() << "[EVAL_GRAPH] P1: calling m_evalChart->appendScoreP1(" << ply << "," << cpAfter << ", false)";
+    qCDebug(lcUi) << "P1: calling m_evalChart->appendScoreP1(" << ply << "," << cpAfter << ", false)";
     m_evalChart->appendScoreP1(ply, cpAfter, false);
-    qDebug() << "[EVAL_GRAPH] P1: appendScoreP1 done, chart countP1 =" << m_evalChart->countP1();
+    qCDebug(lcUi) << "P1: appendScoreP1 done, chart countP1 =" << m_evalChart->countP1();
 }
 
 void EvaluationGraphController::doRedrawEngine2Graph()
 {
-    qDebug() << "[EVAL_GRAPH] doRedrawEngine2Graph() delayed execution";
+    qCDebug(lcUi) << "doRedrawEngine2Graph() delayed execution";
 
     // 手数を取得：EvEモードでplyが渡された場合はそれを使用、それ以外はsfenRecordから計算
     int ply;
@@ -181,23 +181,23 @@ void EvaluationGraphController::doRedrawEngine2Graph()
         // EvEモードで渡されたplyを使用
         ply = m_pendingPlyForEngine2;
         m_pendingPlyForEngine2 = -1;  // 使用後リセット
-        qDebug() << "[EVAL_GRAPH] P2: using pending ply =" << ply;
+        qCDebug(lcUi) << "P2: using pending ply =" << ply;
     } else {
         // sfenRecordから計算（従来の動作）
         ply = m_sfenRecord ? qMax(0, static_cast<int>(m_sfenRecord->size() - 1)) : 0;
-        qDebug() << "[EVAL_GRAPH] P2: actual ply (from sfenRecord) =" << ply
-                 << ", sfenRecord size =" << (m_sfenRecord ? m_sfenRecord->size() : -1);
+        qCDebug(lcUi) << "P2: actual ply (from sfenRecord) =" << ply
+                      << ", sfenRecord size =" << (m_sfenRecord ? m_sfenRecord->size() : -1);
     }
 
     EvalGraphPresenter::appendSecondaryScore(m_scoreCp, m_match);
 
     const int cpAfter = m_scoreCp.isEmpty() ? 0 : m_scoreCp.last();
-    qDebug() << "[EVAL_GRAPH] P2: after appendSecondaryScore, m_scoreCp.size() =" << m_scoreCp.size()
-             << ", last cp =" << cpAfter;
+    qCDebug(lcUi) << "P2: after appendSecondaryScore, m_scoreCp.size() =" << m_scoreCp.size()
+                  << ", last cp =" << cpAfter;
 
     // 実際のチャートウィジェットにも描画
     if (!m_evalChart) {
-        qDebug() << "[EVAL_GRAPH] P2: m_evalChart is NULL!";
+        qCDebug(lcUi) << "P2: m_evalChart is NULL!";
         return;
     }
 
@@ -206,9 +206,9 @@ void EvaluationGraphController::doRedrawEngine2Graph()
 
     // 後手/上手のエンジン評価値は符号を反転させてプロット
     // USIエンジンは手番側から見た評価値を出力するため、後手の評価値を先手視点に変換
-    qDebug() << "[EVAL_GRAPH] P2: calling m_evalChart->appendScoreP2(" << ply << "," << cpAfter << ", true)";
+    qCDebug(lcUi) << "P2: calling m_evalChart->appendScoreP2(" << ply << "," << cpAfter << ", true)";
     m_evalChart->appendScoreP2(ply, cpAfter, true);
-    qDebug() << "[EVAL_GRAPH] P2: appendScoreP2 done, chart countP2 =" << m_evalChart->countP2();
+    qCDebug(lcUi) << "P2: appendScoreP2 done, chart countP2 =" << m_evalChart->countP2();
 }
 
 // --------------------------------------------------------
@@ -217,42 +217,42 @@ void EvaluationGraphController::doRedrawEngine2Graph()
 
 void EvaluationGraphController::removeLastP1Score()
 {
-    qDebug() << "[EVAL_GRAPH] removeLastP1Score() called";
+    qCDebug(lcUi) << "removeLastP1Score() called";
 
     // 内部スコアリストから削除
     if (!m_scoreCp.isEmpty()) {
         m_scoreCp.removeLast();
-        qDebug() << "[EVAL_GRAPH] m_scoreCp removed last, new size =" << m_scoreCp.size();
+        qCDebug(lcUi) << "m_scoreCp removed last, new size =" << m_scoreCp.size();
     }
 
     // チャートウィジェットから削除
     if (!m_evalChart) {
-        qDebug() << "[EVAL_GRAPH] removeLastP1Score: m_evalChart is NULL!";
+        qCDebug(lcUi) << "removeLastP1Score: m_evalChart is NULL!";
         return;
     }
 
     m_evalChart->removeLastP1();
-    qDebug() << "[EVAL_GRAPH] removeLastP1Score done, chart countP1 =" << m_evalChart->countP1();
+    qCDebug(lcUi) << "removeLastP1Score done, chart countP1 =" << m_evalChart->countP1();
 }
 
 void EvaluationGraphController::removeLastP2Score()
 {
-    qDebug() << "[EVAL_GRAPH] removeLastP2Score() called";
+    qCDebug(lcUi) << "removeLastP2Score() called";
 
     // 内部スコアリストから削除
     if (!m_scoreCp.isEmpty()) {
         m_scoreCp.removeLast();
-        qDebug() << "[EVAL_GRAPH] m_scoreCp removed last, new size =" << m_scoreCp.size();
+        qCDebug(lcUi) << "m_scoreCp removed last, new size =" << m_scoreCp.size();
     }
 
     // チャートウィジェットから削除
     if (!m_evalChart) {
-        qDebug() << "[EVAL_GRAPH] removeLastP2Score: m_evalChart is NULL!";
+        qCDebug(lcUi) << "removeLastP2Score: m_evalChart is NULL!";
         return;
     }
 
     m_evalChart->removeLastP2();
-    qDebug() << "[EVAL_GRAPH] removeLastP2Score done, chart countP2 =" << m_evalChart->countP2();
+    qCDebug(lcUi) << "removeLastP2Score done, chart countP2 =" << m_evalChart->countP2();
 }
 
 // --------------------------------------------------------
@@ -261,10 +261,10 @@ void EvaluationGraphController::removeLastP2Score()
 
 void EvaluationGraphController::setCurrentPly(int ply)
 {
-    qDebug() << "[EVAL_GRAPH] setCurrentPly() called with ply =" << ply;
+    qCDebug(lcUi) << "setCurrentPly() called with ply =" << ply;
 
     if (!m_evalChart) {
-        qDebug() << "[EVAL_GRAPH] setCurrentPly: m_evalChart is NULL!";
+        qCDebug(lcUi) << "setCurrentPly: m_evalChart is NULL!";
         return;
     }
 

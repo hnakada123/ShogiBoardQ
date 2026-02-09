@@ -6,6 +6,7 @@
 
 
 // --- Qt ヘッダー ---
+#include <QLoggingCategory>
 #include <QMainWindow>
 #include <QDockWidget>
 #include <QSplitter>
@@ -64,6 +65,8 @@ class KifuNavigationController;
 class KifuDisplayCoordinator;
 class BranchTreeWidget;
 class LiveGameSession;
+
+Q_DECLARE_LOGGING_CATEGORY(lcApp)
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }

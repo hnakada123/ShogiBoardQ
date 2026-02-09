@@ -15,10 +15,13 @@
 #include "kifdisplayitem.h"
 #include "livegamesession.h"
 
+#include "loggingcategory.h"
+
 #include <QTableView>
 #include <QModelIndex>
-#include <QDebug>
 #include <QTextStream>
+
+Q_LOGGING_CATEGORY(lcUi, "shogi.ui")
 
 KifuDisplayCoordinator::KifuDisplayCoordinator(
     KifuBranchTree* tree,
@@ -121,72 +124,72 @@ void KifuDisplayCoordinator::wireSignals()
 
 void KifuDisplayCoordinator::onBranchTreeNodeClicked(int lineIndex, int ply)
 {
-    qDebug().noquote() << "[KDC] onBranchTreeNodeClicked ENTER lineIndex=" << lineIndex << "ply=" << ply;
+    qCDebug(lcUi).noquote() << "onBranchTreeNodeClicked ENTER lineIndex=" << lineIndex << "ply=" << ply;
 
     // ラインとplyからノードを探して移動
     if (m_tree == nullptr || m_navController == nullptr) {
-        qDebug().noquote() << "[KDC] onBranchTreeNodeClicked: tree or navController is null";
+        qCDebug(lcUi).noquote() << "onBranchTreeNodeClicked: tree or navController is null";
         return;
     }
 
     QVector<BranchLine> lines = m_tree->allLines();
     if (lineIndex < 0 || lineIndex >= lines.size()) {
-        qDebug().noquote() << "[KDC] onBranchTreeNodeClicked: lineIndex out of range";
+        qCDebug(lcUi).noquote() << "onBranchTreeNodeClicked: lineIndex out of range";
         return;
     }
 
     const BranchLine& line = lines.at(lineIndex);
     for (KifuBranchNode* node : std::as_const(line.nodes)) {
         if (node->ply() == ply) {
-            qDebug().noquote() << "[KDC] onBranchTreeNodeClicked: found node, sfen=" << node->sfen();
+            qCDebug(lcUi).noquote() << "onBranchTreeNodeClicked: found node, sfen=" << node->sfen();
             m_navController->goToNode(node);
-            qDebug().noquote() << "[KDC] onBranchTreeNodeClicked LEAVE (goToNode done)";
+            qCDebug(lcUi).noquote() << "onBranchTreeNodeClicked LEAVE (goToNode done)";
             return;
         }
     }
 
     // plyが見つからない場合（開始局面）
     if (ply == 0 && m_tree->root() != nullptr) {
-        qDebug().noquote() << "[KDC] onBranchTreeNodeClicked: using root node";
+        qCDebug(lcUi).noquote() << "onBranchTreeNodeClicked: using root node";
         m_navController->goToNode(m_tree->root());
     }
-    qDebug().noquote() << "[KDC] onBranchTreeNodeClicked LEAVE";
+    qCDebug(lcUi).noquote() << "onBranchTreeNodeClicked LEAVE";
 }
 
 void KifuDisplayCoordinator::onBranchCandidateActivated(const QModelIndex& index)
 {
-    qDebug().noquote() << "[KDC] onBranchCandidateActivated ENTER"
+    qCDebug(lcUi).noquote() << "onBranchCandidateActivated ENTER"
                        << "index.valid=" << index.isValid()
                        << "row=" << index.row()
                        << "navController=" << (m_navController ? "yes" : "null")
                        << "branchModel=" << (m_branchModel ? "yes" : "null");
 
     if (!index.isValid() || m_navController == nullptr || m_branchModel == nullptr) {
-        qDebug().noquote() << "[KDC] onBranchCandidateActivated: guard failed, returning";
+        qCDebug(lcUi).noquote() << "onBranchCandidateActivated: guard failed, returning";
         return;
     }
 
     const int row = index.row();
     if (m_branchModel->isBackToMainRow(row)) {
-        qDebug().noquote() << "[KDC] onBranchCandidateActivated: back to main row, calling goToMainLineAtCurrentPly";
+        qCDebug(lcUi).noquote() << "onBranchCandidateActivated: back to main row, calling goToMainLineAtCurrentPly";
         m_navController->goToMainLineAtCurrentPly();
         return;
     }
 
-    qDebug().noquote() << "[KDC] onBranchCandidateActivated: calling selectBranchCandidate(" << row << ")";
+    qCDebug(lcUi).noquote() << "onBranchCandidateActivated: calling selectBranchCandidate(" << row << ")";
     m_navController->selectBranchCandidate(row);
 }
 
 void KifuDisplayCoordinator::onNavigationCompleted(KifuBranchNode* node)
 {
-    qDebug().noquote() << "[KDC] onNavigationCompleted ENTER node="
+    qCDebug(lcUi).noquote() << "onNavigationCompleted ENTER node="
                        << (node ? QString("ply=%1").arg(node->ply()) : "null")
                        << "preferredLineIndex=" << (m_state ? m_state->preferredLineIndex() : -999);
 
     // ラインが変更された場合は棋譜欄の内容を更新
     if (m_state != nullptr) {
         const int newLineIndex = m_state->currentLineIndex();
-        qDebug().noquote() << "[KDC] onNavigationCompleted: newLineIndex=" << newLineIndex
+        qCDebug(lcUi).noquote() << "onNavigationCompleted: newLineIndex=" << newLineIndex
                            << "m_lastLineIndex=" << m_lastLineIndex
                            << "m_lastModelLineIndex=" << m_lastModelLineIndex;
 
@@ -197,13 +200,13 @@ void KifuDisplayCoordinator::onNavigationCompleted(KifuBranchNode* node)
         const bool modelNeedsUpdate = (m_lastModelLineIndex >= 0 && m_lastModelLineIndex != newLineIndex);
 
         if (lineIndexChanged || modelNeedsUpdate) {
-            qDebug().noquote() << "[KDC] onNavigationCompleted: updating record view"
+            qCDebug(lcUi).noquote() << "onNavigationCompleted: updating record view"
                                << "lineIndexChanged=" << lineIndexChanged
                                << "modelNeedsUpdate=" << modelNeedsUpdate;
             m_lastLineIndex = newLineIndex;
             updateRecordView();  // 棋譜欄の内容を再構築
         } else {
-            qDebug().noquote() << "[KDC] onNavigationCompleted: line NOT changed, skipping updateRecordView";
+            qCDebug(lcUi).noquote() << "onNavigationCompleted: line NOT changed, skipping updateRecordView";
         }
     }
 
@@ -214,7 +217,7 @@ void KifuDisplayCoordinator::onNavigationCompleted(KifuBranchNode* node)
         if (node->parent() != nullptr) {
             prevSfen = node->parent()->sfen();
         }
-        qDebug().noquote() << "[KDC] onNavigationCompleted: emitting boardWithHighlightsRequired"
+        qCDebug(lcUi).noquote() << "onNavigationCompleted: emitting boardWithHighlightsRequired"
                            << "currentSfen=" << currentSfen.left(40)
                            << "prevSfen=" << (prevSfen.isEmpty() ? "(empty)" : prevSfen.left(40));
         emit boardWithHighlightsRequired(currentSfen, prevSfen);
@@ -224,8 +227,8 @@ void KifuDisplayCoordinator::onNavigationCompleted(KifuBranchNode* node)
 
     // ナビゲーション完了時の一致性チェック
     if (!verifyDisplayConsistency()) {
-        qWarning().noquote() << "[KDC] POST-NAVIGATION INCONSISTENCY:";
-        qDebug().noquote() << getConsistencyReport();
+        qCWarning(lcUi).noquote() << "POST-NAVIGATION INCONSISTENCY:";
+        qCDebug(lcUi).noquote() << getConsistencyReport();
     }
 }
 
@@ -241,14 +244,14 @@ void KifuDisplayCoordinator::onRecordHighlightRequired(int ply)
         return;
     }
 
-    qDebug().noquote() << "[KDC] onRecordHighlightRequired: ply=" << ply
+    qCDebug(lcUi).noquote() << "onRecordHighlightRequired: ply=" << ply
                        << "modelRowCount=" << m_recordModel->rowCount()
                        << "lastModelLineIndex=" << m_lastModelLineIndex
                        << "stateLineIndex=" << (m_state ? m_state->currentLineIndex() : -1);
 
     // 重要: モデルのラインとナビゲーション状態のラインが一致しない場合、モデルを再構築
     if (m_state != nullptr && m_lastModelLineIndex >= 0 && m_lastModelLineIndex != m_state->currentLineIndex()) {
-        qDebug().noquote() << "[KDC] onRecordHighlightRequired: Line mismatch detected, rebuilding model";
+        qCDebug(lcUi).noquote() << "onRecordHighlightRequired: Line mismatch detected, rebuilding model";
         updateRecordView();
     }
 
@@ -276,7 +279,7 @@ void KifuDisplayCoordinator::onBranchTreeHighlightRequired(int lineIndex, int pl
     m_expectedTreeLineIndex = lineIndex;
     m_expectedTreePly = ply;
 
-    qDebug().noquote() << "[KDC] onBranchTreeHighlightRequired:"
+    qCDebug(lcUi).noquote() << "onBranchTreeHighlightRequired:"
                        << "lineIndex=" << lineIndex
                        << "ply=" << ply
                        << "state->currentLineIndex()=" << (m_state != nullptr ? m_state->currentLineIndex() : -1)
@@ -284,10 +287,10 @@ void KifuDisplayCoordinator::onBranchTreeHighlightRequired(int lineIndex, int pl
 
     // 即時不一致検出
     if (m_state != nullptr && lineIndex != m_state->currentLineIndex()) {
-        qWarning().noquote() << "[KDC] INCONSISTENCY DETECTED:"
+        qCWarning(lcUi).noquote() << "INCONSISTENCY DETECTED:"
                              << "Tree will highlight line" << lineIndex
                              << "but state says current line is" << m_state->currentLineIndex();
-        qDebug().noquote() << getConsistencyReport();
+        qCDebug(lcUi).noquote() << getConsistencyReport();
     }
 
     // BranchTreeWidget がある場合はそちらを使用
@@ -366,7 +369,7 @@ void KifuDisplayCoordinator::onTreeChanged()
 
 void KifuDisplayCoordinator::updateRecordView()
 {
-    qDebug().noquote() << "[KDC] updateRecordView: CALLED";
+    qCDebug(lcUi).noquote() << "updateRecordView: CALLED";
     populateRecordModel();
     populateBranchMarks();
 
@@ -374,7 +377,7 @@ void KifuDisplayCoordinator::updateRecordView()
     if (m_recordPane != nullptr && m_recordPane->kifuView() != nullptr) {
         QTableView* view = m_recordPane->kifuView();
         view->viewport()->update();
-        qDebug().noquote() << "[KDC] updateRecordView: forced view update, model rowCount=" << m_recordModel->rowCount();
+        qCDebug(lcUi).noquote() << "updateRecordView: forced view update, model rowCount=" << m_recordModel->rowCount();
     }
 }
 
@@ -419,19 +422,19 @@ void KifuDisplayCoordinator::highlightCurrentPosition()
 
 void KifuDisplayCoordinator::populateRecordModel()
 {
-    qDebug().noquote() << "[KDC] populateRecordModel: ENTER"
+    qCDebug(lcUi).noquote() << "populateRecordModel: ENTER"
                        << "m_recordModel=" << (m_recordModel ? "yes" : "null")
                        << "m_recordModel ptr=" << static_cast<void*>(m_recordModel)
                        << "m_tree=" << (m_tree ? "yes" : "null");
 
     if (m_recordModel == nullptr || m_tree == nullptr) {
-        qDebug().noquote() << "[KDC] populateRecordModel: EARLY RETURN (null model or tree)";
+        qCDebug(lcUi).noquote() << "populateRecordModel: EARLY RETURN (null model or tree)";
         return;
     }
 
     const int oldRowCount = m_recordModel->rowCount();
     m_recordModel->clearAllItems();
-    qDebug().noquote() << "[KDC] populateRecordModel: cleared model, old rowCount=" << oldRowCount
+    qCDebug(lcUi).noquote() << "populateRecordModel: cleared model, old rowCount=" << oldRowCount
                        << "new rowCount=" << m_recordModel->rowCount();
 
     // 現在のラインを取得
@@ -440,7 +443,7 @@ void KifuDisplayCoordinator::populateRecordModel()
         currentLineIndex = m_state->currentLineIndex();
     }
 
-    qDebug().noquote() << "[KDC] populateRecordModel: currentLineIndex=" << currentLineIndex;
+    qCDebug(lcUi).noquote() << "populateRecordModel: currentLineIndex=" << currentLineIndex;
 
     QVector<BranchLine> lines = m_tree->allLines();
     if (currentLineIndex < 0 || currentLineIndex >= lines.size()) {
@@ -491,14 +494,14 @@ void KifuDisplayCoordinator::populateRecordModel()
     // 重要: 棋譜モデルが実際に表示しているラインインデックスを記録
     m_lastModelLineIndex = currentLineIndex;
 
-    qDebug().noquote() << "[KDC] populateRecordModel: DONE, final rowCount=" << m_recordModel->rowCount()
+    qCDebug(lcUi).noquote() << "populateRecordModel: DONE, final rowCount=" << m_recordModel->rowCount()
                        << "m_lastModelLineIndex=" << m_lastModelLineIndex;
 
     // デバッグ: 棋譜欄の3手目の内容を出力（不一致検出用）
     if (m_recordModel->rowCount() > 3) {
         KifuDisplay* item = m_recordModel->item(3);
         if (item) {
-            qDebug().noquote() << "[KDC] populateRecordModel DEBUG:"
+            qCDebug(lcUi).noquote() << "populateRecordModel DEBUG:"
                                << "currentLineIndex=" << currentLineIndex
                                << "ply3_move=" << item->currentMove();
         }
@@ -582,7 +585,7 @@ void KifuDisplayCoordinator::populateRecordModelFromPath(const QVector<KifuBranc
     if (!path.isEmpty() && path.last() != nullptr && m_tree != nullptr) {
         const int nodeLineIndex = path.last()->lineIndex();
         const int treeLineIndex = m_tree->findLineIndexForNode(path.last());
-        qDebug().noquote() << "[KDC] populateRecordModelFromPath: DEBUG"
+        qCDebug(lcUi).noquote() << "populateRecordModelFromPath: DEBUG"
                            << "nodeLineIndex=" << nodeLineIndex
                            << "treeLineIndex=" << treeLineIndex
                            << "pathSize=" << path.size()
@@ -592,7 +595,7 @@ void KifuDisplayCoordinator::populateRecordModelFromPath(const QVector<KifuBranc
     } else {
         m_lastModelLineIndex = 0;  // 空のパスは本譜として扱う
     }
-    qDebug().noquote() << "[KDC] populateRecordModelFromPath: m_lastModelLineIndex=" << m_lastModelLineIndex;
+    qCDebug(lcUi).noquote() << "populateRecordModelFromPath: m_lastModelLineIndex=" << m_lastModelLineIndex;
 
     const int maxRow = m_recordModel->rowCount() - 1;
     const int rowToHighlight = qBound(0, highlightPly, maxRow);
@@ -604,10 +607,10 @@ void KifuDisplayCoordinator::onPositionChanged(int lineIndex, int ply, const QSt
     Q_UNUSED(sfen)
     Q_UNUSED(lineIndex)  // 現在は m_state->currentLineIndex() を使用
 
-    qDebug().noquote() << "[KDC] onPositionChanged ENTER lineIndex=" << lineIndex << "ply=" << ply;
+    qCDebug(lcUi).noquote() << "onPositionChanged ENTER lineIndex=" << lineIndex << "ply=" << ply;
 
     if (m_tree == nullptr || m_state == nullptr) {
-        qDebug().noquote() << "[KDC] onPositionChanged LEAVE (no tree or state)";
+        qCDebug(lcUi).noquote() << "onPositionChanged LEAVE (no tree or state)";
         return;
     }
 
@@ -617,7 +620,7 @@ void KifuDisplayCoordinator::onPositionChanged(int lineIndex, int ply, const QSt
     // ply=0は開始局面（ルートノード）
     if (ply == 0) {
         targetNode = m_tree->root();
-        qDebug().noquote() << "[KDC] ply=0: using root node";
+        qCDebug(lcUi).noquote() << "ply=0: using root node";
     } else if (!lines.isEmpty()) {
         // 現在表示中のラインからplyで探す
         // m_state->currentLineIndex() を使用して、棋譜欄が表示中のラインを特定
@@ -626,13 +629,13 @@ void KifuDisplayCoordinator::onPositionChanged(int lineIndex, int ply, const QSt
             currentLine = 0;  // フォールバック: 本譜
         }
 
-        qDebug().noquote() << "[KDC] searching on line" << currentLine << "for ply" << ply;
+        qCDebug(lcUi).noquote() << "searching on line" << currentLine << "for ply" << ply;
 
         const BranchLine& line = lines.at(currentLine);
         for (KifuBranchNode* node : std::as_const(line.nodes)) {
             if (node->ply() == ply) {
                 targetNode = node;
-                qDebug().noquote() << "[KDC] found node on line" << currentLine
+                qCDebug(lcUi).noquote() << "found node on line" << currentLine
                                    << "ply=" << ply << "displayText=" << node->displayText();
                 break;
             }
@@ -645,7 +648,7 @@ void KifuDisplayCoordinator::onPositionChanged(int lineIndex, int ply, const QSt
                 for (KifuBranchNode* node : std::as_const(lines.at(li).nodes)) {
                     if (node->ply() == ply) {
                         targetNode = node;
-                        qDebug().noquote() << "[KDC] found node on line" << li
+                        qCDebug(lcUi).noquote() << "found node on line" << li
                                            << "(fallback) ply=" << ply;
                         break;
                     }
@@ -656,11 +659,11 @@ void KifuDisplayCoordinator::onPositionChanged(int lineIndex, int ply, const QSt
     }
 
     if (targetNode == nullptr) {
-        qDebug().noquote() << "[KDC] onPositionChanged LEAVE (target node not found for ply=" << ply << ")";
+        qCDebug(lcUi).noquote() << "onPositionChanged LEAVE (target node not found for ply=" << ply << ")";
         return;
     }
 
-    qDebug().noquote() << "[KDC] onPositionChanged: found node ply=" << targetNode->ply()
+    qCDebug(lcUi).noquote() << "onPositionChanged: found node ply=" << targetNode->ply()
                        << "displayText=" << targetNode->displayText()
                        << "childCount=" << targetNode->childCount()
                        << "parent=" << (targetNode->parent() ? "yes" : "null");
@@ -672,7 +675,7 @@ void KifuDisplayCoordinator::onPositionChanged(int lineIndex, int ply, const QSt
         for (int i = 0; i < nodeParent->childCount(); ++i) {
             if (nodeParent->childAt(i) == targetNode) {
                 m_state->rememberLineSelection(nodeParent, i);
-                qDebug().noquote() << "[KDC] onPositionChanged: remembered line selection at parent ply="
+                qCDebug(lcUi).noquote() << "onPositionChanged: remembered line selection at parent ply="
                                    << nodeParent->ply() << "index=" << i;
                 break;
             }
@@ -693,7 +696,7 @@ void KifuDisplayCoordinator::onPositionChanged(int lineIndex, int ply, const QSt
         // これにより、分岐点で選択可能な手が表示される
         KifuBranchNode* parentNode = targetNode->parent();
 
-        qDebug().noquote() << "[KDC] parentNode=" << (parentNode ? "yes" : "null")
+        qCDebug(lcUi).noquote() << "parentNode=" << (parentNode ? "yes" : "null")
                            << "parentNode->childCount()=" << (parentNode ? parentNode->childCount() : -1);
 
         if (parentNode != nullptr && parentNode->childCount() > 1) {
@@ -717,7 +720,7 @@ void KifuDisplayCoordinator::onPositionChanged(int lineIndex, int ply, const QSt
                 m_recordPane->branchView()->setEnabled(true);
             }
 
-            qDebug().noquote() << "[KDC] onPositionChanged: set" << items.size()
+            qCDebug(lcUi).noquote() << "onPositionChanged: set" << items.size()
                                << "branch candidates (siblings at ply" << targetNode->ply() << ")";
         } else {
             m_branchModel->setHasBackToMainRow(false);
@@ -729,7 +732,7 @@ void KifuDisplayCoordinator::onPositionChanged(int lineIndex, int ply, const QSt
                 m_recordPane->branchView()->setEnabled(true);
             }
 
-            qDebug().noquote() << "[KDC] onPositionChanged: no branch candidates (parent has"
+            qCDebug(lcUi).noquote() << "onPositionChanged: no branch candidates (parent has"
                                << (parentNode ? parentNode->childCount() : 0) << "children)";
         }
     }
@@ -745,7 +748,7 @@ void KifuDisplayCoordinator::onPositionChanged(int lineIndex, int ply, const QSt
     // 場合でもラインインデックスを追跡する
     const int oldLastLineIndex = m_lastLineIndex;
     m_lastLineIndex = highlightLineIndex;
-    qDebug().noquote() << "[KDC] onPositionChanged: synced m_lastLineIndex from" << oldLastLineIndex
+    qCDebug(lcUi).noquote() << "onPositionChanged: synced m_lastLineIndex from" << oldLastLineIndex
                        << "to" << m_lastLineIndex
                        << "(model rowCount=" << (m_recordModel ? m_recordModel->rowCount() : -1) << ")";
 
@@ -765,7 +768,7 @@ void KifuDisplayCoordinator::onPositionChanged(int lineIndex, int ply, const QSt
         highlightLineIndex = 0;
     }
 
-    qDebug().noquote() << "[KDC] onPositionChanged: highlighting branch tree at line="
+    qCDebug(lcUi).noquote() << "onPositionChanged: highlighting branch tree at line="
                        << highlightLineIndex << "ply=" << ply;
 
     // BranchTreeWidget がある場合はそちらを使用
@@ -782,11 +785,11 @@ void KifuDisplayCoordinator::onPositionChanged(int lineIndex, int ply, const QSt
 
     // 位置変更完了時の一致性チェック
     if (!verifyDisplayConsistency()) {
-        qWarning().noquote() << "[KDC] POST-NAVIGATION INCONSISTENCY:";
-        qDebug().noquote() << getConsistencyReport();
+        qCWarning(lcUi).noquote() << "POST-NAVIGATION INCONSISTENCY:";
+        qCDebug(lcUi).noquote() << getConsistencyReport();
     }
 
-    qDebug().noquote() << "[KDC] onPositionChanged LEAVE";
+    qCDebug(lcUi).noquote() << "onPositionChanged LEAVE";
 }
 
 bool KifuDisplayCoordinator::verifyDisplayConsistency() const
@@ -961,7 +964,7 @@ void KifuDisplayCoordinator::onLiveGameMoveAdded(int ply, const QString& display
 
 void KifuDisplayCoordinator::onLiveGameSessionStarted(KifuBranchNode* branchPoint)
 {
-    qDebug().noquote() << "[KDC] onLiveGameSessionStarted: branchPoint="
+    qCDebug(lcUi).noquote() << "onLiveGameSessionStarted: branchPoint="
                        << (branchPoint ? QString("ply=%1").arg(branchPoint->ply()) : "null");
 
     // branchPoint のラインインデックスを取得して設定
@@ -982,7 +985,7 @@ void KifuDisplayCoordinator::onLiveGameSessionStarted(KifuBranchNode* branchPoin
             m_state->resetPreferredLineIndex();
         }
         m_state->clearLineSelectionMemory();
-        qDebug().noquote() << "[KDC] onLiveGameSessionStarted: set preferredLineIndex=" << branchLineIndex
+        qCDebug(lcUi).noquote() << "onLiveGameSessionStarted: set preferredLineIndex=" << branchLineIndex
                            << "and clearLineSelectionMemory";
     }
 
@@ -1013,7 +1016,7 @@ void KifuDisplayCoordinator::onLiveGameSessionStarted(KifuBranchNode* branchPoin
                 for (int j = 0; j < parent->childCount(); ++j) {
                     if (parent->childAt(j) == node) {
                         m_state->rememberLineSelection(parent, j);
-                        qDebug().noquote() << "[KDC] onLiveGameSessionStarted: remembered line selection"
+                        qCDebug(lcUi).noquote() << "onLiveGameSessionStarted: remembered line selection"
                                            << "parentPly=" << parent->ply() << "childIndex=" << j;
                         break;
                     }

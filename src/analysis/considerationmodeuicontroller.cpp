@@ -59,7 +59,7 @@ void ConsiderationModeUIController::setShowArrowsEnabled(bool enabled)
 
 void ConsiderationModeUIController::onModeStarted()
 {
-    qCInfo(lcAnalysis).noquote() << "Initializing consideration mode";
+    qCDebug(lcAnalysis).noquote() << "Initializing consideration mode";
 
     if (m_analysisTab && m_considerationModel) {
         // 検討タブに専用モデルを設定
@@ -131,7 +131,7 @@ void ConsiderationModeUIController::onTimeSettingsReady(bool unlimited, int byoy
 
 void ConsiderationModeUIController::onModeEnded()
 {
-    qCInfo(lcAnalysis).noquote() << "consideration mode ended";
+    qCDebug(lcAnalysis).noquote() << "consideration mode ended";
 
     if (m_analysisTab) {
         // 経過時間タイマーを停止

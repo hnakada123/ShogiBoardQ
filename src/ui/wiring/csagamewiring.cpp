@@ -3,7 +3,7 @@
 
 #include "csagamewiring.h"
 
-#include <QDebug>
+#include "loggingcategory.h"
 #include <QStatusBar>
 #include <QModelIndex>
 #include <QTableView>
@@ -54,7 +54,7 @@ void CsaGameWiring::setCoordinator(CsaGameCoordinator* coordinator)
 void CsaGameWiring::wire()
 {
     if (!m_coordinator) {
-        qWarning().noquote() << "[CsaGameWiring] wire: coordinator is null";
+        qCWarning(lcUi) << "wire: coordinator is null";
         return;
     }
 
@@ -73,7 +73,7 @@ void CsaGameWiring::wire()
     connect(m_coordinator, &CsaGameCoordinator::errorOccurred,
             this, &CsaGameWiring::errorMessageRequested);
 
-    qDebug().noquote() << "[CsaGameWiring] wire: connected all signals";
+    qCDebug(lcUi) << "wire: connected all signals";
 }
 
 void CsaGameWiring::unwire()
@@ -81,12 +81,12 @@ void CsaGameWiring::unwire()
     if (!m_coordinator) return;
 
     disconnect(m_coordinator, nullptr, this, nullptr);
-    qDebug().noquote() << "[CsaGameWiring] unwire: disconnected all signals";
+    qCDebug(lcUi) << "unwire: disconnected all signals";
 }
 
 void CsaGameWiring::onGameStarted(const QString& blackName, const QString& whiteName)
 {
-    qInfo().noquote() << "[CsaGameWiring] onGameStarted:" << blackName << "vs" << whiteName;
+    qCDebug(lcUi) << "onGameStarted:" << blackName << "vs" << whiteName;
 
     // ナビゲーション無効化を要求
     Q_EMIT disableNavigationRequested();
@@ -134,8 +134,8 @@ void CsaGameWiring::onGameStarted(const QString& blackName, const QString& white
 
 void CsaGameWiring::onGameEnded(const QString& result, const QString& cause, int consumedTimeMs)
 {
-    qInfo().noquote() << "[CsaGameWiring] onGameEnded:" << result << "(" << cause << ")"
-                      << "consumedTimeMs=" << consumedTimeMs;
+    qCDebug(lcUi) << "onGameEnded:" << result << "(" << cause << ")"
+                  << "consumedTimeMs=" << consumedTimeMs;
 
     if (!m_coordinator) return;
 
@@ -145,37 +145,37 @@ void CsaGameWiring::onGameEnded(const QString& result, const QString& cause, int
     const bool loserIsBlack = (iAmLoser == isBlackSide);
 
     // デバッグ: 敗者判定の詳細を出力
-    qDebug().noquote() << "[CSA-DEBUG] onGameEnded judgment:"
-                       << "iAmLoser=" << iAmLoser
-                       << "isBlackSide=" << isBlackSide
-                       << "loserIsBlack=" << loserIsBlack;
+    qCDebug(lcUi) << "onGameEnded judgment:"
+                   << "iAmLoser=" << iAmLoser
+                   << "isBlackSide=" << isBlackSide
+                   << "loserIsBlack=" << loserIsBlack;
 
     // 終局行テキストを生成
     const QString endLine = buildEndLineText(cause, loserIsBlack);
 
-    qDebug().noquote() << "[CsaGameWiring] onGameEnded endLine=" << endLine;
+    qCDebug(lcUi) << "onGameEnded endLine=" << endLine;
 
     // 消費時間をフォーマット
     const int totalMs = loserIsBlack ? m_coordinator->blackTotalTimeMs()
                                      : m_coordinator->whiteTotalTimeMs();
 
     // デバッグ: 消費時間の計算詳細を出力
-    qDebug().noquote() << "[CSA-DEBUG] Time calculation:"
-                       << "blackTotalTimeMs=" << m_coordinator->blackTotalTimeMs()
-                       << "whiteTotalTimeMs=" << m_coordinator->whiteTotalTimeMs()
-                       << "totalMs(for loser)=" << totalMs
-                       << "consumedTimeMs=" << consumedTimeMs
-                       << "totalMs+consumedTimeMs=" << (totalMs + consumedTimeMs);
+    qCDebug(lcUi) << "Time calculation:"
+                   << "blackTotalTimeMs=" << m_coordinator->blackTotalTimeMs()
+                   << "whiteTotalTimeMs=" << m_coordinator->whiteTotalTimeMs()
+                   << "totalMs(for loser)=" << totalMs
+                   << "consumedTimeMs=" << consumedTimeMs
+                   << "totalMs+consumedTimeMs=" << (totalMs + consumedTimeMs);
 
     const QString elapsedStr = formatElapsedTime(consumedTimeMs, totalMs + consumedTimeMs);
-    qDebug().noquote() << "[CSA-DEBUG] elapsedStr=" << elapsedStr;
+    qCDebug(lcUi) << "elapsedStr=" << elapsedStr;
 
     // 棋譜欄に追加
     Q_EMIT appendKifuLineRequested(endLine, elapsedStr);
 
     // m_sfenRecordにも終局行用のダミーエントリを追加
     if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
-        qDebug().noquote() << "[CsaGameWiring] onGameEnded: appending last SFEN to sfenRecord";
+        qCDebug(lcUi) << "onGameEnded: appending last SFEN to sfenRecord";
         m_sfenRecord->append(m_sfenRecord->last());
     }
 
@@ -217,7 +217,7 @@ void CsaGameWiring::onMoveMade(const QString& csaMove, const QString& usiMove,
 {
     Q_UNUSED(usiMove)
 
-    qDebug().noquote() << "[CsaGameWiring] onMoveMade:" << prettyMove;
+    qCDebug(lcUi) << "onMoveMade:" << prettyMove;
 
     if (!m_coordinator) return;
 
@@ -250,7 +250,7 @@ void CsaGameWiring::onMoveMade(const QString& csaMove, const QString& usiMove,
 
 void CsaGameWiring::onTurnChanged(bool isMyTurn)
 {
-    qDebug().noquote() << "[CsaGameWiring] onTurnChanged: myTurn =" << isMyTurn;
+    qCDebug(lcUi) << "onTurnChanged: myTurn =" << isMyTurn;
 
     if (!m_coordinator) return;
 
@@ -266,9 +266,9 @@ void CsaGameWiring::onTurnChanged(bool isMyTurn)
 void CsaGameWiring::onLogMessage(const QString& message, bool isError)
 {
     if (isError) {
-        qWarning().noquote() << "[CSA]" << message;
+        qCWarning(lcUi) << message;
     } else {
-        qInfo().noquote() << "[CSA]" << message;
+        qCDebug(lcUi) << message;
     }
 
     if (m_statusBar) {
@@ -278,7 +278,7 @@ void CsaGameWiring::onLogMessage(const QString& message, bool isError)
 
 void CsaGameWiring::onMoveHighlightRequested(const QPoint& from, const QPoint& to)
 {
-    qDebug().noquote() << "[CsaGameWiring] onMoveHighlightRequested: from=" << from << "to=" << to;
+    qCDebug(lcUi) << "onMoveHighlightRequested: from=" << from << "to=" << to;
 
     if (m_boardController) {
         m_boardController->showMoveHighlights(from, to);
@@ -334,7 +334,7 @@ QString CsaGameWiring::buildEndLineText(const QString& cause, bool loserIsBlack)
 
 void CsaGameWiring::onWaitingCancelled()
 {
-    qInfo().noquote() << "[CsaGameWiring] onWaitingCancelled: cancelled by user";
+    qCDebug(lcUi) << "onWaitingCancelled: cancelled by user";
 
     // コーディネータの対局を停止
     if (m_coordinator) {
@@ -363,11 +363,11 @@ void CsaGameWiring::setBoardSetupController(BoardSetupController* controller)
 bool CsaGameWiring::startCsaGame(CsaGameDialog* dialog, QWidget* parent)
 {
     if (!dialog) {
-        qWarning().noquote() << "[CsaGameWiring] startCsaGame: dialog is null";
+        qCWarning(lcUi) << "startCsaGame: dialog is null";
         return false;
     }
 
-    qDebug() << "[CsaGameWiring] startCsaGame: starting CSA game setup";
+    qCDebug(lcUi) << "startCsaGame: starting CSA game setup";
 
     // CSA通信対局コーディネータが未作成の場合は作成する
     if (!m_coordinator) {
@@ -433,7 +433,7 @@ bool CsaGameWiring::startCsaGame(CsaGameDialog* dialog, QWidget* parent)
     // プレイモード変更を通知
     Q_EMIT playModeChanged(static_cast<int>(PlayMode::CsaNetworkMode));
 
-    qDebug() << "[CsaGameWiring] startCsaGame: About to start game and create waiting dialog";
+    qCDebug(lcUi) << "startCsaGame: About to start game and create waiting dialog";
 
     // 待機ダイアログを作成
     CsaWaitingDialog waitingDialog(m_coordinator, parent);
@@ -442,17 +442,17 @@ bool CsaGameWiring::startCsaGame(CsaGameDialog* dialog, QWidget* parent)
     connect(&waitingDialog, &CsaWaitingDialog::cancelRequested,
             this, &CsaGameWiring::onWaitingCancelled);
 
-    qDebug() << "[CsaGameWiring] startCsaGame: CsaWaitingDialog created, now starting game...";
+    qCDebug(lcUi) << "startCsaGame: CsaWaitingDialog created, now starting game...";
 
     // 対局を開始（シグナルがCsaWaitingDialogに届くようになった後に開始）
     m_coordinator->startGame(options);
 
-    qDebug() << "[CsaGameWiring] startCsaGame: Game started, showing waiting dialog...";
+    qCDebug(lcUi) << "startCsaGame: Game started, showing waiting dialog...";
 
     // 待機ダイアログを表示（対局開始またはエラーまでブロック）
     waitingDialog.exec();
 
-    qDebug() << "[CsaGameWiring] startCsaGame: Waiting dialog closed";
+    qCDebug(lcUi) << "startCsaGame: Waiting dialog closed";
 
     return true;
 }

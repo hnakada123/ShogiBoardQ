@@ -16,7 +16,17 @@
 #include <QDateTime>
 #include <QStandardPaths>
 
-// デバッグメッセージをファイルに出力するハンドラ
+// ログメッセージハンドラ（デバッグビルド専用）
+//
+// ビルドごとの動作:
+//   デバッグビルド:
+//     - debug.log ファイルを作成し、全レベルのメッセージを出力する
+//     - ソース位置情報（ファイル名、行番号、関数名）も記録される
+//   リリースビルド:
+//     - qDebug/qCDebug はコンパイル時に除去される（QT_NO_DEBUG_OUTPUT）
+//     - qCInfo/qCWarning/qCCritical は空のハンドラで破棄される
+//     - debug.log ファイルは作成されない
+//     - stderr への出力もない
 static QFile *logFile = nullptr;
 
 static void messageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg)
@@ -59,12 +69,15 @@ static void messageHandler(QtMsgType type, const QMessageLogContext &context, co
 
 int main(int argc, char *argv[])
 {
-    // ログファイルを設定（実行ファイルと同じディレクトリに出力）
-    // 注: applicationDirPathはQApplicationインスタンス作成後でないと使えないため固定パス
+    // ログハンドラの設定（上記コメント参照）
+#ifdef QT_DEBUG
     logFile = new QFile("debug.log");
     if (logFile->open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
         qInstallMessageHandler(messageHandler);
     }
+#else
+    qInstallMessageHandler([](QtMsgType, const QMessageLogContext&, const QString&) {});
+#endif
 
     // 高DPI対応（Qt 6ではデフォルトで有効だが明示的に設定）
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
@@ -81,50 +94,50 @@ int main(int argc, char *argv[])
     QTranslator translator;
     QString langSetting = SettingsService::language();
 
-    qDebug() << "[i18n] Language setting:" << langSetting;
-    qDebug() << "[i18n] Application dir:" << QCoreApplication::applicationDirPath();
+    qCInfo(lcApp) << "Language setting:" << langSetting;
+    qCInfo(lcApp) << "Application dir:" << QCoreApplication::applicationDirPath();
 
     bool loaded = false;
     if (langSetting == "ja_JP") {
         // 日本語を明示的に指定
         loaded = translator.load(":/i18n/ShogiBoardQ_ja_JP");
-        qDebug() << "[i18n] Trying :/i18n/ShogiBoardQ_ja_JP ->" << (loaded ? "SUCCESS" : "FAILED");
+        qCInfo(lcApp) << "Trying :/i18n/ShogiBoardQ_ja_JP ->" << (loaded ? "SUCCESS" : "FAILED");
         if (!loaded) {
             // ビルドディレクトリから読み込みを試行
             loaded = translator.load(QCoreApplication::applicationDirPath() + "/ShogiBoardQ_ja_JP.qm");
-            qDebug() << "[i18n] Trying applicationDir/ShogiBoardQ_ja_JP.qm ->" << (loaded ? "SUCCESS" : "FAILED");
+            qCInfo(lcApp) << "Trying applicationDir/ShogiBoardQ_ja_JP.qm ->" << (loaded ? "SUCCESS" : "FAILED");
         }
         if (loaded) {
             a.installTranslator(&translator);
-            qDebug() << "[i18n] Translator installed for ja_JP";
+            qCInfo(lcApp) << "Translator installed for ja_JP";
         }
     } else if (langSetting == "en") {
         // 英語翻訳ファイルをロード
         loaded = translator.load(":/i18n/ShogiBoardQ_en");
-        qDebug() << "[i18n] Trying :/i18n/ShogiBoardQ_en ->" << (loaded ? "SUCCESS" : "FAILED");
+        qCInfo(lcApp) << "Trying :/i18n/ShogiBoardQ_en ->" << (loaded ? "SUCCESS" : "FAILED");
         if (!loaded) {
             // ビルドディレクトリから読み込みを試行
             loaded = translator.load(QCoreApplication::applicationDirPath() + "/ShogiBoardQ_en.qm");
-            qDebug() << "[i18n] Trying applicationDir/ShogiBoardQ_en.qm ->" << (loaded ? "SUCCESS" : "FAILED");
+            qCInfo(lcApp) << "Trying applicationDir/ShogiBoardQ_en.qm ->" << (loaded ? "SUCCESS" : "FAILED");
         }
         if (loaded) {
             a.installTranslator(&translator);
-            qDebug() << "[i18n] Translator installed for en";
+            qCInfo(lcApp) << "Translator installed for en";
         } else {
-            qDebug() << "[i18n] WARNING: English translation file not found!";
+            qCWarning(lcApp) << "English translation file not found!";
         }
     } else {
         // "system" またはその他: システムロケールに従う（既存の動作）
-        qDebug() << "[i18n] Using system locale";
+        qCInfo(lcApp) << "Using system locale";
         const QStringList uiLanguages = QLocale::system().uiLanguages();
-        qDebug() << "[i18n] System UI languages:" << uiLanguages;
+        qCInfo(lcApp) << "System UI languages:" << uiLanguages;
         for (const QString &locale : uiLanguages) {
             const QString baseName = "ShogiBoardQ_" + QLocale(locale).name();
             loaded = translator.load(":/i18n/" + baseName);
-            qDebug() << "[i18n] Trying :/i18n/" << baseName << "->" << (loaded ? "SUCCESS" : "FAILED");
+            qCInfo(lcApp) << "Trying :/i18n/" << baseName << "->" << (loaded ? "SUCCESS" : "FAILED");
             if (loaded) {
                 a.installTranslator(&translator);
-                qDebug() << "[i18n] Translator installed for" << baseName;
+                qCInfo(lcApp) << "Translator installed for" << baseName;
                 break;
             }
         }

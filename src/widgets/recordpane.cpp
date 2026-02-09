@@ -6,7 +6,7 @@
 #include "kifubranchlistmodel.h"
 #include "settingsservice.h"
 
-#include <QDebug>
+#include "loggingcategory.h"
 #include <QTextBrowser>
 #include <QTableView>
 #include <QHeaderView>
@@ -265,25 +265,25 @@ void RecordPane::wireSignals()
 void RecordPane::setModels(KifuRecordListModel* recModel, KifuBranchListModel* brModel)
 {
     if (!m_kifu || !m_branch) {
-        qWarning().noquote() << "[RecordPane] setModels: m_kifu or m_branch is null, rebuilding UI";
+        qCWarning(lcUi).noquote() << "[RecordPane] setModels: m_kifu or m_branch is null, rebuilding UI";
         buildUi();
     }
 
-    qDebug() << "setModels called";
-    qDebug() << "m_kifu styleSheet in setModels:" << m_kifu->styleSheet().left(100) << "...";
+    qCDebug(lcUi) << "setModels called";
+    qCDebug(lcUi) << "m_kifu styleSheet in setModels:" << m_kifu->styleSheet().left(100) << "...";
 
     // --- 棋譜テーブル ---
     m_kifu->setModel(recModel);
 
     // モデルに行がある場合、最初の行を選択する
     if (recModel && recModel->rowCount() > 0) {
-        qDebug() << "[RecordPane] setModels: model has rows, selecting first row";
+        qCDebug(lcUi) << "[RecordPane] setModels: model has rows, selecting first row";
         QTimer::singleShot(0, this, [this]() {
             if (m_kifu && m_kifu->model() && m_kifu->model()->rowCount() > 0) {
                 if (auto* sel = m_kifu->selectionModel()) {
                     const QModelIndex top = m_kifu->model()->index(0, 0);
                     sel->setCurrentIndex(top, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
-                    qDebug() << "[RecordPane] initial row selected";
+                    qCDebug(lcUi) << "[RecordPane] initial row selected";
                 }
             }
         });
@@ -394,7 +394,7 @@ void RecordPane::setKifuViewEnabled(bool on)
     );
 
     if (m_kifu) {
-        qDebug() << "setKifuViewEnabled called, on=" << on;
+        qCDebug(lcUi) << "setKifuViewEnabled called, on=" << on;
 
         m_navigationDisabled = !on;
 
@@ -414,7 +414,7 @@ void RecordPane::setKifuViewEnabled(bool on)
                 "QTableView::item:focus { background-color: transparent; }"
                 "QTableView::item:selected:focus { background-color: transparent; }"
             ));
-            qDebug() << "setKifuViewEnabled: disabled stylesheet applied";
+            qCDebug(lcUi) << "setKifuViewEnabled: disabled stylesheet applied";
 
             // 選択をクリア（シグナルをブロックして盤面同期を防ぐ）
             if (QItemSelectionModel* sel = m_kifu->selectionModel()) {
@@ -430,7 +430,7 @@ void RecordPane::setKifuViewEnabled(bool on)
             m_kifu->setFocusPolicy(Qt::StrongFocus);
             // ベーススタイルシートを適用
             m_kifu->setStyleSheet(kBaseStyleSheet);
-            qDebug() << "setKifuViewEnabled: base stylesheet restored (enabled)";
+            qCDebug(lcUi) << "setKifuViewEnabled: base stylesheet restored (enabled)";
         }
     }
 }
@@ -449,7 +449,7 @@ void RecordPane::onKifuRowsInserted(const QModelIndex&, int, int)
 void RecordPane::onKifuCurrentRowChanged(const QModelIndex& cur, const QModelIndex&)
 {
     const int row = cur.isValid() ? cur.row() : 0;
-    qDebug().noquote() << "[RecordPane] onKifuCurrentRowChanged: emitting mainRowChanged(" << row << ")";
+    qCDebug(lcUi).noquote() << "[RecordPane] onKifuCurrentRowChanged: emitting mainRowChanged(" << row << ")";
     emit mainRowChanged(row);
 }
 
@@ -513,8 +513,8 @@ void RecordPane::setupKifuSelectionAppearance()
 {
     if (!m_kifu) return;
 
-    qDebug() << "setupKifuSelectionAppearance called";
-    qDebug() << "m_kifu styleSheet before:" << m_kifu->styleSheet();
+    qCDebug(lcUi) << "setupKifuSelectionAppearance called";
+    qCDebug(lcUi) << "m_kifu styleSheet before:" << m_kifu->styleSheet();
 
     // 行選択（行全体を黄色でハイライトするために必須）
     m_kifu->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -529,8 +529,8 @@ void RecordPane::setupKifuSelectionAppearance()
     pal.setColor(QPalette::Inactive, QPalette::HighlightedText, Qt::black);
     m_kifu->setPalette(pal);
 
-    qDebug() << "setupKifuSelectionAppearance: palette Highlight (Active):" << pal.color(QPalette::Active, QPalette::Highlight);
-    qDebug() << "setupKifuSelectionAppearance: palette Highlight (Inactive):" << pal.color(QPalette::Inactive, QPalette::Highlight);
+    qCDebug(lcUi) << "setupKifuSelectionAppearance: palette Highlight (Active):" << pal.color(QPalette::Active, QPalette::Highlight);
+    qCDebug(lcUi) << "setupKifuSelectionAppearance: palette Highlight (Inactive):" << pal.color(QPalette::Inactive, QPalette::Highlight);
 }
 
 void RecordPane::setupBranchViewSelectionAppearance()

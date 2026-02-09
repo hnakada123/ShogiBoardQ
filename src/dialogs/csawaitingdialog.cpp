@@ -12,7 +12,7 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QTextCursor>
-#include <QDebug>
+#include "loggingcategory.h"
 
 #include "settingsservice.h"  // フォントサイズ保存用
 
@@ -32,7 +32,7 @@ CsaWaitingDialog::CsaWaitingDialog(CsaGameCoordinator* coordinator, QWidget* par
     , m_btnSendToServer(nullptr)
     , m_commandInput(nullptr)
 {
-    qDebug() << "[CsaWaitingDialog] Constructor called, coordinator=" << coordinator;
+    qCDebug(lcUi) << "Constructor called, coordinator=" << coordinator;
     setupUi();
 
     // ログウィンドウを事前に作成（シグナル受信前に準備しておく）
@@ -43,7 +43,7 @@ CsaWaitingDialog::CsaWaitingDialog(CsaGameCoordinator* coordinator, QWidget* par
     // 初期状態を設定
     if (m_coordinator) {
         m_statusLabel->setText(getStateMessage(m_coordinator->gameState()));
-        qDebug() << "[CsaWaitingDialog] Initial state:" << static_cast<int>(m_coordinator->gameState());
+        qCDebug(lcUi) << "Initial state:" << static_cast<int>(m_coordinator->gameState());
     }
 }
 
@@ -126,7 +126,7 @@ void CsaWaitingDialog::setupUi()
 // シグナル・スロットの接続
 void CsaWaitingDialog::connectSignalsAndSlots()
 {
-    qDebug() << "[CsaWaitingDialog] connectSignalsAndSlots called";
+    qCDebug(lcUi) << "connectSignalsAndSlots called";
 
     // キャンセルボタン
     connect(m_cancelButton, &QPushButton::clicked,
@@ -138,7 +138,7 @@ void CsaWaitingDialog::connectSignalsAndSlots()
 
     // コーディネータからのシグナル
     if (m_coordinator) {
-        qDebug() << "[CsaWaitingDialog] Connecting to coordinator signals...";
+        qCDebug(lcUi) << "Connecting to coordinator signals...";
 
         // gameStateChanged シグナルを接続
         connect(m_coordinator, &CsaGameCoordinator::gameStateChanged,
@@ -156,9 +156,9 @@ void CsaWaitingDialog::connectSignalsAndSlots()
         connect(m_coordinator, &CsaGameCoordinator::csaCommLogAppended,
                 this, &CsaWaitingDialog::onCsaCommLogAppended);
 
-        qDebug() << "[CsaWaitingDialog] All signals connected";
+        qCDebug(lcUi) << "All signals connected";
     } else {
-        qDebug() << "[CsaWaitingDialog] WARNING: coordinator is null!";
+        qCWarning(lcUi) << "coordinator is null!";
     }
 }
 
@@ -384,8 +384,8 @@ void CsaWaitingDialog::onShowLogClicked()
 // CSA通信ログ受信時の処理
 void CsaWaitingDialog::onCsaCommLogAppended(const QString& line)
 {
-    qDebug() << "[CsaWaitingDialog] onCsaCommLogAppended received:" << line;
-    qDebug() << "[CsaWaitingDialog] m_logTextEdit=" << m_logTextEdit;
+    qCDebug(lcUi) << "onCsaCommLogAppended received:" << line;
+    qCDebug(lcUi) << "m_logTextEdit=" << m_logTextEdit;
 
     // ログウィンドウが作成されていれば追記
     if (m_logTextEdit) {
@@ -394,9 +394,9 @@ void CsaWaitingDialog::onCsaCommLogAppended(const QString& line)
         QTextCursor cursor = m_logTextEdit->textCursor();
         cursor.movePosition(QTextCursor::End);
         m_logTextEdit->setTextCursor(cursor);
-        qDebug() << "[CsaWaitingDialog] Log appended to text edit";
+        qCDebug(lcUi) << "Log appended to text edit";
     } else {
-        qDebug() << "[CsaWaitingDialog] WARNING: m_logTextEdit is null, log not displayed";
+        qCWarning(lcUi) << "m_logTextEdit is null, log not displayed";
     }
 }
 

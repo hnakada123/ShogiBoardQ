@@ -9,7 +9,7 @@
 
 #include <QModelIndex>
 #include <QItemSelectionModel>
-#include <QDebug>
+#include "loggingcategory.h"
 
 RecordPaneWiring::RecordPaneWiring(const Deps& d, QObject* parent)
     : QObject(parent), m_d(d)
@@ -65,7 +65,7 @@ void RecordPaneWiring::buildUiAndWire()
             if (auto* sel = kifuView->selectionModel()) {
                 const QModelIndex idx0 = m_d.recordModel->index(0, 0);
                 sel->setCurrentIndex(idx0, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
-                qDebug() << "[RecordPaneWiring] initial row 0 selected";
+                qCDebug(lcUi) << "initial row 0 selected";
             }
         }
     }

@@ -15,7 +15,7 @@
 #include <QFile>
 #include <QTextStream>
 #include <QMessageBox>
-#include <QDebug>
+#include "loggingcategory.h"
 #include <QFileInfo>
 #include <QDir>
 #include <QLocale>
@@ -730,7 +730,7 @@ bool JosekiWindow::loadJosekiFile(const QString &filePath)
                 
                 if (!validMove) {
                     invalidMoveLineCount++;
-                    qDebug() << "[JosekiWindow] Invalid move format at line" << lineNumber << ":" << moveStr;
+                    qCWarning(lcUi) << "Invalid move format at line" << lineNumber << ":" << moveStr;
                 }
                 
                 JosekiMove move;
@@ -755,7 +755,7 @@ bool JosekiWindow::loadJosekiFile(const QString &filePath)
             } else if (parts.size() > 0) {
                 // 5フィールド未満の行は不正
                 invalidMoveLineCount++;
-                qDebug() << "[JosekiWindow] Invalid line format at line" << lineNumber 
+                qCWarning(lcUi) << "Invalid line format at line" << lineNumber
                          << ": expected 5+ fields, got" << parts.size();
             }
         }
@@ -792,15 +792,15 @@ bool JosekiWindow::loadJosekiFile(const QString &filePath)
         return false;
     }
     
-    qDebug() << "[JosekiWindow] Loaded" << m_josekiData.size() << "positions from" << filePath;
+    qCInfo(lcUi) << "Loaded" << m_josekiData.size() << "positions from" << filePath;
     if (invalidMoveLineCount > 0) {
-        qDebug() << "[JosekiWindow] Warning:" << invalidMoveLineCount << "lines had invalid format";
+        qCWarning(lcUi) << invalidMoveLineCount << "lines had invalid format";
     }
     
     // デバッグ：平手初期局面があるか確認
     QString hirate = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b -");
     if (m_josekiData.contains(hirate)) {
-        qDebug() << "[JosekiWindow] Hirate position has" << m_josekiData[hirate].size() << "moves";
+        qCDebug(lcUi) << "Hirate position has" << m_josekiData[hirate].size() << "moves";
     }
     
     // ステータス表示を更新
@@ -840,8 +840,8 @@ void JosekiWindow::setCurrentSfen(const QString &sfen)
         }
     }
     
-    qDebug() << "[JosekiWindow] setCurrentSfen:" << m_currentSfen;
-    qDebug() << "[JosekiWindow] Normalized:" << normalizeSfen(m_currentSfen);
+    qCDebug(lcUi) << "setCurrentSfen:" << m_currentSfen;
+    qCDebug(lcUi) << "Normalized:" << normalizeSfen(m_currentSfen);
     
     updateJosekiDisplay();
 }
@@ -857,7 +857,7 @@ void JosekiWindow::setHumanCanPlay(bool canPlay)
 
 void JosekiWindow::updateJosekiDisplay()
 {
-    qDebug() << "[JosekiWindow] updateJosekiDisplay() called";
+    qCDebug(lcUi) << "updateJosekiDisplay() called";
 
     // 遅延読込: 定跡データが未読込の場合、ここで読み込む
     if (m_pendingAutoLoad && !m_pendingAutoLoadPath.isEmpty()) {
@@ -865,7 +865,7 @@ void JosekiWindow::updateJosekiDisplay()
         QString pathToLoad = m_pendingAutoLoadPath;
         m_pendingAutoLoadPath.clear();
 
-        qDebug() << "[JosekiWindow] Performing deferred auto-load:" << pathToLoad;
+        qCDebug(lcUi) << "Performing deferred auto-load:" << pathToLoad;
 
         if (loadJosekiFile(pathToLoad)) {
             m_currentFilePath = pathToLoad;
@@ -881,20 +881,20 @@ void JosekiWindow::updateJosekiDisplay()
 
     // 表示が停止中の場合は何もしない
     if (!m_displayEnabled) {
-        qDebug() << "[JosekiWindow] updateJosekiDisplay: display is disabled";
+        qCDebug(lcUi) << "updateJosekiDisplay: display is disabled";
         return;
     }
 
     if (m_currentSfen.isEmpty()) {
-        qDebug() << "[JosekiWindow] updateJosekiDisplay: currentSfen is empty";
+        qCDebug(lcUi) << "updateJosekiDisplay: currentSfen is empty";
         return;
     }
     
     // 現在の局面を正規化
     QString normalizedSfen = normalizeSfen(m_currentSfen);
     
-    qDebug() << "[JosekiWindow] Looking for:" << normalizedSfen;
-    qDebug() << "[JosekiWindow] Joseki data has" << m_josekiData.size() << "entries";
+    qCDebug(lcUi) << "Looking for:" << normalizedSfen;
+    qCDebug(lcUi) << "Joseki data has" << m_josekiData.size() << "entries";
     
     // 局面サマリーを更新
     updatePositionSummary();
@@ -902,7 +902,7 @@ void JosekiWindow::updateJosekiDisplay()
     // 定跡データを検索
     if (!m_josekiData.contains(normalizedSfen)) {
         // 一致する定跡がない場合は空のテーブルを表示
-        qDebug() << "[JosekiWindow] No match found for current position";
+        qCDebug(lcUi) << "No match found for current position";
         m_currentMoves.clear();
         m_sfenLineLabel->setText(tr("定跡: (該当なし)"));
         updateStatusDisplay();
@@ -921,7 +921,7 @@ void JosekiWindow::updateJosekiDisplay()
         m_sfenLineLabel->setText(tr("定跡SFEN: %1").arg(normalizedSfen));
     }
     
-    qDebug() << "[JosekiWindow] Found" << moves.size() << "moves for this position";
+    qCDebug(lcUi) << "Found" << moves.size() << "moves for this position";
     
     // SFENから手数を取得（手番の次の手が何手目か）
     int plyNumber = 1;  // デフォルト
@@ -1068,7 +1068,7 @@ void JosekiWindow::onPlayButtonClicked()
     // クリックされたボタンを取得
     QPushButton *button = qobject_cast<QPushButton*>(sender());
     if (!button) {
-        qDebug() << "[JosekiWindow] onPlayButtonClicked: sender is not a QPushButton";
+        qCDebug(lcUi) << "onPlayButtonClicked: sender is not a QPushButton";
         return;
     }
     
@@ -1076,14 +1076,14 @@ void JosekiWindow::onPlayButtonClicked()
     bool ok;
     int row = button->property("row").toInt(&ok);
     if (!ok || row < 0 || row >= m_currentMoves.size()) {
-        qDebug() << "[JosekiWindow] onPlayButtonClicked: invalid row" << row;
+        qCDebug(lcUi) << "onPlayButtonClicked: invalid row" << row;
         return;
     }
     
     // 該当する定跡手を取得
     const JosekiMove &move = m_currentMoves[row];
     
-    qDebug() << "[JosekiWindow] onPlayButtonClicked: row=" << row << "usiMove=" << move.move;
+    qCDebug(lcUi) << "onPlayButtonClicked: row=" << row << "usiMove=" << move.move;
     
     // シグナルを発行して指し手をMainWindowに通知
     emit josekiMoveSelected(move.move);
@@ -1092,7 +1092,7 @@ void JosekiWindow::onPlayButtonClicked()
 void JosekiWindow::onAutoLoadCheckBoxChanged(Qt::CheckState state)
 {
     m_autoLoadEnabled = (state == Qt::Checked);
-    qDebug() << "[JosekiWindow] Auto load enabled:" << m_autoLoadEnabled;
+    qCDebug(lcUi) << "Auto load enabled:" << m_autoLoadEnabled;
 }
 
 void JosekiWindow::onStopButtonClicked()
@@ -1112,7 +1112,7 @@ void JosekiWindow::onStopButtonClicked()
     }
     
     updateStatusDisplay();
-    qDebug() << "[JosekiWindow] Display enabled:" << m_displayEnabled;
+    qCDebug(lcUi) << "Display enabled:" << m_displayEnabled;
 }
 
 void JosekiWindow::updateStatusDisplay()
@@ -1281,7 +1281,7 @@ void JosekiWindow::onNewButtonClicked()
     updateStatusDisplay();
     updateJosekiDisplay();
     
-    qDebug() << "[JosekiWindow] Created new empty joseki file";
+    qCDebug(lcUi) << "Created new empty joseki file";
 }
 
 void JosekiWindow::onSaveButtonClicked()
@@ -1294,7 +1294,7 @@ void JosekiWindow::onSaveButtonClicked()
     
     if (saveJosekiFile(m_currentFilePath)) {
         setModified(false);
-        qDebug() << "[JosekiWindow] Saved to" << m_currentFilePath;
+        qCDebug(lcUi) << "Saved to" << m_currentFilePath;
     }
 }
 
@@ -1336,7 +1336,7 @@ void JosekiWindow::onSaveAsButtonClicked()
         // 設定を保存
         saveSettings();
         
-        qDebug() << "[JosekiWindow] Saved as" << filePath;
+        qCDebug(lcUi) << "Saved as" << filePath;
     }
 }
 
@@ -1639,7 +1639,7 @@ void JosekiWindow::onAddMoveButtonClicked()
     // 表示を更新
     updateJosekiDisplay();
     
-    qDebug() << "[JosekiWindow] Added joseki move:" << newMove.move 
+    qCDebug(lcUi) << "Added joseki move:" << newMove.move
              << "to position:" << normalizedSfen;
 }
 
@@ -1648,7 +1648,7 @@ void JosekiWindow::onEditButtonClicked()
     // クリックされたボタンを取得
     QPushButton *button = qobject_cast<QPushButton*>(sender());
     if (!button) {
-        qDebug() << "[JosekiWindow] onEditButtonClicked: sender is not a QPushButton";
+        qCDebug(lcUi) << "onEditButtonClicked: sender is not a QPushButton";
         return;
     }
     
@@ -1656,7 +1656,7 @@ void JosekiWindow::onEditButtonClicked()
     bool ok;
     int row = button->property("row").toInt(&ok);
     if (!ok || row < 0 || row >= m_currentMoves.size()) {
-        qDebug() << "[JosekiWindow] onEditButtonClicked: invalid row" << row;
+        qCDebug(lcUi) << "onEditButtonClicked: invalid row" << row;
         return;
     }
     
@@ -1704,7 +1704,7 @@ void JosekiWindow::onEditButtonClicked()
                 moves[i].frequency = dialog.frequency();
                 moves[i].comment = dialog.comment();
                 
-                qDebug() << "[JosekiWindow] Updated joseki move:" << currentMove.move;
+                qCDebug(lcUi) << "Updated joseki move:" << currentMove.move;
                 break;
             }
         }
@@ -1722,7 +1722,7 @@ void JosekiWindow::onDeleteButtonClicked()
     // クリックされたボタンを取得
     QPushButton *button = qobject_cast<QPushButton*>(sender());
     if (!button) {
-        qDebug() << "[JosekiWindow] onDeleteButtonClicked: sender is not a QPushButton";
+        qCDebug(lcUi) << "onDeleteButtonClicked: sender is not a QPushButton";
         return;
     }
     
@@ -1730,7 +1730,7 @@ void JosekiWindow::onDeleteButtonClicked()
     bool ok;
     int row = button->property("row").toInt(&ok);
     if (!ok || row < 0 || row >= m_currentMoves.size()) {
-        qDebug() << "[JosekiWindow] onDeleteButtonClicked: invalid row" << row;
+        qCDebug(lcUi) << "onDeleteButtonClicked: invalid row" << row;
         return;
     }
     
@@ -1770,13 +1770,13 @@ void JosekiWindow::onDeleteButtonClicked()
         for (int i = 0; i < moves.size(); ++i) {
             if (moves[i].move == currentMove.move) {
                 moves.removeAt(i);
-                qDebug() << "[JosekiWindow] Deleted joseki move:" << currentMove.move;
+                qCDebug(lcUi) << "Deleted joseki move:" << currentMove.move;
                 
                 // この局面の定跡手がなくなった場合はエントリも削除
                 if (moves.isEmpty()) {
                     m_josekiData.remove(normalizedSfen);
                     m_sfenWithPlyMap.remove(normalizedSfen);
-                    qDebug() << "[JosekiWindow] Removed empty position:" << normalizedSfen;
+                    qCDebug(lcUi) << "Removed empty position:" << normalizedSfen;
                 }
                 break;
             }
@@ -1853,7 +1853,7 @@ void JosekiWindow::setKifuDataForMerge(const QStringList &sfenList,
                                         const QStringList &japaneseMoveList,
                                         int currentPly)
 {
-    qDebug() << "[JosekiWindow] setKifuDataForMerge: sfenList.size=" << sfenList.size()
+    qCDebug(lcUi) << "setKifuDataForMerge: sfenList.size=" << sfenList.size()
              << "moveList.size=" << moveList.size()
              << "japaneseMoveList.size=" << japaneseMoveList.size()
              << "currentPly=" << currentPly;
@@ -1929,7 +1929,7 @@ void JosekiWindow::setKifuDataForMerge(const QStringList &sfenList,
 
 void JosekiWindow::onMergeRegisterMove(const QString &sfen, const QString &sfenWithPly, const QString &usiMove)
 {
-    qDebug() << "[JosekiWindow] onMergeRegisterMove: sfen=" << sfen
+    qCDebug(lcUi) << "onMergeRegisterMove: sfen=" << sfen
              << "usiMove=" << usiMove;
     
     // 登録済みセットに追加
@@ -1945,7 +1945,7 @@ void JosekiWindow::onMergeRegisterMove(const QString &sfen, const QString &sfenW
             if (moves[i].move == usiMove) {
                 // 既に登録済みの場合は出現頻度を増やす
                 moves[i].frequency += 1;
-                qDebug() << "[JosekiWindow] Updated frequency for existing move:" << usiMove;
+                qCDebug(lcUi) << "Updated frequency for existing move:" << usiMove;
                 updateJosekiDisplay();
                 // 自動保存
                 if (!m_currentFilePath.isEmpty()) {
@@ -1965,7 +1965,7 @@ void JosekiWindow::onMergeRegisterMove(const QString &sfen, const QString &sfenW
         newMove.depth = 0;
         newMove.frequency = 1;
         moves.append(newMove);
-        qDebug() << "[JosekiWindow] Added new move to existing position:" << usiMove;
+        qCDebug(lcUi) << "Added new move to existing position:" << usiMove;
     } else {
         // 新しい局面として追加
         JosekiMove newMove;
@@ -1984,7 +1984,7 @@ void JosekiWindow::onMergeRegisterMove(const QString &sfen, const QString &sfenW
             m_sfenWithPlyMap[sfen] = sfenWithPly;
         }
         
-        qDebug() << "[JosekiWindow] Added new position with move:" << usiMove;
+        qCDebug(lcUi) << "Added new position with move:" << usiMove;
     }
     
     updateJosekiDisplay();
@@ -2061,14 +2061,14 @@ void JosekiWindow::onMergeFromKifuFile()
         return;  // キャンセルされた
     }
     
-    qDebug() << "[JosekiWindow] onMergeFromKifuFile: loading" << kifFilePath;
+    qCDebug(lcUi) << "onMergeFromKifuFile: loading" << kifFilePath;
     
     // KIFファイルを解析
     KifParseResult parseResult;
     QString errorMessage;
     
     if (!KifToSfenConverter::parseWithVariations(kifFilePath, parseResult, &errorMessage)) {
-        qDebug() << "[JosekiWindow] onMergeFromKifuFile: parse failed:" << errorMessage;
+        qCWarning(lcUi) << "onMergeFromKifuFile: parse failed:" << errorMessage;
         QMessageBox::warning(this, tr("エラー"),
             tr("棋譜ファイルの読み込みに失敗しました。\n%1").arg(errorMessage));
         return;
@@ -2077,28 +2077,28 @@ void JosekiWindow::onMergeFromKifuFile()
     // 本譜からエントリを作成
     const KifLine &mainline = parseResult.mainline;
     
-    qDebug() << "[JosekiWindow] onMergeFromKifuFile: parse succeeded";
-    qDebug() << "[JosekiWindow]   mainline.baseSfen:" << mainline.baseSfen;
-    qDebug() << "[JosekiWindow]   mainline.usiMoves.size():" << mainline.usiMoves.size();
-    qDebug() << "[JosekiWindow]   mainline.sfenList.size():" << mainline.sfenList.size();
-    qDebug() << "[JosekiWindow]   mainline.disp.size():" << mainline.disp.size();
-    qDebug() << "[JosekiWindow]   mainline.endsWithTerminal:" << mainline.endsWithTerminal;
+    qCDebug(lcUi) << "onMergeFromKifuFile: parse succeeded";
+    qCDebug(lcUi) << "  mainline.baseSfen:" << mainline.baseSfen;
+    qCDebug(lcUi) << "  mainline.usiMoves.size():" << mainline.usiMoves.size();
+    qCDebug(lcUi) << "  mainline.sfenList.size():" << mainline.sfenList.size();
+    qCDebug(lcUi) << "  mainline.disp.size():" << mainline.disp.size();
+    qCDebug(lcUi) << "  mainline.endsWithTerminal:" << mainline.endsWithTerminal;
     
     if (!mainline.usiMoves.isEmpty()) {
-        qDebug() << "[JosekiWindow]   first usiMove:" << mainline.usiMoves.first();
-        qDebug() << "[JosekiWindow]   last usiMove:" << mainline.usiMoves.last();
+        qCDebug(lcUi) << "  first usiMove:" << mainline.usiMoves.first();
+        qCDebug(lcUi) << "  last usiMove:" << mainline.usiMoves.last();
     }
     
     if (!mainline.sfenList.isEmpty()) {
-        qDebug() << "[JosekiWindow]   first sfen:" << mainline.sfenList.first();
+        qCDebug(lcUi) << "  first sfen:" << mainline.sfenList.first();
     }
     
     if (!mainline.disp.isEmpty()) {
-        qDebug() << "[JosekiWindow]   first disp.prettyMove:" << mainline.disp.first().prettyMove;
+        qCDebug(lcUi) << "  first disp.prettyMove:" << mainline.disp.first().prettyMove;
     }
     
     if (mainline.usiMoves.isEmpty()) {
-        qDebug() << "[JosekiWindow] onMergeFromKifuFile: usiMoves is empty!";
+        qCDebug(lcUi) << "onMergeFromKifuFile: usiMoves is empty!";
         QMessageBox::information(this, tr("情報"),
             tr("棋譜に指し手がありません。"));
         return;
@@ -2107,9 +2107,9 @@ void JosekiWindow::onMergeFromKifuFile()
     // sfenListが空の場合はbaseSfenとusiMovesから生成
     QStringList sfenList = mainline.sfenList;
     if (sfenList.isEmpty() && !mainline.baseSfen.isEmpty()) {
-        qDebug() << "[JosekiWindow] sfenList is empty, building from baseSfen and usiMoves";
+        qCDebug(lcUi) << "sfenList is empty, building from baseSfen and usiMoves";
         sfenList = SfenPositionTracer::buildSfenRecord(mainline.baseSfen, mainline.usiMoves, false);
-        qDebug() << "[JosekiWindow] built sfenList.size():" << sfenList.size();
+        qCDebug(lcUi) << "built sfenList.size():" << sfenList.size();
     }
     
     // マージエントリを作成
@@ -2120,13 +2120,13 @@ void JosekiWindow::onMergeFromKifuFile()
     // disp[i] = i+1手目の表示情報（ただしdisp[0]は開始局面の場合がある）
     for (int i = 0; i < mainline.usiMoves.size(); ++i) {
         if (i >= sfenList.size()) {
-            qDebug() << "[JosekiWindow]   i=" << i << " exceeds sfenList.size(), breaking";
+            qCDebug(lcUi) << "  i=" << i << " exceeds sfenList.size(), breaking";
             break;
         }
         
         // USI指し手が空の場合はスキップ
         if (mainline.usiMoves[i].isEmpty()) {
-            qDebug() << "[JosekiWindow]   i=" << i << " usiMove is empty, skipping";
+            qCDebug(lcUi) << "  i=" << i << " usiMove is empty, skipping";
             continue;
         }
         
@@ -2151,7 +2151,7 @@ void JosekiWindow::onMergeFromKifuFile()
         
         entry.isCurrentMove = false;  // ファイルからの読み込みなので現在位置はなし
         
-        qDebug() << "[JosekiWindow]   entry[" << i << "] ply=" << entry.ply
+        qCDebug(lcUi) << "  entry[" << i << "] ply=" << entry.ply
                  << "sfen=" << entry.sfen.left(30) << "..."
                  << "usiMove=" << entry.usiMove
                  << "japaneseMove=" << entry.japaneseMove;
@@ -2159,10 +2159,10 @@ void JosekiWindow::onMergeFromKifuFile()
         entries.append(entry);
     }
     
-    qDebug() << "[JosekiWindow] onMergeFromKifuFile: entries.size()=" << entries.size();
+    qCDebug(lcUi) << "onMergeFromKifuFile: entries.size()=" << entries.size();
     
     if (entries.isEmpty()) {
-        qDebug() << "[JosekiWindow] onMergeFromKifuFile: entries is empty!";
+        qCDebug(lcUi) << "onMergeFromKifuFile: entries is empty!";
         QMessageBox::information(this, tr("情報"),
             tr("登録可能な指し手がありません。"));
         return;
@@ -2252,7 +2252,7 @@ void JosekiWindow::onTableDoubleClicked(int row, int column)
     if (row < 0 || row >= m_currentMoves.size()) return;
     
     const JosekiMove &move = m_currentMoves[row];
-    qDebug() << "[JosekiWindow] Double-click play:" << move.move;
+    qCDebug(lcUi) << "Double-click play:" << move.move;
     emit josekiMoveSelected(move.move);
 }
 

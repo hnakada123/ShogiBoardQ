@@ -4,6 +4,7 @@
 #include "timedisplaypresenter.h"
 #include "shogiview.h"
 #include "shogiclock.h"
+#include "loggingcategory.h"
 #include <QTime>
 
 TimeDisplayPresenter::TimeDisplayPresenter(ShogiView* view, QObject* parent)
@@ -34,7 +35,7 @@ void TimeDisplayPresenter::onMatchTimeUpdated(qint64 p1ms, qint64 p2ms, bool p1t
     const qint64 diffP1 = m_lastP1Ms - p1ms;
     const qint64 diffP2 = m_lastP2Ms - p2ms;
     if ((diffP1 > 1500 && m_lastP1Ms > 0) || (diffP2 > 1500 && m_lastP2Ms > 0)) {
-        qDebug() << "[TimeDisplay] Large time jump detected!"
+        qCDebug(lcUi) << "Large time jump detected!"
                  << "P1:" << m_lastP1Ms << "->" << p1ms << "(diff=" << diffP1 << "ms)"
                  << "P2:" << m_lastP2Ms << "->" << p2ms << "(diff=" << diffP2 << "ms)";
     }

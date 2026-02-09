@@ -48,7 +48,7 @@
 #include "settingsservice.h"  // フォントサイズ保存用
 #include <QFontDatabase>      // フォント検索用
 #include <QFontInfo>          // フォントデバッグ用
-#include <QDebug>             // デバッグ出力用
+#include "loggingcategory.h"
 #include "numeric_right_align_comma_delegate.h"
 #include "engineinfowidget.h"
 #include "flowlayout.h"  // 自動折り返しレイアウト
@@ -90,17 +90,17 @@ static QString getJapaneseFontFamily()
     const QStringList availableFamilies = QFontDatabase::families();
     
     // デバッグ: 利用可能なフォント数を出力
-    qDebug() << "[FontDebug] Available font families count:" << availableFamilies.size();
+    qCDebug(lcUi) << "[FontDebug] Available font families count:" << availableFamilies.size();
     
     for (const QString &candidate : candidates) {
         if (availableFamilies.contains(candidate)) {
-            qDebug() << "[FontDebug] Selected font:" << candidate;
+            qCDebug(lcUi) << "[FontDebug] Selected font:" << candidate;
             return candidate;
         }
     }
 
     // 見つからない場合はシステムデフォルト
-    qDebug() << "[FontDebug] No Japanese font found, using system default";
+    qCDebug(lcUi) << "[FontDebug] No Japanese font found, using system default";
     return QString();
 }
 
@@ -108,13 +108,13 @@ static QString getJapaneseFontFamily()
 static void debugFontInfo(const QFont &font, const QString &context)
 {
     QFontInfo info(font);
-    qDebug() << "[FontDebug]" << context;
-    qDebug() << "  Requested family:" << font.family();
-    qDebug() << "  Actual family:" << info.family();
-    qDebug() << "  Point size:" << info.pointSize();
-    qDebug() << "  Pixel size:" << info.pixelSize();
-    qDebug() << "  Style hint:" << font.styleHint();
-    qDebug() << "  Exact match:" << info.exactMatch();
+    qCDebug(lcUi) << "[FontDebug]" << context;
+    qCDebug(lcUi) << "  Requested family:" << font.family();
+    qCDebug(lcUi) << "  Actual family:" << info.family();
+    qCDebug(lcUi) << "  Point size:" << info.pointSize();
+    qCDebug(lcUi) << "  Pixel size:" << info.pixelSize();
+    qCDebug(lcUi) << "  Style hint:" << font.styleHint();
+    qCDebug(lcUi) << "  Exact match:" << info.exactMatch();
 }
 
 namespace {
@@ -534,7 +534,7 @@ void EngineAnalysisTab::buildUi()
     m_branchTree->setAlignment(Qt::AlignLeft | Qt::AlignTop);
 
     // デバッグ: レンダリングヒントを出力
-    qDebug() << "[FontDebug] QGraphicsView render hints:"
+    qCDebug(lcUi) << "[FontDebug] QGraphicsView render hints:"
              << "Antialiasing=" << m_branchTree->renderHints().testFlag(QPainter::Antialiasing)
              << "TextAntialiasing=" << m_branchTree->renderHints().testFlag(QPainter::TextAntialiasing);
 
@@ -1106,7 +1106,7 @@ void EngineAnalysisTab::setAnalysisVisible(bool on)
 void EngineAnalysisTab::setCommentHtml(const QString& html)
 {
     if (m_comment) {
-        qDebug().noquote()
+        qCDebug(lcUi).noquote()
             << "[EngineAnalysisTab] setCommentHtml ENTER:"
             << " html.len=" << html.size()
             << " m_isCommentDirty(before)=" << m_isCommentDirty;
@@ -1117,7 +1117,7 @@ void EngineAnalysisTab::setCommentHtml(const QString& html)
         m_comment->setHtml(processedHtml);
         m_originalComment = m_comment->toPlainText();
         
-        qDebug().noquote()
+        qCDebug(lcUi).noquote()
             << "[EngineAnalysisTab] setCommentHtml:"
             << " m_originalComment.len=" << m_originalComment.size();
         
@@ -1125,7 +1125,7 @@ void EngineAnalysisTab::setCommentHtml(const QString& html)
         m_isCommentDirty = false;
         updateEditingIndicator();
         
-        qDebug().noquote()
+        qCDebug(lcUi).noquote()
             << "[EngineAnalysisTab] setCommentHtml LEAVE:"
             << " m_isCommentDirty=" << m_isCommentDirty;
     }
@@ -1264,7 +1264,7 @@ void EngineAnalysisTab::addEdge(QGraphicsPathItem* from, QGraphicsPathItem* to)
 int EngineAnalysisTab::resolveParentRowForVariation(int row) const
 {
     if (row < 1 || row >= m_rows.size()) {
-        qWarning().noquote() << "[EngineAnalysisTab] resolveParentRowForVariation: row out of range"
+        qCWarning(lcUi).noquote() << "[EngineAnalysisTab] resolveParentRowForVariation: row out of range"
                              << "row=" << row << "m_rows.size=" << m_rows.size();
         return 0;
     }
@@ -1367,11 +1367,11 @@ void EngineAnalysisTab::rebuildBranchTree()
     }
 
     // ===== 分岐 row=1.. =====
-    qDebug().noquote() << "[EAT] rebuildBranchTree: m_rows.size=" << m_rows.size();
+    qCDebug(lcUi).noquote() << "[EAT] rebuildBranchTree: m_rows.size=" << m_rows.size();
     for (qsizetype row = 1; row < m_rows.size(); ++row) {
         const auto& rv = m_rows.at(row);
         const int startPly = qMax(1, rv.startPly);      // 1-origin
-        qDebug().noquote() << "[EAT] rebuildBranchTree: row=" << row
+        qCDebug(lcUi).noquote() << "[EAT] rebuildBranchTree: row=" << row
                            << " startPly=" << startPly
                            << " rv.disp.size=" << rv.disp.size()
                            << " rv.parent=" << rv.parent;
@@ -1439,10 +1439,10 @@ void EngineAnalysisTab::rebuildBranchTree()
         const int cut   = startPly;                       // disp[startPly]がstartPly手目
         const qsizetype total = rv.disp.size();
         const int take  = (cut < total) ? static_cast<int>(total - cut) : 0;
-        qDebug().noquote() << "[EAT] rebuildBranchTree: row=" << row
+        qCDebug(lcUi).noquote() << "[EAT] rebuildBranchTree: row=" << row
                            << " cut=" << cut << " total=" << total << " take=" << take;
         if (take <= 0) {
-            qDebug().noquote() << "[EAT] rebuildBranchTree: SKIPPING row=" << row << " (no moves to draw)";
+            qCDebug(lcUi).noquote() << "[EAT] rebuildBranchTree: SKIPPING row=" << row << " (no moves to draw)";
             continue;                              // 描くもの無し
         }
 
@@ -2428,7 +2428,7 @@ void EngineAnalysisTab::onUpdateCommentClicked()
 // 現在の手数インデックスを設定
 void EngineAnalysisTab::setCurrentMoveIndex(int index)
 {
-    qDebug().noquote()
+    qCDebug(lcUi).noquote()
         << "[EngineAnalysisTab] setCurrentMoveIndex:"
         << " old=" << m_currentMoveIndex
         << " new=" << index;
@@ -2445,7 +2445,7 @@ void EngineAnalysisTab::onCommentTextChanged()
     bool isDirty = (currentText != m_originalComment);
     
     // デバッグ出力
-    qDebug().noquote()
+    qCDebug(lcUi).noquote()
         << "[EngineAnalysisTab] onCommentTextChanged:"
         << " currentText.len=" << currentText.size()
         << " originalComment.len=" << m_originalComment.size()
@@ -2455,7 +2455,7 @@ void EngineAnalysisTab::onCommentTextChanged()
     if (m_isCommentDirty != isDirty) {
         m_isCommentDirty = isDirty;
         updateEditingIndicator();
-        qDebug().noquote() << "[EngineAnalysisTab] m_isCommentDirty changed to:" << m_isCommentDirty;
+        qCDebug(lcUi).noquote() << "[EngineAnalysisTab] m_isCommentDirty changed to:" << m_isCommentDirty;
     }
 }
 
@@ -2464,23 +2464,23 @@ void EngineAnalysisTab::updateEditingIndicator()
 {
     if (m_editingLabel) {
         m_editingLabel->setVisible(m_isCommentDirty);
-        qDebug().noquote() << "[EngineAnalysisTab] updateEditingIndicator: visible=" << m_isCommentDirty;
+        qCDebug(lcUi).noquote() << "[EngineAnalysisTab] updateEditingIndicator: visible=" << m_isCommentDirty;
     }
 }
 
 // 未保存編集の警告ダイアログ
 bool EngineAnalysisTab::confirmDiscardUnsavedComment()
 {
-    qDebug().noquote()
+    qCDebug(lcUi).noquote()
         << "[EngineAnalysisTab] confirmDiscardUnsavedComment ENTER:"
         << " m_isCommentDirty=" << m_isCommentDirty;
     
     if (!m_isCommentDirty) {
-        qDebug().noquote() << "[EngineAnalysisTab] confirmDiscardUnsavedComment: not dirty, returning true";
+        qCDebug(lcUi).noquote() << "[EngineAnalysisTab] confirmDiscardUnsavedComment: not dirty, returning true";
         return true;  // 変更がなければそのまま移動OK
     }
     
-    qDebug().noquote() << "[EngineAnalysisTab] confirmDiscardUnsavedComment: showing QMessageBox...";
+    qCDebug(lcUi).noquote() << "[EngineAnalysisTab] confirmDiscardUnsavedComment: showing QMessageBox...";
     
     QMessageBox::StandardButton reply = QMessageBox::warning(
         this,
@@ -2491,17 +2491,17 @@ bool EngineAnalysisTab::confirmDiscardUnsavedComment()
         QMessageBox::No
     );
     
-    qDebug().noquote() << "[EngineAnalysisTab] confirmDiscardUnsavedComment: reply=" << reply;
+    qCDebug(lcUi).noquote() << "[EngineAnalysisTab] confirmDiscardUnsavedComment: reply=" << reply;
     
     if (reply == QMessageBox::Yes) {
         // 変更を破棄
         m_isCommentDirty = false;
         updateEditingIndicator();
-        qDebug().noquote() << "[EngineAnalysisTab] confirmDiscardUnsavedComment: user chose Yes, returning true";
+        qCDebug(lcUi).noquote() << "[EngineAnalysisTab] confirmDiscardUnsavedComment: user chose Yes, returning true";
         return true;
     }
     
-    qDebug().noquote() << "[EngineAnalysisTab] confirmDiscardUnsavedComment: user chose No, returning false";
+    qCDebug(lcUi).noquote() << "[EngineAnalysisTab] confirmDiscardUnsavedComment: user chose No, returning false";
     return false;  // 移動をキャンセル
 }
 
@@ -2521,7 +2521,7 @@ void EngineAnalysisTab::onView1Clicked(const QModelIndex& index)
     if (!index.isValid()) return;
     // 「盤面」列（列4）のクリック時のみ読み筋表示ウィンドウを開く
     if (index.column() == 4) {
-        qDebug() << "[EngineAnalysisTab] onView1Clicked: row=" << index.row() << "(盤面ボタン)";
+        qCDebug(lcUi) << "[EngineAnalysisTab] onView1Clicked: row=" << index.row() << "(盤面ボタン)";
         emit pvRowClicked(0, index.row());
     }
 }
@@ -2532,7 +2532,7 @@ void EngineAnalysisTab::onView2Clicked(const QModelIndex& index)
     if (!index.isValid()) return;
     // 「盤面」列（列4）のクリック時のみ読み筋表示ウィンドウを開く
     if (index.column() == 4) {
-        qDebug() << "[EngineAnalysisTab] onView2Clicked: row=" << index.row() << "(盤面ボタン)";
+        qCDebug(lcUi) << "[EngineAnalysisTab] onView2Clicked: row=" << index.row() << "(盤面ボタン)";
         emit pvRowClicked(1, index.row());
     }
 }
@@ -2543,7 +2543,7 @@ void EngineAnalysisTab::onConsiderationViewClicked(const QModelIndex& index)
     if (!index.isValid()) return;
     // 「盤面」列（列4）のクリック時のみ読み筋表示ウィンドウを開く
     if (index.column() == 4) {
-        qDebug() << "[EngineAnalysisTab] onConsiderationViewClicked: row=" << index.row() << "(盤面ボタン)";
+        qCDebug(lcUi) << "[EngineAnalysisTab] onConsiderationViewClicked: row=" << index.row() << "(盤面ボタン)";
         emit pvRowClicked(2, index.row());  // engineIndex=2 は検討タブ
     }
 }
@@ -2907,13 +2907,13 @@ void EngineAnalysisTab::resetElapsedTimer()
 // 検討実行状態の設定（ボタン表示切替用）
 void EngineAnalysisTab::setConsiderationRunning(bool running)
 {
-    qDebug().noquote() << "[EngineAnalysisTab::setConsiderationRunning] ENTER running=" << running;
+    qCDebug(lcUi).noquote() << "[EngineAnalysisTab::setConsiderationRunning] ENTER running=" << running;
 
     // 検討実行中フラグを更新
     m_considerationRunning = running;
 
     if (!m_btnStopConsideration) {
-        qDebug().noquote() << "[EngineAnalysisTab::setConsiderationRunning] button is null, returning";
+        qCDebug(lcUi).noquote() << "[EngineAnalysisTab::setConsiderationRunning] button is null, returning";
         return;
     }
 
@@ -2921,12 +2921,12 @@ void EngineAnalysisTab::setConsiderationRunning(bool running)
     m_btnStopConsideration->setEnabled(false);
 
     // 既存のシグナル接続を切断
-    qDebug().noquote() << "[EngineAnalysisTab::setConsiderationRunning] disconnecting button signals";
+    qCDebug(lcUi).noquote() << "[EngineAnalysisTab::setConsiderationRunning] disconnecting button signals";
     m_btnStopConsideration->disconnect();
 
     if (running) {
         // 検討中: 「検討中止」ボタンを表示
-        qDebug().noquote() << "[EngineAnalysisTab::setConsiderationRunning] setting button to '検討中止'";
+        qCDebug(lcUi).noquote() << "[EngineAnalysisTab::setConsiderationRunning] setting button to '検討中止'";
         m_btnStopConsideration->setText(tr("検討中止"));
         m_btnStopConsideration->setToolTip(tr("検討を中止してエンジンを停止します"));
         connect(m_btnStopConsideration, &QToolButton::clicked,
@@ -2935,7 +2935,7 @@ void EngineAnalysisTab::setConsiderationRunning(bool running)
         m_btnStopConsideration->setEnabled(true);
     } else {
         // 検討停止中: 「検討開始」ボタンを表示
-        qDebug().noquote() << "[EngineAnalysisTab::setConsiderationRunning] setting button to '検討開始'";
+        qCDebug(lcUi).noquote() << "[EngineAnalysisTab::setConsiderationRunning] setting button to '検討開始'";
         m_btnStopConsideration->setText(tr("検討開始"));
         m_btnStopConsideration->setToolTip(tr("検討ダイアログを開いて検討を開始します"));
         connect(m_btnStopConsideration, &QToolButton::clicked,
@@ -2945,12 +2945,12 @@ void EngineAnalysisTab::setConsiderationRunning(bool running)
         QTimer::singleShot(0, this, [this]() {
             if (m_btnStopConsideration) {
                 m_btnStopConsideration->setEnabled(true);
-                qDebug().noquote() << "[EngineAnalysisTab] button re-enabled after deferred timer";
+                qCDebug(lcUi).noquote() << "[EngineAnalysisTab] button re-enabled after deferred timer";
             }
         });
     }
 
-    qDebug().noquote() << "[EngineAnalysisTab::setConsiderationRunning] EXIT";
+    qCDebug(lcUi).noquote() << "[EngineAnalysisTab::setConsiderationRunning] EXIT";
 }
 
 // 経過時間タイマー更新
@@ -3080,7 +3080,7 @@ void EngineAnalysisTab::onTimeSettingChanged()
 // エンジン選択変更スロット
 void EngineAnalysisTab::onEngineComboBoxChanged(int index)
 {
-    qDebug().noquote() << "[EngineAnalysisTab::onEngineComboBoxChanged] index=" << index
+    qCDebug(lcUi).noquote() << "[EngineAnalysisTab::onEngineComboBoxChanged] index=" << index
                        << "m_considerationRunning=" << m_considerationRunning;
 
     // 設定を保存
@@ -3089,7 +3089,7 @@ void EngineAnalysisTab::onEngineComboBoxChanged(int index)
     // 検討中の場合のみエンジン変更シグナルを発行
     if (m_considerationRunning && m_engineComboBox) {
         const QString engineName = m_engineComboBox->currentText();
-        qDebug().noquote() << "[EngineAnalysisTab::onEngineComboBoxChanged] emitting considerationEngineChanged"
+        qCDebug(lcUi).noquote() << "[EngineAnalysisTab::onEngineComboBoxChanged] emitting considerationEngineChanged"
                            << "index=" << index << "name=" << engineName;
         emit considerationEngineChanged(index, engineName);
     }

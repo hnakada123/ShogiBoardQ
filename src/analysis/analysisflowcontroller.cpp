@@ -221,7 +221,7 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
 
 void AnalysisFlowController::stop()
 {
-    qCInfo(lcAnalysis).noquote() << "stop called, m_running=" << m_running;
+    qCDebug(lcAnalysis).noquote() << "stop called, m_running=" << m_running;
 
     if (!m_running) {
         return;
@@ -244,7 +244,7 @@ void AnalysisFlowController::stop()
 
     Q_EMIT analysisStopped();
 
-    qCInfo(lcAnalysis).noquote() << "analysis stopped";
+    qCDebug(lcAnalysis).noquote() << "analysis stopped";
 }
 
 void AnalysisFlowController::applyDialogOptions(KifuAnalysisDialog* dlg)
@@ -772,7 +772,7 @@ void AnalysisFlowController::commitPendingResult()
 
 void AnalysisFlowController::onAnalysisFinished(AnalysisCoordinator::Mode /*mode*/)
 {
-    qCInfo(lcAnalysis).noquote() << "analysis finished, m_stoppedByUser=" << m_stoppedByUser;
+    qCDebug(lcAnalysis).noquote() << "analysis finished, m_stoppedByUser=" << m_stoppedByUser;
 
     // 最後の結果をGUIに反映
     if (m_lastCommittedPly >= 0) {
@@ -799,7 +799,7 @@ void AnalysisFlowController::onAnalysisFinished(AnalysisCoordinator::Mode /*mode
 
 void AnalysisFlowController::runWithDialog(const Deps& d, QWidget* parent)
 {
-    qCInfo(lcAnalysis).noquote() << "runWithDialog START";
+    qCDebug(lcAnalysis).noquote() << "runWithDialog START";
     qCDebug(lcAnalysis).noquote() << "d.gameController=" << d.gameController;
     qCDebug(lcAnalysis).noquote() << "d.usi=" << d.usi;
 

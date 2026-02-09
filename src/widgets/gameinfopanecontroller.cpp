@@ -15,7 +15,7 @@
 #include <QClipboard>
 #include <QLineEdit>
 #include <QMessageBox>
-#include <QDebug>
+#include "loggingcategory.h"
 
 GameInfoPaneController::GameInfoPaneController(QObject* parent)
     : QObject(parent)
@@ -345,7 +345,7 @@ void GameInfoPaneController::decreaseFontSize()
 void GameInfoPaneController::undo()
 {
     setGameInfo(m_originalItems);
-    qDebug().noquote() << "[GameInfoPane] undo: Reverted to original game info";
+    qCDebug(lcUi).noquote() << "[GameInfoPane] undo: Reverted to original game info";
 }
 
 void GameInfoPaneController::redo()
@@ -406,7 +406,7 @@ void GameInfoPaneController::applyChanges()
 
     emit gameInfoUpdated(currentItems);
 
-    qDebug().noquote() << "[GameInfoPane] applyChanges: Game info updated, items=" << currentItems.size();
+    qCDebug(lcUi).noquote() << "[GameInfoPane] applyChanges: Game info updated, items=" << currentItems.size();
 }
 
 void GameInfoPaneController::onCellChanged(int row, int column)

@@ -5,7 +5,7 @@
 
 #include <QWidget>
 #include <QMessageBox>
-#include <QDebug>
+#include "loggingcategory.h"
 
 #include "aboutcoordinator.h"
 #include "enginesettingscoordinator.h"
@@ -191,7 +191,7 @@ void DialogCoordinator::showGameOverMessage(const QString& title, const QString&
 
 void DialogCoordinator::startConsiderationDirect(const ConsiderationDirectParams& params)
 {
-    qDebug().noquote() << "[DialogCoord] startConsiderationDirect: position=" << params.position
+    qCDebug(lcUi).noquote() << "startConsiderationDirect: position=" << params.position
                        << "engineIndex=" << params.engineIndex
                        << "unlimitedTime=" << params.unlimitedTime
                        << "byoyomiSec=" << params.byoyomiSec
@@ -228,7 +228,7 @@ void DialogCoordinator::startConsiderationDirect(const ConsiderationDirectParams
 
 void DialogCoordinator::showTsumeSearchDialog(const TsumeSearchParams& params)
 {
-    qDebug().noquote() << "[DialogCoord] showTsumeSearchDialog: currentMoveIndex=" << params.currentMoveIndex;
+    qCDebug(lcUi).noquote() << "showTsumeSearchDialog: currentMoveIndex=" << params.currentMoveIndex;
 
     Q_EMIT tsumeSearchModeStarted();
 
@@ -250,7 +250,7 @@ void DialogCoordinator::showTsumeSearchDialog(const TsumeSearchParams& params)
 
 void DialogCoordinator::showKifuAnalysisDialog(const KifuAnalysisParams& params)
 {
-    qDebug().noquote() << "[DialogCoord] showKifuAnalysisDialog: activePly=" << params.activePly;
+    qCDebug(lcUi).noquote() << "showKifuAnalysisDialog: activePly=" << params.activePly;
 
     Q_EMIT analysisModeStarted();
 
@@ -292,12 +292,12 @@ void DialogCoordinator::setKifuAnalysisContext(const KifuAnalysisContext& ctx)
 
 void DialogCoordinator::showKifuAnalysisDialogFromContext()
 {
-    qDebug().noquote() << "[DialogCoord] showKifuAnalysisDialogFromContext";
+    qCDebug(lcUi).noquote() << "showKifuAnalysisDialogFromContext";
 
     // 評価値グラフをクリア（対局時のグラフが残らないようにする）
     if (m_kifuAnalysisCtx.evalChart) {
         m_kifuAnalysisCtx.evalChart->clearAll();
-        qDebug().noquote() << "[DialogCoord] evaluation chart cleared";
+        qCDebug(lcUi).noquote() << "evaluation chart cleared";
     }
 
     // パラメータを構築
@@ -318,10 +318,10 @@ void DialogCoordinator::showKifuAnalysisDialogFromContext()
         const qsizetype usiSize = m_kifuAnalysisCtx.gameUsiMoves->size();
         if (sfenSize == usiSize + 1) {
             params.usiMoves = m_kifuAnalysisCtx.gameUsiMoves;
-            qDebug().noquote() << "[DialogCoord] using ctx.gameUsiMoves (from game), size=" << usiSize;
+            qCDebug(lcUi).noquote() << "using ctx.gameUsiMoves (from game), size=" << usiSize;
         } else {
             // 整合性がないためusiMovesを使用しない（フォールバックを使用）
-            qDebug().noquote() << "[DialogCoord] ctx.gameUsiMoves size mismatch: sfenSize=" << sfenSize
+            qCDebug(lcUi).noquote() << "ctx.gameUsiMoves size mismatch: sfenSize=" << sfenSize
                                << " usiSize=" << usiSize << " (expected sfenSize == usiSize + 1)";
         }
     } else if (m_kifuAnalysisCtx.kifuLoadCoordinator) {
@@ -330,14 +330,14 @@ void DialogCoordinator::showKifuAnalysisDialogFromContext()
         const qsizetype usiSize = kifuUsiMoves ? kifuUsiMoves->size() : 0;
         if (sfenSize == usiSize + 1) {
             params.usiMoves = kifuUsiMoves;
-            qDebug().noquote() << "[DialogCoord] using kifuLoadCoordinator->kifuUsiMovesPtr(), size=" << usiSize;
+            qCDebug(lcUi).noquote() << "using kifuLoadCoordinator->kifuUsiMovesPtr(), size=" << usiSize;
         } else {
             // 整合性がないためusiMovesを使用しない（フォールバックを使用）
-            qDebug().noquote() << "[DialogCoord] kifuUsiMoves size mismatch: sfenSize=" << sfenSize
+            qCDebug(lcUi).noquote() << "kifuUsiMoves size mismatch: sfenSize=" << sfenSize
                                << " usiSize=" << usiSize << " (expected sfenSize == usiSize + 1)";
         }
     }
-    qDebug().noquote() << "[DialogCoord] showKifuAnalysisDialogFromContext: params.usiMoves="
+    qCDebug(lcUi).noquote() << "showKifuAnalysisDialogFromContext: params.usiMoves="
                        << params.usiMoves << " size=" << (params.usiMoves ? params.usiMoves->size() : -1);
 
     // 対局者名を取得（GameInfoPaneControllerから）
@@ -349,7 +349,7 @@ void DialogCoordinator::showKifuAnalysisDialogFromContext()
     // プレゼンターを設定
     params.presenter = m_kifuAnalysisCtx.presenter;
 
-    qDebug().noquote() << "[DialogCoord] showKifuAnalysisDialogFromContext:"
+    qCDebug(lcUi).noquote() << "showKifuAnalysisDialogFromContext:"
                        << "blackPlayerName=" << params.blackPlayerName
                        << "whitePlayerName=" << params.whitePlayerName;
 
@@ -370,7 +370,7 @@ void DialogCoordinator::extractPlayerNames(const QList<KifGameInfoItem>& gameInf
 
 void DialogCoordinator::stopKifuAnalysis()
 {
-    qDebug().noquote() << "[DialogCoord] stopKifuAnalysis called";
+    qCDebug(lcUi).noquote() << "stopKifuAnalysis called";
     if (m_analysisFlow) {
         m_analysisFlow->stop();
     }
@@ -392,7 +392,7 @@ void DialogCoordinator::setConsiderationContext(const ConsiderationContext& ctx)
 
 bool DialogCoordinator::startConsiderationFromContext()
 {
-    qDebug().noquote() << "[DialogCoord] startConsiderationFromContext";
+    qCDebug(lcUi).noquote() << "startConsiderationFromContext";
 
     // エンジンが選択されているかチェック
     if (m_analysisTab && m_analysisTab->selectedEngineName().isEmpty()) {
@@ -416,7 +416,7 @@ bool DialogCoordinator::startConsiderationFromContext()
     const int currentMoveIdx = m_considerationCtx.currentMoveIndex ? *m_considerationCtx.currentMoveIndex : 0;
     const QString position = buildPositionStringForIndex(currentMoveIdx);
 
-    qDebug().noquote() << "[DialogCoord] startConsiderationFromContext: position=" << position.left(50);
+    qCDebug(lcUi).noquote() << "startConsiderationFromContext: position=" << position.left(50);
 
     // 検討タブ専用モデルを作成（なければ）
     if (m_considerationCtx.considerationModel) {
@@ -442,7 +442,7 @@ bool DialogCoordinator::startConsiderationFromContext()
 
     // 選択中の指し手の移動先を取得（「同」表記のため）
     const int moveIdx = m_considerationCtx.currentMoveIndex ? *m_considerationCtx.currentMoveIndex : 0;
-    qDebug().noquote() << "[DialogCoord] startConsiderationFromContext: moveIdx=" << moveIdx;
+    qCDebug(lcUi).noquote() << "startConsiderationFromContext: moveIdx=" << moveIdx;
 
     if (m_considerationCtx.gameMoves) {
         const int movesSize = static_cast<int>(m_considerationCtx.gameMoves->size());
@@ -451,7 +451,7 @@ bool DialogCoordinator::startConsiderationFromContext()
             const QPoint& toSquare = m_considerationCtx.gameMoves->at(moveIdx).toSquare;
             params.previousFileTo = toSquare.x();
             params.previousRankTo = toSquare.y();
-            qDebug().noquote() << "[DialogCoord] previousFileTo/RankTo (from gameMoves):"
+            qCDebug(lcUi).noquote() << "previousFileTo/RankTo (from gameMoves):"
                                << params.previousFileTo << "/" << params.previousRankTo;
         }
     }
@@ -464,7 +464,7 @@ bool DialogCoordinator::startConsiderationFromContext()
             if (ShogiUtils::parseMoveCoordinateFromModel(m_considerationCtx.kifuRecordModel, moveIdx, &fileTo, &rankTo)) {
                 params.previousFileTo = fileTo;
                 params.previousRankTo = rankTo;
-                qDebug().noquote() << "[DialogCoord] previousFileTo/RankTo (from recordModel):"
+                qCDebug(lcUi).noquote() << "previousFileTo/RankTo (from recordModel):"
                                    << params.previousFileTo << "/" << params.previousRankTo;
             }
         }
@@ -492,7 +492,7 @@ bool DialogCoordinator::startConsiderationFromContext()
                     const ShogiMove mv = currentNode->move();
                     if (mv.movingPiece != QLatin1Char(' ')) {
                         params.lastUsiMove = ShogiUtils::moveToUsi(mv);
-                        qDebug().noquote() << "[DialogCoord] lastUsiMove (from branch node move):" << params.lastUsiMove;
+                        qCDebug(lcUi).noquote() << "lastUsiMove (from branch node move):" << params.lastUsiMove;
                     }
                 }
             }
@@ -506,7 +506,7 @@ bool DialogCoordinator::startConsiderationFromContext()
                     m_considerationCtx.kifuRecordModel->index(moveIdx, 0).data(Qt::DisplayRole).toString();
                 params.lastUsiMove = extractUsiMoveFromKanjiLabel(
                     moveLabel, params.previousFileTo, params.previousRankTo);
-                qDebug().noquote() << "[DialogCoord] lastUsiMove (from record label):" << params.lastUsiMove
+                qCDebug(lcUi).noquote() << "lastUsiMove (from record label):" << params.lastUsiMove
                                    << " label=" << moveLabel;
             }
         }
@@ -516,7 +516,7 @@ bool DialogCoordinator::startConsiderationFromContext()
             const int moveIdx2 = moveIdx - 1;
             if (moveIdx2 >= 0 && moveIdx2 < m_considerationCtx.gameMoves->size()) {
                 params.lastUsiMove = ShogiUtils::moveToUsi(m_considerationCtx.gameMoves->at(moveIdx2));
-                qDebug().noquote() << "[DialogCoord] lastUsiMove (from gameMoves):" << params.lastUsiMove;
+                qCDebug(lcUi).noquote() << "lastUsiMove (from gameMoves):" << params.lastUsiMove;
             }
         }
 
@@ -525,7 +525,7 @@ bool DialogCoordinator::startConsiderationFromContext()
             const int usiIdx = moveIdx - 1;
             if (usiIdx >= 0 && usiIdx < m_considerationCtx.gameUsiMoves->size()) {
                 params.lastUsiMove = m_considerationCtx.gameUsiMoves->at(usiIdx);
-                qDebug().noquote() << "[DialogCoord] lastUsiMove (from gameUsiMoves):" << params.lastUsiMove;
+                qCDebug(lcUi).noquote() << "lastUsiMove (from gameUsiMoves):" << params.lastUsiMove;
             }
         }
 
@@ -535,19 +535,19 @@ bool DialogCoordinator::startConsiderationFromContext()
             const int usiIdx = moveIdx - 1;
             if (usiIdx >= 0 && usiIdx < kifuUsiMoves.size()) {
                 params.lastUsiMove = kifuUsiMoves.at(usiIdx);
-                qDebug().noquote() << "[DialogCoord] lastUsiMove (from kifuLoadCoordinator):" << params.lastUsiMove;
+                qCDebug(lcUi).noquote() << "lastUsiMove (from kifuLoadCoordinator):" << params.lastUsiMove;
             }
         }
     }
 
-    qDebug().noquote() << "[DialogCoord] startConsiderationFromContext calling startConsiderationDirect"
+    qCDebug(lcUi).noquote() << "startConsiderationFromContext calling startConsiderationDirect"
                       << "engineIndex=" << params.engineIndex
                       << "engineName=" << params.engineName
                       << "unlimitedTime=" << params.unlimitedTime
                       << "byoyomiSec=" << params.byoyomiSec
                       << "multiPV=" << params.multiPV;
     startConsiderationDirect(params);
-    qDebug().noquote() << "[DialogCoord] startConsiderationFromContext EXIT";
+    qCDebug(lcUi).noquote() << "startConsiderationFromContext EXIT";
     return true;
 }
 
@@ -599,7 +599,7 @@ void DialogCoordinator::setTsumeSearchContext(const TsumeSearchContext& ctx)
 
 void DialogCoordinator::showTsumeSearchDialogFromContext()
 {
-    qDebug().noquote() << "[DialogCoord] showTsumeSearchDialogFromContext";
+    qCDebug(lcUi).noquote() << "showTsumeSearchDialogFromContext";
 
     TsumeSearchParams params;
     params.sfenRecord = m_tsumeSearchCtx.sfenRecord;
@@ -609,34 +609,34 @@ void DialogCoordinator::showTsumeSearchDialogFromContext()
 
     // USI形式の指し手リストを取得（棋譜解析と同様のロジック）
     const qsizetype sfenSize = params.sfenRecord ? params.sfenRecord->size() : 0;
-    qDebug().noquote() << "[DialogCoord] showTsumeSearchDialogFromContext: sfenSize=" << sfenSize
+    qCDebug(lcUi).noquote() << "showTsumeSearchDialogFromContext: sfenSize=" << sfenSize
                        << "gameUsiMoves.size=" << (m_tsumeSearchCtx.gameUsiMoves ? m_tsumeSearchCtx.gameUsiMoves->size() : -1)
                        << "kifuLoadCoordinator=" << (m_tsumeSearchCtx.kifuLoadCoordinator ? "exists" : "null");
 
     if (m_tsumeSearchCtx.gameUsiMoves && !m_tsumeSearchCtx.gameUsiMoves->isEmpty()) {
         const qsizetype usiSize = m_tsumeSearchCtx.gameUsiMoves->size();
-        qDebug().noquote() << "[DialogCoord] checking gameUsiMoves: sfenSize=" << sfenSize << " usiSize=" << usiSize;
+        qCDebug(lcUi).noquote() << "checking gameUsiMoves: sfenSize=" << sfenSize << " usiSize=" << usiSize;
         if (sfenSize == usiSize + 1) {
             params.usiMoves = m_tsumeSearchCtx.gameUsiMoves;
-            qDebug().noquote() << "[DialogCoord] using gameUsiMoves, size=" << usiSize;
+            qCDebug(lcUi).noquote() << "using gameUsiMoves, size=" << usiSize;
         } else {
-            qDebug().noquote() << "[DialogCoord] gameUsiMoves size mismatch";
+            qCDebug(lcUi).noquote() << "gameUsiMoves size mismatch";
         }
     } else if (m_tsumeSearchCtx.kifuLoadCoordinator) {
         QStringList* kifuUsiMoves = m_tsumeSearchCtx.kifuLoadCoordinator->kifuUsiMovesPtr();
         const qsizetype usiSize = kifuUsiMoves ? kifuUsiMoves->size() : 0;
-        qDebug().noquote() << "[DialogCoord] checking kifuUsiMoves: sfenSize=" << sfenSize << " usiSize=" << usiSize;
+        qCDebug(lcUi).noquote() << "checking kifuUsiMoves: sfenSize=" << sfenSize << " usiSize=" << usiSize;
         if (kifuUsiMoves) {
-            qDebug().noquote() << "[DialogCoord] kifuUsiMoves content:" << *kifuUsiMoves;
+            qCDebug(lcUi).noquote() << "kifuUsiMoves content:" << *kifuUsiMoves;
         }
         if (sfenSize == usiSize + 1) {
             params.usiMoves = kifuUsiMoves;
-            qDebug().noquote() << "[DialogCoord] using kifuLoadCoordinator->kifuUsiMovesPtr(), size=" << usiSize;
+            qCDebug(lcUi).noquote() << "using kifuLoadCoordinator->kifuUsiMovesPtr(), size=" << usiSize;
         } else {
-            qDebug().noquote() << "[DialogCoord] kifuUsiMoves size mismatch (expected sfenSize == usiSize + 1)";
+            qCDebug(lcUi).noquote() << "kifuUsiMoves size mismatch (expected sfenSize == usiSize + 1)";
         }
     } else {
-        qDebug().noquote() << "[DialogCoord] no usiMoves source available";
+        qCDebug(lcUi).noquote() << "no usiMoves source available";
     }
 
     // 開始局面コマンドを決定（平手初期局面の場合は "startpos"、それ以外は "sfen ..."）
@@ -647,7 +647,7 @@ void DialogCoordinator::showTsumeSearchDialogFromContext()
         params.startPositionCmd = QStringLiteral("sfen ") + params.startSfenStr;
     }
 
-    qDebug().noquote() << "[DialogCoord] showTsumeSearchDialogFromContext:"
+    qCDebug(lcUi).noquote() << "showTsumeSearchDialogFromContext:"
                        << "usiMoves=" << (params.usiMoves ? QString::number(params.usiMoves->size()) : "null")
                        << "startSfenStr=" << params.startSfenStr.left(50)
                        << "startPositionCmd=" << params.startPositionCmd
@@ -667,6 +667,6 @@ void DialogCoordinator::showErrorMessage(const QString& message)
 
 void DialogCoordinator::showFlowError(const QString& message)
 {
-    qWarning().noquote() << "[DialogCoord] Flow error:" << message;
+    qCWarning(lcUi).noquote() << "Flow error:" << message;
     QMessageBox::warning(m_parentWidget, tr("エラー"), message);
 }
