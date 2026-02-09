@@ -3445,44 +3445,34 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="695"/>
-        <source>投了確認</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="696"/>
-        <source>本当に投了しますか？</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="760"/>
-        <location filename="../../src/app/mainwindow.cpp" line="775"/>
+        <location filename="../../src/app/mainwindow.cpp" line="750"/>
+        <location filename="../../src/app/mainwindow.cpp" line="765"/>
         <source>エラー</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="760"/>
-        <location filename="../../src/app/mainwindow.cpp" line="775"/>
+        <location filename="../../src/app/mainwindow.cpp" line="750"/>
+        <location filename="../../src/app/mainwindow.cpp" line="765"/>
         <source>盤面データがありません。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1216"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1206"/>
         <source>棋譜ファイルを開く</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3823"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3813"/>
         <source>局面を反映しました</source>
         <translation>局面を反映しました</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3825"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3815"/>
         <source>局面の反映に失敗しました</source>
         <translation>局面の反映に失敗しました</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3828"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3818"/>
         <source>局面の反映に失敗しました（内部エラー）</source>
         <translation>局面の反映に失敗しました（内部エラー）</translation>
     </message>
@@ -3507,12 +3497,12 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1217"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1207"/>
         <source>Kifu Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3325"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3315"/>
         <source>コメントなし</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3521,17 +3511,17 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">定跡</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3797"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3787"/>
         <source>棋譜を取り込みました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3799"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3789"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3803"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3793"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation type="unfinished"></translation>
     </message>
