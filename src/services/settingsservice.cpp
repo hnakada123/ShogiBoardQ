@@ -142,6 +142,22 @@ void setPvBoardDialogSize(const QSize& size)
     s.setValue("SizeRelated/pvBoardDialogSize", size);
 }
 
+// 局面集ビューアのサイズを取得
+QSize sfenCollectionDialogSize()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("SizeRelated/sfenCollectionDialogSize", QSize(620, 780)).toSize();
+}
+
+// 局面集ビューアのサイズを保存
+void setSfenCollectionDialogSize(const QSize& size)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("SizeRelated/sfenCollectionDialogSize", size);
+}
+
 // 評価値グラフの設定
 int evalChartYLimit()
 {

@@ -82,6 +82,11 @@ void UiActionsWiring::wire()
     // ============================================================
     QObject::connect(ui->actionPasteKifu,            &QAction::triggered, mw, &MainWindow::pasteKifuFromClipboard,         Qt::UniqueConnection);
 
+    // ============================================================
+    // 局面集ビューア（編集メニュー）
+    // ============================================================
+    QObject::connect(ui->actionSfenCollectionViewer, &QAction::triggered, mw, &MainWindow::displaySfenCollectionViewer,   Qt::UniqueConnection);
+
     // 言語設定: LanguageControllerで直接接続（MainWindow::ensureLanguageController参照）
 
     // ============================================================

@@ -161,6 +161,10 @@ public slots:
     /// クリップボード上の棋譜テキストを読み込む
     void pasteKifuFromClipboard();
 
+    // --- 局面集ビューア ---
+    /// 局面集ビューアダイアログを表示する
+    void displaySfenCollectionViewer();
+
     // --- エラー / 一般UI ---
     void displayErrorMessage(const QString& message);
     /// ウィンドウ設定を保存してアプリを終了する
@@ -323,6 +327,8 @@ private slots:
     void onPvDialogClosed(int engineIndex);
     /// 棋譜貼り付けダイアログからのインポート要求を処理する
     void onKifuPasteImportRequested(const QString& content);
+    /// 局面集ビューアから選択された局面をメインGUIに反映する
+    void onSfenCollectionPositionSelected(const QString& sfen);
     /// GameRecordModelのコメント変更を検出して反映する
     void onGameRecordCommentChanged(int ply, const QString& comment);
     /// CommentCoordinatorからのコメント更新コールバック
