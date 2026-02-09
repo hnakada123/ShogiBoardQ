@@ -62,6 +62,7 @@
     <addaction name="copyGameRecord"/>
     <addaction name="shogiPositionCopy"/>
     <addaction name="actionPasteKifu"/>
+    <addaction name="actionSfenCollectionViewer"/>
     <addaction name="separator"/>
     <addaction name="actionCopyBoardToClipboard"/>
     <addaction name="separator"/>
@@ -640,6 +641,11 @@
    </property>
    <property name="text">
     <string>ツールバー</string>
+   </property>
+  </action>
+  <action name="actionSfenCollectionViewer">
+   <property name="text">
+    <string>局面集ビューア</string>
    </property>
   </action>
  </widget>

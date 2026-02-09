@@ -81,6 +81,7 @@
 #include "gamerecordmodel.h"
 #include "pvboarddialog.h"
 #include "kifupastedialog.h"
+#include "sfencollectiondialog.h"
 #include "gameinfopanecontroller.h"
 #include "kifuclipboardservice.h"
 #include "evaluationgraphcontroller.h"
@@ -3794,6 +3795,31 @@ void MainWindow::onKifuPasteImportRequested(const QString& content)
     } else {
         qCWarning(lcApp) << "onKifuPasteImportRequested_: m_kifuLoadCoordinator is null";
         ui->statusbar->showMessage(tr("棋譜の取り込みに失敗しました（内部エラー）"), 3000);
+    }
+}
+
+void MainWindow::displaySfenCollectionViewer()
+{
+    SfenCollectionDialog* dlg = new SfenCollectionDialog(this);
+    dlg->setAttribute(Qt::WA_DeleteOnClose);
+    connect(dlg, &SfenCollectionDialog::positionSelected,
+            this, &MainWindow::onSfenCollectionPositionSelected);
+    dlg->show();
+}
+
+void MainWindow::onSfenCollectionPositionSelected(const QString& sfen)
+{
+    ensureKifuLoadCoordinatorForLive();
+
+    if (m_kifuLoadCoordinator) {
+        const bool success = m_kifuLoadCoordinator->loadPositionFromSfen(sfen);
+        if (success) {
+            ui->statusbar->showMessage(tr("局面を反映しました"), 3000);
+        } else {
+            ui->statusbar->showMessage(tr("局面の反映に失敗しました"), 3000);
+        }
+    } else {
+        ui->statusbar->showMessage(tr("局面の反映に失敗しました（内部エラー）"), 3000);
     }
 }
 

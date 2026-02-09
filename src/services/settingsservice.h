@@ -62,6 +62,11 @@ QSize pvBoardDialogSize();
 /// 読み筋表示ウィンドウのサイズを保存
 void setPvBoardDialogSize(const QSize& size);
 
+/// 局面集ビューアのサイズを取得（デフォルト: 620x780）
+QSize sfenCollectionDialogSize();
+/// 局面集ビューアのサイズを保存
+void setSfenCollectionDialogSize(const QSize& size);
+
 /// 評価値グラフの設定
 /// 評価値上限を取得（デフォルト: 2000）
 int evalChartYLimit();
