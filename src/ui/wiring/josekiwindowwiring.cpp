@@ -3,7 +3,7 @@
 
 #include "josekiwindowwiring.h"
 
-#include <QDebug>
+#include "loggingcategory.h"
 
 #include "josekiwindow.h"
 #include "shogigamecontroller.h"
@@ -37,7 +37,7 @@ void JosekiWindowWiring::ensureJosekiWindow()
     connect(m_josekiWindow, &JosekiWindow::requestKifuDataForMerge,
             this, &JosekiWindowWiring::onRequestKifuDataForMerge);
 
-    qDebug().noquote() << "[JosekiWindowWiring] JosekiWindow created and connected";
+    qCDebug(lcUi) << "JosekiWindow created and connected";
 }
 
 void JosekiWindowWiring::displayJosekiWindow()
@@ -57,17 +57,17 @@ void JosekiWindowWiring::displayJosekiWindow()
 
 void JosekiWindowWiring::updateJosekiWindow()
 {
-    qDebug() << "[JosekiWindowWiring] updateJosekiWindow() called";
+    qCDebug(lcUi) << "updateJosekiWindow() called";
 
     // 定跡ウィンドウが存在し、表示されている場合のみ更新
     if (!m_josekiWindow || !m_josekiWindow->isVisible()) {
-        qDebug() << "[JosekiWindowWiring] updateJosekiWindow: window not visible, skipping";
+        qCDebug(lcUi) << "updateJosekiWindow: window not visible, skipping";
         return;
     }
 
     if (!m_currentSfenStr) return;
 
-    qDebug() << "[JosekiWindowWiring] updateJosekiWindow: updating with SFEN=" << *m_currentSfenStr;
+    qCDebug(lcUi) << "updateJosekiWindow: updating with SFEN=" << *m_currentSfenStr;
 
     // 人間が着手可能かどうかを判定して設定
     const bool humanCanPlay = determineHumanCanPlay();
@@ -115,10 +115,10 @@ bool JosekiWindowWiring::determineHumanCanPlay() const
 
 void JosekiWindowWiring::onJosekiMoveSelected(const QString& usiMove)
 {
-    qDebug() << "[JosekiWindowWiring] onJosekiMoveSelected: usiMove=" << usiMove;
+    qCDebug(lcUi) << "onJosekiMoveSelected: usiMove=" << usiMove;
 
     if (usiMove.isEmpty()) {
-        qDebug() << "[JosekiWindowWiring] onJosekiMoveSelected: empty move";
+        qCDebug(lcUi) << "onJosekiMoveSelected: empty move";
         return;
     }
 
@@ -126,7 +126,7 @@ void JosekiWindowWiring::onJosekiMoveSelected(const QString& usiMove)
     bool promote = false;
 
     if (!parseUsiMove(usiMove, from, to, promote)) {
-        qDebug() << "[JosekiWindowWiring] onJosekiMoveSelected: invalid move format";
+        qCWarning(lcUi) << "onJosekiMoveSelected: invalid move format";
         if (m_josekiWindow) {
             m_josekiWindow->onMoveResult(false, usiMove);
         }
@@ -146,8 +146,8 @@ void JosekiWindowWiring::onJosekiMoveSelected(const QString& usiMove)
     const qsizetype sfenSizeAfter = m_sfenRecord ? m_sfenRecord->size() : 0;
     const bool moveSuccess = (sfenSizeAfter > sfenSizeBefore);
 
-    qDebug() << "[JosekiWindowWiring] Move result: sfenSizeBefore=" << sfenSizeBefore
-             << "sfenSizeAfter=" << sfenSizeAfter << "success=" << moveSuccess;
+    qCDebug(lcUi) << "Move result: sfenSizeBefore=" << sfenSizeBefore
+                   << "sfenSizeAfter=" << sfenSizeAfter << "success=" << moveSuccess;
 
     // 定跡ウィンドウに結果を通知（失敗時のみ）
     if (m_josekiWindow && !moveSuccess) {
@@ -217,9 +217,9 @@ bool JosekiWindowWiring::parseDropMove(const QString& usiMove, QPoint& from, QPo
     from = QPoint(standFile, pieceRank);
     to = QPoint(toFile, toRank);
 
-    qDebug() << "[JosekiWindowWiring] Drop move: piece=" << pieceChar
-             << "isBlackTurn=" << isBlackTurn
-             << "from=" << from << "to=" << to;
+    qCDebug(lcUi) << "Drop move: piece=" << pieceChar
+                   << "isBlackTurn=" << isBlackTurn
+                   << "from=" << from << "to=" << to;
 
     return true;
 }
@@ -235,17 +235,17 @@ bool JosekiWindowWiring::parseNormalMove(const QString& usiMove, QPoint& from, Q
     from = QPoint(fromFile, fromRank);
     to = QPoint(toFile, toRank);
 
-    qDebug() << "[JosekiWindowWiring] Normal move: from=" << from << "to=" << to << "promote=" << promote;
+    qCDebug(lcUi) << "Normal move: from=" << from << "to=" << to << "promote=" << promote;
 
     return true;
 }
 
 void JosekiWindowWiring::onRequestKifuDataForMerge()
 {
-    qDebug() << "[JosekiWindowWiring] onRequestKifuDataForMerge called";
+    qCDebug(lcUi) << "onRequestKifuDataForMerge called";
 
     if (!m_josekiWindow) {
-        qWarning() << "[JosekiWindowWiring] onRequestKifuDataForMerge: m_josekiWindow is null";
+        qCWarning(lcUi) << "onRequestKifuDataForMerge: m_josekiWindow is null";
         return;
     }
 
@@ -259,7 +259,7 @@ void JosekiWindowWiring::onRequestKifuDataForMerge()
         for (int i = 0; i < m_sfenRecord->size(); ++i) {
             sfenList.append(m_sfenRecord->at(i));
         }
-        qDebug() << "[JosekiWindowWiring] sfenList from m_sfenRecord, size=" << sfenList.size();
+        qCDebug(lcUi) << "sfenList from m_sfenRecord, size=" << sfenList.size();
     }
 
     // 棋譜表示モデルから指し手リストを取得
@@ -269,7 +269,7 @@ void JosekiWindowWiring::onRequestKifuDataForMerge()
             QString japaneseMove = m_kifuRecordModel->data(index, Qt::DisplayRole).toString();
             japaneseMoveList.append(japaneseMove);
         }
-        qDebug() << "[JosekiWindowWiring] japaneseMoveList size=" << japaneseMoveList.size();
+        qCDebug(lcUi) << "japaneseMoveList size=" << japaneseMoveList.size();
     }
 
     // USI形式の指し手リストを取得
@@ -277,11 +277,11 @@ void JosekiWindowWiring::onRequestKifuDataForMerge()
         for (const QString& move : std::as_const(*m_usiMoves)) {
             moveList.append(move);
         }
-        qDebug() << "[JosekiWindowWiring] moveList from m_usiMoves, size=" << moveList.size();
+        qCDebug(lcUi) << "moveList from m_usiMoves, size=" << moveList.size();
     } else if (m_sfenRecord && m_sfenRecord->size() > 1) {
         // SFEN差分からUSI形式を生成
         moveList = generateUsiMovesFromSfen();
-        qDebug() << "[JosekiWindowWiring] moveList from sfenRecord, size=" << moveList.size();
+        qCDebug(lcUi) << "moveList from sfenRecord, size=" << moveList.size();
     }
 
     // 現在選択中の手数を取得
@@ -291,11 +291,11 @@ void JosekiWindowWiring::onRequestKifuDataForMerge()
         currentPly = *m_currentSelectedPly;
     }
 
-    qDebug() << "[JosekiWindowWiring] FINAL RESULT"
-             << "sfenList.size=" << sfenList.size()
-             << "moveList.size=" << moveList.size()
-             << "japaneseMoveList.size=" << japaneseMoveList.size()
-             << "currentPly=" << currentPly;
+    qCDebug(lcUi) << "FINAL RESULT"
+                   << "sfenList.size=" << sfenList.size()
+                   << "moveList.size=" << moveList.size()
+                   << "japaneseMoveList.size=" << japaneseMoveList.size()
+                   << "currentPly=" << currentPly;
 
     // 定跡ウィンドウにデータを送信
     m_josekiWindow->setKifuDataForMerge(sfenList, moveList, japaneseMoveList, currentPly);

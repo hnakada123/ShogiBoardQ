@@ -2,8 +2,8 @@
 /// @brief コメントコーディネータクラスの実装
 
 #include "commentcoordinator.h"
+#include "mainwindow.h"
 
-#include <QDebug>
 #include <QStatusBar>
 
 #include "engineanalysistab.h"
@@ -38,14 +38,14 @@ void CommentCoordinator::broadcastComment(const QString& text, bool asHtml)
 
 void CommentCoordinator::onCommentUpdated(int moveIndex, const QString& newComment)
 {
-    qDebug().noquote()
-        << "[CommentCoordinator] onCommentUpdated"
+    qCDebug(lcApp).noquote()
+        << "onCommentUpdated"
         << " moveIndex=" << moveIndex
         << " newComment.len=" << newComment.size();
 
     // 有効な手数インデックスかチェック
     if (moveIndex < 0) {
-        qWarning().noquote() << "[CommentCoordinator] onCommentUpdated: invalid moveIndex";
+        qCWarning(lcApp).noquote() << "onCommentUpdated: invalid moveIndex";
         return;
     }
 
@@ -67,15 +67,15 @@ void CommentCoordinator::onCommentUpdated(int moveIndex, const QString& newComme
 
 void CommentCoordinator::onGameRecordCommentChanged(int ply, const QString& /*comment*/)
 {
-    qDebug().noquote() << "[CommentCoordinator] GameRecordModel::commentChanged ply=" << ply;
+    qCDebug(lcApp).noquote() << "GameRecordModel::commentChanged ply=" << ply;
 }
 
 void CommentCoordinator::onCommentUpdateCallback(int ply, const QString& comment)
 {
-    qDebug().noquote() << "[CommentCoordinator] onCommentUpdateCallback ply=" << ply;
+    qCDebug(lcApp).noquote() << "onCommentUpdateCallback ply=" << ply;
 
     if (!m_commentsByRow) {
-        qWarning() << "[CommentCoordinator] onCommentUpdateCallback: m_commentsByRow is null";
+        qCWarning(lcApp) << "onCommentUpdateCallback: m_commentsByRow is null";
         return;
     }
 
@@ -93,7 +93,7 @@ void CommentCoordinator::onCommentUpdateCallback(int ply, const QString& comment
             updatedComments.append(c);
         }
         m_recordPresenter->setCommentsByRow(updatedComments);
-        qDebug().noquote() << "[CommentCoordinator] Updated RecordPresenter commentsByRow";
+        qCDebug(lcApp).noquote() << "Updated RecordPresenter commentsByRow";
     }
 
     // 現在表示中のコメントを更新（両方のコメント欄に反映）

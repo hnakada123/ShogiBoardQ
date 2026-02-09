@@ -2,6 +2,7 @@
 /// @brief エンジン情報表示ウィジェットクラスの実装
 
 #include "engineinfowidget.h"
+#include "loggingcategory.h"
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QTableWidget>
@@ -204,7 +205,7 @@ void EngineInfoWidget::onNpsChanged()     { setCellValue(COL_NPS, m_model->nodes
 void EngineInfoWidget::onHashChanged()    { setCellValue(COL_HASH, m_model->hashUsage()); }
 
 void EngineInfoWidget::setDisplayNameFallback(const QString& name) {
-    qDebug().noquote() << "[EngineInfoWidget::setDisplayNameFallback] name=" << name
+    qCDebug(lcUi).noquote() << "[EngineInfoWidget::setDisplayNameFallback] name=" << name
                        << "this=" << this
                        << "m_widgetIndex=" << m_widgetIndex
                        << "m_model=" << m_model
@@ -212,10 +213,10 @@ void EngineInfoWidget::setDisplayNameFallback(const QString& name) {
     m_fallbackName = name;
     // モデル未設定 or まだ空ならフォールバックを表示
     if (!m_model || m_model->engineName().isEmpty()) {
-        qDebug().noquote() << "[EngineInfoWidget::setDisplayNameFallback] Setting cell value to:" << m_fallbackName;
+        qCDebug(lcUi).noquote() << "[EngineInfoWidget::setDisplayNameFallback] Setting cell value to:" << m_fallbackName;
         setCellValue(COL_ENGINE_NAME, m_fallbackName);
     } else {
-        qDebug().noquote() << "[EngineInfoWidget::setDisplayNameFallback] NOT setting cell (model has name):" << m_model->engineName();
+        qCDebug(lcUi).noquote() << "[EngineInfoWidget::setDisplayNameFallback] NOT setting cell (model has name):" << m_model->engineName();
     }
 }
 

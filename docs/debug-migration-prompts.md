@@ -15,6 +15,20 @@
    - 運用ログ（接続、起動/終了、設定変更） → `qCInfo()`
    - リカバリ可能なエラー（ファイル未検出、想定外値） → `qCWarning()`
    - 処理続行困難なエラー → `qCCritical()`
+   - **迷ったら `qCDebug()` を選択する**（`qCInfo()` はリリースビルドで出力されるため）
+   - **`qCDebug` にすべき具体パターン**:
+     - 関数の入口/出口トレース（`"enter"`, `"exit"`, `"called"`, `"START"`, `"leave"`）
+     - ポインタアドレスの出力（`static_cast<const void*>(ptr)`）
+     - 毎手/毎tick 呼ばれるSFEN・盤面出力（`"setSfen:"`, `"last sfen ="`）
+     - 処理フロー分岐の確認（`"forwarding to"`, `"skip"`, `"delegate"`）
+     - 変数値・内部状態のダンプ（`"modeNow="`, `"recSize="`, `"m_running="`）
+     - UI操作イベントの詳細（`"onMoveRequested"`, `"onClicked"`）
+     - タイマー遅延の診断（`"elapsed=66ms"`）
+   - **`qCInfo` にすべきパターン**（低頻度の運用情報のみ）:
+     - アプリ起動時の設定（`"Language setting:"`, `"Application dir:"`）
+     - エンジン/サーバーの起動・終了（`"エンジン起動完了:"`）
+     - ファイル読み込み成功（ファイル名つき）
+     - 入玉宣言・棋譜自動保存など重要ゲームイベント
 3. **プレフィックス除去**: `[CSA]`, `[USI]`, `[GM]` 等の手動プレフィックスは除去する（カテゴリが同等の役割を果たす）
 4. **不要なデバッグ文の削除**: 意味のないメッセージ（`"ここに来た"`, `"OK"`）、getter/setter の単純呼び出しログ、高頻度メソッドでの出力は削除する
 5. **Q_LOGGING_CATEGORY の定義場所**: モジュール内の主要ソースファイル（最初に列挙したファイル）に `Q_LOGGING_CATEGORY` を定義し、他ファイルのヘッダーでは `Q_DECLARE_LOGGING_CATEGORY` で参照する

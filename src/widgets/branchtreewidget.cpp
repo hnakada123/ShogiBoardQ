@@ -14,7 +14,7 @@
 #include <QMouseEvent>
 #include <QPainterPath>
 #include <QRegularExpression>
-#include <QDebug>
+#include "loggingcategory.h"
 
 // ===================== ヘルパー関数 =====================
 
@@ -442,7 +442,7 @@ bool BranchTreeWidget::eventFilter(QObject* obj, QEvent* ev)
                 const int ply = pathItem->data(ROLE_PLY).toInt();
                 const int lineIndex = pathItem->data(ROLE_LINE_INDEX).toInt();
 
-                qDebug() << "[BranchTreeWidget] nodeClicked: lineIndex=" << lineIndex
+                qCDebug(lcUi) << "[BranchTreeWidget] nodeClicked: lineIndex=" << lineIndex
                          << " ply=" << ply << " row=" << row;
 
                 emit nodeClicked(lineIndex, ply);

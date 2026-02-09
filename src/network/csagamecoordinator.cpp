@@ -1534,6 +1534,6 @@ void CsaGameCoordinator::sendRawCommand(const QString& command)
         return;
     }
 
-    qCInfo(lcNetwork) << "Sending raw command:" << command;
+    qCDebug(lcNetwork) << "Sending raw command:" << command;
     m_client->sendRawCommand(command);
 }

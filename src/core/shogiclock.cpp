@@ -236,7 +236,7 @@ void ShogiClock::updateClock()
     m_lastTickMs = now;
 
     if (elapsed > 60) {
-        qCWarning(lcShogiClock, "[DEBUG] updateClock elapsed=%lldms (expected ~50ms) - Timer delayed!", elapsed);
+        qCDebug(lcShogiClock, "updateClock elapsed=%lldms (expected ~50ms) - Timer delayed!", elapsed);
     }
 
     if (m_timeLimitSet) {
@@ -310,7 +310,7 @@ void ShogiClock::updateClock()
         const int diff1 = m_prevShownSecP1 - sec1;
         const int diff2 = m_prevShownSecP2 - sec2;
         if (diff1 > 1 || diff2 > 1) {
-            qCWarning(lcShogiClock, "[DEBUG] Display jump detected! P1: %d->%d (diff=%d), P2: %d->%d (diff=%d), currentPlayer=%d, p1Ms=%lld, p2Ms=%lld",
+            qCDebug(lcShogiClock, "Display jump detected! P1: %d->%d (diff=%d), P2: %d->%d (diff=%d), currentPlayer=%d, p1Ms=%lld, p2Ms=%lld",
                       m_prevShownSecP1, sec1, diff1,
                       m_prevShownSecP2, sec2, diff2,
                       m_currentPlayer, m_player1TimeMs, m_player2TimeMs);

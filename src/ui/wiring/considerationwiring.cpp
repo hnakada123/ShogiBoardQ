@@ -3,7 +3,7 @@
 
 #include "considerationwiring.h"
 
-#include <QDebug>
+#include "loggingcategory.h"
 
 #include "engineanalysistab.h"
 #include "shogiview.h"
@@ -65,13 +65,13 @@ void ConsiderationWiring::ensureUIController()
 
 void ConsiderationWiring::displayConsiderationDialog()
 {
-    qDebug().noquote() << "[ConsiderationWiring::displayConsiderationDialog] ENTER";
+    qCDebug(lcUi) << "displayConsiderationDialog ENTER";
 
     if (!m_playMode) return;
 
     // エンジン破棄中の場合は検討開始を拒否（ハングアップ防止）
     if (m_match && m_match->isEngineShutdownInProgress()) {
-        qDebug().noquote() << "[ConsiderationWiring::displayConsiderationDialog] engine shutdown in progress, ignoring";
+        qCDebug(lcUi) << "displayConsiderationDialog engine shutdown in progress, ignoring";
         return;
     }
 
@@ -90,13 +90,13 @@ void ConsiderationWiring::displayConsiderationDialog()
             *m_playMode = previousMode;
         }
     }
-    qDebug().noquote() << "[ConsiderationWiring::displayConsiderationDialog] EXIT";
+    qCDebug(lcUi) << "displayConsiderationDialog EXIT";
 }
 
 void ConsiderationWiring::onEngineSettingsRequested(int engineNumber, const QString& engineName)
 {
-    qDebug().noquote() << "[ConsiderationWiring::onEngineSettingsRequested] engineNumber=" << engineNumber
-                       << " engineName=" << engineName;
+    qCDebug(lcUi) << "onEngineSettingsRequested engineNumber=" << engineNumber
+                   << " engineName=" << engineName;
 
     ChangeEngineSettingsDialog dialog(m_parentWidget);
     dialog.setEngineNumber(engineNumber);
@@ -110,14 +110,14 @@ void ConsiderationWiring::onEngineSettingsRequested(int engineNumber, const QStr
 
 void ConsiderationWiring::onEngineChanged(int engineIndex, const QString& engineName)
 {
-    qDebug().noquote() << "[ConsiderationWiring::onEngineChanged] engineIndex=" << engineIndex
-                       << " engineName=" << engineName;
+    qCDebug(lcUi) << "onEngineChanged engineIndex=" << engineIndex
+                   << " engineName=" << engineName;
 
     if (!m_playMode) return;
 
     // 検討モード中でなければ何もしない
     if (*m_playMode != PlayMode::ConsiderationMode) {
-        qDebug().noquote() << "[ConsiderationWiring::onEngineChanged] not in consideration mode, ignoring";
+        qCDebug(lcUi) << "onEngineChanged not in consideration mode, ignoring";
         return;
     }
 

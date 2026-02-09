@@ -7,7 +7,7 @@
 #include "boardinteractioncontroller.h"
 #include "shogiboard.h"
 #include "shogimove.h"
-#include <QDebug>
+#include "loggingcategory.h"
 
 BoardSyncPresenter::BoardSyncPresenter(const Deps& d, QObject* parent)
     : QObject(parent)
@@ -26,7 +26,7 @@ void BoardSyncPresenter::applySfenAtPly(int ply) const
         return (s.size() > 200) ? (s.left(200) + QStringLiteral(" ...")) : s;
     };
 
-    qInfo() << "[PRESENTER] applySfenAtPly enter"
+    qCDebug(lcUi) << "applySfenAtPly enter"
             << "reqPly=" << ply
             << "rec*=" << static_cast<const void*>(m_sfenRecord)
             << "gc=" << m_gc
@@ -35,7 +35,7 @@ void BoardSyncPresenter::applySfenAtPly(int ply) const
 
     // ガード＆早期リターン
     if (!m_sfenRecord || m_sfenRecord->isEmpty() || !m_gc || !m_gc->board()) {
-        qWarning() << "[PRESENTER] applySfenAtPly guard failed:"
+        qCWarning(lcUi) << "applySfenAtPly guard failed:"
                    << "rec*=" << static_cast<const void*>(m_sfenRecord)
                    << "isEmpty?=" << (m_sfenRecord ? m_sfenRecord->isEmpty() : true)
                    << "gc=" << m_gc << "board?=" << (m_gc ? m_gc->board() : nullptr);
@@ -51,35 +51,35 @@ void BoardSyncPresenter::applySfenAtPly(int ply) const
     // 実際に適用するインデックスはクランプ（終局行なら常に末尾の SFEN を使う）
     const int idx = qBound(0, ply, maxIdx);
 
-    qInfo().noquote()
-        << QString("[PRESENTER] applySfenAtPly params reqPly=%1 size=%2 maxIdx=%3 idx=%4 terminalRow=%5")
+    qCDebug(lcUi).noquote()
+        << QString("applySfenAtPly params reqPly=%1 size=%2 maxIdx=%3 idx=%4 terminalRow=%5")
                .arg(ply).arg(size).arg(maxIdx).arg(idx).arg(isTerminalRow);
 
     if (isTerminalRow) {
         // 例：開始局面 + 4手 + 投了 → size=5, reqPly=5, idx=4
-        qInfo().noquote()
-            << QString("[PRESENTER] TERMINAL-ROW: non-move row (e.g. resignation). Using last SFEN at idx=%1 (size-1).")
+        qCDebug(lcUi).noquote()
+            << QString("TERMINAL-ROW: non-move row (e.g. resignation). Using last SFEN at idx=%1 (size-1).")
                    .arg(idx);
         if (ply == size) {
-            qInfo() << "[PRESENTER] TERMINAL-ROW detail: reqPly == size (expected for resignation right after last move).";
+            qCDebug(lcUi) << "TERMINAL-ROW detail: reqPly == size (expected for resignation right after last move).";
         } else if (ply > size) {
-            qWarning().noquote()
-            << QString("[PRESENTER] TERMINAL-ROW anomaly: reqPly(%1) > size(%2). Upstream should not overshoot too much.")
+            qCWarning(lcUi).noquote()
+            << QString("TERMINAL-ROW anomaly: reqPly(%1) > size(%2). Upstream should not overshoot too much.")
                     .arg(ply).arg(size);
         }
     }
 
     const QString sfen = m_sfenRecord->at(idx);
 
-    qInfo().noquote() << QString("[PRESENTER] applySfenAtPly reqPly=%1 idx=%2 size=%3 rec*=%4")
+    qCDebug(lcUi).noquote() << QString("applySfenAtPly reqPly=%1 idx=%2 size=%3 rec*=%4")
                              .arg(ply).arg(idx).arg(size)
                              .arg(reinterpret_cast<quintptr>(m_sfenRecord), 0, 16);
 
     if (size > 0) {
-        qInfo().noquote() << "[PRESENTER] head[0]= "   << preview(m_sfenRecord->first());
-        qInfo().noquote() << "[PRESENTER] tail[last]= "<< preview(m_sfenRecord->last());
+        qCDebug(lcUi).noquote() << "head[0]= "   << preview(m_sfenRecord->first());
+        qCDebug(lcUi).noquote() << "tail[last]= "<< preview(m_sfenRecord->last());
     }
-    qInfo().noquote() << "[PRESENTER] pick[" << idx << "]= " << preview(sfen);
+    qCDebug(lcUi).noquote() << "pick[" << idx << "]= " << preview(sfen);
 
     // --- 追加: リスト全体に "position " 混入がないか軽くスキャン（最初の1件だけ報告） ---
     {
@@ -88,7 +88,7 @@ void BoardSyncPresenter::applySfenAtPly(int ply) const
             if (m_sfenRecord->at(i).startsWith(QLatin1String("position "))) { bad = i; break; }
         }
         if (bad >= 0) {
-            qWarning().noquote() << "[PRESENTER] *** NON-SFEN DETECTED in m_sfenRecord at index "
+            qCWarning(lcUi).noquote() << "*** NON-SFEN DETECTED in m_sfenRecord at index "
                                  << bad << ": " << preview(m_sfenRecord->at(bad));
         }
     }
@@ -99,13 +99,13 @@ void BoardSyncPresenter::applySfenAtPly(int ply) const
         const int to   = qMin(size - 1, idx + 3);
         for (int i = from; i <= to; ++i) {
             const QString p = m_sfenRecord->at(i);
-            qInfo().noquote() << QString("[PRESENTER] win[%1]= %2").arg(i).arg(preview(p));
+            qCDebug(lcUi).noquote() << QString("win[%1]= %2").arg(i).arg(preview(p));
         }
     }
 
     // --- 追加: pick文字列の基本妥当性チェック ---
     if (sfen.startsWith(QLatin1String("position "))) {
-        qWarning() << "[PRESENTER] *** NON-SFEN passed to presenter (starts with 'position ') at idx=" << idx;
+        qCWarning(lcUi) << "*** NON-SFEN passed to presenter (starts with 'position ') at idx=" << idx;
     }
 
     const QStringList parts = sfen.split(QLatin1Char(' '), Qt::KeepEmptyParts);
@@ -115,7 +115,7 @@ void BoardSyncPresenter::applySfenAtPly(int ply) const
         const QString& standField = parts[2];
         const QString& moveField  = parts[3];
 
-        qInfo().noquote() << "[PRESENTER] fields"
+        qCDebug(lcUi).noquote() << "fields"
                           << " board=" << boardField
                           << " turn=" << turnField
                           << " stand=" << standField
@@ -124,50 +124,50 @@ void BoardSyncPresenter::applySfenAtPly(int ply) const
         // 9段の盤 → スラッシュは8本のはず
         const int slashCount = static_cast<int>(boardField.count(QLatin1Char('/')));
         if (slashCount != 8) {
-            qWarning() << "[PRESENTER] suspicious board field: slashCount=" << slashCount << "(expected 8)";
+            qCWarning(lcUi) << "suspicious board field: slashCount=" << slashCount << "(expected 8)";
         }
 
         if (turnField != QLatin1String("b") && turnField != QLatin1String("w")) {
-            qWarning() << "[PRESENTER] suspicious turn field:" << turnField;
+            qCWarning(lcUi) << "suspicious turn field:" << turnField;
         }
 
         bool moveOk = false;
         const int moveNum = moveField.toInt(&moveOk);
         if (!moveOk || moveNum <= 0) {
-            qWarning() << "[PRESENTER] suspicious move field:" << moveField;
+            qCWarning(lcUi) << "suspicious move field:" << moveField;
         }
 
         if (idx == 0) {
             if (moveField != QLatin1String("1")) {
-                qWarning() << "[PRESENTER] head move number is not 1:" << moveField;
+                qCWarning(lcUi) << "head move number is not 1:" << moveField;
             }
         }
 
         // 終局行の場合、最後の SFEN の move 番号と reqPly の関係をメモ
         if (isTerminalRow) {
-            qInfo().noquote()
-            << QString("[PRESENTER] terminal note: last SFEN's move=%1, reqPly=%2 (no new SFEN for resignation)")
+            qCDebug(lcUi).noquote()
+            << QString("terminal note: last SFEN's move=%1, reqPly=%2 (no new SFEN for resignation)")
                     .arg(moveField).arg(ply);
         }
 
     } else {
-        qWarning().noquote() << "[PRESENTER] fields malformed (need 4 parts) size="
+        qCWarning(lcUi).noquote() << "fields malformed (need 4 parts) size="
                              << parts.size() << " sfen=" << preview(sfen);
     }
 
     // --- 実適用（前後でログ） ---
-    qInfo().noquote() << "[PRESENTER] setSfen() <= " << preview(sfen);
+    qCDebug(lcUi).noquote() << "setSfen() <= " << preview(sfen);
     m_gc->board()->setSfen(sfen);
-    qInfo() << "[PRESENTER] setSfen() applied";
+    qCDebug(lcUi) << "setSfen() applied";
 
     if (m_view) {
         m_view->applyBoardAndRender(m_gc->board());
-        qInfo() << "[PRESENTER] view->applyBoardAndRender() done";
+        qCDebug(lcUi) << "view->applyBoardAndRender() done";
     }
 
     // トレーラ：この関数は「盤面適用」担当。
     // 投了など終局行のハイライト消去は syncBoardAndHighlightsAtRow() 側で行う想定。
-    qInfo().noquote() << "[PRESENTER] applySfenAtPly leave"
+    qCDebug(lcUi).noquote() << "applySfenAtPly leave"
                       << " reqPly=" << ply
                       << " idx=" << idx
                       << " terminalRow=" << isTerminalRow;
@@ -176,14 +176,14 @@ void BoardSyncPresenter::applySfenAtPly(int ply) const
 // 盤面・ハイライト同期（行 → 盤面）
 void BoardSyncPresenter::syncBoardAndHighlightsAtRow(int ply) const
 {
-    qDebug().noquote() << "[PRESENTER] syncBoardAndHighlightsAtRow CALLED"
+    qCDebug(lcUi).noquote() << "syncBoardAndHighlightsAtRow CALLED"
                        << "ply=" << ply
                        << "m_sfenRecord*=" << static_cast<const void*>(m_sfenRecord)
                        << "m_sfenRecord.size=" << (m_sfenRecord ? m_sfenRecord->size() : -1);
 
     // 依存チェック
     if (!m_sfenRecord || !m_gc || !m_gc->board()) {
-        qWarning().noquote() << "[PRESENTER] syncBoardAndHighlightsAtRow ABORT:"
+        qCDebug(lcUi).noquote() << "syncBoardAndHighlightsAtRow ABORT:"
                            << "sfenRecord*=" << static_cast<const void*>(m_sfenRecord)
                            << "sfenRecord.empty?=" << (m_sfenRecord ? m_sfenRecord->isEmpty() : true)
                            << "gc*=" << static_cast<const void*>(m_gc)
@@ -195,15 +195,15 @@ void BoardSyncPresenter::syncBoardAndHighlightsAtRow(int ply) const
     const int size   = static_cast<int>(m_sfenRecord->size());
     const int maxIdx = size - 1;
     if (maxIdx < 0) {
-        qWarning().noquote() << "[PRESENTER] syncBoardAndHighlightsAtRow: EMPTY sfenRecord! ply=" << ply;
+        qCDebug(lcUi).noquote() << "syncBoardAndHighlightsAtRow: EMPTY sfenRecord! ply=" << ply;
         return;
     }
 
     const bool isTerminalRow = (ply > maxIdx);
     const int  safePly       = qBound(0, ply, maxIdx);
 
-    qDebug().noquote()
-        << "[PRESENTER] syncBoardAndHighlightsAtRow processing"
+    qCDebug(lcUi).noquote()
+        << "syncBoardAndHighlightsAtRow processing"
         << " reqPly=" << ply
         << " safePly=" << safePly
         << " size=" << size
@@ -212,9 +212,9 @@ void BoardSyncPresenter::syncBoardAndHighlightsAtRow(int ply) const
 
     // デバッグ: sfenRecordの先頭と末尾を表示
     if (size > 0) {
-        qDebug().noquote() << "[PRESENTER] sfenRecord[0]=" << m_sfenRecord->at(0).left(60);
+        qCDebug(lcUi).noquote() << "sfenRecord[0]=" << m_sfenRecord->at(0).left(60);
         if (safePly > 0 && safePly < size) {
-            qDebug().noquote() << "[PRESENTER] sfenRecord[" << safePly << "]=" << m_sfenRecord->at(safePly).left(60);
+            qCDebug(lcUi).noquote() << "sfenRecord[" << safePly << "]=" << m_sfenRecord->at(safePly).left(60);
         }
     }
 
@@ -224,13 +224,13 @@ void BoardSyncPresenter::syncBoardAndHighlightsAtRow(int ply) const
 
     // ハイライト器（BIC）が無ければここで終了（盤面だけは更新済み）
     if (!m_bic) {
-        qDebug().noquote() << "[PRESENTER] syncBoardAndHighlightsAtRow: no BIC; skip highlights";
+        qCDebug(lcUi).noquote() << "syncBoardAndHighlightsAtRow: no BIC; skip highlights";
         return;
     }
 
     // 開始局面（0手目）や終端行（投了等）の行はハイライト消去のみ
     if (safePly <= 0 || isTerminalRow) {
-        qDebug().noquote() << "[PRESENTER] syncBoardAndHighlightsAtRow: clear highlights"
+        qCDebug(lcUi).noquote() << "syncBoardAndHighlightsAtRow: clear highlights"
                            << " reason=" << (safePly<=0 ? "startpos" : "terminalRow");
         m_bic->clearAllHighlights();
         return;
@@ -362,14 +362,14 @@ void BoardSyncPresenter::syncBoardAndHighlightsAtRow(int ply) const
     if (!ok) {
         // フォールバック：対局中に積んだ m_gameMoves（HvH等）を参照
         const int mvIdx = safePly - 1;
-        qDebug().noquote() << "[PRESENTER] highlight: SFEN diff failed, trying fallback"
+        qCDebug(lcUi).noquote() << "highlight: SFEN diff failed, trying fallback"
                            << " safePly=" << safePly
                            << " mvIdx=" << mvIdx
                            << " gameMoves=" << (m_gameMoves ? QString::number(m_gameMoves->size()) : "null")
                            << " prev=" << prev.left(50)
                            << " curr=" << curr.left(50);
         if (!m_gameMoves || mvIdx < 0 || mvIdx >= m_gameMoves->size()) {
-            qDebug().noquote() << "[PRESENTER] highlight: fallback FAILED, clearing highlights"
+            qCDebug(lcUi).noquote() << "highlight: fallback FAILED, clearing highlights"
                                << " reason=" << (!m_gameMoves ? "gameMoves null" :
                                                  (mvIdx < 0 ? "mvIdx<0" : "mvIdx>=size"));
             m_bic->clearAllHighlights();
@@ -378,7 +378,7 @@ void BoardSyncPresenter::syncBoardAndHighlightsAtRow(int ply) const
         const ShogiMove& last = m_gameMoves->at(mvIdx);
         const bool hasFrom = (last.fromSquare.x() >= 0 && last.fromSquare.y() >= 0);
 
-        qDebug().noquote() << "[PRESENTER] highlight(fallback:gameMoves)"
+        qCDebug(lcUi).noquote() << "highlight(fallback:gameMoves)"
                            << " mvIdx=" << mvIdx
                            << " from=(" << last.fromSquare.x() << "," << last.fromSquare.y() << ")"
                            << " to=("   << last.toSquare.x()   << "," << last.toSquare.y()   << ")"
@@ -398,7 +398,7 @@ void BoardSyncPresenter::syncBoardAndHighlightsAtRow(int ply) const
 
     const QPoint to1   = toOne(to);
     const bool   hasFrom = (from.x() >= 0 && from.y() >= 0);
-    qDebug().noquote() << "[PRESENTER] highlight(by sfen-diff)"
+    qCDebug(lcUi).noquote() << "highlight(by sfen-diff)"
                        << " ply=" << safePly
                        << " from=(" << from.x() << "," << from.y() << ")"
                        << " to=("   << to.x()   << "," << to.y()   << ")"
@@ -411,7 +411,7 @@ void BoardSyncPresenter::syncBoardAndHighlightsAtRow(int ply) const
     } else if (!droppedPiece.isNull()) {
         // 駒打ち：打った駒種から駒台の疑似座標を取得
         const QPoint standCoord = pieceToStandCoord(droppedPiece);
-        qDebug().noquote() << "[PRESENTER] drop highlight: piece=" << droppedPiece
+        qCDebug(lcUi).noquote() << "drop highlight: piece=" << droppedPiece
                            << " standCoord=(" << standCoord.x() << "," << standCoord.y() << ")";
         m_bic->showMoveHighlights(standCoord, to1);
     } else {
@@ -427,12 +427,12 @@ void BoardSyncPresenter::clearHighlights() const
 
 void BoardSyncPresenter::loadBoardWithHighlights(const QString& currentSfen, const QString& prevSfen) const
 {
-    qDebug().noquote() << "[PRESENTER] loadBoardWithHighlights ENTER"
+    qCDebug(lcUi).noquote() << "loadBoardWithHighlights ENTER"
                        << "currentSfen=" << currentSfen.left(40)
                        << "prevSfen=" << (prevSfen.isEmpty() ? "(empty)" : prevSfen.left(40));
 
     if (currentSfen.isEmpty()) {
-        qWarning() << "[PRESENTER] loadBoardWithHighlights: empty currentSfen, skipping";
+        qCWarning(lcUi) << "loadBoardWithHighlights: empty currentSfen, skipping";
         return;
     }
 
@@ -444,14 +444,14 @@ void BoardSyncPresenter::loadBoardWithHighlights(const QString& currentSfen, con
 
     // 2. ハイライトを計算・表示
     if (!m_bic) {
-        qWarning() << "[PRESENTER] loadBoardWithHighlights: m_bic is null, skipping highlights";
+        qCWarning(lcUi) << "loadBoardWithHighlights: m_bic is null, skipping highlights";
         return;
     }
 
     // 開始局面（prevSfenが空）の場合はハイライトをクリア
     if (prevSfen.isEmpty()) {
         m_bic->clearAllHighlights();
-        qDebug() << "[PRESENTER] loadBoardWithHighlights: cleared highlights (start position)";
+        qCDebug(lcUi) << "loadBoardWithHighlights: cleared highlights (start position)";
         return;
     }
 
@@ -519,7 +519,7 @@ void BoardSyncPresenter::loadBoardWithHighlights(const QString& currentSfen, con
     bool ok = deduceByDiff(prevSfen, currentSfen, from, to, droppedPiece);
 
     if (!ok) {
-        qDebug() << "[PRESENTER] loadBoardWithHighlights: SFEN diff failed, clearing highlights";
+        qCDebug(lcUi) << "loadBoardWithHighlights: SFEN diff failed, clearing highlights";
         m_bic->clearAllHighlights();
         return;
     }
@@ -527,7 +527,7 @@ void BoardSyncPresenter::loadBoardWithHighlights(const QString& currentSfen, con
     const QPoint to1 = toOne(to);
     const bool hasFrom = (from.x() >= 0 && from.y() >= 0);
 
-    qDebug().noquote() << "[PRESENTER] loadBoardWithHighlights: highlight"
+    qCDebug(lcUi).noquote() << "loadBoardWithHighlights: highlight"
                        << "from=(" << from.x() << "," << from.y() << ")"
                        << "to=(" << to.x() << "," << to.y() << ")"
                        << "hasFrom=" << hasFrom;
@@ -540,5 +540,5 @@ void BoardSyncPresenter::loadBoardWithHighlights(const QString& currentSfen, con
         m_bic->showMoveHighlights(QPoint(-1, -1), to1);
     }
 
-    qDebug() << "[PRESENTER] loadBoardWithHighlights LEAVE";
+    qCDebug(lcUi) << "loadBoardWithHighlights LEAVE";
 }

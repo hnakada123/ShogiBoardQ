@@ -409,7 +409,7 @@ void ShogiBoard::setSfen(const QString& sfenStr)
 
     {
         const QString preview = (sfenStr.size() > 200) ? sfenStr.left(200) + " ..." : sfenStr;
-        qCInfo(lcCore, "setSfen: %s", qUtf8Printable(preview));
+        qCDebug(lcCore, "setSfen: %s", qUtf8Printable(preview));
         if (sfenStr.startsWith(QLatin1String("position "))) {
             qCWarning(lcCore, "NON-SFEN passed to setSfen (caller bug)");
         }

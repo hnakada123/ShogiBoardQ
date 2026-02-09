@@ -2,6 +2,7 @@
 /// @brief 分岐候補リストモデルクラスの実装
 
 #include "kifubranchlistmodel.h"
+#include "loggingcategory.h"
 #include <QBrush>
 #include <QColor>
 #include <QFont>
@@ -98,11 +99,11 @@ QVariant KifuBranchListModel::headerData(int section, Qt::Orientation orientatio
 
 void KifuBranchListModel::clearBranchCandidates()
 {
-    qDebug().noquote() << "[BRANCH-MODEL] clearBranchCandidates called, list.size was:" << list.size()
-                       << "locked=" << m_locked;
+    qCDebug(lcUi).noquote() << "clearBranchCandidates called, list.size was:" << list.size()
+                            << "locked=" << m_locked;
     // ロック中は外部からのクリアを無視
     if (m_locked) {
-        qDebug().noquote() << "[BRANCH-MODEL] clearBranchCandidates: IGNORED (locked)";
+        qCDebug(lcUi).noquote() << "clearBranchCandidates: IGNORED (locked)";
         return;
     }
     beginResetModel();
@@ -114,7 +115,7 @@ void KifuBranchListModel::clearBranchCandidates()
 
 void KifuBranchListModel::resetBranchCandidates()
 {
-    qDebug().noquote() << "[BRANCH-MODEL] resetBranchCandidates called";
+    qCDebug(lcUi).noquote() << "resetBranchCandidates called";
     beginResetModel();
     qDeleteAll(list);
     list.clear();
@@ -126,12 +127,12 @@ void KifuBranchListModel::setBranchCandidatesFromKif(const QList<KifDisplayItem>
 {
     QStringList s; s.reserve(rows.size());
     for (qsizetype i=0;i<rows.size();++i) s << rows[i].prettyMove;
-    qDebug().noquote() << "[BRANCH-MODEL] setBranchCandidatesFromKif:" << rows.size() << "items:" << s.join(", ")
-                       << "locked=" << m_locked;
+    qCDebug(lcUi).noquote() << "setBranchCandidatesFromKif:" << rows.size() << "items:" << s.join(", ")
+                            << "locked=" << m_locked;
 
     // ロック中は外部からの設定を無視
     if (m_locked) {
-        qDebug().noquote() << "[BRANCH-MODEL] setBranchCandidatesFromKif: IGNORED (locked)";
+        qCDebug(lcUi).noquote() << "setBranchCandidatesFromKif: IGNORED (locked)";
         return;
     }
 
@@ -164,7 +165,7 @@ void KifuBranchListModel::updateBranchCandidates(const QList<KifDisplayItem>& ro
 {
     QStringList s; s.reserve(rows.size());
     for (qsizetype i=0;i<rows.size();++i) s << rows[i].prettyMove;
-    qDebug().noquote() << "[BRANCH-MODEL] updateBranchCandidates:" << rows.size() << "items:" << s.join(", ");
+    qCDebug(lcUi).noquote() << "updateBranchCandidates:" << rows.size() << "items:" << s.join(", ");
 
     beginResetModel();
     qDeleteAll(list);
@@ -230,8 +231,8 @@ void KifuBranchListModel::setActiveNode(int nodeId)
     emit activeNodeChanged(nodeId);
 
     const auto& n = m_nodes[nodeId];
-    qDebug().nospace()
-        << "[BRANCH-MODEL] active nodeId=" << nodeId
+    qCDebug(lcUi).nospace()
+        << "active nodeId=" << nodeId
         << " vid=" << n.vid << " ply=" << n.ply
         << " row=" << n.row << " prev=" << n.prevId
         << " nexts=" << n.nextIds.size();

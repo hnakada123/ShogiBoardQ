@@ -123,7 +123,7 @@ void GameStartCoordinator::start(const StartParams& params)
 
     // --- 5) 完了通知 ---
     emit started(params.opt);
-    qCInfo(lcGame).noquote() << "started: mode="
+    qCDebug(lcGame).noquote() << "started: mode="
                        << static_cast<int>(params.opt.mode);
 }
 
@@ -146,7 +146,7 @@ void GameStartCoordinator::prepare(const Request& req)
     emit requestApplyTimeControl(tc);
     emit applyTimeControlRequested(tc);
 
-    qCInfo(lcGame).noquote()
+    qCDebug(lcGame).noquote()
         << "normalized TimeControl: "
         << " enabled=" << tc.enabled
         << " P1{base=" << tc.p1.baseMs << "  byo=" << tc.p1.byoyomiMs << "  inc=" << tc.p1.incrementMs << " }"
@@ -857,14 +857,14 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
 
             startingRow = keepIdx;
 
-            qCInfo(lcGame).noquote()
+            qCDebug(lcGame).noquote()
                 << "seed-resume: kept(0.." << keepIdx << ") size=" << c.sfenRecord->size()
                 << " head=" << (c.sfenRecord->isEmpty() ? QString("<empty>") : c.sfenRecord->first());
         } else {
             c.sfenRecord->clear();
             c.sfenRecord->append(seedSfen);
 
-            qCInfo(lcGame).noquote()
+            qCDebug(lcGame).noquote()
                 << "seed: sfenRecord*=" << static_cast<const void*>(c.sfenRecord)
                 << " size=" << c.sfenRecord->size()
                 << " head=" << (c.sfenRecord->isEmpty() ? QString("<empty>") : c.sfenRecord->first());
@@ -875,7 +875,7 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
 
     // --- 4) PlayMode を SFEN手番と整合させて最終決定 ---
     PlayMode mode = determinePlayModeAlignedWithTurn(initPosNo, p1Human, p2Human, seedSfen);
-    qCInfo(lcGame) << "Final PlayMode =" << static_cast<int>(mode) << "  startSfen=" << seedSfen;
+    qCDebug(lcGame) << "Final PlayMode =" << static_cast<int>(mode) << "  startSfen=" << seedSfen;
 
     // --- 5) StartOptions 構築 ---
     if (!m_match) {

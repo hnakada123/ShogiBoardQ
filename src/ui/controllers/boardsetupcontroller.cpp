@@ -3,7 +3,7 @@
 
 #include "boardsetupcontroller.h"
 
-#include <QDebug>
+#include "loggingcategory.h"
 #include <QTimer>
 #include <QWheelEvent>
 #include <QEvent>
@@ -176,7 +176,7 @@ void BoardSetupController::setupBoardInteractionController()
 void BoardSetupController::connectBoardClicks()
 {
     if (!m_shogiView || !m_boardController) {
-        qWarning() << "[BoardSetup] connectBoardClicks: missing shogiView or boardController";
+        qCWarning(lcUi) << "connectBoardClicks: missing shogiView or boardController";
         return;
     }
 
@@ -192,7 +192,7 @@ void BoardSetupController::connectBoardClicks()
 void BoardSetupController::connectMoveRequested()
 {
     if (!m_boardController) {
-        qWarning() << "[BoardSetup] connectMoveRequested: missing boardController";
+        qCWarning(lcUi) << "connectMoveRequested: missing boardController";
         return;
     }
 
@@ -208,8 +208,8 @@ void BoardSetupController::connectMoveRequested()
 
 void BoardSetupController::onMoveRequested(const QPoint& from, const QPoint& to)
 {
-    qInfo() << "[BoardSetup] onMoveRequested from=" << from << " to=" << to
-            << " m_playMode=" << int(m_playMode);
+    qCDebug(lcUi) << "onMoveRequested from=" << from << " to=" << to
+                 << " m_playMode=" << int(m_playMode);
 
     // --- 編集モードは Controller へ丸投げ ---
     if (m_boardController && m_boardController->mode() == BoardInteractionController::Mode::Edit) {
@@ -219,21 +219,21 @@ void BoardSetupController::onMoveRequested(const QPoint& from, const QPoint& to)
         if (!m_posEdit || !m_shogiView || !m_gameController) return;
 
         const bool ok = m_posEdit->applyEditMove(from, to, m_shogiView, m_gameController, m_boardController);
-        if (!ok) qInfo() << "[BoardSetup] editPosition failed (edit-mode move rejected)";
+        if (!ok) qCDebug(lcUi) << "editPosition failed (edit-mode move rejected)";
         return;
     }
 
     // ▼▼▼ 通常対局 ▼▼▼
     if (!m_gameController) {
-        qWarning() << "[BoardSetup][WARN] m_gameController is null";
+        qCWarning(lcUi) << "m_gameController is null";
         return;
     }
 
     PlayMode matchMode = (m_match ? m_match->playMode() : PlayMode::NotStarted);
     PlayMode modeNow   = (m_playMode != PlayMode::NotStarted) ? m_playMode : matchMode;
 
-    qInfo() << "[BoardSetup] effective modeNow=" << int(modeNow)
-            << "(ui m_playMode=" << int(m_playMode) << ", matchMode=" << int(matchMode) << ")";
+    qCDebug(lcUi) << "effective modeNow=" << int(modeNow)
+                 << "(ui m_playMode=" << int(m_playMode) << ", matchMode=" << int(matchMode) << ")";
 
     // 着手前の手番
     const auto moverBefore = m_gameController->currentPlayer();
@@ -251,7 +251,7 @@ void BoardSetupController::onMoveRequested(const QPoint& from, const QPoint& to)
 
     if (m_boardController) m_boardController->onMoveApplied(hFrom, hTo, ok);
     if (!ok) {
-        qInfo() << "[BoardSetup] validateAndMove failed (human move rejected)";
+        qCDebug(lcUi) << "validateAndMove failed (human move rejected)";
         return;
     }
 
@@ -265,7 +265,7 @@ void BoardSetupController::onMoveRequested(const QPoint& from, const QPoint& to)
     // --- 対局モードごとの後処理 ---
     switch (modeNow) {
     case PlayMode::HumanVsHuman: {
-        qInfo() << "[BoardSetup] HvH: delegate post-human-move to MatchCoordinator";
+        qCDebug(lcUi) << "HvH: delegate post-human-move to MatchCoordinator";
         if (m_match) {
             m_match->onHumanMove_HvH(moverBefore);
         }
@@ -304,25 +304,25 @@ void BoardSetupController::onMoveRequested(const QPoint& from, const QPoint& to)
     case PlayMode::EvenEngineVsHuman:
     case PlayMode::HandicapEngineVsHuman:
         if (m_match) {
-            qInfo() << "[BoardSetup] HvE: forwarding to MatchCoordinator::onHumanMove_HvE";
+            qCDebug(lcUi) << "HvE: forwarding to MatchCoordinator::onHumanMove_HvE";
             m_match->onHumanMove_HvE(hFrom, hTo, m_lastMove);
         }
         break;
 
     case PlayMode::CsaNetworkMode: {
-        qInfo() << "[BoardSetup] CsaNetworkMode: emitting csaMoveRequested";
-        qDebug() << "[CSA-DEBUG] BoardSetup: hFrom=" << hFrom << "hTo=" << hTo;
+        qCDebug(lcUi) << "CsaNetworkMode: emitting csaMoveRequested";
+        qCDebug(lcUi) << "BoardSetup: hFrom=" << hFrom << "hTo=" << hTo;
         // 成り判定（移動先が敵陣であれば成りダイアログを表示すべきだが、
         // ここでは簡易的にfalseを送信。実際には成り確認ダイアログが必要）
         bool promote = m_gameController ? m_gameController->promote() : false;
-        qDebug() << "[CSA-DEBUG] BoardSetup: promote=" << promote;
+        qCDebug(lcUi) << "BoardSetup: promote=" << promote;
         Q_EMIT csaMoveRequested(hFrom, hTo, promote);
-        qDebug() << "[CSA-DEBUG] BoardSetup: csaMoveRequested emitted";
+        qCDebug(lcUi) << "BoardSetup: csaMoveRequested emitted";
         break;
     }
 
     default:
-        qInfo() << "[BoardSetup] not a live play mode; skip post-handling";
+        qCDebug(lcUi) << "not a live play mode; skip post-handling";
         break;
     }
 }

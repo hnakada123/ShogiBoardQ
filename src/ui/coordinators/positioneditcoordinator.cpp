@@ -3,8 +3,9 @@
 
 #include "positioneditcoordinator.h"
 
-#include <QDebug>
 #include <QAction>
+
+#include "loggingcategory.h"
 
 #include "shogiview.h"
 #include "shogigamecontroller.h"
@@ -246,7 +247,7 @@ void PositionEditCoordinator::finishPositionEditing()
         *m_onMainRowGuard = prevGuard;
     }
 
-    qDebug() << "[PosEditCoord] finishPositionEditing: editMode="
+    qCDebug(lcUi) << "finishPositionEditing: editMode="
              << (m_shogiView ? m_shogiView->positionEditMode() : false)
              << " m_startSfenStr=" << (m_startSfenStr ? *m_startSfenStr : QString());
 }

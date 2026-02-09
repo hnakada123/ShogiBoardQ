@@ -7,7 +7,7 @@
 #include <QMenuBar>
 #include <QMenu>
 #include <QAction>
-#include <QDebug>
+#include "loggingcategory.h"
 
 MenuWindowWiring::MenuWindowWiring(const Dependencies& deps, QObject* parent)
     : QObject(parent)
@@ -31,7 +31,7 @@ void MenuWindowWiring::ensureMenuWindow()
     // カテゴリ情報を収集して設定
     collectCategoriesFromMenuBar();
 
-    qDebug().noquote() << "[MenuWindowWiring] MenuWindow created and connected";
+    qCDebug(lcUi) << "MenuWindow created and connected";
 }
 
 void MenuWindowWiring::displayMenuWindow()

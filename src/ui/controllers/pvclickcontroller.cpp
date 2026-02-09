@@ -3,7 +3,7 @@
 
 #include "pvclickcontroller.h"
 
-#include <QDebug>
+#include "loggingcategory.h"
 
 #include "shogienginethinkingmodel.h"
 #include "usicommlogmodel.h"
@@ -118,7 +118,7 @@ void PvClickController::setCurrentRecordIndex(int index)
     // The PV dialog uses record->baseSfen() which contains the position
     // from when the PV was generated, not the currently selected position in kifu.
     m_currentRecordIndex = index;
-    qDebug() << "[PvClick] setCurrentRecordIndex:" << index << "(not used for PV display)";
+    qCDebug(lcUi) << "setCurrentRecordIndex:" << index << "(not used for PV display)";
 }
 
 // --------------------------------------------------------
@@ -127,7 +127,7 @@ void PvClickController::setCurrentRecordIndex(int index)
 
 void PvClickController::onPvRowClicked(int engineIndex, int row)
 {
-    qDebug() << "[PvClick] onPvRowClicked: engineIndex=" << engineIndex << " row=" << row;
+    qCDebug(lcUi) << "onPvRowClicked: engineIndex=" << engineIndex << " row=" << row;
 
     // 対象のモデルを取得
     // engineIndex: 0=エンジン1, 1=エンジン2, 2=検討タブ
@@ -140,29 +140,29 @@ void PvClickController::onPvRowClicked(int engineIndex, int row)
         model = m_considerationModel;
     }
     if (!model) {
-        qDebug() << "[PvClick] onPvRowClicked: model is null";
+        qCDebug(lcUi) << "onPvRowClicked: model is null";
         return;
     }
 
     // モデルの行数をチェック
     if (row < 0 || row >= model->rowCount()) {
-        qDebug() << "[PvClick] onPvRowClicked: row out of range";
+        qCDebug(lcUi) << "onPvRowClicked: row out of range";
         return;
     }
 
     // ShogiInfoRecord を取得
     const ShogiInfoRecord* record = model->recordAt(row);
     if (!record) {
-        qDebug() << "[PvClick] onPvRowClicked: record is null";
+        qCDebug(lcUi) << "onPvRowClicked: record is null";
         return;
     }
 
     // 読み筋（漢字表記）を取得
     QString kanjiPv = record->pv();
-    qDebug() << "[PvClick] onPvRowClicked: kanjiPv=" << kanjiPv;
+    qCDebug(lcUi) << "onPvRowClicked: kanjiPv=" << kanjiPv;
 
     if (kanjiPv.isEmpty()) {
-        qDebug() << "[PvClick] onPvRowClicked: kanjiPv is empty";
+        qCDebug(lcUi) << "onPvRowClicked: kanjiPv is empty";
         return;
     }
 
@@ -171,7 +171,7 @@ void PvClickController::onPvRowClicked(int engineIndex, int row)
     QStringList usiMoves;
     if (!usiPvStr.isEmpty()) {
         usiMoves = usiPvStr.split(' ', Qt::SkipEmptyParts);
-        qDebug() << "[PvClick] onPvRowClicked: usiMoves from record:" << usiMoves;
+        qCDebug(lcUi) << "onPvRowClicked: usiMoves from record:" << usiMoves;
     }
 
     // USI moves が空の場合、UsiCommLogModel から検索を試みる
@@ -185,16 +185,16 @@ void PvClickController::onPvRowClicked(int engineIndex, int row)
     // record->baseSfen() は読み筋生成時の局面SFENを保持している
     // m_currentRecordIndex は棋譜欄で選択中の位置なので、PV表示には使用しない
     QString currentSfen = resolveCurrentSfen(record->baseSfen());
-    qDebug() << "[PvClick] onPvRowClicked: currentSfen=" << currentSfen;
-    qDebug() << "[PvClick] onPvRowClicked: record->baseSfen()=" << record->baseSfen();
-    qDebug() << "[PvClick] onPvRowClicked: record->lastUsiMove()=" << record->lastUsiMove();
-    qDebug() << "[PvClick] onPvRowClicked: sfenRecord size=" << (m_sfenRecord ? m_sfenRecord->size() : -1);
+    qCDebug(lcUi) << "onPvRowClicked: currentSfen=" << currentSfen;
+    qCDebug(lcUi) << "onPvRowClicked: record->baseSfen()=" << record->baseSfen();
+    qCDebug(lcUi) << "onPvRowClicked: record->lastUsiMove()=" << record->lastUsiMove();
+    qCDebug(lcUi) << "onPvRowClicked: sfenRecord size=" << (m_sfenRecord ? m_sfenRecord->size() : -1);
 
     // 起動時の局面に至った最後の手を設定
     // ShogiInfoRecordから取得（読み筋生成時に保存された情報）
     QString lastUsiMove = record->lastUsiMove();
     QString prevSfenForHighlight;
-    qDebug() << "[PvClick] onPvRowClicked: lastUsiMove from record=" << lastUsiMove;
+    qCDebug(lcUi) << "onPvRowClicked: lastUsiMove from record=" << lastUsiMove;
 
     //重要: 読み筋生成時の局面に基づいてprevSfenを検索する
     // m_currentRecordIndex（棋譜欄で選択中の位置）ではなく、
@@ -208,26 +208,26 @@ void PvClickController::onPvRowClicked(int engineIndex, int row)
                 break;
             }
         }
-        qDebug() << "[PvClick] onPvRowClicked: found matchedIndexInRecord by baseSfen comparison=" << matchedIndexInRecord;
+        qCDebug(lcUi) << "onPvRowClicked: found matchedIndexInRecord by baseSfen comparison=" << matchedIndexInRecord;
     }
 
     // lastUsiMoveが空の場合、m_sfenRecordから前の局面を取得してハイライト計算用に使用
     if (matchedIndexInRecord > 0 && m_sfenRecord
         && matchedIndexInRecord - 1 < m_sfenRecord->size()) {
         prevSfenForHighlight = m_sfenRecord->at(matchedIndexInRecord - 1);
-        qDebug() << "[PvClick] onPvRowClicked: prevSfenForHighlight from m_sfenRecord["
-                 << (matchedIndexInRecord - 1) << "]";
+        qCDebug(lcUi) << "onPvRowClicked: prevSfenForHighlight from m_sfenRecord["
+                      << (matchedIndexInRecord - 1) << "]";
 
         // lastUsiMoveが空の場合、m_usiMovesから取得を試みる
         if (lastUsiMove.isEmpty() && m_usiMoves
             && !m_usiMoves->isEmpty() && matchedIndexInRecord - 1 < m_usiMoves->size()) {
             lastUsiMove = m_usiMoves->at(matchedIndexInRecord - 1);
-            qDebug() << "[PvClick] onPvRowClicked: lastUsiMove from m_usiMoves["
-                     << (matchedIndexInRecord - 1) << "]=" << lastUsiMove;
+            qCDebug(lcUi) << "onPvRowClicked: lastUsiMove from m_usiMoves["
+                         << (matchedIndexInRecord - 1) << "]=" << lastUsiMove;
         }
     }
-    qDebug() << "[PvClick] onPvRowClicked: prevSfenForHighlight="
-             << (prevSfenForHighlight.isEmpty() ? QStringLiteral("<empty>") : prevSfenForHighlight.left(60));
+    qCDebug(lcUi) << "onPvRowClicked: prevSfenForHighlight="
+                  << (prevSfenForHighlight.isEmpty() ? QStringLiteral("<empty>") : prevSfenForHighlight.left(60));
 
     // PvBoardDialog を表示
     PvBoardDialog* dlg = new PvBoardDialog(currentSfen, usiMoves, qobject_cast<QWidget*>(parent()));
@@ -246,19 +246,19 @@ void PvClickController::onPvRowClicked(int engineIndex, int row)
 
         // 開始局面の場合はlastUsiMoveは不要
         if (isStartposSfen(baseSfenNormalized)) {
-            qDebug() << "[PvClick] onPvRowClicked: start position detected, no lastUsiMove needed";
+            qCDebug(lcUi) << "onPvRowClicked: start position detected, no lastUsiMove needed";
         } else {
-            qDebug() << "[PvClick] onPvRowClicked: lastUsiMove is empty, will use diffSfenForHighlight";
+            qCDebug(lcUi) << "onPvRowClicked: lastUsiMove is empty, will use diffSfenForHighlight";
         }
     }
     if (!lastUsiMove.isEmpty()) {
-        qDebug() << "[PvClick] onPvRowClicked: calling setLastMove with:" << lastUsiMove;
+        qCDebug(lcUi) << "onPvRowClicked: calling setLastMove with:" << lastUsiMove;
         dlg->setLastMove(lastUsiMove);
     } else {
-        qDebug() << "[PvClick] onPvRowClicked: lastUsiMove is EMPTY, no highlight will be set";
+        qCDebug(lcUi) << "onPvRowClicked: lastUsiMove is EMPTY, no highlight will be set";
     }
     if (!prevSfenForHighlight.isEmpty()) {
-        qDebug() << "[PvClick] onPvRowClicked: calling setPrevSfenForHighlight";
+        qCDebug(lcUi) << "onPvRowClicked: calling setPrevSfenForHighlight";
         dlg->setPrevSfenForHighlight(prevSfenForHighlight);
     }
 
@@ -301,7 +301,7 @@ QStringList PvClickController::searchUsiMovesFromLog(UsiCommLogModel* logModel) 
                 QString pvPart = line.mid(pvPos + 4).trimmed();
                 usiMoves = pvPart.split(' ', Qt::SkipEmptyParts);
                 if (!usiMoves.isEmpty()) {
-                    qDebug() << "[PvClick] found usiMoves from log:" << usiMoves;
+                    qCDebug(lcUi) << "found usiMoves from log:" << usiMoves;
                     break;
                 }
             }
@@ -313,15 +313,15 @@ QStringList PvClickController::searchUsiMovesFromLog(UsiCommLogModel* logModel) 
 QString PvClickController::resolveCurrentSfen(const QString& baseSfen) const
 {
     QString currentSfen = baseSfen;
-    qDebug() << "[PvClick] baseSfen from record:" << currentSfen;
+    qCDebug(lcUi) << "baseSfen from record:" << currentSfen;
 
     // baseSfenが空の場合のフォールバック
     if (currentSfen.isEmpty() && m_sfenRecord && m_sfenRecord->size() >= 2) {
         currentSfen = m_sfenRecord->at(m_sfenRecord->size() - 2).trimmed();
-        qDebug() << "[PvClick] fallback to sfenRecord[size-2]:" << currentSfen;
+        qCDebug(lcUi) << "fallback to sfenRecord[size-2]:" << currentSfen;
     } else if (currentSfen.isEmpty() && m_sfenRecord && !m_sfenRecord->isEmpty()) {
         currentSfen = m_sfenRecord->first().trimmed();
-        qDebug() << "[PvClick] fallback to sfenRecord first:" << currentSfen;
+        qCDebug(lcUi) << "fallback to sfenRecord first:" << currentSfen;
     }
 
     // baseSfenがstartposでも、現在局面がstartposでないなら現在局面を優先
@@ -331,7 +331,7 @@ QString PvClickController::resolveCurrentSfen(const QString& baseSfen) const
             fallbackCurrent = m_sfenRecord->last().trimmed();
         }
         if (!fallbackCurrent.isEmpty() && !isStartposSfen(fallbackCurrent)) {
-            qDebug() << "[PvClick] override startpos baseSfen with currentSfen=" << fallbackCurrent;
+            qCDebug(lcUi) << "override startpos baseSfen with currentSfen=" << fallbackCurrent;
             currentSfen = fallbackCurrent;
         }
     }
@@ -382,12 +382,12 @@ void PvClickController::resolvePlayerNames(QString& blackName, QString& whiteNam
 QString PvClickController::resolveLastUsiMove() const
 {
     QString lastUsiMove;
-    qDebug() << "[PvClick] m_usiMoves size=" << (m_usiMoves ? m_usiMoves->size() : -1)
-             << " m_gameMoves size=" << (m_gameMoves ? m_gameMoves->size() : -1);
+    qCDebug(lcUi) << "m_usiMoves size=" << (m_usiMoves ? m_usiMoves->size() : -1)
+                  << " m_gameMoves size=" << (m_gameMoves ? m_gameMoves->size() : -1);
 
     if (m_usiMoves && !m_usiMoves->isEmpty()) {
         lastUsiMove = m_usiMoves->last();
-        qDebug() << "[PvClick] using m_usiMoves.last():" << lastUsiMove;
+        qCDebug(lcUi) << "using m_usiMoves.last():" << lastUsiMove;
     } else if (m_gameMoves && !m_gameMoves->isEmpty()) {
         // m_gameMovesから最後の手をUSI形式に変換
         const ShogiMove& lastMove = m_gameMoves->last();
@@ -396,10 +396,10 @@ QString PvClickController::resolveLastUsiMove() const
         int toFile = lastMove.toSquare.x() + 1;
         int toRank = lastMove.toSquare.y() + 1;
 
-        qDebug() << "[PvClick] lastMove from m_gameMoves (after +1):"
-                 << " fromFile=" << fromFile << " fromRank=" << fromRank
-                 << " toFile=" << toFile << " toRank=" << toRank
-                 << " isPromotion=" << lastMove.isPromotion;
+        qCDebug(lcUi) << "lastMove from m_gameMoves (after +1):"
+                      << " fromFile=" << fromFile << " fromRank=" << fromRank
+                      << " toFile=" << toFile << " toRank=" << toRank
+                      << " isPromotion=" << lastMove.isPromotion;
 
         if (lastMove.fromSquare.x() == 0 && lastMove.fromSquare.y() == 0) {
             // 駒打ちの場合: P*5e 形式
@@ -415,9 +415,9 @@ QString PvClickController::resolveLastUsiMove() const
                 lastUsiMove += '+';
             }
         }
-        qDebug() << "[PvClick] generated USI move:" << lastUsiMove;
+        qCDebug(lcUi) << "generated USI move:" << lastUsiMove;
     } else {
-        qDebug() << "[PvClick] both m_usiMoves and m_gameMoves are empty";
+        qCDebug(lcUi) << "both m_usiMoves and m_gameMoves are empty";
     }
 
     return lastUsiMove;

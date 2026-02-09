@@ -3,6 +3,7 @@
 
 #include "timecontrolutil.h"
 #include "gamestartcoordinator.h"
+#include "loggingcategory.h"
 #include "shogiclock.h"
 #include <QTime>
 
@@ -45,8 +46,8 @@ void applyToClock(
     const int finalInc1 = useByoyomi ? 0       : inc1Sec;
     const int finalInc2 = useByoyomi ? 0       : inc2Sec;
 
-    qDebug().noquote()
-        << "[TC] applyToClock:"
+    qCDebug(lcUi).noquote()
+        << "applyToClock:"
         << " limited=" << limited
         << " P1{baseSec=" << p1BaseSec << " byoSec=" << finalByo1 << " incSec=" << finalInc1 << "}"
         << " P2{baseSec=" << p2BaseSec << " byoSec=" << finalByo2 << " incSec=" << finalInc2 << "}";

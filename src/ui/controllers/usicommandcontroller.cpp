@@ -3,7 +3,7 @@
 
 #include "usicommandcontroller.h"
 
-#include <QDebug>
+#include "loggingcategory.h"
 
 #include "matchcoordinator.h"
 #include "engineanalysistab.h"
@@ -33,7 +33,7 @@ void UsiCommandController::appendStatus(const QString& text)
 
 void UsiCommandController::sendCommand(int target, const QString& command)
 {
-    qDebug().noquote() << "[UsiCommandController] sendCommand: target=" << target << "command=" << command;
+    qCDebug(lcUi).noquote() << "sendCommand: target=" << target << "command=" << command;
 
     Usi* usi1 = m_match ? m_match->primaryEngine() : nullptr;
     Usi* usi2 = m_match ? m_match->secondaryEngine() : nullptr;
@@ -41,9 +41,9 @@ void UsiCommandController::sendCommand(int target, const QString& command)
     const auto sendIfReady = [this, &command](Usi* engine, const QString& label) {
         if (engine && engine->isEngineRunning()) {
             engine->sendRaw(command);
-            qDebug().noquote() << "[UsiCommandController] Sent to" << label << ":" << command;
+            qCDebug(lcUi).noquote() << "Sent to" << label << ":" << command;
         } else {
-            qDebug().noquote() << "[UsiCommandController]" << label << "is not available or not running";
+            qCDebug(lcUi).noquote() << label << "is not available or not running";
             appendStatus(tr("%1: エンジンが起動していません").arg(label));
         }
     };

@@ -33,6 +33,31 @@ ShogiBoardQ プロジェクトにおけるデバッグ出力・ログの統一�
 - **開発者だけが必要とする情報** → `qDebug()` / `qCDebug()`
 - **運用中にログとして残すべき情報** → `qInfo()` 以上
 
+### `qCDebug` にすべき具体パターン
+
+以下のパターンは**必ず `qCDebug()`** を使用する。リリースビルドでは不要な開発者向け情報である。
+
+| パターン | 例 |
+|---------|-----|
+| 関数の入口/出口トレース | `"validateAndMove enter argMove="`, `"exit recSize="` |
+| ポインタアドレスの出力 | `"sfenRecord*=" << static_cast<const void*>(ptr)` |
+| 毎手呼ばれるSFEN/盤面出力 | `"setSfen:"`, `"last sfen ="` |
+| 処理フロー分岐の確認 | `"HvE: forwarding to ..."`, `"not a live play mode"` |
+| 変数値・内部状態のダンプ | `"effective modeNow="`, `"recSize(before)="` |
+| UI操作イベントの詳細 | `"onMoveRequested from= to="` |
+| タイマー遅延の診断 | `"updateClock elapsed=66ms"` |
+
+### `qCInfo` にすべき具体パターン
+
+以下のパターンのみ `qCInfo()` を使用する。アプリケーション起動時や運用中に**1回きりまたは低頻度**で出力される重要情報。
+
+| パターン | 例 |
+|---------|-----|
+| アプリ起動時の設定情報 | `"Language setting:"`, `"Application dir:"` |
+| エンジン/サーバーの起動・終了 | `"エンジン起動完了:"`, `"CSA接続"` |
+| 解析モードの開始・終了 | `"解析モード開始: MultiPV ="` |
+| ファイル読み込み成功（ファイル名） | `"棋譜読み込み完了:"` |
+
 ---
 
 ## 2. 出力フォーマット
@@ -195,9 +220,15 @@ qCDebug(lcNetwork) << "CSA送信:" << message;
 ゲーム状態、解析モード、接続状態などの変更。状態遷移のタイミングと順序の確認に必要。
 
 ```cpp
+// 頻繁に発生する内部状態変更 → qCDebug
 qCDebug(lcGame) << "状態遷移:" << oldState << "->" << newState;
+
+// ユーザー操作によるモード開始/終了（低頻度・運用情報） → qCInfo
 qCInfo(lcAnalysis) << "解析モード開始: MultiPV =" << multiPv;
 ```
+
+> **注意**: 迷った場合は `qCDebug` を選択する。`qCInfo` はリリースビルドで出力されるため、
+> 高頻度に呼ばれる可能性がある箇所では必ず `qCDebug` を使用すること。
 
 ### エラーハンドリング
 

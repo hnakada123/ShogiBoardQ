@@ -8,8 +8,9 @@
 #include <QMenu>
 #include <QInputDialog>
 #include <QMessageBox>
-#include <QDebug>
 #include <QAction>
+
+#include "loggingcategory.h"
 
 DockLayoutManager::DockLayoutManager(QMainWindow* mainWindow, QObject* parent)
     : QObject(parent)
@@ -290,7 +291,7 @@ void DockLayoutManager::restoreStartupLayoutIfSet()
             showAllDocks();
 
             m_mainWindow->restoreState(state);
-            qDebug() << "[DockLayoutManager] Restored startup layout:" << startupLayoutName;
+            qCInfo(lcUi) << "Restored startup layout:" << startupLayoutName;
         }
     }
 }

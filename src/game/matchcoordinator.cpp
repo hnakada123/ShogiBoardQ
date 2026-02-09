@@ -121,7 +121,7 @@ MatchCoordinator::MatchCoordinator(const Deps& d, QObject* parent)
     m_sfenRecord = d.sfenRecord;
 
     // デバッグ：どのリストを使うか明示
-    qCInfo(lcGame).noquote()
+    qCDebug(lcGame).noquote()
         << "shared sfenRecord*=" << static_cast<const void*>(m_sfenRecord)
         << " eveSfenRecord@=" << static_cast<const void*>(&m_eveSfenRecord);
 
