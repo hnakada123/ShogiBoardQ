@@ -644,6 +644,10 @@
    </property>
   </action>
   <action name="actionSfenCollectionViewer">
+   <property name="icon">
+    <iconset resource="../../resources/shogiboardq.qrc">
+     <normaloff>:/images/actions/actionPositionViewer.svg</normaloff>:/images/actions/actionPositionViewer.svg</iconset>
+   </property>
    <property name="text">
     <string>局面集ビューア</string>
    </property>

@@ -92,6 +92,12 @@ void SfenCollectionDialog::buildUi()
             this, &SfenCollectionDialog::onEnlargeBoard);
     zoomLayout->addWidget(m_btnEnlarge);
 
+    m_btnFlip = new QPushButton(tr("盤面の回転"), this);
+    m_btnFlip->setToolTip(tr("盤面を回転する"));
+    connect(m_btnFlip, &QPushButton::clicked,
+            this, &SfenCollectionDialog::onFlipBoard);
+    zoomLayout->addWidget(m_btnFlip);
+
     zoomLayout->addStretch();
     mainLayout->addLayout(zoomLayout);
 
@@ -330,6 +336,20 @@ void SfenCollectionDialog::onReduceBoard()
         hideClockLabels();
         adjustSize();
     }
+}
+
+void SfenCollectionDialog::onFlipBoard()
+{
+    if (!m_shogiView) return;
+
+    const bool flipped = !m_shogiView->getFlipMode();
+    m_shogiView->setFlipMode(flipped);
+    if (flipped) {
+        m_shogiView->setPiecesFlip();
+    } else {
+        m_shogiView->setPieces();
+    }
+    m_shogiView->update();
 }
 
 void SfenCollectionDialog::onSelectClicked()

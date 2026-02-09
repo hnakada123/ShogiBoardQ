@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+    <title>ドックレイアウトを保存</title>
+    
+    <!-- メインウィンドウ背景 -->
+    <rect x="0" y="0" width="128" height="128" rx="8" fill="#455A64"/>
+    
+    <!-- タイトルバー -->
+    <rect x="0" y="0" width="128" height="20" rx="8" fill="#607D8B"/>
+    <circle cx="14" cy="10" r="5" fill="#F44336"/>
+    <circle cx="30" cy="10" r="5" fill="#FFC107"/>
+    <circle cx="46" cy="10" r="5" fill="#4CAF50"/>
+    
+    <!-- ドッキングパネル：左サイドバー -->
+    <rect x="4" y="24" width="32" height="100" rx="4" fill="#78909C"/>
+    <rect x="8" y="28" width="24" height="8" rx="2" fill="#546E7A"/>
+    <rect x="8" y="40" width="24" height="4" rx="1" fill="#90A4AE"/>
+    <rect x="8" y="48" width="20" height="4" rx="1" fill="#90A4AE"/>
+    <rect x="8" y="56" width="22" height="4" rx="1" fill="#90A4AE"/>
+    
+    <!-- ドッキングパネル：メインエリア -->
+    <rect x="40" y="24" width="84" height="68" rx="4" fill="#ECEFF1"/>
+    <rect x="44" y="28" width="76" height="8" rx="2" fill="#B0BEC5"/>
+    <rect x="48" y="44" width="68" height="40" rx="2" fill="#CFD8DC"/>
+    
+    <!-- ドッキングパネル：ボトムパネル -->
+    <rect x="40" y="96" width="84" height="28" rx="4" fill="#78909C"/>
+    <rect x="44" y="100" width="32" height="6" rx="2" fill="#546E7A"/>
+    <rect x="80" y="100" width="40" height="6" rx="2" fill="#546E7A"/>
+    <rect x="44" y="110" width="76" height="4" rx="1" fill="#90A4AE"/>
+    <rect x="44" y="118" width="60" height="4" rx="1" fill="#90A4AE"/>
+    
+    <!-- 保存アイコン（フロッピーディスク） -->
+    <rect x="72" y="36" width="52" height="52" rx="6" fill="#4CAF50"/>
+    <rect x="82" y="36" width="32" height="20" fill="#388E3C"/>
+    <rect x="88" y="40" width="20" height="12" rx="2" fill="#C8E6C9"/>
+    <rect x="82" y="64" width="32" height="20" rx="3" fill="#E8F5E9"/>
+    <rect x="100" y="68" width="10" height="12" rx="1" fill="#81C784"/>
+</svg>

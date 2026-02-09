@@ -3341,7 +3341,7 @@ Please restart the application to apply the changes.</translation>
         <translation>Cancel Tsume Search</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="648"/>
+        <location filename="../../src/app/mainwindow.ui" line="652"/>
         <source>局面集ビューア</source>
         <translation>SFEN Collection Viewer</translation>
     </message>
@@ -3787,44 +3787,44 @@ Please restart the application to apply the changes.</translation>
         <translation>English</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="490"/>
+        <location filename="../../src/app/mainwindow.cpp" line="496"/>
         <source>Error</source>
         <translation>Error</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="689"/>
+        <location filename="../../src/app/mainwindow.cpp" line="695"/>
         <source>投了確認</source>
         <translation>Confirm Resignation</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="690"/>
+        <location filename="../../src/app/mainwindow.cpp" line="696"/>
         <source>本当に投了しますか？</source>
         <translation>Are you sure you want to resign?</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="754"/>
-        <location filename="../../src/app/mainwindow.cpp" line="769"/>
+        <location filename="../../src/app/mainwindow.cpp" line="760"/>
+        <location filename="../../src/app/mainwindow.cpp" line="775"/>
         <source>エラー</source>
         <translation>Error</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="754"/>
-        <location filename="../../src/app/mainwindow.cpp" line="769"/>
+        <location filename="../../src/app/mainwindow.cpp" line="760"/>
+        <location filename="../../src/app/mainwindow.cpp" line="775"/>
         <source>盤面データがありません。</source>
         <translation>No board data available.</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3817"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3823"/>
         <source>局面を反映しました</source>
         <translation>Position applied</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3819"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3825"/>
         <source>局面の反映に失敗しました</source>
         <translation>Failed to apply position</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3822"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3828"/>
         <source>局面の反映に失敗しました（内部エラー）</source>
         <translation>Failed to apply position (internal error)</translation>
     </message>
@@ -4025,17 +4025,17 @@ Are you sure you want to declare?</translation>
         <translation type="vanished">Entering King Declaration Result</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="281"/>
+        <location filename="../../src/app/mainwindow.cpp" line="274"/>
         <source>ドックレイアウトをリセット</source>
         <translation>Reset Dock Layout</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="286"/>
+        <location filename="../../src/app/mainwindow.cpp" line="280"/>
         <source>ドックレイアウトを保存...</source>
         <translation>Save Dock Layout...</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="291"/>
+        <location filename="../../src/app/mainwindow.cpp" line="286"/>
         <source>保存済みレイアウト</source>
         <translation>Saved Layouts</translation>
     </message>
@@ -4044,7 +4044,7 @@ Are you sure you want to declare?</translation>
         <translation type="vanished">Allow Docking</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="299"/>
+        <location filename="../../src/app/mainwindow.cpp" line="292"/>
         <source>ドックを固定</source>
         <translation>Lock Docks</translation>
     </message>
@@ -4119,12 +4119,12 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Clear Startup Layout</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1210"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1216"/>
         <source>棋譜ファイルを開く</source>
         <translation>Open Game Record File</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1211"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1217"/>
         <source>Kifu Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</source>
         <translation>Game Record Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</translation>
     </message>
@@ -4193,17 +4193,17 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Failed to auto-save game record: %1</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3791"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3797"/>
         <source>棋譜を取り込みました</source>
         <translation>Game record imported</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3793"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3799"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation>Failed to import game record</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3797"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3803"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation>Failed to import game record (internal error)</translation>
     </message>
@@ -4212,7 +4212,7 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Comment updated (move: %1)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3319"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3325"/>
         <source>コメントなし</source>
         <translation>No comment</translation>
     </message>
@@ -5495,7 +5495,7 @@ Are you sure you want to declare?</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="67"/>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="182"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="188"/>
         <source>SFEN局面集ファイルを開く</source>
         <translation>Open SFEN Collection File</translation>
     </message>
@@ -5510,62 +5510,72 @@ Are you sure you want to declare?</translation>
         <translation>Enlarge Board</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="110"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="95"/>
+        <source>盤面の回転</source>
+        <translation>Flip Board</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="96"/>
+        <source>盤面を回転する</source>
+        <translation>Flip the board</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="116"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="111"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="117"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="128"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="134"/>
         <source>最初の局面に移動</source>
         <translation>Go to First Position</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="135"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="141"/>
         <source>前の局面に移動</source>
         <translation>Go to Previous Position</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="142"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="148"/>
         <source>次の局面に移動</source>
         <translation>Go to Next Position</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="149"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="155"/>
         <source>最後の局面に移動</source>
         <translation>Go to Last Position</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="161"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="167"/>
         <source>選択</source>
         <translation>Select</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="163"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="169"/>
         <source>現在の局面をメインGUIに反映する</source>
         <translation>Apply the current position to the main board</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="168"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="174"/>
         <source>閉じる</source>
         <translation>Close</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="184"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="190"/>
         <source>テキストファイル (*.txt *.sfen);;すべてのファイル (*)</source>
         <translation>Text Files (*.txt *.sfen);;All Files (*)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="213"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="219"/>
         <source>ファイル: %1</source>
         <translation>File: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="265"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="271"/>
         <source>局面: %1 / %2</source>
         <translation>Position: %1 / %2</translation>
     </message>

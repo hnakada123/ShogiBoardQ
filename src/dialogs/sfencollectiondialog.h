@@ -46,6 +46,8 @@ private slots:
     void onEnlargeBoard();
     /// 将棋盤を縮小
     void onReduceBoard();
+    /// 盤面の回転
+    void onFlipBoard();
     /// 選択ボタン押下時の処理
     void onSelectClicked();
 
@@ -89,6 +91,7 @@ private:
     QPushButton* m_btnLast = nullptr;
     QPushButton* m_btnEnlarge = nullptr;
     QPushButton* m_btnReduce = nullptr;
+    QPushButton* m_btnFlip = nullptr;
     QPushButton* m_btnSelect = nullptr;
     QLabel* m_positionLabel = nullptr;  ///< 「局面: N / Total」表示
     QLabel* m_fileLabel = nullptr;      ///< 読み込んだファイル名表示
