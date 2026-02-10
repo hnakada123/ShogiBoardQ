@@ -13,6 +13,6 @@
   <ns1:namedview pagecolor="#ffffff" bordercolor="#666666" borderopacity="1" objecttolerance="10" gridtolerance="10" guidetolerance="10" ns2:pageopacity="0" ns2:pageshadow="2" ns2:window-width="1276" ns2:window-height="961" id="namedview16" showgrid="false" ns2:zoom="5.2444444" ns2:cx="-10.773305" ns2:cy="22.5" ns2:window-x="1377" ns2:window-y="722" ns2:window-maximized="0" ns2:current-layer="svg14" />
   <g transform="rotate(180,22.5,22.5)">
     <polygon points="10.47,6.65 4.48,42.79 40.52,43.00 34.84,6.75 22.76,2.00" fill="#FCE7B1" stroke="#AD885A" stroke-width="1.2" />
-    <text x="22.61" y="34.53" text-anchor="middle" dominant-baseline="middle" font-size="26.19" fill="black" font-family="serif">玉</text>
+    <text x="22.61" y="34.53" text-anchor="middle" font-size="26.19" fill="black" font-family="serif">玉</text>
   </g>
 </svg>
