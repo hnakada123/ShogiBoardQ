@@ -8,7 +8,7 @@
 ## Session 2: 第2章 将棋のドメイン知識
 
 ```
-docs/developer-guide.md に第2章「将棋のドメイン知識」を作成してください。
+docs/dev/developer-guide.md に第2章「将棋のドメイン知識」を作成してください。
 
 <!-- chapter-2-start --> と <!-- chapter-2-end --> の間のプレースホルダを
 実際の内容で置き換えてください。
@@ -37,7 +37,7 @@ docs/developer-guide.md に第2章「将棋のドメイン知識」を作成し�
 ## Session 3: 第3章 アーキテクチャ全体図
 
 ```
-docs/developer-guide.md に第3章「アーキテクチャ全体図」を作成してください。
+docs/dev/developer-guide.md に第3章「アーキテクチャ全体図」を作成してください。
 
 <!-- chapter-3-start --> と <!-- chapter-3-end --> の間のプレースホルダを
 実際の内容で置き換えてください。
@@ -65,7 +65,7 @@ docs/developer-guide.md に第3章「アーキテクチャ全体図」を作成�
 ## Session 4: 第4章 設計パターンとコーディング規約
 
 ```
-docs/developer-guide.md に第4章「設計パターンとコーディング規約」を作成してください。
+docs/dev/developer-guide.md に第4章「設計パターンとコーディング規約」を作成してください。
 
 <!-- chapter-4-start --> と <!-- chapter-4-end --> の間のプレースホルダを
 実際の内容で置き換えてください。
@@ -76,7 +76,7 @@ docs/developer-guide.md に第4章「設計パターンとコーディング規�
 - src/common/errorbus.h
 - src/app/mainwindow.h（ensure*() メソッド群）
 - src/ui/presenters/boardsyncpresenter.h（Presenterの実例）
-- docs/commenting-style-guide.md
+- docs/dev/commenting-style-guide.md
 
 記述してほしい内容:
 - Deps構造体パターン: 目的、構造、updateDeps()メソッド、実際のコードから引用した例
@@ -99,7 +99,7 @@ docs/developer-guide.md に第4章「設計パターンとコーディング規�
 ## Session 5: 第5章 core層
 
 ```
-docs/developer-guide.md に第5章「core層：純粋なゲームロジック」を作成してください。
+docs/dev/developer-guide.md に第5章「core層：純粋なゲームロジック」を作成してください。
 
 <!-- chapter-5-start --> と <!-- chapter-5-end --> の間のプレースホルダを
 実際の内容で置き換えてください。
@@ -130,7 +130,7 @@ docs/developer-guide.md に第5章「core層：純粋なゲームロジック」
 ## Session 6: 第6章 game層
 
 ```
-docs/developer-guide.md に第6章「game層：対局管理」を作成してください。
+docs/dev/developer-guide.md に第6章「game層：対局管理」を作成してください。
 
 <!-- chapter-6-start --> と <!-- chapter-6-end --> の間のプレースホルダを
 実際の内容で置き換えてください。
@@ -166,7 +166,7 @@ docs/developer-guide.md に第6章「game層：対局管理」を作成してく
 ## Session 7: 第7章 engine層
 
 ```
-docs/developer-guide.md に第7章「engine層：USIエンジン連携」を作成してください。
+docs/dev/developer-guide.md に第7章「engine層：USIエンジン連携」を作成してください。
 
 <!-- chapter-7-start --> と <!-- chapter-7-end --> の間のプレースホルダを
 実際の内容で置き換えてください。
@@ -201,7 +201,7 @@ docs/developer-guide.md に第7章「engine層：USIエンジン連携」を作�
 ## Session 8: 第8章 kifu層
 
 ```
-docs/developer-guide.md に第8章「kifu層：棋譜管理」を作成してください。
+docs/dev/developer-guide.md に第8章「kifu層：棋譜管理」を作成してください。
 
 <!-- chapter-8-start --> と <!-- chapter-8-end --> の間のプレースホルダを
 実際の内容で置き換えてください。
@@ -240,7 +240,7 @@ docs/developer-guide.md に第8章「kifu層：棋譜管理」を作成してく
 ## Session 9: 第9章 analysis層
 
 ```
-docs/developer-guide.md に第9章「analysis層：解析機能」を作成してください。
+docs/dev/developer-guide.md に第9章「analysis層：解析機能」を作成してください。
 
 <!-- chapter-9-start --> と <!-- chapter-9-end --> の間のプレースホルダを
 実際の内容で置き換えてください。
@@ -273,7 +273,7 @@ docs/developer-guide.md に第9章「analysis層：解析機能」を作成し�
 ## Session 10: 第10章 UI層
 
 ```
-docs/developer-guide.md に第10章「UI層：プレゼンテーション」を作成してください。
+docs/dev/developer-guide.md に第10章「UI層：プレゼンテーション」を作成してください。
 
 <!-- chapter-10-start --> と <!-- chapter-10-end --> の間のプレースホルダを
 実際の内容で置き換えてください。
@@ -311,7 +311,7 @@ docs/developer-guide.md に第10章「UI層：プレゼンテーション」を�
 ## Session 11: 第11章 views/widgets/dialogs層
 
 ```
-docs/developer-guide.md に第11章「views/widgets/dialogs層：Qt UI部品」を作成してください。
+docs/dev/developer-guide.md に第11章「views/widgets/dialogs層：Qt UI部品」を作成してください。
 
 <!-- chapter-11-start --> と <!-- chapter-11-end --> の間のプレースホルダを
 実際の内容で置き換えてください。
@@ -345,7 +345,7 @@ docs/developer-guide.md に第11章「views/widgets/dialogs層：Qt UI部品」�
 ## Session 12: 第12章 network層とservices層
 
 ```
-docs/developer-guide.md に第12章「network層とservices層」を作成してください。
+docs/dev/developer-guide.md に第12章「network層とservices層」を作成してください。
 
 <!-- chapter-12-start --> と <!-- chapter-12-end --> の間のプレースホルダを
 実際の内容で置き換えてください。
@@ -378,7 +378,7 @@ docs/developer-guide.md に第12章「network層とservices層」を作成して
 ## Session 13: 第13章 navigation層とboard層
 
 ```
-docs/developer-guide.md に第13章「navigation層とboard層」を作成してください。
+docs/dev/developer-guide.md に第13章「navigation層とboard層」を作成してください。
 
 <!-- chapter-13-start --> と <!-- chapter-13-end --> の間のプレースホルダを
 実際の内容で置き換えてください。
@@ -410,7 +410,7 @@ docs/developer-guide.md に第13章「navigation層とboard層」を作成して
 ## Session 14: 第14章 MainWindowの役割と構造
 
 ```
-docs/developer-guide.md に第14章「MainWindowの役割と構造」を作成してください。
+docs/dev/developer-guide.md に第14章「MainWindowの役割と構造」を作成してください。
 
 <!-- chapter-14-start --> と <!-- chapter-14-end --> の間のプレースホルダを
 実際の内容で置き換えてください。
@@ -443,7 +443,7 @@ docs/developer-guide.md に第14章「MainWindowの役割と構造」を作成�
 ## Session 15: 第15章 機能フロー詳解
 
 ```
-docs/developer-guide.md に第15章「機能フロー詳解」を作成してください。
+docs/dev/developer-guide.md に第15章「機能フロー詳解」を作成してください。
 
 <!-- chapter-15-start --> と <!-- chapter-15-end --> の間のプレースホルダを
 実際の内容で置き換えてください。
@@ -480,7 +480,7 @@ docs/developer-guide.md に第15章「機能フロー詳解」を作成してく
 ## Session 16: 第16章 国際化（i18n）と翻訳
 
 ```
-docs/developer-guide.md に第16章「国際化（i18n）と翻訳」を作成してください。
+docs/dev/developer-guide.md に第16章「国際化（i18n）と翻訳」を作成してください。
 
 <!-- chapter-16-start --> と <!-- chapter-16-end --> の間のプレースホルダを
 実際の内容で置き換えてください。
@@ -507,7 +507,7 @@ docs/developer-guide.md に第16章「国際化（i18n）と翻訳」を作成�
 ## Session 17: 第17章 新機能の追加ガイド
 
 ```
-docs/developer-guide.md に第17章「新機能の追加ガイド」を作成してください。
+docs/dev/developer-guide.md に第17章「新機能の追加ガイド」を作成してください。
 
 <!-- chapter-17-start --> と <!-- chapter-17-end --> の間のプレースホルダを
 実際の内容で置き換えてください。
@@ -517,7 +517,7 @@ docs/developer-guide.md に第17章「新機能の追加ガイド」を作成し
 - src/services/settingsservice.h/.cpp（設定追加の実例として）
 - src/app/mainwindow.h（ensure*()パターンの参照）
 - CLAUDE.md（SettingsService Update Guidelines、Code Style セクション）
-- docs/commenting-style-guide.md
+- docs/dev/commenting-style-guide.md
 
 記述してほしい内容:
 実践チュートリアル形式で、仮の新機能「棋譜にタグを付ける機能」を例に以下の手順を解説:
@@ -542,13 +542,13 @@ docs/developer-guide.md に第17章「新機能の追加ガイド」を作成し
 ## Session 18: 第18章 用語集・索引
 
 ```
-docs/developer-guide.md に第18章「用語集・索引」を作成してください。
+docs/dev/developer-guide.md に第18章「用語集・索引」を作成してください。
 
 <!-- chapter-18-start --> と <!-- chapter-18-end --> の間のプレースホルダを
 実際の内容で置き換えてください。
 
 主要参照ファイル:
-- docs/developer-guide.md（既存の全章を参照して索引を作成）
+- docs/dev/developer-guide.md（既存の全章を参照して索引を作成）
 - src/core/shogiutils.h（将棋用語の参照）
 
 記述してほしい内容:

@@ -1,6 +1,6 @@
 # デバッグ文移行プロンプト集
 
-`docs/debug-logging-guidelines.md` に従って、各モジュールの `qDebug()` を `QLoggingCategory` ベースに移行するためのプロンプト集。
+`docs/dev/debug-logging-guidelines.md` に従って、各モジュールの `qDebug()` を `QLoggingCategory` ベースに移行するためのプロンプト集。
 各プロンプトをそのままコピーして Claude Code に貼り付けることで、モジュール単位で移行を実行できる。
 
 ---
@@ -9,7 +9,7 @@
 
 以下のルールはすべてのプロンプトに適用される。プロンプト内で繰り返さない。
 
-1. **規約ファイルを必ず参照**: `docs/debug-logging-guidelines.md` を読んでから作業すること
+1. **規約ファイルを必ず参照**: `docs/dev/debug-logging-guidelines.md` を読んでから作業すること
 2. **レベル判断**:
    - 開発者トレース（変数値、処理フロー確認） → `qCDebug()`
    - 運用ログ（接続、起動/終了、設定変更） → `qCInfo()`
@@ -46,7 +46,7 @@
 src/core/ のデバッグ文を QLoggingCategory に移行してください。
 
 ## 規約
-docs/debug-logging-guidelines.md を読んで従ってください。
+docs/dev/debug-logging-guidelines.md を読んで従ってください。
 
 ## 対象ファイル（qDebug 箇所数）
 - shogiboard.cpp（50箇所）
@@ -84,7 +84,7 @@ docs/debug-logging-guidelines.md を読んで従ってください。
 src/views/shogiview.cpp のデバッグ文を QLoggingCategory に移行してください。
 
 ## 規約
-docs/debug-logging-guidelines.md を読んで従ってください。
+docs/dev/debug-logging-guidelines.md を読んで従ってください。
 
 ## 対象ファイル（qDebug 箇所数）
 - shogiview.cpp（19箇所）
@@ -120,7 +120,7 @@ docs/debug-logging-guidelines.md を読んで従ってください。
 src/network/ のデバッグ文を QLoggingCategory に移行してください。
 
 ## 規約
-docs/debug-logging-guidelines.md を読んで従ってください。
+docs/dev/debug-logging-guidelines.md を読んで従ってください。
 
 ## 対象ファイル（qDebug 箇所数）
 - csaclient.cpp（16箇所）
@@ -156,7 +156,7 @@ docs/debug-logging-guidelines.md を読んで従ってください。
 src/engine/ のデバッグ文を QLoggingCategory に移行してください。
 
 ## 規約
-docs/debug-logging-guidelines.md を読んで従ってください。
+docs/dev/debug-logging-guidelines.md を読んで従ってください。
 
 ## 対象ファイル（qDebug 箇所数）
 - usi.cpp（21箇所）
@@ -205,7 +205,7 @@ engineprocessmanager.cpp の logPrefix() は動的にエンジン名を含むプ
 src/kifu/ のデバッグ文を QLoggingCategory に移行してください。
 
 ## 規約
-docs/debug-logging-guidelines.md を読んで従ってください。
+docs/dev/debug-logging-guidelines.md を読んで従ってください。
 
 ## 対象ファイル（qDebug 箇所数）
 - kifuloadcoordinator.cpp（70箇所）
@@ -255,7 +255,7 @@ docs/debug-logging-guidelines.md を読んで従ってください。
 src/analysis/ のデバッグ文を QLoggingCategory に移行してください。
 
 ## 規約
-docs/debug-logging-guidelines.md を読んで従ってください。
+docs/dev/debug-logging-guidelines.md を読んで従ってください。
 
 ## 対象ファイル（qDebug 箇所数）
 - analysisflowcontroller.cpp（67箇所）
@@ -295,7 +295,7 @@ docs/debug-logging-guidelines.md を読んで従ってください。
 src/game/ のデバッグ文を QLoggingCategory に移行してください。
 
 ## 規約
-docs/debug-logging-guidelines.md を読んで従ってください。
+docs/dev/debug-logging-guidelines.md を読んで従ってください。
 
 ## 対象ファイル（qDebug 箇所数）
 - matchcoordinator.cpp（85箇所）
@@ -339,7 +339,7 @@ docs/debug-logging-guidelines.md を読んで従ってください。
 src/board/ と src/navigation/ のデバッグ文を QLoggingCategory に移行してください。
 
 ## 規約
-docs/debug-logging-guidelines.md を読んで従ってください。
+docs/dev/debug-logging-guidelines.md を読んで従ってください。
 
 ## 対象ファイル（qDebug 箇所数）
 
@@ -387,7 +387,7 @@ docs/debug-logging-guidelines.md を読んで従ってください。
 UI層全体のデバッグ文を QLoggingCategory に移行してください。
 
 ## 規約
-docs/debug-logging-guidelines.md を読んで従ってください。
+docs/dev/debug-logging-guidelines.md を読んで従ってください。
 
 ## 対象ファイル（qDebug 箇所数）
 
@@ -477,7 +477,7 @@ docs/debug-logging-guidelines.md を読んで従ってください。
 src/app/ のデバッグ文を QLoggingCategory に移行してください。
 
 ## 規約
-docs/debug-logging-guidelines.md を読んで従ってください。
+docs/dev/debug-logging-guidelines.md を読んで従ってください。
 
 ## 対象ファイル（qDebug 箇所数）
 - mainwindow.cpp（108箇所）

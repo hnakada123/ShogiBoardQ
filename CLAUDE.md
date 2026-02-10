@@ -221,4 +221,4 @@ void setMyDialogSize(const QSize& size)
       , m_handler(std::make_unique<Handler>(this))
       , m_model(model)
   ```
-- **Debug logging**: `docs/debug-logging-guidelines.md` に従う。`qDebug()` はデバッグビルド専用。リリースビルドでは `QT_NO_DEBUG_OUTPUT` により無効化される
+- **Debug logging**: `docs/dev/debug-logging-guidelines.md` に従う。`qDebug()` はデバッグビルド専用。リリースビルドでは `QT_NO_DEBUG_OUTPUT` により無効化される
