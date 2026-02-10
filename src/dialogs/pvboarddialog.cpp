@@ -174,7 +174,12 @@ void PvBoardDialog::buildUi()
     m_btnEnlarge->setToolTip(tr("将棋盤を拡大する"));
     connect(m_btnEnlarge, &QPushButton::clicked, this, &PvBoardDialog::onEnlargeBoard);
     zoomLayout->addWidget(m_btnEnlarge);
-    
+
+    m_btnFlip = new QPushButton(tr("盤面の回転"), this);
+    m_btnFlip->setToolTip(tr("盤面を回転する"));
+    connect(m_btnFlip, &QPushButton::clicked, this, &PvBoardDialog::onFlipBoard);
+    zoomLayout->addWidget(m_btnFlip);
+
     zoomLayout->addStretch();
     mainLayout->addLayout(zoomLayout);
 
@@ -352,6 +357,33 @@ void PvBoardDialog::onReduceBoard()
         // ダイアログのサイズも調整
         adjustSize();
     }
+}
+
+void PvBoardDialog::setFlipMode(bool flipped)
+{
+    if (!m_shogiView) return;
+
+    m_shogiView->setFlipMode(flipped);
+    if (flipped) {
+        m_shogiView->setPiecesFlip();
+    } else {
+        m_shogiView->setPieces();
+    }
+    m_shogiView->update();
+}
+
+void PvBoardDialog::onFlipBoard()
+{
+    if (!m_shogiView) return;
+
+    const bool flipped = !m_shogiView->getFlipMode();
+    m_shogiView->setFlipMode(flipped);
+    if (flipped) {
+        m_shogiView->setPiecesFlip();
+    } else {
+        m_shogiView->setPieces();
+    }
+    m_shogiView->update();
 }
 
 bool PvBoardDialog::eventFilter(QObject* watched, QEvent* event)

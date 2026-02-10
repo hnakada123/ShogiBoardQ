@@ -5,13 +5,13 @@
     <name>AnalysisFlowController</name>
     <message>
         <location filename="../../src/analysis/analysisflowcontroller.cpp" line="47"/>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="808"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="809"/>
         <source>内部エラー: sfenRecord が未準備です。棋譜読み込み後に実行してください。</source>
         <translation>Internal error: sfenRecord is not ready. Please load a game record first.</translation>
     </message>
     <message>
         <location filename="../../src/analysis/analysisflowcontroller.cpp" line="51"/>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="812"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="813"/>
         <source>内部エラー: 解析モデルが未準備です。</source>
         <translation>Internal error: Analysis model is not ready.</translation>
     </message>
@@ -21,23 +21,23 @@
         <translation>Internal error: USI instance is not initialized.</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="198"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="199"/>
         <source>エンジン選択が不正です。</source>
         <translation>Invalid engine selection.</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="549"/>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="661"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="550"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="662"/>
         <source>（定跡）</source>
         <translation>(Book)</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="952"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="953"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="953"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="954"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
@@ -877,18 +877,18 @@ Cause: %2</translation>
 <context>
     <name>DialogCoordinator</name>
     <message>
-        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="401"/>
+        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="407"/>
         <source>将棋エンジンが選択されていません。</source>
         <translation type="unfinished">No shogi engine is selected.</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="667"/>
+        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="673"/>
         <source>Error</source>
         <translation>Error</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="401"/>
-        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="673"/>
+        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="407"/>
+        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="679"/>
         <source>エラー</source>
         <translation>Error</translation>
     </message>
@@ -3812,17 +3812,17 @@ Please restart the application to apply the changes.</translation>
         <translation>No board data available.</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3757"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3759"/>
         <source>局面を反映しました</source>
         <translation>Position applied</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3759"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3761"/>
         <source>局面の反映に失敗しました</source>
         <translation>Failed to apply position</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3762"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3764"/>
         <source>局面の反映に失敗しました（内部エラー）</source>
         <translation>Failed to apply position (internal error)</translation>
     </message>
@@ -4118,12 +4118,12 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Clear Startup Layout</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1148"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1149"/>
         <source>棋譜ファイルを開く</source>
         <translation>Open Game Record File</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1149"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1150"/>
         <source>Kifu Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</source>
         <translation>Game Record Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</translation>
     </message>
@@ -4192,17 +4192,17 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Failed to auto-save game record: %1</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3731"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3733"/>
         <source>棋譜を取り込みました</source>
         <translation>Game record imported</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3733"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3735"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation>Failed to import game record</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3737"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3739"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation>Failed to import game record (internal error)</translation>
     </message>
@@ -4211,7 +4211,7 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Comment updated (move: %1)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3259"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3261"/>
         <source>コメントなし</source>
         <translation>No comment</translation>
     </message>
@@ -4793,13 +4793,13 @@ Are you sure you want to declare?</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/pvboarddialog.cpp" line="115"/>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="197"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="202"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/pvboarddialog.cpp" line="116"/>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="198"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="203"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
@@ -4814,37 +4814,47 @@ Are you sure you want to declare?</translation>
         <translation>Enlarge Board</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="216"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="178"/>
+        <source>盤面の回転</source>
+        <translation type="unfinished">Flip Board</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="179"/>
+        <source>盤面を回転する</source>
+        <translation type="unfinished">Flip the board</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="221"/>
         <source>最初の局面に戻る</source>
         <translation>Go to First Position</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="222"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="227"/>
         <source>1手戻る</source>
         <translation>Go Back 1 Move</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="228"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="233"/>
         <source>1手進む</source>
         <translation>Go Forward 1 Move</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="234"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="239"/>
         <source>最後の局面まで進む</source>
         <translation>Go to Last Position</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="241"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="246"/>
         <source>閉じる</source>
         <translation>Close</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="283"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="288"/>
         <source>手数: %1 / %2</source>
         <translation>Move: %1 / %2</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="285"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="290"/>
         <source> (開始局面)</source>
         <translation> (Initial Position)</translation>
     </message>
@@ -4852,20 +4862,20 @@ Are you sure you want to declare?</translation>
 <context>
     <name>PvClickController</name>
     <message>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="356"/>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="361"/>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="366"/>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="370"/>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="376"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="364"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="369"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="374"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="378"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="384"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="357"/>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="362"/>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="367"/>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="371"/>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="377"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="365"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="370"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="375"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="379"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="385"/>
         <source>後手</source>
         <translation>White</translation>
     </message>

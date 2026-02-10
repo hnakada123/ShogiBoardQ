@@ -52,6 +52,7 @@ public:
     void setCurrentSfen(const QString& sfen);
     void setStartSfen(const QString& sfen);
     void setCurrentRecordIndex(int index);
+    void setBoardFlipped(bool flipped);
 
 signals:
     void pvDialogClosed(int engineIndex);
@@ -105,6 +106,7 @@ private:
     QString m_currentSfenStr;
     QString m_startSfenStr;
     int m_currentRecordIndex = -1;  ///< 現在選択されている棋譜行のインデックス（PV表示では未使用）
+    bool m_boardFlipped = false;     ///< GUI本体の盤面反転状態
 };
 
 #endif // PVCLICKCONTROLLER_H

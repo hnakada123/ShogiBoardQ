@@ -56,6 +56,7 @@ public:
         QString                      blackPlayerName;         ///< 先手名（任意）
         QString                      whitePlayerName;         ///< 後手名（任意）
         QStringList*                 usiMoves = nullptr;      ///< USI形式の指し手列（任意、非所有）
+        bool                          boardFlipped = false;    ///< GUI本体の盤面反転状態
         std::function<void(const QString&)> displayError;     ///< エラー表示コールバック（必須）
     };
 
@@ -137,6 +138,7 @@ private:
     QString                m_blackPlayerName;       ///< 先手名
     QString                m_whitePlayerName;       ///< 後手名
     QStringList*           m_usiMoves = nullptr;    ///< USI形式指し手列（非所有）
+    bool                   m_boardFlipped = false;  ///< GUI本体の盤面反転状態
     std::function<void(const QString&)> m_err;      ///< エラー表示コールバック
 
     int m_pendingPly = -1;         ///< 一時結果の対象手数（bestmoveで確定）

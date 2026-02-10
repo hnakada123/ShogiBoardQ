@@ -901,6 +901,7 @@ void MainWindow::displayKifuAnalysisDialog()
     kifuCtx.evalChart = m_evalChart;
     kifuCtx.gameUsiMoves = &m_gameUsiMoves;
     kifuCtx.presenter = m_analysisPresenter;
+    kifuCtx.getBoardFlipped = [this]() { return m_shogiView ? m_shogiView->getFlipMode() : false; };
     m_dialogCoordinator->setKifuAnalysisContext(kifuCtx);
 
     // コンテキストから自動パラメータ構築してダイアログを表示
@@ -2569,6 +2570,7 @@ void MainWindow::ensureDialogCoordinator()
     kifuCtx.evalChart = m_evalChart;
     kifuCtx.gameUsiMoves = &m_gameUsiMoves;
     kifuCtx.presenter = m_analysisPresenter;
+    kifuCtx.getBoardFlipped = [this]() { return m_shogiView ? m_shogiView->getFlipMode() : false; };
     m_dialogCoordinator->setKifuAnalysisContext(kifuCtx);
 
     // 検討モード関連シグナルをConsiderationWiringに接続
@@ -3852,6 +3854,7 @@ void MainWindow::onPvRowClicked(int engineIndex, int row)
         m_pvClickController->setCurrentRecordIndex(m_currentMoveIndex);
         // 検討モデルを更新（検討タブから呼ばれた場合に必要）
         m_pvClickController->setConsiderationModel(m_considerationModel);
+        m_pvClickController->setBoardFlipped(m_shogiView ? m_shogiView->getFlipMode() : false);
         m_pvClickController->onPvRowClicked(engineIndex, row);
     }
 }

@@ -10,6 +10,7 @@
 #include <QStringList>
 #include <QList>
 #include <QVector>
+#include <functional>
 
 #include "kifparsetypes.h"
 
@@ -245,6 +246,7 @@ public:
         QString whitePlayerName;   // 後手対局者名
         QStringList* usiMoves = nullptr;  // USI形式の指し手リスト
         AnalysisResultsPresenter* presenter = nullptr;  // 結果表示用プレゼンター
+        bool boardFlipped = false;  // GUI本体の盤面反転状態
     };
 
     /**
@@ -263,6 +265,7 @@ public:
         EvaluationChartWidget* evalChart = nullptr;
         QStringList* gameUsiMoves = nullptr;  // 対局時のUSI形式指し手リスト（MainWindow::m_gameUsiMoves）
         AnalysisResultsPresenter* presenter = nullptr;  // 結果表示用プレゼンター
+        std::function<bool()> getBoardFlipped;  // GUI本体の盤面反転状態取得コールバック
     };
 
     /**

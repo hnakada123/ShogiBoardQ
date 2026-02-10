@@ -282,6 +282,7 @@ void DialogCoordinator::showKifuAnalysisDialog(const KifuAnalysisParams& params)
     d.blackPlayerName = params.blackPlayerName;
     d.whitePlayerName = params.whitePlayerName;
     d.usiMoves = params.usiMoves;
+    d.boardFlipped = params.boardFlipped;
     d.displayError = [this](const QString& msg) { showFlowError(msg); };
 
     m_analysisFlow->runWithDialog(d, m_parentWidget);
@@ -350,6 +351,11 @@ void DialogCoordinator::showKifuAnalysisDialogFromContext()
 
     // プレゼンターを設定
     params.presenter = m_kifuAnalysisCtx.presenter;
+
+    // GUI本体の盤面反転状態を取得
+    if (m_kifuAnalysisCtx.getBoardFlipped) {
+        params.boardFlipped = m_kifuAnalysisCtx.getBoardFlipped();
+    }
 
     qCDebug(lcUi).noquote() << "showKifuAnalysisDialogFromContext:"
                        << "blackPlayerName=" << params.blackPlayerName
