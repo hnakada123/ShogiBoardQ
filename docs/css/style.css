@@ -457,9 +457,18 @@ img {
 }
 
 /* --- Responsive --- */
+
+/* Tablet */
+@media (max-width: 1024px) {
+    .features-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Mobile */
 @media (max-width: 768px) {
     :root {
-        --section-padding: 3.5rem 1.25rem;
+        --section-padding: 3rem 1rem;
     }
 
     .nav-links {
@@ -483,7 +492,14 @@ img {
     }
 
     .hero {
-        padding: 6rem 1.25rem 3.5rem;
+        padding: 5.5rem 1rem 3rem;
+    }
+
+    .hero-icon {
+        width: 96px;
+        height: 96px;
+        border-radius: 16px;
+        margin-bottom: 1rem;
     }
 
     .hero h1 {
@@ -492,11 +508,44 @@ img {
 
     .hero-subtitle {
         font-size: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .hero-piece-decoration {
+        gap: 0.4rem;
+        margin-bottom: 1.5rem;
     }
 
     .hero-piece-decoration img {
-        width: 30px;
-        height: 30px;
+        width: 28px;
+        height: 28px;
+    }
+
+    .hero-badges {
+        gap: 0.5rem;
+    }
+
+    .badge {
+        padding: 0.25rem 0.6rem;
+        font-size: 0.75rem;
+    }
+
+    .section-title {
+        font-size: 1.4rem;
+    }
+
+    .section-desc {
+        margin-bottom: 2rem;
+        font-size: 0.9rem;
+    }
+
+    .screenshot-gallery {
+        gap: 1.5rem;
+    }
+
+    .screenshot-caption {
+        padding: 0.6rem 1rem;
+        font-size: 0.8rem;
     }
 
     .features-grid {
@@ -504,17 +553,106 @@ img {
         gap: 1rem;
     }
 
+    .feature-card {
+        padding: 1.5rem 1.25rem;
+    }
+
     .build-requirements {
         grid-template-columns: 1fr;
     }
 
-    .section-title {
-        font-size: 1.4rem;
+    .build-steps {
+        padding: 1rem;
+    }
+
+    .build-steps pre {
+        padding: 1rem;
+        font-size: 0.8rem;
+    }
+
+    .download-btn {
+        padding: 0.75rem 2rem;
+        font-size: 0.9rem;
     }
 }
 
-@media (min-width: 769px) and (max-width: 1024px) {
-    .features-grid {
-        grid-template-columns: repeat(2, 1fr);
+/* Small phone */
+@media (max-width: 480px) {
+    :root {
+        --section-padding: 2.5rem 0.75rem;
+    }
+
+    .nav-inner {
+        padding: 0 1rem;
+    }
+
+    .hero {
+        padding: 5rem 0.75rem 2.5rem;
+    }
+
+    .hero-icon {
+        width: 80px;
+        height: 80px;
+        border-radius: 14px;
+    }
+
+    .hero h1 {
+        font-size: 1.6rem;
+    }
+
+    .hero-subtitle {
+        font-size: 0.9rem;
+    }
+
+    .hero-piece-decoration {
+        gap: 0.25rem;
+    }
+
+    .hero-piece-decoration img {
+        width: 22px;
+        height: 22px;
+    }
+
+    .hero-badges {
+        gap: 0.4rem;
+    }
+
+    .badge {
+        padding: 0.2rem 0.5rem;
+        font-size: 0.7rem;
+    }
+
+    .section-title {
+        font-size: 1.2rem;
+    }
+
+    .feature-card {
+        padding: 1.25rem 1rem;
+    }
+
+    .feature-icon {
+        width: 36px;
+        height: 36px;
+    }
+
+    .feature-card h3 {
+        font-size: 1rem;
+    }
+
+    .feature-card p {
+        font-size: 0.85rem;
+    }
+
+    .build-content {
+        max-width: 100%;
+    }
+
+    .build-steps pre {
+        font-size: 0.75rem;
+        padding: 0.75rem;
+    }
+
+    .site-footer {
+        padding: 1.5rem 1rem;
     }
 }
