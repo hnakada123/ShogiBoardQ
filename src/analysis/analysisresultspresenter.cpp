@@ -15,7 +15,7 @@
 #include <QPainter>
 #include <QStyledItemDelegate>
 #include "settingsservice.h"
-#include "numeric_right_align_comma_delegate.h"
+#include "numericrightaligncommadelegate.h"
 #include "kifuanalysislistmodel.h"
 
 /// 「表示」ボタン列用のデリゲート

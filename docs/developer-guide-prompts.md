@@ -282,7 +282,7 @@ docs/developer-guide.md に第10章「UI層：プレゼンテーション」を�
 - src/ui/presenters/boardsyncpresenter.h
 - src/ui/presenters/evalgraphpresenter.h
 - src/ui/presenters/navigationpresenter.h
-- src/ui/presenters/recordpresenter.h
+- src/ui/presenters/gamerecordpresenter.h
 - src/ui/presenters/timedisplaypresenter.h
 - src/ui/controllers/boardsetupcontroller.h
 - src/ui/controllers/playerinfocontroller.h

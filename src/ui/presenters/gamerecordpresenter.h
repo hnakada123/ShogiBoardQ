@@ -1,7 +1,7 @@
-#ifndef RECORDPRESENTER_H
-#define RECORDPRESENTER_H
+#ifndef GAMERECORDPRESENTER_H
+#define GAMERECORDPRESENTER_H
 
-/// @file recordpresenter.h
+/// @file gamerecordpresenter.h
 /// @brief 棋譜表示プレゼンタクラスの定義
 
 
@@ -97,4 +97,4 @@ private:
     QList<KifDisplayItem> m_liveDisp;
 };
 
-#endif // RECORDPRESENTER_H
+#endif // GAMERECORDPRESENTER_H

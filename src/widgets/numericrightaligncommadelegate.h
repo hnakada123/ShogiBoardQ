@@ -1,7 +1,7 @@
-#ifndef NUMERIC_RIGHT_ALIGN_COMMA_DELEGATE_H
-#define NUMERIC_RIGHT_ALIGN_COMMA_DELEGATE_H
+#ifndef NUMERICRIGHTALIGNCOMMADELEGATE_H
+#define NUMERICRIGHTALIGNCOMMADELEGATE_H
 
-/// @file numeric_right_align_comma_delegate.h
+/// @file numericrightaligncommadelegate.h
 /// @brief 数値右寄せカンマ区切りデリゲートクラスの定義
 
 
@@ -54,4 +54,4 @@ public:
     }
 };
 
-#endif // NUMERIC_RIGHT_ALIGN_COMMA_DELEGATE_H
+#endif // NUMERICRIGHTALIGNCOMMADELEGATE_H

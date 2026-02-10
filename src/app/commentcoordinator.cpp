@@ -9,7 +9,7 @@
 #include "engineanalysistab.h"
 #include "recordpane.h"
 #include "gamerecordmodel.h"
-#include "recordpresenter.h"
+#include "gamerecordpresenter.h"
 #include "kifucontentbuilder.h"
 
 CommentCoordinator::CommentCoordinator(QObject* parent)

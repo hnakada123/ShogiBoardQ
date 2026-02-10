@@ -1,7 +1,7 @@
-/// @file recordpresenter.cpp
+/// @file gamerecordpresenter.cpp
 /// @brief 棋譜表示プレゼンタクラスの実装
 
-#include "recordpresenter.h"
+#include "gamerecordpresenter.h"
 #include "kifdisplayitem.h"
 #include "kifurecordlistmodel.h"
 #include "kifudisplay.h"

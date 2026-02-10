@@ -49,7 +49,7 @@
 #include <QFontDatabase>      // フォント検索用
 #include <QFontInfo>          // フォントデバッグ用
 #include "loggingcategory.h"
-#include "numeric_right_align_comma_delegate.h"
+#include "numericrightaligncommadelegate.h"
 #include "engineinfowidget.h"
 #include "flowlayout.h"  // 自動折り返しレイアウト
 #include "shogienginethinkingmodel.h"
