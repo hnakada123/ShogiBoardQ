@@ -261,41 +261,8 @@ void MainWindow::buildGamePanels()
     // 8) 評価値グラフのQDockWidget作成
     createEvalChartDock();
 
-    // 9) 表示メニューにドックレイアウト関連アクションを追加
-    //    メニューウィンドウドック作成時にメニューバーからアクションを収集するため、
-    //    ドック作成前にアクションを追加しておく必要がある
-    QAction* resetLayoutAction = nullptr;
-    QAction* saveLayoutAction = nullptr;
-    QAction* lockDocksAction = nullptr;
-    if (ui->Display) {
-        ui->Display->addSeparator();
-
-        // ドックレイアウトをリセット
-        resetLayoutAction = new QAction(tr("ドックレイアウトをリセット"), this);
-        resetLayoutAction->setObjectName(QStringLiteral("actionResetDockLayout"));
-        resetLayoutAction->setIcon(QIcon(QStringLiteral(":/images/actions/actionResetDockLayout.svg")));
-        ui->Display->addAction(resetLayoutAction);
-
-        // ドックレイアウトを保存
-        saveLayoutAction = new QAction(tr("ドックレイアウトを保存..."), this);
-        saveLayoutAction->setObjectName(QStringLiteral("actionSaveDockLayout"));
-        saveLayoutAction->setIcon(QIcon(QStringLiteral(":/images/actions/actionSaveDockLayout.svg")));
-        ui->Display->addAction(saveLayoutAction);
-
-        // 保存済みレイアウトのサブメニュー
-        m_savedLayoutsMenu = new QMenu(tr("保存済みレイアウト"), this);
-        m_savedLayoutsMenu->setObjectName(QStringLiteral("menuSavedLayouts"));
-        ui->Display->addMenu(m_savedLayoutsMenu);
-
-        // ドック固定のチェックボックスアクションを追加
-        ui->Display->addSeparator();
-        lockDocksAction = new QAction(tr("ドックを固定"), this);
-        lockDocksAction->setObjectName(QStringLiteral("actionLockDocks"));
-        lockDocksAction->setCheckable(true);
-        const bool docksLocked = SettingsService::docksLocked();
-        lockDocksAction->setChecked(docksLocked);
-        ui->Display->addAction(lockDocksAction);
-    }
+    // 9) ドックを固定アクションの初期状態を設定
+    ui->actionLockDocks->setChecked(SettingsService::docksLocked());
 
     // 10) メニューウィンドウのQDockWidget作成（デフォルトは非表示）
     createMenuWindowDock();
@@ -310,16 +277,14 @@ void MainWindow::buildGamePanels()
     initializeCentralGameDisplay();
 
     // 14) ドックレイアウト関連アクションをDockLayoutManagerに配線
-    if (resetLayoutAction) {
-        ensureDockLayoutManager();
-        if (m_dockLayoutManager) {
-            m_dockLayoutManager->wireMenuActions(
-                resetLayoutAction,
-                saveLayoutAction,
-                /*clearStartupLayout*/nullptr,
-                lockDocksAction,
-                m_savedLayoutsMenu);
-        }
+    ensureDockLayoutManager();
+    if (m_dockLayoutManager) {
+        m_dockLayoutManager->wireMenuActions(
+            ui->actionResetDockLayout,
+            ui->actionSaveDockLayout,
+            /*clearStartupLayout*/nullptr,
+            ui->actionLockDocks,
+            ui->menuSavedLayouts);
     }
 }
 
@@ -4116,7 +4081,7 @@ void MainWindow::ensureDockLayoutManager()
     m_dockLayoutManager->registerDock(DockLayoutManager::DockType::EvalChart, m_evalChartDock);
 
     // 保存済みレイアウトメニューを設定
-    m_dockLayoutManager->setSavedLayoutsMenu(m_savedLayoutsMenu);
+    m_dockLayoutManager->setSavedLayoutsMenu(ui->menuSavedLayouts);
 }
 
 // `ensureDockCreationService`: Dock Creation Service を必要に応じて生成し、依存関係を更新する。

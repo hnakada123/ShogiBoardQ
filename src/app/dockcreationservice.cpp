@@ -81,7 +81,6 @@ QDockWidget* DockCreationService::createEvalChartDock()
     m_mainWindow->addDockWidget(Qt::BottomDockWidgetArea, m_evalChartDock);
 
     if (m_displayMenu) {
-        m_displayMenu->addSeparator();
         addToggleActionToMenu(m_evalChartDock, tr("評価値グラフ"));
     }
 

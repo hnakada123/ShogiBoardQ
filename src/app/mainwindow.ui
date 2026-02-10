@@ -80,11 +80,23 @@
     <property name="title">
      <string>表示(I)</string>
     </property>
+    <widget class="QMenu" name="menuSavedLayouts">
+     <property name="title">
+      <string>保存済みレイアウト</string>
+     </property>
+     <addaction name="actionSavedLayoutsPlaceholder"/>
+    </widget>
     <addaction name="actionFlipBoard"/>
     <addaction name="actionEnlargeBoard"/>
     <addaction name="actionShrinkBoard"/>
     <addaction name="separator"/>
     <addaction name="actionToolBar"/>
+    <addaction name="separator"/>
+    <addaction name="actionResetDockLayout"/>
+    <addaction name="actionSaveDockLayout"/>
+    <addaction name="menuSavedLayouts"/>
+    <addaction name="actionLockDocks"/>
+    <addaction name="separator"/>
    </widget>
    <widget class="QMenu" name="Game">
     <property name="title">
@@ -651,6 +663,40 @@
    </property>
    <property name="text">
     <string>局面集ビューア</string>
+   </property>
+  </action>
+  <action name="actionResetDockLayout">
+   <property name="icon">
+    <iconset resource="../../resources/shogiboardq.qrc">
+     <normaloff>:/images/actions/actionResetDockLayout.svg</normaloff>:/images/actions/actionResetDockLayout.svg</iconset>
+   </property>
+   <property name="text">
+    <string>ドックレイアウトをリセット</string>
+   </property>
+  </action>
+  <action name="actionSaveDockLayout">
+   <property name="icon">
+    <iconset resource="../../resources/shogiboardq.qrc">
+     <normaloff>:/images/actions/actionSaveDockLayout.svg</normaloff>:/images/actions/actionSaveDockLayout.svg</iconset>
+   </property>
+   <property name="text">
+    <string>ドックレイアウトを保存...</string>
+   </property>
+  </action>
+  <action name="actionLockDocks">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>ドックを固定</string>
+   </property>
+  </action>
+  <action name="actionSavedLayoutsPlaceholder">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>（保存済みレイアウトなし）</string>
    </property>
   </action>
  </widget>
