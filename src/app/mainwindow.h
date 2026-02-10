@@ -492,7 +492,6 @@ private:
     QDockWidget*           m_menuWindowDock = nullptr;      ///< メニューウィンドウドック
     QDockWidget*           m_josekiWindowDock = nullptr;    ///< 定跡ウィンドウドック
     QDockWidget*           m_analysisResultsDock = nullptr;  ///< 棋譜解析結果ドック
-    QMenu*                 m_savedLayoutsMenu = nullptr;    ///< 保存済みドックレイアウトのサブメニュー
 
     // --- 試合進行（司令塔） ---
     MatchCoordinator* m_match = nullptr;      ///< 対局進行の司令塔（非所有）
