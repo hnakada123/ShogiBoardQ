@@ -7,6 +7,11 @@
 <p align="center">Qt6で作られた将棋対局・解析ソフト</p>
 
 <p align="center">
+  <a href="https://hnakada123.github.io/ShogiBoardQ/">Webサイト</a>&nbsp;|&nbsp;
+  <a href="https://github.com/hnakada123/ShogiBoardQ/releases">リリース</a>
+</p>
+
+<p align="center">
   <code>Qt 6</code>&nbsp;
   <code>C++17</code>&nbsp;
   <code>USI対応</code>&nbsp;
