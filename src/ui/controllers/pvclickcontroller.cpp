@@ -121,6 +121,11 @@ void PvClickController::setCurrentRecordIndex(int index)
     qCDebug(lcUi) << "setCurrentRecordIndex:" << index << "(not used for PV display)";
 }
 
+void PvClickController::setBoardFlipped(bool flipped)
+{
+    m_boardFlipped = flipped;
+}
+
 // --------------------------------------------------------
 // スロット
 // --------------------------------------------------------
@@ -239,6 +244,9 @@ void PvClickController::onPvRowClicked(int engineIndex, int row)
     QString blackName, whiteName;
     resolvePlayerNames(blackName, whiteName);
     dlg->setPlayerNames(blackName, whiteName);
+
+    // GUI本体の盤面反転状態を反映
+    dlg->setFlipMode(m_boardFlipped);
 
     // lastUsiMoveがまだ空の場合の追加フォールバック
     if (lastUsiMove.isEmpty()) {

@@ -69,6 +69,7 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
     m_blackPlayerName = d.blackPlayerName;
     m_whitePlayerName = d.whitePlayerName;
     m_usiMoves      = d.usiMoves;
+    m_boardFlipped  = d.boardFlipped;
     m_err           = d.displayError;
 
     // 前回の解析結果をクリア
@@ -952,6 +953,9 @@ void AnalysisFlowController::onResultRowDoubleClicked(int row)
     QString blackName = m_blackPlayerName.isEmpty() ? tr("先手") : m_blackPlayerName;
     QString whiteName = m_whitePlayerName.isEmpty() ? tr("後手") : m_whitePlayerName;
     dlg->setPlayerNames(blackName, whiteName);
+
+    // GUI本体の盤面反転状態を反映
+    dlg->setFlipMode(m_boardFlipped);
 
     // 最後の指し手を設定（初期局面のハイライト用）
     QString lastMove = item->lastUsiMove();

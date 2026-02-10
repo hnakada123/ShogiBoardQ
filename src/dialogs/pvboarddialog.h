@@ -58,6 +58,12 @@ public:
     void setLastMove(const QString& lastMove);
     void setPrevSfenForHighlight(const QString& prevSfen);
 
+    /**
+     * @brief 盤面の反転モードを設定（GUI本体の向きに合わせる）
+     * @param flipped trueで反転表示
+     */
+    void setFlipMode(bool flipped);
+
 private slots:
     /// 最初に戻る
     void onGoFirst();
@@ -71,6 +77,8 @@ private slots:
     void onEnlargeBoard();
     /// 将棋盤を縮小
     void onReduceBoard();
+    /// 盤面を回転
+    void onFlipBoard();
 
 private:
     /// UIを構築
@@ -126,6 +134,7 @@ private:
     QPushButton* m_btnLast = nullptr;
     QPushButton* m_btnEnlarge = nullptr;  ///< 将棋盤拡大ボタン
     QPushButton* m_btnReduce = nullptr;   ///< 将棋盤縮小ボタン
+    QPushButton* m_btnFlip = nullptr;     ///< 盤面回転ボタン
     QLabel* m_plyLabel = nullptr;
     QLabel* m_pvLabel = nullptr;
 
