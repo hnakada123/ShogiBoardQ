@@ -127,6 +127,7 @@ public:
     // ───────────────────────────── 操作/状態切替 ────────────────────────────
     void setMouseClickMode(bool mouseClickMode); // クリック操作フラグ
     int  squareSize() const;                     // m_squareSize（px）
+    void setSquareSize(int size);                // m_squareSize を設定してレイアウト再計算
     void setPositionEditMode(bool positionEditMode); // 局面編集モードON/OFF
     bool positionEditMode() const;
 

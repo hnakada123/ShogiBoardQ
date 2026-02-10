@@ -18,6 +18,8 @@
 #include <QCloseEvent>
 #include <QWheelEvent>
 #include <QTimer>
+#include <QMenu>
+#include <QMessageBox>
 
 SfenCollectionDialog::SfenCollectionDialog(QWidget* parent)
     : QDialog(parent)
@@ -35,6 +37,16 @@ SfenCollectionDialog::SfenCollectionDialog(QWidget* parent)
 
     // UIを構築
     buildUi();
+
+    // 最近使ったファイルリストを読み込み
+    m_recentFiles = SettingsService::sfenCollectionRecentFiles();
+    updateRecentFilesMenu();
+
+    // 前回保存された将棋盤マスサイズを復元
+    int savedSquareSize = SettingsService::sfenCollectionSquareSize();
+    if (savedSquareSize >= 20 && savedSquareSize <= 150) {
+        m_shogiView->setSquareSize(savedSquareSize);
+    }
 
     // 初期盤面（平手初期局面）を設定
     m_board->setSfen(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"));
@@ -68,6 +80,12 @@ void SfenCollectionDialog::buildUi()
     connect(m_btnOpenFile, &QPushButton::clicked,
             this, &SfenCollectionDialog::onOpenFileClicked);
     fileLayout->addWidget(m_btnOpenFile);
+
+    m_btnRecentFiles = new QPushButton(tr("履歴"), this);
+    m_btnRecentFiles->setToolTip(tr("最近使ったファイルを開く"));
+    m_recentFilesMenu = new QMenu(this);
+    m_btnRecentFiles->setMenu(m_recentFilesMenu);
+    fileLayout->addWidget(m_btnRecentFiles);
 
     m_fileLabel = new QLabel(this);
     m_fileLabel->setStyleSheet(QStringLiteral(
@@ -183,10 +201,11 @@ void SfenCollectionDialog::buildUi()
 
 void SfenCollectionDialog::onOpenFileClicked()
 {
+    QString lastDir = SettingsService::sfenCollectionLastDirectory();
     QString filePath = QFileDialog::getOpenFileName(
         this,
         tr("SFEN局面集ファイルを開く"),
-        QString(),
+        lastDir,
         tr("テキストファイル (*.txt *.sfen);;すべてのファイル (*)"));
 
     if (!filePath.isEmpty()) {
@@ -217,6 +236,13 @@ bool SfenCollectionDialog::loadFromFile(const QString& filePath)
     // ファイル名ラベルを更新
     QFileInfo fi(filePath);
     m_fileLabel->setText(tr("ファイル: %1").arg(fi.fileName()));
+
+    // 最後に開いたディレクトリを保存
+    SettingsService::setSfenCollectionLastDirectory(fi.absolutePath());
+
+    // 最近使ったファイルリストに追加
+    addToRecentFiles(filePath);
+    saveRecentFiles();
 
     updateBoardDisplay();
     updateButtonStates();
@@ -400,5 +426,89 @@ void SfenCollectionDialog::adjustWindowToContents()
 void SfenCollectionDialog::closeEvent(QCloseEvent* event)
 {
     saveWindowSize();
+    saveRecentFiles();
+    if (m_shogiView) {
+        SettingsService::setSfenCollectionSquareSize(m_shogiView->squareSize());
+    }
     QDialog::closeEvent(event);
+}
+
+void SfenCollectionDialog::addToRecentFiles(const QString& filePath)
+{
+    // 既に存在する場合は削除（先頭に移動するため）
+    m_recentFiles.removeAll(filePath);
+
+    // 先頭に追加
+    m_recentFiles.prepend(filePath);
+
+    // 最大5件に制限
+    while (m_recentFiles.size() > 5) {
+        m_recentFiles.removeLast();
+    }
+
+    // メニューを更新
+    updateRecentFilesMenu();
+}
+
+void SfenCollectionDialog::updateRecentFilesMenu()
+{
+    m_recentFilesMenu->clear();
+
+    if (m_recentFiles.isEmpty()) {
+        QAction* emptyAction = m_recentFilesMenu->addAction(tr("（履歴なし）"));
+        emptyAction->setEnabled(false);
+        return;
+    }
+
+    for (const QString& filePath : std::as_const(m_recentFiles)) {
+        QFileInfo fi(filePath);
+        QString displayName = fi.fileName();
+
+        QAction* action = m_recentFilesMenu->addAction(displayName);
+        action->setData(filePath);
+        action->setToolTip(filePath);
+        connect(action, &QAction::triggered, this, &SfenCollectionDialog::onRecentFileClicked);
+    }
+
+    m_recentFilesMenu->addSeparator();
+
+    QAction* clearAction = m_recentFilesMenu->addAction(tr("履歴をクリア"));
+    connect(clearAction, &QAction::triggered, this, &SfenCollectionDialog::onClearRecentFilesClicked);
+}
+
+void SfenCollectionDialog::saveRecentFiles()
+{
+    SettingsService::setSfenCollectionRecentFiles(m_recentFiles);
+}
+
+void SfenCollectionDialog::onRecentFileClicked()
+{
+    QAction* action = qobject_cast<QAction*>(sender());
+    if (!action) {
+        return;
+    }
+
+    QString filePath = action->data().toString();
+    if (filePath.isEmpty()) {
+        return;
+    }
+
+    // ファイルが存在するか確認
+    if (!QFileInfo::exists(filePath)) {
+        QMessageBox::warning(this, tr("エラー"),
+                             tr("ファイルが見つかりません: %1").arg(filePath));
+        m_recentFiles.removeAll(filePath);
+        updateRecentFilesMenu();
+        saveRecentFiles();
+        return;
+    }
+
+    loadFromFile(filePath);
+}
+
+void SfenCollectionDialog::onClearRecentFilesClicked()
+{
+    m_recentFiles.clear();
+    updateRecentFilesMenu();
+    saveRecentFiles();
 }
