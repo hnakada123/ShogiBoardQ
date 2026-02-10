@@ -6,9 +6,6 @@
 
 CollapsibleGroupBox::CollapsibleGroupBox(const QString& title, QWidget* parent)
     : QWidget(parent)
-    , m_expanded(true)
-    , m_animationGroup(nullptr)
-    , m_contentAnimation(nullptr)
     , m_title(title)
 {
     // サイズポリシーを設定して水平方向に広がるようにする

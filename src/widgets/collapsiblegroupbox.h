@@ -49,13 +49,13 @@ private:
     QVBoxLayout* m_contentLayout;
 
     // 展開状態
-    bool m_expanded;
+    bool m_expanded = true;
 
     // アニメーショングループ
-    QParallelAnimationGroup* m_animationGroup;
+    QParallelAnimationGroup* m_animationGroup = nullptr;
 
     // コンテンツの高さアニメーション
-    QPropertyAnimation* m_contentAnimation;
+    QPropertyAnimation* m_contentAnimation = nullptr;
 
     // ボタンテキストを更新
     void updateToggleButtonText(const QString& title);

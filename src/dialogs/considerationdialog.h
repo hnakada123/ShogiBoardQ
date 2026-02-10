@@ -68,19 +68,19 @@ private:
     QString m_engineName;
 
     // 選択したエンジン番号
-    int m_engineNumber;
+    int m_engineNumber = 0;
 
     // "時間無制限"を選択した場合、true
-    bool m_unlimitedTimeFlag;
+    bool m_unlimitedTimeFlag = false;
 
     // 1手あたりの思考時間（秒数）
-    int m_byoyomiSec;
+    int m_byoyomiSec = 0;
 
     // 候補手の数（MultiPV）
-    int m_multiPV;
+    int m_multiPV = 1;
 
     // フォントサイズ
-    int m_fontSize;
+    int m_fontSize = 0;
 
     // エンジンの名前とディレクトリを格納するリスト
     QList<Engine> engineList;

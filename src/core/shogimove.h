@@ -18,11 +18,11 @@
  * @todo remove コメントスタイルガイド適用済み
  */
 struct ShogiMove {
-    QPoint fromSquare;      ///< 移動元の座標（盤上:0-8、駒台:9=先手,10=後手）
-    QPoint toSquare;        ///< 移動先の座標（0-8）
-    QChar movingPiece;      ///< 動かした自分の駒（SFEN表記）
-    QChar capturedPiece;    ///< 取った相手の駒（なければ空白 ' '）
-    bool isPromotion;       ///< 成りフラグ
+    QPoint fromSquare{0, 0};   ///< 移動元の座標（盤上:0-8、駒台:9=先手,10=後手）
+    QPoint toSquare{0, 0};     ///< 移動先の座標（0-8）
+    QChar movingPiece = QLatin1Char(' ');  ///< 動かした自分の駒（SFEN表記）
+    QChar capturedPiece = QLatin1Char(' '); ///< 取った相手の駒（なければ空白 ' '）
+    bool isPromotion = false;  ///< 成りフラグ
 
     ShogiMove();
     ShogiMove(const QPoint &from, const QPoint &to, QChar moving, QChar captured, bool promotion);

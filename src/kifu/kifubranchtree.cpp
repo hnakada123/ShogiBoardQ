@@ -5,8 +5,6 @@
 
 KifuBranchTree::KifuBranchTree(QObject* parent)
     : QObject(parent)
-    , m_root(nullptr)
-    , m_nextNodeId(1)
 {
 }
 

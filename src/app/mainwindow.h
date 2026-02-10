@@ -389,8 +389,8 @@ private:
     // --- メンバー変数 ---
 
     // --- 基本状態 / ゲーム状態 ---
-    QString  m_startSfenStr;                  ///< 開始局面のSFEN文字列
-    QString  m_currentSfenStr;                ///< 現在の局面のSFEN文字列
+    QString  m_startSfenStr = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");  ///< 開始局面のSFEN文字列
+    QString  m_currentSfenStr = QStringLiteral("startpos"); ///< 現在の局面のSFEN文字列
     QString  m_resumeSfenStr;                 ///< 再開時の局面SFEN文字列
     bool     m_errorOccurred = false;         ///< エラー発生フラグ
     int      m_currentMoveIndex = 0;          ///< 現在の手数インデックス

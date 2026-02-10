@@ -62,13 +62,6 @@ CsaClient::CsaClient(QObject* parent)
     : QObject(parent)
     , m_socket(new QTcpSocket(this))
     , m_connectionTimer(new QTimer(this))
-    , m_connectionState(ConnectionState::Disconnected)
-    , m_isMyTurn(false)
-    , m_inGameSummary(false)
-    , m_inTimeSection(false)
-    , m_inPositionSection(false)
-    , m_moveCount(0)
-    , m_endMoveConsumedTimeMs(0)
 {
     connect(m_socket, &QTcpSocket::connected,
             this, &CsaClient::onSocketConnected);

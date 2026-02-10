@@ -86,10 +86,10 @@ private:
 
     // --- 対局者フラグ ---
 
-    bool m_isHuman1;                        ///< 先手／下手が人間か
-    bool m_isHuman2;                        ///< 後手／上手が人間か
-    bool m_isEngine1;                       ///< 先手／下手がエンジンか
-    bool m_isEngine2;                       ///< 後手／上手がエンジンか
+    bool m_isHuman1 = false;                 ///< 先手／下手が人間か
+    bool m_isHuman2 = false;                 ///< 後手／上手が人間か
+    bool m_isEngine1 = false;                ///< 先手／下手がエンジンか
+    bool m_isEngine2 = false;                ///< 後手／上手がエンジンか
 
     // --- 対局者名 ---
 
@@ -97,33 +97,33 @@ private:
     QString m_engineName2;                  ///< 後手／上手のエンジン名
     QString m_humanName1;                   ///< 先手／下手の人間名
     QString m_humanName2;                   ///< 後手／上手の人間名
-    int m_engineNumber1;                    ///< 先手／下手のエンジン番号
-    int m_engineNumber2;                    ///< 後手／上手のエンジン番号
+    int m_engineNumber1 = 0;                 ///< 先手／下手のエンジン番号
+    int m_engineNumber2 = 0;                 ///< 後手／上手のエンジン番号
 
     // --- 持ち時間 ---
 
-    int m_basicTimeHour1;                   ///< 対局者1の持ち時間（時間）
-    int m_basicTimeMinutes1;                ///< 対局者1の持ち時間（分）
-    int m_addEachMoveSec1;                  ///< 対局者1のフィッシャー加算（秒）
-    int m_byoyomiSec1;                      ///< 対局者1の秒読み（秒）
-    int m_basicTimeHour2;                   ///< 対局者2の持ち時間（時間）
-    int m_basicTimeMinutes2;                ///< 対局者2の持ち時間（分）
-    int m_addEachMoveSec2;                  ///< 対局者2のフィッシャー加算（秒）
-    int m_byoyomiSec2;                      ///< 対局者2の秒読み（秒）
+    int m_basicTimeHour1 = 0;                ///< 対局者1の持ち時間（時間）
+    int m_basicTimeMinutes1 = 0;             ///< 対局者1の持ち時間（分）
+    int m_addEachMoveSec1 = 0;               ///< 対局者1のフィッシャー加算（秒）
+    int m_byoyomiSec1 = 0;                   ///< 対局者1の秒読み（秒）
+    int m_basicTimeHour2 = 0;                ///< 対局者2の持ち時間（時間）
+    int m_basicTimeMinutes2 = 0;             ///< 対局者2の持ち時間（分）
+    int m_addEachMoveSec2 = 0;               ///< 対局者2のフィッシャー加算（秒）
+    int m_byoyomiSec2 = 0;                   ///< 対局者2の秒読み（秒）
 
     // --- 局面・対局オプション ---
 
     QString m_startingPositionName;         ///< 開始局面名（平手、二枚落ち等）
-    int m_startingPositionNumber;           ///< 開始局面番号
+    int m_startingPositionNumber = 0;        ///< 開始局面番号
     QList<Engine> engineList;               ///< 登録エンジンのリスト
-    int m_maxMoves;                         ///< 最大手数（0=無制限）
-    int m_consecutiveGames;                 ///< 連続対局数
-    bool m_isShowHumanInFront;              ///< 人間を手前に表示するか
-    bool m_isAutoSaveKifu;                  ///< 棋譜の自動保存フラグ
+    int m_maxMoves = 0;                      ///< 最大手数（0=無制限）
+    int m_consecutiveGames = 1;              ///< 連続対局数
+    bool m_isShowHumanInFront = false;       ///< 人間を手前に表示するか
+    bool m_isAutoSaveKifu = false;           ///< 棋譜の自動保存フラグ
     QString m_kifuSaveDir;                  ///< 棋譜の保存ディレクトリ
-    bool m_isLoseOnTimeout;                 ///< 時間切れ負けフラグ
-    bool m_isSwitchTurnEachGame;            ///< 1局ごとに手番入替フラグ
-    int m_jishogiRule;                      ///< 持将棋ルール（0:なし, 1:24点法, 2:27点法）
+    bool m_isLoseOnTimeout = false;          ///< 時間切れ負けフラグ
+    bool m_isSwitchTurnEachGame = false;     ///< 1局ごとに手番入替フラグ
+    int m_jishogiRule = 0;                   ///< 持将棋ルール（0:なし, 1:24点法, 2:27点法）
 
     // --- 初期化・設定 ---
 
@@ -191,7 +191,7 @@ private slots:
 private:
     // --- フォント設定 ---
 
-    int m_fontSize;                                     ///< 現在のフォントサイズ
+    int m_fontSize = DefaultFontSize;                    ///< 現在のフォントサイズ
     static constexpr int DefaultFontSize = 9;           ///< デフォルトのフォントサイズ
     static constexpr int MinFontSize = 7;               ///< 最小フォントサイズ
     static constexpr int MaxFontSize = 16;              ///< 最大フォントサイズ

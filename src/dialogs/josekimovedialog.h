@@ -222,64 +222,64 @@ private:
     void applyFontSize();
 
     // === 指し手入力 ===
-    QRadioButton *m_moveBoardRadio;      ///< 盤上の駒を動かすラジオボタン
-    QRadioButton *m_moveDropRadio;       ///< 持ち駒を打つラジオボタン
-    QButtonGroup *m_moveTypeGroup;       ///< 指し手種別グループ
-    
-    QComboBox *m_moveFromFileCombo;      ///< 移動元筋
-    QComboBox *m_moveFromRankCombo;      ///< 移動元段
-    QComboBox *m_moveToFileCombo;        ///< 移動先筋
-    QComboBox *m_moveToRankCombo;        ///< 移動先段
-    QComboBox *m_moveDropPieceCombo;     ///< 打つ駒種
-    QComboBox *m_moveDropToFileCombo;    ///< 駒打ち先筋
-    QComboBox *m_moveDropToRankCombo;    ///< 駒打ち先段
-    QComboBox *m_movePromoteCombo;       ///< 成り/不成
-    
-    QLabel *m_movePreviewLabel;          ///< 指し手プレビュー（日本語）
-    QLabel *m_moveUsiLabel;              ///< 指し手USI形式表示
-    
-    QWidget *m_moveBoardWidget;          ///< 盤上移動用ウィジェット
-    QWidget *m_moveDropWidget;           ///< 駒打ち用ウィジェット
-    
+    QRadioButton *m_moveBoardRadio = nullptr;      ///< 盤上の駒を動かすラジオボタン
+    QRadioButton *m_moveDropRadio = nullptr;       ///< 持ち駒を打つラジオボタン
+    QButtonGroup *m_moveTypeGroup = nullptr;       ///< 指し手種別グループ
+
+    QComboBox *m_moveFromFileCombo = nullptr;      ///< 移動元筋
+    QComboBox *m_moveFromRankCombo = nullptr;      ///< 移動元段
+    QComboBox *m_moveToFileCombo = nullptr;        ///< 移動先筋
+    QComboBox *m_moveToRankCombo = nullptr;        ///< 移動先段
+    QComboBox *m_moveDropPieceCombo = nullptr;     ///< 打つ駒種
+    QComboBox *m_moveDropToFileCombo = nullptr;    ///< 駒打ち先筋
+    QComboBox *m_moveDropToRankCombo = nullptr;    ///< 駒打ち先段
+    QComboBox *m_movePromoteCombo = nullptr;       ///< 成り/不成
+
+    QLabel *m_movePreviewLabel = nullptr;          ///< 指し手プレビュー（日本語）
+    QLabel *m_moveUsiLabel = nullptr;              ///< 指し手USI形式表示
+
+    QWidget *m_moveBoardWidget = nullptr;          ///< 盤上移動用ウィジェット
+    QWidget *m_moveDropWidget = nullptr;           ///< 駒打ち用ウィジェット
+
     // === 予想応手入力 ===
-    QRadioButton *m_nextMoveBoardRadio;  ///< 盤上の駒を動かすラジオボタン
-    QRadioButton *m_nextMoveDropRadio;   ///< 持ち駒を打つラジオボタン
-    QRadioButton *m_nextMoveNoneRadio;   ///< 予想応手なしラジオボタン
-    QButtonGroup *m_nextMoveTypeGroup;   ///< 予想応手種別グループ
-    
-    QComboBox *m_nextMoveFromFileCombo;  ///< 移動元筋
-    QComboBox *m_nextMoveFromRankCombo;  ///< 移動元段
-    QComboBox *m_nextMoveToFileCombo;    ///< 移動先筋
-    QComboBox *m_nextMoveToRankCombo;    ///< 移動先段
-    QComboBox *m_nextMoveDropPieceCombo; ///< 打つ駒種
-    QComboBox *m_nextMoveDropToFileCombo;///< 駒打ち先筋
-    QComboBox *m_nextMoveDropToRankCombo;///< 駒打ち先段
-    QComboBox *m_nextMovePromoteCombo;   ///< 成り/不成
-    
-    QLabel *m_nextMovePreviewLabel;      ///< 予想応手プレビュー（日本語）
-    QLabel *m_nextMoveUsiLabel;          ///< 予想応手USI形式表示
-    
-    QWidget *m_nextMoveBoardWidget;      ///< 盤上移動用ウィジェット
-    QWidget *m_nextMoveDropWidget;       ///< 駒打ち用ウィジェット
-    QWidget *m_nextMoveInputWidget;      ///< 予想応手入力エリア全体
-    
+    QRadioButton *m_nextMoveBoardRadio = nullptr;  ///< 盤上の駒を動かすラジオボタン
+    QRadioButton *m_nextMoveDropRadio = nullptr;   ///< 持ち駒を打つラジオボタン
+    QRadioButton *m_nextMoveNoneRadio = nullptr;   ///< 予想応手なしラジオボタン
+    QButtonGroup *m_nextMoveTypeGroup = nullptr;   ///< 予想応手種別グループ
+
+    QComboBox *m_nextMoveFromFileCombo = nullptr;  ///< 移動元筋
+    QComboBox *m_nextMoveFromRankCombo = nullptr;  ///< 移動元段
+    QComboBox *m_nextMoveToFileCombo = nullptr;    ///< 移動先筋
+    QComboBox *m_nextMoveToRankCombo = nullptr;    ///< 移動先段
+    QComboBox *m_nextMoveDropPieceCombo = nullptr;  ///< 打つ駒種
+    QComboBox *m_nextMoveDropToFileCombo = nullptr; ///< 駒打ち先筋
+    QComboBox *m_nextMoveDropToRankCombo = nullptr; ///< 駒打ち先段
+    QComboBox *m_nextMovePromoteCombo = nullptr;   ///< 成り/不成
+
+    QLabel *m_nextMovePreviewLabel = nullptr;      ///< 予想応手プレビュー（日本語）
+    QLabel *m_nextMoveUsiLabel = nullptr;          ///< 予想応手USI形式表示
+
+    QWidget *m_nextMoveBoardWidget = nullptr;      ///< 盤上移動用ウィジェット
+    QWidget *m_nextMoveDropWidget = nullptr;       ///< 駒打ち用ウィジェット
+    QWidget *m_nextMoveInputWidget = nullptr;      ///< 予想応手入力エリア全体
+
     // === 編集モード用 ===
-    QLabel    *m_editMoveLabel;          ///< 編集対象の定跡手表示ラベル
-    
+    QLabel    *m_editMoveLabel = nullptr;          ///< 編集対象の定跡手表示ラベル
+
     // === 評価情報 ===
-    QSpinBox  *m_valueSpinBox;           ///< 評価値入力欄
-    QSpinBox  *m_depthSpinBox;           ///< 深さ入力欄
-    QSpinBox  *m_frequencySpinBox;       ///< 出現頻度入力欄
-    QLineEdit *m_commentEdit;            ///< コメント入力欄
-    
+    QSpinBox  *m_valueSpinBox = nullptr;           ///< 評価値入力欄
+    QSpinBox  *m_depthSpinBox = nullptr;           ///< 深さ入力欄
+    QSpinBox  *m_frequencySpinBox = nullptr;       ///< 出現頻度入力欄
+    QLineEdit *m_commentEdit = nullptr;            ///< コメント入力欄
+
     // === フォントサイズ ===
-    QPushButton *m_fontIncreaseBtn;      ///< フォント拡大ボタン
-    QPushButton *m_fontDecreaseBtn;      ///< フォント縮小ボタン
-    int m_fontSize;                      ///< 現在のフォントサイズ
-    
-    QLabel    *m_moveErrorLabel;         ///< 指し手エラー表示
-    
-    QDialogButtonBox *m_buttonBox;       ///< OK/キャンセルボタン
+    QPushButton *m_fontIncreaseBtn = nullptr;      ///< フォント拡大ボタン
+    QPushButton *m_fontDecreaseBtn = nullptr;      ///< フォント縮小ボタン
+    int m_fontSize = 0;                            ///< 現在のフォントサイズ
+
+    QLabel    *m_moveErrorLabel = nullptr;         ///< 指し手エラー表示
+
+    QDialogButtonBox *m_buttonBox = nullptr;       ///< OK/キャンセルボタン
 };
 
 #endif // JOSEKIMOVEDIALOG_H

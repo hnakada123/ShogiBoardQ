@@ -129,19 +129,19 @@ private:
      */
     bool isRegistered(const QString &sfen, const QString &usiMove) const;
 
-    QTableWidget *m_tableWidget;       ///< 棋譜表示テーブル
-    QPushButton *m_registerAllButton;  ///< 全て登録ボタン
-    QPushButton *m_closeButton;        ///< 閉じるボタン
-    QPushButton *m_fontIncreaseBtn;    ///< フォント拡大ボタン
-    QPushButton *m_fontDecreaseBtn;    ///< フォント縮小ボタン
-    QLabel *m_statusLabel;             ///< 状態ラベル
-    QLabel *m_targetFileLabel;         ///< マージ先ファイルラベル
-    QLabel *m_autoSaveLabel;           ///< 自動保存説明ラベル
-    
+    QTableWidget *m_tableWidget = nullptr;       ///< 棋譜表示テーブル
+    QPushButton *m_registerAllButton = nullptr;  ///< 全て登録ボタン
+    QPushButton *m_closeButton = nullptr;        ///< 閉じるボタン
+    QPushButton *m_fontIncreaseBtn = nullptr;    ///< フォント拡大ボタン
+    QPushButton *m_fontDecreaseBtn = nullptr;    ///< フォント縮小ボタン
+    QLabel *m_statusLabel = nullptr;             ///< 状態ラベル
+    QLabel *m_targetFileLabel = nullptr;         ///< マージ先ファイルラベル
+    QLabel *m_autoSaveLabel = nullptr;           ///< 自動保存説明ラベル
+
     QVector<KifuMergeEntry> m_entries; ///< 棋譜エントリ
     QSet<QString> m_registeredMoves;   ///< 登録済みの指し手セット（「正規化SFEN:USI指し手」形式）
-    int m_currentPly;                  ///< 現在選択中の手数
-    int m_fontSize;                    ///< フォントサイズ
+    int m_currentPly = -1;                  ///< 現在選択中の手数
+    int m_fontSize = 10;                    ///< フォントサイズ
 };
 
 #endif // JOSEKIMERGEDIALOG_H

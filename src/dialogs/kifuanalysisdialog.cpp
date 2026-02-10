@@ -16,9 +16,7 @@ using namespace EngineSettingsConstants;
 
 // 棋譜解析ダイアログのUIを設定する。
 KifuAnalysisDialog::KifuAnalysisDialog(QWidget *parent)
-    : QDialog(parent), ui(new Ui::KifuAnalysisDialog), m_engineNumber(0), 
-      m_initPosition(true), m_startPly(0), m_endPly(0), m_maxPly(0), 
-      m_savedStartPly(0), m_savedEndPly(0), m_byoyomiSec(0), m_fontSize(0)
+    : QDialog(parent), ui(new Ui::KifuAnalysisDialog)
 {
     // UIをセットアップする。
     ui->setupUi(this);

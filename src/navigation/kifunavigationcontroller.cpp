@@ -18,8 +18,6 @@ Q_LOGGING_CATEGORY(lcNavigation, "shogi.navigation")
 
 KifuNavigationController::KifuNavigationController(QObject* parent)
     : QObject(parent)
-    , m_tree(nullptr)
-    , m_state(nullptr)
 {
 }
 
