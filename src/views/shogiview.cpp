@@ -1809,6 +1809,19 @@ int ShogiView::squareSize() const
     return m_squareSize;
 }
 
+void ShogiView::setSquareSize(int size)
+{
+    if (size < 20 || size > 150) {
+        return;
+    }
+    m_squareSize = size;
+    recalcLayoutParams();
+    updateGeometry();
+    updateBlackClockLabelGeometry();
+    updateWhiteClockLabelGeometry();
+    update();
+}
+
 // 盤の表示スケールを 1px 分だけ拡大する。
 // メニュー、キーボードショートカット、Ctrl+ホイールから呼ばれる。
 // 最大サイズ（150px）を超える拡大は行わない。

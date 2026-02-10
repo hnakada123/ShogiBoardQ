@@ -7,11 +7,13 @@
 
 #include <QDialog>
 #include <QVector>
+#include <QStringList>
 
 class ShogiView;
 class ShogiBoard;
 class QPushButton;
 class QLabel;
+class QMenu;
 
 /**
  * @brief SFEN局面集ビューアダイアログ
@@ -50,6 +52,10 @@ private slots:
     void onFlipBoard();
     /// 選択ボタン押下時の処理
     void onSelectClicked();
+    /// 最近使ったファイルメニューの項目がクリックされたときのスロット
+    void onRecentFileClicked();
+    /// 最近使ったファイル履歴をクリアするスロット
+    void onClearRecentFilesClicked();
 
 private:
     /// UIを構築
@@ -68,6 +74,12 @@ private:
     void saveWindowSize();
     /// レイアウト確定後にウィンドウサイズを調整
     void adjustWindowToContents();
+    /// 最近使ったファイルリストにファイルパスを追加
+    void addToRecentFiles(const QString& filePath);
+    /// 最近使ったファイルメニューを更新
+    void updateRecentFilesMenu();
+    /// 最近使ったファイルリストを保存
+    void saveRecentFiles();
 
 protected:
     /// ウィンドウを閉じる際にサイズを保存
@@ -82,6 +94,11 @@ private:
     QVector<QString> m_sfenList;    ///< パース済みSFEN局面リスト
     int m_currentIndex = 0;         ///< 現在表示中の局面インデックス (0-based)
     QString m_currentFilePath;      ///< 読み込んだファイルのパス
+
+    // 最近使ったファイル
+    QStringList m_recentFiles;            ///< 最近使ったファイルリスト（最大5件）
+    QPushButton* m_btnRecentFiles = nullptr; ///< 「履歴」ボタン
+    QMenu* m_recentFilesMenu = nullptr;   ///< 最近使ったファイルメニュー
 
     // UI要素
     QPushButton* m_btnOpenFile = nullptr;

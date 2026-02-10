@@ -519,6 +519,14 @@ bool KifuLoadCoordinator::loadPositionFromSfen(const QString& sfenStr)
     startItem.comment = QString();
     disp.append(startItem);
 
+    // ツリーをクリアする前にcurrentNodeをnullに設定
+    // setRootSfen()がtreeChangedシグナルを同期的に発火するため、
+    // 旧ノード削除後にダングリングポインタで不正メモリアクセスが発生するのを防止
+    if (m_navState != nullptr) {
+        m_navState->setCurrentNode(nullptr);
+        m_navState->resetPreferredLineIndex();
+    }
+
     // KifuBranchTree をセットアップ
     if (m_branchTree == nullptr) {
         m_branchTree = new KifuBranchTree(this);
@@ -737,8 +745,18 @@ void KifuLoadCoordinator::applyParsedResultCommon(
 
     // 10) KifuBranchTree を構築
     if (m_branchTree != nullptr) {
+        // ツリーをクリアする前にcurrentNodeをnullに設定
+        // buildFromKifParseResult内でsetRootSfen()がtreeChangedシグナルを同期的に発火するため、
+        // 旧ノード削除後にダングリングポインタで不正メモリアクセスが発生するのを防止
+        if (m_navState != nullptr) {
+            m_navState->setCurrentNode(nullptr);
+        }
         // KifuBranchTreeBuilder を使用してツリーを構築
         KifuBranchTreeBuilder::buildFromKifParseResult(m_branchTree, res, initialSfen);
+        // ツリー再構築後にナビゲーション状態を新しいルートに設定
+        if (m_navState != nullptr) {
+            m_navState->goToRoot();
+        }
         qCDebug(lcKifu).noquote() << "KifuBranchTree built: nodeCount=" << m_branchTree->nodeCount()
                                  << "lineCount=" << m_branchTree->lineCount();
         emit branchTreeBuilt();

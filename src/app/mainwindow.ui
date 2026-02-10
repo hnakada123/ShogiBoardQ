@@ -62,6 +62,7 @@
     <addaction name="copyGameRecord"/>
     <addaction name="shogiPositionCopy"/>
     <addaction name="actionPasteKifu"/>
+    <addaction name="separator"/>
     <addaction name="actionSfenCollectionViewer"/>
     <addaction name="separator"/>
     <addaction name="actionCopyBoardToClipboard"/>

@@ -158,6 +158,54 @@ void setSfenCollectionDialogSize(const QSize& size)
     s.setValue("SizeRelated/sfenCollectionDialogSize", size);
 }
 
+// 局面集ビューアの最近使ったファイルリストを取得
+QStringList sfenCollectionRecentFiles()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("SfenCollection/recentFiles", QStringList()).toStringList();
+}
+
+// 局面集ビューアの最近使ったファイルリストを保存
+void setSfenCollectionRecentFiles(const QStringList& files)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("SfenCollection/recentFiles", files);
+}
+
+// 局面集ビューアの将棋盤マスサイズを取得
+int sfenCollectionSquareSize()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("SfenCollection/squareSize", 50).toInt();
+}
+
+// 局面集ビューアの将棋盤マスサイズを保存
+void setSfenCollectionSquareSize(int size)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("SfenCollection/squareSize", size);
+}
+
+// 局面集ビューアの最後に開いたディレクトリを取得
+QString sfenCollectionLastDirectory()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("SfenCollection/lastDirectory", QString()).toString();
+}
+
+// 局面集ビューアの最後に開いたディレクトリを保存
+void setSfenCollectionLastDirectory(const QString& dir)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("SfenCollection/lastDirectory", dir);
+}
+
 // 評価値グラフの設定
 int evalChartYLimit()
 {

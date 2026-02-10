@@ -67,6 +67,21 @@ QSize sfenCollectionDialogSize();
 /// 局面集ビューアのサイズを保存
 void setSfenCollectionDialogSize(const QSize& size);
 
+/// 局面集ビューアの最近使ったファイルリストを取得（最大5件）
+QStringList sfenCollectionRecentFiles();
+/// 局面集ビューアの最近使ったファイルリストを保存
+void setSfenCollectionRecentFiles(const QStringList& files);
+
+/// 局面集ビューアの将棋盤マスサイズを取得（デフォルト: 50）
+int sfenCollectionSquareSize();
+/// 局面集ビューアの将棋盤マスサイズを保存
+void setSfenCollectionSquareSize(int size);
+
+/// 局面集ビューアの最後に開いたディレクトリを取得
+QString sfenCollectionLastDirectory();
+/// 局面集ビューアの最後に開いたディレクトリを保存
+void setSfenCollectionLastDirectory(const QString& dir);
+
 /// 評価値グラフの設定
 /// 評価値上限を取得（デフォルト: 2000）
 int evalChartYLimit();
