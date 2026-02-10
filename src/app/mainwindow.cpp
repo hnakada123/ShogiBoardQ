@@ -140,6 +140,7 @@ MainWindow::MainWindow(QWidget *parent)
     // 4. 設定復元と信号配線
     // この順序を崩すと null 参照や初期表示不整合が起きやすい。
     // ドックネスティングを有効化（同じエリア内でドックを左右に分割可能）
+    // setDockNestingEnabled() は QMainWindow で定義された関数（本プロジェクト内には定義なし）
     setDockNestingEnabled(true);
 
     setupCentralWidgetContainer();
