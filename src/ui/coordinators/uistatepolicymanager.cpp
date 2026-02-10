@@ -180,9 +180,11 @@ void UiStatePolicyManager::buildPolicyTable()
     set(S::DuringTsumeSearch, E::WidgetBranchTree, P::Enabled);
     set(S::DuringConsideration, E::WidgetBranchTree, P::Enabled);
 
-    // 盤面クリック（指し手入力）: Idle のみ有効（対局中はisHumanTurnCbで個別制御）
+    // 盤面クリック（指し手入力）: 対局中/CSA中はisHumanTurnCbで手番制御するため有効にする
     setAll(E::WidgetBoardClick, P::Disabled);
-    set(S::Idle, E::WidgetBoardClick, P::Enabled);
+    set(S::Idle,          E::WidgetBoardClick, P::Enabled);
+    set(S::DuringGame,    E::WidgetBoardClick, P::Enabled);
+    set(S::DuringCsaGame, E::WidgetBoardClick, P::Enabled);
 }
 
 // ======================================================================
