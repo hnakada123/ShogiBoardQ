@@ -63,7 +63,7 @@
 #include "analysiscoordinator.h"
 #include "kifuanalysislistmodel.h"
 #include "analysiscoordinator.h"
-#include "recordpresenter.h"
+#include "gamerecordpresenter.h"
 #include "timecontrolutil.h"
 #include "analysisflowcontroller.h"
 #include "sfenutils.h"

@@ -19,7 +19,7 @@
 #include "gameinfopanecontroller.h"
 #include "timecontrolcontroller.h"
 #include "kifuloadcoordinator.h"
-#include "recordpresenter.h"  // GameRecordPresenter
+#include "gamerecordpresenter.h"  // GameRecordPresenter
 #include "matchcoordinator.h"
 #include "replaycontroller.h"
 #include "shogigamecontroller.h"

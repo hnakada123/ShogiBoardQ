@@ -363,7 +363,7 @@ src/
 │   ├── apptooltipfilter.cpp/.h     #   ツールチップフィルタ
 │   ├── branchrowdelegate.cpp/.h    #   分岐行デリゲート
 │   ├── longlongspinbox.cpp/.h      #   long long対応スピンボックス
-│   └── numeric_right_align_comma_delegate.h # 数値右寄せデリゲート
+│   └── numericrightaligncommadelegate.h # 数値右寄せデリゲート
 │
 ├── dialogs/                        # ダイアログ実装
 │   ├── startgamedialog.cpp/.h/.ui  #   対局開始ダイアログ
@@ -1749,7 +1749,7 @@ public:
 **GameRecordPresenter** — 棋譜表示の更新を担当:
 
 ```cpp
-// src/ui/presenters/recordpresenter.h
+// src/ui/presenters/gamerecordpresenter.h
 
 class GameRecordPresenter : public QObject {
     Q_OBJECT
@@ -5071,7 +5071,7 @@ Presenters は「Model → View」の単方向データフローを担当する�
 | `BoardSyncPresenter` | `boardsyncpresenter.h` | 盤面表示の同期。SFENから盤面を描画し、最終手のハイライトを表示する |
 | `EvalGraphPresenter` | `evalgraphpresenter.h` | 評価値グラフのデータ収集。先手/後手エンジンの評価値をリストに蓄積する |
 | `NavigationPresenter` | `navigationpresenter.h` | 分岐ツリーのハイライト更新。分岐候補の再構築後にツリー表示を同期する |
-| `GameRecordPresenter` | `recordpresenter.h` | 棋譜リスト表示の管理。棋譜全体の描画、ライブ対局中の1手追加、コメント管理を行う |
+| `GameRecordPresenter` | `gamerecordpresenter.h` | 棋譜リスト表示の管理。棋譜全体の描画、ライブ対局中の1手追加、コメント管理を行う |
 | `TimeDisplayPresenter` | `timedisplaypresenter.h` | 対局時計の表示。残り時間の表示、手番に応じたハイライト、秒読み時の緊急表示を行う |
 
 #### BoardSyncPresenter — 盤面同期
@@ -5128,7 +5128,7 @@ EvalGraphPresenter::appendSecondaryScore(scoreCp, match);  // 後手エンジン
 
 #### GameRecordPresenter — 棋譜リスト表示
 
-**ソース**: `src/ui/presenters/recordpresenter.h`, `src/ui/presenters/recordpresenter.cpp`
+**ソース**: `src/ui/presenters/gamerecordpresenter.h`, `src/ui/presenters/gamerecordpresenter.cpp`
 
 棋譜リストの表示と選択状態の管理を一手に担う、Presenters の中で最も多機能なクラスである。
 
@@ -9365,7 +9365,7 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 | apptooltipfilter | 第11章 | ツールチップフィルタ |
 | branchrowdelegate | 第11章 | 分岐行デリゲート |
 | longlongspinbox | 第11章 | 64bit スピンボックス |
-| numeric_right_align_comma_delegate | 第11章 | 数値デリゲート |
+| numericrightaligncommadelegate | 第11章 | 数値デリゲート |
 
 #### dialogs/（第11章）
 
