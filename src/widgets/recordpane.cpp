@@ -56,7 +56,7 @@ void RecordPane::buildUi()
     // ただし選択行のスタイルは明示的に黄色に設定（Qtデフォルトの青/紫を防ぐ）
     m_kifu->setStyleSheet(QStringLiteral(
         "QTableView {"
-        "  background-color: #fefcf6;"
+        "  background-color: #ffffff;"
         "}"
         "QTableView::item:selected:active {"
         "  background-color: #ffff00;"
@@ -190,15 +190,15 @@ void RecordPane::buildUi()
     m_branch->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
     m_branch->setWordWrap(false);
 
-    // ヘッダーを青色、データ欄をクリーム色にスタイル設定（選択行は黄色を維持）
+    // ヘッダーを青色、データ欄を白色にスタイル設定（選択行は黄色を維持）
     m_branch->setStyleSheet(QStringLiteral(
         "QTableView {"
-        "  background-color: #fefcf6;"
+        "  background-color: #ffffff;"
         "  selection-background-color: #ffff00;"
         "  selection-color: black;"
         "}"
         "QTableView::item {"
-        "  background-color: #fefcf6;"
+        "  background-color: #ffffff;"
         "}"
         "QTableView::item:selected:active {"
         "  background-color: #ffff00;"
@@ -372,7 +372,7 @@ void RecordPane::setKifuViewEnabled(bool on)
     // QTableView::item の固定 background-color を削除し、モデルの BackgroundRole を使用
     static const QString kBaseStyleSheet = QStringLiteral(
         "QTableView {"
-        "  background-color: #fefcf6;"
+        "  background-color: #ffffff;"
         "}"
         "QTableView::item:selected:active {"
         "  background-color: #ffff00;"

@@ -26,7 +26,7 @@ QVariant KifuRecordListModel::data(const QModelIndex &index, int role) const
     const int row = index.row();
     const int col = index.column();
 
-    // 背景色：現在行は黄色、分岐ありの手はオレンジ系、その他はクリーム色
+    // 背景色：現在行は黄色、分岐ありの手はオレンジ系、その他は白色
     if (role == Qt::BackgroundRole) {
         // 現在行（黄色ハイライト）を優先
         if (row == m_currentHighlightRow) {
@@ -38,9 +38,9 @@ QVariant KifuRecordListModel::data(const QModelIndex &index, int role) const
             static const QBrush kOrangeBg(QColor(255, 224, 178));
             return kOrangeBg;
         }
-        // デフォルト背景色（クリーム色）
-        static const QBrush kCreamBg(QColor(0xfe, 0xfc, 0xf6));  // #fefcf6
-        return kCreamBg;
+        // デフォルト背景色（白色）
+        static const QBrush kWhiteBg(QColor(0xff, 0xff, 0xff));  // #ffffff
+        return kWhiteBg;
     }
 
     // テキスト配置：消費時間列は中央揃え
