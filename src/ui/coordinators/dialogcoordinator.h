@@ -338,6 +338,11 @@ Q_SIGNALS:
     void analysisModeStarted();
 
     /**
+     * @brief 棋譜解析モードが終了した（完了または中止）
+     */
+    void analysisModeEnded();
+
+    /**
      * @brief 棋譜解析進捗を通知
      */
     void analysisProgressReported(int ply, int scoreCp);

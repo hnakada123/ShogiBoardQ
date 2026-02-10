@@ -120,6 +120,7 @@ class PreStartCleanupHandler;
 class MenuWindowWiring;
 class UsiCommandController;
 class RecordNavigationHandler;
+class UiStatePolicyManager;
 
 /**
  * @brief アプリ全体の UI と対局進行を束ねるファサード
@@ -255,12 +256,6 @@ private slots:
     void disableArrowButtons();
     /// ナビゲーション矢印ボタンを有効化する
     void enableArrowButtons();
-    /// ナビゲーション全体の有効/無効を切り替える
-    void setNavigationEnabled(bool on);
-    /// 対局開始時にナビゲーションを無効化する
-    void disableNavigationForGame();
-    /// 対局終了時にナビゲーションを有効化する
-    void enableNavigationAfterGame();
 
     // --- 盤面・反転 ---
 
@@ -575,6 +570,7 @@ private:
     CommentCoordinator* m_commentCoordinator = nullptr;                ///< コメントコーディネータ（非所有）
     UsiCommandController* m_usiCommandController = nullptr;            ///< USIコマンドコントローラ（非所有）
     RecordNavigationHandler* m_recordNavHandler = nullptr;             ///< 棋譜ナビゲーションハンドラ（非所有）
+    UiStatePolicyManager* m_uiStatePolicy = nullptr;                   ///< UI状態ポリシーマネージャ（非所有）
 
     // --- 分岐ナビゲーション ---
     KifuBranchTree* m_branchTree = nullptr;              ///< 分岐ツリーデータ（非所有）
@@ -735,6 +731,7 @@ private:
     void ensureUsiCommandController();
     /// 遅延初期化: RecordNavigationHandlerを生成し依存を設定する
     void ensureRecordNavigationHandler();
+    void ensureUiStatePolicyManager();
 
     // --- コンストラクタ分割先 ---
     /// セントラルウィジェットのコンテナを構築する
@@ -809,12 +806,6 @@ private:
     // --- 表示更新 ---
     /// 手番と持ち時間の表示を更新する
     void updateTurnAndTimekeepingDisplay();
-
-    // --- 編集メニュー ---
-    /// 起動時の編集メニュー状態を初期化する
-    void initializeEditMenuForStartup();
-    /// 局面編集中の編集メニュー状態を適用する
-    void applyEditMenuEditingState(bool editing);
 
     // --- 開始局面解決 ---
     /// 対局開始時に使用するSFEN文字列を決定する

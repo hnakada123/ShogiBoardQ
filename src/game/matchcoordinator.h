@@ -457,6 +457,9 @@ signals:
     /// 検討モード終了時に発火する
     void considerationModeEnded();
 
+    /// 詰み探索モード終了時に発火する
+    void tsumeSearchModeEnded();
+
     /// 検討待機開始時に発火する（経過タイマー停止用）
     void considerationWaitingStarted();
 

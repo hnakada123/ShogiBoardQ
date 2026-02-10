@@ -2020,7 +2020,11 @@ void MatchCoordinator::stopAnalysisEngine()
         emit considerationModeEnded();
     }
 
+    const bool wasTsumeSearch = m_inTsumeSearchMode;
     m_inTsumeSearchMode = false;  // フラグをリセット
+    if (wasTsumeSearch) {
+        emit tsumeSearchModeEnded();
+    }
     destroyEngines(false);  // 思考内容を保持
 
     // エンジン破棄完了後にフラグをリセット
@@ -2132,6 +2136,7 @@ bool MatchCoordinator::updateConsiderationPosition(const QString& newPositionStr
 void MatchCoordinator::onCheckmateSolved(const QStringList& pv)
 {
     m_inTsumeSearchMode = false;  // 完了したのでフラグをリセット
+    emit tsumeSearchModeEnded();
     if (m_hooks.showGameOverDialog) {
         const QString msg = tr("詰みあり（手順 %1 手）").arg(pv.size());
         m_hooks.showGameOverDialog(tr("詰み探索"), msg);
@@ -2142,6 +2147,7 @@ void MatchCoordinator::onCheckmateSolved(const QStringList& pv)
 void MatchCoordinator::onCheckmateNoMate()
 {
     m_inTsumeSearchMode = false;  // 完了したのでフラグをリセット
+    emit tsumeSearchModeEnded();
     if (m_hooks.showGameOverDialog) {
         m_hooks.showGameOverDialog(tr("詰み探索"), tr("詰みなし"));
     }
@@ -2151,6 +2157,7 @@ void MatchCoordinator::onCheckmateNoMate()
 void MatchCoordinator::onCheckmateNotImplemented()
 {
     m_inTsumeSearchMode = false;  // 完了したのでフラグをリセット
+    emit tsumeSearchModeEnded();
     if (m_hooks.showGameOverDialog) {
         m_hooks.showGameOverDialog(tr("詰み探索"), tr("（エンジン側）未実装"));
     }
@@ -2160,6 +2167,7 @@ void MatchCoordinator::onCheckmateNotImplemented()
 void MatchCoordinator::onCheckmateUnknown()
 {
     m_inTsumeSearchMode = false;  // 完了したのでフラグをリセット
+    emit tsumeSearchModeEnded();
     if (m_hooks.showGameOverDialog) {
         m_hooks.showGameOverDialog(tr("詰み探索"), tr("不明（解析不能）"));
     }
@@ -2172,6 +2180,7 @@ void MatchCoordinator::onTsumeBestMoveReceived()
     if (!m_inTsumeSearchMode) return;
 
     m_inTsumeSearchMode = false;  // 完了したのでフラグをリセット
+    emit tsumeSearchModeEnded();
     if (m_hooks.showGameOverDialog) {
         m_hooks.showGameOverDialog(tr("詰み探索"), tr("探索が完了しました"));
     }

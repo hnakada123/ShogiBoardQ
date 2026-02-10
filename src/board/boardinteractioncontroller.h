@@ -40,6 +40,10 @@ public:
     void setMode(Mode m) { m_mode = m; }
     Mode mode() const { return m_mode; }
 
+    /// 指し手入力の有効/無効を設定する（UiStatePolicyManagerから呼ばれる）
+    void setMoveInputEnabled(bool enabled) { m_moveInputEnabled = enabled; }
+    bool isMoveInputEnabled() const { return m_moveInputEnabled; }
+
     // --- 人間の手番判定コールバック ---
     /// trueを返すと人間の手番、falseなら相手の手番としてクリックを無視する
     using IsHumanTurnCallback = std::function<bool()>;
@@ -91,6 +95,7 @@ private:
     ShogiGameController* m_gc = nullptr; ///< ゲームコントローラ（非所有）
 
     Mode m_mode = Mode::HumanVsHuman; ///< 現在の操作モード
+    bool m_moveInputEnabled = true;      ///< 指し手入力の有効/無効
     IsHumanTurnCallback m_isHumanTurnCb; ///< 人間の手番判定コールバック
 
     // --- クリック状態 ---
