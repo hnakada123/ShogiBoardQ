@@ -866,18 +866,18 @@
 <context>
     <name>DialogCoordinator</name>
     <message>
-        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="399"/>
+        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="401"/>
         <source>将棋エンジンが選択されていません。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="665"/>
+        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="667"/>
         <source>Error</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="399"/>
-        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="671"/>
+        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="401"/>
+        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="673"/>
         <source>エラー</source>
         <translation type="unfinished">エラー</translation>
     </message>
@@ -3445,39 +3445,39 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="454"/>
+        <location filename="../../src/app/mainwindow.cpp" line="456"/>
         <source>Error</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="708"/>
-        <location filename="../../src/app/mainwindow.cpp" line="723"/>
+        <location filename="../../src/app/mainwindow.cpp" line="692"/>
+        <location filename="../../src/app/mainwindow.cpp" line="707"/>
         <source>エラー</source>
         <translation type="unfinished">エラー</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="708"/>
-        <location filename="../../src/app/mainwindow.cpp" line="723"/>
+        <location filename="../../src/app/mainwindow.cpp" line="692"/>
+        <location filename="../../src/app/mainwindow.cpp" line="707"/>
         <source>盤面データがありません。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1164"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1148"/>
         <source>棋譜ファイルを開く</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3771"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3757"/>
         <source>局面を反映しました</source>
         <translation>局面を反映しました</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3773"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3759"/>
         <source>局面の反映に失敗しました</source>
         <translation>局面の反映に失敗しました</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3776"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3762"/>
         <source>局面の反映に失敗しました（内部エラー）</source>
         <translation>局面の反映に失敗しました（内部エラー）</translation>
     </message>
@@ -3502,12 +3502,12 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1165"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1149"/>
         <source>Kifu Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3273"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3259"/>
         <source>コメントなし</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3516,17 +3516,17 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">定跡</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3745"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3731"/>
         <source>棋譜を取り込みました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3747"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3733"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3751"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3737"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3581,36 +3581,36 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2136"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2141"/>
         <source>詰みあり（手順 %1 手）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2137"/>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2146"/>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2155"/>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2164"/>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2176"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2142"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2152"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2162"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2172"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2185"/>
         <source>詰み探索</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2146"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2152"/>
         <source>詰みなし</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2155"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2162"/>
         <source>（エンジン側）未実装</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2164"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2172"/>
         <source>不明（解析不能）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2176"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2185"/>
         <source>探索が完了しました</source>
         <translation>探索が完了しました</translation>
     </message>
@@ -4251,12 +4251,12 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2970"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2979"/>
         <source>先手番</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2970"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2979"/>
         <source>後手番</source>
         <translation type="unfinished"></translation>
     </message>

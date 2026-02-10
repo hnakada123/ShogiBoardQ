@@ -36,6 +36,12 @@ BoardInteractionController::BoardInteractionController(ShogiView* view,
 
 void BoardInteractionController::onLeftClick(const QPoint& pt)
 {
+    // 指し手入力が無効な場合はクリックを無視
+    if (!m_moveInputEnabled && m_mode != Mode::Edit) {
+        qCDebug(lcBoard) << "onLeftClick ignored: move input disabled";
+        return;
+    }
+
     // 編集モード以外では、人間の手番かどうかをチェック
     // コールバックがtrueを返すと人間の手番、falseなら相手の手番なのでクリックを無視
     if (m_mode != Mode::Edit && m_isHumanTurnCb && !m_isHumanTurnCb()) {

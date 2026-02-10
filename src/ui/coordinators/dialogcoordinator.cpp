@@ -262,6 +262,8 @@ void DialogCoordinator::showKifuAnalysisDialog(const KifuAnalysisParams& params)
                          this, &DialogCoordinator::analysisProgressReported, Qt::UniqueConnection);
         QObject::connect(m_analysisFlow, &AnalysisFlowController::analysisResultRowSelected,
                          this, &DialogCoordinator::analysisResultRowSelected, Qt::UniqueConnection);
+        QObject::connect(m_analysisFlow, &AnalysisFlowController::analysisStopped,
+                         this, &DialogCoordinator::analysisModeEnded, Qt::UniqueConnection);
     }
 
     // 依存を詰めて Flow へ一任

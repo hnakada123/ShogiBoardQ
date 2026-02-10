@@ -121,6 +121,7 @@
 #include "commentcoordinator.h"
 #include "usicommandcontroller.h"
 #include "recordnavigationhandler.h"
+#include "uistatepolicymanager.h"
 
 Q_LOGGING_CATEGORY(lcApp, "shogi.app")
 
@@ -176,8 +177,9 @@ MainWindow::MainWindow(QWidget *parent)
     // 司令塔やUIフォント/位置編集コントローラの最終初期化
     finalizeCoordinators();
 
-    // 起動時用：編集メニューを"編集前（未編集）"の初期状態にする
-    initializeEditMenuForStartup();
+    // UI状態ポリシーマネージャを初期化し、アイドル状態を適用
+    ensureUiStatePolicyManager();
+    m_uiStatePolicy->applyState(UiStatePolicyManager::AppState::Idle);
 
     // 言語メニューをグループ化（相互排他）して現在の設定を反映
     // LanguageControllerに委譲（setActions内でupdateMenuStateも呼び出し）
@@ -622,25 +624,7 @@ void MainWindow::enableArrowButtons()
     if (m_recordPane) m_recordPane->setArrowButtonsEnabled(true);
 }
 
-// 棋譜欄と矢印ボタンの有効/無効を設定する。
-void MainWindow::setNavigationEnabled(bool on)
-{
-    if (m_recordPane) m_recordPane->setNavigationEnabled(on);
-    // 分岐ツリータブのクリックも連動して有効/無効にする
-    if (m_analysisTab) m_analysisTab->setBranchTreeClickEnabled(on);
-}
 
-// 対局中にナビゲーション（棋譜欄と矢印ボタン）を無効にする。
-void MainWindow::disableNavigationForGame()
-{
-    setNavigationEnabled(false);
-}
-
-// 対局終了後にナビゲーション（棋譜欄と矢印ボタン）を有効にする。
-void MainWindow::enableNavigationAfterGame()
-{
-    setNavigationEnabled(true);
-}
 
 // メニューで「投了」をクリックした場合の処理を行う。
 void MainWindow::handleResignation()
@@ -1290,39 +1274,6 @@ void MainWindow::onDocksLockToggled(bool locked)
 
     // 設定を保存
     SettingsService::setDocksLocked(locked);
-}
-
-// 起動時用：編集メニューを"編集前（未編集）"の初期状態にする
-void MainWindow::initializeEditMenuForStartup()
-{
-    // 未編集状態（＝編集モードではない）でメニューを整える
-    applyEditMenuEditingState(false);
-}
-
-// 共通ユーティリティ：編集モードかどうかで可視/不可視を一括切り替え
-// editing == true  : 編集モード中 → 「局面編集終了」などを表示／「編集局面開始」は隠す
-// editing == false : 未編集（通常）→ 「編集局面開始」を表示／それ以外を隠す
-void MainWindow::applyEditMenuEditingState(bool editing)
-{
-    if (!ui) {
-        return;
-    }
-
-    // 未編集状態では「局面編集開始」を表示、それ以外は非表示
-    ui->actionStartEditPosition->setVisible(!editing);
-
-    // 編集モード関連アクションは editing のときのみ表示
-    ui->actionEndEditPosition->setVisible(editing);
-    ui->actionSetHiratePosition->setVisible(editing);
-    ui->actionSetTsumePosition->setVisible(editing);
-    ui->actionReturnAllPiecesToStand->setVisible(editing);
-    ui->actionSwapSides->setVisible(editing);
-    ui->actionChangeTurn->setVisible(editing);
-
-    // ※ QMenu名は .ui 上で "Edit"（= ui->Edit）です。必要なら再描画。
-    if (ui->Edit) {
-        ui->Edit->update();
-    }
 }
 
 // `beginPositionEditing`: 局面編集モードへの遷移処理をコーディネータへ委譲する。
@@ -2045,6 +1996,12 @@ void MainWindow::initMatchCoordinator()
             m_gameStartCoordinator, &GameStartCoordinator::matchGameEnded,
             this, &MainWindow::onMatchGameEnded,
             Qt::UniqueConnection);
+
+        // 対局終了時にUI状態を「アイドル」に遷移
+        ensureUiStatePolicyManager();
+        connect(m_gameStartCoordinator, &GameStartCoordinator::matchGameEnded,
+                m_uiStatePolicy, &UiStatePolicyManager::transitionToIdle,
+                Qt::UniqueConnection);
     }
 
     // --- MatchCoordinator（司令塔）の生成＆初期配線 ---
@@ -2085,6 +2042,15 @@ void MainWindow::initMatchCoordinator()
         h.isHvH                           = std::bind(&MainWindow::isHvH, this);
 
         m_match->setUndoBindings(u, h);
+
+        // 検討モード終了・詰み探索終了時にUI状態を「アイドル」に遷移
+        ensureUiStatePolicyManager();
+        connect(m_match, &MatchCoordinator::considerationModeEnded,
+                m_uiStatePolicy, &UiStatePolicyManager::transitionToIdle,
+                Qt::UniqueConnection);
+        connect(m_match, &MatchCoordinator::tsumeSearchModeEnded,
+                m_uiStatePolicy, &UiStatePolicyManager::transitionToIdle,
+                Qt::UniqueConnection);
     }
 
     if (m_timeController) {
@@ -2621,6 +2587,17 @@ void MainWindow::ensureDialogCoordinator()
     // 解析結果行選択シグナルを接続（棋譜欄・将棋盤・分岐ツリー連動用）
     connect(m_dialogCoordinator, &DialogCoordinator::analysisResultRowSelected,
             this, &MainWindow::onKifuAnalysisResultRowSelected);
+
+    // UI状態遷移シグナルを接続
+    ensureUiStatePolicyManager();
+    connect(m_dialogCoordinator, &DialogCoordinator::analysisModeStarted,
+            m_uiStatePolicy, &UiStatePolicyManager::transitionToDuringAnalysis);
+    connect(m_dialogCoordinator, &DialogCoordinator::analysisModeEnded,
+            m_uiStatePolicy, &UiStatePolicyManager::transitionToIdle);
+    connect(m_dialogCoordinator, &DialogCoordinator::tsumeSearchModeStarted,
+            m_uiStatePolicy, &UiStatePolicyManager::transitionToDuringTsumeSearch);
+    connect(m_dialogCoordinator, &DialogCoordinator::considerationModeStarted,
+            m_uiStatePolicy, &UiStatePolicyManager::transitionToDuringConsideration);
 }
 
 // `ensureKifuExportController`: Kifu Export Controller を必要に応じて生成し、依存関係を更新する。
@@ -2696,9 +2673,10 @@ void MainWindow::ensureGameStateController()
     m_gameStateController->setKifuRecordModel(m_kifuRecordModel);
     m_gameStateController->setPlayMode(m_playMode);
 
-    // コールバックの設定
+    // コールバックの設定: 対局終了時にUI状態を「アイドル」に遷移
+    ensureUiStatePolicyManager();
     m_gameStateController->setEnableArrowButtonsCallback(
-        std::bind(&MainWindow::enableNavigationAfterGame, this));
+        std::bind(&UiStatePolicyManager::transitionToIdle, m_uiStatePolicy));
     m_gameStateController->setSetReplayModeCallback(
         std::bind(&MainWindow::setReplayMode, this, std::placeholders::_1));
     m_gameStateController->setRefreshBranchTreeCallback([this]() {
@@ -2816,9 +2794,14 @@ void MainWindow::ensurePositionEditCoordinator()
     m_posEditCoordinator->setResumeSfenStr(&m_resumeSfenStr);
     m_posEditCoordinator->setOnMainRowGuard(&m_onMainRowGuard);
 
-    // コールバックの設定
+    // コールバックの設定：局面編集状態の遷移をUiStatePolicyManagerに委譲
+    ensureUiStatePolicyManager();
     m_posEditCoordinator->setApplyEditMenuStateCallback([this](bool editing) {
-        applyEditMenuEditingState(editing);
+        if (editing) {
+            m_uiStatePolicy->transitionToDuringPositionEdit();
+        } else {
+            m_uiStatePolicy->transitionToIdle();
+        }
     });
     m_posEditCoordinator->setEnsurePositionEditCallback([this]() {
         ensurePositionEditController();
@@ -2868,10 +2851,12 @@ void MainWindow::ensureCsaGameWiring()
     m_csaGameWiring = new CsaGameWiring(deps, this);
 
     // CsaGameWiringからのシグナルをMainWindowに接続
+    // CSA対局開始/終了時のUI状態遷移
+    ensureUiStatePolicyManager();
     connect(m_csaGameWiring, &CsaGameWiring::disableNavigationRequested,
-            this, &MainWindow::disableNavigationForGame);
+            m_uiStatePolicy, &UiStatePolicyManager::transitionToDuringCsaGame);
     connect(m_csaGameWiring, &CsaGameWiring::enableNavigationRequested,
-            this, &MainWindow::enableNavigationAfterGame);
+            m_uiStatePolicy, &UiStatePolicyManager::transitionToIdle);
     connect(m_csaGameWiring, &CsaGameWiring::appendKifuLineRequested,
             this, &MainWindow::appendKifuLine);
     connect(m_csaGameWiring, &CsaGameWiring::refreshBranchTreeRequested,
@@ -3066,9 +3051,10 @@ void MainWindow::ensureGameStartCoordinator()
     connect(m_gameStart, &GameStartCoordinator::consecutiveGamesConfigured,
             this, &MainWindow::onConsecutiveGamesConfigured);
 
-    // 対局開始時にナビゲーション（棋譜欄と矢印ボタン）を無効化
+    // 対局開始時にUI状態を「対局中」に遷移
+    ensureUiStatePolicyManager();
     connect(m_gameStart, &GameStartCoordinator::started,
-            this, &MainWindow::disableNavigationForGame);
+            m_uiStatePolicy, &UiStatePolicyManager::transitionToDuringGame);
 
     // 対局開始時の設定を保存（連続対局用）
     connect(m_gameStart, &GameStartCoordinator::started,
@@ -4152,4 +4138,19 @@ void MainWindow::ensureRecordNavigationHandler()
     deps.playMode = &m_playMode;
     deps.match = m_match;
     m_recordNavHandler->updateDeps(deps);
+}
+
+// `ensureUiStatePolicyManager`: UI State Policy Manager を必要に応じて生成し、依存関係を更新する。
+void MainWindow::ensureUiStatePolicyManager()
+{
+    if (!m_uiStatePolicy) {
+        m_uiStatePolicy = new UiStatePolicyManager(this);
+    }
+
+    UiStatePolicyManager::Deps deps;
+    deps.ui = ui;
+    deps.recordPane = m_recordPane;
+    deps.analysisTab = m_analysisTab;
+    deps.boardController = m_boardController;
+    m_uiStatePolicy->updateDeps(deps);
 }
