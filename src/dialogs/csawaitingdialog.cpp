@@ -19,18 +19,7 @@
 CsaWaitingDialog::CsaWaitingDialog(CsaGameCoordinator* coordinator, QWidget* parent)
     : QDialog(parent)
     , m_coordinator(coordinator)
-    , m_statusLabel(nullptr)
-    , m_detailLabel(nullptr)
-    , m_progressBar(nullptr)
-    , m_cancelButton(nullptr)
-    , m_showLogButton(nullptr)
-    , m_logWindow(nullptr)
-    , m_logTextEdit(nullptr)
-    , m_btnLogFontIncrease(nullptr)
-    , m_btnLogFontDecrease(nullptr)
     , m_logFontSize(SettingsService::csaLogFontSize())  // SettingsServiceから読み込み
-    , m_btnSendToServer(nullptr)
-    , m_commandInput(nullptr)
 {
     qCDebug(lcUi) << "Constructor called, coordinator=" << coordinator;
     setupUi();

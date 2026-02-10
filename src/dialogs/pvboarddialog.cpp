@@ -31,7 +31,6 @@ PvBoardDialog::PvBoardDialog(const QString& baseSfen,
     : QDialog(parent)
     , m_baseSfen(baseSfen)
     , m_pvMoves(pvMoves)
-    , m_currentPly(0)
 {
     setWindowTitle(tr("読み筋表示"));
     // ダイアログのサイズは可変に（将棋盤のサイズ変更に対応）

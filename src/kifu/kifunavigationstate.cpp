@@ -8,8 +8,6 @@
 
 KifuNavigationState::KifuNavigationState(QObject* parent)
     : QObject(parent)
-    , m_tree(nullptr)
-    , m_currentNode(nullptr)
 {
 }
 

@@ -130,25 +130,25 @@ private:
     void updateLogFontSize(int delta);
 
 private:
-    CsaGameCoordinator* m_coordinator;  ///< CSA通信対局コーディネータ
-    QLabel* m_statusLabel;              ///< 状態表示ラベル
-    QLabel* m_detailLabel;              ///< 詳細メッセージラベル
-    QProgressBar* m_progressBar;        ///< プログレスバー（待機中表示用）
-    QPushButton* m_cancelButton;        ///< キャンセルボタン
-    QPushButton* m_showLogButton;       ///< 通信ログ表示ボタン
+    CsaGameCoordinator* m_coordinator = nullptr;  ///< CSA通信対局コーディネータ
+    QLabel* m_statusLabel = nullptr;              ///< 状態表示ラベル
+    QLabel* m_detailLabel = nullptr;              ///< 詳細メッセージラベル
+    QProgressBar* m_progressBar = nullptr;        ///< プログレスバー（待機中表示用）
+    QPushButton* m_cancelButton = nullptr;        ///< キャンセルボタン
+    QPushButton* m_showLogButton = nullptr;       ///< 通信ログ表示ボタン
 
     // 通信ログウィンドウ
-    QDialog* m_logWindow;               ///< 通信ログウィンドウ
-    QPlainTextEdit* m_logTextEdit;      ///< 通信ログテキスト表示
+    QDialog* m_logWindow = nullptr;               ///< 通信ログウィンドウ
+    QPlainTextEdit* m_logTextEdit = nullptr;      ///< 通信ログテキスト表示
 
     // フォントサイズ調整ボタン（ログウィンドウ）
-    QToolButton* m_btnLogFontIncrease;  ///< ログA+ボタン
-    QToolButton* m_btnLogFontDecrease;  ///< ログA-ボタン
-    int m_logFontSize;                   ///< ログウィンドウのフォントサイズ
+    QToolButton* m_btnLogFontIncrease = nullptr;  ///< ログA+ボタン
+    QToolButton* m_btnLogFontDecrease = nullptr;  ///< ログA-ボタン
+    int m_logFontSize = 0;                         ///< ログウィンドウのフォントサイズ
 
     // コマンド入力UI
-    QPushButton* m_btnSendToServer;     ///< CSAサーバーへ送信ボタン
-    QLineEdit* m_commandInput;          ///< コマンド入力欄
+    QPushButton* m_btnSendToServer = nullptr;     ///< CSAサーバーへ送信ボタン
+    QLineEdit* m_commandInput = nullptr;          ///< コマンド入力欄
 };
 
 #endif // CSAWAITINGDIALOG_H

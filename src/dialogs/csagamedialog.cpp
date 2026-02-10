@@ -16,10 +16,6 @@ CsaGameDialog::CsaGameDialog(QWidget *parent)
     : QDialog(parent)
     , ui(new Ui::CsaGameDialog)
     , m_fontSize(SettingsService::csaGameDialogFontSize())
-    , m_isHuman(true)
-    , m_isEngine(false)
-    , m_engineNumber(0)
-    , m_port(4081)
 {
     ui->setupUi(this);
 

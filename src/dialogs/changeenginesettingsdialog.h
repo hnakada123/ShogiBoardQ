@@ -61,7 +61,7 @@ private:
     Ui::ChangeEngineSettingsDialog* ui;
 
     // エンジン番号
-    int m_engineNumber;
+    int m_engineNumber = 0;
 
     // エンジン名
     QString m_engineName;
@@ -73,7 +73,7 @@ private:
     QList<EngineOption> m_optionList;
 
     // エンジンオプションウィジェットのレイアウト
-    QVBoxLayout* m_optionWidgetsLayout;
+    QVBoxLayout* m_optionWidgetsLayout = nullptr;
 
     // オプションUIのためのウィジェットを格納する構造体
     // 各メンバー変数は、デフォルトではnullptrに設定しておく。

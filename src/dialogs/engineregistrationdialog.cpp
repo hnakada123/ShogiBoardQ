@@ -23,8 +23,6 @@ using namespace EngineSettingsConstants;
 EngineRegistrationDialog::EngineRegistrationDialog(QWidget *parent)
     : QDialog(parent),
     ui(new Ui::EngineRegistrationDialog),
-    m_process(nullptr),
-    m_errorOccurred(false),
     m_fontSize(SettingsService::engineRegistrationFontSize())
 {
     // Qt Designerで作成されたUIをプログラムのウィンドウに読み込み、初期化する。

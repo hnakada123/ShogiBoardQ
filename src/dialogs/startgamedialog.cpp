@@ -17,7 +17,7 @@ using namespace EngineSettingsConstants;
 // 初期化
 // ============================================================
 
-StartGameDialog::StartGameDialog(QWidget *parent) : QDialog(parent), ui(new Ui::StartGameDialog), m_fontSize(DefaultFontSize)
+StartGameDialog::StartGameDialog(QWidget *parent) : QDialog(parent), ui(new Ui::StartGameDialog)
 {
     ui->setupUi(this);
 

@@ -78,29 +78,29 @@ private:
     QString m_engineName;
 
     // 選択したエンジン番号
-    int m_engineNumber;
+    int m_engineNumber = 0;
 
     // "開始局面から最終手まで"を選択した場合、true
-    bool m_initPosition;
-    
+    bool m_initPosition = true;
+
     // 範囲指定の開始手数
-    int m_startPly;
-    
+    int m_startPly = 0;
+
     // 範囲指定の終了手数
-    int m_endPly;
-    
+    int m_endPly = 0;
+
     // 最大手数
-    int m_maxPly;
-    
+    int m_maxPly = 0;
+
     // 設定から読み込んだ開始・終了手数（setMaxPly時に適用）
-    int m_savedStartPly;
-    int m_savedEndPly;
+    int m_savedStartPly = 0;
+    int m_savedEndPly = 0;
 
     // 1手あたりの思考時間（秒数）
-    int m_byoyomiSec;
-    
+    int m_byoyomiSec = 0;
+
     // 現在のフォントサイズ（ポイント）
-    int m_fontSize;
+    int m_fontSize = 0;
 
     // エンジンの名前とディレクトリを格納するリスト
     QList<Engine> m_engineList;

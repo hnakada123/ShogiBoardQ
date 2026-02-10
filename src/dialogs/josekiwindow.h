@@ -353,54 +353,54 @@ private:
     void onMergeRegisterMove(const QString &sfen, const QString &sfenWithPly, const QString &usiMove);
 
     // === ファイルグループ ===
-    QPushButton  *m_openButton;        ///< 「開く」ボタン
-    QPushButton  *m_newButton;         ///< 「新規作成」ボタン
-    QPushButton  *m_saveButton;        ///< 「上書保存」ボタン
-    QPushButton  *m_saveAsButton;      ///< 「名前を付けて保存」ボタン
-    QPushButton  *m_recentButton;      ///< 「最近使ったファイル」ボタン
-    QMenu        *m_recentFilesMenu;   ///< 最近使ったファイルメニュー
-    QLabel       *m_filePathLabel;     ///< 選択されたファイルパスを表示するラベル
-    QLabel       *m_fileStatusLabel;   ///< ファイル読込状態ラベル（✓読込済 / ✗未読込）
-    
+    QPushButton  *m_openButton = nullptr;        ///< 「開く」ボタン
+    QPushButton  *m_newButton = nullptr;         ///< 「新規作成」ボタン
+    QPushButton  *m_saveButton = nullptr;        ///< 「上書保存」ボタン
+    QPushButton  *m_saveAsButton = nullptr;      ///< 「名前を付けて保存」ボタン
+    QPushButton  *m_recentButton = nullptr;      ///< 「最近使ったファイル」ボタン
+    QMenu        *m_recentFilesMenu = nullptr;   ///< 最近使ったファイルメニュー
+    QLabel       *m_filePathLabel = nullptr;     ///< 選択されたファイルパスを表示するラベル
+    QLabel       *m_fileStatusLabel = nullptr;   ///< ファイル読込状態ラベル（✓読込済 / ✗未読込）
+
     // === 表示設定グループ ===
-    QPushButton  *m_fontIncreaseBtn;   ///< フォント拡大ボタン
-    QPushButton  *m_fontDecreaseBtn;   ///< フォント縮小ボタン
-    QCheckBox    *m_autoLoadCheckBox;  ///< 自動読込チェックボックス
-    
+    QPushButton  *m_fontIncreaseBtn = nullptr;   ///< フォント拡大ボタン
+    QPushButton  *m_fontDecreaseBtn = nullptr;   ///< フォント縮小ボタン
+    QCheckBox    *m_autoLoadCheckBox = nullptr;  ///< 自動読込チェックボックス
+
     // === 操作グループ ===
-    QPushButton  *m_stopButton;        ///< 定跡表示停止ボタン
-    QPushButton  *m_addMoveButton;     ///< 定跡手追加ボタン
-    QToolButton  *m_mergeButton;       ///< マージボタン（ドロップダウンメニュー付き）
-    QMenu        *m_mergeMenu;         ///< マージメニュー
-    
+    QPushButton  *m_stopButton = nullptr;        ///< 定跡表示停止ボタン
+    QPushButton  *m_addMoveButton = nullptr;     ///< 定跡手追加ボタン
+    QToolButton  *m_mergeButton = nullptr;       ///< マージボタン（ドロップダウンメニュー付き）
+    QMenu        *m_mergeMenu = nullptr;         ///< マージメニュー
+
     // === 状態表示 ===
-    QLabel       *m_currentSfenLabel;  ///< 現在の局面のSFEN表示用ラベル
-    QLabel       *m_sfenLineLabel;     ///< 定跡ファイルのSFEN行表示用ラベル
-    QLabel       *m_statusLabel;       ///< ステータスバーラベル
-    QLabel       *m_positionSummaryLabel; ///< 局面サマリー表示ラベル
-    QLabel       *m_emptyGuideLabel;   ///< 空状態ガイダンスラベル
-    QLabel       *m_noticeLabel;       ///< 注意書きラベル
-    QPushButton  *m_showSfenDetailBtn; ///< SFEN詳細表示ボタン
-    QWidget      *m_sfenDetailWidget;  ///< SFEN詳細表示ウィジェット
-    
+    QLabel       *m_currentSfenLabel = nullptr;  ///< 現在の局面のSFEN表示用ラベル
+    QLabel       *m_sfenLineLabel = nullptr;     ///< 定跡ファイルのSFEN行表示用ラベル
+    QLabel       *m_statusLabel = nullptr;       ///< ステータスバーラベル
+    QLabel       *m_positionSummaryLabel = nullptr; ///< 局面サマリー表示ラベル
+    QLabel       *m_emptyGuideLabel = nullptr;   ///< 空状態ガイダンスラベル
+    QLabel       *m_noticeLabel = nullptr;       ///< 注意書きラベル
+    QPushButton  *m_showSfenDetailBtn = nullptr; ///< SFEN詳細表示ボタン
+    QWidget      *m_sfenDetailWidget = nullptr;  ///< SFEN詳細表示ウィジェット
+
     // === コンテキストメニュー ===
-    QMenu        *m_tableContextMenu;  ///< テーブルコンテキストメニュー
-    QAction      *m_actionPlay;        ///< 着手アクション
-    QAction      *m_actionEdit;        ///< 編集アクション
-    QAction      *m_actionDelete;      ///< 削除アクション
-    QAction      *m_actionCopyMove;    ///< 指し手コピーアクション
-    
+    QMenu        *m_tableContextMenu = nullptr;  ///< テーブルコンテキストメニュー
+    QAction      *m_actionPlay = nullptr;        ///< 着手アクション
+    QAction      *m_actionEdit = nullptr;        ///< 編集アクション
+    QAction      *m_actionDelete = nullptr;      ///< 削除アクション
+    QAction      *m_actionCopyMove = nullptr;    ///< 指し手コピーアクション
+
     // === テーブル ===
-    QTableWidget *m_tableWidget;       ///< 定跡表示用テーブル
-    
+    QTableWidget *m_tableWidget = nullptr;       ///< 定跡表示用テーブル
+
     // === データ ===
     QString       m_currentFilePath;   ///< 現在選択されているファイルパス
     QString       m_currentSfen;       ///< 現在の局面のSFEN
-    int           m_fontSize;          ///< フォントサイズ
-    bool          m_humanCanPlay;      ///< 人間が着手可能かどうか
-    bool          m_autoLoadEnabled;   ///< 定跡ファイル自動読込が有効かどうか
-    bool          m_displayEnabled;    ///< 定跡表示が有効かどうか
-    bool          m_modified;          ///< 編集状態（変更があるか）
+    int           m_fontSize = 10;     ///< フォントサイズ
+    bool          m_humanCanPlay = true;      ///< 人間が着手可能かどうか
+    bool          m_autoLoadEnabled = true;   ///< 定跡ファイル自動読込が有効かどうか
+    bool          m_displayEnabled = true;    ///< 定跡表示が有効かどうか
+    bool          m_modified = false;         ///< 編集状態（変更があるか）
     
     /// 最近使ったファイルリスト（最大5件）
     QStringList   m_recentFiles;

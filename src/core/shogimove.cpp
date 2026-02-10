@@ -3,8 +3,7 @@
 
 #include "shogimove.h"
 
-ShogiMove::ShogiMove()
-    : fromSquare(0, 0), toSquare(0, 0), movingPiece(' '), capturedPiece(' '), isPromotion(false) {}
+ShogiMove::ShogiMove() = default;
 
 ShogiMove::ShogiMove(const QPoint& from, const QPoint& to, QChar moving, QChar captured, bool promotion)
     : fromSquare(from), toSquare(to), movingPiece(moving), capturedPiece(captured), isPromotion(promotion) {}

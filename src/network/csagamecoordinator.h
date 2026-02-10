@@ -376,30 +376,30 @@ private:
     QPointer<BoardInteractionController> m_boardController; ///< 盤面操作制御（非所有）
     QPointer<KifuRecordListModel> m_recordModel;          ///< 棋譜リストモデル（非所有）
 
-    Usi* m_engine;                                     ///< USIエンジン（thisが親、所有）
-    UsiCommLogModel* m_engineCommLog;           ///< USI通信ログモデル（外部から渡されるか内部で作成）
-    ShogiEngineThinkingModel* m_engineThinking; ///< 思考モデル（外部から渡されるか内部で作成）
-    bool m_ownsCommLog;      ///< m_engineCommLogの所有権フラグ
-    bool m_ownsThinking;     ///< m_engineThinkingの所有権フラグ
+    Usi* m_engine = nullptr;                               ///< USIエンジン（thisが親、所有）
+    UsiCommLogModel* m_engineCommLog = nullptr;     ///< USI通信ログモデル（外部から渡されるか内部で作成）
+    ShogiEngineThinkingModel* m_engineThinking = nullptr; ///< 思考モデル（外部から渡されるか内部で作成）
+    bool m_ownsCommLog = false;  ///< m_engineCommLogの所有権フラグ
+    bool m_ownsThinking = false; ///< m_engineThinkingの所有権フラグ
 
-    GameState m_gameState;                             ///< 現在の対局状態
-    PlayerType m_playerType;                           ///< こちら側の対局者タイプ
+    GameState m_gameState = GameState::Idle;            ///< 現在の対局状態
+    PlayerType m_playerType = PlayerType::Human;        ///< こちら側の対局者タイプ
     StartOptions m_options;                             ///< 対局開始時のオプション
 
     CsaClient::GameSummary m_gameSummary;              ///< サーバーから受信した対局情報
-    bool m_isBlackSide;         ///< 先手側かどうか
-    bool m_isMyTurn;            ///< 自分の手番かどうか
-    int m_moveCount;            ///< 指し手数
-    int m_blackTotalTimeMs;     ///< 先手累計消費時間（ミリ秒）
-    int m_whiteTotalTimeMs;     ///< 後手累計消費時間（ミリ秒）
-    int m_prevToFile;           ///< 前の指し手の移動先筋（「同」判定用）
-    int m_prevToRank;           ///< 前の指し手の移動先段（「同」判定用）
-    
+    bool m_isBlackSide = true;      ///< 先手側かどうか
+    bool m_isMyTurn = false;        ///< 自分の手番かどうか
+    int m_moveCount = 0;            ///< 指し手数
+    int m_blackTotalTimeMs = 0;     ///< 先手累計消費時間（ミリ秒）
+    int m_whiteTotalTimeMs = 0;     ///< 後手累計消費時間（ミリ秒）
+    int m_prevToFile = 0;           ///< 前の指し手の移動先筋（「同」判定用）
+    int m_prevToRank = 0;           ///< 前の指し手の移動先段（「同」判定用）
+
     // --- 残り時間追跡（CSA通信対局用） ---
-    int m_initialTimeMs;        ///< 初期持ち時間（ミリ秒）
-    int m_blackRemainingMs;     ///< 先手残り時間（ミリ秒）
-    int m_whiteRemainingMs;     ///< 後手残り時間（ミリ秒）
-    int m_resignConsumedTimeMs; ///< 投了時の消費時間（ミリ秒）
+    int m_initialTimeMs = 0;        ///< 初期持ち時間（ミリ秒）
+    int m_blackRemainingMs = 0;     ///< 先手残り時間（ミリ秒）
+    int m_whiteRemainingMs = 0;     ///< 後手残り時間（ミリ秒）
+    int m_resignConsumedTimeMs = 0; ///< 投了時の消費時間（ミリ秒）
 
     // --- USIポジション文字列 ---
     QString m_positionStr;      ///< "position sfen ... moves ..."形式

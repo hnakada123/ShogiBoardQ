@@ -207,4 +207,18 @@ void setMyDialogSize(const QSize& size)
   // Warning: clazy-range-loop-detach
   for (const auto &item : list) { ... }
   ```
+- **メンバ変数の初期化**: C++ Core Guidelines (C.45, C.48) に従い、以下のように使い分ける:
+  - **ヘッダーでのインクラス初期化（NSDMI）**: デフォルト値が固定の場合に使用
+  - **コンストラクタ初期化子リスト**: コンストラクタ引数に依存する値、基底クラス、`this`ポインタが必要な場合に使用
+  ```cpp
+  // ヘッダー (.h) - 固定のデフォルト値
+  int m_count = 0;
+  bool m_isReady = false;
+
+  // コンストラクタ (.cpp) - 引数依存・基底クラス・this が必要な値
+  MyClass::MyClass(Model* model, QObject* parent)
+      : QObject(parent)
+      , m_handler(std::make_unique<Handler>(this))
+      , m_model(model)
+  ```
 - **Debug logging**: `docs/debug-logging-guidelines.md` に従う。`qDebug()` はデバッグビルド専用。リリースビルドでは `QT_NO_DEBUG_OUTPUT` により無効化される

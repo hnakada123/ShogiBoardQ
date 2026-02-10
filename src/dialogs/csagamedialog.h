@@ -224,15 +224,15 @@ private:
     Ui::CsaGameDialog* ui;              ///< UIオブジェクト
     QList<Engine> m_engineList;         ///< エンジンリスト
     QList<ServerHistory> m_serverHistory; ///< サーバー接続履歴
-    int m_fontSize;                     ///< フォントサイズ
+    int m_fontSize = 0;                  ///< フォントサイズ
 
     // 設定値のキャッシュ
-    bool m_isHuman;         ///< こちら側が人間かどうか
-    bool m_isEngine;        ///< こちら側がエンジンかどうか
+    bool m_isHuman = true;  ///< こちら側が人間かどうか
+    bool m_isEngine = false; ///< こちら側がエンジンかどうか
     QString m_engineName;   ///< 選択されたエンジン名
-    int m_engineNumber;     ///< 選択されたエンジン番号
+    int m_engineNumber = 0; ///< 選択されたエンジン番号
     QString m_host;         ///< 接続先ホスト
-    int m_port;             ///< ポート番号
+    int m_port = 4081;      ///< ポート番号
     QString m_loginId;      ///< ログインID
     QString m_password;     ///< パスワード
     QString m_csaVersion;   ///< CSAプロトコルバージョン

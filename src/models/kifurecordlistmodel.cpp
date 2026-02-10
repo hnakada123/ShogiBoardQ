@@ -8,7 +8,6 @@
 
 KifuRecordListModel::KifuRecordListModel(QObject *parent)
     : AbstractListModel<KifuDisplay>(parent)
-    , m_currentHighlightRow(0)  // 起動時は開始局面（行0）をハイライト
 {
 }
 

@@ -11,16 +11,6 @@
 
 JosekiMergeDialog::JosekiMergeDialog(QWidget *parent)
     : QDialog(parent)
-    , m_tableWidget(nullptr)
-    , m_registerAllButton(nullptr)
-    , m_closeButton(nullptr)
-    , m_fontIncreaseBtn(nullptr)
-    , m_fontDecreaseBtn(nullptr)
-    , m_statusLabel(nullptr)
-    , m_targetFileLabel(nullptr)
-    , m_autoSaveLabel(nullptr)
-    , m_currentPly(-1)
-    , m_fontSize(10)
 {
     setupUi();
 }

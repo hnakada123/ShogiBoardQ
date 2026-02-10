@@ -151,16 +151,16 @@ signals:
 private:
     // --- メンバー変数 ---
 
-    ShogiBoard* m_board;      ///< 将棋盤（所有）
-    Result m_result;          ///< 対局結果
-    Player m_currentPlayer;   ///< 現在の手番
+    ShogiBoard* m_board = nullptr; ///< 将棋盤（所有）
+    Result m_result = NoResult;    ///< 対局結果
+    Player m_currentPlayer = NoPlayer; ///< 現在の手番
 
-    bool m_promote;                ///< 成り/不成フラグ
-    bool m_forcedPromotionMode;    ///< 強制成りモード有効フラグ（定跡手用）
-    bool m_forcedPromotionValue;   ///< 強制成りモード時の成り/不成の値
+    bool m_promote = false;              ///< 成り/不成フラグ
+    bool m_forcedPromotionMode = false;  ///< 強制成りモード有効フラグ（定跡手用）
+    bool m_forcedPromotionValue = false; ///< 強制成りモード時の成り/不成の値
 
-    int previousFileTo;  ///< 1手前の移動先の筋（「同」表記判定用）
-    int previousRankTo;  ///< 1手前の移動先の段（「同」表記判定用）
+    int previousFileTo = 0;  ///< 1手前の移動先の筋（「同」表記判定用）
+    int previousRankTo = 0;  ///< 1手前の移動先の段（「同」表記判定用）
 
     // --- 内部処理 ---
 

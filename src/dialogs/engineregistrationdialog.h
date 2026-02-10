@@ -72,13 +72,13 @@ private:
     Ui::EngineRegistrationDialog *ui;
 
     // 将棋エンジンのプロセス
-    QProcess* m_process;
+    QProcess* m_process = nullptr;
 
     // エラーが発生したかどうかを示すフラグ
-    bool m_errorOccurred;
+    bool m_errorOccurred = false;
 
     // 現在のフォントサイズ
-    int m_fontSize;
+    int m_fontSize = 0;
 
     // 将棋エンジンから"option name"行を保存するリスト
     QStringList m_optionLines;

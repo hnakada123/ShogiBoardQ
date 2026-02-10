@@ -19,11 +19,7 @@
 // ============================================================
 
 ShogiGameController::ShogiGameController(QObject* parent)
-    : QObject(parent), m_board(nullptr), m_result(NoResult), m_currentPlayer(NoPlayer), m_promote(false)
-    , m_forcedPromotionMode(false)
-    , m_forcedPromotionValue(false)
-    , previousFileTo(0)
-    , previousRankTo(0)
+    : QObject(parent)
 {
 }
 

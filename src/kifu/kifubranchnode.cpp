@@ -27,13 +27,7 @@ TerminalType detectTerminalType(const QString& displayText)
 // 初期化
 // ============================================================
 
-KifuBranchNode::KifuBranchNode()
-    : m_nodeId(-1)
-    , m_ply(0)
-    , m_terminalType(TerminalType::None)
-    , m_parent(nullptr)
-{
-}
+KifuBranchNode::KifuBranchNode() = default;
 
 KifuBranchNode::~KifuBranchNode()
 {
