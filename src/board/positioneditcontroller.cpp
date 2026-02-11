@@ -151,8 +151,11 @@ void PositionEditController::beginPositionEditing(const BeginEditContext& c)
 
     // ハイライト等の初期化
     if (c.bic) {
+        m_prevBoardMode = static_cast<int>(c.bic->mode());
         c.bic->setMode(BoardInteractionController::Mode::Edit);
         c.bic->clearAllHighlights();
+    } else {
+        m_prevBoardMode = -1;
     }
 
     // GC の手番を盤へ同期
@@ -175,8 +178,10 @@ void PositionEditController::finishPositionEditing(const PositionEditController:
 
     ShogiBoard* board = c.view->board();
 
-    // 盤モデルから SFEN を再構成（最小SFEN）
-    const QString bw = board->currentPlayer();
+    // GC の手番を SFEN 文字列に変換（編集中に手番変更された値を反映）
+    const QString bw = (c.gc->currentPlayer() == ShogiGameController::Player2)
+                           ? QStringLiteral("w")
+                           : QStringLiteral("b");
     const QString sfenNow = QStringLiteral("%1 %2 %3 %4")
                                 .arg(board->convertBoardToSfen(),
                                      bw,
@@ -206,6 +211,11 @@ void PositionEditController::finishPositionEditing(const PositionEditController:
 
     // UI 後片付け
     if (c.bic) {
+        if (m_prevBoardMode >= 0) {
+            c.bic->setMode(static_cast<BoardInteractionController::Mode>(m_prevBoardMode));
+        } else {
+            c.bic->setMode(BoardInteractionController::Mode::HumanVsHuman);
+        }
         c.bic->clearAllHighlights();
     }
     if (c.onHideEditExitButton) c.onHideEditExitButton();
@@ -217,6 +227,7 @@ void PositionEditController::finishPositionEditing(const PositionEditController:
     m_view = c.view;
     m_gc   = c.gc;
     m_bic  = c.bic;
+    m_prevBoardMode = -1;
 }
 
 // ======================================================================
