@@ -25,6 +25,9 @@ void RecordPaneWiring::buildUiAndWire()
             QObject::connect(m_pane, &RecordPane::mainRowChanged,
                              mw,     &MainWindow::onRecordPaneMainRowChanged,
                              Qt::UniqueConnection);
+            QObject::connect(m_pane, &RecordPane::bookmarkEditRequested,
+                             mw,     &MainWindow::onBookmarkEditRequested,
+                             Qt::UniqueConnection);
         }
 
         //重要

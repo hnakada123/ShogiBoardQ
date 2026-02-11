@@ -21,6 +21,7 @@ struct KifDisplayItem
     QString prettyMove; ///< 表示用指し手テキスト（例: "▲７六歩"）
     QString timeText;   ///< 消費時間テキスト
     QString comment;    ///< コメント
+    QString bookmark;   ///< しおり
     int     ply = 0;    ///< 手数（0始まり）
 
     KifDisplayItem() = default;
@@ -33,7 +34,7 @@ struct KifDisplayItem
 
     bool operator==(const KifDisplayItem& o) const noexcept {
         return prettyMove == o.prettyMove && timeText == o.timeText
-               && comment == o.comment && ply == o.ply;
+               && comment == o.comment && bookmark == o.bookmark && ply == o.ply;
     }
     bool operator!=(const KifDisplayItem& o) const noexcept { return !(*this == o); }
 };

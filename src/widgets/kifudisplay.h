@@ -23,6 +23,9 @@ public:
     // コンストラクタ（3引数：コメント付き）
     KifuDisplay(const QString &currentMove, const QString &timeSpent, const QString &comment, QObject *parent = nullptr);
 
+    // コンストラクタ（4引数：コメント＋しおり付き）
+    KifuDisplay(const QString &currentMove, const QString &timeSpent, const QString &comment, const QString &bookmark, QObject *parent = nullptr);
+
     // 指し手を取得する。
     QString currentMove() const;
 
@@ -35,6 +38,12 @@ public:
     // コメントを設定する。
     void setComment(const QString &comment);
 
+    // しおりを取得する。
+    QString bookmark() const;
+
+    // しおりを設定する。
+    void setBookmark(const QString &bookmark);
+
 private:
     // 指し手
     QString m_currentMove;
@@ -44,6 +53,9 @@ private:
 
     // コメント
     QString m_comment;
+
+    // しおり
+    QString m_bookmark;
 
 };
 

@@ -458,9 +458,19 @@ void KifuDisplayCoordinator::populateRecordModel()
     const BranchLine& line = lines.at(currentLineIndex);
 
     // 開始局面（ply=0）を追加
+    // ルートノード（ply==0）がある場合はしおりを取得
+    QString openingBookmark;
+    for (KifuBranchNode* node : std::as_const(line.nodes)) {
+        if (node->ply() == 0) {
+            openingBookmark = node->bookmark();
+            break;
+        }
+    }
     auto* startItem = new KifuDisplay(
         QStringLiteral("=== 開始局面 ==="),
         QStringLiteral("（１手 / 合計）"),
+        QString(),
+        openingBookmark,
         this);
     m_recordModel->appendItem(startItem);
 
@@ -486,6 +496,7 @@ void KifuDisplayCoordinator::populateRecordModel()
             displayText,
             node->timeText(),
             node->comment(),
+            node->bookmark(),
             this
         );
         m_recordModel->appendItem(item);
@@ -543,9 +554,19 @@ void KifuDisplayCoordinator::populateRecordModelFromPath(const QVector<KifuBranc
 
     m_recordModel->clearAllItems();
 
+    // 開始局面のしおりを取得（ply==0 のノード）
+    QString openingBookmark;
+    for (KifuBranchNode* node : std::as_const(path)) {
+        if (node != nullptr && node->ply() == 0) {
+            openingBookmark = node->bookmark();
+            break;
+        }
+    }
     auto* startItem = new KifuDisplay(
         QStringLiteral("=== 開始局面 ==="),
         QStringLiteral("（１手 / 合計）"),
+        QString(),
+        openingBookmark,
         this);
     m_recordModel->appendItem(startItem);
 
@@ -571,6 +592,7 @@ void KifuDisplayCoordinator::populateRecordModelFromPath(const QVector<KifuBranc
             displayText,
             node->timeText(),
             node->comment(),
+            node->bookmark(),
             this
         );
         m_recordModel->appendItem(item);

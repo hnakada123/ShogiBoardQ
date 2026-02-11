@@ -14,8 +14,8 @@ KifuRecordListModel::KifuRecordListModel(QObject *parent)
 int KifuRecordListModel::columnCount(const QModelIndex &parent) const
 {
     Q_UNUSED(parent)
-    // 「指し手」「消費時間」「コメント」の3列
-    return 3;
+    // 「指し手」「消費時間」「しおり」「コメント」の4列
+    return 4;
 }
 
 QVariant KifuRecordListModel::data(const QModelIndex &index, int role) const
@@ -65,6 +65,9 @@ QVariant KifuRecordListModel::data(const QModelIndex &index, int role) const
         // 消費時間列
         return list[row]->timeSpent();
     case 2:
+        // しおり列
+        return list[row]->bookmark();
+    case 3:
         // コメント列
         return list[row]->comment();
     default:
@@ -80,7 +83,8 @@ QVariant KifuRecordListModel::headerData(int section, Qt::Orientation orientatio
         switch (section) {
         case 0: return tr("指し手");
         case 1: return tr("消費時間");
-        case 2: return tr("コメント");
+        case 2: return tr("しおり");
+        case 3: return tr("コメント");
         default: return QVariant();
         }
     } else {

@@ -3819,6 +3819,11 @@ void MainWindow::ensureGameRecordModel()
         std::bind(&MainWindow::onCommentUpdateCallback, this,
                   std::placeholders::_1, std::placeholders::_2));
 
+    // しおり更新時のコールバックを設定
+    m_gameRecord->setBookmarkUpdateCallback(
+        std::bind(&MainWindow::onBookmarkUpdateCallback, this,
+                  std::placeholders::_1, std::placeholders::_2));
+
     qCDebug(lcApp).noquote() << "ensureGameRecordModel_: created and bound";
 }
 
@@ -3837,6 +3842,29 @@ void MainWindow::onCommentUpdateCallback(int ply, const QString& comment)
     if (m_commentCoordinator) {
         m_commentCoordinator->setRecordPresenter(m_recordPresenter);
         m_commentCoordinator->onCommentUpdateCallback(ply, comment);
+    }
+}
+
+// しおり更新コールバック（GameRecordModel から呼ばれる、CommentCoordinatorに委譲）
+void MainWindow::onBookmarkUpdateCallback(int ply, const QString& bookmark)
+{
+    ensureCommentCoordinator();
+    if (m_commentCoordinator) {
+        m_commentCoordinator->setKifuRecordListModel(m_kifuRecordModel);
+        m_commentCoordinator->onBookmarkUpdateCallback(ply, bookmark);
+    }
+}
+
+// しおり編集リクエスト（RecordPaneのボタンから呼ばれる）
+void MainWindow::onBookmarkEditRequested()
+{
+    ensureCommentCoordinator();
+    ensureGameRecordModel();
+    if (m_commentCoordinator) {
+        m_commentCoordinator->setRecordPresenter(m_recordPresenter);
+        m_commentCoordinator->setGameRecordModel(m_gameRecord);
+        m_commentCoordinator->setKifuRecordListModel(m_kifuRecordModel);
+        m_commentCoordinator->onBookmarkEditRequested();
     }
 }
 
@@ -4086,6 +4114,8 @@ void MainWindow::ensureCommentCoordinator()
     m_commentCoordinator->setStatusBar(ui->statusbar);
     m_commentCoordinator->setCurrentMoveIndex(&m_currentMoveIndex);
     m_commentCoordinator->setCommentsByRow(&m_commentsByRow);
+    m_commentCoordinator->setGameRecordModel(m_gameRecord);
+    m_commentCoordinator->setKifuRecordListModel(m_kifuRecordModel);
 
     // GameRecordModel初期化要求時のシグナル接続
     connect(m_commentCoordinator, &CommentCoordinator::ensureGameRecordModelRequested,

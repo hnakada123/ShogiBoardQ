@@ -43,11 +43,18 @@ void GameRecordPresenter::presentGameRecord(const QList<KifDisplayItem>& disp) {
     QList<KifuDisplay*> items;
     items.reserve(disp.size());
 
-    // ヘッダ（開始局面）+ コメント
+    // 開始局面のしおりを取得
+    QString openingBookmark;
+    if (!disp.isEmpty()) {
+        openingBookmark = disp.at(0).bookmark;
+    }
+
+    // ヘッダ（開始局面）+ コメント + しおり
     items.append(new KifuDisplay(
         QStringLiteral("=== 開始局面 ==="),
         QStringLiteral("（1手 / 合計）"),
-        openingComment
+        openingComment,
+        openingBookmark
         ));
 
     // 各手を追加（dispの先頭は開始局面エントリなのでスキップ）
@@ -62,7 +69,7 @@ void GameRecordPresenter::presentGameRecord(const QList<KifDisplayItem>& disp) {
         const QString spaces = QString(qMax(0, 4 - moveNumberStr.length()), QLatin1Char(' '));
         const QString recordLine = spaces + moveNumberStr + QLatin1Char(' ') + prettyMove;
 
-        items.append(new KifuDisplay(recordLine, it.timeText, it.comment));
+        items.append(new KifuDisplay(recordLine, it.timeText, it.comment, it.bookmark));
 
         // m_kifuDataList にも追加（互換性のため）
         QString kifuLine = recordLine + QStringLiteral(" ( ") + it.timeText + QLatin1String(" )");

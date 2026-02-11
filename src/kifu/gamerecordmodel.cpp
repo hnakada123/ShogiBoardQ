@@ -214,6 +214,19 @@ static QString formatKifMoveLine(int moveNo, const QString& kifMove, const QStri
 }
 
 // ヘルパ関数: コメント行を出力リストに追加
+static void appendKifBookmarks(const QString& bookmark, QStringList& out)
+{
+    if (bookmark.trimmed().isEmpty()) return;
+
+    const QStringList lines = bookmark.split(QLatin1Char('\n'), Qt::SkipEmptyParts);
+    for (const QString& name : lines) {
+        const QString t = name.trimmed();
+        if (!t.isEmpty()) {
+            out << (QStringLiteral("&") + t);
+        }
+    }
+}
+
 static void appendKifComments(const QString& comment, QStringList& out)
 {
     if (comment.trimmed().isEmpty()) return;
@@ -222,6 +235,14 @@ static void appendKifComments(const QString& comment, QStringList& out)
     for (const QString& raw : lines) {
         const QString t = raw.trimmed();
         if (t.isEmpty()) continue;
+        // 後方互換: コメント中の【しおり】マーカーを & 行として出力
+        if (t.startsWith(QStringLiteral("【しおり】"))) {
+            const QString name = t.mid(5).trimmed(); // "【しおり】" is 5 chars
+            if (!name.isEmpty()) {
+                out << (QStringLiteral("&") + name);
+            }
+            continue;
+        }
         if (t.startsWith(QLatin1Char('*'))) {
             out << t;
         } else {
@@ -267,10 +288,13 @@ void GameRecordModel::initializeFromDisplayItems(const QList<KifDisplayItem>& di
 {
     m_comments.clear();
     m_comments.resize(qMax(0, rowCount));
+    m_bookmarks.clear();
+    m_bookmarks.resize(qMax(0, rowCount));
 
-    // disp からコメントを抽出
+    // disp からコメント・しおりを抽出
     for (qsizetype i = 0; i < disp.size() && i < rowCount; ++i) {
         m_comments[i] = disp[i].comment;
+        m_bookmarks[i] = disp[i].bookmark;
     }
 
     m_isDirty = false;
@@ -284,6 +308,7 @@ void GameRecordModel::initializeFromDisplayItems(const QList<KifDisplayItem>& di
 void GameRecordModel::clear()
 {
     m_comments.clear();
+    m_bookmarks.clear();
     m_isDirty = false;
 
     qCDebug(lcKifu).noquote() << "clear";
@@ -343,6 +368,72 @@ void GameRecordModel::ensureCommentCapacity(int ply)
 {
     while (m_comments.size() <= ply) {
         m_comments.append(QString());
+    }
+}
+
+// ========================================
+// しおり操作
+// ========================================
+
+void GameRecordModel::setBookmark(int ply, const QString& bookmark)
+{
+    if (ply < 0) {
+        qCWarning(lcKifu).noquote() << "setBookmark: invalid ply=" << ply;
+        return;
+    }
+
+    ensureBookmarkCapacity(ply);
+    const QString oldBookmark = m_bookmarks[ply];
+    m_bookmarks[ply] = bookmark;
+
+    // 外部データストアへ同期
+    if (m_liveDisp && ply >= 0 && ply < m_liveDisp->size()) {
+        (*m_liveDisp)[ply].bookmark = bookmark;
+    }
+
+    // KifuBranchTree のノードにも同期
+    if (m_branchTree != nullptr && !m_branchTree->isEmpty()) {
+        int lineIndex = 0;
+        if (m_navState != nullptr) {
+            lineIndex = m_navState->currentLineIndex();
+        }
+        QVector<BranchLine> lines = m_branchTree->allLines();
+        if (lineIndex >= 0 && lineIndex < lines.size()) {
+            const BranchLine& line = lines.at(lineIndex);
+            if (ply >= 0 && ply < line.nodes.size()) {
+                line.nodes[ply]->setBookmark(bookmark);
+            }
+        }
+    }
+
+    if (oldBookmark != bookmark) {
+        m_isDirty = true;
+        emit bookmarkChanged(ply, bookmark);
+        emit dataChanged();
+
+        if (m_bookmarkUpdateCallback) {
+            m_bookmarkUpdateCallback(ply, bookmark);
+        }
+    }
+}
+
+QString GameRecordModel::bookmark(int ply) const
+{
+    if (ply >= 0 && ply < m_bookmarks.size()) {
+        return m_bookmarks[ply];
+    }
+    return QString();
+}
+
+void GameRecordModel::setBookmarkUpdateCallback(const BookmarkUpdateCallback& callback)
+{
+    m_bookmarkUpdateCallback = callback;
+}
+
+void GameRecordModel::ensureBookmarkCapacity(int ply)
+{
+    while (m_bookmarks.size() <= ply) {
+        m_bookmarks.append(QString());
     }
 }
 
@@ -406,7 +497,8 @@ QStringList GameRecordModel::toKifLines(const ExportContext& ctx) const
     // 5) 開始局面の処理（prettyMoveが空のエントリ）
     int startIdx = 0;
     if (!disp.isEmpty() && disp[0].prettyMove.trimmed().isEmpty()) {
-        // 開始局面のコメントを先に出力
+        // 開始局面のしおり・コメントを先に出力
+        appendKifBookmarks(disp[0].bookmark, out);
         appendKifComments(disp[0].comment, out);
         startIdx = 1; // 実際の指し手は次から
     }
@@ -438,7 +530,8 @@ QStringList GameRecordModel::toKifLines(const ExportContext& ctx) const
         // KIF形式で出力
         out << formatKifMoveLine(moveNo, kifMove, time, hasBranch);
 
-        // コメント出力（指し手の後に）
+        // しおり・コメント出力（指し手の後に）
+        appendKifBookmarks(it.bookmark, out);
         appendKifComments(it.comment, out);
 
         if (isTerminal) {
@@ -497,6 +590,10 @@ QList<KifDisplayItem> GameRecordModel::collectMainlineForExport() const
             if (i < m_comments.size() && !m_comments[i].isEmpty()) {
                 result[i].comment = m_comments[i];
             }
+            // しおりをマージ
+            if (i < m_bookmarks.size() && !m_bookmarks[i].isEmpty()) {
+                result[i].bookmark = m_bookmarks[i];
+            }
         }
 
         // 空でない結果が得られた場合は返す
@@ -510,11 +607,13 @@ QList<KifDisplayItem> GameRecordModel::collectMainlineForExport() const
         result = *m_liveDisp;
     }
 
-    // 最終: 内部コメント配列 (m_comments) から最新コメントをマージ
-    // （これが Single Source of Truth）
-    for (qsizetype i = 0; i < result.size() && i < m_comments.size(); ++i) {
-        if (!m_comments[i].isEmpty()) {
+    // 最終: 内部配列から最新データをマージ（Single Source of Truth）
+    for (qsizetype i = 0; i < result.size(); ++i) {
+        if (i < m_comments.size() && !m_comments[i].isEmpty()) {
             result[i].comment = m_comments[i];
+        }
+        if (i < m_bookmarks.size() && !m_bookmarks[i].isEmpty()) {
+            result[i].bookmark = m_bookmarks[i];
         }
     }
 
@@ -713,7 +812,8 @@ void GameRecordModel::outputVariationFromBranchLine(const BranchLine& line, QStr
         // KIF形式で出力
         out << formatKifMoveLine(node->ply(), kifMove, time, hasBranch);
 
-        // コメント出力
+        // しおり・コメント出力
+        appendKifBookmarks(node->bookmark(), out);
         appendKifComments(node->comment(), out);
 
         isFirstMove = false;
@@ -741,10 +841,10 @@ QStringList GameRecordModel::toKi2Lines(const ExportContext& ctx) const
     // 2) 本譜の指し手を収集
     const QList<KifDisplayItem> disp = collectMainlineForExport();
 
-    // 3) 開始局面のコメントを先に出力
+    // 3) 開始局面のしおり・コメントを先に出力
     int startIdx = 0;
     if (!disp.isEmpty() && disp[0].prettyMove.trimmed().isEmpty()) {
-        // 開始局面のコメントを先に出力
+        appendKifBookmarks(disp[0].bookmark, out);
         appendKifComments(disp[0].comment, out);
         startIdx = 1; // 実際の指し手は次から
     }
@@ -773,24 +873,26 @@ QStringList GameRecordModel::toKi2Lines(const ExportContext& ctx) const
         ki2Move.remove(fromPosPattern);
 
         const QString cmt = it.comment.trimmed();
+        const QString bm = it.bookmark.trimmed();
         const bool hasComment = !cmt.isEmpty();
+        const bool hasBookmark = !bm.isEmpty();
 
-        if (hasComment || lastMoveHadComment || isTerminal) {
-            // コメントがある場合、または前の手にコメントがあった場合は、
-            // 溜まっている指し手を吐き出してから、この指し手を単独行で出力
+        if (hasComment || hasBookmark || lastMoveHadComment || isTerminal) {
+            // コメント/しおりがある場合は指し手を吐き出してから単独行で出力
             if (!movesOnLine.isEmpty()) {
                 out << movesOnLine.join(QStringLiteral("    "));
                 movesOnLine.clear();
             }
             out << ki2Move;
 
-            // コメント出力
+            // しおり・コメント出力
+            appendKifBookmarks(bm, out);
             if (hasComment) {
                 appendKifComments(cmt, out);
             }
-            lastMoveHadComment = hasComment;
+            lastMoveHadComment = hasComment || hasBookmark;
         } else {
-            // コメントがない場合は指し手を蓄積
+            // コメント・しおりがない場合は指し手を蓄積
             movesOnLine.append(ki2Move);
             lastMoveHadComment = false;
         }
@@ -859,20 +961,23 @@ void GameRecordModel::outputKi2VariationFromBranchLine(const BranchLine& line, Q
         ki2Move.remove(fromPosPattern);
 
         const QString cmt = node->comment().trimmed();
+        const QString bm = node->bookmark().trimmed();
         const bool hasComment = !cmt.isEmpty();
+        const bool hasBookmark = !bm.isEmpty();
         const bool isTerminal = isTerminalMove(moveText);
 
-        if (hasComment || lastMoveHadComment || isTerminal) {
+        if (hasComment || hasBookmark || lastMoveHadComment || isTerminal) {
             if (!movesOnLine.isEmpty()) {
                 out << movesOnLine.join(QStringLiteral("    "));
                 movesOnLine.clear();
             }
             out << ki2Move;
 
+            appendKifBookmarks(bm, out);
             if (hasComment) {
                 appendKifComments(cmt, out);
             }
-            lastMoveHadComment = hasComment;
+            lastMoveHadComment = hasComment || hasBookmark;
         } else {
             movesOnLine.append(ki2Move);
             lastMoveHadComment = false;

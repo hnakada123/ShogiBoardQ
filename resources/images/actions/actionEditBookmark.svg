@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+    <title>しおりを編集</title>
+    <rect x="0" y="0" width="128" height="128" rx="8" fill="#FF9800"/>
+    <path d="M32 16 h64 v96 l-32-20 l-32 20 z" fill="#FFF3E0" stroke="#E65100" stroke-width="3"/>
+    <line x1="48" y1="40" x2="80" y2="40" stroke="#E65100" stroke-width="4" stroke-linecap="round"/>
+    <line x1="48" y1="56" x2="80" y2="56" stroke="#E65100" stroke-width="4" stroke-linecap="round"/>
+    <line x1="48" y1="72" x2="68" y2="72" stroke="#E65100" stroke-width="4" stroke-linecap="round"/>
+</svg>

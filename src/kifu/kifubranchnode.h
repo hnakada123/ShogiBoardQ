@@ -75,6 +75,9 @@ public:
     QString comment() const { return m_comment; }
     void setComment(const QString& comment) { m_comment = comment; }
 
+    QString bookmark() const { return m_bookmark; }
+    void setBookmark(const QString& bookmark) { m_bookmark = bookmark; }
+
     QString timeText() const { return m_timeText; }
     void setTimeText(const QString& time) { m_timeText = time; }
 
@@ -129,6 +132,7 @@ private:
     QString m_sfen;                                     ///< この局面のSFEN
     ShogiMove m_move;                                   ///< 指し手データ
     QString m_comment;                                  ///< コメント
+    QString m_bookmark;                                 ///< しおり
     QString m_timeText;                                 ///< 消費時間テキスト
     TerminalType m_terminalType = TerminalType::None;   ///< 終局手の種類
 

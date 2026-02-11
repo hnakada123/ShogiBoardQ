@@ -1333,7 +1333,8 @@ QList<KifDisplayItem> Ki2ToSfenConverter::extractMovesWithTimes(const QString& k
         }
     }
 
-    QString openingCommentBuf; // 開始局面用コメント
+    QString openingCommentBuf;  // 開始局面用コメント
+    QString openingBookmarkBuf; // 開始局面用しおり
     QString commentBuf;        // 指し手後のコメント
     int moveIndex = blackToMove ? 0 : 1;
     int prevToFile = 0, prevToRank = 0;
@@ -1362,17 +1363,17 @@ QList<KifDisplayItem> Ki2ToSfenConverter::extractMovesWithTimes(const QString& k
             continue;
         }
 
-        // しおり行
+        // しおり行 → bookmark フィールドに格納
         if (isBookmarkLine(lineStr)) {
             const QString name = lineStr.mid(1).trimmed();
             if (!name.isEmpty()) {
                 if (firstMoveFound && out.size() > 1) {
-                    QString& dst = out.last().comment;
+                    QString& dst = out.last().bookmark;
                     if (!dst.isEmpty()) dst += QLatin1Char('\n');
-                    dst += QStringLiteral("【しおり】") + name;
+                    dst += name;
                 } else {
-                    if (!openingCommentBuf.isEmpty()) openingCommentBuf += QLatin1Char('\n');
-                    openingCommentBuf += QStringLiteral("【しおり】") + name;
+                    if (!openingBookmarkBuf.isEmpty()) openingBookmarkBuf += QLatin1Char('\n');
+                    openingBookmarkBuf += name;
                 }
             }
             continue;
@@ -1390,6 +1391,7 @@ QList<KifDisplayItem> Ki2ToSfenConverter::extractMovesWithTimes(const QString& k
                     openingItem.prettyMove = QString();
                     openingItem.timeText   = QStringLiteral("00:00/00:00:00");
                     openingItem.comment    = openingCommentBuf;
+                    openingItem.bookmark   = openingBookmarkBuf;
                     openingItem.ply        = 0;
                     out.push_back(openingItem);
                 }
@@ -1434,6 +1436,7 @@ QList<KifDisplayItem> Ki2ToSfenConverter::extractMovesWithTimes(const QString& k
                     openingItem.prettyMove = QString();
                     openingItem.timeText   = QStringLiteral("00:00/00:00:00");
                     openingItem.comment    = openingCommentBuf;
+                    openingItem.bookmark   = openingBookmarkBuf;
                     openingItem.ply        = 0;
                     out.push_back(openingItem);
                 }
@@ -1467,6 +1470,7 @@ QList<KifDisplayItem> Ki2ToSfenConverter::extractMovesWithTimes(const QString& k
                 openingItem.prettyMove = QString();
                 openingItem.timeText   = QStringLiteral("00:00/00:00:00");
                 openingItem.comment    = openingCommentBuf;
+                openingItem.bookmark   = openingBookmarkBuf;
                 openingItem.ply        = 0;
                 out.push_back(openingItem);
             }
@@ -1560,6 +1564,7 @@ QList<KifDisplayItem> Ki2ToSfenConverter::extractMovesWithTimes(const QString& k
         openingItem.prettyMove = QString();
         openingItem.timeText   = QStringLiteral("00:00/00:00:00");
         openingItem.comment    = openingCommentBuf;
+        openingItem.bookmark   = openingBookmarkBuf;
         openingItem.ply        = 0;
         out.push_back(openingItem);
     }
@@ -1688,13 +1693,8 @@ QString Ki2ToSfenConverter::extractOpeningComment(const QString& filePath)
             continue;
         }
 
-        // しおり
+        // しおり - コメントには含めずスキップ
         if (t.startsWith(QLatin1Char('&'))) {
-            const QString name = t.mid(1).trimmed();
-            if (!name.isEmpty()) {
-                if (!buf.isEmpty()) buf += QLatin1Char('\n');
-                buf += QStringLiteral("【しおり】") + name;
-            }
             continue;
         }
     }

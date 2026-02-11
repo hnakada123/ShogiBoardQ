@@ -158,14 +158,39 @@
 <context>
     <name>CommentCoordinator</name>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="64"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="66"/>
         <source>コメントを更新しました（手数: %1）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="100"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="102"/>
         <source>コメントなし</source>
         <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/app/commentcoordinator.cpp" line="115"/>
+        <source>手を選択してください</source>
+        <translation>手を選択してください</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/commentcoordinator.cpp" line="136"/>
+        <source>しおりを編集</source>
+        <translation>しおりを編集</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/commentcoordinator.cpp" line="137"/>
+        <source>しおり名（手数: %1）:</source>
+        <translation>しおり名（手数: %1）:</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/commentcoordinator.cpp" line="153"/>
+        <source>しおりを削除しました（手数: %1）</source>
+        <translation>しおりを削除しました（手数: %1）</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/commentcoordinator.cpp" line="155"/>
+        <source>しおりを設定しました（手数: %1）</source>
+        <translation>しおりを設定しました（手数: %1）</translation>
     </message>
 </context>
 <context>
@@ -3070,17 +3095,22 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>KifuRecordListModel</name>
     <message>
-        <location filename="../../src/models/kifurecordlistmodel.cpp" line="81"/>
+        <location filename="../../src/models/kifurecordlistmodel.cpp" line="84"/>
         <source>指し手</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/models/kifurecordlistmodel.cpp" line="82"/>
+        <location filename="../../src/models/kifurecordlistmodel.cpp" line="85"/>
         <source>消費時間</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/models/kifurecordlistmodel.cpp" line="83"/>
+        <location filename="../../src/models/kifurecordlistmodel.cpp" line="86"/>
+        <source>しおり</source>
+        <translation>しおり</translation>
+    </message>
+    <message>
+        <location filename="../../src/models/kifurecordlistmodel.cpp" line="87"/>
         <source>コメント</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4217,10 +4247,10 @@ OKを選択すると保存先が指定できます。</source>
     </message>
     <message>
         <location filename="../../src/analysis/kifuanalysislistmodel.cpp" line="113"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="618"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="622"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="638"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="642"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="717"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="721"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="737"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="741"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="183"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="187"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="203"/>
@@ -4230,10 +4260,10 @@ OKを選択すると保存先が指定できます。</source>
     </message>
     <message>
         <location filename="../../src/analysis/kifuanalysislistmodel.cpp" line="113"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="619"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="627"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="635"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="643"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="718"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="726"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="734"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="742"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="184"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="192"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="200"/>
@@ -4242,10 +4272,10 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished">後手</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="623"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="626"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="634"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="639"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="722"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="725"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="733"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="738"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="188"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="191"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="199"/>
@@ -4254,13 +4284,13 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="630"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="729"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="195"/>
         <source>Engine1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="631"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="730"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="196"/>
         <source>Engine2</source>
         <translation type="unfinished"></translation>
@@ -4709,72 +4739,77 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="121"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="116"/>
+        <source>しおりを編集</source>
+        <translation>しおりを編集</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/recordpane.cpp" line="129"/>
         <source>▲|</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="122"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="130"/>
         <source>▲▲</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="123"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="131"/>
         <source>▲</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="124"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="132"/>
         <source>▼</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="125"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="133"/>
         <source>▼▼</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="126"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="134"/>
         <source>▼|</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="129"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="137"/>
         <source>最初に戻る</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="130"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="138"/>
         <source>10手戻る</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="131"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="139"/>
         <source>1手戻る</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="132"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="140"/>
         <source>1手進む</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="133"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="141"/>
         <source>10手進む</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="134"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="142"/>
         <source>最後に進む</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="499"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="513"/>
         <source>本譜に戻る</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="503"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="517"/>
         <source>現在の手数で本譜（メインライン）に戻る</source>
         <translation type="unfinished"></translation>
     </message>

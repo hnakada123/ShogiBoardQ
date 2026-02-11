@@ -38,6 +38,7 @@ KifuBranchTree* KifuBranchTreeBuilder::fromResolvedRows(const QVector<ResolvedRo
         currentNode = tree->addMove(currentNode, move, item.prettyMove, sfen, item.timeText);
         if (currentNode != nullptr) {
             currentNode->setComment(item.comment);
+            currentNode->setBookmark(item.bookmark);
         }
     }
     rowEndNodes[0] = currentNode;
@@ -210,9 +211,12 @@ void KifuBranchTreeBuilder::addKifLineToTree(KifuBranchTree* tree,
         const KifDisplayItem& first = line.disp.at(0);
         if (first.ply == 0 || first.prettyMove.isEmpty()) {
             startIndex = 1;  // 開始局面エントリをスキップ
-            // 開始局面のコメントがあればルートに設定
+            // 開始局面のコメント・しおりがあればルートに設定
             if (!first.comment.isEmpty() && currentNode != nullptr) {
                 currentNode->setComment(first.comment);
+            }
+            if (!first.bookmark.isEmpty() && currentNode != nullptr) {
+                currentNode->setBookmark(first.bookmark);
             }
         }
     }
@@ -237,6 +241,7 @@ void KifuBranchTreeBuilder::addKifLineToTree(KifuBranchTree* tree,
         currentNode = tree->addMove(currentNode, move, item.prettyMove, sfen, item.timeText);
         if (currentNode != nullptr) {
             currentNode->setComment(item.comment);
+            currentNode->setBookmark(item.bookmark);
         }
     }
 }
@@ -279,6 +284,7 @@ void KifuBranchTreeBuilder::addLineToTree(KifuBranchTree* tree,
         currentNode = tree->addMove(currentNode, move, item.prettyMove, sfen, item.timeText);
         if (currentNode != nullptr) {
             currentNode->setComment(item.comment);
+            currentNode->setBookmark(item.bookmark);
         }
     }
 }
