@@ -234,6 +234,32 @@ img {
     letter-spacing: 0.03em;
 }
 
+/* --- Share Button --- */
+.hero-share {
+    margin-top: 2rem;
+}
+
+.share-btn-x {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    padding: 0.45rem 1.2rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.share-btn-x:hover {
+    background: #fff;
+    color: #000;
+    text-decoration: none;
+}
+
 /* --- Section Common --- */
 .section {
     padding: var(--section-padding);
