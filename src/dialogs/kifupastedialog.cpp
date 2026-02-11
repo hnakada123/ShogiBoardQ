@@ -2,6 +2,7 @@
 /// @brief 棋譜貼り付けダイアログクラスの実装
 
 #include "kifupastedialog.h"
+#include "buttonstyles.h"
 #include <QApplication>
 #include <QClipboard>
 #include <QFont>
@@ -48,7 +49,9 @@ void KifuPasteDialog::setupUi()
     toolLayout->setSpacing(6);
     
     m_btnPaste = new QPushButton(tr("クリップボードから貼り付け"), this);
+    m_btnPaste->setStyleSheet(ButtonStyles::editOperation());
     m_btnClear = new QPushButton(tr("クリア"), this);
+    m_btnClear->setStyleSheet(ButtonStyles::secondaryNeutral());
     
     toolLayout->addWidget(m_btnPaste);
     toolLayout->addWidget(m_btnClear);
@@ -61,7 +64,9 @@ void KifuPasteDialog::setupUi()
     buttonLayout->setSpacing(6);
     
     m_btnImport = new QPushButton(tr("取り込む"), this);
+    m_btnImport->setStyleSheet(ButtonStyles::primaryAction());
     m_btnCancel = new QPushButton(tr("キャンセル"), this);
+    m_btnCancel->setStyleSheet(ButtonStyles::secondaryNeutral());
     
     m_btnImport->setDefault(true);
     

@@ -2,6 +2,7 @@
 /// @brief メニューボタンウィジェットクラスの実装
 
 #include "menubuttonwidget.h"
+#include "buttonstyles.h"
 
 #include <QMouseEvent>
 #include <QDrag>
@@ -69,25 +70,7 @@ void MenuButtonWidget::setupUi()
     m_mainButton = new QPushButton(this);
     m_mainButton->setFixedSize(m_buttonWidth - 4, m_buttonHeight - 4);
     m_mainButton->setFlat(true);
-    m_mainButton->setStyleSheet(
-        "QPushButton {"
-        "  border: none;"
-        "  border-radius: 6px;"
-        "  background-color: #42A5F5;"
-        "  color: white;"
-        "  padding: 4px;"
-        "}"
-        "QPushButton:hover {"
-        "  background-color: #1E88E5;"
-        "}"
-        "QPushButton:pressed {"
-        "  background-color: #1565C0;"
-        "}"
-        "QPushButton:disabled {"
-        "  background-color: #B0BEC5;"
-        "  color: #ECEFF1;"
-        "}"
-    );
+    m_mainButton->setStyleSheet(ButtonStyles::menuMainButton());
 
     // ボタン内のレイアウト
     QVBoxLayout* btnLayout = new QVBoxLayout(m_mainButton);
@@ -124,37 +107,13 @@ void MenuButtonWidget::setupUi()
     // 追加ボタン（カテゴリタブで表示）
     m_addButton = new QPushButton(QStringLiteral("+"), this);
     m_addButton->setFixedSize(18, 18);
-    m_addButton->setStyleSheet(
-        "QPushButton {"
-        "  border: 1px solid #4CAF50;"
-        "  border-radius: 9px;"
-        "  background-color: #4CAF50;"
-        "  color: white;"
-        "  font-weight: bold;"
-        "  font-size: 12px;"
-        "}"
-        "QPushButton:hover {"
-        "  background-color: #45a049;"
-        "}"
-    );
+    m_addButton->setStyleSheet(ButtonStyles::menuAddButton());
     m_addButton->hide();
 
     // 削除ボタン（お気に入りタブで表示）
     m_removeButton = new QPushButton(QStringLiteral("\u00d7"), this);  // ×
     m_removeButton->setFixedSize(18, 18);
-    m_removeButton->setStyleSheet(
-        "QPushButton {"
-        "  border: 1px solid #f44336;"
-        "  border-radius: 9px;"
-        "  background-color: #f44336;"
-        "  color: white;"
-        "  font-weight: bold;"
-        "  font-size: 12px;"
-        "}"
-        "QPushButton:hover {"
-        "  background-color: #da190b;"
-        "}"
-    );
+    m_removeButton->setStyleSheet(ButtonStyles::menuRemoveButton());
     m_removeButton->hide();
 
     connect(m_mainButton, &QPushButton::clicked, this, &MenuButtonWidget::onMainButtonClicked);

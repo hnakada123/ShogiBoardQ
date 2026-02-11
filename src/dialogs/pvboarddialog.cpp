@@ -2,6 +2,7 @@
 /// @brief 読み筋盤面ダイアログクラスの実装
 
 #include "pvboarddialog.h"
+#include "buttonstyles.h"
 #include "shogiview.h"
 #include "shogiboard.h"
 #include "shogigamecontroller.h"
@@ -167,16 +168,19 @@ void PvBoardDialog::buildUi()
     
     m_btnReduce = new QPushButton(QStringLiteral("将棋盤縮小 ➖"), this);
     m_btnReduce->setToolTip(tr("将棋盤を縮小する"));
+    m_btnReduce->setStyleSheet(ButtonStyles::secondaryNeutral());
     connect(m_btnReduce, &QPushButton::clicked, this, &PvBoardDialog::onReduceBoard);
     zoomLayout->addWidget(m_btnReduce);
-    
+
     m_btnEnlarge = new QPushButton(QStringLiteral("将棋盤拡大 ➕"), this);
     m_btnEnlarge->setToolTip(tr("将棋盤を拡大する"));
+    m_btnEnlarge->setStyleSheet(ButtonStyles::secondaryNeutral());
     connect(m_btnEnlarge, &QPushButton::clicked, this, &PvBoardDialog::onEnlargeBoard);
     zoomLayout->addWidget(m_btnEnlarge);
 
     m_btnFlip = new QPushButton(tr("盤面の回転"), this);
     m_btnFlip->setToolTip(tr("盤面を回転する"));
+    m_btnFlip->setStyleSheet(ButtonStyles::secondaryNeutral());
     connect(m_btnFlip, &QPushButton::clicked, this, &PvBoardDialog::onFlipBoard);
     zoomLayout->addWidget(m_btnFlip);
 
@@ -219,24 +223,28 @@ void PvBoardDialog::buildUi()
     m_btnFirst = new QPushButton(QStringLiteral("⏮ 最初"), this);
     m_btnFirst->setMinimumWidth(80);
     m_btnFirst->setToolTip(tr("最初の局面に戻る"));
+    m_btnFirst->setStyleSheet(ButtonStyles::wideNavigationButton());
     connect(m_btnFirst, &QPushButton::clicked, this, &PvBoardDialog::onGoFirst);
     btnLayout->addWidget(m_btnFirst);
 
     m_btnBack = new QPushButton(QStringLiteral("◀ 1手戻る"), this);
     m_btnBack->setMinimumWidth(100);
     m_btnBack->setToolTip(tr("1手戻る"));
+    m_btnBack->setStyleSheet(ButtonStyles::wideNavigationButton());
     connect(m_btnBack, &QPushButton::clicked, this, &PvBoardDialog::onGoBack);
     btnLayout->addWidget(m_btnBack);
 
     m_btnForward = new QPushButton(QStringLiteral("1手進む ▶"), this);
     m_btnForward->setMinimumWidth(100);
     m_btnForward->setToolTip(tr("1手進む"));
+    m_btnForward->setStyleSheet(ButtonStyles::wideNavigationButton());
     connect(m_btnForward, &QPushButton::clicked, this, &PvBoardDialog::onGoForward);
     btnLayout->addWidget(m_btnForward);
 
     m_btnLast = new QPushButton(QStringLiteral("最後 ⏭"), this);
     m_btnLast->setMinimumWidth(80);
     m_btnLast->setToolTip(tr("最後の局面まで進む"));
+    m_btnLast->setStyleSheet(ButtonStyles::wideNavigationButton());
     connect(m_btnLast, &QPushButton::clicked, this, &PvBoardDialog::onGoLast);
     btnLayout->addWidget(m_btnLast);
 
@@ -245,6 +253,7 @@ void PvBoardDialog::buildUi()
     // 閉じるボタン
     QPushButton* closeBtn = new QPushButton(tr("閉じる"), this);
     closeBtn->setMinimumWidth(100);
+    closeBtn->setStyleSheet(ButtonStyles::secondaryNeutral());
     connect(closeBtn, &QPushButton::clicked, this, &QDialog::accept);
     QHBoxLayout* closeBtnLayout = new QHBoxLayout();
     closeBtnLayout->addStretch();

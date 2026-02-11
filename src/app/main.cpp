@@ -146,6 +146,21 @@ int main(int argc, char *argv[])
     // Creatorのような「Fusion」スタイルに統一する。
     a.setStyle(QStyleFactory::create("Fusion"));
 
+    // QDialogButtonBox のデフォルトスタイル（全ダイアログ共通）
+    a.setStyleSheet(QStringLiteral(
+        "QDialogButtonBox QPushButton {"
+        "  background-color: #e0e0e0; border: 1px solid #bdbdbd;"
+        "  border-radius: 3px; padding: 4px 12px; min-width: 70px;"
+        "}"
+        "QDialogButtonBox QPushButton:hover { background-color: #d0d0d0; }"
+        "QDialogButtonBox QPushButton:pressed { background-color: #bdbdbd; }"
+        "QDialogButtonBox QPushButton:default {"
+        "  background-color: #1976d2; color: white; border: 1px solid #1565c0;"
+        "}"
+        "QDialogButtonBox QPushButton:default:hover { background-color: #1e88e5; }"
+        "QDialogButtonBox QPushButton:default:pressed { background-color: #1565c0; }"
+    ));
+
     MainWindow w;
     w.show();
 

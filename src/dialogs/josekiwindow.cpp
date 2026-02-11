@@ -2,6 +2,7 @@
 /// @brief 定跡ウィンドウクラスの実装
 
 #include "josekiwindow.h"
+#include "buttonstyles.h"
 #include "josekimovedialog.h"
 #include "josekimergedialog.h"
 #include "settingsservice.h"
@@ -49,29 +50,11 @@ void JosekiWindow::setupUi()
     toolbarLayout->setSpacing(12);
     
     // ボタンスタイル定義
-    const QString fileBtnStyle = QStringLiteral(
-        "QPushButton { background-color: #e3f2fd; border: 1px solid #90caf9; border-radius: 3px; padding: 4px 8px; }"
-        "QPushButton:hover { background-color: #bbdefb; }"
-        "QPushButton:pressed { background-color: #90caf9; }"
-        "QPushButton:disabled { background-color: #f5f5f5; color: #9e9e9e; border: 1px solid #e0e0e0; }");
-    const QString fontBtnStyle = QStringLiteral(
-        "QPushButton { background-color: #e3f2fd; border: 1px solid #90caf9; border-radius: 3px; }"
-        "QPushButton:hover { background-color: #bbdefb; }"
-        "QPushButton:pressed { background-color: #90caf9; }");
-    const QString editBtnStyle = QStringLiteral(
-        "QPushButton { background-color: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 3px; padding: 4px 8px; }"
-        "QPushButton:hover { background-color: #c8e6c9; }"
-        "QPushButton:pressed { background-color: #a5d6a7; }");
-    const QString editToolBtnStyle = QStringLiteral(
-        "QToolButton { background-color: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 3px; padding: 4px 8px; }"
-        "QToolButton:hover { background-color: #c8e6c9; }"
-        "QToolButton:pressed { background-color: #a5d6a7; }"
-        "QToolButton::menu-indicator { image: none; }");
-    const QString stopBtnStyle = QStringLiteral(
-        "QPushButton { background-color: #fff3e0; border: 1px solid #ffcc80; border-radius: 3px; padding: 4px 8px; }"
-        "QPushButton:hover { background-color: #ffe0b2; }"
-        "QPushButton:pressed { background-color: #ffcc80; }"
-        "QPushButton:checked { background-color: #ffcc80; }");
+    const QString fileBtnStyle = ButtonStyles::fileOperation();
+    const QString fontBtnStyle = ButtonStyles::fontButton();
+    const QString editBtnStyle = ButtonStyles::editOperation();
+    const QString editToolBtnStyle = ButtonStyles::editOperation();
+    const QString stopBtnStyle = ButtonStyles::dangerStop();
 
     // --- ファイル操作グループ ---
     QGroupBox *fileGroup = new QGroupBox(tr("ファイル"), this);
@@ -916,21 +899,7 @@ void JosekiWindow::updateJosekiDisplay()
         if (m_humanCanPlay) {
             QPushButton *playButton = new QPushButton(tr("着手"), this);
             playButton->setProperty("row", i);
-            playButton->setStyleSheet(QStringLiteral(
-                "QPushButton {"
-                "  background-color: #4a90d9;"
-                "  color: white;"
-                "  border: none;"
-                "  border-radius: 3px;"
-                "  padding: 2px 8px;"
-                "}"
-                "QPushButton:hover {"
-                "  background-color: #357abd;"
-                "}"
-                "QPushButton:pressed {"
-                "  background-color: #2a5f8f;"
-                "}"
-            ));
+            playButton->setStyleSheet(ButtonStyles::tablePlayButton());
             connect(playButton, &QPushButton::clicked, this, &JosekiWindow::onPlayButtonClicked);
             m_tableWidget->setCellWidget(i, 1, playButton);
         }
@@ -954,42 +923,14 @@ void JosekiWindow::updateJosekiDisplay()
         // 編集ボタン（緑系の配色）
         QPushButton *editButton = new QPushButton(tr("編集"), this);
         editButton->setProperty("row", i);
-        editButton->setStyleSheet(QStringLiteral(
-            "QPushButton {"
-            "  background-color: #5cb85c;"
-            "  color: white;"
-            "  border: none;"
-            "  border-radius: 3px;"
-            "  padding: 2px 8px;"
-            "}"
-            "QPushButton:hover {"
-            "  background-color: #449d44;"
-            "}"
-            "QPushButton:pressed {"
-            "  background-color: #398439;"
-            "}"
-        ));
+        editButton->setStyleSheet(ButtonStyles::tableEditButton());
         connect(editButton, &QPushButton::clicked, this, &JosekiWindow::onEditButtonClicked);
         m_tableWidget->setCellWidget(i, 4, editButton);
         
         // 削除ボタン（赤系の配色）
         QPushButton *deleteButton = new QPushButton(tr("削除"), this);
         deleteButton->setProperty("row", i);
-        deleteButton->setStyleSheet(QStringLiteral(
-            "QPushButton {"
-            "  background-color: #d9534f;"
-            "  color: white;"
-            "  border: none;"
-            "  border-radius: 3px;"
-            "  padding: 2px 8px;"
-            "}"
-            "QPushButton:hover {"
-            "  background-color: #c9302c;"
-            "}"
-            "QPushButton:pressed {"
-            "  background-color: #ac2925;"
-            "}"
-        ));
+        deleteButton->setStyleSheet(ButtonStyles::tableDeleteButton());
         connect(deleteButton, &QPushButton::clicked, this, &JosekiWindow::onDeleteButtonClicked);
         m_tableWidget->setCellWidget(i, 5, deleteButton);
         

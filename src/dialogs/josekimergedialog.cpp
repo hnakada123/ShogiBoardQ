@@ -2,6 +2,7 @@
 /// @brief 定跡統合ダイアログクラスの実装
 
 #include "josekimergedialog.h"
+#include "buttonstyles.h"
 
 #include <QHeaderView>
 #include <QHBoxLayout>
@@ -30,11 +31,13 @@ void JosekiMergeDialog::setupUi()
     m_fontDecreaseBtn = new QPushButton(tr("A-"), this);
     m_fontDecreaseBtn->setToolTip(tr("フォントサイズを縮小"));
     m_fontDecreaseBtn->setFixedWidth(36);
+    m_fontDecreaseBtn->setStyleSheet(ButtonStyles::fontButton());
     toolbarLayout->addWidget(m_fontDecreaseBtn);
-    
+
     m_fontIncreaseBtn = new QPushButton(tr("A+"), this);
     m_fontIncreaseBtn->setToolTip(tr("フォントサイズを拡大"));
     m_fontIncreaseBtn->setFixedWidth(36);
+    m_fontIncreaseBtn->setStyleSheet(ButtonStyles::fontButton());
     toolbarLayout->addWidget(m_fontIncreaseBtn);
     
     toolbarLayout->addStretch();
@@ -89,11 +92,13 @@ void JosekiMergeDialog::setupUi()
     
     m_registerAllButton = new QPushButton(tr("全て登録"), this);
     m_registerAllButton->setToolTip(tr("全ての指し手を定跡に登録"));
+    m_registerAllButton->setStyleSheet(ButtonStyles::primaryAction());
     buttonLayout->addWidget(m_registerAllButton);
-    
+
     buttonLayout->addStretch();
-    
+
     m_closeButton = new QPushButton(tr("閉じる"), this);
+    m_closeButton->setStyleSheet(ButtonStyles::secondaryNeutral());
     buttonLayout->addWidget(m_closeButton);
     
     mainLayout->addLayout(buttonLayout);
@@ -159,25 +164,7 @@ void JosekiMergeDialog::updateTable()
         // 登録ボタン（青系の配色）
         QPushButton *registerBtn = new QPushButton(alreadyRegistered ? tr("登録済") : tr("登録"), this);
         registerBtn->setProperty("row", i);
-        registerBtn->setStyleSheet(QStringLiteral(
-            "QPushButton {"
-            "  background-color: #4a90d9;"
-            "  color: white;"
-            "  border: none;"
-            "  border-radius: 3px;"
-            "  padding: 4px 12px;"
-            "}"
-            "QPushButton:hover {"
-            "  background-color: #357abd;"
-            "}"
-            "QPushButton:pressed {"
-            "  background-color: #2a5f8f;"
-            "}"
-            "QPushButton:disabled {"
-            "  background-color: #aaa;"
-            "  color: #666;"
-            "}"
-        ));
+        registerBtn->setStyleSheet(ButtonStyles::tableRegisterButton());
         
         if (alreadyRegistered) {
             registerBtn->setEnabled(false);

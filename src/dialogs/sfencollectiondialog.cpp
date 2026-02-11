@@ -2,6 +2,7 @@
 /// @brief SFEN局面集ビューアダイアログクラスの実装
 
 #include "sfencollectiondialog.h"
+#include "buttonstyles.h"
 #include "shogiview.h"
 #include "shogiboard.h"
 #include "shogigamecontroller.h"
@@ -77,12 +78,14 @@ void SfenCollectionDialog::buildUi()
 
     m_btnOpenFile = new QPushButton(tr("ファイルを開く"), this);
     m_btnOpenFile->setToolTip(tr("SFEN局面集ファイルを開く"));
+    m_btnOpenFile->setStyleSheet(ButtonStyles::fileOperation());
     connect(m_btnOpenFile, &QPushButton::clicked,
             this, &SfenCollectionDialog::onOpenFileClicked);
     fileLayout->addWidget(m_btnOpenFile);
 
     m_btnRecentFiles = new QPushButton(tr("履歴"), this);
     m_btnRecentFiles->setToolTip(tr("最近使ったファイルを開く"));
+    m_btnRecentFiles->setStyleSheet(ButtonStyles::fileOperation());
     m_recentFilesMenu = new QMenu(this);
     m_btnRecentFiles->setMenu(m_recentFilesMenu);
     fileLayout->addWidget(m_btnRecentFiles);
@@ -100,18 +103,21 @@ void SfenCollectionDialog::buildUi()
 
     m_btnReduce = new QPushButton(QStringLiteral("将棋盤縮小 ➖"), this);
     m_btnReduce->setToolTip(tr("将棋盤を縮小する"));
+    m_btnReduce->setStyleSheet(ButtonStyles::secondaryNeutral());
     connect(m_btnReduce, &QPushButton::clicked,
             this, &SfenCollectionDialog::onReduceBoard);
     zoomLayout->addWidget(m_btnReduce);
 
     m_btnEnlarge = new QPushButton(QStringLiteral("将棋盤拡大 ➕"), this);
     m_btnEnlarge->setToolTip(tr("将棋盤を拡大する"));
+    m_btnEnlarge->setStyleSheet(ButtonStyles::secondaryNeutral());
     connect(m_btnEnlarge, &QPushButton::clicked,
             this, &SfenCollectionDialog::onEnlargeBoard);
     zoomLayout->addWidget(m_btnEnlarge);
 
     m_btnFlip = new QPushButton(tr("盤面の回転"), this);
     m_btnFlip->setToolTip(tr("盤面を回転する"));
+    m_btnFlip->setStyleSheet(ButtonStyles::secondaryNeutral());
     connect(m_btnFlip, &QPushButton::clicked,
             this, &SfenCollectionDialog::onFlipBoard);
     zoomLayout->addWidget(m_btnFlip);
@@ -150,6 +156,7 @@ void SfenCollectionDialog::buildUi()
     m_btnFirst = new QPushButton(QStringLiteral("⏮ 最初"), this);
     m_btnFirst->setMinimumWidth(80);
     m_btnFirst->setToolTip(tr("最初の局面に移動"));
+    m_btnFirst->setStyleSheet(ButtonStyles::wideNavigationButton());
     connect(m_btnFirst, &QPushButton::clicked,
             this, &SfenCollectionDialog::onGoFirst);
     navLayout->addWidget(m_btnFirst);
@@ -157,6 +164,7 @@ void SfenCollectionDialog::buildUi()
     m_btnBack = new QPushButton(QStringLiteral("◀ 前へ"), this);
     m_btnBack->setMinimumWidth(80);
     m_btnBack->setToolTip(tr("前の局面に移動"));
+    m_btnBack->setStyleSheet(ButtonStyles::wideNavigationButton());
     connect(m_btnBack, &QPushButton::clicked,
             this, &SfenCollectionDialog::onGoBack);
     navLayout->addWidget(m_btnBack);
@@ -164,6 +172,7 @@ void SfenCollectionDialog::buildUi()
     m_btnForward = new QPushButton(QStringLiteral("次へ ▶"), this);
     m_btnForward->setMinimumWidth(80);
     m_btnForward->setToolTip(tr("次の局面に移動"));
+    m_btnForward->setStyleSheet(ButtonStyles::wideNavigationButton());
     connect(m_btnForward, &QPushButton::clicked,
             this, &SfenCollectionDialog::onGoForward);
     navLayout->addWidget(m_btnForward);
@@ -171,6 +180,7 @@ void SfenCollectionDialog::buildUi()
     m_btnLast = new QPushButton(QStringLiteral("最後 ⏭"), this);
     m_btnLast->setMinimumWidth(80);
     m_btnLast->setToolTip(tr("最後の局面に移動"));
+    m_btnLast->setStyleSheet(ButtonStyles::wideNavigationButton());
     connect(m_btnLast, &QPushButton::clicked,
             this, &SfenCollectionDialog::onGoLast);
     navLayout->addWidget(m_btnLast);
@@ -185,12 +195,14 @@ void SfenCollectionDialog::buildUi()
     m_btnSelect = new QPushButton(tr("選択"), this);
     m_btnSelect->setMinimumWidth(100);
     m_btnSelect->setToolTip(tr("現在の局面をメインGUIに反映する"));
+    m_btnSelect->setStyleSheet(ButtonStyles::primaryAction());
     connect(m_btnSelect, &QPushButton::clicked,
             this, &SfenCollectionDialog::onSelectClicked);
     actionLayout->addWidget(m_btnSelect);
 
     QPushButton* closeBtn = new QPushButton(tr("閉じる"), this);
     closeBtn->setMinimumWidth(100);
+    closeBtn->setStyleSheet(ButtonStyles::secondaryNeutral());
     connect(closeBtn, &QPushButton::clicked,
             this, &QDialog::close);
     actionLayout->addWidget(closeBtn);

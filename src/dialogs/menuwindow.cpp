@@ -2,6 +2,7 @@
 /// @brief メニューウィンドウクラスの実装
 
 #include "menuwindow.h"
+#include "buttonstyles.h"
 #include "menubuttonwidget.h"
 #include "settingsservice.h"
 
@@ -31,30 +32,11 @@ void MenuWindow::setupUi()
     QHBoxLayout* headerLayout = new QHBoxLayout();
     headerLayout->addStretch();
 
-    // ツールボタン用の共通スタイル（爽やかな青色）
-    const QString toolButtonStyle =
-        "QToolButton {"
-        "  font-size: 14px;"
-        "  font-weight: bold;"
-        "  border: none;"
-        "  border-radius: 4px;"
-        "  padding: 4px 6px;"
-        "  min-width: 28px;"
-        "  background-color: #42A5F5;"
-        "  color: white;"
-        "}"
-        "QToolButton:hover {"
-        "  background-color: #1E88E5;"
-        "}"
-        "QToolButton:pressed {"
-        "  background-color: #1565C0;"
-        "}";
-
     // ボタンサイズ調整（縮小）
     m_buttonSizeDecreaseBtn = new QToolButton(this);
     m_buttonSizeDecreaseBtn->setText(QStringLiteral("\u25a1-"));  // □-
     m_buttonSizeDecreaseBtn->setToolTip(tr("Decrease button size"));
-    m_buttonSizeDecreaseBtn->setStyleSheet(toolButtonStyle);
+    m_buttonSizeDecreaseBtn->setStyleSheet(ButtonStyles::fontButton());
     connect(m_buttonSizeDecreaseBtn, &QToolButton::clicked, this, &MenuWindow::onButtonSizeDecrease);
     headerLayout->addWidget(m_buttonSizeDecreaseBtn);
 
@@ -62,7 +44,7 @@ void MenuWindow::setupUi()
     m_buttonSizeIncreaseBtn = new QToolButton(this);
     m_buttonSizeIncreaseBtn->setText(QStringLiteral("\u25a1+"));  // □+
     m_buttonSizeIncreaseBtn->setToolTip(tr("Increase button size"));
-    m_buttonSizeIncreaseBtn->setStyleSheet(toolButtonStyle);
+    m_buttonSizeIncreaseBtn->setStyleSheet(ButtonStyles::fontButton());
     connect(m_buttonSizeIncreaseBtn, &QToolButton::clicked, this, &MenuWindow::onButtonSizeIncrease);
     headerLayout->addWidget(m_buttonSizeIncreaseBtn);
 
@@ -76,7 +58,7 @@ void MenuWindow::setupUi()
     m_fontSizeDecreaseBtn = new QToolButton(this);
     m_fontSizeDecreaseBtn->setText(QStringLiteral("A-"));
     m_fontSizeDecreaseBtn->setToolTip(tr("Decrease font size"));
-    m_fontSizeDecreaseBtn->setStyleSheet(toolButtonStyle);
+    m_fontSizeDecreaseBtn->setStyleSheet(ButtonStyles::fontButton());
     connect(m_fontSizeDecreaseBtn, &QToolButton::clicked, this, &MenuWindow::onFontSizeDecrease);
     headerLayout->addWidget(m_fontSizeDecreaseBtn);
 
@@ -84,7 +66,7 @@ void MenuWindow::setupUi()
     m_fontSizeIncreaseBtn = new QToolButton(this);
     m_fontSizeIncreaseBtn->setText(QStringLiteral("A+"));
     m_fontSizeIncreaseBtn->setToolTip(tr("Increase font size"));
-    m_fontSizeIncreaseBtn->setStyleSheet(toolButtonStyle);
+    m_fontSizeIncreaseBtn->setStyleSheet(ButtonStyles::fontButton());
     connect(m_fontSizeIncreaseBtn, &QToolButton::clicked, this, &MenuWindow::onFontSizeIncrease);
     headerLayout->addWidget(m_fontSizeIncreaseBtn);
 
@@ -99,28 +81,7 @@ void MenuWindow::setupUi()
     m_customizeButton->setText(QStringLiteral("\u2699"));  // 歯車記号
     m_customizeButton->setCheckable(true);
     m_customizeButton->setToolTip(tr("Customize"));
-    m_customizeButton->setStyleSheet(
-        "QToolButton {"
-        "  font-size: 16px;"
-        "  font-weight: bold;"
-        "  border: none;"
-        "  border-radius: 4px;"
-        "  padding: 4px 6px;"
-        "  min-width: 28px;"
-        "  background-color: #FF9800;"
-        "  color: white;"
-        "}"
-        "QToolButton:hover {"
-        "  background-color: #F57C00;"
-        "}"
-        "QToolButton:pressed {"
-        "  background-color: #E65100;"
-        "}"
-        "QToolButton:checked {"
-        "  background-color: #E65100;"
-        "  color: white;"
-        "}"
-    );
+    m_customizeButton->setStyleSheet(ButtonStyles::customizeSettings());
     connect(m_customizeButton, &QToolButton::clicked, this, &MenuWindow::onCustomizeButtonClicked);
     headerLayout->addWidget(m_customizeButton);
 
