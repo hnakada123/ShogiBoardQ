@@ -86,6 +86,9 @@
         <file>images/actions/actionStartEditPosition.svg</file>
         <file>images/actions/actionStartGame.svg</file>
         <file>images/actions/actionSwapSides.svg</file>
+        <file>images/actions/actionToggleBookmarkColumn.svg</file>
+        <file>images/actions/actionToggleCommentColumn.svg</file>
+        <file>images/actions/actionToggleTimeColumn.svg</file>
         <file>images/actions/actionToolbar.svg</file>
         <file>images/actions/actionTsumeShogiSearch.svg</file>
         <file>images/actions/actionUndoMove.svg</file>

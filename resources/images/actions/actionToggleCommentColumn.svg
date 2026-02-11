@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+    <title>コメント列の表示/非表示</title>
+    <rect x="0" y="0" width="128" height="128" rx="8" fill="#4A6FA5"/>
+    <path d="M20 28 h88 a8 8 0 0 1 8 8 v48 a8 8 0 0 1-8 8 H56 l-20 20 v-20 H20 a8 8 0 0 1-8-8 V36 a8 8 0 0 1 8-8z" fill="white"/>
+</svg>

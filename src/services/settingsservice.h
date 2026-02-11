@@ -411,6 +411,21 @@ void setKifuAnalysisResultsDockVisible(bool visible);
 bool docksLocked();
 void setDocksLocked(bool locked);
 
+/// 棋譜欄の消費時間列の表示状態を取得（デフォルト: true = 表示）
+bool kifuTimeColumnVisible();
+/// 棋譜欄の消費時間列の表示状態を保存
+void setKifuTimeColumnVisible(bool visible);
+
+/// 棋譜欄のしおり列の表示状態を取得（デフォルト: true = 表示）
+bool kifuBookmarkColumnVisible();
+/// 棋譜欄のしおり列の表示状態を保存
+void setKifuBookmarkColumnVisible(bool visible);
+
+/// 棋譜欄のコメント列の表示状態を取得（デフォルト: true = 表示）
+bool kifuCommentColumnVisible();
+/// 棋譜欄のコメント列の表示状態を保存
+void setKifuCommentColumnVisible(bool visible);
+
 } // namespace SettingsService
 
 #endif // SETTINGSSERVICE_H
