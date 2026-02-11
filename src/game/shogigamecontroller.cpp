@@ -40,7 +40,10 @@ void ShogiGameController::newGame(QString& initialSfenString)
 
     board()->setSfen(initialSfenString);
     setResult(NoResult);
-    setCurrentPlayer(NoPlayer);
+
+    // SFEN の手番フィールドから GC の手番を同期
+    const QString boardTurn = board()->currentPlayer();
+    setCurrentPlayer((boardTurn == QLatin1String("w")) ? Player2 : Player1);
 
     // 前の対局の最終手の移動先が残ると「同」表記が誤表示されるためリセット
     previousFileTo = 0;

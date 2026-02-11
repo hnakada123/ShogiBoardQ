@@ -102,6 +102,7 @@ private:
     QPointer<ShogiView>                 m_view; ///< 編集セッション中の盤面ビュー（非所有）
     QPointer<ShogiGameController>       m_gc; ///< 編集セッション中のゲームコントローラ（非所有）
     QPointer<BoardInteractionController> m_bic; ///< 編集セッション中の操作コントローラ（非所有）
+    int m_prevBoardMode = -1; ///< 編集開始前の BoardInteractionController::Mode（未保存時は-1）
 };
 
 #endif // POSITIONEDITCONTROLLER_H

@@ -2424,6 +2424,9 @@ void MatchCoordinator::startInitialEngineMoveFor(Player engineSide)
 
     if (!ok) return;
 
+    // エンジン初手の手数インデックスを更新（同期漏れ防止）
+    m_currentMoveIndex = nextIdx;
+
     const qint64 thinkMs = eng->lastBestmoveElapsedMs();
     if (m_clock) {
         if (engineSide == P1) {

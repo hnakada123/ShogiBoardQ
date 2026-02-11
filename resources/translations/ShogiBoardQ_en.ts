@@ -3812,17 +3812,17 @@ Please restart the application to apply the changes.</translation>
         <translation>No board data available.</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3759"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3768"/>
         <source>局面を反映しました</source>
         <translation>Position applied</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3761"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3770"/>
         <source>局面の反映に失敗しました</source>
         <translation>Failed to apply position</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3764"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3773"/>
         <source>局面の反映に失敗しました（内部エラー）</source>
         <translation>Failed to apply position (internal error)</translation>
     </message>
@@ -4192,17 +4192,17 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Failed to auto-save game record: %1</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3733"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3742"/>
         <source>棋譜を取り込みました</source>
         <translation>Game record imported</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3735"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3744"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation>Failed to import game record</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3739"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3748"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation>Failed to import game record (internal error)</translation>
     </message>
@@ -4211,7 +4211,7 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Comment updated (move: %1)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3261"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3270"/>
         <source>コメントなし</source>
         <translation>No comment</translation>
     </message>
@@ -4970,12 +4970,12 @@ Are you sure you want to declare?</translation>
         <translation>Engine2</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2998"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="3001"/>
         <source>先手番</source>
         <translation>Sente (Black)</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2998"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="3001"/>
         <source>後手番</source>
         <translation>Gote (White)</translation>
     </message>
@@ -5792,47 +5792,47 @@ Are you sure you want to declare?</translation>
 <context>
     <name>ShogiGameController</name>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="59"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="62"/>
         <source>An error occurred in ShogiGameController::setBoard: null board was passed.</source>
         <translation>An error occurred in ShogiGameController::setBoard: null board was passed.</translation>
     </message>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="170"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="173"/>
         <source>An error occurred in ShogiGameController::convertMoveToKanjiStr: current player is invalid.</source>
         <translation>An error occurred in ShogiGameController::convertMoveToKanjiStr: current player is invalid.</translation>
     </message>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="233"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="236"/>
         <source>An error occurred in ShogiGameController::getPieceKanji: The piece %1 is not found.</source>
         <translation>An error occurred in ShogiGameController::getPieceKanji: The piece %1 is not found.</translation>
     </message>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="143"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="146"/>
         <source>An error occurred in ShogiGameController::getNextPlayerSfen: Invalid player state.</source>
         <translation>An error occurred in ShogiGameController::getNextPlayerSfen: Invalid player state.</translation>
     </message>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="354"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="357"/>
         <source>An error occurred in ShogiGameController::validateAndMove: board() is null.</source>
         <translation>An error occurred in ShogiGameController::validateAndMove: board() is null.</translation>
     </message>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="386"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="389"/>
         <source>An error occurred in ShogiGameController::validateAndMove: the source square is empty.</source>
         <translation>An error occurred in ShogiGameController::validateAndMove: the source square is empty.</translation>
     </message>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="472"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="475"/>
         <source>An error occurred in ShogiGameController::editPosition: board() is null.</source>
         <translation>An error occurred in ShogiGameController::editPosition: board() is null.</translation>
     </message>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="660"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="663"/>
         <source>An error occurred in ShogiGameController::updateSfenRecordAfterEdit: board() is null.</source>
         <translation>An error occurred in ShogiGameController::updateSfenRecordAfterEdit: board() is null.</translation>
     </message>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="666"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="669"/>
         <source>An error occurred in ShogiGameController::updateSfenRecordAfterEdit: record list is null.</source>
         <translation>An error occurred in ShogiGameController::updateSfenRecordAfterEdit: record list is null.</translation>
     </message>

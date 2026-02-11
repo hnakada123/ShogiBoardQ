@@ -764,6 +764,8 @@ private:
     // --- フック用メンバー関数 ---
     /// 新規対局初期化のフックポイント（GameStartCoordinator用コールバック）
     void initializeNewGameHook(const QString& s);
+    /// GCの盤面状態をShogiViewへ反映する（MatchCoordinatorフック用）
+    void renderBoardFromGc();
     /// 指し手のハイライトを盤面に表示する
     void showMoveHighlights(const QPoint& from, const QPoint& to);
     /// 棋譜行追加のフックポイント（GameStartCoordinator用コールバック）

@@ -3467,17 +3467,17 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3759"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3768"/>
         <source>局面を反映しました</source>
         <translation>局面を反映しました</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3761"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3770"/>
         <source>局面の反映に失敗しました</source>
         <translation>局面の反映に失敗しました</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3764"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3773"/>
         <source>局面の反映に失敗しました（内部エラー）</source>
         <translation>局面の反映に失敗しました（内部エラー）</translation>
     </message>
@@ -3507,7 +3507,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3261"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3270"/>
         <source>コメントなし</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3516,17 +3516,17 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">定跡</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3733"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3742"/>
         <source>棋譜を取り込みました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3735"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3744"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3739"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3748"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4271,12 +4271,12 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2998"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="3001"/>
         <source>先手番</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2998"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="3001"/>
         <source>後手番</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5076,47 +5076,47 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>ShogiGameController</name>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="59"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="62"/>
         <source>An error occurred in ShogiGameController::setBoard: null board was passed.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="170"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="173"/>
         <source>An error occurred in ShogiGameController::convertMoveToKanjiStr: current player is invalid.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="233"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="236"/>
         <source>An error occurred in ShogiGameController::getPieceKanji: The piece %1 is not found.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="143"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="146"/>
         <source>An error occurred in ShogiGameController::getNextPlayerSfen: Invalid player state.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="354"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="357"/>
         <source>An error occurred in ShogiGameController::validateAndMove: board() is null.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="386"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="389"/>
         <source>An error occurred in ShogiGameController::validateAndMove: the source square is empty.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="472"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="475"/>
         <source>An error occurred in ShogiGameController::editPosition: board() is null.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="660"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="663"/>
         <source>An error occurred in ShogiGameController::updateSfenRecordAfterEdit: board() is null.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="666"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="669"/>
         <source>An error occurred in ShogiGameController::updateSfenRecordAfterEdit: record list is null.</source>
         <translation type="unfinished"></translation>
     </message>

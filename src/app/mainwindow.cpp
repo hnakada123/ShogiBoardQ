@@ -1942,6 +1942,7 @@ void MainWindow::initMatchCoordinator()
     d.hooks.sendStopToEngine   = std::bind(&MatchCoordinator::sendStopToEngine, m_match, _1);
     d.hooks.sendRawToEngine    = std::bind(&MatchCoordinator::sendRawToEngine,  m_match, _1, _2);
     d.hooks.initializeNewGame  = std::bind(&MainWindow::initializeNewGameHook, this, _1);
+    d.hooks.renderBoardFromGc  = std::bind(&MainWindow::renderBoardFromGc, this);
     d.hooks.showMoveHighlights = std::bind(&MainWindow::showMoveHighlights, this, _1, _2);
     d.hooks.appendKifuLine     = std::bind(&MainWindow::appendKifuLineHook, this, _1, _2);
 
@@ -3202,6 +3203,14 @@ void MainWindow::initializeNewGameHook(const QString& s)
     setPlayersNamesForMode();
     setEngineNamesBasedOnMode();
     updateSecondEngineVisibility();
+}
+
+// GCの盤面状態をShogiViewへ反映する（MatchCoordinatorフック用）
+void MainWindow::renderBoardFromGc()
+{
+    if (m_shogiView && m_gameController && m_gameController->board()) {
+        m_shogiView->applyBoardAndRender(m_gameController->board());
+    }
 }
 
 // `showMoveHighlights`: 指し手ハイライト表示を盤面コントローラに委譲する。
