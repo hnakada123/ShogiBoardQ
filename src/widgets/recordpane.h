@@ -70,6 +70,9 @@ private:
     QPushButton *m_btn1=nullptr,*m_btn2=nullptr,*m_btn3=nullptr,*m_btn4=nullptr,*m_btn5=nullptr,*m_btn6=nullptr;
     QPushButton *m_btnFontUp=nullptr, *m_btnFontDown=nullptr;  // 文字サイズ変更ボタン
     QPushButton *m_btnBookmarkEdit=nullptr;  // しおり編集ボタン
+    QPushButton *m_btnToggleTime=nullptr;      // 消費時間列トグル
+    QPushButton *m_btnToggleBookmark=nullptr;  // しおり列トグル
+    QPushButton *m_btnToggleComment=nullptr;   // コメント列トグル
     int m_fontSize = 10;  // 現在のフォントサイズ
     QSplitter *m_lr=nullptr;
     QMetaObject::Connection m_connKifuCurrentRow;
@@ -98,8 +101,15 @@ public slots:
     void onFontIncrease(bool checked = false);
     void onFontDecrease(bool checked = false);
 
+    // 列表示トグルスロット
+    void onToggleTimeColumn(bool checked);
+    void onToggleBookmarkColumn(bool checked);
+    void onToggleCommentColumn(bool checked);
+
 private:
     void applyFontSize(int size);
+    void updateColumnResizeModes();
+    void applyColumnVisibility();
 
     // 対局中フラグ（ナビゲーション無効化時にtrue）
     bool m_navigationDisabled = false;

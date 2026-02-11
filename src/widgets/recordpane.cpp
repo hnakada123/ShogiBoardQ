@@ -117,6 +117,56 @@ void RecordPane::buildUi()
     m_btnBookmarkEdit->setStyleSheet(fontBtnStyle);
     m_btnBookmarkEdit->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 
+    // --- 列表示トグルボタン ---
+    const QString toggleBtnStyle = QStringLiteral(
+        "QPushButton {"
+        "  background-color: #8a9bb5;"
+        "  color: white;"
+        "  border: 1px solid #6b7d99;"
+        "  border-radius: 3px;"
+        "  padding: 2px 4px;"
+        "  min-width: 28px;"
+        "  max-width: 36px;"
+        "}"
+        "QPushButton:checked {"
+        "  background-color: #4A6FA5;"
+        "  border: 1px solid #3d5a80;"
+        "}"
+        "QPushButton:hover {"
+        "  background-color: #5a82b8;"
+        "}"
+        "QPushButton:pressed {"
+        "  background-color: #3d5a80;"
+        "}"
+    );
+
+    m_btnToggleTime = new QPushButton(this);
+    m_btnToggleTime->setCheckable(true);
+    m_btnToggleTime->setChecked(SettingsService::kifuTimeColumnVisible());
+    m_btnToggleTime->setIcon(QIcon(QStringLiteral(":/images/actions/actionToggleTimeColumn.svg")));
+    m_btnToggleTime->setIconSize(QSize(20, 20));
+    m_btnToggleTime->setToolTip(tr("消費時間列の表示/非表示"));
+    m_btnToggleTime->setStyleSheet(toggleBtnStyle);
+    m_btnToggleTime->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+
+    m_btnToggleBookmark = new QPushButton(this);
+    m_btnToggleBookmark->setCheckable(true);
+    m_btnToggleBookmark->setChecked(SettingsService::kifuBookmarkColumnVisible());
+    m_btnToggleBookmark->setIcon(QIcon(QStringLiteral(":/images/actions/actionToggleBookmarkColumn.svg")));
+    m_btnToggleBookmark->setIconSize(QSize(20, 20));
+    m_btnToggleBookmark->setToolTip(tr("しおり列の表示/非表示"));
+    m_btnToggleBookmark->setStyleSheet(toggleBtnStyle);
+    m_btnToggleBookmark->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+
+    m_btnToggleComment = new QPushButton(this);
+    m_btnToggleComment->setCheckable(true);
+    m_btnToggleComment->setChecked(SettingsService::kifuCommentColumnVisible());
+    m_btnToggleComment->setIcon(QIcon(QStringLiteral(":/images/actions/actionToggleCommentColumn.svg")));
+    m_btnToggleComment->setIconSize(QSize(20, 20));
+    m_btnToggleComment->setToolTip(tr("コメント列の表示/非表示"));
+    m_btnToggleComment->setStyleSheet(toggleBtnStyle);
+    m_btnToggleComment->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+
     // --- ナビゲーションボタン群（中央に縦配置） ---
     m_btn1 = new QPushButton(this);
     m_btn2 = new QPushButton(this);
@@ -174,6 +224,9 @@ void RecordPane::buildUi()
     navLay->addWidget(m_btnFontUp, 0, Qt::AlignHCenter);
     navLay->addWidget(m_btnFontDown, 0, Qt::AlignHCenter);
     navLay->addWidget(m_btnBookmarkEdit, 0, Qt::AlignHCenter);
+    navLay->addWidget(m_btnToggleTime, 0, Qt::AlignHCenter);
+    navLay->addWidget(m_btnToggleBookmark, 0, Qt::AlignHCenter);
+    navLay->addWidget(m_btnToggleComment, 0, Qt::AlignHCenter);
     navLay->addStretch();
     navLay->addWidget(m_btn1, 0, Qt::AlignHCenter);
     navLay->addWidget(m_btn2, 0, Qt::AlignHCenter);
@@ -264,6 +317,11 @@ void RecordPane::wireSignals()
     // しおり編集ボタンの接続
     connect(m_btnBookmarkEdit, &QPushButton::clicked, this, &RecordPane::bookmarkEditRequested);
 
+    // 列表示トグルボタンの接続
+    connect(m_btnToggleTime, &QPushButton::toggled, this, &RecordPane::onToggleTimeColumn);
+    connect(m_btnToggleBookmark, &QPushButton::toggled, this, &RecordPane::onToggleBookmarkColumn);
+    connect(m_btnToggleComment, &QPushButton::toggled, this, &RecordPane::onToggleCommentColumn);
+
     // 棋譜表の選択ハイライトを黄色に
     setupKifuSelectionAppearance();
 
@@ -318,17 +376,7 @@ void RecordPane::setModels(KifuRecordListModel* recModel, KifuBranchListModel* b
         m_connRowChanged = {};
     }
 
-    if (auto* hh = m_kifu->horizontalHeader()) {
-        // 指し手列：必要最小限の幅
-        hh->setSectionResizeMode(0, QHeaderView::ResizeToContents);
-        // 消費時間列：固定幅（日時形式を表示できる程度）
-        hh->setSectionResizeMode(1, QHeaderView::Fixed);
-        hh->resizeSection(1, 130);
-        // しおり列：コンテンツに合わせる
-        hh->setSectionResizeMode(2, QHeaderView::ResizeToContents);
-        // コメント列：残りのスペースを使用
-        hh->setSectionResizeMode(3, QHeaderView::Stretch);
-    }
+    applyColumnVisibility();
     m_kifu->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_kifu->setSelectionMode(QAbstractItemView::SingleSelection);
 
@@ -581,6 +629,87 @@ void RecordPane::onFontDecrease(bool /*checked*/)
         applyFontSize(m_fontSize);
         SettingsService::setKifuPaneFontSize(m_fontSize);
     }
+}
+
+void RecordPane::onToggleTimeColumn(bool checked)
+{
+    if (m_kifu) {
+        m_kifu->setColumnHidden(1, !checked);
+        updateColumnResizeModes();
+    }
+    SettingsService::setKifuTimeColumnVisible(checked);
+}
+
+void RecordPane::onToggleBookmarkColumn(bool checked)
+{
+    if (m_kifu) {
+        m_kifu->setColumnHidden(2, !checked);
+        updateColumnResizeModes();
+    }
+    SettingsService::setKifuBookmarkColumnVisible(checked);
+}
+
+void RecordPane::onToggleCommentColumn(bool checked)
+{
+    if (m_kifu) {
+        m_kifu->setColumnHidden(3, !checked);
+        updateColumnResizeModes();
+    }
+    SettingsService::setKifuCommentColumnVisible(checked);
+}
+
+void RecordPane::updateColumnResizeModes()
+{
+    if (!m_kifu) return;
+    auto* hh = m_kifu->horizontalHeader();
+    if (!hh) return;
+
+    // col 0: 常に ResizeToContents
+    hh->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+
+    const bool col1Visible = !m_kifu->isColumnHidden(1);
+    const bool col2Visible = !m_kifu->isColumnHidden(2);
+    const bool col3Visible = !m_kifu->isColumnHidden(3);
+
+    // 最右の表示列が Stretch を受け持つ
+    if (col3Visible) {
+        // col 3 が表示されていれば col 3 が Stretch
+        if (col1Visible) {
+            hh->setSectionResizeMode(1, QHeaderView::Fixed);
+            hh->resizeSection(1, 130);
+        }
+        if (col2Visible)
+            hh->setSectionResizeMode(2, QHeaderView::ResizeToContents);
+        hh->setSectionResizeMode(3, QHeaderView::Stretch);
+    } else if (col2Visible) {
+        // col 3 非表示 → col 2 が Stretch
+        if (col1Visible) {
+            hh->setSectionResizeMode(1, QHeaderView::Fixed);
+            hh->resizeSection(1, 130);
+        }
+        hh->setSectionResizeMode(2, QHeaderView::Stretch);
+    } else if (col1Visible) {
+        // col 2, 3 非表示 → col 1 が Stretch
+        hh->setSectionResizeMode(1, QHeaderView::Stretch);
+    } else {
+        // col 1, 2, 3 すべて非表示 → col 0 が Stretch
+        hh->setSectionResizeMode(0, QHeaderView::Stretch);
+    }
+}
+
+void RecordPane::applyColumnVisibility()
+{
+    if (!m_kifu) return;
+
+    const bool timeVisible = SettingsService::kifuTimeColumnVisible();
+    const bool bookmarkVisible = SettingsService::kifuBookmarkColumnVisible();
+    const bool commentVisible = SettingsService::kifuCommentColumnVisible();
+
+    m_kifu->setColumnHidden(1, !timeVisible);
+    m_kifu->setColumnHidden(2, !bookmarkVisible);
+    m_kifu->setColumnHidden(3, !commentVisible);
+
+    updateColumnResizeModes();
 }
 
 void RecordPane::applyFontSize(int size)

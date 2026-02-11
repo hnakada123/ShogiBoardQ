@@ -1330,4 +1330,52 @@ void setDocksLocked(bool locked)
     s.setValue("Dock/docksLocked", locked);
 }
 
+// 棋譜欄の消費時間列の表示状態を取得
+bool kifuTimeColumnVisible()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("RecordPane/timeColumnVisible", true).toBool();
+}
+
+// 棋譜欄の消費時間列の表示状態を保存
+void setKifuTimeColumnVisible(bool visible)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("RecordPane/timeColumnVisible", visible);
+}
+
+// 棋譜欄のしおり列の表示状態を取得
+bool kifuBookmarkColumnVisible()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("RecordPane/bookmarkColumnVisible", true).toBool();
+}
+
+// 棋譜欄のしおり列の表示状態を保存
+void setKifuBookmarkColumnVisible(bool visible)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("RecordPane/bookmarkColumnVisible", visible);
+}
+
+// 棋譜欄のコメント列の表示状態を取得
+bool kifuCommentColumnVisible()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("RecordPane/commentColumnVisible", true).toBool();
+}
+
+// 棋譜欄のコメント列の表示状態を保存
+void setKifuCommentColumnVisible(bool visible)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("RecordPane/commentColumnVisible", visible);
+}
+
 } // namespace SettingsService

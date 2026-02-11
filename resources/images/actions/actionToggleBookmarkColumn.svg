@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+    <title>しおり列の表示/非表示</title>
+    <rect x="0" y="0" width="128" height="128" rx="8" fill="#4A6FA5"/>
+    <path d="M38 16 h52 v96 l-26-18 l-26 18 z" fill="white"/>
+</svg>
