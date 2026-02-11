@@ -3,6 +3,7 @@
 
 #include "analysisresultspresenter.h"
 #include "analysisflowcontroller.h"
+#include "buttonstyles.h"
 #include <QDockWidget>
 #include <QTableView>
 #include <QHeaderView>
@@ -165,30 +166,20 @@ void AnalysisResultsPresenter::buildUi(KifuAnalysisListModel* /*model*/)
     // 空のモデルが設定されているのでヘッダー設定を適用
     setupHeaderConfiguration();
 
-    // ボタンスタイル定義
-    const QString fontBtnStyle = QStringLiteral(
-        "QPushButton { background-color: #e3f2fd; border: 1px solid #90caf9; border-radius: 3px; }"
-        "QPushButton:hover { background-color: #bbdefb; }"
-        "QPushButton:pressed { background-color: #90caf9; }");
-    const QString stopBtnStyle = QStringLiteral(
-        "QPushButton { background-color: #fff3e0; border: 1px solid #ffcc80; border-radius: 3px; padding: 4px 12px; }"
-        "QPushButton:hover { background-color: #ffe0b2; }"
-        "QPushButton:pressed { background-color: #ffcc80; }");
-
     // フォントサイズのA-/A+ボタン
     QPushButton* fontDecBtn = new QPushButton(tr("A-"), m_container);
     fontDecBtn->setFixedWidth(40);
-    fontDecBtn->setStyleSheet(fontBtnStyle);
+    fontDecBtn->setStyleSheet(ButtonStyles::fontButton());
     connect(fontDecBtn, &QPushButton::clicked, this, &AnalysisResultsPresenter::decreaseFontSize);
 
     QPushButton* fontIncBtn = new QPushButton(tr("A+"), m_container);
     fontIncBtn->setFixedWidth(40);
-    fontIncBtn->setStyleSheet(fontBtnStyle);
+    fontIncBtn->setStyleSheet(ButtonStyles::fontButton());
     connect(fontIncBtn, &QPushButton::clicked, this, &AnalysisResultsPresenter::increaseFontSize);
 
     // 棋譜解析中止ボタン
     m_stopButton = new QPushButton(tr("棋譜解析中止"), m_container);
-    m_stopButton->setStyleSheet(stopBtnStyle);
+    m_stopButton->setStyleSheet(ButtonStyles::dangerStop());
     connect(m_stopButton, &QPushButton::clicked, this, &AnalysisResultsPresenter::stopRequested);
 
     // ボタン用の水平レイアウト（上部に配置）

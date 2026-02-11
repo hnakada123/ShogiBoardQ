@@ -2,6 +2,7 @@
 /// @brief 評価値グラフウィジェットクラスの実装
 
 #include "evaluationchartwidget.h"
+#include "buttonstyles.h"
 #include "settingsservice.h"
 
 #include <QtCharts/QChartView>
@@ -385,17 +386,7 @@ void EvaluationChartWidget::setupControlPanel()
     );
 
     // ボタンスタイル（フォントサイズ用）
-    const QString btnStyle = QStringLiteral(
-        "QPushButton { "
-        "  background-color: #e0e0e0; "
-        "  border: 1px solid #999; "
-        "  border-radius: 2px; "
-        "  font-size: 10pt; "
-        "  padding: 1px; "
-        "} "
-        "QPushButton:hover { background-color: #d0d0d0; } "
-        "QPushButton:pressed { background-color: #c0c0c0; }"
-    );
+    const QString btnStyle = ButtonStyles::fontButton();
 
     // 評価値上限ComboBox
     auto* lblYLimit = new QLabel(tr("評価値上限:"), m_controlPanel);

@@ -2,6 +2,7 @@
 /// @brief CSA接続待機ダイアログクラスの実装
 
 #include "csawaitingdialog.h"
+#include "buttonstyles.h"
 
 #include <QLabel>
 #include <QPushButton>
@@ -94,6 +95,7 @@ void CsaWaitingDialog::setupUi()
     logButtonLayout->addStretch();
     m_showLogButton = new QPushButton(tr("通信ログ..."), this);
     m_showLogButton->setMinimumWidth(120);
+    m_showLogButton->setStyleSheet(ButtonStyles::secondaryNeutral());
     logButtonLayout->addWidget(m_showLogButton);
     logButtonLayout->addStretch();
     buttonLayout->addLayout(logButtonLayout);
@@ -103,6 +105,7 @@ void CsaWaitingDialog::setupUi()
     cancelButtonLayout->addStretch();
     m_cancelButton = new QPushButton(tr("対局キャンセル"), this);
     m_cancelButton->setMinimumWidth(120);
+    m_cancelButton->setStyleSheet(ButtonStyles::dangerStop());
     cancelButtonLayout->addWidget(m_cancelButton);
     cancelButtonLayout->addStretch();
     buttonLayout->addLayout(cancelButtonLayout);
@@ -198,6 +201,7 @@ void CsaWaitingDialog::createLogWindow()
     m_btnLogFontDecrease->setText(QStringLiteral("A-"));
     m_btnLogFontDecrease->setToolTip(tr("フォントサイズを小さくする"));
     m_btnLogFontDecrease->setFixedSize(28, 24);
+    m_btnLogFontDecrease->setStyleSheet(ButtonStyles::fontButton());
     connect(m_btnLogFontDecrease, &QToolButton::clicked,
             this, &CsaWaitingDialog::onLogFontDecrease);
     fontLayout->addWidget(m_btnLogFontDecrease);
@@ -206,6 +210,7 @@ void CsaWaitingDialog::createLogWindow()
     m_btnLogFontIncrease->setText(QStringLiteral("A+"));
     m_btnLogFontIncrease->setToolTip(tr("フォントサイズを大きくする"));
     m_btnLogFontIncrease->setFixedSize(28, 24);
+    m_btnLogFontIncrease->setStyleSheet(ButtonStyles::fontButton());
     connect(m_btnLogFontIncrease, &QToolButton::clicked,
             this, &CsaWaitingDialog::onLogFontIncrease);
     fontLayout->addWidget(m_btnLogFontIncrease);

@@ -2,6 +2,7 @@
 /// @brief 棋譜欄ペインクラスの実装
 
 #include "recordpane.h"
+#include "buttonstyles.h"
 #include "kifurecordlistmodel.h"
 #include "kifubranchlistmodel.h"
 #include "settingsservice.h"
@@ -85,27 +86,11 @@ void RecordPane::buildUi()
     m_btnFontUp->setToolTip(tr("文字を大きくする"));
     m_btnFontDown->setToolTip(tr("文字を小さくする"));
 
-    // 文字サイズボタンのスタイル設定（青系の背景色）
-    const QString fontBtnStyle = QStringLiteral(
-        "QPushButton {"
-        "  background-color: #4A6FA5;"
-        "  color: white;"
-        "  border: 1px solid #3d5a80;"
-        "  border-radius: 3px;"
-        "  padding: 2px 4px;"
-        "  font-weight: bold;"
-        "  min-width: 28px;"
-        "  max-width: 36px;"
-        "}"
-        "QPushButton:hover {"
-        "  background-color: #5a82b8;"
-        "}"
-        "QPushButton:pressed {"
-        "  background-color: #3d5a80;"
-        "}"
-    );
-    m_btnFontUp->setStyleSheet(fontBtnStyle);
-    m_btnFontDown->setStyleSheet(fontBtnStyle);
+    // 文字サイズボタンのスタイル設定（トグルボタンと同じ幅に揃える）
+    m_btnFontUp->setStyleSheet(ButtonStyles::fontButton());
+    m_btnFontDown->setStyleSheet(ButtonStyles::fontButton());
+    m_btnFontUp->setFixedWidth(36);
+    m_btnFontDown->setFixedWidth(36);
     m_btnFontUp->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
     m_btnFontDown->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 
@@ -114,31 +99,12 @@ void RecordPane::buildUi()
     m_btnBookmarkEdit->setIcon(QIcon(QStringLiteral(":/images/actions/actionEditBookmark.svg")));
     m_btnBookmarkEdit->setIconSize(QSize(20, 20));
     m_btnBookmarkEdit->setToolTip(tr("しおりを編集"));
-    m_btnBookmarkEdit->setStyleSheet(fontBtnStyle);
+    m_btnBookmarkEdit->setStyleSheet(ButtonStyles::fontButton());
+    m_btnBookmarkEdit->setFixedWidth(36);
     m_btnBookmarkEdit->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 
     // --- 列表示トグルボタン ---
-    const QString toggleBtnStyle = QStringLiteral(
-        "QPushButton {"
-        "  background-color: #8a9bb5;"
-        "  color: white;"
-        "  border: 1px solid #6b7d99;"
-        "  border-radius: 3px;"
-        "  padding: 2px 4px;"
-        "  min-width: 28px;"
-        "  max-width: 36px;"
-        "}"
-        "QPushButton:checked {"
-        "  background-color: #4A6FA5;"
-        "  border: 1px solid #3d5a80;"
-        "}"
-        "QPushButton:hover {"
-        "  background-color: #5a82b8;"
-        "}"
-        "QPushButton:pressed {"
-        "  background-color: #3d5a80;"
-        "}"
-    );
+    const QString toggleBtnStyle = ButtonStyles::toggleButton();
 
     m_btnToggleTime = new QPushButton(this);
     m_btnToggleTime->setCheckable(true);
@@ -192,24 +158,7 @@ void RecordPane::buildUi()
     m_btn6->setToolTip(tr("最後に進む"));
 
     // ボタンのスタイル設定（緑系の背景色、幅を狭く）
-    const QString btnStyle = QStringLiteral(
-        "QPushButton {"
-        "  background-color: #4F9272;"
-        "  color: white;"
-        "  border: 1px solid #3d7259;"
-        "  border-radius: 3px;"
-        "  padding: 3px 4px;"
-        "  font-weight: bold;"
-        "  min-width: 28px;"
-        "  max-width: 36px;"
-        "}"
-        "QPushButton:hover {"
-        "  background-color: #5ba583;"
-        "}"
-        "QPushButton:pressed {"
-        "  background-color: #3d7259;"
-        "}"
-    );
+    const QString btnStyle = ButtonStyles::navigationButton();
 
     const QList<QPushButton*> allBtns = {m_btn1, m_btn2, m_btn3, m_btn4, m_btn5, m_btn6};
     for (QPushButton* const b : allBtns) {

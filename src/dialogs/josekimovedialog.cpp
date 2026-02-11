@@ -2,6 +2,7 @@
 /// @brief 定跡手入力ダイアログクラスの実装
 
 #include "josekimovedialog.h"
+#include "buttonstyles.h"
 #include "settingsservice.h"
 
 #include <QVBoxLayout>
@@ -59,11 +60,13 @@ void JosekiMoveDialog::setupUi(bool isEdit)
     m_fontDecreaseBtn = new QPushButton(tr("A-"), this);
     m_fontDecreaseBtn->setToolTip(tr("フォントサイズを縮小"));
     m_fontDecreaseBtn->setFixedWidth(36);
+    m_fontDecreaseBtn->setStyleSheet(ButtonStyles::fontButton());
     fontLayout->addWidget(m_fontDecreaseBtn);
-    
+
     m_fontIncreaseBtn = new QPushButton(tr("A+"), this);
     m_fontIncreaseBtn->setToolTip(tr("フォントサイズを拡大"));
     m_fontIncreaseBtn->setFixedWidth(36);
+    m_fontIncreaseBtn->setStyleSheet(ButtonStyles::fontButton());
     fontLayout->addWidget(m_fontIncreaseBtn);
     
     fontLayout->addStretch();

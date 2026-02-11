@@ -2,6 +2,7 @@
 /// @brief 持将棋スコアダイアログコントローラクラスの実装
 
 #include "jishogiscoredialogcontroller.h"
+#include "buttonstyles.h"
 #include "shogiboard.h"
 #include "jishogicalculator.h"
 #include "movevalidator.h"
@@ -112,6 +113,7 @@ void JishogiScoreDialogController::showDialog(QWidget* parentWidget, ShogiBoard*
     // A- ボタン（文字縮小）
     QPushButton* shrinkButton = new QPushButton(tr("A-"));
     shrinkButton->setFixedWidth(40);
+    shrinkButton->setStyleSheet(ButtonStyles::fontButton());
     connect(shrinkButton, &QPushButton::clicked, [label]() {
         QFont font = label->font();
         if (font.pointSize() > 6) {
@@ -124,6 +126,7 @@ void JishogiScoreDialogController::showDialog(QWidget* parentWidget, ShogiBoard*
     // A+ ボタン（文字拡大）
     QPushButton* enlargeButton = new QPushButton(tr("A+"));
     enlargeButton->setFixedWidth(40);
+    enlargeButton->setStyleSheet(ButtonStyles::fontButton());
     connect(enlargeButton, &QPushButton::clicked, [label]() {
         QFont font = label->font();
         font.setPointSize(font.pointSize() + 1);
@@ -135,6 +138,7 @@ void JishogiScoreDialogController::showDialog(QWidget* parentWidget, ShogiBoard*
 
     // OKボタン
     QPushButton* okButton = new QPushButton(tr("OK"));
+    okButton->setStyleSheet(ButtonStyles::primaryAction());
     connect(okButton, &QPushButton::clicked, &dialog, &QDialog::accept);
     buttonLayout->addWidget(okButton);
 
