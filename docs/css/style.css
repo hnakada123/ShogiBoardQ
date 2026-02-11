@@ -234,23 +234,18 @@ img {
     letter-spacing: 0.03em;
 }
 
-/* --- Share Button --- */
-.hero-share {
-    margin-top: 2rem;
-}
-
+/* --- Share Button (nav) --- */
 .share-btn-x {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
+    gap: 0.3rem;
     background: rgba(255, 255, 255, 0.15);
     color: rgba(255, 255, 255, 0.9);
     border: 1px solid rgba(255, 255, 255, 0.35);
-    padding: 0.45rem 1.2rem;
-    border-radius: 6px;
-    font-size: 0.85rem;
+    padding: 0.3rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
     font-weight: 500;
-    letter-spacing: 0.02em;
     transition: background 0.2s ease, color 0.2s ease;
 }
 
