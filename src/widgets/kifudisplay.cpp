@@ -48,3 +48,25 @@ void KifuDisplay::setComment(const QString &comment)
 {
     m_comment = comment;
 }
+
+// コンストラクタ（4引数：コメント＋しおり付き）
+KifuDisplay::KifuDisplay(const QString &currentMove, const QString &timeSpent, const QString &comment, const QString &bookmark, QObject *parent)
+    : KifuDisplay(parent)
+{
+    m_currentMove = currentMove;
+    m_timeSpent = timeSpent;
+    m_comment = comment;
+    m_bookmark = bookmark;
+}
+
+// しおりを取得する。
+QString KifuDisplay::bookmark() const
+{
+    return m_bookmark;
+}
+
+// しおりを設定する。
+void KifuDisplay::setBookmark(const QString &bookmark)
+{
+    m_bookmark = bookmark;
+}

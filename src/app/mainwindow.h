@@ -226,6 +226,8 @@ public slots:
     void movePieceImmediately();
     /// 棋譜欄の行選択変更を処理する（RecordPane::mainRowChanged に接続）
     void onRecordPaneMainRowChanged(int row);
+    /// しおり編集リクエスト（RecordPane::bookmarkEditRequested に接続）
+    void onBookmarkEditRequested();
 
     // --- protected ---
 protected:
@@ -326,7 +328,8 @@ private slots:
     void onGameRecordCommentChanged(int ply, const QString& comment);
     /// CommentCoordinatorからのコメント更新コールバック
     void onCommentUpdateCallback(int ply, const QString& comment);
-
+    /// しおり更新コールバック（GameRecordModelから呼ばれる）
+    void onBookmarkUpdateCallback(int ply, const QString& bookmark);
     // --- 分岐ノード活性化 ---
 
     /// 分岐ツリーのノード活性化を処理する（BranchTreeWidget::nodeActivated に接続）

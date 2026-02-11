@@ -46,6 +46,7 @@ public:
 
     QPushButton* fontIncreaseButton() const { return m_btnFontUp; }
     QPushButton* fontDecreaseButton() const { return m_btnFontDown; }
+    QPushButton* bookmarkEditButton() const { return m_btnBookmarkEdit; }
 
     CommentTextAdapter* commentLabel();
 
@@ -57,6 +58,7 @@ public:
 signals:
     void mainRowChanged(int row);
     void branchActivated(const QModelIndex&);
+    void bookmarkEditRequested();
 
 private:
     void buildUi();
@@ -67,6 +69,7 @@ private:
     QWidget *m_branchContainer=nullptr;  // 分岐候補欄のコンテナ（本譜に戻るボタン用）
     QPushButton *m_btn1=nullptr,*m_btn2=nullptr,*m_btn3=nullptr,*m_btn4=nullptr,*m_btn5=nullptr,*m_btn6=nullptr;
     QPushButton *m_btnFontUp=nullptr, *m_btnFontDown=nullptr;  // 文字サイズ変更ボタン
+    QPushButton *m_btnBookmarkEdit=nullptr;  // しおり編集ボタン
     int m_fontSize = 10;  // 現在のフォントサイズ
     QSplitter *m_lr=nullptr;
     QMetaObject::Connection m_connKifuCurrentRow;

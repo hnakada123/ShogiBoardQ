@@ -99,7 +99,7 @@ public:
     /**
      * @brief コメント更新時の通知コールバックを設定
      * @param callback コールバック関数
-     * 
+     *
      * このコールバックは setComment でコメントが変更された後に呼ばれます。
      * RecordPresenterへの通知やUI更新に使用します。
      */
@@ -121,6 +121,37 @@ public:
      * @brief コメント配列のサイズ
      */
     int commentCount() const { return static_cast<int>(m_comments.size()); }
+
+    // --- しおり操作 ---
+
+    /**
+     * @brief 指定手数のしおりを設定
+     * @param ply 手数（0=開始局面, 1=1手目, ...）
+     * @param bookmark 新しいしおり
+     */
+    void setBookmark(int ply, const QString& bookmark);
+
+    /**
+     * @brief 指定手数のしおりを取得
+     * @param ply 手数（0=開始局面, 1=1手目, ...）
+     * @return しおり文字列（なければ空文字）
+     */
+    QString bookmark(int ply) const;
+
+    /**
+     * @brief しおり更新時の外部通知コールバック型
+     */
+    using BookmarkUpdateCallback = std::function<void(int ply, const QString& bookmark)>;
+
+    /**
+     * @brief しおり更新時の通知コールバックを設定
+     */
+    void setBookmarkUpdateCallback(const BookmarkUpdateCallback& callback);
+
+    /**
+     * @brief しおり配列の容量を確保
+     */
+    void ensureBookmarkCapacity(int ply);
 
     // --- 棋譜出力 ---
 
@@ -243,14 +274,22 @@ signals:
     void commentChanged(int ply, const QString& newComment);
 
     /**
+     * @brief しおりが変更された
+     * @param ply 変更された手数
+     * @param newBookmark 新しいしおり
+     */
+    void bookmarkChanged(int ply, const QString& newBookmark);
+
+    /**
      * @brief データが変更された（保存が必要）
      */
     void dataChanged();
 
 private:
     // === 内部データ（権威を持つ） ===
-    QVector<QString> m_comments;  ///< 手数インデックス → コメント
-    bool m_isDirty = false;       ///< 変更フラグ
+    QVector<QString> m_comments;   ///< 手数インデックス → コメント
+    QVector<QString> m_bookmarks;  ///< 手数インデックス → しおり
+    bool m_isDirty = false;        ///< 変更フラグ
 
     // === 外部データへの参照（同期更新用、所有しない） ===
     QList<KifDisplayItem>* m_liveDisp = nullptr;
@@ -260,7 +299,8 @@ private:
     KifuNavigationState* m_navState = nullptr;
 
     // === コールバック ===
-    CommentUpdateCallback m_commentUpdateCallback;  ///< コメント更新時の通知コールバック
+    CommentUpdateCallback m_commentUpdateCallback;    ///< コメント更新時の通知コールバック
+    BookmarkUpdateCallback m_bookmarkUpdateCallback;  ///< しおり更新時の通知コールバック
 
     // === 内部ヘルパ ===
     void syncToExternalStores(int ply, const QString& comment);

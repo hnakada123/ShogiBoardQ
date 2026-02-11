@@ -13,6 +13,7 @@ class EngineAnalysisTab;
 class RecordPane;
 class GameRecordModel;
 class GameRecordPresenter;
+class KifuRecordListModel;
 class QStatusBar;
 
 /**
@@ -36,6 +37,7 @@ public:
     void setStatusBar(QStatusBar* bar) { m_statusBar = bar; }
     void setCurrentMoveIndex(int* index) { m_currentMoveIndex = index; }
     void setCommentsByRow(QStringList* comments) { m_commentsByRow = comments; }
+    void setKifuRecordListModel(KifuRecordListModel* model) { m_kifuRecordModel = model; }
 
     /**
      * @brief コメントを解析タブと棋譜ペインに配信
@@ -64,6 +66,18 @@ public slots:
      */
     void onCommentUpdateCallback(int ply, const QString& comment);
 
+    /**
+     * @brief しおり編集リクエストスロット（RecordPaneのボタンから呼ばれる）
+     */
+    void onBookmarkEditRequested();
+
+    /**
+     * @brief しおり更新コールバック（GameRecordModelから呼ばれる）
+     * @param ply 手数
+     * @param bookmark しおり
+     */
+    void onBookmarkUpdateCallback(int ply, const QString& bookmark);
+
 signals:
     /**
      * @brief GameRecordModelの初期化が必要な時に発行
@@ -78,6 +92,7 @@ private:
     QStatusBar* m_statusBar = nullptr;
     int* m_currentMoveIndex = nullptr;
     QStringList* m_commentsByRow = nullptr;
+    KifuRecordListModel* m_kifuRecordModel = nullptr;
 };
 
 #endif // COMMENTCOORDINATOR_H

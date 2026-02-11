@@ -440,6 +440,7 @@ QList<KifDisplayItem> KifuBranchTree::getDisplayItemsForLine(int lineIndex) cons
         KifDisplayItem item;
         item.prettyMove = node->displayText();
         item.comment = node->comment();
+        item.bookmark = node->bookmark();
         item.timeText = node->timeText();
         result.append(item);
     }

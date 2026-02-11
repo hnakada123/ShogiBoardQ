@@ -109,6 +109,14 @@ void RecordPane::buildUi()
     m_btnFontUp->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
     m_btnFontDown->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 
+    // --- しおり編集ボタン ---
+    m_btnBookmarkEdit = new QPushButton(this);
+    m_btnBookmarkEdit->setIcon(QIcon(QStringLiteral(":/images/actions/actionEditBookmark.svg")));
+    m_btnBookmarkEdit->setIconSize(QSize(20, 20));
+    m_btnBookmarkEdit->setToolTip(tr("しおりを編集"));
+    m_btnBookmarkEdit->setStyleSheet(fontBtnStyle);
+    m_btnBookmarkEdit->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+
     // --- ナビゲーションボタン群（中央に縦配置） ---
     m_btn1 = new QPushButton(this);
     m_btn2 = new QPushButton(this);
@@ -165,6 +173,7 @@ void RecordPane::buildUi()
     navLay->setSpacing(3);
     navLay->addWidget(m_btnFontUp, 0, Qt::AlignHCenter);
     navLay->addWidget(m_btnFontDown, 0, Qt::AlignHCenter);
+    navLay->addWidget(m_btnBookmarkEdit, 0, Qt::AlignHCenter);
     navLay->addStretch();
     navLay->addWidget(m_btn1, 0, Qt::AlignHCenter);
     navLay->addWidget(m_btn2, 0, Qt::AlignHCenter);
@@ -252,6 +261,9 @@ void RecordPane::wireSignals()
     connect(m_btnFontUp, &QPushButton::clicked, this, &RecordPane::onFontIncrease);
     connect(m_btnFontDown, &QPushButton::clicked, this, &RecordPane::onFontDecrease);
 
+    // しおり編集ボタンの接続
+    connect(m_btnBookmarkEdit, &QPushButton::clicked, this, &RecordPane::bookmarkEditRequested);
+
     // 棋譜表の選択ハイライトを黄色に
     setupKifuSelectionAppearance();
 
@@ -312,8 +324,10 @@ void RecordPane::setModels(KifuRecordListModel* recModel, KifuBranchListModel* b
         // 消費時間列：固定幅（日時形式を表示できる程度）
         hh->setSectionResizeMode(1, QHeaderView::Fixed);
         hh->resizeSection(1, 130);
+        // しおり列：コンテンツに合わせる
+        hh->setSectionResizeMode(2, QHeaderView::ResizeToContents);
         // コメント列：残りのスペースを使用
-        hh->setSectionResizeMode(2, QHeaderView::Stretch);
+        hh->setSectionResizeMode(3, QHeaderView::Stretch);
     }
     m_kifu->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_kifu->setSelectionMode(QAbstractItemView::SingleSelection);

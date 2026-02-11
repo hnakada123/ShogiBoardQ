@@ -5,12 +5,14 @@
 #include "mainwindow.h"
 
 #include <QStatusBar>
+#include <QInputDialog>
 
 #include "engineanalysistab.h"
 #include "recordpane.h"
 #include "gamerecordmodel.h"
 #include "gamerecordpresenter.h"
 #include "kifucontentbuilder.h"
+#include "kifurecordlistmodel.h"
 
 CommentCoordinator::CommentCoordinator(QObject* parent)
     : QObject(parent)
@@ -99,4 +101,75 @@ void CommentCoordinator::onCommentUpdateCallback(int ply, const QString& comment
     // 現在表示中のコメントを更新（両方のコメント欄に反映）
     const QString displayComment = comment.trimmed().isEmpty() ? tr("コメントなし") : comment;
     broadcastComment(displayComment, /*asHtml=*/true);
+}
+
+void CommentCoordinator::onBookmarkEditRequested()
+{
+    // 現在選択中の行（ply）を取得
+    int ply = -1;
+    if (m_recordPresenter) {
+        ply = m_recordPresenter->currentRow();
+    }
+    if (ply < 0) {
+        if (m_statusBar) {
+            m_statusBar->showMessage(tr("手を選択してください"), 3000);
+        }
+        return;
+    }
+
+    // GameRecordModel がない場合は初期化を要求
+    if (!m_gameRecord) {
+        emit ensureGameRecordModelRequested();
+    }
+
+    // 現在のしおりテキストを取得
+    QString currentBookmark;
+    if (m_gameRecord) {
+        currentBookmark = m_gameRecord->bookmark(ply);
+    }
+
+    // 入力ダイアログを表示
+    bool ok = false;
+    QWidget* parentWidget = m_recordPane ? m_recordPane : qobject_cast<QWidget*>(parent());
+    const QString newBookmark = QInputDialog::getText(
+        parentWidget,
+        tr("しおりを編集"),
+        tr("しおり名（手数: %1）:").arg(ply),
+        QLineEdit::Normal,
+        currentBookmark,
+        &ok
+    );
+
+    if (!ok) return; // キャンセル
+
+    // GameRecordModel に保存
+    if (m_gameRecord) {
+        m_gameRecord->setBookmark(ply, newBookmark);
+    }
+
+    // ステータスバーに通知
+    if (m_statusBar) {
+        if (newBookmark.isEmpty()) {
+            m_statusBar->showMessage(tr("しおりを削除しました（手数: %1）").arg(ply), 3000);
+        } else {
+            m_statusBar->showMessage(tr("しおりを設定しました（手数: %1）").arg(ply), 3000);
+        }
+    }
+}
+
+void CommentCoordinator::onBookmarkUpdateCallback(int ply, const QString& bookmark)
+{
+    qCDebug(lcApp).noquote() << "onBookmarkUpdateCallback ply=" << ply;
+
+    // KifuRecordListModel の該当行を更新
+    if (m_kifuRecordModel != nullptr) {
+        auto* item = m_kifuRecordModel->item(ply);
+        if (item != nullptr) {
+            item->setBookmark(bookmark);
+            // dataChanged を発火して表示を更新
+            const QModelIndex tl = m_kifuRecordModel->index(ply, 2);  // しおり列
+            const QModelIndex br = m_kifuRecordModel->index(ply, 2);
+            emit m_kifuRecordModel->dataChanged(tl, br, { Qt::DisplayRole });
+        }
+    }
 }

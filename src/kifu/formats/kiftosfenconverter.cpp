@@ -337,8 +337,9 @@ QList<KifDisplayItem> KifToSfenConverter::extractMovesWithTimes(const QString& k
         return out;
     }
 
-    QString openingCommentBuf;   // 開始局面用コメント（最初の指し手の前）
-    QString commentBuf;          // 指し手後のコメント（次の指し手まで蓄積）
+    QString openingCommentBuf;    // 開始局面用コメント（最初の指し手の前）
+    QString openingBookmarkBuf;   // 開始局面用しおり（最初の指し手の前）
+    QString commentBuf;           // 指し手後のコメント（次の指し手まで蓄積）
     int moveIndex = 0;           // 手数管理
     bool firstMoveFound = false; // 最初の指し手が見つかったか
 
@@ -378,19 +379,17 @@ QList<KifDisplayItem> KifToSfenConverter::extractMovesWithTimes(const QString& k
             continue;
         }
 
-        // しおり：直前の手（out.back()）に付与。初手前は openingCommentBuf に退避。
+        // しおり：直前の手（out.back()）の bookmark フィールドに付与
         if (isBookmarkLine(lineStr)) {
             const QString name = lineStr.mid(1).trimmed();
             if (!name.isEmpty()) {
                 if (firstMoveFound && out.size() > 1) {
-                    // 最初の指し手より後：直前の指し手に付与（out[0]は開始局面なのでout.size()>1でチェック）
-                    QString& dst = out.last().comment;
+                    QString& dst = out.last().bookmark;
                     if (!dst.isEmpty()) dst += QLatin1Char('\n');
-                    dst += QStringLiteral("【しおり】") + name;
+                    dst += name;
                 } else {
-                    // 最初の指し手の前：開始局面用
-                    if (!openingCommentBuf.isEmpty()) openingCommentBuf += QLatin1Char('\n');
-                    openingCommentBuf += QStringLiteral("【しおり】") + name;
+                    if (!openingBookmarkBuf.isEmpty()) openingBookmarkBuf += QLatin1Char('\n');
+                    openingBookmarkBuf += name;
                 }
             }
             continue;
@@ -474,6 +473,7 @@ QList<KifDisplayItem> KifToSfenConverter::extractMovesWithTimes(const QString& k
                 openingItem.prettyMove = QString();  // 開始局面は空
                 openingItem.timeText   = QStringLiteral("00:00/00:00:00");
                 openingItem.comment    = openingCommentBuf;
+                openingItem.bookmark   = openingBookmarkBuf;
                 openingItem.ply        = 0;
                 out.push_back(openingItem);
             }
@@ -557,6 +557,7 @@ QList<KifDisplayItem> KifToSfenConverter::extractMovesWithTimes(const QString& k
         openingItem.prettyMove = QString();
         openingItem.timeText   = QStringLiteral("00:00/00:00:00");
         openingItem.comment    = openingCommentBuf;
+        openingItem.bookmark   = openingBookmarkBuf;
         openingItem.ply        = 0;
         out.push_back(openingItem);
     }
@@ -756,13 +757,13 @@ bool KifToSfenConverter::parseWithVariations(const QString& kifPath,
                     continue;
                 }
 
-                // 変化内のしおり：直前の手に付ける
+                // 変化内のしおり：直前の手の bookmark フィールドに付与
                 if (isBookmarkLine(lineStr)) {
                     const QString name = lineStr.mid(1).trimmed();
                     if (!name.isEmpty() && !var.line.disp.isEmpty()) {
-                        QString& dst = var.line.disp.last().comment;
+                        QString& dst = var.line.disp.last().bookmark;
                         if (!dst.isEmpty()) dst += QLatin1Char('\n');
-                        dst += QStringLiteral("【しおり】") + name;
+                        dst += name;
                     }
                     continue;
                 }
@@ -1617,13 +1618,8 @@ QString KifToSfenConverter::extractOpeningComment(const QString& filePath)
             continue;
         }
 
-        // しおり（開始局面に対するしおり）
+        // しおり（開始局面に対するしおり）- コメントには含めずスキップ
         if (t.startsWith(QLatin1Char('&'))) {
-            const QString name = t.mid(1).trimmed();
-            if (!name.isEmpty()) {
-                if (!buf.isEmpty()) buf += QLatin1Char('\n');
-                buf += QStringLiteral("【しおり】") + name;
-            }
             continue;
         }
     }
