@@ -4225,83 +4225,93 @@ Please restart the application to apply the changes.</translation>
 <context>
     <name>MatchCoordinator</name>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="362"/>
         <location filename="../../src/game/matchcoordinator.cpp" line="363"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="364"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="362"/>
         <location filename="../../src/game/matchcoordinator.cpp" line="363"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="364"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="370"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="371"/>
         <source>%1の投了。%2の勝ちです。</source>
         <translation>%1 resigned. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="374"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="375"/>
         <source>%1の時間切れ。%2の勝ちです。</source>
         <translation>%1 ran out of time. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="378"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="379"/>
         <source>最大手数に達しました。持将棋です。</source>
         <translation>Maximum moves reached. Jishogi (impasse).</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="382"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="383"/>
         <source>%1の入玉宣言。%2の勝ちです。</source>
         <translation>%1 declared entering king. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="386"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="387"/>
         <source>%1の反則負け。%2の勝ちです。</source>
         <translation>%1 committed a foul. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="391"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="390"/>
+        <source>千日手が成立しました。</source>
+        <translation>Sennichite (draw by repetition).</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/matchcoordinator.cpp" line="393"/>
+        <source>%1の連続王手の千日手。%2の勝ちです。</source>
+        <translation>Perpetual check by %1. %2 wins.</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/matchcoordinator.cpp" line="398"/>
         <source>対局が終了しました。</source>
         <translation>The game has ended.</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="397"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="404"/>
         <source>対局終了</source>
         <translation>Game Over</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2141"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2151"/>
         <source>詰みあり（手順 %1 手）</source>
         <translation>Mate found (%1 moves)</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2142"/>
         <location filename="../../src/game/matchcoordinator.cpp" line="2152"/>
         <location filename="../../src/game/matchcoordinator.cpp" line="2162"/>
         <location filename="../../src/game/matchcoordinator.cpp" line="2172"/>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2185"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2182"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2195"/>
         <source>詰み探索</source>
         <translation>Mate Search</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2152"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2162"/>
         <source>詰みなし</source>
         <translation>No mate</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2162"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2172"/>
         <source>（エンジン側）未実装</source>
         <translation>(Engine) Not implemented</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2172"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2182"/>
         <source>不明（解析不能）</source>
         <translation>Unknown (unable to analyze)</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2185"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2195"/>
         <source>探索が完了しました</source>
         <translation>Search completed</translation>
     </message>
@@ -4960,12 +4970,12 @@ Are you sure you want to declare?</translation>
         <translation>Engine2</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2979"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2998"/>
         <source>先手番</source>
         <translation>Sente (Black)</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="2979"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="2998"/>
         <source>後手番</source>
         <translation>Gote (White)</translation>
     </message>
