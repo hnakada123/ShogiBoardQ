@@ -5469,82 +5469,82 @@ Are you sure you want to declare?</translation>
         <translation>Toggle Time Column</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="123"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="124"/>
         <source>しおり列の表示/非表示</source>
         <translation>Toggle Bookmark Column</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="132"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="134"/>
         <source>コメント列の表示/非表示</source>
         <translation>Toggle Comment Column</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="145"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="148"/>
         <source>▲|</source>
         <translation>▲|</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="146"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="149"/>
         <source>▲▲</source>
         <translation>▲▲</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="147"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="150"/>
         <source>▲</source>
         <translation>▲</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="148"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="151"/>
         <source>▼</source>
         <translation>▼</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="149"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="152"/>
         <source>▼▼</source>
         <translation>▼▼</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="150"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="153"/>
         <source>▼|</source>
         <translation>▼|</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="153"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="156"/>
         <source>最初に戻る</source>
         <translation>Go to Start</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="154"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="157"/>
         <source>10手戻る</source>
         <translation>Go Back 10 Moves</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="155"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="158"/>
         <source>1手戻る</source>
         <translation>Go Back 1 Move</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="156"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="159"/>
         <source>1手進む</source>
         <translation>Go Forward 1 Move</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="157"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="160"/>
         <source>10手進む</source>
         <translation>Go Forward 10 Moves</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="158"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="161"/>
         <source>最後に進む</source>
         <translation>Go to End</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="510"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="513"/>
         <source>本譜に戻る</source>
         <translation>Return to Main</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="514"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="517"/>
         <source>現在の手数で本譜（メインライン）に戻る</source>
         <translation>Return to main line at current move</translation>
     </message>
