@@ -57,11 +57,7 @@ void ChangeEngineSettingsDialog::readEngineOptions()
     // オプションリストを初期化する。
     m_optionList.clear();
 
-    // アプリケーションのディレクトリに移動してから設定ファイルを操作する。
-    QDir::setCurrent(QApplication::applicationDirPath());
-
-    // 設定ファイルを指定する。
-    QSettings settings(SettingsFileName, QSettings::IniFormat);
+    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
 
     // エンジンオプションの数を取得する。
     int size = settings.beginReadArray(m_engineName);
@@ -670,11 +666,7 @@ void ChangeEngineSettingsDialog::restoreDefaultOptions() {
 // 設定ファイルにエンジンのオプション設定を保存する。
 void ChangeEngineSettingsDialog::saveOptionsToSettings()
 {
-    // アプリケーションのディレクトリに移動してから設定ファイルを操作する。
-    QDir::setCurrent(QApplication::applicationDirPath());
-
-    // 設定ファイルを操作するためのQSettingsオブジェクトを作成する。ファイル名とフォーマットを指定。
-    QSettings settings(SettingsFileName, QSettings::IniFormat);
+    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
 
     // 設定ファイル内でエンジン名に基づくオプションの配列の書き込みを開始する。
     settings.beginWriteArray(m_engineName);

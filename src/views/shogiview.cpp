@@ -4,6 +4,7 @@
 #include "shogiview.h"
 #include "shogiboard.h"
 #include "enginesettingsconstants.h"
+#include "settingsservice.h"
 #include "elidelabel.h"
 #include "globaltooltip.h"
 #include "shogigamecontroller.h"
@@ -101,7 +102,7 @@ ShogiView::ShogiView(QWidget *parent)
     // 【UIスケールの取得】
     // 設定ファイル（INI）からマス（square）のピクセルサイズを読み込む。
     // キー "SizeRelated/squareSize" が無い場合は既定値 50 を採用。
-    QSettings settings(SettingsFileName, QSettings::IniFormat);
+    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
     m_squareSize = settings.value("SizeRelated/squareSize", 50).toInt();
 
     // 【レイアウト算出】

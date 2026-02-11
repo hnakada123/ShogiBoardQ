@@ -165,11 +165,7 @@ void EngineRegistrationDialog::showErrorMessage(const QString &errorMessage)
 // 設定ファイルからエンジン名と絶対パス付きの実行ファイル名を読み込み、GUIのリストウィジェットにエンジン名を追加する。
 void EngineRegistrationDialog::loadEnginesFromSettings()
 {
-    // アプリケーションのディレクトリに移動してから設定ファイルを操作する。
-    QDir::setCurrent(QApplication::applicationDirPath());
-
-    // 設定ファイルを指定する。
-    QSettings settings(SettingsFileName, QSettings::IniFormat);
+    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
 
     // [Engines]セクションからエンジンの数を読み込む。
     int engineCount = settings.beginReadArray(EnginesGroupName);
@@ -499,11 +495,7 @@ void EngineRegistrationDialog::configureEngine()
 // 設定ファイルにエンジン名と絶対パス付きの実行ファイル名を書き込む。
 void EngineRegistrationDialog::saveEnginesToSettingsFile() const
 {
-    // アプリケーションのディレクトリに移動してから設定ファイルを操作する。
-    QDir::setCurrent(QApplication::applicationDirPath());
-
-    // 設定ファイルを指定する。
-    QSettings settings(SettingsFileName, QSettings::IniFormat);
+    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
 
     // 書き込むグループに[Engines]を指定する。
     settings.beginWriteArray(EnginesGroupName);
@@ -545,11 +537,7 @@ void EngineRegistrationDialog::saveEngineOptionsToSettings() const
         return;
     }
 
-    // アプリケーションのディレクトリに移動してから設定ファイルを操作する。
-    QDir::setCurrent(QApplication::applicationDirPath());
-
-    // 設定ファイルを指定する。
-    QSettings settings(SettingsFileName, QSettings::IniFormat);
+    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
 
     // 書き込むグループにエンジン名を指定する。
     settings.beginWriteArray(m_engineIdName);
@@ -762,11 +750,7 @@ void EngineRegistrationDialog::parseOptionLine(const QString& line)
 // 設定ファイルから[Engines]グループを削除する。
 void EngineRegistrationDialog::removeEnginesGroup() const
 {
-    // アプリケーションのディレクトリに移動してから設定ファイルを操作する。
-    QDir::setCurrent(QApplication::applicationDirPath());
-
-    // 設定ファイルを指定する。
-    QSettings settings(SettingsFileName, QSettings::IniFormat);
+    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
 
     // [Engines]グループの削除
     settings.beginGroup(EnginesGroupName);
@@ -777,11 +761,7 @@ void EngineRegistrationDialog::removeEnginesGroup() const
 // 設定ファイルからエンジン名グループを削除する。
 void EngineRegistrationDialog::removeEngineNameGroup(const QString& removeEngineName) const
 {
-    // アプリケーションのディレクトリに移動してから設定ファイルを操作する。
-    QDir::setCurrent(QApplication::applicationDirPath());
-
-    // 設定ファイルを指定する。
-    QSettings settings(SettingsFileName, QSettings::IniFormat);
+    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
 
     // エンジン名グループの削除
     settings.beginGroup(removeEngineName);

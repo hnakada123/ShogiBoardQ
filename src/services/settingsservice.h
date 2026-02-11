@@ -14,6 +14,13 @@ class ShogiView;
 
 namespace SettingsService {
 
+/// 設定ファイル（ShogiBoardQ.ini）のフルパスを返します。
+/// QStandardPaths::AppConfigLocation を使用してプラットフォームごとの標準的な保存先に配置します。
+/// - macOS: ~/Library/Preferences/ShogiBoardQ/ShogiBoardQ.ini
+/// - Linux: ~/.config/ShogiBoardQ/ShogiBoardQ.ini
+/// - Windows: C:/Users/<user>/AppData/Local/ShogiBoardQ/ShogiBoardQ.ini
+QString settingsFilePath();
+
 // INI (ShogiBoardQ.ini) からメインウィンドウのサイズを読み込んで適用します。
 // - mainWindow: 対象となる QMainWindow（や QWidget）
 /// 失敗時は何もしません（デフォルトサイズのまま）。

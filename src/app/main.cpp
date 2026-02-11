@@ -86,6 +86,7 @@ int main(int argc, char *argv[])
 #endif
 
     QApplication a(argc, argv);
+    a.setApplicationName("ShogiBoardQ");
 
     // アプリケーションアイコンを設定
     a.setWindowIcon(QIcon(":/icons/shogiboardq.png"));
