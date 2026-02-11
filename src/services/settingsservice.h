@@ -426,6 +426,56 @@ bool kifuCommentColumnVisible();
 /// 棋譜欄のコメント列の表示状態を保存
 void setKifuCommentColumnVisible(bool visible);
 
+/// 定跡マージダイアログのフォントサイズを取得（デフォルト: 10）
+int josekiMergeDialogFontSize();
+/// 定跡マージダイアログのフォントサイズを保存
+void setJosekiMergeDialogFontSize(int size);
+
+/// 定跡マージダイアログのウィンドウサイズを取得（デフォルト: 600x500）
+QSize josekiMergeDialogSize();
+/// 定跡マージダイアログのウィンドウサイズを保存
+void setJosekiMergeDialogSize(const QSize& size);
+
+/// 対局開始ダイアログのウィンドウサイズを取得（デフォルト: 1000x580）
+QSize startGameDialogSize();
+/// 対局開始ダイアログのウィンドウサイズを保存
+void setStartGameDialogSize(const QSize& size);
+
+/// 対局開始ダイアログのフォントサイズを取得（デフォルト: 9）
+int startGameDialogFontSize();
+/// 対局開始ダイアログのフォントサイズを保存
+void setStartGameDialogFontSize(int size);
+
+/// 棋譜貼り付けダイアログのウィンドウサイズを取得（デフォルト: 600x500）
+QSize kifuPasteDialogSize();
+/// 棋譜貼り付けダイアログのウィンドウサイズを保存
+void setKifuPasteDialogSize(const QSize& size);
+
+/// CSA通信ログウィンドウのサイズを取得（デフォルト: 550x450）
+QSize csaLogWindowSize();
+/// CSA通信ログウィンドウのサイズを保存
+void setCsaLogWindowSize(const QSize& size);
+
+/// 定跡ウィンドウのテーブル列幅を取得
+QList<int> josekiWindowColumnWidths();
+/// 定跡ウィンドウのテーブル列幅を保存
+void setJosekiWindowColumnWidths(const QList<int>& widths);
+
+/// CSA通信対局ダイアログのウィンドウサイズを取得（デフォルト: 450x380）
+QSize csaGameDialogSize();
+/// CSA通信対局ダイアログのウィンドウサイズを保存
+void setCsaGameDialogSize(const QSize& size);
+
+/// 棋譜解析ダイアログのウィンドウサイズを取得（デフォルト: 500x340）
+QSize kifuAnalysisDialogSize();
+/// 棋譜解析ダイアログのウィンドウサイズを保存
+void setKifuAnalysisDialogSize(const QSize& size);
+
+/// 定跡手編集ダイアログのウィンドウサイズを取得（デフォルト: 500x600）
+QSize josekiMoveDialogSize();
+/// 定跡手編集ダイアログのウィンドウサイズを保存
+void setJosekiMoveDialogSize(const QSize& size);
+
 } // namespace SettingsService
 
 #endif // SETTINGSSERVICE_H

@@ -14,6 +14,7 @@
 #include <QVector>
 #include <QString>
 #include <QSet>
+#include <QCloseEvent>
 
 /**
  * @brief 棋譜からの定跡マージ用エントリ
@@ -41,7 +42,7 @@ public:
      * @param parent 親ウィジェット
      */
     explicit JosekiMergeDialog(QWidget *parent = nullptr);
-    ~JosekiMergeDialog() override = default;
+    ~JosekiMergeDialog() override;
 
     /**
      * @brief 棋譜データを設定する
@@ -97,6 +98,9 @@ private slots:
      * @brief フォントサイズを縮小する
      */
     void onFontSizeDecrease();
+
+protected:
+    void closeEvent(QCloseEvent *event) override;
 
 private:
     /**

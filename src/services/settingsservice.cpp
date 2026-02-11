@@ -1378,4 +1378,183 @@ void setKifuCommentColumnVisible(bool visible)
     s.setValue("RecordPane/commentColumnVisible", visible);
 }
 
+// 定跡マージダイアログのフォントサイズを取得
+int josekiMergeDialogFontSize()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("JosekiWindow/mergeDialogFontSize", 10).toInt();
+}
+
+// 定跡マージダイアログのフォントサイズを保存
+void setJosekiMergeDialogFontSize(int size)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("JosekiWindow/mergeDialogFontSize", size);
+}
+
+// 定跡マージダイアログのウィンドウサイズを取得
+QSize josekiMergeDialogSize()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("JosekiWindow/mergeDialogSize", QSize(600, 500)).toSize();
+}
+
+// 定跡マージダイアログのウィンドウサイズを保存
+void setJosekiMergeDialogSize(const QSize& size)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("JosekiWindow/mergeDialogSize", size);
+}
+
+// 対局開始ダイアログのウィンドウサイズを取得
+QSize startGameDialogSize()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("SizeRelated/startGameDialogSize", QSize(1000, 580)).toSize();
+}
+
+// 対局開始ダイアログのウィンドウサイズを保存
+void setStartGameDialogSize(const QSize& size)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("SizeRelated/startGameDialogSize", size);
+}
+
+// 対局開始ダイアログのフォントサイズを取得
+int startGameDialogFontSize()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("FontSize/startGameDialog", 9).toInt();
+}
+
+// 対局開始ダイアログのフォントサイズを保存
+void setStartGameDialogFontSize(int size)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("FontSize/startGameDialog", size);
+}
+
+// 棋譜貼り付けダイアログのウィンドウサイズを取得
+QSize kifuPasteDialogSize()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("SizeRelated/kifuPasteDialogSize", QSize(600, 500)).toSize();
+}
+
+// 棋譜貼り付けダイアログのウィンドウサイズを保存
+void setKifuPasteDialogSize(const QSize& size)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("SizeRelated/kifuPasteDialogSize", size);
+}
+
+// CSA通信ログウィンドウのサイズを取得
+QSize csaLogWindowSize()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("SizeRelated/csaLogWindowSize", QSize(550, 450)).toSize();
+}
+
+// CSA通信ログウィンドウのサイズを保存
+void setCsaLogWindowSize(const QSize& size)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("SizeRelated/csaLogWindowSize", size);
+}
+
+// 定跡ウィンドウのテーブル列幅を取得
+QList<int> josekiWindowColumnWidths()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    QString key = QStringLiteral("JosekiWindow/columnWidths");
+    QList<int> widths;
+
+    int size = s.beginReadArray(key);
+    for (int i = 0; i < size; ++i) {
+        s.setArrayIndex(i);
+        widths.append(s.value("width", 0).toInt());
+    }
+    s.endArray();
+
+    return widths;
+}
+
+// 定跡ウィンドウのテーブル列幅を保存
+void setJosekiWindowColumnWidths(const QList<int>& widths)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    QString key = QStringLiteral("JosekiWindow/columnWidths");
+
+    s.beginWriteArray(key);
+    for (qsizetype i = 0; i < widths.size(); ++i) {
+        s.setArrayIndex(static_cast<int>(i));
+        s.setValue("width", widths.at(i));
+    }
+    s.endArray();
+
+    s.sync();
+}
+
+// CSA通信対局ダイアログのウィンドウサイズを取得
+QSize csaGameDialogSize()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("SizeRelated/csaGameDialogSize", QSize(450, 380)).toSize();
+}
+
+// CSA通信対局ダイアログのウィンドウサイズを保存
+void setCsaGameDialogSize(const QSize& size)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("SizeRelated/csaGameDialogSize", size);
+}
+
+// 棋譜解析ダイアログのウィンドウサイズを取得
+QSize kifuAnalysisDialogSize()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("SizeRelated/kifuAnalysisDialogSize", QSize(500, 340)).toSize();
+}
+
+// 棋譜解析ダイアログのウィンドウサイズを保存
+void setKifuAnalysisDialogSize(const QSize& size)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("SizeRelated/kifuAnalysisDialogSize", size);
+}
+
+// 定跡手編集ダイアログのウィンドウサイズを取得
+QSize josekiMoveDialogSize()
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    return s.value("SizeRelated/josekiMoveDialogSize", QSize(500, 600)).toSize();
+}
+
+// 定跡手編集ダイアログのウィンドウサイズを保存
+void setJosekiMoveDialogSize(const QSize& size)
+{
+    QDir::setCurrent(QApplication::applicationDirPath());
+    QSettings s(kIniName, QSettings::IniFormat);
+    s.setValue("SizeRelated/josekiMoveDialogSize", size);
+}
+
 } // namespace SettingsService

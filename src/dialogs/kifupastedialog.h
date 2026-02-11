@@ -11,6 +11,7 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QCloseEvent>
 
 /**
  * @brief 棋譜貼り付けダイアログ
@@ -24,7 +25,10 @@ class KifuPasteDialog : public QDialog
 
 public:
     explicit KifuPasteDialog(QWidget* parent = nullptr);
-    ~KifuPasteDialog() override = default;
+    ~KifuPasteDialog() override;
+
+protected:
+    void closeEvent(QCloseEvent* event) override;
 
     /**
      * @brief 入力されたテキストを取得

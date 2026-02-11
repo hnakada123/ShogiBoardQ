@@ -85,6 +85,12 @@ KifuAnalysisDialog::KifuAnalysisDialog(QWidget *parent)
     bool rangeEnabled = ui->radioButtonRangePosition->isChecked();
     ui->spinBoxStartPly->setEnabled(rangeEnabled);
     ui->spinBoxEndPly->setEnabled(rangeEnabled);
+
+    // ウィンドウサイズを復元
+    QSize savedSize = SettingsService::kifuAnalysisDialogSize();
+    if (savedSize.isValid() && savedSize.width() > 100 && savedSize.height() > 100) {
+        resize(savedSize);
+    }
 }
 
 // 範囲指定ラジオボタンが選択された場合
@@ -193,6 +199,7 @@ void KifuAnalysisDialog::processEngineSettings()
     SettingsService::setKifuAnalysisFullRange(m_initPosition);
     SettingsService::setKifuAnalysisStartPly(ui->spinBoxStartPly->value());
     SettingsService::setKifuAnalysisEndPly(ui->spinBoxEndPly->value());
+    SettingsService::setKifuAnalysisDialogSize(size());
 }
 
 // エンジンの名前とディレクトリを格納するリストを取得する。

@@ -39,10 +39,17 @@ CsaGameDialog::CsaGameDialog(QWidget *parent)
 
     // シグナル・スロットの接続を行う
     connectSignalsAndSlots();
+
+    // ウィンドウサイズを復元
+    QSize savedSize = SettingsService::csaGameDialogSize();
+    if (savedSize.isValid() && savedSize.width() > 100 && savedSize.height() > 100) {
+        resize(savedSize);
+    }
 }
 
 CsaGameDialog::~CsaGameDialog()
 {
+    SettingsService::setCsaGameDialogSize(size());
     delete ui;
 }
 
