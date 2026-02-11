@@ -1257,11 +1257,6 @@ void MainWindow::closeEvent(QCloseEvent* e)
     QMainWindow::closeEvent(e);
 }
 
-// `onReverseTriggered`: Reverse Triggered のイベント受信時処理を行う。
-void MainWindow::onReverseTriggered()
-{
-    if (m_match) m_match->flipBoard();
-}
 
 // `onDocksLockToggled`: Docks Lock Toggled のイベント受信時処理を行う。
 void MainWindow::onDocksLockToggled(bool locked)
@@ -2820,13 +2815,8 @@ void MainWindow::ensurePositionEditCoordinator()
         actions.actionSetHiratePosition = ui->actionSetHiratePosition;
         actions.actionSetTsumePosition = ui->actionSetTsumePosition;
         actions.actionChangeTurn = ui->actionChangeTurn;
-        actions.actionSwapSides = ui->actionSwapSides;
         m_posEditCoordinator->setEditActions(actions);
     }
-
-    // 先後反転シグナルの接続
-    connect(m_posEditCoordinator, &PositionEditCoordinator::reversalTriggered,
-            this, &MainWindow::onReverseTriggered, Qt::UniqueConnection);
 }
 
 // `ensureCsaGameWiring`: Csa Game Wiring を必要に応じて生成し、依存関係を更新する。

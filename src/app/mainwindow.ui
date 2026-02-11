@@ -72,8 +72,6 @@
     <addaction name="actionSetHiratePosition"/>
     <addaction name="actionSetTsumePosition"/>
     <addaction name="actionReturnAllPiecesToStand"/>
-    <addaction name="separator"/>
-    <addaction name="actionSwapSides"/>
     <addaction name="actionChangeTurn"/>
    </widget>
    <widget class="QMenu" name="Display">
@@ -324,15 +322,6 @@
    </property>
    <property name="text">
     <string>全ての駒を駒台へ</string>
-   </property>
-  </action>
-  <action name="actionSwapSides">
-   <property name="icon">
-    <iconset resource="../../resources/shogiboardq.qrc">
-     <normaloff>:/images/actions/actionSwapSides.svg</normaloff>:/images/actions/actionSwapSides.svg</iconset>
-   </property>
-   <property name="text">
-    <string>先後反転</string>
    </property>
   </action>
   <action name="actionChangeTurn">

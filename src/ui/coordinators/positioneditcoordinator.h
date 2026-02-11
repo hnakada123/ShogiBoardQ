@@ -73,7 +73,6 @@ public:
         QAction* actionSetHiratePosition = nullptr;
         QAction* actionSetTsumePosition = nullptr;
         QAction* actionChangeTurn = nullptr;
-        QAction* actionSwapSides = nullptr;
     };
     void setEditActions(const EditActions& actions);
 
@@ -91,12 +90,6 @@ public Q_SLOTS:
      * @brief 局面編集を終了
      */
     void finishPositionEditing();
-
-Q_SIGNALS:
-    /**
-     * @brief 先後反転がトリガーされた
-     */
-    void reversalTriggered();
 
 private:
     ShogiView* m_shogiView = nullptr;

@@ -185,12 +185,6 @@ void PositionEditCoordinator::beginPositionEditing()
                          Qt::UniqueConnection);
     }
 
-    // 先後反転はシグナルで通知
-    if (m_editActions.actionSwapSides) {
-        QObject::connect(m_editActions.actionSwapSides, &QAction::triggered,
-                         this, &PositionEditCoordinator::reversalTriggered,
-                         Qt::UniqueConnection);
-    }
 }
 
 void PositionEditCoordinator::finishPositionEditing()
