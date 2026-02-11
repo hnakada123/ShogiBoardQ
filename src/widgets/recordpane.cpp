@@ -89,8 +89,8 @@ void RecordPane::buildUi()
     // 文字サイズボタンのスタイル設定（トグルボタンと同じ幅に揃える）
     m_btnFontUp->setStyleSheet(ButtonStyles::fontButton());
     m_btnFontDown->setStyleSheet(ButtonStyles::fontButton());
-    m_btnFontUp->setFixedWidth(36);
-    m_btnFontDown->setFixedWidth(36);
+    m_btnFontUp->setFixedSize(36, 24);
+    m_btnFontDown->setFixedSize(36, 24);
     m_btnFontUp->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
     m_btnFontDown->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 
@@ -100,7 +100,7 @@ void RecordPane::buildUi()
     m_btnBookmarkEdit->setIconSize(QSize(20, 20));
     m_btnBookmarkEdit->setToolTip(tr("しおりを編集"));
     m_btnBookmarkEdit->setStyleSheet(ButtonStyles::fontButton());
-    m_btnBookmarkEdit->setFixedWidth(36);
+    m_btnBookmarkEdit->setFixedSize(36, 24);
     m_btnBookmarkEdit->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 
     // --- 列表示トグルボタン ---
@@ -113,6 +113,7 @@ void RecordPane::buildUi()
     m_btnToggleTime->setIconSize(QSize(20, 20));
     m_btnToggleTime->setToolTip(tr("消費時間列の表示/非表示"));
     m_btnToggleTime->setStyleSheet(toggleBtnStyle);
+    m_btnToggleTime->setFixedSize(36, 24);
     m_btnToggleTime->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 
     m_btnToggleBookmark = new QPushButton(this);
@@ -122,6 +123,7 @@ void RecordPane::buildUi()
     m_btnToggleBookmark->setIconSize(QSize(20, 20));
     m_btnToggleBookmark->setToolTip(tr("しおり列の表示/非表示"));
     m_btnToggleBookmark->setStyleSheet(toggleBtnStyle);
+    m_btnToggleBookmark->setFixedSize(36, 24);
     m_btnToggleBookmark->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 
     m_btnToggleComment = new QPushButton(this);
@@ -131,6 +133,7 @@ void RecordPane::buildUi()
     m_btnToggleComment->setIconSize(QSize(20, 20));
     m_btnToggleComment->setToolTip(tr("コメント列の表示/非表示"));
     m_btnToggleComment->setStyleSheet(toggleBtnStyle);
+    m_btnToggleComment->setFixedSize(36, 24);
     m_btnToggleComment->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 
     // --- ナビゲーションボタン群（中央に縦配置） ---
@@ -163,6 +166,7 @@ void RecordPane::buildUi()
     const QList<QPushButton*> allBtns = {m_btn1, m_btn2, m_btn3, m_btn4, m_btn5, m_btn6};
     for (QPushButton* const b : allBtns) {
         b->setStyleSheet(btnStyle);
+        b->setFixedSize(36, 24);
         b->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
     }
 
@@ -176,7 +180,6 @@ void RecordPane::buildUi()
     navLay->addWidget(m_btnToggleTime, 0, Qt::AlignHCenter);
     navLay->addWidget(m_btnToggleBookmark, 0, Qt::AlignHCenter);
     navLay->addWidget(m_btnToggleComment, 0, Qt::AlignHCenter);
-    navLay->addStretch();
     navLay->addWidget(m_btn1, 0, Qt::AlignHCenter);
     navLay->addWidget(m_btn2, 0, Qt::AlignHCenter);
     navLay->addWidget(m_btn3, 0, Qt::AlignHCenter);
