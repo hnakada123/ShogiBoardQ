@@ -14,6 +14,7 @@
 #include "enginesettingsconstants.h"
 #include "kifurecordlistmodel.h"
 #include "sfenpositiontracer.h"
+#include "sennichitedetector.h"
 
 Q_LOGGING_CATEGORY(lcGame, "shogi.game")
 
@@ -384,6 +385,12 @@ void MatchCoordinator::displayResultsAndUpdateGui(const GameEndInfo& info) {
     case Cause::IllegalMove:
         // 反則負け（入玉宣言失敗など）
         msg = tr("%1の反則負け。%2の勝ちです。").arg(loserJP, winnerJP);
+        break;
+    case Cause::Sennichite:
+        msg = tr("千日手が成立しました。");
+        break;
+    case Cause::OuteSennichite:
+        msg = tr("%1の連続王手の千日手。%2の勝ちです。").arg(loserJP, winnerJP);
         break;
     case Cause::BreakOff:
     default:
@@ -1494,6 +1501,9 @@ void MatchCoordinator::kickNextEvETurn()
         (m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2
         );
 
+    // 千日手チェック
+    if (checkAndHandleSennichite()) return;
+
     // 最大手数チェック
     if (m_maxMoves > 0 && m_eveMoveIndex >= m_maxMoves) {
         handleMaxMovesJishogi();
@@ -2446,6 +2456,9 @@ void MatchCoordinator::startInitialEngineMoveFor(Player engineSide)
         if (m_hooks.appendEvalP2) m_hooks.appendEvalP2();
     }
 
+    // 千日手チェック
+    if (checkAndHandleSennichite()) return;
+
     // 最大手数チェック
     if (m_maxMoves > 0 && nextIdx >= m_maxMoves) {
         handleMaxMovesJishogi();
@@ -2503,6 +2516,9 @@ void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& hu
     const ShogiGameController::Player engineSeat =
         engineIsP1 ? ShogiGameController::Player1 : ShogiGameController::Player2;
 
+    // 千日手チェック（人間の手の後）
+    if (checkAndHandleSennichite()) return;
+
     const bool engineTurnNow = (m_gc && (m_gc->currentPlayer() == engineSeat));
     qCDebug(lcGame).noquote() << "HvE engineTurnNow=" << engineTurnNow
                              << " engineSeat=" << int(engineSeat);
@@ -2553,6 +2569,9 @@ void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& hu
         if (!gameOverState().isOver) armHumanTimerIfNeeded();
         return;
     }
+
+    // 千日手チェック（エンジンの手の後）
+    if (checkAndHandleSennichite()) return;
 
     if (m_hooks.showMoveHighlights) m_hooks.showMoveHighlights(eFrom, eTo);
 
@@ -3028,6 +3047,12 @@ void MatchCoordinator::appendGameOverLineAndMark(Cause cause, Player loser)
         // 反則負け（入玉宣言失敗など、敗者のマークを使用）
         const QString mark = (loser == P1) ? QStringLiteral("▲") : QStringLiteral("△");
         line = QStringLiteral("%1反則負け").arg(mark);
+    } else if (cause == Cause::Sennichite) {
+        const QString mark = (loser == P1) ? QStringLiteral("▲") : QStringLiteral("△");
+        line = QStringLiteral("%1千日手").arg(mark);
+    } else if (cause == Cause::OuteSennichite) {
+        const QString mark = (loser == P1) ? QStringLiteral("▲") : QStringLiteral("△");
+        line = QStringLiteral("%1連続王手の千日手").arg(mark);
     } else if (cause == Cause::BreakOff) {
         // 中断（loserには現在手番が入っている）
         const QString mark = (loser == P1) ? QStringLiteral("▲") : QStringLiteral("△");
@@ -3081,6 +3106,9 @@ void MatchCoordinator::appendGameOverLineAndMark(Cause cause, Player loser)
 
 void MatchCoordinator::onHumanMove_HvH(ShogiGameController::Player moverBefore)
 {
+    // 千日手チェック（SFENは呼び出し前に追加済み）
+    if (checkAndHandleSennichite()) return;
+
     const Player moverP = (moverBefore == ShogiGameController::Player1) ? P1 : P2;
 
     // 直前手の消費時間（consideration）を確定
@@ -3290,6 +3318,136 @@ void MatchCoordinator::handleMaxMovesJishogi()
     appendGameOverLineAndMark(Cause::Jishogi, P1);
 
     // 結果ダイアログの表示
+    displayResultsAndUpdateGui(info);
+}
+
+bool MatchCoordinator::checkAndHandleSennichite()
+{
+    if (m_gameOver.isOver) return false;
+
+    // EvEの場合はEvE用のSFEN履歴を使用
+    const bool isEvE =
+        (m_playMode == PlayMode::EvenEngineVsEngine) ||
+        (m_playMode == PlayMode::HandicapEngineVsEngine);
+    const QStringList* rec = isEvE ? sfenRecordForEvE() : m_sfenRecord;
+    if (!rec || rec->size() < 4) return false;
+
+    const auto result = SennichiteDetector::check(*rec);
+    switch (result) {
+    case SennichiteDetector::Result::None:
+        return false;
+    case SennichiteDetector::Result::Draw:
+        handleSennichite();
+        return true;
+    case SennichiteDetector::Result::ContinuousCheckByP1:
+        handleOuteSennichite(true);   // P1（先手）の反則負け
+        return true;
+    case SennichiteDetector::Result::ContinuousCheckByP2:
+        handleOuteSennichite(false);  // P2（後手）の反則負け
+        return true;
+    }
+    return false;
+}
+
+void MatchCoordinator::handleSennichite()
+{
+    if (m_gameOver.isOver) return;
+
+    qCInfo(lcGame) << "handleSennichite(): draw by repetition";
+
+    disarmHumanTimerIfNeeded();
+
+    // エンジンへの終了通知
+    const bool isEvE =
+        (m_playMode == PlayMode::EvenEngineVsEngine) ||
+        (m_playMode == PlayMode::HandicapEngineVsEngine);
+    if (isEvE) {
+        if (m_usi1) {
+            m_usi1->sendGameOverCommand(QStringLiteral("draw"));
+            m_usi1->sendQuitCommand();
+            m_usi1->setSquelchResignLogging(true);
+        }
+        if (m_usi2) {
+            m_usi2->sendGameOverCommand(QStringLiteral("draw"));
+            m_usi2->sendQuitCommand();
+            m_usi2->setSquelchResignLogging(true);
+        }
+    } else {
+        if (Usi* eng = primaryEngine()) {
+            eng->sendGameOverCommand(QStringLiteral("draw"));
+            eng->sendQuitCommand();
+            eng->setSquelchResignLogging(true);
+        }
+    }
+
+    // GameEndInfo を構築（千日手は引き分け、loser を便宜上 P1 とする）
+    GameEndInfo info;
+    info.cause = Cause::Sennichite;
+    info.loser = P1;
+
+    m_gameOver.isOver        = true;
+    m_gameOver.when          = QDateTime::currentDateTime();
+    m_gameOver.hasLast       = true;
+    m_gameOver.lastInfo      = info;
+    m_gameOver.lastLoserIsP1 = true;
+
+    appendGameOverLineAndMark(Cause::Sennichite, P1);
+    displayResultsAndUpdateGui(info);
+}
+
+void MatchCoordinator::handleOuteSennichite(bool p1Loses)
+{
+    if (m_gameOver.isOver) return;
+
+    const Player loser  = p1Loses ? P1 : P2;
+    const Player winner = p1Loses ? P2 : P1;
+
+    qCInfo(lcGame) << "handleOuteSennichite(): continuous check by"
+                   << (p1Loses ? "P1(sente)" : "P2(gote)");
+
+    disarmHumanTimerIfNeeded();
+
+    // エンジンへの終了通知（勝敗が確定）
+    const bool isEvE =
+        (m_playMode == PlayMode::EvenEngineVsEngine) ||
+        (m_playMode == PlayMode::HandicapEngineVsEngine);
+    if (isEvE) {
+        if (m_usi1) {
+            const QString result = (winner == P1) ? QStringLiteral("win") : QStringLiteral("lose");
+            m_usi1->sendGameOverCommand(result);
+            m_usi1->sendQuitCommand();
+            m_usi1->setSquelchResignLogging(true);
+        }
+        if (m_usi2) {
+            const QString result = (winner == P2) ? QStringLiteral("win") : QStringLiteral("lose");
+            m_usi2->sendGameOverCommand(result);
+            m_usi2->sendQuitCommand();
+            m_usi2->setSquelchResignLogging(true);
+        }
+    } else {
+        if (Usi* eng = primaryEngine()) {
+            // HvE: エンジンが勝者側なら win、負者側なら lose
+            const bool engineIsP1 =
+                (m_playMode == PlayMode::EvenEngineVsHuman) || (m_playMode == PlayMode::HandicapEngineVsHuman);
+            const Player engineSide = engineIsP1 ? P1 : P2;
+            const QString result = (winner == engineSide) ? QStringLiteral("win") : QStringLiteral("lose");
+            eng->sendGameOverCommand(result);
+            eng->sendQuitCommand();
+            eng->setSquelchResignLogging(true);
+        }
+    }
+
+    GameEndInfo info;
+    info.cause = Cause::OuteSennichite;
+    info.loser = loser;
+
+    m_gameOver.isOver        = true;
+    m_gameOver.when          = QDateTime::currentDateTime();
+    m_gameOver.hasLast       = true;
+    m_gameOver.lastInfo      = info;
+    m_gameOver.lastLoserIsP1 = p1Loses;
+
+    appendGameOverLineAndMark(Cause::OuteSennichite, loser);
     displayResultsAndUpdateGui(info);
 }
 

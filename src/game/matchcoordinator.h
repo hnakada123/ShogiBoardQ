@@ -51,12 +51,14 @@ public:
 
     /// 終局原因
     enum class Cause : int {
-        Resignation = 0,  ///< 投了
-        Timeout     = 1,  ///< 時間切れ
-        BreakOff    = 2,  ///< 中断
-        Jishogi     = 3,  ///< 持将棋／最大手数到達
-        NyugyokuWin = 4,  ///< 入玉宣言勝ち
-        IllegalMove = 5   ///< 反則負け（入玉宣言失敗など）
+        Resignation    = 0,  ///< 投了
+        Timeout        = 1,  ///< 時間切れ
+        BreakOff       = 2,  ///< 中断
+        Jishogi        = 3,  ///< 持将棋／最大手数到達
+        NyugyokuWin    = 4,  ///< 入玉宣言勝ち
+        IllegalMove    = 5,  ///< 反則負け（入玉宣言失敗など）
+        Sennichite     = 6,  ///< 千日手（引き分け）
+        OuteSennichite = 7   ///< 連続王手の千日手（反則負け）
     };
 
     /// USI goコマンドに渡す時間パラメータ（ミリ秒）
@@ -394,6 +396,15 @@ public:
 
     /// 持将棋（最大手数到達）時の棋譜1行追記と終局処理
     void handleMaxMovesJishogi();
+
+    /// 千日手チェック（trueなら終局済み）
+    bool checkAndHandleSennichite();
+
+    /// 通常千日手の終局処理
+    void handleSennichite();
+
+    /// 連続王手千日手の終局処理
+    void handleOuteSennichite(bool p1Loses);
 
     int maxMoves() const { return m_maxMoves; }
 
