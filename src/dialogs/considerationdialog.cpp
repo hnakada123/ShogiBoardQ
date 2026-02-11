@@ -139,11 +139,7 @@ void ConsiderationDialog::processEngineSettings()
 // 設定ファイルからエンジンの名前とディレクトリを読み込む。
 void ConsiderationDialog::readEngineNameAndDir()
 {
-    // 現在のディレクトリをアプリケーションのディレクトリに設定する。
-    QDir::setCurrent(QApplication::applicationDirPath());
-
-    // 設定ファイルを指定する。
-    QSettings settings(SettingsFileName, QSettings::IniFormat);
+    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
 
     // エンジンの数を取得する。
     int size = settings.beginReadArray("Engines");

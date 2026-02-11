@@ -7,12 +7,12 @@
 #include "thinkinginfopresenter.h"
 #include "shogigamecontroller.h"
 #include "enginesettingsconstants.h"
+#include "settingsservice.h"
 
 #include <QCoreApplication>
 #include <QEventLoop>
 #include <QTimer>
 #include <QSettings>
-#include <QDir>
 #include <QRegularExpression>
 #include <QThread>
 
@@ -154,8 +154,7 @@ void UsiProtocolHandler::loadEngineOptions(const QString& engineName)
     m_setOptionCommands.clear();
     m_isPonderEnabled = false;
 
-    QDir::setCurrent(QCoreApplication::applicationDirPath());
-    QSettings settings(SettingsFileName, QSettings::IniFormat);
+    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
 
     int count = settings.beginReadArray(engineName);
 

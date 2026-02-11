@@ -86,7 +86,7 @@ void CsaGameDialog::connectSignalsAndSlots()
 // 設定ファイルからエンジン情報を読み込む
 void CsaGameDialog::loadEngineConfigurations()
 {
-    QSettings settings(SettingsFileName, QSettings::IniFormat);
+    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
 
     // [Engines]グループ内のエンジン数を取得する
     int size = settings.beginReadArray("Engines");
@@ -121,7 +121,7 @@ void CsaGameDialog::populateUIWithEngines()
 // 設定ファイルからサーバー接続履歴を読み込む
 void CsaGameDialog::loadServerHistory()
 {
-    QSettings settings(SettingsFileName, QSettings::IniFormat);
+    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
 
     // [CsaServerHistory]グループ内の履歴数を取得する
     int size = settings.beginReadArray("CsaServerHistory");
@@ -178,7 +178,7 @@ void CsaGameDialog::saveServerHistory()
     }
 
     // 設定ファイルに保存
-    QSettings settings(SettingsFileName, QSettings::IniFormat);
+    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
 
     settings.beginWriteArray("CsaServerHistory");
     for (int i = 0; i < m_serverHistory.size(); ++i) {
@@ -218,7 +218,7 @@ QString CsaGameDialog::formatServerHistoryDisplay(const ServerHistory& history) 
 // 設定ファイルから対局設定を読み込む
 void CsaGameDialog::loadGameSettings()
 {
-    QSettings settings(SettingsFileName, QSettings::IniFormat);
+    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
 
     settings.beginGroup("CsaGameSettings");
 
@@ -249,7 +249,7 @@ void CsaGameDialog::loadGameSettings()
 // 対局設定を設定ファイルに保存する
 void CsaGameDialog::saveGameSettings()
 {
-    QSettings settings(SettingsFileName, QSettings::IniFormat);
+    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
 
     settings.beginGroup("CsaGameSettings");
 

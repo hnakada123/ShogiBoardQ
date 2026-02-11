@@ -11,6 +11,7 @@
 #include "usicommlogmodel.h"
 #include "shogienginethinkingmodel.h"
 #include "enginesettingsconstants.h"
+#include "settingsservice.h"
 
 #include <QSettings>
 #include <QRegularExpression>
@@ -1076,7 +1077,7 @@ void CsaGameCoordinator::initializeEngine()
         m_engine = nullptr;
     }
 
-    QSettings settings(SettingsFileName, QSettings::IniFormat);
+    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
     settings.beginReadArray("Engines");
     settings.setArrayIndex(m_options.engineNumber);
     QString enginePath = settings.value("path").toString();

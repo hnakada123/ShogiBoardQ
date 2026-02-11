@@ -12,6 +12,7 @@
 #include "boardinteractioncontroller.h"
 #include "startgamedialog.h"
 #include "enginesettingsconstants.h"
+#include "settingsservice.h"
 #include "kifurecordlistmodel.h"
 #include "sfenpositiontracer.h"
 #include "sennichitedetector.h"
@@ -2856,7 +2857,7 @@ MatchCoordinator::StartOptions MatchCoordinator::buildStartOptions(
     {
         using namespace EngineSettingsConstants;
 
-        QSettings settings(SettingsFileName, QSettings::IniFormat);
+        QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
 
         // 1) エンジン一覧（name/path）の読み出し
         struct Eng { QString name; QString path; };

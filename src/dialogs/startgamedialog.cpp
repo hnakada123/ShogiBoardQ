@@ -120,7 +120,7 @@ void StartGameDialog::handleAddEachMoveSecChanged(int value)
 
 void StartGameDialog::saveGameSettings()
 {
-    QSettings settings(SettingsFileName, QSettings::IniFormat);
+    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
     settings.beginGroup("GameSettings");
 
     // 先手／下手の設定を保存
@@ -174,7 +174,7 @@ void StartGameDialog::saveGameSettings()
 
 void StartGameDialog::loadGameSettings()
 {
-    QSettings settings(SettingsFileName, QSettings::IniFormat);
+    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
     settings.beginGroup("GameSettings");
 
     // 先手／下手の設定を読み込む
@@ -315,8 +315,7 @@ void StartGameDialog::swapSides()
 
 void StartGameDialog::loadEngineConfigurations()
 {
-    QDir::setCurrent(QApplication::applicationDirPath());
-    QSettings settings(SettingsFileName, QSettings::IniFormat);
+    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
 
     int size = settings.beginReadArray("Engines");
     engineList.clear();

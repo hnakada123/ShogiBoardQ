@@ -2930,8 +2930,7 @@ void EngineAnalysisTab::loadEngineList()
     m_engineComboBox->clear();
 
     // 設定ファイルからエンジンリストを読み込む
-    QDir::setCurrent(QApplication::applicationDirPath());
-    QSettings settings(EngineSettingsConstants::SettingsFileName, QSettings::IniFormat);
+    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
 
     const int size = settings.beginReadArray(EngineSettingsConstants::EnginesGroupName);
     for (int i = 0; i < size; i++) {
