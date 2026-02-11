@@ -16,7 +16,7 @@ void showVersionDialog(QWidget* parent)
 
 void openProjectWebsite()
 {
-    QDesktopServices::openUrl(QUrl("https://github.com/hnakada123/ShogiBoardQ"));
+    QDesktopServices::openUrl(QUrl("https://hnakada123.github.io/ShogiBoardQ/"));
 }
 
 } // namespace AboutCoordinator

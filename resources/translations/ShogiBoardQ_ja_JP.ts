@@ -5569,19 +5569,24 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/versiondialog.ui" line="26"/>
+        <location filename="../../src/dialogs/versiondialog.ui" line="259"/>
         <source>OK</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/versiondialog.ui" line="61"/>
+        <location filename="../../src/dialogs/versiondialog.ui" line="121"/>
         <source>将棋盤Q</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/versiondialog.ui" line="106"/>
+        <location filename="../../src/dialogs/versiondialog.ui" line="158"/>
         <source>Hiroshi Nakada</source>
         <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/versiondialog.cpp" line="16"/>
+        <source>ビルド日時: %1 %2</source>
+        <translation></translation>
     </message>
 </context>
 </TS>
