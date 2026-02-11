@@ -68,7 +68,6 @@ public:
         EditSetHirate,         ///< 平手初期配置
         EditSetTsume,          ///< 詰将棋初期配置
         EditReturnAllToStand,  ///< 全駒を駒台へ
-        EditSwapSides,         ///< 先後反転
         EditChangeTurn,        ///< 手番変更
 
         // --- 対局メニュー ---

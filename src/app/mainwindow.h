@@ -263,9 +263,7 @@ private slots:
     void onBoardFlipped(bool nowFlipped);
     /// 盤面サイズ変更時の後処理（ShogiView::boardSizeChanged に接続）
     void onBoardSizeChanged(QSize fieldSize);
-    /// 反転アクション発火時の処理
-    void onReverseTriggered();
-    /// 評価値グラフの高さ調整を遅延実行する（デバウンスタイマーから呼ばれる）
+/// 評価値グラフの高さ調整を遅延実行する（デバウンスタイマーから呼ばれる）
     void performDeferredEvalChartResize();
 
     // --- 司令塔通知 ---

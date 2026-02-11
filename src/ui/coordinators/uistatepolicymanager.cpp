@@ -98,9 +98,9 @@ void UiStatePolicyManager::buildPolicyTable()
     setAll(E::EditStartPosition, P::Hidden);
     set(S::Idle, E::EditStartPosition, P::Shown);
 
-    // 局面編集終了/平手/詰将棋/全駒駒台/先後反転/手番変更: 編集中のみ表示
+    // 局面編集終了/平手/詰将棋/全駒駒台/手番変更: 編集中のみ表示
     for (E elem : {E::EditEndPosition, E::EditSetHirate, E::EditSetTsume,
-                   E::EditReturnAllToStand, E::EditSwapSides, E::EditChangeTurn}) {
+                   E::EditReturnAllToStand, E::EditChangeTurn}) {
         setAll(elem, P::Hidden);
         set(S::DuringPositionEdit, elem, P::Shown);
     }
@@ -341,9 +341,6 @@ void UiStatePolicyManager::applyPolicy(UiElement element, Policy policy)
         break;
     case UiElement::EditReturnAllToStand:
         applyActionPolicy(ui ? ui->actionReturnAllPiecesToStand : nullptr, policy);
-        break;
-    case UiElement::EditSwapSides:
-        applyActionPolicy(ui ? ui->actionSwapSides : nullptr, policy);
         break;
     case UiElement::EditChangeTurn:
         applyActionPolicy(ui ? ui->actionChangeTurn : nullptr, policy);
