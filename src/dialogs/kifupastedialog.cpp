@@ -3,6 +3,7 @@
 
 #include "kifupastedialog.h"
 #include "buttonstyles.h"
+#include "settingsservice.h"
 #include <QApplication>
 #include <QClipboard>
 #include <QFont>
@@ -11,6 +12,23 @@ KifuPasteDialog::KifuPasteDialog(QWidget* parent)
     : QDialog(parent)
 {
     setupUi();
+
+    // ウィンドウサイズを復元
+    QSize savedSize = SettingsService::kifuPasteDialogSize();
+    if (savedSize.isValid() && savedSize.width() > 100 && savedSize.height() > 100) {
+        resize(savedSize);
+    }
+}
+
+KifuPasteDialog::~KifuPasteDialog()
+{
+    SettingsService::setKifuPasteDialogSize(size());
+}
+
+void KifuPasteDialog::closeEvent(QCloseEvent* event)
+{
+    SettingsService::setKifuPasteDialogSize(size());
+    QDialog::closeEvent(event);
 }
 
 void KifuPasteDialog::setupUi()

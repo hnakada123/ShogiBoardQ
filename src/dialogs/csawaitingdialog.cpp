@@ -39,8 +39,9 @@ CsaWaitingDialog::CsaWaitingDialog(CsaGameCoordinator* coordinator, QWidget* par
 
 CsaWaitingDialog::~CsaWaitingDialog()
 {
-    // 通信ログウィンドウを閉じる
+    // 通信ログウィンドウのサイズを保存して閉じる
     if (m_logWindow) {
+        SettingsService::setCsaLogWindowSize(m_logWindow->size());
         m_logWindow->close();
         delete m_logWindow;
         m_logWindow = nullptr;
@@ -189,7 +190,13 @@ void CsaWaitingDialog::createLogWindow()
     m_logWindow = new QDialog(this);
     m_logWindow->setWindowTitle(tr("CSA通信ログ"));
     m_logWindow->setWindowFlags(m_logWindow->windowFlags() & ~Qt::WindowContextHelpButtonHint);
-    m_logWindow->resize(550, 450);
+    // ログウィンドウサイズを復元
+    QSize savedLogSize = SettingsService::csaLogWindowSize();
+    if (savedLogSize.isValid() && savedLogSize.width() > 100 && savedLogSize.height() > 100) {
+        m_logWindow->resize(savedLogSize);
+    } else {
+        m_logWindow->resize(550, 450);
+    }
 
     QVBoxLayout* layout = new QVBoxLayout(m_logWindow);
 

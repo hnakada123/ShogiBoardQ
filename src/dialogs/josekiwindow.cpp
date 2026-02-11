@@ -367,6 +367,16 @@ void JosekiWindow::loadSettings()
     m_recentFiles = SettingsService::josekiWindowRecentFiles();
     updateRecentFilesMenu();
 
+    // テーブル列幅を復元
+    QList<int> savedWidths = SettingsService::josekiWindowColumnWidths();
+    if (!savedWidths.isEmpty() && savedWidths.size() == m_tableWidget->columnCount()) {
+        for (int i = 0; i < savedWidths.size(); ++i) {
+            if (savedWidths.at(i) > 0) {
+                m_tableWidget->setColumnWidth(i, savedWidths.at(i));
+            }
+        }
+    }
+
     // 最後に開いた定跡ファイルのパスを保存（遅延読込のため）
     // 実際の読み込みはshowEvent()で行う
     if (m_autoLoadEnabled) {
@@ -384,18 +394,27 @@ void JosekiWindow::saveSettings()
 {
     // フォントサイズを保存
     SettingsService::setJosekiWindowFontSize(m_fontSize);
-    
+
     // ウィンドウサイズを保存
     SettingsService::setJosekiWindowSize(size());
-    
+
     // 最後に開いた定跡ファイルを保存
     SettingsService::setJosekiWindowLastFilePath(m_currentFilePath);
-    
+
     // 自動読込設定を保存
     SettingsService::setJosekiWindowAutoLoadEnabled(m_autoLoadEnabled);
-    
+
     // 最近使ったファイルリストを保存
     SettingsService::setJosekiWindowRecentFiles(m_recentFiles);
+
+    // テーブル列幅を保存
+    if (m_tableWidget) {
+        QList<int> widths;
+        for (int i = 0; i < m_tableWidget->columnCount(); ++i) {
+            widths.append(m_tableWidget->columnWidth(i));
+        }
+        SettingsService::setJosekiWindowColumnWidths(widths);
+    }
 }
 
 void JosekiWindow::closeEvent(QCloseEvent *event)

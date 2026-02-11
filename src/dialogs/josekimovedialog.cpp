@@ -45,6 +45,12 @@ JosekiMoveDialog::JosekiMoveDialog(QWidget *parent, bool isEdit)
     , m_fontSize(SettingsService::josekiMoveDialogFontSize())
 {
     setupUi(isEdit);
+
+    // ウィンドウサイズを復元
+    QSize savedSize = SettingsService::josekiMoveDialogSize();
+    if (savedSize.isValid() && savedSize.width() > 100 && savedSize.height() > 100) {
+        resize(savedSize);
+    }
 }
 
 void JosekiMoveDialog::setupUi(bool isEdit)
@@ -598,15 +604,16 @@ bool JosekiMoveDialog::isValidUsiMove(const QString &move) const
 void JosekiMoveDialog::validateInput()
 {
     m_moveErrorLabel->hide();
-    
+
     QString moveStr = move();
-    
+
     if (moveStr.isEmpty() || !isValidUsiMove(moveStr)) {
         m_moveErrorLabel->setText(tr("指し手が正しく設定されていません"));
         m_moveErrorLabel->show();
         return;
     }
-    
+
+    SettingsService::setJosekiMoveDialogSize(size());
     accept();
 }
 

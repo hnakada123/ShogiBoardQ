@@ -5,6 +5,7 @@
 #include "ui_startgamedialog.h"
 #include "changeenginesettingsdialog.h"
 #include "enginesettingsconstants.h"
+#include "settingsservice.h"
 #include <QSettings>
 #include <QMessageBox>
 #include <QDir>
@@ -32,10 +33,17 @@ StartGameDialog::StartGameDialog(QWidget *parent) : QDialog(parent), ui(new Ui::
     populatePlayerComboBoxes();
     loadGameSettings();
     connectSignalsAndSlots();
+
+    // ウィンドウサイズを復元
+    QSize savedSize = SettingsService::startGameDialogSize();
+    if (savedSize.isValid() && savedSize.width() > 100 && savedSize.height() > 100) {
+        resize(savedSize);
+    }
 }
 
 StartGameDialog::~StartGameDialog()
 {
+    SettingsService::setStartGameDialogSize(size());
     delete ui;
 }
 
@@ -517,10 +525,7 @@ void StartGameDialog::applyFontSize(int size)
 
 void StartGameDialog::loadFontSizeSettings()
 {
-    QSettings settings(SettingsFileName, QSettings::IniFormat);
-    settings.beginGroup("GameSettings");
-    m_fontSize = settings.value("dialogFontSize", DefaultFontSize).toInt();
-    settings.endGroup();
+    m_fontSize = SettingsService::startGameDialogFontSize();
 
     // 範囲内に収める
     if (m_fontSize < MinFontSize) m_fontSize = MinFontSize;
@@ -531,10 +536,7 @@ void StartGameDialog::loadFontSizeSettings()
 
 void StartGameDialog::saveFontSizeSettings()
 {
-    QSettings settings(SettingsFileName, QSettings::IniFormat);
-    settings.beginGroup("GameSettings");
-    settings.setValue("dialogFontSize", m_fontSize);
-    settings.endGroup();
+    SettingsService::setStartGameDialogFontSize(m_fontSize);
 }
 
 // ============================================================
