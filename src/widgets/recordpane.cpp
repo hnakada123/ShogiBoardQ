@@ -55,28 +55,7 @@ void RecordPane::buildUi()
     // ヘッダーを青色にスタイル設定
     // QTableView::item の固定 background-color を削除し、モデルの BackgroundRole を使用
     // ただし選択行のスタイルは明示的に黄色に設定（Qtデフォルトの青/紫を防ぐ）
-    m_kifu->setStyleSheet(QStringLiteral(
-        "QTableView {"
-        "  background-color: #ffffff;"
-        "}"
-        "QTableView::item:selected:active {"
-        "  background-color: #ffff00;"
-        "  color: black;"
-        "}"
-        "QTableView::item:selected:!active {"
-        "  background-color: #ffff00;"
-        "  color: black;"
-        "}"
-        "QHeaderView::section {"
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-        "    stop:0 #40acff, stop:1 #209cee);"
-        "  color: white;"
-        "  font-weight: normal;"
-        "  padding: 2px 6px;"
-        "  border: none;"
-        "  border-bottom: 1px solid #209cee;"
-        "}"
-    ));
+    m_kifu->setStyleSheet(kifuTableStyleSheet(m_fontSize));
 
     // --- 文字サイズ変更ボタン ---
     m_btnFontUp = new QPushButton(this);
@@ -205,33 +184,7 @@ void RecordPane::buildUi()
     m_branch->setWordWrap(false);
 
     // ヘッダーを青色、データ欄を白色にスタイル設定（選択行は黄色を維持）
-    m_branch->setStyleSheet(QStringLiteral(
-        "QTableView {"
-        "  background-color: #ffffff;"
-        "  selection-background-color: #ffff00;"
-        "  selection-color: black;"
-        "}"
-        "QTableView::item {"
-        "  background-color: #ffffff;"
-        "}"
-        "QTableView::item:selected:active {"
-        "  background-color: #ffff00;"
-        "  color: black;"
-        "}"
-        "QTableView::item:selected:!active {"
-        "  background-color: #ffff00;"
-        "  color: black;"
-        "}"
-        "QHeaderView::section {"
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-        "    stop:0 #40acff, stop:1 #209cee);"
-        "  color: white;"
-        "  font-weight: normal;"
-        "  padding: 2px 6px;"
-        "  border: none;"
-        "  border-bottom: 1px solid #209cee;"
-        "}"
-    ));
+    m_branch->setStyleSheet(branchTableStyleSheet(m_fontSize));
 
     // 分岐候補欄を縦レイアウトでラップ（「本譜に戻る」ボタン用）
     m_branchContainer = new QWidget(this);
@@ -383,29 +336,7 @@ void RecordPane::setArrowButtonsEnabled(bool on)
 void RecordPane::setKifuViewEnabled(bool on)
 {
     // 共通のスタイルシート（ヘッダー青色、選択行黄色）
-    // QTableView::item の固定 background-color を削除し、モデルの BackgroundRole を使用
-    static const QString kBaseStyleSheet = QStringLiteral(
-        "QTableView {"
-        "  background-color: #ffffff;"
-        "}"
-        "QTableView::item:selected:active {"
-        "  background-color: #ffff00;"
-        "  color: black;"
-        "}"
-        "QTableView::item:selected:!active {"
-        "  background-color: #ffff00;"
-        "  color: black;"
-        "}"
-        "QHeaderView::section {"
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-        "    stop:0 #40acff, stop:1 #209cee);"
-        "  color: white;"
-        "  font-weight: normal;"
-        "  padding: 2px 6px;"
-        "  border: none;"
-        "  border-bottom: 1px solid #209cee;"
-        "}"
-    );
+    const QString kBaseStyleSheet = kifuTableStyleSheet(m_fontSize);
 
     if (m_kifu) {
         qCDebug(lcUi) << "setKifuViewEnabled called, on=" << on;
@@ -672,6 +603,7 @@ void RecordPane::applyFontSize(int size)
     // 棋譜欄にフォントサイズを適用
     if (m_kifu) {
         m_kifu->setFont(font);
+        m_kifu->setStyleSheet(kifuTableStyleSheet(size));
         // 行の高さもフォントサイズに合わせて更新
         const int rowHeight = m_kifu->fontMetrics().height() + 4;
         m_kifu->verticalHeader()->setDefaultSectionSize(rowHeight);
@@ -680,8 +612,66 @@ void RecordPane::applyFontSize(int size)
     // 分岐候補欄にフォントサイズを適用
     if (m_branch) {
         m_branch->setFont(font);
+        m_branch->setStyleSheet(branchTableStyleSheet(size));
         // 行の高さもフォントサイズに合わせて更新
         const int rowHeight = m_branch->fontMetrics().height() + 4;
         m_branch->verticalHeader()->setDefaultSectionSize(rowHeight);
     }
+}
+
+QString RecordPane::kifuTableStyleSheet(int fontSize)
+{
+    return QStringLiteral(
+        "QTableView {"
+        "  background-color: #ffffff;"
+        "}"
+        "QTableView::item:selected:active {"
+        "  background-color: #ffff00;"
+        "  color: black;"
+        "}"
+        "QTableView::item:selected:!active {"
+        "  background-color: #ffff00;"
+        "  color: black;"
+        "}"
+        "QHeaderView::section {"
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+        "    stop:0 #40acff, stop:1 #209cee);"
+        "  color: white;"
+        "  font-weight: normal;"
+        "  font-size: %1pt;"
+        "  padding: 2px 6px;"
+        "  border: none;"
+        "  border-bottom: 1px solid #209cee;"
+        "}").arg(fontSize);
+}
+
+QString RecordPane::branchTableStyleSheet(int fontSize)
+{
+    return QStringLiteral(
+        "QTableView {"
+        "  background-color: #ffffff;"
+        "  selection-background-color: #ffff00;"
+        "  selection-color: black;"
+        "}"
+        "QTableView::item {"
+        "  background-color: #ffffff;"
+        "}"
+        "QTableView::item:selected:active {"
+        "  background-color: #ffff00;"
+        "  color: black;"
+        "}"
+        "QTableView::item:selected:!active {"
+        "  background-color: #ffff00;"
+        "  color: black;"
+        "}"
+        "QHeaderView::section {"
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+        "    stop:0 #40acff, stop:1 #209cee);"
+        "  color: white;"
+        "  font-weight: normal;"
+        "  font-size: %1pt;"
+        "  padding: 2px 6px;"
+        "  border: none;"
+        "  border-bottom: 1px solid #209cee;"
+        "}").arg(fontSize);
 }

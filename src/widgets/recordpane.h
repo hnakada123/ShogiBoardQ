@@ -110,6 +110,8 @@ private:
     void applyFontSize(int size);
     void updateColumnResizeModes();
     void applyColumnVisibility();
+    static QString kifuTableStyleSheet(int fontSize);
+    static QString branchTableStyleSheet(int fontSize);
 
     // 対局中フラグ（ナビゲーション無効化時にtrue）
     bool m_navigationDisabled = false;
