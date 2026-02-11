@@ -6293,19 +6293,24 @@ Are you sure you want to declare?</translation>
         <translation>Version Info</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/versiondialog.ui" line="26"/>
+        <location filename="../../src/dialogs/versiondialog.ui" line="259"/>
         <source>OK</source>
         <translation>OK</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/versiondialog.ui" line="61"/>
+        <location filename="../../src/dialogs/versiondialog.ui" line="121"/>
         <source>将棋盤Q</source>
         <translation>ShogiBoardQ</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/versiondialog.ui" line="106"/>
+        <location filename="../../src/dialogs/versiondialog.ui" line="158"/>
         <source>Hiroshi Nakada</source>
         <translation>Hiroshi Nakada</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/versiondialog.cpp" line="16"/>
+        <source>ビルド日時: %1 %2</source>
+        <translation>Build: %1 %2</translation>
     </message>
 </context>
 </TS>
