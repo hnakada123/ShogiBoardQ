@@ -143,7 +143,7 @@ private:
     void updatePlayerUI(int playerNumber, int index);
 
     /// ダイアログ内のUIパーツとスロットを結線する（コンストラクタから呼ばれる）
-    void connectSignalsAndSlots() const;
+    void connectSignalsAndSlots();
 
     /// 設定ファイルから対局設定を読み込みGUIに反映する
     void loadGameSettings();

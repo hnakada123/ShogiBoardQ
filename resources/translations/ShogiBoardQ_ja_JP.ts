@@ -5197,33 +5197,33 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="340"/>
         <location filename="../../src/dialogs/startgamedialog.cpp" line="341"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="342"/>
         <source>人間</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="464"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="465"/>
         <source>情報</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="464"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="465"/>
         <source>人間が選択されています。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="473"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="474"/>
         <source>エラー</source>
         <translation type="unfinished">エラー</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="473"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="474"/>
         <source>将棋エンジンが選択されていません。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="596"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="616"/>
         <source>棋譜保存先を選択</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5236,10 +5236,10 @@ OKを選択すると保存先が指定できます。</source>
     <message>
         <location filename="../../src/dialogs/startgamedialog.ui" line="197"/>
         <location filename="../../src/dialogs/startgamedialog.ui" line="365"/>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="182"/>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="202"/>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="242"/>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="256"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="183"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="203"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="243"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="257"/>
         <source>You</source>
         <translation type="unfinished"></translation>
     </message>
