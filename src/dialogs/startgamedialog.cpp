@@ -6,6 +6,7 @@
 #include "changeenginesettingsdialog.h"
 #include "enginesettingsconstants.h"
 #include "settingsservice.h"
+#include "buttonstyles.h"
 #include <QSettings>
 #include <QMessageBox>
 #include <QDir>
@@ -28,6 +29,16 @@ StartGameDialog::StartGameDialog(QWidget *parent) : QDialog(parent), ui(new Ui::
     ui->gridLayoutPlayer1->setColumnStretch(1, 1);
     ui->gridLayoutPlayer2->setColumnStretch(0, 0);
     ui->gridLayoutPlayer2->setColumnStretch(1, 1);
+
+    // ボタンの配色を設定
+    ui->pushButtonEngineSettings1->setStyleSheet(ButtonStyles::secondaryNeutral());
+    ui->pushButtonEngineSettings2->setStyleSheet(ButtonStyles::secondaryNeutral());
+    ui->pushButtonSwapSides->setStyleSheet(ButtonStyles::secondaryNeutral());
+    ui->pushButtonSaveSettingsOnly->setStyleSheet(ButtonStyles::secondaryNeutral());
+    ui->pushButtonResetToDefault->setStyleSheet(ButtonStyles::dangerStop());
+    ui->pushButtonFontSizeDown->setStyleSheet(ButtonStyles::fontButton());
+    ui->pushButtonFontSizeUp->setStyleSheet(ButtonStyles::fontButton());
+    ui->pushButtonSelectKifuDir->setStyleSheet(ButtonStyles::secondaryNeutral());
 
     loadFontSizeSettings();
     loadEngineConfigurations();
