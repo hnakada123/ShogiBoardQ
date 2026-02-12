@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>対局機能 - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQの対局機能を紹介します。USIエンジンの登録から対局の設定・実行・振り返りまでの流れをスクリーンショット付きで解説。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/game-play.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/game-play.html">
+    <meta property="og:title" content="対局機能 - ShogiBoardQ">
+    <meta property="og:description" content="ShogiBoardQの対局機能を紹介。エンジン登録から対局・振り返りまでの流れをスクリーンショット付きで解説。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/game-play/game-02-playing-engine-log.png">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="対局機能 - ShogiBoardQ">
+    <meta name="twitter:description" content="ShogiBoardQの対局機能を紹介。エンジン登録から対局・振り返りまでの流れを解説。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/game-play/game-02-playing-engine-log.png">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="index.html" class="nav-logo">ShogiBoardQ</a>
+        <button class="nav-toggle" aria-label="メニュー" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="index.html">ホーム</a></li>
+            <li><a href="#engine-registration">エンジン登録</a></li>
+            <li><a href="#game-start">対局開始</a></li>
+            <li><a href="#playing">対局中</a></li>
+            <li><a href="#after-game">対局後</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>対局機能</h1>
+        <p class="hero-subtitle">エンジン登録から対局・振り返りまでの流れ</p>
+        <div class="hero-badges">
+            <span class="badge">人間 vs エンジン</span>
+            <span class="badge">エンジン vs エンジン</span>
+            <span class="badge">人間 vs 人間</span>
+        </div>
+    </div>
+</section>
+
+<!-- Section 1: Engine Registration -->
+<section id="engine-registration" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">エンジン登録</h2>
+        <p class="section-desc">対局や解析に使用するUSIエンジンを登録します</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">エンジン登録ダイアログを開く</span>
+                </div>
+                <p class="guide-step-text">メニューの「ツール」→「エンジン管理」からエンジン登録ダイアログを開きます。初回はエンジンが登録されていない状態です。</p>
+                <div class="screenshot-item">
+                    <img src="images/game-play/engine-01-registration-empty.png" alt="エンジン登録ダイアログ（空の状態）">
+                    <p class="screenshot-caption">エンジン登録ダイアログ：初期状態</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">エンジンの実行ファイルを選択</span>
+                </div>
+                <p class="guide-step-text">「追加」ボタンをクリックし、USIエンジンの実行ファイルを選択します。</p>
+                <div class="screenshot-item">
+                    <img src="images/game-play/engine-02-file-selection.png" alt="エンジン実行ファイルの選択ダイアログ">
+                    <p class="screenshot-caption">ファイル選択ダイアログ：USIエンジンの実行ファイルを選択</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">エンジンの登録完了</span>
+                </div>
+                <p class="guide-step-text">エンジンが正常に認識されると、一覧に追加されます。</p>
+                <div class="screenshot-item">
+                    <img src="images/game-play/engine-03-registration-added.png" alt="エンジンが登録された状態">
+                    <p class="screenshot-caption">エンジン登録完了：一覧にエンジンが追加された</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">エンジン設定（オプション）</span>
+                </div>
+                <p class="guide-step-text">「設定」ボタンからエンジンの各種オプション（ハッシュサイズ、スレッド数など）を変更できます。</p>
+                <div class="screenshot-item">
+                    <img src="images/game-play/engine-04-settings.png" alt="エンジン設定ダイアログ">
+                    <p class="screenshot-caption">エンジン設定：ハッシュサイズやスレッド数などを調整</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-title">複数エンジンの登録</span>
+                </div>
+                <p class="guide-step-text">複数のエンジンを登録できます。対局時やエンジン同士の対局で使い分けられます。</p>
+                <div class="screenshot-item">
+                    <img src="images/game-play/engine-05-registration-multiple.png" alt="複数エンジンが登録された状態">
+                    <p class="screenshot-caption">複数エンジンの登録：用途に応じて使い分け可能</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2: Game Setup -->
+<section id="game-start" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">対局の設定</h2>
+        <p class="section-desc">対局ダイアログで対局条件を設定します</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">対局ダイアログ</span>
+                </div>
+                <p class="guide-step-text">メニューの「対局」→「対局開始」から対局ダイアログを開きます。以下の項目を設定できます。</p>
+                <p class="guide-step-text">
+                </p>
+                <ul class="guide-step-text">
+                    <li>対局者の選択（人間 / 登録済みエンジンから選択）</li>
+                    <li>持ち時間・秒読み・フィッシャーの時間設定</li>
+                    <li>開始局面の選択（平手 / 駒落ち / 現在の局面）</li>
+                    <li>棋譜の自動保存設定</li>
+                </ul>
+                <div class="screenshot-item">
+                    <img src="images/game-play/game-01-setup-dialog.png" alt="対局設定ダイアログ">
+                    <p class="screenshot-caption">対局ダイアログ：対局者・時間設定・開始局面などを設定</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3: During Game -->
+<section id="playing" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">対局中</h2>
+        <p class="section-desc">対局画面では棋譜やエンジンの思考情報をリアルタイムで確認できます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">対局画面</span>
+                </div>
+                <p class="guide-step-text">対局が開始されると、盤面にエンジンの思考情報がリアルタイムで表示されます。エンジンログタブでは思考の詳細を確認できます。</p>
+                <div class="screenshot-item">
+                    <img src="images/game-play/game-02-playing-engine-log.png" alt="対局画面（エンジンログ表示）">
+                    <p class="screenshot-caption">対局画面：エンジンの思考情報をリアルタイム表示</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">棋譜タブ</span>
+                </div>
+                <p class="guide-step-text">棋譜タブに切り替えると、対局中の指し手一覧を確認できます。</p>
+                <div class="screenshot-item">
+                    <img src="images/game-play/game-03-playing-kifu-tab.png" alt="対局画面（棋譜タブ表示）">
+                    <p class="screenshot-caption">棋譜タブ：対局中の指し手一覧</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">読み筋表示</span>
+                </div>
+                <p class="guide-step-text">読み筋表示ウィンドウでは、エンジンの読み筋を将棋盤上で再生できます。</p>
+                <div class="screenshot-item">
+                    <img src="images/game-play/game-04-reading-lines.png" alt="読み筋表示ウィンドウ">
+                    <p class="screenshot-caption">読み筋表示：エンジンの読み筋を盤面で可視化</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">評価値グラフ</span>
+                </div>
+                <p class="guide-step-text">評価値グラフで形勢の推移を視覚的に把握できます。対局中もリアルタイムで更新されます。</p>
+                <div class="screenshot-item">
+                    <img src="images/game-play/game-05-eval-graph.png" alt="評価値グラフ表示">
+                    <p class="screenshot-caption">評価値グラフ：形勢の推移をリアルタイムで表示</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 4: After Game -->
+<section id="after-game" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">対局後の振り返り</h2>
+        <p class="section-desc">対局終了後は棋譜を振り返り、検討を行えます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">対局情報の表示</span>
+                </div>
+                <p class="guide-step-text">対局が終了すると、対局結果や対局者情報が表示されます。</p>
+                <div class="screenshot-item">
+                    <img src="images/game-play/game-06-finished-info.png" alt="対局終了後の情報表示">
+                    <p class="screenshot-caption">対局終了：対局結果と情報の表示</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">分岐ツリーで検討</span>
+                </div>
+                <p class="guide-step-text">分岐ツリーを使って、別の手順を試したり変化を比較できます。</p>
+                <div class="screenshot-item">
+                    <img src="images/game-play/game-07-branch-tree.png" alt="分岐ツリー表示">
+                    <p class="screenshot-caption">分岐ツリー：別の変化を記録・比較</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">検討モードでの振り返り</span>
+                </div>
+                <p class="guide-step-text">検討モードを使えば、任意の局面でエンジンに候補手を探させながら振り返りができます。盤面を反転して後手側の視点でも確認できます。</p>
+                <div class="screenshot-item">
+                    <img src="images/game-play/game-08-replay-flipped.png" alt="検討モードでの振り返り（盤面反転）">
+                    <p class="screenshot-caption">検討モード：盤面を反転して後手視点で振り返り</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="index.html" class="back-link">&larr; ホームに戻る</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+</body>
+</html>
