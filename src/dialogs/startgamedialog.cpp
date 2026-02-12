@@ -11,6 +11,7 @@
 #include <QDir>
 #include <QFileDialog>
 #include <QStandardPaths>
+#include <QAbstractItemView>
 
 using namespace EngineSettingsConstants;
 
@@ -51,7 +52,7 @@ StartGameDialog::~StartGameDialog()
 // シグナル接続
 // ============================================================
 
-void StartGameDialog::connectSignalsAndSlots() const
+void StartGameDialog::connectSignalsAndSlots()
 {
     // エンジン設定ボタン・先後入れ替え・リセット・保存
     connect(ui->pushButtonEngineSettings1, &QPushButton::clicked, this,
@@ -520,6 +521,25 @@ void StartGameDialog::applyFontSize(int size)
     QFont font = this->font();
     font.setPointSize(size);
     this->setFont(font);
+
+    // QScrollArea 配下を含め、ダイアログ内の全ウィジェットへ明示適用する
+    ui->scrollArea->setFont(font);
+    ui->scrollAreaWidgetContents->setFont(font);
+
+    const QList<QWidget*> widgets = findChildren<QWidget*>();
+    for (QWidget* widget : widgets) {
+        if (widget) {
+            widget->setFont(font);
+        }
+    }
+
+    // コンボボックスのドロップダウンリストにも反映
+    const QList<QComboBox*> comboBoxes = findChildren<QComboBox*>();
+    for (QComboBox* comboBox : comboBoxes) {
+        if (comboBox && comboBox->view()) {
+            comboBox->view()->setFont(font);
+        }
+    }
 }
 
 void StartGameDialog::loadFontSizeSettings()

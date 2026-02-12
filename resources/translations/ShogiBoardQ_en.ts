@@ -5945,10 +5945,10 @@ Are you sure you want to declare?</translation>
     <message>
         <location filename="../../src/dialogs/startgamedialog.ui" line="197"/>
         <location filename="../../src/dialogs/startgamedialog.ui" line="365"/>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="182"/>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="202"/>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="242"/>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="256"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="183"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="203"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="243"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="257"/>
         <source>You</source>
         <translation>You</translation>
     </message>
@@ -6177,33 +6177,33 @@ Are you sure you want to declare?</translation>
         <translation>Restore Defaults</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="340"/>
         <location filename="../../src/dialogs/startgamedialog.cpp" line="341"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="342"/>
         <source>人間</source>
         <translation>Human</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="464"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="465"/>
         <source>情報</source>
         <translation>Information</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="464"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="465"/>
         <source>人間が選択されています。</source>
         <translation>Human is selected.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="473"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="474"/>
         <source>エラー</source>
         <translation>Error</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="473"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="474"/>
         <source>将棋エンジンが選択されていません。</source>
         <translation>No shogi engine is selected.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="596"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="616"/>
         <source>棋譜保存先を選択</source>
         <translation>Select Game Record Save Location</translation>
     </message>
