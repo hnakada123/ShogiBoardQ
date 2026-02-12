@@ -640,6 +640,138 @@ img {
         padding: 0.75rem 2rem;
         font-size: 0.9rem;
     }
+
+    .hero--sub {
+        padding: 4.5rem 1rem 2rem;
+    }
+
+    .hero--sub h1 {
+        font-size: 1.8rem;
+    }
+
+    .guide-step-title {
+        font-size: 1.05rem;
+    }
+
+    .guide-step-text {
+        font-size: 0.9rem;
+    }
+}
+
+/* --- Sub-page Hero --- */
+.hero--sub {
+    padding: 5rem 1.5rem 2.5rem;
+}
+
+.hero--sub h1 {
+    font-size: 2.2rem;
+    margin-bottom: 0.75rem;
+}
+
+/* --- Guide Steps --- */
+.guide-step {
+    margin-bottom: 3rem;
+}
+
+.guide-step:last-child {
+    margin-bottom: 0;
+}
+
+.guide-step-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.guide-step-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--color-blue);
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.guide-step-title {
+    font-family: var(--font-heading);
+    font-size: 1.2rem;
+    color: var(--color-heading);
+}
+
+.guide-step-text {
+    color: var(--color-text);
+    font-size: 0.95rem;
+    line-height: 1.8;
+    margin-bottom: 1rem;
+}
+
+.guide-step-text ul {
+    list-style: none;
+    padding: 0;
+    margin: 0.5rem 0 0;
+}
+
+.guide-step-text ul li {
+    position: relative;
+    padding-left: 1.5rem;
+    margin-bottom: 0.4rem;
+}
+
+.guide-step-text ul li::before {
+    content: "\2022";
+    position: absolute;
+    left: 0.25rem;
+    color: var(--color-board);
+    font-weight: bold;
+}
+
+/* --- Feature Card Link --- */
+a.feature-card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+a.feature-card-link:hover {
+    text-decoration: none;
+    color: inherit;
+}
+
+.feature-card-more {
+    display: block;
+    margin-top: 0.75rem;
+    font-size: 0.85rem;
+    color: var(--color-blue);
+    font-weight: 500;
+}
+
+a.feature-card-link:hover .feature-card-more {
+    color: var(--color-blue-dark);
+}
+
+/* --- Back Link --- */
+.back-link-section {
+    text-align: center;
+    padding: 2rem 1.5rem 0;
+}
+
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.95rem;
+    color: var(--color-blue-dark);
+    font-weight: 500;
+}
+
+.back-link:hover {
+    color: var(--color-blue);
 }
 
 /* Small phone */
@@ -720,5 +852,23 @@ img {
 
     .site-footer {
         padding: 1.5rem 1rem;
+    }
+
+    .hero--sub {
+        padding: 4rem 0.75rem 1.5rem;
+    }
+
+    .hero--sub h1 {
+        font-size: 1.5rem;
+    }
+
+    .guide-step-number {
+        width: 28px;
+        height: 28px;
+        font-size: 0.8rem;
+    }
+
+    .guide-step-title {
+        font-size: 1rem;
     }
 }
