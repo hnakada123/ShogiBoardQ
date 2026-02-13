@@ -1,0 +1,631 @@
+# 指し手データ・棋譜データ構造
+
+ShogiBoardQ の「指し手データ」と「棋譜データ」のソースコード上の構造をまとめたドキュメント。
+棋譜欄・分岐候補欄・分岐ツリー欄・将棋盤が連動して動作する仕組みの根幹となるデータモデルを解説する。
+
+---
+
+## 1. 指し手データ（ShogiMove）
+
+**ファイル**: `src/core/shogimove.h` / `src/core/shogimove.cpp`
+
+### 1.1 構造体定義
+
+```cpp
+struct ShogiMove {
+    QPoint fromSquare{0, 0};                    // 移動元の座標
+    QPoint toSquare{0, 0};                      // 移動先の座標
+    QChar  movingPiece = QLatin1Char(' ');       // 動かした駒（SFEN表記）
+    QChar  capturedPiece = QLatin1Char(' ');     // 取った駒（なければ ' '）
+    bool   isPromotion = false;                  // 成りフラグ
+};
+```
+
+### 1.2 座標系
+
+座標は `QPoint(x, y)` で表現される。`x` が筋（file）、`y` が段（rank）に対応する。
+
+| 範囲 | 意味 |
+|---|---|
+| `x: 0〜8, y: 0〜8` | 盤上の座標（0-indexed）。将棋の「9一」は `(0, 0)`、「1九」は `(8, 8)` |
+| `x: 9` | 先手の駒台（持ち駒からの打ち） |
+| `x: 10` | 後手の駒台（持ち駒からの打ち） |
+
+**盤面座標と将棋筋段の対応**:
+
+```
+将棋の筋:  ９ ８ ７ ６ ５ ４ ３ ２ １
+x (0-idx):  0  1  2  3  4  5  6  7  8
+
+将棋の段:  一 二 三 四 五 六 七 八 九
+y (0-idx):  0  1  2  3  4  5  6  7  8
+```
+
+表示時には1-indexed（`x + 1`, `y + 1`）に変換してデバッグ出力される。
+
+### 1.3 駒の文字表現（SFEN記法）
+
+`movingPiece` と `capturedPiece` は SFEN 記法の1文字で駒種を表す。
+**大文字 = 先手の駒、小文字 = 後手の駒**。
+
+| 駒種 | 先手（生駒） | 先手（成駒） | 後手（生駒） | 後手（成駒） |
+|---|---|---|---|---|
+| 玉 / 王 | `K` | — | `k` | — |
+| 飛車 / 龍 | `R` | `U` | `r` | `u` |
+| 角行 / 馬 | `B` | `C` | `b` | `c` |
+| 金将 | `G` | — | `g` | — |
+| 銀将 / 成銀 | `S` | `T` | `s` | `t` |
+| 桂馬 / 成桂 | `N` | `O` | `n` | `o` |
+| 香車 / 成香 | `L` | `M` | `l` | `m` |
+| 歩兵 / と金 | `P` | `Q` | `p` | `q` |
+
+> **注意**: SFEN標準では成駒は `+R`, `+B` 等と表記するが、ShogiBoardQ の内部表現では
+> 独自の1文字マッピング（`R→U`, `B→C` 等）を使用する。
+
+### 1.4 データ例
+
+#### 通常の移動: ▲７六歩（77→76）
+
+```
+fromSquare:   QPoint(2, 6)   // ７七 = (9-7, 7-1) = (2, 6)
+toSquare:     QPoint(2, 5)   // ７六 = (9-7, 6-1) = (2, 5)
+movingPiece:  'P'            // 先手の歩
+capturedPiece: ' '           // 取った駒なし
+isPromotion:  false
+```
+
+#### 駒取り: ▲２二角成（88→22で角が銀を取って成る）
+
+```
+fromSquare:   QPoint(1, 7)   // ８八 = (9-8, 8-1) = (1, 7)
+toSquare:     QPoint(7, 1)   // ２二 = (9-2, 2-1) = (7, 1)
+movingPiece:  'B'            // 先手の角
+capturedPiece: 's'           // 後手の銀を取った
+isPromotion:  true           // 成り
+```
+
+#### 駒打ち: △４五桂（後手が持ち駒の桂馬を打つ）
+
+```
+fromSquare:   QPoint(10, 0)  // x=10 = 後手の駒台
+toSquare:     QPoint(4, 4)   // ４五 = (9-4, 5-1) = (5, 4) ※実際は(4, 4)
+movingPiece:  'n'            // 後手の桂馬
+capturedPiece: ' '           // 取った駒なし（打ちなので）
+isPromotion:  false
+```
+
+> `fromSquare.y()` の値は、駒台からの打ちの場合は駒種の識別には使われない。
+
+---
+
+## 2. 棋譜ツリーデータ（KifuBranchTree / KifuBranchNode）
+
+### 2.1 KifuBranchNode（ノード）
+
+**ファイル**: `src/kifu/kifubranchnode.h`
+
+棋譜の1手（または開始局面）を表すノード。N 分木の各頂点。
+
+```cpp
+class KifuBranchNode {
+    int          m_nodeId;         // ノードID（ツリー内で一意、1から連番）
+    int          m_ply;            // 手数（0=開始局面、1以降=指し手）
+    QString      m_displayText;    // 表示テキスト（例: "▲７六歩(77)"）
+    QString      m_sfen;           // この局面のSFEN文字列
+    ShogiMove    m_move;           // 指し手データ（ply=0や終局手では無効）
+    QString      m_comment;        // コメント
+    QString      m_bookmark;       // しおり
+    QString      m_timeText;       // 消費時間テキスト（例: "( 0:10/00:00:10)"）
+    TerminalType m_terminalType;   // 終局手の種類（通常はNone）
+
+    KifuBranchNode*          m_parent;    // 親ノード（nullptr=ルート）
+    QVector<KifuBranchNode*> m_children;  // 子ノードリスト
+};
+```
+
+**主要な判定メソッド**:
+
+| メソッド | 意味 |
+|---|---|
+| `isMainLine()` | 本譜かどうか（親の最初の子 `children[0]`） |
+| `isTerminal()` | 終局手かどうか（`terminalType != None`） |
+| `isActualMove()` | 盤面を変化させる指し手か（終局手でなく ply>0） |
+| `hasBranch()` | 分岐があるか（子が2つ以上） |
+| `isRoot()` | ルートノードか（`parent == nullptr`） |
+
+### 2.2 TerminalType（終局手の種類）
+
+```cpp
+enum class TerminalType {
+    None,           // 通常の指し手
+    Resign,         // 投了
+    Checkmate,      // 詰み
+    Repetition,     // 千日手
+    Impasse,        // 持将棋
+    Timeout,        // 切れ負け
+    IllegalWin,     // 反則勝ち
+    IllegalLoss,    // 反則負け
+    Forfeit,        // 不戦敗
+    Interrupt,      // 中断
+    NoCheckmate     // 不詰（詰将棋用）
+};
+```
+
+### 2.3 KifuBranchTree（ツリー）
+
+**ファイル**: `src/kifu/kifubranchtree.h`
+
+N 分木全体を管理するデータモデル。ルートノードからの木構造と、`nodeId → ノード` の逆引きハッシュを保持する。
+
+```cpp
+class KifuBranchTree : public QObject {
+    KifuBranchNode*               m_root;       // ルートノード
+    QHash<int, KifuBranchNode*>   m_nodeById;   // nodeId → ノード の検索用
+    int                           m_nextNodeId;  // 次に振るID（1始まり連番）
+};
+```
+
+**本譜と分岐の規約**:
+- **本譜（mainline）**: 各ノードの `children[0]`（最初の子）を辿った経路
+- **分岐**: `children[1]` 以降の子が分岐手。同じ手数で異なる指し手を表す
+
+### 2.4 BranchLine（ライン情報）
+
+```cpp
+struct BranchLine {
+    int lineIndex;                      // 0=本譜、1以降=分岐
+    QString name;                       // "本譜", "分岐1", "分岐2"...
+    QVector<KifuBranchNode*> nodes;     // ノード列（ルートから終端まで）
+    int branchPly;                      // 分岐開始手数（本譜は0）
+    KifuBranchNode* branchPoint;        // 分岐点のノード（本譜はnullptr）
+};
+```
+
+### 2.5 データ例: 分岐を含むツリー構造
+
+以下の棋譜を例にする:
+- 本譜: ▲７六歩 → △３四歩 → ▲２六歩 → 中断
+- 分岐: 3手目で ▲６六歩（▲２六歩の代わり）→ 中断
+
+```
+                     [Root: 開始局面]              nodeId=1, ply=0
+                           |
+                    [▲７六歩(77)]                nodeId=2, ply=1
+                           |
+                    [△３四歩(34)]                nodeId=3, ply=2
+                      /          \
+            [▲２六歩(26)]    [▲６六歩(66)]      nodeId=4,5, ply=3
+                  |                 |
+              [中断]            [中断]            nodeId=6,7
+```
+
+**ツリー内部データ**:
+
+| nodeId | ply | displayText | parent | children | isMainLine |
+|---|---|---|---|---|---|
+| 1 | 0 | "開始局面" | null | [2] | — |
+| 2 | 1 | "▲７六歩(77)" | 1 | [3] | true |
+| 3 | 2 | "△３四歩(34)" | 2 | [4, 5] | true |
+| 4 | 3 | "▲２六歩(26)" | 3 | [6] | true（children[0]）|
+| 5 | 3 | "▲６六歩(66)" | 3 | [7] | false（children[1]）|
+| 6 | — | "中断" | 4 | [] | — |
+| 7 | — | "中断" | 5 | [] | — |
+
+**allLines() の結果**:
+
+| lineIndex | name | branchPly | nodes |
+|---|---|---|---|
+| 0 | "本譜" | 0 | [1, 2, 3, 4, 6] |
+| 1 | "分岐1" | 3 | [1, 2, 3, 5, 7] |
+
+分岐点（ply=2, nodeId=3）より前のノードは両ラインで共有される。
+
+---
+
+## 3. 表示用データ（KifDisplayItem / KifuDisplay）
+
+### 3.1 KifDisplayItem（表示用構造体）
+
+**ファイル**: `src/kifu/kifdisplayitem.h`
+
+棋譜欄の1行に対応する軽量な表示データ。値コピーで使われる。
+
+```cpp
+struct KifDisplayItem {
+    QString prettyMove;   // 表示用テキスト（例: "▲７六歩"）
+    QString timeText;     // 消費時間テキスト
+    QString comment;      // コメント
+    QString bookmark;     // しおり
+    int     ply = 0;      // 手数（0始まり）
+};
+```
+
+`Q_DECLARE_METATYPE` により、シグナル/スロット引数として `QList<KifDisplayItem>` を受け渡し可能。
+
+### 3.2 KifuDisplay（Qt モデル用オブジェクト）
+
+**ファイル**: `src/widgets/kifudisplay.h`
+
+`KifuRecordListModel` のアイテムとして使われる `QObject` 派生クラス。棋譜欄の各行表示データを保持する。
+
+```cpp
+class KifuDisplay : public QObject {
+    QString m_currentMove;   // 指し手テキスト
+    QString m_timeSpent;     // 消費時間
+    QString m_comment;       // コメント
+    QString m_bookmark;      // しおり
+};
+```
+
+### 3.3 KifuRecordListModel（棋譜欄モデル）
+
+**ファイル**: `src/models/kifurecordlistmodel.h`
+
+棋譜欄（QTableView）のデータを管理する Qt モデル。
+
+```cpp
+class KifuRecordListModel : public AbstractListModel<KifuDisplay> {
+    QSet<int> m_branchPlySet;        // 分岐のある手数の集合（行番号太字表示用）
+    int       m_currentHighlightRow; // 現在ハイライト行（黄色背景）
+};
+```
+
+- **行番号**: 行0 = 開始局面、行1 = 1手目、...
+- `setBranchPlyMarks()`: 分岐のある手数をマークし、棋譜欄で太字表示する
+- `setCurrentHighlightRow()`: 現在の棋譜位置を黄色ハイライトする
+
+### 3.4 KifuBranchListModel（分岐候補欄モデル）
+
+**ファイル**: `src/models/kifubranchlistmodel.h`
+
+分岐候補欄（QTableView）のデータを管理する Qt モデル。
+現在位置に分岐がある場合、選択可能な分岐手の一覧を表示する。
+
+```cpp
+class KifuBranchListModel : public AbstractListModel<KifuBranchDisplay> {
+    QVector<RowItem> m_rows;           // 表示行データ
+    bool   m_hasBackToMainRow;         // 「本譜へ戻る」行の有無
+    bool   m_locked;                   // ロック状態（検討モード中等）
+    int    m_currentHighlightRow;      // 現在ハイライト行
+};
+```
+
+- 先頭行が「本譜へ戻る」（任意）、以降が分岐候補手
+- ロック機能: 検討モード中に外部からの更新を防止
+
+---
+
+## 4. ナビゲーション状態（KifuNavigationState）
+
+**ファイル**: `src/kifu/kifunavigationstate.h`
+
+棋譜ナビゲーションの現在位置と分岐選択の記憶を一元管理する。
+
+```cpp
+class KifuNavigationState : public QObject {
+    KifuBranchTree*  m_tree;                       // 参照するツリー
+    KifuBranchNode*  m_currentNode;                // 現在のノード
+    QHash<int, int>  m_lastSelectedLineAtBranch;   // 分岐点nodeId → 選択ラインindex
+    int              m_preferredLineIndex = -1;     // 優先ライン（-1=未設定）
+};
+```
+
+### 4.1 主要な状態
+
+| プロパティ | 説明 |
+|---|---|
+| `currentNode()` | 現在位置のノード |
+| `currentPly()` | 現在の手数 |
+| `currentLineIndex()` | 現在のラインインデックス（0=本譜） |
+| `isOnMainLine()` | 本譜上にいるか |
+| `canGoForward()` | 前進可能か |
+| `canGoBack()` | 後退可能か |
+
+### 4.2 分岐選択の記憶
+
+ユーザーが分岐を選択すると、その選択が記憶される:
+
+- `rememberLineSelection(branchPoint, lineIndex)`: 分岐点での選択を記録
+- `lastSelectedLineAt(branchPoint)`: 記録された選択を取得（未選択は0=本譜）
+- `preferredLineIndex`: 分岐選択時に設定され、分岐点より前に戻っても維持される
+
+これにより、分岐を選んだ状態で開始局面まで戻り、再度進めた場合に同じ分岐を自動的に辿ることができる。
+
+### 4.3 シグナル
+
+```cpp
+signals:
+    void currentNodeChanged(KifuBranchNode* newNode, KifuBranchNode* oldNode);
+    void lineChanged(int newLineIndex, int oldLineIndex);
+```
+
+---
+
+## 5. 中央管理（GameRecordModel）
+
+**ファイル**: `src/kifu/gamerecordmodel.h`
+
+コメント・しおりの一元管理と、棋譜の各種形式への出力を担当する。
+
+### 5.1 内部データ
+
+```cpp
+class GameRecordModel : public QObject {
+    // === 権威を持つ内部データ ===
+    QVector<QString> m_comments;    // 手数index → コメント
+    QVector<QString> m_bookmarks;   // 手数index → しおり
+    bool             m_isDirty;     // 変更フラグ
+
+    // === 外部データへの参照（同期更新用） ===
+    QList<KifDisplayItem>*  m_liveDisp;    // 表示リスト
+    KifuBranchTree*         m_branchTree;  // ツリー
+    KifuNavigationState*    m_navState;    // ナビゲーション状態
+};
+```
+
+### 5.2 3層同期パターン
+
+コメントやしおりを編集すると、以下の3箇所が同期更新される:
+
+```
+setComment(ply, text)
+    │
+    ├─→ m_comments[ply] = text          // ① 内部配列（Single Source of Truth）
+    ├─→ m_liveDisp[ply].comment = text  // ② 表示用リスト
+    └─→ m_branchTree.setComment(...)    // ③ ツリーノード
+```
+
+| 層 | 保持場所 | 役割 |
+|---|---|---|
+| ① 内部配列 | `m_comments` / `m_bookmarks` | 権威データ。出力時の根拠 |
+| ② 表示リスト | `m_liveDisp` (外部参照) | 棋譜欄モデルへの即時反映 |
+| ③ ツリーノード | `KifuBranchTree` → `KifuBranchNode` | ツリー表示・ファイル出力用 |
+
+### 5.3 出力形式
+
+GameRecordModel は以下の形式へのエクスポートメソッドを提供する:
+
+| メソッド | 形式 | 分岐対応 |
+|---|---|---|
+| `toKifLines()` | KIF形式 | あり |
+| `toKi2Lines()` | KI2形式 | あり |
+| `toCsaLines()` | CSA形式 | なし（本譜のみ） |
+| `toJkfLines()` | JKF（JSON）形式 | あり |
+| `toUsenLines()` | USEN形式 | あり |
+| `toUsiLines()` | USI position コマンド形式 | なし（本譜のみ） |
+
+---
+
+## 6. GUI連動の全体像
+
+### 6.1 4つのGUI部品
+
+| GUI部品 | ウィジェット | モデル | 説明 |
+|---|---|---|---|
+| **棋譜欄** | `RecordPane` 内の `QTableView` | `KifuRecordListModel` | 手順リスト。クリックで手に移動 |
+| **分岐候補欄** | `RecordPane` 内の `QTableView` | `KifuBranchListModel` | 現在位置の分岐候補 |
+| **分岐ツリー欄** | `BranchTreeWidget` | — (直接描画) | ツリーのグラフィカル表示 |
+| **将棋盤** | `ShogiView` | `ShogiBoard` | 盤面表示 |
+
+### 6.2 Signal/Slot 接続図
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│                    KifuNavigationController                        │
+│  (goForward/goBack/goToNode/selectBranchCandidate/...)            │
+│                                                                    │
+│  emit: navigationCompleted(node)                                   │
+│  emit: boardUpdateRequired(sfen)                                   │
+│  emit: recordHighlightRequired(ply)                                │
+│  emit: branchTreeHighlightRequired(lineIndex, ply)                 │
+│  emit: branchCandidatesUpdateRequired(candidates)                  │
+└───────────────────────┬────────────────────────────────────────────┘
+                        │ connect (wireSignals)
+                        ▼
+┌────────────────────────────────────────────────────────────────────┐
+│                    KifuDisplayCoordinator                          │
+│                                                                    │
+│  onNavigationCompleted(node)                                       │
+│    ├─→ 棋譜欄の内容更新 (populateRecordModel)                     │
+│    ├─→ 分岐マーク更新 (populateBranchMarks)                       │
+│    └─→ 分岐候補欄更新 (updateBranchCandidatesView)                │
+│                                                                    │
+│  onBoardUpdateRequired(sfen)                                       │
+│    └─→ emit boardSfenChanged(sfen) ──→ 将棋盤更新                 │
+│                                                                    │
+│  onRecordHighlightRequired(ply)                                    │
+│    └─→ 棋譜欄ハイライト行変更                                     │
+│                                                                    │
+│  onBranchTreeHighlightRequired(lineIndex, ply)                     │
+│    └─→ BranchTreeWidget::highlightNode()                           │
+│                                                                    │
+│  onBranchCandidatesUpdateRequired(candidates)                      │
+│    └─→ KifuBranchListModel 更新                                   │
+└────────────────────────────────────────────────────────────────────┘
+        ▲                  ▲                    ▲
+        │                  │                    │
+   棋譜欄クリック    分岐候補クリック    分岐ツリークリック
+   RecordPane::       RecordPane::        BranchTreeWidget::
+   mainRowChanged     branchActivated     nodeClicked
+```
+
+### 6.3 ナビゲーション操作の流れ（例: 1手進む）
+
+```
+1. ユーザーが「→」ボタンをクリック
+2. QPushButton::clicked → KifuNavigationController::onNextClicked()
+3. KifuNavigationController::goForward(1)
+   a. KifuNavigationState から次の子ノードを取得
+      （分岐記憶がある場合はそちらを優先）
+   b. state->setCurrentNode(nextNode)
+   c. emitUpdateSignals() で5つのシグナルを一括発行
+4. KifuDisplayCoordinator が各シグナルを受信
+   a. 棋譜欄のハイライト行を更新
+   b. 将棋盤のSFENを更新（boardSfenChanged → ShogiBoard::updateBoard）
+   c. 分岐ツリーのハイライトノードを更新
+   d. 分岐候補欄を現在位置の候補で更新
+```
+
+### 6.4 KifuDisplayCoordinator の役割
+
+`KifuDisplayCoordinator`（`src/ui/coordinators/kifudisplaycoordinator.h`）は、
+ナビゲーションコントローラからのシグナルと各 UI コンポーネントの間を仲介する統合管理クラス。
+
+**管理対象**:
+
+| 設定メソッド | 対象 |
+|---|---|
+| `setRecordPane()` | 棋譜ペイン |
+| `setBranchTreeWidget()` | 分岐ツリーウィジェット |
+| `setRecordModel()` | 棋譜欄モデル |
+| `setBranchModel()` | 分岐候補モデル |
+| `setAnalysisTab()` | エンジン解析タブ |
+| `setLiveGameSession()` | ライブ対局セッション |
+
+**ライン変更検出**: `m_lastLineIndex` と `m_lastModelLineIndex` で、
+ラインが変わった場合のみ棋譜欄の全更新（`populateRecordModel`）を行い、
+同一ライン内の移動ではハイライト更新のみに留める最適化がされている。
+
+---
+
+## 7. シリアライズ形式
+
+### 7.1 SFEN（Shogi Forsyth-Edwards Notation）
+
+局面を文字列で表現する。盤面・手番・持ち駒・手数の4パートからなる。
+
+```
+lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1
+│                                                           │ │ │
+│                                                           │ │ └ 手数
+│                                                           │ └ 持ち駒（-=なし）
+│                                                           └ 手番（b=先手,w=後手）
+└ 盤面（/で段区切り、数字=空マス連続数、大文字=先手、小文字=後手）
+```
+
+### 7.2 USI形式
+
+エンジン通信で使われる `position` コマンド文字列。
+
+```
+position startpos moves 7g7f 3c3d 2g2f
+```
+
+指し手表記: `{from}{to}[+]` — 例: `7g7f`（七七→七六）、`B*5e`（角打ち五五）
+
+### 7.3 KIF形式
+
+日本語の棋譜ファイル形式。
+
+```
+# ---- Kifu for Windows V7 形式 ----
+手数----指手---------消費時間--
+   1 ７六歩(77)   ( 0:03/00:00:03)
+   2 ３四歩(34)   ( 0:05/00:00:05)
+   3 ２六歩(26)   ( 0:02/00:00:07)
+
+変化：3手目
+   3 ６六歩(67)   ( 0:04/00:00:07)
+```
+
+### 7.4 CSA形式
+
+コンピュータ将棋協会の標準形式。分岐非対応。
+
+```
++7776FU
+-3334FU
++2726FU
+```
+
+### 7.5 KI2形式
+
+手番記号付きの簡潔な表記。分岐対応。
+
+```
+▲７六歩 △３四歩 ▲２六歩
+```
+
+### 7.6 JKF形式（JSON棋譜フォーマット）
+
+JSON 形式で棋譜を表現。分岐対応。
+
+```json
+{
+  "header": { "先手": "..." },
+  "initial": { "preset": "HIRATE" },
+  "moves": [
+    {},
+    { "move": { "from": {"x":7,"y":7}, "to": {"x":7,"y":6}, "piece": "FU" } }
+  ]
+}
+```
+
+### 7.7 USEN形式（URL Safe sfen-Extended Notation）
+
+URL セーフな短い文字列で棋譜を表現。分岐対応。
+
+---
+
+## 8. 補足: パース用データ構造
+
+### 8.1 KifParseResult / KifLine / KifVariation
+
+**ファイル**: `src/kifu/kifparsetypes.h`
+
+KIF/KI2/CSA 等のファイル読み込み時のパース結果を格納する中間構造。
+
+```cpp
+struct KifLine {
+    int startPly;              // 開始手数
+    QString baseSfen;          // 分岐開始局面SFEN
+    QStringList usiMoves;      // USI指し手列
+    QList<KifDisplayItem> disp; // 表示用データ
+    QStringList sfenList;      // 局面列
+    QVector<ShogiMove> gameMoves; // 指し手列
+    bool endsWithTerminal;     // 終局手で終わるか
+};
+
+struct KifVariation {
+    int startPly;              // 変化開始手数
+    KifLine line;              // 変化の手順
+};
+
+struct KifParseResult {
+    KifLine mainline;                  // 本譜
+    QVector<KifVariation> variations;  // 変化リスト
+};
+```
+
+パース後、この `KifParseResult` から `KifuBranchTree` が構築される。
+
+### 8.2 ResolvedRow
+
+**ファイル**: `src/kifu/kifutypes.h`
+
+分岐を含む棋譜データを行単位で平坦化した結果。
+
+```cpp
+struct ResolvedRow {
+    int startPly;               // 開始手数
+    int parent;                 // 親行のインデックス（本譜は -1）
+    QList<KifDisplayItem> disp; // 表示用アイテムリスト
+    QStringList sfen;           // 各手数のSFENリスト
+    QVector<ShogiMove> gm;     // 指し手リスト
+    int varIndex;               // 変化インデックス（本譜 = -1）
+    QStringList comments;       // 各手のコメント
+};
+```
+
+### 8.3 KifGameInfoItem
+
+**ファイル**: `src/kifu/kifparsetypes.h`
+
+KIF ヘッダの「キーワード：内容」ペア。
+
+```cpp
+struct KifGameInfoItem {
+    QString key;    // キーワード（例: "開始日時"）
+    QString value;  // 内容（例: "2025/03/02 09:00"）
+};
+```
