@@ -755,6 +755,86 @@ a.feature-card-link:hover .feature-card-more {
     color: var(--color-blue-dark);
 }
 
+/* --- Judgment Table --- */
+.judgment-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--color-card-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 16px var(--color-card-shadow);
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+.judgment-table th {
+    background: var(--color-blue);
+    color: #fff;
+    font-family: var(--font-heading);
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 0.75rem 1.25rem;
+    text-align: left;
+    letter-spacing: 0.03em;
+}
+
+.judgment-table td {
+    padding: 0.7rem 1.25rem;
+    font-size: 0.9rem;
+    color: var(--color-text);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.judgment-table tr:last-child td {
+    border-bottom: none;
+}
+
+.judgment-table tbody tr:nth-child(even) {
+    background: var(--color-bg);
+}
+
+.judgment-table .judgment-label {
+    font-weight: 600;
+    color: var(--color-heading);
+}
+
+.judgment-note {
+    max-width: 700px;
+    margin: 1.5rem auto 0;
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    line-height: 1.8;
+}
+
+.judgment-note ul {
+    list-style: none;
+    padding: 0;
+    margin: 0.5rem 0 0;
+}
+
+.judgment-note ul li {
+    position: relative;
+    padding-left: 1.5rem;
+    margin-bottom: 0.4rem;
+}
+
+.judgment-note ul li::before {
+    content: "\2022";
+    position: absolute;
+    left: 0.25rem;
+    color: var(--color-board);
+    font-weight: bold;
+}
+
+@media (max-width: 480px) {
+    .judgment-table th,
+    .judgment-table td {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8rem;
+    }
+}
+
 /* --- Back Link --- */
 .back-link-section {
     text-align: center;
