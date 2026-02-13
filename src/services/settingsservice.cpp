@@ -329,7 +329,7 @@ void setKifuPaneFontSize(int size)
 int kifuAnalysisFontSize()
 {
     QSettings s(settingsFilePath(), QSettings::IniFormat);
-    return s.value("KifuAnalysis/fontSize", 10).toInt();
+    return s.value("KifuAnalysis/fontSize", 0).toInt();
 }
 
 // 棋譜解析ダイアログのフォントサイズを保存
