@@ -48,11 +48,11 @@ void RecordPaneWiring::buildUiAndWire()
         if (rows > 0) {
             const QModelIndex idx0 = m_d.recordModel->index(0, 0);
             const QString head = m_d.recordModel->data(idx0, Qt::DisplayRole).toString();
-            if (head == QStringLiteral("=== 開始局面 ===")) need = false;
+            if (head == tr("=== 開始局面 ===")) need = false;
         }
         if (need) {
-            auto* item = new KifuDisplay(QStringLiteral("=== 開始局面 ==="),
-                                         QStringLiteral("（１手 / 合計）"));
+            auto* item = new KifuDisplay(tr("=== 開始局面 ==="),
+                                         tr("（１手 / 合計）"));
             if (rows == 0) {
                 m_d.recordModel->appendItem(item);
             } else {

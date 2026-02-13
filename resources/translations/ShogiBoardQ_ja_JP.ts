@@ -83,6 +83,12 @@
         <source>開始局面</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <location filename="../../src/widgets/branchtreewidget.cpp" line="317"/>
+        <location filename="../../src/widgets/branchtreewidget.cpp" line="383"/>
+        <source>%1手目</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>ChangeEngineSettingsDialog</name>
@@ -701,6 +707,16 @@
 <context>
     <name>CsaGameWiring</name>
     <message>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="105"/>
+        <source>=== 開始局面 ===</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="106"/>
+        <source>（１手 / 合計）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <location filename="../../src/ui/wiring/csagamewiring.cpp" line="131"/>
         <source>CSA通信対局開始: %1 vs %2</source>
         <translation type="unfinished"></translation>
@@ -1271,6 +1287,12 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1196"/>
+        <location filename="../../src/widgets/engineanalysistab.cpp" line="1466"/>
+        <source>%1手目</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <location filename="../../src/widgets/engineanalysistab.cpp" line="2186"/>
         <source>元に戻す (Ctrl+Z)</source>
         <translation type="unfinished"></translation>
@@ -1730,7 +1752,39 @@ Move %3: %4</source>
     </message>
 </context>
 <context>
+    <name>GameRecordPresenter</name>
+    <message>
+        <location filename="../../src/ui/presenters/gamerecordpresenter.cpp" line="54"/>
+        <source>=== 開始局面 ===</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/presenters/gamerecordpresenter.cpp" line="55"/>
+        <source>（１手 / 合計）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/presenters/gamerecordpresenter.cpp" line="124"/>
+        <location filename="../../src/ui/presenters/gamerecordpresenter.cpp" line="191"/>
+        <source>開始局面</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>GameStartCoordinator</name>
+    <message>
+        <location filename="../../src/game/gamestartcoordinator.cpp" line="338"/>
+        <location filename="../../src/game/gamestartcoordinator.cpp" line="344"/>
+        <location filename="../../src/game/gamestartcoordinator.cpp" line="348"/>
+        <source>=== 開始局面 ===</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/game/gamestartcoordinator.cpp" line="345"/>
+        <location filename="../../src/game/gamestartcoordinator.cpp" line="349"/>
+        <source>（１手 / 合計）</source>
+        <translation type="unfinished"></translation>
+    </message>
     <message>
         <location filename="../../src/game/gamestartcoordinator.cpp" line="617"/>
         <source>An error occurred in GameStartCoordinator::determinePlayMode. There is a mistake in the game options.</source>
@@ -2837,6 +2891,29 @@ OKを選択すると保存先が指定できます。</source>
     </message>
 </context>
 <context>
+    <name>KifuBranchTree</name>
+    <message>
+        <location filename="../../src/kifu/kifubranchtree.cpp" line="41"/>
+        <source>開始局面</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>KifuDisplayCoordinator</name>
+    <message>
+        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="470"/>
+        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="566"/>
+        <source>=== 開始局面 ===</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="471"/>
+        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="567"/>
+        <source>（１手 / 合計）</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>KifuExportController</name>
     <message>
         <location filename="../../src/kifu/kifuexportcontroller.cpp" line="161"/>
@@ -3020,6 +3097,11 @@ OKを選択すると保存先が指定できます。</source>
     <message>
         <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="501"/>
         <source>無効なSFEN形式です。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="518"/>
+        <source>=== 開始局面 ===</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4098,6 +4180,19 @@ OKを選択すると保存先が指定できます。</source>
     </message>
 </context>
 <context>
+    <name>PreStartCleanupHandler</name>
+    <message>
+        <location filename="../../src/game/prestartcleanuphandler.cpp" line="174"/>
+        <source>=== 開始局面 ===</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/game/prestartcleanuphandler.cpp" line="175"/>
+        <source>（１手 / 合計）</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>PromoteDialog</name>
     <message>
         <location filename="../../src/dialogs/promotedialog.ui" line="20"/>
@@ -4826,6 +4921,20 @@ OKを選択すると保存先が指定できます。</source>
     <message>
         <location filename="../../src/widgets/recordpane.cpp" line="448"/>
         <source>現在の手数で本譜（メインライン）に戻る</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>RecordPaneWiring</name>
+    <message>
+        <location filename="../../src/ui/wiring/recordpanewiring.cpp" line="51"/>
+        <location filename="../../src/ui/wiring/recordpanewiring.cpp" line="54"/>
+        <source>=== 開始局面 ===</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/wiring/recordpanewiring.cpp" line="55"/>
+        <source>（１手 / 合計）</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

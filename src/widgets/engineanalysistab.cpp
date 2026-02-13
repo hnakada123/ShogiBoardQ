@@ -1193,7 +1193,7 @@ QGraphicsPathItem* EngineAnalysisTab::addNode(int row, int ply, const QString& r
 
     // 「n手目」ラベルは本譜の上だけに表示（分岐 row!=0 では表示しない）
     if (row == 0) {
-        const QString moveNo = QString::number(ply) + QStringLiteral("手目");
+        const QString moveNo = tr("%1手目").arg(ply);
         auto* noItem = m_scene->addSimpleText(moveNo, MOVE_NO_FONT);
         const QRectF nbr = noItem->boundingRect();
         noItem->setParentItem(item);
@@ -1463,7 +1463,7 @@ void EngineAnalysisTab::rebuildBranchTree()
             // すでに本譜ノードがある手（row=0, ply）は addNode() 側でラベルを付け済み
             if (m_nodeIndex.contains(qMakePair(0, ply))) continue;
 
-            const QString moveNo = QString::number(ply) + QStringLiteral("手目");
+            const QString moveNo = tr("%1手目").arg(ply);
             auto* noItem = m_scene->addSimpleText(moveNo, MOVE_NO_FONT);
             const QRectF nbr = noItem->boundingRect();
 

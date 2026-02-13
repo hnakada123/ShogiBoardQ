@@ -171,8 +171,8 @@ int PreStartCleanupHandler::cleanupKifuModel(bool startFromCurrentPos, int /*kee
     // 平手/手合割など「新規初期局面から開始」またはフォールバック
     m_kifuRecordModel->clearAllItems();
     m_kifuRecordModel->appendItem(
-        new KifuDisplay(QStringLiteral("=== 開始局面 ==="),
-                        QStringLiteral("（１手 / 合計）")));
+        new KifuDisplay(tr("=== 開始局面 ==="),
+                        tr("（１手 / 合計）")));
     return 0;
 }
 

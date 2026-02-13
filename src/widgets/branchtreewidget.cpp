@@ -314,7 +314,7 @@ void BranchTreeWidget::drawMoveNumberLabels(int maxPly)
             continue;
         }
 
-        const QString moveNo = QString::number(ply) + QStringLiteral("手目");
+        const QString moveNo = tr("%1手目").arg(ply);
         auto* noItem = m_scene->addSimpleText(moveNo, MOVE_NO_FONT);
         const QRectF nbr = noItem->boundingRect();
 
@@ -380,7 +380,7 @@ QGraphicsPathItem* BranchTreeWidget::addNode(int row, int ply, const QString& ra
 
     // 本譜の上には「n手目」ラベルを表示
     if (isMainLine) {
-        const QString moveNo = QString::number(ply) + QStringLiteral("手目");
+        const QString moveNo = tr("%1手目").arg(ply);
         auto* noItem = m_scene->addSimpleText(moveNo, MOVE_NO_FONT);
         const QRectF nbr = noItem->boundingRect();
         noItem->setParentItem(item);

@@ -102,8 +102,8 @@ void CsaGameWiring::onGameStarted(const QString& blackName, const QString& white
         m_kifuRecordModel->clearAllItems();
         // 見出し行を追加
         m_kifuRecordModel->appendItem(
-            new KifuDisplay(QStringLiteral("=== 開始局面 ==="),
-                            QStringLiteral("（１手 / 合計）")));
+            new KifuDisplay(tr("=== 開始局面 ==="),
+                            tr("（１手 / 合計）")));
     }
 
     // m_sfenRecordをクリアし、開始局面を追加

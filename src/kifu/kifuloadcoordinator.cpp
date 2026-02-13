@@ -515,7 +515,7 @@ bool KifuLoadCoordinator::loadPositionFromSfen(const QString& sfenStr)
     QList<KifDisplayItem> disp;
     KifDisplayItem startItem;
     startItem.ply = 0;
-    startItem.prettyMove = QStringLiteral("=== 開始局面 ===");
+    startItem.prettyMove = tr("=== 開始局面 ===");
     startItem.comment = QString();
     disp.append(startItem);
 
