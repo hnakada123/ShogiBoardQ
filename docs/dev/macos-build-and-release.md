@@ -80,6 +80,38 @@ clang++ --version     # Apple Clang
 
 ## 3. ビルド
 
+### ビルドスクリプト（推奨）
+
+`scripts/build-macos.sh` を使うと、Release ビルドから DMG 作成まで一括実行できる：
+
+```bash
+# 通常ビルド + DMG 作成
+./scripts/build-macos.sh
+
+# Universal Binary (arm64 + x86_64) でビルド
+./scripts/build-macos.sh --universal
+
+# クリーンビルド、DMG なし
+./scripts/build-macos.sh --clean --skip-dmg
+```
+
+| オプション | 説明 |
+|---|---|
+| `--universal` | Universal Binary (arm64 + x86_64) をビルド |
+| `--skip-dmg` | DMG 作成をスキップ（.app バンドルのみ生成） |
+| `--clean` | build ディレクトリを削除してからビルド |
+| `--help` | ヘルプを表示 |
+
+スクリプトは以下の処理を自動実行する：
+
+1. 前提ツールの存在確認（cmake, ninja, macdeployqt, create-dmg）
+2. CMake Configure + Ninja ビルド
+3. ビルド成果物の確認（.app、.qm 翻訳ファイル）
+4. macdeployqt によるフレームワークバンドル + 検証
+5. create-dmg による DMG 作成
+
+以下は個別のコマンドを手動で実行する場合の手順。
+
 ### 3.1 Release ビルド
 
 ```bash
@@ -134,6 +166,8 @@ open build/ShogiBoardQ.app
 
 ## 4. アプリバンドルの作成
 
+> **Note:** `scripts/build-macos.sh` を使用した場合、このセクションの手順は自動実行されるため手動での実行は不要。
+
 ### 4.1 macdeployqt で Qt フレームワークをバンドル
 
 ビルドしただけでは Qt の動的ライブラリがバンドルに含まれない。
@@ -177,6 +211,8 @@ ls build/ShogiBoardQ.app/Contents/MacOS/*.qm
 ---
 
 ## 5. DMG ファイルの作成
+
+> **Note:** `scripts/build-macos.sh` を使用した場合、方法B (create-dmg) で自動作成されるため手動での実行は不要。`--skip-dmg` オプションで DMG 作成のみスキップすることも可能。
 
 ### 方法A: macdeployqt の -dmg オプション（簡易）
 
