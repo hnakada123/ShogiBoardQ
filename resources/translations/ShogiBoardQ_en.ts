@@ -824,93 +824,103 @@ Cause: %2</translation>
 <context>
     <name>CsaWaitingDialog</name>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="54"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="56"/>
         <source>通信対局（CSA）</source>
         <translation>Network Game (CSA)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="65"/>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="169"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="67"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="197"/>
         <source>対局相手を待機中...</source>
         <translation>Waiting for opponent...</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="97"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="98"/>
         <source>通信ログ...</source>
         <translation>Communication Log...</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="107"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="108"/>
         <source>対局キャンセル</source>
         <translation>Cancel Game</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="163"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="123"/>
+        <source>文字サイズを縮小</source>
+        <translation>Decrease font size</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="130"/>
+        <source>文字サイズを拡大</source>
+        <translation>Increase font size</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="191"/>
         <source>待機中...</source>
         <translation>Waiting...</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="165"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="193"/>
         <source>サーバーに接続中...</source>
         <translation>Connecting to server...</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="167"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="195"/>
         <source>ログイン中...</source>
         <translation>Logging in...</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="171"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="199"/>
         <source>対局条件を確認中...</source>
         <translation>Confirming game conditions...</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="173"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="201"/>
         <source>対局開始！</source>
         <translation>Game started!</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="175"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="203"/>
         <source>対局終了</source>
         <translation>Game Over</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="177"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="205"/>
         <source>エラーが発生しました</source>
         <translation>An error occurred</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="179"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="207"/>
         <source>不明な状態</source>
         <translation>Unknown state</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="191"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="219"/>
         <source>CSA通信ログ</source>
         <translation>CSA Log</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="209"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="237"/>
         <source>フォントサイズを小さくする</source>
         <translation>Decrease font size</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="218"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="246"/>
         <source>フォントサイズを大きくする</source>
         <translation>Increase font size</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="231"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="259"/>
         <source>CSAサーバーへ送信</source>
         <translation>Send to CSA Server</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="240"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="268"/>
         <source>コマンドを入力してEnter</source>
         <translation>Enter command and press Enter</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="272"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="300"/>
         <source>閉じる</source>
         <translation>Close</translation>
     </message>

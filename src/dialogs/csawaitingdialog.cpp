@@ -20,10 +20,12 @@
 CsaWaitingDialog::CsaWaitingDialog(CsaGameCoordinator* coordinator, QWidget* parent)
     : QDialog(parent)
     , m_coordinator(coordinator)
+    , m_fontSize(SettingsService::csaWaitingDialogFontSize())
     , m_logFontSize(SettingsService::csaLogFontSize())  // SettingsServiceから読み込み
 {
     qCDebug(lcUi) << "Constructor called, coordinator=" << coordinator;
     setupUi();
+    applyFontSize();
 
     // ログウィンドウを事前に作成（シグナル受信前に準備しておく）
     createLogWindow();
@@ -65,7 +67,6 @@ void CsaWaitingDialog::setupUi()
     m_statusLabel = new QLabel(tr("対局相手を待機中..."), this);
     m_statusLabel->setAlignment(Qt::AlignCenter);
     QFont statusFont = m_statusLabel->font();
-    statusFont.setPointSize(12);
     statusFont.setBold(true);
     m_statusLabel->setFont(statusFont);
     mainLayout->addWidget(m_statusLabel);
@@ -113,6 +114,27 @@ void CsaWaitingDialog::setupUi()
 
     mainLayout->addLayout(buttonLayout);
 
+    // フォントサイズ調整ボタン（A-/A+）
+    QHBoxLayout* fontLayout = new QHBoxLayout();
+    fontLayout->addStretch();
+
+    m_btnFontDecrease = new QToolButton(this);
+    m_btnFontDecrease->setText(QStringLiteral("A-"));
+    m_btnFontDecrease->setToolTip(tr("文字サイズを縮小"));
+    m_btnFontDecrease->setFixedSize(32, 26);
+    m_btnFontDecrease->setStyleSheet(ButtonStyles::fontButton());
+    fontLayout->addWidget(m_btnFontDecrease);
+
+    m_btnFontIncrease = new QToolButton(this);
+    m_btnFontIncrease->setText(QStringLiteral("A+"));
+    m_btnFontIncrease->setToolTip(tr("文字サイズを拡大"));
+    m_btnFontIncrease->setFixedSize(32, 26);
+    m_btnFontIncrease->setStyleSheet(ButtonStyles::fontButton());
+    fontLayout->addWidget(m_btnFontIncrease);
+
+    fontLayout->addStretch();
+    mainLayout->addLayout(fontLayout);
+
     setLayout(mainLayout);
 }
 
@@ -128,6 +150,12 @@ void CsaWaitingDialog::connectSignalsAndSlots()
     // 通信ログボタン
     connect(m_showLogButton, &QPushButton::clicked,
             this, &CsaWaitingDialog::onShowLogClicked);
+
+    // フォントサイズ調整ボタン
+    connect(m_btnFontIncrease, &QToolButton::clicked,
+            this, &CsaWaitingDialog::onFontIncrease);
+    connect(m_btnFontDecrease, &QToolButton::clicked,
+            this, &CsaWaitingDialog::onFontDecrease);
 
     // コーディネータからのシグナル
     if (m_coordinator) {
@@ -430,4 +458,51 @@ void CsaWaitingDialog::onLogFontIncrease()
 void CsaWaitingDialog::onLogFontDecrease()
 {
     updateLogFontSize(-1);
+}
+
+// ダイアログのフォントサイズを大きくする
+void CsaWaitingDialog::onFontIncrease()
+{
+    if (m_fontSize < 24) {
+        m_fontSize += 1;
+        applyFontSize();
+        SettingsService::setCsaWaitingDialogFontSize(m_fontSize);
+    }
+}
+
+// ダイアログのフォントサイズを小さくする
+void CsaWaitingDialog::onFontDecrease()
+{
+    if (m_fontSize > 8) {
+        m_fontSize -= 1;
+        applyFontSize();
+        SettingsService::setCsaWaitingDialogFontSize(m_fontSize);
+    }
+}
+
+// ダイアログのフォントサイズを適用する
+void CsaWaitingDialog::applyFontSize()
+{
+    m_fontSize = qBound(8, m_fontSize, 24);
+
+    QFont f = font();
+    f.setPointSize(m_fontSize);
+    setFont(f);
+
+    // KDE Breeze対策：全子ウィジェットに明示的にフォントを設定
+    const QList<QWidget*> widgets = findChildren<QWidget*>();
+    for (QWidget* widget : std::as_const(widgets)) {
+        if (widget) {
+            widget->setFont(f);
+        }
+    }
+
+    // ステータスラベルは太字フォントを維持
+    if (m_statusLabel) {
+        QFont boldFont = f;
+        boldFont.setBold(true);
+        // フォントサイズに応じてステータスラベルを少し大きく
+        boldFont.setPointSize(m_fontSize + 2);
+        m_statusLabel->setFont(boldFont);
+    }
 }
