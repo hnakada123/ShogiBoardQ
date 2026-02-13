@@ -2911,12 +2911,12 @@ Select OK to specify the save location.</translation>
         <translation>Increase font size</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="147"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="149"/>
         <source>An error occurred in KifuAnalysisDialog::showEngineSettingsDialog. The Shogi engine has not been selected.</source>
         <translation>An error occurred: No shogi engine has been selected.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="150"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="152"/>
         <source>Error</source>
         <translation>Error</translation>
     </message>
