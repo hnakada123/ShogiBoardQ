@@ -467,8 +467,8 @@ void KifuDisplayCoordinator::populateRecordModel()
         }
     }
     auto* startItem = new KifuDisplay(
-        QStringLiteral("=== 開始局面 ==="),
-        QStringLiteral("（１手 / 合計）"),
+        tr("=== 開始局面 ==="),
+        tr("（１手 / 合計）"),
         QString(),
         openingBookmark,
         this);
@@ -563,8 +563,8 @@ void KifuDisplayCoordinator::populateRecordModelFromPath(const QVector<KifuBranc
         }
     }
     auto* startItem = new KifuDisplay(
-        QStringLiteral("=== 開始局面 ==="),
-        QStringLiteral("（１手 / 合計）"),
+        tr("=== 開始局面 ==="),
+        tr("（１手 / 合計）"),
         QString(),
         openingBookmark,
         this);

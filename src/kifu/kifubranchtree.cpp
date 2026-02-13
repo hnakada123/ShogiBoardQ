@@ -38,7 +38,7 @@ void KifuBranchTree::setRootSfen(const QString& sfen)
 
     m_root = createNode();
     m_root->setPly(0);
-    m_root->setDisplayText(QStringLiteral("開始局面"));
+    m_root->setDisplayText(tr("開始局面"));
     m_root->setSfen(sfen);
 
     emit treeChanged();

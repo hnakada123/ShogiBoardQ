@@ -51,8 +51,8 @@ void GameRecordPresenter::presentGameRecord(const QList<KifDisplayItem>& disp) {
 
     // ヘッダ（開始局面）+ コメント + しおり
     items.append(new KifuDisplay(
-        QStringLiteral("=== 開始局面 ==="),
-        QStringLiteral("（1手 / 合計）"),
+        tr("=== 開始局面 ==="),
+        tr("（１手 / 合計）"),
         openingComment,
         openingBookmark
         ));
@@ -121,7 +121,7 @@ void GameRecordPresenter::appendMoveLine(const QString& prettyMove, const QStrin
 
             // 見出し行の代表的な文言を検出して 1 行分を差し引く
             // （必要に応じて追加： "開始局面", "平手", "Handicap", "startpos" 等）
-            if (headText.contains(QStringLiteral("開始局面"))
+            if (headText.contains(tr("開始局面"))
                 || headText.contains(QStringLiteral("平手"))
                 || headText.contains(QStringLiteral("startpos"), Qt::CaseInsensitive)) {
                 moveRows -= 1;
@@ -188,7 +188,7 @@ void GameRecordPresenter::appendMoveLineWithComment(const QString& prettyMove, c
             const QModelIndex headIdx = m_d.model->index(0, 0);
             const QString headText = m_d.model->data(headIdx, Qt::DisplayRole).toString();
 
-            if (headText.contains(QStringLiteral("開始局面"))
+            if (headText.contains(tr("開始局面"))
                 || headText.contains(QStringLiteral("平手"))
                 || headText.contains(QStringLiteral("startpos"), Qt::CaseInsensitive)) {
                 moveRows -= 1;

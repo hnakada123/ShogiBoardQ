@@ -335,18 +335,18 @@ void GameStartCoordinator::prepareInitialPosition(const Ctx& c)
         if (rows > 0) {
             const QModelIndex idx0 = c.kifuModel->index(0, 0);
             const QString head = c.kifuModel->data(idx0, Qt::DisplayRole).toString();
-            if (head == QStringLiteral("=== 開始局面 ==="))
+            if (head == tr("=== 開始局面 ==="))
                 need = false;
         }
         if (need) {
             if (rows == 0) {
                 c.kifuModel->appendItem(
-                    new KifuDisplay(QStringLiteral("=== 開始局面 ==="),
-                                    QStringLiteral("（１手 / 合計）")));
+                    new KifuDisplay(tr("=== 開始局面 ==="),
+                                    tr("（１手 / 合計）")));
             } else {
                 c.kifuModel->prependItem(
-                    new KifuDisplay(QStringLiteral("=== 開始局面 ==="),
-                                    QStringLiteral("（１手 / 合計）")));
+                    new KifuDisplay(tr("=== 開始局面 ==="),
+                                    tr("（１手 / 合計）")));
             }
         }
     }

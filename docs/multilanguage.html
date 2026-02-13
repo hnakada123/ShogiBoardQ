@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多言語対応 - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQの多言語対応機能を紹介します。日本語と英語のUIに対応し、アプリケーションの言語設定で簡単に切り替えられます。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/multilanguage.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/multilanguage.html">
+    <meta property="og:title" content="多言語対応 - ShogiBoardQ">
+    <meta property="og:description" content="ShogiBoardQの多言語対応機能を紹介。日本語と英語のUIに対応し、言語設定で簡単に切り替え可能。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/multilanguage/multilanguage-02-english.png">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="多言語対応 - ShogiBoardQ">
+    <meta name="twitter:description" content="ShogiBoardQの多言語対応機能を紹介。日本語と英語のUIに対応し、言語設定で簡単に切り替え可能。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/multilanguage/multilanguage-02-english.png">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="index.html" class="nav-logo">ShogiBoardQ</a>
+        <button class="nav-toggle" aria-label="メニュー" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="index.html">ホーム</a></li>
+            <li><a href="#japanese-ui">日本語UI</a></li>
+            <li><a href="#english-ui">英語UI</a></li>
+            <li><a href="#how-to-switch">切り替え方法</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>多言語対応</h1>
+        <p class="hero-subtitle">日本語と英語のUIに対応し、言語設定で切り替え可能</p>
+        <div class="hero-badges">
+            <span class="badge">日本語</span>
+            <span class="badge">English</span>
+            <span class="badge">簡単切り替え</span>
+        </div>
+    </div>
+</section>
+
+<!-- Section 1: Japanese UI -->
+<section id="japanese-ui" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">日本語UI</h2>
+        <p class="section-desc">メニュー・ボタン・タブなどすべてのUI要素が日本語で表示されます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">日本語表示のメイン画面</span>
+                </div>
+                <p class="guide-step-text">日本語UIでは、メニューバー・棋譜欄・エンジン情報タブ・対局情報など、すべてのUI要素が日本語で表示されます。</p>
+                <div class="screenshot-item">
+                    <img src="images/multilanguage/multilanguage-01-japanese.png" alt="ShogiBoardQ 日本語UI">
+                    <p class="screenshot-caption">日本語UI：メニュー・タブ・棋譜欄などすべて日本語で表示</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2: English UI -->
+<section id="english-ui" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">英語UI</h2>
+        <p class="section-desc">英語UIに切り替えると、すべてのUI要素が英語で表示されます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">英語表示のメイン画面</span>
+                </div>
+                <p class="guide-step-text">英語UIでは、メニューバー（File, Edit, View, Game, Settings, Help）やタブ名（Game Info, Thinking, Consideration, Branch Tree など）がすべて英語で表示されます。</p>
+                <div class="screenshot-item">
+                    <img src="images/multilanguage/multilanguage-02-english.png" alt="ShogiBoardQ English UI">
+                    <p class="screenshot-caption">英語UI：メニュー・タブ・棋譜欄などすべて英語で表示</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3: How to Switch -->
+<section id="how-to-switch" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">言語の切り替え方法</h2>
+        <p class="section-desc">設定メニューから簡単に言語を切り替えられます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">言語設定を開く</span>
+                </div>
+                <p class="guide-step-text">メニューの「設定」→「言語」から言語を選択します。英語UIの場合は「Settings」→「Language」から選択します。</p>
+                <ul class="guide-step-text">
+                    <li>日本語（Japanese）</li>
+                    <li>English（英語）</li>
+                </ul>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">言語の反映</span>
+                </div>
+                <p class="guide-step-text">言語を選択すると、アプリケーションの再起動後に新しい言語が反映されます。メニュー・ダイアログ・タブ名・ボタンなど、すべてのUI要素が選択した言語で表示されます。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="index.html" class="back-link">&larr; ホームに戻る</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+</body>
+</html>
