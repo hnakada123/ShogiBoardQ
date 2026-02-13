@@ -10,6 +10,7 @@
 
 #include <QFile>
 #include <QComboBox>
+#include <QLabel>
 #include <QAbstractItemView>
 #include <QTextStream>
 #include <qmessagebox.h>
@@ -305,22 +306,27 @@ void KifuAnalysisDialog::applyFontSize()
     f.setPointSize(m_fontSize);
     setFont(f);
 
-    // setFont() だけでは反映されない子ウィジェットがあるため明示適用する
+    // コンストラクタ中は setFont() による子ウィジェットへのフォント伝播が
+    // 遅延するため、全子ウィジェットに明示的にフォントを設定する
     const QList<QWidget*> widgets = findChildren<QWidget*>();
-    for (QWidget* widget : widgets) {
+    for (QWidget* widget : std::as_const(widgets)) {
         if (widget) {
             widget->setFont(f);
         }
     }
 
+    // セクション見出しラベルを太字にする
+    QFont boldFont = f;
+    boldFont.setBold(true);
+    ui->labelSectionEngine->setFont(boldFont);
+    ui->labelSectionRange->setFont(boldFont);
+    ui->labelSectionTime->setFont(boldFont);
+
     // コンボボックスのポップアップリストにも反映する
     const QList<QComboBox*> comboBoxes = findChildren<QComboBox*>();
-    for (QComboBox* comboBox : comboBoxes) {
+    for (QComboBox* comboBox : std::as_const(comboBoxes)) {
         if (comboBox && comboBox->view()) {
             comboBox->view()->setFont(f);
         }
     }
-    
-    // ダイアログサイズを調整
-    adjustSize();
 }

@@ -2710,67 +2710,67 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="70"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="85"/>
         <source>解析範囲</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="82"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="92"/>
         <source>開始局面から最終手まで</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="117"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="127"/>
         <source>手目から</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="140"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="150"/>
         <source>手目まで</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="165"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="188"/>
         <source>時間制限</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="174"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="197"/>
         <source>１手あたりの思考時間</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="200"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="223"/>
         <source>秒</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="250"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="272"/>
         <source>A-</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="253"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="275"/>
         <source>文字サイズを縮小</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="272"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="294"/>
         <source>A+</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="275"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="297"/>
         <source>文字サイズを拡大</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="149"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="150"/>
         <source>An error occurred in KifuAnalysisDialog::showEngineSettingsDialog. The Shogi engine has not been selected.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="152"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="153"/>
         <source>Error</source>
         <translation type="unfinished"></translation>
     </message>
