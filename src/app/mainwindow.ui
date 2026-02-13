@@ -33,6 +33,7 @@
     <addaction name="actionSaveAs"/>
     <addaction name="separator"/>
     <addaction name="actionSaveBoardImage"/>
+    <addaction name="actionSaveEvaluationGraph"/>
     <addaction name="separator"/>
     <addaction name="actionQuit"/>
    </widget>
@@ -686,6 +687,15 @@
    </property>
    <property name="text">
     <string>（保存済みレイアウトなし）</string>
+   </property>
+  </action>
+  <action name="actionSaveEvaluationGraph">
+   <property name="icon">
+    <iconset resource="../../resources/shogiboardq.qrc">
+     <normaloff>:/images/actions/actionSaveEvalGraphImage.svg</normaloff>:/images/actions/actionSaveEvalGraphImage.svg</iconset>
+   </property>
+   <property name="text">
+    <string>評価値グラフの画像をファイルに保存</string>
    </property>
   </action>
  </widget>

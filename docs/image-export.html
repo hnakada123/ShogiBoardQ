@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>画像エクスポート - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQの画像エクスポート機能を紹介します。将棋盤の盤面や評価値グラフを画像ファイルとして保存し、ブログや解説記事に活用できます。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/image-export.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/image-export.html">
+    <meta property="og:title" content="画像エクスポート - ShogiBoardQ">
+    <meta property="og:description" content="ShogiBoardQの画像エクスポート機能を紹介。将棋盤の盤面や評価値グラフを画像ファイルとして保存。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/image-export/export-board.png">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="画像エクスポート - ShogiBoardQ">
+    <meta name="twitter:description" content="ShogiBoardQの画像エクスポート機能を紹介。将棋盤の盤面や評価値グラフを画像ファイルとして保存。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/image-export/export-board.png">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="index.html" class="nav-logo">ShogiBoardQ</a>
+        <button class="nav-toggle" aria-label="メニュー" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="index.html">ホーム</a></li>
+            <li><a href="#board-export">盤面画像</a></li>
+            <li><a href="#eval-graph-export">評価値グラフ</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>画像エクスポート</h1>
+        <p class="hero-subtitle">盤面や評価値グラフを画像ファイルとして保存</p>
+        <div class="hero-badges">
+            <span class="badge">盤面画像</span>
+            <span class="badge">評価値グラフ</span>
+            <span class="badge">PNG保存</span>
+        </div>
+    </div>
+</section>
+
+<!-- Section 1: Board Image Export -->
+<section id="board-export" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">盤面画像のエクスポート</h2>
+        <p class="section-desc">現在の盤面を画像ファイルとして保存できます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">盤面画像をファイルに保存する</span>
+                </div>
+                <p class="guide-step-text">メニューの「ファイル」→「将棋盤の画像をファイルに保存」を選択すると、現在表示されている盤面を画像ファイルとして保存できます。駒の配置・持ち駒・対局者名・残り時間などがそのまま画像に反映されます。ブログや解説記事への掲載に便利です。</p>
+                <div class="screenshot-item screenshot-item--export">
+                    <img src="images/image-export/export-board.png" alt="盤面画像のエクスポート例">
+                    <p class="screenshot-caption">盤面画像：駒の配置・持ち駒・対局者名・残り時間を含めた画像を保存</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2: Eval Graph Image Export -->
+<section id="eval-graph-export" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">評価値グラフ画像のエクスポート</h2>
+        <p class="section-desc">評価値グラフを画像ファイルとして保存できます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">評価値グラフをファイルに保存する</span>
+                </div>
+                <p class="guide-step-text">メニューの「ファイル」→「評価値グラフの画像をファイルに保存」を選択すると、現在表示されている評価値グラフを画像ファイルとして保存できます。棋譜解析後の形勢推移をそのまま画像として記録できるため、対局の振り返りや解説資料の作成に役立ちます。</p>
+                <div class="screenshot-item screenshot-item--export">
+                    <img src="images/image-export/export-eval-graph.png" alt="評価値グラフ画像のエクスポート例">
+                    <p class="screenshot-caption">評価値グラフ画像：形勢の推移を画像ファイルとして保存</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="index.html" class="back-link">&larr; ホームに戻る</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+</body>
+</html>

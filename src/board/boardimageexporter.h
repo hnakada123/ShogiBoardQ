@@ -20,7 +20,8 @@ public:
     static void copyToClipboard(QWidget* boardWidget);
 
     /// 盤面画像をファイルに保存する（フォーマット選択ダイアログ付き）
-    static void saveImage(QWidget* parent, QWidget* boardWidget);
+    static void saveImage(QWidget* parent, QWidget* boardWidget,
+                          const QString& baseName = QStringLiteral("ShogiBoard"));
 };
 
 #endif // BOARDIMAGEEXPORTER_H

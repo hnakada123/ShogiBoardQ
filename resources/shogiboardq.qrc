@@ -1,9 +1,6 @@
 <RCC>
     <qresource prefix="/">
-        <!-- Application icon -->
         <file>icons/shogiboardq.png</file>
-
-        <!-- Shogi pieces -->
         <file alias="pieces/Gote_fu45.svg">images/pieces/Gote_fu45.svg</file>
         <file alias="pieces/Gote_gin45.svg">images/pieces/Gote_gin45.svg</file>
         <file alias="pieces/Gote_gyoku45.svg">images/pieces/Gote_gyoku45.svg</file>
@@ -34,8 +31,6 @@
         <file alias="pieces/Sente_ryuu45.svg">images/pieces/Sente_ryuu45.svg</file>
         <file alias="pieces/Sente_to45.svg">images/pieces/Sente_to45.svg</file>
         <file alias="pieces/Sente_uma45.svg">images/pieces/Sente_uma45.svg</file>
-
-        <!-- Menu/Toolbar action icons -->
         <file>images/actions/actionAboutQt.svg</file>
         <file>images/actions/actionAnalyzeKifu.svg</file>
         <file>images/actions/actionBreakOffGame.svg</file>
@@ -94,5 +89,6 @@
         <file>images/actions/actionUndoMove.svg</file>
         <file>images/actions/actionUsage.svg</file>
         <file>images/actions/actionVersionInfo.svg</file>
+        <file>images/actions/actionSaveEvalGraphImage.svg</file>
     </qresource>
 </RCC>

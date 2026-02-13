@@ -534,6 +534,14 @@ void MainWindow::saveShogiBoardImage()
     BoardImageExporter::saveImage(this, m_shogiView);
 }
 
+// 評価値グラフの画像をファイルに保存する。
+void MainWindow::saveEvaluationGraphImage()
+{
+    if (!m_evalChart) return;
+    BoardImageExporter::saveImage(this, m_evalChart->chartViewWidget(),
+                                  QStringLiteral("EvalGraph"));
+}
+
 // 対局モードに応じて将棋盤下部に表示されるエンジン名をセットする。
 void MainWindow::setEngineNamesBasedOnMode()
 {

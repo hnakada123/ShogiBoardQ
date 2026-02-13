@@ -25,6 +25,9 @@ public:
     explicit EvaluationChartWidget(QWidget* parent = nullptr);
     ~EvaluationChartWidget() override;
 
+    /// チャート描画ウィジェット（画像保存用）
+    QWidget* chartViewWidget() const;
+
     void appendScoreP1(int ply, int cp, bool invert = false);
     void appendScoreP2(int ply, int cp, bool invert = false);
     void clearAll();

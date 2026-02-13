@@ -63,8 +63,9 @@ void UiStatePolicyManager::buildPolicyTable()
         set(S::DuringTsumeSearch, elem, P::Enabled);
         set(S::DuringConsideration, elem, P::Enabled);
     }
-    // 盤面画像保存/終了: 常に有効
+    // 盤面画像保存/評価値グラフ画像保存/終了: 常に有効
     setAll(E::FileSaveBoardImage, P::Enabled);
+    setAll(E::FileSaveEvalGraph,  P::Enabled);
     setAll(E::FileQuit,           P::Enabled);
 
     // =====================================================================
@@ -293,6 +294,9 @@ void UiStatePolicyManager::applyPolicy(UiElement element, Policy policy)
         break;
     case UiElement::FileSaveBoardImage:
         applyActionPolicy(ui ? ui->actionSaveBoardImage : nullptr, policy);
+        break;
+    case UiElement::FileSaveEvalGraph:
+        applyActionPolicy(ui ? ui->actionSaveEvaluationGraph : nullptr, policy);
         break;
     case UiElement::FileQuit:
         applyActionPolicy(ui ? ui->actionQuit : nullptr, policy);
