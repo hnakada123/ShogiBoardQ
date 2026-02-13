@@ -31,7 +31,7 @@ void BoardImageExporter::copyToClipboard(QWidget* boardWidget) {
     QApplication::clipboard()->setPixmap(boardWidget->grab());
 }
 
-void BoardImageExporter::saveImage(QWidget* parent, QWidget* boardWidget) {
+void BoardImageExporter::saveImage(QWidget* parent, QWidget* boardWidget, const QString& baseName) {
     // 処理フロー:
     // 1. サポートされている画像フォーマットを収集
     // 2. ファイル保存ダイアログを表示
@@ -60,7 +60,7 @@ void BoardImageExporter::saveImage(QWidget* parent, QWidget* boardWidget) {
     for (auto& c : cands) if (hasFormat(fmts, c.key)) { filters<<c.filter; map[c.filter]=c; }
 
     const QString stamp = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss");
-    const QString base = QStringLiteral("ShogiBoard_%1").arg(stamp);
+    const QString base = QStringLiteral("%1_%2").arg(baseName, stamp);
     const QString dir  = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation);
     const QString defExt = hasFormat(fmts, "png") ? "png" : map[filters.first()].ext;
     QString selFilter = filters.isEmpty() ? QString() : filters.first();

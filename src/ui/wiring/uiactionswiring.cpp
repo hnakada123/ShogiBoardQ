@@ -44,7 +44,8 @@ void UiActionsWiring::wire()
     QObject::connect(ui->actionEnlargeBoard,     &QAction::triggered, mw, &MainWindow::onActionEnlargeBoardTriggered, Qt::UniqueConnection);
     QObject::connect(ui->actionShrinkBoard,      &QAction::triggered, mw, &MainWindow::onActionShrinkBoardTriggered,  Qt::UniqueConnection);
     QObject::connect(ui->actionUndoMove,             &QAction::triggered, mw, &MainWindow::undoLastTwoMoves,   Qt::UniqueConnection);
-    QObject::connect(ui->actionSaveBoardImage,       &QAction::triggered, mw, &MainWindow::saveShogiBoardImage, Qt::UniqueConnection);
+    QObject::connect(ui->actionSaveBoardImage,       &QAction::triggered, mw, &MainWindow::saveShogiBoardImage,       Qt::UniqueConnection);
+    QObject::connect(ui->actionSaveEvaluationGraph, &QAction::triggered, mw, &MainWindow::saveEvaluationGraphImage, Qt::UniqueConnection);
 
     // ============================================================
     // 解析/検討/詰み・エンジン設定

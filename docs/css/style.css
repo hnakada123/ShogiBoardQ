@@ -835,6 +835,15 @@ a.feature-card-link:hover .feature-card-more {
     }
 }
 
+/* --- Export Image Frame --- */
+.screenshot-item--export img {
+    width: calc(100% - 4rem);
+    margin: 2rem auto 1.5rem;
+    border-radius: 6px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
+}
+
 /* --- Back Link --- */
 .back-link-section {
     text-align: center;

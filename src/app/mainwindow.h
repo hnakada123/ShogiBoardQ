@@ -153,6 +153,7 @@ public slots:
     // --- ファイル I/O ---
     void chooseAndLoadKifuFile();
     void saveShogiBoardImage();
+    void saveEvaluationGraphImage();
     void copyBoardToClipboard();
     void openWebsiteInExternalBrowser();
     void saveKifuToFile();

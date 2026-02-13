@@ -163,6 +163,11 @@ EvaluationChartWidget::~EvaluationChartWidget()
     saveSettings();
 }
 
+QWidget* EvaluationChartWidget::chartViewWidget() const
+{
+    return m_chartView;
+}
+
 void EvaluationChartWidget::setupZeroLine()
 {
     m_zeroLine = new QLineSeries(this);

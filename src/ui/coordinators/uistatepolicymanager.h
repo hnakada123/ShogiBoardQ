@@ -55,6 +55,7 @@ public:
         FileSave,
         FileSaveAs,
         FileSaveBoardImage,
+        FileSaveEvalGraph,
         FileQuit,
 
         // --- 編集メニュー ---
