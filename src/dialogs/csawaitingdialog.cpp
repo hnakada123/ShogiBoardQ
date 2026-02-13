@@ -95,7 +95,7 @@ void CsaWaitingDialog::setupUi()
     // 通信ログボタン
     QHBoxLayout* logButtonLayout = new QHBoxLayout();
     logButtonLayout->addStretch();
-    m_showLogButton = new QPushButton(tr("通信ログ..."), this);
+    m_showLogButton = new QPushButton(tr("通信ログ"), this);
     m_showLogButton->setMinimumWidth(120);
     m_showLogButton->setStyleSheet(ButtonStyles::secondaryNeutral());
     logButtonLayout->addWidget(m_showLogButton);
@@ -228,30 +228,6 @@ void CsaWaitingDialog::createLogWindow()
 
     QVBoxLayout* layout = new QVBoxLayout(m_logWindow);
 
-    // === フォントサイズ調整ボタン ===
-    QHBoxLayout* fontLayout = new QHBoxLayout();
-    fontLayout->addStretch();
-
-    m_btnLogFontDecrease = new QToolButton(m_logWindow);
-    m_btnLogFontDecrease->setText(QStringLiteral("A-"));
-    m_btnLogFontDecrease->setToolTip(tr("フォントサイズを小さくする"));
-    m_btnLogFontDecrease->setFixedSize(28, 24);
-    m_btnLogFontDecrease->setStyleSheet(ButtonStyles::fontButton());
-    connect(m_btnLogFontDecrease, &QToolButton::clicked,
-            this, &CsaWaitingDialog::onLogFontDecrease);
-    fontLayout->addWidget(m_btnLogFontDecrease);
-
-    m_btnLogFontIncrease = new QToolButton(m_logWindow);
-    m_btnLogFontIncrease->setText(QStringLiteral("A+"));
-    m_btnLogFontIncrease->setToolTip(tr("フォントサイズを大きくする"));
-    m_btnLogFontIncrease->setFixedSize(28, 24);
-    m_btnLogFontIncrease->setStyleSheet(ButtonStyles::fontButton());
-    connect(m_btnLogFontIncrease, &QToolButton::clicked,
-            this, &CsaWaitingDialog::onLogFontIncrease);
-    fontLayout->addWidget(m_btnLogFontIncrease);
-
-    layout->addLayout(fontLayout);
-
     // === コマンド入力エリア ===
     QHBoxLayout* commandLayout = new QHBoxLayout();
 
@@ -294,16 +270,43 @@ void CsaWaitingDialog::createLogWindow()
 
     layout->addWidget(m_logTextEdit);
 
-    // === 閉じるボタン ===
+    // === フォントサイズ調整ボタン + 閉じるボタン ===
     QHBoxLayout* buttonLayout = new QHBoxLayout();
     buttonLayout->addStretch();
-    QPushButton* closeButton = new QPushButton(tr("閉じる"), m_logWindow);
-    closeButton->setAutoDefault(false);  // Enterキーで反応しないように
-    closeButton->setDefault(false);
-    closeButton->setFocusPolicy(Qt::NoFocus);  // フォーカスを受けないように
-    connect(closeButton, &QPushButton::clicked,
+
+    // ボタン用フォント
+    QFont btnFont;
+    btnFont.setPointSize(m_logFontSize);
+
+    m_btnLogFontDecrease = new QToolButton(m_logWindow);
+    m_btnLogFontDecrease->setText(QStringLiteral("A-"));
+    m_btnLogFontDecrease->setToolTip(tr("フォントサイズを小さくする"));
+    m_btnLogFontDecrease->setFont(btnFont);
+    m_btnLogFontDecrease->setStyleSheet(ButtonStyles::fontButton());
+    connect(m_btnLogFontDecrease, &QToolButton::clicked,
+            this, &CsaWaitingDialog::onLogFontDecrease);
+    buttonLayout->addWidget(m_btnLogFontDecrease);
+
+    m_btnLogFontIncrease = new QToolButton(m_logWindow);
+    m_btnLogFontIncrease->setText(QStringLiteral("A+"));
+    m_btnLogFontIncrease->setToolTip(tr("フォントサイズを大きくする"));
+    m_btnLogFontIncrease->setFont(btnFont);
+    m_btnLogFontIncrease->setStyleSheet(ButtonStyles::fontButton());
+    connect(m_btnLogFontIncrease, &QToolButton::clicked,
+            this, &CsaWaitingDialog::onLogFontIncrease);
+    buttonLayout->addWidget(m_btnLogFontIncrease);
+
+    buttonLayout->addSpacing(10);
+
+    m_logCloseButton = new QPushButton(tr("閉じる"), m_logWindow);
+    m_logCloseButton->setAutoDefault(false);  // Enterキーで反応しないように
+    m_logCloseButton->setDefault(false);
+    m_logCloseButton->setFocusPolicy(Qt::NoFocus);  // フォーカスを受けないように
+    m_logCloseButton->setFont(btnFont);
+    connect(m_logCloseButton, &QPushButton::clicked,
             m_logWindow, &QDialog::close);
-    buttonLayout->addWidget(closeButton);
+    buttonLayout->addWidget(m_logCloseButton);
+
     buttonLayout->addStretch();
     layout->addLayout(buttonLayout);
 
@@ -339,6 +342,19 @@ void CsaWaitingDialog::updateLogFontSize(int delta)
         QFont font = m_commandInput->font();
         font.setPointSize(m_logFontSize);
         m_commandInput->setFont(font);
+    }
+
+    // 閉じるボタン・フォントサイズ調整ボタンも連動
+    QFont btnFont;
+    btnFont.setPointSize(m_logFontSize);
+    if (m_logCloseButton) {
+        m_logCloseButton->setFont(btnFont);
+    }
+    if (m_btnLogFontDecrease) {
+        m_btnLogFontDecrease->setFont(btnFont);
+    }
+    if (m_btnLogFontIncrease) {
+        m_btnLogFontIncrease->setFont(btnFont);
     }
 
     // SettingsServiceに保存
