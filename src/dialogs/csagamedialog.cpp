@@ -461,4 +461,11 @@ void CsaGameDialog::applyFontSize()
     QFont font = this->font();
     font.setPointSize(m_fontSize);
     this->setFont(font);
+
+    // KDE BreezeテーマではsetFont()が子ウィジェットに伝播しないため、
+    // 明示的に全子ウィジェットにフォントを適用する
+    const auto children = findChildren<QWidget*>();
+    for (QWidget* child : children) {
+        child->setFont(font);
+    }
 }

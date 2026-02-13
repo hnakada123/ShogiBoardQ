@@ -556,118 +556,118 @@ Author: %1</translation>
         <translation>Network Game (CSA)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="35"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="242"/>
         <source>A-</source>
         <translation>A-</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="38"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="245"/>
         <source>フォントサイズを小さくする</source>
         <translation>Decrease font size</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="57"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="252"/>
         <source>A+</source>
         <translation>A+</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="60"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="255"/>
         <source>フォントサイズを大きくする</source>
         <translation>Increase font size</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="81"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="20"/>
         <source>こちら側の対局者</source>
         <translation>Player on this side</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="89"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="28"/>
         <source>人間</source>
         <translation>Human</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="116"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="55"/>
         <source>エンジン</source>
         <translation>Engine</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="133"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="72"/>
         <source>エンジン設定...</source>
         <translation>Engine Settings...</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="158"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="97"/>
         <source>サーバー</source>
         <translation>Server</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="164"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="103"/>
         <source>履歴から選ぶ</source>
         <translation>Select from history</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="181"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="120"/>
         <source>バージョン</source>
         <translation>Version</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="195"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="134"/>
         <source>CSAプロトコル1.2.1 読み筋コメント出力あり</source>
         <translation>CSA Protocol 1.2.1 with PV comment output</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="200"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="139"/>
         <source>CSAプロトコル1.2.1</source>
         <translation>CSA Protocol 1.2.1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="205"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="144"/>
         <source>CSAプロトコル1.1</source>
         <translation>CSA Protocol 1.1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="213"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="152"/>
         <source>接続先ホスト</source>
         <translation>Host</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="220"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="159"/>
         <source>例: 172.17.0.2</source>
         <translation>e.g. 172.17.0.2</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="227"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="166"/>
         <source>ポート番号</source>
         <translation>Port</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="247"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="186"/>
         <source>ID</source>
         <translation>ID</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="254"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="193"/>
         <source>ログインID</source>
         <translation>Login ID</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="261"/>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="271"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="200"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="210"/>
         <source>パスワード</source>
         <translation>Password</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="278"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="217"/>
         <source>パスワードを表示する</source>
         <translation>Show password</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="316"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="275"/>
         <source>対局開始</source>
         <translation>Start Game</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.ui" line="326"/>
+        <location filename="../../src/dialogs/csagamedialog.ui" line="285"/>
         <source>キャンセル</source>
         <translation>Cancel</translation>
     </message>

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSA通信対局 - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQのCSA通信対局機能を紹介します。CSAプロトコル対応サーバーへの接続設定から通信対局の流れをスクリーンショット付きで解説。floodgate・shogi-serverに対応。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/csa-game.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/csa-game.html">
+    <meta property="og:title" content="CSA通信対局 - ShogiBoardQ">
+    <meta property="og:description" content="ShogiBoardQのCSA通信対局機能を紹介。CSAプロトコル対応サーバーへの接続からネットワーク対局の流れを解説。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/csa-game/csa-03-playing.png">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="CSA通信対局 - ShogiBoardQ">
+    <meta name="twitter:description" content="ShogiBoardQのCSA通信対局機能を紹介。CSAプロトコル対応サーバーへの接続からネットワーク対局の流れを解説。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/csa-game/csa-03-playing.png">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="index.html" class="nav-logo">ShogiBoardQ</a>
+        <button class="nav-toggle" aria-label="メニュー" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="index.html">ホーム</a></li>
+            <li><a href="#connection-setup">接続設定</a></li>
+            <li><a href="#waiting">接続・待機</a></li>
+            <li><a href="#playing">通信対局中</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>CSA通信対局</h1>
+        <p class="hero-subtitle">CSAプロトコル対応サーバーとのネットワーク対局</p>
+        <div class="hero-badges">
+            <span class="badge">CSAプロトコル</span>
+            <span class="badge">shogi-server対応</span>
+            <span class="badge">floodgate対応</span>
+        </div>
+    </div>
+</section>
+
+<!-- Section 1: Connection Setup -->
+<section id="connection-setup" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">接続設定</h2>
+        <p class="section-desc">通信対局ダイアログでサーバーへの接続情報を設定します</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">通信対局ダイアログを開く</span>
+                </div>
+                <p class="guide-step-text">メニューの「対局」→「通信対局（CSA）」から通信対局ダイアログを開きます。</p>
+                <div class="screenshot-item">
+                    <img src="images/csa-game/csa-04-game-start.png" alt="ShogiBoardQ メイン画面">
+                    <p class="screenshot-caption">メイン画面：メニューの「対局」→「通信対局（CSA）」を選択</p>
+                </div>
+                <p class="guide-step-text">以下の項目を設定します。</p>
+                <ul class="guide-step-text">
+                    <li><strong>こちら側の対局者</strong>：人間またはUSIエンジンを選択</li>
+                    <li><strong>バージョン</strong>：CSAプロトコルのバージョンを選択</li>
+                    <li><strong>接続先ホスト</strong>：サーバーのホスト名またはIPアドレス</li>
+                    <li><strong>ポート番号</strong>：サーバーのポート番号</li>
+                    <li><strong>ID・パスワード</strong>：サーバーのログイン情報</li>
+                </ul>
+                <p class="guide-step-text">履歴から選ぶことで、過去に接続したサーバーの設定を呼び出すこともできます。</p>
+                <div class="screenshot-item">
+                    <img src="images/csa-game/csa-01-dialog.png" alt="通信対局（CSA）ダイアログ">
+                    <p class="screenshot-caption">通信対局ダイアログ：対局者・サーバー接続情報を設定</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2: Waiting -->
+<section id="waiting" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">接続・待機</h2>
+        <p class="section-desc">サーバーに接続し、対局相手とのマッチングを待ちます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">サーバーへの接続と待機</span>
+                </div>
+                <p class="guide-step-text">「対局開始」ボタンを押すと、サーバーへの接続が行われます。ログインに成功すると対局相手とのマッチングを待機する画面が表示されます。</p>
+                <p class="guide-step-text">「通信ログ...」ボタンからサーバーとの通信ログを確認できます。対局をやめたい場合は「対局キャンセル」ボタンで待機を中止できます。</p>
+                <div class="screenshot-item">
+                    <img src="images/csa-game/csa-02-waiting.png" alt="対局相手を待機中の画面">
+                    <p class="screenshot-caption">待機画面：ログイン成功後、対局相手とのマッチングを待機</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3: Playing -->
+<section id="playing" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">通信対局中</h2>
+        <p class="section-desc">対局が開始されると、通常の対局と同様の画面で指し手を進めます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">対局中の画面</span>
+                </div>
+                <p class="guide-step-text">対局中はCSA通信ログタブでサーバーとの通信内容をリアルタイムで確認できます。棋譜タブでは指し手の一覧、対局時計では残り時間が表示されます。</p>
+                <div class="screenshot-item">
+                    <img src="images/csa-game/csa-03-playing.png" alt="通信対局中の画面">
+                    <p class="screenshot-caption">対局中：CSA通信ログでサーバーとの通信を確認しながら対局</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 4: About CSA Protocol -->
+<section id="about-csa" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">対応サーバー</h2>
+        <p class="section-desc">CSAプロトコルに対応したサーバーで通信対局が可能です</p>
+
+        <div class="judgment-note">
+            <ul>
+                <li><strong>shogi-server</strong>：CSAプロトコルに対応したオープンソースの将棋サーバー。自前でサーバーを立てることもできます。</li>
+                <li><strong>floodgate</strong>：shogi-serverを利用した、コンピュータ将棋のオンライン対局場。24時間稼働しており、多くの将棋エンジンが参加しています。</li>
+            </ul>
+        </div>
+
+    </div>
+</section>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="index.html" class="back-link">&larr; ホームに戻る</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+</body>
+</html>
