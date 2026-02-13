@@ -35,7 +35,6 @@
             <li><a href="#engine-registration">エンジン登録</a></li>
             <li><a href="#game-start">対局開始</a></li>
             <li><a href="#playing">対局中</a></li>
-            <li><a href="#after-game">対局後</a></li>
             <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
         </ul>
     </div>
@@ -175,15 +174,15 @@
                     <span class="guide-step-number">1</span>
                     <span class="guide-step-title">対局画面</span>
                 </div>
-                <p class="guide-step-text">対局が開始されると、USI通信ログにエンジンの思考情報がリアルタイムで表示されます。</p>
+                <p class="guide-step-text">対局が開始されると、思考タブにエンジンの思考情報がリアルタイムで表示されます。</p>
                 <div class="screenshot-item">
-                    <img src="images/game-play/game-03-playing-kifu-tab.png" alt="対局画面（棋譜タブ表示）">
-                    <p class="screenshot-caption">対局画面：棋譜タブで対局中の指し手一覧を確認</p>
+                    <img src="images/game-play/game-03-playing-thinking-tab.png" alt="対局画面（棋譜タブ表示）">
+                    <p class="screenshot-caption">思考タブ：エンジンの思考情報をリアルタイム表示</p>
                 </div>
-                <p class="guide-step-text">思考タブでは思考の詳細を確認できます。</p>
+                <p class="guide-step-text">USI通信ログタブではGUIとエンジンとのUSIプロトコルでの通信ログを確認できます。</p>
                 <div class="screenshot-item">
                     <img src="images/game-play/game-02-playing-engine-log.png" alt="対局画面（エンジンログ表示）">
-                    <p class="screenshot-caption">思考タブ：エンジンの思考情報をリアルタイム表示</p>
+                    <p class="screenshot-caption">USI通信ログ：GUIとエンジンとのUSIプロトコルでの通信をリアルタイム表示</p>
                 </div>
             </div>
 
@@ -211,51 +210,27 @@
                 </div>
             </div>
 
-        </div>
-    </div>
-</section>
-
-<!-- Section 4: After Game -->
-<section id="after-game" class="section">
-    <div class="section-inner">
-        <h2 class="section-title">対局後の振り返り</h2>
-        <p class="section-desc">対局終了後は棋譜を振り返り、検討を行えます</p>
-
-        <div class="screenshot-gallery">
-
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">1</span>
-                    <span class="guide-step-title">対局情報の表示</span>
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">対局情報</span>
                 </div>
-                <p class="guide-step-text">対局が終了すると、対局結果や対局者情報が表示されます。</p>
+                <p class="guide-step-text">対局情報タブで対局日、開始日時、先手、後手、手合割、持ち時間、終了日時などの対局情報が表示されます。</p>
                 <div class="screenshot-item">
-                    <img src="images/game-play/game-06-finished-info.png" alt="対局終了後の情報表示">
-                    <p class="screenshot-caption">対局終了：対局結果と情報の表示</p>
+                    <img src="images/game-play/game-06-game-info.png" alt="対局終了後の情報表示">
+                    <p class="screenshot-caption">対局情報：対局情報の表示</p>
                 </div>
             </div>
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">2</span>
-                    <span class="guide-step-title">分岐ツリーで検討</span>
+                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-title">分岐ツリー</span>
                 </div>
-                <p class="guide-step-text">分岐ツリーを使って、別の手順を試したり変化を比較できます。</p>
+                <p class="guide-step-text">分岐ツリータブでは本譜だけではなく分岐の指し手も表示されます。</p>
                 <div class="screenshot-item">
                     <img src="images/game-play/game-07-branch-tree.png" alt="分岐ツリー表示">
-                    <p class="screenshot-caption">分岐ツリー：別の変化を記録・比較</p>
-                </div>
-            </div>
-
-            <div class="guide-step">
-                <div class="guide-step-header">
-                    <span class="guide-step-number">3</span>
-                    <span class="guide-step-title">検討モードでの振り返り</span>
-                </div>
-                <p class="guide-step-text">検討モードを使えば、任意の局面でエンジンに候補手を探させながら振り返りができます。盤面を反転して後手側の視点でも確認できます。</p>
-                <div class="screenshot-item">
-                    <img src="images/game-play/game-08-replay-flipped.png" alt="検討モードでの振り返り（盤面反転）">
-                    <p class="screenshot-caption">検討モード：盤面を反転して後手視点で振り返り</p>
+                    <p class="screenshot-caption">分岐ツリー：本譜だけでなく、別の変化の指し手を表示</p>
                 </div>
             </div>
 
