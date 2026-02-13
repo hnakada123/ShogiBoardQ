@@ -249,10 +249,14 @@ private:
                                QVector<KifuBranchNode*>& currentPath,
                                QVector<BranchLine>& lines,
                                int& lineIndex) const;
+    void invalidateLineCache();
 
     KifuBranchNode* m_root = nullptr;
     QHash<int, KifuBranchNode*> m_nodeById;
     int m_nextNodeId = 1;
+
+    mutable QVector<BranchLine> m_linesCache;
+    mutable bool m_linesCacheDirty = true;
 };
 
 #endif // KIFUBRANCHTREE_H

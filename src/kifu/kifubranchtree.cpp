@@ -14,6 +14,7 @@ KifuBranchTree::~KifuBranchTree()
     // clear() は treeChanged() シグナルを発火するが、
     // 破棄中は受信側が無効な状態である可能性があるため、
     // シグナルなしで直接クリーンアップする。
+    m_linesCache.clear();  // ダングリングポインタ防止
     qDeleteAll(m_nodeById);
     m_nodeById.clear();
     m_root = nullptr;
@@ -26,6 +27,8 @@ void KifuBranchTree::clear()
     // 理由: clear() 後に setRootSfen() 等が呼ばれることが多く、
     // 空の状態でシグナルを発行すると受信側で無効なポインタ参照が発生する可能性がある。
     // 呼び出し側が必要に応じてシグナルを発行する。
+    m_linesCache.clear();  // メモリ解放 + ダングリングポインタ防止
+    m_linesCacheDirty = true;
     qDeleteAll(m_nodeById);
     m_nodeById.clear();
     m_root = nullptr;
@@ -80,6 +83,7 @@ KifuBranchNode* KifuBranchTree::addMove(KifuBranchNode* parent,
     node->setTerminalType(termType);
 
     parent->addChild(node);
+    invalidateLineCache();
 
     emit nodeAdded(node);
     emit treeChanged();
@@ -109,6 +113,7 @@ KifuBranchNode* KifuBranchTree::addTerminalMove(KifuBranchNode* parent,
     node->setTerminalType(type);
 
     parent->addChild(node);
+    invalidateLineCache();
 
     emit nodeAdded(node);
     emit treeChanged();
@@ -143,6 +148,7 @@ KifuBranchNode* KifuBranchTree::addMoveQuiet(KifuBranchNode* parent,
     node->setTerminalType(termType);
 
     parent->addChild(node);
+    invalidateLineCache();
 
     // nodeAdded のみ発火、treeChanged は発火しない
     emit nodeAdded(node);
@@ -283,16 +289,27 @@ QVector<KifuBranchNode*> KifuBranchTree::branchesAt(KifuBranchNode* node) const
 
 QVector<BranchLine> KifuBranchTree::allLines() const
 {
-    QVector<BranchLine> lines;
+    if (!m_linesCacheDirty) {
+        return m_linesCache;
+    }
+
+    m_linesCache.clear();
     if (m_root == nullptr) {
-        return lines;
+        m_linesCacheDirty = false;
+        return m_linesCache;
     }
 
     QVector<KifuBranchNode*> currentPath;
     int lineIndex = 0;
-    collectLinesRecursive(m_root, currentPath, lines, lineIndex);
+    collectLinesRecursive(m_root, currentPath, m_linesCache, lineIndex);
 
-    return lines;
+    m_linesCacheDirty = false;
+    return m_linesCache;
+}
+
+void KifuBranchTree::invalidateLineCache()
+{
+    m_linesCacheDirty = true;
 }
 
 void KifuBranchTree::collectLinesRecursive(KifuBranchNode* node,

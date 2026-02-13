@@ -763,6 +763,8 @@ private:
     /// 棋譜ビューを指定手数の行にスクロールする
     void navigateKifuViewToRow(int ply);
 
+private:
+
     // --- フック用メンバー関数 ---
     /// 新規対局初期化のフックポイント（GameStartCoordinator用コールバック）
     void initializeNewGameHook(const QString& s);

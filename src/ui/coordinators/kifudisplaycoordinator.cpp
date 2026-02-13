@@ -124,7 +124,9 @@ void KifuDisplayCoordinator::wireSignals()
 
 void KifuDisplayCoordinator::onBranchTreeNodeClicked(int lineIndex, int ply)
 {
-    qCDebug(lcUi).noquote() << "onBranchTreeNodeClicked ENTER lineIndex=" << lineIndex << "ply=" << ply;
+    qCDebug(lcUi).noquote() << "onBranchTreeNodeClicked ENTER lineIndex=" << lineIndex << "ply=" << ply
+                            << "preferredLineIndex(before)=" << (m_state ? m_state->preferredLineIndex() : -99)
+                            << "m_lastModelLineIndex=" << m_lastModelLineIndex;
 
     // ラインとplyからノードを探して移動
     if (m_tree == nullptr || m_navController == nullptr) {
@@ -133,17 +135,37 @@ void KifuDisplayCoordinator::onBranchTreeNodeClicked(int lineIndex, int ply)
     }
 
     QVector<BranchLine> lines = m_tree->allLines();
+    qCDebug(lcUi).noquote() << "onBranchTreeNodeClicked: allLines().size()=" << lines.size();
     if (lineIndex < 0 || lineIndex >= lines.size()) {
         qCDebug(lcUi).noquote() << "onBranchTreeNodeClicked: lineIndex out of range";
         return;
     }
 
+    // 分岐ツリーでクリックしたラインを優先ラインとして設定
+    // goToNode() は preferredLineIndex を変更しないため、ここで設定しないと
+    // 以前の分岐選択の古い preferredLineIndex が残り、誤ったラインが表示される
+    if (m_state != nullptr) {
+        if (lineIndex > 0) {
+            m_state->setPreferredLineIndex(lineIndex);
+        } else {
+            m_state->resetPreferredLineIndex();
+        }
+        qCDebug(lcUi).noquote() << "onBranchTreeNodeClicked: preferredLineIndex(after)=" << m_state->preferredLineIndex();
+    }
+
     const BranchLine& line = lines.at(lineIndex);
+    qCDebug(lcUi).noquote() << "onBranchTreeNodeClicked: line.nodes.size()=" << line.nodes.size()
+                            << "line.branchPly=" << line.branchPly
+                            << "line.name=" << line.name;
     for (KifuBranchNode* node : std::as_const(line.nodes)) {
         if (node->ply() == ply) {
-            qCDebug(lcUi).noquote() << "onBranchTreeNodeClicked: found node, sfen=" << node->sfen();
+            qCDebug(lcUi).noquote() << "onBranchTreeNodeClicked: found node nodeId=" << node->nodeId()
+                                    << "displayText=" << node->displayText()
+                                    << "sfen=" << node->sfen();
             m_navController->goToNode(node);
-            qCDebug(lcUi).noquote() << "onBranchTreeNodeClicked LEAVE (goToNode done)";
+            qCDebug(lcUi).noquote() << "onBranchTreeNodeClicked LEAVE (goToNode done)"
+                                    << "currentLineIndex(after)=" << (m_state ? m_state->currentLineIndex() : -99)
+                                    << "m_lastModelLineIndex(after)=" << m_lastModelLineIndex;
             return;
         }
     }
@@ -153,7 +175,7 @@ void KifuDisplayCoordinator::onBranchTreeNodeClicked(int lineIndex, int ply)
         qCDebug(lcUi).noquote() << "onBranchTreeNodeClicked: using root node";
         m_navController->goToNode(m_tree->root());
     }
-    qCDebug(lcUi).noquote() << "onBranchTreeNodeClicked LEAVE";
+    qCDebug(lcUi).noquote() << "onBranchTreeNodeClicked LEAVE (node not found for ply=" << ply << ")";
 }
 
 void KifuDisplayCoordinator::onBranchCandidateActivated(const QModelIndex& index)
@@ -244,15 +266,22 @@ void KifuDisplayCoordinator::onRecordHighlightRequired(int ply)
         return;
     }
 
+    const int stateLineIndex = m_state ? m_state->currentLineIndex() : -1;
     qCDebug(lcUi).noquote() << "onRecordHighlightRequired: ply=" << ply
                        << "modelRowCount=" << m_recordModel->rowCount()
                        << "lastModelLineIndex=" << m_lastModelLineIndex
-                       << "stateLineIndex=" << (m_state ? m_state->currentLineIndex() : -1);
+                       << "stateLineIndex=" << stateLineIndex
+                       << "preferredLineIndex=" << (m_state ? m_state->preferredLineIndex() : -99);
 
     // 重要: モデルのラインとナビゲーション状態のラインが一致しない場合、モデルを再構築
-    if (m_state != nullptr && m_lastModelLineIndex >= 0 && m_lastModelLineIndex != m_state->currentLineIndex()) {
-        qCDebug(lcUi).noquote() << "onRecordHighlightRequired: Line mismatch detected, rebuilding model";
+    if (m_state != nullptr && m_lastModelLineIndex >= 0 && m_lastModelLineIndex != stateLineIndex) {
+        qCDebug(lcUi).noquote() << "onRecordHighlightRequired: Line mismatch detected ("
+                           << m_lastModelLineIndex << "!=" << stateLineIndex << "), rebuilding model";
         updateRecordView();
+        qCDebug(lcUi).noquote() << "onRecordHighlightRequired: after rebuild, m_lastModelLineIndex=" << m_lastModelLineIndex;
+    } else {
+        qCDebug(lcUi).noquote() << "onRecordHighlightRequired: NO rebuild (lastModel=" << m_lastModelLineIndex
+                           << " state=" << stateLineIndex << ")";
     }
 
     // ply=0は開始局面で、モデルの行0に対応

@@ -460,6 +460,21 @@ void GameRecordModel::syncToExternalStores(int ply, const QString& comment)
                                       << " updated liveDisp[" << ply << "]";
         }
     }
+
+    // KifuBranchTree のノードにも同期
+    if (m_branchTree != nullptr && !m_branchTree->isEmpty()) {
+        int lineIndex = 0;
+        if (m_navState != nullptr) {
+            lineIndex = m_navState->currentLineIndex();
+        }
+        QVector<BranchLine> lines = m_branchTree->allLines();
+        if (lineIndex >= 0 && lineIndex < lines.size()) {
+            const BranchLine& line = lines.at(lineIndex);
+            if (ply >= 0 && ply < line.nodes.size()) {
+                line.nodes[ply]->setComment(comment);
+            }
+        }
+    }
 }
 
 // ========================================
@@ -579,18 +594,13 @@ QList<KifDisplayItem> GameRecordModel::collectMainlineForExport() const
         qCDebug(lcKifu).noquote() << "collectMainlineForExport: from BranchTree"
                                   << "lineIndex=" << lineIndex << "items=" << result.size();
 
-        // コメントをマージ（ツリーのコメントが空の場合は m_comments から補完）
-        QStringList treeComments = m_branchTree->getCommentsForLine(lineIndex);
+        // m_comments / m_bookmarks をマージ
+        // getDisplayItemsForLine() がツリーのコメント・しおりを設定済みなので、
+        // ここでは m_comments / m_bookmarks による上書き（Single Source of Truth）のみ行う
         for (qsizetype i = 0; i < result.size(); ++i) {
-            // ツリーのコメント
-            if (i < treeComments.size() && !treeComments[i].isEmpty()) {
-                result[i].comment = treeComments[i];
-            }
-            // m_comments から補完（Single Source of Truth）
             if (i < m_comments.size() && !m_comments[i].isEmpty()) {
                 result[i].comment = m_comments[i];
             }
-            // しおりをマージ
             if (i < m_bookmarks.size() && !m_bookmarks[i].isEmpty()) {
                 result[i].bookmark = m_bookmarks[i];
             }
