@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>盤面編集 - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQの盤面編集機能を紹介します。自由に駒を配置して任意の局面を作成し、作成した局面から対局や解析を開始できます。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/board-edit.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/board-edit.html">
+    <meta property="og:title" content="盤面編集 - ShogiBoardQ">
+    <meta property="og:description" content="ShogiBoardQの盤面編集機能を紹介。自由に駒を配置して任意の局面を作成し、対局や解析を開始。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/board-edit/board-edit-01-editing.png">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="盤面編集 - ShogiBoardQ">
+    <meta name="twitter:description" content="ShogiBoardQの盤面編集機能を紹介。自由に駒を配置して任意の局面を作成し、対局や解析を開始。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/board-edit/board-edit-01-editing.png">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="index.html" class="nav-logo">ShogiBoardQ</a>
+        <button class="nav-toggle" aria-label="メニュー" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="index.html">ホーム</a></li>
+            <li><a href="#board-edit">盤面編集</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>盤面編集</h1>
+        <p class="hero-subtitle">自由に駒を配置して任意の局面を作成</p>
+        <div class="hero-badges">
+            <span class="badge">駒の自由配置</span>
+            <span class="badge">局面から対局</span>
+            <span class="badge">局面から解析</span>
+        </div>
+    </div>
+</section>
+
+<!-- Section 1: Board Editing -->
+<section id="board-edit" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">盤面編集機能</h2>
+        <p class="section-desc">任意の局面を作成して対局や解析に活用できます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">盤面編集モードを開始する</span>
+                </div>
+                <p class="guide-step-text">メニューの「編集」→「局面編集」から盤面編集モードに入ります。盤面編集モードでは、以下の操作で任意の局面を作成できます。</p>
+                <ul class="guide-step-text">
+                    <li><strong>左クリック</strong>：駒の移動。盤上の駒を別のマスへ移動したり、駒台の駒を盤上に配置できます</li>
+                    <li><strong>右クリック</strong>：駒の変化。盤上の駒を右クリックすると、成駒への変換や相手の駒への変換ができます</li>
+                </ul>
+                <p class="guide-step-text">編集が完了したら「編集終了」ボタンをクリックして盤面編集モードを終了します。作成した局面を開始局面として、対局や解析を行うことができます。</p>
+                <div class="screenshot-item">
+                    <img src="images/board-edit/board-edit-01-editing.png" alt="盤面編集モードの画面">
+                    <p class="screenshot-caption">盤面編集モード：駒を自由に配置して任意の局面を作成</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="index.html" class="back-link">&larr; ホームに戻る</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+</body>
+</html>
