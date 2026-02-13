@@ -824,11 +824,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="98"/>
-        <source>通信ログ...</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <location filename="../../src/dialogs/csawaitingdialog.cpp" line="108"/>
         <source>対局キャンセル</source>
         <translation type="unfinished"></translation>
@@ -889,27 +884,32 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="237"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="283"/>
         <source>フォントサイズを小さくする</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="246"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="292"/>
         <source>フォントサイズを大きくする</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="259"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="235"/>
         <source>CSAサーバーへ送信</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="268"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="98"/>
+        <source>通信ログ</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="244"/>
         <source>コマンドを入力してEnter</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="300"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="301"/>
         <source>閉じる</source>
         <translation type="unfinished">閉じる</translation>
     </message>

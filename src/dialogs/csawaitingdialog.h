@@ -166,6 +166,8 @@ private:
     QToolButton* m_btnLogFontDecrease = nullptr;  ///< ログA-ボタン
     int m_logFontSize = 0;                         ///< ログウィンドウのフォントサイズ
 
+    QPushButton* m_logCloseButton = nullptr;        ///< ログウィンドウ閉じるボタン
+
     // コマンド入力UI
     QPushButton* m_btnSendToServer = nullptr;     ///< CSAサーバーへ送信ボタン
     QLineEdit* m_commandInput = nullptr;          ///< コマンド入力欄
