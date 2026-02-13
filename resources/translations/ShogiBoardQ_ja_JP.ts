@@ -2765,12 +2765,12 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="147"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="149"/>
         <source>An error occurred in KifuAnalysisDialog::showEngineSettingsDialog. The Shogi engine has not been selected.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="150"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="152"/>
         <source>Error</source>
         <translation type="unfinished"></translation>
     </message>

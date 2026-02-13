@@ -9,6 +9,8 @@
 #include "shogiutils.h"
 
 #include <QFile>
+#include <QComboBox>
+#include <QAbstractItemView>
 #include <QTextStream>
 #include <qmessagebox.h>
 
@@ -296,9 +298,28 @@ void KifuAnalysisDialog::onFontDecrease()
 // フォントサイズを適用
 void KifuAnalysisDialog::applyFontSize()
 {
+    // 念のため範囲外値を抑止（設定ファイル汚損時の安全策）
+    m_fontSize = qBound(8, m_fontSize, 24);
+
     QFont f = font();
     f.setPointSize(m_fontSize);
     setFont(f);
+
+    // setFont() だけでは反映されない子ウィジェットがあるため明示適用する
+    const QList<QWidget*> widgets = findChildren<QWidget*>();
+    for (QWidget* widget : widgets) {
+        if (widget) {
+            widget->setFont(f);
+        }
+    }
+
+    // コンボボックスのポップアップリストにも反映する
+    const QList<QComboBox*> comboBoxes = findChildren<QComboBox*>();
+    for (QComboBox* comboBox : comboBoxes) {
+        if (comboBox && comboBox->view()) {
+            comboBox->view()->setFont(f);
+        }
+    }
     
     // ダイアログサイズを調整
     adjustSize();
