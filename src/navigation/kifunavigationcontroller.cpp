@@ -430,13 +430,15 @@ void KifuNavigationController::handleBranchNodeActivated(int row, int ply)
     }
 
     // 分岐前の共有ノードをクリックした場合は現在のライン上にとどまる
+    // ただし、別の分岐行(row > 0 かつ row != currentLine)を明示的にクリックした場合は
+    // そのラインに切り替える。共有ノード判定は本譜行(row == 0)のクリック時のみ適用。
     int effectiveRow = row;
     const int currentLine = m_state->currentLineIndex();
     if (currentLine > 0 && currentLine < lines.size()) {
         const BranchLine& currentBranchLine = lines.at(currentLine);
-        if (ply < currentBranchLine.branchPly) {
+        if (row == 0 && ply < currentBranchLine.branchPly) {
             effectiveRow = currentLine;
-            qCDebug(lcNavigation).noquote() << "handleBranchNodeActivated: shared node clicked, keeping current line=" << currentLine;
+            qCDebug(lcNavigation).noquote() << "handleBranchNodeActivated: shared node clicked on main line, keeping current line=" << currentLine;
         }
     }
 

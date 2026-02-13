@@ -443,7 +443,8 @@ bool BranchTreeWidget::eventFilter(QObject* obj, QEvent* ev)
                 const int lineIndex = pathItem->data(ROLE_LINE_INDEX).toInt();
 
                 qCDebug(lcUi) << "[BranchTreeWidget] nodeClicked: lineIndex=" << lineIndex
-                         << " ply=" << ply << " row=" << row;
+                         << "ply=" << ply << "row=" << row
+                         << "childItems=" << pathItem->childItems().size();
 
                 emit nodeClicked(lineIndex, ply);
                 return true;

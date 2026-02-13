@@ -92,15 +92,28 @@ QString KifuNavigationState::currentSfen() const
 void KifuNavigationState::setCurrentNode(KifuBranchNode* node)
 {
     if (m_currentNode == node) {
+        qCDebug(lcKifu).noquote() << "setCurrentNode: same node, skipping";
         return;
     }
 
     KifuBranchNode* oldNode = m_currentNode;
     int oldLineIndex = currentLineIndex();
 
+    qCDebug(lcKifu).noquote() << "setCurrentNode: oldNode="
+                              << (oldNode ? QString::number(oldNode->nodeId()) : "null")
+                              << "oldLineIndex=" << oldLineIndex
+                              << "preferredLineIndex=" << m_preferredLineIndex
+                              << "newNode=" << (node ? QString::number(node->nodeId()) : "null")
+                              << "newNodePly=" << (node ? node->ply() : -1)
+                              << "newNodeDisplayText=" << (node ? node->displayText() : "null");
+
     m_currentNode = node;
 
     int newLineIndex = currentLineIndex();
+
+    qCDebug(lcKifu).noquote() << "setCurrentNode: newLineIndex=" << newLineIndex
+                              << "oldLineIndex=" << oldLineIndex
+                              << "willEmitLineChanged=" << (newLineIndex != oldLineIndex);
 
     emit currentNodeChanged(m_currentNode, oldNode);
 

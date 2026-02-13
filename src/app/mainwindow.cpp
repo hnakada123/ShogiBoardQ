@@ -4196,3 +4196,4 @@ void MainWindow::ensureUiStatePolicyManager()
     deps.boardController = m_boardController;
     m_uiStatePolicy->updateDeps(deps);
 }
+
