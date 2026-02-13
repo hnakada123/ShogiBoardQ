@@ -32,12 +32,12 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="953"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="954"/>
         <source>先手</source>
         <translation type="unfinished">先手</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="954"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="955"/>
         <source>後手</source>
         <translation type="unfinished">後手</translation>
     </message>
@@ -891,18 +891,18 @@
 <context>
     <name>DialogCoordinator</name>
     <message>
-        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="407"/>
+        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="413"/>
         <source>将棋エンジンが選択されていません。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="673"/>
+        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="679"/>
         <source>Error</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="407"/>
-        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="679"/>
+        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="413"/>
+        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="685"/>
         <source>エラー</source>
         <translation type="unfinished">エラー</translation>
     </message>
@@ -3492,17 +3492,17 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3758"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3760"/>
         <source>局面を反映しました</source>
         <translation>局面を反映しました</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3760"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3762"/>
         <source>局面の反映に失敗しました</source>
         <translation>局面の反映に失敗しました</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3763"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3765"/>
         <source>局面の反映に失敗しました（内部エラー）</source>
         <translation>局面の反映に失敗しました（内部エラー）</translation>
     </message>
@@ -3532,7 +3532,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3260"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3262"/>
         <source>コメントなし</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3541,17 +3541,17 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">定跡</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3732"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3734"/>
         <source>棋譜を取り込みました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3734"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3736"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3738"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3740"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation type="unfinished"></translation>
     </message>

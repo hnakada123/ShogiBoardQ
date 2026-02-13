@@ -146,10 +146,11 @@ GameStartCoordinator::matchGameEnded ───► transitionToIdle()
 GameStateController callback ───────────► transitionToIdle()
 
 DialogCoordinator::analysisModeStarted ─► transitionToDuringAnalysis()
-DialogCoordinator::analysisModeEnded ───► transitionToIdle()
+DialogCoordinator::analysisModeEnded ───► transitionToIdle()  （ダイアログキャンセル時 or 解析完了/中止時）
 
 DialogCoordinator::tsumeSearchModeStarted ► transitionToDuringTsumeSearch()
-MatchCoordinator::tsumeSearchModeEnded ──► transitionToIdle()
+DialogCoordinator::tsumeSearchModeEnded ──► transitionToIdle()  （ダイアログキャンセル時）
+MatchCoordinator::tsumeSearchModeEnded ──► transitionToIdle()  （探索完了/中止時）
 
 DialogCoordinator::considerationModeStarted ► transitionToDuringConsideration()
 MatchCoordinator::considerationModeEnded ──► transitionToIdle()

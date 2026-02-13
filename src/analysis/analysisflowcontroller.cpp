@@ -798,7 +798,7 @@ void AnalysisFlowController::onAnalysisFinished(AnalysisCoordinator::Mode /*mode
     Q_EMIT analysisStopped();
 }
 
-void AnalysisFlowController::runWithDialog(const Deps& d, QWidget* parent)
+bool AnalysisFlowController::runWithDialog(const Deps& d, QWidget* parent)
 {
     qCDebug(lcAnalysis).noquote() << "runWithDialog START";
     qCDebug(lcAnalysis).noquote() << "d.gameController=" << d.gameController;
@@ -807,11 +807,11 @@ void AnalysisFlowController::runWithDialog(const Deps& d, QWidget* parent)
     // 依存の必須チェック（usi以外）
     if (!d.sfenRecord || d.sfenRecord->isEmpty()) {
         if (d.displayError) d.displayError(tr("内部エラー: sfenRecord が未準備です。棋譜読み込み後に実行してください。"));
-        return;
+        return false;
     }
     if (!d.analysisModel) {
         if (d.displayError) d.displayError(tr("内部エラー: 解析モデルが未準備です。"));
-        return;
+        return false;
     }
 
     // ダイアログを生成してユーザに選択してもらう
@@ -824,7 +824,7 @@ void AnalysisFlowController::runWithDialog(const Deps& d, QWidget* parent)
     dlg.setMaxPly(qMax(0, maxPly));
 
     const int result = dlg.exec();
-    if (result != QDialog::Accepted) return;
+    if (result != QDialog::Accepted) return false;
 
     // GameControllerを保持
     m_gameController = d.gameController;
@@ -882,6 +882,7 @@ void AnalysisFlowController::runWithDialog(const Deps& d, QWidget* parent)
 
     // 以降は既存の start(...) に委譲（Presenter への表示や接続も start 側で実施）
     start(actualDeps, &dlg);
+    return true;
 }
 
 void AnalysisFlowController::onResultRowDoubleClicked(int row)

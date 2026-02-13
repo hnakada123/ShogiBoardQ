@@ -245,7 +245,10 @@ void DialogCoordinator::showTsumeSearchDialog(const TsumeSearchParams& params)
     d.startPositionCmd = params.startPositionCmd;
     d.onError = [this](const QString& msg) { showFlowError(msg); };
 
-    flow->runWithDialog(d, m_parentWidget);
+    const bool started = flow->runWithDialog(d, m_parentWidget);
+    if (!started) {
+        Q_EMIT tsumeSearchModeEnded();
+    }
 }
 
 void DialogCoordinator::showKifuAnalysisDialog(const KifuAnalysisParams& params)
@@ -285,7 +288,10 @@ void DialogCoordinator::showKifuAnalysisDialog(const KifuAnalysisParams& params)
     d.boardFlipped = params.boardFlipped;
     d.displayError = [this](const QString& msg) { showFlowError(msg); };
 
-    m_analysisFlow->runWithDialog(d, m_parentWidget);
+    const bool started = m_analysisFlow->runWithDialog(d, m_parentWidget);
+    if (!started) {
+        Q_EMIT analysisModeEnded();
+    }
 }
 
 void DialogCoordinator::setKifuAnalysisContext(const KifuAnalysisContext& ctx)

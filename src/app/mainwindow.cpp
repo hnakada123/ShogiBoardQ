@@ -2594,6 +2594,8 @@ void MainWindow::ensureDialogCoordinator()
             m_uiStatePolicy, &UiStatePolicyManager::transitionToIdle);
     connect(m_dialogCoordinator, &DialogCoordinator::tsumeSearchModeStarted,
             m_uiStatePolicy, &UiStatePolicyManager::transitionToDuringTsumeSearch);
+    connect(m_dialogCoordinator, &DialogCoordinator::tsumeSearchModeEnded,
+            m_uiStatePolicy, &UiStatePolicyManager::transitionToIdle);
     connect(m_dialogCoordinator, &DialogCoordinator::considerationModeStarted,
             m_uiStatePolicy, &UiStatePolicyManager::transitionToDuringConsideration);
 }

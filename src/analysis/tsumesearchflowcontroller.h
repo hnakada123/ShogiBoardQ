@@ -39,7 +39,8 @@ public:
     explicit TsumeSearchFlowController(QObject* parent=nullptr);
 
     /// ダイアログ表示後、詰み探索を開始する
-    void runWithDialog(const Deps& d, QWidget* parent);
+    /// @return 探索が開始された場合は true、キャンセルやエラーで中止された場合は false
+    bool runWithDialog(const Deps& d, QWidget* parent);
 
 private:
     /// 詰み探索用の`position ...`文字列を組み立てる
