@@ -100,6 +100,16 @@ private slots:
      */
     void onLogFontDecrease();
 
+    /**
+     * @brief ダイアログのフォントサイズを大きくする
+     */
+    void onFontIncrease();
+
+    /**
+     * @brief ダイアログのフォントサイズを小さくする
+     */
+    void onFontDecrease();
+
 private:
     /**
      * @brief UIを初期化する
@@ -129,6 +139,11 @@ private:
      */
     void updateLogFontSize(int delta);
 
+    /**
+     * @brief ダイアログのフォントサイズを適用する
+     */
+    void applyFontSize();
+
 private:
     CsaGameCoordinator* m_coordinator = nullptr;  ///< CSA通信対局コーディネータ
     QLabel* m_statusLabel = nullptr;              ///< 状態表示ラベル
@@ -136,6 +151,11 @@ private:
     QProgressBar* m_progressBar = nullptr;        ///< プログレスバー（待機中表示用）
     QPushButton* m_cancelButton = nullptr;        ///< キャンセルボタン
     QPushButton* m_showLogButton = nullptr;       ///< 通信ログ表示ボタン
+
+    // フォントサイズ調整ボタン（ダイアログ本体）
+    QToolButton* m_btnFontIncrease = nullptr;    ///< A+ボタン
+    QToolButton* m_btnFontDecrease = nullptr;    ///< A-ボタン
+    int m_fontSize = 0;                           ///< ダイアログのフォントサイズ
 
     // 通信ログウィンドウ
     QDialog* m_logWindow = nullptr;               ///< 通信ログウィンドウ
