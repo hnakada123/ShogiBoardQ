@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>棋譜解析 - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQの棋譜解析機能を紹介します。USIエンジンによる棋譜解析の設定から解析結果の確認・評価値グラフの表示までの流れをスクリーンショット付きで解説。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/kifu-analysis.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/kifu-analysis.html">
+    <meta property="og:title" content="棋譜解析 - ShogiBoardQ">
+    <meta property="og:description" content="ShogiBoardQの棋譜解析機能を紹介。USIエンジンによる解析の設定から評価値グラフの表示までの流れを解説。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/kifu-analysis/analysis-04-eval-graph.png">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="棋譜解析 - ShogiBoardQ">
+    <meta name="twitter:description" content="ShogiBoardQの棋譜解析機能を紹介。USIエンジンによる解析の設定から評価値グラフの表示までの流れを解説。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/kifu-analysis/analysis-04-eval-graph.png">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="index.html" class="nav-logo">ShogiBoardQ</a>
+        <button class="nav-toggle" aria-label="メニュー" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="index.html">ホーム</a></li>
+            <li><a href="#analysis-setup">解析設定</a></li>
+            <li><a href="#analysis-results">解析結果</a></li>
+            <li><a href="#eval-graph">評価値グラフ</a></li>
+            <li><a href="#judgment">形勢判断</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>棋譜解析</h1>
+        <p class="hero-subtitle">USIエンジンによる棋譜解析で形勢の推移を把握</p>
+        <div class="hero-badges">
+            <span class="badge">評価値グラフ</span>
+            <span class="badge">候補手表示</span>
+            <span class="badge">解析範囲指定</span>
+        </div>
+    </div>
+</section>
+
+<!-- Section 1: Analysis Setup -->
+<section id="analysis-setup" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">解析の設定</h2>
+        <p class="section-desc">棋譜解析ダイアログで解析条件を設定します</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">解析する棋譜を用意する</span>
+                </div>
+                <p class="guide-step-text">解析したい棋譜を用意します。対局終了後にそのまま解析することも、ファイルメニューから棋譜を読み込んで解析することもできます。</p>
+                <div class="screenshot-item">
+                    <img src="images/kifu-analysis/analysis-01-main-with-results.png" alt="ShogiBoardQ メイン画面（棋譜表示）">
+                    <p class="screenshot-caption">メイン画面：解析したい棋譜を表示した状態</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">棋譜解析ダイアログを開く</span>
+                </div>
+                <p class="guide-step-text">メニューの「対局」→「棋譜解析」から棋譜解析ダイアログを開きます。以下の項目を設定できます。</p>
+                <ul class="guide-step-text">
+                    <li>解析に使用するUSIエンジンの選択</li>
+                    <li>解析範囲の指定（全手 / 指定範囲）</li>
+                    <li>1手あたりの思考時間の設定</li>
+                </ul>
+                <div class="screenshot-item">
+                    <img src="images/kifu-analysis/analysis-02-dialog.png" alt="棋譜解析ダイアログ">
+                    <p class="screenshot-caption">棋譜解析ダイアログ：エンジン・解析範囲・思考時間を設定</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2: Analysis Results -->
+<section id="analysis-results" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">解析結果</h2>
+        <p class="section-desc">各手の評価値や候補手を確認できます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">解析結果の表示</span>
+                </div>
+                <p class="guide-step-text">解析が完了すると、各手の評価値・候補手・読み筋が下部パネルに表示されます。棋譜の各手をクリックすると、その局面での解析結果を確認できます。</p>
+                <div class="screenshot-item">
+                    <img src="images/kifu-analysis/analysis-03-in-progress.png" alt="棋譜解析結果の表示">
+                    <p class="screenshot-caption">解析結果：各手の評価値・候補手・読み筋を表示</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3: Eval Graph -->
+<section id="eval-graph" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">評価値グラフ</h2>
+        <p class="section-desc">形勢の推移をグラフで視覚的に把握できます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">評価値グラフの表示</span>
+                </div>
+                <p class="guide-step-text">評価値グラフタブでは、解析結果をもとに形勢の推移がグラフ表示されます。</p>
+                <div class="screenshot-item">
+                    <img src="images/kifu-analysis/analysis-04-eval-graph.png" alt="評価値グラフ表示">
+                    <p class="screenshot-caption">評価値グラフ：形勢の推移を視覚的に表示</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 4: Judgment Criteria -->
+<section id="judgment" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">形勢判断の基準</h2>
+        <p class="section-desc">評価値から形勢を5段階で判定します</p>
+
+        <table class="judgment-table">
+            <thead>
+                <tr>
+                    <th>評価値</th>
+                    <th>形勢判断</th>
+                    <th>表示例</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>0 ~ 100</td>
+                    <td class="judgment-label">互角</td>
+                    <td>互角</td>
+                </tr>
+                <tr>
+                    <td>101 ~ 300</td>
+                    <td class="judgment-label">やや有利</td>
+                    <td>先手やや有利 / 後手やや有利</td>
+                </tr>
+                <tr>
+                    <td>301 ~ 600</td>
+                    <td class="judgment-label">有利</td>
+                    <td>先手有利 / 後手有利</td>
+                </tr>
+                <tr>
+                    <td>601 ~ 1000</td>
+                    <td class="judgment-label">優勢</td>
+                    <td>先手優勢 / 後手優勢</td>
+                </tr>
+                <tr>
+                    <td>1001 以上</td>
+                    <td class="judgment-label">勝勢</td>
+                    <td>先手勝勢 / 後手勝勢</td>
+                </tr>
+                <tr>
+                    <td>詰み</td>
+                    <td class="judgment-label">勝ち</td>
+                    <td>先手勝ち / 後手勝ち</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="judgment-note">
+            <ul>
+                <li>評価値は先手視点で、正の値は先手有利、負の値は後手有利を意味します</li>
+                <li>形勢判断は評価値の絶対値をもとに判定されます</li>
+                <li>詰みが検出された場合は、評価値の閾値に関わらず「先手勝ち」または「後手勝ち」と表示されます</li>
+            </ul>
+        </div>
+
+    </div>
+</section>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="index.html" class="back-link">&larr; ホームに戻る</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+</body>
+</html>
