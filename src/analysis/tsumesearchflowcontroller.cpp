@@ -17,27 +17,27 @@ TsumeSearchFlowController::TsumeSearchFlowController(QObject* parent)
 {
 }
 
-void TsumeSearchFlowController::runWithDialog(const Deps& d, QWidget* parent)
+bool TsumeSearchFlowController::runWithDialog(const Deps& d, QWidget* parent)
 {
     if (!d.match) {
         if (d.onError) d.onError(QStringLiteral("内部エラー: MatchCoordinator が未初期化です。"));
-        return;
+        return false;
     }
     const QString pos = buildPositionForMate(d);
     if (pos.isEmpty()) {
         if (d.onError) d.onError(QStringLiteral("詰み探索用の局面（SFEN）が取得できません。棋譜を読み込むか局面を指定してください。"));
-        return;
+        return false;
     }
 
     TsumeShogiSearchDialog dlg(parent);
-    if (dlg.exec() != QDialog::Accepted) return;
+    if (dlg.exec() != QDialog::Accepted) return false;
 
     const QList<ConsiderationDialog::Engine>& engines = dlg.getEngineList();
     const int idx = dlg.getEngineNumber();
 
     if (engines.isEmpty() || idx < 0 || idx >= engines.size()) {
         if (d.onError) d.onError(QStringLiteral("詰み探索エンジンの選択が不正です。"));
-        return;
+        return false;
     }
 
     const auto& engine = engines.at(idx);
@@ -48,6 +48,7 @@ void TsumeSearchFlowController::runWithDialog(const Deps& d, QWidget* parent)
     }
 
     startAnalysis(d.match, engine.path, engine.name, pos, byoyomiMs);
+    return true;
 }
 
 QString TsumeSearchFlowController::buildPositionForMate(const Deps& d) const

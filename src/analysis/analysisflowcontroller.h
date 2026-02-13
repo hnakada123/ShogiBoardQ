@@ -74,7 +74,8 @@ public:
     void start(const Deps& d, KifuAnalysisDialog* dlg);
 
     /// ダイアログ生成から解析開始までを一括実行する
-    void runWithDialog(const Deps& d, QWidget* parent);
+    /// @return 解析が開始された場合は true、キャンセルやエラーで中止された場合は false
+    bool runWithDialog(const Deps& d, QWidget* parent);
 
     /// 実行中の解析を停止する
     void stop();

@@ -336,6 +336,11 @@ Q_SIGNALS:
     void tsumeSearchModeStarted();
 
     /**
+     * @brief 詰み探索モードが終了した（ダイアログキャンセル時）
+     */
+    void tsumeSearchModeEnded();
+
+    /**
      * @brief 棋譜解析モードが開始された
      */
     void analysisModeStarted();
