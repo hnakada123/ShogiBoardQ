@@ -15,67 +15,6 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayoutMain">
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayoutFontSize">
-     <item>
-      <spacer name="horizontalSpacerFontLeft">
-       <property name="orientation">
-        <enum>Qt::Orientation::Horizontal</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>40</width>
-         <height>20</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
-     <item>
-      <widget class="QToolButton" name="toolButtonFontDecrease">
-       <property name="text">
-        <string>A-</string>
-       </property>
-       <property name="toolTip">
-        <string>フォントサイズを小さくする</string>
-       </property>
-       <property name="minimumSize">
-        <size>
-         <width>28</width>
-         <height>24</height>
-        </size>
-       </property>
-       <property name="maximumSize">
-        <size>
-         <width>28</width>
-         <height>24</height>
-        </size>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QToolButton" name="toolButtonFontIncrease">
-       <property name="text">
-        <string>A+</string>
-       </property>
-       <property name="toolTip">
-        <string>フォントサイズを大きくする</string>
-       </property>
-       <property name="minimumSize">
-        <size>
-         <width>28</width>
-         <height>24</height>
-        </size>
-       </property>
-       <property name="maximumSize">
-        <size>
-         <width>28</width>
-         <height>24</height>
-        </size>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </item>
-   <item>
     <widget class="QGroupBox" name="groupBoxPlayer">
      <property name="title">
       <string>こちら側の対局者</string>
@@ -297,6 +236,26 @@
    </item>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayoutButtons">
+     <item>
+      <widget class="QToolButton" name="toolButtonFontDecrease">
+       <property name="text">
+        <string>A-</string>
+       </property>
+       <property name="toolTip">
+        <string>フォントサイズを小さくする</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QToolButton" name="toolButtonFontIncrease">
+       <property name="text">
+        <string>A+</string>
+       </property>
+       <property name="toolTip">
+        <string>フォントサイズを大きくする</string>
+       </property>
+      </widget>
+     </item>
      <item>
       <spacer name="horizontalSpacerButtons">
        <property name="orientation">
