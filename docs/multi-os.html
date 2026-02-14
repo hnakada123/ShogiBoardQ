@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>マルチOS対応 - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQのマルチOS対応を紹介します。Qt6のクロスプラットフォーム機能により、Linux・macOS・Windowsで動作します。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/multi-os.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/multi-os.html">
+    <meta property="og:title" content="マルチOS対応 - ShogiBoardQ">
+    <meta property="og:description" content="ShogiBoardQのマルチOS対応を紹介。Qt6のクロスプラットフォーム機能により、Linux・macOS・Windowsで動作。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/multi-os/Linux.png">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="マルチOS対応 - ShogiBoardQ">
+    <meta name="twitter:description" content="ShogiBoardQのマルチOS対応を紹介。Qt6のクロスプラットフォーム機能により、Linux・macOS・Windowsで動作。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/multi-os/Linux.png">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="index.html" class="nav-logo">ShogiBoardQ</a>
+        <button class="nav-toggle" aria-label="メニュー" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="index.html">ホーム</a></li>
+            <li><a href="#linux">Linux</a></li>
+            <li><a href="#macos">macOS</a></li>
+            <li><a href="#windows">Windows</a></li>
+            <li><a href="#qt6">Qt6について</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>マルチOS対応</h1>
+        <p class="hero-subtitle">Qt6のクロスプラットフォーム機能で主要OSをサポート</p>
+        <div class="hero-badges">
+            <span class="badge">Linux</span>
+            <span class="badge">macOS</span>
+            <span class="badge">Windows</span>
+            <span class="badge">Qt 6</span>
+        </div>
+    </div>
+</section>
+
+<!-- Section 1: Linux -->
+<section id="linux" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Linux</h2>
+        <p class="section-desc">Linux環境でネイティブに動作します</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Linux版の画面</span>
+                </div>
+                <p class="guide-step-text">Linux上でShogiBoardQが動作している様子です。KDE PlasmaやGNOMEなど主要なデスクトップ環境で利用できます。</p>
+                <div class="screenshot-item">
+                    <img src="images/multi-os/Linux.png" alt="ShogiBoardQ Linux版の画面">
+                    <p class="screenshot-caption">Linux版：KDE Plasma環境での対局画面</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2: macOS -->
+<section id="macos" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">macOS</h2>
+        <p class="section-desc">macOS環境でネイティブに動作します</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">macOS版の画面</span>
+                </div>
+                <p class="guide-step-text">macOS上でShogiBoardQが動作している様子です。macOSのネイティブなルック&フィールで表示されます。</p>
+                <div class="screenshot-item">
+                    <img src="images/multi-os/macOS.png" alt="ShogiBoardQ macOS版の画面">
+                    <p class="screenshot-caption">macOS版：macOS環境での対局画面</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3: Windows -->
+<section id="windows" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Windows</h2>
+        <p class="section-desc">Windows環境でネイティブに動作します</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Windows版の画面</span>
+                </div>
+                <p class="guide-step-text">Windows上でShogiBoardQが動作している様子です。WindowsのネイティブなUIスタイルで表示されます。</p>
+                <div class="screenshot-item">
+                    <img src="images/multi-os/Windows.png" alt="ShogiBoardQ Windows版の画面">
+                    <p class="screenshot-caption">Windows版：Windows環境での対局画面</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 4: Qt6 -->
+<section id="qt6" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Qt6によるクロスプラットフォーム</h2>
+        <p class="section-desc">Qt6フレームワークの機能によりマルチOS対応を実現しています</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">単一のソースコードで複数OSに対応</span>
+                </div>
+                <p class="guide-step-text">ShogiBoardQはQt6フレームワークとC++17で開発されています。Qt6のクロスプラットフォーム機能により、同一のソースコードからLinux・macOS・Windows向けのアプリケーションをビルドできます。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">各OSのネイティブなルック&フィール</span>
+                </div>
+                <p class="guide-step-text">Qt6は各OSのネイティブなスタイルに合わせてUIを描画します。これにより、どのOSでも違和感のない操作感を提供します。</p>
+                <ul class="guide-step-text">
+                    <li>Linux：KDE Plasma、GNOMEなどのデスクトップ環境に対応</li>
+                    <li>macOS：macOS標準のUIスタイルで表示</li>
+                    <li>Windows：Windows標準のUIスタイルで表示</li>
+                </ul>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">ビルド方法</span>
+                </div>
+                <p class="guide-step-text">各OSでQt6とCMakeをインストールすれば、同じ手順でビルドできます。</p>
+                <ul class="guide-step-text">
+                    <li>Qt 6（Widgets, Charts, Network, LinguistTools）</li>
+                    <li>C++17対応コンパイラ</li>
+                    <li>CMake 3.16以上</li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="index.html" class="back-link">&larr; ホームに戻る</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+</body>
+</html>
