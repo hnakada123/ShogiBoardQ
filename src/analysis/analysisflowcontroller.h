@@ -123,6 +123,9 @@ private slots:
     /// 結果行ダブルクリック時に読み筋盤面を表示する
     void onResultRowDoubleClicked(int row);
 
+    /// エンジンエラー受信時に解析を停止する
+    void onEngineError(const QString& msg);
+
 private:
     QPointer<AnalysisCoordinator>      m_coord;      ///< 解析司令塔（非所有）
     QPointer<AnalysisResultsPresenter> m_presenter;  ///< 結果表示Presenter（非所有）

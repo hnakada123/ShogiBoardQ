@@ -86,7 +86,7 @@ void EngineProcessManager::stopProcess()
     }
 
     disconnect(m_process, nullptr, this, nullptr);
-    delete m_process;
+    m_process->deleteLater();
     m_process = nullptr;
 
     m_shutdownState = ShutdownState::Running;
