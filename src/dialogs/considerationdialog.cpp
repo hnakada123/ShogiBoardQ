@@ -2,14 +2,17 @@
 /// @brief 検討ダイアログクラスの実装
 
 #include "considerationdialog.h"
+#include "buttonstyles.h"
 #include "changeenginesettingsdialog.h"
 #include "ui_considerationdialog.h"
 #include "enginesettingsconstants.h"
 #include "settingsservice.h"
+#include <QAbstractItemView>
+#include <QComboBox>
 #include <QFile>
 #include <QTextStream>
 #include <QMessageBox>
-#include <QToolButton>
+#include <QPushButton>
 
 using namespace EngineSettingsConstants;
 
@@ -24,6 +27,10 @@ ConsiderationDialog::ConsiderationDialog(QWidget *parent)
 
     // フォントサイズを適用
     applyFontSize();
+
+    // フォントサイズボタンにスタイルを適用
+    ui->toolButtonFontDecrease->setStyleSheet(ButtonStyles::fontButton());
+    ui->toolButtonFontIncrease->setStyleSheet(ButtonStyles::fontButton());
 
     // 設定ファイルからエンジンの名前とディレクトリを読み込む。
     readEngineNameAndDir();
@@ -44,8 +51,8 @@ ConsiderationDialog::ConsiderationDialog(QWidget *parent)
     connect(ui->buttonBox, &QDialogButtonBox::rejected, this, &ConsiderationDialog::reject);
 
     // フォントサイズボタン
-    connect(ui->toolButtonFontIncrease, &QToolButton::clicked, this, &ConsiderationDialog::onFontIncrease);
-    connect(ui->toolButtonFontDecrease, &QToolButton::clicked, this, &ConsiderationDialog::onFontDecrease);
+    connect(ui->toolButtonFontIncrease, &QPushButton::clicked, this, &ConsiderationDialog::onFontIncrease);
+    connect(ui->toolButtonFontDecrease, &QPushButton::clicked, this, &ConsiderationDialog::onFontDecrease);
 }
 
 ConsiderationDialog::~ConsiderationDialog()
@@ -199,9 +206,29 @@ void ConsiderationDialog::updateFontSize(int delta)
 // ダイアログ全体にフォントサイズを適用する
 void ConsiderationDialog::applyFontSize()
 {
-    QFont font = this->font();
-    font.setPointSize(m_fontSize);
-    this->setFont(font);
+    // 念のため範囲外値を抑止（設定ファイル汚損時の安全策）
+    m_fontSize = qBound(8, m_fontSize, 24);
+
+    QFont f = font();
+    f.setPointSize(m_fontSize);
+    setFont(f);
+
+    // コンストラクタ中は setFont() による子ウィジェットへのフォント伝播が
+    // 遅延するため、全子ウィジェットに明示的にフォントを設定する
+    const QList<QWidget*> widgets = findChildren<QWidget*>();
+    for (QWidget* widget : std::as_const(widgets)) {
+        if (widget) {
+            widget->setFont(f);
+        }
+    }
+
+    // コンボボックスのポップアップリストにも反映する
+    const QList<QComboBox*> comboBoxes = findChildren<QComboBox*>();
+    for (QComboBox* comboBox : std::as_const(comboBoxes)) {
+        if (comboBox && comboBox->view()) {
+            comboBox->view()->setFont(f);
+        }
+    }
 }
 
 // 保存された設定を読み込む

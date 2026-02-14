@@ -203,7 +203,7 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayoutBottom">
      <item>
-      <widget class="QToolButton" name="toolButtonFontDecrease">
+      <widget class="QPushButton" name="toolButtonFontDecrease">
        <property name="text">
         <string>A-</string>
        </property>
@@ -212,20 +212,20 @@
        </property>
        <property name="minimumSize">
         <size>
-         <width>28</width>
-         <height>24</height>
+         <width>40</width>
+         <height>0</height>
         </size>
        </property>
        <property name="maximumSize">
         <size>
-         <width>28</width>
-         <height>24</height>
+         <width>40</width>
+         <height>16777215</height>
         </size>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QToolButton" name="toolButtonFontIncrease">
+      <widget class="QPushButton" name="toolButtonFontIncrease">
        <property name="text">
         <string>A+</string>
        </property>
@@ -234,14 +234,14 @@
        </property>
        <property name="minimumSize">
         <size>
-         <width>28</width>
-         <height>24</height>
+         <width>40</width>
+         <height>0</height>
         </size>
        </property>
        <property name="maximumSize">
         <size>
-         <width>28</width>
-         <height>24</height>
+         <width>40</width>
+         <height>16777215</height>
         </size>
        </property>
       </widget>
