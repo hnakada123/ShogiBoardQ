@@ -1672,7 +1672,7 @@ Discard changes and move?</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="465"/>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="781"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="773"/>
         <source>将棋エンジンを1つ選択してください。</source>
         <translation>Please select one shogi engine.</translation>
     </message>
@@ -1682,22 +1682,21 @@ Discard changes and move?</translation>
         <translation>USI_Hash option added.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="599"/>
         <source>USI_Ponder option added.</source>
-        <translation>USI_Ponder option added.</translation>
+        <translation type="vanished">USI_Ponder option added.</translation>
     </message>
     <message>
         <source>New option added:</source>
         <translation type="vanished">New option added:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="690"/>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="701"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="682"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="693"/>
         <source>オプション行の形式が無効です。</source>
         <translation>Invalid option line format.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="744"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="736"/>
         <source>重複したエンジンオプションが見つかりました。</source>
         <translation>Duplicate engine option found.</translation>
     </message>
@@ -6378,37 +6377,37 @@ Are you sure you want to declare?</translation>
 <context>
     <name>UsiProtocolHandler</name>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="126"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="128"/>
         <source>Timeout waiting for usiok</source>
         <translation>Timeout waiting for usiok</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="136"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="157"/>
         <source>Timeout waiting for readyok</source>
         <translation>Timeout waiting for readyok</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="625"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="657"/>
         <source>Invalid bestmove format: %1</source>
         <translation>Invalid bestmove format: %1</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="719"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="751"/>
         <source>Invalid bestmove format: &quot;%1&quot;</source>
         <translation>Invalid bestmove format: &quot;%1&quot;</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="753"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="785"/>
         <source>Invalid move format in moveFrom</source>
         <translation>Invalid move format in moveFrom</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="760"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="792"/>
         <source>Invalid move format in moveTo</source>
         <translation>Invalid move format in moveTo</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="790"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="822"/>
         <source>Invalid fileFrom value</source>
         <translation>Invalid fileFrom value</translation>
     </message>

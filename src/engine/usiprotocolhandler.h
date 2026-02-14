@@ -7,6 +7,7 @@
 #include <QObject>
 #include <QString>
 #include <QStringList>
+#include <QSet>
 #include <QMap>
 #include <QPoint>
 #include <QElapsedTimer>
@@ -220,6 +221,7 @@ private:
 
     // --- 設定 ---
     QStringList m_setOptionCommands;   ///< 初期化時に送信するsetoptionコマンド群
+    QSet<QString> m_reportedOptions;   ///< エンジンが報告したオプション名（usi〜usiok間）
 
     // --- 計測 ---
     QElapsedTimer m_goTimer;           ///< go送信からbestmoveまでの経過時間計測

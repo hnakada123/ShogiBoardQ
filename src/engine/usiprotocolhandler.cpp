@@ -121,14 +121,35 @@ void UsiProtocolHandler::setGameController(ShogiGameController* controller)
 
 bool UsiProtocolHandler::initializeEngine(const QString& /*engineName*/)
 {
+    m_reportedOptions.clear();
+
     sendUsi();
     if (!waitForUsiOk(5000)) {
         emit errorOccurred(tr("Timeout waiting for usiok"));
         return false;
     }
 
+    // エンジンが報告したオプションのみ送信する。
+    // 設定ファイルに保存されていてもエンジンが対応していないオプションは送信しない。
     for (const QString& cmd : m_setOptionCommands) {
+        // "setoption name <name> value ..." または "setoption name <name>" から名前を抽出
+        static const QString prefix = QStringLiteral("setoption name ");
+        if (cmd.startsWith(prefix)) {
+            qsizetype valuePos = cmd.indexOf(QStringLiteral(" value "), prefix.length());
+            QString optName = (valuePos > 0)
+                ? cmd.mid(prefix.length(), valuePos - prefix.length())
+                : cmd.mid(prefix.length());
+            if (!m_reportedOptions.contains(optName)) {
+                qCDebug(lcEngine) << "Skipping unsupported option:" << optName;
+                continue;
+            }
+        }
         sendCommand(cmd);
+    }
+
+    // エンジンがUSI_Ponderを報告していない場合はponderを無効にする
+    if (m_isPonderEnabled && !m_reportedOptions.contains(QStringLiteral("USI_Ponder"))) {
+        m_isPonderEnabled = false;
     }
 
     sendIsReady();
@@ -597,6 +618,17 @@ void UsiProtocolHandler::onDataReceived(const QString& line)
     if (line.contains(QStringLiteral("readyok"))) {
         m_readyOkReceived = true;
         emit readyOkReceived();
+        return;
+    }
+
+    if (line.startsWith(QStringLiteral("option name "))) {
+        // エンジンが報告したオプション名を記録（usi〜usiok間）
+        // 形式: "option name <name> type <type> ..."
+        const qsizetype nameStart = 12; // "option name " の長さ
+        qsizetype typePos = line.indexOf(QStringLiteral(" type "), nameStart);
+        if (typePos > nameStart) {
+            m_reportedOptions.insert(line.mid(nameStart, typePos - nameStart));
+        }
         return;
     }
 

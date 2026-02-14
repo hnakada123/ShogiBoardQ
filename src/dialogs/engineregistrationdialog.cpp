@@ -587,17 +587,9 @@ void EngineRegistrationDialog::parseEngineOptionsFromUsiOutput()
         qCDebug(lcUi) << tr("USI_Hash option added.");
     }
 
-    // USI_Ponderオプションが存在するかを確認
-    auto usiPonderIt = std::find_if(m_engineOptions.begin(), m_engineOptions.end(), [](const EngineOption& option) {
-        return option.name == "USI_Ponder";
-    });
-
-    // USI_Ponderオプションが存在しない場合は追加する。
-    if (usiPonderIt == m_engineOptions.end()) {
-        addOption("USI_Ponder", OptionTypeCheck, "false", "", "", "false");
-
-        qCDebug(lcUi) << tr("USI_Ponder option added.");
-    }
+    // 注: USI_Ponderはエンジンが報告した場合のみ使用する。
+    // 詰み探索専用エンジン等はUSI_Ponderを実装していないため、
+    // 自動追加するとsetoptionでエラーになる。
 }
 
 // エンジンオプション構造体に値を設定する。
