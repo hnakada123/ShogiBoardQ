@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>棋譜表示 - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQの棋譜表示機能を紹介します。棋譜ドックでの指し手表示、コメント・しおりの編集、分岐棋譜の操作、ナビゲーションボタンの使い方を解説。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/kifu-display.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/kifu-display.html">
+    <meta property="og:title" content="棋譜表示 - ShogiBoardQ">
+    <meta property="og:description" content="ShogiBoardQの棋譜表示機能を紹介。棋譜ドックでの指し手表示、コメント・しおりの編集、分岐棋譜の操作を解説。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/kifu-display/moves-time-bookmark-comment.png">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="棋譜表示 - ShogiBoardQ">
+    <meta name="twitter:description" content="ShogiBoardQの棋譜表示機能を紹介。棋譜ドックでの指し手表示、コメント・しおりの編集、分岐棋譜の操作を解説。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/kifu-display/moves-time-bookmark-comment.png">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="index.html" class="nav-logo">ShogiBoardQ</a>
+        <button class="nav-toggle" aria-label="メニュー" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="index.html">ホーム</a></li>
+            <li><a href="#column-display">表示列</a></li>
+            <li><a href="#comment">コメント</a></li>
+            <li><a href="#bookmark">しおり</a></li>
+            <li><a href="#branch">分岐棋譜</a></li>
+            <li><a href="#navigation">ナビゲーション</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>棋譜表示</h1>
+        <p class="hero-subtitle">棋譜ドックでの指し手表示・コメント・しおり・分岐棋譜の操作</p>
+        <div class="hero-badges">
+            <span class="badge">コメント編集</span>
+            <span class="badge">しおり</span>
+            <span class="badge">分岐棋譜</span>
+            <span class="badge">ナビゲーション</span>
+        </div>
+    </div>
+</section>
+
+<!-- Section 1: Column Display -->
+<section id="column-display" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">表示列の切り替え</h2>
+        <p class="section-desc">棋譜ドックでは表示する列を切り替えて、必要な情報だけを表示できます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">指し手のみ表示</span>
+                </div>
+                <p class="guide-step-text">棋譜ドックの基本表示です。指し手の一覧が表示されます。右側のツールバーにある各ボタンで表示列を切り替えられます。</p>
+                <div class="screenshot-item">
+                    <img src="images/kifu-display/moves-only.png" alt="棋譜ドック：指し手のみ表示">
+                    <p class="screenshot-caption">指し手のみ表示：棋譜ドックの基本表示</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">消費時間列の表示</span>
+                </div>
+                <p class="guide-step-text">ツールバーの時計ボタンをクリックすると、消費時間列が表示されます。各指し手の1手あたりの消費時間と合計消費時間が「1手/合計」の形式で表示されます。</p>
+                <div class="screenshot-item">
+                    <img src="images/kifu-display/moves-time.png" alt="棋譜ドック：消費時間列を表示">
+                    <p class="screenshot-caption">消費時間列を表示：各手の消費時間と合計時間を確認</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">しおり列の表示</span>
+                </div>
+                <p class="guide-step-text">ツールバーのしおりボタンをクリックすると、しおり列が表示されます。各指し手に設定されたしおり名が表示されます。</p>
+                <div class="screenshot-item">
+                    <img src="images/kifu-display/moves-time-bookmark.png" alt="棋譜ドック：しおり列を表示">
+                    <p class="screenshot-caption">しおり列を表示：消費時間とあわせてしおり名を確認</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">コメント列の表示</span>
+                </div>
+                <p class="guide-step-text">ツールバーのコメントボタンをクリックすると、コメント列が表示されます。各指し手に設定されたコメントが表示されます。消費時間・しおり・コメントの各列は個別に表示/非表示を切り替えられます。</p>
+                <div class="screenshot-item">
+                    <img src="images/kifu-display/moves-time-bookmark-comment.png" alt="棋譜ドック：コメント列を表示">
+                    <p class="screenshot-caption">全列を表示：指し手・消費時間・しおり・コメントを一覧表示</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2: Comment -->
+<section id="comment" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">棋譜コメント</h2>
+        <p class="section-desc">各指し手にコメントを追加・編集できます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">コメントの編集</span>
+                </div>
+                <p class="guide-step-text">コメントを追加したい指し手を選択し、画面下部の棋譜コメント欄にコメントを入力します。入力後「コメント更新」ボタンをクリックして保存します。</p>
+                <div class="screenshot-item">
+                    <img src="images/kifu-display/comment-editing.png" alt="棋譜コメントの編集画面">
+                    <p class="screenshot-caption">コメント編集中：棋譜コメント欄にコメントを入力し「コメント更新」ボタンで保存</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">コメントの表示</span>
+                </div>
+                <p class="guide-step-text">保存したコメントは棋譜ドックのコメント列に表示されます。指し手を選択すると、画面下部の棋譜コメント欄にもコメントの全文が表示されます。</p>
+                <div class="screenshot-item">
+                    <img src="images/kifu-display/comment-updated.png" alt="棋譜コメントが保存された状態">
+                    <p class="screenshot-caption">コメント保存後：棋譜ドックのコメント列と棋譜コメント欄に反映</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3: Bookmark -->
+<section id="bookmark" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">しおり</h2>
+        <p class="section-desc">重要な局面にしおりを付けて、すばやくアクセスできます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">しおりの編集</span>
+                </div>
+                <p class="guide-step-text">しおりを付けたい指し手を選択し、ツールバーの「しおりを編集」ボタンをクリックします。「しおりを編集」ダイアログが開くので、しおり名を入力して「OK」をクリックします。</p>
+                <div class="screenshot-item">
+                    <img src="images/kifu-display/bookmark-edit-dialog.png" alt="しおりを編集ダイアログ">
+                    <p class="screenshot-caption">しおりを編集ダイアログ：しおり名を入力して保存</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">しおりの表示</span>
+                </div>
+                <p class="guide-step-text">設定したしおりは棋譜ドックのしおり列に表示されます。しおりが設定された指し手には、しおり名が表示されます。しおりを削除するには、しおり名を空にして保存します。</p>
+                <div class="screenshot-item">
+                    <img src="images/kifu-display/bookmark-added.png" alt="しおりが追加された状態">
+                    <p class="screenshot-caption">しおり追加後：棋譜ドックのしおり列にしおり名が表示される</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 4: Branch -->
+<section id="branch" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">分岐棋譜</h2>
+        <p class="section-desc">分岐のある棋譜では、別の変化手順を確認・移動できます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">分岐棋譜の全体表示</span>
+                </div>
+                <p class="guide-step-text">分岐のある棋譜を読み込むと、棋譜ドックの棋譜欄に本譜の指し手が表示されます。画面下部の分岐ツリータブでは、本譜と分岐の手順をツリー形式で確認できます。</p>
+                <div class="screenshot-item">
+                    <img src="images/kifu-display/branch-overview.png" alt="分岐棋譜の全体表示">
+                    <p class="screenshot-caption">分岐棋譜：本譜の指し手と分岐ツリーを表示</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">分岐のある指し手の識別</span>
+                </div>
+                <p class="guide-step-text">分岐のある指し手はオレンジ色で表示され、指し手の先頭に「+」の記号が付きます。これにより、どの手に別の変化があるかが一目でわかります。分岐のある指し手を選択すると、右側の分岐候補欄に分岐候補の指し手が一覧表示されます。</p>
+                <div class="screenshot-item">
+                    <img src="images/kifu-display/branch-moves.png" alt="分岐のある指し手がオレンジ色で表示されている">
+                    <p class="screenshot-caption">分岐のある指し手：オレンジ色と「+」記号で識別。分岐候補欄に分岐候補が表示される</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">分岐の指し手に移動</span>
+                </div>
+                <p class="guide-step-text">分岐候補欄に表示された指し手をクリックすると、その分岐の手順に移動できます。移動後は棋譜ドックの表示が分岐先の指し手に切り替わり、盤面も更新されます。</p>
+                <div class="screenshot-item">
+                    <img src="images/kifu-display/branch-navigated.png" alt="分岐の指し手に移動した状態">
+                    <p class="screenshot-caption">分岐先に移動：分岐候補をクリックして別の変化に移動</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 5: Navigation -->
+<section id="navigation" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">ナビゲーションボタン</h2>
+        <p class="section-desc">棋譜ドック右側のナビゲーションボタンで、指し手を自在に移動できます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">ナビゲーションボタンの機能</span>
+                </div>
+                <p class="guide-step-text">棋譜ドックの右側にはナビゲーションボタンが配置されています。上から順に以下の操作ができます。</p>
+                <ul class="guide-step-text">
+                    <li><strong>A+</strong>：棋譜欄のフォントサイズを拡大</li>
+                    <li><strong>A-</strong>：棋譜欄のフォントサイズを縮小</li>
+                    <li><strong>しおりを編集ボタン</strong>：選択中の指し手にしおりを追加・編集</li>
+                    <li><strong>消費時間列ボタン</strong>：消費時間列の表示/非表示を切り替え</li>
+                    <li><strong>しおり列ボタン</strong>：しおり列の表示/非表示を切り替え</li>
+                    <li><strong>コメント列ボタン</strong>：コメント列の表示/非表示を切り替え</li>
+                </ul>
+                <p class="guide-step-text">その下には指し手の移動ボタンがあります。</p>
+                <ul class="guide-step-text">
+                    <li><strong>&#9650;|</strong>（先頭へ）：開始局面に移動</li>
+                    <li><strong>&#9650;&#9650;</strong>（10手戻る）：10手前の指し手に移動</li>
+                    <li><strong>&#9650;</strong>（1手戻る）：1手前の指し手に移動</li>
+                    <li><strong>&#9660;</strong>（1手進む）：1手先の指し手に移動</li>
+                    <li><strong>&#9660;&#9660;</strong>（10手進む）：10手先の指し手に移動</li>
+                    <li><strong>&#9660;|</strong>（末尾へ）：最終手に移動</li>
+                </ul>
+                <div class="screenshot-item">
+                    <img src="images/kifu-display/moves-only.png" alt="棋譜ドックのナビゲーションボタン">
+                    <p class="screenshot-caption">ナビゲーションボタン：右側のボタンで表示列の切り替えや指し手の移動を操作</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="index.html" class="back-link">&larr; ホームに戻る</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+</body>
+</html>
