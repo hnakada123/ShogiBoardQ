@@ -12,7 +12,8 @@ ShogiBoardQ を macOS でビルドし、DMG ファイルとしてリリースす
 4. [アプリバンドルの作成](#4-アプリバンドルの作成)
 5. [DMG ファイルの作成](#5-dmg-ファイルの作成)
 6. [コード署名と公証](#6-コード署名と公証)
-7. [トラブルシューティング](#7-トラブルシューティング)
+7. [GitHub Release での公開](#7-github-release-での公開)
+8. [トラブルシューティング](#8-トラブルシューティング)
 
 ---
 
@@ -376,7 +377,102 @@ xattr -cr /Applications/ShogiBoardQ.app
 
 ---
 
-## 7. トラブルシューティング
+## 7. GitHub Release での公開
+
+### 7.1 タグの作成
+
+```bash
+git tag -a v0.1.0 -m "v0.1.0 リリース"
+git push origin v0.1.0
+```
+
+### 7.2 GitHub CLI でリリース作成
+
+[GitHub CLI (gh)](https://cli.github.com/) を使用：
+
+```bash
+# インストール
+brew install gh
+
+# ログイン（初回のみ）
+gh auth login
+```
+
+リリース作成とアセットのアップロード：
+
+```bash
+gh release create v0.1.0 \
+  --title "ShogiBoardQ v0.1.0" \
+  --notes-file RELEASE_NOTES.md \
+  ShogiBoardQ.dmg
+```
+
+> Windows の ZIP も同時に公開する場合は、アセットを追加：
+> ```bash
+> gh release create v0.1.0 \
+>   --title "ShogiBoardQ v0.1.0" \
+>   --notes-file RELEASE_NOTES.md \
+>   ShogiBoardQ.dmg \
+>   ShogiBoardQ-windows.zip
+> ```
+
+#### リリースノートの自動生成
+
+リリースノートファイルを用意しない場合、GitHub が自動生成する：
+
+```bash
+gh release create v0.1.0 \
+  --title "ShogiBoardQ v0.1.0" \
+  --generate-notes \
+  ShogiBoardQ.dmg
+```
+
+#### 既存リリースにアセットを追加
+
+Windows 側で先にリリースを作成済みの場合、macOS の DMG を追加：
+
+```bash
+gh release upload v0.1.0 ShogiBoardQ.dmg
+```
+
+### 7.3 Web UI からリリース作成（代替）
+
+1. GitHub リポジトリ → **Releases** → **Draft a new release**
+2. **Choose a tag** → 新しいタグ（例: `v0.1.0`）を入力して作成
+3. **Release title** を入力（例: `ShogiBoardQ v0.1.0`）
+4. **Description** にリリースノートを記入
+5. **Attach binaries** に `ShogiBoardQ.dmg` をドラッグ＆ドロップ
+6. **Publish release** をクリック
+
+### 7.4 リリースノートの書き方（テンプレート）
+
+```markdown
+## ShogiBoardQ v0.1.0
+
+### ダウンロード
+
+| OS | ファイル |
+|---|---|
+| macOS | `ShogiBoardQ.dmg` |
+| Windows (64-bit) | `ShogiBoardQ-windows.zip` |
+
+### macOS での起動方法
+
+1. DMG ファイルを開く
+2. ShogiBoardQ.app を Applications フォルダにドラッグ＆ドロップ
+3. Applications から起動
+
+> 署名なしの場合、初回起動時に「開発元が未確認」と表示されます。
+> Finder でアプリを右クリック →「開く」で起動できます。
+
+### 変更点
+
+- ...
+```
+
+---
+
+## 8. トラブルシューティング
 
 ### Qt が見つからない
 

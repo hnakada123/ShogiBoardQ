@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=ShogiBoardQ
+Comment=Shogi Board Application
+Exec=ShogiBoardQ
+Icon=shogiboardq
+Categories=Game;BoardGame;
+Terminal=false
