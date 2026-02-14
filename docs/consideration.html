@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>検討モード - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQの検討モードを紹介します。任意の局面でエンジンに候補手を検討させ、複数の読み筋を同時に表示する機能をスクリーンショット付きで解説。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/consideration.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/consideration.html">
+    <meta property="og:title" content="検討モード - ShogiBoardQ">
+    <meta property="og:description" content="ShogiBoardQの検討モードを紹介。任意の局面でエンジンに候補手を検討させ、複数の読み筋を同時に表示する機能を解説。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/consideration/consideration-03-thinking-tab.png">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="検討モード - ShogiBoardQ">
+    <meta name="twitter:description" content="ShogiBoardQの検討モードを紹介。任意の局面でエンジンに候補手を検討させ、複数の読み筋を同時に表示する機能を解説。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/consideration/consideration-03-thinking-tab.png">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="index.html" class="nav-logo">ShogiBoardQ</a>
+        <button class="nav-toggle" aria-label="メニュー" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="index.html">ホーム</a></li>
+            <li><a href="#consideration-setup">検討の設定</a></li>
+            <li><a href="#consideration-running">検討中</a></li>
+            <li><a href="#continue-consideration">続けて検討</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>検討モード</h1>
+        <p class="hero-subtitle">任意の局面でエンジンに候補手を検討させるモード</p>
+        <div class="hero-badges">
+            <span class="badge">複数候補手</span>
+            <span class="badge">読み筋表示</span>
+            <span class="badge">任意局面</span>
+        </div>
+    </div>
+</section>
+
+<!-- Section 1: Consideration Setup -->
+<section id="consideration-setup" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">検討の設定</h2>
+        <p class="section-desc">検討タブで検討条件を設定します</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">検討タブの初期状態</span>
+                </div>
+                <p class="guide-step-text">検討タブでは以下の項目を設定できます。</p>
+                <ul class="guide-step-text">
+                    <li>検討に使用するUSIエンジンの選択</li>
+                    <li>時間無制限 / 検討時間の設定</li>
+                    <li>候補手の数の設定</li>
+                </ul>
+                <p class="guide-step-text">設定後、「検討開始」ボタンをクリックして検討を開始します。</p>
+                <div class="screenshot-item">
+                    <img src="images/consideration/consideration-01-initial.png" alt="検討タブ初期状態">
+                    <p class="screenshot-caption">検討タブ：エンジン・検討時間・候補手の数を設定</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2: During Consideration -->
+<section id="consideration-running" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">検討中</h2>
+        <p class="section-desc">エンジンの候補手と読み筋をリアルタイムで確認できます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">検討結果の表示</span>
+                </div>
+                <p class="guide-step-text">検討が開始されると、エンジンの候補手・評価値・読み筋が検討タブにリアルタイムで表示されます。</p>
+                <div class="screenshot-item">
+                    <img src="images/consideration/consideration-02-running.png" alt="検討中の画面">
+                    <p class="screenshot-caption">検討中：候補手・評価値・読み筋をリアルタイム表示</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">盤面上の候補手表示</span>
+                </div>
+                <p class="guide-step-text">将棋盤上にエンジンの候補手が順位付きの矢印で表示されます。候補手の順位が一目でわかり、どの手が最善手かを視覚的に確認できます。</p>
+                <div class="screenshot-item">
+                    <img src="images/consideration/consideration-03-thinking-tab.png" alt="盤面上の候補手矢印表示">
+                    <p class="screenshot-caption">候補手の矢印表示：順位付きの矢印で候補手を盤面上に表示</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">思考タブ</span>
+                </div>
+                <p class="guide-step-text">思考タブでは、エンジンの思考情報（評価値・深さ・ノード数・読み筋など）の詳細をリアルタイムで確認できます。</p>
+                <div class="screenshot-item">
+                    <img src="images/consideration/consideration-03-thinking-tab.png" alt="思考タブ表示">
+                    <p class="screenshot-caption">思考タブ：エンジンの思考情報の詳細をリアルタイム表示</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3: Continue Consideration -->
+<section id="continue-consideration" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">続けて検討</h2>
+        <p class="section-desc">棋譜の別の指し手を選択して検討を続けられます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">別の局面を検討</span>
+                </div>
+                <p class="guide-step-text">棋譜欄の別の指し手をクリックすると、その局面に移動して続けて検討できます。気になる局面を次々と検討することが可能です。</p>
+                <div class="screenshot-item">
+                    <img src="images/consideration/consideration-04-different-move.png" alt="別の指し手を選択して検討">
+                    <p class="screenshot-caption">続けて検討：棋譜欄の別の指し手をクリックして検討を継続</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="index.html" class="back-link">&larr; ホームに戻る</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+</body>
+</html>
