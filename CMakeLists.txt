@@ -282,10 +282,27 @@ set_target_properties(ShogiBoardQ PROPERTIES
 
 # ==== Install ====
 include(GNUInstallDirs)
+
+# 実行ファイル
 install(TARGETS ShogiBoardQ
     BUNDLE DESTINATION .
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+
+# デスクトップエントリ
+install(FILES resources/platform/shogiboardq.desktop
+    DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/applications
+)
+
+# アプリケーションアイコン（256x256）
+install(FILES resources/icons/shogiboardq.png
+    DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/256x256/apps
+)
+
+# 翻訳ファイル（.qm）
+install(FILES ${QM_FILES}
+    DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
 # ==== Finalize ====
