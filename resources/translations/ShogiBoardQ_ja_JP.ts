@@ -1579,7 +1579,7 @@
     </message>
     <message>
         <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="465"/>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="781"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="773"/>
         <source>将棋エンジンを1つ選択してください。</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1589,18 +1589,13 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="599"/>
-        <source>USI_Ponder option added.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="690"/>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="701"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="682"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="693"/>
         <source>オプション行の形式が無効です。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="744"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="736"/>
         <source>重複したエンジンオプションが見つかりました。</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5650,37 +5645,37 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>UsiProtocolHandler</name>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="126"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="128"/>
         <source>Timeout waiting for usiok</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="136"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="157"/>
         <source>Timeout waiting for readyok</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="625"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="657"/>
         <source>Invalid bestmove format: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="719"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="751"/>
         <source>Invalid bestmove format: &quot;%1&quot;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="753"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="785"/>
         <source>Invalid move format in moveFrom</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="760"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="792"/>
         <source>Invalid move format in moveTo</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="790"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="822"/>
         <source>Invalid fileFrom value</source>
         <translation type="unfinished"></translation>
     </message>
