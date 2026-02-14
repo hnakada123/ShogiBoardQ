@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>詰将棋探索 - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQの詰将棋探索機能を紹介します。USIエンジンによる詰み探索の設定から詰み手順の確認・読み筋表示までの流れをスクリーンショット付きで解説。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/tsumeshogi.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/tsumeshogi.html">
+    <meta property="og:title" content="詰将棋探索 - ShogiBoardQ">
+    <meta property="og:description" content="ShogiBoardQの詰将棋探索機能を紹介。USIエンジンによる詰み探索の設定から詰み手順の確認までの流れを解説。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/tsumeshogi/tsume-05-search-result.png">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="詰将棋探索 - ShogiBoardQ">
+    <meta name="twitter:description" content="ShogiBoardQの詰将棋探索機能を紹介。USIエンジンによる詰み探索の設定から詰み手順の確認までの流れを解説。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/tsumeshogi/tsume-05-search-result.png">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="index.html" class="nav-logo">ShogiBoardQ</a>
+        <button class="nav-toggle" aria-label="メニュー" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="index.html">ホーム</a></li>
+            <li><a href="#position-setup">局面の準備</a></li>
+            <li><a href="#search-settings">探索設定</a></li>
+            <li><a href="#search-results">探索結果</a></li>
+            <li><a href="#reading-lines">読み筋表示</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>詰将棋探索</h1>
+        <p class="hero-subtitle">USIエンジンによる詰み探索で詰み手順を発見</p>
+        <div class="hero-badges">
+            <span class="badge">詰み探索</span>
+            <span class="badge">読み筋表示</span>
+            <span class="badge">局面編集対応</span>
+        </div>
+    </div>
+</section>
+
+<!-- Section 1: Position Setup -->
+<section id="position-setup" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">局面の準備</h2>
+        <p class="section-desc">詰将棋の局面を盤面編集で作成します</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">メイン画面</span>
+                </div>
+                <p class="guide-step-text">ShogiBoardQを起動します。詰将棋の局面を探索するには、まず対象の局面を用意する必要があります。</p>
+                <div class="screenshot-item">
+                    <img src="images/tsumeshogi/tsume-01-main-screen.png" alt="ShogiBoardQ メイン画面">
+                    <p class="screenshot-caption">メイン画面：起動直後の状態</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">局面編集で局面を作成</span>
+                </div>
+                <p class="guide-step-text">メニューの「編集」→「局面編集開始」から局面編集モードに入り、詰将棋の局面を作成します。駒を自由に配置して任意の局面を作成できます。</p>
+                <div class="screenshot-item">
+                    <img src="images/tsumeshogi/tsume-02-position-edit.png" alt="局面編集モードで詰将棋の局面を作成">
+                    <p class="screenshot-caption">局面編集モード：詰将棋の局面を作成中（「編集終了」ボタンで確定）</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">局面の確定</span>
+                </div>
+                <p class="guide-step-text">「編集終了」ボタンをクリックして局面を確定します。これで詰み探索の準備が整いました。</p>
+                <div class="screenshot-item">
+                    <img src="images/tsumeshogi/tsume-03-position-ready.png" alt="詰将棋の局面が確定した状態">
+                    <p class="screenshot-caption">局面確定：詰将棋の局面が設定された状態</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2: Search Settings -->
+<section id="search-settings" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">詰み探索の設定</h2>
+        <p class="section-desc">詰み探索ダイアログで探索条件を設定します</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">詰み探索ダイアログ</span>
+                </div>
+                <p class="guide-step-text">メニューの「対局」→「詰み探索」から詰み探索ダイアログを開きます。以下の項目を設定できます。</p>
+                <ul class="guide-step-text">
+                    <li>探索に使用するUSIエンジンの選択</li>
+                    <li>思考時間の設定（時間無制限 / 検討時間の指定）</li>
+                    <li>候補手の数の設定</li>
+                </ul>
+                <div class="screenshot-item">
+                    <img src="images/tsumeshogi/tsume-04-search-dialog.png" alt="詰み探索ダイアログ">
+                    <p class="screenshot-caption">詰み探索ダイアログ：エンジン・思考時間・候補手数を設定</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3: Search Results -->
+<section id="search-results" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">探索結果</h2>
+        <p class="section-desc">詰みが発見されると詰み手順が表示されます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">詰み手順の表示</span>
+                </div>
+                <p class="guide-step-text">探索が完了すると、下部パネルに詰み手順が表示されます。各候補手の読み筋として、詰みまでの手順を確認できます。</p>
+                <div class="screenshot-item">
+                    <img src="images/tsumeshogi/tsume-05-search-result.png" alt="詰み探索結果の表示">
+                    <p class="screenshot-caption">探索結果：詰み手順が下部パネルに表示される</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 4: Reading Lines -->
+<section id="reading-lines" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">読み筋表示</h2>
+        <p class="section-desc">詰み手順を将棋盤上で1手ずつ再生できます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">読み筋表示ウィンドウ</span>
+                </div>
+                <p class="guide-step-text">探索結果の読み筋をクリックすると、読み筋表示ウィンドウが開きます。詰み手順を将棋盤上で1手ずつ再生して確認できます。</p>
+                <div class="screenshot-item">
+                    <img src="images/tsumeshogi/yomisujihyoji/tsume-06-yomisuji-0.png" alt="読み筋表示 - 開始局面">
+                    <p class="screenshot-caption">読み筋表示：開始局面（手数 0/3）</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">詰み手順の再生</span>
+                </div>
+                <p class="guide-step-text">「1手進む」ボタンで1手ずつ進めて、詰み手順を盤面上で確認できます。</p>
+                <div class="screenshot-item">
+                    <img src="images/tsumeshogi/yomisujihyoji/tsume-07-yomisuji-1.png" alt="読み筋表示 - 1手目 ▲1二銀打">
+                    <p class="screenshot-caption">1手目：▲1二銀打（手数 1/3）</p>
+                </div>
+                <div class="screenshot-item">
+                    <img src="images/tsumeshogi/yomisujihyoji/tsume-08-yomisuji-2.png" alt="読み筋表示 - 2手目 △同玉">
+                    <p class="screenshot-caption">2手目：△同玉（手数 2/3）</p>
+                </div>
+                <div class="screenshot-item">
+                    <img src="images/tsumeshogi/yomisujihyoji/tsume-09-yomisuji-3.png" alt="読み筋表示 - 3手目 ▲2二飛打">
+                    <p class="screenshot-caption">3手目：▲2二飛打で詰み（手数 3/3）</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="index.html" class="back-link">&larr; ホームに戻る</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+</body>
+</html>
