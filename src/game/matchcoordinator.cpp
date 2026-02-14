@@ -2299,6 +2299,50 @@ void MatchCoordinator::onUsiError(const QString& msg)
     // 実行中の USI オペを明示的に打ち切る
     if (m_usi1) m_usi1->cancelCurrentOperation();
     if (m_usi2) m_usi2->cancelCurrentOperation();
+
+    // 詰み探索中にエンジンがクラッシュした場合の復旧処理
+    if (m_inTsumeSearchMode) {
+        m_inTsumeSearchMode = false;
+        emit tsumeSearchModeEnded();
+        if (m_hooks.showGameOverDialog) {
+            m_hooks.showGameOverDialog(tr("詰み探索"), tr("エンジンエラー: %1").arg(msg));
+        }
+        destroyEngines(false);
+        return;
+    }
+
+    // 検討モード中にエンジンがクラッシュした場合の復旧処理
+    if (m_inConsiderationMode) {
+        m_inConsiderationMode = false;
+        m_considerationRestartInProgress = false;
+        m_considerationWaiting = false;
+        emit considerationModeEnded();
+        if (m_hooks.showGameOverDialog) {
+            m_hooks.showGameOverDialog(tr("検討"), tr("エンジンエラー: %1").arg(msg));
+        }
+        destroyEngines(false);
+        return;
+    }
+
+    // 対局中にエンジンがクラッシュした場合の復旧処理
+    // （handleBreakOffは m_gameOver.isOver ガードがあるので重複呼び出しも安全）
+    if (!m_gameOver.isOver) {
+        switch (m_playMode) {
+        case PlayMode::EvenHumanVsEngine:
+        case PlayMode::EvenEngineVsHuman:
+        case PlayMode::EvenEngineVsEngine:
+        case PlayMode::HandicapHumanVsEngine:
+        case PlayMode::HandicapEngineVsHuman:
+        case PlayMode::HandicapEngineVsEngine:
+            handleBreakOff();
+            if (m_hooks.showGameOverDialog) {
+                m_hooks.showGameOverDialog(tr("対局中断"), tr("エンジンエラー: %1").arg(msg));
+            }
+            return;
+        default:
+            break;
+        }
+    }
 }
 
 // ============================================================

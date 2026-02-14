@@ -162,6 +162,32 @@ PositionEditCoordinator callback(true) ──► transitionToDuringPositionEdit(
 PositionEditCoordinator callback(false) ─► transitionToIdle()
 ```
 
+## エンジンエラー時の復旧パス
+
+エンジンのクラッシュ（セグフォルト等）やプロセスエラー発生時、各モードは以下の経路で Idle に遷移する:
+
+```
+【対局中】
+  Usi::errorOccurred → MatchCoordinator::onUsiError()
+    → handleBreakOff() → gameEnded()
+    → GameStartCoordinator::matchGameEnded → transitionToIdle()
+
+【棋譜解析中】
+  Usi::errorOccurred → AnalysisFlowController::onEngineError()
+    → stop() → analysisStopped()
+    → DialogCoordinator::analysisModeEnded → transitionToIdle()
+
+【詰み探索中】
+  Usi::errorOccurred → MatchCoordinator::onUsiError()
+    → tsumeSearchModeEnded → transitionToIdle()
+
+【検討中】
+  Usi::errorOccurred → MatchCoordinator::onUsiError()
+    → considerationModeEnded → transitionToIdle()
+```
+
+**注意**: CSA通信対局は `CsaGameCoordinator` / `CsaGameWiring` が独自にエラー管理するため、`MatchCoordinator::onUsiError()` では対象外。
+
 ## 設計上の注意点
 
 - **テーブル駆動**: 新しい状態やUI要素の追加は `buildPolicyTable()` にエントリを追加するだけ

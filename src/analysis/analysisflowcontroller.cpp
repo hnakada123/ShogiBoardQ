@@ -160,6 +160,13 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
         Qt::UniqueConnection
         );
 
+    // (B-4) Usi::errorOccurred → エンジンクラッシュ時に解析を停止
+    QObject::connect(
+        m_usi, &Usi::errorOccurred,
+        this,  &AnalysisFlowController::onEngineError,
+        Qt::UniqueConnection
+        );
+
     // 結果ビュー（Presenter）— 外部から渡された場合はそれを使用
     if (!m_presenter) {
         if (d.presenter) {
@@ -1099,4 +1106,19 @@ QString AnalysisFlowController::extractUsiMoveFromKanji(const QString& kanjiMove
 
         return usiMove;
     }
+}
+
+void AnalysisFlowController::onEngineError(const QString& msg)
+{
+    if (!m_running) return;
+
+    qCWarning(lcAnalysis).noquote() << "Engine error during analysis:" << msg;
+
+    // エラーメッセージを表示
+    if (m_err) {
+        m_err(tr("エンジンエラー: %1").arg(msg));
+    }
+
+    // 解析を停止（stop()内でanalysisStopped()が発行される）
+    stop();
 }
