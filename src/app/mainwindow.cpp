@@ -3790,10 +3790,21 @@ void MainWindow::overwriteKifuFile()
 
 void MainWindow::onCommentUpdated(int moveIndex, const QString& newComment)
 {
+    // EngineAnalysisTab::m_currentMoveIndex は broadcastComment() 経由でしか
+    // 同期されないため、信頼できる MainWindow::m_currentMoveIndex を優先する。
+    const int effectiveIndex = (m_currentMoveIndex >= 0) ? m_currentMoveIndex : moveIndex;
+
+    qCDebug(lcApp).noquote()
+        << "onCommentUpdated:"
+        << " signalIndex=" << moveIndex
+        << " m_currentMoveIndex=" << m_currentMoveIndex
+        << " effectiveIndex=" << effectiveIndex;
+
+    ensureGameRecordModel();
     ensureCommentCoordinator();
     if (m_commentCoordinator) {
         m_commentCoordinator->setGameRecordModel(m_gameRecord);
-        m_commentCoordinator->onCommentUpdated(moveIndex, newComment);
+        m_commentCoordinator->onCommentUpdated(effectiveIndex, newComment);
     }
 }
 
@@ -3851,6 +3862,7 @@ void MainWindow::onCommentUpdateCallback(int ply, const QString& comment)
     ensureCommentCoordinator();
     if (m_commentCoordinator) {
         m_commentCoordinator->setRecordPresenter(m_recordPresenter);
+        m_commentCoordinator->setKifuRecordListModel(m_kifuRecordModel);
         m_commentCoordinator->onCommentUpdateCallback(ply, comment);
     }
 }
@@ -3868,6 +3880,7 @@ void MainWindow::onBookmarkUpdateCallback(int ply, const QString& bookmark)
 // しおり編集リクエスト（RecordPaneのボタンから呼ばれる）
 void MainWindow::onBookmarkEditRequested()
 {
+    ensureRecordPresenter();
     ensureCommentCoordinator();
     ensureGameRecordModel();
     if (m_commentCoordinator) {

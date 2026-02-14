@@ -6,6 +6,8 @@
 
 #include <QStatusBar>
 #include <QInputDialog>
+#include <QTableView>
+#include <QItemSelectionModel>
 
 #include "engineanalysistab.h"
 #include "recordpane.h"
@@ -98,6 +100,18 @@ void CommentCoordinator::onCommentUpdateCallback(int ply, const QString& comment
         qCDebug(lcApp).noquote() << "Updated RecordPresenter commentsByRow";
     }
 
+    // KifuRecordListModel の該当行を更新
+    if (m_kifuRecordModel != nullptr) {
+        auto* item = m_kifuRecordModel->item(ply);
+        if (item != nullptr) {
+            item->setComment(comment);
+            // dataChanged を発火して表示を更新
+            const QModelIndex tl = m_kifuRecordModel->index(ply, 3);  // コメント列
+            const QModelIndex br = m_kifuRecordModel->index(ply, 3);
+            emit m_kifuRecordModel->dataChanged(tl, br, { Qt::DisplayRole });
+        }
+    }
+
     // 現在表示中のコメントを更新（両方のコメント欄に反映）
     const QString displayComment = comment.trimmed().isEmpty() ? tr("コメントなし") : comment;
     broadcastComment(displayComment, /*asHtml=*/true);
@@ -109,6 +123,17 @@ void CommentCoordinator::onBookmarkEditRequested()
     int ply = -1;
     if (m_recordPresenter) {
         ply = m_recordPresenter->currentRow();
+    }
+    // プレゼンターから取得できない場合は RecordPane の kifuView から直接取得
+    if (ply < 0 && m_recordPane) {
+        if (auto* kifuView = m_recordPane->kifuView()) {
+            if (auto* sel = kifuView->selectionModel()) {
+                const QModelIndex idx = sel->currentIndex();
+                if (idx.isValid()) {
+                    ply = idx.row();
+                }
+            }
+        }
     }
     if (ply < 0) {
         if (m_statusBar) {
