@@ -195,6 +195,16 @@ QStringList josekiWindowRecentFiles();
 /// 定跡ウィンドウの最近使ったファイルリストを保存
 void setJosekiWindowRecentFiles(const QStringList& files);
 
+/// 定跡ウィンドウの表示停止状態を取得（デフォルト: true＝表示有効）
+bool josekiWindowDisplayEnabled();
+/// 定跡ウィンドウの表示停止状態を保存
+void setJosekiWindowDisplayEnabled(bool enabled);
+
+/// 定跡ウィンドウのSFEN詳細表示状態を取得（デフォルト: false）
+bool josekiWindowSfenDetailVisible();
+/// 定跡ウィンドウのSFEN詳細表示状態を保存
+void setJosekiWindowSfenDetailVisible(bool visible);
+
 /// 定跡手編集ダイアログのフォントサイズを取得（デフォルト: 10）
 int josekiMoveDialogFontSize();
 /// 定跡手編集ダイアログのフォントサイズを保存

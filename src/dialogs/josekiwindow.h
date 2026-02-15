@@ -148,6 +148,11 @@ private slots:
     void onClearRecentFilesClicked();
 
     /**
+     * @brief SFEN詳細表示の切り替えスロット
+     */
+    void onSfenDetailToggled(bool checked);
+
+    /**
      * @brief 「着手」ボタンがクリックされたときのスロット
      */
     void onPlayButtonClicked();

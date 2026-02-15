@@ -230,7 +230,26 @@ add_shogi_test(tst_gamerecordmodel
 )
 
 # ============================================================
-# Unit 9: Integration / Stress Tests
+# Unit 9: JosekiWindow Settings Persistence
+# ============================================================
+add_shogi_test(tst_josekiwindow
+    tst_josekiwindow.cpp
+    ${TEST_STUBS}
+    ${SRC}/dialogs/josekiwindow.cpp
+    ${SRC}/dialogs/josekimovedialog.cpp
+    ${SRC}/dialogs/josekimergedialog.cpp
+    ${SRC}/services/settingsservice.cpp
+    ${SRC}/board/sfenpositiontracer.cpp
+    ${SRC}/core/shogimove.cpp
+    ${SRC}/core/shogiutils.cpp
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/kifu/formats/kiftosfenconverter.cpp
+    ${SRC}/kifu/kifreader.cpp
+    ${SRC}/kifu/kifubranchnode.cpp
+)
+
+# ============================================================
+# Unit 10: Integration / Stress Tests
 # ============================================================
 add_shogi_test(tst_integration
     tst_integration.cpp

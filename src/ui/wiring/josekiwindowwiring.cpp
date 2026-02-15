@@ -57,17 +57,12 @@ void JosekiWindowWiring::displayJosekiWindow()
 
 void JosekiWindowWiring::updateJosekiWindow()
 {
-    qCDebug(lcUi) << "updateJosekiWindow() called";
-
     // 定跡ウィンドウが存在し、表示されている場合のみ更新
     if (!m_josekiWindow || !m_josekiWindow->isVisible()) {
-        qCDebug(lcUi) << "updateJosekiWindow: window not visible, skipping";
         return;
     }
 
     if (!m_currentSfenStr) return;
-
-    qCDebug(lcUi) << "updateJosekiWindow: updating with SFEN=" << *m_currentSfenStr;
 
     // 人間が着手可能かどうかを判定して設定
     const bool humanCanPlay = determineHumanCanPlay();
