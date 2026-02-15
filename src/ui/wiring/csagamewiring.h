@@ -245,7 +245,7 @@ private:
     RecordPane* m_recordPane = nullptr;
     BoardInteractionController* m_boardController = nullptr;
     QStatusBar* m_statusBar = nullptr;
-    QStringList* m_sfenRecord = nullptr;
+    QStringList* m_sfenHistory = nullptr;
     // CSA対局開始用の追加依存オブジェクト
     EngineAnalysisTab* m_analysisTab = nullptr;
     BoardSetupController* m_boardSetupController = nullptr;

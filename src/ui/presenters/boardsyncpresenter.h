@@ -43,7 +43,7 @@ public:
      * @param currentSfen 現在の局面SFEN
      * @param prevSfen 直前の局面SFEN（空の場合はハイライトクリア）
      *
-     * m_sfenRecordを使わず、指定されたSFEN文字列から直接盤面を更新し、
+     * m_sfenHistoryを使わず、指定されたSFEN文字列から直接盤面を更新し、
      * 差分からハイライトを計算・表示する。
      */
     void loadBoardWithHighlights(const QString& currentSfen, const QString& prevSfen) const;
@@ -54,7 +54,7 @@ private:
     ShogiGameController* m_gc;
     ShogiView* m_view;
     BoardInteractionController* m_bic;
-    const QStringList* m_sfenRecord;
+    const QStringList* m_sfenHistory;
     const QVector<ShogiMove>* m_gameMoves;
 };
 

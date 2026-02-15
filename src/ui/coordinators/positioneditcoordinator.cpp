@@ -57,7 +57,7 @@ void PositionEditCoordinator::setReplayController(ReplayController* replay)
 
 void PositionEditCoordinator::setSfenRecord(QStringList* sfenRecord)
 {
-    m_sfenRecord = sfenRecord;
+    m_sfenHistory = sfenRecord;
 }
 
 // --------------------------------------------------------
@@ -133,7 +133,7 @@ void PositionEditCoordinator::beginPositionEditing()
     ctx.view       = m_shogiView;
     ctx.gc         = m_gameController;
     ctx.bic        = m_boardController;
-    ctx.sfenRecord = m_sfenRecord;
+    ctx.sfenRecord = m_sfenHistory;
 
     ctx.selectedPly = m_currentSelectedPly ? *m_currentSelectedPly : 0;
     ctx.activePly   = m_activePly ? *m_activePly : 0;
@@ -212,7 +212,7 @@ void PositionEditCoordinator::finishPositionEditing()
     ctx.view       = m_shogiView;
     ctx.gc         = m_gameController;
     ctx.bic        = m_boardController;
-    ctx.sfenRecord = m_sfenRecord;
+    ctx.sfenRecord = m_sfenHistory;
     ctx.startSfenStr        = m_startSfenStr;
     ctx.isResumeFromCurrent = nullptr;
 

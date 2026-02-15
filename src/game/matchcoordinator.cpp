@@ -120,16 +120,16 @@ MatchCoordinator::MatchCoordinator(const Deps& d, QObject* parent)
     m_cur = P1;
     m_turnEpochP1Ms = m_turnEpochP2Ms = -1;
 
-    m_sfenRecord = d.sfenRecord;
+    m_sfenHistory = d.sfenRecord ? d.sfenRecord : &m_sharedSfenRecord;
 
     // デバッグ：どのリストを使うか明示
     qCDebug(lcGame).noquote()
-        << "shared sfenRecord*=" << static_cast<const void*>(m_sfenRecord)
+        << "shared sfenRecord*=" << static_cast<const void*>(m_sfenHistory)
         << " eveSfenRecord@=" << static_cast<const void*>(&m_eveSfenRecord);
 
-    // 念のため NPE ガード（無いと困る設計なのでログだけ）
-    if (!m_sfenRecord) {
-        qCWarning(lcGame) << "sfenRecord is null! Presenterと同期できません。Deps.sfenRecordを渡してください。";
+    // 共有ポインタが未指定の場合は内部履歴を使用
+    if (!d.sfenRecord) {
+        qCWarning(lcGame) << "Deps.sfenRecord is null. Using internal sfen history buffer.";
     }
 
     wireClock();
@@ -2427,8 +2427,8 @@ void MatchCoordinator::startInitialEngineMoveFor(Player engineSide)
     }
 
     const int mcCur = m_currentMoveIndex;
-    const qsizetype recSizeBefore = m_sfenRecord ? m_sfenRecord->size() : -1;
-    const QString recTailBefore = (m_sfenRecord && !m_sfenRecord->isEmpty()) ? m_sfenRecord->last() : QString();
+    const qsizetype recSizeBefore = m_sfenHistory ? m_sfenHistory->size() : -1;
+    const QString recTailBefore = (m_sfenHistory && !m_sfenHistory->isEmpty()) ? m_sfenHistory->last() : QString();
     qCDebug(lcGame).noquote() << "HvE:init enter  mcCur=" << mcCur
                              << " recSizeBefore=" << recSizeBefore
                              << " recTailBefore='" << recTailBefore << "'";
@@ -2458,9 +2458,9 @@ void MatchCoordinator::startInitialEngineMoveFor(Player engineSide)
     int nextIdx = mcCur + 1;
     const bool ok = m_gc->validateAndMove(
         eFrom, eTo, rec, m_playMode,
-        nextIdx, m_sfenRecord, gameMovesRef());
+        nextIdx, m_sfenHistory, gameMovesRef());
 
-    const QString recTailAfter = (m_sfenRecord && !m_sfenRecord->isEmpty()) ? m_sfenRecord->last() : QString();
+    const QString recTailAfter = (m_sfenHistory && !m_sfenHistory->isEmpty()) ? m_sfenHistory->last() : QString();
     const int recTailNum = recTailAfter.isEmpty() ? -1 : extractMoveNumber(recTailAfter);
 
     qCDebug(lcGame).noquote() << "HvE:init v&m=" << ok
@@ -2528,18 +2528,18 @@ void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& hu
 
     // sfenRecordと手数インデックスを同期
     int mcCur = m_currentMoveIndex;
-    if (m_sfenRecord) {
-        const int fromRec = static_cast<int>(qMax(qsizetype(0), m_sfenRecord->size() - 1));
+    if (m_sfenHistory) {
+        const int fromRec = static_cast<int>(qMax(qsizetype(0), m_sfenHistory->size() - 1));
         if (fromRec != mcCur) {
             qCDebug(lcGame) << "HvE sync mcCur" << mcCur << "->" << fromRec
-                            << "(by recSize=" << m_sfenRecord->size() << ")";
+                            << "(by recSize=" << m_sfenHistory->size() << ")";
             mcCur = fromRec;
             m_currentMoveIndex = fromRec;
         }
     }
 
-    const qsizetype recSizeBefore = m_sfenRecord ? m_sfenRecord->size() : -1;
-    const QString recTailBefore = (m_sfenRecord && !m_sfenRecord->isEmpty()) ? m_sfenRecord->last() : QString();
+    const qsizetype recSizeBefore = m_sfenHistory ? m_sfenHistory->size() : -1;
+    const QString recTailBefore = (m_sfenHistory && !m_sfenHistory->isEmpty()) ? m_sfenHistory->last() : QString();
     qCDebug(lcGame).noquote() << "HvE enter  mcCur=" << mcCur
                              << " recSizeBefore=" << recSizeBefore
                              << " recTailBefore='" << recTailBefore << "'"
@@ -2573,7 +2573,7 @@ void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& hu
     if (!engineTurnNow) { if (!gameOverState().isOver) armHumanTimerIfNeeded(); return; }
 
     Usi* eng = primaryEngine();
-    if (!eng || !m_gc || !m_sfenRecord) { if (!gameOverState().isOver) armHumanTimerIfNeeded(); return; }
+    if (!eng || !m_gc || !m_sfenHistory) { if (!gameOverState().isOver) armHumanTimerIfNeeded(); return; }
 
     if (m_positionStr1.isEmpty()) { initPositionStringsFromSfen(QString()); }
     if (!m_positionStr1.startsWith(QLatin1String("position "))) {
@@ -2600,9 +2600,9 @@ void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& hu
     int nextIdx = mcCur + 1;
     const bool ok = m_gc->validateAndMove(
         eFrom, eTo, rec, m_playMode,
-        nextIdx, m_sfenRecord, gameMovesRef());
+        nextIdx, m_sfenHistory, gameMovesRef());
 
-    const QString recTailAfter = (m_sfenRecord && !m_sfenRecord->isEmpty()) ? m_sfenRecord->last() : QString();
+    const QString recTailAfter = (m_sfenHistory && !m_sfenHistory->isEmpty()) ? m_sfenHistory->last() : QString();
     const int recTailNum = recTailAfter.isEmpty() ? -1 : extractMoveNumber(recTailAfter);
 
     qCDebug(lcGame).noquote() << "HvE v&m=" << ok
@@ -2673,6 +2673,11 @@ void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& hu
 // その後のエンジン1手返し等は既存の2引数版へ委譲する。
 void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& humanTo, const QString& prettyMove)
 {
+    const bool humanIsP1 =
+        (m_playMode == PlayMode::EvenHumanVsEngine) || (m_playMode == PlayMode::HandicapHumanVsEngine);
+    const ShogiGameController::Player engineSeat =
+        humanIsP1 ? ShogiGameController::Player2 : ShogiGameController::Player1;
+
     // 0) 人間手のハイライト
     if (m_hooks.showMoveHighlights) {
         m_hooks.showMoveHighlights(humanFrom, humanTo);
@@ -2680,9 +2685,6 @@ void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& hu
 
     // 1) 人間側の考慮時間を確定 → byoyomi/inc を適用 → KIF 追記
     if (m_clock) {
-        const bool humanIsP1 =
-            (m_playMode == PlayMode::EvenHumanVsEngine) || (m_playMode == PlayMode::HandicapHumanVsEngine);
-
         if (humanIsP1) {
             const qint64 ms = m_clock->player1ConsiderationMs();
             m_clock->setPlayer1ConsiderationTime(static_cast<int>(ms));
@@ -2709,6 +2711,16 @@ void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& hu
         pokeTimeUpdateNow();
     }
 
+    // 人間手の棋譜追記中にUI側の手番同期が割り込み、GC手番が人間側へ戻ることがある。
+    // エンジン返し手の直前で、司令塔の期待手番（エンジン席）へ補正しておく。
+    if (m_gc && m_gc->currentPlayer() != engineSeat) {
+        qCDebug(lcGame).noquote()
+            << "HvE(pretty): correcting GC turn before engine reply"
+            << " current=" << static_cast<int>(m_gc->currentPlayer())
+            << " expected(engineSeat)=" << static_cast<int>(engineSeat);
+        m_gc->setCurrentPlayer(engineSeat);
+    }
+
     // 2) 以降（エンジン go → bestmove → 盤/棋譜反映）は既存の2引数版に委譲
     //    finishHumanTimerAndSetConsideration() は2引数版の先頭で呼ばれるが、二重でも実害が出ない想定。
     onHumanMove_HvE(humanFrom, humanTo);
@@ -2732,7 +2744,7 @@ bool MatchCoordinator::undoTwoPlies()
     }
 
     // --- SFEN履歴の現在位置を把握 ---
-    QStringList* srec = u_.sfenRecord ? u_.sfenRecord : m_sfenRecord;
+    QStringList* srec = u_.sfenRecord ? u_.sfenRecord : m_sfenHistory;
     int curSfenIdx = -1;
 
     if (srec && !srec->isEmpty()) {
@@ -3377,7 +3389,7 @@ bool MatchCoordinator::checkAndHandleSennichite()
     const bool isEvE =
         (m_playMode == PlayMode::EvenEngineVsEngine) ||
         (m_playMode == PlayMode::HandicapEngineVsEngine);
-    const QStringList* rec = isEvE ? sfenRecordForEvE() : m_sfenRecord;
+    const QStringList* rec = isEvE ? sfenRecordForEvE() : m_sfenHistory;
     if (!rec || rec->size() < 4) return false;
 
     const auto result = SennichiteDetector::check(*rec);

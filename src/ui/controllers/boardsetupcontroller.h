@@ -131,7 +131,7 @@ private:
     QObject* m_wheelFilter = nullptr;
 
     PlayMode m_playMode = PlayMode::NotStarted;
-    QStringList* m_sfenRecord = nullptr;
+    QStringList* m_sfenHistory = nullptr;
     QVector<ShogiMove>* m_gameMoves = nullptr;
     int* m_currentMoveIndex = nullptr;
 

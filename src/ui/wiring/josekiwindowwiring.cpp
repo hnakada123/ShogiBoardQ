@@ -14,7 +14,7 @@ JosekiWindowWiring::JosekiWindowWiring(const Dependencies& deps, QObject* parent
     , m_parentWidget(deps.parentWidget)
     , m_gameController(deps.gameController)
     , m_kifuRecordModel(deps.kifuRecordModel)
-    , m_sfenRecord(deps.sfenRecord)
+    , m_sfenHistory(deps.sfenRecord)
     , m_usiMoves(deps.usiMoves)
     , m_currentSfenStr(deps.currentSfenStr)
     , m_currentMoveIndex(deps.currentMoveIndex)
@@ -132,13 +132,13 @@ void JosekiWindowWiring::onJosekiMoveSelected(const QString& usiMove)
     Q_EMIT forcedPromotionRequested(true, promote);
 
     // 着手前の棋譜サイズを記録
-    const qsizetype sfenSizeBefore = m_sfenRecord ? m_sfenRecord->size() : 0;
+    const qsizetype sfenSizeBefore = m_sfenHistory ? m_sfenHistory->size() : 0;
 
     // 指し手実行を要求
     Q_EMIT moveRequested(from, to);
 
     // 着手後の棋譜サイズを確認して成功/失敗を判定
-    const qsizetype sfenSizeAfter = m_sfenRecord ? m_sfenRecord->size() : 0;
+    const qsizetype sfenSizeAfter = m_sfenHistory ? m_sfenHistory->size() : 0;
     const bool moveSuccess = (sfenSizeAfter > sfenSizeBefore);
 
     qCDebug(lcUi) << "Move result: sfenSizeBefore=" << sfenSizeBefore
@@ -250,11 +250,11 @@ void JosekiWindowWiring::onRequestKifuDataForMerge()
     int currentPly = 0;
 
     // SFENレコードから局面リストを取得
-    if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
-        for (int i = 0; i < m_sfenRecord->size(); ++i) {
-            sfenList.append(m_sfenRecord->at(i));
+    if (m_sfenHistory && !m_sfenHistory->isEmpty()) {
+        for (int i = 0; i < m_sfenHistory->size(); ++i) {
+            sfenList.append(m_sfenHistory->at(i));
         }
-        qCDebug(lcUi) << "sfenList from m_sfenRecord, size=" << sfenList.size();
+        qCDebug(lcUi) << "sfenList from m_sfenHistory, size=" << sfenList.size();
     }
 
     // 棋譜表示モデルから指し手リストを取得
@@ -273,7 +273,7 @@ void JosekiWindowWiring::onRequestKifuDataForMerge()
             moveList.append(move);
         }
         qCDebug(lcUi) << "moveList from m_usiMoves, size=" << moveList.size();
-    } else if (m_sfenRecord && m_sfenRecord->size() > 1) {
+    } else if (m_sfenHistory && m_sfenHistory->size() > 1) {
         // SFEN差分からUSI形式を生成
         moveList = generateUsiMovesFromSfen();
         qCDebug(lcUi) << "moveList from sfenRecord, size=" << moveList.size();
@@ -300,7 +300,7 @@ QStringList JosekiWindowWiring::generateUsiMovesFromSfen() const
 {
     QStringList result;
 
-    if (!m_sfenRecord || m_sfenRecord->size() < 2) {
+    if (!m_sfenHistory || m_sfenHistory->size() < 2) {
         return result;
     }
 
@@ -332,9 +332,9 @@ QStringList JosekiWindowWiring::generateUsiMovesFromSfen() const
         return board;
     };
 
-    for (int i = 1; i < m_sfenRecord->size(); ++i) {
-        const QString& prevSfen = m_sfenRecord->at(i - 1);
-        const QString& currSfen = m_sfenRecord->at(i);
+    for (int i = 1; i < m_sfenHistory->size(); ++i) {
+        const QString& prevSfen = m_sfenHistory->at(i - 1);
+        const QString& currSfen = m_sfenHistory->at(i);
 
         const QStringList prevParts = prevSfen.split(QLatin1Char(' '));
         const QStringList currParts = currSfen.split(QLatin1Char(' '));

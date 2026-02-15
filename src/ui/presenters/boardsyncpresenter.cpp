@@ -14,7 +14,7 @@ BoardSyncPresenter::BoardSyncPresenter(const Deps& d, QObject* parent)
     , m_gc(d.gc)
     , m_view(d.view)
     , m_bic(d.bic)
-    , m_sfenRecord(d.sfenRecord)
+    , m_sfenHistory(d.sfenRecord)
     , m_gameMoves(d.gameMoves)
 {
 }
@@ -28,21 +28,21 @@ void BoardSyncPresenter::applySfenAtPly(int ply) const
 
     qCDebug(lcUi) << "applySfenAtPly enter"
             << "reqPly=" << ply
-            << "rec*=" << static_cast<const void*>(m_sfenRecord)
+            << "rec*=" << static_cast<const void*>(m_sfenHistory)
             << "gc=" << m_gc
             << "board=" << (m_gc ? m_gc->board() : nullptr)
             << "view=" << m_view;
 
     // ガード＆早期リターン
-    if (!m_sfenRecord || m_sfenRecord->isEmpty() || !m_gc || !m_gc->board()) {
+    if (!m_sfenHistory || m_sfenHistory->isEmpty() || !m_gc || !m_gc->board()) {
         qCWarning(lcUi) << "applySfenAtPly guard failed:"
-                   << "rec*=" << static_cast<const void*>(m_sfenRecord)
-                   << "isEmpty?=" << (m_sfenRecord ? m_sfenRecord->isEmpty() : true)
+                   << "rec*=" << static_cast<const void*>(m_sfenHistory)
+                   << "isEmpty?=" << (m_sfenHistory ? m_sfenHistory->isEmpty() : true)
                    << "gc=" << m_gc << "board?=" << (m_gc ? m_gc->board() : nullptr);
         return;
     }
 
-    const int size   = static_cast<int>(m_sfenRecord->size());
+    const int size   = static_cast<int>(m_sfenHistory->size());
     const int maxIdx = size - 1;
 
     // 終局（投了など）行の判定：SFEN は増えないため reqPly > maxIdx になる
@@ -69,15 +69,15 @@ void BoardSyncPresenter::applySfenAtPly(int ply) const
         }
     }
 
-    const QString sfen = m_sfenRecord->at(idx);
+    const QString sfen = m_sfenHistory->at(idx);
 
     qCDebug(lcUi).noquote() << QString("applySfenAtPly reqPly=%1 idx=%2 size=%3 rec*=%4")
                              .arg(ply).arg(idx).arg(size)
-                             .arg(reinterpret_cast<quintptr>(m_sfenRecord), 0, 16);
+                             .arg(reinterpret_cast<quintptr>(m_sfenHistory), 0, 16);
 
     if (size > 0) {
-        qCDebug(lcUi).noquote() << "head[0]= "   << preview(m_sfenRecord->first());
-        qCDebug(lcUi).noquote() << "tail[last]= "<< preview(m_sfenRecord->last());
+        qCDebug(lcUi).noquote() << "head[0]= "   << preview(m_sfenHistory->first());
+        qCDebug(lcUi).noquote() << "tail[last]= "<< preview(m_sfenHistory->last());
     }
     qCDebug(lcUi).noquote() << "pick[" << idx << "]= " << preview(sfen);
 
@@ -85,11 +85,11 @@ void BoardSyncPresenter::applySfenAtPly(int ply) const
     {
         int bad = -1;
         for (int i = 0; i < size; ++i) {
-            if (m_sfenRecord->at(i).startsWith(QLatin1String("position "))) { bad = i; break; }
+            if (m_sfenHistory->at(i).startsWith(QLatin1String("position "))) { bad = i; break; }
         }
         if (bad >= 0) {
-            qCWarning(lcUi).noquote() << "*** NON-SFEN DETECTED in m_sfenRecord at index "
-                                 << bad << ": " << preview(m_sfenRecord->at(bad));
+            qCWarning(lcUi).noquote() << "*** NON-SFEN DETECTED in m_sfenHistory at index "
+                                 << bad << ": " << preview(m_sfenHistory->at(bad));
         }
     }
 
@@ -98,7 +98,7 @@ void BoardSyncPresenter::applySfenAtPly(int ply) const
         const int from = qMax(0, idx - 3);
         const int to   = qMin(size - 1, idx + 3);
         for (int i = from; i <= to; ++i) {
-            const QString p = m_sfenRecord->at(i);
+            const QString p = m_sfenHistory->at(i);
             qCDebug(lcUi).noquote() << QString("win[%1]= %2").arg(i).arg(preview(p));
         }
     }
@@ -178,21 +178,21 @@ void BoardSyncPresenter::syncBoardAndHighlightsAtRow(int ply) const
 {
     qCDebug(lcUi).noquote() << "syncBoardAndHighlightsAtRow CALLED"
                        << "ply=" << ply
-                       << "m_sfenRecord*=" << static_cast<const void*>(m_sfenRecord)
-                       << "m_sfenRecord.size=" << (m_sfenRecord ? m_sfenRecord->size() : -1);
+                       << "m_sfenHistory*=" << static_cast<const void*>(m_sfenHistory)
+                       << "m_sfenHistory.size=" << (m_sfenHistory ? m_sfenHistory->size() : -1);
 
     // 依存チェック
-    if (!m_sfenRecord || !m_gc || !m_gc->board()) {
+    if (!m_sfenHistory || !m_gc || !m_gc->board()) {
         qCDebug(lcUi).noquote() << "syncBoardAndHighlightsAtRow ABORT:"
-                           << "sfenRecord*=" << static_cast<const void*>(m_sfenRecord)
-                           << "sfenRecord.empty?=" << (m_sfenRecord ? m_sfenRecord->isEmpty() : true)
+                           << "sfenRecord*=" << static_cast<const void*>(m_sfenHistory)
+                           << "sfenRecord.empty?=" << (m_sfenHistory ? m_sfenHistory->isEmpty() : true)
                            << "gc*=" << static_cast<const void*>(m_gc)
                            << "board*=" << (m_gc? static_cast<const void*>(m_gc->board()) : nullptr)
                            << " ply=" << ply;
         return;
     }
 
-    const int size   = static_cast<int>(m_sfenRecord->size());
+    const int size   = static_cast<int>(m_sfenHistory->size());
     const int maxIdx = size - 1;
     if (maxIdx < 0) {
         qCDebug(lcUi).noquote() << "syncBoardAndHighlightsAtRow: EMPTY sfenRecord! ply=" << ply;
@@ -212,9 +212,9 @@ void BoardSyncPresenter::syncBoardAndHighlightsAtRow(int ply) const
 
     // デバッグ: sfenRecordの先頭と末尾を表示
     if (size > 0) {
-        qCDebug(lcUi).noquote() << "sfenRecord[0]=" << m_sfenRecord->at(0).left(60);
+        qCDebug(lcUi).noquote() << "sfenRecord[0]=" << m_sfenHistory->at(0).left(60);
         if (safePly > 0 && safePly < size) {
-            qCDebug(lcUi).noquote() << "sfenRecord[" << safePly << "]=" << m_sfenRecord->at(safePly).left(60);
+            qCDebug(lcUi).noquote() << "sfenRecord[" << safePly << "]=" << m_sfenHistory->at(safePly).left(60);
         }
     }
 
@@ -238,8 +238,8 @@ void BoardSyncPresenter::syncBoardAndHighlightsAtRow(int ply) const
 
     // ======== ここからハイライト推定（SFEN差分） ========
     auto sfenAt = [&](int idx)->QString {
-        if (!m_sfenRecord || idx < 0 || idx >= m_sfenRecord->size()) return QString();
-        return m_sfenRecord->at(idx);
+        if (!m_sfenHistory || idx < 0 || idx >= m_sfenHistory->size()) return QString();
+        return m_sfenHistory->at(idx);
     };
     const QString prev = sfenAt(safePly - 1);
     const QString curr = sfenAt(safePly);

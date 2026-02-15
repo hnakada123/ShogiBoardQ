@@ -49,7 +49,7 @@ KifuLoadCoordinator::KifuLoadCoordinator(QVector<ShogiMove>& gameMoves,
     , m_gameInfoTable(gameInfoTable)
     , m_gameInfoDock(gameInfoDock)
     , m_tab(tab)
-    , m_sfenRecord(sfenRecord)
+    , m_sfenHistory(sfenRecord)
     , m_gameMoves(gameMoves)                // ← 参照メンバに束縛（同一実体を共有）
     , m_positionStrList(positionStrList)    // ← 同上
     , m_recordPane(recordPane)
@@ -60,7 +60,7 @@ KifuLoadCoordinator::KifuLoadCoordinator(QVector<ShogiMove>& gameMoves,
     , m_kifuBranchModel(kifuBranchModel)
 {
     // 必要ならデバッグ時にチェック
-    // Q_ASSERT(m_sfenRecord && "sfenRecord must not be null");
+    // Q_ASSERT(m_sfenHistory && "sfenRecord must not be null");
     // m_analysisTab は setAnalysisTab() 経由で後から設定される
     // m_shogiView は setShogiView() 経由で後から設定される
 }
@@ -506,9 +506,9 @@ bool KifuLoadCoordinator::loadPositionFromSfen(const QString& sfenStr)
     m_loadingKifu = true;
 
     // sfenRecordをクリアして初期局面をセット
-    if (m_sfenRecord) {
-        m_sfenRecord->clear();
-        m_sfenRecord->append(sfen);
+    if (m_sfenHistory) {
+        m_sfenHistory->clear();
+        m_sfenHistory->append(sfen);
     }
 
     // 表示用データを作成
@@ -656,15 +656,15 @@ void KifuLoadCoordinator::applyParsedResultCommon(
                              << "hasTerminal=" << hasTerminal;
     rebuildSfenRecord(initialSfen, m_kifuUsiMoves, hasTerminal);
     qCDebug(lcKifu).noquote() << "applyParsedResultCommon: after rebuildSfenRecord"
-                             << "m_sfenRecord*=" << static_cast<const void*>(m_sfenRecord)
-                             << "m_sfenRecord.size=" << (m_sfenRecord ? m_sfenRecord->size() : -1);
-    if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
-        qCDebug(lcKifu).noquote() << "m_sfenRecord[0]=" << m_sfenRecord->first().left(60);
-        if (m_sfenRecord->size() > 1) {
-            qCDebug(lcKifu).noquote() << "m_sfenRecord[1]=" << m_sfenRecord->at(1).left(60);
+                             << "m_sfenHistory*=" << static_cast<const void*>(m_sfenHistory)
+                             << "m_sfenHistory.size=" << (m_sfenHistory ? m_sfenHistory->size() : -1);
+    if (m_sfenHistory && !m_sfenHistory->isEmpty()) {
+        qCDebug(lcKifu).noquote() << "m_sfenHistory[0]=" << m_sfenHistory->first().left(60);
+        if (m_sfenHistory->size() > 1) {
+            qCDebug(lcKifu).noquote() << "m_sfenHistory[1]=" << m_sfenHistory->at(1).left(60);
         }
-        if (m_sfenRecord->size() > 2) {
-            qCDebug(lcKifu).noquote() << "m_sfenRecord[last]=" << m_sfenRecord->last().left(60);
+        if (m_sfenHistory->size() > 2) {
+            qCDebug(lcKifu).noquote() << "m_sfenHistory[last]=" << m_sfenHistory->last().left(60);
         }
     }
     logStep("rebuildSfenRecord");
@@ -705,7 +705,7 @@ void KifuLoadCoordinator::applyParsedResultCommon(
 
     // 5) 本譜スナップショットを保持（以降の解決・描画に使用）
     m_dispMain = disp;          // 表示列（1..N）
-    m_sfenMain = *m_sfenRecord; // 0..N の局面列
+    m_sfenMain = *m_sfenHistory; // 0..N の局面列
     m_gmMain   = m_gameMoves;   // 1..N のUSIムーブ
 
     // 6) 変化を取りまとめ（KifuBranchTreeBuilder でツリー構築に使用）
@@ -984,7 +984,7 @@ void KifuLoadCoordinator::rebuildSfenRecord(const QString& initialSfen,
                              << "initialSfen=" << initialSfen.left(60)
                              << "usiMoves.size=" << usiMoves.size()
                              << "hasTerminal=" << hasTerminal
-                             << "m_sfenRecord*=" << static_cast<const void*>(m_sfenRecord);
+                             << "m_sfenHistory*=" << static_cast<const void*>(m_sfenHistory);
 
     const QStringList list = SfenPositionTracer::buildSfenRecord(initialSfen, usiMoves, hasTerminal);
 
@@ -996,15 +996,15 @@ void KifuLoadCoordinator::rebuildSfenRecord(const QString& initialSfen,
         }
     }
 
-    if (!m_sfenRecord) {
-        qCWarning(lcKifu) << "rebuildSfenRecord: m_sfenRecord was NULL! Creating new QStringList.";
-        m_sfenRecord = new QStringList;
+    if (!m_sfenHistory) {
+        qCWarning(lcKifu) << "rebuildSfenRecord: m_sfenHistory was NULL! Creating new QStringList.";
+        m_sfenHistory = new QStringList;
     }
-    *m_sfenRecord = list; // COW
+    *m_sfenHistory = list; // COW
 
     qCDebug(lcKifu).noquote() << "rebuildSfenRecord LEAVE"
-                             << "m_sfenRecord*=" << static_cast<const void*>(m_sfenRecord)
-                             << "m_sfenRecord->size=" << m_sfenRecord->size();
+                             << "m_sfenHistory*=" << static_cast<const void*>(m_sfenHistory)
+                             << "m_sfenHistory->size=" << m_sfenHistory->size();
 }
 
 void KifuLoadCoordinator::rebuildGameMoves(const QString& initialSfen,
@@ -1124,11 +1124,11 @@ void KifuLoadCoordinator::logImportSummary(const QString& filePath,
     }
 
     // SFEN（抜粋）
-    if (m_sfenRecord) {
-        for (int i = 0; i < qMin(12, m_sfenRecord->size()); ++i) {
+    if (m_sfenHistory) {
+        for (int i = 0; i < qMin(12, m_sfenHistory->size()); ++i) {
             qCDebug(lcKifu).noquote() << QStringLiteral("%1) %2")
             .arg(i)
-                .arg(m_sfenRecord->at(i));
+                .arg(m_sfenHistory->at(i));
         }
     }
 

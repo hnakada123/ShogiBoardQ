@@ -29,7 +29,7 @@
 //     - stderr への出力もない
 static QFile *logFile = nullptr;
 
-static void messageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg)
+[[maybe_unused]] static void messageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
     if (!logFile) return;
 

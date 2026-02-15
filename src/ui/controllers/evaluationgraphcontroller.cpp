@@ -33,7 +33,7 @@ void EvaluationGraphController::setMatchCoordinator(MatchCoordinator* match)
 
 void EvaluationGraphController::setSfenRecord(QStringList* sfenRecord)
 {
-    m_sfenRecord = sfenRecord;
+    m_sfenHistory = sfenRecord;
 }
 
 // --------------------------------------------------------
@@ -146,9 +146,9 @@ void EvaluationGraphController::doRedrawEngine1Graph()
         qCDebug(lcUi) << "P1: using pending ply =" << ply;
     } else {
         // sfenRecordから計算（従来の動作）
-        ply = m_sfenRecord ? qMax(0, static_cast<int>(m_sfenRecord->size() - 1)) : 0;
+        ply = m_sfenHistory ? qMax(0, static_cast<int>(m_sfenHistory->size() - 1)) : 0;
         qCDebug(lcUi) << "P1: actual ply (from sfenRecord) =" << ply
-                      << ", sfenRecord size =" << (m_sfenRecord ? m_sfenRecord->size() : -1);
+                      << ", sfenRecord size =" << (m_sfenHistory ? m_sfenHistory->size() : -1);
     }
 
     EvalGraphPresenter::appendPrimaryScore(m_scoreCp, m_match);
@@ -184,9 +184,9 @@ void EvaluationGraphController::doRedrawEngine2Graph()
         qCDebug(lcUi) << "P2: using pending ply =" << ply;
     } else {
         // sfenRecordから計算（従来の動作）
-        ply = m_sfenRecord ? qMax(0, static_cast<int>(m_sfenRecord->size() - 1)) : 0;
+        ply = m_sfenHistory ? qMax(0, static_cast<int>(m_sfenHistory->size() - 1)) : 0;
         qCDebug(lcUi) << "P2: actual ply (from sfenRecord) =" << ply
-                      << ", sfenRecord size =" << (m_sfenRecord ? m_sfenRecord->size() : -1);
+                      << ", sfenRecord size =" << (m_sfenHistory ? m_sfenHistory->size() : -1);
     }
 
     EvalGraphPresenter::appendSecondaryScore(m_scoreCp, m_match);

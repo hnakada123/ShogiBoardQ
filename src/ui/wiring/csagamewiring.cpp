@@ -33,7 +33,7 @@ CsaGameWiring::CsaGameWiring(const Dependencies& deps, QObject* parent)
     , m_recordPane(deps.recordPane)
     , m_boardController(deps.boardController)
     , m_statusBar(deps.statusBar)
-    , m_sfenRecord(deps.sfenRecord)
+    , m_sfenHistory(deps.sfenRecord)
     , m_analysisTab(deps.analysisTab)
     , m_boardSetupController(deps.boardSetupController)
     , m_usiCommLog(deps.usiCommLog)
@@ -106,11 +106,11 @@ void CsaGameWiring::onGameStarted(const QString& blackName, const QString& white
                             tr("（１手 / 合計）")));
     }
 
-    // m_sfenRecordをクリアし、開始局面を追加
+    // m_sfenHistoryをクリアし、開始局面を追加
     const QString hiratePosition = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
-    if (m_sfenRecord) {
-        m_sfenRecord->clear();
-        m_sfenRecord->append(hiratePosition);
+    if (m_sfenHistory) {
+        m_sfenHistory->clear();
+        m_sfenHistory->append(hiratePosition);
     }
 
     // 手数カウンタをリセット
@@ -173,10 +173,10 @@ void CsaGameWiring::onGameEnded(const QString& result, const QString& cause, int
     // 棋譜欄に追加
     Q_EMIT appendKifuLineRequested(endLine, elapsedStr);
 
-    // m_sfenRecordにも終局行用のダミーエントリを追加
-    if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
+    // m_sfenHistoryにも終局行用のダミーエントリを追加
+    if (m_sfenHistory && !m_sfenHistory->isEmpty()) {
         qCDebug(lcUi) << "onGameEnded: appending last SFEN to sfenRecord";
-        m_sfenRecord->append(m_sfenRecord->last());
+        m_sfenHistory->append(m_sfenHistory->last());
     }
 
     // 分岐ツリー更新を要求
@@ -381,7 +381,7 @@ bool CsaGameWiring::startCsaGame(CsaGameDialog* dialog, QWidget* parent)
         deps.clock = m_timeController ? m_timeController->clock() : nullptr;
         deps.boardController = m_boardController;
         deps.recordModel = m_kifuRecordModel;
-        deps.sfenRecord = m_sfenRecord;
+        deps.sfenRecord = m_sfenHistory;
         deps.gameMoves = m_gameMoves;
         deps.usiCommLog = m_usiCommLog;
         deps.engineThinking = m_engineThinking;

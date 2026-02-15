@@ -663,9 +663,9 @@ GameRecordModel は以下の形式へのエクスポートメソッドを提供�
 
 **ナビゲーション**: KifuNavigationState が「どのラインのどの手にいるか」を一元管理する。GUI部品は自身の位置状態を持たず、ナビゲーション操作はすべて KifuNavigationController → KifuNavigationState → シグナル → KifuDisplayCoordinator の経路で各GUI部品に通知される。
 
-#### 6.5.4 補足: m_sfenRecord の位置づけ
+#### 6.5.4 補足: m_sfenHistory の位置づけ
 
-`MainWindow::m_sfenRecord`（QStringList）は本譜の SFEN 列を保持するレガシーなデータストア。KifuBranchTree にも同じ SFEN が格納されているため冗長だが、ツリーが空の場合（旧コードパスや単純な棋譜再生）のフォールバックとして残されている。棋譜読み込み・対局のどちらの場合も、m_sfenRecord とツリーは同じタイミングで同じソース（パース結果 or エンジン応答）から構築されるため、不整合のリスクは低い。
+`MainWindow::m_sfenHistory`（QStringList）は本譜の SFEN 列を保持するレガシーなデータストア。KifuBranchTree にも同じ SFEN が格納されているため冗長だが、ツリーが空の場合（旧コードパスや単純な棋譜再生）のフォールバックとして残されている。棋譜読み込み・対局のどちらの場合も、m_sfenHistory とツリーは同じタイミングで同じソース（パース結果 or エンジン応答）から構築されるため、不整合のリスクは低い。
 
 ---
 
@@ -767,7 +767,7 @@ URL セーフな短い文字列で棋譜を表現。分岐対応。
 
 3. applyParsedResultCommon() で各データ構造を構築
    a. USI指し手リスト（m_kifuUsiMoves）を保存
-   b. rebuildSfenRecord() → m_sfenRecord（局面SFEN列）を再構築
+   b. rebuildSfenRecord() → m_sfenHistory（局面SFEN列）を再構築
    c. rebuildGameMoves()  → m_gameMoves（ShogiMove列）を再構築
    d. emit displayGameRecord(disp)
       → MainWindow::displayGameRecord()
@@ -798,7 +798,7 @@ URL セーフな短い文字列で棋譜を表現。分岐対応。
 | データ構造 | 内容 |
 |---|---|
 | `KifuBranchTree` | 本譜＋全分岐を含む完全なN分木 |
-| `m_sfenRecord` | 本譜の各手後のSFEN列（`[開始局面, 1手目後, 2手目後, ...]`） |
+| `m_sfenHistory` | 本譜の各手後のSFEN列（`[開始局面, 1手目後, 2手目後, ...]`） |
 | `m_gameMoves` | 本譜のShogiMove列 |
 | `KifuRecordListModel` | 棋譜欄の表示データ（開始局面＋各手の表示行） |
 | `GameRecordModel` | コメント・しおりの一元管理（m_comments, m_bookmarks） |

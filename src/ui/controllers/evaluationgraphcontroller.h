@@ -130,7 +130,7 @@ private:
     // 依存オブジェクト
     EvaluationChartWidget* m_evalChart = nullptr;
     MatchCoordinator* m_match = nullptr;
-    QStringList* m_sfenRecord = nullptr;
+    QStringList* m_sfenHistory = nullptr;
 
     // エンジン名
     QString m_engine1Name;

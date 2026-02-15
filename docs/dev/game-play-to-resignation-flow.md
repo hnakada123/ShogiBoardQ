@@ -412,7 +412,7 @@ void MatchCoordinator::handleTimeUpdated()
 各着手時に `validateAndMove()` 内で更新される:
 
 ```cpp
-board()->addSfenRecord(nextPlayerColorSfen, moveNumber, m_sfenRecord);
+board()->addSfenRecord(nextPlayerColorSfen, moveNumber, m_sfenHistory);
 ```
 
 SFENリストには各手番後の局面が順に追加される:

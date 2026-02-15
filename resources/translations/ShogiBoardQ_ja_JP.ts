@@ -3580,39 +3580,39 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="456"/>
+        <location filename="../../src/app/mainwindow.cpp" line="449"/>
         <source>Error</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="700"/>
-        <location filename="../../src/app/mainwindow.cpp" line="715"/>
+        <location filename="../../src/app/mainwindow.cpp" line="693"/>
+        <location filename="../../src/app/mainwindow.cpp" line="708"/>
         <source>エラー</source>
         <translation type="unfinished">エラー</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="700"/>
-        <location filename="../../src/app/mainwindow.cpp" line="715"/>
+        <location filename="../../src/app/mainwindow.cpp" line="693"/>
+        <location filename="../../src/app/mainwindow.cpp" line="708"/>
         <source>盤面データがありません。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1155"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1177"/>
         <source>棋譜ファイルを開く</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3778"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3814"/>
         <source>局面を反映しました</source>
         <translation>局面を反映しました</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3780"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3816"/>
         <source>局面の反映に失敗しました</source>
         <translation>局面の反映に失敗しました</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3783"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3819"/>
         <source>局面の反映に失敗しました（内部エラー）</source>
         <translation>局面の反映に失敗しました（内部エラー）</translation>
     </message>
@@ -3637,12 +3637,12 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1156"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1178"/>
         <source>Kifu Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3280"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3312"/>
         <source>コメントなし</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3651,17 +3651,17 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">定跡</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3752"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3788"/>
         <source>棋譜を取り込みました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3754"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3790"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3758"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3794"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4437,12 +4437,12 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="3046"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="3058"/>
         <source>先手番</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="3046"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="3058"/>
         <source>後手番</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5306,17 +5306,17 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="475"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="477"/>
         <source>An error occurred in ShogiGameController::editPosition: board() is null.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="663"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="665"/>
         <source>An error occurred in ShogiGameController::updateSfenRecordAfterEdit: board() is null.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="669"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="671"/>
         <source>An error occurred in ShogiGameController::updateSfenRecordAfterEdit: record list is null.</source>
         <translation type="unfinished"></translation>
     </message>

@@ -60,7 +60,7 @@ public:
     QString convertStandToSfen() const;
 
     /// 現局面のSFENレコードをリストに追加する
-    void addSfenRecord(const QString& nextTurn, const int moveNumber, QStringList* m_sfenRecord);
+    void addSfenRecord(const QString& nextTurn, const int moveNumber, QStringList* m_sfenHistory);
 
     // --- 駒操作 ---
 

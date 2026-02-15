@@ -30,7 +30,7 @@ void RecordNavigationHandler::onMainRowChanged(int row)
     qCDebug(lcNavigation).noquote() << "onMainRowChanged ENTER row=" << row
                                     << "navState lineIndex=" << (m_deps.navState ? m_deps.navState->currentLineIndex() : -1)
                                     << "isOnMainLine=" << (m_deps.navState ? m_deps.navState->isOnMainLine() : true)
-                                    << "m_sfenRecord.size=" << (m_deps.sfenRecord ? m_deps.sfenRecord->size() : -1);
+                                    << "m_sfenHistory.size=" << (m_deps.sfenRecord ? m_deps.sfenRecord->size() : -1);
 
     // 再入防止
     static bool s_inProgress = false;
@@ -151,7 +151,7 @@ void RecordNavigationHandler::onMainRowChanged(int row)
             }
         }
 
-        // 本譜または分岐ツリーから取得できなかった場合は m_sfenRecord から取得
+        // 本譜または分岐ツリーから取得できなかった場合は m_sfenHistory から取得
         if (!foundInBranch && m_deps.sfenRecord != nullptr && row >= 0 && row < m_deps.sfenRecord->size()) {
             sfen = m_deps.sfenRecord->at(row);
         }

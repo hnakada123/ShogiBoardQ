@@ -98,7 +98,7 @@ private:
     PositionEditController* m_posEdit = nullptr;
     MatchCoordinator* m_match = nullptr;
     ReplayController* m_replayController = nullptr;
-    QStringList* m_sfenRecord = nullptr;
+    QStringList* m_sfenHistory = nullptr;
 
     const int* m_currentSelectedPly = nullptr;
     const int* m_activePly = nullptr;

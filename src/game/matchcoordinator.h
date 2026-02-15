@@ -192,6 +192,10 @@ public:
 
     /// 対局中の指し手リストを取得する（CSA出力等で使用）
     const QVector<ShogiMove>& gameMoves() const { return m_gameMoves; }
+    /// SFEN履歴への参照を取得する（UI共有用）
+    QStringList* sfenRecordPtr() { return m_sfenHistory; }
+    /// SFEN履歴への参照を取得する（const版）
+    const QStringList* sfenRecordPtr() const { return m_sfenHistory; }
 
     // --- 時間管理 ---
 
@@ -554,7 +558,8 @@ private:
     // --- 棋譜/SFEN記録 ---
 
     int m_currentMoveIndex = 0;              ///< 現在の手数インデックス
-    QStringList* m_sfenRecord = nullptr;     ///< SFEN履歴（共有ポインタ、非所有）
+    QStringList* m_sfenHistory = nullptr;     ///< SFEN履歴（共有ポインタ、非所有）
+    QStringList m_sharedSfenRecord;          ///< 共有ポインタ未指定時の内部SFEN履歴
     QVector<ShogiMove> m_gameMoves;          ///< 対局中の指し手リスト
 
     // --- EvE専用 ---
@@ -564,8 +569,8 @@ private:
     int                m_eveMoveIndex = 0;   ///< EvEフォールバック用手数
 
     // 共有sfenRecordが設定されていればそれを使い、なければローカルを使う
-    QStringList* sfenRecordForEvE() { return m_sfenRecord ? m_sfenRecord : &m_eveSfenRecord; }
-    QVector<ShogiMove>& gameMovesForEvE() { return m_sfenRecord ? m_gameMoves : m_eveGameMoves; }
+    QStringList* sfenRecordForEvE() { return m_sfenHistory ? m_sfenHistory : &m_eveSfenRecord; }
+    QVector<ShogiMove>& gameMovesForEvE() { return m_sfenHistory ? m_gameMoves : m_eveGameMoves; }
 
     // u_.gameMoves（MainWindowのポインタ）が設定されていればそれを使う
     QVector<ShogiMove>& gameMovesRef() {

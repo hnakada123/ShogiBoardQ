@@ -68,7 +68,7 @@ void CsaGameCoordinator::setDependencies(const Dependencies& deps)
     m_clock = deps.clock;
     m_boardController = deps.boardController;
     m_recordModel = deps.recordModel;
-    m_sfenRecord = deps.sfenRecord;
+    m_sfenHistory = deps.sfenRecord;
     m_gameMoves = deps.gameMoves;
     
     // 外部から渡されたUSI通信ログモデルを使用
@@ -104,7 +104,7 @@ void CsaGameCoordinator::startGame(const StartOptions& options)
     m_prevToRank = 0;
     m_resignConsumedTimeMs = 0;  // 投了時消費時間をリセット
     m_usiMoves.clear();
-    if (m_sfenRecord) m_sfenRecord->clear();
+    if (m_sfenHistory) m_sfenHistory->clear();
     if (m_gameMoves) m_gameMoves->clear();
 
     m_client->setCsaVersion(options.csaVersion);
@@ -444,7 +444,7 @@ void CsaGameCoordinator::onMoveConfirmed(const QString& move, int consumedTimeMs
     //       ShogiGameController::currentPlayer()から手番を取得する
     // 人間の指し手の場合は、validateAndMoveで既にSFEN記録が追加されているためスキップ
     if (m_playerType == PlayerType::Engine) {
-        if (m_gameController && m_gameController->board() && m_sfenRecord) {
+        if (m_gameController && m_gameController->board() && m_sfenHistory) {
             QString boardSfen = m_gameController->board()->convertBoardToSfen();
             QString standSfen = m_gameController->board()->convertStandToSfen();
             // ShogiGameController::currentPlayer()から手番を取得（Player1=先手="b", Player2=後手="w"）
@@ -453,7 +453,7 @@ void CsaGameCoordinator::onMoveConfirmed(const QString& move, int consumedTimeMs
             QString fullSfen = QString("%1 %2 %3 %4")
                                    .arg(boardSfen, currentPlayerStr, standSfen)
                                    .arg(m_moveCount + 1);
-            m_sfenRecord->append(fullSfen);
+            m_sfenHistory->append(fullSfen);
         }
     }
 
@@ -1018,9 +1018,9 @@ void CsaGameCoordinator::setupInitialPosition()
     QString currentPlayer = m_gameController->board()->currentPlayer();
     m_startSfen = QString("%1 %2 %3 1").arg(boardSfen, currentPlayer, standSfen);
 
-    if (m_sfenRecord) {
-        m_sfenRecord->clear();
-        m_sfenRecord->append(m_startSfen);
+    if (m_sfenHistory) {
+        m_sfenHistory->clear();
+        m_sfenHistory->append(m_startSfen);
     }
 
     m_positionStr = QStringLiteral("position startpos");
@@ -1383,8 +1383,8 @@ bool CsaGameCoordinator::applyMoveToBoard(const QString& csaMove)
     QString fullSfen = QString("%1 %2 %3 %4")
                            .arg(boardSfen, currentPlayerStr, standSfen)
                            .arg(m_moveCount + 1);
-    if (m_sfenRecord) {
-        m_sfenRecord->append(fullSfen);
+    if (m_sfenHistory) {
+        m_sfenHistory->append(fullSfen);
     }
 
     return true;
