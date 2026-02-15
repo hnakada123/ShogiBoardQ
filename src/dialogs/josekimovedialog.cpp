@@ -60,24 +60,6 @@ void JosekiMoveDialog::setupUi(bool isEdit)
     
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
     
-    // === フォントサイズ変更ボタン（左上に配置） ===
-    QHBoxLayout *fontLayout = new QHBoxLayout();
-    
-    m_fontDecreaseBtn = new QPushButton(tr("A-"), this);
-    m_fontDecreaseBtn->setToolTip(tr("フォントサイズを縮小"));
-    m_fontDecreaseBtn->setFixedWidth(36);
-    m_fontDecreaseBtn->setStyleSheet(ButtonStyles::fontButton());
-    fontLayout->addWidget(m_fontDecreaseBtn);
-
-    m_fontIncreaseBtn = new QPushButton(tr("A+"), this);
-    m_fontIncreaseBtn->setToolTip(tr("フォントサイズを拡大"));
-    m_fontIncreaseBtn->setFixedWidth(36);
-    m_fontIncreaseBtn->setStyleSheet(ButtonStyles::fontButton());
-    fontLayout->addWidget(m_fontIncreaseBtn);
-    
-    fontLayout->addStretch();
-    mainLayout->addLayout(fontLayout);
-    
     // === 指し手入力グループ ===（編集モードでは非表示）
     QGroupBox *moveGroup = createMoveInputWidget(this, false);
     if (isEdit) {
@@ -96,8 +78,6 @@ void JosekiMoveDialog::setupUi(bool isEdit)
     m_editMoveLabel = new QLabel(this);
     m_editMoveLabel->setStyleSheet(QStringLiteral(
         "QLabel {"
-        "  font-size: 14pt;"
-        "  font-weight: bold;"
         "  color: #333;"
         "  padding: 8px;"
         "  background-color: #f0f0f0;"
@@ -119,7 +99,6 @@ void JosekiMoveDialog::setupUi(bool isEdit)
     // 評価値
     QHBoxLayout *valueLayout = new QHBoxLayout();
     QLabel *valueLabel = new QLabel(tr("評価値:"), this);
-    valueLabel->setFixedWidth(80);
     m_valueSpinBox = new QSpinBox(this);
     m_valueSpinBox->setRange(-99999, 99999);
     m_valueSpinBox->setValue(0);
@@ -133,7 +112,6 @@ void JosekiMoveDialog::setupUi(bool isEdit)
     // 深さ
     QHBoxLayout *depthLayout = new QHBoxLayout();
     QLabel *depthLabel = new QLabel(tr("探索深さ:"), this);
-    depthLabel->setFixedWidth(80);
     m_depthSpinBox = new QSpinBox(this);
     m_depthSpinBox->setRange(0, 999);
     m_depthSpinBox->setValue(32);
@@ -146,7 +124,6 @@ void JosekiMoveDialog::setupUi(bool isEdit)
     // 出現頻度
     QHBoxLayout *frequencyLayout = new QHBoxLayout();
     QLabel *frequencyLabel = new QLabel(tr("出現頻度:"), this);
-    frequencyLabel->setFixedWidth(80);
     m_frequencySpinBox = new QSpinBox(this);
     m_frequencySpinBox->setRange(0, 999999);
     m_frequencySpinBox->setValue(1);
@@ -180,12 +157,30 @@ void JosekiMoveDialog::setupUi(bool isEdit)
     mainLayout->addLayout(bottomLayout);
     
     // === ボタン ===
+    QHBoxLayout *buttonLayout = new QHBoxLayout();
+
+    m_fontDecreaseBtn = new QPushButton(tr("A-"), this);
+    m_fontDecreaseBtn->setToolTip(tr("フォントサイズを縮小"));
+    m_fontDecreaseBtn->setFixedWidth(36);
+    m_fontDecreaseBtn->setStyleSheet(ButtonStyles::fontButton());
+    buttonLayout->addWidget(m_fontDecreaseBtn);
+
+    m_fontIncreaseBtn = new QPushButton(tr("A+"), this);
+    m_fontIncreaseBtn->setToolTip(tr("フォントサイズを拡大"));
+    m_fontIncreaseBtn->setFixedWidth(36);
+    m_fontIncreaseBtn->setStyleSheet(ButtonStyles::fontButton());
+    buttonLayout->addWidget(m_fontIncreaseBtn);
+
+    buttonLayout->addStretch();
+
     m_buttonBox = new QDialogButtonBox(
         QDialogButtonBox::Ok | QDialogButtonBox::Cancel,
         Qt::Horizontal, this);
     m_buttonBox->button(QDialogButtonBox::Ok)->setText(isEdit ? tr("更新") : tr("追加"));
     m_buttonBox->button(QDialogButtonBox::Cancel)->setText(tr("キャンセル"));
-    mainLayout->addWidget(m_buttonBox);
+    buttonLayout->addWidget(m_buttonBox);
+
+    mainLayout->addLayout(buttonLayout);
     
     // シグナル・スロット接続
     connect(m_buttonBox, &QDialogButtonBox::accepted, this, &JosekiMoveDialog::validateInput);
@@ -816,19 +811,25 @@ void JosekiMoveDialog::applyFontSize()
 {
     QFont font = this->font();
     font.setPointSize(m_fontSize);
-    
+
     // ダイアログ全体に適用
     setFont(font);
-    
+
+    // KDE Breeze ではsetFont()が子に伝播しないため明示的に全子ウィジェットに適用
+    const auto children = findChildren<QWidget *>();
+    for (auto *child : children) {
+        child->setFont(font);
+    }
+
     // プレビューラベルは少し大きめに
     QFont previewFont = font;
     previewFont.setPointSize(m_fontSize + 2);
     previewFont.setBold(true);
     m_movePreviewLabel->setFont(previewFont);
     m_nextMovePreviewLabel->setFont(previewFont);
-    
+
     // 編集対象の定跡手ラベルも更新
-    if (m_editMoveLabel && m_editMoveLabel->isVisible()) {
+    if (m_editMoveLabel) {
         QFont editFont = font;
         editFont.setPointSize(m_fontSize + 4);
         editFont.setBold(true);

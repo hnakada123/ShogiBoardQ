@@ -420,6 +420,26 @@ void JosekiWindow::saveSettings()
     }
 }
 
+void JosekiWindow::setDockWidget(QDockWidget *dock)
+{
+    m_dockWidget = dock;
+    if (m_dockWidget) {
+        m_dockWidget->installEventFilter(this);
+    }
+}
+
+bool JosekiWindow::eventFilter(QObject *obj, QEvent *event)
+{
+    if (obj == m_dockWidget && event->type() == QEvent::Close) {
+        if (!confirmDiscardChanges()) {
+            event->ignore();
+            return true;
+        }
+        saveSettings();
+    }
+    return QWidget::eventFilter(obj, event);
+}
+
 void JosekiWindow::closeEvent(QCloseEvent *event)
 {
     // 未保存の変更がある場合は確認
@@ -1349,6 +1369,29 @@ void JosekiWindow::setModified(bool modified)
     // 上書保存ボタン: ファイルパスがあり、変更がある場合のみ有効
     m_saveButton->setEnabled(!m_currentFilePath.isEmpty() && modified);
     updateWindowTitle();
+
+    // ドックタイトルを更新（未保存時は「定跡 *」）
+    if (m_dockWidget) {
+        QString dockTitle = tr("定跡");
+        if (m_modified) {
+            dockTitle += QStringLiteral(" *");
+        }
+        m_dockWidget->setWindowTitle(dockTitle);
+    }
+
+    // ファイル状態ラベルを更新
+    if (m_fileStatusLabel) {
+        if (m_modified) {
+            m_fileStatusLabel->setText(tr("未保存"));
+            m_fileStatusLabel->setStyleSheet(QStringLiteral("color: #cc6600; font-weight: bold;"));
+        } else if (!m_josekiData.isEmpty()) {
+            m_fileStatusLabel->setText(tr("✓読込済"));
+            m_fileStatusLabel->setStyleSheet(QStringLiteral("color: green; font-weight: bold;"));
+        } else {
+            m_fileStatusLabel->setText(QString());
+            m_fileStatusLabel->setStyleSheet(QString());
+        }
+    }
 }
 
 bool JosekiWindow::confirmDiscardChanges()

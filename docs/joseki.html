@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>定跡機能 - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQの定跡機能を紹介します。定跡ファイルの読み込み・表示から、定跡手の着手・編集・追加・削除までの流れをスクリーンショット付きで解説。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/joseki.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/joseki.html">
+    <meta property="og:title" content="定跡機能 - ShogiBoardQ">
+    <meta property="og:description" content="ShogiBoardQの定跡機能を紹介。定跡ファイルの読み込み・表示から定跡手の編集までの流れをスクリーンショット付きで解説。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/joseki/joseki-06-display-first-move.png">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="定跡機能 - ShogiBoardQ">
+    <meta name="twitter:description" content="ShogiBoardQの定跡機能を紹介。定跡ファイルの読み込み・表示から定跡手の編集までの流れを解説。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/joseki/joseki-06-display-first-move.png">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="index.html" class="nav-logo">ShogiBoardQ</a>
+        <button class="nav-toggle" aria-label="メニュー" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="index.html">ホーム</a></li>
+            <li><a href="#joseki-display">定跡表示</a></li>
+            <li><a href="#joseki-move">着手</a></li>
+            <li><a href="#joseki-edit">編集・追加・削除</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>定跡機能</h1>
+        <p class="hero-subtitle">定跡ファイルの読み込み・表示から定跡手の編集まで</p>
+        <div class="hero-badges">
+            <span class="badge">定跡表示</span>
+            <span class="badge">着手機能</span>
+            <span class="badge">定跡手の編集・追加・削除</span>
+        </div>
+    </div>
+</section>
+
+<!-- Section 1: Joseki Display -->
+<section id="joseki-display" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">定跡の表示</h2>
+        <p class="section-desc">対局画面から定跡ファイルを読み込み、局面に応じた定跡手を表示します</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">対局を開始する</span>
+                </div>
+                <p class="guide-step-text">メニューの「対局」→「対局」から対局ダイアログを開き、対局を開始します。人間 vs エンジンなど、任意の対局条件を設定できます。</p>
+                <div class="screenshot-item">
+                    <img src="images/joseki/joseki-01-main-screen.png" alt="ShogiBoardQ メイン画面">
+                    <p class="screenshot-caption">メイン画面：メニューの「対局」→「対局」を選択</p>
+                </div>
+                <div class="screenshot-item">
+                    <img src="images/joseki/joseki-02-game-dialog.png" alt="対局設定ダイアログ">
+                    <p class="screenshot-caption">対局ダイアログ：対局者・時間設定・開始局面などを設定</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">定跡ドックの確認</span>
+                </div>
+                <p class="guide-step-text">定跡ドックは初期状態ではファイルが未選択の状態です。定跡手の一覧表（No.・着手・定跡手・予想応手・編集・削除・評価値・深さ・出現頻度・コメント）が表示されます。</p>
+                <div class="screenshot-item">
+                    <img src="images/joseki/joseki-03-dock-initial.png" alt="定跡ドック初期状態">
+                    <p class="screenshot-caption">定跡ドック：初期状態（ファイル未選択）</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">定跡ファイルを選択・読み込み</span>
+                </div>
+                <p class="guide-step-text">「開く」ボタンをクリックして定跡ファイル（.db形式）を選択します。やねうら王の定跡ファイル（standard_book.dbなど）を読み込むことができます。</p>
+                <div class="screenshot-item">
+                    <img src="images/joseki/joseki-04-file-selection.png" alt="定跡ファイル選択ダイアログ">
+                    <p class="screenshot-caption">ファイル選択ダイアログ：定跡ファイル（.db）を選択</p>
+                </div>
+                <p class="guide-step-text">読み込みが完了すると、ファイル名・局面数が表示され、ステータスバーに「読込済」と表示されます。</p>
+                <div class="screenshot-item">
+                    <img src="images/joseki/joseki-05-file-loaded.png" alt="定跡ファイル読み込み完了">
+                    <p class="screenshot-caption">読み込み完了：ファイル名・局面数（129,971局面）が表示される</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">定跡手の表示</span>
+                </div>
+                <p class="guide-step-text">現在の局面に対応する定跡手が一覧表示されます。各定跡手には評価値・探索深さ・出現頻度などの情報が付与されています。</p>
+                <div class="screenshot-item">
+                    <img src="images/joseki/joseki-06-display-first-move.png" alt="定跡表示画面（初期配置）">
+                    <p class="screenshot-caption">初期配置の定跡手一覧：各手の評価値・深さ・出現頻度を表示</p>
+                </div>
+                <p class="guide-step-text">局面が進むと、その局面に応じた定跡手が自動的に更新されます。</p>
+                <div class="screenshot-item">
+                    <img src="images/joseki/joseki-07-display-third-move.png" alt="定跡表示画面（3手目）">
+                    <p class="screenshot-caption">3手目（先手番）の定跡手一覧：局面の進行に応じて自動更新</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2: Making Moves -->
+<section id="joseki-move" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">着手機能</h2>
+        <p class="section-desc">定跡手の「着手」ボタンから定跡手を盤面に反映できます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">定跡手を着手する</span>
+                </div>
+                <p class="guide-step-text">定跡手一覧の「着手」ボタンをクリックすると、その定跡手が盤面に反映されます。対局中に定跡を参照しながら指し手を選ぶことができます。</p>
+                <div class="screenshot-item">
+                    <img src="images/joseki/joseki-08-make-move.png" alt="定跡手を着手した画面">
+                    <p class="screenshot-caption">着手実行：定跡手が盤面に反映され、対局が進行する</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3: Edit, Add, Delete -->
+<section id="joseki-edit" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">定跡手の編集・追加・削除</h2>
+        <p class="section-desc">定跡手の評価値やコメントを編集したり、新しい定跡手を追加・削除できます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">定跡手の編集</span>
+                </div>
+                <p class="guide-step-text">定跡手一覧の「編集」ボタンをクリックすると、編集ダイアログが開きます。評価値・探索深さ・出現頻度・コメントを変更できます。変更後は「更新」ボタンで反映します。</p>
+                <div class="screenshot-item">
+                    <img src="images/joseki/joseki-09-edit-move.png" alt="定跡手の編集ダイアログ">
+                    <p class="screenshot-caption">定跡手の編集：評価値・探索深さ・出現頻度・コメントを変更</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">定跡手の追加</span>
+                </div>
+                <p class="guide-step-text">「＋追加」ボタンをクリックすると、追加ダイアログが開きます。指し手（盤上の駒を動かす／持ち駒を打つ）、予想応手、評価情報（評価値・探索深さ・出現頻度）、コメントを設定して新しい定跡手を追加できます。</p>
+                <div class="screenshot-item">
+                    <img src="images/joseki/joseki-10-add-move.png" alt="定跡手の追加ダイアログ">
+                    <p class="screenshot-caption">定跡手の追加：指し手・予想応手・評価情報・コメントを指定して追加</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">定跡手の削除</span>
+                </div>
+                <p class="guide-step-text">定跡手一覧の「削除」ボタンをクリックすると、確認ダイアログが表示されます。「Yes」をクリックすると定跡手が削除されます。</p>
+                <div class="screenshot-item">
+                    <img src="images/joseki/joseki-11-delete-confirm.png" alt="定跡手の削除確認ダイアログ">
+                    <p class="screenshot-caption">削除確認：対象の定跡手を確認してから削除を実行</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">定跡ファイルの保存</span>
+                </div>
+                <p class="guide-step-text">編集・追加・削除後は、「保存」ボタンまたは「別名保存」ボタンで定跡ファイルに変更を保存してください。未保存の変更がある状態で定跡ドックを閉じようとすると、変更を破棄するかどうかの確認ウィンドウが表示されます。</p>
+                <div class="screenshot-item">
+                    <img src="images/joseki/joseki-12-unsaved-confirm.png" alt="未保存変更の確認ダイアログ">
+                    <p class="screenshot-caption">未保存確認：変更を保存・破棄・キャンセルから選択</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="index.html" class="back-link">&larr; ホームに戻る</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+</body>
+</html>
