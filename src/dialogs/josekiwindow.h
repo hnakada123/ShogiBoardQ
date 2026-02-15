@@ -22,6 +22,7 @@
 #include <QAction>
 #include <QFrame>
 #include <QSet>
+#include <QDockWidget>
 
 // 前方宣言
 class SfenPositionTracer;
@@ -71,6 +72,15 @@ public:
      * @param canPlay true=人間の手番で着手可能、false=エンジンの手番で着手不可
      */
     void setHumanCanPlay(bool canPlay);
+
+    /**
+     * @brief 親ドックウィジェットを設定する
+     *
+     * ドックの閉じるボタンを押された際に未保存確認を行うため、
+     * イベントフィルタをインストールする。
+     * @param dock 親ドックウィジェット
+     */
+    void setDockWidget(QDockWidget *dock);
 
 signals:
     /**
@@ -233,6 +243,11 @@ protected:
      * @brief ウィンドウが表示される時に遅延読込を実行
      */
     void showEvent(QShowEvent *event) override;
+
+    /**
+     * @brief ドックウィジェットの閉じるイベントをフィルタする
+     */
+    bool eventFilter(QObject *obj, QEvent *event) override;
 
 private:
     /**
@@ -427,6 +442,9 @@ private:
 
     /// 遅延読込用：自動読込するファイルパス
     QString       m_pendingAutoLoadPath;
+
+    /// 親ドックウィジェット（閉じる時の未保存確認用）
+    QDockWidget  *m_dockWidget = nullptr;
 };
 
 #endif // JOSEKIWINDOW_H

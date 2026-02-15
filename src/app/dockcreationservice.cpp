@@ -253,6 +253,7 @@ QDockWidget* DockCreationService::createJosekiWindowDock()
     m_josekiWindowDock = new QDockWidget(tr("定跡"), m_mainWindow);
     setupDockFeatures(m_josekiWindowDock, QStringLiteral("JosekiWindowDock"));
     m_josekiWindowDock->setWidget(josekiWindow);
+    josekiWindow->setDockWidget(m_josekiWindowDock);
 
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_josekiWindowDock);
     addToggleActionToMenu(m_josekiWindowDock, tr("定跡"));
