@@ -93,8 +93,8 @@ QObject::connect(ui->actionStartGame, &QAction::triggered,
 4. **分岐ツリーからのSFEN再構築**（該当する場合）
    ```cpp
    if (m_branchTree != nullptr && m_navState != nullptr
-       && m_sfenRecord != nullptr && m_currentSelectedPly > 0) {
-       // 現在のラインのSFENでm_sfenRecordを再構築
+       && m_sfenHistory != nullptr && m_currentSelectedPly > 0) {
+       // 現在のラインのSFENでm_sfenHistoryを再構築
    }
    ```
    分岐ツリーから途中局面で再対局する場合、異なる分岐のSFENが混在する問題を防ぐ。
@@ -105,7 +105,7 @@ QObject::connect(ui->actionStartGame, &QAction::triggered,
    c.view            = m_shogiView;
    c.gc              = m_gameController;
    c.clock           = m_timeController ? m_timeController->clock() : nullptr;
-   c.sfenRecord      = m_sfenRecord;
+   c.sfenRecord      = m_sfenHistory;
    c.kifuModel       = m_kifuRecordModel;
    c.kifuLoadCoordinator = m_kifuLoadCoordinator;
    c.currentSfenStr  = &m_currentSfenStr;

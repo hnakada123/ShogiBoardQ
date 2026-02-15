@@ -235,7 +235,7 @@ private:
 ```cpp
     /// 各 ply に対応した "position ..." コマンド列
     /// KifuLoadCoordinator が構築した局面再現用コマンドを参照する
-    QStringList* m_sfenRecord = nullptr;
+    QStringList* m_sfenHistory = nullptr;
 ```
 
 ### 所有権の明示

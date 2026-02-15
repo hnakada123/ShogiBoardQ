@@ -1419,7 +1419,7 @@ void MainWindow::ensureEvaluationGraphController()
     m_evalGraphController = new EvaluationGraphController(this);
     m_evalGraphController->setEvalChart(m_evalChart);
     m_evalGraphController->setMatchCoordinator(m_match);
-    m_evalGraphController->setSfenRecord(m_sfenRecord);
+    m_evalGraphController->setSfenRecord(m_sfenHistory);
     m_evalGraphController->setEngine1Name(m_engineName1);
 }
 ```
@@ -7239,7 +7239,7 @@ void MainWindow::ensureEvaluationGraphController()
     m_evalGraphController = new EvaluationGraphController(this);
     m_evalGraphController->setEvalChart(m_evalChart);
     m_evalGraphController->setMatchCoordinator(m_match);
-    m_evalGraphController->setSfenRecord(m_sfenRecord);
+    m_evalGraphController->setSfenRecord(m_sfenHistory);
     m_evalGraphController->setEngine1Name(m_engineName1);
     m_evalGraphController->setEngine2Name(m_engineName2);
 
@@ -7263,7 +7263,7 @@ void MainWindow::ensureBoardSyncPresenter()
     d.gc         = m_gameController;
     d.view       = m_shogiView;
     d.bic        = m_boardController;
-    d.sfenRecord = m_sfenRecord;
+    d.sfenRecord = m_sfenHistory;
     d.gameMoves  = &m_gameMoves;
 
     m_boardSync = new BoardSyncPresenter(d, this);

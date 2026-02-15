@@ -156,7 +156,7 @@ private:
     QWidget* m_parentWidget = nullptr;
     ShogiGameController* m_gameController = nullptr;
     KifuRecordListModel* m_kifuRecordModel = nullptr;
-    QStringList* m_sfenRecord = nullptr;
+    QStringList* m_sfenHistory = nullptr;
     QStringList* m_usiMoves = nullptr;
     QString* m_currentSfenStr = nullptr;
     int* m_currentMoveIndex = nullptr;

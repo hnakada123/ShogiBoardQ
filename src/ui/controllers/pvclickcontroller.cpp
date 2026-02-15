@@ -71,7 +71,7 @@ void PvClickController::setConsiderationModel(ShogiEngineThinkingModel* model)
 
 void PvClickController::setSfenRecord(QStringList* sfenRecord)
 {
-    m_sfenRecord = sfenRecord;
+    m_sfenHistory = sfenRecord;
 }
 
 void PvClickController::setGameMoves(const QVector<ShogiMove>* gameMoves)
@@ -193,7 +193,7 @@ void PvClickController::onPvRowClicked(int engineIndex, int row)
     qCDebug(lcUi) << "onPvRowClicked: currentSfen=" << currentSfen;
     qCDebug(lcUi) << "onPvRowClicked: record->baseSfen()=" << record->baseSfen();
     qCDebug(lcUi) << "onPvRowClicked: record->lastUsiMove()=" << record->lastUsiMove();
-    qCDebug(lcUi) << "onPvRowClicked: sfenRecord size=" << (m_sfenRecord ? m_sfenRecord->size() : -1);
+    qCDebug(lcUi) << "onPvRowClicked: sfenRecord size=" << (m_sfenHistory ? m_sfenHistory->size() : -1);
 
     // 起動時の局面に至った最後の手を設定
     // ShogiInfoRecordから取得（読み筋生成時に保存された情報）
@@ -205,10 +205,10 @@ void PvClickController::onPvRowClicked(int engineIndex, int row)
     // m_currentRecordIndex（棋譜欄で選択中の位置）ではなく、
     // currentSfen（読み筋生成時の局面）に一致する位置を検索
     int matchedIndexInRecord = -1;
-    if (m_sfenRecord && !currentSfen.isEmpty()) {
+    if (m_sfenHistory && !currentSfen.isEmpty()) {
         const QString curNorm = normalizedSfen(currentSfen);
-        for (int i = 0; i < m_sfenRecord->size(); ++i) {
-            if (normalizedSfen(m_sfenRecord->at(i)) == curNorm) {
+        for (int i = 0; i < m_sfenHistory->size(); ++i) {
+            if (normalizedSfen(m_sfenHistory->at(i)) == curNorm) {
                 matchedIndexInRecord = i;
                 break;
             }
@@ -216,11 +216,11 @@ void PvClickController::onPvRowClicked(int engineIndex, int row)
         qCDebug(lcUi) << "onPvRowClicked: found matchedIndexInRecord by baseSfen comparison=" << matchedIndexInRecord;
     }
 
-    // lastUsiMoveが空の場合、m_sfenRecordから前の局面を取得してハイライト計算用に使用
-    if (matchedIndexInRecord > 0 && m_sfenRecord
-        && matchedIndexInRecord - 1 < m_sfenRecord->size()) {
-        prevSfenForHighlight = m_sfenRecord->at(matchedIndexInRecord - 1);
-        qCDebug(lcUi) << "onPvRowClicked: prevSfenForHighlight from m_sfenRecord["
+    // lastUsiMoveが空の場合、m_sfenHistoryから前の局面を取得してハイライト計算用に使用
+    if (matchedIndexInRecord > 0 && m_sfenHistory
+        && matchedIndexInRecord - 1 < m_sfenHistory->size()) {
+        prevSfenForHighlight = m_sfenHistory->at(matchedIndexInRecord - 1);
+        qCDebug(lcUi) << "onPvRowClicked: prevSfenForHighlight from m_sfenHistory["
                       << (matchedIndexInRecord - 1) << "]";
 
         // lastUsiMoveが空の場合、m_usiMovesから取得を試みる
@@ -324,19 +324,19 @@ QString PvClickController::resolveCurrentSfen(const QString& baseSfen) const
     qCDebug(lcUi) << "baseSfen from record:" << currentSfen;
 
     // baseSfenが空の場合のフォールバック
-    if (currentSfen.isEmpty() && m_sfenRecord && m_sfenRecord->size() >= 2) {
-        currentSfen = m_sfenRecord->at(m_sfenRecord->size() - 2).trimmed();
+    if (currentSfen.isEmpty() && m_sfenHistory && m_sfenHistory->size() >= 2) {
+        currentSfen = m_sfenHistory->at(m_sfenHistory->size() - 2).trimmed();
         qCDebug(lcUi) << "fallback to sfenRecord[size-2]:" << currentSfen;
-    } else if (currentSfen.isEmpty() && m_sfenRecord && !m_sfenRecord->isEmpty()) {
-        currentSfen = m_sfenRecord->first().trimmed();
+    } else if (currentSfen.isEmpty() && m_sfenHistory && !m_sfenHistory->isEmpty()) {
+        currentSfen = m_sfenHistory->first().trimmed();
         qCDebug(lcUi) << "fallback to sfenRecord first:" << currentSfen;
     }
 
     // baseSfenがstartposでも、現在局面がstartposでないなら現在局面を優先
     if (!currentSfen.isEmpty() && isStartposSfen(currentSfen)) {
         QString fallbackCurrent = m_currentSfenStr;
-        if (fallbackCurrent.isEmpty() && m_sfenRecord && !m_sfenRecord->isEmpty()) {
-            fallbackCurrent = m_sfenRecord->last().trimmed();
+        if (fallbackCurrent.isEmpty() && m_sfenHistory && !m_sfenHistory->isEmpty()) {
+            fallbackCurrent = m_sfenHistory->last().trimmed();
         }
         if (!fallbackCurrent.isEmpty() && !isStartposSfen(fallbackCurrent)) {
             qCDebug(lcUi) << "override startpos baseSfen with currentSfen=" << fallbackCurrent;

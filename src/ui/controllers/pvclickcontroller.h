@@ -94,7 +94,7 @@ private:
     ShogiEngineThinkingModel* m_considerationModel = nullptr;
     UsiCommLogModel* m_lineEditModel1 = nullptr;
     UsiCommLogModel* m_lineEditModel2 = nullptr;
-    QStringList* m_sfenRecord = nullptr;
+    QStringList* m_sfenHistory = nullptr;
     const QVector<ShogiMove>* m_gameMoves = nullptr;
     const QStringList* m_usiMoves = nullptr;
 

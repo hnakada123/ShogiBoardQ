@@ -156,7 +156,7 @@ private:
 
     // --- 棋譜データ ---
     QStringList m_kifuUsiMoves;               ///< 棋譜から読み込んだUSI形式の指し手リスト
-    QStringList* m_sfenRecord;                ///< 局面SFEN列への参照（非所有）
+    QStringList* m_sfenHistory;                ///< 局面SFEN列への参照（非所有）
     QVector<ShogiMove>& m_gameMoves;          ///< ゲーム指し手列への参照（MainWindowと共有）
     QStringList& m_positionStrList;           ///< USI positionコマンド列への参照（MainWindowと共有）
     QList<KifDisplayItem> m_dispMain;         ///< 本譜の表示データスナップショット

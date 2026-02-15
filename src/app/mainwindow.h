@@ -440,7 +440,6 @@ private:
     EvaluationGraphController* m_evalGraphController = nullptr;  ///< 評価値グラフ管理
     QString           m_humanName1, m_humanName2;   ///< 対局者名（人間側）
     QString           m_engineName1, m_engineName2; ///< 対局者名（エンジン側）
-    QStringList*      m_sfenRecord   = nullptr;     ///< 各手数のSFENレコード（非所有）
     QList<KifuDisplay *>* m_moveRecords = nullptr;  ///< 指し手表示レコード（非所有）
     QStringList       m_kifuDataList;               ///< 棋譜データリスト
     QString           defaultSaveFileName;          ///< デフォルトの保存ファイル名
@@ -816,6 +815,11 @@ private:
     // --- 開始局面解決 ---
     /// 対局開始時に使用するSFEN文字列を決定する
     QString resolveCurrentSfenForGameStart() const;
+
+    /// MatchCoordinatorが保持するSFEN履歴への参照を取得する（未初期化時はnullptr）
+    QStringList* sfenRecord();
+    /// MatchCoordinatorが保持するSFEN履歴への参照を取得する（const版）
+    const QStringList* sfenRecord() const;
 
     /// 分岐ナビゲーション由来の盤面更新中に、通常の同期処理が再入しないようにするガード
     bool m_skipBoardSyncForBranchNav = false;

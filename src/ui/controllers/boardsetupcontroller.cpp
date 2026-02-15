@@ -95,7 +95,7 @@ void BoardSetupController::setPlayMode(PlayMode mode)
 
 void BoardSetupController::setSfenRecord(QStringList* sfenRecord)
 {
-    m_sfenRecord = sfenRecord;
+    m_sfenHistory = sfenRecord;
 }
 
 void BoardSetupController::setGameMoves(QVector<ShogiMove>* gameMoves)
@@ -229,8 +229,8 @@ void BoardSetupController::onMoveRequested(const QPoint& from, const QPoint& to)
         return;
     }
 
-    PlayMode matchMode = (m_match ? m_match->playMode() : PlayMode::NotStarted);
-    PlayMode modeNow   = (m_playMode != PlayMode::NotStarted) ? m_playMode : matchMode;
+    const PlayMode matchMode = (m_match ? m_match->playMode() : PlayMode::NotStarted);
+    PlayMode modeNow = (matchMode != PlayMode::NotStarted) ? matchMode : m_playMode;
 
     qCDebug(lcUi) << "effective modeNow=" << int(modeNow)
                  << "(ui m_playMode=" << int(m_playMode) << ", matchMode=" << int(matchMode) << ")";
@@ -242,12 +242,12 @@ void BoardSetupController::onMoveRequested(const QPoint& from, const QPoint& to)
     QPoint hFrom = from, hTo = to;
 
     // 次の着手番号は「記録サイズ」を信頼する
-    const int recSizeBefore = (m_sfenRecord ? static_cast<int>(m_sfenRecord->size()) : 0);
+    const int recSizeBefore = (m_sfenHistory ? static_cast<int>(m_sfenHistory->size()) : 0);
     const int nextIdx       = qMax(1, recSizeBefore);
 
     // 合法判定＆盤面反映
     const bool ok = m_gameController->validateAndMove(
-        hFrom, hTo, m_lastMove, modeNow, const_cast<int&>(nextIdx), m_sfenRecord, *m_gameMoves);
+        hFrom, hTo, m_lastMove, modeNow, const_cast<int&>(nextIdx), m_sfenHistory, *m_gameMoves);
 
     if (m_boardController) m_boardController->onMoveApplied(hFrom, hTo, ok);
     if (!ok) {
@@ -256,8 +256,8 @@ void BoardSetupController::onMoveRequested(const QPoint& from, const QPoint& to)
     }
 
     // UI 側の現在カーソルを同期
-    if (m_sfenRecord && m_currentMoveIndex) {
-        *m_currentMoveIndex = static_cast<int>(m_sfenRecord->size() - 1);
+    if (m_sfenHistory && m_currentMoveIndex) {
+        *m_currentMoveIndex = static_cast<int>(m_sfenHistory->size() - 1);
     }
 
     Q_EMIT moveApplied(hFrom, hTo, ok);
@@ -289,9 +289,9 @@ void BoardSetupController::onMoveRequested(const QPoint& from, const QPoint& to)
         }
 
         // 最大手数チェック
-        if (m_match && m_sfenRecord) {
+        if (m_match && m_sfenHistory) {
             const int maxMoves = m_match->maxMoves();
-            const int currentMoveIdx = static_cast<int>(m_sfenRecord->size() - 1);
+            const int currentMoveIdx = static_cast<int>(m_sfenHistory->size() - 1);
             if (maxMoves > 0 && currentMoveIdx >= maxMoves) {
                 m_match->handleMaxMovesJishogi();
             }

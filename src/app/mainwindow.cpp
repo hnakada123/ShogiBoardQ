@@ -385,15 +385,8 @@ void MainWindow::initializeComponents()
         // m_gameController->disconnect(this);
     }
 
-    // 局面履歴（SFEN列）を確保（起動直後の初期化なのでクリアもOK）
-    if (!m_sfenRecord) {
-        m_sfenRecord = new QStringList;
-        qCDebug(lcApp).noquote() << "initializeComponents: created m_sfenRecord*=" << static_cast<const void*>(m_sfenRecord);
-    } else {
-        qCDebug(lcApp).noquote() << "initializeComponents: clearing m_sfenRecord*=" << static_cast<const void*>(m_sfenRecord)
-                           << "old_size=" << m_sfenRecord->size();
-        m_sfenRecord->clear();
-    }
+    // 局面履歴（SFEN列）は MatchCoordinator 側で所有する。
+    // MainWindow初期化時点で司令塔が未生成の場合があるため、ここでは触らない。
 
     // 棋譜表示用のレコードリストを確保（ここでは容器だけ用意）
     if (!m_moveRecords) m_moveRecords = new QList<KifuDisplay *>;
@@ -491,8 +484,8 @@ void MainWindow::undoLastTwoMoves()
                 // sfenRecordのサイズ - 1 が現在の手数（ply）
                 // sfenRecord: [開局SFEN, 1手目後SFEN, 2手目後SFEN, ...]
                 // size=1 → ply=0（開局）, size=2 → ply=1, size=3 → ply=2, ...
-                const int currentPly = m_sfenRecord 
-                    ? static_cast<int>(qMax(static_cast<qsizetype>(0), m_sfenRecord->size() - 1)) 
+                const int currentPly = sfenRecord() 
+                    ? static_cast<int>(qMax(static_cast<qsizetype>(0), sfenRecord()->size() - 1)) 
                     : 0;
                 m_evalGraphController->setCurrentPly(currentPly);
             }
@@ -614,7 +607,7 @@ void MainWindow::startNewShogiGame(QString& startSfenStr)
     m_match->prepareAndStartGame(
         m_playMode,
         startSfenStr,
-        m_sfenRecord,
+        sfenRecord(),
         m_startGameDialog,
         m_bottomIsP1
         );
@@ -658,7 +651,7 @@ void MainWindow::ensureEvaluationGraphController()
     m_evalGraphController = new EvaluationGraphController(this);
     m_evalGraphController->setEvalChart(m_evalChart);
     m_evalGraphController->setMatchCoordinator(m_match);
-    m_evalGraphController->setSfenRecord(m_sfenRecord);
+    m_evalGraphController->setSfenRecord(sfenRecord());
     m_evalGraphController->setEngine1Name(m_engineName1);
     m_evalGraphController->setEngine2Name(m_engineName2);
 
@@ -897,7 +890,7 @@ void MainWindow::displayKifuAnalysisDialog()
 
     // 棋譜解析コンテキストを更新（遅延初期化されたオブジェクトを反映）
     DialogCoordinator::KifuAnalysisContext kifuCtx;
-    kifuCtx.sfenRecord = m_sfenRecord;
+    kifuCtx.sfenRecord = sfenRecord();
     kifuCtx.moveRecords = m_moveRecords;
     kifuCtx.recordModel = m_kifuRecordModel;
     kifuCtx.activePly = &m_activePly;
@@ -1008,28 +1001,47 @@ void MainWindow::setCurrentTurn()
                 Qt::UniqueConnection);
     }
 
-    // 盤（SFEN）の "b"/"w" から TurnManager へ → UI/Clock は changed によって更新
+    const bool isLivePlayMode =
+        (m_playMode == PlayMode::HumanVsHuman) ||
+        (m_playMode == PlayMode::EvenHumanVsEngine) ||
+        (m_playMode == PlayMode::EvenEngineVsHuman) ||
+        (m_playMode == PlayMode::EvenEngineVsEngine) ||
+        (m_playMode == PlayMode::HandicapEngineVsHuman) ||
+        (m_playMode == PlayMode::HandicapHumanVsEngine) ||
+        (m_playMode == PlayMode::HandicapEngineVsEngine) ||
+        (m_playMode == PlayMode::CsaNetworkMode);
+
+    // ライブ対局中は GC を手番の単一ソースとする。
+    // ShogiBoard::currentPlayer() は setSfen() 経由でのみ更新されるため、
+    // 指し手適用直後に board 側を参照すると古い手番へ巻き戻ることがある。
+    if (isLivePlayMode && m_gameController) {
+        const auto gcTurn = m_gameController->currentPlayer();
+        if (gcTurn == ShogiGameController::Player1 || gcTurn == ShogiGameController::Player2) {
+            tm->setFromGc(gcTurn);
+            return;
+        }
+    }
+
+    // 非ライブ用途（棋譜ナビゲーション等）は盤面SFENの手番を優先。
     const QString bw = (m_shogiView && m_shogiView->board())
-                       ? m_shogiView->board()->currentPlayer()
-                       : QStringLiteral("b");
+                           ? m_shogiView->board()->currentPlayer()
+                           : QStringLiteral("b");
     tm->setFromSfenToken(bw);
 
-    // GC 側も TurnManager に揃える（意味統一＝GC 方式）
-    if (m_gameController) {
-        m_gameController->setCurrentPlayer(tm->toGc());
-    }
+    // 盤面起点の同期時のみ GC へ反映する。
+    if (m_gameController) m_gameController->setCurrentPlayer(tm->toGc());
 }
 
 // `resolveCurrentSfenForGameStart`: Current Sfen For Game Start を解決する。
 QString MainWindow::resolveCurrentSfenForGameStart() const
 {
     qCDebug(lcApp).noquote() << "resolveCurrentSfenForGameStart: m_currentSelectedPly=" << m_currentSelectedPly
-                       << " m_sfenRecord=" << (m_sfenRecord ? "exists" : "null")
-                       << " size=" << (m_sfenRecord ? m_sfenRecord->size() : -1);
+                       << " sfenRecord()=" << (sfenRecord() ? "exists" : "null")
+                       << " size=" << (sfenRecord() ? sfenRecord()->size() : -1);
 
     // 1) 棋譜SFENリストの「選択手」から取得（最優先）
-    if (m_sfenRecord) {
-        const qsizetype size = m_sfenRecord->size();
+    if (sfenRecord()) {
+        const qsizetype size = sfenRecord()->size();
         // m_currentSelectedPly が [0..size-1] のインデックスである前提（本プロジェクトの慣習）
         // 1始まりの場合はプロジェクト実装に合わせて +0 / -1 調整してください。
         int idx = m_currentSelectedPly;
@@ -1044,7 +1056,7 @@ QString MainWindow::resolveCurrentSfenForGameStart() const
             idx = static_cast<int>(size - 1);
         }
         if (idx >= 0 && idx < size) {
-            const QString s = m_sfenRecord->at(idx).trimmed();
+            const QString s = sfenRecord()->at(idx).trimmed();
             qCDebug(lcApp).noquote() << "resolveCurrentSfenForGameStart: at(" << idx << ")=" << s.left(50);
             if (!s.isEmpty()) return s;
         }
@@ -1053,6 +1065,16 @@ QString MainWindow::resolveCurrentSfenForGameStart() const
     // 2) フォールバックなし（司令塔側が安全に処理）
     qCDebug(lcApp).noquote() << "resolveCurrentSfenForGameStart: returning EMPTY";
     return QString();
+}
+
+QStringList* MainWindow::sfenRecord()
+{
+    return m_match ? m_match->sfenRecordPtr() : nullptr;
+}
+
+const QStringList* MainWindow::sfenRecord() const
+{
+    return m_match ? m_match->sfenRecordPtr() : nullptr;
 }
 
 // 対局を開始する。
@@ -1084,21 +1106,21 @@ void MainWindow::initializeGame()
                        << " m_startSfenStr=" << m_startSfenStr.left(50)
                        << " m_currentSelectedPly=" << m_currentSelectedPly;
 
-    // 分岐ツリーから途中局面で再対局する場合、m_sfenRecord を
+    // 分岐ツリーから途中局面で再対局する場合、sfenRecord() を
     // 現在のラインのSFENで再構築する。これにより、前の対局の異なる分岐の
     // SFENが混在してSFEN差分によるハイライトが誤動作する問題を防ぐ。
     if (m_branchTree != nullptr && m_navState != nullptr
-        && m_sfenRecord != nullptr && m_currentSelectedPly > 0) {
+        && sfenRecord() != nullptr && m_currentSelectedPly > 0) {
         const int lineIndex = m_navState->currentLineIndex();
         const QStringList branchSfens = m_branchTree->getSfenListForLine(lineIndex);
         if (!branchSfens.isEmpty() && m_currentSelectedPly < branchSfens.size()) {
-            m_sfenRecord->clear();
+            sfenRecord()->clear();
             for (int i = 0; i <= m_currentSelectedPly; ++i) {
-                m_sfenRecord->append(branchSfens.at(i));
+                sfenRecord()->append(branchSfens.at(i));
             }
             qCDebug(lcApp).noquote()
                 << "initializeGame: rebuilt sfenRecord from branchTree line=" << lineIndex
-                << " entries=" << m_sfenRecord->size();
+                << " entries=" << sfenRecord()->size();
         }
     }
 
@@ -1106,7 +1128,7 @@ void MainWindow::initializeGame()
     c.view            = m_shogiView;
     c.gc              = m_gameController;
     c.clock           = m_timeController ? m_timeController->clock() : nullptr;
-    c.sfenRecord      = m_sfenRecord;          // QStringList*
+    c.sfenRecord      = sfenRecord();          // QStringList*
     c.kifuModel       = m_kifuRecordModel;     // 棋譜欄モデル（終端行削除に使用）
     c.kifuLoadCoordinator = m_kifuLoadCoordinator;  // 分岐構造の設定用
     c.currentSfenStr  = &m_currentSfenStr;     // 現局面の SFEN（ここで事前決定済み）
@@ -1143,8 +1165,8 @@ void MainWindow::resetToInitialState()
 void MainWindow::chooseAndLoadKifuFile()
 {
     qCDebug(lcApp).noquote() << "chooseAndLoadKifuFile ENTER"
-                       << "m_sfenRecord*=" << static_cast<const void*>(m_sfenRecord)
-                       << "m_sfenRecord.size=" << (m_sfenRecord ? m_sfenRecord->size() : -1)
+                       << "sfenRecord()*=" << static_cast<const void*>(sfenRecord())
+                       << "sfenRecord().size=" << (sfenRecord() ? sfenRecord()->size() : -1)
                        << "m_boardSync*=" << static_cast<const void*>(m_boardSync);
 
     // --- 1) ファイル選択（UI層に残す） ---
@@ -1174,19 +1196,19 @@ void MainWindow::chooseAndLoadKifuFile()
 
     qCDebug(lcApp).noquote() << "chooseAndLoadKifuFile: KifuLoadCoordinator created"
                        << "m_kifuLoadCoordinator*=" << static_cast<const void*>(m_kifuLoadCoordinator)
-                       << "passed m_sfenRecord*=" << static_cast<const void*>(m_sfenRecord);
+                       << "passed sfenRecord()*=" << static_cast<const void*>(sfenRecord());
 
     qCDebug(lcApp).noquote() << "chooseAndLoadKifuFile: loading file=" << filePath;
     dispatchKifuLoad(filePath);
 
     // デバッグ: 読み込み後のsfenRecord状態を確認
     qCDebug(lcApp).noquote() << "chooseAndLoadKifuFile LEAVE"
-                       << "m_sfenRecord*=" << static_cast<const void*>(m_sfenRecord)
-                       << "m_sfenRecord.size=" << (m_sfenRecord ? m_sfenRecord->size() : -1);
-    if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
-        qCDebug(lcApp).noquote() << "m_sfenRecord[0]=" << m_sfenRecord->first().left(60);
-        if (m_sfenRecord->size() > 1) {
-            qCDebug(lcApp).noquote() << "m_sfenRecord[1]=" << m_sfenRecord->at(1).left(60);
+                       << "sfenRecord()*=" << static_cast<const void*>(sfenRecord())
+                       << "sfenRecord().size=" << (sfenRecord() ? sfenRecord()->size() : -1);
+    if (sfenRecord() && !sfenRecord()->isEmpty()) {
+        qCDebug(lcApp).noquote() << "sfenRecord()[0]=" << sfenRecord()->first().left(60);
+        if (sfenRecord()->size() > 1) {
+            qCDebug(lcApp).noquote() << "sfenRecord()[1]=" << sfenRecord()->at(1).left(60);
         }
     }
 }
@@ -1208,8 +1230,8 @@ void MainWindow::displayGameRecord(const QList<KifDisplayItem> disp)
     if (!m_recordPresenter) return;
 
     const qsizetype moveCount = disp.size();
-    const int rowCount  = (m_sfenRecord && !m_sfenRecord->isEmpty())
-                             ? static_cast<int>(m_sfenRecord->size())
+    const int rowCount  = (sfenRecord() && !sfenRecord()->isEmpty())
+                             ? static_cast<int>(sfenRecord()->size())
                              : static_cast<int>(moveCount + 1);
 
     ensureGameRecordModel();
@@ -1420,11 +1442,14 @@ void MainWindow::onConsecutiveGamesConfigured(int totalGames, bool switchTurn)
 
 void MainWindow::onGameStarted(const MatchCoordinator::StartOptions& opt)
 {
+    // 対局開始時は MatchCoordinator 側の確定モードをUI側にも同期する。
+    m_playMode = opt.mode;
+
     // 開始局面のSFENを同期（定跡ウィンドウ等が参照する）
     if (!opt.sfenStart.isEmpty()) {
         m_currentSfenStr = opt.sfenStart;
-    } else if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
-        m_currentSfenStr = m_sfenRecord->first();
+    } else if (sfenRecord() && !sfenRecord()->isEmpty()) {
+        m_currentSfenStr = sfenRecord()->first();
     }
     updateJosekiWindow();
 
@@ -1493,7 +1518,7 @@ void MainWindow::syncBoardAndHighlightsAtRow(int ply)
     enableArrowButtons();
 
     // 現在局面SFENの更新:
-    // 分岐ライン表示中は `m_sfenRecord` が本譜ベースのため不整合が起こり得る。
+    // 分岐ライン表示中は `sfenRecord()` が本譜ベースのため不整合が起こり得る。
     // そのため分岐中は branchTree を優先し、通常時のみ sfenRecord を使う。
     bool foundInBranch = false;
     if (m_navState != nullptr && !m_navState->isOnMainLine() && m_branchTree != nullptr) {
@@ -1508,8 +1533,8 @@ void MainWindow::syncBoardAndHighlightsAtRow(int ply)
             }
         }
     }
-    if (!foundInBranch && m_sfenRecord && ply >= 0 && ply < m_sfenRecord->size()) {
-        m_currentSfenStr = m_sfenRecord->at(ply);
+    if (!foundInBranch && sfenRecord() && ply >= 0 && ply < sfenRecord()->size()) {
+        m_currentSfenStr = sfenRecord()->at(ply);
         qCDebug(lcApp) << "syncBoardAndHighlightsAtRow: updated m_currentSfenStr=" << m_currentSfenStr;
     }
 
@@ -1945,15 +1970,21 @@ void MainWindow::initMatchCoordinator()
     d.comm2  = m_lineEditModel2;
     d.think2 = m_modelThinking2;
 
-    d.sfenRecord = m_sfenRecord;
+    d.sfenRecord = sfenRecord();
 
     // 評価値グラフ更新フック（EvaluationGraphController直接）
     ensureEvaluationGraphController();
     d.hooks.appendEvalP1       = std::bind(&EvaluationGraphController::redrawEngine1Graph, m_evalGraphController, -1);
     d.hooks.appendEvalP2       = std::bind(&EvaluationGraphController::redrawEngine2Graph, m_evalGraphController, -1);
-    d.hooks.sendGoToEngine     = std::bind(&MatchCoordinator::sendGoToEngine,   m_match, _1, _2);
-    d.hooks.sendStopToEngine   = std::bind(&MatchCoordinator::sendStopToEngine, m_match, _1);
-    d.hooks.sendRawToEngine    = std::bind(&MatchCoordinator::sendRawToEngine,  m_match, _1, _2);
+    d.hooks.sendGoToEngine = [this](Usi* which, const MatchCoordinator::GoTimes& t) {
+        if (m_match) m_match->sendGoToEngine(which, t);
+    };
+    d.hooks.sendStopToEngine = [this](Usi* which) {
+        if (m_match) m_match->sendStopToEngine(which);
+    };
+    d.hooks.sendRawToEngine = [this](Usi* which, const QString& cmd) {
+        if (m_match) m_match->sendRawToEngine(which, cmd);
+    };
     d.hooks.initializeNewGame  = std::bind(&MainWindow::initializeNewGameHook, this, _1);
     d.hooks.renderBoardFromGc  = std::bind(&MainWindow::renderBoardFromGc, this);
     d.hooks.showMoveHighlights = std::bind(&MainWindow::showMoveHighlights, this, _1, _2);
@@ -2039,7 +2070,7 @@ void MainWindow::initMatchCoordinator()
         u.recordModel      = m_kifuRecordModel;      // 棋譜テーブルのモデル
         u.gameMoves        = &m_gameMoves;           // 内部の着手配列
         u.positionStrList  = &m_positionStrList;     // "position ..." 履歴（あれば）
-        u.sfenRecord       = m_sfenRecord;           // SFEN の履歴（Presenterと同一）
+        u.sfenRecord       = sfenRecord();           // SFEN の履歴（Presenterと同一）
         u.currentMoveIndex = &m_currentMoveIndex;    // 現在手数（0起点）
         u.gc               = m_gameController;       // 盤ロジック
         u.boardCtl         = m_boardController;      // ハイライト消去など（null可）
@@ -2215,6 +2246,7 @@ void MainWindow::onMoveRequested(const QPoint& from, const QPoint& to)
         // 最新の状態を同期
         m_boardSetupController->setPlayMode(m_playMode);
         m_boardSetupController->setMatchCoordinator(m_match);
+        m_boardSetupController->setSfenRecord(sfenRecord());
         m_boardSetupController->setPositionEditController(m_posEdit);
         m_boardSetupController->setTimeController(m_timeController);
         m_boardSetupController->onMoveRequested(from, to);
@@ -2411,12 +2443,12 @@ void MainWindow::onMoveCommitted(ShogiGameController::Player mover, int ply)
     }
 
     // m_currentSfenStrを現在の局面に更新
-    // m_sfenRecordの最新のSFENを取得（plyはタイミングの問題で信頼できない）
-    if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
+    // sfenRecord()の最新のSFENを取得（plyはタイミングの問題で信頼できない）
+    if (sfenRecord() && !sfenRecord()->isEmpty()) {
         // 最新のSFENを取得
-        m_currentSfenStr = m_sfenRecord->last();
+        m_currentSfenStr = sfenRecord()->last();
         qCDebug(lcApp) << "onMoveCommitted: ply=" << ply
-                 << "sfenRecord.size()=" << m_sfenRecord->size()
+                 << "sfenRecord.size()=" << sfenRecord()->size()
                  << "using last sfen=" << m_currentSfenStr;
     }
 
@@ -2552,7 +2584,7 @@ void MainWindow::ensureDialogCoordinator()
     conCtx.gameMoves = &m_gameMoves;
     conCtx.currentMoveIndex = &m_currentMoveIndex;
     conCtx.kifuRecordModel = m_kifuRecordModel;
-    conCtx.sfenRecord = m_sfenRecord;
+    conCtx.sfenRecord = sfenRecord();
     conCtx.startSfenStr = &m_startSfenStr;
     conCtx.currentSfenStr = &m_currentSfenStr;
     conCtx.branchTree = m_branchTree;
@@ -2564,7 +2596,7 @@ void MainWindow::ensureDialogCoordinator()
 
     // 詰み探索コンテキストを設定
     DialogCoordinator::TsumeSearchContext tsumeCtx;
-    tsumeCtx.sfenRecord = m_sfenRecord;
+    tsumeCtx.sfenRecord = sfenRecord();
     tsumeCtx.startSfenStr = &m_startSfenStr;
     tsumeCtx.positionStrList = &m_positionStrList;
     tsumeCtx.currentMoveIndex = &m_currentMoveIndex;
@@ -2574,7 +2606,7 @@ void MainWindow::ensureDialogCoordinator()
 
     // 棋譜解析コンテキストを設定
     DialogCoordinator::KifuAnalysisContext kifuCtx;
-    kifuCtx.sfenRecord = m_sfenRecord;
+    kifuCtx.sfenRecord = sfenRecord();
     kifuCtx.moveRecords = m_moveRecords;
     kifuCtx.recordModel = m_kifuRecordModel;
     kifuCtx.activePly = &m_activePly;
@@ -2656,7 +2688,7 @@ void MainWindow::updateKifuExportDependencies()
     deps.replayController = m_replayController;
     deps.gameController = m_gameController;
     deps.statusBar = ui ? ui->statusbar : nullptr;
-    deps.sfenRecord = m_sfenRecord;
+    deps.sfenRecord = sfenRecord();
     deps.usiMoves = &m_gameUsiMoves;
     deps.resolvedRows = nullptr;  // KifuBranchTree を優先使用
     deps.commentsByRow = &m_commentsByRow;
@@ -2739,7 +2771,7 @@ void MainWindow::ensureBoardSetupController()
     m_boardSetupController->setGameController(m_gameController);
     m_boardSetupController->setMatchCoordinator(m_match);
     m_boardSetupController->setTimeController(m_timeController);
-    m_boardSetupController->setSfenRecord(m_sfenRecord);
+    m_boardSetupController->setSfenRecord(sfenRecord());
     m_boardSetupController->setGameMoves(&m_gameMoves);
     m_boardSetupController->setCurrentMoveIndex(&m_currentMoveIndex);
 
@@ -2778,7 +2810,7 @@ void MainWindow::ensurePvClickController()
     m_pvClickController->setThinkingModels(m_modelThinking1, m_modelThinking2);
     m_pvClickController->setConsiderationModel(m_considerationModel);
     m_pvClickController->setLogModels(m_lineEditModel1, m_lineEditModel2);
-    m_pvClickController->setSfenRecord(m_sfenRecord);
+    m_pvClickController->setSfenRecord(sfenRecord());
     m_pvClickController->setGameMoves(&m_gameMoves);
     m_pvClickController->setUsiMoves(&m_gameUsiMoves);
     QObject::connect(
@@ -2802,7 +2834,7 @@ void MainWindow::ensurePositionEditCoordinator()
     m_posEditCoordinator->setPositionEditController(m_posEdit);
     m_posEditCoordinator->setMatchCoordinator(m_match);
     m_posEditCoordinator->setReplayController(m_replayController);
-    m_posEditCoordinator->setSfenRecord(m_sfenRecord);
+    m_posEditCoordinator->setSfenRecord(sfenRecord());
 
     // 状態参照の設定
     m_posEditCoordinator->setCurrentSelectedPly(&m_currentSelectedPly);
@@ -2852,7 +2884,7 @@ void MainWindow::ensureCsaGameWiring()
     deps.recordPane = m_recordPane;
     deps.boardController = m_boardController;
     deps.statusBar = ui ? ui->statusbar : nullptr;
-    deps.sfenRecord = m_sfenRecord;
+    deps.sfenRecord = sfenRecord();
     // CSA対局開始用の追加依存オブジェクト
     deps.analysisTab = m_analysisTab;
     deps.boardSetupController = m_boardSetupController;
@@ -2893,7 +2925,7 @@ void MainWindow::ensureJosekiWiring()
     deps.parentWidget = this;
     deps.gameController = m_gameController;
     deps.kifuRecordModel = m_kifuRecordModel;
-    deps.sfenRecord = m_sfenRecord;
+    deps.sfenRecord = sfenRecord();
     deps.usiMoves = &m_gameUsiMoves;
     deps.currentSfenStr = &m_currentSfenStr;
     deps.currentMoveIndex = &m_currentMoveIndex;
@@ -3014,14 +3046,14 @@ void MainWindow::ensureBoardSyncPresenter()
     if (m_boardSync) return;
 
     qCDebug(lcApp).noquote() << "ensureBoardSyncPresenter: creating BoardSyncPresenter"
-                       << "m_sfenRecord*=" << static_cast<const void*>(m_sfenRecord)
-                       << "m_sfenRecord.size=" << (m_sfenRecord ? m_sfenRecord->size() : -1);
+                       << "sfenRecord()*=" << static_cast<const void*>(sfenRecord())
+                       << "sfenRecord().size=" << (sfenRecord() ? sfenRecord()->size() : -1);
 
     BoardSyncPresenter::Deps d;
     d.gc         = m_gameController;
     d.view       = m_shogiView;
     d.bic        = m_boardController;
-    d.sfenRecord = m_sfenRecord;
+    d.sfenRecord = sfenRecord();
     d.gameMoves  = &m_gameMoves;
 
     m_boardSync = new BoardSyncPresenter(d, this);
@@ -3360,8 +3392,8 @@ QString MainWindow::buildPositionStringForIndex(int moveIndex) const
     }
 
     // 3) フォールバック: SFEN形式で構築
-    if (m_sfenRecord && moveIndex >= 0 && moveIndex < m_sfenRecord->size()) {
-        const QString sfen = m_sfenRecord->at(moveIndex);
+    if (sfenRecord() && moveIndex >= 0 && moveIndex < sfenRecord()->size()) {
+        const QString sfen = sfenRecord()->at(moveIndex);
         return QStringLiteral("position sfen ") + sfen;
     }
 
@@ -3483,7 +3515,7 @@ void MainWindow::createAndWireKifuLoadCoordinator()
         /* activePly           */ m_activePly,
         /* currentSelectedPly  */ m_currentSelectedPly,
         /* currentMoveIndex    */ m_currentMoveIndex,
-        /* sfenRecord          */ m_sfenRecord,
+        /* sfenRecord          */ sfenRecord(),
         /* gameInfoTable       */ m_gameInfoController ? m_gameInfoController->tableWidget() : nullptr,
         /* gameInfoDock        */ nullptr,  // GameInfoPaneControllerに移行済み
         /* tab                 */ m_tab,
@@ -3652,7 +3684,11 @@ void MainWindow::updateGameRecord(const QString& elapsedTime)
                 ShogiBoard* board = m_gameController->board();
                 // 完全な SFEN を構築: <盤面> <手番> <持ち駒> <手数>
                 const QString boardPart = board->convertBoardToSfen();
-                const QString turnPart = board->currentPlayer();  // "b" or "w"
+                // 手番は GC を正とする（board->currentPlayer() は setSfen() 以外で更新されない）
+                const QString turnPart =
+                    (m_gameController->currentPlayer() == ShogiGameController::Player2)
+                        ? QStringLiteral("w")
+                        : QStringLiteral("b");
                 QString standPart = board->convertStandToSfen();
                 if (standPart.isEmpty()) {
                     standPart = QStringLiteral("-");
@@ -3663,10 +3699,10 @@ void MainWindow::updateGameRecord(const QString& elapsedTime)
                            .arg(boardPart, turnPart, standPart, QString::number(moveCount));
                 qCDebug(lcApp).noquote() << "appendMoveLineToRecordPane: constructed full SFEN for LiveGameSession"
                                    << "sfen=" << sfen.left(80);
-            } else if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
-                // フォールバック: 盤面がない場合は m_sfenRecord を使用
-                sfen = m_sfenRecord->last();
-                qCWarning(lcApp) << "appendMoveLineToRecordPane: fallback to m_sfenRecord (no board)";
+            } else if (sfenRecord() && !sfenRecord()->isEmpty()) {
+                // フォールバック: 盤面がない場合は sfenRecord() を使用
+                sfen = sfenRecord()->last();
+                qCWarning(lcApp) << "appendMoveLineToRecordPane: fallback to sfenRecord() (no board)";
             }
 
             ShogiMove move;
@@ -4193,7 +4229,7 @@ void MainWindow::ensureRecordNavigationHandler()
     deps.kifuRecordModel = m_kifuRecordModel;
     deps.shogiView = m_shogiView;
     deps.evalGraphController = m_evalGraphController;
-    deps.sfenRecord = m_sfenRecord;
+    deps.sfenRecord = sfenRecord();
     deps.activePly = &m_activePly;
     deps.currentSelectedPly = &m_currentSelectedPly;
     deps.currentMoveIndex = &m_currentMoveIndex;
@@ -4219,4 +4255,3 @@ void MainWindow::ensureUiStatePolicyManager()
     deps.boardController = m_boardController;
     m_uiStatePolicy->updateDeps(deps);
 }
-

@@ -407,7 +407,7 @@ private:
 
     // --- SFEN/棋譜記録 ---
     QString m_startSfen;        ///< 開始局面SFEN
-    QStringList* m_sfenRecord = nullptr;   ///< 局面SFEN記録（MainWindowと共有）
+    QStringList* m_sfenHistory = nullptr;   ///< 局面SFEN記録（MainWindowと共有）
     QVector<ShogiMove>* m_gameMoves = nullptr; ///< 指し手記録（MainWindowと共有）
 
     static constexpr int kDefaultPort = 4081;          ///< CSAサーバーのデフォルトポート

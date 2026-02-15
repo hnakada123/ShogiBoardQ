@@ -339,7 +339,7 @@ bool ShogiGameController::isPromotablePiece(QChar& piece)
 // ============================================================
 
 bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QString& record, PlayMode& playMode, int& moveNumber,
-                                          QStringList* m_sfenRecord, QVector<ShogiMove>& gameMoves)
+                                          QStringList* m_sfenHistory, QVector<ShogiMove>& gameMoves)
 {
     // 処理フロー:
     // 1. 入力ガード（盤面・移動元の検証）
@@ -349,8 +349,8 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
     // 5. 着手確定シグナル発行・手番切替
 
     qCDebug(lcGame).noquote() << "validateAndMove enter argMove=" << moveNumber
-                      << " recPtr=" << static_cast<const void*>(m_sfenRecord)
-                      << " recSize(before)=" << (m_sfenRecord ? m_sfenRecord->size() : -1);
+                      << " recPtr=" << static_cast<const void*>(m_sfenHistory)
+                      << " recSize(before)=" << (m_sfenHistory ? m_sfenHistory->size() : -1);
 
     if (!board()) {
         const QString errorMessage =
@@ -414,25 +414,27 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
 
     qCDebug(lcGame).noquote() << "pre-add: nextTurn=" << nextPlayerColorSfen
                        << " moveIndex=" << moveNumber
-                       << " rec*=" << static_cast<const void*>(m_sfenRecord)
-                       << " size(before)=" << (m_sfenRecord ? m_sfenRecord->size() : -1);
+                       << " rec*=" << static_cast<const void*>(m_sfenHistory)
+                       << " size(before)=" << (m_sfenHistory ? m_sfenHistory->size() : -1);
 
-    board()->addSfenRecord(nextPlayerColorSfen, moveNumber, m_sfenRecord);
+    board()->addSfenRecord(nextPlayerColorSfen, moveNumber, m_sfenHistory);
 
-    qCDebug(lcGame).noquote() << "post-add: size(after)=" << (m_sfenRecord ? m_sfenRecord->size() : -1)
-                       << " head=" << (m_sfenRecord && !m_sfenRecord->isEmpty() ? m_sfenRecord->first() : QString())
-                       << " tail=" << (m_sfenRecord && !m_sfenRecord->isEmpty() ? m_sfenRecord->last()  : QString());
+    qCDebug(lcGame).noquote() << "post-add: size(after)=" << (m_sfenHistory ? m_sfenHistory->size() : -1)
+                       << " head=" << (m_sfenHistory && !m_sfenHistory->isEmpty() ? m_sfenHistory->first() : QString())
+                       << " tail=" << (m_sfenHistory && !m_sfenHistory->isEmpty() ? m_sfenHistory->last()  : QString());
 
-    {
-        const qsizetype n = m_sfenRecord->size();
-        const QString last = (n > 0) ? m_sfenRecord->at(n - 1) : QString();
+    if (m_sfenHistory) {
+        const qsizetype n = m_sfenHistory->size();
+        const QString last = (n > 0) ? m_sfenHistory->at(n - 1) : QString();
         const QString preview = (last.size() > 200) ? last.left(200) + " ..." : last;
         qCDebug(lcGame) << "validateAndMove: sfenRecord size =" << n
-                << " moveNumber =" << moveNumber;
+                        << " moveNumber =" << moveNumber;
         qCDebug(lcGame).noquote() << "last sfen = " << preview;
         if (last.startsWith(QLatin1String("position "))) {
             qCWarning(lcGame) << "*** NON-SFEN stored into sfenRecord! (bug)";
         }
+    } else {
+        qCWarning(lcGame) << "validateAndMove: sfen history is null";
     }
 
     QString kanjiPiece = getPieceKanji(movingPiece);
@@ -450,14 +452,14 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
 
     setCurrentPlayer(currentPlayer() == Player1 ? Player2 : Player1);
 
-    if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
-        const QString tail = m_sfenRecord->last();
+    if (m_sfenHistory && !m_sfenHistory->isEmpty()) {
+        const QString tail = m_sfenHistory->last();
         qCDebug(lcGame).noquote() << "validateAndMove exit argMove=" << moveNumber
-                          << " recSize(after)=" << m_sfenRecord->size()
+                          << " recSize(after)=" << m_sfenHistory->size()
                           << " tail='" << tail << "'";
     } else {
         qCDebug(lcGame).noquote() << "validateAndMove exit argMove=" << moveNumber
-                          << " recSize(after)=" << (m_sfenRecord ? m_sfenRecord->size() : -1)
+                          << " recSize(after)=" << (m_sfenHistory ? m_sfenHistory->size() : -1)
                           << " tail=<empty>";
     }
 
@@ -656,7 +658,7 @@ bool ShogiGameController::checkGetKingOpponentPiece(const QChar source, const QC
 // SFEN更新
 // ============================================================
 
-void ShogiGameController::updateSfenRecordAfterEdit(QStringList* m_sfenRecord)
+void ShogiGameController::updateSfenRecordAfterEdit(QStringList* m_sfenHistory)
 {
     if (!board()) {
         const QString errorMessage =
@@ -664,7 +666,7 @@ void ShogiGameController::updateSfenRecordAfterEdit(QStringList* m_sfenRecord)
         emit errorOccurred(errorMessage);
         return;
     }
-    if (!m_sfenRecord) {
+    if (!m_sfenHistory) {
         const QString errorMessage =
             tr("An error occurred in ShogiGameController::updateSfenRecordAfterEdit: record list is null.");
         emit errorOccurred(errorMessage);
@@ -678,7 +680,7 @@ void ShogiGameController::updateSfenRecordAfterEdit(QStringList* m_sfenRecord)
     const QString nextTurn = (currentPlayer() == ShogiGameController::Player1)
                                  ? QStringLiteral("b") : QStringLiteral("w");
 
-    board()->addSfenRecord(nextTurn, moveIndex, m_sfenRecord);
+    board()->addSfenRecord(nextTurn, moveIndex, m_sfenHistory);
 }
 
 QPoint ShogiGameController::lastMoveTo() const

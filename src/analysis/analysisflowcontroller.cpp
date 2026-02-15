@@ -58,7 +58,7 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
     if (!dlg) return;
 
     // Cache deps
-    m_sfenRecord    = d.sfenRecord;
+    m_sfenHistory    = d.sfenRecord;
     m_moveRecords   = d.moveRecords;
     m_recordModel   = d.recordModel;
     m_analysisModel = d.analysisModel;
@@ -78,7 +78,7 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
     }
 
     // sfenRecordとusiMovesの整合性をチェック（デバッグ用）
-    const qsizetype sfenSize = m_sfenRecord ? m_sfenRecord->size() : 0;
+    const qsizetype sfenSize = m_sfenHistory ? m_sfenHistory->size() : 0;
     const qsizetype usiSize = m_usiMoves ? m_usiMoves->size() : 0;
     qCDebug(lcAnalysis).noquote() << "sfenRecord.size=" << sfenSize
                                   << "usiMoves.size=" << usiSize
@@ -96,7 +96,7 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
 
     // Coordinator（初回のみ作成、シグナル接続は毎回）
     AnalysisCoordinator::Deps cd;
-    cd.sfenRecord = m_sfenRecord;
+    cd.sfenRecord = m_sfenHistory;
     if (!m_coord) {
         m_coord = new AnalysisCoordinator(cd, this);
     } else {
@@ -260,7 +260,7 @@ void AnalysisFlowController::applyDialogOptions(KifuAnalysisDialog* dlg)
     AnalysisCoordinator::Options opt;
     opt.movetimeMs = dlg->byoyomiSec() * 1000;
 
-    const int sfenSize = static_cast<int>(m_sfenRecord->size());
+    const int sfenSize = static_cast<int>(m_sfenHistory->size());
 
     // 解析範囲の最大値を設定
     // 注: sfenRecordには終局指し手（投了、中断など）は含まれないため、
@@ -625,8 +625,8 @@ void AnalysisFlowController::commitPendingResult()
     resultItem->setUsiPv(usiPv);
 
     // 局面SFENを設定
-    if (m_sfenRecord && ply >= 0 && ply < m_sfenRecord->size()) {
-        QString sfen = m_sfenRecord->at(ply);
+    if (m_sfenHistory && ply >= 0 && ply < m_sfenHistory->size()) {
+        QString sfen = m_sfenHistory->at(ply);
         // "position sfen ..."形式の場合は除去
         if (sfen.startsWith(QStringLiteral("position sfen "))) {
             sfen = sfen.mid(14);
@@ -924,9 +924,9 @@ void AnalysisFlowController::onResultRowDoubleClicked(int row)
     // 局面SFENを取得（itemから）
     QString baseSfen = item->sfen();
     if (baseSfen.isEmpty()) {
-        // フォールバック: m_sfenRecordから取得
-        if (m_sfenRecord && row < m_sfenRecord->size()) {
-            baseSfen = m_sfenRecord->at(row);
+        // フォールバック: m_sfenHistoryから取得
+        if (m_sfenHistory && row < m_sfenHistory->size()) {
+            baseSfen = m_sfenHistory->at(row);
             // "position sfen ..."形式の場合は除去
             if (baseSfen.startsWith(QStringLiteral("position sfen "))) {
                 baseSfen = baseSfen.mid(14);

@@ -130,7 +130,7 @@ private:
     QPointer<AnalysisCoordinator>      m_coord;      ///< 解析司令塔（非所有）
     QPointer<AnalysisResultsPresenter> m_presenter;  ///< 結果表示Presenter（非所有）
 
-    QStringList*           m_sfenRecord = nullptr;  ///< 局面コマンド列（非所有）
+    QStringList*           m_sfenHistory = nullptr;  ///< 局面コマンド列（非所有）
     QList<KifuDisplay *>*  m_moveRecords = nullptr; ///< 旧棋譜データ（非所有）
     KifuRecordListModel*   m_recordModel = nullptr; ///< 棋譜モデル（非所有）
     KifuAnalysisListModel* m_analysisModel = nullptr; ///< 解析結果モデル（非所有）
