@@ -1016,90 +1016,90 @@
 <context>
     <name>DockLayoutManager</name>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="190"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="142"/>
         <source>ドックレイアウトを保存</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="191"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="143"/>
         <source>レイアウト名:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="206"/>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="252"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="158"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="204"/>
         <source>確認</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="207"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="159"/>
         <source>「%1」は既に存在します。上書きしますか？</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="221"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="173"/>
         <source>保存完了</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="222"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="174"/>
         <source>レイアウト「%1」を保存しました。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="233"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="185"/>
         <source>エラー</source>
         <translation type="unfinished">エラー</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="234"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="186"/>
         <source>レイアウト「%1」が見つかりません。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="253"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="205"/>
         <source>レイアウト「%1」を削除しますか？</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="268"/>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="278"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="220"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="230"/>
         <source>設定完了</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="269"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="221"/>
         <source>レイアウト「%1」を起動時のレイアウトに設定しました。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="279"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="231"/>
         <source>起動時のレイアウト設定をクリアしました。
 次回起動時はデフォルトレイアウトが使用されます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="309"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="261"/>
         <source>（保存済みレイアウトなし）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="323"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="275"/>
         <source>復元</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="329"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="281"/>
         <source>起動時のレイアウトに設定</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="337"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="289"/>
         <source>削除</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="346"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="298"/>
         <source>起動時のレイアウトをクリア</source>
         <translation type="unfinished"></translation>
     </message>
