@@ -66,49 +66,27 @@ void DockLayoutManager::resetToDefault()
     auto* branchTreeDock = dock(DockType::BranchTree);
     auto* evalChartDock = dock(DockType::EvalChart);
 
-    // すべてのドックをフローティング解除して表示
-    if (menuDock) {
-        menuDock->setFloating(false);
-        menuDock->setVisible(true);
-    }
-    if (josekiDock) {
-        josekiDock->setFloating(false);
-        josekiDock->setVisible(false);  // デフォルトは非表示
-    }
-    if (recordDock) {
-        recordDock->setFloating(false);
-        recordDock->setVisible(true);
-    }
-
-    // 解析ドック群をリセット
-    QList<QDockWidget*> analysisDocks = {
-        gameInfoDock, thinkingDock, considerationDock, usiLogDock,
-        csaLogDock, commentDock, branchTreeDock
+    // すべてのドックをフローティング解除
+    QList<QDockWidget*> allDocks = {
+        menuDock, josekiDock, recordDock, evalChartDock,
+        gameInfoDock, usiLogDock, csaLogDock, commentDock,
+        branchTreeDock, considerationDock, thinkingDock
     };
-    for (QDockWidget* d : std::as_const(analysisDocks)) {
+    for (QDockWidget* d : std::as_const(allDocks)) {
         if (d) {
             d->setFloating(false);
-            d->setVisible(true);
         }
-    }
-    if (evalChartDock) {
-        evalChartDock->setFloating(false);
-        evalChartDock->setVisible(true);
     }
 
     // まず全てのドックをいったん削除
-    if (menuDock) m_mainWindow->removeDockWidget(menuDock);
-    if (josekiDock) m_mainWindow->removeDockWidget(josekiDock);
-    if (recordDock) m_mainWindow->removeDockWidget(recordDock);
-    for (QDockWidget* d : std::as_const(analysisDocks)) {
+    for (QDockWidget* d : std::as_const(allDocks)) {
         if (d) m_mainWindow->removeDockWidget(d);
     }
-    if (evalChartDock) m_mainWindow->removeDockWidget(evalChartDock);
 
-    // 上段左: メニューウィンドウ
+    // メニューウィンドウ（デフォルトは非表示）
     if (menuDock) {
         m_mainWindow->addDockWidget(Qt::LeftDockWidgetArea, menuDock);
-        menuDock->setVisible(true);
+        menuDock->setVisible(false);
     }
 
     // 定跡ドック（デフォルトは非表示）
@@ -123,59 +101,33 @@ void DockLayoutManager::resetToDefault()
         recordDock->setVisible(true);
     }
 
-    // 下段: 解析ドック群（タブ化して配置）
-    if (gameInfoDock) {
-        m_mainWindow->addDockWidget(Qt::BottomDockWidgetArea, gameInfoDock);
-        gameInfoDock->setVisible(true);
-    }
-    // 残りのドックをタブ化
-    if (thinkingDock) {
-        if (gameInfoDock) {
-            m_mainWindow->tabifyDockWidget(gameInfoDock, thinkingDock);
+    // 下段: 全ドックをタブ化して配置
+    // タブ順: 評価値グラフ, 対局情報, USI通信ログ, CSA通信ログ, 棋譜コメント, 分岐ツリー, 検討, 思考
+    QList<QDockWidget*> bottomDocks = {
+        evalChartDock, gameInfoDock, usiLogDock, csaLogDock,
+        commentDock, branchTreeDock, considerationDock, thinkingDock
+    };
+
+    QDockWidget* prevDock = nullptr;
+    for (QDockWidget* d : std::as_const(bottomDocks)) {
+        if (!d) continue;
+        if (!prevDock) {
+            m_mainWindow->addDockWidget(Qt::BottomDockWidgetArea, d);
         } else {
-            m_mainWindow->addDockWidget(Qt::BottomDockWidgetArea, thinkingDock);
+            m_mainWindow->tabifyDockWidget(prevDock, d);
         }
-        thinkingDock->setVisible(true);
-    }
-    if (considerationDock && thinkingDock) {
-        m_mainWindow->tabifyDockWidget(thinkingDock, considerationDock);
-        considerationDock->setVisible(true);
-    }
-    if (usiLogDock && considerationDock) {
-        m_mainWindow->tabifyDockWidget(considerationDock, usiLogDock);
-        usiLogDock->setVisible(true);
-    }
-    if (csaLogDock && usiLogDock) {
-        m_mainWindow->tabifyDockWidget(usiLogDock, csaLogDock);
-        csaLogDock->setVisible(true);
-    }
-    if (commentDock && csaLogDock) {
-        m_mainWindow->tabifyDockWidget(csaLogDock, commentDock);
-        commentDock->setVisible(true);
-    }
-    if (branchTreeDock && commentDock) {
-        m_mainWindow->tabifyDockWidget(commentDock, branchTreeDock);
-        branchTreeDock->setVisible(true);
+        d->setVisible(true);
+        prevDock = d;
     }
 
-    // 対局情報ドックをアクティブに
-    if (gameInfoDock) {
-        gameInfoDock->raise();
-    } else if (thinkingDock) {
+    // 思考タブをアクティブに
+    if (thinkingDock) {
         thinkingDock->raise();
     }
 
-    // 下段右: 評価値グラフ（解析の右に分割配置）
-    QDockWidget* leftmostDock = gameInfoDock ? gameInfoDock : thinkingDock;
-    if (evalChartDock && leftmostDock) {
-        m_mainWindow->splitDockWidget(leftmostDock, evalChartDock, Qt::Horizontal);
-        evalChartDock->setVisible(true);
-    }
-
-    // ドックのサイズを調整（おおよその比率）
-    m_mainWindow->resizeDocks({menuDock, recordDock}, {250, 350}, Qt::Horizontal);
-    if (thinkingDock && evalChartDock) {
-        m_mainWindow->resizeDocks({thinkingDock, evalChartDock}, {500, 400}, Qt::Horizontal);
+    // ドックのサイズを調整
+    if (recordDock) {
+        m_mainWindow->resizeDocks({recordDock}, {350}, Qt::Horizontal);
     }
 
     emit layoutChanged();
