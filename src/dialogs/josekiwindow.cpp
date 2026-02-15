@@ -169,7 +169,7 @@ void JosekiWindow::setupUi()
     fileInfoLayout->addWidget(m_filePathLabel, 1);
     
     m_fileStatusLabel = new QLabel(this);
-    m_fileStatusLabel->setFixedWidth(80);
+    m_fileStatusLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
     fileInfoLayout->addWidget(m_fileStatusLabel);
     
     mainLayout->addLayout(fileInfoLayout);
@@ -324,7 +324,7 @@ void JosekiWindow::setupUi()
     
     // SFEN詳細表示トグル
     connect(m_showSfenDetailBtn, &QPushButton::toggled,
-            m_sfenDetailWidget, &QWidget::setVisible);
+            this, &JosekiWindow::onSfenDetailToggled);
     
     // テーブルのダブルクリックで着手
     connect(m_tableWidget, &QTableWidget::cellDoubleClicked,
@@ -349,38 +349,41 @@ void JosekiWindow::setupUi()
 
 void JosekiWindow::loadSettings()
 {
-    // フォントサイズを読み込み
+    // フォントサイズを読み込み・適用（列幅もフォントに合わせて再計算される）
     m_fontSize = SettingsService::josekiWindowFontSize();
     applyFontSize();
-    
+
     // ウィンドウサイズを読み込み
     QSize savedSize = SettingsService::josekiWindowSize();
     if (savedSize.isValid() && savedSize.width() > 100 && savedSize.height() > 100) {
         resize(savedSize);
     }
-    
+
     // 自動読込設定を読み込み
     m_autoLoadEnabled = SettingsService::josekiWindowAutoLoadEnabled();
     m_autoLoadCheckBox->setChecked(m_autoLoadEnabled);
-    
+
     // 最近使ったファイルリストを読み込み
     m_recentFiles = SettingsService::josekiWindowRecentFiles();
     updateRecentFilesMenu();
 
-    // テーブル列幅を復元
-    QList<int> savedWidths = SettingsService::josekiWindowColumnWidths();
-    if (!savedWidths.isEmpty() && savedWidths.size() == m_tableWidget->columnCount()) {
-        for (int i = 0; i < savedWidths.size(); ++i) {
-            if (savedWidths.at(i) > 0) {
-                m_tableWidget->setColumnWidth(i, savedWidths.at(i));
-            }
-        }
+    // 表示停止状態を読み込み
+    m_displayEnabled = SettingsService::josekiWindowDisplayEnabled();
+    if (!m_displayEnabled) {
+        m_stopButton->setChecked(true);
+        m_stopButton->setText(tr("▶ 再開"));
+        m_stopButton->setStyleSheet(QStringLiteral("color: #cc0000; font-weight: bold;"));
     }
 
-    // 最後に開いた定跡ファイルのパスを保存（遅延読込のため）
+    // SFEN詳細表示状態を読み込み
+    bool sfenDetailVisible = SettingsService::josekiWindowSfenDetailVisible();
+    m_showSfenDetailBtn->setChecked(sfenDetailVisible);
+    m_sfenDetailWidget->setVisible(sfenDetailVisible);
+
+    // 最後に開いた定跡ファイルのパスを読み込み（遅延読込のため）
     // 実際の読み込みはshowEvent()で行う
+    QString lastFilePath = SettingsService::josekiWindowLastFilePath();
     if (m_autoLoadEnabled) {
-        QString lastFilePath = SettingsService::josekiWindowLastFilePath();
         if (!lastFilePath.isEmpty() && QFileInfo::exists(lastFilePath)) {
             m_pendingAutoLoad = true;
             m_pendingAutoLoadPath = lastFilePath;
@@ -432,7 +435,9 @@ void JosekiWindow::closeEvent(QCloseEvent *event)
 void JosekiWindow::showEvent(QShowEvent *event)
 {
     QWidget::showEvent(event);
-    // 注意: 遅延読込はupdateJosekiDisplay()内で行う
+
+    // KDE Breezeテーマは表示時にヘッダーフォントをリセットするため再適用
+    applyFontSize();
 }
 
 void JosekiWindow::applyFontSize()
@@ -448,10 +453,29 @@ void JosekiWindow::applyFontSize()
         child->setFont(font);
     }
 
-    // テーブルヘッダーと行の高さを調整
+    // テーブルヘッダーと行・列の調整
     if (m_tableWidget) {
-        m_tableWidget->horizontalHeader()->setFont(font);
-        m_tableWidget->verticalHeader()->setDefaultSectionSize(m_fontSize + 16);
+        QHeaderView *header = m_tableWidget->horizontalHeader();
+        header->setFont(font);
+        QFontMetrics fm(font);
+        header->setFixedHeight(fm.height() + 12);
+        m_tableWidget->verticalHeader()->setDefaultSectionSize(fm.height() + 12);
+
+        // 各列幅をヘッダー文字幅に合わせて調整
+        for (int col = 0; col < m_tableWidget->columnCount(); ++col) {
+            QString headerText = m_tableWidget->horizontalHeaderItem(col)
+                                     ? m_tableWidget->horizontalHeaderItem(col)->text()
+                                     : QString();
+            int textWidth = fm.horizontalAdvance(headerText) + 24;  // パディング込み
+            m_tableWidget->setColumnWidth(col, textWidth);
+        }
+        header->setStretchLastSection(true);
+    }
+
+    // 詳細ボタンの幅をフォントに合わせて調整
+    if (m_showSfenDetailBtn) {
+        QFontMetrics fm(font);
+        m_showSfenDetailBtn->setFixedWidth(fm.horizontalAdvance(m_showSfenDetailBtn->text()) + 20);
     }
 
     // 注意書きラベル（色付きスタイルシート）
@@ -490,6 +514,7 @@ void JosekiWindow::onFontSizeIncrease()
     if (m_fontSize < 24) {
         m_fontSize++;
         applyFontSize();
+        SettingsService::setJosekiWindowFontSize(m_fontSize);
     }
 }
 
@@ -498,6 +523,7 @@ void JosekiWindow::onFontSizeDecrease()
     if (m_fontSize > 6) {
         m_fontSize--;
         applyFontSize();
+        SettingsService::setJosekiWindowFontSize(m_fontSize);
     }
 }
 
@@ -868,6 +894,7 @@ void JosekiWindow::updateJosekiDisplay()
         if (m_humanCanPlay) {
             QPushButton *playButton = new QPushButton(tr("着手"), this);
             playButton->setProperty("row", i);
+            playButton->setFont(font());
             playButton->setStyleSheet(ButtonStyles::tablePlayButton());
             connect(playButton, &QPushButton::clicked, this, &JosekiWindow::onPlayButtonClicked);
             m_tableWidget->setCellWidget(i, 1, playButton);
@@ -892,13 +919,15 @@ void JosekiWindow::updateJosekiDisplay()
         // 編集ボタン（緑系の配色）
         QPushButton *editButton = new QPushButton(tr("編集"), this);
         editButton->setProperty("row", i);
+        editButton->setFont(font());
         editButton->setStyleSheet(ButtonStyles::tableEditButton());
         connect(editButton, &QPushButton::clicked, this, &JosekiWindow::onEditButtonClicked);
         m_tableWidget->setCellWidget(i, 4, editButton);
-        
+
         // 削除ボタン（赤系の配色）
         QPushButton *deleteButton = new QPushButton(tr("削除"), this);
         deleteButton->setProperty("row", i);
+        deleteButton->setFont(font());
         deleteButton->setStyleSheet(ButtonStyles::tableDeleteButton());
         connect(deleteButton, &QPushButton::clicked, this, &JosekiWindow::onDeleteButtonClicked);
         m_tableWidget->setCellWidget(i, 5, deleteButton);
@@ -968,13 +997,14 @@ void JosekiWindow::onPlayButtonClicked()
 void JosekiWindow::onAutoLoadCheckBoxChanged(Qt::CheckState state)
 {
     m_autoLoadEnabled = (state == Qt::Checked);
+    SettingsService::setJosekiWindowAutoLoadEnabled(m_autoLoadEnabled);
     qCDebug(lcUi) << "Auto load enabled:" << m_autoLoadEnabled;
 }
 
 void JosekiWindow::onStopButtonClicked()
 {
     m_displayEnabled = !m_stopButton->isChecked();
-    
+
     if (m_displayEnabled) {
         m_stopButton->setText(tr("■ 停止"));
         m_stopButton->setStyleSheet(QString());
@@ -986,22 +1016,35 @@ void JosekiWindow::onStopButtonClicked()
         // 停止した場合はテーブルをクリア
         clearTable();
     }
-    
+
+    SettingsService::setJosekiWindowDisplayEnabled(m_displayEnabled);
     updateStatusDisplay();
     qCDebug(lcUi) << "Display enabled:" << m_displayEnabled;
+}
+
+void JosekiWindow::onSfenDetailToggled(bool checked)
+{
+    m_sfenDetailWidget->setVisible(checked);
+    SettingsService::setJosekiWindowSfenDetailVisible(checked);
 }
 
 void JosekiWindow::updateStatusDisplay()
 {
     // ファイル読込状態を更新
+    bool hasData = !m_josekiData.isEmpty();
     if (m_fileStatusLabel) {
-        if (!m_josekiData.isEmpty()) {
+        if (hasData) {
             m_fileStatusLabel->setText(tr("✓読込済"));
             m_fileStatusLabel->setStyleSheet(QStringLiteral("color: green; font-weight: bold;"));
         } else {
             m_fileStatusLabel->setText(tr(""));
             m_fileStatusLabel->setStyleSheet(QString());
         }
+    }
+
+    // 停止ボタンは定跡ファイル読込後のみ表示
+    if (m_stopButton) {
+        m_stopButton->setVisible(hasData);
     }
     
     // ステータスバーを更新
@@ -1383,6 +1426,13 @@ void JosekiWindow::updateRecentFilesMenu()
 void JosekiWindow::onClearRecentFilesClicked()
 {
     m_recentFiles.clear();
+    m_currentFilePath.clear();
+    m_josekiData.clear();
+    m_sfenWithPlyMap.clear();
+    m_currentMoves.clear();
+    m_filePathLabel->setText(tr("未選択"));
+    clearTable();
+    updateStatusDisplay();
     updateRecentFilesMenu();
     saveSettings();
 }

@@ -768,8 +768,6 @@ void MainWindow::displayJosekiWindow()
         } else {
             m_josekiWindowDock->show();
             m_josekiWindowDock->raise();
-            // 表示時に定跡ウィンドウを更新
-            updateJosekiWindow();
         }
     }
 }
@@ -1422,8 +1420,13 @@ void MainWindow::onConsecutiveGamesConfigured(int totalGames, bool switchTurn)
 
 void MainWindow::onGameStarted(const MatchCoordinator::StartOptions& opt)
 {
-    qCDebug(lcApp).noquote() << "onGameStarted_: mode=" << static_cast<int>(opt.mode)
-                       << " sfenStart=" << opt.sfenStart;
+    // 開始局面のSFENを同期（定跡ウィンドウ等が参照する）
+    if (!opt.sfenStart.isEmpty()) {
+        m_currentSfenStr = opt.sfenStart;
+    } else if (m_sfenRecord && !m_sfenRecord->isEmpty()) {
+        m_currentSfenStr = m_sfenRecord->first();
+    }
+    updateJosekiWindow();
 
     ensureConsecutiveGamesController();
     if (m_consecutiveGamesController) {
@@ -1887,6 +1890,13 @@ void MainWindow::createJosekiWindowDock()
     ensureDockCreationService();
     m_dockCreationService->setJosekiWiring(m_josekiWiring);
     m_josekiWindowDock = m_dockCreationService->createJosekiWindowDock();
+
+    // ドックが表示されたときに定跡ウィンドウを更新する
+    // （トグルアクション経由で表示された場合にも対応）
+    if (m_josekiWindowDock) {
+        connect(m_josekiWindowDock, &QDockWidget::visibilityChanged,
+                this, &MainWindow::updateJosekiWindow);
+    }
 }
 
 // `createAnalysisResultsDock`: Analysis Results Dock を作成する。

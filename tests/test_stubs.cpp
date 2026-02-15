@@ -9,3 +9,9 @@
 // === ログカテゴリ ===
 Q_LOGGING_CATEGORY(lcGame, "shogi.game")
 Q_LOGGING_CATEGORY(lcKifu, "shogi.kifu")
+Q_LOGGING_CATEGORY(lcUi, "shogi.ui")
+
+// === ShogiView スタブ（settingsservice.cpp が参照する最小シンボル） ===
+#include "shogiview.h"
+int ShogiView::squareSize() const { return 50; }
+void ShogiView::setSquareSize(int) {}

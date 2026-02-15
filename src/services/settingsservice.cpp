@@ -493,6 +493,34 @@ void setJosekiWindowAutoLoadEnabled(bool enabled)
     s.setValue("JosekiWindow/autoLoadEnabled", enabled);
 }
 
+// 定跡ウィンドウの表示停止状態を取得
+bool josekiWindowDisplayEnabled()
+{
+    QSettings s(settingsFilePath(), QSettings::IniFormat);
+    return s.value("JosekiWindow/displayEnabled", true).toBool();
+}
+
+// 定跡ウィンドウの表示停止状態を保存
+void setJosekiWindowDisplayEnabled(bool enabled)
+{
+    QSettings s(settingsFilePath(), QSettings::IniFormat);
+    s.setValue("JosekiWindow/displayEnabled", enabled);
+}
+
+// 定跡ウィンドウのSFEN詳細表示状態を取得
+bool josekiWindowSfenDetailVisible()
+{
+    QSettings s(settingsFilePath(), QSettings::IniFormat);
+    return s.value("JosekiWindow/sfenDetailVisible", false).toBool();
+}
+
+// 定跡ウィンドウのSFEN詳細表示状態を保存
+void setJosekiWindowSfenDetailVisible(bool visible)
+{
+    QSettings s(settingsFilePath(), QSettings::IniFormat);
+    s.setValue("JosekiWindow/sfenDetailVisible", visible);
+}
+
 // 定跡ウィンドウの最近使ったファイルリストを取得
 QStringList josekiWindowRecentFiles()
 {
