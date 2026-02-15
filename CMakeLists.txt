@@ -280,6 +280,13 @@ set_target_properties(ShogiBoardQ PROPERTIES
     WIN32_EXECUTABLE TRUE
 )
 
+# ==== Testing ====
+option(BUILD_TESTING "Build test executables" OFF)
+if(BUILD_TESTING)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
+
 # ==== Install ====
 include(GNUInstallDirs)
 

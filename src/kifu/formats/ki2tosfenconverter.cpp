@@ -55,7 +55,7 @@ static int flexDigitsToInt_NoDetach(const QString& t)
 // isTerminalWord と containsAnyTerminal で共通使用
 static const auto& kTerminalWords() {
     static const auto& arr = *[]() {
-        static const std::array<QString, 17> a = {{
+        static const std::array<QString, 16> a = {{
             // 主要な終局語
             QStringLiteral("中断"),
             QStringLiteral("投了"),
