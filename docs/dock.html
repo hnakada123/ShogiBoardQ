@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ドック機能 - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQのドック機能を紹介します。各パネルをドッキング・フローティング・タブ化して自由にレイアウトをカスタマイズできます。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/dock.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/dock.html">
+    <meta property="og:title" content="ドック機能 - ShogiBoardQ">
+    <meta property="og:description" content="ShogiBoardQのドック機能を紹介。各パネルをドッキング・フローティング・タブ化して自由にレイアウトをカスタマイズ。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/dock/dock-02-floating.png">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="ドック機能 - ShogiBoardQ">
+    <meta name="twitter:description" content="ShogiBoardQのドック機能を紹介。各パネルをドッキング・フローティング・タブ化して自由にレイアウトをカスタマイズ。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/dock/dock-02-floating.png">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="index.html" class="nav-logo">ShogiBoardQ</a>
+        <button class="nav-toggle" aria-label="メニュー" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="index.html">ホーム</a></li>
+            <li><a href="#docked">ドッキング</a></li>
+            <li><a href="#floating">フローティング</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>ドック機能</h1>
+        <p class="hero-subtitle">パネルを自由に配置してレイアウトをカスタマイズ</p>
+        <div class="hero-badges">
+            <span class="badge">ドッキング</span>
+            <span class="badge">フローティング</span>
+            <span class="badge">タブ化</span>
+        </div>
+    </div>
+</section>
+
+<!-- Section 1: Docked Layout -->
+<section id="docked" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">ドッキングレイアウト</h2>
+        <p class="section-desc">すべてのパネルをメインウィンドウに統合して表示</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">統合レイアウト</span>
+                </div>
+                <p class="guide-step-text">棋譜・エンジン情報・評価値グラフなどの各パネルをメインウィンドウ内にドッキングして、一画面で全情報を確認できます。パネルのタイトルバーをドラッグして上下左右に配置を変更できます。</p>
+                <div class="screenshot-item">
+                    <img src="images/dock/dock-01-docked.png" alt="ドッキングレイアウト - すべてのパネルがメインウィンドウに統合">
+                    <p class="screenshot-caption">ドッキングレイアウト：棋譜・エンジン情報・評価値グラフを一画面に統合</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2: Floating Layout -->
+<section id="floating" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">フローティングレイアウト</h2>
+        <p class="section-desc">パネルを独立したウィンドウとして自由に配置</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">フローティング表示</span>
+                </div>
+                <p class="guide-step-text">パネルのタイトルバーをメインウィンドウの外にドラッグすると、独立したフローティングウィンドウとして表示されます。マルチモニター環境では、各モニターにパネルを配置して広い作業領域を活用できます。</p>
+                <div class="screenshot-item">
+                    <img src="images/dock/dock-02-floating.png" alt="フローティングレイアウト - パネルが独立したウィンドウとして表示">
+                    <p class="screenshot-caption">フローティングレイアウト：各パネルを独立ウィンドウとして自由に配置</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="index.html" class="back-link">&larr; ホームに戻る</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+</body>
+</html>
