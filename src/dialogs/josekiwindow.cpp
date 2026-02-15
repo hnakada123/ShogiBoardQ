@@ -102,17 +102,17 @@ void JosekiWindow::setupUi()
     displayGroupLayout->setContentsMargins(8, 4, 8, 4);
     displayGroupLayout->setSpacing(4);
 
-    m_fontIncreaseBtn = new QPushButton(tr("A+"), this);
-    m_fontIncreaseBtn->setToolTip(tr("フォントサイズを拡大"));
-    m_fontIncreaseBtn->setFixedWidth(36);
-    m_fontIncreaseBtn->setStyleSheet(fontBtnStyle);
-    displayGroupLayout->addWidget(m_fontIncreaseBtn);
-
     m_fontDecreaseBtn = new QPushButton(tr("A-"), this);
     m_fontDecreaseBtn->setToolTip(tr("フォントサイズを縮小"));
     m_fontDecreaseBtn->setFixedWidth(36);
     m_fontDecreaseBtn->setStyleSheet(fontBtnStyle);
     displayGroupLayout->addWidget(m_fontDecreaseBtn);
+
+    m_fontIncreaseBtn = new QPushButton(tr("A+"), this);
+    m_fontIncreaseBtn->setToolTip(tr("フォントサイズを拡大"));
+    m_fontIncreaseBtn->setFixedWidth(36);
+    m_fontIncreaseBtn->setStyleSheet(fontBtnStyle);
+    displayGroupLayout->addWidget(m_fontIncreaseBtn);
 
     m_autoLoadCheckBox = new QCheckBox(tr("自動読込"), this);
     m_autoLoadCheckBox->setToolTip(tr("定跡ウィンドウ表示時に前回のファイルを自動で読み込む"));
@@ -441,96 +441,46 @@ void JosekiWindow::applyFontSize()
     QFont font = this->font();
     font.setPointSize(m_fontSize);
     setFont(font);
-    
-    // テーブルのフォントも更新
+
+    // 全子ウィジェットにフォントを適用（KDE Breezeでは伝播しないため明示的に設定）
+    const auto children = findChildren<QWidget *>();
+    for (auto *child : children) {
+        child->setFont(font);
+    }
+
+    // テーブルヘッダーと行の高さを調整
     if (m_tableWidget) {
-        m_tableWidget->setFont(font);
-        
-        // ヘッダーのフォントも更新
         m_tableWidget->horizontalHeader()->setFont(font);
-        
-        // 行の高さを調整
         m_tableWidget->verticalHeader()->setDefaultSectionSize(m_fontSize + 16);
     }
-    
-    // ファイルパスラベルのフォントサイズを更新
-    if (m_filePathLabel) {
-        QFont filePathFont = m_filePathLabel->font();
-        filePathFont.setPointSize(m_fontSize);
-        m_filePathLabel->setFont(filePathFont);
-    }
-    
-    // ファイルステータスラベルのフォントサイズを更新
-    if (m_fileStatusLabel) {
-        QFont statusFont = m_fileStatusLabel->font();
-        statusFont.setPointSize(m_fontSize);
-        m_fileStatusLabel->setFont(statusFont);
-    }
-    
-    // 局面サマリーラベルのフォントサイズを更新
-    if (m_positionSummaryLabel) {
-        QFont summaryFont = m_positionSummaryLabel->font();
-        summaryFont.setPointSize(m_fontSize);
-        m_positionSummaryLabel->setFont(summaryFont);
-    }
-    
-    // ステータスバーのフォントサイズを更新
-    if (m_statusLabel) {
-        QFont statusBarFont = m_statusLabel->font();
-        statusBarFont.setPointSize(m_fontSize);
-        m_statusLabel->setFont(statusBarFont);
-    }
-    
-    // 空状態ガイダンスのフォントサイズを更新
-    if (m_emptyGuideLabel) {
-        // HTMLスタイルで指定しているので、全体のフォントを設定
-        QFont guideFont = m_emptyGuideLabel->font();
-        guideFont.setPointSize(m_fontSize);
-        m_emptyGuideLabel->setFont(guideFont);
-    }
-    
-    // 注意書きラベルのフォントサイズを更新
+
+    // 注意書きラベル（色付きスタイルシート）
     if (m_noticeLabel) {
         int noticeFontSize = qMax(m_fontSize - 1, 6);
         m_noticeLabel->setStyleSheet(QStringLiteral("color: #cc6600; font-size: %1pt;").arg(noticeFontSize));
     }
-    
-    // マージメニューのフォントサイズを更新
+
+    // メニューのフォント更新
     if (m_mergeMenu) {
-        QFont menuFont = m_mergeMenu->font();
-        menuFont.setPointSize(m_fontSize);
-        m_mergeMenu->setFont(menuFont);
+        m_mergeMenu->setFont(font);
     }
-    
-    // 最近使ったファイルメニューのフォントサイズを更新
     if (m_recentFilesMenu) {
-        QFont recentMenuFont = m_recentFilesMenu->font();
-        recentMenuFont.setPointSize(m_fontSize);
-        m_recentFilesMenu->setFont(recentMenuFont);
+        m_recentFilesMenu->setFont(font);
     }
-    
-    // コンテキストメニューのフォントサイズを更新
     if (m_tableContextMenu) {
-        QFont contextMenuFont = m_tableContextMenu->font();
-        contextMenuFont.setPointSize(m_fontSize);
-        m_tableContextMenu->setFont(contextMenuFont);
+        m_tableContextMenu->setFont(font);
     }
-    
-    // SFEN詳細表示ラベルのフォントサイズも更新（monospace維持、少し小さめ）
+
+    // SFEN詳細表示ラベル（monospace維持、少し小さめ）
     int sfenFontSize = qMax(m_fontSize - 1, 6);
-    
-    // 局面SFEN（青系）
+
     if (m_currentSfenLabel) {
-        QString currentSfenStyleSheet = QStringLiteral("color: #0066cc; font-family: monospace; font-size: %1pt;").arg(sfenFontSize);
-        m_currentSfenLabel->setStyleSheet(currentSfenStyleSheet);
+        m_currentSfenLabel->setStyleSheet(QStringLiteral("color: #0066cc; font-family: monospace; font-size: %1pt;").arg(sfenFontSize));
     }
-    
-    // 定跡SFEN（緑系）
     if (m_sfenLineLabel) {
-        QString sfenLineStyleSheet = QStringLiteral("color: #228b22; font-family: monospace; font-size: %1pt;").arg(sfenFontSize);
-        m_sfenLineLabel->setStyleSheet(sfenLineStyleSheet);
+        m_sfenLineLabel->setStyleSheet(QStringLiteral("color: #228b22; font-family: monospace; font-size: %1pt;").arg(sfenFontSize));
     }
-    
+
     // 表示を更新
     updateJosekiDisplay();
 }
