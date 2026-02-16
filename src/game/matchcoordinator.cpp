@@ -2721,6 +2721,10 @@ void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& hu
         m_gc->setCurrentPlayer(engineSeat);
     }
 
+    // 「次の手番」ラベルをエンジン側に切り替える
+    // （TurnSyncBridge 経由のシグナルは棋譜追記中の再入で確実に到達しない場合がある）
+    updateTurnDisplay(humanIsP1 ? P2 : P1);
+
     // 2) 以降（エンジン go → bestmove → 盤/棋譜反映）は既存の2引数版に委譲
     //    finishHumanTimerAndSetConsideration() は2引数版の先頭で呼ばれるが、二重でも実害が出ない想定。
     onHumanMove_HvE(humanFrom, humanTo);

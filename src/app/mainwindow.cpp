@@ -1976,6 +1976,12 @@ void MainWindow::initMatchCoordinator()
     ensureEvaluationGraphController();
     d.hooks.appendEvalP1       = std::bind(&EvaluationGraphController::redrawEngine1Graph, m_evalGraphController, -1);
     d.hooks.appendEvalP2       = std::bind(&EvaluationGraphController::redrawEngine2Graph, m_evalGraphController, -1);
+    d.hooks.updateTurnDisplay  = [this](MatchCoordinator::Player cur) {
+        const auto now = (cur == MatchCoordinator::P2)
+                             ? ShogiGameController::Player2
+                             : ShogiGameController::Player1;
+        onTurnManagerChanged(now);
+    };
     d.hooks.sendGoToEngine = [this](Usi* which, const MatchCoordinator::GoTimes& t) {
         if (m_match) m_match->sendGoToEngine(which, t);
     };
