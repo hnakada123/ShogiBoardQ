@@ -3597,22 +3597,22 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1177"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1176"/>
         <source>棋譜ファイルを開く</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3820"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3825"/>
         <source>局面を反映しました</source>
         <translation>局面を反映しました</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3822"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3827"/>
         <source>局面の反映に失敗しました</source>
         <translation>局面の反映に失敗しました</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3825"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3830"/>
         <source>局面の反映に失敗しました（内部エラー）</source>
         <translation>局面の反映に失敗しました（内部エラー）</translation>
     </message>
@@ -3637,12 +3637,12 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1178"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1177"/>
         <source>Kifu Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3318"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3323"/>
         <source>コメントなし</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3651,17 +3651,17 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">定跡</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3794"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3799"/>
         <source>棋譜を取り込みました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3796"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3801"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3800"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3805"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5358,27 +5358,27 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="476"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="481"/>
         <source>情報</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="476"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="481"/>
         <source>人間が選択されています。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="485"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="490"/>
         <source>エラー</source>
         <translation type="unfinished">エラー</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="485"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="490"/>
         <source>将棋エンジンが選択されていません。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="627"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="632"/>
         <source>棋譜保存先を選択</source>
         <translation type="unfinished"></translation>
     </message>

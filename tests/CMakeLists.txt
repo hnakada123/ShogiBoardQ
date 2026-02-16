@@ -249,7 +249,20 @@ add_shogi_test(tst_josekiwindow
 )
 
 # ============================================================
-# Unit 10: Integration / Stress Tests
+# Unit 10: Position Edit → Game Start Flow
+# ============================================================
+add_shogi_test(tst_positionedit_gamestart
+    tst_positionedit_gamestart.cpp
+    ${TEST_STUBS}
+    ${SRC}/kifu/kifubranchtree.cpp
+    ${SRC}/kifu/kifubranchnode.cpp
+    ${SRC}/kifu/kifunavigationstate.cpp
+    ${SRC}/kifu/livegamesession.cpp
+    ${SRC}/core/shogimove.cpp
+)
+
+# ============================================================
+# Unit 11: Integration / Stress Tests
 # ============================================================
 add_shogi_test(tst_integration
     tst_integration.cpp

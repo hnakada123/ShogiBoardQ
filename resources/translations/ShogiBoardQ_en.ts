@@ -3959,17 +3959,17 @@ Please restart the application to apply the changes.</translation>
         <translation>No board data available.</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3820"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3825"/>
         <source>局面を反映しました</source>
         <translation>Position applied</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3822"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3827"/>
         <source>局面の反映に失敗しました</source>
         <translation>Failed to apply position</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3825"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3830"/>
         <source>局面の反映に失敗しました（内部エラー）</source>
         <translation>Failed to apply position (internal error)</translation>
     </message>
@@ -4265,12 +4265,12 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Clear Startup Layout</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1177"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1176"/>
         <source>棋譜ファイルを開く</source>
         <translation>Open Game Record File</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1178"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1177"/>
         <source>Kifu Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</source>
         <translation>Game Record Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</translation>
     </message>
@@ -4339,17 +4339,17 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Failed to auto-save game record: %1</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3794"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3799"/>
         <source>棋譜を取り込みました</source>
         <translation>Game record imported</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3796"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3801"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation>Failed to import game record</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3800"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3805"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation>Failed to import game record (internal error)</translation>
     </message>
@@ -4358,7 +4358,7 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Comment updated (move: %1)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3318"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3323"/>
         <source>コメントなし</source>
         <translation>No comment</translation>
     </message>
@@ -6346,27 +6346,27 @@ Are you sure you want to declare?</translation>
         <translation>Human</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="476"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="481"/>
         <source>情報</source>
         <translation>Information</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="476"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="481"/>
         <source>人間が選択されています。</source>
         <translation>Human is selected.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="485"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="490"/>
         <source>エラー</source>
         <translation>Error</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="485"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="490"/>
         <source>将棋エンジンが選択されていません。</source>
         <translation>No shogi engine is selected.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="627"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="632"/>
         <source>棋譜保存先を選択</source>
         <translation>Select Game Record Save Location</translation>
     </message>

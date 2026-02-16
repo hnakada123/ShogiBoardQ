@@ -707,17 +707,58 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
     StartGameDialog* dlg = new StartGameDialog;
     if (!dlg) return;
 
+    // 局面編集後の場合、開始局面を「現在の局面」に強制設定
+    static const QString kHirateSfen = QStringLiteral(
+        "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+    const auto detectEditedStartSfen = [&]() -> QString {
+        const auto isEditedStart = [&](const QString& raw) -> bool {
+            const QString s = raw.trimmed();
+            return !s.isEmpty()
+                   && s != kHirateSfen
+                   && s != QLatin1String("startpos");
+        };
+
+        if (c.startSfenStr && isEditedStart(*c.startSfenStr)) {
+            return c.startSfenStr->trimmed();
+        }
+
+        // startSfenStr が途中で平手に戻ってしまうケースに備え、
+        // 局面履歴の先頭（開始局面）をフォールバックとして使用する。
+        if (c.sfenRecord && !c.sfenRecord->isEmpty() && isEditedStart(c.sfenRecord->first())) {
+            return c.sfenRecord->first().trimmed();
+        }
+
+        return QString();
+    };
+    const QString editedStartSfen = detectEditedStartSfen();
+    const bool hasEditedStart = !editedStartSfen.isEmpty();
+
+    if (hasEditedStart) {
+        dlg->forceCurrentPositionSelection();
+    }
+
     if (dlg->exec() != QDialog::Accepted) {
         delete dlg;
         return;
     }
 
     // --- 2) ダイアログから必要情報を先に取得 ---
-    const int  initPosNo = dlg->startingPositionNumber();
+    int  initPosNo = dlg->startingPositionNumber();
     const bool p1Human   = dlg->isHuman1();
     const bool p2Human   = dlg->isHuman2();
 
     qCDebug(lcGame).noquote() << "initializeGame: after dialog, initPosNo=" << initPosNo;
+
+    // 局面編集後の場合、ダイアログの選択に関わらず「現在の局面」を強制
+    // （forceCurrentPositionSelection のバックアップ: ダイアログ内部で
+    //   combobox→メンバ変数の反映が不完全な場合への対策）
+    if (hasEditedStart) {
+        if (initPosNo != 0) {
+            qCDebug(lcGame).noquote() << "initializeGame: overriding initPosNo from"
+                               << initPosNo << "to 0 (edited position detected)";
+            initPosNo = 0;
+        }
+    }
 
     // --- 3) 開始SFENの決定 ---
     const int startingPosNumber = initPosNo;
@@ -725,8 +766,8 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
     // 対局開始後に選択すべき棋譜行（現在局面から開始時に使用）
     int startingRow = -1;
 
-    QString startSfen;
-    if (c.startSfenStr && !c.startSfenStr->isEmpty()) {
+    QString startSfen = editedStartSfen;
+    if (startSfen.isEmpty() && c.startSfenStr && !c.startSfenStr->isEmpty()) {
         startSfen = *(c.startSfenStr);
     }
     qCDebug(lcGame).noquote() << "initializeGame: BEFORE prepareDataCurrentPosition"
@@ -787,8 +828,8 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
             startSfen = QStringLiteral("startpos");
             qCDebug(lcGame).noquote() << "initializeGame: FALLBACK to startpos";
         }
-    } else if (startSfen.isEmpty()) {
-        // 平手/駒落ちプリセット
+    } else {
+        // 平手/駒落ちプリセット（startingPosNumber >= 1 の場合は常にプリセットを適用）
         static const auto& presets = *[]() {
             static const std::array<QString, 15> arr = {{
                 QString(),

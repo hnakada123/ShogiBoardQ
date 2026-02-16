@@ -38,6 +38,9 @@ public:
     // ユーティリティ：ハイライトの明示クリア
     void clearHighlights() const;
 
+    /// sfenRecord ポインタを更新する（MatchCoordinator 再生成時に呼ぶ）
+    void setSfenRecord(const QStringList* sfenRecord) { m_sfenHistory = sfenRecord; }
+
     /**
      * @brief SFEN差分から盤面を更新しハイライトを表示（分岐ナビゲーション用）
      * @param currentSfen 現在の局面SFEN
