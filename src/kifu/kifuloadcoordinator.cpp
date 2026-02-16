@@ -337,8 +337,10 @@ void KifuLoadCoordinator::loadUsiFromFile(const QString& filePath)
             UsiToSfenConverter::parseWithVariations(path, res, warn);
             return true;  // USIは戻り値がvoidなので常にtrue
         },
-        // 初期SFEN検出（デフォルト使用）
-        KifuDetectSfenFunc(),
+        // 初期SFEN検出（USI専用）
+        [](const QString& path, QString* label) {
+            return UsiToSfenConverter::detectInitialSfenFromFile(path, label);
+        },
         // ゲーム情報抽出（USIはゲーム情報を持たないため空）
         KifuExtractGameInfoFunc(),
         // 変化のデバッグ出力なし
