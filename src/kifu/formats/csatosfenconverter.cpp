@@ -321,8 +321,13 @@ bool CsaToSfenConverter::readAllLinesDetectEncoding(const QString& path, QString
 
     const QByteArray raw = f.readAll();
     const QByteArray head = raw.left(128);
-    const bool utf8Header  = head.contains("CSA encoding=UTF-8");
-    const bool sjisHeader  = head.contains("CSA encoding=SHIFT_JIS") || head.contains("CSA encoding=Shift_JIS");
+    // CSA標準: "CSA encoding=..." / Kifu for Windows形式: "'encoding=..."
+    const bool utf8Header  = head.contains("CSA encoding=UTF-8")
+                          || head.contains("'encoding=UTF-8");
+    const bool sjisHeader  = head.contains("CSA encoding=SHIFT_JIS")
+                          || head.contains("CSA encoding=Shift_JIS")
+                          || head.contains("'encoding=SHIFT_JIS")
+                          || head.contains("'encoding=Shift_JIS");
 
     QString text;
 
@@ -330,18 +335,18 @@ bool CsaToSfenConverter::readAllLinesDetectEncoding(const QString& path, QString
         QStringDecoder dec(QStringDecoder::Utf8);
         text = dec(raw);
     } else if (sjisHeader) {
-        QStringDecoder dec(QStringDecoder::System);
-        QString t = dec(raw);
-        if (t.isEmpty()) {
-            QStringDecoder decSjis("Shift-JIS");
-            if (decSjis.isValid()) t = decSjis(raw);
+        QStringDecoder decSjis("Shift-JIS");
+        if (decSjis.isValid()) {
+            text = decSjis(raw);
+        } else {
+            QStringDecoder dec(QStringDecoder::System);
+            text = dec(raw);
         }
-        text = t;
     } else {
         // ヘッダなし：UTF-8優先→Shift_JIS→System の順に試す
         QStringDecoder decUtf8(QStringDecoder::Utf8);
         QString t = decUtf8(raw);
-        if (!t.isEmpty()) {
+        if (!decUtf8.hasError() && !t.isEmpty()) {
             text = t;
         } else {
             QStringDecoder decSjis("Shift-JIS");
@@ -842,6 +847,8 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
     int  lastResultDispIndex = -1;
     int  lastResultSideIdx   = -1;
 
+    int moveCount = 0;  // 手数カウンター（ply）
+
     // 次に指す側
     Color turn = stm;
 
@@ -906,6 +913,7 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
 
                     KifDisplayItem di;
                     di.prettyMove = sideMark + label;
+                    di.ply = moveCount;
                     di.comment = QString();  // 結果コードのコメントは後で付与される
                     out.mainline.disp.append(di);
 
@@ -967,8 +975,10 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
                     }
 
                     out.mainline.usiMoves.append(usi);
+                    ++moveCount;
                     KifDisplayItem di;
                     di.prettyMove = pretty;
+                    di.ply = moveCount;
                     di.comment = QString();  // コメントは後で付与
                     out.mainline.disp.append(di);
 
@@ -1020,6 +1030,7 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
 
             KifDisplayItem di;
             di.prettyMove = sideMark + label;
+            di.ply = moveCount;
             di.comment = QString();  // 結果コードのコメントは後で付与される
             out.mainline.disp.append(di);
 
@@ -1057,8 +1068,10 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
             }
 
             out.mainline.usiMoves.append(usi);
+            ++moveCount;
             KifDisplayItem di;
             di.prettyMove = pretty;
+            di.ply = moveCount;
             di.comment = QString();  // コメントは後で付与
             out.mainline.disp.append(di);
 
