@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>局面集ビューア - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQの局面集ビューア機能を紹介します。SFEN形式の局面集ファイルを読み込み、局面を盤面上で閲覧・選択してメイン画面に取り込めます。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/kyokumenshu-viewer.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/kyokumenshu-viewer.html">
+    <meta property="og:title" content="局面集ビューア - ShogiBoardQ">
+    <meta property="og:description" content="ShogiBoardQの局面集ビューア機能を紹介。SFEN形式の局面集を読み込み、局面を盤面で閲覧・選択してメイン画面に取り込めます。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/kyokumenshu-viewer/局面集読込後.png">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="局面集ビューア - ShogiBoardQ">
+    <meta name="twitter:description" content="ShogiBoardQの局面集ビューア機能を紹介。SFEN形式の局面集を読み込み、局面を盤面で閲覧・選択。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/kyokumenshu-viewer/局面集読込後.png">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="index.html" class="nav-logo">ShogiBoardQ</a>
+        <button class="nav-toggle" aria-label="メニュー" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="index.html">ホーム</a></li>
+            <li><a href="#preparation">局面集の準備</a></li>
+            <li><a href="#viewer">局面集の閲覧</a></li>
+            <li><a href="#import">局面の取り込み</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>局面集ビューア</h1>
+        <p class="hero-subtitle">SFEN局面集の閲覧・選択・取り込み</p>
+        <div class="hero-badges">
+            <span class="badge">SFEN形式</span>
+            <span class="badge">局面ナビゲーション</span>
+            <span class="badge">盤面回転</span>
+        </div>
+    </div>
+</section>
+
+<!-- Section 1: Preparation -->
+<section id="preparation" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">局面集の準備</h2>
+        <p class="section-desc">SFEN形式のテキストファイルを用意します</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">SFEN形式の局面集ファイル</span>
+                </div>
+                <p class="guide-step-text">局面集ビューアで読み込むファイルは、1行に1局面のSFEN文字列を記述したテキストファイルです。</p>
+                <div class="screenshot-item">
+                    <img src="images/kyokumenshu-viewer/SFEN形式の局面集.png" alt="SFEN形式の局面集ファイル">
+                    <p class="screenshot-caption">SFEN形式の局面集ファイル：1行に1局面のSFEN文字列を記述</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2: Viewer -->
+<section id="viewer" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">局面集の閲覧</h2>
+        <p class="section-desc">局面集ビューアで局面をナビゲーションします</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">局面集ビューアを起動</span>
+                </div>
+                <p class="guide-step-text">メニューの「編集」→「局面集ビューア」から局面集ビューアを起動します。起動直後は盤面が初期配置で表示されます。</p>
+                <div class="screenshot-item">
+                    <img src="images/kyokumenshu-viewer/局面集ビューア起動直後.png" alt="局面集ビューア起動直後">
+                    <p class="screenshot-caption">局面集ビューア：起動直後の初期状態</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">局面集ファイルを開く</span>
+                </div>
+                <p class="guide-step-text">「ファイルを開く」ボタンからSFEN形式の局面集ファイルを選択して読み込みます。</p>
+                <div class="screenshot-item">
+                    <img src="images/kyokumenshu-viewer/局面集の選択.png" alt="局面集ファイルの選択ダイアログ">
+                    <p class="screenshot-caption">ファイル選択ダイアログ：SFEN局面集ファイルを選択</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">局面の表示</span>
+                </div>
+                <p class="guide-step-text">ファイルを読み込むと、最初の局面が盤面に表示されます。駒台や次の手番も正しく反映されます。画面下部に現在の局面番号と総局面数が表示されます。</p>
+                <div class="screenshot-item">
+                    <img src="images/kyokumenshu-viewer/局面集読込後.png" alt="局面集読込後の表示">
+                    <p class="screenshot-caption">局面集読込後：最初の局面を盤面に表示（局面 1 / 2）</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">局面のナビゲーション</span>
+                </div>
+                <p class="guide-step-text">「最初」「前へ」「次へ」「最後」ボタンで局面を移動できます。「次へ」ボタンで次の局面に移動します。</p>
+                <div class="screenshot-item">
+                    <img src="images/kyokumenshu-viewer/局面集読込後次へを押した画面.png" alt="次の局面を表示">
+                    <p class="screenshot-caption">次の局面に移動：ナビゲーションボタンで局面間を移動（局面 2 / 2）</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-title">盤面の回転</span>
+                </div>
+                <p class="guide-step-text">「盤面の回転」ボタンで盤面を180度回転させ、後手側の視点から局面を確認できます。</p>
+                <div class="screenshot-item">
+                    <img src="images/kyokumenshu-viewer/盤面の回転も可能.png" alt="盤面を回転して表示">
+                    <p class="screenshot-caption">盤面の回転：後手側の視点から局面を確認</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3: Import -->
+<section id="import" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">局面の取り込み</h2>
+        <p class="section-desc">選択した局面をメイン画面に取り込みます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">局面を選択して取り込み</span>
+                </div>
+                <p class="guide-step-text">取り込みたい局面を表示した状態で「選択」ボタンをクリックすると、その局面がメイン画面に取り込まれます。取り込んだ局面から検討や解析を開始できます。</p>
+                <div class="screenshot-item">
+                    <img src="images/kyokumenshu-viewer/選択ボタンをクリックして局面を取り込んだ画面.png" alt="局面を取り込んだメイン画面">
+                    <p class="screenshot-caption">メイン画面に取り込み：選択した局面から検討・解析を開始可能</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="index.html" class="back-link">&larr; ホームに戻る</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+</body>
+</html>
