@@ -368,17 +368,24 @@ void PreStartCleanupHandler::ensureBranchTreeRoot()
         return;
     }
 
-    if (m_branchTree->root() != nullptr) {
-        qCDebug(lcGame).noquote() << "ensureBranchTreeRoot: root already exists";
-        return;
-    }
-
     static const QString kHirateStartSfen = QStringLiteral(
         "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
 
     QString rootSfen = kHirateStartSfen;
     if (m_startSfenStr != nullptr && !m_startSfenStr->trimmed().isEmpty()) {
         rootSfen = *m_startSfenStr;
+    }
+
+    if (m_branchTree->root() != nullptr) {
+        // ルートが既に存在する場合でも、SFENが異なれば更新する
+        if (m_branchTree->root()->sfen() != rootSfen) {
+            m_branchTree->clear();
+            m_branchTree->setRootSfen(rootSfen);
+            qCDebug(lcGame).noquote() << "ensureBranchTreeRoot: updated root sfen=" << rootSfen;
+        } else {
+            qCDebug(lcGame).noquote() << "ensureBranchTreeRoot: root already exists with correct sfen";
+        }
+        return;
     }
 
     m_branchTree->setRootSfen(rootSfen);

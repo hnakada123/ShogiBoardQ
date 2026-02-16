@@ -1082,10 +1082,9 @@ void MainWindow::initializeGame()
 {
     ensureGameStartCoordinator();
 
-    // 平手SFENが優先されてしまう問題の根本対策：
-    //    ダイアログ確定直後に司令塔へ渡す前に、startSfen を明示クリアし、
-    //    currentSfen を「選択中の手のSFEN（最優先）→それがなければ空」の順で決定しておく。
-    m_startSfenStr.clear();
+    // 注意: m_startSfenStr は局面編集時にセットされている場合があるため、
+    //       ここではクリアしない。プリセット選択時のSFEN上書きは
+    //       GameStartCoordinator::initializeGame() 側で行う。
 
     // 現在の局面SFEN（棋譜レコードから最優先で取得）
     {
@@ -3049,7 +3048,13 @@ void MainWindow::ensurePositionEditController()
 // `ensureBoardSyncPresenter`: Board Sync Presenter を必要に応じて生成し、依存関係を更新する。
 void MainWindow::ensureBoardSyncPresenter()
 {
-    if (m_boardSync) return;
+    if (m_boardSync) {
+        // sfenRecord ポインタが変わっている場合は更新する
+        // （MatchCoordinator 再生成時に sfenRecord のアドレスが変わるため）
+        const QStringList* current = sfenRecord();
+        m_boardSync->setSfenRecord(current);
+        return;
+    }
 
     qCDebug(lcApp).noquote() << "ensureBoardSyncPresenter: creating BoardSyncPresenter"
                        << "sfenRecord()*=" << static_cast<const void*>(sfenRecord())

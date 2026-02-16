@@ -56,6 +56,9 @@ public:
     const QString& startingPositionName() const;
     int startingPositionNumber() const;
 
+    /// 開始局面コンボボックスを「現在の局面」(index 0) に強制設定する
+    void forceCurrentPositionSelection();
+
     // --- エンジン情報 ---
 
     /// エンジンの名前とディレクトリを格納する構造体

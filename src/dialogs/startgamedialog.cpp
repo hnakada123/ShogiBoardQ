@@ -383,6 +383,11 @@ int StartGameDialog::addEachMoveSec2() const { return m_addEachMoveSec2; }
 int StartGameDialog::byoyomiSec2() const { return m_byoyomiSec2; }
 const QString &StartGameDialog::startingPositionName() const { return m_startingPositionName; }
 int StartGameDialog::startingPositionNumber() const { return m_startingPositionNumber; }
+
+void StartGameDialog::forceCurrentPositionSelection()
+{
+    ui->comboBoxStartingPosition->setCurrentIndex(0);
+}
 const QList<StartGameDialog::Engine> &StartGameDialog::getEngineList() const { return engineList; }
 int StartGameDialog::maxMoves() const { return m_maxMoves; }
 int StartGameDialog::consecutiveGames() const { return m_consecutiveGames; }
