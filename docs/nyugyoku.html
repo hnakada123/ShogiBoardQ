@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>入玉宣言 - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQの入玉宣言機能を紹介します。持将棋の点数確認から入玉宣言の実行・結果判定までの流れをスクリーンショット付きで解説。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/nyugyoku.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/nyugyoku.html">
+    <meta property="og:title" content="入玉宣言 - ShogiBoardQ">
+    <meta property="og:description" content="ShogiBoardQの入玉宣言機能を紹介。持将棋の点数確認から入玉宣言の判定までの流れをスクリーンショット付きで解説。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/nyugyoku/nyugyoku-position.png">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="入玉宣言 - ShogiBoardQ">
+    <meta name="twitter:description" content="ShogiBoardQの入玉宣言機能を紹介。持将棋の点数確認から入玉宣言の判定までの流れを解説。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/nyugyoku/nyugyoku-position.png">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="index.html" class="nav-logo">ShogiBoardQ</a>
+        <button class="nav-toggle" aria-label="メニュー" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="index.html">ホーム</a></li>
+            <li><a href="#jishogi-points">持将棋点数</a></li>
+            <li><a href="#nyugyoku-declaration">入玉宣言</a></li>
+            <li><a href="#nyugyoku-result">宣言結果</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>入玉宣言</h1>
+        <p class="hero-subtitle">持将棋点数の確認と入玉宣言の判定</p>
+        <div class="hero-badges">
+            <span class="badge">持将棋点数</span>
+            <span class="badge">24点法</span>
+            <span class="badge">27点法</span>
+        </div>
+    </div>
+</section>
+
+<!-- Section 1: Jishogi Points -->
+<section id="jishogi-points" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">持将棋点数の確認</h2>
+        <p class="section-desc">現在の局面から持将棋の点数を計算し、宣言条件を確認できます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">入玉の局面</span>
+                </div>
+                <p class="guide-step-text">互いの玉が相手陣に入った局面（入玉）では、通常の詰みによる決着が難しくなります。このような局面で持将棋の点数を確認し、入玉宣言を行うことができます。</p>
+                <div class="screenshot-item">
+                    <img src="images/nyugyoku/nyugyoku-position.png" alt="入玉の局面 - 互いの玉が相手陣に入った状態">
+                    <p class="screenshot-caption">入玉の局面：先手の玉が敵陣に入り、多くの駒が成っている</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">持将棋点数を確認する</span>
+                </div>
+                <p class="guide-step-text">メニューの「対局」→「持将棋点数」を選択すると、現在の局面の持将棋点数が表示されます。先手・後手それぞれについて以下の宣言条件を確認できます。</p>
+                <ul class="guide-step-text">
+                    <li>玉が敵陣にいるか</li>
+                    <li>敵陣に自分の駒が10枚以上あるか</li>
+                    <li>王手がかかっていないか</li>
+                    <li>宣言点数（大駒5点、小駒1点で計算）</li>
+                    <li>24点法・27点法それぞれでの勝敗判定</li>
+                </ul>
+                <div class="screenshot-item">
+                    <img src="images/nyugyoku/jishogi-points.png" alt="持将棋の点数画面">
+                    <p class="screenshot-caption">持将棋の点数：先手は28点で27点法では勝ち、後手は0点で負けと表示</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2: Nyugyoku Declaration -->
+<section id="nyugyoku-declaration" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">入玉宣言の実行</h2>
+        <p class="section-desc">対局メニューから入玉宣言を行います</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">入玉宣言を選択</span>
+                </div>
+                <p class="guide-step-text">メニューの「対局」→「入玉宣言」を選択します。宣言を行う前に確認ダイアログが表示されます。宣言条件を満たさない場合は宣言側の負けとなるため、事前に「持将棋点数」で条件を確認しておくことをおすすめします。</p>
+                <div class="screenshot-item">
+                    <img src="images/nyugyoku/nyugyoku-confirm.png" alt="入玉宣言確認ダイアログ">
+                    <p class="screenshot-caption">入玉宣言確認：宣言条件を満たさない場合は負けになる旨を警告</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">持将棋ルールの設定</span>
+                </div>
+                <p class="guide-step-text">入玉宣言を行うには、対局ダイアログで持将棋ルールを「24点法」または「27点法」に設定しておく必要があります。「なし」に設定されている場合は、入玉宣言を行えません。</p>
+                <div class="screenshot-item">
+                    <img src="images/nyugyoku/jishogi-rule-none.png" alt="持将棋ルールなしの警告">
+                    <p class="screenshot-caption">持将棋ルールが「なし」の場合：対局ダイアログでルールを設定するよう案内される</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3: Declaration Result -->
+<section id="nyugyoku-result" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">宣言結果</h2>
+        <p class="section-desc">宣言条件の判定結果が表示されます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">宣言勝ち</span>
+                </div>
+                <p class="guide-step-text">すべての宣言条件を満たしている場合、「宣言勝ち」となります。結果画面には各条件の判定結果と、適用されたルール（24点法/27点法）による必要点数・達成状況が詳しく表示されます。</p>
+                <div class="screenshot-item">
+                    <img src="images/nyugyoku/nyugyoku-result-win.png" alt="入玉宣言結果 - 宣言勝ち">
+                    <p class="screenshot-caption">宣言勝ち：すべての条件を満たし、27点法で28点以上を達成</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">宣言失敗（負け）</span>
+                </div>
+                <p class="guide-step-text">宣言点数が必要点数に満たない場合は「宣言失敗」となり、宣言した側の負けになります。結果画面には不足している点数が表示されます。</p>
+                <div class="screenshot-item">
+                    <img src="images/nyugyoku/nyugyoku-result-fail.png" alt="入玉宣言結果 - 宣言失敗">
+                    <p class="screenshot-caption">宣言失敗：27点法で必要な28点に対し23点で点数不足、宣言した側の負け</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="index.html" class="back-link">&larr; ホームに戻る</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+</body>
+</html>

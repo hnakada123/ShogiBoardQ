@@ -3955,17 +3955,17 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>NyugyokuDeclarationHandler</name>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="34"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="35"/>
         <source>○</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="35"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="36"/>
         <source>×</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="37"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="38"/>
         <source>【宣言条件の判定】
 ① 玉が敵陣にいる: %1
 ② 敵陣に10枚以上: %2 (%3枚)
@@ -3975,118 +3975,118 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="49"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="50"/>
         <source>
 【24点法】
 </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="52"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="53"/>
         <source>
 【27点法】
 </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="53"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="54"/>
         <source>必要点数: %1点以上
 </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="70"/>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="102"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="71"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="103"/>
         <source>宣言勝ち</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="71"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="72"/>
         <source>31点以上: 勝ち</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="75"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="76"/>
         <source>持将棋（引き分け）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="76"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="77"/>
         <source>24〜30点: 引き分け</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="79"/>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="84"/>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="106"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="80"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="85"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="107"/>
         <source>宣言失敗（負け）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="80"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="81"/>
         <source>24点未満: 宣言失敗</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="85"/>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="108"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="86"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="109"/>
         <source>条件未達: 宣言失敗</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="103"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="104"/>
         <source>条件達成: 勝ち</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="110"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="111"/>
         <source>点数不足: 宣言失敗</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="121"/>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="136"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="122"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="137"/>
         <source>入玉宣言</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="121"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="122"/>
         <source>対局中ではありません。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="127"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="128"/>
         <source>エラー</source>
         <translation type="unfinished">エラー</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="127"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="128"/>
         <source>盤面データがありません。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="137"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="138"/>
         <source>持将棋ルールが「なし」に設定されています。
 対局ダイアログで「24点法」または「27点法」を選択してください。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="147"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="148"/>
         <source>先手</source>
         <translation type="unfinished">先手</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="147"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="148"/>
         <source>後手</source>
         <translation type="unfinished">後手</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="152"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="153"/>
         <source>入玉宣言確認</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="153"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="154"/>
         <source>%1が入玉宣言を行います。
 
 宣言条件を満たさない場合は宣言側の負けとなります。
@@ -4094,7 +4094,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="205"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="206"/>
         <source>%1の入玉宣言
 
 %2
@@ -4103,7 +4103,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="208"/>
+        <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="209"/>
         <source>入玉宣言結果</source>
         <translation type="unfinished"></translation>
     </message>
