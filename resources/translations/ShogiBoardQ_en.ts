@@ -3959,17 +3959,17 @@ Please restart the application to apply the changes.</translation>
         <translation>No board data available.</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3814"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3820"/>
         <source>局面を反映しました</source>
         <translation>Position applied</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3816"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3822"/>
         <source>局面の反映に失敗しました</source>
         <translation>Failed to apply position</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3819"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3825"/>
         <source>局面の反映に失敗しました（内部エラー）</source>
         <translation>Failed to apply position (internal error)</translation>
     </message>
@@ -4339,17 +4339,17 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Failed to auto-save game record: %1</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3788"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3794"/>
         <source>棋譜を取り込みました</source>
         <translation>Game record imported</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3790"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3796"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation>Failed to import game record</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3794"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3800"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation>Failed to import game record (internal error)</translation>
     </message>
@@ -4358,7 +4358,7 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Comment updated (move: %1)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3312"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3318"/>
         <source>コメントなし</source>
         <translation>No comment</translation>
     </message>
@@ -5148,12 +5148,12 @@ Are you sure you want to declare?</translation>
         <translation>Engine2</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="3058"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="3062"/>
         <source>先手番</source>
         <translation>Sente (Black)</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="3058"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="3062"/>
         <source>後手番</source>
         <translation>Gote (White)</translation>
     </message>
