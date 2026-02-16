@@ -3602,17 +3602,17 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3825"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3826"/>
         <source>局面を反映しました</source>
         <translation>局面を反映しました</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3827"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3828"/>
         <source>局面の反映に失敗しました</source>
         <translation>局面の反映に失敗しました</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3830"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3831"/>
         <source>局面の反映に失敗しました（内部エラー）</source>
         <translation>局面の反映に失敗しました（内部エラー）</translation>
     </message>
@@ -3642,7 +3642,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3323"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3324"/>
         <source>コメントなし</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3651,17 +3651,17 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">定跡</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3799"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3800"/>
         <source>棋譜を取り込みました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3801"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3802"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3805"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3806"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation type="unfinished"></translation>
     </message>

@@ -2068,6 +2068,7 @@ void MainWindow::initMatchCoordinator()
 
     if (m_evalGraphController) {
         m_evalGraphController->setMatchCoordinator(m_match);
+        m_evalGraphController->setSfenRecord(sfenRecord());
     }
 
     if (m_match) {

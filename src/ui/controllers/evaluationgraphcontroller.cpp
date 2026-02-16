@@ -9,6 +9,7 @@
 #include "evalgraphpresenter.h"
 #include "evaluationchartwidget.h"
 #include "matchcoordinator.h"
+#include "usi.h"
 
 EvaluationGraphController::EvaluationGraphController(QObject* parent)
     : QObject(parent)
@@ -151,6 +152,13 @@ void EvaluationGraphController::doRedrawEngine1Graph()
                       << ", sfenRecord size =" << (m_sfenHistory ? m_sfenHistory->size() : -1);
     }
 
+    // infoバッファをフラッシュしてlastScoreCp()を最新にする（レースコンディション防止）
+    if (m_match) {
+        Usi* eng = m_match->primaryEngine();
+        if (eng)
+            eng->flushThinkingInfoBuffer();
+    }
+
     EvalGraphPresenter::appendPrimaryScore(m_scoreCp, m_match);
 
     const int cpAfter = m_scoreCp.isEmpty() ? 0 : m_scoreCp.last();
@@ -187,6 +195,14 @@ void EvaluationGraphController::doRedrawEngine2Graph()
         ply = m_sfenHistory ? qMax(0, static_cast<int>(m_sfenHistory->size() - 1)) : 0;
         qCDebug(lcUi) << "P2: actual ply (from sfenRecord) =" << ply
                       << ", sfenRecord size =" << (m_sfenHistory ? m_sfenHistory->size() : -1);
+    }
+
+    // infoバッファをフラッシュしてlastScoreCp()を最新にする（レースコンディション防止）
+    if (m_match) {
+        Usi* eng2 = m_match->secondaryEngine();
+        Usi* eng = eng2 ? eng2 : m_match->primaryEngine();
+        if (eng)
+            eng->flushThinkingInfoBuffer();
     }
 
     EvalGraphPresenter::appendSecondaryScore(m_scoreCp, m_match);
