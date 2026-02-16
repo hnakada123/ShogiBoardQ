@@ -175,10 +175,27 @@ void KifuLoadCoordinator::loadKifuCommon(
     logStep("parseFunc");
 
     // 2.5) sfenList が未生成の場合は baseSfen + usiMoves から補完
-    //      （KIFパーサーは自前で生成するが、CSA/KI2等は未生成のまま返す）
+    //      （KIFパーサーは自前で生成するが、CSA/KI2/JKF等は未生成のまま返す）
     if (res.mainline.sfenList.isEmpty() && !res.mainline.usiMoves.isEmpty()) {
         res.mainline.sfenList = SfenPositionTracer::buildSfenRecord(
             res.mainline.baseSfen, res.mainline.usiMoves, false);
+    }
+    // 分岐の sfenList も同様に補完
+    for (KifVariation& var : res.variations) {
+        if (!var.line.sfenList.isEmpty() || var.line.usiMoves.isEmpty()) {
+            continue;
+        }
+        // baseSfen が未設定なら mainline の sfenList から分岐点の局面を取得
+        if (var.line.baseSfen.isEmpty() && !res.mainline.sfenList.isEmpty()) {
+            const int branchPly = var.startPly - 1;
+            if (branchPly >= 0 && branchPly < res.mainline.sfenList.size()) {
+                var.line.baseSfen = res.mainline.sfenList.at(branchPly);
+            }
+        }
+        if (!var.line.baseSfen.isEmpty()) {
+            var.line.sfenList = SfenPositionTracer::buildSfenRecord(
+                var.line.baseSfen, var.line.usiMoves, var.line.endsWithTerminal);
+        }
     }
 
     // 3) デバッグ出力
