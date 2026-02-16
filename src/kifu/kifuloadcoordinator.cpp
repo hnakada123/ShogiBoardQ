@@ -174,6 +174,13 @@ void KifuLoadCoordinator::loadKifuCommon(
     }
     logStep("parseFunc");
 
+    // 2.5) sfenList が未生成の場合は baseSfen + usiMoves から補完
+    //      （KIFパーサーは自前で生成するが、CSA/KI2等は未生成のまま返す）
+    if (res.mainline.sfenList.isEmpty() && !res.mainline.usiMoves.isEmpty()) {
+        res.mainline.sfenList = SfenPositionTracer::buildSfenRecord(
+            res.mainline.baseSfen, res.mainline.usiMoves, false);
+    }
+
     // 3) デバッグ出力
     dumpMainline(res, parseWarn);
     if (dumpVariations) {
