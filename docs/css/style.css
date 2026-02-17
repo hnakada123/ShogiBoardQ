@@ -839,6 +839,85 @@ a.feature-card-link:hover .feature-card-more {
     }
 }
 
+/* --- Info Table (generic reusable table) --- */
+.info-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--color-card-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 16px var(--color-card-shadow);
+    margin: 1rem 0;
+}
+
+.info-table th {
+    background: var(--color-blue);
+    color: #fff;
+    font-family: var(--font-heading);
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 0.75rem 1.25rem;
+    text-align: left;
+    letter-spacing: 0.03em;
+}
+
+.info-table td {
+    padding: 0.7rem 1.25rem;
+    font-size: 0.9rem;
+    color: var(--color-text);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.info-table tr:last-child td {
+    border-bottom: none;
+}
+
+.info-table tbody tr:nth-child(even) {
+    background: var(--color-bg);
+}
+
+/* --- Format Examples --- */
+.format-examples {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.25rem;
+    margin-top: 1rem;
+}
+
+.format-example {
+    background: var(--color-card-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px var(--color-card-shadow);
+}
+
+.format-example h4 {
+    background: var(--color-blue);
+    color: #fff;
+    font-family: var(--font-heading);
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    margin: 0;
+    letter-spacing: 0.03em;
+}
+
+.format-example pre {
+    margin: 0;
+    padding: 0.75rem 1rem;
+    font-size: 0.8rem;
+    line-height: 1.6;
+    overflow-x: auto;
+    background: var(--color-bg);
+}
+
+.format-example code {
+    font-family: "Cascadia Code", "Fira Code", "Source Code Pro", monospace;
+    color: var(--color-text);
+}
+
 /* --- Export Image Frame --- */
 .screenshot-item--export img {
     width: calc(100% - 4rem);
@@ -963,5 +1042,19 @@ a.feature-card-link:hover .feature-card-more {
 
     .guide-step-title {
         font-size: 1rem;
+    }
+
+    .info-table th,
+    .info-table td {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8rem;
+    }
+
+    .format-examples {
+        grid-template-columns: 1fr;
+    }
+
+    .format-example pre {
+        font-size: 0.72rem;
     }
 }

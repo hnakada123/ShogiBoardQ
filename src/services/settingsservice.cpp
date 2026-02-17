@@ -1322,6 +1322,20 @@ void setKifuPasteDialogSize(const QSize& size)
     s.setValue("SizeRelated/kifuPasteDialogSize", size);
 }
 
+// 棋譜貼り付けダイアログのフォントサイズを取得
+int kifuPasteDialogFontSize()
+{
+    QSettings s(settingsFilePath(), QSettings::IniFormat);
+    return s.value("FontSize/kifuPasteDialog", 10).toInt();
+}
+
+// 棋譜貼り付けダイアログのフォントサイズを保存
+void setKifuPasteDialogFontSize(int size)
+{
+    QSettings s(settingsFilePath(), QSettings::IniFormat);
+    s.setValue("FontSize/kifuPasteDialog", size);
+}
+
 // CSA通信ログウィンドウのサイズを取得
 QSize csaLogWindowSize()
 {
