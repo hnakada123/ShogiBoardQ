@@ -117,8 +117,11 @@ void EngineProcessManager::sendCommand(const QString& command)
         return;
     }
 
-    m_process->write((command + "\n").toUtf8());
-    
+    if (m_process->write((command + "\n").toUtf8()) == -1) {
+        qCWarning(lcEngine) << logPrefix() << "コマンド送信失敗:" << command;
+        return;
+    }
+
     emit commandSent(command);
     qCDebug(lcEngine).nospace() << logPrefix() << " 送信: " << command;
 }

@@ -337,6 +337,14 @@ void CsaGameCoordinator::onMoveReceived(const QString& move, int consumedTimeMs)
         toFile = move[3].digitValue();
         toRank = move[4].digitValue();
 
+        if (toFile < 1 || toFile > 9 || toRank < 1 || toRank > 9) {
+            qCWarning(lcNetwork) << "Invalid CSA move coordinates: toFile=" << toFile << "toRank=" << toRank << "move=" << move;
+            emit logMessage(tr("不正な座標の指し手を受信しました: %1").arg(move), true);
+            emit errorOccurred(tr("サーバーからの指し手の座標が不正です: %1").arg(move));
+            setGameState(GameState::Error);
+            return;
+        }
+
         if (fromFile == 0 && fromRank == 0) {
             // 駒打ちの場合、移動元は無効
             from = QPoint(-1, -1);
@@ -370,6 +378,8 @@ void CsaGameCoordinator::onMoveReceived(const QString& move, int consumedTimeMs)
 
     if (!applyMoveToBoard(move)) {
         emit logMessage(tr("指し手の適用に失敗しました: %1").arg(move), true);
+        emit errorOccurred(tr("サーバーからの指し手を盤面に適用できません: %1").arg(move));
+        setGameState(GameState::Error);
         return;
     }
 

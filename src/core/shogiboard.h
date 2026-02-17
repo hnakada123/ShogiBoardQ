@@ -128,7 +128,7 @@ private:
     void setPieceStandFromSfen(const QString& str);
     QString validateAndConvertSfenBoardStr(QString sfenStr);
     void setPiecePlacementFromSfen(QString& initialSfenStr);
-    void validateSfenString(const QString& sfenStr, QString& sfenBoardStr, QString& sfenStandStr);
+    bool validateSfenString(const QString& sfenStr, QString& sfenBoardStr, QString& sfenStandStr);
     void printPlayerPieces(const QString& player, const QString& pieceSet) const;
     QChar convertPieceChar(const QChar c) const;
     QChar convertPromotedPieceToOriginal(const QChar dest) const;

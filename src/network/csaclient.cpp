@@ -282,6 +282,9 @@ void CsaClient::onReadyRead()
 
 void CsaClient::onConnectionTimeout()
 {
+    if (m_connectionState != ConnectionState::Connecting) {
+        return;  // 既に接続済み or 切断済みなら無視
+    }
     qCWarning(lcNetwork) << "Connection timeout";
     m_socket->abort();
     emit errorOccurred(tr("接続がタイムアウトしました"));
@@ -295,8 +298,14 @@ void CsaClient::sendMessage(const QString& message)
     }
 
     QString msg = message + QStringLiteral("\n");
-    m_socket->write(msg.toUtf8());
-    m_socket->flush();
+    if (m_socket->write(msg.toUtf8()) == -1) {
+        qCWarning(lcNetwork) << "Failed to write message:" << m_socket->errorString();
+        emit errorOccurred(tr("メッセージの送信に失敗しました: %1").arg(m_socket->errorString()));
+        return;
+    }
+    if (!m_socket->flush()) {
+        qCWarning(lcNetwork) << "Failed to flush socket:" << m_socket->errorString();
+    }
 
     emit rawMessageSent(message);
     qCDebug(lcNetwork).noquote() << "Sent:" << message;
@@ -427,7 +436,9 @@ void CsaClient::processGameSummary(const QString& line)
             if (key == QStringLiteral("Time_Unit")) {
                 m_gameSummary.timeUnit = value;
             } else if (key == QStringLiteral("Total_Time")) {
-                int time = value.toInt();
+                bool ok;
+                int time = value.toInt(&ok);
+                if (!ok) qCWarning(lcNetwork) << "Invalid time value for" << key << ":" << value;
                 if (m_currentTimeSection == QStringLiteral("Time+")) {
                     m_gameSummary.totalTimeBlack = time;
                 } else if (m_currentTimeSection == QStringLiteral("Time-")) {
@@ -436,7 +447,9 @@ void CsaClient::processGameSummary(const QString& line)
                     m_gameSummary.totalTime = time;
                 }
             } else if (key == QStringLiteral("Byoyomi")) {
-                int time = value.toInt();
+                bool ok;
+                int time = value.toInt(&ok);
+                if (!ok) qCWarning(lcNetwork) << "Invalid time value for" << key << ":" << value;
                 if (m_currentTimeSection == QStringLiteral("Time+")) {
                     m_gameSummary.byoyomiBlack = time;
                 } else if (m_currentTimeSection == QStringLiteral("Time-")) {
@@ -445,11 +458,17 @@ void CsaClient::processGameSummary(const QString& line)
                     m_gameSummary.byoyomi = time;
                 }
             } else if (key == QStringLiteral("Least_Time_Per_Move")) {
-                m_gameSummary.leastTimePerMove = value.toInt();
+                bool ok;
+                m_gameSummary.leastTimePerMove = value.toInt(&ok);
+                if (!ok) qCWarning(lcNetwork) << "Invalid time value for" << key << ":" << value;
             } else if (key == QStringLiteral("Increment")) {
-                m_gameSummary.increment = value.toInt();
+                bool ok;
+                m_gameSummary.increment = value.toInt(&ok);
+                if (!ok) qCWarning(lcNetwork) << "Invalid time value for" << key << ":" << value;
             } else if (key == QStringLiteral("Delay")) {
-                m_gameSummary.delay = value.toInt();
+                bool ok;
+                m_gameSummary.delay = value.toInt(&ok);
+                if (!ok) qCWarning(lcNetwork) << "Invalid time value for" << key << ":" << value;
             } else if (key == QStringLiteral("Time_Roundup")) {
                 m_gameSummary.timeRoundup = (value == QStringLiteral("YES"));
             }

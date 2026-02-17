@@ -767,6 +767,11 @@ void UsiProtocolHandler::parseMoveFrom(const QString& move, int& fileFrom, int& 
     if (QStringLiteral("123456789").contains(move[0])) {
         fileFrom = move[0].digitValue();
         rankFrom = alphabetToRank(move[1]);
+        if (fileFrom < 1 || fileFrom > 9 || rankFrom < 1 || rankFrom > 9) {
+            emit errorOccurred(tr("Invalid move coordinates in moveFrom: file=%1, rank=%2").arg(fileFrom).arg(rankFrom));
+            cancelCurrentOperation();
+            return;
+        }
         return;
     }
 
@@ -796,6 +801,11 @@ void UsiProtocolHandler::parseMoveTo(const QString& move, int& fileTo, int& rank
 
     fileTo = move[2].digitValue();
     rankTo = alphabetToRank(move[3]);
+    if (fileTo < 1 || fileTo > 9 || rankTo < 1 || rankTo > 9) {
+        emit errorOccurred(tr("Invalid move coordinates in moveTo: file=%1, rank=%2").arg(fileTo).arg(rankTo));
+        cancelCurrentOperation();
+        return;
+    }
 }
 
 QString UsiProtocolHandler::convertHumanMoveToUsi(const QPoint& from, const QPoint& to,

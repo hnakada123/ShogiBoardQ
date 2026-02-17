@@ -107,6 +107,14 @@ bool KifuIoService::writeKifuFile(const QString& filePath,
         out << line << QLatin1Char('\n');
     }
     out.flush();
+    if (out.status() != QTextStream::Ok) {
+        if (errorText) *errorText = QObject::tr("Failed to write data to file.");
+        return false;
+    }
     file.close();
+    if (file.error() != QFile::NoError) {
+        if (errorText) *errorText = QObject::tr("Failed to close file: %1").arg(file.errorString());
+        return false;
+    }
     return true;
 }

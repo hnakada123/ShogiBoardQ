@@ -164,7 +164,9 @@ void KifuLoadCoordinator::loadKifuCommon(
     QString parseWarn;
     if (!parseFunc(filePath, res, &parseWarn)) {
         qCWarning(lcKifu).noquote() << "parse failed:" << filePath << parseWarn;
-        emit errorOccurred(tr("棋譜ファイルの読み込みに失敗しました: %1").arg(QFileInfo(filePath).fileName()));
+        QString detail = parseWarn.isEmpty() ? QString() : QStringLiteral("\n") + parseWarn;
+        emit errorOccurred(tr("棋譜ファイルの読み込みに失敗しました: %1%2")
+                               .arg(QFileInfo(filePath).fileName(), detail));
         m_loadingKifu = false;
         return;
     }

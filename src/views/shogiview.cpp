@@ -104,6 +104,9 @@ ShogiView::ShogiView(QWidget *parent)
     // キー "SizeRelated/squareSize" が無い場合は既定値 50 を採用。
     QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
     m_squareSize = settings.value("SizeRelated/squareSize", 50).toInt();
+    if (m_squareSize < 20 || m_squareSize > 150) {
+        m_squareSize = 50;  // デフォルトにフォールバック
+    }
 
     // 【レイアウト算出】
     // 盤や駒台など、表示に必要な各種寸法/座標を m_squareSize に基づいて再計算する。

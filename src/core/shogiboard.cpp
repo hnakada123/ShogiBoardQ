@@ -323,6 +323,7 @@ void ShogiBoard::setPieceStandFromSfen(const QString& str)
 void ShogiBoard::setPiecePlacementFromSfen(QString& initialSfenStr)
 {
     QString sfenStr = validateAndConvertSfenBoardStr(initialSfenStr);
+    if (sfenStr.isEmpty()) return;
 
     int strIndex = 0;
     int emptySquares = 0;
@@ -352,7 +353,7 @@ void ShogiBoard::setPiecePlacementFromSfen(QString& initialSfenStr)
 }
 
 // SFEN文字列を検証し、盤面・手番・持ち駒・手数の各要素に分解する。
-void ShogiBoard::validateSfenString(const QString& sfenStr, QString& sfenBoardStr, QString& sfenStandStr)
+bool ShogiBoard::validateSfenString(const QString& sfenStr, QString& sfenBoardStr, QString& sfenStandStr)
 {
     QStringList sfenComponents = sfenStr.split(" ");
 
@@ -363,7 +364,7 @@ void ShogiBoard::validateSfenString(const QString& sfenStr, QString& sfenBoardSt
                  static_cast<long long>(sfenComponents.size()), qUtf8Printable(sfenStr));
 
         emit errorOccurred(errorMessage);
-        return;
+        return false;
     }
 
     sfenBoardStr = sfenComponents.at(0);
@@ -380,7 +381,7 @@ void ShogiBoard::validateSfenString(const QString& sfenStr, QString& sfenBoardSt
                  qUtf8Printable(playerTurnStr), qUtf8Printable(sfenStr));
 
         emit errorOccurred(errorMessage);
-        return;
+        return false;
     }
 
     sfenStandStr = sfenComponents.at(2);
@@ -394,8 +395,10 @@ void ShogiBoard::validateSfenString(const QString& sfenStr, QString& sfenBoardSt
         qCWarning(lcCore, "Invalid move number in SFEN: %s", qUtf8Printable(sfenStr));
 
         emit errorOccurred(errorMessage);
-        return;
+        return false;
     }
+
+    return true;
 }
 
 // SFEN文字列で将棋盤全体（盤面＋駒台）を更新し再描画する。
@@ -418,7 +421,8 @@ void ShogiBoard::setSfen(const QString& sfenStr)
     QString sfenBoardStr;
     QString sfenStandStr;
 
-    validateSfenString(sfenStr, sfenBoardStr, sfenStandStr);
+    if (!validateSfenString(sfenStr, sfenBoardStr, sfenStandStr))
+        return;
 
     setPiecePlacementFromSfen(sfenBoardStr);
 
@@ -680,9 +684,7 @@ void ShogiBoard::flipSides()
 
     m_boardData = newBoardData;
 
-    // FIXME: static により初回呼び出し時の駒台のみキャプチャされる。
-    //        2回目以降の flipSides() では古い駒台データを参照してしまう。
-    static const QMap<QChar, int> originalPieceStand = m_pieceStand;
+    const QMap<QChar, int> originalPieceStand = m_pieceStand;
 
     for (auto it = originalPieceStand.cbegin(); it != originalPieceStand.cend(); ++it) {
         QChar flippedChar = it.key().isLower() ? it.key().toUpper() : it.key().toLower();
