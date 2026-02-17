@@ -9,7 +9,7 @@
 #include "matchcoordinator.h"
 #include "shogiboard.h"
 #include "shogimove.h"
-#include "movevalidator.h"
+#include "fastmovevalidator.h"
 #include "playmode.h"
 #include "shogiutils.h"
 #include "legalmovestatus.h"
@@ -152,7 +152,7 @@ QString ShogiGameController::getNextPlayerSfen()
     return nextPlayerColorSfen;
 }
 
-MoveValidator::Turn ShogiGameController::getCurrentTurnForValidator(MoveValidator& validator)
+FastMoveValidator::Turn ShogiGameController::getCurrentTurnForValidator(FastMoveValidator& validator)
 {
     if (currentPlayer() == Player1) {
         return validator.BLACK;
@@ -244,8 +244,9 @@ QString ShogiGameController::getPieceKanji(const QChar& piece)
 // 成り判定
 // ============================================================
 
-bool ShogiGameController::decidePromotion(PlayMode& playMode, MoveValidator& validator, const MoveValidator::Turn& turnMove,
-                                     int& fileFrom, int& rankFrom, int& fileTo, int& rankTo, QChar& piece,  ShogiMove& currentMove)
+bool ShogiGameController::decidePromotion(PlayMode& playMode, FastMoveValidator& validator,
+                                          const FastMoveValidator::Turn& turnMove,
+                                          int& fileFrom, int& rankFrom, int& fileTo, int& rankTo, QChar& piece, ShogiMove& currentMove)
 {
     // 駒台には指せない
     if (fileTo >= 10) return false;
@@ -374,8 +375,8 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
     qCDebug(lcGame) << "rankTo = " << rankTo;
     qCDebug(lcGame) << "currentPlayer() = " << currentPlayer();
 
-    MoveValidator validator;
-    MoveValidator::Turn turn = getCurrentTurnForValidator(validator);
+    FastMoveValidator validator;
+    FastMoveValidator::Turn turn = getCurrentTurnForValidator(validator);
 
     QPoint fromPoint(fileFrom - 1, rankFrom - 1);
     QPoint toPoint(fileTo - 1, rankTo - 1);

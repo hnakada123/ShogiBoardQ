@@ -61,6 +61,7 @@ add_shogi_test(tst_coredatastructures
     ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
     ${SRC}/core/movevalidator.cpp
+    ${SRC}/core/fastmovevalidator.cpp
     ${SRC}/game/turnmanager.cpp
     ${SRC}/game/shogigamecontroller.cpp
     ${SRC}/common/jishogicalculator.cpp
@@ -298,6 +299,7 @@ add_shogi_test(tst_integration
     ${TEST_STUBS}
     ${SRC}/core/shogiboard.cpp
     ${SRC}/core/movevalidator.cpp
+    ${SRC}/core/fastmovevalidator.cpp
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp
     ${SRC}/game/shogigamecontroller.cpp
