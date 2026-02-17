@@ -3078,6 +3078,11 @@ Select OK to specify the save location.</translation>
 <context>
     <name>KifuDisplayCoordinator</name>
     <message>
+        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="448"/>
+        <source>コメントなし</source>
+        <translation>No comment</translation>
+    </message>
+    <message>
         <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="499"/>
         <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="595"/>
         <source>=== 開始局面 ===</source>
@@ -3959,17 +3964,22 @@ Please restart the application to apply the changes.</translation>
         <translation>No board data available.</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3826"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1177"/>
+        <source>Kifu Files (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2 *.ki2u);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</source>
+        <translation>Game Record Files (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2 *.ki2u);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.cpp" line="3838"/>
         <source>局面を反映しました</source>
         <translation>Position applied</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3828"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3840"/>
         <source>局面の反映に失敗しました</source>
         <translation>Failed to apply position</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3831"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3843"/>
         <source>局面の反映に失敗しました（内部エラー）</source>
         <translation>Failed to apply position (internal error)</translation>
     </message>
@@ -4270,9 +4280,8 @@ The default layout will be used on next startup.</translation>
         <translation>Open Game Record File</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1177"/>
         <source>Kifu Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</source>
-        <translation>Game Record Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</translation>
+        <translation type="vanished">Game Record Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</translation>
     </message>
     <message>
         <source>手合割</source>
@@ -4339,17 +4348,17 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Failed to auto-save game record: %1</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3800"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3812"/>
         <source>棋譜を取り込みました</source>
         <translation>Game record imported</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3802"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3814"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation>Failed to import game record</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3806"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3818"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation>Failed to import game record (internal error)</translation>
     </message>
@@ -4358,7 +4367,7 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Comment updated (move: %1)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3324"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3335"/>
         <source>コメントなし</source>
         <translation>No comment</translation>
     </message>
@@ -5204,8 +5213,32 @@ Are you sure you want to declare?</translation>
     </message>
     <message>
         <location filename="../../src/kifu/kifusavecoordinator.cpp" line="67"/>
+        <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;すべてのファイル (*)</source>
+        <translation>KIF Files (*.kifu *.kif);;KI2 Files (*.ki2 *.ki2u);;All Files (*)</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="115"/>
+        <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;CSA形式 (*.csa);;すべてのファイル (*)</source>
+        <translation>KIF Files (*.kifu *.kif);;KI2 Files (*.ki2 *.ki2u);;CSA Files (*.csa);;All Files (*)</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="170"/>
+        <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;CSA形式 (*.csa);;JKF形式 (*.jkf);;すべてのファイル (*)</source>
+        <translation>KIF Files (*.kifu *.kif);;KI2 Files (*.ki2 *.ki2u);;CSA Files (*.csa);;JKF Files (*.jkf);;All Files (*)</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="232"/>
+        <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;すべてのファイル (*)</source>
+        <translation>KIF Files (*.kifu *.kif);;KI2 Files (*.ki2 *.ki2u);;CSA Files (*.csa);;JKF Files (*.jkf);;USEN Files (*.usen);;All Files (*)</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="301"/>
+        <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;USI形式 (*.usi);;すべてのファイル (*)</source>
+        <translation>KIF Files (*.kifu *.kif);;KI2 Files (*.ki2 *.ki2u);;CSA Files (*.csa);;JKF Files (*.jkf);;USEN Files (*.usen);;USI Files (*.usi);;All Files (*)</translation>
+    </message>
+    <message>
         <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2);;すべてのファイル (*)</source>
-        <translation>KIF Files (*.kifu *.kif);;KI2 Files (*.ki2);;All Files (*)</translation>
+        <translation type="vanished">KIF Files (*.kifu *.kif);;KI2 Files (*.ki2);;All Files (*)</translation>
     </message>
     <message>
         <location filename="../../src/kifu/kifusavecoordinator.cpp" line="70"/>
@@ -5217,24 +5250,20 @@ Are you sure you want to declare?</translation>
         <translation>Save As</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="115"/>
         <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2);;CSA形式 (*.csa);;すべてのファイル (*)</source>
-        <translation>KIF Files (*.kifu *.kif);;KI2 Files (*.ki2);;CSA Files (*.csa);;All Files (*)</translation>
+        <translation type="vanished">KIF Files (*.kifu *.kif);;KI2 Files (*.ki2);;CSA Files (*.csa);;All Files (*)</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="170"/>
         <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2);;CSA形式 (*.csa);;JKF形式 (*.jkf);;すべてのファイル (*)</source>
-        <translation>KIF Files (*.kifu *.kif);;KI2 Files (*.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;All Files (*)</translation>
+        <translation type="vanished">KIF Files (*.kifu *.kif);;KI2 Files (*.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;All Files (*)</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="232"/>
         <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;すべてのファイル (*)</source>
-        <translation>KIF Files (*.kifu *.kif);;KI2 Files (*.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USEN Files (*.usen);;All Files (*)</translation>
+        <translation type="vanished">KIF Files (*.kifu *.kif);;KI2 Files (*.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USEN Files (*.usen);;All Files (*)</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="301"/>
         <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;USI形式 (*.usi);;すべてのファイル (*)</source>
-        <translation>KIF Files (*.kifu *.kif);;KI2 Files (*.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USEN Files (*.usen);;USI Files (*.usi);;All Files (*)</translation>
+        <translation type="vanished">KIF Files (*.kifu *.kif);;KI2 Files (*.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USEN Files (*.usen);;USI Files (*.usi);;All Files (*)</translation>
     </message>
     <message>
         <location filename="../../src/analysis/analysisresultspresenter.cpp" line="40"/>

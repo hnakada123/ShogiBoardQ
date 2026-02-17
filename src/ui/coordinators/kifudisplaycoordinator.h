@@ -194,6 +194,14 @@ signals:
      */
     void boardWithHighlightsRequired(const QString& currentSfen, const QString& prevSfen);
 
+    /**
+     * @brief コメント表示の更新が必要
+     * @param ply 手数インデックス
+     * @param comment コメントテキスト
+     * @param asHtml HTML形式かどうか
+     */
+    void commentUpdateRequired(int ply, const QString& comment, bool asHtml);
+
 private:
     void updateRecordView();
     void updateBranchTreeView();
