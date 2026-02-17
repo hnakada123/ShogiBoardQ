@@ -62,6 +62,37 @@ private slots:
         QVERIFY2(error.isEmpty(), qPrintable(error));
         QCOMPARE(usenMoves, kExpectedUsiMoves);
     }
+
+    void detectInitialSfen_handicap()
+    {
+        // 駒落ち局面（四枚落ち）: 初期局面が ~ の前にエンコードされている
+        QString label;
+        QString sfen = UsenToSfenConverter::detectInitialSfenFromFile(
+            fixturePath(QStringLiteral("test_handicap.usen")), &label);
+        QCOMPARE(label, QStringLiteral("局面指定"));
+        QCOMPARE(sfen, QStringLiteral("1nsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"));
+    }
+
+    void parseWithVariations_handicap()
+    {
+        // 駒落ちUSENの本譜をパースし、指し手が正しくデコードされることを確認
+        KifParseResult res;
+        QString error;
+        bool ok = UsenToSfenConverter::parseWithVariations(
+            fixturePath(QStringLiteral("test_handicap.usen")), res, &error);
+        QVERIFY2(ok, qPrintable(error));
+
+        // baseSfen が駒落ち局面であること
+        QCOMPARE(res.mainline.baseSfen,
+                 QStringLiteral("1nsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"));
+
+        // 11手の指し手 + 投了が含まれること
+        QCOMPARE(res.mainline.usiMoves.size(), 11);
+
+        // 先頭の指し手を確認（後手番から開始: △3二銀, ▲7六歩）
+        QCOMPARE(res.mainline.usiMoves.at(0), QStringLiteral("3a2b"));
+        QCOMPARE(res.mainline.usiMoves.at(1), QStringLiteral("7g7f"));
+    }
 };
 
 QTEST_MAIN(TestUsenConverter)
