@@ -6063,27 +6063,27 @@ Are you sure you want to declare?</translation>
         <translation>An error occurred in ShogiGameController::getNextPlayerSfen: Invalid player state.</translation>
     </message>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="357"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="358"/>
         <source>An error occurred in ShogiGameController::validateAndMove: board() is null.</source>
         <translation>An error occurred in ShogiGameController::validateAndMove: board() is null.</translation>
     </message>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="389"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="390"/>
         <source>An error occurred in ShogiGameController::validateAndMove: the source square is empty.</source>
         <translation>An error occurred in ShogiGameController::validateAndMove: the source square is empty.</translation>
     </message>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="477"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="478"/>
         <source>An error occurred in ShogiGameController::editPosition: board() is null.</source>
         <translation>An error occurred in ShogiGameController::editPosition: board() is null.</translation>
     </message>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="665"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="666"/>
         <source>An error occurred in ShogiGameController::updateSfenRecordAfterEdit: board() is null.</source>
         <translation>An error occurred in ShogiGameController::updateSfenRecordAfterEdit: board() is null.</translation>
     </message>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="671"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="672"/>
         <source>An error occurred in ShogiGameController::updateSfenRecordAfterEdit: record list is null.</source>
         <translation>An error occurred in ShogiGameController::updateSfenRecordAfterEdit: record list is null.</translation>
     </message>
