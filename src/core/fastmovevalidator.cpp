@@ -4,7 +4,6 @@
 #include <array>
 #include <cctype>
 #include <cmath>
-#include <utility>
 #include <vector>
 
 namespace {
@@ -175,6 +174,35 @@ struct Position {
     case 'g': return offset + 4;
     case 'b': return offset + 5;
     case 'r': return offset + 6;
+    default: return -1;
+    }
+}
+
+[[nodiscard]] int expectedHandRank(const FastMoveValidator::Turn ownerTurn, const char rawPiece)
+{
+    const char piece = toBasePiece(rawPiece);
+
+    if (ownerTurn == FastMoveValidator::BLACK) {
+        switch (piece) {
+        case 'P': return 0;
+        case 'L': return 1;
+        case 'N': return 2;
+        case 'S': return 3;
+        case 'G': return 4;
+        case 'B': return 5;
+        case 'R': return 6;
+        default: return -1;
+        }
+    }
+
+    switch (piece) {
+    case 'r': return 2;
+    case 'b': return 3;
+    case 'g': return 4;
+    case 's': return 5;
+    case 'n': return 6;
+    case 'l': return 7;
+    case 'p': return 8;
     default: return -1;
     }
 }
@@ -532,6 +560,9 @@ void removeHandPiece(Position& pos,
     const int toY = move.to / FastMoveValidator::BOARD_SIZE;
 
     if (move.kind == MoveKind::Drop) {
+        if (move.promote) {
+            return false;
+        }
         if (!hasHandPiece(pos, turn, move.piece) || dst != kEmpty) {
             return false;
         }
@@ -868,6 +899,9 @@ void collectDestinations(const Position& pos,
         ? FastMoveValidator::BLACK_HAND_FILE
         : FastMoveValidator::WHITE_HAND_FILE;
     if (move.fromSquare.x() != handFile) {
+        return false;
+    }
+    if (move.fromSquare.y() != expectedHandRank(turn, move.movingPiece.toLatin1())) {
         return false;
     }
 

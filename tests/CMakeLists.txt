@@ -102,6 +102,26 @@ add_shogi_test(tst_fastmovevalidator
     ${SRC}/core/shogiutils.cpp
 )
 
+add_shogi_test(tst_movevalidator_equivalence
+    tst_movevalidator_equivalence.cpp
+    ${TEST_STUBS}
+    ${SRC}/core/movevalidator.cpp
+    ${SRC}/core/fastmovevalidator.cpp
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogimove.cpp
+    ${SRC}/core/shogiutils.cpp
+)
+
+add_shogi_test(tst_movevalidator_perf
+    tst_movevalidator_perf.cpp
+    ${TEST_STUBS}
+    ${SRC}/core/movevalidator.cpp
+    ${SRC}/core/fastmovevalidator.cpp
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogimove.cpp
+    ${SRC}/core/shogiutils.cpp
+)
+
 # ============================================================
 # Unit 4: ShogiClock
 # ============================================================
