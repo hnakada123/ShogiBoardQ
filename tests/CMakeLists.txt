@@ -60,7 +60,6 @@ add_shogi_test(tst_coredatastructures
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
-    ${SRC}/core/movevalidator.cpp
     ${SRC}/core/fastmovevalidator.cpp
     ${SRC}/game/turnmanager.cpp
     ${SRC}/game/shogigamecontroller.cpp
@@ -77,7 +76,7 @@ add_shogi_test(tst_shogiboard
 )
 
 # ============================================================
-# Unit 3: SfenPositionTracer + MoveValidator
+# Unit 3: SfenPositionTracer + FastMoveValidator
 # ============================================================
 add_shogi_test(tst_sfentracer
     tst_sfentracer.cpp
@@ -85,38 +84,9 @@ add_shogi_test(tst_sfentracer
     ${SRC}/core/shogimove.cpp
 )
 
-add_shogi_test(tst_movevalidator
-    tst_movevalidator.cpp
-    ${TEST_STUBS}
-    ${SRC}/core/movevalidator.cpp
-    ${SRC}/core/shogiboard.cpp
-    ${SRC}/core/shogimove.cpp
-    ${SRC}/core/shogiutils.cpp
-)
-
 add_shogi_test(tst_fastmovevalidator
     tst_fastmovevalidator.cpp
     ${TEST_STUBS}
-    ${SRC}/core/fastmovevalidator.cpp
-    ${SRC}/core/shogiboard.cpp
-    ${SRC}/core/shogimove.cpp
-    ${SRC}/core/shogiutils.cpp
-)
-
-add_shogi_test(tst_movevalidator_equivalence
-    tst_movevalidator_equivalence.cpp
-    ${TEST_STUBS}
-    ${SRC}/core/movevalidator.cpp
-    ${SRC}/core/fastmovevalidator.cpp
-    ${SRC}/core/shogiboard.cpp
-    ${SRC}/core/shogimove.cpp
-    ${SRC}/core/shogiutils.cpp
-)
-
-add_shogi_test(tst_movevalidator_perf
-    tst_movevalidator_perf.cpp
-    ${TEST_STUBS}
-    ${SRC}/core/movevalidator.cpp
     ${SRC}/core/fastmovevalidator.cpp
     ${SRC}/core/shogiboard.cpp
     ${SRC}/core/shogimove.cpp
@@ -298,7 +268,6 @@ add_shogi_test(tst_integration
     tst_integration.cpp
     ${TEST_STUBS}
     ${SRC}/core/shogiboard.cpp
-    ${SRC}/core/movevalidator.cpp
     ${SRC}/core/fastmovevalidator.cpp
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp

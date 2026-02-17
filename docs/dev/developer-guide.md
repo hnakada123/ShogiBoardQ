@@ -26,7 +26,7 @@
 | [第2章](#第2章-将棋のドメイン知識) | 将棋のドメイン知識 | SFEN、USI記法、駒表現、座標系 |
 | [第3章](#第3章-アーキテクチャ全体図) | アーキテクチャ全体図 | レイヤー構造、データフロー、MainWindowの位置づけ |
 | [第4章](#第4章-設計パターンとコーディング規約) | 設計パターンとコーディング規約 | Deps構造体、ensure*()、Wiring、MVP、コード規約 |
-| [第5章](#第5章-core層純粋なゲームロジック) | core層：純粋なゲームロジック | ShogiBoard、ShogiMove、MoveValidator |
+| [第5章](#第5章-core層純粋なゲームロジック) | core層：純粋なゲームロジック | ShogiBoard、ShogiMove、FastMoveValidator |
 | [第6章](#第6章-game層対局管理) | game層：対局管理 | MatchCoordinator、TurnManager、GameStateController |
 | [第7章](#第7章-engine層usiエンジン連携) | engine層：USIエンジン連携 | Usiファサード、プロトコルハンドラ、思考情報表示 |
 | [第8章](#第8章-kifu層棋譜管理) | kifu層：棋譜管理 | 分岐ツリー、棋譜モデル、フォーマット変換 |
@@ -227,7 +227,7 @@ src/
 ├── core/                           # 純粋なゲームロジック（Qt GUI非依存）
 │   ├── shogiboard.cpp/.h           #   盤面状態・駒管理
 │   ├── shogimove.cpp/.h            #   指し手の表現
-│   ├── movevalidator.cpp/.h        #   合法手判定
+│   ├── fastmovevalidator.cpp/.h        #   合法手判定
 │   ├── shogiclock.cpp/.h           #   対局時計
 │   ├── shogiutils.cpp/.h           #   ユーティリティ関数
 │   ├── sfenutils.h                 #   SFEN文字列操作
@@ -653,10 +653,10 @@ static const QMap<QChar, QChar> conversionMap = {
 
 #### 全駒リストと PieceType 列挙
 
-`MoveValidator` では駒種を列挙型で定義している。
+`FastMoveValidator` では駒種を列挙型で定義している。
 
 ```cpp
-// src/core/movevalidator.h
+// src/core/fastmovevalidator.h
 enum PieceType {
     PAWN,             // 歩   (P/p)
     LANCE,            // 香   (L/l)
@@ -679,7 +679,7 @@ enum PieceType {
 全28文字（先手14種 + 後手14種）がビットボード管理の対象となる。
 
 ```cpp
-// src/core/movevalidator.cpp — コンストラクタ
+// src/core/fastmovevalidator.cpp — コンストラクタ
 m_allPieces = {'P', 'L', 'N', 'S', 'G', 'B', 'R', 'K', 'Q', 'M', 'O', 'T', 'C', 'U',
                'p', 'l', 'n', 's', 'g', 'b', 'r', 'k', 'q', 'm', 'o', 't', 'c', 'u'};
 ```
@@ -1182,7 +1182,7 @@ sequenceDiagram
 
     User->>SV: マウスクリック<br/>(駒選択→移動先)
     SV->>BIC: squareClicked(QPoint)
-    BIC->>BIC: 合法手判定<br/>(MoveValidator)
+    BIC->>BIC: 合法手判定<br/>(FastMoveValidator)
     BIC->>MW: moveRequested(from, to)
     MW->>SGC: applyMove(ShogiMove)
     SGC->>SB: movePiece(from, to)
@@ -1205,7 +1205,7 @@ sequenceDiagram
 #### フロー解説
 
 1. **ユーザー操作**: `ShogiView` がマウスクリックを受け、`BoardInteractionController` に座標を通知する
-2. **合法手判定**: `BoardInteractionController` が `MoveValidator` を使って合法手かどうかを判定する。成り/不成の選択が必要な場合は `PromotionFlow` が介入する
+2. **合法手判定**: `BoardInteractionController` が `FastMoveValidator` を使って合法手かどうかを判定する。成り/不成の選択が必要な場合は `PromotionFlow` が介入する
 3. **指し手の適用**: `MainWindow` 経由で `ShogiGameController` に指し手が渡され、`ShogiBoard` の盤面状態が更新される
 4. **表示の同期**: `moveCommitted` シグナルをトリガーに、MainWindowが以下を並行して更新する:
    - `ShogiView`: 駒の再描画とハイライト表示（`BoardSyncPresenter` 経由）
@@ -2006,7 +2006,7 @@ core層が GUI に依存しないことで、以下のメリットが得られ�
 src/core/
 ├── shogiboard.h / .cpp      盤面データ管理
 ├── shogimove.h / .cpp        指し手データ構造
-├── movevalidator.h / .cpp    合法手判定
+├── fastmovevalidator.h / .cpp    合法手判定
 ├── shogiclock.h / .cpp       対局時計
 ├── playmode.h                対局モード列挙
 ├── legalmovestatus.h         合法手存在状態
@@ -2138,11 +2138,11 @@ USI形式への変換は `ShogiUtils::moveToUsi()` が担当する。
 
 `moveToUsi()` は内部で座標系を0-indexed から USI の1-indexed/a-i表記に変換する。成りの場合は末尾に `+` を付加し、駒打ちの場合は `駒文字*移動先` の形式を生成する。
 
-### 5.4 MoveValidator — 合法手判定
+### 5.4 FastMoveValidator — 合法手判定
 
-`MoveValidator` はビットボードを用いて駒の利きを計算し、合法手の判定・生成を行うクラスである。将棋の全ルール（王手回避、二歩、打ち歩詰め、行き所のない駒の禁止等）を考慮した完全な合法手判定を提供する。
+`FastMoveValidator` はビットボードを用いて駒の利きを計算し、合法手の判定・生成を行うクラスである。将棋の全ルール（王手回避、二歩、打ち歩詰め、行き所のない駒の禁止等）を考慮した完全な合法手判定を提供する。
 
-**ソース**: `src/core/movevalidator.h`, `src/core/movevalidator.cpp`
+**ソース**: `src/core/fastmovevalidator.h`, `src/core/fastmovevalidator.cpp`
 
 #### 主要API
 
@@ -2167,7 +2167,7 @@ struct LegalMoveStatus {
 
 #### ビットボードによる合法手判定アルゴリズム
 
-MoveValidator は `std::bitset<81>` をビットボードとして使用し、以下の手順で合法手を判定する。
+FastMoveValidator は `std::bitset<81>` をビットボードとして使用し、以下の手順で合法手を判定する。
 
 ```
 isLegalMove(turn, boardData, pieceStand, move)
@@ -2388,7 +2388,7 @@ core層は他の全層から参照されるが、core層自身は他層を参照
     ┌─────────────────────────────┐
     │         core 層             │
     │  ShogiBoard  ShogiMove     │
-    │  MoveValidator  ShogiClock │
+    │  FastMoveValidator  ShogiClock │
     │  PlayMode  ShogiUtils      │
     └─────────────────────────────┘
          ↑ 依存なし（QtCore のみ）
@@ -2396,12 +2396,12 @@ core層は他の全層から参照されるが、core層自身は他層を参照
 
 | 参照元 | 使用するcore部品 | 用途 |
 |--------|-----------------|------|
-| **game層** | ShogiBoard, ShogiMove, MoveValidator, ShogiClock, PlayMode | 対局進行・合法手判定・時間管理 |
+| **game層** | ShogiBoard, ShogiMove, FastMoveValidator, ShogiClock, PlayMode | 対局進行・合法手判定・時間管理 |
 | **engine層** | ShogiMove, PlayMode | USI コマンド生成時の指し手変換 |
 | **kifu層** | ShogiBoard, ShogiMove | 棋譜の読み込み・再生時に盤面を更新 |
 | **analysis層** | PlayMode | 解析モードの判定 |
 | **UI層** | ShogiBoard, ShogiClock | 盤面描画データの取得・時間表示 |
-| **board層** | ShogiBoard, MoveValidator | 盤面編集・インタラクション |
+| **board層** | ShogiBoard, FastMoveValidator | 盤面編集・インタラクション |
 
 <!-- chapter-5-end -->
 
@@ -2818,7 +2818,7 @@ static bool shouldStartFromCurrentPosition(
 
 ### 6.6 ShogiGameController — 盤面とルールの橋渡し
 
-`ShogiGameController` は `ShogiBoard`（盤面状態）と `MoveValidator`（合法性検証）を統合し、指し手の実行を管理するコントローラである。
+`ShogiGameController` は `ShogiBoard`（盤面状態）と `FastMoveValidator`（合法性検証）を統合し、指し手の実行を管理するコントローラである。
 
 **ソース**: `src/game/shogigamecontroller.h`, `src/game/shogigamecontroller.cpp`
 
@@ -2835,7 +2835,7 @@ validateAndMove(outFrom, outTo, record, playMode, moveNumber, sfenRecord, gameMo
   │     ├── checkNumberStandPiece() — 駒台の駒数チェック
   │     └── checkGetKingOpponentPiece() — 相手玉の取得禁止
   │
-  ├── 2. MoveValidator で合法性を検証
+  ├── 2. FastMoveValidator で合法性を検証
   │     getCurrentTurnForValidator() → validator.isLegalMove()
   │
   ├── 3. 成り判定
@@ -7624,7 +7624,7 @@ sequenceDiagram
     participant BIC as BoardInteractionController
     participant MW as MainWindow
     participant SGC as ShogiGameController
-    participant MV as MoveValidator
+    participant MV as FastMoveValidator
     participant SB as ShogiBoard
     participant KRM as KifuRecordListModel
     participant MC as MatchCoordinator
@@ -7672,7 +7672,7 @@ sequenceDiagram
 | `ShogiView` | Qt Graphics Viewベースの盤面描画とマウスイベントの発行 |
 | `BoardInteractionController` | 2クリック方式の駒選択・移動要求、ハイライト管理 |
 | `ShogiGameController` | 指し手の検証と盤面更新の実行 |
-| `MoveValidator` | 合法手判定ロジック（王手放置、二歩、行き所のない駒等を検査） |
+| `FastMoveValidator` | 合法手判定ロジック（王手放置、二歩、行き所のない駒等を検査） |
 | `ShogiBoard` | 9x9盤面 + 駒台のデータモデル |
 | `KifuRecordListModel` | 棋譜欄の表示モデル |
 
@@ -9123,7 +9123,7 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 | MenuButtonWidget | C | widgets | メニューボタンウィジェット | 第11章 |
 | MenuWindow | C | dialogs | 対局開始メニューウィンドウ | 第11章 |
 | MenuWindowWiring | C | ui/wiring | メニューウィンドウのシグナル/スロット配線 | 第10章 |
-| MoveValidator | C | core | 合法手判定・バリデーション | 第5章 |
+| FastMoveValidator | C | core | 合法手判定・バリデーション | 第5章 |
 | NavigationPresenter | C | ui/presenters | ナビゲーション状態表示プレゼンター | 第10章 |
 | NumericRightAlignCommaDelegate | C | widgets | 数値右寄せカンマ区切りデリゲート | 第11章 |
 | NyugyokuDeclarationHandler | C | ui/controllers | 入玉宣言の処理ハンドラ | 第10章 |

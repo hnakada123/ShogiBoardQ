@@ -1,65 +1,35 @@
-# MoveValidator 未使用参照監査（FastMoveValidator 全面移行後）
+# MoveValidator 参照削除監査（移行完了版）
 
 更新日: 2026-02-17
 
-## 1. 削除前の参照一覧
+## 結論
 
-`rg -n "\\bMoveValidator\\b|movevalidator\\.h|movevalidatorselector\\.h" src tests docs CMakeLists.txt` で調査。
+MoveValidator から FastMoveValidator への移行完了に伴い、MoveValidator 本体と MoveValidator 専用テストは削除済み。
 
-### 1.1 本番コード（`src/`）
+## 削除済みコード
+
 - `src/core/movevalidator.h`
 - `src/core/movevalidator.cpp`
-- `src/core/movevalidatorselector.h`（調査時点）
-
-補足:
-- アプリ本体の実利用箇所（`ShogiGameController`, `SennichiteDetector`, `JishogiScoreDialogController`, `NyugyokuDeclarationHandler`）は `FastMoveValidator` へ移行済み。
-
-### 1.2 テストコード（`tests/`）
+- `src/core/movevalidatorselector.h`
 - `tests/tst_movevalidator.cpp`
 - `tests/tst_movevalidator_equivalence.cpp`
 - `tests/tst_movevalidator_perf.cpp`
-- `tests/tst_integration.cpp`
 
-補足:
-- 同値比較・回帰検知・性能比較のため、`MoveValidator` を意図的に参照している。
+## 現在の本番参照（FastMoveValidator）
 
-### 1.3 ドキュメント（`docs/`）
-- `docs/dev/movevalidator-usage.md`
-- `docs/dev/movevalidator-algorithm.md`
-- `docs/dev/developer-guide.md`
-- ほか移行計画/テストサマリ文書
+- `src/game/shogigamecontroller.cpp`
+- `src/game/sennichitedetector.cpp`
+- `src/ui/controllers/jishogiscoredialogcontroller.cpp`
+- `src/ui/controllers/nyugyokudeclarationhandler.cpp`
 
-## 2. 安全に削除可能と判断したコード
+## 継続テスト
 
-## 削除済み
-- `src/core/movevalidatorselector.h`
+- `./build/tests/tst_fastmovevalidator -platform offscreen`
+- `./build/tests/tst_integration -platform offscreen`
+- `./build/tests/tst_coredatastructures -platform offscreen`
 
-理由:
-- `rg -n "movevalidatorselector\\.h|ActiveMoveValidator|kUseFastMoveValidator" src tests CMakeLists.txt` の結果、参照 0 件（自己ファイル定義のみ）。
-- 依存先がなく、削除してもビルド/実行経路に影響しない。
+## 影響範囲
 
-## 3. まだ削除しないコード
-
-- `src/core/movevalidator.h`
-- `src/core/movevalidator.cpp`
-
-理由:
-- `tests/` が比較対象として依存しており、現時点で削除すると同値性検証系テストが失われる。
-- 段階的移行での安全性（退避/ロールバック可能性）を維持するため、当面は残置が妥当。
-
-## 4. 影響範囲
-
-- 直接影響:
-  - `movevalidatorselector.h` を include していた箇所は存在しないため、コンパイル依存への実影響はなし。
-- 間接影響:
-  - 「機能フラグで即時切替」用の未使用抽象は削除された。
-  - ただし現在の本番経路は `FastMoveValidator` 直利用のため、動作面の変更はない。
-
-## 5. 検証結果
-
-- Build: `cmake --build build -j4` 成功
-- Test:
-  - `./build/tests/tst_movevalidator -platform offscreen` : PASS (9/9)
-  - `./build/tests/tst_fastmovevalidator -platform offscreen` : PASS (5/5)
-  - `./build/tests/tst_movevalidator_equivalence -platform offscreen` : PASS (23/23)
-  - `./build/tests/tst_integration -platform offscreen` : PASS (7/7)
+- 本番機能: MoveValidator 依存は除去済み
+- テスト: 比較テストは廃止し、FastMoveValidator 単独検証へ移行
+- ドキュメント: 旧 MoveValidator 前提の説明は順次 FastMoveValidator 前提へ更新
