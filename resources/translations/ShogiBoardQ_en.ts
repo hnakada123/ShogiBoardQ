@@ -3257,54 +3257,54 @@ Select OK to specify the save location.</translation>
 %1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="355"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="357"/>
         <source>貼り付けるテキストが空です。</source>
         <translation>The text to paste is empty.</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="462"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="464"/>
         <source>一時ファイルの作成に失敗しました。</source>
         <translation>Failed to create temporary file.</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="472"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="474"/>
         <source>一時ファイルへの書き込みに失敗しました。</source>
         <translation>Failed to write to temporary file.</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="527"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="529"/>
         <source>無効なSFEN形式です。</source>
         <translation>Invalid SFEN format.</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="544"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="546"/>
         <source>=== 開始局面 ===</source>
         <translation>=== Starting Position ===</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="604"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="606"/>
         <source>BOD形式の解析に失敗しました。%1</source>
         <translation>Failed to parse BOD format. %1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="609"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="611"/>
         <source>BOD形式から局面を取得できませんでした。</source>
         <translation>Could not get position from BOD format.</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="671"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="673"/>
         <source>読み込み失敗 %1 から指し手を取得できませんでした。</source>
         <translation>Load failed: Could not get moves from %1.</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="931"/>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="934"/>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="958"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="933"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="936"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="960"/>
         <source>対局情報</source>
         <translation>Game Info</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="950"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="952"/>
         <source>コメント</source>
         <translation>Comment</translation>
     </message>

@@ -155,26 +155,26 @@ QString UsenToSfenConverter::detectInitialSfenFromFile(const QString& usenPath, 
         return QString::fromLatin1(kHirateSfen);
     }
 
-    // USENの先頭をチェック (スライド Image 2 より)
-    // 平手初期局面 → "" (空文字列) → USEN では "~." で始まる
-    // その他 → SFENを以下のように置換: '/' → '_', ' ' → '.', '+' → 'z'
-    
-    if (!content.startsWith(QStringLiteral("~"))) {
+    // USENの初期局面検出
+    //
+    // USEN形式の構造: [初期局面]~[本譜]~[分岐1]~...
+    // - 平手: 初期局面が空 → "~0.{moves}" のように ~ から始まる
+    // - 駒落ち等: 初期局面が ~ の前にエンコードされる
+    //   例: "1nsgkgsn1_9_ppppppppp_9_9_9_PPPPPPPPP_1B5R1_LNSGKGSNL.w.-~0.{moves}"
+    //   エンコーディング: '/' → '_', ' ' → '.', '+' → 'z'
+
+    // ~ の位置を探す
+    qsizetype tildePos = content.indexOf(QChar('~'));
+    if (tildePos < 0) {
         if (detectedLabel) *detectedLabel = QStringLiteral("平手(既定)");
         return QString::fromLatin1(kHirateSfen);
     }
 
-    // ~. で始まる場合は平手
-    qsizetype firstDot = content.indexOf(QChar('.'));
-    if (firstDot < 0) {
-        if (detectedLabel) *detectedLabel = QStringLiteral("平手(既定)");
-        return QString::fromLatin1(kHirateSfen);
-    }
+    // ~ の前の部分が初期局面（空なら平手）
+    QString positionPart = content.left(tildePos);
 
-    QString positionPart = content.mid(1, firstDot - 1);  // ~ と . の間
-    
-    if (positionPart.isEmpty() || positionPart == QStringLiteral("0")) {
-        // 平手
+    if (positionPart.isEmpty()) {
+        // 平手（~ から始まる場合）
         if (detectedLabel) *detectedLabel = QStringLiteral("平手");
         return QString::fromLatin1(kHirateSfen);
     }
@@ -185,6 +185,12 @@ QString UsenToSfenConverter::detectInitialSfenFromFile(const QString& usenPath, 
     sfen.replace(QChar('_'), QChar('/'));
     sfen.replace(QChar('.'), QChar(' '));
     sfen.replace(QChar('z'), QChar('+'));
+
+    // 手数が省略されている場合は補完（SfenPositionTracerは4フィールド必須）
+    QStringList sfenParts = sfen.split(QChar(' '), Qt::SkipEmptyParts);
+    if (sfenParts.size() == 3) {
+        sfen += QStringLiteral(" 1");
+    }
 
     if (detectedLabel) *detectedLabel = QStringLiteral("局面指定");
     return sfen;
@@ -479,22 +485,29 @@ bool UsenToSfenConverter::parseUsenString(const QString& usen,
     variations.clear();
     if (terminalCode) terminalCode->clear();
 
-    // スライド Image 1, 3 より:
     // 構造: [初期局面]~[本譜]~[分岐1]~[分岐2]...
     // 各パート: [オフセット].[指し手1][指し手2]...[.終局コード]
-    // 
+    //
+    // 初期局面は ~ の前に置かれる（平手の場合は空）
     // 本譜の場合: オフセット = 「指し手1」の手数 - 1 (通常は0)
     // 分岐の場合: オフセット = 分岐開始位置
 
-    // ~で分割
-    QStringList parts = usen.split(QChar('~'), Qt::SkipEmptyParts);
+    // ~ の前の初期局面部分を除去してから ~ で分割
+    qsizetype firstTilde = usen.indexOf(QChar('~'));
+    if (firstTilde < 0) {
+        if (warn) *warn = QStringLiteral("USENが空です");
+        return false;
+    }
+
+    // ~ 以降を分割（初期局面部分はスキップ）
+    QString afterPosition = usen.mid(firstTilde + 1);
+    QStringList parts = afterPosition.split(QChar('~'), Qt::SkipEmptyParts);
     if (parts.isEmpty()) {
         if (warn) *warn = QStringLiteral("USENが空です");
         return false;
     }
 
-    // 最初のパートは初期局面(空なら平手) + 本譜
-    // "0.{moves}..." または "{sfen}.{moves}..." の形式
+    // parts[0] = 本譜, parts[1..] = 分岐
 
     bool foundMainline = false;
 

@@ -316,8 +316,10 @@ void KifuLoadCoordinator::loadUsenFromFile(const QString& filePath)
             UsenToSfenConverter::parseWithVariations(path, res, warn);
             return true;  // USENは戻り値がvoidなので常にtrue
         },
-        // 初期SFEN検出（デフォルト使用）
-        KifuDetectSfenFunc(),
+        // 初期SFEN検出（USEN専用）
+        [](const QString& path, QString* label) {
+            return UsenToSfenConverter::detectInitialSfenFromFile(path, label);
+        },
         // ゲーム情報抽出（USENはゲーム情報が限定的だが、専用メソッドを使用）
         [](const QString& path) {
             return UsenToSfenConverter::extractGameInfo(path);
