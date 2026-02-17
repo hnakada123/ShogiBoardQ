@@ -40,6 +40,9 @@ void saveWindowAndBoard(QWidget* mainWindow, ShogiView* view)
     s.setValue("mainWindowSize", mainWindow->size());
     s.setValue("squareSize",     view->squareSize());
     s.endGroup();
+    if (s.status() != QSettings::NoError) {
+        qWarning("SettingsService: Failed to save settings (status=%d)", static_cast<int>(s.status()));
+    }
 }
 
 QString lastKifuDirectory()
