@@ -468,6 +468,11 @@ QSize kifuPasteDialogSize();
 /// 棋譜貼り付けダイアログのウィンドウサイズを保存
 void setKifuPasteDialogSize(const QSize& size);
 
+/// 棋譜貼り付けダイアログのフォントサイズを取得（デフォルト: 10）
+int kifuPasteDialogFontSize();
+/// 棋譜貼り付けダイアログのフォントサイズを保存
+void setKifuPasteDialogFontSize(int size);
+
 /// CSA通信ログウィンドウのサイズを取得（デフォルト: 550x450）
 QSize csaLogWindowSize();
 /// CSA通信ログウィンドウのサイズを保存

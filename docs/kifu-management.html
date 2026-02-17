@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>棋譜管理 - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQの棋譜管理機能を紹介します。KIF・KI2・CSA・JKF・USI・USEN形式の読み込み・保存、クリップボードコピー・貼り付けに対応。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/kifu-management.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/kifu-management.html">
+    <meta property="og:title" content="棋譜管理 - ShogiBoardQ">
+    <meta property="og:description" content="ShogiBoardQの棋譜管理機能を紹介。KIF・KI2・CSA・JKF・USI・USEN形式の読み込み・保存、クリップボード操作に対応。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/kifu-management/kifu-03-loaded.png">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="棋譜管理 - ShogiBoardQ">
+    <meta name="twitter:description" content="ShogiBoardQの棋譜管理機能を紹介。KIF・KI2・CSA・JKF・USI・USEN形式の読み込み・保存、クリップボード操作に対応。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/kifu-management/kifu-03-loaded.png">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="index.html" class="nav-logo">ShogiBoardQ</a>
+        <button class="nav-toggle" aria-label="メニュー" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="index.html">ホーム</a></li>
+            <li><a href="#file-load">読み込み</a></li>
+            <li><a href="#file-save">保存</a></li>
+            <li><a href="#clipboard">クリップボード</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>棋譜管理</h1>
+        <p class="hero-subtitle">多フォーマット対応の棋譜読み込み・保存・クリップボード操作</p>
+        <div class="hero-badges">
+            <span class="badge">KIF / KI2</span>
+            <span class="badge">CSA</span>
+            <span class="badge">JKF</span>
+            <span class="badge">USI / SFEN</span>
+            <span class="badge">USEN</span>
+        </div>
+    </div>
+</section>
+
+<!-- Section 1: File Loading -->
+<section id="file-load" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">棋譜ファイルの読み込み</h2>
+        <p class="section-desc">主要な棋譜フォーマットに対応し、分岐棋譜も読み込めます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">対応フォーマット</span>
+                </div>
+                <p class="guide-step-text">以下の棋譜フォーマットの読み込みに対応しています。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th>フォーマット</th><th>拡張子</th><th>説明</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>KIF</strong></td><td>.kif .kifu</td><td>Kifu for Windows 標準形式。手数・指し手・消費時間を記録</td></tr>
+                        <tr><td><strong>KI2</strong></td><td>.ki2 .ki2u</td><td>KIF簡易形式。指し手のみを横並びで記録</td></tr>
+                        <tr><td><strong>CSA</strong></td><td>.csa</td><td>コンピュータ将棋協会の標準形式。座標表記で記録</td></tr>
+                        <tr><td><strong>JKF</strong></td><td>.jkf</td><td>JSON棋譜フォーマット。分岐棋譜をJSON構造で表現</td></tr>
+                        <tr><td><strong>USI</strong></td><td>.usi .sfen</td><td>USIプロトコル形式。エンジン通信と同じ表記で記録</td></tr>
+                        <tr><td><strong>USEN</strong></td><td>.usen</td><td>USEN圧縮形式。棋譜をコンパクトにエンコード</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">棋譜ファイルを開く</span>
+                </div>
+                <p class="guide-step-text">メニューの「ファイル」→「棋譜ファイルを開く」からファイル選択ダイアログを開きます。フィルタで表示する形式を絞り込めます。</p>
+                <div class="screenshot-item">
+                    <img src="images/kifu-management/kifu-02-file-dialog.png" alt="棋譜ファイルを開くダイアログ">
+                    <p class="screenshot-caption">ファイル選択ダイアログ：KIF・CSA・JKF・USI・USEN形式のファイルを選択可能</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">棋譜の表示</span>
+                </div>
+                <p class="guide-step-text">ファイルを読み込むと、棋譜欄に指し手・消費時間が表示され、盤面が最終局面に移動します。対局情報（対局者名、日時、手合割など）も自動的に読み取られます。</p>
+                <div class="screenshot-item">
+                    <img src="images/kifu-management/kifu-03-loaded.png" alt="棋譜読み込み後の画面">
+                    <p class="screenshot-caption">棋譜読み込み後：棋譜欄に指し手と消費時間が表示される</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">フォーマットの例</span>
+                </div>
+                <p class="guide-step-text">同じ棋譜でも、フォーマットによって記録方法が異なります。以下は同一の対局を各形式で記録した例です。</p>
+
+                <div class="format-examples">
+                    <div class="format-example">
+                        <h4>KIF形式（.kif）</h4>
+                        <pre><code>手合割：平手
+先手：鈴木
+後手：山田
+手数----指手---------消費時間--
+   1 ７六歩(77)   ( 0:02/00:00:02)
+   2 ３四歩(33)   ( 0:02/00:00:02)
+   3 ２六歩(27)   ( 0:02/00:00:04)
+   ...</code></pre>
+                    </div>
+                    <div class="format-example">
+                        <h4>KI2形式（.ki2）</h4>
+                        <pre><code>先手：鈴木
+後手：山田
+
+▲７六歩    △３四歩    ▲２六歩    △８四歩    ▲２五歩    △３二金
+▲７八金    △７二銀    ▲３八銀    △５二金    ▲５八金    △４一王
+まで12手で後手の勝ち</code></pre>
+                    </div>
+                    <div class="format-example">
+                        <h4>CSA形式（.csa）</h4>
+                        <pre><code>V2.2
+N+鈴木
+N-山田
+P1-KY-KE-GI-KI-OU-KI-GI-KE-KY
+P2 * -HI *  *  *  *  * -KA *
+P3-FU-FU-FU-FU-FU-FU-FU-FU-FU
+...
++7776FU,T2
+-3334FU,T2
++2726FU,T2</code></pre>
+                    </div>
+                    <div class="format-example">
+                        <h4>JKF形式（.jkf）</h4>
+                        <pre><code>{
+  "header": {
+    "先手": "鈴木",
+    "後手": "山田"
+  },
+  "moves": [
+    {},
+    {"move":{"from":{"x":7,"y":7},
+             "to":{"x":7,"y":6},
+             "color":0,"piece":"FU"}},
+    ...
+  ]
+}</code></pre>
+                    </div>
+                    <div class="format-example">
+                        <h4>USI形式（.usi）</h4>
+                        <pre><code>position startpos moves 7g7f 3c3d 2g2f 8c8d 2f2e 8d8e 6g6f 8e8f 8g8f</code></pre>
+                    </div>
+                    <div class="format-example">
+                        <h4>USEN形式（.usen）</h4>
+                        <pre><code>1nsgkgsn1_9_ppppppppp_9_9_9_PPPPPPPPP_1B5R1_LNSGKGSNL.w.-~0.09k7ku0e46y22jm5t21a49co0n89h80rw.r</code></pre>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2: File Save -->
+<section id="file-save" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">棋譜ファイルの保存</h2>
+        <p class="section-desc">6つのフォーマットで棋譜を保存できます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">名前を付けて保存</span>
+                </div>
+                <p class="guide-step-text">メニューの「ファイル」→「名前を付けて保存」から、棋譜を任意の形式でファイルに保存できます。保存ダイアログのフィルタで出力形式を選択します。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th>フォーマット</th><th>拡張子</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>KIF形式</td><td>.kif .kifu</td></tr>
+                        <tr><td>KI2形式</td><td>.ki2 .ki2u</td></tr>
+                        <tr><td>CSA形式</td><td>.csa</td></tr>
+                        <tr><td>JKF形式</td><td>.jkf</td></tr>
+                        <tr><td>USEN形式</td><td>.usen</td></tr>
+                        <tr><td>USI形式</td><td>.usi</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">上書き保存</span>
+                </div>
+                <p class="guide-step-text">メニューの「ファイル」→「上書き保存」で、読み込んだファイルに上書き保存します。対局後の棋譜自動保存にも対応しており、対局ダイアログで保存先ディレクトリを指定できます。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3: Clipboard -->
+<section id="clipboard" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">クリップボード操作</h2>
+        <p class="section-desc">棋譜・局面・盤面画像をクリップボードにコピー、棋譜の貼り付けも可能です</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">棋譜コピー</span>
+                </div>
+                <p class="guide-step-text">メニューの「編集」→「棋譜コピー」から、現在の棋譜を各種フォーマットでクリップボードにコピーできます。他のアプリケーションに貼り付けて利用できます。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th>メニュー項目</th><th>内容</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>KIF形式でコピー</td><td>棋譜全体をKIF形式でコピー</td></tr>
+                        <tr><td>KI2形式でコピー</td><td>棋譜全体をKI2形式でコピー</td></tr>
+                        <tr><td>CSA形式でコピー</td><td>棋譜全体をCSA形式でコピー</td></tr>
+                        <tr><td>USI形式でコピー（現在の手まで）</td><td>現在表示中の手までをUSI形式でコピー</td></tr>
+                        <tr><td>USI形式でコピー（全手）</td><td>棋譜全体をUSI形式でコピー</td></tr>
+                        <tr><td>JKF形式でコピー</td><td>棋譜全体をJKF（JSON）形式でコピー</td></tr>
+                        <tr><td>USEN形式でコピー</td><td>棋譜全体をUSEN圧縮形式でコピー</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">局面コピー</span>
+                </div>
+                <p class="guide-step-text">メニューの「編集」→「局面コピー」から、現在の局面をクリップボードにコピーできます。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th>メニュー項目</th><th>内容</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>SFEN形式でコピー</td><td>現在の局面をSFEN文字列でコピー</td></tr>
+                        <tr><td>BOD形式でコピー</td><td>現在の局面をテキスト盤面図（BOD）でコピー</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">盤面画像をコピー</span>
+                </div>
+                <p class="guide-step-text">メニューの「編集」→「盤面画像をコピー」で、現在の盤面を画像としてクリップボードにコピーします。ブログや解説記事への貼り付けに便利です。</p>
+                <div class="screenshot-item">
+                    <img src="images/kifu-management/kifu-04-board-copy.png" alt="盤面画像をクリップボードにコピー">
+                    <p class="screenshot-caption">盤面画像コピー：盤面を画像としてクリップボードにコピー</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">棋譜の貼り付け</span>
+                </div>
+                <p class="guide-step-text">メニューの「編集」→「棋譜貼り付け」で、棋譜貼り付けダイアログが開きます。テキストエリアに棋譜を貼り付けて「取り込む」をクリックすると、形式が自動判定されて読み込まれます。</p>
+                <div class="screenshot-item">
+                    <img src="images/kifu-management/kifu-05-paste-dialog.png" alt="棋譜貼り付けダイアログ">
+                    <p class="screenshot-caption">棋譜貼り付けダイアログ：KIF・KI2・CSA・USI・JKF・USEN・SFEN・BOD形式を自動判定</p>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th>フォーマット</th><th>自動判定の基準</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>KIF</td><td>「手数」「指し手」などのキーワードを含む</td></tr>
+                        <tr><td>KI2</td><td>▲ または △ で始まる指し手の並び</td></tr>
+                        <tr><td>CSA</td><td>V2、N+、N-、P1 などのCSAヘッダで始まる</td></tr>
+                        <tr><td>USI</td><td>moves キーワードを含むUSIコマンド形式</td></tr>
+                        <tr><td>JKF</td><td>{ または [ で始まるJSON形式</td></tr>
+                        <tr><td>USEN</td><td>Base64風のエンコード文字列</td></tr>
+                        <tr><td>SFEN</td><td>position sfen、sfen、startpos で始まる局面表記</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="index.html" class="back-link">&larr; ホームに戻る</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+</body>
+</html>
