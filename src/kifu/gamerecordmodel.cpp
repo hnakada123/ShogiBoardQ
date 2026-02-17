@@ -1475,11 +1475,7 @@ QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringL
             for (const QString& raw : lines) {
                 QString t = raw.trimmed();
                 if (t.isEmpty()) continue;
-                // CSA読み込み時にnormalizeCsaCommentLine_で付加された「• 」を除去
-                // （内部表示用の箇条書き記号をCSA出力時には元の形式に戻す）
-                if (t.startsWith(QStringLiteral("• "))) {
-                    t = t.mid(2);
-                }
+
                 if (t.startsWith(QLatin1Char('\''))) {
                     out << t;
                 } else {
@@ -1623,11 +1619,7 @@ QStringList GameRecordModel::toCsaLines(const ExportContext& ctx, const QStringL
             for (const QString& raw : lines) {
                 QString t = raw.trimmed();
                 if (t.isEmpty()) continue;
-                // CSA読み込み時にnormalizeCsaCommentLine_で付加された「• 」を除去
-                // （内部表示用の箇条書き記号をCSA出力時には元の形式に戻す）
-                if (t.startsWith(QStringLiteral("• "))) {
-                    t = t.mid(2);
-                }
+
                 if (t.startsWith(QLatin1Char('\''))) {
                     out << t;
                 } else {
