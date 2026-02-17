@@ -3,7 +3,7 @@
 #include <QRandomGenerator>
 
 #include "shogiboard.h"
-#include "movevalidator.h"
+#include "fastmovevalidator.h"
 #include "shogimove.h"
 #include "shogiutils.h"
 #include "kifubranchtree.h"
@@ -52,9 +52,9 @@ private slots:
         for (int game = 0; game < 100; ++game) {
             ShogiBoard board;
             board.setSfen(kHirateSfen);
-            MoveValidator validator;
+            FastMoveValidator validator;
 
-            MoveValidator::Turn turn = MoveValidator::BLACK;
+            FastMoveValidator::Turn turn = FastMoveValidator::BLACK;
 
             for (int moveNum = 0; moveNum < 300; ++moveNum) {
                 int legalCount = validator.generateLegalMoves(
@@ -69,7 +69,7 @@ private slots:
 
                 // Make a simple move if possible: advance a pawn
                 bool moved = false;
-                if (turn == MoveValidator::BLACK) {
+                if (turn == FastMoveValidator::BLACK) {
                     // Try each file for a pawn advance
                     for (int file = 1; file <= 9 && !moved; ++file) {
                         for (int rank = 9; rank >= 2 && !moved; --rank) {
@@ -93,7 +93,7 @@ private slots:
 
                 if (!moved) break; // Can't easily make a random move
 
-                turn = (turn == MoveValidator::BLACK) ? MoveValidator::WHITE : MoveValidator::BLACK;
+                turn = (turn == FastMoveValidator::BLACK) ? FastMoveValidator::WHITE : FastMoveValidator::BLACK;
 
                 // After each move, pieces should still total 40
                 QCOMPARE(countAllPieces(board), 40);

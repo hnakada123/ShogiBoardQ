@@ -1,3 +1,6 @@
+/// @file fastmovevalidator.cpp
+/// @brief 高速な合法手判定クラスの実装
+
 #include "fastmovevalidator.h"
 
 #include <algorithm>
@@ -632,6 +635,7 @@ void removeHandPiece(Position& pos,
         return false;
     }
 
+    // 打ち歩詰め判定は「歩打ちで直接王手が発生する場合」に限定して実行する。
     if (checkPawnDropMate && givesDirectPawnCheck(next, turn, move)) {
         const FastMoveValidator::Turn opponent = oppositeTurn(turn);
         if (!hasAnyLegalMove(opponent, next, true)) {
@@ -852,6 +856,8 @@ void collectDestinations(const Position& pos,
     if (isBoardMove(move)) {
         internal.kind = MoveKind::Board;
         internal.from = toIndex(move.fromSquare.x(), move.fromSquare.y());
+        // 盤上移動では入力 move の movingPiece より盤上実体を優先する。
+        // これにより表記ゆれよりも局面整合性を優先して判定できる。
         internal.piece = pos.board[static_cast<std::size_t>(internal.from)];
         return internal;
     }
@@ -882,6 +888,7 @@ void collectDestinations(const Position& pos,
     const int to = toIndex(toX, toY);
     const char boardCaptured = pos.board[static_cast<std::size_t>(to)];
     const char captured = move.capturedPiece.toLatin1();
+    // capturedPiece が指定されている場合は盤面実体と一致していることを要求する。
     if (captured != kEmpty && captured != boardCaptured) {
         return false;
     }

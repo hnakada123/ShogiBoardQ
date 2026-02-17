@@ -1,15 +1,15 @@
-# MoveValidator クラスの GUI 内での使用状況
+# FastMoveValidator クラスの GUI 内での使用状況
 
 ## 概要
 
-`MoveValidator` は将棋の指し手の合法性を判定するコアクラスである。ビットボード（`std::bitset<81>`）を用いて各駒の利きを計算し、王手回避・二歩・打ち歩詰め等のルールを考慮した合法手判定を行う。
+`FastMoveValidator` は将棋の指し手の合法性を判定するコアクラスである。ビットボード（`std::bitset<81>`）を用いて各駒の利きを計算し、王手回避・二歩・打ち歩詰め等のルールを考慮した合法手判定を行う。
 
 GUI 非依存のコアロジック（`src/core/`）に属し、QObject を継承しているが、直接的な signal/slot 接続による GUI 連携は行わない。4 つのクラスからローカルインスタンスとして生成・利用される。
 
 ## クラス定義
 
-- ヘッダー: `src/core/movevalidator.h`
-- 実装: `src/core/movevalidator.cpp`
+- ヘッダー: `src/core/fastmovevalidator.h`
+- 実装: `src/core/fastmovevalidator.cpp`
 - 関連型: `src/core/legalmovestatus.h`, `src/core/shogimove.h`
 
 ## 公開メソッド
@@ -137,7 +137,7 @@ struct ShogiMove {
 ユーザー操作 (BoardInteractionController)
     ↓
 ShogiGameController::validateAndMove()
-    ├─ MoveValidator validator; （ローカル生成）
+    ├─ FastMoveValidator validator; （ローカル生成）
     ├─ Turn turn = getCurrentTurnForValidator(validator);
     ├─ ShogiMove currentMove(fromPoint, toPoint, movingPiece, capturedPiece, promote);
     └─ decidePromotion(playMode, validator, turn, ...)
@@ -148,7 +148,7 @@ ShogiGameController::validateAndMove()
               └─ どちらも不可     → 指し手を拒否（false を返す）
 ```
 
-**座標変換**: GUI の 1-indexed 座標から MoveValidator の 0-indexed 座標へ変換:
+**座標変換**: GUI の 1-indexed 座標から FastMoveValidator の 0-indexed 座標へ変換:
 ```cpp
 QPoint fromPoint(fileFrom - 1, rankFrom - 1);
 QPoint toPoint(fileTo - 1, rankTo - 1);
@@ -166,9 +166,9 @@ QPoint toPoint(fileTo - 1, rankTo - 1);
 千日手検出
     ↓
 SennichiteDetector::checkContinuousCheck()
-    ├─ MoveValidator validator; （ローカル生成）
+    ├─ FastMoveValidator validator; （ローカル生成）
     ├─ SFEN 文字列から手番を判定
-    │   └─ Turn turn = sideToMoveIsBlack ? MoveValidator::BLACK : MoveValidator::WHITE;
+    │   └─ Turn turn = sideToMoveIsBlack ? FastMoveValidator::BLACK : FastMoveValidator::WHITE;
     └─ ループ: 繰り返し区間の各局面で
          └─ int checks = validator.checkIfKingInCheck(turn, board.boardData());
               └─ checks > 0 なら王手回数をカウント
@@ -186,9 +186,9 @@ SennichiteDetector::checkContinuousCheck()
 持将棋スコアダイアログ表示
     ↓
 JishogiScoreDialogController::showDialog()
-    ├─ MoveValidator validator;
-    ├─ bool senteInCheck = validator.checkIfKingInCheck(MoveValidator::BLACK, board->boardData()) > 0;
-    └─ bool goteInCheck  = validator.checkIfKingInCheck(MoveValidator::WHITE, board->boardData()) > 0;
+    ├─ FastMoveValidator validator;
+    ├─ bool senteInCheck = validator.checkIfKingInCheck(FastMoveValidator::BLACK, board->boardData()) > 0;
+    └─ bool goteInCheck  = validator.checkIfKingInCheck(FastMoveValidator::WHITE, board->boardData()) > 0;
          └─ 王手中なら宣言不可の表示
 ```
 
@@ -202,7 +202,7 @@ JishogiScoreDialogController::showDialog()
 入玉宣言操作
     ↓
 NyugyokuDeclarationHandler::handleDeclaration()
-    ├─ MoveValidator validator;
+    ├─ FastMoveValidator validator;
     └─ bool declarerInCheck = validator.checkIfKingInCheck(turn, board->boardData()) > 0;
          └─ 王手中なら宣言不可
 ```
@@ -224,13 +224,13 @@ NyugyokuDeclarationHandler::handleDeclaration()
 │                                                  │
 │  1. 座標を 1-indexed → 0-indexed に変換          │
 │  2. ShogiMove 構造体を組み立て                   │
-│  3. MoveValidator をローカル生成                  │
+│  3. FastMoveValidator をローカル生成                  │
 │  4. decidePromotion() で合法性判定               │
 └──────┬───────────────────────────────────────────┘
        │
        ↓
 ┌──────────────────────────────────────────────────┐
-│ MoveValidator::isLegalMove()                     │
+│ FastMoveValidator::isLegalMove()                     │
 │                                                  │
 │  入力:                                           │
 │   - Turn (BLACK/WHITE)                           │
@@ -265,12 +265,12 @@ NyugyokuDeclarationHandler::handleDeclaration()
 ## 定数
 
 ```cpp
-MoveValidator::BLACK            // 0: 先手
-MoveValidator::WHITE            // 1: 後手
-MoveValidator::BLACK_HAND_FILE  // 9: 先手駒台の X 座標
-MoveValidator::WHITE_HAND_FILE  // 10: 後手駒台の X 座標
-MoveValidator::BOARD_SIZE       // 9: 盤の一辺
-MoveValidator::NUM_BOARD_SQUARES // 81: 盤のマス数
+FastMoveValidator::BLACK            // 0: 先手
+FastMoveValidator::WHITE            // 1: 後手
+FastMoveValidator::BLACK_HAND_FILE  // 9: 先手駒台の X 座標
+FastMoveValidator::WHITE_HAND_FILE  // 10: 後手駒台の X 座標
+FastMoveValidator::BOARD_SIZE       // 9: 盤の一辺
+FastMoveValidator::NUM_BOARD_SQUARES // 81: 盤のマス数
 ```
 
 ## 実装上の特徴

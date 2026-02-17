@@ -88,7 +88,7 @@ static QString positionKey(const QString& sfen);
 3回目と4回目の出現の間（`thirdIdx+1` 〜 `fourthIdx`）の局面を調べる:
 
 - 各局面について `ShogiBoard::setSfen()` で盤面を復元
-- `MoveValidator::checkIfKingInCheck()` で手番側の玉が王手されているか判定
+- `FastMoveValidator::checkIfKingInCheck()` で手番側の玉が王手されているか判定
 - 「手番側の玉が王手されている」= 直前の相手の手が王手
 
 ```

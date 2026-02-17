@@ -300,7 +300,7 @@ qCDebug(lcNetwork) << "接続開始:" << host << port;
 
 以下のファイルでは既に `QLoggingCategory` が使用されている:
 
-- `src/core/shogiboard.cpp` — `shogi.core`（`shogiboard.cpp`, `movevalidator.cpp`, `shogiutils.cpp` で使用）
+- `src/core/shogiboard.cpp` — `shogi.core`（`shogiboard.cpp`, `fastmovevalidator.cpp`, `shogiutils.cpp` で使用）
 - `src/core/shogiclock.cpp` — `shogi.clock`
 - `src/views/shogiview.cpp` — `shogi.view`
 

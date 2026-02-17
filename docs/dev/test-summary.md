@@ -2,7 +2,7 @@
 
 ## 概要
 
-Qt Test フレームワークによるユニットテスト・統合テストスイート。16 のテスト実行ファイルに **120 テストケース** を収録し、コアロジックから棋譜フォーマット変換、統合ストレステストまでをカバーする。
+Qt Test フレームワークによるユニットテスト・統合テストスイート。18 のテスト実行ファイルを収録し、コアロジックから棋譜フォーマット変換、統合ストレステストまでをカバーする。
 
 ## ビルドと実行
 
@@ -24,25 +24,26 @@ ctest --output-on-failure -R tst_shogiboard
 ## テスト結果
 
 ```
- 1/16 tst_coredatastructures ... Passed   0.17 sec
- 2/16 tst_shogiboard .......... Passed   0.14 sec
- 3/16 tst_sfentracer .......... Passed   0.15 sec
- 4/16 tst_movevalidator ....... Passed   0.14 sec
- 5/16 tst_shogiclock .......... Passed   0.16 sec
- 6/16 tst_kifconverter ........ Passed   0.16 sec
- 7/16 tst_ki2converter ........ Passed   0.15 sec
- 8/16 tst_csaconverter ........ Passed   0.14 sec
- 9/16 tst_jkfconverter ........ Passed   0.14 sec
-10/16 tst_usiconverter ........ Passed   0.15 sec
-11/16 tst_usenconverter ....... Passed   0.14 sec
-12/16 tst_kifubranchtree ...... Passed   0.15 sec
-13/16 tst_livegamesession ..... Passed   0.16 sec
-14/16 tst_navigation .......... Passed   0.15 sec
-15/16 tst_gamerecordmodel ..... Passed   0.15 sec
-16/16 tst_integration ......... Passed   0.26 sec
+ 1/18 tst_coredatastructures ... Passed
+ 2/18 tst_shogiboard .......... Passed
+ 3/18 tst_sfentracer .......... Passed
+ 4/18 tst_fastmovevalidator ... Passed
+ 5/18 tst_shogiclock .......... Passed
+ 6/18 tst_kifconverter ........ Passed
+ 7/18 tst_ki2converter ........ Passed
+ 8/18 tst_csaconverter ........ Passed
+ 9/18 tst_jkfconverter ........ Passed
+10/18 tst_usiconverter ........ Passed
+11/18 tst_usenconverter ....... Passed
+12/18 tst_kifubranchtree ...... Passed
+13/18 tst_livegamesession ..... Passed
+14/18 tst_navigation .......... Passed
+15/18 tst_gamerecordmodel ..... Passed
+16/18 tst_josekiwindow ........ Passed
+17/18 tst_positionedit_gamestart ... Passed
+18/18 tst_integration ......... Passed
 
-100% tests passed, 0 tests failed out of 16
-Total Test time (real) = 2.53 sec
+100% tests passed, 0 tests failed out of 18
 ```
 
 ## テストファイル構成
@@ -63,7 +64,7 @@ tests/
 ├── tst_coredatastructures.cpp
 ├── tst_shogiboard.cpp
 ├── tst_sfentracer.cpp
-├── tst_movevalidator.cpp
+├── tst_fastmovevalidator.cpp
 ├── tst_shogiclock.cpp
 ├── tst_kifconverter.cpp
 ├── tst_ki2converter.cpp
@@ -140,7 +141,7 @@ SFEN局面追跡のユニットテスト。
 | `buildGameMoves` | USI手列 → ShogiMove列変換 |
 | `buildSfenRecord` | 初期局面+USI手列 → SFEN列構築 |
 
-### 4. tst_movevalidator（7テスト）
+### 4. tst_fastmovevalidator（9テスト）
 
 合法手判定のユニットテスト。
 
@@ -305,7 +306,7 @@ USEN形式コンバータのユニットテスト。
 
 | テスト名 | 検証内容 |
 |----------|---------|
-| `testRepeatedRandomGames` | ShogiBoard + MoveValidator でランダム合法手対局×100回。不変条件: 盤上+駒台の駒数合計==40 |
+| `testRepeatedRandomGames` | ShogiBoard + FastMoveValidator でランダム合法手対局×100回。不変条件: 盤上+駒台の駒数合計==40 |
 | `testKifuLoadAndNavigate` | KIF読込 → ツリー構築 → ランダムナビゲーション1000回。不変条件: currentNode()!=nullptr |
 | `testRepeatedLiveGameSessions` | start→addMove×10→commit を20サイクル。不変条件: lineCount 単調増加 |
 | `testSfenConsistencyInvariant` | 複数SFENで setSfen→convertBoardToSfen ラウンドトリップ×100回 |
@@ -338,7 +339,7 @@ static const std::array<QString, 16> a = {{ ... /* 16要素 */ }};
 | 基本データ構造 | ShogiMove, TurnManager, ShogiUtils, JishogiCalculator | 16 |
 | 盤面管理 | ShogiBoard | 15 |
 | 局面追跡 | SfenPositionTracer | 8 |
-| 合法手判定 | MoveValidator | 7 |
+| 合法手判定 | FastMoveValidator | 9 |
 | 対局時計 | ShogiClock | 9 |
 | 棋譜形式変換 | KIF, KI2, CSA, JKF, USI, USEN コンバータ | 21 |
 | 棋譜分岐木 | KifuBranchTree | 13 |
@@ -346,7 +347,7 @@ static const std::array<QString, 16> a = {{ ... /* 16要素 */ }};
 | ナビゲーション | KifuNavigationController, KifuNavigationState | 9 |
 | 棋譜データモデル | GameRecordModel | 9 |
 | 統合テスト | 複数コンポーネント連携 | 5 |
-| **合計** | | **120** |
+| **合計** | | **更新中（テスト追加に追随）** |
 
 ## テストフィクスチャ
 

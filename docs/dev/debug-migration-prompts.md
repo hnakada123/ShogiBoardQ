@@ -50,7 +50,7 @@ docs/dev/debug-logging-guidelines.md を読んで従ってください。
 
 ## 対象ファイル（qDebug 箇所数）
 - shogiboard.cpp（50箇所）
-- movevalidator.cpp（32箇所）
+- fastmovevalidator.cpp（32箇所）
 - shogiutils.cpp（2箇所）
 
 ※ shogiclock.cpp は移行済み（lcShogiClock, "shogi.clock"）。変更不要。
@@ -60,11 +60,11 @@ docs/dev/debug-logging-guidelines.md を読んで従ってください。
 - 変数名: lcCore
 - 定義場所: shogiboard.cpp に Q_LOGGING_CATEGORY(lcCore, "shogi.core")
 - shogiboard.h に Q_DECLARE_LOGGING_CATEGORY(lcCore)
-- movevalidator.cpp, shogiutils.cpp からは shogiboard.h を include して参照
+- fastmovevalidator.cpp, shogiutils.cpp からは shogiboard.h を include して参照
 
 ## 既存プレフィックス例
 - `[ShogiUtils]` — shogiutils.cpp
-- プレフィックスなし — movevalidator.cpp, shogiboard.cpp
+- プレフィックスなし — fastmovevalidator.cpp, shogiboard.cpp
 
 ## レベル判断の目安
 - 盤面パース中の座標・駒情報ダンプ → qCDebug（開発時のみ必要）

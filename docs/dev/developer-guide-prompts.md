@@ -107,7 +107,7 @@ docs/dev/developer-guide.md に第5章「core層：純粋なゲームロジッ�
 主要参照ファイル:
 - src/core/shogiboard.h
 - src/core/shogimove.h
-- src/core/movevalidator.h
+- src/core/fastmovevalidator.h
 - src/core/shogiclock.h
 - src/core/playmode.h
 - src/core/legalmovestatus.h
@@ -116,7 +116,7 @@ docs/dev/developer-guide.md に第5章「core層：純粋なゲームロジッ�
 記述してほしい内容:
 - ShogiBoard: 盤面データ構造（QVector<QChar>の81マス）、QMap駒台、SFEN変換メソッド、主要publicメソッド一覧
 - ShogiMove: 移動元/先、駒種、成/不成の表現、USI文字列との相互変換
-- MoveValidator: 合法手判定のアルゴリズム概要、LegalMoveStatusとの関係
+- FastMoveValidator: 合法手判定のアルゴリズム概要、LegalMoveStatusとの関係
 - ShogiClock: 持ち時間/秒読み/フィッシャーの3モード、時間管理の仕組み
 - core層がQt GUI非依存であることの意義（テスタビリティ、再利用性）
 
@@ -464,7 +464,7 @@ docs/dev/developer-guide.md に第15章「機能フロー詳解」を作成し�
 以下の5つのユースケースについて、それぞれMermaidシーケンス図と簡潔な説明文を記述してください。
 
 1. 対局開始フロー: MenuWindow → StartGameDialog → GameStartCoordinator → PreStartCleanupHandler → MatchCoordinator → Usi
-2. 指し手実行フロー: BoardClick → BoardInteractionController → MoveValidator → ShogiBoard → ShogiView → GameRecordModel → Usi（エンジン手番の場合）
+2. 指し手実行フロー: BoardClick → BoardInteractionController → FastMoveValidator → ShogiBoard → ShogiView → GameRecordModel → Usi（エンジン手番の場合）
 3. 棋譜読み込みフロー: File選択 → KifuLoadCoordinator → KifReader → フォーマット変換 → KifuBranchTree構築 → UI反映
 4. 検討モードフロー: 検討ボタン → ConsiderationWiring → ConsiderationFlowController → MatchCoordinator → Usi → ThinkingInfoPresenter → UI表示
 5. CSA通信対局フロー: CsaGameDialog → CsaClient → サーバ接続 → ログイン → 対局開始 → 指し手交換 → 対局終了
