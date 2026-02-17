@@ -1174,7 +1174,7 @@ void MainWindow::chooseAndLoadKifuFile()
     
     const QString filePath = QFileDialog::getOpenFileName(
         this, tr("棋譜ファイルを開く"), lastDir,
-        tr("Kifu Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)")
+        tr("Kifu Files (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2 *.ki2u);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)")
         );
 
     if (filePath.isEmpty()) return;
@@ -1668,6 +1668,10 @@ void MainWindow::initializeBranchNavigationClasses()
         // 盤面とハイライト更新シグナルを接続（新システム用）
         connect(m_displayCoordinator, &KifuDisplayCoordinator::boardWithHighlightsRequired,
                 this, &MainWindow::loadBoardWithHighlights);
+
+        // コメント表示シグナルを接続
+        connect(m_displayCoordinator, &KifuDisplayCoordinator::commentUpdateRequired,
+                this, &MainWindow::onNavigationCommentUpdate);
 
         // 盤面のみ更新シグナル（通常は boardWithHighlightsRequired を使用）
         connect(m_displayCoordinator, &KifuDisplayCoordinator::boardSfenChanged,
@@ -2278,6 +2282,13 @@ void MainWindow::broadcastComment(const QString& text, bool asHtml)
         m_commentCoordinator->setRecordPane(m_recordPane);
         m_commentCoordinator->broadcastComment(text, asHtml);
     }
+}
+
+// `onNavigationCommentUpdate`: ナビゲーション起因のコメント表示更新。
+void MainWindow::onNavigationCommentUpdate(int ply, const QString& comment, bool asHtml)
+{
+    m_currentMoveIndex = ply;
+    broadcastComment(comment, asHtml);
 }
 
 // `onBranchNodeActivated`: Branch Node Activated のイベント受信時処理を行う。
@@ -3573,7 +3584,8 @@ void MainWindow::dispatchKifuLoad(const QString& filePath)
 {
     if (filePath.endsWith(QLatin1String(".csa"), Qt::CaseInsensitive)) {
         m_kifuLoadCoordinator->loadCsaFromFile(filePath);
-    } else if (filePath.endsWith(QLatin1String(".ki2"), Qt::CaseInsensitive)) {
+    } else if (filePath.endsWith(QLatin1String(".ki2"), Qt::CaseInsensitive)
+               || filePath.endsWith(QLatin1String(".ki2u"), Qt::CaseInsensitive)) {
         m_kifuLoadCoordinator->loadKi2FromFile(filePath);
     } else if (filePath.endsWith(QLatin1String(".jkf"), Qt::CaseInsensitive)) {
         m_kifuLoadCoordinator->loadJkfFromFile(filePath);

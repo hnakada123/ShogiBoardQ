@@ -652,6 +652,8 @@ private:
     void appendKifuLine(const QString& text, const QString& elapsedTime);
     /// コメントを各関連コンポーネントに配信する
     void broadcastComment(const QString& text, bool asHtml=false);
+    /// ナビゲーション起因のコメント表示更新（手数インデックスも同期する）
+    void onNavigationCommentUpdate(int ply, const QString& comment, bool asHtml);
 
     // --- 手番チェック ---
     /// 現在の手番が人間かどうかを判定する

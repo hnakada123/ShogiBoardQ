@@ -2924,6 +2924,11 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>KifuDisplayCoordinator</name>
     <message>
+        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="448"/>
+        <source>コメントなし</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="499"/>
         <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="595"/>
         <source>=== 開始局面 ===</source>
@@ -3602,17 +3607,22 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3826"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1177"/>
+        <source>Kifu Files (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2 *.ki2u);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</source>
+        <translation>棋譜ファイル (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF形式 (*.kif *.kifu *.ki2 *.ki2u);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USI形式 (*.usi *.sfen);;USEN形式 (*.usen)</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.cpp" line="3838"/>
         <source>局面を反映しました</source>
         <translation>局面を反映しました</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3828"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3840"/>
         <source>局面の反映に失敗しました</source>
         <translation>局面の反映に失敗しました</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3831"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3843"/>
         <source>局面の反映に失敗しました（内部エラー）</source>
         <translation>局面の反映に失敗しました（内部エラー）</translation>
     </message>
@@ -3637,12 +3647,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1177"/>
-        <source>Kifu Files (*.kif *.kifu *.ki2 *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3324"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3335"/>
         <source>コメントなし</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3651,17 +3656,17 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">定跡</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3800"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3812"/>
         <source>棋譜を取り込みました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3802"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3814"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3806"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3818"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4483,8 +4488,28 @@ OKを選択すると保存先が指定できます。</source>
     </message>
     <message>
         <location filename="../../src/kifu/kifusavecoordinator.cpp" line="67"/>
-        <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2);;すべてのファイル (*)</source>
-        <translation type="unfinished"></translation>
+        <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;すべてのファイル (*)</source>
+        <translation>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;すべてのファイル (*)</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="115"/>
+        <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;CSA形式 (*.csa);;すべてのファイル (*)</source>
+        <translation>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;CSA形式 (*.csa);;すべてのファイル (*)</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="170"/>
+        <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;CSA形式 (*.csa);;JKF形式 (*.jkf);;すべてのファイル (*)</source>
+        <translation>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;CSA形式 (*.csa);;JKF形式 (*.jkf);;すべてのファイル (*)</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="232"/>
+        <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;すべてのファイル (*)</source>
+        <translation>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;すべてのファイル (*)</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="301"/>
+        <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;USI形式 (*.usi);;すべてのファイル (*)</source>
+        <translation>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;USI形式 (*.usi);;すべてのファイル (*)</translation>
     </message>
     <message>
         <location filename="../../src/kifu/kifusavecoordinator.cpp" line="70"/>
@@ -4493,26 +4518,6 @@ OKを選択すると保存先が指定できます。</source>
         <location filename="../../src/kifu/kifusavecoordinator.cpp" line="235"/>
         <location filename="../../src/kifu/kifusavecoordinator.cpp" line="304"/>
         <source>名前を付けて保存</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="115"/>
-        <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2);;CSA形式 (*.csa);;すべてのファイル (*)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="170"/>
-        <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2);;CSA形式 (*.csa);;JKF形式 (*.jkf);;すべてのファイル (*)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="232"/>
-        <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;すべてのファイル (*)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="301"/>
-        <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;USI形式 (*.usi);;すべてのファイル (*)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

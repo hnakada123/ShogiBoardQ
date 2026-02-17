@@ -443,9 +443,9 @@ void KifuDisplayCoordinator::highlightCurrentPosition()
     onBranchTreeHighlightRequired(lineIndex, ply);
 
     // コメント表示の更新
-    if (m_recordPane != nullptr && m_state->currentNode() != nullptr) {
-        QString comment = m_state->currentNode()->comment();
-        m_recordPane->setBranchCommentText(comment);
+    if (m_state->currentNode() != nullptr) {
+        const QString comment = m_state->currentNode()->comment().trimmed();
+        emit commentUpdateRequired(ply, comment.isEmpty() ? tr("コメントなし") : comment, true);
     }
 }
 
