@@ -274,7 +274,7 @@ static QString normalizeCsaCommentLine(const QString& line)
     if (trimmed == QLatin1String("*")) return QString("");
 
     if (trimmed.startsWith(QLatin1Char('*'))) {
-        return QStringLiteral("• ") + trimmed.mid(1).trimmed();
+        return trimmed.mid(1).trimmed();
     }
     return t;
 }
