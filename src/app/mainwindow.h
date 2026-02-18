@@ -16,6 +16,7 @@
 #include <QTimer>
 #include <QVBoxLayout>
 #include <QActionGroup>
+#include <QPointer>
 
 // --- プロジェクトヘッダー（値型で使用） ---
 #include "playmode.h"
@@ -29,11 +30,7 @@
 #include "shogienginethinkingmodel.h"
 #include "shogigamecontroller.h"
 #include "usi.h"
-#include "startgamedialog.h"
-#include "kifuanalysisdialog.h"
 #include "usicommlogmodel.h"
-#include "considerationdialog.h"
-#include "tsumeshogisearchdialog.h"
 #include "shogiclock.h"
 #include "recordpane.h"
 #include "engineanalysistab.h"
@@ -98,6 +95,7 @@ class UiActionsWiring;
 class GameLayoutBuilder;
 class GameRecordModel;
 class KifuPasteDialog;
+class SfenCollectionDialog;
 class GameInfoPaneController;
 class EvaluationGraphController;
 class TimeControlController;
@@ -418,12 +416,10 @@ private:
     QVBoxLayout* m_centralLayout = nullptr;   ///< セントラルウィジェットのレイアウト
 
     // --- ダイアログ / 補助ウィンドウ ---
-    StartGameDialog*         m_startGameDialog = nullptr;         ///< 対局開始ダイアログ
-    ConsiderationDialog*     m_considerationDialog = nullptr;     ///< 検討ダイアログ
-    TsumeShogiSearchDialog*  m_tsumeShogiSearchDialog = nullptr;  ///< 詰将棋探索ダイアログ
-    KifuAnalysisDialog*      m_analyzeGameRecordDialog = nullptr; ///< 棋譜解析ダイアログ
     CsaGameDialog*           m_csaGameDialog = nullptr;           ///< CSA対局ダイアログ
     CsaWaitingDialog*        m_csaWaitingDialog = nullptr;        ///< CSA待機ダイアログ
+    QPointer<KifuPasteDialog>      m_kifuPasteDialog;             ///< 棋譜貼り付けダイアログ（キャッシュ）
+    QPointer<SfenCollectionDialog> m_sfenCollectionDialog;        ///< 局面集ビューアダイアログ（キャッシュ）
 
     // --- CSA通信対局コーディネータ ---
     CsaGameCoordinator*      m_csaGameCoordinator = nullptr;     ///< CSA通信対局管理（非所有）

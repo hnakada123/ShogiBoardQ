@@ -612,7 +612,7 @@ void MainWindow::startNewShogiGame(QString& startSfenStr)
         m_playMode,
         startSfenStr,
         sfenRecord(),
-        m_startGameDialog,
+        nullptr,
         m_bottomIsP1
         );
 }
@@ -3739,14 +3739,21 @@ void MainWindow::autoSaveKifuToFile(const QString& saveDir, PlayMode playMode,
 // KIF形式で棋譜をクリップボードにコピー
 void MainWindow::pasteKifuFromClipboard()
 {
-    KifuPasteDialog* dlg = new KifuPasteDialog(this);
-    dlg->setAttribute(Qt::WA_DeleteOnClose);
+    // 既にダイアログが開いている場合はアクティブにする
+    if (m_kifuPasteDialog) {
+        m_kifuPasteDialog->raise();
+        m_kifuPasteDialog->activateWindow();
+        return;
+    }
+
+    m_kifuPasteDialog = new KifuPasteDialog(this);
+    m_kifuPasteDialog->setAttribute(Qt::WA_DeleteOnClose);
 
     // ダイアログの「取り込む」シグナルをKifuLoadCoordinatorに接続
-    connect(dlg, &KifuPasteDialog::importRequested,
+    connect(m_kifuPasteDialog, &KifuPasteDialog::importRequested,
             this, &MainWindow::onKifuPasteImportRequested);
 
-    dlg->show();
+    m_kifuPasteDialog->show();
 }
 
 // `onKifuPasteImportRequested`: Kifu Paste Import Requested のイベント受信時処理を行う。
@@ -3773,11 +3780,18 @@ void MainWindow::onKifuPasteImportRequested(const QString& content)
 
 void MainWindow::displaySfenCollectionViewer()
 {
-    SfenCollectionDialog* dlg = new SfenCollectionDialog(this);
-    dlg->setAttribute(Qt::WA_DeleteOnClose);
-    connect(dlg, &SfenCollectionDialog::positionSelected,
+    // 既にダイアログが開いている場合はアクティブにする
+    if (m_sfenCollectionDialog) {
+        m_sfenCollectionDialog->raise();
+        m_sfenCollectionDialog->activateWindow();
+        return;
+    }
+
+    m_sfenCollectionDialog = new SfenCollectionDialog(this);
+    m_sfenCollectionDialog->setAttribute(Qt::WA_DeleteOnClose);
+    connect(m_sfenCollectionDialog, &SfenCollectionDialog::positionSelected,
             this, &MainWindow::onSfenCollectionPositionSelected);
-    dlg->show();
+    m_sfenCollectionDialog->show();
 }
 
 void MainWindow::onSfenCollectionPositionSelected(const QString& sfen)

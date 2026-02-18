@@ -215,6 +215,7 @@ void ShogiView::setBoard(ShogiBoard* board)
     // 【差し替え本体】
     // 新しいボード（nullptr 可）を保持。
     m_board = board;
+    invalidateFieldRectCache();
 
     // 【新接続の確立】
     // 新しいボードが有効なら、表示に影響するイベントで再描画を依頼する。
@@ -299,6 +300,9 @@ void ShogiView::setFieldSize(QSize fieldSize)
 
     // 内部状態を更新。
     m_layout.setFieldSize(fieldSize);
+    m_standPiecePixmapCache.clear();
+    m_highlighting->clearDropPieceCache();
+    invalidateFieldRectCache();
 
     // この変更を関心のある外部へ通知（例えばスライダー連動のUIなど）。
     emit fieldSizeChanged(fieldSize);
@@ -379,6 +383,38 @@ QRect ShogiView::calculateRectangleForRankOrFileLabel(const int file, const int 
     return m_layout.calculateRectangleForRankOrFileLabel(file, rank, m_board->ranks());
 }
 
+// マス矩形キャッシュを無効化する。
+// レイアウトパラメータ（fieldSize, squareSize, flipMode 等）が変化した際に呼ぶ。
+void ShogiView::invalidateFieldRectCache()
+{
+    m_fieldRectCacheValid = false;
+}
+
+// キャッシュ済みのマス矩形を返す。キャッシュが無効な場合は全マス分を再構築する。
+// file: 筋（1..boardFiles）, rank: 段（1..boardRanks）
+QRect ShogiView::cachedFieldRect(const int file, const int rank) const
+{
+    if (!m_board) return QRect();
+
+    // キャッシュ未構築 or 無効なら全マス分を一括計算
+    if (!m_fieldRectCacheValid) {
+        m_fieldRectCache.clear();
+        const int files = m_board->files();
+        const int ranks = m_board->ranks();
+        for (int f = 1; f <= files; ++f) {
+            for (int r = 1; r <= ranks; ++r) {
+                const auto key = static_cast<quint64>(f) << 8 | static_cast<quint64>(r);
+                m_fieldRectCache.insert(key, m_layout.calculateSquareRectangleBasedOnBoardState(
+                                            f, r, files, ranks));
+            }
+        }
+        m_fieldRectCacheValid = true;
+    }
+
+    const auto key = static_cast<quint64>(file) << 8 | static_cast<quint64>(rank);
+    return m_fieldRectCache.value(key);
+}
+
 // 駒タイプと描画用アイコン（QIcon）を関連付けて登録する。
 // 役割：駒文字（例：'P','L','N','B','R','G','S','K','p',...）に対応するアイコンをセットし、再描画を依頼。
 // 備考：update() は非同期に再描画イベントを発行（即座にpaintEventを呼ばない）。
@@ -386,6 +422,8 @@ void ShogiView::setPiece(char type, const QIcon &icon)
 {
     // 駒タイプ→アイコン のマップに挿入/上書き
     m_pieces.insert(type, icon);
+    m_standPiecePixmapCache.clear();
+    m_highlighting->clearDropPieceCache();
 
     // 駒画像が更新されたのでビューの再描画を要求
     update();
@@ -887,8 +925,8 @@ int ShogiView::boardRightPx() const {
 // 役割：盤の反転状態も考慮したマス矩形を算出し、木目風の塗り色と枠線色で1マスを描画
 void ShogiView::drawField(QPainter* painter, const int file, const int rank) const
 {
-    // 【盤座標 → ウィジェット座標】
-    const QRect fieldRect = calculateSquareRectangleBasedOnBoardState(file, rank);
+    // 【盤座標 → ウィジェット座標】（キャッシュ済み矩形を使用）
+    const QRect fieldRect = cachedFieldRect(file, rank);
     QRect adjustedRect(fieldRect.left() + m_layout.offsetX(),
                        fieldRect.top()  + m_layout.offsetY(),
                        fieldRect.width(),
@@ -913,7 +951,7 @@ void ShogiView::drawField(QPainter* painter, const int file, const int rank) con
 // 先手（黒）側の駒台セル（1マス）を描画する。
 void ShogiView::drawBlackStandField(QPainter* painter, const int file, const int rank) const
 {
-    const QRect fieldRect = calculateSquareRectangleBasedOnBoardState(file, rank);
+    const QRect fieldRect = cachedFieldRect(file, rank);
     QRect adjustedRect = makeStandCellRect(
         m_layout.flipMode(), m_layout.param1(), m_layout.offsetX(), m_layout.offsetY(), fieldRect, true);
 
@@ -928,7 +966,7 @@ void ShogiView::drawBlackStandField(QPainter* painter, const int file, const int
 // 後手（白）側の駒台セル（1マス）を描画する。
 void ShogiView::drawWhiteStandField(QPainter* painter, const int file, const int rank) const
 {
-    const QRect fieldRect = calculateSquareRectangleBasedOnBoardState(file, rank);
+    const QRect fieldRect = cachedFieldRect(file, rank);
     QRect adjustedRect = makeStandCellRect(
         m_layout.flipMode(), m_layout.param2(), m_layout.offsetX(), m_layout.offsetY(), fieldRect, false);
 
@@ -953,9 +991,9 @@ void ShogiView::drawPiece(QPainter* painter, const int file, const int rank)
         return;
     }
 
-    // 【盤座標 → ウィジェット座標】
+    // 【盤座標 → ウィジェット座標】（キャッシュ済み矩形を使用）
     // 反転状態を考慮したマス矩形を取得し、盤の原点シフト（m_layout.offsetX()/Y）を加味して実座標へ。
-    const QRect fieldRect = calculateSquareRectangleBasedOnBoardState(file, rank);
+    const QRect fieldRect = cachedFieldRect(file, rank);
     QRect adjustedRect(fieldRect.left() + m_layout.offsetX(),
                        fieldRect.top()  + m_layout.offsetY(),
                        fieldRect.width(),
@@ -1001,6 +1039,7 @@ void ShogiView::drawStandPieceIcon(QPainter* painter, const QRect& adjustedRect,
     if (count <= 0 || value == QLatin1Char(' ')) return;
 
     const QIcon icon = piece(value);
+    if (icon.isNull()) return;
 
     // === 駒画像は正方形のアスペクト比を維持 ===
     // セルの幅を基準にして、正方形の駒画像を描画
@@ -1035,7 +1074,20 @@ void ShogiView::drawStandPieceIcon(QPainter* painter, const QRect& adjustedRect,
     painter->setRenderHint(QPainter::SmoothPixmapTransform, true);
     painter->setRenderHint(QPainter::Antialiasing, true);
 
-    QPixmap pm = icon.pixmap(QSize(iconW, iconH), QIcon::Normal, QIcon::On);
+    const quint64 cacheKey =
+        (static_cast<quint64>(static_cast<quint16>(value.unicode())) << 32U)
+        | (static_cast<quint64>(static_cast<quint16>(iconW)) << 16U)
+        | static_cast<quint64>(static_cast<quint16>(iconH));
+    QPixmap pm;
+    const auto it = m_standPiecePixmapCache.constFind(cacheKey);
+    if (it != m_standPiecePixmapCache.constEnd()) {
+        pm = it.value();
+    } else {
+        pm = icon.pixmap(QSize(iconW, iconH), QIcon::Normal, QIcon::On);
+        if (!pm.isNull()) {
+            m_standPiecePixmapCache.insert(cacheKey, pm);
+        }
+    }
     const bool iconOk = !pm.isNull();
 
     // 奥(左)→手前(右)。表示は最大 visible 枚に限定（4枚目以降は描かない）
@@ -1146,8 +1198,8 @@ QLabel* ShogiView::whiteClockLabel() const { return m_whiteClockLabel; }
 //  4) 枚数/ドラッグ一時枚数を考慮する描画ヘルパ（drawStandPieceIcon）に委譲
 void ShogiView::drawBlackStandPiece(QPainter* painter, const int file, const int rank) const
 {
-    // (1) 盤座標 → 基準マス矩形
-    const QRect fieldRect = calculateSquareRectangleBasedOnBoardState(file, rank);
+    // (1) 盤座標 → 基準マス矩形（キャッシュ済み矩形を使用）
+    const QRect fieldRect = cachedFieldRect(file, rank);
 
     // (2) 先手は「左側の駒台」へ寄せる想定。m_layout.param1() は水平シフト量（px）。
     QRect adjustedRect = makeStandCellRect(
@@ -1176,8 +1228,8 @@ void ShogiView::drawBlackStandPiece(QPainter* painter, const int file, const int
 //  4) 枚数/ドラッグ一時枚数を考慮する描画ヘルパ（drawStandPieceIcon）に委譲
 void ShogiView::drawWhiteStandPiece(QPainter* painter, const int file, const int rank) const
 {
-    // (1) 盤座標 → 基準マス矩形（反転モード m_layout.flipMode() を内部で考慮）
-    const QRect fieldRect = calculateSquareRectangleBasedOnBoardState(file, rank);
+    // (1) 盤座標 → 基準マス矩形（キャッシュ済み矩形を使用）
+    const QRect fieldRect = cachedFieldRect(file, rank);
 
     // (2) 後手は「右側の駒台」へ寄せる想定。m_layout.param2() は後手用の水平シフト量（px）。
     QRect adjustedRect = makeStandCellRect(
@@ -1368,6 +1420,9 @@ void ShogiView::setSquareSize(int size)
         return;
     }
     m_layout.setSquareSize(size);
+    m_standPiecePixmapCache.clear();
+    m_highlighting->clearDropPieceCache();
+    invalidateFieldRectCache();
     recalcLayoutParams();
     updateGeometry();
     updateBlackClockLabelGeometry();
@@ -1386,6 +1441,9 @@ void ShogiView::enlargeBoard(bool emitSignal)
     }
     
     m_layout.setSquareSize(m_layout.squareSize() + 1);
+    m_standPiecePixmapCache.clear();
+    m_highlighting->clearDropPieceCache();
+    invalidateFieldRectCache();
     recalcLayoutParams();
 
     // 親レイアウト（Splitter等）にサイズ変更を通知
@@ -1408,6 +1466,9 @@ void ShogiView::reduceBoard(bool emitSignal)
     }
 
     m_layout.setSquareSize(m_layout.squareSize() - 1);
+    m_standPiecePixmapCache.clear();
+    m_highlighting->clearDropPieceCache();
+    invalidateFieldRectCache();
     recalcLayoutParams();
     
     // 親レイアウト（Splitter等）にサイズ変更を通知
@@ -1500,6 +1561,7 @@ void ShogiView::setFlipMode(bool newFlipMode)
 
     // 反転状態を更新
     m_layout.setFlipMode(newFlipMode);
+    invalidateFieldRectCache();
 
     // ▲/▼/▽/△ の付け替えなど、名前表示を反転状態に同期
     refreshNameLabels();
@@ -2103,6 +2165,7 @@ void ShogiView::refreshNameLabels()
 void ShogiView::recalcLayoutParams()
 {
     m_layout.recalcLayoutParams(font());
+    invalidateFieldRectCache();
     relayoutTurnLabels();
 }
 
@@ -2123,8 +2186,8 @@ void ShogiView::drawRank(QPainter* painter, const int rank) const
 {
     if (!m_board) return;
 
-    // (1) 指定段の基準セル（file=1）を取り、Y と高さを決める
-    const QRect cell = calculateSquareRectangleBasedOnBoardState(1, rank);
+    // (1) 指定段の基準セル（file=1）を取り、Y と高さを決める（キャッシュ済み矩形を使用）
+    const QRect cell = cachedFieldRect(1, rank);
     const int h = cell.height();
     const int y = cell.top() + m_layout.offsetY();
 
@@ -2182,8 +2245,8 @@ void ShogiView::drawFile(QPainter* painter, const int file) const
 {
     if (!m_board) return;
 
-    // (1) 指定筋の基準セル（rank=1）から X と幅を算出（盤の左オフセットを反映）
-    const QRect cell = calculateSquareRectangleBasedOnBoardState(file, 1);
+    // (1) 指定筋の基準セル（rank=1）から X と幅を算出（キャッシュ済み矩形を使用）
+    const QRect cell = cachedFieldRect(file, 1);
     const int x = cell.left() + m_layout.offsetX();
     const int w = cell.width();
 

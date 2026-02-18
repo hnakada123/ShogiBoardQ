@@ -14,6 +14,37 @@
 Q_LOGGING_CATEGORY(lcEngine, "shogi.engine")
 
 namespace {
+constexpr int kMaxThinkingRows = 500;
+
+[[nodiscard]] bool isSameThinkingPayload(const ShogiInfoRecord* record,
+                                         const QString& time,
+                                         const QString& depth,
+                                         const QString& nodes,
+                                         const QString& score,
+                                         const QString& pvKanjiStr,
+                                         const QString& usiPv,
+                                         const QString& baseSfen,
+                                         const QString& lastUsiMove,
+                                         int multipv,
+                                         int scoreCp)
+{
+    if (!record) {
+        return false;
+    }
+
+    // 頻繁に変化するフィールドを先に比較して早期リターン
+    return record->scoreCp() == scoreCp
+        && record->multipv() == multipv
+        && record->depth() == depth
+        && record->pv() == pvKanjiStr
+        && record->time() == time
+        && record->nodes() == nodes
+        && record->score() == score
+        && record->usiPv() == usiPv
+        && record->baseSfen() == baseSfen
+        && record->lastUsiMove() == lastUsiMove;
+}
+
 void ensureMovesKeyword(QString& s)
 {
     if (!s.contains(QStringLiteral(" moves"))) {
@@ -220,25 +251,38 @@ void Usi::onThinkingInfoUpdated(const QString& time, const QString& depth,
 
     // 思考タブへ追記（通常モード: 先頭に追加）
     if (m_thinkingModel) {
-        ShogiInfoRecord* record = new ShogiInfoRecord(time, depth, nodes, score, pvKanjiStr);
-        record->setUsiPv(usiPv);
-        record->setBaseSfen(baseSfen);
-        record->setLastUsiMove(m_lastUsiMove);
-        record->setMultipv(multipv);
-        record->setScoreCp(scoreCp);
-        qCDebug(lcEngine) << "record->lastUsiMove()=" << record->lastUsiMove();
-        m_thinkingModel->prependItem(record);
+        const ShogiInfoRecord* topRecord =
+            (m_thinkingModel->rowCount() > 0) ? m_thinkingModel->recordAt(0) : nullptr;
+        if (!isSameThinkingPayload(topRecord, time, depth, nodes, score, pvKanjiStr, usiPv,
+                                   baseSfen, m_lastUsiMove, multipv, scoreCp)) {
+            ShogiInfoRecord* record = new ShogiInfoRecord(time, depth, nodes, score, pvKanjiStr);
+            record->setUsiPv(usiPv);
+            record->setBaseSfen(baseSfen);
+            record->setLastUsiMove(m_lastUsiMove);
+            record->setMultipv(multipv);
+            record->setScoreCp(scoreCp);
+            qCDebug(lcEngine) << "record->lastUsiMove()=" << record->lastUsiMove();
+            m_thinkingModel->prependItem(record);
+            m_thinkingModel->trimToMaxRows(kMaxThinkingRows);
+        }
     }
 
     // 検討タブへ追記（MultiPVモード: multipv値に基づいて行を更新/挿入）
     if (m_considerationModel) {
-        ShogiInfoRecord* record = new ShogiInfoRecord(time, depth, nodes, score, pvKanjiStr);
-        record->setUsiPv(usiPv);
-        record->setBaseSfen(baseSfen);
-        record->setLastUsiMove(m_lastUsiMove);
-        record->setMultipv(multipv);
-        record->setScoreCp(scoreCp);
-        m_considerationModel->updateByMultipv(record, m_considerationMaxMultiPV);
+        const int existingRow = m_considerationModel->findRowByMultipv(multipv);
+        const ShogiInfoRecord* existingMultipvRecord = (existingRow >= 0)
+            ? m_considerationModel->recordAt(existingRow) : nullptr;
+
+        if (!isSameThinkingPayload(existingMultipvRecord, time, depth, nodes, score, pvKanjiStr, usiPv,
+                                   baseSfen, m_lastUsiMove, multipv, scoreCp)) {
+            ShogiInfoRecord* record = new ShogiInfoRecord(time, depth, nodes, score, pvKanjiStr);
+            record->setUsiPv(usiPv);
+            record->setBaseSfen(baseSfen);
+            record->setLastUsiMove(m_lastUsiMove);
+            record->setMultipv(multipv);
+            record->setScoreCp(scoreCp);
+            m_considerationModel->updateByMultipv(record, m_considerationMaxMultiPV);
+        }
     }
 
     // 外部への通知

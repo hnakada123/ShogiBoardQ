@@ -68,13 +68,20 @@ void ShogiViewHighlighting::removeHighlightAllData()
 void ShogiViewHighlighting::setArrows(const QVector<ShogiView::Arrow>& arrows)
 {
     m_arrows = arrows;
+    m_arrowDropPieceCache.clear();
     m_view->update();
 }
 
 void ShogiViewHighlighting::clearArrows()
 {
     m_arrows.clear();
+    m_arrowDropPieceCache.clear();
     m_view->update();
+}
+
+void ShogiViewHighlighting::clearDropPieceCache()
+{
+    m_arrowDropPieceCache.clear();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -265,7 +272,7 @@ void ShogiViewHighlighting::drawHighlights(QPainter& painter, const ShogiViewLay
             auto [ok, baseFile, baseRank, isBlackStand] = standPseudoToBase(f, r);
             if (!ok) return QRect();
 
-            const QRect base = m_view->calculateSquareRectangleBasedOnBoardState(baseFile, baseRank);
+            const QRect base = m_view->cachedFieldRect(baseFile, baseRank);
             const int   param = isBlackStand ? layout.param1() : layout.param2();
             const bool  leftSide = isBlackStand;
             const QRect adjusted = makeStandCellRect(layout.flipMode(), param, layout.offsetX(), layout.offsetY(),
@@ -273,7 +280,7 @@ void ShogiViewHighlighting::drawHighlights(QPainter& painter, const ShogiViewLay
             return adjusted;
         }
 
-        const QRect base = m_view->calculateSquareRectangleBasedOnBoardState(f, r);
+        const QRect base = m_view->cachedFieldRect(f, r);
         return QRect(base.left() + layout.offsetX(),
                      base.top()  + layout.offsetY(),
                      base.width(), base.height());
@@ -311,7 +318,7 @@ void ShogiViewHighlighting::drawArrows(QPainter& painter, const ShogiViewLayout&
     painter.setRenderHint(QPainter::Antialiasing, true);
 
     for (const ShogiView::Arrow& arrow : std::as_const(m_arrows)) {
-        QRect toRect = m_view->calculateSquareRectangleBasedOnBoardState(arrow.toFile, arrow.toRank);
+        QRect toRect = m_view->cachedFieldRect(arrow.toFile, arrow.toRank);
         QPointF to(toRect.center().x() + layout.offsetX(), toRect.center().y() + layout.offsetY());
 
         // 駒打ちの場合
@@ -324,7 +331,22 @@ void ShogiViewHighlighting::drawArrows(QPainter& painter, const ShogiViewLayout&
                                        toRect.width(),
                                        toRect.height());
 
-                    QPixmap pixmap = icon.pixmap(adjustedRect.size());
+                    const int pmW = adjustedRect.width();
+                    const int pmH = adjustedRect.height();
+                    const quint64 cacheKey =
+                        (static_cast<quint64>(static_cast<quint16>(arrow.dropPiece.unicode())) << 32U)
+                        | (static_cast<quint64>(static_cast<quint16>(pmW)) << 16U)
+                        | static_cast<quint64>(static_cast<quint16>(pmH));
+                    QPixmap pixmap;
+                    const auto it = m_arrowDropPieceCache.constFind(cacheKey);
+                    if (it != m_arrowDropPieceCache.constEnd()) {
+                        pixmap = it.value();
+                    } else {
+                        pixmap = icon.pixmap(adjustedRect.size());
+                        if (!pixmap.isNull()) {
+                            m_arrowDropPieceCache.insert(cacheKey, pixmap);
+                        }
+                    }
                     painter.setOpacity(0.6);
                     painter.drawPixmap(adjustedRect, pixmap);
                     painter.setOpacity(1.0);
@@ -361,7 +383,7 @@ void ShogiViewHighlighting::drawArrows(QPainter& painter, const ShogiViewLayout&
         }
 
         // 通常の移動：矢印を描画
-        QRect fromRect = m_view->calculateSquareRectangleBasedOnBoardState(arrow.fromFile, arrow.fromRank);
+        QRect fromRect = m_view->cachedFieldRect(arrow.fromFile, arrow.fromRank);
         QPointF from(fromRect.center().x() + layout.offsetX(), fromRect.center().y() + layout.offsetY());
 
         const int arrowWidth = qMax(3, layout.squareSize() / 12);
@@ -451,5 +473,12 @@ void ShogiViewHighlighting::setLabelStyle(QLabel* lbl,
                                       : QStringLiteral("400"))
                                 );
 
+    static const char kLastCssProperty[] = "_sbq_last_label_css";
+    const QString lastCss = lbl->property(kLastCssProperty).toString();
+    if (lastCss == css) {
+        return;
+    }
+
     lbl->setStyleSheet(css);
+    lbl->setProperty(kLastCssProperty, css);
 }

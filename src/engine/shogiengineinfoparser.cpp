@@ -27,6 +27,8 @@ ShogiEngineInfoParser::ShogiEngineInfoParser()
     m_pieceMapping = {{'P', "歩"}, {'L', "香"}, {'N', "桂"}, {'S', "銀"}, {'G', "金"}, {'B', "角"},
                       {'R', "飛"}, {'K', "玉"}, {'Q', "と"}, {'M', "成香"}, {'O', "成桂"},
                       {'T', "成銀"}, {'C', "馬"}, {'U', "龍"}};
+
+    clearParsedInfo();
 }
 
 // ============================================================
@@ -452,6 +454,10 @@ void ShogiEngineInfoParser::parseEngineInfoTokens(const QStringList& tokens, con
 
 void ShogiEngineInfoParser::parseScore(const QStringList &tokens, int index)
 {
+    if (index + 2 >= tokens.count()) {
+        return;
+    }
+
     const QString& type = tokens.at(index + 1);
     const QString& value = tokens.at(index + 2);
 
@@ -485,7 +491,7 @@ void ShogiEngineInfoParser::setEvaluationBound(EvaluationBound newEvaluationBoun
 // PV解析・盤面シミュレーション
 // ============================================================
 
-int ShogiEngineInfoParser::parsePvAndSimulateMoves(const QStringList& pvTokens, const ShogiGameController* algorithm, QVector<QChar> clonedBoardData,
+int ShogiEngineInfoParser::parsePvAndSimulateMoves(const QStringList& pvTokens, const ShogiGameController* algorithm, QVector<QChar>& clonedBoardData,
                                                    const bool isPondering)
 {
     int fileFrom = 0, rankFrom = 0, fileTo = 0, rankTo = 0;
@@ -495,7 +501,7 @@ int ShogiEngineInfoParser::parsePvAndSimulateMoves(const QStringList& pvTokens, 
     m_pvUsiStr = pvTokens.join(QStringLiteral(" "));
 
     for (qsizetype i = 0; i < pvTokens.size(); ++i) {
-        const QString token = pvTokens.at(i).trimmed();
+        const QString& token = pvTokens.at(i);
 
         const int rc = parseMoveString(token, fileFrom, rankFrom, fileTo, rankTo, promote);
         if (rc == INFO_STRING_SPECIAL_CASE) {
@@ -553,27 +559,57 @@ void ShogiEngineInfoParser::parseAndApplyMoveToClonedBoard(const QString& str, Q
 // メインエントリ: info行全体の解析
 // ============================================================
 
-void ShogiEngineInfoParser::parseEngineOutputAndUpdateState(QString& line, const ShogiGameController* algorithm, QVector<QChar>& clonedBoardData,
-                                                           const bool isPondering)
+void ShogiEngineInfoParser::parseEngineOutputAndUpdateState(const QString& line, const ShogiGameController* algorithm,
+                                                            QVector<QChar>& clonedBoardData, const bool isPondering)
 {
-    line.remove('\n');
+    clearParsedInfo();
+
+    QString normalizedLine = line;
+    while (!normalizedLine.isEmpty()) {
+        const QChar tail = normalizedLine.back();
+        if (tail == QLatin1Char('\n') || tail == QLatin1Char('\r')) {
+            normalizedLine.chop(1);
+            continue;
+        }
+        break;
+    }
 
     // info行を空白で分割（例: "info depth 4 seldepth 4 ... pv 8e8f 8g8f 8b8f P*8g"）
-    QStringList tokens = line.split(" ");
+    const QStringList tokens = normalizedLine.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+    if (tokens.isEmpty()) {
+        return;
+    }
 
     parseEngineInfoTokens(tokens, algorithm, clonedBoardData, isPondering);
 
-    // " pv " で分割してPV部分を取り出す
-    QStringList pvLineTokens = line.split(" pv ");
-
-    if (pvLineTokens.size() != 2) {
+    const qsizetype pvIndex = tokens.indexOf(QStringLiteral("pv"));
+    if (pvIndex < 0 || pvIndex + 1 >= tokens.size()) {
         // pvが含まれていない場合（info stringなど）は読み筋として表示しない
         return;
     }
 
-    QStringList pvTokens = pvLineTokens.at(1).split(" ");
+    const QStringList pvTokens = tokens.mid(pvIndex + 1);
+    QVector<QChar> pvBoardCopy = clonedBoardData;
+    parsePvAndSimulateMoves(pvTokens, algorithm, pvBoardCopy, isPondering);
+}
 
-    parsePvAndSimulateMoves(pvTokens, algorithm, clonedBoardData, isPondering);
+void ShogiEngineInfoParser::clearParsedInfo()
+{
+    m_depth.clear();
+    m_seldepth.clear();
+    m_multipv.clear();
+    m_nodes.clear();
+    m_nps.clear();
+    m_time.clear();
+    m_score.clear();
+    m_string.clear();
+    m_scoreCp.clear();
+    m_scoreMate.clear();
+    m_pvKanjiStr.clear();
+    m_pvUsiStr.clear();
+    m_hashfull.clear();
+    m_searchedHand.clear();
+    m_evaluationBound = EvaluationBound::None;
 }
 
 // ============================================================

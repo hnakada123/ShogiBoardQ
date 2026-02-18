@@ -12,8 +12,11 @@
 ThinkingInfoPresenter::ThinkingInfoPresenter(QObject* parent)
     : QObject(parent)
     , m_locale(QLocale::English)
+    , m_infoParser(std::make_unique<ShogiEngineInfoParser>())
 {
 }
+
+ThinkingInfoPresenter::~ThinkingInfoPresenter() = default;
 
 // ============================================================
 // 依存関係設定
@@ -120,8 +123,10 @@ void ThinkingInfoPresenter::processInfoLineInternal(const QString& line)
 
     int scoreInt = 0;
 
-    // スマートポインタでメモリ管理
-    auto info = std::make_unique<ShogiEngineInfoParser>();
+    ShogiEngineInfoParser* info = m_infoParser.get();
+    if (!info) {
+        return;
+    }
 
     info->setPreviousFileTo(m_previousFileTo);
     info->setPreviousRankTo(m_previousRankTo);
@@ -131,25 +136,17 @@ void ThinkingInfoPresenter::processInfoLineInternal(const QString& line)
         ? ShogiGameController::Player1 
         : ShogiGameController::Player2;
     info->setThinkingStartPlayer(startPlayer);
-
-    // const_castを避けるためlineをコピー
-    QString lineCopy = line;
-    info->parseEngineOutputAndUpdateState(
-        lineCopy,
-        m_gameController,
-        m_clonedBoardData,
-        m_ponderEnabled
-    );
+    info->parseEngineOutputAndUpdateState(line, m_gameController, m_clonedBoardData, m_ponderEnabled);
 
     // シグナル経由でGUI項目を更新
-    emitSearchedHand(info.get());
-    emitDepth(info.get());
-    emitNodes(info.get());
-    emitNps(info.get());
-    emitHashfull(info.get());
+    emitSearchedHand(info);
+    emitDepth(info);
+    emitNodes(info);
+    emitNps(info);
+    emitHashfull(info);
 
     // 評価値/詰み手数の更新
-    updateEvaluationInfo(info.get(), scoreInt);
+    updateEvaluationInfo(info, scoreInt);
 
     // 思考タブへ追記するシグナルを発行
     if (!info->time().isEmpty() || !info->depth().isEmpty() ||

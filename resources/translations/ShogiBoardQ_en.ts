@@ -3241,7 +3241,7 @@ Select OK to specify the save location.</translation>
 <context>
     <name>KifuBranchTree</name>
     <message>
-        <location filename="../../src/kifu/kifubranchtree.cpp" line="44"/>
+        <location filename="../../src/kifu/kifubranchtree.cpp" line="45"/>
         <source>開始局面</source>
         <translation>Starting Position</translation>
     </message>
@@ -4159,17 +4159,17 @@ Please restart the application to apply the changes.</translation>
         <translation>Game Record Files (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2 *.ki2u);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3790"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3804"/>
         <source>局面を反映しました</source>
         <translation>Position applied</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3792"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3806"/>
         <source>局面の反映に失敗しました</source>
         <translation>Failed to apply position</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3795"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3809"/>
         <source>局面の反映に失敗しました（内部エラー）</source>
         <translation>Failed to apply position (internal error)</translation>
     </message>
@@ -4538,17 +4538,17 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Failed to auto-save game record: %1</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3764"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3771"/>
         <source>棋譜を取り込みました</source>
         <translation>Game record imported</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3766"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3773"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation>Failed to import game record</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3770"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3777"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation>Failed to import game record (internal error)</translation>
     </message>
@@ -6108,57 +6108,57 @@ Are you sure you want to declare?</translation>
 <context>
     <name>ShogiEngineInfoParser</name>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="172"/>
+        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="174"/>
         <source>An error occurred in ShogiEngineInfoParser::convertRankCharToInt. Invalid character conversion %1.</source>
         <translation>An error occurred in ShogiEngineInfoParser::convertRankCharToInt. Invalid character conversion %1.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="199"/>
+        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="201"/>
         <source>An error occurred in ShogiEngineInfoParser::parseMoveString. The length of the move string %1 is insufficient.</source>
         <translation>An error occurred in ShogiEngineInfoParser::parseMoveString. The length of the move string %1 is insufficient.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="227"/>
+        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="229"/>
         <source>An error occurred in ShogiEngineInfoParser::parseMoveString. Failed to convert source rank.</source>
         <translation>An error occurred in ShogiEngineInfoParser::parseMoveString. Failed to convert source rank.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="238"/>
+        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="240"/>
         <source>An error occurred in ShogiEngineInfoParser::parseMoveString. Invalid stand piece specification.</source>
         <translation>An error occurred in ShogiEngineInfoParser::parseMoveString. Invalid stand piece specification.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="244"/>
+        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="246"/>
         <source>An error occurred in ShogiEngineInfoParser::parseMoveString. The coordinates of the source square are invalid.</source>
         <translation>An error occurred in ShogiEngineInfoParser::parseMoveString. The coordinates of the source square are invalid.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="254"/>
+        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="256"/>
         <source>An error occurred in ShogiEngineInfoParser::parseMoveString. The coordinates of the destination file are invalid.</source>
         <translation>An error occurred in ShogiEngineInfoParser::parseMoveString. The coordinates of the destination file are invalid.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="264"/>
+        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="266"/>
         <source>An error occurred in ShogiEngineInfoParser::parseMoveString. Failed to convert destination rank.</source>
         <translation>An error occurred in ShogiEngineInfoParser::parseMoveString. Failed to convert destination rank.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="270"/>
+        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="272"/>
         <source>An error occurred in ShogiEngineInfoParser::parseMoveString. The coordinates of the destination square are invalid.</source>
         <translation>An error occurred in ShogiEngineInfoParser::parseMoveString. The coordinates of the destination square are invalid.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="328"/>
+        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="330"/>
         <source>An error occurred in ShogiEngineInfoParser::getPieceKanjiName. The piece character &apos;%1&apos; does not exist.</source>
         <translation>An error occurred in ShogiEngineInfoParser::getPieceKanjiName. The piece character &apos;%1&apos; does not exist.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="345"/>
+        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="347"/>
         <source>An error occurred in ShogiEngineInfoParser::getPieceCharacter. The rank value is invalid.</source>
         <translation>An error occurred in ShogiEngineInfoParser::getPieceCharacter. The rank value is invalid.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="352"/>
+        <location filename="../../src/engine/shogiengineinfoparser.cpp" line="354"/>
         <source>An error occurred in ShogiEngineInfoParser::getPieceCharacter. The file value is invalid.</source>
         <translation>An error occurred in ShogiEngineInfoParser::getPieceCharacter. The file value is invalid.</translation>
     </message>
@@ -6252,13 +6252,13 @@ Are you sure you want to declare?</translation>
 <context>
     <name>ShogiView</name>
     <message>
-        <location filename="../../src/views/shogiview.cpp" line="2336"/>
-        <location filename="../../src/views/shogiview.cpp" line="2356"/>
+        <location filename="../../src/views/shogiview.cpp" line="2399"/>
+        <location filename="../../src/views/shogiview.cpp" line="2419"/>
         <source>次の手番</source>
         <translation>Next Turn</translation>
     </message>
     <message>
-        <location filename="../../src/views/shogiview.cpp" line="2578"/>
+        <location filename="../../src/views/shogiview.cpp" line="2641"/>
         <source>編集終了</source>
         <translation>End Edit</translation>
     </message>
@@ -6582,22 +6582,22 @@ Are you sure you want to declare?</translation>
 <context>
     <name>Usi</name>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="409"/>
+        <location filename="../../src/engine/usi.cpp" line="453"/>
         <source>Engine file path is empty.</source>
         <translation>Engine file path is empty.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="426"/>
+        <location filename="../../src/engine/usi.cpp" line="470"/>
         <source>Failed to change directory to %1</source>
         <translation>Failed to change directory to %1</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="655"/>
+        <location filename="../../src/engine/usi.cpp" line="699"/>
         <source>USI engine is not running.</source>
         <translation>USI engine is not running.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="962"/>
+        <location filename="../../src/engine/usi.cpp" line="1006"/>
         <source>Timeout waiting for bestmove.</source>
         <translation>Timeout waiting for bestmove.</translation>
     </message>

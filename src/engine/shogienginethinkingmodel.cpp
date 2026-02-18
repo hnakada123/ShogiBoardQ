@@ -116,6 +116,16 @@ const ShogiInfoRecord* ShogiEngineThinkingModel::recordAt(int row) const
     return list.at(row);
 }
 
+int ShogiEngineThinkingModel::findRowByMultipv(int multipv) const
+{
+    for (int i = 0; i < list.size(); ++i) {
+        if (list.at(i)->multipv() == multipv) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 // ============================================================
 // MultiPV対応
 // ============================================================
@@ -131,13 +141,7 @@ void ShogiEngineThinkingModel::updateByMultipv(ShogiInfoRecord* record, int maxM
     }
 
     // 同じmultipv値を持つ既存の行を探す
-    int existingRow = -1;
-    for (int i = 0; i < list.size(); ++i) {
-        if (list.at(i)->multipv() == multipv) {
-            existingRow = i;
-            break;
-        }
-    }
+    const int existingRow = findRowByMultipv(multipv);
 
     if (existingRow >= 0) {
         // 既存の行を更新
@@ -182,4 +186,18 @@ void ShogiEngineThinkingModel::sortByScore()
     });
 
     endResetModel();
+}
+
+void ShogiEngineThinkingModel::trimToMaxRows(int maxRows)
+{
+    if (maxRows < 0) {
+        maxRows = 0;
+    }
+
+    while (list.size() > maxRows) {
+        const int lastIdx = static_cast<int>(list.size()) - 1;
+        beginRemoveRows(QModelIndex(), lastIdx, lastIdx);
+        delete list.takeLast();
+        endRemoveRows();
+    }
 }

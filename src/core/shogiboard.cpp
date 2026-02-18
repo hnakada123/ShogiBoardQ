@@ -447,7 +447,8 @@ QString ShogiBoard::convertPieceToSfen(const QChar piece) const
 
 QString ShogiBoard::convertBoardToSfen()
 {
-    QString str = "";
+    QString str;
+    str.reserve(200);
 
     for (int rank = 1; rank <= ranks(); ++rank) {
         int spacecount = 0;
@@ -479,9 +480,10 @@ QString ShogiBoard::convertBoardToSfen()
 
 QString ShogiBoard::convertStandToSfen() const
 {
-    QString handPiece = "";
+    QString handPiece;
+    handPiece.reserve(40);
 
-    QList<QChar> keys = {'R', 'B', 'G', 'S', 'N', 'L', 'P'};
+    static const QList<QChar> keys = {'R', 'B', 'G', 'S', 'N', 'L', 'P'};
 
     for(const auto& key : keys) {
         // 先手
